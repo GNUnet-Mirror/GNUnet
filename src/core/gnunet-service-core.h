@@ -11,7 +11,7 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -81,7 +81,7 @@ struct GSC_ClientActiveRequest
   /**
    * How important is this request.
    */
-  enum GNUNET_CORE_Priority priority;
+  enum GNUNET_MQ_PriorityPreferences priority;
 
   /**
    * Has this request been solicited yet?
@@ -97,7 +97,6 @@ struct GSC_ClientActiveRequest
    * Unique request ID (in big endian).
    */
   uint16_t smr_id;
-
 };
 
 
@@ -140,10 +139,11 @@ GSC_CLIENTS_reject_request (struct GSC_ClientActiveRequest *car,
  * @param tmap_new updated type map for the neighbour, NULL for disconnect
  */
 void
-GSC_CLIENTS_notify_client_about_neighbour (struct GSC_Client *client,
-                                           const struct GNUNET_PeerIdentity *neighbour,
-                                           const struct GSC_TypeMap *tmap_old,
-                                           const struct GSC_TypeMap *tmap_new);
+GSC_CLIENTS_notify_client_about_neighbour (
+  struct GSC_Client *client,
+  const struct GNUNET_PeerIdentity *neighbour,
+  const struct GSC_TypeMap *tmap_old,
+  const struct GSC_TypeMap *tmap_new);
 
 
 /**
@@ -174,9 +174,10 @@ GSC_CLIENTS_deliver_message (const struct GNUNET_PeerIdentity *sender,
  * @param tmap_new updated type map for the neighbour, NULL for disconnect
  */
 void
-GSC_CLIENTS_notify_clients_about_neighbour (const struct GNUNET_PeerIdentity *neighbour,
-                                            const struct GSC_TypeMap *tmap_old,
-                                            const struct GSC_TypeMap *tmap_new);
+GSC_CLIENTS_notify_clients_about_neighbour (
+  const struct GNUNET_PeerIdentity *neighbour,
+  const struct GSC_TypeMap *tmap_old,
+  const struct GSC_TypeMap *tmap_new);
 
 
 /**

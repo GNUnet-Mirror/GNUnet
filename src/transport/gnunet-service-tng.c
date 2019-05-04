@@ -3743,10 +3743,13 @@ handle_client_send (void *cls, const struct OutboundMessage *obm)
   size_t payload_size;
   struct TransportDVBoxMessage *dvb;
   struct VirtualLink *vl;
+  enum GNUNET_MQ_PriorityPreferences pp;
 
   GNUNET_assert (CT_CORE == tc->type);
   obmm = (const struct GNUNET_MessageHeader *) &obm[1];
   bytes_msg = ntohs (obmm->size);
+  pp = (enum GNUNET_MQ_PriorityPreferences) ntohl (obm->priority);
+  /* FIXME: actually make use of pp */ (void) pp;
   vl = GNUNET_CONTAINER_multipeermap_get (links, &obm->peer);
   if (NULL == vl)
   {

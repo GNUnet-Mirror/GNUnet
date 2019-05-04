@@ -11,7 +11,7 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -42,23 +42,23 @@
  * for handlers that were specifically registered are always
  * transmitted to the client.
  */
-#define GNUNET_CORE_OPTION_NOTHING             0
+#define GNUNET_CORE_OPTION_NOTHING 0
 
 /**
  * Client cares about connectivity changes.
  */
-#define GNUNET_CORE_OPTION_SEND_STATUS_CHANGE  4
+#define GNUNET_CORE_OPTION_SEND_STATUS_CHANGE 4
 
 /**
  * Client wants all inbound messages in full.
  */
-#define GNUNET_CORE_OPTION_SEND_FULL_INBOUND   8
+#define GNUNET_CORE_OPTION_SEND_FULL_INBOUND 8
 
 /**
  * Client just wants the 4-byte message headers of
  * all inbound messages.
  */
-#define GNUNET_CORE_OPTION_SEND_HDR_INBOUND   16
+#define GNUNET_CORE_OPTION_SEND_HDR_INBOUND 16
 
 /**
  * Client wants all outbound messages in full.
@@ -69,7 +69,7 @@
  * Client just wants the 4-byte message headers of
  * all outbound messages.
  */
-#define GNUNET_CORE_OPTION_SEND_HDR_OUTBOUND  64
+#define GNUNET_CORE_OPTION_SEND_HDR_OUTBOUND 64
 
 
 GNUNET_NETWORK_STRUCT_BEGIN
@@ -92,7 +92,6 @@ struct InitMessage
    * Options, see GNUNET_CORE_OPTION_ values.
    */
   uint32_t options GNUNET_PACKED;
-
 };
 
 
@@ -117,7 +116,6 @@ struct InitReplyMessage
    * Public key of the local peer.
    */
   struct GNUNET_PeerIdentity my_identity;
-
 };
 
 
@@ -141,7 +139,6 @@ struct ConnectNotifyMessage
    * Identity of the connecting peer.
    */
   struct GNUNET_PeerIdentity peer;
-
 };
 
 
@@ -165,7 +162,6 @@ struct DisconnectNotifyMessage
    * Identity of the connecting peer.
    */
   struct GNUNET_PeerIdentity peer;
-
 };
 
 
@@ -236,7 +232,6 @@ struct SendMessageRequest
    * Counter for this peer to match SMRs to replies.
    */
   uint16_t smr_id GNUNET_PACKED;
-
 };
 
 
@@ -269,7 +264,6 @@ struct SendMessageReady
    * Identity of the intended target.
    */
   struct GNUNET_PeerIdentity peer;
-
 };
 
 
@@ -285,7 +279,8 @@ struct SendMessage
   struct GNUNET_MessageHeader header;
 
   /**
-   * How important is this message?
+   * How important is this message? Contains a
+   * `enum GNUNET_MQ_PriorityPreferences` in NBO.
    */
   uint32_t priority GNUNET_PACKED;
 
@@ -299,17 +294,6 @@ struct SendMessage
    * Identity of the intended receiver.
    */
   struct GNUNET_PeerIdentity peer;
-
-  /**
-   * #GNUNET_YES if corking is allowed, #GNUNET_NO if not.
-   */
-  uint32_t cork GNUNET_PACKED;
-
-  /**
-   * Always 0.
-   */
-  uint32_t reserved GNUNET_PACKED;
-
 };
 
 
@@ -338,7 +322,6 @@ struct MonitorNotifyMessage
    * How long will we stay in this state (if nothing else happens)?
    */
   struct GNUNET_TIME_AbsoluteNBO timeout;
-
 };
 
 

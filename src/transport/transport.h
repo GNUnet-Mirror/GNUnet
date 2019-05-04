@@ -302,9 +302,9 @@ struct OutboundMessage
   struct GNUNET_MessageHeader header;
 
   /**
-   * Always zero.
+   * An `enum GNUNET_MQ_PriorityPreferences` in NBO.
    */
-  uint32_t reserved GNUNET_PACKED;
+  uint32_t priority GNUNET_PACKED;
 
 #if ! (defined(GNUNET_TRANSPORT_COMMUNICATION_VERSION) || \
        defined(GNUNET_TRANSPORT_CORE_VERSION))

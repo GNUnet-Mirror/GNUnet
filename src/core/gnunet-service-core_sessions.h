@@ -11,7 +11,7 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -114,14 +114,12 @@ GSC_SESSIONS_dequeue_request (struct GSC_ClientActiveRequest *car);
  * @param car original request that was queued and then solicited,
  *            ownership does not change (dequeue will be called soon).
  * @param msg message to transmit
- * @param cork is corking allowed?
  * @param priority how important is this message
  */
 void
 GSC_SESSIONS_transmit (struct GSC_ClientActiveRequest *car,
                        const struct GNUNET_MessageHeader *msg,
-                       int cork,
-                       enum GNUNET_CORE_Priority priority);
+                       enum GNUNET_MQ_PriorityPreferences priority);
 
 
 /**
@@ -180,7 +178,6 @@ GSC_SESSIONS_init (void);
  */
 void
 GSC_SESSIONS_done (void);
-
 
 
 #endif

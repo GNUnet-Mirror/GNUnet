@@ -11,7 +11,7 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -34,9 +34,8 @@
 #define GNUNET_CORE_SERVICE_H
 
 #ifdef __cplusplus
-extern "C"
-{
-#if 0                           /* keep Emacsens' auto-indent happy */
+extern "C" {
+#if 0 /* keep Emacsens' auto-indent happy */
 }
 #endif
 #endif
@@ -48,35 +47,6 @@ extern "C"
  * Version number of GNUnet-core API.
  */
 #define GNUNET_CORE_VERSION 0x00000001
-
-/**
- * Traffic priorities.
- */
-enum GNUNET_CORE_Priority
-{
-
-  /**
-   * Lowest priority, i.e. background traffic (i.e. fs)
-   */
-  GNUNET_CORE_PRIO_BACKGROUND = 0,
-
-  /**
-   * Normal traffic (i.e. cadet/dv relay, DHT)
-   */
-  GNUNET_CORE_PRIO_BEST_EFFORT = 1,
-
-  /**
-   * Urgent traffic (local peer, i.e. conversation).
-   */
-  GNUNET_CORE_PRIO_URGENT = 2,
-
-  /**
-   * Highest priority, control traffic (i.e. NSE, Core/Cadet KX).
-   */
-  GNUNET_CORE_PRIO_CRITICAL_CONTROL = 3
-
-
-};
 
 
 /**
@@ -93,10 +63,10 @@ struct GNUNET_CORE_Handle;
  * @return closure associated with @a peer. given to mq callbacks and
  *         #GNUNET_CORE_DisconnectEventHandler
  */
-typedef void *
-(*GNUNET_CORE_ConnectEventHandler) (void *cls,
-                                    const struct GNUNET_PeerIdentity *peer,
-				    struct GNUNET_MQ_Handle *mq);
+typedef void *(*GNUNET_CORE_ConnectEventHandler) (
+  void *cls,
+  const struct GNUNET_PeerIdentity *peer,
+  struct GNUNET_MQ_Handle *mq);
 
 
 /**
@@ -107,10 +77,10 @@ typedef void *
  * @param peer_cls closure associated with peer. given in
  *        #GNUNET_CORE_ConnectEventHandler
  */
-typedef void
-(*GNUNET_CORE_DisconnectEventHandler) (void *cls,
-                                       const struct GNUNET_PeerIdentity *peer,
-				       void *peer_cls);
+typedef void (*GNUNET_CORE_DisconnectEventHandler) (
+  void *cls,
+  const struct GNUNET_PeerIdentity *peer,
+  void *peer_cls);
 
 
 /**
@@ -125,9 +95,9 @@ typedef void
  * @param cls closure
  * @param my_identity ID of this peer, NULL if we failed
  */
-typedef void
-(*GNUNET_CORE_StartupCallback) (void *cls,
-                                const struct GNUNET_PeerIdentity *my_identity);
+typedef void (*GNUNET_CORE_StartupCallback) (
+  void *cls,
+  const struct GNUNET_PeerIdentity *my_identity);
 
 
 /**
@@ -173,22 +143,6 @@ GNUNET_CORE_disconnect (struct GNUNET_CORE_Handle *handle);
 
 
 /**
- * Inquire with CORE what options should be set for a message
- * so that it is transmitted with the given @a priority and
- * the given @a cork value.
- *
- * @param cork desired corking
- * @param priority desired message priority
- * @param[out] flags set to `flags` value for #GNUNET_MQ_set_options()
- * @return `extra` argument to give to #GNUNET_MQ_set_options()
- */
-const void *
-GNUNET_CORE_get_mq_options (int cork,
-			    enum GNUNET_CORE_Priority priority,
-			    uint64_t *flags);
-
-
-/**
  * Obtain the message queue for a connected peer.
  *
  * @param h the core handle
@@ -197,7 +151,7 @@ GNUNET_CORE_get_mq_options (int cork,
  */
 struct GNUNET_MQ_Handle *
 GNUNET_CORE_get_mq (const struct GNUNET_CORE_Handle *h,
-		    const struct GNUNET_PeerIdentity *pid);
+                    const struct GNUNET_PeerIdentity *pid);
 
 
 /**
@@ -287,11 +241,11 @@ enum GNUNET_CORE_KxState
  * @param state current key exchange state of the peer
  * @param timeout when does the current state expire
  */
-typedef void
-(*GNUNET_CORE_MonitorCallback)(void *cls,
-                               const struct GNUNET_PeerIdentity *pid,
-                               enum GNUNET_CORE_KxState state,
-                               struct GNUNET_TIME_Absolute timeout);
+typedef void (*GNUNET_CORE_MonitorCallback) (
+  void *cls,
+  const struct GNUNET_PeerIdentity *pid,
+  enum GNUNET_CORE_KxState state,
+  struct GNUNET_TIME_Absolute timeout);
 
 
 /**
@@ -360,7 +314,7 @@ GNUNET_CORE_mq_create (struct GNUNET_CORE_Handle *h,
                        const struct GNUNET_PeerIdentity *target);
 
 
-#if 0                           /* keep Emacsens' auto-indent happy */
+#if 0 /* keep Emacsens' auto-indent happy */
 {
 #endif
 #ifdef __cplusplus
@@ -370,6 +324,6 @@ GNUNET_CORE_mq_create (struct GNUNET_CORE_Handle *h,
 /* ifndef GNUNET_CORE_SERVICE_H */
 #endif
 
-/** @} */  /* end of group core */
+/** @} */ /* end of group core */
 
 /* end of gnunet_core_service.h */

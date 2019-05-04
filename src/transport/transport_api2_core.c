@@ -329,7 +329,12 @@ mq_send_impl (struct GNUNET_MQ_Handle *mq,
   n->env =
     GNUNET_MQ_msg_nested_mh (obm, GNUNET_MESSAGE_TYPE_TRANSPORT_SEND, msg);
   n->env_size = ntohs (msg->size);
-  obm->reserved = htonl (0);
+  {
+    struct GNUNET_MQ_Envelope *env;
+
+    env = GNUNET_MQ_get_current_envelope (mq);
+    obm->priority = htonl ((uint32_t) GNUNET_MQ_env_get_options (env));
+  }
   obm->peer = n->id;
   if (0 == n->ready_window)
   {

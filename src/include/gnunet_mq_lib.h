@@ -49,7 +49,10 @@
  * @param type type of the message
  * @return the MQ message
  */
-#define GNUNET_MQ_msg_extra(mvar, esize, type) GNUNET_MQ_msg_(((struct GNUNET_MessageHeader**) &(mvar)), (esize) + sizeof *(mvar), (type))
+#define GNUNET_MQ_msg_extra(mvar, esize, type)                \
+  GNUNET_MQ_msg_ (((struct GNUNET_MessageHeader **) &(mvar)), \
+                  (esize) + sizeof *(mvar),                   \
+                  (type))
 
 /**
  * Allocate a GNUNET_MQ_Envelope.
@@ -61,7 +64,7 @@
  * @param type type of the message
  * @return the allocated envelope
  */
-#define GNUNET_MQ_msg(mvar, type) GNUNET_MQ_msg_extra(mvar, 0, type)
+#define GNUNET_MQ_msg(mvar, type) GNUNET_MQ_msg_extra (mvar, 0, type)
 
 
 /**
@@ -70,7 +73,8 @@
  *
  * @param type type of the message
  */
-#define GNUNET_MQ_msg_header(type) GNUNET_MQ_msg_ (NULL, sizeof (struct GNUNET_MessageHeader), type)
+#define GNUNET_MQ_msg_header(type) \
+  GNUNET_MQ_msg_ (NULL, sizeof (struct GNUNET_MessageHeader), type)
 
 
 /**
@@ -81,7 +85,8 @@
  * @param esize extra space to allocate after the message header
  * @param type type of the message
  */
-#define GNUNET_MQ_msg_header_extra(mh, esize, type) GNUNET_MQ_msg_ (&mh, (esize) + sizeof (struct GNUNET_MessageHeader), type)
+#define GNUNET_MQ_msg_header_extra(mh, esize, type) \
+  GNUNET_MQ_msg_ (&mh, (esize) + sizeof (struct GNUNET_MessageHeader), type)
 
 
 /**
@@ -94,14 +99,16 @@
  * @param mh message to nest
  * @return a newly allocated 'struct GNUNET_MQ_Envelope *'
  */
-#define GNUNET_MQ_msg_nested_mh(mvar, type, mh) \
-  ({struct GNUNET_MQ_Envelope *_ev;\
-    _ev = GNUNET_MQ_msg_nested_mh_((struct GNUNET_MessageHeader**) &(mvar),\
-                                   sizeof (*(mvar)),\
-                                   (type),\
-                                   (mh));\
-   (void)(mvar)->header; /* type check */\
-   _ev;})
+#define GNUNET_MQ_msg_nested_mh(mvar, type, mh)                               \
+  ({                                                                          \
+    struct GNUNET_MQ_Envelope *_ev;                                           \
+    _ev = GNUNET_MQ_msg_nested_mh_ ((struct GNUNET_MessageHeader **) &(mvar), \
+                                    sizeof (*(mvar)),                         \
+                                    (type),                                   \
+                                    (mh));                                    \
+    (void) (mvar)->header; /* type check */                                   \
+    _ev;                                                                      \
+  })
 
 
 /**
@@ -112,7 +119,9 @@
  * @return a 'struct GNUNET_MessageHeader *' that points at the nested message of the given message,
  *         or NULL if the given message in @a var does not have any space after the message struct
  */
-#define GNUNET_MQ_extract_nested_mh(var) GNUNET_MQ_extract_nested_mh_ ((struct GNUNET_MessageHeader *) (var), sizeof (*(var)))
+#define GNUNET_MQ_extract_nested_mh(var)                               \
+  GNUNET_MQ_extract_nested_mh_ ((struct GNUNET_MessageHeader *) (var), \
+                                sizeof (*(var)))
 
 
 /**
@@ -213,14 +222,89 @@ enum GNUNET_MQ_Error
 
 
 /**
+ * Per envelope preferences and priorities.
+ */
+enum GNUNET_MQ_PriorityPreferences
+{
+
+  /**
+   * Lowest priority, i.e. background traffic (i.e. NSE, FS).
+   * This is the default!
+   */
+  GNUNET_MQ_PRIO_BACKGROUND = 0,
+
+  /**
+   * Best-effort traffic (i.e. CADET relay, DHT)
+   */
+  GNUNET_MQ_PRIO_BEST_EFFORT = 1,
+
+  /**
+   * Urgent traffic (local peer, i.e. Conversation).
+   */
+  GNUNET_MQ_PRIO_URGENT = 2,
+
+  /**
+   * Highest priority, control traffic (i.e. CORE/CADET KX).
+   */
+  GNUNET_MQ_PRIO_CRITICAL_CONTROL = 3,
+
+  /**
+   * Bit mask to apply to extract the priority bits.
+   */
+  GNUNET_MQ_PRIORITY_MASK = 3,
+
+  /**
+   * Flag to indicate that unreliable delivery is acceptable.  This
+   * means TRANSPORT will not attempt to receive an
+   * acknowledgment. CORE will just pass this flag through.  CADET
+   * will use unreliable delivery if this flag is set.
+   *
+   * Note that even without this flag, messages may be lost by
+   * TRANSPORT and CORE.
+   *
+   * Thus, how "strong" the semantics of reliable delivery are depends
+   * on the layer!
+   */
+  GNUNET_MQ_PREF_UNRELIABLE = 16,
+
+  /**
+   * Flag to indicate that low latency is important.  This flag must
+   * generally not be used in combination with
+   * #GNUNET_MQ_PREF_CORKING_ALLOWED as it would be a contradiction.
+   * When this flags is set, the envelope may skip forward in the
+   * queue (depending on priority) and also TRANSPORT should attempt
+   * to pick a communicator with particularly low latency.
+   */
+  GNUNET_MQ_PREF_LOW_LATENCY = 32,
+
+  /**
+   * Flag to indicate that CORKing is acceptable. This allows the
+   * receiver to delay transmission in hope of combining this message
+   * with other messages into a larger transmission with less
+   * per-message overhead.
+   */
+  GNUNET_MQ_PREF_CORK_ALLOWED = 64,
+
+  /**
+   * Flag to indicate that high bandwidth is desired. This flag
+   * indicates that the method chosen for transmission should focus on
+   * overall goodput.  It rarely makes sense to combine this flag with
+   * #GNUNET_MQ_PREF_LOW_LATENCY.
+   */
+  GNUNET_MQ_PREF_GOODPUT = 128
+
+};
+
+
+/**
  * Called when a message has been received.
  *
  * @param cls closure
  * @param msg the received message
  */
-typedef void
-(*GNUNET_MQ_MessageCallback) (void *cls,
-                              const struct GNUNET_MessageHeader *msg);
+typedef void (*GNUNET_MQ_MessageCallback) (
+  void *cls,
+  const struct GNUNET_MessageHeader *msg);
 
 
 /**
@@ -231,9 +315,9 @@ typedef void
  * @return #GNUNET_OK if the message is well-formed,
  *         #GNUNET_SYSERR if not
  */
-typedef int
-(*GNUNET_MQ_MessageValidationCallback) (void *cls,
-					const struct GNUNET_MessageHeader *msg);
+typedef int (*GNUNET_MQ_MessageValidationCallback) (
+  void *cls,
+  const struct GNUNET_MessageHeader *msg);
 
 
 /**
@@ -244,10 +328,9 @@ typedef int
  * @param msg the message to send
  * @param impl_state state of the implementation
  */
-typedef void
-(*GNUNET_MQ_SendImpl) (struct GNUNET_MQ_Handle *mq,
-                       const struct GNUNET_MessageHeader *msg,
-                       void *impl_state);
+typedef void (*GNUNET_MQ_SendImpl) (struct GNUNET_MQ_Handle *mq,
+                                    const struct GNUNET_MessageHeader *msg,
+                                    void *impl_state);
 
 
 /**
@@ -259,9 +342,8 @@ typedef void
  * @param mq the message queue to destroy
  * @param impl_state state of the implementation
  */
-typedef void
-(*GNUNET_MQ_DestroyImpl) (struct GNUNET_MQ_Handle *mq,
-                          void *impl_state);
+typedef void (*GNUNET_MQ_DestroyImpl) (struct GNUNET_MQ_Handle *mq,
+                                       void *impl_state);
 
 
 /**
@@ -270,9 +352,8 @@ typedef void
  * @param mq message queue
  * @param impl_state state specific to the implementation
  */
-typedef void
-(*GNUNET_MQ_CancelImpl) (struct GNUNET_MQ_Handle *mq,
-                         void *impl_state);
+typedef void (*GNUNET_MQ_CancelImpl) (struct GNUNET_MQ_Handle *mq,
+                                      void *impl_state);
 
 
 /**
@@ -284,9 +365,7 @@ typedef void
  * @param cls closure
  * @param error error code
  */
-typedef void
-(*GNUNET_MQ_ErrorHandler) (void *cls,
-                           enum GNUNET_MQ_Error error);
+typedef void (*GNUNET_MQ_ErrorHandler) (void *cls, enum GNUNET_MQ_Error error);
 
 
 /**
@@ -411,7 +490,10 @@ struct GNUNET_MQ_MessageHandler
 /**
  * End-marker for the handlers array
  */
-#define GNUNET_MQ_handler_end() { NULL, NULL, NULL, 0, 0 }
+#define GNUNET_MQ_handler_end() \
+  {                             \
+    NULL, NULL, NULL, 0, 0      \
+  }
 
 
 /**
@@ -442,12 +524,14 @@ struct GNUNET_MQ_MessageHandler
  * @param str type of the message (a struct)
  * @param ctx context for the callbacks
  */
-#define GNUNET_MQ_hd_fixed_size(name,code,str,ctx)           \
-  ({                                                         \
-    void (*_cb)(void *cls, const str *msg) = &handle_##name; \
-    ((struct GNUNET_MQ_MessageHandler) {                     \
-      NULL, (GNUNET_MQ_MessageCallback) _cb,                 \
-      (ctx), (code), sizeof (str) });                        \
+#define GNUNET_MQ_hd_fixed_size(name, code, str, ctx)                   \
+  ({                                                                    \
+    void (*_cb) (void *cls, const str *msg) = &handle_##name;           \
+    ((struct GNUNET_MQ_MessageHandler){NULL,                            \
+                                       (GNUNET_MQ_MessageCallback) _cb, \
+                                       (ctx),                           \
+                                       (code),                          \
+                                       sizeof (str)});                  \
   })
 
 
@@ -491,14 +575,16 @@ struct GNUNET_MQ_MessageHandler
  * @param str type of the message (a struct)
  * @param ctx context for the callbacks
  */
-#define GNUNET_MQ_hd_var_size(name,code,str,ctx)             \
-  __extension__ ({                                           \
-    int (*_mv)(void *cls, const str *msg) = &check_##name;   \
-    void (*_cb)(void *cls, const str *msg) = &handle_##name; \
-    ((struct GNUNET_MQ_MessageHandler)                       \
-      { (GNUNET_MQ_MessageValidationCallback) _mv,           \
-        (GNUNET_MQ_MessageCallback) _cb,                     \
-        (ctx), (code), sizeof (str) });                      \
+#define GNUNET_MQ_hd_var_size(name, code, str, ctx)                          \
+  __extension__({                                                            \
+    int (*_mv) (void *cls, const str *msg) = &check_##name;                  \
+    void (*_cb) (void *cls, const str *msg) = &handle_##name;                \
+    ((struct GNUNET_MQ_MessageHandler){(GNUNET_MQ_MessageValidationCallback) \
+                                         _mv,                                \
+                                       (GNUNET_MQ_MessageCallback) _cb,      \
+                                       (ctx),                                \
+                                       (code),                               \
+                                       sizeof (str)});                       \
   })
 
 
@@ -512,18 +598,17 @@ struct GNUNET_MQ_MessageHandler
  * @param an IPC message with proper type to determine
  *  the size, starting with a `struct GNUNET_MessageHeader`
  */
-#define GNUNET_MQ_check_zero_termination(m)           \
-  {                                                   \
-    const char *str = (const char *) &m[1];           \
-    const struct GNUNET_MessageHeader *hdr =          \
-      (const struct GNUNET_MessageHeader *) m;        \
-    uint16_t slen = ntohs (hdr->size) - sizeof (*m);  \
-    if ( (0 == slen) ||                               \
-         (memchr (str, 0, slen) != &str[slen - 1]) )  \
-    {                                                 \
-      GNUNET_break (0);                               \
-      return GNUNET_NO;                               \
-    }                                                 \
+#define GNUNET_MQ_check_zero_termination(m)                       \
+  {                                                               \
+    const char *str = (const char *) &m[1];                       \
+    const struct GNUNET_MessageHeader *hdr =                      \
+      (const struct GNUNET_MessageHeader *) m;                    \
+    uint16_t slen = ntohs (hdr->size) - sizeof (*m);              \
+    if ((0 == slen) || (memchr (str, 0, slen) != &str[slen - 1])) \
+    {                                                             \
+      GNUNET_break (0);                                           \
+      return GNUNET_NO;                                           \
+    }                                                             \
   }
 
 
@@ -539,19 +624,19 @@ struct GNUNET_MQ_MessageHandler
  * @param an IPC message with proper type to determine
  *  the size, starting with a `struct GNUNET_MessageHeader`
  */
-#define GNUNET_MQ_check_boxed_message(m)                \
-  {                                                     \
-    const struct GNUNET_MessageHeader *inbox =          \
-      (const struct GNUNET_MessageHeader *) &m[1];      \
-    const struct GNUNET_MessageHeader *hdr =            \
-      (const struct GNUNET_MessageHeader *) m;          \
-    uint16_t slen = ntohs (hdr->size) - sizeof (*m);    \
-    if ( (slen < sizeof (struct GNUNET_MessageHeader))||\
-         (slen != ntohs (inbox->size)) )                \
-    {                                                   \
-      GNUNET_break (0);                                 \
-      return GNUNET_NO;                                 \
-    }                                                   \
+#define GNUNET_MQ_check_boxed_message(m)                 \
+  {                                                      \
+    const struct GNUNET_MessageHeader *inbox =           \
+      (const struct GNUNET_MessageHeader *) &m[1];       \
+    const struct GNUNET_MessageHeader *hdr =             \
+      (const struct GNUNET_MessageHeader *) m;           \
+    uint16_t slen = ntohs (hdr->size) - sizeof (*m);     \
+    if ((slen < sizeof (struct GNUNET_MessageHeader)) || \
+        (slen != ntohs (inbox->size)))                   \
+    {                                                    \
+      GNUNET_break (0);                                  \
+      return GNUNET_NO;                                  \
+    }                                                    \
   }
 
 
@@ -645,25 +730,34 @@ GNUNET_MQ_get_last_envelope (struct GNUNET_MQ_Handle *mq);
  * #GNUNET_MQ_set_options() for this message only.
  *
  * @param env message to set options for
- * @param flags flags to use (meaning is queue-specific)
- * @param extra additional buffer for further data (also queue-specific)
+ * @param pp priority and preferences to set for @a env
  */
 void
 GNUNET_MQ_env_set_options (struct GNUNET_MQ_Envelope *env,
-			   uint64_t flags,
-			   const void *extra);
+                           enum GNUNET_MQ_PriorityPreferences pp);
 
 
 /**
- * Get application-specific options for this envelope.
+ * Get performance preferences set for this envelope.
  *
  * @param env message to set options for
- * @param[out] flags set to flags to use (meaning is queue-specific)
- * @return extra additional buffer for further data (also queue-specific)
+ * @return priority and preferences to use
  */
-const void *
-GNUNET_MQ_env_get_options (struct GNUNET_MQ_Envelope *env,
-			   uint64_t *flags);
+enum GNUNET_MQ_PriorityPreferences
+GNUNET_MQ_env_get_options (struct GNUNET_MQ_Envelope *env);
+
+
+/**
+ * Combine performance preferences set for different
+ * envelopes that are being combined into one larger envelope.
+ *
+ * @param p1 one set of preferences
+ * @param p2 second set of preferences
+ * @return combined priority and preferences to use
+ */
+enum GNUNET_MQ_PriorityPreferences
+GNUNET_MQ_env_combine_options (enum GNUNET_MQ_PriorityPreferences p1,
+                               enum GNUNET_MQ_PriorityPreferences p2);
 
 
 /**
@@ -681,13 +775,11 @@ GNUNET_MQ_unsent_head (struct GNUNET_MQ_Handle *mq);
  * Set application-specific options for this queue.
  *
  * @param mq message queue to set options for
- * @param flags flags to use (meaning is queue-specific)
- * @param extra additional buffer for further data (also queue-specific)
+ * @param pp priority and preferences to use by default
  */
 void
 GNUNET_MQ_set_options (struct GNUNET_MQ_Handle *mq,
-		       uint64_t flags,
-		       const void *extra);
+                       enum GNUNET_MQ_PriorityPreferences pp);
 
 
 /**
@@ -708,8 +800,7 @@ GNUNET_MQ_get_length (struct GNUNET_MQ_Handle *mq);
  * @param ev the envelope with the message to send.
  */
 void
-GNUNET_MQ_send (struct GNUNET_MQ_Handle *mq,
-		struct GNUNET_MQ_Envelope *ev);
+GNUNET_MQ_send (struct GNUNET_MQ_Handle *mq, struct GNUNET_MQ_Envelope *ev);
 
 
 /**
@@ -742,8 +833,7 @@ GNUNET_MQ_send_cancel (struct GNUNET_MQ_Envelope *ev);
  * @param assoc_data to associate
  */
 uint32_t
-GNUNET_MQ_assoc_add (struct GNUNET_MQ_Handle *mq,
-		     void *assoc_data);
+GNUNET_MQ_assoc_add (struct GNUNET_MQ_Handle *mq, void *assoc_data);
 
 
 /**
@@ -754,8 +844,7 @@ GNUNET_MQ_assoc_add (struct GNUNET_MQ_Handle *mq,
  * @return the associated data
  */
 void *
-GNUNET_MQ_assoc_get (struct GNUNET_MQ_Handle *mq,
-                     uint32_t request_id);
+GNUNET_MQ_assoc_get (struct GNUNET_MQ_Handle *mq, uint32_t request_id);
 
 
 /**
@@ -766,8 +855,7 @@ GNUNET_MQ_assoc_get (struct GNUNET_MQ_Handle *mq,
  * @return the associated data
  */
 void *
-GNUNET_MQ_assoc_remove (struct GNUNET_MQ_Handle *mq,
-                        uint32_t request_id);
+GNUNET_MQ_assoc_remove (struct GNUNET_MQ_Handle *mq, uint32_t request_id);
 
 
 /**
@@ -846,8 +934,8 @@ struct GNUNET_MQ_DestroyNotificationHandle;
  */
 struct GNUNET_MQ_DestroyNotificationHandle *
 GNUNET_MQ_destroy_notify (struct GNUNET_MQ_Handle *mq,
-			  GNUNET_SCHEDULER_TaskCallback cb,
-			  void *cb_cls);
+                          GNUNET_SCHEDULER_TaskCallback cb,
+                          void *cb_cls);
 
 /**
  * Cancel registration from #GNUNET_MQ_destroy_notify().
@@ -855,7 +943,8 @@ GNUNET_MQ_destroy_notify (struct GNUNET_MQ_Handle *mq,
  * @param dnh handle for registration to cancel
  */
 void
-GNUNET_MQ_destroy_notify_cancel (struct GNUNET_MQ_DestroyNotificationHandle *dnh);
+GNUNET_MQ_destroy_notify_cancel (
+  struct GNUNET_MQ_DestroyNotificationHandle *dnh);
 
 
 /**
@@ -947,7 +1036,6 @@ const struct GNUNET_MessageHeader *
 GNUNET_MQ_impl_current (struct GNUNET_MQ_Handle *mq);
 
 
-
 /**
  * Enum defining all known preference categories.
  */
@@ -977,7 +1065,7 @@ enum GNUNET_MQ_PreferenceKind
    */
   GNUNET_MQ_PREFERENCE_RELIABILITY = 3
 
-  /**
+/**
    * Number of preference values allowed.
    */
 #define GNUNET_MQ_PREFERENCE_COUNT 4
@@ -993,8 +1081,6 @@ enum GNUNET_MQ_PreferenceKind
  */
 const char *
 GNUNET_MQ_preference_to_string (enum GNUNET_MQ_PreferenceKind type);
-
-
 
 
 #endif
