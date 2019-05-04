@@ -403,6 +403,7 @@ GNUNET_RECLAIM_ATTRIBUTE_list_dup (
  *
  * @param attrs list to destroy
  */
+void
 GNUNET_RECLAIM_ATTRIBUTE_list_destroy (
   struct GNUNET_RECLAIM_ATTRIBUTE_ClaimList *attrs)
 {
