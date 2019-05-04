@@ -1630,23 +1630,15 @@ sock_read (void *cls)
                                     &ub->sender.public_key))
     {
       char *addr_s;
-      struct GNUNET_TIME_Absolute expiration;
       enum GNUNET_NetworkType nt;
 
       addr_s =
         sockaddr_to_udpaddr_string ((const struct sockaddr *) &sa, salen);
       GNUNET_STATISTICS_update (stats, "# broadcasts received", 1, GNUNET_NO);
-      /* expire at the broadcast frequency, as then we'll get the next one
-       * anyway */
-      expiration = GNUNET_TIME_relative_to_absolute (BROADCAST_FREQUENCY);
       /* use our own mechanism to determine network type */
       nt =
         GNUNET_NT_scanner_get_type (is, (const struct sockaddr *) &sa, salen);
-      GNUNET_TRANSPORT_application_validate (ah,
-                                             &ub->sender,
-                                             expiration,
-                                             nt,
-                                             addr_s);
+      GNUNET_TRANSPORT_application_validate (ah, &ub->sender, nt, addr_s);
       GNUNET_free (addr_s);
       return;
     }

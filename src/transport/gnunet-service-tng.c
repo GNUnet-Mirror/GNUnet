@@ -2546,6 +2546,16 @@ static struct PendingAcknowledgement *pa_tail;
  */
 static unsigned int pa_count;
 
+/**
+ * Monotonic time we use for HELLOs generated at this time.  TODO: we
+ * should increase this value from time to time (i.e. whenever a
+ * `struct AddressListEntry` actually expires), but IF we do this, we
+ * must also update *all* (remaining) addresses in the PEERSTORE at
+ * that time! (So for now only increased when the peer is restarted,
+ * which hopefully roughly matches whenever our addresses change.)
+ */
+static struct GNUNET_TIME_Absolute hello_mono_time;
+
 
 /**
  * Get an offset into the transmission history buffer for `struct
@@ -4657,7 +4667,7 @@ store_pi (void *cls)
   expiration = GNUNET_TIME_relative_to_absolute (ale->expiration);
   GNUNET_HELLO_sign_address (ale->address,
                              ale->nt,
-                             expiration,
+                             hello_mono_time,
                              GST_my_private_key,
                              &addr,
                              &addr_len);
@@ -8442,19 +8452,15 @@ check_known_address (void *cls,
  *
  * @param pid peer the @a address is for
  * @param address an address to reach @a pid (presumably)
- * @param expiration when did @a pid claim @a address will become invalid
  */
 static void
 start_address_validation (const struct GNUNET_PeerIdentity *pid,
-                          const char *address,
-                          struct GNUNET_TIME_Absolute expiration)
+                          const char *address)
 {
   struct GNUNET_TIME_Absolute now;
   struct ValidationState *vs;
   struct CheckKnownAddressContext ckac = {.address = address, .vs = NULL};
 
-  if (0 == GNUNET_TIME_absolute_get_remaining (expiration).rel_value_us)
-    return; /* expired */
   (void) GNUNET_CONTAINER_multipeermap_get_multiple (validation_map,
                                                      pid,
                                                      &check_known_address,
@@ -8479,7 +8485,8 @@ start_address_validation (const struct GNUNET_PeerIdentity *pid,
   now = GNUNET_TIME_absolute_get ();
   vs = GNUNET_new (struct ValidationState);
   vs->pid = *pid;
-  vs->valid_until = expiration;
+  vs->valid_until =
+    GNUNET_TIME_relative_to_absolute (ADDRESS_VALIDATION_LIFETIME);
   vs->first_challenge_use = now;
   vs->validation_rtt = GNUNET_TIME_UNIT_FOREVER_REL;
   GNUNET_CRYPTO_random_block (GNUNET_CRYPTO_QUALITY_NONCE,
@@ -8524,9 +8531,7 @@ handle_hello (void *cls,
     GNUNET_break (0);
     return;
   }
-  start_address_validation (&pr->pid,
-                            (const char *) record->value,
-                            record->expiry);
+  start_address_validation (&pr->pid, (const char *) record->value);
 }
 
 
@@ -8602,7 +8607,7 @@ handle_address_consider_verify (
   struct TransportClient *tc = cls;
   char *address;
   enum GNUNET_NetworkType nt;
-  struct GNUNET_TIME_Absolute expiration;
+  struct GNUNET_TIME_Absolute mono_time;
 
   (void) cls;
   // OPTIMIZE-FIXME: checking that we know this address already should
@@ -8614,13 +8619,13 @@ handle_address_consider_verify (
                                   ntohs (hdr->header.size) - sizeof (*hdr),
                                   &hdr->peer,
                                   &nt,
-                                  &expiration);
+                                  &mono_time);
   if (NULL == address)
   {
     GNUNET_break_op (0);
     return;
   }
-  start_address_validation (&hdr->peer, address, expiration);
+  start_address_validation (&hdr->peer, address);
   GNUNET_free (address);
   GNUNET_SERVICE_client_continue (tc->client);
 }
@@ -8657,9 +8662,7 @@ handle_request_hello_validation (void *cls,
 {
   struct TransportClient *tc = cls;
 
-  start_address_validation (&m->peer,
-                            (const char *) &m[1],
-                            GNUNET_TIME_absolute_ntoh (m->expiration));
+  start_address_validation (&m->peer, (const char *) &m[1]);
   GNUNET_SERVICE_client_continue (tc->client);
 }
 
@@ -8895,6 +8898,7 @@ run (void *cls,
   (void) cls;
   (void) service;
   /* setup globals */
+  hello_mono_time = GNUNET_TIME_absolute_get_monotonic (c);
   GST_cfg = c;
   backtalkers = GNUNET_CONTAINER_multipeermap_create (16, GNUNET_YES);
   pending_acks = GNUNET_CONTAINER_multishortmap_create (32768, GNUNET_YES);

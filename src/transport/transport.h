@@ -1203,11 +1203,6 @@ struct RequestHelloValidationMessage
    */
   struct GNUNET_PeerIdentity peer;
 
-  /**
-   * When does the address expire?
-   */
-  struct GNUNET_TIME_AbsoluteNBO expiration;
-
   /* followed by 0-terminated address to validate */
 };
 

@@ -35,9 +35,8 @@
 #define GNUNET_HELLO_LIB_H
 
 #ifdef __cplusplus
-extern "C"
-{
-#if 0                           /* keep Emacsens' auto-indent happy */
+extern "C" {
+#if 0 /* keep Emacsens' auto-indent happy */
 }
 #endif
 #endif
@@ -122,7 +121,6 @@ struct GNUNET_HELLO_Address
    * when a #GNUNET_HELLO_Message is created
    */
   enum GNUNET_HELLO_AddressInfo local_info;
-
 };
 
 
@@ -194,7 +192,7 @@ GNUNET_HELLO_address_check_option (const struct GNUNET_HELLO_Address *address,
  *
  * @param addr address to free
  */
-#define GNUNET_HELLO_address_free(addr) GNUNET_free(addr)
+#define GNUNET_HELLO_address_free(addr) GNUNET_free (addr)
 
 
 GNUNET_NETWORK_STRUCT_BEGIN
@@ -228,10 +226,8 @@ struct GNUNET_HELLO_Message
    * The public key of the peer.
    */
   struct GNUNET_CRYPTO_EddsaPublicKey publicKey;
-
 };
 GNUNET_NETWORK_STRUCT_END
-
 
 
 /**
@@ -273,10 +269,9 @@ GNUNET_HELLO_add_address (const struct GNUNET_HELLO_Address *address,
  * @return number of bytes written or 0, #GNUNET_SYSERR to signal the
  *         end of the iteration.
  */
-typedef ssize_t
-(*GNUNET_HELLO_GenerateAddressListCallback) (void *cls,
-                                             size_t max,
-                                             void *buf);
+typedef ssize_t (*GNUNET_HELLO_GenerateAddressListCallback) (void *cls,
+                                                             size_t max,
+                                                             void *buf);
 
 
 /**
@@ -356,10 +351,10 @@ GNUNET_HELLO_equals (const struct GNUNET_HELLO_Message *h1,
  *         #GNUNET_NO to delete it from the HELLO
  *         #GNUNET_SYSERR to stop iterating (but keep current address)
  */
-typedef int
-(*GNUNET_HELLO_AddressIterator) (void *cls,
-                                 const struct GNUNET_HELLO_Address *address,
-                                 struct GNUNET_TIME_Absolute expiration);
+typedef int (*GNUNET_HELLO_AddressIterator) (
+  void *cls,
+  const struct GNUNET_HELLO_Address *address,
+  struct GNUNET_TIME_Absolute expiration);
 
 
 /**
@@ -387,7 +382,8 @@ GNUNET_HELLO_get_last_expiration (const struct GNUNET_HELLO_Message *msg);
 struct GNUNET_HELLO_Message *
 GNUNET_HELLO_iterate_addresses (const struct GNUNET_HELLO_Message *msg,
                                 int return_modified,
-                                GNUNET_HELLO_AddressIterator it, void *it_cls);
+                                GNUNET_HELLO_AddressIterator it,
+                                void *it_cls);
 
 
 /**
@@ -404,11 +400,12 @@ GNUNET_HELLO_iterate_addresses (const struct GNUNET_HELLO_Message *msg,
  * @param it_cls closure for @a it
  */
 void
-GNUNET_HELLO_iterate_new_addresses (const struct GNUNET_HELLO_Message *new_hello,
-                                    const struct GNUNET_HELLO_Message *old_hello,
-                                    struct GNUNET_TIME_Absolute expiration_limit,
-                                    GNUNET_HELLO_AddressIterator it,
-                                    void *it_cls);
+GNUNET_HELLO_iterate_new_addresses (
+  const struct GNUNET_HELLO_Message *new_hello,
+  const struct GNUNET_HELLO_Message *old_hello,
+  struct GNUNET_TIME_Absolute expiration_limit,
+  GNUNET_HELLO_AddressIterator it,
+  void *it_cls);
 
 
 /**
@@ -442,8 +439,8 @@ GNUNET_HELLO_get_header (struct GNUNET_HELLO_Message *hello);
  * @param name name of the transport plugin to load
  * @return NULL if a plugin with name @a name is not known/loadable
  */
-typedef struct GNUNET_TRANSPORT_PluginFunctions *
-(*GNUNET_HELLO_TransportPluginsFind) (const char *name);
+typedef struct GNUNET_TRANSPORT_PluginFunctions *(
+  *GNUNET_HELLO_TransportPluginsFind) (const char *name);
 
 
 /**
@@ -474,7 +471,6 @@ GNUNET_HELLO_parse_uri (const char *uri,
                         GNUNET_HELLO_TransportPluginsFind plugins_find);
 
 
-
 /* NG API */
 #include "gnunet_nt_lib.h"
 
@@ -484,18 +480,19 @@ GNUNET_HELLO_parse_uri (const char *uri,
  *
  * @param address text address to sign
  * @param nt network type of @a address
- * @param expiration how long is @a address valid
+ * @param mono_time when was @a address valid
  * @param private_key signing key to use
  * @param result[out] where to write address record (allocated)
  * @param result_size[out] set to size of @a result
  */
 void
-GNUNET_HELLO_sign_address (const char *address,
-                           enum GNUNET_NetworkType nt,
-                           struct GNUNET_TIME_Absolute expiration,
-                           const struct GNUNET_CRYPTO_EddsaPrivateKey *private_key,
-                           void **result,
-                           size_t *result_size);
+GNUNET_HELLO_sign_address (
+  const char *address,
+  enum GNUNET_NetworkType nt,
+  struct GNUNET_TIME_Absolute mono_time,
+  const struct GNUNET_CRYPTO_EddsaPrivateKey *private_key,
+  void **result,
+  size_t *result_size);
 
 
 /**
@@ -505,7 +502,7 @@ GNUNET_HELLO_sign_address (const char *address,
  * @param raw_size size of @a raw
  * @param pid public key to use for signature verification
  * @param nt[out] set to network type
- * @param expiration[out] how long is the address valid
+ * @param mono_time[out] when was the address generated
  * @return NULL on error, otherwise the address
  */
 char *
@@ -513,7 +510,7 @@ GNUNET_HELLO_extract_address (const void *raw,
                               size_t raw_size,
                               const struct GNUNET_PeerIdentity *pid,
                               enum GNUNET_NetworkType *nt,
-                              struct GNUNET_TIME_Absolute *expiration);
+                              struct GNUNET_TIME_Absolute *mono_time);
 
 
 /**
@@ -527,7 +524,7 @@ char *
 GNUNET_HELLO_address_to_prefix (const char *address);
 
 
-#if 0                           /* keep Emacsens' auto-indent happy */
+#if 0 /* keep Emacsens' auto-indent happy */
 {
 #endif
 #ifdef __cplusplus
@@ -537,6 +534,6 @@ GNUNET_HELLO_address_to_prefix (const char *address);
 /* ifndef GNUNET_HELLO_LIB_H */
 #endif
 
-/** @} */  /* end of group */
+/** @} */ /* end of group */
 
 /* end of gnunet_hello_lib.h */

@@ -50,7 +50,8 @@ struct GNUNET_TRANSPORT_ApplicationHandle;
  * @return ats application handle, NULL on error
  */
 struct GNUNET_TRANSPORT_ApplicationHandle *
-GNUNET_TRANSPORT_application_init (const struct GNUNET_CONFIGURATION_Handle *cfg);
+GNUNET_TRANSPORT_application_init (
+  const struct GNUNET_CONFIGURATION_Handle *cfg);
 
 
 /**
@@ -59,7 +60,8 @@ GNUNET_TRANSPORT_application_init (const struct GNUNET_CONFIGURATION_Handle *cfg
  * @param ch handle to destroy
  */
 void
-GNUNET_TRANSPORT_application_done (struct GNUNET_TRANSPORT_ApplicationHandle *ch);
+GNUNET_TRANSPORT_application_done (
+  struct GNUNET_TRANSPORT_ApplicationHandle *ch);
 
 
 /**
@@ -72,21 +74,19 @@ GNUNET_TRANSPORT_application_done (struct GNUNET_TRANSPORT_ApplicationHandle *ch
  *
  * @param ch handle
  * @param peer identity of the peer we have an address for
- * @param expiration when does @a addr expire; used by TRANSPORT to know when
- *        to definitively give up attempting to validate
  * @param nt network type of @a addr (as claimed by the other peer);
  *        used by TRANSPORT to avoid trying @a addr's that really cannot work
  *        due to network type missmatches
  * @param addr address to validate
  */
 void
-GNUNET_TRANSPORT_application_validate (struct GNUNET_TRANSPORT_ApplicationHandle *ch,
-                                       const struct GNUNET_PeerIdentity *peer,
-                                       struct GNUNET_TIME_Absolute expiration,
-                                       enum GNUNET_NetworkType nt,
-                                       const char *addr);
+GNUNET_TRANSPORT_application_validate (
+  struct GNUNET_TRANSPORT_ApplicationHandle *ch,
+  const struct GNUNET_PeerIdentity *peer,
+  enum GNUNET_NetworkType nt,
+  const char *addr);
 
-/** @} */  /* end of group */
+/** @} */ /* end of group */
 
 #endif
 /* end of file gnunet_ats_application_service.h */
