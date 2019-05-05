@@ -298,18 +298,6 @@ struct AcknowledgementUUIDP
 
 
 /**
- * Unique identifier we attach to a message.
- */
-struct FragmentUUIDP
-{
-  /**
-   * Unique value identifying a fragment, in NBO.
-   */
-  uint32_t uuid GNUNET_PACKED;
-};
-
-
-/**
  * Type of a nonce used for challenges.
  */
 struct ChallengeNonceP
@@ -527,6 +515,16 @@ struct TransportFragmentBoxMessage
   struct GNUNET_MessageHeader header;
 
   /**
+   * Offset of this fragment in the overall message.
+   */
+  uint16_t frag_off GNUNET_PACKED;
+
+  /**
+   * Total size of the message that is being fragmented.
+   */
+  uint16_t msg_size GNUNET_PACKED;
+
+  /**
    * Unique ID of this fragment (and fragment transmission!). Will
    * change even if a fragement is retransmitted to make each
    * transmission attempt unique! If a client receives a duplicate
@@ -540,16 +538,6 @@ struct TransportFragmentBoxMessage
    * belong to.  Must be the same for all fragments.
    */
   struct MessageUUIDP msg_uuid;
-
-  /**
-   * Offset of this fragment in the overall message.
-   */
-  uint16_t frag_off GNUNET_PACKED;
-
-  /**
-   * Total size of the message that is being fragmented.
-   */
-  uint16_t msg_size GNUNET_PACKED;
 };
 
 
@@ -1618,13 +1606,6 @@ struct ReassemblyContext
   uint8_t *bitfield;
 
   /**
-   * Task for sending ACK. We may send ACKs either because of hitting
-   * the @e extra_acks limit, or based on time and @e num_acks.  This
-   * task is for the latter case.
-   */
-  struct GNUNET_SCHEDULER_Task *ack_task;
-
-  /**
    * At what time will we give up reassembly of this message?
    */
   struct GNUNET_TIME_Absolute reassembly_timeout;
@@ -1738,6 +1719,12 @@ struct Neighbour
    * if @e dl_monotime_available is #GNUNET_YES.
    */
   struct GNUNET_TIME_Absolute last_dv_learn_monotime;
+
+  /**
+   * Used to generate unique UUIDs for messages that are being
+   * fragmented.
+   */
+  uint64_t message_uuid_ctr;
 
   /**
    * Do we have the lastest value for @e last_dv_learn_monotime from
@@ -7253,9 +7240,7 @@ set_pending_message_uuid (struct PendingMessage *pm)
 {
   if (pm->msg_uuid_set)
     return;
-  GNUNET_CRYPTO_random_block (GNUNET_CRYPTO_QUALITY_NONCE,
-                              &pm->msg_uuid,
-                              sizeof (pm->msg_uuid));
+  pm->msg_uuid.uuid = pm->target->message_uuid_ctr++;
   pm->msg_uuid_set = GNUNET_YES;
 }
 
@@ -8240,6 +8225,8 @@ handle_add_queue_message (void *cls,
   if (NULL == neighbour)
   {
     neighbour = GNUNET_new (struct Neighbour);
+    neighbour->message_uuid_ctr =
+      GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK, UINT64_MAX);
     neighbour->pid = aqm->receiver;
     GNUNET_assert (GNUNET_OK ==
                    GNUNET_CONTAINER_multipeermap_put (
