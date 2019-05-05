@@ -291,7 +291,12 @@ enum GNUNET_MQ_PriorityPreferences
    * overall goodput.  It rarely makes sense to combine this flag with
    * #GNUNET_MQ_PREF_LOW_LATENCY.
    */
-  GNUNET_MQ_PREF_GOODPUT = 128
+  GNUNET_MQ_PREF_GOODPUT = 128,
+
+  /**
+   * Flag to indicate that out-of-order delivery is OK.
+   */
+  GNUNET_MQ_PREF_OUT_OF_ORDER = 256
 
 };
 

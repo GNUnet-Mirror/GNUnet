@@ -1050,6 +1050,8 @@ GNUNET_MQ_env_combine_options (enum GNUNET_MQ_PriorityPreferences p1,
   ret |=
     ((p1 & GNUNET_MQ_PREF_CORK_ALLOWED) & (p2 & GNUNET_MQ_PREF_CORK_ALLOWED));
   ret |= ((p1 & GNUNET_MQ_PREF_GOODPUT) & (p2 & GNUNET_MQ_PREF_GOODPUT));
+  ret |=
+    ((p1 & GNUNET_MQ_PREF_OUT_OF_ORDER) & (p2 & GNUNET_MQ_PREF_OUT_OF_ORDER));
   return ret;
 }
 
