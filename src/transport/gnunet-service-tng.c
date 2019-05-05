@@ -25,8 +25,10 @@
  * TODO:
  * Implement next:
  * - add (more) logging
- * - change transport-core API to specify transmission preferences (latency,
- *   reliability, etc.) per message!
+ * - realize transport-to-transport flow control (needed in case
+ *   communicators do not offer flow control).  Note that we may not
+ *   want to simply delay the ACKs as that may cause unnecessary
+ *   re-transmissions. => Introduce proper flow and congestion window(s)!
  * - review retransmission logic, right now there is no smartness there!
  *   => congestion control, flow control, etc [PERFORMANCE-BASICS]
  *
