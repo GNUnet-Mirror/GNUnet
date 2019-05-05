@@ -31,7 +31,8 @@
 #include "gnunet_ats_transport_service.h"
 #include "transport.h"
 
-#define LOG(kind,...) GNUNET_log_from (kind, "transport-api-address",__VA_ARGS__)
+#define LOG(kind, ...) \
+  GNUNET_log_from (kind, "transport-api-address", __VA_ARGS__)
 
 
 /**
@@ -60,7 +61,6 @@ struct GNUNET_TRANSPORT_AddressHandle
    * Delay until we try to reconnect.
    */
   struct GNUNET_TIME_Relative reconnect_delay;
-
 };
 
 
@@ -84,8 +84,7 @@ disconnect_and_schedule_reconnect (struct GNUNET_TRANSPORT_AddressHandle *h);
  * @param error error code
  */
 static void
-mq_error_handler (void *cls,
-                  enum GNUNET_MQ_Error error)
+mq_error_handler (void *cls, enum GNUNET_MQ_Error error)
 {
   struct GNUNET_TRANSPORT_AddressHandle *h = cls;
 
@@ -104,19 +103,13 @@ static void
 reconnect (void *cls)
 {
   struct GNUNET_TRANSPORT_AddressHandle *h = cls;
-  struct GNUNET_MQ_MessageHandler handlers[] = {
-    GNUNET_MQ_handler_end ()
-  };
+  struct GNUNET_MQ_MessageHandler handlers[] = {GNUNET_MQ_handler_end ()};
 
   h->reconnect_task = NULL;
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Connecting to transport service.\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Connecting to transport service.\n");
   GNUNET_assert (NULL == h->mq);
-  h->mq = GNUNET_CLIENT_connect (h->cfg,
-                                 "transport",
-                                 handlers,
-                                 &mq_error_handler,
-                                 h);
+  h->mq =
+    GNUNET_CLIENT_connect (h->cfg, "transport", handlers, &mq_error_handler, h);
 }
 
 
@@ -149,12 +142,9 @@ disconnect_and_schedule_reconnect (struct GNUNET_TRANSPORT_AddressHandle *h)
   disconnect (h);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Scheduling task to reconnect to transport service in %s.\n",
-       GNUNET_STRINGS_relative_time_to_string (h->reconnect_delay,
-                                               GNUNET_YES));
+       GNUNET_STRINGS_relative_time_to_string (h->reconnect_delay, GNUNET_YES));
   h->reconnect_task =
-      GNUNET_SCHEDULER_add_delayed (h->reconnect_delay,
-                                    &reconnect,
-                                    h);
+    GNUNET_SCHEDULER_add_delayed (h->reconnect_delay, &reconnect, h);
   h->reconnect_delay = GNUNET_TIME_STD_BACKOFF (h->reconnect_delay);
 }
 
@@ -173,8 +163,7 @@ GNUNET_TRANSPORT_address_connect (const struct GNUNET_CONFIGURATION_Handle *cfg)
   h = GNUNET_new (struct GNUNET_TRANSPORT_AddressHandle);
   h->cfg = cfg;
   h->reconnect_delay = GNUNET_TIME_UNIT_ZERO;
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Connecting to transport service\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Connecting to transport service\n");
   reconnect (h);
   if (NULL == h->mq)
   {
@@ -191,10 +180,10 @@ GNUNET_TRANSPORT_address_connect (const struct GNUNET_CONFIGURATION_Handle *cfg)
  * @param handle handle to the service as returned from #GNUNET_TRANSPORT_address_connect()
  */
 void
-GNUNET_TRANSPORT_address_disconnect (struct GNUNET_TRANSPORT_AddressHandle *handle)
+GNUNET_TRANSPORT_address_disconnect (
+  struct GNUNET_TRANSPORT_AddressHandle *handle)
 {
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Transport disconnect called!\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Transport disconnect called!\n");
   /* this disconnects all neighbours... */
   disconnect (handle);
   /* and now we stop trying to connect again... */
@@ -233,17 +222,14 @@ GNUNET_TRANSPORT_address_try (struct GNUNET_TRANSPORT_AddressHandle *ch,
   struct GNUNET_MQ_Envelope *env;
   struct GNUNET_TRANSPORT_AddressToVerify *hdr;
 
-  env = GNUNET_MQ_msg_extra (hdr,
-                             raw_size,
-                             GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_CONSIDER_VERIFY);
+  env =
+    GNUNET_MQ_msg_extra (hdr,
+                         raw_size,
+                         GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_CONSIDER_VERIFY);
   hdr->peer = *pid;
-  memcpy (&hdr[1],
-          raw,
-          raw_size);
-  GNUNET_MQ_send (ch->mq,
-                  env);
+  memcpy (&hdr[1], raw, raw_size);
+  GNUNET_MQ_send (ch->mq, env);
 }
-
 
 
 /* end of transport_api2_address.c */

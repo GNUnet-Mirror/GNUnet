@@ -21,6 +21,9 @@
 /**
  * @author Christian Grothoff
  *
+ * @deprecated NOTE: we may want to drop this API and
+ *  only keep the gnunet_transport_application_service.h in the future!
+ *
  * @file
  * Provide addresses to transport for validation
  *
@@ -36,9 +39,8 @@
 #define GNUNET_TRANSPORT_ADDRESS_SERVICE_H
 
 #ifdef __cplusplus
-extern "C"
-{
-#if 0                           /* keep Emacsens' auto-indent happy */
+extern "C" {
+#if 0 /* keep Emacsens' auto-indent happy */
 }
 #endif
 #endif
@@ -65,7 +67,8 @@ struct GNUNET_TRANSPORT_AddressHandle;
  * @return NULL on error
  */
 struct GNUNET_TRANSPORT_AddressHandle *
-GNUNET_TRANSPORT_address_connect (const struct GNUNET_CONFIGURATION_Handle *cfg);
+GNUNET_TRANSPORT_address_connect (
+  const struct GNUNET_CONFIGURATION_Handle *cfg);
 
 
 /**
@@ -101,7 +104,7 @@ GNUNET_TRANSPORT_address_try (struct GNUNET_TRANSPORT_AddressHandle *ch,
                               const size_t raw_size);
 
 
-#if 0                           /* keep Emacsens' auto-indent happy */
+#if 0 /* keep Emacsens' auto-indent happy */
 {
 #endif
 #ifdef __cplusplus
@@ -111,6 +114,6 @@ GNUNET_TRANSPORT_address_try (struct GNUNET_TRANSPORT_AddressHandle *ch,
 /* ifndef GNUNET_TRANSPORT_ADDRESS_SERVICE_H */
 #endif
 
-/** @} */  /* end of group */
+/** @} */ /* end of group */
 
 /* end of gnunet_transport_address_service.h */

@@ -1757,8 +1757,10 @@ struct PeerRequest
 
   /**
    * What kind of performance preference does this @e tc have?
+   *
+   * TODO: use this!
    */
-  enum GNUNET_MQ_PreferenceKind pk;
+  enum GNUNET_MQ_PriorityPreferences pk;
 
   /**
    * How much bandwidth would this @e tc like to see?
@@ -1951,6 +1953,12 @@ struct PendingMessage
    * Type of the pending message.
    */
   enum PendingMessageType pmt;
+
+  /**
+   * Preferences for this message.
+   * TODO: actually use this!
+   */
+  enum GNUNET_MQ_PriorityPreferences prefs;
 
   /**
    * Size of the original message.
@@ -3736,7 +3744,6 @@ handle_client_send (void *cls, const struct OutboundMessage *obm)
   obmm = (const struct GNUNET_MessageHeader *) &obm[1];
   bytes_msg = ntohs (obmm->size);
   pp = (enum GNUNET_MQ_PriorityPreferences) ntohl (obm->priority);
-  /* FIXME: actually make use of pp */ (void) pp;
   vl = GNUNET_CONTAINER_multipeermap_get (links, &obm->peer);
   if (NULL == vl)
   {
@@ -3790,6 +3797,7 @@ handle_client_send (void *cls, const struct OutboundMessage *obm)
 
   was_empty = (NULL == target->pending_msg_head);
   pm = GNUNET_malloc (sizeof (struct PendingMessage) + payload_size);
+  pm->prefs = pp;
   pm->client = tc;
   pm->target = target;
   pm->bytes_msg = payload_size;
@@ -8559,7 +8567,7 @@ handle_suggest (void *cls, const struct ExpressPreferenceMessage *msg)
   pr->tc = tc;
   pr->pid = msg->peer;
   pr->bw = msg->bw;
-  pr->pk = (enum GNUNET_MQ_PreferenceKind) ntohl (msg->pk);
+  pr->pk = (enum GNUNET_MQ_PriorityPreferences) ntohl (msg->pk);
   if (GNUNET_YES != GNUNET_CONTAINER_multipeermap_put (
                       tc->details.application.requests,
                       &pr->pid,

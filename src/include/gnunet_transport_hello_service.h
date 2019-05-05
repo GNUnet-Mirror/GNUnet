@@ -24,6 +24,8 @@
  * @file
  * obtain information about our current address
  *
+ * @deprecated, in TNG applications should query PEERSTORE directly!
+ *
  * @defgroup transport  Transport service
  * address information
  *
@@ -35,9 +37,8 @@
 #define GNUNET_TRANSPORT_HELLO_SERVICE_H
 
 #ifdef __cplusplus
-extern "C"
-{
-#if 0                           /* keep Emacsens' auto-indent happy */
+extern "C" {
+#if 0 /* keep Emacsens' auto-indent happy */
 }
 #endif
 #endif
@@ -118,9 +119,9 @@ enum GNUNET_TRANSPORT_AddressClass
  * @param cls closure
  * @param hello our updated HELLO
  */
-typedef void
-(*GNUNET_TRANSPORT_HelloUpdateCallback) (void *cls,
-                                         const struct GNUNET_MessageHeader *hello);
+typedef void (*GNUNET_TRANSPORT_HelloUpdateCallback) (
+  void *cls,
+  const struct GNUNET_MessageHeader *hello);
 
 
 /**
@@ -164,12 +165,12 @@ GNUNET_TRANSPORT_hello_get_cancel (struct GNUNET_TRANSPORT_HelloGetHandle *ghh);
  * @param nt network type of the address
  * @param expiration when does this address expire?
  */
-typedef void
-(*GNUNET_TRANSPORT_AddressCallback) (void *cls,
-                                     const struct GNUNET_PeerIdentity *peer,
-                                     const char *address,
-                                     enum GNUNET_NetworkType nt,
-                                     struct GNUNET_TIME_Absolute expiration);
+typedef void (*GNUNET_TRANSPORT_AddressCallback) (
+  void *cls,
+  const struct GNUNET_PeerIdentity *peer,
+  const char *address,
+  enum GNUNET_NetworkType nt,
+  struct GNUNET_TIME_Absolute expiration);
 
 
 /**
@@ -187,7 +188,7 @@ GNUNET_TRANSPORT_hello_parse (const struct GNUNET_MessageHeader *hello,
                               void *cb_cls);
 
 
-#if 0                           /* keep Emacsens' auto-indent happy */
+#if 0 /* keep Emacsens' auto-indent happy */
 {
 #endif
 #ifdef __cplusplus
@@ -197,6 +198,6 @@ GNUNET_TRANSPORT_hello_parse (const struct GNUNET_MessageHeader *hello,
 /* ifndef GNUNET_TRANSPORT_HELLO_SERVICE_H */
 #endif
 
-/** @} */  /* end of group */
+/** @} */ /* end of group */
 
 /* end of gnunet_transport_hello_service.h */

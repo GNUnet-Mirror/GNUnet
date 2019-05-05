@@ -65,6 +65,34 @@ GNUNET_TRANSPORT_application_done (
 
 
 /**
+ * An application would like TRANSPORT to connect to a peer.
+ *
+ * @param ch handle
+ * @param peer identity of the peer we need an address for
+ * @param pk what kind of application will the application require (can be
+ *         #GNUNET_MQ_PRIO_BACKGROUND, we will still try to connect)
+ * @param bw desired bandwith, can be zero (we will still try to connect)
+ * @return suggest handle, NULL if a request is already pending
+ */
+struct GNUNET_TRANSPORT_ApplicationSuggestHandle *
+GNUNET_TRANSPORT_application_suggest (
+  struct GNUNET_TRANSPORT_ApplicationHandle *ch,
+  const struct GNUNET_PeerIdentity *peer,
+  enum GNUNET_MQ_PriorityPreferences pk,
+  struct GNUNET_BANDWIDTH_Value32NBO bw);
+
+
+/**
+ * We no longer care about being connected to a peer.
+ *
+ * @param sh handle to stop
+ */
+void
+GNUNET_TRANSPORT_application_suggest_cancel (
+  struct GNUNET_TRANSPORT_ApplicationSuggestHandle *sh);
+
+
+/**
  * An application (or a communicator) has received a HELLO (or other address
  * data of another peer) and wants TRANSPORT to validate that the address is
  * correct.  The result is NOT returned, in fact TRANSPORT may do nothing

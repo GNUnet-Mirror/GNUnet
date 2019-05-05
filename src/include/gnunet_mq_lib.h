@@ -1043,6 +1043,8 @@ GNUNET_MQ_impl_current (struct GNUNET_MQ_Handle *mq);
 
 /**
  * Enum defining all known preference categories.
+ *
+ * @deprecated will be replaced by `enum GNUNET_MQ_PriorityPreference`
  */
 enum GNUNET_MQ_PreferenceKind
 {
@@ -1083,6 +1085,8 @@ enum GNUNET_MQ_PreferenceKind
  *
  * @param type the preference type
  * @return a string or NULL if invalid
+ *
+ * @deprecated will be replaced by `enum GNUNET_MQ_PriorityPreference`
  */
 const char *
 GNUNET_MQ_preference_to_string (enum GNUNET_MQ_PreferenceKind type);

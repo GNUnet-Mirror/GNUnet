@@ -51,7 +51,7 @@ struct GNUNET_TRANSPORT_ApplicationSuggestHandle
   /**
    * What preference is being expressed?
    */
-  enum GNUNET_MQ_PreferenceKind pk;
+  enum GNUNET_MQ_PriorityPreferences pk;
 
   /**
    * How much bandwidth does the client expect?
@@ -277,15 +277,12 @@ GNUNET_TRANSPORT_application_done (
 
 
 /**
- * We would like to receive address suggestions for a peer. TRANSPORT will
- * respond with a call to the continuation immediately containing an address or
- * no address if none is available. TRANSPORT can suggest more addresses until we call
- * #GNUNET_TRANSPORT_application_suggest_cancel().
+ * An application would like TRANSPORT to connect to a peer.
  *
  * @param ch handle
  * @param peer identity of the peer we need an address for
  * @param pk what kind of application will the application require (can be
- *         #GNUNET_MQ_PREFERENCE_NONE, we will still try to connect)
+ *         #GNUNET_MQ_PRIO_BACKGROUND, we will still try to connect)
  * @param bw desired bandwith, can be zero (we will still try to connect)
  * @return suggest handle, NULL if a request is already pending
  */
@@ -293,7 +290,7 @@ struct GNUNET_TRANSPORT_ApplicationSuggestHandle *
 GNUNET_TRANSPORT_application_suggest (
   struct GNUNET_TRANSPORT_ApplicationHandle *ch,
   const struct GNUNET_PeerIdentity *peer,
-  enum GNUNET_MQ_PreferenceKind pk,
+  enum GNUNET_MQ_PriorityPreferences pk,
   struct GNUNET_BANDWIDTH_Value32NBO bw)
 {
   struct GNUNET_TRANSPORT_ApplicationSuggestHandle *s;
