@@ -33,6 +33,11 @@
  *   => congestion control, flow control, etc [PERFORMANCE-BASICS]
  *
  * Optimizations:
+ * - When forwarding DV learn messages, if a peer is reached that
+ *   has a *bidirectional* link to the origin beyond 1st hop,
+ *   do NOT forward it to peers _other_ than the origin, as
+ *   there is clearly a better path directly from the origin to
+ *   whatever else we could reach.
  * - AcknowledgementUUIDPs are overkill with 256 bits (128 would do)
  *   => Need 128 bit hash map though! [BANDWIDTH, MEMORY]
  * - queue_send_msg and route_message both by API design have to make copies
@@ -6013,9 +6018,6 @@ activate_core_visible_dv_path (struct DistanceVectorHop *hop)
 }
 
 
-// FIXME: add logging logic from here!
-
-
 /**
  * We have learned a @a path through the network to some other peer, add it to
  * our DV data structure (returning #GNUNET_YES on success).
@@ -6069,9 +6071,18 @@ learn_dv_path (const struct GNUNET_PeerIdentity *path,
   for (unsigned int i = 2; i < path_len; i++)
     if (NULL != lookup_neighbour (&path[i]))
     {
-      /* Useless path, we have a direct connection to some hop
-         in the middle of the path, so this one doesn't even
-         seem terribly useful for redundancy */
+      /* Useless path: we have a direct connection to some hop
+         in the middle of the path, so this one is not even
+         terribly useful for redundancy */
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                  "Path of %u hops useless: directly link to hop %u (%s)\n",
+                  path_len,
+                  i,
+                  GNUNET_i2s (&path[i]));
+      GNUNET_STATISTICS_update (GST_stats,
+                                "# Useless DV path ignored: hop is neighbour",
+                                1,
+                                GNUNET_NO);
       return GNUNET_SYSERR;
     }
   dv = GNUNET_CONTAINER_multipeermap_get (dv_routes, &path[path_len - 1]);
@@ -6137,8 +6148,13 @@ learn_dv_path (const struct GNUNET_PeerIdentity *path,
         {
           /* Some peer send DV learn messages too often, we are learning
              the same path faster than it would be useful; do not forward! */
+          GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                      "Rediscovered path too quickly, not forwarding further\n");
           return GNUNET_NO;
         }
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                    "Refreshed known path to %s, forwarding further\n",
+                    GNUNET_i2s (&dv->target));
         return GNUNET_YES;
       }
     }
@@ -6148,9 +6164,15 @@ learn_dv_path (const struct GNUNET_PeerIdentity *path,
   if (shorter_distance >= MAX_DV_PATHS_TO_TARGET)
   {
     /* We have a shorter path already! */
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Have many shorter DV paths %s, not forwarding further\n",
+                GNUNET_i2s (&dv->target));
     return GNUNET_NO;
   }
   /* create new DV path entry */
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Discovered new DV path to %s\n",
+              GNUNET_i2s (&dv->target));
   hop = GNUNET_malloc (sizeof (struct DistanceVectorHop) +
                        sizeof (struct GNUNET_PeerIdentity) * (path_len - 2));
   hop->next_hop = next_hop;
@@ -6240,6 +6262,10 @@ forward_dv_learn (const struct GNUNET_PeerIdentity *next_hop,
   struct GNUNET_TIME_Relative nnd;
 
   /* compute message for forwarding */
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Forwarding DV learn message originating from %s to %s\n",
+              GNUNET_i2s (&msg->initiator),
+              GNUNET_i2s2 (next_hop));
   GNUNET_assert (nhops < MAX_DV_HOPS_ALLOWED);
   fwd = GNUNET_malloc (sizeof (struct TransportDVLearnMessage) +
                        (nhops + 1) * sizeof (struct DVPathEntryP));
@@ -6481,7 +6507,10 @@ calculate_fork_degree (unsigned int hops_taken,
   double left;
 
   if (hops_taken >= 64)
+  {
+    GNUNET_break (0);
     return 0; /* precaution given bitshift below */
+  }
   for (unsigned int i = 1; i < hops_taken; i++)
   {
     /* For each hop, subtract the expected number of targets
@@ -6496,6 +6525,12 @@ calculate_fork_degree (unsigned int hops_taken,
   if (UINT32_MAX * left >
       GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK, UINT32_MAX))
     rnd++; /* round up */
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Forwarding DV learn message of %u hops %u(/%u/%u) times\n",
+              hops_taken,
+              rnd,
+              eligible_count,
+              neighbour_count);
   return rnd;
 }
 
@@ -6516,6 +6551,9 @@ neighbour_store_dvmono_cb (void *cls, int success)
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Failed to store other peer's monotonic time in peerstore!\n");
 }
+
+
+// FIXME: add logging logic from here!
 
 
 /**
