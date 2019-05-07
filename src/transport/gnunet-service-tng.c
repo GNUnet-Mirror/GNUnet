@@ -4166,8 +4166,6 @@ queue_send_msg (struct Queue *queue,
 }
 
 
-// FIXME: improve logging after this point!
-
 /**
  * Pick a queue of @a n under constraints @a options and schedule
  * transmission of @a hdr.
@@ -4205,6 +4203,10 @@ route_via_neighbour (const struct Neighbour *n,
   {
     /* This can happen rarely if the last confirmed queue timed
        out just as we were beginning to process this message. */
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                "Could not route message of type %u to %s: no valid queue\n",
+                ntohs (hdr->type),
+                GNUNET_i2s (&n->pid));
     GNUNET_STATISTICS_update (GST_stats,
                               "# route selection failed (all no valid queue)",
                               1,
@@ -4224,7 +4226,15 @@ route_via_neighbour (const struct Neighbour *n,
         (pos->validated_until.abs_value_us > now.abs_value_us))
     {
       if ((sel1 == candidates) || (sel2 == candidates))
+      {
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                    "Routing message of type %u to %s using %s (#%u)\n",
+                    ntohs (hdr->type),
+                    GNUNET_i2s (&n->pid),
+                    pos->address,
+                    (sel1 == candidates) ? 1 : 2);
         queue_send_msg (pos, NULL, hdr, ntohs (hdr->size));
+      }
       candidates++;
     }
   }
@@ -4281,7 +4291,15 @@ route_via_dv (const struct DistanceVector *dv,
                              hops,
                              (0 == (options & RMO_REDUNDANT)) ? 1 : 2);
   for (unsigned int i = 0; i < res; i++)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Routing message of type %u to %s using DV (#%u/%u)\n",
+                ntohs (hdr->type),
+                GNUNET_i2s (&dv->target),
+                i + 1,
+                res + 1);
     forward_via_dvh (hops[i], hdr, options & (~RMO_REDUNDANT));
+  }
 }
 
 
@@ -4316,6 +4334,10 @@ route_message (const struct GNUNET_PeerIdentity *target,
   }
   if ((NULL == n) && (NULL == dv))
   {
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                "Cannot route message of type %u to %s: no route\n",
+                ntohs (hdr->type),
+                GNUNET_i2s (target));
     GNUNET_STATISTICS_update (GST_stats,
                               "# Messages dropped in routing: no acceptable method",
                               1,
@@ -4323,6 +4345,11 @@ route_message (const struct GNUNET_PeerIdentity *target,
     GNUNET_free (hdr);
     return;
   }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Routing message of type %u to %s with options %X\n",
+              ntohs (hdr->type),
+              GNUNET_i2s (target),
+              (unsigned int) options);
   /* If both dv and n are possible and we must choose:
      flip a coin for the choice between the two; for now 50/50 */
   if ((NULL != n) && (NULL != dv) && (0 == (options & RMO_REDUNDANT)))
@@ -4405,6 +4432,10 @@ bc_setup_key_state_from_km (const struct GNUNET_HashCode *km,
                                     sizeof (km),
                                     iv,
                                     sizeof (*iv)));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Deriving backchannel key based on KM %s and IV %s\n",
+              GNUNET_h2s (km),
+              GNUNET_sh2s (iv));
   gcry_cipher_open (&key->cipher,
                     GCRY_CIPHER_AES256 /* low level: go for speed */,
                     GCRY_CIPHER_MODE_CTR,
@@ -4558,6 +4589,21 @@ handle_communicator_backchannel (
   char *mpos;
   uint16_t msize;
 
+  {
+    const struct GNUNET_MessageHeader *inbox;
+    const char *is;
+
+    inbox = (const struct GNUNET_MessageHeader *) &cb[1];
+    /* 0-termination of 'is' was checked already in
+       #check_communicator_backchannel() */
+    is = (const char *) &cb[1];
+    is += ntohs (inbox->size);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Preparing backchannel transmission to %s:%s of type %u\n",
+                GNUNET_i2s (&cb->pid),
+                is,
+                ntohs (inbox->size));
+  }
   /* encapsulate and encrypt message */
   msize = ntohs (cb->header.size) - sizeof (*cb) +
           sizeof (struct TransportBackchannelRequestPayloadP);
@@ -4640,6 +4686,10 @@ peerstore_store_own_cb (void *cls, int success)
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Failed to store our own address `%s' in peerstore!\n",
                 ale->address);
+  else
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Successfully stored our own address `%s' in peerstore!\n",
+                ale->address);
   /* refresh period is 1/4 of expiration time, that should be plenty
      without being excessive. */
   ale->st =
@@ -4665,6 +4715,10 @@ store_pi (void *cls)
 
   ale->st = NULL;
   expiration = GNUNET_TIME_relative_to_absolute (ale->expiration);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Storing our address `%s' in peerstore until %s!\n",
+              ale->address,
+              GNUNET_STRINGS_absolute_time_to_string (expiration));
   GNUNET_HELLO_sign_address (ale->address,
                              ale->nt,
                              hello_mono_time,
@@ -4707,6 +4761,10 @@ handle_add_address (void *cls,
   struct AddressListEntry *ale;
   size_t slen;
 
+  /* 0-termination of &aam[1] was checked in #check_add_address */
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Communicator added address `%s'!\n",
+              (const char *) &aam[1]);
   slen = ntohs (aam->header.size) - sizeof (*aam);
   ale = GNUNET_malloc (sizeof (struct AddressListEntry) + slen);
   ale->tc = tc;
@@ -4748,6 +4806,9 @@ handle_del_address (void *cls,
     if (dam->aid != ale->aid)
       continue;
     GNUNET_assert (ale->tc == tc);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Communicator deleted address `%s'!\n",
+                ale->address);
     free_address_list_entry (ale);
     GNUNET_SERVICE_client_continue (tc->client);
   }
@@ -4782,6 +4843,7 @@ handle_raw_message (void *cls, const struct GNUNET_MessageHeader *mh)
   struct CommunicatorMessageContext *cmc = cls;
   struct VirtualLink *vl;
   uint16_t size = ntohs (mh->size);
+  int have_core;
 
   if ((size > UINT16_MAX - sizeof (struct InboundMessage)) ||
       (size < sizeof (struct GNUNET_MessageHeader)))
@@ -4813,6 +4875,7 @@ handle_raw_message (void *cls, const struct GNUNET_MessageHeader *mh)
     return;
   }
   /* Forward to all CORE clients */
+  have_core = GNUNET_NO;
   for (struct TransportClient *tc = clients_head; NULL != tc; tc = tc->next)
   {
     struct GNUNET_MQ_Envelope *env;
@@ -4820,12 +4883,21 @@ handle_raw_message (void *cls, const struct GNUNET_MessageHeader *mh)
 
     if (CT_CORE != tc->type)
       continue;
+    have_core = GNUNET_YES;
     env = GNUNET_MQ_msg_extra (im, size, GNUNET_MESSAGE_TYPE_TRANSPORT_RECV);
     im->peer = cmc->im.sender;
     memcpy (&im[1], mh, size);
     GNUNET_MQ_send (tc->mq, env);
   }
   vl->core_recv_window--;
+  if (GNUNET_NO == have_core)
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                "Dropped message to CORE: no CORE client connected!\n");
+  else
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Delivered message from %s of type %u to CORE\n",
+                GNUNET_i2s (&cmc->im.sender),
+                ntohs (mh->type));
   if (vl->core_recv_window > 0)
   {
     finish_cmc_handling (cmc);
@@ -4902,6 +4974,10 @@ transmit_cummulative_ack_cb (void *cls)
   struct TransportCummulativeAckPayloadP *ap;
 
   ac->task = NULL;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Sending ACK with %u components to %s\n",
+              ac->ack_counter,
+              GNUNET_i2s (&ac->target));
   GNUNET_assert (0 < ac->ack_counter);
   ack = GNUNET_malloc (sizeof (*ack) +
                        ac->ack_counter *
@@ -4941,6 +5017,10 @@ cummulative_ack (const struct GNUNET_PeerIdentity *pid,
 {
   struct AcknowledgementCummulator *ac;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Scheduling ACK %s for transmission to %s\n",
+              GNUNET_sh2s (&ack_uuid->value),
+              GNUNET_i2s (pid));
   ac = GNUNET_CONTAINER_multipeermap_get (ack_cummulators, pid);
   if (NULL == ac)
   {
@@ -5088,10 +5168,22 @@ handle_fragment_box (void *cls, const struct TransportFragmentBoxMessage *fb)
     target = (char *) &rc[1];
     rc->bitfield = (uint8_t *) (target + rc->msg_size);
     rc->msg_missing = rc->msg_size;
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Received fragment at offset %u/%u from %s for NEW message %u\n",
+                ntohs (fb->frag_off),
+                msize,
+                GNUNET_i2s (&cmc->im.sender),
+                (unsigned int) fb->msg_uuid.uuid);
   }
   else
   {
     target = (char *) &rc[1];
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Received fragment at offset %u/%u from %s for message %u\n",
+                ntohs (fb->frag_off),
+                msize,
+                GNUNET_i2s (&cmc->im.sender),
+                (unsigned int) fb->msg_uuid.uuid);
   }
   if (msize != rc->msg_size)
   {
@@ -5145,6 +5237,10 @@ handle_fragment_box (void *cls, const struct TransportFragmentBoxMessage *fb)
     return;
   }
   /* successful reassembly */
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Fragment reassembly complete for message %u\n",
+              (unsigned int) fb->msg_uuid.uuid);
+
   demultiplex_with_cmc (cmc, msg);
   /* FIXME-OPTIMIZE: really free here? Might be bad if fragments are still
      en-route and we forget that we finished this reassembly immediately!
@@ -5185,9 +5281,24 @@ handle_reliability_box (void *cls,
   struct CommunicatorMessageContext *cmc = cls;
   const struct GNUNET_MessageHeader *inbox =
     (const struct GNUNET_MessageHeader *) &rb[1];
+  struct GNUNET_TIME_Relative rtt;
 
-  // FIXME: call cummulative_ack(), have ack_countdown influence max_delay!
-  (void) (0 == ntohl (rb->ack_countdown));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Received reliability box from %s with UUID %s of type %u\n",
+              GNUNET_i2s (&cmc->im.sender),
+              GNUNET_sh2s (&rb->ack_uuid.value),
+              (unsigned int) ntohs (inbox->type));
+  rtt = GNUNET_TIME_UNIT_SECONDS; /* FIXME: should base this on "RTT", but we
+                                     do not really have an RTT for the
+                                     *incoming* queue (should we have
+                                     the sender add it to the rb message?) */
+  cummulative_ack (
+    &cmc->im.sender,
+    &rb->ack_uuid,
+    (0 == ntohl (rb->ack_countdown))
+      ? GNUNET_TIME_UNIT_ZERO_ABS
+      : GNUNET_TIME_relative_to_absolute (
+          GNUNET_TIME_relative_divide (rtt, 8 /* FIXME: magic constant */)));
   /* continue with inner message */
   demultiplex_with_cmc (cmc, inbox);
 }
@@ -5382,6 +5493,10 @@ handle_reliability_ack (void *cls,
       GNUNET_CONTAINER_multishortmap_get (pending_acks, &ack[i].ack_uuid.value);
     if (NULL == pa)
     {
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                  "Received ACK from %s with UUID %s which is unknown to us!\n",
+                  GNUNET_i2s (&cmc->im.sender),
+                  GNUNET_sh2s (&ack[i].ack_uuid.value));
       GNUNET_STATISTICS_update (
         GST_stats,
         "# FRAGMENT_ACKS dropped, no matching pending message",
@@ -5389,6 +5504,10 @@ handle_reliability_ack (void *cls,
         GNUNET_NO);
       continue;
     }
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Received ACK from %s with UUID %s\n",
+                GNUNET_i2s (&cmc->im.sender),
+                GNUNET_sh2s (&ack[i].ack_uuid.value));
     handle_acknowledged (pa, GNUNET_TIME_relative_ntoh (ack[i].ack_delay));
   }
 
@@ -5480,6 +5599,11 @@ forward_backchannel_payload (struct Backtalker *b,
     return;
   }
   /* Finally, deliver backchannel message to communicator */
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Delivering backchannel message from %s of type %u to %s\n",
+              GNUNET_i2s (&b->pid),
+              ntohs (mh->type),
+              target_communicator);
   env = GNUNET_MQ_msg_extra (
     cbi,
     msg_size,
@@ -5605,6 +5729,9 @@ backtalker_monotime_cb (void *cls,
   mt = GNUNET_TIME_absolute_ntoh (*mtbe);
   if (mt.abs_value_us > b->monotonic_time.abs_value_us)
   {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Backtalker message from %s dropped, monotime in the past\n",
+                GNUNET_i2s (&b->pid));
     GNUNET_STATISTICS_update (
       GST_stats,
       "# Backchannel messages dropped: monotonic time not increasing",
@@ -5699,6 +5826,9 @@ handle_backchannel_encapsulation (
   if (0 != GNUNET_memcmp (&be->target, &GST_my_identity))
   {
     /* not for me, try to route to target */
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Forwarding backtalk to %s\n",
+                GNUNET_i2s (&be->target));
     route_message (&be->target,
                    GNUNET_copy_message (&be->header),
                    RMO_DV_ALLOWED);
@@ -5729,6 +5859,9 @@ handle_backchannel_encapsulation (
     bc_decrypt (&key, &body, &hdr[sizeof (ppay)], hdr_len - sizeof (ppay));
     bc_key_clean (&key);
     monotime = GNUNET_TIME_absolute_ntoh (ppay.monotonic_time);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Decrypted backtalk from %s\n",
+                GNUNET_i2s (&ppay.sender));
     b = GNUNET_CONTAINER_multipeermap_get (backtalkers, &ppay.sender);
     if ((NULL != b) && (monotime.abs_value_us < b->monotonic_time.abs_value_us))
     {
@@ -5854,8 +5987,14 @@ activate_core_visible_dv_path (struct DistanceVectorHop *hop)
   {
     /* Link was already up, remember dv is also now available and we are done */
     vl->dv = dv;
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Virtual link to %s could now also use DV!\n",
+                GNUNET_i2s (&dv->target));
     return;
   }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Creating new virtual link to %s using DV!\n",
+              GNUNET_i2s (&dv->target));
   vl = GNUNET_new (struct VirtualLink);
   vl->target = dv->target;
   vl->dv = dv;
@@ -5872,6 +6011,9 @@ activate_core_visible_dv_path (struct DistanceVectorHop *hop)
      before, so tell CORE about it (finally!) */
   cores_send_connect_info (&dv->target);
 }
+
+
+// FIXME: add logging logic from here!
 
 
 /**
@@ -7114,8 +7256,14 @@ handle_validation_response (
   {
     /* Link was already up, remember n is also now available and we are done */
     vl->n = n;
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Virtual link to %s could now also direct neighbour!\n",
+                GNUNET_i2s (&vs->pid));
     return;
   }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Creating new virtual link to %s using direct neighbour!\n",
+              GNUNET_i2s (&vs->pid));
   vl = GNUNET_new (struct VirtualLink);
   vl->target = n->pid;
   vl->n = n;
