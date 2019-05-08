@@ -28,6 +28,8 @@
 
 #include "gnunet-service-reclaim_tickets.h"
 
+#define DEFAULT_TICKET_REFRESH_INTERVAL GNUNET_TIME_UNIT_HOURS
+
 struct ParallelLookup;
 
 
@@ -291,6 +293,10 @@ struct RECLAIM_TICKETS_RevokeHandle
   struct TicketRecordsEntry *tickets_to_update_tail;
 };
 
+/**
+ * Ticket expiration interval
+ */
+static struct GNUNET_TIME_Relative ticket_refresh_interval;
 
 /* Namestore handle */
 static struct GNUNET_NAMESTORE_Handle *nsh;
@@ -660,17 +666,17 @@ static void
 cleanup_cth (struct RECLAIM_TICKETS_ConsumeHandle *cth)
 {
   struct ParallelLookup *lu;
-  struct ParallelLookup *tmp;
   if (NULL != cth->lookup_request)
     GNUNET_GNS_lookup_cancel (cth->lookup_request);
-  for (lu = cth->parallel_lookups_head; NULL != lu;) {
-    GNUNET_GNS_lookup_cancel (lu->lookup_request);
-    GNUNET_free (lu->label);
-    tmp = lu->next;
+  if (NULL != cth->kill_task)
+    GNUNET_SCHEDULER_cancel (cth->kill_task);
+  while (NULL != (lu = cth->parallel_lookups_head)) {
+    if (NULL != lu->lookup_request)
+      GNUNET_GNS_lookup_cancel (lu->lookup_request);
+    GNUNET_free_non_null (lu->label);
     GNUNET_CONTAINER_DLL_remove (cth->parallel_lookups_head,
                                  cth->parallel_lookups_tail, lu);
     GNUNET_free (lu);
-    lu = tmp;
   }
 
   if (NULL != cth->attrs)
@@ -715,7 +721,6 @@ process_parallel_lookup_result (void *cls, uint32_t rd_count,
     return; // Wait for more
   /* Else we are done */
 
-  GNUNET_SCHEDULER_cancel (cth->kill_task);
   cth->cb (cth->cb_cls, &cth->ticket.identity, cth->attrs, GNUNET_OK, NULL);
   cleanup_cth (cth);
 }
@@ -872,14 +877,15 @@ issue_ticket (struct TicketIssueHandle *ih)
   for (le = ih->attrs->list_head; NULL != le; le = le->next) {
     attrs_record[i].data = &le->claim->id;
     attrs_record[i].data_size = sizeof (le->claim->id);
-    attrs_record[i].expiration_time = GNUNET_TIME_UNIT_DAYS.rel_value_us;
+    //FIXME: Should this be the attribute expiration time or ticket refresh intv
+    attrs_record[i].expiration_time = ticket_refresh_interval.rel_value_us;
     attrs_record[i].record_type = GNUNET_GNSRECORD_TYPE_RECLAIM_ATTR_REF;
     attrs_record[i].flags = GNUNET_GNSRECORD_RF_RELATIVE_EXPIRATION;
     i++;
   }
   attrs_record[i].data = &ih->ticket;
   attrs_record[i].data_size = sizeof (struct GNUNET_RECLAIM_Ticket);
-  attrs_record[i].expiration_time = GNUNET_TIME_UNIT_DAYS.rel_value_us;
+  attrs_record[i].expiration_time = ticket_refresh_interval.rel_value_us;
   attrs_record[i].record_type = GNUNET_GNSRECORD_TYPE_RECLAIM_TICKET;
   attrs_record[i].flags =
       GNUNET_GNSRECORD_RF_RELATIVE_EXPIRATION | GNUNET_GNSRECORD_RF_PRIVATE;
@@ -999,6 +1005,20 @@ RECLAIM_TICKETS_iteration_start (
 int
 RECLAIM_TICKETS_init (const struct GNUNET_CONFIGURATION_Handle *c)
 {
+  // Get ticket expiration time (relative) from config
+  if (GNUNET_OK
+      == GNUNET_CONFIGURATION_get_value_time (c,
+                                              "reclaim",
+                                              "TICKET_REFRESH_INTERVAL",
+                                              &ticket_refresh_interval)) {
+    GNUNET_log (
+      GNUNET_ERROR_TYPE_DEBUG,
+      "Configured refresh interval for tickets: %s\n",
+      GNUNET_STRINGS_relative_time_to_string (ticket_refresh_interval,
+                                              GNUNET_YES));
+  } else {
+    ticket_refresh_interval = DEFAULT_TICKET_REFRESH_INTERVAL;
+  }
   // Connect to identity and namestore services
   nsh = GNUNET_NAMESTORE_connect (c);
   if (NULL == nsh) {

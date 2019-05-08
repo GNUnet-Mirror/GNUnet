@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gnunet 0.10.1\n"
 "Report-Msgid-Bugs-To: gnunet-developers@mail.gnu.org\n"
-"POT-Creation-Date: 2019-04-30 07:47+0000\n"
+"POT-Creation-Date: 2019-05-08 11:34+0200\n"
 "PO-Revision-Date: 2015-12-24 01:20+0100\n"
 "Last-Translator: Stéphane  Aulery <lkppo@free.fr>\n"
 "Language-Team: French <traduc@traduc.org>\n"
@@ -16,86 +16,86 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: src/arm/gnunet-arm.c:156
+#: src/arm/gnunet-arm.c:157
 #, c-format
 msgid "Failed to remove configuration file %s\n"
 msgstr ""
 
-#: src/arm/gnunet-arm.c:162
+#: src/arm/gnunet-arm.c:163
 #, c-format
 msgid "Failed to remove servicehome directory %s\n"
 msgstr ""
 
-#: src/arm/gnunet-arm.c:222 src/testbed/gnunet-service-testbed_peers.c:1139
+#: src/arm/gnunet-arm.c:223 src/testbed/gnunet-service-testbed_peers.c:1139
 msgid "Message was sent successfully"
 msgstr ""
 
-#: src/arm/gnunet-arm.c:224 src/testbed/gnunet-service-testbed_peers.c:1141
+#: src/arm/gnunet-arm.c:225 src/testbed/gnunet-service-testbed_peers.c:1141
 msgid "We disconnected from ARM before we could send a request"
 msgstr ""
 
-#: src/arm/gnunet-arm.c:226 src/testbed/gnunet-service-testbed_peers.c:1143
+#: src/arm/gnunet-arm.c:227 src/testbed/gnunet-service-testbed_peers.c:1143
 msgid "Unknown request status"
 msgstr ""
 
-#: src/arm/gnunet-arm.c:242
+#: src/arm/gnunet-arm.c:243
 #, fuzzy
 msgid "is stopped"
 msgstr "%s est arrêté"
 
-#: src/arm/gnunet-arm.c:244
+#: src/arm/gnunet-arm.c:245
 #, fuzzy
 msgid "is starting"
 msgstr "%s est en cours de démarrage"
 
-#: src/arm/gnunet-arm.c:246
+#: src/arm/gnunet-arm.c:247
 #, fuzzy
 msgid "is stopping"
 msgstr "%s est en cours d'arrêt"
 
-#: src/arm/gnunet-arm.c:248
+#: src/arm/gnunet-arm.c:249
 #, fuzzy
 msgid "is starting already"
 msgstr "%s est déjà en cours de démarrage"
 
-#: src/arm/gnunet-arm.c:250
+#: src/arm/gnunet-arm.c:251
 #, fuzzy
 msgid "is stopping already"
 msgstr "%s est déjà arrêté"
 
-#: src/arm/gnunet-arm.c:252
+#: src/arm/gnunet-arm.c:253
 #, fuzzy
 msgid "is started already"
 msgstr "%s est déjà démarré"
 
-#: src/arm/gnunet-arm.c:254
+#: src/arm/gnunet-arm.c:255
 #, fuzzy
 msgid "is stopped already"
 msgstr "%s est déjà arrêté"
 
-#: src/arm/gnunet-arm.c:256
+#: src/arm/gnunet-arm.c:257
 msgid "service is not known to ARM"
 msgstr ""
 
-#: src/arm/gnunet-arm.c:258
+#: src/arm/gnunet-arm.c:259
 #, fuzzy
 msgid "service failed to start"
 msgstr "Échec du démarrage de %s\n"
 
-#: src/arm/gnunet-arm.c:260
+#: src/arm/gnunet-arm.c:261
 msgid "service cannot be manipulated because ARM is shutting down"
 msgstr ""
 
-#: src/arm/gnunet-arm.c:262
+#: src/arm/gnunet-arm.c:263
 #, fuzzy
 msgid "Unknown result code."
 msgstr "%.s Code d'erreur inconnu"
 
-#: src/arm/gnunet-arm.c:295
+#: src/arm/gnunet-arm.c:294
 msgid "Fatal error initializing ARM API.\n"
 msgstr ""
 
-#: src/arm/gnunet-arm.c:324 src/arm/gnunet-arm.c:333
+#: src/arm/gnunet-arm.c:323 src/arm/gnunet-arm.c:332
 #, c-format
 msgid "Failed to start the ARM service: %s\n"
 msgstr ""
@@ -110,113 +110,113 @@ msgstr ""
 msgid "Failed to stop the ARM service: %s\n"
 msgstr ""
 
-#: src/arm/gnunet-arm.c:419
+#: src/arm/gnunet-arm.c:417
 #, fuzzy, c-format
 msgid "Failed to send a request to start the `%s' service: %s\n"
 msgstr "Dernier message reçu de %s\n"
 
-#: src/arm/gnunet-arm.c:429
+#: src/arm/gnunet-arm.c:427
 #, c-format
 msgid "Failed to start the `%s' service: %s\n"
 msgstr ""
 
-#: src/arm/gnunet-arm.c:467
+#: src/arm/gnunet-arm.c:466
 #, c-format
 msgid "Failed to send a request to kill the `%s' service: %%s\n"
 msgstr ""
 
-#: src/arm/gnunet-arm.c:478
+#: src/arm/gnunet-arm.c:477
 #, c-format
 msgid "Failed to kill the `%s' service: %s\n"
 msgstr ""
 
-#: src/arm/gnunet-arm.c:519
+#: src/arm/gnunet-arm.c:517
 #, c-format
 msgid "Failed to request a list of services: %s\n"
 msgstr ""
 
-#: src/arm/gnunet-arm.c:528
+#: src/arm/gnunet-arm.c:527
 msgid "Error communicating with ARM. ARM not running?\n"
 msgstr ""
 
-#: src/arm/gnunet-arm.c:534
+#: src/arm/gnunet-arm.c:533
 msgid "Running services:\n"
 msgstr "Services en exécution :\n"
 
-#: src/arm/gnunet-arm.c:623
+#: src/arm/gnunet-arm.c:615
 #, c-format
 msgid "Now only monitoring, press CTRL-C to stop.\n"
 msgstr ""
 
-#: src/arm/gnunet-arm.c:656
+#: src/arm/gnunet-arm.c:649
 #, c-format
 msgid "Stopped %s.\n"
 msgstr "Arrêté %s.\n"
 
-#: src/arm/gnunet-arm.c:659
+#: src/arm/gnunet-arm.c:652
 #, c-format
 msgid "Starting %s...\n"
 msgstr "En cous de démarrage %s…\n"
 
-#: src/arm/gnunet-arm.c:662
+#: src/arm/gnunet-arm.c:655
 #, c-format
 msgid "Stopping %s...\n"
 msgstr "En cour d'arrêt %s…\n"
 
-#: src/arm/gnunet-arm.c:676
+#: src/arm/gnunet-arm.c:667
 #, c-format
 msgid "Unknown status %u for service %s.\n"
 msgstr ""
 
-#: src/arm/gnunet-arm.c:766
+#: src/arm/gnunet-arm.c:744
 msgid "stop all GNUnet services"
 msgstr ""
 
-#: src/arm/gnunet-arm.c:771
+#: src/arm/gnunet-arm.c:749
 msgid "start a particular service"
 msgstr ""
 
-#: src/arm/gnunet-arm.c:776
+#: src/arm/gnunet-arm.c:754
 msgid "stop a particular service"
 msgstr ""
 
-#: src/arm/gnunet-arm.c:780
+#: src/arm/gnunet-arm.c:759
 msgid "start all GNUnet default services"
 msgstr ""
 
-#: src/arm/gnunet-arm.c:784
+#: src/arm/gnunet-arm.c:764
 msgid "stop and start all GNUnet default services"
 msgstr ""
 
-#: src/arm/gnunet-arm.c:788
+#: src/arm/gnunet-arm.c:769
 msgid "delete config file and directory on exit"
 msgstr ""
 
-#: src/arm/gnunet-arm.c:792
+#: src/arm/gnunet-arm.c:773
 msgid "monitor ARM activities"
 msgstr ""
 
-#: src/arm/gnunet-arm.c:796
+#: src/arm/gnunet-arm.c:777
 msgid "don't print status messages"
 msgstr ""
 
-#: src/arm/gnunet-arm.c:801
+#: src/arm/gnunet-arm.c:784
 msgid "exit with error status if operation does not finish after DELAY"
 msgstr ""
 
-#: src/arm/gnunet-arm.c:805
+#: src/arm/gnunet-arm.c:789
 msgid "list currently running services"
 msgstr ""
 
-#: src/arm/gnunet-arm.c:809
+#: src/arm/gnunet-arm.c:794
 msgid "don't let gnunet-service-arm inherit standard output"
 msgstr ""
 
-#: src/arm/gnunet-arm.c:813
+#: src/arm/gnunet-arm.c:799
 msgid "don't let gnunet-service-arm inherit standard error"
 msgstr ""
 
-#: src/arm/gnunet-arm.c:828
+#: src/arm/gnunet-arm.c:811
 msgid "Control services and the Automated Restart Manager (ARM)"
 msgstr ""
 
@@ -1228,33 +1228,33 @@ msgstr ""
 msgid "Print information about connected peers."
 msgstr ""
 
-#: src/core/gnunet-service-core.c:347
+#: src/core/gnunet-service-core.c:329
 msgid "# send requests dropped (disconnected)"
 msgstr ""
 
-#: src/core/gnunet-service-core.c:371
+#: src/core/gnunet-service-core.c:355
 msgid "# dequeuing CAR (duplicate request)"
 msgstr ""
 
-#: src/core/gnunet-service-core.c:443
+#: src/core/gnunet-service-core.c:420
 #, c-format
 msgid "# bytes of messages of type %u received"
 msgstr ""
 
-#: src/core/gnunet-service-core.c:541
+#: src/core/gnunet-service-core.c:508
 msgid "# messages discarded (session disconnected)"
 msgstr ""
 
-#: src/core/gnunet-service-core.c:879
+#: src/core/gnunet-service-core.c:828
 #, c-format
 msgid "# messages of type %u discarded (client busy)"
 msgstr ""
 
-#: src/core/gnunet-service-core.c:988
+#: src/core/gnunet-service-core.c:929
 msgid "Core service is lacking HOSTKEY configuration setting.  Exiting.\n"
 msgstr ""
 
-#: src/core/gnunet-service-core.c:1009
+#: src/core/gnunet-service-core.c:948
 #, c-format
 msgid "Core service of `%s' ready.\n"
 msgstr ""
@@ -1391,36 +1391,36 @@ msgstr ""
 msgid "# bytes of payload decrypted"
 msgstr ""
 
-#: src/core/gnunet-service-core_sessions.c:260
-#: src/core/gnunet-service-core_sessions.c:350
+#: src/core/gnunet-service-core_sessions.c:254
+#: src/core/gnunet-service-core_sessions.c:339
 #: src/dht/gnunet-service-dht_neighbours.c:740
 #: src/dht/gnunet-service-dht_neighbours.c:803
 #: src/fs/gnunet-service-fs_cp.c:615 src/fs/gnunet-service-fs_cp.c:1521
-#: src/topology/gnunet-daemon-topology.c:615
-#: src/topology/gnunet-daemon-topology.c:717
+#: src/topology/gnunet-daemon-topology.c:581
+#: src/topology/gnunet-daemon-topology.c:673
 #: src/transport/gnunet-service-transport_neighbours.c:720
 #: src/transport/gnunet-service-transport_neighbours.c:728
 msgid "# peers connected"
 msgstr ""
 
-#: src/core/gnunet-service-core_sessions.c:296
+#: src/core/gnunet-service-core_sessions.c:287
 msgid "# type map refreshes sent"
 msgstr ""
 
-#: src/core/gnunet-service-core_sessions.c:416
+#: src/core/gnunet-service-core_sessions.c:402
 msgid "# outdated typemap confirmations received"
 msgstr ""
 
-#: src/core/gnunet-service-core_sessions.c:433
+#: src/core/gnunet-service-core_sessions.c:420
 msgid "# valid typemap confirmations received"
 msgstr ""
 
-#: src/core/gnunet-service-core_typemap.c:169
-#: src/core/gnunet-service-core_typemap.c:181
+#: src/core/gnunet-service-core_typemap.c:170
+#: src/core/gnunet-service-core_typemap.c:183
 msgid "# type maps received"
 msgstr ""
 
-#: src/core/gnunet-service-core_typemap.c:212
+#: src/core/gnunet-service-core_typemap.c:216
 msgid "# updates to my type map"
 msgstr ""
 
@@ -1429,7 +1429,7 @@ msgstr ""
 msgid "Unable to parse CRED record string `%s'\n"
 msgstr ""
 
-#: src/credential/gnunet-credential.c:264 src/namestore/gnunet-namestore.c:1005
+#: src/credential/gnunet-credential.c:264 src/namestore/gnunet-namestore.c:991
 #, c-format
 msgid "Ego `%s' not known to identity service\n"
 msgstr ""
@@ -1535,7 +1535,7 @@ msgstr ""
 
 #: src/credential/gnunet-service-credential.c:1071
 #: src/namestore/gnunet-namestore-fcfsd.c:1138
-#: src/namestore/gnunet-namestore.c:1030
+#: src/namestore/gnunet-namestore.c:1015
 #, c-format
 msgid "Failed to connect to namestore\n"
 msgstr ""
@@ -3499,7 +3499,7 @@ msgid "FS service is lacking HOSTKEY configuration setting.  Exiting.\n"
 msgstr ""
 
 #: src/fs/gnunet-service-fs.c:1305 src/hostlist/gnunet-daemon-hostlist.c:353
-#: src/topology/gnunet-daemon-topology.c:1197
+#: src/topology/gnunet-daemon-topology.c:1100
 #, c-format
 msgid "Failed to connect to `%s' service.\n"
 msgstr ""
@@ -3909,139 +3909,144 @@ msgstr ""
 msgid "This program will import some GNS authorities into your GNS namestore."
 msgstr ""
 
-#: src/gns/gnunet-gns-proxy.c:118
-#: src/hostlist/gnunet-daemon-hostlist_client.c:535
-#: src/hostlist/gnunet-daemon-hostlist_client.c:753
-#: src/hostlist/gnunet-daemon-hostlist_client.c:759
-#: src/hostlist/gnunet-daemon-hostlist_client.c:811
-#: src/hostlist/gnunet-daemon-hostlist_client.c:820
-#: src/hostlist/gnunet-daemon-hostlist_client.c:931
-#: src/hostlist/gnunet-daemon-hostlist_client.c:1026
-#: src/hostlist/gnunet-daemon-hostlist_client.c:1031
-#: src/transport/plugin_transport_http_client.c:598
-#: src/transport/plugin_transport_http_client.c:616
+#: src/gns/gnunet-gns-proxy.c:115
+#: src/hostlist/gnunet-daemon-hostlist_client.c:532
+#: src/hostlist/gnunet-daemon-hostlist_client.c:750
+#: src/hostlist/gnunet-daemon-hostlist_client.c:756
+#: src/hostlist/gnunet-daemon-hostlist_client.c:808
+#: src/hostlist/gnunet-daemon-hostlist_client.c:817
+#: src/hostlist/gnunet-daemon-hostlist_client.c:928
+#: src/hostlist/gnunet-daemon-hostlist_client.c:1023
+#: src/hostlist/gnunet-daemon-hostlist_client.c:1028
+#: src/transport/plugin_transport_http_client.c:595
+#: src/transport/plugin_transport_http_client.c:613
 #, c-format
 msgid "%s failed at %s:%d: `%s'\n"
 msgstr ""
 
-#: src/gns/gnunet-gns-proxy.c:989
+#: src/gns/gnunet-gns-proxy.c:986
 #, c-format
 msgid "Unsupported CURL TLS backend %d\n"
 msgstr ""
 
-#: src/gns/gnunet-gns-proxy.c:1014
+#: src/gns/gnunet-gns-proxy.c:1011
 #, c-format
 msgid "Failed to fetch CN from cert: %s\n"
 msgstr ""
 
-#: src/gns/gnunet-gns-proxy.c:1035
+#: src/gns/gnunet-gns-proxy.c:1032
 #, c-format
 msgid "Failed to initialize DANE: %s\n"
 msgstr ""
 
-#: src/gns/gnunet-gns-proxy.c:1050
+#: src/gns/gnunet-gns-proxy.c:1047
 #, c-format
 msgid "Failed to parse DANE record: %s\n"
 msgstr ""
 
-#: src/gns/gnunet-gns-proxy.c:1065
+#: src/gns/gnunet-gns-proxy.c:1062
 #, c-format
 msgid "Failed to verify TLS connection using DANE: %s\n"
 msgstr ""
 
-#: src/gns/gnunet-gns-proxy.c:1075
+#: src/gns/gnunet-gns-proxy.c:1072
 #, c-format
 msgid "Failed DANE verification failed with GnuTLS verify status code: %u\n"
 msgstr ""
 
-#: src/gns/gnunet-gns-proxy.c:1099
+#: src/gns/gnunet-gns-proxy.c:1096
 #, c-format
 msgid "TLS certificate subject name (%s) does not match `%s': %d\n"
 msgstr ""
 
-#: src/gns/gnunet-gns-proxy.c:1230
+#: src/gns/gnunet-gns-proxy.c:1227
 #, c-format
 msgid "Cookie domain `%s' supplied by server is invalid\n"
 msgstr ""
 
-#: src/gns/gnunet-gns-proxy.c:2131
+#: src/gns/gnunet-gns-proxy.c:2128
 #, c-format
 msgid "Unsupported HTTP method `%s'\n"
 msgstr ""
 
-#: src/gns/gnunet-gns-proxy.c:2652
+#: src/gns/gnunet-gns-proxy.c:2649
 #, c-format
 msgid "Unable to import private key from file `%s'\n"
 msgstr ""
 
-#: src/gns/gnunet-gns-proxy.c:2684
+#: src/gns/gnunet-gns-proxy.c:2681
 #, c-format
 msgid "Unable to import certificate from `%s'\n"
 msgstr ""
 
-#: src/gns/gnunet-gns-proxy.c:2885
+#: src/gns/gnunet-gns-proxy.c:2882
 #, c-format
 msgid "Failed to start HTTPS server for `%s'\n"
 msgstr ""
 
-#: src/gns/gnunet-gns-proxy.c:2907 src/rest/gnunet-rest-server.c:668
+#: src/gns/gnunet-gns-proxy.c:2904 src/rest/gnunet-rest-server.c:668
 msgid "Failed to pass client to MHD\n"
 msgstr ""
 
-#: src/gns/gnunet-gns-proxy.c:3243
+#: src/gns/gnunet-gns-proxy.c:3240
 #, c-format
 msgid "Unsupported socks version %d\n"
 msgstr ""
 
-#: src/gns/gnunet-gns-proxy.c:3272
+#: src/gns/gnunet-gns-proxy.c:3269
 #, c-format
 msgid "Unsupported socks command %d\n"
 msgstr ""
 
-#: src/gns/gnunet-gns-proxy.c:3355
+#: src/gns/gnunet-gns-proxy.c:3352
 #, c-format
 msgid "Unsupported socks address type %d\n"
 msgstr ""
 
-#: src/gns/gnunet-gns-proxy.c:3693
+#: src/gns/gnunet-gns-proxy.c:3690
 #, c-format
 msgid "Failed to load X.509 key and certificate from `%s'\n"
 msgstr ""
 
-#: src/gns/gnunet-gns-proxy.c:3821
+#: src/gns/gnunet-gns-proxy.c:3818
 msgid "listen on specified port (default: 7777)"
 msgstr ""
 
-#: src/gns/gnunet-gns-proxy.c:3826
+#: src/gns/gnunet-gns-proxy.c:3823
 msgid "pem file to use as CA"
 msgstr ""
 
-#: src/gns/gnunet-gns-proxy.c:3830
+#: src/gns/gnunet-gns-proxy.c:3827
 msgid "disable use of IPv6"
 msgstr ""
 
-#: src/gns/gnunet-gns-proxy.c:3856
+#: src/gns/gnunet-gns-proxy.c:3853
 msgid "GNUnet GNS proxy"
 msgstr ""
 
-#: src/gns/gnunet-gns.c:199
+#: src/gns/gnunet-gns.c:178
+#, c-format
+msgid "`%s' is not a valid domain name\n"
+msgstr ""
+
+#: src/gns/gnunet-gns.c:196
 #, c-format
 msgid "Invalid typename specified, assuming `ANY'\n"
 msgstr ""
 
-#: src/gns/gnunet-gns.c:233
+#: src/gns/gnunet-gns.c:230
 msgid "Lookup a record for the given name"
 msgstr ""
 
-#: src/gns/gnunet-gns.c:238
+#: src/gns/gnunet-gns.c:236
 msgid "Specify the type of the record to lookup"
 msgstr ""
 
-#: src/gns/gnunet-gns.c:242
+#: src/gns/gnunet-gns.c:240
 msgid "No unneeded output"
 msgstr ""
 
-#: src/gns/gnunet-gns.c:258
+#: src/gns/gnunet-gns.c:252
 msgid "GNUnet GNS resolver tool"
 msgstr ""
 
@@ -4145,7 +4150,7 @@ msgstr ""
 msgid "Unable to parse BOX record string `%s'\n"
 msgstr ""
 
-#: src/gns/plugin_rest_gns.c:452
+#: src/gns/plugin_rest_gns.c:451
 msgid "Gns REST API initialized\n"
 msgstr ""
 
@@ -4313,195 +4318,195 @@ msgstr ""
 msgid "GNUnet hostlist server and client"
 msgstr ""
 
-#: src/hostlist/gnunet-daemon-hostlist_client.c:349
+#: src/hostlist/gnunet-daemon-hostlist_client.c:346
 msgid "# bytes downloaded from hostlist servers"
+msgstr ""
+
+#: src/hostlist/gnunet-daemon-hostlist_client.c:367
+#: src/hostlist/gnunet-daemon-hostlist_client.c:400
+msgid "# invalid HELLOs downloaded from hostlist servers"
 msgstr ""
 
 #: src/hostlist/gnunet-daemon-hostlist_client.c:370
 #: src/hostlist/gnunet-daemon-hostlist_client.c:403
-msgid "# invalid HELLOs downloaded from hostlist servers"
-msgstr ""
-
-#: src/hostlist/gnunet-daemon-hostlist_client.c:373
-#: src/hostlist/gnunet-daemon-hostlist_client.c:406
 #, c-format
 msgid "Invalid `%s' message received from hostlist at `%s'\n"
 msgstr ""
 
-#: src/hostlist/gnunet-daemon-hostlist_client.c:391
+#: src/hostlist/gnunet-daemon-hostlist_client.c:388
 msgid "# valid HELLOs downloaded from hostlist servers"
 msgstr ""
 
-#: src/hostlist/gnunet-daemon-hostlist_client.c:661
-#: src/hostlist/gnunet-daemon-hostlist_client.c:1407
+#: src/hostlist/gnunet-daemon-hostlist_client.c:658
+#: src/hostlist/gnunet-daemon-hostlist_client.c:1404
 msgid "# advertised hostlist URIs"
 msgstr ""
 
-#: src/hostlist/gnunet-daemon-hostlist_client.c:691
+#: src/hostlist/gnunet-daemon-hostlist_client.c:688
 #, c-format
 msgid "# advertised URI `%s' downloaded"
 msgstr ""
 
-#: src/hostlist/gnunet-daemon-hostlist_client.c:734
+#: src/hostlist/gnunet-daemon-hostlist_client.c:731
 #, c-format
 msgid ""
 "Advertised hostlist with URI `%s' could not be downloaded. Advertised URI "
 "gets dismissed.\n"
 msgstr ""
 
-#: src/hostlist/gnunet-daemon-hostlist_client.c:862
+#: src/hostlist/gnunet-daemon-hostlist_client.c:859
 #, c-format
 msgid "Timeout trying to download hostlist from `%s'\n"
 msgstr ""
 
-#: src/hostlist/gnunet-daemon-hostlist_client.c:876
+#: src/hostlist/gnunet-daemon-hostlist_client.c:873
 #, c-format
 msgid "Download limit of %u bytes exceeded, stopping download\n"
 msgstr ""
 
-#: src/hostlist/gnunet-daemon-hostlist_client.c:896
+#: src/hostlist/gnunet-daemon-hostlist_client.c:893
 #, c-format
 msgid "Download of hostlist from `%s' failed: `%s'\n"
 msgstr ""
 
-#: src/hostlist/gnunet-daemon-hostlist_client.c:902
+#: src/hostlist/gnunet-daemon-hostlist_client.c:899
 #, c-format
 msgid "Download of hostlist `%s' completed.\n"
 msgstr ""
 
-#: src/hostlist/gnunet-daemon-hostlist_client.c:910
+#: src/hostlist/gnunet-daemon-hostlist_client.c:907
 #, c-format
 msgid "Adding successfully tested hostlist `%s' datastore.\n"
 msgstr ""
 
-#: src/hostlist/gnunet-daemon-hostlist_client.c:963
+#: src/hostlist/gnunet-daemon-hostlist_client.c:960
 #, c-format
 msgid "Bootstrapping using hostlist at `%s'.\n"
 msgstr ""
 
-#: src/hostlist/gnunet-daemon-hostlist_client.c:971
+#: src/hostlist/gnunet-daemon-hostlist_client.c:968
 msgid "# hostlist downloads initiated"
 msgstr ""
 
-#: src/hostlist/gnunet-daemon-hostlist_client.c:1098
-#: src/hostlist/gnunet-daemon-hostlist_client.c:1665
+#: src/hostlist/gnunet-daemon-hostlist_client.c:1095
+#: src/hostlist/gnunet-daemon-hostlist_client.c:1662
 msgid "# milliseconds between hostlist downloads"
 msgstr ""
 
-#: src/hostlist/gnunet-daemon-hostlist_client.c:1107
+#: src/hostlist/gnunet-daemon-hostlist_client.c:1104
 #, c-format
 msgid "Have %u/%u connections.  Will consider downloading hostlist in %s\n"
 msgstr ""
 
-#: src/hostlist/gnunet-daemon-hostlist_client.c:1166
-#: src/hostlist/gnunet-daemon-hostlist_client.c:1187
+#: src/hostlist/gnunet-daemon-hostlist_client.c:1163
+#: src/hostlist/gnunet-daemon-hostlist_client.c:1184
 msgid "# active connections"
 msgstr ""
 
-#: src/hostlist/gnunet-daemon-hostlist_client.c:1353
+#: src/hostlist/gnunet-daemon-hostlist_client.c:1350
 #, c-format
 msgid "Loading saved hostlist entries from file `%s' \n"
 msgstr ""
 
-#: src/hostlist/gnunet-daemon-hostlist_client.c:1358
+#: src/hostlist/gnunet-daemon-hostlist_client.c:1355
 #, c-format
 msgid "Hostlist file `%s' does not exist\n"
 msgstr ""
 
-#: src/hostlist/gnunet-daemon-hostlist_client.c:1367
+#: src/hostlist/gnunet-daemon-hostlist_client.c:1364
 #, c-format
 msgid "Could not open file `%s' for reading to load hostlists: %s\n"
 msgstr ""
 
-#: src/hostlist/gnunet-daemon-hostlist_client.c:1401
+#: src/hostlist/gnunet-daemon-hostlist_client.c:1398
 #, c-format
 msgid "%u hostlist URIs loaded from file\n"
 msgstr ""
 
-#: src/hostlist/gnunet-daemon-hostlist_client.c:1404
+#: src/hostlist/gnunet-daemon-hostlist_client.c:1401
 msgid "# hostlist URIs read from file"
 msgstr ""
 
-#: src/hostlist/gnunet-daemon-hostlist_client.c:1450
+#: src/hostlist/gnunet-daemon-hostlist_client.c:1447
 #, c-format
 msgid "Could not open file `%s' for writing to save hostlists: %s\n"
 msgstr ""
 
-#: src/hostlist/gnunet-daemon-hostlist_client.c:1457
+#: src/hostlist/gnunet-daemon-hostlist_client.c:1454
 #, c-format
 msgid "Writing %u hostlist URIs to `%s'\n"
 msgstr ""
 
-#: src/hostlist/gnunet-daemon-hostlist_client.c:1481
-#: src/hostlist/gnunet-daemon-hostlist_client.c:1498
+#: src/hostlist/gnunet-daemon-hostlist_client.c:1478
+#: src/hostlist/gnunet-daemon-hostlist_client.c:1495
 #, c-format
 msgid "Error writing hostlist URIs to file `%s'\n"
 msgstr ""
 
-#: src/hostlist/gnunet-daemon-hostlist_client.c:1493
+#: src/hostlist/gnunet-daemon-hostlist_client.c:1490
 msgid "# hostlist URIs written to file"
 msgstr ""
 
-#: src/hostlist/gnunet-daemon-hostlist_client.c:1595
-#: src/transport/plugin_transport_http_client.c:2274
+#: src/hostlist/gnunet-daemon-hostlist_client.c:1592
+#: src/transport/plugin_transport_http_client.c:2271
 #, c-format
 msgid "Invalid proxy type: `%s', disabling proxy! Check configuration!\n"
 msgstr ""
 
-#: src/hostlist/gnunet-daemon-hostlist_client.c:1624
+#: src/hostlist/gnunet-daemon-hostlist_client.c:1621
 msgid "Learning is enabled on this peer\n"
 msgstr ""
 
-#: src/hostlist/gnunet-daemon-hostlist_client.c:1638
+#: src/hostlist/gnunet-daemon-hostlist_client.c:1635
 msgid "Learning is not enabled on this peer\n"
 msgstr ""
 
-#: src/hostlist/gnunet-daemon-hostlist_client.c:1651
+#: src/hostlist/gnunet-daemon-hostlist_client.c:1648
 #, c-format
 msgid ""
 "Since learning is not enabled on this peer, hostlist file `%s' was removed\n"
 msgstr ""
 
-#: src/hostlist/gnunet-daemon-hostlist_server.c:176
+#: src/hostlist/gnunet-daemon-hostlist_server.c:172
 msgid "bytes in hostlist"
 msgstr ""
 
-#: src/hostlist/gnunet-daemon-hostlist_server.c:201
+#: src/hostlist/gnunet-daemon-hostlist_server.c:198
 msgid "expired addresses encountered"
 msgstr ""
 
-#: src/hostlist/gnunet-daemon-hostlist_server.c:237
-#: src/hostlist/gnunet-daemon-hostlist_server.c:531
+#: src/hostlist/gnunet-daemon-hostlist_server.c:235
+#: src/hostlist/gnunet-daemon-hostlist_server.c:526
 #: src/peerinfo-tool/gnunet-peerinfo.c:385
 #: src/peerinfo-tool/gnunet-peerinfo.c:534
-#: src/topology/gnunet-daemon-topology.c:859
+#: src/topology/gnunet-daemon-topology.c:801
 #, c-format
 msgid "Error in communication with PEERINFO service: %s\n"
 msgstr ""
 
-#: src/hostlist/gnunet-daemon-hostlist_server.c:261
+#: src/hostlist/gnunet-daemon-hostlist_server.c:256
 msgid "HELLOs without addresses encountered (ignored)"
 msgstr ""
 
-#: src/hostlist/gnunet-daemon-hostlist_server.c:278
+#: src/hostlist/gnunet-daemon-hostlist_server.c:274
 msgid "bytes not included in hostlist (size limit)"
 msgstr ""
 
-#: src/hostlist/gnunet-daemon-hostlist_server.c:382
+#: src/hostlist/gnunet-daemon-hostlist_server.c:376
 #, c-format
 msgid "Refusing `%s' request to hostlist server\n"
 msgstr ""
 
-#: src/hostlist/gnunet-daemon-hostlist_server.c:385
+#: src/hostlist/gnunet-daemon-hostlist_server.c:380
 msgid "hostlist requests refused (not HTTP GET)"
 msgstr ""
 
-#: src/hostlist/gnunet-daemon-hostlist_server.c:397
+#: src/hostlist/gnunet-daemon-hostlist_server.c:393
 #, c-format
 msgid "Refusing `%s' request with %llu bytes of upload data\n"
 msgstr ""
 
-#: src/hostlist/gnunet-daemon-hostlist_server.c:401
+#: src/hostlist/gnunet-daemon-hostlist_server.c:398
 msgid "hostlist requests refused (upload data)"
 msgstr ""
 
@@ -4513,57 +4518,57 @@ msgstr ""
 msgid "hostlist requests refused (not ready)"
 msgstr ""
 
-#: src/hostlist/gnunet-daemon-hostlist_server.c:416
+#: src/hostlist/gnunet-daemon-hostlist_server.c:417
 msgid "Received request for our hostlist\n"
 msgstr ""
 
-#: src/hostlist/gnunet-daemon-hostlist_server.c:418
+#: src/hostlist/gnunet-daemon-hostlist_server.c:419
 msgid "hostlist requests processed"
 msgstr ""
 
-#: src/hostlist/gnunet-daemon-hostlist_server.c:466
+#: src/hostlist/gnunet-daemon-hostlist_server.c:460
 msgid "# hostlist advertisements send"
 msgstr ""
 
-#: src/hostlist/gnunet-daemon-hostlist_server.c:679
+#: src/hostlist/gnunet-daemon-hostlist_server.c:673
 #: src/transport/gnunet-service-transport.c:2827
 msgid "Could not access PEERINFO service.  Exiting.\n"
 msgstr ""
 
-#: src/hostlist/gnunet-daemon-hostlist_server.c:691
+#: src/hostlist/gnunet-daemon-hostlist_server.c:684
 #, c-format
 msgid "Invalid port number %llu.  Exiting.\n"
 msgstr ""
 
-#: src/hostlist/gnunet-daemon-hostlist_server.c:703
+#: src/hostlist/gnunet-daemon-hostlist_server.c:696
 #, c-format
 msgid "Hostlist service starts on %s:%llu\n"
 msgstr ""
 
-#: src/hostlist/gnunet-daemon-hostlist_server.c:718
+#: src/hostlist/gnunet-daemon-hostlist_server.c:713
 #, c-format
 msgid "Address to obtain hostlist: `%s'\n"
 msgstr ""
 
-#: src/hostlist/gnunet-daemon-hostlist_server.c:731
+#: src/hostlist/gnunet-daemon-hostlist_server.c:728
 msgid "BINDTOIP does not a valid IPv4 address! Ignoring BINDTOIPV4.\n"
 msgstr ""
 
-#: src/hostlist/gnunet-daemon-hostlist_server.c:748
+#: src/hostlist/gnunet-daemon-hostlist_server.c:742
 msgid "BINDTOIP does not a valid IPv4 address! Ignoring BINDTOIPV6.\n"
 msgstr ""
 
-#: src/hostlist/gnunet-daemon-hostlist_server.c:769
+#: src/hostlist/gnunet-daemon-hostlist_server.c:764
 #, c-format
 msgid "`%s' is not a valid IPv4 address! Ignoring BINDTOIPV4.\n"
 msgstr ""
 
-#: src/hostlist/gnunet-daemon-hostlist_server.c:789
+#: src/hostlist/gnunet-daemon-hostlist_server.c:785
 #, c-format
 msgid "`%s' is not a valid IPv6 address! Ignoring BINDTOIPV6.\n"
 msgstr ""
 
-#: src/hostlist/gnunet-daemon-hostlist_server.c:829
+#: src/hostlist/gnunet-daemon-hostlist_server.c:828
 #, c-format
 msgid "Could not start hostlist HTTP server on port %u\n"
 msgstr ""
@@ -4684,7 +4689,7 @@ msgstr ""
 msgid "No records found for `%s'"
 msgstr ""
 
-#: src/namecache/gnunet-namecache.c:122 src/namestore/gnunet-namestore.c:454
+#: src/namecache/gnunet-namecache.c:122 src/namestore/gnunet-namestore.c:459
 #, c-format
 msgid "\tCorrupt or unsupported record of type %u\n"
 msgstr ""
@@ -4704,15 +4709,15 @@ msgstr "fornat invalide : « %s »\n"
 msgid "You must specify a name\n"
 msgstr ""
 
-#: src/namecache/gnunet-namecache.c:232 src/namestore/gnunet-namestore.c:1586
+#: src/namecache/gnunet-namecache.c:232 src/namestore/gnunet-namestore.c:1536
 msgid "name of the record to add/delete/display"
 msgstr ""
 
 #: src/namecache/gnunet-namecache.c:238
-msgid "spezifies the public key of the zone to look in"
+msgid "specifies the public key of the zone to look in"
 msgstr ""
 
-#: src/namecache/gnunet-namecache.c:250 src/namestore/gnunet-namestore.c:1643
+#: src/namecache/gnunet-namecache.c:250 src/namestore/gnunet-namestore.c:1595
 msgid "GNUnet zone manipulation tool"
 msgstr ""
 
@@ -4822,212 +4827,212 @@ msgstr ""
 msgid "GNU Name System First Come First Serve name registration service"
 msgstr ""
 
-#: src/namestore/gnunet-namestore.c:341
+#: src/namestore/gnunet-namestore.c:334
 #, c-format
 msgid "Adding record failed: %s\n"
 msgstr ""
 
-#: src/namestore/gnunet-namestore.c:371
+#: src/namestore/gnunet-namestore.c:362
 #, c-format
 msgid "Deleting record failed, record does not exist%s%s\n"
 msgstr ""
 
-#: src/namestore/gnunet-namestore.c:378
+#: src/namestore/gnunet-namestore.c:369
 #, c-format
 msgid "Deleting record failed%s%s\n"
 msgstr ""
 
-#: src/namestore/gnunet-namestore.c:660 src/namestore/gnunet-namestore.c:668
+#: src/namestore/gnunet-namestore.c:656 src/namestore/gnunet-namestore.c:666
 #, c-format
 msgid "A %s record exists already under `%s', no other records can be added.\n"
 msgstr ""
 
-#: src/namestore/gnunet-namestore.c:682 src/namestore/gnunet-namestore.c:694
+#: src/namestore/gnunet-namestore.c:681 src/namestore/gnunet-namestore.c:694
 #, c-format
 msgid "Records already exist under `%s', cannot add `%s' record.\n"
 msgstr ""
 
-#: src/namestore/gnunet-namestore.c:707
+#: src/namestore/gnunet-namestore.c:709
 #, c-format
 msgid ""
 "Non-GNS2DNS records already exist under `%s', cannot add GNS2DNS record.\n"
 msgstr ""
 
-#: src/namestore/gnunet-namestore.c:837
+#: src/namestore/gnunet-namestore.c:829
 #, c-format
 msgid "There are no records under label `%s' that could be deleted.\n"
 msgstr ""
 
-#: src/namestore/gnunet-namestore.c:878
+#: src/namestore/gnunet-namestore.c:872
 #, c-format
 msgid ""
 "There are no records under label `%s' that match the request for deletion.\n"
 msgstr ""
 
-#: src/namestore/gnunet-namestore.c:965
+#: src/namestore/gnunet-namestore.c:953
 #, fuzzy, c-format
 msgid "Failed to replace records: %s\n"
 msgstr "Résolution de « %s » échouée : %s\n"
 
-#: src/namestore/gnunet-namestore.c:993
+#: src/namestore/gnunet-namestore.c:979
 #, c-format
 msgid "Label `%s' contains `.' which is not allowed\n"
 msgstr ""
 
-#: src/namestore/gnunet-namestore.c:1020
+#: src/namestore/gnunet-namestore.c:1006
 #, c-format
 msgid "No options given\n"
 msgstr ""
 
-#: src/namestore/gnunet-namestore.c:1043 src/namestore/gnunet-namestore.c:1076
-#: src/namestore/gnunet-namestore.c:1085 src/namestore/gnunet-namestore.c:1104
-#: src/namestore/gnunet-namestore.c:1127 src/namestore/gnunet-namestore.c:1159
+#: src/namestore/gnunet-namestore.c:1028 src/namestore/gnunet-namestore.c:1061
+#: src/namestore/gnunet-namestore.c:1071 src/namestore/gnunet-namestore.c:1089
+#: src/namestore/gnunet-namestore.c:1110 src/namestore/gnunet-namestore.c:1137
 #, c-format
 msgid "Missing option `%s' for operation `%s'\n"
 msgstr ""
 
-#: src/namestore/gnunet-namestore.c:1044
+#: src/namestore/gnunet-namestore.c:1030
 msgid "replace"
 msgstr ""
 
-#: src/namestore/gnunet-namestore.c:1077 src/namestore/gnunet-namestore.c:1086
-#: src/namestore/gnunet-namestore.c:1105 src/namestore/gnunet-namestore.c:1129
+#: src/namestore/gnunet-namestore.c:1063 src/namestore/gnunet-namestore.c:1073
+#: src/namestore/gnunet-namestore.c:1091 src/namestore/gnunet-namestore.c:1112
 msgid "add"
 msgstr "ajouter"
 
-#: src/namestore/gnunet-namestore.c:1095
+#: src/namestore/gnunet-namestore.c:1081
 #, c-format
 msgid "Unsupported type `%s'\n"
 msgstr ""
 
-#: src/namestore/gnunet-namestore.c:1117
+#: src/namestore/gnunet-namestore.c:1100
 #, c-format
 msgid "Value `%s' invalid for record type `%s'\n"
 msgstr ""
 
-#: src/namestore/gnunet-namestore.c:1140
+#: src/namestore/gnunet-namestore.c:1119
 #, c-format
 msgid "Invalid time format `%s'\n"
 msgstr ""
 
-#: src/namestore/gnunet-namestore.c:1160
+#: src/namestore/gnunet-namestore.c:1139
 msgid "del"
 msgstr "supprimer"
 
-#: src/namestore/gnunet-namestore.c:1203
+#: src/namestore/gnunet-namestore.c:1182
 #, c-format
 msgid "Invalid public key for reverse lookup `%s'\n"
 msgstr ""
 
-#: src/namestore/gnunet-namestore.c:1232
+#: src/namestore/gnunet-namestore.c:1205
 #: src/peerinfo-tool/gnunet-peerinfo.c:775
 #, c-format
 msgid "Invalid URI `%s'\n"
 msgstr "URI invalide « %s »\n"
 
-#: src/namestore/gnunet-namestore.c:1260
+#: src/namestore/gnunet-namestore.c:1231
 #, c-format
 msgid "Invalid nick `%s'\n"
 msgstr ""
 
-#: src/namestore/gnunet-namestore.c:1300
+#: src/namestore/gnunet-namestore.c:1269
 #, c-format
 msgid "No default ego configured in identity service\n"
 msgstr ""
 
-#: src/namestore/gnunet-namestore.c:1352
+#: src/namestore/gnunet-namestore.c:1320
 #, c-format
 msgid "Superfluous command line arguments (starting with `%s') ignored\n"
 msgstr ""
 
-#: src/namestore/gnunet-namestore.c:1368
+#: src/namestore/gnunet-namestore.c:1331
 #, c-format
 msgid "Cannot connect to identity service\n"
 msgstr ""
 
-#: src/namestore/gnunet-namestore.c:1418
+#: src/namestore/gnunet-namestore.c:1378
 msgid "Empty record line argument is not allowed.\n"
 msgstr ""
 
-#: src/namestore/gnunet-namestore.c:1434
+#: src/namestore/gnunet-namestore.c:1390
 #, c-format
 msgid "Invalid expiration time `%s' (must be without unit)\n"
 msgstr ""
 
-#: src/namestore/gnunet-namestore.c:1446 src/namestore/gnunet-namestore.c:1464
-#: src/namestore/gnunet-namestore.c:1481
+#: src/namestore/gnunet-namestore.c:1402 src/namestore/gnunet-namestore.c:1418
+#: src/namestore/gnunet-namestore.c:1435
 #, c-format
 msgid "Missing entries in record line `%s'.\n"
 msgstr ""
 
-#: src/namestore/gnunet-namestore.c:1455
+#: src/namestore/gnunet-namestore.c:1410
 #, fuzzy, c-format
 msgid "Unknown record type `%s'\n"
 msgstr "Commande « %s » inconnue\n"
 
-#: src/namestore/gnunet-namestore.c:1495
+#: src/namestore/gnunet-namestore.c:1448
 #, fuzzy, c-format
 msgid "Invalid record data for type %s: `%s'.\n"
 msgstr "fornat invalide : « %s »\n"
 
-#: src/namestore/gnunet-namestore.c:1559
+#: src/namestore/gnunet-namestore.c:1505
 msgid "add record"
 msgstr "ajouter un enregistrement"
 
-#: src/namestore/gnunet-namestore.c:1563
+#: src/namestore/gnunet-namestore.c:1508
 msgid "delete record"
 msgstr "suprimer un enregistrement"
 
-#: src/namestore/gnunet-namestore.c:1567
+#: src/namestore/gnunet-namestore.c:1512
 msgid "display records"
 msgstr "afficher les enregistrements"
 
-#: src/namestore/gnunet-namestore.c:1572
+#: src/namestore/gnunet-namestore.c:1519
 msgid ""
 "expiration time for record to use (for adding only), \"never\" is possible"
 msgstr ""
 
-#: src/namestore/gnunet-namestore.c:1577
+#: src/namestore/gnunet-namestore.c:1525
 msgid "set the desired nick name for the zone"
 msgstr ""
 
-#: src/namestore/gnunet-namestore.c:1581
+#: src/namestore/gnunet-namestore.c:1530
 msgid "monitor changes in the namestore"
 msgstr ""
 
-#: src/namestore/gnunet-namestore.c:1591
+#: src/namestore/gnunet-namestore.c:1542
 msgid "determine our name for the given PKEY"
 msgstr ""
 
-#: src/namestore/gnunet-namestore.c:1596
+#: src/namestore/gnunet-namestore.c:1549
 msgid ""
 "set record set to values given by (possibly multiple) RECORDLINES; can be "
 "specified multiple times"
 msgstr ""
 
-#: src/namestore/gnunet-namestore.c:1601
+#: src/namestore/gnunet-namestore.c:1555
 msgid "type of the record to add/delete/display"
 msgstr ""
 
-#: src/namestore/gnunet-namestore.c:1606
+#: src/namestore/gnunet-namestore.c:1560
 msgid "URI to import into our zone"
 msgstr ""
 
-#: src/namestore/gnunet-namestore.c:1611
+#: src/namestore/gnunet-namestore.c:1566
 msgid "value of the record to add/delete"
 msgstr ""
 
-#: src/namestore/gnunet-namestore.c:1615
+#: src/namestore/gnunet-namestore.c:1570
 msgid "create or list public record"
 msgstr ""
 
-#: src/namestore/gnunet-namestore.c:1619
+#: src/namestore/gnunet-namestore.c:1576
 msgid ""
 "create shadow record (only valid if all other records of the same type have "
 "expired"
 msgstr ""
 
-#: src/namestore/gnunet-namestore.c:1624
+#: src/namestore/gnunet-namestore.c:1582
 msgid "name of the ego controlling the zone"
 msgstr ""
 
@@ -5052,7 +5057,7 @@ msgstr ""
 msgid "heap file database running\n"
 msgstr ""
 
-#: src/namestore/plugin_rest_namestore.c:1104
+#: src/namestore/plugin_rest_namestore.c:919
 msgid "Namestore REST API initialized\n"
 msgstr ""
 
@@ -5355,7 +5360,7 @@ msgstr ""
 msgid "Show network size estimates from NSE service."
 msgstr ""
 
-#: src/nse/gnunet-service-nse.c:1532
+#: src/nse/gnunet-service-nse.c:1438
 #: src/revocation/gnunet-service-revocation.c:841 src/util/gnunet-scrypt.c:276
 msgid "Value is too large.\n"
 msgstr ""
@@ -6585,68 +6590,68 @@ msgstr ""
 msgid "Directory for file `%s' does not seem to be writable.\n"
 msgstr ""
 
-#: src/topology/gnunet-daemon-topology.c:230
+#: src/topology/gnunet-daemon-topology.c:228
 msgid "# peers blacklisted"
 msgstr ""
 
-#: src/topology/gnunet-daemon-topology.c:343
+#: src/topology/gnunet-daemon-topology.c:334
 msgid "# connect requests issued to ATS"
 msgstr ""
 
-#: src/topology/gnunet-daemon-topology.c:537
+#: src/topology/gnunet-daemon-topology.c:513
 msgid "# HELLO messages gossipped"
 msgstr ""
 
-#: src/topology/gnunet-daemon-topology.c:638
-#: src/topology/gnunet-daemon-topology.c:724
+#: src/topology/gnunet-daemon-topology.c:600
+#: src/topology/gnunet-daemon-topology.c:680
 msgid "# friends connected"
 msgstr ""
 
-#: src/topology/gnunet-daemon-topology.c:919
+#: src/topology/gnunet-daemon-topology.c:851
 msgid "Failed to connect to core service, can not manage topology!\n"
 msgstr ""
 
-#: src/topology/gnunet-daemon-topology.c:951
+#: src/topology/gnunet-daemon-topology.c:877
 #, c-format
 msgid "Found myself `%s' in friend list (useless, ignored)\n"
 msgstr ""
 
-#: src/topology/gnunet-daemon-topology.c:958
+#: src/topology/gnunet-daemon-topology.c:884
 #, c-format
 msgid "Found friend `%s' in configuration\n"
 msgstr ""
 
-#: src/topology/gnunet-daemon-topology.c:980
+#: src/topology/gnunet-daemon-topology.c:902
 msgid "Encountered errors parsing friends list!\n"
 msgstr ""
 
-#: src/topology/gnunet-daemon-topology.c:983
+#: src/topology/gnunet-daemon-topology.c:905
 msgid "# friends in configuration"
 msgstr ""
 
-#: src/topology/gnunet-daemon-topology.c:990
+#: src/topology/gnunet-daemon-topology.c:913
 msgid ""
 "Fewer friends specified than required by minimum friend count. Will only "
 "connect to friends.\n"
 msgstr ""
 
-#: src/topology/gnunet-daemon-topology.c:996
+#: src/topology/gnunet-daemon-topology.c:921
 msgid ""
 "More friendly connections required than target total number of connections.\n"
 msgstr ""
 
-#: src/topology/gnunet-daemon-topology.c:1049
+#: src/topology/gnunet-daemon-topology.c:968
 #: src/transport/plugin_transport_wlan.c:1517
 msgid "# HELLO messages received"
 msgstr ""
 
-#: src/topology/gnunet-daemon-topology.c:1228
+#: src/topology/gnunet-daemon-topology.c:1128
 msgid "GNUnet topology control"
 msgstr ""
 
 #: src/transport/gnunet-communicator-tcp.c:2162
-#: src/transport/gnunet-communicator-udp.c:2707
-#: src/transport/gnunet-service-tng.c:8884
+#: src/transport/gnunet-communicator-udp.c:2699
+#: src/transport/gnunet-service-tng.c:9110
 #: src/transport/gnunet-service-transport.c:2795
 msgid "Transport service is lacking key configuration settings. Exiting.\n"
 msgstr ""
@@ -6655,7 +6660,7 @@ msgstr ""
 msgid "GNUnet TCP communicator"
 msgstr ""
 
-#: src/transport/gnunet-communicator-udp.c:2778
+#: src/transport/gnunet-communicator-udp.c:2770
 msgid "GNUnet UDP communicator"
 msgstr ""
 
@@ -7196,7 +7201,7 @@ msgstr ""
 msgid "send data for benchmarking to the other peer (until CTRL-C)"
 msgstr ""
 
-#: src/transport/plugin_transport_http_client.c:1474
+#: src/transport/plugin_transport_http_client.c:1471
 #: src/transport/plugin_transport_http_server.c:2312
 #: src/transport/plugin_transport_http_server.c:3530
 #: src/transport/plugin_transport_tcp.c:3901
@@ -7204,24 +7209,24 @@ msgstr ""
 msgid "TCP_STEALTH not supported on this platform.\n"
 msgstr ""
 
-#: src/transport/plugin_transport_http_client.c:2115
+#: src/transport/plugin_transport_http_client.c:2112
 #, c-format
 msgid "Could not initialize curl multi handle, failed to start %s plugin!\n"
 msgstr ""
 
-#: src/transport/plugin_transport_http_client.c:2164
+#: src/transport/plugin_transport_http_client.c:2161
 #: src/transport/plugin_transport_http_server.c:3245
 #, c-format
 msgid "Shutting down plugin `%s'\n"
 msgstr ""
 
-#: src/transport/plugin_transport_http_client.c:2181
+#: src/transport/plugin_transport_http_client.c:2178
 #: src/transport/plugin_transport_http_server.c:3315
 #, c-format
 msgid "Shutdown for plugin `%s' complete\n"
 msgstr ""
 
-#: src/transport/plugin_transport_http_client.c:2215
+#: src/transport/plugin_transport_http_client.c:2212
 #, c-format
 msgid "Maximum number of requests is %u\n"
 msgstr ""
@@ -7924,12 +7929,12 @@ msgstr ""
 msgid "Expected `%s' to be a directory!\n"
 msgstr ""
 
-#: src/util/dnsparser.c:264
+#: src/util/dnsparser.c:261
 #, c-format
 msgid "Failed to convert DNS IDNA name `%s' to UTF-8: %s\n"
 msgstr ""
 
-#: src/util/dnsparser.c:954
+#: src/util/dnsparser.c:911
 #, c-format
 msgid "Failed to convert UTF-8 name `%s' to DNS IDNA format: %s\n"
 msgstr ""
@@ -8363,17 +8368,17 @@ msgstr ""
 msgid "Could not determine plugin installation path.\n"
 msgstr ""
 
-#: src/util/program.c:283
+#: src/util/program.c:255
 #, fuzzy, c-format
 msgid "Unreadable or malformed configuration file `%s', exit ...\n"
 msgstr "fornat invalide : « %s »\n"
 
-#: src/util/program.c:301
+#: src/util/program.c:272
 #, c-format
 msgid "Unreadable or malformed default configuration file `%s', exit ...\n"
 msgstr ""
 
-#: src/util/program.c:318
+#: src/util/program.c:287
 #, fuzzy
 msgid "Unreadable or malformed configuration, exit ...\n"
 msgstr "fornat invalide : « %s »\n"

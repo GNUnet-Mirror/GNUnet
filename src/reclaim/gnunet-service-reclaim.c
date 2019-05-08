@@ -51,20 +51,11 @@
  */
 #define MIN_WAIT_TIME GNUNET_TIME_UNIT_MINUTES
 
-/**
- * Standard token expiration time
- */
-#define DEFAULT_TOKEN_EXPIRATION_INTERVAL GNUNET_TIME_UNIT_HOURS
 
 /**
  * Identity handle
  */
 static struct GNUNET_IDENTITY_Handle *identity_handle;
-
-/**
- * Token expiration interval
- */
-static struct GNUNET_TIME_Relative token_expiration_interval;
 
 /**
  * Namestore handle
@@ -165,6 +156,15 @@ struct AttributeIterator
  */
 struct IdpClient
 {
+  /**
+   * DLL
+   */
+  struct IdpClient *prev;
+
+  /**
+   * DLL
+   */
+  struct IdpClient *next;
 
   /**
    * The client
@@ -514,13 +514,138 @@ struct EgoEntry
 
 
 /**
+ * Client list
+ */
+static struct IdpClient *client_list_head = NULL;
+
+/**
+ * Client list
+ */
+static struct IdpClient *client_list_tail = NULL;
+
+
+/**
+ * Cleanup attribute delete handle
+ *
+ * @param adh the attribute to cleanup
+ */
+static void
+cleanup_adh (struct AttributeDeleteHandle *adh)
+{
+  struct TicketRecordsEntry *le;
+  if (NULL != adh->ns_it)
+    GNUNET_NAMESTORE_zone_iteration_stop (adh->ns_it);
+  if (NULL != adh->ns_qe)
+    GNUNET_NAMESTORE_cancel (adh->ns_qe);
+  if (NULL != adh->label)
+    GNUNET_free (adh->label);
+  if (NULL != adh->claim)
+    GNUNET_free (adh->claim);
+  while (NULL != (le = adh->tickets_to_update_head)) {
+    GNUNET_CONTAINER_DLL_remove (adh->tickets_to_update_head,
+                                 adh->tickets_to_update_tail,
+                                 le);
+    if (NULL != le->label)
+      GNUNET_free (le->label);
+    if (NULL != le->data)
+      GNUNET_free (le->data);
+    GNUNET_free (le);
+  }
+  GNUNET_free (adh);
+}
+
+
+/**
+ * Cleanup attribute store handle
+ *
+ * @param handle handle to clean up
+ */
+static void
+cleanup_as_handle (struct AttributeStoreHandle *ash)
+{
+  if (NULL != ash->ns_qe)
+    GNUNET_NAMESTORE_cancel (ash->ns_qe);
+  if (NULL != ash->claim)
+    GNUNET_free (ash->claim);
+  GNUNET_free (ash);
+}
+
+
+/**
+ * Cleanup client
+ *
+ * @param idp the client to clean up
+ */
+static void
+cleanup_client (struct IdpClient *idp)
+{
+  struct AttributeIterator *ai;
+  struct TicketIteration *ti;
+  struct TicketRevocationOperation *rop;
+  struct TicketIssueOperation *iss;
+  struct ConsumeTicketOperation *ct;
+  struct AttributeStoreHandle *as;
+  struct AttributeDeleteHandle *adh;
+
+  while (NULL != (iss = idp->issue_op_head)) {
+    GNUNET_CONTAINER_DLL_remove (idp->issue_op_head, idp->issue_op_tail, iss);
+    GNUNET_free (iss);
+  }
+  while (NULL != (ct = idp->consume_op_head)) {
+    GNUNET_CONTAINER_DLL_remove (idp->consume_op_head,
+                                 idp->consume_op_tail,
+                                 ct);
+    if (NULL != ct->ch)
+      RECLAIM_TICKETS_consume_cancel (ct->ch);
+    GNUNET_free (ct);
+  }
+  while (NULL != (as = idp->store_op_head)) {
+    GNUNET_CONTAINER_DLL_remove (idp->store_op_head, idp->store_op_tail, as);
+    cleanup_as_handle (as);
+  }
+  while (NULL != (adh = idp->delete_op_head)) {
+    GNUNET_CONTAINER_DLL_remove (idp->delete_op_head, idp->delete_op_tail, adh);
+    cleanup_adh (adh);
+  }
+
+  while (NULL != (ai = idp->attr_iter_head)) {
+    GNUNET_CONTAINER_DLL_remove (idp->attr_iter_head, idp->attr_iter_tail, ai);
+    GNUNET_free (ai);
+  }
+  while (NULL != (rop = idp->revoke_op_head)) {
+    GNUNET_CONTAINER_DLL_remove (idp->revoke_op_head, idp->revoke_op_tail, rop);
+    if (NULL != rop->rh)
+      RECLAIM_TICKETS_revoke_cancel (rop->rh);
+    GNUNET_free (rop);
+  }
+  while (NULL != (ti = idp->ticket_iter_head)) {
+    GNUNET_CONTAINER_DLL_remove (idp->ticket_iter_head,
+                                 idp->ticket_iter_tail,
+                                 ti);
+    if (NULL != ti->iter)
+      RECLAIM_TICKETS_iteration_stop (ti->iter);
+    GNUNET_free (ti);
+  }
+  GNUNET_free (idp);
+}
+
+
+/**
  * Cleanup task
  */
 static void
 cleanup ()
 {
+  struct IdpClient *cl;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Cleaning up\n");
 
+  while (NULL != (cl = client_list_head))
+  {
+    GNUNET_CONTAINER_DLL_remove (client_list_head,
+                                 client_list_tail,
+                                 cl);
+    cleanup_client (cl);
+  }
   RECLAIM_TICKETS_deinit ();
   if (NULL != timeout_task)
     GNUNET_SCHEDULER_cancel (timeout_task);
@@ -832,21 +957,6 @@ handle_consume_ticket_message (void *cls, const struct ConsumeTicketMessage *cm)
  * Attribute store
  *****************************************/
 
-/**
- * Cleanup attribute store handle
- *
- * @param handle handle to clean up
- */
-static void
-cleanup_as_handle (struct AttributeStoreHandle *ash)
-{
-  if (NULL != ash->ns_qe)
-    GNUNET_NAMESTORE_cancel (ash->ns_qe);
-  if (NULL != ash->claim)
-    GNUNET_free (ash->claim);
-  GNUNET_free (ash);
-}
-
 
 /**
  * Attribute store result handler
@@ -977,37 +1087,6 @@ handle_attribute_store_message (void *cls,
   ash->client = idp;
   GNUNET_CONTAINER_DLL_insert (idp->store_op_head, idp->store_op_tail, ash);
   GNUNET_SCHEDULER_add_now (&attr_store_task, ash);
-}
-
-
-/**
- * Cleanup attribute delete handle
- *
- * @param adh the attribute to cleanup
- */
-static void
-cleanup_adh (struct AttributeDeleteHandle *adh)
-{
-  struct TicketRecordsEntry *le;
-  if (NULL != adh->ns_it)
-    GNUNET_NAMESTORE_zone_iteration_stop (adh->ns_it);
-  if (NULL != adh->ns_qe)
-    GNUNET_NAMESTORE_cancel (adh->ns_qe);
-  if (NULL != adh->label)
-    GNUNET_free (adh->label);
-  if (NULL != adh->claim)
-    GNUNET_free (adh->claim);
-  while (NULL != (le = adh->tickets_to_update_head)) {
-    GNUNET_CONTAINER_DLL_remove (adh->tickets_to_update_head,
-                                 adh->tickets_to_update_tail,
-                                 le);
-    if (NULL != le->label)
-      GNUNET_free (le->label);
-    if (NULL != le->data)
-      GNUNET_free (le->data);
-    GNUNET_free (le);
-  }
-  GNUNET_free (adh);
 }
 
 
@@ -1623,7 +1702,7 @@ run (void *cls,
 
   if (GNUNET_OK != RECLAIM_TICKETS_init (cfg)) {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Unable to initialized TICKETS subsystem.\n");
+                "Unable to initialize TICKETS subsystem.\n");
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
@@ -1635,20 +1714,6 @@ run (void *cls,
   }
 
   identity_handle = GNUNET_IDENTITY_connect (cfg, NULL, NULL);
-
-  if (GNUNET_OK
-      == GNUNET_CONFIGURATION_get_value_time (cfg,
-                                              "reclaim",
-                                              "TOKEN_EXPIRATION_INTERVAL",
-                                              &token_expiration_interval)) {
-    GNUNET_log (
-      GNUNET_ERROR_TYPE_DEBUG,
-      "Time window for zone iteration: %s\n",
-      GNUNET_STRINGS_relative_time_to_string (token_expiration_interval,
-                                              GNUNET_YES));
-  } else {
-    token_expiration_interval = DEFAULT_TOKEN_EXPIRATION_INTERVAL;
-  }
 
   GNUNET_SCHEDULER_add_shutdown (&do_shutdown, NULL);
 }
@@ -1667,54 +1732,11 @@ client_disconnect_cb (void *cls,
                       void *app_ctx)
 {
   struct IdpClient *idp = app_ctx;
-  struct AttributeIterator *ai;
-  struct TicketIteration *ti;
-  struct TicketRevocationOperation *rop;
-  struct TicketIssueOperation *iss;
-  struct ConsumeTicketOperation *ct;
-  struct AttributeStoreHandle *as;
-  struct AttributeDeleteHandle *adh;
-
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Client %p disconnected\n", client);
-
-  while (NULL != (iss = idp->issue_op_head)) {
-    GNUNET_CONTAINER_DLL_remove (idp->issue_op_head, idp->issue_op_tail, iss);
-    GNUNET_free (iss);
-  }
-  while (NULL != (ct = idp->consume_op_head)) {
-    GNUNET_CONTAINER_DLL_remove (idp->consume_op_head,
-                                 idp->consume_op_tail,
-                                 ct);
-    if (NULL != ct->ch)
-      RECLAIM_TICKETS_consume_cancel (ct->ch);
-    GNUNET_free (ct);
-  }
-  while (NULL != (as = idp->store_op_head)) {
-    GNUNET_CONTAINER_DLL_remove (idp->store_op_head, idp->store_op_tail, as);
-    cleanup_as_handle (as);
-  }
-  while (NULL != (adh = idp->delete_op_head)) {
-    GNUNET_CONTAINER_DLL_remove (idp->delete_op_head, idp->delete_op_tail, adh);
-    cleanup_adh (adh);
-  }
-
-  while (NULL != (ai = idp->attr_iter_head)) {
-    GNUNET_CONTAINER_DLL_remove (idp->attr_iter_head, idp->attr_iter_tail, ai);
-    GNUNET_free (ai);
-  }
-  while (NULL != (rop = idp->revoke_op_head)) {
-    GNUNET_CONTAINER_DLL_remove (idp->revoke_op_head, idp->revoke_op_tail, rop);
-    if (NULL != rop->rh)
-      RECLAIM_TICKETS_revoke_cancel (rop->rh);
-    GNUNET_free (rop);
-  }
-  while (NULL != (ti = idp->ticket_iter_head)) {
-    GNUNET_CONTAINER_DLL_remove (idp->ticket_iter_head,
-                                 idp->ticket_iter_tail,
-                                 ti);
-    GNUNET_free (ti);
-  }
-  GNUNET_free (idp);
+  GNUNET_CONTAINER_DLL_remove (client_list_head,
+                               client_list_tail,
+                               idp);
+  cleanup_client (idp);
 }
 
 
@@ -1736,6 +1758,9 @@ client_connect_cb (void *cls,
   idp = GNUNET_new (struct IdpClient);
   idp->client = client;
   idp->mq = mq;
+  GNUNET_CONTAINER_DLL_insert (client_list_head,
+                               client_list_tail,
+                               idp);
   return idp;
 }
 
