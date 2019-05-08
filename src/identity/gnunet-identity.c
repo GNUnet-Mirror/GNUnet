@@ -51,6 +51,11 @@ static int list;
 static int monitor;
 
 /**
+ * Was "verbose" specified?
+ */
+static unsigned int verbose;
+
+/**
  * -C option
  */
 static char *create_ego;
@@ -164,21 +169,36 @@ delete_finished (void *cls,
  * Creation operation finished.
  *
  * @param cls pointer to operation handle
+ * @param pk private key of the ego, or NULL on error
  * @param emsg error message, NULL on success
  */
 static void
 create_finished (void *cls,
+		 const struct GNUNET_CRYPTO_EcdsaPrivateKey *pk,
 		 const char *emsg)
 {
   struct GNUNET_IDENTITY_Operation **op = cls;
 
   *op = NULL;
-  if (NULL != emsg)
+  if (NULL == pk)
   {
     fprintf (stderr,
 	     _("Failed to create ego: %s\n"),
 	     emsg);
     global_ret = 1;
+  }
+  else if (verbose)
+  {
+    struct GNUNET_CRYPTO_EcdsaPublicKey pub;
+    char *pubs;
+    
+    GNUNET_CRYPTO_ecdsa_key_get_public (pk,
+					&pub);
+    pubs = GNUNET_CRYPTO_ecdsa_public_key_to_string (&pub);
+    fprintf (stdout,
+	     "%s\n",
+	     pubs);
+    GNUNET_free (pubs);
   }
   test_finished ();
 }
@@ -383,7 +403,7 @@ main (int argc, char *const *argv)
                                  "SUBSYSTEM",
                                  gettext_noop ("set default identity to EGO for a subsystem SUBSYSTEM (use together with -e)"),
                                  &set_subsystem),
-
+    GNUNET_GETOPT_option_verbose (&verbose),
     GNUNET_GETOPT_OPTION_END
   };
   int res;

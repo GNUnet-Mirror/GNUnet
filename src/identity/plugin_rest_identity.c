@@ -642,6 +642,26 @@ do_finished (void *cls, const char *emsg)
 
 
 /**
+ * Processing finished, when creating an ego.
+ *
+ * @param cls request handle
+ * @param private key of the ego, or NULL on error
+ * @param emsg error message
+ */
+static void
+do_finished_create (void *cls,
+		    const struct GNUNET_CRYPTO_EcdsaPrivateKey *pk,
+		    const char *emsg)
+{
+  struct RequestHandle *handle = cls;
+
+  (void) pk;
+  do_finished (handle,
+	       emsg);
+}
+
+
+/**
  * Processing edit ego with EgoEntry ego_entry
  *
  * @param handle the struct RequestHandle
@@ -1014,7 +1034,7 @@ ego_create (struct GNUNET_REST_RequestHandle *con_handle,
   json_decref (data_js);
   handle->response_code = MHD_HTTP_CREATED;
   handle->op = GNUNET_IDENTITY_create (handle->identity_handle, handle->name,
-				       &do_finished, handle);
+				       &do_finished_create, handle);
 }
 
 /**

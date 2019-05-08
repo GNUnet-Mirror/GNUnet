@@ -88,13 +88,24 @@ struct GNUNET_IDENTITY_Operation
 
   /**
    * Continuation to invoke with the result of the transmission; @e cb
-   * will be NULL in this case.
+   * and @e create_cont will be NULL in this case.
    */
   GNUNET_IDENTITY_Continuation cont;
 
   /**
+   * Continuation to invoke with the result of the transmission; @e cb
+   * and @a cb will be NULL in this case.
+   */
+  GNUNET_IDENTITY_CreateContinuation create_cont;
+
+  /**
+   * Private key to return to @e create_cont, or NULL.
+   */
+  struct GNUNET_CRYPTO_EcdsaPrivateKey *pk;
+  
+  /**
    * Continuation to invoke with the result of the transmission for
-   * 'get' operations (@e cont will be NULL in this case).
+   * 'get' operations (@e cont and @a create_cont will be NULL in this case).
    */
   GNUNET_IDENTITY_Callback cb;
 
@@ -259,6 +270,11 @@ reschedule_connect (struct GNUNET_IDENTITY_Handle *h)
               NULL,
               NULL,
               NULL);
+    else if (NULL != op->create_cont)
+      op->create_cont (op->cls,
+		       NULL,
+		       "Failed to communicate with the identity service");
+    GNUNET_free_non_null (op->pk);
     GNUNET_free (op);
   }
   GNUNET_CONTAINER_multihashmap_iterate (h->egos,
@@ -350,6 +366,11 @@ handle_identity_result_code (void *cls,
               str);
   else if (NULL != op->cb)
     op->cb (op->cls, NULL, NULL, NULL);
+  else if (NULL != op->create_cont)
+    op->create_cont (op->cls,
+		     (NULL == str) ? op->pk : NULL,
+		     str);
+  GNUNET_free_non_null (op->pk);
   GNUNET_free (op);
 }
 
@@ -761,7 +782,7 @@ GNUNET_IDENTITY_set (struct GNUNET_IDENTITY_Handle *h,
 struct GNUNET_IDENTITY_Operation *
 GNUNET_IDENTITY_create (struct GNUNET_IDENTITY_Handle *h,
 			const char *name,
-			GNUNET_IDENTITY_Continuation cont,
+			GNUNET_IDENTITY_CreateContinuation cont,
 			void *cont_cls)
 {
   struct GNUNET_IDENTITY_Operation *op;
@@ -780,7 +801,7 @@ GNUNET_IDENTITY_create (struct GNUNET_IDENTITY_Handle *h,
   }
   op = GNUNET_new (struct GNUNET_IDENTITY_Operation);
   op->h = h;
-  op->cont = cont;
+  op->create_cont = cont;
   op->cls = cont_cls;
   GNUNET_CONTAINER_DLL_insert_tail (h->op_head,
 				    h->op_tail,
@@ -792,7 +813,7 @@ GNUNET_IDENTITY_create (struct GNUNET_IDENTITY_Handle *h,
   crm->reserved = htons (0);
   pk = GNUNET_CRYPTO_ecdsa_key_create ();
   crm->private_key = *pk;
-  GNUNET_free (pk);
+  op->pk = pk;
   GNUNET_memcpy (&crm[1],
           name,
           slen);
@@ -924,6 +945,12 @@ GNUNET_IDENTITY_cancel (struct GNUNET_IDENTITY_Operation *op)
 {
   op->cont = NULL;
   op->cb = NULL;
+  op->create_cont = NULL;
+  if (NULL != op->pk)
+  {
+    GNUNET_free (op->pk);
+    op->pk = NULL;
+  }
 }
 
 
@@ -957,6 +984,7 @@ GNUNET_IDENTITY_disconnect (struct GNUNET_IDENTITY_Handle *h)
     GNUNET_CONTAINER_DLL_remove (h->op_head,
 				 h->op_tail,
 				 op);
+    GNUNET_free_non_null (op->pk);
     GNUNET_free (op);
   }
   if (NULL != h->mq)

@@ -225,13 +225,16 @@ notification_cb (void *cls,
  * Called with events about created ego.
  *
  * @param cls NULL
+ * @param pk private key of the ego, or NULL on error
  * @param emsg error message
  */
 static void
 create_cb (void *cls,
+	   const struct GNUNET_CRYPTO_EcdsaPrivateKey *pk,
 	   const char *emsg)
 {
   GNUNET_assert (NULL == emsg);
+  GNUNET_assert (NULL != pk);
   op = NULL;
 }
 

@@ -215,6 +215,20 @@ GNUNET_IDENTITY_disconnect (struct GNUNET_IDENTITY_Handle *h);
 
 
 /**
+ * Function called once the requested operation has
+ * been completed.
+ *
+ * @param cls closure
+ * @param pk private key, NULL on error
+ * @param emsg error message, NULL on success
+ */
+typedef void
+(*GNUNET_IDENTITY_CreateContinuation)(void *cls,
+				      const struct GNUNET_CRYPTO_EcdsaPrivateKey *pk,
+				      const char *emsg);
+
+
+/**
  * Create a new ego with the given name.
  *
  * @param id identity service to use
@@ -226,7 +240,7 @@ GNUNET_IDENTITY_disconnect (struct GNUNET_IDENTITY_Handle *h);
 struct GNUNET_IDENTITY_Operation *
 GNUNET_IDENTITY_create (struct GNUNET_IDENTITY_Handle *id,
 			const char *name,
-			GNUNET_IDENTITY_Continuation cont,
+			GNUNET_IDENTITY_CreateContinuation cont,
 			void *cont_cls);
 
 
