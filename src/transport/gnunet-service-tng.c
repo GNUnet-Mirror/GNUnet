@@ -24,7 +24,10 @@
  *
  * TODO:
  * Implement next:
- * - add (more) logging
+ * - remove duplicate HELLO vs. URI API code
+ * - add (more) logging (beyond line ~7500)
+ * - properly encrypt *all* DV traffic, not only backchannel;
+ *   rename BackchannelEncapsulation logic to DVEncapsulation!
  * - realize transport-to-transport flow control (needed in case
  *   communicators do not offer flow control).  Note that we may not
  *   want to simply delay the ACKs as that may cause unnecessary
@@ -3586,7 +3589,7 @@ client_send_response (struct PendingMessage *pm)
  * @param num_hops length of the @a hops array
  * @param origin origin of the message
  * @param hops next peer(s) to the destination, including destination
- * @param payload payload of the box
+ * @param payload encrypted (!) payload of the box
  * @param payload_size number of bytes in @a payload
  * @return boxed message (caller must #GNUNET_free() it).
  */
@@ -3784,6 +3787,7 @@ handle_client_send (void *cls, const struct OutboundMessage *obm)
     res = pick_random_dv_hops (dv, RMO_NONE, &dvh, 1);
     GNUNET_assert (1 == res);
     target = dvh->next_hop;
+    /* FIXME: encrypt bytes_msg at &obm[1] to &obm->peer first! */
     dvb = create_dv_box (0,
                          &GST_my_identity,
                          &obm->peer,
@@ -4252,12 +4256,14 @@ route_via_neighbour (const struct Neighbour *n,
  * Sets up the boxed message and queues it at the next hop.
  *
  * @param dvh choice of the path for the message
- * @param payload body to transmit
+ * @param payload encrypted body to transmit
+ * @param payload_len number of bytes in @a payload
  * @param options options to use for control
  */
 static void
 forward_via_dvh (const struct DistanceVectorHop *dvh,
-                 const struct GNUNET_MessageHeader *payload,
+                 const void *payload,
+                 size_t payload_len,
                  enum RouteMessageOptions options)
 {
   struct TransportDVBoxMessage *dvb;
@@ -4268,7 +4274,7 @@ forward_via_dvh (const struct DistanceVectorHop *dvh,
                        dvh->distance,
                        dvh->path,
                        payload,
-                       ntohs (payload->size));
+                       payload_len);
   route_via_neighbour (dvh->next_hop, &dvb->header, options);
   GNUNET_free (dvb);
 }
@@ -4295,6 +4301,13 @@ route_via_dv (const struct DistanceVector *dv,
                              options,
                              hops,
                              (0 == (options & RMO_REDUNDANT)) ? 1 : 2);
+  if (0 == res)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                "Failed to route message, could not determine DV path\n");
+    return;
+  }
+  // FIXME: we should encrypt `hdr` here first!
   for (unsigned int i = 0; i < res; i++)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -4303,7 +4316,11 @@ route_via_dv (const struct DistanceVector *dv,
                 GNUNET_i2s (&dv->target),
                 i + 1,
                 res + 1);
-    forward_via_dvh (hops[i], hdr, options & (~RMO_REDUNDANT));
+    forward_via_dvh (hops[i],
+                     hdr,
+                     ntohs (
+                       hdr->size), /* FIXME: can't do this once encrypted... */
+                     options & (~RMO_REDUNDANT));
   }
 }
 
@@ -4610,6 +4627,9 @@ handle_communicator_backchannel (
                 ntohs (inbox->size));
   }
   /* encapsulate and encrypt message */
+
+  /* FIXME: this should be done with the DV logic for all
+     DV messages, NOT here only for backchannel! */
   msize = ntohs (cb->header.size) - sizeof (*cb) +
           sizeof (struct TransportBackchannelRequestPayloadP);
   enc = GNUNET_malloc (sizeof (*enc) + msize);
@@ -5245,7 +5265,8 @@ handle_fragment_box (void *cls, const struct TransportFragmentBoxMessage *fb)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Fragment reassembly complete for message %u\n",
               (unsigned int) fb->msg_uuid.uuid);
-
+  /* FIXME: check that the resulting msg is NOT a
+     DV Box or Reliability Box, as that is NOT allowed! */
   demultiplex_with_cmc (cmc, msg);
   /* FIXME-OPTIMIZE: really free here? Might be bad if fragments are still
      en-route and we forget that we finished this reassembly immediately!
@@ -5305,6 +5326,8 @@ handle_reliability_box (void *cls,
       : GNUNET_TIME_relative_to_absolute (
           GNUNET_TIME_relative_divide (rtt, 8 /* FIXME: magic constant */)));
   /* continue with inner message */
+  /* FIXME: check that inbox is NOT a DV Box, fragment or another
+     reliability box (not allowed!) */
   demultiplex_with_cmc (cmc, inbox);
 }
 
@@ -5840,6 +5863,8 @@ handle_backchannel_encapsulation (
     finish_cmc_handling (cmc);
     return;
   }
+  /* FIXME: this should be done when decrypting _any_ DV
+     message, not only for backchannels! */
   dh_key_derive_eph_pub (&be->ephemeral_key, &be->iv, &key);
   hdr = (const char *) &be[1];
   hdr_len = ntohs (be->header.size) - sizeof (*be);
@@ -6553,9 +6578,6 @@ neighbour_store_dvmono_cb (void *cls, int success)
 }
 
 
-// FIXME: add logging logic from here!
-
-
 /**
  * Communicator gave us a DV learn message.  Process the request.
  *
@@ -6672,6 +6694,31 @@ handle_dv_learn (void *cls, const struct TransportDVLearnMessage *dvl)
     }
   }
 
+  if (GNUNET_EXTRA_LOGGING > 0)
+  {
+    char *path;
+
+    path = GNUNET_strdup (GNUNET_i2s (&dvl->initiator));
+    for (unsigned int i = 0; i < nhops; i++)
+    {
+      char *tmp;
+
+      GNUNET_asprintf (&tmp,
+                       "%s%s%s",
+                       path,
+                       (bi_history & (1 << (nhops - i))) ? "<->" : "-->",
+                       GNUNET_i2s (&hops[i].hop));
+      GNUNET_free (path);
+      path = tmp;
+    }
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Received DVInit via %s%s%s\n",
+                path,
+                bi_hop ? "<->" : "-->",
+                GNUNET_i2s (&GST_my_identity));
+    GNUNET_free (path);
+  }
+
   do_fwd = GNUNET_YES;
   if (0 == GNUNET_memcmp (&GST_my_identity, &dvl->initiator))
   {
@@ -6701,6 +6748,11 @@ handle_dv_learn (void *cls, const struct TransportDVLearnMessage *dvl)
       /* assumption: linear latency increase per hop */
       ilat = GNUNET_TIME_relative_multiply (network_latency, i);
       path[i] = hops[i - 1].hop;
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Learned path with %u hops to %s with latency %s\n",
+                  i,
+                  GNUNET_i2s (&path[i]),
+                  GNUNET_STRINGS_relative_time_to_string (ilat, GNUNET_YES));
       learn_dv_path (path,
                      i,
                      ilat,
@@ -6711,7 +6763,7 @@ handle_dv_learn (void *cls, const struct TransportDVLearnMessage *dvl)
     do_fwd = GNUNET_NO;
     return;
   }
-  else if (bi_hop)
+  if (bi_hop)
   {
     /* last hop was bi-directional, we could learn something here! */
     struct GNUNET_PeerIdentity path[nhops + 2];
@@ -6733,6 +6785,10 @@ handle_dv_learn (void *cls, const struct TransportDVLearnMessage *dvl)
         path[i + 2] = hops[nhops - i - 2].hop;
       }
 
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Learned inverse path with %u hops to %s\n",
+                  i + 1,
+                  GNUNET_i2s (&path[i + 2]));
       iret = learn_dv_path (path,
                             i + 2,
                             GNUNET_TIME_UNIT_FOREVER_REL,
@@ -6779,6 +6835,9 @@ handle_dv_learn (void *cls, const struct TransportDVLearnMessage *dvl)
        GNUNET_CONTAINER_multipeermap_contains (neighbours, &dvl->initiator)))
   {
     /* send back to origin! */
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Sending DVL back to initiator %s\n",
+                GNUNET_i2s (&dvl->initiator));
     forward_dv_learn (&dvl->initiator, dvl, bi_history, nhops, hops, in_time);
     did_initiator = GNUNET_YES;
   }
@@ -6808,6 +6867,9 @@ handle_dv_learn (void *cls, const struct TransportDVLearnMessage *dvl)
     nsc.num_selections = calculate_fork_degree (nhops, n_cnt, nsc.num_eligible);
     nsc.num_selections =
       GNUNET_MIN (MAX_DV_DISCOVERY_SELECTION, nsc.num_selections);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Forwarding DVL to %u other peers\n",
+                nsc.num_selections);
     for (unsigned int i = 0; i < nsc.num_selections; i++)
       nsc.selections[i] =
         (nsc.num_selections == n_cnt)
@@ -6900,6 +6962,13 @@ forward_dv_box (struct Neighbour *next_hop,
                        hops,
                        payload,
                        payload_size);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Routing DV Box of %u bytes from %s at %u/%u hops via %s\n",
+              payload_size,
+              GNUNET_i2s (origin),
+              (unsigned int) num_hops,
+              (unsigned int) total_hops,
+              GNUNET_i2s2 (&next_hop->pid));
   route_message (&next_hop->pid, &dvb->header, RMO_NONE);
   GNUNET_free (dvb);
 }
@@ -6923,6 +6992,25 @@ handle_dv_box (void *cls, const struct TransportDVBoxMessage *dvb)
   const struct GNUNET_MessageHeader *inbox =
     (const struct GNUNET_MessageHeader *) &hops[num_hops];
 
+  if (GNUNET_EXTRA_LOGGING > 0)
+  {
+    char *path;
+
+    path = GNUNET_strdup (GNUNET_i2s (&GST_my_identity));
+    for (unsigned int i = 0; i < num_hops; i++)
+    {
+      char *tmp;
+
+      GNUNET_asprintf (&tmp, "%s->%s", path, GNUNET_i2s (&hops[i]));
+      GNUNET_free (path);
+      path = tmp;
+    }
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Received DVBox with remainig path %s\n",
+                path);
+    GNUNET_free (path);
+  }
+
   if (num_hops > 0)
   {
     /* We're trying from the end of the hops array, as we may be
@@ -6940,6 +7028,10 @@ handle_dv_box (void *cls, const struct TransportDVBoxMessage *dvb)
       n = lookup_neighbour (&hops[i]);
       if (NULL == n)
         continue;
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Skipping %u/%u hops ahead while routing DV Box\n",
+                  i,
+                  num_hops);
       forward_dv_box (n,
                       ntohs (dvb->total_hops) + 1,
                       num_hops - i - 1, /* number of hops left */
@@ -6947,6 +7039,14 @@ handle_dv_box (void *cls, const struct TransportDVBoxMessage *dvb)
                       &hops[i + 1], /* remaining hops */
                       (const void *) &dvb[1],
                       size);
+      GNUNET_STATISTICS_update (GST_stats,
+                                "# DV hops skipped routing boxes",
+                                i,
+                                GNUNET_NO);
+      GNUNET_STATISTICS_update (GST_stats,
+                                "# DV boxes routed (total)",
+                                1,
+                                GNUNET_NO);
       finish_cmc_handling (cmc);
       return;
     }
@@ -6959,8 +7059,17 @@ handle_dv_box (void *cls, const struct TransportDVBoxMessage *dvb)
     return;
   }
   /* We are the target. Unbox and handle message. */
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "DVBox received for me from %s\n",
+              GNUNET_i2s (&dvb->origin));
+  GNUNET_STATISTICS_update (GST_stats,
+                            "# DV boxes opened (ultimate target)",
+                            1,
+                            GNUNET_NO);
   cmc->im.sender = dvb->origin;
   cmc->total_hops = ntohs (dvb->total_hops);
+  // FIXME: should *decrypt* inbox here; needs BackchannelEncapsulation!
+  // FIXME: need to prevent box-in-a-box, so check inbox type!
   demultiplex_with_cmc (cmc, inbox);
 }
 
@@ -7011,6 +7120,9 @@ handle_validation_challenge (
     finish_cmc_handling (cmc);
     return;
   }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Received address validation challenge %s\n",
+              GNUNET_sh2s (&tvc->challenge.value));
   tvr = GNUNET_new (struct TransportValidationResponseMessage);
   tvr->header.type =
     htons (GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_VALIDATION_RESPONSE);
@@ -7206,6 +7318,9 @@ handle_validation_response (
                               "# Validations dropped, challenge unknown",
                               1,
                               GNUNET_NO);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Validation response %s dropped, challenge unknown\n",
+                GNUNET_sh2s (&tvr->challenge.value));
     finish_cmc_handling (cmc);
     return;
   }
@@ -7263,6 +7378,10 @@ handle_validation_response (
   vs->last_challenge_use =
     GNUNET_TIME_UNIT_ZERO_ABS; /* challenge was not yet used */
   update_next_challenge_time (vs, vs->first_challenge_use);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Validation response %s accepted, address valid until %s\n",
+              GNUNET_sh2s (&tvr->challenge.value),
+              GNUNET_STRINGS_absolute_time_to_string (vs->valid_until));
   vs->sc = GNUNET_PEERSTORE_store (peerstore,
                                    "transport",
                                    &cmc->im.sender,
@@ -7335,6 +7454,9 @@ handle_incoming_msg (void *cls,
 
   cmc->tc = tc;
   cmc->im = *im;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Received message via communicator from peer %s\n",
+              GNUNET_i2s (&im->sender));
   demultiplex_with_cmc (cmc, (const struct GNUNET_MessageHeader *) &im[1]);
 }
 
@@ -7388,6 +7510,10 @@ demultiplex_with_cmc (struct CommunicatorMessageContext *cmc,
      GNUNET_MQ_handler_end ()};
   int ret;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Handling message of type %u with %u bytes\n",
+              (unsigned int) ntohs (msg->type),
+              (unsigned int) ntohs (msg->size));
   ret = GNUNET_MQ_handle_message (handlers, msg);
   if (GNUNET_SYSERR == ret)
   {
@@ -7439,6 +7565,9 @@ set_pending_message_uuid (struct PendingMessage *pm)
   pm->msg_uuid.uuid = pm->target->message_uuid_ctr++;
   pm->msg_uuid_set = GNUNET_YES;
 }
+
+
+// FIXME: add logging logic from here!
 
 
 /**
