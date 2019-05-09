@@ -56,6 +56,11 @@ static int monitor;
 static unsigned int verbose;
 
 /**
+ * Was "quiet" specified?
+ */
+static int quiet;
+
+/**
  * -C option
  */
 static char *create_ego;
@@ -293,7 +298,12 @@ print_ego (void *cls,
   GNUNET_IDENTITY_ego_get_public_key (ego, &pk);
   s = GNUNET_CRYPTO_ecdsa_public_key_to_string (&pk);
   if ((monitor) || (NULL != identifier))
-    fprintf (stdout, "%s - %s\n", identifier, s);
+  {
+    if (quiet)
+      fprintf (stdout, "%s\n", s);
+    else
+      fprintf (stdout, "%s - %s\n", identifier, s);
+  }
   GNUNET_free (s);
 }
 
@@ -354,6 +364,10 @@ main (int argc, char *const *argv)
                                 "display",
                                 gettext_noop ("display all egos"),
                                 &list),
+     GNUNET_GETOPT_option_flag ('q',
+                                "quiet",
+                                gettext_noop ("reduce output"),
+                                &quiet),
      GNUNET_GETOPT_option_string (
        'e',
        "ego",
