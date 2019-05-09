@@ -26,29 +26,35 @@
 .Os
 .Sh NAME
 .Nm gnunet-identity
-.Nd
-create, delete or list egos
+.Nd create, delete or list egos
 .Sh SYNOPSIS
 .Nm
 .Op Fl C Ar NAME | Fl \-create= Ns Ar NAME
 .Op Fl D Ar NAME | Fl \-delete= Ns Ar NAME
+.Op Fl d | \-display
 .Op Fl e Ar NAME | Fl \-ego= Ns Ar NAME
 .Op Fl h | \-help
-.Op Fl d | \-display
 .Op Fl m | \-monitor
+.Op Fl q | \-quiet
 .Op Fl s Ar SUBSYSTEM | Fl \-set= Ns Ar SUBSYSTEM
+.Op Fl v | \-verbose
 .Sh DESCRIPTION
 .Nm
 is a tool for managing egos.
 An ego is the persona that controls a namespace.
 It is identical to a public-private ECC key pair.
 .Pp
-gnunet-identity can be used to list all of the egos that were created locally, to create new egos, and to delete existing egos (the namespace will continue to exist, but it will be impossible to add additional data to it).
+gnunet-identity can be used to list all of the egos that were
+created locally, to create new egos, and to delete
+existing egos (the namespace will continue to exist, but it will
+be impossible to add additional data to it).
 .Pp
 Creating a new ego requires using the
 .Fl C
-option together with an identifier (name) that is to be used for the new ego.
-This identifier is only used locally for this peer and not shared with other peers.
+option together with an identifier (name) that is to be used for
+the new ego.
+This identifier is only used locally for this peer and not shared
+with other peers.
 The options are as follows:
 .Bl -tag -width Ds
 .It Fl C Ar NAME | Fl \-create= Ns Ar NAME
@@ -57,19 +63,20 @@ Creates a new ego with the given
 .It Fl D Ar NAME | Fl \-delete= Ns Ar NAME
 Delete the ego with the given
 .Ar NAME .
+.It Fl d | \-display
+Display all of our egos.
 .It Fl e Ar NAME | Fl \-ego= Ns Ar NAME
-Perform "set" operation with the respective ego or restrict "display" operation to the respective ego.
+Perform "set" operation with the respective ego or restrict "display"
+operation to the respective ego.
 .It Fl h | \-help
 Print the help page.
-.It d | \-display
-Display all of our egos.
-.It q | \-quiet
-Be quiet, in particular outputs only the public key when listing egos.
-.It v | \-verbose
-Be verbose, in particular outputs the public key of freshly created egos.
-.It m | \-monitor
+.It Fl m | \-monitor
 Run in monitor mode, listing all ouf our egos until CTRL-C is pressed.
-Each ego is listed together with a unique pointer value; if egos are renamed, that pointer value remains the same; if egos are deleted, they are listed one more time with a name of "<null>".
+Each ego is listed together with a unique pointer value; if
+egos are renamed, that pointer value remains the same,
+if egos are deleted, they are listed one more time with a name of "<null>".
+.It Fl q | \-quiet
+Be quiet, in particular outputs only the public key when listing egos.
 .It Fl s Ar SUBSYSTEM | Fl \-set= Ns Ar SUBSYSTEM
 Perform "set" operation for the specified
 .Ar SUBSYSTEM
@@ -80,6 +87,8 @@ After this, the given SUBSYSTEM will use the ego with the specified NAME.
 This will fail if
 .Ar NAME
 does not yet exist.
+.It Fl v | \-verbose
+Be verbose, in particular outputs the public key of freshly created egos.
 .El
 .Sh FILES
 .Pa ~/.local/share/gnunet/identity/egos
