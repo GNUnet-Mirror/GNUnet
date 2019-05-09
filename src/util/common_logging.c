@@ -100,27 +100,27 @@ struct CustomLogger
  * Note that this message maybe truncated to the first BULK_TRACK_SIZE
  * characters, in which case it is NOT 0-terminated!
  */
-static char last_bulk[BULK_TRACK_SIZE] __attribute__ ((nonstring));
+static GNUNET_THREAD_LOCAL char last_bulk[BULK_TRACK_SIZE] __attribute__ ((nonstring));
 
 /**
  * Type of the last bulk message.
  */
-static enum GNUNET_ErrorType last_bulk_kind;
+static GNUNET_THREAD_LOCAL enum GNUNET_ErrorType last_bulk_kind;
 
 /**
  * Time of the last bulk error message (0 for none)
  */
-static struct GNUNET_TIME_Absolute last_bulk_time;
+static GNUNET_THREAD_LOCAL struct GNUNET_TIME_Absolute last_bulk_time;
 
 /**
  * Number of times that bulk message has been repeated since.
  */
-static unsigned int last_bulk_repeat;
+static GNUNET_THREAD_LOCAL unsigned int last_bulk_repeat;
 
 /**
  * Component when the last bulk was logged.  Will be 0-terminated.
  */
-static char last_bulk_comp[COMP_TRACK_SIZE + 1];
+static GNUNET_THREAD_LOCAL char last_bulk_comp[COMP_TRACK_SIZE + 1];
 
 /**
  * Running component.
@@ -150,7 +150,7 @@ static struct CustomLogger *loggers;
 /**
  * Number of log calls to ignore.
  */
-static int skip_log = 0;
+static GNUNET_THREAD_LOCAL int skip_log = 0;
 
 /**
  * File descriptor to use for "stderr", or NULL for none.

@@ -1795,6 +1795,20 @@ else
 fi
 AC_DEFINE_UNQUOTED([ENABLE_WINDOWS_WORKAROUNDS], $workarounds, [enable workarounds used on Windows (only useful for test cases)])
 
+
+# Check if the __thread storage class for thread-local storage is available.
+AC_MSG_CHECKING(whether __thread is supported)
+AC_LINK_IFELSE(
+ [AC_LANG_PROGRAM([#include <stdlib.h>
+                   #undef __thread
+                   static __thread int a = 1;],
+                  [exit(a-1);])],
+ [have_thread_local_gcc=1],[have_thread_local_gcc=0])
+AC_DEFINE_UNQUOTED([HAVE_THREAD_LOCAL_GCC],$have_thread_local_gcc,[Define this if __thread is supported])
+AS_IF([test "x$have_thread_local_gcc" = "x1"],
+      [AC_MSG_RESULT(yes)],
+      [AC_MSG_RESULT(no)])
+
 # gcov compilation
 AC_MSG_CHECKING(whether to compile with support for code coverage analysis)
 AC_ARG_ENABLE([coverage],

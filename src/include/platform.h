@@ -289,6 +289,10 @@ atoll (const char *nptr);
 #define PATH_MAX 4096
 #endif
 
-
+#if HAVE_THREAD_LOCAL_GCC
+#define GNUNET_THREAD_LOCAL __thread
+#else
+#define GNUNET_THREAD_LOCAL
+#endif
 
 #endif
