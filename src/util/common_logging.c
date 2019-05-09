@@ -1168,8 +1168,6 @@ GNUNET_error_type_to_string (enum GNUNET_ErrorType kind)
 
 /**
  * Convert a hash to a string (for printing debug messages).
- * This is one of the very few calls in the entire API that is
- * NOT reentrant!
  *
  * @param hc the hash code
  * @return string form; will be overwritten by next call to GNUNET_h2s.
@@ -1177,7 +1175,7 @@ GNUNET_error_type_to_string (enum GNUNET_ErrorType kind)
 const char *
 GNUNET_h2s (const struct GNUNET_HashCode * hc)
 {
-  static struct GNUNET_CRYPTO_HashAsciiEncoded ret;
+  static GNUNET_THREAD_LOCAL struct GNUNET_CRYPTO_HashAsciiEncoded ret;
 
   GNUNET_CRYPTO_hash_to_enc (hc, &ret);
   ret.encoding[8] = '\0';
@@ -1350,8 +1348,6 @@ GNUNET_h2s_full (const struct GNUNET_HashCode * hc)
 
 /**
  * Convert a peer identity to a string (for printing debug messages).
- * This is one of the very few calls in the entire API that is
- * NOT reentrant!
  *
  * @param pid the peer identity
  * @return string form of the pid; will be overwritten by next
@@ -1360,7 +1356,7 @@ GNUNET_h2s_full (const struct GNUNET_HashCode * hc)
 const char *
 GNUNET_i2s (const struct GNUNET_PeerIdentity *pid)
 {
-  static char buf[5];
+  static GNUNET_THREAD_LOCAL char buf[5];
   char *ret;
 
   if (NULL == pid)
@@ -1377,8 +1373,7 @@ GNUNET_i2s (const struct GNUNET_PeerIdentity *pid)
 
 /**
  * Convert a peer identity to a string (for printing debug messages).
- * This is one of the very few calls in the entire API that is
- * NOT reentrant!  Identical to #GNUNET_i2s(), except that another
+ * Identical to #GNUNET_i2s(), except that another
  * buffer is used so both #GNUNET_i2s() and #GNUNET_i2s2() can be
  * used within the same log statement.
  *
@@ -1389,7 +1384,7 @@ GNUNET_i2s (const struct GNUNET_PeerIdentity *pid)
 const char *
 GNUNET_i2s2 (const struct GNUNET_PeerIdentity *pid)
 {
-  static char buf[5];
+  static GNUNET_THREAD_LOCAL char buf[5];
   char *ret;
 
   if (NULL == pid)
@@ -1406,8 +1401,6 @@ GNUNET_i2s2 (const struct GNUNET_PeerIdentity *pid)
 
 /**
  * Convert a peer identity to a string (for printing debug messages).
- * This is one of the very few calls in the entire API that is
- * NOT reentrant!
  *
  * @param pid the peer identity
  * @return string form of the pid; will be overwritten by next
@@ -1416,7 +1409,7 @@ GNUNET_i2s2 (const struct GNUNET_PeerIdentity *pid)
 const char *
 GNUNET_i2s_full (const struct GNUNET_PeerIdentity *pid)
 {
-  static char buf[256];
+  static GNUNET_THREAD_LOCAL char buf[256];
   char *ret;
 
   ret = GNUNET_CRYPTO_eddsa_public_key_to_string (&pid->public_key);
