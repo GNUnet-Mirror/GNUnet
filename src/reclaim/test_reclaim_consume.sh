@@ -27,8 +27,8 @@ gnunet-arm -s -c test_reclaim.conf
 #gnunet-arm -i rest -c test_reclaim.conf
 gnunet-identity -C testego -c test_reclaim.conf
 gnunet-identity -C rpego -c test_reclaim.conf
-SUBJECT_KEY=$(gnunet-identity -d -c test_reclaim.conf | grep rpego | awk '{print $3}')
-TEST_KEY=$(gnunet-identity -d -c test_reclaim.conf | grep testego | awk '{print $3}')
+SUBJECT_KEY=$(gnunet-identity -d -e rpego -q -c test_reclaim.conf)
+TEST_KEY=$(gnunet-identity -d -e testego -q -c test_reclaim.conf)
 gnunet-reclaim -e testego -a email -V john@doe.gnu -c test_reclaim.conf
 gnunet-reclaim -e testego -a name -V John -c test_reclaim.conf
 TICKET=$(gnunet-reclaim -e testego -i "email,name" -r $SUBJECT_KEY -c test_reclaim.conf | awk '{print $1}')

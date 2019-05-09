@@ -27,9 +27,9 @@ gnunet-arm -s -c test_reclaim.conf 2&>1 > /dev/null
 gnunet-identity -C alice -c test_reclaim.conf
 gnunet-identity -C bob -c test_reclaim.conf
 gnunet-identity -C eve -c test_reclaim.conf
-ALICE_KEY=$(gnunet-identity -d -c test_reclaim.conf | grep alice | awk '{print $3}')
-BOB_KEY=$(gnunet-identity -d -c test_reclaim.conf | grep bob | awk '{print $3}')
-EVE_KEY=$(gnunet-identity -d -c test_reclaim.conf | grep eve | awk '{print $3}')
+ALICE_KEY=$(gnunet-identity -d -e alice -q -c test_reclaim.conf)
+BOB_KEY=$(gnunet-identity -d -e bob -q -c test_reclaim.conf)
+EVE_KEY=$(gnunet-identity -d -e eve -q -c test_reclaim.conf)
 gnunet-reclaim -e alice -E 15s -a email -V john@doe.gnu -c test_reclaim.conf
 gnunet-reclaim -e alice -E 15s -a name -V John -c test_reclaim.conf
 TICKET_BOB=$(gnunet-reclaim -e alice -i "email,name" -r $BOB_KEY -c test_reclaim.conf | awk '{print $1}')
