@@ -29,25 +29,26 @@
 .Nd show network size estimates from NSE service
 .Sh SYNOPSIS
 .Nm
-.Op Fl c Ar file | Fl -config Ns = Ns file
-.Op Fl h | \-help
-.Op Fl l file | Fl -logfile Ns = Ns file
-.Op Fl L Ar loglevel | Fl -loglevel Ns = Ns loglevel
-.Op Fl v | \-version
+.Op Fl c Ar FILENAME | Fl -config= Ns Ar FILENAME
+.Op Fl h | -help
+.Op Fl L Ar LOGLEVEL | Fl -loglevel= Ns Ar LOGLEVEL
+.Op Fl l Ar LOGFILE | Fl -logfile= Ns Ar LOGFILE
+.Op Fl v | -version
 .Sh DESCRIPTION
 .Nm
-is a command line tool to show network size estimates from the NSE service of GNUnet.
+is a command line tool to show network size estimates from
+the NSE service of GNUnet.
 .Bl -tag -width Ds
-.It Fl c Ar file | Fl -config Ns = Ns file
+.It Fl c Ar FILENAME | Fl -config= Ns Ar FILENAME
 Use the configuration file FILENAME.
-.It Fl h | \-help
+.It Fl h | -help
 Print short help on options.
-.It Fl l file | Fl -logfile Ns = Ns file
-Configure logging to write logs to LOGFILE.
-.It Fl L Ar loglevel | Fl -loglevel Ns = Ns loglevel
+.It Fl L Ar LOGLEVEL | Fl -loglevel= Ns Ar LOGLEVEL
 Use LOGLEVEL for logging.
 Valid values are DEBUG, INFO, WARNING and ERROR.
-.It Fl v | \-version
+.It Fl l Ar LOGFILE | Fl -logfile= Ns Ar LOGFILE
+Configure logging to write logs to LOGFILE.
+.It Fl v | -version
 Print GNUnet version number.
 .El
 .Sh FILES
@@ -68,7 +69,7 @@ should give you access to the complete handbook,
         info gnunet-c-tutorial
 .Ed
 will give you access to a tutorial for developers.
-.sp
+.Pp
 Depending on your installation, this information is also
 available in
 .Xr gnunet 7 and

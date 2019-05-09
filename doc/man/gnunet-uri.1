@@ -26,20 +26,22 @@
 .Os
 .Sh NAME
 .Nm gnunet-uri
-.Nd
-invoke default handler for GNUnet URIs
+.Nd invoke default handler for GNUnet URIs
 .Sh SYNOPSIS
 .Nm
 .Op Fl c Ar FILENAME | Fl \-config= Ns Ar FILENAME
 .Op Fl h | \-help
 .Op Fl L Ar LOGLEVEL | Fl \-loglevel= Ns Ar LOGLEVEL
+.Op Fl l | \-logfile= Ns Ar FILENAME
 .Op Fl v | \-version
 URI
 .Sh DESCRIPTION
 .Nm
 can be used to invoke the correct tool to handle a GNUnet URI.
-GNUnet URIs have the format "gnunet://SUBSYSTEM/DETAILS" and thus the specific tool to handle the URI depends on the subsystem.
-gnunet-uri will determine the correct tool (by looking for SUBSYSTEM in the configuration section "uri") and invoke it.
+GNUnet URIs have the format "gnunet://SUBSYSTEM/DETAILS" and
+thus the specific tool to handle the URI depends on the subsystem.
+gnunet-uri will determine the correct tool (by looking for SUBSYSTEM
+in the configuration section "uri") and invoke it.
 .Bl -tag -width Ds
 .It Fl c Ar FILENAME | Fl \-config= Ns Ar FILENAME
 Use the configuration file FILENAME.
@@ -48,6 +50,9 @@ Print short help on options.
 .It Fl L Ar LOGLEVEL | Fl \-loglevel= Ns Ar LOGLEVEL
 Use LOGLEVEL for logging.
 Valid values are DEBUG, INFO, WARNING and ERROR.
+.It Fl l | \-logfile= Ns Ar FILENAME
+Configure logging to write logs to
+.Ar FILENAME .
 .It Fl v | \-version
 Print GNUnet version number.
 .El
@@ -64,7 +69,7 @@ should give you access to the complete handbook,
 .Dl info gnunet-c-tutorial
 .Pp
 will give you access to a tutorial for developers.
-.sp
+.Pp
 Depending on your installation, this information is also available in
 .Xr gnunet 7 and
 .Xr gnunet-c-tutorial 7 .
