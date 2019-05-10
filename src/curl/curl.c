@@ -105,6 +105,18 @@ struct GNUNET_CURL_Job
    * Buffer for response received from CURL.
    */
   struct GNUNET_CURL_DownloadBuffer db;
+
+  /**
+   * Headers used for this job, the list needs to be freed
+   * after the job has finished.
+   */
+  struct curl_slist *job_headers;
+
+  /**
+   * Header for the async scope id or NULL.
+   */
+  char *aid_header;
+
 };
 
 
@@ -134,10 +146,15 @@ struct GNUNET_CURL_Context
   struct GNUNET_CURL_Job *jobs_tail;
 
   /**
-   * HTTP header "application/json", created once and used
-   * for all requests that need it.
+   * Headers common for all requests in the context.
    */
-  struct curl_slist *json_header;
+  struct curl_slist *common_headers;
+
+  /**
+   * If non-NULL, the async scope ID is sent in a request
+   * header of this name.
+   */
+  const char *async_scope_id_header;
 
   /**
    * Function we need to call whenever the event loop's
@@ -149,6 +166,7 @@ struct GNUNET_CURL_Context
    * Closure for @e cb.
    */
   void *cb_cls;
+
 };
 
 
@@ -189,10 +207,20 @@ GNUNET_CURL_init (GNUNET_CURL_RescheduleCallback cb, void *cb_cls)
   ctx->cb_cls = cb_cls;
   ctx->multi = multi;
   ctx->share = share;
-  GNUNET_assert (
-    NULL != (ctx->json_header =
-               curl_slist_append (NULL, "Content-Type: application/json")));
   return ctx;
+}
+
+
+/**
+ * Enable sending the async scope ID as a header.
+ *
+ * @param ctx the context to enable this for
+ * @param header_name name of the header to send.
+ */
+void
+GNUNET_CURL_enable_async_scope_header (struct GNUNET_CURL_Context *ctx, const char *header_name)
+{
+  ctx->async_scope_id_header = header_name;
 }
 
 
@@ -259,16 +287,49 @@ GNUNET_CURL_job_add (struct GNUNET_CURL_Context *ctx,
                      void *jcc_cls)
 {
   struct GNUNET_CURL_Job *job;
+  struct curl_slist *all_headers = NULL;
+  char *aid_header = NULL;
 
   if (GNUNET_YES == add_json)
-    if (CURLE_OK != curl_easy_setopt (eh, CURLOPT_HTTPHEADER, ctx->json_header))
+  {
+    GNUNET_assert (
+      NULL != (all_headers =
+                 curl_slist_append (NULL, "Content-Type: application/json")));
+  }
+
+  for (struct curl_slist *curr = ctx->common_headers;
+       curr != NULL;
+       curr = curr->next)
+  {
+    GNUNET_assert (
+      NULL != (all_headers =
+                 curl_slist_append (all_headers, "Content-Type: application/json")));
+  }
+
+  if (NULL != ctx->async_scope_id_header)
+  {
+    struct GNUNET_AsyncScopeSave scope;
+
+    GNUNET_async_scope_get (&scope);
+    if (GNUNET_YES == scope.have_scope)
     {
-      GNUNET_break (0);
-      curl_easy_cleanup (eh);
-      return NULL;
+      aid_header = GNUNET_STRINGS_data_to_string_alloc (&scope.scope_id,
+                                                        sizeof (struct GNUNET_AsyncScopeId));
+      GNUNET_assert (NULL != curl_slist_append(all_headers, aid_header));
     }
+  }
+
+  if (CURLE_OK != curl_easy_setopt (eh, CURLOPT_HTTPHEADER, all_headers))
+  {
+    GNUNET_break (0);
+    curl_easy_cleanup (eh);
+    return NULL;
+  }
 
   job = GNUNET_new (struct GNUNET_CURL_Job);
+  job->job_headers = all_headers;
+  job->aid_header = aid_header;
+
   if ((CURLE_OK != curl_easy_setopt (eh, CURLOPT_PRIVATE, job)) ||
       (CURLE_OK !=
        curl_easy_setopt (eh, CURLOPT_WRITEFUNCTION, &download_cb)) ||
@@ -308,6 +369,8 @@ GNUNET_CURL_job_cancel (struct GNUNET_CURL_Job *job)
                 curl_multi_remove_handle (ctx->multi, job->easy_handle));
   curl_easy_cleanup (job->easy_handle);
   GNUNET_free_non_null (job->db.buf);
+  GNUNET_free_non_null (job->aid_header);
+  curl_slist_free_all (job->job_headers);
   GNUNET_free (job);
 }
 
@@ -401,8 +464,8 @@ download_get_result (struct GNUNET_CURL_DownloadBuffer *db,
 int
 GNUNET_CURL_append_header (struct GNUNET_CURL_Context *ctx, const char *header)
 {
-  ctx->json_header = curl_slist_append (ctx->json_header, header);
-  if (NULL == ctx->json_header)
+  ctx->common_headers = curl_slist_append (ctx->common_headers, header);
+  if (NULL == ctx->common_headers)
     return GNUNET_SYSERR;
 
   return GNUNET_OK;
@@ -599,7 +662,7 @@ GNUNET_CURL_fini (struct GNUNET_CURL_Context *ctx)
   GNUNET_assert (NULL == ctx->jobs_head);
   curl_share_cleanup (ctx->share);
   curl_multi_cleanup (ctx->multi);
-  curl_slist_free_all (ctx->json_header);
+  curl_slist_free_all (ctx->common_headers);
   GNUNET_free (ctx);
 }
 

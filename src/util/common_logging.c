@@ -95,6 +95,13 @@ struct CustomLogger
   void *logger_cls;
 };
 
+
+/**
+ * Asynchronous scope of the current thread, or NULL if we have not
+ * entered an async scope yet.
+ */
+static __thread struct GNUNET_AsyncScopeSave current_async_scope;
+
 /**
  * The last "bulk" error message that we have been logging.
  * Note that this message maybe truncated to the first BULK_TRACK_SIZE
@@ -838,6 +845,28 @@ output_message (enum GNUNET_ErrorType kind,
                "* %s",
                msg);
     }
+    else if (GNUNET_YES == current_async_scope.have_scope)
+    {
+      static GNUNET_THREAD_LOCAL char id_buf[27];
+      char *end;
+
+      /* We're logging, so skip_log must be currently 0. */
+      skip_log = 100;
+      end = GNUNET_STRINGS_data_to_string (&current_async_scope.scope_id,
+                                           sizeof (struct GNUNET_AsyncScopeId),
+                                           id_buf,
+                                           sizeof (id_buf) - 1);
+      GNUNET_assert (NULL != end);
+      *end = '\0';
+      skip_log = 0;
+      FPRINTF (GNUNET_stderr,
+               "%s %s(%s) %s %s",
+               datestr,
+               comp,
+               id_buf,
+               GNUNET_error_type_to_string (kind),
+               msg);
+    }
     else
     {
       FPRINTF (GNUNET_stderr,
@@ -1544,6 +1573,60 @@ GNUNET_log_config_invalid (enum GNUNET_ErrorType kind,
   GNUNET_log (kind,
 	      _("Configuration specifies invalid value for option `%s' in section `%s': %s\n"),
 	      option, section, required);
+}
+
+
+/**
+ * Set the async scope for the current thread.
+ *
+ * @param aid the async scope identifier
+ * @param old_scope[out] location to save the old scope
+ */
+void
+GNUNET_async_scope_enter (const struct GNUNET_AsyncScopeId *aid,
+                          struct GNUNET_AsyncScopeSave *old_scope)
+{
+  *old_scope = current_async_scope;
+  current_async_scope.have_scope = GNUNET_YES;
+  current_async_scope.scope_id = *aid;
+}
+
+
+/**
+ * Clear the current thread's async scope.
+ *
+ * @param old_scope scope to restore
+ */
+void
+GNUNET_async_scope_restore (struct GNUNET_AsyncScopeSave *old_scope)
+{
+  current_async_scope = *old_scope;
+}
+
+
+/**
+ * Generate a fresh async scope identifier.
+ *
+ * @param[out] aid_ret pointer to where the result is stored
+ */
+void
+GNUNET_async_scope_fresh (struct GNUNET_AsyncScopeId *aid_ret)
+{
+  GNUNET_CRYPTO_random_block (GNUNET_CRYPTO_QUALITY_WEAK,
+                              aid_ret,
+                              sizeof (struct GNUNET_AsyncScopeId));
+}
+
+
+/**
+ * Get the current async scope.
+ *
+ * @param[out] scope_ret pointer to where the result is stored
+ */
+void
+GNUNET_async_scope_get (struct GNUNET_AsyncScopeSave *scope_ret)
+{
+  *scope_ret = current_async_scope;
 }
 
 

@@ -319,7 +319,33 @@ struct GNUNET_OperationResultMessage
   /* Followed by data. */
 };
 
+
+/**
+ * Identifier for an asynchronous execution context.
+ */
+struct GNUNET_AsyncScopeId
+{
+  uint32_t bits[16 / sizeof (uint32_t)];  /* = 16 bytes */
+};
+
 GNUNET_NETWORK_STRUCT_END
+
+
+/**
+ * Saved async scope identifier or root scope.
+ */
+struct GNUNET_AsyncScopeSave {
+  /**
+   * Saved scope.  Unused if 'have_scope==GNUNET_NO'.
+   */
+  struct GNUNET_AsyncScopeId scope_id;
+
+  /**
+   * GNUNET_YES unless this saved scope is the unnamed root scope.
+   */
+  int have_scope;
+};
+
 
 /**
  * Function called with a filename.
@@ -1329,6 +1355,44 @@ GNUNET_xgrow_ (void **old, size_t elementSize, unsigned int *oldCount,
  */
 struct GNUNET_MessageHeader *
 GNUNET_copy_message (const struct GNUNET_MessageHeader *msg);
+
+
+/**
+ * Set the async scope for the current thread.
+ *
+ * @param aid the async scope identifier
+ * @param old_scope[out] location to save the old scope
+ */
+void
+GNUNET_async_scope_enter (const struct GNUNET_AsyncScopeId *aid,
+                          struct GNUNET_AsyncScopeSave *old_scope);
+
+
+/**
+ * Clear the current thread's async scope.
+ *
+ * @param old_scope scope to restore
+ */
+void
+GNUNET_async_scope_restore (struct GNUNET_AsyncScopeSave *old_scope);
+
+
+/**
+ * Get the current async scope.
+ *
+ * @param[out] scope_ret pointer to where the result is stored
+ */
+void
+GNUNET_async_scope_get (struct GNUNET_AsyncScopeSave *scope_ret);
+
+
+/**
+ * Generate a fresh async scope identifier.
+ *
+ * @param[out] aid_ret pointer to where the result is stored
+ */
+void
+GNUNET_async_scope_fresh (struct GNUNET_AsyncScopeId *aid_ret);
 
 
 #if __STDC_VERSION__ < 199901L

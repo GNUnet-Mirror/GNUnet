@@ -241,6 +241,11 @@ struct GNUNET_SCHEDULER_Task
   int num_backtrace_strings;
 #endif
 
+  /**
+   * Asynchronous scope of the task that scheduled this scope,
+   */
+  struct GNUNET_AsyncScopeSave scope;
+
 };
 
 
@@ -1105,6 +1110,7 @@ GNUNET_SCHEDULER_add_at_with_priority (struct GNUNET_TIME_Absolute at,
   GNUNET_assert (NULL != scheduler_driver);
   GNUNET_assert (NULL != task);
   t = GNUNET_new (struct GNUNET_SCHEDULER_Task);
+  GNUNET_async_scope_get (&t->scope);
   t->callback = task;
   t->callback_cls = task_cls;
   t->read_fd = -1;
@@ -1293,6 +1299,7 @@ GNUNET_SCHEDULER_add_shutdown (GNUNET_SCHEDULER_TaskCallback task,
   GNUNET_assert (NULL != scheduler_driver);
   GNUNET_assert (NULL != task);
   t = GNUNET_new (struct GNUNET_SCHEDULER_Task);
+  GNUNET_async_scope_get (&t->scope);
   t->callback = task;
   t->callback_cls = task_cls;
   t->read_fd = -1;
@@ -1411,6 +1418,7 @@ add_without_sets (struct GNUNET_TIME_Relative delay,
   GNUNET_assert (NULL != scheduler_driver);
   GNUNET_assert (NULL != task);
   t = GNUNET_new (struct GNUNET_SCHEDULER_Task);
+  GNUNET_async_scope_get (&t->scope);
   init_fd_info (t,
                 &read_nh,
                 read_nh ? 1 : 0,
@@ -1882,6 +1890,7 @@ GNUNET_SCHEDULER_add_select (enum GNUNET_SCHEDULER_Priority prio,
                                                        task,
                                                        task_cls);
   t = GNUNET_new (struct GNUNET_SCHEDULER_Task);
+  GNUNET_async_scope_get (&t->scope);
   init_fd_info (t,
                 read_nhandles,
                 read_nhandles_len,
@@ -2114,7 +2123,15 @@ GNUNET_SCHEDULER_do_work (struct GNUNET_SCHEDULER_Handle *sh)
            "Running task %p\n",
            pos);
       GNUNET_assert (NULL != pos->callback);
-      pos->callback (pos->callback_cls);
+      {
+        struct GNUNET_AsyncScopeSave old_scope;
+        if (pos->scope.have_scope)
+          GNUNET_async_scope_enter (&pos->scope.scope_id, &old_scope);
+        else
+          GNUNET_async_scope_get (&old_scope);
+        pos->callback (pos->callback_cls);
+        GNUNET_async_scope_restore (&old_scope);
+      }
       if (NULL != pos->fds)
       {
         int del_result = scheduler_driver->del (scheduler_driver->cls, pos);
@@ -2510,6 +2527,30 @@ GNUNET_SCHEDULER_driver_select ()
   select_driver->set_wakeup = &select_set_wakeup;
 
   return select_driver;
+}
+
+
+/**
+ * Change the async scope for the currently executing task and (transitively)
+ * for all tasks scheduled by the current task after calling this function.
+ * Nested tasks can begin their own nested async scope.
+ *
+ * Once the current task is finished, the async scope ID is reset to
+ * its previous value.
+ *
+ * Must only be called from a running task.
+ *
+ * @param aid the asynchronous scope id to enter
+ */
+void
+GNUNET_SCHEDULER_begin_async_scope (struct GNUNET_AsyncScopeId *aid)
+{
+  struct GNUNET_AsyncScopeSave dummy_old_scope;
+
+  GNUNET_assert (NULL != active_task);
+  /* Since we're in a task, the context will be automatically
+     restored by the scheduler. */
+  GNUNET_async_scope_enter (aid, &dummy_old_scope);
 }
 
 

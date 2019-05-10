@@ -294,6 +294,16 @@ void
 GNUNET_CURL_gnunet_scheduler_reschedule (void *cls);
 
 
+/**
+ * Enable sending the async scope ID as a header.
+ *
+ * @param ctx the context to enable this for
+ * @param header_name name of the header to send.
+ */
+void
+GNUNET_CURL_enable_async_scope_header (struct GNUNET_CURL_Context *ctx, const char *header_name);
+
+
 #endif
 /** @} */  /* end of group */
 

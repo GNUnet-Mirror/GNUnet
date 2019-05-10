@@ -214,6 +214,8 @@ struct GNUNET_SCHEDULER_TaskContext
 };
 
 
+
+
 /**
  * Function used by event-loop implementations to signal the scheduler
  * that a particular @a task is ready due to an event specified in the
@@ -902,6 +904,24 @@ GNUNET_SCHEDULER_add_select (enum GNUNET_SCHEDULER_Priority prio,
 void
 GNUNET_SCHEDULER_set_select (GNUNET_SCHEDULER_select new_select,
                              void *new_select_cls);
+
+
+
+/**
+ * Change the async scope for the currently executing task and (transitively)
+ * for all tasks scheduled by the current task after calling this function.
+ * Nested tasks can begin their own nested async scope.
+ *
+ * Once the current task is finished, the async scope ID is reset to
+ * its previous value.
+ *
+ * Must only be called from a running task.
+ *
+ * @param aid the asynchronous scope id to enter
+ */
+void
+GNUNET_SCHEDULER_begin_async_scope (struct GNUNET_AsyncScopeId *aid);
+
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */
