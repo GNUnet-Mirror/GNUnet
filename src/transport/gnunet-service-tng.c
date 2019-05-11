@@ -24,7 +24,6 @@
  *
  * TODO:
  * Implement next:
- * - remove duplicate HELLO vs. URI API code
  * - add (more) logging (beyond line ~7500)
  * - properly encrypt *all* DV traffic, not only backchannel;
  *   rename BackchannelEncapsulation logic to DVEncapsulation!
@@ -8702,25 +8701,6 @@ handle_suggest_cancel (void *cls, const struct ExpressPreferenceMessage *msg)
 
 
 /**
- * Check #GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_CONSIDER_VERIFY
- * messages. We do nothing here, real verification is done later.
- *
- * @param cls a `struct TransportClient *`
- * @param msg message to verify
- * @return #GNUNET_OK
- */
-static int
-check_address_consider_verify (
-  void *cls,
-  const struct GNUNET_TRANSPORT_AddressToVerify *hdr)
-{
-  (void) cls;
-  (void) hdr;
-  return GNUNET_OK;
-}
-
-
-/**
  * Closure for #check_known_address.
  */
 struct CheckKnownAddressContext
@@ -8902,46 +8882,6 @@ handle_suggest (void *cls, const struct ExpressPreferenceMessage *msg)
                                    GNUNET_PEERSTORE_TRANSPORT_URLADDRESS_KEY,
                                    &handle_hello,
                                    pr);
-  GNUNET_SERVICE_client_continue (tc->client);
-}
-
-
-/**
- * Given another peers address, consider checking it for validity
- * and then adding it to the Peerstore.
- *
- * @param cls a `struct TransportClient`
- * @param hdr message containing the raw address data and
- *        signature in the body, see #GNUNET_HELLO_extract_address()
- */
-static void
-handle_address_consider_verify (
-  void *cls,
-  const struct GNUNET_TRANSPORT_AddressToVerify *hdr)
-{
-  struct TransportClient *tc = cls;
-  char *address;
-  enum GNUNET_NetworkType nt;
-  struct GNUNET_TIME_Absolute mono_time;
-
-  (void) cls;
-  // OPTIMIZE-FIXME: checking that we know this address already should
-  //        be done BEFORE checking the signature => HELLO API change!
-  // OPTIMIZE-FIXME: pre-check: rate-limit signature verification /
-  // validation?!
-  address =
-    GNUNET_HELLO_extract_address (&hdr[1],
-                                  ntohs (hdr->header.size) - sizeof (*hdr),
-                                  &hdr->peer,
-                                  &nt,
-                                  &mono_time);
-  if (NULL == address)
-  {
-    GNUNET_break_op (0);
-    return;
-  }
-  start_address_validation (&hdr->peer, address);
-  GNUNET_free (address);
   GNUNET_SERVICE_client_continue (tc->client);
 }
 
@@ -9325,10 +9265,6 @@ GNUNET_SERVICE_MAIN (
   GNUNET_MQ_hd_var_size (add_queue_message,
                          GNUNET_MESSAGE_TYPE_TRANSPORT_QUEUE_SETUP,
                          struct GNUNET_TRANSPORT_AddQueueMessage,
-                         NULL),
-  GNUNET_MQ_hd_var_size (address_consider_verify,
-                         GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_CONSIDER_VERIFY,
-                         struct GNUNET_TRANSPORT_AddressToVerify,
                          NULL),
   GNUNET_MQ_hd_fixed_size (del_queue_message,
                            GNUNET_MESSAGE_TYPE_TRANSPORT_QUEUE_TEARDOWN,

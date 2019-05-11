@@ -3141,13 +3141,6 @@ extern "C" {
  */
 #define GNUNET_MESSAGE_TYPE_TRANSPORT_COMMUNICATOR_BACKCHANNEL_INCOMING 1220
 
-/**
- * We learned a possible network address of another peer. Transport
- * should consider verifying it, and if successful, remembering it
- * in the Peerstore.
- */
-#define GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_CONSIDER_VERIFY 1221
-
 
 /**
  * Message sent to indicate to the transport that a monitor
