@@ -24,8 +24,14 @@
  *
  * TODO:
  * Implement next:
- * - properly encrypt *all* DV traffic, not only backchannel;
- *   rename BackchannelEncapsulation logic to DVEncapsulation!
+ * - realize "pull" based logic (#handle_client_send()) for
+ *   `struct PendingMessage` which waits for a queue on any
+ *   applicable route to be 'ready', in contrast
+ *   to the 'push' based routing we use for control messages.
+ *   Basically, when a queue goes idle, it should "search"
+ *   via its neighbour for either virtual links or DVH's that
+ *   have it as first hop and then find messages in those
+ *   virtual links!
  * - realize transport-to-transport flow control (needed in case
  *   communicators do not offer flow control).  Note that we may not
  *   want to simply delay the ACKs as that may cause unnecessary
@@ -327,37 +333,10 @@ struct TransportBackchannelEncapsulationMessage
    */
   struct GNUNET_MessageHeader header;
 
-  /**
-   * Reserved, always zero.
-   */
-  uint32_t reserved GNUNET_PACKED;
+  /* Followed by *another* message header which is the message to
+     the communicator */
 
-  /**
-   * Target's peer identity (as backchannels may be transmitted
-   * indirectly, or even be broadcast).
-   */
-  struct GNUNET_PeerIdentity target;
-
-  /**
-   * Ephemeral key setup by the sender for @e target, used
-   * to encrypt the payload.
-   */
-  struct GNUNET_CRYPTO_EcdhePublicKey ephemeral_key;
-
-  /**
-   * We use an IV here as the @e ephemeral_key is re-used for
-   * #EPHEMERAL_VALIDITY time to avoid re-signing it all the time.
-   */
-  struct GNUNET_ShortHashCode iv;
-
-  /**
-   * HMAC over the ciphertext of the encrypted, variable-size
-   * body that follows.  Verified via DH of @e target and
-   * @e ephemeral_key
-   */
-  struct GNUNET_HashCode hmac;
-
-  /* Followed by encrypted, variable-size payload */
+  /* Followed by a 0-terminated name of the communicator */
 };
 
 
@@ -405,7 +384,7 @@ struct EphemeralConfirmationPS
  * Plaintext of the variable-size payload that is encrypted
  * within a `struct TransportBackchannelEncapsulationMessage`
  */
-struct TransportBackchannelRequestPayloadP
+struct TransportDVBoxPayloadP
 {
 
   /**
@@ -432,10 +411,7 @@ struct TransportBackchannelRequestPayloadP
   struct GNUNET_TIME_AbsoluteNBO monotonic_time;
 
   /* Followed by a `struct GNUNET_MessageHeader` with a message
-     for a communicator */
-
-  /* Followed by a 0-termianted string specifying the name of
-     the communicator which is to receive the message */
+     for the target peer */
 };
 
 
@@ -746,6 +722,13 @@ struct TransportDVLearnMessage
  * shortcut.
  *
  * If a peer finds itself still on the list, it must drop the message.
+ *
+ * The payload of the box can only be decrypted and verified by the
+ * ultimate receiver. Intermediaries do not learn the sender's
+ * identity and the path the message has taken.  However, the first
+ * hop does learn the sender as @e total_hops would be zero and thus
+ * the predecessor must be the origin (so this is not really useful
+ * for anonymization).
  */
 struct TransportDVBoxMessage
 {
@@ -757,27 +740,48 @@ struct TransportDVBoxMessage
   /**
    * Number of total hops this messages travelled. In NBO.
    * @e origin sets this to zero, to be incremented at
-   * each hop.
+   * each hop.  Peers should limit the @e total_hops value
+   * they accept from other peers.
    */
   uint16_t total_hops GNUNET_PACKED;
 
   /**
-   * Number of hops this messages includes. In NBO.
+   * Number of hops this messages includes. In NBO.  Reduced by one
+   * or more at each hop.  Peers should limit the @e num_hops value
+   * they accept from other peers.
    */
   uint16_t num_hops GNUNET_PACKED;
 
   /**
-   * Identity of the peer that originated the message.
+   * Ephemeral key setup by the sender for target, used to encrypt the
+   * payload.  Intermediaries must not change this value.
    */
-  struct GNUNET_PeerIdentity origin;
+  struct GNUNET_CRYPTO_EcdhePublicKey ephemeral_key;
+
+  /**
+   * We use an IV here as the @e ephemeral_key is re-used for
+   * #EPHEMERAL_VALIDITY time to avoid re-signing it all the time.
+   * Intermediaries must not change this value.
+   */
+  struct GNUNET_ShortHashCode iv;
+
+  /**
+   * HMAC over the ciphertext of the encrypted, variable-size body
+   * that follows.  Verified via DH of target and @e ephemeral_key.
+   * Intermediaries must not change this value.
+   */
+  struct GNUNET_HashCode hmac;
 
   /* Followed by @e num_hops `struct GNUNET_PeerIdentity` values;
      excluding the @e origin and the current peer, the last must be
      the ultimate target; if @e num_hops is zero, the receiver of this
      message is the ultimate target. */
 
-  /* Followed by the actual message, which itself may be
-     another box, but not a DV_LEARN or DV_BOX message! */
+  /* Followed by encrypted, variable-size payload, which
+     must begin with a `struct TransportDVBoxPayloadP` */
+
+  /* Followed by the actual message, which itself must not be a
+     a DV_LEARN or DV_BOX message! */
 };
 
 
@@ -978,56 +982,6 @@ struct LearnLaunchEntry
 
 
 /**
- * Entry in our cache of ephemeral keys we currently use.  This way, we only
- * sign an ephemeral once per @e target, and then can re-use it over multiple
- * #GNUNET_MESSAGE_TYPE_TRANSPORT_BACKCHANNEL_ENCAPSULATION messages (as
- * signing is expensive and in some cases we may use backchannel messages a
- * lot).
- */
-struct EphemeralCacheEntry
-{
-
-  /**
-   * Target's peer identity (we don't re-use ephemerals
-   * to limit linkability of messages).
-   */
-  struct GNUNET_PeerIdentity target;
-
-  /**
-   * Signature affirming @e ephemeral_key of type
-   * #GNUNET_SIGNATURE_PURPOSE_TRANSPORT_EPHEMERAL
-   */
-  struct GNUNET_CRYPTO_EddsaSignature sender_sig;
-
-  /**
-   * How long is @e sender_sig valid
-   */
-  struct GNUNET_TIME_Absolute ephemeral_validity;
-
-  /**
-   * What time was @e sender_sig created
-   */
-  struct GNUNET_TIME_Absolute monotime;
-
-  /**
-   * Our ephemeral key.
-   */
-  struct GNUNET_CRYPTO_EcdhePublicKey ephemeral_key;
-
-  /**
-   * Our private ephemeral key.
-   */
-  struct GNUNET_CRYPTO_EcdhePrivateKey private_key;
-
-  /**
-   * Node in the ephemeral cache for this entry.
-   * Used for expiration.
-   */
-  struct GNUNET_CONTAINER_HeapNode *hn;
-};
-
-
-/**
  * Information we keep per #GOODPUT_AGING_SLOTS about historic
  * (or current) transmission performance.
  */
@@ -1168,6 +1122,16 @@ struct VirtualLink
   struct CommunicatorMessageContext *cmc_tail;
 
   /**
+   * Head of list of messages pending for this VL.
+   */
+  struct PendingMessage *pending_msg_head;
+
+  /**
+   * Tail of list of messages pending for this VL.
+   */
+  struct PendingMessage *pending_msg_tail;
+
+  /**
    * Task scheduled to possibly notfiy core that this peer is no
    * longer counting as confirmed.  Runs the #core_visibility_check(),
    * which checks that some DV-path or a queue exists that is still
@@ -1184,6 +1148,12 @@ struct VirtualLink
    * Distance vector used by this virtual link, NULL if @e n is used.
    */
   struct DistanceVector *dv;
+
+  /**
+   * Used to generate unique UUIDs for messages that are being
+   * fragmented.
+   */
+  uint64_t message_uuid_ctr;
 
   /**
    * How many more messages can we send to core before we exhaust
@@ -1319,16 +1289,6 @@ struct DistanceVectorHop
   struct DistanceVectorHop *prev_neighbour;
 
   /**
-   * Head of MDLL of messages routed via this path.
-   */
-  struct PendingMessage *pending_msg_head;
-
-  /**
-   * Tail of MDLL of messages routed via this path.
-   */
-  struct PendingMessage *pending_msg_tail;
-
-  /**
    * Head of DLL of PAs that used our @a path.
    */
   struct PendingAcknowledgement *pa_head;
@@ -1416,6 +1376,32 @@ struct DistanceVector
    * CORE?  If so, this is the virtual link, otherwise NULL.
    */
   struct VirtualLink *link;
+
+  /**
+   * Signature affirming @e ephemeral_key of type
+   * #GNUNET_SIGNATURE_PURPOSE_TRANSPORT_EPHEMERAL
+   */
+  struct GNUNET_CRYPTO_EddsaSignature sender_sig;
+
+  /**
+   * How long is @e sender_sig valid
+   */
+  struct GNUNET_TIME_Absolute ephemeral_validity;
+
+  /**
+   * What time was @e sender_sig created
+   */
+  struct GNUNET_TIME_Absolute monotime;
+
+  /**
+   * Our ephemeral key.
+   */
+  struct GNUNET_CRYPTO_EcdhePublicKey ephemeral_key;
+
+  /**
+   * Our private ephemeral key.
+   */
+  struct GNUNET_CRYPTO_EcdhePrivateKey private_key;
 };
 
 
@@ -1673,16 +1659,6 @@ struct Neighbour
   struct GNUNET_SCHEDULER_Task *reassembly_timeout_task;
 
   /**
-   * Head of list of messages pending for this neighbour.
-   */
-  struct PendingMessage *pending_msg_head;
-
-  /**
-   * Tail of list of messages pending for this neighbour.
-   */
-  struct PendingMessage *pending_msg_tail;
-
-  /**
    * Head of MDLL of DV hops that have this neighbour as next hop. Must be
    * purged if this neighbour goes down.
    */
@@ -1727,12 +1703,6 @@ struct Neighbour
    * if @e dl_monotime_available is #GNUNET_YES.
    */
   struct GNUNET_TIME_Absolute last_dv_learn_monotime;
-
-  /**
-   * Used to generate unique UUIDs for messages that are being
-   * fragmented.
-   */
-  uint64_t message_uuid_ctr;
 
   /**
    * Do we have the lastest value for @e last_dv_learn_monotime from
@@ -1840,14 +1810,14 @@ enum PendingMessageType
 struct PendingMessage
 {
   /**
-   * Kept in a MDLL of messages for this @a target.
+   * Kept in a MDLL of messages for this @a vl.
    */
-  struct PendingMessage *next_neighbour;
+  struct PendingMessage *next_vl;
 
   /**
-   * Kept in a MDLL of messages for this @a target.
+   * Kept in a MDLL of messages for this @a vl.
    */
-  struct PendingMessage *prev_neighbour;
+  struct PendingMessage *prev_vl;
 
   /**
    * Kept in a MDLL of messages from this @a client (if @e pmt is #PMT_CORE)
@@ -1872,18 +1842,6 @@ struct PendingMessage
   struct PendingMessage *prev_frag;
 
   /**
-   * Kept in a MDLL of messages using this @a dvh (if @e dvh is
-   * non-NULL).
-   */
-  struct PendingMessage *next_dvh;
-
-  /**
-   * Kept in a MDLL of messages using this @a dvh (if @e dvh is
-   * non-NULL).
-   */
-  struct PendingMessage *prev_dvh;
-
-  /**
    * Head of DLL of PAs for this pending message.
    */
   struct PendingAcknowledgement *pa_head;
@@ -1900,16 +1858,9 @@ struct PendingMessage
   struct PendingMessage *bpm;
 
   /**
-   * Target of the request (for transmission, may not be ultimate
-   * destination!).
+   * Target of the request (always the ultimate destination!).
    */
-  struct Neighbour *target;
-
-  /**
-   * Distance vector path selected for this message, or
-   * NULL if transmitted directly.
-   */
-  struct DistanceVectorHop *dvh;
+  struct VirtualLink *vl;
 
   /**
    * Set to non-NULL value if this message is currently being given to a
@@ -2508,26 +2459,6 @@ static struct GNUNET_CONTAINER_Heap *validation_heap;
 static struct GNUNET_PEERSTORE_Handle *peerstore;
 
 /**
- * Heap sorting `struct EphemeralCacheEntry` by their
- * key/signature validity.
- */
-static struct GNUNET_CONTAINER_Heap *ephemeral_heap;
-
-/**
- * Hash map for looking up `struct EphemeralCacheEntry`s
- * by peer identity. (We may have ephemerals in our
- * cache for which we do not have a neighbour entry,
- * and similar many neighbours may not need ephemerals,
- * so we use a second map.)
- */
-static struct GNUNET_CONTAINER_MultiPeerMap *ephemeral_map;
-
-/**
- * Task to free expired ephemerals.
- */
-static struct GNUNET_SCHEDULER_Task *ephemeral_task;
-
-/**
  * Task run to initiate DV learning.
  */
 static struct GNUNET_SCHEDULER_Task *dvlearn_task;
@@ -2629,16 +2560,76 @@ free_pending_acknowledgement (struct PendingAcknowledgement *pa)
 
 
 /**
- * Free cached ephemeral key.
+ * Free fragment tree below @e root, excluding @e root itself.
+ * FIXME: this does NOT seem to have the intended semantics
+ * based on how this is called. Seems we generally DO expect
+ * @a root to be free'ed itself as well!
  *
- * @param ece cached signature to free
+ * @param root root of the tree to free
  */
 static void
-free_ephemeral (struct EphemeralCacheEntry *ece)
+free_fragment_tree (struct PendingMessage *root)
 {
-  GNUNET_CONTAINER_multipeermap_remove (ephemeral_map, &ece->target, ece);
-  GNUNET_CONTAINER_heap_remove_node (ece->hn);
-  GNUNET_free (ece);
+  struct PendingMessage *frag;
+
+  while (NULL != (frag = root->head_frag))
+  {
+    struct PendingAcknowledgement *pa;
+
+    free_fragment_tree (frag);
+    while (NULL != (pa = frag->pa_head))
+    {
+      GNUNET_CONTAINER_MDLL_remove (pm, frag->pa_head, frag->pa_tail, pa);
+      pa->pm = NULL;
+    }
+    GNUNET_CONTAINER_MDLL_remove (frag, root->head_frag, root->tail_frag, frag);
+    GNUNET_free (frag);
+  }
+}
+
+
+/**
+ * Release memory associated with @a pm and remove @a pm from associated
+ * data structures.  @a pm must be a top-level pending message and not
+ * a fragment in the tree.  The entire tree is freed (if applicable).
+ *
+ * @param pm the pending message to free
+ */
+static void
+free_pending_message (struct PendingMessage *pm)
+{
+  struct TransportClient *tc = pm->client;
+  struct VirtualLink *vl = pm->vl;
+  struct PendingAcknowledgement *pa;
+
+  if (NULL != tc)
+  {
+    GNUNET_CONTAINER_MDLL_remove (client,
+                                  tc->details.core.pending_msg_head,
+                                  tc->details.core.pending_msg_tail,
+                                  pm);
+  }
+  if (NULL != vl)
+  {
+    GNUNET_CONTAINER_MDLL_remove (vl,
+                                  vl->pending_msg_head,
+                                  vl->pending_msg_tail,
+                                  pm);
+  }
+  while (NULL != (pa = pm->pa_head))
+  {
+    GNUNET_CONTAINER_MDLL_remove (pm, pm->pa_head, pm->pa_tail, pa);
+    pa->pm = NULL;
+  }
+
+  free_fragment_tree (pm);
+  if (NULL != pm->qe)
+  {
+    GNUNET_assert (pm == pm->qe->pm);
+    pm->qe->pm = NULL;
+  }
+  GNUNET_free_non_null (pm->bpm);
+  GNUNET_free (pm);
 }
 
 
@@ -2650,6 +2641,10 @@ free_ephemeral (struct EphemeralCacheEntry *ece)
 static void
 free_virtual_link (struct VirtualLink *vl)
 {
+  struct PendingMessage *pm;
+
+  while (NULL != (pm = vl->pending_msg_head))
+    free_pending_message (pm);
   GNUNET_CONTAINER_multipeermap_remove (links, &vl->target, vl);
   if (NULL != vl->visibility_task)
   {
@@ -2744,16 +2739,7 @@ free_distance_vector_hop (struct DistanceVectorHop *dvh)
   struct Neighbour *n = dvh->next_hop;
   struct DistanceVector *dv = dvh->dv;
   struct PendingAcknowledgement *pa;
-  struct PendingMessage *pm;
 
-  while (NULL != (pm = dvh->pending_msg_head))
-  {
-    GNUNET_CONTAINER_MDLL_remove (dvh,
-                                  dvh->pending_msg_head,
-                                  dvh->pending_msg_tail,
-                                  pm);
-    pm->dvh = NULL;
-  }
   while (NULL != (pa = dvh->pa_head))
   {
     GNUNET_CONTAINER_MDLL_remove (dvh, dvh->pa_head, dvh->pa_tail, pa);
@@ -3098,11 +3084,6 @@ transmit_on_queue (void *cls);
 static void
 schedule_transmit_on_queue (struct Queue *queue, int inside_job)
 {
-  struct Neighbour *n = queue->neighbour;
-  struct PendingMessage *pm = n->pending_msg_head;
-  struct GNUNET_TIME_Relative out_delay;
-
-  GNUNET_assert (NULL != pm);
   if (queue->tc->details.communicator.total_queue_length >=
       COMMUNICATOR_TOTAL_QUEUE_LIMIT)
   {
@@ -3121,8 +3102,10 @@ schedule_transmit_on_queue (struct Queue *queue, int inside_job)
                               GNUNET_NO);
     return;
   }
+#if FIXME - NEXT
+  struct Neighbour *n = queue->neighbour;
+  struct GNUNET_TIME_Relative out_delay;
 
-  out_delay = GNUNET_TIME_absolute_get_remaining (pm->next_attempt);
   if ((GNUNET_YES == inside_job) && (0 == out_delay.rel_value_us))
   {
     GNUNET_log (
@@ -3148,6 +3131,7 @@ schedule_transmit_on_queue (struct Queue *queue, int inside_job)
                 pm->logging_uuid,
                 queue->address,
                 GNUNET_STRINGS_relative_time_to_string (out_delay, GNUNET_YES));
+#endif
 }
 
 
@@ -3488,85 +3472,6 @@ check_client_send (void *cls, const struct OutboundMessage *obm)
 
 
 /**
- * Free fragment tree below @e root, excluding @e root itself.
- * FIXME: this does NOT seem to have the intended semantics
- * based on how this is called. Seems we generally DO expect
- * @a root to be free'ed itself as well!
- *
- * @param root root of the tree to free
- */
-static void
-free_fragment_tree (struct PendingMessage *root)
-{
-  struct PendingMessage *frag;
-
-  while (NULL != (frag = root->head_frag))
-  {
-    struct PendingAcknowledgement *pa;
-
-    free_fragment_tree (frag);
-    while (NULL != (pa = frag->pa_head))
-    {
-      GNUNET_CONTAINER_MDLL_remove (pm, frag->pa_head, frag->pa_tail, pa);
-      pa->pm = NULL;
-    }
-    GNUNET_CONTAINER_MDLL_remove (frag, root->head_frag, root->tail_frag, frag);
-    GNUNET_free (frag);
-  }
-}
-
-
-/**
- * Release memory associated with @a pm and remove @a pm from associated
- * data structures.  @a pm must be a top-level pending message and not
- * a fragment in the tree.  The entire tree is freed (if applicable).
- *
- * @param pm the pending message to free
- */
-static void
-free_pending_message (struct PendingMessage *pm)
-{
-  struct TransportClient *tc = pm->client;
-  struct Neighbour *target = pm->target;
-  struct DistanceVectorHop *dvh = pm->dvh;
-  struct PendingAcknowledgement *pa;
-
-  if (NULL != tc)
-  {
-    GNUNET_CONTAINER_MDLL_remove (client,
-                                  tc->details.core.pending_msg_head,
-                                  tc->details.core.pending_msg_tail,
-                                  pm);
-  }
-  if (NULL != dvh)
-  {
-    GNUNET_CONTAINER_MDLL_remove (dvh,
-                                  dvh->pending_msg_head,
-                                  dvh->pending_msg_tail,
-                                  pm);
-  }
-  GNUNET_CONTAINER_MDLL_remove (neighbour,
-                                target->pending_msg_head,
-                                target->pending_msg_tail,
-                                pm);
-  while (NULL != (pa = pm->pa_head))
-  {
-    GNUNET_CONTAINER_MDLL_remove (pm, pm->pa_head, pm->pa_tail, pa);
-    pa->pm = NULL;
-  }
-
-  free_fragment_tree (pm);
-  if (NULL != pm->qe)
-  {
-    GNUNET_assert (pm == pm->qe->pm);
-    pm->qe->pm = NULL;
-  }
-  GNUNET_free_non_null (pm->bpm);
-  GNUNET_free (pm);
-}
-
-
-/**
  * Send a response to the @a pm that we have processed a "send"
  * request.  Sends a confirmation to the "core" client responsible for
  * the original request and free's @a pm.
@@ -3577,87 +3482,21 @@ static void
 client_send_response (struct PendingMessage *pm)
 {
   struct TransportClient *tc = pm->client;
-  struct Neighbour *target = pm->target;
+  struct VirtualLink *vl = pm->vl;
   struct GNUNET_MQ_Envelope *env;
   struct SendOkMessage *som;
 
   if (NULL != tc)
   {
     env = GNUNET_MQ_msg (som, GNUNET_MESSAGE_TYPE_TRANSPORT_SEND_OK);
-    som->peer = target->pid;
+    som->peer = vl->target;
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Confirming transmission of <%llu> to %s\n",
                 pm->logging_uuid,
-                GNUNET_i2s (&pm->target->pid));
+                GNUNET_i2s (&vl->target));
     GNUNET_MQ_send (tc->mq, env);
   }
   free_pending_message (pm);
-}
-
-
-/**
- * Create a DV Box message.
- *
- * @param total_hops how many hops did the message take so far
- * @param num_hops length of the @a hops array
- * @param origin origin of the message
- * @param hops next peer(s) to the destination, including destination
- * @param payload encrypted (!) payload of the box
- * @param payload_size number of bytes in @a payload
- * @return boxed message (caller must #GNUNET_free() it).
- */
-static struct TransportDVBoxMessage *
-create_dv_box (uint16_t total_hops,
-               const struct GNUNET_PeerIdentity *origin,
-               const struct GNUNET_PeerIdentity *target,
-               uint16_t num_hops,
-               const struct GNUNET_PeerIdentity *hops,
-               const void *payload,
-               uint16_t payload_size)
-{
-  struct TransportDVBoxMessage *dvb;
-  struct GNUNET_PeerIdentity *dhops;
-
-  GNUNET_assert (UINT16_MAX <
-                 sizeof (struct TransportDVBoxMessage) +
-                   sizeof (struct GNUNET_PeerIdentity) * (num_hops + 1) +
-                   payload_size);
-  dvb = GNUNET_malloc (sizeof (struct TransportDVBoxMessage) +
-                       sizeof (struct GNUNET_PeerIdentity) * (num_hops + 1) +
-                       payload_size);
-  dvb->header.size =
-    htons (sizeof (struct TransportDVBoxMessage) +
-           sizeof (struct GNUNET_PeerIdentity) * (num_hops + 1) + payload_size);
-  dvb->header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_DV_BOX);
-  dvb->total_hops = htons (total_hops);
-  dvb->num_hops = htons (num_hops + 1);
-  dvb->origin = *origin;
-  dhops = (struct GNUNET_PeerIdentity *) &dvb[1];
-  memcpy (dhops, hops, num_hops * sizeof (struct GNUNET_PeerIdentity));
-  dhops[num_hops] = *target;
-  memcpy (&dhops[num_hops + 1], payload, payload_size);
-
-  if (GNUNET_EXTRA_LOGGING > 0)
-  {
-    char *path;
-
-    path = GNUNET_strdup (GNUNET_i2s (&dvb->origin));
-    for (unsigned int i = 0; i <= num_hops; i++)
-    {
-      char *tmp;
-
-      GNUNET_asprintf (&tmp, "%s-%s", path, GNUNET_i2s (&dhops[i]));
-      GNUNET_free (path);
-      path = tmp;
-    }
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Creating DVBox for %u bytes of payload via %s\n",
-                (unsigned int) payload_size,
-                path);
-    GNUNET_free (path);
-  }
-
-  return dvb;
 }
 
 
@@ -3752,16 +3591,10 @@ handle_client_send (void *cls, const struct OutboundMessage *obm)
   struct TransportClient *tc = cls;
   struct PendingMessage *pm;
   const struct GNUNET_MessageHeader *obmm;
-  struct Neighbour *target;
-  struct DistanceVector *dv;
-  struct DistanceVectorHop *dvh;
   uint32_t bytes_msg;
-  int was_empty;
-  const void *payload;
-  size_t payload_size;
-  struct TransportDVBoxMessage *dvb;
   struct VirtualLink *vl;
   enum GNUNET_MQ_PriorityPreferences pp;
+  int was_empty;
 
   GNUNET_assert (CT_CORE == tc->type);
   obmm = (const struct GNUNET_MessageHeader *) &obm[1];
@@ -3781,73 +3614,34 @@ handle_client_send (void *cls, const struct OutboundMessage *obm)
                               GNUNET_NO);
     return;
   }
-  target = lookup_neighbour (&obm->peer);
-  if (NULL == target)
-    dv = GNUNET_CONTAINER_multipeermap_get (dv_routes, &obm->peer);
-  else
-    dv = NULL;
-  GNUNET_assert ((NULL != target) || (NULL != dv));
-  if (NULL == target)
-  {
-    unsigned int res;
-    struct DistanceVectorHop *dvh;
 
-    res = pick_random_dv_hops (dv, RMO_NONE, &dvh, 1);
-    GNUNET_assert (1 == res);
-    target = dvh->next_hop;
-    /* FIXME: encrypt bytes_msg at &obm[1] to &obm->peer first! */
-    dvb = create_dv_box (0,
-                         &GST_my_identity,
-                         &obm->peer,
-                         dvh->distance,
-                         dvh->path,
-                         &obm[1],
-                         bytes_msg);
-    payload = dvb;
-    payload_size = ntohs (dvb->header.size);
-  }
-  else
-  {
-    dvh = NULL;
-    dvb = NULL;
-    payload = &obm[1];
-    payload_size = bytes_msg;
-  }
-
-  was_empty = (NULL == target->pending_msg_head);
-  pm = GNUNET_malloc (sizeof (struct PendingMessage) + payload_size);
+  pm = GNUNET_malloc (sizeof (struct PendingMessage) + bytes_msg);
   pm->logging_uuid = logging_uuid_gen++;
   pm->prefs = pp;
   pm->client = tc;
-  pm->target = target;
-  pm->bytes_msg = payload_size;
-  memcpy (&pm[1], payload, payload_size);
-  GNUNET_free_non_null (dvb);
-  dvb = NULL;
-  pm->dvh = dvh;
+  pm->vl = vl;
+  pm->bytes_msg = bytes_msg;
+  memcpy (&pm[1], obmm, bytes_msg);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Sending %u bytes as <%llu> to %s using %s\n",
+              "Sending %u bytes as <%llu> to %s\n",
               bytes_msg,
               pm->logging_uuid,
-              GNUNET_i2s (&obm->peer),
-              (NULL == target) ? "distance vector path" : "direct queue");
-  if (NULL != dvh)
-  {
-    GNUNET_CONTAINER_MDLL_insert (dvh,
-                                  dvh->pending_msg_head,
-                                  dvh->pending_msg_tail,
-                                  pm);
-  }
-  GNUNET_CONTAINER_MDLL_insert (neighbour,
-                                target->pending_msg_head,
-                                target->pending_msg_tail,
-                                pm);
+              GNUNET_i2s (&obm->peer));
   GNUNET_CONTAINER_MDLL_insert (client,
                                 tc->details.core.pending_msg_head,
                                 tc->details.core.pending_msg_tail,
                                 pm);
+  was_empty = (NULL == vl->pending_msg_head);
+  GNUNET_CONTAINER_MDLL_insert (vl,
+                                vl->pending_msg_head,
+                                vl->pending_msg_tail,
+                                pm);
   if (! was_empty)
     return; /* all queues must already be busy */
+#if 0
+  // FIXME: check if any DVH or neighbour queue of 'vl'
+  // is ready for transmission now. If so, encapsulate
+  // 'pm' accordingly and send!
   for (struct Queue *queue = target->queue_head; NULL != queue;
        queue = queue->next_neighbour)
   {
@@ -3862,6 +3656,7 @@ handle_client_send (void *cls, const struct OutboundMessage *obm)
         GNUNET_SCHEDULER_add_now (&transmit_on_queue, queue);
     }
   }
+#endif
 }
 
 
@@ -4015,13 +3810,6 @@ check_communicator_backchannel (
 
   (void) cls;
   msize = ntohs (cb->header.size) - sizeof (*cb);
-  if (((size_t) (UINT16_MAX - msize)) >
-      sizeof (struct TransportBackchannelEncapsulationMessage) +
-        sizeof (struct TransportBackchannelRequestPayloadP))
-  {
-    GNUNET_break (0);
-    return GNUNET_SYSERR;
-  }
   inbox = (const struct GNUNET_MessageHeader *) &cb[1];
   isize = ntohs (inbox->size);
   if (isize >= msize)
@@ -4032,7 +3820,7 @@ check_communicator_backchannel (
   is = (const char *) inbox;
   is += isize;
   msize -= isize;
-  GNUNET_assert (msize > 0);
+  GNUNET_assert (0 < msize);
   if ('\0' != is[msize - 1])
   {
     GNUNET_break (0);
@@ -4043,97 +3831,32 @@ check_communicator_backchannel (
 
 
 /**
- * Remove memory used by expired ephemeral keys.
+ * Ensure ephemeral keys in our @a dv are current. If no current one exists,
+ * set it up.
  *
- * @param cls NULL
+ * @param dv[in,out] virtual link to update ephemeral for
  */
 static void
-expire_ephemerals (void *cls)
+update_ephemeral (struct DistanceVector *dv)
 {
-  struct EphemeralCacheEntry *ece;
-
-  (void) cls;
-  ephemeral_task = NULL;
-  while (NULL != (ece = GNUNET_CONTAINER_heap_peek (ephemeral_heap)))
-  {
-    if (0 == GNUNET_TIME_absolute_get_remaining (ece->ephemeral_validity)
-               .rel_value_us)
-    {
-      free_ephemeral (ece);
-      continue;
-    }
-    ephemeral_task = GNUNET_SCHEDULER_add_at (ece->ephemeral_validity,
-                                              &expire_ephemerals,
-                                              NULL);
-    return;
-  }
-}
-
-
-/**
- * Lookup ephemeral key in our #ephemeral_map. If no valid one exists,
- * generate one, cache it and return it.
- *
- * @param pid peer to look up ephemeral for
- * @param private_key[out] set to the private key
- * @param ephemeral_key[out] set to the key
- * @param ephemeral_sender_sig[out] set to the signature
- * @param monotime[out] set to the monotime used for the signature
- */
-static void
-lookup_ephemeral (const struct GNUNET_PeerIdentity *pid,
-                  struct GNUNET_CRYPTO_EcdhePrivateKey *private_key,
-                  struct GNUNET_CRYPTO_EcdhePublicKey *ephemeral_key,
-                  struct GNUNET_CRYPTO_EddsaSignature *ephemeral_sender_sig,
-                  struct GNUNET_TIME_Absolute *monotime)
-{
-  struct EphemeralCacheEntry *ece;
   struct EphemeralConfirmationPS ec;
 
-  ece = GNUNET_CONTAINER_multipeermap_get (ephemeral_map, pid);
-  if ((NULL != ece) &&
-      (0 == GNUNET_TIME_absolute_get_remaining (ece->ephemeral_validity)
-              .rel_value_us))
-  {
-    free_ephemeral (ece);
-    ece = NULL;
-  }
-  if (NULL == ece)
-  {
-    ece = GNUNET_new (struct EphemeralCacheEntry);
-    ece->target = *pid;
-    ece->monotime = GNUNET_TIME_absolute_get_monotonic (GST_cfg);
-    ece->ephemeral_validity =
-      GNUNET_TIME_absolute_add (ece->monotime, EPHEMERAL_VALIDITY);
-    GNUNET_assert (GNUNET_OK ==
-                   GNUNET_CRYPTO_ecdhe_key_create2 (&ece->private_key));
-    GNUNET_CRYPTO_ecdhe_key_get_public (&ece->private_key, &ece->ephemeral_key);
-    ec.purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_TRANSPORT_EPHEMERAL);
-    ec.purpose.size = htonl (sizeof (ec));
-    ec.target = *pid;
-    ec.ephemeral_key = ece->ephemeral_key;
-    GNUNET_assert (GNUNET_OK == GNUNET_CRYPTO_eddsa_sign (GST_my_private_key,
-                                                          &ec.purpose,
-                                                          &ece->sender_sig));
-    ece->hn =
-      GNUNET_CONTAINER_heap_insert (ephemeral_heap,
-                                    ece,
-                                    ece->ephemeral_validity.abs_value_us);
-    GNUNET_assert (GNUNET_OK ==
-                   GNUNET_CONTAINER_multipeermap_put (
-                     ephemeral_map,
-                     &ece->target,
-                     ece,
-                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
-    if (NULL == ephemeral_task)
-      ephemeral_task = GNUNET_SCHEDULER_add_at (ece->ephemeral_validity,
-                                                &expire_ephemerals,
-                                                NULL);
-  }
-  *private_key = ece->private_key;
-  *ephemeral_key = ece->ephemeral_key;
-  *ephemeral_sender_sig = ece->sender_sig;
-  *monotime = ece->monotime;
+  if (0 !=
+      GNUNET_TIME_absolute_get_remaining (dv->ephemeral_validity).rel_value_us)
+    return;
+  dv->monotime = GNUNET_TIME_absolute_get_monotonic (GST_cfg);
+  dv->ephemeral_validity =
+    GNUNET_TIME_absolute_add (dv->monotime, EPHEMERAL_VALIDITY);
+  GNUNET_assert (GNUNET_OK ==
+                 GNUNET_CRYPTO_ecdhe_key_create2 (&dv->private_key));
+  GNUNET_CRYPTO_ecdhe_key_get_public (&dv->private_key, &dv->ephemeral_key);
+  ec.purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_TRANSPORT_EPHEMERAL);
+  ec.purpose.size = htonl (sizeof (ec));
+  ec.target = dv->target;
+  ec.ephemeral_key = dv->ephemeral_key;
+  GNUNET_assert (GNUNET_OK == GNUNET_CRYPTO_eddsa_sign (GST_my_private_key,
+                                                        &ec.purpose,
+                                                        &dv->sender_sig));
 }
 
 
@@ -4239,6 +3962,7 @@ route_via_neighbour (const struct Neighbour *n,
                               GNUNET_NO);
     return;
   }
+
   sel1 = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, candidates);
   if (0 == (options & RMO_REDUNDANT))
     sel2 = candidates; /* picks none! */
@@ -4268,155 +3992,9 @@ route_via_neighbour (const struct Neighbour *n,
 
 
 /**
- * Given a distance vector path @a dvh route @a payload to
- * the ultimate destination respecting @a options.
- * Sets up the boxed message and queues it at the next hop.
- *
- * @param dvh choice of the path for the message
- * @param payload encrypted body to transmit
- * @param payload_len number of bytes in @a payload
- * @param options options to use for control
- */
-static void
-forward_via_dvh (const struct DistanceVectorHop *dvh,
-                 const void *payload,
-                 size_t payload_len,
-                 enum RouteMessageOptions options)
-{
-  struct TransportDVBoxMessage *dvb;
-
-  dvb = create_dv_box (0,
-                       &GST_my_identity,
-                       &dvh->dv->target,
-                       dvh->distance,
-                       dvh->path,
-                       payload,
-                       payload_len);
-  route_via_neighbour (dvh->next_hop, &dvb->header, options);
-  GNUNET_free (dvb);
-}
-
-
-/**
- * Pick a path of @a dv under constraints @a options and schedule
- * transmission of @a hdr.
- *
- * @param n neighbour to send to
- * @param hdr message to send as payload
- * @param options whether path must be confirmed or not
- *        and whether we may pick multiple (2) paths
- */
-static void
-route_via_dv (const struct DistanceVector *dv,
-              const struct GNUNET_MessageHeader *hdr,
-              enum RouteMessageOptions options)
-{
-  struct DistanceVectorHop *hops[2];
-  unsigned int res;
-
-  res = pick_random_dv_hops (dv,
-                             options,
-                             hops,
-                             (0 == (options & RMO_REDUNDANT)) ? 1 : 2);
-  if (0 == res)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                "Failed to route message, could not determine DV path\n");
-    return;
-  }
-  // FIXME: we should encrypt `hdr` here first!
-  for (unsigned int i = 0; i < res; i++)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Routing message of type %u to %s using DV (#%u/%u)\n",
-                ntohs (hdr->type),
-                GNUNET_i2s (&dv->target),
-                i + 1,
-                res + 1);
-    forward_via_dvh (hops[i],
-                     hdr,
-                     ntohs (
-                       hdr->size), /* FIXME: can't do this once encrypted... */
-                     options & (~RMO_REDUNDANT));
-  }
-}
-
-
-/**
- * We need to transmit @a hdr to @a target.  If necessary, this may
- * involve DV routing.
- *
- * @param target peer to receive @a hdr
- * @param hdr header of the message to route and #GNUNET_free()
- * @param options which transmission channels are allowed
- */
-static void
-route_message (const struct GNUNET_PeerIdentity *target,
-               struct GNUNET_MessageHeader *hdr,
-               enum RouteMessageOptions options)
-{
-  struct VirtualLink *vl;
-  struct Neighbour *n;
-  struct DistanceVector *dv;
-
-  vl = GNUNET_CONTAINER_multipeermap_get (links, target);
-  n = vl->n;
-  dv = (0 != (options & RMO_DV_ALLOWED)) ? vl->dv : NULL;
-  if (0 == (options & RMO_UNCONFIRMED_ALLOWED))
-  {
-    /* if confirmed is required, and we do not have anything
-       confirmed, drop respective options */
-    if (NULL == n)
-      n = lookup_neighbour (target);
-    if ((NULL == dv) && (0 != (options & RMO_DV_ALLOWED)))
-      dv = GNUNET_CONTAINER_multipeermap_get (dv_routes, target);
-  }
-  if ((NULL == n) && (NULL == dv))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                "Cannot route message of type %u to %s: no route\n",
-                ntohs (hdr->type),
-                GNUNET_i2s (target));
-    GNUNET_STATISTICS_update (GST_stats,
-                              "# Messages dropped in routing: no acceptable method",
-                              1,
-                              GNUNET_NO);
-    GNUNET_free (hdr);
-    return;
-  }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Routing message of type %u to %s with options %X\n",
-              ntohs (hdr->type),
-              GNUNET_i2s (target),
-              (unsigned int) options);
-  /* If both dv and n are possible and we must choose:
-     flip a coin for the choice between the two; for now 50/50 */
-  if ((NULL != n) && (NULL != dv) && (0 == (options & RMO_REDUNDANT)))
-  {
-    if (0 == GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 2))
-      n = NULL;
-    else
-      dv = NULL;
-  }
-  if ((NULL != n) && (NULL != dv))
-    options &= ~RMO_REDUNDANT; /* We will do one DV and one direct, that's
-                                  enough for redunancy, so clear the flag. */
-  if (NULL != n)
-  {
-    route_via_neighbour (n, hdr, options);
-  }
-  if (NULL != dv)
-  {
-    route_via_dv (dv, hdr, options);
-  }
-  GNUNET_free (hdr);
-}
-
-
-/**
  * Structure of the key material used to encrypt backchannel messages.
  */
-struct BackchannelKeyState
+struct DVKeyState
 {
   /**
    * State of our block cipher.
@@ -4457,9 +4035,9 @@ struct BackchannelKeyState
  * @param key[out] symmetric cipher and HMAC state to generate
  */
 static void
-bc_setup_key_state_from_km (const struct GNUNET_HashCode *km,
+dv_setup_key_state_from_km (const struct GNUNET_HashCode *km,
                             const struct GNUNET_ShortHashCode *iv,
-                            struct BackchannelKeyState *key)
+                            struct DVKeyState *key)
 {
   /* must match #dh_key_derive_eph_pub */
   GNUNET_assert (GNUNET_YES ==
@@ -4502,14 +4080,14 @@ dh_key_derive_eph_pid (
   const struct GNUNET_CRYPTO_EcdhePrivateKey *priv_ephemeral,
   const struct GNUNET_PeerIdentity *target,
   const struct GNUNET_ShortHashCode *iv,
-  struct BackchannelKeyState *key)
+  struct DVKeyState *key)
 {
   struct GNUNET_HashCode km;
 
   GNUNET_assert (GNUNET_YES == GNUNET_CRYPTO_ecdh_eddsa (priv_ephemeral,
                                                          &target->public_key,
                                                          &km));
-  bc_setup_key_state_from_km (&km, iv, key);
+  dv_setup_key_state_from_km (&km, iv, key);
 }
 
 
@@ -4525,14 +4103,14 @@ dh_key_derive_eph_pid (
 static void
 dh_key_derive_eph_pub (const struct GNUNET_CRYPTO_EcdhePublicKey *pub_ephemeral,
                        const struct GNUNET_ShortHashCode *iv,
-                       struct BackchannelKeyState *key)
+                       struct DVKeyState *key)
 {
   struct GNUNET_HashCode km;
 
   GNUNET_assert (GNUNET_YES == GNUNET_CRYPTO_eddsa_ecdh (GST_my_private_key,
                                                          pub_ephemeral,
                                                          &km));
-  bc_setup_key_state_from_km (&km, iv, key);
+  dv_setup_key_state_from_km (&km, iv, key);
 }
 
 
@@ -4546,7 +4124,7 @@ dh_key_derive_eph_pub (const struct GNUNET_CRYPTO_EcdhePublicKey *pub_ephemeral,
  * @param data_size number of bytes in @a data
  */
 static void
-bc_hmac (const struct BackchannelKeyState *key,
+dv_hmac (const struct DVKeyState *key,
          struct GNUNET_HashCode *hmac,
          const void *data,
          size_t data_size)
@@ -4565,10 +4143,7 @@ bc_hmac (const struct BackchannelKeyState *key,
  * @param in_size number of bytes of input in @a in and available at @a dst
  */
 static void
-bc_encrypt (struct BackchannelKeyState *key,
-            const void *in,
-            void *dst,
-            size_t in_size)
+dv_encrypt (struct DVKeyState *key, const void *in, void *dst, size_t in_size)
 {
   GNUNET_assert (0 ==
                  gcry_cipher_encrypt (key->cipher, dst, in_size, in, in_size));
@@ -4585,7 +4160,7 @@ bc_encrypt (struct BackchannelKeyState *key,
  * @param out_size number of bytes of input in @a ciph and available in @a out
  */
 static void
-bc_decrypt (struct BackchannelKeyState *key,
+dv_decrypt (struct DVKeyState *key,
             void *out,
             const void *ciph,
             size_t out_size)
@@ -4601,7 +4176,7 @@ bc_decrypt (struct BackchannelKeyState *key,
  * @param key key material to clean up (memory must not be free'd!)
  */
 static void
-bc_key_clean (struct BackchannelKeyState *key)
+dv_key_clean (struct DVKeyState *key)
 {
   gcry_cipher_close (key->cipher);
   GNUNET_CRYPTO_zero_keys (&key->material, sizeof (key->material));
@@ -4609,7 +4184,234 @@ bc_key_clean (struct BackchannelKeyState *key)
 
 
 /**
+ * Function to call to further operate on the now DV encapsulated
+ * message @a hdr, forwarding it via @a next_hop under respect of
+ * @a options.
+ *
+ * @param cls closure
+ * @param next_hop next hop of the DV path
+ * @param hdr encapsulated message, technically a `struct TransportDFBoxMessage`
+ * @param options options of the original message
+ */
+typedef void (*DVMessageHandler) (void *cls,
+                                  struct Neighbour *next_hop,
+                                  const struct GNUNET_MessageHeader *hdr,
+                                  enum RouteMessageOptions options);
+
+/**
+ * Pick a path of @a dv under constraints @a options and schedule
+ * transmission of @a hdr.
+ *
+ * @param target neighbour to ultimately send to
+ * @param num_dvhs length of the @a dvhs array
+ * @param dvhs array of hops to send the message to
+ * @param hdr message to send as payload
+ * @param use function to call with the encapsulated message
+ * @param use_cls closure for @a use
+ * @param options whether path must be confirmed or not, to be passed to @a use
+ */
+static void
+encapsulate_for_dv (struct DistanceVector *dv,
+                    unsigned int num_dvhs,
+                    struct DistanceVectorHop **dvhs,
+                    const struct GNUNET_MessageHeader *hdr,
+                    DVMessageHandler use,
+                    void *use_cls,
+                    enum RouteMessageOptions options)
+{
+  struct TransportDVBoxMessage box_hdr;
+  struct TransportDVBoxPayloadP payload_hdr;
+  uint16_t enc_body_size = ntohs (hdr->size);
+  char enc[sizeof (struct TransportDVBoxPayloadP) + enc_body_size] GNUNET_ALIGN;
+  struct TransportDVBoxPayloadP *enc_payload_hdr =
+    (struct TransportDVBoxPayloadP *) enc;
+  struct DVKeyState key;
+
+  /* Encrypt payload */
+  box_hdr.header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_DV_BOX);
+  box_hdr.total_hops = htons (0);
+  update_ephemeral (dv);
+  box_hdr.ephemeral_key = dv->ephemeral_key;
+  payload_hdr.sender_sig = dv->sender_sig;
+  GNUNET_CRYPTO_random_block (GNUNET_CRYPTO_QUALITY_NONCE,
+                              &box_hdr.iv,
+                              sizeof (box_hdr.iv));
+  dh_key_derive_eph_pid (&dv->private_key, &dv->target, &box_hdr.iv, &key);
+  payload_hdr.sender = GST_my_identity;
+  payload_hdr.monotonic_time = GNUNET_TIME_absolute_hton (dv->monotime);
+  dv_encrypt (&key, &payload_hdr, enc_payload_hdr, sizeof (payload_hdr));
+  dv_encrypt (&key,
+              hdr,
+              &enc[sizeof (struct TransportDVBoxPayloadP)],
+              enc_body_size);
+  dv_hmac (&key, &box_hdr.hmac, enc, sizeof (enc));
+  dv_key_clean (&key);
+
+  /* For each selected path, take the pre-computed header and body
+     and add the path in the middle of the message; then send it. */
+  for (unsigned int i = 0; i < num_dvhs; i++)
+  {
+    struct DistanceVectorHop *dvh = dvhs[i];
+    unsigned int num_hops = dvh->distance + 1;
+    char buf[sizeof (struct TransportDVBoxMessage) +
+             sizeof (struct GNUNET_PeerIdentity) * num_hops +
+             sizeof (struct TransportDVBoxPayloadP) +
+             enc_body_size] GNUNET_ALIGN;
+    struct GNUNET_PeerIdentity *dhops;
+
+    box_hdr.header.size = htons (sizeof (buf));
+    box_hdr.num_hops = htons (num_hops);
+    memcpy (buf, &box_hdr, sizeof (box_hdr));
+    dhops = (struct GNUNET_PeerIdentity *) &buf[sizeof (box_hdr)];
+    memcpy (dhops,
+            dvh->path,
+            dvh->distance * sizeof (struct GNUNET_PeerIdentity));
+    dhops[dvh->distance] = dv->target;
+    if (GNUNET_EXTRA_LOGGING > 0)
+    {
+      char *path;
+
+      path = GNUNET_strdup (GNUNET_i2s (&GST_my_identity));
+      for (unsigned int i = 0; i <= num_hops; i++)
+      {
+        char *tmp;
+
+        GNUNET_asprintf (&tmp, "%s-%s", path, GNUNET_i2s (&dhops[i]));
+        GNUNET_free (path);
+        path = tmp;
+      }
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Routing message of type %u to %s using DV (#%u/%u) via %s\n",
+                  ntohs (hdr->type),
+                  GNUNET_i2s (&dv->target),
+                  i + 1,
+                  num_dvhs + 1,
+                  path);
+      GNUNET_free (path);
+    }
+
+    memcpy (&dhops[num_hops], enc, sizeof (enc));
+    use (use_cls,
+         dvh->next_hop,
+         (const struct GNUNET_MessageHeader *) buf,
+         options);
+  }
+}
+
+
+/**
+ * Wrapper around #route_via_neighbour() that matches the
+ * #DVMessageHandler structure.
+ *
+ * @param cls unused
+ * @param next_hop where to send next
+ * @param hdr header of the message to send
+ * @param options message options for queue selection
+ */
+static void
+send_dv_to_neighbour (void *cls,
+                      struct Neighbour *next_hop,
+                      const struct GNUNET_MessageHeader *hdr,
+                      enum RouteMessageOptions options)
+{
+  (void) cls;
+  route_via_neighbour (next_hop, hdr, options);
+}
+
+
+/**
+ * We need to transmit @a hdr to @a target.  If necessary, this may
+ * involve DV routing.
+ *
+ * @param target peer to receive @a hdr
+ * @param hdr header of the message to route and #GNUNET_free()
+ * @param options which transmission channels are allowed
+ */
+static void
+route_message (const struct GNUNET_PeerIdentity *target,
+               const struct GNUNET_MessageHeader *hdr,
+               enum RouteMessageOptions options)
+{
+  struct VirtualLink *vl;
+  struct Neighbour *n;
+  struct DistanceVector *dv;
+
+  vl = GNUNET_CONTAINER_multipeermap_get (links, target);
+  n = vl->n;
+  dv = (0 != (options & RMO_DV_ALLOWED)) ? vl->dv : NULL;
+  if (0 == (options & RMO_UNCONFIRMED_ALLOWED))
+  {
+    /* if confirmed is required, and we do not have anything
+       confirmed, drop respective options */
+    if (NULL == n)
+      n = lookup_neighbour (target);
+    if ((NULL == dv) && (0 != (options & RMO_DV_ALLOWED)))
+      dv = GNUNET_CONTAINER_multipeermap_get (dv_routes, target);
+  }
+  if ((NULL == n) && (NULL == dv))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                "Cannot route message of type %u to %s: no route\n",
+                ntohs (hdr->type),
+                GNUNET_i2s (target));
+    GNUNET_STATISTICS_update (GST_stats,
+                              "# Messages dropped in routing: no acceptable method",
+                              1,
+                              GNUNET_NO);
+    return;
+  }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Routing message of type %u to %s with options %X\n",
+              ntohs (hdr->type),
+              GNUNET_i2s (target),
+              (unsigned int) options);
+  /* If both dv and n are possible and we must choose:
+     flip a coin for the choice between the two; for now 50/50 */
+  if ((NULL != n) && (NULL != dv) && (0 == (options & RMO_REDUNDANT)))
+  {
+    if (0 == GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 2))
+      n = NULL;
+    else
+      dv = NULL;
+  }
+  if ((NULL != n) && (NULL != dv))
+    options &= ~RMO_REDUNDANT; /* We will do one DV and one direct, that's
+                                  enough for redunancy, so clear the flag. */
+  if (NULL != n)
+  {
+    route_via_neighbour (n, hdr, options);
+  }
+  if (NULL != dv)
+  {
+    struct DistanceVectorHop *hops[2];
+    unsigned int res;
+
+    res = pick_random_dv_hops (dv,
+                               options,
+                               hops,
+                               (0 == (options & RMO_REDUNDANT)) ? 1 : 2);
+    if (0 == res)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                  "Failed to route message, could not determine DV path\n");
+      return;
+    }
+    encapsulate_for_dv (dv,
+                        res,
+                        hops,
+                        hdr,
+                        &send_dv_to_neighbour,
+                        NULL,
+                        options & (~RMO_REDUNDANT));
+  }
+}
+
+
+/**
  * Communicator requests backchannel transmission.  Process the request.
+ * Just repacks it into our `struct TransportBackchannelEncapsulationMessage *`
+ * (which for now has exactly the same format, only a different message type)
+ * and passes it on for routing.
  *
  * @param cls the client
  * @param cb the send message that was sent
@@ -4620,62 +4422,33 @@ handle_communicator_backchannel (
   const struct GNUNET_TRANSPORT_CommunicatorBackchannel *cb)
 {
   struct TransportClient *tc = cls;
-  struct GNUNET_CRYPTO_EcdhePrivateKey private_key;
-  struct GNUNET_TIME_Absolute monotime;
-  struct TransportBackchannelEncapsulationMessage *enc;
-  struct TransportBackchannelRequestPayloadP ppay;
-  struct BackchannelKeyState key;
-  char *mpos;
-  uint16_t msize;
+  const struct GNUNET_MessageHeader *inbox =
+    (const struct GNUNET_MessageHeader *) &cb[1];
+  uint16_t isize = ntohs (inbox->size);
+  const char *is = ((const char *) &cb[1]) + isize;
+  char
+    mbuf[isize +
+         sizeof (struct TransportBackchannelEncapsulationMessage)] GNUNET_ALIGN;
+  struct TransportBackchannelEncapsulationMessage *be =
+    (struct TransportBackchannelEncapsulationMessage *) mbuf;
 
-  {
-    const struct GNUNET_MessageHeader *inbox;
-    const char *is;
-
-    inbox = (const struct GNUNET_MessageHeader *) &cb[1];
-    /* 0-termination of 'is' was checked already in
-       #check_communicator_backchannel() */
-    is = (const char *) &cb[1];
-    is += ntohs (inbox->size);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Preparing backchannel transmission to %s:%s of type %u\n",
-                GNUNET_i2s (&cb->pid),
-                is,
-                ntohs (inbox->size));
-  }
+  /* 0-termination of 'is' was checked already in
+     #check_communicator_backchannel() */
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Preparing backchannel transmission to %s:%s of type %u\n",
+              GNUNET_i2s (&cb->pid),
+              is,
+              ntohs (inbox->size));
   /* encapsulate and encrypt message */
-
-  /* FIXME: this should be done with the DV logic for all
-     DV messages, NOT here only for backchannel! */
-  msize = ntohs (cb->header.size) - sizeof (*cb) +
-          sizeof (struct TransportBackchannelRequestPayloadP);
-  enc = GNUNET_malloc (sizeof (*enc) + msize);
-  enc->header.type =
+  be->header.type =
     htons (GNUNET_MESSAGE_TYPE_TRANSPORT_BACKCHANNEL_ENCAPSULATION);
-  enc->header.size = htons (sizeof (*enc) + msize);
-  enc->target = cb->pid;
-  lookup_ephemeral (&cb->pid,
-                    &private_key,
-                    &enc->ephemeral_key,
-                    &ppay.sender_sig,
-                    &monotime);
-  GNUNET_CRYPTO_random_block (GNUNET_CRYPTO_QUALITY_NONCE,
-                              &enc->iv,
-                              sizeof (enc->iv));
-  dh_key_derive_eph_pid (&private_key, &cb->pid, &enc->iv, &key);
-  ppay.monotonic_time = GNUNET_TIME_absolute_hton (monotime);
-  mpos = (char *) &enc[1];
-  bc_encrypt (&key, &ppay, mpos, sizeof (ppay));
-  bc_encrypt (&key,
-              &cb[1],
-              &mpos[sizeof (ppay)],
-              ntohs (cb->header.size) - sizeof (*cb));
-  bc_hmac (&key,
-           &enc->hmac,
-           mpos,
-           sizeof (ppay) + ntohs (cb->header.size) - sizeof (*cb));
-  bc_key_clean (&key);
-  route_message (&cb->pid, &enc->header, RMO_DV_ALLOWED);
+  be->header.size = htons (sizeof (mbuf));
+  memcpy (&be[1], inbox, isize);
+  memcpy (&mbuf[sizeof (struct TransportBackchannelEncapsulationMessage) +
+                isize],
+          is,
+          strlen (is) + 1);
+  route_message (&cb->pid, &be->header, RMO_DV_ALLOWED);
   GNUNET_SERVICE_client_continue (tc->client);
 }
 
@@ -5012,7 +4785,11 @@ static void
 transmit_cummulative_ack_cb (void *cls)
 {
   struct AcknowledgementCummulator *ac = cls;
-  struct TransportReliabilityAckMessage *ack;
+  char buf[sizeof (struct TransportReliabilityAckMessage) +
+           ac->ack_counter *
+             sizeof (struct TransportCummulativeAckPayloadP)] GNUNET_ALIGN;
+  struct TransportReliabilityAckMessage *ack =
+    (struct TransportReliabilityAckMessage *) buf;
   struct TransportCummulativeAckPayloadP *ap;
 
   ac->task = NULL;
@@ -5021,9 +4798,6 @@ transmit_cummulative_ack_cb (void *cls)
               ac->ack_counter,
               GNUNET_i2s (&ac->target));
   GNUNET_assert (0 < ac->ack_counter);
-  ack = GNUNET_malloc (sizeof (*ack) +
-                       ac->ack_counter *
-                         sizeof (struct TransportCummulativeAckPayloadP));
   ack->header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_RELIABILITY_ACK);
   ack->header.size =
     htons (sizeof (*ack) +
@@ -5576,12 +5350,22 @@ check_backchannel_encapsulation (
   void *cls,
   const struct TransportBackchannelEncapsulationMessage *be)
 {
-  uint16_t size = ntohs (be->header.size);
+  uint16_t size = ntohs (be->header.size) - sizeof (*be);
+  const struct GNUNET_MessageHeader *inbox =
+    (const struct GNUNET_MessageHeader *) &be[1];
+  const char *is;
+  uint16_t isize;
 
   (void) cls;
-  if ((size - sizeof (*be)) <
-      (sizeof (struct TransportBackchannelRequestPayloadP) +
-       sizeof (struct GNUNET_MessageHeader)))
+  if (ntohs (inbox->size) >= size)
+  {
+    GNUNET_break_op (0);
+    return GNUNET_SYSERR;
+  }
+  isize = ntohs (inbox->size);
+  is = ((const char *) inbox) + isize;
+  size -= isize;
+  if ('\0' != is[size - 1])
   {
     GNUNET_break_op (0);
     return GNUNET_SYSERR;
@@ -5591,40 +5375,27 @@ check_backchannel_encapsulation (
 
 
 /**
- * We received the plaintext @a msg from backtalker @a b. Forward
- * it to the respective communicator.
+ * Communicator gave us a backchannel encapsulation.  Process the request.
+ * (We are the destination of the backchannel here.)
  *
- * @param b a backtalker
- * @param msg a message, consisting of a `struct GNUNET_MessageHeader`
- *        followed by the target name of the communicator
- * @param msg_size number of bytes in @a msg
+ * @param cls a `struct CommunicatorMessageContext` (must call
+ * #finish_cmc_handling() when done)
+ * @param be the message that was received
  */
 static void
-forward_backchannel_payload (struct Backtalker *b,
-                             const void *msg,
-                             size_t msg_size)
+handle_backchannel_encapsulation (
+  void *cls,
+  const struct TransportBackchannelEncapsulationMessage *be)
 {
+  struct CommunicatorMessageContext *cmc = cls;
   struct GNUNET_TRANSPORT_CommunicatorBackchannelIncoming *cbi;
   struct GNUNET_MQ_Envelope *env;
   struct TransportClient *tc;
-  const struct GNUNET_MessageHeader *mh;
-  const char *target_communicator;
-  uint16_t mhs;
+  const struct GNUNET_MessageHeader *inbox =
+    (const struct GNUNET_MessageHeader *) &be[1];
+  uint16_t isize = ntohs (inbox->size);
+  const char *target_communicator = ((const char *) inbox) + isize;
 
-  /* Determine target_communicator and check @a msg is well-formed */
-  mh = msg;
-  mhs = ntohs (mh->size);
-  if (mhs <= msg_size)
-  {
-    GNUNET_break_op (0);
-    return;
-  }
-  target_communicator = &((const char *) msg)[ntohs (mh->size)];
-  if ('\0' != target_communicator[msg_size - mhs - 1])
-  {
-    GNUNET_break_op (0);
-    return;
-  }
   /* Find client providing this communicator */
   for (tc = clients_head; NULL != tc; tc = tc->next)
     if ((CT_COMMUNICATOR == tc->type) &&
@@ -5646,340 +5417,16 @@ forward_backchannel_payload (struct Backtalker *b,
   /* Finally, deliver backchannel message to communicator */
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Delivering backchannel message from %s of type %u to %s\n",
-              GNUNET_i2s (&b->pid),
-              ntohs (mh->type),
+              GNUNET_i2s (&cmc->im.sender),
+              ntohs (inbox->type),
               target_communicator);
   env = GNUNET_MQ_msg_extra (
     cbi,
-    msg_size,
+    isize,
     GNUNET_MESSAGE_TYPE_TRANSPORT_COMMUNICATOR_BACKCHANNEL_INCOMING);
-  cbi->pid = b->pid;
-  memcpy (&cbi[1], msg, msg_size);
+  cbi->pid = cmc->im.sender;
+  memcpy (&cbi[1], inbox, isize);
   GNUNET_MQ_send (tc->mq, env);
-}
-
-
-/**
- * Free data structures associated with @a b.
- *
- * @param b data structure to release
- */
-static void
-free_backtalker (struct Backtalker *b)
-{
-  if (NULL != b->get)
-  {
-    GNUNET_PEERSTORE_iterate_cancel (b->get);
-    b->get = NULL;
-    GNUNET_assert (NULL != b->cmc);
-    finish_cmc_handling (b->cmc);
-    b->cmc = NULL;
-  }
-  if (NULL != b->task)
-  {
-    GNUNET_SCHEDULER_cancel (b->task);
-    b->task = NULL;
-  }
-  if (NULL != b->sc)
-  {
-    GNUNET_PEERSTORE_store_cancel (b->sc);
-    b->sc = NULL;
-  }
-  GNUNET_assert (
-    GNUNET_YES ==
-    GNUNET_CONTAINER_multipeermap_remove (backtalkers, &b->pid, b));
-  GNUNET_free (b);
-}
-
-
-/**
- * Callback to free backtalker records.
- *
- * @param cls NULL
- * @param pid unused
- * @param value a `struct Backtalker`
- * @return #GNUNET_OK (always)
- */
-static int
-free_backtalker_cb (void *cls,
-                    const struct GNUNET_PeerIdentity *pid,
-                    void *value)
-{
-  struct Backtalker *b = value;
-
-  (void) cls;
-  (void) pid;
-  free_backtalker (b);
-  return GNUNET_OK;
-}
-
-
-/**
- * Function called when it is time to clean up a backtalker.
- *
- * @param cls a `struct Backtalker`
- */
-static void
-backtalker_timeout_cb (void *cls)
-{
-  struct Backtalker *b = cls;
-
-  b->task = NULL;
-  if (0 != GNUNET_TIME_absolute_get_remaining (b->timeout).rel_value_us)
-  {
-    b->task = GNUNET_SCHEDULER_add_at (b->timeout, &backtalker_timeout_cb, b);
-    return;
-  }
-  GNUNET_assert (NULL == b->sc);
-  free_backtalker (b);
-}
-
-
-/**
- * Function called with the monotonic time of a backtalker
- * by PEERSTORE. Updates the time and continues processing.
- *
- * @param cls a `struct Backtalker`
- * @param record the information found, NULL for the last call
- * @param emsg error message
- */
-static void
-backtalker_monotime_cb (void *cls,
-                        const struct GNUNET_PEERSTORE_Record *record,
-                        const char *emsg)
-{
-  struct Backtalker *b = cls;
-  struct GNUNET_TIME_AbsoluteNBO *mtbe;
-  struct GNUNET_TIME_Absolute mt;
-
-  (void) emsg;
-  if (NULL == record)
-  {
-    /* we're done with #backtalker_monotime_cb() invocations,
-       continue normal processing */
-    b->get = NULL;
-    GNUNET_assert (NULL != b->cmc);
-    finish_cmc_handling (b->cmc);
-    b->cmc = NULL;
-    if (0 != b->body_size)
-      forward_backchannel_payload (b, &b[1], b->body_size);
-    return;
-  }
-  if (sizeof (*mtbe) != record->value_size)
-  {
-    GNUNET_break (0);
-    return;
-  }
-  mtbe = record->value;
-  mt = GNUNET_TIME_absolute_ntoh (*mtbe);
-  if (mt.abs_value_us > b->monotonic_time.abs_value_us)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Backtalker message from %s dropped, monotime in the past\n",
-                GNUNET_i2s (&b->pid));
-    GNUNET_STATISTICS_update (
-      GST_stats,
-      "# Backchannel messages dropped: monotonic time not increasing",
-      1,
-      GNUNET_NO);
-    b->monotonic_time = mt;
-    /* Setting body_size to 0 prevents call to #forward_backchannel_payload()
-     */
-    b->body_size = 0;
-    return;
-  }
-}
-
-
-/**
- * Function called by PEERSTORE when the store operation of
- * a backtalker's monotonic time is complete.
- *
- * @param cls the `struct Backtalker`
- * @param success #GNUNET_OK on success
- */
-static void
-backtalker_monotime_store_cb (void *cls, int success)
-{
-  struct Backtalker *b = cls;
-
-  if (GNUNET_OK != success)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Failed to store backtalker's monotonic time in PEERSTORE!\n");
-  }
-  b->sc = NULL;
-  b->task = GNUNET_SCHEDULER_add_at (b->timeout, &backtalker_timeout_cb, b);
-}
-
-
-/**
- * The backtalker @a b monotonic time changed. Update PEERSTORE.
- *
- * @param b a backtalker with updated monotonic time
- */
-static void
-update_backtalker_monotime (struct Backtalker *b)
-{
-  struct GNUNET_TIME_AbsoluteNBO mtbe;
-
-  if (NULL != b->sc)
-  {
-    GNUNET_PEERSTORE_store_cancel (b->sc);
-    b->sc = NULL;
-  }
-  else
-  {
-    GNUNET_SCHEDULER_cancel (b->task);
-    b->task = NULL;
-  }
-  mtbe = GNUNET_TIME_absolute_hton (b->monotonic_time);
-  b->sc =
-    GNUNET_PEERSTORE_store (peerstore,
-                            "transport",
-                            &b->pid,
-                            GNUNET_PEERSTORE_TRANSPORT_BACKCHANNEL_MONOTIME,
-                            &mtbe,
-                            sizeof (mtbe),
-                            GNUNET_TIME_UNIT_FOREVER_ABS,
-                            GNUNET_PEERSTORE_STOREOPTION_REPLACE,
-                            &backtalker_monotime_store_cb,
-                            b);
-}
-
-
-/**
- * Communicator gave us a backchannel encapsulation.  Process the request.
- * (We are not the origin of the backchannel here, the communicator simply
- * received a backchannel message and we are expected to forward it.)
- *
- * @param cls a `struct CommunicatorMessageContext` (must call
- * #finish_cmc_handling() when done)
- * @param be the message that was received
- */
-static void
-handle_backchannel_encapsulation (
-  void *cls,
-  const struct TransportBackchannelEncapsulationMessage *be)
-{
-  struct CommunicatorMessageContext *cmc = cls;
-  struct BackchannelKeyState key;
-  struct GNUNET_HashCode hmac;
-  const char *hdr;
-  size_t hdr_len;
-
-  if (0 != GNUNET_memcmp (&be->target, &GST_my_identity))
-  {
-    /* not for me, try to route to target */
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Forwarding backtalk to %s\n",
-                GNUNET_i2s (&be->target));
-    route_message (&be->target,
-                   GNUNET_copy_message (&be->header),
-                   RMO_DV_ALLOWED);
-    finish_cmc_handling (cmc);
-    return;
-  }
-  /* FIXME: this should be done when decrypting _any_ DV
-     message, not only for backchannels! */
-  dh_key_derive_eph_pub (&be->ephemeral_key, &be->iv, &key);
-  hdr = (const char *) &be[1];
-  hdr_len = ntohs (be->header.size) - sizeof (*be);
-  bc_hmac (&key, &hmac, hdr, hdr_len);
-  if (0 != GNUNET_memcmp (&hmac, &be->hmac))
-  {
-    /* HMAC missmatch, disard! */
-    GNUNET_break_op (0);
-    finish_cmc_handling (cmc);
-    return;
-  }
-  /* begin actual decryption */
-  {
-    struct Backtalker *b;
-    struct GNUNET_TIME_Absolute monotime;
-    struct TransportBackchannelRequestPayloadP ppay;
-    char body[hdr_len - sizeof (ppay)];
-
-    GNUNET_assert (hdr_len >=
-                   sizeof (ppay) + sizeof (struct GNUNET_MessageHeader));
-    bc_decrypt (&key, &ppay, hdr, sizeof (ppay));
-    bc_decrypt (&key, &body, &hdr[sizeof (ppay)], hdr_len - sizeof (ppay));
-    bc_key_clean (&key);
-    monotime = GNUNET_TIME_absolute_ntoh (ppay.monotonic_time);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Decrypted backtalk from %s\n",
-                GNUNET_i2s (&ppay.sender));
-    b = GNUNET_CONTAINER_multipeermap_get (backtalkers, &ppay.sender);
-    if ((NULL != b) && (monotime.abs_value_us < b->monotonic_time.abs_value_us))
-    {
-      GNUNET_STATISTICS_update (
-        GST_stats,
-        "# Backchannel messages dropped: monotonic time not increasing",
-        1,
-        GNUNET_NO);
-      finish_cmc_handling (cmc);
-      return;
-    }
-    if ((NULL == b) ||
-        (0 != GNUNET_memcmp (&b->last_ephemeral, &be->ephemeral_key)))
-    {
-      /* Check signature */
-      struct EphemeralConfirmationPS ec;
-
-      ec.purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_TRANSPORT_EPHEMERAL);
-      ec.purpose.size = htonl (sizeof (ec));
-      ec.target = GST_my_identity;
-      ec.ephemeral_key = be->ephemeral_key;
-      if (
-        GNUNET_OK !=
-        GNUNET_CRYPTO_eddsa_verify (GNUNET_SIGNATURE_PURPOSE_TRANSPORT_EPHEMERAL,
-                                    &ec.purpose,
-                                    &ppay.sender_sig,
-                                    &ppay.sender.public_key))
-      {
-        /* Signature invalid, disard! */
-        GNUNET_break_op (0);
-        finish_cmc_handling (cmc);
-        return;
-      }
-    }
-    if (NULL != b)
-    {
-      /* update key cache and mono time */
-      b->last_ephemeral = be->ephemeral_key;
-      b->monotonic_time = monotime;
-      update_backtalker_monotime (b);
-      forward_backchannel_payload (b, body, sizeof (body));
-      b->timeout =
-        GNUNET_TIME_relative_to_absolute (BACKCHANNEL_INACTIVITY_TIMEOUT);
-      finish_cmc_handling (cmc);
-      return;
-    }
-    /* setup data structure to cache signature AND check
-       monotonic time with PEERSTORE before forwarding backchannel payload */
-    b = GNUNET_malloc (sizeof (struct Backtalker) + sizeof (body));
-    b->pid = ppay.sender;
-    b->body_size = sizeof (body);
-    memcpy (&b[1], body, sizeof (body));
-    GNUNET_assert (GNUNET_YES ==
-                   GNUNET_CONTAINER_multipeermap_put (
-                     backtalkers,
-                     &b->pid,
-                     b,
-                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
-    b->monotonic_time = monotime; /* NOTE: to be checked still! */
-    b->cmc = cmc;
-    b->timeout =
-      GNUNET_TIME_relative_to_absolute (BACKCHANNEL_INACTIVITY_TIMEOUT);
-    b->task = GNUNET_SCHEDULER_add_at (b->timeout, &backtalker_timeout_cb, b);
-    b->get =
-      GNUNET_PEERSTORE_iterate (peerstore,
-                                "transport",
-                                &b->pid,
-                                GNUNET_PEERSTORE_TRANSPORT_BACKCHANNEL_MONOTIME,
-                                &backtalker_monotime_cb,
-                                b);
-  }
 }
 
 
@@ -6043,6 +5490,8 @@ activate_core_visible_dv_path (struct DistanceVectorHop *hop)
               "Creating new virtual link to %s using DV!\n",
               GNUNET_i2s (&dv->target));
   vl = GNUNET_new (struct VirtualLink);
+  vl->message_uuid_ctr =
+    GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK, UINT64_MAX);
   vl->target = dv->target;
   vl->dv = dv;
   vl->core_recv_window = RECV_WINDOW_SIZE;
@@ -6300,7 +5749,9 @@ forward_dv_learn (const struct GNUNET_PeerIdentity *next_hop,
                   struct GNUNET_TIME_Absolute in_time)
 {
   struct DVPathEntryP *dhops;
-  struct TransportDVLearnMessage *fwd;
+  char buf[sizeof (struct TransportDVLearnMessage) +
+           (nhops + 1) * sizeof (struct DVPathEntryP)] GNUNET_ALIGN;
+  struct TransportDVLearnMessage *fwd = (struct TransportDVLearnMessage *) buf;
   struct GNUNET_TIME_Relative nnd;
 
   /* compute message for forwarding */
@@ -6309,8 +5760,6 @@ forward_dv_learn (const struct GNUNET_PeerIdentity *next_hop,
               GNUNET_i2s (&msg->initiator),
               GNUNET_i2s2 (next_hop));
   GNUNET_assert (nhops < MAX_DV_HOPS_ALLOWED);
-  fwd = GNUNET_malloc (sizeof (struct TransportDVLearnMessage) +
-                       (nhops + 1) * sizeof (struct DVPathEntryP));
   fwd->header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_DV_LEARN);
   fwd->header.size = htons (sizeof (struct TransportDVLearnMessage) +
                             (nhops + 1) * sizeof (struct DVPathEntryP));
@@ -6914,10 +6363,6 @@ check_dv_box (void *cls, const struct TransportDVBoxMessage *dvb)
   uint16_t num_hops = ntohs (dvb->num_hops);
   const struct GNUNET_PeerIdentity *hops =
     (const struct GNUNET_PeerIdentity *) &dvb[1];
-  const struct GNUNET_MessageHeader *inbox =
-    (const struct GNUNET_MessageHeader *) &hops[num_hops];
-  uint16_t isize;
-  uint16_t itype;
 
   (void) cls;
   if (size < sizeof (*dvb) + num_hops * sizeof (struct GNUNET_PeerIdentity) +
@@ -6926,25 +6371,13 @@ check_dv_box (void *cls, const struct TransportDVBoxMessage *dvb)
     GNUNET_break_op (0);
     return GNUNET_SYSERR;
   }
-  isize = ntohs (inbox->size);
-  if (size !=
-      sizeof (*dvb) + num_hops * sizeof (struct GNUNET_PeerIdentity) + isize)
-  {
-    GNUNET_break_op (0);
-    return GNUNET_SYSERR;
-  }
-  itype = ntohs (inbox->type);
-  if ((GNUNET_MESSAGE_TYPE_TRANSPORT_DV_BOX == itype) ||
-      (GNUNET_MESSAGE_TYPE_TRANSPORT_DV_LEARN == itype))
-  {
-    GNUNET_break_op (0);
-    return GNUNET_SYSERR;
-  }
-  if (0 == GNUNET_memcmp (&dvb->origin, &GST_my_identity))
-  {
-    GNUNET_break_op (0);
-    return GNUNET_SYSERR;
-  }
+  /* This peer must not be on the path */
+  for (unsigned int i = 0; i < num_hops; i++)
+    if (0 == GNUNET_memcmp (&hops[i], &GST_my_identity))
+    {
+      GNUNET_break_op (0);
+      return GNUNET_SYSERR;
+    }
   return GNUNET_YES;
 }
 
@@ -6963,31 +6396,215 @@ check_dv_box (void *cls, const struct TransportDVBoxMessage *dvb)
  */
 static void
 forward_dv_box (struct Neighbour *next_hop,
+                const struct TransportDVBoxMessage *hdr,
                 uint16_t total_hops,
                 uint16_t num_hops,
-                const struct GNUNET_PeerIdentity *origin,
                 const struct GNUNET_PeerIdentity *hops,
-                const void *payload,
-                uint16_t payload_size)
+                const void *enc_payload,
+                uint16_t enc_payload_size)
 {
-  struct TransportDVBoxMessage *dvb;
+  char buf[sizeof (struct TransportDVBoxMessage) +
+           num_hops * sizeof (struct GNUNET_PeerIdentity) + enc_payload_size];
+  struct GNUNET_PeerIdentity *dhops =
+    (struct GNUNET_PeerIdentity *) &buf[sizeof (struct TransportDVBoxMessage)];
 
-  dvb = create_dv_box (total_hops,
-                       origin,
-                       &hops[num_hops - 1] /* == target */,
-                       num_hops - 1 /* do not count target twice */,
-                       hops,
-                       payload,
-                       payload_size);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Routing DV Box of %u bytes from %s at %u/%u hops via %s\n",
-              payload_size,
-              GNUNET_i2s (origin),
-              (unsigned int) num_hops,
-              (unsigned int) total_hops,
-              GNUNET_i2s2 (&next_hop->pid));
-  route_message (&next_hop->pid, &dvb->header, RMO_NONE);
-  GNUNET_free (dvb);
+  memcpy (buf, hdr, sizeof (*hdr));
+  memcpy (dhops, hops, num_hops * sizeof (struct GNUNET_PeerIdentity));
+  memcpy (&dhops[num_hops], enc_payload, enc_payload_size);
+  route_message (&next_hop->pid,
+                 (const struct GNUNET_MessageHeader *) buf,
+                 RMO_NONE);
+}
+
+
+/**
+ * Free data structures associated with @a b.
+ *
+ * @param b data structure to release
+ */
+static void
+free_backtalker (struct Backtalker *b)
+{
+  if (NULL != b->get)
+  {
+    GNUNET_PEERSTORE_iterate_cancel (b->get);
+    b->get = NULL;
+    GNUNET_assert (NULL != b->cmc);
+    finish_cmc_handling (b->cmc);
+    b->cmc = NULL;
+  }
+  if (NULL != b->task)
+  {
+    GNUNET_SCHEDULER_cancel (b->task);
+    b->task = NULL;
+  }
+  if (NULL != b->sc)
+  {
+    GNUNET_PEERSTORE_store_cancel (b->sc);
+    b->sc = NULL;
+  }
+  GNUNET_assert (
+    GNUNET_YES ==
+    GNUNET_CONTAINER_multipeermap_remove (backtalkers, &b->pid, b));
+  GNUNET_free (b);
+}
+
+
+/**
+ * Callback to free backtalker records.
+ *
+ * @param cls NULL
+ * @param pid unused
+ * @param value a `struct Backtalker`
+ * @return #GNUNET_OK (always)
+ */
+static int
+free_backtalker_cb (void *cls,
+                    const struct GNUNET_PeerIdentity *pid,
+                    void *value)
+{
+  struct Backtalker *b = value;
+
+  (void) cls;
+  (void) pid;
+  free_backtalker (b);
+  return GNUNET_OK;
+}
+
+
+/**
+ * Function called when it is time to clean up a backtalker.
+ *
+ * @param cls a `struct Backtalker`
+ */
+static void
+backtalker_timeout_cb (void *cls)
+{
+  struct Backtalker *b = cls;
+
+  b->task = NULL;
+  if (0 != GNUNET_TIME_absolute_get_remaining (b->timeout).rel_value_us)
+  {
+    b->task = GNUNET_SCHEDULER_add_at (b->timeout, &backtalker_timeout_cb, b);
+    return;
+  }
+  GNUNET_assert (NULL == b->sc);
+  free_backtalker (b);
+}
+
+
+/**
+ * Function called with the monotonic time of a backtalker
+ * by PEERSTORE. Updates the time and continues processing.
+ *
+ * @param cls a `struct Backtalker`
+ * @param record the information found, NULL for the last call
+ * @param emsg error message
+ */
+static void
+backtalker_monotime_cb (void *cls,
+                        const struct GNUNET_PEERSTORE_Record *record,
+                        const char *emsg)
+{
+  struct Backtalker *b = cls;
+  struct GNUNET_TIME_AbsoluteNBO *mtbe;
+  struct GNUNET_TIME_Absolute mt;
+
+  (void) emsg;
+  if (NULL == record)
+  {
+    /* we're done with #backtalker_monotime_cb() invocations,
+       continue normal processing */
+    b->get = NULL;
+    GNUNET_assert (NULL != b->cmc);
+    if (0 != b->body_size)
+      demultiplex_with_cmc (b->cmc,
+                            (const struct GNUNET_MessageHeader *) &b[1]);
+    else
+      finish_cmc_handling (b->cmc);
+    b->cmc = NULL;
+    return;
+  }
+  if (sizeof (*mtbe) != record->value_size)
+  {
+    GNUNET_break (0);
+    return;
+  }
+  mtbe = record->value;
+  mt = GNUNET_TIME_absolute_ntoh (*mtbe);
+  if (mt.abs_value_us > b->monotonic_time.abs_value_us)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Backtalker message from %s dropped, monotime in the past\n",
+                GNUNET_i2s (&b->pid));
+    GNUNET_STATISTICS_update (
+      GST_stats,
+      "# Backchannel messages dropped: monotonic time not increasing",
+      1,
+      GNUNET_NO);
+    b->monotonic_time = mt;
+    /* Setting body_size to 0 prevents call to #forward_backchannel_payload()
+     */
+    b->body_size = 0;
+    return;
+  }
+}
+
+
+/**
+ * Function called by PEERSTORE when the store operation of
+ * a backtalker's monotonic time is complete.
+ *
+ * @param cls the `struct Backtalker`
+ * @param success #GNUNET_OK on success
+ */
+static void
+backtalker_monotime_store_cb (void *cls, int success)
+{
+  struct Backtalker *b = cls;
+
+  if (GNUNET_OK != success)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Failed to store backtalker's monotonic time in PEERSTORE!\n");
+  }
+  b->sc = NULL;
+  b->task = GNUNET_SCHEDULER_add_at (b->timeout, &backtalker_timeout_cb, b);
+}
+
+
+/**
+ * The backtalker @a b monotonic time changed. Update PEERSTORE.
+ *
+ * @param b a backtalker with updated monotonic time
+ */
+static void
+update_backtalker_monotime (struct Backtalker *b)
+{
+  struct GNUNET_TIME_AbsoluteNBO mtbe;
+
+  if (NULL != b->sc)
+  {
+    GNUNET_PEERSTORE_store_cancel (b->sc);
+    b->sc = NULL;
+  }
+  else
+  {
+    GNUNET_SCHEDULER_cancel (b->task);
+    b->task = NULL;
+  }
+  mtbe = GNUNET_TIME_absolute_hton (b->monotonic_time);
+  b->sc =
+    GNUNET_PEERSTORE_store (peerstore,
+                            "transport",
+                            &b->pid,
+                            GNUNET_PEERSTORE_TRANSPORT_BACKCHANNEL_MONOTIME,
+                            &mtbe,
+                            sizeof (mtbe),
+                            GNUNET_TIME_UNIT_FOREVER_ABS,
+                            GNUNET_PEERSTORE_STOREOPTION_REPLACE,
+                            &backtalker_monotime_store_cb,
+                            b);
 }
 
 
@@ -7006,8 +6623,13 @@ handle_dv_box (void *cls, const struct TransportDVBoxMessage *dvb)
   uint16_t num_hops = ntohs (dvb->num_hops);
   const struct GNUNET_PeerIdentity *hops =
     (const struct GNUNET_PeerIdentity *) &dvb[1];
-  const struct GNUNET_MessageHeader *inbox =
-    (const struct GNUNET_MessageHeader *) &hops[num_hops];
+  const char *enc_payload = (const char *) &hops[num_hops];
+  uint16_t enc_payload_size =
+    size - (num_hops * sizeof (struct GNUNET_PeerIdentity));
+  struct DVKeyState key;
+  struct GNUNET_HashCode hmac;
+  const char *hdr;
+  size_t hdr_len;
 
   if (GNUNET_EXTRA_LOGGING > 0)
   {
@@ -7050,12 +6672,12 @@ handle_dv_box (void *cls, const struct TransportDVBoxMessage *dvb)
                   i,
                   num_hops);
       forward_dv_box (n,
+                      dvb,
                       ntohs (dvb->total_hops) + 1,
                       num_hops - i - 1, /* number of hops left */
-                      &dvb->origin,
                       &hops[i + 1], /* remaining hops */
-                      (const void *) &dvb[1],
-                      size);
+                      enc_payload,
+                      enc_payload_size);
       GNUNET_STATISTICS_update (GST_stats,
                                 "# DV hops skipped routing boxes",
                                 i,
@@ -7076,18 +6698,140 @@ handle_dv_box (void *cls, const struct TransportDVBoxMessage *dvb)
     return;
   }
   /* We are the target. Unbox and handle message. */
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "DVBox received for me from %s\n",
-              GNUNET_i2s (&dvb->origin));
   GNUNET_STATISTICS_update (GST_stats,
                             "# DV boxes opened (ultimate target)",
                             1,
                             GNUNET_NO);
-  cmc->im.sender = dvb->origin;
   cmc->total_hops = ntohs (dvb->total_hops);
-  // FIXME: should *decrypt* inbox here; needs BackchannelEncapsulation!
-  // FIXME: need to prevent box-in-a-box, so check inbox type!
-  demultiplex_with_cmc (cmc, inbox);
+
+  dh_key_derive_eph_pub (&dvb->ephemeral_key, &dvb->iv, &key);
+  hdr = (const char *) &dvb[1];
+  hdr_len = ntohs (dvb->header.size) - sizeof (*dvb);
+  dv_hmac (&key, &hmac, hdr, hdr_len);
+  if (0 != GNUNET_memcmp (&hmac, &dvb->hmac))
+  {
+    /* HMAC missmatch, disard! */
+    GNUNET_break_op (0);
+    finish_cmc_handling (cmc);
+    return;
+  }
+  /* begin actual decryption */
+  {
+    struct Backtalker *b;
+    struct GNUNET_TIME_Absolute monotime;
+    struct TransportDVBoxPayloadP ppay;
+    char body[hdr_len - sizeof (ppay)] GNUNET_ALIGN;
+    const struct GNUNET_MessageHeader *mh =
+      (const struct GNUNET_MessageHeader *) body;
+
+    GNUNET_assert (hdr_len >=
+                   sizeof (ppay) + sizeof (struct GNUNET_MessageHeader));
+    dv_decrypt (&key, &ppay, hdr, sizeof (ppay));
+    dv_decrypt (&key, &body, &hdr[sizeof (ppay)], hdr_len - sizeof (ppay));
+    dv_key_clean (&key);
+    if (ntohs (mh->size) != sizeof (body))
+    {
+      GNUNET_break_op (0);
+      finish_cmc_handling (cmc);
+      return;
+    }
+    /* need to prevent box-in-a-box (and DV_LEARN) so check inbox type! */
+    switch (ntohs (mh->type))
+    {
+    case GNUNET_MESSAGE_TYPE_TRANSPORT_DV_BOX:
+      GNUNET_break_op (0);
+      finish_cmc_handling (cmc);
+      return;
+    case GNUNET_MESSAGE_TYPE_TRANSPORT_DV_LEARN:
+      GNUNET_break_op (0);
+      finish_cmc_handling (cmc);
+      return;
+    default:
+      /* permitted, continue */
+      break;
+    }
+    monotime = GNUNET_TIME_absolute_ntoh (ppay.monotonic_time);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Decrypted backtalk from %s\n",
+                GNUNET_i2s (&ppay.sender));
+    b = GNUNET_CONTAINER_multipeermap_get (backtalkers, &ppay.sender);
+    if ((NULL != b) && (monotime.abs_value_us < b->monotonic_time.abs_value_us))
+    {
+      GNUNET_STATISTICS_update (
+        GST_stats,
+        "# Backchannel messages dropped: monotonic time not increasing",
+        1,
+        GNUNET_NO);
+      finish_cmc_handling (cmc);
+      return;
+    }
+    if ((NULL == b) ||
+        (0 != GNUNET_memcmp (&b->last_ephemeral, &dvb->ephemeral_key)))
+    {
+      /* Check signature */
+      struct EphemeralConfirmationPS ec;
+
+      ec.purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_TRANSPORT_EPHEMERAL);
+      ec.purpose.size = htonl (sizeof (ec));
+      ec.target = GST_my_identity;
+      ec.ephemeral_key = dvb->ephemeral_key;
+      if (
+        GNUNET_OK !=
+        GNUNET_CRYPTO_eddsa_verify (GNUNET_SIGNATURE_PURPOSE_TRANSPORT_EPHEMERAL,
+                                    &ec.purpose,
+                                    &ppay.sender_sig,
+                                    &ppay.sender.public_key))
+      {
+        /* Signature invalid, disard! */
+        GNUNET_break_op (0);
+        finish_cmc_handling (cmc);
+        return;
+      }
+    }
+    /* Update sender, we now know the real origin! */
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "DVBox received for me from %s via %s\n",
+                GNUNET_i2s2 (&ppay.sender),
+                GNUNET_i2s (&cmc->im.sender));
+    cmc->im.sender = ppay.sender;
+
+    if (NULL != b)
+    {
+      /* update key cache and mono time */
+      b->last_ephemeral = dvb->ephemeral_key;
+      b->monotonic_time = monotime;
+      update_backtalker_monotime (b);
+      b->timeout =
+        GNUNET_TIME_relative_to_absolute (BACKCHANNEL_INACTIVITY_TIMEOUT);
+
+      demultiplex_with_cmc (cmc, mh);
+      return;
+    }
+    /* setup data structure to cache signature AND check
+       monotonic time with PEERSTORE before forwarding backchannel payload */
+    b = GNUNET_malloc (sizeof (struct Backtalker) + sizeof (body));
+    b->pid = ppay.sender;
+    b->body_size = sizeof (body);
+    memcpy (&b[1], body, sizeof (body));
+    GNUNET_assert (GNUNET_YES ==
+                   GNUNET_CONTAINER_multipeermap_put (
+                     backtalkers,
+                     &b->pid,
+                     b,
+                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
+    b->monotonic_time = monotime; /* NOTE: to be checked still! */
+    b->cmc = cmc;
+    b->timeout =
+      GNUNET_TIME_relative_to_absolute (BACKCHANNEL_INACTIVITY_TIMEOUT);
+    b->task = GNUNET_SCHEDULER_add_at (b->timeout, &backtalker_timeout_cb, b);
+    b->get =
+      GNUNET_PEERSTORE_iterate (peerstore,
+                                "transport",
+                                &b->pid,
+                                GNUNET_PEERSTORE_TRANSPORT_BACKCHANNEL_MONOTIME,
+                                &backtalker_monotime_cb,
+                                b);
+  } /* end actual decryption */
 }
 
 
@@ -7579,7 +7323,7 @@ set_pending_message_uuid (struct PendingMessage *pm)
 {
   if (pm->msg_uuid_set)
     return;
-  pm->msg_uuid.uuid = pm->target->message_uuid_ctr++;
+  pm->msg_uuid.uuid = pm->vl->message_uuid_ctr++;
   pm->msg_uuid_set = GNUNET_YES;
 }
 
@@ -7655,7 +7399,7 @@ fragment_message (struct Queue *queue,
               "Fragmenting message %llu <%llu> to %s for MTU %u\n",
               (unsigned long long) pm->msg_uuid.uuid,
               pm->logging_uuid,
-              GNUNET_i2s (&pm->target->pid),
+              GNUNET_i2s (&pm->vl->target),
               (unsigned int) mtu);
   pa = prepare_pending_acknowledgement (queue, dvh, pm);
 
@@ -7702,7 +7446,7 @@ fragment_message (struct Queue *queue,
       GNUNET_malloc (sizeof (struct PendingMessage) +
                      sizeof (struct TransportFragmentBoxMessage) + fragsize);
     frag->logging_uuid = logging_uuid_gen++;
-    frag->target = pm->target;
+    frag->vl = pm->vl;
     frag->frag_parent = ff;
     frag->timeout = pm->timeout;
     frag->bytes_msg = sizeof (struct TransportFragmentBoxMessage) + fragsize;
@@ -7773,14 +7517,14 @@ reliability_box_message (struct Queue *queue,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Preparing reliability box for message <%llu> to %s on queue %s\n",
               pm->logging_uuid,
-              GNUNET_i2s (&pm->target->pid),
+              GNUNET_i2s (&pm->vl->target),
               queue->address);
   pa = prepare_pending_acknowledgement (queue, dvh, pm);
 
   bpm = GNUNET_malloc (sizeof (struct PendingMessage) + sizeof (rbox) +
                        pm->bytes_msg);
   bpm->logging_uuid = logging_uuid_gen++;
-  bpm->target = pm->target;
+  bpm->vl = pm->vl;
   bpm->frag_parent = pm;
   GNUNET_CONTAINER_MDLL_insert (frag, pm->head_frag, pm->tail_frag, bpm);
   bpm->timeout = pm->timeout;
@@ -7812,7 +7556,7 @@ static void
 update_pm_next_attempt (struct PendingMessage *pm,
                         struct GNUNET_TIME_Absolute next_attempt)
 {
-  struct Neighbour *neighbour = pm->target;
+  struct VirtualLink *vl = pm->vl;
 
   pm->next_attempt = next_attempt;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -7825,17 +7569,17 @@ update_pm_next_attempt (struct PendingMessage *pm,
     struct PendingMessage *pos;
 
     /* re-insert sort in neighbour list */
-    GNUNET_CONTAINER_MDLL_remove (neighbour,
-                                  neighbour->pending_msg_head,
-                                  neighbour->pending_msg_tail,
+    GNUNET_CONTAINER_MDLL_remove (vl,
+                                  vl->pending_msg_head,
+                                  vl->pending_msg_tail,
                                   pm);
-    pos = neighbour->pending_msg_tail;
+    pos = vl->pending_msg_tail;
     while ((NULL != pos) &&
            (next_attempt.abs_value_us > pos->next_attempt.abs_value_us))
-      pos = pos->prev_neighbour;
-    GNUNET_CONTAINER_MDLL_insert_after (neighbour,
-                                        neighbour->pending_msg_head,
-                                        neighbour->pending_msg_tail,
+      pos = pos->prev_vl;
+    GNUNET_CONTAINER_MDLL_insert_after (vl,
+                                        vl->pending_msg_head,
+                                        vl->pending_msg_tail,
                                         pos,
                                         pm);
   }
@@ -7871,12 +7615,14 @@ static void
 transmit_on_queue (void *cls)
 {
   struct Queue *queue = cls;
+
+  queue->transmit_task = NULL;
+#if FIXME - NEXT
   struct Neighbour *n = queue->neighbour;
   struct PendingMessage *pm;
   struct PendingMessage *s;
   uint32_t overhead;
 
-  queue->transmit_task = NULL;
   if (NULL == (pm = n->pending_msg_head))
   {
     /* no message pending, nothing to do here! */
@@ -8010,6 +7756,7 @@ transmit_on_queue (void *cls)
 
   /* finally, re-schedule queue transmission task itself */
   schedule_transmit_on_queue (queue, GNUNET_NO);
+#endif
 }
 
 
@@ -8138,19 +7885,21 @@ handle_send_message_ack (void *cls,
 
   if (NULL != (pm = qe->pm))
   {
-    struct Neighbour *n;
+    struct VirtualLink *vl;
 
     GNUNET_assert (qe == pm->qe);
     pm->qe = NULL;
     /* If waiting for this communicator may have blocked transmission
        of pm on other queues for this neighbour, force schedule
        transmit on queue for queues of the neighbour */
-    n = pm->target;
-    if (n->pending_msg_head == pm)
+    vl = pm->vl;
+    if (vl->pending_msg_head == pm)
     {
+#if FIXME - NEXT
       for (struct Queue *queue = n->queue_head; NULL != queue;
            queue = queue->next_neighbour)
         schedule_transmit_on_queue (queue, GNUNET_NO);
+#endif
     }
     if (GNUNET_OK != ntohl (sma->status))
     {
@@ -8651,8 +8400,6 @@ handle_add_queue_message (void *cls,
   if (NULL == neighbour)
   {
     neighbour = GNUNET_new (struct Neighbour);
-    neighbour->message_uuid_ctr =
-      GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK, UINT64_MAX);
     neighbour->pid = aqm->receiver;
     GNUNET_assert (GNUNET_OK ==
                    GNUNET_CONTAINER_multipeermap_put (
@@ -9081,28 +8828,6 @@ free_dv_routes_cb (void *cls,
 
 
 /**
- * Free ephemeral entry.
- *
- * @param cls NULL
- * @param pid unused
- * @param value a `struct EphemeralCacheEntry`
- * @return #GNUNET_OK (always)
- */
-static int
-free_ephemeral_cb (void *cls,
-                   const struct GNUNET_PeerIdentity *pid,
-                   void *value)
-{
-  struct EphemeralCacheEntry *ece = value;
-
-  (void) cls;
-  (void) pid;
-  free_ephemeral (ece);
-  return GNUNET_OK;
-}
-
-
-/**
  * Free validation state.
  *
  * @param cls NULL
@@ -9180,11 +8905,6 @@ do_shutdown (void *cls)
   struct LearnLaunchEntry *lle;
   (void) cls;
 
-  if (NULL != ephemeral_task)
-  {
-    GNUNET_SCHEDULER_cancel (ephemeral_task);
-    ephemeral_task = NULL;
-  }
   GNUNET_CONTAINER_multipeermap_iterate (neighbours, &free_neighbour_cb, NULL);
   if (NULL != peerstore)
   {
@@ -9239,13 +8959,6 @@ do_shutdown (void *cls)
   GNUNET_CONTAINER_multipeermap_iterate (dv_routes, &free_dv_routes_cb, NULL);
   GNUNET_CONTAINER_multipeermap_destroy (dv_routes);
   dv_routes = NULL;
-  GNUNET_CONTAINER_multipeermap_iterate (ephemeral_map,
-                                         &free_ephemeral_cb,
-                                         NULL);
-  GNUNET_CONTAINER_multipeermap_destroy (ephemeral_map);
-  ephemeral_map = NULL;
-  GNUNET_CONTAINER_heap_destroy (ephemeral_heap);
-  ephemeral_heap = NULL;
 }
 
 
@@ -9272,9 +8985,6 @@ run (void *cls,
   neighbours = GNUNET_CONTAINER_multipeermap_create (1024, GNUNET_YES);
   links = GNUNET_CONTAINER_multipeermap_create (512, GNUNET_YES);
   dv_routes = GNUNET_CONTAINER_multipeermap_create (1024, GNUNET_YES);
-  ephemeral_map = GNUNET_CONTAINER_multipeermap_create (32, GNUNET_YES);
-  ephemeral_heap =
-    GNUNET_CONTAINER_heap_create (GNUNET_CONTAINER_HEAP_ORDER_MIN);
   dvlearn_map = GNUNET_CONTAINER_multishortmap_create (2 * MAX_DV_LEARN_PENDING,
                                                        GNUNET_YES);
   validation_map = GNUNET_CONTAINER_multipeermap_create (1024, GNUNET_YES);
