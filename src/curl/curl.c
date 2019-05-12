@@ -112,11 +112,6 @@ struct GNUNET_CURL_Job
    */
   struct curl_slist *job_headers;
 
-  /**
-   * Header for the async scope id or NULL.
-   */
-  char *aid_header;
-
 };
 
 
@@ -274,30 +269,31 @@ download_cb (char *bufptr, size_t size, size_t nitems, void *cls)
  * @param ctx context to execute the job in
  * @param eh curl easy handle for the request, will
  *           be executed AND cleaned up
- * @param add_json add "application/json" content type header
+ * @param job_headers extra headers to add for this request
  * @param jcc callback to invoke upon completion
  * @param jcc_cls closure for @a jcc
  * @return NULL on error (in this case, @eh is still released!)
  */
 struct GNUNET_CURL_Job *
-GNUNET_CURL_job_add (struct GNUNET_CURL_Context *ctx,
+GNUNET_CURL_job_add2 (struct GNUNET_CURL_Context *ctx,
                      CURL *eh,
-                     int add_json,
+                     const struct curl_slist *job_headers,
                      GNUNET_CURL_JobCompletionCallback jcc,
                      void *jcc_cls)
 {
   struct GNUNET_CURL_Job *job;
   struct curl_slist *all_headers = NULL;
-  char *aid_header = NULL;
 
-  if (GNUNET_YES == add_json)
+  for (const struct curl_slist *curr = job_headers;
+       curr != NULL;
+       curr = curr->next)
   {
     GNUNET_assert (
       NULL != (all_headers =
-                 curl_slist_append (NULL, "Content-Type: application/json")));
+                 curl_slist_append (all_headers, curr->data)));
   }
 
-  for (struct curl_slist *curr = ctx->common_headers;
+  for (const struct curl_slist *curr = ctx->common_headers;
        curr != NULL;
        curr = curr->next)
   {
@@ -313,9 +309,12 @@ GNUNET_CURL_job_add (struct GNUNET_CURL_Context *ctx,
     GNUNET_async_scope_get (&scope);
     if (GNUNET_YES == scope.have_scope)
     {
+      char *aid_header = NULL;
       aid_header = GNUNET_STRINGS_data_to_string_alloc (&scope.scope_id,
                                                         sizeof (struct GNUNET_AsyncScopeId));
-      GNUNET_assert (NULL != curl_slist_append(all_headers, aid_header));
+      GNUNET_assert (NULL != aid_header);
+      GNUNET_assert (NULL != curl_slist_append (all_headers, aid_header));
+      GNUNET_free (aid_header);
     }
   }
 
@@ -323,14 +322,12 @@ GNUNET_CURL_job_add (struct GNUNET_CURL_Context *ctx,
   {
     GNUNET_break (0);
     curl_slist_free_all (all_headers);
-    GNUNET_free_non_null (aid_header);
     curl_easy_cleanup (eh);
     return NULL;
   }
 
   job = GNUNET_new (struct GNUNET_CURL_Job);
   job->job_headers = all_headers;
-  job->aid_header = aid_header;
 
   if ((CURLE_OK != curl_easy_setopt (eh, CURLOPT_PRIVATE, job)) ||
       (CURLE_OK !=
@@ -356,6 +353,41 @@ GNUNET_CURL_job_add (struct GNUNET_CURL_Context *ctx,
 
 
 /**
+ * Schedule a CURL request to be executed and call the given @a jcc
+ * upon its completion.  Note that the context will make use of the
+ * CURLOPT_PRIVATE facility of the CURL @a eh.
+ *
+ * This function modifies the CURL handle to add the
+ * "Content-Type: application/json" header if @a add_json is set.
+ *
+ * @param ctx context to execute the job in
+ * @param eh curl easy handle for the request, will
+ *           be executed AND cleaned up
+ * @param add_json add "application/json" content type header
+ * @param jcc callback to invoke upon completion
+ * @param jcc_cls closure for @a jcc
+ * @return NULL on error (in this case, @eh is still released!)
+ */
+struct GNUNET_CURL_Job *
+GNUNET_CURL_job_add (struct GNUNET_CURL_Context *ctx,
+                     CURL *eh,
+                     int add_json,
+                     GNUNET_CURL_JobCompletionCallback jcc,
+                     void *jcc_cls)
+{
+  struct curl_slist *job_headers = NULL;
+  if (GNUNET_YES == add_json)
+  {
+    GNUNET_assert (
+      NULL != (job_headers =
+                 curl_slist_append (NULL, "Content-Type: application/json")));
+  }
+
+  return GNUNET_CURL_job_add2 (ctx, eh, job_headers, jcc, jcc_cls);
+}
+
+
+/**
  * Cancel a job.  Must only be called before the job completion
  * callback is called for the respective job.
  *
@@ -371,7 +403,6 @@ GNUNET_CURL_job_cancel (struct GNUNET_CURL_Job *job)
                 curl_multi_remove_handle (ctx->multi, job->easy_handle));
   curl_easy_cleanup (job->easy_handle);
   GNUNET_free_non_null (job->db.buf);
-  GNUNET_free_non_null (job->aid_header);
   curl_slist_free_all (job->job_headers);
   GNUNET_free (job);
 }

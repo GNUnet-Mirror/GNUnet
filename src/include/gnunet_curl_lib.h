@@ -233,6 +233,30 @@ GNUNET_CURL_job_add (struct GNUNET_CURL_Context *ctx,
 
 
 /**
+ * Schedule a CURL request to be executed and call the given @a jcc
+ * upon its completion.  Note that the context will make use of the
+ * CURLOPT_PRIVATE facility of the CURL @a eh.
+ *
+ * This function modifies the CURL handle to add the
+ * "Content-Type: application/json" header if @a add_json is set.
+ *
+ * @param ctx context to execute the job in
+ * @param eh curl easy handle for the request, will
+ *           be executed AND cleaned up
+ * @param job_headers extra headers to add for this request
+ * @param jcc callback to invoke upon completion
+ * @param jcc_cls closure for @a jcc
+ * @return NULL on error (in this case, @eh is still released!)
+ */
+struct GNUNET_CURL_Job *
+GNUNET_CURL_job_add2 (struct GNUNET_CURL_Context *ctx,
+                     CURL *eh,
+                     const struct curl_slist *job_headers,
+                     GNUNET_CURL_JobCompletionCallback jcc,
+                     void *jcc_cls);
+
+
+/**
  * Cancel a job.  Must only be called before the job completion
  * callback is called for the respective job.
  *
