@@ -303,7 +303,7 @@ GNUNET_CURL_job_add (struct GNUNET_CURL_Context *ctx,
   {
     GNUNET_assert (
       NULL != (all_headers =
-                 curl_slist_append (all_headers, "Content-Type: application/json")));
+                 curl_slist_append (all_headers, curr->data)));
   }
 
   if (NULL != ctx->async_scope_id_header)
