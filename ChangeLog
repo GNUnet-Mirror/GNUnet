@@ -1,15 +1,18 @@
+Thu May 2 08:44:37 2019 +0200
+  gnunet-arm now logs to file by default -CG
+
 Sat Apr 27 21:50:57 2019 +0200
-  RECLAIM: Added ECDH encryption for authorization code payload
+  RECLAIM: Added ECDH encryption for authorization code payload -schanzen
 
 Sat 27 Apr 2019 06:36:31 AM CEST
   Bump libmicrohttpd version requirement as some intermediate
   versions have relevant bugs that cause problems. -CG
 
 Sat Apr 27 01:50:43 2019 +0200
-  RECLAIM: No longer experimental
+  RECLAIM: No longer experimental -schanzen
 
 Fri Apr 26 11:08:21 2019 +0200
-  REST: Configuration plugin added - schanzen
+  REST: Configuration plugin added -schanzen
 
 Tue Apr 23 23:00:00 UTC 2019
   All manpages are properly licensed. -ng0
@@ -25,6 +28,10 @@ Sat Apr 20 18:38:43 UTC 2019
 Sun Apr 14 09:54:20 2019 +0200
   RECLAIM: Moved away from ABE to GNS encryption. Minor API changed and
   renaming of records. Deprecated SQLite plugin in favor of namestore.
+  -schanzen
+
+Sun Apr 7 14:40:59 2019 +0200
+  Releasing GNUnet 0.11.3. -CG
 
 Sat 06 Apr 2019 02:36:17 PM CEST
   Introducing GNUNET_memcmp() and GNUNET_is_zero() for better typing

@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gnunet 0.9.5a\n"
 "Report-Msgid-Bugs-To: gnunet-developers@mail.gnu.org\n"
-"POT-Creation-Date: 2019-05-09 08:43+0000\n"
+"POT-Creation-Date: 2019-05-12 08:29+0000\n"
 "PO-Revision-Date: 2013-02-23 17:50+0100\n"
 "Last-Translator: Miguel Ángel Arruga Vivas <rosen644835@gmail.com>\n"
 "Language-Team: Spanish <es@li.org>\n"
@@ -1730,7 +1730,7 @@ msgstr "Caché de datos de montículo (heap) ejecutándose\n"
 #: src/testbed/gnunet-daemon-testbed-underlay.c:56
 #: src/testbed/testbed_api_hosts.c:69 src/util/crypto_ecc.c:53
 #: src/util/crypto_ecc_setup.c:41 src/util/crypto_mpi.c:39
-#: src/include/gnunet_common.h:840 src/include/gnunet_common.h:849
+#: src/include/gnunet_common.h:940 src/include/gnunet_common.h:959
 #: src/scalarproduct/scalarproduct.h:35
 #, c-format
 msgid "`%s' failed at %s:%d with error: %s\n"
@@ -4946,48 +4946,54 @@ msgid "Could not start hostlist HTTP server on port %u\n"
 msgstr ""
 "No se pudo arrancar un servidor de listas de máquinas HTTP en el puerto %u\n"
 
-#: src/identity/gnunet-identity.c:186
+#: src/identity/gnunet-identity.c:188
 #, fuzzy, c-format
 msgid "Failed to create ego: %s\n"
 msgstr "Se produjo un fallo al crear la página para «%s»\n"
 
-#: src/identity/gnunet-identity.c:221
+#: src/identity/gnunet-identity.c:217
 #, fuzzy, c-format
 msgid "Failed to set default ego: %s\n"
 msgstr "Se produjo un fallo al crear la página para «%s»\n"
 
-#: src/identity/gnunet-identity.c:376
+#: src/identity/gnunet-identity.c:356
 msgid "create ego NAME"
 msgstr ""
 
-#: src/identity/gnunet-identity.c:382
+#: src/identity/gnunet-identity.c:361
 #, fuzzy
 msgid "delete ego NAME "
 msgstr "borrar un nombre de espacio de nombres (NAME)"
 
-#: src/identity/gnunet-identity.c:387
+#: src/identity/gnunet-identity.c:365
 #, fuzzy
 msgid "display all egos"
 msgstr "mostrar registros"
 
-#: src/identity/gnunet-identity.c:393
+#: src/identity/gnunet-identity.c:369
+#, fuzzy
+msgid "reduce output"
+msgstr "Sin salida innecesaria"
+
+#: src/identity/gnunet-identity.c:376
 msgid ""
-"set default identity to EGO for a subsystem SUBSYSTEM (use together with -s)"
+"set default identity to NAME for a subsystem SUBSYSTEM (use together with -"
+"s) or restrict results to NAME (use together with -d)"
 msgstr ""
 
 # Miguel: Aquí he dejado monitorización porque esto es
 # del servicio de traducción de direcciones.
-#: src/identity/gnunet-identity.c:398
+#: src/identity/gnunet-identity.c:380
 #, fuzzy
 msgid "run in monitor mode egos"
 msgstr "modo de monitorización"
 
-#: src/identity/gnunet-identity.c:404
+#: src/identity/gnunet-identity.c:387
 msgid ""
 "set default identity to EGO for a subsystem SUBSYSTEM (use together with -e)"
 msgstr ""
 
-#: src/identity/gnunet-identity.c:418
+#: src/identity/gnunet-identity.c:399
 msgid "Maintain egos"
 msgstr ""
 
@@ -6067,7 +6073,7 @@ msgid "Add an attribute NAME"
 msgstr ""
 
 #: src/reclaim/gnunet-reclaim.c:527
-msgid "Add an attribute with ID"
+msgid "Delete the attribute with ID"
 msgstr ""
 
 #: src/reclaim/gnunet-reclaim.c:530
@@ -7163,7 +7169,7 @@ msgstr ""
 
 #: src/transport/gnunet-communicator-tcp.c:2162
 #: src/transport/gnunet-communicator-udp.c:2699
-#: src/transport/gnunet-service-tng.c:9239
+#: src/transport/gnunet-service-tng.c:9188
 #: src/transport/gnunet-service-transport.c:2795
 #, fuzzy
 msgid "Transport service is lacking key configuration settings. Exiting.\n"
@@ -8384,58 +8390,58 @@ msgstr ""
 msgid "Need a non-empty hostname for service `%s'.\n"
 msgstr "Se necesita un nombre de máquina no vacío para el servicio «%s».\n"
 
-#: src/util/common_logging.c:259 src/util/common_logging.c:1162
+#: src/util/common_logging.c:266 src/util/common_logging.c:1191
 msgid "DEBUG"
 msgstr "DEPURACIÓN"
 
-#: src/util/common_logging.c:261 src/util/common_logging.c:1160
+#: src/util/common_logging.c:268 src/util/common_logging.c:1189
 msgid "INFO"
 msgstr "INFORMACIÓN"
 
-#: src/util/common_logging.c:263 src/util/common_logging.c:1158
+#: src/util/common_logging.c:270 src/util/common_logging.c:1187
 msgid "MESSAGE"
 msgstr "MENSAJE"
 
-#: src/util/common_logging.c:265 src/util/common_logging.c:1156
+#: src/util/common_logging.c:272 src/util/common_logging.c:1185
 msgid "WARNING"
 msgstr "PELIGRO"
 
-#: src/util/common_logging.c:267 src/util/common_logging.c:1154
+#: src/util/common_logging.c:274 src/util/common_logging.c:1183
 msgid "ERROR"
 msgstr "ERROR"
 
-#: src/util/common_logging.c:269 src/util/common_logging.c:1164
+#: src/util/common_logging.c:276 src/util/common_logging.c:1193
 msgid "NONE"
 msgstr "NINGUNO"
 
-#: src/util/common_logging.c:633 src/util/common_logging.c:663
+#: src/util/common_logging.c:640 src/util/common_logging.c:670
 #, c-format
 msgid "ERROR: Unable to parse log definition: Syntax error at `%s'.\n"
 msgstr ""
 
-#: src/util/common_logging.c:898
+#: src/util/common_logging.c:927
 #, c-format
 msgid "Message `%.*s' repeated %u times in the last %s\n"
 msgstr "Mensaje `%.*s» repetido %u veces en el último %s\n"
 
-#: src/util/common_logging.c:1165
+#: src/util/common_logging.c:1194
 msgid "INVALID"
 msgstr "NO VÁLIDO"
 
-#: src/util/common_logging.c:1458
+#: src/util/common_logging.c:1480
 msgid "unknown address"
 msgstr "dirección desconocida"
 
-#: src/util/common_logging.c:1513
+#: src/util/common_logging.c:1535
 msgid "invalid address"
 msgstr "dirección no válida"
 
-#: src/util/common_logging.c:1531
+#: src/util/common_logging.c:1553
 #, c-format
 msgid "Configuration fails to specify option `%s' in section `%s'!\n"
 msgstr "¡La configuración no especifica la opción «%s» en la sección «%s»!\n"
 
-#: src/util/common_logging.c:1552
+#: src/util/common_logging.c:1574
 #, c-format
 msgid ""
 "Configuration specifies invalid value for option `%s' in section `%s': %s\n"
@@ -9428,23 +9434,23 @@ msgstr "Configurar túneles vía VPN."
 msgid "Failed to connect to the namestore!\n"
 msgstr "¡Se produjo un fallo al conectar con el almacén de nombres!\n"
 
-#: src/include/gnunet_common.h:794 src/include/gnunet_common.h:801
-#: src/include/gnunet_common.h:811
+#: src/include/gnunet_common.h:842 src/include/gnunet_common.h:860
+#: src/include/gnunet_common.h:882
 #, fuzzy, c-format
 msgid "Assertion failed at %s:%d. Aborting.\n"
 msgstr "Aserción fallida en %s:%d.\n"
 
-#: src/include/gnunet_common.h:819
+#: src/include/gnunet_common.h:901
 #, c-format
 msgid "Assertion failed at %s:%d.\n"
 msgstr "Aserción fallida en %s:%d.\n"
 
-#: src/include/gnunet_common.h:831
+#: src/include/gnunet_common.h:923
 #, c-format
 msgid "External protocol violation detected at %s:%d.\n"
 msgstr "Violación externa del protocolo detectada en %s:%d.\n"
 
-#: src/include/gnunet_common.h:858 src/include/gnunet_common.h:867
+#: src/include/gnunet_common.h:977 src/include/gnunet_common.h:997
 #, c-format
 msgid "`%s' failed on file `%s' at %s:%d with error: %s\n"
 msgstr "«%s» falló en el fichero «%s» en %s:%d con el error: %s\n"
