@@ -1,3 +1,7 @@
+Thu May 9 23:35:24 2019 +0200
+  gnunet-identity can now output the public key on creation of new
+  egos, and -e can act as a filter when listing all egos. -CG
+
 Thu May 2 08:44:37 2019 +0200
   gnunet-arm now logs to file by default -CG
 
