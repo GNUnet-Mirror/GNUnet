@@ -54,6 +54,7 @@ man_MANS = \
   gnunet-peerinfo.1 \
   gnunet-publish.1 \
   gnunet-qr.1 \
+  gnunet-reclaim.1 \
   gnunet-resolver.1 \
   gnunet-revocation.1 \
   gnunet-scalarproduct.1 \

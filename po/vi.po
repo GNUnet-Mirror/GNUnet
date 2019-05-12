@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gnunet 0.8.0a\n"
 "Report-Msgid-Bugs-To: gnunet-developers@mail.gnu.org\n"
-"POT-Creation-Date: 2019-05-08 11:34+0200\n"
+"POT-Creation-Date: 2019-05-09 08:43+0000\n"
 "PO-Revision-Date: 2008-09-10 22:05+0930\n"
 "Last-Translator: Clytie Siddall <clytie@riverland.net.au>\n"
 "Language-Team: Vietnamese <vi-VN@googlegroups.com>\n"
@@ -4871,43 +4871,43 @@ msgstr "« %s » không sẵn sàng.\n"
 msgid "Could not start hostlist HTTP server on port %u\n"
 msgstr "Cổng cho trình phục vụ HTTP danh sách máy chủ thống nhất"
 
-#: src/identity/gnunet-identity.c:179
+#: src/identity/gnunet-identity.c:186
 #, fuzzy, c-format
 msgid "Failed to create ego: %s\n"
 msgstr "Không thể tạo miền tên.\n"
 
-#: src/identity/gnunet-identity.c:201
+#: src/identity/gnunet-identity.c:221
 #, fuzzy, c-format
 msgid "Failed to set default ego: %s\n"
 msgstr "Không thể tạo miền tên.\n"
 
-#: src/identity/gnunet-identity.c:356
+#: src/identity/gnunet-identity.c:376
 msgid "create ego NAME"
 msgstr ""
 
-#: src/identity/gnunet-identity.c:362
+#: src/identity/gnunet-identity.c:382
 msgid "delete ego NAME "
 msgstr ""
 
-#: src/identity/gnunet-identity.c:367
+#: src/identity/gnunet-identity.c:387
 msgid "display all egos"
 msgstr ""
 
-#: src/identity/gnunet-identity.c:373
+#: src/identity/gnunet-identity.c:393
 msgid ""
 "set default identity to EGO for a subsystem SUBSYSTEM (use together with -s)"
 msgstr ""
 
-#: src/identity/gnunet-identity.c:378
+#: src/identity/gnunet-identity.c:398
 msgid "run in monitor mode egos"
 msgstr ""
 
-#: src/identity/gnunet-identity.c:384
+#: src/identity/gnunet-identity.c:404
 msgid ""
 "set default identity to EGO for a subsystem SUBSYSTEM (use together with -e)"
 msgstr ""
 
-#: src/identity/gnunet-identity.c:398
+#: src/identity/gnunet-identity.c:418
 msgid "Maintain egos"
 msgstr ""
 
@@ -4958,7 +4958,7 @@ msgstr "Không thể lưu tập tin cấu hình « %s »:"
 msgid "Failed to create directory `%s' for storing egos\n"
 msgstr "Lỗi đọc danh sách bạn bè từ « %s »\n"
 
-#: src/identity/plugin_rest_identity.c:1288
+#: src/identity/plugin_rest_identity.c:1308
 #, fuzzy
 msgid "Identity REST API initialized\n"
 msgstr "Lỗi sơ khởi lõi.\n"
@@ -7039,7 +7039,7 @@ msgstr ""
 
 #: src/transport/gnunet-communicator-tcp.c:2162
 #: src/transport/gnunet-communicator-udp.c:2699
-#: src/transport/gnunet-service-tng.c:9110
+#: src/transport/gnunet-service-tng.c:9239
 #: src/transport/gnunet-service-transport.c:2795
 #, fuzzy
 msgid "Transport service is lacking key configuration settings. Exiting.\n"

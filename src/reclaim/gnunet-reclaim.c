@@ -524,7 +524,7 @@ main (int argc, char *const argv[])
                                    gettext_noop ("Add an attribute NAME"),
                                    &attr_name),
       GNUNET_GETOPT_option_string ('d', "delete", "ID",
-                                   gettext_noop ("Add an attribute with ID"),
+                                   gettext_noop ("Delete the attribute with ID"),
                                    &attr_delete),
       GNUNET_GETOPT_option_string ('V', "value", "VALUE",
                                    gettext_noop ("The attribute VALUE"),

@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gnunet 0.9.5a\n"
 "Report-Msgid-Bugs-To: gnunet-developers@mail.gnu.org\n"
-"POT-Creation-Date: 2019-05-08 11:34+0200\n"
+"POT-Creation-Date: 2019-05-09 08:43+0000\n"
 "PO-Revision-Date: 2013-02-23 17:50+0100\n"
 "Last-Translator: Miguel Ángel Arruga Vivas <rosen644835@gmail.com>\n"
 "Language-Team: Spanish <es@li.org>\n"
@@ -4946,48 +4946,48 @@ msgid "Could not start hostlist HTTP server on port %u\n"
 msgstr ""
 "No se pudo arrancar un servidor de listas de máquinas HTTP en el puerto %u\n"
 
-#: src/identity/gnunet-identity.c:179
+#: src/identity/gnunet-identity.c:186
 #, fuzzy, c-format
 msgid "Failed to create ego: %s\n"
 msgstr "Se produjo un fallo al crear la página para «%s»\n"
 
-#: src/identity/gnunet-identity.c:201
+#: src/identity/gnunet-identity.c:221
 #, fuzzy, c-format
 msgid "Failed to set default ego: %s\n"
 msgstr "Se produjo un fallo al crear la página para «%s»\n"
 
-#: src/identity/gnunet-identity.c:356
+#: src/identity/gnunet-identity.c:376
 msgid "create ego NAME"
 msgstr ""
 
-#: src/identity/gnunet-identity.c:362
+#: src/identity/gnunet-identity.c:382
 #, fuzzy
 msgid "delete ego NAME "
 msgstr "borrar un nombre de espacio de nombres (NAME)"
 
-#: src/identity/gnunet-identity.c:367
+#: src/identity/gnunet-identity.c:387
 #, fuzzy
 msgid "display all egos"
 msgstr "mostrar registros"
 
-#: src/identity/gnunet-identity.c:373
+#: src/identity/gnunet-identity.c:393
 msgid ""
 "set default identity to EGO for a subsystem SUBSYSTEM (use together with -s)"
 msgstr ""
 
 # Miguel: Aquí he dejado monitorización porque esto es
 # del servicio de traducción de direcciones.
-#: src/identity/gnunet-identity.c:378
+#: src/identity/gnunet-identity.c:398
 #, fuzzy
 msgid "run in monitor mode egos"
 msgstr "modo de monitorización"
 
-#: src/identity/gnunet-identity.c:384
+#: src/identity/gnunet-identity.c:404
 msgid ""
 "set default identity to EGO for a subsystem SUBSYSTEM (use together with -e)"
 msgstr ""
 
-#: src/identity/gnunet-identity.c:398
+#: src/identity/gnunet-identity.c:418
 msgid "Maintain egos"
 msgstr ""
 
@@ -5040,7 +5040,7 @@ msgstr "Se produjo un fallo al borrar el fichero de configuración %s\n"
 msgid "Failed to create directory `%s' for storing egos\n"
 msgstr "Se produjo un fallo al leer el directorio «%s»\n"
 
-#: src/identity/plugin_rest_identity.c:1288
+#: src/identity/plugin_rest_identity.c:1308
 #, fuzzy
 msgid "Identity REST API initialized\n"
 msgstr "Conexión fallida\n"
@@ -7163,7 +7163,7 @@ msgstr ""
 
 #: src/transport/gnunet-communicator-tcp.c:2162
 #: src/transport/gnunet-communicator-udp.c:2699
-#: src/transport/gnunet-service-tng.c:9110
+#: src/transport/gnunet-service-tng.c:9239
 #: src/transport/gnunet-service-transport.c:2795
 #, fuzzy
 msgid "Transport service is lacking key configuration settings. Exiting.\n"
