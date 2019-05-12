@@ -322,6 +322,8 @@ GNUNET_CURL_job_add (struct GNUNET_CURL_Context *ctx,
   if (CURLE_OK != curl_easy_setopt (eh, CURLOPT_HTTPHEADER, all_headers))
   {
     GNUNET_break (0);
+    curl_slist_free_all (all_headers);
+    GNUNET_free_non_null (aid_header);
     curl_easy_cleanup (eh);
     return NULL;
   }
