@@ -7764,11 +7764,9 @@ select_best_pending_from_link (struct PendingMessageScoreContext *sc,
                                struct DistanceVectorHop *dvh,
                                size_t overhead)
 {
-  /* FIXME-NEXT: right now we ignore all the 'fancy' sorting
-     we do on the pending message list, resulting in a
-     linear time algorithm (PLUS linear time list management).
-     So we should probably either avoid keeping a sorted list,
-     or find a way to make the sorting useful here! */
+  struct GNUNET_TIME_Absolute now;
+
+  now = GNUNET_TIME_absolute_get ();
   for (struct PendingMessage *pos = vl->pending_msg_head; NULL != pos;
        pos = pos->next_vl)
   {
@@ -7776,6 +7774,8 @@ select_best_pending_from_link (struct PendingMessageScoreContext *sc,
     int frag;
     int relb;
 
+    if (pos->next_attempt.abs_value_us > now.abs_value_us)
+      break; /* too early for all messages, they are sorted by next_attempt */
     if (NULL != pos->qe)
       continue; /* not eligible */
     sc->consideration_counter++;
@@ -7946,9 +7946,11 @@ transmit_on_queue (void *cls)
        characteristics (i.e. RTT); it takes one RTT for the message to
        arrive and the ACK to come back in the best case; but the other
        side is allowed to delay ACKs by 2 RTTs, so we use 4 RTT before
-       retransmitting.  Note that in the future this heuristic should
-       likely be improved further (measure RTT stability, consider
-       message urgency and size when delaying ACKs, etc.) */
+       retransmitting.
+
+       OPTIMIZE: Note that in the future this heuristic should likely
+       be improved further (measure RTT stability, consider message
+       urgency and size when delaying ACKs, etc.) */
     update_pm_next_attempt (pm,
                             GNUNET_TIME_relative_to_absolute (
                               GNUNET_TIME_relative_multiply (queue->pd.aged_rtt,
