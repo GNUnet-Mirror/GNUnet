@@ -24,7 +24,6 @@
  *
  * TODO:
  * Implement next:
- * - FIXME-NEXT: logic to decide which pm to pick for a given queue (sorting!)
  * - FIXME-FC: realize transport-to-transport flow control (needed in case
  *   communicators do not offer flow control).  Note that we may not
  *   want to simply delay the ACKs as that may cause unnecessary
@@ -7817,10 +7816,45 @@ select_best_pending_from_link (struct PendingMessageScoreContext *sc,
        message would beat it! */
     if (NULL != sc->best)
     {
-      /* FIXME-NEXT: CHECK if pos fits queue BETTER than pm, if not:
-         continue; */
-      /* NOTE: use 'overhead' to estimate need for fragmentation,
-         prefer it if MTU is sufficient and close! */
+      /* CHECK if pos fits queue BETTER (=smaller) than pm, if not: continue;
+         OPTIMIZE-ME: This is a heuristic, which so far has NOT been
+         experimentally validated. There may be some huge potential for
+         improvement here. Also, we right now only compare how well the
+         given message fits _this_ queue, and do not consider how well other
+         queues might suit the message. Taking other queues into consideration
+         may further improve the result, but could also be expensive
+         in terms of CPU time.  */
+      long long sc_score = sc->frag * 40 + sc->relb * 20 + sc->real_overhead;
+      long long pm_score = frag * 40 + relb * 20 + real_overhead;
+      long long time_delta =
+        (sc->best->next_attempt.abs_value_us - pos->next_attempt.abs_value_us) /
+        1000LL;
+
+      /* "time_delta" considers which message has been 'ready' for transmission
+         for longer, if a message has a preference for low latency, increase
+         the weight of the time_delta by 10x if it is favorable for that message */
+      if ((0 != (pos->prefs & GNUNET_MQ_PREF_LOW_LATENCY)) &&
+          (0 != (sc->best->prefs & GNUNET_MQ_PREF_LOW_LATENCY)))
+        time_delta *= 10; /* increase weight (always, both are low latency) */
+      else if ((0 != (pos->prefs & GNUNET_MQ_PREF_LOW_LATENCY)) &&
+               (time_delta > 0))
+        time_delta *=
+          10; /* increase weight, favors 'pos', which is low latency */
+      else if ((0 != (sc->best->prefs & GNUNET_MQ_PREF_LOW_LATENCY)) &&
+               (time_delta < 0))
+        time_delta *=
+          10; /* increase weight, favors 'sc->best', which is low latency */
+      if (0 != queue->mtu)
+      {
+        /* Grant bonus if we are bellow MTU, larger bonus the closer we will
+           be to the MTU */
+        if (queue->mtu > sc->real_overhead + sc->best->bytes_msg)
+          sc_score -= queue->mtu - (sc->real_overhead + sc->best->bytes_msg);
+        if (queue->mtu > real_overhead + pos->bytes_msg)
+          pm_score -= queue->mtu - (real_overhead + pos->bytes_msg);
+      }
+      if (sc_score + time_delta > pm_score)
+        continue; /* sc_score larger, keep sc->best */
     }
     sc->best = pos;
     sc->dvh = dvh;
