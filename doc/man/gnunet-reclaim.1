@@ -1,0 +1,115 @@
+.\" This file is part of GNUnet.
+.\" Copyright (C) 2001-2019 GNUnet e.V.
+.\"
+.\" Permission is granted to copy, distribute and/or modify this document
+.\" under the terms of the GNU Free Documentation License, Version 1.3 or
+.\" any later version published by the Free Software Foundation; with no
+.\" Invariant Sections, no Front-Cover Texts, and no Back-Cover Texts.  A
+.\" copy of the license is included in the file
+.\" ``FDL-1.3''.
+.\"
+.\" A copy of the license is also available from the Free Software
+.\" Foundation Web site at @url{http://www.gnu.org/licenses/fdl.html}.
+.\"
+.\" Alternately, this document is also available under the General
+.\" Public License, version 3 or later, as published by the Free Software
+.\" Foundation.  A copy of the license is included in the file
+.\" ``GPL3''.
+.\"
+.\" A copy of the license is also available from the Free Software
+.\" Foundation Web site at @url{http://www.gnu.org/licenses/gpl.html}.
+.\"
+.\" SPDX-License-Identifier: GPL3.0-or-later OR FDL1.3-or-later
+.\"
+.Dd May 12, 2019
+.Dt GNUNET-RECLAIM 1
+.Os
+.Sh NAME
+.Nm gnunet-reclaim
+.Nd
+Command-line tools for re:claimID subsystem
+.Sh SYNOPSIS
+.Nm
+.Op Fl c Ar FILENAME | Fl \-config= Ns Ar FILENAME
+.Op Fl h | \-help
+.Op Fl L Ar LOGLEVEL | Fl \-loglevel= Ns Ar LOGLEVEL
+.Op Fl l Ar LOGFILE | Fl \-logfile= Ns Ar LOGFILE
+.Op Fl e Ar EGO | Fl \-ego= Ns Ar EGO
+.Op Fl a Ar NAME | Fl \-add= Ns Ar NAME
+.Op Fl V Ar VALUE | Fl \-value= Ns Ar VALUE
+.Op Fl d Ar ID | Fl \-delete= Ns Ar ID
+.Op Fl r Ar RP | Fl \-rp= Ns Ar RP
+.Op Fl D | \-dump
+.Op Fl i Ar A1,A2,... | Fl \-issue= Ns Ar A1,A2,...
+.Op Fl C Ar TICKET | Fl \-consume= Ns Ar TICKET
+.Op Fl R Ar TICKET | Fl \-revoke= Ns Ar TICKET
+.Op Fl t Ar TYPE | Fl \-type= Ns Ar TYPE
+.Op Fl T | \-tickets
+.Op Fl E Ar INTERVAL | Fl \-expiration= Ns Ar INTERVAL
+.Op Fl v | \-version
+.Sh DESCRIPTION
+.Nm
+allows you to manage identity attributes and manage authorizations.
+.Bl -tag -width Ds
+.It Fl c Ar FILENAME | Fl \-config= Ns Ar FILENAME
+Use the configuration file FILENAME.
+.It Fl h | \-help
+Print short help on options.
+.It Fl L Ar LOGLEVEL | Fl \-loglevel= Ns Ar LOGLEVEL
+Use LOGLEVEL for logging.
+Valid values are DEBUG, INFO, WARNING and ERROR.
+.It Fl l Ar LOGFILE | Fl \-logfile= Ns Ar LOGFILE
+Configure logging to write logs to LOGFILE.
+.It Fl e Ar EGO | Fl \-ego= Ns Ar EGO
+Specify identity to use. Always required.
+.It Fl a Ar NAME | Fl \-add= Ns Ar NAME
+Add an attribute with NAME. Must be used in conjunction with -V
+.It Fl V Ar VALUE | Fl \-value= Ns Ar VALUE
+Specify value of attribute to add.
+.It Fl t Ar TYPE | Fl \-type= Ns Ar TYPE
+Specify type of attribute to add (Default: STRING)
+.It Fl d Ar ID | Fl \-delete= Ns Ar ID
+Delete an attribute with ID.
+.It Fl E Ar INTERVAL | Fl \-expiration= Ns Ar INTERVAL
+Specify relative expiration interval (freshness) of attribute.
+.It Fl D | \-dump
+List all attributes for given identity.
+.It Fl i Ar A1,A2,... | Fl \-issue= Ns Ar A1,A2,...
+Authorize a relying party to access a set of attributes. Must be
+used in conjunction with -r. Returns a TICKET.
+.It Fl r Ar RP | Fl \-rp= Ns Ar RP
+The relying party to authorize (see -i). RP is a PKEY of the entity.
+.It Fl C Ar TICKET | Fl \-consume= Ns Ar TICKET
+Consume TICKET and retrieve shared attributes. To be used by RP.
+.It Fl R Ar TICKET | Fl \-revoke= Ns Ar TICKET
+Revoke TICKET. To be used by identity which issued TICKET.
+.It Fl T | \-tickets
+List issued tickets.
+.It Fl v | \-version
+Print GNUnet version number.
+.El
+.\".Sh EXAMPLES
+.Sh SEE ALSO
+The full documentation for gnunet is maintained as a Texinfo manual.
+If the
+.Xr info 1
+and gnunet programs are properly installed at your site, the command
+.Pp
+.Dl info gnunet
+.Pp
+should give you access to the complete handbook,
+.Pp
+.Dl info gnunet-c-tutorial
+.Pp
+will give you access to a tutorial for developers.
+.sp
+Depending on your installation, this information is also available in
+.Xr gnunet 7 and
+.Xr gnunet-c-tutorial 7 .
+.\".Sh HISTORY
+.\".Sh AUTHORS
+.Sh BUGS
+Report bugs by using
+.Lk https://bugs.gnunet.org
+or by sending electronic mail to
+.Aq Mt gnunet-developers@gnu.org .
