@@ -40,7 +40,7 @@
  *   whatever else we could reach.
  * - AcknowledgementUUIDPs are overkill with 256 bits (128 would do)
  *   => Need 128 bit hash map though! [BANDWIDTH, MEMORY]
- * - queue_send_msg and route_message both by API design have to make copies
+ * - queue_send_msg by API design has to make a copy
  *   of the payload, and route_message on top of that requires a malloc/free.
  *   Change design to approximate "zero" copy better... [CPU]
  * - could avoid copying body of message into each fragment and keep
@@ -56,6 +56,10 @@
  *   triggering an explicit validation mechansim ourselves, specifically routing
  *   a challenge-response message over the path [ROUTING]
  * - Track ACK losses based on ACK-counter [ROUTING]
+ * - Fragments send over a reliable channel could do without the
+ *   AcknowledgementUUIDP altogether, as they won't be acked! [BANDWIDTH]
+ *   (-> have 2nd type of acknowledgment message; low priority, as we
+ *       do not have an MTU-limited *reliable* communicator)
  *
  * Design realizations / discussion:
  * - communicators do flow control by calling MQ "notify sent"
