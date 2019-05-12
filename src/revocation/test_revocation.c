@@ -11,7 +11,7 @@
    WITHOUT ANY WARRANTY; without even the implied warranty of
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
    Affero General Public License for more details.
-  
+
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -95,15 +95,13 @@ check_revocation (void *cls);
 
 
 static void
-revocation_remote_cb (void *cls,
-                      int is_valid)
+revocation_remote_cb (void *cls, int is_valid)
 {
   static int repeat = 0;
 
   if (GNUNET_NO == is_valid)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                "Local revocation successful\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Local revocation successful\n");
     ok = 0;
     GNUNET_SCHEDULER_shutdown ();
     return;
@@ -116,8 +114,7 @@ revocation_remote_cb (void *cls,
                                   NULL);
     return;
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-              "Flooding of revocation failed\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Flooding of revocation failed\n");
   ok = 2;
   GNUNET_SCHEDULER_shutdown ();
 }
@@ -128,27 +125,25 @@ check_revocation (void *cls)
 {
   GNUNET_REVOCATION_query (testpeers[0].cfg,
                            &testpeers[1].pubkey,
-                           &revocation_remote_cb, NULL);
+                           &revocation_remote_cb,
+                           NULL);
 }
 
 
 static void
-revocation_cb (void *cls,
-               int is_valid)
+revocation_cb (void *cls, int is_valid)
 {
   testpeers[1].revok_handle = NULL;
   if (GNUNET_NO == is_valid)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                "Revocation successful\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Revocation successful\n");
     check_revocation (NULL);
   }
 }
 
 
 static void
-ego_cb (void *cls,
-        const struct GNUNET_IDENTITY_Ego *ego)
+ego_cb (void *cls, const struct GNUNET_IDENTITY_Ego *ego)
 {
   static int completed = 0;
 
@@ -166,38 +161,35 @@ ego_cb (void *cls,
     GNUNET_IDENTITY_ego_get_public_key (ego, &testpeers[1].pubkey);
     GNUNET_REVOCATION_sign_revocation (testpeers[1].privkey, &testpeers[1].sig);
 
-    GNUNET_log(GNUNET_ERROR_TYPE_INFO,
-               "Calculating proof of work...\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Calculating proof of work...\n");
     testpeers[1].pow = 0;
-    int res = GNUNET_REVOCATION_check_pow (&testpeers[1].pubkey,
-        testpeers[1].pow, 5);
+    int res =
+      GNUNET_REVOCATION_check_pow (&testpeers[1].pubkey, testpeers[1].pow, 5);
     while (GNUNET_OK != res)
     {
       testpeers[1].pow++;
-      res = GNUNET_REVOCATION_check_pow (&testpeers[1].pubkey,
-                                         testpeers[1].pow,
-                                         5);
+      res =
+        GNUNET_REVOCATION_check_pow (&testpeers[1].pubkey, testpeers[1].pow, 5);
     }
-    fprintf (stderr,
-             "Done calculating proof of work\n");
+    fprintf (stderr, "Done calculating proof of work\n");
     completed++;
   }
   if (2 == completed)
   {
-    GNUNET_log(GNUNET_ERROR_TYPE_INFO,
-               "Egos retrieved\n");
-    testpeers[1].revok_handle
-      = GNUNET_REVOCATION_revoke (testpeers[1].cfg,
-                                  &testpeers[1].pubkey,
-                                  &testpeers[1].sig,
-                                  testpeers[1].pow,
-                                  &revocation_cb, NULL);
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Egos retrieved\n");
+    testpeers[1].revok_handle = GNUNET_REVOCATION_revoke (testpeers[1].cfg,
+                                                          &testpeers[1].pubkey,
+                                                          &testpeers[1].sig,
+                                                          testpeers[1].pow,
+                                                          &revocation_cb,
+                                                          NULL);
   }
 }
 
 
 static void
 identity_create_cb (void *cls,
+                    const struct GNUNET_CRYPTO_EcdsaPrivateKey *pk,
                     const char *emsg)
 {
   static int completed = 0;
@@ -214,8 +206,7 @@ identity_create_cb (void *cls,
   }
   if (2 != completed)
     return;
-  fprintf (stderr,
-           "Identities created\n");
+  fprintf (stderr, "Identities created\n");
   testpeers[0].ego_lookup = GNUNET_IDENTITY_ego_lookup (testpeers[0].cfg,
                                                         "client",
                                                         &ego_cb,
@@ -238,18 +229,15 @@ identity_completion_cb (void *cls,
   completed++;
   if (NUM_TEST_PEERS != completed)
     return;
-  fprintf (stderr,
-           "All peers connected @ IDENTITY ...\n");
-  testpeers[0].create_id_op
-    = GNUNET_IDENTITY_create (testpeers[0].idh,
-                              "client",
-                              &identity_create_cb,
-                              &testpeers[0]);
-  testpeers[1].create_id_op
-    = GNUNET_IDENTITY_create (testpeers[1].idh,
-                              "toberevoked",
-                              &identity_create_cb,
-                              &testpeers[1]);
+  fprintf (stderr, "All peers connected @ IDENTITY ...\n");
+  testpeers[0].create_id_op = GNUNET_IDENTITY_create (testpeers[0].idh,
+                                                      "client",
+                                                      &identity_create_cb,
+                                                      &testpeers[0]);
+  testpeers[1].create_id_op = GNUNET_IDENTITY_create (testpeers[1].idh,
+                                                      "toberevoked",
+                                                      &identity_create_cb,
+                                                      &testpeers[1]);
 }
 
 
@@ -262,15 +250,13 @@ identity_connect_adapter (void *cls,
   me->cfg = cfg;
   me->idh = GNUNET_IDENTITY_connect (cfg, NULL, NULL);
   if (NULL == me->idh)
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Failed to create IDENTITY handle \n");
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Failed to create IDENTITY handle \n");
   return me->idh;
 }
 
 
 static void
-identity_disconnect_adapter (void *cls,
-                             void *op_result)
+identity_disconnect_adapter (void *cls, void *op_result)
 {
   struct TestPeer *me = cls;
   GNUNET_IDENTITY_disconnect (me->idh);
@@ -281,31 +267,34 @@ identity_disconnect_adapter (void *cls,
 static void *
 connect_cb (void *cls,
             const struct GNUNET_PeerIdentity *peer,
-	    struct GNUNET_MQ_Handle *mq)
+            struct GNUNET_MQ_Handle *mq)
 {
   static int connects = 0;
 
   connects++;
   if (NUM_TEST_PEERS * NUM_TEST_PEERS == connects)
   {
-    fprintf (stderr,
-             "All peers connected @ CORE ...\n");
+    fprintf (stderr, "All peers connected @ CORE ...\n");
 
     /* Connect to identity service */
-    testpeers[0].identity_op
-      = GNUNET_TESTBED_service_connect (NULL,
-                                        testpeers[0].p, "identity",
-                                        &identity_completion_cb, NULL,
-                                        &identity_connect_adapter,
-                                        &identity_disconnect_adapter,
-                                        &testpeers[0]);
-    testpeers[1].identity_op
-      = GNUNET_TESTBED_service_connect (NULL,
-                                        testpeers[1].p, "identity",
-                                        *identity_completion_cb, NULL,
-                                        &identity_connect_adapter,
-                                        &identity_disconnect_adapter,
-                                        &testpeers[1]);
+    testpeers[0].identity_op =
+      GNUNET_TESTBED_service_connect (NULL,
+                                      testpeers[0].p,
+                                      "identity",
+                                      &identity_completion_cb,
+                                      NULL,
+                                      &identity_connect_adapter,
+                                      &identity_disconnect_adapter,
+                                      &testpeers[0]);
+    testpeers[1].identity_op =
+      GNUNET_TESTBED_service_connect (NULL,
+                                      testpeers[1].p,
+                                      "identity",
+                                      *identity_completion_cb,
+                                      NULL,
+                                      &identity_connect_adapter,
+                                      &identity_disconnect_adapter,
+                                      &testpeers[1]);
   }
   return NULL;
 }
@@ -322,35 +311,26 @@ core_completion_cb (void *cls,
   completed++;
   if (NUM_TEST_PEERS == completed)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                "Connected to CORE\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Connected to CORE\n");
   }
 }
 
 
 static void *
-core_connect_adapter (void *cls,
-                      const struct GNUNET_CONFIGURATION_Handle *cfg)
+core_connect_adapter (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   struct TestPeer *me = cls;
 
   me->cfg = cfg;
-  me->ch = GNUNET_CORE_connect (cfg,
-				me,
-				NULL,
-                                &connect_cb,
-				NULL,
-                                NULL);
+  me->ch = GNUNET_CORE_connect (cfg, me, NULL, &connect_cb, NULL, NULL);
   if (NULL == me->ch)
-    GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
-               "Failed to create CORE handle \n");
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Failed to create CORE handle \n");
   return me->ch;
 }
 
 
 static void
-core_disconnect_adapter (void *cls,
-                         void *op_result)
+core_disconnect_adapter (void *cls, void *op_result)
 {
   struct TestPeer *me = cls;
 
@@ -369,8 +349,7 @@ test_connection (void *cls,
 {
   unsigned int c;
 
-  GNUNET_SCHEDULER_add_shutdown (&do_shutdown,
-                                 NULL);
+  GNUNET_SCHEDULER_add_shutdown (&do_shutdown, NULL);
   if (NUM_TEST_PEERS != num_peers)
   {
     ok = 4;
@@ -381,28 +360,28 @@ test_connection (void *cls,
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
-   /* We are generating a CLIQUE */
-  if (NUM_TEST_PEERS * (NUM_TEST_PEERS -1) == links_succeeded)
+  /* We are generating a CLIQUE */
+  if (NUM_TEST_PEERS * (NUM_TEST_PEERS - 1) == links_succeeded)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                 "Testbed connected peers, initializing test\n");
     for (c = 0; c < num_peers; c++)
     {
       testpeers[c].p = peers[c];
-      testpeers[c].core_op
-        = GNUNET_TESTBED_service_connect (NULL,
-                                          testpeers[c].p,
-                                          "core",
-                                          &core_completion_cb, NULL,
-                                          &core_connect_adapter,
-                                          &core_disconnect_adapter,
-                                          &testpeers[c]);
+      testpeers[c].core_op =
+        GNUNET_TESTBED_service_connect (NULL,
+                                        testpeers[c].p,
+                                        "core",
+                                        &core_completion_cb,
+                                        NULL,
+                                        &core_connect_adapter,
+                                        &core_disconnect_adapter,
+                                        &testpeers[c]);
     }
   }
   else
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Testbed failed to connect peers\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Testbed failed to connect peers\n");
     ok = 5;
     GNUNET_SCHEDULER_shutdown ();
     return;
@@ -411,16 +390,18 @@ test_connection (void *cls,
 
 
 int
-main (int argc,
-      char *argv[])
+main (int argc, char *argv[])
 {
   ok = 1;
   /* Connecting initial topology */
   (void) GNUNET_TESTBED_test_run ("test-revocation",
                                   "test_revocation.conf",
-                                  NUM_TEST_PEERS, 0,
-                                  NULL, NULL,
-                                  &test_connection, NULL);
+                                  NUM_TEST_PEERS,
+                                  0,
+                                  NULL,
+                                  NULL,
+                                  &test_connection,
+                                  NULL);
   return ok;
 }
 
