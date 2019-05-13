@@ -835,8 +835,8 @@ AS_IF([test "$extractor" != 1],
  ])
 
 
-if test "$taler_only" != yes
-then
+AS_IF([test "$taler_only" != yes],[
+
 
 # Check for libltdl header (#2999)
 ltdl=0
@@ -1003,7 +1003,9 @@ AS_IF([test "$enable_shared" = "no"],
 LIBS=$SAVE_LIBS
 
 
-fi
+# end of taler-only being false
+])
+
 
 # check for iconv
 AM_ICONV
@@ -1674,12 +1676,9 @@ else
      [enable_workarounds=${enableval}],
      [enable_workarounds=no])
   AC_MSG_RESULT($enable_workarounds)
-  if test x$enable_windows_workarounds = "xyes"
-  then
-     workarounds=1
-  else
-     workarounds=0
-   fi
+  AS_IF([test x$enable_windows_workarounds = "xyes"],
+    [workarounds=1],
+    [workarounds=0])
 fi
 AC_DEFINE_UNQUOTED([ENABLE_WINDOWS_WORKAROUNDS], $workarounds, [enable workarounds used on Windows (only useful for test cases)])
 
