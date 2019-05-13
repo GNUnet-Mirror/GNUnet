@@ -788,14 +788,14 @@ AC_ARG_ENABLE([taler-wallet],
    [taler_only=${enableval}],
    [taler_only=no])
 AC_MSG_RESULT($taler_only)
-if test "x$taler_only" = "xyes"
-then
+AS_IF([test "x$taler_only" = "xyes"],
+[
   AM_CONDITIONAL([TALER_ONLY],true)
   AC_DEFINE([TALER_WALLET_ONLY],[1],[Compiling for Taler wallet])
-else
+],[
   AM_CONDITIONAL([TALER_ONLY],false)
   AC_DEFINE([TALER_WALLET_ONLY],[0],[Canonical compilation])
-fi
+])
 
 # test for libextractor
 extractor=0
@@ -803,23 +803,20 @@ AC_MSG_CHECKING(for libextractor)
 AC_ARG_WITH(extractor,
    [  --with-extractor=PFX    base of libextractor installation],
    [AC_MSG_RESULT([$with_extractor])
-    case $with_extractor in
-      no)
-        ;;
-      yes)
+    AS_CASE([$with_extractor],
+      [no],[],
+      [yes],[
         AC_CHECK_HEADERS([extractor.h],
           AC_CHECK_LIB([extractor], [EXTRACTOR_plugin_add_defaults],
             extractor=1))
-        ;;
-      *)
+      ],[
         LDFLAGS="-L$with_extractor/lib $LDFLAGS"
         CPPFLAGS="-I$with_extractor/include $CPPFLAGS"
         AC_CHECK_HEADERS([extractor.h],
           AC_CHECK_LIB([extractor], [EXTRACTOR_plugin_add_defaults],
             EXT_LIB_PATH="-L$with_extractor/lib $EXT_LIB_PATH"
             extractor=1))
-        ;;
-    esac
+      ])
    ],
    [AC_MSG_RESULT([--with-extractor not specified])
     AC_CHECK_HEADERS([extractor.h],
@@ -828,14 +825,14 @@ AC_ARG_WITH(extractor,
 # restore LIBS
 LIBS=$SAVE_LIBS
 
-if test "$extractor" != 1
-then
+AS_IF([test "$extractor" != 1],
+ [
  AM_CONDITIONAL(HAVE_LIBEXTRACTOR, false)
  AC_DEFINE([HAVE_LIBEXTRACTOR],[0],[Lacking libextractor])
-else
+ ],[
  AM_CONDITIONAL(HAVE_LIBEXTRACTOR, true)
  AC_DEFINE([HAVE_LIBEXTRACTOR],[1],[Have libextractor])
-fi
+ ])
 
 
 if test "$taler_only" != yes
@@ -847,34 +844,31 @@ AC_MSG_CHECKING(for libltdl)
 AC_ARG_WITH(ltdl,
    [  --with-ltdl=PFX    base of libltdl installation],
    [AC_MSG_RESULT([$with_ltdl])
-    case $with_ltdl in
-      no)
-        ;;
-      yes)
+    AS_CASE([$with_ltdl],
+      [no],[],
+      [yes],[
         AC_CHECK_HEADERS(ltdl.h,
           AC_CHECK_LIB([ltdl], [lt_dlopenext],
             ltdl=1))
-        ;;
-      *)
+      ],[
         LDFLAGS="-L$with_ltdl/lib $LDFLAGS"
         CPPFLAGS="-I$with_ltdl/include $CPPFLAGS"
         AC_CHECK_HEADERS(ltdl.h,
           AC_CHECK_LIB([ltdl], [lt_dlopenext],
             EXT_LIB_PATH="-L$with_ltdl/lib $EXT_LIB_PATH"
             ltdl=1))
-        ;;
-    esac
+      ])
    ],
    [AC_MSG_RESULT([--with-ltdl not specified])
     AC_CHECK_HEADERS(ltdl.h,
      AC_CHECK_LIB([ltdl], [lt_dlopenext],
       ltdl=1))])
-if test x$ltdl = x1
-then
+AS_IF([test x$ltdl = x1],
+[
  AC_MSG_RESULT([libltdl found])
-else
+],[
  AC_MSG_ERROR([GNUnet requires libltdl (from GNU libtool), try installing libltdl-dev])
-fi
+])
 # restore LIBS
 LIBS=$SAVE_LIBS
 
@@ -999,11 +993,10 @@ AC_CHECK_LIB(z, compress2,
 AC_SUBST(Z_CFLAGS)
 AC_SUBST(Z_LIBS)
 
-if test "$enable_shared" = "no"
-then
+AS_IF([test "$enable_shared" = "no"],
+[
  AC_MSG_ERROR([GNUnet only works with shared libraries. Sorry.])
-fi
-
+])
 
 
 # restore LIBS
@@ -1017,14 +1010,14 @@ AM_ICONV
 
 # test for libunistring
 gl_LIBUNISTRING
-if test $HAVE_LIBUNISTRING != yes; then
- AC_MSG_ERROR([GNUnet requires libunistring])
-fi
+AS_IF([test $HAVE_LIBUNISTRING != yes],
+ [AC_MSG_ERROR([GNUnet requires libunistring])])
+ 
 # under emscripten, $gl_libunistring_hexversion is undefined
 if test "$taler_only" != yes; then
-if test "x$gl_libunistring_hexversion" = "x" || test "$gl_libunistring_hexversion" -le 2305; then
- AC_MSG_ERROR([GNUnet requires libunistring >= 0.9.1.1])
-fi
+
+AS_IF([test "x$gl_libunistring_hexversion" = "x" || test "$gl_libunistring_hexversion" -le 2305],
+  [AC_MSG_ERROR([GNUnet requires libunistring >= 0.9.1.1])])
 fi
 AC_CHECK_HEADERS([unistr.h],,AC_MSG_ERROR([Compiling GNUnet requires unistr.h (from libunistring) to be installed]))
 
@@ -1067,14 +1060,12 @@ AC_MSG_CHECKING(for SQLite)
 AC_ARG_WITH(sqlite,
   [  --with-sqlite=PFX       base of SQLite installation],
   [AC_MSG_RESULT("$with_sqlite")
-   case $with_sqlite in
-   no)
-     ;;
-   yes)
-    AC_CHECK_HEADERS(sqlite3.h,
-     sqlite=true)
-     ;;
-   *)
+   AS_CASE([$with_sqlite],
+     [no],[],
+     [yes],[
+      AC_CHECK_HEADERS(sqlite3.h,
+      sqlite=true)],
+     [
     LDFLAGS="-L$with_sqlite/lib $LDFLAGS"
     CPPFLAGS="-I$with_sqlite/include $CPPFLAGS"
     AC_CHECK_HEADERS(sqlite3.h,
@@ -1084,8 +1075,7 @@ AC_ARG_WITH(sqlite,
      sqlite=true)
     LDFLAGS=$SAVE_LDFLAGS
     CPPFLAGS=$SAVE_CPPFLAGS
-    ;;
-   esac
+    ])
   ],
   [AC_MSG_RESULT([--with-sqlite not specified])
     AC_CHECK_HEADERS(sqlite3.h, sqlite=true)])
@@ -1116,10 +1106,8 @@ CPPFLAGS=$SAVE_CPPFLAGS
 AC_CHECK_TYPES([sigset_t, off_t], [], [], [#include <sys/types.h>])
 AC_CHECK_TYPES([size_t], [], [], [#include <stdio.h>])
 
-if test "$build_target" = "mingw"
-then
-  CYGWIN_MYSQL_MAGIC="#include <mysql/my_global.h>"
-fi
+AS_IF([test "$build_target" = "mingw"]
+ [CYGWIN_MYSQL_MAGIC="#include <mysql/my_global.h>"])
 
 # test for mysql
 mysql=false
@@ -1130,16 +1118,13 @@ AC_MSG_CHECKING(for mysql)
 AC_ARG_WITH(mysql,
   [  --with-mysql=PFX        base of MySQL installation],
   [AC_MSG_RESULT([$with_mysql])
-   case $with_mysql in
-   no)
-      ;;
-   yes|"")
+   AS_CASE([$with_mysql],
+     [no],[],
+     [yes|""],[
       AC_CHECK_HEADERS(mysql/mysql.h,
        AC_CHECK_LIB(mysqlclient, mysql_init,
-
        mysql=true), [], [$CYGWIN_MYSQL_MAGIC])
-      ;;
-   *)
+     ],[
       LDFLAGS="-L$with_mysql/lib -L$with_mysql/lib/mysql $LDFLAGS $ZLIBS"
       CPPFLAGS="-I$with_mysql/include $CPPFLAGS"
       AC_CHECK_HEADERS(mysql/mysql.h,
@@ -1148,8 +1133,7 @@ AC_ARG_WITH(mysql,
         MYSQL_CPPFLAGS="-I$with_mysql/include"
 
         mysql=true), [], [$CYGWIN_MYSQL_MAGIC])
-      ;;
-   esac
+     ])
   ],
   [AC_MSG_RESULT([--with-mysql not specified])
    if test -d "/usr/lib64/mysql"; then
@@ -1173,8 +1157,8 @@ AC_SUBST(MYSQL_CPPFLAGS)
 
 # additional version check for mysql
 AC_ARG_ENABLE(mysql-version-check, [  --disable-mysql-version-check  do not check MySQL version],, enable_mysql_version_check=yes)
-if test "$mysql" = "true" -a "x$enable_mysql_version_check" = "xyes"
-then
+AS_IF([test "$mysql" = "true" -a "x$enable_mysql_version_check" = "xyes"],
+ [
   AC_MSG_CHECKING(mysql version)
   AC_COMPILE_IFELSE([AC_LANG_PROGRAM(
     [[$CYGWIN_MYSQL_MAGIC
@@ -1186,14 +1170,14 @@ then
       int main () { return 0; }
     ]])
     ],mysql=true,mysql=false)
-  if test "$mysql" = "false"
-  then
+  AS_IF([test "$mysql" = "false"],
+   [
     mysqlfail=true
     AC_MSG_RESULT([fail, >= 4.1 required])
-  else
+   ],[
     AC_MSG_RESULT(ok)
-  fi
-fi
+   ])
+])
 AM_CONDITIONAL(HAVE_MYSQL, test x$mysql = xtrue)
 AM_CONDITIONAL(HAVE_MYSQLE, false)
 # restore LIBS
@@ -1201,10 +1185,10 @@ LIBS=$SAVE_LIBS
 LDFLAGS=$SAVE_LDFLAGS
 CPPFLAGS=$SAVE_CPPFLAGS
 
-if test "$sqlite" = 0 -a "$mysql" = 0
-then
+AS_IF([test "$sqlite" = 0 -a "$mysql" = 0],
+[
  AC_MSG_ERROR([GNUnet requires SQLite or MySQL])
-fi
+])
 
 # libmicrohttpd
 lmhd=0
@@ -1212,10 +1196,9 @@ AC_MSG_CHECKING([for libmicrohttpd])
 AC_ARG_WITH(microhttpd,
    [  --with-microhttpd=PFX   base of libmicrohttpd installation],
    [AC_MSG_RESULT([$with_microhttpd])
-    case $with_microhttpd in
-      no)
-        ;;
-      yes|"")
+    AS_CASE([$with_microhttpd],
+      [no],[],
+      [yes|""],[
         AC_CHECK_HEADERS([microhttpd.h],
 	  AC_CHECK_DECL(MHD_OPTION_PER_IP_CONNECTION_LIMIT,
             AC_CHECK_LIB([microhttpd], [MHD_get_fdset2],
@@ -1234,8 +1217,7 @@ AC_ARG_WITH(microhttpd,
 	    [],[#include "$native_srcdir/src/include/platform.h"
                 #include <microhttpd.h>]),,
             [#include "$native_srcdir/src/include/platform.h"])
-        ;;
-      *)
+      ],[
         LDFLAGS="-L$with_microhttpd/lib $LDFLAGS"
         CPPFLAGS="-I$with_microhttpd/include $CPPFLAGS"
         AC_CHECK_HEADERS(microhttpd.h,
@@ -1257,8 +1239,7 @@ AC_ARG_WITH(microhttpd,
 	    [],[#include "$native_srcdir/src/include/platform.h"
                 #include <microhttpd.h>]),,
             [#include "$native_srcdir/src/include/platform.h"])
-        ;;
-    esac
+       ])
    ],
    [AC_MSG_RESULT([--with-microhttpd not specified])
     AC_CHECK_HEADERS([microhttpd.h],
@@ -1345,13 +1326,13 @@ GN_INTLINCL=""
 GN_LIBINTL="$LTLIBINTL"
 AC_ARG_ENABLE(framework, [  --enable-framework      enable Mac OS X framework build helpers],enable_framework_build=$enableval)
 AM_CONDITIONAL(WANT_FRAMEWORK, test x$enable_framework_build = xyes)
-if test x$enable_framework_build = xyes
-then
+AS_IF([test x$enable_framework_build = xyes],
+[
   AC_DEFINE([FRAMEWORK_BUILD], 1, [Build a Mac OS X Framework])
   GN_INTLINCL='-I$(top_srcdir)/src/intlemu'
   GN_LIBINTL='$(top_builddir)/src/intlemu/libintlemu.la -framework CoreFoundation'
   AC_LIB_APPENDTOVAR([CPPFLAGS], [$GN_INTLINCL])
-fi
+])
 
 GN_LIB_LDFLAGS="-export-dynamic -no-undefined"
 GN_PLUGIN_LDFLAGS="-export-dynamic -avoid-version -module -no-undefined"
@@ -1380,17 +1361,10 @@ AC_MSG_CHECKING(for sudo)
 AC_ARG_WITH(sudo,
   [  --with-sudo=PATH       path to sudo binary (or just yes)],
   [AC_MSG_RESULT("$with_sudo")
-   case $with_sudo in
-   no)
-     SUDO_BINARY=
-     ;;
-   yes)
-     SUDO_BINARY=sudo
-     ;;
-   *)
-     SUDO_BINARY=$with_sudo
-    ;;
-   esac
+   AS_CASE([$with_sudo],
+   [no],[SUDO_BINARY=],
+   [yes],[SUDO_BINARY=sudo],
+   [SUDO_BINARY=$with_sudo])
   ],
   [AC_MSG_RESULT([no])])
 AC_SUBST(SUDO_BINARY)
@@ -1403,17 +1377,10 @@ AC_MSG_CHECKING(for gnunetdns group name)
 AC_ARG_WITH(gnunetdns,
   [  --with-gnunetdns=GRPNAME       name for gnunetdns group],
   [AC_MSG_RESULT("$with_gnunetdns")
-   case $with_gnunetdns in
-   no)
-     GNUNETDNS_GROUP=gnunet
-     ;;
-   yes)
-     GNUNETDNS_GROUP=gnunetdns
-     ;;
-   *)
-     GNUNETDNS_GROUP=$with_gnunetdns
-    ;;
-   esac
+   AS_CASE([$with_gnunetdns],
+     [no],[GNUNETDNS_GROUP=gnunet],
+     [yes],[GNUNETDNS_GROUP=gnunetdns],
+     [GNUNETDNS_GROUP=$with_gnunetdns])
   ],
   [AC_MSG_RESULT([gnunetdns])])
 AC_SUBST(GNUNETDNS_GROUP)
@@ -1427,18 +1394,16 @@ AC_MSG_CHECKING(for gnutls)
 AC_ARG_WITH(gnutls,
    [  --with-gnutls=PFX   base of gnutls installation],
    [AC_MSG_RESULT([$with_gnutls])
-    case $with_gnutls in
-      no)
-        ;;
-      yes)
+    AS_CASE([$with_gnutls],
+      [no],[],
+      [yes],[
         AC_CHECK_HEADERS([gnutls/abstract.h],
             AC_CHECK_LIB([gnutls], [gnutls_priority_set],
 	     gnutls=true))
         AC_CHECK_HEADERS([gnutls/dane.h],
             AC_CHECK_LIB([gnutls-dane], [dane_verify_crt_raw],
 	      gnutls_dane=1))
-        ;;
-      *)
+      ],[
         LDFLAGS="-L$with_gnutls/lib $LDFLAGS"
         CPPFLAGS="-I$with_gnutls/include $CPPFLAGS"
         AC_CHECK_HEADERS([gnutls/abstract.h],
@@ -1448,8 +1413,7 @@ AC_ARG_WITH(gnutls,
         AC_CHECK_HEADERS([gnutls/dane.h],
             AC_CHECK_LIB([gnutls-dane], [dane_verify_crt_raw],
 	      gnutls_dane=1))
-        ;;
-    esac
+      ])
    ],
    [AC_MSG_RESULT([--with-gnutls not specified])
     AC_CHECK_HEADERS([gnutls/abstract.h],
@@ -1471,12 +1435,9 @@ AC_MSG_CHECKING(if GNUnet is being configured to run on the SuperMUC)
 AC_ARG_ENABLE([supermuc],
     [AS_HELP_STRING([--enable-supermuc],
        [build GNUnet with support to run on the SuperMUC (default is NO)])],
-    [if test "x$enable_supermuc" = "xno"
-     then
-       supermuc=0
-     else
-       supermuc=1
-     fi],
+    [AS_IF([test "x$enable_supermuc" = "xno"],
+      [supermuc=0],
+      [supermuc=1])],
     [supermuc=0
      enable_supermuc=no])
 AC_MSG_RESULT($enable_SUPERMUC)
@@ -1491,12 +1452,9 @@ AC_ARG_ENABLE([nse-histogram],
        [have NSE send timestamp information to testbed logger for generating
        histogram of received messages.  NOT useful for production (default is
        NO)])],
-    [if test "x$enableval" = "xno"
-     then
-       nse_histogram=0
-     else
-       nse_histogram=1
-     fi],
+    [AS_IF([test "x$enableval" = "xno"],
+      [nse_histogram=0],
+      [nse_histogram=1])],
     [nse_histogram=0
      enable_nse_histogram=no])
 AC_MSG_RESULT($enable_nse_histogram)
@@ -1541,12 +1499,9 @@ AC_ARG_ENABLE([javaports],
    [enable_java_ports=${enableval}],
    [enable_java_ports=no])
 AC_MSG_RESULT($enable_java_ports)
-if test "x$enable_java_ports" = "xyes"
-then
-  JAVAPORT=""
-else
-  JAVAPORT="$UNIXONLY"
-fi
+AS_IF([test "x$enable_java_ports" = "xyes"],
+ [JAVAPORT=""],
+ [JAVAPORT="$UNIXONLY"])
 AC_SUBST(JAVAPORT)
 
 # should benchmarks be run?
@@ -1580,12 +1535,9 @@ AM_CONDITIONAL([HAVE_EXPERIMENTAL], [test "x$enable_experimental" = "xyes"])
 AC_MSG_CHECKING(whether to compile malicious code)
 AC_ARG_ENABLE([malicious],
    [AS_HELP_STRING([--enable-malicious], [enable compiling malicious code])],
-   [if test "x$enableval" = "xno"
-     then
-       malicious=0
-     else
-       malicious=1
-     fi],
+   [AS_IF([test "x$enableval" = "xno"],
+     [malicious=0],
+     [malicious=1])],
    [malicious=0
     enable_malicious=no])
 AC_MSG_RESULT($enable_malicious)
@@ -1603,10 +1555,8 @@ AC_MSG_CHECKING(whether to start peer's services on demand by default)
 AC_ARG_ENABLE([autostart],
    [AS_HELP_STRING([--disable-autostart], [do not start peer's services by default])],
    [enable_autostart=${enableval}
-    if test "x$enable_autostart" = "xno"
-    then
-        START_ON_DEMAND="NO"
-    fi
+    AS_IF([test "x$enable_autostart" = "xno"],
+      [START_ON_DEMAND="NO"])
    ],
    [enable_autostart=yes])
 AC_MSG_RESULT($enable_autostart)
