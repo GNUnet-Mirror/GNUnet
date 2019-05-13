@@ -75,8 +75,8 @@ OLD_LDFLAGS="$LDFLAGS"
 LDFLAGS="$LDFLAGS -Wl,--unresolved-symbols=report-all"
 
 # Check system type
-case "$host_os" in
-*darwin* | *rhapsody* | *macosx*)
+AS_CASE(["$host_os"],
+  [*darwin* | *rhapsody* | *macosx*],[
      AC_DEFINE_UNQUOTED(DARWIN,1,[This is an Apple Darwin system])
      CPPFLAGS="-D_APPLE_C_SOURCE $CPPFLAGS"
      CFLAGS="-fno-common $CFLAGS"
@@ -88,16 +88,16 @@ case "$host_os" in
      LIBPREFIX=
      DLLDIR=lib
      UNIXONLY="#"
-     ;;
-linux*)
+  ],
+  [linux*],[
      AC_DEFINE_UNQUOTED(LINUX,1,[This is a Linux kernel])
      build_target="linux"
      LIBPREFIX=
      DLLDIR=lib
      UNIXONLY="#"
      AC_PATH_XTRA
-     ;;
-*freebsd*)
+  ],
+  [*freebsd*],[
      AC_DEFINE_UNQUOTED(SOMEBSD,1,[This is a BSD system])
      AC_DEFINE_UNQUOTED(FREEBSD,1,[This is a FreeBSD system])
      CFLAGS="-D_THREAD_SAFE $CFLAGS"
@@ -105,8 +105,8 @@ linux*)
      LIBPREFIX=
      DLLDIR=lib
      UNIXONLY="#"
-     ;;
-*openbsd*)
+  ],
+  [*openbsd*],[
      AC_DEFINE_UNQUOTED(SOMEBSD,1,[This is a BSD system])
      AC_DEFINE_UNQUOTED(OPENBSD,1,[This is an OpenBSD system])
      LIBS=`echo $LIBS | sed -e "s/-ldl//"`
@@ -114,15 +114,15 @@ linux*)
      LIBPREFIX=
      DLLDIR=lib
      UNIXONLY="#"
-     ;;
-*netbsd*)
+  ],
+  [*netbsd*],[
      AC_DEFINE_UNQUOTED(SOMEBSD,1,[This is a BSD system])
      AC_DEFINE_UNQUOTED(NETBSD,1,[This is a NetBSD system])
      LIBPREFIX=
      DLLDIR=lib
      UNIXONLY="#"
-     ;;
-*solaris*)
+  ],
+  [*solaris*],[
      AC_DEFINE_UNQUOTED(SOLARIS,1,[This is a Solaris system])
      AC_DEFINE_UNQUOTED(_REENTRANT,1,[Need with solaris or errno doesnt work])
      AC_CHECK_LIB(resolv, res_init)
@@ -131,16 +131,16 @@ linux*)
      LIBPREFIX=
      DLLDIR=lib
      UNIXONLY="#"
-     ;;
-*arm-linux*)
+  ],
+  [*arm-linux*],[
      AC_DEFINE_UNQUOTED(LINUX,1,[This is a Linux kernel])
      CFLAGS="-D_REENTRANT -fPIC -pipe $CFLAGS"
      build_target="linux"
      LIBPREFIX=
      DLLDIR=lib
      UNIXONLY="#"
-     ;;
-*cygwin*)
+  ],
+  [*cygwin*],[
      AC_DEFINE_UNQUOTED(CYGWIN,1,[This is a Cygwin system])
      AC_DEFINE_UNQUOTED(WINDOWS,1,[This is a Windows system])
      AC_CHECK_LIB(intl, gettext)
@@ -150,8 +150,8 @@ linux*)
      DLLDIR=bin
      AC_PROG_CXX
      UNIXONLY=""
-     ;;
-*mingw*)
+  ],
+  [*mingw*],[
      AC_DEFINE_UNQUOTED(MINGW,1,[This is a MinGW system])
      AC_DEFINE_UNQUOTED(WINDOWS,1,[This is a Windows system])
      AC_DEFINE_UNQUOTED(_WIN32,1,[This is a Windows system])
@@ -167,18 +167,17 @@ linux*)
      UNIXONLY=""
      funcstocheck=""
      native_srcdir=$(cd $srcdir; pwd -W)
-     ;;
-gnu*)
+  ],
+  [gnu*],[
      AC_DEFINE_UNQUOTED(GNU,1,[This is a GNU system])
      build_target="gnu"
      UNIXONLY="#"
-     ;;
-*)
+  ],
+  [
      AC_MSG_RESULT(Unrecognised OS $host_os)
      AC_DEFINE_UNQUOTED(OTHEROS,1,[Some strange OS])
      UNIXONLY=""
-;;
-esac
+])
 AC_DEFINE_UNQUOTED([GNUNET_DEFAULT_INTERFACE], $DEFAULT_INTERFACE, [This should be the default choice for the name of the first network interface])
 AC_SUBST(DEFAULT_INTERFACE)
 
@@ -380,21 +379,21 @@ AC_ARG_ENABLE([texi2mdoc-generation],
     [texi2mdoc_generation=${enableval}],
     [texi2mdoc_generation=no])
 AC_MSG_RESULT($texi2mdoc_generation)
-if test "x$texi2mdoc_generation" = "xyes"
-then
-  if test "$texi2mdoc" = 0
-  then
-  AC_MSG_WARN([ERROR: mdoc output currently requires texi2mdoc.])
-  AC_MSG_WARN([ERROR: texi2mdoc can be obtained via your Operating System])
-  AC_MSG_WARN([ERROR: package manager or from https://mandoc.bsd.lv/texi2mdoc/])
-  else
-  AM_CONDITIONAL([TEXI2MDOC_GENERATION],true)
-  AC_DEFINE([TEXI2MDOC_GENERATION],[1],[Building section 7 mdoc output])
-  fi
-else
+AS_IF([test "x$texi2mdoc_generation" = "xyes"], 
+ [
+  AS_IF([test "$texi2mdoc" = 0],
+   [
+    AC_MSG_WARN([ERROR: mdoc output currently requires texi2mdoc.])
+    AC_MSG_WARN([ERROR: texi2mdoc can be obtained via your Operating System])
+    AC_MSG_WARN([ERROR: package manager or from https://mandoc.bsd.lv/texi2mdoc/])
+   ],[
+    AM_CONDITIONAL([TEXI2MDOC_GENERATION],true)
+    AC_DEFINE([TEXI2MDOC_GENERATION],[1],[Building section 7 mdoc output])
+   ])
+ ],[
   AM_CONDITIONAL([TEXI2MDOC_GENERATION],false)
   AC_DEFINE([TEXI2MDOC_GENERATION],[0],[Not building section 7 mdoc output])
-fi
+ ])
 
 # should the build process be building only the documentation?
 AC_MSG_CHECKING(whether to build only documentation)
@@ -480,8 +479,8 @@ AS_IF([test ! "x$enable_poisoning" = "xno"],
   [enable_poisoning=0])
 AC_DEFINE_UNQUOTED([ENABLE_POISONING],[$enable_poisoning],[1 if freed memory should be poisoned, 0 otherwise])
 
-if test $build = $target
-then
+AS_IF([test $build = $target],
+[
 AC_MSG_CHECKING([for working HMAC])
 AC_LANG_PUSH(C)
 LIBS="$LIBS $LIBGCRYPT_LIBS"
@@ -548,22 +547,17 @@ AC_RUN_IFELSE(
   ],
   [AC_MSG_RESULT([cross compiling, test skipped])])
 AC_LANG_POP(C)
-fi	# $build = $target
+])	# $build = $target
 
 # check for bluetooth library
 bluetooth=0
 AC_CHECK_LIB(bluetooth, ba2str,[AC_CHECK_HEADER([bluetooth/bluetooth.h],bluetooth=1)])
-if test "$build_target" = "mingw"
-then
-  bluetooth=1
-fi
+AS_IF([test "$build_target" = "mingw"],
+ [bluetooth=1])
 AM_CONDITIONAL(HAVE_LIBBLUETOOTH, [test "$bluetooth" = 1])
-if test "$bluetooth" = 1
-then
-  AC_DEFINE([HAVE_LIBBLUETOOTH],[1],[Have bluetooth library])
-else
-  AC_DEFINE([HAVE_LIBBLUETOOTH],[0],[Lacking bluetooth library])
-fi
+AS_IF([test "$bluetooth" = 1],
+ [AC_DEFINE([HAVE_LIBBLUETOOTH],[1],[Have bluetooth library])],
+ [AC_DEFINE([HAVE_LIBBLUETOOTH],[0],[Lacking bluetooth library])])
 
 # check for zbar library
 zbar=0
@@ -571,23 +565,20 @@ AC_MSG_CHECKING(for libzbar)
 AC_ARG_WITH(zbar,
    [  --with-zbar=PFX    base of libzbar installation],
    [AC_MSG_RESULT([$with_zbar])
-    case $with_zbar in
-      no)
-        ;;
-      yes)
+    AS_CASE([$with_zbar],
+      [no],[],
+      [yes],[
         AC_CHECK_HEADERS(zbar.h,
           AC_CHECK_LIB([zbar], [zbar_processor_create],
             zbar=1))
-        ;;
-      *)
+       ],[
         LDFLAGS="-L$with_zbar/lib $LDFLAGS"
         CPPFLAGS="-I$with_zbar/include $CPPFLAGS"
         AC_CHECK_HEADERS(zbar.h,
           AC_CHECK_LIB([zbar], [zbar_processor_create],
             EXT_LIB_PATH="-L$with_zbar/lib $EXT_LIB_PATH"
             zbar=1))
-        ;;
-    esac
+       ])
    ],
    [AC_MSG_RESULT([--with-zbar not specified])
     AC_CHECK_HEADERS(zbar.h,
@@ -604,23 +595,20 @@ AC_MSG_CHECKING(for libjansson)
 AC_ARG_WITH(jansson,
    [  --with-jansson=PFX    base of libjansson installation],
    [AC_MSG_RESULT([$with_jansson])
-    case $with_jansson in
-      no)
-        ;;
-      yes)
+    AS_CASE([$with_jansson],
+      [no],[],
+      [yes],[
         AC_CHECK_HEADERS(jansson.h,
           AC_CHECK_LIB([jansson], [json_loads],
             jansson=1))
-        ;;
-      *)
+      ],[
         LDFLAGS="-L$with_jansson/lib $LDFLAGS"
         CPPFLAGS="-I$with_jansson/include $CPPFLAGS"
         AC_CHECK_HEADERS(jansson.h,
           AC_CHECK_LIB([jansson], [json_loads],
             EXT_LIB_PATH="-L$with_jansson/lib $EXT_LIB_PATH"
             jansson=1))
-        ;;
-    esac
+      ])
    ],
    [AC_MSG_RESULT([--with-jansson not specified])
     AC_CHECK_HEADERS(jansson.h,
@@ -693,27 +681,24 @@ PKG_CHECK_MODULES(
   [gst=0])
 
 # Pulse Audio
-if test "x$pulse" != "x1" -o "x$opus" != "x1" -o "x$ogg" != "x1"
-then
- if test "x$gst" != "x1"
- then
+AS_IF([test "x$pulse" != "x1" -o "x$opus" != "x1" -o "x$ogg" != "x1"],[
+ AS_IF([test "x$gst" != "x1"],[
   conversation_backend=none
   AM_CONDITIONAL(BUILD_PULSE_HELPERS, false)
   AM_CONDITIONAL(BUILD_GST_HELPERS, false)
   AM_CONDITIONAL(BUILD_EXPERIMENTAL_HELPERS, false)
- else
+ ],[
    conversation_backend=gst
    AM_CONDITIONAL(BUILD_PULSE_HELPERS, false)
    AM_CONDITIONAL(BUILD_GST_HELPERS, true)
    AM_CONDITIONAL(BUILD_EXPERIMENTAL_HELPERS, false)
- fi
-else
-
+ ])
+],[
  conversation_backend=pulse
  AM_CONDITIONAL(BUILD_PULSE_HELPERS, true)
  AM_CONDITIONAL(BUILD_GST_HELPERS, false)
  AM_CONDITIONAL(BUILD_EXPERIMENTAL_HELPERS, false)
-fi
+])
 
 # libgnurl
 LIBGNURL_CHECK_CONFIG(,7.34.0,gnurl=1,gnurl=0)
@@ -724,15 +709,14 @@ LIBS="$LIBGNURL $LIBCURL $LIBS"
 
 # libcurl-gnutls
 LIBCURL_CHECK_CONFIG(,7.34.0,[curl=true],[curl=false])
-if test "x$curl" = xtrue
-then
+AS_IF([test "x$curl" = xtrue],[
  AC_CHECK_HEADER([curl/curl.h],
   AC_CHECK_DECLS(CURLINFO_TLS_SESSION,[curl=true],[curl=false],[[#include <curl/curl.h>]]),
   [curl=false])
  # need libcurl-gnutls.so, everything else is not acceptable
  AC_CHECK_LIB([curl-gnutls],[curl_easy_getinfo],,[curl=false])
  # cURL must support CURLINFO_TLS_SESSION, version >= 7.34
-fi
+])
 
 # libcurl and libgnurl should be mutually exclusive
 AS_IF([test "$gnurl" = 1],
@@ -763,22 +747,22 @@ AC_CHECK_HEADERS([glpk.h],[glpk=true],[glpk=false])
 AC_CHECK_LIB([glpk],[glp_init_env],,[glpk=false])
 # GLPK must support atm MLP presolving, version >= 4.32
 AC_CHECK_MEMBERS(glp_iocp.presolve,,[glpk=false],[[#include <glpk.h>]])
-if test "x$glpk" = xfalse
-then
+AS_IF([test "x$glpk" = xfalse],
+[
 	AM_CONDITIONAL(HAVE_LIBGLPK, false)
 	AC_MSG_WARN([ERROR: GNUnet requires GLPK  >= 4.32])
-else
+],[
 	AM_CONDITIONAL(HAVE_LIBGLPK, true)
 	AC_DEFINE([HAVE_LIBGLPK],[1],[Have GLPK])
-fi
+])
 
 
 AC_CHECK_HEADERS([nss.h],[nss=true],[nss=false])
-if test x$nss = xfalse
-then
+AS_IF([test x$nss = xfalse],
+  [
 	AM_CONDITIONAL(HAVE_GLIBCNSS, false)
 	AC_MSG_WARN([No GNU libc nss header, will not build NSS plugin])
-else
+  ],[
 	NSS_INCLUDES="
 	#include <nss.h>
 	"
@@ -787,7 +771,7 @@ else
 		[AM_CONDITIONAL(HAVE_GLIBCNSS, false)
 		 AC_MSG_WARN([No nss header fails to define NSS_STATUS_UNAVAIl, will not build NSS plugin])],
 		[$NSS_INCLUDES])
-fi
+])
 
 
 
