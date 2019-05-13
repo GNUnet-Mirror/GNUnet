@@ -28,13 +28,9 @@ AC_CONFIG_AUX_DIR([build-aux])
 AC_ARG_WITH(nssdir,
    [  --with-nssdir=DIR    legacy switch, no longer supported, do not use],
    [AC_MSG_RESULT([$with_nssdir])
-    case $with_nssdir in
-      no)
-        ;;
-      *)
-        AC_MSG_ERROR([--with-nssdir is no longer supported])
-        ;;
-     esac
+    AS_CASE([$with_nssdir],
+      [no],[],
+      [AC_MSG_ERROR([--with-nssdir is no longer supported])])
    ])
 
 AC_CANONICAL_TARGET
@@ -64,10 +60,8 @@ AC_FUNC_FSEEKO
 
 CFLAGS="-Wall $CFLAGS"
 # use '-fno-strict-aliasing', but only if the compiler can take it
-if gcc -fno-strict-aliasing -S -o /dev/null -xc /dev/null >/dev/null 2>&1;
-then
- CFLAGS="-fno-strict-aliasing $CFLAGS"
-fi
+AS_IF([gcc -fno-strict-aliasing -S -o /dev/null -xc /dev/null >/dev/null 2>&1],
+ [CFLAGS="-fno-strict-aliasing $CFLAGS"])
 
 # Use Linux interface name unless the OS has a different preference
 DEFAULT_INTERFACE="\"eth0\""
@@ -243,86 +237,56 @@ AC_SUBST([PERL])
 # iptables is a soft requirement to run tests
 AC_PATH_TARGET_TOOL(VAR_IPTABLES_BINARY, iptables, false)
 
-if test x"$VAR_IPTABLES_BINARY" = x"false"
-then
-  if test -x "/sbin/iptables"
-  then
-    VAR_IPTABLES_BINARY="/sbin/iptables"
-  elif test -x "/usr/sbin/iptables"
-  then
-    VAR_IPTABLES_BINARY="/usr/sbin/iptables"
-  fi
-fi
+AS_IF([test x"$VAR_IPTABLES_BINARY" = x"false"],
+ [AS_IF([test -x "/sbin/iptables"],
+   [VAR_IPTABLES_BINARY="/sbin/iptables"],
+   [AS_IF([test -x "/usr/sbin/iptables"],
+      [VAR_IPTABLES_BINARY="/usr/sbin/iptables"])])])
 
-if test x"$VAR_IPTABLES_BINARY" != x"false"
-then
-AC_DEFINE_UNQUOTED([IPTABLES], "$VAR_IPTABLES_BINARY", [Path to iptables])
-else
-AC_MSG_WARN([warning: 'iptables' not found.])
-fi
+AS_IF([test x"$VAR_IPTABLES_BINARY" != x"false"],
+ [AC_DEFINE_UNQUOTED([IPTABLES], "$VAR_IPTABLES_BINARY", [Path to iptables])],
+ [AC_MSG_WARN([warning: 'iptables' not found.])])
 
 # ip6tables is a soft requirement for some features
 AC_PATH_TARGET_TOOL(VAR_IP6TABLES_BINARY, ip6tables, false)
 
-if test x"$VAR_IP6TABLES_BINARY" = x"false"
-then
-  if test -x "/sbin/ip6tables"
-  then
-    VAR_IP6TABLES_BINARY="/sbin/ip6tables"
-  elif test -x "/usr/sbin/ip6tables"
-  then
-    VAR_IP6TABLES_BINARY="/usr/sbin/ip6tables"
-  fi
-fi
+AS_IF([test x"$VAR_IP6TABLES_BINARY" = x"false"],
+  [AS_IF([test -x "/sbin/ip6tables"],
+     [VAR_IP6TABLES_BINARY="/sbin/ip6tables"],
+     [AS_IF([test -x "/usr/sbin/ip6tables"],
+        [VAR_IP6TABLES_BINARY="/usr/sbin/ip6tables"])])])
+	
 
-if test x"$VAR_IP6TABLES_BINARY" != x"false"
-then
-AC_DEFINE_UNQUOTED([IP6TABLES], "$VAR_IP6TABLES_BINARY", [Path to ip6tables])
-else
-AC_MSG_WARN([warning: 'ip6tables' not found.])
-fi
+AS_IF([test x"$VAR_IP6TABLES_BINARY" != x"false"],
+  [AC_DEFINE_UNQUOTED([IP6TABLES], "$VAR_IP6TABLES_BINARY", [Path to ip6tables])],
+  [AC_MSG_WARN([warning: 'ip6tables' not found.])])
 
 # ip is a soft requirement for some features
 AC_PATH_TARGET_TOOL(VAR_IP_BINARY, ip, false)
 
-if test x"$VAR_IP_BINARY" = x"false"
-then
-  if test -x "/sbin/ip"
-  then
-    VAR_IP_BINARY="/sbin/ip"
-  elif test -x "/usr/sbin/ip"
-  then
-    VAR_IP_BINARY="/usr/sbin/ip"
-  fi
-fi
+AS_IF([test x"$VAR_IP_BINARY" = x"false"],
+ [AS_IF([test -x "/sbin/ip"],
+   [VAR_IP_BINARY="/sbin/ip"],
+   [AS_IF([test -x "/usr/sbin/ip"],
+          [VAR_IP_BINARY="/usr/sbin/ip"])])])
 
-if test x"$VAR_IP_BINARY" != x"false"
-then
-AC_DEFINE_UNQUOTED([PATH_TO_IP], "$VAR_IP_BINARY", [Path to ip])
-else
-AC_MSG_WARN([warning: 'ip' not found.])
-fi
+AS_IF([test x"$VAR_IP_BINARY" != x"false"],
+ [AC_DEFINE_UNQUOTED([PATH_TO_IP], "$VAR_IP_BINARY", [Path to ip])],
+ [AC_MSG_WARN([warning: 'ip' not found.])])
 
 # locate 'ifconfig'
 AC_PATH_TARGET_TOOL(VAR_IFCONFIG_BINARY, ifconfig, false)
 
 AC_CHECK_PROG(VAR_IFCONFIG_BINARY, ifconfig, true, false)
-if test x"$VAR_IFCONFIG_BINARY" = x"false"
-then
-  if test -x "/sbin/ifconfig"
-  then
-    VAR_IFCONFIG_BINARY="/sbin/ifconfig"
-  elif test -x "/usr/sbin/ifconfig"
-  then
-    VAR_IFCONFIG_BINARY="/usr/sbin/ifconfig"
-  fi
-fi
-if test x"$VAR_IFCONFIG_BINARY" != x"false"
-then
-AC_DEFINE_UNQUOTED([IFCONFIG], "$VAR_IFCONFIG_BINARY", [Path to ifconfig])
-else
-AC_MSG_WARN(['ifconfig' not found.])
-fi
+AS_IF([test x"$VAR_IFCONFIG_BINARY" = x"false"],
+  [AS_IF([test -x "/sbin/ifconfig"],
+     [VAR_IFCONFIG_BINARY="/sbin/ifconfig"],
+     [AS_IF([test -x "/usr/sbin/ifconfig"],
+            [VAR_IFCONFIG_BINARY="/usr/sbin/ifconfig"])])])
+
+AS_IF([test x"$VAR_IFCONFIG_BINARY" != x"false"],
+  [AC_DEFINE_UNQUOTED([IFCONFIG], "$VAR_IFCONFIG_BINARY", [Path to ifconfig])],
+  [AC_MSG_WARN(['ifconfig' not found.])])
 
 
 AC_PATH_TARGET_TOOL(VAR_SYSCTL_BINARY, sysctl, false)
@@ -340,12 +304,9 @@ AS_IF([test x"$VAR_SYSCTL_BINARY" != x"false"],
 # miniupnpc / upnpc binary is a soft runtime requirement
 AC_PATH_TARGET_TOOL(VAR_UPNPC_BINARY, upnpc, false)
 
-if test x"$VAR_UPNPC_BINARY" != x"false"
-then
-AC_DEFINE_UNQUOTED([UPNPC], "$VAR_UPNPC_BINARY", [Path to upnpc binary])
-else
-AC_MSG_WARN([warning: 'upnpc' binary not found.])
-fi
+AS_IF([test x"$VAR_UPNPC_BINARY" != x"false"],
+  [AC_DEFINE_UNQUOTED([UPNPC], "$VAR_UPNPC_BINARY", [Path to upnpc binary])],
+  [AC_MSG_WARN([warning: 'upnpc' binary not found.])])
 
 AC_CHECK_MEMBER(struct tm.tm_gmtoff,
   [AC_DEFINE(HAVE_TM_GMTOFF, 1,
@@ -366,11 +327,9 @@ AM_CONDITIONAL(HAVE_GETADDRINFO_A, [test "$have_addrinfo_a" = 1])
 
 
 # tests only run on Windows
-if test "x$build_target" = "xmingw"
-then
-  AC_CHECK_LIB(plibc, plibc_init, [], [AC_MSG_ERROR([GNUnet requires PlibC on Windows])])
-  AC_CHECK_LIB(gnurx, regexec, [], [AC_MSG_ERROR([GNUnet requires libgnurx on Windows])])
-fi
+AS_IF([test "x$build_target" = "xmingw"],
+  [AC_CHECK_LIB(plibc, plibc_init, [], [AC_MSG_ERROR([GNUnet requires PlibC on Windows])])
+   AC_CHECK_LIB(gnurx, regexec, [], [AC_MSG_ERROR([GNUnet requires libgnurx on Windows])])])
 
 # libgcrypt
 gcrypt=0
@@ -381,8 +340,8 @@ NEED_LIBGCRYPT_VERSION=1.6.0
 AM_PATH_LIBGCRYPT("$NEED_LIBGCRYPT_API:$NEED_LIBGCRYPT_VERSION", gcrypt=1)
 AC_CHECK_DECLS([gcry_mpi_set_opaque_copy], [], [], [[#include <gcrypt.h>]])
 
-if test $gcrypt = 0
-then
+AS_IF([test $gcrypt = 0],
+ [
   AC_MSG_ERROR([[
 ***
 *** You need libgcrypt to build this program.
@@ -391,7 +350,7 @@ then
 *** (at least version $NEED_LIBGCRYPT_VERSION (API $NEED_LIBGCRYPT_API)
 ***  is required.)
 ***]])
-fi
+])
 AC_DEFINE_UNQUOTED([NEED_LIBGCRYPT_VERSION], "$NEED_LIBGCRYPT_VERSION", [required libgcrypt version])
 
 AC_CHECK_DECLS([struct in6_ifreq], [], [], [[#include <linux/if_tun.h>]])
@@ -405,14 +364,14 @@ AC_ARG_ENABLE([documentation],
    [documentation=${enableval}],
    [documentation=yes])
 AC_MSG_RESULT($documentation)
-if test "x$documentation" = "xyes"
-then
+AS_IF([test "x$documentation" = "xyes"],
+[
   AM_CONDITIONAL([DOCUMENTATION],true)
   AC_DEFINE([DOCUMENTATION],[1],[Building the documentation])
-else
+],[
   AM_CONDITIONAL([DOCUMENTATION],false)
   AC_DEFINE([DOCUMENTATION],[0],[Not building the documentation])
-fi
+])
 
 # FIXME: Something is wrong about this in the output of ./configure runs
 AC_MSG_CHECKING(wether to include generated texi2mdoc output in installation)
@@ -444,14 +403,14 @@ AC_ARG_ENABLE([documentation-only],
    [documentation_only=${enableval}],
    [documentation_only=no])
 AC_MSG_RESULT($documentation_only)
-if test "x$documentation_only" = "xyes"
-then
+AS_IF([test "x$documentation_only" = "xyes"],
+ [
   AM_CONDITIONAL([DOCUMENTATION_ONLY],true)
   AC_DEFINE([DOCUMENTATION_ONLY],[1],[Building only the documentation])
-else
+ ],[
   AM_CONDITIONAL([DOCUMENTATION_ONLY],false)
   AC_DEFINE([DOCUMENTATION_ONLY],[0],[Not building only the documentation])
-fi
+ ])
 
 # should the build process be including the manpages? (default: yes)
 AC_MSG_CHECKING(whether to include man pages)
@@ -460,40 +419,39 @@ AC_ARG_ENABLE([include-manpages],
    [include_manpages=${enableval}],
    [include_manpages=yes])
 AC_MSG_RESULT($include_manpages)
-if test "x$include_manpages" = "xyes"
-then
+AS_IF([test "x$include_manpages" = "xyes"],
+ [
   AM_CONDITIONAL([INCLUDE_MANPAGES],true)
   AC_DEFINE([INCLUDE_MANPAGES],[1],[Including the man pages in the build and installation])
-else
+ ],[
   AM_CONDITIONAL([INCLUDE_MANPAGES],false)
   AC_DEFINE([INCLUDE_MANPAGES],[0],[Not including the man pages in the build and installation])
-fi
+ ])
 
 # Adam shostack suggests the following for Windows:
 # -D_FORTIFY_SOURCE=2 -fstack-protector-all
 AC_ARG_ENABLE(gcc-hardening,
    AS_HELP_STRING(--enable-gcc-hardening, enable compiler security checks),
-[if test x$enableval = xyes; then
+[AS_IF([test x$enableval = xyes],[
     CFLAGS="$CFLAGS -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=2 -fstack-protector-all"
     CFLAGS="$CFLAGS -fwrapv -fPIE -Wstack-protector"
     CFLAGS="$CFLAGS --param ssp-buffer-size=1"
     LDFLAGS="$LDFLAGS -pie"
-fi])
+ ])])
 
 # Linker hardening options
 # Currently these options are ELF specific - you can't use this with MacOSX
 AC_ARG_ENABLE(linker-hardening,
   AS_HELP_STRING(--enable-linker-hardening, enable linker security fixups),
-[if test x$enableval = xyes; then
-   LDFLAGS="$LDFLAGS -z relro -z now"
-fi])
+[AS_IF([test x$enableval = xyes],
+   [LDFLAGS="$LDFLAGS -z relro -z now"])])
 
 
 AC_ARG_ENABLE(sanitizer,
   AS_HELP_STRING(--enable-sanitizer, enable Address Sanitizer and Undefined Behavior Sanitizer),
-[if test x$enableval = xyes; then
+[AS_IF([test x$enableval = xyes],[
    LDFLAGS="$CFLAGS -fsanitize=address,undefined -fno-omit-frame-pointer"
-fi])
+ ])])
 
 
 extra_logging=GNUNET_NO
@@ -512,18 +470,14 @@ AC_ARG_ENABLE([poisoning],
    [AS_HELP_STRING([--enable-poisoning], [enable poisoning of freed memory (good for debugging)])],
    [enable_poisoning=${enableval}],
    [
-     if test "x$extra_logging" != "xGNUNET_NO"; then
-       enable_poisoning="defaults to yes (extra logging is enabled)"
-     else
-       enable_poisoning=no
-     fi
+     AS_IF([test "x$extra_logging" != "xGNUNET_NO"],
+       [enable_poisoning="defaults to yes (extra logging is enabled)"],
+       [enable_poisoning=no])
    ])
 AC_MSG_RESULT($enable_poisoning)
-if test ! "x$enable_poisoning" = "xno"; then
-  enable_poisoning=1
-else
-  enable_poisoning=0
-fi
+AS_IF([test ! "x$enable_poisoning" = "xno"],
+  [enable_poisoning=1],
+  [enable_poisoning=0])
 AC_DEFINE_UNQUOTED([ENABLE_POISONING],[$enable_poisoning],[1 if freed memory should be poisoned, 0 otherwise])
 
 if test $build = $target
