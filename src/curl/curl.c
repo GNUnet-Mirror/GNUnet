@@ -267,8 +267,11 @@ download_cb (char *bufptr, size_t size, size_t nitems, void *cls)
  * "Content-Type: application/json" header if @a add_json is set.
  *
  * @param ctx context to execute the job in
- * @param eh curl easy handle for the request, will
- *           be executed AND cleaned up
+ * @param eh curl easy handle for the request, will be executed AND
+ *           cleaned up.  NOTE: the handle should _never_ have gotten
+ *           any headers list, as that would then be ovverridden by
+ *           @a jcc.  Therefore, always pass custom headers as the
+ *           @a job_headers parameter.
  * @param job_headers extra headers to add for this request
  * @param jcc callback to invoke upon completion
  * @param jcc_cls closure for @a jcc
