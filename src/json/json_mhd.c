@@ -126,7 +126,7 @@ buffer_append (struct Buffer *buf,
 {
   if (buf->fill + data_size > max_size)
     return GNUNET_NO;
-  if (data_size + buf->fill > buf->alloc)
+  if (buf->fill + data_size > buf->alloc)
   {
     char *new_buf;
     size_t new_size = buf->alloc;
