@@ -26,28 +26,29 @@
 .Os
 .Sh NAME
 .Nm gnunet-qr
-.Nd
-scan a QR code using a video device and import
+.Nd scan a QR code using a video device and import
 .Sh SYNOPSIS
 .Nm
-.Op Fl c Ar FILENAME | Fl \-config= Ns Ar FILENAME
-.Op Fl d Ar DEVICE | Fl \-device= Ns Ar DEVICE
-.Op Fl h | \-help
-.Op Fl s | \-silent
-.Op Fl v | \-verbose
+.Op Fl c Ar FILENAME | Fl -config= Ns Ar FILENAME
+.Op Fl d Ar DEVICE | Fl -device= Ns Ar DEVICE
+.Op Fl h | -help
+.Op Fl s | -silent
+.Op Fl v | -verbose
 .Sh DESCRIPTION
 .Nm
 is a command line tool to scan a QR code using a video device and import.
-.Bl -tag -width Ds
-.It Fl c Ar FILENAME | Fl \-config= Ns Ar FILENAME
-Use the configuration file FILENAME.
-.It Fl d Ar DEVICE | Fl \-device= Ns Ar DEVICE
-Use device DEVICE.
-.It Fl h | \-help
+.Bl -tag -width indent
+.It Fl c Ar FILENAME | Fl -config= Ns Ar FILENAME
+Use the configuration file
+.Ar FILENAME .
+.It Fl d Ar DEVICE | Fl -device= Ns Ar DEVICE
+Use device
+.Ar DEVICE .
+.It Fl h | -help
 Print short help on options.
-.It Fl s | \-silent
+.It Fl s | -silent
 Do not show preview windows.
-.It Fl v | \-verbose
+.It Fl v | -verbose
 Be verbose.
 .El
 .Sh SEE ALSO

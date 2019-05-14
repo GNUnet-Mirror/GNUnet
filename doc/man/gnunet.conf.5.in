@@ -7,18 +7,18 @@
 .\" any later version published by the Free Software Foundation; with no
 .\" Invariant Sections, no Front-Cover Texts, and no Back-Cover Texts.  A
 .\" copy of the license is included in the file
-.\" ``FDL-1.3''.
+.\" FDL-1.3.
 .\"
 .\" A copy of the license is also available from the Free Software
-.\" Foundation Web site at @url{http://www.gnu.org/licenses/fdl.html}.
+.\" Foundation Web site at http://www.gnu.org/licenses/fdl.html.
 .\"
 .\" Alternately, this document is also available under the General
 .\" Public License, version 3 or later, as published by the Free Software
 .\" Foundation.  A copy of the license is included in the file
-.\" ``GPL3''.
+.\" GPL3.
 .\"
 .\" A copy of the license is also available from the Free Software
-.\" Foundation Web site at @url{http://www.gnu.org/licenses/gpl.html}.
+.\" Foundation Web site at http://www.gnu.org/licenses/gpl.html.
 .\"
 .\" SPDX-License-Identifier: GPL3.0-or-later OR FDL1.3-or-later
 .\"
@@ -27,17 +27,19 @@
 .Os
 .Sh NAME
 .Nm gnunet.conf
-.Nd
-GNUnet configuration file
+.Nd GNUnet configuration file
 .Sh DESCRIPTION
-A GNUnet setup typically consists of a set of service processes run by a user "gnunet" and a set of user-interface processes run by a standard account.
+A GNUnet setup typically consists of a set of service processes run by a
+user "gnunet" and a set of user-interface processes run by a standard account.
 The default location for the configuration file for the services is
 .Pa ~gnunet/.config/gnunet.conf Ns .
-However, as normal users also may need read-access to this configuration, you might want to instead put the service process configuration in
+However, as normal users also may need read-access to this configuration,
+you might want to instead put the service process configuration in
 .Pa @SYSCONFDIR@/gnunet.conf Ns .
 .Xr gnunet-setup 1 ,
 part of gnunet-gtk, can be used to edit this configuration.
-The parts of GNUnet that are run as a normal user may have config options too and they read from
+The parts of GNUnet that are run as a normal user may have config
+options too and they read from
 .Pa $HOME/.config/gnunet.conf Ns .
 The latter config file can skip any options for the services.
 .Pp
@@ -46,36 +48,48 @@ The basic structure of the configuration file is the following.
 .It
 The file is split into sections.
 .It
-Every section begins with "[SECTIONNAME]".
+Every section begins with a token in square brakets.
+The current section ends when a new section starts or end of file is
+encountered.
+.It
 A section contains a number of options of the form "OPTION=VALUE".
+.It
+Whitespace surounding the "=" token is striped out, in other words
+"OPTION = VALUE" and "OPTION=VALUE" are treated equal.
 .It
 Empty lines and lines beginning with a "#" are treated as comments.
 .It
-Almost all options are optional.
-The tools resort to reasonable defaults if an option is not present.
+Boolean values are given as "YES" and "NO".
 .El
 .Pp
+Almost all options are optional.
+The tools resort to reasonable defaults if an option is not present.
 Default values for all of the options can be found in the files in the
 .Pa $GNUNET_PREFIX/share/gnunet/config.d/
 directory.
 A typical setup will work out of the box with those.
 See the examples section below for some common setups on top of that.
 .Ss Variable naming conventions and data types
-Boolean values for options are set via "YES" or "NO" values, without the double-quotes.
-.sp
-Options which include "PATH" or "path" define a path on the file-system and can take additional variables in the path, such as
+Boolean values for options are set via "YES" or "NO" values, without the
+double-quotes.
+.Pp
+Options which include "PATH" or "path" define a path on the file-system
+and can take additional variables in the path, such as
 .Ev $GNUNET_TMP .
-.sp
-Section names as listed more in detail below, are small letters only enclosed by square brakets.
+.Pp
+Section names as listed more in detail below, are small letters only
+enclosed by square brakets.
 .Ss GENERAL OPTIONS
 Many options will be common between sections.
 They can be repeated under each section with different values.
 The "[PATHS]" section is special.
 Here, it is possible to specify values for variables like "GNUNET_HOME".
-Then, in all filenames that begin with "$GNUNET_HOME" the "$GNUNET_HOME" will be replaced with the respective value at runtime.
+Then, in all filenames that begin with "$GNUNET_HOME" the "$GNUNET_HOME" will
+be replaced with the respective value at runtime.
 The main use of this is to redefine "$GNUNET_HOME", which by default points to
 .Pa $HOME/.config/ Ns .
-By setting this variable, you can change the location where GNUnet stores its internal data.
+By setting this variable, you can change the location where GNUnet stores
+its internal data.
 .Pa gnunet.conf
 accepts the variable
 .Ev GNUNET_TMP
@@ -105,32 +119,43 @@ The filename that implements the service.
 For example "gnunet-service-ats".
 .It IMMEDIATE_START
 Start the service always when the peer starts.
-Set to YES for services that should always be launched, even if no other service explicitly needs them.
+Set to YES for services that should always be launched, even if no other
+service explicitly needs them.
 .It START_ON_DEMAND
-Set to YES to automatically start the service when it is requested by another service.
+Set to YES to automatically start the service when it is requested by another
+service.
 YES for most GNUnet services.
 .It NOARMBIND
 Set to YES to never have ARM bind to the respective socket.
-This option is mostly for debugging in situations where ARM cannot pass the pre-bound socket to the child due to interference from PREFIX-commands.
+This option is mostly for debugging in situations where ARM cannot pass the
+pre-bound socket to the child due to interference from PREFIX-commands.
 This option is only effective in combination with IMMEDIATE_START being YES.
 NO by default.
 .It PREFIX
-PREFIX the given command (with its arguments) to the actual BINARY to be executed.
-Useful to run certain services under special supervisors (like strace or valgrind).
+PREFIX the given command (with its arguments) to the actual BINARY
+to be executed.
+Useful to run certain services under special supervisors like strace,
+dtrace, or valgrind.
 Typically used in combination with IMMEDIATE_START and NOARMBIND.
 Empty by default.
 .It ACCEPT_FROM
-A semi-column separated list of IPv4 addresses that are allowed to use the service; usually 127.0.0.1.
+A semi-column separated list of IPv4 addresses that are allowed to use
+the service; usually 127.0.0.1.
 .It ACCEPT_FROM6
-A semi-column separated list of IPv6 addresses that are allowed to use the service; usually ::1.
+A semi-column separated list of IPv6 addresses that are allowed to use
+the service; usually ::1.
 .It UNIXPATH
-Path to use for the UNIX domain socket for inter process communication with the service on POSIX systems.
+Path to use for the UNIX domain socket for inter process communication with
+the service on POSIX systems.
 .It UNIX_MATCH_UID
-If UNIX domain sockets are used, set this to YES if only users with the same UID are allowed to access the service.
+If UNIX domain sockets are used, set this to YES if only users with the
+same UID are allowed to access the service.
 .It UNIX_MATCH_GID
-If UNIX domain sockets are used, set this to YES if only users with the same GID are allowed to access the service.
+If UNIX domain sockets are used, set this to YES if only users with the
+same GID are allowed to access the service.
 .It RUN_PER_USER
-End-users should never have to change the defaults GNUnet provides for this option.
+End-users should never have to change the defaults GNUnet provides for
+this option.
 .Bl -tag -width Ds
 .It YES
 Set to YES if this service should be run per-user.
@@ -138,9 +163,10 @@ Set to YES if this service should be run per-user.
 Set to NO if this is a system service.
 .El
 .El
-In the following sections the absence of a default value is either expressed as "Default value:" followed by nothing, or the lack of this line.
+In the following sections the absence of a default value is either
+expressed as "Default value:" followed by nothing, or the lack of this line.
 .Ss ARM
-.Bl -tag -width Ds
+.Bl -tag -width indent 
 .It PORT
 Default value: 2087
 .It HOSTNAME
@@ -153,7 +179,7 @@ Default value: 127.0.0.1;
 Default value: ::1;
 .It UNIXPATH
 Special case, uses user runtime dir even for per-system service.
-.sp
+.Pp
 Default value: $GNUNET_USER_RUNTIME_DIR/gnunet-service-arm.sock
 .It UNIX_MATCH_UID
 Default value: YES
@@ -164,29 +190,47 @@ In the
 .Fl l
 option, format characters from
 .Xr strftime 3
-are allowed; In the GLOBAL_POSTFIX, "{}" stands for the name of the respective service.
-Thus the following example for this option would introduce per-service logging with a new log file each day.
+are allowed; In the GLOBAL_POSTFIX, "{}" stands for the name of the
+respective service.
+Thus the following example for this option would introduce per-service logging
+with a new log file each day.
 Note that only the last 3 log files are preserved.
-Example: -l $GNUNET_CACHE_HOME/{}-%Y-%m-%d.log
-.sp
+Example:
+.Pp
+.Bd literal
+-l $GNUNET_CACHE_HOME/{}-%Y-%m-%d.log
+.Ed
+.Pp
 Default value:
 .It GLOBAL_PREFIX
 Default value:
 .It START_SYSTEM_SERVICES
-If set to YES, ARM will only start services that are marked as system-level services (and we'll expect a second ARM to be run per-user to run user-level services).
-Note that in this case you must have manually created a different configuration file with the user where at least this and the START_USER_SERVICES options differ.
+If set to YES, ARM will only start services that are marked as system-level
+services (and we'll expect a second ARM to be run per-user to run
+user-level services).
+Note that in this case you must have manually created a different configuration
+file with the user where at least this and the START_USER_SERVICES
+options differ.
 .It START_USER_SERVICES
-If set to YES, ARM will only start services that are marked as per-user services (and we'll expect a system user to run ARM to provide system-level services).
-Per-user services enable better personalization and  priviledge separation and in particular ensures that personal data is stored under $HOME, which might be important in a multi-user system (or if $HOME is encrypted and /var/ is not).
-.sp
-Note that if you have different ARM services for SYSTEM and USER, and you are not on UNIX, you need to change the PORT option for the USER ARM instances to some free port (counting down from 2085 should provide free ports).
+If set to YES, ARM will only start services that are marked as per-user
+services (and we'll expect a system user to run ARM to provide system-level
+services).
+Per-user services enable better personalization and priviledge separation and
+in particular ensures that personal data is stored under $HOME, which might be
+important in a multi-user system (or if $HOME is encrypted and
+.Pa /var/
+is not).
+.Pp
+Note that if you have different ARM services for SYSTEM and USER, and you are
+not on UNIX, you need to change the PORT option for the USER ARM instances to
+some free port (counting down from 2085 should provide free ports).
 .It RESOURCE_DIAGNOSTICS
 File where we should log per-service resource consumption on exit.
-.sp
+.Pp
 Default value: resource.log
 .It USERNAME
 Name of the user that will be used to provide the service.
-.sp
+.Pp
 Default value:
 .It MAXBUF
 Default value:
@@ -224,7 +268,7 @@ Default value: YES
 .It MODE
 Designated assignment mode.
 Possible values: PROPORTIONAL, MLP, RIL.
-.sp
+.Pp
 Default value: proportional
 .It UNSPECIFIED_QUOTA_IN
 quotes in KiB or MiB per seconds.
@@ -282,7 +326,7 @@ The bigger, the more respect is payed to preferences.
 .It PROP_STABILITY_FACTOR
 Should we stick to existing connections are prefer to switch?
 [1.0...2.0], lower value prefers to switch, bigger value is more tolerant.
-.sp
+.Pp
 Default value: 1.25
 .It MLP_MAX_DURATION
 Maximum duration for a solution process (both LP and MILP).
@@ -290,17 +334,17 @@ Default value: 3 s
 .It MLP_MAX_ITERATIONS
 Maximum numbero of iterations for a solution process (only LP).
 Tolerated MIP Gap [0.0 .. 1.0].
-.sp
+.Pp
 Default value: 0.025
 .It MLP_MAX_MIP_GAP
 Tolerated LP/MIP Gap [0.0 .. 1.0].
-.sp
+.Pp
 Default value: 0.025
 .It MLP_MAX_LP_MIP_GAP
 Default value: 0.025
 .It MLP_MAX_ITERATIONS
 Maximum number of iterations for a solution process.
-.sp
+.Pp
 Default value: 1024
 .It MLP_COEFFICIENT_D
 Default value: 1.0
@@ -314,23 +358,23 @@ Default value: 1024
 Default value: 4
 .It MLP_DUMP_PROBLEM_ALL
 Dump all problems to disk.
-.sp
+.Pp
 Default value: YES
 .It MLP_DUMP_SOLUTION_ALL
 Dump all solution to disk.
-.sp
+.Pp
 Default value: YES
 .It MLP_GLPK_VERBOSE
 Print GLPK output.
-.sp
+.Pp
 Default value: YES
 .It MLP_DUMP_PROBLEM_ON_FAIL
 Dump all problems to disk.
-.sp
+.Pp
 Default value: YES
 .It MLP_DUMP_SOLUTION_ON_FAIL
 Dump all solution to disk.
-.sp
+.Pp
 Default value: YES
 .It RIL_STEP_TIME_MIN
 Default value: 500 ms
@@ -338,7 +382,7 @@ Default value: 500 ms
 Default value: 1000 ms
 .It RIL_ALGORITHM
 Possible values: SARSA or Q-LEARNING.
-.sp
+.Pp
 Default value: Q-LEARNING
 .It RIL_DISCOUNT_BETA
 Default value: 0.7
@@ -378,51 +422,52 @@ Default value: NO
 .It UNIX_MATCH_GID
 Default value: YES
 .It REFRESH_CONNECTION_TIME
-How often do we send KEEPALIVE messages on connections to keep them from timing out?
-.sp
+How often do we send KEEPALIVE messages on connections to keep them from
+timing out?
+.Pp
 Default value: 5 min
 .It DROP_PERCENT
 Percentage of packets CADET is artificially dropping.
 Used for testing only!
 .It ID_ANNOUNCE_TIME
 How frequently do we usually anounce our presence in the DHT?
-.sp
+.Pp
 Default value: 1 h
 .It CONNECT_TIMEOUT
 Default value: 30 s
 .It DHT_REPLICATION_LEVEL
 What is the replication level we give to the DHT when announcing our existence?
 Usually there is no need to change this.
-.sp
+.Pp
 Default value: 3
 .It MAX_TUNNELS
 Not implemented
-.sp
+.Pp
 Default value: 1000
 .It MAX_CONNECTIONS
 Not implemented, replaced by MAX_ROUTES in NEW CADET!
-.sp
+.Pp
 Default value: 1000
 .It MAX_ROUTES
 How many routes do we participate in at most?
 Should be smaller than MAX_MSGS_QUEUE.
-.sp
+.Pp
 Default value: 5000
 .It MAX_MSGS_QUEUE
 Not implemented
-.sp
+.Pp
 Default value: 10000
 .It MAX_PEERS
 Not implemented
-.sp
+.Pp
 Default value: 1000
 .It RATCHET_TIME
 How often do we advance the ratchet even if there is not any traffic?
-.sp
+.Pp
 Default value: 1 h
 .It RATCHET_MESSAGES
 How often do we advance the ratched if there is traffic?
-.sp
+.Pp
 Default value: 64
 .El
 .Ss COMMUNICATOR-UNIX
@@ -483,8 +528,9 @@ Default value: NO
 .It PREFIX
 .It USE_EPHEMERAL_KEYS
 Default value: YES
-.sp
-This MUST be set to YES in production, only set to NO for testing for performance (testbed/cluster-scale use!).
+.Pp
+This MUST be set to YES in production, only set to NO for testing for
+performance (testbed/cluster-scale use!).
 .El
 .Ss DATACACHE-POSTGRES
 .Bl -tag -width Ds
@@ -550,8 +596,57 @@ Default value: 3306
 Default value: 1024
 .El
 .Ss DHT
-.Bl -tag -width Ds
+.Bl -tag -width indent
+.It IMMEDIATE_START Ar boolean
+Default value: YES
+.It START_ON_DEMAND Ar boolean
+Default value: YES
+.It PORT Ar integer
+Default value: 2095
+.It HOSTNAME Ar string
+Default value: localhost
+.It BINARY Ar string
+Default value: gnunet-service-dht
+.It ACCEPT_FROM Ar string
+Default value: 127.0.0.1;
+.It ACCEPT_FROM6 Ar string
+Default value: ::1;
+.It BUCKET_SIZE Ar integer
+Default value: 4
+.It UNIXPATH Ar path
+Default value: $GNUNET_RUNTIME_DIR/gnunet-service-dht.sock
+.It UNIX_MATCH_UID Ar boolean
+Default value: NO
+.It UNIX_MATCH_GID Ar boolean
+Default value: YES
+.It DISABLE_SOCKET_FORWARDING Ar boolean
+Default value: NO
+.It USERNAME =
+.It MAXBUF =
+.It TIMEOUT =
+.It DISABLEV6 =
+.It BINDTO =
+.It REJECT_FROM =
+.It REJECT_FROM6 =
+.It PREFIX =
+.It
+# Should the DHT cache results that we are routing in the DATACACHE as well?
+CACHE_RESULTS = YES
+.It
+# Special option to disable DHT calling 'try_connect' (for testing)
+DISABLE_TRY_CONNECT = NO
 .El
+.Ss DHTCACHE
+.Bl -tag -width indent
+.It DATABASE
+Default value: heap
+.It QUOTA
+Default value: 50 MB
+.It DISABLE_BF_RC Ar boolean
+Disable RC-file for Bloom filter?
+(for benchmarking with limited IO availability)
+.Pp
+Default value: NO
 .Ss EXIT
 .Bl -tag -width Ds
 .El
@@ -694,29 +789,30 @@ Default value: $GNUNET_USER_RUNTIME_DIR/gnunet-service-zonemaster.sock
 .It PORT
 Default value: 2123
 .It UNIX_MATCH_UID
-Do we require users that want to access GNS to run this process (usually not a good idea)?
-.sp
+Do we require users that want to access GNS to run this process (usually
+not a good idea)?
+.Pp
 Default value: NO
 .It UNIX_MATCH_GID
 Do we require users that want to access GNS to be in the 'gnunet' group?
-.sp
+.Pp
 Default value: NO
 .It MAX_PARALLEL_BACKGROUND_QUERIES
 How many queries is GNS allowed to perform in the background at the same time?
-.sp
+.Pp
 Default value: 1000
 .It ZONE_PUBLISH_TIME_WINDOW
 How frequently do we try to publish our full zone?
-.sp
+.Pp
 Default value: 4 h
 .It USE_CACHE
 Using caching or always ask DHT?
-.sp
+.Pp
 Default value: YES
 .It PREFIX
 .El
 .Ss ZONEMASTER-MONITOR
-.Bl -tag -width Ds
+.Bl -tag -width indent
 .It START_ON_DEMAND
 Default value: YES
 .It IMMEDIATE_START
@@ -730,35 +826,39 @@ Default value: $GNUNET_USER_RUNTIME_DIR/gnunet-service-zonemaster-monitor.sock
 .It PORT
 Default value: 2124
 .It UNIX_MATCH_UID
-Do we require users that want to access GNS to run this process (usually not a good idea)?
-.sp
+Do we require users that want to access GNS to run this process (usually not
+a good idea)?
+.Pp
 Default value: NO
 .It UNIX_MATCH_GID
 Do we require users that want to access GNS to be in the 'gnunet' group?
-.sp
-Default value: NO
+.Pp
+Default value:
+.Li NO
 .El
 .Sh EXAMPLES
-This example is a simple way to get started, using a server that has a known list of peers to get you started.
+This example is a simple way to get started, using a server that has a known
+list of peers to get you started.
 Most users will be behind a firewall on IPv4, as such NAT is enabled.
-Please remember to change your IP address to the actual external address for your usage.
+Please remember to change your IP address to the actual external address
+for your usage.
 .Bd -literal -offset indent -compact
-    [hostlist]
-    OPTIONS = \-b \-e
+[hostlist]
+OPTIONS = \-b \-e
 
-    [nat]
-    BEHIND_NAT = YES
-    ENABLE_UPNP = YES
-    DISABLEV6 = YES
-    EXTERNAL_ADDRESS = 157.166.249.10
+[nat]
+BEHIND_NAT = YES
+ENABLE_UPNP = YES
+DISABLEV6 = YES
+EXTERNAL_ADDRESS = 157.166.249.10
 
-    [arm]
-    START_SYSTEM_SERVICES = YES
-    START_USER_SERVICES = NO
+[arm]
+START_SYSTEM_SERVICES = YES
+START_USER_SERVICES = NO
 .Ed
 .Sh FILES
 .Pa ~gnunet/.config/gnunet.conf
-GNUnet syste-user configuration file
+GNUnet system-user configuration file
 .Pa $HOME/.config/gnunet.conf
 User specific GNUnet configuration file
 .Pa @SYSCONFDIR@/gnunet.conf
@@ -769,8 +869,8 @@ GNUnet configuration directory with all default option values
 .Xr env 1 ,
 .Xr gnunet-arm 1 ,
 .Xr gnunet-setup 1 ,
-.Xr strftime 3
-.sp
+.Xr strftime 3 .
+.Pp
 The full documentation for gnunet is maintained as a Texinfo manual.
 If the
 .Xr info 1
@@ -783,7 +883,7 @@ should give you access to the complete handbook,
 .Dl info gnunet-c-tutorial
 .Pp
 will give you access to a tutorial for developers.
-.sp
+.Pp
 Depending on your installation, this information is also available in
 .Xr gnunet 7 and
 .Xr gnunet-c-tutorial 7 .

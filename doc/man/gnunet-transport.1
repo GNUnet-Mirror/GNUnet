@@ -26,66 +26,70 @@
 .Os
 .Sh NAME
 .Nm gnunet-transport
-.Nd
-measure and control the transport subsystem
+.Nd measure and control the transport subsystem
 .Sh SYNOPSIS
 .Nm
-.Op Fl b | \-benchmark
-.Op Fl c Ar FILENAME | Fl \-config= Ns Ar FILENAME
-.Op Fl D | \-disconnect
-.Op Fl e | \-events
-.Op Fl h | \-help
-.Op Fl i | \-information
-.Op Fl L Ar LOGLEVEL | Fl \-loglevel= Ns Ar LOGLEVEL
-.Op Fl l Ar LOGFILE | Fl \-logfile= Ns Ar LOGFILE
-.Op Fl m | \-monitor
-.Op Fl p Ar PEER | Fl \-peer= Ns Ar PEER
-.Op Fl P | \-plugins
-.Op Fl s | \-send
-.Op Fl v | \-version
-.Op Fl V | \-verbose
+.Op Fl b | -benchmark
+.Op Fl c Ar FILENAME | Fl -config= Ns Ar FILENAME
+.Op Fl D | -disconnect
+.Op Fl e | -events
+.Op Fl h | -help
+.Op Fl i | -information
+.Op Fl L Ar LOGLEVEL | Fl -loglevel= Ns Ar LOGLEVEL
+.Op Fl l Ar LOGFILE | Fl -logfile= Ns Ar LOGFILE
+.Op Fl m | -monitor
+.Op Fl p Ar PEER | Fl -peer= Ns Ar PEER
+.Op Fl P | -plugins
+.Op Fl s | -send
+.Op Fl v | -version
+.Op Fl V | -verbose
 .Sh DESCRIPTION
 .Nm
-is a tool to access various functions of GNUnet's transport subsystem from the command-line.
+is a tool to access various functions of GNUnet's transport subsystem
+from the command-line.
 Most of these are not expected to be useful for end-users.
-gnunet-transport can be used to evaluate the performance of the transports, force a peer to connect to another peer (if possible).
+gnunet-transport can be used to evaluate the performance of
+the transports, force a peer to connect to another peer (if possible).
 Other functions should be added in the near future.
-.Bl -tag -width Ds
-.It Fl b | \-benchmark
-measure how fast we are receiving data (from all connections).
+.Bl -tag -width indent
+.It Fl b | -benchmark
+Measure how fast we are receiving data (from all connections).
 On exit, the data rate will be reported.
 Runs until aborted with CTRL-C.
-.It Fl c Ar FILENAME | Fl \-config= Ns Ar FILENAME
+.It Fl c Ar FILENAME | Fl -config= Ns Ar FILENAME
 configuration file to use
-.It Fl D | \-disconnect
-force disconnection from a peer (used in conjunction with \-p).
+.It Fl D | -disconnect
+Force disconnection from a peer (used in conjunction with
+.Fl p Ns ).
 Note that you can use the gnunet-ats command-line tool to suggest connects.
-.It Fl e | \-events
-provide information about all connect and disconnect events (continuously)
-.It Fl h | \-help
+.It Fl e | -events
+Provide information about all connect and disconnect events (continuously).
+.It Fl h | -help
 Print the help page.
-.It Fl i | \-information
-print information about our current connections (once)
-.It Fl L Ar LOGLEVEL | Fl \-loglevel= Ns Ar LOGLEVEL
+.It Fl i | -information
+Print information about our current connections (once).
+.It Fl L Ar LOGLEVEL | Fl -loglevel= Ns Ar LOGLEVEL
 Change the loglevel.
 Possible values for LOGLEVEL are ERROR, WARNING, INFO and DEBUG.
-.It Fl l Ar LOGFILE | Fl \-logfile= Ns Ar LOGFILE
+.It Fl l Ar LOGFILE | Fl -logfile= Ns Ar LOGFILE
 Configure logging to write logs to LOGFILE.
-.It Fl m | \-monitor
-print information about our current connections (continuously)
-.It Fl p Ar PEER | Fl \-peer= Ns Ar PEER
-the peer identity to connect to or monitor
-.It Fl P | \-plugins
-monitor session state of transport plugins
-.It Fl s | \-send
+.It Fl m | -monitor
+Print information about our current connections (continuously).
+.It Fl p Ar PEER | Fl -peer= Ns Ar PEER
+The peer identity to connect to or monitor.
+.It Fl P | -plugins
+Monitor session state of transport plugins.
+.It Fl s | -send
 Transmit (dummy) traffic as quickly as possible to the peer specified with the
 .Fl p
 option.
-The rate will still be limited by the quota(s) determined by the peers (ATS subsystem).
-Will run until CTRL-C is pressed or until the connection to the other peer is disrupted.
-.It Fl v | \-version
-print the version number
-.It Fl V | \-verbose
+The rate will still be limited by the quota(s) determined by
+the peers (ATS subsystem).
+Will run until CTRL-C is pressed or until the connection
+to the other peer is disrupted.
+.It Fl v | -version
+Print out the version number.
+.It Fl V | -verbose
 be verbose
 .El
 .Sh SEE ALSO
