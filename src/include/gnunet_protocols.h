@@ -3196,9 +3196,15 @@ extern "C" {
 #define GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_VALIDATION_CHALLENGE 1303
 
 /**
+ * P2P message: transport proves that an address worked and provides
+ * a new challenge for the other direction.
+ */
+#define GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_VALIDATION_CHALLENGE_RESPONSE 1304
+
+/**
  * P2P message: transport proves that an address worked.
  */
-#define GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_VALIDATION_RESPONSE 1304
+#define GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_VALIDATION_RESPONSE 1305
 
 
 /* ************** NEW (NG) ATS Messages ************* */

@@ -794,14 +794,84 @@ struct TransportValidationChallengeMessage
   struct GNUNET_MessageHeader header;
 
   /**
-   * Zero.
+   * Maximum number of kilobytes of the flow control window of
+   * the previous challenge that the sender may consume.
+   * After sending this message (with a new challenge),
+   * the sender promises to never use more than this number
+   * of kilobytes of the flow control window of a previous
+   * handshake.  Note that the number set here might be larger
+   * than the actual number the sender will use: to avoid
+   * a stall, the sender would estimate how long it would
+   * take to receive a validation response and reserve itself
+   * a buffer so it can keep sending while waiting for the
+   * response. Note that the consumption limit must still be
+   * below the maximum value permitted by the receiver so far.
+   *
+   * If this is the first challenge (initial connection 
+   * establishment), this value must be zero.
    */
-  uint32_t reserved GNUNET_PACKED;
+  uint32_t last_window_consum_limit_kb GNUNET_PACKED;
 
   /**
    * Challenge to be signed by the receiving peer.
    */
   struct ChallengeNonceP challenge;
+
+  /**
+   * Timestamp of the sender, to be copied into the reply
+   * to allow sender to calculate RTT.
+   */
+  struct GNUNET_TIME_AbsoluteNBO sender_time;
+};
+
+
+/**
+ * Message send to another peer to answer to a validation challenge
+ * and at the same time issue a challenge in the other direction.
+ */
+struct TransportValidationChallengeResponseMessage
+{
+
+  /**
+   * Type is #GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_VALIDATION_CHALLENGE_RESPONSE
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Flow control window size in kilobytes (1024 b), in NBO.
+   * The receiver can now send this many kilobytes as per
+   * the @e received_challenge "account".
+   */
+  uint32_t fc_window_size_kb GNUNET_PACKED;
+
+  /**
+   * Challenge returned to the origin by the receiving peer.
+   */
+  struct ChallengeNonceP received_challenge;
+
+  /**
+   * The peer's signature matching the
+   * #GNUNET_SIGNATURE_PURPOSE_TRANSPORT_CHALLENGE purpose.
+   */
+  struct GNUNET_CRYPTO_EddsaSignature signature;
+
+  /**
+   * Fresh challenge created by the sender to be returned
+   * by the receiving peer.
+   */
+  struct ChallengeNonceP sender_challenge;
+
+  /**
+   * How long does the sender believe the address on
+   * which the challenge was received to remain valid?
+   */
+  struct GNUNET_TIME_RelativeNBO validity_duration;
+
+  /**
+   * Timestamp of the sender, to be copied into the reply
+   * to allow sender to calculate RTT.
+   */
+  struct GNUNET_TIME_AbsoluteNBO origin_time;
 
   /**
    * Timestamp of the sender, to be copied into the reply
@@ -837,7 +907,7 @@ struct TransportValidationPS
 
 
 /**
- * Message send to a peer to respond to a
+ * Message  send to a peer to respond to a
  * #GNUNET_MESSAGE_TYPE_ADDRESS_VALIDATION_CHALLENGE
  */
 struct TransportValidationResponseMessage
@@ -849,9 +919,11 @@ struct TransportValidationResponseMessage
   struct GNUNET_MessageHeader header;
 
   /**
-   * Zero.
+   * Flow control window size in kilobytes (1024 b), in NBO.
+   * The receiver can now send this many kilobytes as per
+   * the @e challenge "account".
    */
-  uint32_t reserved GNUNET_PACKED;
+  uint32_t fc_window_size_kb GNUNET_PACKED;
 
   /**
    * The peer's signature matching the
@@ -6253,7 +6325,7 @@ handle_dv_learn (void *cls, const struct TransportDVLearnMessage *dvl)
                             htonl (GNUNET_SIGNATURE_PURPOSE_TRANSPORT_DV_HOP),
                           .purpose.size = htonl (sizeof (dhp)),
                           .pred = (0 == i) ? dvl->initiator : hops[i - 1].hop,
-                          .succ = (nhops - 1 == i) ? GST_my_identity
+                          .succ = (nhops == i + 1) ? GST_my_identity
                                                    : hops[i + 1].hop,
                           .challenge = dvl->challenge};
 
@@ -8291,7 +8363,7 @@ validation_transmit_on_queue (struct Queue *q, struct ValidationState *vs)
   tvc.header.type =
     htons (GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_VALIDATION_CHALLENGE);
   tvc.header.size = htons (sizeof (tvc));
-  tvc.reserved = htonl (0);
+  tvc.last_window_consum_limit_kb = htonl (0); // FIXME!
   tvc.challenge = vs->challenge;
   tvc.sender_time = GNUNET_TIME_absolute_hton (vs->last_challenge_use);
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
