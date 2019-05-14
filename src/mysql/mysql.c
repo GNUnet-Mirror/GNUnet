@@ -39,14 +39,35 @@
  * a failure of the command 'cmd' with the message given
  * by strerror(errno).
  */
-#define DIE_MYSQL(cmd, dbh) do { GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, "mysql", _("`%s' failed at %s:%d with error: %s\n"), cmd, __FILE__, __LINE__, mysql_error((dbh)->dbf)); GNUNET_assert (0); } while(0);
+#define DIE_MYSQL(cmd, dbh)                                       \
+  do                                                              \
+  {                                                               \
+    GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,                     \
+                     "mysql",                                     \
+                     _ ("`%s' failed at %s:%d with error: %s\n"), \
+                     cmd,                                         \
+                     __FILE__,                                    \
+                     __LINE__,                                    \
+                     mysql_error ((dbh)->dbf));                   \
+    GNUNET_assert (0);                                            \
+  } while (0);
 
 /**
  * Log an error message at log-level 'level' that indicates
  * a failure of the command 'cmd' on file 'filename'
  * with the message given by strerror(errno).
  */
-#define LOG_MYSQL(level, cmd, dbh) do { GNUNET_log_from (level, "mysql", _("`%s' failed at %s:%d with error: %s\n"), cmd, __FILE__, __LINE__, mysql_error((dbh)->dbf)); } while(0);
+#define LOG_MYSQL(level, cmd, dbh)                                \
+  do                                                              \
+  {                                                               \
+    GNUNET_log_from (level,                                       \
+                     "mysql",                                     \
+                     _ ("`%s' failed at %s:%d with error: %s\n"), \
+                     cmd,                                         \
+                     __FILE__,                                    \
+                     __LINE__,                                    \
+                     mysql_error ((dbh)->dbf));                   \
+  } while (0);
 
 
 /**
@@ -84,7 +105,6 @@ struct GNUNET_MYSQL_Context
    * Filename of "my.cnf" (msyql configuration).
    */
   char *cnffile;
-
 };
 
 
@@ -123,7 +143,6 @@ struct GNUNET_MYSQL_StatementHandle
    * Is the MySQL prepared statement valid, or do we need to re-initialize it?
    */
   int valid;
-
 };
 
 
@@ -149,7 +168,7 @@ get_my_cnf_path (const struct GNUNET_CONFIGURATION_Handle *cfg,
 
 #ifndef WINDOWS
   pw = getpwuid (getuid ());
-  if (!pw)
+  if (! pw)
   {
     GNUNET_log_from_strerror (GNUNET_ERROR_TYPE_ERROR, "mysql", "getpwuid");
     return NULL;
@@ -157,7 +176,8 @@ get_my_cnf_path (const struct GNUNET_CONFIGURATION_Handle *cfg,
   if (GNUNET_YES == GNUNET_CONFIGURATION_have_value (cfg, section, "CONFIG"))
   {
     GNUNET_assert (GNUNET_OK ==
-                   GNUNET_CONFIGURATION_get_value_filename (cfg, section,
+                   GNUNET_CONFIGURATION_get_value_filename (cfg,
+                                                            section,
                                                             "CONFIG",
                                                             &cnffile));
     configured = GNUNET_YES;
@@ -176,15 +196,18 @@ get_my_cnf_path (const struct GNUNET_CONFIGURATION_Handle *cfg,
   GNUNET_free (home_dir);
   configured = GNUNET_NO;
 #endif
-  GNUNET_log_from (GNUNET_ERROR_TYPE_INFO, "mysql",
-                   _("Trying to use file `%s' for MySQL configuration.\n"),
+  GNUNET_log_from (GNUNET_ERROR_TYPE_INFO,
+                   "mysql",
+                   _ ("Trying to use file `%s' for MySQL configuration.\n"),
                    cnffile);
   if ((0 != STAT (cnffile, &st)) || (0 != ACCESS (cnffile, R_OK)) ||
-      (!S_ISREG (st.st_mode)))
+      (! S_ISREG (st.st_mode)))
   {
     if (configured == GNUNET_YES)
-      GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, "mysql",
-                       _("Could not access file `%s': %s\n"), cnffile,
+      GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
+                       "mysql",
+                       _ ("Could not access file `%s': %s\n"),
+                       cnffile,
                        STRERROR (errno));
     GNUNET_free (cnffile);
     return NULL;
@@ -221,14 +244,15 @@ iopen (struct GNUNET_MYSQL_Context *mc)
   mysql_options (mc->dbf, MYSQL_OPT_RECONNECT, &reconnect);
   mysql_options (mc->dbf, MYSQL_OPT_CONNECT_TIMEOUT, (const void *) &timeout);
   mysql_options (mc->dbf, MYSQL_SET_CHARSET_NAME, "UTF8");
-  timeout = 60;                 /* in seconds */
+  timeout = 60; /* in seconds */
   mysql_options (mc->dbf, MYSQL_OPT_READ_TIMEOUT, (const void *) &timeout);
   mysql_options (mc->dbf, MYSQL_OPT_WRITE_TIMEOUT, (const void *) &timeout);
   mysql_dbname = NULL;
   if (GNUNET_YES ==
       GNUNET_CONFIGURATION_have_value (mc->cfg, mc->section, "DATABASE"))
     GNUNET_assert (GNUNET_OK ==
-                   GNUNET_CONFIGURATION_get_value_string (mc->cfg, mc->section,
+                   GNUNET_CONFIGURATION_get_value_string (mc->cfg,
+                                                          mc->section,
                                                           "DATABASE",
                                                           &mysql_dbname));
   else
@@ -238,15 +262,18 @@ iopen (struct GNUNET_MYSQL_Context *mc)
       GNUNET_CONFIGURATION_have_value (mc->cfg, mc->section, "USER"))
   {
     GNUNET_assert (GNUNET_OK ==
-                   GNUNET_CONFIGURATION_get_value_string (mc->cfg, mc->section,
-                                                          "USER", &mysql_user));
+                   GNUNET_CONFIGURATION_get_value_string (mc->cfg,
+                                                          mc->section,
+                                                          "USER",
+                                                          &mysql_user));
   }
   mysql_password = NULL;
   if (GNUNET_YES ==
       GNUNET_CONFIGURATION_have_value (mc->cfg, mc->section, "PASSWORD"))
   {
     GNUNET_assert (GNUNET_OK ==
-                   GNUNET_CONFIGURATION_get_value_string (mc->cfg, mc->section,
+                   GNUNET_CONFIGURATION_get_value_string (mc->cfg,
+                                                          mc->section,
                                                           "PASSWORD",
                                                           &mysql_password));
   }
@@ -255,7 +282,8 @@ iopen (struct GNUNET_MYSQL_Context *mc)
       GNUNET_CONFIGURATION_have_value (mc->cfg, mc->section, "HOST"))
   {
     GNUNET_assert (GNUNET_OK ==
-                   GNUNET_CONFIGURATION_get_value_string (mc->cfg, mc->section,
+                   GNUNET_CONFIGURATION_get_value_string (mc->cfg,
+                                                          mc->section,
                                                           "HOST",
                                                           &mysql_server));
   }
@@ -264,13 +292,20 @@ iopen (struct GNUNET_MYSQL_Context *mc)
       GNUNET_CONFIGURATION_have_value (mc->cfg, mc->section, "PORT"))
   {
     GNUNET_assert (GNUNET_OK ==
-                   GNUNET_CONFIGURATION_get_value_number (mc->cfg, mc->section,
-                                                          "PORT", &mysql_port));
+                   GNUNET_CONFIGURATION_get_value_number (mc->cfg,
+                                                          mc->section,
+                                                          "PORT",
+                                                          &mysql_port));
   }
 
   GNUNET_assert (mysql_dbname != NULL);
-  mysql_real_connect (mc->dbf, mysql_server, mysql_user, mysql_password,
-                      mysql_dbname, (unsigned int) mysql_port, NULL,
+  mysql_real_connect (mc->dbf,
+                      mysql_server,
+                      mysql_user,
+                      mysql_password,
+                      mysql_dbname,
+                      (unsigned int) mysql_port,
+                      NULL,
                       CLIENT_IGNORE_SIGPIPE);
   GNUNET_free_non_null (mysql_server);
   GNUNET_free_non_null (mysql_user);
@@ -301,8 +336,7 @@ GNUNET_MYSQL_context_create (const struct GNUNET_CONFIGURATION_Handle *cfg,
   mc = GNUNET_new (struct GNUNET_MYSQL_Context);
   mc->cfg = cfg;
   mc->section = section;
-  mc->cnffile = get_my_cnf_path (cfg,
-                                 section);
+  mc->cnffile = get_my_cnf_path (cfg, section);
 
   return mc;
 }
@@ -389,18 +423,14 @@ GNUNET_MYSQL_statement_prepare (struct GNUNET_MYSQL_Context *mc,
  *         #GNUNET_SYSERR if there was a problem
  */
 int
-GNUNET_MYSQL_statement_run (struct GNUNET_MYSQL_Context *mc,
-                            const char *sql)
+GNUNET_MYSQL_statement_run (struct GNUNET_MYSQL_Context *mc, const char *sql)
 {
-  if ( (NULL == mc->dbf) &&
-       (GNUNET_OK != iopen (mc)) )
+  if ((NULL == mc->dbf) && (GNUNET_OK != iopen (mc)))
     return GNUNET_SYSERR;
   mysql_query (mc->dbf, sql);
   if (mysql_error (mc->dbf)[0])
   {
-    LOG_MYSQL (GNUNET_ERROR_TYPE_ERROR,
-               "mysql_query",
-               mc);
+    LOG_MYSQL (GNUNET_ERROR_TYPE_ERROR, "mysql_query", mc);
     GNUNET_MYSQL_statements_invalidate (mc);
     return GNUNET_SYSERR;
   }
@@ -432,8 +462,10 @@ prepare_statement (struct GNUNET_MYSQL_StatementHandle *sh)
   }
   if (0 != mysql_stmt_prepare (sh->statement, sh->query, strlen (sh->query)))
   {
-    GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, "mysql",
-                     "prepare_statement: %s\n", sh->query);
+    GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
+                     "mysql",
+                     "prepare_statement: %s\n",
+                     sh->query);
     LOG_MYSQL (GNUNET_ERROR_TYPE_ERROR, "mysql_stmt_prepare", mc);
     mysql_stmt_close (sh->statement);
     sh->statement = NULL;
