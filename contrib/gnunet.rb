@@ -1,8 +1,15 @@
 class Gnunet < Formula
-  desc "GNUnet"
+  desc "Framework for distributed, secure and privacy-preserving applications"
   homepage "https://gnunet.org/"
-  url "https://ftp.gnu.org/gnu/gnunet/gnunet-0.11.0.tar.gz"
-  sha256 "b7477a3c3b0d5e8a013685dc208cfb4ccee4145f8668faa8eb5b382af36c7e9a"
+  url "https://ftp.gnu.org/gnu/gnunet/gnunet-0.11.3.tar.gz"
+  sha256 "2405db9232ae6ded57e7ff513abdf810c65e3861823b3985717ce990b8d87a37"
+
+  bottle do
+    cellar :any
+    sha256 "8a28d2c64bf814bcd629b66715b553bee3031c05f98075dd0f1bc79acb4fe840" => :mojave
+    sha256 "9fc7995800f8c74266313e9ccc274b625debc4033221dae729936821400a4c87" => :high_sierra
+    sha256 "c75feb5d2bfcb379c0025645d0d8ab7c2e5fce938901ec53c841bbeafbf684c1" => :sierra
+  end
 
   depends_on "pkg-config" => :build
   depends_on "gettext"
@@ -17,20 +24,12 @@ class Gnunet < Formula
   depends_on "unbound"
 
   def install
-    args = %W[
-      --disable-documentation
-      --prefix=#{prefix}
-    ]
-
-    system "./configure", *args
+    system "./configure", "--prefix=#{prefix}"
     system "make", "install"
   end
 
-  def post_install
-    chmod "+x", prefix/"bin/gnunet-qr.py"
-  end
-
   test do
-    system bin/"gnunet-config", "-s", "arm"
+    output = shell_output("#{bin}/gnunet-config -s arm")
+    assert_match "BINARY = gnunet-service-arm", output
   end
 end
