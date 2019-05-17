@@ -1381,15 +1381,6 @@ authorize_endpoint (struct GNUNET_REST_RequestHandle *con_handle,
     return;
   }
 
-  if (NULL == handle->ego_head)
-  {
-    handle->emsg = GNUNET_strdup (OIDC_ERROR_KEY_SERVER_ERROR);
-    handle->edesc = GNUNET_strdup ("Egos are missing");
-    handle->response_code = MHD_HTTP_INTERNAL_SERVER_ERROR;
-    GNUNET_SCHEDULER_add_now (&do_error, handle);
-    return;
-  }
-
   handle->ego_entry = handle->ego_head;
   handle->priv_key =
     *GNUNET_IDENTITY_ego_get_private_key (handle->ego_head->ego);
