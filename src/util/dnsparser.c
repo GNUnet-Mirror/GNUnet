@@ -60,9 +60,6 @@ GNUNET_DNSPARSER_check_label (const char *label)
 
   if (NULL != strchr (label, '.'))
     return GNUNET_SYSERR; /* not a label! Did you mean GNUNET_DNSPARSER_check_name? */
-  if (0 == strcmp (label, "@"))
-    return GNUNET_SYSERR; /* '@' is reserved for the empty label,
-                             see #GNUNET_GNS_EMPTY_LABEL_AT */
   if (IDNA_SUCCESS != idna_to_ascii_8z (label, &output, IDNA_ALLOW_UNASSIGNED))
     return GNUNET_SYSERR;
   slen = strlen (output);
