@@ -44,6 +44,16 @@
  *   - increment incoming_fc_window_size_used_kb when CORE is done
  *     with incoming packets!
  *
+ *   for DV)
+ *   - send challenges via DV (when DVH is confirmed *and* we care about
+ *     the target to get window size, or when DVH is unconfirmed (passive
+ *     learning!) to confirm it!)
+ *   - handle challenge responses in this case (note: validity period of addresses
+ *     will be zero!)
+ *   - if available, try to use DV paths when trying to establish
+ *     virtual link for a `struct IncomingRequest`. (i.e. if DVH is
+ *     unconfirmed, incoming requests also trigger challenge-via-DV!)
+ *
  * - review retransmission logic, right now there is no smartness there!
  *   => congestion control, etc [PERFORMANCE-BASICS]
  *

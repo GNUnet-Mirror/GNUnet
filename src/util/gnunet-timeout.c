@@ -41,42 +41,33 @@ sigchld_handler (int val)
   int ret = 0;
 
   (void) val;
-  waitpid (child,
-           &status,
-           0);
+  waitpid (child, &status, 0);
   if (WIFEXITED (status) != 0)
   {
     ret = WEXITSTATUS (status);
-    fprintf (stderr,
-             "Process exited with result %u\n",
-             ret);
-    exit (ret); /* return same status code */
+    fprintf (stderr, "Process exited with result %u\n", ret);
+    _exit (ret); /* return same status code */
   }
   if (WIFSIGNALED (status) != 0)
   {
     ret = WTERMSIG (status);
-    fprintf (stderr,
-             "Process received signal %u\n",
-             ret);
-    kill (getpid (),
-          ret); /* kill self with the same signal */
+    fprintf (stderr, "Process received signal %u\n", ret);
+    kill (getpid (), ret); /* kill self with the same signal */
   }
-  exit (-1);
+  _exit (-1);
 }
 
 
 static void
 sigint_handler (int val)
 {
-  kill (0,
-        val);
-  exit (val);
+  kill (0, val);
+  _exit (val);
 }
 
 
 int
-main (int argc,
-      char *argv[])
+main (int argc, char *argv[])
 {
   int timeout = 0;
   pid_t gpid = 0;
@@ -111,8 +102,7 @@ main (int argc,
     //setpgrp (0, pid_t gpid);
     if (-1 != gpid)
       setpgid (0, gpid);
-    execvp (argv[2],
-            &argv[2]);
+    execvp (argv[2], &argv[2]);
     exit (-1);
   }
   if (child > 0)
@@ -120,8 +110,7 @@ main (int argc,
     sleep (timeout);
     printf ("Child processes were killed after timeout of %u seconds\n",
             timeout);
-    kill (0,
-          SIGTERM);
+    kill (0, SIGTERM);
     exit (3);
   }
   exit (-1);
