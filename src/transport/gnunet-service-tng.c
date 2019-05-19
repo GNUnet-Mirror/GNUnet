@@ -807,7 +807,7 @@ struct TransportValidationChallengeMessage
    * response. Note that the consumption limit must still be
    * below the maximum value permitted by the receiver so far.
    *
-   * If this is the first challenge (initial connection 
+   * If this is the first challenge (initial connection
    * establishment), this value must be zero.
    */
   uint32_t last_window_consum_limit_kb GNUNET_PACKED;
@@ -2743,7 +2743,7 @@ free_validation_state (struct ValidationState *vs)
 
 
 /**
- * Lookup neighbour record for peer @a pid.
+ * Lookup neighbour for peer @a pid.
  *
  * @param pid neighbour to look for
  * @return NULL if we do not have this peer as a neighbour
@@ -2752,6 +2752,19 @@ static struct Neighbour *
 lookup_neighbour (const struct GNUNET_PeerIdentity *pid)
 {
   return GNUNET_CONTAINER_multipeermap_get (neighbours, pid);
+}
+
+
+/**
+ * Lookup virtual link for peer @a pid.
+ *
+ * @param pid virtual link to look for
+ * @return NULL if we do not have this peer as a virtual link
+ */
+static struct VirtualLink *
+lookup_virtual_link (const struct GNUNET_PeerIdentity *pid)
+{
+  return GNUNET_CONTAINER_multipeermap_get (links, pid);
 }
 
 
@@ -3338,7 +3351,7 @@ free_queue (struct Queue *queue)
   notify_monitors (&neighbour->pid, queue->address, queue->nt, &me);
   GNUNET_free (queue);
 
-  vl = GNUNET_CONTAINER_multipeermap_get (links, &neighbour->pid);
+  vl = lookup_virtual_link (&neighbour->pid);
   if ((NULL != vl) && (neighbour == vl->n))
   {
     GNUNET_SCHEDULER_cancel (vl->visibility_task);
@@ -3768,7 +3781,7 @@ handle_client_send (void *cls, const struct OutboundMessage *obm)
   obmm = (const struct GNUNET_MessageHeader *) &obm[1];
   bytes_msg = ntohs (obmm->size);
   pp = (enum GNUNET_MQ_PriorityPreferences) ntohl (obm->priority);
-  vl = GNUNET_CONTAINER_multipeermap_get (links, &obm->peer);
+  vl = lookup_virtual_link (&obm->peer);
   if (NULL == vl)
   {
     /* Failure: don't have this peer as a neighbour (anymore).
@@ -3883,7 +3896,7 @@ handle_client_recv_ok (void *cls, const struct RecvOkMessage *rom)
     GNUNET_SERVICE_client_drop (tc->client);
     return;
   }
-  vl = GNUNET_CONTAINER_multipeermap_get (links, &rom->peer);
+  vl = lookup_virtual_link (&rom->peer);
   if (NULL == vl)
   {
     GNUNET_STATISTICS_update (GST_stats,
@@ -4489,7 +4502,7 @@ route_message (const struct GNUNET_PeerIdentity *target,
   struct Neighbour *n;
   struct DistanceVector *dv;
 
-  vl = GNUNET_CONTAINER_multipeermap_get (links, target);
+  vl = lookup_virtual_link (target);
   n = vl->n;
   dv = (0 != (options & RMO_DV_ALLOWED)) ? vl->dv : NULL;
   if (0 == (options & RMO_UNCONFIRMED_ALLOWED))
@@ -4823,7 +4836,7 @@ handle_raw_message (void *cls, const struct GNUNET_MessageHeader *mh)
     GNUNET_SERVICE_client_drop (client);
     return;
   }
-  vl = GNUNET_CONTAINER_multipeermap_get (links, &cmc->im.sender);
+  vl = lookup_virtual_link (&cmc->im.sender);
   if (NULL == vl)
   {
     /* FIXME: sender is giving us messages for CORE but we don't have
@@ -5655,7 +5668,7 @@ activate_core_visible_dv_path (struct DistanceVectorHop *hop)
   struct DistanceVector *dv = hop->dv;
   struct VirtualLink *vl;
 
-  vl = GNUNET_CONTAINER_multipeermap_get (links, &dv->target);
+  vl = lookup_virtual_link (&dv->target);
   if (NULL != vl)
   {
     /* Link was already up, remember dv is also now available and we are done */
@@ -7091,6 +7104,27 @@ handle_validation_challenge (
 
 
 /**
+ * Communicator gave us a transport address validation challenge.  Process the
+ * request.
+ *
+ * @param cls a `struct CommunicatorMessageContext` (must call
+ * #finish_cmc_handling() when done)
+ * @param tvrc the message that was received
+ */
+static void
+handle_validation_challenge_response (
+  void *cls,
+  const struct TransportValidationChallengeResponseMessage *tvrc)
+{
+  struct CommunicatorMessageContext *cmc = cls;
+  struct TransportValidationResponseMessage *tvr;
+
+
+  finish_cmc_handling (cmc);
+}
+
+
+/**
  * Closure for #check_known_challenge.
  */
 struct CheckKnownChallengeContext
@@ -7349,7 +7383,7 @@ handle_validation_response (
   q->validated_until = vs->validated_until;
   q->pd.aged_rtt = vs->validation_rtt;
   n = q->neighbour;
-  vl = GNUNET_CONTAINER_multipeermap_get (links, &vs->pid);
+  vl = lookup_virtual_link (&vs->pid);
   if (NULL != vl)
   {
     /* Link was already up, remember n is also now available and we are done */
@@ -7443,6 +7477,11 @@ demultiplex_with_cmc (struct CommunicatorMessageContext *cmc,
        validation_challenge,
        GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_VALIDATION_CHALLENGE,
        struct TransportValidationChallengeMessage,
+       &cmc),
+     GNUNET_MQ_hd_fixed_size (
+       validation_challenge_response,
+       GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_VALIDATION_CHALLENGE_RESPONSE,
+       struct TransportValidationChallengeResponseMessage,
        &cmc),
      GNUNET_MQ_hd_fixed_size (
        validation_response,
