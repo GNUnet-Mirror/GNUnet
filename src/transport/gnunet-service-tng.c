@@ -28,20 +28,20 @@
  *   communicators do not offer flow control).
  *   We do transmit FC window sizes now.  Left:
  *   for SENDING)
- *   - Increment "outbound_fc_window_size_used_kb" on transmission
- *   - Throttle sending if "outbound_fc_window_size_used_kb" reaches limit
+ *   - Increment "outbound_fc_window_size_used" on transmission
+ *   - Throttle sending if "outbound_fc_window_size_used" reaches limit
  *   - Send *new* challenge when we get close to the limit (including
  *     at the beginning when the limit is zero!)
  *   - Retransmit challenge if it goes unanswered!
  *
  *   for RECEIVING)
- *   - increment incoming_fc_window_size_ram_kb when receiving
+ *   - increment incoming_fc_window_size_ram when receiving
  *     incoming packets!
  *   - OR drop if incoming_fc_window_size_ram goes
- *     (significantly?) beyond available_fc_window_size_kb
- *   - decrement incoming_fc_window_size_ram_kb when CORE is done
+ *     (significantly?) beyond available_fc_window_size
+ *   - decrement incoming_fc_window_size_ram when CORE is done
  *     with incoming packets!
- *   - increment incoming_fc_window_size_used_kb when CORE is done
+ *   - increment incoming_fc_window_size_used when CORE is done
  *     with incoming packets!
  *
  *   for DV)
@@ -85,9 +85,9 @@
  *   AcknowledgementUUIDP altogether, as they won't be acked! [BANDWIDTH]
  *   (-> have 2nd type of acknowledgment message; low priority, as we
  *       do not have an MTU-limited *reliable* communicator)
- * - Adapt available_fc_window_size_kb, using larger values for high-bandwidth
+ * - Adapt available_fc_window_size, using larger values for high-bandwidth
  *   and high-latency links *if* we have the RAM [GOODPUT / utilization / stalls]
- * - Set last_window_consum_limit_kb promise properly based on
+ * - Set last_window_consum_limit promise properly based on
  *   latency and bandwidth of the respective connection [GOODPUT / utilization / stalls]
  * - re-sending challenge response without a challenge when we have
  *   significantly increased the FC window (upon CORE being done with messages)
@@ -149,9 +149,9 @@
 
 /**
  * How big is the flow control window size by default;
- * limits per-neighbour RAM utilization (in kilobytes).
+ * limits per-neighbour RAM utilization.
  */
-#define DEFAULT_WINDOW_SIZE_KB 128
+#define DEFAULT_WINDOW_SIZE (128 * 1024)
 
 /**
  * For how many incoming connections do we try to create a
@@ -844,11 +844,11 @@ struct TransportValidationChallengeMessage
   struct GNUNET_MessageHeader header;
 
   /**
-   * Maximum number of kilobytes of the flow control window of
+   * Maximum number of bytes of the flow control window of
    * the previous challenge that the sender may consume.
    * After sending this message (with a new challenge),
    * the sender promises to never use more than this number
-   * of kilobytes of the flow control window of a previous
+   * of bytes of the flow control window of a previous
    * handshake.  Note that the number set here might be larger
    * than the actual number the sender will use: to avoid
    * a stall, the sender would estimate how long it would
@@ -860,7 +860,7 @@ struct TransportValidationChallengeMessage
    * If this is the first challenge (initial connection
    * establishment), this value must be zero.
    */
-  uint32_t last_window_consum_limit_kb GNUNET_PACKED;
+  uint32_t last_window_consum_limit GNUNET_PACKED;
 
   /**
    * Challenge to be signed by the receiving peer.
@@ -913,11 +913,11 @@ struct TransportValidationResponseMessage
   struct GNUNET_MessageHeader header;
 
   /**
-   * Flow control window size in kilobytes (1024 b), in NBO.
-   * The receiver can now send this many kilobytes as per
+   * Flow control window size in bytes, in NBO.
+   * The receiver can now send this many bytes as per
    * the @e challenge "account".
    */
-  uint32_t fc_window_size_kb GNUNET_PACKED;
+  uint32_t fc_window_size GNUNET_PACKED;
 
   /**
    * The peer's signature matching the
@@ -1228,7 +1228,7 @@ struct VirtualLink
 
   /**
    * Last challenge we received from @a n, for which we created the
-   * flow control window given in @e fc_window_size_kb.
+   * flow control window given in @e fc_window_size.
    */
   struct ChallengeNonceP n_challenge;
 
@@ -1244,9 +1244,9 @@ struct VirtualLink
    * we are willing to allocate to this virtual link.  OPTIMIZE-ME:
    * Can be adapted to dedicate more RAM to links that need it, while
    * sticking to some overall RAM limit.  For now, set to
-   * #DEFAULT_WINDOW_SIZE_KB.
+   * #DEFAULT_WINDOW_SIZE.
    */
-  uint32_t available_fc_window_size_kb;
+  uint32_t available_fc_window_size;
 
   /**
    * Memory actually used to buffer packets on this virtual link.
@@ -1254,45 +1254,45 @@ struct VirtualLink
    * Note that once CORE is done with a packet, we decrement the value
    * here.
    */
-  uint32_t incoming_fc_window_size_ram_kb;
+  uint32_t incoming_fc_window_size_ram;
 
   /**
    * Last flow control window size we provided to the other peer, in
-   * kilobytes (1024 b).  We are allowing the other peer to send this
-   * many kilobytes as per its last @e n_challenge "account".
+   * bytes.  We are allowing the other peer to send this
+   * many bytes as per its last @e n_challenge "account".
    */
-  uint32_t incoming_fc_window_size_kb;
+  uint32_t incoming_fc_window_size;
 
   /**
    * How many bytes could we still get from the previous flow control
-   * window, in kilobytes (1024 b).  We need to consider this value
+   * window, in bytes.  We need to consider this value
    * when calculating what we allow for the current window due to
    * the possibility of out-of-order challenges.
    */
-  uint32_t last_fc_window_size_remaining_kb;
+  uint32_t last_fc_window_size_remaining;
 
   /**
    * How much of the window did the other peer successfully use (and
    * we already passed it on to CORE)? Must be below @e
-   * incoming_fc_window_size_kb.   We should effectively signal the
+   * incoming_fc_window_size.   We should effectively signal the
    * other peer that the window is this much bigger at the next
    * opportunity / challenge.
    */
-  uint32_t incoming_fc_window_size_used_kb;
+  uint32_t incoming_fc_window_size_used;
 
   /**
-   * Our current flow control window size in kilobytes (1024 b).  We
-   * are allowed to transmit this many kilobytes to @a n as per
+   * Our current flow control window size in bytes.  We
+   * are allowed to transmit this many bytes to @a n as per
    * our @e my_challenge "account".
    */
-  uint32_t outbound_fc_window_size_kb;
+  uint32_t outbound_fc_window_size;
 
   /**
    * How much of our current flow control window size have we
-   * used (in kilobytes (1024 b)).  Must be below
-   * @e outbound_fc_window_size_kb.
+   * used (in bytes).  Must be below
+   * @e outbound_fc_window_size.
    */
-  uint32_t outbound_fc_window_size_used_kb;
+  uint32_t outbound_fc_window_size_used;
 
   /**
    * How many more messages can we send to CORE before we exhaust
@@ -2461,7 +2461,7 @@ struct ValidationState
    * if we never used data from the previous window or are establishing the
    * connection for the first time).
    */
-  uint32_t last_window_consum_limit_kb;
+  uint32_t last_window_consum_limit;
 
   /**
    * We are technically ready to send the challenge, but we are waiting for
@@ -5828,7 +5828,7 @@ activate_core_visible_dv_path (struct DistanceVectorHop *hop)
   vl->dv = dv;
   dv->vl = vl;
   vl->core_recv_window = RECV_WINDOW_SIZE;
-  vl->available_fc_window_size_kb = DEFAULT_WINDOW_SIZE_KB;
+  vl->available_fc_window_size = DEFAULT_WINDOW_SIZE;
   vl->visibility_task =
     GNUNET_SCHEDULER_add_at (hop->path_valid_until, &check_link_down, vl);
   GNUNET_break (GNUNET_YES ==
@@ -7199,42 +7199,39 @@ check_incoming_msg (void *cls,
  * @param vl virtual link
  * @param challenge the challenge we received
  * @param sender_time when did the peer send the message?
- * @param last_window_consum_limit_kb maximum number of kb the sender
+ * @param last_window_consum_limit maximum number of kb the sender
  *        promises to use of the previous window (if any)
  */
 static void
 update_fc_window (struct VirtualLink *vl,
                   const struct ChallengeNonceP *challenge,
                   struct GNUNET_TIME_Absolute sender_time,
-                  uint32_t last_window_consum_limit_kb)
+                  uint32_t last_window_consum_limit)
 {
   if (0 == GNUNET_memcmp (challenge, &vl->n_challenge))
   {
     uint32_t avail;
 
     /* Challenge identical to last one, update
-       @a last_window_consum_limit_kb (to minimum) */
-    vl->last_fc_window_size_remaining_kb =
-      GNUNET_MIN (last_window_consum_limit_kb,
-                  vl->last_fc_window_size_remaining_kb);
+       @a last_window_consum_limit (to minimum) */
+    vl->last_fc_window_size_remaining =
+      GNUNET_MIN (last_window_consum_limit, vl->last_fc_window_size_remaining);
     /* window could have shrunk! */
-    if (vl->available_fc_window_size_kb > vl->last_fc_window_size_remaining_kb)
-      avail =
-        vl->available_fc_window_size_kb - vl->last_fc_window_size_remaining_kb;
+    if (vl->available_fc_window_size > vl->last_fc_window_size_remaining)
+      avail = vl->available_fc_window_size - vl->last_fc_window_size_remaining;
     else
       avail = 0;
     /* guard against integer overflow */
-    if (vl->incoming_fc_window_size_used_kb + avail >=
-        vl->incoming_fc_window_size_used_kb)
-      vl->incoming_fc_window_size_kb =
-        vl->incoming_fc_window_size_used_kb + avail;
+    if (vl->incoming_fc_window_size_used + avail >=
+        vl->incoming_fc_window_size_used)
+      vl->incoming_fc_window_size = vl->incoming_fc_window_size_used + avail;
     else
-      vl->incoming_fc_window_size_kb = UINT32_MAX;
+      vl->incoming_fc_window_size = UINT32_MAX;
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Updated window to %u/%u kb (%u used) for virtual link to %s!\n",
-                vl->incoming_fc_window_size_kb,
-                vl->available_fc_window_size_kb,
-                vl->incoming_fc_window_size_used_kb,
+                vl->incoming_fc_window_size,
+                vl->available_fc_window_size,
+                vl->incoming_fc_window_size_used,
                 GNUNET_i2s (&vl->target));
     return;
   }
@@ -7247,31 +7244,31 @@ update_fc_window (struct VirtualLink *vl,
     return;
   }
   /* new challenge! */
-  if (vl->incoming_fc_window_size_used_kb > last_window_consum_limit_kb)
+  if (vl->incoming_fc_window_size_used > last_window_consum_limit)
   {
     /* lying peer: it already used more than it promised it would ever use! */
     GNUNET_break_op (0);
-    last_window_consum_limit_kb = vl->incoming_fc_window_size_used_kb;
+    last_window_consum_limit = vl->incoming_fc_window_size_used;
   }
   /* What remains is at most the difference between what we already processed
      and what the sender promises to limit itself to. */
-  vl->last_fc_window_size_remaining_kb =
-    last_window_consum_limit_kb - vl->incoming_fc_window_size_used_kb;
+  vl->last_fc_window_size_remaining =
+    last_window_consum_limit - vl->incoming_fc_window_size_used;
   vl->n_challenge = *challenge;
   vl->n_challenge_time = sender_time;
-  vl->incoming_fc_window_size_used_kb = 0;
+  vl->incoming_fc_window_size_used = 0;
   /* window could have shrunk! */
-  if (vl->available_fc_window_size_kb > vl->last_fc_window_size_remaining_kb)
-    vl->incoming_fc_window_size_kb =
-      vl->available_fc_window_size_kb - vl->last_fc_window_size_remaining_kb;
+  if (vl->available_fc_window_size > vl->last_fc_window_size_remaining)
+    vl->incoming_fc_window_size =
+      vl->available_fc_window_size - vl->last_fc_window_size_remaining;
   else
-    vl->incoming_fc_window_size_kb = 0;
+    vl->incoming_fc_window_size = 0;
   GNUNET_log (
     GNUNET_ERROR_TYPE_DEBUG,
     "New window at %u/%u kb (%u left on previous) for virtual link to %s!\n",
-    vl->incoming_fc_window_size_kb,
-    vl->available_fc_window_size_kb,
-    vl->last_fc_window_size_remaining_kb,
+    vl->incoming_fc_window_size,
+    vl->available_fc_window_size,
+    vl->last_fc_window_size_remaining,
     GNUNET_i2s (&vl->target));
 }
 
@@ -7495,12 +7492,11 @@ handle_validation_challenge (
     update_fc_window (vl,
                       &tvc->challenge,
                       GNUNET_TIME_absolute_ntoh (tvc->sender_time),
-                      ntohl (tvc->last_window_consum_limit_kb));
+                      ntohl (tvc->last_window_consum_limit));
   tvr.header.type =
     htons (GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_VALIDATION_RESPONSE);
   tvr.header.size = htons (sizeof (tvr));
-  tvr.fc_window_size_kb =
-    htonl ((NULL == vl) ? 0 : vl->incoming_fc_window_size_kb);
+  tvr.fc_window_size = htonl ((NULL == vl) ? 0 : vl->incoming_fc_window_size);
   tvr.challenge = tvc->challenge;
   tvr.origin_time = tvc->sender_time;
   tvr.validity_duration = validity_duration;
@@ -7786,7 +7782,7 @@ handle_validation_response (
     if (0 == GNUNET_memcmp (&vl->my_challenge, &tvr->challenge))
     {
       /* Update window size if the challenge matches */
-      vl->outbound_fc_window_size_kb = ntohl (tvr->fc_window_size_kb);
+      vl->outbound_fc_window_size = ntohl (tvr->fc_window_size);
     }
     return;
   }
@@ -7798,8 +7794,8 @@ handle_validation_response (
   vl->n = n;
   n->vl = vl;
   vl->core_recv_window = RECV_WINDOW_SIZE;
-  vl->available_fc_window_size_kb = DEFAULT_WINDOW_SIZE_KB;
-  vl->outbound_fc_window_size_kb = ntohl (tvr->fc_window_size_kb);
+  vl->available_fc_window_size = DEFAULT_WINDOW_SIZE;
+  vl->outbound_fc_window_size = ntohl (tvr->fc_window_size);
   vl->my_challenge = tvr->challenge;
   vl->visibility_task =
     GNUNET_SCHEDULER_add_at (q->validated_until, &check_link_down, vl);
@@ -8797,7 +8793,7 @@ validation_transmit_on_queue (struct Queue *q, struct ValidationState *vs)
   tvc.header.type =
     htons (GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_VALIDATION_CHALLENGE);
   tvc.header.size = htons (sizeof (tvc));
-  tvc.last_window_consum_limit_kb = htonl (vs->last_window_consum_limit_kb);
+  tvc.last_window_consum_limit = htonl (vs->last_window_consum_limit);
   tvc.challenge = vs->challenge;
   tvc.sender_time = GNUNET_TIME_absolute_hton (vs->last_challenge_use);
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
