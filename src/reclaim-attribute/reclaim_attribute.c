@@ -1,22 +1,22 @@
 /*
-      This file is part of GNUnet
-      Copyright (C) 2010-2015 GNUnet e.V.
+   This file is part of GNUnet
+   Copyright (C) 2010-2015 GNUnet e.V.
 
-      GNUnet is free software: you can redistribute it and/or modify it
-      under the terms of the GNU Affero General Public License as published
-      by the Free Software Foundation, either version 3 of the License,
-      or (at your option) any later version.
+   GNUnet is free software: you can redistribute it and/or modify it
+   under the terms of the GNU Affero General Public License as published
+   by the Free Software Foundation, either version 3 of the License,
+   or (at your option) any later version.
 
-      GNUnet is distributed in the hope that it will be useful, but
-      WITHOUT ANY WARRANTY; without even the implied warranty of
-      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-      Affero General Public License for more details.
+   GNUnet is distributed in the hope that it will be useful, but
+   WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   Affero General Public License for more details.
 
-      You should have received a copy of the GNU Affero General Public License
-      along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   You should have received a copy of the GNU Affero General Public License
+   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-     SPDX-License-Identifier: AGPL3.0-or-later
- */
+   SPDX-License-Identifier: AGPL3.0-or-later
+   */
 
 /**
  * @file reclaim-attribute/reclaim_attribute.c
@@ -265,11 +265,11 @@ GNUNET_RECLAIM_ATTRIBUTE_claim_new (const char *attr_name,
  */
 void
 GNUNET_RECLAIM_ATTRIBUTE_list_add (
-  struct GNUNET_RECLAIM_ATTRIBUTE_ClaimList *claim_list,
-  const char *attr_name,
-  uint32_t type,
-  const void *data,
-  size_t data_size)
+                                   struct GNUNET_RECLAIM_ATTRIBUTE_ClaimList *claim_list,
+                                   const char *attr_name,
+                                   uint32_t type,
+                                   const void *data,
+                                   size_t data_size)
 {
   struct GNUNET_RECLAIM_ATTRIBUTE_ClaimListEntry *le;
   le = GNUNET_new (struct GNUNET_RECLAIM_ATTRIBUTE_ClaimListEntry);
@@ -289,7 +289,7 @@ GNUNET_RECLAIM_ATTRIBUTE_list_add (
  */
 size_t
 GNUNET_RECLAIM_ATTRIBUTE_list_serialize_get_size (
-  const struct GNUNET_RECLAIM_ATTRIBUTE_ClaimList *attrs)
+                                                  const struct GNUNET_RECLAIM_ATTRIBUTE_ClaimList *attrs)
 {
   struct GNUNET_RECLAIM_ATTRIBUTE_ClaimListEntry *le;
   size_t len = 0;
@@ -308,8 +308,8 @@ GNUNET_RECLAIM_ATTRIBUTE_list_serialize_get_size (
  */
 size_t
 GNUNET_RECLAIM_ATTRIBUTE_list_serialize (
-  const struct GNUNET_RECLAIM_ATTRIBUTE_ClaimList *attrs,
-  char *result)
+                                         const struct GNUNET_RECLAIM_ATTRIBUTE_ClaimList *attrs,
+                                         char *result)
 {
   struct GNUNET_RECLAIM_ATTRIBUTE_ClaimListEntry *le;
   size_t len;
@@ -373,7 +373,7 @@ GNUNET_RECLAIM_ATTRIBUTE_list_deserialize (const char *data, size_t data_size)
  */
 struct GNUNET_RECLAIM_ATTRIBUTE_ClaimList *
 GNUNET_RECLAIM_ATTRIBUTE_list_dup (
-  const struct GNUNET_RECLAIM_ATTRIBUTE_ClaimList *attrs)
+                                   const struct GNUNET_RECLAIM_ATTRIBUTE_ClaimList *attrs)
 {
   struct GNUNET_RECLAIM_ATTRIBUTE_ClaimListEntry *le;
   struct GNUNET_RECLAIM_ATTRIBUTE_ClaimListEntry *result_le;
@@ -405,7 +405,7 @@ GNUNET_RECLAIM_ATTRIBUTE_list_dup (
  */
 void
 GNUNET_RECLAIM_ATTRIBUTE_list_destroy (
-  struct GNUNET_RECLAIM_ATTRIBUTE_ClaimList *attrs)
+                                       struct GNUNET_RECLAIM_ATTRIBUTE_ClaimList *attrs)
 {
   struct GNUNET_RECLAIM_ATTRIBUTE_ClaimListEntry *le;
   struct GNUNET_RECLAIM_ATTRIBUTE_ClaimListEntry *tmp_le;
@@ -429,7 +429,7 @@ GNUNET_RECLAIM_ATTRIBUTE_list_destroy (
  */
 size_t
 GNUNET_RECLAIM_ATTRIBUTE_serialize_get_size (
-  const struct GNUNET_RECLAIM_ATTRIBUTE_Claim *attr)
+                                             const struct GNUNET_RECLAIM_ATTRIBUTE_Claim *attr)
 {
   return sizeof (struct Attribute) + strlen (attr->name) + attr->data_size;
 }
@@ -444,8 +444,8 @@ GNUNET_RECLAIM_ATTRIBUTE_serialize_get_size (
  */
 size_t
 GNUNET_RECLAIM_ATTRIBUTE_serialize (
-  const struct GNUNET_RECLAIM_ATTRIBUTE_Claim *attr,
-  char *result)
+                                    const struct GNUNET_RECLAIM_ATTRIBUTE_Claim *attr,
+                                    char *result)
 {
   size_t data_len_ser;
   size_t name_len;

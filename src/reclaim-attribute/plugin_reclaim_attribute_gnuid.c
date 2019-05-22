@@ -50,10 +50,10 @@ gnuid_value_to_string (void *cls,
 
   switch (type)
   {
-  case GNUNET_RECLAIM_ATTRIBUTE_TYPE_STRING:
-    return GNUNET_strndup (data, data_size);
-  default:
-    return NULL;
+    case GNUNET_RECLAIM_ATTRIBUTE_TYPE_STRING:
+      return GNUNET_strndup (data, data_size);
+    default:
+      return NULL;
   }
 }
 
@@ -81,12 +81,12 @@ gnuid_string_to_value (void *cls,
   switch (type)
   {
 
-  case GNUNET_RECLAIM_ATTRIBUTE_TYPE_STRING:
-    *data = GNUNET_strdup (s);
-    *data_size = strlen (s);
-    return GNUNET_OK;
-  default:
-    return GNUNET_SYSERR;
+    case GNUNET_RECLAIM_ATTRIBUTE_TYPE_STRING:
+      *data = GNUNET_strdup (s);
+      *data_size = strlen (s);
+      return GNUNET_OK;
+    default:
+      return GNUNET_SYSERR;
   }
 }
 
@@ -100,7 +100,7 @@ static struct
   const char *name;
   uint32_t number;
 } gnuid_name_map[] = {{"STRING", GNUNET_RECLAIM_ATTRIBUTE_TYPE_STRING},
-                      {NULL, UINT32_MAX}};
+  {NULL, UINT32_MAX}};
 
 
 /**
