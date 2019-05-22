@@ -15,7 +15,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-     SPDX-License-Identifier: AGPL3.0-or-later
+   SPDX-License-Identifier: AGPL3.0-or-later
    */
 /**
  * @author Martin Schanzenbach
@@ -25,21 +25,19 @@
  *
  */
 #include "platform.h"
-
 #include "microhttpd.h"
 #include <inttypes.h>
 #include <jansson.h>
-
 #include "gnunet_gns_service.h"
 #include "gnunet_gnsrecord_lib.h"
 #include "gnunet_identity_service.h"
-#include "gnunet_namestore_service.h"
 #include "gnunet_reclaim_attribute_lib.h"
 #include "gnunet_reclaim_service.h"
 #include "gnunet_rest_lib.h"
 #include "gnunet_rest_plugin.h"
 #include "gnunet_signatures.h"
 #include "json_reclaim.h"
+
 /**
  * REST root namespace
  */
@@ -163,16 +161,6 @@ struct RequestHandle
   struct GNUNET_REST_RequestHandle *rest_handle;
 
   /**
-   * Handle to NAMESTORE
-   */
-  struct GNUNET_NAMESTORE_Handle *namestore_handle;
-
-  /**
-   * Iterator for NAMESTORE
-   */
-  struct GNUNET_NAMESTORE_ZoneIterator *namestore_handle_it;
-
-  /**
    * Attribute claim list
    */
   struct GNUNET_RECLAIM_ATTRIBUTE_ClaimList *attr_list;
@@ -276,8 +264,6 @@ cleanup_handle (struct RequestHandle *handle)
     GNUNET_free (handle->url);
   if (NULL != handle->emsg)
     GNUNET_free (handle->emsg);
-  if (NULL != handle->namestore_handle)
-    GNUNET_NAMESTORE_disconnect (handle->namestore_handle);
   if (NULL != handle->attr_list) {
     for (claim_entry = handle->attr_list->list_head; NULL != claim_entry;) {
       claim_tmp = claim_entry;
@@ -420,12 +406,12 @@ ticket_collect (void *cls, const struct GNUNET_RECLAIM_Ticket *ticket)
   json_array_append (handle->resp_object, json_resource);
 
   tmp = GNUNET_STRINGS_data_to_string_alloc (
-      &ticket->identity, sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey));
+                                             &ticket->identity, sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey));
   value = json_string (tmp);
   json_object_set_new (json_resource, "issuer", value);
   GNUNET_free (tmp);
   tmp = GNUNET_STRINGS_data_to_string_alloc (
-      &ticket->audience, sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey));
+                                             &ticket->audience, sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey));
   value = json_string (tmp);
   json_object_set_new (json_resource, "audience", value);
   GNUNET_free (tmp);
@@ -477,8 +463,8 @@ list_tickets_cont (struct GNUNET_REST_RequestHandle *con_handle,
   priv_key = GNUNET_IDENTITY_ego_get_private_key (ego_entry->ego);
   handle->idp = GNUNET_RECLAIM_connect (cfg);
   handle->ticket_it = GNUNET_RECLAIM_ticket_iteration_start (
-      handle->idp, priv_key, &collect_error_cb, handle, &ticket_collect, handle,
-      &collect_finished_cb, handle);
+                                                             handle->idp, priv_key, &collect_error_cb, handle, &ticket_collect, handle,
+                                                             &collect_finished_cb, handle);
 }
 
 
@@ -496,7 +482,7 @@ add_attribute_cont (struct GNUNET_REST_RequestHandle *con_handle,
   json_t *data_json;
   json_error_t err;
   struct GNUNET_JSON_Specification attrspec[] = {
-      GNUNET_RECLAIM_JSON_spec_claim (&attribute), GNUNET_JSON_spec_end ()};
+    GNUNET_RECLAIM_JSON_spec_claim (&attribute), GNUNET_JSON_spec_end ()};
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Adding an attribute for %s.\n",
               handle->url);
@@ -541,11 +527,11 @@ add_attribute_cont (struct GNUNET_REST_RequestHandle *con_handle,
    */
   if (0 == attribute->id)
     attribute->id =
-        GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_STRONG, UINT64_MAX);
+      GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_STRONG, UINT64_MAX);
   handle->idp = GNUNET_RECLAIM_connect (cfg);
   exp = GNUNET_TIME_UNIT_HOURS;
   handle->idp_op = GNUNET_RECLAIM_attribute_store (
-      handle->idp, identity_priv, attribute, &exp, &finished_cont, handle);
+                                                   handle->idp, identity_priv, attribute, &exp, &finished_cont, handle);
   GNUNET_JSON_parse_free (attrspec);
 }
 
@@ -629,8 +615,8 @@ list_attribute_cont (struct GNUNET_REST_RequestHandle *con_handle,
   priv_key = GNUNET_IDENTITY_ego_get_private_key (ego_entry->ego);
   handle->idp = GNUNET_RECLAIM_connect (cfg);
   handle->attr_it = GNUNET_RECLAIM_get_attributes_start (
-      handle->idp, priv_key, &collect_error_cb, handle, &attr_collect, handle,
-      &collect_finished_cb, handle);
+                                                         handle->idp, priv_key, &collect_error_cb, handle, &attr_collect, handle,
+                                                         &collect_finished_cb, handle);
 }
 
 
@@ -676,7 +662,7 @@ delete_attribute_cont (struct GNUNET_REST_RequestHandle *con_handle,
     return;
   }
   identity_id_str =
-      strdup (handle->url + strlen (GNUNET_REST_API_NS_RECLAIM_ATTRIBUTES) + 1);
+    strdup (handle->url + strlen (GNUNET_REST_API_NS_RECLAIM_ATTRIBUTES) + 1);
   identity = strtok (identity_id_str, "/");
   id = strtok (NULL, "/");
   if ((NULL == identity) || (NULL == id)) {
@@ -704,7 +690,7 @@ delete_attribute_cont (struct GNUNET_REST_RequestHandle *con_handle,
   GNUNET_STRINGS_string_to_data (id, strlen (id), &attr.id, sizeof (uint64_t));
   attr.name = "";
   handle->idp_op = GNUNET_RECLAIM_attribute_delete (
-      handle->idp, priv_key, &attr, &delete_finished_cb, handle);
+                                                    handle->idp, priv_key, &attr, &delete_finished_cb, handle);
   GNUNET_free (identity_id_str);
 }
 
@@ -722,7 +708,7 @@ revoke_ticket_cont (struct GNUNET_REST_RequestHandle *con_handle,
   json_t *data_json;
   json_error_t err;
   struct GNUNET_JSON_Specification tktspec[] = {
-      GNUNET_RECLAIM_JSON_spec_ticket (&ticket), GNUNET_JSON_spec_end ()};
+    GNUNET_RECLAIM_JSON_spec_ticket (&ticket), GNUNET_JSON_spec_end ()};
 
   if (0 >= handle->rest_handle->data_size) {
     GNUNET_SCHEDULER_add_now (&do_error, handle);
@@ -766,7 +752,7 @@ revoke_ticket_cont (struct GNUNET_REST_RequestHandle *con_handle,
 
   handle->idp = GNUNET_RECLAIM_connect (cfg);
   handle->idp_op = GNUNET_RECLAIM_ticket_revoke (
-      handle->idp, identity_priv, ticket, &finished_cont, handle);
+                                                 handle->idp, identity_priv, ticket, &finished_cont, handle);
   GNUNET_JSON_parse_free (tktspec);
 }
 
@@ -810,7 +796,7 @@ consume_ticket_cont (struct GNUNET_REST_RequestHandle *con_handle,
   json_t *data_json;
   json_error_t err;
   struct GNUNET_JSON_Specification tktspec[] = {
-      GNUNET_RECLAIM_JSON_spec_ticket (&ticket), GNUNET_JSON_spec_end ()};
+    GNUNET_RECLAIM_JSON_spec_ticket (&ticket), GNUNET_JSON_spec_end ()};
 
   if (0 >= handle->rest_handle->data_size) {
     GNUNET_SCHEDULER_add_now (&do_error, handle);
@@ -850,7 +836,7 @@ consume_ticket_cont (struct GNUNET_REST_RequestHandle *con_handle,
   handle->resp_object = json_object ();
   handle->idp = GNUNET_RECLAIM_connect (cfg);
   handle->idp_op = GNUNET_RECLAIM_ticket_consume (
-      handle->idp, identity_priv, ticket, &consume_cont, handle);
+                                                  handle->idp, identity_priv, ticket, &consume_cont, handle);
   GNUNET_JSON_parse_free (tktspec);
 }
 
@@ -887,20 +873,20 @@ init_cont (struct RequestHandle *handle)
 {
   struct GNUNET_REST_RequestHandlerError err;
   static const struct GNUNET_REST_RequestHandler handlers[] = {
-      {MHD_HTTP_METHOD_GET, GNUNET_REST_API_NS_RECLAIM_ATTRIBUTES,
-       &list_attribute_cont},
-      {MHD_HTTP_METHOD_POST, GNUNET_REST_API_NS_RECLAIM_ATTRIBUTES,
-       &add_attribute_cont},
-      {MHD_HTTP_METHOD_DELETE, GNUNET_REST_API_NS_RECLAIM_ATTRIBUTES,
-       &delete_attribute_cont},
-      {MHD_HTTP_METHOD_GET, GNUNET_REST_API_NS_IDENTITY_TICKETS,
-       &list_tickets_cont},
-      {MHD_HTTP_METHOD_POST, GNUNET_REST_API_NS_IDENTITY_REVOKE,
-       &revoke_ticket_cont},
-      {MHD_HTTP_METHOD_POST, GNUNET_REST_API_NS_IDENTITY_CONSUME,
-       &consume_ticket_cont},
-      {MHD_HTTP_METHOD_OPTIONS, GNUNET_REST_API_NS_RECLAIM, &options_cont},
-      GNUNET_REST_HANDLER_END};
+    {MHD_HTTP_METHOD_GET, GNUNET_REST_API_NS_RECLAIM_ATTRIBUTES,
+      &list_attribute_cont},
+    {MHD_HTTP_METHOD_POST, GNUNET_REST_API_NS_RECLAIM_ATTRIBUTES,
+      &add_attribute_cont},
+    {MHD_HTTP_METHOD_DELETE, GNUNET_REST_API_NS_RECLAIM_ATTRIBUTES,
+      &delete_attribute_cont},
+    {MHD_HTTP_METHOD_GET, GNUNET_REST_API_NS_IDENTITY_TICKETS,
+      &list_tickets_cont},
+    {MHD_HTTP_METHOD_POST, GNUNET_REST_API_NS_IDENTITY_REVOKE,
+      &revoke_ticket_cont},
+    {MHD_HTTP_METHOD_POST, GNUNET_REST_API_NS_IDENTITY_CONSUME,
+      &consume_ticket_cont},
+    {MHD_HTTP_METHOD_OPTIONS, GNUNET_REST_API_NS_RECLAIM, &options_cont},
+    GNUNET_REST_HANDLER_END};
 
   if (GNUNET_NO == GNUNET_REST_handle_request (handle->rest_handle, handlers,
                                                &err, handle)) {
@@ -983,9 +969,8 @@ rest_identity_process_request (struct GNUNET_REST_RequestHandle *rest_handle,
     handle->url[strlen (handle->url) - 1] = '\0';
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Connecting...\n");
   handle->identity_handle = GNUNET_IDENTITY_connect (cfg, &list_ego, handle);
-  handle->namestore_handle = GNUNET_NAMESTORE_connect (cfg);
   handle->timeout_task =
-      GNUNET_SCHEDULER_add_delayed (handle->timeout, &do_timeout, handle);
+    GNUNET_SCHEDULER_add_delayed (handle->timeout, &do_timeout, handle);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Connected\n");
 }
 

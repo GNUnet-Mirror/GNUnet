@@ -15,7 +15,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-     SPDX-License-Identifier: AGPL3.0-or-later
+   SPDX-License-Identifier: AGPL3.0-or-later
    */
 /**
  * @author Martin Schanzenbach
@@ -209,12 +209,12 @@
  * OIDC ignored parameter array
  */
 static char *OIDC_ignored_parameter_array[] = {"display",
-                                               "prompt",
-                                               "ui_locales",
-                                               "response_mode",
-                                               "id_token_hint",
-                                               "login_hint",
-                                               "acr_values"};
+  "prompt",
+  "ui_locales",
+  "response_mode",
+  "id_token_hint",
+  "login_hint",
+  "acr_values"};
 
 /**
  * OIDC Hash map that keeps track of issued cookies
@@ -724,7 +724,7 @@ cookie_identity_interpretation (struct RequestHandle *handle)
                       strlen (OIDC_COOKIE_HEADER_KEY),
                       &cache_key);
   if (GNUNET_NO == GNUNET_CONTAINER_multihashmap_contains (handle->rest_handle
-                                                             ->header_param_map,
+                                                           ->header_param_map,
                                                            &cache_key))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "No cookie found\n");
@@ -772,9 +772,9 @@ cookie_identity_interpretation (struct RequestHandle *handle)
       GNUNET_CONTAINER_multihashmap_contains (OIDC_cookie_jar_map, &cache_key))
   {
     GNUNET_log (
-      GNUNET_ERROR_TYPE_WARNING,
-      "Found cookie `%s', but no corresponding expiration entry present...\n",
-      token);
+                GNUNET_ERROR_TYPE_WARNING,
+                "Found cookie `%s', but no corresponding expiration entry present...\n",
+                token);
     GNUNET_free (cookies);
     return;
   }
@@ -1020,10 +1020,10 @@ code_redirect (void *cls)
     {
       if (GNUNET_OK !=
           GNUNET_CRYPTO_ecdsa_public_key_from_string (handle->oidc
-                                                        ->login_identity,
+                                                      ->login_identity,
                                                       strlen (
-                                                        handle->oidc
-                                                          ->login_identity),
+                                                              handle->oidc
+                                                              ->login_identity),
                                                       &pubkey))
       {
         handle->emsg = GNUNET_strdup (OIDC_ERROR_KEY_INVALID_COOKIE);
@@ -1191,7 +1191,7 @@ get_url_parameter_copy (const struct RequestHandle *handle, const char *key)
   char *value;
   GNUNET_CRYPTO_hash (key, strlen (key), &hc);
   if (GNUNET_YES != GNUNET_CONTAINER_multihashmap_contains (handle->rest_handle
-                                                              ->url_param_map,
+                                                            ->url_param_map,
                                                             &hc))
     return NULL;
   value =
@@ -1264,7 +1264,7 @@ build_authz_response (void *cls)
                         &cache_key);
     if (GNUNET_YES ==
         GNUNET_CONTAINER_multihashmap_contains (handle->rest_handle
-                                                  ->url_param_map,
+                                                ->url_param_map,
                                                 &cache_key))
     {
       handle->emsg = GNUNET_strdup (OIDC_ERROR_KEY_ACCESS_DENIED);
@@ -1370,7 +1370,7 @@ authorize_endpoint (struct GNUNET_REST_RequestHandle *con_handle,
   if (GNUNET_OK !=
       GNUNET_CRYPTO_ecdsa_public_key_from_string (handle->oidc->client_id,
                                                   strlen (
-                                                    handle->oidc->client_id),
+                                                          handle->oidc->client_id),
                                                   &handle->oidc->client_pkey))
   {
     handle->emsg = GNUNET_strdup (OIDC_ERROR_KEY_UNAUTHORIZED_CLIENT);
@@ -1455,8 +1455,8 @@ login_cont (struct GNUNET_REST_RequestHandle *con_handle,
   {
     current_time = GNUNET_new (struct GNUNET_TIME_Absolute);
     *current_time = GNUNET_TIME_relative_to_absolute (
-      GNUNET_TIME_relative_multiply (GNUNET_TIME_relative_get_second_ (),
-                                     OIDC_COOKIE_EXPIRATION));
+                                                      GNUNET_TIME_relative_multiply (GNUNET_TIME_relative_get_second_ (),
+                                                                                     OIDC_COOKIE_EXPIRATION));
     last_time =
       GNUNET_CONTAINER_multihashmap_get (OIDC_cookie_jar_map, &cache_key);
     GNUNET_free_non_null (last_time);
@@ -1488,7 +1488,7 @@ check_authorization (struct RequestHandle *handle,
                       strlen (OIDC_AUTHORIZATION_HEADER_KEY),
                       &cache_key);
   if (GNUNET_NO == GNUNET_CONTAINER_multihashmap_contains (handle->rest_handle
-                                                             ->header_param_map,
+                                                           ->header_param_map,
                                                            &cache_key))
   {
     handle->emsg = GNUNET_strdup (OIDC_ERROR_KEY_INVALID_CLIENT);
@@ -1620,10 +1620,10 @@ persist_access_token (const struct RequestHandle *handle,
   ticketbuf = GNUNET_new (struct GNUNET_RECLAIM_Ticket);
   *ticketbuf = *ticket;
   GNUNET_CONTAINER_multihashmap_put (
-    OIDC_access_token_map,
-    &hc,
-    ticketbuf,
-    GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
+                                     OIDC_access_token_map,
+                                     &hc,
+                                     ticketbuf,
+                                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
 }
 
 /**
@@ -1826,7 +1826,7 @@ userinfo_endpoint (struct GNUNET_REST_RequestHandle *con_handle,
                       strlen (OIDC_AUTHORIZATION_HEADER_KEY),
                       &cache_key);
   if (GNUNET_NO == GNUNET_CONTAINER_multihashmap_contains (handle->rest_handle
-                                                             ->header_param_map,
+                                                           ->header_param_map,
                                                            &cache_key))
   {
     handle->emsg = GNUNET_strdup (OIDC_ERROR_KEY_INVALID_TOKEN);
@@ -1915,16 +1915,16 @@ init_cont (struct RequestHandle *handle)
 {
   struct GNUNET_REST_RequestHandlerError err;
   static const struct GNUNET_REST_RequestHandler handlers[] =
-    {{MHD_HTTP_METHOD_GET, GNUNET_REST_API_NS_AUTHORIZE, &authorize_endpoint},
-     {MHD_HTTP_METHOD_POST,
+  {{MHD_HTTP_METHOD_GET, GNUNET_REST_API_NS_AUTHORIZE, &authorize_endpoint},
+    {MHD_HTTP_METHOD_POST,
       GNUNET_REST_API_NS_AUTHORIZE,
       &authorize_endpoint}, // url-encoded
-     {MHD_HTTP_METHOD_POST, GNUNET_REST_API_NS_LOGIN, &login_cont},
-     {MHD_HTTP_METHOD_POST, GNUNET_REST_API_NS_TOKEN, &token_endpoint},
-     {MHD_HTTP_METHOD_GET, GNUNET_REST_API_NS_USERINFO, &userinfo_endpoint},
-     {MHD_HTTP_METHOD_POST, GNUNET_REST_API_NS_USERINFO, &userinfo_endpoint},
-     {MHD_HTTP_METHOD_OPTIONS, GNUNET_REST_API_NS_OIDC, &options_cont},
-     GNUNET_REST_HANDLER_END};
+    {MHD_HTTP_METHOD_POST, GNUNET_REST_API_NS_LOGIN, &login_cont},
+    {MHD_HTTP_METHOD_POST, GNUNET_REST_API_NS_TOKEN, &token_endpoint},
+    {MHD_HTTP_METHOD_GET, GNUNET_REST_API_NS_USERINFO, &userinfo_endpoint},
+    {MHD_HTTP_METHOD_POST, GNUNET_REST_API_NS_USERINFO, &userinfo_endpoint},
+    {MHD_HTTP_METHOD_OPTIONS, GNUNET_REST_API_NS_OIDC, &options_cont},
+    GNUNET_REST_HANDLER_END};
 
   if (GNUNET_NO ==
       GNUNET_REST_handle_request (handle->rest_handle, handlers, &err, handle))

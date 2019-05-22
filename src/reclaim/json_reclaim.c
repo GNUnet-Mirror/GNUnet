@@ -1,22 +1,22 @@
 /*
-     This file is part of GNUnet.
-     Copyright (C) 2009-2018 GNUnet e.V.
+   This file is part of GNUnet.
+   Copyright (C) 2009-2018 GNUnet e.V.
 
-     GNUnet is free software: you can redistribute it and/or modify it
-     under the terms of the GNU Affero General Public License as published
-     by the Free Software Foundation, either version 3 of the License,
-     or (at your option) any later version.
+   GNUnet is free software: you can redistribute it and/or modify it
+   under the terms of the GNU Affero General Public License as published
+   by the Free Software Foundation, either version 3 of the License,
+   or (at your option) any later version.
 
-     GNUnet is distributed in the hope that it will be useful, but
-     WITHOUT ANY WARRANTY; without even the implied warranty of
-     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-     Affero General Public License for more details.
+   GNUnet is distributed in the hope that it will be useful, but
+   WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   Affero General Public License for more details.
 
-     You should have received a copy of the GNU Affero General Public License
-     along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   You should have received a copy of the GNU Affero General Public License
+   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-     SPDX-License-Identifier: AGPL3.0-or-later
-*/
+   SPDX-License-Identifier: AGPL3.0-or-later
+   */
 
 /**
  * @file rest-plugins/json_reclaim.c
@@ -62,8 +62,8 @@ parse_attr (void *cls, json_t *root, struct GNUNET_JSON_Specification *spec)
   }
   // interpret single attribute
   unpack_state =
-      json_unpack (root, "{s:s, s?s, s:s, s:s!}", "name", &name_str, "id",
-                   &id_str, "type", &type_str, "value", &val_str);
+    json_unpack (root, "{s:s, s?s, s:s, s:s!}", "name", &name_str, "id",
+                 &id_str, "type", &type_str, "value", &val_str);
   if ((0 != unpack_state) || (NULL == name_str) || (NULL == val_str) ||
       (NULL == type_str)) {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -72,7 +72,7 @@ parse_attr (void *cls, json_t *root, struct GNUNET_JSON_Specification *spec)
   }
   type = GNUNET_RECLAIM_ATTRIBUTE_typename_to_number (type_str);
   if (GNUNET_SYSERR == (GNUNET_RECLAIM_ATTRIBUTE_string_to_value (
-                           type, val_str, (void **)&data, &data_size))) {
+                                                                  type, val_str, (void **)&data, &data_size))) {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Attribute value invalid!\n");
     return GNUNET_SYSERR;
   }
@@ -114,12 +114,12 @@ struct GNUNET_JSON_Specification
 GNUNET_RECLAIM_JSON_spec_claim (struct GNUNET_RECLAIM_ATTRIBUTE_Claim **attr)
 {
   struct GNUNET_JSON_Specification ret = {.parser = &parse_attr,
-                                          .cleaner = &clean_attr,
-                                          .cls = NULL,
-                                          .field = NULL,
-                                          .ptr = attr,
-                                          .ptr_size = 0,
-                                          .size_ptr = NULL};
+    .cleaner = &clean_attr,
+    .cls = NULL,
+    .field = NULL,
+    .ptr = attr,
+    .ptr_size = 0,
+    .size_ptr = NULL};
   *attr = NULL;
   return ret;
 }
@@ -210,12 +210,12 @@ struct GNUNET_JSON_Specification
 GNUNET_RECLAIM_JSON_spec_ticket (struct GNUNET_RECLAIM_Ticket **ticket)
 {
   struct GNUNET_JSON_Specification ret = {.parser = &parse_ticket,
-                                          .cleaner = &clean_ticket,
-                                          .cls = NULL,
-                                          .field = NULL,
-                                          .ptr = ticket,
-                                          .ptr_size = 0,
-                                          .size_ptr = NULL};
+    .cleaner = &clean_ticket,
+    .cls = NULL,
+    .field = NULL,
+    .ptr = ticket,
+    .ptr_size = 0,
+    .size_ptr = NULL};
   *ticket = NULL;
   return ret;
 }

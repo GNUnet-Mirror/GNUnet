@@ -25,7 +25,6 @@
  *
  */
 #include <inttypes.h>
-
 #include "gnunet-service-reclaim_tickets.h"
 
 #define DEFAULT_TICKET_REFRESH_INTERVAL GNUNET_TIME_UNIT_HOURS
@@ -406,7 +405,7 @@ rvk_move_attr_cb (void *cls, const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
   }
   /** find a new place for this attribute **/
   rvk->move_attr->new_id =
-      GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_STRONG, UINT64_MAX);
+    GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_STRONG, UINT64_MAX);
   new_rd = *rd;
   claim = GNUNET_RECLAIM_ATTRIBUTE_deserialize (rd->data, rd->data_size);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -421,7 +420,7 @@ rvk_move_attr_cb (void *cls, const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
                                                    sizeof (uint64_t));
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Adding attribute %s\n", new_label);
   rvk->ns_qe = GNUNET_NAMESTORE_records_store (
-      nsh, &rvk->identity, new_label, 1, &new_rd, &move_attr_finished, rvk);
+                                               nsh, &rvk->identity, new_label, 1, &new_rd, &move_attr_finished, rvk);
   GNUNET_free (new_label);
   GNUNET_free (claim);
   GNUNET_free (attr_data);
@@ -506,7 +505,7 @@ process_tickets (void *cls)
     }
   }
   rvk->ns_qe = GNUNET_NAMESTORE_records_store (
-      nsh, &rvk->identity, le->label, le->rd_count, rd, &ticket_processed, rvk);
+                                               nsh, &rvk->identity, le->label, le->rd_count, rd, &ticket_processed, rvk);
   GNUNET_free (le->label);
   GNUNET_free (le->data);
   GNUNET_free (le);
@@ -555,8 +554,8 @@ move_attrs (struct RECLAIM_TICKETS_RevokeHandle *rvk)
   if (NULL == rvk->move_attr) {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Finished moving attributes\n");
     rvk->ns_it = GNUNET_NAMESTORE_zone_iteration_start (
-        nsh, &rvk->identity, &rvk_ns_iter_err, rvk, &rvk_ticket_update, rvk,
-        &rvk_ticket_update_finished, rvk);
+                                                        nsh, &rvk->identity, &rvk_ns_iter_err, rvk, &rvk_ticket_update, rvk,
+                                                        &rvk_ticket_update_finished, rvk);
     return;
   }
   label = GNUNET_STRINGS_data_to_string_alloc (&rvk->move_attr->old_id,
@@ -564,7 +563,7 @@ move_attrs (struct RECLAIM_TICKETS_RevokeHandle *rvk)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Moving attribute %s\n", label);
 
   rvk->ns_qe = GNUNET_NAMESTORE_records_lookup (
-      nsh, &rvk->identity, label, &rvk_ns_err, rvk, &rvk_move_attr_cb, rvk);
+                                                nsh, &rvk->identity, label, &rvk_ns_err, rvk, &rvk_move_attr_cb, rvk);
   GNUNET_free (label);
 }
 
@@ -644,7 +643,7 @@ RECLAIM_TICKETS_revoke (const struct GNUNET_RECLAIM_Ticket *ticket,
   label = GNUNET_STRINGS_data_to_string_alloc (&ticket->rnd, sizeof (uint64_t));
 
   rvk->ns_qe = GNUNET_NAMESTORE_records_lookup (
-      nsh, identity, label, &rvk_attrs_err_cb, rvk, &revoke_attrs_cb, rvk);
+                                                nsh, identity, label, &rvk_attrs_err_cb, rvk, &revoke_attrs_cb, rvk);
   return rvk;
 }
 
@@ -700,10 +699,10 @@ process_parallel_lookup_result (void *cls, uint32_t rd_count,
   GNUNET_free (parallel_lookup->label);
 
   GNUNET_STATISTICS_update (
-      stats, "attribute_lookup_time_total",
-      GNUNET_TIME_absolute_get_duration (parallel_lookup->lookup_start_time)
-          .rel_value_us,
-      GNUNET_YES);
+                            stats, "attribute_lookup_time_total",
+                            GNUNET_TIME_absolute_get_duration (parallel_lookup->lookup_start_time)
+                            .rel_value_us,
+                            GNUNET_YES);
   GNUNET_STATISTICS_update (stats, "attribute_lookups_count", 1, GNUNET_YES);
 
 
@@ -713,7 +712,7 @@ process_parallel_lookup_result (void *cls, uint32_t rd_count,
   if (rd->record_type == GNUNET_GNSRECORD_TYPE_RECLAIM_ATTR) {
     attr_le = GNUNET_new (struct GNUNET_RECLAIM_ATTRIBUTE_ClaimListEntry);
     attr_le->claim =
-        GNUNET_RECLAIM_ATTRIBUTE_deserialize (rd->data, rd->data_size);
+      GNUNET_RECLAIM_ATTRIBUTE_deserialize (rd->data, rd->data_size);
     GNUNET_CONTAINER_DLL_insert (cth->attrs->list_head, cth->attrs->list_tail,
                                  attr_le);
   }
@@ -758,9 +757,9 @@ lookup_authz_cb (void *cls, uint32_t rd_count,
   cth->lookup_request = NULL;
 
   GNUNET_STATISTICS_update (
-      stats, "reclaim_authz_lookup_time_total",
-      GNUNET_TIME_absolute_get_duration (cth->lookup_start_time).rel_value_us,
-      GNUNET_YES);
+                            stats, "reclaim_authz_lookup_time_total",
+                            GNUNET_TIME_absolute_get_duration (cth->lookup_start_time).rel_value_us,
+                            GNUNET_YES);
   GNUNET_STATISTICS_update (stats, "reclaim_authz_lookups_count", 1,
                             GNUNET_YES);
 
@@ -774,16 +773,16 @@ lookup_authz_cb (void *cls, uint32_t rd_count,
     parallel_lookup->label = lbl;
     parallel_lookup->lookup_start_time = GNUNET_TIME_absolute_get ();
     parallel_lookup->lookup_request = GNUNET_GNS_lookup (
-        gns, lbl, &cth->ticket.identity, GNUNET_GNSRECORD_TYPE_RECLAIM_ATTR,
-        GNUNET_GNS_LO_DEFAULT, &process_parallel_lookup_result,
-        parallel_lookup);
+                                                         gns, lbl, &cth->ticket.identity, GNUNET_GNSRECORD_TYPE_RECLAIM_ATTR,
+                                                         GNUNET_GNS_LO_DEFAULT, &process_parallel_lookup_result,
+                                                         parallel_lookup);
     GNUNET_CONTAINER_DLL_insert (cth->parallel_lookups_head,
                                  cth->parallel_lookups_tail, parallel_lookup);
   }
   if (NULL != cth->parallel_lookups_head) {
     cth->kill_task = GNUNET_SCHEDULER_add_delayed (
-        GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 3),
-        &abort_parallel_lookups, cth);
+                                                   GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 3),
+                                                   &abort_parallel_lookups, cth);
     return;
   }
   cth->cb (cth->cb_cls, &cth->ticket.identity, cth->attrs, GNUNET_OK, NULL);
@@ -807,13 +806,13 @@ RECLAIM_TICKETS_consume (const struct GNUNET_CRYPTO_EcdsaPrivateKey *id,
   cth->cb = cb;
   cth->cb_cls = cb_cls;
   label =
-      GNUNET_STRINGS_data_to_string_alloc (&cth->ticket.rnd, sizeof (uint64_t));
+    GNUNET_STRINGS_data_to_string_alloc (&cth->ticket.rnd, sizeof (uint64_t));
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Looking for AuthZ info under %s\n",
               label);
   cth->lookup_start_time = GNUNET_TIME_absolute_get ();
   cth->lookup_request = GNUNET_GNS_lookup (
-      gns, label, &cth->ticket.identity, GNUNET_GNSRECORD_TYPE_RECLAIM_ATTR_REF,
-      GNUNET_GNS_LO_DEFAULT, &lookup_authz_cb, cth);
+                                           gns, label, &cth->ticket.identity, GNUNET_GNSRECORD_TYPE_RECLAIM_ATTR_REF,
+                                           GNUNET_GNS_LO_DEFAULT, &lookup_authz_cb, cth);
   GNUNET_free (label);
   return cth;
 }
@@ -872,7 +871,7 @@ issue_ticket (struct TicketIssueHandle *ih)
     list_len++;
 
   attrs_record =
-      GNUNET_malloc (list_len * sizeof (struct GNUNET_GNSRECORD_Data));
+    GNUNET_malloc (list_len * sizeof (struct GNUNET_GNSRECORD_Data));
   i = 0;
   for (le = ih->attrs->list_head; NULL != le; le = le->next) {
     attrs_record[i].data = &le->claim->id;
@@ -888,10 +887,10 @@ issue_ticket (struct TicketIssueHandle *ih)
   attrs_record[i].expiration_time = ticket_refresh_interval.rel_value_us;
   attrs_record[i].record_type = GNUNET_GNSRECORD_TYPE_RECLAIM_TICKET;
   attrs_record[i].flags =
-      GNUNET_GNSRECORD_RF_RELATIVE_EXPIRATION | GNUNET_GNSRECORD_RF_PRIVATE;
+    GNUNET_GNSRECORD_RF_RELATIVE_EXPIRATION | GNUNET_GNSRECORD_RF_PRIVATE;
 
   label =
-      GNUNET_STRINGS_data_to_string_alloc (&ih->ticket.rnd, sizeof (uint64_t));
+    GNUNET_STRINGS_data_to_string_alloc (&ih->ticket.rnd, sizeof (uint64_t));
   // Publish record
   ih->ns_qe = GNUNET_NAMESTORE_records_store (nsh, &ih->identity, label,
                                               list_len, attrs_record,
@@ -915,7 +914,7 @@ RECLAIM_TICKETS_issue (const struct GNUNET_CRYPTO_EcdsaPrivateKey *identity,
   tih->identity = *identity;
   GNUNET_CRYPTO_ecdsa_key_get_public (identity, &tih->ticket.identity);
   tih->ticket.rnd =
-      GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_STRONG, UINT64_MAX);
+    GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_STRONG, UINT64_MAX);
   tih->ticket.audience = *audience;
   issue_ticket (tih);
 }
@@ -987,8 +986,8 @@ RECLAIM_TICKETS_iteration_stop (struct RECLAIM_TICKETS_Iterator *iter)
 
 struct RECLAIM_TICKETS_Iterator *
 RECLAIM_TICKETS_iteration_start (
-    const struct GNUNET_CRYPTO_EcdsaPrivateKey *identity,
-    RECLAIM_TICKETS_TicketIter cb, void *cb_cls)
+                                 const struct GNUNET_CRYPTO_EcdsaPrivateKey *identity,
+                                 RECLAIM_TICKETS_TicketIter cb, void *cb_cls)
 {
   struct RECLAIM_TICKETS_Iterator *iter;
 
@@ -996,8 +995,8 @@ RECLAIM_TICKETS_iteration_start (
   iter->cb = cb;
   iter->cb_cls = cb_cls;
   iter->ns_it = GNUNET_NAMESTORE_zone_iteration_start (
-      nsh, identity, &collect_tickets_error_cb, iter, &collect_tickets_cb, iter,
-      &collect_tickets_finished_cb, iter);
+                                                       nsh, identity, &collect_tickets_error_cb, iter, &collect_tickets_cb, iter,
+                                                       &collect_tickets_finished_cb, iter);
   return iter;
 }
 
@@ -1012,10 +1011,10 @@ RECLAIM_TICKETS_init (const struct GNUNET_CONFIGURATION_Handle *c)
                                               "TICKET_REFRESH_INTERVAL",
                                               &ticket_refresh_interval)) {
     GNUNET_log (
-      GNUNET_ERROR_TYPE_DEBUG,
-      "Configured refresh interval for tickets: %s\n",
-      GNUNET_STRINGS_relative_time_to_string (ticket_refresh_interval,
-                                              GNUNET_YES));
+                GNUNET_ERROR_TYPE_DEBUG,
+                "Configured refresh interval for tickets: %s\n",
+                GNUNET_STRINGS_relative_time_to_string (ticket_refresh_interval,
+                                                        GNUNET_YES));
   } else {
     ticket_refresh_interval = DEFAULT_TICKET_REFRESH_INTERVAL;
   }

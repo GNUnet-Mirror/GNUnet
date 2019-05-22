@@ -1,22 +1,22 @@
 /*
-      This file is part of GNUnet
-      Copyright (C) 2010-2015 GNUnet e.V.
+   This file is part of GNUnet
+   Copyright (C) 2010-2015 GNUnet e.V.
 
-      GNUnet is free software: you can redistribute it and/or modify it
-      under the terms of the GNU Affero General Public License as published
-      by the Free Software Foundation, either version 3 of the License,
-      or (at your option) any later version.
+   GNUnet is free software: you can redistribute it and/or modify it
+   under the terms of the GNU Affero General Public License as published
+   by the Free Software Foundation, either version 3 of the License,
+   or (at your option) any later version.
 
-      GNUnet is distributed in the hope that it will be useful, but
-      WITHOUT ANY WARRANTY; without even the implied warranty of
-      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-      Affero General Public License for more details.
+   GNUnet is distributed in the hope that it will be useful, but
+   WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   Affero General Public License for more details.
 
-      You should have received a copy of the GNU Affero General Public License
-      along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   You should have received a copy of the GNU Affero General Public License
+   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-     SPDX-License-Identifier: AGPL3.0-or-later
- */
+   SPDX-License-Identifier: AGPL3.0-or-later
+   */
 
 /**
  * @file reclaim/oidc_helper.c
@@ -26,13 +26,13 @@
 #include "platform.h"
 #include <inttypes.h>
 #include <jansson.h>
-
 #include "gnunet_util_lib.h"
-
 #include "gnunet_reclaim_attribute_lib.h"
 #include "gnunet_reclaim_service.h"
 #include "gnunet_signatures.h"
 #include "oidc_helper.h"
+
+
 static char *
 create_jwt_header (void)
 {
@@ -308,7 +308,7 @@ derive_aes_key (struct GNUNET_CRYPTO_SymmetricSessionKey *key,
                      NULL);
   GNUNET_CRYPTO_kdf (iv,
                      sizeof (
-                       struct GNUNET_CRYPTO_SymmetricInitializationVector),
+                             struct GNUNET_CRYPTO_SymmetricInitializationVector),
                      ctx_iv,
                      strlen (ctx_iv),
                      key_material,
@@ -368,7 +368,7 @@ encrypt_payload (const struct GNUNET_CRYPTO_EcdsaPublicKey *ecdsa_pub,
 
   calculate_key_pub (&key, &iv, ecdsa_pub, ecdh_priv);
   GNUNET_break (
-    GNUNET_CRYPTO_symmetric_encrypt (payload, payload_len, &key, &iv, buf));
+                GNUNET_CRYPTO_symmetric_encrypt (payload, payload_len, &key, &iv, buf));
 }
 
 
@@ -416,9 +416,9 @@ OIDC_build_authz_code (const struct GNUNET_CRYPTO_EcdsaPrivateKey *issuer,
     GNUNET_RECLAIM_ATTRIBUTE_list_serialize (attrs, attrs_ser);
   }
   code_payload_len = sizeof (struct GNUNET_CRYPTO_EccSignaturePurpose) +
-                     sizeof (struct GNUNET_CRYPTO_EcdhePublicKey) +
-                     signature_payload_len +
-                     sizeof (struct GNUNET_CRYPTO_EcdsaSignature);
+    sizeof (struct GNUNET_CRYPTO_EcdhePublicKey) +
+    signature_payload_len +
+    sizeof (struct GNUNET_CRYPTO_EcdsaSignature);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Length of data to encode: %lu\n",
               code_payload_len);
@@ -482,7 +482,7 @@ OIDC_build_authz_code (const struct GNUNET_CRYPTO_EcdsaPrivateKey *issuer,
       GNUNET_CRYPTO_ecdsa_sign (issuer,
                                 purpose,
                                 (struct GNUNET_CRYPTO_EcdsaSignature *)
-                                  buf_ptr))
+                                buf_ptr))
   {
     GNUNET_break (0);
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Unable to sign code\n");
@@ -532,10 +532,10 @@ OIDC_parse_authz_code (const struct GNUNET_CRYPTO_EcdsaPrivateKey *ecdsa_priv,
   code_payload_len =
     GNUNET_STRINGS_base64_decode (code, strlen (code), (void **) &code_payload);
   if (code_payload_len < sizeof (struct GNUNET_CRYPTO_EccSignaturePurpose) +
-                           sizeof (struct GNUNET_CRYPTO_EcdhePublicKey) +
-                           sizeof (struct GNUNET_RECLAIM_Ticket) +
-                           sizeof (uint32_t) +
-                           sizeof (struct GNUNET_CRYPTO_EcdsaSignature))
+      sizeof (struct GNUNET_CRYPTO_EcdhePublicKey) +
+      sizeof (struct GNUNET_RECLAIM_Ticket) +
+      sizeof (uint32_t) +
+      sizeof (struct GNUNET_CRYPTO_EcdsaSignature))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Authorization code malformed\n");
     GNUNET_free_non_null (code_payload);
