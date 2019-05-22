@@ -834,23 +834,9 @@ struct TransportValidationChallengeMessage
   struct GNUNET_MessageHeader header;
 
   /**
-   * Maximum number of bytes of the flow control window of
-   * the previous challenge that the sender may consume.
-   * After sending this message (with a new challenge),
-   * the sender promises to never use more than this number
-   * of bytes of the flow control window of a previous
-   * handshake.  Note that the number set here might be larger
-   * than the actual number the sender will use: to avoid
-   * a stall, the sender would estimate how long it would
-   * take to receive a validation response and reserve itself
-   * a buffer so it can keep sending while waiting for the
-   * response. Note that the consumption limit must still be
-   * below the maximum value permitted by the receiver so far.
-   *
-   * If this is the first challenge (initial connection
-   * establishment), this value must be zero.
+   * Always zero.
    */
-  uint32_t last_window_consum_limit GNUNET_PACKED;
+  uint32_t reserved GNUNET_PACKED;
 
   /**
    * Challenge to be signed by the receiving peer.
@@ -903,11 +889,9 @@ struct TransportValidationResponseMessage
   struct GNUNET_MessageHeader header;
 
   /**
-   * Flow control window size in bytes, in NBO.
-   * The receiver can now send this many bytes as per
-   * the @e challenge "account".
+   * Always zero.
    */
-  uint32_t fc_window_size GNUNET_PACKED;
+  uint32_t reserved GNUNET_PACKED;
 
   /**
    * The peer's signature matching the
@@ -931,6 +915,66 @@ struct TransportValidationResponseMessage
    * valid?
    */
   struct GNUNET_TIME_RelativeNBO validity_duration;
+};
+
+
+/**
+ * Message for Transport-to-Transport Flow control. Specifies the size
+ * of the flow control window, including how much we believe to have
+ * consumed (at transmission time), how much we believe to be allowed
+ * (at transmission time), and how much the other peer is allowed to
+ * send to us, and how much data we already received from the other
+ * peer.
+ */
+struct TransportFlowControlMessage
+{
+  /**
+   * Type is #GNUNET_MESSAGE_TYPE_TRANSPORT_FLOW_CONTROL
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Sequence number of the flow control message. Incremented by one
+   * for each message.  Starts at zero when a virtual link goes up.
+   * Used to detect one-sided connection drops. On wrap-around, the
+   * flow control counters will be reset as if the connection had
+   * dropped.
+   */ 
+  uint32_t seq GNUNET_PACKED;
+  
+  /**
+   * Flow control window size in bytes, in NBO.
+   * The receiver can send this many bytes at most.
+   */
+  uint64_t inbound_window_size GNUNET_PACKED;
+
+  /**
+   * How many bytes has the sender sent that count for flow control at
+   * this time.  Used to allow the receiver to estimate the packet
+   * loss rate.
+   */
+  uint64_t outbound_sent GNUNET_PACKED;
+
+  /**
+   * Latest flow control window size we learned from the other peer,
+   * in bytes, in NBO.  We are limited to sending at most this many
+   * bytes to the other peer.  May help the other peer detect when
+   * flow control messages were lost and should thus be retransmitted.
+   * In particular, if the delta to @e outbound_sent is too small,
+   * this signals that we are stalled.
+   */
+  uint64_t outbound_window_size GNUNET_PACKED;
+
+  /**
+   * Timestamp of the sender.  Must be monotonically increasing!
+   * Used to enable receiver to ignore out-of-order packets in
+   * combination with the @e seq. Note that @e seq will go down
+   * (back to zero) whenever either side believes the connection
+   * was dropped, allowing the peers to detect that they need to
+   * reset the counters for the number of bytes sent!
+   */
+  struct GNUNET_TIME_AbsoluteNBO sender_time;
+  
 };
 
 
@@ -1256,6 +1300,34 @@ struct VirtualLink
    * Distance vector used by this virtual link, NULL if @e n is used.
    */
   struct DistanceVector *dv;
+  
+  /**
+   * Last challenge we received from @a n.
+   * FIXME: where do we need this?
+   */
+  struct ChallengeNonceP n_challenge;
+
+  /**
+   * Last challenge we used with @a n for flow control. 
+   * FIXME: where do we need this?
+   */
+  struct ChallengeNonceP my_challenge;
+
+  /**
+   * Sender timestamp of @e n_challenge, used to generate out-of-order
+   * challenges (as sender's timestamps must be monotonically
+   * increasing).  FIXME: where do we need this?
+   */
+  struct GNUNET_TIME_Absolute n_challenge_time;
+
+  /**
+   * Sender timestamp of the last
+   * #GNUNET_MESSAGE_TYPE_TRANSPORT_FLOW_CONTROL message we have
+   * received.  Note that we do not persist this monotonic time as we
+   * do not really have to worry about ancient flow control window
+   * sizes after restarts.
+   */
+  struct GNUNET_TIME_Absolute last_fc_timestamp;
 
   /**
    * Used to generate unique UUIDs for messages that are being
@@ -1264,35 +1336,13 @@ struct VirtualLink
   uint64_t message_uuid_ctr;
 
   /**
-   * Sender timestamp of @e n_challenge, used to generate out-of-order
-   * challenges (as sender's timestamps must be monotonically
-   * increasing).  Note that we do not persist this monotonic time
-   * as we do not really have to worry about ancient flow control
-   * window sizes after restarts.
-   */
-  struct GNUNET_TIME_Absolute n_challenge_time;
-
-  /**
-   * Last challenge we received from @a n, for which we created the
-   * flow control window given in @e fc_window_size.
-   */
-  struct ChallengeNonceP n_challenge;
-
-  /**
-   * Last challenge we used with @a n for flow control. If we receive
-   * window size increases for a different challenge, they are
-   * out-of-order and must be discarded!
-   */
-  struct ChallengeNonceP my_challenge;
-
-  /**
    * Memory allocated for this virtual link.  Expresses how much RAM
    * we are willing to allocate to this virtual link.  OPTIMIZE-ME:
    * Can be adapted to dedicate more RAM to links that need it, while
    * sticking to some overall RAM limit.  For now, set to
    * #DEFAULT_WINDOW_SIZE.
    */
-  uint32_t available_fc_window_size;
+  uint64_t available_fc_window_size;
 
   /**
    * Memory actually used to buffer packets on this virtual link.
@@ -1300,22 +1350,14 @@ struct VirtualLink
    * Note that once CORE is done with a packet, we decrement the value
    * here.
    */
-  uint32_t incoming_fc_window_size_ram;
+  uint64_t incoming_fc_window_size_ram;
 
   /**
    * Last flow control window size we provided to the other peer, in
    * bytes.  We are allowing the other peer to send this
-   * many bytes as per its last @e n_challenge "account".
+   * many bytes.
    */
-  uint32_t incoming_fc_window_size;
-
-  /**
-   * How many bytes could we still get from the previous flow control
-   * window, in bytes.  We need to consider this value
-   * when calculating what we allow for the current window due to
-   * the possibility of out-of-order challenges.
-   */
-  uint32_t last_fc_window_size_remaining;
+  uint64_t incoming_fc_window_size;
 
   /**
    * How much of the window did the other peer successfully use (and
@@ -1324,22 +1366,48 @@ struct VirtualLink
    * other peer that the window is this much bigger at the next
    * opportunity / challenge.
    */
-  uint32_t incoming_fc_window_size_used;
+  uint64_t incoming_fc_window_size_used;
+
+  /**
+   * What is our current estimate on the message loss rate for the sender?
+   * Based on the difference between how much the sender sent according
+   * to the last #GNUNET_MESSAGE_TYPE_TRANSPORT_FLOW_CONTROL message
+   * (@e outbound_sent field) and how much we actually received at that
+   * time (@e incoming_fc_window_size_used).  This delta is then 
+   * added onto the @e incoming_fc_window_size when determining the
+   * @e outbound_window_size we send to the other peer.  Initially zero.
+   * May be negative if we (due to out-of-order delivery) actually received
+   * more than the sender claims to have sent in its last FC message.
+   */
+  int64_t incoming_fc_window_size_loss;
 
   /**
    * Our current flow control window size in bytes.  We
    * are allowed to transmit this many bytes to @a n as per
    * our @e my_challenge "account".
    */
-  uint32_t outbound_fc_window_size;
+  uint64_t outbound_fc_window_size;
 
   /**
    * How much of our current flow control window size have we
    * used (in bytes).  Must be below
    * @e outbound_fc_window_size.
    */
-  uint32_t outbound_fc_window_size_used;
+  uint64_t outbound_fc_window_size_used;
 
+  /**
+   * Generator for the sequence numbers of
+   * #GNUNET_MESSAGE_TYPE_TRANSPORT_FLOW_CONTROL messages we send.
+   */
+  uint32_t fc_seq_gen;
+
+  /**
+   * Last sequence number of a
+   * #GNUNET_MESSAGE_TYPE_TRANSPORT_FLOW_CONTROL message we have
+   * received.
+   */
+  uint32_t last_fc_seq;
+  
   /**
    * How many more messages can we send to CORE before we exhaust
    * the receive window of CORE for this peer? If this hits zero,
@@ -7311,6 +7379,7 @@ check_incoming_msg (void *cls,
 }
 
 
+#if 0
 /**
  * We received a @a challenge from another peer, check if we can
  * increase the flow control window to that peer.
@@ -7323,10 +7392,10 @@ check_incoming_msg (void *cls,
  */
 static void
 update_fc_window (struct VirtualLink *vl,
-                  const struct ChallengeNonceP *challenge,
                   struct GNUNET_TIME_Absolute sender_time,
                   uint32_t last_window_consum_limit)
 {
+  // FIXME: update to new FC logic
   if (0 == GNUNET_memcmp (challenge, &vl->n_challenge))
   {
     uint32_t avail;
@@ -7390,6 +7459,7 @@ update_fc_window (struct VirtualLink *vl,
     vl->last_fc_window_size_remaining,
     GNUNET_i2s (&vl->target));
 }
+#endif
 
 
 /**
@@ -7592,13 +7662,14 @@ handle_validation_challenge (
   struct IncomingRequest *ir;
   struct Neighbour *n;
 
-  /* We use a validity_duration of 0 for DV-routed messages,
-     as we can neither control the validity and need to allow
-     the receiver to tell DV paths from direct connections */
+  /* DV-routed messages are not allowed for validation challenges */
   if (cmc->total_hops > 0)
-    validity_duration = GNUNET_TIME_relative_hton (GNUNET_TIME_UNIT_ZERO);
-  else
-    validity_duration = cmc->im.expected_address_validity;
+  {
+    GNUNET_break_op (0);
+    finish_cmc_handling (cmc);
+    return;
+  }
+  validity_duration = cmc->im.expected_address_validity;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received address validation challenge %s\n",
               GNUNET_sh2s (&tvc->challenge.value));
@@ -7606,16 +7677,10 @@ handle_validation_challenge (
      size of the flow control window, and to allow the sender
      to ask for increases. If for us the virtual link is still down,
      we will always give a window size of zero. */
-  vl = lookup_virtual_link (&cmc->im.sender);
-  if (NULL != vl)
-    update_fc_window (vl,
-                      &tvc->challenge,
-                      GNUNET_TIME_absolute_ntoh (tvc->sender_time),
-                      ntohl (tvc->last_window_consum_limit));
   tvr.header.type =
     htons (GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_VALIDATION_RESPONSE);
   tvr.header.size = htons (sizeof (tvr));
-  tvr.fc_window_size = htonl ((NULL == vl) ? 0 : vl->incoming_fc_window_size);
+  tvr.reserved = htonl (0);
   tvr.challenge = tvc->challenge;
   tvr.origin_time = tvc->sender_time;
   tvr.validity_duration = validity_duration;
@@ -7635,6 +7700,8 @@ handle_validation_challenge (
                  &tvr.header,
                  RMO_ANYTHING_GOES | RMO_REDUNDANT);
   finish_cmc_handling (cmc);
+
+  vl = lookup_virtual_link (&cmc->im.sender);
   if (NULL != vl)
     return;
 
@@ -7898,11 +7965,6 @@ handle_validation_response (
     {
       GNUNET_assert (n == vl->n);
     }
-    if (0 == GNUNET_memcmp (&vl->my_challenge, &tvr->challenge))
-    {
-      /* Update window size if the challenge matches */
-      vl->outbound_fc_window_size = ntohl (tvr->fc_window_size);
-    }
     return;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -7914,7 +7976,6 @@ handle_validation_response (
   n->vl = vl;
   vl->core_recv_window = RECV_WINDOW_SIZE;
   vl->available_fc_window_size = DEFAULT_WINDOW_SIZE;
-  vl->outbound_fc_window_size = ntohl (tvr->fc_window_size);
   vl->my_challenge = tvr->challenge;
   vl->visibility_task =
     GNUNET_SCHEDULER_add_at (q->validated_until, &check_link_down, vl);
@@ -8912,7 +8973,7 @@ validation_transmit_on_queue (struct Queue *q, struct ValidationState *vs)
   tvc.header.type =
     htons (GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_VALIDATION_CHALLENGE);
   tvc.header.size = htons (sizeof (tvc));
-  tvc.last_window_consum_limit = htonl (vs->last_window_consum_limit);
+  tvc.reserved = htonl (0);
   tvc.challenge = vs->challenge;
   tvc.sender_time = GNUNET_TIME_absolute_hton (vs->last_challenge_use);
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
