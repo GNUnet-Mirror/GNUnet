@@ -321,14 +321,24 @@ AC_CHECK_DECLS([_stati64])
 SAVE_LIBS=$LIBS
 
 have_addrinfo_a=0
-AC_CHECK_LIB(anl, getaddrinfo_a, [have_addrinfo_a=1 AC_DEFINE(HAVE_GETADDRINFO_A,1,[getaddrinfo_a supported])])
-AM_CONDITIONAL(HAVE_GETADDRINFO_A, [test "$have_addrinfo_a" = 1])
-
+AC_CHECK_LIB(anl,
+             getaddrinfo_a,
+             [have_addrinfo_a=1 AC_DEFINE(HAVE_GETADDRINFO_A,
+                                          1,
+                                          [getaddrinfo_a supported])])
+AM_CONDITIONAL(HAVE_GETADDRINFO_A,
+               [test "$have_addrinfo_a" = 1])
 
 # tests only run on Windows
 AS_IF([test "x$build_target" = "xmingw"],
-  [AC_CHECK_LIB(plibc, plibc_init, [], [AC_MSG_ERROR([GNUnet requires PlibC on Windows])])
-   AC_CHECK_LIB(gnurx, regexec, [], [AC_MSG_ERROR([GNUnet requires libgnurx on Windows])])])
+      [AC_CHECK_LIB(plibc,
+                    plibc_init,
+                    [],
+                    [AC_MSG_ERROR([GNUnet requires PlibC on Windows])])
+       AC_CHECK_LIB(gnurx,
+                    regexec,
+                    [],
+                    [AC_MSG_ERROR([GNUnet requires libgnurx on Windows])])])
 
 # libgcrypt
 gcrypt=0
@@ -359,41 +369,54 @@ AC_CHECK_DECLS([struct in6_ifreq], [], [], [[#include <linux/if_tun.h>]])
 # should the build process be building the documentation?
 AC_MSG_CHECKING(whether to build documentation)
 AC_ARG_ENABLE([documentation],
-   [AS_HELP_STRING([--disable-documentation], [do not build the documentation])],
-   [documentation=${enableval}],
-   [documentation=yes])
+              [AS_HELP_STRING([--disable-documentation],
+                              [do not build the documentation])],
+              [documentation=${enableval}],
+              [documentation=yes])
 AC_MSG_RESULT($documentation)
 AS_IF([test "x$documentation" = "xyes"],
-[
-  AM_CONDITIONAL([DOCUMENTATION],true)
-  AC_DEFINE([DOCUMENTATION],[1],[Building the documentation])
-],[
-  AM_CONDITIONAL([DOCUMENTATION],false)
-  AC_DEFINE([DOCUMENTATION],[0],[Not building the documentation])
-])
+      [AM_CONDITIONAL([DOCUMENTATION],
+                      true)
+       AC_DEFINE([DOCUMENTATION],
+                 [1],
+                 [Building the documentation])],
+      [AM_CONDITIONAL([DOCUMENTATION],
+                      false)
+       AC_DEFINE([DOCUMENTATION],
+                 [0],
+                 [Not building the documentation])])
 
-# FIXME: Something is wrong about this in the output of ./configure runs
+# COMMENT: Check wether to transpile texinfo to mdoc.
+# COMMENT: This is TRUE when --enable-texi2mdoc-generation
+# COMMENT: but ERRORS when texi2mdoc binary is missing in your $PATH
+# COMMENT: and makes the configure fail if it is missing.
+# COMMENT: Consequential the DEFINE and CONDITIONAL are set to true.
+# COMMENT: This is FALSE when --disable-texi2mdoc-generation was set
+# COMMENT: or nothing was set (this is the default).
+# COMMENT: There are 2 nested AS_IFs because we need to catch the
+# COMMENT: potential non-existence of the texi2mdoc binary.
+# COMMENT: Default return value / setting: no
 AC_MSG_CHECKING(wether to include generated texi2mdoc output in installation)
 AC_ARG_ENABLE([texi2mdoc-generation],
-    [AS_HELP_STRING([--enable-texi2mdoc-generation], [include generated texi2mdoc output in installation])],
-    [texi2mdoc_generation=${enableval}],
-    [texi2mdoc_generation=no])
+              [AS_HELP_STRING([--enable-texi2mdoc-generation],
+                              [include generated texi2mdoc output in installation])],
+              [texi2mdoc_generation=${enableval}],
+              [texi2mdoc_generation=no])
 AC_MSG_RESULT($texi2mdoc_generation)
-AS_IF([test "x$texi2mdoc_generation" = "xyes"], 
- [
-  AS_IF([test "$texi2mdoc" = 0],
-   [
-    AC_MSG_WARN([ERROR: mdoc output currently requires texi2mdoc.])
-    AC_MSG_WARN([ERROR: texi2mdoc can be obtained via your Operating System])
-    AC_MSG_WARN([ERROR: package manager or from https://mandoc.bsd.lv/texi2mdoc/])
-   ],[
-    AM_CONDITIONAL([TEXI2MDOC_GENERATION],true)
-    AC_DEFINE([TEXI2MDOC_GENERATION],[1],[Building section 7 mdoc output])
-   ])
- ],[
-  AM_CONDITIONAL([TEXI2MDOC_GENERATION],false)
-  AC_DEFINE([TEXI2MDOC_GENERATION],[0],[Not building section 7 mdoc output])
- ])
+AS_IF([test "x$texi2mdoc_generation" = "xyes"],
+      [AS_IF([test "$texi2mdoc" = 0],
+             [AC_MSG_WARN([ERROR: transpiled mdoc output requires texi2mdoc.])
+              AC_MSG_WARN([ERROR: texi2mdoc can be obtained via your Operating System])
+              AC_MSG_WARN([ERROR: package manager or from https://mandoc.bsd.lv/texi2mdoc/])],
+             [AM_CONDITIONAL([TEXI2MDOC_GENERATION],true)
+              AC_DEFINE([TEXI2MDOC_GENERATION],
+                        [1],
+                        [Building section 7 mdoc output])])],
+      [AM_CONDITIONAL([TEXI2MDOC_GENERATION],
+                      false)
+       AC_DEFINE([TEXI2MDOC_GENERATION],
+                 [0],
+                 [Not building section 7 mdoc output])])
 
 # should the build process be building only the documentation?
 AC_MSG_CHECKING(whether to build only documentation)
@@ -408,6 +431,8 @@ AS_IF([test "x$documentation_only" = "xyes"],
   AC_DEFINE([DOCUMENTATION_ONLY],[1],[Building only the documentation])
  ],[
   AM_CONDITIONAL([DOCUMENTATION_ONLY],false)
+  # TODO: Double negation might be a bit hard to parse for some
+  # TODO: people reading the output.
   AC_DEFINE([DOCUMENTATION_ONLY],[0],[Not building only the documentation])
  ])
 
@@ -931,21 +956,22 @@ AS_IF([test x$my_with_libidn2 = x1],
                     LIBS="-lidn2 $LIBS"
  	            AC_DEFINE_UNQUOTED([HAVE_LIBIDN2],
                                        [1],
-                                        [Define to 1 if you have 'libidn2' (-lidn2).])],
-                     [MISSING_DEPS="${MISSING_DEPS}${MISSING_SEP}libidn2"
+                                       [Define to 1 if you have 'libidn2' (-lidn2).])],
+                    [MISSING_DEPS="${MISSING_DEPS}${MISSING_SEP}libidn2"
                      MISSING_SEP=", "])])
-AM_CONDITIONAL(HAVE_LIBIDN2, test x$working_libidn2 = x1)
+AM_CONDITIONAL(HAVE_LIBIDN2,
+               test x$working_libidn2 = x1)
 AS_IF([test x$working_libidn2 = x0],
       [AS_IF([test x$my_with_libidn = x1],
              [AC_MSG_NOTICE([Checking for libidn])
               AC_CHECK_LIB([idn],
                            [idna_to_ascii_8z],
                            [working_libidn1=1
-	                   LIBS="-lidn $LIBS"
-                             AC_DEFINE_UNQUOTED([HAVE_LIBIDN],
-                                                [1],
-                                                [Define to 1 if you have 'libidn' (-lidn).])],
-                             [there_can_only_be_one=0])],
+                           LIBS="-lidn $LIBS"
+                           AC_DEFINE_UNQUOTED([HAVE_LIBIDN],
+                                              [1],
+                                              [Define to 1 if you have 'libidn' (-lidn).])],
+                           [there_can_only_be_one=0])],
              [AS_IF([test x$my_with_libidn2 = x1],
                     [there_can_only_be_one=0
                      AC_MSG_FAILURE([* There can only be one libidn.
@@ -971,18 +997,17 @@ AC_ARG_WITH(zlib,
 	    [AS_IF([test "$withval" = "no"],
 		   [AC_MSG_ERROR([GNUnet requires zlib])],
 		   [test "$withval" != "yes"],
-		   [
-		     Z_DIR=$withval
-		     CPPFLAGS="${CPPFLAGS} -I$withval/include"
-		     LDFLAGS="${LDFLAGS} -L$withval/lib"
-		   ])
-	    ])
+		   [Z_DIR=$withval
+		    CPPFLAGS="${CPPFLAGS} -I$withval/include"
+		    LDFLAGS="${LDFLAGS} -L$withval/lib"])])
 AC_CHECK_HEADER(zlib.h,
 		[],
 	       	[AC_MSG_ERROR([GNUnet requires zlib])])
-AC_CHECK_LIB(z, compress2,
-	     [
-	      AC_DEFINE([HAVE_ZLIB], [], [Have compression library])
+AC_CHECK_LIB(z,
+             compress2,
+	     [AC_DEFINE([HAVE_ZLIB],
+                        [],
+                        [Have compression library])
 	      if test "x${Z_DIR}" != "x"; then
 		      Z_CFLAGS="-I${Z_DIR}/include"
 		      Z_LIBS="-L${Z_DIR}/lib -lz"
@@ -994,9 +1019,7 @@ AC_SUBST(Z_CFLAGS)
 AC_SUBST(Z_LIBS)
 
 AS_IF([test "$enable_shared" = "no"],
-[
- AC_MSG_ERROR([GNUnet only works with shared libraries. Sorry.])
-])
+      [AC_MSG_ERROR([GNUnet only works with shared libraries. Sorry.])])
 
 
 # restore LIBS
@@ -1013,15 +1036,17 @@ AM_ICONV
 # test for libunistring
 gl_LIBUNISTRING
 AS_IF([test $HAVE_LIBUNISTRING != yes],
- [AC_MSG_ERROR([GNUnet requires libunistring])])
+      [AC_MSG_ERROR([GNUnet requires libunistring])])
  
 # under emscripten, $gl_libunistring_hexversion is undefined
 if test "$taler_only" != yes; then
 
 AS_IF([test "x$gl_libunistring_hexversion" = "x" || test "$gl_libunistring_hexversion" -le 2305],
-  [AC_MSG_ERROR([GNUnet requires libunistring >= 0.9.1.1])])
+      [AC_MSG_ERROR([GNUnet requires libunistring >= 0.9.1.1])])
 fi
-AC_CHECK_HEADERS([unistr.h],,AC_MSG_ERROR([Compiling GNUnet requires unistr.h (from libunistring) to be installed]))
+AC_CHECK_HEADERS([unistr.h],
+                 ,
+                 AC_MSG_ERROR([Compiling GNUnet requires unistr.h (from libunistring) to be installed]))
 
 # restore LIBS
 LIBS=$SAVE_LIBS
@@ -1037,10 +1062,11 @@ AC_CHECK_HEADERS([fcntl.h math.h errno.h ctype.h limits.h stdio.h stdlib.h strin
 
 
 
-# Checks for headers that are only required on some systems or opional (and where we do NOT abort if they are not there)
+# Checks for headers that are only required on some systems or
+# opional (and where we do NOT abort if they are not there)
 AC_CHECK_HEADERS([stdatomic.h malloc.h malloc/malloc.h malloc/malloc_np.h langinfo.h sys/param.h sys/mount.h sys/statvfs.h sys/select.h sockLib.h sys/mman.h sys/msg.h sys/vfs.h arpa/inet.h fcntl.h libintl.h netdb.h netinet/in.h sys/ioctl.h sys/socket.h sys/time.h unistd.h kstat.h sys/sysinfo.h kvm.h sys/file.h sys/resource.h ifaddrs.h mach/mach.h stddef.h sys/timeb.h terminos.h argz.h ucred.h sys/ucred.h endian.h sys/endian.h execinfo.h byteswap.h])
 
-# FreeBSD requires something more funky for netinet/in_systm.h and netinet/ip.h...
+# FreeBSD requires this for netinet/in_systm.h and netinet/ip.h
 AC_CHECK_HEADERS([sys/types.h netinet/in_systm.h netinet/in.h netinet/ip.h],,,
 [#ifdef HAVE_SYS_TYPES_H
 #include <sys/types.h>
@@ -1293,14 +1319,15 @@ AC_CHECK_MEMBER([struct sockaddr_in.sin_len],
    ])
 
 AC_CHECK_MEMBER([struct sockaddr_un.sun_len],
-   [ AC_DEFINE(HAVE_SOCKADDR_UN_SUN_LEN, 1, [Do we have sockaddr_un.sun_len?])
-   ],
-   [],
-   [
-      #include <sys/types.h>
-      #include <sys/socket.h>
-      #include <sys/un.h>
-   ])
+                [ AC_DEFINE(HAVE_SOCKADDR_UN_SUN_LEN,
+                            1,
+                            [Do we have sockaddr_un.sun_len?])],
+                [],
+                [
+                #include <sys/types.h>
+                #include <sys/socket.h>
+                #include <sys/un.h>
+                ])
 
 
 
@@ -1326,15 +1353,19 @@ LIBS=$SAVE_LIBS
 
 GN_INTLINCL=""
 GN_LIBINTL="$LTLIBINTL"
-AC_ARG_ENABLE(framework, [  --enable-framework      enable Mac OS X framework build helpers],enable_framework_build=$enableval)
-AM_CONDITIONAL(WANT_FRAMEWORK, test x$enable_framework_build = xyes)
+AC_ARG_ENABLE(framework,
+              [--enable-framework      enable Mac OS X framework build helpers],
+              enable_framework_build=$enableval)
+AM_CONDITIONAL(WANT_FRAMEWORK,
+               test x$enable_framework_build = xyes)
 AS_IF([test x$enable_framework_build = xyes],
-[
-  AC_DEFINE([FRAMEWORK_BUILD], 1, [Build a Mac OS X Framework])
-  GN_INTLINCL='-I$(top_srcdir)/src/intlemu'
-  GN_LIBINTL='$(top_builddir)/src/intlemu/libintlemu.la -framework CoreFoundation'
-  AC_LIB_APPENDTOVAR([CPPFLAGS], [$GN_INTLINCL])
-])
+      [AC_DEFINE([FRAMEWORK_BUILD],
+                 1,
+                 [Build a Mac OS X Framework])
+      GN_INTLINCL='-I$(top_srcdir)/src/intlemu'
+      GN_LIBINTL='$(top_builddir)/src/intlemu/libintlemu.la -framework CoreFoundation'
+      AC_LIB_APPENDTOVAR([CPPFLAGS],
+                         [$GN_INTLINCL])])
 
 GN_LIB_LDFLAGS="-export-dynamic -no-undefined"
 GN_PLUGIN_LDFLAGS="-export-dynamic -avoid-version -module -no-undefined"
@@ -1361,30 +1392,29 @@ AC_SUBST(DATAROOTDIR)
 # TODO: do we need to change anything for "doas" on openbsd?
 AC_MSG_CHECKING(for sudo)
 AC_ARG_WITH(sudo,
-  [  --with-sudo=PATH       path to sudo binary (or just yes)],
-  [AC_MSG_RESULT("$with_sudo")
-   AS_CASE([$with_sudo],
-   [no],[SUDO_BINARY=],
-   [yes],[SUDO_BINARY=sudo],
-   [SUDO_BINARY=$with_sudo])
-  ],
-  [AC_MSG_RESULT([no])])
+            [  --with-sudo=PATH       path to sudo binary (or just yes)],
+            [AC_MSG_RESULT("$with_sudo")
+             AS_CASE([$with_sudo],
+                     [no],[SUDO_BINARY=],
+                     [yes],[SUDO_BINARY=sudo],
+                     [SUDO_BINARY=$with_sudo])],
+            [AC_MSG_RESULT([no])])
 AC_SUBST(SUDO_BINARY)
-AM_CONDITIONAL([HAVE_SUDO], [test "x$SUDO_BINARY" != "x" -o -w /])
+AM_CONDITIONAL([HAVE_SUDO],
+               [test "x$SUDO_BINARY" != "x" -o -w /])
 
 
 # test for gnunetdns group name
 GNUNETDNS_GROUP=gnunetdns
 AC_MSG_CHECKING(for gnunetdns group name)
 AC_ARG_WITH(gnunetdns,
-  [  --with-gnunetdns=GRPNAME       name for gnunetdns group],
-  [AC_MSG_RESULT("$with_gnunetdns")
-   AS_CASE([$with_gnunetdns],
-     [no],[GNUNETDNS_GROUP=gnunet],
-     [yes],[GNUNETDNS_GROUP=gnunetdns],
-     [GNUNETDNS_GROUP=$with_gnunetdns])
-  ],
-  [AC_MSG_RESULT([gnunetdns])])
+            [  --with-gnunetdns=GRPNAME       name for gnunetdns group],
+            [AC_MSG_RESULT("$with_gnunetdns")
+             AS_CASE([$with_gnunetdns],
+                     [no],[GNUNETDNS_GROUP=gnunet],
+                     [yes],[GNUNETDNS_GROUP=gnunetdns],
+                     [GNUNETDNS_GROUP=$with_gnunetdns])],
+            [AC_MSG_RESULT([gnunetdns])])
 AC_SUBST(GNUNETDNS_GROUP)
 
 
@@ -1394,19 +1424,21 @@ gnutls=0
 gnutls_dane=0
 AC_MSG_CHECKING(for gnutls)
 AC_ARG_WITH(gnutls,
-   [  --with-gnutls=PFX   base of gnutls installation],
-   [AC_MSG_RESULT([$with_gnutls])
-    AS_CASE([$with_gnutls],
-      [no],[],
-      [yes],[
-        AC_CHECK_HEADERS([gnutls/abstract.h],
-            AC_CHECK_LIB([gnutls], [gnutls_priority_set],
-	     gnutls=true))
-        AC_CHECK_HEADERS([gnutls/dane.h],
-            AC_CHECK_LIB([gnutls-dane], [dane_verify_crt_raw],
-	      gnutls_dane=1))
-      ],[
-        LDFLAGS="-L$with_gnutls/lib $LDFLAGS"
+            [  --with-gnutls=PFX   base of gnutls installation],
+            [AC_MSG_RESULT([$with_gnutls])
+             AS_CASE([$with_gnutls],
+                     [no],[],
+                     [yes],
+                     [AC_CHECK_HEADERS([gnutls/abstract.h],
+                                       AC_CHECK_LIB([gnutls],
+                                                    [gnutls_priority_set],
+	                                            gnutls=true))
+                      AC_CHECK_HEADERS([gnutls/dane.h],
+                                       AC_CHECK_LIB([gnutls-dane],
+                                                    [dane_verify_crt_raw],
+	                                            gnutls_dane=1))],
+
+        [LDFLAGS="-L$with_gnutls/lib $LDFLAGS"
         CPPFLAGS="-I$with_gnutls/include $CPPFLAGS"
         AC_CHECK_HEADERS([gnutls/abstract.h],
             AC_CHECK_LIB([gnutls], [gnutls_priority_set],
@@ -1547,9 +1579,11 @@ AM_CONDITIONAL([ENABLE_MALICIOUS], [test 1=$malicious])
 AC_DEFINE_UNQUOTED([ENABLE_MALICIOUS], [$malicious],
                    [enable compilation of malicious code])
 
-# should services be started on demand when needed?  Some services may choose to
-# never start by default and it is up to the service/module developer to decide
-# by having "START_ON_DEMAND = NO" instead of "START_ON_DEMAND = @START_ON_DEMAND@"
+# should services be started on demand when needed?
+# Some services may choose to never start by default
+# and it is up to the service/module developer to decide
+# by having "START_ON_DEMAND = NO" instead of
+# "START_ON_DEMAND = @START_ON_DEMAND@"
 # in the service/module's conf.in file.
 # See also IMMEDIATE_START for an unconditional immediate start.
 START_ON_DEMAND="YES"
@@ -1683,10 +1717,11 @@ fi
 AC_DEFINE_UNQUOTED([ENABLE_WINDOWS_WORKAROUNDS], $workarounds, [enable workarounds used on Windows (only useful for test cases)])
 
 
-# Check if the __thread storage class for thread-local storage is available.
+# Check if the __thread storage class for
+# thread-local storage is available.
 AC_MSG_CHECKING(whether __thread is supported)
 AC_LINK_IFELSE(
- [AC_LANG_PROGRAM([#include <stdlib.h>
+[AC_LANG_PROGRAM([#include <stdlib.h>
                    #undef __thread
                    static __thread int a = 1;],
                   [exit(a-1);])],
@@ -1708,7 +1743,8 @@ AM_CONDITIONAL([USE_COVERAGE], [test "x$use_gcov" = "xyes"])
 
 
 # version info
-# TODO: git blame says this predates our switch to git. git-svn should be adjusted to simply git, or
+# TODO: git blame says this predates our switch to git.
+# git-svn should be adjusted to simply git, or
 # an external script that does the job.
 AC_PATH_PROG(svnversioncommand, svnversion)
 AC_PATH_PROG(gitcommand, git)
@@ -1891,105 +1927,209 @@ pkgconfig/gnunetvpn.pc
 ])
 AC_OUTPUT
 
-# Finally: summary!
 
-# warn user if mysql found but not used due to version
-AS_IF([test "$mysqlfail" = "true"]
-      [AC_MSG_NOTICE([WARNING: optional MySQL not found (or too old)])])
-
-# sqlite
-AS_IF([test "x$sqlite" = "x0"],
-      [AC_MSG_ERROR([ERROR: sqlite3 not found, but sqlite3 is required.])])
-
-# libgnurl
-AS_IF([test "$gnurl" = "0"],
-  [AS_IF([test "x$curl" = "xfalse"],
-    [AC_MSG_NOTICE([WARNING: libgnurl not found.  http client support will not be compiled.])
-     AC_MSG_WARN([ERROR: libgnurl not found.  hostlist daemon will not be compiled, and you probably WANT the hostlist daemon])],
-    [AC_MSG_NOTICE([WARNING: libgnurl not found, trying to use libcurl-gnutls instead.])])])
-
-# bluetooth
-AS_IF([test "x$bluetooth" = "x0"],
-      [AC_MSG_NOTICE([WARNING: optional bluetooth library not found.])])
-
-
-# jansson
-AS_IF([test "x$jansson" = "x0"],
-      [AC_MSG_NOTICE([WARNING: optional jansson library not found.])])
-
-#
 # FIXME: `some modules' -> be more specific which exact modules.
-#
-
-# warn user if iptables is not found
-AS_IF([test "$VAR_IPTABLES_BINARY" = "false"],
- [AC_MSG_NOTICE([WARNING: optional iptables not found])])
-
-# warn user if ifconfig is not found
-AS_IF([test "$VAR_IFCONFIG_BINARY" = "false"],
- [AC_MSG_NOTICE([WARNING: optional ifconfig not found])])
-
-# warn user if upnpc binary is not found
-AS_IF([test "$VAR_UPNPC_BINARY" = "false"],
-  [AC_MSG_NOTICE([WARNING: optional upnpc binary not found])])
-
-#gnutls
-AS_IF([test x$gnutls != xtrue],
- [AC_MSG_NOTICE([WARNING: GnuTLS not found, gnunet-gns-proxy will not be built])],
- [AS_IF([test "x$gnutls_dane" != "x1"],
-  [AC_MSG_NOTICE([WARNING: GnuTLS has no DANE support, DANE validation will not be possible])])])
-
-# warn user if libzbar is not found
-AS_IF([test "$have_zbar" = 0],
-      [AC_MSG_NOTICE([WARNING: zbar not found, gnunet-qr will not be built.])])
 
 # java ports
 AS_IF([test "x$enable_java_ports" = "xyes"],
       [AC_MSG_NOTICE([NOTICE: Opening ports for gnunet-java bindings by default.])])
 
-# MHD
-AS_IF([test "x$lmhd" != "x1"],
-      [AC_MSG_NOTICE([WARNING: optional libmicrohttpd not found])])
+####
+#### Lasciate ogne speranza, voi ch'intrate
+####
+#### This could be moved to the checks above,
+#### but for now let's keep it here.
+####
 
-# conversation
-AS_IF([test "x$conversation_backend" = "xnone"],
- [AS_IF([test "x$pulse" != "x1"],
-   [AC_MSG_NOTICE([WARNING: libpulse(audio) not found, conversation will not be built.])])
-  AS_IF([test "x$opus" != "x1"],
-   [AC_MSG_NOTICE([WARNING: libopus not found, conversation will not be built.])])
-  AS_IF([test "x$gst" != "x1"],
-   [AC_MSG_NOTICE([WARNING: GStreamer not found, conversation will not be built.])])])
-
-AS_IF([test "$extractor" != 1],
-      [AC_MSG_WARN([ERROR: libextractor not found, but various file-sharing functions require it])])
-
-AS_IF([test "x$working_libidn2" = x1],
-      [AC_MSG_NOTICE([INFO: Using libidn2])])
-AS_IF([test "x$working_libidn1" = x1],
-      [AC_MSG_NOTICE([INFO: Using libidn1])])
-
-AC_MSG_NOTICE([NOTICE: Database support is set to MySQL: $mysql, SQLite: $sqlite, Postgres: $postgres])
-
+# -- print message regarding enabled experimental features
+AS_IF([test "x$enable_experimental" = "xyes"],
+      [experimental_msg="experimental features enabled"])
+# -- OSX Framework
 AS_IF([test "$enable_framework_build" = "yes"],
-      [AC_MSG_NOTICE([Mac OS X framework build enabled.])])
+      [macosx_framework_msg="yes"],
+      [macosx_framework_msg="no"])
+# -- libidn 2
+AS_IF([test "x$working_libidn2" = x1],
+      [libidn2_msg="libidn2"])
+# -- libidn 1
+AS_IF([test "x$working_libidn1" = x1],
+      [libidn1_msg="libidn1"])
+# -- texi2mdoc
+AS_IF([test "x$texi2mdoc_generation" = x1],
+      [mdoc_msg="yes"],
+      [mdoc_msg="no"])
+# -- texinfo
+AS_IF([test "x$makeinfo" != "x1"],
+      [texinfo_msg="no"],
+      [texinfo_msg="yes"])
+# -- conversation
+AS_IF([test "x$conversation_backend" = "xnone"],
+      [AS_IF([test "x$pulse" != "x1"],
+             [AC_MSG_NOTICE([WARNING: libpulse(audio) not found, conversation will not be built.])
+              libpulse_msg="no"],
+             [libpulse_msg="yes"])
+       AS_IF([test "x$opus" != "x1"],
+             [AC_MSG_NOTICE([WARNING: libopus not found, conversation will not be built.])
+              libopus_msg="no"],
+             [libopus_msg="yes"])
+       AS_IF([test "x$gst" != "x1"],
+             [AC_MSG_NOTICE([WARNING: GStreamer not found, conversation will not be built.])
+              gstreamer_msg="no"],
+             [gstreamer_msg="yes"])],
+      [features_msg="$features_msg conversation"])
+# -- interface
+interface_msg=`echo $DEFAULT_INTERFACE | tr -d \"`
+# -- libmicrohttpd
+AS_IF([test "x$lmhd" != "x1"],
+      [libmicrohttpd_msg="no (optional)"],
+      [libmicrohttpd_msg="yes"])
+# -- jansson
+AS_IF([test "x$jansson" = "x0"],
+      [jansson_msg="no (optional)"],
+      [jansson_msg="yes"])
+# -- libextractor
+AS_IF([test "$extractor" != 1],
+      [AC_MSG_WARN([ERROR: libextractor not found, but various file-sharing functions require it])],
+      [libextractor_msg="yes"])
+# -- libzbar
+AS_IF([test "$have_zbar" = 1],
+      [libzbar_msg="yes"
+       features_msg="$features_msg gnunet-qr"],
+      [AC_MSG_NOTICE([WARNING: zbar not found, gnunet-qr will not be built.])
+       libzbar_msg="no"])
+# -- libgnurl
+AS_IF([test "$gnurl" = "0"],
+      [AS_IF([test "x$curl" = "xfalse"],
+             [AC_MSG_NOTICE([WARNING: libgnurl not found. http client support will not be compiled.])
+              AC_MSG_WARN([ERROR: libgnurl not found. hostlist daemon will not be compiled, and you probably WANT the hostlist daemon])
+              curl_msg="no"],
+             [AC_MSG_NOTICE([WARNING: libgnurl not found, trying to use libcurl-gnutls instead.])
+              curl_msg="yes"])],
+       [gnurl_msg="yes"])
+# -- ifconfig
+AS_IF([test "$VAR_IFCONFIG_BINARY" = "false"],
+      [AC_MSG_NOTICE([WARNING: optional ifconfig not found])
+       ifconfig_msg="no (optional)"],
+      [ifconfig_msg="yes"])
+# -- upnpc
+AS_IF([test "$VAR_UPNPC_BINARY" = "false"],
+      [AC_MSG_NOTICE([WARNING: optional upnpc binary not found])
+       upnpc_msg="no (optional)"],
+      [upnpc_msg="yes"])
+# -- iptables
+AS_IF([test "$VAR_IPTABLES_BINARY" = "false"],
+      [AC_MSG_NOTICE([WARNING: optional iptables not found])
+       iptables_msg="no (optional)"],
+      [iptables_msg="yes"])
+# -- bluetooth
+AS_IF([test "x$bluetooth" = "x0"],
+      [AC_MSG_NOTICE([WARNING: optional bluetooth library not found.])
+       bluetooth_msg="no (optional)"],
+      [bluetooth_msg="yes"])
+# -- gnutls
+AS_IF([test x$gnutls != xtrue],
+      [AC_MSG_NOTICE([WARNING: GnuTLS not found, gnunet-gns-proxy will not be built])
+       gnutls_msg="no"],
+      [AS_IF([test "x$gnutls_dane" != "x1"],
+             [AC_MSG_NOTICE([WARNING: GnuTLS has no DANE support, DANE validation will not be possible])
+              gnutls_msg="yes (without DANE support)"],
+             [gnutls_msg="yes (with DANE support)"])])
+# -- databases
+AS_IF([test $mysqlfail = true]
+      [AC_MSG_NOTICE([WARNING: optional MySQL not found (or too old)])])
+AS_IF([test "$mysql" = true],
+      [features_msg="$features_msg mysql"
+       mysql_msg="yes"],
+      [mysql_msg="no"])
+AS_IF([test "$sqlite" = true],
+      [features_msg="$features_msg sqlite"
+       sqlite_msg="yes"],
+      [AC_MSG_ERROR([ERROR: sqlite3 not found, but sqlite3 is required.])
+       sqlite_msg="no"])
+AS_IF([test "$postgres" = true],
+      [features_msg="$features_msg postgres"
+       postgres_msg="yes"],
+      [postgres_msg="no"])
+# -- features
+# ---- 1. replace spaces with newlines,
+# ---- 2. sort the lines,
+# ---- 3. replace the newlines with spaces.
+features_msg=`echo $features_msg | tr ' ' '\012' | sort | tr '\012' ' '`
+AC_SUBST(features_msg)
 
-AC_MSG_NOTICE([********************************************
+
+# The summary
+# TODO: reduce the length of the last message block ("the message")
+
+AC_MSG_NOTICE([
+GNUnet Configuration (incomplete!)
+
+gnunet version:                 ${VERSION}
+
+Host setup:                     ${host}
+Install prefix:                 ${prefix}
+Compiler:                       ${CC}
+CFLAGS:                         ${CFLAGS}
+CPPFLAGS:                       ${CPPFLAGS}
+LDFLAGS:                        ${LDFLAGS}
+LIBS:                           ${LIBS}
+Build Target:                   $build_target
+Mac OSX framework build:        ${macosx_framework_msg}
+
+Default Interface:              ${interface_msg}
+
+MySQL:                          ${mysql_msg}
+PostgreSQL:                     ${postgres_msg}
+sqlite3:                        ${sqlite_msg}
+gnurl:                          ${gnurl_msg}
+curl:                           ${curl_msg}
+bluetooth:                      ${bluetooth_msg}
+jansson:                        ${jansson_msg}
+iptables:                       ${iptables_msg}
+ifconfig:                       ${ifconfig_msg}
+upnpc:                          ${upnpc_msg}
+gnutls:                         ${gnutls_msg}
+libzbar:                        ${libzbar_msg}
+java:                           ${java_msg}
+libmicrohttpd:                  ${libmicrohttpd_msg}
+libidn:                         ${libidn1_msg}${libidn2_msg}
+libopus:                        ${libopus_msg}
+gstreamer:                      ${gstreamer_msg}
+libpulse:                       ${libpulse_msg}
+libextractor:                   ${libextractor_msg}
+
+texinfo manual:                 ${texinfo_msg}
+transpiled mdoc manual:         ${mdoc_msg}
+
+features:                       ${features_msg}
+experimental:                   ${experimental_msg}
+
+
+IMPORTANT:
+
 Please make sure NOW that you have created a user and group 'gnunet'
-and additionally a group 'gnunetdns'. On Debian and Ubuntu GNU/Linux, type:
-        addgroup gnunetdns
-        adduser --system --group --disabled-login --home /var/lib/gnunet gnunet
+and additionally a group 'gnunetdns'. On Debian and Ubuntu GNU/Linux,
+type:
+
+  addgroup gnunetdns
+  adduser --system --group --disabled-login --home /var/lib/gnunet gnunet
 
 Make sure that '/var/lib/gnunet' is owned (and writable) by user
 'gnunet'.  Then, you can compile GNUnet with
-        make
+
+  make
 
 After that, run (if necessary as 'root')
-        make install
+
+  make install
+
 to install everything.
 
 Each GNUnet user should be added to the 'gnunet' group (may
 require fresh login to come into effect):
-        adduser USERNAME gnunet
+
+  adduser USERNAME gnunet
+
 (run the above command as root once for each of your users, replacing
 "USERNAME" with the respective login names).  If you have a global IP
 address, no further configuration is required.
@@ -2007,7 +2147,9 @@ you have to copy ~/.gnunet/gnunet.conf" over to the "gnunet" user's
 home directory in the end.
 
 Once you have configured your peer, run (as the 'gnunet' user)
-	gnunet-arm -s
+
+  gnunet-arm -s
+
 to start the peer.  You can then run the various GNUnet-tools as
 your "normal" user (who should only be in the group 'gnunet').
-********************************************])
+])
