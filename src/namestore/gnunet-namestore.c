@@ -669,6 +669,19 @@ get_existing_record (void *cls,
       ret = 1;
       test_finished ();
       return;
+    case GNUNET_DNSPARSER_TYPE_SOA:
+      if (GNUNET_DNSPARSER_TYPE_SOA == type)
+      {
+        fprintf (
+          stderr,
+          _ (
+            "A SOA record exists already under `%s', cannot add a second SOA to the same zone.\n"),
+          rec_name);
+        ret = 1;
+        test_finished ();
+        return;
+      }
+      break;
     }
   }
   switch (type)

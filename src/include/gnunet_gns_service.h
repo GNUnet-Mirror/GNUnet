@@ -39,9 +39,8 @@
 #include "gnunet_namestore_service.h"
 
 #ifdef __cplusplus
-extern "C"
-{
-#if 0                           /* keep Emacsens' auto-indent happy */
+extern "C" {
+#if 0 /* keep Emacsens' auto-indent happy */
 }
 #endif
 #endif
@@ -96,10 +95,10 @@ GNUNET_GNS_disconnect (struct GNUNET_GNS_Handle *handle);
  * @param rd_count number of records in @a rd
  * @param rd the records in reply
  */
-typedef void
-(*GNUNET_GNS_LookupResultProcessor) (void *cls,
-                                     uint32_t rd_count,
-                                     const struct GNUNET_GNSRECORD_Data *rd);
+typedef void (*GNUNET_GNS_LookupResultProcessor) (
+  void *cls,
+  uint32_t rd_count,
+  const struct GNUNET_GNSRECORD_Data *rd);
 
 
 /**
@@ -140,12 +139,12 @@ enum GNUNET_GNS_LocalOptions
  */
 struct GNUNET_GNS_LookupRequest *
 GNUNET_GNS_lookup (struct GNUNET_GNS_Handle *handle,
-		   const char *name,
-		   const struct GNUNET_CRYPTO_EcdsaPublicKey *zone,
-		   uint32_t type,
-		   enum GNUNET_GNS_LocalOptions options,
-		   GNUNET_GNS_LookupResultProcessor proc,
-		   void *proc_cls);
+                   const char *name,
+                   const struct GNUNET_CRYPTO_EcdsaPublicKey *zone,
+                   uint32_t type,
+                   enum GNUNET_GNS_LocalOptions options,
+                   GNUNET_GNS_LookupResultProcessor proc,
+                   void *proc_cls);
 
 
 /**
@@ -168,11 +167,11 @@ GNUNET_GNS_lookup_cancel (struct GNUNET_GNS_LookupRequest *lr);
  * @param rd_count number of records in @a rd
  * @param rd the records in the reply
  */
-typedef void
-(*GNUNET_GNS_LookupResultProcessor2) (void *cls,
-				      int gns_tld,
-				      uint32_t rd_count,
-				      const struct GNUNET_GNSRECORD_Data *rd);
+typedef void (*GNUNET_GNS_LookupResultProcessor2) (
+  void *cls,
+  int gns_tld,
+  uint32_t rd_count,
+  const struct GNUNET_GNSRECORD_Data *rd);
 
 
 /**
@@ -188,13 +187,13 @@ typedef void
  * @param proc_cls closure for @a proc
  * @return handle to the get request
  */
-struct GNUNET_GNS_LookupWithTldRequest*
+struct GNUNET_GNS_LookupWithTldRequest *
 GNUNET_GNS_lookup_with_tld (struct GNUNET_GNS_Handle *handle,
-			    const char *name,
-			    uint32_t type,
-			    enum GNUNET_GNS_LocalOptions options,
-			    GNUNET_GNS_LookupResultProcessor2 proc,
-			    void *proc_cls);
+                            const char *name,
+                            uint32_t type,
+                            enum GNUNET_GNS_LocalOptions options,
+                            GNUNET_GNS_LookupResultProcessor2 proc,
+                            void *proc_cls);
 
 
 /**
@@ -207,7 +206,7 @@ void *
 GNUNET_GNS_lookup_with_tld_cancel (struct GNUNET_GNS_LookupWithTldRequest *ltr);
 
 
-#if 0                           /* keep Emacsens' auto-indent happy */
+#if 0 /* keep Emacsens' auto-indent happy */
 {
 #endif
 #ifdef __cplusplus
@@ -216,4 +215,4 @@ GNUNET_GNS_lookup_with_tld_cancel (struct GNUNET_GNS_LookupWithTldRequest *ltr);
 
 #endif
 
-/** @} */  /* end of group */
+/** @} */ /* end of group */
