@@ -327,7 +327,12 @@ run (void *cls,
     fprintf (stderr, "Option -s requires option -e to be specified as well.\n");
     return;
   }
-  sh = GNUNET_IDENTITY_connect (cfg, &print_ego, NULL);
+  sh = GNUNET_IDENTITY_connect (cfg,
+                                (monitor | list) || (NULL != set_ego) ||
+                                    (NULL != set_subsystem)
+                                  ? &print_ego
+                                  : NULL,
+                                NULL);
   if (NULL != delete_ego)
     delete_op =
       GNUNET_IDENTITY_delete (sh, delete_ego, &delete_finished, &delete_op);
