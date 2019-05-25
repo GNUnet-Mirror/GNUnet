@@ -1,3 +1,8 @@
+Sat 25 May 2019 08:27:39 AM CEST
+  Significantly speed-up ego creation and deletion via
+  gnunet-identity command when there are many (hundreds)
+  of egos at the same peer. -CG
+
 Thu May 9 23:35:24 2019 +0200
   gnunet-identity can now output the public key on creation of new
   egos, and -e can act as a filter when listing all egos. -CG
