@@ -591,7 +591,7 @@ AS_IF([test "$bluetooth" = 1],
 zbar=0
 AC_MSG_CHECKING(for libzbar)
 AC_ARG_WITH(zbar,
-   [  --with-zbar=PFX    base of libzbar installation],
+   [  --with-zbar=PREFIX (base of libzbar installation)],
    [AC_MSG_RESULT([$with_zbar])
     AS_CASE([$with_zbar],
       [no],[],
@@ -616,7 +616,7 @@ AS_IF([test "x$zbar" = x1],
 jansson=0
 AC_MSG_CHECKING(for libjansson)
 AC_ARG_WITH(jansson,
-   [--with-jansson=PREFIX (base of libjansson installation)],
+   [  --with-jansson=PREFIX (base of libjansson installation)],
    [AC_MSG_RESULT([$with_jansson])
     AS_CASE([$with_jansson],
       [no],[],
@@ -818,7 +818,7 @@ AS_IF([test "x$taler_only" = "xyes"],
 extractor=0
 AC_MSG_CHECKING(for libextractor)
 AC_ARG_WITH(extractor,
-   [  --with-extractor=PFX    base of libextractor installation],
+   [  --with-extractor=PREFIX (base of libextractor installation)],
    [AC_MSG_RESULT([$with_extractor])
     AS_CASE([$with_extractor],
       [no],[],
@@ -859,7 +859,7 @@ AS_IF([test "$taler_only" != yes],[
 ltdl=0
 AC_MSG_CHECKING(for libltdl)
 AC_ARG_WITH(ltdl,
-   [  --with-ltdl=PFX    base of libltdl installation],
+   [AS_HELP_STRING([--with-ltdl=PREFIX],[base of libltdl installation])],
    [AC_MSG_RESULT([$with_ltdl])
     AS_CASE([$with_ltdl],
       [no],[],
@@ -1346,7 +1346,7 @@ LIBS=$SAVE_LIBS
 GN_INTLINCL=""
 GN_LIBINTL="$LTLIBINTL"
 AC_ARG_ENABLE(framework,
-              [--enable-framework      enable Mac OS X framework build helpers],
+              [AS_HELP_STRING([--enable-framework],[enable Mac OS X framework build helpers])],
               enable_framework_build=$enableval)
 AM_CONDITIONAL(WANT_FRAMEWORK,
                test x$enable_framework_build = xyes)
