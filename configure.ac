@@ -37,7 +37,7 @@ AC_CANONICAL_TARGET
 AC_CANONICAL_HOST
 AC_CANONICAL_SYSTEM
 AM_INIT_AUTOMAKE
-m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
+m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])], [AM_DEFAULT_VERBOSITY=1 AC_SUBST(AM_DEFAULT_VERBOSITY)])
 AC_CONFIG_HEADERS([gnunet_config.h])
 AH_TOP([#define _GNU_SOURCE  1])
 AC_CONFIG_MACRO_DIR([m4])
@@ -52,6 +52,9 @@ AC_PROG_MAKE_SET
 AM_PROG_CC_C_O
 LT_INIT([disable-static dlopen win32-dll])
 AC_SUBST(MKDIR_P)
+
+# allow for different autotools
+AS_AUTOTOOLS_ALTERNATE
 
 # large file support
 AC_SYS_LARGEFILE
@@ -576,7 +579,7 @@ AC_LANG_POP(C)
 
 # check for bluetooth library
 bluetooth=0
-AC_CHECK_LIB(bluetooth, ba2str,[AC_CHECK_HEADER([bluetooth/bluetooth.h],bluetooth=1)])
+CHECK_LIBHEADER(BLUETOOTH, bluetooth, ba2str, bluetooth/bluetooth.h,bluetooth=1,)
 AS_IF([test "$build_target" = "mingw"],
  [bluetooth=1])
 AM_CONDITIONAL(HAVE_LIBBLUETOOTH, [test "$bluetooth" = 1])
@@ -592,11 +595,8 @@ AC_ARG_WITH(zbar,
    [AC_MSG_RESULT([$with_zbar])
     AS_CASE([$with_zbar],
       [no],[],
-      [yes],[
-        AC_CHECK_HEADERS(zbar.h,
-          AC_CHECK_LIB([zbar], [zbar_processor_create],
-            zbar=1))
-       ],[
+      [yes],[CHECK_LIBHEADER(ZBAR, zbar, zbar_processor_create, zbar.h,zbar=1,,)],
+      [
         LDFLAGS="-L$with_zbar/lib $LDFLAGS"
         CPPFLAGS="-I$with_zbar/include $CPPFLAGS"
         AC_CHECK_HEADERS(zbar.h,
@@ -606,9 +606,7 @@ AC_ARG_WITH(zbar,
        ])
    ],
    [AC_MSG_RESULT([--with-zbar not specified])
-    AC_CHECK_HEADERS(zbar.h,
-     AC_CHECK_LIB([zbar], [zbar_processor_create],
-      zbar=1))])
+    CHECK_LIBHEADER(ZBAR, zbar, zbar_processor_create, zbar.h,zbar=1,,)])
 AM_CONDITIONAL(HAVE_ZBAR, [test "$zbar" = 1])
 AS_IF([test "x$zbar" = x1],
       [AC_DEFINE([HAVE_ZBAR],[1],[Have zbar library])],
@@ -618,14 +616,12 @@ AS_IF([test "x$zbar" = x1],
 jansson=0
 AC_MSG_CHECKING(for libjansson)
 AC_ARG_WITH(jansson,
-   [  --with-jansson=PFX    base of libjansson installation],
+   [--with-jansson=PREFIX (base of libjansson installation)],
    [AC_MSG_RESULT([$with_jansson])
     AS_CASE([$with_jansson],
       [no],[],
       [yes],[
-        AC_CHECK_HEADERS(jansson.h,
-          AC_CHECK_LIB([jansson], [json_loads],
-            jansson=1))
+        CHECK_LIBHEADER(JANSSON, jansson, json_loads, jansson.h,jansson=1,)
       ],[
         LDFLAGS="-L$with_jansson/lib $LDFLAGS"
         CPPFLAGS="-I$with_jansson/include $CPPFLAGS"
@@ -636,9 +632,7 @@ AC_ARG_WITH(jansson,
       ])
    ],
    [AC_MSG_RESULT([--with-jansson not specified])
-    AC_CHECK_HEADERS(jansson.h,
-     AC_CHECK_LIB([jansson], [json_loads],
-      jansson=1))])
+    CHECK_LIBHEADER(JANSSON, jansson, json_loads, jansson.h,jansson=1,)])
 AM_CONDITIONAL(HAVE_JANSSON, [test "$jansson" = 1])
 AM_CONDITIONAL(HAVE_JSON, [test x$jansson = x1])
 AS_IF([test "x$jansson" = x1],
@@ -648,8 +642,7 @@ AS_IF([test "x$jansson" = x1],
 
 # check for libpulse(audio) library
 pulse=0
-AC_CHECK_LIB(pulse,pa_stream_peek,
-  [AC_CHECK_HEADER([pulse/simple.h],pulse=1)])
+CHECK_LIBHEADER(LIBPULSE, pulse, pa_stream_peek, pulse/simple.h,jansson=1,)
 AS_IF([test "$build_target" = "mingw"],
       [pulse=0])
 AS_IF([test "$pulse" = 1],
@@ -657,12 +650,11 @@ AS_IF([test "$pulse" = 1],
 
 # check for libopus(audio) library
 opus=0
-AC_CHECK_LIB(opus,opus_decode_float,
-  [AC_CHECK_HEADER([opus/opus.h],
-    [AC_CHECK_DECL([OPUS_SET_GAIN],[opus=1],[],[[#include <opus/opus.h>]]
-    )]
-  )]
-)
+CHECK_LIBHEADER(LIBOPUS,
+                opus,
+                opus_decode_float,
+                opus/opus.h,
+                AC_CHECK_DECL([OPUS_SET_GAIN],[opus=1],[],[[#include <opus/opus.h>]]))
 AS_IF([test "x$opus" = x1],
       [AC_DEFINE([HAVE_OPUS],[1],[Have libopus library])])
 
@@ -1992,7 +1984,7 @@ AS_IF([test "$extractor" != 1],
       [AC_MSG_WARN([ERROR: libextractor not found, but various file-sharing functions require it])],
       [libextractor_msg="yes"])
 # -- libzbar
-AS_IF([test "$have_zbar" = 1],
+AS_IF([test "x$zbar" = "x1"],
       [libzbar_msg="yes"
        features_msg="$features_msg gnunet-qr"],
       [AC_MSG_NOTICE([WARNING: zbar not found, gnunet-qr will not be built.])
