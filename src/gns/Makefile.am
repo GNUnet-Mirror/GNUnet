@@ -280,6 +280,7 @@ check_SCRIPTS = \
   test_gns_config_lookup.sh \
   test_gns_ipv6_lookup.sh\
   test_gns_txt_lookup.sh\
+  test_gns_caa_lookup.sh\
   test_gns_mx_lookup.sh \
   test_gns_gns2dns_lookup.sh \
   test_gns_gns2dns_cname_lookup.sh \

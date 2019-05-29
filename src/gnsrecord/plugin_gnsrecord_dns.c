@@ -44,7 +44,7 @@ dns_value_to_string (void *cls,
                      const void *data,
                      size_t data_size)
 {
-  char* result;
+  char *result;
   char tmp[INET6_ADDRSTRLEN];
 
   switch (type)
@@ -55,144 +55,120 @@ dns_value_to_string (void *cls,
     if (NULL == inet_ntop (AF_INET, data, tmp, sizeof (tmp)))
       return NULL;
     return GNUNET_strdup (tmp);
-  case GNUNET_DNSPARSER_TYPE_NS:
-    {
-      char *ns;
-      size_t off;
+  case GNUNET_DNSPARSER_TYPE_NS: {
+    char *ns;
+    size_t off;
 
-      off = 0;
-      ns = GNUNET_DNSPARSER_parse_name (data,
-					data_size,
-					&off);
-      if ( (NULL == ns) ||
-	   (off != data_size) )
-      {
-	GNUNET_break_op (0);
-        GNUNET_free_non_null (ns);
-	return NULL;
-      }
-      return ns;
+    off = 0;
+    ns = GNUNET_DNSPARSER_parse_name (data, data_size, &off);
+    if ((NULL == ns) || (off != data_size))
+    {
+      GNUNET_break_op (0);
+      GNUNET_free_non_null (ns);
+      return NULL;
     }
-  case GNUNET_DNSPARSER_TYPE_CNAME:
-    {
-      char *cname;
-      size_t off;
+    return ns;
+  }
+  case GNUNET_DNSPARSER_TYPE_CNAME: {
+    char *cname;
+    size_t off;
 
-      off = 0;
-      cname = GNUNET_DNSPARSER_parse_name (data,
-					   data_size,
-					   &off);
-      if ( (NULL == cname) ||
-	   (off != data_size) )
-      {
-	GNUNET_break_op (0);
-	GNUNET_free_non_null (cname);
-	return NULL;
-      }
-      return cname;
+    off = 0;
+    cname = GNUNET_DNSPARSER_parse_name (data, data_size, &off);
+    if ((NULL == cname) || (off != data_size))
+    {
+      GNUNET_break_op (0);
+      GNUNET_free_non_null (cname);
+      return NULL;
     }
-  case GNUNET_DNSPARSER_TYPE_SOA:
-    {
-      struct GNUNET_DNSPARSER_SoaRecord *soa;
-      size_t off;
+    return cname;
+  }
+  case GNUNET_DNSPARSER_TYPE_SOA: {
+    struct GNUNET_DNSPARSER_SoaRecord *soa;
+    size_t off;
 
-      off = 0;
-      soa = GNUNET_DNSPARSER_parse_soa (data,
-					data_size,
-					&off);
-      if ( (NULL == soa) ||
-	   (off != data_size) )
-      {
-	GNUNET_break_op (0);
-        if (NULL != soa)
-          GNUNET_DNSPARSER_free_soa (soa);
-	return NULL;
-      }
-      GNUNET_asprintf (&result,
-		       "rname=%s mname=%s %lu,%lu,%lu,%lu,%lu",
-		       soa->rname,
-		       soa->mname,
-		       soa->serial,
-		       soa->refresh,
-		       soa->retry,
-		       soa->expire,
-		       soa->minimum_ttl);
-      GNUNET_DNSPARSER_free_soa (soa);
-      return result;
+    off = 0;
+    soa = GNUNET_DNSPARSER_parse_soa (data, data_size, &off);
+    if ((NULL == soa) || (off != data_size))
+    {
+      GNUNET_break_op (0);
+      if (NULL != soa)
+        GNUNET_DNSPARSER_free_soa (soa);
+      return NULL;
     }
-  case GNUNET_DNSPARSER_TYPE_PTR:
-    {
-      char *ptr;
-      size_t off;
+    GNUNET_asprintf (&result,
+                     "rname=%s mname=%s %lu,%lu,%lu,%lu,%lu",
+                     soa->rname,
+                     soa->mname,
+                     soa->serial,
+                     soa->refresh,
+                     soa->retry,
+                     soa->expire,
+                     soa->minimum_ttl);
+    GNUNET_DNSPARSER_free_soa (soa);
+    return result;
+  }
+  case GNUNET_DNSPARSER_TYPE_PTR: {
+    char *ptr;
+    size_t off;
 
-      off = 0;
-      ptr = GNUNET_DNSPARSER_parse_name (data,
-					   data_size,
-					   &off);
-      if ( (NULL == ptr) ||
-	   (off != data_size) )
-      {
-	GNUNET_break_op (0);
-	GNUNET_free_non_null (ptr);
-	return NULL;
-      }
-      return ptr;
+    off = 0;
+    ptr = GNUNET_DNSPARSER_parse_name (data, data_size, &off);
+    if ((NULL == ptr) || (off != data_size))
+    {
+      GNUNET_break_op (0);
+      GNUNET_free_non_null (ptr);
+      return NULL;
     }
-  case GNUNET_DNSPARSER_TYPE_CERT:
-    {
-      struct GNUNET_DNSPARSER_CertRecord *cert;
-      size_t off;
-      char *base64;
-      int len;
+    return ptr;
+  }
+  case GNUNET_DNSPARSER_TYPE_CERT: {
+    struct GNUNET_DNSPARSER_CertRecord *cert;
+    size_t off;
+    char *base64;
+    int len;
 
-      off = 0;
-      cert = GNUNET_DNSPARSER_parse_cert (data,
-                                          data_size,
-                                          &off);
-      if ( (NULL == cert) ||
-	   (off != data_size) )
-      {
-	GNUNET_break_op (0);
-        GNUNET_DNSPARSER_free_cert (cert);
-	return NULL;
-      }
-      len = GNUNET_STRINGS_base64_encode (cert->certificate_data,
-                                          cert->certificate_size,
-                                          &base64);
-      GNUNET_asprintf (&result,
-		       "%u %u %u %.*s",
-                       cert->cert_type,
-                       cert->cert_tag,
-                       cert->algorithm,
-                       len,
-                       base64);
-      GNUNET_free (base64);
+    off = 0;
+    cert = GNUNET_DNSPARSER_parse_cert (data, data_size, &off);
+    if ((NULL == cert) || (off != data_size))
+    {
+      GNUNET_break_op (0);
       GNUNET_DNSPARSER_free_cert (cert);
-      return result;
+      return NULL;
     }
-  case GNUNET_DNSPARSER_TYPE_MX:
-    {
-      struct GNUNET_DNSPARSER_MxRecord *mx;
-      size_t off;
+    len = GNUNET_STRINGS_base64_encode (cert->certificate_data,
+                                        cert->certificate_size,
+                                        &base64);
+    GNUNET_asprintf (&result,
+                     "%u %u %u %.*s",
+                     cert->cert_type,
+                     cert->cert_tag,
+                     cert->algorithm,
+                     len,
+                     base64);
+    GNUNET_free (base64);
+    GNUNET_DNSPARSER_free_cert (cert);
+    return result;
+  }
+  case GNUNET_DNSPARSER_TYPE_MX: {
+    struct GNUNET_DNSPARSER_MxRecord *mx;
+    size_t off;
 
-      off = 0;
-      mx = GNUNET_DNSPARSER_parse_mx (data,
-				      data_size,
-				      &off);
-      if ( (NULL == mx) ||
-	   (off != data_size) )
-      {
-	GNUNET_break_op (0);
-        GNUNET_DNSPARSER_free_mx (mx);
-	return NULL;
-      }
-      GNUNET_asprintf (&result,
-		       "%u,%s",
-		       (unsigned int) mx->preference,
-		       mx->mxhost);
+    off = 0;
+    mx = GNUNET_DNSPARSER_parse_mx (data, data_size, &off);
+    if ((NULL == mx) || (off != data_size))
+    {
+      GNUNET_break_op (0);
       GNUNET_DNSPARSER_free_mx (mx);
-      return result;
+      return NULL;
     }
+    GNUNET_asprintf (&result,
+                     "%u,%s",
+                     (unsigned int) mx->preference,
+                     mx->mxhost);
+    GNUNET_DNSPARSER_free_mx (mx);
+    return result;
+  }
   case GNUNET_DNSPARSER_TYPE_TXT:
     return GNUNET_strndup (data, data_size);
   case GNUNET_DNSPARSER_TYPE_AAAA:
@@ -201,57 +177,81 @@ dns_value_to_string (void *cls,
     if (NULL == inet_ntop (AF_INET6, data, tmp, sizeof (tmp)))
       return NULL;
     return GNUNET_strdup (tmp);
-  case GNUNET_DNSPARSER_TYPE_SRV:
-    {
-      struct GNUNET_DNSPARSER_SrvRecord *srv;
-      size_t off;
+  case GNUNET_DNSPARSER_TYPE_SRV: {
+    struct GNUNET_DNSPARSER_SrvRecord *srv;
+    size_t off;
 
-      off = 0;
-      srv = GNUNET_DNSPARSER_parse_srv (data,
-					data_size,
-					&off);
-      if ( (NULL == srv) ||
-	   (off != data_size) )
-      {
-	GNUNET_break_op (0);
-        if (NULL != srv)
-          GNUNET_DNSPARSER_free_srv (srv);
-	return NULL;
-      }
-      GNUNET_asprintf (&result,
-		       "%d %d %d %s",
-		       srv->priority,
-		       srv->weight,
-		       srv->port,
-		       srv->target);
-      GNUNET_DNSPARSER_free_srv (srv);
-      return result;
+    off = 0;
+    srv = GNUNET_DNSPARSER_parse_srv (data, data_size, &off);
+    if ((NULL == srv) || (off != data_size))
+    {
+      GNUNET_break_op (0);
+      if (NULL != srv)
+        GNUNET_DNSPARSER_free_srv (srv);
+      return NULL;
     }
-  case GNUNET_DNSPARSER_TYPE_TLSA:
-    {
-      const struct GNUNET_TUN_DnsTlsaRecord *tlsa;
-      char *tlsa_str;
-      char *hex;
+    GNUNET_asprintf (&result,
+                     "%d %d %d %s",
+                     srv->priority,
+                     srv->weight,
+                     srv->port,
+                     srv->target);
+    GNUNET_DNSPARSER_free_srv (srv);
+    return result;
+  }
+  case GNUNET_DNSPARSER_TYPE_TLSA: {
+    const struct GNUNET_TUN_DnsTlsaRecord *tlsa;
+    char *tlsa_str;
+    char *hex;
 
-      if (data_size < sizeof (struct GNUNET_TUN_DnsTlsaRecord))
-	return NULL; /* malformed */
-      tlsa = data;
-      hex = GNUNET_DNSPARSER_bin_to_hex (&tlsa[1],
-                                         data_size - sizeof (struct GNUNET_TUN_DnsTlsaRecord));
-      if (0 == GNUNET_asprintf (&tlsa_str,
-				"%u %u %u %s",
-				(unsigned int) tlsa->usage,
-				(unsigned int) tlsa->selector,
-				(unsigned int) tlsa->matching_type,
-				hex))
-      {
-        GNUNET_free (hex);
-	GNUNET_free (tlsa_str);
-	return NULL;
-      }
+    if (data_size < sizeof (struct GNUNET_TUN_DnsTlsaRecord))
+      return NULL; /* malformed */
+    tlsa = data;
+    hex =
+      GNUNET_DNSPARSER_bin_to_hex (&tlsa[1],
+                                   data_size -
+                                     sizeof (struct GNUNET_TUN_DnsTlsaRecord));
+    if (0 == GNUNET_asprintf (&tlsa_str,
+                              "%u %u %u %s",
+                              (unsigned int) tlsa->usage,
+                              (unsigned int) tlsa->selector,
+                              (unsigned int) tlsa->matching_type,
+                              hex))
+    {
       GNUNET_free (hex);
-      return tlsa_str;
+      GNUNET_free (tlsa_str);
+      return NULL;
     }
+    GNUNET_free (hex);
+    return tlsa_str;
+  }
+  case GNUNET_DNSPARSER_TYPE_CAA: { //RFC6844
+    const struct GNUNET_DNSPARSER_CaaRecord *caa;
+    char tag[15]; // between 1 and 15 bytes
+    char value[data_size];
+    char *caa_str;
+    if (data_size < sizeof (struct GNUNET_DNSPARSER_CaaRecord))
+      return NULL; /* malformed */
+    caa = data;
+    if ((1 > caa->tag_len) || (15 < caa->tag_len))
+      return NULL; /* malformed */
+    memset (tag, 0, sizeof (tag));
+    memset (value, 0, data_size);
+    memcpy (tag, &caa[1], caa->tag_len);
+    memcpy (value,
+            (char *) &caa[1] + caa->tag_len,
+            data_size - caa->tag_len - 2);
+    if (0 == GNUNET_asprintf (&caa_str,
+                              "%u %s %s",
+                              (unsigned int) caa->flags,
+                              tag,
+                              value))
+    {
+      GNUNET_free (caa_str);
+      return NULL;
+    }
+    return caa_str;
+  }
   default:
     return NULL;
   }
@@ -267,27 +267,25 @@ dns_value_to_string (void *cls,
 static unsigned int
 rfc4398_mnemonic_to_value (const char *mnemonic)
 {
-  static struct {
+  static struct
+  {
     const char *mnemonic;
     unsigned int val;
-  } table[] = {
-    { "PKIX", 1 },
-    { "SPKI", 2 },
-    { "PGP", 3 },
-    { "IPKIX", 4 },
-    { "ISPKI", 5 },
-    { "IPGP", 6 },
-    { "ACPKIX", 7},
-    { "IACPKIX", 8},
-    { "URI", 253},
-    { "OID", 254},
-    { NULL, 0 }
-  };
+  } table[] = {{"PKIX", 1},
+               {"SPKI", 2},
+               {"PGP", 3},
+               {"IPKIX", 4},
+               {"ISPKI", 5},
+               {"IPGP", 6},
+               {"ACPKIX", 7},
+               {"IACPKIX", 8},
+               {"URI", 253},
+               {"OID", 254},
+               {NULL, 0}};
   unsigned int i;
 
-  for (i=0;NULL != table[i].mnemonic;i++)
-    if (0 == strcasecmp (mnemonic,
-                         table[i].mnemonic))
+  for (i = 0; NULL != table[i].mnemonic; i++)
+    if (0 == strcasecmp (mnemonic, table[i].mnemonic))
       return table[i].val;
   return 0;
 }
@@ -302,25 +300,23 @@ rfc4398_mnemonic_to_value (const char *mnemonic)
 static unsigned int
 rfc4034_mnemonic_to_value (const char *mnemonic)
 {
-  static struct {
+  static struct
+  {
     const char *mnemonic;
     unsigned int val;
-  } table[] = {
-    { "RSAMD5", 1 },
-    { "DH", 2 },
-    { "DSA", 3 },
-    { "ECC", 4 },
-    { "RSASHA1", 5 },
-    { "INDIRECT", 252 },
-    { "PRIVATEDNS", 253 },
-    { "PRIVATEOID", 254 },
-    { NULL, 0 }
-  };
+  } table[] = {{"RSAMD5", 1},
+               {"DH", 2},
+               {"DSA", 3},
+               {"ECC", 4},
+               {"RSASHA1", 5},
+               {"INDIRECT", 252},
+               {"PRIVATEDNS", 253},
+               {"PRIVATEOID", 254},
+               {NULL, 0}};
   unsigned int i;
 
-  for (i=0;NULL != table[i].mnemonic;i++)
-    if (0 == strcasecmp (mnemonic,
-                         table[i].mnemonic))
+  for (i = 0; NULL != table[i].mnemonic; i++)
+    if (0 == strcasecmp (mnemonic, table[i].mnemonic))
       return table[i].val;
   return 0;
 }
@@ -356,7 +352,7 @@ dns_string_to_value (void *cls,
     if (1 != inet_pton (AF_INET, s, &value_a))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  _("Unable to parse IPv4 address `%s'\n"),
+                  _ ("Unable to parse IPv4 address `%s'\n"),
                   s);
       return GNUNET_SYSERR;
     }
@@ -364,294 +360,253 @@ dns_string_to_value (void *cls,
     GNUNET_memcpy (*data, &value_a, sizeof (value_a));
     *data_size = sizeof (value_a);
     return GNUNET_OK;
-  case GNUNET_DNSPARSER_TYPE_NS:
+  case GNUNET_DNSPARSER_TYPE_NS: {
+    char nsbuf[256];
+    size_t off;
+
+    off = 0;
+    if (GNUNET_OK !=
+        GNUNET_DNSPARSER_builder_add_name (nsbuf, sizeof (nsbuf), &off, s))
     {
-      char nsbuf[256];
-      size_t off;
-
-      off = 0;
-      if (GNUNET_OK !=
-	  GNUNET_DNSPARSER_builder_add_name (nsbuf,
-					     sizeof (nsbuf),
-					     &off,
-					     s))
-      {
-	GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-             _("Failed to serialize NS record with value `%s'\n"),
-             s);
-	return GNUNET_SYSERR;
-      }
-      *data_size = off;
-      *data = GNUNET_malloc (off);
-      GNUNET_memcpy (*data, nsbuf, off);
-      return GNUNET_OK;
-    }
-  case GNUNET_DNSPARSER_TYPE_CNAME:
-    {
-      char cnamebuf[256];
-      size_t off;
-
-      off = 0;
-      if (GNUNET_OK !=
-	  GNUNET_DNSPARSER_builder_add_name (cnamebuf,
-					     sizeof (cnamebuf),
-					     &off,
-					     s))
-      {
-	GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-             _("Failed to serialize CNAME record with value `%s'\n"),
-             s);
-	return GNUNET_SYSERR;
-      }
-      *data_size = off;
-      *data = GNUNET_malloc (off);
-      GNUNET_memcpy (*data, cnamebuf, off);
-      return GNUNET_OK;
-    }
-  case GNUNET_DNSPARSER_TYPE_CERT:
-    {
-      char *sdup;
-      const char *typep;
-      const char *keyp;
-      const char *algp;
-      const char *certp;
-      unsigned int type;
-      unsigned int key;
-      unsigned int alg;
-      size_t cert_size;
-      char *cert_data;
-      struct GNUNET_DNSPARSER_CertRecord cert;
-
-      sdup = GNUNET_strdup (s);
-      typep = strtok (sdup, " ");
-      if ( (NULL == typep) ||
-           ( (0 == (type = rfc4398_mnemonic_to_value (typep))) &&
-             ( (1 != SSCANF (typep,
-                             "%u",
-                             &type)) ||
-               (type > UINT16_MAX) ) ) )
-      {
-        GNUNET_free (sdup);
-        return GNUNET_SYSERR;
-      }
-      keyp = strtok (NULL, " ");
-      if ( (NULL == keyp) ||
-           (1 != SSCANF (keyp,
-                         "%u",
-                         &key)) ||
-           (key > UINT16_MAX) )
-      {
-        GNUNET_free (sdup);
-        return GNUNET_SYSERR;
-      }
-      alg = 0;
-      algp = strtok (NULL, " ");
-      if ( (NULL == algp) ||
-           ( (0 == (type = rfc4034_mnemonic_to_value (typep))) &&
-             ( (1 != sscanf (algp,
-                             "%u",
-                             &alg)) ||
-               (alg > UINT8_MAX) ) ) )
-      {
-        GNUNET_free (sdup);
-        return GNUNET_SYSERR;
-      }
-      certp = strtok (NULL, " ");
-      if ( (NULL == certp) ||
-           (0 == strlen (certp) ) )
-      {
-        GNUNET_free (sdup);
-        return GNUNET_SYSERR;
-      }
-      cert_size = GNUNET_STRINGS_base64_decode (certp,
-                                                strlen (certp),
-                                                (void **) &cert_data);
-      GNUNET_free (sdup);
-      cert.cert_type = type;
-      cert.cert_tag = key;
-      cert.algorithm = alg;
-      cert.certificate_size = cert_size;
-      cert.certificate_data = cert_data;
-      {
-        char certbuf[cert_size + sizeof (struct GNUNET_TUN_DnsCertRecord)];
-        size_t off;
-
-        off = 0;
-        if (GNUNET_OK !=
-            GNUNET_DNSPARSER_builder_add_cert (certbuf,
-                                               sizeof (certbuf),
-                                               &off,
-                                               &cert))
-        {
-          GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                      _("Failed to serialize CERT record with %u bytes\n"),
-                      (unsigned int) cert_size);
-          GNUNET_free (cert_data);
-          return GNUNET_SYSERR;
-        }
-        *data_size = off;
-        *data = GNUNET_malloc (off);
-        GNUNET_memcpy (*data, certbuf, off);
-      }
-      GNUNET_free (cert_data);
-      return GNUNET_OK;
-    }
-  case GNUNET_DNSPARSER_TYPE_SOA:
-    {
-      struct GNUNET_DNSPARSER_SoaRecord soa;
-      char soabuf[540];
-      char soa_rname[253 + 1];
-      char soa_mname[253 + 1];
-      unsigned int soa_serial;
-      unsigned int soa_refresh;
-      unsigned int soa_retry;
-      unsigned int soa_expire;
-      unsigned int soa_min;
-      size_t off;
-
-      if (7 != SSCANF (s,
-		       "rname=%253s mname=%253s %u,%u,%u,%u,%u",
-		       soa_rname,
-                       soa_mname,
-		       &soa_serial,
-                       &soa_refresh,
-                       &soa_retry,
-                       &soa_expire,
-                       &soa_min))
-      {
-	GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-             _("Unable to parse SOA record `%s'\n"),
-             s);
-	return GNUNET_SYSERR;
-      }
-      soa.mname = soa_mname;
-      soa.rname = soa_rname;
-      soa.serial = (uint32_t) soa_serial;
-      soa.refresh =(uint32_t)  soa_refresh;
-      soa.retry = (uint32_t) soa_retry;
-      soa.expire = (uint32_t) soa_expire;
-      soa.minimum_ttl = (uint32_t) soa_min;
-      off = 0;
-      if (GNUNET_OK !=
-	  GNUNET_DNSPARSER_builder_add_soa (soabuf,
-					    sizeof (soabuf),
-					    &off,
-					    &soa))
-      {
-	GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                    _("Failed to serialize SOA record with mname `%s' and rname `%s'\n"),
-                    soa_mname,
-                    soa_rname);
-	return GNUNET_SYSERR;
-      }
-      *data_size = off;
-      *data = GNUNET_malloc (off);
-      GNUNET_memcpy (*data, soabuf, off);
-      return GNUNET_OK;
-    }
-  case GNUNET_DNSPARSER_TYPE_PTR:
-    {
-      char ptrbuf[256];
-      size_t off;
-
-      off = 0;
-      if (GNUNET_OK !=
-	  GNUNET_DNSPARSER_builder_add_name (ptrbuf,
-					     sizeof (ptrbuf),
-					     &off,
-					     s))
-      {
-	GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                    _("Failed to serialize PTR record with value `%s'\n"),
-                    s);
-	return GNUNET_SYSERR;
-      }
-      *data_size = off;
-      *data = GNUNET_malloc (off);
-      GNUNET_memcpy (*data, ptrbuf, off);
-      return GNUNET_OK;
-    }
-  case GNUNET_DNSPARSER_TYPE_MX:
-    {
-      struct GNUNET_DNSPARSER_MxRecord mx;
-      char mxbuf[258];
-      char mxhost[253 + 1];
-      unsigned int mx_pref;
-      size_t off;
-
-      if (2 != SSCANF(s,
-                      "%u,%253s",
-                      &mx_pref,
-                      mxhost))
-      {
-	GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-             _("Unable to parse MX record `%s'\n"),
-             s);
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  _ ("Failed to serialize NS record with value `%s'\n"),
+                  s);
       return GNUNET_SYSERR;
-      }
-      mx.preference = (uint16_t) mx_pref;
-      mx.mxhost = mxhost;
-      off = 0;
-
-      if (GNUNET_OK !=
-	  GNUNET_DNSPARSER_builder_add_mx (mxbuf,
-					   sizeof (mxbuf),
-					   &off,
-					   &mx))
-      {
-	GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-             _("Failed to serialize MX record with hostname `%s'\n"),
-             mxhost);
-	return GNUNET_SYSERR;
-      }
-      *data_size = off;
-      *data = GNUNET_malloc (off);
-      GNUNET_memcpy (*data, mxbuf, off);
-      return GNUNET_OK;
     }
-  case GNUNET_DNSPARSER_TYPE_SRV:
+    *data_size = off;
+    *data = GNUNET_malloc (off);
+    GNUNET_memcpy (*data, nsbuf, off);
+    return GNUNET_OK;
+  }
+  case GNUNET_DNSPARSER_TYPE_CNAME: {
+    char cnamebuf[256];
+    size_t off;
+
+    off = 0;
+    if (GNUNET_OK != GNUNET_DNSPARSER_builder_add_name (cnamebuf,
+                                                        sizeof (cnamebuf),
+                                                        &off,
+                                                        s))
     {
-      struct GNUNET_DNSPARSER_SrvRecord srv;
-      char srvbuf[270];
-      char srvtarget[253 + 1];
-      unsigned int priority;
-      unsigned int weight;
-      unsigned int port;
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  _ ("Failed to serialize CNAME record with value `%s'\n"),
+                  s);
+      return GNUNET_SYSERR;
+    }
+    *data_size = off;
+    *data = GNUNET_malloc (off);
+    GNUNET_memcpy (*data, cnamebuf, off);
+    return GNUNET_OK;
+  }
+  case GNUNET_DNSPARSER_TYPE_CERT: {
+    char *sdup;
+    const char *typep;
+    const char *keyp;
+    const char *algp;
+    const char *certp;
+    unsigned int type;
+    unsigned int key;
+    unsigned int alg;
+    size_t cert_size;
+    char *cert_data;
+    struct GNUNET_DNSPARSER_CertRecord cert;
+
+    sdup = GNUNET_strdup (s);
+    typep = strtok (sdup, " ");
+    if ((NULL == typep) ||
+        ((0 == (type = rfc4398_mnemonic_to_value (typep))) &&
+         ((1 != SSCANF (typep, "%u", &type)) || (type > UINT16_MAX))))
+    {
+      GNUNET_free (sdup);
+      return GNUNET_SYSERR;
+    }
+    keyp = strtok (NULL, " ");
+    if ((NULL == keyp) || (1 != SSCANF (keyp, "%u", &key)) ||
+        (key > UINT16_MAX))
+    {
+      GNUNET_free (sdup);
+      return GNUNET_SYSERR;
+    }
+    alg = 0;
+    algp = strtok (NULL, " ");
+    if ((NULL == algp) ||
+        ((0 == (type = rfc4034_mnemonic_to_value (typep))) &&
+         ((1 != sscanf (algp, "%u", &alg)) || (alg > UINT8_MAX))))
+    {
+      GNUNET_free (sdup);
+      return GNUNET_SYSERR;
+    }
+    certp = strtok (NULL, " ");
+    if ((NULL == certp) || (0 == strlen (certp)))
+    {
+      GNUNET_free (sdup);
+      return GNUNET_SYSERR;
+    }
+    cert_size = GNUNET_STRINGS_base64_decode (certp,
+                                              strlen (certp),
+                                              (void **) &cert_data);
+    GNUNET_free (sdup);
+    cert.cert_type = type;
+    cert.cert_tag = key;
+    cert.algorithm = alg;
+    cert.certificate_size = cert_size;
+    cert.certificate_data = cert_data;
+    {
+      char certbuf[cert_size + sizeof (struct GNUNET_TUN_DnsCertRecord)];
       size_t off;
 
-      if (4 != SSCANF(s,
-                      "%u %u %u %253s",
-                      &priority,
-                      &weight,
-                      &port,
-                      srvtarget))
-      {
-	GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-             _("Unable to parse SRV record `%s'\n"),
-             s);
-        return GNUNET_SYSERR;
-      }
-      srv.priority = (uint16_t) priority;
-      srv.weight = (uint16_t) weight;
-      srv.port = (uint16_t) port;
-      srv.target = srvtarget;
       off = 0;
-      if (GNUNET_OK !=
-	  GNUNET_DNSPARSER_builder_add_srv (srvbuf,
-                                            sizeof (srvbuf),
-                                            &off,
-                                            &srv))
+      if (GNUNET_OK != GNUNET_DNSPARSER_builder_add_cert (certbuf,
+                                                          sizeof (certbuf),
+                                                          &off,
+                                                          &cert))
       {
-	GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                    _("Failed to serialize SRV record with target `%s'\n"),
-                    srvtarget);
-	return GNUNET_SYSERR;
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                    _ ("Failed to serialize CERT record with %u bytes\n"),
+                    (unsigned int) cert_size);
+        GNUNET_free (cert_data);
+        return GNUNET_SYSERR;
       }
       *data_size = off;
       *data = GNUNET_malloc (off);
-      GNUNET_memcpy (*data, srvbuf, off);
-      return GNUNET_OK;
+      GNUNET_memcpy (*data, certbuf, off);
     }
+    GNUNET_free (cert_data);
+    return GNUNET_OK;
+  }
+  case GNUNET_DNSPARSER_TYPE_SOA: {
+    struct GNUNET_DNSPARSER_SoaRecord soa;
+    char soabuf[540];
+    char soa_rname[253 + 1];
+    char soa_mname[253 + 1];
+    unsigned int soa_serial;
+    unsigned int soa_refresh;
+    unsigned int soa_retry;
+    unsigned int soa_expire;
+    unsigned int soa_min;
+    size_t off;
+
+    if (7 != SSCANF (s,
+                     "rname=%253s mname=%253s %u,%u,%u,%u,%u",
+                     soa_rname,
+                     soa_mname,
+                     &soa_serial,
+                     &soa_refresh,
+                     &soa_retry,
+                     &soa_expire,
+                     &soa_min))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  _ ("Unable to parse SOA record `%s'\n"),
+                  s);
+      return GNUNET_SYSERR;
+    }
+    soa.mname = soa_mname;
+    soa.rname = soa_rname;
+    soa.serial = (uint32_t) soa_serial;
+    soa.refresh = (uint32_t) soa_refresh;
+    soa.retry = (uint32_t) soa_retry;
+    soa.expire = (uint32_t) soa_expire;
+    soa.minimum_ttl = (uint32_t) soa_min;
+    off = 0;
+    if (GNUNET_OK !=
+        GNUNET_DNSPARSER_builder_add_soa (soabuf, sizeof (soabuf), &off, &soa))
+    {
+      GNUNET_log (
+        GNUNET_ERROR_TYPE_ERROR,
+        _ ("Failed to serialize SOA record with mname `%s' and rname `%s'\n"),
+        soa_mname,
+        soa_rname);
+      return GNUNET_SYSERR;
+    }
+    *data_size = off;
+    *data = GNUNET_malloc (off);
+    GNUNET_memcpy (*data, soabuf, off);
+    return GNUNET_OK;
+  }
+  case GNUNET_DNSPARSER_TYPE_PTR: {
+    char ptrbuf[256];
+    size_t off;
+
+    off = 0;
+    if (GNUNET_OK !=
+        GNUNET_DNSPARSER_builder_add_name (ptrbuf, sizeof (ptrbuf), &off, s))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  _ ("Failed to serialize PTR record with value `%s'\n"),
+                  s);
+      return GNUNET_SYSERR;
+    }
+    *data_size = off;
+    *data = GNUNET_malloc (off);
+    GNUNET_memcpy (*data, ptrbuf, off);
+    return GNUNET_OK;
+  }
+  case GNUNET_DNSPARSER_TYPE_MX: {
+    struct GNUNET_DNSPARSER_MxRecord mx;
+    char mxbuf[258];
+    char mxhost[253 + 1];
+    unsigned int mx_pref;
+    size_t off;
+
+    if (2 != SSCANF (s, "%u,%253s", &mx_pref, mxhost))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  _ ("Unable to parse MX record `%s'\n"),
+                  s);
+      return GNUNET_SYSERR;
+    }
+    mx.preference = (uint16_t) mx_pref;
+    mx.mxhost = mxhost;
+    off = 0;
+
+    if (GNUNET_OK !=
+        GNUNET_DNSPARSER_builder_add_mx (mxbuf, sizeof (mxbuf), &off, &mx))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  _ ("Failed to serialize MX record with hostname `%s'\n"),
+                  mxhost);
+      return GNUNET_SYSERR;
+    }
+    *data_size = off;
+    *data = GNUNET_malloc (off);
+    GNUNET_memcpy (*data, mxbuf, off);
+    return GNUNET_OK;
+  }
+  case GNUNET_DNSPARSER_TYPE_SRV: {
+    struct GNUNET_DNSPARSER_SrvRecord srv;
+    char srvbuf[270];
+    char srvtarget[253 + 1];
+    unsigned int priority;
+    unsigned int weight;
+    unsigned int port;
+    size_t off;
+
+    if (4 != SSCANF (s, "%u %u %u %253s", &priority, &weight, &port, srvtarget))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  _ ("Unable to parse SRV record `%s'\n"),
+                  s);
+      return GNUNET_SYSERR;
+    }
+    srv.priority = (uint16_t) priority;
+    srv.weight = (uint16_t) weight;
+    srv.port = (uint16_t) port;
+    srv.target = srvtarget;
+    off = 0;
+    if (GNUNET_OK !=
+        GNUNET_DNSPARSER_builder_add_srv (srvbuf, sizeof (srvbuf), &off, &srv))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  _ ("Failed to serialize SRV record with target `%s'\n"),
+                  srvtarget);
+      return GNUNET_SYSERR;
+    }
+    *data_size = off;
+    *data = GNUNET_malloc (off);
+    GNUNET_memcpy (*data, srvbuf, off);
+    return GNUNET_OK;
+  }
   case GNUNET_DNSPARSER_TYPE_TXT:
     *data = GNUNET_strdup (s);
     *data_size = strlen (s);
@@ -660,55 +615,70 @@ dns_string_to_value (void *cls,
     if (1 != inet_pton (AF_INET6, s, &value_aaaa))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-           _("Unable to parse IPv6 address `%s'\n"),
-           s);
+                  _ ("Unable to parse IPv6 address `%s'\n"),
+                  s);
       return GNUNET_SYSERR;
     }
     *data = GNUNET_new (struct in6_addr);
     *data_size = sizeof (struct in6_addr);
     GNUNET_memcpy (*data, &value_aaaa, sizeof (value_aaaa));
     return GNUNET_OK;
-  case GNUNET_DNSPARSER_TYPE_TLSA:
+  case GNUNET_DNSPARSER_TYPE_TLSA: {
+    unsigned int usage;
+    unsigned int selector;
+    unsigned int matching_type;
+    size_t slen = strlen (s) + 1;
+    char hex[slen];
+
+    if (4 != SSCANF (s, "%u %u %u %s", &usage, &selector, &matching_type, hex))
     {
-      unsigned int usage;
-      unsigned int selector;
-      unsigned int matching_type;
-      size_t slen = strlen (s) + 1;
-      char hex[slen];
-
-      if (4 != SSCANF (s,
-                       "%u %u %u %s",
-                       &usage,
-                       &selector,
-                       &matching_type,
-                       hex))
-      {
-        GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                    _("Unable to parse TLSA record string `%s'\n"),
-                    s);
-        *data_size = 0;
-        return GNUNET_SYSERR;
-      }
-
-      *data_size = sizeof (struct GNUNET_TUN_DnsTlsaRecord) + strlen (hex) / 2;
-      *data = tlsa = GNUNET_malloc (*data_size);
-      tlsa->usage = (uint8_t) usage;
-      tlsa->selector = (uint8_t) selector;
-      tlsa->matching_type = (uint8_t) matching_type;
-      if (strlen (hex) / 2 !=
-          GNUNET_DNSPARSER_hex_to_bin (hex,
-                                       &tlsa[1]))
-      {
-        GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                    _("Unable to parse TLSA record string `%s'\n"),
-                    s);
-        GNUNET_free (*data);
-        *data = NULL;
-        *data_size = 0;
-        return GNUNET_SYSERR;
-      }
-      return GNUNET_OK;
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  _ ("Unable to parse TLSA record string `%s'\n"),
+                  s);
+      *data_size = 0;
+      return GNUNET_SYSERR;
     }
+
+    *data_size = sizeof (struct GNUNET_TUN_DnsTlsaRecord) + strlen (hex) / 2;
+    *data = tlsa = GNUNET_malloc (*data_size);
+    tlsa->usage = (uint8_t) usage;
+    tlsa->selector = (uint8_t) selector;
+    tlsa->matching_type = (uint8_t) matching_type;
+    if (strlen (hex) / 2 != GNUNET_DNSPARSER_hex_to_bin (hex, &tlsa[1]))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  _ ("Unable to parse TLSA record string `%s'\n"),
+                  s);
+      GNUNET_free (*data);
+      *data = NULL;
+      *data_size = 0;
+      return GNUNET_SYSERR;
+    }
+    return GNUNET_OK;
+  }
+  case GNUNET_DNSPARSER_TYPE_CAA: { //RFC6844
+    struct GNUNET_DNSPARSER_CaaRecord *caa;
+    unsigned int flags;
+    char tag[15]; //Max tag length 15
+    char value[strlen (s)]; //Should be more than enough
+
+    if (3 != SSCANF (s, "%u %s %[^\n]", &flags, tag, value))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  _ ("Unable to parse CAA record string `%s'\n"),
+                  s);
+      *data_size = 0;
+      return GNUNET_SYSERR;
+    }
+    *data_size = sizeof (struct GNUNET_DNSPARSER_CaaRecord) + strlen (tag) +
+                 strlen (value);
+    *data = caa = GNUNET_malloc (*data_size);
+    caa->flags = flags;
+    memcpy (&caa[1], tag, strlen (tag));
+    caa->tag_len = strlen (tag);
+    memcpy ((char *) &caa[1] + caa->tag_len, value, strlen (value));
+    return GNUNET_OK;
+  }
   default:
     return GNUNET_SYSERR;
   }
@@ -719,23 +689,23 @@ dns_string_to_value (void *cls,
  * Mapping of record type numbers to human-readable
  * record type names.
  */
-static struct {
+static struct
+{
   const char *name;
   uint32_t number;
-} name_map[] = {
-  { "A", GNUNET_DNSPARSER_TYPE_A },
-  { "NS", GNUNET_DNSPARSER_TYPE_NS },
-  { "CNAME", GNUNET_DNSPARSER_TYPE_CNAME },
-  { "SOA", GNUNET_DNSPARSER_TYPE_SOA },
-  { "PTR", GNUNET_DNSPARSER_TYPE_PTR },
-  { "MX", GNUNET_DNSPARSER_TYPE_MX },
-  { "TXT", GNUNET_DNSPARSER_TYPE_TXT },
-  { "AAAA", GNUNET_DNSPARSER_TYPE_AAAA },
-  { "SRV", GNUNET_DNSPARSER_TYPE_SRV },
-  { "TLSA", GNUNET_DNSPARSER_TYPE_TLSA },
-  { "CERT", GNUNET_DNSPARSER_TYPE_CERT },
-  { NULL, UINT32_MAX }
-};
+} name_map[] = {{"A", GNUNET_DNSPARSER_TYPE_A},
+                {"NS", GNUNET_DNSPARSER_TYPE_NS},
+                {"CNAME", GNUNET_DNSPARSER_TYPE_CNAME},
+                {"SOA", GNUNET_DNSPARSER_TYPE_SOA},
+                {"PTR", GNUNET_DNSPARSER_TYPE_PTR},
+                {"MX", GNUNET_DNSPARSER_TYPE_MX},
+                {"TXT", GNUNET_DNSPARSER_TYPE_TXT},
+                {"AAAA", GNUNET_DNSPARSER_TYPE_AAAA},
+                {"SRV", GNUNET_DNSPARSER_TYPE_SRV},
+                {"TLSA", GNUNET_DNSPARSER_TYPE_TLSA},
+                {"CERT", GNUNET_DNSPARSER_TYPE_CERT},
+                {"CAA", GNUNET_DNSPARSER_TYPE_CAA},
+                {NULL, UINT32_MAX}};
 
 
 /**
@@ -746,14 +716,13 @@ static struct {
  * @return corresponding number, UINT32_MAX on error
  */
 static uint32_t
-dns_typename_to_number (void *cls,
-                        const char *dns_typename)
+dns_typename_to_number (void *cls, const char *dns_typename)
 {
   unsigned int i;
 
-  i=0;
-  while ( (NULL != name_map[i].name) &&
-	  (0 != strcasecmp (dns_typename, name_map[i].name)) )
+  i = 0;
+  while ((NULL != name_map[i].name) &&
+         (0 != strcasecmp (dns_typename, name_map[i].name)))
     i++;
   return name_map[i].number;
 }
@@ -767,14 +736,12 @@ dns_typename_to_number (void *cls,
  * @return corresponding typestring, NULL on error
  */
 static const char *
-dns_number_to_typename (void *cls,
-                        uint32_t type)
+dns_number_to_typename (void *cls, uint32_t type)
 {
   unsigned int i;
 
-  i=0;
-  while ( (NULL != name_map[i].name) &&
-	  (type != name_map[i].number) )
+  i = 0;
+  while ((NULL != name_map[i].name) && (type != name_map[i].number))
     i++;
   return name_map[i].name;
 }

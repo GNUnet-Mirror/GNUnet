@@ -11,7 +11,7 @@
       WITHOUT ANY WARRANTY; without even the implied warranty of
       MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
       Affero General Public License for more details.
-     
+
       You should have received a copy of the GNU Affero General Public License
       along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -86,6 +86,7 @@
 #define GNUNET_DNSPARSER_TYPE_TSIG 250
 #define GNUNET_DNSPARSER_TYPE_ALL 255
 #define GNUNET_DNSPARSER_TYPE_URI 256
+#define GNUNET_DNSPARSER_TYPE_CAA 257
 #define GNUNET_DNSPARSER_TYPE_TA 32768
 
 /**
@@ -396,6 +397,26 @@ struct GNUNET_DNSPARSER_SoaRecord
   uint32_t minimum_ttl;
 
 };
+
+
+/**
+ * Information from CAA records (RFC 6844).
+ * The tag is followed by the tag_len.
+ * The value is followed by the tag for (d - tag_len - 2) bytes
+ */
+struct GNUNET_DNSPARSER_CaaRecord
+{
+  /**
+   * The flags of the CAA record.
+   */
+  uint8_t flags;
+
+  /**
+   * The length of the tag.
+   */
+  uint8_t tag_len;
+};
+
 
 
 /**
