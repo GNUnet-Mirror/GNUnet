@@ -1,3 +1,6 @@
+Wed May 29 11:17:49 2019 +0200
+  Added CAA record type (RFC 6844). -schanzen
+
 Sat 25 May 2019 08:27:39 AM CEST
   Significantly speed-up ego creation and deletion via
   gnunet-identity command when there are many (hundreds)
