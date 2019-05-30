@@ -6,18 +6,18 @@
 .\" any later version published by the Free Software Foundation; with no
 .\" Invariant Sections, no Front-Cover Texts, and no Back-Cover Texts.  A
 .\" copy of the license is included in the file
-.\" ``FDL-1.3''.
+.\" FDL-1.3.
 .\"
 .\" A copy of the license is also available from the Free Software
-.\" Foundation Web site at @url{http://www.gnu.org/licenses/fdl.html}.
+.\" Foundation Web site at http://www.gnu.org/licenses/fdl.html}.
 .\"
 .\" Alternately, this document is also available under the General
 .\" Public License, version 3 or later, as published by the Free Software
 .\" Foundation.  A copy of the license is included in the file
-.\" ``GPL3''.
+.\" GPL3.
 .\"
 .\" A copy of the license is also available from the Free Software
-.\" Foundation Web site at @url{http://www.gnu.org/licenses/gpl.html}.
+.\" Foundation Web site at http://www.gnu.org/licenses/gpl.html
 .\"
 .\" SPDX-License-Identifier: GPL3.0-or-later OR FDL1.3-or-later
 .\"
@@ -29,23 +29,23 @@
 .Nd control GNUnet services
 .Sh SYNOPSIS
 .Nm
-.Op Fl c Ar FILENAME | Fl \-config= Ns Ar FILENAME
-.Op Fl d | \-delete
-.Op Fl e | \-end
-.Op Fl E | \-no-stderr
-.Op Fl h | \-help
-.Op Fl i Ar SERVICE | Fl \-init= Ns Ar SERVICE
-.Op Fl I | \-info
-.Op Fl k Ar SERVICE | Fl \-kill= Ns Ar SERVICE
-.Op Fl l Ar FILENAME | Fl \-logfile= Ns Ar FILENAME
-.Op Fl L Ar LOGLEVEL |  Fl \-loglevel= Ns Ar LOGLEVEL
-.Op Fl m | \-monitor
-.Op Fl O | \-no-stdout
-.Op Fl q | \-quiet
-.Op Fl r | \-restart
-.Op Fl s | \-start
-.Op Fl T DELAY | \-timeout= Ns Ar TIMEOUT
-.Op Fl v | \-version
+.Op Fl c Ar FILENAME | Fl -config= Ns Ar FILENAME
+.Op Fl d | -delete
+.Op Fl e | -end
+.Op Fl E | -no-stderr
+.Op Fl h | -help
+.Op Fl i Ar SERVICE | Fl -init= Ns Ar SERVICE
+.Op Fl I | -info
+.Op Fl k Ar SERVICE | Fl -kill= Ns Ar SERVICE
+.Op Fl l Ar FILENAME | Fl -logfile= Ns Ar FILENAME
+.Op Fl L Ar LOGLEVEL |  Fl -loglevel= Ns Ar LOGLEVEL
+.Op Fl m | -monitor
+.Op Fl O | -no-stdout
+.Op Fl q | -quiet
+.Op Fl r | -restart
+.Op Fl s | -start
+.Op Fl T DELAY | -timeout= Ns Ar TIMEOUT
+.Op Fl v | -version
 .Sh DESCRIPTION
 .Nm
 can be used to start or stop GNUnet services,
@@ -53,25 +53,25 @@ including the ARM service itself.
 The ARM service is a supervisor for GNUnet's service processes.
 ARM starts services on-demand or as configured and restarts them
 if they crash.
-.Bl -tag -width Ds
-.It Fl c Ar FILENAME | Fl \-config= Ns Ar FILENAME
+.Bl -tag -width indent
+.It Fl c Ar FILENAME | Fl -config= Ns Ar FILENAME
 Use the configuration file FILENAME.
-.It Fl d | \-delete
+.It Fl d | -delete
 Delete config file and directory on exit.
-.It Fl e | \-end
+.It Fl e | -end
 Shutdown all GNUnet services (including ARM itself).
 Running "gnunet-arm -e" is the usual way to shutdown a GNUnet peer.
-.It Fl E | \-no-stderr
+.It Fl E | -no-stderr
 Don't let gnunet-arm inherit standard error.
-.It Fl h | \-help
+.It Fl h | -help
 Print short help on options.
-.It Fl i Ar SERVICE | Fl \-init= Ns Ar SERVICE
+.It Fl i Ar SERVICE | Fl -init= Ns Ar SERVICE
 Starts the specified SERVICE if it is not already running.
 More specifically, this makes the service behave as if it were in
 the default services list.
-.It Fl I | \-info
+.It Fl I | -info
 List all running services.
-.It Fl k Ar SERVICE | Fl \-kill= Ns Ar SERVICE
+.It Fl k Ar SERVICE | Fl -kill= Ns Ar SERVICE
 Stop the specified SERVICE if it is running.
 While this will kill the service right now, the service may be
 restarted immediately if other services depend on it (service is
@@ -80,28 +80,28 @@ If the service used to be a 'default' service, its default-service
 status will be revoked.
 If the service was not a default service, it will just
 be (temporarily) stopped, but could be re-started on-demand at any time.
-.It Fl l Ar FILENAME | Fl \-logfile= Ns Ar FILENAME
+.It Fl l Ar FILENAME | Fl -logfile= Ns Ar FILENAME
 Write logs to FILENAME.
-.It Fl L Ar LOGLEVEL |  Fl \-loglevel= Ns Ar LOGLEVEL
+.It Fl L Ar LOGLEVEL |  Fl -loglevel= Ns Ar LOGLEVEL
 Use LOGLEVEL for logging.
 Valid values are DEBUG, INFO, WARNING and ERROR.
-.It Fl m | \-monitor
+.It Fl m | -monitor
 Monitor service activity of ARM.
 In this mode, the command will not terminate until the user presses CTRL-C.
-.It Fl O | \-no-stdout
+.It Fl O | -no-stdout
 Don't let gnunet-arm inherit standard output
-.It Fl q | \-quiet
+.It Fl q | -quiet
 Don't print status messages.
-.It Fl r | \-restart
+.It Fl r | -restart
 Stop and start all GNUnet default services.
-.It Fl s | \-start
+.It Fl s | -start
 Start all GNUnet default services on this system (and also ARM).
 Naturally, if a service is demanded by a default service, it will
 then also be started.
 Running "gnunet-arm -s" is the usual way to start a GNUnet peer.
-.It Fl T DELAY | \-timeout= Ns Ar DELAY
+.It Fl T DELAY | -timeout= Ns Ar DELAY
 Exit with error status if operation does not finish after DELAY
-.It Fl v | \-version
+.It Fl v | -version
 Print GNUnet version number.
 .El
 .Sh EXAMPLES

@@ -6,18 +6,18 @@
 .\" any later version published by the Free Software Foundation; with no
 .\" Invariant Sections, no Front-Cover Texts, and no Back-Cover Texts.  A
 .\" copy of the license is included in the file
-.\" ``FDL-1.3''.
+.\" FDL-1.3.
 .\"
 .\" A copy of the license is also available from the Free Software
-.\" Foundation Web site at @url{http://www.gnu.org/licenses/fdl.html}.
+.\" Foundation Web site at http://www.gnu.org/licenses/fdl.html}.
 .\"
 .\" Alternately, this document is also available under the General
 .\" Public License, version 3 or later, as published by the Free Software
 .\" Foundation.  A copy of the license is included in the file
-.\" ``GPL3''.
+.\" GPL3.
 .\"
 .\" A copy of the license is also available from the Free Software
-.\" Foundation Web site at @url{http://www.gnu.org/licenses/gpl.html}.
+.\" Foundation Web site at http://www.gnu.org/licenses/gpl.html
 .\"
 .\" SPDX-License-Identifier: GPL3.0-or-later OR FDL1.3-or-later
 .\"
@@ -26,62 +26,66 @@
 .Os
 .Sh NAME
 .Nm gnunet-ats
-.Nd
-display information about transport resource allocation
+.Nd display information about transport resource allocation
 .Sh SYNOPSIS
 .Nm
-.Op Fl a | \-all
-.Op Fl C Ar PEERID | Fl \-connect= Ns Ar PEERID
-.Op Fl c Ar FILENAME | Fl \-config= Ns Ar FILENAME
-.Op Fl h | \-help
-.Op Fl i Ar PEERID | Fl \-id= Ns Ar PEERID
-.Op Fl k Ar VALUE | Fl \-value= Ns Ar VALUE
-.Op Fl L Ar LOGLEVEL | Fl \-loglevel= Ns Ar LOGLEVEL
-.Op Fl m | \-monitor
-.Op Fl n | \-numeric
-.Op Fl p Ar PREFERENCE | Fl \-preference= Ns Ar PREFERENCE
-.Op Fl q | \-quotas
-.Op Fl t Ar TYPE | Fl \-type= Ns Ar TYPE
-.Op Fl u | \-used
-.Op Fl V | \-verbose
-.Op Fl v | \-version
+.Op Fl a | -all
+.Op Fl C Ar PEERID | Fl -connect= Ns Ar PEERID
+.Op Fl c Ar FILENAME | Fl -config= Ns Ar FILENAME
+.Op Fl h | -help
+.Op Fl i Ar PEERID | Fl -id= Ns Ar PEERID
+.Op Fl k Ar VALUE | Fl -value= Ns Ar VALUE
+.Op Fl L Ar LOGLEVEL | Fl -loglevel= Ns Ar LOGLEVEL
+.Op Fl m | -monitor
+.Op Fl n | -numeric
+.Op Fl p Ar PREFERENCE | Fl -preference= Ns Ar PREFERENCE
+.Op Fl q | -quotas
+.Op Fl t Ar TYPE | Fl -type= Ns Ar TYPE
+.Op Fl u | -used
+.Op Fl V | -verbose
+.Op Fl v | -version
 .Sh DESCRIPTION
 .Nm
-can be used to display information about the GNUnet's transport selection mechanism.
-It shows information about the addresses and the assigned input and output bandwidth.
+can be used to display information about the
+GNUnet's transport selection mechanism.
+It shows information about the addresses and
+the assigned input and output bandwidth.
 .Sh OPTIONS
-.Bl -tag -width Ds
-.It Fl a | \-all
+.Bl -tag -width indent
+.It Fl a | -all
 List all addresses currently known to ats.
-.It Fl C Ar PEERID | Fl \-connect= Ns Ar PEERID
-Ask ATS to suggest an address for PEERID to transport to establish a connection.
-Note that you can use the gnunet-transport commandline tool to force disconnects.
-.It Fl c Ar FILENAME | Fl \-config= Ns Ar FILENAME
+.It Fl C Ar PEERID | Fl -connect= Ns Ar PEERID
+Ask ATS to suggest an address for PEERID to transport
+to establish a connection.
+Note that you can use the
+.Xr gnunet-transport 1
+commandline tool to force disconnects.
+.It Fl c Ar FILENAME | Fl -config= Ns Ar FILENAME
 Use the configuration file FILENAME.
-.It Fl h | \-help
+.It Fl h | -help
 Print short help on options.
-.It Fl i Ar PEERID | Fl \-id= Ns Ar PEERID
+.It Fl i Ar PEERID | Fl -id= Ns Ar PEERID
 Print information for a specific peer identity only.
-.It Fl k Ar VALUE | Fl \-value= Ns Ar VALUE
+.It Fl k Ar VALUE | Fl -value= Ns Ar VALUE
 Value to set for when changing preference values.
-.It Fl L Ar LOGLEVEL | Fl \-loglevel= Ns Ar LOGLEVEL
+.It Fl L Ar LOGLEVEL | Fl -loglevel= Ns Ar LOGLEVEL
 Use LOGLEVEL for logging.
 Valid values are DEBUG, INFO, WARNING and ERROR.
-.It Fl m | \-monitor
+.It Fl m | -monitor
 Monitor changes to the bandwidth assignments continuously.
-.It Fl n | \-numeric
+.It Fl n | -numeric
 Do not resolve IP addresses to hostnames.
-.It Fl p Ar PREFERENCE | Fl \-preference= Ns Ar PREFERENCE
+.It Fl p Ar PREFERENCE | Fl -preference= Ns Ar PREFERENCE
 Set preference values, -i, -k and -t required.
-.It Fl q | \-quotas
+.It Fl q | -quotas
 Print quotas for all network types
-.It Fl t Ar TYPE | Fl \-type= Ns Ar TYPE
+.It Fl t Ar TYPE | Fl -type= Ns Ar TYPE
 Preference type to change: latency | bandwidth
-.It Fl u | \-used
+.It Fl u | -used
 Print addresses actively used only
-.It Fl V | \-verbose
+.It Fl V | -verbose
 Print verbose output (include ATS address properties)
-.It v | \-version
+.It v | -version
 Print GNUnet version number.
 .El
 .Sh SEE ALSO

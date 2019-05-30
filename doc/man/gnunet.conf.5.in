@@ -110,7 +110,7 @@ and finally, if
 is undefined,
 .Pa /tmp/gnunet/foo .
 The following options are generic and shared by all services:
-.Bl -tag -width Ds
+.Bl -tag -width indent
 .It HOSTNAME
 The hostname specifies the machine on which the service is running.
 This is usually "localhost".
@@ -156,7 +156,7 @@ same GID are allowed to access the service.
 .It RUN_PER_USER
 End-users should never have to change the defaults GNUnet provides for
 this option.
-.Bl -tag -width Ds
+.Bl -tag -width indent
 .It YES
 Set to YES if this service should be run per-user.
 .It NO
@@ -248,7 +248,7 @@ Default value:
 Default value:
 .El
 .Ss ATS
-.Bl -tag -width Ds
+.Bl -tag -width indent
 .It PORT
 Default value: 2098
 .It HOSTNAME
@@ -317,7 +317,7 @@ Default value: 128 KiB
 .It PROP_PROPORTIONALITY_FACTOR
 How proportional to preferences is bandwidth distribution in a network?
 Default value: 2.00
-.Bl -tag -width Ds
+.Bl -tag -width indent
 .It 1.0
 Fair with respect to addresses without preferences.
 .It > 1.0
@@ -396,10 +396,10 @@ Default value: 0.1
 Default value: 1
 .El
 .Ss AUCTION
-.Bl -tag -width Ds
+.Bl -tag -width indent
 .El
 .Ss CADET
-.Bl -tag -width Ds
+.Bl -tag -width indent
 .It IMMEDIATE_START
 Default value: YES
 .It START_ON_DEMAND
@@ -471,12 +471,12 @@ How often do we advance the ratched if there is traffic?
 Default value: 64
 .El
 .Ss COMMUNICATOR-UNIX
-.Bl -tag -width Ds
+.Bl -tag -width indent
 .It UNIXPATH
 Default value: $GNUNET_RUNTIME_DIR/gnunet-communicator-unix.sock
 .El
 .Ss CONSENSUS
-.Bl -tag -width Ds
+.Bl -tag -width indent
 .It START_ON_DEMAND
 Default value: YES
 .It PORT
@@ -497,7 +497,7 @@ Default value: YES
 Default value: YES
 .El
 .Ss CORE
-.Bl -tag -width Ds
+.Bl -tag -width indent
 .It START_ON_DEMAND
 Default value: YES
 .It PORT
@@ -533,12 +533,12 @@ This MUST be set to YES in production, only set to NO for testing for
 performance (testbed/cluster-scale use!).
 .El
 .Ss DATACACHE-POSTGRES
-.Bl -tag -width Ds
+.Bl -tag -width indent
 .It CONFIG
 Default value: postgres:///gnunet
 .El
 .Ss DATASTORE
-.Bl -tag -width Ds
+.Bl -tag -width indent
 .It START_ON_DEMAND
 Default value: YES
 .It UNIXPATH
@@ -567,17 +567,17 @@ Default value: sqlite
 Default value: NO
 .El
 .Ss DATASTORE-SQLITE
-.Bl -tag -width Ds
+.Bl -tag -width indent
 .It FILENAME
 Default value: $GNUNET_DATA_HOME/datastore/sqlite.db
 .El
 .Ss DATASTORE-POSTGRES
-.Bl -tag -width Ds
+.Bl -tag -width indent
 .It CONFIG
 Default value: postgres:///gnunet
 .El
 .Ss DATASTORE-MYSQL
-.Bl -tag -width Ds
+.Bl -tag -width indent
 .It DATABASE
 Default value: gnunet
 .It CONFIG
@@ -591,7 +591,7 @@ Default value: localhost
 Default value: 3306
 .El
 .Ss DATASTORE-HEAP
-.Bl -tag -width Ds
+.Bl -tag -width indent
 .It HASHMAPSIZE
 Default value: 1024
 .El
@@ -648,52 +648,52 @@ Disable RC-file for Bloom filter?
 .Pp
 Default value: NO
 .Ss EXIT
-.Bl -tag -width Ds
+.Bl -tag -width indent
 .El
 .Ss FS
-.Bl -tag -width Ds
+.Bl -tag -width indent
 .El
 .Ss GNS
-.Bl -tag -width Ds
+.Bl -tag -width indent
 .El
 .Ss HOSTLIST
-.Bl -tag -width Ds
+.Bl -tag -width indent
 .El
 .Ss IDENTITY
-.Bl -tag -width Ds
+.Bl -tag -width indent
 .El
 .Ss NAMECACHE
-.Bl -tag -width Ds
+.Bl -tag -width indent
 .El
 .Ss NAMESTORE
-.Bl -tag -width Ds
+.Bl -tag -width indent
 .El
 .Ss NAT-AUTO
-.Bl -tag -width Ds
+.Bl -tag -width indent
 .El
 .Ss NAT
-.Bl -tag -width Ds
+.Bl -tag -width indent
 .El
 .Ss NSE
-.Bl -tag -width Ds
+.Bl -tag -width indent
 .El
 .Ss PEERINFO
-.Bl -tag -width Ds
+.Bl -tag -width indent
 .El
 .Ss PEERSTORE
-.Bl -tag -width Ds
+.Bl -tag -width indent
 .El
 .Ss PT
-.Bl -tag -width Ds
+.Bl -tag -width indent
 .El
 .Ss REGEX
-.Bl -tag -width Ds
+.Bl -tag -width indent
 .El
 .Ss RESOLVER
-.Bl -tag -width Ds
+.Bl -tag -width indent
 .El
 .Ss REST
-.Bl -tag -width Ds
+.Bl -tag -width indent
 .It UNIXPATH
 Default value: $GNUNET_USER_RUNTIME_DIR/gnunet-service-rest.sock
 .It BINARY
@@ -721,7 +721,7 @@ Default value: true
 .Ss TESTBED
 .Ss TESTING
 .Ss TOPOLOGY
-.Bl -tag -width Ds
+.Bl -tag -width indent
 .It IMMEDIATE_START
 Default value: YES
 .It NOARMBIND
@@ -740,7 +740,7 @@ Default value: gnunet-daemon-topology
 .Ss TRANSPORT
 .Ss UTIL
 .Ss VPN
-.Bl -tag -width Ds
+.Bl -tag -width indent
 .It START_ON_DEMAND
 Default value: YES
 .It PORT
@@ -775,7 +775,7 @@ Default value: 1234::17
 Default value: vpn-gnunet
 .El
 .Ss ZONEMASTER
-.Bl -tag -width Ds
+.Bl -tag -width indent
 .It START_ON_DEMAND
 Default value: YES
 .It IMMEDIATE_START
