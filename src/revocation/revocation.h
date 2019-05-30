@@ -102,7 +102,7 @@ struct RevokeMessage
 
   /**
    * Must have purpose #GNUNET_SIGNATURE_PURPOSE_REVOCATION,
-   * size expands over the public key.
+   * size expands over the public key. (@deprecated)
    */
   struct GNUNET_CRYPTO_EccSignaturePurpose purpose;
 
@@ -125,7 +125,8 @@ struct RevocationResponseMessage
   struct GNUNET_MessageHeader header;
 
   /**
-   * #GNUNET_NO if revoked, #GNUNET_YES if valid.
+   * #GNUNET_NO if revocation failed for internal reasons (e.g. disk full)
+   * #GNUNET_YES on success
    */
   uint32_t is_valid GNUNET_PACKED;
 

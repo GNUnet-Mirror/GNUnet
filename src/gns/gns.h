@@ -27,21 +27,6 @@
 
 #include "gnunet_gns_service.h"
 
-/**
- * Name of the GNS TLD.
- */
-#define GNUNET_GNS_TLD "gnu"
-
-/**
- * Name of the zone key TLD.
- */
-#define GNUNET_GNS_TLD_ZKEY "zkey"
-
-/**
- * TLD name used to indicate relative names.
- */
-#define GNUNET_GNS_TLD_PLUS "+"
-
 
 GNUNET_NETWORK_STRUCT_BEGIN
 
