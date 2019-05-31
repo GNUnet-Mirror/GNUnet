@@ -1940,6 +1940,14 @@ extern "C" {
  */
 #define GNUNET_MESSAGE_TYPE_IDENTITY_DELETE 631
 
+/**
+ * First message send from identity client to service to
+ * lookup a single ego.  The service will respond with a
+ * #GNUNET_MESSAGE_TYPE_IDENTITY_UPDATE message if the ego
+ * exists, or a #GNUNET_MESSAGE_TYPE_IDENTITY_RESULT_CODE if not.
+ */
+#define GNUNET_MESSAGE_TYPE_IDENTITY_LOOKUP 632
+
 
 /*******************************************************************************
  * REVOCATION message types

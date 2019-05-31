@@ -26,8 +26,9 @@
 #include "platform.h"
 #include "gnunet_util_lib.h"
 #include "gnunet_identity_service.h"
+#include "identity.h"
 
-#define LOG(kind,...) GNUNET_log_from (kind, "identity-api",__VA_ARGS__)
+#define LOG(kind, ...) GNUNET_log_from (kind, "identity-api", __VA_ARGS__)
 
 
 /**
@@ -37,9 +38,9 @@ struct GNUNET_IDENTITY_EgoLookup
 {
 
   /**
-   * Handle to the identity service.
+   * Connection to service.
    */
-  struct GNUNET_IDENTITY_Handle *identity;
+  struct GNUNET_MQ_Handle *mq;
 
   /**
    * Name of the ego we are looking up.
@@ -59,53 +60,103 @@ struct GNUNET_IDENTITY_EgoLookup
 
 
 /**
- * Method called to inform about the egos of this peer.
+ * We received a result code from the service.  Check the message
+ * is well-formed.
  *
- * When used with #GNUNET_IDENTITY_connect, this function is
- * initially called for all egos and then again whenever a
- * ego's name changes or if it is deleted.  At the end of
- * the initial pass over all egos, the function is once called
- * with 'NULL' for @a ego. That does NOT mean that the callback won't
- * be invoked in the future or that there was an error.
+ * @param cls closure
+ * @param rcm result message received
+ * @return #GNUNET_OK if the message is well-formed
+ */
+static int
+check_identity_result_code (void *cls, const struct ResultCodeMessage *rcm)
+{
+  if (sizeof (*rcm) != htons (rcm->header.size))
+    GNUNET_MQ_check_zero_termination (rcm);
+  return GNUNET_OK;
+}
+
+
+/**
+ * We received a result code from the service.
  *
- * If the @a name matches the name from @a cls, we found the zone
- * for our computation and will invoke the callback.
- * If we have iterated over all egos and not found the name, we
- * invoke the callback with NULL.
- *
- * @param cls closure with the `struct GNUNET_IDENTITY_EgoLookup`
- * @param ego ego handle
- * @param ctx context for application to store data for this ego
- *                 (during the lifetime of this process, initially NULL)
- * @param name name assigned by the user for this ego,
- *                   NULL if the user just deleted the ego and it
- *                   must thus no longer be used
+ * @param cls closure
+ * @param rcm result message received
  */
 static void
-identity_cb (void *cls,
-	     struct GNUNET_IDENTITY_Ego *ego,
-	     void **ctx,
-	     const char *name)
+handle_identity_result_code (void *cls, const struct ResultCodeMessage *rcm)
 {
   struct GNUNET_IDENTITY_EgoLookup *el = cls;
 
-  if ( (NULL != name) &&
-       (0 == strcmp (name,
-		     el->name)) )
+  el->cb (el->cb_cls, NULL);
+  GNUNET_IDENTITY_ego_lookup_cancel (el);
+}
+
+
+/**
+ * Check validity of identity update message.
+ *
+ * @param cls closure
+ * @param um message received
+ * @return #GNUNET_OK if the message is well-formed
+ */
+static int
+check_identity_update (void *cls, const struct UpdateMessage *um)
+{
+  uint16_t size = ntohs (um->header.size);
+  uint16_t name_len = ntohs (um->name_len);
+  const char *str = (const char *) &um[1];
+
+  if ((size != name_len + sizeof (struct UpdateMessage)) ||
+      ((0 != name_len) && ('\0' != str[name_len - 1])))
   {
-    el->cb (el->cb_cls,
-	    ego);
-    GNUNET_IDENTITY_ego_lookup_cancel (el);
-    return;
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
   }
-  if (NULL == ego)
-  {
-    /* not found */
-    el->cb (el->cb_cls,
-	    NULL);
-    GNUNET_IDENTITY_ego_lookup_cancel (el);
-    return;
-  }
+  return GNUNET_OK;
+}
+
+
+/**
+ * Handle identity update message.
+ *
+ * @param cls closure
+ * @param um message received
+ */
+static void
+handle_identity_update (void *cls, const struct UpdateMessage *um)
+{
+  struct GNUNET_IDENTITY_EgoLookup *el = cls;
+  uint16_t name_len = ntohs (um->name_len);
+  const char *str = (0 == name_len) ? NULL : (const char *) &um[1];
+  struct GNUNET_CRYPTO_EcdsaPublicKey pub;
+  struct GNUNET_HashCode id;
+  struct GNUNET_IDENTITY_Ego ego;
+
+  GNUNET_break (GNUNET_YES != ntohs (um->end_of_list));
+  GNUNET_CRYPTO_ecdsa_key_get_public (&um->private_key, &pub);
+  GNUNET_CRYPTO_hash (&pub, sizeof (pub), &id);
+  ego.pk = (struct GNUNET_CRYPTO_EcdsaPrivateKey *) &um->private_key;
+  ego.name = (char *) str;
+  ego.id = id;
+  el->cb (el->cb_cls, &ego);
+  GNUNET_IDENTITY_ego_lookup_cancel (el);
+}
+
+
+/**
+ * Generic error handler, called with the appropriate error code and
+ * the same closure specified at the creation of the message queue.
+ * Not every message queue implementation supports an error handler.
+ *
+ * @param cls closure with the `struct GNUNET_IDENTITY_EgoLookup *`
+ * @param error error code
+ */
+static void
+mq_error_handler (void *cls, enum GNUNET_MQ_Error error)
+{
+  struct GNUNET_IDENTITY_EgoLookup *el = cls;
+
+  el->cb (el->cb_cls, NULL);
 }
 
 
@@ -120,25 +171,45 @@ identity_cb (void *cls,
  */
 struct GNUNET_IDENTITY_EgoLookup *
 GNUNET_IDENTITY_ego_lookup (const struct GNUNET_CONFIGURATION_Handle *cfg,
-			    const char *name,
-			    GNUNET_IDENTITY_EgoCallback cb,
-			    void *cb_cls)
+                            const char *name,
+                            GNUNET_IDENTITY_EgoCallback cb,
+                            void *cb_cls)
 {
   struct GNUNET_IDENTITY_EgoLookup *el;
+  struct GNUNET_MQ_Envelope *env;
+  struct GNUNET_MessageHeader *req;
+  size_t nlen;
 
+  GNUNET_assert (NULL != cb);
   el = GNUNET_new (struct GNUNET_IDENTITY_EgoLookup);
-  el->name = GNUNET_strdup (name);
   el->cb = cb;
   el->cb_cls = cb_cls;
-  el->identity = GNUNET_IDENTITY_connect (cfg,
-					  &identity_cb,
-					  el);
-  if (NULL == el->identity)
   {
-    GNUNET_free (el->name);
+    struct GNUNET_MQ_MessageHandler handlers[] =
+      {GNUNET_MQ_hd_var_size (identity_result_code,
+                              GNUNET_MESSAGE_TYPE_IDENTITY_RESULT_CODE,
+                              struct ResultCodeMessage,
+                              el),
+       GNUNET_MQ_hd_var_size (identity_update,
+                              GNUNET_MESSAGE_TYPE_IDENTITY_UPDATE,
+                              struct UpdateMessage,
+                              el),
+       GNUNET_MQ_handler_end ()};
+
+    el->mq =
+      GNUNET_CLIENT_connect (cfg, "identity", handlers, &mq_error_handler, el);
+  }
+  if (NULL == el->mq)
+  {
+    GNUNET_break (0);
     GNUNET_free (el);
     return NULL;
   }
+  el->name = GNUNET_strdup (name);
+  nlen = strlen (name) + 1;
+  env = GNUNET_MQ_msg_extra (req, nlen, GNUNET_MESSAGE_TYPE_IDENTITY_LOOKUP);
+  memcpy (&req[1], name, nlen);
+  GNUNET_MQ_send (el->mq, env);
   return el;
 }
 
@@ -151,7 +222,7 @@ GNUNET_IDENTITY_ego_lookup (const struct GNUNET_CONFIGURATION_Handle *cfg,
 void
 GNUNET_IDENTITY_ego_lookup_cancel (struct GNUNET_IDENTITY_EgoLookup *el)
 {
-  GNUNET_IDENTITY_disconnect (el->identity);
+  GNUNET_MQ_destroy (el->mq);
   GNUNET_free (el->name);
   GNUNET_free (el);
 }

@@ -11,7 +11,7 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -53,7 +53,20 @@ struct ResultCodeMessage
   uint32_t result_code GNUNET_PACKED;
 
   /* followed by 0-terminated error message (on error) */
+};
 
+
+/**
+ * Client informs service about desire to lookup a (single) pseudonym.
+ */
+struct LookupMessage
+{
+  /**
+   * Type: #GNUNET_MESSAGE_TYPE_IDENTITY_LOOKUP
+   */
+  struct GNUNET_MessageHeader header;
+
+  /* followed by 0-terminated ego name */
 };
 
 
@@ -84,9 +97,7 @@ struct UpdateMessage
   struct GNUNET_CRYPTO_EcdsaPrivateKey private_key;
 
   /* followed by 0-terminated ego name */
-
 };
-
 
 
 /**
@@ -112,7 +123,6 @@ struct GetDefaultMessage
 
 
   /* followed by 0-terminated service name */
-
 };
 
 
@@ -143,7 +153,6 @@ struct SetDefaultMessage
   struct GNUNET_CRYPTO_EcdsaPrivateKey private_key;
 
   /* followed by 0-terminated service name */
-
 };
 
 
@@ -174,7 +183,6 @@ struct CreateRequestMessage
   struct GNUNET_CRYPTO_EcdsaPrivateKey private_key;
 
   /* followed by 0-terminated identity name */
-
 };
 
 
@@ -226,11 +234,35 @@ struct DeleteMessage
   uint16_t reserved GNUNET_PACKED;
 
   /* followed by 0-terminated name */
-
 };
 
-
-
 GNUNET_NETWORK_STRUCT_END
+
+/**
+ * Handle for an ego.
+ */
+struct GNUNET_IDENTITY_Ego
+{
+  /**
+   * Private key associated with this ego.
+   */
+  struct GNUNET_CRYPTO_EcdsaPrivateKey *pk;
+
+  /**
+   * Current name associated with this ego.
+   */
+  char *name;
+
+  /**
+   * Client context associated with this ego.
+   */
+  void *ctx;
+
+  /**
+   * Hash of the public key of this ego.
+   */
+  struct GNUNET_HashCode id;
+};
+
 
 #endif

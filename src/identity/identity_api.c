@@ -32,32 +32,6 @@
 
 #define LOG(kind, ...) GNUNET_log_from (kind, "identity-api", __VA_ARGS__)
 
-/**
- * Handle for an ego.
- */
-struct GNUNET_IDENTITY_Ego
-{
-  /**
-   * Private key associated with this ego.
-   */
-  struct GNUNET_CRYPTO_EcdsaPrivateKey *pk;
-
-  /**
-   * Current name associated with this ego.
-   */
-  char *name;
-
-  /**
-   * Client context associated with this ego.
-   */
-  void *ctx;
-
-  /**
-   * Hash of the public key of this ego.
-   */
-  struct GNUNET_HashCode id;
-};
-
 
 /**
  * Handle for an operation with the identity service.
@@ -298,16 +272,8 @@ mq_error_handler (void *cls, enum GNUNET_MQ_Error error)
 static int
 check_identity_result_code (void *cls, const struct ResultCodeMessage *rcm)
 {
-  uint16_t size = ntohs (rcm->header.size) - sizeof (*rcm);
-  const char *str = (const char *) &rcm[1];
-
-  if (0 == size)
-    return GNUNET_OK;
-  if ('\0' != str[size - 1])
-  {
-    GNUNET_break (0);
-    return GNUNET_SYSERR;
-  }
+  if (sizeof (*rcm) != htons (rcm->header.size))
+    GNUNET_MQ_check_zero_termination (rcm);
   return GNUNET_OK;
 }
 

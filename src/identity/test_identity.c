@@ -11,7 +11,7 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -52,13 +52,25 @@ static struct GNUNET_IDENTITY_Operation *op;
  */
 static struct GNUNET_SCHEDULER_Task *endbadly_task;
 
+#define CHECK(cond)     \
+  do                    \
+  {                     \
+    if (! (cond))       \
+    {                   \
+      GNUNET_break (0); \
+      end ();           \
+      return;           \
+    }                   \
+  } while (0)
+
 
 /**
  * Clean up all resources used.
  */
 static void
-cleanup ()
+cleanup (void *cls)
 {
+  (void) cls;
   if (NULL != op)
   {
     GNUNET_IDENTITY_cancel (op);
@@ -69,7 +81,6 @@ cleanup ()
     GNUNET_IDENTITY_disconnect (h);
     h = NULL;
   }
-  GNUNET_SCHEDULER_shutdown ();
 }
 
 
@@ -81,21 +92,7 @@ cleanup ()
 static void
 endbadly (void *cls)
 {
-  cleanup ();
-  res = 1;
-}
-
-
-/**
- * Termiante the testcase (success).
- *
- * @param cls NULL
- */
-static void
-end_normally (void *cls)
-{
-  cleanup ();
-  res = 0;
+  GNUNET_SCHEDULER_shutdown ();
 }
 
 
@@ -127,9 +124,9 @@ end ()
  */
 static void
 notification_cb (void *cls,
-		 struct GNUNET_IDENTITY_Ego *ego,
-		 void **ctx,
-		 const char *identifier)
+                 struct GNUNET_IDENTITY_Ego *ego,
+                 void **ctx,
+                 const char *identifier)
 {
   static struct GNUNET_IDENTITY_Ego *my_ego;
   static int round;
@@ -137,45 +134,45 @@ notification_cb (void *cls,
   switch (round)
   {
   case 0: /* end of initial iteration */
-    GNUNET_assert (NULL == ego);
-    GNUNET_assert (NULL == identifier);
+    CHECK (NULL == ego);
+    CHECK (NULL == identifier);
     break;
   case 1: /* create */
-    GNUNET_assert (NULL != ego);
-    GNUNET_assert (0 == strcmp (identifier,
-                                "test-id"));
+    CHECK (NULL != ego);
+    CHECK (NULL != identifier);
+    CHECK (0 == strcmp (identifier, "test-id"));
     my_ego = ego;
     *ctx = &round;
     break;
   case 2: /* rename */
-    GNUNET_assert (my_ego == ego);
-    GNUNET_assert (0 == strcmp (identifier,
-                                "test"));
-    GNUNET_assert (*ctx == &round);
+    CHECK (my_ego == ego);
+    CHECK (NULL != identifier);
+    CHECK (0 == strcmp (identifier, "test"));
+    CHECK (*ctx == &round);
     break;
   case 3: /* reconnect-down */
-    GNUNET_assert (my_ego == ego);
-    GNUNET_assert (NULL == identifier);
-    GNUNET_assert (*ctx == &round);
+    CHECK (my_ego == ego);
+    CHECK (NULL == identifier);
+    CHECK (*ctx == &round);
     *ctx = NULL;
     break;
   case 4: /* reconnect-up */
-    GNUNET_assert (0 == strcmp (identifier,
-                                "test"));
+    CHECK (NULL != identifier);
+    CHECK (0 == strcmp (identifier, "test"));
     my_ego = ego;
     *ctx = &round;
     break;
   case 5: /* end of iteration after reconnect */
-    GNUNET_assert (NULL == ego);
-    GNUNET_assert (NULL == identifier);
+    CHECK (NULL == ego);
+    CHECK (NULL == identifier);
     break;
   case 6: /* delete */
-    GNUNET_assert (my_ego == ego);
-    GNUNET_assert (*ctx == &round);
+    CHECK (my_ego == ego);
+    CHECK (*ctx == &round);
     *ctx = NULL;
     break;
   default:
-    GNUNET_break (0);
+    CHECK (0);
   }
   round++;
 }
@@ -188,11 +185,11 @@ notification_cb (void *cls,
  * @param emsg (should also be NULL)
  */
 static void
-delete_cont (void *cls,
-	     const char *emsg)
+delete_cont (void *cls, const char *emsg)
 {
   op = NULL;
-  GNUNET_assert (NULL == emsg);
+  CHECK (NULL == emsg);
+  res = 0;
   end ();
 }
 
@@ -205,10 +202,7 @@ delete_cont (void *cls,
 static void
 finally_delete (void *cls)
 {
-  op = GNUNET_IDENTITY_delete (h,
-			       "test",
-			       &delete_cont,
-			       NULL);
+  op = GNUNET_IDENTITY_delete (h, "test", &delete_cont, NULL);
 }
 
 
@@ -219,10 +213,9 @@ finally_delete (void *cls)
  * @param emsg (should also be NULL)
  */
 static void
-fail_rename_cont (void *cls,
-		  const char *emsg)
+fail_rename_cont (void *cls, const char *emsg)
 {
-  GNUNET_assert (NULL != emsg);
+  CHECK (NULL != emsg);
   op = NULL;
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
                                 &finally_delete,
@@ -237,15 +230,10 @@ fail_rename_cont (void *cls,
  * @param emsg (should also be NULL)
  */
 static void
-success_rename_cont (void *cls,
-		     const char *emsg)
+success_rename_cont (void *cls, const char *emsg)
 {
-  GNUNET_assert (NULL == emsg);
-  op = GNUNET_IDENTITY_rename (h,
-			       "test-id",
-			       "test",
-			       &fail_rename_cont,
-			       NULL);
+  CHECK (NULL == emsg);
+  op = GNUNET_IDENTITY_rename (h, "test-id", "test", &fail_rename_cont, NULL);
 }
 
 
@@ -258,16 +246,13 @@ success_rename_cont (void *cls,
  */
 static void
 create_cb (void *cls,
-	   const struct GNUNET_CRYPTO_EcdsaPrivateKey *pk,
-	   const char *emsg)
+           const struct GNUNET_CRYPTO_EcdsaPrivateKey *pk,
+           const char *emsg)
 {
-  GNUNET_assert (NULL != pk);
-  GNUNET_assert (NULL == emsg);
-  op = GNUNET_IDENTITY_rename (h,
-			       "test-id",
-			       "test",
-			       &success_rename_cont,
-			       NULL);
+  CHECK (NULL != pk);
+  CHECK (NULL == emsg);
+  op =
+    GNUNET_IDENTITY_rename (h, "test-id", "test", &success_rename_cont, NULL);
 }
 
 
@@ -283,35 +268,26 @@ run (void *cls,
      const struct GNUNET_CONFIGURATION_Handle *cfg,
      struct GNUNET_TESTING_Peer *peer)
 {
-  endbadly_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT,
-						&endbadly,
-                                                NULL);
-  GNUNET_SCHEDULER_add_shutdown (&end_normally,
-                                 NULL);
-  h = GNUNET_IDENTITY_connect (cfg,
-                               &notification_cb,
-                               NULL);
-  GNUNET_assert (NULL != h);
-  op = GNUNET_IDENTITY_create (h,
-			       "test-id",
-			       &create_cb,
-			       NULL);
-
+  endbadly_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT, &endbadly, NULL);
+  GNUNET_SCHEDULER_add_shutdown (&cleanup, NULL);
+  h = GNUNET_IDENTITY_connect (cfg, &notification_cb, NULL);
+  CHECK (NULL != h);
+  op = GNUNET_IDENTITY_create (h, "test-id", &create_cb, NULL);
 }
 
 
 int
 main (int argc, char *argv[])
 {
-  GNUNET_DISK_directory_remove ("/tmp/test-identity-service");
+  GNUNET_DISK_directory_remove ("/tmp/gnunet/test-identity-service");
   res = 1;
-  if (0 !=
-      GNUNET_TESTING_service_run ("test-identity",
-				  "identity",
-				  "test_identity.conf",
-				  &run,
-				  NULL))
+  if (0 != GNUNET_TESTING_service_run ("test-identity",
+                                       "identity",
+                                       "test_identity.conf",
+                                       &run,
+                                       NULL))
     return 1;
+  GNUNET_DISK_directory_remove ("/tmp/gnunet/test-identity-service");
   return res;
 }
 
