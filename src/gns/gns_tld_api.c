@@ -337,8 +337,8 @@ GNUNET_GNS_lookup_with_tld (struct GNUNET_GNS_Handle *handle,
     GNUNET_free (dot_tld);
   }
   /* FIXME: this call is still shitty slow to do the longest
-     prefix if we have thousands of egos. We should modify
-     the IDENTITY API to do the longest prefix matching
+     suffix if we have thousands of egos. We should modify
+     the IDENTITY API to do the longest suffix matching
      inside of the identity service and not do an O(n) IPC! */
   ltr->id_co =
     GNUNET_IDENTITY_connect (ltr->gns_handle->cfg, &identity_zone_cb, ltr);
