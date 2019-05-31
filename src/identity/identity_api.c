@@ -596,6 +596,7 @@ GNUNET_IDENTITY_get (struct GNUNET_IDENTITY_Handle *h,
 
   if (NULL == h->mq)
     return NULL;
+  GNUNET_assert (NULL != h->cb);
   slen = strlen (service_name) + 1;
   if (slen >= GNUNET_MAX_MESSAGE_SIZE - sizeof (struct GetDefaultMessage))
   {
@@ -641,6 +642,7 @@ GNUNET_IDENTITY_set (struct GNUNET_IDENTITY_Handle *h,
 
   if (NULL == h->mq)
     return NULL;
+  GNUNET_assert (NULL != h->cb);
   slen = strlen (service_name) + 1;
   if (slen >= GNUNET_MAX_MESSAGE_SIZE - sizeof (struct SetDefaultMessage))
   {

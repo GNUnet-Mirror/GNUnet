@@ -149,6 +149,30 @@ get_cb (void *cls,
 
 
 /**
+ * Called with events about egos.
+ *
+ * @param cls NULL
+ * @param ego ego handle
+ * @param ego_ctx context for application to store data for this ego
+ *                 (during the lifetime of this process, initially NULL)
+ * @param identifier identifier assigned by the user for this ego,
+ *                   NULL if the user just deleted the ego and it
+ *                   must thus no longer be used
+ */
+static void
+dummy_cb (void *cls,
+          struct GNUNET_IDENTITY_Ego *ego,
+          void **ctx,
+          const char *identifier)
+{
+  (void) cls;
+  (void) ego;
+  (void) ctx;
+  (void) identifier;
+}
+
+
+/**
  * Main function of the test, run from scheduler.
  *
  * @param cls NULL
@@ -162,7 +186,7 @@ run_get (void *cls,
 {
   endbadly_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT, &endbadly, NULL);
   GNUNET_SCHEDULER_add_shutdown (&cleanup, NULL);
-  h = GNUNET_IDENTITY_connect (cfg, NULL, NULL);
+  h = GNUNET_IDENTITY_connect (cfg, &dummy_cb, NULL);
   CHECK (NULL != h);
   op = GNUNET_IDENTITY_get (h, "test-service", &get_cb, NULL);
 }
