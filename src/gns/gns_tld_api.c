@@ -128,8 +128,7 @@ static void
 eat_tld (char *name, const char *tld)
 {
   GNUNET_assert (0 < strlen (name));
-  if ((NULL == tld) ||
-      (strlen (name) == strlen (tld)))
+  if ((NULL == tld) || (strlen (name) == strlen (tld)))
   {
     strcpy (name, GNUNET_GNS_EMPTY_LABEL_AT);
   }
@@ -337,7 +336,10 @@ GNUNET_GNS_lookup_with_tld (struct GNUNET_GNS_Handle *handle,
     }
     GNUNET_free (dot_tld);
   }
-
+  /* FIXME: this call is still shitty slow to do the longest
+     prefix if we have thousands of egos. We should modify
+     the IDENTITY API to do the longest prefix matching
+     inside of the identity service and not do an O(n) IPC! */
   ltr->id_co =
     GNUNET_IDENTITY_connect (ltr->gns_handle->cfg, &identity_zone_cb, ltr);
   if (NULL == ltr->id_co)
