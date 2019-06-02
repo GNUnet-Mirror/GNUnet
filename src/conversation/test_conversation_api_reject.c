@@ -11,7 +11,7 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -74,9 +74,7 @@ disable_speaker (void *cls)
 
 
 static void
-play (void *cls,
-      size_t data_size,
-      const void *data)
+play (void *cls, size_t data_size, const void *data)
 {
   (void) cls;
   (void) data_size;
@@ -92,13 +90,11 @@ destroy_speaker (void *cls)
 }
 
 
-static struct GNUNET_SPEAKER_Handle call_speaker = {
-  &enable_speaker,
-  &play,
-  &disable_speaker,
-  &destroy_speaker,
-  "caller"
-};
+static struct GNUNET_SPEAKER_Handle call_speaker = {&enable_speaker,
+                                                    &play,
+                                                    &disable_speaker,
+                                                    &destroy_speaker,
+                                                    "caller"};
 
 
 static int
@@ -129,12 +125,10 @@ destroy_mic (void *cls)
 }
 
 
-static struct GNUNET_MICROPHONE_Handle call_mic = {
-  &enable_mic,
-  &disable_mic,
-  &destroy_mic,
-  "caller"
-};
+static struct GNUNET_MICROPHONE_Handle call_mic = {&enable_mic,
+                                                   &disable_mic,
+                                                   &destroy_mic,
+                                                   "caller"};
 
 
 /**
@@ -159,8 +153,7 @@ end_test (void *cls)
   }
   if (NULL != phone)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Disconnecting from PHONE service.\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Disconnecting from PHONE service.\n");
     GNUNET_CONVERSATION_phone_destroy (phone);
     phone = NULL;
   }
@@ -188,8 +181,8 @@ phone_event_handler (void *cls,
                      struct GNUNET_CONVERSATION_Caller *caller,
                      const struct GNUNET_CRYPTO_EcdsaPublicKey *caller_id)
 {
-  static enum GNUNET_CONVERSATION_PhoneEventCode expect
-    = GNUNET_CONVERSATION_EC_PHONE_RING;
+  static enum GNUNET_CONVERSATION_PhoneEventCode expect =
+    GNUNET_CONVERSATION_EC_PHONE_RING;
 
   (void) cls;
   (void) caller_id;
@@ -207,11 +200,10 @@ phone_event_handler (void *cls,
 
 
 static void
-call_event_handler (void *cls,
-                    enum GNUNET_CONVERSATION_CallEventCode code)
+call_event_handler (void *cls, enum GNUNET_CONVERSATION_CallEventCode code)
 {
-  static enum GNUNET_CONVERSATION_CallEventCode expect
-    = GNUNET_CONVERSATION_EC_CALL_RINGING;
+  static enum GNUNET_CONVERSATION_CallEventCode expect =
+    GNUNET_CONVERSATION_EC_CALL_RINGING;
 
   (void) cls;
   GNUNET_break (code == expect);
@@ -242,6 +234,7 @@ call_event_handler (void *cls,
 
 static void
 caller_ego_create_cont (void *cls,
+                        const struct GNUNET_CRYPTO_EcdsaPrivateKey *pk,
                         const char *emsg)
 {
   (void) cls;
@@ -251,19 +244,14 @@ caller_ego_create_cont (void *cls,
 
 
 static void
-namestore_put_cont (void *cls,
-                    int32_t success,
-                    const char *emsg)
+namestore_put_cont (void *cls, int32_t success, const char *emsg)
 {
   (void) cls;
   qe = NULL;
   GNUNET_assert (GNUNET_YES == success);
   GNUNET_assert (NULL == emsg);
   GNUNET_assert (NULL == op);
-  op = GNUNET_IDENTITY_create (id,
-			       "caller-ego",
-                               &caller_ego_create_cont,
-			       NULL);
+  op = GNUNET_IDENTITY_create (id, "caller-ego", &caller_ego_create_cont, NULL);
 }
 
 
@@ -288,23 +276,21 @@ identity_cb (void *cls,
     GNUNET_asprintf (&gns_name,
                      "phone.%s",
                      GNUNET_GNSRECORD_pkey_to_zkey (&pub));
-    phone = GNUNET_CONVERSATION_phone_create (cfg,
-                                              ego,
-                                              &phone_event_handler,
-                                              NULL);
+    phone =
+      GNUNET_CONVERSATION_phone_create (cfg, ego, &phone_event_handler, NULL);
     GNUNET_assert (NULL != phone);
     memset (&rd, 0, sizeof (rd));
-    GNUNET_CONVERSATION_phone_get_record (phone,
-                                          &rd);
+    GNUNET_CONVERSATION_phone_get_record (phone, &rd);
     GNUNET_assert (rd.record_type == GNUNET_GNSRECORD_TYPE_PHONE);
     rd.expiration_time = UINT64_MAX;
-    qe = GNUNET_NAMESTORE_records_store (ns,
-                                         GNUNET_IDENTITY_ego_get_private_key (ego),
-                                         "phone" /* GNS label */,
-                                         1,
-                                         &rd,
-                                         &namestore_put_cont,
-                                         NULL);
+    qe =
+      GNUNET_NAMESTORE_records_store (ns,
+                                      GNUNET_IDENTITY_ego_get_private_key (ego),
+                                      "phone" /* GNS label */,
+                                      1,
+                                      &rd,
+                                      &namestore_put_cont,
+                                      NULL);
     return;
   }
   if (0 == strcmp (name, "caller-ego"))
@@ -326,8 +312,7 @@ identity_cb (void *cls,
 
 
 static void
-phone_ego_create_cont (void *cls,
-                       const char *emsg)
+phone_ego_create_cont (void *cls, const char *emsg)
 {
   (void) cls;
   op = NULL;
@@ -343,15 +328,9 @@ run (void *cls,
   (void) cls;
   (void) peer;
   cfg = c;
-  GNUNET_SCHEDULER_add_delayed (TIMEOUT, &end_test,
-                                NULL);
-  id = GNUNET_IDENTITY_connect (cfg,
-                                &identity_cb,
-                                NULL);
-  op = GNUNET_IDENTITY_create (id,
-			       "phone-ego",
-			       &phone_ego_create_cont,
-			       NULL);
+  GNUNET_SCHEDULER_add_delayed (TIMEOUT, &end_test, NULL);
+  id = GNUNET_IDENTITY_connect (cfg, &identity_cb, NULL);
+  op = GNUNET_IDENTITY_create (id, "phone-ego", &phone_ego_create_cont, NULL);
   ns = GNUNET_NAMESTORE_connect (cfg);
 }
 
@@ -362,8 +341,9 @@ main (int argc, char *argv[])
   (void) argc;
   (void) argv;
   if (0 != GNUNET_TESTING_peer_run ("test_conversation_api",
-				    "test_conversation.conf",
-				    &run, NULL))
+                                    "test_conversation.conf",
+                                    &run,
+                                    NULL))
     return 1;
   return ok;
 }
