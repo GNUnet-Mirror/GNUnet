@@ -3149,6 +3149,11 @@ extern "C" {
  */
 #define GNUNET_MESSAGE_TYPE_TRANSPORT_COMMUNICATOR_BACKCHANNEL_INCOMING 1220
 
+/**
+ * Transport signalling incoming backchannel message to a communicator.
+ */
+#define GNUNET_MESSAGE_TYPE_TRANSPORT_FLOW_CONTROL 1221
+
 
 /**
  * Message sent to indicate to the transport that a monitor
