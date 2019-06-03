@@ -267,6 +267,8 @@ ticket_iter (void *cls, const struct GNUNET_RECLAIM_Ticket *ticket)
   ref = GNUNET_STRINGS_data_to_string_alloc (&ticket->rnd, sizeof (uint64_t));
 
   fprintf (stdout, "Ticket ID: %s | Audience: %s\n", ref, aud);
+  GNUNET_free (aud);
+  GNUNET_free (ref);
   GNUNET_RECLAIM_ticket_iteration_next (ticket_iterator);
 }
 
@@ -448,8 +450,13 @@ start_process ()
     return;
   }
 
-  if (NULL != rp)
-    GNUNET_CRYPTO_ecdsa_public_key_from_string (rp, strlen (rp), &rp_key);
+  if ((NULL != rp) &&
+      GNUNET_OK != GNUNET_CRYPTO_ecdsa_public_key_from_string (rp, strlen (rp), &rp_key))
+  {
+    fprintf (stderr, "%s is not a public key!\n", rp);
+    cleanup_task = GNUNET_SCHEDULER_add_now (&do_cleanup, NULL);
+    return;
+  }
   if (NULL != consume_ticket)
     GNUNET_STRINGS_string_to_data (consume_ticket, strlen (consume_ticket),
                                    &ticket,

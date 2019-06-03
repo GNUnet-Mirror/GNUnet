@@ -947,6 +947,7 @@ attr_store_task (void *cls)
                                                &attr_store_cont,
                                                ash);
   GNUNET_free (buf);
+  GNUNET_free (label);
 }
 
 
@@ -1126,10 +1127,17 @@ update_tickets (void *cls)
                                le);
   struct GNUNET_GNSRECORD_Data rd[le->rd_count];
   struct GNUNET_GNSRECORD_Data rd_new[le->rd_count - 1];
-  GNUNET_GNSRECORD_records_deserialize (le->data_size,
+  if (GNUNET_OK != GNUNET_GNSRECORD_records_deserialize (le->data_size,
                                         le->data,
                                         le->rd_count,
-                                        rd);
+                                        rd))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Unable to deserialize record data!\n");
+    send_delete_response (adh, GNUNET_SYSERR);
+    cleanup_adh (adh);
+    return;
+  }
   int j = 0;
   for (int i = 0; i < le->rd_count; i++) {
     if ((GNUNET_GNSRECORD_TYPE_RECLAIM_ATTR_REF == rd[i].record_type)

@@ -495,12 +495,18 @@ GNUNET_RECLAIM_ATTRIBUTE_deserialize (const char *data, size_t data_size)
   attr_ser = (struct Attribute *) data;
   data_len = ntohs (attr_ser->data_size);
   name_len = ntohs (attr_ser->name_len);
+  if (data_size < sizeof (struct Attribute) + data_len + name_len)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Buffer too small to deserialize\n");
+    return NULL;
+  }
   attr = GNUNET_malloc (sizeof (struct GNUNET_RECLAIM_ATTRIBUTE_Claim) +
                         data_len + name_len + 1);
   attr->type = ntohs (attr_ser->attribute_type);
   attr->version = ntohl (attr_ser->attribute_version);
   attr->id = GNUNET_ntohll (attr_ser->attribute_id);
-  attr->data_size = ntohs (attr_ser->data_size);
+  attr->data_size = data_len;
 
   write_ptr = (char *) &attr[1];
   GNUNET_memcpy (write_ptr, &attr_ser[1], name_len);
