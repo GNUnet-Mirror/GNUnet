@@ -660,7 +660,7 @@ dns_string_to_value (void *cls,
     struct GNUNET_DNSPARSER_CaaRecord *caa;
     unsigned int flags;
     char tag[15]; //Max tag length 15
-    char value[strlen (s)]; //Should be more than enough
+    char value[strlen (s) + 1]; //Should be more than enough
 
     if (3 != SSCANF (s, "%u %s %[^\n]", &flags, tag, value))
     {
