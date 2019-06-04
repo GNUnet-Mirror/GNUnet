@@ -46,6 +46,9 @@ gnunet-namestore -p -z $MY_EGO -a -n $TEST_RECORD_CNAME_SERVER -t A -V $TEST_IP_
 RES_CNAME=`$DO_TIMEOUT gnunet-gns --raw -u $TEST_DOMAIN_PLUS -t A -c test_gns_lookup.conf`
 RES_CNAME_RAW=`$DO_TIMEOUT gnunet-gns --raw -u $TEST_DOMAIN_PLUS -t CNAME -c test_gns_lookup.conf`
 RES_CNAME_DNS=`$DO_TIMEOUT gnunet-gns --raw -u $TEST_DOMAIN_DNS -t A -c test_gns_lookup.conf`
+echo NOW
+gnunet-gns --raw -u $TEST_DOMAIN_DNS -t A -c test_gns_lookup.conf
+echo WON
 TESTEGOZONE=`gnunet-identity -c test_gns_lookup.conf -d | awk '{print $3}'`
 gnunet-namestore -p -z $MY_EGO -d -n $TEST_RECORD_NAME_DNS -t CNAME -V $TEST_RECORD_CNAME_DNS -e never -c test_gns_lookup.conf
 gnunet-namestore -p -z $MY_EGO -d -n $TEST_RECORD_NAME_PLUS -t CNAME -V $TEST_RECORD_CNAME_PLUS -e never -c test_gns_lookup.conf
@@ -78,6 +81,6 @@ then
   echo "PASS: IP resolution from DNS"
   exit 0
 else
-  echo "FAIL: IP resolution from DNS, got $RES_IP, expected $TEST_IP_DNS."
+  echo "FAIL: IP resolution from DNS, got $RES_CNAME_DNS, expected $TEST_IP_DNS."
   exit 1
 fi

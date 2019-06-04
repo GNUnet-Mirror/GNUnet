@@ -344,7 +344,7 @@ lookup_dns_servers (char ***server_addrs)
     GNUNET_DISK_file_close (fh);
     return -1;
   }
-  if (bytes_read > (off_t) SIZE_MAX)
+  if (((unsigned long long) bytes_read) > (unsigned long long) SIZE_MAX)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "/etc/resolv.conf file too large to mmap. "
@@ -1213,7 +1213,7 @@ load_etc_hosts (void)
     GNUNET_DISK_file_close (fh);
     return;
   }
-  if (bytes_read > (off_t) SIZE_MAX)
+  if (((unsigned long long) bytes_read) > (unsigned long long) SIZE_MAX)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "/etc/hosts file too large to mmap. "
