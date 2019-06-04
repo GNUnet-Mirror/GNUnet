@@ -8650,16 +8650,6 @@ select_best_pending_from_link (struct PendingMessageScoreContext *sc,
     if (NULL != pos->qe)
       continue; /* not eligible */
     sc->consideration_counter++;
-    /* determine if we have to reliability-box, if so add reliability box
-       overhead */
-    relb = GNUNET_NO;
-    if ((GNUNET_NO == frag) &&
-        (0 == (pos->prefs & GNUNET_MQ_PREF_UNRELIABLE)) &&
-        (GNUNET_TRANSPORT_CC_RELIABLE != queue->tc->details.communicator.cc))
-    {
-      relb = GNUNET_YES;
-      real_overhead += sizeof (struct TransportReliabilityBoxMessage);
-    }
     /* determine if we have to fragment, if so add fragmentation
        overhead! */
     frag = GNUNET_NO;
@@ -8678,6 +8668,16 @@ select_best_pending_from_link (struct PendingMessageScoreContext *sc,
            header without the ACK UUID when using a *reliable* channel! */
       }
       real_overhead = overhead + sizeof (struct TransportFragmentBoxMessage);
+    }
+    /* determine if we have to reliability-box, if so add reliability box
+       overhead */
+    relb = GNUNET_NO;
+    if ((GNUNET_NO == frag) &&
+        (0 == (pos->prefs & GNUNET_MQ_PREF_UNRELIABLE)) &&
+        (GNUNET_TRANSPORT_CC_RELIABLE != queue->tc->details.communicator.cc))
+    {
+      relb = GNUNET_YES;
+      real_overhead += sizeof (struct TransportReliabilityBoxMessage);
     }
 
     /* Finally, compare to existing 'best' in sc to see if this 'pos' pending
