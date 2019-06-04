@@ -11,7 +11,7 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -53,7 +53,7 @@ struct AddrEntry
    * and retrieve on remove).
    */
   void *app_ctx;
-  
+
   /**
    * Address class of the address.
    */
@@ -150,23 +150,18 @@ reconnect (struct GNUNET_NAT_Handle *nh)
   }
   while (NULL != (ae = nh->ae_head))
   {
-    GNUNET_CONTAINER_DLL_remove (nh->ae_head,
-				 nh->ae_tail,
-				 ae);
+    GNUNET_CONTAINER_DLL_remove (nh->ae_head, nh->ae_tail, ae);
     nh->address_callback (nh->callback_cls,
-			  &ae->app_ctx,
-			  GNUNET_NO,
-			  ae->ac,
-			  (const struct sockaddr *) &ae[1],
-			  ae->addrlen);
+                          &ae->app_ctx,
+                          GNUNET_NO,
+                          ae->ac,
+                          (const struct sockaddr *) &ae[1],
+                          ae->addrlen);
     GNUNET_free (ae);
   }
-  nh->reconnect_delay
-    = GNUNET_TIME_STD_BACKOFF (nh->reconnect_delay);
-  nh->reconnect_task
-    = GNUNET_SCHEDULER_add_delayed (nh->reconnect_delay,
-				    &do_connect,
-				    nh);
+  nh->reconnect_delay = GNUNET_TIME_STD_BACKOFF (nh->reconnect_delay);
+  nh->reconnect_task =
+    GNUNET_SCHEDULER_add_delayed (nh->reconnect_delay, &do_connect, nh);
 }
 
 
@@ -178,12 +173,11 @@ reconnect (struct GNUNET_NAT_Handle *nh)
  * @return #GNUNET_OK if @a crm is well-formed
  */
 static int
-check_connection_reversal_request (void *cls,
-				   const struct GNUNET_NAT_ConnectionReversalRequestedMessage *crm)
+check_connection_reversal_request (
+  void *cls,
+  const struct GNUNET_NAT_ConnectionReversalRequestedMessage *crm)
 {
-  if (ntohs (crm->header.size) !=
-      sizeof (*crm) +
-      sizeof (struct sockaddr_in) )
+  if (ntohs (crm->header.size) != sizeof (*crm) + sizeof (struct sockaddr_in))
   {
     GNUNET_break (0);
     return GNUNET_SYSERR;
@@ -199,14 +193,15 @@ check_connection_reversal_request (void *cls,
  * @param crm the message
  */
 static void
-handle_connection_reversal_request (void *cls,
-				    const struct GNUNET_NAT_ConnectionReversalRequestedMessage *crm)
+handle_connection_reversal_request (
+  void *cls,
+  const struct GNUNET_NAT_ConnectionReversalRequestedMessage *crm)
 {
   struct GNUNET_NAT_Handle *nh = cls;
 
   nh->reversal_callback (nh->callback_cls,
-			 (const struct sockaddr *) &crm[1],
-			 sizeof (struct sockaddr_in));
+                         (const struct sockaddr *) &crm[1],
+                         sizeof (struct sockaddr_in));
 }
 
 
@@ -218,35 +213,32 @@ handle_connection_reversal_request (void *cls,
  * @return #GNUNET_OK if @a crm is well-formed
  */
 static int
-check_address_change_notification (void *cls,
-				   const struct GNUNET_NAT_AddressChangeNotificationMessage *acn)
+check_address_change_notification (
+  void *cls,
+  const struct GNUNET_NAT_AddressChangeNotificationMessage *acn)
 {
   size_t alen = ntohs (acn->header.size) - sizeof (*acn);
 
   switch (alen)
   {
-  case sizeof (struct sockaddr_in):
+  case sizeof (struct sockaddr_in): {
+    const struct sockaddr_in *s4 = (const struct sockaddr_in *) &acn[1];
+    if (AF_INET != s4->sin_family)
     {
-      const struct sockaddr_in *s4
-	= (const struct sockaddr_in *) &acn[1];
-      if (AF_INET != s4->sin_family)
-      {
-	GNUNET_break (0);
-	return GNUNET_SYSERR;
-      }
+      GNUNET_break (0);
+      return GNUNET_SYSERR;
     }
-    break;
-  case sizeof (struct sockaddr_in6):
+  }
+  break;
+  case sizeof (struct sockaddr_in6): {
+    const struct sockaddr_in6 *s6 = (const struct sockaddr_in6 *) &acn[1];
+    if (AF_INET6 != s6->sin6_family)
     {
-      const struct sockaddr_in6 *s6
-	= (const struct sockaddr_in6 *) &acn[1];
-      if (AF_INET6 != s6->sin6_family)
-      {
-	GNUNET_break (0);
-	return GNUNET_SYSERR;
-      }
+      GNUNET_break (0);
+      return GNUNET_SYSERR;
     }
-    break;
+  }
+  break;
   default:
     GNUNET_break (0);
     return GNUNET_SYSERR;
@@ -262,8 +254,9 @@ check_address_change_notification (void *cls,
  * @param acn the message
  */
 static void
-handle_address_change_notification (void *cls,
-				    const struct GNUNET_NAT_AddressChangeNotificationMessage *acn)
+handle_address_change_notification (
+  void *cls,
+  const struct GNUNET_NAT_AddressChangeNotificationMessage *acn)
 {
   struct GNUNET_NAT_Handle *nh = cls;
   size_t alen = ntohs (acn->header.size) - sizeof (*acn);
@@ -279,38 +272,35 @@ handle_address_change_notification (void *cls,
     ae = GNUNET_malloc (sizeof (*ae) + alen);
     ae->ac = ac;
     ae->addrlen = alen;
-    GNUNET_memcpy (&ae[1],
-		   sa,
-		   alen);
-    GNUNET_CONTAINER_DLL_insert (nh->ae_head,
-				 nh->ae_tail,
-				 ae);
+    GNUNET_memcpy (&ae[1], sa, alen);
+    GNUNET_CONTAINER_DLL_insert (nh->ae_head, nh->ae_tail, ae);
+    nh->address_callback (nh->callback_cls,
+                          &ae->app_ctx,
+                          ntohl (acn->add_remove),
+                          ac,
+                          sa,
+                          alen);
   }
   else
   {
     for (ae = nh->ae_head; NULL != ae; ae = ae->next)
-      if ( (ae->addrlen == alen) &&
-	   (0 == memcmp (&ae[1],
-			 sa,
-			 alen)) )
-	break;
+      if ((ae->addrlen == alen) && (0 == memcmp (&ae[1], sa, alen)))
+        break;
     if (NULL == ae)
     {
       GNUNET_break (0);
       reconnect (nh);
       return;
     }
-    GNUNET_CONTAINER_DLL_remove (nh->ae_head,
-				 nh->ae_tail,
-				 ae);
+    GNUNET_CONTAINER_DLL_remove (nh->ae_head, nh->ae_tail, ae);
+    nh->address_callback (nh->callback_cls,
+                          &ae->app_ctx,
+                          ntohl (acn->add_remove),
+                          ac,
+                          sa,
+                          alen);
     GNUNET_free (ae);
   }
-  nh->address_callback (nh->callback_cls,
-			&ae->app_ctx,
-			ntohl (acn->add_remove),
-			ac,
-			sa,
-			alen);
 }
 
 
@@ -321,8 +311,7 @@ handle_address_change_notification (void *cls,
  * @param error details about the error
  */
 static void
-mq_error_handler (void *cls,
-		  enum GNUNET_MQ_Error error)
+mq_error_handler (void *cls, enum GNUNET_MQ_Error error)
 {
   struct GNUNET_NAT_Handle *nh = cls;
 
@@ -339,33 +328,29 @@ static void
 do_connect (void *cls)
 {
   struct GNUNET_NAT_Handle *nh = cls;
-  struct GNUNET_MQ_MessageHandler handlers[] = {
-    GNUNET_MQ_hd_var_size (connection_reversal_request,
-			   GNUNET_MESSAGE_TYPE_NAT_CONNECTION_REVERSAL_REQUESTED,
-			   struct GNUNET_NAT_ConnectionReversalRequestedMessage,
-			   nh),
-    GNUNET_MQ_hd_var_size (address_change_notification,
-			   GNUNET_MESSAGE_TYPE_NAT_ADDRESS_CHANGE,
-			   struct GNUNET_NAT_AddressChangeNotificationMessage,
-			   nh),
-    GNUNET_MQ_handler_end ()
-  };
+  struct GNUNET_MQ_MessageHandler handlers[] =
+    {GNUNET_MQ_hd_var_size (connection_reversal_request,
+                            GNUNET_MESSAGE_TYPE_NAT_CONNECTION_REVERSAL_REQUESTED,
+                            struct
+                            GNUNET_NAT_ConnectionReversalRequestedMessage,
+                            nh),
+     GNUNET_MQ_hd_var_size (address_change_notification,
+                            GNUNET_MESSAGE_TYPE_NAT_ADDRESS_CHANGE,
+                            struct GNUNET_NAT_AddressChangeNotificationMessage,
+                            nh),
+     GNUNET_MQ_handler_end ()};
   struct GNUNET_MQ_Envelope *env;
 
   nh->reconnect_task = NULL;
-  nh->mq = GNUNET_CLIENT_connect (nh->cfg,
-				  "nat",
-				  handlers,
-				  &mq_error_handler,
-				  nh);
+  nh->mq =
+    GNUNET_CLIENT_connect (nh->cfg, "nat", handlers, &mq_error_handler, nh);
   if (NULL == nh->mq)
   {
     reconnect (nh);
     return;
   }
   env = GNUNET_MQ_msg_copy (nh->reg);
-  GNUNET_MQ_send (nh->mq,
-		  env);
+  GNUNET_MQ_send (nh->mq, env);
 }
 
 
@@ -407,12 +392,12 @@ GNUNET_NAT_register (const struct GNUNET_CONFIGURATION_Handle *cfg,
   char *off;
 
   len = 0;
-  for (unsigned int i=0;i<num_addrs;i++)
+  for (unsigned int i = 0; i < num_addrs; i++)
     len += addrlens[i];
   str_len = strlen (config_section) + 1;
   len += str_len;
-  if ( (len > GNUNET_MAX_MESSAGE_SIZE - sizeof (*rm)) ||
-       (num_addrs > UINT16_MAX) )
+  if ((len > GNUNET_MAX_MESSAGE_SIZE - sizeof (*rm)) ||
+      (num_addrs > UINT16_MAX))
   {
     GNUNET_break (0);
     return NULL;
@@ -429,33 +414,33 @@ GNUNET_NAT_register (const struct GNUNET_CONFIGURATION_Handle *cfg,
   rm->str_len = htons (str_len);
   rm->num_addrs = htons ((uint16_t) num_addrs);
   off = (char *) &rm[1];
-  for (unsigned int i=0;i<num_addrs;i++)
+  for (unsigned int i = 0; i < num_addrs; i++)
   {
     switch (addrs[i]->sa_family)
     {
     case AF_INET:
       if (sizeof (struct sockaddr_in) != addrlens[i])
       {
-	GNUNET_break (0);
+        GNUNET_break (0);
         GNUNET_free (rm);
-	return NULL;
+        return NULL;
       }
       break;
     case AF_INET6:
       if (sizeof (struct sockaddr_in6) != addrlens[i])
       {
-	GNUNET_break (0);
+        GNUNET_break (0);
         GNUNET_free (rm);
-	return NULL;
+        return NULL;
       }
       break;
 #if AF_UNIX
     case AF_UNIX:
       if (sizeof (struct sockaddr_un) != addrlens[i])
       {
-	GNUNET_break (0);
+        GNUNET_break (0);
         GNUNET_free (rm);
-	return NULL;
+        return NULL;
       }
       break;
 #endif
@@ -464,14 +449,10 @@ GNUNET_NAT_register (const struct GNUNET_CONFIGURATION_Handle *cfg,
       GNUNET_free (rm);
       return NULL;
     }
-    GNUNET_memcpy (off,
-		   addrs[i],
-		   addrlens[i]);
+    GNUNET_memcpy (off, addrs[i], addrlens[i]);
     off += addrlens[i];
   }
-  GNUNET_memcpy (off,
-		 config_section,
-		 str_len);
+  GNUNET_memcpy (off, config_section, str_len);
 
   nh = GNUNET_new (struct GNUNET_NAT_Handle);
   nh->reg = &rm->header;
@@ -493,8 +474,7 @@ GNUNET_NAT_register (const struct GNUNET_CONFIGURATION_Handle *cfg,
  *         #GNUNET_NO if the packet is invalid (not a stun packet)
  */
 static int
-test_stun_packet (const void *data,
-		  size_t len)
+test_stun_packet (const void *data, size_t len)
 {
   const struct stun_header *hdr;
   const struct stun_attr *attr;
@@ -505,12 +485,12 @@ test_stun_packet (const void *data,
    * initial checks it becomes the size of unprocessed options,
    * while 'data' is advanced accordingly.
    */
-  if (len < sizeof(struct stun_header))
+  if (len < sizeof (struct stun_header))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		"STUN packet too short (only %d, wanting at least %d)\n",
-		(int) len,
-		(int) sizeof (struct stun_header));
+                "STUN packet too short (only %d, wanting at least %d)\n",
+                (int) len,
+                (int) sizeof (struct stun_header));
     return GNUNET_NO;
   }
   hdr = (const struct stun_header *) data;
@@ -525,17 +505,16 @@ test_stun_packet (const void *data,
   /* Compare if the cookie match */
   if (STUN_MAGIC_COOKIE != message_magic_cookie)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		"Invalid magic cookie for STUN\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Invalid magic cookie for STUN\n");
     return GNUNET_NO;
   }
 
   if (advertised_message_size > len)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		"Scrambled STUN packet length (got %d, expecting %d)\n",
-		advertised_message_size,
-		(int)len);
+                "Scrambled STUN packet length (got %d, expecting %d)\n",
+                advertised_message_size,
+                (int) len);
     return GNUNET_NO;
   }
   len = advertised_message_size;
@@ -544,32 +523,33 @@ test_stun_packet (const void *data,
     if (len < sizeof (struct stun_attr))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "Attribute too short in STUN packet (got %d, expecting %d)\n",
-		  (int) len,
-		  (int) sizeof(struct stun_attr));
+                  "Attribute too short in STUN packet (got %d, expecting %d)\n",
+                  (int) len,
+                  (int) sizeof (struct stun_attr));
       return GNUNET_NO;
     }
     attr = (const struct stun_attr *) data;
 
     /* compute total attribute length */
-    advertised_message_size = ntohs (attr->len) + sizeof(struct stun_attr);
+    advertised_message_size = ntohs (attr->len) + sizeof (struct stun_attr);
 
     /* Check if we still have space in our buffer */
     if (advertised_message_size > len)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "Inconsistent Attribute (length %d exceeds remaining msg len %d)\n",
-		  advertised_message_size,
-		  (int) len);
+      GNUNET_log (
+        GNUNET_ERROR_TYPE_DEBUG,
+        "Inconsistent Attribute (length %d exceeds remaining msg len %d)\n",
+        advertised_message_size,
+        (int) len);
       return GNUNET_NO;
     }
     data += advertised_message_size;
     len -= advertised_message_size;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "STUN Packet, msg %04x, length: %d\n",
-	      ntohs (hdr->msgtype),
-	      advertised_message_size);
+              "STUN Packet, msg %04x, length: %d\n",
+              ntohs (hdr->msgtype),
+              advertised_message_size);
   return GNUNET_OK;
 }
 
@@ -599,36 +579,29 @@ test_stun_packet (const void *data,
  */
 int
 GNUNET_NAT_stun_handle_packet (struct GNUNET_NAT_Handle *nh,
-			       const struct sockaddr *sender_addr,
-			       size_t sender_addr_len,
-			       const void *data,
+                               const struct sockaddr *sender_addr,
+                               size_t sender_addr_len,
+                               const void *data,
                                size_t data_size)
 {
   struct GNUNET_MQ_Envelope *env;
   struct GNUNET_NAT_HandleStunMessage *hsn;
   char *buf;
 
-  if (GNUNET_YES !=
-      test_stun_packet (data,
-			data_size))
+  if (GNUNET_YES != test_stun_packet (data, data_size))
     return GNUNET_NO;
   if (NULL == nh->mq)
     return GNUNET_SYSERR;
   env = GNUNET_MQ_msg_extra (hsn,
-			     data_size + sender_addr_len,
-			     GNUNET_MESSAGE_TYPE_NAT_HANDLE_STUN);
+                             data_size + sender_addr_len,
+                             GNUNET_MESSAGE_TYPE_NAT_HANDLE_STUN);
   hsn->sender_addr_size = htons ((uint16_t) sender_addr_len);
   hsn->payload_size = htons ((uint16_t) data_size);
   buf = (char *) &hsn[1];
-  GNUNET_memcpy (buf,
-		 sender_addr,
-		 sender_addr_len);
+  GNUNET_memcpy (buf, sender_addr, sender_addr_len);
   buf += sender_addr_len;
-  GNUNET_memcpy (buf,
-		 data,
-		 data_size);
-  GNUNET_MQ_send (nh->mq,
-		  env);
+  GNUNET_memcpy (buf, data, data_size);
+  GNUNET_MQ_send (nh->mq, env);
   return GNUNET_OK;
 }
 
@@ -653,17 +626,14 @@ GNUNET_NAT_test_address (struct GNUNET_NAT_Handle *nh,
 {
   struct AddrEntry *ae;
 
-  if ( (addrlen != sizeof (struct sockaddr_in)) &&
-       (addrlen != sizeof (struct sockaddr_in6)) )
+  if ((addrlen != sizeof (struct sockaddr_in)) &&
+      (addrlen != sizeof (struct sockaddr_in6)))
   {
     GNUNET_break (0);
     return GNUNET_SYSERR;
   }
   for (ae = nh->ae_head; NULL != ae; ae = ae->next)
-    if ( (addrlen == ae->addrlen) &&
-	 (0 == memcmp (addr,
-		       &ae[1],
-		       addrlen)) )
+    if ((addrlen == ae->addrlen) && (0 == memcmp (addr, &ae[1], addrlen)))
       return GNUNET_YES;
   return GNUNET_NO;
 }
@@ -683,8 +653,8 @@ GNUNET_NAT_test_address (struct GNUNET_NAT_Handle *nh,
  */
 int
 GNUNET_NAT_request_reversal (struct GNUNET_NAT_Handle *nh,
-			     const struct sockaddr_in *local_sa,
-			     const struct sockaddr_in *remote_sa)
+                             const struct sockaddr_in *local_sa,
+                             const struct sockaddr_in *remote_sa)
 {
   struct GNUNET_MQ_Envelope *env;
   struct GNUNET_NAT_RequestConnectionReversalMessage *req;
@@ -694,21 +664,17 @@ GNUNET_NAT_request_reversal (struct GNUNET_NAT_Handle *nh,
     return GNUNET_SYSERR;
   GNUNET_break (AF_INET == local_sa->sin_family);
   GNUNET_break (AF_INET == remote_sa->sin_family);
-  env = GNUNET_MQ_msg_extra (req,
-			     2 * sizeof (struct sockaddr_in),
-			     GNUNET_MESSAGE_TYPE_NAT_REQUEST_CONNECTION_REVERSAL);
+  env =
+    GNUNET_MQ_msg_extra (req,
+                         2 * sizeof (struct sockaddr_in),
+                         GNUNET_MESSAGE_TYPE_NAT_REQUEST_CONNECTION_REVERSAL);
   req->local_addr_size = htons (sizeof (struct sockaddr_in));
   req->remote_addr_size = htons (sizeof (struct sockaddr_in));
   buf = (char *) &req[1];
-  GNUNET_memcpy (buf,
-		 local_sa,
-		 sizeof (struct sockaddr_in));
+  GNUNET_memcpy (buf, local_sa, sizeof (struct sockaddr_in));
   buf += sizeof (struct sockaddr_in);
-  GNUNET_memcpy (buf,
-		 remote_sa,
-		 sizeof (struct sockaddr_in));
-  GNUNET_MQ_send (nh->mq,
-		  env);
+  GNUNET_memcpy (buf, remote_sa, sizeof (struct sockaddr_in));
+  GNUNET_MQ_send (nh->mq, env);
   return GNUNET_OK;
 }
 
