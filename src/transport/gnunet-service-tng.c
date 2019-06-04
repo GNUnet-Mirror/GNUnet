@@ -5580,6 +5580,13 @@ handle_fragment_box (void *cls, const struct TransportFragmentBoxMessage *fb)
     return;
   }
   frag_off = ntohs (fb->frag_off);
+  if (frag_off + fsize > msize)
+  {
+    /* Fragment (plus fragment size) exceeds message size! */
+    GNUNET_break_op (0);
+    finish_cmc_handling (cmc);
+    return;
+  }
   memcpy (&target[frag_off], &fb[1], fsize);
   /* update bitfield and msg_missing */
   for (unsigned int i = frag_off; i < frag_off + fsize; i++)
