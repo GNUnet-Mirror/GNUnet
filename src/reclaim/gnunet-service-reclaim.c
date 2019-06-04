@@ -746,7 +746,7 @@ check_revoke_ticket_message (void *cls, const struct RevokeTicketMessage *im)
   uint16_t size;
 
   size = ntohs (im->header.size);
-  if (size <= sizeof (struct RevokeTicketMessage)) {
+  if (size != sizeof (struct RevokeTicketMessage)) {
     GNUNET_break (0);
     return GNUNET_SYSERR;
   }
@@ -765,16 +765,14 @@ handle_revoke_ticket_message (void *cls, const struct RevokeTicketMessage *rm)
 {
   struct TicketRevocationOperation *rop;
   struct IdpClient *idp = cls;
-  struct GNUNET_RECLAIM_Ticket *ticket;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received REVOKE_TICKET message\n");
   rop = GNUNET_new (struct TicketRevocationOperation);
-  ticket = (struct GNUNET_RECLAIM_Ticket *)&rm[1];
   rop->r_id = ntohl (rm->id);
   rop->client = idp;
   GNUNET_CONTAINER_DLL_insert (idp->revoke_op_head, idp->revoke_op_tail, rop);
   rop->rh
-    = RECLAIM_TICKETS_revoke (ticket, &rm->identity, &revoke_result_cb, rop);
+    = RECLAIM_TICKETS_revoke (&rm->ticket, &rm->identity, &revoke_result_cb, rop);
   GNUNET_SERVICE_client_continue (idp->client);
 }
 
@@ -834,7 +832,7 @@ check_consume_ticket_message (void *cls, const struct ConsumeTicketMessage *cm)
   uint16_t size;
 
   size = ntohs (cm->header.size);
-  if (size <= sizeof (struct ConsumeTicketMessage)) {
+  if (size != sizeof (struct ConsumeTicketMessage)) {
     GNUNET_break (0);
     return GNUNET_SYSERR;
   }
@@ -852,16 +850,14 @@ static void
 handle_consume_ticket_message (void *cls, const struct ConsumeTicketMessage *cm)
 {
   struct ConsumeTicketOperation *cop;
-  struct GNUNET_RECLAIM_Ticket *ticket;
   struct IdpClient *idp = cls;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received CONSUME_TICKET message\n");
   cop = GNUNET_new (struct ConsumeTicketOperation);
   cop->r_id = ntohl (cm->id);
   cop->client = idp;
-  ticket = (struct GNUNET_RECLAIM_Ticket *)&cm[1];
   cop->ch
-    = RECLAIM_TICKETS_consume (&cm->identity, ticket, &consume_result_cb, cop);
+    = RECLAIM_TICKETS_consume (&cm->identity, &cm->ticket, &consume_result_cb, cop);
   GNUNET_CONTAINER_DLL_insert (idp->consume_op_head, idp->consume_op_tail, cop);
   GNUNET_SERVICE_client_continue (idp->client);
 }
@@ -1493,17 +1489,14 @@ ticket_iter_cb (void *cls, struct GNUNET_RECLAIM_Ticket *ticket)
   struct GNUNET_MQ_Envelope *env;
   struct TicketResultMessage *trm;
 
+  env = GNUNET_MQ_msg (trm, GNUNET_MESSAGE_TYPE_RECLAIM_TICKET_RESULT);
   if (NULL == ticket) {
     /* send empty response to indicate end of list */
-    env = GNUNET_MQ_msg (trm, GNUNET_MESSAGE_TYPE_RECLAIM_TICKET_RESULT);
     GNUNET_CONTAINER_DLL_remove (ti->client->ticket_iter_head,
                                  ti->client->ticket_iter_tail,
                                  ti);
   } else {
-    env = GNUNET_MQ_msg_extra (trm,
-                               sizeof (struct GNUNET_RECLAIM_Ticket),
-                               GNUNET_MESSAGE_TYPE_RECLAIM_TICKET_RESULT);
-    memcpy (&trm[1], ticket, sizeof (struct GNUNET_RECLAIM_Ticket));
+    trm->ticket = *ticket;
   }
   trm->id = htonl (ti->r_id);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending TICKET_RESULT message\n");

@@ -323,7 +323,10 @@ struct RevokeTicketMessage
    */
   uint32_t attrs_len GNUNET_PACKED;
 
-  // Followed by a ticket and serialized attribute list
+  /**
+   * The ticket to revoke
+   */
+  struct GNUNET_RECLAIM_Ticket ticket;
 };
 
 /**
@@ -362,6 +365,11 @@ struct TicketResultMessage
    * Unique identifier for this request (for key collisions).
    */
   uint32_t id GNUNET_PACKED;
+
+  /**
+   * The new ticket
+   */
+  struct GNUNET_RECLAIM_Ticket ticket;
 };
 
 /**
@@ -384,7 +392,10 @@ struct ConsumeTicketMessage
    */
   struct GNUNET_CRYPTO_EcdsaPrivateKey identity;
 
-  // Followed by a serialized ticket
+  /**
+   * The ticket to consume
+   */
+  struct GNUNET_RECLAIM_Ticket ticket;
 };
 
 /**
