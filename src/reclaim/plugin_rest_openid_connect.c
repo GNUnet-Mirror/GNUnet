@@ -1395,9 +1395,6 @@ authorize_endpoint (struct GNUNET_REST_RequestHandle *con_handle,
     return;
   }
 
-  handle->ego_entry = handle->ego_head;
-  handle->priv_key =
-    *GNUNET_IDENTITY_ego_get_private_key (handle->ego_head->ego);
   // If we know this identity, translated the corresponding TLD
   // TODO: We might want to have a reverse lookup functionality for TLDs?
   for (tmp_ego = handle->ego_head; NULL != tmp_ego; tmp_ego = tmp_ego->next)
