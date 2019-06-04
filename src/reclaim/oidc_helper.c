@@ -451,7 +451,6 @@ OIDC_build_authz_code (const struct GNUNET_CRYPTO_EcdsaPrivateKey *issuer,
   if (NULL != attrs_ser)
   {
     memcpy (buf_ptr, attrs_ser, attr_list_len);
-    buf_ptr += attr_list_len;
     GNUNET_free (attrs_ser);
   }
   // Generate ECDH key
