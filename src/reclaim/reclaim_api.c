@@ -613,28 +613,6 @@ handle_attribute_result (void *cls, const struct AttributeResultMessage *msg)
  *
  * @param cls
  * @param msg the message we received
- * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
- */
-static int
-check_ticket_result (void *cls, const struct TicketResultMessage *msg)
-{
-  size_t msg_len;
-
-  msg_len = ntohs (msg->header.size);
-  if (msg_len < sizeof (struct TicketResultMessage)) {
-    GNUNET_break (0);
-    return GNUNET_SYSERR;
-  }
-  return GNUNET_OK;
-}
-
-
-/**
- * Handle an incoming message of type
- * #GNUNET_MESSAGE_TYPE_RECLAIM_TICKET_RESULT
- *
- * @param cls
- * @param msg the message we received
  */
 static void
 handle_ticket_result (void *cls, const struct TicketResultMessage *msg)
@@ -643,7 +621,7 @@ handle_ticket_result (void *cls, const struct TicketResultMessage *msg)
   struct GNUNET_RECLAIM_Operation *op;
   struct GNUNET_RECLAIM_TicketIterator *it;
   uint32_t r_id = ntohl (msg->id);
-
+  static const struct GNUNET_RECLAIM_Ticket ticket;
   for (op = handle->op_head; NULL != op; op = op->next)
     if (op->r_id == r_id)
       break;
@@ -654,7 +632,7 @@ handle_ticket_result (void *cls, const struct TicketResultMessage *msg)
     return;
   if (NULL != op) {
     GNUNET_CONTAINER_DLL_remove (handle->op_head, handle->op_tail, op);
-    if (memcmp (&msg->ticket, 0, sizeof (struct GNUNET_RECLAIM_Ticket)))
+    if (0 == memcmp (&msg->ticket, &ticket, sizeof (struct GNUNET_RECLAIM_Ticket)))
     {
       if (NULL != op->tr_cb)
         op->tr_cb (op->cls, NULL);
@@ -665,7 +643,7 @@ handle_ticket_result (void *cls, const struct TicketResultMessage *msg)
     free_op (op);
     return;
   } else if (NULL != it) {
-    if (memcmp (&msg->ticket, 0, sizeof (struct GNUNET_RECLAIM_Ticket)))
+    if (0 == memcmp (&msg->ticket, &ticket, sizeof (struct GNUNET_RECLAIM_Ticket)))
     {
       GNUNET_CONTAINER_DLL_remove (handle->ticket_it_head,
                                    handle->ticket_it_tail, it);
@@ -733,9 +711,9 @@ reconnect (struct GNUNET_RECLAIM_Handle *h)
     GNUNET_MQ_hd_var_size (attribute_result,
                            GNUNET_MESSAGE_TYPE_RECLAIM_ATTRIBUTE_RESULT,
                            struct AttributeResultMessage, h),
-    GNUNET_MQ_hd_var_size (ticket_result,
-                           GNUNET_MESSAGE_TYPE_RECLAIM_TICKET_RESULT,
-                           struct TicketResultMessage, h),
+    GNUNET_MQ_hd_fixed_size (ticket_result,
+                             GNUNET_MESSAGE_TYPE_RECLAIM_TICKET_RESULT,
+                             struct TicketResultMessage, h),
     GNUNET_MQ_hd_var_size (consume_ticket_result,
                            GNUNET_MESSAGE_TYPE_RECLAIM_CONSUME_TICKET_RESULT,
                            struct ConsumeTicketResultMessage, h),
@@ -1035,7 +1013,7 @@ GNUNET_RECLAIM_ticket_issue (
   struct GNUNET_RECLAIM_Operation *op;
   struct IssueTicketMessage *tim;
   size_t attr_len;
-
+  fprintf(stderr, "Issuing ticket\n");
   op = GNUNET_new (struct GNUNET_RECLAIM_Operation);
   op->h = h;
   op->tr_cb = cb;

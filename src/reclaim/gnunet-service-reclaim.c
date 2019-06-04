@@ -600,16 +600,11 @@ send_ticket_result (const struct IdpClient *client,
 {
   struct TicketResultMessage *irm;
   struct GNUNET_MQ_Envelope *env;
-  struct GNUNET_RECLAIM_Ticket *ticket_buf;
 
+  env = GNUNET_MQ_msg (irm,
+                       GNUNET_MESSAGE_TYPE_RECLAIM_TICKET_RESULT);
   if (NULL != ticket) {
-    env = GNUNET_MQ_msg_extra (irm,
-                               sizeof (struct GNUNET_RECLAIM_Ticket),
-                               GNUNET_MESSAGE_TYPE_RECLAIM_TICKET_RESULT);
-    ticket_buf = (struct GNUNET_RECLAIM_Ticket *)&irm[1];
-    *ticket_buf = *ticket;
-  } else {
-    env = GNUNET_MQ_msg (irm, GNUNET_MESSAGE_TYPE_RECLAIM_TICKET_RESULT);
+    irm->ticket = *ticket;
   }
   // TODO add success member
   irm->id = htonl (r_id);
