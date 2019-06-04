@@ -61,3 +61,4 @@ doc/tutorial/gversion.texi
 
 # top-level symlink can exist
 .clang-format
+cmake-build
