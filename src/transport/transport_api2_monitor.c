@@ -64,7 +64,6 @@ struct GNUNET_TRANSPORT_MonitorContext
    * Closure for @e cb.
    */
   void *cb_cls;
-
 };
 
 
@@ -91,12 +90,10 @@ send_start_monitor (struct GNUNET_TRANSPORT_MonitorContext *mc)
 
   if (NULL == mc->mq)
     return;
-  env = GNUNET_MQ_msg (smm,
-		       GNUNET_MESSAGE_TYPE_TRANSPORT_MONITOR_START);
+  env = GNUNET_MQ_msg (smm, GNUNET_MESSAGE_TYPE_TRANSPORT_MONITOR_START);
   smm->one_shot = htonl ((uint32_t) mc->one_shot);
   smm->peer = mc->peer;
-  GNUNET_MQ_send (mc->mq,
-		  env);
+  GNUNET_MQ_send (mc->mq, env);
 }
 
 
@@ -122,14 +119,13 @@ disconnect (struct GNUNET_TRANSPORT_MonitorContext *mc)
  * @param error what error happened?
  */
 static void
-error_handler (void *cls,
-	       enum GNUNET_MQ_Error error)
+error_handler (void *cls, enum GNUNET_MQ_Error error)
 {
   struct GNUNET_TRANSPORT_MonitorContext *mc = cls;
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-	      "MQ failure %d, reconnecting to transport service.\n",
-	      error);
+              "MQ failure %d, reconnecting to transport service.\n",
+              error);
   disconnect (mc);
   /* TODO: maybe do this with exponential backoff/delay */
   reconnect (mc);
@@ -145,19 +141,10 @@ error_handler (void *cls,
  * @return #GNUNET_OK if @a smt is well-formed
  */
 static int
-check_monitor_data (void *cls,
-		    const struct GNUNET_TRANSPORT_MonitorData *md)
+check_monitor_data (void *cls, const struct GNUNET_TRANSPORT_MonitorData *md)
 {
-  uint16_t len = ntohs (md->header.size) - sizeof (*md);
-  const char *addr = (const char *) &md[1];
-
   (void) cls;
-  if ( (0 == len) ||
-       ('\0' != addr[len-1]) )
-  {
-    GNUNET_break (0);
-    return GNUNET_SYSERR;
-  }
+  GNUNET_MQ_check_zero_termination (md);
   return GNUNET_OK;
 }
 
@@ -169,8 +156,7 @@ check_monitor_data (void *cls,
  * @param md monitor data
  */
 static void
-handle_monitor_data (void *cls,
-		     const struct GNUNET_TRANSPORT_MonitorData *md)
+handle_monitor_data (void *cls, const struct GNUNET_TRANSPORT_MonitorData *md)
 {
   struct GNUNET_TRANSPORT_MonitorContext *mc = cls;
   struct GNUNET_TRANSPORT_MonitorInformation mi;
@@ -184,9 +170,7 @@ handle_monitor_data (void *cls,
   mi.valid_until = GNUNET_TIME_absolute_ntoh (md->valid_until);
   mi.next_validation = GNUNET_TIME_absolute_ntoh (md->next_validation);
   mi.rtt = GNUNET_TIME_relative_ntoh (md->rtt);
-  mc->cb (mc->cb_cls,
-          &md->peer,
-          &mi);
+  mc->cb (mc->cb_cls, &md->peer, &mi);
 }
 
 
@@ -197,8 +181,7 @@ handle_monitor_data (void *cls,
  * @param me end message
  */
 static void
-handle_monitor_end (void *cls,
-                    const struct GNUNET_MessageHeader *me)
+handle_monitor_end (void *cls, const struct GNUNET_MessageHeader *me)
 {
   struct GNUNET_TRANSPORT_MonitorContext *mc = cls;
 
@@ -209,9 +192,7 @@ handle_monitor_end (void *cls,
     reconnect (mc);
     return;
   }
-  mc->cb (mc->cb_cls,
-          NULL,
-          NULL);
+  mc->cb (mc->cb_cls, NULL, NULL);
   GNUNET_TRANSPORT_monitor_cancel (mc);
 }
 
@@ -224,23 +205,19 @@ handle_monitor_end (void *cls,
 static void
 reconnect (struct GNUNET_TRANSPORT_MonitorContext *mc)
 {
-  struct GNUNET_MQ_MessageHandler handlers[] = {
-    GNUNET_MQ_hd_var_size (monitor_data,
-			   GNUNET_MESSAGE_TYPE_TRANSPORT_MONITOR_DATA,
-			   struct GNUNET_TRANSPORT_MonitorData,
-			   mc),
-    GNUNET_MQ_hd_fixed_size (monitor_end,
-                             GNUNET_MESSAGE_TYPE_TRANSPORT_MONITOR_END,
-                             struct GNUNET_MessageHeader,
-                             mc),
-    GNUNET_MQ_handler_end()
-  };
+  struct GNUNET_MQ_MessageHandler handlers[] =
+    {GNUNET_MQ_hd_var_size (monitor_data,
+                            GNUNET_MESSAGE_TYPE_TRANSPORT_MONITOR_DATA,
+                            struct GNUNET_TRANSPORT_MonitorData,
+                            mc),
+     GNUNET_MQ_hd_fixed_size (monitor_end,
+                              GNUNET_MESSAGE_TYPE_TRANSPORT_MONITOR_END,
+                              struct GNUNET_MessageHeader,
+                              mc),
+     GNUNET_MQ_handler_end ()};
 
-  mc->mq = GNUNET_CLIENT_connect (mc->cfg,
-				  "transport",
-				  handlers,
-				  &error_handler,
-				  mc);
+  mc->mq =
+    GNUNET_CLIENT_connect (mc->cfg, "transport", handlers, &error_handler, mc);
   if (NULL == mc->mq)
     return;
   send_start_monitor (mc);
@@ -297,7 +274,6 @@ GNUNET_TRANSPORT_monitor (const struct GNUNET_CONFIGURATION_Handle *cfg,
   }
   return mc;
 }
-
 
 
 /**
