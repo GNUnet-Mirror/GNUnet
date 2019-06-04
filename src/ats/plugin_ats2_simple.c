@@ -520,7 +520,6 @@ watch_cb (void *cls,
   hello->nt = nt;
   hello->peer = p;
   memcpy (&hello[1], addr, alen);
-  GNUNET_free (addr);
   GNUNET_CONTAINER_DLL_insert (p->h_head, p->h_tail, hello);
   /* check if sh for this HELLO already exists */
   for (struct GNUNET_ATS_SessionHandle *sh = p->sh_head; NULL != sh;
@@ -533,6 +532,7 @@ watch_cb (void *cls,
     hello->sh = sh;
     break;
   }
+  GNUNET_free (addr);
   if (NULL == p->task)
     p->task = GNUNET_SCHEDULER_add_now (&suggest_start_cb, p);
 }
