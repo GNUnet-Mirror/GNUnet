@@ -719,6 +719,7 @@ RECLAIM_TICKETS_revoke (const struct GNUNET_RECLAIM_Ticket *ticket,
                                                 rvk,
                                                 &revoke_attrs_cb,
                                                 rvk);
+  GNUNET_free (label);
   return rvk;
 }
 

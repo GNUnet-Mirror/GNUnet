@@ -505,12 +505,10 @@ handle_consume_ticket_result (void *cls,
           op->ar_cb (op->cls, &msg->identity, le->claim);
         GNUNET_RECLAIM_ATTRIBUTE_list_destroy (attrs);
       }
-    }
-    if (NULL != op) {
       op->ar_cb (op->cls, NULL, NULL);
-      GNUNET_CONTAINER_DLL_remove (h->op_head, h->op_tail, op);
-      free_op (op);
     }
+    GNUNET_CONTAINER_DLL_remove (h->op_head, h->op_tail, op);
+    free_op (op);
     return;
   }
   GNUNET_assert (0);

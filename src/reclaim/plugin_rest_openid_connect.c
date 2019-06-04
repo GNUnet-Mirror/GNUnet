@@ -552,7 +552,6 @@ cleanup_handle (struct RequestHandle *handle)
     GNUNET_free (ego_tmp->keystring);
     GNUNET_free (ego_tmp);
   }
-  GNUNET_free_non_null (handle->attr_it);
   GNUNET_free (handle);
 }
 
@@ -871,7 +870,6 @@ oidc_ticket_issue_cb (void *cls, const struct GNUNET_RECLAIM_Ticket *ticket)
   char *code_string;
 
   handle->idp_op = NULL;
-  handle->ticket = *ticket;
   if (NULL == ticket)
   {
     handle->emsg = GNUNET_strdup (OIDC_ERROR_KEY_SERVER_ERROR);
@@ -879,6 +877,7 @@ oidc_ticket_issue_cb (void *cls, const struct GNUNET_RECLAIM_Ticket *ticket)
     GNUNET_SCHEDULER_add_now (&do_redirect_error, handle);
     return;
   }
+  handle->ticket = *ticket;
   ticket_str =
     GNUNET_STRINGS_data_to_string_alloc (&handle->ticket,
                                          sizeof (struct GNUNET_RECLAIM_Ticket));
@@ -1147,6 +1146,7 @@ lookup_redirect_uri_result (void *cls,
         GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                     "Redirect uri %s contains client_id but is malformed\n",
                     tmp);
+        GNUNET_free (tmp);
         continue;
       }
       *pos = '\0';
@@ -1158,6 +1158,7 @@ lookup_redirect_uri_result (void *cls,
         GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                     "Redirect uri %s contains client_id but is malformed\n",
                     tmp);
+        GNUNET_free (tmp);
         continue;
       }
       *pos = '\0';
@@ -1858,7 +1859,8 @@ userinfo_endpoint (struct GNUNET_REST_RequestHandle *con_handle,
   // split header in "Bearer" and access_token
   authorization = GNUNET_strdup (authorization);
   authorization_type = strtok (authorization, delimiter);
-  if (0 != strcmp ("Bearer", authorization_type))
+  if ((NULL == authorization_type) ||
+      (0 != strcmp ("Bearer", authorization_type)))
   {
     handle->emsg = GNUNET_strdup (OIDC_ERROR_KEY_INVALID_TOKEN);
     handle->edesc = GNUNET_strdup ("No Access Token");
@@ -1999,6 +2001,7 @@ list_ego (void *cls,
     init_cont (handle);
     return;
   }
+  GNUNET_assert (NULL != ego);
   if (ID_REST_STATE_INIT == handle->state)
   {
     ego_entry = GNUNET_new (struct EgoEntry);
@@ -2140,6 +2143,7 @@ libgnunet_plugin_rest_openid_connect_done (void *cls)
   while (GNUNET_YES ==
          GNUNET_CONTAINER_multihashmap_iterator_next (hashmap_it, NULL, value))
     GNUNET_free_non_null (value);
+  GNUNET_CONTAINER_multihashmap_iterator_destroy (hashmap_it);
   GNUNET_CONTAINER_multihashmap_destroy (OIDC_cookie_jar_map);
 
   hashmap_it =
