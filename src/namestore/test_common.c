@@ -11,7 +11,7 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -32,36 +32,28 @@ TNC_test_plugin (const char *cfg_name)
   char *db_lib_name;
   struct GNUNET_NAMESTORE_PluginFunctions *db;
   struct GNUNET_CONFIGURATION_Handle *cfg;
-  
+
   cfg = GNUNET_CONFIGURATION_create ();
-  if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_load (cfg,
-				 cfg_name))
+  if (GNUNET_OK != GNUNET_CONFIGURATION_load (cfg, cfg_name))
   {
     GNUNET_break (0);
     GNUNET_CONFIGURATION_destroy (cfg);
     return GNUNET_SYSERR;
   }
-  if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_string (cfg,
-                                             "namestore",
-                                             "database",
-                                             &database))
+  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_string (cfg,
+                                                          "namestore",
+                                                          "database",
+                                                          &database))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "No database backend configured\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "No database backend configured\n");
     GNUNET_CONFIGURATION_destroy (cfg);
     return GNUNET_SYSERR;
   }
-  GNUNET_asprintf (&db_lib_name,
-                   "libgnunet_plugin_namestore_%s",
-                   database);
-  db = GNUNET_PLUGIN_load (db_lib_name,
-			   (void *) cfg);
+  GNUNET_asprintf (&db_lib_name, "libgnunet_plugin_namestore_%s", database);
+  GNUNET_free (database);
+  db = GNUNET_PLUGIN_load (db_lib_name, (void *) cfg);
   if (NULL != db)
-    GNUNET_break (NULL ==
-		  GNUNET_PLUGIN_unload (db_lib_name,
-					db));
+    GNUNET_break (NULL == GNUNET_PLUGIN_unload (db_lib_name, db));
   GNUNET_free (db_lib_name);
   GNUNET_CONFIGURATION_destroy (cfg);
   if (NULL == db)
@@ -74,16 +66,15 @@ TNC_test_plugin (const char *cfg_name)
  * General setup logic for starting the tests.  Obtains the @a
  * plugin_name and initializes the @a cfg_name.
  */
-#define SETUP_CFG(plugin_name,cfg_name) do { \
-  plugin_name = GNUNET_TESTING_get_testname_from_underscore (argv[0]); \
-  GNUNET_asprintf (&cfg_name, \
-                   "test_namestore_api_%s.conf", \
-                   plugin_name); \
-  if (! TNC_test_plugin (cfg_name)) \
-  { \
-    GNUNET_free (cfg_name); \
-    return 77; \
-  } \
-  GNUNET_DISK_purge_cfg_dir (cfg_name, \
-                             "GNUNET_TEST_HOME"); \
+#define SETUP_CFG(plugin_name, cfg_name)                                    \
+  do                                                                        \
+  {                                                                         \
+    plugin_name = GNUNET_TESTING_get_testname_from_underscore (argv[0]);    \
+    GNUNET_asprintf (&cfg_name, "test_namestore_api_%s.conf", plugin_name); \
+    if (! TNC_test_plugin (cfg_name))                                       \
+    {                                                                       \
+      GNUNET_free (cfg_name);                                               \
+      return 77;                                                            \
+    }                                                                       \
+    GNUNET_DISK_purge_cfg_dir (cfg_name, "GNUNET_TEST_HOME");               \
   } while (0)
