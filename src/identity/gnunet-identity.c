@@ -291,7 +291,7 @@ print_ego (void *cls,
   }
   if (! (list | monitor))
     return;
-  if (NULL == ego)
+  if ( (NULL == ego) || (NULL == identifier) )
     return;
   if ((NULL != set_ego) && (0 != strcmp (identifier, set_ego)))
     return;

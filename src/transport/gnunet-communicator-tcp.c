@@ -1909,15 +1909,6 @@ mq_init (void *cls, const struct GNUNET_PeerIdentity *peer, const char *address)
                                    queue->sock,
                                    &queue_read_kx,
                                    queue);
-  if (NULL == queue)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                "Failed to setup queue to %s at `%s'\n",
-                GNUNET_i2s (peer),
-                path);
-    GNUNET_NETWORK_socket_close (sock);
-    return GNUNET_NO;
-  }
   start_initial_kx_out (queue);
   return GNUNET_OK;
 }

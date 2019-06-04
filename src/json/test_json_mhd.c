@@ -144,7 +144,6 @@ main (int argc, const char *const argv[])
   {
     GNUNET_break (0);
     MHD_stop_daemon (daemon);
-    GNUNET_free (url);
     json_decref (bigj);
     GNUNET_free (post_data);
     GNUNET_free (str);

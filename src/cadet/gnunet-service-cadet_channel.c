@@ -1472,6 +1472,7 @@ GCCH_handle_channel_plaintext_data (struct CadetChannel *ch,
                                 1,
                                 GNUNET_NO);
       drop = ccc->head_recv;
+      GNUNET_assert (NULL != drop);
       GNUNET_CONTAINER_DLL_remove (ccc->head_recv,
                                    ccc->tail_recv,
                                    drop);

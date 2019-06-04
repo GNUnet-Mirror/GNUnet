@@ -1043,7 +1043,7 @@ check_timeouts (void *cls)
   st = GNUNET_TIME_UNIT_FOREVER_REL;
   while (NULL != (sender = GNUNET_CONTAINER_heap_peek (senders_heap)))
   {
-    st = GNUNET_TIME_absolute_get_remaining (receiver->timeout);
+    st = GNUNET_TIME_absolute_get_remaining (sender->timeout);
     if (0 != st.rel_value_us)
       break;
     sender_destroy (sender);
@@ -2113,51 +2113,6 @@ setup_receiver_mq (struct ReceiverAddress *receiver)
 
 
 /**
- * Setup a receiver for transmission.  Setup the MQ processing and
- * inform transport that the queue is ready.
- *
- * @param target which peer are we talking to
- * @param address address of the peer
- * @param address_len number of bytes in @a address
- * @return handle for the address
- */
-static struct ReceiverAddress *
-receiver_setup (const struct GNUNET_PeerIdentity *target,
-                const struct sockaddr *address,
-                socklen_t address_len)
-{
-  struct ReceiverAddress *receiver;
-
-  receiver = GNUNET_new (struct ReceiverAddress);
-  receiver->address = GNUNET_memdup (address, address_len);
-  receiver->address_len = address_len;
-  receiver->target = *target;
-  receiver->nt = GNUNET_NT_scanner_get_type (is, address, address_len);
-  (void) GNUNET_CONTAINER_multipeermap_put (
-    receivers,
-    &receiver->target,
-    receiver,
-    GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
-  receiver->timeout =
-    GNUNET_TIME_relative_to_absolute (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT);
-  receiver->hn = GNUNET_CONTAINER_heap_insert (receivers_heap,
-                                               receiver,
-                                               receiver->timeout.abs_value_us);
-  GNUNET_STATISTICS_set (stats,
-                         "# receivers active",
-                         GNUNET_CONTAINER_multipeermap_size (receivers),
-                         GNUNET_NO);
-  receiver->foreign_addr =
-    sockaddr_to_udpaddr_string (receiver->address, receiver->address_len);
-  setup_receiver_mq (receiver);
-
-  if (NULL == timeout_task)
-    timeout_task = GNUNET_SCHEDULER_add_now (&check_timeouts, NULL);
-  return receiver;
-}
-
-
-/**
  * Function called by the transport service to initialize a
  * message queue given address information about another peer.
  * If and when the communication channel is established, the
@@ -2192,8 +2147,30 @@ mq_init (void *cls, const struct GNUNET_PeerIdentity *peer, const char *address)
   }
   path = &address[strlen (COMMUNICATOR_ADDRESS_PREFIX "-")];
   in = udp_address_to_sockaddr (path, &in_len);
-  receiver = receiver_setup (peer, in, in_len);
-  (void) receiver;
+
+  receiver = GNUNET_new (struct ReceiverAddress);
+  receiver->address = in;
+  receiver->address_len = in_len;
+  receiver->target = *peer;
+  receiver->nt = GNUNET_NT_scanner_get_type (is, in, in_len);
+  (void) GNUNET_CONTAINER_multipeermap_put (receivers,
+                                            &receiver->target,
+                                            receiver,
+                                            GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
+  receiver->timeout =
+    GNUNET_TIME_relative_to_absolute (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT);
+  receiver->hn = GNUNET_CONTAINER_heap_insert (receivers_heap,
+                                               receiver,
+                                               receiver->timeout.abs_value_us);
+  GNUNET_STATISTICS_set (stats,
+                         "# receivers active",
+                         GNUNET_CONTAINER_multipeermap_size (receivers),
+                         GNUNET_NO);
+  receiver->foreign_addr =
+    sockaddr_to_udpaddr_string (receiver->address, receiver->address_len);
+  setup_receiver_mq (receiver);
+  if (NULL == timeout_task)
+    timeout_task = GNUNET_SCHEDULER_add_now (&check_timeouts, NULL);
   return GNUNET_OK;
 }
 
@@ -2489,14 +2466,14 @@ iface_proc (void *cls,
 
   (void) cls;
   (void) netmask;
+  if (NULL == addr)
+    return GNUNET_YES; /* need to know our address! */
   network = GNUNET_NT_scanner_get_type (is, addr, addrlen);
   if (GNUNET_NT_LOOPBACK == network)
   {
     /* Broadcasting on loopback does not make sense */
     return GNUNET_YES;
   }
-  if (NULL == addr)
-    return GNUNET_YES; /* need to know our address! */
   for (bi = bi_head; NULL != bi; bi = bi->next)
   {
     if ((bi->salen == addrlen) && (0 == memcmp (addr, bi->sa, addrlen)))

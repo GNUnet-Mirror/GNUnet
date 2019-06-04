@@ -417,6 +417,7 @@ select_write_cb (void *cls)
   struct Queue *queue = queue_tail;
   const struct GNUNET_MessageHeader *msg = queue->msg;
   size_t msg_size = ntohs (msg->size);
+  const void *msg;
   ssize_t sent;
 
   /* take queue of the ready list */
@@ -432,12 +433,13 @@ select_write_cb (void *cls)
 				      NULL);
 
   /* send 'msg' */
+  msg = queue->msg;
   queue->msg = NULL;
   GNUNET_MQ_impl_send_continue (queue->mq);
  resend:
   /* Send the data */
   sent = GNUNET_NETWORK_socket_sendto (unix_sock,
-                                       queue->msg,
+                                       msg,
                                        msg_size,
                                        (const struct sockaddr *) queue->address,
                                        queue->address_len);

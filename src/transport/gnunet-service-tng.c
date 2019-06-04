@@ -2980,7 +2980,8 @@ free_virtual_link (struct VirtualLink *vl)
 
   while (NULL != (pm = vl->pending_msg_head))
     free_pending_message (pm);
-  GNUNET_CONTAINER_multipeermap_remove (links, &vl->target, vl);
+  GNUNET_assert (GNUNET_YES ==
+                 GNUNET_CONTAINER_multipeermap_remove (links, &vl->target, vl));
   if (NULL != vl->visibility_task)
   {
     GNUNET_SCHEDULER_cancel (vl->visibility_task);
@@ -3006,7 +3007,9 @@ free_virtual_link (struct VirtualLink *vl)
 static void
 free_validation_state (struct ValidationState *vs)
 {
-  GNUNET_CONTAINER_multipeermap_remove (validation_map, &vs->pid, vs);
+  GNUNET_assert (
+    GNUNET_YES ==
+    GNUNET_CONTAINER_multipeermap_remove (validation_map, &vs->pid, vs));
   GNUNET_CONTAINER_heap_remove_node (vs->hn);
   vs->hn = NULL;
   if (NULL != vs->sc)
@@ -4650,6 +4653,7 @@ route_control_message_without_fc (const struct GNUNET_PeerIdentity *target,
   struct DistanceVector *dv;
 
   vl = lookup_virtual_link (target);
+  GNUNET_assert (NULL != vl);
   n = vl->n;
   dv = (0 != (options & RMO_DV_ALLOWED)) ? vl->dv : NULL;
   if (0 == (options & RMO_UNCONFIRMED_ALLOWED))
@@ -5101,6 +5105,7 @@ handle_del_address (void *cls,
                     const struct GNUNET_TRANSPORT_DelAddressMessage *dam)
 {
   struct TransportClient *tc = cls;
+  struct AddressListEntry *alen;
 
   if (CT_COMMUNICATOR != tc->type)
   {
@@ -5110,8 +5115,9 @@ handle_del_address (void *cls,
   }
   for (struct AddressListEntry *ale = tc->details.communicator.addr_head;
        NULL != ale;
-       ale = ale->next)
+       ale = alen)
   {
+    alen = ale->next;
     if (dam->aid != ale->aid)
       continue;
     GNUNET_assert (ale->tc == tc);
@@ -5515,10 +5521,10 @@ handle_fragment_box (void *cls, const struct TransportFragmentBoxMessage *fb)
   msize = ntohs (fb->msg_size);
   fc.message_uuid = fb->msg_uuid;
   fc.rc = NULL;
-  GNUNET_CONTAINER_multihashmap32_get_multiple (n->reassembly_map,
-                                                fb->msg_uuid.uuid,
-                                                &find_by_message_uuid,
-                                                &fc);
+  (void) GNUNET_CONTAINER_multihashmap32_get_multiple (n->reassembly_map,
+                                                       fb->msg_uuid.uuid,
+                                                       &find_by_message_uuid,
+                                                       &fc);
   if (NULL == (rc = fc.rc))
   {
     rc = GNUNET_malloc (sizeof (*rc) + msize + /* reassembly payload buffer */
@@ -7756,6 +7762,7 @@ handle_validation_challenge (
   struct GNUNET_TIME_RelativeNBO validity_duration;
   struct IncomingRequest *ir;
   struct Neighbour *n;
+  struct GNUNET_PeerIdentity sender;
 
   /* DV-routed messages are not allowed for validation challenges */
   if (cmc->total_hops > 0)
@@ -7794,9 +7801,9 @@ handle_validation_challenge (
   route_control_message_without_fc (&cmc->im.sender,
                                     &tvr.header,
                                     RMO_ANYTHING_GOES | RMO_REDUNDANT);
+  sender = cmc->im.sender;
   finish_cmc_handling (cmc);
-
-  vl = lookup_virtual_link (&cmc->im.sender);
+  vl = lookup_virtual_link (&sender);
   if (NULL != vl)
     return;
 
@@ -7805,17 +7812,17 @@ handle_validation_challenge (
      CORE), so we must try to bring the link up! */
 
   /* (1) Check existing queues, if any, we may be lucky! */
-  n = lookup_neighbour (&cmc->im.sender);
+  n = lookup_neighbour (&sender);
   if (NULL != n)
     for (struct Queue *q = n->queue_head; NULL != q; q = q->next_neighbour)
-      start_address_validation (&cmc->im.sender, q->address);
+      start_address_validation (&sender, q->address);
   /* (2) Also try to see if we have addresses in PEERSTORE for this peer
      we could use */
   for (ir = ir_head; NULL != ir; ir = ir->next)
-    if (0 == GNUNET_memcmp (&ir->pid, &cmc->im.sender))
+    if (0 == GNUNET_memcmp (&ir->pid, &sender))
       return; /* we are already trying */
   ir = GNUNET_new (struct IncomingRequest);
-  ir->pid = cmc->im.sender;
+  ir->pid = sender;
   GNUNET_CONTAINER_DLL_insert (ir_head, ir_tail, ir);
   ir->wc = GNUNET_PEERSTORE_watch (peerstore,
                                    "transport",
@@ -9190,6 +9197,7 @@ suggest_to_connect (const struct GNUNET_PeerIdentity *pid, const char *address)
                 "Cannot connect to %s at `%s', no matching communicator present\n",
                 GNUNET_i2s (pid),
                 address);
+    GNUNET_free (prefix);
     return;
   }
   /* forward suggestion for queue creation to communicator */
@@ -9198,6 +9206,7 @@ suggest_to_connect (const struct GNUNET_PeerIdentity *pid, const char *address)
               (unsigned int) idgen,
               prefix,
               address);
+  GNUNET_free (prefix);
   alen = strlen (address) + 1;
   env =
     GNUNET_MQ_msg_extra (cqm, alen, GNUNET_MESSAGE_TYPE_TRANSPORT_QUEUE_CREATE);
