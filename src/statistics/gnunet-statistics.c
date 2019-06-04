@@ -11,7 +11,7 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -93,7 +93,8 @@ static int set_value;
 /**
  * @brief Representation of all (testbed) nodes.
  */
-static struct Node {
+static struct Node
+{
   /**
    * @brief Index of the node in this array.
    */
@@ -117,7 +118,7 @@ static struct Node {
    * @brief Identifier for shutdown task for this node.
    */
   struct GNUNET_SCHEDULER_Task *shutdown_task;
-} *nodes;
+} * nodes;
 
 /**
  * @brief Number of configurations of all (testbed) nodes.
@@ -204,11 +205,9 @@ new_value_set (const char *subsystem,
  * @return GNUNET_YES - continue iteration.
  */
 static int
-printer (void *cls,
-         const struct GNUNET_HashCode *key,
-         void *value)
+printer (void *cls, const struct GNUNET_HashCode *key, void *value)
 {
-  struct GNUNET_TIME_Absolute now = GNUNET_TIME_absolute_get();
+  struct GNUNET_TIME_Absolute now = GNUNET_TIME_absolute_get ();
   const char *now_str;
   struct ValueSet *value_set = value;
 
@@ -218,38 +217,38 @@ printer (void *cls,
     {
       now_str = GNUNET_STRINGS_absolute_time_to_string (now);
       FPRINTF (stdout,
-	       "%24s%s %s%s%12s%s %s%50s%s%s ",
+               "%24s%s %s%s%12s%s %s%50s%s%s ",
                now_str,
                csv_separator,
                value_set->is_persistent ? "!" : " ",
                csv_separator,
                value_set->subsystem,
                csv_separator,
-               (0 == strlen (csv_separator) ? "": "\""), /* quotes if csv */
-	             _(value_set->name),
-               (0 == strlen (csv_separator) ? "": "\""), /* quotes if csv */
-               (0 == strlen (csv_separator) ? ":": csv_separator));
+               (0 == strlen (csv_separator) ? "" : "\""), /* quotes if csv */
+               _ (value_set->name),
+               (0 == strlen (csv_separator) ? "" : "\""), /* quotes if csv */
+               (0 == strlen (csv_separator) ? ":" : csv_separator));
     }
     else
     {
       FPRINTF (stdout,
-	       "%s%s%12s%s %s%50s%s%s ",
+               "%s%s%12s%s %s%50s%s%s ",
                value_set->is_persistent ? "!" : " ",
                csv_separator,
                value_set->subsystem,
                csv_separator,
-               (0 == strlen (csv_separator) ? "": "\""), /* quotes if csv */
-               _(value_set->name),
-               (0 == strlen (csv_separator) ? "": "\""), /* quotes if csv */
-               (0 == strlen (csv_separator) ? ":": csv_separator));
+               (0 == strlen (csv_separator) ? "" : "\""), /* quotes if csv */
+               _ (value_set->name),
+               (0 == strlen (csv_separator) ? "" : "\""), /* quotes if csv */
+               (0 == strlen (csv_separator) ? ":" : csv_separator));
     }
   }
   for (unsigned i = 0; i < num_nodes; i++)
   {
     FPRINTF (stdout,
-            "%16llu%s",
-            (unsigned long long) value_set->values[i],
-            csv_separator);
+             "%16llu%s",
+             (unsigned long long) value_set->values[i],
+             csv_separator);
   }
   FPRINTF (stdout, "\n");
   GNUNET_free (value_set->subsystem);
@@ -276,7 +275,7 @@ printer_watch (void *cls,
                uint64_t value,
                int is_persistent)
 {
-  struct GNUNET_TIME_Absolute now = GNUNET_TIME_absolute_get();
+  struct GNUNET_TIME_Absolute now = GNUNET_TIME_absolute_get ();
   const char *now_str;
 
   if (quiet == GNUNET_NO)
@@ -292,10 +291,10 @@ printer_watch (void *cls,
                csv_separator,
                subsystem,
                csv_separator,
-               (0 == strlen (csv_separator) ? "": "\""), /* quotes if csv */
-               _(name),
-               (0 == strlen (csv_separator) ? "": "\""), /* quotes if csv */
-               (0 == strlen (csv_separator) ? ":": csv_separator),
+               (0 == strlen (csv_separator) ? "" : "\""), /* quotes if csv */
+               _ (name),
+               (0 == strlen (csv_separator) ? "" : "\""), /* quotes if csv */
+               (0 == strlen (csv_separator) ? ":" : csv_separator),
                (unsigned long long) value);
     }
     else
@@ -306,17 +305,15 @@ printer_watch (void *cls,
                csv_separator,
                subsystem,
                csv_separator,
-               (0 == strlen (csv_separator) ? "": "\""), /* quotes if csv */
-               _(name),
-               (0 == strlen (csv_separator) ? "": "\""), /* quotes if csv */
-               (0 == strlen (csv_separator) ? ":": csv_separator),
+               (0 == strlen (csv_separator) ? "" : "\""), /* quotes if csv */
+               _ (name),
+               (0 == strlen (csv_separator) ? "" : "\""), /* quotes if csv */
+               (0 == strlen (csv_separator) ? ":" : csv_separator),
                (unsigned long long) value);
     }
   }
   else
-    FPRINTF (stdout,
-	     "%llu\n",
-	     (unsigned long long) value);
+    FPRINTF (stdout, "%llu\n", (unsigned long long) value);
 
   return GNUNET_OK;
 }
@@ -335,8 +332,8 @@ clean_node (void *cls)
   struct GNUNET_STATISTICS_Handle *h;
   struct GNUNET_STATISTICS_GetHandle *gh;
 
-  if ( (NULL != path_testbed) && /* were issued with -t <testbed-path> option */
-       (NULL != nodes[index_node].conf) )
+  if ((NULL != path_testbed) && /* were issued with -t <testbed-path> option */
+      (NULL != nodes[index_node].conf))
   {
     GNUNET_CONFIGURATION_destroy (nodes[index_node].conf);
     nodes[index_node].conf = NULL;
@@ -352,7 +349,8 @@ clean_node (void *cls)
   }
   if (GNUNET_YES == watch)
   {
-    GNUNET_assert (GNUNET_OK ==
+    GNUNET_assert (
+      GNUNET_OK ==
       GNUNET_STATISTICS_watch_cancel (h,
                                       subsystem,
                                       name,
@@ -383,7 +381,7 @@ static void
 print_finish (void *cls)
 {
   GNUNET_CONTAINER_multihashmap_iterate (values, printer, NULL);
-  GNUNET_SCHEDULER_shutdown();
+  GNUNET_SCHEDULER_shutdown ();
 }
 
 /**
@@ -395,8 +393,7 @@ print_finish (void *cls)
  * @param succes Whether statistics were obtained successfully.
  */
 static void
-continuation_print (void *cls,
-                    int success)
+continuation_print (void *cls, int success)
 {
   const unsigned index_node = *(unsigned *) cls;
 
@@ -404,12 +401,10 @@ continuation_print (void *cls,
   if (GNUNET_OK != success)
   {
     if (NULL == remote_host)
-      FPRINTF (stderr,
-               "%s",
-               _("Failed to obtain statistics.\n"));
+      FPRINTF (stderr, "%s", _ ("Failed to obtain statistics.\n"));
     else
       FPRINTF (stderr,
-               _("Failed to obtain statistics from host `%s:%llu'\n"),
+               _ ("Failed to obtain statistics from host `%s:%llu'\n"),
                remote_host,
                remote_port);
     ret = 1;
@@ -435,8 +430,7 @@ continuation_print (void *cls,
  *        successfully obtained, #GNUNET_SYSERR if not.
  */
 static void
-cleanup (void *cls,
-         int success)
+cleanup (void *cls, int success)
 {
   for (unsigned i = 0; i < num_nodes; i++)
   {
@@ -445,12 +439,10 @@ cleanup (void *cls,
   if (GNUNET_OK != success)
   {
     if (NULL == remote_host)
-      FPRINTF (stderr,
-               "%s",
-               _("Failed to obtain statistics.\n"));
+      FPRINTF (stderr, "%s", _ ("Failed to obtain statistics.\n"));
     else
       FPRINTF (stderr,
-               _("Failed to obtain statistics from host `%s:%llu'\n"),
+               _ ("Failed to obtain statistics from host `%s:%llu'\n"),
                remote_host,
                remote_port);
     ret = 1;
@@ -492,19 +484,19 @@ collector (void *cls,
   GNUNET_free (subsys_name);
   if (GNUNET_YES == GNUNET_CONTAINER_multihashmap_contains (values, key))
   {
-    // get
     value_set = GNUNET_CONTAINER_multihashmap_get (values, key);
   }
   else
   {
-    // new
     value_set = new_value_set (subsystem, name, num_nodes, is_persistent);
   }
-  // write
   value_set->values[index_node] = value;
-  // put
-  GNUNET_CONTAINER_multihashmap_put (values, key, value_set,
-      GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
+  GNUNET_assert (GNUNET_YES ==
+                 GNUNET_CONTAINER_multihashmap_put (
+                   values,
+                   key,
+                   value_set,
+                   GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
   return GNUNET_OK;
 }
 
@@ -523,22 +515,17 @@ main_task (void *cls)
   {
     if (NULL == subsystem)
     {
-      FPRINTF (stderr,
-	       "%s",
-	       _("Missing argument: subsystem \n"));
+      FPRINTF (stderr, "%s", _ ("Missing argument: subsystem \n"));
       ret = 1;
       return;
     }
     if (NULL == name)
     {
-      FPRINTF (stderr,
-	       "%s",
-	       _("Missing argument: name\n"));
+      FPRINTF (stderr, "%s", _ ("Missing argument: name\n"));
       ret = 1;
       return;
     }
-    nodes[index_node].handle = GNUNET_STATISTICS_create (subsystem,
-				  cfg);
+    nodes[index_node].handle = GNUNET_STATISTICS_create (subsystem, cfg);
     if (NULL == nodes[index_node].handle)
     {
       ret = 1;
@@ -548,59 +535,51 @@ main_task (void *cls)
                            name,
                            (uint64_t) set_val,
                            persistent);
-    GNUNET_STATISTICS_destroy (nodes[index_node].handle,
-                               GNUNET_YES);
+    GNUNET_STATISTICS_destroy (nodes[index_node].handle, GNUNET_YES);
     nodes[index_node].handle = NULL;
     return;
   }
-  if (NULL == (nodes[index_node].handle = GNUNET_STATISTICS_create ("gnunet-statistics",
-                                             cfg)))
+  if (NULL == (nodes[index_node].handle =
+                 GNUNET_STATISTICS_create ("gnunet-statistics", cfg)))
   {
     ret = 1;
     return;
   }
   if (GNUNET_NO == watch)
   {
-    if (NULL ==
-        (nodes[index_node].gh = GNUNET_STATISTICS_get (nodes[index_node].handle,
-                                                       subsystem,
-                                                       name,
-                                                       &continuation_print,
-                                                       &collector,
-				     &nodes[index_node].index_node)) )
-      cleanup (nodes[index_node].handle,
-	       GNUNET_SYSERR);
+    if (NULL == (nodes[index_node].gh =
+                   GNUNET_STATISTICS_get (nodes[index_node].handle,
+                                          subsystem,
+                                          name,
+                                          &continuation_print,
+                                          &collector,
+                                          &nodes[index_node].index_node)))
+      cleanup (nodes[index_node].handle, GNUNET_SYSERR);
   }
   else
   {
-    if ( (NULL == subsystem) ||
-	 (NULL == name) )
+    if ((NULL == subsystem) || (NULL == name))
     {
-      printf (_("No subsystem or name given\n"));
-      GNUNET_STATISTICS_destroy (nodes[index_node].handle,
-				 GNUNET_NO);
+      printf (_ ("No subsystem or name given\n"));
+      GNUNET_STATISTICS_destroy (nodes[index_node].handle, GNUNET_NO);
       nodes[index_node].handle = NULL;
       ret = 1;
       return;
     }
-    if (GNUNET_OK !=
-        GNUNET_STATISTICS_watch (nodes[index_node].handle,
-                                 subsystem,
-                                 name,
-                                 &printer_watch,
-                                 &nodes[index_node].index_node))
+    if (GNUNET_OK != GNUNET_STATISTICS_watch (nodes[index_node].handle,
+                                              subsystem,
+                                              name,
+                                              &printer_watch,
+                                              &nodes[index_node].index_node))
     {
-      fprintf (stderr,
-               _("Failed to initialize watch routine\n"));
+      fprintf (stderr, _ ("Failed to initialize watch routine\n"));
       nodes[index_node].shutdown_task =
-        GNUNET_SCHEDULER_add_now (&clean_node,
-                                  &nodes[index_node].index_node);
+        GNUNET_SCHEDULER_add_now (&clean_node, &nodes[index_node].index_node);
       return;
     }
   }
   nodes[index_node].shutdown_task =
-    GNUNET_SCHEDULER_add_shutdown (&clean_node,
-                                   &nodes[index_node].index_node);
+    GNUNET_SCHEDULER_add_shutdown (&clean_node, &nodes[index_node].index_node);
 }
 
 /**
@@ -615,16 +594,16 @@ main_task (void *cls)
  * @return to continue iteration or not to
  */
 static int
-iter_check_config (void *cls,
-                   const char *filename)
+iter_check_config (void *cls, const char *filename)
 {
   if (0 == strncmp (GNUNET_STRINGS_get_short_name (filename), "config", 6))
   {
     /* Found the config - stop iteration successfully */
-    GNUNET_array_grow (nodes, num_nodes, num_nodes+1);
-    nodes[num_nodes-1].conf = GNUNET_CONFIGURATION_create();
-    nodes[num_nodes-1].index_node = num_nodes-1;
-    if (GNUNET_OK != GNUNET_CONFIGURATION_load (nodes[num_nodes-1].conf, filename))
+    GNUNET_array_grow (nodes, num_nodes, num_nodes + 1);
+    nodes[num_nodes - 1].conf = GNUNET_CONFIGURATION_create ();
+    nodes[num_nodes - 1].index_node = num_nodes - 1;
+    if (GNUNET_OK !=
+        GNUNET_CONFIGURATION_load (nodes[num_nodes - 1].conf, filename))
     {
       FPRINTF (stderr, "Failed loading config `%s'\n", filename);
       return GNUNET_SYSERR;
@@ -652,19 +631,14 @@ iter_check_config (void *cls,
  * @return status whether to continue iteration
  */
 static int
-iter_testbed_path (void *cls,
-                   const char *filename)
+iter_testbed_path (void *cls, const char *filename)
 {
   unsigned index_node;
 
   GNUNET_assert (NULL != filename);
-  if (1 == SSCANF (GNUNET_STRINGS_get_short_name (filename),
-                  "%u",
-                  &index_node))
+  if (1 == SSCANF (GNUNET_STRINGS_get_short_name (filename), "%u", &index_node))
   {
-    if (-1 == GNUNET_DISK_directory_scan (filename,
-                                          iter_check_config,
-                                          NULL))
+    if (-1 == GNUNET_DISK_directory_scan (filename, iter_check_config, NULL))
     {
       /* This is probably no directory for a testbed node
        * Go on with iteration */
@@ -687,14 +661,11 @@ discover_testbed_nodes (const char *path_testbed)
 {
   int num_dir_entries;
 
-  num_dir_entries = GNUNET_DISK_directory_scan (path_testbed,
-                                                iter_testbed_path,
-                                                NULL);
+  num_dir_entries =
+    GNUNET_DISK_directory_scan (path_testbed, iter_testbed_path, NULL);
   if (-1 == num_dir_entries)
   {
-    FPRINTF (stderr,
-            "Failure during scanning directory `%s'\n",
-            path_testbed);
+    FPRINTF (stderr, "Failure during scanning directory `%s'\n", path_testbed);
     return -1;
   }
   return 0;
@@ -718,16 +689,13 @@ run (void *cls,
 
   c = (struct GNUNET_CONFIGURATION_Handle *) cfg;
   set_value = GNUNET_NO;
-  if (NULL == csv_separator) csv_separator = "";
+  if (NULL == csv_separator)
+    csv_separator = "";
   if (NULL != args[0])
   {
-    if (1 != SSCANF (args[0],
-		     "%llu",
-		     &set_val))
+    if (1 != SSCANF (args[0], "%llu", &set_val))
     {
-      FPRINTF (stderr,
-	       _("Invalid argument `%s'\n"),
-	       args[0]);
+      FPRINTF (stderr, _ ("Invalid argument `%s'\n"), args[0]);
       ret = 1;
       return;
     }
@@ -737,39 +705,36 @@ run (void *cls,
   {
     if (0 == remote_port)
     {
-      if (GNUNET_SYSERR ==
-	  GNUNET_CONFIGURATION_get_value_number (cfg,
-						 "statistics",
-						 "PORT",
-						 &remote_port))
+      if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_number (cfg,
+                                                                  "statistics",
+                                                                  "PORT",
+                                                                  &remote_port))
       {
-	FPRINTF (stderr,
-		 _("A port is required to connect to host `%s'\n"),
-		 remote_host);
-	return;
+        FPRINTF (stderr,
+                 _ ("A port is required to connect to host `%s'\n"),
+                 remote_host);
+        return;
       }
     }
     else if (65535 <= remote_port)
     {
       FPRINTF (stderr,
-	       _("A port has to be between 1 and 65535 to connect to host `%s'\n"),
-	       remote_host);
+               _ (
+                 "A port has to be between 1 and 65535 to connect to host `%s'\n"),
+               remote_host);
       return;
     }
 
     /* Manipulate configuration */
+    GNUNET_CONFIGURATION_set_value_string (c, "statistics", "UNIXPATH", "");
     GNUNET_CONFIGURATION_set_value_string (c,
-					   "statistics",
-					   "UNIXPATH",
-					   "");
-    GNUNET_CONFIGURATION_set_value_string (c,
-					   "statistics",
-					   "HOSTNAME",
-					   remote_host);
+                                           "statistics",
+                                           "HOSTNAME",
+                                           remote_host);
     GNUNET_CONFIGURATION_set_value_number (c,
-					   "statistics",
-					   "PORT",
-					   remote_port);
+                                           "statistics",
+                                           "PORT",
+                                           remote_port);
   }
   if (NULL == path_testbed)
   {
@@ -783,7 +748,8 @@ run (void *cls,
   {
     if (GNUNET_YES == watch)
     {
-      printf (_("Not able to watch testbed nodes (yet - feel free to implement)\n"));
+      printf (
+        _ ("Not able to watch testbed nodes (yet - feel free to implement)\n"));
       ret = 1;
       return;
     }
@@ -795,8 +761,7 @@ run (void *cls,
     /* For each config/node collect statistics */
     for (unsigned i = 0; i < num_nodes; i++)
     {
-      GNUNET_SCHEDULER_add_now (&main_task,
-              &nodes[i].index_node);
+      GNUNET_SCHEDULER_add_now (&main_task, &nodes[i].index_node);
     }
   }
 }
@@ -812,78 +777,82 @@ run (void *cls,
 int
 main (int argc, char *const *argv)
 {
-  struct GNUNET_GETOPT_CommandLineOption options[] = {
-    GNUNET_GETOPT_option_string ('n',
-                                 "name",
-                                 "NAME",
-                                 gettext_noop ("limit output to statistics for the given NAME"),
-                                 &name),
+  struct GNUNET_GETOPT_CommandLineOption options[] =
+    {GNUNET_GETOPT_option_string (
+       'n',
+       "name",
+       "NAME",
+       gettext_noop ("limit output to statistics for the given NAME"),
+       &name),
 
-    GNUNET_GETOPT_option_flag ('p',
-                                  "persistent",
-                                  gettext_noop ("make the value being set persistent"),
-                                  &persistent),
+     GNUNET_GETOPT_option_flag ('p',
+                                "persistent",
+                                gettext_noop (
+                                  "make the value being set persistent"),
+                                &persistent),
 
-    GNUNET_GETOPT_option_string ('s',
-                                 "subsystem",
-                                 "SUBSYSTEM",
-                                 gettext_noop ("limit output to the given SUBSYSTEM"),
-                                 &subsystem),
+     GNUNET_GETOPT_option_string ('s',
+                                  "subsystem",
+                                  "SUBSYSTEM",
+                                  gettext_noop (
+                                    "limit output to the given SUBSYSTEM"),
+                                  &subsystem),
 
-    GNUNET_GETOPT_option_string ('S',
-                                 "csv-separator",
-                                 "CSV_SEPARATOR",
-                                 gettext_noop ("use as csv separator"),
-                                 &csv_separator),
+     GNUNET_GETOPT_option_string ('S',
+                                  "csv-separator",
+                                  "CSV_SEPARATOR",
+                                  gettext_noop ("use as csv separator"),
+                                  &csv_separator),
 
-    GNUNET_GETOPT_option_filename ('t',
-                                  "testbed",
-                                  "TESTBED",
-                                  gettext_noop ("path to the folder containing the testbed data"),
-                                  &path_testbed),
+     GNUNET_GETOPT_option_filename (
+       't',
+       "testbed",
+       "TESTBED",
+       gettext_noop ("path to the folder containing the testbed data"),
+       &path_testbed),
 
-    GNUNET_GETOPT_option_flag ('q',
-                                  "quiet",
-                                  gettext_noop ("just print the statistics value"),
-                                  &quiet),
+     GNUNET_GETOPT_option_flag ('q',
+                                "quiet",
+                                gettext_noop (
+                                  "just print the statistics value"),
+                                &quiet),
 
-    GNUNET_GETOPT_option_flag ('w',
-                                  "watch",
-                                  gettext_noop ("watch value continuously"),
-                                  &watch),
+     GNUNET_GETOPT_option_flag ('w',
+                                "watch",
+                                gettext_noop ("watch value continuously"),
+                                &watch),
 
-    GNUNET_GETOPT_option_string ('r',
-                                 "remote",
-                                 "REMOTE",
-                                 gettext_noop ("connect to remote host"),
-                                 &remote_host),
+     GNUNET_GETOPT_option_string ('r',
+                                  "remote",
+                                  "REMOTE",
+                                  gettext_noop ("connect to remote host"),
+                                  &remote_host),
 
-    GNUNET_GETOPT_option_ulong ('o',
-                                    "port",
-                                    "PORT",
-                                    gettext_noop ("port for remote host"),
-                                    &remote_port),
+     GNUNET_GETOPT_option_ulong ('o',
+                                 "port",
+                                 "PORT",
+                                 gettext_noop ("port for remote host"),
+                                 &remote_port),
 
-    GNUNET_GETOPT_OPTION_END
-  };
+     GNUNET_GETOPT_OPTION_END};
   remote_port = 0;
   remote_host = NULL;
-  if (GNUNET_OK !=
-      GNUNET_STRINGS_get_utf8_args (argc, argv,
-				    &argc, &argv))
+  if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv, &argc, &argv))
     return 2;
 
   ret = (GNUNET_OK ==
-	 GNUNET_PROGRAM_run (argc,
-			     argv,
-			     "gnunet-statistics [options [value]]",
-			     gettext_noop
-			     ("Print statistics about GNUnet operations."),
-			     options,
-			     &run,
-			     NULL)) ? ret : 1;
+         GNUNET_PROGRAM_run (argc,
+                             argv,
+                             "gnunet-statistics [options [value]]",
+                             gettext_noop (
+                               "Print statistics about GNUnet operations."),
+                             options,
+                             &run,
+                             NULL))
+          ? ret
+          : 1;
   GNUNET_free_non_null (remote_host);
-  GNUNET_free ((void*) argv);
+  GNUNET_free ((void *) argv);
   return ret;
 }
 

@@ -56,7 +56,8 @@
 /**
  * How long do we wait at least between series of requests?
  */
-#define SERIES_DELAY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MICROSECONDS, 10)
+#define SERIES_DELAY \
+  GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MICROSECONDS, 10)
 
 /**
  * How long do DNS records have to last at least after being imported?
@@ -97,7 +98,6 @@ struct Zone
    * Private key of the zone.
    */
   struct GNUNET_CRYPTO_EcdsaPrivateKey key;
-
 };
 
 
@@ -120,7 +120,6 @@ struct Record
    * GNS record.
    */
   struct GNUNET_GNSRECORD_Data grd;
-
 };
 
 
@@ -367,9 +366,8 @@ static struct GNUNET_TIME_Relative idle_time;
  * @param cls closure
  * @param rec a DNS record
  */
-typedef void
-(*RecordProcessor) (void *cls,
-		    const struct GNUNET_DNSPARSER_Record *rec);
+typedef void (*RecordProcessor) (void *cls,
+                                 const struct GNUNET_DNSPARSER_Record *rec);
 
 
 /**
@@ -382,29 +380,26 @@ typedef void
  */
 static void
 for_all_records (const struct GNUNET_DNSPARSER_Packet *p,
-		 RecordProcessor rp,
-		 void *rp_cls)
+                 RecordProcessor rp,
+                 void *rp_cls)
 {
-  for (unsigned int i=0;i<p->num_answers;i++)
+  for (unsigned int i = 0; i < p->num_answers; i++)
   {
     struct GNUNET_DNSPARSER_Record *rs = &p->answers[i];
 
-    rp (rp_cls,
-	rs);
+    rp (rp_cls, rs);
   }
-  for (unsigned int i=0;i<p->num_authority_records;i++)
+  for (unsigned int i = 0; i < p->num_authority_records; i++)
   {
     struct GNUNET_DNSPARSER_Record *rs = &p->authority_records[i];
 
-    rp (rp_cls,
-	rs);
+    rp (rp_cls, rs);
   }
-  for (unsigned int i=0;i<p->num_additional_records;i++)
+  for (unsigned int i = 0; i < p->num_additional_records; i++)
   {
     struct GNUNET_DNSPARSER_Record *rs = &p->additional_records[i];
 
-    rp (rp_cls,
-	rs);
+    rp (rp_cls, rs);
   }
 }
 
@@ -422,8 +417,7 @@ get_label (struct Request *req)
   static char label[64];
   const char *dot;
 
-  dot = strchr (req->hostname,
-                (unsigned char) '.');
+  dot = strchr (req->hostname, (unsigned char) '.');
   if (NULL == dot)
   {
     GNUNET_break (0);
@@ -434,9 +428,7 @@ get_label (struct Request *req)
     GNUNET_break (0);
     return NULL;
   }
-  GNUNET_memcpy (label,
-                 req->hostname,
-                 dot - req->hostname);
+  GNUNET_memcpy (label, req->hostname, dot - req->hostname);
   label[dot - req->hostname] = '\0';
   return label;
 }
@@ -451,8 +443,7 @@ get_label (struct Request *req)
  *         allocated query buffer
  */
 static void *
-build_dns_query (struct Request *req,
-		 size_t *raw_size)
+build_dns_query (struct Request *req, size_t *raw_size)
 {
   static char raw[512];
   char *rawp;
@@ -464,16 +455,11 @@ build_dns_query (struct Request *req,
   q.type = GNUNET_DNSPARSER_TYPE_NS;
   q.dns_traffic_class = GNUNET_TUN_DNS_CLASS_INTERNET;
 
-  memset (&p,
-          0,
-          sizeof (p));
+  memset (&p, 0, sizeof (p));
   p.num_queries = 1;
   p.queries = &q;
   p.id = req->id;
-  ret = GNUNET_DNSPARSER_pack (&p,
-                               UINT16_MAX,
-                               &rawp,
-                               raw_size);
+  ret = GNUNET_DNSPARSER_pack (&p, UINT16_MAX, &rawp, raw_size);
   if (GNUNET_OK != ret)
   {
     if (GNUNET_NO == ret)
@@ -494,13 +480,10 @@ build_dns_query (struct Request *req,
     GNUNET_free (rawp);
     return NULL;
   }
-  GNUNET_memcpy (raw,
-                 rawp,
-                 *raw_size);
+  GNUNET_memcpy (raw, rawp, *raw_size);
   GNUNET_free (rawp);
   return raw;
 }
-
 
 
 /**
@@ -516,9 +499,7 @@ free_records (struct Request *req)
   /* Free records */
   while (NULL != (rec = req->rec_head))
   {
-    GNUNET_CONTAINER_DLL_remove (req->rec_head,
-				 req->rec_tail,
-				 rec);
+    GNUNET_CONTAINER_DLL_remove (req->rec_head, req->rec_tail, rec);
     GNUNET_free (rec);
   }
 }
@@ -554,17 +535,14 @@ process_queue (void *cls);
 static void
 insert_sorted (struct Request *req)
 {
-  req->hn = GNUNET_CONTAINER_heap_insert (req_heap,
-                                          req,
-                                          req->expires.abs_value_us);
+  req->hn =
+    GNUNET_CONTAINER_heap_insert (req_heap, req, req->expires.abs_value_us);
   if (req == GNUNET_CONTAINER_heap_peek (req_heap))
   {
     if (NULL != t)
       GNUNET_SCHEDULER_cancel (t);
     sleep_time_reg_proc = GNUNET_TIME_absolute_get ();
-    t = GNUNET_SCHEDULER_add_at (req->expires,
-				 &process_queue,
-				 NULL);
+    t = GNUNET_SCHEDULER_add_at (req->expires, &process_queue, NULL);
   }
 }
 
@@ -580,10 +558,10 @@ insert_sorted (struct Request *req)
  */
 static void
 add_record (struct Request *req,
-	    uint32_t type,
-	    struct GNUNET_TIME_Absolute expiration_time,
-	    const void *data,
-	    size_t data_len)
+            uint32_t type,
+            struct GNUNET_TIME_Absolute expiration_time,
+            const void *data,
+            size_t data_len)
 {
   struct Record *rec;
 
@@ -593,12 +571,8 @@ add_record (struct Request *req,
   rec->grd.data_size = data_len;
   rec->grd.record_type = type;
   rec->grd.flags = GNUNET_GNSRECORD_RF_NONE;
-  GNUNET_memcpy (&rec[1],
-		 data,
-		 data_len);
-  GNUNET_CONTAINER_DLL_insert (req->rec_head,
-			       req->rec_tail,
-			       rec);
+  GNUNET_memcpy (&rec[1], data, data_len);
+  GNUNET_CONTAINER_DLL_insert (req->rec_head, req->rec_tail, rec);
 }
 
 
@@ -631,20 +605,18 @@ struct GlueClosure
  * @param rec record that may contain glue information
  */
 static void
-check_for_glue (void *cls,
-		const struct GNUNET_DNSPARSER_Record *rec)
+check_for_glue (void *cls, const struct GNUNET_DNSPARSER_Record *rec)
 {
   struct GlueClosure *gc = cls;
   char dst[65536];
   size_t dst_len;
   size_t off;
-  char ip[INET6_ADDRSTRLEN+1];
+  char ip[INET6_ADDRSTRLEN + 1];
   socklen_t ip_size = (socklen_t) sizeof (ip);
   struct GNUNET_TIME_Absolute expiration_time;
   struct GNUNET_TIME_Relative left;
 
-  if (0 != strcasecmp (rec->name,
-		       gc->ns))
+  if (0 != strcasecmp (rec->name, gc->ns))
     return;
   expiration_time = rec->expiration_time;
   left = GNUNET_TIME_absolute_get_remaining (expiration_time);
@@ -652,7 +624,8 @@ check_for_glue (void *cls,
     return; /* ignore expired glue records */
   /* if expiration window is too short, bump it to configured minimum */
   if (left.rel_value_us < minimum_expiration_time.rel_value_us)
-    expiration_time = GNUNET_TIME_relative_to_absolute (minimum_expiration_time);
+    expiration_time =
+      GNUNET_TIME_relative_to_absolute (minimum_expiration_time);
   dst_len = sizeof (dst);
   off = 0;
   switch (rec->type)
@@ -663,31 +636,23 @@ check_for_glue (void *cls,
       GNUNET_break (0);
       return;
     }
-    if (NULL ==
-	inet_ntop (AF_INET,
-		   rec->data.raw.data,
-		   ip,
-		   ip_size))
+    if (NULL == inet_ntop (AF_INET, rec->data.raw.data, ip, ip_size))
     {
       GNUNET_break (0);
       return;
     }
-    if ( (GNUNET_OK ==
-	  GNUNET_DNSPARSER_builder_add_name (dst,
-					     dst_len,
-					     &off,
-					     gc->req->hostname)) &&
-	 (GNUNET_OK ==
-	  GNUNET_DNSPARSER_builder_add_name (dst,
-					     dst_len,
-					     &off,
-					     ip)) )
+    if ((GNUNET_OK == GNUNET_DNSPARSER_builder_add_name (dst,
+                                                         dst_len,
+                                                         &off,
+                                                         gc->req->hostname)) &&
+        (GNUNET_OK ==
+         GNUNET_DNSPARSER_builder_add_name (dst, dst_len, &off, ip)))
     {
       add_record (gc->req,
-		  GNUNET_GNSRECORD_TYPE_GNS2DNS,
-		  expiration_time,
-		  dst,
-		  off);
+                  GNUNET_GNSRECORD_TYPE_GNS2DNS,
+                  expiration_time,
+                  dst,
+                  off);
       gc->found = GNUNET_YES;
     }
     break;
@@ -697,51 +662,41 @@ check_for_glue (void *cls,
       GNUNET_break (0);
       return;
     }
-    if (NULL ==
-	inet_ntop (AF_INET6,
-		   rec->data.raw.data,
-		   ip,
-		   ip_size))
+    if (NULL == inet_ntop (AF_INET6, rec->data.raw.data, ip, ip_size))
     {
       GNUNET_break (0);
       return;
     }
-    if ( (GNUNET_OK ==
-	  GNUNET_DNSPARSER_builder_add_name (dst,
-					     dst_len,
-					     &off,
-					     gc->req->hostname)) &&
-	 (GNUNET_OK ==
-	  GNUNET_DNSPARSER_builder_add_name (dst,
-					     dst_len,
-					     &off,
-					     ip)) )
+    if ((GNUNET_OK == GNUNET_DNSPARSER_builder_add_name (dst,
+                                                         dst_len,
+                                                         &off,
+                                                         gc->req->hostname)) &&
+        (GNUNET_OK ==
+         GNUNET_DNSPARSER_builder_add_name (dst, dst_len, &off, ip)))
     {
       add_record (gc->req,
-		  GNUNET_GNSRECORD_TYPE_GNS2DNS,
-		  expiration_time,
-		  dst,
-		  off);
+                  GNUNET_GNSRECORD_TYPE_GNS2DNS,
+                  expiration_time,
+                  dst,
+                  off);
       gc->found = GNUNET_YES;
     }
     break;
   case GNUNET_DNSPARSER_TYPE_CNAME:
-    if ( (GNUNET_OK ==
-	  GNUNET_DNSPARSER_builder_add_name (dst,
-					     dst_len,
-					     &off,
-					     gc->req->hostname)) &&
-	 (GNUNET_OK ==
-	  GNUNET_DNSPARSER_builder_add_name (dst,
-					     dst_len,
-					     &off,
-					     rec->data.hostname)) )
+    if ((GNUNET_OK == GNUNET_DNSPARSER_builder_add_name (dst,
+                                                         dst_len,
+                                                         &off,
+                                                         gc->req->hostname)) &&
+        (GNUNET_OK == GNUNET_DNSPARSER_builder_add_name (dst,
+                                                         dst_len,
+                                                         &off,
+                                                         rec->data.hostname)))
     {
       add_record (gc->req,
-		  GNUNET_GNSRECORD_TYPE_GNS2DNS,
-		  expiration_time,
-		  dst,
-		  off);
+                  GNUNET_GNSRECORD_TYPE_GNS2DNS,
+                  expiration_time,
+                  dst,
+                  off);
       gc->found = GNUNET_YES;
     }
     break;
@@ -777,8 +732,7 @@ struct ProcessRecordContext
  * @param rec response
  */
 static void
-process_record (void *cls,
-                const struct GNUNET_DNSPARSER_Record *rec)
+process_record (void *cls, const struct GNUNET_DNSPARSER_Record *rec)
 {
   struct ProcessRecordContext *prc = cls;
   struct Request *req = prc->req;
@@ -791,14 +745,14 @@ process_record (void *cls,
   dst_len = sizeof (dst);
   off = 0;
   records++;
-  if (0 != strcasecmp (rec->name,
-		       req->hostname))
+  if (0 != strcasecmp (rec->name, req->hostname))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		"DNS returned record from zone `%s' of type %u while resolving `%s'\n",
-		rec->name,
-		(unsigned int) rec->type,
-		req->hostname);
+    GNUNET_log (
+      GNUNET_ERROR_TYPE_DEBUG,
+      "DNS returned record from zone `%s' of type %u while resolving `%s'\n",
+      rec->name,
+      (unsigned int) rec->type,
+      req->hostname);
     return; /* does not match hostname, might be glue, but
 	       not useful for this pass! */
   }
@@ -807,8 +761,8 @@ process_record (void *cls,
   if (0 == left.rel_value_us)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		"DNS returned expired record for `%s'\n",
-		req->hostname);
+                "DNS returned expired record for `%s'\n",
+                req->hostname);
     GNUNET_STATISTICS_update (stats,
                               "# expired records obtained from DNS",
                               1,
@@ -822,68 +776,59 @@ process_record (void *cls,
               req->hostname);
   /* if expiration window is too short, bump it to configured minimum */
   if (left.rel_value_us < minimum_expiration_time.rel_value_us)
-    expiration_time = GNUNET_TIME_relative_to_absolute (minimum_expiration_time);
+    expiration_time =
+      GNUNET_TIME_relative_to_absolute (minimum_expiration_time);
   switch (rec->type)
   {
-  case GNUNET_DNSPARSER_TYPE_NS:
-    {
-      struct GlueClosure gc;
+  case GNUNET_DNSPARSER_TYPE_NS: {
+    struct GlueClosure gc;
 
-      /* check for glue */
-      gc.req = req;
-      gc.ns = rec->data.hostname;
-      gc.found = GNUNET_NO;
-      for_all_records (prc->p,
-		       &check_for_glue,
-		       &gc);
-      if ( (GNUNET_NO == gc.found) &&
-	   (GNUNET_OK ==
-	    GNUNET_DNSPARSER_builder_add_name (dst,
-					       dst_len,
-					       &off,
-					       req->hostname)) &&
-	   (GNUNET_OK ==
-	    GNUNET_DNSPARSER_builder_add_name (dst,
-					       dst_len,
-					       &off,
-					       rec->data.hostname)) )
-      {
-	/* FIXME: actually check if this is out-of-bailiwick,
+    /* check for glue */
+    gc.req = req;
+    gc.ns = rec->data.hostname;
+    gc.found = GNUNET_NO;
+    for_all_records (prc->p, &check_for_glue, &gc);
+    if ((GNUNET_NO == gc.found) &&
+        (GNUNET_OK == GNUNET_DNSPARSER_builder_add_name (dst,
+                                                         dst_len,
+                                                         &off,
+                                                         req->hostname)) &&
+        (GNUNET_OK == GNUNET_DNSPARSER_builder_add_name (dst,
+                                                         dst_len,
+                                                         &off,
+                                                         rec->data.hostname)))
+    {
+      /* FIXME: actually check if this is out-of-bailiwick,
 	   and if not request explicit resolution... */
-	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		    "Converted OOB (`%s') NS record for `%s'\n",
-		    rec->data.hostname,
-		    rec->name);
-	add_record (req,
-		    GNUNET_GNSRECORD_TYPE_GNS2DNS,
-		    expiration_time,
-		    dst,
-		    off);
-      }
-      else
-      {
-	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		    "Converted NS record for `%s' using glue\n",
-		    rec->name);
-      }
-      break;
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Converted OOB (`%s') NS record for `%s'\n",
+                  rec->data.hostname,
+                  rec->name);
+      add_record (req,
+                  GNUNET_GNSRECORD_TYPE_GNS2DNS,
+                  expiration_time,
+                  dst,
+                  off);
     }
-  case GNUNET_DNSPARSER_TYPE_CNAME:
-    if (GNUNET_OK ==
-	GNUNET_DNSPARSER_builder_add_name (dst,
-					   dst_len,
-					   &off,
-					   rec->data.hostname))
+    else
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "Converting CNAME (`%s') record for `%s'\n",
-		  rec->data.hostname,
-		  rec->name);
-      add_record (req,
-		  rec->type,
-		  expiration_time,
-		  dst,
-		  off);
+                  "Converted NS record for `%s' using glue\n",
+                  rec->name);
+    }
+    break;
+  }
+  case GNUNET_DNSPARSER_TYPE_CNAME:
+    if (GNUNET_OK == GNUNET_DNSPARSER_builder_add_name (dst,
+                                                        dst_len,
+                                                        &off,
+                                                        rec->data.hostname))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Converting CNAME (`%s') record for `%s'\n",
+                  rec->data.hostname,
+                  rec->name);
+      add_record (req, rec->type, expiration_time, dst, off);
     }
     break;
   case GNUNET_DNSPARSER_TYPE_DNAME:
@@ -895,90 +840,57 @@ process_record (void *cls,
     break;
   case GNUNET_DNSPARSER_TYPE_MX:
     if (GNUNET_OK ==
-	GNUNET_DNSPARSER_builder_add_mx (dst,
-					 dst_len,
-					 &off,
-					 rec->data.mx))
+        GNUNET_DNSPARSER_builder_add_mx (dst, dst_len, &off, rec->data.mx))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "Converting MX (`%s') record for `%s'\n",
-		  rec->data.mx->mxhost,
-		  rec->name);
-      add_record (req,
-		  rec->type,
-		  expiration_time,
-		  dst,
-		  off);
+                  "Converting MX (`%s') record for `%s'\n",
+                  rec->data.mx->mxhost,
+                  rec->name);
+      add_record (req, rec->type, expiration_time, dst, off);
     }
     break;
   case GNUNET_DNSPARSER_TYPE_SOA:
     if (GNUNET_OK ==
-	GNUNET_DNSPARSER_builder_add_soa (dst,
-					  dst_len,
-					  &off,
-					  rec->data.soa))
+        GNUNET_DNSPARSER_builder_add_soa (dst, dst_len, &off, rec->data.soa))
     {
       /* NOTE: GNS does not really use SOAs */
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "Converting SOA record for `%s'\n",
-		  rec->name);
-      add_record (req,
-		  rec->type,
-		  expiration_time,
-		  dst,
-		  off);
+                  "Converting SOA record for `%s'\n",
+                  rec->name);
+      add_record (req, rec->type, expiration_time, dst, off);
     }
     break;
   case GNUNET_DNSPARSER_TYPE_SRV:
     if (GNUNET_OK ==
-	GNUNET_DNSPARSER_builder_add_srv (dst,
-					  dst_len,
-					  &off,
-					  rec->data.srv))
+        GNUNET_DNSPARSER_builder_add_srv (dst, dst_len, &off, rec->data.srv))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "Converting SRV record for `%s'\n",
-		  rec->name);
-      add_record (req,
-		  rec->type,
-		  expiration_time,
-		  dst,
-		  off);
+                  "Converting SRV record for `%s'\n",
+                  rec->name);
+      add_record (req, rec->type, expiration_time, dst, off);
     }
     break;
   case GNUNET_DNSPARSER_TYPE_PTR:
-    if (GNUNET_OK ==
-	GNUNET_DNSPARSER_builder_add_name (dst,
-					   dst_len,
-					   &off,
-					   rec->data.hostname))
+    if (GNUNET_OK == GNUNET_DNSPARSER_builder_add_name (dst,
+                                                        dst_len,
+                                                        &off,
+                                                        rec->data.hostname))
     {
       /* !?: what does a PTR record do in a regular TLD??? */
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "Converting PTR record for `%s' (weird)\n",
-		  rec->name);
-      add_record (req,
-		  rec->type,
-		  expiration_time,
-		  dst,
-		  off);
+                  "Converting PTR record for `%s' (weird)\n",
+                  rec->name);
+      add_record (req, rec->type, expiration_time, dst, off);
     }
     break;
   case GNUNET_DNSPARSER_TYPE_CERT:
     if (GNUNET_OK ==
-	GNUNET_DNSPARSER_builder_add_cert (dst,
-					   dst_len,
-					   &off,
-					   rec->data.cert))
+        GNUNET_DNSPARSER_builder_add_cert (dst, dst_len, &off, rec->data.cert))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "Converting CERT record for `%s'\n",
-		  rec->name);
-      add_record (req,
-		  rec->type,
-		  expiration_time,
-		  dst,
-		  off);
+                  "Converting CERT record for `%s'\n",
+                  rec->name);
+      add_record (req, rec->type, expiration_time, dst, off);
     }
     break;
     /* Rest is 'raw' encoded and just needs to be copied IF
@@ -989,14 +901,14 @@ process_record (void *cls,
   case GNUNET_DNSPARSER_TYPE_TXT:
   default:
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		"Converting record of type %u for `%s'\n",
-		(unsigned int) rec->type,
-		rec->name);
+                "Converting record of type %u for `%s'\n",
+                (unsigned int) rec->type,
+                rec->name);
     add_record (req,
-		rec->type,
-		expiration_time,
-		rec->data.raw.data,
-		rec->data.raw.data_len);
+                rec->type,
+                expiration_time,
+                rec->data.raw.data,
+                rec->data.raw.data_len);
     break;
   }
 }
@@ -1013,9 +925,7 @@ process_record (void *cls,
  * @param emsg NULL on success, otherwise an error message
  */
 static void
-store_completed_cb (void *cls,
-		    int32_t success,
-		    const char *emsg)
+store_completed_cb (void *cls, int32_t success, const char *emsg)
 {
   static struct GNUNET_TIME_Absolute last;
   struct Request *req = cls;
@@ -1024,15 +934,15 @@ store_completed_cb (void *cls,
   if (GNUNET_SYSERR == success)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		"Failed to store zone data for `%s': %s\n",
-		req->hostname,
-		emsg);
+                "Failed to store zone data for `%s': %s\n",
+                req->hostname,
+                emsg);
   }
   else
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		"Stored records under `%s' (%d)\n",
-		req->hostname,
+                "Stored records under `%s' (%d)\n",
+                req->hostname,
                 success);
   }
   total_reg_proc_dns_ns++; /* finished regular processing */
@@ -1045,8 +955,7 @@ store_completed_cb (void *cls,
     struct GNUNET_TIME_Relative ns_latency;
 
     ns_latency = GNUNET_TIME_absolute_get_duration (req->op_start_time);
-    total_ns_latency = GNUNET_TIME_relative_add (total_ns_latency,
-                                                 ns_latency);
+    total_ns_latency = GNUNET_TIME_relative_add (total_ns_latency, ns_latency);
     if (0 == total_ns_latency_cnt)
       last = GNUNET_TIME_absolute_get ();
     total_ns_latency_cnt++;
@@ -1057,25 +966,25 @@ store_completed_cb (void *cls,
       delta = GNUNET_TIME_absolute_get_duration (last);
       last = GNUNET_TIME_absolute_get ();
       fprintf (stderr,
-	       "Processed 1000 records in %s\n",
-	       GNUNET_STRINGS_relative_time_to_string (delta,
-						       GNUNET_YES));
+               "Processed 1000 records in %s\n",
+               GNUNET_STRINGS_relative_time_to_string (delta, GNUNET_YES));
       GNUNET_STATISTICS_set (stats,
                              "# average NAMESTORE PUT latency (μs)",
-                             total_ns_latency.rel_value_us / total_ns_latency_cnt,
+                             total_ns_latency.rel_value_us /
+                               total_ns_latency_cnt,
                              GNUNET_NO);
     }
   }
   /* compute and publish overall velocity */
-  if (0 == (total_reg_proc_dns_ns % 100) )
+  if (0 == (total_reg_proc_dns_ns % 100))
   {
     struct GNUNET_TIME_Relative runtime;
 
     runtime = GNUNET_TIME_absolute_get_duration (start_time_reg_proc);
-    runtime = GNUNET_TIME_relative_subtract (runtime,
-                                             idle_time);
-    runtime = GNUNET_TIME_relative_divide (runtime,
-                                           total_reg_proc_dns + total_reg_proc_dns_ns);
+    runtime = GNUNET_TIME_relative_subtract (runtime, idle_time);
+    runtime =
+      GNUNET_TIME_relative_divide (runtime,
+                                   total_reg_proc_dns + total_reg_proc_dns_ns);
     GNUNET_STATISTICS_set (stats,
                            "# Regular processing completed without NAMESTORE",
                            total_reg_proc_dns,
@@ -1097,8 +1006,7 @@ store_completed_cb (void *cls,
   if (NULL == t)
   {
     sleep_time_reg_proc = GNUNET_TIME_absolute_get ();
-    t = GNUNET_SCHEDULER_add_now (&process_queue,
-				  NULL);
+    t = GNUNET_SCHEDULER_add_now (&process_queue, NULL);
   }
 }
 
@@ -1124,31 +1032,22 @@ process_result (void *cls,
   if (NULL == dns)
   {
     /* stub gave up */
-    GNUNET_CONTAINER_DLL_remove (req_head,
-				 req_tail,
-				 req);
+    GNUNET_CONTAINER_DLL_remove (req_head, req_tail, req);
     pending--;
     if (NULL == t)
     {
       sleep_time_reg_proc = GNUNET_TIME_absolute_get ();
-      t = GNUNET_SCHEDULER_add_now (&process_queue,
-				    NULL);
+      t = GNUNET_SCHEDULER_add_now (&process_queue, NULL);
     }
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Stub gave up on DNS reply for `%s'\n",
                 req->hostname);
-    GNUNET_STATISTICS_update (stats,
-			      "# DNS lookups timed out",
-			      1,
-			      GNUNET_NO);
+    GNUNET_STATISTICS_update (stats, "# DNS lookups timed out", 1, GNUNET_NO);
     if (req->issue_num > MAX_RETRIES)
     {
       failures++;
       free_request (req);
-      GNUNET_STATISTICS_update (stats,
-				"# requests given up on",
-				1,
-				GNUNET_NO);
+      GNUNET_STATISTICS_update (stats, "# requests given up on", 1, GNUNET_NO);
       return;
     }
     total_reg_proc_dns++;
@@ -1160,43 +1059,30 @@ process_result (void *cls,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "DNS ID did not match request, ignoring reply\n");
-    GNUNET_STATISTICS_update (stats,
-			      "# DNS ID mismatches",
-			      1,
-			      GNUNET_NO);
+    GNUNET_STATISTICS_update (stats, "# DNS ID mismatches", 1, GNUNET_NO);
     return;
   }
-  GNUNET_CONTAINER_DLL_remove (req_head,
-			       req_tail,
-			       req);
+  GNUNET_CONTAINER_DLL_remove (req_head, req_tail, req);
   GNUNET_DNSSTUB_resolve_cancel (req->rs);
   req->rs = NULL;
   pending--;
-  p = GNUNET_DNSPARSER_parse ((const char *) dns,
-                              dns_len);
+  p = GNUNET_DNSPARSER_parse ((const char *) dns, dns_len);
   if (NULL == p)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Failed to parse DNS reply for `%s'\n",
                 req->hostname);
-    GNUNET_STATISTICS_update (stats,
-			      "# DNS parser errors",
-			      1,
-			      GNUNET_NO);
+    GNUNET_STATISTICS_update (stats, "# DNS parser errors", 1, GNUNET_NO);
     if (NULL == t)
     {
       sleep_time_reg_proc = GNUNET_TIME_absolute_get ();
-      t = GNUNET_SCHEDULER_add_now (&process_queue,
-				    NULL);
+      t = GNUNET_SCHEDULER_add_now (&process_queue, NULL);
     }
     if (req->issue_num > MAX_RETRIES)
     {
       failures++;
       free_request (req);
-      GNUNET_STATISTICS_update (stats,
-				"# requests given up on",
-				1,
-				GNUNET_NO);
+      GNUNET_STATISTICS_update (stats, "# requests given up on", 1, GNUNET_NO);
       return;
     }
     insert_sorted (req);
@@ -1205,14 +1091,9 @@ process_result (void *cls,
   /* import new records */
   req->issue_num = 0; /* success, reset counter! */
   {
-    struct ProcessRecordContext prc = {
-      .req = req,
-      .p = p
-    };
+    struct ProcessRecordContext prc = {.req = req, .p = p};
 
-    for_all_records (p,
-		     &process_record,
-		     &prc);
+    for_all_records (p, &process_record, &prc);
   }
   GNUNET_DNSPARSER_free_packet (p);
   /* count records found, determine minimum expiration time */
@@ -1221,14 +1102,15 @@ process_result (void *cls,
     struct GNUNET_TIME_Relative dns_latency;
 
     dns_latency = GNUNET_TIME_absolute_get_duration (req->op_start_time);
-    total_dns_latency = GNUNET_TIME_relative_add (total_dns_latency,
-						  dns_latency);
+    total_dns_latency =
+      GNUNET_TIME_relative_add (total_dns_latency, dns_latency);
     total_dns_latency_cnt++;
     if (0 == (total_dns_latency_cnt % 1000))
     {
       GNUNET_STATISTICS_set (stats,
                              "# average DNS lookup latency (μs)",
-                             total_dns_latency.rel_value_us / total_dns_latency_cnt,
+                             total_dns_latency.rel_value_us /
+                               total_dns_latency_cnt,
                              GNUNET_NO);
     }
   }
@@ -1238,20 +1120,18 @@ process_result (void *cls,
     struct GNUNET_TIME_Absolute at;
 
     at.abs_value_us = rec->grd.expiration_time;
-    req->expires = GNUNET_TIME_absolute_min (req->expires,
-					     at);
+    req->expires = GNUNET_TIME_absolute_min (req->expires, at);
     rd_count++;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-	      "Obtained %u records for `%s'\n",
-	      rd_count,
-	      req->hostname);
+              "Obtained %u records for `%s'\n",
+              rd_count,
+              req->hostname);
   /* Instead of going for SOA, simplified for now to look each
      day in case we got an empty response */
   if (0 == rd_count)
   {
-    req->expires
-      = GNUNET_TIME_relative_to_absolute (GNUNET_TIME_UNIT_DAYS);
+    req->expires = GNUNET_TIME_relative_to_absolute (GNUNET_TIME_UNIT_DAYS);
     GNUNET_STATISTICS_update (stats,
                               "# empty DNS replies (usually NXDOMAIN)",
                               1,
@@ -1263,21 +1143,21 @@ process_result (void *cls,
   }
   /* convert records to namestore import format */
   {
-    struct GNUNET_GNSRECORD_Data rd[GNUNET_NZL(rd_count)];
+    struct GNUNET_GNSRECORD_Data rd[GNUNET_NZL (rd_count)];
     unsigned int off = 0;
 
     /* convert linked list into array */
-    for (rec = req->rec_head; NULL != rec; rec =rec->next)
+    for (rec = req->rec_head; NULL != rec; rec = rec->next)
       rd[off++] = rec->grd;
     pending_rs++;
     req->op_start_time = GNUNET_TIME_absolute_get ();
     req->qe = GNUNET_NAMESTORE_records_store (ns,
-					      &req->zone->key,
-					      get_label (req),
-					      rd_count,
-					      rd,
-					      &store_completed_cb,
-					      req);
+                                              &req->zone->key,
+                                              get_label (req),
+                                              rd_count,
+                                              rd,
+                                              &store_completed_cb,
+                                              req);
     GNUNET_assert (NULL != req->qe);
   }
   insert_sorted (req);
@@ -1300,8 +1180,7 @@ process_queue (void *cls)
 
   (void) cls;
   delay = GNUNET_TIME_absolute_get_duration (sleep_time_reg_proc);
-  idle_time = GNUNET_TIME_relative_add (idle_time,
-                                        delay);
+  idle_time = GNUNET_TIME_relative_add (idle_time, delay);
   series = 0;
   t = NULL;
   while (pending + pending_rs < THRESH)
@@ -1318,18 +1197,14 @@ process_queue (void *cls)
     }
     if (GNUNET_TIME_absolute_get_remaining (req->expires).rel_value_us > 0)
       break;
-    GNUNET_assert (req ==
-		   GNUNET_CONTAINER_heap_remove_root (req_heap));
+    GNUNET_assert (req == GNUNET_CONTAINER_heap_remove_root (req_heap));
     req->hn = NULL;
-    GNUNET_CONTAINER_DLL_insert (req_head,
-                                 req_tail,
-                                 req);
+    GNUNET_CONTAINER_DLL_insert (req_head, req_tail, req);
     GNUNET_assert (NULL == req->rs);
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                 "Requesting resolution for `%s'\n",
                 req->hostname);
-    raw = build_dns_query (req,
-                           &raw_size);
+    raw = build_dns_query (req, &raw_size);
     if (NULL == raw)
     {
       GNUNET_break (0);
@@ -1337,11 +1212,7 @@ process_queue (void *cls)
       continue;
     }
     req->op_start_time = GNUNET_TIME_absolute_get ();
-    req->rs = GNUNET_DNSSTUB_resolve (ctx,
-                                      raw,
-                                      raw_size,
-                                      &process_result,
-                                      req);
+    req->rs = GNUNET_DNSSTUB_resolve (ctx, raw, raw_size, &process_result, req);
     GNUNET_assert (NULL != req->rs);
     req->issue_num++;
     lookups++;
@@ -1353,41 +1224,36 @@ process_queue (void *cls)
   if (pending + pending_rs >= THRESH)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		"Stopped processing queue (%u+%u/%u)]\n",
-		pending,
-		pending_rs,
-		THRESH);
+                "Stopped processing queue (%u+%u/%u)]\n",
+                pending,
+                pending_rs,
+                THRESH);
     return; /* wait for replies */
   }
   req = GNUNET_CONTAINER_heap_peek (req_heap);
   if (NULL == req)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		"Stopped processing queue: empty queue\n");
+                "Stopped processing queue: empty queue\n");
     return;
   }
   if (GNUNET_TIME_absolute_get_remaining (req->expires).rel_value_us > 0)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-		"Waiting until %s for next record (`%s') to expire\n",
-		GNUNET_STRINGS_absolute_time_to_string (req->expires),
-		req->hostname);
+                "Waiting until %s for next record (`%s') to expire\n",
+                GNUNET_STRINGS_absolute_time_to_string (req->expires),
+                req->hostname);
     if (NULL != t)
       GNUNET_SCHEDULER_cancel (t);
     sleep_time_reg_proc = GNUNET_TIME_absolute_get ();
-    t = GNUNET_SCHEDULER_add_at (req->expires,
-				 &process_queue,
-				 NULL);
+    t = GNUNET_SCHEDULER_add_at (req->expires, &process_queue, NULL);
     return;
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Throttling\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Throttling\n");
   if (NULL != t)
     GNUNET_SCHEDULER_cancel (t);
   sleep_time_reg_proc = GNUNET_TIME_absolute_get ();
-  t = GNUNET_SCHEDULER_add_delayed (SERIES_DELAY,
-                                    &process_queue,
-                                    NULL);
+  t = GNUNET_SCHEDULER_add_delayed (SERIES_DELAY, &process_queue, NULL);
 }
 
 
@@ -1401,9 +1267,7 @@ process_queue (void *cls)
  * @return #GNUNET_OK
  */
 static int
-free_request_it (void *cls,
-                 const struct GNUNET_HashCode *key,
-                 void *value)
+free_request_it (void *cls, const struct GNUNET_HashCode *key, void *value)
 {
   struct Request *req = value;
 
@@ -1438,9 +1302,7 @@ do_shutdown (void *cls)
   }
   while (NULL != (req = req_head))
   {
-    GNUNET_CONTAINER_DLL_remove (req_head,
-				 req_tail,
-				 req);
+    GNUNET_CONTAINER_DLL_remove (req_head, req_tail, req);
     if (NULL != req->qe)
       GNUNET_NAMESTORE_cancel (req->qe);
     free_request (req);
@@ -1474,17 +1336,13 @@ do_shutdown (void *cls)
   }
   if (NULL != ns_pending)
   {
-    GNUNET_CONTAINER_multihashmap_iterate (ns_pending,
-                                           &free_request_it,
-                                           NULL);
+    GNUNET_CONTAINER_multihashmap_iterate (ns_pending, &free_request_it, NULL);
     GNUNET_CONTAINER_multihashmap_destroy (ns_pending);
     ns_pending = NULL;
   }
   while (NULL != (zone = zone_head))
   {
-    GNUNET_CONTAINER_DLL_remove (zone_head,
-                                 zone_tail,
-                                 zone);
+    GNUNET_CONTAINER_DLL_remove (zone_head, zone_tail, zone);
     GNUNET_free (zone->domain);
     GNUNET_free (zone);
   }
@@ -1518,8 +1376,8 @@ ns_lookup_error_cb (void *cls)
   struct Zone *zone = cls;
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-	      "Failed to load data from namestore for zone `%s'\n",
-	      zone->domain);
+              "Failed to load data from namestore for zone `%s'\n",
+              zone->domain);
   zone_it = NULL;
   ns_iterator_trigger_next = 0;
   iterate_zones (NULL);
@@ -1537,10 +1395,10 @@ ns_lookup_error_cb (void *cls)
  */
 static void
 ns_lookup_result_cb (void *cls,
-		     const struct GNUNET_CRYPTO_EcdsaPrivateKey *key,
-		     const char *label,
-		     unsigned int rd_count,
-		     const struct GNUNET_GNSRECORD_Data *rd)
+                     const struct GNUNET_CRYPTO_EcdsaPrivateKey *key,
+                     const char *label,
+                     unsigned int rd_count,
+                     const struct GNUNET_GNSRECORD_Data *rd)
 {
   struct Zone *zone = cls;
   struct Request *req;
@@ -1549,8 +1407,8 @@ ns_lookup_result_cb (void *cls,
 
   ns_iterator_trigger_next--;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Obtained NAMESTORE reply, %llu left in round\n",
-	      (unsigned long long) ns_iterator_trigger_next);
+              "Obtained NAMESTORE reply, %llu left in round\n",
+              (unsigned long long) ns_iterator_trigger_next);
   if (0 == ns_iterator_trigger_next)
   {
     ns_iterator_trigger_next = NS_BATCH_SIZE;
@@ -1558,19 +1416,12 @@ ns_lookup_result_cb (void *cls,
                               "# NAMESTORE records requested from cache",
                               ns_iterator_trigger_next,
                               GNUNET_NO);
-    GNUNET_NAMESTORE_zone_iterator_next (zone_it,
-                                         ns_iterator_trigger_next);
+    GNUNET_NAMESTORE_zone_iterator_next (zone_it, ns_iterator_trigger_next);
   }
-  GNUNET_asprintf (&fqdn,
-                   "%s.%s",
-                   label,
-                   zone->domain);
-  GNUNET_CRYPTO_hash (fqdn,
-                      strlen (fqdn) + 1,
-                      &hc);
+  GNUNET_asprintf (&fqdn, "%s.%s", label, zone->domain);
+  GNUNET_CRYPTO_hash (fqdn, strlen (fqdn) + 1, &hc);
   GNUNET_free (fqdn);
-  req = GNUNET_CONTAINER_multihashmap_get (ns_pending,
-                                           &hc);
+  req = GNUNET_CONTAINER_multihashmap_get (ns_pending, &hc);
   if (NULL == req)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
@@ -1580,14 +1431,10 @@ ns_lookup_result_cb (void *cls,
     return;
   }
   GNUNET_assert (GNUNET_OK ==
-                 GNUNET_CONTAINER_multihashmap_remove (ns_pending,
-                                                       &hc,
-                                                       req));
-  GNUNET_break (0 == GNUNET_memcmp (key,
-			     &req->zone->key));
-  GNUNET_break (0 == strcasecmp (label,
-				 get_label (req)));
-  for (unsigned int i=0;i<rd_count;i++)
+                 GNUNET_CONTAINER_multihashmap_remove (ns_pending, &hc, req));
+  GNUNET_break (0 == GNUNET_memcmp (key, &req->zone->key));
+  GNUNET_break (0 == strcasecmp (label, get_label (req)));
+  for (unsigned int i = 0; i < rd_count; i++)
   {
     struct GNUNET_TIME_Absolute at;
 
@@ -1602,17 +1449,13 @@ ns_lookup_result_cb (void *cls,
     {
       at.abs_value_us = rd->expiration_time;
     }
-    add_record (req,
-		rd->record_type,
-		at,
-		rd->data,
-		rd->data_size);
+    add_record (req, rd->record_type, at, rd->data, rd->data_size);
   }
   if (0 == rd_count)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-		"Empty record set in namestore for `%s'\n",
-		req->hostname);
+                "Empty record set in namestore for `%s'\n",
+                req->hostname);
   }
   else
   {
@@ -1620,30 +1463,27 @@ ns_lookup_result_cb (void *cls,
 
     cached++;
     req->expires = GNUNET_TIME_UNIT_FOREVER_ABS;
-    for (struct Record *rec = req->rec_head;
-	 NULL != rec;
-	 rec = rec->next)
+    for (struct Record *rec = req->rec_head; NULL != rec; rec = rec->next)
     {
       struct GNUNET_TIME_Absolute at;
 
       at.abs_value_us = rec->grd.expiration_time;
-      req->expires = GNUNET_TIME_absolute_min (req->expires,
-					       at);
+      req->expires = GNUNET_TIME_absolute_min (req->expires, at);
       pos++;
     }
     if (0 == pos)
       req->expires = GNUNET_TIME_UNIT_ZERO_ABS;
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                 "Hot-start with %u existing records for `%s'\n",
-		pos,
+                pos,
                 req->hostname);
   }
   free_records (req);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Adding `%s' to worklist to start at %s\n",
-	      req->hostname,
-	      GNUNET_STRINGS_absolute_time_to_string (req->expires));
+              "Adding `%s' to worklist to start at %s\n",
+              req->hostname,
+              GNUNET_STRINGS_absolute_time_to_string (req->expires));
   insert_sorted (req);
 }
 
@@ -1662,8 +1502,7 @@ queue (const char *hostname)
   size_t hlen;
   struct GNUNET_HashCode hc;
 
-  if (GNUNET_OK !=
-      GNUNET_DNSPARSER_check_name (hostname))
+  if (GNUNET_OK != GNUNET_DNSPARSER_check_name (hostname))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Refusing invalid hostname `%s'\n",
@@ -1671,8 +1510,7 @@ queue (const char *hostname)
     rejects++;
     return;
   }
-  dot = strchr (hostname,
-                (unsigned char) '.');
+  dot = strchr (hostname, (unsigned char) '.');
   if (NULL == dot)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -1682,8 +1520,7 @@ queue (const char *hostname)
     return;
   }
   for (zone = zone_head; NULL != zone; zone = zone->next)
-    if (0 == strcmp (zone->domain,
-                     dot + 1))
+    if (0 == strcmp (zone->domain, dot + 1))
       break;
   if (NULL == zone)
   {
@@ -1698,19 +1535,15 @@ queue (const char *hostname)
   req = GNUNET_malloc (sizeof (struct Request) + hlen);
   req->zone = zone;
   req->hostname = (char *) &req[1];
-  GNUNET_memcpy (req->hostname,
-                 hostname,
-                 hlen);
+  GNUNET_memcpy (req->hostname, hostname, hlen);
   req->id = (uint16_t) GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_NONCE,
-						 UINT16_MAX);
-  GNUNET_CRYPTO_hash (req->hostname,
-                      hlen,
-                      &hc);
-  if (GNUNET_OK !=
-      GNUNET_CONTAINER_multihashmap_put (ns_pending,
-                                         &hc,
-                                         req,
-                                         GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY))
+                                                 UINT16_MAX);
+  GNUNET_CRYPTO_hash (req->hostname, hlen, &hc);
+  if (GNUNET_OK != GNUNET_CONTAINER_multihashmap_put (
+                     ns_pending,
+                     &hc,
+                     req,
+                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                 "Duplicate hostname `%s' ignored\n",
@@ -1733,9 +1566,7 @@ queue (const char *hostname)
  * @return #GNUNET_OK (continue to iterate)
  */
 static int
-move_to_queue (void *cls,
-               const struct GNUNET_HashCode *key,
-               void *value)
+move_to_queue (void *cls, const struct GNUNET_HashCode *key, void *value)
 {
   struct Request *req = value;
 
@@ -1766,9 +1597,9 @@ iterate_zones (void *cls)
                 last->domain);
     /* subtract left-overs from previous iteration */
     GNUNET_STATISTICS_update (stats,
-			      "# NAMESTORE records requested from cache",
-			      (long long) (- ns_iterator_trigger_next),
-			      GNUNET_NO);
+                              "# NAMESTORE records requested from cache",
+                              (long long) (-ns_iterator_trigger_next),
+                              GNUNET_NO);
     ns_iterator_trigger_next = 0;
   }
   GNUNET_assert (NULL != zone_tail);
@@ -1777,14 +1608,12 @@ iterate_zones (void *cls)
     /* Done iterating over relevant zones in NAMESTORE, move
        rest of hash map to work queue as well. */
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		"Finished all NAMESTORE iterations!\n");
+                "Finished all NAMESTORE iterations!\n");
     GNUNET_STATISTICS_set (stats,
-			   "# Domain names without cached reply",
-			   GNUNET_CONTAINER_multihashmap_size (ns_pending),
-			   GNUNET_NO);
-    GNUNET_CONTAINER_multihashmap_iterate (ns_pending,
-                                           &move_to_queue,
-                                           NULL);
+                           "# Domain names without cached reply",
+                           GNUNET_CONTAINER_multihashmap_size (ns_pending),
+                           GNUNET_NO);
+    GNUNET_CONTAINER_multihashmap_iterate (ns_pending, &move_to_queue, NULL);
     GNUNET_CONTAINER_multihashmap_destroy (ns_pending);
     ns_pending = NULL;
     start_time_reg_proc = GNUNET_TIME_absolute_get ();
@@ -1801,14 +1630,11 @@ iterate_zones (void *cls)
               last->domain);
   /* subtract left-overs from previous iteration */
   GNUNET_STATISTICS_update (stats,
-			    "# NAMESTORE records requested from cache",
-			    1,
-			    GNUNET_NO);
+                            "# NAMESTORE records requested from cache",
+                            1,
+                            GNUNET_NO);
   ns_iterator_trigger_next = 1;
-  GNUNET_STATISTICS_update (stats,
-			    "# zones iterated",
-			    1,
-			    GNUNET_NO);
+  GNUNET_STATISTICS_update (stats, "# zones iterated", 1, GNUNET_NO);
   zone_it = GNUNET_NAMESTORE_zone_iteration_start (ns,
                                                    &last->key,
                                                    &ns_lookup_error_cb,
@@ -1817,7 +1643,6 @@ iterate_zones (void *cls)
                                                    last,
                                                    &iterate_zones,
                                                    NULL);
-
 }
 
 
@@ -1840,13 +1665,10 @@ process_stdin (void *cls)
     GNUNET_IDENTITY_disconnect (id);
     id = NULL;
   }
-  while (NULL !=
-         fgets (hn,
-                sizeof (hn),
-                stdin))
+  while (NULL != fgets (hn, sizeof (hn), stdin))
   {
-    if (strlen(hn) > 0)
-      hn[strlen(hn)-1] = '\0'; /* eat newline */
+    if (strlen (hn) > 0)
+      hn[strlen (hn) - 1] = '\0'; /* eat newline */
     if (0 == idot)
       last = GNUNET_TIME_absolute_get ();
     idot++;
@@ -1857,23 +1679,16 @@ process_stdin (void *cls)
       delta = GNUNET_TIME_absolute_get_duration (last);
       last = GNUNET_TIME_absolute_get ();
       fprintf (stderr,
-	       "Read 100000 domain names in %s\n",
-	       GNUNET_STRINGS_relative_time_to_string (delta,
-						       GNUNET_YES));
-      GNUNET_STATISTICS_set (stats,
-			     "# domain names provided",
-			     idot,
-			     GNUNET_NO);
+               "Read 100000 domain names in %s\n",
+               GNUNET_STRINGS_relative_time_to_string (delta, GNUNET_YES));
+      GNUNET_STATISTICS_set (stats, "# domain names provided", idot, GNUNET_NO);
     }
     queue (hn);
   }
   fprintf (stderr,
            "Done reading %llu domain names\n",
            (unsigned long long) idot);
-  GNUNET_STATISTICS_set (stats,
-			 "# domain names provided",
-			 idot,
-			 GNUNET_NO);
+  GNUNET_STATISTICS_set (stats, "# domain names provided", idot, GNUNET_NO);
   iterate_zones (NULL);
 }
 
@@ -1905,7 +1720,7 @@ process_stdin (void *cls)
  * cleaned up).
  *
  * @param cls closure
- * @param ego ego handle
+ * @param ego ego handle, NULL for end of list
  * @param ctx context for application to store data for this ego
  *                 (during the lifetime of this process, initially NULL)
  * @param name name assigned by the user for this ego,
@@ -1914,26 +1729,25 @@ process_stdin (void *cls)
  */
 static void
 identity_cb (void *cls,
-	     struct GNUNET_IDENTITY_Ego *ego,
-	     void **ctx,
-	     const char *name)
+             struct GNUNET_IDENTITY_Ego *ego,
+             void **ctx,
+             const char *name)
 {
   (void) cls;
   (void) ctx;
+
   if (NULL == ego)
   {
-    if (NULL != zone_head)
+    /* end of iteration */
+    if (NULL == zone_head)
     {
-      t = GNUNET_SCHEDULER_add_now (&process_stdin,
-				    NULL);
-    }
-    else
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		  "No zone found\n");
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "No zone found\n");
       GNUNET_SCHEDULER_shutdown ();
       return;
     }
+    /* zone_head non-null, process hostnames from stdin */
+    t = GNUNET_SCHEDULER_add_now (&process_stdin, NULL);
+    return;
   }
   if (NULL != name)
   {
@@ -1942,9 +1756,7 @@ identity_cb (void *cls,
     zone = GNUNET_new (struct Zone);
     zone->key = *GNUNET_IDENTITY_ego_get_private_key (ego);
     zone->domain = GNUNET_strdup (name);
-    GNUNET_CONTAINER_DLL_insert (zone_head,
-                                 zone_tail,
-                                 zone);
+    GNUNET_CONTAINER_DLL_insert (zone_head, zone_tail, zone);
   }
 }
 
@@ -1967,22 +1779,18 @@ run (void *cls,
   (void) cls;
   (void) args;
   (void) cfgfile;
-  stats = GNUNET_STATISTICS_create ("zoneimport",
-				    cfg);
+  stats = GNUNET_STATISTICS_create ("zoneimport", cfg);
   req_heap = GNUNET_CONTAINER_heap_create (GNUNET_CONTAINER_HEAP_ORDER_MIN);
-  ns_pending = GNUNET_CONTAINER_multihashmap_create (map_size,
-                                                     GNUNET_NO);
+  ns_pending = GNUNET_CONTAINER_multihashmap_create (map_size, GNUNET_NO);
   if (NULL == ns_pending)
   {
-    fprintf (stderr,
-             "Failed to allocate memory for main hash map\n");
+    fprintf (stderr, "Failed to allocate memory for main hash map\n");
     return;
   }
   ctx = GNUNET_DNSSTUB_start (256);
   if (NULL == ctx)
   {
-    fprintf (stderr,
-             "Failed to initialize GNUnet DNS STUB\n");
+    fprintf (stderr, "Failed to initialize GNUnet DNS STUB\n");
     return;
   }
   if (NULL == args[0])
@@ -1991,31 +1799,24 @@ run (void *cls,
              "You must provide a list of DNS resolvers on the command line\n");
     return;
   }
-  for (unsigned int i=0;NULL != args[i];i++)
+  for (unsigned int i = 0; NULL != args[i]; i++)
   {
-    if (GNUNET_OK !=
-        GNUNET_DNSSTUB_add_dns_ip (ctx,
-                                   args[i]))
+    if (GNUNET_OK != GNUNET_DNSSTUB_add_dns_ip (ctx, args[i]))
     {
-      fprintf (stderr,
-               "Failed to use `%s' for DNS resolver\n",
-               args[i]);
+      fprintf (stderr, "Failed to use `%s' for DNS resolver\n", args[i]);
       return;
     }
   }
 
 
-  GNUNET_SCHEDULER_add_shutdown (&do_shutdown,
-                                 NULL);
+  GNUNET_SCHEDULER_add_shutdown (&do_shutdown, NULL);
   ns = GNUNET_NAMESTORE_connect (cfg);
   if (NULL == ns)
   {
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
-  id = GNUNET_IDENTITY_connect (cfg,
-				&identity_cb,
-				NULL);
+  id = GNUNET_IDENTITY_connect (cfg, &identity_cb, NULL);
 }
 
 
@@ -2027,38 +1828,35 @@ run (void *cls,
  * @return 0 on success
  */
 int
-main (int argc,
-      char *const*argv)
+main (int argc, char *const *argv)
 {
-  struct GNUNET_GETOPT_CommandLineOption options[] = {
-    GNUNET_GETOPT_option_uint ('s',
-                               "size",
-                               "MAPSIZE",
-                               gettext_noop ("size to use for the main hash map"),
-                               &map_size),
-    GNUNET_GETOPT_option_relative_time ('m',
-                                        "minimum-expiration",
-                                        "RELATIVETIME",
-                                        gettext_noop ("minimum expiration time we assume for imported records"),
-                                        &minimum_expiration_time),
-    GNUNET_GETOPT_OPTION_END
-  };
+  struct GNUNET_GETOPT_CommandLineOption options[] =
+    {GNUNET_GETOPT_option_uint ('s',
+                                "size",
+                                "MAPSIZE",
+                                gettext_noop (
+                                  "size to use for the main hash map"),
+                                &map_size),
+     GNUNET_GETOPT_option_relative_time (
+       'm',
+       "minimum-expiration",
+       "RELATIVETIME",
+       gettext_noop ("minimum expiration time we assume for imported records"),
+       &minimum_expiration_time),
+     GNUNET_GETOPT_OPTION_END};
   int ret;
 
-  if (GNUNET_OK !=
-      GNUNET_STRINGS_get_utf8_args (argc, argv,
-                                    &argc, &argv))
+  if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv, &argc, &argv))
     return 2;
-  if (GNUNET_OK !=
-      (ret = GNUNET_PROGRAM_run (argc,
-                                 argv,
-                                 "gnunet-zoneimport",
-                                 "import DNS zone into namestore",
-                                 options,
-                                 &run,
-                                 NULL)))
+  if (GNUNET_OK != (ret = GNUNET_PROGRAM_run (argc,
+                                              argv,
+                                              "gnunet-zoneimport",
+                                              "import DNS zone into namestore",
+                                              options,
+                                              &run,
+                                              NULL)))
     return ret;
-  GNUNET_free ((void*) argv);
+  GNUNET_free ((void *) argv);
   fprintf (stderr,
            "Rejected %u names, had %u cached, did %u lookups, stored %u record sets\n"
            "Found %u records, %u lookups failed, %u/%u pending on shutdown\n",
