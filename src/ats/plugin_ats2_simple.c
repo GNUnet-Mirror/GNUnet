@@ -31,7 +31,7 @@
 #include "gnunet_hello_lib.h"
 #include "gnunet_peerstore_service.h"
 
-#define LOG(kind,...) GNUNET_log_from (kind, "ats-simple",__VA_ARGS__)
+#define LOG(kind, ...) GNUNET_log_from (kind, "ats-simple", __VA_ARGS__)
 
 
 /**
@@ -116,7 +116,6 @@ struct Hello
    * Type of the network for this HELLO.
    */
   enum GNUNET_NetworkType nt;
-
 };
 
 
@@ -187,7 +186,6 @@ struct GNUNET_ATS_SessionHandle
    * New BW-out allocation given to the transport service.
    */
   uint64_t target_out;
-
 };
 
 
@@ -249,7 +247,6 @@ struct Peer
    * by preference kind (see `enum GNUNET_MQ_PreferenceKind`)
    */
   uint64_t bw_by_pk[GNUNET_MQ_PREFERENCE_COUNT];
-
 };
 
 
@@ -273,7 +270,6 @@ struct Network
    * ATS network type
    */
   enum GNUNET_NetworkType type;
-
 };
 
 
@@ -309,7 +305,6 @@ struct SimpleHandle
    * Information we track per network type (quotas).
    */
   struct Network networks[GNUNET_NT_COUNT];
-
 };
 
 
@@ -321,11 +316,9 @@ struct SimpleHandle
  * @return NULL for not found
  */
 struct Peer *
-lookup_peer (struct SimpleHandle *h,
-             const struct GNUNET_PeerIdentity *pid)
+lookup_peer (struct SimpleHandle *h, const struct GNUNET_PeerIdentity *pid)
 {
-  return GNUNET_CONTAINER_multipeermap_get (h->peers,
-                                            pid);
+  return GNUNET_CONTAINER_multipeermap_get (h->peers, pid);
 }
 
 
@@ -339,8 +332,7 @@ lookup_peer (struct SimpleHandle *h,
 static int
 peer_test_dead (struct Peer *p)
 {
-  for (enum GNUNET_MQ_PreferenceKind pk = 0;
-       pk < GNUNET_MQ_PREFERENCE_COUNT;
+  for (enum GNUNET_MQ_PreferenceKind pk = 0; pk < GNUNET_MQ_PREFERENCE_COUNT;
        pk++)
     if (0 != p->bw_by_pk[pk])
       return GNUNET_NO;
@@ -363,14 +355,12 @@ suggest_hello (struct Hello *hello)
   struct Peer *p = hello->peer;
   struct SimpleHandle *h = p->h;
 
-  p->last_suggestion
-    = hello->last_attempt
-    = GNUNET_TIME_absolute_get ();
-  hello->backoff = GNUNET_TIME_randomized_backoff (hello->backoff,
-                                                   GNUNET_TIME_absolute_get_remaining (hello->expiration));
-  h->env->suggest_cb (h->env->cls,
-                      &p->pid,
-                      hello->address);
+  p->last_suggestion = hello->last_attempt = GNUNET_TIME_absolute_get ();
+  hello->backoff =
+    GNUNET_TIME_randomized_backoff (hello->backoff,
+                                    GNUNET_TIME_absolute_get_remaining (
+                                      hello->expiration));
+  h->env->suggest_cb (h->env->cls, &p->pid, hello->address);
 }
 
 
@@ -401,8 +391,7 @@ suggest_start_cb (void *cls)
   uint32_t sq;
 
   /* count number of active sessions */
-  for (struct GNUNET_ATS_SessionHandle *sh = p->sh_head;
-       NULL != sh;
+  for (struct GNUNET_ATS_SessionHandle *sh = p->sh_head; NULL != sh;
        sh = sh->next)
     num_sessions++;
   /* calculate square of number of sessions */
@@ -411,9 +400,10 @@ suggest_start_cb (void *cls)
     sq = num_sessions * (uint32_t) num_sessions;
   else
     sq = UINT32_MAX;
-  xdelay = GNUNET_TIME_randomized_backoff (GNUNET_TIME_relative_multiply (SUGGEST_FREQ,
-                                                                          sq),
-                                           GNUNET_TIME_UNIT_FOREVER_REL);
+  xdelay =
+    GNUNET_TIME_randomized_backoff (GNUNET_TIME_relative_multiply (SUGGEST_FREQ,
+                                                                   sq),
+                                    GNUNET_TIME_UNIT_FOREVER_REL);
   xnext = GNUNET_TIME_relative_to_absolute (xdelay);
 
   p->task = NULL;
@@ -438,19 +428,16 @@ suggest_start_cb (void *cls)
       next = pos->next;
       if (NULL != pos->sh)
         continue;
-      if (0 == GNUNET_TIME_absolute_get_remaining (pos->expiration).rel_value_us)
+      if (0 ==
+          GNUNET_TIME_absolute_get_remaining (pos->expiration).rel_value_us)
       {
         /* expired, remove! */
-        GNUNET_CONTAINER_DLL_remove (p->h_head,
-                                     p->h_tail,
-                                     pos);
+        GNUNET_CONTAINER_DLL_remove (p->h_head, p->h_tail, pos);
         GNUNET_free (pos);
         continue;
       }
-      pt = GNUNET_TIME_absolute_add (pos->last_attempt,
-                                     pos->backoff);
-      if ( (NULL == hello) ||
-           (pt.abs_value_us < hpt.abs_value_us) )
+      pt = GNUNET_TIME_absolute_add (pos->last_attempt, pos->backoff);
+      if ((NULL == hello) || (pt.abs_value_us < hpt.abs_value_us))
       {
         hello = pos;
         hpt = pt;
@@ -463,13 +450,10 @@ suggest_start_cb (void *cls)
        but we might not want to go for as early as possible for
        this peer. So the actual time is the max of the earliest
        HELLO and the 'xnext' */
-    xmax = GNUNET_TIME_absolute_max (hpt,
-                                     xnext);
+    xmax = GNUNET_TIME_absolute_max (hpt, xnext);
     delay = GNUNET_TIME_absolute_get_remaining (xmax);
   }
-  p->task = GNUNET_SCHEDULER_add_delayed (delay,
-                                          &suggest_start_cb,
-                                          p);
+  p->task = GNUNET_SCHEDULER_add_delayed (delay, &suggest_start_cb, p);
 }
 
 
@@ -492,14 +476,12 @@ watch_cb (void *cls,
   struct GNUNET_TIME_Absolute expiration;
   struct Hello *hello;
 
-  if (0 != GNUNET_memcmp (&p->pid,
-                   &record->peer))
+  if (0 != GNUNET_memcmp (&p->pid, &record->peer))
   {
     GNUNET_break (0);
     return;
   }
-  if (0 != strcmp (record->key,
-                   GNUNET_PEERSTORE_TRANSPORT_URLADDRESS_KEY))
+  if (0 != strcmp (record->key, GNUNET_PEERSTORE_TRANSPORT_URLADDRESS_KEY))
   {
     GNUNET_break (0);
     return;
@@ -518,12 +500,9 @@ watch_cb (void *cls,
     return;
   }
   /* check if addr is already known */
-  for (struct Hello *he = p->h_head;
-       NULL != he;
-       he = he->next)
+  for (struct Hello *he = p->h_head; NULL != he; he = he->next)
   {
-    if (0 != strcmp (he->address,
-                     addr))
+    if (0 != strcmp (he->address, addr))
       continue;
     if (he->expiration.abs_value_us < expiration.abs_value_us)
     {
@@ -540,21 +519,14 @@ watch_cb (void *cls,
   hello->expiration = expiration;
   hello->nt = nt;
   hello->peer = p;
-  memcpy (&hello[1],
-          addr,
-          alen);
+  memcpy (&hello[1], addr, alen);
   GNUNET_free (addr);
-  GNUNET_CONTAINER_DLL_insert (p->h_head,
-                               p->h_tail,
-                               hello);
+  GNUNET_CONTAINER_DLL_insert (p->h_head, p->h_tail, hello);
   /* check if sh for this HELLO already exists */
-  for (struct GNUNET_ATS_SessionHandle *sh = p->sh_head;
-       NULL != sh;
+  for (struct GNUNET_ATS_SessionHandle *sh = p->sh_head; NULL != sh;
        sh = sh->next)
   {
-    if ( (NULL == sh->address) ||
-         (0 != strcmp (sh->address,
-                       addr)) )
+    if ((NULL == sh->address) || (0 != strcmp (sh->address, addr)))
       continue;
     GNUNET_assert (NULL == sh->hello);
     sh->hello = hello;
@@ -562,8 +534,7 @@ watch_cb (void *cls,
     break;
   }
   if (NULL == p->task)
-    p->task = GNUNET_SCHEDULER_add_now (&suggest_start_cb,
-                                        p);
+    p->task = GNUNET_SCHEDULER_add_now (&suggest_start_cb, p);
 }
 
 
@@ -575,11 +546,9 @@ watch_cb (void *cls,
  * @return a peer handle
  */
 static struct Peer *
-peer_add (struct SimpleHandle *h,
-          const struct GNUNET_PeerIdentity *pid)
+peer_add (struct SimpleHandle *h, const struct GNUNET_PeerIdentity *pid)
 {
-  struct Peer *p = lookup_peer (h,
-                                pid);
+  struct Peer *p = lookup_peer (h, pid);
 
   if (NULL != p)
     return p;
@@ -593,10 +562,11 @@ peer_add (struct SimpleHandle *h,
                                   &watch_cb,
                                   p);
   GNUNET_assert (GNUNET_YES ==
-                 GNUNET_CONTAINER_multipeermap_put (h->peers,
-                                                    &p->pid,
-                                                    p,
-                                                    GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
+                 GNUNET_CONTAINER_multipeermap_put (
+                   h->peers,
+                   &p->pid,
+                   p,
+                   GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
 
   return p;
 }
@@ -617,9 +587,7 @@ peer_free (struct Peer *p)
   GNUNET_assert (NULL == p->sh_head);
   while (NULL != (hello = p->h_head))
   {
-    GNUNET_CONTAINER_DLL_remove (p->h_head,
-                                 p->h_tail,
-                                 hello);
+    GNUNET_CONTAINER_DLL_remove (p->h_head, p->h_tail, hello);
     GNUNET_assert (NULL == hello->sh);
     GNUNET_free (hello);
   }
@@ -634,9 +602,7 @@ peer_free (struct Peer *p)
     p->wc = NULL;
   }
   GNUNET_assert (GNUNET_YES ==
-                 GNUNET_CONTAINER_multipeermap_remove (h->peers,
-                                                       &p->pid,
-                                                       p));
+                 GNUNET_CONTAINER_multipeermap_remove (h->peers, &p->pid, p));
   GNUNET_free (p);
 }
 
@@ -662,23 +628,22 @@ consider_notify_transport (struct GNUNET_ATS_SessionHandle *sh)
   delay = GNUNET_TIME_absolute_get_duration (sh->last_allocation);
   /* A significant change is more than 10% of the quota,
      which is given in bytes/second */
-  sig_in
-    = h->networks[nt].total_quota_in * (delay.rel_value_us / 1000LL) / 1000LL / 10;
-  sig_out
-    = h->networks[nt].total_quota_out * (delay.rel_value_us / 1000LL) / 1000LL / 10;
-  delta_in = ( (int64_t) ntohl (sh->bw_in.value__)) - ((int64_t) sh->target_in);
-  delta_out = ( (int64_t) ntohl (sh->bw_in.value__)) - ((int64_t) sh->target_in);
+  sig_in = h->networks[nt].total_quota_in * (delay.rel_value_us / 1000LL) /
+           1000LL / 10;
+  sig_out = h->networks[nt].total_quota_out * (delay.rel_value_us / 1000LL) /
+            1000LL / 10;
+  delta_in = ((int64_t) ntohl (sh->bw_in.value__)) - ((int64_t) sh->target_in);
+  delta_out = ((int64_t) ntohl (sh->bw_in.value__)) - ((int64_t) sh->target_in);
   /* we want the absolute values */
   if (delta_in < 0)
-    delta_in = - delta_in;
+    delta_in = -delta_in;
   if (INT64_MIN == delta_in)
-    delta_in = INT64_MAX;  /* Handle corner case: INT_MIN == - INT_MIN */
+    delta_in = INT64_MAX; /* Handle corner case: INT_MIN == - INT_MIN */
   if (delta_out < 0)
-    delta_out = - delta_out;
+    delta_out = -delta_out;
   if (INT64_MIN == delta_out)
     delta_out = INT64_MAX; /* Handle corner case: INT_MIN == - INT_MIN */
-  if ( (sig_in > delta_in) &&
-       (sig_out > delta_out) )
+  if ((sig_in > delta_in) && (sig_out > delta_out))
     return; /* insignificant change */
   /* change is significant, tell transport! */
   if (sh->target_in > UINT32_MAX)
@@ -731,7 +696,6 @@ struct Counters
    * for inbound bandwidth?
    */
   double scale_in[GNUNET_NT_COUNT];
-
 };
 
 
@@ -745,9 +709,7 @@ struct Counters
  * @return #GNUNET_YES (continue to iterate)
  */
 static int
-update_counters (void *cls,
-                 const struct GNUNET_PeerIdentity *pid,
-                 void *value)
+update_counters (void *cls, const struct GNUNET_PeerIdentity *pid, void *value)
 {
   struct Counters *c = cls;
   struct Peer *peer = value;
@@ -756,67 +718,69 @@ update_counters (void *cls,
   (void) pid;
   if (NULL == peer->sh_head)
     return GNUNET_YES; /* no available session, cannot allocate bandwidth */
-  memset (best,
-          0,
-          sizeof (best));
-  for (struct GNUNET_ATS_SessionHandle *sh = peer->sh_head;
-       NULL != sh;
+  memset (best, 0, sizeof (best));
+  for (struct GNUNET_ATS_SessionHandle *sh = peer->sh_head; NULL != sh;
        sh = sh->next)
   {
     enum GNUNET_NetworkType nt = sh->data->prop.nt;
 
     sh->target_out = MIN_BANDWIDTH_PER_SESSION;
     c->bw_out_by_nt[nt] += MIN_BANDWIDTH_PER_SESSION;
-    c->bw_in_by_nt[nt] += GNUNET_MAX (MIN_BANDWIDTH_PER_SESSION,
-                                      sh->data->prop.goodput_in);
-    for (enum GNUNET_MQ_PreferenceKind pk = 0;
-         pk < GNUNET_MQ_PREFERENCE_COUNT;
+    c->bw_in_by_nt[nt] +=
+      GNUNET_MAX (MIN_BANDWIDTH_PER_SESSION, sh->data->prop.goodput_in);
+    for (enum GNUNET_MQ_PreferenceKind pk = 0; pk < GNUNET_MQ_PREFERENCE_COUNT;
          pk++)
     {
       /* General rule: always prefer smaller distance if possible,
          otherwise decide by pk: */
-      switch (pk) {
+      switch (pk)
+      {
       case GNUNET_MQ_PREFERENCE_NONE:
         break;
       case GNUNET_MQ_PREFERENCE_BANDWIDTH:
         /* For bandwidth, we compare the sum of transmitted bytes and
            confirmed transmitted bytes, so confirmed data counts twice */
-        if ( (NULL == best[pk]) ||
-             (sh->data->prop.distance < best[pk]->data->prop.distance) ||
-             (sh->data->prop.utilization_out + sh->data->prop.goodput_out >
-              best[pk]->data->prop.utilization_out + best[pk]->data->prop.goodput_out) )
+        if ((NULL == best[pk]) ||
+            (sh->data->prop.distance < best[pk]->data->prop.distance) ||
+            (sh->data->prop.utilization_out + sh->data->prop.goodput_out >
+             best[pk]->data->prop.utilization_out +
+               best[pk]->data->prop.goodput_out))
           best[pk] = sh;
         /* If both are equal (i.e. usually this happens if there is a zero), use
            latency as a yardstick */
-        if ( (sh->data->prop.utilization_out + sh->data->prop.goodput_out ==
-              best[pk]->data->prop.utilization_out + best[pk]->data->prop.goodput_out) &&
-             (sh->data->prop.distance == best[pk]->data->prop.distance) &&
-             (sh->data->prop.delay.rel_value_us <
-              best[pk]->data->prop.delay.rel_value_us) )
+        if ((sh->data->prop.utilization_out + sh->data->prop.goodput_out ==
+             best[pk]->data->prop.utilization_out +
+               best[pk]->data->prop.goodput_out) &&
+            (sh->data->prop.distance == best[pk]->data->prop.distance) &&
+            (sh->data->prop.delay.rel_value_us <
+             best[pk]->data->prop.delay.rel_value_us))
           best[pk] = sh;
         break;
       case GNUNET_MQ_PREFERENCE_LATENCY:
-        if ( (NULL == best[pk]) ||
-             (sh->data->prop.distance < best[pk]->data->prop.distance) ||
-             ( (sh->data->prop.distance == best[pk]->data->prop.distance) &&
-               (sh->data->prop.delay.rel_value_us <
-                best[pk]->data->prop.delay.rel_value_us) ) )
+        if ((NULL == best[pk]) ||
+            (sh->data->prop.distance < best[pk]->data->prop.distance) ||
+            ((sh->data->prop.distance == best[pk]->data->prop.distance) &&
+             (sh->data->prop.delay.rel_value_us <
+              best[pk]->data->prop.delay.rel_value_us)))
           best[pk] = sh;
         break;
       case GNUNET_MQ_PREFERENCE_RELIABILITY:
         /* For reliability, we consider the ratio of goodput to utilization
            (but use multiplicative formultations to avoid division by zero) */
-        if ( (NULL == best[pk]) ||
-             (1ULL * sh->data->prop.goodput_out * best[pk]->data->prop.utilization_out >
-              1ULL * sh->data->prop.utilization_out * best[pk]->data->prop.goodput_out) )
+        if ((NULL == best[pk]) || (1ULL * sh->data->prop.goodput_out *
+                                     best[pk]->data->prop.utilization_out >
+                                   1ULL * sh->data->prop.utilization_out *
+                                     best[pk]->data->prop.goodput_out))
           best[pk] = sh;
         /* If both are equal (i.e. usually this happens if there is a zero), use
            latency as a yardstick */
-        if ( (1ULL * sh->data->prop.goodput_out * best[pk]->data->prop.utilization_out ==
-              1ULL * sh->data->prop.utilization_out * best[pk]->data->prop.goodput_out) &&
-             (sh->data->prop.distance == best[pk]->data->prop.distance) &&
-             (sh->data->prop.delay.rel_value_us <
-              best[pk]->data->prop.delay.rel_value_us) )
+        if ((1ULL * sh->data->prop.goodput_out *
+               best[pk]->data->prop.utilization_out ==
+             1ULL * sh->data->prop.utilization_out *
+               best[pk]->data->prop.goodput_out) &&
+            (sh->data->prop.distance == best[pk]->data->prop.distance) &&
+            (sh->data->prop.delay.rel_value_us <
+             best[pk]->data->prop.delay.rel_value_us))
           best[pk] = sh;
         break;
       }
@@ -824,7 +788,8 @@ update_counters (void *cls,
   }
   /* for first round, assign target bandwidth simply to sum of
      requested bandwidth */
-  for (enum GNUNET_MQ_PreferenceKind pk = 1 /* skip GNUNET_MQ_PREFERENCE_NONE */;
+  for (enum GNUNET_MQ_PreferenceKind pk =
+         1 /* skip GNUNET_MQ_PREFERENCE_NONE */;
        pk < GNUNET_MQ_PREFERENCE_COUNT;
        pk++)
   {
@@ -833,9 +798,10 @@ update_counters (void *cls,
 
     GNUNET_assert (NULL != data);
     nt = data->prop.nt;
-    best[pk]->target_out = GNUNET_MIN (peer->bw_by_pk[pk],
-                                       MIN_BANDWIDTH_PER_SESSION);
-    c->bw_out_by_nt[nt] += (uint64_t) (best[pk]->target_out - MIN_BANDWIDTH_PER_SESSION);
+    best[pk]->target_out =
+      GNUNET_MIN (peer->bw_by_pk[pk], MIN_BANDWIDTH_PER_SESSION);
+    c->bw_out_by_nt[nt] +=
+      (uint64_t) (best[pk]->target_out - MIN_BANDWIDTH_PER_SESSION);
   }
   return GNUNET_YES;
 }
@@ -859,8 +825,7 @@ update_allocation (void *cls,
   struct Peer *peer = value;
 
   (void) pid;
-  for (struct GNUNET_ATS_SessionHandle *sh = peer->sh_head;
-       NULL != sh;
+  for (struct GNUNET_ATS_SessionHandle *sh = peer->sh_head; NULL != sh;
        sh = sh->next)
   {
     enum GNUNET_NetworkType nt = sh->data->prop.nt;
@@ -879,27 +844,21 @@ update_allocation (void *cls,
 static void
 update (struct SimpleHandle *h)
 {
-  struct Counters cnt = {
-    .h = h
-  };
+  struct Counters cnt = {.h = h};
 
-  GNUNET_CONTAINER_multipeermap_iterate (h->peers,
-                                         &update_counters,
-                                         &cnt);
+  GNUNET_CONTAINER_multipeermap_iterate (h->peers, &update_counters, &cnt);
   /* calculate how badly the missmatch between requested
      allocations and available bandwidth is per network type */
-  for (enum GNUNET_NetworkType nt = 0;
-       nt < GNUNET_NT_COUNT;
-       nt++)
+  for (enum GNUNET_NetworkType nt = 0; nt < GNUNET_NT_COUNT; nt++)
   {
-    cnt.scale_out[nt] = 1.0 * cnt.bw_out_by_nt[nt] / h->networks[nt].total_quota_out;
-    cnt.scale_in[nt] = 1.0 * cnt.bw_in_by_nt[nt] / h->networks[nt].total_quota_in;
+    cnt.scale_out[nt] =
+      1.0 * cnt.bw_out_by_nt[nt] / h->networks[nt].total_quota_out;
+    cnt.scale_in[nt] =
+      1.0 * cnt.bw_in_by_nt[nt] / h->networks[nt].total_quota_in;
   }
   /* recalculate allocations, considering scaling factor, and
      update transport if the change is significant */
-  GNUNET_CONTAINER_multipeermap_iterate (h->peers,
-                                         &update_allocation,
-                                         &cnt);
+  GNUNET_CONTAINER_multipeermap_iterate (h->peers, &update_allocation, &cnt);
 }
 
 
@@ -911,12 +870,10 @@ update (struct SimpleHandle *h)
  * @return plugin's internal representation, or NULL
  */
 static struct GNUNET_ATS_PreferenceHandle *
-simple_preference_add (void *cls,
-		       const struct GNUNET_ATS_Preference *pref)
+simple_preference_add (void *cls, const struct GNUNET_ATS_Preference *pref)
 {
   struct SimpleHandle *h = cls;
-  struct Peer *p = peer_add (h,
-                             &pref->peer);
+  struct Peer *p = peer_add (h, &pref->peer);
 
   GNUNET_assert (pref->pk < GNUNET_MQ_PREFERENCE_COUNT);
   p->bw_by_pk[pref->pk] += ntohl (pref->bw.value__);
@@ -936,19 +893,17 @@ simple_preference_add (void *cls,
  */
 static void
 simple_preference_del (void *cls,
-		       struct GNUNET_ATS_PreferenceHandle *ph,
-		       const struct GNUNET_ATS_Preference *pref)
+                       struct GNUNET_ATS_PreferenceHandle *ph,
+                       const struct GNUNET_ATS_Preference *pref)
 {
   struct SimpleHandle *h = cls;
-  struct Peer *p = lookup_peer (h,
-                                &pref->peer);
+  struct Peer *p = lookup_peer (h, &pref->peer);
 
   GNUNET_assert (NULL != p);
   GNUNET_assert (pref->pk < GNUNET_MQ_PREFERENCE_COUNT);
   p->bw_by_pk[pref->pk] -= ntohl (pref->bw.value__);
   h->bw_by_pk[pref->pk] -= ntohl (pref->bw.value__);
-  if ( (0 == p->bw_by_pk[pref->pk]) &&
-       (GNUNET_YES == peer_test_dead (p)) )
+  if ((0 == p->bw_by_pk[pref->pk]) && (GNUNET_YES == peer_test_dead (p)))
     peer_free (p);
   update (h);
 }
@@ -965,12 +920,11 @@ simple_preference_del (void *cls,
  */
 static struct GNUNET_ATS_SessionHandle *
 simple_session_add (void *cls,
-		    const struct GNUNET_ATS_SessionData *data,
-		    const char *address)
+                    const struct GNUNET_ATS_SessionData *data,
+                    const char *address)
 {
   struct SimpleHandle *h = cls;
-  struct Peer *p = peer_add (h,
-                             &data->peer);
+  struct Peer *p = peer_add (h, &data->peer);
   struct Hello *hello;
   size_t alen;
   struct GNUNET_ATS_SessionHandle *sh;
@@ -991,25 +945,22 @@ simple_session_add (void *cls,
   }
   else
   {
-    memcpy (&sh[1],
-            address,
-            alen);
+    memcpy (&sh[1], address, alen);
     sh->address = (const char *) &sh[1];
   }
-  GNUNET_CONTAINER_DLL_insert (p->sh_head,
-                               p->sh_tail,
-                               sh);
-  /* match HELLO */
-  hello = p->h_head;
-  while ( (NULL != hello) &&
-          (0 != strcmp (address,
-                        hello->address)) )
-    hello = hello->next;
-  if (NULL != hello)
+  GNUNET_CONTAINER_DLL_insert (p->sh_head, p->sh_tail, sh);
+  if (NULL != address)
   {
-    hello->sh = sh;
-    hello->backoff = GNUNET_TIME_UNIT_ZERO;
-    sh->hello = hello;
+    /* match HELLO */
+    hello = p->h_head;
+    while ((NULL != hello) && (0 != strcmp (address, hello->address)))
+      hello = hello->next;
+    if (NULL != hello)
+    {
+      hello->sh = sh;
+      hello->backoff = GNUNET_TIME_UNIT_ZERO;
+      sh->hello = hello;
+    }
   }
   update (h);
   return sh;
@@ -1026,8 +977,8 @@ simple_session_add (void *cls,
  */
 static void
 simple_session_update (void *cls,
-		       struct GNUNET_ATS_SessionHandle *sh,
-		       const struct GNUNET_ATS_SessionData *data)
+                       struct GNUNET_ATS_SessionHandle *sh,
+                       const struct GNUNET_ATS_SessionData *data)
 {
   struct SimpleHandle *h = cls;
 
@@ -1046,17 +997,15 @@ simple_session_update (void *cls,
  */
 static void
 simple_session_del (void *cls,
-		    struct GNUNET_ATS_SessionHandle *sh,
-		    const struct GNUNET_ATS_SessionData *data)
+                    struct GNUNET_ATS_SessionHandle *sh,
+                    const struct GNUNET_ATS_SessionData *data)
 {
   struct SimpleHandle *h = cls;
   struct Peer *p = sh->peer;
   struct Hello *hello = sh->hello;
 
   /* clean up sh */
-  GNUNET_CONTAINER_DLL_remove (p->sh_head,
-                               p->sh_tail,
-                               sh);
+  GNUNET_CONTAINER_DLL_remove (p->sh_head, p->sh_tail, sh);
   if (NULL != hello)
   {
     GNUNET_assert (sh == hello->sh);
@@ -1064,13 +1013,11 @@ simple_session_del (void *cls,
     /* session went down, if necessary restart suggesting
        addresses */
     if (NULL == p->task)
-      p->task = GNUNET_SCHEDULER_add_now (&suggest_start_cb,
-                                          p);
+      p->task = GNUNET_SCHEDULER_add_now (&suggest_start_cb, p);
   }
   GNUNET_free (sh);
   /* del peer if otherwise dead */
-  if ( (NULL == p->sh_head) &&
-       (GNUNET_YES == peer_test_dead (p)) )
+  if ((NULL == p->sh_head) && (GNUNET_YES == peer_test_dead (p)))
     peer_free (p);
   update (h);
 }
@@ -1095,8 +1042,7 @@ libgnunet_plugin_ats2_simple_init (void *cls)
 
   s = GNUNET_new (struct SimpleHandle);
   s->env = env;
-  s->peers = GNUNET_CONTAINER_multipeermap_create (128,
-						   GNUNET_YES);
+  s->peers = GNUNET_CONTAINER_multipeermap_create (128, GNUNET_YES);
   s->ps = GNUNET_PEERSTORE_connect (env->cfg);
   sf.cls = s;
   sf.preference_add = &simple_preference_add;
@@ -1104,9 +1050,7 @@ libgnunet_plugin_ats2_simple_init (void *cls)
   sf.session_add = &simple_session_add;
   sf.session_update = &simple_session_update;
   sf.session_del = &simple_session_del;
-  for (enum GNUNET_NetworkType nt = 0;
-       nt < GNUNET_NT_COUNT;
-       nt++)
+  for (enum GNUNET_NetworkType nt = 0; nt < GNUNET_NT_COUNT; nt++)
   {
     const char *name = GNUNET_NT_to_string (nt);
 
@@ -1115,14 +1059,8 @@ libgnunet_plugin_ats2_simple_init (void *cls)
       GNUNET_break (0);
       break;
     }
-    get_quota (env->cfg,
-	       name,
-	       "IN",
-	       &s->networks[nt].total_quota_in);
-    get_quota (env->cfg,
-	       name,
-	       "OUT",
-	       &s->networks[nt].total_quota_out);
+    get_quota (env->cfg, name, "IN", &s->networks[nt].total_quota_in);
+    get_quota (env->cfg, name, "OUT", &s->networks[nt].total_quota_out);
     s->networks[nt].type = nt;
   }
   return &sf;
@@ -1140,11 +1078,9 @@ libgnunet_plugin_ats2_simple_done (void *cls)
   struct GNUNET_ATS_SolverFunctions *sf = cls;
   struct SimpleHandle *s = sf->cls;
 
-  GNUNET_break (0 ==
-                GNUNET_CONTAINER_multipeermap_size (s->peers));
+  GNUNET_break (0 == GNUNET_CONTAINER_multipeermap_size (s->peers));
   GNUNET_CONTAINER_multipeermap_destroy (s->peers);
-  GNUNET_PEERSTORE_disconnect (s->ps,
-			       GNUNET_NO);
+  GNUNET_PEERSTORE_disconnect (s->ps, GNUNET_NO);
   GNUNET_free (s);
   return NULL;
 }

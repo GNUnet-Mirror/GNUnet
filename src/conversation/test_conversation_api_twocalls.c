@@ -583,7 +583,9 @@ identity_cb (void *cls,
 
 
 static void
-phone_ego_create_cont (void *cls, const char *emsg)
+phone_ego_create_cont (void *cls,
+                       const struct GNUNET_CRYPTO_EcdsaPrivateKey *pk,
+                       const char *emsg)
 {
   (void) cls;
   op = NULL;
