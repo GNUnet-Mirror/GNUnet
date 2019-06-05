@@ -87,3 +87,4 @@ gnunet-communicator-unix
 gnunet-service-tng
 gnunet-communicator-tcp
 gnunet-communicator-udp
+test_communicator_unix
