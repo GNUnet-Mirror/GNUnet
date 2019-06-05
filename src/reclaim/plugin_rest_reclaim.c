@@ -283,10 +283,6 @@ cleanup_handle (struct RequestHandle *handle)
     GNUNET_free (ego_tmp->keystring);
     GNUNET_free (ego_tmp);
   }
-  if (NULL != handle->attr_it)
-  {
-    GNUNET_free (handle->attr_it);
-  }
   GNUNET_free (handle);
 }
 
