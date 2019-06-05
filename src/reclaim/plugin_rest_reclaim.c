@@ -719,20 +719,18 @@ revoke_ticket_cont (struct GNUNET_REST_RequestHandle *con_handle,
   GNUNET_memcpy (term_data, handle->rest_handle->data,
                  handle->rest_handle->data_size);
   data_json = json_loads (term_data, JSON_DECODE_ANY, &err);
-  GNUNET_assert (GNUNET_OK ==
-                 GNUNET_JSON_parse (data_json, tktspec, NULL, NULL));
-  json_decref (data_json);
-  if (NULL == ticket) {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Unable to parse ticket from %s\n",
-                term_data);
-    GNUNET_SCHEDULER_add_now (&do_error, handle);
-    return;
-  }
   if (GNUNET_OK != GNUNET_JSON_parse (data_json, tktspec, NULL, NULL)) {
     handle->emsg = GNUNET_strdup ("Not a ticket!\n");
     GNUNET_SCHEDULER_add_now (&do_error, handle);
     GNUNET_JSON_parse_free (tktspec);
     json_decref (data_json);
+    return;
+  }
+  json_decref (data_json);
+  if (NULL == ticket) {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Unable to parse ticket from %s\n",
+                term_data);
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
   }
 

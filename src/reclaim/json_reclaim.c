@@ -171,7 +171,7 @@ parse_ticket (void *cls, json_t *root, struct GNUNET_JSON_Specification *spec)
                               &rnd_str,
                               "audience",
                               &aud_str,
-                              "identity",
+                              "issuer",
                               &id_str);
   if (0 != unpack_state)
   {
