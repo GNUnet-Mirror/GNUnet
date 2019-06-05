@@ -755,7 +755,7 @@ revoke_ticket_cont (struct GNUNET_REST_RequestHandle *con_handle,
   const struct GNUNET_CRYPTO_EcdsaPrivateKey *identity_priv;
   struct RequestHandle *handle = cls;
   struct EgoEntry *ego_entry;
-  struct GNUNET_RECLAIM_Ticket *ticket;
+  struct GNUNET_RECLAIM_Ticket *ticket = NULL;
   struct GNUNET_CRYPTO_EcdsaPublicKey tmp_pk;
   char term_data[handle->rest_handle->data_size + 1];
   json_t *data_json;
@@ -774,12 +774,14 @@ revoke_ticket_cont (struct GNUNET_REST_RequestHandle *con_handle,
                  handle->rest_handle->data,
                  handle->rest_handle->data_size);
   data_json = json_loads (term_data, JSON_DECODE_ANY, &err);
-  if (GNUNET_OK != GNUNET_JSON_parse (data_json, tktspec, NULL, NULL))
+  if ((NULL == data_json) ||
+      (GNUNET_OK != GNUNET_JSON_parse (data_json, tktspec, NULL, NULL)))
   {
     handle->emsg = GNUNET_strdup ("Not a ticket!\n");
     GNUNET_SCHEDULER_add_now (&do_error, handle);
     GNUNET_JSON_parse_free (tktspec);
-    json_decref (data_json);
+    if (NULL != data_json)
+      json_decref (data_json);
     return;
   }
   json_decref (data_json);
