@@ -272,8 +272,14 @@ libgnunet_plugin_block_gns_la_LIBADD = \
 libgnunet_plugin_block_gns_la_LDFLAGS = \
   $(GN_PLUGIN_LDFLAGS)
 
+if HAVE_MHD
+if HAVE_GNUTLS
+if HAVE_LIBGNURL
 check_PROGRAMS = \
   test_gns_proxy
+endif
+endif
+endif
 
 check_SCRIPTS = \
   test_gns_lookup.sh \
@@ -292,7 +298,7 @@ check_SCRIPTS = \
   test_gns_soa_lookup.sh\
   test_gns_revocation.sh\
   test_gns_cname_lookup.sh \
-	test_proxy.sh
+  test_proxy.sh
 
 if ENABLE_TEST_RUN
 if HAVE_SQLITE
