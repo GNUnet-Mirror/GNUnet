@@ -160,7 +160,7 @@ libgnunetutil_la_LIBADD = \
 
 libgnunetutil_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS) \
-  -version-info 13:0:0
+  -version-info 13:1:0
 
 libgnunetutil_taler_wallet_la_SOURCES = \
   common_allocation.c \

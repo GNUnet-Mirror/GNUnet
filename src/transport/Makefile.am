@@ -595,7 +595,7 @@ check_PROGRAMS = \
  $(HTTP_QUOTA_TEST) \
  $(HTTPS_QUOTA_TEST) \
  $(WLAN_QUOTA_TEST) \
- $(BT_QUOTA_TEST) 
+ $(BT_QUOTA_TEST)
 if HAVE_GETOPT_BINARY
 check_PROGRAMS += \
 test_transport_api_slow_ats
@@ -664,8 +664,7 @@ TESTS = \
  $(HTTP_API_TIMEOUT_TEST) \
  $(HTTPS_API_TIMEOUT_TEST) \
  $(WLAN_TIMEOUT_TEST) \
- $(BT_TIMEOUT_TEST) \
- test_communicator_unix
+ $(BT_TIMEOUT_TEST)
 if HAVE_GETOPT_BINARY
 TESTS += \
 test_transport_api_slow_ats

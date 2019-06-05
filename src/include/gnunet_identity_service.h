@@ -55,7 +55,7 @@ extern "C" {
 /**
  * Version number of GNUnet Identity API.
  */
-#define GNUNET_IDENTITY_VERSION 0x00000000
+#define GNUNET_IDENTITY_VERSION 0x00000100
 
 /**
  * Handle to access the identity service.
