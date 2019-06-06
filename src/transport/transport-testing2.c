@@ -38,6 +38,9 @@
 #define LOG(kind, ...) GNUNET_log_from (kind, "transport-testing2", __VA_ARGS__)
 
 
+/**
+ * @brief Handle to a transport communicator
+ */
 struct GNUNET_TRANSPORT_TESTING_TransportCommunicatorHandle
 {
   /**
@@ -97,12 +100,12 @@ struct GNUNET_TRANSPORT_TESTING_TransportCommunicatorHandle
   char *c_address;
 
   /**
-   * @brief Head of the queues
+   * @brief Head of the DLL of queues associated with this communicator
    */
   struct GNUNET_TRANSPORT_TESTING_TransportCommunicatorQueue *queue_head;
 
   /**
-   * @brief Tail of the queues
+   * @brief Tail of the DLL of queues associated with this communicator
    */
   struct GNUNET_TRANSPORT_TESTING_TransportCommunicatorQueue *queue_tail;
 
@@ -129,12 +132,20 @@ struct GNUNET_TRANSPORT_TESTING_TransportCommunicatorHandle
   GNUNET_TRANSPORT_TESTING_AddQueueCallback add_queue_cb;
 
   /**
+   * @brief Callback called when a new communicator connects
+   */
+  GNUNET_TRANSPORT_TESTING_IncomingMessageCallback incoming_msg_cb;
+
+  /**
    * @brief Closure to the callback
    */
   void *cb_cls;
 };
 
 
+/**
+ * @brief Queue of a communicator and some context
+ */
 struct GNUNET_TRANSPORT_TESTING_TransportCommunicatorQueue
 {
   /**
@@ -143,7 +154,11 @@ struct GNUNET_TRANSPORT_TESTING_TransportCommunicatorQueue
   struct GNUNET_TRANSPORT_TESTING_TransportCommunicatorHandle *tc_h;
 
   /**
-   * @brief Task to request the opening of a view
+   * @brief Envelope to a message that requests the opening of the queue.
+   *
+   * If the client already requests queue(s), but the communicator is not yet
+   * connected, we cannot send the request to open the queue. Save it until the
+   * communicator becomes available and send it then.
    */
   struct GNUNET_MQ_Envelope *open_queue_env;
 
@@ -189,6 +204,9 @@ struct GNUNET_TRANSPORT_TESTING_TransportCommunicatorQueue
 };
 
 
+/**
+ * @brief Handle/Context to a single transmission
+ */
 struct GNUNET_TRANSPORT_TESTING_TransportCommunicatorTransmission
 {
 };
@@ -221,7 +239,9 @@ check_communicator_available (
 /**
  * @brief Handle new communicator
  *
- * @param cls Closure
+ * Store characteristics of communicator, call respective client callback.
+ *
+ * @param cls Closure - communicator handle
  * @param msg Message struct
  */
 static void
@@ -272,6 +292,14 @@ check_add_address (void *cls,
 }
 
 
+/**
+ * @brief The communicator informs about an address.
+ *
+ * Store address and call client callback.
+ *
+ * @param cls Closure - communicator handle
+ * @param msg Message
+ */
 static void
 handle_add_address (void *cls,
                     const struct GNUNET_TRANSPORT_AddAddressMessage *msg)
@@ -311,6 +339,15 @@ handle_queue_create_ok (void *cls,
 }
 
 
+/**
+ * @brief Communicator informs that it wont try establishing requested queue.
+ *
+ * It will not do so probably because the address is bougus (see comment to
+ * #GNUNET_MESSAGE_TYPE_TRANSPORT_QUEUE_CREATE_FAIL)
+ *
+ * @param cls Closure - communicator handle
+ * @param msg Message
+ */
 static void
 handle_queue_create_fail (
   void *cls,
@@ -342,9 +379,11 @@ check_add_queue_message (void *cls,
 
 
 /**
- * @brief Handle new communicator
+ * @brief Handle new queue
  *
- * @param cls Closure
+ * Store context and call client callback.
+ *
+ * @param cls Closure - communicator handle
  * @param msg Message struct
  */
 static void
@@ -409,10 +448,13 @@ connect_cb (void *cls,
 
   if (NULL == tc_h->queue_head)
     return tc_h;
+  /* Iterate over queues. They are yet to be opened. Request opening. */
   while (NULL != (tc_queue_iter = tc_h->queue_head))
   {
     if (NULL == tc_queue_iter->open_queue_env)
       continue;
+    /* Send the previously created mq envelope to request the creation of the
+     * queue. */
     GNUNET_MQ_send (tc_h->c_mq, tc_queue_iter->open_queue_env);
     tc_queue_iter->open_queue_env = NULL;
   }
@@ -626,6 +668,13 @@ GNUNET_TRANSPORT_TESTING_transport_communicator_service_start (
 }
 
 
+/**
+ * @brief Instruct communicator to open a queue
+ *
+ * @param tc_h Handle to communicator which shall open queue
+ * @param peer_id Towards which peer
+ * @param address For which address
+ */
 void
 GNUNET_TRANSPORT_TESTING_transport_communicator_open_queue (
   struct GNUNET_TRANSPORT_TESTING_TransportCommunicatorHandle *tc_h,
@@ -670,6 +719,15 @@ GNUNET_TRANSPORT_TESTING_transport_communicator_open_queue (
 }
 
 
+/**
+ * @brief Instruct communicator to send data
+ *
+ * @param tc_queue The queue to use for sending
+ * @param payload Data to send
+ * @param payload_size Size of the payload
+ *
+ * @return Handle to the transmission
+ */
 struct GNUNET_TRANSPORT_TESTING_TransportCommunicatorTransmission *
 GNUNET_TRANSPORT_TESTING_transport_communicator_send
   (struct GNUNET_TRANSPORT_TESTING_TransportCommunicatorQueue *tc_queue,

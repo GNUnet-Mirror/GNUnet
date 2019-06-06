@@ -85,20 +85,42 @@ add_address_cb (void *cls,
 }
 
 
+/**
+ * @brief Callback that informs whether the requested queue will be
+ * established
+ *
+ * Implements #GNUNET_TRANSPORT_TESTING_QueueCreateReplyCallback.
+ *
+ * @param cls Closure - unused
+ * @param tc_h Communicator handle - unused
+ * @param will_try #GNUNET_YES if queue will be established
+ *                #GNUNET_NO if queue will not be established (bogous address)
+ */
 static void
 queue_create_reply_cb (void *cls,
                        struct GNUNET_TRANSPORT_TESTING_TransportCommunicatorHandle *tc_h,
-                       int success)
+                       int will_try)
 {
-  if (GNUNET_YES == success)
+  if (GNUNET_YES == will_try)
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-        "Got Queue!\n");
+        "Queue will be established!\n");
   else
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-        "Failed getting queue!\n");
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+        "Queue won't be established (bougus address?)!\n");
 }
 
 
+/**
+ * @brief Handle opening of queue
+ *
+ * Issues sending of test data
+ *
+ * Implements #GNUNET_TRANSPORT_TESTING_AddQueueCallback
+ *
+ * @param cls Closure
+ * @param tc_h Communicator handle
+ * @param tc_queue Handle to newly opened queue
+ */
 static void
 add_queue_cb (void *cls,
               struct GNUNET_TRANSPORT_TESTING_TransportCommunicatorHandle *tc_h,
@@ -112,6 +134,28 @@ add_queue_cb (void *cls,
 }
 
 
+/**
+ * @brief Handle an incoming message
+ *
+ * Implements #GNUNET_TRANSPORT_TESTING_IncomingMessageCallback
+
+ * @param cls Closure
+ * @param tc_h Handle to the receiving communicator
+ * @param msg Received message
+ */
+void
+incoming_message_cb (void *cls,
+    struct GNUNET_TRANSPORT_TESTING_TransportCommunicatorHandle *tc_h,
+    const struct GNUNET_MessageHeader *msg)
+{
+}
+
+
+/**
+ * @brief Main function called by the scheduler
+ *
+ * @param cls Closure - Handle to configuration
+ */
 static void
 run (void *cls)
 {
@@ -125,6 +169,7 @@ run (void *cls)
       NULL,
       &queue_create_reply_cb,
       &add_queue_cb,
+      NULL,
       NULL); /* cls */
   tc_hs[1] = GNUNET_TRANSPORT_TESTING_transport_communicator_service_start (
       "transport",
