@@ -179,6 +179,7 @@ run (void *cls)
       &add_address_cb,
       NULL,
       &add_queue_cb,
+      NULL,
       NULL); /* cls */
 }
 

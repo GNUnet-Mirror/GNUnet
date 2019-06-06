@@ -325,6 +325,63 @@ handle_add_address (void *cls,
 }
 
 
+/**
+ * Incoming message.  Test message is well-formed.
+ *
+ * @param cls the client
+ * @param msg the send message that was sent
+ * @return #GNUNET_OK if message is well-formed
+ */
+static int
+check_incoming_msg (void *cls,
+                   const struct GNUNET_TRANSPORT_IncomingMessage *msg)
+{
+  //struct TransportClient *tc = cls;
+
+  //if (CT_COMMUNICATOR != tc->type)
+  //{
+  //  GNUNET_break (0);
+  //  return GNUNET_SYSERR;
+  //}
+  GNUNET_MQ_check_boxed_message (msg);
+  return GNUNET_OK;
+}
+
+
+/**
+ * @brief Receive an incoming message.
+ *
+ * Pass the message to the client.
+ *
+ * @param cls Closure - communicator handle
+ * @param msg Message
+ */
+static void
+handle_incoming_msg (void *cls,
+                    const struct GNUNET_TRANSPORT_IncomingMessage *msg)
+{
+  struct GNUNET_TRANSPORT_TESTING_TransportCommunicatorHandle *tc_h = cls;
+
+  if (NULL != tc_h->incoming_msg_cb) {
+    tc_h->incoming_msg_cb (tc_h->cb_cls,
+                           tc_h,
+                           (const struct GNUNET_MessageHeader *) msg);
+  }
+  else
+  {
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+        "Incoming message from communicator but no handler!\n");
+  }
+  GNUNET_SERVICE_client_continue (tc_h->client);
+}
+
+
+/**
+ * @brief Communicator informs that it tries to establish requested queue
+ *
+ * @param cls Closure - communicator handle
+ * @param msg Message
+ */
 static void
 handle_queue_create_ok (void *cls,
                         const struct GNUNET_TRANSPORT_CreateQueueResponse *msg)
@@ -509,10 +566,10 @@ transport_communicator_start (
     //                         GNUNET_MESSAGE_TYPE_TRANSPORT_DEL_ADDRESS,
     //                         struct GNUNET_TRANSPORT_DelAddressMessage,
     //                         NULL),
-    //GNUNET_MQ_hd_var_size (incoming_msg,
-    //    GNUNET_MESSAGE_TYPE_TRANSPORT_INCOMING_MSG,
-    //    struct GNUNET_TRANSPORT_IncomingMessage,
-    //    NULL),
+    GNUNET_MQ_hd_var_size (incoming_msg,
+        GNUNET_MESSAGE_TYPE_TRANSPORT_INCOMING_MSG,
+        struct GNUNET_TRANSPORT_IncomingMessage,
+        NULL),
     GNUNET_MQ_hd_fixed_size (queue_create_ok,
                              GNUNET_MESSAGE_TYPE_TRANSPORT_QUEUE_CREATE_OK,
                              struct GNUNET_TRANSPORT_CreateQueueResponse,
@@ -634,6 +691,7 @@ GNUNET_TRANSPORT_TESTING_transport_communicator_service_start (
    GNUNET_TRANSPORT_TESTING_AddAddressCallback add_address_cb,
    GNUNET_TRANSPORT_TESTING_QueueCreateReplyCallback queue_create_reply_cb,
    GNUNET_TRANSPORT_TESTING_AddQueueCallback add_queue_cb,
+   GNUNET_TRANSPORT_TESTING_IncomingMessageCallback incoming_message_cb,
    void *cb_cls)
 {
   struct GNUNET_TRANSPORT_TESTING_TransportCommunicatorHandle *tc_h;
@@ -656,6 +714,7 @@ GNUNET_TRANSPORT_TESTING_transport_communicator_service_start (
   tc_h->add_address_cb = add_address_cb;
   tc_h->queue_create_reply_cb = queue_create_reply_cb;
   tc_h->add_queue_cb = add_queue_cb;
+  tc_h->incoming_msg_cb = incoming_message_cb;
   tc_h->cb_cls = cb_cls;
 
   /* Start communicator part of service */
