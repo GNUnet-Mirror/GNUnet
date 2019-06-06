@@ -249,7 +249,9 @@ libexec_PROGRAMS = \
  $(WLAN_BIN_DUMMY) \
  $(BT_BIN) \
  gnunet-service-transport \
- gnunet-communicator-unix
+ gnunet-communicator-unix \
+ gnunet-communicator-udp \
+ gnunet-communicator-tcp
 
 
 
@@ -600,6 +602,8 @@ if HAVE_GETOPT_BINARY
 check_PROGRAMS += \
 test_transport_api_slow_ats
 endif
+check_PROGRAMS += \
+test_communicator_unix
 endif
 
 if ENABLE_TEST_RUN

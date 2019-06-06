@@ -541,19 +541,20 @@ shutdown_communicator (void *cls)
  */
 static void
 communicator_start (
-  struct GNUNET_TRANSPORT_TESTING_TransportCommunicatorHandle *tc_h)
+    struct GNUNET_TRANSPORT_TESTING_TransportCommunicatorHandle *tc_h,
+    const char *binary_name)
 {
   char *binary;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "communicator_start\n");
-  binary = GNUNET_OS_get_libexec_binary_path ("gnunet-communicator-unix");
+  binary = GNUNET_OS_get_libexec_binary_path (binary_name);
   tc_h->c_proc = GNUNET_OS_start_process (GNUNET_YES,
                                           GNUNET_OS_INHERIT_STD_OUT_AND_ERR,
                                           NULL,
                                           NULL,
                                           NULL,
                                           binary,
-                                          "./gnunet-communicator-unix",
+                                          binary_name,
                                           "-c",
                                           tc_h->cfg_filename,
                                           NULL);
@@ -583,14 +584,15 @@ communicator_start (
  */
 struct GNUNET_TRANSPORT_TESTING_TransportCommunicatorHandle *
 GNUNET_TRANSPORT_TESTING_transport_communicator_service_start (
-  const char *service_name,
-  const char *cfg_filename,
-  GNUNET_TRANSPORT_TESTING_CommunicatorAvailableCallback
-    communicator_available_cb,
-  GNUNET_TRANSPORT_TESTING_AddAddressCallback add_address_cb,
-  GNUNET_TRANSPORT_TESTING_QueueCreateReplyCallback queue_create_reply_cb,
-  GNUNET_TRANSPORT_TESTING_AddQueueCallback add_queue_cb,
-  void *cb_cls)
+   const char *service_name,
+   const char *binary_name,
+   const char *cfg_filename,
+   GNUNET_TRANSPORT_TESTING_CommunicatorAvailableCallback
+     communicator_available_cb,
+   GNUNET_TRANSPORT_TESTING_AddAddressCallback add_address_cb,
+   GNUNET_TRANSPORT_TESTING_QueueCreateReplyCallback queue_create_reply_cb,
+   GNUNET_TRANSPORT_TESTING_AddQueueCallback add_queue_cb,
+   void *cb_cls)
 {
   struct GNUNET_TRANSPORT_TESTING_TransportCommunicatorHandle *tc_h;
 
@@ -618,7 +620,8 @@ GNUNET_TRANSPORT_TESTING_transport_communicator_service_start (
   transport_communicator_start (tc_h);
 
   /* Schedule start communicator */
-  communicator_start (tc_h);
+  communicator_start (tc_h,
+                      binary_name);
   return tc_h;
 }
 
@@ -638,6 +641,7 @@ GNUNET_TRANSPORT_TESTING_transport_communicator_open_queue (
 
   tc_queue =
     GNUNET_new (struct GNUNET_TRANSPORT_TESTING_TransportCommunicatorQueue);
+  tc_queue->tc_h = tc_h;
   prefix = GNUNET_HELLO_address_to_prefix (address);
   if (NULL == prefix)
   {
@@ -674,18 +678,27 @@ GNUNET_TRANSPORT_TESTING_transport_communicator_send
    GNUNET_TRANSPORT_TESTING_SuccessStatus cb,
    void *cb_cls*/)
 {
-  // struct GNUNET_TRANSPORT_TESTING_TransportCommunicatorTransmission *tc_t;
+  struct GNUNET_TRANSPORT_TESTING_TransportCommunicatorTransmission *tc_t;
+  struct GNUNET_MessageHeader *mh;
   struct GNUNET_TRANSPORT_SendMessageTo *msg;
   struct GNUNET_MQ_Envelope *env;
+  size_t inbox_size;
 
+  inbox_size = sizeof (struct GNUNET_MessageHeader) + payload_size;
+  mh = GNUNET_malloc (inbox_size);
+  mh->size = htons (inbox_size);
+  mh->type = GNUNET_MESSAGE_TYPE_DUMMY;
+  memcpy (&mh[1],
+          payload,
+          payload_size);
   env = GNUNET_MQ_msg_extra (msg,
-                             payload_size,
+                             inbox_size,
                              GNUNET_MESSAGE_TYPE_TRANSPORT_SEND_MSG);
   msg->qid = htonl (tc_queue->qid);
   msg->mid = tc_queue->mid++;
   msg->receiver = tc_queue->peer_id;
-  memcpy (&msg[1], payload, payload_size);
+  memcpy (&msg[1], mh, inbox_size);
+  GNUNET_free (mh);
   GNUNET_MQ_send (tc_queue->tc_h->c_mq, env);
-  GNUNET_break (0); /* fixme: return value? */
-  return NULL; // tc_t;
+  return tc_t;
 }

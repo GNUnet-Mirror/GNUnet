@@ -84,6 +84,7 @@ typedef void
 struct GNUNET_TRANSPORT_TESTING_TransportCommunicatorHandle *
 GNUNET_TRANSPORT_TESTING_transport_communicator_service_start
   (const char *service_name,
+   const char *binary_name,
    const char *cfg_filename,
    GNUNET_TRANSPORT_TESTING_CommunicatorAvailableCallback communicator_available_cb,
    GNUNET_TRANSPORT_TESTING_AddAddressCallback add_address_cb,

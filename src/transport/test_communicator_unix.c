@@ -32,18 +32,6 @@
 
 #include <inttypes.h>
 
-/**
- * TODO
- * - start two communicators
- * - act like transport services
- *   - get_server_addresses (service.c)
- *   - open_listen_socket (service.c)
- *   - GNUNET_MQ_queue_for_callbacks (service.c)
- * - let them communicate
- *
- */
-
-
 
 #define LOG(kind,...) GNUNET_log_from (kind, "test_transport_communicator_unix", __VA_ARGS__)
 
@@ -54,6 +42,14 @@ static struct GNUNET_PeerIdentity peer_id[NUM_PEERS];
 static struct GNUNET_TRANSPORT_TESTING_TransportCommunicatorHandle *tc_hs[NUM_PEERS];
 
 //static char *addresses[NUM_PEERS];
+
+
+#define PAYLOAD_SIZE 256
+
+//static char payload[PAYLOAD_SIZE] = "TEST PAYLOAD";
+//static char payload[] = "TEST PAYLOAD";
+static uint32_t payload = 42;
+
 
 static void
 communicator_available_cb (void *cls,
@@ -110,6 +106,9 @@ add_queue_cb (void *cls,
 {
   LOG (GNUNET_ERROR_TYPE_DEBUG,
       "Got Queue!\n");
+  GNUNET_TRANSPORT_TESTING_transport_communicator_send (tc_queue,
+                                                        &payload,
+                                                        sizeof (payload));
 }
 
 
@@ -120,6 +119,7 @@ run (void *cls)
 
   tc_hs[0] = GNUNET_TRANSPORT_TESTING_transport_communicator_service_start (
       "transport",
+      "gnunet-communicator-unix",
       "test_communicator_1.conf",
       &communicator_available_cb,
       NULL,
@@ -128,6 +128,7 @@ run (void *cls)
       NULL); /* cls */
   tc_hs[1] = GNUNET_TRANSPORT_TESTING_transport_communicator_service_start (
       "transport",
+      "gnunet-communicator-unix",
       "test_communicator_2.conf",
       &communicator_available_cb,
       &add_address_cb,
