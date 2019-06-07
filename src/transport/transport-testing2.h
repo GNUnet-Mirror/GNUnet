@@ -20,7 +20,7 @@
 
 /**
  * @file transport/transport-testing2.h
- * @brief functions related to testing-tng
+ * @brief functions and structures related to testing-tng
  * @author Christian Grothoff
  * @author Julius Bünger
  */
@@ -30,17 +30,32 @@
 #include "transport.h"
 
 
+/**
+ * @brief Handle to a transport communicator
+ */
 struct GNUNET_TRANSPORT_TESTING_TransportCommunicatorHandle;
 
-struct GNUNET_TRANSPORT_TESTING_TransportCommunicatorQueue;
-
-struct GNUNET_TRANSPORT_TESTING_TransportCommunicatorTransmission;
 
 /**
- * @brief Function signature for callbacks that are called when new communicators become available
+ * @brief Queue of a communicator and some context
+ */
+struct GNUNET_TRANSPORT_TESTING_TransportCommunicatorQueue;
+
+
+/**
+ * @brief Handle/Context to a single transmission
+ */
+struct GNUNET_TRANSPORT_TESTING_TransportCommunicatorTransmission;
+
+
+/**
+ * @brief Function signature for callbacks that are called when new
+ * communicators become available
  *
- * @param Closure
- * @param msg Message
+ * @param cls Closure
+ * @param tc_h Communicator handle
+ * @param cc Characteristics of communicator
+ * @param address_prefix Prefix of the address
  */
 typedef void
 (*GNUNET_TRANSPORT_TESTING_CommunicatorAvailableCallback)(void *cls,
@@ -49,6 +64,16 @@ typedef void
       char *address_prefix);
 
 
+/**
+ * @brief Receive information about the address of a communicator.
+ *
+ * @param cls Closure
+ * @param tc_h Communicator handle
+ * @param address Address represented as string
+ * @param expiration Expiration
+ * @param aid Aid
+ * @param nt Network Type
+ */
 typedef void
 (*GNUNET_TRANSPORT_TESTING_AddAddressCallback)(void *cls,
       struct GNUNET_TRANSPORT_TESTING_TransportCommunicatorHandle *tc_h,
@@ -58,16 +83,43 @@ typedef void
       enum GNUNET_NetworkType nt);
 
 
+/**
+ * @brief Get informed about the success of a queue request.
+ *
+ * @param cls Closure
+ * @param tc_h Communicator handle
+ * @param will_try #GNUNET_YES if communicator will try to create queue
+ */
 typedef void
 (*GNUNET_TRANSPORT_TESTING_QueueCreateReplyCallback)(void *cls,
     struct GNUNET_TRANSPORT_TESTING_TransportCommunicatorHandle *tc_h,
     int will_try);
 
 
+/**
+ * @brief Handle opening of queue
+ *
+ * @param cls Closure
+ * @param tc_h Communicator handle
+ * @param tc_queue Handle to newly opened queue
+ */
 typedef void
 (*GNUNET_TRANSPORT_TESTING_AddQueueCallback)(void *cls,
     struct GNUNET_TRANSPORT_TESTING_TransportCommunicatorHandle *tc_h,
     struct GNUNET_TRANSPORT_TESTING_TransportCommunicatorQueue *tc_queue);
+
+
+/**
+ * @brief Handle an incoming message
+ *
+ * @param cls Closure
+ * @param tc_h Handle to the receiving communicator
+ * @param msg Received message
+ */
+typedef void
+(*GNUNET_TRANSPORT_TESTING_IncomingMessageCallback)(void *cls,
+    struct GNUNET_TRANSPORT_TESTING_TransportCommunicatorHandle *tc_h,
+    const struct GNUNET_MessageHeader *msg);
 
 
 /**
@@ -77,27 +129,50 @@ typedef void
  * @param cfg Configuration handle
  * @param communicator_available Callback that is called when a new
  * communicator becomes available
+ * @param add_address_cb Callback handling new addresses
+ * @param queue_create_reply_cb Callback handling success of queue requests
+ * @param add_queue_cb Callback handling freshly created queues
+ * @param incoming_message_cb Callback handling incoming messages
  * @param cb_cls Closure to @p communicator_available
  *
  * @return Handle to the communicator duo
  */
 struct GNUNET_TRANSPORT_TESTING_TransportCommunicatorHandle *
-GNUNET_TRANSPORT_TESTING_transport_communicator_service_start
-  (const char *service_name,
+GNUNET_TRANSPORT_TESTING_transport_communicator_service_start (
+   const char *service_name,
    const char *binary_name,
    const char *cfg_filename,
    GNUNET_TRANSPORT_TESTING_CommunicatorAvailableCallback communicator_available_cb,
    GNUNET_TRANSPORT_TESTING_AddAddressCallback add_address_cb,
    GNUNET_TRANSPORT_TESTING_QueueCreateReplyCallback queue_create_reply_cb,
    GNUNET_TRANSPORT_TESTING_AddQueueCallback add_queue_cb,
+   GNUNET_TRANSPORT_TESTING_IncomingMessageCallback incoming_message_cb,
    void *cb_cls);
 
+
+/**
+ * @brief Instruct communicator to open a queue
+ *
+ * @param tc_h Handle to communicator which shall open queue
+ * @param peer_id Towards which peer
+ * @param address For which address
+ */
 void
 GNUNET_TRANSPORT_TESTING_transport_communicator_open_queue
   (struct GNUNET_TRANSPORT_TESTING_TransportCommunicatorHandle *tc_h,
    const struct GNUNET_PeerIdentity *peer_id,
    const char *address);
 
+
+/**
+ * @brief Instruct communicator to send data
+ *
+ * @param tc_queue The queue to use for sending
+ * @param payload Data to send
+ * @param payload_size Size of the payload
+ *
+ * @return Handle to the transmission
+ */
 struct GNUNET_TRANSPORT_TESTING_TransportCommunicatorTransmission *
 GNUNET_TRANSPORT_TESTING_transport_communicator_send
   (struct GNUNET_TRANSPORT_TESTING_TransportCommunicatorQueue *tc_queue,
