@@ -24,20 +24,6 @@
  *
  * TODO:
  * Implement next:
- * - FIXME-FC: realize transport-to-transport flow control (needed in case
- *   communicators do not offer flow control).
- *   We do transmit FC window sizes now.
- *
- *   for DV)
- *   - send challenges via DV (when DVH is confirmed *and* we care about
- *     the target to get window size, or when DVH is unconfirmed (passive
- *     learning!) to confirm it!)
- *   - handle challenge responses in this case (note: validity period of addresses
- *     will be zero!)
- *   - if available, try to use DV paths when trying to establish
- *     virtual link for a `struct IncomingRequest`. (i.e. if DVH is
- *     unconfirmed, incoming requests also trigger challenge-via-DV!)
- *
  * - review retransmission logic, right now there is no smartness there!
  *   => congestion control, etc [PERFORMANCE-BASICS]
  *
@@ -76,6 +62,10 @@
  * - Need to track total bandwidth per VirtualLink and adjust how frequently
  *   we send FC messages based on bandwidth-delay-product (and relation
  *   to the window size!). See OPTIMIZE-FC-BDP.
+ * - if available, try to confirm unconfirmed DV paths when trying to establish
+ *   virtual link for a `struct IncomingRequest`. (i.e. if DVH is
+ *   unconfirmed, incoming requests cause us to try to validate a passively
+ *   learned path (requires new message type!))
  *
  * Design realizations / discussion:
  * - communicators do flow control by calling MQ "notify sent"
