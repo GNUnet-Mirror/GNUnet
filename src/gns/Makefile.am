@@ -297,8 +297,17 @@ check_SCRIPTS = \
   test_gns_rel_expiration.sh\
   test_gns_soa_lookup.sh\
   test_gns_revocation.sh\
-  test_gns_cname_lookup.sh \
+  test_gns_cname_lookup.sh
+
+if HAVE_MHD
+if HAVE_GNUTLS
+if HAVE_LIBGNURL
+check_SCRIPTS += \
   test_proxy.sh
+endif
+endif
+endif
+
 
 if ENABLE_TEST_RUN
 if HAVE_SQLITE

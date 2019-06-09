@@ -61,7 +61,7 @@ statusmsg()
 
 infomsg()
 {
-    if [ $verbosity = 1 ]; then
+    if [ x$verbosity = x1 ]; then
         statusmsg "INFO: $@"
     fi
 }

@@ -59,7 +59,7 @@ awk_check()
 
 gcc_check()
 {
-    TEST=`$WHICH gcc 2>/dev/null`
+    TEST=`$WHICH gcc | grep -v "not found" 2>/dev/null`
     if test -n "$TEST"; then
         VERS=`gcc --version 2>/dev/null | head -n 1`
         infomsg "gcc            : $VERS"
@@ -74,7 +74,7 @@ gcc_check()
 
 cc_check()
 {
-    TEST=`$WHICH cc 2>/dev/null`
+    TEST=`$WHICH cc | grep -v "not found" 2>/dev/null`
     if test -n "$TEST"; then
         VERS=`cc --version 2>/dev/null | head -n 1`
         infomsg "cc             : $VERS"
@@ -85,7 +85,7 @@ cc_check()
 
 cplusplus_check()
 {
-    TEST=`$WHICH c++ 2>/dev/null`
+    TEST=`$WHICH c++ | grep -v "not found" 2>/dev/null`
     if test -n "$TEST"; then
         VERS=`c++ --version 2>/dev/null | head -n 1`
         infomsg "c++            : $VERS"
@@ -96,18 +96,19 @@ cplusplus_check()
 
 gmake_check()
 {
-    TEST=`$WHICH gmake 2>/dev/null`
+    TEST=`$WHICH gmake | grep -v "not found"  2>/dev/null`
     if test -n "$TEST" ; then
-        gmake --version 2>/dev/null |\
+        VER=`gmake --version 2>/dev/null |\
 	    awk -F, '{print $1}' |\
-	    awk '/GNU Make/{print "GNU gmake      :",$NF}'
+	    awk '/GNU Make/{,$NF}'`
+        infomsg "gmake            : $VER"
     else
-        # FIX this test.
         TEST=`make --version 2>/dev/null`
         if test -n "$TEST"; then
-	    make --version 2>/dev/null |\
+	    VER=`make --version 2>/dev/null |\
 	        awk -F, '{print $1}' |\
-	        awk '/GNU Make/{print "gmake           :",$NF}'
+	        awk '/GNU Make/{print $NF}'`
+            infomsg "gmake          : $VER"
         else
 	    warningmsg "gmake           : Not Found"
         fi
@@ -126,15 +127,15 @@ make_check()
 
 autoconf_check()
 {
-    TEST=`$WHICH autoconf 2>/dev/null`
+    TEST=`$WHICH autoconf | grep -v "not found" 2>/dev/null`
     if test -n "$TEST"; then
         autoconf --version |\
             head -n 1 |\
             awk '{\
 	if (length($4) == 0) {\
-		print "autoconf       : "$3\
+		print "    INFO:    autoconf       : "$3\
 	} else {\
-		print "autoconf       : "$4\
+		print "    INFO:    autoconf       : "$4\
 	}}'
     else
         warningmsg "autoconf       : Not Found"
@@ -143,11 +144,10 @@ autoconf_check()
 
 automake_check()
 {
-    TEST=`$WHICH automake 2>/dev/null`
+    TEST=`$WHICH automake | grep -v "not found" 2>/dev/null`
     if test -n "$TEST"; then
-        automake --version 2>/dev/null |\
-            head -n 1 |\
-            awk '{print "automake       : "$4}'
+        VER=`automake --version 2>/dev/null | head -n 1 | awk '{print $4}'`
+        infomsg "automake       : $VER"
     else
         warningmsg "automake       : Not Found"
     fi
@@ -156,11 +156,10 @@ automake_check()
 # TODO: More libtool variants.
 libtool_check()
 {
-    TEST=`$WHICH libtool 2>/dev/null`
+    TEST=`$WHICH libtoolize | grep -v "not found" 2>/dev/null`
     if test -n "$TEST"; then
-        libtool --version 2>/dev/null |\
-            head -n 1 |\
-            awk '{print "libtool        : "$4}'
+        VER=`libtoolize --version 2>/dev/null | head -n 1 | awk '{print $4}'`
+        infomsg "libtool        : $VER"
     else
         warningmsg "libtool        : Not Found"
     fi
@@ -168,11 +167,10 @@ libtool_check()
 
 libextractor_check()
 {
-    TEST=`$WHICH extract 2>/dev/null`
+    TEST=`$WHICH extract | grep -v "not found" 2>/dev/null`
     if test -n "$TEST"; then
-        extract -v 2>/dev/null |\
-            head -n 1 |\
-            awk '{print "libextractor   : "$2}'
+        VER=`extract -v 2>/dev/null | head -n 1 | awk '{print $2}'`
+        infomsg "libextractor   : $VER"
     else
         warningmsg "libextractor   : Not Found"
     fi
@@ -181,8 +179,8 @@ libextractor_check()
 gnunet08_check()
 {
     if test -x gnunetd; then
-        gnunetd -v | sed -e "s/v//" 2>/dev/null |\
-            awk '{print "GNUnet 0.8     : "$2 (may conflict!)}'
+        VER=`gnunetd -v | sed -e "s/v//" 2>/dev/null`
+        warningmsg "GNUnet 0.8     : $VER (may conflict!)"
     else
         infomsg "GNUnet 0.8     : Not Found (good)"
     fi
@@ -190,21 +188,42 @@ gnunet08_check()
 
 gnunet09x_check()
 {
-    TEST=`$WHICH gnunet-arm 2>/dev/null`
+    TEST=`$WHICH gnunet-arm | grep -v "not found" 2>/dev/null`
     if test -n "$TEST"; then
-        gnunet-arm -v | sed -e "s/v//" 2>/dev/null |\
-            awk '{print "GNUnet 0.9     : "$2}'
+        VER=`gnunet-arm -v | sed -e "s/v//" 2>/dev/null | awk '{print $2}'`
+        VER9=`echo $VER | grep ^0\.9\.`
+        if test -n "$VER9"; then
+            warningmsg "GNUnet 0.9     : $VER"
+        else
+            infomsg "GNUnet 0.9     : Not Found (good)"
+        fi
     else
         infomsg "GNUnet 0.9     : Not Found (good)"
     fi
 }
 
+gnunet010x_check()
+{
+    TEST=`$WHICH gnunet-arm | grep -v "not found" 2>/dev/null`
+    if test -n "$TEST"; then
+        VER=`gnunet-arm -v | sed -e "s/v//" 2>/dev/null | awk '{print $2}'`
+        VER9=`echo $VER | grep ^0\.10\.`
+        if test -n "$VER10"; then
+            warningmsg "GNUnet 0.10    : $VER"
+        else
+            infomsg "GNUnet 0.10    : Not Found (good)"
+        fi
+    else
+        infomsg "GNUnet 0.10    : Not Found (good)"
+    fi
+}
+
 gnunet011x_check()
 {
-    TEST=`$WHICH gnunet-arm 2>/dev/null`
+    TEST=`$WHICH gnunet-arm | grep -v "not found" 2>/dev/null`
     if test -n "$TEST"; then
-        gnunet-arm -v | sed -e "s/v//" 2>/dev/null |\
-            awk '{print "GNUnet 0.11.x     : "$2}'
+        VER=`gnunet-arm -v | sed -e "s/v//" 2>/dev/null | awk '{print $2}'`
+        infomsg "GNUnet 0.11    : $VER"
     else
         warningmsg "GNUnet 0.11.x     : Not Found"
     fi
@@ -212,10 +231,10 @@ gnunet011x_check()
 
 gcrypt_check()
 {
-    TEST=`$WHICH libgcrypt-config 2> /dev/null`
+    TEST=`$WHICH libgcrypt-config | grep -v "not found" 2> /dev/null`
     if test -n "$TEST"; then
-        libgcrypt-config --version 2> /dev/null | \
-            awk '{print "libgcrypt      : "$1}'
+        VER=`libgcrypt-config --version 2> /dev/null`
+        infomsg "libgcrypt      : $VER"
     else
         warningmsg "libgcrypt      : Not Found"
     fi
@@ -223,10 +242,10 @@ gcrypt_check()
 
 mysql_check()
 {
-    TEST=`$WHICH mysql_config 2> /dev/null`
+    TEST=`$WHICH mysql_config | grep -v "not found" 2> /dev/null`
     if test -n "$TEST"; then
-        mysql_config --version 2> /dev/null | \
-            awk '{print "mysql          : "$1}'
+        VER=`mysql_config --version 2> /dev/null`
+        infomsg "mysql          : $VER"
     else
         infomsg "mysql          : Not Found"
     fi
@@ -234,20 +253,20 @@ mysql_check()
 
 pkgconf_check()
 {
-    TEST=`$WHICH pkgconf 2> /dev/null`
+    TEST=`$WHICH pkgconf | grep -v "not found" 2> /dev/null`
     if test -n "$TEST"; then
         pkgconf --version 2> /dev/null | awk '{print "pkgconf     : "$1}'
     else
-        infomsg "pkgconf     : Not Found"
+        infomsg "pkgconf        : Not Found"
     fi
 }
- 
+
 pkgconfig_check()
 {
-    TEST=`$WHICH pkg-config 2> /dev/null`
+    TEST=`$WHICH pkg-config | grep -v "not found" 2> /dev/null`
     if test -n "$TEST"; then
-        pkg-config --version 2> /dev/null | \
-            awk '{print "pkg-config     : "$1}'
+        VER=`pkg-config --version 2> /dev/null | awk '{print $1}'`
+        infomsg "pkg-config     : $VER"
     else
         infomsg "pkg-config     : Not Found"
     fi
@@ -255,10 +274,10 @@ pkgconfig_check()
 
 glib2_check()
 {
-    TEST=`$WHICH pkg-config 2> /dev/null`
+    TEST=`$WHICH pkg-config | grep -v "not found" 2> /dev/null`
     if test -n "$TEST"; then
-        pkg-config --modversion glib-2.0 2> /dev/null | \
-            awk '{print "glib2          : "$1}'
+        VER=`pkg-config --modversion glib-2.0 2> /dev/null | awk '{print $1}'`
+        infomsg "glib2          : $VER"
     else
         infomsg "glib2          : Not Found"
     fi
@@ -266,18 +285,52 @@ glib2_check()
 
 gtk2_check()
 {
-    TEST=`$WHICH pkg-config 2> /dev/null`
+    TEST=`$WHICH pkg-config | grep -v "not found" 2> /dev/null`
     if test -n "$TEST"; then
-        pkg-config --modversion gtk+-2.0 2> /dev/null | \
-            awk '{print "gtk2+          : "$1}'
+        VER=`pkg-config --modversion gtk+-2.0 2> /dev/null | awk '{print $1}'`
+        if test -n "$VER"; then
+            infomsg "gtk2+          : $VER"
+        else
+            infomsg "gtk2+          : Not found"
+        fi
     else
         infomsg "gtk2+          : Not Found"
     fi
 }
 
+gtk3_check()
+{
+    TEST=`$WHICH pkg-config | grep -v "not found" 2> /dev/null`
+    if test -n "$TEST"; then
+        VER=`pkg-config --modversion gtk+-3.0 2> /dev/null | awk '{print $1}'`
+        if test -n "$VER"; then
+            infomsg "gtk3+          : $VER"
+        else
+            infomsg "gtk3+          : Not found"
+        fi
+    else
+        infomsg "gtk3+          : Not Found"
+    fi
+}
+
+gtk4_check()
+{
+    TEST=`$WHICH pkg-config | grep -v "not found" 2> /dev/null`
+    if test -n "$TEST"; then
+        VER=`pkg-config --modversion gtk+-4.0 2> /dev/null | awk '{print $1}'`
+        if test -n "$VER"; then
+            infomsg "gtk4+          : $VER"
+        else
+            infomsg "gtk4+          : Not found"
+        fi
+    else
+        infomsg "gtk4+          : Not Found"
+    fi
+}
+
 gmp_check()
 {
-    TEST=`$WHICH dpkg 2> /dev/null`
+    TEST=`$WHICH dpkg | grep -v "not found" 2> /dev/null`
     if test -n "$TEST"; then
         LINES=`dpkg -s libgmp-dev | grep Version | wc -l 2> /dev/null`
         if test "$LINES" = "1"
@@ -287,19 +340,20 @@ gmp_check()
         else
             errormsg "GMP            : dpkg: libgmp-dev not installed"
         fi
-    fi
-    TEST=`$WHICH rpm 2> /dev/null`
-    if test -n "$TEST"; then
-        rpm -q gmp | sed -e "s/gmp-//" 2> /dev/null | \
-            awk '{print "GMP            : "$1.rpm}'
     else
-        warningmsg "GMP            : Test not available"
+        TEST=`$WHICH rpm | grep -v "not found" 2> /dev/null`
+        if test -n "$TEST"; then
+            rpm -q gmp | sed -e "s/gmp-//" 2> /dev/null | \
+                infomsg "GMP            : $1.rpm"
+        else
+            warningmsg "GMP            : Test not available"
+        fi
     fi
 }
 
 libunistring_check()
 {
-    TEST=`$WHICH dpkg 2> /dev/null`
+    TEST=`$WHICH dpkg | grep -v "not found" 2> /dev/null`
     if test -n "$TEST"; then
         LINES=`dpkg -s libunistring-dev | grep Version | wc -l`
         if test "$LINES" = "1"
@@ -310,7 +364,7 @@ libunistring_check()
             errormsg "libunistring   : dpkg: libunistring3-dev not installed"
         fi
     else
-        TEST=`$WHICH rpm 2> /dev/null`
+        TEST=`$WHICH rpm | grep -v "not found" 2> /dev/null`
         if test -n "$TEST"; then
             rpm -q unistring | sed -e "s/unistring-//" 2> /dev/null | \
                 awk '{print "libunistring   : "$1.rpm}'
@@ -322,7 +376,7 @@ libunistring_check()
 
 pkgadd_check()
 {
-    TEST=`$WHICH pkg_add 2> /dev/null`
+    TEST=`$WHICH pkg_add | grep -v "not found" 2> /dev/null`
     if test -n "$TEST"; then
         VERSION_UNISTRING=`pkg_info -Nb libunistring`
         VERSION_GMP=`pkg_info -Nb gmp`
@@ -335,10 +389,10 @@ pkgadd_check()
 
 gettext_check()
 {
-    TEST=`$WHICH gettext 2> /dev/null`
+    TEST=`$WHICH gettext | grep -v "not found" 2> /dev/null`
     if test -n "$TEST"; then
-        gettext --version | head -n1 2> /dev/null | \
-            awk '{print "GNU gettext    : "$4}'
+        VER=`gettext --version | head -n1 2> /dev/null |  awk '{print $4}'`
+        infomsg "GNU gettext    : $VER"
     else
         errormsg "GNU gettext    : Not found"
     fi
@@ -348,10 +402,10 @@ gettext_check()
 # found (yes those systems exist)
 curl_check()
 {
-    TEST=`$WHICH curl-config 2> /dev/null`
+    TEST=`$WHICH curl-config | grep -v "not found" 2> /dev/null`
     if test -n "$TEST"; then
-        curl-config --version | head -n1 2> /dev/null | \
-            awk '{print "libcurl        : "$2}'
+        VER=`curl-config --version | head -n1 2> /dev/null | awk '{print $2}'`
+        infomsg "libcurl        : $VER"
     else
         infomsg "libcurl        : Not found"
     fi
@@ -359,10 +413,10 @@ curl_check()
 
 gnurl_check()
 {
-    TEST=`$WHICH gnurl-config 2> /dev/null`
+    TEST=`$WHICH gnurl-config | grep -v "not found" 2> /dev/null`
     if test -n "$TEST"; then
-        gnurl-config --version | head -n1 2> /dev/null | \
-            awk '{print "libgnurl       : "$2}'
+        VER=`gnurl-config --version | head -n1 2> /dev/null | awk '{print "$2}'`
+        infomsg "libgnurl       : $VER"
     else
         infomsg "libgnurl       : Not found"
     fi
@@ -370,7 +424,6 @@ gnurl_check()
 
 libmicrohttpd_check()
 {
-    echo -n "libmicrohttpd  : "
     TMPFILE=`mktemp /tmp/mhd-version-testXXXXXX`
     cat - >$TMPFILE.c <<EOF
 #include <microhttpd.h>
@@ -381,15 +434,15 @@ int main()
   return 0;
 }
 EOF
-
-    gcc -o $TMPFILE $TMPFILE.c 2> /dev/null && $TMPFILE || echo "Not found"
-    cc -o $TMPFILE $TMPFILE.c 2> /dev/null && $TMPFILE || echo "Not found"
+    VER="Not found"
+    gcc -o $TMPFILE $TMPFILE.c 2> /dev/null && VER=`$TMPFILE`
+    cc -o $TMPFILE $TMPFILE.c 2> /dev/null && VER=`$TMPFILE`
     rm -f $TMPFILE $TMPFILE.bin
+    infomsg "libmicrohttpd  : $VER"
 }
 
 glpk_check()
 {
-    echo -n "GNU GLPK       : "
     TMPFILE=`mktemp /tmp/glpk-version-testXXXXXX`
     cat - >$TMPFILE.c <<EOF
 #include <glpk.h>
@@ -400,15 +453,15 @@ int main()
   return 0;
 }
 EOF
-
-    gcc -o $TMPFILE $TMPFILE.c 2> /dev/null && $TMPFILE || echo "Not found"
-    cc -o $TMPFILE $TMPFILE.c 2> /dev/null && $TMPFILE || echo "Not found"
+    VER="Not found"
+    gcc -o $TMPFILE $TMPFILE.c 2> /dev/null && VER=`$TMPFILE`
+    cc -o $TMPFILE $TMPFILE.c 2> /dev/null && VER=`$TMPFILE`
     rm -f $TMPFILE $TMPFILE.bin
+    infomsg "GNU GLPK       : $VER"
 }
 
 gnutls_check()
 {
-    echo -n "GnuTLS         : "
     TMPFILE=`mktemp /tmp/gnutls-version-testXXXXXX`
     cat - >$TMPFILE.c <<EOF
 #include <gnutls/gnutls.h>
@@ -419,16 +472,17 @@ int main()
   return 0;
 }
 EOF
-
-    gcc -o $TMPFILE $TMPFILE.c 2> /dev/null && $TMPFILE || echo "Not found"
-    cc -o $TMPFILE $TMPFILE.c 2> /dev/null && $TMPFILE || echo "Not found"
+    VER="Not found"
+    gcc -o $TMPFILE $TMPFILE.c 2> /dev/null && VER=`$TMPFILE`
+    cc -o $TMPFILE $TMPFILE.c 2> /dev/null && VER=`$TMPFILE`
     rm -f $TMPFILE $TMPFILE.bin
+    infomsg "GnuTLS         : $VER"
 }
 
 main()
 {
     infomsg "${progname} 0.11.0"
-    infomsg 
+    infomsg
     infomsg "Please submit the following"
     infomsg "information with your bug report:"
     linemsg
@@ -445,6 +499,7 @@ main()
     libextractor_check
     gnunet08_check
     gnunet09x_check
+    gnunet010x_check
     gnunet011x_check
     gcrypt_check
     mysql_check
@@ -452,6 +507,8 @@ main()
     pkgconfig_check
     glib2_check
     gtk2_check
+    gtk3_check
+    gtk4_check
     gmp_check
     libunistring_check
     pkgadd_check
