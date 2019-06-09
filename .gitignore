@@ -62,6 +62,8 @@ doc/tutorial/gversion.texi
 # top-level symlink can exist
 .clang-format
 
-# for cmake alternative build-system (not yet merged)
-cmake-build
+# this exists outside of the main repository
+cmake/
 build
+CMakeLists.txt
+CMakeFiles.txt
