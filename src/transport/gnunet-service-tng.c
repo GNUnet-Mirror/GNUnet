@@ -73,6 +73,9 @@
  *   and high-latency links *if* we have the RAM [GOODPUT / utilization / stalls]
  * - Set last_window_consum_limit promise properly based on
  *   latency and bandwidth of the respective connection [GOODPUT / utilization / stalls]
+ * - Need to track total bandwidth per VirtualLink and adjust how frequently
+ *   we send FC messages based on bandwidth-delay-product (and relation
+ *   to the window size!). See OPTIMIZE-FC-BDP.
  *
  * Design realizations / discussion:
  * - communicators do flow control by calling MQ "notify sent"
@@ -4794,11 +4797,14 @@ consider_sending_fc (void *cls)
   struct GNUNET_TIME_Relative rtt;
 
   duration = GNUNET_TIME_absolute_get_duration (vl->last_fc_transmission);
-  /* FIXME: decide sane criteria on when to do this, instead of doing
+  /* OPTIMIZE-FC-BDP: decide sane criteria on when to do this, instead of doing
      it always! */
   /* For example, we should probably ONLY do this if a bit more than
      an RTT has passed, or if the window changed "significantly" since
-     then. See vl->last_fc_rtt! */
+     then. See vl->last_fc_rtt! NOTE: to do this properly, we also
+     need an estimate for the bandwidth-delay-product for the entire
+     VL, as that determines "significantly". We have the delay, but
+     the bandwidth statistics need to be added for the VL!*/
   (void) duration;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -4827,6 +4833,7 @@ consider_sending_fc (void *cls)
   }
   else
   {
+    /* OPTIMIZE-FC-BDP: rtt is not ideal, we can do better! */
     vl->last_fc_rtt = rtt;
   }
   if (NULL != vl->fc_retransmit_task)
