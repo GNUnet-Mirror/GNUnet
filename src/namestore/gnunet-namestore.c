@@ -972,44 +972,15 @@ replace_cont (void *cls, int success, const char *emsg)
 
 
 /**
- * Callback invoked from identity service with ego information.
- * An @a ego of NULL means the ego was not found.
+ * We have obtained the zone's private key, so now process
+ * the main commands using it.
  *
- * @param cls closure with the configuration
- * @param ego an ego known to identity service, or NULL
+ * @param cfg configuration to use
  */
 static void
-identity_cb (void *cls, const struct GNUNET_IDENTITY_Ego *ego)
+run_with_zone_pkey (const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
-  const struct GNUNET_CONFIGURATION_Handle *cfg = cls;
   struct GNUNET_GNSRECORD_Data rd;
-
-  el = NULL;
-  if ((NULL != name) && (0 != strchr (name, '.')))
-  {
-    fprintf (stderr,
-             _ ("Label `%s' contains `.' which is not allowed\n"),
-             name);
-    GNUNET_SCHEDULER_shutdown ();
-    ret = -1;
-    return;
-  }
-
-  if (NULL == ego)
-  {
-    if (NULL != ego_name)
-    {
-      fprintf (stderr,
-               _ ("Ego `%s' not known to identity service\n"),
-               ego_name);
-    }
-    GNUNET_SCHEDULER_shutdown ();
-    ret = -1;
-    return;
-  }
-  zone_pkey = *GNUNET_IDENTITY_ego_get_private_key (ego);
-  GNUNET_free_non_null (ego_name);
-  ego_name = NULL;
 
   if (! (add | del | list | (NULL != nickstring) | (NULL != uri) |
          (NULL != reverse_pkey) | (NULL != recordset)))
@@ -1265,13 +1236,66 @@ identity_cb (void *cls, const struct GNUNET_IDENTITY_Ego *ego)
 }
 
 
+/**
+ * Callback invoked from identity service with ego information.
+ * An @a ego of NULL means the ego was not found.
+ *
+ * @param cls closure with the configuration
+ * @param ego an ego known to identity service, or NULL
+ */
+static void
+identity_cb (void *cls, const struct GNUNET_IDENTITY_Ego *ego)
+{
+  const struct GNUNET_CONFIGURATION_Handle *cfg = cls;
+
+  el = NULL;
+  if ((NULL != name) && (0 != strchr (name, '.')))
+  {
+    fprintf (stderr,
+             _ ("Label `%s' contains `.' which is not allowed\n"),
+             name);
+    GNUNET_SCHEDULER_shutdown ();
+    ret = -1;
+    return;
+  }
+
+  if (NULL == ego)
+  {
+    if (NULL != ego_name)
+    {
+      fprintf (stderr,
+               _ ("Ego `%s' not known to identity service\n"),
+               ego_name);
+    }
+    GNUNET_SCHEDULER_shutdown ();
+    ret = -1;
+    return;
+  }
+  zone_pkey = *GNUNET_IDENTITY_ego_get_private_key (ego);
+  GNUNET_free_non_null (ego_name);
+  ego_name = NULL;
+  run_with_zone_pkey (cfg);
+}
+
+
+/**
+ * Function called with the default ego to be used for GNS
+ * operations. Used if the user did not specify a zone via
+ * command-line or environment variables.
+ *
+ * @param cls NULL
+ * @param ego default ego, NULL for none
+ * @param ctx NULL
+ * @param name unused
+ */
 static void
 default_ego_cb (void *cls,
                 struct GNUNET_IDENTITY_Ego *ego,
                 void **ctx,
                 const char *name)
 {
-  (void) cls;
+  const struct GNUNET_CONFIGURATION_Handle *cfg = cls;
+
   (void) ctx;
   (void) name;
   get_default = NULL;
@@ -1284,11 +1308,23 @@ default_ego_cb (void *cls,
   }
   else
   {
-    identity_cb (cls, ego);
+    identity_cb ((void *) cfg, ego);
   }
 }
 
 
+/**
+ * Function called with ALL of the egos known to the
+ * identity service, used on startup if the user did
+ * not specify a zone on the command-line.
+ * Once the iteration is done (@a ego is NULL), we
+ * ask for the default ego for "namestore".
+ *
+ * @param cls a `struct GNUNET_CONFIGURATION_Handle`
+ * @param ego an ego, NULL for end of iteration
+ * @param ctx NULL
+ * @param name name associated with @a ego
+ */
 static void
 id_connect_cb (void *cls,
                struct GNUNET_IDENTITY_Ego *ego,
@@ -1297,14 +1333,12 @@ id_connect_cb (void *cls,
 {
   const struct GNUNET_CONFIGURATION_Handle *cfg = cls;
 
-  (void) cls;
   (void) ctx;
   (void) name;
-  if (NULL == ego)
-  {
-    get_default =
-      GNUNET_IDENTITY_get (idh, "namestore", &default_ego_cb, (void *) cfg);
-  }
+  if (NULL != ego)
+    return;
+  get_default =
+    GNUNET_IDENTITY_get (idh, "namestore", &default_ego_cb, (void *) cfg);
 }
 
 
