@@ -105,7 +105,7 @@ Value to store or remove from the GNS zone.
 Specific format depends on the record type.
 A records expect a dotted decimal IPv4 address, AAAA records an IPv6 address, PKEY a public key in GNUnet's printable format, and CNAME and NS records should be a domain name.
 .It Fl z Ar EGO | Fl \-zone= Ns Ar EGO
-Specifies the name of the ego controlling the private key for the zone (mandatory option).
+Specifies the name of the ego controlling the private key for the zone. If not provided, we will attempt to use the default identity set for the "namestore". Alternatively, a private key may be passed in Base32-encoding using the GNUNET_NAMESTORE_EGO_PRIVATE_KEY environment variable. The latter is useful to improve performance of tools like Ascension as it allows the command to skip IPC with the identity management subsystem.
 .El
 .\".Sh EXAMPLES
 .\".Sh FILES
@@ -113,7 +113,7 @@ Specifies the name of the ego controlling the private key for the zone (mandator
 .Xr gnunet-gns 1 ,
 .Xr gnunet-namestore-gtk 1
 .sp
-The full documentation for gnunet is maintained as a Texinfo manual.
+The full documentation for GNUnet is maintained as a Texinfo manual.
 If the
 .Xr info 1
 and gnunet programs are properly installed at your site, the command

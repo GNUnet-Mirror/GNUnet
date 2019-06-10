@@ -1356,6 +1356,8 @@ run (void *cls,
      const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
+  const char *pkey_str;
+
   (void) cls;
   (void) args;
   (void) cfgfile;
@@ -1368,7 +1370,25 @@ run (void *cls,
     uri = GNUNET_strdup (args[0]);
 
   GNUNET_SCHEDULER_add_shutdown (&do_shutdown, (void *) cfg);
-
+  pkey_str = getenv ("GNUNET_NAMESTORE_EGO_PRIVATE_KEY");
+  if (NULL != pkey_str)
+  {
+    if (GNUNET_OK != GNUNET_STRINGS_string_to_data (pkey_str,
+                                                    strlen (pkey_str),
+                                                    &zone_pkey,
+                                                    sizeof (zone_pkey)))
+    {
+      fprintf (stderr,
+               "Malformed private key `%s' in $%s\n",
+               pkey_str,
+               "GNUNET_NAMESTORE_EGO_PRIVATE_KEY");
+      ret = 1;
+      GNUNET_SCHEDULER_shutdown ();
+      return;
+    }
+    run_with_zone_pkey (cfg);
+    return;
+  }
   if (NULL == ego_name)
   {
     idh = GNUNET_IDENTITY_connect (cfg, &id_connect_cb, (void *) cfg);
