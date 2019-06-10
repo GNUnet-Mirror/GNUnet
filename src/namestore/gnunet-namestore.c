@@ -982,7 +982,6 @@ static void
 identity_cb (void *cls, const struct GNUNET_IDENTITY_Ego *ego)
 {
   const struct GNUNET_CONFIGURATION_Handle *cfg = cls;
-  struct GNUNET_CRYPTO_EcdsaPublicKey pub;
   struct GNUNET_GNSRECORD_Data rd;
 
   el = NULL;
@@ -1020,7 +1019,6 @@ identity_cb (void *cls, const struct GNUNET_IDENTITY_Ego *ego)
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
-  GNUNET_CRYPTO_ecdsa_key_get_public (&zone_pkey, &pub);
   ns = GNUNET_NAMESTORE_connect (cfg);
   if (NULL == ns)
   {
