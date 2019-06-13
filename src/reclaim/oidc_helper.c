@@ -405,6 +405,7 @@ OIDC_build_authz_code (const struct GNUNET_CRYPTO_EcdsaPrivateKey *issuer,
   attrs_ser = NULL;
   signature_payload_len =
     sizeof (struct GNUNET_RECLAIM_Ticket) + sizeof (uint32_t);
+  
   if (NULL != attrs)
   {
     attr_list_len = GNUNET_RECLAIM_ATTRIBUTE_list_serialize_get_size (attrs);
@@ -415,6 +416,7 @@ OIDC_build_authz_code (const struct GNUNET_CRYPTO_EcdsaPrivateKey *issuer,
     attrs_ser = GNUNET_malloc (attr_list_len);
     GNUNET_RECLAIM_ATTRIBUTE_list_serialize (attrs, attrs_ser);
   }
+
   code_payload_len = sizeof (struct GNUNET_CRYPTO_EccSignaturePurpose) +
     sizeof (struct GNUNET_CRYPTO_EcdhePublicKey) +
     signature_payload_len +
@@ -427,9 +429,10 @@ OIDC_build_authz_code (const struct GNUNET_CRYPTO_EcdsaPrivateKey *issuer,
   buf_ptr = plaintext;
   memcpy (buf_ptr, ticket, sizeof (struct GNUNET_RECLAIM_Ticket));
   buf_ptr += sizeof (struct GNUNET_RECLAIM_Ticket);
+  
   // Then copy nonce
   nonce = 0;
-  if (NULL != nonce_str)
+  if (NULL != nonce_str && strcmp("", nonce_str) != 0)
   {
     if ((1 != SSCANF (nonce_str, "%u", &nonce)) || (nonce > UINT32_MAX))
     {
@@ -447,6 +450,7 @@ OIDC_build_authz_code (const struct GNUNET_CRYPTO_EcdsaPrivateKey *issuer,
   nonce_tmp = htonl (nonce);
   memcpy (buf_ptr, &nonce_tmp, sizeof (uint32_t));
   buf_ptr += sizeof (uint32_t);
+  
   // Finally, attributes
   if (NULL != attrs_ser)
   {
