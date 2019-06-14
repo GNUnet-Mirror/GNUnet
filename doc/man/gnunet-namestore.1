@@ -30,81 +30,81 @@
 manipulate GNU Name System (GNS) zone data
 .Sh SYNOPSIS
 .Nm
-.Op Fl a | \-add
-.Op Fl c Ar FILENAME | Fl \-config= Ns Ar FILENAME
-.Op Fl d | \-delete
-.Op Fl D | \-display
-.Op Fl e Ar TIME | Fl \-expiration= Ns Ar TIME
-.Op Fl h | \-help
-.Op Fl i Ar NICKNAME | Fl \-nick= Ns Ar NICKNAME
-.Op Fl L Ar LOGLEVEL | Fl \-loglevel= Ns Ar LOGLEVEL
-.Op Fl m | \-monitor
-.Op Fl n Ar NAME | Fl \-name= Ns Ar NAME
-.Op Fl p | \-public
-.Op Fl r Ar PKEY | Fl \-reverse= Ns Ar PKEY
-.Op Fl R Ar RECORDLINE | Fl \-replace= Ns Ar RECORDLINE
-.Op Fl s | \-shadow
-.Op Fl t Ar TYPE | Fl \-type= Ns Ar TYPE
-.Op Fl u Ar URI | Fl \-uri= Ns Ar URI
-.Op Fl v | \-version
-.Op Fl V Ar VALUE | Fl \-value= Ns Ar VALUE
-.Op Fl z Ar EGO | Fl \-zone= Ns Ar EGO
+.Op Fl a | -add
+.Op Fl c Ar FILENAME | Fl -config= Ns Ar FILENAME
+.Op Fl d | -delete
+.Op Fl D | -display
+.Op Fl e Ar TIME | Fl -expiration= Ns Ar TIME
+.Op Fl h | -help
+.Op Fl i Ar NICKNAME | Fl -nick= Ns Ar NICKNAME
+.Op Fl L Ar LOGLEVEL | Fl -loglevel= Ns Ar LOGLEVEL
+.Op Fl m | -monitor
+.Op Fl n Ar NAME | Fl -name= Ns Ar NAME
+.Op Fl p | -public
+.Op Fl r Ar PKEY | Fl -reverse= Ns Ar PKEY
+.Op Fl R Ar RECORDLINE | Fl -replace= Ns Ar RECORDLINE
+.Op Fl s | -shadow
+.Op Fl t Ar TYPE | Fl -type= Ns Ar TYPE
+.Op Fl u Ar URI | Fl -uri= Ns Ar URI
+.Op Fl v | -version
+.Op Fl V Ar VALUE | Fl -value= Ns Ar VALUE
+.Op Fl z Ar EGO | Fl -zone= Ns Ar EGO
 .Sh DESCRIPTION
 .Nm
 can be used to manipulate records in a GNS zone.
 .Pp
 The options are as follows:
 .Bl -tag -width indent
-.It Fl a | \-add
+.It Fl a | -add
 Desired operation is adding a record.
-.It Fl c Ar FILENAME | Fl \-config= Ns Ar FILENAME
+.It Fl c Ar FILENAME | Fl -config= Ns Ar FILENAME
 Use the configuration file FILENAME.
-.It Fl d | \-delete
+.It Fl d | -delete
 Desired operation is deleting records under the given name that match the specified type (\-t) and value (\-V).
 If type or value are not specified, it means that all types (or values) should be assumed to match (and possibly multiple or all values under the given label will be deleted).
 Specifying a label (\-n) is mandatory.
 Note that matching by expiration time or flags is (currently) not supported.
-.It Fl D | \-display
+.It Fl D | -display
 Desired operation is listing of matching records.
-.It Fl e Ar TIME | Fl \-expiration= Ns Ar TIME
+.It Fl e Ar TIME | Fl -expiration= Ns Ar TIME
 Specifies expiration time of record to add; format is relative time, i.e "1 h" or "7 d 30 m".
 Supported units are "ms", "s", "min" or "minutes", "h" (hours), "d" (days) and "a" (years).
-.It Fl h | \-help
+.It Fl h | -help
 Print short help on options.
-.It Fl i Ar NICKNAME | Fl \-nick= Ns Ar NICKNAME
+.It Fl i Ar NICKNAME | Fl -nick= Ns Ar NICKNAME
 Set the desired NICKNAME for the zone.
 The nickname will be included in all (public) records and used as the suggested name for this zone.
-.It Fl L Ar LOGLEVEL | Fl \-loglevel= Ns Ar LOGLEVEL
+.It Fl L Ar LOGLEVEL | Fl -loglevel= Ns Ar LOGLEVEL
 Use LOGLEVEL for logging.
 Valid values are DEBUG, INFO, WARNING and ERROR.
-.It Fl m | \-monitor
+.It Fl m | -monitor
 Monitor changes to the zone on an ongoing basis (in contrast to \-D, which merely displays the current records).
-.It Fl n Ar NAME | Fl \-name= Ns Ar NAME
+.It Fl n Ar NAME | Fl -name= Ns Ar NAME
 Label or name of the record to add/delete/display.
-.It Fl p | \-public
+.It Fl p | -public
 Create a record that is public (shared with other users that know the label).
-.It Fl r Ar PKEY | Fl \-reverse= Ns Ar PKEY
+.It Fl r Ar PKEY | Fl -reverse= Ns Ar PKEY
 Determine our GNS name for the given public key (reverse lookup of the PKEY) in the given zone.
-.It Fl R Ar RECORDLINE | Fl \-replace= Ns Ar RECORDLINE
+.It Fl R Ar RECORDLINE | Fl -replace= Ns Ar RECORDLINE
 Sets record set to values given in RECORDLINE.
 This option can be specified multiple times to provide multiple records for the record set.
 Existing records under the same label will be deleted.
 The format for the RECORDLINE is "TTL TYPE FLAGS VALUE" where TTL is the time to live in seconds (unit must not be given explicitly, seconds is always implied), TYPE is the DNS/GNS record type, FLAGS is "(N)ORMAL", "(S)HADOW" or "(P)UBLIC".
 The VALUE follows the usual human-readable value format(s) of DNS/GNS.
-.It Fl s | \-shadow
+.It Fl s | -shadow
 Create a record that is a shadow record.
 Shadow records are only used once all other records of the same type under the same label have expired.
-.It Fl t Ar TYPE | Fl \-type= Ns Ar TYPE
+.It Fl t Ar TYPE | Fl -type= Ns Ar TYPE
 Type of the record to add/delete/display (i.e. "A", "AAAA", "NS", "PKEY", "MX" etc.).
-.It Fl u Ar URI | Fl \-uri= Ns Ar URI
+.It Fl u Ar URI | Fl -uri= Ns Ar URI
 Add PKEY record from gnunet://gns/-URI to our zone; the record type is always PKEY, if no expiration is given FOREVER is used
-.It Fl v | \-version
+.It Fl v | -version
 Print GNUnet version number.
-.It Fl V Ar VALUE | Fl \-value= Ns Ar VALUE
+.It Fl V Ar VALUE | Fl -value= Ns Ar VALUE
 Value to store or remove from the GNS zone.
 Specific format depends on the record type.
 A records expect a dotted decimal IPv4 address, AAAA records an IPv6 address, PKEY a public key in GNUnet's printable format, and CNAME and NS records should be a domain name.
-.It Fl z Ar EGO | Fl \-zone= Ns Ar EGO
+.It Fl z Ar EGO | Fl -zone= Ns Ar EGO
 Specifies the name of the ego controlling the private key for the zone. If not provided, we will attempt to use the default identity set for the "namestore". Alternatively, a private key may be passed in Base32-encoding using the GNUNET_NAMESTORE_EGO_PRIVATE_KEY environment variable. The latter is useful to improve performance of tools like Ascension as it allows the command to skip IPC with the identity management subsystem.
 .El
 .\".Sh EXAMPLES
