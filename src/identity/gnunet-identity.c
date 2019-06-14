@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C) 2013 GNUnet e.V.
+     Copyright (C) 2013, 2018, 2019 GNUnet e.V.
 
      GNUnet is free software: you can redistribute it and/or modify it
      under the terms of the GNU Affero General Public License as published
@@ -49,6 +49,11 @@ static int list;
  * Was "monitor" specified?
  */
 static int monitor;
+
+/**
+ * Was "private" specified?
+ */
+static int private_keys;
 
 /**
  * Was "verbose" specified?
@@ -195,7 +200,18 @@ create_finished (void *cls,
 
     GNUNET_CRYPTO_ecdsa_key_get_public (pk, &pub);
     pubs = GNUNET_CRYPTO_ecdsa_public_key_to_string (&pub);
-    fprintf (stdout, "%s\n", pubs);
+    if (private_keys)
+    {
+      char *privs;
+
+      privs = GNUNET_CRYPTO_ecdsa_private_key_to_string (pk);
+      fprintf (stdout, "%s - %s\n", pubs, privs);
+      GNUNET_free (privs);
+    }
+    else
+    {
+      fprintf (stdout, "%s\n", pubs);
+    }
     GNUNET_free (pubs);
   }
   test_finished ();
@@ -262,6 +278,7 @@ print_ego (void *cls,
 {
   struct GNUNET_CRYPTO_EcdsaPublicKey pk;
   char *s;
+  char *privs;
 
   if ((NULL != set_ego) && (NULL != set_subsystem) && (NULL != ego) &&
       (NULL != identifier) && (0 == strcmp (identifier, set_ego)))
@@ -291,19 +308,32 @@ print_ego (void *cls,
   }
   if (! (list | monitor))
     return;
-  if ( (NULL == ego) || (NULL == identifier) )
+  if ((NULL == ego) || (NULL == identifier))
     return;
   if ((NULL != set_ego) && (0 != strcmp (identifier, set_ego)))
     return;
   GNUNET_IDENTITY_ego_get_public_key (ego, &pk);
   s = GNUNET_CRYPTO_ecdsa_public_key_to_string (&pk);
+  privs = GNUNET_CRYPTO_ecdsa_private_key_to_string (
+    GNUNET_IDENTITY_ego_get_private_key (ego));
   if ((monitor) || (NULL != identifier))
   {
     if (quiet)
-      fprintf (stdout, "%s\n", s);
+    {
+      if (private_keys)
+        fprintf (stdout, "%s - %s\n", s, privs);
+      else
+        fprintf (stdout, "%s\n", s);
+    }
     else
-      fprintf (stdout, "%s - %s\n", identifier, s);
+    {
+      if (private_keys)
+        fprintf (stdout, "%s - %s - %s\n", identifier, s, privs);
+      else
+        fprintf (stdout, "%s - %s\n", identifier, s);
+    }
   }
+  GNUNET_free (privs);
   GNUNET_free (s);
 }
 
@@ -384,6 +414,10 @@ main (int argc, char *const *argv)
                                 "monitor",
                                 gettext_noop ("run in monitor mode egos"),
                                 &monitor),
+     GNUNET_GETOPT_option_flag ('p',
+                                "private-keys",
+                                gettext_noop ("display private keys as well"),
+                                &private_keys),
      GNUNET_GETOPT_option_string (
        's',
        "set",

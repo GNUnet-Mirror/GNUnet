@@ -35,6 +35,7 @@
 .Op Fl e Ar NAME | Fl \-ego= Ns Ar NAME
 .Op Fl h | \-help
 .Op Fl m | \-monitor
+.Op Fl p | \-private-keys
 .Op Fl q | \-quiet
 .Op Fl s Ar SUBSYSTEM | Fl \-set= Ns Ar SUBSYSTEM
 .Op Fl V | \-verbose
@@ -75,6 +76,8 @@ Run in monitor mode, listing all ouf our egos until CTRL-C is pressed.
 Each ego is listed together with a unique pointer value; if
 egos are renamed, that pointer value remains the same,
 if egos are deleted, they are listed one more time with a name of "<null>".
+.It Fl p | \-private-keys
+Print the private keys (in Crockford Base32 encoding), and not just the public keys.
 .It Fl q | \-quiet
 Be quiet, in particular outputs only the public key when listing egos.
 .It Fl s Ar SUBSYSTEM | Fl \-set= Ns Ar SUBSYSTEM
