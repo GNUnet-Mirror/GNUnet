@@ -36,7 +36,6 @@
 #else
 #error "needs curl or gnurl"
 #endif
-#include <jansson.h>
 #include "gnunet_util_lib.h"
 
 
