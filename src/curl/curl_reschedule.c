@@ -23,6 +23,7 @@
  * @author Christian Grothoff
  */
 #include "platform.h"
+#include <jansson.h>
 #include "gnunet_curl_lib.h"
 #include "gnunet_util_lib.h"
 
