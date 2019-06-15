@@ -329,6 +329,27 @@ void
 GNUNET_IDENTITY_ego_lookup_cancel (struct GNUNET_IDENTITY_EgoLookup *el);
 
 
+/**
+ * Obtain the ego with the maximum suffix match between the
+ * ego's name and the given domain name @a suffix.  I.e., given
+ * a @a suffix "a.b.c" and egos with names "d.a.b.c", "b.c" and "c",
+ * we return the ego for "b.c".
+ *
+ * @param id identity service to query
+ * @param suffix for which domain name suffix is an identity wanted
+ * @param cb function to call with the result (will only be called once)
+ * @param cb_cls closure for @a cb
+ * @return handle to abort the operation
+ */
+struct GNUNET_IDENTITY_EgoLookup *
+GNUNET_IDENTITY_ego_lookup_by_suffix (struct GNUNET_IDENTITY_Handle *id,
+				      const char *suffix,
+				      GNUNET_IDENTITY_EgoCallback cb,
+				      void *cb_cls);
+
+
+
+
 #if 0 /* keep Emacsens' auto-indent happy */
 {
 #endif
