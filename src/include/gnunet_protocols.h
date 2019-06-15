@@ -1948,6 +1948,15 @@ extern "C" {
  */
 #define GNUNET_MESSAGE_TYPE_IDENTITY_LOOKUP 632
 
+/**
+ * First message send from identity client to service to lookup a
+ * single ego matching the given suffix (longest match).  The service
+ * will respond with a #GNUNET_MESSAGE_TYPE_IDENTITY_UPDATE message if
+ * the ego exists, or a #GNUNET_MESSAGE_TYPE_IDENTITY_RESULT_CODE if
+ * not.
+ */
+#define GNUNET_MESSAGE_TYPE_IDENTITY_LOOKUP_BY_SUFFIX 633
+
 
 /*******************************************************************************
  * REVOCATION message types

@@ -72,7 +72,7 @@ struct GNUNET_GNS_LookupWithTldRequest
   /**
    * Lookup an ego with the identity service.
    */
-  struct GNUNET_IDENTITY_Handle *id_co;
+  struct GNUNET_IDENTITY_EgoSuffixLookup *id_co;
 
   /**
    * Name of the longest matching ego found so far.
@@ -191,68 +191,37 @@ lookup_with_public_key (struct GNUNET_GNS_LookupWithTldRequest *ltr,
  */
 static void
 identity_zone_cb (void *cls,
-                  struct GNUNET_IDENTITY_Ego *ego,
-                  void **ctx,
-                  const char *name)
+		  const struct GNUNET_CRYPTO_EcdsaPrivateKey *priv,
+		  const char *ego_name)
 {
   struct GNUNET_GNS_LookupWithTldRequest *ltr = cls;
   struct GNUNET_CRYPTO_EcdsaPublicKey pkey;
 
-  if (NULL == ego)
+  ltr->id_co = NULL;
+  if (NULL == priv)
   {
-    if (NULL != ltr->longest_match)
-    {
-      /* Final case: TLD matches one of our egos */
-      // FIXME: eat all of the match (not just TLD!)
-      if (0 == strcmp (ltr->name, ltr->longest_match))
-      {
-        /* name matches ego name perfectly, only "@" remains */
-        strcpy (ltr->name, GNUNET_GNS_EMPTY_LABEL_AT);
-      }
-      else
-      {
-        GNUNET_assert (strlen (ltr->longest_match) < strlen (ltr->name));
-        ltr->name[strlen (ltr->name) - strlen (ltr->longest_match) - 1] = '\0';
-      }
-
-      /* if the name is of the form 'label' (and not 'label.SUBDOMAIN'), never go to the DHT */
-      GNUNET_free (ltr->longest_match);
-      ltr->longest_match = NULL;
-      if (NULL == strchr (ltr->name, (unsigned char) '.'))
-        ltr->options = GNUNET_GNS_LO_NO_DHT;
-      else
-        ltr->options = GNUNET_GNS_LO_LOCAL_MASTER;
-
-      GNUNET_IDENTITY_ego_get_public_key (ltr->longest_match_ego, &pkey);
-      GNUNET_IDENTITY_disconnect (ltr->id_co);
-      ltr->id_co = NULL;
-      lookup_with_public_key (ltr, &pkey);
-    }
-    else
-    {
-      /* no matching ego found */
-      GNUNET_IDENTITY_disconnect (ltr->id_co);
-      ltr->id_co = NULL;
-      ltr->lookup_proc (ltr->lookup_proc_cls, GNUNET_NO, 0, NULL);
-      GNUNET_GNS_lookup_with_tld_cancel (ltr);
-    }
+    /* no matching ego found */
+    ltr->lookup_proc (ltr->lookup_proc_cls, GNUNET_NO, 0, NULL);
     return;
   }
-  else if (NULL != name)
+  /* Final case: TLD matches one of our egos */
+  if (0 == strcmp (ltr->name, ego_name))
   {
-    if ((strlen (name) <= strlen (ltr->name)) &&
-        (0 == strcmp (name, &ltr->name[strlen (ltr->name) - strlen (name)])) &&
-        ((strlen (name) == strlen (ltr->name)) ||
-         ('.' == ltr->name[strlen (ltr->name) - strlen (name) - 1])) &&
-        ((NULL == ltr->longest_match) ||
-         (strlen (name) > strlen (ltr->longest_match))))
-    {
-      /* found better match, update! */
-      GNUNET_free_non_null (ltr->longest_match);
-      ltr->longest_match = GNUNET_strdup (name);
-      ltr->longest_match_ego = ego;
-    }
+    /* name matches ego name perfectly, only "@" remains */
+    strcpy (ltr->name, GNUNET_GNS_EMPTY_LABEL_AT);
   }
+  else
+  {
+    GNUNET_assert (strlen (ego_name) < strlen (ltr->name));
+    ltr->name[strlen (ltr->name) - strlen (ego_name) - 1] = '\0';
+  }
+  /* if the name is of the form 'label' (and not 'label.SUBDOMAIN'), never go to the DHT */
+  if (NULL == strchr (ltr->name, (unsigned char) '.'))
+    ltr->options = GNUNET_GNS_LO_NO_DHT;
+  else
+    ltr->options = GNUNET_GNS_LO_LOCAL_MASTER;
+  GNUNET_CRYPTO_ecdsa_key_get_public (priv, &pkey);
+  lookup_with_public_key (ltr, &pkey);
 }
 
 
@@ -336,12 +305,11 @@ GNUNET_GNS_lookup_with_tld (struct GNUNET_GNS_Handle *handle,
     }
     GNUNET_free (dot_tld);
   }
-  /* FIXME: this call is still shitty slow to do the longest
-     suffix if we have thousands of egos. We should modify
-     the IDENTITY API to do the longest suffix matching
-     inside of the identity service and not do an O(n) IPC! */
   ltr->id_co =
-    GNUNET_IDENTITY_connect (ltr->gns_handle->cfg, &identity_zone_cb, ltr);
+    GNUNET_IDENTITY_ego_lookup_by_suffix (ltr->gns_handle->cfg,
+					  ltr->name,
+					  &identity_zone_cb,
+					  ltr);
   if (NULL == ltr->id_co)
   {
     GNUNET_free (ltr->name);
@@ -365,7 +333,7 @@ GNUNET_GNS_lookup_with_tld_cancel (struct GNUNET_GNS_LookupWithTldRequest *ltr)
 
   if (NULL != ltr->id_co)
   {
-    GNUNET_IDENTITY_disconnect (ltr->id_co);
+    GNUNET_IDENTITY_ego_lookup_by_suffix_cancel (ltr->id_co);
     ltr->id_co = NULL;
   }
   if (NULL != ltr->lr)

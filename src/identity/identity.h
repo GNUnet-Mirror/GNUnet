@@ -62,7 +62,8 @@ struct ResultCodeMessage
 struct LookupMessage
 {
   /**
-   * Type: #GNUNET_MESSAGE_TYPE_IDENTITY_LOOKUP
+   * Type: #GNUNET_MESSAGE_TYPE_IDENTITY_LOOKUP or
+   * #GNUNET_MESSAGE_TYPE_IDENTITY_LOOKUP_BY_SUFFIX
    */
   struct GNUNET_MessageHeader header;
 
