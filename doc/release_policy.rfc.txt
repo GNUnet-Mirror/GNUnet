@@ -11,66 +11,38 @@ I. Driver
 =========
 (What is the problem and what solution did we find?)
 
-The problem for the GNUnet community stated here is how to evolve the
-GNUnet team and code organization, so that developing code gets
-attractive again and using GNUnet for testing purposes or even for some
-little usecases becomes easier. In the current organizational model
-bugs tend to accumulate until they are not managable or overwhelming,
-however, it's clear, that every release candidate should be free from
-known bugs. There is more. Devs and user need to feel progress to have
-"Erfolgserlebnisse" (roughly: "sense of achievement") and recognition,
-like a new release, a "product" they have contributed to, listing new
-features with short description of amazing privacy preserving use cases.
+In the past it was sometimes unclear when and how the community would reach its
+next release. Members were lacking in orientation and felt demotivated. 
 
-A possible solution to this problem might be a new and lightweighted
-release model with git. 
+Another minor concern not yet analysed in depth was the expectation to show the
+public that the GNUnet project is still active and making progress. With an old
+release distributed by popular linux distributions it was hard to showcase
+people the GNUnet features and encourage to participate in the project. 
 
-Release Models with git:
+To show people how the GNUnet project is releasing its software we hereby
+document the current release model:
 
-Option 1:
-  * code organization and branching
-    * master branch is release branch, tagged with different version
-      numbers development occurs in little side branches
-    * mature code resides in a staging branch for testing and quality
-      management 
-  * release process
-    * development in little side branches
-    * if code is mature, merge with staging branch and do testing,
-    * static/dynamic analysis and code audits if checks are okay, merge
-      with release branch and tag with new version number
-
-Option 2:
-  * code organization and branching
-    * master branch is development branch
-    * further development task can be done in other side branches
-      for every release candidate exists a new branch called after the
-      version number 
-  * release process
-    * development in master and side branches
-    * if code of side branches is mature merge with master branch
-    * if code in master branch is mature, create if not existant a new
-    * release branch called after the new version number and merge with
-      master 
-    * in the release branch do testing, static/dynamic analysis
-      and code audits 
-    * if checks are okay, tag as release candidate
-
-
-Option 3: (What we really do right now)
-* changes that are not expected/known to break anything go into master;
-  we may be wrong, better CI may allow us to detect breaking changes
-  before merges in the future (but we shall never fault anybody for
-  breaking stuff in master in non-obvious ways);
-* experimental development happens in branches, created by individuals
-  or groups as they see fit. They are encouraged to merge often (if that
-  would not break anything) to avoid divergence and to detect issues from
-  a merge/rebase early.
+* All main development (e.g. towards 0.12.x) continues on master.
+* Developers can continue to develop features in their own feature
+  branches, but are encouraged to frequently merge into master (as long as they
+  don't break the build) to avoid divergence and to detect issues from a
+  merge/rebase early.
+* 0.11.x releases *must* be protocol-compatible to 0.11.0. So once
+  master is NOT protocol-compatible to 0.11.0, development for 0.11.x
+  must continue in an 0.11-branch where we only cherry-pick those
+  changes from master that preserve protocol-compatibility.
+* better CI may allow us to detect breaking changes before merges in the future
+  (but we shall never fault anybody for breaking stuff in master in non-obvious
+  ways);
 * actual _release policy_:
   - tests must pass
   - no compiler warnings for -Wall
   - acceptance tests (manual feature test) must succeed
   - no known "release critical" bugs (where RC has no formal definition,
     mostly we rather explicitly declare certain bugs as "not critical")
+  - Whenever API changes happen the person making that changes should update
+    dependencies or at least work with people who hack on the dependencies to
+    cooridnate the adjustments
   o buildbots are happy (if running)
   o static analysis is happy (if available, false-positives => ignore)
   o documentation is reasonably up-to-date
@@ -80,10 +52,8 @@ Option 3: (What we really do right now)
     almost ready to be merged?
   Legend: -: absolutely mandatory; o: important; +: nice to have
 
-...
 
-Option 1 and 2 are two flavours describe in 
-https://trunkbaseddevelopment.com/
+For further information see: https://trunkbaseddevelopment.com/
 
 II. Evaluation Criteria 
 =======================
@@ -103,12 +73,20 @@ is what you are motivated to do, you will not get stable, well-tested
 code. I don't have a magic bullet to motivate you to write more tests,
 or to improve existing tests. -CG
 
+  Your argument is good. Two or three of us thought that the problem is about
+  missing releases which we feld demotivating. We thought, we were stucked
+  somewhere. But as you state, it is us not doing the necessary work. What I
+  still find useful is to document the release process. In consequence I
+  changed the problem statement. -xrs
+
 I also disagree that releases have to be 'known bug free'.  That bar is
 way too high. However, there are obviously 'critical' bugs, but what
 they are is another debate.  But not all bugs are critical. Also,
 I would distinguish between 'standard' and 'experimental' subsystems.
 Experimental subsystems should build. They don't have to run, or do
 anything useful. Not even tests have to pass for a release IMO. -CG
+
+  Thank you, I agree and changed it. -xrs
 
 Git is also not a "release model".  Git is a software development
 tool.  But introducing branches in Git won't fix bugs. It also won't
@@ -124,6 +102,16 @@ merged without me noticing major problems).  Anyway, what you propose
 as Option 1 is already largely done, except that certain CI tasks
 simply cannot be productively done pre-merge right now (and I'm all
 for improving that situation). -CG
+
+  With resprect to changes kept in branches the reason why I personally keep
+  changes back is because it takes very long for me to get something really
+  working in C. Before that I either not worth it or I don't want to blame
+  other before not being sure it's not my fault. 
+
+  Can we track branches? Can we write a little cronjob that checks for branches
+  that are to long undercover with the aim to recommend the responsible person
+  to merge soon?
+  - xrs
 
 Finally, there is one last elephant with respect to branches and
 merging that I would like you to consider. Given that GNUnet is highly
@@ -148,6 +136,8 @@ somewhere is impractical.  So at least at times where "major" API
 rewrites are happening, it is important to minimize the number of
 branches. -CG
 
+  Thank you for clarifying. I added the API aspect above. -xrs
+  
 
 IV. Doing
 =========
@@ -177,6 +167,9 @@ Let me list what I think needs doing:
    I think 1-3 is what matters.
 
 Note that none of this really adds up to a "release policy".
+
+  We should thing and talk about point 2 and 3 more in depth with the question
+  in mind, how to make this task more attractive for the community :-)
 
 
 V. Previous Versions
