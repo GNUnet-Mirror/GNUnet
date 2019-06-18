@@ -27,12 +27,43 @@
  * - review retransmission logic, right now there is no smartness there!
  *   => congestion control, etc [PERFORMANCE-BASICS]
  *
- * Optimizations:
+ * Optimizations-Statistics:
+ * - Track ACK losses based on ACK-counter [ROUTING]
+ * - Need to track total bandwidth per VirtualLink and adjust how frequently
+ *   we send FC messages based on bandwidth-delay-product (and relation
+ *   to the window size!). See OPTIMIZE-FC-BDP.
+ * - Consider more statistics in #check_connection_quality() [FIXME-CONQ-STATISTICS]
+ * - Adapt available_fc_window_size, using larger values for high-bandwidth
+ *   and high-latency links *if* we have the RAM [GOODPUT / utilization / stalls]
+ * - Set last_window_consum_limit promise properly based on
+ *   latency and bandwidth of the respective connection [GOODPUT / utilization / stalls]
+ *
+ * Optimizations-DV:
  * - When forwarding DV learn messages, if a peer is reached that
  *   has a *bidirectional* link to the origin beyond 1st hop,
  *   do NOT forward it to peers _other_ than the origin, as
  *   there is clearly a better path directly from the origin to
  *   whatever else we could reach.
+ * - When we passively learned DV (with unconfirmed freshness), we
+ *   right now add the path to our list but with a zero path_valid_until
+ *   time and only use it for unconfirmed routes.  However, we could consider
+ *   triggering an explicit validation mechansim ourselves, specifically routing
+ *   a challenge-response message over the path [ROUTING]
+ * = if available, try to confirm unconfirmed DV paths when trying to establish
+ *   virtual link for a `struct IncomingRequest`. (i.e. if DVH is
+ *   unconfirmed, incoming requests cause us to try to validate a passively
+ *   learned path (requires new message type!))
+ *
+ * Optimizations-Fragmentation:
+ * - Fragments send over a reliable channel could do without the
+ *   AcknowledgementUUIDP altogether, as they won't be acked! [BANDWIDTH]
+ *   (-> have 2nd type of acknowledgment message; low priority, as we
+ *       do not have an MTU-limited *reliable* communicator) [FIXME-FRAG-REL-UUID]
+ * - if messages are below MTU, consider adding ACKs and other stuff
+ *   to the same transmission to avoid tiny messages (requires planning at
+ *   receiver, and additional MST-style demultiplex at receiver!) [PACKET COUNT]
+ *
+ * Optimizations-internals:
  * - queue_send_msg by API design has to make a copy
  *   of the payload, and route_message on top of that requires a malloc/free.
  *   Change design to approximate "zero" copy better... [CPU]
@@ -40,56 +71,6 @@
  *   fragments as just pointers into the original message and only
  *   fully build fragments just before transmission (optimization, should
  *   reduce CPU and memory use) [CPU, MEMORY]
- * - if messages are below MTU, consider adding ACKs and other stuff
- *   to the same transmission to avoid tiny messages (requires planning at
- *   receiver, and additional MST-style demultiplex at receiver!) [PACKET COUNT]
- * - When we passively learned DV (with unconfirmed freshness), we
- *   right now add the path to our list but with a zero path_valid_until
- *   time and only use it for unconfirmed routes.  However, we could consider
- *   triggering an explicit validation mechansim ourselves, specifically routing
- *   a challenge-response message over the path [ROUTING]
- * - Track ACK losses based on ACK-counter [ROUTING]
- * - Fragments send over a reliable channel could do without the
- *   AcknowledgementUUIDP altogether, as they won't be acked! [BANDWIDTH]
- *   (-> have 2nd type of acknowledgment message; low priority, as we
- *       do not have an MTU-limited *reliable* communicator)
- * - Adapt available_fc_window_size, using larger values for high-bandwidth
- *   and high-latency links *if* we have the RAM [GOODPUT / utilization / stalls]
- * - Set last_window_consum_limit promise properly based on
- *   latency and bandwidth of the respective connection [GOODPUT / utilization / stalls]
- * - Need to track total bandwidth per VirtualLink and adjust how frequently
- *   we send FC messages based on bandwidth-delay-product (and relation
- *   to the window size!). See OPTIMIZE-FC-BDP.
- * - if available, try to confirm unconfirmed DV paths when trying to establish
- *   virtual link for a `struct IncomingRequest`. (i.e. if DVH is
- *   unconfirmed, incoming requests cause us to try to validate a passively
- *   learned path (requires new message type!))
- *
- * Design realizations / discussion:
- * - communicators do flow control by calling MQ "notify sent"
- *   when 'ready'. They determine flow implicitly (i.e. TCP blocking)
- *   or explicitly via backchannel FC ACKs.  As long as the
- *   channel is not full, they may 'notify sent' even if the other
- *   peer has not yet confirmed receipt. The other peer confirming
- *   is _only_ for FC, not for more reliable transmission; reliable
- *   transmission (i.e. of fragments) is left to _transport_.
- * - ACKs sent back in uni-directional communicators are done via
- *   the background channel API; here transport _may_ initially
- *   broadcast (with bounded # hops) if no path is known;
- * - transport should _integrate_ DV-routing and build a view of
- *   the network; then background channel traffic can be
- *   routed via DV as well as explicit "DV" traffic.
- * - background channel is also used for ACKs and NAT traversal support
- * - transport service is responsible for AEAD'ing the background
- *   channel, timestamps and monotonic time are used against replay
- *   of old messages -> peerstore needs to be supplied with
- *   "latest timestamps seen" data
- * - if transport implements DV, we likely need a 3rd peermap
- *   in addition to ephemerals and (direct) neighbours
- *   ==> check if stuff needs to be moved out of "Neighbour"
- * - transport should encapsualte core-level messages and do its
- *   own ACKing for RTT/goodput/loss measurements _and_ fragment
- *   for retransmission
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"
@@ -1307,18 +1288,6 @@ struct VirtualLink
    * Distance vector used by this virtual link, NULL if @e n is used.
    */
   struct DistanceVector *dv;
-
-  /**
-   * Last challenge we received from @a n.
-   * FIXME: where do we need this?
-   */
-  struct ChallengeNonceP n_challenge;
-
-  /**
-   * Last challenge we used with @a n for flow control.
-   * FIXME: where do we need this?
-   */
-  struct ChallengeNonceP my_challenge;
 
   /**
    * Sender timestamp of @e n_challenge, used to generate out-of-order
@@ -4223,7 +4192,7 @@ queue_send_msg (struct Queue *queue,
     GNUNET_ERROR_TYPE_DEBUG,
     "Queueing %u bytes of payload for transmission <%llu> on queue %llu to %s\n",
     (unsigned int) payload_size,
-    pm->logging_uuid,
+    (NULL == pm) ? 0 : pm->logging_uuid,
     (unsigned long long) queue->qid,
     GNUNET_i2s (&queue->neighbour->pid));
   env = GNUNET_MQ_msg_extra (smt,
@@ -7555,89 +7524,6 @@ check_incoming_msg (void *cls,
 }
 
 
-#if 0
-/**
- * We received a @a challenge from another peer, check if we can
- * increase the flow control window to that peer.
- *
- * @param vl virtual link
- * @param challenge the challenge we received
- * @param sender_time when did the peer send the message?
- * @param last_window_consum_limit maximum number of kb the sender
- *        promises to use of the previous window (if any)
- */
-static void
-update_fc_window (struct VirtualLink *vl,
-                  struct GNUNET_TIME_Absolute sender_time,
-                  uint32_t last_window_consum_limit)
-{
-  // FIXME: update to new FC logic
-  if (0 == GNUNET_memcmp (challenge, &vl->n_challenge))
-  {
-    uint32_t avail;
-
-    /* Challenge identical to last one, update
-       @a last_window_consum_limit (to minimum) */
-    vl->last_fc_window_size_remaining =
-      GNUNET_MIN (last_window_consum_limit, vl->last_fc_window_size_remaining);
-    /* window could have shrunk! */
-    if (vl->available_fc_window_size > vl->last_fc_window_size_remaining)
-      avail = vl->available_fc_window_size - vl->last_fc_window_size_remaining;
-    else
-      avail = 0;
-    /* guard against integer overflow */
-    if (vl->incoming_fc_window_size_used + avail >=
-        vl->incoming_fc_window_size_used)
-      vl->incoming_fc_window_size = vl->incoming_fc_window_size_used + avail;
-    else
-      vl->incoming_fc_window_size = UINT32_MAX;
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Updated window to %u/%u kb (%u used) for virtual link to %s!\n",
-                vl->incoming_fc_window_size,
-                vl->available_fc_window_size,
-                vl->incoming_fc_window_size_used,
-                GNUNET_i2s (&vl->target));
-    return;
-  }
-  if (vl->n_challenge_time.abs_value_us >= sender_time.abs_value_us)
-  {
-    GNUNET_STATISTICS_update (GST_stats,
-                              "# Challenges ignored: sender time not increasing",
-                              1,
-                              GNUNET_NO);
-    return;
-  }
-  /* new challenge! */
-  if (vl->incoming_fc_window_size_used > last_window_consum_limit)
-  {
-    /* lying peer: it already used more than it promised it would ever use! */
-    GNUNET_break_op (0);
-    last_window_consum_limit = vl->incoming_fc_window_size_used;
-  }
-  /* What remains is at most the difference between what we already processed
-     and what the sender promises to limit itself to. */
-  vl->last_fc_window_size_remaining =
-    last_window_consum_limit - vl->incoming_fc_window_size_used;
-  vl->n_challenge = *challenge;
-  vl->n_challenge_time = sender_time;
-  vl->incoming_fc_window_size_used = 0;
-  /* window could have shrunk! */
-  if (vl->available_fc_window_size > vl->last_fc_window_size_remaining)
-    vl->incoming_fc_window_size =
-      vl->available_fc_window_size - vl->last_fc_window_size_remaining;
-  else
-    vl->incoming_fc_window_size = 0;
-  GNUNET_log (
-    GNUNET_ERROR_TYPE_DEBUG,
-    "New window at %u/%u kb (%u left on previous) for virtual link to %s!\n",
-    vl->incoming_fc_window_size,
-    vl->available_fc_window_size,
-    vl->last_fc_window_size_remaining,
-    GNUNET_i2s (&vl->target));
-}
-#endif
-
-
 /**
  * Closure for #check_known_address.
  */
@@ -8153,7 +8039,6 @@ handle_validation_response (
   n->vl = vl;
   vl->core_recv_window = RECV_WINDOW_SIZE;
   vl->available_fc_window_size = DEFAULT_WINDOW_SIZE;
-  vl->my_challenge = tvr->challenge;
   vl->visibility_task =
     GNUNET_SCHEDULER_add_at (q->validated_until, &check_link_down, vl);
   GNUNET_break (GNUNET_YES ==
@@ -8747,7 +8632,7 @@ select_best_pending_from_link (struct PendingMessageScoreContext *sc,
       relb = GNUNET_NO; /* if we fragment, we never also reliability box */
       if (GNUNET_TRANSPORT_CC_RELIABLE == queue->tc->details.communicator.cc)
       {
-        /* FIXME-OPTIMIZE: we could use an optimized, shorter fragmentation
+        /* FIXME-FRAG-REL-UUID: we could use an optimized, shorter fragmentation
            header without the ACK UUID when using a *reliable* channel! */
       }
       real_overhead = overhead + sizeof (struct TransportFragmentBoxMessage);
@@ -9440,7 +9325,7 @@ check_connection_quality (void *cls,
     ctx->num_queues++;
     if (0 == ctx->k--)
       ctx->q = q;
-    /* OPTIMIZE-FIXME: in the future, add reliability / goodput
+    /* FIXME-CONQ-STATISTICS: in the future, add reliability / goodput
        statistics and consider those as well here? */
     if (q->pd.aged_rtt.rel_value_us < DV_QUALITY_RTT_THRESHOLD.rel_value_us)
       do_inc = GNUNET_YES;
