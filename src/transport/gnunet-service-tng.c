@@ -3872,11 +3872,12 @@ client_send_response (struct PendingMessage *pm)
 {
   struct TransportClient *tc = pm->client;
   struct VirtualLink *vl = pm->vl;
-  struct GNUNET_MQ_Envelope *env;
-  struct SendOkMessage *som;
 
   if (NULL != tc)
   {
+    struct GNUNET_MQ_Envelope *env;
+    struct SendOkMessage *som;
+
     env = GNUNET_MQ_msg (som, GNUNET_MESSAGE_TYPE_TRANSPORT_SEND_OK);
     som->peer = vl->target;
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -4593,11 +4594,11 @@ encapsulate_for_dv (struct DistanceVector *dv,
       char *path;
 
       path = GNUNET_strdup (GNUNET_i2s (&GST_my_identity));
-      for (unsigned int i = 0; i <= num_hops; i++)
+      for (unsigned int j = 0; j <= num_hops; j++)
       {
         char *tmp;
 
-        GNUNET_asprintf (&tmp, "%s-%s", path, GNUNET_i2s (&dhops[i]));
+        GNUNET_asprintf (&tmp, "%s-%s", path, GNUNET_i2s (&dhops[j]));
         GNUNET_free (path);
         path = tmp;
       }
@@ -5938,7 +5939,6 @@ handle_reliability_ack (void *cls,
 {
   struct CommunicatorMessageContext *cmc = cls;
   const struct TransportCummulativeAckPayloadP *ack;
-  struct PendingAcknowledgement *pa;
   unsigned int n_acks;
   uint32_t ack_counter;
 
@@ -5947,7 +5947,7 @@ handle_reliability_ack (void *cls,
   ack = (const struct TransportCummulativeAckPayloadP *) &ra[1];
   for (unsigned int i = 0; i < n_acks; i++)
   {
-    pa =
+    struct PendingAcknowledgement *pa =
       GNUNET_CONTAINER_multiuuidmap_get (pending_acks, &ack[i].ack_uuid.value);
     if (NULL == pa)
     {
@@ -6886,7 +6886,7 @@ handle_dv_learn (void *cls, const struct TransportDVLearnMessage *dvl)
 
       if (0 == (bi_history & (1 << i)))
         break; /* i-th hop not bi-directional, stop learning! */
-      if (i == nhops)
+      if (i == nhops - 1)
       {
         path[i + 2] = dvl->initiator;
       }
@@ -8629,7 +8629,6 @@ select_best_pending_from_link (struct PendingMessageScoreContext *sc,
                                     this queue */) )
     {
       frag = GNUNET_YES;
-      relb = GNUNET_NO; /* if we fragment, we never also reliability box */
       if (GNUNET_TRANSPORT_CC_RELIABLE == queue->tc->details.communicator.cc)
       {
         /* FIXME-FRAG-REL-UUID: we could use an optimized, shorter fragmentation
@@ -8829,8 +8828,9 @@ transmit_on_queue (void *cls)
                   "Fragmentation failed queue %s to %s for <%llu>, trying again\n",
                   queue->address,
                   GNUNET_i2s (&n->pid),
-                  pm->logging_uuid);
+                  sc.best->logging_uuid);
       schedule_transmit_on_queue (queue, GNUNET_SCHEDULER_PRIORITY_DEFAULT);
+      return;
     }
   }
   else if (GNUNET_YES == sc.relb)
@@ -8844,7 +8844,7 @@ transmit_on_queue (void *cls)
         "Reliability boxing failed queue %s to %s for <%llu>, trying again\n",
         queue->address,
         GNUNET_i2s (&n->pid),
-        pm->logging_uuid);
+        sc.best->logging_uuid);
       schedule_transmit_on_queue (queue, GNUNET_SCHEDULER_PRIORITY_DEFAULT);
       return;
     }

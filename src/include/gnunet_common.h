@@ -507,7 +507,6 @@ GNUNET_log_from_nocheck (enum GNUNET_ErrorType kind,
 #define GNUNET_log_from(kind, comp, ...)                                  \
   do                                                                      \
   {                                                                       \
-    int log_line = __LINE__;                                              \
     static int log_call_enabled = GNUNET_LOG_CALL_STATUS;                 \
     if ((GNUNET_EXTRA_LOGGING > 0) ||                                     \
         ((GNUNET_ERROR_TYPE_DEBUG & (kind)) == 0))                        \
@@ -518,7 +517,7 @@ GNUNET_log_from_nocheck (enum GNUNET_ErrorType kind,
                                       (comp),                             \
                                       __FILE__,                           \
                                       __FUNCTION__,                       \
-                                      log_line);                          \
+                                      __LINE__);                          \
       if (GN_UNLIKELY (GNUNET_get_log_skip () > 0))                       \
       {                                                                   \
         GNUNET_log_skip (-1, GNUNET_NO);                                  \
@@ -534,7 +533,6 @@ GNUNET_log_from_nocheck (enum GNUNET_ErrorType kind,
 #define GNUNET_log(kind, ...)                                             \
   do                                                                      \
   {                                                                       \
-    int log_line = __LINE__;                                              \
     static int log_call_enabled = GNUNET_LOG_CALL_STATUS;                 \
     if ((GNUNET_EXTRA_LOGGING > 0) ||                                     \
         ((GNUNET_ERROR_TYPE_DEBUG & (kind)) == 0))                        \
@@ -545,7 +543,7 @@ GNUNET_log_from_nocheck (enum GNUNET_ErrorType kind,
                                       NULL,                               \
                                       __FILE__,                           \
                                       __FUNCTION__,                       \
-                                      log_line);                          \
+                                      __LINE__);                          \
       if (GN_UNLIKELY (GNUNET_get_log_skip () > 0))                       \
       {                                                                   \
         GNUNET_log_skip (-1, GNUNET_NO);                                  \
