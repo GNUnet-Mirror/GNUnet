@@ -430,7 +430,7 @@ GNUNET_CURL_job_cancel (struct GNUNET_CURL_Job *job)
  *              the JSON we received was malformed).
  * @return NULL if downloading a JSON reply failed.
  */
-void *
+static void *
 download_get_result (struct GNUNET_CURL_DownloadBuffer *db,
                      CURL *eh,
                      long *response_code)
@@ -523,15 +523,16 @@ GNUNET_CURL_perform2 (struct GNUNET_CURL_Context *ctx,
                       GNUNET_CURL_ResponseCleaner rc)
 {
   CURLMsg *cmsg;
-  struct GNUNET_CURL_Job *job;
   int n_running;
   int n_completed;
-  long response_code;
-  void *response;
 
   (void) curl_multi_perform (ctx->multi, &n_running);
   while (NULL != (cmsg = curl_multi_info_read (ctx->multi, &n_completed)))
   {
+    struct GNUNET_CURL_Job *job;
+    long response_code;
+    void *response;
+
     /* Only documented return value is CURLMSG_DONE */
     GNUNET_break (CURLMSG_DONE == cmsg->msg);
     GNUNET_assert (CURLE_OK == curl_easy_getinfo (cmsg->easy_handle,
@@ -620,9 +621,8 @@ GNUNET_CURL_perform2 (struct GNUNET_CURL_Context *ctx,
 void
 GNUNET_CURL_perform (struct GNUNET_CURL_Context *ctx)
 {
-
   GNUNET_CURL_perform2 (ctx,
-                        download_get_result,
+                        &download_get_result,
                         (GNUNET_CURL_ResponseCleaner) &json_decref);
 }
 
