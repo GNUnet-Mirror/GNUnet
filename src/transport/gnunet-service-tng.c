@@ -33,8 +33,6 @@
  *   do NOT forward it to peers _other_ than the origin, as
  *   there is clearly a better path directly from the origin to
  *   whatever else we could reach.
- * - AcknowledgementUUIDPs are overkill with 256 bits (128 would do)
- *   => Need 128 bit hash map though! [BANDWIDTH, MEMORY]
  * - queue_send_msg by API design has to make a copy
  *   of the payload, and route_message on top of that requires a malloc/free.
  *   Change design to approximate "zero" copy better... [CPU]
@@ -345,9 +343,9 @@ struct MessageUUIDP
 struct AcknowledgementUUIDP
 {
   /**
-   * The UUID value.  Not actually a hash, but a random value.
+   * The UUID value.
    */
-  struct GNUNET_ShortHashCode value;
+  struct GNUNET_Uuid value;
 };
 
 
@@ -2736,7 +2734,7 @@ static struct GNUNET_CONTAINER_MultiPeerMap *ack_cummulators;
  * Map of pending acknowledgements, mapping `struct AcknowledgementUUID` to
  * a `struct PendingAcknowledgement`.
  */
-static struct GNUNET_CONTAINER_MultiShortmap *pending_acks;
+static struct GNUNET_CONTAINER_MultiUuidmap *pending_acks;
 
 /**
  * Map from PIDs to `struct DistanceVector` entries describing
@@ -2910,9 +2908,9 @@ free_pending_acknowledgement (struct PendingAcknowledgement *pa)
     pa->queue = NULL;
   }
   GNUNET_assert (GNUNET_YES ==
-                 GNUNET_CONTAINER_multishortmap_remove (pending_acks,
-                                                        &pa->ack_uuid.value,
-                                                        pa));
+                 GNUNET_CONTAINER_multiuuidmap_remove (pending_acks,
+                                                       &pa->ack_uuid.value,
+                                                       pa));
   GNUNET_free (pa);
 }
 
@@ -5468,7 +5466,7 @@ cummulative_ack (const struct GNUNET_PeerIdentity *pid,
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Scheduling ACK %s for transmission to %s\n",
-              GNUNET_sh2s (&ack_uuid->value),
+              GNUNET_uuid2s (&ack_uuid->value),
               GNUNET_i2s (pid));
   ac = GNUNET_CONTAINER_multipeermap_get (ack_cummulators, pid);
   if (NULL == ac)
@@ -5743,7 +5741,7 @@ handle_reliability_box (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received reliability box from %s with UUID %s of type %u\n",
               GNUNET_i2s (&cmc->im.sender),
-              GNUNET_sh2s (&rb->ack_uuid.value),
+              GNUNET_uuid2s (&rb->ack_uuid.value),
               (unsigned int) ntohs (inbox->type));
   rtt = GNUNET_TIME_UNIT_SECONDS; /* FIXME: should base this on "RTT", but we
                                      do not really have an RTT for the
@@ -5981,13 +5979,13 @@ handle_reliability_ack (void *cls,
   for (unsigned int i = 0; i < n_acks; i++)
   {
     pa =
-      GNUNET_CONTAINER_multishortmap_get (pending_acks, &ack[i].ack_uuid.value);
+      GNUNET_CONTAINER_multiuuidmap_get (pending_acks, &ack[i].ack_uuid.value);
     if (NULL == pa)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                   "Received ACK from %s with UUID %s which is unknown to us!\n",
                   GNUNET_i2s (&cmc->im.sender),
-                  GNUNET_sh2s (&ack[i].ack_uuid.value));
+                  GNUNET_uuid2s (&ack[i].ack_uuid.value));
       GNUNET_STATISTICS_update (
         GST_stats,
         "# FRAGMENT_ACKS dropped, no matching pending message",
@@ -5998,7 +5996,7 @@ handle_reliability_ack (void *cls,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Received ACK from %s with UUID %s\n",
                 GNUNET_i2s (&cmc->im.sender),
-                GNUNET_sh2s (&ack[i].ack_uuid.value));
+                GNUNET_uuid2s (&ack[i].ack_uuid.value));
     handle_acknowledged (pa, GNUNET_TIME_relative_ntoh (ack[i].ack_delay));
   }
 
@@ -8412,7 +8410,7 @@ prepare_pending_acknowledgement (struct Queue *queue,
     GNUNET_CRYPTO_random_block (GNUNET_CRYPTO_QUALITY_NONCE,
                                 &pa->ack_uuid,
                                 sizeof (pa->ack_uuid));
-  } while (GNUNET_YES != GNUNET_CONTAINER_multishortmap_put (
+  } while (GNUNET_YES != GNUNET_CONTAINER_multiuuidmap_put (
                            pending_acks,
                            &pa->ack_uuid.value,
                            pa,
@@ -8425,7 +8423,7 @@ prepare_pending_acknowledgement (struct Queue *queue,
   pa->message_size = pm->bytes_msg;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Waiting for ACKnowledgment `%s' for <%llu>\n",
-              GNUNET_sh2s (&pa->ack_uuid.value),
+              GNUNET_uuid2s (&pa->ack_uuid.value),
               pm->logging_uuid);
   return pa;
 }
@@ -10017,9 +10015,7 @@ free_validation_state_cb (void *cls,
  * @return #GNUNET_OK (always)
  */
 static int
-free_pending_ack_cb (void *cls,
-                     const struct GNUNET_ShortHashCode *key,
-                     void *value)
+free_pending_ack_cb (void *cls, const struct GNUNET_Uuid *key, void *value)
 {
   struct PendingAcknowledgement *pa = value;
 
@@ -10085,10 +10081,10 @@ do_shutdown (void *cls)
                                          NULL);
   GNUNET_CONTAINER_multipeermap_destroy (ack_cummulators);
   ack_cummulators = NULL;
-  GNUNET_CONTAINER_multishortmap_iterate (pending_acks,
-                                          &free_pending_ack_cb,
-                                          NULL);
-  GNUNET_CONTAINER_multishortmap_destroy (pending_acks);
+  GNUNET_CONTAINER_multiuuidmap_iterate (pending_acks,
+                                         &free_pending_ack_cb,
+                                         NULL);
+  GNUNET_CONTAINER_multiuuidmap_destroy (pending_acks);
   pending_acks = NULL;
   GNUNET_break (0 == GNUNET_CONTAINER_multipeermap_size (neighbours));
   GNUNET_CONTAINER_multipeermap_destroy (neighbours);
@@ -10142,7 +10138,7 @@ run (void *cls,
   hello_mono_time = GNUNET_TIME_absolute_get_monotonic (c);
   GST_cfg = c;
   backtalkers = GNUNET_CONTAINER_multipeermap_create (16, GNUNET_YES);
-  pending_acks = GNUNET_CONTAINER_multishortmap_create (32768, GNUNET_YES);
+  pending_acks = GNUNET_CONTAINER_multiuuidmap_create (32768, GNUNET_YES);
   ack_cummulators = GNUNET_CONTAINER_multipeermap_create (256, GNUNET_YES);
   neighbours = GNUNET_CONTAINER_multipeermap_create (1024, GNUNET_YES);
   links = GNUNET_CONTAINER_multipeermap_create (512, GNUNET_YES);

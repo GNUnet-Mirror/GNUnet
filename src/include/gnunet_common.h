@@ -273,6 +273,18 @@ struct GNUNET_ShortHashCode
 
 
 /**
+ * A UUID, a 128 bit random value.
+ */
+struct GNUNET_Uuid
+{
+  /**
+   * 128 random bits.
+   */
+  uint32_t value[4];
+};
+
+
+/**
  * Header for all communications.
  */
 struct GNUNET_MessageHeader
@@ -651,6 +663,19 @@ GNUNET_logger_remove (GNUNET_Logger logger, void *logger_cls);
  */
 const char *
 GNUNET_sh2s (const struct GNUNET_ShortHashCode *shc);
+
+
+/**
+ * @ingroup logging
+ * Convert a UUID to a string (for printing debug messages).
+ * This is one of the very few calls in the entire API that is
+ * NOT reentrant!
+ *
+ * @param uuid the UUID
+ * @return string
+ */
+const char *
+GNUNET_uuid2s (const struct GNUNET_Uuid *uuid);
 
 
 /**
