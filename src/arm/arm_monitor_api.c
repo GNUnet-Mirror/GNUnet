@@ -32,7 +32,7 @@
 
 #define INIT_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
 
-#define LOG(kind,...) GNUNET_log_from (kind, "arm-monitor-api",__VA_ARGS__)
+#define LOG(kind, ...) GNUNET_log_from (kind, "arm-monitor-api", __VA_ARGS__)
 
 /**
  * Handle for interacting with ARM.
@@ -69,7 +69,6 @@ struct GNUNET_ARM_MonitorHandle
    * Closure for @e service_status.
    */
   void *service_status_cls;
-
 };
 
 
@@ -115,9 +114,9 @@ reconnect_arm_monitor_later (struct GNUNET_ARM_MonitorHandle *h)
     h->mq = NULL;
   }
   GNUNET_assert (NULL == h->reconnect_task);
-  h->reconnect_task
-    = GNUNET_SCHEDULER_add_delayed (h->retry_backoff,
-                                    &reconnect_arm_monitor_task, h);
+  h->reconnect_task = GNUNET_SCHEDULER_add_delayed (h->retry_backoff,
+                                                    &reconnect_arm_monitor_task,
+                                                    h);
   h->retry_backoff = GNUNET_TIME_STD_BACKOFF (h->retry_backoff);
 }
 
@@ -130,14 +129,14 @@ reconnect_arm_monitor_later (struct GNUNET_ARM_MonitorHandle *h)
  * @return #GNUNET_OK if the message is well-formed
  */
 static int
-check_monitor_notify (void *cls,
-                       const struct GNUNET_ARM_StatusMessage *msg)
+check_monitor_notify (void *cls, const struct GNUNET_ARM_StatusMessage *msg)
 {
-  size_t sl = ntohs (msg->header.size) - sizeof (struct GNUNET_ARM_StatusMessage);
+  size_t sl =
+    ntohs (msg->header.size) - sizeof (struct GNUNET_ARM_StatusMessage);
   const char *name = (const char *) &msg[1];
 
-  if ( (0 == sl) ||
-       ('\0' != name[sl-1]) )
+  (void) cls;
+  if ((0 == sl) || ('\0' != name[sl - 1]))
   {
     GNUNET_break (0);
     return GNUNET_SYSERR;
@@ -153,8 +152,7 @@ check_monitor_notify (void *cls,
  * @param res the message received from the arm service
  */
 static void
-handle_monitor_notify (void *cls,
-                       const struct GNUNET_ARM_StatusMessage *res)
+handle_monitor_notify (void *cls, const struct GNUNET_ARM_StatusMessage *res)
 {
   struct GNUNET_ARM_MonitorHandle *h = cls;
   enum GNUNET_ARM_ServiceStatus status;
@@ -165,9 +163,7 @@ handle_monitor_notify (void *cls,
        (const char *) &res[1],
        (int) status);
   if (NULL != h->service_status)
-    h->service_status (h->service_status_cls,
-                       (const char *) &res[1],
-                       status);
+    h->service_status (h->service_status_cls, (const char *) &res[1], status);
 }
 
 
@@ -180,11 +176,11 @@ handle_monitor_notify (void *cls,
  * @param error error code
  */
 static void
-mq_error_handler (void *cls,
-                  enum GNUNET_MQ_Error error)
+mq_error_handler (void *cls, enum GNUNET_MQ_Error error)
 {
   struct GNUNET_ARM_MonitorHandle *h = cls;
 
+  (void) error;
   reconnect_arm_monitor_later (h);
 }
 
@@ -198,22 +194,17 @@ mq_error_handler (void *cls,
 static int
 reconnect_arm_monitor (struct GNUNET_ARM_MonitorHandle *h)
 {
-  struct GNUNET_MQ_MessageHandler handlers[] = {
-    GNUNET_MQ_hd_var_size (monitor_notify,
-                           GNUNET_MESSAGE_TYPE_ARM_STATUS,
-                           struct GNUNET_ARM_StatusMessage,
-                           h),
-    GNUNET_MQ_handler_end ()
-  };
+  struct GNUNET_MQ_MessageHandler handlers[] =
+    {GNUNET_MQ_hd_var_size (monitor_notify,
+                            GNUNET_MESSAGE_TYPE_ARM_STATUS,
+                            struct GNUNET_ARM_StatusMessage,
+                            h),
+     GNUNET_MQ_handler_end ()};
   struct GNUNET_MessageHeader *msg;
   struct GNUNET_MQ_Envelope *env;
 
   GNUNET_assert (NULL == h->mq);
-  h->mq = GNUNET_CLIENT_connect (h->cfg,
-                                 "arm",
-                                 handlers,
-                                 &mq_error_handler,
-                                 h);
+  h->mq = GNUNET_CLIENT_connect (h->cfg, "arm", handlers, &mq_error_handler, h);
   if (NULL == h->mq)
   {
     if (NULL != h->service_status)
@@ -222,10 +213,8 @@ reconnect_arm_monitor (struct GNUNET_ARM_MonitorHandle *h)
                          GNUNET_ARM_SERVICE_STOPPED);
     return GNUNET_SYSERR;
   }
-  env = GNUNET_MQ_msg (msg,
-                       GNUNET_MESSAGE_TYPE_ARM_MONITOR);
-  GNUNET_MQ_send (h->mq,
-                  env);
+  env = GNUNET_MQ_msg (msg, GNUNET_MESSAGE_TYPE_ARM_MONITOR);
+  GNUNET_MQ_send (h->mq, env);
   return GNUNET_OK;
 }
 
