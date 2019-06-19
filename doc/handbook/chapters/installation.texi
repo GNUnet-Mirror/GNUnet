@@ -1727,12 +1727,19 @@ $ gnunet-namestore -a -e "1 d" -n "homepage" \
 At this point we can start the proxy. Simply execute
 
 @example
-$ gnunet-gns-proxy
+$ gnunet-arm -i gns-proxy
+@end example
+
+To run the proxy at all times in the future, you should
+change your configuration as follows:
+
+@example
+$ gnunet-config -s gns-proxy -o AUTOSTART -V YES
 @end example
 
 @noindent
-Configure your browser to use this SOCKSv5 proxy on port 7777 and visit
-this link.
+Configure your browser to use this SOCKSv5 proxy using
+@code{localhost} on port 7777.
 If you use @command{Firefox} (or one of its derivatives/forks such as
 Icecat) you also have to go to @code{about:config} and set the key
 @code{network.proxy.socks_remote_dns} to @code{true}.
