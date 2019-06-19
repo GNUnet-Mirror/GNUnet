@@ -28,22 +28,23 @@
 #include "gnunet_crypto_lib.h"
 #include <gcrypt.h>
 
-#define LOG(kind,...) GNUNET_log_from (kind, "util-crypto-random", __VA_ARGS__)
+#define LOG(kind, ...) GNUNET_log_from (kind, "util-crypto-random", __VA_ARGS__)
 
-#define LOG_STRERROR(kind,syscall) GNUNET_log_from_strerror (kind, "util-crypto-random", syscall)
+#define LOG_STRERROR(kind, syscall) \
+  GNUNET_log_from_strerror (kind, "util-crypto-random", syscall)
 
 
 /* TODO: ndurner, move this to plibc? */
 /* The code is derived from glibc, obviously */
-#if !HAVE_RANDOM || !HAVE_SRANDOM
+#if ! HAVE_RANDOM || ! HAVE_SRANDOM
 #ifdef RANDOM
 #undef RANDOM
 #endif
 #ifdef SRANDOM
 #undef SRANDOM
 #endif
-#define RANDOM() glibc_weak_rand32()
-#define SRANDOM(s) glibc_weak_srand32(s)
+#define RANDOM() glibc_weak_rand32 ()
+#define SRANDOM(s) glibc_weak_srand32 (s)
 #if defined(RAND_MAX)
 #undef RAND_MAX
 #endif
@@ -105,17 +106,12 @@ GNUNET_CRYPTO_seed_weak_random (int32_t seed)
  * @param length buffer length
  */
 void
-GNUNET_CRYPTO_zero_keys (void *buffer,
-                         size_t length)
+GNUNET_CRYPTO_zero_keys (void *buffer, size_t length)
 {
 #if HAVE_MEMSET_S
-  memset_s (buffer,
-            length,
-            0,
-            length);
+  memset_s (buffer, length, 0, length);
 #elif HAVE_EXPLICIT_BZERO
-  explicit_bzero (buffer,
-                  length);
+  explicit_bzero (buffer, length);
 #else
   volatile unsigned char *p = buffer;
   while (length--)
@@ -175,8 +171,7 @@ GNUNET_CRYPTO_random_block (enum GNUNET_CRYPTO_Quality mode,
  * @return a random value in the interval [0,i[.
  */
 uint32_t
-GNUNET_CRYPTO_random_u32 (enum GNUNET_CRYPTO_Quality mode,
-                          uint32_t i)
+GNUNET_CRYPTO_random_u32 (enum GNUNET_CRYPTO_Quality mode, uint32_t i)
 {
 #ifdef gcry_fast_random_poll
   static unsigned int invokeCount;
@@ -197,18 +192,17 @@ GNUNET_CRYPTO_random_u32 (enum GNUNET_CRYPTO_Quality mode,
     ul = UINT32_MAX - (UINT32_MAX % i);
     do
     {
-      gcry_randomize ((unsigned char *) &ret, sizeof (uint32_t),
+      gcry_randomize ((unsigned char *) &ret,
+                      sizeof (uint32_t),
                       GCRY_STRONG_RANDOM);
-    }
-    while (ret >= ul);
+    } while (ret >= ul);
     return ret % i;
   case GNUNET_CRYPTO_QUALITY_NONCE:
     ul = UINT32_MAX - (UINT32_MAX % i);
     do
     {
       gcry_create_nonce (&ret, sizeof (ret));
-    }
-    while (ret >= ul);
+    } while (ret >= ul);
     return ret % i;
   case GNUNET_CRYPTO_QUALITY_WEAK:
     ret = i * get_weak_random ();
@@ -231,8 +225,7 @@ GNUNET_CRYPTO_random_u32 (enum GNUNET_CRYPTO_Quality mode,
  * @return the permutation array (allocated from heap)
  */
 unsigned int *
-GNUNET_CRYPTO_random_permute (enum GNUNET_CRYPTO_Quality mode,
-                              unsigned int n)
+GNUNET_CRYPTO_random_permute (enum GNUNET_CRYPTO_Quality mode, unsigned int n)
 {
   unsigned int *ret;
   unsigned int i;
@@ -262,8 +255,7 @@ GNUNET_CRYPTO_random_permute (enum GNUNET_CRYPTO_Quality mode,
  * @return random 64-bit number
  */
 uint64_t
-GNUNET_CRYPTO_random_u64 (enum GNUNET_CRYPTO_Quality mode,
-                          uint64_t max)
+GNUNET_CRYPTO_random_u64 (enum GNUNET_CRYPTO_Quality mode, uint64_t max)
 {
   uint64_t ret;
   uint64_t ul;
@@ -275,18 +267,17 @@ GNUNET_CRYPTO_random_u64 (enum GNUNET_CRYPTO_Quality mode,
     ul = UINT64_MAX - (UINT64_MAX % max);
     do
     {
-      gcry_randomize ((unsigned char *) &ret, sizeof (uint64_t),
+      gcry_randomize ((unsigned char *) &ret,
+                      sizeof (uint64_t),
                       GCRY_STRONG_RANDOM);
-    }
-    while (ret >= ul);
+    } while (ret >= ul);
     return ret % max;
   case GNUNET_CRYPTO_QUALITY_NONCE:
     ul = UINT64_MAX - (UINT64_MAX % max);
     do
     {
       gcry_create_nonce (&ret, sizeof (ret));
-    }
-    while (ret >= ul);
+    } while (ret >= ul);
 
     return ret % max;
   case GNUNET_CRYPTO_QUALITY_WEAK:
@@ -319,6 +310,7 @@ w_malloc (size_t n)
 static int
 w_check (const void *p)
 {
+  (void) p;
   return 0; /* not secure memory */
 }
 
@@ -326,57 +318,51 @@ w_check (const void *p)
 /**
  * Initialize libgcrypt.
  */
-void __attribute__ ((constructor))
-GNUNET_CRYPTO_random_init ()
+void __attribute__ ((constructor)) GNUNET_CRYPTO_random_init ()
 {
   gcry_error_t rc;
 
   if (! gcry_check_version (NEED_LIBGCRYPT_VERSION))
   {
-    FPRINTF (stderr,
-             _("libgcrypt has not the expected version (version %s is required).\n"),
-             NEED_LIBGCRYPT_VERSION);
+    FPRINTF (
+      stderr,
+      _ ("libgcrypt has not the expected version (version %s is required).\n"),
+      NEED_LIBGCRYPT_VERSION);
     GNUNET_assert (0);
   }
   /* set custom allocators */
-  gcry_set_allocation_handler (&w_malloc,
-                               &w_malloc,
-                               &w_check,
-                               &realloc,
-                               &free);
+  gcry_set_allocation_handler (&w_malloc, &w_malloc, &w_check, &realloc, &free);
   /* Disable use of secure memory */
   if ((rc = gcry_control (GCRYCTL_DISABLE_SECMEM, 0)))
     FPRINTF (stderr,
              "Failed to set libgcrypt option %s: %s\n",
              "DISABLE_SECMEM",
-	     gcry_strerror (rc));
+             gcry_strerror (rc));
   /* Otherwise gnunet-ecc takes forever to complete, besides
      we are fine with "just" using GCRY_STRONG_RANDOM */
   if ((rc = gcry_control (GCRYCTL_ENABLE_QUICK_RANDOM, 0)))
     FPRINTF (stderr,
-	     "Failed to set libgcrypt option %s: %s\n",
-	     "ENABLE_QUICK_RANDOM",
-	     gcry_strerror (rc));
+             "Failed to set libgcrypt option %s: %s\n",
+             "ENABLE_QUICK_RANDOM",
+             gcry_strerror (rc));
   gcry_control (GCRYCTL_INITIALIZATION_FINISHED, 0);
   gcry_fast_random_poll ();
-  GNUNET_CRYPTO_seed_weak_random (time (NULL) ^
-                                  GNUNET_CRYPTO_random_u32
-                                  (GNUNET_CRYPTO_QUALITY_NONCE, UINT32_MAX));
+  GNUNET_CRYPTO_seed_weak_random (
+    time (NULL) ^
+    GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_NONCE, UINT32_MAX));
 }
 
 
 /**
  * Nicely shut down libgcrypt.
  */
-void __attribute__ ((destructor))
-GNUNET_CRYPTO_random_fini ()
+void __attribute__ ((destructor)) GNUNET_CRYPTO_random_fini ()
 {
   gcry_set_progress_handler (NULL, NULL);
 #ifdef GCRYCTL_CLOSE_RANDOM_DEVICE
   (void) gcry_control (GCRYCTL_CLOSE_RANDOM_DEVICE, 0);
 #endif
 }
-
 
 
 /* end of crypto_random.c */
