@@ -48,6 +48,7 @@ static struct GNUNET_CORE_MonitorHandle *mh;
 static void
 shutdown_task (void *cls)
 {
+  (void) cls;
   if (NULL != mh)
   {
     GNUNET_CORE_monitor_stop (mh);
@@ -71,13 +72,13 @@ monitor_cb (void *cls,
             enum GNUNET_CORE_KxState state,
             struct GNUNET_TIME_Absolute timeout)
 {
-  struct GNUNET_TIME_Absolute now = GNUNET_TIME_absolute_get();
+  struct GNUNET_TIME_Absolute now = GNUNET_TIME_absolute_get ();
   const char *now_str;
   const char *state_str;
 
-  if ( ( (NULL == peer) ||
-         (GNUNET_CORE_KX_ITERATION_FINISHED == state) ) &&
-       (GNUNET_NO == monitor_connections) )
+  (void) cls;
+  if (((NULL == peer) || (GNUNET_CORE_KX_ITERATION_FINISHED == state)) &&
+      (GNUNET_NO == monitor_connections))
   {
     GNUNET_SCHEDULER_shutdown ();
     return;
@@ -87,42 +88,43 @@ monitor_cb (void *cls,
   {
   case GNUNET_CORE_KX_STATE_DOWN:
     /* should never happen, as we immediately send the key */
-    state_str = _("fresh connection");
+    state_str = _ ("fresh connection");
     break;
   case GNUNET_CORE_KX_STATE_KEY_SENT:
-    state_str = _("key sent");
+    state_str = _ ("key sent");
     break;
   case GNUNET_CORE_KX_STATE_KEY_RECEIVED:
-    state_str = _("key received");
+    state_str = _ ("key received");
     break;
   case GNUNET_CORE_KX_STATE_UP:
-    state_str = _("connection established");
+    state_str = _ ("connection established");
     break;
   case GNUNET_CORE_KX_STATE_REKEY_SENT:
-    state_str = _("rekeying");
+    state_str = _ ("rekeying");
     break;
   case GNUNET_CORE_KX_PEER_DISCONNECT:
-    state_str = _("disconnected");
+    state_str = _ ("disconnected");
     break;
   case GNUNET_CORE_KX_ITERATION_FINISHED:
     return;
   case GNUNET_CORE_KX_CORE_DISCONNECT:
     FPRINTF (stderr,
              "%s\n",
-             _("Connection to CORE service lost (reconnecting)"));
+             _ ("Connection to CORE service lost (reconnecting)"));
     return;
   default:
-    state_str = _("unknown state");
+    state_str = _ ("unknown state");
     break;
   }
   now_str = GNUNET_STRINGS_absolute_time_to_string (now);
   FPRINTF (stdout,
-           _("%24s: %-30s %4s (timeout in %6s)\n"),
+           _ ("%24s: %-30s %4s (timeout in %6s)\n"),
            now_str,
            state_str,
            GNUNET_i2s (peer),
-           GNUNET_STRINGS_relative_time_to_string (GNUNET_TIME_absolute_get_remaining (timeout),
-                                                   GNUNET_YES));
+           GNUNET_STRINGS_relative_time_to_string (
+             GNUNET_TIME_absolute_get_remaining (timeout),
+             GNUNET_YES));
 }
 
 
@@ -135,24 +137,22 @@ monitor_cb (void *cls,
  * @param cfg configuration
  */
 static void
-run (void *cls, char *const *args, const char *cfgfile,
+run (void *cls,
+     char *const *args,
+     const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
+  (void) cls;
+  (void) cfgfile;
   if (NULL != args[0])
   {
-    FPRINTF (stderr,
-             _("Invalid command line argument `%s'\n"),
-             args[0]);
+    FPRINTF (stderr, _ ("Invalid command line argument `%s'\n"), args[0]);
     return;
   }
-  mh = GNUNET_CORE_monitor_start (cfg,
-                                  &monitor_cb,
-                                  NULL);
+  mh = GNUNET_CORE_monitor_start (cfg, &monitor_cb, NULL);
   if (NULL == mh)
   {
-    FPRINTF (stderr,
-             "%s",
-             _("Failed to connect to CORE service!\n"));
+    FPRINTF (stderr, "%s", _ ("Failed to connect to CORE service!\n"));
     return;
   }
   GNUNET_SCHEDULER_add_shutdown (&shutdown_task, NULL);
@@ -167,24 +167,28 @@ run (void *cls, char *const *args, const char *cfgfile,
  * @return 0 ok, 1 on error
  */
 int
-main (int argc,
-      char *const *argv)
+main (int argc, char *const *argv)
 {
   int res;
-  struct GNUNET_GETOPT_CommandLineOption options[] = {
-    GNUNET_GETOPT_option_flag ('m',
-                                  "monitor",
-                                  gettext_noop ("provide information about all current connections (continuously)"),
-                                  &monitor_connections),
-    GNUNET_GETOPT_OPTION_END
-  };
+  struct GNUNET_GETOPT_CommandLineOption options[] =
+    {GNUNET_GETOPT_option_flag (
+       'm',
+       "monitor",
+       gettext_noop (
+         "provide information about all current connections (continuously)"),
+       &monitor_connections),
+     GNUNET_GETOPT_OPTION_END};
 
   if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv, &argc, &argv))
     return 2;
-  res = GNUNET_PROGRAM_run (argc, argv, "gnunet-core",
-                            gettext_noop
-                            ("Print information about connected peers."),
-                            options, &run, NULL);
+  res = GNUNET_PROGRAM_run (argc,
+                            argv,
+                            "gnunet-core",
+                            gettext_noop (
+                              "Print information about connected peers."),
+                            options,
+                            &run,
+                            NULL);
 
   GNUNET_free ((void *) argv);
   if (GNUNET_OK == res)

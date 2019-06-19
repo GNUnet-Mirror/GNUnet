@@ -430,6 +430,7 @@ handle_start (void *cls, const struct GNUNET_MessageHeader *message)
   struct GNUNET_NSE_ClientMessage em;
   struct GNUNET_MQ_Envelope *env;
 
+  (void) message;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received START message from client\n");
   mq = GNUNET_SERVICE_client_get_mq (client);
   GNUNET_notification_context_add (nc, mq);
@@ -717,6 +718,8 @@ schedule_current_round (void *cls,
   struct NSEPeerEntry *peer_entry = value;
   struct GNUNET_TIME_Relative delay;
 
+  (void) cls;
+  (void) key;
   if (NULL != peer_entry->transmit_task)
   {
     GNUNET_SCHEDULER_cancel (peer_entry->transmit_task);
@@ -749,8 +752,8 @@ static void
 update_flood_message (void *cls)
 {
   struct GNUNET_TIME_Relative offset;
-  unsigned int i;
 
+  (void) cls;
   flood_task = NULL;
   offset = GNUNET_TIME_absolute_get_remaining (next_timestamp);
   if (0 != offset.rel_value_us)
@@ -780,7 +783,7 @@ update_flood_message (void *cls)
     setup_flood_message (estimate_index, current_timestamp);
   next_message.matching_bits = htonl (0); /* reset for 'next' round */
   hop_count_max = 0;
-  for (i = 0; i < HISTORY_SIZE; i++)
+  for (unsigned int i = 0; i < HISTORY_SIZE; i++)
     hop_count_max =
       GNUNET_MAX (ntohl (size_estimate_messages[i].hop_count), hop_count_max);
   GNUNET_CONTAINER_multipeermap_iterate (peers, &schedule_current_round, NULL);
@@ -869,6 +872,7 @@ find_proof (void *cls)
   struct GNUNET_HashCode result;
   unsigned int i;
 
+  (void) cls;
   proof_task = NULL;
   GNUNET_memcpy (&buf[sizeof (uint64_t)],
                  &my_identity,
@@ -967,6 +971,7 @@ update_flood_times (void *cls,
   struct NSEPeerEntry *peer_entry = value;
   struct GNUNET_TIME_Relative delay;
 
+  (void) key;
   if (peer_entry == exclude)
     return GNUNET_OK; /* trigger of the update */
   if (GNUNET_NO == peer_entry->previous_round)
@@ -1178,6 +1183,7 @@ handle_core_connect (void *cls,
 {
   struct NSEPeerEntry *peer_entry;
 
+  (void) cls;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Peer `%s' connected to us\n",
               GNUNET_i2s (peer));
@@ -1217,6 +1223,7 @@ handle_core_disconnect (void *cls,
 {
   struct NSEPeerEntry *pos = internal_cls;
 
+  (void) cls;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Peer `%s' disconnected from us\n",
               GNUNET_i2s (peer));
@@ -1243,6 +1250,8 @@ handle_core_disconnect (void *cls,
 static void
 flush_comp_cb (void *cls, size_t size)
 {
+  (void) cls;
+  (void) size;
   GNUNET_TESTBED_LOGGER_disconnect (lh);
   lh = NULL;
 }
@@ -1257,6 +1266,7 @@ flush_comp_cb (void *cls, size_t size)
 static void
 shutdown_task (void *cls)
 {
+  (void) cls;
   if (NULL != flood_task)
   {
     GNUNET_SCHEDULER_cancel (flood_task);
@@ -1324,6 +1334,7 @@ core_init (void *cls, const struct GNUNET_PeerIdentity *identity)
   struct GNUNET_TIME_Absolute now;
   struct GNUNET_TIME_Absolute prev_time;
 
+  (void) cls;
   if (NULL == identity)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Connection to core FAILED!\n");
@@ -1365,6 +1376,7 @@ core_init (void *cls, const struct GNUNET_PeerIdentity *identity)
 static void
 status_cb (void *cls, int status)
 {
+  (void) cls;
   logger_test = NULL;
   if (GNUNET_YES != status)
   {
@@ -1402,6 +1414,8 @@ run (void *cls,
   char *proof;
   struct GNUNET_CRYPTO_EddsaPrivateKey *pk;
 
+  (void) cls;
+  (void) service;
   cfg = c;
   if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_time (cfg,
                                                         "NSE",
@@ -1524,6 +1538,8 @@ client_connect_cb (void *cls,
                    struct GNUNET_SERVICE_Client *c,
                    struct GNUNET_MQ_Handle *mq)
 {
+  (void) cls;
+  (void) mq;
   return c;
 }
 
@@ -1540,6 +1556,7 @@ client_disconnect_cb (void *cls,
                       struct GNUNET_SERVICE_Client *c,
                       void *internal_cls)
 {
+  (void) cls;
   GNUNET_assert (c == internal_cls);
 }
 

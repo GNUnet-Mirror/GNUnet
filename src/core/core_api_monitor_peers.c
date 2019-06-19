@@ -54,7 +54,6 @@ struct GNUNET_CORE_MonitorHandle
    * Closure for @e peer_cb.
    */
   void *peer_cb_cls;
-
 };
 
 
@@ -77,11 +76,11 @@ reconnect (struct GNUNET_CORE_MonitorHandle *mh);
  * @param error error code
  */
 static void
-handle_mq_error (void *cls,
-                 enum GNUNET_MQ_Error error)
+handle_mq_error (void *cls, enum GNUNET_MQ_Error error)
 {
   struct GNUNET_CORE_MonitorHandle *mh = cls;
 
+  (void) error;
   reconnect (mh);
 }
 
@@ -93,8 +92,7 @@ handle_mq_error (void *cls,
  * @param mon_message monitor message
  */
 static void
-handle_receive_info (void *cls,
-                     const struct MonitorNotifyMessage *mon_message)
+handle_receive_info (void *cls, const struct MonitorNotifyMessage *mon_message)
 {
   struct GNUNET_CORE_MonitorHandle *mh = cls;
 
@@ -114,24 +112,20 @@ handle_receive_info (void *cls,
 static void
 reconnect (struct GNUNET_CORE_MonitorHandle *mh)
 {
-  struct GNUNET_MQ_MessageHandler handlers[] = {
-    GNUNET_MQ_hd_fixed_size (receive_info,
-                             GNUNET_MESSAGE_TYPE_CORE_MONITOR_NOTIFY,
-                             struct MonitorNotifyMessage,
-                             mh),
-    GNUNET_MQ_handler_end ()
-  };
+  struct GNUNET_MQ_MessageHandler handlers[] =
+    {GNUNET_MQ_hd_fixed_size (receive_info,
+                              GNUNET_MESSAGE_TYPE_CORE_MONITOR_NOTIFY,
+                              struct MonitorNotifyMessage,
+                              mh),
+     GNUNET_MQ_handler_end ()};
   struct GNUNET_MQ_Envelope *env;
   struct GNUNET_MessageHeader *msg;
 
   if (NULL != mh->mq)
     GNUNET_MQ_destroy (mh->mq);
   /* FIXME: use backoff? */
-  mh->mq = GNUNET_CLIENT_connect (mh->cfg,
-                                  "core",
-                                  handlers,
-                                  &handle_mq_error,
-                                  mh);
+  mh->mq =
+    GNUNET_CLIENT_connect (mh->cfg, "core", handlers, &handle_mq_error, mh);
   if (NULL == mh->mq)
     return;
   /* notify callback about reconnect */
@@ -140,10 +134,8 @@ reconnect (struct GNUNET_CORE_MonitorHandle *mh)
                  NULL,
                  GNUNET_CORE_KX_CORE_DISCONNECT,
                  GNUNET_TIME_UNIT_FOREVER_ABS);
-  env = GNUNET_MQ_msg (msg,
-                       GNUNET_MESSAGE_TYPE_CORE_MONITOR_PEERS);
-  GNUNET_MQ_send (mh->mq,
-                  env);
+  env = GNUNET_MQ_msg (msg, GNUNET_MESSAGE_TYPE_CORE_MONITOR_PEERS);
+  GNUNET_MQ_send (mh->mq, env);
 }
 
 
