@@ -926,7 +926,7 @@ concepts that are used to achieve these goals.
 * Files::
 * Keywords::
 * Directories::
-* Pseudonyms::
+* Egos::
 * Namespaces::
 * Advertisements::
 * Anonymity level::
