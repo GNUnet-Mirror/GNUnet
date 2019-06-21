@@ -81,7 +81,7 @@ noinst_PROGRAMS = \
   gnunet-gns-benchmark
 
 pkgdata_DATA = \
-  openssl.cnf
+  gnunet-gns-proxy-ca.template
 
 if HAVE_MHD
 if LINUX

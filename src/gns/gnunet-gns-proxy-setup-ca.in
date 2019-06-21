@@ -133,13 +133,20 @@ generate_ca()
 
     # ------------- openssl
 
-    OPENSSLCFG=@pkgdatadir@/openssl.cnf
-    if test -z "`openssl version`" > /dev/null
+    GNUTLS_CA_TEMPLATE=@pkgdatadir@/gnunet-gns-proxy-ca.template
+    CERTTOOL=""
+    if test -z "`gnutls-certtool --version`" > /dev/null
     then
-        warningmsg "'openssl' command not found. Please install it."
+      if test -z "`certtool --versionn`" > /dev/null
+      then
+        warningmsg "'gnutls-certtool' or 'certtool' command not found. Please install it."
         infomsg    "Cleaning up."
-        rm -f $GNSCAKY $GNSCANO $GNSCERT
+        rm -f $GNSCAKY $GNSCERT
         exit 1
+      fi
+      CERTTOOL="certtool"
+    else
+      CERTTOOL="gnutls-certtool"
     fi
     if [ -n "${GNUNET_CONFIG_FILE}" ]; then
         GNUNET_CONFIG="-c ${GNUNET_CONFIG_FILE}"
@@ -149,13 +156,10 @@ generate_ca()
     GNS_CA_CERT_PEM=`gnunet-config ${GNUNET_CONFIG} -s gns-proxy -o PROXY_CACERT -f ${options}`
     mkdir -p `dirname $GNS_CA_CERT_PEM`
 
-    openssl req -config $OPENSSLCFG -new -x509 -days 3650 -extensions v3_ca -keyout $GNSCAKY -out $GNSCERT -subj "/C=ZZ/L=World/O=GNU/OU=GNUnet/CN=GNS Proxy CA/emailAddress=bounce@gnunet.org" -passout pass:"GNU Name System"
-
-    infomsg "Removing passphrase from key"
-    openssl rsa -passin pass:"GNU Name System" -in $GNSCAKY -out $GNSCANO
-
+    $CERTTOOL --generate-privkey --outfile $GNSCAKY
+    $CERTTOOL --template $GNUTLS_CA_TEMPLATE --generate-self-signed --load-privkey $GNSCAKY --outfile $GNSCERT
     infomsg "Making private key available to gnunet-gns-proxy"
-    cat $GNSCERT $GNSCANO > $GNS_CA_CERT_PEM
+    cat $GNSCERT $GNSCAKY > $GNS_CA_CERT_PEM
 }
 
 importbrowsers()
