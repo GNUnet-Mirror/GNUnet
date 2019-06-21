@@ -8907,3 +8907,29 @@ client requests independently random, they cannot be drawn from the
 connected peers.
 The adapted sampler makes sure that each request for random peers is
 independent from the others.
+
+@node Brahms
+@subsection Brahms
+The high-level concept of Brahms is two-fold: Combining push-pull gossip
+with locally fixing a assumed bias using cryptographic min-wise
+permutations.
+The central data structure is the view - a peer's current local sample.
+This view is used to select peers to push to and pull from.
+This simple mechanism can be biased easily. For this reason Brahms
+'fixes' the bias by using the so-called sampler. A data structure that
+takes a list of elements as input and outputs a random one of them
+independently of the frequency in the input set. Both an element that
+was put into the sampler a single time and an element that was put into
+it a million times have the same probability of being the output.
+This is achieved this is achieved with exploiting min-wise independent
+permutations. In rps we use HMACs: On the initialisation of a sampler
+element, a key is chosen at random. On each input the HMAC with the
+random key is computed. The sampler element keeps the element with the
+minimal HMAC.
+
+In order to fix the bias in the view, a fraction of the elements in the
+view are sampled through the sampler from the random stream of peer IDs.
+
+According to the theoretical analysis of Bortnikov et al. this suffices
+to keep the network connected and having random peers in the view.
+
