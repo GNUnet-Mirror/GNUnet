@@ -926,7 +926,7 @@ concepts that are used to achieve these goals.
 * Files::
 * Keywords::
 * Directories::
-* Egos::
+* Egos and File-Sharing::
 * Namespaces::
 * Advertisements::
 * Anonymity level::
@@ -984,8 +984,8 @@ typically includes the mime-type, description, a filename and
 other meta information, and possibly even the full original file
 (if it was small).
 
-@node Egos
-@subsubsection Egos
+@node Egos and File-Sharing
+@subsubsection Egos and File-Sharing
 
 When sharing files, it is sometimes desirable to build a reputation as
 a source for quality information.  With egos, publishers can
