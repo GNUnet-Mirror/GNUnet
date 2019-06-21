@@ -7967,9 +7967,9 @@ future.
 @node Conversions between DNS and GNS
 @subsubsection Conversions between DNS and GNS
 
-The differences between the two name systems lies in the details
-and is not always transparent.
-For instance an SRV record is converted to a GNS only BOX record.
+The differences between the two name systems lies in the details and is not
+always transparent.  For instance an SRV record is converted to a BOX record
+which is unique to GNS.
 
 This is done by converting to a BOX record from an existing SRV record:
 
@@ -7982,7 +7982,7 @@ _sip._tcp.example.com. 14000 IN SRV     0 0 5060 www.example.com.
 14000 BOX n 5060 6 33 0 0 5060 www.example.com
 @end example
 
-Other records that have such a transformation is the MX record type,
+Other records that need to undergo such transformation is the MX record type,
 as well as the SOA record type.
 
 Transformation of a SOA record into GNS works as described in the
@@ -7997,8 +7997,9 @@ following example. Very important to note are the rname and mname keys.
     604800     ; expire
     600 )      ; ttl
 # Recordline for adding the record
-$ gnunet-namestore -z example.com -a -n @ -t SOA -V rname=master.example.com \
-  mname=hostmaster.example.com 2017030300,3600,1800,604800,600 -e 7200s
+$ gnunet-namestore -z example.com -a -n @ -t SOA -V \
+    rname=master.example.com mname=hostmaster.example.com  \
+    2017030300,3600,1800,604800,600 -e 7200s
 @end example
 
 The transformation of MX records is done in a simple way.
@@ -8007,10 +8008,10 @@ The transformation of MX records is done in a simple way.
 $ gnunet-namestore -z example.com -n mail -R 3600 MX n 10,mail
 @end example
 
-Finally, one of the biggest struggling points were the NS records that are found
-in top level domain zones. The intended behaviour for those is to add GNS2DNS
-records for those so that gnunet-gns can resolve records for those domains on
-its own. This requires migration of the DNS GLUE records as well, provided that
+Finally, one of the biggest struggling points were the NS records that are
+found in top level domain zones. The intended behaviour for those is to add
+GNS2DNS records for those so that gnunet-gns can resolve records for those
+domains on its own. Those require the values from DNS GLUE records, provided
 they are within the same zone.
 
 The following two examples show one record with a GLUE record and the other one
@@ -8019,10 +8020,12 @@ does not have a GLUE record. This takes place in the 'com' TLD.
 @example
 # ns1.example.com 86400 IN A 127.0.0.1
 # example.com 86400 IN NS ns1.example.com.
-$ gnunet-namestore -z com -n example -R 86400 GNS2DNS n example.com@@127.0.0.1
+$ gnunet-namestore -z com -n example -R 86400 GNS2DNS n \
+    example.com@@127.0.0.1
 
 # example.com 86400 IN NS ns1.example.org.
-$ gnunet-namestore -z com -n example -R 86400 GNS2DNS n example.com@@ns1.example.org
+$ gnunet-namestore -z com -n example -R 86400 GNS2DNS n \
+    example.com@@ns1.example.org
 @end example
 
 As you can see, one of the GNS2DNS records has an IP address listed and the
@@ -8045,7 +8048,7 @@ Currently the following record types are supported:
 @item TXT
 @end itemize
 
-This is not due to a technical limitation but rather a practical one. The
+This is not due to technical limitations but rather a practical ones. The
 problem occurs with DNSSEC enabled DNS zones. As records within those zones are
 signed periodically, and every new signature is an update to the zone, there are
 many revisions of zones. This results in a problem with bigger zones as there
@@ -8055,16 +8058,22 @@ as they cause a CLI call of the namestore.  Furthermore certain record types
 need transformation into a GNS compatible format which, depending on the record
 type, takes more time.
 
+Further a blacklist was added to drop for instance DNSSEC related records. Also
+if a record type is neither in the white list nor the blacklist it is considered
+as a loss of data and a message is shown to the user. This helps with
+transparency and also with contributing, as the not supported record types can
+then be added accordingly.
+
 @node DNS Zone Size
 @subsubsection DNS Zone Size
-
 Another very big problem exists with very large zones. When migrating a small
 zone the delay between adding of records and their expiry is negligible. However
-when working with a TLD zone that has more that 1 million records this delay
-becomes a problem.
+when working with big zones that easily have more than a few million records
+this delay becomes a problem.
 
 Records will start to expire well before the zone has finished migrating. This
-causes unwanted anomalies when trying to resolve records.
+is usually not a problem but can cause a high CPU load when a peer is restarted
+and the records have expired.
 
 A good solution has not been found yet. One of the idea that floated around was
 that the records should be added with the s (shadow) flag to keep the records
@@ -8074,44 +8083,50 @@ of said record(s).
 
 Another problem that still persists is how to refresh records. Expired records
 are still displayed when calling gnunet-namestore but do not resolve with
-gnunet-gns. When doing incremental zone transfers this becomes especially
-apparent.
+gnunet-gns. Zonemaster will sign the expired records again and make sure that
+the records are still valid. With a recent change this was fixed as gnunet-gns
+to improve the suffix lookup which allows for a fast lookup even with thousands
+of local egos.
 
-I estimate that the limit lies at about 200'000 records in a zone as this is
-the limit that my machine is capable of adding within one hour.  This was
-calculated by running cProfile on the application with a zone of 5000 records
-and calculating what abouts a much bigger zones with 8 million records would
-take. This results in a nice metric of records migrated per hour.
+Currently the pace of adding records in general is around 10 records per second.
+Crypto is the upper limit for adding of records. The performance of your machine
+can be tested with the perf_crypto_* tools. There is still a big discrepancy
+between the pace of Ascension and the theoretical limit.
+
+A performance metric for measuring improvements has not yet been implemented in
+Ascension.
 
 @node Performance
 @subsubsection Performance
 The performance when migrating a zone using the Ascension tool is limited by a
 handful of factors. First of all ascension is written in Python3 and calls the
-CLI tools of GNUnet. Furthermore all the records that are added to the same
+CLI tools of GNUnet. This is comparable to a fork and exec call which costs a
+few CPU cycles. Furthermore all the records that are added to the same
 label are signed using the zones private key. This signing operation is very
 resource heavy and was optimized during development by adding the '-R'
-(Recordline) option to gnunet-namestore. This allows to add multiple records
-at once using the CLI.
-
-The result of this was a much faster migration of TLD zones, as most records
-with the same label have two name servers.
+(Recordline) option to gnunet-namestore which allows to specify multiple records
+using the CLI tool. Assuming that in a TLD zone every domain has at least two
+name servers this halves the amount of signatures needed.
 
 Another improvement that could be made is with the addition of multiple threads
-when opening the GNUnet CLI tools. This could be implemented by simply creating
-more workers in the program but performance improvements were not tested.
+or using asynchronous subprocesses when opening the GNUnet CLI tools. This could
+be implemented by simply creating more workers in the program but performance
+improvements were not tested.
 
-During the entire development of Ascension sqlite was used as a database
-backend for GNUnet. Other backends have not been tested yet.
+Ascension was tested using different hardware and database backends. Performance
+differences between SQLite and postgresql are marginal and almost non existent.
+What did make a huge impact on record adding performance was the storage medium.
+On a traditional mechanical hard drive adding of records were slow compared to a
+solid state disk.
 
 In conclusion there are many bottlenecks still around in the program, namely the
-signing process and the single threaded implementation. In the future a solution
-that uses the C API would be cleaner and better.
+single threaded implementation and inefficient, sequential calls of
+gnunet-namestore. In the future a solution that uses the C API would be cleaner
+and better.
 
 @cindex GNS Namecache
 @node GNS Namecache
 @section GNS Namecache
-
-
 
 The NAMECACHE subsystem is responsible for caching (encrypted) resolution
 results of the GNU Name System (GNS). GNS makes zone information available

@@ -1842,33 +1842,42 @@ options:
 
 @example
 Ascension
-
 Usage:
-    ascension <domain> [-d] [-p]
-    ascension <domain> <port> [-d] [-p]
-    ascension <domain> -n <transferns> [-d] [-p]
-    ascension <domain> -n <transferns> <port> [-d] [-p]
+    ascension <domain> [-d] [-p] [-s] [--minimum-ttl=<ttl>] \
+        [--dry-run]
+    ascension <domain> <port> [-d] [-p] [-s] \
+        [--minimum-ttl=<ttl>] [--dry-run]
+    ascension <domain> -n <transferns> [-d] [-p] \
+        [-s] [--minimum-ttl=<ttl>] [--dry-run]
+    ascension <domain> -n <transferns> <port> [-d] \
+        [-p] [-s] [--minimum-ttl=<ttl>] [--dry-run]
     ascension -p | --public
+    ascension -d | --debug
+    ascension -s | --standalone
     ascension -h | --help
     ascension -v | --version
 
 Options:
-    <domain>        Domain to migrate
-    <port>          Port for zone transfer
-    <transferns>    DNS Server that does the zone transfer
-    -p --public     Make records public on the DHT
-    -d --debug      Enable debugging
-    -h --help       Show this screen.
-    -v --version    Show version.
+    <domain>              Domain to migrate
+    <port>                Port for zone transfer
+    <transferns>          DNS Server that does the zone transfer
+    --minimum-ttl=<ttl>   Minimum TTL for records to migrate \
+        [default: 3600]
+    --dry-run             Only try if a zone transfer is allowed
+    -p --public           Make records public on the DHT
+    -s --standalone       Run ascension once
+    -d --debug            Enable debugging
+    -h --help         Show this screen.
+    -v --version      Show version.
 @end example
 
-Before you can migrate any zone though, you need to start the GNUnet peer:
+Before you can migrate any zone though, you need to start a local GNUnet peer:
 @example
 $ gnunet-arm -s
 @end example
 
 To migrate the Syrian top level domain - one of the few top level domains that
-still supports zone transfers - into GNS use the following command:
+support zone transfers - into GNS use the following command:
 
 @example
 $ ascension sy. -n ns1.tld.sy. -p
@@ -1881,33 +1890,39 @@ Once the zone is migrated, Ascension will output a message telling you, that it
 will refresh the zone after the time has elapsed.  You can resolve the names in
 the zone directly using GNS or if you want to use it with your browser, check
 out the GNS manual section. @ref{Configuring the GNU Name System}. To resolve
-the records from another system you need the zone PKEY.  To get the zone key,
-you can run the following command:
+the records from another system you need the respective zones PKEY. To get the
+zones public key, you can run the following command:
 
 @example
-$ gnunet-identity -d | grep ^sy | cut -d " " -f3
+$ gnunet-identity -dqe sy
 @end example
 
 Where "sy" is the name of the zone you want to migrate.
 
-As soon as the public flag is implemented, you can share the PKEY of the zone
-with your friends. They can then resolve records in the zone by doing a lookup
-replacing the zone label with your PKEY:
+You can share the PKEY of the zone with your friends. They can then resolve
+records in the zone by doing a lookup replacing the zone label with your PKEY:
 
 @example
-$ gnunet-gns -t SOA -u "@.$PKEY"
+$ gnunet-gns -t SOA -u "$PKEY"
 @end example
 
 The program will continue to run as a daemon and update once the refresh time
 specified in the zones SOA record has elapsed.
 
-The next step would be to add the PKEY record as a DNScurve style NS record
-into the existing DNS zone to enable clients to detect that this zone has
-already been migrated to GNS and to also have a means of distributing the PKEY
-seamlessly.
+DNSCurve style records are supported in the latest release and they are added
+as a PKEY record to be referred to the respective GNS public key. Key
+distribution is still a problem but provided someone else has a public key
+under a given label it can be looked up.
 
-At this point you might want to write for example a systemd unit file to start
-and enable the service, so that your zone is migrated automatically.
+There is an unofficial Debian package called python3-ascension that adds a
+system user ascension and runs a GNUnet peer in the background.
+
+Ascension-bind is also an unofficial Debian package that on installation checks
+for running DNS zones and whether or not they are transferable using DNS zone
+transfer (AXFR). It asks the administrator which zones to migrate into GNS and
+installs a systemd unit file to keep the zone up to date.  If you want to
+migrate different zones you might want to check the unit file from the package
+as a guide.
 
 @node reclaimID Identity Provider
 @section reclaimID Identity Provider

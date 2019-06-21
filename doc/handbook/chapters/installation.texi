@@ -1786,10 +1786,21 @@ Keeping a virtual environment helps with keeping things tidy and prevents
 breaking of Ascension through a future Python update.
 
 The advantage of using a virtual environment is, that all the dependencies can
-be installed separately in different versions without touching your system
+be installed separately in different versions without touching your systems
 Python installation and its dependencies.
 
-@xref{Migrating an existing DNS zone into GNS}, for usage manual of the tool.
+Another way to install Ascension on Debian is to install the python3-ascension
+package. It can be found within the above mentioned Ascension git repository.
+This also adds a system user ascension and runs a GNUnet peer in the
+background. Attention: This only works if a recent version of GNUnet is
+installed on your system. The version number of Ascension is chosen according
+to the required feature level of GNUnet. I.e. Ascension 0.11.5 is only
+compatible with GNUnet 0.11.5 and upwards. As Debian's packages for GNUnet are
+outdated even in experimental, you will need to install GNUnet manually.
+@xref{Installing GNUnet}
+
+Please check @xref{Migrating an existing DNS zone into GNS}, for usage manual
+of the tool.
 
 @node Configuring the GNUnet VPN
 @subsection Configuring the GNUnet VPN
