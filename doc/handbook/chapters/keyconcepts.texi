@@ -19,7 +19,6 @@ The second part describes concepts specific to anonymous file-sharing.
 * Peer Identities::
 * Zones in the GNU Name System (GNS Zones)::
 * Egos::
-* Random Peer Sampling::
 @end menu
 
 @cindex Authentication
@@ -321,45 +320,3 @@ identities, for example to separate their activities online. Egos can
 correspond to "pseudonyms" or "real-world identities". Technically an
 ego is first of all a key pair of a public- and private-key.
 
-
-@cindex Random Peer Sampling
-@node Random Peer Sampling
-@section Random Peer Sampling
-
-In literature, Random Peer Sampling (RPS) refers to the problem of
-reliably drawing random samples from an unstructured p2p network.
-
-Doing so in a reliable manner is not only hard because of inherent
-problems but also because of possible malicious peers that could try to
-bias the selection.
-
-It is useful for all kind of gossip protocols that require the selection
-of random peers in the whole network like gathering statistics,
-spreading and aggregating information in the network, load balancing and
-overlay topology management.
-
-The approach chosen in the rps implementation in GNUnet follows the
-Brahms@uref{https://bib.gnunet.org/full/date.html\#2009_5f0} design.
-
-The current state is "work in progress". There are a lot of things that
-need to be done, primarily finishing the experimental evaluation and a
-re-design of the API.
-
-The abstract idea is to subscribe to connect to/start the rps service
-and request random peers that will be returned when they represent a
-random selection from the whole network with high probability.
-
-An additional feature to the original Brahms-design is the selection of
-sub-groups: The GNUnet implementation of rps enables clients to ask for
-random peers from a group that is defined by a common shared secret.
-(The secret could of course also be public, depending on the use-case.)
-
-Another addition to the original protocol was made: The sampler
-mechanism that was introduced in Brahms was slightly adapted and used to
-actually sample the peers and returned to the client.
-This is necessary as the original design only keeps peers connected to
-random other peers in the network. In order to return random peers to
-client requests independently random, they cannot be drawn from the
-connected peers.
-The adapted sampler makes sure that each request for random peers is
-independent from the others.
