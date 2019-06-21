@@ -615,10 +615,22 @@ get_nick_record (const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone)
   if ( (GNUNET_OK != res) ||
        (NULL == nick) )
   {
-    GNUNET_CRYPTO_ecdsa_key_get_public (zone, &pub);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG | GNUNET_ERROR_TYPE_BULK,
-                "No nick name set for zone `%s'\n",
-                GNUNET_GNSRECORD_z2s (&pub));
+    static int do_log = GNUNET_LOG_CALL_STATUS;
+
+    if (0 == do_log)
+      do_log
+	= GNUNET_get_log_call_status (GNUNET_ERROR_TYPE_DEBUG,
+				      "namestore",
+				      __FILE__,
+				      __FUNCTION__,
+				      __LINE__);
+    if (1 == do_log)
+    {
+      GNUNET_CRYPTO_ecdsa_key_get_public (zone, &pub);
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG | GNUNET_ERROR_TYPE_BULK,
+		  "No nick name set for zone `%s'\n",
+		  GNUNET_GNSRECORD_z2s (&pub));
+    }
     return NULL;
   }
 
