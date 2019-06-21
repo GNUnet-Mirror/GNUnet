@@ -526,7 +526,7 @@ shell) and create an entry home-phone in your master zone.
 For the record type, select PHONE. You should then see the
 PHONE dialog:
 
-@c image here
+@image{images/gnunet-namestore-gtk-phone,5in,,Dialog to publish a PHONE record}
 
 Note: Do not choose the expiry time to be 'Never'. If you
 do that, you assert that this record will never change and
@@ -645,7 +645,7 @@ Now, using your normal user (not the @code{gnunet} system user), run
 master zone. For the record type, select @code{VPN}. You should then
 see the VPN dialog:
 
-@c insert image
+@image{images/gnunet-namestore-gtk-vpn,5in,,Dialog to publish a VPN record}
 
 Under peer, you need to supply the peer identity of your own peer. You can
 obtain the respective string by running @command{gnunet-peerinfo -sq}
@@ -1314,12 +1314,12 @@ To publish a file, select "File Sharing" in the menu bar just below the
 
 Afterwards, the following publishing dialog will appear:
 
-@c Add image here
+@image{images/gnunet-gtk-0-10-fs-publish,5in,,The gnunet-fs-gtk publishing dialog}
 
 In this dialog, select the "Add File" button. This will open a
 file selection dialog:
 
-@c Add image here
+@image{images/gnunet-gtk-0-10-fs-publish-select,5in,,Dialog to select the file to publish (looks may differ for other Gtk+ versions)}
 
 Now, you should select a file from your computer to be published on
 GNUnet. To see more of GNUnet's features later, you should pick a
@@ -1335,12 +1335,12 @@ and potential errors that might be encountered during processing.
 After the progress dialog automatically disappears, your file
 should now appear in the publishing dialog:
 
-@c Add image here
+@image{images/gnunet-gtk-0-10-fs-publish-with-file,5in,,Publishing dialog with file added}
 
 Now, select the file (by clicking on the file name) and then click
 the "Edit" button. This will open the editing dialog:
 
-@c Add image here
+@image{images/gnunet-gtk-0-10-fs-publish-editing,5in,,Editing meta data of a file to be published}
 
 In this dialog, you can see many details about your file. In the
 top left area, you can see meta data extracted about the file,
@@ -1364,9 +1364,7 @@ You should now be back at the "Publish content on GNUnet" dialog. Select
 "Execute" in the bottom right to close the dialog and publish your file
 on GNUnet! Afterwards, you should see the main dialog with a new area
 showing the list of published files (or ongoing publishing operations
-with progress indicators):
-
-@c Add image here
+with progress indicators).
 
 @node gtk-Searching
 @subsubsection Searching

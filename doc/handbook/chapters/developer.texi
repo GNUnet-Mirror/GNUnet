@@ -556,7 +556,7 @@ stacked together to construct complex buildings and it is generally easy
 to swap one block for a different one that has the same shape. GNUnet's
 architecture is based on LEGOs:
 
-@c @image{images/service_lego_block,5in,,picture of a LEGO block stack - 3 APIs as connectors upon Network Protocol on top of a Service}
+@image{images/service_lego_block,5in,,picture of a LEGO block stack - 3 APIs upon IPC/network protocol provided by a service}
 
 This chapter documents the GNUnet LEGO system, also known as GNUnet's
 system architecture.
@@ -573,9 +573,13 @@ Like services, they have holes to be filled by APIs of other services.
 Unlike services, daemons do not implement their own network protocol and
 they have no API:
 
+@image{images/daemon_lego_block,5in,,A daemon in GNUnet is a component that does not offer an API for others to build upon}
+
 The GNUnet system provides a range of services, daemons and user
 interfaces, which are then combined into a layered GNUnet instance (also
 known as a peer).
+
+@image{images/service_stack,5in,,A GNUnet peer consists of many layers of services}
 
 Note that while it is generally possible to swap one service for another
 compatible service, there is often only one implementation. However,
@@ -587,7 +591,7 @@ easily investigated by swapping out individual components. This is
 typically achieved by simply changing the name of the "BINARY" in the
 respective configuration section.
 
-Key properties of GNUnet services are that they must be separate
+Key properties of GNUnet services are that they must be separate        
 processes and that they must protect themselves by applying tight error
 checking against the network protocol they implement (thereby achieving a
 certain degree of robustness).
