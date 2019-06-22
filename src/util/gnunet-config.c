@@ -43,6 +43,13 @@ static char *option;
 static char *value;
 
 /**
+ * Backend to check if the respective plugin is
+ * loadable. NULL if no check is to be performed.
+ * The value is the "basename" of the plugin to load.
+ */
+static char *backend_check;
+
+/**
  * Treat option as a filename.
  */
 static int is_filename;
@@ -55,13 +62,14 @@ static int list_sections;
 /**
  * Return value from 'main'.
  */
-static int ret;
+static int global_ret;
 
 /**
  * Should we generate a configuration file that is clean and
  * only contains the deltas to the defaults?
  */
 static int rewrite;
+
 
 /**
  * Print each option in a given section.
@@ -149,6 +157,17 @@ run (void *cls,
 
   (void) cls;
   (void) args;
+  if (NULL != backend_check)
+  {
+    char *name;
+
+    GNUNET_asprintf (&name,
+		     "libgnunet_plugin_%s",
+		     backend_check);
+    global_ret = (GNUNET_OK == GNUNET_PLUGIN_test (name)) ? 0 : 77;
+    GNUNET_free (name);
+    return;
+  }
   if (rewrite)
   {
     struct GNUNET_CONFIGURATION_Handle *def;
@@ -159,7 +178,7 @@ run (void *cls,
     {
       fprintf (stderr,
                _("failed to load configuration defaults"));
-      ret = 1;
+      global_ret = 1;
       return;
     }
     diff = GNUNET_CONFIGURATION_get_diff (def,
@@ -174,7 +193,7 @@ run (void *cls,
                _("%s or %s argument is required\n"),
                "--section",
                "--list-sections");
-      ret = 1;
+      global_ret = 1;
     }
     else
     {
@@ -208,7 +227,7 @@ run (void *cls,
         {
           GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR,
                                      section, option);
-          ret = 3;
+          global_ret = 3;
           goto cleanup;
         }
       }
@@ -220,7 +239,7 @@ run (void *cls,
         {
           GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR,
                                      section, option);
-          ret = 3;
+          global_ret = 3;
           goto cleanup;
         }
       }
@@ -232,7 +251,7 @@ run (void *cls,
     if (NULL == option)
     {
       fprintf (stderr, _("--option argument required to set value\n"));
-      ret = 1;
+      global_ret = 1;
       goto cleanup;
     }
     out = GNUNET_CONFIGURATION_dup (cfg);
@@ -260,7 +279,7 @@ run (void *cls,
     if (GNUNET_OK !=
         GNUNET_CONFIGURATION_write ((NULL == out) ? diff : out,
                                     cfgfile))
-      ret = 2;
+      global_ret = 2;
   }
   GNUNET_free_non_null (cfg_fn);
   if (NULL != out)
@@ -287,6 +306,12 @@ main (int argc,
       "filename",
       gettext_noop ("interpret option value as a filename (with $-expansion)"),
       &is_filename),
+    //GNUNET_GETOPT_option_exclusive
+    (GNUNET_GETOPT_option_string ('b',
+				 "supported-backend",
+				  "BACKEND",
+				  gettext_noop ("test if the current installation supports the specified BACKEND"),
+				  &backend_check)),
     GNUNET_GETOPT_option_string ('s',
                                 "section",
                                 "SECTION",
@@ -312,20 +337,23 @@ main (int argc,
                                &rewrite),
     GNUNET_GETOPT_OPTION_END
   };
+  int ret;
+	  
   if (GNUNET_OK !=
       GNUNET_STRINGS_get_utf8_args (argc, argv,
                                     &argc, &argv))
     return 2;
 
-  ret = (GNUNET_OK ==
-         GNUNET_PROGRAM_run (argc,
-                        argv,
-                        "gnunet-config [OPTIONS]",
-                        gettext_noop ("Manipulate GNUnet configuration files"),
-                        options,
-                        &run, NULL)) ? 0 : ret;
+  ret = GNUNET_PROGRAM_run (argc,
+			    argv,
+			    "gnunet-config [OPTIONS]",
+			    gettext_noop ("Manipulate GNUnet configuration files"),
+			    options,
+			    &run, NULL);
   GNUNET_free ((void*) argv);
-  return ret;
+  if (GNUNET_OK == ret)
+    return global_ret;
+  return 1;
 }
 
 /* end of gnunet-config.c */

@@ -273,6 +273,18 @@ struct GNUNET_ShortHashCode
 
 
 /**
+ * A UUID, a 128 bit random value.
+ */
+struct GNUNET_Uuid
+{
+  /**
+   * 128 random bits.
+   */
+  uint32_t value[4];
+};
+
+
+/**
  * Header for all communications.
  */
 struct GNUNET_MessageHeader
@@ -495,7 +507,6 @@ GNUNET_log_from_nocheck (enum GNUNET_ErrorType kind,
 #define GNUNET_log_from(kind, comp, ...)                                  \
   do                                                                      \
   {                                                                       \
-    int log_line = __LINE__;                                              \
     static int log_call_enabled = GNUNET_LOG_CALL_STATUS;                 \
     if ((GNUNET_EXTRA_LOGGING > 0) ||                                     \
         ((GNUNET_ERROR_TYPE_DEBUG & (kind)) == 0))                        \
@@ -506,7 +517,7 @@ GNUNET_log_from_nocheck (enum GNUNET_ErrorType kind,
                                       (comp),                             \
                                       __FILE__,                           \
                                       __FUNCTION__,                       \
-                                      log_line);                          \
+                                      __LINE__);                          \
       if (GN_UNLIKELY (GNUNET_get_log_skip () > 0))                       \
       {                                                                   \
         GNUNET_log_skip (-1, GNUNET_NO);                                  \
@@ -522,7 +533,6 @@ GNUNET_log_from_nocheck (enum GNUNET_ErrorType kind,
 #define GNUNET_log(kind, ...)                                             \
   do                                                                      \
   {                                                                       \
-    int log_line = __LINE__;                                              \
     static int log_call_enabled = GNUNET_LOG_CALL_STATUS;                 \
     if ((GNUNET_EXTRA_LOGGING > 0) ||                                     \
         ((GNUNET_ERROR_TYPE_DEBUG & (kind)) == 0))                        \
@@ -533,7 +543,7 @@ GNUNET_log_from_nocheck (enum GNUNET_ErrorType kind,
                                       NULL,                               \
                                       __FILE__,                           \
                                       __FUNCTION__,                       \
-                                      log_line);                          \
+                                      __LINE__);                          \
       if (GN_UNLIKELY (GNUNET_get_log_skip () > 0))                       \
       {                                                                   \
         GNUNET_log_skip (-1, GNUNET_NO);                                  \
@@ -651,6 +661,19 @@ GNUNET_logger_remove (GNUNET_Logger logger, void *logger_cls);
  */
 const char *
 GNUNET_sh2s (const struct GNUNET_ShortHashCode *shc);
+
+
+/**
+ * @ingroup logging
+ * Convert a UUID to a string (for printing debug messages).
+ * This is one of the very few calls in the entire API that is
+ * NOT reentrant!
+ *
+ * @param uuid the UUID
+ * @return string
+ */
+const char *
+GNUNET_uuid2s (const struct GNUNET_Uuid *uuid);
 
 
 /**

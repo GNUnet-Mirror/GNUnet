@@ -79,6 +79,7 @@ new chapters, sections or insightful comments.
 * File-sharing (FS) Subsystem::
 * REGEX Subsystem::
 * REST Subsystem::
+* RPS Subsystem::
 @end menu
 
 @node Developer Introduction
@@ -556,7 +557,7 @@ stacked together to construct complex buildings and it is generally easy
 to swap one block for a different one that has the same shape. GNUnet's
 architecture is based on LEGOs:
 
-@c @image{images/service_lego_block,5in,,picture of a LEGO block stack - 3 APIs as connectors upon Network Protocol on top of a Service}
+@image{images/service_lego_block,5in,,picture of a LEGO block stack - 3 APIs upon IPC/network protocol provided by a service}
 
 This chapter documents the GNUnet LEGO system, also known as GNUnet's
 system architecture.
@@ -573,9 +574,13 @@ Like services, they have holes to be filled by APIs of other services.
 Unlike services, daemons do not implement their own network protocol and
 they have no API:
 
+@image{images/daemon_lego_block,5in,,A daemon in GNUnet is a component that does not offer an API for others to build upon}
+
 The GNUnet system provides a range of services, daemons and user
 interfaces, which are then combined into a layered GNUnet instance (also
 known as a peer).
+
+@image{images/service_stack,5in,,A GNUnet peer consists of many layers of services}
 
 Note that while it is generally possible to swap one service for another
 compatible service, there is often only one implementation. However,
@@ -587,7 +592,7 @@ easily investigated by swapping out individual components. This is
 typically achieved by simply changing the name of the "BINARY" in the
 respective configuration section.
 
-Key properties of GNUnet services are that they must be separate
+Key properties of GNUnet services are that they must be separate        
 processes and that they must protect themselves by applying tight error
 checking against the network protocol they implement (thereby achieving a
 certain degree of robustness).
@@ -1876,7 +1881,6 @@ Testbed API can accessed by including the
 * Hosts file format::
 * Topology file format::
 * Testbed Barriers::
-* Automatic large-scale deployment in the PlanetLab testbed::
 * TESTBED Caveats::
 @end menu
 
@@ -2139,168 +2143,6 @@ propagation of the @code{GNUNET_MESSAGE_TYPE_TESTBED_BARRIER_STATUS}
 message from its upward propagation --- the upward propagation is needed
 for ensuring that the barrier is reached by all the controllers and the
 downward propagation is for triggering that the barrier is crossed.
-
-@cindex PlanetLab testbed
-@node Automatic large-scale deployment in the PlanetLab testbed
-@subsection Automatic large-scale deployment in the PlanetLab testbed
-
-PlanetLab is a testbed for computer networking and distributed systems
-research. It was established in 2002 and as of June 2010 was composed of
-1090 nodes at 507 sites worldwide.
-
-To automate the GNUnet we created a set of automation tools to simplify
-the large-scale deployment. We provide you a set of scripts you can use
-to deploy GNUnet on a set of nodes and manage your installation.
-
-Please also check @uref{https://old.gnunet.org/installation-fedora8-svn} and
-@uref{https://old.gnunet.org/installation-fedora12-svn} to find detailed
-instructions how to install GNUnet on a PlanetLab node.
-
-
-@c ***********************************************************************
-@menu
-* PlanetLab Automation for Fedora8 nodes::
-* Install buildslave on PlanetLab nodes running fedora core 8::
-* Setup a new PlanetLab testbed using GPLMT::
-* Why do i get an ssh error when using the regex profiler?::
-@end menu
-
-@node PlanetLab Automation for Fedora8 nodes
-@subsubsection PlanetLab Automation for Fedora8 nodes
-
-@c ***********************************************************************
-@node Install buildslave on PlanetLab nodes running fedora core 8
-@subsubsection Install buildslave on PlanetLab nodes running fedora core 8
-@c ** Actually this is a subsubsubsection, but must be fixed differently
-@c ** as subsubsection is the lowest.
-
-Since most of the PlanetLab nodes are running the very old Fedora core 8
-image, installing the buildslave software is quite some pain. For our
-PlanetLab testbed we figured out how to install the buildslave software
-best.
-
-@c This is a very terrible way to suggest installing software.
-@c FIXME: Is there an official, safer way instead of blind-piping a
-@c script?
-@c FIXME: Use newer pypi URLs below.
-Install Distribute for Python:
-
-@example
-curl http://python-distribute.org/distribute_setup.py | sudo python
-@end example
-
-Install Distribute for zope.interface <= 3.8.0 (4.0 and 4.0.1 will not
-work):
-
-@example
-export PYPI=@value{PYPI-URL}
-wget $PYPI/z/zope.interface/zope.interface-3.8.0.tar.gz
-tar xzvf zope.interface-3.8.0.tar.gz
-cd zope.interface-3.8.0
-sudo python setup.py install
-@end example
-
-Install the buildslave software (0.8.6 was the latest version):
-
-@example
-export GCODE="http://buildbot.googlecode.com/files"
-wget $GCODE/buildbot-slave-0.8.6p1.tar.gz
-tar xvfz buildbot-slave-0.8.6p1.tar.gz
-cd buildslave-0.8.6p1
-sudo python setup.py install
-@end example
-
-The setup will download the matching twisted package and install it.
-It will also try to install the latest version of zope.interface which
-will fail to install. Buildslave will work anyway since version 3.8.0
-was installed before!
-
-@c ***********************************************************************
-@node Setup a new PlanetLab testbed using GPLMT
-@subsubsection Setup a new PlanetLab testbed using GPLMT
-
-@itemize @bullet
-@item Get a new slice and assign nodes
-Ask your PlanetLab PI to give you a new slice and assign the nodes you
-need
-@item Install a buildmaster
-You can stick to the buildbot documentation:@
-@uref{http://buildbot.net/buildbot/docs/current/manual/installation.html}
-@item Install the buildslave software on all nodes
-To install the buildslave on all nodes assigned to your slice you can use
-the tasklist @code{install_buildslave_fc8.xml} provided with GPLMT:
-
-@example
-./gplmt.py -c contrib/tumple_gnunet.conf -t \
-contrib/tasklists/install_buildslave_fc8.xml -a -p <planetlab password>
-@end example
-
-@item Create the buildmaster configuration and the slave setup commands
-
-The master and the and the slaves have need to have credentials and the
-master has to have all nodes configured. This can be done with the
-@file{create_buildbot_configuration.py} script in the @file{scripts}
-directory.
-
-This scripts takes a list of nodes retrieved directly from PlanetLab or
-read from a file and a configuration template and creates:
-
-@itemize @bullet
-@item a tasklist which can be executed with gplmt to setup the slaves
-@item a master.cfg file containing a PlanetLab nodes
-@end itemize
-
-A configuration template is included in the <contrib>, most important is
-that the script replaces the following tags in the template:
-
-%GPLMT_BUILDER_DEFINITION :@ GPLMT_BUILDER_SUMMARY@ GPLMT_SLAVES@
-%GPLMT_SCHEDULER_BUILDERS
-
-Create configuration for all nodes assigned to a slice:
-
-@example
-./create_buildbot_configuration.py -u <planetlab username> \
--p <planetlab password> -s <slice> -m <buildmaster+port> \
--t <template>
-@end example
-
-Create configuration for some nodes in a file:
-
-@example
-./create_buildbot_configuration.p -f <node_file> \
--m <buildmaster+port> -t <template>
-@end example
-
-@item Copy the @file{master.cfg} to the buildmaster and start it
-Use @code{buildbot start <basedir>} to start the server
-@item Setup the buildslaves
-@end itemize
-
-@c ***********************************************************************
-@node Why do i get an ssh error when using the regex profiler?
-@subsubsection Why do i get an ssh error when using the regex profiler?
-
-Why do i get an ssh error "Permission denied (publickey,password)." when
-using the regex profiler although passwordless ssh to localhost works
-using publickey and ssh-agent?
-
-You have to generate a public/private-key pair with no password:@
-@code{ssh-keygen -t rsa -b 4096 -f ~/.ssh/id_localhost}@
-and then add the following to your ~/.ssh/config file:
-
-@code{Host 127.0.0.1@ IdentityFile ~/.ssh/id_localhost}
-
-now make sure your hostsfile looks like
-
-@example
-[USERNAME]@@127.0.0.1:22@
-[USERNAME]@@127.0.0.1:22
-@end example
-
-You can test your setup by running @code{ssh 127.0.0.1} in a
-terminal and then in the opened session run it again.
-If you were not asked for a password on either login,
-then you should be good to go.
 
 @cindex TESTBED Caveats
 @node TESTBED Caveats
@@ -8126,9 +7968,9 @@ future.
 @node Conversions between DNS and GNS
 @subsubsection Conversions between DNS and GNS
 
-The differences between the two name systems lies in the details
-and is not always transparent.
-For instance an SRV record is converted to a GNS only BOX record.
+The differences between the two name systems lies in the details and is not
+always transparent.  For instance an SRV record is converted to a BOX record
+which is unique to GNS.
 
 This is done by converting to a BOX record from an existing SRV record:
 
@@ -8141,7 +7983,7 @@ _sip._tcp.example.com. 14000 IN SRV     0 0 5060 www.example.com.
 14000 BOX n 5060 6 33 0 0 5060 www.example.com
 @end example
 
-Other records that have such a transformation is the MX record type,
+Other records that need to undergo such transformation is the MX record type,
 as well as the SOA record type.
 
 Transformation of a SOA record into GNS works as described in the
@@ -8156,8 +7998,9 @@ following example. Very important to note are the rname and mname keys.
     604800     ; expire
     600 )      ; ttl
 # Recordline for adding the record
-$ gnunet-namestore -z example.com -a -n @ -t SOA -V rname=master.example.com \
-  mname=hostmaster.example.com 2017030300,3600,1800,604800,600 -e 7200s
+$ gnunet-namestore -z example.com -a -n @ -t SOA -V \
+    rname=master.example.com mname=hostmaster.example.com  \
+    2017030300,3600,1800,604800,600 -e 7200s
 @end example
 
 The transformation of MX records is done in a simple way.
@@ -8166,10 +8009,10 @@ The transformation of MX records is done in a simple way.
 $ gnunet-namestore -z example.com -n mail -R 3600 MX n 10,mail
 @end example
 
-Finally, one of the biggest struggling points were the NS records that are found
-in top level domain zones. The intended behaviour for those is to add GNS2DNS
-records for those so that gnunet-gns can resolve records for those domains on
-its own. This requires migration of the DNS GLUE records as well, provided that
+Finally, one of the biggest struggling points were the NS records that are
+found in top level domain zones. The intended behaviour for those is to add
+GNS2DNS records for those so that gnunet-gns can resolve records for those
+domains on its own. Those require the values from DNS GLUE records, provided
 they are within the same zone.
 
 The following two examples show one record with a GLUE record and the other one
@@ -8178,10 +8021,12 @@ does not have a GLUE record. This takes place in the 'com' TLD.
 @example
 # ns1.example.com 86400 IN A 127.0.0.1
 # example.com 86400 IN NS ns1.example.com.
-$ gnunet-namestore -z com -n example -R 86400 GNS2DNS n example.com@@127.0.0.1
+$ gnunet-namestore -z com -n example -R 86400 GNS2DNS n \
+    example.com@@127.0.0.1
 
 # example.com 86400 IN NS ns1.example.org.
-$ gnunet-namestore -z com -n example -R 86400 GNS2DNS n example.com@@ns1.example.org
+$ gnunet-namestore -z com -n example -R 86400 GNS2DNS n \
+    example.com@@ns1.example.org
 @end example
 
 As you can see, one of the GNS2DNS records has an IP address listed and the
@@ -8204,7 +8049,7 @@ Currently the following record types are supported:
 @item TXT
 @end itemize
 
-This is not due to a technical limitation but rather a practical one. The
+This is not due to technical limitations but rather a practical ones. The
 problem occurs with DNSSEC enabled DNS zones. As records within those zones are
 signed periodically, and every new signature is an update to the zone, there are
 many revisions of zones. This results in a problem with bigger zones as there
@@ -8214,16 +8059,22 @@ as they cause a CLI call of the namestore.  Furthermore certain record types
 need transformation into a GNS compatible format which, depending on the record
 type, takes more time.
 
+Further a blacklist was added to drop for instance DNSSEC related records. Also
+if a record type is neither in the white list nor the blacklist it is considered
+as a loss of data and a message is shown to the user. This helps with
+transparency and also with contributing, as the not supported record types can
+then be added accordingly.
+
 @node DNS Zone Size
 @subsubsection DNS Zone Size
-
 Another very big problem exists with very large zones. When migrating a small
 zone the delay between adding of records and their expiry is negligible. However
-when working with a TLD zone that has more that 1 million records this delay
-becomes a problem.
+when working with big zones that easily have more than a few million records
+this delay becomes a problem.
 
 Records will start to expire well before the zone has finished migrating. This
-causes unwanted anomalies when trying to resolve records.
+is usually not a problem but can cause a high CPU load when a peer is restarted
+and the records have expired.
 
 A good solution has not been found yet. One of the idea that floated around was
 that the records should be added with the s (shadow) flag to keep the records
@@ -8233,44 +8084,50 @@ of said record(s).
 
 Another problem that still persists is how to refresh records. Expired records
 are still displayed when calling gnunet-namestore but do not resolve with
-gnunet-gns. When doing incremental zone transfers this becomes especially
-apparent.
+gnunet-gns. Zonemaster will sign the expired records again and make sure that
+the records are still valid. With a recent change this was fixed as gnunet-gns
+to improve the suffix lookup which allows for a fast lookup even with thousands
+of local egos.
 
-I estimate that the limit lies at about 200'000 records in a zone as this is
-the limit that my machine is capable of adding within one hour.  This was
-calculated by running cProfile on the application with a zone of 5000 records
-and calculating what abouts a much bigger zones with 8 million records would
-take. This results in a nice metric of records migrated per hour.
+Currently the pace of adding records in general is around 10 records per second.
+Crypto is the upper limit for adding of records. The performance of your machine
+can be tested with the perf_crypto_* tools. There is still a big discrepancy
+between the pace of Ascension and the theoretical limit.
+
+A performance metric for measuring improvements has not yet been implemented in
+Ascension.
 
 @node Performance
 @subsubsection Performance
 The performance when migrating a zone using the Ascension tool is limited by a
 handful of factors. First of all ascension is written in Python3 and calls the
-CLI tools of GNUnet. Furthermore all the records that are added to the same
+CLI tools of GNUnet. This is comparable to a fork and exec call which costs a
+few CPU cycles. Furthermore all the records that are added to the same
 label are signed using the zones private key. This signing operation is very
 resource heavy and was optimized during development by adding the '-R'
-(Recordline) option to gnunet-namestore. This allows to add multiple records
-at once using the CLI.
-
-The result of this was a much faster migration of TLD zones, as most records
-with the same label have two name servers.
+(Recordline) option to gnunet-namestore which allows to specify multiple records
+using the CLI tool. Assuming that in a TLD zone every domain has at least two
+name servers this halves the amount of signatures needed.
 
 Another improvement that could be made is with the addition of multiple threads
-when opening the GNUnet CLI tools. This could be implemented by simply creating
-more workers in the program but performance improvements were not tested.
+or using asynchronous subprocesses when opening the GNUnet CLI tools. This could
+be implemented by simply creating more workers in the program but performance
+improvements were not tested.
 
-During the entire development of Ascension sqlite was used as a database
-backend for GNUnet. Other backends have not been tested yet.
+Ascension was tested using different hardware and database backends. Performance
+differences between SQLite and postgresql are marginal and almost non existent.
+What did make a huge impact on record adding performance was the storage medium.
+On a traditional mechanical hard drive adding of records were slow compared to a
+solid state disk.
 
 In conclusion there are many bottlenecks still around in the program, namely the
-signing process and the single threaded implementation. In the future a solution
-that uses the C API would be cleaner and better.
+single threaded implementation and inefficient, sequential calls of
+gnunet-namestore. In the future a solution that uses the C API would be cleaner
+and better.
 
 @cindex GNS Namecache
 @node GNS Namecache
 @section GNS Namecache
-
-
 
 The NAMECACHE subsystem is responsible for caching (encrypted) resolution
 results of the GNU Name System (GNS). GNS makes zone information available
@@ -9007,3 +8864,72 @@ so please make sure that endpoints are unambiguous.
 
 This is WIP. Endpoints should be documented appropriately.
 Preferably using annotations.
+
+
+@cindex RPS Subsystem
+@node RPS Subsystem
+@section RPS Subsystem
+
+In literature, Random Peer Sampling (RPS) refers to the problem of
+reliably drawing random samples from an unstructured p2p network.
+
+Doing so in a reliable manner is not only hard because of inherent
+problems but also because of possible malicious peers that could try to
+bias the selection.
+
+It is useful for all kind of gossip protocols that require the selection
+of random peers in the whole network like gathering statistics,
+spreading and aggregating information in the network, load balancing and
+overlay topology management.
+
+The approach chosen in the rps implementation in GNUnet follows the
+Brahms@uref{https://bib.gnunet.org/full/date.html\#2009_5f0} design.
+
+The current state is "work in progress". There are a lot of things that
+need to be done, primarily finishing the experimental evaluation and a
+re-design of the API.
+
+The abstract idea is to subscribe to connect to/start the rps service
+and request random peers that will be returned when they represent a
+random selection from the whole network with high probability.
+
+An additional feature to the original Brahms-design is the selection of
+sub-groups: The GNUnet implementation of rps enables clients to ask for
+random peers from a group that is defined by a common shared secret.
+(The secret could of course also be public, depending on the use-case.)
+
+Another addition to the original protocol was made: The sampler
+mechanism that was introduced in Brahms was slightly adapted and used to
+actually sample the peers and returned to the client.
+This is necessary as the original design only keeps peers connected to
+random other peers in the network. In order to return random peers to
+client requests independently random, they cannot be drawn from the
+connected peers.
+The adapted sampler makes sure that each request for random peers is
+independent from the others.
+
+@node Brahms
+@subsection Brahms
+The high-level concept of Brahms is two-fold: Combining push-pull gossip
+with locally fixing a assumed bias using cryptographic min-wise
+permutations.
+The central data structure is the view - a peer's current local sample.
+This view is used to select peers to push to and pull from.
+This simple mechanism can be biased easily. For this reason Brahms
+'fixes' the bias by using the so-called sampler. A data structure that
+takes a list of elements as input and outputs a random one of them
+independently of the frequency in the input set. Both an element that
+was put into the sampler a single time and an element that was put into
+it a million times have the same probability of being the output.
+This is achieved this is achieved with exploiting min-wise independent
+permutations. In rps we use HMACs: On the initialisation of a sampler
+element, a key is chosen at random. On each input the HMAC with the
+random key is computed. The sampler element keeps the element with the
+minimal HMAC.
+
+In order to fix the bias in the view, a fraction of the elements in the
+view are sampled through the sampler from the random stream of peer IDs.
+
+According to the theoretical analysis of Bortnikov et al. this suffices
+to keep the network connected and having random peers in the view.
+

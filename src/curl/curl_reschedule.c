@@ -28,9 +28,9 @@
 #include "gnunet_util_lib.h"
 
 extern void *
-download_get_result (struct GNUNET_CURL_DownloadBuffer *db,
-                     CURL *eh,
-                     long *response_code);
+GNUNET_CURL_download_get_result_ (struct GNUNET_CURL_DownloadBuffer *db,
+                                  CURL *eh,
+                                  long *response_code);
 
 /**
  * Closure for #GNUNET_CURL_gnunet_scheduler_reschedule().
@@ -105,7 +105,7 @@ GNUNET_CURL_gnunet_rc_create (struct GNUNET_CURL_Context *ctx)
 
   rc = GNUNET_new (struct GNUNET_CURL_RescheduleContext);
   rc->ctx = ctx;
-  rc->parser = &download_get_result;
+  rc->parser = &GNUNET_CURL_download_get_result_;
   rc->cleaner = &clean_result;
   return rc;
 }
@@ -145,9 +145,7 @@ context_task (void *cls)
 
   rc->task = NULL;
 
-  GNUNET_CURL_perform2 (rc->ctx,
-                        rc->parser,
-                        rc->cleaner);
+  GNUNET_CURL_perform2 (rc->ctx, rc->parser, rc->cleaner);
   max_fd = -1;
   timeout = -1;
   FD_ZERO (&read_fd_set);
@@ -160,18 +158,14 @@ context_task (void *cls)
                                &max_fd,
                                &timeout);
   if (timeout >= 0)
-    delay = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS,
-                                           timeout);
+    delay =
+      GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, timeout);
   else
     delay = GNUNET_TIME_UNIT_FOREVER_REL;
   rs = GNUNET_NETWORK_fdset_create ();
-  GNUNET_NETWORK_fdset_copy_native (rs,
-                                    &read_fd_set,
-                                    max_fd + 1);
+  GNUNET_NETWORK_fdset_copy_native (rs, &read_fd_set, max_fd + 1);
   ws = GNUNET_NETWORK_fdset_create ();
-  GNUNET_NETWORK_fdset_copy_native (ws,
-                                    &write_fd_set,
-                                    max_fd + 1);
+  GNUNET_NETWORK_fdset_copy_native (ws, &write_fd_set, max_fd + 1);
   if (NULL == rc->task)
     rc->task = GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
                                             delay,
@@ -196,12 +190,11 @@ context_task (void *cls)
 void
 GNUNET_CURL_gnunet_scheduler_reschedule (void *cls)
 {
-  struct GNUNET_CURL_RescheduleContext *rc = *(void**) cls;
+  struct GNUNET_CURL_RescheduleContext *rc = *(void **) cls;
 
   if (NULL != rc->task)
     GNUNET_SCHEDULER_cancel (rc->task);
-  rc->task = GNUNET_SCHEDULER_add_now (&context_task,
-                                       rc);
+  rc->task = GNUNET_SCHEDULER_add_now (&context_task, rc);
 }
 
 /* end of curl_reschedule.c */

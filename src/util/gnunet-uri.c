@@ -53,9 +53,9 @@ maint_child_death (void *cls)
 {
   enum GNUNET_OS_ProcessStatusType type;
 
-  if ( (GNUNET_OK !=
-	GNUNET_OS_process_status (p, &type, &exit_code)) ||
-       (type != GNUNET_OS_PROCESS_EXITED) )
+  (void) cls;
+  if ((GNUNET_OK != GNUNET_OS_process_status (p, &type, &exit_code)) ||
+      (type != GNUNET_OS_PROCESS_EXITED))
     GNUNET_break (0 == GNUNET_OS_process_kill (p, GNUNET_TERM_SIG));
   GNUNET_OS_process_destroy (p);
 }
@@ -70,56 +70,60 @@ maint_child_death (void *cls)
  * @param cfg configuration
  */
 static void
-run (void *cls, char *const *args, const char *cfgfile,
+run (void *cls,
+     char *const *args,
+     const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   const char *uri;
   const char *slash;
   char *subsystem;
   char *program;
-  struct GNUNET_SCHEDULER_Task * rt;
+  struct GNUNET_SCHEDULER_Task *rt;
 
+  (void) cls;
+  (void) cfgfile;
   if (NULL == (uri = args[0]))
   {
-    fprintf (stderr,
-	     _("No URI specified on command line\n"));
+    fprintf (stderr, _ ("No URI specified on command line\n"));
     return;
   }
   if (0 != strncasecmp ("gnunet://", uri, strlen ("gnunet://")))
   {
     fprintf (stderr,
-	     _("Invalid URI: does not start with `%s'\n"),
-	     "gnunet://");
+             _ ("Invalid URI: does not start with `%s'\n"),
+             "gnunet://");
     return;
   }
   uri += strlen ("gnunet://");
   if (NULL == (slash = strchr (uri, '/')))
   {
-    fprintf (stderr, _("Invalid URI: fails to specify subsystem\n"));
+    fprintf (stderr, _ ("Invalid URI: fails to specify subsystem\n"));
     return;
   }
   subsystem = GNUNET_strndup (uri, slash - uri);
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_string (cfg,
-					     "uri",
-					     subsystem,
-					     &program))
+      GNUNET_CONFIGURATION_get_value_string (cfg, "uri", subsystem, &program))
   {
-    fprintf (stderr, _("No handler known for subsystem `%s'\n"), subsystem);
+    fprintf (stderr, _ ("No handler known for subsystem `%s'\n"), subsystem);
     GNUNET_free (subsystem);
     return;
   }
   GNUNET_free (subsystem);
-  rt = GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL,
-				       GNUNET_DISK_pipe_handle (sigpipe,
-								GNUNET_DISK_PIPE_END_READ),
-				       &maint_child_death, NULL);
-  p = GNUNET_OS_start_process (GNUNET_NO, 0,
-			       NULL, NULL, NULL,
-			       program,
-			       program,
-			       args[0],
-			       NULL);
+  rt = GNUNET_SCHEDULER_add_read_file (
+    GNUNET_TIME_UNIT_FOREVER_REL,
+    GNUNET_DISK_pipe_handle (sigpipe, GNUNET_DISK_PIPE_END_READ),
+    &maint_child_death,
+    NULL);
+  p = GNUNET_OS_start_process (GNUNET_NO,
+                               0,
+                               NULL,
+                               NULL,
+                               NULL,
+                               program,
+                               program,
+                               args[0],
+                               NULL);
   GNUNET_free (program);
   if (NULL == p)
     GNUNET_SCHEDULER_cancel (rt);
@@ -134,13 +138,15 @@ static void
 sighandler_child_death ()
 {
   static char c;
-  int old_errno = errno;	/* back-up errno */
+  int old_errno = errno; /* back-up errno */
 
-  GNUNET_break (1 ==
-		GNUNET_DISK_file_write (GNUNET_DISK_pipe_handle
-					(sigpipe, GNUNET_DISK_PIPE_END_WRITE),
-					&c, sizeof (c)));
-  errno = old_errno;		/* restore errno */
+  GNUNET_break (
+    1 ==
+    GNUNET_DISK_file_write (GNUNET_DISK_pipe_handle (sigpipe,
+                                                     GNUNET_DISK_PIPE_END_WRITE),
+                            &c,
+                            sizeof (c)));
+  errno = old_errno; /* restore errno */
 }
 
 
@@ -155,8 +161,7 @@ int
 main (int argc, char *const *argv)
 {
   static const struct GNUNET_GETOPT_CommandLineOption options[] = {
-    GNUNET_GETOPT_OPTION_END
-  };
+    GNUNET_GETOPT_OPTION_END};
   struct GNUNET_SIGNAL_Context *shc_chld;
   int ret;
 
@@ -166,9 +171,14 @@ main (int argc, char *const *argv)
   GNUNET_assert (sigpipe != NULL);
   shc_chld =
     GNUNET_SIGNAL_handler_install (GNUNET_SIGCHLD, &sighandler_child_death);
-  ret = GNUNET_PROGRAM_run (argc, argv, "gnunet-uri URI",
-			    gettext_noop ("Perform default-actions for GNUnet URIs"),
-			    options, &run, NULL);
+  ret = GNUNET_PROGRAM_run (argc,
+                            argv,
+                            "gnunet-uri URI",
+                            gettext_noop (
+                              "Perform default-actions for GNUnet URIs"),
+                            options,
+                            &run,
+                            NULL);
   GNUNET_SIGNAL_handler_uninstall (shc_chld);
   shc_chld = NULL;
   GNUNET_DISK_pipe_close (sigpipe);
