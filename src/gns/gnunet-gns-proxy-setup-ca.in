@@ -139,7 +139,7 @@ generate_ca()
     OPENSSL=0
     if test -z "`gnutls-certtool --version`" > /dev/null
     then
-      #TODO sometimes certtools is gnutls, sometimes openssl :/
+      # We only support gnutls certtool for now
       if test -z "`certtool --version | grep gnutls`" > /dev/null
       then
         warningmsg "'gnutls-certtool' or 'certtool' command not found. Trying openssl."
@@ -147,7 +147,7 @@ generate_ca()
         then
           $OPENSSL=1
         else
-          warningmsg "Install either gnutls certtool or openssl for certificate generation!"
+          warningmsg "Install either gnutls erttool or openssl for certificate generation!"
           infomsg    "Cleaning up."
           rm -f $GNSCAKY $GNSCERT
           exit 1
