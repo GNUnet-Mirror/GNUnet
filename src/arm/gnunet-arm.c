@@ -799,25 +799,26 @@ main (int argc, char *const *argv)
        gettext_noop ("don't let gnunet-service-arm inherit standard error"),
        &no_stderr),
      GNUNET_GETOPT_OPTION_END};
+  int lret;
 
   if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv, &argc, &argv))
     return 2;
   if (GNUNET_OK ==
-      GNUNET_PROGRAM_run (
-        argc,
-        argv,
-        "gnunet-arm",
-        gettext_noop (
-          "Control services and the Automated Restart Manager (ARM)"),
-        options,
-        &run,
-        NULL))
+      (lret = GNUNET_PROGRAM_run (
+         argc,
+         argv,
+         "gnunet-arm",
+         gettext_noop (
+           "Control services and the Automated Restart Manager (ARM)"),
+         options,
+         &run,
+         NULL)))
   {
     GNUNET_free ((void *) argv);
     return ret;
   }
   GNUNET_free ((void *) argv);
-  return 1;
+  return lret;
 }
 
 /* end of gnunet-arm.c */

@@ -1647,6 +1647,7 @@ main (int argc, char *const *argv)
                                     "name of the ego controlling the zone"),
                                   &ego_name),
      GNUNET_GETOPT_OPTION_END};
+  int lret;
 
   if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv, &argc, &argv))
     return 2;
@@ -1654,17 +1655,18 @@ main (int argc, char *const *argv)
   is_public = -1;
   is_shadow = -1;
   GNUNET_log_setup ("gnunet-namestore", "WARNING", NULL);
-  if (GNUNET_OK != GNUNET_PROGRAM_run (argc,
-                                       argv,
-                                       "gnunet-namestore",
-                                       _ ("GNUnet zone manipulation tool"),
-                                       options,
-                                       &run,
-                                       NULL))
+  if (GNUNET_OK !=
+      (lret = GNUNET_PROGRAM_run (argc,
+                                  argv,
+                                  "gnunet-namestore",
+                                  _ ("GNUnet zone manipulation tool"),
+                                  options,
+                                  &run,
+                                  NULL)))
   {
     GNUNET_free ((void *) argv);
     GNUNET_CRYPTO_ecdsa_key_clear (&zone_pkey);
-    return 1;
+    return lret;
   }
   GNUNET_free ((void *) argv);
   GNUNET_CRYPTO_ecdsa_key_clear (&zone_pkey);
