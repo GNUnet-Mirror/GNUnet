@@ -23,12 +23,6 @@
  * @brief namestore for the GNUnet naming system
  * @author Matthias Wachs
  * @author Christian Grothoff
- *
- * TODO:
- * - "get_nick_record" is a bottleneck, introduce a cache to
- *   avoid looking it up again and again (for the same few
- *   zones that the user will typically manage!)
- * - run testcases, make sure everything works!
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"
@@ -562,13 +556,20 @@ cache_nick (const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
   }
   GNUNET_free_non_null (oldest->rd);
   oldest->zone = *zone;
-  oldest->rd = GNUNET_malloc (sizeof (*nick) +
-			      nick->data_size);
-  *oldest->rd = *nick;
-  oldest->rd->data = &oldest->rd[1];
-  memcpy (&oldest->rd[1],
-	  nick->data,
-	  nick->data_size);
+  if (NULL != nick)
+  {
+    oldest->rd = GNUNET_malloc (sizeof (*nick) +
+				nick->data_size);
+    *oldest->rd = *nick;
+    oldest->rd->data = &oldest->rd[1];
+    memcpy (&oldest->rd[1],
+	    nick->data,
+	    nick->data_size);
+  }
+  else
+  {
+    oldest->rd = NULL;
+  }
   oldest->last_used = GNUNET_TIME_absolute_get ();
 }
 
@@ -592,8 +593,10 @@ get_nick_record (const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone)
     struct NickCache *pos = &nick_cache[i];
     if ( (NULL != pos->rd) &&
 	 (0 == GNUNET_memcmp (zone,
-		       &pos->zone)) )
+			      &pos->zone)) )
     {
+      if (NULL == pos->rd)
+	return NULL;
       nick = GNUNET_malloc (sizeof (*nick) +
 			    pos->rd->data_size);
       *nick = *pos->rd;
@@ -631,6 +634,9 @@ get_nick_record (const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone)
 		  "No nick name set for zone `%s'\n",
 		  GNUNET_GNSRECORD_z2s (&pub));
     }
+    /* update cache */
+    cache_nick (zone,
+		NULL);
     return NULL;
   }
 
@@ -1615,8 +1621,10 @@ handle_record_store (void *cls,
          #GNUNET_GNS_EMPTY_LABEL_AT label */
       struct GNUNET_GNSRECORD_Data rd_clean[GNUNET_NZL(rd_count)];
       unsigned int rd_clean_off;
+      int have_nick;
 
       rd_clean_off = 0;
+      have_nick = GNUNET_NO;
       for (unsigned int i=0;i<rd_count;i++)
       {
         rd_clean[rd_clean_off] = rd[i];
@@ -1628,8 +1636,19 @@ handle_record_store (void *cls,
 	if ( (0 == strcmp (GNUNET_GNS_EMPTY_LABEL_AT,
                            conv_name)) &&
 	     (GNUNET_GNSRECORD_TYPE_NICK == rd[i].record_type) )
+	{
 	  cache_nick (&rp_msg->private_key,
 		      &rd[i]);
+	  have_nick = GNUNET_YES;
+	}
+      }
+      if ( (0 == strcmp (GNUNET_GNS_EMPTY_LABEL_AT,
+			 conv_name)) &&
+	   (GNUNET_NO == have_nick) )
+      {
+	/* remove nick record from cache, in case we have one there */
+	cache_nick (&rp_msg->private_key,
+		    NULL);
       }
       res = GSN_database->store_records (GSN_database->cls,
 					 &rp_msg->private_key,
