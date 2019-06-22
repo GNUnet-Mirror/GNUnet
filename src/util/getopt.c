@@ -954,7 +954,16 @@ GNUNET_GETOPT_run (const char *binaryOptions,
 
   if (GNUNET_YES == cont)
   {
-    for (count = 0; NULL != allOptions[count].name; count++)
+    for (count = 0; NULL != allOptions[count].name; count++) 
+    {
+      if (allOptions[count].option_exclusive)
+      {
+        FPRINTF (stderr,
+                 _("Option `%s' can't be used with other options.\n"),
+                 allOptions[count].name);
+        cont = GNUNET_SYSERR;
+      }
+
       if ( (0 == seen[count]) &&
            (allOptions[count].option_mandatory) )
       {
@@ -963,6 +972,7 @@ GNUNET_GETOPT_run (const char *binaryOptions,
                  allOptions[count].name);
         cont = GNUNET_SYSERR;
       }
+    }
   }
   GNUNET_free (seen);
 

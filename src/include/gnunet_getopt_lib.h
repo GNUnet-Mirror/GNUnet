@@ -136,6 +136,11 @@ struct GNUNET_GETOPT_CommandLineOption
   int option_mandatory;
 
   /**
+   * Is the option exclusive?
+   */
+  int option_exclusive;
+
+  /**
    * Handler for the option.
    */
   GNUNET_GETOPT_CommandLineOptionProcessor processor;
@@ -424,7 +429,7 @@ GNUNET_GETOPT_option_mandatory (struct GNUNET_GETOPT_CommandLineOption opt);
  * Marker for the end of the list of options.
  */
 #define GNUNET_GETOPT_OPTION_END \
-  { '\0', NULL, NULL, NULL, 0, 0, NULL, NULL, NULL }
+  { '\0', NULL, NULL, NULL, 0, 0, 0, NULL, NULL, NULL }
 
 
 /**

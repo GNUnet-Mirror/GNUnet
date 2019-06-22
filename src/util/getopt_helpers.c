@@ -68,6 +68,7 @@ GNUNET_GETOPT_option_version (const char *version)
     .shortName =  'v',
     .name = "version",
     .description = gettext_noop("print the version number"),
+    .option_exclusive = 1,
     .processor = &print_version,
     .scls = (void *) version
   };
