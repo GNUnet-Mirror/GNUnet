@@ -592,7 +592,7 @@ easily investigated by swapping out individual components. This is
 typically achieved by simply changing the name of the "BINARY" in the
 respective configuration section.
 
-Key properties of GNUnet services are that they must be separate        
+Key properties of GNUnet services are that they must be separate
 processes and that they must protect themselves by applying tight error
 checking against the network protocol they implement (thereby achieving a
 certain degree of robustness).
@@ -7957,6 +7957,14 @@ This includes some of well known utilities, like "ping" and "nslookup".
 This section discusses the challenges and problems faced when writing the
 Ascension tool. It also takes a look at possible improvements in the
 future.
+
+Consider the following diagram that shows the workflow of Ascension:
+
+@image{images/ascension_ssd,6in,,Ascensions workflow}
+
+Further the interaction between components of GNUnet are shown in the diagram
+below:
+@center @image{images/ascension_interaction,,6in,Ascensions workflow}
 
 @menu
 * Conversions between DNS and GNS::
