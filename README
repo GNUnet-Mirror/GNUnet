@@ -536,7 +536,7 @@ Further Reading
   * Using git (NOTE: 1.1 GiB as of 2019-03-09):
     git clone https://git.gnunet.org/bibliography.git
   * Using Drupal:
-    https://old.gnunet.org/bibliography
+    https://bib.gnunet.org/
 
   The Drupal access will be replaced by a new interface to our
   bibliography in the foreseeable future.

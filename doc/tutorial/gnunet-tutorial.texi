@@ -63,7 +63,7 @@ GNUnet can be used to develop a Peer-to-Peer application.
 Detailed installation instructions for
 various operating systems and a detailed list of all
 dependencies can be found on our website at
-@uref{https://old.gnunet.org/installation} and in our
+@uref{https://docs.gnunet.org/#Installation} and in our
 Reference Documentation (GNUnet Handbook).
 
 Please read this tutorial carefully since every single step is
@@ -1545,7 +1545,7 @@ The current log level is configured using the @code{$GNUNET_FORCE_LOG}
 environmental variable. The @code{DEBUG} level is only available if
 @command{--enable-logging=verbose} was used when running
 @command{configure}. More details about logging can be found under
-@uref{https://old.gnunet.org/logging}.
+@uref{https://docs.gnunet.org/#Logging}.
 
 You should also probably enable the creation of core files, by setting
 @code{ulimit}, and echo'ing @code{1} into

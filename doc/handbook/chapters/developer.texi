@@ -2609,7 +2609,7 @@ code.
 
 Since now activating DEBUG automatically makes it VERBOSE and activates
 @strong{all} debug messages by default, you probably want to use the
-@uref{https://old.gnunet.org/logging, https://old.gnunet.org/logging}
+@uref{https://docs.gnunet.org/#Logging, https://docs.gnunet.org/#Logging}
 functionality to filter only relevant messages.
 A suitable configuration could be:
 
