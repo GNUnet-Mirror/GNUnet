@@ -591,22 +591,13 @@ send_channel_open (void *cls)
 {
   struct CadetChannel *ch = cls;
   struct GNUNET_CADET_ChannelOpenMessage msgcc;
-  uint32_t options;
 
   ch->retry_control_task = NULL;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Sending CHANNEL_OPEN message for %s\n",
        GCCH_2s (ch));
-  options = 0;
-  if (ch->nobuffer)
-    options |= GNUNET_CADET_OPTION_NOBUFFER;
-  if (ch->reliable)
-    options |= GNUNET_CADET_OPTION_RELIABLE;
-  if (ch->out_of_order)
-    options |= GNUNET_CADET_OPTION_OUT_OF_ORDER;
   msgcc.header.size = htons (sizeof (msgcc));
   msgcc.header.type = htons (GNUNET_MESSAGE_TYPE_CADET_CHANNEL_OPEN);
-  msgcc.opt = htonl (options);
   msgcc.h_port = ch->h_port;
   msgcc.ctn = ch->ctn;
   ch->state = CADET_CHANNEL_OPEN_SENT;
@@ -670,9 +661,6 @@ GCCH_channel_local_new (struct CadetClient *owner,
 
   ch = GNUNET_new (struct CadetChannel);
   ch->mid_recv.mid = htonl (1); /* The OPEN_ACK counts as message 0! */
-  ch->nobuffer = (0 != (options & GNUNET_CADET_OPTION_NOBUFFER));
-  ch->reliable = (0 != (options & GNUNET_CADET_OPTION_RELIABLE));
-  ch->out_of_order = (0 != (options & GNUNET_CADET_OPTION_OUT_OF_ORDER));
   ch->max_pending_messages = (ch->nobuffer) ? 1 : 4; /* FIXME: 4!? Do not hardcode! */
   ch->owner = ccco;
   ch->port = *port;
@@ -771,9 +759,6 @@ GCCH_channel_incoming_new (struct CadetTunnel *t,
   ch->t = t;
   ch->ctn = ctn;
   ch->retry_time = CADET_INITIAL_RETRANSMIT_TIME;
-  ch->nobuffer = (0 != (options & GNUNET_CADET_OPTION_NOBUFFER));
-  ch->reliable = (0 != (options & GNUNET_CADET_OPTION_RELIABLE));
-  ch->out_of_order = (0 != (options & GNUNET_CADET_OPTION_OUT_OF_ORDER));
   ch->max_pending_messages = (ch->nobuffer) ? 1 : 4; /* FIXME: 4!? Do not hardcode! */
   GNUNET_STATISTICS_update (stats,
                             "# channels",
@@ -998,12 +983,6 @@ GCCH_bind (struct CadetChannel *ch,
     ch->retry_control_task = NULL;
   }
   options = 0;
-  if (ch->nobuffer)
-    options |= GNUNET_CADET_OPTION_NOBUFFER;
-  if (ch->reliable)
-    options |= GNUNET_CADET_OPTION_RELIABLE;
-  if (ch->out_of_order)
-    options |= GNUNET_CADET_OPTION_OUT_OF_ORDER;
   cccd = GNUNET_new (struct CadetChannelClient);
   GNUNET_assert (NULL == ch->dest);
   ch->dest = cccd;

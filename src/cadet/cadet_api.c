@@ -135,11 +135,6 @@ struct GNUNET_CADET_Channel
   struct GNUNET_CADET_ClientChannelNumber ccn;
 
   /**
-   * Channel options: reliability, etc.
-   */
-  enum GNUNET_CADET_ChannelOption options;
-
-  /**
    * How many messages are we allowed to send to the service right now?
    */
   unsigned int allow_send;
@@ -592,7 +587,6 @@ handle_channel_created (void *cls,
                        &ccn);
   ch->peer = msg->peer;
   ch->incoming_port = port;
-  ch->options = ntohl (msg->opt);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Creating incoming channel %X [%s] %p\n",
        ntohl (ccn.channel_of_client),
@@ -982,29 +976,9 @@ GNUNET_CADET_channel_destroy (struct GNUNET_CADET_Channel *channel)
  */
 const union GNUNET_CADET_ChannelInfo *
 GNUNET_CADET_channel_get_info (struct GNUNET_CADET_Channel *channel,
-                               enum GNUNET_CADET_ChannelOption option,
                                ...)
 {
-  static int bool_flag;
-
-  switch (option)
-  {
-    case GNUNET_CADET_OPTION_NOBUFFER:
-    case GNUNET_CADET_OPTION_RELIABLE:
-    case GNUNET_CADET_OPTION_OUT_OF_ORDER:
-      if (0 != (option & channel->options))
-        bool_flag = GNUNET_YES;
-      else
-        bool_flag = GNUNET_NO;
-      return (const union GNUNET_CADET_ChannelInfo *) &bool_flag;
-      break;
-    case GNUNET_CADET_OPTION_PEER:
-      return (const union GNUNET_CADET_ChannelInfo *) &channel->peer;
-      break;
-    default:
-      GNUNET_break (0);
-      return NULL;
-  }
+  return (const union GNUNET_CADET_ChannelInfo *) &channel->peer;
 }
 
 
@@ -1140,7 +1114,6 @@ GNUNET_CADET_channel_create (struct GNUNET_CADET_Handle *h,
                              void *channel_cls,
                              const struct GNUNET_PeerIdentity *destination,
                              const struct GNUNET_HashCode *port,
-                             enum GNUNET_CADET_ChannelOption options,
                              GNUNET_CADET_WindowSizeEventHandler window_changes,
                              GNUNET_CADET_DisconnectEventHandler disconnects,
                              const struct GNUNET_MQ_MessageHandler *handlers)
@@ -1158,7 +1131,6 @@ GNUNET_CADET_channel_create (struct GNUNET_CADET_Handle *h,
                        NULL);
   ch->ctx = channel_cls;
   ch->peer = *destination;
-  ch->options = options;
   ch->window_changes = window_changes;
   ch->disconnects = disconnects;
 
@@ -1179,7 +1151,6 @@ GNUNET_CADET_channel_create (struct GNUNET_CADET_Handle *h,
   msg->ccn = ch->ccn;
   msg->port = *port;
   msg->peer = *destination;
-  msg->opt = htonl (options);
   GNUNET_MQ_send (h->mq,
                   env);
   return ch;

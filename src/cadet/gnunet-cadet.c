@@ -784,7 +784,6 @@ run (void *cls,
   if (NULL != target_id)
   {
     struct GNUNET_PeerIdentity pid;
-    enum GNUNET_CADET_ChannelOption opt;
 
     if (GNUNET_OK !=
         GNUNET_CRYPTO_eddsa_public_key_from_string (target_id,
@@ -801,7 +800,6 @@ run (void *cls,
                 "Connecting to `%s:%s'\n",
                 target_id,
                 target_port);
-    opt = GNUNET_CADET_OPTION_DEFAULT | GNUNET_CADET_OPTION_RELIABLE;
     GNUNET_CRYPTO_hash (target_port,
                         strlen(target_port),
                         &porthash);
@@ -809,7 +807,6 @@ run (void *cls,
                                       NULL,
                                       &pid,
                                       &porthash,
-                                      opt,
                                       NULL /* window changes */,
                                       &channel_ended,
                                       handlers);

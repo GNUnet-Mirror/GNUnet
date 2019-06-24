@@ -180,10 +180,7 @@ struct CadetRoute
    */
   struct GNUNET_CONTAINER_HeapNode *hn;
 
-  /**
-   * Options for the route, control buffering.
-   */
-  enum GNUNET_CADET_ChannelOption options;
+  
 };
 
 
@@ -899,7 +896,7 @@ handle_connection_create (void *cls,
          GCP_2s (origin),
          GNUNET_sh2s (&msg->cid.connection_of_tunnel));
     path = GCPP_get_path_from_route (path_length - 1,
-                                     pids);
+                                      pids);
     if (GNUNET_OK !=
         GCT_add_inbound_connection (GCP_get_tunnel (origin,
                                                     GNUNET_YES),

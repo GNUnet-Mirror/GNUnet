@@ -161,11 +161,6 @@ struct CadetConnection
   enum CadetConnectionState state;
 
   /**
-   * Options for the route, control buffering.
-   */
-  enum GNUNET_CADET_ChannelOption options;
-
-  /**
    * How many latency observations did we make for this connection?
    */
   unsigned int latency_datapoints;
@@ -635,7 +630,6 @@ send_create (void *cls)
   env = GNUNET_MQ_msg_extra (create_msg,
                              (2 + cc->off) * sizeof (struct GNUNET_PeerIdentity),
                              GNUNET_MESSAGE_TYPE_CADET_CONNECTION_CREATE);
-  create_msg->options = htonl ((uint32_t) cc->options);
   create_msg->cid = cc->cid;
   pids = (struct GNUNET_PeerIdentity *) &create_msg[1];
   pids[0] = my_full_id;
@@ -825,7 +819,6 @@ manage_first_hop_mq (void *cls,
  * @param destination where to go
  * @param path which path to take (may not be the full path)
  * @param off offset of @a destination on @a path
- * @param options options for the connection
  * @param ct which tunnel uses this connection
  * @param init_state initial state for the connection
  * @param ready_cb function to call when ready to transmit
@@ -836,7 +829,6 @@ static struct CadetConnection *
 connection_create (struct CadetPeer *destination,
                    struct CadetPeerPath *path,
                    unsigned int off,
-                   enum GNUNET_CADET_ChannelOption options,
                    struct CadetTConnection *ct,
                    const struct GNUNET_CADET_ConnectionTunnelIdentifier *cid,
                    enum CadetConnectionState init_state,
@@ -847,7 +839,6 @@ connection_create (struct CadetPeer *destination,
   struct CadetPeer *first_hop;
 
   cc = GNUNET_new (struct CadetConnection);
-  cc->options = options;
   cc->state = init_state;
   cc->ct = ct;
   cc->cid = *cid;
@@ -890,7 +881,6 @@ connection_create (struct CadetPeer *destination,
  *
  * @param destination where to go
  * @param path which path to take (may not be the full path)
- * @param options options for the connection
  * @param ct which tunnel uses this connection
  * @param ready_cb function to call when ready to transmit
  * @param ready_cb_cls closure for @a cb
@@ -900,7 +890,6 @@ connection_create (struct CadetPeer *destination,
 struct CadetConnection *
 GCC_create_inbound (struct CadetPeer *destination,
                     struct CadetPeerPath *path,
-                    enum GNUNET_CADET_ChannelOption options,
                     struct CadetTConnection *ct,
                     const struct GNUNET_CADET_ConnectionTunnelIdentifier *cid,
                     GCC_ReadyCallback ready_cb,
@@ -956,7 +945,6 @@ GCC_create_inbound (struct CadetPeer *destination,
   return connection_create (destination,
                             path,
                             off,
-                            options,
                             ct,
                             cid,
                             CADET_CONNECTION_CREATE_RECEIVED,
@@ -972,7 +960,6 @@ GCC_create_inbound (struct CadetPeer *destination,
  * @param destination where to go
  * @param path which path to take (may not be the full path)
  * @param off offset of @a destination on @a path
- * @param options options for the connection
  * @param ct tunnel that uses the connection
  * @param ready_cb function to call when ready to transmit
  * @param ready_cb_cls closure for @a cb
@@ -982,7 +969,6 @@ struct CadetConnection *
 GCC_create (struct CadetPeer *destination,
             struct CadetPeerPath *path,
             unsigned int off,
-            enum GNUNET_CADET_ChannelOption options,
             struct CadetTConnection *ct,
             GCC_ReadyCallback ready_cb,
             void *ready_cb_cls)
@@ -995,7 +981,6 @@ GCC_create (struct CadetPeer *destination,
   return connection_create (destination,
                             path,
                             off,
-                            options,
                             ct,
                             &cid,
                             CADET_CONNECTION_NEW,
