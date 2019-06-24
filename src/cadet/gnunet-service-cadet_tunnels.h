@@ -119,7 +119,6 @@ GCT_destroy_tunnel_now (struct CadetTunnel *t);
  *
  * @param t a tunnel
  * @param cid connection identifer to use for the connection
- * @param options options for the connection
  * @param path path to use for the connection
  * @return #GNUNET_OK on success,
  *         #GNUNET_SYSERR on failure (duplicate connection)
@@ -127,7 +126,6 @@ GCT_destroy_tunnel_now (struct CadetTunnel *t);
 int
 GCT_add_inbound_connection (struct CadetTunnel *t,
                             const struct GNUNET_CADET_ConnectionTunnelIdentifier *cid,
-                            enum GNUNET_CADET_ChannelOption options,
                             struct CadetPeerPath *path);
 
 
