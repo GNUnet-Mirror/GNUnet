@@ -27,29 +27,29 @@
 #define CADET_H_
 
 #ifdef __cplusplus
-extern "C"
-{
-#if 0                           /* keep Emacsens' auto-indent happy */
+extern "C" {
+#if 0 /* keep Emacsens' auto-indent happy */
 }
 #endif
 #endif
 
 #include <stdint.h>
 
-#if !defined(GNUNET_CULL_LOGGING)
-  #define CADET_TIMING_START \
-          struct GNUNET_TIME_Absolute __timestamp;\
-          __timestamp = GNUNET_TIME_absolute_get()
+#if ! defined(GNUNET_CULL_LOGGING)
+#define CADET_TIMING_START                 \
+  struct GNUNET_TIME_Absolute __timestamp; \
+  __timestamp = GNUNET_TIME_absolute_get ()
 
-  #define CADET_TIMING_END   \
-          struct GNUNET_TIME_Relative __duration;\
-          __duration = GNUNET_TIME_absolute_get_duration (__timestamp);\
-          LOG (GNUNET_ERROR_TYPE_INFO, " %s duration %s\n",\
-              __FUNCTION__,\
-              GNUNET_STRINGS_relative_time_to_string (__duration, GNUNET_YES));
+#define CADET_TIMING_END                                        \
+  struct GNUNET_TIME_Relative __duration;                       \
+  __duration = GNUNET_TIME_absolute_get_duration (__timestamp); \
+  LOG (GNUNET_ERROR_TYPE_INFO,                                  \
+       " %s duration %s\n",                                     \
+       __FUNCTION__,                                            \
+       GNUNET_STRINGS_relative_time_to_string (__duration, GNUNET_YES));
 #else
-  #define CADET_TIMING_START
-  #define CADET_TIMING_END
+#define CADET_TIMING_START
+#define CADET_TIMING_END
 #endif
 
 
@@ -68,17 +68,17 @@ extern "C"
 /**
  * Minimum value for channel IDs of local clients.
  */
-#define GNUNET_CADET_LOCAL_CHANNEL_ID_CLI        0x80000000U
+#define GNUNET_CADET_LOCAL_CHANNEL_ID_CLI 0x80000000U
 
 /**
  * FIXME.
  */
-#define HIGH_PID                                0xFF000000
+#define HIGH_PID 0xFF000000
 
 /**
  * FIXME.
  */
-#define LOW_PID                                 0x00FFFFFF
+#define LOW_PID 0x00FFFFFF
 
 
 /**
@@ -199,6 +199,12 @@ struct GNUNET_CADET_LocalData
   struct GNUNET_CADET_ClientChannelNumber ccn;
 
   /**
+   * Priority and preferences (an enum GNUNET_MQ_PriorityPreferences)
+   * of the message in NBO.
+   */
+  uint32_t pp GNUNET_PACKED;
+
+  /**
    * Payload follows
    */
 };
@@ -219,7 +225,6 @@ struct GNUNET_CADET_LocalAck
    * ID of the channel allowed to send more data.
    */
   struct GNUNET_CADET_ClientChannelNumber ccn;
-
 };
 
 
@@ -308,7 +313,6 @@ struct GNUNET_CADET_RequestChannelInfoMessage
    * Target of the channel.
    */
   struct GNUNET_PeerIdentity target;
-
 };
 
 
@@ -358,7 +362,6 @@ struct GNUNET_CADET_LocalInfoPeers
    * ID of the peer (can be local peer).
    */
   struct GNUNET_PeerIdentity destination;
-
 };
 
 
@@ -465,9 +468,7 @@ GC_min_pid (uint32_t a, uint32_t b);
  * @return The size of the output.
  */
 size_t
-GC_bin2s (void *bin,
-          unsigned int len,
-          char **output);
+GC_bin2s (void *bin, unsigned int len, char **output);
 
 
 /**
@@ -483,7 +484,7 @@ GC_bin2s (void *bin,
 const char *
 GC_m2s (uint16_t m);
 
-#if 0                           /* keep Emacsens' auto-indent happy */
+#if 0 /* keep Emacsens' auto-indent happy */
 {
 #endif
 #ifdef __cplusplus
