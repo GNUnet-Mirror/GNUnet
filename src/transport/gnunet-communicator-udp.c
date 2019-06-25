@@ -2094,13 +2094,14 @@ setup_receiver_mq (struct ReceiverAddress *receiver)
   }
   /* => Effective MTU for CORE will range from 1080 (IPv6 + KX) to
      1404 (IPv4 + Box) bytes, depending on circumstances... */
-  receiver->mq = GNUNET_MQ_queue_for_callbacks (&mq_send,
-                                                &mq_destroy,
-                                                &mq_cancel,
-                                                receiver,
-                                                NULL,
-                                                &mq_error,
-                                                receiver);
+  if (NULL == receiver->mq)
+    receiver->mq = GNUNET_MQ_queue_for_callbacks (&mq_send,
+                                                  &mq_destroy,
+                                                  &mq_cancel,
+                                                  receiver,
+                                                  NULL,
+                                                  &mq_error,
+                                                  receiver);
   receiver->qh =
     GNUNET_TRANSPORT_communicator_mq_add (ch,
                                           &receiver->target,
@@ -2153,10 +2154,11 @@ mq_init (void *cls, const struct GNUNET_PeerIdentity *peer, const char *address)
   receiver->address_len = in_len;
   receiver->target = *peer;
   receiver->nt = GNUNET_NT_scanner_get_type (is, in, in_len);
-  (void) GNUNET_CONTAINER_multipeermap_put (receivers,
-                                            &receiver->target,
-                                            receiver,
-                                            GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
+  (void) GNUNET_CONTAINER_multipeermap_put (
+    receivers,
+    &receiver->target,
+    receiver,
+    GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
   receiver->timeout =
     GNUNET_TIME_relative_to_absolute (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT);
   receiver->hn = GNUNET_CONTAINER_heap_insert (receivers_heap,
