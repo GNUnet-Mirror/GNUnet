@@ -16,7 +16,7 @@
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
- */
+*/
 
 /**
  * @file credential/plugin_gnsrecord_credential.c
@@ -46,79 +46,72 @@ static char *
 credential_value_to_string (void *cls, uint32_t type, const void *data,
                             size_t data_size)
 {
+
   const char *cdata;
 
-  switch (type)
-  {
+  switch (type) {
   case GNUNET_GNSRECORD_TYPE_ATTRIBUTE: {
-      struct GNUNET_CREDENTIAL_DelegationRecord sets;
-      char *attr_str;
-      char *subject_pkey;
-      char *tmp_str;
-      int i;
-      if (data_size < sizeof(struct GNUNET_CREDENTIAL_DelegationRecord))
-        return NULL; /* malformed */
-      GNUNET_memcpy (&sets, data, sizeof(sets));
-      cdata = data;
-      struct GNUNET_CREDENTIAL_DelegationSet set[ntohl (sets.set_count)];
-      if (GNUNET_OK != GNUNET_CREDENTIAL_delegation_set_deserialize (
-            GNUNET_ntohll (sets.data_size), &cdata[sizeof(sets)],
-            ntohl (sets.set_count), set))
-        return NULL;
+    struct GNUNET_CREDENTIAL_DelegationRecord sets;
+    char *attr_str;
+    char *subject_pkey;
+    char *tmp_str;
+    int i;
+    if (data_size < sizeof (struct GNUNET_CREDENTIAL_DelegationRecord))
+      return NULL; /* malformed */
 
-      for (i = 0; i < ntohl (sets.set_count); i++)
-      {
-        subject_pkey =
+    GNUNET_memcpy (&sets, data, sizeof (sets));
+    cdata = data;
+
+    struct GNUNET_CREDENTIAL_DelegationSet set[ntohl (sets.set_count)];
+    if (GNUNET_OK != GNUNET_CREDENTIAL_delegation_set_deserialize (
+                         GNUNET_ntohll (sets.data_size), &cdata[sizeof (sets)],
+                         ntohl (sets.set_count), set))
+      return NULL;
+
+    for (i = 0; i < ntohl (sets.set_count); i++) {
+      subject_pkey =
           GNUNET_CRYPTO_ecdsa_public_key_to_string (&set[i].subject_key);
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "%d len attr\n",
-                    set[i].subject_attribute_len);
-        if (0 == set[i].subject_attribute_len)
-        {
-          if (0 == i)
-          {
-            GNUNET_asprintf (&attr_str, "%s", subject_pkey);
-          }
-          else
-          {
-            GNUNET_asprintf (&tmp_str, "%s,%s", attr_str, subject_pkey);
-            GNUNET_free (attr_str);
-            attr_str = tmp_str;
-          }
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "%d len attr\n",
+                  set[i].subject_attribute_len);
+      if (0 == set[i].subject_attribute_len) {
+        if (0 == i) {
+          GNUNET_asprintf (&attr_str, "%s", subject_pkey);
+        } else {
+          GNUNET_asprintf (&tmp_str, "%s,%s", attr_str, subject_pkey);
+          GNUNET_free (attr_str);
+          attr_str = tmp_str;
         }
-        else
-        {
-          if (0 == i)
-          {
-            GNUNET_asprintf (&attr_str, "%s %s", subject_pkey,
-                             set[i].subject_attribute);
-          }
-          else
-          {
-            GNUNET_asprintf (&tmp_str, "%s,%s %s", attr_str, subject_pkey,
-                             set[i].subject_attribute);
-            GNUNET_free (attr_str);
-            attr_str = tmp_str;
-          }
+      } else {
+        if (0 == i) {
+          GNUNET_asprintf (&attr_str, "%s %s", subject_pkey,
+                           set[i].subject_attribute);
+        } else {
+          GNUNET_asprintf (&tmp_str, "%s,%s %s", attr_str, subject_pkey,
+                           set[i].subject_attribute);
+          GNUNET_free (attr_str);
+          attr_str = tmp_str;
         }
-        GNUNET_free (subject_pkey);
       }
-      return attr_str;
+      GNUNET_free (subject_pkey);
     }
-
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "############### attr str: %s \n", attr_str);
+    //DEBUG ############### attr str: BKX50FK9QYNTFGPR6647CDASM63G21NEJC02QP58NHN7B7M8TKT0 student 
+    return attr_str;
+  }
   case GNUNET_GNSRECORD_TYPE_CREDENTIAL: {
-      struct GNUNET_CREDENTIAL_Credential *cred;
-      char *cred_str;
+    struct GNUNET_CREDENTIAL_Credential *cred;
+    char *cred_str;
 
-      cred = GNUNET_CREDENTIAL_credential_deserialize (data, data_size);
-      cred_str = GNUNET_CREDENTIAL_credential_to_string (cred);
-      GNUNET_free (cred);
-      return cred_str;
-    }
+    cred = GNUNET_CREDENTIAL_credential_deserialize (data, data_size);
+    cred_str = GNUNET_CREDENTIAL_credential_to_string (cred);
+    GNUNET_free (cred);
+    return cred_str;
+  }
+  case GNUNET_GNSRECORD_TYPE_DELEGATE: {
+    printf("####################################vts\n");
 
-  case GNUNET_GNSRECORD_TYPE_POLICY: {
-      return GNUNET_strndup (data, data_size);
-    }
-
+    return GNUNET_strndup (data, data_size);
+  }
   default:
     return NULL;
   }
@@ -142,107 +135,203 @@ credential_string_to_value (void *cls, uint32_t type, const char *s,
 {
   if (NULL == s)
     return GNUNET_SYSERR;
-  switch (type)
-  {
+  switch (type) {
   case GNUNET_GNSRECORD_TYPE_ATTRIBUTE: {
-      struct GNUNET_CREDENTIAL_DelegationRecord *sets;
-      char attr_str[253 + 1];
-      char subject_pkey[52 + 1];
-      char *token;
-      char *tmp_str;
-      int matches = 0;
-      int entries;
-      size_t tmp_data_size;
-      int i;
+    printf ("Start: string_to_value attribute\n");
 
-      tmp_str = GNUNET_strdup (s);
-      token = strtok (tmp_str, ",");
-      entries = 0;
-      tmp_data_size = 0;
-      *data_size = sizeof(struct GNUNET_CREDENTIAL_DelegationRecord);
-      while (NULL != token)
-      {
-        matches = sscanf (token, "%s %s", subject_pkey, attr_str);
-        if (0 == matches)
-        {
-          GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                      _ ("Unable to parse ATTR record string `%s'\n"), s);
-          GNUNET_free (tmp_str);
-          return GNUNET_SYSERR;
-        }
-        if (1 == matches)
-        {
-          tmp_data_size += sizeof(struct GNUNET_CREDENTIAL_DelegationRecordSet);
-        }
-        else if (2 == matches)
-        {
-          tmp_data_size += sizeof(struct GNUNET_CREDENTIAL_DelegationRecordSet)
-                           + strlen (attr_str) + 1;
-        }
-        entries++;
-        token = strtok (NULL, ",");
-      }
-      GNUNET_free (tmp_str);
-      tmp_str = GNUNET_strdup (s);
-      token = strtok (tmp_str, ",");
-      if (NULL == token)
-      {
-        GNUNET_free (tmp_str);
-        GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Malformed string %s\n", s);
-        return GNUNET_SYSERR;
-      }
-      struct GNUNET_CREDENTIAL_DelegationSet set[entries];
-      memset (set, 0, sizeof(struct GNUNET_CREDENTIAL_DelegationSet) * entries);
-      for (i = 0; i < entries; i++)
-      {
-        matches = sscanf (token, "%s %s", subject_pkey, attr_str);
-        GNUNET_CRYPTO_ecdsa_public_key_from_string (
-          subject_pkey, strlen (subject_pkey), &set[i].subject_key);
-        if (2 == matches)
-        {
-          set[i].subject_attribute_len = strlen (attr_str) + 1;
-          set[i].subject_attribute = GNUNET_strdup (attr_str);
-        }
-        token = strtok (NULL, ",");
-      }
-      tmp_data_size = GNUNET_CREDENTIAL_delegation_set_get_size (entries, set);
+    struct GNUNET_CREDENTIAL_DelegationRecord *sets;
+    char attr_str[253 + 1];
+    char subject_pkey[52 + 1];
+    char *token;
+    char *tmp_str;
+    int matches = 0;
+    int entries;
+    size_t tmp_data_size;
+    int i;
 
-      if (-1 == tmp_data_size)
-      {
+    tmp_str = GNUNET_strdup (s);
+    token = strtok (tmp_str, ",");
+    entries = 0;
+    tmp_data_size = 0;
+    *data_size = sizeof (struct GNUNET_CREDENTIAL_DelegationRecord);
+    while (NULL != token) {
+      // also fills the variables subject_pley and attr_str if "regex"-like match
+      matches = SSCANF (token, "%s %s", subject_pkey, attr_str);
+      
+      if (0 == matches) {
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                    _ ("Unable to parse ATTR record string `%s'\n"), s);
         GNUNET_free (tmp_str);
         return GNUNET_SYSERR;
       }
-      *data_size += tmp_data_size;
-      *data = sets = GNUNET_malloc (*data_size);
-      GNUNET_CREDENTIAL_delegation_set_serialize (entries, set, tmp_data_size,
-                                                  (char *) &sets[1]);
-      for (i = 0; i < entries; i++)
-      {
-        if (0 != set[i].subject_attribute_len)
-          GNUNET_free ((char *) set[i].subject_attribute);
-      }
-      sets->set_count = htonl (entries);
-      sets->data_size = GNUNET_htonll (tmp_data_size);
+      
+      entries++;
+      token = strtok (NULL, ",");
+    }
+    GNUNET_free (tmp_str);
 
+    tmp_str = GNUNET_strdup (s);
+    token = strtok (tmp_str, ",");
+    if (NULL == token) {
       GNUNET_free (tmp_str);
-      return GNUNET_OK;
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Malformed string %s\n", s);
+      return GNUNET_SYSERR;
     }
 
+    struct GNUNET_CREDENTIAL_DelegationSet set[entries];
+    // sets memory to be 0, starting at *set for the size of struct * entries
+    memset (set, 0, sizeof (struct GNUNET_CREDENTIAL_DelegationSet) * entries);
+    for (i = 0; i < entries; i++) {
+      matches = SSCANF (token, "%s %s", subject_pkey, attr_str);
+
+      // sets the public key for the set entry
+      GNUNET_CRYPTO_ecdsa_public_key_from_string (
+          subject_pkey, strlen (subject_pkey), &set[i].subject_key);       
+
+      // If not just key, also set subject attribute (Not A.a <- B but A.a <- B.b)
+      if (2 == matches) {
+        set[i].subject_attribute_len = strlen (attr_str) + 1;
+        set[i].subject_attribute = GNUNET_strdup (attr_str);
+      }
+      // If more entries, then token string can take the next entry (separated by ',') by calling strtok again
+      token = strtok (NULL, ",");
+    }
+    tmp_data_size = GNUNET_CREDENTIAL_delegation_set_get_size (entries, set);
+
+    if (-1 == tmp_data_size) {
+      GNUNET_free (tmp_str);
+      return GNUNET_SYSERR;
+    }
+    *data_size += tmp_data_size;
+    *data = sets = GNUNET_malloc (*data_size);
+    GNUNET_CREDENTIAL_delegation_set_serialize (entries, set, tmp_data_size,
+                                                (char *)&sets[1]);
+    for (i = 0; i < entries; i++) {
+      if (0 != set[i].subject_attribute_len)
+        GNUNET_free ((char *)set[i].subject_attribute);
+    }
+    sets->set_count = htonl (entries);
+    sets->data_size = GNUNET_htonll (tmp_data_size);
+
+    GNUNET_free (tmp_str);
+    return GNUNET_OK;
+  }
   case GNUNET_GNSRECORD_TYPE_CREDENTIAL: {
-      struct GNUNET_CREDENTIAL_Credential *cred;
-      cred = GNUNET_CREDENTIAL_credential_from_string (s);
+    printf ("Start: string_to_value credential\n");
 
-      *data_size = GNUNET_CREDENTIAL_credential_serialize (cred,
-                                                           (char **) data);
-      return GNUNET_OK;
+    struct GNUNET_CREDENTIAL_Credential *cred;
+    cred = GNUNET_CREDENTIAL_credential_from_string (s);
+
+    *data_size = GNUNET_CREDENTIAL_credential_serialize (cred, (char **)data);
+    return GNUNET_OK;
+  }
+  case GNUNET_GNSRECORD_TYPE_DELEGATE: {
+    printf ("Start: string_to_value delegate\n");
+
+    char* tmp_str;
+    char* token;
+    int matches = 0;
+    int entries = 0;
+    size_t tmp_data_size = 0;
+    char issuer_attr_str[253 + 1], subject_attr_str[253 + 1];
+    char issuer_pkey[52 + 1], subject_pkey[52 + 1];
+    int i;
+
+    // Split AND
+    tmp_str = GNUNET_strdup (s);
+    // Split string by ',' and first entry stored in token
+    token = strtok (tmp_str, ",");
+    // TODO: Use of this except for entry counting and format checking (why tmp_data size in the function above?)
+    while(NULL != token) {
+      printf("DEL############### tokenX %s\n", token);
+
+      // TODO: only for type A.a <- B.b, missing other types, especially with multiple roles on the right side
+      // Alles splitten mit "%s %s <- %s %s ..." oder lieber "%s %s <- %s" und das dem lookup überlassen? Dann aber feld größe unknown
+
+      // Match with string and fill variables
+      matches = SSCANF (token, "%s %s <- %s %s", issuer_pkey, issuer_attr_str, subject_pkey, subject_attr_str);
+      printf("DEL############### issuerpkey %s, issueratt %s, subjectpkey %s, subjectattr %s\n", 
+        issuer_pkey, issuer_attr_str, subject_pkey, subject_attr_str);
+
+      // Doesn't match string, DEL record string wrong formatted, throw error
+      if (2 >= matches) {
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                    _ ("Unable to parse DEL record string `%s'\n"), s);
+        GNUNET_free (tmp_str);
+        return GNUNET_SYSERR;
+      }
+
+      printf("DEL############### matches %d\n", matches);
+      if (3 == matches) {
+        // Type A.a <- B
+        printf("DEL############### A.a <-B found\n");
+      }
+      if (4 == matches) {
+        printf("DEL############### A.a <- B.b found\n");
+      }
+
+      // Get next entry of tmp_str (pointer still saved), store entry in token, NULL if no more entries
+      token = strtok(NULL, ",");
+      entries++;
+    }
+    // TODO fill tmp_data_size (but what's that)
+
+    tmp_str = GNUNET_strdup (s);
+    token = strtok (tmp_str, ",");
+    if (NULL == token) {
+      GNUNET_free (tmp_str);
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Malformed string %s\n", s);
+      return GNUNET_SYSERR;
     }
 
-  case GNUNET_GNSRECORD_TYPE_POLICY: {
-      *data_size = strlen (s);
-      *data = GNUNET_strdup (s);
-      return GNUNET_OK;
+    // TODO own GNUNET_CREDENTIAL_Delegation struct (when I know the format)
+    struct GNUNET_CREDENTIAL_Delegation set[entries];
+    // sets memory to be 0, starting at *set for the size of struct * entries
+    memset (set, 0, sizeof (struct GNUNET_CREDENTIAL_Delegation) * entries);
+
+    for (i = 0; i < entries; i++) {
+      matches = SSCANF (token, "%s %s <- %s %s", issuer_pkey, issuer_attr_str, subject_pkey, subject_attr_str);
+
+      // Set public keys of issuer and subject
+      GNUNET_CRYPTO_ecdsa_public_key_from_string (
+          issuer_pkey, strlen (issuer_pkey), &set[i].issuer_key);  
+      GNUNET_CRYPTO_ecdsa_public_key_from_string (
+          subject_pkey, strlen (subject_pkey), &set[i].subject_key);  
+      
+      // Set issuer attribute, always present
+      set[i].issuer_attribute_len = strlen (issuer_attr_str) + 1;
+      set[i].issuer_attribute = GNUNET_strdup (issuer_attr_str);
+
+      if (4 == matches) {
+        // A.a <- B.b
+        set[i].subject_attribute_len = strlen (subject_attr_str) + 1;
+        set[i].subject_attribute = GNUNET_strdup (subject_attr_str);
+      }
+
+      // If more entries, then token string can take the next entry (separated by ',') by calling strtok again
+      token = strtok (NULL, ",");
+    }
+    //TODO: own method
+    //tmp_data_size = GNUNET_CREDENTIAL_delegation_set_get_size (entries, set);
+
+    if (-1 == tmp_data_size) {
+      GNUNET_free (tmp_str);
+      return GNUNET_SYSERR;
     }
 
+    //TODO: serialize
+
+
+
+
+
+
+
+
+    *data_size = strlen (s);
+    *data = GNUNET_strdup (s);
+    return GNUNET_OK;
+  }
   default:
     return GNUNET_SYSERR;
   }
@@ -257,10 +346,10 @@ static struct
 {
   const char *name;
   uint32_t number;
-} name_map[] = { { "CRED", GNUNET_GNSRECORD_TYPE_CREDENTIAL },
-                 { "ATTR", GNUNET_GNSRECORD_TYPE_ATTRIBUTE },
-                 { "POLICY", GNUNET_GNSRECORD_TYPE_POLICY },
-                 { NULL, UINT32_MAX } };
+} name_map[] = {{"CRED", GNUNET_GNSRECORD_TYPE_CREDENTIAL},
+                {"ATTR", GNUNET_GNSRECORD_TYPE_ATTRIBUTE},
+                {"DEL", GNUNET_GNSRECORD_TYPE_DELEGATE},
+                {NULL, UINT32_MAX}};
 
 
 /**

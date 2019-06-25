@@ -42,6 +42,7 @@ gnunet_credential_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
 	$(top_builddir)/src/gnsrecord/libgnunetgnsrecord.la \
   $(top_builddir)/src/identity/libgnunetidentity.la \
+  $(top_builddir)/src/namestore/libgnunetnamestore.la \
   $(GN_LIBINTL)
 
 

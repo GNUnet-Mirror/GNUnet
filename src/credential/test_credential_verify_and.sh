@@ -17,8 +17,8 @@ rm -rf `gnunet-config -c test_credential_lookup.conf -s PATHS -o GNUNET_HOME -f`
 
 #  (1) Service.user -> GNU.project.member
 #  (2) GNU.project -> GNUnet
-#  (3) GNUnet.member -> GNUnet.developer and GNUnet.user
-#  (4) GNUnet.developer -> Alice
+#  (3) GNUnet.member -> GNUnet.developer and (4)GNUnet.user
+#  (5) GNUnet.developer -> Alice
 
 
 which timeout > /dev/null 2>&1 && DO_TIMEOUT="timeout 30"
@@ -73,7 +73,6 @@ gnunet-arm -e -c test_credential_lookup.conf
 
 if [ "$RES_CRED" != "Failed." ]
 then
-  # TODO: echo -e bashism
   echo -e "${RES_CRED}"
   exit 0
 else
