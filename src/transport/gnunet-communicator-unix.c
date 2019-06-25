@@ -684,6 +684,7 @@ select_read_cb (void *cls);
 static void
 receive_complete_cb (void *cls, int success)
 {
+  (void) cls;
   delivering_messages--;
   if (GNUNET_OK != success)
     GNUNET_STATISTICS_update (stats,
@@ -832,6 +833,7 @@ mq_init (void *cls, const struct GNUNET_PeerIdentity *peer, const char *address)
   struct sockaddr_un *un;
   socklen_t un_len;
 
+  (void) cls;
   if (0 != strncmp (address,
                     COMMUNICATOR_ADDRESS_PREFIX "-",
                     strlen (COMMUNICATOR_ADDRESS_PREFIX "-")))
