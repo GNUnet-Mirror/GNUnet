@@ -355,21 +355,6 @@ struct CadetChannel
   unsigned int skip_ack_series;
 
   /**
-   * Is the tunnel bufferless (minimum latency)?
-   */
-  int nobuffer;
-
-  /**
-   * Is the tunnel reliable?
-   */
-  int reliable;
-
-  /**
-   * Is the tunnel out-of-order?
-   */
-  int out_of_order;
-
-  /**
    * Is this channel a loopback channel, where the destination is us again?
    */
   int is_loopback;
