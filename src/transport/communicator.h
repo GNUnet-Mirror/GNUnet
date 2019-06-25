@@ -132,9 +132,6 @@ struct GNUNET_TRANSPORT_CommunicatorGenericFCLimits
 };
 
 
-
-
-
 GNUNET_NETWORK_STRUCT_END
 
 /* end of communicator.h */

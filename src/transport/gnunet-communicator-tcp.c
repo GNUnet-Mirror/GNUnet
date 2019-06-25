@@ -429,13 +429,6 @@ struct Queue
   int destroyed;
 
   /**
-   * #GNUNET_YES after #inject_key() placed the rekey message into the
-   * plaintext buffer. Once the plaintext buffer is drained, this
-   * means we must switch to the new key material.
-   */
-  int rekey_state;
-
-  /**
    * #GNUNET_YES if we just rekeyed and must thus possibly
    * re-decrypt ciphertext.
    */
@@ -886,6 +879,7 @@ do_rekey (struct Queue *queue, const struct TCPRekey *rekey)
   thp.receiver = my_identity;
   thp.ephemeral = rekey->ephemeral;
   thp.monotonic_time = rekey->monotonic_time;
+  /* FIXME: check monotonic time is monotonic... */
   if (GNUNET_OK !=
       GNUNET_CRYPTO_eddsa_verify (GNUNET_SIGNATURE_COMMUNICATOR_TCP_REKEY,
                                   &thp.purpose,
@@ -1048,8 +1042,8 @@ queue_read (void *cls)
       /* 'done' bytes of plaintext were used, shift buffer */
       GNUNET_assert (done <= queue->pread_off);
       /* NOTE: this memmove() could possibly sometimes be
-   avoided if we pass 'total' into try_handle_plaintext()
-   and use it at an offset into the buffer there! */
+	 avoided if we pass 'total' into try_handle_plaintext()
+	 and use it at an offset into the buffer there! */
       memmove (queue->pread_buf,
                &queue->pread_buf[done],
                queue->pread_off - done);
@@ -1271,20 +1265,7 @@ inject_rekey (struct Queue *queue)
                                                         &rekey.sender_sig));
   calculate_hmac (&queue->out_hmac, &rekey, sizeof (rekey), &rekey.hmac);
   memcpy (queue->pwrite_buf, &rekey, sizeof (rekey));
-  queue->rekey_state = GNUNET_YES;
-}
-
-
-/**
- * We encrypted the rekey message, now update actually swap the key
- * material and update the key freshness parameters of @a queue.
- */
-static void
-switch_key (struct Queue *queue)
-{
-  queue->rekey_state = GNUNET_NO;
-  gcry_cipher_close (queue->out_cipher);
-  setup_out_cipher (queue);
+  queue->pwrite_off = sizeof (rekey);
 }
 
 
@@ -1301,27 +1282,31 @@ queue_write (void *cls)
   ssize_t sent;
 
   queue->write_task = NULL;
-  sent = GNUNET_NETWORK_socket_send (queue->sock,
-                                     queue->cwrite_buf,
-                                     queue->cwrite_off);
-  if ((-1 == sent) && (EAGAIN != errno) && (EINTR != errno))
+  if (0 != queue->cwrite_off)
   {
-    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "send");
-    queue_destroy (queue);
-    return;
-  }
-  if (sent > 0)
-  {
-    size_t usent = (size_t) sent;
+    sent = GNUNET_NETWORK_socket_send (queue->sock,
+                                       queue->cwrite_buf,
+                                       queue->cwrite_off);
+    if ((-1 == sent) && (EAGAIN != errno) && (EINTR != errno))
+    {
+      GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "send");
+      queue_destroy (queue);
+      return;
+    }
+    if (sent > 0)
+    {
+      size_t usent = (size_t) sent;
 
-    memmove (queue->cwrite_buf,
-             &queue->cwrite_buf[usent],
-             queue->cwrite_off - usent);
-    reschedule_queue_timeout (queue);
+      memmove (queue->cwrite_buf,
+               &queue->cwrite_buf[usent],
+               queue->cwrite_off - usent);
+      reschedule_queue_timeout (queue);
+    }
   }
   /* can we encrypt more? (always encrypt full messages, needed
      such that #mq_cancel() can work!) */
-  if (queue->cwrite_off + queue->pwrite_off <= BUF_SIZE)
+  if ((0 < queue->rekey_left_bytes) &&
+      (queue->cwrite_off + queue->pwrite_off <= BUF_SIZE))
   {
     GNUNET_assert (0 ==
                    gcry_cipher_encrypt (queue->out_cipher,
@@ -1336,13 +1321,15 @@ queue_write (void *cls)
     queue->cwrite_off += queue->pwrite_off;
     queue->pwrite_off = 0;
   }
-  if ((GNUNET_YES == queue->rekey_state) && (0 == queue->pwrite_off))
-    switch_key (queue);
   if ((0 == queue->pwrite_off) &&
       ((0 == queue->rekey_left_bytes) ||
        (0 ==
         GNUNET_TIME_absolute_get_remaining (queue->rekey_time).rel_value_us)))
+  {
+    gcry_cipher_close (queue->out_cipher);
+    setup_out_cipher (queue);
     inject_rekey (queue);
+  }
   if ((0 == queue->pwrite_off) && (! queue->finishing) &&
       (queue->mq_awaits_continue))
   {
@@ -1356,7 +1343,7 @@ queue_write (void *cls)
     return;
   }
   /* do we care to write more? */
-  if (0 < queue->cwrite_off)
+  if ((0 < queue->cwrite_off) || (0 < queue->pwrite_off))
     queue->write_task =
       GNUNET_SCHEDULER_add_write_net (GNUNET_TIME_UNIT_FOREVER_REL,
                                       queue->sock,
@@ -1617,6 +1604,8 @@ decrypt_and_check_tc (struct Queue *queue,
   ths.receiver = my_identity;
   memcpy (&ths.ephemeral, ibuf, sizeof (struct GNUNET_CRYPTO_EcdhePublicKey));
   ths.monotonic_time = tc->monotonic_time;
+  /* FIXME: check monotonic time against previous mono times 
+     from this sender! */
   return GNUNET_CRYPTO_eddsa_verify (GNUNET_SIGNATURE_COMMUNICATOR_TCP_HANDSHAKE,
                                      &ths.purpose,
                                      &tc->sender_sig,
@@ -1709,6 +1698,11 @@ proto_read_kx (void *cls)
                                    queue->sock,
                                    &queue_read,
                                    queue);
+  queue->write_task =
+    GNUNET_SCHEDULER_add_write_net (GNUNET_TIME_UNIT_FOREVER_REL,
+                                    queue->sock,
+                                    &queue_write,
+                                    queue);
   GNUNET_CONTAINER_DLL_remove (proto_head, proto_tail, pq);
   GNUNET_free (pq);
 }
@@ -1910,6 +1904,11 @@ mq_init (void *cls, const struct GNUNET_PeerIdentity *peer, const char *address)
                                    &queue_read_kx,
                                    queue);
   start_initial_kx_out (queue);
+  queue->write_task =
+    GNUNET_SCHEDULER_add_write_net (GNUNET_TIME_UNIT_FOREVER_REL,
+                                    queue->sock,
+                                    &queue_write,
+                                    queue);
   return GNUNET_OK;
 }
 
@@ -1944,6 +1943,8 @@ get_queue_delete_it (void *cls,
 static void
 do_shutdown (void *cls)
 {
+  while (NULL != proto_head)
+    free_proto_queue (proto_head);
   if (NULL != nat)
   {
     GNUNET_NAT_unregister (nat);
