@@ -589,6 +589,8 @@ send_to_channel (struct ChannelState *ts,
 
   GNUNET_assert (NULL != ts->channel);
   mq = GNUNET_CADET_get_mq (ts->channel);
+  GNUNET_MQ_env_set_options(env,
+			      GNUNET_MQ_PREF_DEFAULT);
   GNUNET_MQ_send (mq,
                   env);
   if (GNUNET_MQ_get_length (mq) > MAX_MESSAGE_QUEUE_SIZE)
@@ -1388,7 +1390,6 @@ create_channel (struct ChannelState *ts,
                                       ts,
                                       target,
                                       port,
-                                      GNUNET_CADET_OPTION_DEFAULT,
                                       NULL,
                                       &channel_cleaner,
                                       cadet_handlers);

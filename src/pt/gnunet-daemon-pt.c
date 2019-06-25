@@ -1088,7 +1088,6 @@ try_open_exit ()
                                          pos,
                                          &pos->peer,
                                          &port,
-                                         GNUNET_CADET_OPTION_DEFAULT,
                                          &channel_idle_notify_cb,
                                          &cadet_channel_end_cb,
                                          cadet_handlers);

@@ -494,7 +494,6 @@ reset_cadet (struct CadetHandle *mh)
                                                mh,
                                                &mh->target,
                                                &port,
-                                               GNUNET_CADET_OPTION_RELIABLE,
                                                &window_change_cb,
                                                &disconnect_cb,
                                                handlers);
@@ -572,6 +571,8 @@ transmit_pending (void *cls)
 	      GNUNET_i2s (&mh->target));
   env = GNUNET_MQ_msg (sqm,
                        GNUNET_MESSAGE_TYPE_FS_CADET_QUERY);
+  GNUNET_MQ_env_set_options(env,
+			      GNUNET_MQ_PREF_RELIABLE);
   sqm->type = htonl (sr->type);
   sqm->query = sr->query;
   GNUNET_MQ_notify_sent (env,
@@ -634,7 +635,6 @@ get_cadet (const struct GNUNET_PeerIdentity *target)
                                                mh,
                                                &mh->target,
                                                &port,
-                                               GNUNET_CADET_OPTION_RELIABLE,
                                                &window_change_cb,
                                                &disconnect_cb,
                                                handlers);
