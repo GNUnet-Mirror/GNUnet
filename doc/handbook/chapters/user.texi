@@ -526,7 +526,7 @@ shell) and create an entry home-phone in your master zone.
 For the record type, select PHONE. You should then see the
 PHONE dialog:
 
-@c image here
+@image{images/gnunet-namestore-gtk-phone,5in,,Dialog to publish a PHONE record}
 
 Note: Do not choose the expiry time to be 'Never'. If you
 do that, you assert that this record will never change and
@@ -645,7 +645,7 @@ Now, using your normal user (not the @code{gnunet} system user), run
 master zone. For the record type, select @code{VPN}. You should then
 see the VPN dialog:
 
-@c insert image
+@image{images/gnunet-namestore-gtk-vpn,5in,,Dialog to publish a VPN record}
 
 Under peer, you need to supply the peer identity of your own peer. You can
 obtain the respective string by running @command{gnunet-peerinfo -sq}
@@ -926,7 +926,7 @@ concepts that are used to achieve these goals.
 * Files::
 * Keywords::
 * Directories::
-* Pseudonyms::
+* Egos and File-Sharing::
 * Namespaces::
 * Advertisements::
 * Anonymity level::
@@ -984,68 +984,54 @@ typically includes the mime-type, description, a filename and
 other meta information, and possibly even the full original file
 (if it was small).
 
-@node Pseudonyms
-@subsubsection Pseudonyms
+@node Egos and File-Sharing
+@subsubsection Egos and File-Sharing
 
+When sharing files, it is sometimes desirable to build a reputation as
+a source for quality information.  With egos, publishers can
+(cryptographically) sign files, thereby demonstrating that various
+files were published by the same entity.  An ego thus allows users to
+link different publication events, thereby deliberately reducing
+anonymity to pseudonymity.
 
-@b{Please note that the text in this subsection is outdated and needs}
-@b{to be rewritten for version 0.10!}
-@b{This especially concerns the terminology of Pseudonym/Ego/Identity.}
+Egos used in GNUnet's file-sharing for such pseudonymous publishing
+also correspond to the egos used to identify and sign zones in the
+GNU Name System.  However, if the same ego is used for file-sharing
+and for a GNS zone, this will weaken the privacy assurances provided
+by the anonymous file-sharing protocol.
 
-Pseudonyms in GNUnet are essentially public-private (RSA) key pairs
-that allow a GNUnet user to maintain an identity (which may or may not
-be detached from their real-life identity). GNUnet's pseudonyms are not
-file-sharing specific --- and they will likely be used by many GNUnet
-applications where a user identity is required.
+Note that an ego is NOT bound to a GNUnet peer. There can be multiple
+egos for a single user, and users could (theoretically) share
+the private keys of an ego by copying the respective private keys.
 
-Note that a pseudonym is NOT bound to a GNUnet peer. There can be multiple
-pseudonyms for a single user, and users could (theoretically) share the
-private pseudonym keys (currently only out-of-band by knowing which files
-to copy around).
 
 @node Namespaces
 @subsubsection Namespaces
 
+A namespace is a set of files that were signed by the same ego.
+Today, namespaces are implemented independently of GNS zones, but
+in the future we plan to merge the two such that a GNS zone can
+basically contain files using a file-sharing specific record type.
 
-@b{Please note that the text in this subsection is outdated and needs}
-@b{to be rewritten for version 0.10!}
-@b{This especially concerns the terminology of Pseudonym/Ego/Identity.}
-
-A namespace is a set of files that were signed by the same pseudonym.
-Files (or directories) that have been signed and placed into a namespace
-can be updated. Updates are identified as authentic if the same secret
-key was used to sign the update. Namespaces are also useful to establish
-a reputation, since all of the content in the namespace comes from the
-same entity (which does not have to be the same person).
+Files (or directories) that have been signed and placed into a
+namespace can be updated. Updates are identified as authentic if the
+same secret key was used to sign the update. 
 
 @node Advertisements
 @subsubsection Advertisements
 
-
-@b{Please note that the text in this subsection is outdated and needs}
-@b{to be rewritten for version 0.10!}
-@b{This especially concerns the terminology of Pseudonym/Ego/Identity.}
-
 Advertisements are used to notify other users about the existence of a
-namespace. Advertisements are propagated using the normal keyword search.
-When an advertisement is received (in response to a search), the namespace
-is added to the list of namespaces available in the namespace-search
-dialogs of gnunet-fs-gtk and printed by @code{gnunet-identity}. Whenever a
-namespace is created, an appropriate advertisement can be generated.
-The default keyword for the advertising of namespaces is "namespace".
+namespace. Advertisements are propagated using the normal keyword
+search.  When an advertisement is received (in response to a search),
+the namespace is added to the list of namespaces available in the
+namespace-search dialogs of gnunet-fs-gtk and printed by
+@code{gnunet-identity}. Whenever a namespace is created, an
+appropriate advertisement can be generated.  The default keyword for
+the advertising of namespaces is "namespace".
 
-Note that GNUnet differentiates between your pseudonyms (the identities
-that you control) and namespaces. If you create a pseudonym, you will
-not automatically see the respective namespace. You first have to create
-an advertisement for the namespace and find it using keyword
-search --- even for your own namespaces. The @command{gnunet-identity}
-tool is currently responsible for both managing pseudonyms and namespaces.
-This will likely change in the future to reduce the potential for
-confusion.
 
 @node Anonymity level
 @subsubsection Anonymity level
-
 
 The anonymity level determines how hard it should be for an adversary to
 determine the identity of the publisher or the searcher/downloader. An
@@ -1066,9 +1052,9 @@ delays traffic.
 While higher anonymity levels may offer better privacy, they can also
 significantly hurt performance.
 
+
 @node Content Priority
 @subsubsection Content Priority
-
 
 Depending on the peer's configuration, GNUnet peers migrate content
 between peers. Content in this sense are individual blocks of a file,
@@ -1083,9 +1069,9 @@ lowest priority. The priority of a block is decided by its popularity
 published locally, the base-priority that was specified by the user
 when the block was published initially.
 
+
 @node Replication
 @subsubsection Replication
-
 
 When peers migrate content to other systems, the replication level
 of a block is used to decide which blocks need to be migrated most
@@ -1098,99 +1084,37 @@ selection is simply random.
 @node Namespace Management
 @subsection Namespace Management
 
-
-@b{Please note that the text in this subsection is outdated and needs}
-@b{to be rewritten for version 0.10!}
-
-The @code{gnunet-identity} tool can be used to create pseudonyms and
-to advertise namespaces. By default, @code{gnunet-identity -D} simply
-lists all locally available pseudonyms.
+The @code{gnunet-identity} tool can be used to create egos.
+By default, @code{gnunet-identity -D} simply
+lists all locally available egos.
 
 
 @menu
-* Creating Pseudonyms::
-* Deleting Pseudonyms::
-* Advertising namespaces::
-* Namespace names::
-* Namespace root::
+* Creating Egos::
+* Deleting Egos::
 @end menu
 
-@node Creating Pseudonyms
-@subsubsection Creating Pseudonyms
+@node Creating Egos
+@subsubsection Creating Egos
 
+With the @command{-C NICK} option it can also be used to create a new
+ego. An ego is the virtual identity of the entity in control of a
+namespace or GNS zone. Anyone can create any number of egos.  The
+provided NICK name automatically corresponds to a GNU Name System
+domain name.  Thus, henceforth name resolution for any name ending in
+``.NICK'' will use the NICK's zone.  You should avoid using NICKs that
+collide with well-known DNS names.
 
-@b{Please note that the text in this subsection is outdated and needs}
-@b{to be rewritten for version 0.10!}
-@b{This especially concerns the terminology of Pseudonym/Ego/Identity.}
+@node Deleting Egos
+@subsubsection Deleting Egos
 
-With the @command{-C NICK} option it can also be used to
-create a new pseudonym. A pseudonym is the virtual identity
-of the entity in control of a namespace. Anyone can create
-any number of pseudonyms. Note that creating a pseudonym can
-take a few minutes depending on the performance of the machine
-used.
+With the @command{-D NICK} option egos can be deleted.  Once the ego
+has been deleted it is impossible to add content to the corresponding
+namespace or zone. However, the existing GNS zone data is currently
+not dropped. This may change in the future.
 
-@node Deleting Pseudonyms
-@subsubsection Deleting Pseudonyms
-
-
-@b{Please note that the text in this subsection is outdated and needs}
-@b{to be rewritten for version 0.10!}
-@b{This especially concerns the terminology of Pseudonym/Ego/Identity.}
-
-With the @command{-D NICK} option pseudonyms can be deleted.
-Once the pseudonym has been deleted it is impossible to add
-content to the corresponding namespace. Deleting the
-pseudonym does not make the namespace or any content in it
-unavailable.
-
-@node Advertising namespaces
-@subsubsection Advertising namespaces
-
-
-@b{Please note that the text in this subsection is outdated and needs}
-@b{to be rewritten for version 0.10!}
-@b{This especially concerns the terminology of Pseudonym/Ego/Identity.}
-
-Each namespace is associated with meta-data that describes
-the namespace. This meta-data is provided by the user at
-the time that the namespace is advertised. Advertisements
-are published under keywords so that they can be found using
-normal keyword-searches. This way, users can learn about new
-namespaces without relying on out-of-band communication or directories.
-A suggested keyword to use for all namespaces is simply "namespace".
-When a keyword-search finds a namespace advertisement,
-it is automatically stored in a local list of known namespaces.
-Users can then associate a rank with the namespace to remember
-the quality of the content found in it.
-
-@node Namespace names
-@subsubsection Namespace names
-
-
-@b{Please note that the text in this subsection is outdated and needs}
-@b{to be rewritten for version 0.10!}
-@b{This especially concerns the terminology of Pseudonym/Ego/Identity.}
-
-While the namespace is uniquely identified by its ID, another way
-to refer to the namespace is to use the NICKNAME.
-The NICKNAME can be freely chosen by the creator of the namespace and
-hence conflicts are possible. If a GNUnet client learns about more
-than one namespace using the same NICKNAME, the ID is appended
-to the NICKNAME to get a unique identifier.
-
-@node Namespace root
-@subsubsection Namespace root
-
-
-@b{Please note that the text in this subsection is outdated and needs}
-@b{to be rewritten for version 0.10!}
-@b{This especially concerns the terminology of Pseudonym/Ego/Identity.}
-
-An item of particular interest in the namespace advertisement is
-the ROOT. The ROOT is the identifier of a designated entry in the
-namespace. The idea is that the ROOT can be used to advertise an
-entry point to the content of the namespace.
+Deleting the pseudonym does not make the namespace or any content in
+it unavailable.
 
 @node File-Sharing URIs
 @subsection File-Sharing URIs
@@ -1314,12 +1238,12 @@ To publish a file, select "File Sharing" in the menu bar just below the
 
 Afterwards, the following publishing dialog will appear:
 
-@c Add image here
+@image{images/gnunet-gtk-0-10-fs-publish,5in,,The gnunet-fs-gtk publishing dialog}
 
 In this dialog, select the "Add File" button. This will open a
 file selection dialog:
 
-@c Add image here
+@image{images/gnunet-gtk-0-10-fs-publish-select,5in,,Dialog to select the file to publish (looks may differ for other Gtk+ versions)}
 
 Now, you should select a file from your computer to be published on
 GNUnet. To see more of GNUnet's features later, you should pick a
@@ -1335,12 +1259,12 @@ and potential errors that might be encountered during processing.
 After the progress dialog automatically disappears, your file
 should now appear in the publishing dialog:
 
-@c Add image here
+@image{images/gnunet-gtk-0-10-fs-publish-with-file,5in,,Publishing dialog with file added}
 
 Now, select the file (by clicking on the file name) and then click
 the "Edit" button. This will open the editing dialog:
 
-@c Add image here
+@image{images/gnunet-gtk-0-10-fs-publish-editing,5in,,Editing meta data of a file to be published}
 
 In this dialog, you can see many details about your file. In the
 top left area, you can see meta data extracted about the file,
@@ -1364,9 +1288,7 @@ You should now be back at the "Publish content on GNUnet" dialog. Select
 "Execute" in the bottom right to close the dialog and publish your file
 on GNUnet! Afterwards, you should see the main dialog with a new area
 showing the list of published files (or ongoing publishing operations
-with progress indicators):
-
-@c Add image here
+with progress indicators).
 
 @node gtk-Searching
 @subsubsection Searching
@@ -1920,33 +1842,42 @@ options:
 
 @example
 Ascension
-
 Usage:
-    ascension <domain> [-d] [-p]
-    ascension <domain> <port> [-d] [-p]
-    ascension <domain> -n <transferns> [-d] [-p]
-    ascension <domain> -n <transferns> <port> [-d] [-p]
+    ascension <domain> [-d] [-p] [-s] [--minimum-ttl=<ttl>] \
+        [--dry-run]
+    ascension <domain> <port> [-d] [-p] [-s] \
+        [--minimum-ttl=<ttl>] [--dry-run]
+    ascension <domain> -n <transferns> [-d] [-p] \
+        [-s] [--minimum-ttl=<ttl>] [--dry-run]
+    ascension <domain> -n <transferns> <port> [-d] \
+        [-p] [-s] [--minimum-ttl=<ttl>] [--dry-run]
     ascension -p | --public
+    ascension -d | --debug
+    ascension -s | --standalone
     ascension -h | --help
     ascension -v | --version
 
 Options:
-    <domain>        Domain to migrate
-    <port>          Port for zone transfer
-    <transferns>    DNS Server that does the zone transfer
-    -p --public     Make records public on the DHT
-    -d --debug      Enable debugging
-    -h --help       Show this screen.
-    -v --version    Show version.
+    <domain>              Domain to migrate
+    <port>                Port for zone transfer
+    <transferns>          DNS Server that does the zone transfer
+    --minimum-ttl=<ttl>   Minimum TTL for records to migrate \
+        [default: 3600]
+    --dry-run             Only try if a zone transfer is allowed
+    -p --public           Make records public on the DHT
+    -s --standalone       Run ascension once
+    -d --debug            Enable debugging
+    -h --help         Show this screen.
+    -v --version      Show version.
 @end example
 
-Before you can migrate any zone though, you need to start the GNUnet peer:
+Before you can migrate any zone though, you need to start a local GNUnet peer:
 @example
 $ gnunet-arm -s
 @end example
 
 To migrate the Syrian top level domain - one of the few top level domains that
-still supports zone transfers - into GNS use the following command:
+support zone transfers - into GNS use the following command:
 
 @example
 $ ascension sy. -n ns1.tld.sy. -p
@@ -1959,33 +1890,39 @@ Once the zone is migrated, Ascension will output a message telling you, that it
 will refresh the zone after the time has elapsed.  You can resolve the names in
 the zone directly using GNS or if you want to use it with your browser, check
 out the GNS manual section. @ref{Configuring the GNU Name System}. To resolve
-the records from another system you need the zone PKEY.  To get the zone key,
-you can run the following command:
+the records from another system you need the respective zones PKEY. To get the
+zones public key, you can run the following command:
 
 @example
-$ gnunet-identity -d | grep ^sy | cut -d " " -f3
+$ gnunet-identity -dqe sy
 @end example
 
 Where "sy" is the name of the zone you want to migrate.
 
-As soon as the public flag is implemented, you can share the PKEY of the zone
-with your friends. They can then resolve records in the zone by doing a lookup
-replacing the zone label with your PKEY:
+You can share the PKEY of the zone with your friends. They can then resolve
+records in the zone by doing a lookup replacing the zone label with your PKEY:
 
 @example
-$ gnunet-gns -t SOA -u "@.$PKEY"
+$ gnunet-gns -t SOA -u "$PKEY"
 @end example
 
 The program will continue to run as a daemon and update once the refresh time
 specified in the zones SOA record has elapsed.
 
-The next step would be to add the PKEY record as a DNScurve style NS record
-into the existing DNS zone to enable clients to detect that this zone has
-already been migrated to GNS and to also have a means of distributing the PKEY
-seamlessly.
+DNSCurve style records are supported in the latest release and they are added
+as a PKEY record to be referred to the respective GNS public key. Key
+distribution is still a problem but provided someone else has a public key
+under a given label it can be looked up.
 
-At this point you might want to write for example a systemd unit file to start
-and enable the service, so that your zone is migrated automatically.
+There is an unofficial Debian package called python3-ascension that adds a
+system user ascension and runs a GNUnet peer in the background.
+
+Ascension-bind is also an unofficial Debian package that on installation checks
+for running DNS zones and whether or not they are transferable using DNS zone
+transfer (AXFR). It asks the administrator which zones to migrate into GNS and
+installs a systemd unit file to keep the zone up to date.  If you want to
+migrate different zones you might want to check the unit file from the package
+as a guide.
 
 @node reclaimID Identity Provider
 @section reclaimID Identity Provider

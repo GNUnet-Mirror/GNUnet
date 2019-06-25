@@ -33,9 +33,8 @@
 #define GNUNET_GETOPT_LIB_H
 
 #ifdef __cplusplus
-extern "C"
-{
-#if 0                           /* keep Emacsens' auto-indent happy */
+extern "C" {
+#if 0 /* keep Emacsens' auto-indent happy */
 }
 #endif
 #endif
@@ -77,7 +76,6 @@ struct GNUNET_GETOPT_CommandLineProcessorContext
    * Current argument.
    */
   unsigned int currentArgument;
-
 };
 
 
@@ -90,12 +88,11 @@ struct GNUNET_GETOPT_CommandLineProcessorContext
  * @param value argument, NULL if none was given
  * @return #GNUNET_OK to continue processing other options, #GNUNET_SYSERR to abort
  */
-typedef int
-(*GNUNET_GETOPT_CommandLineOptionProcessor) (struct
-                                             GNUNET_GETOPT_CommandLineProcessorContext *ctx,
-                                             void *scls,
-                                             const char *option,
-                                             const char *value);
+typedef int (*GNUNET_GETOPT_CommandLineOptionProcessor) (
+  struct GNUNET_GETOPT_CommandLineProcessorContext *ctx,
+  void *scls,
+  const char *option,
+  const char *value);
 
 
 /**
@@ -136,6 +133,11 @@ struct GNUNET_GETOPT_CommandLineOption
   int option_mandatory;
 
   /**
+   * Is the option exclusive?
+   */
+  int option_exclusive;
+
+  /**
    * Handler for the option.
    */
   GNUNET_GETOPT_CommandLineOptionProcessor processor;
@@ -144,13 +146,12 @@ struct GNUNET_GETOPT_CommandLineOption
    * Function to call on @e scls to clean up after processing all
    * the arguments. Can be NULL.
    */
-  void (*cleaner)(void *cls);
+  void (*cleaner) (void *cls);
 
   /**
    * Specific closure to pass to the processor.
    */
   void *scls;
-
 };
 
 
@@ -172,7 +173,6 @@ GNUNET_GETOPT_option_help (const char *about);
  */
 struct GNUNET_GETOPT_CommandLineOption
 GNUNET_GETOPT_option_version (const char *version);
-
 
 
 /**
@@ -249,8 +249,17 @@ GNUNET_GETOPT_option_base32_fixed_size (char shortName,
  * @param[out] val binary value decoded from Crockford Base32-encoded argument;
  *             size is determined by type (sizeof (*val)).
  */
-#define GNUNET_GETOPT_option_base32_auto(shortName,name,argumentHelp,description,val) \
-  GNUNET_GETOPT_option_base32_fixed_size(shortName,name,argumentHelp,description,val,sizeof(*val))
+#define GNUNET_GETOPT_option_base32_auto(shortName,     \
+                                         name,          \
+                                         argumentHelp,  \
+                                         description,   \
+                                         val)           \
+  GNUNET_GETOPT_option_base32_fixed_size (shortName,    \
+                                          name,         \
+                                          argumentHelp, \
+                                          description,  \
+                                          val,          \
+                                          sizeof (*val))
 
 
 /**
@@ -297,10 +306,10 @@ GNUNET_GETOPT_option_uint (char shortName,
  */
 struct GNUNET_GETOPT_CommandLineOption
 GNUNET_GETOPT_option_uint16 (char shortName,
-			     const char *name,
-			     const char *argumentHelp,
-			     const char *description,
-			     uint16_t *val);
+                             const char *name,
+                             const char *argumentHelp,
+                             const char *description,
+                             uint16_t *val);
 
 
 /**
@@ -421,10 +430,22 @@ GNUNET_GETOPT_option_mandatory (struct GNUNET_GETOPT_CommandLineOption opt);
 
 
 /**
+ * Make the given option mutually exclusive with other options.
+ *
+ * @param opt option to modify
+ * @return @a opt with the exclusive flag set.
+ */
+struct GNUNET_GETOPT_CommandLineOption
+GNUNET_GETOPT_option_exclusive (struct GNUNET_GETOPT_CommandLineOption opt);
+
+
+/**
  * Marker for the end of the list of options.
  */
-#define GNUNET_GETOPT_OPTION_END \
-  { '\0', NULL, NULL, NULL, 0, 0, NULL, NULL, NULL }
+#define GNUNET_GETOPT_OPTION_END                      \
+  {                                                   \
+    '\0', NULL, NULL, NULL, 0, 0, 0, NULL, NULL, NULL \
+  }
 
 
 /**
@@ -444,7 +465,7 @@ GNUNET_GETOPT_run (const char *binaryOptions,
                    char *const *argv);
 
 
-#if 0                           /* keep Emacsens' auto-indent happy */
+#if 0 /* keep Emacsens' auto-indent happy */
 {
 #endif
 #ifdef __cplusplus

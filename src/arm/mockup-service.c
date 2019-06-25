@@ -33,13 +33,13 @@ static int special_ret = 0;
  * @param message the actual message
  */
 static void
-handle_stop (void *cls,
-             const struct GNUNET_MessageHeader *message)
+handle_stop (void *cls, const struct GNUNET_MessageHeader *message)
 {
   struct GNUNET_SERVICE_Client *client = cls;
 
+  (void) message;
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              _("Initiating shutdown as requested by client.\n"));
+              _ ("Initiating shutdown as requested by client.\n"));
   GNUNET_SERVICE_client_persist (client);
   GNUNET_SCHEDULER_shutdown ();
   /* ARM won't exponentially increase restart delay if we
@@ -59,9 +59,11 @@ handle_stop (void *cls,
  */
 static void *
 client_connect_cb (void *cls,
-		   struct GNUNET_SERVICE_Client *c,
-		   struct GNUNET_MQ_Handle *mq)
+                   struct GNUNET_SERVICE_Client *c,
+                   struct GNUNET_MQ_Handle *mq)
 {
+  (void) cls;
+  (void) mq;
   return c;
 }
 
@@ -75,9 +77,10 @@ client_connect_cb (void *cls,
  */
 static void
 client_disconnect_cb (void *cls,
-		      struct GNUNET_SERVICE_Client *c,
-		      void *internal_cls)
+                      struct GNUNET_SERVICE_Client *c,
+                      void *internal_cls)
 {
+  (void) cls;
   GNUNET_assert (c == internal_cls);
 }
 
@@ -87,6 +90,9 @@ run (void *cls,
      const struct GNUNET_CONFIGURATION_Handle *cfg,
      struct GNUNET_SERVICE_Handle *service)
 {
+  (void) cls;
+  (void) cfg;
+  (void) service;
   /* nothing to do */
 }
 
@@ -94,25 +100,20 @@ run (void *cls,
 /**
  * Define "main" method using service macro.
  */
-GNUNET_SERVICE_MAIN
-("do-nothing",
- GNUNET_SERVICE_OPTION_NONE,
- &run,
- &client_connect_cb,
- &client_disconnect_cb,
- NULL,
- GNUNET_MQ_hd_fixed_size (stop,
-			  GNUNET_MESSAGE_TYPE_ARM_STOP,
-			  struct GNUNET_MessageHeader,
-			  NULL),
- GNUNET_MQ_handler_end ());
+GNUNET_SERVICE_MAIN ("do-nothing",
+                     GNUNET_SERVICE_OPTION_NONE,
+                     &run,
+                     &client_connect_cb,
+                     &client_disconnect_cb,
+                     NULL,
+                     GNUNET_MQ_hd_fixed_size (stop,
+                                              GNUNET_MESSAGE_TYPE_ARM_STOP,
+                                              struct GNUNET_MessageHeader,
+                                              NULL),
+                     GNUNET_MQ_handler_end ());
 
 
 /**
  * MINIMIZE heap size (way below 128k) since this process doesn't need much.
  */
-void __attribute__ ((destructor))
-GNUNET_mockup_done ()
-{
-  _exit (special_ret);
-}
+void __attribute__ ((destructor)) GNUNET_mockup_done () { _exit (special_ret); }

@@ -47,14 +47,15 @@ Copyright (C) 2006, 2017 Christian Grothoff
 #endif
 #endif
 
-#define LOG(kind,...) GNUNET_log_from (kind, "util-getopt", __VA_ARGS__)
+#define LOG(kind, ...) GNUNET_log_from (kind, "util-getopt", __VA_ARGS__)
 
-#define LOG_STRERROR(kind,syscall) GNUNET_log_from_strerror (kind, "util-getopt", syscall)
+#define LOG_STRERROR(kind, syscall) \
+  GNUNET_log_from_strerror (kind, "util-getopt", syscall)
 
-#if defined (WIN32) && !defined (__CYGWIN32__)
+#if defined(WIN32) && ! defined(__CYGWIN32__)
 /* It's not Unix, really.  See?  Capital letters.  */
 #include <windows.h>
-#define getpid() GetCurrentProcessId()
+#define getpid() GetCurrentProcessId ()
 #endif
 
 #ifndef _
@@ -62,9 +63,9 @@ Copyright (C) 2006, 2017 Christian Grothoff
    When compiling libc, the _ macro is predefined.  */
 #ifdef HAVE_LIBINTL_H
 #include <libintl.h>
-#define _(msgid)  gettext (msgid)
+#define _(msgid) gettext (msgid)
 #else
-#define _(msgid)  (msgid)
+#define _(msgid) (msgid)
 #endif
 #endif
 
@@ -176,21 +177,18 @@ static char *nextchar;
    of the value of `ordering'.  In the case of RETURN_IN_ORDER, only
    `--' can cause `getopt' to return -1 with `GNoptind' != ARGC.  */
 
-static enum
-{
-  REQUIRE_ORDER, PERMUTE, RETURN_IN_ORDER
-} ordering;
+static enum { REQUIRE_ORDER, PERMUTE, RETURN_IN_ORDER } ordering;
 
 /* Value of POSIXLY_CORRECT environment variable.  */
 static char *posixly_correct;
 
-#ifdef  __GNU_LIBRARY__
+#ifdef __GNU_LIBRARY__
 /* We want to avoid inclusion of string.h with non-GNU libraries
    because there are many ways it can cause trouble.
    On some systems, it contains special magic macros that don't work
    in GCC.  */
 #include <string.h>
-#define  my_index	strchr
+#define my_index strchr
 #else
 
 /* Avoid depending on library functions or files
@@ -200,8 +198,7 @@ char *
 getenv ();
 
 static char *
-my_index (const char *str,
-	  int chr)
+my_index (const char *str, int chr)
 {
   while (*str)
   {
@@ -217,7 +214,7 @@ my_index (const char *str,
 #ifdef __GNUC__
 /* Note that Motorola Delta 68k R3V7 comes with GCC but not stddef.h.
    That was relevant to code that was here before.  */
-#if !defined (__STDC__) || !__STDC__
+#if ! defined(__STDC__) || ! __STDC__
 /* gcc with -traditional declares the built-in strlen to return int,
    and has done so at least since version 2.4.5. -- rms.  */
 extern int
@@ -247,7 +244,7 @@ static int last_nonopt;
    `first_nonopt' and `last_nonopt' are relocated so that they describe
    the new indices of the non-options in ARGV after they are moved.  */
 
-#if defined (__STDC__) && __STDC__
+#if defined(__STDC__) && __STDC__
 static void
 exchange (char **);
 #endif
@@ -311,14 +308,12 @@ exchange (char **argv)
 
 /* Initialize the internal data when the first call is made.  */
 
-#if defined (__STDC__) && __STDC__
+#if defined(__STDC__) && __STDC__
 static const char *
 _getopt_initialize (int, char *const *, const char *);
 #endif
 static const char *
-_getopt_initialize (int argc,
-		    char *const *argv,
-		    const char *optstring)
+_getopt_initialize (int argc, char *const *argv, const char *optstring)
 {
   /* Start processing options with ARGV-element 1 (since ARGV-element 0
    * is the program name); the sequence of previously skipped
@@ -407,8 +402,11 @@ _getopt_initialize (int argc,
    long-named options.  */
 
 static int
-GN_getopt_internal (int argc, char *const *argv, const char *optstring,
-                    const struct GNoption *longopts, int *longind,
+GN_getopt_internal (int argc,
+                    char *const *argv,
+                    const char *optstring,
+                    const struct GNoption *longopts,
+                    int *longind,
                     int long_only)
 {
   static int __getopt_initialized = 0;
@@ -416,10 +414,10 @@ GN_getopt_internal (int argc, char *const *argv, const char *optstring,
 
   GNoptarg = NULL;
 
-  if (GNoptind == 0 || !__getopt_initialized)
+  if (GNoptind == 0 || ! __getopt_initialized)
   {
     if (GNoptind == 0)
-      GNoptind = 1;             /* Don't scan ARGV[0], the program name.  */
+      GNoptind = 1; /* Don't scan ARGV[0], the program name.  */
     optstring = _getopt_initialize (argc, argv, optstring);
     __getopt_initialized = 1;
   }
@@ -463,7 +461,7 @@ GN_getopt_internal (int argc, char *const *argv, const char *optstring,
      * Skip it like a null option,
      * then exchange with previous non-options as if it were an option,
      * then skip everything else like a non-option.  */
-    if (GNoptind != argc && !strcmp (argv[GNoptind], "--"))
+    if (GNoptind != argc && ! strcmp (argv[GNoptind], "--"))
     {
       GNoptind++;
 
@@ -503,7 +501,7 @@ GN_getopt_internal (int argc, char *const *argv, const char *optstring,
      * Skip the initial punctuation.  */
 
     nextchar =
-        (argv[GNoptind] + 1 + (longopts != NULL && argv[GNoptind][1] == '-'));
+      (argv[GNoptind] + 1 + (longopts != NULL && argv[GNoptind][1] == '-'));
   }
 
   /* Decode the current option-ARGV-element.  */
@@ -524,7 +522,7 @@ GN_getopt_internal (int argc, char *const *argv, const char *optstring,
   if (longopts != NULL &&
       (argv[GNoptind][1] == '-' ||
        (long_only &&
-        (argv[GNoptind][2] || !my_index (optstring, argv[GNoptind][1])))))
+        (argv[GNoptind][2] || ! my_index (optstring, argv[GNoptind][1])))))
   {
     char *nameend;
     const struct GNoption *p;
@@ -535,12 +533,12 @@ GN_getopt_internal (int argc, char *const *argv, const char *optstring,
     int option_index;
 
     for (nameend = nextchar; *nameend && *nameend != '='; nameend++)
-      /* Do nothing.  */ ;
+      /* Do nothing.  */;
 
     /* Test all long options for either exact match
      * or abbreviated matches.  */
     for (p = longopts, option_index = 0; p->name; p++, option_index++)
-      if (!strncmp (p->name, nextchar, nameend - nextchar))
+      if (! strncmp (p->name, nextchar, nameend - nextchar))
       {
         if ((unsigned int) (nameend - nextchar) ==
             (unsigned int) strlen (p->name))
@@ -562,10 +560,12 @@ GN_getopt_internal (int argc, char *const *argv, const char *optstring,
           ambig = 1;
       }
 
-    if (ambig && !exact)
+    if (ambig && ! exact)
     {
       if (GNopterr)
-        FPRINTF (stderr, _("%s: option `%s' is ambiguous\n"), argv[0],
+        FPRINTF (stderr,
+                 _ ("%s: option `%s' is ambiguous\n"),
+                 argv[0],
                  argv[GNoptind]);
       nextchar += strlen (nextchar);
       GNoptind++;
@@ -589,13 +589,16 @@ GN_getopt_internal (int argc, char *const *argv, const char *optstring,
             if (argv[GNoptind - 1][1] == '-')
               /* --option */
               FPRINTF (stderr,
-                       _("%s: option `--%s' does not allow an argument\n"),
-                       argv[0], pfound->name);
+                       _ ("%s: option `--%s' does not allow an argument\n"),
+                       argv[0],
+                       pfound->name);
             else
               /* +option or -option */
               FPRINTF (stderr,
-                       _("%s: option `%c%s' does not allow an argument\n"),
-                       argv[0], argv[GNoptind - 1][0], pfound->name);
+                       _ ("%s: option `%c%s' does not allow an argument\n"),
+                       argv[0],
+                       argv[GNoptind - 1][0],
+                       pfound->name);
           }
           nextchar += strlen (nextchar);
           return '?';
@@ -611,8 +614,10 @@ GN_getopt_internal (int argc, char *const *argv, const char *optstring,
         {
           if (GNopterr)
           {
-            FPRINTF (stderr, _("%s: option `%s' requires an argument\n"),
-                     argv[0], argv[GNoptind - 1]);
+            FPRINTF (stderr,
+                     _ ("%s: option `%s' requires an argument\n"),
+                     argv[0],
+                     argv[GNoptind - 1]);
           }
           nextchar += strlen (nextchar);
           return (optstring[0] == ':') ? ':' : '?';
@@ -633,19 +638,24 @@ GN_getopt_internal (int argc, char *const *argv, const char *optstring,
      * or the option starts with '--' or is not a valid short
      * option, then it's an error.
      * Otherwise interpret it as a short option.  */
-    if (!long_only || argv[GNoptind][1] == '-' ||
+    if (! long_only || argv[GNoptind][1] == '-' ||
         my_index (optstring, *nextchar) == NULL)
     {
       if (GNopterr)
       {
         if (argv[GNoptind][1] == '-')
           /* --option */
-          FPRINTF (stderr, _("%s: unrecognized option `--%s'\n"), argv[0],
+          FPRINTF (stderr,
+                   _ ("%s: unrecognized option `--%s'\n"),
+                   argv[0],
                    nextchar);
         else
           /* +option or -option */
-          FPRINTF (stderr, _("%s: unrecognized option `%c%s'\n"), argv[0],
-                   argv[GNoptind][0], nextchar);
+          FPRINTF (stderr,
+                   _ ("%s: unrecognized option `%c%s'\n"),
+                   argv[0],
+                   argv[GNoptind][0],
+                   nextchar);
       }
       nextchar = (char *) "";
       GNoptind++;
@@ -669,9 +679,9 @@ GN_getopt_internal (int argc, char *const *argv, const char *optstring,
       {
         if (posixly_correct)
           /* 1003.2 specifies the format of this message.  */
-          FPRINTF (stderr, _("%s: illegal option -- %c\n"), argv[0], c);
+          FPRINTF (stderr, _ ("%s: illegal option -- %c\n"), argv[0], c);
         else
-          FPRINTF (stderr, _("%s: invalid option -- %c\n"), argv[0], c);
+          FPRINTF (stderr, _ ("%s: invalid option -- %c\n"), argv[0], c);
       }
       return '?';
     }
@@ -699,8 +709,10 @@ GN_getopt_internal (int argc, char *const *argv, const char *optstring,
         if (GNopterr)
         {
           /* 1003.2 specifies the format of this message.  */
-          FPRINTF (stderr, _("%s: option requires an argument -- %c\n"),
-                   argv[0], c);
+          FPRINTF (stderr,
+                   _ ("%s: option requires an argument -- %c\n"),
+                   argv[0],
+                   c);
         }
         if (optstring[0] == ':')
           c = ':';
@@ -718,13 +730,13 @@ GN_getopt_internal (int argc, char *const *argv, const char *optstring,
 
       for (nextchar = nameend = GNoptarg; *nameend && *nameend != '=';
            nameend++)
-        /* Do nothing.  */ ;
+        /* Do nothing.  */;
 
       /* Test all long options for either exact match
        * or abbreviated matches.  */
       if (longopts != NULL)
         for (p = longopts, option_index = 0; p->name; p++, option_index++)
-          if (!strncmp (p->name, nextchar, nameend - nextchar))
+          if (! strncmp (p->name, nextchar, nameend - nextchar))
           {
             if ((unsigned int) (nameend - nextchar) == strlen (p->name))
             {
@@ -744,10 +756,12 @@ GN_getopt_internal (int argc, char *const *argv, const char *optstring,
               /* Second or later nonexact match found.  */
               ambig = 1;
           }
-      if (ambig && !exact)
+      if (ambig && ! exact)
       {
         if (GNopterr)
-          FPRINTF (stderr, _("%s: option `-W %s' is ambiguous\n"), argv[0],
+          FPRINTF (stderr,
+                   _ ("%s: option `-W %s' is ambiguous\n"),
+                   argv[0],
                    argv[GNoptind]);
         nextchar += strlen (nextchar);
         GNoptind++;
@@ -765,7 +779,10 @@ GN_getopt_internal (int argc, char *const *argv, const char *optstring,
           else
           {
             if (GNopterr)
-              FPRINTF (stderr, _("%s: option `-W %s' does not allow an argument\n"), argv[0], pfound->name);
+              FPRINTF (stderr,
+                       _ ("%s: option `-W %s' does not allow an argument\n"),
+                       argv[0],
+                       pfound->name);
 
             nextchar += strlen (nextchar);
             return '?';
@@ -778,8 +795,10 @@ GN_getopt_internal (int argc, char *const *argv, const char *optstring,
           else
           {
             if (GNopterr)
-              FPRINTF (stderr, _("%s: option `%s' requires an argument\n"),
-                       argv[0], argv[GNoptind - 1]);
+              FPRINTF (stderr,
+                       _ ("%s: option `%s' requires an argument\n"),
+                       argv[0],
+                       argv[GNoptind - 1]);
             nextchar += strlen (nextchar);
             return optstring[0] == ':' ? ':' : '?';
           }
@@ -795,7 +814,7 @@ GN_getopt_internal (int argc, char *const *argv, const char *optstring,
         return pfound->val;
       }
       nextchar = NULL;
-      return 'W';               /* Let the application handle it.   */
+      return 'W'; /* Let the application handle it.   */
     }
     if (temp[1] == ':')
     {
@@ -826,8 +845,10 @@ GN_getopt_internal (int argc, char *const *argv, const char *optstring,
           if (GNopterr)
           {
             /* 1003.2 specifies the format of this message.  */
-            FPRINTF (stderr, _("%s: option requires an argument -- %c\n"),
-                     argv[0], c);
+            FPRINTF (stderr,
+                     _ ("%s: option requires an argument -- %c\n"),
+                     argv[0],
+                     c);
           }
           if (optstring[0] == ':')
             c = ':';
@@ -880,8 +901,9 @@ GNUNET_GETOPT_run (const char *binaryOptions,
   char *shorts;
   int spos;
   int cont;
-  int c;
   uint8_t *seen;
+  unsigned int optmatch = 0;
+  const char *have_exclusive = NULL;
 
   GNUNET_assert (argc > 0);
   GNoptind = 0;
@@ -890,12 +912,13 @@ GNUNET_GETOPT_run (const char *binaryOptions,
   clpc.allOptions = allOptions;
   clpc.argv = argv;
   clpc.argc = argc;
-  for (count = 0; NULL != allOptions[count].name; count++) ;
+  for (count = 0; NULL != allOptions[count].name; count++)
+    ;
 
-  long_options = GNUNET_new_array (count + 1,
-                                   struct GNoption);
-  seen = GNUNET_new_array (count,
-                           uint8_t);
+  /* transform our option representation into the format
+     used by the GNU getopt copylib */
+  long_options = GNUNET_new_array (count + 1, struct GNoption);
+  seen = GNUNET_new_array (count, uint8_t);
   shorts = GNUNET_malloc (count * 2 + 1);
   spos = 0;
   for (unsigned i = 0; i < count; i++)
@@ -916,53 +939,68 @@ GNUNET_GETOPT_run (const char *binaryOptions,
   cont = GNUNET_OK;
 
   /* main getopt loop */
-  while (GNUNET_OK == cont)
+  while (1)
   {
     int option_index = 0;
     unsigned int i;
+    int c;
 
-    c = GNgetopt_long (argc, argv,
-                       shorts,
-                       long_options,
-                       &option_index);
+    c = GNgetopt_long (argc, argv, shorts, long_options, &option_index);
     if (c == GNUNET_SYSERR)
-      break;                    /* No more flags to process */
+      break; /* No more flags to process */
 
+    /* Check which of our program's options was given by the user */
     for (i = 0; i < count; i++)
     {
       clpc.currentArgument = GNoptind - 1;
       if ((char) c == allOptions[i].shortName)
       {
-        cont = allOptions[i].processor (&clpc,
-                                        allOptions[i].scls,
-                                        allOptions[i].name,
-                                        GNoptarg);
+        optmatch++;
+        if (allOptions[i].option_exclusive)
+          have_exclusive = allOptions[i].name;
+        if (GNUNET_OK == cont)
+        {
+          /* parse the option using the option-specific processor */
+          cont = allOptions[i].processor (&clpc,
+                                          allOptions[i].scls,
+                                          allOptions[i].name,
+                                          GNoptarg);
+        }
         seen[i] = 1;
         break;
       }
     }
     if (i == count)
     {
-      FPRINTF (stderr,
-               _("Use %s to get a list of options.\n"),
-               "--help");
+      FPRINTF (stderr, _ ("Use %s to get a list of options.\n"), "--help");
       cont = GNUNET_SYSERR;
     }
   }
   GNUNET_free (shorts);
   GNUNET_free (long_options);
 
+  /* check that if any option that was marked as exclusive
+     is the only option that was provided */
+  if ((NULL != have_exclusive) && (optmatch > 1))
+  {
+    FPRINTF (stderr,
+             _ ("Option `%s' can't be used with other options.\n"),
+             have_exclusive);
+    cont = GNUNET_SYSERR;
+  }
   if (GNUNET_YES == cont)
   {
+    /* check that all mandatory options are present */
     for (count = 0; NULL != allOptions[count].name; count++)
-      if ( (0 == seen[count]) &&
-           (allOptions[count].option_mandatory) )
+    {
+      if ((0 == seen[count]) && (allOptions[count].option_mandatory))
       {
         FPRINTF (stderr,
-                 _("Missing mandatory option `%s'.\n"),
+                 _ ("Missing mandatory option `%s'.\n"),
                  allOptions[count].name);
         cont = GNUNET_SYSERR;
       }
+    }
   }
   GNUNET_free (seen);
 

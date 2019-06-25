@@ -30,7 +30,7 @@
 #include "gnunet_protocols.h"
 #include "arm.h"
 
-#define LOG(kind,...) GNUNET_log_from (kind, "arm-api",__VA_ARGS__)
+#define LOG(kind, ...) GNUNET_log_from (kind, "arm-api", __VA_ARGS__)
 
 
 /**
@@ -156,7 +156,6 @@ struct GNUNET_ARM_Handle
    * Have we detected that ARM is up?
    */
   int currently_up;
-
 };
 
 
@@ -204,27 +203,19 @@ reconnect_arm_later (struct GNUNET_ARM_Handle *h)
   h->currently_up = GNUNET_NO;
   GNUNET_assert (NULL == h->reconnect_task);
   h->reconnect_task =
-      GNUNET_SCHEDULER_add_delayed (h->retry_backoff,
-				    &reconnect_arm_task,
-				    h);
+    GNUNET_SCHEDULER_add_delayed (h->retry_backoff, &reconnect_arm_task, h);
   while (NULL != (op = h->operation_pending_head))
   {
     if (NULL != op->result_cont)
-      op->result_cont (op->cont_cls,
-                       GNUNET_ARM_REQUEST_DISCONNECTED,
-                       0);
+      op->result_cont (op->cont_cls, GNUNET_ARM_REQUEST_DISCONNECTED, 0);
     if (NULL != op->list_cont)
-      op->list_cont (op->cont_cls,
-                     GNUNET_ARM_REQUEST_DISCONNECTED,
-                     0,
-                     NULL);
+      op->list_cont (op->cont_cls, GNUNET_ARM_REQUEST_DISCONNECTED, 0, NULL);
     GNUNET_ARM_operation_cancel (op);
   }
   GNUNET_assert (NULL == h->operation_pending_head);
   h->retry_backoff = GNUNET_TIME_STD_BACKOFF (h->retry_backoff);
   if (NULL != h->conn_status)
-    h->conn_status (h->conn_status_cls,
-                    GNUNET_NO);
+    h->conn_status (h->conn_status_cls, GNUNET_NO);
 }
 
 
@@ -236,12 +227,12 @@ reconnect_arm_later (struct GNUNET_ARM_Handle *h)
  * @return NULL if not found
  */
 static struct GNUNET_ARM_Operation *
-find_op_by_id (struct GNUNET_ARM_Handle *h,
-               uint64_t id)
+find_op_by_id (struct GNUNET_ARM_Handle *h, uint64_t id)
 {
   struct GNUNET_ARM_Operation *result;
 
-  for (result = h->operation_pending_head; NULL != result; result = result->next)
+  for (result = h->operation_pending_head; NULL != result;
+       result = result->next)
     if (id == result->id)
       return result;
   return NULL;
@@ -255,8 +246,7 @@ find_op_by_id (struct GNUNET_ARM_Handle *h,
  * @param res the message received from the arm service
  */
 static void
-handle_arm_result (void *cls,
-                   const struct GNUNET_ARM_ResultMessage *res)
+handle_arm_result (void *cls, const struct GNUNET_ARM_ResultMessage *res)
 {
   struct GNUNET_ARM_Handle *h = cls;
   struct GNUNET_ARM_Operation *op;
@@ -266,8 +256,7 @@ handle_arm_result (void *cls,
   void *result_cont_cls;
 
   id = GNUNET_ntohll (res->arm_msg.request_id);
-  op = find_op_by_id (h,
-                      id);
+  op = find_op_by_id (h, id);
   if (NULL == op)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -277,8 +266,7 @@ handle_arm_result (void *cls,
   }
 
   result = (enum GNUNET_ARM_Result) ntohl (res->result);
-  if ( (GNUNET_YES == op->is_arm_stop) &&
-       (GNUNET_ARM_RESULT_STOPPING == result) )
+  if ((GNUNET_YES == op->is_arm_stop) && (GNUNET_ARM_RESULT_STOPPING == result))
   {
     /* special case: if we are stopping 'gnunet-service-arm', we do not just
        wait for the result message, but also wait for the service to close
@@ -289,8 +277,8 @@ handle_arm_result (void *cls,
     {
       GNUNET_break (0);
       op->result_cont (h->thm->cont_cls,
-		       GNUNET_ARM_REQUEST_SENT_OK,
-		       GNUNET_ARM_RESULT_IS_NOT_KNOWN);
+                       GNUNET_ARM_REQUEST_SENT_OK,
+                       GNUNET_ARM_RESULT_IS_NOT_KNOWN);
       GNUNET_free (h->thm);
     }
     GNUNET_CONTAINER_DLL_remove (h->operation_pending_head,
@@ -303,9 +291,7 @@ handle_arm_result (void *cls,
   result_cont_cls = op->cont_cls;
   GNUNET_ARM_operation_cancel (op);
   if (NULL != result_cont)
-    result_cont (result_cont_cls,
-                 GNUNET_ARM_REQUEST_SENT_OK,
-                 result);
+    result_cont (result_cont_cls, GNUNET_ARM_REQUEST_SENT_OK, result);
 }
 
 
@@ -325,6 +311,7 @@ check_arm_list_result (void *cls,
   uint16_t msize = ntohs (lres->arm_msg.header.size) - sizeof (*lres);
   uint16_t size_check;
 
+  (void) cls;
   size_check = 0;
   for (unsigned int i = 0; i < rcount; i++)
   {
@@ -361,8 +348,7 @@ handle_arm_list_result (void *cls,
   uint64_t id;
 
   id = GNUNET_ntohll (lres->arm_msg.request_id);
-  op = find_op_by_id (h,
-                      id);
+  op = find_op_by_id (h, id);
   if (NULL == op)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -373,9 +359,7 @@ handle_arm_list_result (void *cls,
   size_check = 0;
   for (unsigned int i = 0; i < rcount; i++)
   {
-    const char *end = memchr (pos,
-                              0,
-                              msize - size_check);
+    const char *end = memchr (pos, 0, msize - size_check);
 
     /* Assert, as this was already checked in #check_arm_list_result() */
     GNUNET_assert (NULL != end);
@@ -384,10 +368,7 @@ handle_arm_list_result (void *cls,
     pos = end + 1;
   }
   if (NULL != op->list_cont)
-    op->list_cont (op->cont_cls,
-                   GNUNET_ARM_REQUEST_SENT_OK,
-                   rcount,
-                   list);
+    op->list_cont (op->cont_cls, GNUNET_ARM_REQUEST_SENT_OK, rcount, list);
   GNUNET_ARM_operation_cancel (op);
 }
 
@@ -399,19 +380,17 @@ handle_arm_list_result (void *cls,
  * @param msg message received
  */
 static void
-handle_confirm (void *cls,
-                const struct GNUNET_MessageHeader *msg)
+handle_confirm (void *cls, const struct GNUNET_MessageHeader *msg)
 {
   struct GNUNET_ARM_Handle *h = cls;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Got confirmation from ARM that we are up!\n");
+  (void) msg;
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Got confirmation from ARM that we are up!\n");
   if (GNUNET_NO == h->currently_up)
   {
     h->currently_up = GNUNET_YES;
     if (NULL != h->conn_status)
-      h->conn_status (h->conn_status_cls,
-                      GNUNET_YES);
+      h->conn_status (h->conn_status_cls, GNUNET_YES);
   }
 }
 
@@ -425,19 +404,19 @@ handle_confirm (void *cls,
  * @param error error code
  */
 static void
-mq_error_handler (void *cls,
-                  enum GNUNET_MQ_Error error)
+mq_error_handler (void *cls, enum GNUNET_MQ_Error error)
 {
   struct GNUNET_ARM_Handle *h = cls;
   struct GNUNET_ARM_Operation *op;
 
+  (void) error;
   h->currently_up = GNUNET_NO;
   if (NULL != (op = h->thm))
   {
     h->thm = NULL;
     op->result_cont (op->cont_cls,
-		     GNUNET_ARM_REQUEST_SENT_OK,
-		     GNUNET_ARM_RESULT_STOPPED);
+                     GNUNET_ARM_REQUEST_SENT_OK,
+                     GNUNET_ARM_RESULT_STOPPED);
     GNUNET_free (op);
   }
   reconnect_arm_later (h);
@@ -453,47 +432,37 @@ mq_error_handler (void *cls,
 static int
 reconnect_arm (struct GNUNET_ARM_Handle *h)
 {
-  struct GNUNET_MQ_MessageHandler handlers[] = {
-    GNUNET_MQ_hd_fixed_size (arm_result,
-                             GNUNET_MESSAGE_TYPE_ARM_RESULT,
-                             struct GNUNET_ARM_ResultMessage,
-                             h),
-    GNUNET_MQ_hd_var_size (arm_list_result,
-                           GNUNET_MESSAGE_TYPE_ARM_LIST_RESULT,
-                           struct GNUNET_ARM_ListResultMessage,
-                           h),
-    GNUNET_MQ_hd_fixed_size (confirm,
-                             GNUNET_MESSAGE_TYPE_ARM_TEST,
-                             struct GNUNET_MessageHeader,
-                             h),
-    GNUNET_MQ_handler_end ()
-  };
+  struct GNUNET_MQ_MessageHandler handlers[] =
+    {GNUNET_MQ_hd_fixed_size (arm_result,
+                              GNUNET_MESSAGE_TYPE_ARM_RESULT,
+                              struct GNUNET_ARM_ResultMessage,
+                              h),
+     GNUNET_MQ_hd_var_size (arm_list_result,
+                            GNUNET_MESSAGE_TYPE_ARM_LIST_RESULT,
+                            struct GNUNET_ARM_ListResultMessage,
+                            h),
+     GNUNET_MQ_hd_fixed_size (confirm,
+                              GNUNET_MESSAGE_TYPE_ARM_TEST,
+                              struct GNUNET_MessageHeader,
+                              h),
+     GNUNET_MQ_handler_end ()};
   struct GNUNET_MessageHeader *test;
   struct GNUNET_MQ_Envelope *env;
 
   if (NULL != h->mq)
     return GNUNET_OK;
   GNUNET_assert (GNUNET_NO == h->currently_up);
-  h->mq = GNUNET_CLIENT_connect (h->cfg,
-                                 "arm",
-                                 handlers,
-                                 &mq_error_handler,
-                                 h);
+  h->mq = GNUNET_CLIENT_connect (h->cfg, "arm", handlers, &mq_error_handler, h);
   if (NULL == h->mq)
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "GNUNET_CLIENT_connect returned NULL\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "GNUNET_CLIENT_connect returned NULL\n");
     if (NULL != h->conn_status)
-      h->conn_status (h->conn_status_cls,
-                      GNUNET_SYSERR);
+      h->conn_status (h->conn_status_cls, GNUNET_SYSERR);
     return GNUNET_SYSERR;
   }
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Sending TEST message to ARM\n");
-  env = GNUNET_MQ_msg (test,
-                       GNUNET_MESSAGE_TYPE_ARM_TEST);
-  GNUNET_MQ_send (h->mq,
-                  env);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Sending TEST message to ARM\n");
+  env = GNUNET_MQ_msg (test, GNUNET_MESSAGE_TYPE_ARM_TEST);
+  GNUNET_MQ_send (h->mq, env);
   return GNUNET_OK;
 }
 
@@ -512,7 +481,7 @@ reconnect_arm (struct GNUNET_ARM_Handle *h)
 struct GNUNET_ARM_Handle *
 GNUNET_ARM_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
                     GNUNET_ARM_ConnectionStatusCallback conn_status,
-		    void *conn_status_cls)
+                    void *conn_status_cls)
 {
   struct GNUNET_ARM_Handle *h;
 
@@ -539,22 +508,16 @@ GNUNET_ARM_disconnect (struct GNUNET_ARM_Handle *h)
 {
   struct GNUNET_ARM_Operation *op;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Disconnecting from ARM service\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Disconnecting from ARM service\n");
   while (NULL != (op = h->operation_pending_head))
   {
     GNUNET_CONTAINER_DLL_remove (h->operation_pending_head,
                                  h->operation_pending_tail,
                                  op);
     if (NULL != op->result_cont)
-      op->result_cont (op->cont_cls,
-                       GNUNET_ARM_REQUEST_DISCONNECTED,
-                       0);
+      op->result_cont (op->cont_cls, GNUNET_ARM_REQUEST_DISCONNECTED, 0);
     if (NULL != op->list_cont)
-      op->list_cont (op->cont_cls,
-                     GNUNET_ARM_REQUEST_DISCONNECTED,
-                     0,
-                     NULL);
+      op->list_cont (op->cont_cls, GNUNET_ARM_REQUEST_DISCONNECTED, 0, NULL);
     if (NULL != op->async)
     {
       GNUNET_SCHEDULER_cancel (op->async);
@@ -596,60 +559,43 @@ start_arm_service (struct GNUNET_ARM_Handle *h,
   char *loprefix;
   char *lopostfix;
 
-  if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_string (h->cfg,
-                                             "arm",
-                                             "PREFIX",
-                                             &loprefix))
+  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_string (h->cfg,
+                                                          "arm",
+                                                          "PREFIX",
+                                                          &loprefix))
     loprefix = GNUNET_strdup ("");
   else
-    loprefix = GNUNET_CONFIGURATION_expand_dollar (h->cfg,
-                                                   loprefix);
-  if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_string (h->cfg,
-                                             "arm",
-                                             "OPTIONS",
-                                             &lopostfix))
+    loprefix = GNUNET_CONFIGURATION_expand_dollar (h->cfg, loprefix);
+  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_string (h->cfg,
+                                                          "arm",
+                                                          "OPTIONS",
+                                                          &lopostfix))
     lopostfix = GNUNET_strdup ("");
   else
-    lopostfix = GNUNET_CONFIGURATION_expand_dollar (h->cfg,
-                                                    lopostfix);
+    lopostfix = GNUNET_CONFIGURATION_expand_dollar (h->cfg, lopostfix);
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_string (h->cfg,
-                                             "arm",
-                                             "BINARY",
-                                             &cbinary))
+      GNUNET_CONFIGURATION_get_value_string (h->cfg, "arm", "BINARY", &cbinary))
   {
-    GNUNET_log_config_missing (GNUNET_ERROR_TYPE_WARNING,
-                               "arm",
-                               "BINARY");
+    GNUNET_log_config_missing (GNUNET_ERROR_TYPE_WARNING, "arm", "BINARY");
     GNUNET_free (loprefix);
     GNUNET_free (lopostfix);
     return GNUNET_ARM_RESULT_IS_NOT_KNOWN;
   }
-  if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_filename (h->cfg,
-                                               "arm",
-                                               "CONFIG",
-                                               &config))
+  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_filename (h->cfg,
+                                                            "arm",
+                                                            "CONFIG",
+                                                            &config))
     config = NULL;
   binary = GNUNET_OS_get_libexec_binary_path (cbinary);
-  GNUNET_asprintf (&quotedbinary,
-		   "\"%s\"",
-		   binary);
+  GNUNET_asprintf (&quotedbinary, "\"%s\"", binary);
   GNUNET_free (cbinary);
-  if ( (GNUNET_YES ==
-        GNUNET_CONFIGURATION_have_value (h->cfg,
-                                         "TESTING",
-                                         "WEAKRANDOM")) &&
-       (GNUNET_YES ==
-        GNUNET_CONFIGURATION_get_value_yesno (h->cfg,
-                                              "TESTING",
-                                              "WEAKRANDOM")) &&
-       (GNUNET_NO ==
-        GNUNET_CONFIGURATION_have_value (h->cfg,
-                                         "TESTING",
-                                         "HOSTFILE")))
+  if ((GNUNET_YES ==
+       GNUNET_CONFIGURATION_have_value (h->cfg, "TESTING", "WEAKRANDOM")) &&
+      (GNUNET_YES == GNUNET_CONFIGURATION_get_value_yesno (h->cfg,
+                                                           "TESTING",
+                                                           "WEAKRANDOM")) &&
+      (GNUNET_NO ==
+       GNUNET_CONFIGURATION_have_value (h->cfg, "TESTING", "HOSTFILE")))
   {
     /* Means we are ONLY running locally */
     /* we're clearly running a test, don't daemonize */
@@ -668,7 +614,8 @@ start_arm_service (struct GNUNET_ARM_Handle *h,
                                         NULL,
                                         loprefix,
                                         quotedbinary,
-                                        "-c", config,
+                                        "-c",
+                                        config,
                                         /* no daemonization! */
                                         lopostfix,
                                         NULL);
@@ -683,14 +630,15 @@ start_arm_service (struct GNUNET_ARM_Handle *h,
                                         quotedbinary,
                                         "-d", /* do daemonize */
                                         lopostfix,
-					NULL);
+                                        NULL);
     else
       proc = GNUNET_OS_start_process_s (GNUNET_NO,
                                         std_inheritance,
                                         NULL,
                                         loprefix,
                                         quotedbinary,
-                                        "-c", config,
+                                        "-c",
+                                        config,
                                         "-d", /* do daemonize */
                                         lopostfix,
                                         NULL);
@@ -744,7 +692,7 @@ static struct GNUNET_ARM_Operation *
 change_service (struct GNUNET_ARM_Handle *h,
                 const char *service_name,
                 GNUNET_ARM_ResultCallback cb,
-		void *cb_cls,
+                void *cb_cls,
                 uint16_t type)
 {
   struct GNUNET_ARM_Operation *op;
@@ -753,8 +701,7 @@ change_service (struct GNUNET_ARM_Handle *h,
   struct GNUNET_ARM_Message *msg;
 
   slen = strlen (service_name) + 1;
-  if (slen + sizeof (struct GNUNET_ARM_Message) >=
-      GNUNET_MAX_MESSAGE_SIZE)
+  if (slen + sizeof (struct GNUNET_ARM_Message) >= GNUNET_MAX_MESSAGE_SIZE)
   {
     GNUNET_break (0);
     return NULL;
@@ -769,16 +716,11 @@ change_service (struct GNUNET_ARM_Handle *h,
   GNUNET_CONTAINER_DLL_insert_tail (h->operation_pending_head,
                                     h->operation_pending_tail,
                                     op);
-  env = GNUNET_MQ_msg_extra (msg,
-                             slen,
-                             type);
+  env = GNUNET_MQ_msg_extra (msg, slen, type);
   msg->reserved = htonl (0);
   msg->request_id = GNUNET_htonll (op->id);
-  GNUNET_memcpy (&msg[1],
-          service_name,
-          slen);
-  GNUNET_MQ_send (h->mq,
-                  env);
+  GNUNET_memcpy (&msg[1], service_name, slen);
+  GNUNET_MQ_send (h->mq, env);
   return op;
 }
 
@@ -802,10 +744,8 @@ notify_running (void *cls)
     op->result_cont (op->cont_cls,
                      GNUNET_ARM_REQUEST_SENT_OK,
                      GNUNET_ARM_RESULT_IS_STARTED_ALREADY);
-  if ( (GNUNET_YES == h->currently_up) &&
-       (NULL != h->conn_status) )
-    h->conn_status (h->conn_status_cls,
-                    GNUNET_YES);
+  if ((GNUNET_YES == h->currently_up) && (NULL != h->conn_status))
+    h->conn_status (h->conn_status_cls, GNUNET_YES);
   GNUNET_free (op);
 }
 
@@ -846,20 +786,18 @@ notify_starting (void *cls)
  * @return handle for the operation, NULL on error
  */
 struct GNUNET_ARM_Operation *
-GNUNET_ARM_request_service_start (struct GNUNET_ARM_Handle *h,
-				  const char *service_name,
-				  enum GNUNET_OS_InheritStdioFlags std_inheritance,
-				  GNUNET_ARM_ResultCallback cont,
-				  void *cont_cls)
+GNUNET_ARM_request_service_start (
+  struct GNUNET_ARM_Handle *h,
+  const char *service_name,
+  enum GNUNET_OS_InheritStdioFlags std_inheritance,
+  GNUNET_ARM_ResultCallback cont,
+  void *cont_cls)
 {
   struct GNUNET_ARM_Operation *op;
   enum GNUNET_ARM_Result ret;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Starting service `%s'\n",
-       service_name);
-  if (0 != strcasecmp ("arm",
-                       service_name))
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Starting service `%s'\n", service_name);
+  if (0 != strcasecmp ("arm", service_name))
     return change_service (h,
                            service_name,
                            cont,
@@ -874,8 +812,7 @@ GNUNET_ARM_request_service_start (struct GNUNET_ARM_Handle *h,
    */
   if (GNUNET_YES == h->currently_up)
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "ARM is already running\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "ARM is already running\n");
     op = GNUNET_new (struct GNUNET_ARM_Operation);
     op->h = h;
     op->result_cont = cont;
@@ -883,8 +820,7 @@ GNUNET_ARM_request_service_start (struct GNUNET_ARM_Handle *h,
     GNUNET_CONTAINER_DLL_insert_tail (h->operation_pending_head,
                                       h->operation_pending_tail,
                                       op);
-    op->async = GNUNET_SCHEDULER_add_now (&notify_running,
-                                          op);
+    op->async = GNUNET_SCHEDULER_add_now (&notify_running, op);
     return op;
   }
   /* This is an inherently uncertain choice, as it is of course
@@ -893,10 +829,8 @@ GNUNET_ARM_request_service_start (struct GNUNET_ARM_Handle *h,
      are unlikely to hammer 'gnunet-arm -s' on a busy system,
      the above check should catch 99.99% of the cases where ARM
      is already running. */
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Starting ARM service\n");
-  ret = start_arm_service (h,
-                           std_inheritance);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Starting ARM service\n");
+  ret = start_arm_service (h, std_inheritance);
   if (GNUNET_ARM_RESULT_STARTING == ret)
     reconnect_arm (h);
   op = GNUNET_new (struct GNUNET_ARM_Operation);
@@ -907,8 +841,7 @@ GNUNET_ARM_request_service_start (struct GNUNET_ARM_Handle *h,
                                     h->operation_pending_tail,
                                     op);
   op->starting_ret = ret;
-  op->async = GNUNET_SCHEDULER_add_now (&notify_starting,
-                                        op);
+  op->async = GNUNET_SCHEDULER_add_now (&notify_starting, op);
   return op;
 }
 
@@ -929,15 +862,13 @@ GNUNET_ARM_request_service_start (struct GNUNET_ARM_Handle *h,
  */
 struct GNUNET_ARM_Operation *
 GNUNET_ARM_request_service_stop (struct GNUNET_ARM_Handle *h,
-				 const char *service_name,
-				 GNUNET_ARM_ResultCallback cont,
-				 void *cont_cls)
+                                 const char *service_name,
+                                 GNUNET_ARM_ResultCallback cont,
+                                 void *cont_cls)
 {
   struct GNUNET_ARM_Operation *op;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Stopping service `%s'\n",
-       service_name);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Stopping service `%s'\n", service_name);
   op = change_service (h,
                        service_name,
                        cont,
@@ -947,8 +878,7 @@ GNUNET_ARM_request_service_stop (struct GNUNET_ARM_Handle *h,
     return NULL;
   /* If the service is ARM, set a flag as we will use MQ errors
      to detect that the process is really gone. */
-  if (0 == strcasecmp (service_name,
-                       "arm"))
+  if (0 == strcasecmp (service_name, "arm"))
     op->is_arm_stop = GNUNET_YES;
   return op;
 }
@@ -971,8 +901,7 @@ GNUNET_ARM_request_service_list (struct GNUNET_ARM_Handle *h,
   struct GNUNET_MQ_Envelope *env;
   struct GNUNET_ARM_Message *msg;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Requesting LIST from ARM service\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Requesting LIST from ARM service\n");
   if (0 == h->request_id_counter)
     h->request_id_counter++;
   op = GNUNET_new (struct GNUNET_ARM_Operation);
@@ -983,12 +912,10 @@ GNUNET_ARM_request_service_list (struct GNUNET_ARM_Handle *h,
   GNUNET_CONTAINER_DLL_insert_tail (h->operation_pending_head,
                                     h->operation_pending_tail,
                                     op);
-  env = GNUNET_MQ_msg (msg,
-                       GNUNET_MESSAGE_TYPE_ARM_LIST);
+  env = GNUNET_MQ_msg (msg, GNUNET_MESSAGE_TYPE_ARM_LIST);
   msg->reserved = htonl (0);
   msg->request_id = GNUNET_htonll (op->id);
-  GNUNET_MQ_send (h->mq,
-                  env);
+  GNUNET_MQ_send (h->mq, env);
   return op;
 }
 

@@ -30,6 +30,7 @@
 manipulate GNUnet configuration files
 .Sh SYNOPSIS
 .Nm
+.Op Fl b Ar BACKEND | Fl \-supported-backend= Ns Ar BACKEND
 .Op Fl c Ar FILENAME | Fl \-config= Ns Ar FILENAME
 .Op Fl f | \-filename
 .Op Fl h | \-help
@@ -44,6 +45,8 @@ manipulate GNUnet configuration files
 .Nm
 can be used to read or modify GNUnet configuration files.
 .Bl -tag -width indent
+.It Fl b Ar BACKEND | Fl \-supported-backend= Ns Ar BACKEND
+Tests whether the specified BACKEND is supported by the current installation.  The backend must match the name of a plugin, i.e. "namestore_postgres" for the Postgres database backend of the "NAMESTORE" service. If the BACKEND is supported, gnunet-config will return a status code of 0 (success), otherwise 77 (unsupported).  When this option is specified, no other options may be specified. Specifying this option together with other options will cause gnunet-config to return a status code of 1 (error).
 .It Fl c Ar FILENAME | Fl \-config= Ns Ar FILENAME
 Use the configuration file FILENAME.
 .It Fl f | \-filename

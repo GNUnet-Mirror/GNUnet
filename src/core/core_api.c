@@ -341,6 +341,7 @@ core_mq_cancel_impl (struct GNUNET_MQ_Handle *mq, void *impl_state)
 {
   struct PeerRecord *pr = impl_state;
 
+  (void) mq;
   GNUNET_assert (NULL != pr->env);
   GNUNET_MQ_discard (pr->env);
   pr->env = NULL;
@@ -359,7 +360,8 @@ static void
 core_mq_error_handler (void *cls, enum GNUNET_MQ_Error error)
 {
   /* struct PeerRecord *pr = cls; */
-
+  (void) cls;
+  (void) error;
   GNUNET_break_op (0);
 }
 
@@ -530,6 +532,7 @@ check_notify_inbound (void *cls, const struct NotifyTrafficMessage *ntm)
   uint16_t msize;
   const struct GNUNET_MessageHeader *em;
 
+  (void) cls;
   msize = ntohs (ntm->header.size) - sizeof (struct NotifyTrafficMessage);
   if (msize < sizeof (struct GNUNET_MessageHeader))
   {
