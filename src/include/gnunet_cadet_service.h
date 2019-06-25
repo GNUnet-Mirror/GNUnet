@@ -279,6 +279,16 @@ GNUNET_CADET_receive_done (struct GNUNET_CADET_Channel *channel);
 const struct GNUNET_HashCode *
 GC_u2h (uint32_t port);
 
+enum GNUNET_CADET_ChannelInfoOption
+{
+  /**
+   * Who is the peer at the other end of the channel.
+   * Only for use in @c GNUNET_CADET_channel_get_info
+   * struct GNUNET_PeerIdentity *peer
+   */
+  GNUNET_CADET_OPTION_PEER = 0x0
+
+};
 
 /**
  * Union to retrieve info about a channel.
@@ -307,6 +317,7 @@ union GNUNET_CADET_ChannelInfo
  */
 const union GNUNET_CADET_ChannelInfo *
 GNUNET_CADET_channel_get_info (struct GNUNET_CADET_Channel *channel,
+			       enum GNUNET_CADET_ChannelInfoOption option,
                                ...);
 
 

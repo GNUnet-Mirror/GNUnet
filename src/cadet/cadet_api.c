@@ -32,17 +32,6 @@
 
 #define LOG(kind, ...) GNUNET_log_from (kind, "cadet-api", __VA_ARGS__)
 
-enum GNUNET_CADET_ChannelInfoOption
-{
-  /**
-   * Who is the peer at the other end of the channel.
-   * Only for use in @c GNUNET_CADET_channel_get_info
-   * struct GNUNET_PeerIdentity *peer
-   */
-  GNUNET_CADET_OPTION_PEER = 0x0
-
-};
-
 /**
  * Opaque handle to the service.
  */
