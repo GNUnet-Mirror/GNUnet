@@ -1120,13 +1120,7 @@ GNUNET_CADET_channel_create (struct GNUNET_CADET_Handle *h,
   msg->ccn = ch->ccn;
   msg->port = *port;
   msg->peer = *destination;
-<<<<<<< 17611641fe7da3d2711e1f20eaf2ee81faf0e702
-  msg->opt = htonl (options);
   GNUNET_MQ_send (h->mq, env);
-=======
-  GNUNET_MQ_send (h->mq,
-                  env);
->>>>>>> removed GNUNET_CADET_ChannelOption
   return ch;
 }
 
