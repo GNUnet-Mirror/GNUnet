@@ -741,6 +741,8 @@ handle_incoming_msg (void *cls,
   env = GNUNET_MQ_msg_nested_mh (cmsg,
                                  GNUNET_MESSAGE_TYPE_SET_REQUEST,
                                  op->context_msg);
+  GNUNET_MQ_env_set_options(env,
+			      GNUNET_MQ_PREF_RELIABLE);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Suggesting incoming request with accept id %u to listener %p of client %p\n",
               op->suggest_id,
@@ -1628,7 +1630,6 @@ handle_client_evaluate (void *cls,
                                              op,
                                              &msg->target_peer,
                                              &msg->app_id,
-                                             GNUNET_CADET_OPTION_RELIABLE,
                                              &channel_window_cb,
                                              &channel_end_cb,
                                              cadet_handlers);

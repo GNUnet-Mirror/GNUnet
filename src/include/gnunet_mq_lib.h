@@ -296,7 +296,22 @@ enum GNUNET_MQ_PriorityPreferences
   /**
    * Flag to indicate that out-of-order delivery is OK.
    */
-  GNUNET_MQ_PREF_OUT_OF_ORDER = 256
+  GNUNET_MQ_PREF_OUT_OF_ORDER = 256,
+
+  /**
+   * Flag to indicate no buffering.
+   */
+  GNUNET_MQ_PREF_NO_BUFFER = 512,
+
+  /**
+   * Flag to indicate default
+   */
+  GNUNET_MQ_PREF_DEFAULT = 1024,
+
+  /**
+   * Flag to indicate reliable 
+   */
+  GNUNET_MQ_PREF_RELIABLE = 2048
 
 };
 

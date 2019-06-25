@@ -39,14 +39,12 @@
 #include "gnunet_statistics_service.h"
 #include "cadet_protocol.h"
 
-
 #define LOG(level, ...) GNUNET_log_from(level,"cadet-cor",__VA_ARGS__)
 
 /**
  * Information we keep per direction for a route.
  */
 struct RouteDirection;
-
 
 /**
  * Set of CadetRoutes that have exactly the same number of messages
@@ -346,7 +344,8 @@ discard_all_from_rung_tail ()
 static void
 route_message (struct CadetPeer *prev,
                const struct GNUNET_CADET_ConnectionTunnelIdentifier *cid,
-               const struct GNUNET_MessageHeader *msg)
+               const struct GNUNET_MessageHeader *msg,
+	       const enum GNUNET_MQ_PriorityPreferences priority)
 {
   struct CadetRoute *route;
   struct RouteDirection *dir;
@@ -399,7 +398,7 @@ route_message (struct CadetPeer *prev,
   }
   /* Check if buffering is disallowed, and if so, make sure we only queue
      one message per direction. */
-  if ( (0 != (route->options & GNUNET_CADET_OPTION_NOBUFFER)) &&
+  if ( (0 != (priority & GNUNET_MQ_PREF_NO_BUFFER)) &&
        (NULL != dir->env_head) )
     discard_buffer (dir,
                     dir->env_head);
@@ -793,9 +792,7 @@ handle_connection_create (void *cls,
   uint16_t size = ntohs (msg->header.size) - sizeof (*msg);
   unsigned int path_length;
   unsigned int off;
-  enum GNUNET_CADET_ChannelOption options;
 
-  options = (enum GNUNET_CADET_ChannelOption) ntohl (msg->options);
   path_length = size / sizeof (struct GNUNET_PeerIdentity);
   if (0 == path_length)
   {
@@ -869,7 +866,8 @@ handle_connection_create (void *cls,
          GNUNET_sh2s (&msg->cid.connection_of_tunnel));
     route_message (sender,
                    &msg->cid,
-                   &msg->header);
+                   &msg->header,
+		   GNUNET_MQ_PRIO_CRITICAL_CONTROL);
     return;
   }
   if (off == path_length - 1)
@@ -901,7 +899,6 @@ handle_connection_create (void *cls,
         GCT_add_inbound_connection (GCP_get_tunnel (origin,
                                                     GNUNET_YES),
                                     &msg->cid,
-                                    (enum GNUNET_CADET_ChannelOption) ntohl (msg->options),
                                     path))
     {
       /* Send back BROKEN: duplicate connection on the same path,
@@ -956,7 +953,6 @@ handle_connection_create (void *cls,
        GNUNET_i2s (&pids[off + 1]),
        off + 1);
   route = GNUNET_new (struct CadetRoute);
-  route->options = options;
   route->cid = msg->cid;
   route->last_use = GNUNET_TIME_absolute_get ();
   dir_init (&route->prev,
@@ -985,7 +981,8 @@ handle_connection_create (void *cls,
   /* also pass CREATE message along to next hop */
   route_message (sender,
                  &msg->cid,
-                 &msg->header);
+                 &msg->header,
+		 GNUNET_MQ_PRIO_CRITICAL_CONTROL);
 }
 
 
@@ -1029,7 +1026,8 @@ handle_connection_create_ack (void *cls,
   /* We're just an intermediary peer, route the message along its path */
   route_message (peer,
                  &msg->cid,
-                 &msg->header);
+                 &msg->header,
+		 GNUNET_MQ_PRIO_CRITICAL_CONTROL);
 }
 
 
@@ -1077,7 +1075,8 @@ handle_connection_broken (void *cls,
   /* We're just an intermediary peer, route the message along its path */
   route_message (peer,
                  &msg->cid,
-                 &msg->header);
+                 &msg->header,
+		 GNUNET_MQ_PREF_NO_BUFFER);
   route = get_route (&msg->cid);
   if (NULL != route)
     destroy_route (route);
@@ -1130,7 +1129,8 @@ handle_connection_destroy (void *cls,
        GNUNET_sh2s (&msg->cid.connection_of_tunnel));
   route_message (peer,
                  &msg->cid,
-                 &msg->header);
+                 &msg->header,
+		 GNUNET_MQ_PREF_NO_BUFFER);
   route = get_route (&msg->cid);
   if (NULL != route)
     destroy_route (route);
@@ -1181,7 +1181,8 @@ handle_tunnel_kx (void *cls,
   /* We're just an intermediary peer, route the message along its path */
   route_message (peer,
                  &msg->cid,
-                 &msg->header);
+                 &msg->header,
+		 GNUNET_MQ_PRIO_CRITICAL_CONTROL);
 }
 
 
@@ -1223,7 +1224,8 @@ handle_tunnel_kx_auth (void *cls,
   /* We're just an intermediary peer, route the message along its path */
   route_message (peer,
                  &msg->kx.cid,
-                 &msg->kx.header);
+                 &msg->kx.header,
+		 GNUNET_MQ_PRIO_CRITICAL_CONTROL);
 }
 
 
@@ -1280,7 +1282,8 @@ handle_tunnel_encrypted (void *cls,
   /* We're just an intermediary peer, route the message along its path */
   route_message (peer,
                  &msg->cid,
-                 &msg->header);
+                 &msg->header,
+		 GNUNET_MQ_PRIO_CRITICAL_CONTROL);
 }
 
 
@@ -1401,13 +1404,13 @@ GCO_init (const struct GNUNET_CONFIGURATION_Handle *c)
                                              "CADET",
                                              "MAX_ROUTES",
                                              &max_routes))
-    max_routes = 5000;
+  max_routes = 5000;
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_number (c,
                                              "CADET",
                                              "MAX_MSGS_QUEUE",
                                              &max_buffers))
-    max_buffers = 10000;
+  max_buffers = 10000;
   routes = GNUNET_CONTAINER_multishortmap_create (1024,
                                                   GNUNET_NO);
   route_heap = GNUNET_CONTAINER_heap_create (GNUNET_CONTAINER_HEAP_ORDER_MIN);

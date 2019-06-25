@@ -634,6 +634,8 @@ send_alices_cryptodata_message (struct AliceServiceSession *s)
     e = GNUNET_MQ_msg_extra (msg,
                              todo_count * 2 * sizeof (struct GNUNET_CRYPTO_EccPoint),
                              GNUNET_MESSAGE_TYPE_SCALARPRODUCT_ECC_ALICE_CRYPTODATA);
+    GNUNET_MQ_env_set_options(e,
+			      GNUNET_MQ_PREF_RELIABLE);
     msg->contained_element_count = htonl (todo_count);
     payload = (struct GNUNET_CRYPTO_EccPoint *) &msg[1];
     r_ia = gcry_mpi_new (0);
@@ -837,7 +839,6 @@ client_request_complete_alice (struct AliceServiceSession *s)
                                    s,
                                    &s->peer,
                                    &s->session_id,
-                                   GNUNET_CADET_OPTION_RELIABLE,
                                    NULL,
                                    &cb_channel_destruction,
                                    cadet_handlers);
@@ -865,6 +866,8 @@ client_request_complete_alice (struct AliceServiceSession *s)
 
   e = GNUNET_MQ_msg (msg,
                      GNUNET_MESSAGE_TYPE_SCALARPRODUCT_ECC_SESSION_INITIALIZATION);
+  GNUNET_MQ_env_set_options(e,
+			      GNUNET_MQ_PREF_RELIABLE);
   msg->session_id = s->session_id;
   GNUNET_MQ_send (s->cadet_mq,
                   e);
