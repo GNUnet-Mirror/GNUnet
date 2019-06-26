@@ -175,7 +175,7 @@ The following example configures the installation prefix
 @example
 $ cd ~/gnunet
 $ ./bootstrap
-$ configure --prefix=/usr/lib --disable-configuration
+$ configure --prefix=/usr/lib --disable-documentation
 @end example
 
 After running the bootstrap script and @code{configure} successfully
