@@ -6,6 +6,16 @@ source. For instructions on how to install GNUnet as a binary package
 please refer to the official documentation of your operating system or
 package manager.
 
+For understanding this guide properly it is important to know that
+there are two different ways of running GNUnet:
+
+* Running the @emph{user services only}
+* Running both @emph{user and system services}
+
+The latter variant has a better security model and requires extra preparation
+before running @code{make install} and a different configuration. Beginners who want to
+quickly try out GNUnet can use the @emph{user services only} variant.
+
 @menu
 * Installing dependencies::
 * Getting the Source Code::
@@ -125,22 +135,37 @@ In the next chapter we will assume that the source code is available
 in the home directory at @code{~/gnunet}.
 
 @c -----------------------------------------------------------------------
-@node Create @code{gnunet} user and group
-@section Create @code{gnunet} user and group
-The GNUnet services should be run as a dedicated user called
-@code{gnunet}. For using them a user should be in the same group as
-this system user.
+@node Create user and groups for the GNUnet services
+@section Create user and groups for the GNUnet services
 
-Create user @code{gnunet} who is member of the group @code{gnunet} and
-specify a home directory where the GNUnet services will store
-persistant data such as information about peers.
+@cartouche{If only user services shall be used this section can be skipped}.
+
+For using both user and system services, a dedicated user called @code{gnunet}
+is needed. The system services will run as that user and the user services
+will communicate with them over unix domain sockets. That's why the user
+running GNUnet applications will need to be in the @code{gnunet} group.
+In addition the group @code{gnunetdns} may be needed (see below).
+
+Create user @code{gnunet} who is member of the group @code{gnunet}
+(automatically created) and specify a home directory where the GNUnet
+services will store persistant data such as information about peers.
 @example
-$ sudo useradd --system --groups gnunet --home-dir /var/lib/gnunet
+$ sudo useradd --system --home-dir /var/lib/gnunet --create-home gnunet
 @end example
 
 Now add your own user to the @code{gnunet} group.
+
 @example
-$ sudo adduser alice gnunet
+$ sudo usermod -aG gnunet alice
+@end example
+
+Create a group @code{gnunetdns}. This allows using @code{setgid} in a way
+that only the DNS service can run the @code{gnunet-helper-dns} binary. This 
+is only needed if @emph{system-wide DNS interception} will be used. For more
+information see @xref{Configuring system-wide DNS interception}.
+
+@example
+$ sudo groupadd gnunetdns
 @end example
 
 @c -----------------------------------------------------------------------
@@ -190,12 +215,18 @@ $ make -j5
 @section Installation
 The compiled binaries can be installed using @code{make install}. It
 needs to be run as root (or with sudo) because some binaries need the
-@code{suid} bit set. Without that some GNUnet subsystems (such as VPN)
-will not work.
+@code{suid} bit set. Without that some features (e.g. the VPN service,
+system-wide DNS interception, NAT traversal using ICMP) will not work.
 
 @example
 $ sudo make install
 @end example
+
+@node Extra Installation step: NSS plugin
+
+@cartouche{The installation of the NSS plugin can be skipped if GNS 
+	   resolution shall be used with legacy applications (that only
+	   support DNS).}
 
 One important library is the GNS plugin for NSS (the name services
 switch) which allows using GNS (the GNU name system) in the normal DNS
@@ -234,29 +265,32 @@ The exact details may differ a bit, which is fine. Add the text
 hosts: files gns [NOTFOUND=return] mdns4_minimal [NOTFOUND=return] dns mdns4
 @end example
 
-Optionally, if GNS shall be used with a browser, execute the GNS
-CA-setup script. It will isetup the GNS Certificate Authority with the
-user's browser.
+@node Extra installation step: installing the GNS Certificate Authority
+@subsection Extra installation step: installing the GNS Certificate Authority
+
+@cartouche{Installing the GNS certificate authority is only necessary if GNS shall
+	   be used in a browser.}
+
+The GNS Certificate authority can provide TLS certificates for GNS names while
+downloading webpages from legacy webservers. This allows browsers to use HTTPS
+in combinations with GNS name resolution. 
+
+To install it execute the GNS CA-setup script. So far Firefox and Chromium are
+supported.
+
 @example
 $ gnunet-gns-proxy-setup-ca
 @end example
 
-Finally install a configuration file in
-@code{~/.config/gnunet.conf}. Below you find an example config which
-allows you to start GNUnet.
+A local proxy server, that takes care of the name resolution and provides
+certificates on-the-fly needs to be started:
 
 @example
-[arm]
-SYSTEM_ONLY = NO
-USER_ONLY = NO
-
-[transport]
-PLUGINS = tcp
+$ /usr/lib/gnunet/libexec/gnunet-gns-proxy
 @end example
 
-
-
-
+Now GNS should work in browsers that are configured to use a SOCKS proxy on
+@code{localhost:7777}.
 
 
 @node Checking the Installation
