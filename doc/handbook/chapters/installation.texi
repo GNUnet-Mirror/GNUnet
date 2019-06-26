@@ -229,7 +229,8 @@ system-wide DNS interception, NAT traversal using ICMP) will not work.
 $ sudo make install
 @end example
 
-@node Extra Installation step: NSS plugin
+@node Extra installation step: NSS plugin
+@subsection Extra installation step: NSS plugin
 
 @cartouche
 The installation of the NSS plugin is only necessary if GNS
