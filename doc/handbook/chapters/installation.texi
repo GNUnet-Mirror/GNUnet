@@ -9,8 +9,10 @@ package manager.
 For understanding this guide properly it is important to know that
 there are two different ways of running GNUnet:
 
-* the @emph{single-user setup}
-* the @emph{multi-user setup}
+@itemize @bullet
+@item the @emph{single-user setup}
+@item the @emph{multi-user setup}
+@end itemize
 
 The latter variant has a better security model and requires extra preparation
 before running @code{make install} and a different configuration. Beginners who want to
