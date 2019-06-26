@@ -9,12 +9,12 @@ package manager.
 For understanding this guide properly it is important to know that
 there are two different ways of running GNUnet:
 
-* Running the @emph{user services only}
-* Running both @emph{user and system services}
+* the @emph{single-user setup}
+* the @emph{multi-user setup}
 
 The latter variant has a better security model and requires extra preparation
 before running @code{make install} and a different configuration. Beginners who want to
-quickly try out GNUnet can use the @emph{user services only} variant.
+quickly try out GNUnet can use the @emph{single-user setup}.
 
 @menu
 * Installing dependencies::
@@ -139,13 +139,17 @@ in the home directory at @code{~/gnunet}.
 @node Create user and groups for the system services
 @section Create user and groups for the system services
 
-@cartouche{If only user services shall be used this section can be skipped}.
+@cartouche
+For the single-user setup this section can be skipped.
+@end cartouche
 
-For using both user and system services, a dedicated user called @code{gnunet}
-is needed. The system services will run as that user and the user services
-will communicate with them over unix domain sockets. That's why the user
-running GNUnet applications will need to be in the @code{gnunet} group.
-In addition the group @code{gnunetdns} may be needed (see below).
+The multi-user setup means that there are @emph{system services}, which are
+run once per machine as a dedicated system user (called @code{gnunet}) and
+@emph{user services} which can be started by every user who wants to use
+GNUnet applications. The user services communicate with the system services
+over unix domain sockets. To gain permissions to read and write those sockets
+the users running GNUnet applications will need to be in the @code{gnunet}
+group. In addition the group @code{gnunetdns} may be needed (see below).
 
 Create user @code{gnunet} who is member of the group @code{gnunet}
 (automatically created) and specify a home directory where the GNUnet
@@ -225,9 +229,11 @@ $ sudo make install
 
 @node Extra Installation step: NSS plugin
 
-@cartouche{The installation of the NSS plugin can be skipped if GNS 
-	   resolution shall be used with legacy applications (that only
-	   support DNS).}
+@cartouche
+The installation of the NSS plugin can be skipped if GNS 
+resolution shall be used with legacy applications (that only
+support DNS).
+@end cartouche
 
 One important library is the GNS plugin for NSS (the name services
 switch) which allows using GNS (the GNU name system) in the normal DNS
@@ -269,8 +275,10 @@ hosts: files gns [NOTFOUND=return] mdns4_minimal [NOTFOUND=return] dns mdns4
 @node Extra installation step: installing the GNS Certificate Authority
 @subsection Extra installation step: installing the GNS Certificate Authority
 
-@cartouche{Installing the GNS certificate authority is only necessary if GNS shall
-	   be used in a browser.}
+@cartouche
+Installing the GNS certificate authority is only necessary if GNS shall
+be used in a browser.
+@end cartouche
 
 The GNS Certificate authority can provide TLS certificates for GNS names while
 downloading webpages from legacy webservers. This allows browsers to use HTTPS
@@ -296,7 +304,31 @@ Now GNS should work in browsers that are configured to use a SOCKS proxy on
 
 @node Minimal configuration
 @section Minimal configuration
-TBD
+GNUnet needs a configuration file to start. For the @emph{single-user setup}
+an empty file is sufficient:
+
+@example
+$ touch ~/.config/gnunet.conf
+@end example
+
+For the @emph{multi-user setup} we need an extra config file for the system
+services. The default location is @code{/etc/gnunet.conf}. The minimal
+content of that file which activates the system services roll is:
+
+@example
+[arm]
+START_SYSTEM_SERVICES = YES
+START_USER_SERVICES = NO
+@end example
+
+The config file for the user services (@code{~/.config/gnunet.conf}) needs
+the opposite configuration to activate the user services roll:
+
+@example
+[arm]
+START_SYSTEM_SERVICES = NO
+START_USER_SERVICES = YES
+@end example
 
 
 @node Checking the Installation
@@ -313,14 +345,66 @@ as part of this handbook!.
 
 
 @menu
+* Starting GNUnet::
 * gnunet-gtk::
 * Statistics::
 * Peer Information::
 @end menu
 
+@cindex Starting GNUnet
 @cindex GNUnet GTK
 @cindex GTK
 @cindex GTK user interface
+
+@node Starting GNUnet
+@subsection Starting GNUnet
+The GNUnet services are started and stopped by the ARM service (Automatic
+Restart Manager). For the @emph{single-user setup} a simple 
+
+@example
+$ gnunet-arm -s
+@end example
+
+starts a default set of services. Later GNUnet applications can request more
+services to start without additional user interaction. GNUnet can be stopped
+again using the @code{gnunet-arm}'s @code{-e} option.
+
+The list of running services can be displayed using the @code{-I} option.
+It should look similar to this example:
+
+@example
+$ gnunet-arm -I
+Running services:
+topology (gnunet-daemon-topology)
+nat (gnunet-service-nat)
+vpn (gnunet-service-vpn)
+gns (gnunet-service-gns)
+cadet (gnunet-service-cadet)
+namecache (gnunet-service-namecache)
+hostlist (gnunet-daemon-hostlist)
+revocation (gnunet-service-revocation)
+ats (gnunet-service-ats)
+peerinfo (gnunet-service-peerinfo)
+zonemaster (gnunet-service-zonemaster)
+zonemaster-monitor (gnunet-service-zonemaster-monitor)
+dht (gnunet-service-dht)
+namestore (gnunet-service-namestore)
+set (gnunet-service-set)
+statistics (gnunet-service-statistics)
+nse (gnunet-service-nse)
+fs (gnunet-service-fs)
+peerstore (gnunet-service-peerstore)
+core (gnunet-service-core)
+rest (gnunet-rest-server)
+transport (gnunet-service-transport)
+datastore (gnunet-service-datastore)
+@end example
+
+For the @emph{multi-user setup} first the system services need to be started
+as the system user, i.e. the user @code{gnunet} needs to execute
+@code{gnunet-arm -s}. This should be done by the system's init system.
+
+
 @node gnunet-gtk
 @subsection gnunet-gtk
 

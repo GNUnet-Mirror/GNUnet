@@ -119,7 +119,7 @@ Key Concepts
 Installing GNUnet
 * Installing dependencies::
 * Getting the Source Code::
-* Create @code{gnunet} user and group::
+* Create user and groups for the system services::
 * Preparing and Compiling the Source Code::
 * Installation::
 * Checking the Installation::
