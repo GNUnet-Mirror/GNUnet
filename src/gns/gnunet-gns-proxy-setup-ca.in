@@ -181,11 +181,7 @@ generate_ca()
 
 importbrowsers()
 {
-    # Don't check with -H, -H defies any method to not
-    # print the output on screen! Let's hope that every
-    # certutil gets build with some kind of build flags
-    # which end up being printed here:
-    if test -z "`certutil --build-flags`" > /dev/null 2>&1
+    if test -z "`command -v certutil`" > /dev/null 2>&1
     then
         warningmsg "The 'certutil' command was not found."
         warningmsg "Not importing into browsers."
