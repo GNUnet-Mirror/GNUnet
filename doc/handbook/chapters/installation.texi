@@ -344,7 +344,7 @@ steps for recovery --- for this, please study the instructions
 provided in the developer handbook as well as the system-specific
 instruction in the source code repository.
 Please note that the system specific instructions are not provided
-as part of this handbook!.
+as part of this handbook!
 
 
 @menu
