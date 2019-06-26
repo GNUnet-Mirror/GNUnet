@@ -232,7 +232,7 @@ $ sudo make install
 @node Extra Installation step: NSS plugin
 
 @cartouche
-The installation of the NSS plugin can be skipped if GNS 
+The installation of the NSS plugin is only necessary if GNS
 resolution shall be used with legacy applications (that only
 support DNS).
 @end cartouche
@@ -369,7 +369,11 @@ $ gnunet-arm -s
 
 starts a default set of services. Later GNUnet applications can request more
 services to start without additional user interaction. GNUnet can be stopped
-again using the @code{gnunet-arm}'s @code{-e} option.
+again using the @code{-e} option:
+
+@example
+$ gnunet-arm -e
+@end example
 
 The list of running services can be displayed using the @code{-I} option.
 It should look similar to this example:
