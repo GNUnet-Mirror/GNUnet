@@ -19,9 +19,10 @@ quickly try out GNUnet can use the @emph{user services only} variant.
 @menu
 * Installing dependencies::
 * Getting the Source Code::
-* Create @code{gnunet} user and group::
+* Create user and groups for the system services::
 * Preparing and Compiling the Source Code::
 * Installation::
+* Minimal configuration::
 * Checking the Installation::
 * The graphical configuration interface::
 * Config Leftovers::
@@ -135,8 +136,8 @@ In the next chapter we will assume that the source code is available
 in the home directory at @code{~/gnunet}.
 
 @c -----------------------------------------------------------------------
-@node Create user and groups for the GNUnet services
-@section Create user and groups for the GNUnet services
+@node Create user and groups for the system services
+@section Create user and groups for the system services
 
 @cartouche{If only user services shall be used this section can be skipped}.
 
@@ -291,6 +292,11 @@ $ /usr/lib/gnunet/libexec/gnunet-gns-proxy
 
 Now GNS should work in browsers that are configured to use a SOCKS proxy on
 @code{localhost:7777}.
+
+
+@node Minimal configuration
+@section Minimal configuration
+TBD
 
 
 @node Checking the Installation
