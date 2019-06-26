@@ -242,7 +242,7 @@ $ gnunet-gns-proxy-setup-ca
 @end example
 
 Finally install a configuration file in
-@code{~/.gnunet/gnunet.conf}. Below you find an example config which
+@code{~/.config/gnunet.conf}. Below you find an example config which
 allows you to start GNUnet.
 
 @example
