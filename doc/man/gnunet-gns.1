@@ -62,6 +62,10 @@ Defaults to "A".
 .It Fl u Ar NAME | Fl \-lookup= Ns Ar NAME
 Name to lookup.
 Resolve the specified name using the GNU Name System.
+.It Fl T Ar TIMEOUT | Fl \-timeout= Ns Ar TIMEOUT
+How much time to wait for a resolution to finish.
+Example: "5s" for 5 seconds or "3m" for 3 minutes.
+Defaults to "forver" (No timeout).
 .It Fl v | \-version
 Print GNUnet version number.
 .El
