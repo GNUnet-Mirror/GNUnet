@@ -60,6 +60,16 @@ static int raw;
 static uint32_t rtype;
 
 /**
+ * Timeout for lookup
+ */
+static struct GNUNET_TIME_Relative timeout;
+
+/**
+ * Timeout task
+ */
+static struct GNUNET_SCHEDULER_Task *to_task;
+
+/**
  * Handle to lookup request
  */
 static struct GNUNET_GNS_LookupWithTldRequest *lr;
@@ -83,6 +93,11 @@ static void
 do_shutdown (void *cls)
 {
   (void) cls;
+  if (NULL != to_task)
+  {
+    GNUNET_SCHEDULER_cancel (to_task);
+    to_task = NULL;
+  }
   if (NULL != lr)
   {
     GNUNET_GNS_lookup_with_tld_cancel (lr);
@@ -95,6 +110,18 @@ do_shutdown (void *cls)
   }
 }
 
+/**
+ * Task to run on timeout
+ *
+ * @param cls unused
+ */
+static void
+do_timeout (void* cls)
+{
+  to_task = NULL;
+  global_ret = 3; //Timeout
+  GNUNET_SCHEDULER_shutdown ();
+}
 
 /**
  * Function called with the result of a GNS lookup.
@@ -173,12 +200,14 @@ run (void *cls,
   (void) cfgfile;
 
   cfg = c;
+  to_task = NULL;
   if (GNUNET_OK != GNUNET_DNSPARSER_check_name (lookup_name))
   {
     fprintf (stderr, _ ("`%s' is not a valid domain name\n"), lookup_name);
     global_ret = 3;
     return;
   }
+  to_task = GNUNET_SCHEDULER_add_delayed (timeout, &do_timeout, NULL);
   gns = GNUNET_GNS_connect (cfg);
   if (NULL == gns)
   {
@@ -221,6 +250,7 @@ run (void *cls,
 int
 main (int argc, char *const *argv)
 {
+  timeout = GNUNET_TIME_UNIT_FOREVER_REL;
   struct GNUNET_GETOPT_CommandLineOption options[] =
     {GNUNET_GETOPT_option_mandatory (
        GNUNET_GETOPT_option_string ('u',
@@ -235,6 +265,12 @@ main (int argc, char *const *argv)
                                   gettext_noop (
                                     "Specify the type of the record to lookup"),
                                   &lookup_type),
+     GNUNET_GETOPT_option_relative_time ('T',
+                                         "timeout",
+                                         "TIMEOUT",
+                                         gettext_noop (
+                                           "Specify a timeout for the lookup"),
+                                         &timeout),
      GNUNET_GETOPT_option_flag ('r',
                                 "raw",
                                 gettext_noop ("No unneeded output"),
