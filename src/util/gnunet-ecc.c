@@ -96,8 +96,7 @@ create_keys (const char *fn, const char *prefix)
   }
   if (NULL != prefix)
   {
-    GNUNET_strlcpy (vanity, prefix, sizeof (vanity));
-    len = GNUNET_MIN (strlen (prefix), KEY_STR_LEN);
+    len = GNUNET_strlcpy (vanity, prefix, sizeof (vanity));
     n = len * 5 / 8;
     rest = len * 5 % 8;
 
