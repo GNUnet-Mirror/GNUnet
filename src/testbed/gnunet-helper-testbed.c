@@ -374,10 +374,9 @@ tokenizer_cb (void *cls,
   if (0 != hostname_size)
   {
     hostname = GNUNET_malloc (hostname_size + 1);
-    /* intentionally use strncpy (hostname not null terminated) */
-    (void) strncpy (hostname, ((char *) &msg[1]) + trusted_ip_size + 1,
-                    hostname_size);
-    hostname[hostname_size] = '\0';
+    GNUNET_strlcpy (hostname,
+                    ((char *) &msg[1]) + trusted_ip_size + 1,
+                    hostname_size + 1);
   }
   /* unset GNUNET_TESTING_PREFIX if present as it is more relevant for testbed */
   evstr = getenv (GNUNET_TESTING_PREFIX);

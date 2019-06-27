@@ -749,9 +749,6 @@ resolve_interface_name ()
           /*
            * we have successfully found OUR instance,
            * save the device GUID before exiting
-           *
-           * We can use GNUNET_strlcpy here because instance key is null-
-           * terminated by RegEnumKeyExA.
            */
           GNUNET_strlcpy (device_guid, instance_key, sizeof (device_guid));
           retval = TRUE;

@@ -541,15 +541,11 @@ handle_add_host (void *cls,
   if (0 != username_length)
   {
     username = GNUNET_malloc (username_length + 1);
-    /* intentionally use strncpy (message payload is not null terminated) */
-    strncpy (username, ptr, username_length);
+    GNUNET_strlcpy (username, ptr, username_length + 1);
     ptr += username_length;
   }
   hostname = GNUNET_malloc (hostname_length + 1);
-  /* intentionally use strncpy (message payload is not null terminated) */
-  strncpy (hostname,
-           ptr,
-           hostname_length);
+  GNUNET_strlcpy (hostname, ptr, hostname_length + 1);
   if (NULL == (host_cfg = GNUNET_TESTBED_extract_config_ (&msg->header)))
   {
     GNUNET_free_non_null (username);
