@@ -826,8 +826,7 @@ GNUNET_STRINGS_absolute_time_to_string (struct GNUNET_TIME_Absolute t)
         (uint8_t *) buf, &ssize);
     if (conved != (uint8_t *) buf)
     {
-      strncpy (buf, (char *) conved, sizeof (buf));
-      buf[255 - 1] = '\0';
+      GNUNET_strlcpy (buf, (char *) conved, sizeof (buf));
       free (conved);
     }
   }
