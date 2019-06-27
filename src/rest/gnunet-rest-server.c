@@ -441,8 +441,8 @@ create_response (void *cls,
     //Handle Preflights
     if (GNUNET_YES == echo_origin)
     {
-      GNUNET_CRYPTO_hash (MHD_HTTP_HEADER_ORIGIN,
-                          strlen (MHD_HTTP_HEADER_ORIGIN),
+      GNUNET_CRYPTO_hash ("origin",
+                          strlen ("origin"),
                           &key);
       origin = GNUNET_CONTAINER_multihashmap_get (con_handle->data_handle
                                                     ->header_param_map,
