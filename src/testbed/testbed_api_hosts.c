@@ -462,6 +462,9 @@ GNUNET_TESTBED_hosts_load_from_file (const char *filename,
       {
         size = pmatch[2].rm_eo - pmatch[2].rm_so;
         username = GNUNET_malloc (size + 1);
+        /*
+         * Intentionally use strncpy (buf is not necessarily null-terminated)
+         */
         username[size] = '\0';
         GNUNET_assert (NULL != strncpy (username, buf + pmatch[2].rm_so, size));
       }
@@ -471,6 +474,9 @@ GNUNET_TESTBED_hosts_load_from_file (const char *filename,
       }
       size = pmatch[3].rm_eo - pmatch[3].rm_so;
       hostname = GNUNET_malloc (size + 1);
+      /*
+       * Intentionally use strncpy (buf is not necessarily null-terminated)
+       */
       hostname[size] = '\0';
       GNUNET_assert (NULL != strncpy (hostname, buf + pmatch[3].rm_so, size));
       LOG (GNUNET_ERROR_TYPE_DEBUG,

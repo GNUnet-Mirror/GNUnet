@@ -1908,9 +1908,9 @@ handle_remote_overlay_connect (void *cls,
   rocc->a_id = msg->peer_identity;
   GNUNET_TESTING_peer_get_identity (peer->details.local.peer,
                                     &pid);
-  (void) strncpy (pid_str,
-                  GNUNET_i2s (&pid),
-                  15);
+  (void) GNUNET_strlcpy (pid_str,
+                         GNUNET_i2s (&pid),
+                         sizeof (pid_str));
   LOG_DEBUG ("0x%llx: Remote overlay connect %s to peer %s with hello size: %u\n",
              rocc->op_id,
              pid_str,

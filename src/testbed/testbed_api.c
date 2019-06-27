@@ -2014,6 +2014,7 @@ GNUNET_TESTBED_create_helper_init_msg_ (const char *trusted_ip,
   msg->config_size = htons (config_size);
   (void) strcpy ((char *) &msg[1], trusted_ip);
   if (0 != hostname_len)
+    /* intentionally use strncpy (no null byte needed) */
     (void) strncpy (((char *) &msg[1]) + trusted_ip_len + 1, hostname,
                     hostname_len);
   return msg;

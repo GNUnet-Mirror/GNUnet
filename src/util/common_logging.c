@@ -1082,11 +1082,11 @@ mylog (enum GNUNET_ErrorType kind,
       return;
     }
     flush_bulk (date);
-    strncpy (last_bulk, buf, sizeof (last_bulk));
+    GNUNET_strlcpy (last_bulk, buf, sizeof (last_bulk));
     last_bulk_repeat = 0;
     last_bulk_kind = kind;
     last_bulk_time = GNUNET_TIME_absolute_get ();
-    strncpy (last_bulk_comp, comp, COMP_TRACK_SIZE);
+    GNUNET_strlcpy (last_bulk_comp, comp, sizeof (last_bulk_comp));
     output_message (kind, comp, date, buf);
   }
 }
@@ -1364,9 +1364,8 @@ GNUNET_i2s (const struct GNUNET_PeerIdentity *pid)
   if (NULL == pid)
     return "NULL";
   ret = GNUNET_CRYPTO_eddsa_public_key_to_string (&pid->public_key);
-  strncpy (buf, ret, sizeof (buf) - 1);
+  GNUNET_strlcpy (buf, ret, sizeof (buf));
   GNUNET_free (ret);
-  buf[4] = '\0';
   return buf;
 }
 
@@ -1390,9 +1389,8 @@ GNUNET_i2s2 (const struct GNUNET_PeerIdentity *pid)
   if (NULL == pid)
     return "NULL";
   ret = GNUNET_CRYPTO_eddsa_public_key_to_string (&pid->public_key);
-  strncpy (buf, ret, sizeof (buf) - 1);
+  GNUNET_strlcpy (buf, ret, sizeof (buf));
   GNUNET_free (ret);
-  buf[4] = '\0';
   return buf;
 }
 

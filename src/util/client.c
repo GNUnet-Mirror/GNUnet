@@ -532,9 +532,9 @@ try_unixpath (const char *service_name,
             0,
             sizeof (s_un));
     s_un.sun_family = AF_UNIX;
-    strncpy (s_un.sun_path,
-             unixpath,
-             sizeof (s_un.sun_path) - 1);
+    GNUNET_strlcpy (s_un.sun_path,
+                    unixpath,
+                    sizeof (s_un.sun_path));
 #ifdef LINUX
     {
       int abstract;

@@ -76,7 +76,7 @@ const char * SOCKS5_REP_names(int rep)
 
 /**
  * Encode a string for the SOCKS5 protocol by prefixing it a byte stating its
- * length and stipping the trailing zero byte.  Truncates any string longer
+ * length and stripping the trailing zero byte.  Truncates any string longer
  * than 255 bytes.
  *
  * @param b buffer to contain the encoded string
@@ -96,7 +96,10 @@ SOCK5_proto_string(unsigned char * b,
     l=255;
   }
   *(b++) = (unsigned char) l;
-  strncpy ((char *)b, s, l);
+  /*
+   * intentionally use strncpy (trailing zero byte must be stripped in b)
+   */
+  strncpy ((char*)b, s, l);
   return b+l;
 }
 
@@ -489,7 +492,7 @@ GNUNET_SOCKS_init_handshake_noauth ()
  */
 void
 GNUNET_SOCKS_set_handshake_destination (struct GNUNET_SOCKS_Handshake *ih,
-                                         const char *host, uint16_t port)
+                                        const char *host, uint16_t port)
 {
   union {
     struct in_addr in4;

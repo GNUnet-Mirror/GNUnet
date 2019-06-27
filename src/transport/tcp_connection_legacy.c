@@ -901,7 +901,7 @@ GNUNET_CONNECTION_create_from_connect_to_unixpath (const struct GNUNET_CONFIGURA
   GNUNET_assert (0 < strlen (unixpath));        /* sanity check */
   un = GNUNET_new (struct sockaddr_un);
   un->sun_family = AF_UNIX;
-  strncpy (un->sun_path, unixpath, sizeof (un->sun_path) - 1);
+  GNUNET_strlcpy (un->sun_path, unixpath, sizeof (un->sun_path));
 #ifdef LINUX
   {
     int abstract;

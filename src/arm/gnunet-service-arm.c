@@ -290,7 +290,7 @@ add_unixpath (struct sockaddr **saddrs,
 
   un = GNUNET_new (struct sockaddr_un);
   un->sun_family = AF_UNIX;
-  strncpy (un->sun_path, unixpath, sizeof (un->sun_path) - 1);
+  GNUNET_strlcpy (un->sun_path, unixpath, sizeof (un->sun_path));
 #ifdef LINUX
   if (GNUNET_YES == abstract)
     un->sun_path[0] = '\0';

@@ -392,7 +392,10 @@ regex_split (struct RegexCombineCtx *ctx,
   char *suffix;
 
   suffix = GNUNET_malloc (len - prefix_l + 1);
-  strncpy (suffix, &ctx->s[prefix_l], len - prefix_l + 1);
+  /*
+   * We can use GNUNET_strlcpy because ctx->s is null-terminated
+   */
+  GNUNET_strlcpy (suffix, &ctx->s[prefix_l], len - prefix_l + 1);
 
   /* Suffix saved, truncate current node so it only contains the prefix,
    * copy any children nodes to put as grandchildren and initialize new empty

@@ -256,11 +256,10 @@ GCP_2s (const struct CadetPeer *cp)
     return "NULL";
   
   
-  strncpy (buf,
-           ret,
-           sizeof (buf) - 1);
+  GNUNET_strlcpy (buf,
+                  ret,
+                  sizeof (buf));
   GNUNET_free (ret);
-  buf[4] = '\0';
   return buf;
 }
 
