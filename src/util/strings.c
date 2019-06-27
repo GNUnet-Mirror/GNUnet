@@ -203,6 +203,36 @@ GNUNET_STRINGS_byte_size_fancy (unsigned long long size)
 
 
 /**
+ * Like strlcpy but portable. The given string @a src is copied in full length
+ * (until its null byte). The destination buffer is guaranteed to be
+ * null-terminated.
+ *
+ * to a destination buffer
+ * and ensures that the destination string is null-terminated.
+ *
+ * @param dst destination of the copy
+ * @param src source of the copy, must be null-terminated
+ * @param n the length of the string to copy, including its terminating null
+ *          byte
+ * @return the length of the string that was copied, excluding the terminating
+ * 	   null byte
+ */
+size_t
+GNUNET_strlcpy(char *dst, const char *src, size_t n)
+{
+  size_t ret;
+  size_t slen;
+
+  GNUNET_assert (0 != n);
+  ret = strlen (src);
+  slen = GNUNET_MIN (ret, n - 1);
+  memcpy (dst, src, slen);
+  dst[slen] = '\0';
+  return ret;
+}
+
+
+/**
  * Unit conversion table entry for 'convert_with_table'.
  */
 struct ConversionTable

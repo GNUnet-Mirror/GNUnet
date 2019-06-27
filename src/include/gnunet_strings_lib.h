@@ -541,6 +541,25 @@ GNUNET_STRINGS_get_utf8_args (int argc,
                               char *const **u8argv);
 
 
+/**
+ * Like strlcpy but portable. The given string @a src is copied in full length
+ * (until its null byte). The destination buffer is guaranteed to be
+ * null-terminated.
+ *
+ * to a destination buffer
+ * and ensures that the destination string is null-terminated.
+ *
+ * @param dst destination of the copy
+ * @param src source of the copy, must be null-terminated
+ * @param n the length of the string to copy, including its terminating null
+ *          byte
+ * @return the length of the string that was copied, excluding the terminating
+ * 	   null byte
+ */
+size_t
+GNUNET_strlcpy(char *dst, const char *src, size_t n);
+
+
 /* ***************** IPv4/IPv6 parsing ****************** */
 
 struct GNUNET_STRINGS_PortPolicy
@@ -639,7 +658,6 @@ GNUNET_STRINGS_parse_ipv4_policy (const char *routeListX);
  */
 struct GNUNET_STRINGS_IPv6NetworkPolicy *
 GNUNET_STRINGS_parse_ipv6_policy (const char *routeListX);
-
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */
