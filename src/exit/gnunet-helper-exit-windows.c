@@ -1536,7 +1536,6 @@ main (int argc, char **argv)
     }
 
   GNUNET_strlcpy (hwid, argv[1], sizeof (hwid));
-  hwid[LINE_LEN - 1] = '\0';
 
   /*
    * We use our PID for finding/resolving the control-panel name of our virtual
