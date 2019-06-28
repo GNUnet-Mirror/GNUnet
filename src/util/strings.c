@@ -217,7 +217,6 @@ GNUNET_STRINGS_byte_size_fancy (unsigned long long size)
 size_t
 GNUNET_strlcpy(char *dst, const char *src, size_t n)
 {
-  size_t ret;
   size_t slen;
 
   GNUNET_assert (0 != n);
