@@ -168,6 +168,11 @@ struct TicketIssueHandle
    * QueueEntry
    */
   struct GNUNET_NAMESTORE_QueueEntry *ns_qe;
+  
+  /**
+   * Namestore Iterator
+   */
+  struct GNUNET_NAMESTORE_ZoneIterator *ns_it;
 
   /**
    * Callback
@@ -1013,6 +1018,94 @@ issue_ticket (struct TicketIssueHandle *ih)
   GNUNET_free (label);
 }
 
+/*************************************************
+ * Ticket iteration (finding a specific ticket)
+ *************************************************/
+
+static void
+filter_tickets_error_cb (void *cls)
+{
+  struct TicketIssueHandle *tih = cls;
+  tih->ns_it = NULL;
+  tih->cb (tih->cb_cls, &tih->ticket, GNUNET_SYSERR, "Error storing AuthZ ticket in GNS");
+  cleanup_issue_handle (tih);
+}
+
+static void
+filter_tickets_cb (void *cls,
+                  const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
+                  const char *label,
+                  unsigned int rd_count,
+                  const struct GNUNET_GNSRECORD_Data *rd)
+{
+  struct TicketIssueHandle *tih = cls;
+  struct GNUNET_RECLAIM_Ticket *ticket = NULL;
+
+  // figure out the number of requested attributes
+  struct GNUNET_RECLAIM_ATTRIBUTE_ClaimListEntry *le;
+  unsigned int attr_cnt = 0;
+  for (le = tih->attrs->list_head; NULL != le; le = le->next)
+    attr_cnt++;
+
+  // ticket search
+  unsigned int found_attrs_cnt = 0;
+
+  for (int i = 0; i < rd_count; i++)
+  {
+    // found ticket
+    if (GNUNET_GNSRECORD_TYPE_RECLAIM_TICKET == rd[i].record_type)
+    {
+      ticket = (struct GNUNET_RECLAIM_Ticket *) rd[i].data;
+      // cmp audience
+      if (0 == memcmp (&tih->ticket.audience, 
+                       &ticket->audience, 
+                       sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey)))
+      {
+        tih->ticket = *ticket;
+        continue;
+      }
+      ticket = NULL;
+    }
+
+    // cmp requested attributes with ticket attributes
+    if (GNUNET_GNSRECORD_TYPE_RECLAIM_ATTR_REF != rd[i].record_type)
+      continue;
+    for (le = tih->attrs->list_head; NULL != le; le = le->next)
+    {
+      // cmp attr_ref id with requested attr id      
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  " %" PRIu64 "\n  %" PRIu64 "\n",
+                  *((uint64_t *) rd[i].data), le->claim->id);
+
+
+      if (0 == memcmp (rd[i].data, 
+                       &le->claim->id, 
+                       sizeof (uint64_t)))
+        found_attrs_cnt++;
+    }
+  }
+
+  if (attr_cnt == found_attrs_cnt && NULL != ticket)
+  {
+    GNUNET_NAMESTORE_zone_iteration_stop (tih->ns_it);
+    tih->cb (tih->cb_cls, &tih->ticket, GNUNET_OK, NULL);
+    cleanup_issue_handle (tih);
+    return;
+  }
+  
+  // ticket not found in current record
+  GNUNET_NAMESTORE_zone_iterator_next (tih->ns_it, 1);
+}
+
+
+static void
+filter_tickets_finished_cb (void *cls)
+{
+  struct TicketIssueHandle *tih = cls;
+  GNUNET_CRYPTO_ecdsa_key_get_public (&tih->identity, &tih->ticket.identity);
+  tih->ticket.rnd = GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_STRONG, UINT64_MAX);
+  issue_ticket (tih);
+}
 
 void
 RECLAIM_TICKETS_issue (const struct GNUNET_CRYPTO_EcdsaPrivateKey *identity,
@@ -1027,11 +1120,18 @@ RECLAIM_TICKETS_issue (const struct GNUNET_CRYPTO_EcdsaPrivateKey *identity,
   tih->cb_cls = cb_cls;
   tih->attrs = GNUNET_RECLAIM_ATTRIBUTE_list_dup (attrs);
   tih->identity = *identity;
-  GNUNET_CRYPTO_ecdsa_key_get_public (identity, &tih->ticket.identity);
-  tih->ticket.rnd =
-    GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_STRONG, UINT64_MAX);
   tih->ticket.audience = *audience;
-  issue_ticket (tih);
+
+  // check whether the ticket has already been issued
+  tih->ns_it =
+      GNUNET_NAMESTORE_zone_iteration_start (nsh,
+                                             &tih->identity,
+                                             &filter_tickets_error_cb,
+                                             tih,
+                                             &filter_tickets_cb,
+                                             tih,
+                                             &filter_tickets_finished_cb,
+                                             tih);
 }
 
 /************************************
