@@ -820,7 +820,7 @@ char *
 GNUNET_OS_get_suid_binary_path (const struct GNUNET_CONFIGURATION_Handle *cfg,
                                 const char *progname)
 {
-  static const char *cache;
+  static char *cache;
   char *binary = NULL;
   char *path = NULL;
   size_t path_len;
