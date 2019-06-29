@@ -805,6 +805,54 @@ GNUNET_OS_get_libexec_binary_path (const char *progname)
 
 
 /**
+ * Given the name of a helper, service or daemon binary construct the full
+ * path to the binary using the SUID_BINARY_PATH in the PATHS section of the
+ * configuration. If that option is not present, fall back to
+ * GNUNET_OS_get_libexec_binary_path. If @a progname is an absolute path, a
+ * copy of this path is returned.
+ *
+ * @param cfg configuration to inspect
+ * @param progname name of the binary
+ * @return full path to the binary, if possible, a copy of @a progname
+ *         otherwise
+ */
+char *
+GNUNET_OS_get_suid_binary_path (const struct GNUNET_CONFIGURATION_Handle *cfg,
+                                const char *progname)
+{
+  static const char *cache;
+  char *binary = NULL;
+  char *path = NULL;
+  size_t path_len;
+
+  if (GNUNET_YES ==
+       GNUNET_STRINGS_path_is_absolute (progname,
+                                        GNUNET_NO,
+                                        NULL, NULL))
+  {
+    return GNUNET_strdup (progname);
+  }
+  if (NULL != cache)
+    path = cache;
+  else
+    GNUNET_CONFIGURATION_get_value_string (cfg,
+                                           "PATHS",
+                                           "SUID_BINARY_PATH",
+                                           &path);
+  if (NULL == path)
+    return GNUNET_OS_get_libexec_binary_path (progname);
+  path_len = strlen (path);
+  GNUNET_asprintf (&binary,
+		   "%s%s%s",
+		   path,
+                   (path[path_len - 1] == DIR_SEPARATOR) ? "" : DIR_SEPARATOR_STR,
+		   progname);
+  cache = path;
+  return binary;
+}
+
+
+/**
  * Check whether an executable exists and possibly if the suid bit is
  * set on the file.  Attempts to find the file using the current PATH
  * environment variable as a search path.

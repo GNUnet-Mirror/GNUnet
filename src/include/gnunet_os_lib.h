@@ -318,6 +318,23 @@ GNUNET_OS_get_libexec_binary_path (const char *progname);
 
 
 /**
+ * Given the name of a helper, service or daemon binary construct the full
+ * path to the binary using the SUID_BINARY_PATH in the PATHS section of the
+ * configuration. If that option is not present, fall back to
+ * GNUNET_OS_get_libexec_binary_path. If @a progname is an absolute path, a
+ * copy of this path is returned.
+ *
+ * @param cfg configuration to inspect
+ * @param progname name of the binary
+ * @return full path to the binary, if possible, a copy of @a progname
+ *         otherwise
+ */
+char *
+GNUNET_OS_get_suid_binary_path (const struct GNUNET_CONFIGURATION_Handle *cfg,
+                                const char *progname);
+
+
+/**
  * Callback function invoked for each interface found.
  *
  * @param cls closure
