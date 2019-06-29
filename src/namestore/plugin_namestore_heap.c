@@ -193,7 +193,7 @@ database_setup (struct Plugin *plugin)
     return GNUNET_SYSERR;
   }
 
-  buffer = GNUNET_malloc (size + 1);
+  buffer = GNUNET_malloc_large (size + 1);
   if (GNUNET_SYSERR ==
       GNUNET_DISK_file_read (fh,
                              buffer,
