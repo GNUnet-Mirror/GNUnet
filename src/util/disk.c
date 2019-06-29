@@ -2021,7 +2021,7 @@ GNUNET_DISK_file_map (const struct GNUNET_DISK_FileHandle *h,
                       struct GNUNET_DISK_MapHandle **m,
                       enum GNUNET_DISK_MapType access, size_t len)
 {
-  if (h == NULL)
+  if (NULL == h)
   {
     errno = EINVAL;
     return NULL;
