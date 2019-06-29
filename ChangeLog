@@ -1,3 +1,8 @@
+Sat 29 Jun 2019 10:18:55 AM CEST
+  Renamed "heap" namestore backend to "flat" as it does
+  persist data in a file. Made it work with databases larger
+  than 16 MB. -CG
+
 Sat 15 Jun 2019 11:45:35 PM CEST
   Improved gnunet-gns performance for many ego scenario. -CG
 
