@@ -3790,9 +3790,9 @@ run (void *cls,
                                              &max_connections))
     max_connections = 1024;
   parse_ip_options ();
+  binary = GNUNET_OS_get_suid_binary_path (cfg, "gnunet-helper-exit");
   if ( (ipv4_exit) || (ipv6_exit) )
   {
-    binary = GNUNET_OS_get_libexec_binary_path ("gnunet-helper-exit");
     if (GNUNET_YES !=
 	GNUNET_OS_check_helper_binary (binary,
                                        GNUNET_YES,
@@ -3807,10 +3807,10 @@ run (void *cls,
       global_ret = 1;
       return;
     }
-    GNUNET_free (binary);
   }
   if (! (ipv4_enabled || ipv6_enabled))
   {
+    GNUNET_free (binary);
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 		_("No useful service enabled.  Exiting.\n"));
     GNUNET_SCHEDULER_shutdown ();
@@ -3824,6 +3824,7 @@ run (void *cls,
   cadet_handle = GNUNET_CADET_connect (cfg);
   if (NULL == cadet_handle)
   {
+    GNUNET_free (binary);
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
@@ -3831,6 +3832,7 @@ run (void *cls,
   if (GNUNET_OK !=
       setup_exit_helper_args ())
   {
+    GNUNET_free (binary);
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
@@ -3927,11 +3929,12 @@ run (void *cls,
     }
   }
   helper_handle = GNUNET_HELPER_start (GNUNET_NO,
-				       "gnunet-helper-exit",
+				       binary,
 				       exit_argv,
 				       &message_token,
 				       NULL,
 				       NULL);
+  GNUNET_free (binary);
 }
 
 

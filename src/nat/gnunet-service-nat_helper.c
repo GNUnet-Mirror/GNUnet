@@ -74,6 +74,11 @@ struct HelperContext
    * stdout file handle (for reading) for the gnunet-helper-nat-server process
    */
   const struct GNUNET_DISK_FileHandle *server_stdout_handle;
+
+  /**
+   * Handle to the GNUnet configuration
+   */
+  const struct GNUNET_CONFIGURATION_Handle *cfg;
 };
 
 
@@ -227,8 +232,7 @@ restart_nat_server (void *cls)
 			    ia,
 			    sizeof (ia)));
   /* Start the server process */
-  binary
-    = GNUNET_OS_get_libexec_binary_path ("gnunet-helper-nat-server");
+  binary = GNUNET_OS_get_suid_binary_path (h->cfg, "gnunet-helper-nat-server");
   if (GNUNET_YES !=
       GNUNET_OS_check_helper_binary (binary,
                                      GNUNET_YES,
@@ -298,12 +302,14 @@ restart_nat_server (void *cls)
  * @param internal_address
  * @param cb function to call if we receive a request
  * @param cb_cls closure for @a cb
+ * @param cfg Handle to the GNUnet configuration
  * @return NULL on error
  */
 struct HelperContext *
 GN_start_gnunet_nat_server_ (const struct in_addr *internal_address,
 			     GN_ReversalCallback cb,
-			     void *cb_cls)
+			     void *cb_cls,
+			     const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   struct HelperContext *h;
 
@@ -311,6 +317,7 @@ GN_start_gnunet_nat_server_ (const struct in_addr *internal_address,
   h->cb = cb;
   h->cb_cls = cb_cls;
   h->internal_address = *internal_address;
+  h->cfg = cfg;
   restart_nat_server (h);
   if (NULL == h->server_stdout)
   {
@@ -366,13 +373,15 @@ GN_stop_gnunet_nat_server_ (struct HelperContext *h)
  * @param internal_address out internal address to use
  * @param internal_port port to use
  * @param remote_v4 the address of the peer (IPv4-only)
+ * @param cfg handle to the GNUnet configuration
  * @return #GNUNET_SYSERR on error,
  *         #GNUNET_OK otherwise
  */
 int
 GN_request_connection_reversal (const struct in_addr *internal_address,
 				uint16_t internal_port,
-				const struct in_addr *remote_v4)
+				const struct in_addr *remote_v4,
+				const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   char intv4[INET_ADDRSTRLEN];
   char remv4[INET_ADDRSTRLEN];
@@ -407,8 +416,7 @@ GN_request_connection_reversal (const struct in_addr *internal_address,
 	      intv4,
 	      remv4,
 	      internal_port);
-  binary
-    = GNUNET_OS_get_libexec_binary_path ("gnunet-helper-nat-client");
+  binary = GNUNET_OS_get_suid_binary_path (cfg, "gnunet-helper-nat-client");
   proc
     = GNUNET_OS_start_process (GNUNET_NO,
 			       0,

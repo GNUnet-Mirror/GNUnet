@@ -53,12 +53,14 @@ typedef void
  * @param internal_address
  * @param cb function to call if we receive a request
  * @param cb_cls closure for @a cb
+ * @param cfg handle to the GNUnet configuration
  * @return NULL on error
  */
 struct HelperContext *
 GN_start_gnunet_nat_server_ (const struct in_addr *internal_address,
 			     GN_ReversalCallback cb,
-			     void *cb_cls);
+			     void *cb_cls,
+			     const struct GNUNET_CONFIGURATION_Handle *cfg);
 
 			
 /**
@@ -79,13 +81,15 @@ GN_stop_gnunet_nat_server_ (struct HelperContext *h);
  * @param internal_address out internal address to use
  * @param internal_port internal port to use
  * @param remote_v4 the address of the peer (IPv4-only)
+ * @param cfg handle to the GNUnet configuration
  * @return #GNUNET_SYSERR on error,
  *         #GNUNET_OK otherwise
  */
 int
 GN_request_connection_reversal (const struct in_addr *internal_address,
 				uint16_t internal_port,
-				const struct in_addr *sa);
+				const struct in_addr *remote_v4,
+				const struct GNUNET_CONFIGURATION_Handle *cfg);
 
 
 /* end of gnunet-service-nat_helper.h */

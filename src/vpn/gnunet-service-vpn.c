@@ -2936,7 +2936,8 @@ run (void *cls,
   struct in6_addr v6;
   char *binary;
 
-  binary = GNUNET_OS_get_libexec_binary_path ("gnunet-helper-vpn");
+  cfg = cfg_;
+  binary = GNUNET_OS_get_suid_binary_path (cfg, "gnunet-helper-vpn");
 
   if (GNUNET_YES !=
       GNUNET_OS_check_helper_binary (binary,
@@ -2953,8 +2954,6 @@ run (void *cls,
        anything either */
     return;
   }
-  GNUNET_free (binary);
-  cfg = cfg_;
   stats = GNUNET_STATISTICS_create ("vpn", cfg);
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_number (cfg,
@@ -2980,6 +2979,7 @@ run (void *cls,
       GNUNET_CONFIGURATION_get_value_string (cfg, "VPN", "IFNAME", &ifname))
   {
     GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR, "VPN", "IFNAME");
+    GNUNET_free (binary);
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
@@ -2994,6 +2994,7 @@ run (void *cls,
     {
       GNUNET_log_config_invalid (GNUNET_ERROR_TYPE_ERROR, "VPN", "IPV6ADDR",
 				 _("Must specify valid IPv6 address"));
+      GNUNET_free (binary);
       GNUNET_SCHEDULER_shutdown ();
       GNUNET_free_non_null (ipv6addr);
       return;
@@ -3005,6 +3006,7 @@ run (void *cls,
 					       &ipv6prefix_s))
     {
       GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR, "VPN", "IPV6PREFIX");
+      GNUNET_free (binary);
       GNUNET_SCHEDULER_shutdown ();
       GNUNET_free_non_null (ipv6prefix_s);
       return;
@@ -3018,6 +3020,7 @@ run (void *cls,
     {
       GNUNET_log_config_invalid (GNUNET_ERROR_TYPE_ERROR, "VPN", "IPV4MASK",
 				 _("Must specify valid IPv6 mask"));
+      GNUNET_free (binary);
       GNUNET_SCHEDULER_shutdown ();
       return;
     }
@@ -3039,6 +3042,7 @@ run (void *cls,
     {
       GNUNET_log_config_invalid (GNUNET_ERROR_TYPE_ERROR, "VPN", "IPV4ADDR",
 				 _("Must specify valid IPv4 address"));
+      GNUNET_free (binary);
       GNUNET_SCHEDULER_shutdown ();
       GNUNET_free_non_null (ipv4addr);
       return;
@@ -3052,6 +3056,7 @@ run (void *cls,
     {
       GNUNET_log_config_invalid (GNUNET_ERROR_TYPE_ERROR, "VPN", "IPV4MASK",
 				 _("Must specify valid IPv4 mask"));
+      GNUNET_free (binary);
       GNUNET_SCHEDULER_shutdown ();
       GNUNET_free_non_null (ipv4mask);
       return;
@@ -3070,8 +3075,12 @@ run (void *cls,
   cadet_handle = GNUNET_CADET_connect (cfg_);
     // FIXME never opens ports???
   helper_handle = GNUNET_HELPER_start (GNUNET_NO,
-				       "gnunet-helper-vpn", vpn_argv,
-				       &message_token, NULL, NULL);
+				       binary,
+				       vpn_argv,
+				       &message_token,
+				       NULL,
+				       NULL);
+  GNUNET_free (binary);
   GNUNET_SCHEDULER_add_shutdown (&cleanup,
 				 NULL);
 }

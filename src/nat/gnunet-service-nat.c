@@ -1063,7 +1063,8 @@ run_scan (void *cls)
                                 sizeof (*s4)));
 	pos->hc = GN_start_gnunet_nat_server_ (&s4->sin_addr,
 					       &reversal_callback,
-					       pos);
+					       pos,
+					       cfg);
       }
     }
   }
@@ -1826,7 +1827,8 @@ handle_request_connection_reversal (void *cls,
   GNUNET_break_op (AF_INET == r4.sin_family);
   ret = GN_request_connection_reversal (&l4.sin_addr,
 					ntohs (l4.sin_port),
-					&r4.sin_addr);
+					&r4.sin_addr,
+					cfg);
   if (GNUNET_OK != ret)
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
 		_("Connection reversal request failed\n"));

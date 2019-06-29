@@ -1082,7 +1082,8 @@ run (void *cls,
 			       _("need a valid IPv4 or IPv6 address\n"));
     GNUNET_free_non_null (dns_exit);
   }
-  binary = GNUNET_OS_get_libexec_binary_path ("gnunet-helper-dns");
+  binary = GNUNET_OS_get_suid_binary_path (cfg, "gnunet-helper-dns");
+
   if (GNUNET_YES !=
       GNUNET_OS_check_helper_binary (binary,
                                      GNUNET_YES,
@@ -1106,6 +1107,7 @@ run (void *cls,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "No entry 'IFNAME' in configuration!\n");
+    GNUNET_free (binary);
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
@@ -1118,6 +1120,7 @@ run (void *cls,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "No entry 'IPV6ADDR' in configuration!\n");
+    GNUNET_free (binary);
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
@@ -1130,6 +1133,7 @@ run (void *cls,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "No entry 'IPV6PREFIX' in configuration!\n");
+    GNUNET_free (binary);
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
@@ -1143,6 +1147,7 @@ run (void *cls,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "No entry 'IPV4ADDR' in configuration!\n");
+    GNUNET_free (binary);
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
@@ -1153,6 +1158,7 @@ run (void *cls,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "No entry 'IPV4MASK' in configuration!\n");
+    GNUNET_free (binary);
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
@@ -1167,10 +1173,11 @@ run (void *cls,
 
   helper_argv[7] = NULL;
   hijacker = GNUNET_HELPER_start (GNUNET_NO,
-				  "gnunet-helper-dns",
+				  binary,
 				  helper_argv,
 				  &process_helper_messages,
 				  NULL, NULL);
+  GNUNET_free (binary);
 }
 
 
