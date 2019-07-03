@@ -3800,7 +3800,7 @@ run (void *cls,
     {
       GNUNET_free (binary);
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		  _("`%s' must be installed SUID, EXIT will not work\n"),
+		  _("`%s' is not SUID or the path is invalid, EXIT will not work\n"),
 		  "gnunet-helper-exit");
       GNUNET_SCHEDULER_add_shutdown (&dummy_task,
 				     NULL);

@@ -1090,7 +1090,8 @@ run (void *cls,
                                      NULL)) // TODO: once we have a windows-testcase, add test parameters here
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-		_("`%s' must be installed SUID, will not run DNS interceptor\n"),
+		_("`%s' is not SUID or the path is invalid, "
+		  "will not run DNS interceptor\n"),
 		binary);
     global_ret = 1;
     GNUNET_free (binary);
