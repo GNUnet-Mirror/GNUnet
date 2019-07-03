@@ -839,7 +839,7 @@ GNUNET_OS_get_suid_binary_path (const struct GNUNET_CONFIGURATION_Handle *cfg,
                                            "PATHS",
                                            "SUID_BINARY_PATH",
                                            &path);
-  if (NULL == path)
+  if (NULL == path || 0 == strlen (path))
     return GNUNET_OS_get_libexec_binary_path (progname);
   path_len = strlen (path);
   GNUNET_asprintf (&binary,
