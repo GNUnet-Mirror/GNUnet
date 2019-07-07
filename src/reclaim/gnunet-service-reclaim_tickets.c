@@ -168,7 +168,7 @@ struct TicketIssueHandle
    * QueueEntry
    */
   struct GNUNET_NAMESTORE_QueueEntry *ns_qe;
-  
+
   /**
    * Namestore Iterator
    */
@@ -1027,16 +1027,19 @@ filter_tickets_error_cb (void *cls)
 {
   struct TicketIssueHandle *tih = cls;
   tih->ns_it = NULL;
-  tih->cb (tih->cb_cls, &tih->ticket, GNUNET_SYSERR, "Error storing AuthZ ticket in GNS");
+  tih->cb (tih->cb_cls,
+           &tih->ticket,
+           GNUNET_SYSERR,
+           "Error storing AuthZ ticket in GNS");
   cleanup_issue_handle (tih);
 }
 
 static void
 filter_tickets_cb (void *cls,
-                  const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
-                  const char *label,
-                  unsigned int rd_count,
-                  const struct GNUNET_GNSRECORD_Data *rd)
+                   const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
+                   const char *label,
+                   unsigned int rd_count,
+                   const struct GNUNET_GNSRECORD_Data *rd)
 {
   struct TicketIssueHandle *tih = cls;
   struct GNUNET_RECLAIM_Ticket *ticket = NULL;
@@ -1057,8 +1060,8 @@ filter_tickets_cb (void *cls,
     {
       ticket = (struct GNUNET_RECLAIM_Ticket *) rd[i].data;
       // cmp audience
-      if (0 == memcmp (&tih->ticket.audience, 
-                       &ticket->audience, 
+      if (0 == memcmp (&tih->ticket.audience,
+                       &ticket->audience,
                        sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey)))
       {
         tih->ticket = *ticket;
@@ -1072,15 +1075,14 @@ filter_tickets_cb (void *cls,
       continue;
     for (le = tih->attrs->list_head; NULL != le; le = le->next)
     {
-      // cmp attr_ref id with requested attr id      
+      // cmp attr_ref id with requested attr id
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   " %" PRIu64 "\n  %" PRIu64 "\n",
-                  *((uint64_t *) rd[i].data), le->claim->id);
+                  *((uint64_t *) rd[i].data),
+                  le->claim->id);
 
 
-      if (0 == memcmp (rd[i].data, 
-                       &le->claim->id, 
-                       sizeof (uint64_t)))
+      if (0 == memcmp (rd[i].data, &le->claim->id, sizeof (uint64_t)))
         found_attrs_cnt++;
     }
   }
@@ -1092,7 +1094,7 @@ filter_tickets_cb (void *cls,
     cleanup_issue_handle (tih);
     return;
   }
-  
+
   // ticket not found in current record
   GNUNET_NAMESTORE_zone_iterator_next (tih->ns_it, 1);
 }
@@ -1103,7 +1105,8 @@ filter_tickets_finished_cb (void *cls)
 {
   struct TicketIssueHandle *tih = cls;
   GNUNET_CRYPTO_ecdsa_key_get_public (&tih->identity, &tih->ticket.identity);
-  tih->ticket.rnd = GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_STRONG, UINT64_MAX);
+  tih->ticket.rnd =
+    GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_STRONG, UINT64_MAX);
   issue_ticket (tih);
 }
 
@@ -1124,14 +1127,14 @@ RECLAIM_TICKETS_issue (const struct GNUNET_CRYPTO_EcdsaPrivateKey *identity,
 
   // check whether the ticket has already been issued
   tih->ns_it =
-      GNUNET_NAMESTORE_zone_iteration_start (nsh,
-                                             &tih->identity,
-                                             &filter_tickets_error_cb,
-                                             tih,
-                                             &filter_tickets_cb,
-                                             tih,
-                                             &filter_tickets_finished_cb,
-                                             tih);
+    GNUNET_NAMESTORE_zone_iteration_start (nsh,
+                                           &tih->identity,
+                                           &filter_tickets_error_cb,
+                                           tih,
+                                           &filter_tickets_cb,
+                                           tih,
+                                           &filter_tickets_finished_cb,
+                                           tih);
 }
 
 /************************************

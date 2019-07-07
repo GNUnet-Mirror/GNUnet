@@ -441,12 +441,16 @@ create_response (void *cls,
     //Handle Preflights
     if (GNUNET_YES == echo_origin)
     {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+          "Echoing origin\n");
       GNUNET_CRYPTO_hash ("origin",
                           strlen ("origin"),
                           &key);
       origin = GNUNET_CONTAINER_multihashmap_get (con_handle->data_handle
                                                     ->header_param_map,
                                                   &key);
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+          "Origin: %s\n", origin);
       if (NULL != origin)
         MHD_add_response_header (con_handle->response,
                                  MHD_HTTP_HEADER_ACCESS_CONTROL_ALLOW_ORIGIN,

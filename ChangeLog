@@ -1,7 +1,26 @@
+Fri Jul 5 22:11:04 2019 +0200
+  Added detection of SUID binaries
+  through GNUNET_OS_get_suid_binary_path -lurchi
+
 Sat 29 Jun 2019 10:18:55 AM CEST
   Renamed "heap" namestore backend to "flat" as it does
   persist data in a file. Made it work with databases larger
   than 16 MB. -CG
+
+Fri Jun 28 14:10:53 2019 +0200
+  RECLAIM: Reissue of tickets (same attributes, same identity)
+  will no longer create a new ticket, but reuse the old. -alexia
+
+Thu Jun 27 10:34:46 2019 +0200
+  The REST server now returns the Origin header value in the
+  CORS header reponse. -schanzen
+
+Thu Jun 27 09:08:06 2019 +0200
+  GNS NSS plugin will not timeout and not hang forever and block
+  gethostbyname. Final resolution pending #5782 -schanzen
+
+Sat Jun 22 10:38:43 2019 +0200
+  Add gnutls support for GNS CA certificate generation -schanzen
 
 Sat 15 Jun 2019 11:45:35 PM CEST
   Improved gnunet-gns performance for many ego scenario. -CG
