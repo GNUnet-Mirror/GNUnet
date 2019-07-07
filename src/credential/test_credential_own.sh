@@ -43,24 +43,28 @@ REG_STUD_ATTR="student"
 END_ATTR="end"
 
 TEST_CREDENTIAL="mygnunetcreds"
-# Test for forward search (0) StateU.student -> EOrg.end
-# gnunet-namestore -p -z eorg -a -n "@" -t DEL -V "$STATEU_KEY $STATE_STUD_ATTR <- $EORG_KEY $END_ATTR" -e 60m -c test_credential_lookup.conf
-# gnunet-namestore -D -z eorg
+# Own issuer side storage:
+gnunet-credential --createIssuerSide --ego=epub --attribute="issside" --subject="$EORG_KEY asd" --ttl=5m
 
-# Alternative Format that is being implemented at the moment:
-# Issuerside: 
-#   gnunet-credential --create --ego=A --attribute="a" --subject="B.b" --where="is"
-   gnunet-credential --createIssuerSide --ego=epub --attribute="aasds" --subject="$EORG_KEY basd" --ttl=60m
-   SIGNED=`$DO_TIMEOUT gnunet-credential --signSubjectSide --ego=epub --attribute="asd" --subject="$EORG_KEY basd" --ttl=60m`
-   echo $SIGNED
-   gnunet-credential --createSubjectSide --extension "$SIGNED"
-# Subjectside:
-#   X = gnunet-credential --create -e E -a "a" -s "B.b" -w ss
-#   gnunet-credential --add -e E -x X
+gnunet-namestore -D -z epub
+
+# Own subject side storage:
+SIGNED=`$DO_TIMEOUT gnunet-credential --signSubjectSide --ego=epub --attribute="abcd" --subject="$EORG_KEY" --ttl=5m`
+gnunet-credential --createSubjectSide --ego=eorg --extension "$SIGNED"
+
+SIGNED=`$DO_TIMEOUT gnunet-credential --signSubjectSide --ego=epub --attribute="abcd" --subject="$EORG_KEY efghijklmno" --ttl=5m`
+gnunet-credential --createSubjectSide --ego=eorg --extension "$SIGNED"
+
+SIGNED=`$DO_TIMEOUT gnunet-credential --signSubjectSide --ego=epub --attribute="abcd" --subject="$EORG_KEY efghijklmno.pqr" --ttl=5m`
+gnunet-credential --createSubjectSide --ego=eorg --extension "$SIGNED"
+
+SIGNED=`$DO_TIMEOUT gnunet-credential --signSubjectSide --ego=epub --attribute="abcd.stu" --subject="$EORG_KEY efghijklmno.pqr" --ttl=5m`
+gnunet-credential --createSubjectSide --ego=eorg --extension "$SIGNED"
+
+gnunet-namestore -D -z eorg
 
 # (1) EPub assigns the attribute "discount" to all entities that have been assigned "preferred" by EOrg
 gnunet-namestore -p -z epub -a -n $DISC_ATTR -t ATTR -V "$EORG_KEY $PREF_ATTR" -e 5m -c test_credential_lookup.conf
-gnunet-namestore -D -z epub
 
 # (2) EOrg assigns the attribute "preferred" to all entities that have been assigned "student" by StateU
 gnunet-namestore -p -z eorg -a -n $PREF_ATTR -t ATTR -V "$STATEU_KEY $STATE_STUD_ATTR" -e 5m -c test_credential_lookup.conf

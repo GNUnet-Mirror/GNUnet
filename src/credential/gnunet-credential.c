@@ -28,6 +28,7 @@
 #include <gnunet_gnsrecord_lib.h>
 #include <gnunet_namestore_service.h>
 #include "credential_misc.h"
+#include "delegate_misc.h"
 #include "credential_serialization.h"
 
 /**
@@ -78,7 +79,7 @@ static struct GNUNET_SCHEDULER_Task *tt;
 /**
  * Subject pubkey string
  */
-static char *subject_key;
+static char *subject;
 
 /**
  * Subject credential string
@@ -145,11 +146,6 @@ static int create_ss;
  * Create mode
  */
 static int sign_ss;
-
-/**
- * Add mode
- */
-static int add_iss;
 
 /**
  * Signed issue credentials
@@ -291,6 +287,7 @@ handle_verify_result (void *cls,
     {
       iss_key = GNUNET_CRYPTO_ecdsa_public_key_to_string (&dc[i].issuer_key);
       sub_key = GNUNET_CRYPTO_ecdsa_public_key_to_string (&dc[i].subject_key);
+
       if (0 != dc[i].subject_attribute_len)
       {
         printf ("(%d) %s.%s <- %s.%s\n", i,
@@ -409,108 +406,34 @@ identity_cb (void *cls,
                                             &etime_abs);
 
   res = GNUNET_CREDENTIAL_credential_to_string (crd);
-  fprintf(stderr,"Cred: %s\n", res);
   GNUNET_free (crd);
   printf ("%s\n", res);
   GNUNET_SCHEDULER_shutdown ();
 }
 
-
-static char 
-*strtokm(char *str, const char *delim)
-{
-    static char *tok;
-    static char *next;
-    char *m;
-
-    if (delim == NULL) return NULL;
-
-    tok = (str) ? str : next;
-    if (tok == NULL) return NULL;
-
-    m = strstr(tok, delim);
-
-    if (m) {
-        next = m + strlen(delim);
-        *m = '\0';
-    } else {
-        next = NULL;
-    }
-
-    if (m == tok || *tok == '\0') return strtokm(NULL, delim);
-
-    return tok;
-}
-
-void topntail(char *str) {
-    size_t len = strlen(str);
-    // check if last char is a space, if yes: remove 2 chars at the end
-    if(str[len-1] == ' ')
-    {
-      len -= 1;
-    }
-    // remove first and last char
-    memmove(str, str+1, len-2);
-    str[len-2] = 0;
-}
-
 static int
 parse_cmdl_param(const char *extensionstring)
 {
-  fprintf(stderr, "Starting to parse extension string...\n");
-  fprintf(stderr, "string to parse: %s\n", extensionstring);
-
-  //Example:
-  //--ego=epub --attribute=aasds --subject=DKCC5SMTBNV6W3VXDJ7A1N1YS6TRG7B3XC2S5N4HSXJEYYRFRCCG basd --ttl=60m 
-  //--extension=NVTQZA44336VHKCP2SA20BR6899T621B2PJKC3V730AKXC37T6M0.aasds -> DKCC5SMTBNV6W3VXDJ7A1N1YS6TRG7B3XC2S5N4HSXJEYYRFRCCG | D1NuT8hHEUbkCURo1lkcSPKhYiydhv4nMkV042kc9J4MgIhB2/fQKLgJUyuGlJKvYgXLf4jHXNRHJe+aCLG7jw== | 1561126006528100
-  
-  //TODO: parse, wenn nicht als argument direkt geparsed werden kann
- 
-  char cmd_para[100];
-  char para_str[1024];
   char *token;
   char *tmp_str;
-  int matches = 0;
+  int counter = 0;
 
   tmp_str = GNUNET_strdup (extensionstring);
-  // use special strtok to match multiple characters
-  token = strtokm (tmp_str, "--");
+  // split string via strtok, assume parameters are in the right order
+  token = strtok (tmp_str, ";");
   while (NULL != token) {
-    // also fills the variables if "regex"-like match
-    fprintf(stderr, "TOKEN: %s\n", token);
-    // match everything till =, ignore = (%*c), match everything including whitespaces (required for the extension parameter)
-    matches = SSCANF (token, "%[^=]%*c%[^\n]", cmd_para, para_str);
-    // string not well formatted
-    if (0 == matches) {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, ("Failed to parse to extensionstring.\n"));
-      GNUNET_SCHEDULER_shutdown ();
-      GNUNET_free (tmp_str);
-      return GNUNET_SYSERR;
+
+    // fill variables depending on counter
+    if(0 == counter) {
+      expiration = GNUNET_strdup(token);
+    } else if(1 == counter) {
+      extension = GNUNET_strdup(token);
     } else {
-      fprintf(stderr,"Found command and parameter: %s %s\n", cmd_para, para_str);
-      // assign values to variables, topntail to remove trailing/leading "
-      if(strcmp(cmd_para, "ego") == 0) {
-        fprintf(stderr,"ego found and parsed\n");
-        topntail(para_str);
-        ego_name = GNUNET_strdup(para_str);
-      } else if(strcmp(cmd_para, "attribute") == 0) {
-        fprintf(stderr,"issuer found and parsed\n");
-        topntail(para_str);
-        issuer_attr = GNUNET_strdup(para_str);
-      } else if(strcmp(cmd_para, "subject") == 0) {
-        fprintf(stderr,"subject found and parsed\n");
-        topntail(para_str);
-        subject_key = GNUNET_strdup(para_str);
-      } else if(strcmp(cmd_para, "ttl") == 0) {
-        fprintf(stderr,"ttl found and parsed\n");
-        expiration = GNUNET_strdup(para_str);
-      } else if(strcmp(cmd_para, "extension") == 0) {
-        fprintf(stderr,"extension found and parsed\n");
-        topntail(para_str);
-        extension = GNUNET_strdup(para_str);
-      }
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Could not parse extension string\n");
     }
-    token = strtokm (NULL, "--");
+  
+    counter++;
+    token = strtok (NULL, ";");
   }
   GNUNET_free (tmp_str);
 
@@ -531,7 +454,7 @@ parse_expiration (const char *expirationstring,
 		  int *etime_is_rel,
 		  uint64_t *etime)
 {
-  // TODO just copied from gnunet-namestore.c
+  // copied from namestore/gnunet-namestore.c
   struct GNUNET_TIME_Relative etime_rel;
   struct GNUNET_TIME_Absolute etime_abs;
   
@@ -574,8 +497,7 @@ parse_expiration (const char *expirationstring,
 static void
 error_cb (void *cls)
 {
-  // TODO: Better
-  fprintf(stderr, "In add_error_cb\n");
+  fprintf(stderr, "Error occured during lookup, shutting down.\n");
   GNUNET_SCHEDULER_shutdown ();
   return;
 }
@@ -584,8 +506,7 @@ add_continuation (void *cls,
 		  int32_t success,
 		  const char *emsg)
 {
-  fprintf(stderr, "Start: add_continuation\n");
-
+  // TODO what does that do, can I somehow parse an empty callback on success or do I have to set the qe* to NULL?
   struct GNUNET_NAMESTORE_QueueEntry **qe = cls;
   *qe = NULL;
 
@@ -602,11 +523,6 @@ get_existing_record (void *cls,
   struct GNUNET_GNSRECORD_Data rdn[rd_count + 1];
   struct GNUNET_GNSRECORD_Data *rde;
 
-  fprintf(stderr, "Start: get_existing_record\n");
-
-  fprintf(stderr, "count: %d\n", rd_count);
-
-
   memset (rdn, 0, sizeof (struct GNUNET_GNSRECORD_Data));
   GNUNET_memcpy (&rdn[1],
                  rd,
@@ -615,7 +531,7 @@ get_existing_record (void *cls,
   rde->data = data;
   rde->data_size = data_size;
   rde->record_type = type;
-  // TODO: flags
+  // Flags not required , TODO what have we said we do with that now? Look it up in my writing
   /*if (1 == is_shadow)
     rde->flags |= GNUNET_GNSRECORD_RF_SHADOW_RECORD;
   if (1 != is_public)
@@ -642,9 +558,8 @@ store_cb (void *cls,
 	     const struct GNUNET_IDENTITY_Ego *ego)
 {
   const struct GNUNET_CONFIGURATION_Handle *cfg = cls;
-  struct GNUNET_CRYPTO_EcdsaPublicKey pub;
 
-  fprintf(stderr, "Start: store_cb\n");
+  el = NULL;
   
   ns = GNUNET_NAMESTORE_connect (cfg);
   if (NULL == ns)
@@ -656,14 +571,9 @@ store_cb (void *cls,
   }
 
   // Key handling
-  fprintf(stderr, "Connected to ns\n");
   zone_pkey = *GNUNET_IDENTITY_ego_get_private_key (ego);
-  fprintf(stderr, "Got zone_pkey\n");
-  // TODO rename to zone_pub?
-  GNUNET_CRYPTO_ecdsa_key_get_public (&zone_pkey, &pub);
 
   // Check relevant cmdline parameters
-  // name ⁼ issuer_attr
   if (NULL == issuer_attr)
   {
     fprintf (stderr, "Missing option -attribute for operation 'create'.\n");
@@ -671,9 +581,7 @@ store_cb (void *cls,
     return;
   }
 
-  // TODO later, rename subject_key to subject
-  // value ⁼ subject_key
-  if (NULL == subject_key)
+  if (NULL == subject)
   {
     fprintf (stderr, "Missing option -subject for operation 'create'.'\n");
     GNUNET_SCHEDULER_shutdown ();
@@ -682,20 +590,18 @@ store_cb (void *cls,
 
   // String to value conversion for storage
   if (GNUNET_OK != GNUNET_GNSRECORD_string_to_value (type,
-					  subject_key,
+					  subject,
 					  &data,
 					  &data_size))
   {
     fprintf (stderr, "Value `%s' invalid for record type `%s'\n",
-        subject_key,
+        subject,
         typestring);
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
-  fprintf (stderr, "Data size: `%lu'\n", data_size);
 
   // Take care of expiration
-
   if (NULL == expiration)
   {
     fprintf (stderr, "Missing option -e for operation 'create'\n");
@@ -728,13 +634,12 @@ sign_cb (void *cls,
 	     const struct GNUNET_IDENTITY_Ego *ego)
 {
   const struct GNUNET_CRYPTO_EcdsaPrivateKey *privkey;
-  struct GNUNET_CREDENTIAL_Credential *crd;
+  struct GNUNET_CREDENTIAL_Delegate *crd;
   struct GNUNET_TIME_Absolute etime_abs;
   struct GNUNET_TIME_Relative etime_rel;
   char *res;
 
   el = NULL;
-  
 
   // work on expiration time
   if (NULL == expiration)
@@ -752,19 +657,34 @@ sign_cb (void *cls,
     return;
   }
 
-  // if contains a space - split it by the first space only - assume first token entry is subject_key
-  fprintf (stderr, "Start splitting\n");
+  // if contains a space - split it by the first space only - assume first entry is subject followed by attribute(s)
   char *space;
   int idx;
-  space = strchr(subject_key, ' ');
-  idx = (int)(space - subject_key);
+  char *subject_pubkey_str;
+  char *subject_attr;
 
-  // TODO rename subject_key to subject
-  char *subject_pubkey_str = GNUNET_malloc(idx+1);
-  GNUNET_memcpy(subject_pubkey_str, subject_key, idx);
-  subject_pubkey_str[idx]  = '\0';
+  space = strchr(subject, ' ');
+  if(NULL == space)
+  {
+    // only contains subject key e.g. A.a <- B
+    subject_pubkey_str = subject;
+    subject_attr = '\0';
+  } else {
+    // subject contains: key attr1.attr2.attr3...
+    // split subject into subject_pubkey_str and subject_attr
+    idx = (int)(space - subject);
 
-  fprintf(stderr, "idx: %d, str: %s\n", idx, subject_pubkey_str);
+    subject_pubkey_str = GNUNET_malloc(idx+1);
+    GNUNET_memcpy(subject_pubkey_str, subject, idx);
+    subject_pubkey_str[idx]  = '\0';
+
+    int sub_attr_len = strlen(subject) - idx - 1;
+    // +1 for the \0
+    subject_attr = GNUNET_malloc(sub_attr_len + 1);
+    // +1 to remove the space "key attr" (or whatever separator)
+    GNUNET_memcpy(subject_attr, subject + idx + 1, sub_attr_len);
+    subject_attr[sub_attr_len] = '\0';  
+  }
 
   // work on keys
   privkey = GNUNET_IDENTITY_ego_get_private_key (ego);
@@ -778,18 +698,15 @@ sign_cb (void *cls,
     return;
   }
 
-  // Sign credential / TODO not credential but delegate (new method), not only pass subject_pkey but also subject_attr
-  // gnunet-credential --issue --ego=registrarb --subject=$ALICE_KEY --attribute=$REG_STUD_ATTR --ttl=5m -c test_credential_lookup.conf
-  // gnunet-credential --create --ego=epub --attribute="a" --subject="B b" --where="ss" -E 60m
-  // TODO: only signs subject_pkey at the moment, also requires subject_attr (or both in subject_key)
-  crd = GNUNET_CREDENTIAL_credential_issue (privkey,
+  // Sign delegate
+  crd = GNUNET_CREDENTIAL_delegate_issue (privkey,
                                             &subject_pkey,
                                             issuer_attr,
+                                            subject_attr,
                                             &etime_abs);
-  res = GNUNET_CREDENTIAL_credential_to_string (crd);
-  fprintf(stderr,"Dele: %s\n", res);
+  res = GNUNET_CREDENTIAL_delegate_to_string (crd);
   GNUNET_free (crd);
-  printf ("--ego=\"%s\" --attribute=\"%s\" --subject=\"%s\" --ttl=%s --extension=\"%s\"\n", ego_name, issuer_attr, subject_key, expiration, res);
+  printf ("%s;%s\n", expiration, res);
 
   GNUNET_free_non_null (ego_name);
   ego_name = NULL;
@@ -819,18 +736,14 @@ run (void *cls,
   GNUNET_SCHEDULER_add_shutdown (&do_shutdown, NULL);
 
   if (GNUNET_YES == create_is) {
-    fprintf(stderr, "Starting to create issuer side...\n");
-
     if (NULL == ego_name) {
       fprintf (stderr, "ego required\n");
       GNUNET_SCHEDULER_shutdown ();
       return;
     }
 
+    // Lookup ego, on success call store_cb and store as ATTRIBUTE type
     type = GNUNET_GNSRECORD_TYPE_ATTRIBUTE;
-    //TODO: Store normally (at issuer, for backward search)
-    // stuff from gnunet-namestore.c of namestore folder
-    fprintf (stderr, "Start: Store issuer side\n");
     el = GNUNET_IDENTITY_ego_lookup (cfg,
                                 ego_name,
                                 &store_cb,
@@ -839,8 +752,7 @@ run (void *cls,
   }
 
   if (GNUNET_YES == create_ss) {
-    fprintf(stderr, "Starting to create subject side...\n");
-    // check if "credential"/signed parameter filled
+    // check if signed parameter has been passed in cmd line call
     if (NULL == extension) {
       fprintf (stderr, "'extension' required\n");
       GNUNET_SCHEDULER_shutdown ();
@@ -850,19 +762,10 @@ run (void *cls,
     // parses all the passed parameters
     parse_cmdl_param(extension);
 
-    fprintf (stderr,"List of parsed attributes:\n");
-    fprintf (stderr,"Ego: %s\n", ego_name);
-    fprintf (stderr,"Attribute: %s\n", issuer_attr);
-    fprintf (stderr,"Subject: %s\n", subject_key);
-    fprintf (stderr,"ttl: %s\n", expiration);
-    fprintf (stderr,"Extension: %s\n", extension);
-
-    //TODO: subject key does not have to be returned, extension replaces it
-    //TODO: use own delegation type, implement string_to_value and value_to_string methods of plugin
-    //type = GNUNET_GNSRECORD_TYPE_DELEGATE;
-    type = GNUNET_GNSRECORD_TYPE_CREDENTIAL;
-    subject_key = extension;
-    fprintf (stderr, "Start: Store subject side\n");
+    type = GNUNET_GNSRECORD_TYPE_DELEGATE;
+    subject = extension;
+    issuer_attr = GNUNET_GNS_EMPTY_LABEL_AT;
+    // Store subject side
     el = GNUNET_IDENTITY_ego_lookup (cfg,
                                 ego_name,
                                 &store_cb,
@@ -872,26 +775,19 @@ run (void *cls,
   }
 
   if (GNUNET_YES == sign_ss) {
-    fprintf(stderr, "Starting to sign subject side...\n");
-
     if (NULL == ego_name) {
       fprintf (stderr, "ego required\n");
       GNUNET_SCHEDULER_shutdown ();
       return;
     }
-
-    if (NULL == subject_key)
+    if (NULL == subject)
     {
       fprintf (stderr, "Subject public key needed\n");
       GNUNET_SCHEDULER_shutdown ();
       return;
-
     }
 
-    //TODO: Sign like credential and return to store subject side
-    //TODO: Return everything as an input for the add
-    //TODO: Idee: Gleich add machen, statt return und neues add
-    fprintf (stderr, "Start: Sign, return and subject side store\n");
+    // lookup ego and call function sign_cb on success
     el = GNUNET_IDENTITY_ego_lookup (cfg,
                                 ego_name,
                                 &sign_cb,
@@ -940,7 +836,7 @@ run (void *cls,
 
   } 
 
-  if (NULL == subject_key)
+  if (NULL == subject)
   {
     fprintf (stderr,
              _("Subject public key needed\n"));
@@ -949,13 +845,13 @@ run (void *cls,
 
   }
   if (GNUNET_OK !=
-      GNUNET_CRYPTO_ecdsa_public_key_from_string (subject_key,
-                                                  strlen (subject_key),
+      GNUNET_CRYPTO_ecdsa_public_key_from_string (subject,
+                                                  strlen (subject),
                                                   &subject_pkey))
   {
     fprintf (stderr,
              _("Subject public key `%s' is not well-formed\n"),
-             subject_key);
+             subject);
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
@@ -1061,7 +957,6 @@ run (void *cls,
              _("Please specify name to lookup, subject key and issuer key!\n"));
     GNUNET_SCHEDULER_shutdown ();
   }
-  fprintf (stderr, "In the end it doesnt even shutdown\n");
   return;
 }
 
@@ -1088,8 +983,8 @@ main (int argc, char *const *argv)
     GNUNET_GETOPT_option_string ('s',
                                  "subject",
                                  "PKEY",
-                                 gettext_noop ("The public key of the subject to lookup the credential for"),
-                                 &subject_key),
+                                 gettext_noop ("The public key of the subject to lookup the credential for, or for issuer side storage: subject and its attributes"),
+                                 &subject),
     GNUNET_GETOPT_option_string ('b',
                                  "credential",
                                  "CRED",
@@ -1103,7 +998,7 @@ main (int argc, char *const *argv)
     GNUNET_GETOPT_option_string ('e',
                                  "ego",
                                  "EGO",
-                                 gettext_noop ("The ego to use"),
+                                 gettext_noop ("The ego/zone name to use"),
                                  &ego_name),
     GNUNET_GETOPT_option_string ('a',
                                  "attribute",
@@ -1119,10 +1014,9 @@ main (int argc, char *const *argv)
                                "collect",
                                gettext_noop ("collect credentials"),
                                &collect),
-    
     GNUNET_GETOPT_option_flag ('U',
                                "createIssuerSide",
-                               gettext_noop ("TODO: rename create to --issue, Create and issue a credential issuer side."),
+                               gettext_noop ("Create and issue a credential issuer side."),
                                &create_is),
     GNUNET_GETOPT_option_flag ('C',
                                "createSubjectSide",
@@ -1132,14 +1026,10 @@ main (int argc, char *const *argv)
                                "signSubjectSide",
                                gettext_noop ("Create, sign and return a credential subject side."),
                                &sign_ss),
-    GNUNET_GETOPT_option_flag ('A',
-                               "add",
-                               gettext_noop ("Add credential to the namestore of an ego"),
-                               &add_iss),
     GNUNET_GETOPT_option_string ('x',
                                "extension",
                                "EXT",
-                               gettext_noop ("Signed issue credentials"),
+                               gettext_noop ("Signed credentials that should be issued to a zone/ego"),
                                &extension),
     GNUNET_GETOPT_OPTION_END
   };

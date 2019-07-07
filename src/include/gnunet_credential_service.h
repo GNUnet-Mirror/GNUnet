@@ -202,6 +202,53 @@ struct GNUNET_CREDENTIAL_Credential
   const char *issuer_attribute;
 };
 
+/**
+ * A delegate
+ */
+struct GNUNET_CREDENTIAL_Delegate {
+
+  /**
+   * The issuer of the credential
+   */
+  struct GNUNET_CRYPTO_EcdsaPublicKey issuer_key;
+
+  /**
+   * Public key of the subject this credential was issued to
+   */
+  struct GNUNET_CRYPTO_EcdsaPublicKey subject_key;
+
+  /**
+   * Signature of this credential
+   */
+  struct GNUNET_CRYPTO_EcdsaSignature signature;
+
+  /**
+   * Expiration of this credential
+   */
+  struct GNUNET_TIME_Absolute expiration;
+
+  /**
+   * Length of the issuer attribute
+   */
+  uint32_t issuer_attribute_len;
+
+  /**
+   * The issuer attribute
+   */
+  const char *issuer_attribute;
+
+  /**
+   * Length of the subject attribute
+   */
+  uint32_t subject_attribute_len;
+
+  /**
+   * The subject attribute
+   */
+  const char *subject_attribute;
+
+};
+
 
 
 /**
@@ -363,6 +410,21 @@ GNUNET_CREDENTIAL_credential_issue (const struct
                                     const char *attribute,
                                     struct GNUNET_TIME_Absolute *expiration);
 
+/**
+ * Issue an attribute to a subject
+ *
+ * @param issuer the ego that should be used to issue the attribute
+ * @param subject the subject of the attribute
+ * @param attribute the name of the attribute
+ * @param expiration the TTL of the credential
+ * @return handle to the queued request
+ */
+struct GNUNET_CREDENTIAL_Delegate*
+GNUNET_CREDENTIAL_delegate_issue (const struct GNUNET_CRYPTO_EcdsaPrivateKey *issuer,
+                                    struct GNUNET_CRYPTO_EcdsaPublicKey *subject,
+                                    const char *iss_attr,
+                                    const char *sub_attr,
+                                    struct GNUNET_TIME_Absolute *expiration);
 
 
 /**
