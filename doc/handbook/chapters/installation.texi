@@ -410,7 +410,9 @@ datastore (gnunet-service-datastore)
 For the @emph{multi-user setup} first the system services need to be started
 as the system user, i.e. the user @code{gnunet} needs to execute
 @code{gnunet-arm -s}. This should be done by the system's init system.
-
+Then the user who wants to start GNUnet applications has to run
+@code{gnunet-arm -s} too. It is recommented to automate this, e.g. using
+the user's crontab.
 
 @node gnunet-gtk
 @subsection gnunet-gtk
