@@ -1476,4 +1476,6 @@ test_transport_api_slow_ats_peer2.conf \
   tcp_connection_legacy.c \
   tcp_server_mst_legacy.c \
   tcp_server_legacy.c \
-  tcp_service_legacy.c
+  tcp_service_legacy.c \
+test_communicator_1.conf \
+test_communicator_1.conf
