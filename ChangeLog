@@ -28,6 +28,9 @@ Sat 15 Jun 2019 11:45:35 PM CEST
 Fri 14 Jun 2019 07:17:40 PM CEST
   Add option to gnunet-identity to display private keys. -CG
 
+Wed Jun 5 21:19:46 2019 +0200
+ Releasing GNUnet 0.11.5. -schanzen
+
 Wed May 29 11:17:49 2019 +0200
   Added CAA record type (RFC 6844). -schanzen
 
