@@ -30,7 +30,6 @@
 #include "gnunet_protocols.h"
 #include "gnunet_signatures.h"
 #include "credential.h"
-#include "delegate.h"
 #include "credential_serialization.h"
 #include "gnunet_credential_service.h"
 #include "gnunet_identity_service.h"

@@ -150,7 +150,7 @@ static int sign_ss;
 /**
  * Signed issue credentials
  */
-static char *extension;
+static char *import;
 
 /**
  * Queue entry for the 'add' operation.
@@ -185,6 +185,16 @@ static uint64_t etime;
  * Is expiration time relative or absolute time?
  */
 static int etime_is_rel = GNUNET_SYSERR;
+
+/**
+ * Fixed size of the public/private keys
+ */
+static const int key_length = 52;
+
+/**
+ * Record label for storing delegations
+ */
+static char *record_label;
 
 /**
  * Task run on shutdown.  Cleans up everything.
@@ -332,7 +342,7 @@ identity_cb (void *cls,
              const struct GNUNET_IDENTITY_Ego *ego)
 {
   const struct GNUNET_CRYPTO_EcdsaPrivateKey *privkey;
-  struct GNUNET_CREDENTIAL_Credential *crd;
+  struct GNUNET_CREDENTIAL_Credential *cred;
   struct GNUNET_TIME_Absolute etime_abs;
   struct GNUNET_TIME_Relative etime_rel;
   char *res;
@@ -400,45 +410,15 @@ identity_cb (void *cls,
   privkey = GNUNET_IDENTITY_ego_get_private_key (ego);
   GNUNET_free_non_null (ego_name);
   ego_name = NULL;
-  crd = GNUNET_CREDENTIAL_credential_issue (privkey,
+  cred = GNUNET_CREDENTIAL_credential_issue (privkey,
                                             &subject_pkey,
                                             issuer_attr,
                                             &etime_abs);
 
-  res = GNUNET_CREDENTIAL_credential_to_string (crd);
-  GNUNET_free (crd);
+  res = GNUNET_CREDENTIAL_credential_to_string (cred);
+  GNUNET_free (cred);
   printf ("%s\n", res);
   GNUNET_SCHEDULER_shutdown ();
-}
-
-static int
-parse_cmdl_param(const char *extensionstring)
-{
-  char *token;
-  char *tmp_str;
-  int counter = 0;
-
-  tmp_str = GNUNET_strdup (extensionstring);
-  // split string via strtok, assume parameters are in the right order
-  token = strtok (tmp_str, ";");
-  while (NULL != token) {
-
-    // fill variables depending on counter
-    if(0 == counter) {
-      expiration = GNUNET_strdup(token);
-    } else if(1 == counter) {
-      extension = GNUNET_strdup(token);
-    } else {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Could not parse extension string\n");
-    }
-  
-    counter++;
-    token = strtok (NULL, ";");
-  }
-  GNUNET_free (tmp_str);
-
-  //return GNUNET_SYSERR;
-  return GNUNET_OK;
 }
 
 /**
@@ -573,55 +553,71 @@ store_cb (void *cls,
   // Key handling
   zone_pkey = *GNUNET_IDENTITY_ego_get_private_key (ego);
 
-  // Check relevant cmdline parameters
-  if (NULL == issuer_attr)
-  {
-    fprintf (stderr, "Missing option -attribute for operation 'create'.\n");
-    GNUNET_SCHEDULER_shutdown ();
-    return;
-  }
+  // TODO maybe dont have to set subject, if only used in if/else can use import here instead!!
+  if( GNUNET_GNSRECORD_TYPE_DELEGATE == type){
+    // Parse import
+    struct GNUNET_CREDENTIAL_Delegate *cred;
+    cred = GNUNET_CREDENTIAL_delegate_from_string (import);
 
-  if (NULL == subject)
-  {
-    fprintf (stderr, "Missing option -subject for operation 'create'.'\n");
-    GNUNET_SCHEDULER_shutdown ();
-    return;
-  }
+    // Get import subject public key string
+    char *subject_pubkey_str = GNUNET_CRYPTO_ecdsa_public_key_to_string(&cred->subject_key);
 
-  // String to value conversion for storage
-  if (GNUNET_OK != GNUNET_GNSRECORD_string_to_value (type,
+    // Get zone public key string
+    struct GNUNET_CRYPTO_EcdsaPublicKey zone_pubkey;
+    GNUNET_IDENTITY_ego_get_public_key (ego, &zone_pubkey);
+    char *zone_pubkey_str = GNUNET_CRYPTO_ecdsa_public_key_to_string(&zone_pubkey);
+
+    // Check if the subject key in the signed import matches the zone's key it is issued to
+    if(strcmp(zone_pubkey_str, subject_pubkey_str) != 0)
+    {
+      fprintf (stderr, "Import signed delegate does not match this ego's public key.\n");
+      GNUNET_SCHEDULER_shutdown ();
+      return;
+    }
+
+    // Expiration
+    etime = cred->expiration.abs_value_us;
+    etime_is_rel = GNUNET_NO;
+
+    // Prepare the data to be store in the record
+    data_size = GNUNET_CREDENTIAL_delegate_serialize (cred, (char **)&data);
+    GNUNET_free(cred);
+  } else {
+    // For all other types e.g. GNUNET_GNSRECORD_TYPE_ATTRIBUTE
+    if (GNUNET_OK != GNUNET_GNSRECORD_string_to_value (type,
 					  subject,
 					  &data,
 					  &data_size))
-  {
-    fprintf (stderr, "Value `%s' invalid for record type `%s'\n",
-        subject,
-        typestring);
-    GNUNET_SCHEDULER_shutdown ();
-    return;
-  }
+    {
+      fprintf (stderr, "Value `%s' invalid for record type `%s'\n",
+          subject,
+          typestring);
+      GNUNET_SCHEDULER_shutdown ();
+      return;
+    }
 
-  // Take care of expiration
-  if (NULL == expiration)
-  {
-    fprintf (stderr, "Missing option -e for operation 'create'\n");
-    GNUNET_SCHEDULER_shutdown ();
-    return;
-  }
-  if (GNUNET_OK != parse_expiration (expiration,
-      &etime_is_rel,
-      &etime))
-  {
-    fprintf (stderr, "Invalid time format `%s'\n",
-              expiration);
-    GNUNET_SCHEDULER_shutdown ();
-    return;
+    // Take care of expiration
+    if (NULL == expiration)
+    {
+      fprintf (stderr, "Missing option -e for operation 'create'\n");
+      GNUNET_SCHEDULER_shutdown ();
+      return;
+    }
+    if (GNUNET_OK != parse_expiration (expiration,
+        &etime_is_rel,
+        &etime))
+    {
+      fprintf (stderr, "Invalid time format `%s'\n",
+                expiration);
+      GNUNET_SCHEDULER_shutdown ();
+      return;
+    }
   }
 
   // Start lookup
   add_qe = GNUNET_NAMESTORE_records_lookup (ns,
                                         &zone_pkey,
-                                        issuer_attr,
+                                        record_label,
                                         &error_cb,
                                         NULL,
                                         &get_existing_record,
@@ -634,9 +630,8 @@ sign_cb (void *cls,
 	     const struct GNUNET_IDENTITY_Ego *ego)
 {
   const struct GNUNET_CRYPTO_EcdsaPrivateKey *privkey;
-  struct GNUNET_CREDENTIAL_Delegate *crd;
+  struct GNUNET_CREDENTIAL_Delegate *dele;
   struct GNUNET_TIME_Absolute etime_abs;
-  struct GNUNET_TIME_Relative etime_rel;
   char *res;
 
   el = NULL;
@@ -647,43 +642,33 @@ sign_cb (void *cls,
     fprintf (stderr, "Please specify a TTL\n");
     GNUNET_SCHEDULER_shutdown ();
     return;
-  } else if (GNUNET_OK == GNUNET_STRINGS_fancy_time_to_relative (expiration, &etime_rel))
-  {
-    etime_abs = GNUNET_TIME_relative_to_absolute (etime_rel);
   } else if (GNUNET_OK != GNUNET_STRINGS_fancy_time_to_absolute (expiration, &etime_abs))
   {
-    fprintf (stderr, "%s is not a valid ttl!\n", expiration);
+    fprintf (stderr, "%s is not a valid ttl! Only absolute times are accepted!\n", expiration);
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
 
-  // if contains a space - split it by the first space only - assume first entry is subject followed by attribute(s)
-  char *space;
-  int idx;
+  // If contains a space - split it by the first space only - assume first entry is subject followed by attribute(s)
   char *subject_pubkey_str;
-  char *subject_attr;
+  char *subject_attr = NULL;
+  char *token;
 
-  space = strchr(subject, ' ');
-  if(NULL == space)
+  // Subject Public Key
+  token = strtok (subject, " ");
+  if (key_length == strlen(token))
   {
-    // only contains subject key e.g. A.a <- B
-    subject_pubkey_str = subject;
-    subject_attr = '\0';
+    subject_pubkey_str = token;
   } else {
-    // subject contains: key attr1.attr2.attr3...
-    // split subject into subject_pubkey_str and subject_attr
-    idx = (int)(space - subject);
-
-    subject_pubkey_str = GNUNET_malloc(idx+1);
-    GNUNET_memcpy(subject_pubkey_str, subject, idx);
-    subject_pubkey_str[idx]  = '\0';
-
-    int sub_attr_len = strlen(subject) - idx - 1;
-    // +1 for the \0
-    subject_attr = GNUNET_malloc(sub_attr_len + 1);
-    // +1 to remove the space "key attr" (or whatever separator)
-    GNUNET_memcpy(subject_attr, subject + idx + 1, sub_attr_len);
-    subject_attr[sub_attr_len] = '\0';  
+    fprintf (stderr, "Key error, wrong length: %ld!\n", strlen(token));
+    GNUNET_SCHEDULER_shutdown ();
+    return;
+  }
+  // Subject Attribute(s)
+  token = strtok (NULL, " ");
+  if(NULL != token)
+  {
+    subject_attr = token;
   }
 
   // work on keys
@@ -699,14 +684,14 @@ sign_cb (void *cls,
   }
 
   // Sign delegate
-  crd = GNUNET_CREDENTIAL_delegate_issue (privkey,
+  dele = GNUNET_CREDENTIAL_delegate_issue (privkey,
                                             &subject_pkey,
                                             issuer_attr,
                                             subject_attr,
                                             &etime_abs);
-  res = GNUNET_CREDENTIAL_delegate_to_string (crd);
-  GNUNET_free (crd);
-  printf ("%s;%s\n", expiration, res);
+  res = GNUNET_CREDENTIAL_delegate_to_string (dele);
+  GNUNET_free (dele);
+  printf ("%s\n", res);
 
   GNUNET_free_non_null (ego_name);
   ego_name = NULL;
@@ -728,22 +713,34 @@ run (void *cls,
      const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
-
   cfg = c;
 
   tt = GNUNET_SCHEDULER_add_delayed (timeout,
                                      &do_timeout, NULL);
   GNUNET_SCHEDULER_add_shutdown (&do_shutdown, NULL);
 
+  // Check relevant cmdline parameters
   if (GNUNET_YES == create_is) {
     if (NULL == ego_name) {
-      fprintf (stderr, "ego required\n");
+      fprintf (stderr, "Missing option '-ego'\n");
+      GNUNET_SCHEDULER_shutdown ();
+      return;
+    }
+    if (NULL == issuer_attr) {
+      fprintf (stderr, "Missing option '-attribute' for issuer attribute\n");
+      GNUNET_SCHEDULER_shutdown ();
+      return;
+    }
+    if (NULL == subject)
+    {
+      fprintf (stderr, "Missing option -subject for operation 'create'.'\n");
       GNUNET_SCHEDULER_shutdown ();
       return;
     }
 
     // Lookup ego, on success call store_cb and store as ATTRIBUTE type
     type = GNUNET_GNSRECORD_TYPE_ATTRIBUTE;
+    record_label = issuer_attr;
     el = GNUNET_IDENTITY_ego_lookup (cfg,
                                 ego_name,
                                 &store_cb,
@@ -753,18 +750,14 @@ run (void *cls,
 
   if (GNUNET_YES == create_ss) {
     // check if signed parameter has been passed in cmd line call
-    if (NULL == extension) {
-      fprintf (stderr, "'extension' required\n");
+    if (NULL == import) {
+      fprintf (stderr, "'import' required\n");
       GNUNET_SCHEDULER_shutdown ();
       return;
     }
 
-    // parses all the passed parameters
-    parse_cmdl_param(extension);
-
     type = GNUNET_GNSRECORD_TYPE_DELEGATE;
-    subject = extension;
-    issuer_attr = GNUNET_GNS_EMPTY_LABEL_AT;
+    record_label = GNUNET_GNS_EMPTY_LABEL_AT;
     // Store subject side
     el = GNUNET_IDENTITY_ego_lookup (cfg,
                                 ego_name,
@@ -1008,7 +1001,7 @@ main (int argc, char *const *argv)
     GNUNET_GETOPT_option_string ('T',
                                  "ttl",
                                  "EXP",
-                                 gettext_noop ("The time to live for the credential"),
+                                 gettext_noop ("The time to live for the credential. e.g. 5m, 6h, \"1990-12-30 12:00:00\""),
                                  &expiration),
     GNUNET_GETOPT_option_flag ('g',
                                "collect",
@@ -1027,10 +1020,10 @@ main (int argc, char *const *argv)
                                gettext_noop ("Create, sign and return a credential subject side."),
                                &sign_ss),
     GNUNET_GETOPT_option_string ('x',
-                               "extension",
-                               "EXT",
-                               gettext_noop ("Signed credentials that should be issued to a zone/ego"),
-                               &extension),
+                               "import",
+                               "IMP",
+                               gettext_noop ("Import signed credentials that should be issued to a zone/ego"),
+                               &import),
     GNUNET_GETOPT_OPTION_END
   };
   int ret;

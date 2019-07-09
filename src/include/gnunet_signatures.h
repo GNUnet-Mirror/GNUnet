@@ -241,6 +241,10 @@ extern "C"
  */
 #define GNUNET_SIGNATURE_PURPOSE_TRANSPORT_DV_INITIATOR 37
 
+/**
+ * Signature for a GNUnet delegate
+ */
+#define GNUNET_SIGNATURE_PURPOSE_DELEGATE 38
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {

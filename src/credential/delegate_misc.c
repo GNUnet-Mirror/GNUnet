@@ -30,7 +30,7 @@
 #include "gnunet_constants.h"
 #include "gnunet_credential_service.h"
 #include "gnunet_signatures.h"
-#include "delegate.h"
+#include "credential.h"
 #include <inttypes.h>
 
 char*
@@ -74,7 +74,7 @@ GNUNET_CREDENTIAL_delegate_to_string (const struct GNUNET_CREDENTIAL_Delegate *c
 struct GNUNET_CREDENTIAL_Delegate*
 GNUNET_CREDENTIAL_delegate_from_string (const char* s)
 {
-  struct GNUNET_CREDENTIAL_Delegate *cred;
+  struct GNUNET_CREDENTIAL_Delegate *dele;
   size_t enclen = (sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey)) * 8;
   if (enclen % 5 > 0)
     enclen += 5 - enclen % 5;
@@ -118,44 +118,46 @@ GNUNET_CREDENTIAL_delegate_from_string (const char* s)
   if(strcmp(sub_attr,"") == 0) {
     attr_len = strlen (iss_attr) + 1;
   } else {
-    attr_len = strlen (iss_attr) + strlen(sub_attr) + 1;
+    attr_len = strlen (iss_attr) + strlen(sub_attr) + 2;
   }
-  cred = GNUNET_malloc (sizeof (struct GNUNET_CREDENTIAL_Delegate) + attr_len);
+  dele = GNUNET_malloc (sizeof (struct GNUNET_CREDENTIAL_Delegate) + attr_len);
 
   char tmp_str[attr_len];
   GNUNET_memcpy(tmp_str, iss_attr, strlen(iss_attr));
    if(strcmp(sub_attr,"") != 0) {
-    GNUNET_memcpy(tmp_str + strlen(iss_attr), sub_attr, strlen(sub_attr));
+     tmp_str[strlen(iss_attr)] = '\0';
+    GNUNET_memcpy(tmp_str + strlen(iss_attr) + 1, sub_attr, strlen(sub_attr));
   }
   tmp_str[attr_len - 1] = '\0';
   
   GNUNET_CRYPTO_ecdsa_public_key_from_string (subject_pkey,
                                               strlen (subject_pkey),
-                                              &cred->subject_key);
+                                              &dele->subject_key);
   GNUNET_CRYPTO_ecdsa_public_key_from_string (issuer_pkey,
                                               strlen (issuer_pkey),
-                                              &cred->issuer_key);
+                                              &dele->issuer_key);
   GNUNET_assert (sizeof (struct GNUNET_CRYPTO_EcdsaSignature) == GNUNET_STRINGS_base64_decode (signature,
                                 strlen (signature),
                                 (char**)&sig));
-  cred->signature = *sig;
-  cred->expiration = etime_abs;
+  dele->signature = *sig;
+  dele->expiration = etime_abs;
   GNUNET_free (sig);
-  GNUNET_memcpy (&cred[1],
+
+  GNUNET_memcpy (&dele[1],
                  tmp_str,
                  attr_len);
 
-  cred->issuer_attribute_len = strlen (iss_attr);
-  cred->issuer_attribute = strdup(iss_attr);
+  dele->issuer_attribute = (char*)&dele[1];
+  dele->issuer_attribute_len = strlen (iss_attr);
   if(strcmp(sub_attr,"") == 0) {
-    cred->subject_attribute_len = 0;
-    cred->subject_attribute = '\0';
+    dele->subject_attribute = NULL;
+    dele->subject_attribute_len = 0;
   } else {
-    cred->subject_attribute_len = strlen (sub_attr);
-    cred->subject_attribute = strdup(sub_attr);
+    dele->subject_attribute = (char*)&dele[1] + strlen(iss_attr) + 1;
+    dele->subject_attribute_len = strlen (sub_attr);
   }
 
-  return cred;
+  return dele;
 }
 
 /**
@@ -163,7 +165,7 @@ GNUNET_CREDENTIAL_delegate_from_string (const char* s)
  *
  * @param issuer the ego that should be used to issue the attribute
  * @param subject the subject of the attribute
- * @param attribute the name of the attribute
+ * @param iss_attr the name of the attribute
  * @return handle to the queued request
  */
 
@@ -174,8 +176,8 @@ GNUNET_CREDENTIAL_delegate_issue (const struct GNUNET_CRYPTO_EcdsaPrivateKey *is
                                     const char *sub_attr,
                                     struct GNUNET_TIME_Absolute *expiration)
 {
-  struct DelegateEntry *crd;
-  struct GNUNET_CREDENTIAL_Delegate *cred;
+  struct DelegateEntry *del;
+  struct GNUNET_CREDENTIAL_Delegate *dele;
   size_t size;
   int attr_len;
   
@@ -183,68 +185,76 @@ GNUNET_CREDENTIAL_delegate_issue (const struct GNUNET_CRYPTO_EcdsaPrivateKey *is
     // +1 for \0
     attr_len = strlen (iss_attr) + 1;
   } else {
-    attr_len = strlen (iss_attr) + strlen(sub_attr) + 1;
+    // +2 for both strings need to be terminated with \0
+    attr_len = strlen (iss_attr) + strlen(sub_attr) + 2;
   }
   size = sizeof (struct DelegateEntry) + attr_len;
 
   char tmp_str[attr_len];
   GNUNET_memcpy(tmp_str, iss_attr, strlen(iss_attr));
   if (NULL != sub_attr){
-    GNUNET_memcpy(tmp_str + strlen(iss_attr), sub_attr, strlen(sub_attr));
+    tmp_str[strlen(iss_attr)] = '\0';
+    GNUNET_memcpy(tmp_str + strlen(iss_attr) + 1, sub_attr, strlen(sub_attr));
   }
   tmp_str[attr_len - 1] = '\0';
-
-  crd = GNUNET_malloc (size);
-  crd->purpose.size = htonl (size - sizeof (struct GNUNET_CRYPTO_EcdsaSignature));
-  crd->purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_CREDENTIAL);
+  
+  del = GNUNET_malloc (size);
+  del->purpose.size = htonl (size - sizeof (struct GNUNET_CRYPTO_EcdsaSignature));
+  del->purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_DELEGATE);
   GNUNET_CRYPTO_ecdsa_key_get_public (issuer,
-                                      &crd->issuer_key);
-  crd->subject_key = *subject;
-  crd->expiration = GNUNET_htonll (expiration->abs_value_us);
-  crd->issuer_attribute_len = htonl (strlen (iss_attr) + 1);
+                                      &del->issuer_key);
+  del->subject_key = *subject;
+  del->expiration = GNUNET_htonll (expiration->abs_value_us);
+  del->issuer_attribute_len = htonl (strlen (iss_attr) + 1);
   if (NULL == sub_attr){
-    crd->subject_attribute_len = htonl (0);
+    del->subject_attribute_len = htonl (0);
   } else {
-    crd->subject_attribute_len = htonl (strlen (sub_attr) + 1);
+    del->subject_attribute_len = htonl (strlen (sub_attr) + 1);
   }
 
-  GNUNET_memcpy (&crd[1],
+  GNUNET_memcpy (&del[1],
                  tmp_str,
                  attr_len);
  
   if (GNUNET_OK !=
       GNUNET_CRYPTO_ecdsa_sign (issuer,
-                                &crd->purpose,
-                                &crd->signature))
+                                &del->purpose,
+                                &del->signature))
   {
     GNUNET_break (0);
-    GNUNET_free (crd);
+    GNUNET_free (del);
     return NULL;
   }
 
-  cred = GNUNET_malloc (sizeof (struct GNUNET_CREDENTIAL_Delegate) + attr_len);
-  cred->signature = crd->signature;
-  cred->expiration = *expiration;
+  dele = GNUNET_malloc (sizeof (struct GNUNET_CREDENTIAL_Delegate) + attr_len);
+  dele->signature = del->signature;
+  dele->expiration = *expiration;
   GNUNET_CRYPTO_ecdsa_key_get_public (issuer,
-                                      &cred->issuer_key);
+                                      &dele->issuer_key);
 
-  cred->subject_key = *subject;
-  cred->issuer_attribute = strdup(iss_attr);
-  cred->issuer_attribute_len = strlen(iss_attr);
-  if (NULL == sub_attr){
-    cred->subject_attribute = '\0';
-    cred->subject_attribute_len = 0;
-  } else {
-    cred->subject_attribute = strdup(sub_attr);
-    cred->subject_attribute_len = strlen(sub_attr);
-  }
+  dele->subject_key = *subject;
 
-  GNUNET_memcpy (&cred[1],
+  // Copy the combined string at the part in the memory where the struct ends
+  GNUNET_memcpy (&dele[1],
                  tmp_str,
                  attr_len);
 
-  GNUNET_free (crd);
-  return cred;
+  dele->issuer_attribute = (char*)&dele[1];
+  dele->issuer_attribute_len = strlen(iss_attr);
+  if (NULL == sub_attr){
+    dele->subject_attribute = NULL;
+    dele->subject_attribute_len = 0;
+  } else {
+    dele->subject_attribute = (char*)&dele[1] + strlen(iss_attr) + 1;
+    dele->subject_attribute_len = strlen(sub_attr);
+  }
+
+  GNUNET_free (del);
+  return dele;
+
+  // Entweder: strdup und destroy (free auf die subjct_attribute/issuer_attribute)
+  // oder: pointer auf cred[1], aber nach jedem string im combined string ein EOS <- besser
+  // function comment: cred must be freed by caller, (add missing sub_iss)
 }
 
 

@@ -69,7 +69,7 @@ gnunet_service_credential_LDADD = \
 
 
 libgnunetcredential_la_SOURCES = \
- credential_api.c credential.h deleagte.h\
+ credential_api.c credential.h\
  credential_serialization.c \
  credential_serialization.h \
  credential_misc.c \

@@ -49,17 +49,17 @@ gnunet-credential --createIssuerSide --ego=epub --attribute="issside" --subject=
 gnunet-namestore -D -z epub
 
 # Own subject side storage:
-SIGNED=`$DO_TIMEOUT gnunet-credential --signSubjectSide --ego=epub --attribute="abcd" --subject="$EORG_KEY" --ttl=5m`
-gnunet-credential --createSubjectSide --ego=eorg --extension "$SIGNED"
+SIGNED=`$DO_TIMEOUT gnunet-credential --signSubjectSide --ego=epub --attribute="abcd" --subject="$EORG_KEY" --ttl="2019-12-12 10:00:00"`
+gnunet-credential --createSubjectSide --ego=eorg --import "$SIGNED"
 
-SIGNED=`$DO_TIMEOUT gnunet-credential --signSubjectSide --ego=epub --attribute="abcd" --subject="$EORG_KEY efghijklmno" --ttl=5m`
-gnunet-credential --createSubjectSide --ego=eorg --extension "$SIGNED"
+SIGNED=`$DO_TIMEOUT gnunet-credential --signSubjectSide --ego=epub --attribute="abcd" --subject="$EORG_KEY efghijklmno" --ttl="2019-12-12 10:00:00"`
+gnunet-credential --createSubjectSide --ego=eorg --import "$SIGNED"
 
-SIGNED=`$DO_TIMEOUT gnunet-credential --signSubjectSide --ego=epub --attribute="abcd" --subject="$EORG_KEY efghijklmno.pqr" --ttl=5m`
-gnunet-credential --createSubjectSide --ego=eorg --extension "$SIGNED"
+SIGNED=`$DO_TIMEOUT gnunet-credential --signSubjectSide --ego=epub --attribute="abcd" --subject="$EORG_KEY efghijklmno.pqr" --ttl="2019-12-12 10:00:00"`
+gnunet-credential --createSubjectSide --ego=eorg --import "$SIGNED"
 
-SIGNED=`$DO_TIMEOUT gnunet-credential --signSubjectSide --ego=epub --attribute="abcd.stu" --subject="$EORG_KEY efghijklmno.pqr" --ttl=5m`
-gnunet-credential --createSubjectSide --ego=eorg --extension "$SIGNED"
+SIGNED=`$DO_TIMEOUT gnunet-credential --signSubjectSide --ego=epub --attribute="abcd.stu" --subject="$EORG_KEY efghijklmno.pqr" --ttl="2019-12-12 10:00:00"`
+gnunet-credential --createSubjectSide --ego=eorg --import "$SIGNED"
 
 gnunet-namestore -D -z eorg
 
