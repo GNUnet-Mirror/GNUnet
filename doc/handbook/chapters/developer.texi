@@ -136,38 +136,19 @@ It can be accessed at
 @uref{https://bugs.gnunet.org/, https://bugs.gnunet.org/}.
 Anyone can report bugs.
 
-@item Our site installation of the
-Continuous Integration (CI) system @code{Buildbot} is used
-to check GNUnet builds automatically on a range of platforms.
-The web interface of this CI is exposed at
-@uref{https://old.gnunet.org/buildbot/, https://old.gnunet.org/buildbot/}.
-Builds are triggered automatically 30 minutes after the last commit to
-our repository was made.
-
 @item The current quality of our automated test suite is assessed using
-Code coverage analysis. This analysis is run daily; however the webpage
-is only updated if all automated tests pass at that time. Testcases that
+code coverage analysis. Testcases that
 improve our code coverage are always welcome.
 
-@item We try to automatically find bugs using a static analysis scan.
-This scan is run daily; however the webpage is only updated if all
-automated tests pass at the time. Note that not everything that is
-flagged by the analysis is a bug, sometimes even good code can be marked
-as possibly problematic. Nevertheless, developers are encouraged to at
-least be aware of all issues in their code that are listed.
+@item We try to automatically find bugs using a static analysis using
+various tools. Note that not everything that is flagged by the
+analysis is a bug, sometimes even good code can be marked as possibly
+problematic. Nevertheless, developers are encouraged to at least be
+aware of all issues in their code that are listed.
 
 @item We use Gauger for automatic performance regression visualization.
 @c FIXME: LINK!
 Details on how to use Gauger are here.
-
-@item We use @uref{http://junit.org/, junit} to automatically test
-@command{gnunet-java}.
-Automatically generated, current reports on the test suite are here.
-@c FIXME: Likewise.
-
-@item We use Cobertura to generate test coverage reports for gnunet-java.
-Current reports on test coverage are here.
-@c FIXME: Likewise.
 
 @end itemize
 
@@ -8695,7 +8676,7 @@ The gnunet-regex-profiler can be used to profile the usage of mesh/regex
 for a given set of regular expressions and strings.
 Mesh/regex allows you to announce your peer ID under a certain regex and
 search for peers matching a particular regex using a string.
-See @uref{https://old.gnunet.org/szengel2012ms, szengel2012ms} for a full
+See @uref{https://bib.gnunet.org/full/date.html#2012_5f2, szengel2012ms} for a full
 introduction.
 
 First of all, the regex profiler uses GNUnet testbed, thus all the
