@@ -630,6 +630,8 @@ send_create (void *cls)
   env = GNUNET_MQ_msg_extra (create_msg,
                              (2 + cc->off) * sizeof (struct GNUNET_PeerIdentity),
                              GNUNET_MESSAGE_TYPE_CADET_CONNECTION_CREATE);
+  //TODO This will be removed in a major release, because this will be a protocol breaking change. We shift here to be compatible with GNUNET_CADET_OPTION_RELIABLE that was removed, and to already use the newly introduced options.
+  create_msg->options = GNUNET_MQ_PREF_RELIABLE >> 10;
   create_msg->cid = cc->cid;
   pids = (struct GNUNET_PeerIdentity *) &create_msg[1];
   pids[0] = my_full_id;

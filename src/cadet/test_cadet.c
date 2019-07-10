@@ -532,7 +532,6 @@ reconnect_op (void *cls)
   };
   long l = (long) cls;
   struct CadetTestChannelWrapper *ch;
-  enum GNUNET_CADET_ChannelOption flags;
 
   reconnect_task = NULL;
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
@@ -543,13 +542,11 @@ reconnect_op (void *cls)
     GNUNET_CADET_channel_destroy (outgoing_ch);
     outgoing_ch = NULL;
   }
-  flags = GNUNET_CADET_OPTION_DEFAULT;
   ch = GNUNET_new (struct CadetTestChannelWrapper);
   outgoing_ch = GNUNET_CADET_channel_create (h1,
                                              ch,
                                              p_id[1],
                                              &port,
-                                             flags,
                                              NULL,
                                              &disconnect_handler,
                                              handlers);
@@ -998,7 +995,6 @@ start_test (void *cls)
     GNUNET_MQ_handler_end ()
   };
   struct CadetTestChannelWrapper *ch;
-  enum GNUNET_CADET_ChannelOption flags;
 
   test_task = NULL;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "start_test: %s\n", test_name);
@@ -1008,11 +1004,9 @@ start_test (void *cls)
     disconnect_task = NULL;
   }
 
-  flags = GNUNET_CADET_OPTION_DEFAULT;
   if (SPEED_REL == test)
   {
     test = SPEED;
-    flags |= GNUNET_CADET_OPTION_RELIABLE;
   }
 
   ch = GNUNET_new (struct CadetTestChannelWrapper);
@@ -1020,7 +1014,6 @@ start_test (void *cls)
                                              ch,
                                              p_id[1],
                                              &port,
-                                             flags,
                                              NULL,
                                              &disconnect_handler,
                                              handlers);

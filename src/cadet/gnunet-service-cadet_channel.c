@@ -355,6 +355,21 @@ struct CadetChannel
   unsigned int skip_ack_series;
 
   /**
+   * Is the tunnel bufferless (minimum latency)?
+   */
+  int nobuffer;
+
+  /**
+   * Is the tunnel reliable?
+   */
+  int reliable;
+
+  /**
+   * Is the tunnel out-of-order?
+   */
+  int out_of_order;
+  
+  /**
    * Is this channel a loopback channel, where the destination is us again?
    */
   int is_loopback;
@@ -583,6 +598,8 @@ send_channel_open (void *cls)
        GCCH_2s (ch));
   msgcc.header.size = htons (sizeof (msgcc));
   msgcc.header.type = htons (GNUNET_MESSAGE_TYPE_CADET_CHANNEL_OPEN);
+  //TODO This will be removed in a major release, because this will be a protocol breaking change. We shift here to be compatible with GNUNET_CADET_OPTION_RELIABLE that was removed, and to already use the newly introduced options.
+  msgcc.opt = GNUNET_MQ_PREF_RELIABLE >> 10;
   msgcc.h_port = ch->h_port;
   msgcc.ctn = ch->ctn;
   ch->state = CADET_CHANNEL_OPEN_SENT;
@@ -646,6 +663,9 @@ GCCH_channel_local_new (struct CadetClient *owner,
 
   ch = GNUNET_new (struct CadetChannel);
   ch->mid_recv.mid = htonl (1); /* The OPEN_ACK counts as message 0! */
+  ch->nobuffer = GNUNET_NO ;
+  ch->reliable = GNUNET_YES;
+  ch->out_of_order = GNUNET_NO ;
   ch->max_pending_messages = (ch->nobuffer) ? 1 : 4; /* FIXME: 4!? Do not hardcode! */
   ch->owner = ccco;
   ch->port = *port;
@@ -744,6 +764,9 @@ GCCH_channel_incoming_new (struct CadetTunnel *t,
   ch->t = t;
   ch->ctn = ctn;
   ch->retry_time = CADET_INITIAL_RETRANSMIT_TIME;
+  ch->nobuffer = GNUNET_NO;
+  ch->reliable = GNUNET_YES;
+  ch->out_of_order = GNUNET_NO;
   ch->max_pending_messages = (ch->nobuffer) ? 1 : 4; /* FIXME: 4!? Do not hardcode! */
   GNUNET_STATISTICS_update (stats,
                             "# channels",

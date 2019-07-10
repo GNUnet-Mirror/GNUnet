@@ -912,19 +912,18 @@ select_random_peer (struct CadetPeer *peer)
 static void
 start_test (void *cls)
 {
-  enum GNUNET_CADET_ChannelOption flags;
   unsigned long i;
 
   test_task = NULL;
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Start profiler\n");
 
-  flags = GNUNET_CADET_OPTION_DEFAULT;
+
   for (i = 0; i < peers_pinging; i++)
   {
     peers[i].dest = select_random_peer (&peers[i]);
     peers[i].ch = GNUNET_CADET_channel_create (peers[i].cadet, NULL,
                                                &peers[i].dest->id,
-                                               GC_u2h (1), flags);
+                                               GC_u2h (1));
     if (NULL == peers[i].ch)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Channel %lu failed\n", i);
@@ -969,7 +968,7 @@ warmup (void)
                 i, get_index (peer));
     peers[i].warmup_ch =
       GNUNET_CADET_channel_create (peers[i].cadet, NULL, &peer->id,
-                                  GC_u2h (1), GNUNET_CADET_OPTION_DEFAULT);
+                                  GC_u2h (1));
     if (NULL == peers[i].warmup_ch)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Warmup %u failed\n", i);
