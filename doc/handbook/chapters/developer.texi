@@ -100,7 +100,7 @@ following links:
 @c ** FIXME: Where is the Java tutorial?
 @itemize @bullet
 @item @xref{Top, Introduction,, gnunet-c-tutorial, The GNUnet C Tutorial}.
-@item @uref{https://tutorial.gnunet.org/, GNUnet C tutorial}
+@item @uref{https://docs.gnunet.org/tutorial/gnunet-tutorial.html, GNUnet C tutorial}
 @item GNUnet Java tutorial
 @end itemize
 
