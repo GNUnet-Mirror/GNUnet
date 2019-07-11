@@ -438,23 +438,27 @@ create_response (void *cls,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Queueing response from plugin with MHD\n");
-    //Handle Preflights
+    //Handle Preflights for extensions
     if (GNUNET_YES == echo_origin)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-          "Echoing origin\n");
-      GNUNET_CRYPTO_hash ("origin",
-                          strlen ("origin"),
-                          &key);
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Checking origin\n");
+      GNUNET_CRYPTO_hash ("origin", strlen ("origin"), &key);
       origin = GNUNET_CONTAINER_multihashmap_get (con_handle->data_handle
                                                     ->header_param_map,
                                                   &key);
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-          "Origin: %s\n", origin);
-      if (NULL != origin)
-        MHD_add_response_header (con_handle->response,
-                                 MHD_HTTP_HEADER_ACCESS_CONTROL_ALLOW_ORIGIN,
-                                 origin);
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Origin: %s\n", origin);
+      //Only echo for browser plugins
+      if ((0 ==
+           strcmp ("moz-extension://", origin, strlen ("moz-extension://"))) ||
+          (0 == strcmp ("chrome-extension://",
+                        origin,
+                        strlen ("chrome-extension://"))))
+      {
+        if (NULL != origin)
+          MHD_add_response_header (con_handle->response,
+                                   MHD_HTTP_HEADER_ACCESS_CONTROL_ALLOW_ORIGIN,
+                                   origin);
+      }
     }
     if (NULL != allow_credentials)
     {
@@ -868,7 +872,9 @@ run (void *cls,
 
   /* Get CORS data from cfg */
   echo_origin =
-    GNUNET_CONFIGURATION_get_value_yesno (cfg, "rest", "REST_ECHO_ORIGIN");
+    GNUNET_CONFIGURATION_get_value_yesno (cfg,
+                                          "rest",
+                                          "REST_ECHO_ORIGIN_WEBEXT");
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_string (cfg,
                                              "rest",
