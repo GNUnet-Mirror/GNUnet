@@ -449,10 +449,10 @@ create_response (void *cls,
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Origin: %s\n", origin);
       //Only echo for browser plugins
       if ((0 ==
-           strcmp ("moz-extension://", origin, strlen ("moz-extension://"))) ||
-          (0 == strcmp ("chrome-extension://",
-                        origin,
-                        strlen ("chrome-extension://"))))
+           strncmp ("moz-extension://", origin, strlen ("moz-extension://"))) ||
+          (0 == strncmp ("chrome-extension://",
+                         origin,
+                         strlen ("chrome-extension://"))))
       {
         if (NULL != origin)
           MHD_add_response_header (con_handle->response,
