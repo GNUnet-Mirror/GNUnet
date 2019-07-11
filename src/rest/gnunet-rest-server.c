@@ -446,18 +446,21 @@ create_response (void *cls,
       origin = GNUNET_CONTAINER_multihashmap_get (con_handle->data_handle
                                                     ->header_param_map,
                                                   &key);
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Origin: %s\n", origin);
-      //Only echo for browser plugins
-      if ((0 ==
-           strncmp ("moz-extension://", origin, strlen ("moz-extension://"))) ||
-          (0 == strncmp ("chrome-extension://",
-                         origin,
-                         strlen ("chrome-extension://"))))
+      if (NULL != origin)
       {
-        if (NULL != origin)
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Origin: %s\n", origin);
+        //Only echo for browser plugins
+        if ((0 == strncmp ("moz-extension://",
+                           origin,
+                           strlen ("moz-extension://"))) ||
+            (0 == strncmp ("chrome-extension://",
+                           origin,
+                           strlen ("chrome-extension://"))))
+        {
           MHD_add_response_header (con_handle->response,
                                    MHD_HTTP_HEADER_ACCESS_CONTROL_ALLOW_ORIGIN,
                                    origin);
+        }
       }
     }
     if (NULL != allow_credentials)
