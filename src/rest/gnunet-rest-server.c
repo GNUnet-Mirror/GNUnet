@@ -125,6 +125,11 @@ static struct GNUNET_CONTAINER_MultiHashMap *plugin_map;
 static int echo_origin;
 
 /**
+ * Allowed Origins (CORS)
+ */
+static char *allow_origins;
+
+/**
  * Allowed Headers (CORS)
  */
 static char *allow_headers;
@@ -439,17 +444,17 @@ create_response (void *cls,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Queueing response from plugin with MHD\n");
     //Handle Preflights for extensions
-    if (GNUNET_YES == echo_origin)
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Checking origin\n");
+    GNUNET_CRYPTO_hash ("origin", strlen ("origin"), &key);
+    origin = GNUNET_CONTAINER_multihashmap_get (con_handle->data_handle
+                                                  ->header_param_map,
+                                                &key);
+    if (NULL != origin)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Checking origin\n");
-      GNUNET_CRYPTO_hash ("origin", strlen ("origin"), &key);
-      origin = GNUNET_CONTAINER_multihashmap_get (con_handle->data_handle
-                                                    ->header_param_map,
-                                                  &key);
-      if (NULL != origin)
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Origin: %s\n", origin);
+      //Only echo for browser plugins
+      if (GNUNET_YES == echo_origin)
       {
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Origin: %s\n", origin);
-        //Only echo for browser plugins
         if ((0 == strncmp ("moz-extension://",
                            origin,
                            strlen ("moz-extension://"))) ||
@@ -461,6 +466,23 @@ create_response (void *cls,
                                    MHD_HTTP_HEADER_ACCESS_CONTROL_ALLOW_ORIGIN,
                                    origin);
         }
+      }
+      if (NULL != allow_origins)
+      {
+        char *tmp = GNUNET_strdup (allow_origins);
+        char *allow_origin = strtok (tmp, ",");
+        while (NULL != allow_origin)
+        {
+          if (0 == strncmp (allow_origin, origin, strlen (allow_origin)))
+          {
+            MHD_add_response_header (con_handle->response,
+                                     MHD_HTTP_HEADER_ACCESS_CONTROL_ALLOW_ORIGIN,
+                                     allow_origin);
+            break;
+          }
+          allow_origin = strtok (NULL, ",");
+        }
+        GNUNET_free (tmp);
       }
     }
     if (NULL != allow_credentials)
@@ -878,6 +900,15 @@ run (void *cls,
     GNUNET_CONFIGURATION_get_value_yesno (cfg,
                                           "rest",
                                           "REST_ECHO_ORIGIN_WEBEXT");
+  allow_origins = NULL;
+  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_string (cfg,
+                                                          "rest",
+                                                          "REST_ALLOW_ORIGIN",
+                                                          &allow_origins))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                "No CORS Access-Control-Allow-Origin header will be sent...\n");
+  }
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_string (cfg,
                                              "rest",
@@ -886,7 +917,7 @@ run (void *cls,
   {
     //No origin specified
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                "No CORS Access-Control-Allow-Origin Header will be sent...\n");
+                "No CORS Credential Header will be sent...\n");
   }
 
   if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_string (cfg,
