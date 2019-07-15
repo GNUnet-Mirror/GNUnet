@@ -501,6 +501,7 @@ create_response (void *cls,
                                "Access-Control-Allow-Headers",
                                allow_headers);
     }
+    run_mhd_now ();
     int ret =
       MHD_queue_response (con, con_handle->status, con_handle->response);
     cleanup_handle (con_handle);
