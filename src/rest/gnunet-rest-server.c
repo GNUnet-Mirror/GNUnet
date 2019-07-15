@@ -507,6 +507,7 @@ create_response (void *cls,
     cleanup_handle (con_handle);
     return ret;
   }
+  run_mhd_now ();
   return MHD_YES;
 }
 
