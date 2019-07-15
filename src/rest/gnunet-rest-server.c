@@ -434,81 +434,80 @@ create_response (void *cls,
     }
     MHD_destroy_post_processor (con_handle->pp);
 
-    //Suspend connection until plugin is done
-    MHD_suspend_connection (con_handle->con);
     con_handle->state = GN_REST_STATE_PROCESSING;
     con_handle->plugin->process_request (rest_conndata_handle,
                                          &plugin_callback,
                                          con_handle);
     *upload_data_size = 0;
+    run_mhd_now ();
     return MHD_YES;
   }
-  if (NULL != con_handle->response)
+  if (NULL == con_handle->response)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Queueing response from plugin with MHD\n");
-    //Handle Preflights for extensions
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Checking origin\n");
-    GNUNET_CRYPTO_hash ("origin", strlen ("origin"), &key);
-    origin = GNUNET_CONTAINER_multihashmap_get (con_handle->data_handle
-                                                  ->header_param_map,
-                                                &key);
-    if (NULL != origin)
+    //Suspend connection until plugin is done
+    MHD_suspend_connection (con_handle->con);
+    return MHD_YES;
+  }
+  MHD_resume_connection (con_handle->con);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Queueing response from plugin with MHD\n");
+  //Handle Preflights for extensions
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Checking origin\n");
+  GNUNET_CRYPTO_hash ("origin", strlen ("origin"), &key);
+  origin = GNUNET_CONTAINER_multihashmap_get (con_handle->data_handle
+                                                ->header_param_map,
+                                              &key);
+  if (NULL != origin)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Origin: %s\n", origin);
+    //Only echo for browser plugins
+    if (GNUNET_YES == echo_origin)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Origin: %s\n", origin);
-      //Only echo for browser plugins
-      if (GNUNET_YES == echo_origin)
+      if ((0 ==
+           strncmp ("moz-extension://", origin, strlen ("moz-extension://"))) ||
+          (0 == strncmp ("chrome-extension://",
+                         origin,
+                         strlen ("chrome-extension://"))))
       {
-        if ((0 == strncmp ("moz-extension://",
-                           origin,
-                           strlen ("moz-extension://"))) ||
-            (0 == strncmp ("chrome-extension://",
-                           origin,
-                           strlen ("chrome-extension://"))))
+        MHD_add_response_header (con_handle->response,
+                                 MHD_HTTP_HEADER_ACCESS_CONTROL_ALLOW_ORIGIN,
+                                 origin);
+      }
+    }
+    if (NULL != allow_origins)
+    {
+      char *tmp = GNUNET_strdup (allow_origins);
+      char *allow_origin = strtok (tmp, ",");
+      while (NULL != allow_origin)
+      {
+        if (0 == strncmp (allow_origin, origin, strlen (allow_origin)))
         {
           MHD_add_response_header (con_handle->response,
                                    MHD_HTTP_HEADER_ACCESS_CONTROL_ALLOW_ORIGIN,
-                                   origin);
+                                   allow_origin);
+          break;
         }
+        allow_origin = strtok (NULL, ",");
       }
-      if (NULL != allow_origins)
-      {
-        char *tmp = GNUNET_strdup (allow_origins);
-        char *allow_origin = strtok (tmp, ",");
-        while (NULL != allow_origin)
-        {
-          if (0 == strncmp (allow_origin, origin, strlen (allow_origin)))
-          {
-            MHD_add_response_header (con_handle->response,
-                                     MHD_HTTP_HEADER_ACCESS_CONTROL_ALLOW_ORIGIN,
-                                     allow_origin);
-            break;
-          }
-          allow_origin = strtok (NULL, ",");
-        }
-        GNUNET_free (tmp);
-      }
+      GNUNET_free (tmp);
     }
-    if (NULL != allow_credentials)
-    {
-      MHD_add_response_header (con_handle->response,
-                               "Access-Control-Allow-Credentials",
-                               allow_credentials);
-    }
-    if (NULL != allow_headers)
-    {
-      MHD_add_response_header (con_handle->response,
-                               "Access-Control-Allow-Headers",
-                               allow_headers);
-    }
-    run_mhd_now ();
-    int ret =
-      MHD_queue_response (con, con_handle->status, con_handle->response);
-    cleanup_handle (con_handle);
-    return ret;
+  }
+  if (NULL != allow_credentials)
+  {
+    MHD_add_response_header (con_handle->response,
+                             "Access-Control-Allow-Credentials",
+                             allow_credentials);
+  }
+  if (NULL != allow_headers)
+  {
+    MHD_add_response_header (con_handle->response,
+                             "Access-Control-Allow-Headers",
+                             allow_headers);
   }
   run_mhd_now ();
-  return MHD_YES;
+  int ret = MHD_queue_response (con, con_handle->status, con_handle->response);
+  cleanup_handle (con_handle);
+  return ret;
 }
 
 
@@ -985,7 +984,8 @@ run (void *cls,
     return;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Service listens on port %llu\n", port);
-  httpd = MHD_start_daemon (MHD_USE_DEBUG | MHD_USE_NO_LISTEN_SOCKET | MHD_ALLOW_SUSPEND_RESUME,
+  httpd = MHD_start_daemon (MHD_USE_DEBUG | MHD_USE_NO_LISTEN_SOCKET |
+                              MHD_ALLOW_SUSPEND_RESUME,
                             0,
                             NULL,
                             NULL,
