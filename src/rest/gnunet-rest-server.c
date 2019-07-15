@@ -199,6 +199,7 @@ plugin_callback (void *cls, struct MHD_Response *resp, int status)
   struct MhdConnectionHandle *handle = cls;
   handle->status = status;
   handle->response = resp;
+  MHD_resume_connection (handle->con);
   run_mhd_now ();
 }
 
@@ -433,11 +434,14 @@ create_response (void *cls,
     }
     MHD_destroy_post_processor (con_handle->pp);
 
+    //Suspend connection until plugin is done
+    MHD_suspend_connection (con_handle->con);
     con_handle->state = GN_REST_STATE_PROCESSING;
     con_handle->plugin->process_request (rest_conndata_handle,
                                          &plugin_callback,
                                          con_handle);
     *upload_data_size = 0;
+    return MHD_YES;
   }
   if (NULL != con_handle->response)
   {
@@ -979,7 +983,7 @@ run (void *cls,
     return;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Service listens on port %llu\n", port);
-  httpd = MHD_start_daemon (MHD_USE_DEBUG | MHD_USE_NO_LISTEN_SOCKET,
+  httpd = MHD_start_daemon (MHD_USE_DEBUG | MHD_USE_NO_LISTEN_SOCKET | MHD_ALLOW_SUSPEND_RESUME,
                             0,
                             NULL,
                             NULL,
