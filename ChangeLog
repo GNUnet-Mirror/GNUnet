@@ -1,3 +1,6 @@
+Mon Jul 15 09:57:20 2019 +0200
+  The REST server now has a configurable CORS Origin setting -schanzen
+
 Fri Jul 5 22:11:04 2019 +0200
   Added detection of SUID binaries
   through GNUNET_OS_get_suid_binary_path -lurchi
