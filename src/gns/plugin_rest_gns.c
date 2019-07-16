@@ -214,6 +214,7 @@ do_timeout (void *cls)
 {
   struct RequestHandle *handle = cls;
   handle->timeout_task = NULL;
+  handle->response_code = MHD_HTTP_REQUEST_TIMEOUT;
   do_error (handle);
 }
 
