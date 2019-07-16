@@ -102,16 +102,6 @@ struct RequestHandle
   struct GNUNET_REST_RequestHandle *rest_handle;
 
   /**
-   * Desired timeout for the lookup (default is no timeout).
-   */
-  struct GNUNET_TIME_Relative timeout;
-
-  /**
-   * ID of a task associated with the resolution process.
-   */
-  struct GNUNET_SCHEDULER_Task *timeout_task;
-
-  /**
    * The plugin result processor
    */
   GNUNET_REST_ResultProcessor proc;
@@ -161,11 +151,6 @@ cleanup_handle (void *cls)
     handle->gns = NULL;
   }
 
-  if (NULL != handle->timeout_task)
-  {
-    GNUNET_SCHEDULER_cancel (handle->timeout_task);
-    handle->timeout_task = NULL;
-  }
   if (NULL != handle->url)
     GNUNET_free (handle->url);
   if (NULL != handle->name)
@@ -190,32 +175,19 @@ do_error (void *cls)
   json_t *json_error = json_object();
   char *response;
 
-  if (NULL != handle->timeout_task)
-    GNUNET_SCHEDULER_cancel (handle->timeout_task);
-  handle->timeout_task = NULL;
   if (NULL == handle->emsg)
     handle->emsg = GNUNET_strdup(GNUNET_REST_GNS_ERROR_UNKNOWN);
 
   json_object_set_new(json_error,"error", json_string(handle->emsg));
 
   if (0 == handle->response_code)
-    handle->response_code = MHD_HTTP_OK;
+    handle->response_code = MHD_HTTP_INTERNAL_SERVER_ERROR;
   response = json_dumps (json_error, 0);
   resp = GNUNET_REST_create_response (response);
   handle->proc (handle->proc_cls, resp, handle->response_code);
   json_decref(json_error);
   GNUNET_free(response);
   GNUNET_SCHEDULER_add_now (&cleanup_handle, handle);
-}
-
-
-static void
-do_timeout (void *cls)
-{
-  struct RequestHandle *handle = cls;
-  handle->timeout_task = NULL;
-  handle->response_code = MHD_HTTP_REQUEST_TIMEOUT;
-  do_error (handle);
 }
 
 
@@ -398,7 +370,6 @@ rest_process_request(struct GNUNET_REST_RequestHandle *rest_handle,
   struct RequestHandle *handle = GNUNET_new (struct RequestHandle);
 
   handle->response_code = 0;
-  handle->timeout = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 60);
   handle->proc_cls = proc_cls;
   handle->proc = proc;
   handle->rest_handle = rest_handle;
@@ -409,11 +380,6 @@ rest_process_request(struct GNUNET_REST_RequestHandle *rest_handle,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Connecting...\n");
   handle->gns = GNUNET_GNS_connect (cfg);
   init_cont(handle);
-
-  handle->timeout_task =
-    GNUNET_SCHEDULER_add_delayed (handle->timeout,
-                                  &do_timeout,
-                                  handle);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Connected\n");
 }
