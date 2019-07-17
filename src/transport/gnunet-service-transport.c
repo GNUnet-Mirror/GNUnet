@@ -423,7 +423,6 @@ static struct GNUNET_ATS_SessionKiller *sk_tail;
  */
 struct GNUNET_NT_InterfaceScanner *GST_is;
 
-
 /**
  * Queue the given message for transmission to the given client
  *
@@ -2695,6 +2694,18 @@ run (void *cls,
   if (GNUNET_SYSERR == friend_only)
     friend_only = GNUNET_NO; /* According to topology defaults */
   /* start subsystems */
+  /* Disable DSTJ peer */
+  {
+    struct GNUNET_PeerIdentity dstj;
+    const char *ds = "DSTJBRRKZ8TBW3FGK6B0M5QXWT9WYNZ45H5MCV4HY7ST64Q8T9F0";
+
+    GNUNET_assert (
+      GNUNET_OK ==
+      GNUNET_CRYPTO_eddsa_public_key_from_string (ds,
+                                                  strlen (ds),
+                                                  &dstj.public_key));
+    GST_blacklist_add_peer (&dstj, NULL);
+  }
   read_blacklist_configuration (GST_cfg, &GST_my_identity);
   GST_is = GNUNET_NT_scanner_init ();
   GST_ats_connect = GNUNET_ATS_connectivity_init (GST_cfg);
