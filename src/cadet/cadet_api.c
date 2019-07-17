@@ -11,7 +11,7 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -932,21 +932,17 @@ GNUNET_CADET_channel_destroy (struct GNUNET_CADET_Channel *channel)
  */
 const union GNUNET_CADET_ChannelInfo *
 GNUNET_CADET_channel_get_info (struct GNUNET_CADET_Channel *channel,
-			       enum GNUNET_CADET_ChannelInfoOption option,
+                               enum GNUNET_CADET_ChannelInfoOption option,
                                ...)
 {
-  static int bool_flag;
-
   switch (option)
   {
-    case GNUNET_CADET_OPTION_PEER:
-      return (const union GNUNET_CADET_ChannelInfo *) &channel->peer;
-      break;
-    default:
-      GNUNET_break (0);
-      return NULL;
+  case GNUNET_CADET_OPTION_PEER:
+    return (const union GNUNET_CADET_ChannelInfo *) &channel->peer;
+  default:
+    GNUNET_break (0);
+    return NULL;
   }
-  return (const union GNUNET_CADET_ChannelInfo *) &channel->peer;
 }
 
 
