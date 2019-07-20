@@ -8871,19 +8871,19 @@ of random peers in the whole network like gathering statistics,
 spreading and aggregating information in the network, load balancing and
 overlay topology management.
 
-The approach chosen in the rps implementation in GNUnet follows the
+The approach chosen in the RPS service implementation in GNUnet follows the
 Brahms@uref{https://bib.gnunet.org/full/date.html\#2009_5f0} design.
 
 The current state is "work in progress". There are a lot of things that
 need to be done, primarily finishing the experimental evaluation and a
 re-design of the API.
 
-The abstract idea is to subscribe to connect to/start the rps service
+The abstract idea is to subscribe to connect to/start the RPS service
 and request random peers that will be returned when they represent a
 random selection from the whole network with high probability.
 
 An additional feature to the original Brahms-design is the selection of
-sub-groups: The GNUnet implementation of rps enables clients to ask for
+sub-groups: The GNUnet implementation of RPS enables clients to ask for
 random peers from a group that is defined by a common shared secret.
 (The secret could of course also be public, depending on the use-case.)
 
@@ -8910,8 +8910,8 @@ takes a list of elements as input and outputs a random one of them
 independently of the frequency in the input set. Both an element that
 was put into the sampler a single time and an element that was put into
 it a million times have the same probability of being the output.
-This is achieved this is achieved with exploiting min-wise independent
-permutations. In rps we use HMACs: On the initialisation of a sampler
+This is achieved with exploiting min-wise independent
+permutations. In the RPS service we use HMACs: On the initialisation of a sampler
 element, a key is chosen at random. On each input the HMAC with the
 random key is computed. The sampler element keeps the element with the
 minimal HMAC.
