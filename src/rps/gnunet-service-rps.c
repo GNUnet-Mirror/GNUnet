@@ -1015,7 +1015,6 @@ get_channel (struct PeerContext *peer_ctx)
                                    peer_ctx->send_channel_ctx, /* context */
                                    &peer_ctx->peer_id,
                                    &peer_ctx->sub->hash,
-                                   GNUNET_CADET_OPTION_RELIABLE,
                                    NULL, /* WindowSize handler */
                                    &cleanup_destroyed_channel, /* Disconnect handler */
                                    cadet_handlers);
