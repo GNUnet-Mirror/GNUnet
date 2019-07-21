@@ -11,7 +11,7 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -36,7 +36,8 @@
 #include "scalarproduct.h"
 #include "gnunet-service-scalarproduct-ecc.h"
 
-#define LOG(kind,...) GNUNET_log_from (kind, "scalarproduct-alice", __VA_ARGS__)
+#define LOG(kind, ...) \
+  GNUNET_log_from (kind, "scalarproduct-alice", __VA_ARGS__)
 
 /**
  * Maximum allowed result value for the scalarproduct computation.
@@ -69,7 +70,6 @@ struct MpiElement
    * a_i value, not disclosed to Bob.
    */
   gcry_mpi_t value;
-
 };
 
 
@@ -175,7 +175,6 @@ struct AliceServiceSession
    * doing harm.
    */
   int in_destroy;
-
 };
 
 
@@ -214,9 +213,7 @@ static struct GNUNET_CADET_Handle *my_cadet;
  * @return #GNUNET_OK (continue to iterate)
  */
 static int
-free_element_cb (void *cls,
-                 const struct GNUNET_HashCode *key,
-                 void *value)
+free_element_cb (void *cls, const struct GNUNET_HashCode *key, void *value)
 {
   struct GNUNET_SCALARPRODUCT_Element *e = value;
 
@@ -265,8 +262,7 @@ destroy_service_session (struct AliceServiceSession *s)
   }
   if (NULL != s->intersection_op)
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Set intersection, op still ongoing!\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "Set intersection, op still ongoing!\n");
     GNUNET_SET_operation_cancel (s->intersection_op);
     s->intersection_op = NULL;
   }
@@ -277,7 +273,7 @@ destroy_service_session (struct AliceServiceSession *s)
   }
   if (NULL != s->sorted_elements)
   {
-    for (i=0;i<s->used_element_count;i++)
+    for (i = 0; i < s->used_element_count; i++)
       gcry_mpi_release (s->sorted_elements[i].value);
     GNUNET_free (s->sorted_elements);
     s->sorted_elements = NULL;
@@ -305,16 +301,15 @@ prepare_client_end_notification (struct AliceServiceSession *session)
 
   if (NULL == session->client_mq)
     return; /* no client left to be notified */
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Sending session-end notification with status %d to client for session %s\n",
-              session->status,
-              GNUNET_h2s (&session->session_id));
-  e = GNUNET_MQ_msg (msg,
-                     GNUNET_MESSAGE_TYPE_SCALARPRODUCT_RESULT);
+  GNUNET_log (
+    GNUNET_ERROR_TYPE_DEBUG,
+    "Sending session-end notification with status %d to client for session %s\n",
+    session->status,
+    GNUNET_h2s (&session->session_id));
+  e = GNUNET_MQ_msg (msg, GNUNET_MESSAGE_TYPE_SCALARPRODUCT_RESULT);
   msg->product_length = htonl (0);
   msg->status = htonl (session->status);
-  GNUNET_MQ_send (session->client_mq,
-                  e);
+  GNUNET_MQ_send (session->client_mq, e);
 }
 
 
@@ -347,9 +342,7 @@ transmit_client_response (struct AliceServiceSession *s)
   if (0 > sign)
   {
     range = -1;
-    gcry_mpi_sub (value,
-                  value,
-                  s->product);
+    gcry_mpi_sub (value, value, s->product);
   }
   else if (0 < sign)
   {
@@ -364,15 +357,12 @@ transmit_client_response (struct AliceServiceSession *s)
   gcry_mpi_release (s->product);
   s->product = NULL;
 
-  if ( (0 != range) &&
-       (0 != (rc = gcry_mpi_aprint (GCRYMPI_FMT_STD,
-                                    &product_exported,
-                                    &product_length,
-                                    value))))
+  if ((0 != range) && (0 != (rc = gcry_mpi_aprint (GCRYMPI_FMT_STD,
+                                                   &product_exported,
+                                                   &product_length,
+                                                   value))))
   {
-    LOG_GCRY (GNUNET_ERROR_TYPE_ERROR,
-              "gcry_mpi_scan",
-              rc);
+    LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_mpi_scan", rc);
     prepare_client_end_notification (s);
     return;
   }
@@ -385,13 +375,10 @@ transmit_client_response (struct AliceServiceSession *s)
   msg->product_length = htonl (product_length);
   if (NULL != product_exported)
   {
-    GNUNET_memcpy (&msg[1],
-            product_exported,
-            product_length);
+    GNUNET_memcpy (&msg[1], product_exported, product_length);
     GNUNET_free (product_exported);
   }
-  GNUNET_MQ_send (s->client_mq,
-                  e);
+  GNUNET_MQ_send (s->client_mq, e);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Sent result to client, session %s has ended!\n",
               GNUNET_h2s (&s->session_id));
@@ -408,8 +395,7 @@ transmit_client_response (struct AliceServiceSession *s)
  * @param channel connection to the other end (henceforth invalid)
  */
 static void
-cb_channel_destruction (void *cls,
-                        const struct GNUNET_CADET_Channel *channel)
+cb_channel_destruction (void *cls, const struct GNUNET_CADET_Channel *channel)
 {
   struct AliceServiceSession *s = cls;
 
@@ -445,15 +431,11 @@ compute_scalar_product (struct AliceServiceSession *session,
   int ai_bi;
   gcry_mpi_t ret;
 
-  g_i_b_i_a_inv = GNUNET_CRYPTO_ecc_pmul_mpi (edc,
-                                              prod_g_i_b_i,
-                                              my_privkey_inv);
-  g_ai_bi = GNUNET_CRYPTO_ecc_add (edc,
-                                   g_i_b_i_a_inv,
-                                   prod_h_i_b_i);
+  g_i_b_i_a_inv =
+    GNUNET_CRYPTO_ecc_pmul_mpi (edc, prod_g_i_b_i, my_privkey_inv);
+  g_ai_bi = GNUNET_CRYPTO_ecc_add (edc, g_i_b_i_a_inv, prod_h_i_b_i);
   gcry_mpi_point_release (g_i_b_i_a_inv);
-  ai_bi = GNUNET_CRYPTO_ecc_dlog (edc,
-                                  g_ai_bi);
+  ai_bi = GNUNET_CRYPTO_ecc_dlog (edc, g_ai_bi);
   gcry_mpi_point_release (g_ai_bi);
   if (INT_MAX == ai_bi)
   {
@@ -469,7 +451,7 @@ compute_scalar_product (struct AliceServiceSession *session,
   }
   else
   {
-    gcry_mpi_set_ui (ret, - ai_bi);
+    gcry_mpi_set_ui (ret, -ai_bi);
     gcry_mpi_neg (ret, ret);
   }
   return ret;
@@ -518,13 +500,9 @@ handle_bobs_cryptodata_message (void *cls,
               "Received %u crypto values from Bob\n",
               (unsigned int) contained);
   GNUNET_CADET_receive_done (s->channel);
-  prod_g_i_b_i = GNUNET_CRYPTO_ecc_bin_to_point (edc,
-                                                 &msg->prod_g_i_b_i);
-  prod_h_i_b_i = GNUNET_CRYPTO_ecc_bin_to_point (edc,
-                                                 &msg->prod_h_i_b_i);
-  s->product = compute_scalar_product (s,
-                                       prod_g_i_b_i,
-                                       prod_h_i_b_i);
+  prod_g_i_b_i = GNUNET_CRYPTO_ecc_bin_to_point (edc, &msg->prod_g_i_b_i);
+  prod_h_i_b_i = GNUNET_CRYPTO_ecc_bin_to_point (edc, &msg->prod_h_i_b_i);
+  s->product = compute_scalar_product (s, prod_g_i_b_i, prod_h_i_b_i);
   gcry_mpi_point_release (prod_g_i_b_i);
   gcry_mpi_point_release (prod_h_i_b_i);
   transmit_client_response (s);
@@ -540,9 +518,7 @@ handle_bobs_cryptodata_message (void *cls,
  * @param value the `struct GNUNET_SCALARPRODUCT_Element *`
  */
 static int
-copy_element_cb (void *cls,
-                 const struct GNUNET_HashCode *key,
-                 void *value)
+copy_element_cb (void *cls, const struct GNUNET_HashCode *key, void *value)
 {
   struct AliceServiceSession *s = cls;
   struct GNUNET_SCALARPRODUCT_Element *e = value;
@@ -555,8 +531,8 @@ copy_element_cb (void *cls,
     gcry_mpi_sub_ui (mval, mval, -val);
   else
     gcry_mpi_add_ui (mval, mval, val);
-  s->sorted_elements [s->used_element_count].value = mval;
-  s->sorted_elements [s->used_element_count].key = &e->key;
+  s->sorted_elements[s->used_element_count].value = mval;
+  s->sorted_elements[s->used_element_count].key = &e->key;
   s->used_element_count++;
   return GNUNET_OK;
 }
@@ -570,14 +546,12 @@ copy_element_cb (void *cls,
  * @return -1 for a < b, 0 for a=b, 1 for a > b.
  */
 static int
-element_cmp (const void *a,
-             const void *b)
+element_cmp (const void *a, const void *b)
 {
   const struct MpiElement *ma = a;
   const struct MpiElement *mb = b;
 
-  return GNUNET_CRYPTO_hash_cmp (ma->key,
-                                 mb->key);
+  return GNUNET_CRYPTO_hash_cmp (ma->key, mb->key);
 }
 
 
@@ -585,7 +559,10 @@ element_cmp (const void *a,
  * Maximum number of elements we can put into a single cryptodata
  * message
  */
-#define ELEMENT_CAPACITY ((GNUNET_CONSTANTS_MAX_CADET_MESSAGE_SIZE - 1 - sizeof (struct EccAliceCryptodataMessage)) / sizeof (struct GNUNET_CRYPTO_EccPoint))
+#define ELEMENT_CAPACITY                          \
+  ((GNUNET_CONSTANTS_MAX_CADET_MESSAGE_SIZE - 1 - \
+    sizeof (struct EccAliceCryptodataMessage)) /  \
+   sizeof (struct GNUNET_CRYPTO_EccPoint))
 
 
 /**
@@ -606,9 +583,9 @@ send_alices_cryptodata_message (struct AliceServiceSession *s)
   unsigned int off;
   unsigned int todo_count;
 
-  s->sorted_elements
-    = GNUNET_new_array (GNUNET_CONTAINER_multihashmap_size (s->intersected_elements),
-                        struct MpiElement);
+  s->sorted_elements = GNUNET_new_array (GNUNET_CONTAINER_multihashmap_size (
+                                           s->intersected_elements),
+                                         struct MpiElement);
   s->used_element_count = 0;
   GNUNET_CONTAINER_multihashmap_iterate (s->intersected_elements,
                                          &copy_element_cb,
@@ -631,9 +608,11 @@ send_alices_cryptodata_message (struct AliceServiceSession *s)
                 (unsigned int) todo_count,
                 (unsigned int) s->used_element_count);
 
-    e = GNUNET_MQ_msg_extra (msg,
-                             todo_count * 2 * sizeof (struct GNUNET_CRYPTO_EccPoint),
-                             GNUNET_MESSAGE_TYPE_SCALARPRODUCT_ECC_ALICE_CRYPTODATA);
+    e =
+      GNUNET_MQ_msg_extra (msg,
+                           todo_count * 2 *
+                             sizeof (struct GNUNET_CRYPTO_EccPoint),
+                           GNUNET_MESSAGE_TYPE_SCALARPRODUCT_ECC_ALICE_CRYPTODATA);
     msg->contained_element_count = htonl (todo_count);
     payload = (struct GNUNET_CRYPTO_EccPoint *) &msg[1];
     r_ia = gcry_mpi_new (0);
@@ -645,33 +624,22 @@ send_alices_cryptodata_message (struct AliceServiceSession *s)
       gcry_mpi_point_t h_i;
 
       r_i = GNUNET_CRYPTO_ecc_random_mod_n (edc);
-      g_i = GNUNET_CRYPTO_ecc_dexp_mpi (edc,
-                                        r_i);
+      g_i = GNUNET_CRYPTO_ecc_dexp_mpi (edc, r_i);
       /* r_ia = r_i * a */
-      gcry_mpi_mul (r_ia,
-                    r_i,
-                    my_privkey);
+      gcry_mpi_mul (r_ia, r_i, my_privkey);
       gcry_mpi_release (r_i);
       /* r_ia_ai = r_ia + a_i */
-      gcry_mpi_add (r_ia_ai,
-                    r_ia,
-                    s->sorted_elements[i].value);
-      h_i = GNUNET_CRYPTO_ecc_dexp_mpi (edc,
-                                        r_ia_ai);
-      GNUNET_CRYPTO_ecc_point_to_bin (edc,
-                                      g_i,
-                                      &payload[(i - off) * 2]);
-      GNUNET_CRYPTO_ecc_point_to_bin (edc,
-                                      h_i,
-                                      &payload[(i - off) * 2 + 1]);
+      gcry_mpi_add (r_ia_ai, r_ia, s->sorted_elements[i].value);
+      h_i = GNUNET_CRYPTO_ecc_dexp_mpi (edc, r_ia_ai);
+      GNUNET_CRYPTO_ecc_point_to_bin (edc, g_i, &payload[(i - off) * 2]);
+      GNUNET_CRYPTO_ecc_point_to_bin (edc, h_i, &payload[(i - off) * 2 + 1]);
       gcry_mpi_point_release (g_i);
       gcry_mpi_point_release (h_i);
     }
     gcry_mpi_release (r_ia);
     gcry_mpi_release (r_ia_ai);
     off += todo_count;
-    GNUNET_MQ_send (s->cadet_mq,
-                    e);
+    GNUNET_MQ_send (s->cadet_mq, e);
   }
 }
 
@@ -706,10 +674,11 @@ cb_intersection_element_removed (void *cls,
          "Intersection removed element with key %s and value %lld\n",
          GNUNET_h2s (&se->key),
          (long long) GNUNET_ntohll (se->value));
-    GNUNET_assert (GNUNET_YES ==
-                   GNUNET_CONTAINER_multihashmap_remove (s->intersected_elements,
-                                                         element->data,
-                                                         se));
+    GNUNET_assert (
+      GNUNET_YES ==
+      GNUNET_CONTAINER_multihashmap_remove (s->intersected_elements,
+                                            element->data,
+                                            se));
     GNUNET_free (se);
     return;
   case GNUNET_SET_STATUS_DONE:
@@ -727,8 +696,7 @@ cb_intersection_element_removed (void *cls,
     return;
   case GNUNET_SET_STATUS_FAILURE:
     /* unhandled status code */
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Set intersection failed!\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "Set intersection failed!\n");
     if (NULL != s->intersection_listen)
     {
       GNUNET_SET_listen_cancel (s->intersection_listen);
@@ -776,18 +744,16 @@ cb_intersection_request_alice (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received intersection request from %s!\n",
               GNUNET_i2s (other_peer));
-  if (0 != GNUNET_memcmp (other_peer,
-                   &s->peer))
+  if (0 != GNUNET_memcmp (other_peer, &s->peer))
   {
     GNUNET_break_op (0);
     return;
   }
-  s->intersection_op
-    = GNUNET_SET_accept (request,
-                         GNUNET_SET_RESULT_REMOVED,
-                         (struct GNUNET_SET_Option[]) {{ 0 }},
-                         &cb_intersection_element_removed,
-                         s);
+  s->intersection_op = GNUNET_SET_accept (request,
+                                          GNUNET_SET_RESULT_REMOVED,
+                                          (struct GNUNET_SET_Option[]){{0}},
+                                          &cb_intersection_element_removed,
+                                          s);
   if (NULL == s->intersection_op)
   {
     GNUNET_break (0);
@@ -795,9 +761,7 @@ cb_intersection_request_alice (void *cls,
     prepare_client_end_notification (s);
     return;
   }
-  if (GNUNET_OK !=
-      GNUNET_SET_commit (s->intersection_op,
-                         s->intersection_set))
+  if (GNUNET_OK != GNUNET_SET_commit (s->intersection_op, s->intersection_set))
   {
     GNUNET_break (0);
     s->status = GNUNET_SCALARPRODUCT_STATUS_FAILURE;
@@ -815,13 +779,12 @@ cb_intersection_request_alice (void *cls,
 static void
 client_request_complete_alice (struct AliceServiceSession *s)
 {
-  struct GNUNET_MQ_MessageHandler cadet_handlers[] = {
-    GNUNET_MQ_hd_fixed_size (bobs_cryptodata_message,
-                             GNUNET_MESSAGE_TYPE_SCALARPRODUCT_ECC_BOB_CRYPTODATA,
-                             struct EccBobCryptodataMessage,
-                             s),
-    GNUNET_MQ_handler_end ()
-  };
+  struct GNUNET_MQ_MessageHandler cadet_handlers[] =
+    {GNUNET_MQ_hd_fixed_size (bobs_cryptodata_message,
+                              GNUNET_MESSAGE_TYPE_SCALARPRODUCT_ECC_BOB_CRYPTODATA,
+                              struct EccBobCryptodataMessage,
+                              s),
+     GNUNET_MQ_handler_end ()};
   struct EccServiceRequestMessage *msg;
   struct GNUNET_MQ_Envelope *e;
   struct GNUNET_HashCode set_sid;
@@ -832,15 +795,13 @@ client_request_complete_alice (struct AliceServiceSession *s)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Creating new channel for session with key %s.\n",
               GNUNET_h2s (&s->session_id));
-  s->channel
-    = GNUNET_CADET_channel_create (my_cadet,
-                                   s,
-                                   &s->peer,
-                                   &s->session_id,
-                                   GNUNET_CADET_OPTION_RELIABLE,
-                                   NULL,
-                                   &cb_channel_destruction,
-                                   cadet_handlers);
+  s->channel = GNUNET_CADET_channel_create (my_cadet,
+                                            s,
+                                            &s->peer,
+                                            &s->session_id,
+                                            NULL,
+                                            &cb_channel_destruction,
+                                            cadet_handlers);
   if (NULL == s->channel)
   {
     s->status = GNUNET_SCALARPRODUCT_STATUS_FAILURE;
@@ -848,12 +809,11 @@ client_request_complete_alice (struct AliceServiceSession *s)
     return;
   }
   s->cadet_mq = GNUNET_CADET_get_mq (s->channel);
-  s->intersection_listen
-    = GNUNET_SET_listen (cfg,
-                         GNUNET_SET_OPERATION_INTERSECTION,
-                         &set_sid,
-                         &cb_intersection_request_alice,
-                         s);
+  s->intersection_listen = GNUNET_SET_listen (cfg,
+                                              GNUNET_SET_OPERATION_INTERSECTION,
+                                              &set_sid,
+                                              &cb_intersection_request_alice,
+                                              s);
   if (NULL == s->intersection_listen)
   {
     s->status = GNUNET_SCALARPRODUCT_STATUS_FAILURE;
@@ -863,11 +823,12 @@ client_request_complete_alice (struct AliceServiceSession *s)
     return;
   }
 
-  e = GNUNET_MQ_msg (msg,
-                     GNUNET_MESSAGE_TYPE_SCALARPRODUCT_ECC_SESSION_INITIALIZATION);
+  e =
+    GNUNET_MQ_msg (msg,
+                   GNUNET_MESSAGE_TYPE_SCALARPRODUCT_ECC_SESSION_INITIALIZATION);
+  GNUNET_MQ_env_set_options (e, GNUNET_MQ_PRIO_CRITICAL_CONTROL);
   msg->session_id = s->session_id;
-  GNUNET_MQ_send (s->cadet_mq,
-                  e);
+  GNUNET_MQ_send (s->cadet_mq, e);
 }
 
 
@@ -880,8 +841,9 @@ client_request_complete_alice (struct AliceServiceSession *s)
  * @return #GNUNET_OK if @a msg is well-formed
  */
 static int
-check_alice_client_message_multipart (void *cls,
-				      const struct ComputationBobCryptodataMultipartMessage *msg)
+check_alice_client_message_multipart (
+  void *cls,
+  const struct ComputationBobCryptodataMultipartMessage *msg)
 {
   struct AliceServiceSession *s = cls;
   uint32_t contained_count;
@@ -889,11 +851,12 @@ check_alice_client_message_multipart (void *cls,
 
   msize = ntohs (msg->header.size);
   contained_count = ntohl (msg->element_count_contained);
-  if ( (msize != (sizeof (struct ComputationBobCryptodataMultipartMessage) +
-                  contained_count * sizeof (struct GNUNET_SCALARPRODUCT_Element))) ||
-       (0 == contained_count) ||
-       (s->total == s->client_received_element_count) ||
-       (s->total < s->client_received_element_count + contained_count) )
+  if ((msize !=
+       (sizeof (struct ComputationBobCryptodataMultipartMessage) +
+        contained_count * sizeof (struct GNUNET_SCALARPRODUCT_Element))) ||
+      (0 == contained_count) ||
+      (s->total == s->client_received_element_count) ||
+      (s->total < s->client_received_element_count + contained_count))
   {
     GNUNET_break_op (0);
     return GNUNET_SYSERR;
@@ -910,8 +873,9 @@ check_alice_client_message_multipart (void *cls,
  * @param msg the actual message
  */
 static void
-handle_alice_client_message_multipart (void *cls,
-				       const struct ComputationBobCryptodataMultipartMessage *msg)
+handle_alice_client_message_multipart (
+  void *cls,
+  const struct ComputationBobCryptodataMultipartMessage *msg)
 {
   struct AliceServiceSession *s = cls;
   uint32_t contained_count;
@@ -926,13 +890,13 @@ handle_alice_client_message_multipart (void *cls,
   {
     elem = GNUNET_new (struct GNUNET_SCALARPRODUCT_Element);
     GNUNET_memcpy (elem,
-		   &elements[i],
-		   sizeof (struct GNUNET_SCALARPRODUCT_Element));
-    if (GNUNET_SYSERR ==
-        GNUNET_CONTAINER_multihashmap_put (s->intersected_elements,
-                                           &elem->key,
-                                           elem,
-                                           GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY))
+                   &elements[i],
+                   sizeof (struct GNUNET_SCALARPRODUCT_Element));
+    if (GNUNET_SYSERR == GNUNET_CONTAINER_multihashmap_put (
+                           s->intersected_elements,
+                           &elem->key,
+                           elem,
+                           GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY))
     {
       GNUNET_break (0);
       GNUNET_free (elem);
@@ -941,9 +905,7 @@ handle_alice_client_message_multipart (void *cls,
     set_elem.data = &elem->key;
     set_elem.size = sizeof (elem->key);
     set_elem.element_type = 0;
-    GNUNET_SET_add_element (s->intersection_set,
-                            &set_elem,
-                            NULL, NULL);
+    GNUNET_SET_add_element (s->intersection_set, &set_elem, NULL, NULL);
     s->used_element_count++;
   }
   GNUNET_SERVICE_client_continue (s->client);
@@ -954,8 +916,7 @@ handle_alice_client_message_multipart (void *cls,
                 "Received client multipart data, waiting for more!\n");
     return;
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Launching computation\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Launching computation\n");
   client_request_complete_alice (s);
 }
 
@@ -970,7 +931,7 @@ handle_alice_client_message_multipart (void *cls,
  */
 static int
 check_alice_client_message (void *cls,
-			    const struct AliceComputationMessage *msg)
+                            const struct AliceComputationMessage *msg)
 {
   struct AliceServiceSession *s = cls;
   uint16_t msize;
@@ -987,10 +948,10 @@ check_alice_client_message (void *cls,
   msize = ntohs (msg->header.size);
   total_count = ntohl (msg->element_count_total);
   contained_count = ntohl (msg->element_count_contained);
-  if ( (0 == total_count) ||
-       (0 == contained_count) ||
-       (msize != (sizeof (struct AliceComputationMessage) +
-                  contained_count * sizeof (struct GNUNET_SCALARPRODUCT_Element))) )
+  if ((0 == total_count) || (0 == contained_count) ||
+      (msize !=
+       (sizeof (struct AliceComputationMessage) +
+        contained_count * sizeof (struct GNUNET_SCALARPRODUCT_Element))))
   {
     GNUNET_break_op (0);
     return GNUNET_SYSERR;
@@ -1008,7 +969,7 @@ check_alice_client_message (void *cls,
  */
 static void
 handle_alice_client_message (void *cls,
-			     const struct AliceComputationMessage *msg)
+                             const struct AliceComputationMessage *msg)
 {
   struct AliceServiceSession *s = cls;
   uint32_t contained_count;
@@ -1025,23 +986,23 @@ handle_alice_client_message (void *cls,
   s->client_received_element_count = contained_count;
   s->session_id = msg->session_key;
   elements = (const struct GNUNET_SCALARPRODUCT_Element *) &msg[1];
-  s->intersected_elements = GNUNET_CONTAINER_multihashmap_create (s->total,
-                                                                  GNUNET_YES);
-  s->intersection_set = GNUNET_SET_create (cfg,
-                                           GNUNET_SET_OPERATION_INTERSECTION);
+  s->intersected_elements =
+    GNUNET_CONTAINER_multihashmap_create (s->total, GNUNET_YES);
+  s->intersection_set =
+    GNUNET_SET_create (cfg, GNUNET_SET_OPERATION_INTERSECTION);
   for (uint32_t i = 0; i < contained_count; i++)
   {
     if (0 == GNUNET_ntohll (elements[i].value))
       continue;
     elem = GNUNET_new (struct GNUNET_SCALARPRODUCT_Element);
     GNUNET_memcpy (elem,
-		   &elements[i],
-		   sizeof (struct GNUNET_SCALARPRODUCT_Element));
-    if (GNUNET_SYSERR ==
-        GNUNET_CONTAINER_multihashmap_put (s->intersected_elements,
-                                           &elem->key,
-                                           elem,
-                                           GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY))
+                   &elements[i],
+                   sizeof (struct GNUNET_SCALARPRODUCT_Element));
+    if (GNUNET_SYSERR == GNUNET_CONTAINER_multihashmap_put (
+                           s->intersected_elements,
+                           &elem->key,
+                           elem,
+                           GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY))
     {
       /* element with same key encountered twice! */
       GNUNET_break (0);
@@ -1051,9 +1012,7 @@ handle_alice_client_message (void *cls,
     set_elem.data = &elem->key;
     set_elem.size = sizeof (elem->key);
     set_elem.element_type = 0;
-    GNUNET_SET_add_element (s->intersection_set,
-                            &set_elem,
-                            NULL, NULL);
+    GNUNET_SET_add_element (s->intersection_set, &set_elem, NULL, NULL);
     s->used_element_count++;
   }
   GNUNET_SERVICE_client_continue (s->client);
@@ -1064,8 +1023,7 @@ handle_alice_client_message (void *cls,
                 "Received partial client request, waiting for more!\n");
     return;
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Launching computation\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Launching computation\n");
   client_request_complete_alice (s);
 }
 
@@ -1079,8 +1037,7 @@ handle_alice_client_message (void *cls,
 static void
 shutdown_task (void *cls)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Shutting down, initiating cleanup.\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Shutting down, initiating cleanup.\n");
   // FIXME: we have to cut our connections to CADET first!
   if (NULL != my_cadet)
   {
@@ -1107,8 +1064,8 @@ shutdown_task (void *cls)
  */
 static void *
 client_connect_cb (void *cls,
-		   struct GNUNET_SERVICE_Client *client,
-		   struct GNUNET_MQ_Handle *mq)
+                   struct GNUNET_SERVICE_Client *client,
+                   struct GNUNET_MQ_Handle *mq)
 {
   struct AliceServiceSession *s;
 
@@ -1131,8 +1088,8 @@ client_connect_cb (void *cls,
  */
 static void
 client_disconnect_cb (void *cls,
-		      struct GNUNET_SERVICE_Client *client,
-		      void *app_cls)
+                      struct GNUNET_SERVICE_Client *client,
+                      void *app_cls)
 {
   struct AliceServiceSession *s = app_cls;
 
@@ -1158,45 +1115,40 @@ run (void *cls,
      struct GNUNET_SERVICE_Handle *service)
 {
   cfg = c;
-  edc = GNUNET_CRYPTO_ecc_dlog_prepare (MAX_RESULT,
-                                        MAX_RAM);
+  edc = GNUNET_CRYPTO_ecc_dlog_prepare (MAX_RESULT, MAX_RAM);
   /* Select a random 'a' value for Alice */
-  GNUNET_CRYPTO_ecc_rnd_mpi (edc,
-                             &my_privkey,
-                             &my_privkey_inv);
+  GNUNET_CRYPTO_ecc_rnd_mpi (edc, &my_privkey, &my_privkey_inv);
   my_cadet = GNUNET_CADET_connect (cfg);
   if (NULL == my_cadet)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _("Connect to CADET failed\n"));
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _ ("Connect to CADET failed\n"));
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
-  GNUNET_SCHEDULER_add_shutdown (&shutdown_task,
-				 NULL);
-
+  GNUNET_SCHEDULER_add_shutdown (&shutdown_task, NULL);
 }
 
 
 /**
  * Define "main" method using service macro.
  */
-GNUNET_SERVICE_MAIN
-("scalarproduct-alice",
- GNUNET_SERVICE_OPTION_NONE,
- &run,
- &client_connect_cb,
- &client_disconnect_cb,
- NULL,
- GNUNET_MQ_hd_var_size (alice_client_message,
-			GNUNET_MESSAGE_TYPE_SCALARPRODUCT_CLIENT_TO_ALICE,
-			struct AliceComputationMessage,
-			NULL),
- GNUNET_MQ_hd_var_size (alice_client_message_multipart,
-			GNUNET_MESSAGE_TYPE_SCALARPRODUCT_CLIENT_MULTIPART_ALICE,
-			struct ComputationBobCryptodataMultipartMessage,
-			NULL),
- GNUNET_MQ_handler_end ());
+GNUNET_SERVICE_MAIN (
+  "scalarproduct-alice",
+  GNUNET_SERVICE_OPTION_NONE,
+  &run,
+  &client_connect_cb,
+  &client_disconnect_cb,
+  NULL,
+  GNUNET_MQ_hd_var_size (alice_client_message,
+                         GNUNET_MESSAGE_TYPE_SCALARPRODUCT_CLIENT_TO_ALICE,
+                         struct AliceComputationMessage,
+                         NULL),
+  GNUNET_MQ_hd_var_size (
+    alice_client_message_multipart,
+    GNUNET_MESSAGE_TYPE_SCALARPRODUCT_CLIENT_MULTIPART_ALICE,
+    struct ComputationBobCryptodataMultipartMessage,
+    NULL),
+  GNUNET_MQ_handler_end ());
 
 
 /* end of gnunet-service-scalarproduct-ecc_alice.c */

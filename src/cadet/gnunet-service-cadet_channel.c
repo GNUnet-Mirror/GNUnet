@@ -41,23 +41,26 @@
 #include "gnunet-service-cadet_tunnels.h"
 #include "gnunet-service-cadet_paths.h"
 
-#define LOG(level,...) GNUNET_log_from (level,"cadet-chn",__VA_ARGS__)
+#define LOG(level, ...) GNUNET_log_from (level, "cadet-chn", __VA_ARGS__)
 
 /**
  * How long do we initially wait before retransmitting?
  */
-#define CADET_INITIAL_RETRANSMIT_TIME GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MILLISECONDS, 250)
+#define CADET_INITIAL_RETRANSMIT_TIME \
+  GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 250)
 
 /**
  * How long do we wait before dropping state about incoming
  * connection to closed port?
  */
-#define TIMEOUT_CLOSED_PORT GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 30)
+#define TIMEOUT_CLOSED_PORT \
+  GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30)
 
 /**
  * How long do we wait at least before retransmitting ever?
  */
-#define MIN_RTT_DELAY GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MILLISECONDS, 75)
+#define MIN_RTT_DELAY \
+  GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 75)
 
 /**
  * Maximum message ID into the future we accept for out-of-order messages.
@@ -164,7 +167,6 @@ struct CadetReliableMessage
    * yet transmitted ever, otherwise the number of (re) transmissions.
    */
   int num_transmissions;
-
 };
 
 
@@ -193,7 +195,6 @@ struct CadetOutOfOrderMessage
    * The envelope with the payload of the out-of-order message
    */
   struct GNUNET_MQ_Envelope *env;
-
 };
 
 
@@ -238,7 +239,6 @@ struct CadetChannelClient
    * Can we send data to the client?
    */
   int client_ready;
-
 };
 
 
@@ -380,7 +380,6 @@ struct CadetChannel
    * empty.
    */
   int destroy;
-
 };
 
 
@@ -400,12 +399,16 @@ GCCH_2s (const struct CadetChannel *ch)
                    sizeof (buf),
                    "Channel %s:%s ctn:%X(%X/%X)",
                    (GNUNET_YES == ch->is_loopback)
-                   ? "loopback"
-                   : GNUNET_i2s (GCP_get_id (GCT_get_destination (ch->t))),
+                     ? "loopback"
+                     : GNUNET_i2s (GCP_get_id (GCT_get_destination (ch->t))),
                    GNUNET_h2s (&ch->port),
                    ch->ctn,
-                   (NULL == ch->owner) ? 0 : ntohl (ch->owner->ccn.channel_of_client),
-                   (NULL == ch->dest) ? 0 : ntohl (ch->dest->ccn.channel_of_client));
+                   (NULL == ch->owner)
+                     ? 0
+                     : ntohl (ch->owner->ccn.channel_of_client),
+                   (NULL == ch->dest)
+                     ? 0
+                     : ntohl (ch->dest->ccn.channel_of_client));
   return buf;
 }
 
@@ -421,20 +424,15 @@ GCCH_2s (const struct CadetChannel *ch)
  */
 void
 GCCH_hash_port (struct GNUNET_HashCode *h_port,
-		const struct GNUNET_HashCode *port,
-		const struct GNUNET_PeerIdentity *listener)
+                const struct GNUNET_HashCode *port,
+                const struct GNUNET_PeerIdentity *listener)
 {
   struct GNUNET_HashContext *hc;
 
   hc = GNUNET_CRYPTO_hash_context_start ();
-  GNUNET_CRYPTO_hash_context_read (hc,
-				   port,
-				   sizeof (*port));
-  GNUNET_CRYPTO_hash_context_read (hc,
-				   listener,
-				   sizeof (*listener));
-  GNUNET_CRYPTO_hash_context_finish (hc,
-				     h_port);
+  GNUNET_CRYPTO_hash_context_read (hc, port, sizeof (*port));
+  GNUNET_CRYPTO_hash_context_read (hc, listener, sizeof (*listener));
+  GNUNET_CRYPTO_hash_context_finish (hc, h_port);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Calculated port hash %s\n",
        GNUNET_h2s (h_port));
@@ -467,9 +465,7 @@ free_channel_client (struct CadetChannelClient *ccc)
 
   while (NULL != (com = ccc->head_recv))
   {
-    GNUNET_CONTAINER_DLL_remove (ccc->head_recv,
-                                 ccc->tail_recv,
-                                 com);
+    GNUNET_CONTAINER_DLL_remove (ccc->head_recv, ccc->tail_recv, com);
     ccc->num_recv--;
     GNUNET_MQ_discard (com->env);
     GNUNET_free (com);
@@ -496,16 +492,13 @@ channel_destroy (struct CadetChannel *ch)
       GCT_send_cancel (crm->qe);
       crm->qe = NULL;
     }
-    GNUNET_CONTAINER_DLL_remove (ch->head_sent,
-                                 ch->tail_sent,
-                                 crm);
+    GNUNET_CONTAINER_DLL_remove (ch->head_sent, ch->tail_sent, crm);
     GNUNET_free (crm->data_message);
     GNUNET_free (crm);
   }
   if (CADET_CHANNEL_LOOSE == ch->state)
   {
-    GSC_drop_loose_channel (&ch->h_port,
-			    ch);
+    GSC_drop_loose_channel (&ch->h_port, ch);
   }
   if (NULL != ch->owner)
   {
@@ -534,9 +527,7 @@ channel_destroy (struct CadetChannel *ch)
   }
   if (GNUNET_NO == ch->is_loopback)
   {
-    GCT_remove_channel (ch->t,
-                        ch,
-                        ch->ctn);
+    GCT_remove_channel (ch->t, ch, ch->ctn);
     ch->t = NULL;
   }
   GNUNET_free (ch);
@@ -572,12 +563,9 @@ channel_open_sent_cb (void *cls,
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Sent CADET_CHANNEL_OPEN on %s, retrying in %s\n",
        GCCH_2s (ch),
-       GNUNET_STRINGS_relative_time_to_string (ch->retry_time,
-                                               GNUNET_YES));
-  ch->retry_control_task
-    = GNUNET_SCHEDULER_add_delayed (ch->retry_time,
-                                    &send_channel_open,
-                                    ch);
+       GNUNET_STRINGS_relative_time_to_string (ch->retry_time, GNUNET_YES));
+  ch->retry_control_task =
+    GNUNET_SCHEDULER_add_delayed (ch->retry_time, &send_channel_open, ch);
 }
 
 
@@ -591,31 +579,22 @@ send_channel_open (void *cls)
 {
   struct CadetChannel *ch = cls;
   struct GNUNET_CADET_ChannelOpenMessage msgcc;
-  uint32_t options;
 
   ch->retry_control_task = NULL;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Sending CHANNEL_OPEN message for %s\n",
        GCCH_2s (ch));
-  options = 0;
-  if (ch->nobuffer)
-    options |= GNUNET_CADET_OPTION_NOBUFFER;
-  if (ch->reliable)
-    options |= GNUNET_CADET_OPTION_RELIABLE;
-  if (ch->out_of_order)
-    options |= GNUNET_CADET_OPTION_OUT_OF_ORDER;
   msgcc.header.size = htons (sizeof (msgcc));
   msgcc.header.type = htons (GNUNET_MESSAGE_TYPE_CADET_CHANNEL_OPEN);
-  msgcc.opt = htonl (options);
+  //TODO This will be removed in a major release, because this will be a protocol breaking change. We set the deprecated "reliable" bit here that was removed.
+  msgcc.opt = 2;
   msgcc.h_port = ch->h_port;
   msgcc.ctn = ch->ctn;
   ch->state = CADET_CHANNEL_OPEN_SENT;
   if (NULL != ch->last_control_qe)
     GCT_send_cancel (ch->last_control_qe);
-  ch->last_control_qe = GCT_send (ch->t,
-                                  &msgcc.header,
-                                  &channel_open_sent_cb,
-                                  ch);
+  ch->last_control_qe =
+    GCT_send (ch->t, &msgcc.header, &channel_open_sent_cb, ch);
   GNUNET_assert (NULL == ch->retry_control_task);
 }
 
@@ -637,9 +616,7 @@ GCCH_tunnel_up (struct CadetChannel *ch)
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Tunnel up, sending CHANNEL_OPEN on %s now\n",
        GCCH_2s (ch));
-  ch->retry_control_task
-    = GNUNET_SCHEDULER_add_now (&send_channel_open,
-                                ch);
+  ch->retry_control_task = GNUNET_SCHEDULER_add_now (&send_channel_open, ch);
 }
 
 
@@ -670,54 +647,45 @@ GCCH_channel_local_new (struct CadetClient *owner,
 
   ch = GNUNET_new (struct CadetChannel);
   ch->mid_recv.mid = htonl (1); /* The OPEN_ACK counts as message 0! */
-  ch->nobuffer = (0 != (options & GNUNET_CADET_OPTION_NOBUFFER));
-  ch->reliable = (0 != (options & GNUNET_CADET_OPTION_RELIABLE));
-  ch->out_of_order = (0 != (options & GNUNET_CADET_OPTION_OUT_OF_ORDER));
-  ch->max_pending_messages = (ch->nobuffer) ? 1 : 4; /* FIXME: 4!? Do not hardcode! */
+  ch->nobuffer = GNUNET_NO;
+  ch->reliable = GNUNET_YES;
+  ch->out_of_order = GNUNET_NO;
+  ch->max_pending_messages =
+    (ch->nobuffer) ? 1 : 4; /* FIXME: 4!? Do not hardcode! */
   ch->owner = ccco;
   ch->port = *port;
-  GCCH_hash_port (&ch->h_port,
-		  port,
-		  GCP_get_id (destination));
-  if (0 == GNUNET_memcmp (&my_full_id,
-                   GCP_get_id (destination)))
+  GCCH_hash_port (&ch->h_port, port, GCP_get_id (destination));
+  if (0 == GNUNET_memcmp (&my_full_id, GCP_get_id (destination)))
   {
     struct OpenPort *op;
 
     ch->is_loopback = GNUNET_YES;
-    op = GNUNET_CONTAINER_multihashmap_get (open_ports,
-					    &ch->h_port);
+    op = GNUNET_CONTAINER_multihashmap_get (open_ports, &ch->h_port);
     if (NULL == op)
     {
       /* port closed, wait for it to possibly open */
       ch->state = CADET_CHANNEL_LOOSE;
-      (void) GNUNET_CONTAINER_multihashmap_put (loose_channels,
-                                                &ch->h_port,
-                                                ch,
-                                                GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
+      (void) GNUNET_CONTAINER_multihashmap_put (
+        loose_channels,
+        &ch->h_port,
+        ch,
+        GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
       LOG (GNUNET_ERROR_TYPE_DEBUG,
            "Created loose incoming loopback channel to port %s\n",
            GNUNET_h2s (&ch->port));
     }
     else
     {
-      GCCH_bind (ch,
-                 op->c,
-		 &op->port);
+      GCCH_bind (ch, op->c, &op->port);
     }
   }
   else
   {
-    ch->t = GCP_get_tunnel (destination,
-                            GNUNET_YES);
+    ch->t = GCP_get_tunnel (destination, GNUNET_YES);
     ch->retry_time = CADET_INITIAL_RETRANSMIT_TIME;
-    ch->ctn = GCT_add_channel (ch->t,
-                               ch);
+    ch->ctn = GCT_add_channel (ch->t, ch);
   }
-  GNUNET_STATISTICS_update (stats,
-                            "# channels",
-                            1,
-                            GNUNET_NO);
+  GNUNET_STATISTICS_update (stats, "# channels", 1, GNUNET_NO);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Created channel to port %s at peer %s for %s using %s\n",
        GNUNET_h2s (port),
@@ -771,30 +739,27 @@ GCCH_channel_incoming_new (struct CadetTunnel *t,
   ch->t = t;
   ch->ctn = ctn;
   ch->retry_time = CADET_INITIAL_RETRANSMIT_TIME;
-  ch->nobuffer = (0 != (options & GNUNET_CADET_OPTION_NOBUFFER));
-  ch->reliable = (0 != (options & GNUNET_CADET_OPTION_RELIABLE));
-  ch->out_of_order = (0 != (options & GNUNET_CADET_OPTION_OUT_OF_ORDER));
-  ch->max_pending_messages = (ch->nobuffer) ? 1 : 4; /* FIXME: 4!? Do not hardcode! */
-  GNUNET_STATISTICS_update (stats,
-                            "# channels",
-                            1,
-                            GNUNET_NO);
+  ch->nobuffer = GNUNET_NO;
+  ch->reliable = GNUNET_YES;
+  ch->out_of_order = GNUNET_NO;
+  ch->max_pending_messages =
+    (ch->nobuffer) ? 1 : 4; /* FIXME: 4!? Do not hardcode! */
+  GNUNET_STATISTICS_update (stats, "# channels", 1, GNUNET_NO);
 
-  op = GNUNET_CONTAINER_multihashmap_get (open_ports,
-					  h_port);
+  op = GNUNET_CONTAINER_multihashmap_get (open_ports, h_port);
   if (NULL == op)
   {
     /* port closed, wait for it to possibly open */
     ch->state = CADET_CHANNEL_LOOSE;
-    (void) GNUNET_CONTAINER_multihashmap_put (loose_channels,
-                                              &ch->h_port,
-                                              ch,
-                                              GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
+    (void) GNUNET_CONTAINER_multihashmap_put (
+      loose_channels,
+      &ch->h_port,
+      ch,
+      GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
     GNUNET_assert (NULL == ch->retry_control_task);
-    ch->retry_control_task
-      = GNUNET_SCHEDULER_add_delayed (TIMEOUT_CLOSED_PORT,
-                                      &timeout_closed_cb,
-                                      ch);
+    ch->retry_control_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT_CLOSED_PORT,
+                                                           &timeout_closed_cb,
+                                                           ch);
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Created loose incoming channel to port %s from peer %s\n",
          GNUNET_h2s (&ch->port),
@@ -802,14 +767,9 @@ GCCH_channel_incoming_new (struct CadetTunnel *t,
   }
   else
   {
-    GCCH_bind (ch,
-               op->c,
-	       &op->port);
+    GCCH_bind (ch, op->c, &op->port);
   }
-  GNUNET_STATISTICS_update (stats,
-                            "# channels",
-                            1,
-                            GNUNET_NO);
+  GNUNET_STATISTICS_update (stats, "# channels", 1, GNUNET_NO);
   return ch;
 }
 
@@ -858,10 +818,7 @@ send_channel_data_ack (struct CadetChannel *ch)
        GCCH_2s (ch));
   if (NULL != ch->last_control_qe)
     GCT_send_cancel (ch->last_control_qe);
-  ch->last_control_qe = GCT_send (ch->t,
-                                  &msg.header,
-                                  &send_ack_cb,
-                                  ch);
+  ch->last_control_qe = GCT_send (ch->t, &msg.header, &send_ack_cb, ch);
 }
 
 
@@ -888,10 +845,7 @@ send_open_ack (void *cls)
   msg.port = ch->port;
   if (NULL != ch->last_control_qe)
     GCT_send_cancel (ch->last_control_qe);
-  ch->last_control_qe = GCT_send (ch->t,
-                                  &msg.header,
-                                  &send_ack_cb,
-                                  ch);
+  ch->last_control_qe = GCT_send (ch->t, &msg.header, &send_ack_cb, ch);
 }
 
 
@@ -904,8 +858,9 @@ send_open_ack (void *cls)
  * @param cti identifier of the connection that delivered the message
  */
 void
-GCCH_handle_duplicate_open (struct CadetChannel *ch,
-                            const struct GNUNET_CADET_ConnectionTunnelIdentifier *cti)
+GCCH_handle_duplicate_open (
+  struct CadetChannel *ch,
+  const struct GNUNET_CADET_ConnectionTunnelIdentifier *cti)
 {
   if (NULL == ch->dest)
   {
@@ -924,9 +879,7 @@ GCCH_handle_duplicate_open (struct CadetChannel *ch,
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Retransmitting CHANNEL_OPEN_ACK on %s\n",
        GCCH_2s (ch));
-  ch->retry_control_task
-    = GNUNET_SCHEDULER_add_now (&send_open_ack,
-                                ch);
+  ch->retry_control_task = GNUNET_SCHEDULER_add_now (&send_open_ack, ch);
 }
 
 
@@ -938,8 +891,7 @@ GCCH_handle_duplicate_open (struct CadetChannel *ch,
  *                 #GNUNET_NO to send to dest
  */
 static void
-send_ack_to_client (struct CadetChannel *ch,
-                    int to_owner)
+send_ack_to_client (struct CadetChannel *ch, int to_owner)
 {
   struct GNUNET_MQ_Envelope *env;
   struct GNUNET_CADET_LocalAck *ack;
@@ -953,8 +905,7 @@ send_ack_to_client (struct CadetChannel *ch,
     GNUNET_assert (GNUNET_YES == ch->destroy);
     return;
   }
-  env = GNUNET_MQ_msg (ack,
-                       GNUNET_MESSAGE_TYPE_CADET_LOCAL_ACK);
+  env = GNUNET_MQ_msg (ack, GNUNET_MESSAGE_TYPE_CADET_LOCAL_ACK);
   ack->ccn = ccc->ccn;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Sending CADET_LOCAL_ACK to %s (%s) at ccn %X (%u/%u pending)\n",
@@ -963,8 +914,7 @@ send_ack_to_client (struct CadetChannel *ch,
        ntohl (ack->ccn.channel_of_client),
        ch->pending_messages,
        ch->max_pending_messages);
-  GSC_send_to_client (ccc->c,
-                      env);
+  GSC_send_to_client (ccc->c, env);
 }
 
 
@@ -980,7 +930,7 @@ send_ack_to_client (struct CadetChannel *ch,
 void
 GCCH_bind (struct CadetChannel *ch,
            struct CadetClient *c,
-	   const struct GNUNET_HashCode *port)
+           const struct GNUNET_HashCode *port)
 {
   uint32_t options;
   struct CadetChannelClient *cccd;
@@ -998,12 +948,6 @@ GCCH_bind (struct CadetChannel *ch,
     ch->retry_control_task = NULL;
   }
   options = 0;
-  if (ch->nobuffer)
-    options |= GNUNET_CADET_OPTION_NOBUFFER;
-  if (ch->reliable)
-    options |= GNUNET_CADET_OPTION_RELIABLE;
-  if (ch->out_of_order)
-    options |= GNUNET_CADET_OPTION_OUT_OF_ORDER;
   cccd = GNUNET_new (struct CadetChannelClient);
   GNUNET_assert (NULL == ch->dest);
   ch->dest = cccd;
@@ -1013,9 +957,8 @@ GCCH_bind (struct CadetChannel *ch,
   cccd->ccn = GSC_bind (c,
                         ch,
                         (GNUNET_YES == ch->is_loopback)
-                        ? GCP_get (&my_full_id,
-                                   GNUNET_YES)
-                        : GCT_get_destination (ch->t),
+                          ? GCP_get (&my_full_id, GNUNET_YES)
+                          : GCT_get_destination (ch->t),
                         port,
                         options);
   GNUNET_assert (ntohl (cccd->ccn.channel_of_client) <
@@ -1024,24 +967,19 @@ GCCH_bind (struct CadetChannel *ch,
   if (GNUNET_YES == ch->is_loopback)
   {
     ch->state = CADET_CHANNEL_OPEN_SENT;
-    GCCH_handle_channel_open_ack (ch,
-                                  NULL,
-				  port);
+    GCCH_handle_channel_open_ack (ch, NULL, port);
   }
   else
   {
     /* notify other peer that we accepted the connection */
     ch->state = CADET_CHANNEL_READY;
-    ch->retry_control_task
-      = GNUNET_SCHEDULER_add_now (&send_open_ack,
-                                  ch);
+    ch->retry_control_task = GNUNET_SCHEDULER_add_now (&send_open_ack, ch);
   }
   /* give client it's initial supply of ACKs */
   GNUNET_assert (ntohl (cccd->ccn.channel_of_client) <
                  GNUNET_CADET_LOCAL_CHANNEL_ID_CLI);
-  for (unsigned int i=0;i<ch->max_pending_messages;i++)
-    send_ack_to_client (ch,
-                        GNUNET_NO);
+  for (unsigned int i = 0; i < ch->max_pending_messages; i++)
+    send_ack_to_client (ch, GNUNET_NO);
 }
 
 
@@ -1061,9 +999,7 @@ signal_remote_destroy_cb (void *cls)
   /* Find which end is left... */
   ch->retry_control_task = NULL;
   ccc = (NULL != ch->owner) ? ch->owner : ch->dest;
-  GSC_handle_remote_channel_destroy (ccc->c,
-                                     ccc->ccn,
-                                     ch);
+  GSC_handle_remote_channel_destroy (ccc->c, ccc->ccn, ch);
   channel_destroy (ch);
 }
 
@@ -1086,16 +1022,14 @@ GCCH_channel_local_destroy (struct CadetChannel *ch,
        GSC_2s (c),
        GCCH_2s (ch));
   GNUNET_assert (NULL != c);
-  if ( (NULL != ch->owner) &&
-       (c == ch->owner->c) &&
-       (ccn.channel_of_client == ch->owner->ccn.channel_of_client) )
+  if ((NULL != ch->owner) && (c == ch->owner->c) &&
+      (ccn.channel_of_client == ch->owner->ccn.channel_of_client))
   {
     free_channel_client (ch->owner);
     ch->owner = NULL;
   }
-  else if ( (NULL != ch->dest) &&
-            (c == ch->dest->c) &&
-            (ccn.channel_of_client == ch->dest->ccn.channel_of_client) )
+  else if ((NULL != ch->dest) && (c == ch->dest->c) &&
+           (ccn.channel_of_client == ch->dest->ccn.channel_of_client))
   {
     free_channel_client (ch->dest);
     ch->dest = NULL;
@@ -1112,24 +1046,20 @@ GCCH_channel_local_destroy (struct CadetChannel *ch,
     channel_destroy (ch);
     return;
   }
-  if ( (NULL != ch->head_sent) &&
-       ( (NULL != ch->owner) ||
-         (NULL != ch->dest) ) )
+  if ((NULL != ch->head_sent) && ((NULL != ch->owner) || (NULL != ch->dest)))
   {
     /* Wait for other end to destroy us as well,
        and otherwise allow send queue to be transmitted first */
     ch->destroy = GNUNET_YES;
     return;
   }
-  if ( (GNUNET_YES == ch->is_loopback) &&
-       ( (NULL != ch->owner) ||
-         (NULL != ch->dest) ) )
+  if ((GNUNET_YES == ch->is_loopback) &&
+      ((NULL != ch->owner) || (NULL != ch->dest)))
   {
     if (NULL != ch->retry_control_task)
       GNUNET_SCHEDULER_cancel (ch->retry_control_task);
-    ch->retry_control_task
-      = GNUNET_SCHEDULER_add_now (&signal_remote_destroy_cb,
-                                  ch);
+    ch->retry_control_task =
+      GNUNET_SCHEDULER_add_now (&signal_remote_destroy_cb, ch);
     return;
   }
   if (GNUNET_NO == ch->is_loopback)
@@ -1144,8 +1074,7 @@ GCCH_channel_local_destroy (struct CadetChannel *ch,
     case CADET_CHANNEL_LOOSE:
       break;
     default:
-      GCT_send_channel_destroy (ch->t,
-                                ch->ctn);
+      GCT_send_channel_destroy (ch->t, ch->ctn);
     }
   }
   /* Nothing left to do, just finish destruction */
@@ -1163,9 +1092,10 @@ GCCH_channel_local_destroy (struct CadetChannel *ch,
  * @param port port number (needed to verify receiver knows the port)
  */
 void
-GCCH_handle_channel_open_ack (struct CadetChannel *ch,
-                              const struct GNUNET_CADET_ConnectionTunnelIdentifier *cti,
-			      const struct GNUNET_HashCode *port)
+GCCH_handle_channel_open_ack (
+  struct CadetChannel *ch,
+  const struct GNUNET_CADET_ConnectionTunnelIdentifier *cti,
+  const struct GNUNET_HashCode *port)
 {
   switch (ch->state)
   {
@@ -1184,8 +1114,7 @@ GCCH_handle_channel_open_ack (struct CadetChannel *ch,
       GNUNET_break_op (0);
       return;
     }
-    if (0 != GNUNET_memcmp (&ch->port,
-		     port))
+    if (0 != GNUNET_memcmp (&ch->port, port))
     {
       /* Other peer failed to provide the right port,
 	 refuse connection. */
@@ -1203,19 +1132,15 @@ GCCH_handle_channel_open_ack (struct CadetChannel *ch,
     ch->state = CADET_CHANNEL_READY;
     /* On first connect, send client as many ACKs as we allow messages
        to be buffered! */
-    for (unsigned int i=0;i<ch->max_pending_messages;i++)
-      send_ack_to_client (ch,
-                          GNUNET_YES);
+    for (unsigned int i = 0; i < ch->max_pending_messages; i++)
+      send_ack_to_client (ch, GNUNET_YES);
     break;
   case CADET_CHANNEL_READY:
     /* duplicate ACK, maybe we retried the CREATE. Ignore. */
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Received duplicate channel OPEN_ACK for %s\n",
          GCCH_2s (ch));
-    GNUNET_STATISTICS_update (stats,
-                              "# duplicate CREATE_ACKs",
-                              1,
-                              GNUNET_NO);
+    GNUNET_STATISTICS_update (stats, "# duplicate CREATE_ACKs", 1, GNUNET_NO);
     break;
   }
 }
@@ -1264,9 +1189,10 @@ is_before (void *cls,
  * @param msg message that was received
  */
 void
-GCCH_handle_channel_plaintext_data (struct CadetChannel *ch,
-                                    const struct GNUNET_CADET_ConnectionTunnelIdentifier *cti,
-                                    const struct GNUNET_CADET_ChannelAppDataMessage *msg)
+GCCH_handle_channel_plaintext_data (
+  struct CadetChannel *ch,
+  const struct GNUNET_CADET_ConnectionTunnelIdentifier *cti,
+  const struct GNUNET_CADET_ChannelAppDataMessage *msg)
 {
   struct GNUNET_MQ_Envelope *env;
   struct GNUNET_CADET_LocalData *ld;
@@ -1280,8 +1206,7 @@ GCCH_handle_channel_plaintext_data (struct CadetChannel *ch,
   uint32_t delta;
 
   GNUNET_assert (GNUNET_NO == ch->is_loopback);
-  if ( (NULL == ch->owner) &&
-       (NULL == ch->dest) )
+  if ((NULL == ch->owner) && (NULL == ch->dest))
   {
     /* This client is gone, but we still have messages to send to
        the other end (which is why @a ch is not yet dead).  However,
@@ -1291,8 +1216,7 @@ GCCH_handle_channel_plaintext_data (struct CadetChannel *ch,
          GCCH_2s (ch));
     /* send back DESTROY notification to stop further retransmissions! */
     if (GNUNET_YES == ch->destroy)
-      GCT_send_channel_destroy (ch->t,
-                                ch->ctn);
+      GCT_send_channel_destroy (ch->t, ch->ctn);
     return;
   }
   payload_size = ntohs (msg->header.size) - sizeof (*msg);
@@ -1300,9 +1224,7 @@ GCCH_handle_channel_plaintext_data (struct CadetChannel *ch,
                              payload_size,
                              GNUNET_MESSAGE_TYPE_CADET_LOCAL_DATA);
   ld->ccn = (NULL == ch->dest) ? ch->owner->ccn : ch->dest->ccn;
-  GNUNET_memcpy (&ld[1],
-                 &msg[1],
-                 payload_size);
+  GNUNET_memcpy (&ld[1], &msg[1], payload_size);
   ccc = (NULL != ch->owner) ? ch->owner : ch->dest;
   if (GNUNET_YES == ccc->client_ready)
   {
@@ -1312,13 +1234,12 @@ GCCH_handle_channel_plaintext_data (struct CadetChannel *ch,
      * - The channel is reliable and MID matches next expected MID
      * - The channel is unreliable and MID is before lowest seen MID
      */
-    if ( (GNUNET_YES == ch->out_of_order) ||
-         ((msg->mid.mid == ch->mid_recv.mid) &&
-          (GNUNET_YES == ch->reliable)) ||
-         ((GNUNET_NO == ch->reliable) &&
-          (ntohl (msg->mid.mid) >= ntohl (ch->mid_recv.mid)) &&
-          ((NULL == ccc->head_recv) ||
-           (ntohl (msg->mid.mid) < ntohl (ccc->head_recv->mid.mid)))) )
+    if ((GNUNET_YES == ch->out_of_order) ||
+        ((msg->mid.mid == ch->mid_recv.mid) && (GNUNET_YES == ch->reliable)) ||
+        ((GNUNET_NO == ch->reliable) &&
+         (ntohl (msg->mid.mid) >= ntohl (ch->mid_recv.mid)) &&
+         ((NULL == ccc->head_recv) ||
+          (ntohl (msg->mid.mid) < ntohl (ccc->head_recv->mid.mid)))))
     {
       LOG (GNUNET_ERROR_TYPE_DEBUG,
            "Giving %u bytes of payload with MID %u from %s to client %s\n",
@@ -1327,24 +1248,22 @@ GCCH_handle_channel_plaintext_data (struct CadetChannel *ch,
            GCCH_2s (ch),
            GSC_2s (ccc->c));
       ccc->client_ready = GNUNET_NO;
-      GSC_send_to_client (ccc->c,
-                          env);
+      GSC_send_to_client (ccc->c, env);
       if (GNUNET_NO == ch->out_of_order)
         ch->mid_recv.mid = htonl (1 + ntohl (msg->mid.mid));
       else
         ch->mid_recv.mid = htonl (1 + ntohl (ch->mid_recv.mid));
       ch->mid_futures >>= 1;
-      if ( (GNUNET_YES == ch->out_of_order) &&
-	   (GNUNET_NO == ch->reliable) )
+      if ((GNUNET_YES == ch->out_of_order) && (GNUNET_NO == ch->reliable))
       {
-	/* possibly shift by more if we skipped messages */
-	uint64_t delta = htonl (msg->mid.mid) - 1 - ntohl (ch->mid_recv.mid);
-	
-	if (delta > 63)
-	  ch->mid_futures = 0;
-	else
-	  ch->mid_futures >>= delta;
-	ch->mid_recv.mid = htonl (1 + ntohl (msg->mid.mid));
+        /* possibly shift by more if we skipped messages */
+        uint64_t delta = htonl (msg->mid.mid) - 1 - ntohl (ch->mid_recv.mid);
+
+        if (delta > 63)
+          ch->mid_futures = 0;
+        else
+          ch->mid_futures >>= delta;
+        ch->mid_recv.mid = htonl (1 + ntohl (msg->mid.mid));
       }
       send_channel_data_ack (ch);
       return;
@@ -1357,8 +1276,8 @@ GCCH_handle_channel_plaintext_data (struct CadetChannel *ch,
     mid_min = ntohl (ch->mid_recv.mid);
     mid_max = mid_min + ch->max_pending_messages;
     mid_msg = ntohl (msg->mid.mid);
-    if ( ( (uint32_t) (mid_msg - mid_min) > ch->max_pending_messages) ||
-         ( (uint32_t) (mid_max - mid_msg) > ch->max_pending_messages) )
+    if (((uint32_t) (mid_msg - mid_min) > ch->max_pending_messages) ||
+        ((uint32_t) (mid_max - mid_msg) > ch->max_pending_messages))
     {
       LOG (GNUNET_ERROR_TYPE_DEBUG,
            "%s at %u drops ancient or far-future message %u\n",
@@ -1386,10 +1305,7 @@ GCCH_handle_channel_plaintext_data (struct CadetChannel *ch,
              (unsigned int) payload_size,
              GCCH_2s (ch),
              ntohl (msg->mid.mid));
-        GNUNET_STATISTICS_update (stats,
-                                  "# duplicate DATA",
-                                  1,
-                                  GNUNET_NO);
+        GNUNET_STATISTICS_update (stats, "# duplicate DATA", 1, GNUNET_NO);
         GNUNET_MQ_discard (env);
         send_channel_data_ack (ch);
         return;
@@ -1411,8 +1327,7 @@ GCCH_handle_channel_plaintext_data (struct CadetChannel *ch,
      * We always send if possible in this case.
      * It is guaranteed that the queued MID < received MID
      **/
-    if ((NULL != ccc->head_recv) &&
-        (GNUNET_YES == ccc->client_ready))
+    if ((NULL != ccc->head_recv) && (GNUNET_YES == ccc->client_ready))
     {
       next_msg = ccc->head_recv;
       LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -1421,14 +1336,11 @@ GCCH_handle_channel_plaintext_data (struct CadetChannel *ch,
            GCCH_2s (ch),
            GSC_2s (ccc->c));
       ccc->client_ready = GNUNET_NO;
-      GSC_send_to_client (ccc->c,
-                          next_msg->env);
+      GSC_send_to_client (ccc->c, next_msg->env);
       ch->mid_recv.mid = htonl (1 + ntohl (next_msg->mid.mid));
       ch->mid_futures >>= 1;
       send_channel_data_ack (ch);
-      GNUNET_CONTAINER_DLL_remove (ccc->head_recv,
-                                   ccc->tail_recv,
-                                   next_msg);
+      GNUNET_CONTAINER_DLL_remove (ccc->head_recv, ccc->tail_recv, next_msg);
       ccc->num_recv--;
       /* Do not process duplicate MID */
       if (msg->mid.mid == next_msg->mid.mid) /* Duplicate */
@@ -1473,9 +1385,7 @@ GCCH_handle_channel_plaintext_data (struct CadetChannel *ch,
                                 GNUNET_NO);
       drop = ccc->head_recv;
       GNUNET_assert (NULL != drop);
-      GNUNET_CONTAINER_DLL_remove (ccc->head_recv,
-                                   ccc->tail_recv,
-                                   drop);
+      GNUNET_CONTAINER_DLL_remove (ccc->head_recv, ccc->tail_recv, drop);
       ccc->num_recv--;
       GNUNET_MQ_discard (drop->env);
       GNUNET_free (drop);
@@ -1506,13 +1416,8 @@ GCCH_handle_channel_plaintext_data (struct CadetChannel *ch,
          (unsigned int) payload_size,
          GCCH_2s (ch),
          ntohl (msg->mid.mid));
-    GNUNET_STATISTICS_update (stats,
-                              "# duplicate DATA",
-                              1,
-                              GNUNET_NO);
-    GNUNET_CONTAINER_DLL_remove (ccc->head_recv,
-                                 ccc->tail_recv,
-                                 com);
+    GNUNET_STATISTICS_update (stats, "# duplicate DATA", 1, GNUNET_NO);
+    GNUNET_CONTAINER_DLL_remove (ccc->head_recv, ccc->tail_recv, com);
     ccc->num_recv--;
     GNUNET_MQ_discard (com->env);
     GNUNET_free (com);
@@ -1521,9 +1426,7 @@ GCCH_handle_channel_plaintext_data (struct CadetChannel *ch,
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Queued %s payload of %u bytes on %s-%X(%p) (mid %u, need %u first)\n",
-       (GNUNET_YES == ccc->client_ready)
-       ? "out-of-order"
-       : "client-not-ready",
+       (GNUNET_YES == ccc->client_ready) ? "out-of-order" : "client-not-ready",
        (unsigned int) payload_size,
        GCCH_2s (ch),
        ntohl (ccc->ccn.channel_of_client),
@@ -1571,10 +1474,7 @@ retry_transmission (void *cls)
        "Retrying transmission on %s of message %u\n",
        GCCH_2s (ch),
        (unsigned int) ntohl (crm->data_message->mid.mid));
-  crm->qe = GCT_send (ch->t,
-                      &crm->data_message->header,
-                      &data_sent_cb,
-                      crm);
+  crm->qe = GCT_send (ch->t, &crm->data_message->header, &data_sent_cb, crm);
   GNUNET_assert (NULL == ch->retry_data_task);
 }
 
@@ -1592,9 +1492,7 @@ handle_matching_ack (struct CadetChannel *ch,
                      const struct GNUNET_CADET_ConnectionTunnelIdentifier *cti,
                      struct CadetReliableMessage *crm)
 {
-  GNUNET_CONTAINER_DLL_remove (ch->head_sent,
-                               ch->tail_sent,
-                               crm);
+  GNUNET_CONTAINER_DLL_remove (ch->head_sent, ch->tail_sent, crm);
   ch->pending_messages--;
   GNUNET_assert (ch->pending_messages < ch->max_pending_messages);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -1607,23 +1505,19 @@ handle_matching_ack (struct CadetChannel *ch,
     GCT_send_cancel (crm->qe);
     crm->qe = NULL;
   }
-  if ( (1 == crm->num_transmissions) &&
-       (NULL != cti) )
+  if ((1 == crm->num_transmissions) && (NULL != cti))
   {
     GCC_ack_observed (cti);
-    if (0 == GNUNET_memcmp (cti,
-                     &crm->connection_taken))
+    if (0 == GNUNET_memcmp (cti, &crm->connection_taken))
     {
       GCC_latency_observed (cti,
-                            GNUNET_TIME_absolute_get_duration (crm->first_transmission_time));
+                            GNUNET_TIME_absolute_get_duration (
+                              crm->first_transmission_time));
     }
   }
   GNUNET_free (crm->data_message);
   GNUNET_free (crm);
-  send_ack_to_client (ch,
-                      (NULL == ch->owner)
-                      ? GNUNET_NO
-                      : GNUNET_YES);
+  send_ack_to_client (ch, (NULL == ch->owner) ? GNUNET_NO : GNUNET_YES);
 }
 
 
@@ -1636,9 +1530,10 @@ handle_matching_ack (struct CadetChannel *ch,
  * @param ack details about what was received
  */
 void
-GCCH_handle_channel_plaintext_data_ack (struct CadetChannel *ch,
-                                        const struct GNUNET_CADET_ConnectionTunnelIdentifier *cti,
-                                        const struct GNUNET_CADET_ChannelDataAckMessage *ack)
+GCCH_handle_channel_plaintext_data_ack (
+  struct CadetChannel *ch,
+  const struct GNUNET_CADET_ConnectionTunnelIdentifier *cti,
+  const struct GNUNET_CADET_ChannelDataAckMessage *ack)
 {
   struct CadetReliableMessage *crm;
   struct CadetReliableMessage *crmn;
@@ -1660,9 +1555,7 @@ GCCH_handle_channel_plaintext_data_ack (struct CadetChannel *ch,
   mid_base = ntohl (ack->mid.mid);
   mid_mask = GNUNET_htonll (ack->futures);
   found = GNUNET_NO;
-  for (crm = ch->head_sent;
-       NULL != crm;
-       crm = crmn)
+  for (crm = ch->head_sent; NULL != crm; crm = crmn)
   {
     crmn = crm->next;
     delta = (unsigned int) (ntohl (crm->data_message->mid.mid) - mid_base);
@@ -1674,9 +1567,7 @@ GCCH_handle_channel_plaintext_data_ack (struct CadetChannel *ch,
            (unsigned int) mid_base,
            ntohl (crm->data_message->mid.mid),
            GCCH_2s (ch));
-      handle_matching_ack (ch,
-                           cti,
-                           crm);
+      handle_matching_ack (ch, cti, crm);
       found = GNUNET_YES;
       continue;
     }
@@ -1694,9 +1585,7 @@ GCCH_handle_channel_plaintext_data_ack (struct CadetChannel *ch,
            "Got DATA_ACK with mask for %u on %s\n",
            ntohl (crm->data_message->mid.mid),
            GCCH_2s (ch));
-      handle_matching_ack (ch,
-                           cti,
-                           crm);
+      handle_matching_ack (ch, cti, crm);
       found = GNUNET_YES;
     }
   }
@@ -1707,10 +1596,7 @@ GCCH_handle_channel_plaintext_data_ack (struct CadetChannel *ch,
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Duplicate DATA_ACK on %s, ignoring\n",
          GCCH_2s (ch));
-    GNUNET_STATISTICS_update (stats,
-                              "# duplicate DATA_ACKs",
-                              1,
-                              GNUNET_NO);
+    GNUNET_STATISTICS_update (stats, "# duplicate DATA_ACKs", 1, GNUNET_NO);
     return;
   }
   if (NULL != ch->retry_data_task)
@@ -1718,12 +1604,10 @@ GCCH_handle_channel_plaintext_data_ack (struct CadetChannel *ch,
     GNUNET_SCHEDULER_cancel (ch->retry_data_task);
     ch->retry_data_task = NULL;
   }
-  if ( (NULL != ch->head_sent) &&
-       (NULL == ch->head_sent->qe) )
-    ch->retry_data_task
-      = GNUNET_SCHEDULER_add_at (ch->head_sent->next_retry,
-                                 &retry_transmission,
-                                 ch);
+  if ((NULL != ch->head_sent) && (NULL == ch->head_sent->qe))
+    ch->retry_data_task = GNUNET_SCHEDULER_add_at (ch->head_sent->next_retry,
+                                                   &retry_transmission,
+                                                   ch);
 }
 
 
@@ -1737,8 +1621,9 @@ GCCH_handle_channel_plaintext_data_ack (struct CadetChannel *ch,
  *            NULL if we are simulating receiving a destroy due to shutdown
  */
 void
-GCCH_handle_remote_destroy (struct CadetChannel *ch,
-                            const struct GNUNET_CADET_ConnectionTunnelIdentifier *cti)
+GCCH_handle_remote_destroy (
+  struct CadetChannel *ch,
+  const struct GNUNET_CADET_ConnectionTunnelIdentifier *cti)
 {
   struct CadetChannelClient *ccc;
 
@@ -1753,8 +1638,7 @@ GCCH_handle_remote_destroy (struct CadetChannel *ch,
     return;
   }
   ccc = (NULL != ch->owner) ? ch->owner : ch->dest;
-  if ( (NULL != ccc) &&
-       (NULL != ccc->head_recv) )
+  if ((NULL != ccc) && (NULL != ccc->head_recv))
   {
     LOG (GNUNET_ERROR_TYPE_WARNING,
          "Lost end of transmission due to remote shutdown on %s\n",
@@ -1763,9 +1647,7 @@ GCCH_handle_remote_destroy (struct CadetChannel *ch,
   }
   ch->destroy = GNUNET_YES;
   if (NULL != ccc)
-    GSC_handle_remote_channel_destroy (ccc->c,
-                                       ccc->ccn,
-                                       ch);
+    GSC_handle_remote_channel_destroy (ccc->c, ccc->ccn, ch);
   channel_destroy (ch);
 }
 
@@ -1783,8 +1665,7 @@ cmp_crm_by_next_retry (void *cls,
                        struct CadetReliableMessage *crm1,
                        struct CadetReliableMessage *crm2)
 {
-  if (crm1->next_retry.abs_value_us <
-      crm2->next_retry.abs_value_us)
+  if (crm1->next_retry.abs_value_us < crm2->next_retry.abs_value_us)
     return GNUNET_YES;
   return GNUNET_NO;
 }
@@ -1810,18 +1691,13 @@ data_sent_cb (void *cls,
   GNUNET_assert (GNUNET_NO == ch->is_loopback);
   GNUNET_assert (NULL != crm->qe);
   crm->qe = NULL;
-  GNUNET_CONTAINER_DLL_remove (ch->head_sent,
-                               ch->tail_sent,
-                               crm);
+  GNUNET_CONTAINER_DLL_remove (ch->head_sent, ch->tail_sent, crm);
   if (GNUNET_NO == ch->reliable)
   {
     GNUNET_free (crm->data_message);
     GNUNET_free (crm);
     ch->pending_messages--;
-    send_ack_to_client (ch,
-                        (NULL == ch->owner)
-                        ? GNUNET_NO
-                        : GNUNET_YES);
+    send_ack_to_client (ch, (NULL == ch->owner) ? GNUNET_NO : GNUNET_YES);
     return;
   }
   if (NULL == cid)
@@ -1841,8 +1717,7 @@ data_sent_cb (void *cls,
       GCC_ack_expected (cid);
     }
   }
-  if ( (0 == crm->retry_delay.rel_value_us) &&
-       (NULL != cid) )
+  if ((0 == crm->retry_delay.rel_value_us) && (NULL != cid))
   {
     struct CadetConnection *cc = GCC_lookup (cid);
 
@@ -1852,8 +1727,7 @@ data_sent_cb (void *cls,
       crm->retry_delay = ch->retry_time;
   }
   crm->retry_delay = GNUNET_TIME_STD_BACKOFF (crm->retry_delay);
-  crm->retry_delay = GNUNET_TIME_relative_max (crm->retry_delay,
-                                               MIN_RTT_DELAY);
+  crm->retry_delay = GNUNET_TIME_relative_max (crm->retry_delay, MIN_RTT_DELAY);
   crm->next_retry = GNUNET_TIME_relative_to_absolute (crm->retry_delay);
 
   GNUNET_CONTAINER_DLL_insert_sorted (struct CadetReliableMessage,
@@ -1866,16 +1740,16 @@ data_sent_cb (void *cls,
        "Message %u sent, next transmission on %s in %s\n",
        (unsigned int) ntohl (crm->data_message->mid.mid),
        GCCH_2s (ch),
-       GNUNET_STRINGS_relative_time_to_string (GNUNET_TIME_absolute_get_remaining (ch->head_sent->next_retry),
+       GNUNET_STRINGS_relative_time_to_string (GNUNET_TIME_absolute_get_remaining (
+                                                 ch->head_sent->next_retry),
                                                GNUNET_YES));
   if (NULL == ch->head_sent->qe)
   {
     if (NULL != ch->retry_data_task)
       GNUNET_SCHEDULER_cancel (ch->retry_data_task);
-    ch->retry_data_task
-      = GNUNET_SCHEDULER_add_at (ch->head_sent->next_retry,
-                                 &retry_transmission,
-                                 ch);
+    ch->retry_data_task = GNUNET_SCHEDULER_add_at (ch->head_sent->next_retry,
+                                                   &retry_transmission,
+                                                   ch);
   }
 }
 
@@ -1921,19 +1795,16 @@ GCCH_handle_local_data (struct CadetChannel *ch,
     struct GNUNET_CADET_LocalData *ld;
     int ack_to_owner;
 
-    env = GNUNET_MQ_msg_extra (ld,
-                               buf_len,
-                               GNUNET_MESSAGE_TYPE_CADET_LOCAL_DATA);
-    if ( (NULL != ch->owner) &&
-         (sender_ccn.channel_of_client ==
-          ch->owner->ccn.channel_of_client) )
+    env =
+      GNUNET_MQ_msg_extra (ld, buf_len, GNUNET_MESSAGE_TYPE_CADET_LOCAL_DATA);
+    if ((NULL != ch->owner) &&
+        (sender_ccn.channel_of_client == ch->owner->ccn.channel_of_client))
     {
       receiver = ch->dest;
       ack_to_owner = GNUNET_YES;
     }
-    else if ( (NULL != ch->dest) &&
-              (sender_ccn.channel_of_client ==
-               ch->dest->ccn.channel_of_client) )
+    else if ((NULL != ch->dest) &&
+             (sender_ccn.channel_of_client == ch->dest->ccn.channel_of_client))
     {
       receiver = ch->owner;
       ack_to_owner = GNUNET_NO;
@@ -1945,16 +1816,12 @@ GCCH_handle_local_data (struct CadetChannel *ch,
     }
     GNUNET_assert (NULL != receiver);
     ld->ccn = receiver->ccn;
-    GNUNET_memcpy (&ld[1],
-                   buf,
-                   buf_len);
+    GNUNET_memcpy (&ld[1], buf, buf_len);
     if (GNUNET_YES == receiver->client_ready)
     {
       ch->pending_messages--;
-      GSC_send_to_client (receiver->c,
-                          env);
-      send_ack_to_client (ch,
-                          ack_to_owner);
+      GSC_send_to_client (receiver->c, env);
+      send_ack_to_client (ch, ack_to_owner);
     }
     else
     {
@@ -1973,19 +1840,17 @@ GCCH_handle_local_data (struct CadetChannel *ch,
   /* Everything is correct, send the message. */
   crm = GNUNET_malloc (sizeof (*crm));
   crm->ch = ch;
-  crm->data_message = GNUNET_malloc (sizeof (struct GNUNET_CADET_ChannelAppDataMessage)
-                                     + buf_len);
-  crm->data_message->header.size = htons (sizeof (struct GNUNET_CADET_ChannelAppDataMessage) + buf_len);
-  crm->data_message->header.type = htons (GNUNET_MESSAGE_TYPE_CADET_CHANNEL_APP_DATA);
+  crm->data_message = GNUNET_malloc (
+    sizeof (struct GNUNET_CADET_ChannelAppDataMessage) + buf_len);
+  crm->data_message->header.size =
+    htons (sizeof (struct GNUNET_CADET_ChannelAppDataMessage) + buf_len);
+  crm->data_message->header.type =
+    htons (GNUNET_MESSAGE_TYPE_CADET_CHANNEL_APP_DATA);
   ch->mid_send.mid = htonl (ntohl (ch->mid_send.mid) + 1);
   crm->data_message->mid = ch->mid_send;
   crm->data_message->ctn = ch->ctn;
-  GNUNET_memcpy (&crm->data_message[1],
-                 buf,
-                 buf_len);
-  GNUNET_CONTAINER_DLL_insert_tail (ch->head_sent,
-                                    ch->tail_sent,
-                                    crm);
+  GNUNET_memcpy (&crm->data_message[1], buf, buf_len);
+  GNUNET_CONTAINER_DLL_insert_tail (ch->head_sent, ch->tail_sent, crm);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Sending message %u from local client to %s with %u bytes\n",
        ntohl (crm->data_message->mid.mid),
@@ -1996,10 +1861,7 @@ GCCH_handle_local_data (struct CadetChannel *ch,
     GNUNET_SCHEDULER_cancel (ch->retry_data_task);
     ch->retry_data_task = NULL;
   }
-  crm->qe = GCT_send (ch->t,
-                      &crm->data_message->header,
-                      &data_sent_cb,
-                      crm);
+  crm->qe = GCT_send (ch->t, &crm->data_message->header, &data_sent_cb, crm);
   GNUNET_assert (NULL == ch->retry_data_task);
   return GNUNET_OK;
 }
@@ -2019,11 +1881,11 @@ GCCH_handle_local_ack (struct CadetChannel *ch,
   struct CadetChannelClient *ccc;
   struct CadetOutOfOrderMessage *com;
 
-  if ( (NULL != ch->owner) &&
-       (ch->owner->ccn.channel_of_client == client_ccn.channel_of_client) )
+  if ((NULL != ch->owner) &&
+      (ch->owner->ccn.channel_of_client == client_ccn.channel_of_client))
     ccc = ch->owner;
-  else if ( (NULL != ch->dest) &&
-            (ch->dest->ccn.channel_of_client == client_ccn.channel_of_client) )
+  else if ((NULL != ch->dest) &&
+           (ch->dest->ccn.channel_of_client == client_ccn.channel_of_client))
     ccc = ch->dest;
   else
     GNUNET_assert (0);
@@ -2045,35 +1907,28 @@ GCCH_handle_local_ack (struct CadetChannel *ch,
     int to_owner;
 
     /* Messages are always in-order, just send */
-    GNUNET_CONTAINER_DLL_remove (ccc->head_recv,
-                                 ccc->tail_recv,
-                                 com);
+    GNUNET_CONTAINER_DLL_remove (ccc->head_recv, ccc->tail_recv, com);
     ccc->num_recv--;
-    GSC_send_to_client (ccc->c,
-                        com->env);
+    GSC_send_to_client (ccc->c, com->env);
     /* Notify sender that we can receive more */
-    if ( (NULL != ch->owner) &&
-         (ccc->ccn.channel_of_client ==
-          ch->owner->ccn.channel_of_client) )
+    if ((NULL != ch->owner) &&
+        (ccc->ccn.channel_of_client == ch->owner->ccn.channel_of_client))
     {
       to_owner = GNUNET_NO;
     }
     else
     {
-      GNUNET_assert ( (NULL != ch->dest) &&
-                      (ccc->ccn.channel_of_client ==
-                       ch->dest->ccn.channel_of_client) );
+      GNUNET_assert ((NULL != ch->dest) && (ccc->ccn.channel_of_client ==
+                                            ch->dest->ccn.channel_of_client));
       to_owner = GNUNET_YES;
     }
-    send_ack_to_client (ch,
-                        to_owner);
+    send_ack_to_client (ch, to_owner);
     GNUNET_free (com);
     return;
   }
 
-  if ( (com->mid.mid != ch->mid_recv.mid) &&
-       (GNUNET_NO == ch->out_of_order) &&
-       (GNUNET_YES == ch->reliable) )
+  if ((com->mid.mid != ch->mid_recv.mid) && (GNUNET_NO == ch->out_of_order) &&
+      (GNUNET_YES == ch->reliable))
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Got LOCAL_ACK, %s-%X ready to receive more data (but next one is out-of-order %u vs. %u)!\n",
@@ -2092,9 +1947,7 @@ GCCH_handle_local_ack (struct CadetChannel *ch,
        GCCH_2s (ch));
 
   /* all good, pass next message to client */
-  GNUNET_CONTAINER_DLL_remove (ccc->head_recv,
-                               ccc->tail_recv,
-                               com);
+  GNUNET_CONTAINER_DLL_remove (ccc->head_recv, ccc->tail_recv, com);
   ccc->num_recv--;
   /* FIXME: if unreliable, this is not aggressive
      enough, as it would be OK to have lost some! */
@@ -2102,21 +1955,20 @@ GCCH_handle_local_ack (struct CadetChannel *ch,
   ch->mid_recv.mid = htonl (1 + ntohl (com->mid.mid));
   ch->mid_futures >>= 1; /* equivalent to division by 2 */
   ccc->client_ready = GNUNET_NO;
-  GSC_send_to_client (ccc->c,
-                      com->env);
+  GSC_send_to_client (ccc->c, com->env);
   GNUNET_free (com);
   send_channel_data_ack (ch);
   if (NULL != ccc->head_recv)
     return;
   if (GNUNET_NO == ch->destroy)
     return;
-  GCT_send_channel_destroy (ch->t,
-                            ch->ctn);
+  GCT_send_channel_destroy (ch->t, ch->ctn);
   channel_destroy (ch);
 }
 
 
-#define LOG2(level, ...) GNUNET_log_from_nocheck(level,"cadet-chn",__VA_ARGS__)
+#define LOG2(level, ...) \
+  GNUNET_log_from_nocheck (level, "cadet-chn", __VA_ARGS__)
 
 
 /**
@@ -2126,15 +1978,16 @@ GCCH_handle_local_ack (struct CadetChannel *ch,
  * @param level Debug level to use.
  */
 void
-GCCH_debug (struct CadetChannel *ch,
-            enum GNUNET_ErrorType level)
+GCCH_debug (struct CadetChannel *ch, enum GNUNET_ErrorType level)
 {
-#if !defined(GNUNET_CULL_LOGGING)
+#if ! defined(GNUNET_CULL_LOGGING)
   int do_log;
 
   do_log = GNUNET_get_log_call_status (level & (~GNUNET_ERROR_TYPE_BULK),
                                        "cadet-chn",
-                                       __FILE__, __FUNCTION__, __LINE__);
+                                       __FILE__,
+                                       __FUNCTION__,
+                                       __LINE__);
   if (0 == do_log)
     return;
 
@@ -2143,11 +1996,7 @@ GCCH_debug (struct CadetChannel *ch,
     LOG2 (level, "CHN *** DEBUG NULL CHANNEL ***\n");
     return;
   }
-  LOG2 (level,
-        "CHN %s:%X (%p)\n",
-        GCT_2s (ch->t),
-        ch->ctn,
-        ch);
+  LOG2 (level, "CHN %s:%X (%p)\n", GCT_2s (ch->t), ch->ctn, ch);
   if (NULL != ch->owner)
   {
     LOG2 (level,
@@ -2171,7 +2020,6 @@ GCCH_debug (struct CadetChannel *ch,
         ntohl (ch->mid_send.mid));
 #endif
 }
-
 
 
 /* end of gnunet-service-cadet-new_channel.c */

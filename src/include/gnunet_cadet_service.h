@@ -93,49 +93,6 @@ struct GNUNET_CADET_ChannelTunnelNumber
   uint32_t cn GNUNET_PACKED;
 };
 
-
-/**
- * Channel options.  Second line indicates filed in the
- * CadetChannelInfo union carrying the answer.
- *
- * @deprecated we should replace channel options with per-envelope
- *  options, and then re-use the options from `enum GNUNET_MQ_PriorityPreferences`.
- */
-enum GNUNET_CADET_ChannelOption
-{
-  /**
-   * Default options: unreliable, default buffering, not out of order.
-   */
-  GNUNET_CADET_OPTION_DEFAULT = 0x0,
-
-  /**
-   * Disable buffering on intermediate nodes (for minimum latency).
-   * Yes/No.
-   */
-  GNUNET_CADET_OPTION_NOBUFFER = 0x1,
-
-  /**
-   * Enable channel reliability, lost messages will be retransmitted.
-   * Yes/No.
-   */
-  GNUNET_CADET_OPTION_RELIABLE = 0x2,
-
-  /**
-   * Enable out of order delivery of messages.
-   * Set bit for out-of-order delivery.
-   */
-  GNUNET_CADET_OPTION_OUT_OF_ORDER = 0x4,
-
-  /**
-   * Who is the peer at the other end of the channel.
-   * Only for use in @c GNUNET_CADET_channel_get_info
-   * struct GNUNET_PeerIdentity *peer
-   */
-  GNUNET_CADET_OPTION_PEER = 0x8
-
-};
-
-
 /**
  * Method called whenever a peer connects to a port in MQ-based CADET.
  *
@@ -259,7 +216,6 @@ GNUNET_CADET_close_port (struct GNUNET_CADET_Port *p);
  *                    - Each message type callback in @a handlers
  * @param destination Peer identity the channel should go to.
  * @param port Identification of the destination port.
- * @param options CadetOption flag field, with all desired option bits set to 1.
  * @param window_changes Function called when the transmit window size changes.
  *                       Can be NULL if this data is of no interest.
  * TODO                  Not yet implemented.
@@ -272,7 +228,6 @@ GNUNET_CADET_channel_create (struct GNUNET_CADET_Handle *h,
                              void *channel_cls,
                              const struct GNUNET_PeerIdentity *destination,
                              const struct GNUNET_HashCode *port,
-                             enum GNUNET_CADET_ChannelOption options,
                              GNUNET_CADET_WindowSizeEventHandler window_changes,
                              GNUNET_CADET_DisconnectEventHandler disconnects,
                              const struct GNUNET_MQ_MessageHandler *handlers);
@@ -324,6 +279,16 @@ GNUNET_CADET_receive_done (struct GNUNET_CADET_Channel *channel);
 const struct GNUNET_HashCode *
 GC_u2h (uint32_t port);
 
+enum GNUNET_CADET_ChannelInfoOption
+{
+  /**
+   * Who is the peer at the other end of the channel.
+   * Only for use in @c GNUNET_CADET_channel_get_info
+   * struct GNUNET_PeerIdentity *peer
+   */
+  GNUNET_CADET_OPTION_PEER = 0x0
+
+};
 
 /**
  * Union to retrieve info about a channel.
@@ -347,13 +312,12 @@ union GNUNET_CADET_ChannelInfo
  * Get information about a channel.
  *
  * @param channel Channel handle.
- * @param option Query type GNUNET_CADET_OPTION_*
  * @param ... dependant on option, currently not used
  * @return Union with an answer to the query.
  */
 const union GNUNET_CADET_ChannelInfo *
 GNUNET_CADET_channel_get_info (struct GNUNET_CADET_Channel *channel,
-                               enum GNUNET_CADET_ChannelOption option,
+			       enum GNUNET_CADET_ChannelInfoOption option,
                                ...);
 
 

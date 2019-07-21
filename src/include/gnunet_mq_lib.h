@@ -296,7 +296,7 @@ enum GNUNET_MQ_PriorityPreferences
   /**
    * Flag to indicate that out-of-order delivery is OK.
    */
-  GNUNET_MQ_PREF_OUT_OF_ORDER = 256
+  GNUNET_MQ_PREF_OUT_OF_ORDER = 256,
 
 };
 
@@ -371,6 +371,24 @@ typedef void (*GNUNET_MQ_CancelImpl) (struct GNUNET_MQ_Handle *mq,
  * @param error error code
  */
 typedef void (*GNUNET_MQ_ErrorHandler) (void *cls, enum GNUNET_MQ_Error error);
+
+
+/**
+ * Insert @a env into the envelope DLL starting at @a env_head
+ * Note that @a env must not be in any MQ while this function
+ * is used with DLLs defined outside of the MQ module.  This
+ * is just in case some application needs to also manage a
+ * FIFO of envelopes independent of MQ itself and wants to
+ * re-use the pointers internal to @a env.  Use with caution.
+ *
+ * @param[in|out] env_head of envelope DLL
+ * @param[in|out] env_tail tail of envelope DLL
+ * @param[in|out] env element to insert at the tail
+ */
+void
+GNUNET_MQ_dll_insert_head (struct GNUNET_MQ_Envelope **env_head,
+                           struct GNUNET_MQ_Envelope **env_tail,
+                           struct GNUNET_MQ_Envelope *env);
 
 
 /**

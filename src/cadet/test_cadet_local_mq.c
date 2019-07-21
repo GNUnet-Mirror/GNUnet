@@ -243,7 +243,6 @@ do_connect (void *cls)
                                     NULL,         /* channel cls */
                                     &id,          /* destination */
                                     GC_u2h (TEST_MESSAGE_TYPE), /* port */
-                                    GNUNET_CADET_OPTION_DEFAULT, /* opt */
                                     NULL,          /* window change */
                                     &disconnected, /* disconnect handler */
                                     handlers       /* traffic handlers */
