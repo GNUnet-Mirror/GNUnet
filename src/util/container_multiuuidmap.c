@@ -338,7 +338,7 @@ GNUNET_CONTAINER_multiuuidmap_get (
 int
 GNUNET_CONTAINER_multiuuidmap_iterate (
   struct GNUNET_CONTAINER_MultiUuidmap *map,
-  GNUNET_CONTAINER_MultiUuidmapIterator it,
+  GNUNET_CONTAINER_MultiUuidmapIteratorCallback it,
   void *it_cls)
 {
   int count;
@@ -802,7 +802,7 @@ int
 GNUNET_CONTAINER_multiuuidmap_get_multiple (
   struct GNUNET_CONTAINER_MultiUuidmap *map,
   const struct GNUNET_Uuid *key,
-  GNUNET_CONTAINER_MultiUuidmapIterator it,
+  GNUNET_CONTAINER_MultiUuidmapIteratorCallback it,
   void *it_cls)
 {
   int count;
@@ -868,7 +868,7 @@ GNUNET_CONTAINER_multiuuidmap_get_multiple (
 unsigned int
 GNUNET_CONTAINER_multiuuidmap_get_random (
   const struct GNUNET_CONTAINER_MultiUuidmap *map,
-  GNUNET_CONTAINER_MultiUuidmapIterator it,
+  GNUNET_CONTAINER_MultiUuidmapIteratorCallback it,
   void *it_cls)
 {
   unsigned int off;

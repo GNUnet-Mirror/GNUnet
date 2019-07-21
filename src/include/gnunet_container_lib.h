@@ -768,7 +768,7 @@ enum GNUNET_CONTAINER_MultiHashMapOption
  *         iterate,
  *         #GNUNET_NO if not.
  */
-typedef int (*GNUNET_CONTAINER_HashMapIterator) (
+typedef int (*GNUNET_CONTAINER_MulitHashMapIteratorCallback) (
   void *cls,
   const struct GNUNET_HashCode *key,
   void *value);
@@ -946,7 +946,7 @@ GNUNET_CONTAINER_multihashmap_size (
 int
 GNUNET_CONTAINER_multihashmap_iterate (
   struct GNUNET_CONTAINER_MultiHashMap *map,
-  GNUNET_CONTAINER_HashMapIterator it,
+  GNUNET_CONTAINER_MulitHashMapIteratorCallback it,
   void *it_cls);
 
 
@@ -1016,7 +1016,7 @@ int
 GNUNET_CONTAINER_multihashmap_get_multiple (
   struct GNUNET_CONTAINER_MultiHashMap *map,
   const struct GNUNET_HashCode *key,
-  GNUNET_CONTAINER_HashMapIterator it,
+  GNUNET_CONTAINER_MulitHashMapIteratorCallback it,
   void *it_cls);
 
 
@@ -1034,7 +1034,7 @@ GNUNET_CONTAINER_multihashmap_get_multiple (
 unsigned int
 GNUNET_CONTAINER_multihashmap_get_random (
   const struct GNUNET_CONTAINER_MultiHashMap *map,
-  GNUNET_CONTAINER_HashMapIterator it,
+  GNUNET_CONTAINER_MulitHashMapIteratorCallback it,
   void *it_cls);
 
 
@@ -1613,7 +1613,7 @@ GNUNET_CONTAINER_multishortmap_get_random (
  *         iterate,
  *         #GNUNET_NO if not.
  */
-typedef int (*GNUNET_CONTAINER_MultiUuidmapIterator) (
+typedef int (*GNUNET_CONTAINER_MultiUuidmapIteratorCallback) (
   void *cls,
   const struct GNUNET_Uuid *key,
   void *value);
@@ -1786,7 +1786,7 @@ GNUNET_CONTAINER_multiuuidmap_size (
 int
 GNUNET_CONTAINER_multiuuidmap_iterate (
   struct GNUNET_CONTAINER_MultiUuidmap *map,
-  GNUNET_CONTAINER_MultiUuidmapIterator it,
+  GNUNET_CONTAINER_MultiUuidmapIteratorCallback it,
   void *it_cls);
 
 
@@ -1859,7 +1859,7 @@ int
 GNUNET_CONTAINER_multiuuidmap_get_multiple (
   struct GNUNET_CONTAINER_MultiUuidmap *map,
   const struct GNUNET_Uuid *key,
-  GNUNET_CONTAINER_MultiUuidmapIterator it,
+  GNUNET_CONTAINER_MultiUuidmapIteratorCallback it,
   void *it_cls);
 
 
@@ -1877,7 +1877,7 @@ GNUNET_CONTAINER_multiuuidmap_get_multiple (
 unsigned int
 GNUNET_CONTAINER_multiuuidmap_get_random (
   const struct GNUNET_CONTAINER_MultiUuidmap *map,
-  GNUNET_CONTAINER_MultiUuidmapIterator it,
+  GNUNET_CONTAINER_MultiUuidmapIteratorCallback it,
   void *it_cls);
 
 
@@ -1909,9 +1909,9 @@ struct GNUNET_CONTAINER_MultiHashMap32Iterator;
  *         iterate,
  *         #GNUNET_NO if not.
  */
-typedef int (*GNUNET_CONTAINER_HashMapIterator32) (void *cls,
-                                                   uint32_t key,
-                                                   void *value);
+typedef int (*GNUNET_CONTAINER_MulitHashMapIterator32Callback) (void *cls,
+                                                                uint32_t key,
+                                                                void *value);
 
 
 /**
@@ -1979,7 +1979,7 @@ GNUNET_CONTAINER_multihashmap32_get (
 int
 GNUNET_CONTAINER_multihashmap32_iterate (
   struct GNUNET_CONTAINER_MultiHashMap32 *map,
-  GNUNET_CONTAINER_HashMapIterator32 it,
+  GNUNET_CONTAINER_MulitHashMapIterator32Callback it,
   void *it_cls);
 
 
@@ -2087,7 +2087,7 @@ int
 GNUNET_CONTAINER_multihashmap32_get_multiple (
   struct GNUNET_CONTAINER_MultiHashMap32 *map,
   uint32_t key,
-  GNUNET_CONTAINER_HashMapIterator32 it,
+  GNUNET_CONTAINER_MulitHashMapIterator32Callback it,
   void *it_cls);
 
 
