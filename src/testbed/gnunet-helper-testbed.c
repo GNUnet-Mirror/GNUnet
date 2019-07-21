@@ -11,7 +11,7 @@
       WITHOUT ANY WARRANTY; without even the implied warranty of
       MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
       Affero General Public License for more details.
-     
+
       You should have received a copy of the GNU Affero General Public License
       along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -345,8 +345,8 @@ tokenizer_cb (void *cls,
   ul_config_size = (uLongf) ntohs (msg->config_size);
   config = GNUNET_malloc (ul_config_size);
   xconfig_size =
-      ntohs (message->size) - (trusted_ip_size + 1 +
-                               sizeof (struct GNUNET_TESTBED_HelperInit));
+      msize - (trusted_ip_size + 1 + hostname_size +
+               sizeof (struct GNUNET_TESTBED_HelperInit));
   if (Z_OK !=
       uncompress ((Bytef *) config, &ul_config_size,
                   (const Bytef *) (trusted_ip + trusted_ip_size + 1 +
