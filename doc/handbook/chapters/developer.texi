@@ -8897,6 +8897,10 @@ connected peers.
 The adapted sampler makes sure that each request for random peers is
 independent from the others.
 
+@menu
+* Brahms::
+@end menu
+
 @node Brahms
 @subsection Brahms
 The high-level concept of Brahms is two-fold: Combining push-pull gossip

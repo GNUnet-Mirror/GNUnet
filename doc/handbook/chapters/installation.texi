@@ -229,8 +229,13 @@ system-wide DNS interception, NAT traversal using ICMP) will not work.
 $ sudo make install
 @end example
 
-@node Extra installation step: NSS plugin
-@subsection Extra installation step: NSS plugin
+@menu
+* NSS plugin (Optional)::
+* Installing the GNS Certificate Authority (Optional)::
+@end menu
+
+@node NSS plugin (Optional)
+@subsection NSS plugin (Optional)
 
 @cartouche
 The installation of the NSS plugin is only necessary if GNS
@@ -275,8 +280,8 @@ The exact details may differ a bit, which is fine. Add the text
 hosts: files gns [NOTFOUND=return] mdns4_minimal [NOTFOUND=return] dns mdns4
 @end example
 
-@node Extra installation step: installing the GNS Certificate Authority
-@subsection Extra installation step: installing the GNS Certificate Authority
+@node Installing the GNS Certificate Authority (Optional)
+@subsection Installing the GNS Certificate Authority (Optional)
 
 @cartouche
 Installing the GNS certificate authority is only necessary if GNS shall
@@ -1929,8 +1934,8 @@ background. Attention: This only works if a recent version of GNUnet is
 installed on your system. The version number of Ascension is chosen according
 to the required feature level of GNUnet. I.e. Ascension 0.11.5 is only
 compatible with GNUnet 0.11.5 and upwards. As Debian's packages for GNUnet are
-outdated even in experimental, you will need to install GNUnet manually.
-@xref{Installing GNUnet}
+outdated even in experimental, you will need to install GNUnet manually
+@xref{Installing GNUnet}.
 
 Please check @xref{Migrating an existing DNS zone into GNS}, for usage manual
 of the tool.
