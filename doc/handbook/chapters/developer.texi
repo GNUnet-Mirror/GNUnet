@@ -8860,7 +8860,9 @@ Preferably using annotations.
 @section RPS Subsystem
 
 In literature, Random Peer Sampling (RPS) refers to the problem of
-reliably drawing random samples from an unstructured p2p network.
+reliably@footnote{Reliable in the sense of having no bias, neigther
+spatial, nor spatial nor through malicious activity.} drawing random
+samples from an unstructured p2p network.
 
 Doing so in a reliable manner is not only hard because of inherent
 problems but also because of possible malicious peers that could try to
@@ -8871,8 +8873,9 @@ of random peers in the whole network like gathering statistics,
 spreading and aggregating information in the network, load balancing and
 overlay topology management.
 
-The approach chosen in the RPS service implementation in GNUnet follows the
-Brahms@uref{https://bib.gnunet.org/full/date.html\#2009_5f0} design.
+The approach chosen in the RPS service implementation in GNUnet follows
+the @uref{https://bib.gnunet.org/full/date.html\#2009_5f0, Brahms}
+design.
 
 The current state is "work in progress". There are a lot of things that
 need to be done, primarily finishing the experimental evaluation and a
