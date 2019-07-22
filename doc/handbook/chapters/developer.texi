@@ -8860,9 +8860,9 @@ Preferably using annotations.
 @section RPS Subsystem
 
 In literature, Random Peer Sampling (RPS) refers to the problem of
-reliably@footnote{Reliable in the sense of having no bias, neigther
-spatial, nor spatial nor through malicious activity.} drawing random
-samples from an unstructured p2p network.
+reliably@footnote{"Reliable" in this context means having no bias,
+neither spatial, nor temporal, nor through malicious activity.} drawing
+random samples from an unstructured p2p network.
 
 Doing so in a reliable manner is not only hard because of inherent
 problems but also because of possible malicious peers that could try to
