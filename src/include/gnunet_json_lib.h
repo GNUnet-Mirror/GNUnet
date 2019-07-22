@@ -255,8 +255,9 @@ GNUNET_JSON_spec_uint32 (const char *name, uint32_t *u32);
 struct GNUNET_JSON_Specification
 GNUNET_JSON_spec_uint64 (const char *name, uint64_t *u64);
 
+
 /**
- * Boolean (true mapped to GNUNET_YES, false mapped to GNUNET_NO).
+ * Boolean (true mapped to #GNUNET_YES, false mapped to #GNUNET_NO).
  *
  * @param name name of the JSON field
  * @param[out] boolean where to store the boolean found under @a name
