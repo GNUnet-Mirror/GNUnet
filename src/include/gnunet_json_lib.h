@@ -104,6 +104,11 @@ struct GNUNET_JSON_Specification
    * Where should we store the final size of @e ptr.
    */
   size_t *size_ptr;
+
+  /**
+   * Set to #GNUNET_YES if this component is optional.
+   */
+  int is_optional;
 };
 
 
@@ -145,6 +150,16 @@ GNUNET_JSON_parse_free (struct GNUNET_JSON_Specification *spec);
  */
 struct GNUNET_JSON_Specification
 GNUNET_JSON_spec_end (void);
+
+
+/**
+ * Set the "optional" flag for a parser specification entry.
+ *
+ * @param spec specification to modify
+ * @return spec copy of @a spec with optional bit set
+ */
+struct GNUNET_JSON_Specification
+GNUNET_JSON_spec_mark_optional (struct GNUNET_JSON_Specification spec);
 
 
 /**

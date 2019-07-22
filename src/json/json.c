@@ -11,7 +11,7 @@
   WITHOUT ANY WARRANTY; without even the implied warranty of
   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
   Affero General Public License for more details.
- 
+
   You should have received a copy of the GNU Affero General Public License
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -47,23 +47,20 @@ GNUNET_JSON_parse (const json_t *root,
                    const char **error_json_name,
                    unsigned int *error_line)
 {
-  unsigned int i;
-  json_t *pos;
-
   if (NULL == root)
     return GNUNET_SYSERR;
-  for (i=0;NULL != spec[i].parser;i++)
+  for (unsigned int i = 0; NULL != spec[i].parser; i++)
   {
+    json_t *pos;
+
     if (NULL == spec[i].field)
       pos = (json_t *) root;
     else
-      pos = json_object_get (root,
-                             spec[i].field);
-    if ( (NULL == pos) ||
-         (GNUNET_OK !=
-          spec[i].parser (spec[i].cls,
-                          pos,
-                          &spec[i])) )
+      pos = json_object_get (root, spec[i].field);
+    if ((NULL == pos) && (spec[i].is_optional))
+      continue;
+    if ((NULL == pos) ||
+        (GNUNET_OK != spec[i].parser (spec[i].cls, pos, &spec[i])))
     {
       if (NULL != error_json_name)
         *error_json_name = spec[i].field;
@@ -78,6 +75,22 @@ GNUNET_JSON_parse (const json_t *root,
 
 
 /**
+ * Set the "optional" flag for a parser specification entry.
+ *
+ * @param spec specification to modify
+ * @return spec copy of @a spec with optional bit set
+ */
+struct GNUNET_JSON_Specification
+GNUNET_JSON_spec_mark_optional (struct GNUNET_JSON_Specification spec)
+{
+  struct GNUNET_JSON_Specification ret = spec;
+
+  ret.is_optional = GNUNET_YES;
+  return ret;
+}
+
+
+/**
  * Frees all elements allocated during a #GNUNET_JSON_parse()
  * operation.
  *
@@ -86,10 +99,9 @@ GNUNET_JSON_parse (const json_t *root,
 void
 GNUNET_JSON_parse_free (struct GNUNET_JSON_Specification *spec)
 {
-  for (unsigned int i=0;NULL != spec[i].parser;i++)
+  for (unsigned int i = 0; NULL != spec[i].parser; i++)
     if (NULL != spec[i].cleaner)
-      spec[i].cleaner (spec[i].cls,
-                       &spec[i]);
+      spec[i].cleaner (spec[i].cls, &spec[i]);
 }
 
 
@@ -114,13 +126,11 @@ set_json (struct GNUNET_GETOPT_CommandLineProcessorContext *ctx,
   json_t **json = scls;
   json_error_t error;
 
-  *json = json_loads (value,
-                      JSON_REJECT_DUPLICATES,
-                      &error);
+  *json = json_loads (value, JSON_REJECT_DUPLICATES, &error);
   if (NULL == *json)
   {
     FPRINTF (stderr,
-             _("Failed to parse JSON in option `%s': %s (%s)\n"),
+             _ ("Failed to parse JSON in option `%s': %s (%s)\n"),
              option,
              error.text,
              error.source);
@@ -146,15 +156,13 @@ GNUNET_JSON_getopt (char shortName,
                     const char *description,
                     json_t **json)
 {
-  struct GNUNET_GETOPT_CommandLineOption clo = {
-    .shortName =  shortName,
-    .name = name,
-    .argumentHelp = argumentHelp,
-    .description = description,
-    .require_argument = 1,
-    .processor = &set_json,
-    .scls = (void *) json
-  };
+  struct GNUNET_GETOPT_CommandLineOption clo = {.shortName = shortName,
+                                                .name = name,
+                                                .argumentHelp = argumentHelp,
+                                                .description = description,
+                                                .require_argument = 1,
+                                                .processor = &set_json,
+                                                .scls = (void *) json};
 
   return clo;
 }
