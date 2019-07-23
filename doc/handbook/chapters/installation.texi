@@ -167,7 +167,7 @@ $ sudo usermod -aG gnunet alice
 @end example
 
 Create a group @code{gnunetdns}. This allows using @code{setgid} in a way
-that only the DNS service can run the @code{gnunet-helper-dns} binary. This 
+that only the DNS service can run the @code{gnunet-helper-dns} binary. This
 is only needed if @emph{system-wide DNS interception} will be used. For more
 information see @xref{Configuring system-wide DNS interception}.
 
@@ -185,7 +185,7 @@ customize the compilation and installation process:
 
 @itemize @bullet
 @item @code{--disable-documentation} - don't build the documentation
-@item @code{--enable-looging=[LOGLEVEL]} - choose a loglevel (@code{debug}, @code{info}, @code{warning} or @code{error})
+@item @code{--enable-logging=[LOGLEVEL]} - choose a loglevel (@code{debug}, @code{info}, @code{warning} or @code{error})
 @item @code{--prefix=[PATH]} - the directory where the GNUnet libraries and binaries will be installed
 @item @code{--with-extractor=[PATH]} - the path to libextractor
 @item @code{--with-libidn=[PATH]} - the path to libidn
@@ -290,7 +290,7 @@ be used in a browser.
 
 The GNS Certificate authority can provide TLS certificates for GNS names while
 downloading webpages from legacy webservers. This allows browsers to use HTTPS
-in combinations with GNS name resolution. 
+in combinations with GNS name resolution.
 
 To install it execute the GNS CA-setup script. So far Firefox and Chromium are
 supported.
@@ -367,7 +367,7 @@ as part of this handbook!
 @node Starting GNUnet
 @subsection Starting GNUnet
 The GNUnet services are started and stopped by the ARM service (Automatic
-Restart Manager). For the @emph{single-user setup} a simple 
+Restart Manager). For the @emph{single-user setup} a simple
 
 @example
 $ gnunet-arm -s
