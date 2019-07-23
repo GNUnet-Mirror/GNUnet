@@ -1223,7 +1223,7 @@ main (int argc, char *argv[])
      * total_packets received data packet (@orig)
      * 1 received channel destroy (@dest) FIXME #5818
      */
-    ok_goal = total_packets * 2 + 1;
+    ok_goal = total_packets * 2 + 2;
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "SPEED_ACK\n");
     test = SPEED_ACK;
     test_name = "speed ack";
@@ -1237,7 +1237,7 @@ main (int argc, char *argv[])
      * 1 received data packet (@orig)
      * 1 received channel destroy (@dest)  FIXME #5818
      */
-    ok_goal = total_packets + 3;
+    ok_goal = total_packets + 4;
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "SPEED\n");
     if (strstr (argv[0], "_reliable") != NULL)
     {
