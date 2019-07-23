@@ -1,0 +1,148 @@
+#!/bin/sh
+#
+# This shell script will generate an X509 certificate for
+# your gnunet-transport HTTPS
+#
+# The current version partially reuses and recycles
+# code from build.sh by NetBSD (although not entirely
+# used because it needs debugging):
+#
+# Copyright (c) 2001-2011 The NetBSD Foundation, Inc.
+# All rights reserved.
+#
+# This code is derived from software contributed to
+# The NetBSD Foundation by Todd Vierling and Luke Mewburn.
+
+# Redistribution and use in source and binary forms, with or
+# without modification, are permitted provided that the following
+# conditions are met:
+# 1. Redistributions of source code must retain the above
+#    copyright notice, this list of conditions and the following
+#    disclaimer.
+# 2. Redistributions in binary form must reproduce the above
+#    copyright notice, this list of conditions and the following
+#    disclaimer in the documentation and/or other materials
+#    provided with the distribution.
+
+# THIS SOFTWARE IS PROVIDED BY THE NETBSD FOUNDATION, INC. AND
+# CONTRIBUTORS ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES,
+# INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+# MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+# DISCLAIMED.
+# IN NO EVENT SHALL THE FOUNDATION OR CONTRIBUTORS BE LIABLE FOR
+# ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+# PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+# DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+# ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+# LIABILITY, OR TORT
+# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
+# THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY
+# OF SUCH DAMAGE.
+
+progname=${0##*/}
+
+setdefaults()
+{
+    verbosity=0
+    runcmd=
+}
+
+statusmsg()
+{
+    ${runcmd} echo "    $@"
+}
+
+infomsg()
+{
+    if [ x$verbosity = x1 ]; then
+        statusmsg "INFO: $@"
+    fi
+}
+
+warningmsg()
+{
+    statusmsg "WARNING: $@"
+}
+
+errormsg()
+{
+    statusmsg "ERROR: $@"
+}
+
+linemsg()
+{
+    statusmsg "========================================="
+}
+
+
+usage()
+{
+    if [ -n "$*" ]; then
+        echo ""
+        echo "${progname}: $*"
+    fi
+    cat <<_usage_
+
+Usage: ${progname} [-hv] [-c FILE] [...]
+
+Options:
+   -c FILE	Use the configuration file FILE.
+   -h		Print this help message.
+   -v		Print the version and exit.
+   -V           be verbose
+
+_usage_
+	exit 1
+}
+
+
+generate_cert_key()
+{
+    echo ""
+    infomsg "Generating Cert and Key"
+   
+    CERTTOOL=""
+    GNUTLS_CA_TEMPLATE=@pkgdatadir@/gnunet-gns-proxy-ca.template
+    OPENSSL=0
+    if test -z "`gnutls-certtool --version`" > /dev/null
+    then
+      warningmsg "'gnutls-certtool' or 'certtool' command not found. Trying openssl."
+      if test -z "`openssl version`" > /dev/null
+      then
+        $OPENSSL=1
+      else
+        warningmsg "Install either gnutls certtool or openssl for certificate generation!"
+        exit 1
+      fi
+      CERTTOOL="openssl"
+    else
+      CERTTOOL="gnutls-certtool"
+    fi
+    mkdir -p `dirname $KEYFILE`
+
+    if test 1 -eq $OPENSSL
+    then
+      $CERTTOOL genrsa -out $KEYFILE 1024
+      $CERTTOOL req -batch -days 365 -out $CERTFILE, -new -x509 -key $KEYFILE
+    else
+      $CERTTOOL --generate-privkey --outfile $KEYFILE 2>/dev/null
+      $CERTTOOL --template $GNUTLS_CA_TEMPLATE --generate-self-signed --load-privkey $KEYFILE --outfile $CERTFILE 2>/dev/null
+    fi
+  }
+
+print_version()
+{
+  GNUNET_ARM_VERSION=`gnunet-arm -v`
+  echo $GNUNET_ARM_VERSION
+}
+
+main()
+{
+  KEYFILE=$1
+  CERTFILE=$2
+  setdefaults
+  generate_cert_key
+}
+
+main "$@"

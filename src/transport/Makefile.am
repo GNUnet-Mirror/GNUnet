@@ -256,16 +256,20 @@ libexec_PROGRAMS = \
 
 
 bin_PROGRAMS = \
- gnunet-transport \
+ gnunet-transport
+
+bin_SCRIPTS = \
  gnunet-transport-certificate-creation
 
-#bin_SCRIPTS = \
-# gnunet-transport-certificate-creation
+# See: https://www.gnu.org/software/automake/manual/html_node/Scripts.html#Scripts
+do_subst = sed -e 's,[@]pkgdatadir[@],$(pkgdatadir),g'
 
-gnunet_transport_certificate_creation_SOURCES = \
- gnunet-transport-certificate-creation.c
-gnunet_transport_certificate_creation_LDADD = \
-  $(top_builddir)/src/util/libgnunetutil.la
+
+gnunet-transport-certificate-creation: gnunet-transport-certificate-creation.in Makefile
+	$(do_subst) < $(srcdir)/gnunet-transport-certificate-creation.in > gnunet-transport-certificate-creation
+	chmod +x gnunet-transport-certificate-creation
+
+
 
 gnunet_communicator_unix_SOURCES = \
  gnunet-communicator-unix.c
@@ -1338,6 +1342,7 @@ test_transport_api_slow_ats_LDADD = \
 
 
 EXTRA_DIST = \
+gnunet-transport-certificate-creation.in \
 communicator-unix.conf \
 test_plugin_hostkey \
 test_plugin_hostkey.ecc \
