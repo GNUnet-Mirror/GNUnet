@@ -15,7 +15,7 @@ fi
 
 rm -rf `gnunet-config -c test_gns_lookup.conf -f -s paths -o GNUNET_TEST_HOME`
 # IP address of 'docs.gnunet.org'
-TEST_IP_ALT2="131.159.74.67"
+TEST_IP_ALT2="147.87.255.218"
 # IP address of 'www.gnunet.org'
 TEST_IP="131.159.74.67"
 # IPv6 address of 'gnunet.org'
