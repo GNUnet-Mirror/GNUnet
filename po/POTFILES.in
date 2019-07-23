@@ -405,7 +405,6 @@ src/transport/gnunet-service-transport_manipulation.c
 src/transport/gnunet-service-transport_neighbours.c
 src/transport/gnunet-service-transport_plugins.c
 src/transport/gnunet-service-transport_validation.c
-src/transport/gnunet-transport-certificate-creation.c
 src/transport/gnunet-transport-profiler.c
 src/transport/gnunet-transport-wlan-receiver.c
 src/transport/gnunet-transport-wlan-sender.c

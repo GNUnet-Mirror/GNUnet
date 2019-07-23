@@ -107,13 +107,12 @@ generate_cert_key()
     OPENSSL=0
     if test -z "`gnutls-certtool --version`" > /dev/null
     then
-      warningmsg "'gnutls-certtool' or 'certtool' command not found. Trying openssl."
       if test -z "`openssl version`" > /dev/null
       then
-        $OPENSSL=1
-      else
         warningmsg "Install either gnutls certtool or openssl for certificate generation!"
         exit 1
+      else
+        OPENSSL=1
       fi
       CERTTOOL="openssl"
     else
@@ -124,7 +123,7 @@ generate_cert_key()
     if test 1 -eq $OPENSSL
     then
       $CERTTOOL genrsa -out $KEYFILE 1024
-      $CERTTOOL req -batch -days 365 -out $CERTFILE, -new -x509 -key $KEYFILE
+      $CERTTOOL req -batch -days 365 -out $CERTFILE -new -x509 -key $KEYFILE
     else
       $CERTTOOL --generate-privkey --outfile $KEYFILE 2>/dev/null
       $CERTTOOL --template $GNUTLS_CA_TEMPLATE --generate-self-signed --load-privkey $KEYFILE --outfile $CERTFILE 2>/dev/null

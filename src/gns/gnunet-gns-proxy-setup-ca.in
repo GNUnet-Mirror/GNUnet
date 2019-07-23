@@ -145,7 +145,7 @@ generate_ca()
         warningmsg "'gnutls-certtool' or 'certtool' command not found. Trying openssl."
         if test -z "`openssl version`" > /dev/null
         then
-          $OPENSSL=1
+          OPENSSL=1
         else
           warningmsg "Install either gnutls certtool or openssl for certificate generation!"
           infomsg    "Cleaning up."
