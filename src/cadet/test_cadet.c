@@ -11,7 +11,7 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -500,7 +500,7 @@ handle_data (void *cls,
              const struct GNUNET_MessageHeader *message);
 
 /**
- * Function called whenever an MQ-channel is destroyed, even if the destruction
+ * Function called whenever an MQ-channel is destroyed, unless the destruction
  * was requested by #GNUNET_CADET_channel_destroy.
  * It must NOT call #GNUNET_CADET_channel_destroy on the channel.
  *
@@ -555,7 +555,7 @@ reconnect_op (void *cls)
 }
 
 /**
- * Function called whenever an MQ-channel is destroyed, even if the destruction
+ * Function called whenever an MQ-channel is destroyed, unless the destruction
  * was requested by #GNUNET_CADET_channel_destroy.
  * It must NOT call #GNUNET_CADET_channel_destroy on the channel.
  *
@@ -1221,9 +1221,9 @@ main (int argc, char *argv[])
      * 1 incoming channel (@dest)
      * total_packets received data packet (@dest)
      * total_packets received data packet (@orig)
-     * 1 received channel destroy (@dest)
+     * 1 received channel destroy (@dest) FIXME #5818
      */
-    ok_goal = total_packets * 2 + 2;
+    ok_goal = total_packets * 2 + 1;
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "SPEED_ACK\n");
     test = SPEED_ACK;
     test_name = "speed ack";
@@ -1235,9 +1235,9 @@ main (int argc, char *argv[])
      * 1 initial packet (@dest)
      * total_packets received data packet (@dest)
      * 1 received data packet (@orig)
-     * 1 received channel destroy (@dest)
+     * 1 received channel destroy (@dest)  FIXME #5818
      */
-    ok_goal = total_packets + 4;
+    ok_goal = total_packets + 3;
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "SPEED\n");
     if (strstr (argv[0], "_reliable") != NULL)
     {
@@ -1254,12 +1254,13 @@ main (int argc, char *argv[])
   else if (strstr (argv[0], "_keepalive") != NULL)
   {
     test = KEEPALIVE;
+    test_name = "keepalive";
     /* Test is supposed to generate the following callbacks:
      * 1 incoming channel (@dest)
      * [wait]
-     * 1 received channel destroy (@dest)
+     * 1 received channel destroy (@dest)  FIXME #5818
      */
-    ok_goal = 2;
+    ok_goal = 1;
   }
   else if (strstr (argv[0], "_reopen") != NULL)
   {
@@ -1268,9 +1269,9 @@ main (int argc, char *argv[])
     ///* Test is supposed to generate the following callbacks:
     // * 1 incoming channel (@dest)
     // * [wait]
-    // * 1 received channel destroy (@dest)
+    // * 1 received channel destroy (@dest)  FIXME #5818
     // */
-    ok_goal = 7;
+    ok_goal = 6;
   }
   else
   {
