@@ -11,7 +11,7 @@
   WITHOUT ANY WARRANTY; without even the implied warranty of
   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
   Affero General Public License for more details.
- 
+
   You should have received a copy of the GNU Affero General Public License
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -65,7 +65,7 @@ struct OperationQueue *GST_opq_openfds;
 /**
  * Timeout for operations which may take some time
  */
-const struct GNUNET_TIME_Relative GST_timeout;
+struct GNUNET_TIME_Relative GST_timeout;
 
 /**
  * The size of the host list
@@ -860,23 +860,22 @@ testbed_run (void *cls,
   }
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_CONFIGURATION_get_value_number (cfg,
-                                                        "TESTBED",
+                                                        "testbed",
                                                         "CACHE_SIZE",
                                                         &num));
   GST_cache_init ((unsigned int) num);
   GST_connection_pool_init ((unsigned int) num);
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_CONFIGURATION_get_value_number (cfg,
-                                                        "TESTBED",
+                                                        "testbed",
                                                         "MAX_OPEN_FDS",
                                                         &num));
   GST_opq_openfds = GNUNET_TESTBED_operation_queue_create_ (OPERATION_QUEUE_TYPE_FIXED,
                                                             (unsigned int) num);
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_CONFIGURATION_get_value_time (cfg,
-                                                      "TESTBED",
+                                                      "testbed",
                                                       "OPERATION_TIMEOUT",
-                                                      (struct GNUNET_TIME_Relative *)
                                                       &GST_timeout));
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_CONFIGURATION_get_value_string (cfg,

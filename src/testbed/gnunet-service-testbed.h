@@ -11,7 +11,7 @@
   WITHOUT ANY WARRANTY; without even the implied warranty of
   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
   Affero General Public License for more details.
- 
+
   You should have received a copy of the GNU Affero General Public License
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -454,7 +454,7 @@ extern struct OperationQueue *GST_opq_openfds;
 /**
  * Timeout for operations which may take some time
  */
-const extern struct GNUNET_TIME_Relative GST_timeout;
+extern struct GNUNET_TIME_Relative GST_timeout;
 
 /**
  * The size of the peer list
