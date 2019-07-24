@@ -7,6 +7,9 @@ endif
 
 SUBDIRS = . $(NSS_SUBDIR)
 
+pkgdata_DATA = \
+  gnunet-gns-proxy-ca.template
+
 EXTRA_DIST = \
   test_gns_defaults.conf \
   test_gns_lookup.conf \
@@ -19,7 +22,8 @@ EXTRA_DIST = \
   zonefiles/J7POEUT41A8PBFS7KVVDRF88GBOU4HK8PSU5QKVLVE3R9T91E99G.zkey \
   zonefiles/OEFL7A4VEF1B40QLEMTG5D8G1CN6EN16QUSG5R2DT71GRJN34LSG.zkey \
   zonefiles/test_zonekey \
-  $(check_SCRIPTS)
+  $(check_SCRIPTS) \
+  $(pkgdata_DATA)
 
 if MINGW
   WINFLAGS = -Wl,--no-undefined -Wl,--export-all-symbols
@@ -79,9 +83,6 @@ bin_PROGRAMS = \
 
 noinst_PROGRAMS = \
   gnunet-gns-benchmark
-
-pkgdata_DATA = \
-  gnunet-gns-proxy-ca.template
 
 if HAVE_MHD
 if LINUX
