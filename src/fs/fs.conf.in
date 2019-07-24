@@ -60,11 +60,3 @@ DISABLE_ANON_TRANSFER = NO
 # well anyway, so better have a moderate cap.
 MAX_CADET_CLIENTS = 128
 
-
-[gnunet-auto-share]
-BINARY = gnunet-auto-share
-IMMEDIATE_START = NO
-
-# Note: MUST specify path to auto-share directory and CAN specify other options
-# to gnunet-auto-share here!
-OPTIONS = $GNUNET_DATA_HOME/fs/share/
