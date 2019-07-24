@@ -542,7 +542,185 @@ test_resolution (void *cls,
                      uint32_t rd_count,
                      const struct GNUNET_GNSRECORD_Data *rd)
 {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Yo, im Test und so\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "-----------FW:Got %d entries\n", rd_count);
+  
+  struct VerifyRequestHandle *vrh;
+  struct DelegationSetQueueEntry *current_set;
+  struct DelegationSetQueueEntry *ds_entry;
+  struct DelegationQueueEntry *dq_entry;
+  
+  current_set = cls;
+  // set handle to NULL (as el = NULL)
+  current_set->lookup_request = NULL;
+  vrh = current_set->handle;
+  vrh->pending_lookups--;
+  //GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "-----------FW:current set %s\n", current_set->issuer_attribute);
+
+  
+  // Loop record entries
+  for (uint32_t i = 0; i < rd_count; i++) {
+    if (GNUNET_GNSRECORD_TYPE_DELEGATE != rd[i].record_type)
+      continue;
+
+    // Start deserialize into Delegate
+    struct GNUNET_CREDENTIAL_Delegate *del;
+    del = GNUNET_CREDENTIAL_delegate_deserialize(rd[i].data, rd[i].data_size);
+
+    // TODO parse subject and issuer attributes which are required for algo solving
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "-----------FW:iss %s %s\n", GNUNET_CRYPTO_ecdsa_public_key_to_string(&del->issuer_key), del->issuer_attribute);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "-----------FW:sub %s %s\n", GNUNET_CRYPTO_ecdsa_public_key_to_string(&del->subject_key), del->subject_attribute);
+
+    // Start: Create DQ Entry
+    dq_entry = GNUNET_new (struct DelegationQueueEntry);
+    // AND delegations are not possible, only 1 solution
+    dq_entry->required_solutions = 1;
+    dq_entry->parent_set = current_set;
+    
+    // Insert it into the current set
+    GNUNET_CONTAINER_DLL_insert (current_set->queue_entries_head,
+                                 current_set->queue_entries_tail,
+                                 dq_entry);
+
+    // Start: Create DS Entry
+    ds_entry = GNUNET_new (struct DelegationSetQueueEntry);
+ 
+    // (1) A.a <- A.b.c
+    // (2) A.b <- D.d
+    // (3) D.d <- E
+    // (4) E.c <- F.c
+    // (5) F.c <- G
+    // Possibilities:
+    // 1. complete match: trailer = 0, validate
+    // 2. partial match: replace
+    // 3. new solution: replace, add trailer
+
+    //GNUNET_assert(NULL != current_set->attr_trailer);
+    // TODO only during test
+    if (NULL == current_set->attr_trailer) {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "-----------FW: trailer null\n");
+      // for (5) F.c <- G, remember .c when going upwards
+      ds_entry->attr_trailer = GNUNET_strdup(del->issuer_attribute);
+    } else {
+      if (0 == del->subject_attribute_len){
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "-----------FW: new solution\n");
+        // new solution
+        // create new trailer del->issuer_attribute, ds_entry->attr_trailer
+        GNUNET_asprintf (&ds_entry->attr_trailer,
+                          "%s.%s",
+                          del->issuer_attribute,
+                          current_set->attr_trailer);
+      } else if(0 == strcmp(del->subject_attribute, current_set->attr_trailer)){
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "-----------FW: complete match\n");
+        // complete match
+        // new trailer == issuer attribute (e.g. (5) to (4))
+        // TODO memleak, free trailer before
+        ds_entry->attr_trailer = GNUNET_strdup(del->issuer_attribute);
+      } else {
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "-----------FW: partial match\n");
+        // partial match
+
+        // TODO problem when checking with contains: attr = disco or attr = disc both say success
+        // ==> therefore: split and check the single attributes
+        // replace/remove partial match trailer and add the new one
+
+        char *saveptr1, *saveptr2;
+        char *trail_token;
+        char *sub_token;
+        char *tmp_trail = GNUNET_strdup (current_set->attr_trailer);
+        char *tmp_subattr = GNUNET_strdup (del->subject_attribute);
+
+        // tok both, parent->attr_trailer and del->sub_attr to see how far they match,
+        // take rest of parent trailer (only when del->sub_attr token is null), and
+        // create new/actual trailer with del->iss_attr
+        trail_token = strtok_r (tmp_trail, ".", &saveptr1);
+        sub_token = strtok_r (tmp_subattr, ".", &saveptr2);
+        while (NULL != trail_token && NULL != sub_token)
+        {
+          if(0 == strcmp(trail_token,sub_token))
+          {
+            // good, matches, remove
+          } else {
+            // not relevant for solving the chain, end function here
+            // TODO how to end this correctly? just return?
+            GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "-----------FW:throwing %s %s\n", trail_token, sub_token);
+            
+            // TODO break zum nächsten for
+            //return;
+          }
+
+          trail_token = strtok_r (NULL, ".", &saveptr1);
+          sub_token = strtok_r (NULL, ".", &saveptr2);
+        }
+        if(NULL == trail_token)
+        {
+          //TODO error, can't happen
+        }
+        // do not have to check sub_token == NULL, if both would be NULL
+        // at the same time, the complete match part above should have triggered already
+        
+        // otherwise, above while only ends when sub_token == NULL
+        GNUNET_asprintf (&ds_entry->attr_trailer,
+                          "%s",
+                          trail_token);
+        trail_token = strtok_r (NULL, ".", &saveptr1);                
+        while(NULL != trail_token)
+        {
+          GNUNET_asprintf (&ds_entry->attr_trailer,
+                          "%s.%s",
+                          current_set->attr_trailer,
+                          trail_token);
+          trail_token = strtok_r (NULL, ".", &saveptr1);                
+
+        }
+        GNUNET_asprintf (&ds_entry->attr_trailer,
+                          "%s.%s",
+                          del->issuer_attribute,
+                          ds_entry->attr_trailer);
+
+      }
+    }
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "-----------FW: new tailer %s\n", ds_entry->attr_trailer);
+
+    // Start: Credential Chain Entry
+    // issuer key is subject key, who needs to be contacted to resolve this (forward, therefore subject)
+    // TODO: new ds_entry struct with subject_key (or one for both with contact_key or sth)
+    ds_entry->issuer_key = GNUNET_new (struct GNUNET_CRYPTO_EcdsaPublicKey);
+    GNUNET_memcpy (ds_entry->issuer_key,
+                    &del->subject_key,
+                    sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey));
+
+    ds_entry->delegation_chain_entry = GNUNET_new (struct DelegationChainEntry);
+    ds_entry->delegation_chain_entry->subject_key = del->subject_key;
+    if (0 < del->subject_attribute_len)
+      ds_entry->delegation_chain_entry->subject_attribute = GNUNET_strdup (del->subject_attribute);
+    ds_entry->delegation_chain_entry->issuer_key = del->issuer_key;
+    ds_entry->delegation_chain_entry->issuer_attribute = GNUNET_strdup (del->issuer_attribute);
+
+    // current delegation as parent
+    ds_entry->parent_queue_entry = dq_entry;
+
+    // TODO verify if end is reached:
+    // what is required? Only issuer key/attr and attr_trailer new == 0
+
+    // TODO until good verify check: fixed number of lookups
+    //vrh->pending_lookups++;
+    ds_entry->handle = vrh;
+
+    const struct GNUNET_CRYPTO_EcdsaPublicKey *kkey = &del->issuer_key;
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "-----------FW: Starting AGAIN %s\n",GNUNET_CRYPTO_ecdsa_public_key_to_string(&del->issuer_key));
+    if (0 == vrh->pending_lookups) {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "We are all out of attributes...\n");
+      return;
+    }
+    GNUNET_GNS_lookup (gns,
+                             GNUNET_GNS_EMPTY_LABEL_AT,
+                             kkey, // subject_key,
+                             GNUNET_GNSRECORD_TYPE_DELEGATE,
+                             GNUNET_GNS_LO_DEFAULT,
+                             &test_resolution,
+                             ds_entry);
+
+  }
 }
 
 static void
@@ -732,22 +910,24 @@ backward_resolution (void *cls,
 
       vrh->pending_lookups++;
       ds_entry->handle = vrh;
-      ds_entry->lookup_request
+      /*ds_entry->lookup_request
         = GNUNET_GNS_lookup (gns,
                              lookup_attribute,
                              ds_entry->issuer_key, // issuer_key,
                              GNUNET_GNSRECORD_TYPE_ATTRIBUTE,
                              GNUNET_GNS_LO_DEFAULT,
                              &backward_resolution,
-                             ds_entry);
-      /*GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Starting\n");
-      GNUNET_GNS_lookup (gns,
+                             ds_entry);*/
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Starting %s\n", GNUNET_CRYPTO_ecdsa_public_key_to_string(ds_entry->issuer_key));
+      vrh->pending_lookups = 5;
+      ds_entry->lookup_request
+        = GNUNET_GNS_lookup (gns,
                              GNUNET_GNS_EMPTY_LABEL_AT,
-                             ds_entry->issuer_key, // subject_key,
+                             ds_entry->issuer_key, // issuer_key,
                              GNUNET_GNSRECORD_TYPE_DELEGATE,
                              GNUNET_GNS_LO_DEFAULT,
                              &test_resolution,
-                             ds_entry);*/
+                             ds_entry);
       GNUNET_free (lookup_attribute);
     }
   }
@@ -825,6 +1005,18 @@ delegation_chain_resolution_start (void *cls)
                                                 GNUNET_GNS_LO_DEFAULT,
                                                 &backward_resolution,
                                                 ds_entry);
+  //GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Starting %s\n", GNUNET_CRYPTO_ecdsa_public_key_to_string(&vrh->issuer_key));
+ 
+  // TODO we start with example (5) F.c <- G
+  // => attr_trailer = c
+  //ds_entry->attr_trailer = "c";
+  /*ds_entry->lookup_request = GNUNET_GNS_lookup (gns,
+                          GNUNET_GNS_EMPTY_LABEL_AT,
+                          &vrh->issuer_key, // subject_key,
+                          GNUNET_GNSRECORD_TYPE_DELEGATE,
+                          GNUNET_GNS_LO_DEFAULT,
+                          &test_resolution,
+                          ds_entry);*/
 }
 
 static int
