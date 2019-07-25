@@ -35,7 +35,7 @@ anyone interested in Free Software and Freedom-enhancing Networking is
 welcome to join the effort. This Developer Handbook attempts to provide
 an initial introduction to some of the key design choices and central
 components of the system.
-This part of the GNUNet documentation is far from complete,
+This part of the GNUnet documentation is far from complete,
 and we welcome informed contributions, be it in the form of
 new chapters, sections or insightful comments.
 
