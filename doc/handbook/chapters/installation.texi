@@ -203,11 +203,11 @@ if you are in doubt of any configure options or require fixes
 for your operating system.
 
 The following example configures the installation prefix
-@code{/usr/lib} and disables building the documentation
+@code{/usr/local} and disables building the documentation
 @example
 $ cd ~/gnunet
 $ ./bootstrap
-$ configure --prefix=/usr/lib --disable-documentation
+$ configure --prefix=/usr/local --disable-documentation
 @end example
 
 After running the bootstrap script and @code{configure} successfully
