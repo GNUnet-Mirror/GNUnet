@@ -7,8 +7,21 @@ docdir = $(datadir)/doc/gnunet/
 #	$(DOT_FILES:%.dot=%.eps)				\
 #	$(DOT_FILES:%.dot=%.pdf)
 
-# See ../handbook/Makefile.am comment!
+if ACTIVATE_TEXINFO4
+# NOTE: While GNU makeinfo 6.5 supports --css-ref=URL,
+# makeinfo 4.8 (in NetBSD 8.0, macOS, and maybe other
+# base) does only support --css-include=FILE.
+# The only difference is a shorter html output and
+# in 6.5 the ability to use refs instead of include.
+# We prefer not to break builds in this case, so
+# we use the include version which is backwards compatible
+# and upwards compatible, while the ref variant is neither.
 AM_MAKEINFOHTMLFLAGS = --no-split --css-include=style.css --css-include=manual.css
+else
+# In the 5.x version they added `--split=chapters|sections` in
+# addition to `--split=nodes`.
+AM_MAKEINFOHTMLFLAGS = --split=sections --css-ref=style.css --css-ref=manual.css
+endif
 
 #DOT_OPTIONS =							\
 #	-Gratio=.9 -Gnodesep=.005 -Granksep=.00005		\

@@ -455,6 +455,27 @@ AS_IF([test "x$include_manpages" = "xyes"],
   AC_DEFINE([INCLUDE_MANPAGES],[0],[Not including the man pages in the build and installation])
  ])
 
+# Do we have texinfo4? If yes, it is used to set texinfo4 specific switches
+# (not syntax!) to the commandline tools which generate the html. If not,
+# texinfo5 switches are used. This comes with no version checks, is
+# enabled only at distributors action (ie defaults to "no").
+# Mantis #3914 for more details (https://bugs.gnunet.org/view.php?id=3914)
+AC_MSG_CHECKING(whether to enable texinfo4 switches)
+AC_ARG_ENABLE([texinfo4],
+   [AS_HELP_STRING([--enable-texinfo4], [Use texinfo version 4 specific switches])],
+   [activate_texinfo4=${enableval}],
+   [activate_texinfo4=no])
+AC_MSG_RESULT($activate_texinfo4)
+AS_IF([test "x$activate_texinfo4" = "xyes"],
+ [
+  AM_CONDITIONAL([ACTIVATE_TEXINFO4],true)
+  AC_DEFINE([ACTIVATE_TEXINFO4],[1],[Using texinfo version 4 specific switches])
+ ],[
+  AM_CONDITIONAL([ACTIVATE_TEXINFO4],false)
+  AC_DEFINE([INCLUDE_MANPAGES],[0],[Using texinfo version 5 or later switches])
+ ])
+
+
 # Adam shostack suggests the following for Windows:
 # -D_FORTIFY_SOURCE=2 -fstack-protector-all
 AC_ARG_ENABLE(gcc-hardening,
