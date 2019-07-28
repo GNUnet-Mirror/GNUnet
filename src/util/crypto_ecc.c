@@ -1160,7 +1160,8 @@ GNUNET_CRYPTO_eddsa_verify (
   if (0 != rc)
   {
     LOG (GNUNET_ERROR_TYPE_INFO,
-         _ ("EdDSA signature verification failed at %s:%d: %s\n"),
+         _ ("EdDSA signature verification of type %u failed at %s:%d: %s\n"),
+         (unsigned int) purpose,
          __FILE__,
          __LINE__,
          gcry_strerror (rc));
