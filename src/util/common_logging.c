@@ -108,7 +108,7 @@ static __thread struct GNUNET_AsyncScopeSave current_async_scope;
  * characters, in which case it is NOT 0-terminated!
  */
 static GNUNET_THREAD_LOCAL char last_bulk[BULK_TRACK_SIZE]
-  __attribute__ ((nonstring));
+  __nonstring;
 
 /**
  * Type of the last bulk message.

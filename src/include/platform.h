@@ -295,4 +295,13 @@ atoll (const char *nptr);
 #define GNUNET_THREAD_LOCAL
 #endif
 
+/**
+ * clang et al do not have such an attribute
+ */
+#if __has_attribute(__nonstring__)
+# define __nonstring                    __attribute__((__nonstring__))
+#else
+# define __nonstring
+#endif
+
 #endif
