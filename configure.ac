@@ -66,6 +66,25 @@ CFLAGS="-Wall $CFLAGS"
 AS_IF([gcc -fno-strict-aliasing -S -o /dev/null -xc /dev/null >/dev/null 2>&1],
  [CFLAGS="-fno-strict-aliasing $CFLAGS"])
 
+# A helper which allows us to check cflags if compiler
+AC_DEFUN([CC_CHECK_CFLAGS_SILENT], [
+  AC_CACHE_VAL(AS_TR_SH([cc_cv_cflags_$1]),
+    [ac_save_CFLAGS="$CFLAGS"
+     CFLAGS="$CFLAGS $1"
+     AC_LINK_IFELSE([AC_LANG_SOURCE([int main() { return 0; }])],
+       [eval "AS_TR_SH([cc_cv_cflags_$1])='yes'"],
+       [eval "AS_TR_SH([cc_cv_cflags_$1])='no'"])
+     CFLAGS="$ac_save_CFLAGS"
+    ])
+
+  AS_IF([eval test x$]AS_TR_SH([cc_cv_cflags_$1])[ = xyes],
+    [$2], [$3])
+])
+
+# We make heavy use of this, llvm/gcc and gcc-9 give warnings so disable.
+CC_CHECK_CFLAGS_SILENT([-Wno-address-of-packed-member],
+                      [CFLAGS="-Wno-address-of-packed-member $CFLAGS"])
+
 # Use Linux interface name unless the OS has a different preference
 DEFAULT_INTERFACE="\"eth0\""
 
