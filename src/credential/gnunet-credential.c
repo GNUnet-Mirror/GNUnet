@@ -254,7 +254,7 @@ handle_collect_result (void *cls,
                        unsigned int d_count,
                        struct GNUNET_CREDENTIAL_Delegation *dc,
                        unsigned int c_count,
-                       struct GNUNET_CREDENTIAL_Credential *cred)
+                       struct GNUNET_CREDENTIAL_Delegate *cred)
 {
   int i;
   char *line;
@@ -264,10 +264,12 @@ handle_collect_result (void *cls,
   {
     for (i = 0; i < c_count; i++)
     {
-      line = GNUNET_CREDENTIAL_credential_to_string (&cred[i]);
+      line = GNUNET_CREDENTIAL_delegate_to_string (&cred[i]);
       printf ("%s\n", line);
       GNUNET_free (line);
     }
+  } else {
+    printf("Received NULL\n");
   }
 
 
@@ -280,7 +282,7 @@ handle_verify_result (void *cls,
                       unsigned int d_count,
                       struct GNUNET_CREDENTIAL_Delegation *dc,
                       unsigned int c_count,
-                      struct GNUNET_CREDENTIAL_Credential *cred)
+                      struct GNUNET_CREDENTIAL_Delegate *cred)
 {
   int i;
   char *iss_key;
@@ -886,17 +888,17 @@ run (void *cls,
     int i;
     while (NULL != (tok = strtok (NULL, ",")))
       count++;
-    struct GNUNET_CREDENTIAL_Credential credentials[count];
-    struct GNUNET_CREDENTIAL_Credential *cred;
+    struct GNUNET_CREDENTIAL_Delegate credentials[count];
+    struct GNUNET_CREDENTIAL_Delegate *cred;
     GNUNET_free (tmp);
     tmp = GNUNET_strdup (subject_credential);
     tok = strtok (tmp, ",");
     for (i = 0; i < count; i++)
     {
-      cred = GNUNET_CREDENTIAL_credential_from_string (tok);
+      cred = GNUNET_CREDENTIAL_delegate_from_string (tok);
       GNUNET_memcpy (&credentials[i],
                      cred,
-                     sizeof (struct GNUNET_CREDENTIAL_Credential));
+                     sizeof (struct GNUNET_CREDENTIAL_Delegate));
       credentials[i].issuer_attribute = GNUNET_strdup (cred->issuer_attribute);
       tok = strtok (NULL, ",");
       GNUNET_free (cred);

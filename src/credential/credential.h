@@ -29,6 +29,8 @@
 
 GNUNET_NETWORK_STRUCT_BEGIN
 
+enum direction{Backward, Forward, Bidirectional}; 
+
 /**
  * Message from client to Credential service to collect credentials.
  */
@@ -53,6 +55,11 @@ struct CollectMessage
    * Length of the issuer attribute
    */
   uint16_t issuer_attribute_len;
+
+  /**
+   * Direction of the resolution algo
+   */
+  uint16_t resolution_algo;
 
   /**
    * Unique identifier for this request (for key collisions).
@@ -92,6 +99,11 @@ struct VerifyMessage
    * Length of the issuer attribute
    */
   uint16_t issuer_attribute_len;
+
+  /**
+   * Direction of the resolution algo
+   */
+  uint16_t resolution_algo;
 
   /**
    * Unique identifier for this request (for key collisions).

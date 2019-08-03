@@ -68,9 +68,13 @@ gnunet-namestore -D -z e
 
 SIGNED=`$DO_TIMEOUT gnunet-credential --signSubjectSide --ego=e --attribute="c" --subject="$FKEY c" --ttl="2019-12-12 10:00:00"`
 gnunet-credential --createSubjectSide --ego=f --import "$SIGNED"
+SIGNED=`$DO_TIMEOUT gnunet-credential --signSubjectSide --ego=e --attribute="k" --subject="$FKEY c.k" --ttl="2019-12-12 10:00:00"`
+gnunet-credential --createSubjectSide --ego=f --import "$SIGNED"
 gnunet-namestore -D -z f
 
 SIGNED=`$DO_TIMEOUT gnunet-credential --signSubjectSide --ego=f --attribute="c" --subject="$GKEY" --ttl="2019-12-12 10:00:00"`
+gnunet-credential --createSubjectSide --ego=g --import "$SIGNED"
+SIGNED=`$DO_TIMEOUT gnunet-credential --signSubjectSide --ego=a --attribute="c" --subject="$GKEY" --ttl="2019-12-12 10:00:00"`
 gnunet-credential --createSubjectSide --ego=g --import "$SIGNED"
 gnunet-namestore -D -z g
 
@@ -114,18 +118,23 @@ gnunet-namestore -p -z stateu -a -n $STATE_STUD_ATTR -t ATTR -V "$REGISTRARB_KEY
 CRED=`$DO_TIMEOUT gnunet-credential --issue --ego=registrarb --subject=$ALICE_KEY --attribute=$REG_STUD_ATTR --ttl=5m -c test_credential_lookup.conf`
 
 # Alice stores the credential under "mygnunetcreds"
-gnunet-namestore -p -z alice -a -n $TEST_CREDENTIAL -t CRED -V "$CRED" -e 5m -c test_credential_lookup.conf
+#gnunet-namestore -p -z alice -a -n $TEST_CREDENTIAL -t CRED -V "$CRED" -e 5m -c test_credential_lookup.conf
+
+SIGNED=`$DO_TIMEOUT gnunet-credential --signSubjectSide --ego=registrarb --attribute="$REG_STUD_ATTR" --subject="$ALICE_KEY" --ttl="2019-12-12 10:00:00"`
+gnunet-credential --createSubjectSide --ego=alice --import "$SIGNED"
 
 # Starting to resolve
 echo "+++++Starting Collect"
 
-CREDS=`$DO_TIMEOUT gnunet-credential --collect --issuer=$EPUB_KEY --attribute="random" --ego=alice -c test_credential_lookup.conf | paste -d, -s`
-#CREDS=`$DO_TIMEOUT gnunet-credential --collect --issuer=$EPUB_KEY --attribute=$DISC_ATTR --ego=alice -c test_credential_lookup.conf | paste -d, -s`
+CREDS=`$DO_TIMEOUT gnunet-credential --collect --issuer=$AKEY --attribute="a" --ego=g -c test_credential_lookup.conf | paste -d, -s`
 echo $CREDS
-echo gnunet-credential --verify --issuer=$EPUB_KEY --attribute=$DISC_ATTR --subject=$ALICE_KEY --credential=\'$CREDS\' -c test_credential_lookup.conf
+echo gnunet-credential --verify --issuer=$AKEY --attribute="a" --subject=$GKEY --credential=\'$CREDS\' -c test_credential_lookup.conf
+RES_CRED=`gnunet-credential --verify --issuer=$AKEY --attribute="a" --subject=$GKEY --credential="$CREDS" -c test_credential_lookup.conf`
 
-RES_CRED=`gnunet-credential --verify --issuer=$EPUB_KEY --attribute="random" --subject=$ALICE_KEY --credential="$CREDS" -c test_credential_lookup.conf`
-#RES_CRED=`gnunet-credential --verify --issuer=$GKEY --attribute=$DISC_ATTR --subject=$ALICE_KEY --credential="$CREDS" -c test_credential_lookup.conf`
+#CREDS=`$DO_TIMEOUT gnunet-credential --collect --issuer=$EPUB_KEY --attribute=$DISC_ATTR --ego=alice -c test_credential_lookup.conf | paste -d, -s`
+#echo $CREDS
+#echo gnunet-credential --verify --issuer=$EPUB_KEY --attribute=$DISC_ATTR --subject=$ALICE_KEY --credential=\'$CREDS\' -c test_credential_lookup.conf
+#RES_CRED=`gnunet-credential --verify --issuer=$EPUB_KEY --attribute=$DISC_ATTR --subject=$ALICE_KEY --credential="$CREDS" -c test_credential_lookup.conf`
 
 
 # Cleanup properly

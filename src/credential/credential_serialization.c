@@ -149,12 +149,12 @@ GNUNET_CREDENTIAL_delegation_set_deserialize (
 size_t
 GNUNET_CREDENTIAL_credentials_get_size (
   unsigned int c_count,
-  const struct GNUNET_CREDENTIAL_Credential *cd)
+  const struct GNUNET_CREDENTIAL_Delegate *cd)
 {
   unsigned int i;
   size_t ret;
 
-  ret = sizeof (struct CredentialEntry) * (c_count);
+  ret = sizeof (struct DelegateEntry) * (c_count);
 
   for (i = 0; i < c_count; i++)
   {
@@ -175,11 +175,11 @@ GNUNET_CREDENTIAL_credentials_get_size (
 ssize_t
 GNUNET_CREDENTIAL_credentials_serialize (
   unsigned int c_count,
-  const struct GNUNET_CREDENTIAL_Credential *cd,
+  const struct GNUNET_CREDENTIAL_Delegate *cd,
   size_t dest_size,
   char *dest)
 {
-  struct CredentialEntry c_rec;
+  struct DelegateEntry c_rec;
   unsigned int i;
   size_t off;
 
@@ -192,7 +192,7 @@ GNUNET_CREDENTIAL_credentials_serialize (
     c_rec.signature = cd[i].signature;
     c_rec.purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_CREDENTIAL);
     c_rec.purpose.size =
-      htonl ((sizeof (struct CredentialEntry) + cd[i].issuer_attribute_len) -
+      htonl ((sizeof (struct DelegateEntry) + cd[i].issuer_attribute_len) -
              sizeof (struct GNUNET_CRYPTO_EcdsaSignature));
     c_rec.expiration = GNUNET_htonll (cd[i].expiration.abs_value_us);
     if (off + sizeof (c_rec) > dest_size)
@@ -225,9 +225,9 @@ GNUNET_CREDENTIAL_credentials_deserialize (
   size_t len,
   const char *src,
   unsigned int c_count,
-  struct GNUNET_CREDENTIAL_Credential *cd)
+  struct GNUNET_CREDENTIAL_Delegate *cd)
 {
-  struct CredentialEntry c_rec;
+  struct DelegateEntry c_rec;
   unsigned int i;
   size_t off;
 
@@ -247,6 +247,7 @@ GNUNET_CREDENTIAL_credentials_deserialize (
       return GNUNET_SYSERR;
     cd[i].issuer_attribute = &src[off];
     off += cd[i].issuer_attribute_len;
+    cd[i].subject_attribute_len = 0;
   }
   return GNUNET_OK;
 }
@@ -267,7 +268,7 @@ GNUNET_CREDENTIAL_delegation_chain_get_size (
   unsigned int d_count,
   const struct GNUNET_CREDENTIAL_Delegation *dd,
   unsigned int c_count,
-  const struct GNUNET_CREDENTIAL_Credential *cd)
+  const struct GNUNET_CREDENTIAL_Delegate *cd)
 {
   unsigned int i;
   size_t ret;
@@ -299,7 +300,7 @@ GNUNET_CREDENTIAL_delegation_chain_serialize (
   unsigned int d_count,
   const struct GNUNET_CREDENTIAL_Delegation *dd,
   unsigned int c_count,
-  const struct GNUNET_CREDENTIAL_Credential *cd,
+  const struct GNUNET_CREDENTIAL_Delegate *cd,
   size_t dest_size,
   char *dest)
 {
@@ -358,7 +359,7 @@ GNUNET_CREDENTIAL_delegation_chain_deserialize (
   unsigned int d_count,
   struct GNUNET_CREDENTIAL_Delegation *dd,
   unsigned int c_count,
-  struct GNUNET_CREDENTIAL_Credential *cd)
+  struct GNUNET_CREDENTIAL_Delegate *cd)
 {
   struct ChainEntry rec;
   unsigned int i;
@@ -459,8 +460,6 @@ GNUNET_CREDENTIAL_credential_deserialize (const char *data, size_t data_size)
   cred->expiration.abs_value_us = GNUNET_ntohll (cdata->expiration);
   return cred;
 }
-
-//TODO own file for delegate de/serialization
 
 int
 GNUNET_CREDENTIAL_delegate_serialize (struct GNUNET_CREDENTIAL_Delegate *dele,

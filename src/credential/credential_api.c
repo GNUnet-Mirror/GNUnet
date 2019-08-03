@@ -11,12 +11,12 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-
+    
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
- */
+*/
 /**
  * @file credential/credential_api.c
  * @brief library to access the CREDENTIAL service
@@ -35,13 +35,14 @@
 #include "gnunet_identity_service.h"
 
 
-#define LOG(kind, ...) GNUNET_log_from (kind, "credential-api", __VA_ARGS__)
+#define LOG(kind,...) GNUNET_log_from (kind, "credential-api",__VA_ARGS__)
 
 /**
  * Handle to a verify request
  */
 struct GNUNET_CREDENTIAL_Request
 {
+
   /**
    * DLL
    */
@@ -76,6 +77,7 @@ struct GNUNET_CREDENTIAL_Request
    * request id
    */
   uint32_t r_id;
+
 };
 
 
@@ -84,6 +86,7 @@ struct GNUNET_CREDENTIAL_Request
  */
 struct GNUNET_CREDENTIAL_Handle
 {
+
   /**
    * Configuration to use.
    */
@@ -118,6 +121,7 @@ struct GNUNET_CREDENTIAL_Handle
    * Request Id generator.  Incremented by one for each request.
    */
   uint32_t r_id_gen;
+
 };
 
 
@@ -159,8 +163,8 @@ force_reconnect (struct GNUNET_CREDENTIAL_Handle *handle)
     = GNUNET_TIME_STD_BACKOFF (handle->reconnect_backoff);
   handle->reconnect_task
     = GNUNET_SCHEDULER_add_delayed (handle->reconnect_backoff,
-                                    &reconnect_task,
-                                    handle);
+                        &reconnect_task,
+                        handle);
 }
 
 
@@ -191,7 +195,7 @@ static int
 check_result (void *cls,
               const struct DelegationChainResultMessage *vr_msg)
 {
-  // TODO
+  //TODO
   return GNUNET_OK;
 }
 
@@ -209,11 +213,12 @@ handle_result (void *cls,
   struct GNUNET_CREDENTIAL_Handle *handle = cls;
   uint32_t r_id = ntohl (vr_msg->id);
   struct GNUNET_CREDENTIAL_Request *vr;
-  size_t mlen = ntohs (vr_msg->header.size) - sizeof(*vr_msg);
+  size_t mlen = ntohs (vr_msg->header.size) - sizeof (*vr_msg);
   uint32_t d_count = ntohl (vr_msg->d_count);
   uint32_t c_count = ntohl (vr_msg->c_count);
   struct GNUNET_CREDENTIAL_Delegation d_chain[d_count];
-  struct GNUNET_CREDENTIAL_Credential creds[c_count];
+  //TODO rename creds
+  struct GNUNET_CREDENTIAL_Delegate creds[c_count];
   GNUNET_CREDENTIAL_CredentialResultProcessor proc;
   void *proc_cls;
 
@@ -233,9 +238,7 @@ handle_result (void *cls,
   GNUNET_free (vr);
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_CREDENTIAL_delegation_chain_deserialize (mlen,
-                                                                 (const
-                                                                  char*) &vr_msg
-                                                                 [1],
+                                                                 (const char*) &vr_msg[1],
                                                                  d_count,
                                                                  d_chain,
                                                                  c_count,
@@ -246,10 +249,8 @@ handle_result (void *cls,
           0,
           NULL,
           0,
-          NULL);  // TODO
-  }
-  else
-  {
+          NULL); // TODO
+  } else {
     proc (proc_cls,
           d_count,
           d_chain,
@@ -362,7 +363,7 @@ GNUNET_CREDENTIAL_request_cancel (struct GNUNET_CREDENTIAL_Request *lr)
 
 /**
  * Performs attribute collection.
- * Collects all credentials of subject to fulfill the
+ * Collects all credentials of subject to fulfill the 
  * attribute, if possible
  *
  * @param handle handle to the Credential service
@@ -375,11 +376,9 @@ GNUNET_CREDENTIAL_request_cancel (struct GNUNET_CREDENTIAL_Request *lr)
  */
 struct GNUNET_CREDENTIAL_Request*
 GNUNET_CREDENTIAL_collect (struct GNUNET_CREDENTIAL_Handle *handle,
-                           const struct
-                           GNUNET_CRYPTO_EcdsaPublicKey *issuer_key,
+                           const struct GNUNET_CRYPTO_EcdsaPublicKey *issuer_key,
                            const char *issuer_attribute,
-                           const struct
-                           GNUNET_CRYPTO_EcdsaPrivateKey *subject_key,
+                           const struct GNUNET_CRYPTO_EcdsaPrivateKey *subject_key,
                            GNUNET_CREDENTIAL_CredentialResultProcessor proc,
                            void *proc_cls)
 {
@@ -394,12 +393,12 @@ GNUNET_CREDENTIAL_collect (struct GNUNET_CREDENTIAL_Handle *handle,
     return NULL;
   }
 
-  // DEBUG LOG
+  //DEBUG LOG
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Trying to collect `%s' in CREDENTIAL\n",
        issuer_attribute);
   nlen = strlen (issuer_attribute) + 1;
-  if (nlen >= GNUNET_MAX_MESSAGE_SIZE - sizeof(*vr))
+  if (nlen >= GNUNET_MAX_MESSAGE_SIZE - sizeof (*vr))
   {
     GNUNET_break (0);
     return NULL;
@@ -414,8 +413,11 @@ GNUNET_CREDENTIAL_collect (struct GNUNET_CREDENTIAL_Handle *handle,
                                  GNUNET_MESSAGE_TYPE_CREDENTIAL_COLLECT);
   c_msg->id = htonl (vr->r_id);
   c_msg->subject_key = *subject_key;
-  c_msg->issuer_key = *issuer_key;
-  c_msg->issuer_attribute_len = htons (strlen (issuer_attribute));
+  c_msg->issuer_key =  *issuer_key;
+  c_msg->issuer_attribute_len = htons(strlen(issuer_attribute));
+  //c_msg->resolution_algo = htons(Backward);
+  c_msg->resolution_algo = htons(Forward);
+
   GNUNET_memcpy (&c_msg[1],
                  issuer_attribute,
                  strlen (issuer_attribute));
@@ -449,11 +451,9 @@ struct GNUNET_CREDENTIAL_Request*
 GNUNET_CREDENTIAL_verify (struct GNUNET_CREDENTIAL_Handle *handle,
                           const struct GNUNET_CRYPTO_EcdsaPublicKey *issuer_key,
                           const char *issuer_attribute,
-                          const struct
-                          GNUNET_CRYPTO_EcdsaPublicKey *subject_key,
+                          const struct GNUNET_CRYPTO_EcdsaPublicKey *subject_key,
                           uint32_t credential_count,
-                          const struct
-                          GNUNET_CREDENTIAL_Credential *credentials,
+                          const struct GNUNET_CREDENTIAL_Delegate *credentials,
                           GNUNET_CREDENTIAL_CredentialResultProcessor proc,
                           void *proc_cls)
 {
@@ -463,7 +463,7 @@ GNUNET_CREDENTIAL_verify (struct GNUNET_CREDENTIAL_Handle *handle,
   size_t nlen;
   size_t clen;
 
-  if ((NULL == issuer_attribute)||(NULL == credentials))
+  if (NULL == issuer_attribute || NULL == credentials)
   {
     GNUNET_break (0);
     return NULL;
@@ -472,12 +472,12 @@ GNUNET_CREDENTIAL_verify (struct GNUNET_CREDENTIAL_Handle *handle,
   clen = GNUNET_CREDENTIAL_credentials_get_size (credential_count,
                                                  credentials);
 
-  // DEBUG LOG
+  //DEBUG LOG
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Trying to verify `%s' in CREDENTIAL\n",
        issuer_attribute);
   nlen = strlen (issuer_attribute) + 1 + clen;
-  if (nlen >= GNUNET_MAX_MESSAGE_SIZE - sizeof(*vr))
+  if (nlen >= GNUNET_MAX_MESSAGE_SIZE - sizeof (*vr))
   {
     GNUNET_break (0);
     return NULL;
@@ -492,16 +492,19 @@ GNUNET_CREDENTIAL_verify (struct GNUNET_CREDENTIAL_Handle *handle,
                                  GNUNET_MESSAGE_TYPE_CREDENTIAL_VERIFY);
   v_msg->id = htonl (vr->r_id);
   v_msg->subject_key = *subject_key;
-  v_msg->c_count = htonl (credential_count);
-  v_msg->issuer_key = *issuer_key;
-  v_msg->issuer_attribute_len = htons (strlen (issuer_attribute));
+  v_msg->c_count = htonl(credential_count);
+  v_msg->issuer_key =  *issuer_key;
+  v_msg->issuer_attribute_len = htons(strlen(issuer_attribute));
+  //v_msg->resolution_algo = htons(Backward);
+  v_msg->resolution_algo = htons(Forward);
+
   GNUNET_memcpy (&v_msg[1],
                  issuer_attribute,
                  strlen (issuer_attribute));
   GNUNET_CREDENTIAL_credentials_serialize (credential_count,
                                            credentials,
                                            clen,
-                                           ((char*) &v_msg[1])
+                                           ((char*)&v_msg[1])
                                            + strlen (issuer_attribute) + 1);
   GNUNET_CONTAINER_DLL_insert (handle->request_head,
                                handle->request_tail,
