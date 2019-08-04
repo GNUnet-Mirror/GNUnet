@@ -254,24 +254,23 @@ handle_collect_result (void *cls,
                        unsigned int d_count,
                        struct GNUNET_CREDENTIAL_Delegation *dc,
                        unsigned int c_count,
-                       struct GNUNET_CREDENTIAL_Delegate *cred)
+                       struct GNUNET_CREDENTIAL_Delegate *dele)
 {
   int i;
   char *line;
 
   verify_request = NULL;
-  if (NULL != cred)
+  if (NULL != dele)
   {
     for (i = 0; i < c_count; i++)
     {
-      line = GNUNET_CREDENTIAL_delegate_to_string (&cred[i]);
+      line = GNUNET_CREDENTIAL_delegate_to_string (&dele[i]);
       printf ("%s\n", line);
       GNUNET_free (line);
     }
   } else {
     printf("Received NULL\n");
   }
-
 
   GNUNET_SCHEDULER_shutdown ();
 }
@@ -282,14 +281,14 @@ handle_verify_result (void *cls,
                       unsigned int d_count,
                       struct GNUNET_CREDENTIAL_Delegation *dc,
                       unsigned int c_count,
-                      struct GNUNET_CREDENTIAL_Delegate *cred)
+                      struct GNUNET_CREDENTIAL_Delegate *dele)
 {
   int i;
   char *iss_key;
   char *sub_key;
 
   verify_request = NULL;
-  if (NULL == cred)
+  if (NULL == dele)
     printf ("Failed.\n");
   else
   {
@@ -319,18 +318,17 @@ handle_verify_result (void *cls,
       GNUNET_free (iss_key);
       GNUNET_free (sub_key);
     }
-    printf ("\nCredentials:\n");
+    printf ("\nDelegate(s):\n");
     for (i = 0; i < c_count; i++)
     {
-      iss_key = GNUNET_CRYPTO_ecdsa_public_key_to_string (&cred[i].issuer_key);
-      sub_key = GNUNET_CRYPTO_ecdsa_public_key_to_string (&cred[i].subject_key);
-      printf ("%s.%s <- %s\n", iss_key, cred[i].issuer_attribute, sub_key);
+      iss_key = GNUNET_CRYPTO_ecdsa_public_key_to_string (&dele[i].issuer_key);
+      sub_key = GNUNET_CRYPTO_ecdsa_public_key_to_string (&dele[i].subject_key);
+      printf ("%s.%s <- %s\n", iss_key, dele[i].issuer_attribute, sub_key);
       GNUNET_free (iss_key);
       GNUNET_free (sub_key);
     }
     printf ("Successful.\n");
   }
-
 
   GNUNET_SCHEDULER_shutdown ();
 }

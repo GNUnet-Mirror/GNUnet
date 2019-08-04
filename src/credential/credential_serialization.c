@@ -147,7 +147,7 @@ GNUNET_CREDENTIAL_delegation_set_deserialize (
  * @return the required size to serialize
  */
 size_t
-GNUNET_CREDENTIAL_credentials_get_size (
+GNUNET_CREDENTIAL_delegates_get_size (
   unsigned int c_count,
   const struct GNUNET_CREDENTIAL_Delegate *cd)
 {
@@ -173,7 +173,7 @@ GNUNET_CREDENTIAL_credentials_get_size (
  * @return the size of the data, -1 on failure
  */
 ssize_t
-GNUNET_CREDENTIAL_credentials_serialize (
+GNUNET_CREDENTIAL_delegates_serialize (
   unsigned int c_count,
   const struct GNUNET_CREDENTIAL_Delegate *cd,
   size_t dest_size,
@@ -221,7 +221,7 @@ GNUNET_CREDENTIAL_credentials_serialize (
  * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
  */
 int
-GNUNET_CREDENTIAL_credentials_deserialize (
+GNUNET_CREDENTIAL_delegates_deserialize (
   size_t len,
   const char *src,
   unsigned int c_count,
@@ -281,7 +281,7 @@ GNUNET_CREDENTIAL_delegation_chain_get_size (
       (ret + dd[i].issuer_attribute_len + dd[i].subject_attribute_len) >= ret);
     ret += dd[i].issuer_attribute_len + dd[i].subject_attribute_len;
   }
-  return ret + GNUNET_CREDENTIAL_credentials_get_size (c_count, cd);
+  return ret + GNUNET_CREDENTIAL_delegates_get_size (c_count, cd);
 }
 
 /**
@@ -334,7 +334,7 @@ GNUNET_CREDENTIAL_delegation_chain_serialize (
                    dd[i].subject_attribute_len);
     off += dd[i].subject_attribute_len;
   }
-  return off + GNUNET_CREDENTIAL_credentials_serialize (c_count,
+  return off + GNUNET_CREDENTIAL_delegates_serialize (c_count,
                                                         cd,
                                                         dest_size - off,
                                                         &dest[off]);
@@ -385,7 +385,7 @@ GNUNET_CREDENTIAL_delegation_chain_deserialize (
     dd[i].subject_attribute = &src[off];
     off += dd[i].subject_attribute_len;
   }
-  return GNUNET_CREDENTIAL_credentials_deserialize (len - off,
+  return GNUNET_CREDENTIAL_delegates_deserialize (len - off,
                                                     &src[off],
                                                     c_count,
                                                     cd);

@@ -303,32 +303,17 @@ struct VerifyRequestHandle
   struct GNUNET_CRYPTO_EcdsaPublicKey subject_key;
 
   /**
-   * Credential DLL
-   */
-  struct CredentialRecordEntry *cred_chain_head;
-
-  /**
-   * Credential DLL
-   */
-  struct CredentialRecordEntry *cred_chain_tail;
-
-  /**
-   * Credential DLL size
-   */
-  uint32_t cred_chain_size;
-
-  /**
-   * Credential DLL
+   * Delegate DLL
    */
   struct DelegateRecordEntry *del_chain_head;
 
   /**
-   * Credential DLL
+   * Delegate DLL
    */
   struct DelegateRecordEntry *del_chain_tail;
 
   /**
-   * Credential DLL size
+   * Delegate DLL size
    */
   uint32_t del_chain_size;
 
@@ -358,19 +343,9 @@ struct VerifyRequestHandle
   enum direction resolution_algo;
 
   /**
-   * Credential iterator
-   */
-  struct GNUNET_NAMESTORE_ZoneIterator *cred_collection_iter;
-
-  /**
-   * Credential iterator
+   * Delegate iterator for lookup
    */
   struct GNUNET_NAMESTORE_QueueEntry *dele_qe;
-
-  /**
-   * Collect task
-   */
-  struct GNUNET_SCHEDULER_Task *collect_next_task;
 };
 
 
@@ -443,7 +418,7 @@ cleanup_delegation_set (struct DelegationSetQueueEntry *ds_entry)
 static void
 cleanup_handle (struct VerifyRequestHandle *vrh)
 {
-  struct CredentialRecordEntry *cr_entry;
+  struct DelegateRecordEntry *del_entry;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Cleaning up...\n");
   if (NULL != vrh->lookup_request) {
     GNUNET_GNS_lookup_cancel (vrh->lookup_request);
@@ -451,13 +426,13 @@ cleanup_handle (struct VerifyRequestHandle *vrh)
   }
   cleanup_delegation_set (vrh->root_set);
   GNUNET_free_non_null (vrh->issuer_attribute);
-  for (cr_entry = vrh->cred_chain_head; NULL != vrh->cred_chain_head;
-       cr_entry = vrh->cred_chain_head) {
-    GNUNET_CONTAINER_DLL_remove (vrh->cred_chain_head,
-                                 vrh->cred_chain_tail,
-                                 cr_entry);
-    GNUNET_free_non_null (cr_entry->credential);
-    GNUNET_free (cr_entry);
+  for (del_entry = vrh->del_chain_head; NULL != vrh->del_chain_head;
+       del_entry = vrh->del_chain_head) {
+    GNUNET_CONTAINER_DLL_remove (vrh->del_chain_head,
+                                 vrh->del_chain_tail,
+                                 del_entry);
+    GNUNET_free_non_null (del_entry->delegate);
+    GNUNET_free (del_entry);
   }
   GNUNET_free (vrh);
 }
@@ -497,10 +472,9 @@ send_lookup_response (struct VerifyRequestHandle *vrh)
   struct DelegationChainResultMessage *rmsg;
   struct DelegationChainEntry *dce;
   struct GNUNET_CREDENTIAL_Delegation dd[vrh->delegation_chain_size];
-  //TODO rename cred/cd
   //TODO rename all methods using credential
-  struct GNUNET_CREDENTIAL_Delegate cred[vrh->del_chain_size];
-  struct DelegateRecordEntry *cd;
+  struct GNUNET_CREDENTIAL_Delegate dele[vrh->del_chain_size];
+  struct DelegateRecordEntry *del;
   struct DelegateRecordEntry *tmp;
   size_t size;
 
@@ -521,13 +495,13 @@ send_lookup_response (struct VerifyRequestHandle *vrh)
   }
 
   // Remove all not needed credentials
-  for (cd = vrh->del_chain_head; NULL != cd;) {
-    if (cd->refcount > 0) {
-      cd = cd->next;
+  for (del = vrh->del_chain_head; NULL != del;) {
+    if (del->refcount > 0) {
+      del = del->next;
       continue;
     }
-    tmp = cd;
-    cd = cd->next;
+    tmp = del;
+    del = del->next;
     GNUNET_CONTAINER_DLL_remove (vrh->del_chain_head,
                                  vrh->del_chain_tail,
                                  tmp);
@@ -536,25 +510,23 @@ send_lookup_response (struct VerifyRequestHandle *vrh)
     vrh->del_chain_size--;
   }
 
-  /**
-   * Get serialized record data
-   * Append at the end of rmsg
-   */
-  cd = vrh->del_chain_head;
+  // Get serialized record data
+  // Append at the end of rmsg
+  del = vrh->del_chain_head;
   for (uint32_t i = 0; i < vrh->del_chain_size; i++) {
-    cred[i].issuer_key = cd->delegate->issuer_key;
-    cred[i].subject_key = cd->delegate->subject_key;
-    cred[i].issuer_attribute_len
-      = strlen (cd->delegate->issuer_attribute) + 1;
-    cred[i].issuer_attribute = cd->delegate->issuer_attribute;
-    cred[i].expiration = cd->delegate->expiration;
-    cred[i].signature = cd->delegate->signature;
-    cd = cd->next;
+    dele[i].issuer_key = del->delegate->issuer_key;
+    dele[i].subject_key = del->delegate->subject_key;
+    dele[i].issuer_attribute_len
+      = strlen (del->delegate->issuer_attribute) + 1;
+    dele[i].issuer_attribute = del->delegate->issuer_attribute;
+    dele[i].expiration = del->delegate->expiration;
+    dele[i].signature = del->delegate->signature;
+    del = del->next;
   }
   size = GNUNET_CREDENTIAL_delegation_chain_get_size (vrh->delegation_chain_size,
                                                    dd,
                                                    vrh->del_chain_size,
-                                                   cred);
+                                                   dele);
   env = GNUNET_MQ_msg_extra (rmsg,
                              size,
                              GNUNET_MESSAGE_TYPE_CREDENTIAL_VERIFY_RESULT);
@@ -564,16 +536,16 @@ send_lookup_response (struct VerifyRequestHandle *vrh)
   rmsg->c_count = htonl (vrh->del_chain_size);
 
   if (0 < vrh->del_chain_size)
-    rmsg->cred_found = htonl (GNUNET_YES);
+    rmsg->del_found = htonl (GNUNET_YES);
   else
-    rmsg->cred_found = htonl (GNUNET_NO);
+    rmsg->del_found = htonl (GNUNET_NO);
 
   GNUNET_assert (
     -1
     != GNUNET_CREDENTIAL_delegation_chain_serialize (vrh->delegation_chain_size,
                                                      dd,
                                                      vrh->del_chain_size,
-                                                     cred,
+                                                     dele,
                                                      size,
                                                      (char *)&rmsg[1]));
 
@@ -648,7 +620,7 @@ partial_match(char *tmp_trail, char *tmp_subattr, char *parent_trail, char *issu
 }
 
 static void
-test_resolution (void *cls,
+forward_resolution (void *cls,
                      uint32_t rd_count,
                      const struct GNUNET_GNSRECORD_Data *rd)
 {
@@ -773,7 +745,7 @@ test_resolution (void *cls,
           {
             GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Found: Solution\n");
             
-            // Add to delegation_chain
+            // Add found solution into delegation_chain
             struct DelegationSetQueueEntry *tmp_set;
             for (tmp_set = ds_entry; NULL != tmp_set->parent_queue_entry;
              tmp_set = tmp_set->parent_queue_entry->parent_set) {
@@ -784,9 +756,6 @@ test_resolution (void *cls,
                                             tmp_set->delegation_chain_entry);
               }
             }
-            GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "tmpentrylast %s %s\n",
-            GNUNET_CRYPTO_ecdsa_public_key_to_string(&vrh->delegation_chain_head->subject_key),
-            vrh->delegation_chain_head->subject_attribute);
 
             // Increase refcount for this delegate
             for (struct DelegateRecordEntry *del_entry = vrh->del_chain_head; del_entry != NULL; del_entry = del_entry->next) {
@@ -819,7 +788,7 @@ test_resolution (void *cls,
                              &del->issuer_key,
                              GNUNET_GNSRECORD_TYPE_DELEGATE,
                              GNUNET_GNS_LO_DEFAULT,
-                             &test_resolution,
+                             &forward_resolution,
                              ds_entry);
   }
 
@@ -874,8 +843,6 @@ backward_resolution (void *cls,
     dq_entry = GNUNET_new (struct DelegationQueueEntry);
     dq_entry->required_solutions = ntohl (sets->set_count);
     dq_entry->parent_set = current_set;
-
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "# New OR entry into queue\n");
 
     GNUNET_CONTAINER_DLL_insert (current_set->queue_entries_head,
                                  current_set->queue_entries_tail,
@@ -953,7 +920,6 @@ backward_resolution (void *cls,
         // Backtrack
         for (tmp_set = ds_entry; NULL != tmp_set->parent_queue_entry;
              tmp_set = tmp_set->parent_queue_entry->parent_set) {
-          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "# %s\n", tmp_set->unresolved_attribute_delegation);
           tmp_set->parent_queue_entry->required_solutions--;
           if (NULL != tmp_set->delegation_chain_entry) {
             vrh->delegation_chain_size++;
@@ -982,7 +948,6 @@ backward_resolution (void *cls,
         issuer_attribute_name[strlen (ds_entry->unresolved_attribute_delegation)
                               + 1];
       strcpy (issuer_attribute_name, ds_entry->unresolved_attribute_delegation);
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "# Issuer Att Name: %s\n", issuer_attribute_name);
       char *next_attr = strtok (issuer_attribute_name, ".");
       if (NULL == next_attr) {
         GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -1036,7 +1001,7 @@ backward_resolution (void *cls,
  * @param cls the closure (our client lookup handle)
  */
 static void
-delegation_chain_resolution_start (void *cls)
+delegation_chain_bw_resolution_start (void *cls)
 {
   struct VerifyRequestHandle *vrh = cls;
   struct DelegationSetQueueEntry *ds_entry;
@@ -1064,10 +1029,9 @@ delegation_chain_resolution_start (void *cls)
     return;
   }
 
-  /**
-   * Check for attributes from the issuer and follow the chain
-   * till you get the required subject's attributes
-   */
+  
+  //Check for attributes from the issuer and follow the chain
+  //till you get the required subject's attributes
   char issuer_attribute_name[strlen (vrh->issuer_attribute) + 1];
   strcpy (issuer_attribute_name, vrh->issuer_attribute);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -1083,8 +1047,9 @@ delegation_chain_resolution_start (void *cls)
   ds_entry->lookup_attribute = GNUNET_strdup (vrh->issuer_attribute);
   vrh->root_set = ds_entry;
   vrh->pending_lookups = 1;
+
   // Start with backward resolution
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "# Start Backward Resolution\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Start Backward Resolution\n");
 
   ds_entry->lookup_request = GNUNET_GNS_lookup (gns,
                                                 issuer_attribute_name,
@@ -1146,8 +1111,6 @@ delegation_chain_fw_resolution_start (void *cls)
   // ds_entry created belongs to the first lookup, vrh still has the
   // issuer+attr we look for
   for (del_entry = vrh->del_chain_head; del_entry != NULL; del_entry = del_entry->next) {
-    //char issuer_attribute_name[strlen (vrh->issuer_attribute) + 1];
-    //strcpy (issuer_attribute_name, vrh->issuer_attribute);
 
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Looking for %s.%s\n",
@@ -1159,23 +1122,20 @@ delegation_chain_fw_resolution_start (void *cls)
     GNUNET_memcpy (ds_entry->issuer_key,
                     &del_entry->delegate->subject_key,
                     sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey));
-    //ds_entry->issuer_attribute = GNUNET_strdup (vrh->issuer_attribute);
     ds_entry->attr_trailer = GNUNET_strdup(del_entry->delegate->issuer_attribute);
     ds_entry->handle = vrh;
-    // TODO: no lookup attribute for forward?
-    //ds_entry->lookup_attribute = GNUNET_strdup (vrh->issuer_attribute);
 
     vrh->root_set = ds_entry;
     vrh->pending_lookups ++;
     // Start with forward resolution
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "# Start Forward Resolution\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Start Forward Resolution\n");
 
     ds_entry->lookup_request = GNUNET_GNS_lookup (gns,
                                                   GNUNET_GNS_EMPTY_LABEL_AT,
                                                   &del_entry->delegate->issuer_key, // issuer_key,
                                                   GNUNET_GNSRECORD_TYPE_DELEGATE,
                                                   GNUNET_GNS_LO_DEFAULT,
-                                                  &test_resolution,
+                                                  &forward_resolution,
                                                   ds_entry);
   }
 }
@@ -1210,12 +1170,12 @@ handle_verify (void *cls, const struct VerifyMessage *v_msg)
   struct VerifyRequestHandle *vrh;
   struct GNUNET_SERVICE_Client *client = cls;
   struct DelegateRecordEntry *del_entry;
-  uint32_t credentials_count;
-  uint32_t credential_data_size;
+  uint32_t delegate_count;
+  uint32_t delegate_data_size;
   char attr[GNUNET_CREDENTIAL_MAX_LENGTH + 1];
   char issuer_attribute[GNUNET_CREDENTIAL_MAX_LENGTH + 1];
   char *attrptr = attr;
-  char *credential_data;
+  char *delegate_data;
   const char *utf_in;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received VERIFY message\n");
@@ -1240,39 +1200,39 @@ handle_verify (void *cls, const struct VerifyMessage *v_msg)
   }
   
   // Parse delegates from verifaction message
-  credentials_count = ntohl (v_msg->c_count);
-  credential_data_size = ntohs (v_msg->header.size)
+  delegate_count = ntohl (v_msg->d_count);
+  delegate_data_size = ntohs (v_msg->header.size)
                          - sizeof (struct VerifyMessage)
                          - ntohs (v_msg->issuer_attribute_len) - 1;
-  struct GNUNET_CREDENTIAL_Delegate credentials[credentials_count];
-  memset (credentials,
+  struct GNUNET_CREDENTIAL_Delegate delegates[delegate_count];
+  memset (delegates,
           0,
-          sizeof (struct GNUNET_CREDENTIAL_Delegate) * credentials_count);
-  credential_data = (char *)&v_msg[1] + ntohs (v_msg->issuer_attribute_len) + 1;
+          sizeof (struct GNUNET_CREDENTIAL_Delegate) * delegate_count);
+  delegate_data = (char *)&v_msg[1] + ntohs (v_msg->issuer_attribute_len) + 1;
   if (GNUNET_OK
-      != GNUNET_CREDENTIAL_credentials_deserialize (credential_data_size,
-                                                    credential_data,
-                                                    credentials_count,
-                                                    credentials)) {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Cannot deserialize credentials!\n");
+      != GNUNET_CREDENTIAL_delegates_deserialize (delegate_data_size,
+                                                    delegate_data,
+                                                    delegate_count,
+                                                    delegates)) {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Cannot deserialize delegates!\n");
     send_lookup_response (vrh);
     return;
   }
 
   // Prepare vrh delegation chain for later validation
-  for (uint32_t i = 0; i < credentials_count; i++) {
+  for (uint32_t i = 0; i < delegate_count; i++) {
     del_entry = GNUNET_new (struct DelegateRecordEntry);
     del_entry->delegate
       = GNUNET_malloc (sizeof (struct GNUNET_CREDENTIAL_Delegate)
-                       + credentials[i].issuer_attribute_len + 1);
+                       + delegates[i].issuer_attribute_len + 1);
     GNUNET_memcpy (del_entry->delegate,
-                   &credentials[i],
+                   &delegates[i],
                    sizeof (struct GNUNET_CREDENTIAL_Delegate));
     GNUNET_memcpy (&del_entry->delegate[1],
-                   credentials[i].issuer_attribute,
-                   credentials[i].issuer_attribute_len);
+                   delegates[i].issuer_attribute,
+                   delegates[i].issuer_attribute_len);
     del_entry->delegate->issuer_attribute_len
-      = credentials[i].issuer_attribute_len;
+      = delegates[i].issuer_attribute_len;
     del_entry->delegate->issuer_attribute = (char *)&del_entry->delegate[1];
     GNUNET_CONTAINER_DLL_insert_tail (vrh->del_chain_head,
                                       vrh->del_chain_tail,
@@ -1282,10 +1242,8 @@ handle_verify (void *cls, const struct VerifyMessage *v_msg)
 
   // Switch resolution algo
   if(Backward == vrh->resolution_algo){
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "+++++++++++++++++backward\n");
-    delegation_chain_resolution_start (vrh);
+    delegation_chain_bw_resolution_start (vrh);
   } else if (Forward == vrh->resolution_algo){
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "+++++++++++++++++forward\n");
     delegation_chain_fw_resolution_start (vrh);
   } else{
     //TODO
@@ -1293,26 +1251,24 @@ handle_verify (void *cls, const struct VerifyMessage *v_msg)
 }
 
 static void
-handle_cred_collection_error_cb (void *cls)
+handle_delegate_collection_error_cb (void *cls)
 {
   struct VerifyRequestHandle *vrh = cls;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Got disconnected from namestore database.\n");
-  vrh->cred_collection_iter = NULL;
+  vrh->dele_qe = NULL;
   send_lookup_response (vrh);
 }
 
 static void
-handle_cred_collection_finished_cb (void *cls)
+delegate_collection_finished (void *cls)
 {
   struct VerifyRequestHandle *vrh = cls;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Done collecting credentials.\n");
-  vrh->cred_collection_iter = NULL;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Done collecting delegates.\n");
+
   if(Backward == vrh->resolution_algo){
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "+++++++++++++++++backward\n");
-    delegation_chain_resolution_start (vrh);
+    delegation_chain_bw_resolution_start (vrh);
   } else if (Forward == vrh->resolution_algo){
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "+++++++++++++++++forward\n");
     delegation_chain_fw_resolution_start (vrh);
   } else{
     //TODO
@@ -1320,7 +1276,7 @@ handle_cred_collection_finished_cb (void *cls)
 }
 
 static void
-tmp_handle_cred_collection_cb (void *cls,
+handle_delegate_collection_cb (void *cls,
                            const struct GNUNET_CRYPTO_EcdsaPrivateKey *key,
                            const char *label,
                            unsigned int rd_count,
@@ -1350,9 +1306,8 @@ tmp_handle_cred_collection_cb (void *cls,
                                       del_entry);
     vrh->del_chain_size++;
   }
-  // No need to collect next, should have all already
-  //vrh->collect_next_task = GNUNET_SCHEDULER_add_now (&collect_next, vrh);
-  handle_cred_collection_finished_cb(vrh);
+
+  delegate_collection_finished(vrh);
 }
 
 static void
@@ -1386,27 +1341,15 @@ handle_collect (void *cls, const struct CollectMessage *c_msg)
     send_lookup_response (vrh);
     return;
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Getting credentials for subject\n");
-  /**
-   * First, get attribute from subject
-   */
-  // TODO NAMESTORE_lookup auf empty label statt iteration, iteration genutzt da nicht wusste welches label
-  /*vrh->cred_collection_iter = GNUNET_NAMESTORE_zone_iteration_start (
-    namestore,
-    &c_msg->subject_key,
-    &handle_cred_collection_error_cb,
-    vrh,
-    &handle_cred_collection_cb,
-    vrh,
-    &handle_cred_collection_finished_cb,
-    vrh);*/
-  //TODO rename tmp_handle_... and test_resolution..
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Getting delegates for subject\n");
+  
+  // Get all delegates from subject
   vrh->dele_qe = GNUNET_NAMESTORE_records_lookup (namestore,
                                           &c_msg->subject_key,
                                           GNUNET_GNS_EMPTY_LABEL_AT,
-                                          &handle_cred_collection_error_cb,
+                                          &handle_delegate_collection_error_cb,
                                           vrh,
-                                          &tmp_handle_cred_collection_cb,
+                                          &handle_delegate_collection_cb,
                                           vrh);
   GNUNET_SERVICE_client_continue (vrh->client);
 }

@@ -79,9 +79,7 @@ credential_value_to_string (void *cls,
     {
       subject_pkey =
         GNUNET_CRYPTO_ecdsa_public_key_to_string (&set[i].subject_key);
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "%d len attr\n",
-                  set[i].subject_attribute_len);
+ 
       if (0 == set[i].subject_attribute_len)
       {
         if (0 == i)

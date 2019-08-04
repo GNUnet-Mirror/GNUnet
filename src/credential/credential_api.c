@@ -217,8 +217,7 @@ handle_result (void *cls,
   uint32_t d_count = ntohl (vr_msg->d_count);
   uint32_t c_count = ntohl (vr_msg->c_count);
   struct GNUNET_CREDENTIAL_Delegation d_chain[d_count];
-  //TODO rename creds
-  struct GNUNET_CREDENTIAL_Delegate creds[c_count];
+  struct GNUNET_CREDENTIAL_Delegate dels[c_count];
   GNUNET_CREDENTIAL_CredentialResultProcessor proc;
   void *proc_cls;
 
@@ -242,8 +241,8 @@ handle_result (void *cls,
                                                                  d_count,
                                                                  d_chain,
                                                                  c_count,
-                                                                 creds));
-  if (GNUNET_NO == ntohl (vr_msg->cred_found))
+                                                                 dels));
+  if (GNUNET_NO == ntohl (vr_msg->del_found))
   {
     proc (proc_cls,
           0,
@@ -255,7 +254,7 @@ handle_result (void *cls,
           d_count,
           d_chain,
           c_count,
-          creds);
+          dels);
   }
 }
 
@@ -415,8 +414,8 @@ GNUNET_CREDENTIAL_collect (struct GNUNET_CREDENTIAL_Handle *handle,
   c_msg->subject_key = *subject_key;
   c_msg->issuer_key =  *issuer_key;
   c_msg->issuer_attribute_len = htons(strlen(issuer_attribute));
-  //c_msg->resolution_algo = htons(Backward);
-  c_msg->resolution_algo = htons(Forward);
+  c_msg->resolution_algo = htons(Backward);
+  //c_msg->resolution_algo = htons(Forward);
 
   GNUNET_memcpy (&c_msg[1],
                  issuer_attribute,
@@ -441,8 +440,8 @@ GNUNET_CREDENTIAL_collect (struct GNUNET_CREDENTIAL_Handle *handle,
  * @param issuer_key the issuer public key
  * @param issuer_attribute the issuer attribute
  * @param subject_key the subject public key
- * @param credential_count number of credentials provided
- * @param credentials subject credentials
+ * @param delegate_count number of delegates provided
+ * @param delegates subject delegates
  * @param proc function to call on result
  * @param proc_cls closure for processor
  * @return handle to the queued request
@@ -452,8 +451,8 @@ GNUNET_CREDENTIAL_verify (struct GNUNET_CREDENTIAL_Handle *handle,
                           const struct GNUNET_CRYPTO_EcdsaPublicKey *issuer_key,
                           const char *issuer_attribute,
                           const struct GNUNET_CRYPTO_EcdsaPublicKey *subject_key,
-                          uint32_t credential_count,
-                          const struct GNUNET_CREDENTIAL_Delegate *credentials,
+                          uint32_t delegate_count,
+                          const struct GNUNET_CREDENTIAL_Delegate *delegates,
                           GNUNET_CREDENTIAL_CredentialResultProcessor proc,
                           void *proc_cls)
 {
@@ -463,14 +462,14 @@ GNUNET_CREDENTIAL_verify (struct GNUNET_CREDENTIAL_Handle *handle,
   size_t nlen;
   size_t clen;
 
-  if (NULL == issuer_attribute || NULL == credentials)
+  if (NULL == issuer_attribute || NULL == delegates)
   {
     GNUNET_break (0);
     return NULL;
   }
 
-  clen = GNUNET_CREDENTIAL_credentials_get_size (credential_count,
-                                                 credentials);
+  clen = GNUNET_CREDENTIAL_delegates_get_size (delegate_count,
+                                                 delegates);
 
   //DEBUG LOG
   LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -492,17 +491,17 @@ GNUNET_CREDENTIAL_verify (struct GNUNET_CREDENTIAL_Handle *handle,
                                  GNUNET_MESSAGE_TYPE_CREDENTIAL_VERIFY);
   v_msg->id = htonl (vr->r_id);
   v_msg->subject_key = *subject_key;
-  v_msg->c_count = htonl(credential_count);
+  v_msg->d_count = htonl(delegate_count);
   v_msg->issuer_key =  *issuer_key;
   v_msg->issuer_attribute_len = htons(strlen(issuer_attribute));
-  //v_msg->resolution_algo = htons(Backward);
-  v_msg->resolution_algo = htons(Forward);
+  v_msg->resolution_algo = htons(Backward);
+  //v_msg->resolution_algo = htons(Forward);
 
   GNUNET_memcpy (&v_msg[1],
                  issuer_attribute,
                  strlen (issuer_attribute));
-  GNUNET_CREDENTIAL_credentials_serialize (credential_count,
-                                           credentials,
+  GNUNET_CREDENTIAL_delegates_serialize (delegate_count,
+                                           delegates,
                                            clen,
                                            ((char*)&v_msg[1])
                                            + strlen (issuer_attribute) + 1);

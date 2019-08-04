@@ -91,9 +91,9 @@ struct VerifyMessage
   struct GNUNET_CRYPTO_EcdsaPublicKey issuer_key;
 
   /**
-   * Number of credentials
+   * Number of delegates
    */
-  uint32_t c_count;
+  uint32_t d_count;
 
   /**
    * Length of the issuer attribute
@@ -132,7 +132,7 @@ struct DelegationChainResultMessage
   /**
    * Indicates if credential has been found at all
    */
-  uint32_t cred_found GNUNET_PACKED;
+  uint32_t del_found GNUNET_PACKED;
 
   /**
    * The number of delegations in the response

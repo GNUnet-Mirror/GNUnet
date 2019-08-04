@@ -54,6 +54,7 @@ STATE_STUD_ATTR="student"
 REG_STUD_ATTR="student"
 END_ATTR="end"
 
+# FORWARD, subject side stored
 SIGNED=`$DO_TIMEOUT gnunet-credential --signSubjectSide --ego=a --attribute="a" --subject="$AKEY b.c" --ttl="2019-12-12 10:00:00"`
 gnunet-credential --createSubjectSide --ego=a --import "$SIGNED"
 gnunet-namestore -D -z a
@@ -79,66 +80,35 @@ gnunet-credential --createSubjectSide --ego=g --import "$SIGNED"
 gnunet-namestore -D -z g
 
 
-
-TEST_CREDENTIAL="mygnunetcreds"
-# Own issuer side storage:
-#gnunet-credential --createIssuerSide --ego=epub --attribute="issside" --subject="$EORG_KEY asd" --ttl=5m
-
-#gnunet-namestore -D -z epub
-
-# Own subject side storage:
-#SIGNED=`$DO_TIMEOUT gnunet-credential --signSubjectSide --ego=epub --attribute="abcd" --subject="$EORG_KEY" --ttl="2019-12-12 10:00:00"`
-#gnunet-credential --createSubjectSide --ego=eorg --import "$SIGNED"
-
-#SIGNED=`$DO_TIMEOUT gnunet-credential --signSubjectSide --ego=epub --attribute="abcd" --subject="$EORG_KEY efghijklmno" --ttl="2019-12-12 10:00:00"`
-#gnunet-credential --createSubjectSide --ego=eorg --import "$SIGNED"
-
-#SIGNED=`$DO_TIMEOUT gnunet-credential --signSubjectSide --ego=epub --attribute="abcd" --subject="$EORG_KEY efghijklmno.pqr" --ttl="2019-12-12 10:00:00"`
-#gnunet-credential --createSubjectSide --ego=eorg --import "$SIGNED"
-
-#SIGNED=`$DO_TIMEOUT gnunet-credential --signSubjectSide --ego=epub --attribute="abcd.stu" --subject="$EORG_KEY efghijklmno.pqr" --ttl="2019-12-12 10:00:00"`
-#gnunet-credential --createSubjectSide --ego=eorg --import "$SIGNED"
-
-#SIGNED=`$DO_TIMEOUT gnunet-credential --signSubjectSide --ego=stateu --attribute="aaa" --subject="$EPUB_KEY bbbb" --ttl="2019-12-12 10:00:00"`
-#gnunet-credential --createSubjectSide --ego=epub --import "$SIGNED"
-
-#gnunet-namestore -D -z eorg
-
+# BACKWARD, issuer side stored
 # (1) EPub assigns the attribute "discount" to all entities that have been assigned "preferred" by EOrg
-gnunet-namestore -p -z epub -a -n $DISC_ATTR -t ATTR -V "$EORG_KEY $PREF_ATTR" -e 5m -c test_credential_lookup.conf
-gnunet-namestore -p -z epub -a -n "random" -t ATTR -V "$GKEY random" -e 5m -c test_credential_lookup.conf
+gnunet-credential --createIssuerSide --ego=epub --attribute=$DISC_ATTR --subject="$EORG_KEY $PREF_ATTR" --ttl=5m -c test_credential_lookup.conf
 
 # (2) EOrg assigns the attribute "preferred" to all entities that have been assigned "student" by StateU
-gnunet-namestore -p -z eorg -a -n $PREF_ATTR -t ATTR -V "$STATEU_KEY $STATE_STUD_ATTR" -e 5m -c test_credential_lookup.conf
+gnunet-credential --createIssuerSide --ego=eorg --attribute=$PREF_ATTR --subject="$STATEU_KEY $STATE_STUD_ATTR" --ttl=5m -c test_credential_lookup.conf
 
 # (3) StateU assigns the attribute "student" to all entities that have been asssigned "student" by RegistrarB
-gnunet-namestore -p -z stateu -a -n $STATE_STUD_ATTR -t ATTR -V "$REGISTRARB_KEY $REG_STUD_ATTR" -e 5m -c test_credential_lookup.conf
+gnunet-credential --createIssuerSide --ego=stateu --attribute=$STATE_STUD_ATTR --subject="$REGISTRARB_KEY $REG_STUD_ATTR" --ttl=5m -c test_credential_lookup.conf
 
 # (4) RegistrarB issues Alice the credential "student"
-CRED=`$DO_TIMEOUT gnunet-credential --issue --ego=registrarb --subject=$ALICE_KEY --attribute=$REG_STUD_ATTR --ttl=5m -c test_credential_lookup.conf`
-
-# Alice stores the credential under "mygnunetcreds"
-#gnunet-namestore -p -z alice -a -n $TEST_CREDENTIAL -t CRED -V "$CRED" -e 5m -c test_credential_lookup.conf
-
 SIGNED=`$DO_TIMEOUT gnunet-credential --signSubjectSide --ego=registrarb --attribute="$REG_STUD_ATTR" --subject="$ALICE_KEY" --ttl="2019-12-12 10:00:00"`
 gnunet-credential --createSubjectSide --ego=alice --import "$SIGNED"
 
 # Starting to resolve
-echo "+++++Starting Collect"
+echo "+++ Starting to Resolve +++"
 
-CREDS=`$DO_TIMEOUT gnunet-credential --collect --issuer=$AKEY --attribute="a" --ego=g -c test_credential_lookup.conf | paste -d, -s`
-echo $CREDS
-echo gnunet-credential --verify --issuer=$AKEY --attribute="a" --subject=$GKEY --credential=\'$CREDS\' -c test_credential_lookup.conf
-RES_CRED=`gnunet-credential --verify --issuer=$AKEY --attribute="a" --subject=$GKEY --credential="$CREDS" -c test_credential_lookup.conf`
-
-#CREDS=`$DO_TIMEOUT gnunet-credential --collect --issuer=$EPUB_KEY --attribute=$DISC_ATTR --ego=alice -c test_credential_lookup.conf | paste -d, -s`
+#CREDS=`$DO_TIMEOUT gnunet-credential --collect --issuer=$AKEY --attribute="a" --ego=g -c test_credential_lookup.conf | paste -d, -s`
 #echo $CREDS
-#echo gnunet-credential --verify --issuer=$EPUB_KEY --attribute=$DISC_ATTR --subject=$ALICE_KEY --credential=\'$CREDS\' -c test_credential_lookup.conf
-#RES_CRED=`gnunet-credential --verify --issuer=$EPUB_KEY --attribute=$DISC_ATTR --subject=$ALICE_KEY --credential="$CREDS" -c test_credential_lookup.conf`
+#echo gnunet-credential --verify --issuer=$AKEY --attribute="a" --subject=$GKEY --credential=\'$CREDS\' -c test_credential_lookup.conf
+#RES_CRED=`gnunet-credential --verify --issuer=$AKEY --attribute="a" --subject=$GKEY --credential="$CREDS" -c test_credential_lookup.conf`
+
+CREDS=`$DO_TIMEOUT gnunet-credential --collect --issuer=$EPUB_KEY --attribute=$DISC_ATTR --ego=alice -c test_credential_lookup.conf | paste -d, -s`
+echo $CREDS
+echo gnunet-credential --verify --issuer=$EPUB_KEY --attribute=$DISC_ATTR --subject=$ALICE_KEY --credential=\'$CREDS\' -c test_credential_lookup.conf
+RES_CRED=`gnunet-credential --verify --issuer=$EPUB_KEY --attribute=$DISC_ATTR --subject=$ALICE_KEY --credential="$CREDS" -c test_credential_lookup.conf`
 
 
 # Cleanup properly
-gnunet-namestore -z alice -d -n $TEST_CREDENTIAL -t CRED -e never -c test_credential_lookup.conf
 gnunet-namestore -z epub -d -n $DISC_ATTR -t ATTR -c test_credential_lookup.conf
 gnunet-namestore -z eorg -d -n $PREF_ATTR -t ATTR -c test_credential_lookup.conf
 gnunet-namestore -z stateu -d -n $STATE_STUD_ATTR -t ATTR -c test_credential_lookup.conf
