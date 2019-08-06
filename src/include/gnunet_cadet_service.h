@@ -205,9 +205,9 @@ GNUNET_CADET_close_port (struct GNUNET_CADET_Port *p);
 /**
  * Create a new channel towards a remote peer.
  *
- * If the destination port is not open by any peer or the destination peer
- * does not accept the channel, @a disconnects will be called
- * for this channel.
+ * If the destination peer closes the channel after accepting it,
+ * @a disconnects will be called for this channel (unless
+ * #GNUNET_CADET_channel_destroy() was called on this end first).
  *
  * @param h CADET handle.
  * @param channel_cls Closure for the channel. It's given to:
@@ -218,7 +218,6 @@ GNUNET_CADET_close_port (struct GNUNET_CADET_Port *p);
  * @param port Identification of the destination port.
  * @param window_changes Function called when the transmit window size changes.
  *                       Can be NULL if this data is of no interest.
- * TODO                  Not yet implemented.
  * @param disconnects Function called when the channel is disconnected.
  * @param handlers Callbacks for messages we care about, NULL-terminated.
  * @return Handle to the channel.
@@ -317,7 +316,7 @@ union GNUNET_CADET_ChannelInfo
  */
 const union GNUNET_CADET_ChannelInfo *
 GNUNET_CADET_channel_get_info (struct GNUNET_CADET_Channel *channel,
-			       enum GNUNET_CADET_ChannelInfoOption option,
+                               enum GNUNET_CADET_ChannelInfoOption option,
                                ...);
 
 
