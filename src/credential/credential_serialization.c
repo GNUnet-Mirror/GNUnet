@@ -221,11 +221,10 @@ GNUNET_CREDENTIAL_delegates_serialize (
  * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
  */
 int
-GNUNET_CREDENTIAL_delegates_deserialize (
-  size_t len,
-  const char *src,
-  unsigned int c_count,
-  struct GNUNET_CREDENTIAL_Delegate *cd)
+GNUNET_CREDENTIAL_delegates_deserialize (size_t len,
+                                         const char *src,
+                                         unsigned int c_count,
+                                         struct GNUNET_CREDENTIAL_Delegate *cd)
 {
   struct DelegateEntry c_rec;
   unsigned int i;
@@ -335,9 +334,9 @@ GNUNET_CREDENTIAL_delegation_chain_serialize (
     off += dd[i].subject_attribute_len;
   }
   return off + GNUNET_CREDENTIAL_delegates_serialize (c_count,
-                                                        cd,
-                                                        dest_size - off,
-                                                        &dest[off]);
+                                                      cd,
+                                                      dest_size - off,
+                                                      &dest[off]);
 }
 
 
@@ -386,79 +385,9 @@ GNUNET_CREDENTIAL_delegation_chain_deserialize (
     off += dd[i].subject_attribute_len;
   }
   return GNUNET_CREDENTIAL_delegates_deserialize (len - off,
-                                                    &src[off],
-                                                    c_count,
-                                                    cd);
-}
-
-int
-GNUNET_CREDENTIAL_credential_serialize (
-  struct GNUNET_CREDENTIAL_Credential *cred,
-  char **data)
-{
-  size_t size;
-  struct CredentialEntry *cdata;
-
-  size = sizeof (struct CredentialEntry) + strlen (cred->issuer_attribute) + 1;
-  *data = GNUNET_malloc (size);
-  cdata = (struct CredentialEntry *) *data;
-  cdata->subject_key = cred->subject_key;
-  cdata->issuer_key = cred->issuer_key;
-  cdata->expiration = GNUNET_htonll (cred->expiration.abs_value_us);
-  cdata->signature = cred->signature;
-  cdata->issuer_attribute_len = htonl (strlen (cred->issuer_attribute) + 1);
-  cdata->purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_CREDENTIAL);
-  cdata->purpose.size =
-    htonl (size - sizeof (struct GNUNET_CRYPTO_EcdsaSignature));
-  GNUNET_memcpy (&cdata[1],
-                 cred->issuer_attribute,
-                 strlen (cred->issuer_attribute));
-
-  if (GNUNET_OK !=
-      GNUNET_CRYPTO_ecdsa_verify (GNUNET_SIGNATURE_PURPOSE_CREDENTIAL,
-                                  &cdata->purpose,
-                                  &cdata->signature,
-                                  &cdata->issuer_key))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Invalid credential\n");
-    //return NULL;
-  }
-  return size;
-}
-
-struct GNUNET_CREDENTIAL_Credential *
-GNUNET_CREDENTIAL_credential_deserialize (const char *data, size_t data_size)
-{
-  struct GNUNET_CREDENTIAL_Credential *cred;
-  struct CredentialEntry *cdata;
-  char *issuer_attribute;
-
-  if (data_size < sizeof (struct CredentialEntry))
-    return NULL;
-  cdata = (struct CredentialEntry *) data;
-  if (GNUNET_OK !=
-      GNUNET_CRYPTO_ecdsa_verify (GNUNET_SIGNATURE_PURPOSE_CREDENTIAL,
-                                  &cdata->purpose,
-                                  &cdata->signature,
-                                  &cdata->issuer_key))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Invalid credential\n");
-    //return NULL;
-  }
-  issuer_attribute = (char *) &cdata[1];
-
-  cred = GNUNET_malloc (sizeof (struct GNUNET_CREDENTIAL_Credential) +
-                        ntohl (cdata->issuer_attribute_len));
-
-  cred->issuer_key = cdata->issuer_key;
-  cred->subject_key = cdata->subject_key;
-  GNUNET_memcpy (&cred[1],
-                 issuer_attribute,
-                 ntohl (cdata->issuer_attribute_len));
-  cred->signature = cdata->signature;
-  cred->issuer_attribute = (char *) &cred[1];
-  cred->expiration.abs_value_us = GNUNET_ntohll (cdata->expiration);
-  return cred;
+                                                  &src[off],
+                                                  c_count,
+                                                  cd);
 }
 
 int

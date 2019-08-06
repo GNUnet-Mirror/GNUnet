@@ -27,7 +27,6 @@
 #include <gnunet_credential_service.h>
 #include <gnunet_gnsrecord_lib.h>
 #include <gnunet_namestore_service.h>
-#include "credential_misc.h"
 #include "delegate_misc.h"
 #include "credential_serialization.h"
 
@@ -82,9 +81,9 @@ static struct GNUNET_SCHEDULER_Task *tt;
 static char *subject;
 
 /**
- * Subject credential string
+ * Subject delegate string
  */
-static char *subject_credential;
+static char *subject_delegate;
 
 /**
  * Credential TTL
@@ -123,11 +122,6 @@ static char *issuer_attr;
 static int verify;
 
 /**
- * Issue mode
- */
-static int create_cred;
-
-/**
  * Collect mode
  */
 static int collect;
@@ -151,6 +145,26 @@ static int sign_ss;
  * Signed issue credentials
  */
 static char *import;
+
+/**
+ * Is record private
+ */
+static int is_private;
+
+/**
+ * Search direction: forward
+ */
+static int forward;
+
+/**
+ * Search direction: backward
+ */
+static int backward;
+
+/**
+ * API enum, filled and passed for collect/verify
+ */
+enum GNUNET_CREDENTIAL_AlgoDirectionFlags direction = 0;
 
 /**
  * Queue entry for the 'add' operation.
@@ -268,8 +282,10 @@ handle_collect_result (void *cls,
       printf ("%s\n", line);
       GNUNET_free (line);
     }
-  } else {
-    printf("Received NULL\n");
+  }
+  else
+  {
+    printf ("Received NULL\n");
   }
 
   GNUNET_SCHEDULER_shutdown ();
@@ -344,10 +360,6 @@ static void
 identity_cb (void *cls, const struct GNUNET_IDENTITY_Ego *ego)
 {
   const struct GNUNET_CRYPTO_EcdsaPrivateKey *privkey;
-  struct GNUNET_CREDENTIAL_Credential *cred;
-  struct GNUNET_TIME_Absolute etime_abs;
-  struct GNUNET_TIME_Relative etime_rel;
-  char *res;
 
   el = NULL;
   if (NULL == ego)
@@ -381,44 +393,11 @@ identity_cb (void *cls, const struct GNUNET_IDENTITY_Ego *ego)
                                                  &issuer_pkey,
                                                  issuer_attr, //TODO argument
                                                  privkey,
+                                                 direction,
                                                  &handle_collect_result,
                                                  NULL);
     return;
   }
-
-  //Else issue
-
-  if (NULL == expiration)
-  {
-    fprintf (stderr, "Please specify a TTL\n");
-    GNUNET_SCHEDULER_shutdown ();
-    return;
-  }
-  else if (GNUNET_OK ==
-           GNUNET_STRINGS_fancy_time_to_relative (expiration, &etime_rel))
-  {
-    etime_abs = GNUNET_TIME_relative_to_absolute (etime_rel);
-  }
-  else if (GNUNET_OK !=
-           GNUNET_STRINGS_fancy_time_to_absolute (expiration, &etime_abs))
-  {
-    fprintf (stderr, "%s is not a valid ttl!\n", expiration);
-    GNUNET_SCHEDULER_shutdown ();
-    return;
-  }
-
-
-  privkey = GNUNET_IDENTITY_ego_get_private_key (ego);
-  GNUNET_free_non_null (ego_name);
-  ego_name = NULL;
-  cred = GNUNET_CREDENTIAL_credential_issue (privkey,
-                                             &subject_pkey,
-                                             issuer_attr,
-                                             &etime_abs);
-
-  res = GNUNET_CREDENTIAL_credential_to_string (cred);
-  GNUNET_free (cred);
-  printf ("%s\n", res);
   GNUNET_SCHEDULER_shutdown ();
 }
 
@@ -506,9 +485,9 @@ get_existing_record (void *cls,
   rde->record_type = type;
   // Flags not required , TODO what have we said we do with that now? Look it up in my writing
   /*if (1 == is_shadow)
-    rde->flags |= GNUNET_GNSRECORD_RF_SHADOW_RECORD;
-  if (1 != is_public)
-    rde->flags |= GNUNET_GNSRECORD_RF_PRIVATE;*/
+    rde->flags |= GNUNET_GNSRECORD_RF_SHADOW_RECORD;*/
+  if (GNUNET_YES == is_private)
+    rde->flags |= GNUNET_GNSRECORD_RF_PRIVATE;
   rde->expiration_time = etime;
   if (GNUNET_YES == etime_is_rel)
     rde->flags |= GNUNET_GNSRECORD_RF_RELATIVE_EXPIRATION;
@@ -751,6 +730,7 @@ run (void *cls,
 
   if (GNUNET_YES == create_ss)
   {
+
     // check if signed parameter has been passed in cmd line call
     if (NULL == import)
     {
@@ -786,6 +766,20 @@ run (void *cls,
     el = GNUNET_IDENTITY_ego_lookup (cfg, ego_name, &sign_cb, (void *) cfg);
     return;
   }
+
+  if (GNUNET_NO == forward && GNUNET_NO == backward)
+  {
+    fprintf (
+      stderr,
+      _ (
+        "You must state which search direction: '--forward' or '--backward'\n"));
+    GNUNET_SCHEDULER_shutdown ();
+    return;
+  }
+  if (GNUNET_YES == forward)
+    direction |= GNUNET_CREDENTIAL_FLAG_FORWARD;
+  if (GNUNET_YES == backward)
+    direction |= GNUNET_CREDENTIAL_FLAG_BACKWARD;
 
   if (GNUNET_YES == collect)
   {
@@ -840,6 +834,15 @@ run (void *cls,
 
   if (GNUNET_YES == verify)
   {
+    if (GNUNET_NO == forward && GNUNET_NO == backward)
+    {
+      fprintf (
+        stderr,
+        _ (
+          "You must state which search direction: '-forward' or 'backward'\n"));
+      GNUNET_SCHEDULER_shutdown ();
+      return;
+    }
     if (NULL == issuer_key)
     {
       fprintf (stderr, _ ("Issuer public key not well-formed\n"));
@@ -865,7 +868,7 @@ run (void *cls,
       GNUNET_SCHEDULER_shutdown ();
       return;
     }
-    if (NULL == issuer_attr || NULL == subject_credential)
+    if (NULL == issuer_attr || NULL == subject_delegate)
     {
       fprintf (stderr, _ ("You must provide issuer and subject attributes\n"));
       GNUNET_SCHEDULER_shutdown ();
@@ -873,7 +876,7 @@ run (void *cls,
     }
 
     //Subject credentials are comma separated
-    char *tmp = GNUNET_strdup (subject_credential);
+    char *tmp = GNUNET_strdup (subject_delegate);
     char *tok = strtok (tmp, ",");
     if (NULL == tok)
     {
@@ -886,20 +889,20 @@ run (void *cls,
     int i;
     while (NULL != (tok = strtok (NULL, ",")))
       count++;
-    struct GNUNET_CREDENTIAL_Delegate credentials[count];
-    struct GNUNET_CREDENTIAL_Delegate *cred;
+    struct GNUNET_CREDENTIAL_Delegate delegates[count];
+    struct GNUNET_CREDENTIAL_Delegate *dele;
     GNUNET_free (tmp);
-    tmp = GNUNET_strdup (subject_credential);
+    tmp = GNUNET_strdup (subject_delegate);
     tok = strtok (tmp, ",");
     for (i = 0; i < count; i++)
     {
-      cred = GNUNET_CREDENTIAL_delegate_from_string (tok);
-      GNUNET_memcpy (&credentials[i],
-                     cred,
+      dele = GNUNET_CREDENTIAL_delegate_from_string (tok);
+      GNUNET_memcpy (&delegates[i],
+                     dele,
                      sizeof (struct GNUNET_CREDENTIAL_Delegate));
-      credentials[i].issuer_attribute = GNUNET_strdup (cred->issuer_attribute);
+      delegates[i].issuer_attribute = GNUNET_strdup (dele->issuer_attribute);
       tok = strtok (NULL, ",");
-      GNUNET_free (cred);
+      GNUNET_free (dele);
     }
 
     verify_request = GNUNET_CREDENTIAL_verify (credential,
@@ -907,26 +910,15 @@ run (void *cls,
                                                issuer_attr, //TODO argument
                                                &subject_pkey,
                                                count,
-                                               credentials,
+                                               delegates,
+                                               direction,
                                                &handle_verify_result,
                                                NULL);
     for (i = 0; i < count; i++)
     {
-      GNUNET_free ((char *) credentials[i].issuer_attribute);
+      GNUNET_free ((char *) delegates[i].issuer_attribute);
     }
     GNUNET_free (tmp);
-  }
-  else if (GNUNET_YES == create_cred)
-  {
-    if (NULL == ego_name)
-    {
-      fprintf (stderr, _ ("Issuer ego required\n"));
-      GNUNET_SCHEDULER_shutdown ();
-      return;
-    }
-    el = GNUNET_IDENTITY_ego_lookup (cfg, ego_name, &identity_cb, (void *) cfg);
-
-    return;
   }
   else
   {
@@ -949,70 +941,94 @@ run (void *cls,
 int
 main (int argc, char *const *argv)
 {
-  struct GNUNET_GETOPT_CommandLineOption options[] = {
-    GNUNET_GETOPT_option_flag ('I',
-                               "issue",
-                               gettext_noop ("create credential"),
-                               &create_cred),
-    GNUNET_GETOPT_option_flag ('V',
-                               "verify",
-                               gettext_noop ("verify credential against attribute"),
-                               &verify),
-    GNUNET_GETOPT_option_string ('s',
-                                 "subject",
-                                 "PKEY",
-                                 gettext_noop ("The public key of the subject to lookup the"
-                                 "credential for, or for issuer side storage: subject and its attributes"),
-                                 &subject),
-    GNUNET_GETOPT_option_string ('b',
-                                 "credential",
-                                 "CRED",
-                                 gettext_noop ("The name of the credential presented by the subject"),
-                                 &subject_credential),
-    GNUNET_GETOPT_option_string ('i',
-                                 "issuer",
-                                 "PKEY",
-                                 gettext_noop ("The public key of the authority to verify the credential against"),
-                                 &issuer_key),
-    GNUNET_GETOPT_option_string ('e',
-                                 "ego",
-                                 "EGO",
-                                 gettext_noop ("The ego/zone name to use"),
-                                 &ego_name),
-    GNUNET_GETOPT_option_string ('a',
-                                 "attribute",
-                                 "ATTR",
-                                 gettext_noop ("The issuer attribute to verify against or to issue"),
-                                 &issuer_attr),
-    GNUNET_GETOPT_option_string ('T',
-                                 "ttl",
-                                 "EXP",
-                                 gettext_noop ("The time to live for the credential."
-                                 "e.g. 5m, 6h, \"1990-12-30 12:00:00\""),
-                                 &expiration),
-    GNUNET_GETOPT_option_flag ('g',
-                               "collect",
-                               gettext_noop ("collect credentials"),
-                               &collect),
-    GNUNET_GETOPT_option_flag ('U',
-                               "createIssuerSide",
-                               gettext_noop ("Create and issue a credential issuer side."),
-                               &create_is),
-    GNUNET_GETOPT_option_flag ('C',
-                               "createSubjectSide",
-                               gettext_noop ("Issue a credential subject side."),
-                               &create_ss),                           
-    GNUNET_GETOPT_option_flag ('S',
-                               "signSubjectSide",
-                               gettext_noop ("Create, sign and return a credential subject side."),
-                               &sign_ss),
-    GNUNET_GETOPT_option_string ('x',
-                               "import",
-                               "IMP",
-                               gettext_noop ("Import signed credentials that should be issued to a zone/ego"),
-                               &import),
-    GNUNET_GETOPT_OPTION_END
-  };
+  struct GNUNET_GETOPT_CommandLineOption options[] =
+    {GNUNET_GETOPT_option_flag ('V',
+                                "verify",
+                                gettext_noop (
+                                  "verify credential against attribute"),
+                                &verify),
+     GNUNET_GETOPT_option_string (
+       's',
+       "subject",
+       "PKEY",
+       gettext_noop (
+         "The public key of the subject to lookup the"
+         "credential for, or for issuer side storage: subject and its attributes"),
+       &subject),
+     GNUNET_GETOPT_option_string (
+       'd',
+       "delegate",
+       "DELE",
+       gettext_noop ("The private, signed delegate presented by the subject"),
+       &subject_delegate),
+     GNUNET_GETOPT_option_string (
+       'i',
+       "issuer",
+       "PKEY",
+       gettext_noop (
+         "The public key of the authority to verify the credential against"),
+       &issuer_key),
+     GNUNET_GETOPT_option_string ('e',
+                                  "ego",
+                                  "EGO",
+                                  gettext_noop ("The ego/zone name to use"),
+                                  &ego_name),
+       GNUNET_GETOPT_option_string (
+         'a',
+         "attribute",
+         "ATTR",
+         gettext_noop ("The issuer attribute to verify against or to issue"),
+         &issuer_attr),
+     GNUNET_GETOPT_option_string ('T',
+                                  "ttl",
+                                  "EXP",
+                                  gettext_noop (
+                                    "The time to live for the credential."
+                                    "e.g. 5m, 6h, \"1990-12-30 12:00:00\""),
+                                  &expiration),
+     GNUNET_GETOPT_option_flag ('g',
+                                "collect",
+                                gettext_noop ("collect credentials"),
+                                &collect),
+     GNUNET_GETOPT_option_flag ('U',
+                                "createIssuerSide",
+                                gettext_noop (
+                                  "Create and issue a credential issuer side."),
+                                &create_is),
+     GNUNET_GETOPT_option_flag ('C',
+                                "createSubjectSide",
+                                gettext_noop (
+                                  "Issue a credential subject side."),
+                                &create_ss),
+     GNUNET_GETOPT_option_flag (
+       'S',
+       "signSubjectSide",
+       gettext_noop ("Create, sign and return a credential subject side."),
+       &sign_ss),
+     GNUNET_GETOPT_option_string (
+       'x',
+       "import",
+       "IMP",
+       gettext_noop (
+         "Import signed credentials that should be issued to a zone/ego"),
+       &import),
+     GNUNET_GETOPT_option_flag ('P',
+                                "private",
+                                gettext_noop ("Create private record entry."),
+                                &is_private),
+     GNUNET_GETOPT_option_flag (
+       'F',
+       "forward",
+       gettext_noop (
+         "Indicates that the collect/verify process is done via forward search."),
+       &forward),
+     GNUNET_GETOPT_option_flag (
+       'B',
+       "backward",
+       gettext_noop (
+         "Indicates that the collect/verify process is done via forward search."),
+       &backward),
+     GNUNET_GETOPT_OPTION_END};
   int ret;
 
   timeout = GNUNET_TIME_UNIT_FOREVER_REL;

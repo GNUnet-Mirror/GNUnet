@@ -27,7 +27,6 @@
 
 #include "gnunet_util_lib.h"
 
-#include "credential_misc.h"
 #include "delegate_misc.h"
 #include "credential_serialization.h"
 #include "gnunet_credential_service.h"
@@ -79,7 +78,7 @@ credential_value_to_string (void *cls,
     {
       subject_pkey =
         GNUNET_CRYPTO_ecdsa_public_key_to_string (&set[i].subject_key);
- 
+
       if (0 == set[i].subject_attribute_len)
       {
         if (0 == i)
@@ -116,16 +115,6 @@ credential_value_to_string (void *cls,
       GNUNET_free (subject_pkey);
     }
     return attr_str;
-  }
-  case GNUNET_GNSRECORD_TYPE_CREDENTIAL:
-  {
-    struct GNUNET_CREDENTIAL_Credential *cred;
-    char *cred_str;
-
-    cred = GNUNET_CREDENTIAL_credential_deserialize (data, data_size);
-    cred_str = GNUNET_CREDENTIAL_credential_to_string (cred);
-    GNUNET_free (cred);
-    return cred_str;
   }
   case GNUNET_GNSRECORD_TYPE_DELEGATE:
   {
@@ -253,14 +242,6 @@ credential_string_to_value (void *cls,
     sets->data_size = GNUNET_htonll (tmp_data_size);
 
     GNUNET_free (tmp_str);
-    return GNUNET_OK;
-  }
-  case GNUNET_GNSRECORD_TYPE_CREDENTIAL:
-  {
-    struct GNUNET_CREDENTIAL_Credential *cred;
-    cred = GNUNET_CREDENTIAL_credential_from_string (s);
-
-    *data_size = GNUNET_CREDENTIAL_credential_serialize (cred, (char **) data);
     return GNUNET_OK;
   }
   case GNUNET_GNSRECORD_TYPE_DELEGATE:

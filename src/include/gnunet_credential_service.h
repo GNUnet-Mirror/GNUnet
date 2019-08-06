@@ -168,43 +168,6 @@ struct GNUNET_CREDENTIAL_Delegation {
 
 
 /**
- * A credential
- */
-struct GNUNET_CREDENTIAL_Credential {
-
-  /**
-   * The issuer of the credential
-   */
-  struct GNUNET_CRYPTO_EcdsaPublicKey issuer_key;
-
-  /**
-   * Public key of the subject this credential was issued to
-   */
-  struct GNUNET_CRYPTO_EcdsaPublicKey subject_key;
-
-  /**
-   * Signature of this credential
-   */
-  struct GNUNET_CRYPTO_EcdsaSignature signature;
-
-  /**
-   * Expiration of this credential
-   */
-  struct GNUNET_TIME_Absolute expiration;
-
-  /**
-   * Length of the attribute
-   */
-  uint32_t issuer_attribute_len;
-
-  /**
-   * The attribute
-   */
-  const char *issuer_attribute;
-
-};
-
-/**
  * A delegate
  */
 struct GNUNET_CREDENTIAL_Delegate {
@@ -251,7 +214,18 @@ struct GNUNET_CREDENTIAL_Delegate {
 
 };
 
+/*
+* Enum used for checking whether the issuer has the authority to issue credentials or is just a subject
+*/
+enum GNUNET_CREDENTIAL_AlgoDirectionFlags {
 
+  //Subject had credentials before, but have been revoked now
+  GNUNET_CREDENTIAL_FLAG_FORWARD=1 << 0,
+
+  //Subject flag indicates that the subject is a holder of this credential and may present it as such
+  GNUNET_CREDENTIAL_FLAG_BACKWARD=1 << 1
+
+};
 
 /**
  * Initialize the connection with the Credential service.
@@ -332,7 +306,8 @@ GNUNET_CREDENTIAL_verify (struct GNUNET_CREDENTIAL_Handle *handle,
                           const char *issuer_attribute,
                           const struct GNUNET_CRYPTO_EcdsaPublicKey *subject_key,
                           uint32_t credential_count,
-                          const struct GNUNET_CREDENTIAL_Delegate *credentials,
+                          const struct GNUNET_CREDENTIAL_Delegate *delegates,
+                          enum GNUNET_CREDENTIAL_AlgoDirectionFlags direction,
                           GNUNET_CREDENTIAL_CredentialResultProcessor proc,
                           void *proc_cls);
 
@@ -341,6 +316,7 @@ GNUNET_CREDENTIAL_collect (struct GNUNET_CREDENTIAL_Handle *handle,
                            const struct GNUNET_CRYPTO_EcdsaPublicKey *issuer_key,
                            const char *issuer_attribute,
                            const struct GNUNET_CRYPTO_EcdsaPrivateKey *subject_key,
+                           enum GNUNET_CREDENTIAL_AlgoDirectionFlags direction,
                            GNUNET_CREDENTIAL_CredentialResultProcessor proc,
                            void *proc_cls);
 
@@ -383,21 +359,6 @@ GNUNET_CREDENTIAL_remove_delegation (struct GNUNET_CREDENTIAL_Handle *handle,
                                      void *proc_cls);
 
 
-
-/**
- * Issue an attribute to a subject
- *
- * @param issuer the ego that should be used to issue the attribute
- * @param subject the subject of the attribute
- * @param attribute the name of the attribute
- * @param expiration the TTL of the credential
- * @return handle to the queued request
- */
-struct GNUNET_CREDENTIAL_Credential*
-GNUNET_CREDENTIAL_credential_issue (const struct GNUNET_CRYPTO_EcdsaPrivateKey *issuer,
-                                    struct GNUNET_CRYPTO_EcdsaPublicKey *subject,
-                                    const char *attribute,
-                                    struct GNUNET_TIME_Absolute *expiration);
 
 /**
  * Issue an attribute to a subject

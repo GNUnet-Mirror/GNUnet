@@ -35,7 +35,7 @@
 #include "gnunet_identity_service.h"
 
 
-#define LOG(kind,...) GNUNET_log_from (kind, "credential-api",__VA_ARGS__)
+#define LOG(kind, ...) GNUNET_log_from (kind, "credential-api", __VA_ARGS__)
 
 /**
  * Handle to a verify request
@@ -77,7 +77,6 @@ struct GNUNET_CREDENTIAL_Request
    * request id
    */
   uint32_t r_id;
-
 };
 
 
@@ -121,7 +120,6 @@ struct GNUNET_CREDENTIAL_Handle
    * Request Id generator.  Incremented by one for each request.
    */
   uint32_t r_id_gen;
-
 };
 
 
@@ -159,12 +157,12 @@ force_reconnect (struct GNUNET_CREDENTIAL_Handle *handle)
 {
   GNUNET_MQ_destroy (handle->mq);
   handle->mq = NULL;
-  handle->reconnect_backoff
-    = GNUNET_TIME_STD_BACKOFF (handle->reconnect_backoff);
-  handle->reconnect_task
-    = GNUNET_SCHEDULER_add_delayed (handle->reconnect_backoff,
-                        &reconnect_task,
-                        handle);
+  handle->reconnect_backoff =
+    GNUNET_TIME_STD_BACKOFF (handle->reconnect_backoff);
+  handle->reconnect_task =
+    GNUNET_SCHEDULER_add_delayed (handle->reconnect_backoff,
+                                  &reconnect_task,
+                                  handle);
 }
 
 
@@ -177,8 +175,7 @@ force_reconnect (struct GNUNET_CREDENTIAL_Handle *handle)
  * @param error error code
  */
 static void
-mq_error_handler (void *cls,
-                  enum GNUNET_MQ_Error error)
+mq_error_handler (void *cls, enum GNUNET_MQ_Error error)
 {
   struct GNUNET_CREDENTIAL_Handle *handle = cls;
 
@@ -192,8 +189,7 @@ mq_error_handler (void *cls,
  * @param vr_msg the incoming message
  */
 static int
-check_result (void *cls,
-              const struct DelegationChainResultMessage *vr_msg)
+check_result (void *cls, const struct DelegationChainResultMessage *vr_msg)
 {
   //TODO
   return GNUNET_OK;
@@ -207,8 +203,7 @@ check_result (void *cls,
  * @param vr_msg the incoming message
  */
 static void
-handle_result (void *cls,
-               const struct DelegationChainResultMessage *vr_msg)
+handle_result (void *cls, const struct DelegationChainResultMessage *vr_msg)
 {
   struct GNUNET_CREDENTIAL_Handle *handle = cls;
   uint32_t r_id = ntohl (vr_msg->id);
@@ -230,31 +225,25 @@ handle_result (void *cls,
     return;
   proc = vr->verify_proc;
   proc_cls = vr->proc_cls;
-  GNUNET_CONTAINER_DLL_remove (handle->request_head,
-                               handle->request_tail,
-                               vr);
+  GNUNET_CONTAINER_DLL_remove (handle->request_head, handle->request_tail, vr);
   GNUNET_MQ_discard (vr->env);
   GNUNET_free (vr);
-  GNUNET_assert (GNUNET_OK ==
-                 GNUNET_CREDENTIAL_delegation_chain_deserialize (mlen,
-                                                                 (const char*) &vr_msg[1],
-                                                                 d_count,
-                                                                 d_chain,
-                                                                 c_count,
-                                                                 dels));
+  GNUNET_assert (
+    GNUNET_OK ==
+    GNUNET_CREDENTIAL_delegation_chain_deserialize (mlen,
+                                                    (const char *) &vr_msg[1],
+                                                    d_count,
+                                                    d_chain,
+                                                    c_count,
+                                                    dels));
   if (GNUNET_NO == ntohl (vr_msg->del_found))
   {
-    proc (proc_cls,
-          0,
-          NULL,
-          0,
+    proc (proc_cls, 0, NULL, 0,
           NULL); // TODO
-  } else {
-    proc (proc_cls,
-          d_count,
-          d_chain,
-          c_count,
-          dels);
+  }
+  else
+  {
+    proc (proc_cls, d_count, d_chain, c_count, dels);
   }
 }
 
@@ -267,22 +256,20 @@ handle_result (void *cls,
 static void
 reconnect (struct GNUNET_CREDENTIAL_Handle *handle)
 {
-  struct GNUNET_MQ_MessageHandler handlers[] = {
-    GNUNET_MQ_hd_var_size (result,
-                           GNUNET_MESSAGE_TYPE_CREDENTIAL_VERIFY_RESULT,
-                           struct DelegationChainResultMessage,
-                           handle),
-    GNUNET_MQ_hd_var_size (result,
-                           GNUNET_MESSAGE_TYPE_CREDENTIAL_COLLECT_RESULT,
-                           struct DelegationChainResultMessage,
-                           handle),
-    GNUNET_MQ_handler_end ()
-  };
+  struct GNUNET_MQ_MessageHandler handlers[] =
+    {GNUNET_MQ_hd_var_size (result,
+                            GNUNET_MESSAGE_TYPE_CREDENTIAL_VERIFY_RESULT,
+                            struct DelegationChainResultMessage,
+                            handle),
+     GNUNET_MQ_hd_var_size (result,
+                            GNUNET_MESSAGE_TYPE_CREDENTIAL_COLLECT_RESULT,
+                            struct DelegationChainResultMessage,
+                            handle),
+     GNUNET_MQ_handler_end ()};
   struct GNUNET_CREDENTIAL_Request *vr;
 
   GNUNET_assert (NULL == handle->mq);
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Trying to connect to CREDENTIAL\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Trying to connect to CREDENTIAL\n");
   handle->mq = GNUNET_CLIENT_connect (handle->cfg,
                                       "credential",
                                       handlers,
@@ -291,8 +278,7 @@ reconnect (struct GNUNET_CREDENTIAL_Handle *handle)
   if (NULL == handle->mq)
     return;
   for (vr = handle->request_head; NULL != vr; vr = vr->next)
-    GNUNET_MQ_send_copy (handle->mq,
-                         vr->env);
+    GNUNET_MQ_send_copy (handle->mq, vr->env);
 }
 
 
@@ -352,9 +338,7 @@ GNUNET_CREDENTIAL_request_cancel (struct GNUNET_CREDENTIAL_Request *lr)
 {
   struct GNUNET_CREDENTIAL_Handle *handle = lr->credential_handle;
 
-  GNUNET_CONTAINER_DLL_remove (handle->request_head,
-                               handle->request_tail,
-                               lr);
+  GNUNET_CONTAINER_DLL_remove (handle->request_head, handle->request_tail, lr);
   GNUNET_MQ_discard (lr->env);
   GNUNET_free (lr);
 }
@@ -373,13 +357,15 @@ GNUNET_CREDENTIAL_request_cancel (struct GNUNET_CREDENTIAL_Request *lr)
  * @param proc_cls closure for processor
  * @return handle to the queued request
  */
-struct GNUNET_CREDENTIAL_Request*
-GNUNET_CREDENTIAL_collect (struct GNUNET_CREDENTIAL_Handle *handle,
-                           const struct GNUNET_CRYPTO_EcdsaPublicKey *issuer_key,
-                           const char *issuer_attribute,
-                           const struct GNUNET_CRYPTO_EcdsaPrivateKey *subject_key,
-                           GNUNET_CREDENTIAL_CredentialResultProcessor proc,
-                           void *proc_cls)
+struct GNUNET_CREDENTIAL_Request *
+GNUNET_CREDENTIAL_collect (
+  struct GNUNET_CREDENTIAL_Handle *handle,
+  const struct GNUNET_CRYPTO_EcdsaPublicKey *issuer_key,
+  const char *issuer_attribute,
+  const struct GNUNET_CRYPTO_EcdsaPrivateKey *subject_key,
+  enum GNUNET_CREDENTIAL_AlgoDirectionFlags direction,
+  GNUNET_CREDENTIAL_CredentialResultProcessor proc,
+  void *proc_cls)
 {
   /* IPC to shorten credential names, return shorten_handle */
   struct CollectMessage *c_msg;
@@ -407,25 +393,18 @@ GNUNET_CREDENTIAL_collect (struct GNUNET_CREDENTIAL_Handle *handle,
   vr->verify_proc = proc;
   vr->proc_cls = proc_cls;
   vr->r_id = handle->r_id_gen++;
-  vr->env = GNUNET_MQ_msg_extra (c_msg,
-                                 nlen,
-                                 GNUNET_MESSAGE_TYPE_CREDENTIAL_COLLECT);
+  vr->env =
+    GNUNET_MQ_msg_extra (c_msg, nlen, GNUNET_MESSAGE_TYPE_CREDENTIAL_COLLECT);
   c_msg->id = htonl (vr->r_id);
   c_msg->subject_key = *subject_key;
-  c_msg->issuer_key =  *issuer_key;
-  c_msg->issuer_attribute_len = htons(strlen(issuer_attribute));
-  c_msg->resolution_algo = htons(Backward);
-  //c_msg->resolution_algo = htons(Forward);
+  c_msg->issuer_key = *issuer_key;
+  c_msg->issuer_attribute_len = htons (strlen (issuer_attribute));
+  c_msg->resolution_algo = htons (direction);
 
-  GNUNET_memcpy (&c_msg[1],
-                 issuer_attribute,
-                 strlen (issuer_attribute));
-  GNUNET_CONTAINER_DLL_insert (handle->request_head,
-                               handle->request_tail,
-                               vr);
+  GNUNET_memcpy (&c_msg[1], issuer_attribute, strlen (issuer_attribute));
+  GNUNET_CONTAINER_DLL_insert (handle->request_head, handle->request_tail, vr);
   if (NULL != handle->mq)
-    GNUNET_MQ_send_copy (handle->mq,
-                         vr->env);
+    GNUNET_MQ_send_copy (handle->mq, vr->env);
   return vr;
 }
 /**
@@ -446,15 +425,17 @@ GNUNET_CREDENTIAL_collect (struct GNUNET_CREDENTIAL_Handle *handle,
  * @param proc_cls closure for processor
  * @return handle to the queued request
  */
-struct GNUNET_CREDENTIAL_Request*
-GNUNET_CREDENTIAL_verify (struct GNUNET_CREDENTIAL_Handle *handle,
-                          const struct GNUNET_CRYPTO_EcdsaPublicKey *issuer_key,
-                          const char *issuer_attribute,
-                          const struct GNUNET_CRYPTO_EcdsaPublicKey *subject_key,
-                          uint32_t delegate_count,
-                          const struct GNUNET_CREDENTIAL_Delegate *delegates,
-                          GNUNET_CREDENTIAL_CredentialResultProcessor proc,
-                          void *proc_cls)
+struct GNUNET_CREDENTIAL_Request *
+GNUNET_CREDENTIAL_verify (
+  struct GNUNET_CREDENTIAL_Handle *handle,
+  const struct GNUNET_CRYPTO_EcdsaPublicKey *issuer_key,
+  const char *issuer_attribute,
+  const struct GNUNET_CRYPTO_EcdsaPublicKey *subject_key,
+  uint32_t delegate_count,
+  const struct GNUNET_CREDENTIAL_Delegate *delegates,
+  enum GNUNET_CREDENTIAL_AlgoDirectionFlags direction,
+  GNUNET_CREDENTIAL_CredentialResultProcessor proc,
+  void *proc_cls)
 {
   /* IPC to shorten credential names, return shorten_handle */
   struct VerifyMessage *v_msg;
@@ -468,8 +449,7 @@ GNUNET_CREDENTIAL_verify (struct GNUNET_CREDENTIAL_Handle *handle,
     return NULL;
   }
 
-  clen = GNUNET_CREDENTIAL_delegates_get_size (delegate_count,
-                                                 delegates);
+  clen = GNUNET_CREDENTIAL_delegates_get_size (delegate_count, delegates);
 
   //DEBUG LOG
   LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -486,31 +466,24 @@ GNUNET_CREDENTIAL_verify (struct GNUNET_CREDENTIAL_Handle *handle,
   vr->verify_proc = proc;
   vr->proc_cls = proc_cls;
   vr->r_id = handle->r_id_gen++;
-  vr->env = GNUNET_MQ_msg_extra (v_msg,
-                                 nlen,
-                                 GNUNET_MESSAGE_TYPE_CREDENTIAL_VERIFY);
+  vr->env =
+    GNUNET_MQ_msg_extra (v_msg, nlen, GNUNET_MESSAGE_TYPE_CREDENTIAL_VERIFY);
   v_msg->id = htonl (vr->r_id);
   v_msg->subject_key = *subject_key;
-  v_msg->d_count = htonl(delegate_count);
-  v_msg->issuer_key =  *issuer_key;
-  v_msg->issuer_attribute_len = htons(strlen(issuer_attribute));
-  v_msg->resolution_algo = htons(Backward);
-  //v_msg->resolution_algo = htons(Forward);
+  v_msg->d_count = htonl (delegate_count);
+  v_msg->issuer_key = *issuer_key;
+  v_msg->issuer_attribute_len = htons (strlen (issuer_attribute));
+  v_msg->resolution_algo = htons (direction);
 
-  GNUNET_memcpy (&v_msg[1],
-                 issuer_attribute,
-                 strlen (issuer_attribute));
+  GNUNET_memcpy (&v_msg[1], issuer_attribute, strlen (issuer_attribute));
   GNUNET_CREDENTIAL_delegates_serialize (delegate_count,
-                                           delegates,
-                                           clen,
-                                           ((char*)&v_msg[1])
-                                           + strlen (issuer_attribute) + 1);
-  GNUNET_CONTAINER_DLL_insert (handle->request_head,
-                               handle->request_tail,
-                               vr);
+                                         delegates,
+                                         clen,
+                                         ((char *) &v_msg[1]) +
+                                           strlen (issuer_attribute) + 1);
+  GNUNET_CONTAINER_DLL_insert (handle->request_head, handle->request_tail, vr);
   if (NULL != handle->mq)
-    GNUNET_MQ_send_copy (handle->mq,
-                         vr->env);
+    GNUNET_MQ_send_copy (handle->mq, vr->env);
   return vr;
 }
 

@@ -29,8 +29,6 @@
 
 GNUNET_NETWORK_STRUCT_BEGIN
 
-enum direction{Backward, Forward, Bidirectional}; 
-
 /**
  * Message from client to Credential service to collect credentials.
  */
@@ -249,7 +247,7 @@ struct DelegateEntry
    * Expiration time of this credential
    */
   uint64_t expiration GNUNET_PACKED;
-   
+
   /**
    * Issuer subject attribute length
    */

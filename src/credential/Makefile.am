@@ -72,8 +72,6 @@ libgnunetcredential_la_SOURCES = \
  credential_api.c credential.h\
  credential_serialization.c \
  credential_serialization.h \
- credential_misc.c \
- credential_misc.h \
  delegate_misc.c \
  delegate_misc.h
 libgnunetcredential_la_LIBADD = \

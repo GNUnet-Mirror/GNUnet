@@ -74,8 +74,10 @@ gnunet-credential --createSubjectSide --ego=f --import "$SIGNED"
 gnunet-namestore -D -z f
 
 SIGNED=`$DO_TIMEOUT gnunet-credential --signSubjectSide --ego=f --attribute="c" --subject="$GKEY" --ttl="2019-12-12 10:00:00"`
-gnunet-credential --createSubjectSide --ego=g --import "$SIGNED"
+gnunet-credential --createSubjectSide --ego=g --import "$SIGNED" --private
 SIGNED=`$DO_TIMEOUT gnunet-credential --signSubjectSide --ego=a --attribute="c" --subject="$GKEY" --ttl="2019-12-12 10:00:00"`
+gnunet-credential --createSubjectSide --ego=g --import "$SIGNED" --private
+SIGNED=`$DO_TIMEOUT gnunet-credential --signSubjectSide --ego=d --attribute="h.o" --subject="$GKEY" --ttl="2019-12-12 10:00:00"`
 gnunet-credential --createSubjectSide --ego=g --import "$SIGNED"
 gnunet-namestore -D -z g
 
@@ -92,20 +94,20 @@ gnunet-credential --createIssuerSide --ego=stateu --attribute=$STATE_STUD_ATTR -
 
 # (4) RegistrarB issues Alice the credential "student"
 SIGNED=`$DO_TIMEOUT gnunet-credential --signSubjectSide --ego=registrarb --attribute="$REG_STUD_ATTR" --subject="$ALICE_KEY" --ttl="2019-12-12 10:00:00"`
-gnunet-credential --createSubjectSide --ego=alice --import "$SIGNED"
+gnunet-credential --createSubjectSide --ego=alice --import "$SIGNED" --private
 
 # Starting to resolve
 echo "+++ Starting to Resolve +++"
 
-#CREDS=`$DO_TIMEOUT gnunet-credential --collect --issuer=$AKEY --attribute="a" --ego=g -c test_credential_lookup.conf | paste -d, -s`
-#echo $CREDS
-#echo gnunet-credential --verify --issuer=$AKEY --attribute="a" --subject=$GKEY --credential=\'$CREDS\' -c test_credential_lookup.conf
-#RES_CRED=`gnunet-credential --verify --issuer=$AKEY --attribute="a" --subject=$GKEY --credential="$CREDS" -c test_credential_lookup.conf`
+#DELS=`$DO_TIMEOUT gnunet-credential --collect --issuer=$AKEY --attribute="a" --ego=g --forward -c test_credential_lookup.conf | paste -d, -s`
+#echo $DELS
+#echo gnunet-credential --verify --issuer=$AKEY --attribute="a" --subject=$GKEY --delegate=\'$DELS\' --forward -c test_credential_lookup.conf
+#RES_DELS=`gnunet-credential --verify --issuer=$AKEY --attribute="a" --subject=$GKEY --delegate="$DELS" --forward -c test_credential_lookup.conf`
 
-CREDS=`$DO_TIMEOUT gnunet-credential --collect --issuer=$EPUB_KEY --attribute=$DISC_ATTR --ego=alice -c test_credential_lookup.conf | paste -d, -s`
-echo $CREDS
-echo gnunet-credential --verify --issuer=$EPUB_KEY --attribute=$DISC_ATTR --subject=$ALICE_KEY --credential=\'$CREDS\' -c test_credential_lookup.conf
-RES_CRED=`gnunet-credential --verify --issuer=$EPUB_KEY --attribute=$DISC_ATTR --subject=$ALICE_KEY --credential="$CREDS" -c test_credential_lookup.conf`
+DELS=`$DO_TIMEOUT gnunet-credential --collect --issuer=$EPUB_KEY --attribute=$DISC_ATTR --ego=alice --backward -c test_credential_lookup.conf | paste -d, -s`
+echo $DELS
+echo gnunet-credential --verify --issuer=$EPUB_KEY --attribute=$DISC_ATTR --subject=$ALICE_KEY --delegate=\'$DELS\' --backward -c test_credential_lookup.conf
+RES_DELS=`gnunet-credential --verify --issuer=$EPUB_KEY --attribute=$DISC_ATTR --subject=$ALICE_KEY --delegate="$DELS" --backward -c test_credential_lookup.conf`
 
 
 # Cleanup properly
@@ -120,13 +122,13 @@ gnunet-namestore -z stateu -d -n $STATE_STUD_ATTR -t ATTR -c test_credential_loo
 
 gnunet-arm -e -c test_credential_lookup.conf
 
-if [ "$RES_CRED" != "Failed." ]
+if [ "$RES_DELS" != "Failed." ]
 then
   # TODO: replace echo -e bashism
-  echo -e "${RES_CRED}"
+  echo -e "${RES_DELS}"
   exit 0
 else
-  echo "FAIL: Failed to verify credential $RES_CRED."
+  echo "FAIL: Failed to verify credential $RES_DELS."
   exit 1
 fi
 
