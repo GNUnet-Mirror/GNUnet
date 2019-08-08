@@ -148,7 +148,7 @@ struct GNUNET_CRYPTO_EccSignaturePurpose
 
 /**
  * @brief an ECC signature using EdDSA.
- * See https://gnunet.org/ed25519
+ * See cr.yp.to/papers.html#ed25519
  */
 struct GNUNET_CRYPTO_EddsaSignature
 {
