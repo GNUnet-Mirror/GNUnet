@@ -267,6 +267,15 @@ struct GNUNET_OS_ProjectData
    */
   const char *user_config_file;
 
+  /**
+   * String identifying the current project version.
+   */
+  const char *version;
+
+  /**
+   * Non-zero means this project is part of GNU.
+   */
+  int is_gnu;
 };
 
 

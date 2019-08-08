@@ -178,10 +178,13 @@ format_help (struct GNUNET_GETOPT_CommandLineProcessorContext *ctx,
   }
   pd = GNUNET_OS_project_data_get ();
   printf ("Report bugs to %s.\n"
-          "GNUnet home page: %s\n"
-          "General help using GNU software: http://www.gnu.org/gethelp/\n",
+          "Home page: %s\n",
           pd->bug_email,
           pd->homepage);
+
+  if (0 != pd->is_gnu)
+    printf ("General help using GNU software: http://www.gnu.org/gethelp/\n");
+  
   return GNUNET_NO;
 }
 

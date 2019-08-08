@@ -161,12 +161,13 @@ GNUNET_PROGRAM_run2 (int argc,
   unsigned long long skew_variance;
   long long clock_offset;
   struct GNUNET_CONFIGURATION_Handle *cfg;
+  const struct GNUNET_OS_ProjectData *pd = GNUNET_OS_project_data_get ();
   struct GNUNET_GETOPT_CommandLineOption defoptions[] =
     {GNUNET_GETOPT_option_cfgfile (&cc.cfgfile),
      GNUNET_GETOPT_option_help (binaryHelp),
      GNUNET_GETOPT_option_loglevel (&loglev),
      GNUNET_GETOPT_option_logfile (&logfile),
-     GNUNET_GETOPT_option_version (PACKAGE_VERSION " " VCS_VERSION)};
+     GNUNET_GETOPT_option_version (pd->version)};
   struct GNUNET_GETOPT_CommandLineOption *allopts;
   const char *gargs;
   char *lpfx;
@@ -231,9 +232,9 @@ GNUNET_PROGRAM_run2 (int argc,
                      "%s%s%s",
                      xdg,
                      DIR_SEPARATOR_STR,
-                     GNUNET_OS_project_data_get ()->config_file);
+                     pd->config_file);
   else
-    cfg_fn = GNUNET_strdup (GNUNET_OS_project_data_get ()->user_config_file);
+    cfg_fn = GNUNET_strdup (pd->user_config_file);
   lpfx = GNUNET_strdup (binaryName);
   if (NULL != (spc = strstr (lpfx, " ")))
     *spc = '\0';
