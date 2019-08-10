@@ -343,7 +343,7 @@ socket_set_inheritable (const struct GNUNET_NETWORK_Handle *h)
  *
  * @param h the socket to make non-delaying
  */
-static void
+static int
 socket_set_nosigpipe (const struct GNUNET_NETWORK_Handle *h)
 {
   int abs_value = 1;
@@ -352,7 +352,8 @@ socket_set_nosigpipe (const struct GNUNET_NETWORK_Handle *h)
       setsockopt (h->fd, SOL_SOCKET, SO_NOSIGPIPE,
                   (const void *) &abs_value,
                   sizeof (abs_value)))
-    LOG_STRERROR (GNUNET_ERROR_TYPE_WARNING, "setsockopt");
+    return GNUNET_SYSERR;
+  return GNUNET_OK;
 }
 #endif
 
@@ -444,7 +445,14 @@ initialize_network_handle (struct GNUNET_NETWORK_Handle *h,
     return GNUNET_SYSERR;
   }
 #ifdef DARWIN
-  socket_set_nosigpipe (h);
+  if (GNUNET_SYSERR == socket_set_nosigpipe (h))
+  {
+    eno = errno;
+    GNUNET_break (0);
+    GNUNET_break (GNUNET_OK == GNUNET_NETWORK_socket_close (h));
+    errno = eno;
+    return GNUNET_SYSERR;
+  }
 #endif
   if ( (type == SOCK_STREAM)
 #ifdef AF_UNIX
