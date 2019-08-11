@@ -110,6 +110,7 @@ echo gnunet-credential --verify --issuer=$EPUB_KEY --attribute=$DISC_ATTR --subj
 RES_DELS=`gnunet-credential --verify --issuer=$EPUB_KEY --attribute=$DISC_ATTR --subject=$ALICE_KEY --delegate="$DELS" --backward -c test_credential_lookup.conf`
 
 
+
 # Cleanup properly
 gnunet-namestore -z epub -d -n $DISC_ATTR -t ATTR -c test_credential_lookup.conf
 gnunet-namestore -z eorg -d -n $PREF_ATTR -t ATTR -c test_credential_lookup.conf

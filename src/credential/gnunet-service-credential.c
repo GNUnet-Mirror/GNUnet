@@ -243,6 +243,11 @@ struct DelegationSetQueueEntry
    * The delegation chain entry
    */
   struct DelegationChainEntry *delegation_chain_entry;
+
+  /**
+   * True if added by backward resolution
+   */
+  bool from_bw;
 };
 
 
@@ -368,6 +373,10 @@ static struct GNUNET_STATISTICS_Handle *statistics;
  * Handle to GNS service.
  */
 static struct GNUNET_GNS_Handle *gns;
+
+//TODO vrh dependent
+static struct DelegationSetQueueEntry *dsq_head;
+static struct DelegationSetQueueEntry *dsq_tail;
 
 
 /**
@@ -564,7 +573,8 @@ send_lookup_response (struct VerifyRequestHandle *vrh)
 
   GNUNET_MQ_send (GNUNET_SERVICE_client_get_mq (vrh->client), env);
   GNUNET_CONTAINER_DLL_remove (vrh_head, vrh_tail, vrh);
-  cleanup_handle (vrh);
+  //TODO fix cleanup with bidirectional
+  //cleanup_handle (vrh);
 
   GNUNET_STATISTICS_update (statistics,
                             "Completed verifications",
@@ -806,6 +816,42 @@ forward_resolution (void *cls,
       }
     }
 
+    // TODO testing area   
+
+    // Check list
+    for (struct DelegationSetQueueEntry *del_entry = dsq_head;
+               del_entry != NULL;
+               del_entry = del_entry->next)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"--fw-------- %s.%s <- %s.%s\n", 
+      GNUNET_CRYPTO_ecdsa_public_key_to_string(&del_entry->delegation_chain_entry->issuer_key),
+      del_entry->delegation_chain_entry->issuer_attribute,
+      GNUNET_CRYPTO_ecdsa_public_key_to_string(&del_entry->delegation_chain_entry->subject_key),
+      del_entry->delegation_chain_entry->subject_attribute);
+
+      // only check entries not added by forward algorithm
+      if(del_entry->from_bw)
+      {
+        // key of list entry matches actual key
+        if (0 == memcmp (&del_entry->delegation_chain_entry->subject_key,
+                             &ds_entry->delegation_chain_entry->issuer_key,
+                             sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey)))
+        {
+          // compare entry subject attributes to this trailer (iss attr + old trailer)
+          if (0 == strcmp (del_entry->delegation_chain_entry->subject_attribute,
+                               ds_entry->attr_trailer))
+          {
+            GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"--fw-------- Found match with above!\n"); 
+            send_lookup_response (vrh);
+            return;
+          }
+        }
+      }
+    }
+    // No crossmatch/bidirectional result, add this ds_entry for the bw algo to match
+    ds_entry->from_bw = false; 
+    GNUNET_CONTAINER_DLL_insert (dsq_head, dsq_tail, ds_entry);
+
     // Starting a new GNS lookup
     vrh->pending_lookups++;
     ds_entry->handle = vrh;
@@ -830,6 +876,17 @@ forward_resolution (void *cls,
     send_lookup_response (vrh);
     return;
   }
+}
+
+static void
+print_deleset(struct DelegationSetQueueEntry *dsentry, char* text)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"%s %s.%s <- %s.%s\n",
+                        text, 
+                        GNUNET_CRYPTO_ecdsa_public_key_to_string(&dsentry->delegation_chain_entry->issuer_key),
+                        dsentry->delegation_chain_entry->issuer_attribute,
+                        GNUNET_CRYPTO_ecdsa_public_key_to_string(&dsentry->delegation_chain_entry->subject_key),
+                        dsentry->delegation_chain_entry->subject_attribute);
 }
 
 static void
@@ -934,14 +991,15 @@ backward_resolution (void *cls,
                                    dq_entry->set_entries_tail,
                                    ds_entry);
 
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Checking for cred match\n");
       /**
        * Check if this delegation already matches one of our credentials
        */
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Checking for cred match\n");
+
       for (del_pointer = vrh->del_chain_head; del_pointer != NULL;
            del_pointer = del_pointer->next)
       {
-        // If key and attribute match credential continue and backtrack
+        // If key and attribute match credential: continue and backtrack
         if (0 != memcmp (&set->subject_key,
                          &del_pointer->delegate->issuer_key,
                          sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey)))
@@ -956,7 +1014,9 @@ backward_resolution (void *cls,
           continue;
 
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Found issuer\n");
+        // increase refcount of the start delegation
         del_pointer->refcount++;
+
         // Backtrack
         for (tmp_set = ds_entry; NULL != tmp_set->parent_queue_entry;
              tmp_set = tmp_set->parent_queue_entry->parent_set)
@@ -973,6 +1033,7 @@ backward_resolution (void *cls,
             break;
         }
 
+        // if the break above is not called the condition of the for is met 
         if (NULL == tmp_set->parent_queue_entry)
         {
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "All solutions found\n");
@@ -983,10 +1044,11 @@ backward_resolution (void *cls,
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Not all solutions found yet.\n");
         continue;
       }
+
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Building new lookup request from %s\n",
                   ds_entry->unresolved_attribute_delegation);
-      // Continue with backward resolution
+      // Continue with next/new backward resolution
       char issuer_attribute_name[strlen (
                                    ds_entry->unresolved_attribute_delegation) +
                                  1];
@@ -1010,6 +1072,106 @@ backward_resolution (void *cls,
         next_attr += strlen (next_attr) + 1;
         ds_entry->attr_trailer = GNUNET_strdup (next_attr);
       }
+
+
+      // TODO testing area
+      // Check list
+      for (struct DelegationSetQueueEntry *del_entry = dsq_head;
+                del_entry != NULL;
+                del_entry = del_entry->next)
+      {
+        print_deleset(del_entry, "-----bw----- ");
+
+        // only check entries not added by forward algorithm
+        if(!del_entry->from_bw)
+        {
+          // key of list entry matches actual key
+          if (0 == memcmp (&del_entry->delegation_chain_entry->issuer_key,
+                              &ds_entry->delegation_chain_entry->subject_key,
+                              sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey)))
+          {
+            // compare entry subject attributes to this trailer (iss attr + old trailer)
+            if (0 == strcmp (del_entry->attr_trailer,
+                                ds_entry->delegation_chain_entry->subject_attribute))
+            {
+              GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"--bw-------- Found match with above!\n"); 
+              
+              //TODO parents are not set correctly, for FW parents are going down in the chain
+              // and for BW parents are going up
+              // therefore: parent fixing needs to be done and then the stuff from above
+              // backtrack(required solutions) and refcount++
+              // might need some functions cuz its getting real big in here
+
+              struct DelegationSetQueueEntry *old_fw_parent;
+              struct DelegationSetQueueEntry *fw_entry = del_entry;
+              struct DelegationSetQueueEntry *bw_entry = ds_entry;
+              // parentset and add
+              while(NULL != fw_entry->parent_queue_entry)
+              {
+                print_deleset(fw_entry, "-----in while----- ");
+                old_fw_parent = fw_entry->parent_queue_entry->parent_set;
+                // set parent
+                fw_entry->parent_queue_entry->parent_set = bw_entry;
+
+                bw_entry = fw_entry;
+                fw_entry = old_fw_parent;
+              }
+              GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "NACH WHILE\n");
+              // set last entry of chain as actual ds_entry
+              ds_entry = bw_entry;
+              // set refcount, loop all delegations
+              for (del_pointer = vrh->del_chain_head; del_pointer != NULL;
+                  del_pointer = del_pointer->next)
+              {
+                if (0 != memcmp (&ds_entry->delegation_chain_entry->subject_key,
+                         &del_pointer->delegate->issuer_key,
+                         sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey)))
+                  continue;
+                if (0 != strcmp (ds_entry->delegation_chain_entry->subject_attribute,
+                                del_pointer->delegate->issuer_attribute))
+                  continue;
+
+                GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Found delegate.\n");
+                // increase refcount of the start delegation
+                del_pointer->refcount++;
+              }
+              // backtrack
+              for (tmp_set = ds_entry; NULL != tmp_set->parent_queue_entry;
+                  tmp_set = tmp_set->parent_queue_entry->parent_set)
+              {
+                //TODO set refcount
+                print_deleset(tmp_set, "-----ENDSET----- ");
+                tmp_set->parent_queue_entry->required_solutions--;
+
+                // add new found entry to vrh
+                vrh->delegation_chain_size++;
+                GNUNET_CONTAINER_DLL_insert (vrh->delegation_chain_head,
+                                         vrh->delegation_chain_tail,
+                                         tmp_set->delegation_chain_entry);
+
+                // if one node on the path still needs solutions, this current
+                // patch cannot fullfil the conditions and therefore stops here
+                // however, it is in the vrh and can be used by the other paths
+                // related to this path/collection/verification
+                if (0 < tmp_set->parent_queue_entry->required_solutions)
+                {
+                  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Chain requires more solutions, waiting...\n");
+                  return;
+                }
+              }
+              GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "NACH FOR\n");
+              
+              send_lookup_response (vrh);
+              return;
+            }
+          }
+        }
+      }
+      // No crossmatch/bidirectional result, add this ds_entry for the bw algo to match
+      ds_entry->from_bw = true; 
+      GNUNET_CONTAINER_DLL_insert (dsq_head, dsq_tail, ds_entry);
+
+
 
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Looking up %s\n",
@@ -1305,17 +1467,18 @@ handle_verify (void *cls, const struct VerifyMessage *v_msg)
   }
 
   // Switch resolution algo
-  if (GNUNET_CREDENTIAL_FLAG_BACKWARD & vrh->resolution_algo)
+  if(GNUNET_CREDENTIAL_FLAG_BACKWARD & vrh->resolution_algo && GNUNET_CREDENTIAL_FLAG_FORWARD & vrh->resolution_algo)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "--------BOTH\n");
+    delegation_chain_fw_resolution_start (vrh);
+    delegation_chain_bw_resolution_start (vrh);
+  } else if (GNUNET_CREDENTIAL_FLAG_BACKWARD & vrh->resolution_algo)
   {
     delegation_chain_bw_resolution_start (vrh);
   }
   else if (GNUNET_CREDENTIAL_FLAG_FORWARD & vrh->resolution_algo)
   {
     delegation_chain_fw_resolution_start (vrh);
-  }
-  else
-  {
-    //TODO
   }
 }
 
@@ -1335,17 +1498,19 @@ delegate_collection_finished (void *cls)
   struct VerifyRequestHandle *vrh = cls;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Done collecting delegates.\n");
 
-  if (GNUNET_CREDENTIAL_FLAG_BACKWARD & vrh->resolution_algo)
+  //TODO correct calls
+  if(GNUNET_CREDENTIAL_FLAG_BACKWARD & vrh->resolution_algo && GNUNET_CREDENTIAL_FLAG_FORWARD & vrh->resolution_algo)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "--------BOTH\n");
+    delegation_chain_fw_resolution_start (vrh);
+    delegation_chain_bw_resolution_start (vrh);
+  }else if (GNUNET_CREDENTIAL_FLAG_BACKWARD & vrh->resolution_algo)
   {
     delegation_chain_bw_resolution_start (vrh);
   }
   else if (GNUNET_CREDENTIAL_FLAG_FORWARD & vrh->resolution_algo)
   {
     delegation_chain_fw_resolution_start (vrh);
-  }
-  else
-  {
-    //TODO
   }
 }
 
