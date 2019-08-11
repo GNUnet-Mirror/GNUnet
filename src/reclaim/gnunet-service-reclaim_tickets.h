@@ -42,11 +42,27 @@
 #include "gnunet_statistics_service.h"
 #include "reclaim.h"
 
+/**
+ * Ticket iterator
+ */
 struct RECLAIM_TICKETS_Iterator;
+
+
+/**
+ * Handle to a consume operation
+ */
 struct RECLAIM_TICKETS_ConsumeHandle;
+
+
+/**
+ * Ticket revocation request handle
+ */
 struct RECLAIM_TICKETS_RevokeHandle;
 
 
+/**
+ * List of tickets
+ */
 struct TicketRecordsEntry
 {
   /**
@@ -88,7 +104,8 @@ struct TicketRecordsEntry
  * @param ticket the ticket
  */
 typedef void (*RECLAIM_TICKETS_TicketIter) (
-    void *cls, struct GNUNET_RECLAIM_Ticket *ticket);
+  void *cls,
+  struct GNUNET_RECLAIM_Ticket *ticket);
 
 
 /**
@@ -101,59 +118,159 @@ typedef void (*RECLAIM_TICKETS_TicketIter) (
  * @param emsg NULL on success, otherwise an error message
  */
 typedef void (*RECLAIM_TICKETS_TicketResult) (
-    void *cls, struct GNUNET_RECLAIM_Ticket *ticket, int32_t success,
-    const char *emsg);
+  void *cls,
+  struct GNUNET_RECLAIM_Ticket *ticket,
+  int32_t success,
+  const char *emsg);
 
 
+/**
+ * Consume callback.
+ *
+ * @param cls closure
+ * @param identity the issuer of the ticket/attributes
+ * @param l attribute list retrieved through ticket
+ * @param success GNUNET_OK on success
+ * @param emsg error message (NULL on success)
+ */
 typedef void (*RECLAIM_TICKETS_ConsumeCallback) (
-    void *cls, const struct GNUNET_CRYPTO_EcdsaPublicKey *identity,
-    const struct GNUNET_RECLAIM_ATTRIBUTE_ClaimList *l, int32_t success,
-    const char *emsg);
+  void *cls,
+  const struct GNUNET_CRYPTO_EcdsaPublicKey *identity,
+  const struct GNUNET_RECLAIM_ATTRIBUTE_ClaimList *l,
+  int32_t success,
+  const char *emsg);
 
 
+/**
+ * Revocation callback.
+ *
+ * @param cls closure
+ * @param success GNUNET_OK on success
+ */
 typedef void (*RECLAIM_TICKETS_RevokeCallback) (void *cls, int32_t success);
 
+
+/**
+ * Revoke a ticket.
+ * We start by looking up attribute references in order
+ * to change attribute IDs.
+ *
+ * @param ticket ticket to revoke
+ * @param identity private key of issuer
+ * @param cb revocation status callback
+ * @param cb_cls callback closure
+ * @return handle to the operation
+ */
 struct RECLAIM_TICKETS_RevokeHandle *
 RECLAIM_TICKETS_revoke (const struct GNUNET_RECLAIM_Ticket *ticket,
                         const struct GNUNET_CRYPTO_EcdsaPrivateKey *identity,
-                        RECLAIM_TICKETS_RevokeCallback cb, void *cb_cls);
+                        RECLAIM_TICKETS_RevokeCallback cb,
+                        void *cb_cls);
 
 
+/**
+ * Cancel a revocation.
+ *
+ * @param rh handle to the operation
+ */
 void
 RECLAIM_TICKETS_revoke_cancel (struct RECLAIM_TICKETS_RevokeHandle *rh);
 
 
+/**
+ * Consume a ticket.
+ * We first looking attribute references under the label
+ * ticket.rnd in GNS.
+ *
+ * @param id the audience of the ticket
+ * @param ticket the ticket to consume
+ * @param cb callback to call with attributes of ticket
+ * @param cb_cls callback closure
+ * @return handle to the operation
+ */
 struct RECLAIM_TICKETS_ConsumeHandle *
 RECLAIM_TICKETS_consume (const struct GNUNET_CRYPTO_EcdsaPrivateKey *id,
                          const struct GNUNET_RECLAIM_Ticket *ticket,
-                         RECLAIM_TICKETS_ConsumeCallback cb, void *cb_cls);
+                         RECLAIM_TICKETS_ConsumeCallback cb,
+                         void *cb_cls);
 
+
+/**
+ * Cancel a consume operation
+ *
+ * @param cth the operation to cancel
+ */
 void
 RECLAIM_TICKETS_consume_cancel (struct RECLAIM_TICKETS_ConsumeHandle *cth);
 
+
+/**
+ * Issue a new reclaim ticket, thereby authorizing
+ * the audience to access the set of provided attributes.
+ *
+ * @param identity the issuer
+ * @param attrs the attributes to share
+ * @param audience the audience to share the attributes with
+ * @param cb the callback to call with the ticket result
+ * @param cb_cls the callback closure
+ * FIXME: Return handle??
+ */
 void
 RECLAIM_TICKETS_issue (const struct GNUNET_CRYPTO_EcdsaPrivateKey *identity,
                        const struct GNUNET_RECLAIM_ATTRIBUTE_ClaimList *attrs,
                        const struct GNUNET_CRYPTO_EcdsaPublicKey *audience,
-                       RECLAIM_TICKETS_TicketResult cb, void *cb_cls);
+                       RECLAIM_TICKETS_TicketResult cb,
+                       void *cb_cls);
 
+
+/**
+ * Continue ticket iteration
+ *
+ * @param iter the iteration to continue
+ */
 void
 RECLAIM_TICKETS_iteration_next (struct RECLAIM_TICKETS_Iterator *iter);
 
 
+/**
+ * Stop a running ticket iteration
+ *
+ * @param iter iteration to cancel
+ */
 void
 RECLAIM_TICKETS_iteration_stop (struct RECLAIM_TICKETS_Iterator *iter);
 
 
+/**
+ * Iterate over all tickets issued by an identity
+ *
+ * @param identity the issuing identity
+ * @param cb ticket callback function
+ * @param cb_cls callback closure
+ * @return a handle to the iteration
+ */
 struct RECLAIM_TICKETS_Iterator *
 RECLAIM_TICKETS_iteration_start (
-    const struct GNUNET_CRYPTO_EcdsaPrivateKey *identity,
-    RECLAIM_TICKETS_TicketIter cb, void *cb_cls);
+  const struct GNUNET_CRYPTO_EcdsaPrivateKey *identity,
+  RECLAIM_TICKETS_TicketIter cb,
+  void *cb_cls);
 
 
+/**
+ * Initialize tickets component
+ *
+ * @param c the configuration
+ * @return GNUNET_SYSERR on error
+ */
 int
 RECLAIM_TICKETS_init (const struct GNUNET_CONFIGURATION_Handle *c);
 
+
+/**
+ * Close handles and clean up.
+ * FIXME: cancel all pending operations (gns, ns etc)
+ */
 void
 RECLAIM_TICKETS_deinit (void);
+
 #endif
