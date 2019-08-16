@@ -192,7 +192,7 @@ Requirements
 ============
 
 GNUnet's directed acyclic graph (DAG) will require around 0.74 GiB
-Diskspace, with GNUNet itself taking around 8 - 9.2 MiB reported by
+Diskspace, with GNUnet itself taking around 8 - 9.2 MiB reported by
 the build on GNU Guix.
 
 How to install?

@@ -173,7 +173,7 @@ struct GNUNET_SOCKS_Handshake
 void
 register_reciever (struct GNUNET_SOCKS_Handshake *ih, int want);
 
-/* In fact, the client sends first rule in GNUNet suggests one could take
+/* In fact, the client sends first rule in GNUnet suggests one could take
    * large mac read sizes without fear of screwing up the proxied protocol,
    * but we make a proper SOCKS5 client. */
 #define register_reciever_wants(ih) ((SOCKS5_step_cmd == ih->step) ? 10 : 2)
