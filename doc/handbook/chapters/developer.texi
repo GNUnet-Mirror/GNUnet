@@ -1246,14 +1246,14 @@ for the remainder of this section.
 
 @example
 cd \$TMPDIR
-wget https://ftp.gnu.org/gnu/gnunet/gnurl-7.60.0.tar.Z
-wget https://ftp.gnu.org/gnu/gnunet/gnurl-7.60.0.tar.Z.sig
+wget https://ftp.gnu.org/gnu/gnunet/gnurl-7.65.3.tar.Z
+wget https://ftp.gnu.org/gnu/gnunet/gnurl-7.65.3.tar.Z.sig
 @end example
 
 Next, verify the digital signature of the file:
 
 @example
-gpg --verify gnurl-7.60.0.tar.Z.sig
+gpg --verify gnurl-7.65.3.tar.Z.sig
 @end example
 
 If gpg fails, you might try with @command{gpg2} on your OS. If the error
@@ -1265,19 +1265,28 @@ keyserver first:
 gpg --keyserver pgp.mit.edu --recv-keys A88C8ADD129828D7EAC02E52E22F9BBFEE348588
 @end example
 
+or
+
+@example
+gpg --keyserver hkps://keys.openpgp.org --recv-keys A88C8ADD129828D7EAC02E52E22F9BBFEE348588
+@end example
+
 and rerun the verification command.
 
 libgnurl will require the following packages to be present at runtime:
-gnutls (with DANE support / libunbound), libidn, zlib and at compile time:
-libtool, groff, perl, pkg-config, and python 2.7.
+GnuTLS (with DANE support / libunbound), libidn, zlib and at compile time:
+libtool, perl, pkg-config, and (for tests) python (2.7, or
+any version of python 3).
 
 Once you have verified that all the required packages are present on your
-system, we can proceed to compile libgnurl:
+system, we can proceed to compile libgnurl. This assumes you will install
+gnurl in the default location as prefix. To change this, pass --prefix= to
+the configure-gnurl script (which is a simple wrapper around configure).
 
 @example
-tar -xvf gnurl-7.60.0.tar.Z
-cd gnurl-7.60.0
-sh configure --disable-ntlm-wb
+tar -xvf gnurl-7.65.3.tar.Z
+cd gnurl-7.65.3
+sh ./configure-gnurl
 make
 make -C tests test
 sudo make install
