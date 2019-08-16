@@ -20,7 +20,11 @@ AM_MAKEINFOHTMLFLAGS = --no-split --css-include=style.css --css-include=manual.c
 else
 # In the 5.x version they added `--split=chapters|sections` in
 # addition to `--split=nodes`.
-AM_MAKEINFOHTMLFLAGS = --split=sections --css-ref="style.css" --css-ref="manual.css"
+# Hold on to your hats: In version 6.5 this is already removed, ffs.
+# GNU Texinfo, please be more consistent than 1 version in switches.
+# This however is compatible to version 5.2. Thanks, I hate it.
+# AM_MAKEINFOHTMLFLAGS = --split=sections --css-ref="../style.css" --css-ref="../manual.css"
+AM_MAKEINFOHTMLFLAGS = --split --css-ref="../style.css" --css-ref="../manual.css"
 endif
 
 #DOT_OPTIONS =							\
@@ -137,7 +141,7 @@ dev-build: version.texi/replacement
 clean: version.texi/replacement/revert
 	@rm -f gnunet-tutorial.pdf
 	@rm -f gnunet-tutorial.info
-	@rm -f gnunet-tutorial.html
+	@rm -rf gnunet-tutorial.html
 	@rm -fr gnunet-tutorial.t2p
 
 # CLEANFILES =						\
