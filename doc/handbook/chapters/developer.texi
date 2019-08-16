@@ -2411,8 +2411,8 @@ any attempts to make the same call later will be allowed or disallowed
 right away. Because of that runtime log level evaluation should not
 significantly affect the process performance.
 Log definition parsing is only done once, at the first call to
-@code{GNUNET_log_setup ()} made by the process (which is usually done soon after
-it starts).
+@code{GNUNET_log_setup ()} made by the process (which is usually
+done soon after it starts).
 
 At the moment of writing there is no way to specify logging definitions
 from configuration files, only via environment variables.
@@ -2576,8 +2576,7 @@ Pretty hard to follow, huh?
 
 From now on, it is not necessary to include the #if / #endif statements to
 achieve the same behavior. The @code{GNUNET_log} and @code{GNUNET_log_from}
-macros take
-care of it for you, depending on the configure option:
+macros take care of it for you, depending on the configure option:
 
 @itemize @bullet
 @item If @code{--enable-logging} is set to @code{no}, the binary will
@@ -2589,8 +2588,7 @@ no effect. Other messages (ERROR, WARNING, INFO, etc) will be included.
 @item If @code{--enable-logging} is set to @code{verbose}, or
 @code{veryverbose} the binary will contain DEBUG messages (still, it will
 be necessary to run with @command{-L DEBUG} or set the DEBUG config option
-to show
-them).
+to show them).
 @end itemize
 
 
@@ -8933,7 +8931,8 @@ independently of the frequency in the input set. Both an element that
 was put into the sampler a single time and an element that was put into
 it a million times have the same probability of being the output.
 This is achieved with exploiting min-wise independent
-permutations. In the RPS service we use HMACs: On the initialisation of a sampler
+permutations.
+In the RPS service we use HMACs: On the initialisation of a sampler
 element, a key is chosen at random. On each input the HMAC with the
 random key is computed. The sampler element keeps the element with the
 minimal HMAC.
