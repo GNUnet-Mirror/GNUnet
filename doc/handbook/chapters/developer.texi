@@ -1460,7 +1460,7 @@ Again, adding a @code{crontab} entry to autostart the peer is advised:
 @end example
 
 @noindent
-Note that some GNUnet services (such as SOCKS5 proxies) may need a
+Note that some GNUnet services (such as socks5 proxies) may need a
 system-wide TCP port for each user.
 For those services, systems with more than one user may require each user
 to specify a different port number in their personal configuration file.
