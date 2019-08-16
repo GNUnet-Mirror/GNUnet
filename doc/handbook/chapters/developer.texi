@@ -1320,7 +1320,8 @@ dependencies including development headers from your distribution.
 
 Other dependencies that you should strongly consider to install is a
 database (MySQL, SQLite3 or Postgres).
-The following instructions will assume that you installed at least sqlite.
+The following instructions will assume that you installed at least
+SQLite3 (commonly distributed as ``sqlite'' or ``sqlite3'').
 For most distributions you should be able to find pre-build packages for
 the database. Again, make sure to install the client libraries @b{and} the
 respective development headers (if they are packaged separately) as well.
