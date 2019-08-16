@@ -22,7 +22,7 @@ AM_MAKEINFOHTMLFLAGS = --no-split --css-include=style.css --css-include=manual.c
 else
 # In the 5.x version they added `--split=chapters|sections` in
 # addition to `--split=nodes`.
-AM_MAKEINFOHTMLFLAGS = --split=sections --css-ref=style.css --css-ref=manual.css
+AM_MAKEINFOHTMLFLAGS = --split=sections --css-ref="style.css" --css-ref="manual.css"
 endif
 
 dist_infoimage_DATA =                           		\
