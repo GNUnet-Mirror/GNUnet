@@ -1326,6 +1326,8 @@ For most distributions you should be able to find pre-build packages for
 the database. Again, make sure to install the client libraries @b{and} the
 respective development headers (if they are packaged separately) as well.
 
+@c TODO: Do these platform specific descriptions still exist? If not,
+@c we should find a way to sync website parts with this texinfo.
 You can find specific, detailed instructions for installing of the
 dependencies (and possibly the rest of the GNUnet installation) in the
 platform-specific descriptions, which can be found in the Index.
