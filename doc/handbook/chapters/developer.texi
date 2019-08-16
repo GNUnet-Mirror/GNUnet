@@ -1364,7 +1364,7 @@ sudo addgroup --system gnunetdns
 @end example
 
 @noindent
-On other Unixes and GNU systems, this should have the same effect:
+On other Unix-like systems, this should have the same effect:
 
 @example
 sudo useradd --system --groups gnunet --home-dir /var/lib/gnunet
