@@ -1210,7 +1210,9 @@ We advise against compiling widely used packages such as GnuTLS
 yourself if your OS provides a variant already unless you take care
 of maintenance of the packages then.
 
-In the optimistic case, this command will give you all the dependencies:
+In the optimistic case, this command will give you all the dependencies
+on Debian, Debian derived systems or any Linux Operating System using
+the apt package manager:
 
 @example
 sudo apt-get install libgnurl libmicrohttpd libextractor
