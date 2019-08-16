@@ -1648,6 +1648,7 @@ However, most of the time only one ARM process is needed. Note that on
 exit, the testcase should shutdown ARM with a @code{TERM} signal (to give
 it the chance to cleanly stop its child processes).
 
+@c TODO: Is this still compiling and working as intended?
 The following code illustrates spawning and killing an ARM process from a
 testcase:
 
