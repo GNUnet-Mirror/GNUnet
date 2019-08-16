@@ -1229,17 +1229,20 @@ installing it will cause no filename or namespace collisions.
 @cindex compiling libgnurl
 GNUnet and some of its function depend on a limited subset of cURL/libcurl.
 Rather than trying to enforce a certain configuration on the world, we
-opted to maintain a microfork of it that ensures we can link against the
-right set of features. We called this specialized set of libcurl
-``libgnurl''. It is fully ABI compatible with libcurl and currently used
-by GNUnet and some of its dependencies.
+opted to maintain a microfork of it that ensures that we can link
+against the right set of features.
+We called this specialized set of libcurl "libgnurl".
+It is fully ABI compatible with libcurl and currently used by
+GNUnet and some of its dependencies.
 
 We download libgnurl and its digital signature from the GNU fileserver,
 assuming @env{TMPDIR} exists.
 
+@quotation
 Note: TMPDIR might be @file{/tmp}, @env{TMPDIR}, @env{TMP} or any other
 location. For consistency we assume @env{TMPDIR} points to @file{/tmp}
 for the remainder of this section.
+@end quotation
 
 @example
 cd \$TMPDIR
