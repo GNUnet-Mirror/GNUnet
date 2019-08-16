@@ -1221,11 +1221,9 @@ sudo apt-get install libgnurl libmicrohttpd libextractor
 From experience we know that at the very least libgnurl is not
 available in some environments. You could substitute libgnurl
 with libcurl, but we recommend to install libgnurl, as it gives
-you a predefined libcurl with the small set GNUnet requires. In
-the past namespaces of libcurl and libgnurl were shared, which
-caused problems when you wanted to integrate both of them in one
-Operating System. This has been resolved, and they can be installed
-side by side now.
+you a predefined libcurl with the small set GNUnet requires.
+libgnurl has been developed to co-exist with libcurl installations,
+installing it will cause no filename or namespace collisions.
 
 @cindex libgnurl
 @cindex compiling libgnurl
