@@ -230,12 +230,11 @@ Library for accessing satellite connection quality reports
 @item @command{libgnurl}
 gnURL (feature-restricted variant of cURL/libcurl)
 @item @command{www}
-work in progress of the new gnunet.org website (Jinja2 framework based to
-replace our current Drupal website)
+the gnunet.org website (Jinja2 based)
 @item @command{bibliography}
 Our collected bibliography, papers, references, and so forth
 @item @command{gnunet-videos-}
-Videos about and around gnunet activities
+Videos about and around GNUnet activities
 @end table
 
 Finally, there are various external projects (see links for a list of
