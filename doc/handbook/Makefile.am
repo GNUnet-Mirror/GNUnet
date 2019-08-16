@@ -188,7 +188,7 @@ dev-build: version.texi/replacement
 # TODO: Add more to clean.
 clean: version.texi/replacement/revert
 	@rm -f gnunet.pdf
-	@rm -f gnunet.html
+	@rm -rf gnunet.html
 	@rm -f gnunet.info
 	@rm -f gnunet.info-1
 	@rm -f gnunet.info-2
