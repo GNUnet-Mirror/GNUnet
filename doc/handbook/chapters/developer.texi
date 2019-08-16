@@ -1319,7 +1319,7 @@ Make sure to first install the various mandatory and optional
 dependencies including development headers from your distribution.
 
 Other dependencies that you should strongly consider to install is a
-database (MySQL, sqlite or Postgres).
+database (MySQL, SQLite3 or Postgres).
 The following instructions will assume that you installed at least sqlite.
 For most distributions you should be able to find pre-build packages for
 the database. Again, make sure to install the client libraries @b{and} the
