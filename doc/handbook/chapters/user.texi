@@ -1015,7 +1015,7 @@ basically contain files using a file-sharing specific record type.
 
 Files (or directories) that have been signed and placed into a
 namespace can be updated. Updates are identified as authentic if the
-same secret key was used to sign the update. 
+same secret key was used to sign the update.
 
 @node Advertisements
 @subsubsection Advertisements
@@ -1704,6 +1704,7 @@ nameserver, i.e.
 
 @example
 Name: pet; RRType: GNS2DNS; Value: gnunet.org@@ns-joker.+@
+
 Name: ns-joker; RRType: A; Value: 184.172.157.218
 @end example
 
@@ -1734,64 +1735,124 @@ should use the ZKEY zone as the destination hostname and
 GNS-enabled mail servers should be configured to accept
 e-mails to the ZKEY-zones of all local users.
 
+To add a SOA record via the gnunet-namestore command line
+tool use the following syntax for the value option. Choose
+the other options according to your preference, however in
+this example we will use a relative expiry, add the record
+under the label @ and add the records to the zone bar
+which already exists:
+
+@example
+$ gnunet-namestore -a -n @ -t SOA -z bar -e 3600s -V \
+>    "rname=$PRIMARY_NS \
+>    mname=$CONTACT_MAIL \
+>    $SERIAL,$REFRESH,$RETRY,$EXPIRY,$MINIMUM_TTL"
+@end example
+
+The above command filled in with values looks like this:
+@example
+$ gnunet-namestore -a -n @ -t SOA -z bar -e 3600s -V \
+>    "rname=ns1.bar \
+>    mname=root.bar \
+>    2019081701,3600,1800,86400,7200"
+@end example
+
+MX records use a similar syntax which is outlined in the
+example below. $SERVER is a domain name as mentioned above.
+@example
+$ gnunet-namestore -a -n mail -t MX -z bar -e 3600s -V \
+>    "$PRIORITY,$SERVER"
+@end example
+
+With the values substituted this is an example of a working
+command:
+@example
+$ gnunet-namestore -a -n mail -t MX -z bar -e 3600s -V \
+>    "10,mail.bar"
+@end example
+
 @node PLACE
 @subsubsection PLACE
 
+@c TODO describe record type and give an example of how and
+@c when to use it
 Record type for a social place.
 
 @node PHONE
 @subsubsection PHONE
 
+@c TODO describe record type and give an example of how and
+@c when to use it
 Record type for a phone (of CONVERSATION).
 
 @node ID ATTR
 @subsubsection ID ATTR
 
+@c TODO describe record type and give an example of how and
+@c when to use it
 Record type for identity attributes (of IDENTITY).
 
 @node ID TOKEN
 @subsubsection ID TOKEN
 
+@c TODO describe record type and give an example of how and
+@c when to use it
 Record type for an identity token (of IDENTITY-TOKEN).
 
 @node ID TOKEN METADATA
 @subsubsection ID TOKEN METADATA
 
+@c TODO describe record type and give an example of how and
+@c when to use it
 Record type for the private metadata of an identity token (of IDENTITY-TOKEN).
 
 @node CREDENTIAL
 @subsubsection CREDENTIAL
 
+@c TODO describe record type and give an example of how and
+@c when to use it
 Record type for credential.
 
 @node POLICY
 @subsubsection POLICY
 
+@c TODO describe record type and give an example of how and
+@c when to use it
 Record type for policies.
 
 @node ATTRIBUTE
 @subsubsection ATTRIBUTE
 
+@c TODO describe record type and give an example of how and
+@c when to use it
 Record type for reverse lookups.
 
 @node ABE KEY
 @subsubsection ABE KEY
 
+@c TODO describe record type and give an example of how and
+@c when to use it
 Record type for ABE records.
 
 @node ABE MASTER
 @subsubsection ABE MASTER
 
+@c TODO describe record type and give an example of how and
+@c when to use it
 Record type for ABE master keys.
 
 @node RECLAIM OIDC CLIENT
 @subsubsection RECLAIM OIDC CLIENT
 
+@c TODO describe record type and give an example of how and
+@c when to use it
 Record type for reclaim OIDC clients.
 
 @node RECLAIM OIDC REDIRECT
 @subsubsection RECLAIM OIDC REDIRECT
 
+@c TODO describe record type and give an example of how and
+@c when to use it
 Record type for reclaim OIDC redirect URIs.
 
 @node Synchronizing with legacy DNS
