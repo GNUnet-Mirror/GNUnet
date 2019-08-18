@@ -686,7 +686,8 @@ CHECK_LIBHEADER(LIBPULSE, pulse, pa_stream_peek, pulse/simple.h,jansson=1,)
 AS_IF([test "$build_target" = "mingw"],
       [pulse=0])
 AS_IF([test "$pulse" = 1],
-      [AC_DEFINE([HAVE_PULSE],[1],[Have libpulse(audio) library])])
+      [AC_DEFINE([HAVE_PULSE],[1],[Have libpulse(audio) library])
+       libpulse_msg="yes"])
 
 # check for libopus(audio) library
 opus=0
@@ -696,7 +697,8 @@ CHECK_LIBHEADER(LIBOPUS,
                 opus/opus.h,
                 AC_CHECK_DECL([OPUS_SET_GAIN],[opus=1],[],[[#include <opus/opus.h>]]))
 AS_IF([test "x$opus" = x1],
-      [AC_DEFINE([HAVE_OPUS],[1],[Have libopus library])])
+      [AC_DEFINE([HAVE_OPUS],[1],[Have libopus library])
+       libopus_msg="yes"])
 
 # libogg
 AC_CHECK_LIB(ogg, ogg_stream_flush_fill,
@@ -734,7 +736,8 @@ gst=0
 PKG_CHECK_MODULES(
   [GST],
   [glib-2.0 gobject-2.0 gstreamer-1.0 gstreamer-app-1.0 gstreamer-audio-1.0],
-  [gst=1],
+  [gst=1
+   gstreamer_msg="yes"],
   [gst=0])
 
 # Pulse Audio
