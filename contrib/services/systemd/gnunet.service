@@ -1,14 +1,15 @@
-# This was copied from the AUR gnunet-git (https://aur.archlinux.org/gnunet-git.git/) at commit: 6c946b34
+# Copyright (C) 2019 GNUnet e.V.
+#
+# Copying and distribution of this file, with or without modification,
+# are permitted in any medium without royalty provided the copyright
+# notice and this notice are preserved.  This file is offered as-is,
+# without any warranty.
 
 [Unit]
-Description=A framework for secure peer-to-peer networking
+Description=Service that runs a GNUnet for the user gnunet
+After=network.target
 
 [Service]
 User=gnunet
-Type=forking
-ExecStart=/usr/bin/gnunet-arm -s -c /etc/gnunetd.conf
-ExecStop=/usr/bin/gnunet-arm -e -c /etc/gnunetd.conf
-GuessMainPID=no
-
-[Install]
-WantedBy=multi-user.target
+Type=simple
+ExecStart=/usr/lib/gnunet/libexec/gnunet-service-arm -c /etc/gnunet.conf
