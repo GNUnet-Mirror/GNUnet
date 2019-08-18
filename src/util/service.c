@@ -19,7 +19,7 @@
 */
 
 /**
- * @file util/service_new.c
+ * @file util/service.c
  * @brief functions related to starting services (redesign)
  * @author Christian Grothoff
  * @author Florian Dold
@@ -2304,7 +2304,7 @@ GNUNET_SERVICE_run_ (int argc,
   sh.cb_cls = cls;
   sh.handlers = GNUNET_MQ_copy_handlers (handlers);
   sh.service_name = service_name;
-
+  sh.ret = 0;
   /* setup subsystems */
   loglev = NULL;
   logfile = NULL;
