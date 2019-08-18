@@ -26,7 +26,7 @@ else
 # GNU Texinfo, please be more consistent than 1 version in switches.
 # This however is compatible to version 5.2. Thanks, I hate it.
 # AM_MAKEINFOHTMLFLAGS = --split=sections --css-ref="../style.css" --css-ref="../manual.css"
-AM_MAKEINFOHTMLFLAGS = --split --css-ref="../style.css" --css-ref="../manual.css"
+AM_MAKEINFOHTMLFLAGS = --no-split --css-ref="../style.css" --css-ref="../manual.css"
 endif
 
 dist_infoimage_DATA =                           		\
