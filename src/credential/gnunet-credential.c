@@ -769,12 +769,9 @@ run (void *cls,
 
   if (GNUNET_NO == forward && GNUNET_NO == backward)
   {
-    fprintf (
-      stderr,
-      _ (
-        "You must state which search direction: '--forward' or '--backward'\n"));
-    GNUNET_SCHEDULER_shutdown ();
-    return;
+    // set default: bidirectional
+    forward = GNUNET_YES;
+    backward = GNUNET_YES;
   }
   if (GNUNET_YES == forward)
     direction |= GNUNET_CREDENTIAL_FLAG_FORWARD;
@@ -834,15 +831,6 @@ run (void *cls,
 
   if (GNUNET_YES == verify)
   {
-    if (GNUNET_NO == forward && GNUNET_NO == backward)
-    {
-      fprintf (
-        stderr,
-        _ (
-          "You must state which search direction: '-forward' or 'backward'\n"));
-      GNUNET_SCHEDULER_shutdown ();
-      return;
-    }
     if (NULL == issuer_key)
     {
       fprintf (stderr, _ ("Issuer public key not well-formed\n"));
@@ -973,12 +961,12 @@ main (int argc, char *const *argv)
                                   "EGO",
                                   gettext_noop ("The ego/zone name to use"),
                                   &ego_name),
-       GNUNET_GETOPT_option_string (
-         'a',
-         "attribute",
-         "ATTR",
-         gettext_noop ("The issuer attribute to verify against or to issue"),
-         &issuer_attr),
+     GNUNET_GETOPT_option_string (
+       'a',
+       "attribute",
+       "ATTR",
+       gettext_noop ("The issuer attribute to verify against or to issue"),
+       &issuer_attr),
      GNUNET_GETOPT_option_string ('T',
                                   "ttl",
                                   "EXP",
