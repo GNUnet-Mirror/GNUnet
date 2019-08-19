@@ -415,7 +415,7 @@ gnurl_check()
 {
     TEST=`$WHICH gnurl-config | grep -v "not found" 2> /dev/null`
     if test -n "$TEST"; then
-        VER=`gnurl-config --version | head -n1 2> /dev/null | awk '{print "$2}'`
+        VER=`gnurl-config --version | head -n1 2> /dev/null | awk '{print $2}'`
         infomsg "libgnurl       : $VER"
     else
         infomsg "libgnurl       : Not found"
