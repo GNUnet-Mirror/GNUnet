@@ -1,3 +1,7 @@
+Tue 20 Aug 2019 04:32:09 PM CEST
+  Fixed fatal bug in gnunet-bcd that prevented the main page
+  from showing up. -CG
+
 Sun Jul 28 00:00:00 2019 +0000
   Adding --enable-texinfo4 configure switch, defaulting to off.
   This allows distributors to override the texinfo 5.x and later
