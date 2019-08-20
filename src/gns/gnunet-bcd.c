@@ -31,12 +31,14 @@
 /**
  * Error page to display if submitted GNS key is invalid.
  */
-#define INVALID_GNSKEY "<html><head><title>Error</title><body>Invalid GNS public key given.</body></html>"
+#define INVALID_GNSKEY \
+  "<html><head><title>Error</title><body>Invalid GNS public key given.</body></html>"
 
 /**
  * Error page to display on 404.
  */
-#define NOT_FOUND "<html><head><title>Error</title><body>404 not found</body></html>"
+#define NOT_FOUND \
+  "<html><head><title>Error</title><body>404 not found</body></html>"
 
 /**
  * Handle to the HTTP server as provided by libmicrohttpd
@@ -51,7 +53,7 @@ static const struct GNUNET_CONFIGURATION_Handle *cfg;
 /**
  * Our primary task for the HTTPD.
  */
-static struct GNUNET_SCHEDULER_Task * http_task;
+static struct GNUNET_SCHEDULER_Task *http_task;
 
 /**
  * Our main website.
@@ -91,54 +93,53 @@ struct Entry
  */
 static int
 access_handler_callback (void *cls,
-			 struct MHD_Connection *connection,
+                         struct MHD_Connection *connection,
                          const char *url,
-			 const char *method,
+                         const char *method,
                          const char *version,
-			 const char *upload_data,
-                         size_t * upload_data_size,
-			 void **con_cls)
+                         const char *upload_data,
+                         size_t *upload_data_size,
+                         void **con_cls)
 {
   static int dummy;
-  static const struct Entry map[] = {
-    { "prefix", "prefix" },
-    { "name", "name" },
-    { "suffix", "suffix" },
-    { "street", "street" },
-    { "city", "city" },
-    { "phone", "phone" },
-    { "fax", "fax" },
-    { "email", "email"},
-    { "homepage", "homepage" },
-    { "orga", "orga"},
-    { "departmenti18n", "departmentde"},
-    { "departmenten", "departmenten"},
-    { "subdepartmenti18n", "subdepartmentde"},
-    { "subdepartmenten", "subdepartmenten"},
-    { "jobtitlei18n", "jobtitlegerman"},
-    { "jobtitleen", "jobtitleenglish"},
-    { "subdepartmenten", "subdepartmenten"},
-    { NULL, NULL }
-  };
+  static const struct Entry map[] = {{"prefix", "prefix"},
+                                     {"name", "name"},
+                                     {"suffix", "suffix"},
+                                     {"street", "street"},
+                                     {"city", "city"},
+                                     {"phone", "phone"},
+                                     {"fax", "fax"},
+                                     {"email", "email"},
+                                     {"homepage", "homepage"},
+                                     {"orga", "orga"},
+                                     {"departmenti18n", "departmentde"},
+                                     {"departmenten", "departmenten"},
+                                     {"subdepartmenti18n", "subdepartmentde"},
+                                     {"subdepartmenten", "subdepartmenten"},
+                                     {"jobtitlei18n", "jobtitlegerman"},
+                                     {"jobtitleen", "jobtitleenglish"},
+                                     {"subdepartmenten", "subdepartmenten"},
+                                     {NULL, NULL}};
 
+  (void) cls;
+  (void) version;
+  (void) upload_data;
+  (void) upload_data_size;
   if (0 != strcmp (method, MHD_HTTP_METHOD_GET))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                _("Refusing `%s' request to HTTP server\n"),
+                _ ("Refusing `%s' request to HTTP server\n"),
                 method);
     return MHD_NO;
   }
   if (NULL == *con_cls)
   {
     (*con_cls) = &dummy;
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Sending 100 CONTINUE reply\n");
-    return MHD_YES;             /* send 100 continue */
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending 100 CONTINUE reply\n");
+    return MHD_YES; /* send 100 continue */
   }
   if (0 == strcasecmp (url, "/"))
-    return MHD_queue_response (connection,
-                               MHD_HTTP_OK,
-                               main_response);
+    return MHD_queue_response (connection, MHD_HTTP_OK, main_response);
   if (0 == strcasecmp (url, "/submit.pdf"))
   {
     unsigned int i;
@@ -159,14 +160,13 @@ access_handler_callback (void *cls,
     const char *gns_nick = MHD_lookup_connection_value (connection,
                                                         MHD_GET_ARGUMENT_KIND,
                                                         "gnsnick");
-    const char *gnskey = MHD_lookup_connection_value (connection,
-                                                      MHD_GET_ARGUMENT_KIND,
-                                                      "gnskey");
-    if ( (NULL == gnskey) ||
-         (GNUNET_OK !=
-          GNUNET_CRYPTO_ecdsa_public_key_from_string (gnskey,
-                                                      strlen (gnskey),
-                                                      &pub)))
+    const char *gnskey =
+      MHD_lookup_connection_value (connection, MHD_GET_ARGUMENT_KIND, "gnskey");
+    if ((NULL == gnskey) ||
+        (GNUNET_OK !=
+         GNUNET_CRYPTO_ecdsa_public_key_from_string (gnskey,
+                                                     strlen (gnskey),
+                                                     &pub)))
     {
       return MHD_queue_response (connection,
                                  MHD_HTTP_OK,
@@ -178,9 +178,7 @@ access_handler_callback (void *cls,
       GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, "mktemp", gnskey);
       return MHD_NO;
     }
-    GNUNET_asprintf (&deffile,
-                     "%s%s%s",
-                     tmp, DIR_SEPARATOR_STR, "def.tex");
+    GNUNET_asprintf (&deffile, "%s%s%s", tmp, DIR_SEPARATOR_STR, "def.tex");
     f = FOPEN (deffile, "w");
     if (NULL == f)
     {
@@ -190,19 +188,15 @@ access_handler_callback (void *cls,
       GNUNET_free (tmp);
       return MHD_NO;
     }
-    for (i=0; NULL != map[i].formname; i++)
+    for (i = 0; NULL != map[i].formname; i++)
     {
-      const char *val =  MHD_lookup_connection_value (connection,
-                                                      MHD_GET_ARGUMENT_KIND,
-                                                      map[i].formname);
+      const char *val = MHD_lookup_connection_value (connection,
+                                                     MHD_GET_ARGUMENT_KIND,
+                                                     map[i].formname);
       if (NULL != val)
-        FPRINTF (f,
-                 "\\def\\%s{%s}\n",
-                 map[i].texname, val);
+        FPRINTF (f, "\\def\\%s{%s}\n", map[i].texname, val);
       else
-        FPRINTF (f,
-                 "\\def\\%s{}\n",
-                 map[i].texname);
+        FPRINTF (f, "\\def\\%s{}\n", map[i].texname);
     }
     if (NULL != gpg_fp)
     {
@@ -212,9 +206,7 @@ access_handler_callback (void *cls,
       slen = strlen (gpg_fp);
       gpg1 = GNUNET_strndup (gpg_fp, slen / 2);
       gpg2 = GNUNET_strdup (&gpg_fp[slen / 2]);
-      FPRINTF (f,
-               "\\def\\gpglineone{%s}\n\\def\\gpglinetwo{%s}\n",
-               gpg1, gpg2);
+      FPRINTF (f, "\\def\\gpglineone{%s}\n\\def\\gpglinetwo{%s}\n", gpg1, gpg2);
       GNUNET_free (gpg2);
       GNUNET_free (gpg1);
     }
@@ -223,25 +215,20 @@ access_handler_callback (void *cls,
              gnskey,
              (NULL == gns_nick) ? "" : gns_nick);
     FCLOSE (f);
-    GNUNET_asprintf (&p,
-                     "cd %s; cp %s gns-bcd.tex | pdflatex --enable-write18 gns-bcd.tex > /dev/null 2> /dev/null",
-                     tmp,
-                     resfile);
+    GNUNET_asprintf (
+      &p,
+      "cd %s; cp %s gns-bcd.tex | pdflatex --enable-write18 gns-bcd.tex > /dev/null 2> /dev/null",
+      tmp,
+      resfile);
     GNUNET_free (deffile);
     ret = system (p);
-    if (WIFSIGNALED (ret) || (0 != WEXITSTATUS(ret)))
-      GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR,
-                                "system",
-                                p);
-    GNUNET_asprintf (&deffile,
-                     "%s%s%s",
-                     tmp, DIR_SEPARATOR_STR, "gns-bcd.pdf");
+    if (WIFSIGNALED (ret) || (0 != WEXITSTATUS (ret)))
+      GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, "system", p);
+    GNUNET_asprintf (&deffile, "%s%s%s", tmp, DIR_SEPARATOR_STR, "gns-bcd.pdf");
     fd = OPEN (deffile, O_RDONLY);
     if (-1 == fd)
     {
-      GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR,
-                                "open",
-                                deffile);
+      GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, "open", deffile);
       GNUNET_free (deffile);
       GNUNET_free (p);
       GNUNET_DISK_directory_remove (tmp);
@@ -249,7 +236,8 @@ access_handler_callback (void *cls,
       return MHD_NO;
     }
     GNUNET_break (0 == STAT (deffile, &st));
-    if (NULL == (response = MHD_create_response_from_fd ((size_t) st.st_size, fd)))
+    if (NULL ==
+        (response = MHD_create_response_from_fd ((size_t) st.st_size, fd)))
     {
       GNUNET_break (0);
       GNUNET_break (0 == CLOSE (fd));
@@ -262,9 +250,7 @@ access_handler_callback (void *cls,
     (void) MHD_add_response_header (response,
                                     MHD_HTTP_HEADER_CONTENT_TYPE,
                                     "application/pdf");
-    ret = MHD_queue_response (connection,
-                              MHD_HTTP_OK,
-                              response);
+    ret = MHD_queue_response (connection, MHD_HTTP_OK, response);
     MHD_destroy_response (response);
     GNUNET_free (deffile);
     GNUNET_free (p);
@@ -308,7 +294,7 @@ run_daemon (void *cls)
 static struct GNUNET_SCHEDULER_Task *
 prepare_daemon (struct MHD_Daemon *daemon_handle)
 {
-  struct GNUNET_SCHEDULER_Task * ret;
+  struct GNUNET_SCHEDULER_Task *ret;
   fd_set rs;
   fd_set ws;
   fd_set es;
@@ -333,10 +319,12 @@ prepare_daemon (struct MHD_Daemon *daemon_handle)
     tv = GNUNET_TIME_UNIT_FOREVER_REL;
   GNUNET_NETWORK_fdset_copy_native (wrs, &rs, max + 1);
   GNUNET_NETWORK_fdset_copy_native (wws, &ws, max + 1);
-  ret =
-      GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_HIGH,
-				   tv, wrs, wws,
-                                   &run_daemon, daemon_handle);
+  ret = GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_HIGH,
+                                     tv,
+                                     wrs,
+                                     wws,
+                                     &run_daemon,
+                                     daemon_handle);
   GNUNET_NETWORK_fdset_destroy (wrs);
   GNUNET_NETWORK_fdset_destroy (wws);
   return ret;
@@ -351,29 +339,35 @@ prepare_daemon (struct MHD_Daemon *daemon_handle)
 static int
 server_start ()
 {
-  if (0 == port) 
+  if (0 == port)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _("Invalid port number %u.  Exiting.\n"),
+                _ ("Invalid port number %u.  Exiting.\n"),
                 port);
     return GNUNET_SYSERR;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              _("Businesscard HTTP server starts on %u\n"),
+              _ ("Businesscard HTTP server starts on %u\n"),
               port);
   daemon_handle = MHD_start_daemon (MHD_USE_DUAL_STACK | MHD_USE_DEBUG,
                                     port,
-                                    NULL /* accept_policy_callback */, NULL,
-                                    &access_handler_callback, NULL,
-                                    MHD_OPTION_CONNECTION_LIMIT, (unsigned int) 512,
-                                    MHD_OPTION_PER_IP_CONNECTION_LIMIT, (unsigned int) 2,
-                                    MHD_OPTION_CONNECTION_TIMEOUT, (unsigned int) 60,
-                                    MHD_OPTION_CONNECTION_MEMORY_LIMIT, (size_t) (16 * 1024),
+                                    NULL /* accept_policy_callback */,
+                                    NULL,
+                                    &access_handler_callback,
+                                    NULL,
+                                    MHD_OPTION_CONNECTION_LIMIT,
+                                    (unsigned int) 512,
+                                    MHD_OPTION_PER_IP_CONNECTION_LIMIT,
+                                    (unsigned int) 2,
+                                    MHD_OPTION_CONNECTION_TIMEOUT,
+                                    (unsigned int) 60,
+                                    MHD_OPTION_CONNECTION_MEMORY_LIMIT,
+                                    (size_t) (16 * 1024),
                                     MHD_OPTION_END);
   if (NULL == daemon_handle)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _("Could not start businesscard HTTP server on port %u\n"),
+                _ ("Could not start businesscard HTTP server on port %u\n"),
                 (unsigned int) port);
     return GNUNET_SYSERR;
   }
@@ -388,8 +382,8 @@ server_start ()
 static void
 server_stop (void *cls)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "HTTP server shutdown\n");
+  (void) cls;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "HTTP server shutdown\n");
   if (NULL != http_task)
   {
     GNUNET_SCHEDULER_cancel (http_task);
@@ -442,40 +436,32 @@ run (void *cls,
   char *fn;
   int fd;
 
+  (void) cls;
+  (void) args;
+  (void) cfgfile;
   cfg = c;
   dir = GNUNET_OS_installation_get_path (GNUNET_OS_IPK_DATADIR);
   GNUNET_assert (NULL != dir);
-  GNUNET_asprintf (&fn,
-                   "%s%s%s",
-                   dir,
-                   DIR_SEPARATOR_STR,
-                   "gns-bcd.html");
-  GNUNET_asprintf (&resfile,
-                   "%s%s%s",
-                   dir,
-                   DIR_SEPARATOR_STR,
-                   "gns-bcd.tex");
+  GNUNET_asprintf (&fn, "%s%s%s", dir, DIR_SEPARATOR_STR, "gns-bcd.html");
+  GNUNET_asprintf (&resfile, "%s%s%s", dir, DIR_SEPARATOR_STR, "gns-bcd.tex");
   GNUNET_free (dir);
   fd = OPEN (fn, O_RDONLY);
   if (-1 == fd)
   {
-    GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR,
-                              "open",
-                              fn);
+    GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, "open", fn);
     GNUNET_free (fn);
     return;
   }
   if (0 != STAT (fn, &st))
   {
-    GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR,
-                              "open",
-                              fn);
+    GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, "open", fn);
     GNUNET_free (fn);
     GNUNET_break (0 == CLOSE (fd));
     return;
   }
   GNUNET_free (fn);
-  if (NULL == (main_response = MHD_create_response_from_fd ((size_t) st.st_size, fd)))
+  if (NULL ==
+      (main_response = MHD_create_response_from_fd ((size_t) st.st_size, fd)))
   {
     GNUNET_break (0);
     GNUNET_break (0 == CLOSE (fd));
@@ -484,9 +470,10 @@ run (void *cls,
   (void) MHD_add_response_header (main_response,
                                   MHD_HTTP_HEADER_CONTENT_TYPE,
                                   "text/html");
-  invalid_gnskey_response = MHD_create_response_from_buffer (strlen (INVALID_GNSKEY),
-                                                             INVALID_GNSKEY,
-                                                             MHD_RESPMEM_PERSISTENT);
+  invalid_gnskey_response =
+    MHD_create_response_from_buffer (strlen (INVALID_GNSKEY),
+                                     INVALID_GNSKEY,
+                                     MHD_RESPMEM_PERSISTENT);
   (void) MHD_add_response_header (invalid_gnskey_response,
                                   MHD_HTTP_HEADER_CONTENT_TYPE,
                                   "text/html");
@@ -496,12 +483,9 @@ run (void *cls,
   (void) MHD_add_response_header (not_found_response,
                                   MHD_HTTP_HEADER_CONTENT_TYPE,
                                   "text/html");
-  if (GNUNET_OK !=
-      server_start ())
+  if (GNUNET_OK != server_start ())
     return;
-  GNUNET_SCHEDULER_add_shutdown (&server_stop,
-				 NULL);
-  GNUNET_break (0 == CLOSE(fd));
+  GNUNET_SCHEDULER_add_shutdown (&server_stop, NULL);
 }
 
 
@@ -518,25 +502,28 @@ main (int argc, char *const *argv)
   struct GNUNET_GETOPT_CommandLineOption options[] = {
 
     GNUNET_GETOPT_option_uint16 ('p',
-				 "port",
-				 "PORT",
-				 gettext_noop ("Run HTTP serve on port PORT (default is 8888)"),
-				 &port),
-    GNUNET_GETOPT_OPTION_END
-  };
+                                 "port",
+                                 "PORT",
+                                 gettext_noop (
+                                   "Run HTTP serve on port PORT (default is 8888)"),
+                                 &port),
+    GNUNET_GETOPT_OPTION_END};
   int ret;
 
-  if (GNUNET_OK !=
-      GNUNET_STRINGS_get_utf8_args (argc, argv, &argc, &argv))
+  if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv, &argc, &argv))
     return 2;
   GNUNET_log_setup ("gnunet-bcd", "WARNING", NULL);
-  ret =
-      (GNUNET_OK ==
-       GNUNET_PROGRAM_run (argc, argv, "gnunet-bcd",
-                           _("GNUnet HTTP server to create business cards"),
-			   options,
-                           &run, NULL)) ? 0 : 1;
-  GNUNET_free ((void*) argv);
+  ret = (GNUNET_OK ==
+         GNUNET_PROGRAM_run (argc,
+                             argv,
+                             "gnunet-bcd",
+                             _ ("GNUnet HTTP server to create business cards"),
+                             options,
+                             &run,
+                             NULL))
+          ? 0
+          : 1;
+  GNUNET_free ((void *) argv);
   return ret;
 }
 
