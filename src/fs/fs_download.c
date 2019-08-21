@@ -1264,8 +1264,6 @@ signal_error:
   dc->mq = NULL;
   GNUNET_FS_free_download_request_ (dc->top_request);
   dc->top_request = NULL;
-  GNUNET_CONTAINER_multihashmap_destroy (dc->active);
-  dc->active = NULL;
   if (NULL != dc->job_queue)
   {
     GNUNET_FS_dequeue_ (dc->job_queue);
