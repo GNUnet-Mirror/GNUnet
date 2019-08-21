@@ -2,6 +2,9 @@ Tue 20 Aug 2019 04:32:09 PM CEST
   Fixed fatal bug in gnunet-bcd that prevented the main page
   from showing up. -CG
 
+Mon Aug 19 17:36:48 2019 +0200
+  REST: Added API plugin to read/write GNUnet configuration options -alexia
+
 Sun Jul 28 00:00:00 2019 +0000
   Adding --enable-texinfo4 configure switch, defaulting to off.
   This allows distributors to override the texinfo 5.x and later
