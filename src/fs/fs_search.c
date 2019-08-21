@@ -489,14 +489,14 @@ GNUNET_FS_probe (struct GNUNET_FS_Handle *h,
   struct GNUNET_FS_SearchResult *sr;
 
   GNUNET_assert (NULL != h);
+  GNUNET_assert (NULL != uri);
   sr = GNUNET_new (struct GNUNET_FS_SearchResult);
   sr->h = h;
   sr->uri = GNUNET_FS_uri_dup (uri);
   sr->meta = GNUNET_CONTAINER_meta_data_duplicate (meta);
   sr->client_info = client_info;
   sr->anonymity = anonymity;
-  if (NULL != uri)
-    GNUNET_FS_search_start_probe_ (sr);
+  GNUNET_FS_search_start_probe_ (sr);
   return sr;
 }
 
