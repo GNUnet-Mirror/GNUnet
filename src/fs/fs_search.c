@@ -495,7 +495,8 @@ GNUNET_FS_probe (struct GNUNET_FS_Handle *h,
   sr->meta = GNUNET_CONTAINER_meta_data_duplicate (meta);
   sr->client_info = client_info;
   sr->anonymity = anonymity;
-  GNUNET_FS_search_start_probe_ (sr);
+  if (NULL != uri)
+    GNUNET_FS_search_start_probe_ (sr);
   return sr;
 }
 
