@@ -65,21 +65,18 @@ gnunet-namestore -D -z g
 # Starting to resolve
 echo "+++ Starting to Resolve +++"
 
-DELS=`$DO_TIMEOUT gnunet-credential --collect --issuer=$AKEY --attribute="a" --ego=g --forward --backward -c test_credential_lookup.conf | paste -d, -s`
+DELS=`$DO_TIMEOUT gnunet-credential --collect --issuer=$AKEY --attribute="a" --ego=g --forward --backward -c test_credential_lookup.conf | paste -d, -s - -`
 echo $DELS
 echo gnunet-credential --verify --issuer=$AKEY --attribute="a" --subject=$GKEY --delegate=\'$DELS\' --forward --backward -c test_credential_lookup.conf
 RES_DELS=`gnunet-credential --verify --issuer=$AKEY --attribute="a" --subject=$GKEY --delegate="$DELS" --forward --backward -c test_credential_lookup.conf`
 
 # Cleanup properly
-gnunet-namestore -z a -d -n "@"-t DELE -c test_credential_lookup.conf
-gnunet-namestore -z epub -d -n $DISC_ATTR -t ATTR -c test_credential_lookup.conf
-gnunet-namestore -z eorg -d -n $PREF_ATTR -t ATTR -c test_credential_lookup.conf
-gnunet-namestore -z stateu -d -n $STATE_STUD_ATTR -t ATTR -c test_credential_lookup.conf
-#gnunet-namestore -z a -d -n $STATE_STUD_ATTR -t ATTR -c test_credential_lookup.conf
-#gnunet-namestore -z d -d -n $STATE_STUD_ATTR -t ATTR -c test_credential_lookup.conf
-#gnunet-namestore -z e -d -n $STATE_STUD_ATTR -t ATTR -c test_credential_lookup.conf
-#gnunet-namestore -z f -d -n $STATE_STUD_ATTR -t ATTR -c test_credential_lookup.conf
-#gnunet-namestore -z g -d -n $STATE_STUD_ATTR -t ATTR -c test_credential_lookup.conf
+gnunet-namestore -z a -d -n "a" -t ATTR -c test_credential_lookup.conf
+gnunet-namestore -z b -d -n "b" -t ATTR -c test_credential_lookup.conf
+gnunet-namestore -z d -d -n "@" -t DEL -c test_credential_lookup.conf
+gnunet-namestore -z e -d -n "@" -t DEL -c test_credential_lookup.conf
+gnunet-namestore -z f -d -n "@" -t DEL -c test_credential_lookup.conf
+gnunet-namestore -z g -d -n "@" -t DEL -c test_credential_lookup.conf
 
 gnunet-arm -e -c test_credential_lookup.conf
 

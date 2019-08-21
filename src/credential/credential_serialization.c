@@ -158,8 +158,9 @@ GNUNET_CREDENTIAL_delegates_get_size (
 
   for (i = 0; i < c_count; i++)
   {
-    GNUNET_assert ((ret + cd[i].issuer_attribute_len) >= ret);
-    ret += cd[i].issuer_attribute_len;
+    GNUNET_assert ((ret + cd[i].issuer_attribute_len + cd[i].subject_attribute_len) >= ret);
+    // subject_attribute_len should be 0
+    ret += cd[i].issuer_attribute_len + cd[i].subject_attribute_len;
   }
   return ret;
 }
