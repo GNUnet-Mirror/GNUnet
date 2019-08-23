@@ -12,6 +12,7 @@ AM_CPPFLAGS = \
   -I$(top_srcdir)/src/include \
   -I$(top_srcdir)
 
+
 if BUILD_CONVERSATION
 lib_LTLIBRARIES = \
  libgnunetmicrophone.la \
@@ -101,9 +102,11 @@ endif
 endif
 endif
 
+if BUILD_CONVERSATION
 libexec_PROGRAMS += \
   $(AUDIO_HELPER_RECD) \
   $(AUDIO_HELPER_PLAY)
+endifx
 
 AM_TESTS_ENVIRONMENT=export GNUNET_PREFIX=$${GNUNET_PREFIX:-@libdir@};export PATH=$${GNUNET_PREFIX:-@prefix@}/bin:$$PATH;unset XDG_DATA_HOME;unset XDG_CONFIG_HOME;
 if ENABLE_TEST_RUN
