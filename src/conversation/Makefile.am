@@ -12,10 +12,26 @@ AM_CPPFLAGS = \
   -I$(top_srcdir)/src/include \
   -I$(top_srcdir)
 
+if BUILD_CONVERSATION
 lib_LTLIBRARIES = \
  libgnunetmicrophone.la \
  libgnunetspeaker.la \
  libgnunetconversation.la
+
+bin_PROGRAMS = \
+ gnunet-conversation-test \
+ gnunet-conversation
+
+libexec_PROGRAMS = \
+  gnunet-service-conversation
+
+check_PROGRAMS = \
+ test_conversation_api \
+ test_conversation_api_reject \
+ test_conversation_api_twocalls
+
+pkgcfg_DATA = conversation.conf
+endif
 
 pkgcfgdir= $(pkgdatadir)/config.d/
 
@@ -66,18 +82,6 @@ libgnunetconversation_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS)  $(WINFLAGS) \
   -version-info 0:0:0
 
-
-bin_PROGRAMS = \
- gnunet-conversation-test \
- gnunet-conversation
-
-libexec_PROGRAMS = \
-  gnunet-service-conversation
-
-check_PROGRAMS = \
- test_conversation_api \
- test_conversation_api_reject \
- test_conversation_api_twocalls
 
 if BUILD_PULSE_HELPERS
 AUDIO_HELPER_RECD=gnunet-helper-audio-record
@@ -255,6 +259,5 @@ test_conversation_api_reject_LDFLAGS = \
  $(WINFLAGS) -export-dynamic
 
 
- pkgcfg_DATA = conversation.conf
 
 EXTRA_DIST = test_conversation.conf

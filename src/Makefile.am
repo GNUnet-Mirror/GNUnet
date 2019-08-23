@@ -36,14 +36,6 @@ endif
 endif
 endif
 
-if BUILD_PULSE_HELPERS
-CONVERSATION_DIR = conversation
-else
-if BUILD_GST_HELPERS
-CONVERSATION_DIR = conversation
-endif
-endif
-
 if HAVE_SQLITE
  SQLITE_DIR = sq
 endif
@@ -117,7 +109,7 @@ SUBDIRS = \
   vpn \
   gns \
   zonemaster \
-  $(CONVERSATION_DIR) \
+  conversation \
   fs \
   exit \
   pt \

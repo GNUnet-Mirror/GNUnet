@@ -763,6 +763,10 @@ AS_IF([test "x$pulse" != "x1" -o "x$opus" != "x1" -o "x$ogg" != "x1"],[
  AM_CONDITIONAL(BUILD_EXPERIMENTAL_HELPERS, false)
 ])
 
+AS_IF([test "x$conversation_backend" = "xnone"],
+      AM_CONDITIONAL(BUILD_CONVERSATION, false),
+      AM_CONDITIONAL(BUILD_CONVERSATION, true))
+
 # libgnurl
 LIBGNURL_CHECK_CONFIG(,7.34.0,gnurl=1,gnurl=0)
 
