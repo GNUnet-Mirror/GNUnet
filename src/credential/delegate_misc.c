@@ -271,8 +271,4 @@ GNUNET_CREDENTIAL_delegate_issue (
 
   GNUNET_free (del);
   return dele;
-
-  // Entweder: strdup und destroy (free auf die subjct_attribute/issuer_attribute)
-  // oder: pointer auf cred[1], aber nach jedem string im combined string ein EOS <- besser
-  // function comment: cred must be freed by caller, (add missing sub_iss)
 }

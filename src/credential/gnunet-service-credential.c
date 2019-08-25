@@ -246,7 +246,6 @@ struct DelegationSetQueueEntry
  */
 struct VerifyRequestHandle
 {
-
   /**
    * We keep these in a DLL.
    */
@@ -480,6 +479,48 @@ shutdown_task (void *cls)
   }
 }
 
+static void
+send_intermediate_response(struct VerifyRequestHandle *vrh, struct DelegationChainEntry *ch_entry){
+  struct DelegationChainIntermediateMessage *rmsg;
+  struct GNUNET_MQ_Envelope *env;
+  struct GNUNET_CREDENTIAL_Delegation *dd;
+  size_t size;
+
+  dd = GNUNET_new (struct GNUNET_CREDENTIAL_Delegation);
+  dd->issuer_key = ch_entry->issuer_key;
+  dd->subject_key = ch_entry->subject_key;
+  dd->issuer_attribute = ch_entry->issuer_attribute;
+  dd->issuer_attribute_len = strlen (ch_entry->issuer_attribute) + 1;
+  dd->subject_attribute_len = 0;
+  dd->subject_attribute = NULL;
+  if (NULL != ch_entry->subject_attribute)
+  {
+    dd->subject_attribute = ch_entry->subject_attribute;
+    dd->subject_attribute_len = strlen (ch_entry->subject_attribute) + 1;
+  }
+  
+
+  size = GNUNET_CREDENTIAL_delegation_chain_get_size (1,
+                                                 dd,
+                                                 0,
+                                                 NULL);
+
+  env = GNUNET_MQ_msg_extra (rmsg,
+                             size,
+                             GNUNET_MESSAGE_TYPE_CREDENTIAL_INTERMEDIATE_RESULT);
+  // Assign id so that client can find associated request
+  rmsg->id = vrh->request_id;
+  rmsg->size = htonl(size);
+
+  GNUNET_assert (
+    -1 != GNUNET_CREDENTIAL_delegation_chain_serialize (1,
+                                                  dd,
+                                                  0,
+                                                  NULL,
+                                                  size,
+                                                  (char *) &rmsg[1]));
+  GNUNET_MQ_send (GNUNET_SERVICE_client_get_mq (vrh->client), env);
+}
 
 static void
 send_lookup_response (struct VerifyRequestHandle *vrh)
@@ -821,6 +862,9 @@ forward_resolution (void *cls,
     ds_entry->delegation_chain_entry->issuer_key = del->issuer_key;
     ds_entry->delegation_chain_entry->issuer_attribute =
       GNUNET_strdup (del->issuer_attribute);
+    
+    // Found new entry, repoting intermediate result
+    send_intermediate_response(vrh, ds_entry->delegation_chain_entry);
 
     // current delegation as parent
     ds_entry->parent_queue_entry = dq_entry;
@@ -1034,6 +1078,9 @@ backward_resolution (void *cls,
       ds_entry->delegation_chain_entry->issuer_key = *current_set->issuer_key;
       ds_entry->delegation_chain_entry->issuer_attribute =
         GNUNET_strdup (current_set->lookup_attribute);
+
+      // Found new entry, repoting intermediate result
+      send_intermediate_response(vrh, ds_entry->delegation_chain_entry);
 
       ds_entry->parent_queue_entry = dq_entry; // current_delegation;
 

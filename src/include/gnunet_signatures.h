@@ -188,7 +188,7 @@ extern "C"
 /**
  * Signature for a GNUnet credential
  */
-#define GNUNET_SIGNATURE_PURPOSE_CREDENTIAL 28
+#define GNUNET_SIGNATURE_PURPOSE_DELEGATE 28
 
 /**
  * Signature by a peer affirming that this is one of its
@@ -241,10 +241,6 @@ extern "C"
  */
 #define GNUNET_SIGNATURE_PURPOSE_TRANSPORT_DV_INITIATOR 37
 
-/**
- * Signature for a GNUnet delegate
- */
-#define GNUNET_SIGNATURE_PURPOSE_DELEGATE 38
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {

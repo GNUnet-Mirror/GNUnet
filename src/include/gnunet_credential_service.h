@@ -259,7 +259,10 @@ typedef void (*GNUNET_CREDENTIAL_CredentialResultProcessor) (void *cls,
                                                          unsigned int d_count,
                                                          struct GNUNET_CREDENTIAL_Delegation *delegation_chain,
                                                          unsigned int c_count,
-                                                         struct GNUNET_CREDENTIAL_Delegate *credential);
+                                                         struct GNUNET_CREDENTIAL_Delegate *delegte);
+                                                        
+typedef void (*GNUNET_CREDENTIAL_IntermediateResultProcessor) (void *cls,
+                                                         struct GNUNET_CREDENTIAL_Delegation *delegation);
 
 /**
  * Iterator called on obtained result for an attribute delegation.
@@ -309,7 +312,9 @@ GNUNET_CREDENTIAL_verify (struct GNUNET_CREDENTIAL_Handle *handle,
                           const struct GNUNET_CREDENTIAL_Delegate *delegates,
                           enum GNUNET_CREDENTIAL_AlgoDirectionFlags direction,
                           GNUNET_CREDENTIAL_CredentialResultProcessor proc,
-                          void *proc_cls);
+                          void *proc_cls,
+                          GNUNET_CREDENTIAL_IntermediateResultProcessor,
+                          void *proc2_cls);
 
 struct GNUNET_CREDENTIAL_Request*
 GNUNET_CREDENTIAL_collect (struct GNUNET_CREDENTIAL_Handle *handle,
@@ -318,7 +323,9 @@ GNUNET_CREDENTIAL_collect (struct GNUNET_CREDENTIAL_Handle *handle,
                            const struct GNUNET_CRYPTO_EcdsaPrivateKey *subject_key,
                            enum GNUNET_CREDENTIAL_AlgoDirectionFlags direction,
                            GNUNET_CREDENTIAL_CredentialResultProcessor proc,
-                           void *proc_cls);
+                           void *proc_cls,
+                           GNUNET_CREDENTIAL_IntermediateResultProcessor,
+                           void *proc2_cls);
 
 /**
  * Delegate an attribute

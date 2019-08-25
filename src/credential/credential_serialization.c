@@ -191,7 +191,7 @@ GNUNET_CREDENTIAL_delegates_serialize (
     c_rec.issuer_key = cd[i].issuer_key;
     c_rec.subject_key = cd[i].subject_key;
     c_rec.signature = cd[i].signature;
-    c_rec.purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_CREDENTIAL);
+    c_rec.purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_DELEGATE);
     c_rec.purpose.size =
       htonl ((sizeof (struct DelegateEntry) + cd[i].issuer_attribute_len) -
              sizeof (struct GNUNET_CRYPTO_EcdsaSignature));

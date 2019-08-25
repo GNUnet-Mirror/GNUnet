@@ -264,6 +264,17 @@ do_timeout (void *cls)
 }
 
 static void
+handle_intermediate_result(void *cls,
+struct GNUNET_CREDENTIAL_Delegation *dd)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Intermediate result: %s.%s <- %s.%s\n",
+      GNUNET_CRYPTO_ecdsa_public_key_to_string (&dd->issuer_key),
+      dd->issuer_attribute,
+      GNUNET_CRYPTO_ecdsa_public_key_to_string (&dd->subject_key),
+      dd->subject_attribute);
+}
+
+static void
 handle_collect_result (void *cls,
                        unsigned int d_count,
                        struct GNUNET_CREDENTIAL_Delegation *dc,
@@ -395,7 +406,9 @@ identity_cb (void *cls, const struct GNUNET_IDENTITY_Ego *ego)
                                                  privkey,
                                                  direction,
                                                  &handle_collect_result,
-                                                 NULL);
+                                                 NULL,
+                                                 &handle_intermediate_result,
+	                                               NULL);
     return;
   }
   GNUNET_SCHEDULER_shutdown ();
@@ -901,7 +914,9 @@ run (void *cls,
                                                delegates,
                                                direction,
                                                &handle_verify_result,
-                                               NULL);
+                                               NULL,
+                                               &handle_intermediate_result,
+	                                             NULL);
     for (i = 0; i < count; i++)
     {
       GNUNET_free ((char *) delegates[i].issuer_attribute);

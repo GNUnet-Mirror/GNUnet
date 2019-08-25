@@ -145,6 +145,24 @@ struct DelegationChainResultMessage
   /* followed by ad_count GNUNET_CREDENTIAL_RecordData structs*/
 };
 
+/**
+ * Message from CREDENTIAL service to client: new results.
+ */
+struct DelegationChainIntermediateMessage
+{
+  /**
+    * Header of type #GNUNET_MESSAGE_TYPE_CREDENTIAL_INTERMEDIATE_RESULT
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Unique identifier for this request (for key collisions).
+   */
+  uint32_t id GNUNET_PACKED;
+
+  uint32_t size GNUNET_PACKED;
+};
+
 struct DelegationRecordData
 {
   /**

@@ -69,6 +69,16 @@ struct GNUNET_CREDENTIAL_Request
   void *proc_cls;
 
   /**
+   * processor to call on intermediate result
+   */
+  GNUNET_CREDENTIAL_IntermediateResultProcessor int_proc;
+
+  /**
+   * @e verify_proc2 closure
+   */
+  void *proc2_cls;
+
+  /**
    * Envelope with the message for this queue entry.
    */
   struct GNUNET_MQ_Envelope *env;
@@ -247,6 +257,48 @@ handle_result (void *cls, const struct DelegationChainResultMessage *vr_msg)
   }
 }
 
+static int
+check_intermediate (void *cls, const struct DelegationChainIntermediateMessage *vr_msg)
+{
+  //TODO
+  return GNUNET_OK;
+}
+
+static void
+handle_intermediate (void *cls, const struct DelegationChainIntermediateMessage *vr_msg)
+{
+  struct GNUNET_CREDENTIAL_Handle *handle = cls;
+  uint32_t r_id = ntohl (vr_msg->id);
+  uint32_t size = ntohl (vr_msg->size);
+  struct GNUNET_CREDENTIAL_Request *vr;
+  GNUNET_CREDENTIAL_IntermediateResultProcessor proc;
+  void *proc_cls;
+  struct GNUNET_CREDENTIAL_Delegation *dd;
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Received intermediate reply from CREDENTIAL service\n");
+  for (vr = handle->request_head; NULL != vr; vr = vr->next)
+    if (vr->r_id == r_id)
+      break;
+  if (NULL == vr)
+    return;
+  
+  proc = vr->int_proc;
+  proc_cls = vr->proc2_cls;
+  
+  dd = GNUNET_new (struct GNUNET_CREDENTIAL_Delegation);
+  GNUNET_assert (
+    GNUNET_OK ==
+    GNUNET_CREDENTIAL_delegation_chain_deserialize (size,
+                                                    (const char *) &vr_msg[1],
+                                                    1,
+                                                    dd,
+                                                    0,
+                                                    NULL));
+
+  proc (proc_cls, dd);
+}
+
+
 
 /**
  * Reconnect to CREDENTIAL service.
@@ -264,6 +316,10 @@ reconnect (struct GNUNET_CREDENTIAL_Handle *handle)
      GNUNET_MQ_hd_var_size (result,
                             GNUNET_MESSAGE_TYPE_CREDENTIAL_COLLECT_RESULT,
                             struct DelegationChainResultMessage,
+                            handle),
+     GNUNET_MQ_hd_var_size (intermediate,
+                            GNUNET_MESSAGE_TYPE_CREDENTIAL_INTERMEDIATE_RESULT,
+                            struct DelegationChainIntermediateMessage,
                             handle),
      GNUNET_MQ_handler_end ()};
   struct GNUNET_CREDENTIAL_Request *vr;
@@ -365,7 +421,9 @@ GNUNET_CREDENTIAL_collect (
   const struct GNUNET_CRYPTO_EcdsaPrivateKey *subject_key,
   enum GNUNET_CREDENTIAL_AlgoDirectionFlags direction,
   GNUNET_CREDENTIAL_CredentialResultProcessor proc,
-  void *proc_cls)
+  void *proc_cls,
+  GNUNET_CREDENTIAL_IntermediateResultProcessor proc2,
+  void *proc2_cls)
 {
   /* IPC to shorten credential names, return shorten_handle */
   struct CollectMessage *c_msg;
@@ -392,6 +450,8 @@ GNUNET_CREDENTIAL_collect (
   vr->credential_handle = handle;
   vr->verify_proc = proc;
   vr->proc_cls = proc_cls;
+  vr->int_proc =  proc2;
+  vr->proc2_cls = proc2_cls;
   vr->r_id = handle->r_id_gen++;
   vr->env =
     GNUNET_MQ_msg_extra (c_msg, nlen, GNUNET_MESSAGE_TYPE_CREDENTIAL_COLLECT);
@@ -435,7 +495,9 @@ GNUNET_CREDENTIAL_verify (
   const struct GNUNET_CREDENTIAL_Delegate *delegates,
   enum GNUNET_CREDENTIAL_AlgoDirectionFlags direction,
   GNUNET_CREDENTIAL_CredentialResultProcessor proc,
-  void *proc_cls)
+  void *proc_cls,
+  GNUNET_CREDENTIAL_IntermediateResultProcessor proc2,
+  void *proc2_cls)
 {
   /* IPC to shorten credential names, return shorten_handle */
   struct VerifyMessage *v_msg;
@@ -465,6 +527,8 @@ GNUNET_CREDENTIAL_verify (
   vr->credential_handle = handle;
   vr->verify_proc = proc;
   vr->proc_cls = proc_cls;
+  vr->int_proc =  proc2;
+  vr->proc2_cls = proc2_cls;
   vr->r_id = handle->r_id_gen++;
   vr->env =
     GNUNET_MQ_msg_extra (v_msg, nlen, GNUNET_MESSAGE_TYPE_CREDENTIAL_VERIFY);
