@@ -122,9 +122,10 @@ libgnunet_plugin_rest_gns_la_LIBADD = \
   $(top_builddir)/src/identity/libgnunetidentity.la \
   $(top_builddir)/src/json/libgnunetjson.la \
   $(top_builddir)/src/util/libgnunetutil.la $(XLIBS) \
-  $(LTLIBINTL) -ljansson -lmicrohttpd
+  $(LTLIBINTL) -ljansson $(MHD_LIBS)
 libgnunet_plugin_rest_gns_la_LDFLAGS = \
  $(GN_PLUGIN_LDFLAGS)
+libgnunet_plugin_rest_gns_la_CFLAGS = $(MHD_CFLAGS) $(AM_CFLAGS)
 
 
 libgnunet_plugin_gnsrecord_gns_la_SOURCES = \
@@ -158,7 +159,8 @@ gnunet_bcd_SOURCES = \
  gnunet-bcd.c
 gnunet_bcd_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
-  $(GN_LIBINTL) -lmicrohttpd
+  $(GN_LIBINTL) $(MHD_LIBS)
+gnunet_bcd_CFLAGS = $(MHD_CFLAGS) $(AM_CFLAGS)
 
 
 gnunet_dns2gns_SOURCES = \
@@ -180,8 +182,7 @@ endif
 
 gnunet_gns_proxy_SOURCES = \
  gnunet-gns-proxy.c
-gnunet_gns_proxy_CPPFLAGS = $(AM_CPPFLAGS) $(CPP_GNURL)
-gnunet_gns_proxy_LDADD = -lmicrohttpd $(LIB_GNURL) -lgnutls \
+gnunet_gns_proxy_LDADD = $(MHD_LIBS) $(LIB_GNURL) -lgnutls \
   libgnunetgns.la \
   $(top_builddir)/src/identity/libgnunetidentity.la \
   $(top_builddir)/src/util/libgnunetutil.la \
@@ -189,12 +190,14 @@ gnunet_gns_proxy_LDADD = -lmicrohttpd $(LIB_GNURL) -lgnutls \
 if HAVE_GNUTLS_DANE
 gnunet_gns_proxy_LDADD += -lgnutls-dane
 endif
+gnunet_gns_proxy_CFLAGS = $(MHD_CFLAGS) $(CPP_GNURL) $(AM_CFLAGS)
 
 test_gns_proxy_SOURCES = \
   test_gns_proxy.c
-test_gns_proxy_LDADD = -lmicrohttpd $(LIB_GNURL) -lgnutls \
+test_gns_proxy_LDADD = $(MHD_LIBS) $(LIB_GNURL) -lgnutls \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_LIBINTL)
+test_gns_proxy_CFLAGS = $(MHD_CFLAGS) $(CPP_GNURL) $(AM_CFLAGS)
 
 gnunet_gns_helper_service_w32_SOURCES = \
   gnunet-gns-helper-service-w32.c

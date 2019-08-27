@@ -12,6 +12,7 @@ lib_LTLIBRARIES = \
 libgnunetjson_la_LDFLAGS = \
   -version-info 0:0:0 \
   -no-undefined
+libgnunetjson_la_CFLAGS = $(MHD_CFLAGS) $(AM_CFLAGS)
 libgnunetjson_la_SOURCES = \
   json.c \
   json_mhd.c \
@@ -22,7 +23,7 @@ libgnunetjson_la_LIBADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/gnsrecord/libgnunetgnsrecord.la \
   -ljansson \
-  -lmicrohttpd \
+  $(MHD_LIBS) \
   $(XLIB) \
   $(Z_LIBS)
 
@@ -58,8 +59,7 @@ test_json_mhd_LDADD = \
   libgnunetjson.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   -ljansson \
-  -lmicrohttpd \
+  $(MHD_LIBS) \
   $(Z_LIBS) \
   $(LIB_GNURL)
-test_json_mhd_CPPFLAGS = \
- $(CPP_GNURL) $(AM_CPPFLAGS)
+test_json_mhd_CFLAGS = $(MHD_CFLAGS) $(CPP_GNURL) $(AM_CFLAGS)

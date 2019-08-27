@@ -1262,73 +1262,23 @@ AS_IF([test "$sqlite" = 0 -a "$mysql" = 0],
 
 # libmicrohttpd
 lmhd=0
-AC_MSG_CHECKING([for libmicrohttpd])
+m4_define([MHD_MODULE], [libmicrohttpd >= 0.9.63])
 AC_ARG_WITH(microhttpd,
-   [  --with-microhttpd=PFX   base of libmicrohttpd installation],
-   [AC_MSG_RESULT([$with_microhttpd])
-    AS_CASE([$with_microhttpd],
-      [no],[],
-      [yes|""],[
-        AC_CHECK_HEADERS([microhttpd.h],
-	  AC_CHECK_DECL(MHD_OPTION_PER_IP_CONNECTION_LIMIT,
-            AC_CHECK_LIB([microhttpd], [MHD_get_fdset2],
-              [AC_MSG_CHECKING([for libmicrohttpd >= 0.9.63])
-              AC_COMPILE_IFELSE([AC_LANG_SOURCE([
-                #include "$native_srcdir/src/include/platform.h"
-                #include <microhttpd.h>
-                #if (MHD_VERSION < 0x0096300)
-                #error needs at least version 0.9.63
-                #endif
-                int main () { return 0; }
-               ])],
-               [AC_MSG_RESULT(ok)
-                lmhd=1],
-               [AC_MSG_RESULT(failed)])]),
-	    [],[#include "$native_srcdir/src/include/platform.h"
-                #include <microhttpd.h>]),,
-            [#include "$native_srcdir/src/include/platform.h"])
-      ],[
-        LDFLAGS="-L$with_microhttpd/lib $LDFLAGS"
-        CPPFLAGS="-I$with_microhttpd/include $CPPFLAGS"
-        AC_CHECK_HEADERS(microhttpd.h,
-	  AC_CHECK_DECL(MHD_OPTION_PER_IP_CONNECTION_LIMIT,
-            AC_CHECK_LIB([microhttpd], [MHD_get_fdset2],
-              EXT_LIB_PATH="-L$with_microhttpd/lib $EXT_LIB_PATH"
-              [AC_MSG_CHECKING([for libmicrohttpd >= 0.9.52])
-               AC_COMPILE_IFELSE([AC_LANG_SOURCE([
-                #include "$native_srcdir/src/include/platform.h"
-                #include <microhttpd.h>
-                #if (MHD_VERSION < 0x0094200)
-                #error needs at least version 0.9.42
-                #endif
-                int main () { return 0; }
-               ])],
-               [AC_MSG_RESULT(ok)
-                lmhd=1],
-               [AC_MSG_RESULT(failed)])]),
-	    [],[#include "$native_srcdir/src/include/platform.h"
-                #include <microhttpd.h>]),,
-            [#include "$native_srcdir/src/include/platform.h"])
-       ])
-   ],
-   [AC_MSG_RESULT([--with-microhttpd not specified])
-    AC_CHECK_HEADERS([microhttpd.h],
-      AC_CHECK_DECL(MHD_OPTION_PER_IP_CONNECTION_LIMIT,
-        AC_CHECK_LIB([microhttpd], [MHD_get_fdset2],
-          [AC_MSG_CHECKING([for libmicrohttpd >= 0.9.52])
-              AC_COMPILE_IFELSE([AC_LANG_SOURCE([
-                #include "$native_srcdir/src/include/platform.h"
-		#include <microhttpd.h>
-                #if (MHD_VERSION < 0x0094200)
-                #error needs at least version 0.9.52
-                #endif
-               ])],
-               [AC_MSG_RESULT(ok)
-                lmhd=1],
-               [AC_MSG_RESULT(failed)])]),
-	[],[#include "$native_srcdir/src/include/platform.h"
-            #include <microhttpd.h>]),,
-       [#include "$native_srcdir/src/include/platform.h"])])
+   [AS_HELP_STRING([--with-microhttpd[[=PFX]]],
+       [base of libmicrohttpd installation])],
+   [],
+   [with_microhttpd=check])
+AS_CASE([$with_microhttpd],
+   [no], [],
+   [yes], [PKG_CHECK_MODULES([MHD], [MHD_MODULE], [lmhd=1])],
+   [check], [PKG_CHECK_MODULES([MHD], [MHD_MODULE],
+       [lmhd=1],
+       [AC_MSG_WARN([Building without libmicrohttpd])])],
+   [SAVE_PKG_CONFIG_PATH=$PKG_CONFIG_PATH
+    PKG_CONFIG_PATH=$with_microhttpd/lib/pkgconfig
+    export PKG_CONFIG_PATH
+    PKG_CHECK_MODULES([MHD], [MHD_MODULE], [lmhd=1])
+    PKG_CONFIG_PATH=$SAVE_PKG_CONFIG_PATH])
 AM_CONDITIONAL(HAVE_MHD, test x$lmhd = x1)
 AC_DEFINE_UNQUOTED([HAVE_MHD], $lmhd, [We have libmicrohttpd])
 

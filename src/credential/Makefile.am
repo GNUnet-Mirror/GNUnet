@@ -100,9 +100,10 @@ endif
 #	$(top_builddir)/src/rest/libgnunetrest.la \
 #	$(top_builddir)/src/identity/libgnunetidentity.la \
 #  $(top_builddir)/src/util/libgnunetutil.la $(XLIBS) \
-#  $(LTLIBINTL) -ljansson -lmicrohttpd
+#  $(LTLIBINTL) -ljansson $(MHD_LIBS)
 #libgnunet_plugin_rest_credential_la_LDFLAGS = \
 # $(GN_PLUGIN_LDFLAGS)
+#libgnunet_plugin_rest_credential_la_CFLAGS = $(MHD_CFLAGS) $(AM_CFLAGS)
 
 
 

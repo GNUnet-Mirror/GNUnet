@@ -13,7 +13,8 @@ endif
 if HAVE_MHD
  HOSTLIST_SERVER_SOURCES = \
    gnunet-daemon-hostlist_server.c gnunet-daemon-hostlist_server.h
- GN_LIBMHD = -lmicrohttpd
+ GN_LIBMHD = $(MHD_LIBS)
+ GN_CPPMHD = $(MHD_CFLAGS)
 endif
 
 if HAVE_LIBGNURL
@@ -50,9 +51,10 @@ gnunet_daemon_hostlist_LDADD = \
   $(LIB_GNURL) \
   $(GN_LIBINTL)
 
-gnunet_daemon_hostlist_CPPFLAGS = \
- $(CPP_GNURL) \
- $(AM_CPPFLAGS)
+gnunet_daemon_hostlist_CFLAGS = \
+  $(GN_CPPMHD) \
+  $(CPP_GNURL) \
+  $(AM_CFLAGS)
 
 if HAVE_LIBGNURL
 check_PROGRAMS = \

@@ -32,9 +32,10 @@ libgnunet_plugin_rest_peerinfo_la_LIBADD = \
   $(top_builddir)/src/rest/libgnunetrest.la \
   $(top_builddir)/src/json/libgnunetjson.la \
   $(top_builddir)/src/util/libgnunetutil.la $(XLIBS) \
-  $(LTLIBINTL) -ljansson -lmicrohttpd
+  $(LTLIBINTL) -ljansson $(MHD_LIBS)
 libgnunet_plugin_rest_peerinfo_la_LDFLAGS = \
  $(GN_PLUGIN_LDFLAGS)
+libgnunet_plugin_rest_peerinfo_la_CFLAGS = $(MHD_CFLAGS) $(AM_CFLAGS)
 
 
 gnunet_peerinfo_SOURCES = \

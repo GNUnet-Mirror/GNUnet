@@ -12,7 +12,6 @@ pkgcfg_DATA = \
   communicator-unix.conf
 
 if HAVE_MHD
- GN_LIBMHD = -lmicrohttpd
  HTTP_SERVER_PLUGIN_LA = libgnunet_plugin_transport_http_server.la
  HTTPS_SERVER_PLUGIN_LA = libgnunet_plugin_transport_https_server.la
  HTTP_SERVER_PLUGIN_TEST = test_plugin_http_server
@@ -369,7 +368,7 @@ gnunet_service_transport_LDADD = \
   $(GN_GLPK) \
   $(GN_LIBINTL)
 gnunet_service_transport_CFLAGS = \
-  $(CFLAGS)
+  $(AM_CFLAGS)
 # -DANALYZE
 
 
@@ -430,7 +429,7 @@ libgnunet_plugin_transport_wlan_la_LIBADD = \
 libgnunet_plugin_transport_wlan_la_LDFLAGS = \
   $(GN_PLUGIN_LDFLAGS)
 libgnunet_plugin_transport_wlan_la_CFLAGS = \
- $(CFLAGS) -DBUILD_WLAN
+ $(AM_CFLAGS) -DBUILD_WLAN
 
 libgnunet_plugin_transport_bluetooth_la_SOURCES = \
   plugin_transport_wlan.c plugin_transport_wlan.h
@@ -443,7 +442,7 @@ libgnunet_plugin_transport_bluetooth_la_LIBADD = \
 libgnunet_plugin_transport_bluetooth_la_LDFLAGS = \
   $(GN_PLUGIN_LDFLAGS)
 libgnunet_plugin_transport_bluetooth_la_CFLAGS = \
- $(CFLAGS) -DBUILD_BLUETOOTH
+ $(AM_CFLAGS) -DBUILD_BLUETOOTH
 
 libgnunet_plugin_transport_udp_la_SOURCES = \
   plugin_transport_udp.c plugin_transport_udp.h \
@@ -482,24 +481,22 @@ libgnunet_plugin_transport_http_client_la_LIBADD = \
 libgnunet_plugin_transport_http_client_la_LDFLAGS = \
  $(GN_PLUGIN_LDFLAGS)
 libgnunet_plugin_transport_http_client_la_CFLAGS = \
- $(CFLAGS)
-libgnunet_plugin_transport_http_client_la_CPPFLAGS = \
- $(CPP_GNURL) $(AM_CPPFLAGS)
+ $(CPP_GNURL) $(AM_CFLAGS)
 
 
 libgnunet_plugin_transport_http_server_la_SOURCES = \
   plugin_transport_http_server.c plugin_transport_http_common.c
 libgnunet_plugin_transport_http_server_la_LIBADD = \
+  $(MHD_LIBS) \
   $(top_builddir)/src/hello/libgnunethello.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/peerinfo/libgnunetpeerinfo.la \
   $(top_builddir)/src/nat/libgnunetnatnew.la \
   $(top_builddir)/src/util/libgnunetutil.la
 libgnunet_plugin_transport_http_server_la_LDFLAGS = \
- $(GN_LIBMHD) \
  $(GN_PLUGIN_LDFLAGS)
 libgnunet_plugin_transport_http_server_la_CFLAGS = \
- $(CFLAGS)
+ $(MHD_CFLAGS) $(AM_CFLAGS)
 
 libgnunet_plugin_transport_https_client_la_SOURCES = \
   plugin_transport_http_client.c plugin_transport_http_common.c
@@ -512,24 +509,22 @@ libgnunet_plugin_transport_https_client_la_LIBADD = \
 libgnunet_plugin_transport_https_client_la_LDFLAGS = \
  $(GN_PLUGIN_LDFLAGS)
 libgnunet_plugin_transport_https_client_la_CFLAGS = \
- $(CFLAGS) -DBUILD_HTTPS
-libgnunet_plugin_transport_https_client_la_CPPFLAGS = \
- $(CPP_GNURL) $(AM_CPPFLAGS)
+ $(CPP_GNURL) $(AM_CFLAGS) -DBUILD_HTTPS
 
 
 libgnunet_plugin_transport_https_server_la_SOURCES = \
   plugin_transport_http_server.c plugin_transport_http_common.c
 libgnunet_plugin_transport_https_server_la_LIBADD = \
+  $(MHD_LIBS) \
   $(top_builddir)/src/hello/libgnunethello.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/peerinfo/libgnunetpeerinfo.la \
   $(top_builddir)/src/nat/libgnunetnatnew.la \
   $(top_builddir)/src/util/libgnunetutil.la
 libgnunet_plugin_transport_https_server_la_LDFLAGS = \
- $(GN_LIBMHD) \
  $(GN_PLUGIN_LDFLAGS)
 libgnunet_plugin_transport_https_server_la_CFLAGS = \
- $(CFLAGS) -DBUILD_HTTPS
+ $(MHD_CFLAGS) $(AM_CFLAGS) -DBUILD_HTTPS
 
 
 if HAVE_TESTING

@@ -58,9 +58,10 @@ libgnunet_plugin_rest_reclaim_la_LIBADD = \
   $(top_builddir)/src/reclaim-attribute/libgnunetreclaimattribute.la \
   $(top_builddir)/src/namestore/libgnunetnamestore.la \
   $(top_builddir)/src/util/libgnunetutil.la $(XLIBS) \
-  $(LTLIBINTL) -ljansson -lmicrohttpd
+  $(LTLIBINTL) -ljansson $(MHD_LIBS)
 libgnunet_plugin_rest_reclaim_la_LDFLAGS = \
   $(GN_PLUGIN_LDFLAGS)
+libgnunet_plugin_rest_reclaim_la_CFLAGS = $(MHD_CFLAGS) $(AM_CFLAGS)
 
 
 libgnunet_plugin_rest_openid_connect_la_SOURCES = \
@@ -76,9 +77,10 @@ libgnunet_plugin_rest_openid_connect_la_LIBADD = \
   $(top_builddir)/src/gns/libgnunetgns.la \
   $(top_builddir)/src/gnsrecord/libgnunetgnsrecord.la \
   $(top_builddir)/src/util/libgnunetutil.la $(XLIBS) \
-  $(LTLIBINTL) -ljansson -lmicrohttpd
+  $(LTLIBINTL) -ljansson $(MHD_LIBS)
 libgnunet_plugin_rest_openid_connect_la_LDFLAGS = \
   $(GN_PLUGIN_LDFLAGS)
+libgnunet_plugin_rest_openid_connect_la_CFLAGS = $(MHD_CFLAGS) $(AM_CFLAGS)
 
 
 libgnunet_plugin_gnsrecord_reclaim_la_SOURCES = \
