@@ -38,13 +38,6 @@ pcfiles = \
 
 all-local: $(pcfiles)
 
-cp_verbose = $(cp_verbose_$(V))
-cp_verbose_ = $(cp_verbose_$(AM_DEFAULT_VERBOSITY))
-cp_verbose_0 = @echo "  CP     $@";
-
-%.pc: %.pc
-	$(cp_verbose_0)cp $< $@
-
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = $(pcfiles)
 
