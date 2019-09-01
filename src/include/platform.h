@@ -205,7 +205,7 @@
 /**
  * GNU gettext support macro.
  */
-#define _(String) dgettext("gnunet",String)
+#define _(String) dgettext(PACKAGE,String)
 #define LIBEXTRACTOR_GETTEXT_DOMAIN "libextractor"
 #else
 #include "libintlemu.h"

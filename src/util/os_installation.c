@@ -64,6 +64,9 @@ static const struct GNUNET_OS_ProjectData default_pd = {
   .homepage = "http://www.gnu.org/s/gnunet/",
   .config_file = "gnunet.conf",
   .user_config_file = "~/.config/gnunet.conf",
+  .is_gnu = 1,
+  .gettext_domain = PACKAGE,
+  .gettext_path = NULL,
 };
 
 /**
@@ -71,6 +74,13 @@ static const struct GNUNET_OS_ProjectData default_pd = {
  * path detection? Never NULL.
  */
 static const struct GNUNET_OS_ProjectData *current_pd = &default_pd;
+
+/**
+ * Wether or not gettext has been initialized for the library.
+ * Note that the gettext initialization done within
+ * GNUNET_PROGRAM_run2 is for the specific application.
+ */
+static int gettextinit = 0;
 
 /**
  * Return default project data used by 'libgnunetutil' for GNUnet.
@@ -88,6 +98,14 @@ GNUNET_OS_project_data_default (void)
 const struct GNUNET_OS_ProjectData *
 GNUNET_OS_project_data_get ()
 {
+  if (0 == gettextinit)
+    {
+      char *path = GNUNET_OS_installation_get_path (GNUNET_OS_IPK_LOCALEDIR);
+      if (NULL != path)
+	BINDTEXTDOMAIN (PACKAGE, path);
+      GNUNET_free(path);
+      gettextinit = 1;
+    }
   return current_pd;
 }
 
@@ -100,6 +118,14 @@ GNUNET_OS_project_data_get ()
 void
 GNUNET_OS_init (const struct GNUNET_OS_ProjectData *pd)
 {
+  if (0 == gettextinit)
+    {
+      char *path = GNUNET_OS_installation_get_path (GNUNET_OS_IPK_LOCALEDIR);
+      if (NULL != path)
+	BINDTEXTDOMAIN (PACKAGE, path);
+      GNUNET_free(path);
+      gettextinit = 1;
+    }
   GNUNET_assert (NULL != pd);
   current_pd = pd;
 }

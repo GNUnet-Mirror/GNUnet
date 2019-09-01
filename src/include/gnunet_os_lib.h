@@ -276,6 +276,18 @@ struct GNUNET_OS_ProjectData
    * Non-zero means this project is part of GNU.
    */
   int is_gnu;
+
+  /**
+   * Gettext domain for localisation, e.g. the PACKAGE macro.
+   * Setting this field to NULL disables gettext.
+   */
+  char *gettext_domain;
+
+  /**
+   * Gettext directory, e.g. the LOCALEDIR macro.
+   * If this field is NULL, the path is automatically inferred.
+   */
+  char *gettext_path;
 };
 
 
