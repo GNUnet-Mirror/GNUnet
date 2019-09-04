@@ -44,7 +44,7 @@ struct OIDC_Parameters
   /**
    * The reclaim ticket
    */
-  const struct GNUNET_RECLAIM_Ticket *ticket;
+  struct GNUNET_RECLAIM_Ticket ticket;
 
   /**
    * The nonce
@@ -471,7 +471,7 @@ OIDC_build_authz_code (const struct GNUNET_CRYPTO_EcdsaPrivateKey *issuer,
   /** PLAINTEXT **/
   // Assign ticket
   memset (&params, 0, sizeof (params));
-  params.ticket = ticket;
+  params.ticket = *ticket;
   // Assign nonce
   nonce = 0;
   payload_len = sizeof (struct OIDC_Parameters);
