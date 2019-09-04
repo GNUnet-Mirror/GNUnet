@@ -570,8 +570,8 @@ OIDC_parse_authz_code (const struct GNUNET_CRYPTO_EcdsaPrivateKey *ecdsa_priv,
   struct GNUNET_CRYPTO_EcdsaSignature *signature;
   struct GNUNET_CRYPTO_EcdsaPublicKey ecdsa_pub;
   struct GNUNET_CRYPTO_EcdhePublicKey *ecdh_pub;
-  size_t code_challenge_len;
-  size_t attrs_ser_len;
+  uint32_t code_challenge_len;
+  uint32_t attrs_ser_len;
   size_t plaintext_len;
   size_t code_payload_len;
   uint32_t nonce = 0;
@@ -624,7 +624,9 @@ OIDC_parse_authz_code (const struct GNUNET_CRYPTO_EcdsaPrivateKey *ecdsa_priv,
       (0 !=
        strncmp (expected_code_challenge, code_challenge, code_challenge_len)))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Invalid code verifier\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+        "Invalid code verifier! Expected: %s, Got: %.*s\n",
+        expected_code_challenge, code_challenge_len, code_challenge);
     GNUNET_free_non_null (code_payload);
     GNUNET_free (expected_code_challenge);
     return GNUNET_SYSERR;
