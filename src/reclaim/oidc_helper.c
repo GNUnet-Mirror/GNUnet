@@ -318,7 +318,7 @@ base64_and_urlencode (const char *data, size_t data_size)
   GNUNET_STRINGS_base64_encode (data, data_size, &enc);
   urlenc = url_encode (enc);
   GNUNET_free (enc);
-  return enc;
+  return urlenc;
 }
 
 
