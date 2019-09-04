@@ -54,12 +54,12 @@ struct OIDC_Parameters
   /**
    * The length of the PKCE code_challenge
    */
-  uint16_t code_challenge_len GNUNET_PACKED;
+  uint32_t code_challenge_len GNUNET_PACKED;
 
   /**
    * The length of the attributes list
    */
-  uint16_t attr_list_len GNUNET_PACKED;
+  uint32_t attr_list_len GNUNET_PACKED;
 };
 
 GNUNET_NETWORK_STRUCT_END
@@ -608,7 +608,7 @@ OIDC_parse_authz_code (const struct GNUNET_CRYPTO_EcdsaPrivateKey *ecdsa_priv,
   params = (struct OIDC_Parameters *) plaintext;
 
   // cmp code_challenge code_verifier
-  code_verifier_hash = GNUNET_malloc (strlen (code_verifier));
+  code_verifier_hash = GNUNET_malloc (256 / 8);
   // hash code verifier
   gcry_md_hash_buffer (GCRY_MD_SHA256,
                        code_verifier_hash,
@@ -616,7 +616,7 @@ OIDC_parse_authz_code (const struct GNUNET_CRYPTO_EcdsaPrivateKey *ecdsa_priv,
                        strlen (code_verifier));
   // encode code verifier
   expected_code_challenge =
-    base64_encode (code_verifier_hash, strlen (code_verifier_hash));
+    base64_encode (code_verifier_hash, 256 / 8);
   code_challenge = (char*)&params[1];
   code_challenge_len = ntohl (params->code_challenge_len);
   GNUNET_free (code_verifier_hash);
