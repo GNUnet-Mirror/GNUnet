@@ -303,6 +303,26 @@ url_decode (const char *str)
   return buf;
 }
 
+/**
+ * Returns base64 encoded string urlencoded
+ *
+ * @param string the string to encode
+ * @return base64 encoded string
+ */
+static char *
+base64_and_urlencode (const char *data, size_t data_size)
+{
+  char *enc;
+  char *urlenc;
+
+  GNUNET_STRINGS_base64_encode (data, data_size, &enc);
+  urlenc = url_encode (enc);
+  GNUNET_free (enc);
+  return enc;
+}
+
+
+
 
 /**
  * Returns base64 encoded string urlencoded
@@ -311,15 +331,27 @@ url_decode (const char *str)
  * @return base64 encoded string
  */
 static char *
-base64_encode (const char *data, size_t data_size)
+base64url_encode (const char *data, size_t data_size)
 {
   char *enc;
-  char *enc_urlencode;
+  size_t pos;
 
   GNUNET_STRINGS_base64_encode (data, data_size, &enc);
-  enc_urlencode = url_encode (enc);
-  GNUNET_free (enc);
-  return enc_urlencode;
+  //Replace with correct characters for base64url
+  pos = 0;
+  while ('\0' != enc[pos])
+  {
+    if ('+' == enc[pos])
+      enc[pos] = '-';
+    if ('/' == enc[pos])
+      enc[pos] = '_';
+    if ('=' == enc[pos])
+    {
+      enc[pos] = '\0';
+      break;
+    }
+  }
+  return enc;
 }
 
 
@@ -512,11 +544,7 @@ OIDC_build_authz_code (const struct GNUNET_CRYPTO_EcdsaPrivateKey *issuer,
   memcpy (buf_ptr, &ecdh_pub, sizeof (ecdh_pub));
   buf_ptr += sizeof (ecdh_pub);
   // Encrypt plaintext and store
-  encrypt_payload (&ticket->audience,
-                   ecdh_priv,
-                   payload,
-                   payload_len,
-                   buf_ptr);
+  encrypt_payload (&ticket->audience, ecdh_priv, payload, payload_len, buf_ptr);
   GNUNET_free (ecdh_priv);
   GNUNET_free (payload);
   buf_ptr += payload_len;
@@ -532,7 +560,7 @@ OIDC_build_authz_code (const struct GNUNET_CRYPTO_EcdsaPrivateKey *issuer,
     GNUNET_free (code_payload);
     return NULL;
   }
-  code_str = base64_encode (code_payload, code_payload_len);
+  code_str = base64_and_urlencode (code_payload, code_payload_len);
   GNUNET_free (code_payload);
   return code_str;
 }
@@ -615,9 +643,8 @@ OIDC_parse_authz_code (const struct GNUNET_CRYPTO_EcdsaPrivateKey *ecdsa_priv,
                        code_verifier,
                        strlen (code_verifier));
   // encode code verifier
-  expected_code_challenge =
-    base64_encode (code_verifier_hash, 256 / 8);
-  code_challenge = (char*)&params[1];
+  expected_code_challenge = base64url_encode (code_verifier_hash, 256 / 8);
+  code_challenge = (char *) &params[1];
   code_challenge_len = ntohl (params->code_challenge_len);
   GNUNET_free (code_verifier_hash);
   if ((strlen (expected_code_challenge) != code_challenge_len) ||
@@ -625,8 +652,10 @@ OIDC_parse_authz_code (const struct GNUNET_CRYPTO_EcdsaPrivateKey *ecdsa_priv,
        strncmp (expected_code_challenge, code_challenge, code_challenge_len)))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-        "Invalid code verifier! Expected: %s, Got: %.*s\n",
-        expected_code_challenge, code_challenge_len, code_challenge);
+                "Invalid code verifier! Expected: %s, Got: %.*s\n",
+                expected_code_challenge,
+                code_challenge_len,
+                code_challenge);
     GNUNET_free_non_null (code_payload);
     GNUNET_free (expected_code_challenge);
     return GNUNET_SYSERR;
@@ -640,9 +669,7 @@ OIDC_parse_authz_code (const struct GNUNET_CRYPTO_EcdsaPrivateKey *ecdsa_priv,
   // Attributes
   attrs_ser = ((char *) &params[1]) + code_challenge_len;
   attrs_ser_len = ntohl (params->attr_list_len);
-  *attrs =
-    GNUNET_RECLAIM_ATTRIBUTE_list_deserialize (attrs_ser,
-                                               attrs_ser_len);
+  *attrs = GNUNET_RECLAIM_ATTRIBUTE_list_deserialize (attrs_ser, attrs_ser_len);
   // Signature
   signature = (struct GNUNET_CRYPTO_EcdsaSignature *) attrs_ser + attrs_ser_len;
   GNUNET_CRYPTO_ecdsa_key_get_public (ecdsa_priv, &ecdsa_pub);
