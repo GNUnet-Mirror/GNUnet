@@ -120,6 +120,16 @@
 #define OIDC_NONCE_KEY "nonce"
 
 /**
+ * OIDC PKCE code challenge
+ */
+#define OIDC_CODE_CHALLENGE_KEY "code_challenge"
+
+/**
+ * OIDC PKCE code verifier
+ */
+#define OIDC_CODE_VERIFIER_KEY "code_verifier"
+
+/**
  * OIDC cookie expiration (in seconds)
  */
 #define OIDC_COOKIE_EXPIRATION 3
@@ -294,6 +304,16 @@ struct OIDC_Variables
    * User cancelled authorization/login
    */
   int user_cancelled;
+
+  /**
+   * The PKCE code_challenge
+   */
+  char *code_challenge;
+
+  /**
+   * The PKCE code_verifier
+   */
+  char *code_verifier;
 
   /**
    * The response JSON
@@ -812,7 +832,7 @@ login_redirect (void *cls)
                                                           &login_base_url))
   {
     GNUNET_asprintf (&new_redirect,
-                     "%s?%s=%s&%s=%s&%s=%s&%s=%s&%s=%s&%s=%s",
+                     "%s?%s=%s&%s=%s&%s=%s&%s=%s&%s=%s&%s=%s&%s=%s",
                      login_base_url,
                      OIDC_RESPONSE_TYPE_KEY,
                      handle->oidc->response_type,
@@ -824,6 +844,8 @@ login_redirect (void *cls)
                      handle->oidc->scope,
                      OIDC_STATE_KEY,
                      (NULL != handle->oidc->state) ? handle->oidc->state : "",
+                     OIDC_CODE_CHALLENGE_KEY,
+                     (NULL != handle->oidc->code_challenge) ? handle->oidc->code_challenge : "",
                      OIDC_NONCE_KEY,
                      (NULL != handle->oidc->nonce) ? handle->oidc->nonce : "");
     resp = GNUNET_REST_create_response ("");
@@ -885,7 +907,8 @@ oidc_ticket_issue_cb (void *cls, const struct GNUNET_RECLAIM_Ticket *ticket)
   code_string = OIDC_build_authz_code (&handle->priv_key,
                                        &handle->ticket,
                                        handle->attr_list,
-                                       handle->oidc->nonce);
+                                       handle->oidc->nonce,
+                                       handle->oidc->code_challenge);
   if ((NULL != handle->redirect_prefix) && (NULL != handle->redirect_suffix) &&
       (NULL != handle->tld))
   {
@@ -1382,6 +1405,17 @@ authorize_endpoint (struct GNUNET_REST_RequestHandle *con_handle,
     return;
   }
 
+  // REQUIRED value: code_challenge 
+  handle->oidc->code_challenge = get_url_parameter_copy (handle, OIDC_CODE_CHALLENGE_KEY);
+  if (NULL == handle->oidc->code_challenge)
+  {
+    handle->emsg = GNUNET_strdup (OIDC_ERROR_KEY_INVALID_REQUEST);
+    handle->edesc = GNUNET_strdup ("missing parameter code_challenge");
+    handle->response_code = MHD_HTTP_INTERNAL_SERVER_ERROR;
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
+    return; 
+  }
+
   if (GNUNET_OK !=
       GNUNET_CRYPTO_ecdsa_public_key_from_string (handle->oidc->client_id,
                                                   strlen (
@@ -1666,7 +1700,7 @@ token_endpoint (struct GNUNET_REST_RequestHandle *con_handle,
   char *access_token;
   char *jwt_secret;
   char *nonce;
-
+  char *code_verifier;
   /*
    * Check Authorization
    */
@@ -1728,8 +1762,20 @@ token_endpoint (struct GNUNET_REST_RequestHandle *con_handle,
     return;
   }
   privkey = GNUNET_IDENTITY_ego_get_private_key (ego_entry->ego);
+  
+  // REQUIRED code verifier
+  code_verifier = get_url_parameter_copy (handle, OIDC_CODE_VERIFIER_KEY);
+  if (NULL == code_verifier)
+  {
+    handle->emsg = GNUNET_strdup (OIDC_ERROR_KEY_INVALID_REQUEST);
+    handle->edesc = GNUNET_strdup ("missing parameter code_verifier");
+    handle->response_code = MHD_HTTP_BAD_REQUEST;
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
+    return;
+  }
+
   // decode code
-  if (GNUNET_OK != OIDC_parse_authz_code (privkey, code, &ticket, &cl, &nonce))
+  if (GNUNET_OK != OIDC_parse_authz_code (privkey, code, code_verifier, &ticket, &cl, &nonce))
   {
     handle->emsg = GNUNET_strdup (OIDC_ERROR_KEY_INVALID_REQUEST);
     handle->edesc = GNUNET_strdup ("invalid code");
@@ -2003,6 +2049,7 @@ list_ego (void *cls,
   }
   GNUNET_assert (NULL != ego);
   if (ID_REST_STATE_INIT == handle->state)
+ 
   {
     ego_entry = GNUNET_new (struct EgoEntry);
     GNUNET_IDENTITY_ego_get_public_key (ego, &pk);

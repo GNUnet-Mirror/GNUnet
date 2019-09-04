@@ -31,7 +31,48 @@
 #include "gnunet_reclaim_service.h"
 #include "gnunet_signatures.h"
 #include "oidc_helper.h"
+//#include "benchmark.h"
+#include <gcrypt.h>
 
+GNUNET_NETWORK_STRUCT_BEGIN
+
+/**
+ * The signature used to generate the authorization code
+ */
+struct OIDC_Parameters
+{
+  /**
+   * The reclaim ticket
+   */
+  const struct GNUNET_RECLAIM_Ticket *ticket;
+
+  /**
+   * The nonce
+   */
+  uint32_t nonce GNUNET_PACKED;
+
+  /**
+   * The length of the PKCE code_challenge
+   */
+  uint16_t code_challenge_len GNUNET_PACKED;
+
+  /**
+   * The length of the attributes list
+   */
+  uint16_t attr_list_len GNUNET_PACKED;
+
+  /**
+   * The PKCE code_challenge 
+   */
+  const char *code_challenge;
+
+  /**
+   * The (serialized) attributes
+   */
+  char *attrs_ser;
+};
+
+GNUNET_NETWORK_STRUCT_END
 
 static char *
 create_jwt_header (void)
@@ -371,30 +412,30 @@ encrypt_payload (const struct GNUNET_CRYPTO_EcdsaPublicKey *ecdsa_pub,
                 GNUNET_CRYPTO_symmetric_encrypt (payload, payload_len, &key, &iv, buf));
 }
 
-
 /**
  * Builds an OIDC authorization code including
  * a reclaim ticket and nonce
  *
  * @param issuer the issuer of the ticket, used to sign the ticket and nonce
  * @param ticket the ticket to include in the code
- * @param attrs list of attributes whicha re shared
+ * @param attrs list of attributes which are shared
  * @param nonce the nonce to include in the code
+ * @param code_challenge PKCE code challenge
  * @return a new authorization code (caller must free)
  */
 char *
 OIDC_build_authz_code (const struct GNUNET_CRYPTO_EcdsaPrivateKey *issuer,
                        const struct GNUNET_RECLAIM_Ticket *ticket,
                        struct GNUNET_RECLAIM_ATTRIBUTE_ClaimList *attrs,
-                       const char *nonce_str)
+                       const char *nonce_str,
+                       const char *code_challenge)
 {
+  struct OIDC_Parameters *params = GNUNET_new (struct OIDC_Parameters);
   char *code_payload;
   char *plaintext;
-  char *attrs_ser;
   char *code_str;
-  char *buf_ptr;
+  char *buf_ptr = NULL;
   size_t signature_payload_len;
-  size_t attr_list_len;
   size_t code_payload_len;
   uint32_t nonce;
   uint32_t nonce_tmp;
@@ -402,21 +443,59 @@ OIDC_build_authz_code (const struct GNUNET_CRYPTO_EcdsaPrivateKey *issuer,
   struct GNUNET_CRYPTO_EcdhePrivateKey *ecdh_priv;
   struct GNUNET_CRYPTO_EcdhePublicKey ecdh_pub;
 
-  attrs_ser = NULL;
-  signature_payload_len =
-    sizeof (struct GNUNET_RECLAIM_Ticket) + sizeof (uint32_t);
-  
+  /** PLAINTEXT **/
+  // Assign ticket
+  params->ticket = ticket;  
+  // Assign nonce
+  nonce = 0;
+  if (NULL != nonce_str && strcmp("", nonce_str) != 0)
+  {
+    if ((1 != SSCANF (nonce_str, "%u", &nonce)) || (nonce > UINT32_MAX))
+    {   
+      GNUNET_break (0);
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Invalid nonce %s\n", nonce_str);
+      GNUNET_free (params);
+      return NULL;
+    }   
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Got nonce: %u from %s\n",
+                nonce,
+                nonce_str);
+  }
+  nonce_tmp = htonl (nonce);
+  params->nonce = nonce_tmp;
+  // Assign code challenge
+  if (NULL == code_challenge || strcmp("", code_challenge) == 0)
+  {
+    GNUNET_break (0);
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "PKCE: Code challenge missing");
+    GNUNET_free (params);
+    return NULL;  
+  }
+  params->code_challenge_len = strlen (code_challenge);
+  params->code_challenge = code_challenge;
+  // Assign attributes
+  params->attrs_ser = NULL;
   if (NULL != attrs)
   {
-    attr_list_len = GNUNET_RECLAIM_ATTRIBUTE_list_serialize_get_size (attrs);
+    // Get length
+    params->attr_list_len = GNUNET_RECLAIM_ATTRIBUTE_list_serialize_get_size (attrs);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Length of serialized attributes: %lu\n",
-                attr_list_len);
-    signature_payload_len += attr_list_len;
-    attrs_ser = GNUNET_malloc (attr_list_len);
-    GNUNET_RECLAIM_ATTRIBUTE_list_serialize (attrs, attrs_ser);
+                params->attr_list_len);
+    // Get serialized attributes
+    params->attrs_ser = GNUNET_malloc (params->attr_list_len);
+    GNUNET_RECLAIM_ATTRIBUTE_list_serialize (attrs, params->attrs_ser);
   }
 
+  // Get plaintext length
+  signature_payload_len = sizeof (struct OIDC_Parameters);
+  plaintext = GNUNET_malloc (signature_payload_len);
+  memcpy (plaintext, params, signature_payload_len);
+  /** END **/
+
+  /** ENCRYPT **/
+  // Get length
   code_payload_len = sizeof (struct GNUNET_CRYPTO_EccSignaturePurpose) +
     sizeof (struct GNUNET_CRYPTO_EcdhePublicKey) +
     signature_payload_len +
@@ -424,39 +503,7 @@ OIDC_build_authz_code (const struct GNUNET_CRYPTO_EcdsaPrivateKey *issuer,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Length of data to encode: %lu\n",
               code_payload_len);
-  plaintext = GNUNET_malloc (signature_payload_len);
-  // First, copy ticket
-  buf_ptr = plaintext;
-  memcpy (buf_ptr, ticket, sizeof (struct GNUNET_RECLAIM_Ticket));
-  buf_ptr += sizeof (struct GNUNET_RECLAIM_Ticket);
   
-  // Then copy nonce
-  nonce = 0;
-  if (NULL != nonce_str && strcmp("", nonce_str) != 0)
-  {
-    if ((1 != SSCANF (nonce_str, "%u", &nonce)) || (nonce > UINT32_MAX))
-    {
-      GNUNET_break (0);
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Invalid nonce %s\n", nonce_str);
-      GNUNET_free (plaintext);
-      GNUNET_free_non_null (attrs_ser);
-      return NULL;
-    }
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Got nonce: %u from %s\n",
-                nonce,
-                nonce_str);
-  }
-  nonce_tmp = htonl (nonce);
-  memcpy (buf_ptr, &nonce_tmp, sizeof (uint32_t));
-  buf_ptr += sizeof (uint32_t);
-  
-  // Finally, attributes
-  if (NULL != attrs_ser)
-  {
-    memcpy (buf_ptr, attrs_ser, attr_list_len);
-    GNUNET_free (attrs_ser);
-  }
   // Generate ECDH key
   ecdh_priv = GNUNET_CRYPTO_ecdhe_key_create ();
   GNUNET_CRYPTO_ecdhe_key_get_public (ecdh_priv, &ecdh_pub);
@@ -479,6 +526,7 @@ OIDC_build_authz_code (const struct GNUNET_CRYPTO_EcdsaPrivateKey *issuer,
                    buf_ptr);
   GNUNET_free (ecdh_priv);
   GNUNET_free (plaintext);
+  GNUNET_free (params);
   buf_ptr += signature_payload_len;
   // Sign and store signature
   if (GNUNET_SYSERR ==
@@ -505,6 +553,7 @@ OIDC_build_authz_code (const struct GNUNET_CRYPTO_EcdsaPrivateKey *issuer,
  *
  * @param audience the expected audience of the code
  * @param code the string representation of the code
+ * @param code_verfier PKCE code verifier
  * @param ticket where to store the ticket
  * @param attrs the attributes in the code
  * @param nonce where to store the nonce
@@ -513,6 +562,7 @@ OIDC_build_authz_code (const struct GNUNET_CRYPTO_EcdsaPrivateKey *issuer,
 int
 OIDC_parse_authz_code (const struct GNUNET_CRYPTO_EcdsaPrivateKey *ecdsa_priv,
                        const char *code,
+                       const char *code_verifier,
                        struct GNUNET_RECLAIM_Ticket *ticket,
                        struct GNUNET_RECLAIM_ATTRIBUTE_ClaimList **attrs,
                        char **nonce_str)
@@ -520,6 +570,7 @@ OIDC_parse_authz_code (const struct GNUNET_CRYPTO_EcdsaPrivateKey *ecdsa_priv,
   char *code_payload;
   char *ptr;
   char *plaintext;
+  char *code_verifier_tmp;
   struct GNUNET_CRYPTO_EccSignaturePurpose *purpose;
   struct GNUNET_CRYPTO_EcdsaSignature *signature;
   struct GNUNET_CRYPTO_EcdsaPublicKey ecdsa_pub;
@@ -529,6 +580,7 @@ OIDC_parse_authz_code (const struct GNUNET_CRYPTO_EcdsaPrivateKey *ecdsa_priv,
   size_t signature_offset;
   size_t plaintext_len;
   uint32_t nonce = 0;
+  struct OIDC_Parameters *params;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Trying to decode `%s'\n", code);
   code_payload = NULL;
@@ -558,19 +610,35 @@ OIDC_parse_authz_code (const struct GNUNET_CRYPTO_EcdsaPrivateKey *ecdsa_priv,
   plaintext_len = attrs_ser_len - sizeof (struct GNUNET_CRYPTO_EcdsaSignature);
   plaintext = GNUNET_malloc (plaintext_len);
   decrypt_payload (ecdsa_priv, ecdh_pub, ptr, plaintext_len, plaintext);
-  ptr = plaintext;
+  //ptr = plaintext;
+  params = (struct OIDC_Parameters *) plaintext;
+  
+  // cmp code_challenge code_verifier
+  code_verifier_tmp = GNUNET_malloc (strlen (code_verifier));
+  // hash code verifier
+  gcry_md_hash_buffer (GCRY_MD_SHA256, 
+                       code_verifier_tmp, 
+                       code_verifier, 
+                       strlen(code_verifier));
+  // encode code verifier
+  code_verifier_tmp = base64_encode (code_verifier_tmp, strlen (code_verifier_tmp));
+
+  if (0 != strcmp (code_verifier_tmp, params->code_challenge))
+  {
+   GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Invalid code verifier\n");
+   GNUNET_free_non_null (code_payload);
+   GNUNET_free (code_verifier_tmp);
+   return GNUNET_SYSERR;
+  }
+  GNUNET_free (code_verifier_tmp);
+  
   // Ticket
-  *ticket = *((struct GNUNET_RECLAIM_Ticket *) ptr);
-  attrs_ser_len -= sizeof (struct GNUNET_RECLAIM_Ticket);
-  ptr += sizeof (struct GNUNET_RECLAIM_Ticket);
+  ticket = params->ticket;
   // Nonce
-  nonce = ntohl (*((uint32_t *) ptr));
+  nonce = ntohl (params->nonce);//ntohl (*((uint32_t *) ptr));
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Got nonce: %u\n", nonce);
-  attrs_ser_len -= sizeof (uint32_t);
-  ptr += sizeof (uint32_t);
   // Attributes
-  attrs_ser_len -= sizeof (struct GNUNET_CRYPTO_EcdsaSignature);
-  *attrs = GNUNET_RECLAIM_ATTRIBUTE_list_deserialize (ptr, attrs_ser_len);
+  *attrs = GNUNET_RECLAIM_ATTRIBUTE_list_deserialize (params->attrs_ser, params->attr_list_len);
   // Signature
   signature_offset =
     code_payload_len - sizeof (struct GNUNET_CRYPTO_EcdsaSignature);
@@ -656,3 +724,4 @@ OIDC_access_token_new ()
                                 &access_token);
   return access_token;
 }
+
