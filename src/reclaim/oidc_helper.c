@@ -350,6 +350,7 @@ base64url_encode (const char *data, size_t data_size)
       enc[pos] = '\0';
       break;
     }
+    pos++;
   }
   return enc;
 }
@@ -662,7 +663,7 @@ OIDC_parse_authz_code (const struct GNUNET_CRYPTO_EcdsaPrivateKey *ecdsa_priv,
   }
   GNUNET_free (expected_code_challenge);
   // Ticket
-  memcpy (ticket, params->ticket, sizeof (*ticket));
+  memcpy (ticket, &params->ticket, sizeof (params->ticket));
   // Nonce
   nonce = ntohl (params->nonce); //ntohl (*((uint32_t *) ptr));
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Got nonce: %u\n", nonce);
