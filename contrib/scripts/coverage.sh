@@ -10,5 +10,6 @@ do
   cd -
 done
 lcov --directory . --capture --output-file app.info
+lcov --remove app.info /usr/include/* -o app.clean.info
 mkdir -p doc/coverage
-genhtml -o doc/coverage app.info
+genhtml -o doc/coverage app.clean.info
