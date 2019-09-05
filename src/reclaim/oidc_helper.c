@@ -632,6 +632,8 @@ OIDC_parse_authz_code (const struct GNUNET_CRYPTO_EcdsaPrivateKey *ecdsa_priv,
   plaintext = GNUNET_malloc (plaintext_len);
   decrypt_payload (ecdsa_priv, ecdh_pub, ptr, plaintext_len, plaintext);
   //ptr = plaintext;
+  ptr += plaintext_len;
+  signature = (struct GNUNET_CRYPTO_EcdsaSignature*) ptr;
   params = (struct OIDC_Parameters *) plaintext;
 
   // cmp code_challenge code_verifier
@@ -665,17 +667,10 @@ OIDC_parse_authz_code (const struct GNUNET_CRYPTO_EcdsaPrivateKey *ecdsa_priv,
   // Nonce
   nonce = ntohl (params->nonce); //ntohl (*((uint32_t *) ptr));
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Got nonce: %u\n", nonce);
-  // Attributes
-  attrs_ser = ((char *) &params[1]) + code_challenge_len;
-  attrs_ser_len = ntohl (params->attr_list_len);
-  *attrs = GNUNET_RECLAIM_ATTRIBUTE_list_deserialize (attrs_ser, attrs_ser_len);
   // Signature
-  signature =
-    (struct GNUNET_CRYPTO_EcdsaSignature *) (attrs_ser + attrs_ser_len);
   GNUNET_CRYPTO_ecdsa_key_get_public (ecdsa_priv, &ecdsa_pub);
   if (0 != GNUNET_memcmp (&ecdsa_pub, &ticket->audience))
   {
-    GNUNET_RECLAIM_ATTRIBUTE_list_destroy (*attrs);
     GNUNET_free (code_payload);
     GNUNET_free (plaintext);
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -688,12 +683,16 @@ OIDC_parse_authz_code (const struct GNUNET_CRYPTO_EcdsaPrivateKey *ecdsa_priv,
                                   signature,
                                   &ticket->identity))
   {
-    GNUNET_RECLAIM_ATTRIBUTE_list_destroy (*attrs);
     GNUNET_free (code_payload);
     GNUNET_free (plaintext);
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Signature of AuthZ code invalid!\n");
     return GNUNET_SYSERR;
   }
+  // Attributes
+  attrs_ser = ((char *) &params[1]) + code_challenge_len;
+  attrs_ser_len = ntohl (params->attr_list_len);
+  *attrs = GNUNET_RECLAIM_ATTRIBUTE_list_deserialize (attrs_ser, attrs_ser_len);
+
   *nonce_str = NULL;
   if (nonce != 0)
     GNUNET_asprintf (nonce_str, "%u", nonce);
