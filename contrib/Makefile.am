@@ -38,6 +38,8 @@ EXTRA_DIST = \
  conf/editors/eclipse/gnunet_codingstyle.xml \
  conf/gnunet/no_forcestart.conf \
  conf/gnunet/no_autostart_above_core.conf \
+ conf/gnunet/gnunet-system.conf \
+ conf/gnunet/gnunet-user.conf \
  conf/nss/nssswitch.conf \
  conf/wireshark/wireshark.lua \
  packages/nix/default.nix \
