@@ -322,8 +322,6 @@ base64_and_urlencode (const char *data, size_t data_size)
 }
 
 
-
-
 /**
  * Returns base64 encoded string urlencoded
  *
@@ -672,7 +670,8 @@ OIDC_parse_authz_code (const struct GNUNET_CRYPTO_EcdsaPrivateKey *ecdsa_priv,
   attrs_ser_len = ntohl (params->attr_list_len);
   *attrs = GNUNET_RECLAIM_ATTRIBUTE_list_deserialize (attrs_ser, attrs_ser_len);
   // Signature
-  signature = (struct GNUNET_CRYPTO_EcdsaSignature *) attrs_ser + attrs_ser_len;
+  signature =
+    (struct GNUNET_CRYPTO_EcdsaSignature *) (attrs_ser + attrs_ser_len);
   GNUNET_CRYPTO_ecdsa_key_get_public (ecdsa_priv, &ecdsa_pub);
   if (0 != GNUNET_memcmp (&ecdsa_pub, &ticket->audience))
   {
