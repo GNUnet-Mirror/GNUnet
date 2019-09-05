@@ -460,6 +460,7 @@ OIDC_build_authz_code (const struct GNUNET_CRYPTO_EcdsaPrivateKey *issuer,
   size_t payload_len;
   size_t code_payload_len;
   size_t attr_list_len = 0;
+  size_t code_challenge_len = 0;
   uint32_t nonce;
   uint32_t nonce_tmp;
   struct GNUNET_CRYPTO_EccSignaturePurpose *purpose;
@@ -489,14 +490,10 @@ OIDC_build_authz_code (const struct GNUNET_CRYPTO_EcdsaPrivateKey *issuer,
   nonce_tmp = htonl (nonce);
   params.nonce = nonce_tmp;
   // Assign code challenge
-  if (NULL == code_challenge || strcmp ("", code_challenge) == 0)
-  {
-    GNUNET_break (0);
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "PKCE: Code challenge missing");
-    return NULL;
-  }
-  payload_len += strlen (code_challenge);
-  params.code_challenge_len = htonl (strlen (code_challenge));
+  if (NULL != code_challenge)
+    code_challenge_len = strlen (code_challenge);
+  payload_len += code_challenge_len;
+  params.code_challenge_len = htonl (code_challenge_len);
   // Assign attributes
   if (NULL != attrs)
   {
@@ -513,8 +510,11 @@ OIDC_build_authz_code (const struct GNUNET_CRYPTO_EcdsaPrivateKey *issuer,
   payload = GNUNET_malloc (payload_len);
   memcpy (payload, &params, sizeof (params));
   tmp = payload + sizeof (params);
-  memcpy (tmp, code_challenge, strlen (code_challenge));
-  tmp += strlen (code_challenge);
+  if (0 < code_challenge_len)
+  {
+    memcpy (tmp, code_challenge, code_challenge_len);
+    tmp += code_challenge_len;
+  }
   if (0 < attr_list_len)
     GNUNET_RECLAIM_ATTRIBUTE_list_serialize (attrs, tmp);
   /** END **/
@@ -633,35 +633,38 @@ OIDC_parse_authz_code (const struct GNUNET_CRYPTO_EcdsaPrivateKey *ecdsa_priv,
   decrypt_payload (ecdsa_priv, ecdh_pub, ptr, plaintext_len, plaintext);
   //ptr = plaintext;
   ptr += plaintext_len;
-  signature = (struct GNUNET_CRYPTO_EcdsaSignature*) ptr;
+  signature = (struct GNUNET_CRYPTO_EcdsaSignature *) ptr;
   params = (struct OIDC_Parameters *) plaintext;
 
   // cmp code_challenge code_verifier
-  code_verifier_hash = GNUNET_malloc (256 / 8);
-  // hash code verifier
-  gcry_md_hash_buffer (GCRY_MD_SHA256,
-                       code_verifier_hash,
-                       code_verifier,
-                       strlen (code_verifier));
-  // encode code verifier
-  expected_code_challenge = base64url_encode (code_verifier_hash, 256 / 8);
-  code_challenge = (char *) &params[1];
   code_challenge_len = ntohl (params->code_challenge_len);
-  GNUNET_free (code_verifier_hash);
-  if ((strlen (expected_code_challenge) != code_challenge_len) ||
-      (0 !=
-       strncmp (expected_code_challenge, code_challenge, code_challenge_len)))
+  if (0 != code_challenge_len) /* Only check if this code requires a CV */
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Invalid code verifier! Expected: %s, Got: %.*s\n",
-                expected_code_challenge,
-                code_challenge_len,
-                code_challenge);
-    GNUNET_free_non_null (code_payload);
+    code_verifier_hash = GNUNET_malloc (256 / 8);
+    // hash code verifier
+    gcry_md_hash_buffer (GCRY_MD_SHA256,
+                         code_verifier_hash,
+                         code_verifier,
+                         strlen (code_verifier));
+    // encode code verifier
+    expected_code_challenge = base64url_encode (code_verifier_hash, 256 / 8);
+    code_challenge = (char *) &params[1];
+    GNUNET_free (code_verifier_hash);
+    if ((strlen (expected_code_challenge) != code_challenge_len) ||
+        (0 !=
+         strncmp (expected_code_challenge, code_challenge, code_challenge_len)))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  "Invalid code verifier! Expected: %s, Got: %.*s\n",
+                  expected_code_challenge,
+                  code_challenge_len,
+                  code_challenge);
+      GNUNET_free_non_null (code_payload);
+      GNUNET_free (expected_code_challenge);
+      return GNUNET_SYSERR;
+    }
     GNUNET_free (expected_code_challenge);
-    return GNUNET_SYSERR;
   }
-  GNUNET_free (expected_code_challenge);
   // Ticket
   memcpy (ticket, &params->ticket, sizeof (params->ticket));
   // Nonce

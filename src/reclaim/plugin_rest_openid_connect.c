@@ -1405,15 +1405,12 @@ authorize_endpoint (struct GNUNET_REST_RequestHandle *con_handle,
     return;
   }
 
-  // REQUIRED value: code_challenge 
+  // OPTIONAL value: code_challenge
   handle->oidc->code_challenge = get_url_parameter_copy (handle, OIDC_CODE_CHALLENGE_KEY);
   if (NULL == handle->oidc->code_challenge)
   {
-    handle->emsg = GNUNET_strdup (OIDC_ERROR_KEY_INVALID_REQUEST);
-    handle->edesc = GNUNET_strdup ("missing parameter code_challenge");
-    handle->response_code = MHD_HTTP_INTERNAL_SERVER_ERROR;
-    GNUNET_SCHEDULER_add_now (&do_error, handle);
-    return; 
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+        "OAuth authorization request does not contain PKCE parameters!\n");
   }
 
   if (GNUNET_OK !=
@@ -1762,7 +1759,7 @@ token_endpoint (struct GNUNET_REST_RequestHandle *con_handle,
     return;
   }
   privkey = GNUNET_IDENTITY_ego_get_private_key (ego_entry->ego);
-  
+
   // REQUIRED code verifier
   code_verifier = get_url_parameter_copy (handle, OIDC_CODE_VERIFIER_KEY);
   if (NULL == code_verifier)
@@ -2049,7 +2046,7 @@ list_ego (void *cls,
   }
   GNUNET_assert (NULL != ego);
   if (ID_REST_STATE_INIT == handle->state)
- 
+
   {
     ego_entry = GNUNET_new (struct EgoEntry);
     GNUNET_IDENTITY_ego_get_public_key (ego, &pk);
