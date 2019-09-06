@@ -208,7 +208,7 @@ get_my_cnf_path (const struct GNUNET_CONFIGURATION_Handle *cfg,
                        "mysql",
                        _ ("Could not access file `%s': %s\n"),
                        cnffile,
-                       STRERROR (errno));
+                       strerror (errno));
     GNUNET_free (cnffile);
     return NULL;
   }

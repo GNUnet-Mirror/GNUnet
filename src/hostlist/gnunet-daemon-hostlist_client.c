@@ -34,7 +34,6 @@
 #include "gnunet_curl_lib.h"
 
 
-
 /**
  * Number of connections that we must have to NOT download
  * hostlists anymore.
@@ -49,17 +48,20 @@
 /**
  * Time interval hostlists are saved to disk
  */
-#define SAVING_INTERVAL GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 30)
+#define SAVING_INTERVAL \
+  GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 30)
 
 /**
  * Time interval between two hostlist tests
  */
-#define TESTING_INTERVAL GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 3)
+#define TESTING_INTERVAL \
+  GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 3)
 
 /**
  * Time interval for download dispatcher before a download is re-scheduled
  */
-#define WAITING_INTERVAL GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 1)
+#define WAITING_INTERVAL \
+  GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 1)
 
 /**
  * Defines concerning the hostlist quality metric
@@ -84,7 +86,6 @@
  * Value added for each valid HELLO recived during a hostlist download
  */
 #define HOSTLIST_SUCCESSFUL_HELLO 1
-
 
 
 /**
@@ -136,7 +137,6 @@ struct Hostlist
    * Number of times the hostlist was successfully obtained
    */
   uint32_t times_used;
-
 };
 
 
@@ -321,10 +321,7 @@ static struct GNUNET_PEERINFO_Handle *pi;
  * @return number of bytes that were processed (always size*nmemb)
  */
 static size_t
-callback_download (void *ptr,
-                   size_t size,
-                   size_t nmemb,
-                   void *ctx)
+callback_download (void *ptr, size_t size, size_t nmemb, void *ctx)
 {
   static char download_buffer[GNUNET_MAX_MESSAGE_SIZE - 1];
   const char *cbuf = ptr;
@@ -338,13 +335,14 @@ callback_download (void *ptr,
   stat_bytes_downloaded += total;
   if ((total == 0) || (stat_bogus_url))
   {
-    return total;               /* ok, no data or bogus data */
+    return total; /* ok, no data or bogus data */
   }
 
   GNUNET_STATISTICS_update (stats,
-                            gettext_noop
-                            ("# bytes downloaded from hostlist servers"),
-                            (int64_t) total, GNUNET_NO);
+                            gettext_noop (
+                              "# bytes downloaded from hostlist servers"),
+                            (int64_t) total,
+                            GNUNET_NO);
   left = total;
   while ((left > 0) || (download_pos > 0))
   {
@@ -362,13 +360,15 @@ callback_download (void *ptr,
     msize = ntohs (msg->size);
     if (msize < sizeof (struct GNUNET_MessageHeader))
     {
-      GNUNET_STATISTICS_update (stats,
-                                gettext_noop
-                                ("# invalid HELLOs downloaded from hostlist servers"),
-                                1, GNUNET_NO);
+      GNUNET_STATISTICS_update (
+        stats,
+        gettext_noop ("# invalid HELLOs downloaded from hostlist servers"),
+        1,
+        GNUNET_NO);
       GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                  _("Invalid `%s' message received from hostlist at `%s'\n"),
-                  "HELLO", current_url);
+                  _ ("Invalid `%s' message received from hostlist at `%s'\n"),
+                  "HELLO",
+                  current_url);
       stat_hellos_obtained++;
       stat_bogus_url = 1;
       return total;
@@ -383,32 +383,34 @@ callback_download (void *ptr,
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Received valid `%s' message from hostlist server.\n",
                   "HELLO");
-      GNUNET_STATISTICS_update (stats,
-                                gettext_noop
-                                ("# valid HELLOs downloaded from hostlist servers"),
-                                1, GNUNET_NO);
+      GNUNET_STATISTICS_update (
+        stats,
+        gettext_noop ("# valid HELLOs downloaded from hostlist servers"),
+        1,
+        GNUNET_NO);
       stat_hellos_obtained++;
-      (void) GNUNET_PEERINFO_add_peer (pi,
-                                       (const struct GNUNET_HELLO_Message *) msg,
-                                       NULL,
-                                       NULL);
+      (void)
+        GNUNET_PEERINFO_add_peer (pi,
+                                  (const struct GNUNET_HELLO_Message *) msg,
+                                  NULL,
+                                  NULL);
     }
     else
     {
-      GNUNET_STATISTICS_update (stats,
-                                gettext_noop
-                                ("# invalid HELLOs downloaded from hostlist servers"),
-                                1, GNUNET_NO);
+      GNUNET_STATISTICS_update (
+        stats,
+        gettext_noop ("# invalid HELLOs downloaded from hostlist servers"),
+        1,
+        GNUNET_NO);
       GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                  _("Invalid `%s' message received from hostlist at `%s'\n"),
-                  "HELLO", current_url);
+                  _ ("Invalid `%s' message received from hostlist at `%s'\n"),
+                  "HELLO",
+                  current_url);
       stat_bogus_url = GNUNET_YES;
       stat_hellos_obtained++;
       return total;
     }
-    memmove (download_buffer,
-             &download_buffer[msize],
-             download_pos - msize);
+    memmove (download_buffer, &download_buffer[msize], download_pos - msize);
     download_pos -= msize;
   }
   return total;
@@ -428,12 +430,14 @@ get_bootstrap_server ()
   size_t urls;
   size_t pos;
 
-  if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_string (cfg, "HOSTLIST", "SERVERS",
-                                             &servers))
+  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_string (cfg,
+                                                          "HOSTLIST",
+                                                          "SERVERS",
+                                                          &servers))
   {
     GNUNET_log_config_missing (GNUNET_ERROR_TYPE_WARNING,
-			       "hostlist", "SERVERS");
+                               "hostlist",
+                               "SERVERS");
     return NULL;
   }
 
@@ -452,7 +456,8 @@ get_bootstrap_server ()
   if (urls == 0)
   {
     GNUNET_log_config_missing (GNUNET_ERROR_TYPE_WARNING,
-			       "hostlist", "SERVERS");
+                               "hostlist",
+                               "SERVERS");
     GNUNET_free (servers);
     return NULL;
   }
@@ -514,7 +519,7 @@ download_get_url ()
     return get_bootstrap_server ();
   }
   index =
-      GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, linked_list_size);
+    GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, linked_list_size);
   counter = 0;
   pos = linked_list_head;
   while (counter < index)
@@ -522,14 +527,26 @@ download_get_url ()
     pos = pos->next;
     counter++;
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Using learned hostlist `%s'\n",
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Using learned hostlist `%s'\n",
               pos->hostlist_uri);
   current_hostlist = pos;
   return GNUNET_strdup (pos->hostlist_uri);
 }
 
 
-#define CURL_EASY_SETOPT(c, a, b) do { ret = curl_easy_setopt (c, a, b); if (CURLE_OK != ret) GNUNET_log(GNUNET_ERROR_TYPE_WARNING, _("%s failed at %s:%d: `%s'\n"), "curl_easy_setopt", __FILE__, __LINE__, curl_easy_strerror (ret)); } while (0)
+#define CURL_EASY_SETOPT(c, a, b)                   \
+  do                                                \
+  {                                                 \
+    ret = curl_easy_setopt (c, a, b);               \
+    if (CURLE_OK != ret)                            \
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,        \
+                  _ ("%s failed at %s:%d: `%s'\n"), \
+                  "curl_easy_setopt",               \
+                  __FILE__,                         \
+                  __LINE__,                         \
+                  curl_easy_strerror (ret));        \
+  } while (0)
 
 
 /**
@@ -549,8 +566,7 @@ save_hostlist_file (int shutdown);
  * @return result
  */
 static uint64_t
-checked_add (uint64_t val1,
-             uint64_t val2)
+checked_add (uint64_t val1, uint64_t val2)
 {
   static uint64_t temp;
   static uint64_t maxv;
@@ -573,8 +589,7 @@ checked_add (uint64_t val1,
  * @return result
  */
 static uint64_t
-checked_sub (uint64_t val1,
-             uint64_t val2)
+checked_sub (uint64_t val1, uint64_t val2)
 {
   if (val1 <= val2)
     return 0;
@@ -643,20 +658,25 @@ insert_hostlist ()
     /* No free entries available, replace existing entry  */
     lowest_quality = linked_list_get_lowest_quality ();
     GNUNET_assert (lowest_quality != NULL);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Removing hostlist with URI `%s' which has the worst quality of all (%llu)\n",
-                lowest_quality->hostlist_uri,
-                (unsigned long long) lowest_quality->quality);
-    GNUNET_CONTAINER_DLL_remove (linked_list_head, linked_list_tail,
+    GNUNET_log (
+      GNUNET_ERROR_TYPE_DEBUG,
+      "Removing hostlist with URI `%s' which has the worst quality of all (%llu)\n",
+      lowest_quality->hostlist_uri,
+      (unsigned long long) lowest_quality->quality);
+    GNUNET_CONTAINER_DLL_remove (linked_list_head,
+                                 linked_list_tail,
                                  lowest_quality);
     linked_list_size--;
     GNUNET_free (lowest_quality);
   }
-  GNUNET_CONTAINER_DLL_insert (linked_list_head, linked_list_tail,
+  GNUNET_CONTAINER_DLL_insert (linked_list_head,
+                               linked_list_tail,
                                hostlist_to_test);
   linked_list_size++;
-  GNUNET_STATISTICS_set (stats, gettext_noop ("# advertised hostlist URIs"),
-                         linked_list_size, GNUNET_NO);
+  GNUNET_STATISTICS_set (stats,
+                         gettext_noop ("# advertised hostlist URIs"),
+                         linked_list_size,
+                         GNUNET_NO);
   stat_testing_hostlist = GNUNET_NO;
 }
 
@@ -678,14 +698,15 @@ update_hostlist ()
     current_hostlist->hello_count = stat_hellos_obtained;
     current_hostlist->time_last_usage = GNUNET_TIME_absolute_get ();
     current_hostlist->quality =
-        checked_add (current_hostlist->quality,
-                     (stat_hellos_obtained * HOSTLIST_SUCCESSFUL_HELLO));
+      checked_add (current_hostlist->quality,
+                   (stat_hellos_obtained * HOSTLIST_SUCCESSFUL_HELLO));
     if (GNUNET_YES == stat_download_successful)
     {
       current_hostlist->times_used++;
       current_hostlist->quality =
-          checked_add (current_hostlist->quality, HOSTLIST_SUCCESSFUL_DOWNLOAD);
-      GNUNET_asprintf (&stat, gettext_noop ("# advertised URI `%s' downloaded"),
+        checked_add (current_hostlist->quality, HOSTLIST_SUCCESSFUL_DOWNLOAD);
+      GNUNET_asprintf (&stat,
+                       gettext_noop ("# advertised URI `%s' downloaded"),
                        current_hostlist->hostlist_uri);
 
       GNUNET_STATISTICS_update (stats, stat, 1, GNUNET_YES);
@@ -693,7 +714,7 @@ update_hostlist ()
     }
     else
       current_hostlist->quality =
-          checked_sub (current_hostlist->quality, HOSTLIST_FAILED_DOWNLOAD);
+        checked_sub (current_hostlist->quality, HOSTLIST_FAILED_DOWNLOAD);
   }
   current_hostlist = NULL;
   /* Alternating the usage of preconfigured and learned hostlists */
@@ -722,14 +743,14 @@ clean_up ()
 {
   CURLMcode mret;
 
-  if ( (stat_testing_hostlist == GNUNET_YES) &&
-       (GNUNET_NO == stat_download_successful) &&
-       (NULL != hostlist_to_test) )
+  if ((stat_testing_hostlist == GNUNET_YES) &&
+      (GNUNET_NO == stat_download_successful) && (NULL != hostlist_to_test))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                _
-                ("Advertised hostlist with URI `%s' could not be downloaded. Advertised URI gets dismissed.\n"),
-                hostlist_to_test->hostlist_uri);
+    GNUNET_log (
+      GNUNET_ERROR_TYPE_INFO,
+      _ (
+        "Advertised hostlist with URI `%s' could not be downloaded. Advertised URI gets dismissed.\n"),
+      hostlist_to_test->hostlist_uri);
   }
 
   if (stat_testing_hostlist == GNUNET_YES)
@@ -747,14 +768,20 @@ clean_up ()
     mret = curl_multi_remove_handle (multi, curl);
     if (mret != CURLM_OK)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("%s failed at %s:%d: `%s'\n"),
-                  "curl_multi_remove_handle", __FILE__, __LINE__,
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  _ ("%s failed at %s:%d: `%s'\n"),
+                  "curl_multi_remove_handle",
+                  __FILE__,
+                  __LINE__,
                   curl_multi_strerror (mret));
     }
     mret = curl_multi_cleanup (multi);
     if (mret != CURLM_OK)
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("%s failed at %s:%d: `%s'\n"),
-                  "curl_multi_cleanup", __FILE__, __LINE__,
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  _ ("%s failed at %s:%d: `%s'\n"),
+                  "curl_multi_cleanup",
+                  __FILE__,
+                  __LINE__,
                   curl_multi_strerror (mret));
     multi = NULL;
   }
@@ -805,8 +832,11 @@ download_prepare ()
   mret = curl_multi_fdset (multi, &rs, &ws, &es, &max);
   if (mret != CURLM_OK)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("%s failed at %s:%d: `%s'\n"),
-                "curl_multi_fdset", __FILE__, __LINE__,
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _ ("%s failed at %s:%d: `%s'\n"),
+                "curl_multi_fdset",
+                __FILE__,
+                __LINE__,
                 curl_multi_strerror (mret));
     clean_up ();
     return;
@@ -814,26 +844,30 @@ download_prepare ()
   mret = curl_multi_timeout (multi, &timeout);
   if (mret != CURLM_OK)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("%s failed at %s:%d: `%s'\n"),
-                "curl_multi_timeout", __FILE__, __LINE__,
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _ ("%s failed at %s:%d: `%s'\n"),
+                "curl_multi_timeout",
+                __FILE__,
+                __LINE__,
                 curl_multi_strerror (mret));
     clean_up ();
     return;
   }
-  rtime =
-      GNUNET_TIME_relative_min (GNUNET_TIME_absolute_get_remaining (end_time),
-                                GNUNET_TIME_relative_multiply
-                                (GNUNET_TIME_UNIT_MILLISECONDS, timeout));
+  rtime = GNUNET_TIME_relative_min (
+    GNUNET_TIME_absolute_get_remaining (end_time),
+    GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, timeout));
   grs = GNUNET_NETWORK_fdset_create ();
   gws = GNUNET_NETWORK_fdset_create ();
   GNUNET_NETWORK_fdset_copy_native (grs, &rs, max + 1);
   GNUNET_NETWORK_fdset_copy_native (gws, &ws, max + 1);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Scheduling task for hostlist download using cURL\n");
-  ti_download =
-      GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
-                                   rtime, grs, gws,
-                                   &task_download, multi);
+  ti_download = GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
+                                             rtime,
+                                             grs,
+                                             gws,
+                                             &task_download,
+                                             multi);
   GNUNET_NETWORK_fdset_destroy (gws);
   GNUNET_NETWORK_fdset_destroy (grs);
 }
@@ -856,7 +890,7 @@ task_download (void *cls)
   if (0 == GNUNET_TIME_absolute_get_remaining (end_time).rel_value_us)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                _("Timeout trying to download hostlist from `%s'\n"),
+                _ ("Timeout trying to download hostlist from `%s'\n"),
                 current_url);
     update_hostlist ();
     clean_up ();
@@ -870,7 +904,8 @@ task_download (void *cls)
     if (stat_bytes_downloaded > MAX_BYTES_PER_HOSTLISTS)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                  _("Download limit of %u bytes exceeded, stopping download\n"),
+                  _ (
+                    "Download limit of %u bytes exceeded, stopping download\n"),
                   MAX_BYTES_PER_HOSTLISTS);
       clean_up ();
       return;
@@ -890,22 +925,22 @@ task_download (void *cls)
           if ((msg->data.result != CURLE_OK) &&
               (msg->data.result != CURLE_GOT_NOTHING))
             GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                        _("Download of hostlist from `%s' failed: `%s'\n"),
+                        _ ("Download of hostlist from `%s' failed: `%s'\n"),
                         current_url,
                         curl_easy_strerror (msg->data.result));
           else
           {
             GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                        _("Download of hostlist `%s' completed.\n"),
+                        _ ("Download of hostlist `%s' completed.\n"),
                         current_url);
             stat_download_successful = GNUNET_YES;
             update_hostlist ();
             if (GNUNET_YES == stat_testing_hostlist)
             {
-              GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                          _
-                          ("Adding successfully tested hostlist `%s' datastore.\n"),
-                          current_url);
+              GNUNET_log (
+                GNUNET_ERROR_TYPE_INFO,
+                _ ("Adding successfully tested hostlist `%s' datastore.\n"),
+                current_url);
               insert_hostlist ();
               hostlist_to_test = NULL;
               stat_testing_hostlist = GNUNET_NO;
@@ -917,16 +952,17 @@ task_download (void *cls)
           break;
         }
 
-      }
-      while ((running > 0));
+      } while ((running > 0));
     }
-  }
-  while (mret == CURLM_CALL_MULTI_PERFORM);
+  } while (mret == CURLM_CALL_MULTI_PERFORM);
 
   if (mret != CURLM_OK)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("%s failed at %s:%d: `%s'\n"),
-                "curl_multi_perform", __FILE__, __LINE__,
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                _ ("%s failed at %s:%d: `%s'\n"),
+                "curl_multi_perform",
+                __FILE__,
+                __LINE__,
                 curl_multi_strerror (mret));
     clean_up ();
   }
@@ -957,7 +993,8 @@ download_hostlist ()
     return;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_INFO | GNUNET_ERROR_TYPE_BULK,
-              _("Bootstrapping using hostlist at `%s'.\n"), current_url);
+              _ ("Bootstrapping using hostlist at `%s'.\n"),
+              current_url);
 
   stat_download_in_progress = GNUNET_YES;
   stat_download_successful = GNUNET_NO;
@@ -965,7 +1002,8 @@ download_hostlist ()
   stat_bytes_downloaded = 0;
 
   GNUNET_STATISTICS_update (stats,
-                            gettext_noop ("# hostlist downloads initiated"), 1,
+                            gettext_noop ("# hostlist downloads initiated"),
+                            1,
                             GNUNET_NO);
   if (NULL != proxy)
   {
@@ -991,7 +1029,9 @@ download_hostlist ()
     return;
   }
   CURL_EASY_SETOPT (curl, CURLOPT_FOLLOWLOCATION, 1);
-  CURL_EASY_SETOPT (curl, CURLOPT_REDIR_PROTOCOLS, CURLPROTO_HTTP | CURLPROTO_HTTPS);
+  CURL_EASY_SETOPT (curl,
+                    CURLOPT_REDIR_PROTOCOLS,
+                    CURLPROTO_HTTP | CURLPROTO_HTTPS);
   CURL_EASY_SETOPT (curl, CURLOPT_PROTOCOLS, CURLPROTO_HTTP | CURLPROTO_HTTPS);
   CURL_EASY_SETOPT (curl, CURLOPT_MAXREDIRS, 4);
   /* no need to abort if the above failed */
@@ -1020,13 +1060,19 @@ download_hostlist ()
   mret = curl_multi_add_handle (multi, curl);
   if (mret != CURLM_OK)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("%s failed at %s:%d: `%s'\n"),
-                "curl_multi_add_handle", __FILE__, __LINE__,
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _ ("%s failed at %s:%d: `%s'\n"),
+                "curl_multi_add_handle",
+                __FILE__,
+                __LINE__,
                 curl_multi_strerror (mret));
     mret = curl_multi_cleanup (multi);
     if (mret != CURLM_OK)
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("%s failed at %s:%d: `%s'\n"),
-                  "curl_multi_cleanup", __FILE__, __LINE__,
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  _ ("%s failed at %s:%d: `%s'\n"),
+                  "curl_multi_cleanup",
+                  __FILE__,
+                  __LINE__,
                   curl_multi_strerror (mret));
     multi = NULL;
     clean_up ();
@@ -1052,8 +1098,9 @@ task_download_dispatcher (void *cls)
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Download in progess, have to wait...\n");
     ti_download_dispatcher_task =
-        GNUNET_SCHEDULER_add_delayed (WAITING_INTERVAL,
-                                      &task_download_dispatcher, NULL);
+      GNUNET_SCHEDULER_add_delayed (WAITING_INTERVAL,
+                                    &task_download_dispatcher,
+                                    NULL);
   }
 }
 
@@ -1073,12 +1120,12 @@ task_check (void *cls)
   if (stats == NULL)
   {
     curl_global_cleanup ();
-    return;                     /* in shutdown */
+    return; /* in shutdown */
   }
-  if ( (stat_connection_count < MIN_CONNECTIONS) &&
-       (NULL == ti_download_dispatcher_task) )
+  if ((stat_connection_count < MIN_CONNECTIONS) &&
+      (NULL == ti_download_dispatcher_task))
     ti_download_dispatcher_task =
-        GNUNET_SCHEDULER_add_now (&task_download_dispatcher, NULL);
+      GNUNET_SCHEDULER_add_now (&task_download_dispatcher, NULL);
 
   delay = hostlist_delay;
   if (0 == hostlist_delay.rel_value_us)
@@ -1088,24 +1135,25 @@ task_check (void *cls)
   if (hostlist_delay.rel_value_us >
       GNUNET_TIME_UNIT_HOURS.rel_value_us * (1 + stat_connection_count))
     hostlist_delay =
-        GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_HOURS,
-                                       (1 + stat_connection_count));
+      GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_HOURS,
+                                     (1 + stat_connection_count));
   GNUNET_STATISTICS_set (stats,
-                         gettext_noop
-                         ("# milliseconds between hostlist downloads"),
+                         gettext_noop (
+                           "# milliseconds between hostlist downloads"),
                          hostlist_delay.rel_value_us / 1000LL,
-			 GNUNET_YES);
+                         GNUNET_YES);
   if (0 == once)
   {
     delay = GNUNET_TIME_UNIT_ZERO;
     once = 1;
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              _("Have %u/%u connections.  Will consider downloading hostlist in %s\n"),
-              stat_connection_count, MIN_CONNECTIONS,
-              GNUNET_STRINGS_relative_time_to_string (delay, GNUNET_YES));
-  ti_check_download = GNUNET_SCHEDULER_add_delayed (delay,
-						    &task_check, NULL);
+  GNUNET_log (
+    GNUNET_ERROR_TYPE_INFO,
+    _ ("Have %u/%u connections.  Will consider downloading hostlist in %s\n"),
+    stat_connection_count,
+    MIN_CONNECTIONS,
+    GNUNET_STRINGS_relative_time_to_string (delay, GNUNET_YES));
+  ti_check_download = GNUNET_SCHEDULER_add_delayed (delay, &task_check, NULL);
 }
 
 
@@ -1137,11 +1185,10 @@ task_hostlist_saving (void *cls)
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Hostlists will be saved to file again in %s\n",
-	      GNUNET_STRINGS_relative_time_to_string(SAVING_INTERVAL, GNUNET_YES));
+              GNUNET_STRINGS_relative_time_to_string (SAVING_INTERVAL,
+                                                      GNUNET_YES));
   ti_saving_task =
-      GNUNET_SCHEDULER_add_delayed (SAVING_INTERVAL,
-				    &task_hostlist_saving,
-                                    NULL);
+    GNUNET_SCHEDULER_add_delayed (SAVING_INTERVAL, &task_hostlist_saving, NULL);
 }
 
 
@@ -1154,14 +1201,14 @@ task_hostlist_saving (void *cls)
  */
 static void *
 handler_connect (void *cls,
-		 const struct GNUNET_PeerIdentity *peer,
-		 struct GNUNET_MQ_Handle *mq)
+                 const struct GNUNET_PeerIdentity *peer,
+                 struct GNUNET_MQ_Handle *mq)
 {
   GNUNET_assert (stat_connection_count < UINT_MAX);
   stat_connection_count++;
   GNUNET_STATISTICS_update (stats,
-			    gettext_noop ("# active connections"),
-			    1,
+                            gettext_noop ("# active connections"),
+                            1,
                             GNUNET_NO);
   return NULL;
 }
@@ -1175,14 +1222,14 @@ handler_connect (void *cls,
  */
 static void
 handler_disconnect (void *cls,
-		    const struct GNUNET_PeerIdentity *peer,
-		    void *internal_cls)
+                    const struct GNUNET_PeerIdentity *peer,
+                    void *internal_cls)
 {
   GNUNET_assert (stat_connection_count > 0);
   stat_connection_count--;
   GNUNET_STATISTICS_update (stats,
-			    gettext_noop ("# active connections"),
-			    -1,
+                            gettext_noop ("# active connections"),
+                            -1,
                             GNUNET_NO);
 }
 
@@ -1201,33 +1248,31 @@ handler_advertisement (const char *uri)
   uri_size = strlen (uri) + 1;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Hostlist client recieved advertisement containing URI `%s'\n",
-	      uri);
+              uri);
   if (GNUNET_NO != linked_list_contains (uri))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		"URI `%s' is already known\n",
-		uri);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "URI `%s' is already known\n", uri);
     return;
   }
 
   if (GNUNET_NO == stat_testing_allowed)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Currently not accepting new advertisements: interval between to advertisements is not reached\n");
+    GNUNET_log (
+      GNUNET_ERROR_TYPE_DEBUG,
+      "Currently not accepting new advertisements: interval between to advertisements is not reached\n");
     return;
   }
   if (GNUNET_YES == stat_testing_hostlist)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Currently not accepting new advertisements: we are already testing a hostlist\n");
+    GNUNET_log (
+      GNUNET_ERROR_TYPE_DEBUG,
+      "Currently not accepting new advertisements: we are already testing a hostlist\n");
     return;
   }
 
   hostlist = GNUNET_malloc (sizeof (struct Hostlist) + uri_size);
   hostlist->hostlist_uri = (const char *) &hostlist[1];
-  GNUNET_memcpy (&hostlist[1],
-		 uri,
-		 uri_size);
+  GNUNET_memcpy (&hostlist[1], uri, uri_size);
   hostlist->time_creation = GNUNET_TIME_absolute_get ();
   hostlist->quality = HOSTLIST_INITIAL;
   hostlist_to_test = hostlist;
@@ -1235,18 +1280,17 @@ handler_advertisement (const char *uri)
   stat_testing_hostlist = GNUNET_YES;
   stat_testing_allowed = GNUNET_NO;
   ti_testing_intervall_task =
-      GNUNET_SCHEDULER_add_delayed (TESTING_INTERVAL,
-                                    &task_testing_intervall_reset,
-				    NULL);
+    GNUNET_SCHEDULER_add_delayed (TESTING_INTERVAL,
+                                  &task_testing_intervall_reset,
+                                  NULL);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Testing new hostlist advertisements is locked for the next %s\n",
               GNUNET_STRINGS_relative_time_to_string (TESTING_INTERVAL,
-						      GNUNET_YES));
+                                                      GNUNET_YES));
 
   ti_download_dispatcher_task =
-      GNUNET_SCHEDULER_add_now (&task_download_dispatcher,
-				NULL);
+    GNUNET_SCHEDULER_add_now (&task_download_dispatcher, NULL);
 }
 
 
@@ -1259,8 +1303,7 @@ handler_advertisement (const char *uri)
  *        successfully obtained, #GNUNET_SYSERR if not.
  */
 static void
-primary_task (void *cls,
-              int success)
+primary_task (void *cls, int success)
 {
   if (NULL != ti_check_download)
   {
@@ -1288,8 +1331,7 @@ stat_timeout_task (void *cls)
 {
   GNUNET_STATISTICS_get_cancel (sget);
   sget = NULL;
-  ti_check_download = GNUNET_SCHEDULER_add_now (&task_check,
-                                                NULL);
+  ti_check_download = GNUNET_SCHEDULER_add_now (&task_check, NULL);
 }
 
 
@@ -1337,22 +1379,25 @@ load_hostlist_file ()
   struct GNUNET_BIO_ReadHandle *rh;
 
   uri = NULL;
-  if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_filename (cfg, "HOSTLIST", "HOSTLISTFILE",
-                                               &filename))
+  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_filename (cfg,
+                                                            "HOSTLIST",
+                                                            "HOSTLISTFILE",
+                                                            &filename))
   {
     GNUNET_log_config_missing (GNUNET_ERROR_TYPE_WARNING,
-			       "hostlist", "HOSTLISTFILE");
+                               "hostlist",
+                               "HOSTLISTFILE");
     return;
   }
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              _("Loading saved hostlist entries from file `%s' \n"),
-	      filename);
+              _ ("Loading saved hostlist entries from file `%s' \n"),
+              filename);
   if (GNUNET_NO == GNUNET_DISK_file_test (filename))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                _("Hostlist file `%s' does not exist\n"), filename);
+                _ ("Hostlist file `%s' does not exist\n"),
+                filename);
     GNUNET_free (filename);
     return;
   }
@@ -1361,16 +1406,19 @@ load_hostlist_file ()
   if (NULL == rh)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                _("Could not open file `%s' for reading to load hostlists: %s\n"),
-                filename, STRERROR (errno));
+                _ (
+                  "Could not open file `%s' for reading to load hostlists: %s\n"),
+                filename,
+                strerror (errno));
     GNUNET_free (filename);
     return;
   }
 
   counter = 0;
   while ((GNUNET_OK == GNUNET_BIO_read_string (rh, "url", &uri, MAX_URL_LEN)) &&
-         (NULL != uri) && (GNUNET_OK == GNUNET_BIO_read_int32 (rh, &times_used))
-         && (GNUNET_OK == GNUNET_BIO_read_int64 (rh, &quality)) &&
+         (NULL != uri) &&
+         (GNUNET_OK == GNUNET_BIO_read_int32 (rh, &times_used)) &&
+         (GNUNET_OK == GNUNET_BIO_read_int64 (rh, &quality)) &&
          (GNUNET_OK == GNUNET_BIO_read_int64 (rh, &last_used)) &&
          (GNUNET_OK == GNUNET_BIO_read_int64 (rh, &created)) &&
          (GNUNET_OK == GNUNET_BIO_read_int32 (rh, &hellos_returned)))
@@ -1395,14 +1443,16 @@ load_hostlist_file ()
   }
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              _("%u hostlist URIs loaded from file\n"),
+              _ ("%u hostlist URIs loaded from file\n"),
               counter);
   GNUNET_STATISTICS_set (stats,
                          gettext_noop ("# hostlist URIs read from file"),
-                         counter, GNUNET_YES);
+                         counter,
+                         GNUNET_YES);
   GNUNET_STATISTICS_set (stats,
                          gettext_noop ("# advertised hostlist URIs"),
-                         linked_list_size, GNUNET_NO);
+                         linked_list_size,
+                         GNUNET_NO);
 
   GNUNET_free_non_null (uri);
   emsg = NULL;
@@ -1427,12 +1477,14 @@ save_hostlist_file (int shutdown)
   int ok;
   uint32_t counter;
 
-  if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_filename (cfg, "HOSTLIST", "HOSTLISTFILE",
-                                               &filename))
+  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_filename (cfg,
+                                                            "HOSTLIST",
+                                                            "HOSTLISTFILE",
+                                                            &filename))
   {
     GNUNET_log_config_missing (GNUNET_ERROR_TYPE_WARNING,
-			       "hostlist", "HOSTLISTFILE");
+                               "hostlist",
+                               "HOSTLISTFILE");
     return;
   }
   if (GNUNET_SYSERR == GNUNET_DISK_directory_create_for_file (filename))
@@ -1444,15 +1496,17 @@ save_hostlist_file (int shutdown)
   if (NULL == wh)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                _("Could not open file `%s' for writing to save hostlists: %s\n"),
+                _ (
+                  "Could not open file `%s' for writing to save hostlists: %s\n"),
                 filename,
-                STRERROR (errno));
+                strerror (errno));
     GNUNET_free (filename);
     return;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              _("Writing %u hostlist URIs to `%s'\n"),
-              linked_list_size, filename);
+              _ ("Writing %u hostlist URIs to `%s'\n"),
+              linked_list_size,
+              filename);
   /* add code to write hostlists to file using bio */
   ok = GNUNET_YES;
   counter = 0;
@@ -1475,7 +1529,8 @@ save_hostlist_file (int shutdown)
           (GNUNET_OK != GNUNET_BIO_write_int32 (wh, pos->hello_count)))
       {
         GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                    _("Error writing hostlist URIs to file `%s'\n"), filename);
+                    _ ("Error writing hostlist URIs to file `%s'\n"),
+                    filename);
         ok = GNUNET_NO;
       }
     }
@@ -1488,11 +1543,13 @@ save_hostlist_file (int shutdown)
   }
   GNUNET_STATISTICS_set (stats,
                          gettext_noop ("# hostlist URIs written to file"),
-                         counter, GNUNET_YES);
+                         counter,
+                         GNUNET_YES);
 
   if (GNUNET_OK != GNUNET_BIO_write_close (wh))
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                _("Error writing hostlist URIs to file `%s'\n"), filename);
+                _ ("Error writing hostlist URIs to file `%s'\n"),
+                filename);
   GNUNET_free (filename);
 }
 
@@ -1532,47 +1589,38 @@ GNUNET_HOSTLIST_client_start (const struct GNUNET_CONFIGURATION_Handle *c,
   /* Read proxy configuration */
   pi = GNUNET_PEERINFO_connect (c);
   if (GNUNET_OK ==
-      GNUNET_CONFIGURATION_get_value_string (cfg,
-                                             "HOSTLIST",
-					     "PROXY",
-					     &proxy))
+      GNUNET_CONFIGURATION_get_value_string (cfg, "HOSTLIST", "PROXY", &proxy))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                     "Found proxy host: `%s'\n",
-                     proxy);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Found proxy host: `%s'\n", proxy);
     /* proxy username */
-    if (GNUNET_OK ==
-	GNUNET_CONFIGURATION_get_value_string (cfg,
-					       "HOSTLIST",
-					       "PROXY_USERNAME",
-					       &proxy_username))
+    if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string (cfg,
+                                                            "HOSTLIST",
+                                                            "PROXY_USERNAME",
+                                                            &proxy_username))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "Found proxy username name: `%s'\n",
-		  proxy_username);
+                  "Found proxy username name: `%s'\n",
+                  proxy_username);
     }
 
     /* proxy password */
-    if (GNUNET_OK ==
-	GNUNET_CONFIGURATION_get_value_string (cfg,
-					       "HOSTLIST",
-					       "PROXY_PASSWORD",
-					       &proxy_password))
+    if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string (cfg,
+                                                            "HOSTLIST",
+                                                            "PROXY_PASSWORD",
+                                                            &proxy_password))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                       "Found proxy password name: `%s'\n",
-                       proxy_password);
+                  "Found proxy password name: `%s'\n",
+                  proxy_password);
     }
 
     /* proxy type */
-    if (GNUNET_OK ==
-        GNUNET_CONFIGURATION_get_value_string (cfg,
-                                               "HOSTLIST",
-                                               "PROXY_TYPE",
-                                               &proxytype_str))
+    if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string (cfg,
+                                                            "HOSTLIST",
+                                                            "PROXY_TYPE",
+                                                            &proxytype_str))
     {
-      GNUNET_STRINGS_utf8_toupper (proxytype_str,
-                                   proxytype_str);
+      GNUNET_STRINGS_utf8_toupper (proxytype_str, proxytype_str);
       proxy_type = CURLPROXY_HTTP;
       if (0 == strcmp (proxytype_str, "HTTP"))
         proxy_type = CURLPROXY_HTTP;
@@ -1588,9 +1636,11 @@ GNUNET_HOSTLIST_client_start (const struct GNUNET_CONFIGURATION_Handle *c,
         proxy_type = CURLPROXY_SOCKS5_HOSTNAME;
       else
       {
-        GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                    _("Invalid proxy type: `%s', disabling proxy! Check configuration!\n"),
-                    proxytype_str);
+        GNUNET_log (
+          GNUNET_ERROR_TYPE_ERROR,
+          _ (
+            "Invalid proxy type: `%s', disabling proxy! Check configuration!\n"),
+          proxytype_str);
         GNUNET_free (proxytype_str);
         GNUNET_free (proxy);
         proxy = NULL;
@@ -1618,35 +1668,35 @@ GNUNET_HOSTLIST_client_start (const struct GNUNET_CONFIGURATION_Handle *c,
   {
     *msgh = &handler_advertisement;
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                _("Learning is enabled on this peer\n"));
+                _ ("Learning is enabled on this peer\n"));
     load_hostlist_file ();
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Hostlists will be saved to file again in %s\n",
-		GNUNET_STRINGS_relative_time_to_string (SAVING_INTERVAL,
-							GNUNET_YES));
-    ti_saving_task =
-        GNUNET_SCHEDULER_add_delayed (SAVING_INTERVAL,
-                                      &task_hostlist_saving,
-                                      NULL);
+                GNUNET_STRINGS_relative_time_to_string (SAVING_INTERVAL,
+                                                        GNUNET_YES));
+    ti_saving_task = GNUNET_SCHEDULER_add_delayed (SAVING_INTERVAL,
+                                                   &task_hostlist_saving,
+                                                   NULL);
   }
   else
   {
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                _("Learning is not enabled on this peer\n"));
+                _ ("Learning is not enabled on this peer\n"));
     *msgh = NULL;
-    if (GNUNET_OK ==
-        GNUNET_CONFIGURATION_get_value_filename (cfg,
-						 "HOSTLIST",
-                                                 "HOSTLISTFILE",
-						 &filename))
+    if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_filename (cfg,
+                                                              "HOSTLIST",
+                                                              "HOSTLISTFILE",
+                                                              &filename))
     {
       if (GNUNET_YES == GNUNET_DISK_file_test (filename))
       {
         result = remove (filename);
         if (0 == result)
-          GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                      _("Since learning is not enabled on this peer, hostlist file `%s' was removed\n"),
-                      filename);
+          GNUNET_log (
+            GNUNET_ERROR_TYPE_INFO,
+            _ (
+              "Since learning is not enabled on this peer, hostlist file `%s' was removed\n"),
+            filename);
         else
           GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR,
                                     "remove",
@@ -1657,25 +1707,24 @@ GNUNET_HOSTLIST_client_start (const struct GNUNET_CONFIGURATION_Handle *c,
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Loading stats value on hostlist download frequency\n");
-  sget = GNUNET_STATISTICS_get (stats, "hostlist",
-				gettext_noop
-				("# milliseconds between hostlist downloads"),
+  sget = GNUNET_STATISTICS_get (stats,
+                                "hostlist",
+                                gettext_noop (
+                                  "# milliseconds between hostlist downloads"),
                                 &primary_task,
                                 &process_stat,
-				NULL);
+                                NULL);
   if (NULL == sget)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Statistics request failed, scheduling hostlist download\n");
-    ti_check_download = GNUNET_SCHEDULER_add_now (&task_check,
-                                                  NULL);
+    ti_check_download = GNUNET_SCHEDULER_add_now (&task_check, NULL);
   }
   else
   {
-    ti_check_download
-      = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MINUTES,
-				      &stat_timeout_task,
-				      NULL);
+    ti_check_download = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MINUTES,
+                                                      &stat_timeout_task,
+                                                      NULL);
   }
   return GNUNET_OK;
 }
@@ -1687,8 +1736,7 @@ GNUNET_HOSTLIST_client_start (const struct GNUNET_CONFIGURATION_Handle *c,
 void
 GNUNET_HOSTLIST_client_stop ()
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Hostlist client shutdown\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Hostlist client shutdown\n");
   if (NULL != sget)
   {
     GNUNET_STATISTICS_get_cancel (sget);
@@ -1703,7 +1751,7 @@ GNUNET_HOSTLIST_client_stop ()
     ti_saving_task = NULL;
   }
   if (NULL != ti_download_dispatcher_task)
-    {
+  {
     GNUNET_SCHEDULER_cancel (ti_download_dispatcher_task);
     ti_download_dispatcher_task = NULL;
   }
