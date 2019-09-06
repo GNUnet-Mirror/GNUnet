@@ -93,7 +93,7 @@ main (int argc, char *argv[])
    * however, the "0:05 19" should always be there; hence: */
   if (NULL == strstr (bc, "0:05 19"))
   {
-    FPRINTF (stderr, "Got %s\n", bc);
+    fprintf (stderr, "Got %s\n", bc);
     GNUNET_break (0);
     return 1;
   }

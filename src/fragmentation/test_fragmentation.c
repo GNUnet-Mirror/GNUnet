@@ -98,7 +98,7 @@ proc_msgs (void *cls, const struct GNUNET_MessageHeader *hdr)
   const char *buf;
 
 #if DETAILS
-  FPRINTF (stderr, "%s",  "M! ");        /* message complete, good! */
+  fprintf (stderr, "%s",  "M! ");        /* message complete, good! */
 #endif
   buf = (const char *) hdr;
   for (i = sizeof (struct GNUNET_MessageHeader); i < ntohs (hdr->size); i++)
@@ -106,7 +106,7 @@ proc_msgs (void *cls, const struct GNUNET_MessageHeader *hdr)
   total++;
 #if ! DETAILS
   if (0 == (total % (NUM_MSGS / 100)))
-    FPRINTF (stderr, "%s",  ".");
+    fprintf (stderr, "%s",  ".");
 #endif
   /* tolerate 10% loss, i.e. due to duplicate fragment IDs */
   if ((total >= NUM_MSGS - (NUM_MSGS / 10)) && (ret != 0))
@@ -131,27 +131,27 @@ proc_frac (void *cls, const struct GNUNET_MessageHeader *hdr)
   {
     frag_drops++;
 #if DETAILS
-    FPRINTF (stderr, "%s",  "DF ");    /* dropped Frag */
+    fprintf (stderr, "%s",  "DF ");    /* dropped Frag */
 #endif
     return;                     /* random drop */
   }
   if (NULL == defrag)
   {
-    FPRINTF (stderr, "%s",  "?E ");      /* Error: frag after shutdown!? */
+    fprintf (stderr, "%s",  "?E ");      /* Error: frag after shutdown!? */
     return;
   }
   ret = GNUNET_DEFRAGMENT_process_fragment (defrag, hdr);
   if (ret == GNUNET_NO)
   {
 #if DETAILS
-    FPRINTF (stderr, "%s",  "FF ");      /* duplicate fragment */
+    fprintf (stderr, "%s",  "FF ");      /* duplicate fragment */
 #endif
     dups++;
   }
   else if (ret == GNUNET_OK)
   {
 #if DETAILS
-    FPRINTF (stderr, "%s",  "F! ");      /* good fragment */
+    fprintf (stderr, "%s",  "F! ");      /* good fragment */
 #endif
     fragc++;
   }
@@ -181,7 +181,7 @@ next_transmission ()
   if (i == NUM_MSGS)
     return;
 #if DETAILS
-  FPRINTF (stderr, "%s",  "T! ");        /* sending message */
+  fprintf (stderr, "%s",  "T! ");        /* sending message */
 #endif
   msg = (struct GNUNET_MessageHeader *) buf;
   msg->type = htons ((uint16_t) i);
@@ -212,7 +212,7 @@ proc_acks (void *cls,
   {
     ack_drops++;
 #if DETAILS
-    FPRINTF (stderr, "%s",  "DA ");    /* dropped ACK */
+    fprintf (stderr, "%s",  "DA ");    /* dropped ACK */
 #endif
     return;                     /* random drop */
   }
@@ -224,7 +224,7 @@ proc_acks (void *cls,
     if (ret == GNUNET_OK)
     {
 #if DETAILS
-      FPRINTF (stderr, "%s",  "GA ");    /* good ACK */
+      fprintf (stderr, "%s",  "GA ");    /* good ACK */
 #endif
       next_transmission ();
       acks++;
@@ -233,14 +233,14 @@ proc_acks (void *cls,
     if (ret == GNUNET_NO)
     {
 #if DETAILS
-      FPRINTF (stderr, "%s",  "AA ");    /* duplciate ACK */
+      fprintf (stderr, "%s",  "AA ");    /* duplciate ACK */
 #endif
       acks++;
       return;
     }
   }
 #if DETAILS
-  FPRINTF (stderr, "%s",  "?A ");        /* BAD: ack that nobody feels responsible for... */
+  fprintf (stderr, "%s",  "?A ");        /* BAD: ack that nobody feels responsible for... */
 #endif
 }
 
@@ -293,7 +293,7 @@ main (int argc, char *argv[])
                       "test-fragmentation", "nohelp",
                       options,
                       &run, NULL);
-  FPRINTF (stderr,
+  fprintf (stderr,
            "\nHad %u good fragments, %u duplicate fragments, %u acks and %u simulated drops of acks\n",
            fragc,
            dups,

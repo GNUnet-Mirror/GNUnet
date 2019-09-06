@@ -208,7 +208,7 @@ notify_connect_complete (void *cls,
   GNUNET_TESTBED_operation_done (op);
   if (NULL != emsg)
   {
-    FPRINTF (stderr, "Failed to connect two peers: %s\n", emsg);
+    fprintf (stderr, "Failed to connect two peers: %s\n", emsg);
     result = GNUNET_SYSERR;
     GNUNET_SCHEDULER_shutdown ();
     return;

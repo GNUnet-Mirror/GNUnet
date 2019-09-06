@@ -147,7 +147,7 @@ do_shutdown (void *cls)
   delta = GNUNET_TIME_absolute_get_duration (start_time).rel_value_us;
   if (0 == delta)
     delta = 1;
-  FPRINTF (stderr,
+  fprintf (stderr,
            "\nThroughput was %llu kb/s\n",
            total_bytes * 1000000LL / 1024 / delta);
   GAUGER ("CORE",
@@ -301,7 +301,7 @@ handle_test (void *cls,
               (unsigned int) ntohs (hdr->header.size));
   n++;
   if (0 == (n % (TOTAL_MSGS / 100)))
-    FPRINTF (stderr,
+    fprintf (stderr,
 	     "%s",
 	     ".");
   if (n == TOTAL_MSGS)

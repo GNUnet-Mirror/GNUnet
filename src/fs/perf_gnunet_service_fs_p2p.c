@@ -116,7 +116,7 @@ print_stat (void *cls, const char *subsystem, const char *name, uint64_t value,
 {
   struct StatMaster *sm = cls;
 
-  FPRINTF (stderr,
+  fprintf (stderr,
            "Peer %2u: %12s/%50s = %12llu\n",
            sm->daemon,
            subsystem,
@@ -267,7 +267,7 @@ do_report (void *cls)
   fancy =
     GNUNET_STRINGS_byte_size_fancy (((unsigned long long) FILESIZE) *
 				    1000000LL / del.rel_value_us);
-  FPRINTF (stdout,
+  fprintf (stdout,
            "Download speed was %s/s\n",
            fancy);
   GNUNET_free (fancy);

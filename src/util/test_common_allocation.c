@@ -144,7 +144,7 @@ main (int argc, char *argv[])
                     NULL);
   ret = check ();
   if (ret != 0)
-    FPRINTF (stderr,
+    fprintf (stderr,
              "ERROR %d.\n",
              ret);
   return ret;

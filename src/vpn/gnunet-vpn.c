@@ -88,7 +88,7 @@ static int ret;
 /**
  * Option '-d': duration of the mapping
  */
-static struct GNUNET_TIME_Relative duration = { 5 * 60 * 1000} ;
+static struct GNUNET_TIME_Relative duration = {5 * 60 * 1000};
 
 
 /**
@@ -127,9 +127,7 @@ do_disconnect (void *cls)
  *                specified target peer; NULL on error
  */
 static void
-allocation_cb (void *cls,
-	       int af,
-	       const void *address)
+allocation_cb (void *cls, int af, const void *address)
 {
   char buf[INET6_ADDRSTRLEN];
 
@@ -138,13 +136,10 @@ allocation_cb (void *cls,
   {
   case AF_INET6:
   case AF_INET:
-    FPRINTF (stdout,
-	     "%s\n",
-	     inet_ntop (af, address, buf, sizeof (buf)));
+    fprintf (stdout, "%s\n", inet_ntop (af, address, buf, sizeof (buf)));
     break;
   case AF_UNSPEC:
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		_("Error creating tunnel\n"));
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _ ("Error creating tunnel\n"));
     ret = 1;
     break;
   default:
@@ -188,8 +183,10 @@ run (void *cls,
   {
     if (ipv6)
     {
-      FPRINTF (stderr, _("Option `%s' makes no sense with option `%s'.\n"),
-               "-4", "-6");
+      fprintf (stderr,
+               _ ("Option `%s' makes no sense with option `%s'.\n"),
+               "-4",
+               "-6");
       goto error;
     }
     req_af = AF_INET;
@@ -201,26 +198,32 @@ run (void *cls,
   {
     if (NULL == service_name)
     {
-      FPRINTF (stderr, _("Option `%s' or `%s' is required.\n"),
-               "-i", "-s");
+      fprintf (stderr, _ ("Option `%s' or `%s' is required.\n"), "-i", "-s");
       goto error;
     }
     if (NULL == peer_id)
     {
-      FPRINTF (stderr, _("Option `%s' is required when using option `%s'.\n"),
-               "-p", "-s");
+      fprintf (stderr,
+               _ ("Option `%s' is required when using option `%s'.\n"),
+               "-p",
+               "-s");
       goto error;
     }
-    if (! (tcp | udp) )
+    if (! (tcp | udp))
     {
-      FPRINTF (stderr, _("Option `%s' or `%s' is required when using option `%s'.\n"),
-               "-t", "-u", "-s");
+      fprintf (stderr,
+               _ ("Option `%s' or `%s' is required when using option `%s'.\n"),
+               "-t",
+               "-u",
+               "-s");
       goto error;
     }
     if (tcp & udp)
     {
-      FPRINTF (stderr, _("Option `%s' makes no sense with option `%s'.\n"),
-               "-t", "-u");
+      fprintf (stderr,
+               _ ("Option `%s' makes no sense with option `%s'.\n"),
+               "-t",
+               "-u");
       goto error;
     }
     if (tcp)
@@ -228,24 +231,22 @@ run (void *cls,
     if (udp)
       protocol = IPPROTO_UDP;
     if (GNUNET_OK !=
-	GNUNET_CRYPTO_eddsa_public_key_from_string (peer_id,
+        GNUNET_CRYPTO_eddsa_public_key_from_string (peer_id,
                                                     strlen (peer_id),
                                                     &peer.public_key))
     {
-      FPRINTF (stderr,
-               _("`%s' is not a valid peer identifier.\n"),
-               peer_id);
+      fprintf (stderr, _ ("`%s' is not a valid peer identifier.\n"), peer_id);
       goto error;
     }
-    GNUNET_TUN_service_name_to_hash (service_name,
-                                     &sd);
+    GNUNET_TUN_service_name_to_hash (service_name, &sd);
     request = GNUNET_VPN_redirect_to_peer (handle,
-					   req_af,
-					   protocol,
-					   &peer,
-					   &sd,
-					   etime,
-					   &allocation_cb, NULL);
+                                           req_af,
+                                           protocol,
+                                           &peer,
+                                           &sd,
+                                           etime,
+                                           &allocation_cb,
+                                           NULL);
   }
   else
   {
@@ -253,14 +254,13 @@ run (void *cls,
     {
       if (1 != inet_pton (AF_INET, target_ip, &v4))
       {
-	FPRINTF (stderr, _("`%s' is not a valid IP address.\n"),
-		 target_ip);
-	goto error;
+        fprintf (stderr, _ ("`%s' is not a valid IP address.\n"), target_ip);
+        goto error;
       }
       else
       {
-	dst_af = AF_INET;
-	addr = &v4;
+        dst_af = AF_INET;
+        addr = &v4;
       }
     }
     else
@@ -269,15 +269,16 @@ run (void *cls,
       addr = &v6;
     }
     request = GNUNET_VPN_redirect_to_ip (handle,
-					 req_af,
-					 dst_af,
-					 addr,
-					 etime,
-					 &allocation_cb, NULL);
+                                         req_af,
+                                         dst_af,
+                                         addr,
+                                         etime,
+                                         &allocation_cb,
+                                         NULL);
   }
   return;
 
- error:
+error:
   GNUNET_SCHEDULER_shutdown ();
   ret = 1;
 }
@@ -286,63 +287,73 @@ run (void *cls,
 int
 main (int argc, char *const *argv)
 {
-  struct GNUNET_GETOPT_CommandLineOption options[] = {
-    GNUNET_GETOPT_option_flag ('4',
-                                  "ipv4",
-                                  gettext_noop ("request that result should be an IPv4 address"),
-                                  &ipv4),
+  struct GNUNET_GETOPT_CommandLineOption options[] =
+    {GNUNET_GETOPT_option_flag ('4',
+                                "ipv4",
+                                gettext_noop (
+                                  "request that result should be an IPv4 address"),
+                                &ipv4),
 
-    GNUNET_GETOPT_option_flag ('6',
-                                  "ipv6",
-                                  gettext_noop ("request that result should be an IPv6 address"),
-                                  &ipv6),
+     GNUNET_GETOPT_option_flag ('6',
+                                "ipv6",
+                                gettext_noop (
+                                  "request that result should be an IPv6 address"),
+                                &ipv6),
 
-    GNUNET_GETOPT_option_relative_time ('d',
-                                            "duration",
-                                            "TIME",
-                                            gettext_noop ("how long should the mapping be valid for new tunnels?"),
-                                            &duration),
+     GNUNET_GETOPT_option_relative_time (
+       'd',
+       "duration",
+       "TIME",
+       gettext_noop ("how long should the mapping be valid for new tunnels?"),
+       &duration),
 
-    GNUNET_GETOPT_option_string ('i',
-                                 "ip",
-                                 "IP",
-                                 gettext_noop ("destination IP for the tunnel"),
-                                 &target_ip),
+     GNUNET_GETOPT_option_string ('i',
+                                  "ip",
+                                  "IP",
+                                  gettext_noop (
+                                    "destination IP for the tunnel"),
+                                  &target_ip),
 
-    GNUNET_GETOPT_option_string ('p',
-                                 "peer",
-                                 "PEERID",
-                                 gettext_noop ("peer offering the service we would like to access"),
-                                 &peer_id),
+     GNUNET_GETOPT_option_string (
+       'p',
+       "peer",
+       "PEERID",
+       gettext_noop ("peer offering the service we would like to access"),
+       &peer_id),
 
-    GNUNET_GETOPT_option_string ('s', 
-                                 "service",
-                                 "NAME",
-                                 gettext_noop ("name of the service we would like to access"),
-                                 &service_name),
+     GNUNET_GETOPT_option_string ('s',
+                                  "service",
+                                  "NAME",
+                                  gettext_noop (
+                                    "name of the service we would like to access"),
+                                  &service_name),
 
-    GNUNET_GETOPT_option_flag ('t',
-                                  "tcp",
-                                  gettext_noop ("service is offered via TCP"),
-                                  &tcp),
+     GNUNET_GETOPT_option_flag ('t',
+                                "tcp",
+                                gettext_noop ("service is offered via TCP"),
+                                &tcp),
 
-    GNUNET_GETOPT_option_flag ('u',
-                                  "udp",
-                                  gettext_noop ("service is offered via UDP"),
-                                  &udp),
+     GNUNET_GETOPT_option_flag ('u',
+                                "udp",
+                                gettext_noop ("service is offered via UDP"),
+                                &udp),
 
-    GNUNET_GETOPT_option_verbose (&verbosity),
+     GNUNET_GETOPT_option_verbose (&verbosity),
 
-    GNUNET_GETOPT_OPTION_END
-  };
+     GNUNET_GETOPT_OPTION_END};
   if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv, &argc, &argv))
     return 2;
 
-  ret = (GNUNET_OK ==
-	 GNUNET_PROGRAM_run (argc, argv, "gnunet-vpn",
-			     gettext_noop
-			     ("Setup tunnels via VPN."), options,
-                              &run, NULL)) ? ret : 1;
+  ret =
+    (GNUNET_OK == GNUNET_PROGRAM_run (argc,
+                                      argv,
+                                      "gnunet-vpn",
+                                      gettext_noop ("Setup tunnels via VPN."),
+                                      options,
+                                      &run,
+                                      NULL))
+      ? ret
+      : 1;
   GNUNET_free ((void *) argv);
   return ret;
 }

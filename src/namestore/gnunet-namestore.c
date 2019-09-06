@@ -437,7 +437,7 @@ display_record (const char *rname,
   }
   if (GNUNET_NO == have_record)
     return;
-  FPRINTF (stdout, "%s:\n", rname);
+  fprintf (stdout, "%s:\n", rname);
   if (NULL != typestring)
     type = GNUNET_GNSRECORD_typename_to_number (typestring);
   else
@@ -455,7 +455,7 @@ display_record (const char *rname,
                                           rd[i].data_size);
     if (NULL == s)
     {
-      FPRINTF (stdout,
+      fprintf (stdout,
                _ ("\tCorrupt or unsupported record of type %u\n"),
                (unsigned int) rd[i].record_type);
       continue;
@@ -470,7 +470,7 @@ display_record (const char *rname,
       at.abs_value_us = rd[i].expiration_time;
       ets = GNUNET_STRINGS_absolute_time_to_string (at);
     }
-    FPRINTF (stdout,
+    fprintf (stdout,
              "\t%s: %s (%s)\t%s\t%s\n",
              typestr,
              s,
@@ -481,7 +481,7 @@ display_record (const char *rname,
                                                                       : "");
     GNUNET_free (s);
   }
-  FPRINTF (stdout, "%s", "\n");
+  fprintf (stdout, "%s", "\n");
 }
 
 
@@ -564,7 +564,7 @@ static void
 sync_cb (void *cls)
 {
   (void) cls;
-  FPRINTF (stdout, "%s", "Monitor is now in sync.\n");
+  fprintf (stdout, "%s", "Monitor is now in sync.\n");
 }
 
 
@@ -577,7 +577,7 @@ static void
 monitor_error_cb (void *cls)
 {
   (void) cls;
-  FPRINTF (stderr, "%s", "Monitor disconnected and out of sync.\n");
+  fprintf (stderr, "%s", "Monitor disconnected and out of sync.\n");
 }
 
 
@@ -591,7 +591,7 @@ lookup_error_cb (void *cls)
 {
   (void) cls;
   get_qe = NULL;
-  FPRINTF (stderr, "%s", "Failed to lookup record.\n");
+  fprintf (stderr, "%s", "Failed to lookup record.\n");
   test_finished ();
 }
 
@@ -761,7 +761,7 @@ reverse_error_cb (void *cls)
 {
   (void) cls;
   reverse_qe = NULL;
-  FPRINTF (stdout, "%s.zkey\n", reverse_pkey);
+  fprintf (stdout, "%s.zkey\n", reverse_pkey);
 }
 
 
@@ -788,9 +788,9 @@ handle_reverse_lookup (void *cls,
   (void) rd;
   reverse_qe = NULL;
   if (NULL == label)
-    FPRINTF (stdout, "%s\n", reverse_pkey);
+    fprintf (stdout, "%s\n", reverse_pkey);
   else
-    FPRINTF (stdout, "%s.%s\n", label, ego_name);
+    fprintf (stdout, "%s.%s\n", label, ego_name);
   test_finished ();
 }
 
@@ -837,7 +837,7 @@ del_monitor (void *cls,
   del_qe = NULL;
   if (0 == rd_count)
   {
-    FPRINTF (stderr,
+    fprintf (stderr,
              _ (
                "There are no records under label `%s' that could be deleted.\n"),
              label);
@@ -879,7 +879,7 @@ del_monitor (void *cls,
   if (rd_count == rd_left)
   {
     /* nothing got deleted */
-    FPRINTF (
+    fprintf (
       stderr,
       _ (
         "There are no records under label `%s' that match the request for deletion.\n"),

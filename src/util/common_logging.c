@@ -107,8 +107,7 @@ static __thread struct GNUNET_AsyncScopeSave current_async_scope;
  * Note that this message maybe truncated to the first BULK_TRACK_SIZE
  * characters, in which case it is NOT 0-terminated!
  */
-static GNUNET_THREAD_LOCAL char last_bulk[BULK_TRACK_SIZE]
-  __nonstring;
+static GNUNET_THREAD_LOCAL char last_bulk[BULK_TRACK_SIZE] __nonstring;
 
 /**
  * Type of the last bulk message.
@@ -325,7 +324,7 @@ log_rotate (const char *new_name)
   {
     /* Note: can't log errors during logging (recursion!), so this
        operation MUST silently fail... */
-    (void) UNLINK (discard);
+    (void) unlink (discard);
     GNUNET_free (discard);
   }
   rotation[rotation_off % ROTATION_KEEP] = GNUNET_strdup (new_name);
@@ -377,14 +376,14 @@ setup_log_file (const struct tm *tm)
     fprintf (stderr,
              "Failed to create directory for `%s': %s\n",
              fn,
-             STRERROR (errno));
+             strerror (errno));
     return GNUNET_SYSERR;
   }
 #if WINDOWS
   altlog_fd =
-    OPEN (fn, O_APPEND | O_BINARY | O_WRONLY | O_CREAT, _S_IREAD | _S_IWRITE);
+    open (fn, O_APPEND | O_BINARY | O_WRONLY | O_CREAT, _S_IREAD | _S_IWRITE);
 #else
-  altlog_fd = OPEN (fn,
+  altlog_fd = open (fn,
                     O_APPEND | O_WRONLY | O_CREAT,
                     S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
 #endif
@@ -841,7 +840,7 @@ output_message (enum GNUNET_ErrorType kind,
        * this way if the output is going to logfiles or robots
        * instead.
        */
-      FPRINTF (GNUNET_stderr, "* %s", msg);
+      fprintf (GNUNET_stderr, "* %s", msg);
     }
     else if (GNUNET_YES == current_async_scope.have_scope)
     {
@@ -857,7 +856,7 @@ output_message (enum GNUNET_ErrorType kind,
       GNUNET_assert (NULL != end);
       *end = '\0';
       skip_log = 0;
-      FPRINTF (GNUNET_stderr,
+      fprintf (GNUNET_stderr,
                "%s %s(%s) %s %s",
                datestr,
                comp,
@@ -867,7 +866,7 @@ output_message (enum GNUNET_ErrorType kind,
     }
     else
     {
-      FPRINTF (GNUNET_stderr,
+      fprintf (GNUNET_stderr,
                "%s %s %s %s",
                datestr,
                comp,
@@ -991,7 +990,7 @@ mylog (enum GNUNET_ErrorType kind,
   va_list vacp;
 
   va_copy (vacp, va);
-  size = VSNPRINTF (NULL, 0, message, vacp) + 1;
+  size = vsnprintf (NULL, 0, message, vacp) + 1;
   GNUNET_assert (0 != size);
   va_end (vacp);
   memset (date, 0, DATE_STR_SIZE);
@@ -1065,7 +1064,7 @@ mylog (enum GNUNET_ErrorType kind,
         abort ();
     }
 #endif
-    VSNPRINTF (buf, size, message, va);
+    vsnprintf (buf, size, message, va);
 #if ! (defined(GNUNET_CULL_LOGGING) || TALER_WALLET_ONLY)
     if (NULL != tmptr)
       (void) setup_log_file (tmptr);

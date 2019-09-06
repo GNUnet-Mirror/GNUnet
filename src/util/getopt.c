@@ -563,7 +563,7 @@ GN_getopt_internal (int argc,
     if (ambig && ! exact)
     {
       if (GNopterr)
-        FPRINTF (stderr,
+        fprintf (stderr,
                  _ ("%s: option `%s' is ambiguous\n"),
                  argv[0],
                  argv[GNoptind]);
@@ -588,13 +588,13 @@ GN_getopt_internal (int argc,
           {
             if (argv[GNoptind - 1][1] == '-')
               /* --option */
-              FPRINTF (stderr,
+              fprintf (stderr,
                        _ ("%s: option `--%s' does not allow an argument\n"),
                        argv[0],
                        pfound->name);
             else
               /* +option or -option */
-              FPRINTF (stderr,
+              fprintf (stderr,
                        _ ("%s: option `%c%s' does not allow an argument\n"),
                        argv[0],
                        argv[GNoptind - 1][0],
@@ -614,7 +614,7 @@ GN_getopt_internal (int argc,
         {
           if (GNopterr)
           {
-            FPRINTF (stderr,
+            fprintf (stderr,
                      _ ("%s: option `%s' requires an argument\n"),
                      argv[0],
                      argv[GNoptind - 1]);
@@ -645,13 +645,13 @@ GN_getopt_internal (int argc,
       {
         if (argv[GNoptind][1] == '-')
           /* --option */
-          FPRINTF (stderr,
+          fprintf (stderr,
                    _ ("%s: unrecognized option `--%s'\n"),
                    argv[0],
                    nextchar);
         else
           /* +option or -option */
-          FPRINTF (stderr,
+          fprintf (stderr,
                    _ ("%s: unrecognized option `%c%s'\n"),
                    argv[0],
                    argv[GNoptind][0],
@@ -679,9 +679,9 @@ GN_getopt_internal (int argc,
       {
         if (posixly_correct)
           /* 1003.2 specifies the format of this message.  */
-          FPRINTF (stderr, _ ("%s: illegal option -- %c\n"), argv[0], c);
+          fprintf (stderr, _ ("%s: illegal option -- %c\n"), argv[0], c);
         else
-          FPRINTF (stderr, _ ("%s: invalid option -- %c\n"), argv[0], c);
+          fprintf (stderr, _ ("%s: invalid option -- %c\n"), argv[0], c);
       }
       return '?';
     }
@@ -709,7 +709,7 @@ GN_getopt_internal (int argc,
         if (GNopterr)
         {
           /* 1003.2 specifies the format of this message.  */
-          FPRINTF (stderr,
+          fprintf (stderr,
                    _ ("%s: option requires an argument -- %c\n"),
                    argv[0],
                    c);
@@ -759,7 +759,7 @@ GN_getopt_internal (int argc,
       if (ambig && ! exact)
       {
         if (GNopterr)
-          FPRINTF (stderr,
+          fprintf (stderr,
                    _ ("%s: option `-W %s' is ambiguous\n"),
                    argv[0],
                    argv[GNoptind]);
@@ -779,7 +779,7 @@ GN_getopt_internal (int argc,
           else
           {
             if (GNopterr)
-              FPRINTF (stderr,
+              fprintf (stderr,
                        _ ("%s: option `-W %s' does not allow an argument\n"),
                        argv[0],
                        pfound->name);
@@ -795,7 +795,7 @@ GN_getopt_internal (int argc,
           else
           {
             if (GNopterr)
-              FPRINTF (stderr,
+              fprintf (stderr,
                        _ ("%s: option `%s' requires an argument\n"),
                        argv[0],
                        argv[GNoptind - 1]);
@@ -845,7 +845,7 @@ GN_getopt_internal (int argc,
           if (GNopterr)
           {
             /* 1003.2 specifies the format of this message.  */
-            FPRINTF (stderr,
+            fprintf (stderr,
                      _ ("%s: option requires an argument -- %c\n"),
                      argv[0],
                      c);
@@ -972,7 +972,7 @@ GNUNET_GETOPT_run (const char *binaryOptions,
     }
     if (i == count)
     {
-      FPRINTF (stderr, _ ("Use %s to get a list of options.\n"), "--help");
+      fprintf (stderr, _ ("Use %s to get a list of options.\n"), "--help");
       cont = GNUNET_SYSERR;
     }
   }
@@ -983,7 +983,7 @@ GNUNET_GETOPT_run (const char *binaryOptions,
      is the only option that was provided */
   if ((NULL != have_exclusive) && (optmatch > 1))
   {
-    FPRINTF (stderr,
+    fprintf (stderr,
              _ ("Option `%s' can't be used with other options.\n"),
              have_exclusive);
     cont = GNUNET_SYSERR;
@@ -995,7 +995,7 @@ GNUNET_GETOPT_run (const char *binaryOptions,
     {
       if ((0 == seen[count]) && (allOptions[count].option_mandatory))
       {
-        FPRINTF (stderr,
+        fprintf (stderr,
                  _ ("Missing mandatory option `%s'.\n"),
                  allOptions[count].name);
         cont = GNUNET_SYSERR;

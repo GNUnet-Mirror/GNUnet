@@ -28,7 +28,8 @@
 /**
  * Timeout for retrying DNS queries.
  */
-#define DNS_RETRANSMIT_DELAY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 250)
+#define DNS_RETRANSMIT_DELAY \
+  GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 250)
 
 
 /**
@@ -92,7 +93,6 @@ struct GNUNET_DNSSTUB_RequestSocket
    * Number of bytes in @a request.
    */
   size_t request_len;
-
 };
 
 
@@ -149,7 +149,6 @@ struct GNUNET_DNSSTUB_Context
    * Length of @e sockets array.
    */
   unsigned int num_sockets;
-
 };
 
 
@@ -223,13 +222,11 @@ open_socket (int af)
     return NULL;
   }
   sa->sa_family = af;
-  if (GNUNET_OK != GNUNET_NETWORK_socket_bind (ret,
-					       sa,
-					       alen))
+  if (GNUNET_OK != GNUNET_NETWORK_socket_bind (ret, sa, alen))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		_("Could not bind to any port: %s\n"),
-		STRERROR (errno));
+                _ ("Could not bind to any port: %s\n"),
+                strerror (errno));
     GNUNET_NETWORK_socket_close (ret);
     return NULL;
   }
@@ -249,7 +246,7 @@ get_request_socket (struct GNUNET_DNSSTUB_Context *ctx)
 {
   struct GNUNET_DNSSTUB_RequestSocket *rs;
 
-  for (unsigned int i=0;i<256;i++)
+  for (unsigned int i = 0; i < 256; i++)
   {
     rs = &ctx->sockets[GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_NONCE,
                                                  ctx->num_sockets)];
@@ -259,9 +256,7 @@ get_request_socket (struct GNUNET_DNSSTUB_Context *ctx)
   if (NULL != rs->rc)
   {
     /* signal "failure" */
-    rs->rc (rs->rc_cls,
-            NULL,
-            0);
+    rs->rc (rs->rc_cls, NULL, 0);
     rs->rc = NULL;
   }
   if (NULL != rs->read_task)
@@ -294,16 +289,14 @@ get_request_socket (struct GNUNET_DNSSTUB_Context *ctx)
  */
 static int
 do_dns_read (struct GNUNET_DNSSTUB_RequestSocket *rs,
-	     struct GNUNET_NETWORK_Handle *dnsout)
+             struct GNUNET_NETWORK_Handle *dnsout)
 {
   struct GNUNET_DNSSTUB_Context *ctx = rs->ctx;
   ssize_t r;
   int len;
 
 #ifndef MINGW
-  if (0 != ioctl (GNUNET_NETWORK_get_fd (dnsout),
-                  FIONREAD,
-                  &len))
+  if (0 != ioctl (GNUNET_NETWORK_get_fd (dnsout), FIONREAD, &len))
   {
     /* conservative choice: */
     len = UINT16_MAX;
@@ -312,9 +305,7 @@ do_dns_read (struct GNUNET_DNSSTUB_RequestSocket *rs,
   /* port the code above? */
   len = UINT16_MAX;
 #endif
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Receiving %d byte DNS reply\n",
-	      len);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Receiving %d byte DNS reply\n", len);
   {
     unsigned char buf[len] GNUNET_ALIGN;
     int found;
@@ -323,18 +314,15 @@ do_dns_read (struct GNUNET_DNSSTUB_RequestSocket *rs,
     struct GNUNET_TUN_DnsHeader *dns;
 
     addrlen = sizeof (addr);
-    memset (&addr,
-            0,
-            sizeof (addr));
+    memset (&addr, 0, sizeof (addr));
     r = GNUNET_NETWORK_socket_recvfrom (dnsout,
-					buf,
+                                        buf,
                                         sizeof (buf),
-					(struct sockaddr*) &addr,
+                                        (struct sockaddr *) &addr,
                                         &addrlen);
     if (-1 == r)
     {
-      GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR,
-                           "recvfrom");
+      GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "recvfrom");
       GNUNET_NETWORK_socket_close (dnsout);
       return GNUNET_SYSERR;
     }
@@ -343,8 +331,7 @@ do_dns_read (struct GNUNET_DNSSTUB_RequestSocket *rs,
     {
       if (0 == memcmp (&addr,
                        &ds->ss,
-                       GNUNET_MIN (sizeof (struct sockaddr_storage),
-                                   addrlen)))
+                       GNUNET_MIN (sizeof (struct sockaddr_storage), addrlen)))
       {
         found = GNUNET_YES;
         break;
@@ -353,26 +340,24 @@ do_dns_read (struct GNUNET_DNSSTUB_RequestSocket *rs,
     if (GNUNET_NO == found)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "Received DNS response from server we never asked (ignored)");
+                  "Received DNS response from server we never asked (ignored)");
       return GNUNET_NO;
     }
     if (sizeof (struct GNUNET_TUN_DnsHeader) > (size_t) r)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		  _("Received DNS response that is too small (%u bytes)"),
-		  (unsigned int) r);
+                  _ ("Received DNS response that is too small (%u bytes)"),
+                  (unsigned int) r);
       return GNUNET_NO;
     }
     dns = (struct GNUNET_TUN_DnsHeader *) buf;
     if (NULL == rs->rc)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "Request timeout or cancelled; ignoring reply\n");
+                  "Request timeout or cancelled; ignoring reply\n");
       return GNUNET_NO;
     }
-    rs->rc (rs->rc_cls,
-            dns,
-            r);
+    rs->rc (rs->rc_cls, dns, r);
   }
   return GNUNET_OK;
 }
@@ -401,17 +386,16 @@ schedule_read (struct GNUNET_DNSSTUB_RequestSocket *rs)
     GNUNET_SCHEDULER_cancel (rs->read_task);
   rset = GNUNET_NETWORK_fdset_create ();
   if (NULL != rs->dnsout4)
-    GNUNET_NETWORK_fdset_set (rset,
-                              rs->dnsout4);
+    GNUNET_NETWORK_fdset_set (rset, rs->dnsout4);
   if (NULL != rs->dnsout6)
-    GNUNET_NETWORK_fdset_set (rset,
-                              rs->dnsout6);
-  rs->read_task = GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
-					       GNUNET_TIME_UNIT_FOREVER_REL,
-					       rset,
-					       NULL,
-					       &read_response,
-                                               rs);
+    GNUNET_NETWORK_fdset_set (rset, rs->dnsout6);
+  rs->read_task =
+    GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
+                                 GNUNET_TIME_UNIT_FOREVER_REL,
+                                 rset,
+                                 NULL,
+                                 &read_response,
+                                 rs);
   GNUNET_NETWORK_fdset_destroy (rset);
 }
 
@@ -430,19 +414,13 @@ read_response (void *cls)
   rs->read_task = NULL;
   tc = GNUNET_SCHEDULER_get_task_context ();
   /* read and process ready sockets */
-  if ( (NULL != rs->dnsout4) &&
-       (GNUNET_NETWORK_fdset_isset (tc->read_ready,
-                                    rs->dnsout4)) &&
-       (GNUNET_SYSERR ==
-        do_dns_read (rs,
-                     rs->dnsout4)) )
+  if ((NULL != rs->dnsout4) &&
+      (GNUNET_NETWORK_fdset_isset (tc->read_ready, rs->dnsout4)) &&
+      (GNUNET_SYSERR == do_dns_read (rs, rs->dnsout4)))
     rs->dnsout4 = NULL;
-  if ( (NULL != rs->dnsout6) &&
-       (GNUNET_NETWORK_fdset_isset (tc->read_ready,
-                                    rs->dnsout6)) &&
-       (GNUNET_SYSERR ==
-        do_dns_read (rs,
-                     rs->dnsout6)) )
+  if ((NULL != rs->dnsout6) &&
+      (GNUNET_NETWORK_fdset_isset (tc->read_ready, rs->dnsout6)) &&
+      (GNUNET_SYSERR == do_dns_read (rs, rs->dnsout6)))
     rs->dnsout6 = NULL;
   /* re-schedule read task */
   schedule_read (rs);
@@ -465,9 +443,8 @@ transmit_query (void *cls)
   struct DnsServer *ds;
   struct GNUNET_NETWORK_Handle *dnsout;
 
-  rs->retry_task = GNUNET_SCHEDULER_add_delayed (ctx->retry_freq,
-                                                 &transmit_query,
-                                                 rs);
+  rs->retry_task =
+    GNUNET_SCHEDULER_add_delayed (ctx->retry_freq, &transmit_query, rs);
   ds = rs->ds_pos;
   rs->ds_pos = ds->next;
   if (NULL == rs->ds_pos)
@@ -499,22 +476,19 @@ transmit_query (void *cls)
                 "Unable to use configure DNS server, skipping\n");
     return;
   }
-  if (GNUNET_SYSERR ==
-      GNUNET_NETWORK_socket_sendto (dnsout,
-				    rs->request,
-				    rs->request_len,
-                                    sa,
-                                    salen))
+  if (GNUNET_SYSERR == GNUNET_NETWORK_socket_sendto (dnsout,
+                                                     rs->request,
+                                                     rs->request_len,
+                                                     sa,
+                                                     salen))
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-		_("Failed to send DNS request to %s: %s\n"),
-		GNUNET_a2s (sa,
-                            salen),
-                STRERROR (errno));
+                _ ("Failed to send DNS request to %s: %s\n"),
+                GNUNET_a2s (sa, salen),
+                strerror (errno));
   else
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		_("Sent DNS request to %s\n"),
-		GNUNET_a2s (sa,
-                            salen));
+                _ ("Sent DNS request to %s\n"),
+                GNUNET_a2s (sa, salen));
   schedule_read (rs);
 }
 
@@ -531,10 +505,10 @@ transmit_query (void *cls)
  */
 struct GNUNET_DNSSTUB_RequestSocket *
 GNUNET_DNSSTUB_resolve (struct GNUNET_DNSSTUB_Context *ctx,
-			 const void *request,
-			 size_t request_len,
-			 GNUNET_DNSSTUB_ResultCallback rc,
-			 void *rc_cls)
+                        const void *request,
+                        size_t request_len,
+                        GNUNET_DNSSTUB_ResultCallback rc,
+                        void *rc_cls)
 {
   struct GNUNET_DNSSTUB_RequestSocket *rs;
 
@@ -553,11 +527,9 @@ GNUNET_DNSSTUB_resolve (struct GNUNET_DNSSTUB_Context *ctx,
   rs->ds_pos = ctx->dns_head;
   rs->rc = rc;
   rs->rc_cls = rc_cls;
-  rs->request = GNUNET_memdup (request,
-                               request_len);
+  rs->request = GNUNET_memdup (request, request_len);
   rs->request_len = request_len;
-  rs->retry_task = GNUNET_SCHEDULER_add_now (&transmit_query,
-                                             rs);
+  rs->retry_task = GNUNET_SCHEDULER_add_now (&transmit_query, rs);
   return rs;
 }
 
@@ -603,8 +575,8 @@ GNUNET_DNSSTUB_start (unsigned int num_sockets)
   }
   ctx = GNUNET_new (struct GNUNET_DNSSTUB_Context);
   ctx->num_sockets = num_sockets;
-  ctx->sockets = GNUNET_new_array (num_sockets,
-                                   struct GNUNET_DNSSTUB_RequestSocket);
+  ctx->sockets =
+    GNUNET_new_array (num_sockets, struct GNUNET_DNSSTUB_RequestSocket);
   ctx->retry_freq = DNS_RETRANSMIT_DELAY;
   return ctx;
 }
@@ -627,9 +599,7 @@ GNUNET_DNSSTUB_add_dns_ip (struct GNUNET_DNSSTUB_Context *ctx,
   struct in6_addr i6;
 
   ds = GNUNET_new (struct DnsServer);
-  if (1 == inet_pton (AF_INET,
-                      dns_ip,
-                      &i4))
+  if (1 == inet_pton (AF_INET, dns_ip, &i4))
   {
     struct sockaddr_in *s4 = (struct sockaddr_in *) &ds->ss;
 
@@ -640,9 +610,7 @@ GNUNET_DNSSTUB_add_dns_ip (struct GNUNET_DNSSTUB_Context *ctx,
     s4->sin_len = (u_char) sizeof (struct sockaddr_in);
 #endif
   }
-  else if (1 == inet_pton (AF_INET6,
-                           dns_ip,
-                           &i6))
+  else if (1 == inet_pton (AF_INET6, dns_ip, &i6))
   {
     struct sockaddr_in6 *s6 = (struct sockaddr_in6 *) &ds->ss;
 
@@ -661,9 +629,7 @@ GNUNET_DNSSTUB_add_dns_ip (struct GNUNET_DNSSTUB_Context *ctx,
     GNUNET_free (ds);
     return GNUNET_SYSERR;
   }
-  GNUNET_CONTAINER_DLL_insert (ctx->dns_head,
-                               ctx->dns_tail,
-                               ds);
+  GNUNET_CONTAINER_DLL_insert (ctx->dns_head, ctx->dns_tail, ds);
   return GNUNET_OK;
 }
 
@@ -686,23 +652,17 @@ GNUNET_DNSSTUB_add_dns_sa (struct GNUNET_DNSSTUB_Context *ctx,
   switch (sa->sa_family)
   {
   case AF_INET:
-    GNUNET_memcpy (&ds->ss,
-                   sa,
-                   sizeof (struct sockaddr_in));
+    GNUNET_memcpy (&ds->ss, sa, sizeof (struct sockaddr_in));
     break;
   case AF_INET6:
-    GNUNET_memcpy (&ds->ss,
-                   sa,
-                   sizeof (struct sockaddr_in6));
+    GNUNET_memcpy (&ds->ss, sa, sizeof (struct sockaddr_in6));
     break;
   default:
     GNUNET_break (0);
     GNUNET_free (ds);
     return GNUNET_SYSERR;
   }
-  GNUNET_CONTAINER_DLL_insert (ctx->dns_head,
-                               ctx->dns_tail,
-                               ds);
+  GNUNET_CONTAINER_DLL_insert (ctx->dns_head, ctx->dns_tail, ds);
   return GNUNET_OK;
 }
 
@@ -734,12 +694,10 @@ GNUNET_DNSSTUB_stop (struct GNUNET_DNSSTUB_Context *ctx)
 
   while (NULL != (ds = ctx->dns_head))
   {
-    GNUNET_CONTAINER_DLL_remove (ctx->dns_head,
-                                 ctx->dns_tail,
-                                 ds);
+    GNUNET_CONTAINER_DLL_remove (ctx->dns_head, ctx->dns_tail, ds);
     GNUNET_free (ds);
   }
-  for (unsigned int i=0;i<ctx->num_sockets;i++)
+  for (unsigned int i = 0; i < ctx->num_sockets; i++)
     cleanup_rs (&ctx->sockets[i]);
   GNUNET_free (ctx->sockets);
   GNUNET_free (ctx);

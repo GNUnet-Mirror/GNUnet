@@ -476,7 +476,7 @@ OIDC_build_authz_code (const struct GNUNET_CRYPTO_EcdsaPrivateKey *issuer,
   payload_len = sizeof (struct OIDC_Parameters);
   if (NULL != nonce_str && strcmp ("", nonce_str) != 0)
   {
-    if ((1 != SSCANF (nonce_str, "%u", &nonce)) || (nonce > UINT32_MAX))
+    if ((1 != sscanf (nonce_str, "%u", &nonce)) || (nonce > UINT32_MAX))
     {
       GNUNET_break (0);
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Invalid nonce %s\n", nonce_str);
@@ -754,4 +754,3 @@ OIDC_access_token_new ()
                                 &access_token);
   return access_token;
 }
-

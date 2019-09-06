@@ -370,7 +370,7 @@ init ()
 
 #if LOG_BACKOFF
   killLogFileName = GNUNET_DISK_mktemp ("exponential-backoff-waiting.log");
-  if (NULL == (killLogFilePtr = FOPEN (killLogFileName,
+  if (NULL == (killLogFilePtr = fopen (killLogFileName,
                                        "w")))
     {
       GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING,

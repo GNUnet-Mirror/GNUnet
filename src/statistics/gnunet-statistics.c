@@ -216,7 +216,7 @@ printer (void *cls, const struct GNUNET_HashCode *key, void *value)
     if (GNUNET_YES == watch)
     {
       now_str = GNUNET_STRINGS_absolute_time_to_string (now);
-      FPRINTF (stdout,
+      fprintf (stdout,
                "%24s%s %s%s%12s%s %s%50s%s%s ",
                now_str,
                csv_separator,
@@ -231,7 +231,7 @@ printer (void *cls, const struct GNUNET_HashCode *key, void *value)
     }
     else
     {
-      FPRINTF (stdout,
+      fprintf (stdout,
                "%s%s%12s%s %s%50s%s%s ",
                value_set->is_persistent ? "!" : " ",
                csv_separator,
@@ -245,12 +245,12 @@ printer (void *cls, const struct GNUNET_HashCode *key, void *value)
   }
   for (unsigned i = 0; i < num_nodes; i++)
   {
-    FPRINTF (stdout,
+    fprintf (stdout,
              "%16llu%s",
              (unsigned long long) value_set->values[i],
              csv_separator);
   }
-  FPRINTF (stdout, "\n");
+  fprintf (stdout, "\n");
   GNUNET_free (value_set->subsystem);
   GNUNET_free (value_set->name);
   GNUNET_free (value_set->values);
@@ -283,7 +283,7 @@ printer_watch (void *cls,
     if (GNUNET_YES == watch)
     {
       now_str = GNUNET_STRINGS_absolute_time_to_string (now);
-      FPRINTF (stdout,
+      fprintf (stdout,
                "%24s%s %s%s%12s%s %s%50s%s%s %16llu\n",
                now_str,
                csv_separator,
@@ -299,7 +299,7 @@ printer_watch (void *cls,
     }
     else
     {
-      FPRINTF (stdout,
+      fprintf (stdout,
                "%s%s%12s%s %s%50s%s%s %16llu\n",
                is_persistent ? "!" : " ",
                csv_separator,
@@ -313,7 +313,7 @@ printer_watch (void *cls,
     }
   }
   else
-    FPRINTF (stdout, "%llu\n", (unsigned long long) value);
+    fprintf (stdout, "%llu\n", (unsigned long long) value);
 
   return GNUNET_OK;
 }
@@ -401,9 +401,9 @@ continuation_print (void *cls, int success)
   if (GNUNET_OK != success)
   {
     if (NULL == remote_host)
-      FPRINTF (stderr, "%s", _ ("Failed to obtain statistics.\n"));
+      fprintf (stderr, "%s", _ ("Failed to obtain statistics.\n"));
     else
-      FPRINTF (stderr,
+      fprintf (stderr,
                _ ("Failed to obtain statistics from host `%s:%llu'\n"),
                remote_host,
                remote_port);
@@ -439,9 +439,9 @@ cleanup (void *cls, int success)
   if (GNUNET_OK != success)
   {
     if (NULL == remote_host)
-      FPRINTF (stderr, "%s", _ ("Failed to obtain statistics.\n"));
+      fprintf (stderr, "%s", _ ("Failed to obtain statistics.\n"));
     else
-      FPRINTF (stderr,
+      fprintf (stderr,
                _ ("Failed to obtain statistics from host `%s:%llu'\n"),
                remote_host,
                remote_port);
@@ -478,7 +478,7 @@ collector (void *cls,
 
   len_subsys_name = strlen (subsystem) + 3 + strlen (name) + 1;
   subsys_name = GNUNET_malloc (len_subsys_name);
-  SPRINTF (subsys_name, "%s---%s", subsystem, name);
+  sprintf (subsys_name, "%s---%s", subsystem, name);
   key = &hc;
   GNUNET_CRYPTO_hash (subsys_name, len_subsys_name, key);
   GNUNET_free (subsys_name);
@@ -515,13 +515,13 @@ main_task (void *cls)
   {
     if (NULL == subsystem)
     {
-      FPRINTF (stderr, "%s", _ ("Missing argument: subsystem \n"));
+      fprintf (stderr, "%s", _ ("Missing argument: subsystem \n"));
       ret = 1;
       return;
     }
     if (NULL == name)
     {
-      FPRINTF (stderr, "%s", _ ("Missing argument: name\n"));
+      fprintf (stderr, "%s", _ ("Missing argument: name\n"));
       ret = 1;
       return;
     }
@@ -605,7 +605,7 @@ iter_check_config (void *cls, const char *filename)
     if (GNUNET_OK !=
         GNUNET_CONFIGURATION_load (nodes[num_nodes - 1].conf, filename))
     {
-      FPRINTF (stderr, "Failed loading config `%s'\n", filename);
+      fprintf (stderr, "Failed loading config `%s'\n", filename);
       return GNUNET_SYSERR;
     }
     return GNUNET_NO;
@@ -636,7 +636,7 @@ iter_testbed_path (void *cls, const char *filename)
   unsigned index_node;
 
   GNUNET_assert (NULL != filename);
-  if (1 == SSCANF (GNUNET_STRINGS_get_short_name (filename), "%u", &index_node))
+  if (1 == sscanf (GNUNET_STRINGS_get_short_name (filename), "%u", &index_node))
   {
     if (-1 == GNUNET_DISK_directory_scan (filename, iter_check_config, NULL))
     {
@@ -665,7 +665,7 @@ discover_testbed_nodes (const char *path_testbed)
     GNUNET_DISK_directory_scan (path_testbed, iter_testbed_path, NULL);
   if (-1 == num_dir_entries)
   {
-    FPRINTF (stderr, "Failure during scanning directory `%s'\n", path_testbed);
+    fprintf (stderr, "Failure during scanning directory `%s'\n", path_testbed);
     return -1;
   }
   return 0;
@@ -693,9 +693,9 @@ run (void *cls,
     csv_separator = "";
   if (NULL != args[0])
   {
-    if (1 != SSCANF (args[0], "%llu", &set_val))
+    if (1 != sscanf (args[0], "%llu", &set_val))
     {
-      FPRINTF (stderr, _ ("Invalid argument `%s'\n"), args[0]);
+      fprintf (stderr, _ ("Invalid argument `%s'\n"), args[0]);
       ret = 1;
       return;
     }
@@ -710,7 +710,7 @@ run (void *cls,
                                                                   "PORT",
                                                                   &remote_port))
       {
-        FPRINTF (stderr,
+        fprintf (stderr,
                  _ ("A port is required to connect to host `%s'\n"),
                  remote_host);
         return;
@@ -718,7 +718,7 @@ run (void *cls,
     }
     else if (65535 <= remote_port)
     {
-      FPRINTF (stderr,
+      fprintf (stderr,
                _ (
                  "A port has to be between 1 and 65535 to connect to host `%s'\n"),
                remote_host);

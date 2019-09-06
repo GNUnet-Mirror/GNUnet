@@ -74,7 +74,7 @@ static void
 end_badly (void *cls)
 {
   die_task = NULL;
-  FPRINTF (stderr,
+  fprintf (stderr,
            "%s",
            "Ending on an unhappy note.\n");
   GNUNET_SCHEDULER_shutdown ();

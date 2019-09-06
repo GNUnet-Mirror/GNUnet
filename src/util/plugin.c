@@ -28,7 +28,7 @@
 #include <ltdl.h>
 #include "gnunet_util_lib.h"
 
-#define LOG(kind,...) GNUNET_log_from (kind, "util-plugin", __VA_ARGS__)
+#define LOG(kind, ...) GNUNET_log_from (kind, "util-plugin", __VA_ARGS__)
 
 /**
  * Linked list of active plugins.
@@ -82,8 +82,8 @@ plugin_init ()
   err = lt_dlinit ();
   if (err > 0)
   {
-    FPRINTF (stderr,
-             _("Initialization of plugin mechanism failed: %s!\n"),
+    fprintf (stderr,
+             _ ("Initialization of plugin mechanism failed: %s!\n"),
              lt_dlerror ());
     return;
   }
@@ -133,24 +133,21 @@ plugin_fini ()
  * @return NULL if the symbol was not found
  */
 static GNUNET_PLUGIN_Callback
-resolve_function (struct PluginList *plug,
-                  const char *name)
+resolve_function (struct PluginList *plug, const char *name)
 {
   char *initName;
   void *mptr;
 
-  GNUNET_asprintf (&initName,
-                   "_%s_%s",
-                   plug->name,
-                   name);
+  GNUNET_asprintf (&initName, "_%s_%s", plug->name, name);
   mptr = lt_dlsym (plug->handle, &initName[1]);
   if (NULL == mptr)
     mptr = lt_dlsym (plug->handle, initName);
   if (NULL == mptr)
     LOG (GNUNET_ERROR_TYPE_ERROR,
-         _("`%s' failed to resolve method '%s' with error: %s\n"),
+         _ ("`%s' failed to resolve method '%s' with error: %s\n"),
          "lt_dlsym",
-         &initName[1], lt_dlerror ());
+         &initName[1],
+         lt_dlerror ());
   GNUNET_free (initName);
   return mptr;
 }
@@ -214,7 +211,7 @@ GNUNET_PLUGIN_load (const char *library_name, void *arg)
   GNUNET_PLUGIN_Callback init;
   void *ret;
 
-  if (!initialized)
+  if (! initialized)
   {
     initialized = GNUNET_YES;
     plugin_init ();
@@ -223,9 +220,10 @@ GNUNET_PLUGIN_load (const char *library_name, void *arg)
   if (libhandle == NULL)
   {
     LOG (GNUNET_ERROR_TYPE_ERROR,
-         _("`%s' failed for library `%s' with error: %s\n"),
+         _ ("`%s' failed for library `%s' with error: %s\n"),
          "lt_dlopenext",
-         library_name, lt_dlerror ());
+         library_name,
+         lt_dlerror ());
     return NULL;
   }
   plug = GNUNET_new (struct PluginList);
@@ -255,8 +253,7 @@ GNUNET_PLUGIN_load (const char *library_name, void *arg)
  * @return whatever the shutdown function returned
  */
 void *
-GNUNET_PLUGIN_unload (const char *library_name,
-                      void *arg)
+GNUNET_PLUGIN_unload (const char *library_name, void *arg)
 {
   struct PluginList *pos;
   struct PluginList *prev;
@@ -345,9 +342,9 @@ find_libraries (void *cls, const char *filename)
     libname = slashpos + 1;
   n = strlen (libname);
   if (0 != strncmp (lac->basename, libname, strlen (lac->basename)))
-    return GNUNET_OK;           /* wrong name */
+    return GNUNET_OK; /* wrong name */
   if ((n > 3) && (0 == strcmp (&libname[n - 3], ".la")))
-    return GNUNET_OK;           /* .la file */
+    return GNUNET_OK; /* .la file */
   basename = GNUNET_strdup (libname);
   if (NULL != (dot = strstr (basename, ".")))
     *dot = '\0';
@@ -372,8 +369,10 @@ find_libraries (void *cls, const char *filename)
  * @param cb_cls closure for @a cb
  */
 void
-GNUNET_PLUGIN_load_all (const char *basename, void *arg,
-                        GNUNET_PLUGIN_LoaderCallback cb, void *cb_cls)
+GNUNET_PLUGIN_load_all (const char *basename,
+                        void *arg,
+                        GNUNET_PLUGIN_LoaderCallback cb,
+                        void *cb_cls)
 {
   struct LoadAllContext lac;
   char *path;
@@ -382,7 +381,7 @@ GNUNET_PLUGIN_load_all (const char *basename, void *arg,
   if (NULL == path)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _("Could not determine plugin installation path.\n"));
+                _ ("Could not determine plugin installation path.\n"));
     return;
   }
   lac.basename = basename;

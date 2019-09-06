@@ -72,7 +72,7 @@ handle_estimate (void *cls,
 {
   (void) cls;
   status = 0;
-  FPRINTF (stdout,
+  fprintf (stdout,
            "%llu %f %f %f\n",
            (unsigned long long) timestamp.abs_value_us,
            GNUNET_NSE_log_estimate_to_n (estimate),

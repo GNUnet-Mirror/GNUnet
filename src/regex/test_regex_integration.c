@@ -75,7 +75,7 @@ end (void *cls)
 static void
 end_badly ()
 {
-  FPRINTF (stderr, "%s",  "Testcase failed (timeout).\n");
+  fprintf (stderr, "%s",  "Testcase failed (timeout).\n");
   end (NULL);
   ok = 1;
 }

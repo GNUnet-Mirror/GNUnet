@@ -964,7 +964,7 @@ GNUNET_error_type_to_string (enum GNUNET_ErrorType kind);
                 cmd,                                         \
                 __FILE__,                                    \
                 __LINE__,                                    \
-                STRERROR (errno));                           \
+                strerror (errno));                           \
   } while (0)
 
 
@@ -983,7 +983,7 @@ GNUNET_error_type_to_string (enum GNUNET_ErrorType kind);
                      cmd,                                         \
                      __FILE__,                                    \
                      __LINE__,                                    \
-                     STRERROR (errno));                           \
+                     strerror (errno));                           \
   } while (0)
 
 
@@ -1002,7 +1002,7 @@ GNUNET_error_type_to_string (enum GNUNET_ErrorType kind);
                 filename,                                                 \
                 __FILE__,                                                 \
                 __LINE__,                                                 \
-                STRERROR (errno));                                        \
+                strerror (errno));                                        \
   } while (0)
 
 
@@ -1022,7 +1022,7 @@ GNUNET_error_type_to_string (enum GNUNET_ErrorType kind);
                      filename,                                                 \
                      __FILE__,                                                 \
                      __LINE__,                                                 \
-                     STRERROR (errno));                                        \
+                     strerror (errno));                                        \
   } while (0)
 
 /* ************************* endianess conversion ****************** */

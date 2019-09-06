@@ -83,7 +83,7 @@ load_plugin (const struct GNUNET_CONFIGURATION_Handle *cfg)
   if (NULL == (ret = GNUNET_PLUGIN_load (libname,
                                          (void*) cfg)))
   {
-    FPRINTF (stderr,
+    fprintf (stderr,
              "Failed to load plugin `%s'!\n",
              plugin_name);
     GNUNET_free (libname);
@@ -174,7 +174,7 @@ run (void *cls,
   psp = load_plugin (cfg);
   if (NULL == psp)
   {
-    FPRINTF (stderr,
+    fprintf (stderr,
              "%s",
 	     "Failed to initialize peerstore.  Database likely not setup, skipping test.\n");
     return;
@@ -215,7 +215,7 @@ main (int argc, char *argv[])
                       &run,
                       NULL);
   if (ok != 0)
-    FPRINTF (stderr,
+    fprintf (stderr,
              "Missed some testcases: %d\n",
              ok);
   return ok;

@@ -205,7 +205,7 @@ main (int argc, char *av[])
 
     if (0 != (ret = getaddrinfo (hostname, NULL, NULL, &ai)))
     {
-      FPRINTF (stderr,
+      fprintf (stderr,
                "Failed to resolve `%s', testcase not run.\n",
                hostname);
       return 77;
@@ -221,7 +221,7 @@ main (int argc, char *av[])
       host = gethostbyname2 (hostname, AF_INET6);
     if (NULL == host)
       {
-        FPRINTF (stderr,
+        fprintf (stderr,
                  "Failed to resolve `%s', testcase not run.\n",
                  hostname);
         return 77;
@@ -234,14 +234,14 @@ main (int argc, char *av[])
     host = gethostbyname (hostname);
     if (NULL == host)
       {
-        FPRINTF (stderr,
+        fprintf (stderr,
                  "Failed to resolve `%s', testcase not run.\n",
                  hostname);
         return 77;
       }
   }
 #else
-  FPRINTF (stderr,
+  fprintf (stderr,
            "libc fails to have resolver function, testcase not run.\n");
   return 77;
 #endif

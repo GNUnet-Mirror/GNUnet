@@ -80,7 +80,7 @@ static struct GNUNET_SCHEDULER_Task * timeout_task;
 static struct GNUNET_SCHEDULER_Task * stage_task;
 
 #if VERBOSE
-#define OKPP do { ok++; FPRINTF (stderr, "Now at stage %u at %s:%u\n", ok, __FILE__, __LINE__); } while (0)
+#define OKPP do { ok++; fprintf (stderr, "Now at stage %u at %s:%u\n", ok, __FILE__, __LINE__); } while (0)
 #else
 #define OKPP do { ok++; } while (0)
 #endif

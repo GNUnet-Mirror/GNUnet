@@ -402,7 +402,7 @@ shutdown_task (void *cls)
   if (benchmark_send)
   {
     duration = GNUNET_TIME_absolute_get_duration (start_time);
-    FPRINTF (stdout,
+    fprintf (stdout,
              _ ("Transmitted %llu bytes/s (%llu bytes in %s)\n"),
              1000LL * 1000LL * traffic_sent / (1 + duration.rel_value_us),
              traffic_sent,
@@ -411,7 +411,7 @@ shutdown_task (void *cls)
   if (benchmark_receive)
   {
     duration = GNUNET_TIME_absolute_get_duration (start_time);
-    FPRINTF (stdout,
+    fprintf (stdout,
              _ ("Received %llu bytes/s (%llu bytes in %s)\n"),
              1000LL * 1000LL * traffic_received / (1 + duration.rel_value_us),
              traffic_received,
@@ -451,7 +451,7 @@ operation_timeout (void *cls)
   op_timeout = NULL;
   if ((benchmark_send) || (benchmark_receive))
   {
-    FPRINTF (stdout, _ ("Failed to connect to `%s'\n"), GNUNET_i2s_full (&pid));
+    fprintf (stdout, _ ("Failed to connect to `%s'\n"), GNUNET_i2s_full (&pid));
     GNUNET_SCHEDULER_shutdown ();
     ret = 1;
     return;
@@ -462,7 +462,7 @@ operation_timeout (void *cls)
     while (NULL != (cur = next))
     {
       next = cur->next;
-      FPRINTF (stdout,
+      fprintf (stdout,
                _ ("Failed to resolve address for peer `%s'\n"),
                GNUNET_i2s (&cur->addrcp->peer));
 
@@ -472,7 +472,7 @@ operation_timeout (void *cls)
       GNUNET_free (cur->addrcp);
       GNUNET_free (cur);
     }
-    FPRINTF (stdout,
+    fprintf (stdout,
              "%s",
              _ ("Failed to list connections, timeout occurred\n"));
     GNUNET_SCHEDULER_shutdown ();
@@ -500,7 +500,7 @@ do_send (void *cls)
   traffic_sent += BLOCKSIZE * 1024;
   GNUNET_MQ_notify_sent (env, &do_send, mq);
   if (verbosity > 0)
-    FPRINTF (stdout,
+    fprintf (stdout,
              _ ("Transmitting %u bytes\n"),
              (unsigned int) BLOCKSIZE * 1024);
   GNUNET_MQ_send (mq, env);
@@ -531,7 +531,7 @@ notify_connect (void *cls,
     op_timeout = NULL;
   }
   if (verbosity > 0)
-    FPRINTF (
+    fprintf (
       stdout,
       _ (
         "Successfully connected to `%s', starting to send benchmark data in %u Kb blocks\n"),
@@ -562,7 +562,7 @@ notify_disconnect (void *cls,
     return; /* not about target peer */
   if (! benchmark_send)
     return; /* not transmitting */
-  FPRINTF (stdout,
+  fprintf (stdout,
            _ ("Disconnected from peer `%s' while benchmarking\n"),
            GNUNET_i2s (&pid));
 }
@@ -586,7 +586,7 @@ monitor_notify_connect (void *cls,
   const char *now_str = GNUNET_STRINGS_absolute_time_to_string (now);
 
   monitor_connect_counter++;
-  FPRINTF (stdout,
+  fprintf (stdout,
            _ ("%24s: %-17s %4s   (%u connections in total)\n"),
            now_str,
            _ ("Connected to"),
@@ -615,7 +615,7 @@ monitor_notify_disconnect (void *cls,
   GNUNET_assert (monitor_connect_counter > 0);
   monitor_connect_counter--;
 
-  FPRINTF (stdout,
+  fprintf (stdout,
            _ ("%24s: %-17s %4s   (%u connections in total)\n"),
            now_str,
            _ ("Disconnected from"),
@@ -650,7 +650,7 @@ handle_dummy (void *cls, const struct GNUNET_MessageHeader *message)
   if (! benchmark_receive)
     return;
   if (verbosity > 0)
-    FPRINTF (stdout,
+    fprintf (stdout,
              _ ("Received %u bytes\n"),
              (unsigned int) ntohs (message->size));
   if (0 == traffic_received)
@@ -686,7 +686,7 @@ print_info (const struct GNUNET_PeerIdentity *id,
   if (((GNUNET_YES == iterate_connections) && (GNUNET_YES == iterate_all)) ||
       (GNUNET_YES == monitor_connections))
   {
-    FPRINTF (stdout,
+    fprintf (stdout,
              _ ("Peer `%s': %s %s in state `%s' until %s\n"),
              GNUNET_i2s (id),
              (NULL == transport) ? "<none>" : transport,
@@ -698,7 +698,7 @@ print_info (const struct GNUNET_PeerIdentity *id,
            (GNUNET_TRANSPORT_is_connected (state)))
   {
     /* Only connected peers, skip state */
-    FPRINTF (stdout,
+    fprintf (stdout,
              _ ("Peer `%s': %s %s\n"),
              GNUNET_i2s (id),
              transport,
@@ -732,7 +732,7 @@ process_peer_string (void *cls, const char *address, int res)
   {
     if (GNUNET_SYSERR == res)
     {
-      FPRINTF (
+      fprintf (
         stderr,
         "Failed to convert address for peer `%s' plugin `%s' length %u to string \n",
         GNUNET_i2s (&rc->addrcp->peer),
@@ -1094,7 +1094,7 @@ process_peer_monitoring_cb (void *cls,
 
   if (NULL == peer)
   {
-    FPRINTF (stdout,
+    fprintf (stdout,
              "%s",
              _ (
                "Monitor disconnected from transport service. Reconnecting.\n"));
@@ -1189,7 +1189,7 @@ run (void *cls,
 
   if (1 < counter)
   {
-    FPRINTF (
+    fprintf (
       stderr,
       _ (
         "Multiple operations given. Please choose only one operation: %s, %s, %s, %s, %s, %s %s\n"),
@@ -1204,7 +1204,7 @@ run (void *cls,
   }
   if (0 == counter)
   {
-    FPRINTF (
+    fprintf (
       stderr,
       _ (
         "No operation given. Please choose one operation: %s, %s, %s, %s, %s, %s, %s\n"),
@@ -1222,7 +1222,7 @@ run (void *cls,
   {
     if (0 == memcmp (&zero_pid, &pid, sizeof (pid)))
     {
-      FPRINTF (stderr,
+      fprintf (stderr,
                _ ("Option `%s' makes no sense without option `%s'.\n"),
                "-D",
                "-p");
@@ -1232,14 +1232,14 @@ run (void *cls,
     blacklist = GNUNET_TRANSPORT_blacklist (cfg, &blacklist_cb, NULL);
     if (NULL == blacklist)
     {
-      FPRINTF (stderr,
+      fprintf (stderr,
                "%s",
                _ (
                  "Failed to connect to transport service for disconnection\n"));
       ret = 1;
       return;
     }
-    FPRINTF (stdout,
+    fprintf (stdout,
              "%s",
              _ ("Blacklisting request in place, stop with CTRL-C\n"));
   }
@@ -1247,7 +1247,7 @@ run (void *cls,
   {
     if (0 == memcmp (&zero_pid, &pid, sizeof (pid)))
     {
-      FPRINTF (stderr,
+      fprintf (stderr,
                _ ("Option `%s' makes no sense without option `%s'.\n"),
                "-s",
                "-p");
@@ -1263,7 +1263,7 @@ run (void *cls,
                                             NULL);
     if (NULL == handle)
     {
-      FPRINTF (stderr, "%s", _ ("Failed to connect to transport service\n"));
+      fprintf (stderr, "%s", _ ("Failed to connect to transport service\n"));
       ret = 1;
       return;
     }
@@ -1289,12 +1289,12 @@ run (void *cls,
                                             NULL);
     if (NULL == handle)
     {
-      FPRINTF (stderr, "%s", _ ("Failed to connect to transport service\n"));
+      fprintf (stderr, "%s", _ ("Failed to connect to transport service\n"));
       ret = 1;
       return;
     }
     if (verbosity > 0)
-      FPRINTF (stdout, "%s", _ ("Starting to receive benchmark data\n"));
+      fprintf (stdout, "%s", _ ("Starting to receive benchmark data\n"));
     start_time = GNUNET_TIME_absolute_get ();
   }
   else if (iterate_connections) /* -i: List information about peers once */
@@ -1335,7 +1335,7 @@ run (void *cls,
                                             NULL);
     if (NULL == handle)
     {
-      FPRINTF (stderr, "%s", _ ("Failed to connect to transport service\n"));
+      fprintf (stderr, "%s", _ ("Failed to connect to transport service\n"));
       ret = 1;
       return;
     }

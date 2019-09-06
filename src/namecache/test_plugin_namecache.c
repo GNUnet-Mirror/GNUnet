@@ -70,7 +70,7 @@ load_plugin (const struct GNUNET_CONFIGURATION_Handle *cfg)
   GNUNET_asprintf (&libname, "libgnunet_plugin_namecache_%s", plugin_name);
   if (NULL == (ret = GNUNET_PLUGIN_load (libname, (void*) cfg)))
   {
-    FPRINTF (stderr, "Failed to load plugin `%s'!\n", plugin_name);
+    fprintf (stderr, "Failed to load plugin `%s'!\n", plugin_name);
     GNUNET_free (libname);
     return NULL;
   }
@@ -89,7 +89,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   nsp = load_plugin (cfg);
   if (NULL == nsp)
   {
-    FPRINTF (stderr,
+    fprintf (stderr,
              "%s",
 	     "Failed to initialize namecache.  Database likely not setup, skipping test.\n");
     return;
@@ -123,7 +123,7 @@ main (int argc, char *argv[])
   GNUNET_PROGRAM_run ((sizeof (xargv) / sizeof (char *)) - 1, xargv,
                       "test-plugin-namecache", "nohelp", options, &run, NULL);
   if (ok != 0)
-    FPRINTF (stderr, "Missed some testcases: %d\n", ok);
+    fprintf (stderr, "Missed some testcases: %d\n", ok);
   GNUNET_DISK_directory_remove ("/tmp/gnunet-test-plugin-namecache-sqlite");
   return ok;
 }

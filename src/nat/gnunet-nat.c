@@ -120,20 +120,19 @@ test_finished ()
  */
 static void
 address_cb (void *cls,
-	    void **app_ctx,
-	    int add_remove,
-	    enum GNUNET_NAT_AddressClass ac,
-	    const struct sockaddr *addr,
-	    socklen_t addrlen)
+            void **app_ctx,
+            int add_remove,
+            enum GNUNET_NAT_AddressClass ac,
+            const struct sockaddr *addr,
+            socklen_t addrlen)
 {
   (void) cls;
   (void) app_ctx;
-  
+
   fprintf (stdout,
            "%s %s (%d)\n",
            add_remove ? "+" : "-",
-           GNUNET_a2s (addr,
-                       addrlen),
+           GNUNET_a2s (addr, addrlen),
            (int) ac);
 }
 
@@ -149,13 +148,12 @@ address_cb (void *cls,
  */
 static void
 reversal_cb (void *cls,
-	     const struct sockaddr *remote_addr,
-	     socklen_t remote_addrlen)
+             const struct sockaddr *remote_addr,
+             socklen_t remote_addrlen)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
-	      "Connection reversal requested by %s\n",
-	      GNUNET_a2s (remote_addr,
-			  remote_addrlen));
+              "Connection reversal requested by %s\n",
+              GNUNET_a2s (remote_addr, remote_addrlen));
 }
 
 
@@ -194,9 +192,9 @@ stun_read_task (void *cls)
   ssize_t size;
 
   rtask = GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL,
-					 ls,
-					 &stun_read_task,
-					 NULL);
+                                         ls,
+                                         &stun_read_task,
+                                         NULL);
   size = GNUNET_NETWORK_socket_recvfrom_amount (ls);
   if (size > 0)
   {
@@ -212,10 +210,10 @@ stun_read_task (void *cls)
     ssize_t ret;
 
     ret = GNUNET_NETWORK_socket_recvfrom (ls,
-					  buf,
-					  size + 1,
-					  (struct sockaddr *) &sa,
-					  &salen);
+                                          buf,
+                                          size + 1,
+                                          (struct sockaddr *) &sa,
+                                          &salen);
     if (ret != size)
     {
       GNUNET_break (0);
@@ -224,10 +222,10 @@ stun_read_task (void *cls)
       return;
     }
     (void) GNUNET_NAT_stun_handle_packet (nh,
-					  (const struct sockaddr *) &sa,
-					  salen,
-					  buf,
-					  ret);
+                                          (const struct sockaddr *) &sa,
+                                          salen,
+                                          buf,
+                                          ret);
   }
 }
 
@@ -254,8 +252,7 @@ run (void *cls,
 
   if (use_tcp && use_udp)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
-		"Cannot use TCP and UDP\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE, "Cannot use TCP and UDP\n");
     global_ret = 1;
     return;
   }
@@ -265,13 +262,11 @@ run (void *cls,
   if (use_udp)
     proto = IPPROTO_UDP;
 
-  GNUNET_SCHEDULER_add_shutdown (&do_shutdown,
-				 NULL);
+  GNUNET_SCHEDULER_add_shutdown (&do_shutdown, NULL);
 
   if (0 == proto)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
-		"Must specify either TCP or UDP\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE, "Must specify either TCP or UDP\n");
     global_ret = 1;
     return;
   }
@@ -281,28 +276,26 @@ run (void *cls,
   remote_sa = NULL;
   if (NULL != local_addr)
   {
-    local_len = (socklen_t) GNUNET_STRINGS_parse_socket_addr (local_addr,
-							      &af,
-							      &local_sa);
+    local_len =
+      (socklen_t) GNUNET_STRINGS_parse_socket_addr (local_addr, &af, &local_sa);
     if (0 == local_len)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
-		  "Invalid socket address `%s'\n",
-		  local_addr);
+                  "Invalid socket address `%s'\n",
+                  local_addr);
       goto fail_and_shutdown;
     }
   }
 
   if (NULL != remote_addr)
   {
-    remote_len = GNUNET_STRINGS_parse_socket_addr (remote_addr,
-						   &af,
-						   &remote_sa);
+    remote_len =
+      GNUNET_STRINGS_parse_socket_addr (remote_addr, &af, &remote_sa);
     if (0 == remote_len)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
-		  "Invalid socket address `%s'\n",
-		  remote_addr);
+                  "Invalid socket address `%s'\n",
+                  remote_addr);
       goto fail_and_shutdown;
     }
   }
@@ -312,19 +305,19 @@ run (void *cls,
     if (NULL == section_name)
       section_name = GNUNET_strdup ("undefined");
     nh = GNUNET_NAT_register (c,
-			      section_name,
-			      proto,
-			      1,
-			      (const struct sockaddr **) &local_sa,
-			      &local_len,
-			      &address_cb,
-			      (listen_reversal) ? &reversal_cb : NULL,
-			      NULL);
+                              section_name,
+                              proto,
+                              1,
+                              (const struct sockaddr **) &local_sa,
+                              &local_len,
+                              &address_cb,
+                              (listen_reversal) ? &reversal_cb : NULL,
+                              NULL);
   }
   else if (listen_reversal)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
-		"Use of `-W` only effective in combination with `-i`\n");
+                "Use of `-W` only effective in combination with `-i`\n");
     goto fail_and_shutdown;
   }
 
@@ -332,33 +325,32 @@ run (void *cls,
   {
     int ret;
 
-    if ( (NULL == nh) ||
-	 (sizeof (struct sockaddr_in) != local_len) )
+    if ((NULL == nh) || (sizeof (struct sockaddr_in) != local_len))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
-		  "Require IPv4 local address to initiate connection reversal\n");
+                  "Require IPv4 local address to initiate connection reversal\n");
       goto fail_and_shutdown;
     }
     if (sizeof (struct sockaddr_in) != remote_len)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
-		  "Require IPv4 reversal target address\n");
+                  "Require IPv4 reversal target address\n");
       goto fail_and_shutdown;
     }
     GNUNET_assert (AF_INET == local_sa->sa_family);
     GNUNET_assert (AF_INET == remote_sa->sa_family);
     ret = GNUNET_NAT_request_reversal (nh,
-				       (const struct sockaddr_in *) local_sa,
-				       (const struct sockaddr_in *) remote_sa);
+                                       (const struct sockaddr_in *) local_sa,
+                                       (const struct sockaddr_in *) remote_sa);
     switch (ret)
     {
     case GNUNET_SYSERR:
       GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
-		  "Connection reversal internal error\n");
+                  "Connection reversal internal error\n");
       break;
     case GNUNET_NO:
       GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
-		  "Connection reversal unavailable\n");
+                  "Connection reversal unavailable\n");
       break;
     case GNUNET_OK:
       /* operation in progress */
@@ -371,46 +363,38 @@ run (void *cls,
     if (NULL == local_addr)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
-		  "Require local address to support STUN requests\n");
+                  "Require local address to support STUN requests\n");
       goto fail_and_shutdown;
     }
     if (IPPROTO_UDP != proto)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
-		  "STUN only supported over UDP\n");
+      GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE, "STUN only supported over UDP\n");
       goto fail_and_shutdown;
     }
-    ls = GNUNET_NETWORK_socket_create (af,
-				       SOCK_DGRAM,
-				       IPPROTO_UDP);
+    ls = GNUNET_NETWORK_socket_create (af, SOCK_DGRAM, IPPROTO_UDP);
     if (NULL == ls)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
-      "Failed to create socket\n");
+      GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE, "Failed to create socket\n");
       goto fail_and_shutdown;
     }
-    if (GNUNET_OK !=
-        GNUNET_NETWORK_socket_bind (ls,
-                                    local_sa,
-                                    local_len))
+    if (GNUNET_OK != GNUNET_NETWORK_socket_bind (ls, local_sa, local_len))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		  "Failed to bind to %s: %s\n",
-		  GNUNET_a2s (local_sa,
-			      local_len),
-		  STRERROR (errno));
+                  "Failed to bind to %s: %s\n",
+                  GNUNET_a2s (local_sa, local_len),
+                  strerror (errno));
       goto fail_and_shutdown;
     }
     rtask = GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL,
-					   ls,
-					   &stun_read_task,
-					   NULL);
+                                           ls,
+                                           &stun_read_task,
+                                           NULL);
   }
   GNUNET_free_non_null (remote_sa);
   GNUNET_free_non_null (local_sa);
   test_finished ();
   return;
- fail_and_shutdown:
+fail_and_shutdown:
   global_ret = 1;
   GNUNET_SCHEDULER_shutdown ();
   GNUNET_free_non_null (remote_sa);
@@ -426,66 +410,63 @@ run (void *cls,
  * @return 0 on success, -1 on error
  */
 int
-main (int argc,
-      char *const argv[])
+main (int argc, char *const argv[])
 {
   struct GNUNET_GETOPT_CommandLineOption options[] = {
 
-    GNUNET_GETOPT_option_string ('i',
-                                 "in",
-                                 "ADDRESS",
-                                 gettext_noop ("which IP and port are we locally using to bind/listen to"),
-                                 &local_addr),
+    GNUNET_GETOPT_option_string (
+      'i',
+      "in",
+      "ADDRESS",
+      gettext_noop ("which IP and port are we locally using to bind/listen to"),
+      &local_addr),
 
-    GNUNET_GETOPT_option_string ('r',
-                                 "remote",
-                                 "ADDRESS",
-                                 gettext_noop ("which remote IP and port should be asked for connection reversal"),
-                                 &remote_addr),
+    GNUNET_GETOPT_option_string (
+      'r',
+      "remote",
+      "ADDRESS",
+      gettext_noop (
+        "which remote IP and port should be asked for connection reversal"),
+      &remote_addr),
 
-    GNUNET_GETOPT_option_string ('S',
-                                 "section",
-                                 NULL,
-                                 gettext_noop ("name of configuration section to find additional options, such as manual host punching data"),
-                                 &section_name),
+    GNUNET_GETOPT_option_string (
+      'S',
+      "section",
+      NULL,
+      gettext_noop (
+        "name of configuration section to find additional options, such as manual host punching data"),
+      &section_name),
 
     GNUNET_GETOPT_option_flag ('s',
-                                  "stun",
-                                  gettext_noop ("enable STUN processing"),
-                                  &do_stun),
+                               "stun",
+                               gettext_noop ("enable STUN processing"),
+                               &do_stun),
 
-    GNUNET_GETOPT_option_flag ('t',
-                                  "tcp",
-                                  gettext_noop ("use TCP"),
-                                  &use_tcp),
+    GNUNET_GETOPT_option_flag ('t', "tcp", gettext_noop ("use TCP"), &use_tcp),
 
-    GNUNET_GETOPT_option_flag ('u',
-                                  "udp",
-                                  gettext_noop ("use UDP"),
-                                  &use_udp),
+    GNUNET_GETOPT_option_flag ('u', "udp", gettext_noop ("use UDP"), &use_udp),
 
     GNUNET_GETOPT_option_flag ('W',
-                                  "watch",
-                                  gettext_noop ("watch for connection reversal requests"),
-                                  &listen_reversal),
-    GNUNET_GETOPT_OPTION_END
-  };
+                               "watch",
+                               gettext_noop (
+                                 "watch for connection reversal requests"),
+                               &listen_reversal),
+    GNUNET_GETOPT_OPTION_END};
 
-  if (GNUNET_OK !=
-      GNUNET_STRINGS_get_utf8_args (argc, argv,
-				    &argc, &argv))
+  if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv, &argc, &argv))
     return 2;
   if (GNUNET_OK !=
-      GNUNET_PROGRAM_run (argc, argv,
-			  "gnunet-nat [options]",
-                          _("GNUnet NAT traversal autoconfigure daemon"),
-			  options,
+      GNUNET_PROGRAM_run (argc,
+                          argv,
+                          "gnunet-nat [options]",
+                          _ ("GNUnet NAT traversal autoconfigure daemon"),
+                          options,
                           &run,
-			  NULL))
+                          NULL))
   {
     global_ret = 1;
   }
-  GNUNET_free ((void*) argv);
+  GNUNET_free ((void *) argv);
   return global_ret;
 }
 

@@ -1725,7 +1725,7 @@ udp_address_to_sockaddr (const char *bindto, socklen_t *sock_len)
   char *colon;
   char *cp;
 
-  if (1 == SSCANF (bindto, "%u%1s", &port, dummy))
+  if (1 == sscanf (bindto, "%u%1s", &port, dummy))
   {
     /* interpreting value as just a PORT number */
     if (port > UINT16_MAX)
@@ -1768,7 +1768,7 @@ udp_address_to_sockaddr (const char *bindto, socklen_t *sock_len)
     /* interpet value after colon as port */
     *colon = '\0';
     colon++;
-    if (1 == SSCANF (colon, "%u%1s", &port, dummy))
+    if (1 == sscanf (colon, "%u%1s", &port, dummy))
     {
       /* interpreting value as just a PORT number */
       if (port > UINT16_MAX)

@@ -211,7 +211,7 @@ check_success (void *cls,
   struct CpsRunContext *crc = cls;
 
 #if REPORT_ID
-  FPRINTF (stderr, "%s",  (GNUNET_OK == success) ? "I" : "i");
+  fprintf (stderr, "%s",  (GNUNET_OK == success) ? "I" : "i");
 #endif
   if (GNUNET_OK != success)
   {
@@ -285,7 +285,7 @@ remove_next (void *cls,
     return;
   }
 #if REPORT_ID
-  FPRINTF (stderr, "%s",  "D");
+  fprintf (stderr, "%s",  "D");
 #endif
   GNUNET_assert (GNUNET_OK == success);
   GNUNET_SCHEDULER_add_now (&run_continuation,
@@ -528,7 +528,7 @@ run_tests (void *cls,
 
   if (success != GNUNET_YES)
   {
-    FPRINTF (stderr,
+    fprintf (stderr,
              "Test 'put' operation failed with error `%s' database likely not setup, skipping test.\n",
              msg);
     GNUNET_DATASTORE_disconnect (datastore,
@@ -573,7 +573,7 @@ run (void *cls,
                             0, 1,
                             &run_tests, crc))
   {
-    FPRINTF (stderr,
+    fprintf (stderr,
              "%s",
              "Test 'put' operation failed.\n");
     ok = 1;
@@ -608,7 +608,7 @@ main (int argc,
 			       &run,
 			       NULL))
     return 1;
-  FPRINTF (stderr, "%s", "\n");
+  fprintf (stderr, "%s", "\n");
   return ok;
 }
 

@@ -120,13 +120,13 @@ timer (void *cls)
   if (time_running.rel_value_us ==
       GNUNET_TIME_relative_max (time_running, WAIT).rel_value_us)
   {
-    FPRINTF (stderr, "%s",  "100%%\n");
+    fprintf (stderr, "%s",  "100%%\n");
     shutdown_flag = GNUNET_YES;
     GNUNET_SCHEDULER_shutdown ();
   }
   else
   {
-    FPRINTF (stderr,
+    fprintf (stderr,
 	     "%u%%..",
 	     percentage);
     timer_task =

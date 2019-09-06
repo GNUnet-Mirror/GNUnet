@@ -45,13 +45,15 @@
  * How long are we at most keeping "expired" content
  * past the expiration date in the database?
  */
-#define MAX_EXPIRE_DELAY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 15)
+#define MAX_EXPIRE_DELAY \
+  GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 15)
 
 /**
  * How fast are we allowed to query the database for deleting
  * expired content? (1 item per second).
  */
-#define MIN_EXPIRE_DELAY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 1)
+#define MIN_EXPIRE_DELAY \
+  GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 1)
 
 /**
  * Name under which we store current space consumption.
@@ -97,7 +99,6 @@ struct DatastorePlugin
    * for this plugin.
    */
   struct GNUNET_DATASTORE_PluginEnvironment env;
-
 };
 
 
@@ -131,9 +132,7 @@ struct ReservationList
    * Reservation identifier.
    */
   int32_t rid;
-
 };
-
 
 
 /**
@@ -234,10 +233,7 @@ static int stats_worked;
 static void
 sync_stats ()
 {
-  GNUNET_STATISTICS_set (stats,
-                         quota_stat_name,
-                         payload,
-                         GNUNET_YES);
+  GNUNET_STATISTICS_set (stats, quota_stat_name, payload, GNUNET_YES);
   GNUNET_STATISTICS_set (stats,
                          "# utilization by current datastore",
                          payload,
@@ -312,9 +308,10 @@ expired_processor (void *cls,
   if (NULL == key)
   {
     expired_kill_task =
-        GNUNET_SCHEDULER_add_delayed_with_priority (MAX_EXPIRE_DELAY,
-						    GNUNET_SCHEDULER_PRIORITY_IDLE,
-						    &delete_expired, NULL);
+      GNUNET_SCHEDULER_add_delayed_with_priority (MAX_EXPIRE_DELAY,
+                                                  GNUNET_SCHEDULER_PRIORITY_IDLE,
+                                                  &delete_expired,
+                                                  NULL);
     return GNUNET_SYSERR;
   }
   now = GNUNET_TIME_absolute_get ();
@@ -322,17 +319,19 @@ expired_processor (void *cls,
   {
     /* finished processing */
     expired_kill_task =
-        GNUNET_SCHEDULER_add_delayed_with_priority (MAX_EXPIRE_DELAY,
-						    GNUNET_SCHEDULER_PRIORITY_IDLE,
-						    &delete_expired, NULL);
+      GNUNET_SCHEDULER_add_delayed_with_priority (MAX_EXPIRE_DELAY,
+                                                  GNUNET_SCHEDULER_PRIORITY_IDLE,
+                                                  &delete_expired,
+                                                  NULL);
     return GNUNET_SYSERR;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Deleting content `%s' of type %u that expired %s ago\n",
-              GNUNET_h2s (key), type,
-	      GNUNET_STRINGS_relative_time_to_string (GNUNET_TIME_absolute_get_difference (expiration,
-											   now),
-						      GNUNET_YES));
+              GNUNET_h2s (key),
+              type,
+              GNUNET_STRINGS_relative_time_to_string (
+                GNUNET_TIME_absolute_get_difference (expiration, now),
+                GNUNET_YES));
   min_expiration = now;
   GNUNET_STATISTICS_update (stats,
                             gettext_noop ("# bytes expired"),
@@ -340,9 +339,10 @@ expired_processor (void *cls,
                             GNUNET_YES);
   GNUNET_CONTAINER_bloomfilter_remove (filter, key);
   expired_kill_task =
-      GNUNET_SCHEDULER_add_delayed_with_priority (MIN_EXPIRE_DELAY,
-						  GNUNET_SCHEDULER_PRIORITY_IDLE,
-						  &delete_expired, NULL);
+    GNUNET_SCHEDULER_add_delayed_with_priority (MIN_EXPIRE_DELAY,
+                                                GNUNET_SCHEDULER_PRIORITY_IDLE,
+                                                &delete_expired,
+                                                NULL);
   return GNUNET_NO;
 }
 
@@ -359,9 +359,7 @@ static void
 delete_expired (void *cls)
 {
   expired_kill_task = NULL;
-  plugin->api->get_expiration (plugin->api->cls,
-			       &expired_processor,
-			       NULL);
+  plugin->api->get_expiration (plugin->api->cls, &expired_processor, NULL);
 }
 
 
@@ -400,14 +398,17 @@ quota_processor (void *cls,
 
   if (NULL == key)
     return GNUNET_SYSERR;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Deleting %llu bytes of low-priority (%u) content `%s' of type %u at %s prior to expiration (still trying to free another %llu bytes)\n",
-              (unsigned long long) (size + GNUNET_DATASTORE_ENTRY_OVERHEAD),
-	      (unsigned int) priority,
-              GNUNET_h2s (key), type,
-	      GNUNET_STRINGS_relative_time_to_string (GNUNET_TIME_absolute_get_remaining (expiration),
-						      GNUNET_YES),
-	      *need);
+  GNUNET_log (
+    GNUNET_ERROR_TYPE_DEBUG,
+    "Deleting %llu bytes of low-priority (%u) content `%s' of type %u at %s prior to expiration (still trying to free another %llu bytes)\n",
+    (unsigned long long) (size + GNUNET_DATASTORE_ENTRY_OVERHEAD),
+    (unsigned int) priority,
+    GNUNET_h2s (key),
+    type,
+    GNUNET_STRINGS_relative_time_to_string (GNUNET_TIME_absolute_get_remaining (
+                                              expiration),
+                                            GNUNET_YES),
+    *need);
   if (size + GNUNET_DATASTORE_ENTRY_OVERHEAD > *need)
     *need = 0;
   else
@@ -418,7 +419,8 @@ quota_processor (void *cls,
     min_expiration = expiration;
   GNUNET_STATISTICS_update (stats,
                             gettext_noop ("# bytes purged (low-priority)"),
-                            size, GNUNET_YES);
+                            size,
+                            GNUNET_YES);
   GNUNET_CONTAINER_bloomfilter_remove (filter, key);
   return GNUNET_NO;
 }
@@ -448,9 +450,7 @@ manage_space (unsigned long long need)
   while ((need > 0) && (last != need))
   {
     last = need;
-    plugin->api->get_expiration (plugin->api->cls,
-                                 &quota_processor,
-                                 &need);
+    plugin->api->get_expiration (plugin->api->cls, &quota_processor, &need);
   }
 }
 
@@ -473,18 +473,15 @@ transmit_status (struct GNUNET_SERVICE_Client *client,
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Transmitting `%s' message with value %d and message `%s'\n",
-              "STATUS", code, msg != NULL ? msg : "(none)");
+              "STATUS",
+              code,
+              msg != NULL ? msg : "(none)");
   slen = (msg == NULL) ? 0 : strlen (msg) + 1;
-  env = GNUNET_MQ_msg_extra (sm,
-                             slen,
-                             GNUNET_MESSAGE_TYPE_DATASTORE_STATUS);
+  env = GNUNET_MQ_msg_extra (sm, slen, GNUNET_MESSAGE_TYPE_DATASTORE_STATUS);
   sm->status = htonl (code);
   sm->min_expiration = GNUNET_TIME_absolute_hton (min_expiration);
-  GNUNET_memcpy (&sm[1],
-                 msg,
-                 slen);
-  GNUNET_MQ_send (GNUNET_SERVICE_client_get_mq (client),
-                  env);
+  GNUNET_memcpy (&sm[1], msg, slen);
+  GNUNET_MQ_send (GNUNET_SERVICE_client_get_mq (client), env);
 }
 
 
@@ -526,19 +523,13 @@ transmit_item (void *cls,
   if (NULL == key)
   {
     /* transmit 'DATA_END' */
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Transmitting DATA_END message\n");
-    env = GNUNET_MQ_msg (end,
-                         GNUNET_MESSAGE_TYPE_DATASTORE_DATA_END);
-    GNUNET_MQ_send (GNUNET_SERVICE_client_get_mq (client),
-                    env);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Transmitting DATA_END message\n");
+    env = GNUNET_MQ_msg (end, GNUNET_MESSAGE_TYPE_DATASTORE_DATA_END);
+    GNUNET_MQ_send (GNUNET_SERVICE_client_get_mq (client), env);
     return GNUNET_OK;
   }
-  GNUNET_assert (sizeof (struct DataMessage) + size <
-                 GNUNET_MAX_MESSAGE_SIZE);
-  env = GNUNET_MQ_msg_extra (dm,
-                             size,
-                             GNUNET_MESSAGE_TYPE_DATASTORE_DATA);
+  GNUNET_assert (sizeof (struct DataMessage) + size < GNUNET_MAX_MESSAGE_SIZE);
+  env = GNUNET_MQ_msg_extra (dm, size, GNUNET_MESSAGE_TYPE_DATASTORE_DATA);
   dm->rid = htonl (0);
   dm->size = htonl (size);
   dm->type = htonl (type);
@@ -548,22 +539,21 @@ transmit_item (void *cls,
   dm->expiration = GNUNET_TIME_absolute_hton (expiration);
   dm->uid = GNUNET_htonll (uid);
   dm->key = *key;
-  GNUNET_memcpy (&dm[1],
-                 data,
-                 size);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Transmitting DATA message for `%s' of type %u with expiration %s (in: %s)\n",
-              GNUNET_h2s (key),
-              type,
-              GNUNET_STRINGS_absolute_time_to_string (expiration),
-              GNUNET_STRINGS_relative_time_to_string (GNUNET_TIME_absolute_get_remaining (expiration),
-						      GNUNET_YES));
+  GNUNET_memcpy (&dm[1], data, size);
+  GNUNET_log (
+    GNUNET_ERROR_TYPE_DEBUG,
+    "Transmitting DATA message for `%s' of type %u with expiration %s (in: %s)\n",
+    GNUNET_h2s (key),
+    type,
+    GNUNET_STRINGS_absolute_time_to_string (expiration),
+    GNUNET_STRINGS_relative_time_to_string (GNUNET_TIME_absolute_get_remaining (
+                                              expiration),
+                                            GNUNET_YES));
   GNUNET_STATISTICS_update (stats,
                             gettext_noop ("# results found"),
                             1,
                             GNUNET_NO);
-  GNUNET_MQ_send (GNUNET_SERVICE_client_get_mq (client),
-                  env);
+  GNUNET_MQ_send (GNUNET_SERVICE_client_get_mq (client), env);
   return GNUNET_OK;
 }
 
@@ -575,8 +565,7 @@ transmit_item (void *cls,
  * @param message the actual message
  */
 static void
-handle_reserve (void *cls,
-                const struct ReserveMessage *msg)
+handle_reserve (void *cls, const struct ReserveMessage *msg)
 {
   /**
    * Static counter to produce reservation identifiers.
@@ -589,20 +578,23 @@ handle_reserve (void *cls,
   uint64_t amount;
   uint32_t entries;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Processing RESERVE request\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Processing RESERVE request\n");
   amount = GNUNET_ntohll (msg->amount);
   entries = ntohl (msg->entries);
   used = payload + reserved;
-  req = amount + ((unsigned long long) GNUNET_DATASTORE_ENTRY_OVERHEAD) * entries;
+  req =
+    amount + ((unsigned long long) GNUNET_DATASTORE_ENTRY_OVERHEAD) * entries;
   if (used + req > quota)
   {
     if (quota < used)
-      used = quota;             /* cheat a bit for error message (to avoid negative numbers) */
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                _("Insufficient space (%llu bytes are available) to satisfy RESERVE request for %llu bytes\n"),
-                quota - used,
-                req);
+      used =
+        quota; /* cheat a bit for error message (to avoid negative numbers) */
+    GNUNET_log (
+      GNUNET_ERROR_TYPE_WARNING,
+      _ (
+        "Insufficient space (%llu bytes are available) to satisfy RESERVE request for %llu bytes\n"),
+      quota - used,
+      req);
     if (cache_size < req)
     {
       /* TODO: document this in the FAQ; essentially, if this
@@ -610,15 +602,17 @@ handle_reserve (void *cls,
        * by less-important content from migration because it is
        * larger than 1/8th of the overall available space, and
        * we only reserve 1/8th for "fresh" insertions */
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                  _("The requested amount (%llu bytes) is larger than the cache size (%llu bytes)\n"),
-                  req,
-                  cache_size);
+      GNUNET_log (
+        GNUNET_ERROR_TYPE_WARNING,
+        _ (
+          "The requested amount (%llu bytes) is larger than the cache size (%llu bytes)\n"),
+        req,
+        cache_size);
       transmit_status (client,
                        0,
-                       gettext_noop
-                       ("Insufficient space to satisfy request and "
-                        "requested amount is larger than cache size"));
+                       gettext_noop (
+                         "Insufficient space to satisfy request and "
+                         "requested amount is larger than cache size"));
     }
     else
     {
@@ -642,10 +636,8 @@ handle_reserve (void *cls,
   e->entries = entries;
   e->rid = ++reservation_gen;
   if (reservation_gen < 0)
-    reservation_gen = 0;        /* wrap around */
-  transmit_status (client,
-                   e->rid,
-                   NULL);
+    reservation_gen = 0; /* wrap around */
+  transmit_status (client, e->rid, NULL);
   GNUNET_SERVICE_client_continue (client);
 }
 
@@ -657,8 +649,7 @@ handle_reserve (void *cls,
  * @param message the actual message
  */
 static void
-handle_release_reserve (void *cls,
-                        const struct ReleaseReserveMessage *msg)
+handle_release_reserve (void *cls, const struct ReleaseReserveMessage *msg)
 {
   struct GNUNET_SERVICE_Client *client = cls;
   struct ReservationList *pos;
@@ -667,8 +658,7 @@ handle_release_reserve (void *cls,
   int rid = ntohl (msg->rid);
   unsigned long long rem;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Processing RELEASE_RESERVE request\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Processing RELEASE_RESERVE request\n");
   next = reservations;
   prev = NULL;
   while (NULL != (pos = next))
@@ -681,8 +671,8 @@ handle_release_reserve (void *cls,
       else
         prev->next = next;
       rem =
-          pos->amount +
-          ((unsigned long long) GNUNET_DATASTORE_ENTRY_OVERHEAD) * pos->entries;
+        pos->amount +
+        ((unsigned long long) GNUNET_DATASTORE_ENTRY_OVERHEAD) * pos->entries;
       GNUNET_assert (reserved >= rem);
       reserved -= rem;
       GNUNET_STATISTICS_set (stats,
@@ -693,9 +683,7 @@ handle_release_reserve (void *cls,
                   "Returning %llu remaining reserved bytes to storage pool\n",
                   rem);
       GNUNET_free (pos);
-      transmit_status (client,
-                       GNUNET_OK,
-                       NULL);
+      transmit_status (client, GNUNET_OK, NULL);
       GNUNET_SERVICE_client_continue (client);
       return;
     }
@@ -757,8 +745,7 @@ put_continuation (void *cls,
                               gettext_noop ("# bytes stored"),
                               size,
                               GNUNET_YES);
-    GNUNET_CONTAINER_bloomfilter_add (filter,
-                                      key);
+    GNUNET_CONTAINER_bloomfilter_add (filter, key);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Successfully stored %u bytes under key `%s'\n",
                 size,
@@ -770,7 +757,7 @@ put_continuation (void *cls,
   if (quota - reserved - cache_size < payload)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                _("Need %llu bytes more space (%llu allowed, using %llu)\n"),
+                _ ("Need %llu bytes more space (%llu allowed, using %llu)\n"),
                 (unsigned long long) size + GNUNET_DATASTORE_ENTRY_OVERHEAD,
                 (unsigned long long) (quota - reserved - cache_size),
                 (unsigned long long) payload);
@@ -787,8 +774,7 @@ put_continuation (void *cls,
  * @return #GNUNET_OK if @a dm is well-formed
  */
 static int
-check_put (void *cls,
-           const struct DataMessage *dm)
+check_put (void *cls, const struct DataMessage *dm)
 {
   if (GNUNET_OK != check_data (dm))
   {
@@ -806,8 +792,7 @@ check_put (void *cls,
  * @param message the actual message
  */
 static void
-handle_put (void *cls,
-            const struct DataMessage *dm)
+handle_put (void *cls, const struct DataMessage *dm)
 {
   struct GNUNET_SERVICE_Client *client = cls;
   int rid;
@@ -839,8 +824,8 @@ handle_put (void *cls,
                              GNUNET_NO);
     }
   }
-  bool absent = GNUNET_NO == GNUNET_CONTAINER_bloomfilter_test (filter,
-                                                                &dm->key);
+  bool absent =
+    GNUNET_NO == GNUNET_CONTAINER_bloomfilter_test (filter, &dm->key);
   plugin->api->put (plugin->api->cls,
                     &dm->key,
                     absent,
@@ -864,8 +849,7 @@ handle_put (void *cls,
  * @param msg the actual message
  */
 static void
-handle_get (void *cls,
-            const struct GetMessage *msg)
+handle_get (void *cls, const struct GetMessage *msg)
 {
   struct GNUNET_SERVICE_Client *client = cls;
 
@@ -894,8 +878,7 @@ handle_get (void *cls,
  * @param msg the actual message
  */
 static void
-handle_get_key (void *cls,
-                const struct GetKeyMessage *msg)
+handle_get_key (void *cls, const struct GetKeyMessage *msg)
 {
   struct GNUNET_SERVICE_Client *client = cls;
 
@@ -907,21 +890,25 @@ handle_get_key (void *cls,
                             gettext_noop ("# GET KEY requests received"),
                             1,
                             GNUNET_NO);
-  if (GNUNET_YES !=
-      GNUNET_CONTAINER_bloomfilter_test (filter,
-                                         &msg->key))
+  if (GNUNET_YES != GNUNET_CONTAINER_bloomfilter_test (filter, &msg->key))
   {
     /* don't bother database... */
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Empty result set for GET request for `%s' (bloomfilter).\n",
                 GNUNET_h2s (&msg->key));
     GNUNET_STATISTICS_update (stats,
-                              gettext_noop
-                              ("# requests filtered by bloomfilter"),
+                              gettext_noop (
+                                "# requests filtered by bloomfilter"),
                               1,
                               GNUNET_NO);
     transmit_item (client,
-                   NULL, 0, NULL, 0, 0, 0, 0,
+                   NULL,
+                   0,
+                   NULL,
+                   0,
+                   0,
+                   0,
+                   0,
                    GNUNET_TIME_UNIT_ZERO_ABS,
                    0);
     GNUNET_SERVICE_client_continue (client);
@@ -945,20 +932,17 @@ handle_get_key (void *cls,
  * @param message the actual message
  */
 static void
-handle_get_replication (void *cls,
-                        const struct GNUNET_MessageHeader *message)
+handle_get_replication (void *cls, const struct GNUNET_MessageHeader *message)
 {
   struct GNUNET_SERVICE_Client *client = cls;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Processing GET_REPLICATION request\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Processing GET_REPLICATION request\n");
   GNUNET_STATISTICS_update (stats,
-                            gettext_noop ("# GET REPLICATION requests received"),
+                            gettext_noop (
+                              "# GET REPLICATION requests received"),
                             1,
                             GNUNET_NO);
-  plugin->api->get_replication (plugin->api->cls,
-                                &transmit_item,
-                                client);
+  plugin->api->get_replication (plugin->api->cls, &transmit_item, client);
   GNUNET_SERVICE_client_continue (client);
 }
 
@@ -970,8 +954,7 @@ handle_get_replication (void *cls,
  * @param message the actual message
  */
 static void
-handle_get_zero_anonymity (void *cls,
-                           const struct GetZeroAnonymityMessage *msg)
+handle_get_zero_anonymity (void *cls, const struct GetZeroAnonymityMessage *msg)
 {
   struct GNUNET_SERVICE_Client *client = cls;
   enum GNUNET_BLOCK_Type type;
@@ -986,7 +969,8 @@ handle_get_zero_anonymity (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Processing GET_ZERO_ANONYMITY request\n");
   GNUNET_STATISTICS_update (stats,
-                            gettext_noop ("# GET ZERO ANONYMITY requests received"),
+                            gettext_noop (
+                              "# GET ZERO ANONYMITY requests received"),
                             1,
                             GNUNET_NO);
   plugin->api->get_zero_anonymity (plugin->api->cls,
@@ -1019,21 +1003,15 @@ remove_continuation (void *cls,
 
   if (GNUNET_SYSERR == status)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "REMOVE request failed: %s.\n",
-                msg);
-    transmit_status (client,
-                     GNUNET_NO,
-                     msg);
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "REMOVE request failed: %s.\n", msg);
+    transmit_status (client, GNUNET_NO, msg);
     return;
   }
   if (GNUNET_NO == status)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Content not found for REMOVE request.\n");
-    transmit_status (client,
-                     GNUNET_NO,
-                     _("Content not found"));
+    transmit_status (client, GNUNET_NO, _ ("Content not found"));
     return;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -1043,11 +1021,8 @@ remove_continuation (void *cls,
                             gettext_noop ("# bytes removed (explicit request)"),
                             size,
                             GNUNET_YES);
-  GNUNET_CONTAINER_bloomfilter_remove (filter,
-                                       key);
-  transmit_status (client,
-                   GNUNET_OK,
-                   NULL);
+  GNUNET_CONTAINER_bloomfilter_remove (filter, key);
+  transmit_status (client, GNUNET_OK, NULL);
 }
 
 
@@ -1059,8 +1034,7 @@ remove_continuation (void *cls,
  * @return #GNUNET_OK if @a dm is well-formed
  */
 static int
-check_remove (void *cls,
-              const struct DataMessage *dm)
+check_remove (void *cls, const struct DataMessage *dm)
 {
   if (GNUNET_OK != check_data (dm))
   {
@@ -1079,14 +1053,14 @@ check_remove (void *cls,
  * @param message the actual message
  */
 static void
-handle_remove (void *cls,
-               const struct DataMessage *dm)
+handle_remove (void *cls, const struct DataMessage *dm)
 {
   struct GNUNET_SERVICE_Client *client = cls;
 
   GNUNET_STATISTICS_update (stats,
                             gettext_noop ("# REMOVE requests received"),
-                            1, GNUNET_NO);
+                            1,
+                            GNUNET_NO);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Processing REMOVE request for `%s'\n",
               GNUNET_h2s (&dm->key));
@@ -1107,13 +1081,11 @@ handle_remove (void *cls,
  * @param message the actual message
  */
 static void
-handle_drop (void *cls,
-             const struct GNUNET_MessageHeader *message)
+handle_drop (void *cls, const struct GNUNET_MessageHeader *message)
 {
   struct GNUNET_SERVICE_Client *client = cls;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Processing DROP request\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Processing DROP request\n");
   do_drop = GNUNET_YES;
   GNUNET_SERVICE_client_continue (client);
 }
@@ -1128,21 +1100,21 @@ handle_drop (void *cls,
  *        0 for "reset to empty"
  */
 static void
-disk_utilization_change_cb (void *cls,
-                            int delta)
+disk_utilization_change_cb (void *cls, int delta)
 {
   if ((delta < 0) && (payload < -delta))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                _("Datastore payload must have been inaccurate (%lld < %lld). Recomputing it.\n"),
-                (long long) payload,
-                (long long) -delta);
-    plugin->api->estimate_size (plugin->api->cls,
-                                &payload);
+    GNUNET_log (
+      GNUNET_ERROR_TYPE_WARNING,
+      _ (
+        "Datastore payload must have been inaccurate (%lld < %lld). Recomputing it.\n"),
+      (long long) payload,
+      (long long) -delta);
+    plugin->api->estimate_size (plugin->api->cls, &payload);
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                _("New payload: %lld\n"),
+                _ ("New payload: %lld\n"),
                 (long long) payload);
-     sync_stats ();
+    sync_stats ();
     return;
   }
   payload += delta;
@@ -1172,10 +1144,11 @@ process_stat_in (void *cls,
   GNUNET_assert (GNUNET_NO == stats_worked);
   stats_worked = GNUNET_YES;
   payload += value;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Notification from statistics about existing payload (%llu), new payload is %llu\n",
-              (unsigned long long) value,
-              (unsigned long long) payload);
+  GNUNET_log (
+    GNUNET_ERROR_TYPE_DEBUG,
+    "Notification from statistics about existing payload (%llu), new payload is %llu\n",
+    (unsigned long long) value,
+    (unsigned long long) payload);
   return GNUNET_OK;
 }
 
@@ -1194,19 +1167,16 @@ load_plugin ()
   ret->env.duc = &disk_utilization_change_cb;
   ret->env.cls = NULL;
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              _("Loading `%s' datastore plugin\n"),
+              _ ("Loading `%s' datastore plugin\n"),
               plugin_name);
-  GNUNET_asprintf (&libname,
-                   "libgnunet_plugin_datastore_%s",
-                   plugin_name);
+  GNUNET_asprintf (&libname, "libgnunet_plugin_datastore_%s", plugin_name);
   ret->short_name = GNUNET_strdup (plugin_name);
   ret->lib_name = libname;
-  ret->api = GNUNET_PLUGIN_load (libname,
-                                 &ret->env);
+  ret->api = GNUNET_PLUGIN_load (libname, &ret->env);
   if (NULL == ret->api)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _("Failed to load datastore plugin for `%s'\n"),
+                _ ("Failed to load datastore plugin for `%s'\n"),
                 plugin_name);
     GNUNET_free (ret->short_name);
     GNUNET_free (libname);
@@ -1242,10 +1212,10 @@ static void
 begin_service ()
 {
   GNUNET_SERVICE_resume (service);
-  expired_kill_task
-    = GNUNET_SCHEDULER_add_with_priority (GNUNET_SCHEDULER_PRIORITY_IDLE,
-                                          &delete_expired,
-                                          NULL);
+  expired_kill_task =
+    GNUNET_SCHEDULER_add_with_priority (GNUNET_SCHEDULER_PRIORITY_IDLE,
+                                        &delete_expired,
+                                        NULL);
 }
 
 
@@ -1258,22 +1228,21 @@ begin_service ()
  */
 static void
 add_key_to_bloomfilter (void *cls,
-			const struct GNUNET_HashCode *key,
-			unsigned int count)
+                        const struct GNUNET_HashCode *key,
+                        unsigned int count)
 {
   struct GNUNET_CONTAINER_BloomFilter *bf = cls;
 
   if (NULL == key)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-		_("Bloomfilter construction complete.\n"));
+                _ ("Bloomfilter construction complete.\n"));
     begin_service ();
     return;
   }
 
   while (0 < count--)
-    GNUNET_CONTAINER_bloomfilter_add (bf,
-                                      key);
+    GNUNET_CONTAINER_bloomfilter_add (bf, key);
 }
 
 
@@ -1285,8 +1254,7 @@ add_key_to_bloomfilter (void *cls,
  * @param success #GNUNET_NO if we failed to read the stat
  */
 static void
-process_stat_done (void *cls,
-                   int success)
+process_stat_done (void *cls, int success)
 {
   stat_get = NULL;
   if (NULL != stat_timeout_task)
@@ -1301,8 +1269,7 @@ process_stat_done (void *cls,
     filter = NULL;
     if (NULL != stats)
     {
-      GNUNET_STATISTICS_destroy (stats,
-                                 GNUNET_YES);
+      GNUNET_STATISTICS_destroy (stats, GNUNET_YES);
       stats = NULL;
     }
     return;
@@ -1312,28 +1279,26 @@ process_stat_done (void *cls,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Failed to obtain value from statistics service, recomputing it\n");
-    plugin->api->estimate_size (plugin->api->cls,
-                                &payload);
+    plugin->api->estimate_size (plugin->api->cls, &payload);
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                _("New payload: %lld\n"),
+                _ ("New payload: %lld\n"),
                 (long long) payload);
   }
 
   if (GNUNET_YES == refresh_bf)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-		_("Rebuilding bloomfilter.  Please be patient.\n"));
+                _ ("Rebuilding bloomfilter.  Please be patient.\n"));
     if (NULL != plugin->api->get_keys)
     {
-      plugin->api->get_keys (plugin->api->cls,
-                             &add_key_to_bloomfilter,
-                             filter);
+      plugin->api->get_keys (plugin->api->cls, &add_key_to_bloomfilter, filter);
       return;
     }
     else
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		  _("Plugin does not support get_keys function. Please fix!\n"));
+                  _ (
+                    "Plugin does not support get_keys function. Please fix!\n"));
     }
   }
   begin_service ();
@@ -1350,8 +1315,7 @@ stat_timeout (void *cls)
 {
   stat_timeout_task = NULL;
   GNUNET_STATISTICS_get_cancel (stat_get);
-  process_stat_done (NULL,
-                     GNUNET_NO);
+  process_stat_done (NULL, GNUNET_NO);
 }
 
 
@@ -1369,8 +1333,7 @@ cleaning_task (void *cls)
   }
   if (GNUNET_YES == do_drop)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Dropping database!\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Dropping database!\n");
     plugin->api->drop (plugin->api->cls);
     payload = 0;
     last_sync++;
@@ -1401,8 +1364,7 @@ cleaning_task (void *cls)
     sync_stats ();
   if (NULL != stats)
   {
-    GNUNET_STATISTICS_destroy (stats,
-                               GNUNET_YES);
+    GNUNET_STATISTICS_destroy (stats, GNUNET_YES);
     stats = NULL;
   }
   GNUNET_free (quota_stat_name);
@@ -1420,8 +1382,8 @@ cleaning_task (void *cls)
  */
 static void *
 client_connect_cb (void *cls,
-		   struct GNUNET_SERVICE_Client *client,
-		   struct GNUNET_MQ_Handle *mq)
+                   struct GNUNET_SERVICE_Client *client,
+                   struct GNUNET_MQ_Handle *mq)
 {
   return client;
 }
@@ -1437,8 +1399,8 @@ client_connect_cb (void *cls,
  */
 static void
 client_disconnect_cb (void *cls,
-		      struct GNUNET_SERVICE_Client *client,
-		      void *app_ctx)
+                      struct GNUNET_SERVICE_Client *client,
+                      void *app_ctx)
 {
   struct ReservationList *pos;
   struct ReservationList *prev;
@@ -1469,7 +1431,6 @@ client_disconnect_cb (void *cls,
                          gettext_noop ("# reserved"),
                          reserved,
                          GNUNET_NO);
-
 }
 
 
@@ -1491,11 +1452,10 @@ run (void *cls,
 
   service = serv;
   cfg = c;
-  if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_string (cfg,
-                                             "DATASTORE",
-                                             "DATABASE",
-                                             &plugin_name))
+  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_string (cfg,
+                                                          "DATASTORE",
+                                                          "DATABASE",
+                                                          &plugin_name))
   {
     GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR,
                                "DATABASE",
@@ -1503,26 +1463,17 @@ run (void *cls,
     return;
   }
   GNUNET_asprintf (&quota_stat_name,
-		   _("# bytes used in file-sharing datastore `%s'"),
-		   plugin_name);
+                   _ ("# bytes used in file-sharing datastore `%s'"),
+                   plugin_name);
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_size (cfg,
-                                           "DATASTORE",
-                                           "QUOTA",
-                                           &quota))
+      GNUNET_CONFIGURATION_get_value_size (cfg, "DATASTORE", "QUOTA", &quota))
   {
-    GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR,
-                               "QUOTA",
-                               "DATASTORE");
+    GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR, "QUOTA", "DATASTORE");
     return;
   }
-  stats = GNUNET_STATISTICS_create ("datastore",
-                                    cfg);
-  GNUNET_STATISTICS_set (stats,
-                         gettext_noop ("# quota"),
-                         quota,
-                         GNUNET_NO);
-  cache_size = quota / 8;       /* Or should we make this an option? */
+  stats = GNUNET_STATISTICS_create ("datastore", cfg);
+  GNUNET_STATISTICS_set (stats, gettext_noop ("# quota"), quota, GNUNET_NO);
+  cache_size = quota / 8; /* Or should we make this an option? */
   GNUNET_STATISTICS_set (stats,
                          gettext_noop ("# cache size"),
                          cache_size,
@@ -1530,17 +1481,17 @@ run (void *cls,
   if (quota / (32 * 1024LL) > MAX_BF_SIZE)
     bf_size = MAX_BF_SIZE;
   else
-    bf_size = quota / (32 * 1024LL);         /* 8 bit per entry, 1 bit per 32 kb in DB */
+    bf_size =
+      quota / (32 * 1024LL); /* 8 bit per entry, 1 bit per 32 kb in DB */
   fn = NULL;
-  if ((GNUNET_OK !=
-       GNUNET_CONFIGURATION_get_value_filename (cfg,
-                                                "DATASTORE",
-                                                "BLOOMFILTER",
-                                                &fn)) ||
+  if ((GNUNET_OK != GNUNET_CONFIGURATION_get_value_filename (cfg,
+                                                             "DATASTORE",
+                                                             "BLOOMFILTER",
+                                                             &fn)) ||
       (GNUNET_OK != GNUNET_DISK_directory_create_for_file (fn)))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                _("Could not use specified filename `%s' for bloomfilter.\n"),
+                _ ("Could not use specified filename `%s' for bloomfilter.\n"),
                 NULL != fn ? fn : "");
     GNUNET_free_non_null (fn);
     fn = NULL;
@@ -1550,139 +1501,150 @@ run (void *cls,
     GNUNET_asprintf (&pfn, "%s.%s", fn, plugin_name);
     if (GNUNET_YES == GNUNET_DISK_file_test (pfn))
     {
-      filter = GNUNET_CONTAINER_bloomfilter_load (pfn, bf_size, 5);        /* approx. 3% false positives at max use */
+      filter =
+        GNUNET_CONTAINER_bloomfilter_load (pfn,
+                                           bf_size,
+                                           5); /* approx. 3% false positives at max use */
       if (NULL == filter)
       {
-	/* file exists but not valid, remove and try again, but refresh */
-	if (0 != UNLINK (pfn))
-	{
-	  /* failed to remove, run without file */
-	  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		      _("Failed to remove bogus bloomfilter file `%s'\n"),
-		      pfn);
-	  GNUNET_free (pfn);
-	  pfn = NULL;
-	  filter = GNUNET_CONTAINER_bloomfilter_load (NULL, bf_size, 5);        /* approx. 3% false positives at max use */
-	  refresh_bf = GNUNET_YES;
-	}
-	else
-	{
-	  /* try again after remove */
-	  filter = GNUNET_CONTAINER_bloomfilter_load (pfn, bf_size, 5);        /* approx. 3% false positives at max use */
-	  refresh_bf = GNUNET_YES;
-	  if (NULL == filter)
-	  {
-	    /* failed yet again, give up on using file */
-	    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-			_("Failed to remove bogus bloomfilter file `%s'\n"),
-			pfn);
-	    GNUNET_free (pfn);
-	    pfn = NULL;
-	    filter = GNUNET_CONTAINER_bloomfilter_init (NULL, bf_size, 5);        /* approx. 3% false positives at max use */
-	  }
-	}
+        /* file exists but not valid, remove and try again, but refresh */
+        if (0 != unlink (pfn))
+        {
+          /* failed to remove, run without file */
+          GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                      _ ("Failed to remove bogus bloomfilter file `%s'\n"),
+                      pfn);
+          GNUNET_free (pfn);
+          pfn = NULL;
+          filter = GNUNET_CONTAINER_bloomfilter_load (
+            NULL,
+            bf_size,
+            5); /* approx. 3% false positives at max use */
+          refresh_bf = GNUNET_YES;
+        }
+        else
+        {
+          /* try again after remove */
+          filter = GNUNET_CONTAINER_bloomfilter_load (
+            pfn,
+            bf_size,
+            5); /* approx. 3% false positives at max use */
+          refresh_bf = GNUNET_YES;
+          if (NULL == filter)
+          {
+            /* failed yet again, give up on using file */
+            GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                        _ ("Failed to remove bogus bloomfilter file `%s'\n"),
+                        pfn);
+            GNUNET_free (pfn);
+            pfn = NULL;
+            filter = GNUNET_CONTAINER_bloomfilter_init (
+              NULL,
+              bf_size,
+              5); /* approx. 3% false positives at max use */
+          }
+        }
       }
       else
       {
-	/* normal case: have an existing valid bf file, no need to refresh */
-	refresh_bf = GNUNET_NO;
+        /* normal case: have an existing valid bf file, no need to refresh */
+        refresh_bf = GNUNET_NO;
       }
     }
     else
     {
-      filter = GNUNET_CONTAINER_bloomfilter_load (pfn, bf_size, 5);        /* approx. 3% false positives at max use */
+      filter =
+        GNUNET_CONTAINER_bloomfilter_load (pfn,
+                                           bf_size,
+                                           5); /* approx. 3% false positives at max use */
       refresh_bf = GNUNET_YES;
     }
     GNUNET_free (pfn);
   }
   else
   {
-    filter = GNUNET_CONTAINER_bloomfilter_init (NULL,
-                                                bf_size,
-                                                5);      /* approx. 3% false positives at max use */
+    filter =
+      GNUNET_CONTAINER_bloomfilter_init (NULL,
+                                         bf_size,
+                                         5); /* approx. 3% false positives at max use */
     refresh_bf = GNUNET_YES;
   }
   GNUNET_free_non_null (fn);
   if (NULL == filter)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _("Failed to initialize bloomfilter.\n"));
+                _ ("Failed to initialize bloomfilter.\n"));
     if (NULL != stats)
     {
-      GNUNET_STATISTICS_destroy (stats,
-                                 GNUNET_YES);
+      GNUNET_STATISTICS_destroy (stats, GNUNET_YES);
       stats = NULL;
     }
     return;
   }
   GNUNET_SERVICE_suspend (service);
-  stat_get =
-      GNUNET_STATISTICS_get (stats,
-                             "datastore",
-                             quota_stat_name,
-                             &process_stat_done,
-                             &process_stat_in,
-                             NULL);
+  stat_get = GNUNET_STATISTICS_get (stats,
+                                    "datastore",
+                                    quota_stat_name,
+                                    &process_stat_done,
+                                    &process_stat_in,
+                                    NULL);
   if (NULL == stat_get)
-    process_stat_done (NULL,
-                       GNUNET_SYSERR);
+    process_stat_done (NULL, GNUNET_SYSERR);
   else
-    stat_timeout_task
-      = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
-                                      &stat_timeout,
-                                      NULL);
-  GNUNET_SCHEDULER_add_shutdown (&cleaning_task,
-				 NULL);
+    stat_timeout_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
+                                                      &stat_timeout,
+                                                      NULL);
+  GNUNET_SCHEDULER_add_shutdown (&cleaning_task, NULL);
 }
 
 
 /**
  * Define "main" method using service macro.
  */
-GNUNET_SERVICE_MAIN
-("datastore",
- GNUNET_SERVICE_OPTION_NONE,
- &run,
- &client_connect_cb,
- &client_disconnect_cb,
- NULL,
- GNUNET_MQ_hd_fixed_size (reserve,
-                          GNUNET_MESSAGE_TYPE_DATASTORE_RESERVE,
-                          struct ReserveMessage,
-                          NULL),
- GNUNET_MQ_hd_fixed_size (release_reserve,
-                          GNUNET_MESSAGE_TYPE_DATASTORE_RELEASE_RESERVE,
-                          struct ReleaseReserveMessage,
-                          NULL),
- GNUNET_MQ_hd_var_size (put,
-                        GNUNET_MESSAGE_TYPE_DATASTORE_PUT,
-                        struct DataMessage,
-                        NULL),
- GNUNET_MQ_hd_fixed_size (get,
-                          GNUNET_MESSAGE_TYPE_DATASTORE_GET,
-                          struct GetMessage,
-                          NULL),
- GNUNET_MQ_hd_fixed_size (get_key,
-                          GNUNET_MESSAGE_TYPE_DATASTORE_GET_KEY,
-                          struct GetKeyMessage,
-                          NULL),
- GNUNET_MQ_hd_fixed_size (get_replication,
-                          GNUNET_MESSAGE_TYPE_DATASTORE_GET_REPLICATION,
-                          struct GNUNET_MessageHeader,
-                          NULL),
- GNUNET_MQ_hd_fixed_size (get_zero_anonymity,
-                          GNUNET_MESSAGE_TYPE_DATASTORE_GET_ZERO_ANONYMITY,
-                          struct GetZeroAnonymityMessage,
-                          NULL),
- GNUNET_MQ_hd_var_size (remove,
-                        GNUNET_MESSAGE_TYPE_DATASTORE_REMOVE,
-                        struct DataMessage,
-                        NULL),
- GNUNET_MQ_hd_fixed_size (drop,
-                          GNUNET_MESSAGE_TYPE_DATASTORE_DROP,
-                          struct GNUNET_MessageHeader,
-                          NULL),
- GNUNET_MQ_handler_end ());
+GNUNET_SERVICE_MAIN (
+  "datastore",
+  GNUNET_SERVICE_OPTION_NONE,
+  &run,
+  &client_connect_cb,
+  &client_disconnect_cb,
+  NULL,
+  GNUNET_MQ_hd_fixed_size (reserve,
+                           GNUNET_MESSAGE_TYPE_DATASTORE_RESERVE,
+                           struct ReserveMessage,
+                           NULL),
+  GNUNET_MQ_hd_fixed_size (release_reserve,
+                           GNUNET_MESSAGE_TYPE_DATASTORE_RELEASE_RESERVE,
+                           struct ReleaseReserveMessage,
+                           NULL),
+  GNUNET_MQ_hd_var_size (put,
+                         GNUNET_MESSAGE_TYPE_DATASTORE_PUT,
+                         struct DataMessage,
+                         NULL),
+  GNUNET_MQ_hd_fixed_size (get,
+                           GNUNET_MESSAGE_TYPE_DATASTORE_GET,
+                           struct GetMessage,
+                           NULL),
+  GNUNET_MQ_hd_fixed_size (get_key,
+                           GNUNET_MESSAGE_TYPE_DATASTORE_GET_KEY,
+                           struct GetKeyMessage,
+                           NULL),
+  GNUNET_MQ_hd_fixed_size (get_replication,
+                           GNUNET_MESSAGE_TYPE_DATASTORE_GET_REPLICATION,
+                           struct GNUNET_MessageHeader,
+                           NULL),
+  GNUNET_MQ_hd_fixed_size (get_zero_anonymity,
+                           GNUNET_MESSAGE_TYPE_DATASTORE_GET_ZERO_ANONYMITY,
+                           struct GetZeroAnonymityMessage,
+                           NULL),
+  GNUNET_MQ_hd_var_size (remove,
+                         GNUNET_MESSAGE_TYPE_DATASTORE_REMOVE,
+                         struct DataMessage,
+                         NULL),
+  GNUNET_MQ_hd_fixed_size (drop,
+                           GNUNET_MESSAGE_TYPE_DATASTORE_DROP,
+                           struct GNUNET_MessageHeader,
+                           NULL),
+  GNUNET_MQ_handler_end ());
 
 
 /* end of gnunet-service-datastore.c */

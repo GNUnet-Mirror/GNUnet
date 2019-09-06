@@ -224,7 +224,7 @@ taskSig (void *cls)
     GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5),
 				  &taskNeverRun,
 				  NULL);
-  GNUNET_break (0 == PLIBC_KILL (getpid (),
+  GNUNET_break (0 == kill (getpid (),
 				 GNUNET_TERM_SIG));
 }
 

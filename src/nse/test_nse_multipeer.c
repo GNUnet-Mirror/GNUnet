@@ -98,7 +98,7 @@ handle_estimate (void *cls, struct GNUNET_TIME_Absolute timestamp,
 {
   struct NSEPeer *peer = cls;
 
-  FPRINTF (stderr,
+  fprintf (stderr,
            "Received network size estimate from peer %u. logSize: %f std.dev. %f (%f/%u)\n",
            (unsigned int) (peer - nse_peers),
 	   estimate, std_dev,

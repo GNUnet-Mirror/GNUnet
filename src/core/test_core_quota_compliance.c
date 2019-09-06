@@ -225,7 +225,7 @@ measurement_stop (void *cls)
   enum GNUNET_ErrorType kind = GNUNET_ERROR_TYPE_DEBUG;
 
   measure_task = NULL;
-  FPRINTF (stdout, "%s",  "\n");
+  fprintf (stdout, "%s",  "\n");
   running = GNUNET_NO;
 
   delta = GNUNET_TIME_absolute_get_duration (start_time).rel_value_us;
@@ -451,7 +451,7 @@ handle_test (void *cls,
               ntohl (hdr->num));
   n++;
   if (0 == (n % 10))
-    FPRINTF (stderr, "%s",  ".");
+    fprintf (stderr, "%s",  ".");
 
   if (GNUNET_YES == running)
     do_transmit (NULL);

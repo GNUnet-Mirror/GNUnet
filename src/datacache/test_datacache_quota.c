@@ -63,7 +63,7 @@ run (void *cls,
 
   if (h == NULL)
   {
-    FPRINTF (stderr,
+    fprintf (stderr,
              "%s",
              "Failed to initialize datacache.  Database likely not setup, skipping test.\n");
     return;
@@ -73,7 +73,7 @@ run (void *cls,
   memset (&k, 0, sizeof (struct GNUNET_HashCode));
   for (unsigned int i = 0; i < 10; i++)
   {
-    FPRINTF (stderr,
+    fprintf (stderr,
              "%s",
              ".");
     GNUNET_CRYPTO_hash (&k,
@@ -97,11 +97,11 @@ run (void *cls,
     }
     k = n;
   }
-  FPRINTF (stderr, "%s",  "\n");
+  fprintf (stderr, "%s",  "\n");
   memset (&k, 0, sizeof (struct GNUNET_HashCode));
   for (unsigned int i = 0; i < 10; i++)
   {
-    FPRINTF (stderr, "%s",  ".");
+    fprintf (stderr, "%s",  ".");
     GNUNET_CRYPTO_hash (&k, sizeof (struct GNUNET_HashCode), &n);
     if (i < 2)
       ASSERT (0 == GNUNET_DATACACHE_get (h, &k, 1 + i, NULL, NULL));
@@ -109,7 +109,7 @@ run (void *cls,
       ASSERT (0 < GNUNET_DATACACHE_get (h, &k, 1 + i, NULL, NULL));
     k = n;
   }
-  FPRINTF (stderr, "%s",  "\n");
+  fprintf (stderr, "%s",  "\n");
   GNUNET_DATACACHE_destroy (h);
   return;
 FAILURE:
@@ -152,7 +152,7 @@ main (int argc,
 		      &run,
 		      NULL);
   if (0 != ok)
-    FPRINTF (stderr,
+    fprintf (stderr,
 	     "Missed some testcases: %d\n",
 	     ok);
   return ok;

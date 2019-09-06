@@ -122,7 +122,7 @@ put_continuation (void *cls,
 
   if (GNUNET_OK != status)
   {
-    FPRINTF (stderr, "ERROR: `%s'\n", msg);
+    fprintf (stderr, "ERROR: `%s'\n", msg);
   }
   else
   {
@@ -477,7 +477,7 @@ load_plugin (const struct GNUNET_CONFIGURATION_Handle *cfg)
   GNUNET_asprintf (&libname, "libgnunet_plugin_datastore_%s", name);
   if (NULL == (ret = GNUNET_PLUGIN_load (libname, &env)))
   {
-    FPRINTF (stderr, "Failed to load plugin `%s'!\n", name);
+    fprintf (stderr, "Failed to load plugin `%s'!\n", name);
     GNUNET_free (name);
     GNUNET_free (libname);
     return NULL;
@@ -503,7 +503,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   api = load_plugin (c);
   if (api == NULL)
   {
-    FPRINTF (stderr,
+    fprintf (stderr,
              "%s", "Could not initialize plugin, assuming database not configured. Test not run!\n");
     return;
   }
@@ -544,7 +544,7 @@ main (int argc, char *argv[])
   GNUNET_PROGRAM_run ((sizeof (xargv) / sizeof (char *)) - 1, xargv,
                       "perf-plugin-datastore", "nohelp", options, &run, NULL);
   if (ok != 0)
-    FPRINTF (stderr, "Missed some testcases: %u\n", ok);
+    fprintf (stderr, "Missed some testcases: %u\n", ok);
   GNUNET_DISK_directory_remove (dir_name);
 
   return ok;

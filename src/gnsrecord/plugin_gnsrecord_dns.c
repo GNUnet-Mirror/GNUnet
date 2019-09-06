@@ -415,13 +415,13 @@ dns_string_to_value (void *cls,
     typep = strtok (sdup, " ");
     if ((NULL == typep) ||
         ((0 == (type = rfc4398_mnemonic_to_value (typep))) &&
-         ((1 != SSCANF (typep, "%u", &type)) || (type > UINT16_MAX))))
+         ((1 != sscanf (typep, "%u", &type)) || (type > UINT16_MAX))))
     {
       GNUNET_free (sdup);
       return GNUNET_SYSERR;
     }
     keyp = strtok (NULL, " ");
-    if ((NULL == keyp) || (1 != SSCANF (keyp, "%u", &key)) ||
+    if ((NULL == keyp) || (1 != sscanf (keyp, "%u", &key)) ||
         (key > UINT16_MAX))
     {
       GNUNET_free (sdup);
@@ -486,7 +486,7 @@ dns_string_to_value (void *cls,
     unsigned int soa_min;
     size_t off;
 
-    if (7 != SSCANF (s,
+    if (7 != sscanf (s,
                      "rname=%253s mname=%253s %u,%u,%u,%u,%u",
                      soa_rname,
                      soa_mname,
@@ -549,7 +549,7 @@ dns_string_to_value (void *cls,
     unsigned int mx_pref;
     size_t off;
 
-    if (2 != SSCANF (s, "%u,%253s", &mx_pref, mxhost))
+    if (2 != sscanf (s, "%u,%253s", &mx_pref, mxhost))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                   _ ("Unable to parse MX record `%s'\n"),
@@ -582,7 +582,7 @@ dns_string_to_value (void *cls,
     unsigned int port;
     size_t off;
 
-    if (4 != SSCANF (s, "%u %u %u %253s", &priority, &weight, &port, srvtarget))
+    if (4 != sscanf (s, "%u %u %u %253s", &priority, &weight, &port, srvtarget))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                   _ ("Unable to parse SRV record `%s'\n"),
@@ -630,7 +630,7 @@ dns_string_to_value (void *cls,
     size_t slen = strlen (s) + 1;
     char hex[slen];
 
-    if (4 != SSCANF (s, "%u %u %u %s", &usage, &selector, &matching_type, hex))
+    if (4 != sscanf (s, "%u %u %u %s", &usage, &selector, &matching_type, hex))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                   _ ("Unable to parse TLSA record string `%s'\n"),
@@ -662,7 +662,7 @@ dns_string_to_value (void *cls,
     char tag[15]; //Max tag length 15
     char value[strlen (s) + 1]; //Should be more than enough
 
-    if (3 != SSCANF (s, "%u %s %[^\n]", &flags, tag, value))
+    if (3 != sscanf (s, "%u %s %[^\n]", &flags, tag, value))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                   _ ("Unable to parse CAA record string `%s'\n"),

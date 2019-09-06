@@ -251,11 +251,11 @@ check_value (void *cls,
     return;
   }
 #if 0
-  FPRINTF (stderr,
+  fprintf (stderr,
 	   "Check value got `%s' of size %u, type %d, expire %s\n",
            GNUNET_h2s (key), (unsigned int) size, type,
            GNUNET_STRINGS_absolute_time_to_string (expiration));
-  FPRINTF (stderr,
+  fprintf (stderr,
            "Check value iteration %d wants size %u, type %d, expire %s\n", i,
            (unsigned int) get_size (i), get_type (i),
            GNUNET_STRINGS_absolute_time_to_string (get_expiration(i)));
@@ -555,14 +555,14 @@ run_tests (void *cls,
                               crc);
     return;
   case GNUNET_NO:
-    FPRINTF (stderr,
+    fprintf (stderr,
              "%s", "Test 'put' operation failed, key already exists (!?)\n");
     GNUNET_DATASTORE_disconnect (datastore,
                                  GNUNET_YES);
     GNUNET_free (crc);
     return;
   case GNUNET_SYSERR:
-    FPRINTF (stderr,
+    fprintf (stderr,
              "Test 'put' operation failed with error `%s' database likely not setup, skipping test.\n",
              msg);
     GNUNET_DATASTORE_disconnect (datastore,
@@ -609,7 +609,7 @@ run (void *cls,
                             0, 1,
                             &run_tests, crc))
   {
-    FPRINTF (stderr,
+    fprintf (stderr,
              "%s",
              "Test 'put' operation failed.\n");
     ok = 1;

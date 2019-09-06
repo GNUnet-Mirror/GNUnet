@@ -29,7 +29,7 @@
 #include "gnunet-service-nat_mini.h"
 #include "nat.h"
 
-#define LOG(kind,...) GNUNET_log_from (kind, "nat", __VA_ARGS__)
+#define LOG(kind, ...) GNUNET_log_from (kind, "nat", __VA_ARGS__)
 
 /**
  * How long do we give upnpc to create a mapping?
@@ -39,12 +39,14 @@
 /**
  * How long do we give upnpc to remove a mapping?
  */
-#define UNMAP_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 1)
+#define UNMAP_TIMEOUT \
+  GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 1)
 
 /**
  * How often do we check for changes in the mapping?
  */
-#define MAP_REFRESH_FREQ GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 5)
+#define MAP_REFRESH_FREQ \
+  GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 5)
 
 
 /* ************************* external-ip calling ************************ */
@@ -117,30 +119,27 @@ read_external_ipv4 (void *cls)
 
   eh->task = NULL;
   ret = GNUNET_DISK_file_read (eh->r,
-			       &eh->buf[eh->off],
+                               &eh->buf[eh->off],
                                sizeof (eh->buf) - eh->off);
   if (ret > 0)
   {
     /* try to read more */
     eh->off += ret;
-    eh->task
-      = GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL,
-					eh->r,
-                                        &read_external_ipv4,
-					eh);
+    eh->task = GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL,
+                                               eh->r,
+                                               &read_external_ipv4,
+                                               eh);
     return;
   }
   eh->ret = GNUNET_NAT_ERROR_EXTERNAL_IP_UTILITY_OUTPUT_INVALID;
-  if ( (eh->off > 7) &&
-       (eh->buf[eh->off - 1] == '\n') )
+  if ((eh->off > 7) && (eh->buf[eh->off - 1] == '\n'))
   {
     eh->buf[eh->off - 1] = '\0';
-    if (1 == inet_pton (AF_INET,
-			eh->buf,
-			&addr))
+    if (1 == inet_pton (AF_INET, eh->buf, &addr))
     {
       if (0 == addr.s_addr)
-        eh->ret = GNUNET_NAT_ERROR_EXTERNAL_IP_ADDRESS_INVALID;       /* got 0.0.0.0 */
+        eh->ret =
+          GNUNET_NAT_ERROR_EXTERNAL_IP_ADDRESS_INVALID; /* got 0.0.0.0 */
       else
         eh->ret = GNUNET_NAT_ERROR_SUCCESS;
     }
@@ -163,9 +162,7 @@ signal_external_ip_error (void *cls)
   struct GNUNET_NAT_ExternalHandle *eh = cls;
 
   eh->task = NULL;
-  eh->cb (eh->cb_cls,
-          NULL,
-          eh->ret);
+  eh->cb (eh->cb_cls, NULL, eh->ret);
   GNUNET_free (eh);
 }
 
@@ -178,8 +175,7 @@ signal_external_ip_error (void *cls)
  * @return handle for cancellation (can only be used until @a cb is called), never NULL
  */
 struct GNUNET_NAT_ExternalHandle *
-GNUNET_NAT_mini_get_external_ipv4_ (GNUNET_NAT_IPCallback cb,
-				    void *cb_cls)
+GNUNET_NAT_mini_get_external_ipv4_ (GNUNET_NAT_IPCallback cb, void *cb_cls)
 {
   struct GNUNET_NAT_ExternalHandle *eh;
 
@@ -188,56 +184,43 @@ GNUNET_NAT_mini_get_external_ipv4_ (GNUNET_NAT_IPCallback cb,
   eh->cb_cls = cb_cls;
   eh->ret = GNUNET_NAT_ERROR_SUCCESS;
   if (GNUNET_SYSERR ==
-      GNUNET_OS_check_helper_binary ("external-ip",
-				     GNUNET_NO,
-				     NULL))
+      GNUNET_OS_check_helper_binary ("external-ip", GNUNET_NO, NULL))
   {
-    LOG (GNUNET_ERROR_TYPE_INFO,
-	 _("`external-ip' command not found\n"));
+    LOG (GNUNET_ERROR_TYPE_INFO, _ ("`external-ip' command not found\n"));
     eh->ret = GNUNET_NAT_ERROR_EXTERNAL_IP_UTILITY_NOT_FOUND;
-    eh->task = GNUNET_SCHEDULER_add_now (&signal_external_ip_error,
-                                         eh);
+    eh->task = GNUNET_SCHEDULER_add_now (&signal_external_ip_error, eh);
     return eh;
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Running `external-ip' to determine our external IP\n");
-  eh->opipe = GNUNET_DISK_pipe (GNUNET_YES,
-				GNUNET_YES,
-				GNUNET_NO,
-				GNUNET_YES);
+  eh->opipe = GNUNET_DISK_pipe (GNUNET_YES, GNUNET_YES, GNUNET_NO, GNUNET_YES);
   if (NULL == eh->opipe)
   {
     eh->ret = GNUNET_NAT_ERROR_IPC_FAILURE;
-    eh->task = GNUNET_SCHEDULER_add_now (&signal_external_ip_error,
-                                         eh);
+    eh->task = GNUNET_SCHEDULER_add_now (&signal_external_ip_error, eh);
     return eh;
   }
-  eh->eip =
-      GNUNET_OS_start_process (GNUNET_NO,
-			       0,
-			       NULL,
-			       eh->opipe,
-			       NULL,
-                               "external-ip",
-			       "external-ip",
-                               NULL);
+  eh->eip = GNUNET_OS_start_process (GNUNET_NO,
+                                     0,
+                                     NULL,
+                                     eh->opipe,
+                                     NULL,
+                                     "external-ip",
+                                     "external-ip",
+                                     NULL);
   if (NULL == eh->eip)
   {
     GNUNET_DISK_pipe_close (eh->opipe);
     eh->ret = GNUNET_NAT_ERROR_EXTERNAL_IP_UTILITY_FAILED;
-    eh->task = GNUNET_SCHEDULER_add_now (&signal_external_ip_error,
-                                         eh);
+    eh->task = GNUNET_SCHEDULER_add_now (&signal_external_ip_error, eh);
     return eh;
   }
-  GNUNET_DISK_pipe_close_end (eh->opipe,
-			      GNUNET_DISK_PIPE_END_WRITE);
-  eh->r = GNUNET_DISK_pipe_handle (eh->opipe,
-				   GNUNET_DISK_PIPE_END_READ);
-  eh->task
-    = GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL,
-                                      eh->r,
-                                      &read_external_ipv4,
-				      eh);
+  GNUNET_DISK_pipe_close_end (eh->opipe, GNUNET_DISK_PIPE_END_WRITE);
+  eh->r = GNUNET_DISK_pipe_handle (eh->opipe, GNUNET_DISK_PIPE_END_READ);
+  eh->task = GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL,
+                                             eh->r,
+                                             &read_external_ipv4,
+                                             eh);
   return eh;
 }
 
@@ -252,10 +235,8 @@ GNUNET_NAT_mini_get_external_ipv4_cancel_ (struct GNUNET_NAT_ExternalHandle *eh)
 {
   if (NULL != eh->eip)
   {
-    (void) GNUNET_OS_process_kill (eh->eip,
-				   SIGKILL);
-    GNUNET_break (GNUNET_OK ==
-                  GNUNET_OS_process_wait (eh->eip));
+    (void) GNUNET_OS_process_kill (eh->eip, SIGKILL);
+    GNUNET_break (GNUNET_OK == GNUNET_OS_process_wait (eh->eip));
     GNUNET_OS_process_destroy (eh->eip);
   }
   if (NULL != eh->opipe)
@@ -336,7 +317,6 @@ struct GNUNET_NAT_MiniHandle
    * Which port are we mapping?
    */
   uint16_t port;
-
 };
 
 
@@ -356,8 +336,7 @@ do_refresh (void *cls);
  * @param line line of output, NULL at the end
  */
 static void
-process_map_output (void *cls,
-		    const char *line);
+process_map_output (void *cls, const char *line);
 
 
 /**
@@ -370,26 +349,22 @@ run_upnpc_r (struct GNUNET_NAT_MiniHandle *mini)
 {
   char pstr[6];
 
-  GNUNET_snprintf (pstr,
-                   sizeof (pstr),
-                   "%u",
-                   (unsigned int) mini->port);
-  mini->map_cmd
-    = GNUNET_OS_command_run (&process_map_output,
-			     mini,
-			     MAP_TIMEOUT,
-			     "upnpc",
-			     "upnpc",
-			     "-r",
-			     pstr,
-			     mini->is_tcp ? "tcp" : "udp",
-			     NULL);
+  GNUNET_snprintf (pstr, sizeof (pstr), "%u", (unsigned int) mini->port);
+  mini->map_cmd = GNUNET_OS_command_run (&process_map_output,
+                                         mini,
+                                         MAP_TIMEOUT,
+                                         "upnpc",
+                                         "upnpc",
+                                         "-r",
+                                         pstr,
+                                         mini->is_tcp ? "tcp" : "udp",
+                                         NULL);
   if (NULL == mini->map_cmd)
   {
     mini->ac (mini->ac_cls,
               GNUNET_SYSERR,
               NULL,
-	      0,
+              0,
               GNUNET_NAT_ERROR_UPNPC_FAILED);
     return;
   }
@@ -404,8 +379,7 @@ run_upnpc_r (struct GNUNET_NAT_MiniHandle *mini)
  * @param line line of output, NULL at the end
  */
 static void
-process_refresh_output (void *cls,
-			const char *line)
+process_refresh_output (void *cls, const char *line)
 {
   struct GNUNET_NAT_MiniHandle *mini = cls;
   char pstr[9];
@@ -434,31 +408,28 @@ process_refresh_output (void *cls,
     return;
   }
   if (! mini->did_map)
-    return;                     /* never mapped, won't find our mapping anyway */
+    return; /* never mapped, won't find our mapping anyway */
 
   /* we're looking for output of the form:
    * "ExternalIPAddress = 12.134.41.124" */
 
-  s = strstr (line,
-	      "ExternalIPAddress = ");
+  s = strstr (line, "ExternalIPAddress = ");
   if (NULL != s)
   {
     s += strlen ("ExternalIPAddress = ");
-    if (1 != inet_pton (AF_INET,
-			s,
-			&exip))
-      return;                   /* skip */
+    if (1 != inet_pton (AF_INET, s, &exip))
+      return; /* skip */
     if (exip.s_addr == mini->current_addr.sin_addr.s_addr)
-      return;                   /* no change */
+      return; /* no change */
     /* update mapping */
     mini->ac (mini->ac_cls,
-	      GNUNET_NO,
+              GNUNET_NO,
               (const struct sockaddr *) &mini->current_addr,
               sizeof (mini->current_addr),
               GNUNET_NAT_ERROR_SUCCESS);
     mini->current_addr.sin_addr = exip;
     mini->ac (mini->ac_cls,
-	      GNUNET_YES,
+              GNUNET_YES,
               (const struct sockaddr *) &mini->current_addr,
               sizeof (mini->current_addr),
               GNUNET_NAT_ERROR_SUCCESS);
@@ -475,32 +446,29 @@ process_refresh_output (void *cls,
    * "%s TCP  PORT->STRING:OURPORT *" or
    * "%s UDP  PORT->STRING:OURPORT *"
    */
-  GNUNET_snprintf (pstr,
-		   sizeof (pstr),
-		   ":%u ",
-		   mini->port);
+  GNUNET_snprintf (pstr, sizeof (pstr), ":%u ", mini->port);
   if (NULL == (s = strstr (line, "->")))
-    return;                     /* skip */
+    return; /* skip */
   if (NULL == strstr (s, pstr))
-    return;                     /* skip */
-  if (1 !=
-      SSCANF (line,
-              (mini->is_tcp) ? "%*u TCP  %u->%*s:%*u %*s" :
-              "%*u UDP  %u->%*s:%*u %*s", &nport))
-    return;                     /* skip */
+    return; /* skip */
+  if (1 != sscanf (line,
+                   (mini->is_tcp) ? "%*u TCP  %u->%*s:%*u %*s"
+                                  : "%*u UDP  %u->%*s:%*u %*s",
+                   &nport))
+    return; /* skip */
   mini->found = GNUNET_YES;
   if (nport == ntohs (mini->current_addr.sin_port))
-    return;                     /* no change */
+    return; /* no change */
 
   /* external port changed, update mapping */
   mini->ac (mini->ac_cls,
-	    GNUNET_NO,
+            GNUNET_NO,
             (const struct sockaddr *) &mini->current_addr,
             sizeof (mini->current_addr),
             GNUNET_NAT_ERROR_SUCCESS);
   mini->current_addr.sin_port = htons ((uint16_t) nport);
   mini->ac (mini->ac_cls,
-	    GNUNET_YES,
+            GNUNET_YES,
             (const struct sockaddr *) &mini->current_addr,
             sizeof (mini->current_addr),
             GNUNET_NAT_ERROR_SUCCESS);
@@ -518,10 +486,8 @@ do_refresh (void *cls)
   struct GNUNET_NAT_MiniHandle *mini = cls;
   int ac;
 
-  mini->refresh_task
-    = GNUNET_SCHEDULER_add_delayed (MAP_REFRESH_FREQ,
-				    &do_refresh,
-				    mini);
+  mini->refresh_task =
+    GNUNET_SCHEDULER_add_delayed (MAP_REFRESH_FREQ, &do_refresh, mini);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Running `upnpc' to check if our mapping still exists\n");
   mini->found = GNUNET_NO;
@@ -540,19 +506,18 @@ do_refresh (void *cls)
     mini->refresh_cmd = NULL;
     ac = GNUNET_YES;
   }
-  mini->refresh_cmd
-    = GNUNET_OS_command_run (&process_refresh_output,
-			     mini,
-			     MAP_TIMEOUT,
-                             "upnpc",
-			     "upnpc",
-			     "-l",
-			     NULL);
+  mini->refresh_cmd = GNUNET_OS_command_run (&process_refresh_output,
+                                             mini,
+                                             MAP_TIMEOUT,
+                                             "upnpc",
+                                             "upnpc",
+                                             "-l",
+                                             NULL);
   if (GNUNET_YES == ac)
     mini->ac (mini->ac_cls,
               GNUNET_SYSERR,
               NULL,
-	      0,
+              0,
               GNUNET_NAT_ERROR_UPNPC_TIMEOUT);
 }
 
@@ -564,8 +529,7 @@ do_refresh (void *cls)
  * @param line line of output, NULL at the end
  */
 static void
-process_map_output (void *cls,
-                    const char *line)
+process_map_output (void *cls, const char *line)
 {
   struct GNUNET_NAT_MiniHandle *mini = cls;
   const char *ipaddr;
@@ -581,13 +545,11 @@ process_map_output (void *cls,
       mini->ac (mini->ac_cls,
                 GNUNET_SYSERR,
                 NULL,
-		0,
+                0,
                 GNUNET_NAT_ERROR_UPNPC_PORTMAP_FAILED);
     if (NULL == mini->refresh_task)
-      mini->refresh_task
-        = GNUNET_SCHEDULER_add_delayed (MAP_REFRESH_FREQ,
-					&do_refresh,
-					mini);
+      mini->refresh_task =
+        GNUNET_SCHEDULER_add_delayed (MAP_REFRESH_FREQ, &do_refresh, mini);
     return;
   }
   /*
@@ -597,18 +559,16 @@ process_map_output (void *cls,
    */
   if ((NULL == (ipaddr = strstr (line, " "))) ||
       (NULL == (pstr = strstr (ipaddr, ":"))) ||
-      (1 != SSCANF (pstr + 1, "%u", &port)))
+      (1 != sscanf (pstr + 1, "%u", &port)))
   {
-    return;                     /* skip line */
+    return; /* skip line */
   }
   ipa = GNUNET_strdup (ipaddr + 1);
   strstr (ipa, ":")[0] = '\0';
-  if (1 != inet_pton (AF_INET,
-		      ipa,
-		      &mini->current_addr.sin_addr))
+  if (1 != inet_pton (AF_INET, ipa, &mini->current_addr.sin_addr))
   {
     GNUNET_free (ipa);
-    return;                     /* skip line */
+    return; /* skip line */
   }
   GNUNET_free (ipa);
 
@@ -619,7 +579,7 @@ process_map_output (void *cls,
 #endif
   mini->did_map = GNUNET_YES;
   mini->ac (mini->ac_cls,
-	    GNUNET_YES,
+            GNUNET_YES,
             (const struct sockaddr *) &mini->current_addr,
             sizeof (mini->current_addr),
             GNUNET_NAT_ERROR_SUCCESS);
@@ -647,30 +607,20 @@ GNUNET_NAT_mini_map_start (uint16_t port,
 {
   struct GNUNET_NAT_MiniHandle *ret;
 
-  if (GNUNET_SYSERR ==
-      GNUNET_OS_check_helper_binary ("upnpc",
-				     GNUNET_NO,
-				     NULL))
+  if (GNUNET_SYSERR == GNUNET_OS_check_helper_binary ("upnpc", GNUNET_NO, NULL))
   {
-    LOG (GNUNET_ERROR_TYPE_INFO,
-	 _("`upnpc' command not found\n"));
-    ac (ac_cls,
-        GNUNET_SYSERR,
-        NULL, 0,
-        GNUNET_NAT_ERROR_UPNPC_NOT_FOUND);
+    LOG (GNUNET_ERROR_TYPE_INFO, _ ("`upnpc' command not found\n"));
+    ac (ac_cls, GNUNET_SYSERR, NULL, 0, GNUNET_NAT_ERROR_UPNPC_NOT_FOUND);
     return NULL;
   }
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Running `upnpc' to install mapping\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Running `upnpc' to install mapping\n");
   ret = GNUNET_new (struct GNUNET_NAT_MiniHandle);
   ret->ac = ac;
   ret->ac_cls = ac_cls;
   ret->is_tcp = is_tcp;
   ret->port = port;
   ret->refresh_task =
-    GNUNET_SCHEDULER_add_delayed (MAP_REFRESH_FREQ,
-				  &do_refresh,
-				  ret);
+    GNUNET_SCHEDULER_add_delayed (MAP_REFRESH_FREQ, &do_refresh, ret);
   run_upnpc_r (ret);
   return ret;
 }
@@ -683,15 +633,13 @@ GNUNET_NAT_mini_map_start (uint16_t port,
  * @param line line of output, NULL at the end
  */
 static void
-process_unmap_output (void *cls,
-		      const char *line)
+process_unmap_output (void *cls, const char *line)
 {
   struct GNUNET_NAT_MiniHandle *mini = cls;
 
   if (NULL == line)
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "UPnP unmap done\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "UPnP unmap done\n");
     GNUNET_OS_command_stop (mini->unmap_cmd);
     mini->unmap_cmd = NULL;
     GNUNET_free (mini);
@@ -735,7 +683,7 @@ GNUNET_NAT_mini_map_stop (struct GNUNET_NAT_MiniHandle *mini)
     return;
   }
   mini->ac (mini->ac_cls,
-	    GNUNET_NO,
+            GNUNET_NO,
             (const struct sockaddr *) &mini->current_addr,
             sizeof (mini->current_addr),
             GNUNET_NAT_ERROR_SUCCESS);
@@ -749,16 +697,15 @@ GNUNET_NAT_mini_map_stop (struct GNUNET_NAT_MiniHandle *mini)
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Unmapping port %u with UPnP\n",
        ntohs (mini->current_addr.sin_port));
-  mini->unmap_cmd
-    = GNUNET_OS_command_run (&process_unmap_output,
-			     mini,
-			     UNMAP_TIMEOUT,
-                             "upnpc",
-			     "upnpc",
-			     "-d",
-			     pstr,
-                             mini->is_tcp ? "tcp" : "udp",
-			     NULL);
+  mini->unmap_cmd = GNUNET_OS_command_run (&process_unmap_output,
+                                           mini,
+                                           UNMAP_TIMEOUT,
+                                           "upnpc",
+                                           "upnpc",
+                                           "-d",
+                                           pstr,
+                                           mini->is_tcp ? "tcp" : "udp",
+                                           NULL);
 }
 
 

@@ -74,7 +74,7 @@ run (void *cls, char *const *args, const char *cfgfile,
 
   if (h == NULL)
   {
-    FPRINTF (stderr, "%s", "Failed to initialize datacache.  Database likely not setup, skipping test.\n");
+    fprintf (stderr, "%s", "Failed to initialize datacache.  Database likely not setup, skipping test.\n");
     ok = 77; /* mark test as skipped */
     return;
   }
@@ -84,7 +84,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   for (i = 0; i < ITERATIONS; i++)
   {
     if (0 == i % (ITERATIONS / 80))
-      FPRINTF (stderr, "%s",  ".");
+      fprintf (stderr, "%s",  ".");
     GNUNET_CRYPTO_hash (&k, sizeof (struct GNUNET_HashCode), &n);
     ASSERT (GNUNET_OK ==
             GNUNET_DATACACHE_put (h, &k, sizeof (struct GNUNET_HashCode),
@@ -92,8 +92,8 @@ run (void *cls, char *const *args, const char *cfgfile,
 				  0, NULL));
     k = n;
   }
-  FPRINTF (stderr, "%s",  "\n");
-  FPRINTF (stdout, "Stored %u items in %s\n", ITERATIONS,
+  fprintf (stderr, "%s",  "\n");
+  fprintf (stdout, "Stored %u items in %s\n", ITERATIONS,
 	   GNUNET_STRINGS_relative_time_to_string (GNUNET_TIME_absolute_get_duration (start), GNUNET_YES));
   GNUNET_snprintf (gstr, sizeof (gstr), "DATACACHE-%s", plugin_name);
   GAUGER (gstr, "Time to PUT item in datacache",
@@ -104,13 +104,13 @@ run (void *cls, char *const *args, const char *cfgfile,
   for (i = 0; i < ITERATIONS; i++)
   {
     if (0 == i % (ITERATIONS / 80))
-      FPRINTF (stderr, "%s",  ".");
+      fprintf (stderr, "%s",  ".");
     GNUNET_CRYPTO_hash (&k, sizeof (struct GNUNET_HashCode), &n);
     GNUNET_DATACACHE_get (h, &k, 1 + i % 16, &checkIt, &n);
     k = n;
   }
-  FPRINTF (stderr, "%s",  "\n");
-  FPRINTF (stdout,
+  fprintf (stderr, "%s",  "\n");
+  fprintf (stdout,
            "Found %u/%u items in %s (%u were deleted during storage processing)\n",
            found, ITERATIONS,
            GNUNET_STRINGS_relative_time_to_string (GNUNET_TIME_absolute_get_duration (start), GNUNET_YES),
@@ -152,7 +152,7 @@ main (int argc, char *argv[])
   GNUNET_PROGRAM_run ((sizeof (xargv) / sizeof (char *)) - 1, xargv,
                       "perf-datacache", "nohelp", options, &run, NULL);
   if ( (0 != ok) && (77 != ok) )
-    FPRINTF (stderr, "Missed some perfcases: %d\n", ok);
+    fprintf (stderr, "Missed some perfcases: %d\n", ok);
   return ok;
 }
 

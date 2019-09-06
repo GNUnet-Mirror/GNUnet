@@ -129,7 +129,7 @@ set_json (struct GNUNET_GETOPT_CommandLineProcessorContext *ctx,
   *json = json_loads (value, JSON_REJECT_DUPLICATES, &error);
   if (NULL == *json)
   {
-    FPRINTF (stderr,
+    fprintf (stderr,
              _ ("Failed to parse JSON in option `%s': %s (%s)\n"),
              option,
              error.text,

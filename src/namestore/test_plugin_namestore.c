@@ -73,7 +73,7 @@ load_plugin (const struct GNUNET_CONFIGURATION_Handle *cfg)
   GNUNET_asprintf (&libname, "libgnunet_plugin_namestore_%s", plugin_name);
   if (NULL == (ret = GNUNET_PLUGIN_load (libname, (void *) cfg)))
   {
-    FPRINTF (stderr, "Failed to load plugin `%s'!\n", plugin_name);
+    fprintf (stderr, "Failed to load plugin `%s'!\n", plugin_name);
     GNUNET_free (libname);
     return NULL;
   }
@@ -159,7 +159,7 @@ run (void *cls,
   nsp = load_plugin (cfg);
   if (NULL == nsp)
   {
-    FPRINTF (
+    fprintf (
       stderr,
       "%s",
       "Failed to initialize namestore.  Database likely not setup, skipping test.\n");
@@ -195,7 +195,7 @@ main (int argc, char *argv[])
                       NULL);
   GNUNET_DISK_purge_cfg_dir (cfg_name, "GNUNET_TMP");
   if (ok != 0)
-    FPRINTF (stderr, "Missed some testcases: %d\n", ok);
+    fprintf (stderr, "Missed some testcases: %d\n", ok);
   return ok;
 }
 

@@ -32,9 +32,11 @@
 #include <malloc/malloc.h>
 #endif
 
-#define LOG(kind,...) GNUNET_log_from (kind, "util-common-allocation",__VA_ARGS__)
+#define LOG(kind, ...) \
+  GNUNET_log_from (kind, "util-common-allocation", __VA_ARGS__)
 
-#define LOG_STRERROR(kind,syscall) GNUNET_log_from_strerror (kind, "util-common-allocation", syscall)
+#define LOG_STRERROR(kind, syscall) \
+  GNUNET_log_from_strerror (kind, "util-common-allocation", syscall)
 
 #ifndef INT_MAX
 #define INT_MAX 0x7FFFFFFF
@@ -61,24 +63,17 @@ static LONG mem_used = 0;
  * @return pointer to size bytes of memory
  */
 void *
-GNUNET_xmalloc_ (size_t size,
-		 const char *filename,
-		 int linenumber)
+GNUNET_xmalloc_ (size_t size, const char *filename, int linenumber)
 {
   void *ret;
 
   /* As a security precaution, we generally do not allow very large
    * allocations using the default 'GNUNET_malloc()' macro */
-  GNUNET_assert_at (size <= GNUNET_MAX_MALLOC_CHECKED,
-		    filename,
-		    linenumber);
-  ret = GNUNET_xmalloc_unchecked_ (size,
-				   filename,
-				   linenumber);
+  GNUNET_assert_at (size <= GNUNET_MAX_MALLOC_CHECKED, filename, linenumber);
+  ret = GNUNET_xmalloc_unchecked_ (size, filename, linenumber);
   if (NULL == ret)
   {
-    LOG_STRERROR (GNUNET_ERROR_TYPE_ERROR,
-		  "malloc");
+    LOG_STRERROR (GNUNET_ERROR_TYPE_ERROR, "malloc");
     GNUNET_assert (0);
   }
   return ret;
@@ -101,21 +96,22 @@ GNUNET_xmalloc_ (size_t size,
  */
 void **
 GNUNET_xnew_array_2d_ (size_t n,
-		       size_t m,
-		       size_t elementSize,
+                       size_t m,
+                       size_t elementSize,
                        const char *filename,
-		       int linenumber)
+                       int linenumber)
 {
-	/* use char pointer internally to avoid void pointer arithmetic warnings */
-	char **ret = GNUNET_xmalloc_ (n * sizeof (void *) +  /* 1. dim header */
-	                              n * m * elementSize,   /* element data */
-	                              filename, linenumber);
+  /* use char pointer internally to avoid void pointer arithmetic warnings */
+  char **ret = GNUNET_xmalloc_ (n * sizeof (void *) + /* 1. dim header */
+                                  n * m * elementSize, /* element data */
+                                filename,
+                                linenumber);
 
-	for (size_t i = 0; i < n; i++)
-		ret[i] = (char *)ret +          /* base address */
-		         n * sizeof (void *) +  /* skip 1. dim header */
-		         i * m * elementSize;   /* skip to 2. dim row header */
-	return (void **)ret;
+  for (size_t i = 0; i < n; i++)
+    ret[i] = (char *) ret + /* base address */
+             n * sizeof (void *) + /* skip 1. dim header */
+             i * m * elementSize; /* skip to 2. dim row header */
+  return (void **) ret;
 }
 
 
@@ -135,29 +131,34 @@ GNUNET_xnew_array_2d_ (size_t n,
  * @return allocated memory, never NULL
  */
 void ***
-GNUNET_xnew_array_3d_ (size_t n, size_t m, size_t o, size_t elementSize,
-                       const char *filename, int linenumber)
+GNUNET_xnew_array_3d_ (size_t n,
+                       size_t m,
+                       size_t o,
+                       size_t elementSize,
+                       const char *filename,
+                       int linenumber)
 {
-	/* use char pointer internally to avoid void pointer arithmetic warnings */
-	char ***ret = GNUNET_xmalloc_ (n * sizeof (void **) +    /* 1. dim header */
-	                               n * m * sizeof (void *) + /* 2. dim header */
-	                               n * m * o * elementSize,  /* element data */
-	                               filename, linenumber);
+  /* use char pointer internally to avoid void pointer arithmetic warnings */
+  char ***ret = GNUNET_xmalloc_ (n * sizeof (void **) + /* 1. dim header */
+                                   n * m * sizeof (void *) + /* 2. dim header */
+                                   n * m * o * elementSize, /* element data */
+                                 filename,
+                                 linenumber);
 
-	for (size_t i = 0; i < n; i++)
-	{
-		/* need to cast to (char *) temporarily for byte level acuracy */
-		ret[i] = (char **)((char *)ret +             /* base address */
-		                   n * sizeof (void **) +    /* skip 1. dim header */
-		                   i * m * sizeof (void *)); /* skip to 2. dim header */
-		for (size_t j = 0; j < m; j++)
-			ret[i][j] = (char *)ret +              /* base address */
-			            n * sizeof (void **) +     /* skip 1. dim header */
-			            n * m * sizeof (void *) +  /* skip 2. dim header */
-			            i * m * o * elementSize +  /* skip to 2. dim part */
-			                j * o * elementSize;   /* skip to 3. dim row data */
-	}
-	return (void ***)ret;
+  for (size_t i = 0; i < n; i++)
+  {
+    /* need to cast to (char *) temporarily for byte level acuracy */
+    ret[i] = (char **) ((char *) ret + /* base address */
+                        n * sizeof (void **) + /* skip 1. dim header */
+                        i * m * sizeof (void *)); /* skip to 2. dim header */
+    for (size_t j = 0; j < m; j++)
+      ret[i][j] = (char *) ret + /* base address */
+                  n * sizeof (void **) + /* skip 1. dim header */
+                  n * m * sizeof (void *) + /* skip 2. dim header */
+                  i * m * o * elementSize + /* skip to 2. dim part */
+                  j * o * elementSize; /* skip to 3. dim row data */
+  }
+  return (void ***) ret;
 }
 
 
@@ -174,8 +175,8 @@ GNUNET_xnew_array_3d_ (size_t n, size_t m, size_t o, size_t elementSize,
  */
 void *
 GNUNET_xmemdup_ (const void *buf,
-		 size_t size,
-		 const char *filename,
+                 size_t size,
+                 const char *filename,
                  int linenumber)
 {
   void *ret;
@@ -215,9 +216,7 @@ GNUNET_xmemdup_ (const void *buf,
  * @return pointer to size bytes of memory, NULL if we do not have enough memory
  */
 void *
-GNUNET_xmalloc_unchecked_ (size_t size,
-			   const char *filename,
-			   int linenumber)
+GNUNET_xmalloc_unchecked_ (size_t size, const char *filename, int linenumber)
 {
   void *result;
 
@@ -256,10 +255,7 @@ GNUNET_xmalloc_unchecked_ (size_t size,
  * @return pointer to size bytes of memory
  */
 void *
-GNUNET_xrealloc_ (void *ptr,
-                  size_t n,
-                  const char *filename,
-                  int linenumber)
+GNUNET_xrealloc_ (void *ptr, size_t n, const char *filename, int linenumber)
 {
   (void) filename;
   (void) linenumber;
@@ -272,8 +268,7 @@ GNUNET_xrealloc_ (void *ptr,
   ptr = realloc (ptr, n);
   if ((NULL == ptr) && (n > 0))
   {
-    LOG_STRERROR (GNUNET_ERROR_TYPE_ERROR,
-		  "realloc");
+    LOG_STRERROR (GNUNET_ERROR_TYPE_ERROR, "realloc");
     GNUNET_assert (0);
   }
 #ifdef W32_MEM_LIMIT
@@ -283,10 +278,10 @@ GNUNET_xrealloc_ (void *ptr,
 }
 
 
-# if __BYTE_ORDER == __LITTLE_ENDIAN
+#if __BYTE_ORDER == __LITTLE_ENDIAN
 #define BAADFOOD_STR "\x0D\xF0\xAD\xBA"
 #endif
-# if __BYTE_ORDER == __BIG_ENDIAN
+#if __BYTE_ORDER == __BIG_ENDIAN
 #define BAADFOOD_STR "\xBA\xAD\xF0\x0D"
 #endif
 
@@ -311,13 +306,9 @@ GNUNET_xrealloc_ (void *ptr,
  * @param linenumber where in the code was the call to GNUNET_free
  */
 void
-GNUNET_xfree_ (void *ptr,
-	       const char *filename,
-	       int linenumber)
+GNUNET_xfree_ (void *ptr, const char *filename, int linenumber)
 {
-  GNUNET_assert_at (NULL != ptr,
-		    filename,
-		    linenumber);
+  GNUNET_assert_at (NULL != ptr, filename, linenumber);
 #ifdef W32_MEM_LIMIT
   ptr = &((size_t *) ptr)[-1];
   mem_used -= *((size_t *) ptr);
@@ -330,9 +321,9 @@ GNUNET_xfree_ (void *ptr,
     size_t s = M_SIZE (ptr);
     size_t i;
 
-    for (i=0;i<s/8;i++)
+    for (i = 0; i < s / 8; i++)
       base[i] = baadfood;
-    GNUNET_memcpy (&base[s/8], &baadfood, s % 8);
+    GNUNET_memcpy (&base[s / 8], &baadfood, s % 8);
   }
 #endif
 #endif
@@ -349,31 +340,22 @@ GNUNET_xfree_ (void *ptr,
  * @return `strdup(@a str)`
  */
 char *
-GNUNET_xstrdup_ (const char *str,
-		 const char *filename,
-		 int linenumber)
+GNUNET_xstrdup_ (const char *str, const char *filename, int linenumber)
 {
   char *res;
   size_t slen;
 
-  GNUNET_assert_at (str != NULL,
-		    filename,
-		    linenumber);
+  GNUNET_assert_at (str != NULL, filename, linenumber);
   slen = strlen (str) + 1;
-  res = GNUNET_xmalloc_ (slen,
-			 filename,
-			 linenumber);
-  GNUNET_memcpy (res,
-	  str,
-	  slen);
+  res = GNUNET_xmalloc_ (slen, filename, linenumber);
+  GNUNET_memcpy (res, str, slen);
   return res;
 }
 
 
 #if ! HAVE_STRNLEN
 static size_t
-strnlen (const char *s,
-	 size_t n)
+strnlen (const char *s, size_t n)
 {
   const char *e;
 
@@ -396,22 +378,17 @@ strnlen (const char *s,
  */
 char *
 GNUNET_xstrndup_ (const char *str,
-		  size_t len,
-		  const char *filename,
+                  size_t len,
+                  const char *filename,
                   int linenumber)
 {
   char *res;
 
   if (0 == len)
     return GNUNET_strdup ("");
-  GNUNET_assert_at (NULL != str,
-		    filename,
-		    linenumber);
-  len = strnlen (str,
-		 len);
-  res = GNUNET_xmalloc_ (len + 1,
-			 filename,
-			 linenumber);
+  GNUNET_assert_at (NULL != str, filename, linenumber);
+  len = strnlen (str, len);
+  res = GNUNET_xmalloc_ (len + 1, filename, linenumber);
   GNUNET_memcpy (res, str, len);
   /* res[len] = '\0'; 'malloc' zeros out anyway */
   return res;
@@ -432,11 +409,11 @@ GNUNET_xstrndup_ (const char *str,
  */
 void
 GNUNET_xgrow_ (void **old,
-	       size_t elementSize,
-	       unsigned int *oldCount,
-         unsigned int newCount,
-	       const char *filename,
-	       int linenumber)
+               size_t elementSize,
+               unsigned int *oldCount,
+               unsigned int newCount,
+               const char *filename,
+               int linenumber)
 {
   void *tmp;
   size_t size;
@@ -452,7 +429,7 @@ GNUNET_xgrow_ (void **old,
     tmp = GNUNET_xmalloc_ (size, filename, linenumber);
     if (NULL != *old)
     {
-      GNUNET_memcpy (tmp, *old, elementSize * GNUNET_MIN(*oldCount, newCount));
+      GNUNET_memcpy (tmp, *old, elementSize * GNUNET_MIN (*oldCount, newCount));
     }
   }
 
@@ -474,20 +451,18 @@ GNUNET_xgrow_ (void **old,
  * @return number of bytes in `*@a buf`, excluding 0-termination
  */
 int
-GNUNET_asprintf (char **buf,
-                 const char *format,
-                 ...)
+GNUNET_asprintf (char **buf, const char *format, ...)
 {
   int ret;
   va_list args;
 
   va_start (args, format);
-  ret = VSNPRINTF (NULL, 0, format, args);
+  ret = vsnprintf (NULL, 0, format, args);
   va_end (args);
   GNUNET_assert (ret >= 0);
   *buf = GNUNET_malloc (ret + 1);
   va_start (args, format);
-  ret = VSPRINTF (*buf, format, args);
+  ret = vsprintf (*buf, format, args);
   va_end (args);
   return ret;
 }
@@ -503,21 +478,15 @@ GNUNET_asprintf (char **buf,
  * @return number of bytes written to buf or negative value on error
  */
 int
-GNUNET_snprintf (char *buf,
-		 size_t size,
-		 const char *format, ...)
+GNUNET_snprintf (char *buf, size_t size, const char *format, ...)
 {
   int ret;
   va_list args;
 
   va_start (args, format);
-  ret = VSNPRINTF (buf,
-		   size,
-		   format,
-		   args);
+  ret = vsnprintf (buf, size, format, args);
   va_end (args);
-  GNUNET_assert ( (ret >= 0) &&
-		  (((size_t) ret) < size) );
+  GNUNET_assert ((ret >= 0) && (((size_t) ret) < size));
   return ret;
 }
 
@@ -537,9 +506,7 @@ GNUNET_copy_message (const struct GNUNET_MessageHeader *msg)
   msize = ntohs (msg->size);
   GNUNET_assert (msize >= sizeof (struct GNUNET_MessageHeader));
   ret = GNUNET_malloc (msize);
-  GNUNET_memcpy (ret,
-		 msg,
-		 msize);
+  GNUNET_memcpy (ret, msg, msize);
   return ret;
 }
 

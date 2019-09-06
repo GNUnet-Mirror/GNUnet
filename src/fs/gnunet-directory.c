@@ -50,7 +50,7 @@ item_printer (void *cls,
 {
   if (type == EXTRACTOR_METATYPE_GNUNET_FULL_DATA)
   {
-    printf (_("\t<original file embedded in %u bytes of meta data>\n"),
+    printf (_ ("\t<original file embedded in %u bytes of meta data>\n"),
             (unsigned int) data_size);
     return 0;
   }
@@ -63,15 +63,12 @@ item_printer (void *cls,
   printf ("\t%20s: %s\n",
           dgettext (LIBEXTRACTOR_GETTEXT_DOMAIN,
                     EXTRACTOR_metatype_to_string (type)),
-    data);
-#else
-  printf ("\t%20d: %s\n",
-          type,
           data);
+#else
+  printf ("\t%20d: %s\n", type, data);
 #endif
   return 0;
 }
-
 
 
 /**
@@ -90,22 +87,25 @@ item_printer (void *cls,
  * @param data data available for the file (length bytes)
  */
 static void
-print_entry (void *cls, const char *filename, const struct GNUNET_FS_Uri *uri,
-             const struct GNUNET_CONTAINER_MetaData *meta, size_t length,
+print_entry (void *cls,
+             const char *filename,
+             const struct GNUNET_FS_Uri *uri,
+             const struct GNUNET_CONTAINER_MetaData *meta,
+             size_t length,
              const void *data)
 {
   char *string;
   char *name;
 
-  name =
-      GNUNET_CONTAINER_meta_data_get_by_type (meta,
-                                              EXTRACTOR_METATYPE_GNUNET_ORIGINAL_FILENAME);
+  name = GNUNET_CONTAINER_meta_data_get_by_type (
+    meta,
+    EXTRACTOR_METATYPE_GNUNET_ORIGINAL_FILENAME);
   if (uri == NULL)
   {
-    printf (_("Directory `%s' meta data:\n"), name ? name : "");
+    printf (_ ("Directory `%s' meta data:\n"), name ? name : "");
     GNUNET_CONTAINER_meta_data_iterate (meta, &item_printer, NULL);
     printf ("\n");
-    printf (_("Directory `%s' contents:\n"), name ? name : "");
+    printf (_ ("Directory `%s' contents:\n"), name ? name : "");
     GNUNET_free_non_null (name);
     return;
   }
@@ -127,7 +127,9 @@ print_entry (void *cls, const char *filename, const struct GNUNET_FS_Uri *uri,
  * @param cfg configuration
  */
 static void
-run (void *cls, char *const *args, const char *cfgfile,
+run (void *cls,
+     char *const *args,
+     const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   struct GNUNET_DISK_MapHandle *map;
@@ -140,20 +142,21 @@ run (void *cls, char *const *args, const char *cfgfile,
 
   if (NULL == args[0])
   {
-    FPRINTF (stderr, "%s",  _("You must specify a filename to inspect.\n"));
+    fprintf (stderr, "%s", _ ("You must specify a filename to inspect.\n"));
     ret = 1;
     return;
   }
   i = 0;
   while (NULL != (filename = args[i++]))
   {
-    if ((GNUNET_OK != GNUNET_DISK_file_size (filename, &size, GNUNET_YES, GNUNET_YES)) ||
-        (NULL ==
-         (h =
-          GNUNET_DISK_file_open (filename, GNUNET_DISK_OPEN_READ,
-                                 GNUNET_DISK_PERM_NONE))))
+    if ((GNUNET_OK !=
+         GNUNET_DISK_file_size (filename, &size, GNUNET_YES, GNUNET_YES)) ||
+        (NULL == (h = GNUNET_DISK_file_open (filename,
+                                             GNUNET_DISK_OPEN_READ,
+                                             GNUNET_DISK_PERM_NONE))))
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Failed to read directory `%s'\n"),
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  _ ("Failed to read directory `%s'\n"),
                   filename);
       ret = 1;
       continue;
@@ -161,9 +164,9 @@ run (void *cls, char *const *args, const char *cfgfile,
     len = (size_t) size;
     data = GNUNET_DISK_file_map (h, &map, GNUNET_DISK_MAP_TYPE_READ, len);
     GNUNET_assert (NULL != data);
-    if (GNUNET_OK != GNUNET_FS_directory_list_contents (len, data, 0, &print_entry, NULL))
-      fprintf (stdout, _("`%s' is not a GNUnet directory\n"),
-	       filename);
+    if (GNUNET_OK !=
+        GNUNET_FS_directory_list_contents (len, data, 0, &print_entry, NULL))
+      fprintf (stdout, _ ("`%s' is not a GNUnet directory\n"), filename);
     else
       printf ("\n");
     GNUNET_DISK_file_unmap (map);
@@ -182,18 +185,23 @@ int
 main (int argc, char *const *argv)
 {
   static struct GNUNET_GETOPT_CommandLineOption options[] = {
-    GNUNET_GETOPT_OPTION_END
-  };
+    GNUNET_GETOPT_OPTION_END};
 
   if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv, &argc, &argv))
     return 2;
 
   ret = (GNUNET_OK ==
-	 GNUNET_PROGRAM_run (argc, argv, "gnunet-directory [OPTIONS] FILENAME",
-			     gettext_noop
-			     ("Display contents of a GNUnet directory"),
-			     options, &run, NULL)) ? ret : 1;
-  GNUNET_free ((void*) argv);
+         GNUNET_PROGRAM_run (argc,
+                             argv,
+                             "gnunet-directory [OPTIONS] FILENAME",
+                             gettext_noop (
+                               "Display contents of a GNUnet directory"),
+                             options,
+                             &run,
+                             NULL))
+          ? ret
+          : 1;
+  GNUNET_free ((void *) argv);
   return ret;
 }
 

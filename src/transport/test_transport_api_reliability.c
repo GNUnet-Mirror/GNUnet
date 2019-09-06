@@ -179,7 +179,7 @@ custom_shutdown (void *cls)
   if (0 == delta)
     delta = 1;
   rate = (1000LL* 1000ll * total_bytes) / (1024 * delta);
-  FPRINTF (stderr,
+  fprintf (stderr,
            "\nThroughput was %llu KiBytes/s\n",
            rate);
   {
@@ -274,7 +274,7 @@ notify_receive (void *cls,
   }
   if (0 == (n % (TOTAL_MSGS / xhdr / 100)))
   {
-    FPRINTF (stderr, "%s",  ".");
+    fprintf (stderr, "%s",  ".");
   }
   if (n == TOTAL_MSGS / xhdr)
   {

@@ -172,7 +172,7 @@ main (int argc, char *argv[])
 
   if (! gcry_check_version ("1.6.0"))
   {
-    FPRINTF (stderr,
+    fprintf (stderr,
              _
              ("libgcrypt has not the expected version (version %s is required).\n"),
              "1.6.0");

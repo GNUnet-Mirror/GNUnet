@@ -184,7 +184,7 @@ format_help (struct GNUNET_GETOPT_CommandLineProcessorContext *ctx,
 
   if (0 != pd->is_gnu)
     printf ("General help using GNU software: http://www.gnu.org/gethelp/\n");
-  
+
   return GNUNET_NO;
 }
 
@@ -544,9 +544,9 @@ set_ulong (struct GNUNET_GETOPT_CommandLineProcessorContext *ctx,
   char dummy[2];
 
   (void) ctx;
-  if (1 != SSCANF (value, "%llu%1s", val, dummy))
+  if (1 != sscanf (value, "%llu%1s", val, dummy))
   {
-    FPRINTF (stderr,
+    fprintf (stderr,
              _ ("You must pass a number to the `%s' option.\n"),
              option);
     return GNUNET_SYSERR;
@@ -607,7 +607,7 @@ set_relative_time (struct GNUNET_GETOPT_CommandLineProcessorContext *ctx,
   (void) ctx;
   if (GNUNET_OK != GNUNET_STRINGS_fancy_time_to_relative (value, val))
   {
-    FPRINTF (stderr,
+    fprintf (stderr,
              _ ("You must pass relative time to the `%s' option.\n"),
              option);
     return GNUNET_SYSERR;
@@ -669,7 +669,7 @@ set_absolute_time (struct GNUNET_GETOPT_CommandLineProcessorContext *ctx,
   (void) ctx;
   if (GNUNET_OK != GNUNET_STRINGS_fancy_time_to_absolute (value, val))
   {
-    FPRINTF (stderr,
+    fprintf (stderr,
              _ ("You must pass absolute time to the `%s' option.\n"),
              option);
     return GNUNET_SYSERR;
@@ -732,15 +732,15 @@ set_uint (struct GNUNET_GETOPT_CommandLineProcessorContext *ctx,
   (void) ctx;
   if ('-' == *value)
   {
-    FPRINTF (stderr,
+    fprintf (stderr,
              _ (
                "Your input for the '%s' option has to be a non negative number \n"),
              option);
     return GNUNET_SYSERR;
   }
-  if (1 != SSCANF (value, "%u%1s", val, dummy))
+  if (1 != sscanf (value, "%u%1s", val, dummy))
   {
-    FPRINTF (stderr,
+    fprintf (stderr,
              _ ("You must pass a number to the `%s' option.\n"),
              option);
     return GNUNET_SYSERR;
@@ -801,16 +801,16 @@ set_uint16 (struct GNUNET_GETOPT_CommandLineProcessorContext *ctx,
   char dummy[2];
 
   (void) ctx;
-  if (1 != SSCANF (value, "%u%1s", &v, dummy))
+  if (1 != sscanf (value, "%u%1s", &v, dummy))
   {
-    FPRINTF (stderr,
+    fprintf (stderr,
              _ ("You must pass a number to the `%s' option.\n"),
              option);
     return GNUNET_SYSERR;
   }
   if (v > UINT16_MAX)
   {
-    FPRINTF (stderr,
+    fprintf (stderr,
              _ ("You must pass a number below %u to the `%s' option.\n"),
              (unsigned int) UINT16_MAX,
              option);

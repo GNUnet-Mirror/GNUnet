@@ -116,14 +116,9 @@ auto_conf_iter (void *cls,
 {
   struct GNUNET_CONFIGURATION_Handle *new_cfg = cls;
 
-  PRINTF ("%s: %s\n",
-	  option,
-	  value);
+  printf ("%s: %s\n", option, value);
   if (NULL != new_cfg)
-    GNUNET_CONFIGURATION_set_value_string (new_cfg,
-					   section,
-					   option,
-					   value);
+    GNUNET_CONFIGURATION_set_value_string (new_cfg, section, option, value);
 }
 
 
@@ -138,9 +133,9 @@ auto_conf_iter (void *cls,
  */
 static void
 auto_config_cb (void *cls,
-		const struct GNUNET_CONFIGURATION_Handle *diff,
-		enum GNUNET_NAT_StatusCode result,
-		enum GNUNET_NAT_Type type)
+                const struct GNUNET_CONFIGURATION_Handle *diff,
+                enum GNUNET_NAT_StatusCode result,
+                enum GNUNET_NAT_Type type)
 {
   const char *nat_type;
   char unknown_type[64];
@@ -162,24 +157,21 @@ auto_config_cb (void *cls,
     nat_type = "NAT but UPNP opened the ports";
     break;
   default:
-    SPRINTF (unknown_type,
-	     "NAT unknown, type %u",
-	     type);
+    sprintf (unknown_type, "NAT unknown, type %u", type);
     nat_type = unknown_type;
     break;
   }
 
   GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
-	      "NAT status: %s/%s\n",
-	      GNUNET_NAT_AUTO_status2string (result),
-	      nat_type);
+              "NAT status: %s/%s\n",
+              GNUNET_NAT_AUTO_status2string (result),
+              nat_type);
 
   if (NULL == diff)
     return;
 
   /* Shortcut: if there are no changes suggested, bail out early. */
-  if (GNUNET_NO ==
-      GNUNET_CONFIGURATION_is_dirty (diff))
+  if (GNUNET_NO == GNUNET_CONFIGURATION_is_dirty (diff))
   {
     test_finished ();
     return;
@@ -190,7 +182,7 @@ auto_config_cb (void *cls,
   new_cfg = write_cfg ? GNUNET_CONFIGURATION_dup (cfg) : NULL;
 
   GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
-              _("Suggested configuration changes:\n"));
+              _ ("Suggested configuration changes:\n"));
   GNUNET_CONFIGURATION_iterate_section_values (diff,
                                                "nat",
                                                &auto_conf_iter,
@@ -202,29 +194,22 @@ auto_config_cb (void *cls,
   {
     struct GNUNET_CONFIGURATION_Handle *def_cfg;
 
-    GNUNET_CONFIGURATION_set_value_string (new_cfg,
-					   "ARM",
-					   "CONFIG",
-					   NULL);
+    GNUNET_CONFIGURATION_set_value_string (new_cfg, "ARM", "CONFIG", NULL);
     def_cfg = GNUNET_CONFIGURATION_create ();
-    GNUNET_break (GNUNET_OK ==
-		  GNUNET_CONFIGURATION_load (def_cfg,
-					     NULL));
+    GNUNET_break (GNUNET_OK == GNUNET_CONFIGURATION_load (def_cfg, NULL));
     if (GNUNET_OK !=
-	GNUNET_CONFIGURATION_write_diffs (def_cfg,
-					  new_cfg,
-					  cfg_file))
+        GNUNET_CONFIGURATION_write_diffs (def_cfg, new_cfg, cfg_file))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
-		  _("Failed to write configuration to `%s'\n"),
-		  cfg_file);
+                  _ ("Failed to write configuration to `%s'\n"),
+                  cfg_file);
       global_ret = 1;
     }
     else
     {
       GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
-		  _("Wrote updated configuration to `%s'\n"),
-		  cfg_file);
+                  _ ("Wrote updated configuration to `%s'\n"),
+                  cfg_file);
     }
     GNUNET_CONFIGURATION_destroy (def_cfg);
   }
@@ -243,12 +228,10 @@ auto_config_cb (void *cls,
  * @param result #GNUNET_NAT_ERROR_SUCCESS on success, otherwise the specific error code
  */
 static void
-test_report_cb (void *cls,
-		enum GNUNET_NAT_StatusCode result)
+test_report_cb (void *cls, enum GNUNET_NAT_StatusCode result)
 {
   nt = NULL;
-  PRINTF ("NAT test result: %s\n",
-	  GNUNET_NAT_AUTO_status2string (result));
+  printf ("NAT test result: %s\n", GNUNET_NAT_AUTO_status2string (result));
   test_finished ();
 }
 
@@ -291,22 +274,18 @@ run (void *cls,
   cfg_file = cfgfile;
   cfg = c;
 
-  GNUNET_SCHEDULER_add_shutdown (&do_shutdown,
-				 NULL);
+  GNUNET_SCHEDULER_add_shutdown (&do_shutdown, NULL);
 
   if (do_auto)
   {
-    ah = GNUNET_NAT_AUTO_autoconfig_start (c,
-                                           &auto_config_cb,
-                                           NULL);
+    ah = GNUNET_NAT_AUTO_autoconfig_start (c, &auto_config_cb, NULL);
   }
 
   if (use_tcp && use_udp)
   {
     if (do_auto)
       return;
-    GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
-		"Cannot use TCP and UDP\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE, "Cannot use TCP and UDP\n");
     global_ret = 1;
     return;
   }
@@ -319,10 +298,10 @@ run (void *cls,
   if (NULL != section_name)
   {
     nt = GNUNET_NAT_AUTO_test_start (c,
-				     proto,
-				     section_name,
-				     &test_report_cb,
-				     NULL);
+                                     proto,
+                                     section_name,
+                                     &test_report_cb,
+                                     NULL);
   }
   test_finished ();
 }
@@ -336,53 +315,47 @@ run (void *cls,
  * @return 0 on success, -1 on error
  */
 int
-main (int argc,
-      char *const argv[])
+main (int argc, char *const argv[])
 {
-  struct GNUNET_GETOPT_CommandLineOption options[] = {
-    GNUNET_GETOPT_option_flag ('a',
-                                  "auto",
-                                  gettext_noop ("run autoconfiguration"),
-                                  &do_auto),
+  struct GNUNET_GETOPT_CommandLineOption options[] =
+    {GNUNET_GETOPT_option_flag ('a',
+                                "auto",
+                                gettext_noop ("run autoconfiguration"),
+                                &do_auto),
 
-    GNUNET_GETOPT_option_string ('S',
-                                 "section",
-                                 "NAME",
-                                 gettext_noop ("section name providing the configuration for the adapter"),
-                                 &section_name),
+     GNUNET_GETOPT_option_string (
+       'S',
+       "section",
+       "NAME",
+       gettext_noop (
+         "section name providing the configuration for the adapter"),
+       &section_name),
 
-    GNUNET_GETOPT_option_flag ('t',
-                                   "tcp",
-                                   gettext_noop ("use TCP"),
-                                   &use_tcp),
+     GNUNET_GETOPT_option_flag ('t', "tcp", gettext_noop ("use TCP"), &use_tcp),
 
-    GNUNET_GETOPT_option_flag ('u',
-                                   "udp",
-                                   gettext_noop ("use UDP"),
-                                   &use_udp),
+     GNUNET_GETOPT_option_flag ('u', "udp", gettext_noop ("use UDP"), &use_udp),
 
-    GNUNET_GETOPT_option_flag ('w',
-                                   "write",
-                                   gettext_noop ("write configuration file (for autoconfiguration)"),
-                                   &write_cfg),
-    GNUNET_GETOPT_OPTION_END
-  };
+     GNUNET_GETOPT_option_flag (
+       'w',
+       "write",
+       gettext_noop ("write configuration file (for autoconfiguration)"),
+       &write_cfg),
+     GNUNET_GETOPT_OPTION_END};
 
-  if (GNUNET_OK !=
-      GNUNET_STRINGS_get_utf8_args (argc, argv,
-				    &argc, &argv))
+  if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv, &argc, &argv))
     return 2;
   if (GNUNET_OK !=
-      GNUNET_PROGRAM_run (argc, argv,
-			  "gnunet-nat-auto [options]",
-                          _("GNUnet NAT traversal autoconfiguration"),
-			  options,
+      GNUNET_PROGRAM_run (argc,
+                          argv,
+                          "gnunet-nat-auto [options]",
+                          _ ("GNUnet NAT traversal autoconfiguration"),
+                          options,
                           &run,
-			  NULL))
+                          NULL))
   {
     global_ret = 1;
   }
-  GNUNET_free ((void*) argv);
+  GNUNET_free ((void *) argv);
   return global_ret;
 }
 

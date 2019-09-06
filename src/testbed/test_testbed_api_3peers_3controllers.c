@@ -853,7 +853,7 @@ host_habitable_cb (void *cls,
   hc_handle = NULL;
   if (GNUNET_NO == status)
   {
-    (void) PRINTF ("%s",
+    (void) printf ("%s",
                    "Unable to run the test as this system is not configured "
                    "to use password less SSH logins to localhost.\n"
                    "Skipping test\n");
@@ -895,7 +895,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   {
     GNUNET_TESTBED_host_destroy (host);
     host = NULL;
-    (void) PRINTF ("%s",
+    (void) printf ("%s",
                    "Unable to run the test as this system is not configured "
                    "to use password less SSH logins to localhost.\n"
                    "Skipping test\n");

@@ -46,7 +46,7 @@ testSignVerify ()
   struct GNUNET_TIME_Absolute start;
   int ok = GNUNET_OK;
 
-  FPRINTF (stderr, "%s",  "W");
+  fprintf (stderr, "%s",  "W");
   GNUNET_CRYPTO_ecdsa_key_get_public (key, &pkey);
   start = GNUNET_TIME_absolute_get ();
   purp.size = htonl (sizeof (struct GNUNET_CRYPTO_EccSignaturePurpose));
@@ -54,10 +54,10 @@ testSignVerify ()
 
   for (i = 0; i < ITER; i++)
   {
-    FPRINTF (stderr, "%s",  "."); fflush (stderr);
+    fprintf (stderr, "%s",  "."); fflush (stderr);
     if (GNUNET_SYSERR == GNUNET_CRYPTO_ecdsa_sign (key, &purp, &sig))
     {
-      FPRINTF (stderr,
+      fprintf (stderr,
                "%s",
                "GNUNET_CRYPTO_ecdsa_sign returned SYSERR\n");
       ok = GNUNET_SYSERR;
@@ -103,7 +103,7 @@ testDeriveSignVerify ()
 
   if (GNUNET_SYSERR == GNUNET_CRYPTO_ecdsa_sign (dpriv, &purp, &sig))
   {
-    FPRINTF (stderr, "%s",  "GNUNET_CRYPTO_ecdsa_sign returned SYSERR\n");
+    fprintf (stderr, "%s",  "GNUNET_CRYPTO_ecdsa_sign returned SYSERR\n");
     GNUNET_free (dpriv);
     return GNUNET_SYSERR;
   }
@@ -151,15 +151,15 @@ testSignPerformance ()
 
   purp.size = htonl (sizeof (struct GNUNET_CRYPTO_EccSignaturePurpose));
   purp.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_TEST);
-  FPRINTF (stderr, "%s",  "W");
+  fprintf (stderr, "%s",  "W");
   GNUNET_CRYPTO_ecdsa_key_get_public (key, &pkey);
   start = GNUNET_TIME_absolute_get ();
   for (i = 0; i < ITER; i++)
   {
-    FPRINTF (stderr, "%s",  "."); fflush (stderr);
+    fprintf (stderr, "%s",  "."); fflush (stderr);
     if (GNUNET_SYSERR == GNUNET_CRYPTO_ecdsa_sign (key, &purp, &sig))
     {
-      FPRINTF (stderr, "%s",
+      fprintf (stderr, "%s",
                "GNUNET_CRYPTO_ecdsa_sign returned SYSERR\n");
       ok = GNUNET_SYSERR;
       continue;
@@ -180,7 +180,7 @@ perf_keygen ()
   struct GNUNET_CRYPTO_EcdsaPrivateKey *pk;
   int i;
 
-  FPRINTF (stderr, "%s",  "W");
+  fprintf (stderr, "%s",  "W");
   start = GNUNET_TIME_absolute_get ();
   for (i=0;i<10;i++)
   {
@@ -203,7 +203,7 @@ main (int argc, char *argv[])
 
   if (! gcry_check_version ("1.6.0"))
   {
-    FPRINTF (stderr,
+    fprintf (stderr,
              _
              ("libgcrypt has not the expected version (version %s is required).\n"),
              "1.6.0");

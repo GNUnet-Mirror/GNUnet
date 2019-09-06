@@ -49,7 +49,7 @@ print_hostname (void *cls,
   (void) cls;
   if (NULL == hostname)
     return;
-  FPRINTF (stdout,
+  fprintf (stdout,
 	   "%s\n",
 	   hostname);
 }
@@ -70,7 +70,7 @@ print_sockaddr (void *cls,
   (void) cls;
   if (NULL == addr)
     return;
-  FPRINTF (stdout,
+  fprintf (stdout,
 	   "%s\n",
 	   GNUNET_a2s (addr,
 		       addrlen));

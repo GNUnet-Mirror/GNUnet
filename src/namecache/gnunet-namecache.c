@@ -94,8 +94,8 @@ do_shutdown (void *cls)
  */
 static void
 display_records_from_block (void *cls,
-			    unsigned int rd_len,
-			    const struct GNUNET_GNSRECORD_Data *rd)
+                            unsigned int rd_len,
+                            const struct GNUNET_GNSRECORD_Data *rd)
 {
   const char *typestring;
   char *s;
@@ -103,33 +103,27 @@ display_records_from_block (void *cls,
 
   if (0 == rd_len)
   {
-    FPRINTF (stdout,
-	     _("No records found for `%s'"),
-	     name);
+    fprintf (stdout, _ ("No records found for `%s'"), name);
     return;
   }
-  FPRINTF (stdout,
-	   "%s:\n",
-	   name);
-  for (i=0;i<rd_len;i++)
+  fprintf (stdout, "%s:\n", name);
+  for (i = 0; i < rd_len; i++)
   {
     typestring = GNUNET_GNSRECORD_number_to_typename (rd[i].record_type);
     s = GNUNET_GNSRECORD_value_to_string (rd[i].record_type,
-					  rd[i].data,
-					  rd[i].data_size);
+                                          rd[i].data,
+                                          rd[i].data_size);
     if (NULL == s)
     {
-      FPRINTF (stdout, _("\tCorrupt or unsupported record of type %u\n"),
-	       (unsigned int) rd[i].record_type);
+      fprintf (stdout,
+               _ ("\tCorrupt or unsupported record of type %u\n"),
+               (unsigned int) rd[i].record_type);
       continue;
     }
-    FPRINTF (stdout,
-	     "\t%s: %s\n",
-	     typestring,
-	     s);
+    fprintf (stdout, "\t%s: %s\n", typestring, s);
     GNUNET_free (s);
   }
-  FPRINTF (stdout, "%s", "\n");
+  fprintf (stdout, "%s", "\n");
 }
 
 
@@ -140,24 +134,21 @@ display_records_from_block (void *cls,
  * @param block NULL if not found
  */
 static void
-handle_block (void *cls,
-	      const struct GNUNET_GNSRECORD_Block *block)
+handle_block (void *cls, const struct GNUNET_GNSRECORD_Block *block)
 {
   qe = NULL;
   if (NULL == block)
   {
-    fprintf (stderr,
-	     "No matching block found\n");
+    fprintf (stderr, "No matching block found\n");
   }
   else if (GNUNET_OK !=
-	   GNUNET_GNSRECORD_block_decrypt (block,
-					   &pubkey,
-					   name,
-					   &display_records_from_block,
-					   NULL))
+           GNUNET_GNSRECORD_block_decrypt (block,
+                                           &pubkey,
+                                           name,
+                                           &display_records_from_block,
+                                           NULL))
   {
-    fprintf (stderr,
-	     "Failed to decrypt block!\n");
+    fprintf (stderr, "Failed to decrypt block!\n");
   }
   GNUNET_SCHEDULER_shutdown ();
 }
@@ -172,46 +163,36 @@ handle_block (void *cls,
  * @param cfg configuration
  */
 static void
-run (void *cls, char *const *args, const char *cfgfile,
+run (void *cls,
+     char *const *args,
+     const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   struct GNUNET_HashCode dhash;
 
   if (NULL == pkey)
   {
-    fprintf (stderr,
-	     _("You must specify which zone should be accessed\n"));
+    fprintf (stderr, _ ("You must specify which zone should be accessed\n"));
     return;
   }
 
   if (GNUNET_OK !=
-      GNUNET_CRYPTO_ecdsa_public_key_from_string (pkey,
-                                                  strlen (pkey),
-                                                  &pubkey))
+      GNUNET_CRYPTO_ecdsa_public_key_from_string (pkey, strlen (pkey), &pubkey))
   {
-    fprintf (stderr,
-             _("Invalid public key for zone `%s'\n"),
-             pkey);
+    fprintf (stderr, _ ("Invalid public key for zone `%s'\n"), pkey);
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
   if (NULL == name)
   {
-    fprintf (stderr,
-             _("You must specify a name\n"));
+    fprintf (stderr, _ ("You must specify a name\n"));
     return;
   }
 
-  GNUNET_SCHEDULER_add_shutdown (&do_shutdown,
-				 NULL);
+  GNUNET_SCHEDULER_add_shutdown (&do_shutdown, NULL);
   ns = GNUNET_NAMECACHE_connect (cfg);
-  GNUNET_GNSRECORD_query_from_public_key (&pubkey,
-                                          name,
-                                          &dhash);
-  qe = GNUNET_NAMECACHE_lookup_block (ns,
-                                      &dhash,
-                                      &handle_block,
-                                      NULL);
+  GNUNET_GNSRECORD_query_from_public_key (&pubkey, name, &dhash);
+  qe = GNUNET_NAMECACHE_lookup_block (ns, &dhash, &handle_block, NULL);
 }
 
 
@@ -225,36 +206,39 @@ run (void *cls, char *const *args, const char *cfgfile,
 int
 main (int argc, char *const *argv)
 {
-  struct GNUNET_GETOPT_CommandLineOption options[] = {
-    GNUNET_GETOPT_option_string ('n',
-                                 "name",
-                                 "NAME",
-                                 gettext_noop ("name of the record to add/delete/display"),
-                                 &name),
+  struct GNUNET_GETOPT_CommandLineOption options[] =
+    {GNUNET_GETOPT_option_string ('n',
+                                  "name",
+                                  "NAME",
+                                  gettext_noop (
+                                    "name of the record to add/delete/display"),
+                                  &name),
 
-    GNUNET_GETOPT_option_string ('z',
-                                 "zone",
-                                 "PKEY",
-                                 gettext_noop ("specifies the public key of the zone to look in"),
-                                 &pkey),
+     GNUNET_GETOPT_option_string (
+       'z',
+       "zone",
+       "PKEY",
+       gettext_noop ("specifies the public key of the zone to look in"),
+       &pkey),
 
-    GNUNET_GETOPT_OPTION_END
-  };
+     GNUNET_GETOPT_OPTION_END};
 
   if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv, &argc, &argv))
     return 2;
 
   GNUNET_log_setup ("gnunet-namecache", "WARNING", NULL);
-  if (GNUNET_OK !=
-      GNUNET_PROGRAM_run (argc, argv, "gnunet-namecache",
-			  _("GNUnet zone manipulation tool"),
-			  options,
-			  &run, NULL))
+  if (GNUNET_OK != GNUNET_PROGRAM_run (argc,
+                                       argv,
+                                       "gnunet-namecache",
+                                       _ ("GNUnet zone manipulation tool"),
+                                       options,
+                                       &run,
+                                       NULL))
   {
-    GNUNET_free ((void*) argv);
+    GNUNET_free ((void *) argv);
     return 1;
   }
-  GNUNET_free ((void*) argv);
+  GNUNET_free ((void *) argv);
   return ret;
 }
 

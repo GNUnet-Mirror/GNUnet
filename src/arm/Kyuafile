@@ -1,0 +1,9 @@
+-- Tests for gnunet-arm
+
+syntax(2)
+
+-- name of the test suite
+test_suite('arm')
+
+-- test programs
+atf_test_program{name='atf_tests.sh'}

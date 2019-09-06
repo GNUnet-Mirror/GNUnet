@@ -70,7 +70,6 @@ struct GNUNET_HELPER_SendHandle
    * Current write position.
    */
   unsigned int wpos;
-
 };
 
 
@@ -177,17 +176,14 @@ struct GNUNET_HELPER_Handle
  * @return #GNUNET_OK on success; #GNUNET_SYSERR on error
  */
 int
-GNUNET_HELPER_kill (struct GNUNET_HELPER_Handle *h,
-		    int soft_kill)
+GNUNET_HELPER_kill (struct GNUNET_HELPER_Handle *h, int soft_kill)
 {
   struct GNUNET_HELPER_SendHandle *sh;
   int ret;
 
   while (NULL != (sh = h->sh_head))
   {
-    GNUNET_CONTAINER_DLL_remove (h->sh_head,
-				 h->sh_tail,
-				 sh);
+    GNUNET_CONTAINER_DLL_remove (h->sh_head, h->sh_tail, sh);
     if (NULL != sh->cont)
       sh->cont (sh->cont_cls, GNUNET_NO);
     GNUNET_free (sh);
@@ -264,19 +260,14 @@ GNUNET_HELPER_wait (struct GNUNET_HELPER_Handle *h)
   }
   while (NULL != (sh = h->sh_head))
   {
-    GNUNET_CONTAINER_DLL_remove (h->sh_head,
-				 h->sh_tail,
-				 sh);
+    GNUNET_CONTAINER_DLL_remove (h->sh_head, h->sh_tail, sh);
     if (NULL != sh->cont)
       sh->cont (sh->cont_cls, GNUNET_NO);
     GNUNET_free (sh);
   }
   /* purge MST buffer */
   if (NULL != h->mst)
-    (void) GNUNET_MST_from_buffer (h->mst,
-                                   NULL, 0,
-                                   GNUNET_YES,
-                                   GNUNET_NO);
+    (void) GNUNET_MST_from_buffer (h->mst, NULL, 0, GNUNET_YES, GNUNET_NO);
   return ret;
 }
 
@@ -289,8 +280,7 @@ GNUNET_HELPER_wait (struct GNUNET_HELPER_Handle *h)
  *          stdin; #GNUNET_NO to signal termination by sending SIGTERM to helper
  */
 static void
-stop_helper (struct GNUNET_HELPER_Handle *h,
-	     int soft_kill)
+stop_helper (struct GNUNET_HELPER_Handle *h, int soft_kill)
 {
   if (NULL != h->restart_task)
   {
@@ -332,9 +322,9 @@ helper_read (void *cls)
   {
     /* On read-error, restart the helper */
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                _("Error reading from `%s': %s\n"),
-		h->binary_name,
-		STRERROR (errno));
+                _ ("Error reading from `%s': %s\n"),
+                h->binary_name,
+                strerror (errno));
     if (NULL != h->exp_cb)
     {
       h->exp_cb (h->cb_cls);
@@ -343,9 +333,11 @@ helper_read (void *cls)
     }
     stop_helper (h, GNUNET_NO);
     /* Restart the helper */
-    h->restart_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS,
-										   h->retry_back_off),
-						    &restart_task, h);
+    h->restart_task = GNUNET_SCHEDULER_add_delayed (
+      GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS,
+                                     h->retry_back_off),
+      &restart_task,
+      h);
     return;
   }
   if (0 == t)
@@ -353,8 +345,8 @@ helper_read (void *cls)
     /* this happens if the helper is shut down via a
        signal, so it is not a "hard" error */
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		"Got 0 bytes from helper `%s' (EOF)\n",
-		h->binary_name);
+                "Got 0 bytes from helper `%s' (EOF)\n",
+                h->binary_name);
     if (NULL != h->exp_cb)
     {
       h->exp_cb (h->cb_cls);
@@ -363,28 +355,27 @@ helper_read (void *cls)
     }
     stop_helper (h, GNUNET_NO);
     /* Restart the helper */
-    h->restart_task
-      = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS,
-								   h->retry_back_off),
-				     &restart_task, h);
+    h->restart_task = GNUNET_SCHEDULER_add_delayed (
+      GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS,
+                                     h->retry_back_off),
+      &restart_task,
+      h);
     return;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Got %u bytes from helper `%s'\n",
-	      (unsigned int) t,
-	      h->binary_name);
+              "Got %u bytes from helper `%s'\n",
+              (unsigned int) t,
+              h->binary_name);
   h->read_task = GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL,
-						 h->fh_from_helper,
-						 &helper_read, h);
+                                                 h->fh_from_helper,
+                                                 &helper_read,
+                                                 h);
   if (GNUNET_SYSERR ==
-      GNUNET_MST_from_buffer (h->mst,
-                              buf, t,
-                              GNUNET_NO,
-                              GNUNET_NO))
+      GNUNET_MST_from_buffer (h->mst, buf, t, GNUNET_NO, GNUNET_NO))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-		_("Failed to parse inbound message from helper `%s'\n"),
-		h->binary_name);
+                _ ("Failed to parse inbound message from helper `%s'\n"),
+                h->binary_name);
     if (NULL != h->exp_cb)
     {
       h->exp_cb (h->cb_cls);
@@ -393,9 +384,11 @@ helper_read (void *cls)
     }
     stop_helper (h, GNUNET_NO);
     /* Restart the helper */
-    h->restart_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS,
-										  h->retry_back_off),
-						    &restart_task, h);
+    h->restart_task = GNUNET_SCHEDULER_add_delayed (
+      GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS,
+                                     h->retry_back_off),
+      &restart_task,
+      h);
     return;
   }
 }
@@ -409,46 +402,53 @@ helper_read (void *cls)
 static void
 start_helper (struct GNUNET_HELPER_Handle *h)
 {
-  h->helper_in = GNUNET_DISK_pipe (GNUNET_YES, GNUNET_YES, GNUNET_YES, GNUNET_NO);
-  h->helper_out = GNUNET_DISK_pipe (GNUNET_YES, GNUNET_YES, GNUNET_NO, GNUNET_YES);
-  if ( (h->helper_in == NULL) || (h->helper_out == NULL))
+  h->helper_in =
+    GNUNET_DISK_pipe (GNUNET_YES, GNUNET_YES, GNUNET_YES, GNUNET_NO);
+  h->helper_out =
+    GNUNET_DISK_pipe (GNUNET_YES, GNUNET_YES, GNUNET_NO, GNUNET_YES);
+  if ((h->helper_in == NULL) || (h->helper_out == NULL))
   {
     /* out of file descriptors? try again later... */
     stop_helper (h, GNUNET_NO);
-    h->restart_task =
-      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS,
-								  h->retry_back_off),
-				    &restart_task, h);
+    h->restart_task = GNUNET_SCHEDULER_add_delayed (
+      GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS,
+                                     h->retry_back_off),
+      &restart_task,
+      h);
     return;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Starting HELPER process `%s'\n",
-	      h->binary_name);
+              "Starting HELPER process `%s'\n",
+              h->binary_name);
   h->fh_from_helper =
-      GNUNET_DISK_pipe_handle (h->helper_out, GNUNET_DISK_PIPE_END_READ);
+    GNUNET_DISK_pipe_handle (h->helper_out, GNUNET_DISK_PIPE_END_READ);
   h->fh_to_helper =
-      GNUNET_DISK_pipe_handle (h->helper_in, GNUNET_DISK_PIPE_END_WRITE);
-  h->helper_proc =
-    GNUNET_OS_start_process_vap (h->with_control_pipe, GNUNET_OS_INHERIT_STD_ERR,
-				 h->helper_in, h->helper_out, NULL,
-				 h->binary_name,
-				 h->binary_argv);
+    GNUNET_DISK_pipe_handle (h->helper_in, GNUNET_DISK_PIPE_END_WRITE);
+  h->helper_proc = GNUNET_OS_start_process_vap (h->with_control_pipe,
+                                                GNUNET_OS_INHERIT_STD_ERR,
+                                                h->helper_in,
+                                                h->helper_out,
+                                                NULL,
+                                                h->binary_name,
+                                                h->binary_argv);
   if (NULL == h->helper_proc)
   {
     /* failed to start process? try again later... */
     stop_helper (h, GNUNET_NO);
-    h->restart_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS,
-										  h->retry_back_off),
-						    &restart_task, h);
+    h->restart_task = GNUNET_SCHEDULER_add_delayed (
+      GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS,
+                                     h->retry_back_off),
+      &restart_task,
+      h);
     return;
   }
   GNUNET_DISK_pipe_close_end (h->helper_out, GNUNET_DISK_PIPE_END_WRITE);
   GNUNET_DISK_pipe_close_end (h->helper_in, GNUNET_DISK_PIPE_END_READ);
   if (NULL != h->mst)
     h->read_task = GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL,
-						   h->fh_from_helper,
-						   &helper_read,
-						   h);
+                                                   h->fh_from_helper,
+                                                   &helper_read,
+                                                   h);
 }
 
 
@@ -460,7 +460,7 @@ start_helper (struct GNUNET_HELPER_Handle *h)
 static void
 restart_task (void *cls)
 {
-  struct GNUNET_HELPER_Handle*h = cls;
+  struct GNUNET_HELPER_Handle *h = cls;
 
   h->restart_task = NULL;
   h->retry_back_off++;
@@ -489,11 +489,11 @@ restart_task (void *cls)
  */
 struct GNUNET_HELPER_Handle *
 GNUNET_HELPER_start (int with_control_pipe,
-		     const char *binary_name,
-		     char *const binary_argv[],
-		     GNUNET_MessageTokenizerCallback cb,
-		     GNUNET_HELPER_ExceptionCallback exp_cb,
-		     void *cb_cls)
+                     const char *binary_name,
+                     char *const binary_argv[],
+                     GNUNET_MessageTokenizerCallback cb,
+                     GNUNET_HELPER_ExceptionCallback exp_cb,
+                     void *cb_cls)
 {
   struct GNUNET_HELPER_Handle *h;
   unsigned int c;
@@ -505,15 +505,15 @@ GNUNET_HELPER_start (int with_control_pipe,
     h->binary_name = GNUNET_OS_get_libexec_binary_path (binary_name);
   else
     h->binary_name = GNUNET_strdup (binary_name);
-  for (c = 0; NULL != binary_argv[c]; c++);
+  for (c = 0; NULL != binary_argv[c]; c++)
+    ;
   h->binary_argv = GNUNET_malloc (sizeof (char *) * (c + 1));
   for (c = 0; NULL != binary_argv[c]; c++)
     h->binary_argv[c] = GNUNET_strdup (binary_argv[c]);
   h->binary_argv[c] = NULL;
   h->cb_cls = cb_cls;
   if (NULL != cb)
-    h->mst = GNUNET_MST_create (cb,
-                                h->cb_cls);
+    h->mst = GNUNET_MST_create (cb, h->cb_cls);
   h->exp_cb = exp_cb;
   h->retry_back_off = 0;
   start_helper (h);
@@ -541,9 +541,7 @@ GNUNET_HELPER_destroy (struct GNUNET_HELPER_Handle *h)
   GNUNET_assert (NULL == h->restart_task);
   while (NULL != (sh = h->sh_head))
   {
-    GNUNET_CONTAINER_DLL_remove (h->sh_head,
-				 h->sh_tail,
-				 sh);
+    GNUNET_CONTAINER_DLL_remove (h->sh_head, h->sh_tail, sh);
     if (NULL != sh->cont)
       sh->cont (sh->cont_cls, GNUNET_SYSERR);
     GNUNET_free (sh);
@@ -566,8 +564,7 @@ GNUNET_HELPER_destroy (struct GNUNET_HELPER_Handle *h)
  *          stdin; #GNUNET_NO to signal termination by sending SIGTERM to helper
  */
 void
-GNUNET_HELPER_stop (struct GNUNET_HELPER_Handle *h,
-		    int soft_kill)
+GNUNET_HELPER_stop (struct GNUNET_HELPER_Handle *h, int soft_kill)
 {
   h->exp_cb = NULL;
   stop_helper (h, soft_kill);
@@ -591,21 +588,20 @@ helper_write (void *cls)
   h->write_task = NULL;
   if (NULL == (sh = h->sh_head))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		"Helper write had no work!\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Helper write had no work!\n");
     return; /* how did this happen? */
   }
-  buf = (const char*) sh->msg;
+  buf = (const char *) sh->msg;
   t = GNUNET_DISK_file_write (h->fh_to_helper,
-			      &buf[sh->wpos],
-			      ntohs (sh->msg->size) - sh->wpos);
+                              &buf[sh->wpos],
+                              ntohs (sh->msg->size) - sh->wpos);
   if (-1 == t)
   {
     /* On write-error, restart the helper */
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-		_("Error writing to `%s': %s\n"),
-		h->binary_name,
-		STRERROR (errno));
+                _ ("Error writing to `%s': %s\n"),
+                h->binary_name,
+                strerror (errno));
     if (NULL != h->exp_cb)
     {
       h->exp_cb (h->cb_cls);
@@ -613,33 +609,34 @@ helper_write (void *cls)
       return;
     }
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		"Stopping and restarting helper task!\n");
+                "Stopping and restarting helper task!\n");
     stop_helper (h, GNUNET_NO);
     /* Restart the helper */
-    h->restart_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS,
-										  h->retry_back_off),
-						    &restart_task, h);
+    h->restart_task = GNUNET_SCHEDULER_add_delayed (
+      GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS,
+                                     h->retry_back_off),
+      &restart_task,
+      h);
     return;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Transmitted %u bytes to %s\n",
-	      (unsigned int) t,
-	      h->binary_name);
+              "Transmitted %u bytes to %s\n",
+              (unsigned int) t,
+              h->binary_name);
   sh->wpos += t;
   if (sh->wpos == ntohs (sh->msg->size))
   {
-    GNUNET_CONTAINER_DLL_remove (h->sh_head,
-				 h->sh_tail,
-				 sh);
+    GNUNET_CONTAINER_DLL_remove (h->sh_head, h->sh_tail, sh);
     if (NULL != sh->cont)
       sh->cont (sh->cont_cls, GNUNET_YES);
     GNUNET_free (sh);
   }
   if (NULL != h->sh_head)
-    h->write_task = GNUNET_SCHEDULER_add_write_file (GNUNET_TIME_UNIT_FOREVER_REL,
-						     h->fh_to_helper,
-						     &helper_write,
-						     h);
+    h->write_task =
+      GNUNET_SCHEDULER_add_write_file (GNUNET_TIME_UNIT_FOREVER_REL,
+                                       h->fh_to_helper,
+                                       &helper_write,
+                                       h);
 }
 
 
@@ -658,34 +655,32 @@ helper_write (void *cls)
  */
 struct GNUNET_HELPER_SendHandle *
 GNUNET_HELPER_send (struct GNUNET_HELPER_Handle *h,
-		    const struct GNUNET_MessageHeader *msg,
-		    int can_drop,
-		    GNUNET_HELPER_Continuation cont,
-		    void *cont_cls)
+                    const struct GNUNET_MessageHeader *msg,
+                    int can_drop,
+                    GNUNET_HELPER_Continuation cont,
+                    void *cont_cls)
 {
   struct GNUNET_HELPER_SendHandle *sh;
   uint16_t mlen;
 
   if (NULL == h->fh_to_helper)
     return NULL;
-  if ( (GNUNET_YES == can_drop) &&
-       (NULL != h->sh_head) )
+  if ((GNUNET_YES == can_drop) && (NULL != h->sh_head))
     return NULL;
   mlen = ntohs (msg->size);
   sh = GNUNET_malloc (sizeof (struct GNUNET_HELPER_SendHandle) + mlen);
-  sh->msg = (const struct GNUNET_MessageHeader*) &sh[1];
+  sh->msg = (const struct GNUNET_MessageHeader *) &sh[1];
   GNUNET_memcpy (&sh[1], msg, mlen);
   sh->h = h;
   sh->cont = cont;
   sh->cont_cls = cont_cls;
-  GNUNET_CONTAINER_DLL_insert_tail (h->sh_head,
-				    h->sh_tail,
-				    sh);
+  GNUNET_CONTAINER_DLL_insert_tail (h->sh_head, h->sh_tail, sh);
   if (NULL == h->write_task)
-    h->write_task = GNUNET_SCHEDULER_add_write_file (GNUNET_TIME_UNIT_FOREVER_REL,
-						     h->fh_to_helper,
-						     &helper_write,
-						     h);
+    h->write_task =
+      GNUNET_SCHEDULER_add_write_file (GNUNET_TIME_UNIT_FOREVER_REL,
+                                       h->fh_to_helper,
+                                       &helper_write,
+                                       h);
 
   return sh;
 }

@@ -144,7 +144,7 @@ find_proof (void *cls)
     if (nse_work_required <= count_leading_zeroes (&result))
     {
       proof = counter;
-      FPRINTF (stdout,
+      fprintf (stdout,
                "Proof of work found: %llu!\n",
                (unsigned long long) proof);
       GNUNET_SCHEDULER_shutdown ();
@@ -236,7 +236,7 @@ run (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Private Key file: %s\n", pkfn);
   if (NULL == (pk = GNUNET_CRYPTO_eddsa_key_create_from_file (pkfn)))
   {
-    FPRINTF (stderr, _ ("Loading hostkey from `%s' failed.\n"), pkfn);
+    fprintf (stderr, _ ("Loading hostkey from `%s' failed.\n"), pkfn);
     GNUNET_free (pkfn);
     return;
   }

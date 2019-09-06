@@ -222,7 +222,7 @@ main (int argc,
 			   "socket");
       return 1;
     }
-    FPRINTF (stderr,
+    fprintf (stderr,
              "IPv6 support seems to not be available (%s), not testing it!\n",
              strerror (errno));
   }

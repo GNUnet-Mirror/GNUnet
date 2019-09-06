@@ -30,26 +30,34 @@
 #include "testbed_api_topology.h"
 #include "sqlite3.h"
 
-#define LOG(type, ...)                          \
-  GNUNET_log (type, __VA_ARGS__)
+#define LOG(type, ...) GNUNET_log (type, __VA_ARGS__)
 
 
-#define LOG_ERROR(...)                          \
-  LOG (GNUNET_ERROR_TYPE_ERROR, __VA_ARGS__)
+#define LOG_ERROR(...) LOG (GNUNET_ERROR_TYPE_ERROR, __VA_ARGS__)
 
 /**
  * Log an error message at log-level 'level' that indicates
  * a failure of the command 'cmd' on file 'filename'
  * with the message given by strerror(errno).
  */
-#define LOG_SQLITE(db, msg, level, cmd)                                 \
-  do {                                                                  \
-    GNUNET_log_from (level, "sqlite", _("`%s' failed at %s:%d with error: %s\n"), \
-                     cmd, __FILE__,__LINE__, sqlite3_errmsg(db));  \
-    if (msg != NULL)                                                    \
-      GNUNET_asprintf(msg, _("`%s' failed at %s:%u with error: %s"), cmd, \
-                      __FILE__, __LINE__, sqlite3_errmsg(db));     \
-  } while(0)
+#define LOG_SQLITE(db, msg, level, cmd)                           \
+  do                                                              \
+  {                                                               \
+    GNUNET_log_from (level,                                       \
+                     "sqlite",                                    \
+                     _ ("`%s' failed at %s:%d with error: %s\n"), \
+                     cmd,                                         \
+                     __FILE__,                                    \
+                     __LINE__,                                    \
+                     sqlite3_errmsg (db));                        \
+    if (msg != NULL)                                              \
+      GNUNET_asprintf (msg,                                       \
+                       _ ("`%s' failed at %s:%u with error: %s"), \
+                       cmd,                                       \
+                       __FILE__,                                  \
+                       __LINE__,                                  \
+                       sqlite3_errmsg (db));                      \
+  } while (0)
 
 
 /**
@@ -97,11 +105,11 @@ link_processor (void *cls,
                 unsigned int latency,
                 unsigned int loss)
 {
-  if ( (SQLITE_OK != sqlite3_bind_int (stmt_insert, 1, A)) ||
-       (SQLITE_OK != sqlite3_bind_int (stmt_insert, 2, B)) ||
-       (SQLITE_OK != sqlite3_bind_int (stmt_insert, 3, bandwidth)) ||
-       (SQLITE_OK != sqlite3_bind_int (stmt_insert, 4, latency)) ||
-       (SQLITE_OK != sqlite3_bind_int (stmt_insert, 5, loss)) )
+  if ((SQLITE_OK != sqlite3_bind_int (stmt_insert, 1, A)) ||
+      (SQLITE_OK != sqlite3_bind_int (stmt_insert, 2, B)) ||
+      (SQLITE_OK != sqlite3_bind_int (stmt_insert, 3, bandwidth)) ||
+      (SQLITE_OK != sqlite3_bind_int (stmt_insert, 4, latency)) ||
+      (SQLITE_OK != sqlite3_bind_int (stmt_insert, 5, loss)))
   {
     LOG_SQLITE (db, NULL, GNUNET_ERROR_TYPE_ERROR, "sqlite3_bind_int");
     return GNUNET_SYSERR;
@@ -111,11 +119,11 @@ link_processor (void *cls,
     LOG_SQLITE (db, NULL, GNUNET_ERROR_TYPE_ERROR, "sqlite3_step");
     return GNUNET_SYSERR;
   }
-  FPRINTF (stdout, "%u -> %u\n", A, B);
+  fprintf (stdout, "%u -> %u\n", A, B);
   GNUNET_break (SQLITE_OK == sqlite3_reset (stmt_insert));
   //GNUNET_break (SQLITE_OK == sqlite3_clear_bindings (stmt_insert));
-  if ( (SQLITE_OK != sqlite3_bind_int (stmt_insert, 1, B)) ||
-       (SQLITE_OK != sqlite3_bind_int (stmt_insert, 2, A)) )
+  if ((SQLITE_OK != sqlite3_bind_int (stmt_insert, 1, B)) ||
+      (SQLITE_OK != sqlite3_bind_int (stmt_insert, 2, A)))
   {
     LOG_SQLITE (db, NULL, GNUNET_ERROR_TYPE_ERROR, "sqlite3_bind_int");
     return GNUNET_SYSERR;
@@ -125,7 +133,7 @@ link_processor (void *cls,
     LOG_SQLITE (db, NULL, GNUNET_ERROR_TYPE_ERROR, "sqlite3_step");
     return GNUNET_SYSERR;
   }
-  FPRINTF (stdout, "%u -> %u\n", B, A);
+  fprintf (stdout, "%u -> %u\n", B, A);
   GNUNET_break (SQLITE_OK == sqlite3_reset (stmt_insert));
   return GNUNET_OK;
 }
@@ -142,31 +150,29 @@ link_processor (void *cls,
 static int
 setup_db (const char *dbfile)
 {
-  const char *query_create =
-      "CREATE TABLE whitelist ("
-      "id INTEGER,"
-      "oid INTEGER,"
-      "bandwidth INTEGER DEFAULT NULL,"
-      "latency INTEGER DEFAULT NULL,"
-      "loss INTEGER DEFAULT NULL,"
-      " UNIQUE ("
-      "  id,"
-      "  oid"
-      " ) ON CONFLICT IGNORE"
-      ");";
-  const char *query_insert =
-      "INSERT INTO whitelist("
-      " id,"
-      " oid,"
-      " bandwidth,"
-      " latency,"
-      " loss"
-      ") VALUES ("
-      " ?1,"
-      " ?2,"
-      " ?3,"
-      " ?4,"
-      " ?5);";
+  const char *query_create = "CREATE TABLE whitelist ("
+                             "id INTEGER,"
+                             "oid INTEGER,"
+                             "bandwidth INTEGER DEFAULT NULL,"
+                             "latency INTEGER DEFAULT NULL,"
+                             "loss INTEGER DEFAULT NULL,"
+                             " UNIQUE ("
+                             "  id,"
+                             "  oid"
+                             " ) ON CONFLICT IGNORE"
+                             ");";
+  const char *query_insert = "INSERT INTO whitelist("
+                             " id,"
+                             " oid,"
+                             " bandwidth,"
+                             " latency,"
+                             " loss"
+                             ") VALUES ("
+                             " ?1,"
+                             " ?2,"
+                             " ?3,"
+                             " ?4,"
+                             " ?5);";
   int ret;
 
   ret = GNUNET_SYSERR;
@@ -178,21 +184,23 @@ setup_db (const char *dbfile)
   if (0 != sqlite3_exec (db, query_create, NULL, NULL, NULL))
   {
     LOG_SQLITE (db, NULL, GNUNET_ERROR_TYPE_ERROR, "sqlite3_exec");
-    FPRINTF (stderr, "Error: %d.  Perhaps the database `%s' already exits.\n",
+    fprintf (stderr,
+             "Error: %d.  Perhaps the database `%s' already exits.\n",
              sqlite3_errcode (db),
              dbfile);
     goto err_ret;
   }
-  GNUNET_break (0 == sqlite3_exec (db, "PRAGMA synchronous = 0;", NULL, NULL, NULL));
-  if (SQLITE_OK != sqlite3_prepare_v2 (db, query_insert, -1,
-                                       &stmt_insert, NULL))
+  GNUNET_break (0 ==
+                sqlite3_exec (db, "PRAGMA synchronous = 0;", NULL, NULL, NULL));
+  if (SQLITE_OK !=
+      sqlite3_prepare_v2 (db, query_insert, -1, &stmt_insert, NULL))
   {
     LOG_SQLITE (db, NULL, GNUNET_ERROR_TYPE_ERROR, "sqlite3_prepare_v2");
     goto err_ret;
   }
   ret = GNUNET_OK;
 
- err_ret:
+err_ret:
   return ret;
 }
 
@@ -206,7 +214,9 @@ setup_db (const char *dbfile)
  * @param cfg the configuration file handle
  */
 static void
-run (void *cls, char *const *args, const char *cfgfile,
+run (void *cls,
+     char *const *args,
+     const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *config)
 {
   const char *dbfile;
@@ -222,24 +232,24 @@ run (void *cls, char *const *args, const char *cfgfile,
   arg_uint2 = 0; /* make compilers happy */
   if (NULL == args)
   {
-    LOG_ERROR (_("Need at least 2 arguments\n"));
+    LOG_ERROR (_ ("Need at least 2 arguments\n"));
     return;
   }
   if (NULL == (dbfile = args[argc++]))
   {
-    LOG_ERROR (_("Database filename missing\n"));
+    LOG_ERROR (_ ("Database filename missing\n"));
     return;
   }
   if (GNUNET_OK != setup_db (dbfile))
     return;
   if (NULL == (topology_string = args[argc++]))
   {
-    LOG_ERROR (_("Topology string missing\n"));
+    LOG_ERROR (_ ("Topology string missing\n"));
     return;
   }
   if (GNUNET_YES != GNUNET_TESTBED_topology_get_ (&topology, topology_string))
   {
-    LOG_ERROR (_("Invalid topology: %s\n"), topology_string);
+    LOG_ERROR (_ ("Invalid topology: %s\n"), topology_string);
     return;
   }
   arg_str1 = NULL;
@@ -252,13 +262,13 @@ run (void *cls, char *const *args, const char *cfgfile,
   case GNUNET_TESTBED_TOPOLOGY_SCALE_FREE:
     if (NULL == (value = args[argc++]))
     {
-      LOG_ERROR (_("An argument is missing for given topology `%s'\n"),
+      LOG_ERROR (_ ("An argument is missing for given topology `%s'\n"),
                  topology_string);
       return;
     }
-    if (-1 == SSCANF (value, "%u", &arg_uint1))
+    if (-1 == sscanf (value, "%u", &arg_uint1))
     {
-      LOG_ERROR (_("Invalid argument `%s' given as topology argument\n"),
+      LOG_ERROR (_ ("Invalid argument `%s' given as topology argument\n"),
                  value);
       return;
     }
@@ -266,7 +276,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   case GNUNET_TESTBED_TOPOLOGY_FROM_FILE:
     if (NULL == (arg_str1 = args[argc++]))
     {
-      LOG_ERROR (_("Filename argument missing for topology `%s'\n"),
+      LOG_ERROR (_ ("Filename argument missing for topology `%s'\n"),
                  topology_string);
       return;
     }
@@ -280,13 +290,13 @@ run (void *cls, char *const *args, const char *cfgfile,
   case GNUNET_TESTBED_TOPOLOGY_SCALE_FREE:
     if (NULL == (value = args[argc++]))
     {
-      LOG_ERROR (_("Second argument for topology `%s' is missing\n"),
+      LOG_ERROR (_ ("Second argument for topology `%s' is missing\n"),
                  topology_string);
       return;
     }
-    if (-1 == SSCANF (value, "%u", &arg_uint2))
+    if (-1 == sscanf (value, "%u", &arg_uint2))
     {
-      LOG_ERROR (_("Invalid argument `%s'; expecting unsigned int\n"), value);
+      LOG_ERROR (_ ("Invalid argument `%s'; expecting unsigned int\n"), value);
       return;
     }
     break;
@@ -301,23 +311,31 @@ run (void *cls, char *const *args, const char *cfgfile,
   case GNUNET_TESTBED_TOPOLOGY_STAR:
   case GNUNET_TESTBED_TOPOLOGY_CLIQUE:
   case GNUNET_TESTBED_TOPOLOGY_2D_TORUS:
-    GNUNET_TESTBED_underlay_construct_ (num_peers, link_processor, NULL,
+    GNUNET_TESTBED_underlay_construct_ (num_peers,
+                                        link_processor,
+                                        NULL,
                                         topology);
     break;
   case GNUNET_TESTBED_TOPOLOGY_ERDOS_RENYI:
   case GNUNET_TESTBED_TOPOLOGY_SMALL_WORLD_RING:
   case GNUNET_TESTBED_TOPOLOGY_SMALL_WORLD:
-    GNUNET_TESTBED_underlay_construct_ (num_peers, link_processor, NULL,
+    GNUNET_TESTBED_underlay_construct_ (num_peers,
+                                        link_processor,
+                                        NULL,
                                         topology,
                                         arg_uint1);
     break;
   case GNUNET_TESTBED_TOPOLOGY_FROM_FILE:
-    GNUNET_TESTBED_underlay_construct_ (num_peers, link_processor, NULL,
+    GNUNET_TESTBED_underlay_construct_ (num_peers,
+                                        link_processor,
+                                        NULL,
                                         topology,
                                         arg_str1);
     break;
   case GNUNET_TESTBED_TOPOLOGY_SCALE_FREE:
-    GNUNET_TESTBED_underlay_construct_ (num_peers, link_processor, NULL,
+    GNUNET_TESTBED_underlay_construct_ (num_peers,
+                                        link_processor,
+                                        NULL,
                                         topology,
                                         arg_uint1,
                                         arg_uint2);
@@ -337,37 +355,41 @@ main (int argc, char *const argv[])
   struct GNUNET_GETOPT_CommandLineOption option[] = {
 
     GNUNET_GETOPT_option_uint ('p',
-                                   "num-peers",
-                                   "COUNT",
-                                   gettext_noop ("create COUNT number of peers"),
-                                   &num_peers),
-    GNUNET_GETOPT_OPTION_END
-  };
+                               "num-peers",
+                               "COUNT",
+                               gettext_noop ("create COUNT number of peers"),
+                               &num_peers),
+    GNUNET_GETOPT_OPTION_END};
 
   int ret;
 
   exit_result = GNUNET_SYSERR;
-  ret =
-      GNUNET_PROGRAM_run (argc, argv, "gnunet-underlay-topology",
-                          _("Generates SQLite3 database representing a given underlay topology.\n"
-                            "Usage: gnunet-underlay-topology [OPTIONS] db-filename TOPO [TOPOOPTS]\n"
-                            "The following options are available for TOPO followed by TOPOOPTS if applicable:\n"
-                            "\t LINE\n"
-                            "\t RING\n"
-                            "\t RANDOM <num_rnd_links>\n"
-                            "\t SMALL_WORLD <num_rnd_links>\n"
-                            "\t SMALL_WORLD_RING <num_rnd_links>\n"
-                            "\t CLIQUE\n"
-                            "\t 2D_TORUS\n"
-                            "\t SCALE_FREE <cap> <m>\n"
-                            "\t FROM_FILE <filename>\n"
-                            "TOPOOPTS:\n"
-                            "\t num_rnd_links: The number of random links\n"
-                            "\t cap: the maximum number of links a node can have\n"
-                            "\t m: the number of links a node should have while joining the network\n"
-                            "\t filename: the path of the file which contains topology information\n"
-                            "NOTE: the format of the above file is descibed here: https://www.gnunet.org/content/topology-file-format\n"),
-                          option, &run, NULL);
+  ret = GNUNET_PROGRAM_run (
+    argc,
+    argv,
+    "gnunet-underlay-topology",
+    _ (
+      "Generates SQLite3 database representing a given underlay topology.\n"
+      "Usage: gnunet-underlay-topology [OPTIONS] db-filename TOPO [TOPOOPTS]\n"
+      "The following options are available for TOPO followed by TOPOOPTS if applicable:\n"
+      "\t LINE\n"
+      "\t RING\n"
+      "\t RANDOM <num_rnd_links>\n"
+      "\t SMALL_WORLD <num_rnd_links>\n"
+      "\t SMALL_WORLD_RING <num_rnd_links>\n"
+      "\t CLIQUE\n"
+      "\t 2D_TORUS\n"
+      "\t SCALE_FREE <cap> <m>\n"
+      "\t FROM_FILE <filename>\n"
+      "TOPOOPTS:\n"
+      "\t num_rnd_links: The number of random links\n"
+      "\t cap: the maximum number of links a node can have\n"
+      "\t m: the number of links a node should have while joining the network\n"
+      "\t filename: the path of the file which contains topology information\n"
+      "NOTE: the format of the above file is descibed here: https://www.gnunet.org/content/topology-file-format\n"),
+    option,
+    &run,
+    NULL);
   if (NULL != stmt_insert)
     sqlite3_finalize (stmt_insert);
   if (NULL != db)

@@ -48,7 +48,7 @@ testSignVerify ()
   struct GNUNET_TIME_Absolute start;
   int ok = GNUNET_OK;
 
-  FPRINTF (stderr, "%s",  "W");
+  fprintf (stderr, "%s",  "W");
   GNUNET_CRYPTO_eddsa_key_get_public (key, &pkey);
   start = GNUNET_TIME_absolute_get ();
   purp.size = htonl (sizeof (struct GNUNET_CRYPTO_EccSignaturePurpose));
@@ -56,10 +56,10 @@ testSignVerify ()
 
   for (i = 0; i < ITER; i++)
   {
-    FPRINTF (stderr, "%s",  "."); fflush (stderr);
+    fprintf (stderr, "%s",  "."); fflush (stderr);
     if (GNUNET_SYSERR == GNUNET_CRYPTO_eddsa_sign (key, &purp, &sig))
     {
-      FPRINTF (stderr, "%s",  "GNUNET_CRYPTO_eddsa_sign returned SYSERR\n");
+      fprintf (stderr, "%s",  "GNUNET_CRYPTO_eddsa_sign returned SYSERR\n");
       ok = GNUNET_SYSERR;
       continue;
     }
@@ -99,15 +99,15 @@ testSignPerformance ()
 
   purp.size = htonl (sizeof (struct GNUNET_CRYPTO_EccSignaturePurpose));
   purp.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_TEST);
-  FPRINTF (stderr, "%s",  "W");
+  fprintf (stderr, "%s",  "W");
   GNUNET_CRYPTO_eddsa_key_get_public (key, &pkey);
   start = GNUNET_TIME_absolute_get ();
   for (i = 0; i < ITER; i++)
   {
-    FPRINTF (stderr, "%s",  "."); fflush (stderr);
+    fprintf (stderr, "%s",  "."); fflush (stderr);
     if (GNUNET_SYSERR == GNUNET_CRYPTO_eddsa_sign (key, &purp, &sig))
     {
-      FPRINTF (stderr, "%s",  "GNUNET_CRYPTO_eddsa_sign returned SYSERR\n");
+      fprintf (stderr, "%s",  "GNUNET_CRYPTO_eddsa_sign returned SYSERR\n");
       ok = GNUNET_SYSERR;
       continue;
     }
@@ -135,7 +135,7 @@ testCreateFromFile ()
   GNUNET_CRYPTO_eddsa_key_get_public (key, &p2);
   GNUNET_assert (0 == memcmp (&p1, &p2, sizeof (p1)));
   GNUNET_free (key);
-  GNUNET_assert (0 == UNLINK (KEYFILE));
+  GNUNET_assert (0 == unlink (KEYFILE));
   key = GNUNET_CRYPTO_eddsa_key_create_from_file (KEYFILE);
   GNUNET_assert (NULL != key);
   GNUNET_CRYPTO_eddsa_key_get_public (key, &p2);
@@ -152,7 +152,7 @@ perf_keygen ()
   struct GNUNET_CRYPTO_EddsaPrivateKey *pk;
   int i;
 
-  FPRINTF (stderr, "%s",  "W");
+  fprintf (stderr, "%s",  "W");
   start = GNUNET_TIME_absolute_get ();
   for (i=0;i<10;i++)
   {
@@ -175,7 +175,7 @@ main (int argc, char *argv[])
 
   if (! gcry_check_version ("1.6.0"))
   {
-    FPRINTF (stderr,
+    fprintf (stderr,
              _("libgcrypt has not the expected version (version %s is required).\n"),
              "1.6.0");
     return 0;
@@ -193,7 +193,7 @@ main (int argc, char *argv[])
   GNUNET_free (key);
   if (GNUNET_OK != testCreateFromFile ())
     failure_count++;
-  GNUNET_assert (0 == UNLINK (KEYFILE));
+  GNUNET_assert (0 == unlink (KEYFILE));
   perf_keygen ();
 
   if (0 != failure_count)

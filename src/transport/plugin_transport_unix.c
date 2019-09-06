@@ -68,9 +68,10 @@ enum UNIX_ADDRESS_OPTIONS
 /**
  * How long until we give up on transmitting the welcome message?
  */
-#define HOSTNAME_RESOLVE_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
+#define HOSTNAME_RESOLVE_TIMEOUT \
+  GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
 
-#define LOG(kind,...) GNUNET_log_from (kind, "transport-unix",__VA_ARGS__)
+#define LOG(kind, ...) GNUNET_log_from (kind, "transport-unix", __VA_ARGS__)
 
 
 GNUNET_NETWORK_STRUCT_BEGIN
@@ -108,7 +109,6 @@ struct UNIXMessage
    * What is the identity of the sender (GNUNET_hash of public key)
    */
   struct GNUNET_PeerIdentity sender;
-
 };
 
 GNUNET_NETWORK_STRUCT_END
@@ -218,13 +218,12 @@ struct GNUNET_ATS_Session
   /**
    * Session timeout task.
    */
-  struct GNUNET_SCHEDULER_Task * timeout_task;
+  struct GNUNET_SCHEDULER_Task *timeout_task;
 
   /**
    * Number of messages we currently have in our write queue.
    */
   unsigned int msgs_in_queue;
-
 };
 
 
@@ -255,17 +254,17 @@ struct Plugin
   /**
    * ID of task used to update our addresses when one expires.
    */
-  struct GNUNET_SCHEDULER_Task * address_update_task;
+  struct GNUNET_SCHEDULER_Task *address_update_task;
 
   /**
    * ID of read task
    */
-  struct GNUNET_SCHEDULER_Task * read_task;
+  struct GNUNET_SCHEDULER_Task *read_task;
 
   /**
    * ID of write task
    */
-  struct GNUNET_SCHEDULER_Task * write_task;
+  struct GNUNET_SCHEDULER_Task *write_task;
 
   /**
    * Number of bytes we currently have in our write queues.
@@ -321,7 +320,6 @@ struct Plugin
    * Are we using an abstract UNIX domain socket?
    */
   int is_abstract;
-
 };
 
 
@@ -352,9 +350,7 @@ notify_session_monitor (struct Plugin *plugin,
      to receive from others) */
   info.session_timeout = session->timeout;
   info.address = session->address;
-  plugin->sic (plugin->sic_cls,
-               session,
-               &info);
+  plugin->sic (plugin->sic_cls, session, &info);
 }
 
 
@@ -370,9 +366,7 @@ notify_session_monitor (struct Plugin *plugin,
  * @return string representing the same address
  */
 static const char *
-unix_plugin_address_to_string (void *cls,
-                               const void *addr,
-                               size_t addrlen)
+unix_plugin_address_to_string (void *cls, const void *addr, size_t addrlen)
 {
   static char rbuf[1024];
   struct UnixAddress *ua = (struct UnixAddress *) addr;
@@ -382,25 +376,25 @@ unix_plugin_address_to_string (void *cls,
 
   if ((NULL == addr) || (sizeof (struct UnixAddress) > addrlen))
   {
-    GNUNET_break(0);
+    GNUNET_break (0);
     return NULL;
   }
   addrstr = (char *) &ua[1];
   addr_str_len = ntohl (ua->addrlen);
 
-  if (addr_str_len != addrlen - sizeof(struct UnixAddress))
+  if (addr_str_len != addrlen - sizeof (struct UnixAddress))
   {
-    GNUNET_break(0);
+    GNUNET_break (0);
     return NULL;
   }
   if ('\0' != addrstr[addr_str_len - 1])
   {
-    GNUNET_break(0);
+    GNUNET_break (0);
     return NULL;
   }
   if (strlen (addrstr) + 1 != addr_str_len)
   {
-    GNUNET_break(0);
+    GNUNET_break (0);
     return NULL;
   }
 
@@ -430,8 +424,7 @@ unix_plugin_address_to_string (void *cls,
  * @return #GNUNET_OK on success
  */
 static int
-unix_plugin_session_disconnect (void *cls,
-                                struct GNUNET_ATS_Session *session)
+unix_plugin_session_disconnect (void *cls, struct GNUNET_ATS_Session *session)
 {
   struct Plugin *plugin = cls;
   struct UNIXMessageWrapper *msgw;
@@ -443,9 +436,7 @@ unix_plugin_session_disconnect (void *cls,
        unix_plugin_address_to_string (NULL,
                                       session->address->address,
                                       session->address->address_length));
-  plugin->env->session_end (plugin->env->cls,
-                            session->address,
-                            session);
+  plugin->env->session_end (plugin->env->cls, session->address, session);
   next = plugin->msg_head;
   while (NULL != next)
   {
@@ -453,9 +444,7 @@ unix_plugin_session_disconnect (void *cls,
     next = msgw->next;
     if (msgw->session != session)
       continue;
-    GNUNET_CONTAINER_DLL_remove (plugin->msg_head,
-                                 plugin->msg_tail,
-                                 msgw);
+    GNUNET_CONTAINER_DLL_remove (plugin->msg_head, plugin->msg_tail, msgw);
     session->msgs_in_queue--;
     GNUNET_assert (session->bytes_in_queue >= msgw->msgsize);
     session->bytes_in_queue -= msgw->msgsize;
@@ -465,27 +454,27 @@ unix_plugin_session_disconnect (void *cls,
       msgw->cont (msgw->cont_cls,
                   &msgw->session->target,
                   GNUNET_SYSERR,
-                  msgw->payload, 0);
+                  msgw->payload,
+                  0);
     GNUNET_free (msgw->msg);
     GNUNET_free (msgw);
   }
   GNUNET_assert (GNUNET_YES ==
                  GNUNET_CONTAINER_multipeermap_remove (plugin->session_map,
-						       &session->target,
-						       session));
+                                                       &session->target,
+                                                       session));
   GNUNET_STATISTICS_set (plugin->env->stats,
-			 "# UNIX sessions active",
-			 GNUNET_CONTAINER_multipeermap_size (plugin->session_map),
-			 GNUNET_NO);
+                         "# UNIX sessions active",
+                         GNUNET_CONTAINER_multipeermap_size (
+                           plugin->session_map),
+                         GNUNET_NO);
   if (NULL != session->timeout_task)
   {
     GNUNET_SCHEDULER_cancel (session->timeout_task);
     session->timeout_task = NULL;
     session->timeout = GNUNET_TIME_UNIT_ZERO_ABS;
   }
-  notify_session_monitor (plugin,
-                          session,
-                          GNUNET_TRANSPORT_SS_DONE);
+  notify_session_monitor (plugin, session, GNUNET_TRANSPORT_SS_DONE);
   GNUNET_HELLO_address_free (session->address);
   GNUNET_break (0 == session->bytes_in_queue);
   GNUNET_break (0 == session->msgs_in_queue);
@@ -514,16 +503,16 @@ session_timeout (void *cls)
     notify_session_monitor (session->plugin,
                             session,
                             GNUNET_TRANSPORT_SS_UPDATE);
-    session->timeout_task = GNUNET_SCHEDULER_add_delayed (left,
-                                                          &session_timeout,
-                                                          session);
+    session->timeout_task =
+      GNUNET_SCHEDULER_add_delayed (left, &session_timeout, session);
     return;
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Session %p was idle for %s, disconnecting\n",
        session,
-       GNUNET_STRINGS_relative_time_to_string (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT,
-					       GNUNET_YES));
+       GNUNET_STRINGS_relative_time_to_string (
+         GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT,
+         GNUNET_YES));
   unix_plugin_session_disconnect (session->plugin, session);
 }
 
@@ -539,7 +528,8 @@ static void
 reschedule_session_timeout (struct GNUNET_ATS_Session *session)
 {
   GNUNET_assert (NULL != session->timeout_task);
-  session->timeout = GNUNET_TIME_relative_to_absolute (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT);
+  session->timeout =
+    GNUNET_TIME_relative_to_absolute (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT);
 }
 
 
@@ -551,13 +541,12 @@ reschedule_session_timeout (struct GNUNET_ATS_Session *session)
  * @return converted unix path
  */
 static struct sockaddr_un *
-unix_address_to_sockaddr (const char *unixpath,
-                          socklen_t *sock_len)
+unix_address_to_sockaddr (const char *unixpath, socklen_t *sock_len)
 {
   struct sockaddr_un *un;
   size_t slen;
 
-  GNUNET_assert (0 < strlen (unixpath));        /* sanity check */
+  GNUNET_assert (0 < strlen (unixpath)); /* sanity check */
   un = GNUNET_new (struct sockaddr_un);
   un->sun_family = AF_UNIX;
   slen = strlen (unixpath);
@@ -601,14 +590,13 @@ struct LookupCtx
  */
 static int
 lookup_session_it (void *cls,
-		   const struct GNUNET_PeerIdentity * key,
-		   void *value)
+                   const struct GNUNET_PeerIdentity *key,
+                   void *value)
 {
   struct LookupCtx *lctx = cls;
   struct GNUNET_ATS_Session *session = value;
 
-  if (0 == GNUNET_HELLO_address_cmp (lctx->address,
-                                     session->address))
+  if (0 == GNUNET_HELLO_address_cmp (lctx->address, session->address))
   {
     lctx->res = session;
     return GNUNET_NO;
@@ -633,8 +621,9 @@ lookup_session (struct Plugin *plugin,
   lctx.address = address;
   lctx.res = NULL;
   GNUNET_CONTAINER_multipeermap_get_multiple (plugin->session_map,
-					      &address->peer,
-					      &lookup_session_it, &lctx);
+                                              &address->peer,
+                                              &lookup_session_it,
+                                              &lctx);
   return lctx.res;
 }
 
@@ -707,16 +696,15 @@ unix_real_send (void *cls,
   }
 
   /* Prepare address */
-  unixpath = (const char *)  &addr[1];
-  if (NULL == (un = unix_address_to_sockaddr (unixpath,
-                                              &un_len)))
+  unixpath = (const char *) &addr[1];
+  if (NULL == (un = unix_address_to_sockaddr (unixpath, &un_len)))
   {
     GNUNET_break (0);
     return -1;
   }
 
   if ((GNUNET_YES == plugin->is_abstract) &&
-      (0 != (UNIX_OPTIONS_USE_ABSTRACT_SOCKETS & ntohl(addr->options) )) )
+      (0 != (UNIX_OPTIONS_USE_ABSTRACT_SOCKETS & ntohl (addr->options))))
   {
     un->sun_path[0] = '\0';
   }
@@ -729,8 +717,7 @@ resend:
                                        un_len);
   if (GNUNET_SYSERR == sent)
   {
-    if ( (EAGAIN == errno) ||
-	 (ENOBUFS == errno) )
+    if ((EAGAIN == errno) || (ENOBUFS == errno))
     {
       GNUNET_free (un);
       return RETRY; /* We have to retry later  */
@@ -741,7 +728,10 @@ resend:
       socklen_t len = sizeof (size);
 
       GNUNET_NETWORK_socket_getsockopt ((struct GNUNET_NETWORK_Handle *)
-                                        send_handle, SOL_SOCKET, SO_SNDBUF, &size,
+                                          send_handle,
+                                        SOL_SOCKET,
+                                        SO_SNDBUF,
+                                        &size,
                                         &len);
       if (size < msgbuf_size)
       {
@@ -752,9 +742,12 @@ resend:
              (unsigned int) msgbuf_size);
         size = ((msgbuf_size / 1000) + 2) * 1000;
         if (GNUNET_OK ==
-            GNUNET_NETWORK_socket_setsockopt ((struct GNUNET_NETWORK_Handle *) send_handle,
-                                              SOL_SOCKET, SO_SNDBUF,
-                                              &size, sizeof (size)))
+            GNUNET_NETWORK_socket_setsockopt ((struct GNUNET_NETWORK_Handle *)
+                                                send_handle,
+                                              SOL_SOCKET,
+                                              SO_SNDBUF,
+                                              &size,
+                                              sizeof (size)))
           goto resend; /* Increased buffer size, retry sending */
         else
         {
@@ -778,9 +771,9 @@ resend:
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "UNIX transmitted %u-byte message to %s (%d: %s)\n",
        (unsigned int) msgbuf_size,
-       GNUNET_a2s ((const struct sockaddr *)un, un_len),
+       GNUNET_a2s ((const struct sockaddr *) un, un_len),
        (int) sent,
-       (sent < 0) ? STRERROR (errno) : "ok");
+       (sent < 0) ? strerror (errno) : "ok");
   GNUNET_free (un);
   return sent;
 }
@@ -794,8 +787,7 @@ resend:
  * @return the network type in HBO or #GNUNET_SYSERR
  */
 static enum GNUNET_NetworkType
-unix_plugin_get_network (void *cls,
-                         struct GNUNET_ATS_Session *session)
+unix_plugin_get_network (void *cls, struct GNUNET_ATS_Session *session)
 {
   GNUNET_assert (NULL != session);
   return GNUNET_NT_LOOPBACK;
@@ -827,19 +819,18 @@ unix_plugin_get_network_for_address (void *cls,
  * @return the session or NULL of max connections exceeded
  */
 static struct GNUNET_ATS_Session *
-unix_plugin_get_session (void *cls,
-			 const struct GNUNET_HELLO_Address *address)
+unix_plugin_get_session (void *cls, const struct GNUNET_HELLO_Address *address)
 {
   struct Plugin *plugin = cls;
   struct GNUNET_ATS_Session *session;
   struct UnixAddress *ua;
-  char * addrstr;
+  char *addrstr;
   uint32_t addr_str_len;
   uint32_t addr_option;
 
   ua = (struct UnixAddress *) address->address;
   if ((NULL == address->address) || (0 == address->address_length) ||
-  		(sizeof (struct UnixAddress) > address->address_length))
+      (sizeof (struct UnixAddress) > address->address_length))
   {
     GNUNET_break (0);
     return NULL;
@@ -848,8 +839,8 @@ unix_plugin_get_session (void *cls,
   addr_str_len = ntohl (ua->addrlen);
   addr_option = ntohl (ua->options);
 
-  if ( (0 != (UNIX_OPTIONS_USE_ABSTRACT_SOCKETS & addr_option)) &&
-    (GNUNET_NO == plugin->is_abstract))
+  if ((0 != (UNIX_OPTIONS_USE_ABSTRACT_SOCKETS & addr_option)) &&
+      (GNUNET_NO == plugin->is_abstract))
   {
     return NULL;
   }
@@ -871,13 +862,12 @@ unix_plugin_get_session (void *cls,
   }
 
   /* Check if a session for this address already exists */
-  if (NULL != (session = lookup_session (plugin,
-                                         address)))
-    {
+  if (NULL != (session = lookup_session (plugin, address)))
+  {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Found existing session %p for address `%s'\n",
-	 session,
-	 unix_plugin_address_to_string (NULL,
+         session,
+         unix_plugin_address_to_string (NULL,
                                         address->address,
                                         address->address_length));
     return session;
@@ -888,29 +878,30 @@ unix_plugin_get_session (void *cls,
   session->target = address->peer;
   session->address = GNUNET_HELLO_address_copy (address);
   session->plugin = plugin;
-  session->timeout = GNUNET_TIME_relative_to_absolute (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT);
-  session->timeout_task = GNUNET_SCHEDULER_add_delayed (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT,
-                                                        &session_timeout,
-                                                        session);
+  session->timeout =
+    GNUNET_TIME_relative_to_absolute (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT);
+  session->timeout_task =
+    GNUNET_SCHEDULER_add_delayed (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT,
+                                  &session_timeout,
+                                  session);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Creating a new session %p for address `%s'\n",
        session,
        unix_plugin_address_to_string (NULL,
                                       address->address,
                                       address->address_length));
-  (void) GNUNET_CONTAINER_multipeermap_put (plugin->session_map,
-					    &address->peer, session,
-					    GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
+  (void) GNUNET_CONTAINER_multipeermap_put (
+    plugin->session_map,
+    &address->peer,
+    session,
+    GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
   GNUNET_STATISTICS_set (plugin->env->stats,
-			 "# UNIX sessions active",
-			 GNUNET_CONTAINER_multipeermap_size (plugin->session_map),
-			 GNUNET_NO);
-  notify_session_monitor (plugin,
-                          session,
-                          GNUNET_TRANSPORT_SS_INIT);
-  notify_session_monitor (plugin,
-                          session,
-                          GNUNET_TRANSPORT_SS_UP);
+                         "# UNIX sessions active",
+                         GNUNET_CONTAINER_multipeermap_size (
+                           plugin->session_map),
+                         GNUNET_NO);
+  notify_session_monitor (plugin, session, GNUNET_TRANSPORT_SS_INIT);
+  notify_session_monitor (plugin, session, GNUNET_TRANSPORT_SS_UP);
   return session;
 }
 
@@ -967,15 +958,17 @@ unix_demultiplexer (struct Plugin *plugin,
        "Received message from %s\n",
        unix_plugin_address_to_string (NULL, ua, ua_len));
   GNUNET_STATISTICS_update (plugin->env->stats,
-			    "# bytes received via UNIX",
-			    ntohs (currhdr->size),
-			    GNUNET_NO);
+                            "# bytes received via UNIX",
+                            ntohs (currhdr->size),
+                            GNUNET_NO);
 
   /* Look for existing session */
-  address = GNUNET_HELLO_address_allocate (sender,
-                                           PLUGIN_NAME,
-                                           ua, ua_len,
-                                           GNUNET_HELLO_ADDRESS_INFO_NONE); /* UNIX does not have "inbound" sessions */
+  address = GNUNET_HELLO_address_allocate (
+    sender,
+    PLUGIN_NAME,
+    ua,
+    ua_len,
+    GNUNET_HELLO_ADDRESS_INFO_NONE); /* UNIX does not have "inbound" sessions */
   session = lookup_session (plugin, address);
   if (NULL == session)
   {
@@ -991,10 +984,7 @@ unix_demultiplexer (struct Plugin *plugin,
     reschedule_session_timeout (session);
   }
   GNUNET_HELLO_address_free (address);
-  plugin->env->receive (plugin->env->cls,
-                        session->address,
-                        session,
-                        currhdr);
+  plugin->env->receive (plugin->env->cls, session->address, session, currhdr);
 }
 
 
@@ -1024,23 +1014,23 @@ unix_plugin_do_read (struct Plugin *plugin)
   addrlen = sizeof (un);
   memset (&un, 0, sizeof (un));
   ret = GNUNET_NETWORK_socket_recvfrom (plugin->unix_sock.desc,
-                                        buf, sizeof (buf),
+                                        buf,
+                                        sizeof (buf),
                                         (struct sockaddr *) &un,
                                         &addrlen);
   if ((GNUNET_SYSERR == ret) && ((errno == EAGAIN) || (errno == ENOBUFS)))
     return;
   if (GNUNET_SYSERR == ret)
   {
-    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING,
-                         "recvfrom");
+    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "recvfrom");
     return;
   }
   else
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-	 "Read %d bytes from socket %s\n",
-	 (int) ret,
-	 un.sun_path);
+         "Read %d bytes from socket %s\n",
+         (int) ret,
+         un.sun_path);
   }
 
   GNUNET_assert (AF_UNIX == (un.sun_family));
@@ -1053,12 +1043,12 @@ unix_plugin_do_read (struct Plugin *plugin)
 
   ua_len = sizeof (struct UnixAddress) + strlen (un.sun_path) + 1;
   ua = GNUNET_malloc (ua_len);
-  ua->addrlen = htonl (strlen (&un.sun_path[0]) +1);
+  ua->addrlen = htonl (strlen (&un.sun_path[0]) + 1);
   GNUNET_memcpy (&ua[1], &un.sun_path[0], strlen (un.sun_path) + 1);
   if (is_abstract)
-    ua->options = htonl(UNIX_OPTIONS_USE_ABSTRACT_SOCKETS);
+    ua->options = htonl (UNIX_OPTIONS_USE_ABSTRACT_SOCKETS);
   else
-    ua->options = htonl(UNIX_OPTIONS_NONE);
+    ua->options = htonl (UNIX_OPTIONS_NONE);
 
   msg = (struct UNIXMessage *) buf;
   csize = ntohs (msg->header.size);
@@ -1069,9 +1059,7 @@ unix_plugin_do_read (struct Plugin *plugin)
     return;
   }
   msgbuf = (char *) &msg[1];
-  GNUNET_memcpy (&sender,
-          &msg->sender,
-          sizeof (struct GNUNET_PeerIdentity));
+  GNUNET_memcpy (&sender, &msg->sender, sizeof (struct GNUNET_PeerIdentity));
   offset = 0;
   tsize = csize - sizeof (struct UNIXMessage);
   while (offset + sizeof (struct GNUNET_MessageHeader) <= tsize)
@@ -1113,11 +1101,9 @@ unix_plugin_do_write (struct Plugin *plugin)
     /* Message has a timeout */
     did_delete = GNUNET_YES;
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-	 "Timeout for message with %u bytes \n",
-	 (unsigned int) msgw->msgsize);
-    GNUNET_CONTAINER_DLL_remove (plugin->msg_head,
-                                 plugin->msg_tail,
-                                 msgw);
+         "Timeout for message with %u bytes \n",
+         (unsigned int) msgw->msgsize);
+    GNUNET_CONTAINER_DLL_remove (plugin->msg_head, plugin->msg_tail, msgw);
     session = msgw->session;
     session->msgs_in_queue--;
     GNUNET_assert (session->bytes_in_queue >= msgw->msgsize);
@@ -1125,28 +1111,26 @@ unix_plugin_do_write (struct Plugin *plugin)
     GNUNET_assert (plugin->bytes_in_queue >= msgw->msgsize);
     plugin->bytes_in_queue -= msgw->msgsize;
     GNUNET_STATISTICS_set (plugin->env->stats,
-			   "# bytes currently in UNIX buffers",
-			   plugin->bytes_in_queue,
+                           "# bytes currently in UNIX buffers",
+                           plugin->bytes_in_queue,
                            GNUNET_NO);
     GNUNET_STATISTICS_update (plugin->env->stats,
-			      "# UNIX bytes discarded",
-			      msgw->msgsize,
-			      GNUNET_NO);
+                              "# UNIX bytes discarded",
+                              msgw->msgsize,
+                              GNUNET_NO);
     if (NULL != msgw->cont)
       msgw->cont (msgw->cont_cls,
-		  &msgw->session->target,
-		  GNUNET_SYSERR,
-		  msgw->payload,
-		  0);
+                  &msgw->session->target,
+                  GNUNET_SYSERR,
+                  msgw->payload,
+                  0);
     GNUNET_free (msgw->msg);
     GNUNET_free (msgw);
   }
   if (NULL == msgw)
   {
     if (GNUNET_YES == did_delete)
-      notify_session_monitor (plugin,
-                              session,
-                              GNUNET_TRANSPORT_SS_UPDATE);
+      notify_session_monitor (plugin, session, GNUNET_TRANSPORT_SS_UPDATE);
     return; /* Nothing to send at the moment */
   }
   session = msgw->session;
@@ -1160,20 +1144,18 @@ unix_plugin_do_write (struct Plugin *plugin)
                          msgw->session->address->address,
                          msgw->session->address->address_length,
                          msgw->payload,
-                         msgw->cont, msgw->cont_cls);
+                         msgw->cont,
+                         msgw->cont_cls);
   if (RETRY == sent)
   {
     GNUNET_STATISTICS_update (plugin->env->stats,
-			      "# UNIX retry attempts",
-			      1, GNUNET_NO);
-    notify_session_monitor (plugin,
-                            session,
-                            GNUNET_TRANSPORT_SS_UPDATE);
+                              "# UNIX retry attempts",
+                              1,
+                              GNUNET_NO);
+    notify_session_monitor (plugin, session, GNUNET_TRANSPORT_SS_UPDATE);
     return;
   }
-  GNUNET_CONTAINER_DLL_remove (plugin->msg_head,
-                               plugin->msg_tail,
-                               msgw);
+  GNUNET_CONTAINER_DLL_remove (plugin->msg_head, plugin->msg_tail, msgw);
   session->msgs_in_queue--;
   GNUNET_assert (session->bytes_in_queue >= msgw->msgsize);
   session->bytes_in_queue -= msgw->msgsize;
@@ -1181,10 +1163,9 @@ unix_plugin_do_write (struct Plugin *plugin)
   plugin->bytes_in_queue -= msgw->msgsize;
   GNUNET_STATISTICS_set (plugin->env->stats,
                          "# bytes currently in UNIX buffers",
-                         plugin->bytes_in_queue, GNUNET_NO);
-  notify_session_monitor (plugin,
-                          session,
-                          GNUNET_TRANSPORT_SS_UPDATE);
+                         plugin->bytes_in_queue,
+                         GNUNET_NO);
+  notify_session_monitor (plugin, session, GNUNET_TRANSPORT_SS_UPDATE);
   if (GNUNET_SYSERR == sent)
   {
     /* failed and no retry */
@@ -1192,11 +1173,12 @@ unix_plugin_do_write (struct Plugin *plugin)
       msgw->cont (msgw->cont_cls,
                   &msgw->session->target,
                   GNUNET_SYSERR,
-                  msgw->payload, 0);
+                  msgw->payload,
+                  0);
     GNUNET_STATISTICS_update (plugin->env->stats,
-			      "# UNIX bytes discarded",
-			      msgw->msgsize,
-			      GNUNET_NO);
+                              "# UNIX bytes discarded",
+                              msgw->msgsize,
+                              GNUNET_NO);
     GNUNET_free (msgw->msg);
     GNUNET_free (msgw);
     return;
@@ -1204,15 +1186,15 @@ unix_plugin_do_write (struct Plugin *plugin)
   /* successfully sent bytes */
   GNUNET_break (sent > 0);
   GNUNET_STATISTICS_update (plugin->env->stats,
-			    "# bytes transmitted via UNIX",
-			    msgw->msgsize,
-			    GNUNET_NO);
+                            "# bytes transmitted via UNIX",
+                            msgw->msgsize,
+                            GNUNET_NO);
   if (NULL != msgw->cont)
     msgw->cont (msgw->cont_cls,
                 &msgw->session->target,
-		GNUNET_OK,
-		msgw->payload,
-		msgw->msgsize);
+                GNUNET_OK,
+                msgw->payload,
+                msgw->msgsize);
   GNUNET_free (msgw->msg);
   GNUNET_free (msgw);
 }
@@ -1237,7 +1219,8 @@ unix_plugin_select_read (void *cls)
   plugin->read_task =
     GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL,
                                    plugin->unix_sock.desc,
-                                   &unix_plugin_select_read, plugin);
+                                   &unix_plugin_select_read,
+                                   plugin);
 }
 
 
@@ -1262,7 +1245,8 @@ unix_plugin_select_write (void *cls)
   plugin->write_task =
     GNUNET_SCHEDULER_add_write_net (GNUNET_TIME_UNIT_FOREVER_REL,
                                     plugin->unix_sock.desc,
-                                    &unix_plugin_select_write, plugin);
+                                    &unix_plugin_select_write,
+                                    plugin);
 }
 
 
@@ -1310,13 +1294,13 @@ unix_plugin_send (void *cls,
 
   if (GNUNET_OK !=
       GNUNET_CONTAINER_multipeermap_contains_value (plugin->session_map,
-						    &session->target,
-						    session))
+                                                    &session->target,
+                                                    session))
   {
     LOG (GNUNET_ERROR_TYPE_ERROR,
-	 "Invalid session for peer `%s' `%s'\n",
-	 GNUNET_i2s (&session->target),
-	 unix_plugin_address_to_string (NULL,
+         "Invalid session for peer `%s' `%s'\n",
+         GNUNET_i2s (&session->target),
+         unix_plugin_address_to_string (NULL,
                                         session->address->address,
                                         session->address->address_length));
     GNUNET_break (0);
@@ -1333,16 +1317,16 @@ unix_plugin_send (void *cls,
   message = GNUNET_malloc (sizeof (struct UNIXMessage) + msgbuf_size);
   message->header.size = htons (ssize);
   message->header.type = htons (0);
-  GNUNET_memcpy (&message->sender, plugin->env->my_identity,
-          sizeof (struct GNUNET_PeerIdentity));
+  GNUNET_memcpy (&message->sender,
+                 plugin->env->my_identity,
+                 sizeof (struct GNUNET_PeerIdentity));
   GNUNET_memcpy (&message[1], msgbuf, msgbuf_size);
   wrapper = GNUNET_new (struct UNIXMessageWrapper);
   wrapper->msg = message;
   wrapper->msgsize = ssize;
   wrapper->payload = msgbuf_size;
   wrapper->priority = priority;
-  wrapper->timeout = GNUNET_TIME_absolute_add (GNUNET_TIME_absolute_get (),
-                                               to);
+  wrapper->timeout = GNUNET_TIME_absolute_add (GNUNET_TIME_absolute_get (), to);
   wrapper->cont = cont;
   wrapper->cont_cls = cont_cls;
   wrapper->session = session;
@@ -1353,17 +1337,16 @@ unix_plugin_send (void *cls,
   session->bytes_in_queue += ssize;
   session->msgs_in_queue++;
   GNUNET_STATISTICS_set (plugin->env->stats,
-			 "# bytes currently in UNIX buffers",
-			 plugin->bytes_in_queue,
-			 GNUNET_NO);
-  notify_session_monitor (plugin,
-                          session,
-                          GNUNET_TRANSPORT_SS_UPDATE);
+                         "# bytes currently in UNIX buffers",
+                         plugin->bytes_in_queue,
+                         GNUNET_NO);
+  notify_session_monitor (plugin, session, GNUNET_TRANSPORT_SS_UPDATE);
   if (NULL == plugin->write_task)
     plugin->write_task =
       GNUNET_SCHEDULER_add_write_net (GNUNET_TIME_UNIT_FOREVER_REL,
                                       plugin->unix_sock.desc,
-                                      &unix_plugin_select_write, plugin);
+                                      &unix_plugin_select_write,
+                                      plugin);
   return ssize;
 }
 
@@ -1381,15 +1364,14 @@ unix_transport_server_start (void *cls)
   struct sockaddr_un *un;
   socklen_t un_len;
 
-  un = unix_address_to_sockaddr (plugin->unix_socket_path,
-                                 &un_len);
+  un = unix_address_to_sockaddr (plugin->unix_socket_path, &un_len);
   if (GNUNET_YES == plugin->is_abstract)
   {
     plugin->unix_socket_path[0] = '@';
     un->sun_path[0] = '\0';
   }
   plugin->unix_sock.desc =
-      GNUNET_NETWORK_socket_create (AF_UNIX, SOCK_DGRAM, 0);
+    GNUNET_NETWORK_socket_create (AF_UNIX, SOCK_DGRAM, 0);
   if (NULL == plugin->unix_sock.desc)
   {
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "socket");
@@ -1400,33 +1382,32 @@ unix_transport_server_start (void *cls)
   {
     if (GNUNET_OK != GNUNET_DISK_directory_create_for_file (un->sun_path))
     {
-      LOG (GNUNET_ERROR_TYPE_ERROR, _("Cannot create path to `%s'\n"),
-          un->sun_path);
+      LOG (GNUNET_ERROR_TYPE_ERROR,
+           _ ("Cannot create path to `%s'\n"),
+           un->sun_path);
       GNUNET_NETWORK_socket_close (plugin->unix_sock.desc);
       plugin->unix_sock.desc = NULL;
       GNUNET_free (un);
       return GNUNET_SYSERR;
     }
   }
-  if (GNUNET_OK !=
-      GNUNET_NETWORK_socket_bind (plugin->unix_sock.desc,
-                                  (const struct sockaddr *) un, un_len))
+  if (GNUNET_OK != GNUNET_NETWORK_socket_bind (plugin->unix_sock.desc,
+                                               (const struct sockaddr *) un,
+                                               un_len))
   {
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "bind");
-    LOG (GNUNET_ERROR_TYPE_ERROR, _("Cannot bind to `%s'\n"),
-        un->sun_path);
+    LOG (GNUNET_ERROR_TYPE_ERROR, _ ("Cannot bind to `%s'\n"), un->sun_path);
     GNUNET_NETWORK_socket_close (plugin->unix_sock.desc);
     plugin->unix_sock.desc = NULL;
     GNUNET_free (un);
     return GNUNET_SYSERR;
   }
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Bound to `%s'\n",
-       plugin->unix_socket_path);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Bound to `%s'\n", plugin->unix_socket_path);
   plugin->read_task =
     GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL,
                                    plugin->unix_sock.desc,
-                                   &unix_plugin_select_read, plugin);
+                                   &unix_plugin_select_read,
+                                   plugin);
   GNUNET_free (un);
   return 1;
 }
@@ -1449,18 +1430,15 @@ unix_transport_server_start (void *cls)
  *
  */
 static int
-unix_plugin_check_address (void *cls,
-                           const void *addr,
-                           size_t addrlen)
+unix_plugin_check_address (void *cls, const void *addr, size_t addrlen)
 {
-  struct Plugin* plugin = cls;
+  struct Plugin *plugin = cls;
   const struct UnixAddress *ua = addr;
   char *addrstr;
   size_t addr_str_len;
 
-  if ( (NULL == addr) ||
-       (0 == addrlen) ||
-       (sizeof (struct UnixAddress) > addrlen) )
+  if ((NULL == addr) || (0 == addrlen) ||
+      (sizeof (struct UnixAddress) > addrlen))
   {
     GNUNET_break (0);
     return GNUNET_SYSERR;
@@ -1479,7 +1457,7 @@ unix_plugin_check_address (void *cls,
   }
 
   if (0 == strcmp (plugin->unix_socket_path, addrstr))
-  	return GNUNET_OK;
+    return GNUNET_OK;
   return GNUNET_SYSERR;
 }
 
@@ -1499,7 +1477,8 @@ unix_plugin_check_address (void *cls,
  * @param asc_cls closure for @a asc
  */
 static void
-unix_plugin_address_pretty_printer (void *cls, const char *type,
+unix_plugin_address_pretty_printer (void *cls,
+                                    const char *type,
                                     const void *addr,
                                     size_t addrlen,
                                     int numeric,
@@ -1509,15 +1488,11 @@ unix_plugin_address_pretty_printer (void *cls, const char *type,
 {
   const char *ret;
 
-  if ( (NULL != addr) && (addrlen > 0))
-    ret = unix_plugin_address_to_string (NULL,
-                                         addr,
-                                         addrlen);
+  if ((NULL != addr) && (addrlen > 0))
+    ret = unix_plugin_address_to_string (NULL, addr, addrlen);
   else
     ret = NULL;
-  asc (asc_cls,
-       ret,
-       (NULL == ret) ? GNUNET_SYSERR : GNUNET_OK);
+  asc (asc_cls, ret, (NULL == ret) ? GNUNET_SYSERR : GNUNET_OK);
   asc (asc_cls, NULL, GNUNET_OK);
 }
 
@@ -1538,7 +1513,8 @@ static int
 unix_plugin_string_to_address (void *cls,
                                const char *addr,
                                uint16_t addrlen,
-                               void **buf, size_t *added)
+                               void **buf,
+                               size_t *added)
 {
   struct UnixAddress *ua;
   char *address;
@@ -1587,7 +1563,7 @@ unix_plugin_string_to_address (void *cls,
   }
   address[0] = '\0';
   address++;
-  if (0 != strcmp(plugin, PLUGIN_NAME))
+  if (0 != strcmp (plugin, PLUGIN_NAME))
   {
     GNUNET_break (0);
     GNUNET_free (plugin);
@@ -1624,9 +1600,11 @@ address_notification (void *cls)
   len = sizeof (struct UnixAddress) + strlen (plugin->unix_socket_path) + 1;
   ua = GNUNET_malloc (len);
   ua->options = htonl (plugin->myoptions);
-  ua->addrlen = htonl(strlen (plugin->unix_socket_path) + 1);
+  ua->addrlen = htonl (strlen (plugin->unix_socket_path) + 1);
   unix_path = (char *) &ua[1];
-  GNUNET_memcpy (unix_path, plugin->unix_socket_path, strlen (plugin->unix_socket_path) + 1);
+  GNUNET_memcpy (unix_path,
+                 plugin->unix_socket_path,
+                 strlen (plugin->unix_socket_path) + 1);
 
   plugin->address_update_task = NULL;
   address = GNUNET_HELLO_address_allocate (plugin->env->my_identity,
@@ -1634,9 +1612,7 @@ address_notification (void *cls)
                                            ua,
                                            len,
                                            GNUNET_HELLO_ADDRESS_INFO_NONE);
-  plugin->env->notify_address (plugin->env->cls,
-                               GNUNET_YES,
-                               address);
+  plugin->env->notify_address (plugin->env->cls, GNUNET_YES, address);
   GNUNET_free (ua);
   GNUNET_free (address);
 }
@@ -1652,8 +1628,8 @@ address_notification (void *cls)
  */
 static int
 get_session_delete_it (void *cls,
-		       const struct GNUNET_PeerIdentity *key,
-		       void *value)
+                       const struct GNUNET_PeerIdentity *key,
+                       void *value)
 {
   struct Plugin *plugin = cls;
   struct GNUNET_ATS_Session *session = value;
@@ -1677,8 +1653,9 @@ unix_plugin_peer_disconnect (void *cls,
   struct Plugin *plugin = cls;
 
   GNUNET_CONTAINER_multipeermap_get_multiple (plugin->session_map,
-					      target,
-					      &get_session_delete_it, plugin);
+                                              target,
+                                              &get_session_delete_it,
+                                              plugin);
 }
 
 
@@ -1699,12 +1676,8 @@ send_session_info_iter (void *cls,
   struct Plugin *plugin = cls;
   struct GNUNET_ATS_Session *session = value;
 
-  notify_session_monitor (plugin,
-                          session,
-                          GNUNET_TRANSPORT_SS_INIT);
-  notify_session_monitor (plugin,
-                          session,
-                          GNUNET_TRANSPORT_SS_UP);
+  notify_session_monitor (plugin, session, GNUNET_TRANSPORT_SS_INIT);
+  notify_session_monitor (plugin, session, GNUNET_TRANSPORT_SS_UP);
   return GNUNET_OK;
 }
 
@@ -1786,9 +1759,10 @@ libgnunet_plugin_transport_unix_init (void *cls)
 
   /* Initialize my flags */
 #ifdef LINUX
-  plugin->is_abstract = GNUNET_CONFIGURATION_get_value_yesno (plugin->env->cfg,
-                                                              "testing",
-                                                              "USE_ABSTRACT_SOCKETS");
+  plugin->is_abstract =
+    GNUNET_CONFIGURATION_get_value_yesno (plugin->env->cfg,
+                                          "testing",
+                                          "USE_ABSTRACT_SOCKETS");
 #endif
   plugin->myoptions = UNIX_OPTIONS_NONE;
   if (GNUNET_YES == plugin->is_abstract)
@@ -1812,16 +1786,15 @@ libgnunet_plugin_transport_unix_init (void *cls)
   sockets_created = unix_transport_server_start (plugin);
   if ((0 == sockets_created) || (GNUNET_SYSERR == sockets_created))
   {
-    LOG (GNUNET_ERROR_TYPE_WARNING,
-	 _("Failed to open UNIX listen socket\n"));
+    LOG (GNUNET_ERROR_TYPE_WARNING, _ ("Failed to open UNIX listen socket\n"));
     GNUNET_free (api);
     GNUNET_free (plugin->unix_socket_path);
     GNUNET_free (plugin);
     return NULL;
   }
   plugin->session_map = GNUNET_CONTAINER_multipeermap_create (10, GNUNET_NO);
-  plugin->address_update_task = GNUNET_SCHEDULER_add_now (&address_notification,
-                                                          plugin);
+  plugin->address_update_task =
+    GNUNET_SCHEDULER_add_now (&address_notification, plugin);
   return api;
 }
 
@@ -1838,7 +1811,7 @@ libgnunet_plugin_transport_unix_done (void *cls)
   struct GNUNET_TRANSPORT_PluginFunctions *api = cls;
   struct Plugin *plugin = api->cls;
   struct GNUNET_HELLO_Address *address;
-  struct UNIXMessageWrapper * msgw;
+  struct UNIXMessageWrapper *msgw;
   struct UnixAddress *ua;
   size_t len;
   struct GNUNET_ATS_Session *session;
@@ -1851,26 +1824,23 @@ libgnunet_plugin_transport_unix_done (void *cls)
   len = sizeof (struct UnixAddress) + strlen (plugin->unix_socket_path) + 1;
   ua = GNUNET_malloc (len);
   ua->options = htonl (plugin->myoptions);
-  ua->addrlen = htonl(strlen (plugin->unix_socket_path) + 1);
+  ua->addrlen = htonl (strlen (plugin->unix_socket_path) + 1);
   GNUNET_memcpy (&ua[1],
-          plugin->unix_socket_path,
-          strlen (plugin->unix_socket_path) + 1);
+                 plugin->unix_socket_path,
+                 strlen (plugin->unix_socket_path) + 1);
   address = GNUNET_HELLO_address_allocate (plugin->env->my_identity,
                                            PLUGIN_NAME,
-                                           ua, len,
+                                           ua,
+                                           len,
                                            GNUNET_HELLO_ADDRESS_INFO_NONE);
-  plugin->env->notify_address (plugin->env->cls,
-                               GNUNET_NO,
-                               address);
+  plugin->env->notify_address (plugin->env->cls, GNUNET_NO, address);
 
   GNUNET_free (address);
   GNUNET_free (ua);
 
   while (NULL != (msgw = plugin->msg_head))
   {
-    GNUNET_CONTAINER_DLL_remove (plugin->msg_head,
-                                 plugin->msg_tail,
-                                 msgw);
+    GNUNET_CONTAINER_DLL_remove (plugin->msg_head, plugin->msg_tail, msgw);
     session = msgw->session;
     session->msgs_in_queue--;
     GNUNET_assert (session->bytes_in_queue >= msgw->msgsize);
@@ -1881,7 +1851,8 @@ libgnunet_plugin_transport_unix_done (void *cls)
       msgw->cont (msgw->cont_cls,
                   &msgw->session->target,
                   GNUNET_SYSERR,
-                  msgw->payload, 0);
+                  msgw->payload,
+                  0);
     GNUNET_free (msgw->msg);
     GNUNET_free (msgw);
   }
@@ -1908,7 +1879,7 @@ libgnunet_plugin_transport_unix_done (void *cls)
     plugin->unix_sock.desc = NULL;
   }
   GNUNET_CONTAINER_multipeermap_iterate (plugin->session_map,
-					 &get_session_delete_it,
+                                         &get_session_delete_it,
                                          plugin);
   GNUNET_CONTAINER_multipeermap_destroy (plugin->session_map);
   GNUNET_break (0 == plugin->bytes_in_queue);

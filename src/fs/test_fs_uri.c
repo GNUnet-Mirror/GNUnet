@@ -314,11 +314,11 @@ main (int argc, char *argv[])
   failureCount += testLocation ();
   for (i = 0; i < 255; i++)
   {
-    /* FPRINTF (stderr, "%s",  "."); */
+    /* fprintf (stderr, "%s",  "."); */
     failureCount += testNamespace (i);
     failureCount += testFile (i);
   }
-  /* FPRINTF (stderr, "%s",  "\n"); */
+  /* fprintf (stderr, "%s",  "\n"); */
   GNUNET_DISK_directory_remove ("/tmp/gnunet-test-fs-uri");
   if (failureCount != 0)
     return 1;

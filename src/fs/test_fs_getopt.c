@@ -32,6 +32,6 @@ main (int argc, char *argv[])
   GNUNET_log_setup ("test_fs_getopt",
                     "WARNING",
                     NULL);
-  FPRINTF (stderr, "%s",  "WARNING: testcase not yet written.\n");
+  fprintf (stderr, "%s",  "WARNING: testcase not yet written.\n");
   return 0;                     /* testcase passed */
 }

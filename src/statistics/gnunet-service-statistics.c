@@ -71,7 +71,6 @@ struct WatchEntry
    * #GNUNET_NO : last_value is n/a, #GNUNET_YES: last_value is valid
    */
   int last_value_set;
-
 };
 
 
@@ -138,7 +137,6 @@ struct StatsEntry
    * #GNUNET_NO: value is n/a, #GNUNET_YES: value is valid
    */
   int set;
-
 };
 
 
@@ -173,7 +171,6 @@ struct SubsystemEntry
    * the end of this struct, do not free().
    */
   const char *service;
-
 };
 
 
@@ -201,7 +198,6 @@ struct ClientEntry
    * Maximum watch ID used by this client so far.
    */
   uint32_t max_wid;
-
 };
 
 
@@ -257,11 +253,10 @@ save ()
   size_t slen;
   struct GNUNET_STATISTICS_SetMessage *msg;
 
-  if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_filename (cfg,
-                                               "STATISTICS",
-                                               "DATABASE",
-                                               &fn))
+  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_filename (cfg,
+                                                            "STATISTICS",
+                                                            "DATABASE",
+                                                            &fn))
   {
     GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR,
                                "STATISTICS",
@@ -273,17 +268,12 @@ save ()
   total = 0;
   while (NULL != (se = sub_head))
   {
-    GNUNET_CONTAINER_DLL_remove (sub_head,
-                                 sub_tail,
-                                 se);
+    GNUNET_CONTAINER_DLL_remove (sub_head, sub_tail, se);
     slen = strlen (se->service) + 1;
     while (NULL != (pos = se->stat_head))
     {
-      GNUNET_CONTAINER_DLL_remove (se->stat_head,
-                                   se->stat_tail,
-                                   pos);
-      if ( (pos->persistent) &&
-	   (NULL != wh) )
+      GNUNET_CONTAINER_DLL_remove (se->stat_head, se->stat_tail, pos);
+      if ((pos->persistent) && (NULL != wh))
       {
         nlen = strlen (pos->name) + 1;
         size = sizeof (struct GNUNET_STATISTICS_SetMessage) + nlen + slen;
@@ -298,19 +288,14 @@ save ()
                                                    2,
                                                    se->service,
                                                    pos->name));
-        msg->flags = htonl (pos->persistent ? GNUNET_STATISTICS_SETFLAG_PERSISTENT : 0);
+        msg->flags =
+          htonl (pos->persistent ? GNUNET_STATISTICS_SETFLAG_PERSISTENT : 0);
         msg->value = GNUNET_htonll (pos->value);
-        if (GNUNET_OK != GNUNET_BIO_write (wh,
-                                           msg,
-                                           size))
+        if (GNUNET_OK != GNUNET_BIO_write (wh, msg, size))
         {
-          GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING,
-                                    "write",
-                                    fn);
+          GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "write", fn);
           if (GNUNET_OK != GNUNET_BIO_write_close (wh))
-            GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING,
-                                      "close",
-                                      fn);
+            GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "close", fn);
           wh = NULL;
         }
         else
@@ -325,17 +310,13 @@ save ()
   }
   if (NULL != wh)
   {
-    if (GNUNET_OK !=
-        GNUNET_BIO_write_close (wh))
-      GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING,
-                                "close",
-                                fn);
+    if (GNUNET_OK != GNUNET_BIO_write_close (wh))
+      GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "close", fn);
     if (0 == total)
-      GNUNET_break (0 ==
-                    UNLINK (fn));
+      GNUNET_break (0 == unlink (fn));
     else
       GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                  _("Wrote %llu bytes of statistics to `%s'\n"),
+                  _ ("Wrote %llu bytes of statistics to `%s'\n"),
                   total,
                   fn);
   }
@@ -350,37 +331,31 @@ save ()
  * @param e value to transmit
  */
 static void
-transmit (struct ClientEntry *ce,
-          const struct StatsEntry *e)
+transmit (struct ClientEntry *ce, const struct StatsEntry *e)
 {
   struct GNUNET_MQ_Envelope *env;
   struct GNUNET_STATISTICS_ReplyMessage *m;
   size_t size;
 
-  size = strlen (e->subsystem->service) + 1 +
-    strlen (e->name) + 1;
+  size = strlen (e->subsystem->service) + 1 + strlen (e->name) + 1;
   GNUNET_assert (size < GNUNET_MAX_MESSAGE_SIZE);
-  env = GNUNET_MQ_msg_extra (m,
-			     size,
-			     GNUNET_MESSAGE_TYPE_STATISTICS_VALUE);
+  env = GNUNET_MQ_msg_extra (m, size, GNUNET_MESSAGE_TYPE_STATISTICS_VALUE);
   m->uid = htonl (e->uid);
   if (e->persistent)
     m->uid |= htonl (GNUNET_STATISTICS_PERSIST_BIT);
   m->value = GNUNET_htonll (e->value);
-  GNUNET_assert (size ==
-                 GNUNET_STRINGS_buffer_fill ((char *) &m[1],
-                                             size,
-                                             2,
-                                             e->subsystem->service,
-                                             e->name));
+  GNUNET_assert (size == GNUNET_STRINGS_buffer_fill ((char *) &m[1],
+                                                     size,
+                                                     2,
+                                                     e->subsystem->service,
+                                                     e->name));
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Transmitting value for `%s:%s' (%d): %llu\n",
               e->subsystem->service,
               e->name,
               e->persistent,
               (unsigned long long) e->value);
-  GNUNET_MQ_send (ce->mq,
-		  env);
+  GNUNET_MQ_send (ce->mq, env);
 }
 
 
@@ -394,8 +369,8 @@ transmit (struct ClientEntry *ce,
  */
 static void *
 client_connect_cb (void *cls,
-		   struct GNUNET_SERVICE_Client *c,
-		   struct GNUNET_MQ_Handle *mq)
+                   struct GNUNET_SERVICE_Client *c,
+                   struct GNUNET_MQ_Handle *mq)
 {
   struct ClientEntry *ce;
 
@@ -403,8 +378,7 @@ client_connect_cb (void *cls,
   ce->client = c;
   ce->mq = mq;
   client_count++;
-  GNUNET_notification_context_add (nc,
-				   mq);
+  GNUNET_notification_context_add (nc, mq);
   return ce;
 }
 
@@ -417,20 +391,18 @@ client_connect_cb (void *cls,
  * @return #GNUNET_OK if @a message is well-formed
  */
 static int
-check_get (void *cls,
-	   const struct GNUNET_MessageHeader *message)
+check_get (void *cls, const struct GNUNET_MessageHeader *message)
 {
   const char *service;
   const char *name;
   size_t size;
 
   size = ntohs (message->size) - sizeof (struct GNUNET_MessageHeader);
-  if (size !=
-      GNUNET_STRINGS_buffer_tokenize ((const char *) &message[1],
-                                      size,
-                                      2,
-                                      &service,
-                                      &name))
+  if (size != GNUNET_STRINGS_buffer_tokenize ((const char *) &message[1],
+                                              size,
+                                              2,
+                                              &service,
+                                              &name))
   {
     GNUNET_break (0);
     return GNUNET_SYSERR;
@@ -446,8 +418,7 @@ check_get (void *cls,
  * @param message the actual message
  */
 static void
-handle_get (void *cls,
-            const struct GNUNET_MessageHeader *message)
+handle_get (void *cls, const struct GNUNET_MessageHeader *message)
 {
   struct ClientEntry *ce = cls;
   struct GNUNET_MQ_Envelope *env;
@@ -462,11 +433,11 @@ handle_get (void *cls,
 
   size = ntohs (message->size) - sizeof (struct GNUNET_MessageHeader);
   GNUNET_assert (size ==
-		 GNUNET_STRINGS_buffer_tokenize ((const char *) &message[1],
-						 size,
-						 2,
-						 &service,
-						 &name));
+                 GNUNET_STRINGS_buffer_tokenize ((const char *) &message[1],
+                                                 size,
+                                                 2,
+                                                 &service,
+                                                 &name));
   slen = strlen (service);
   nlen = strlen (name);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -475,23 +446,17 @@ handle_get (void *cls,
               nlen ? name : "*");
   for (se = sub_head; NULL != se; se = se->next)
   {
-    if (! ( (0 == slen) ||
-            (0 == strcmp (service, se->service))) )
+    if (! ((0 == slen) || (0 == strcmp (service, se->service))))
       continue;
     for (pos = se->stat_head; NULL != pos; pos = pos->next)
     {
-      if  (! ( (0 == nlen) ||
-               (0 == strcmp (name,
-			     pos->name))) )
+      if (! ((0 == nlen) || (0 == strcmp (name, pos->name))))
         continue;
-      transmit (ce,
-		pos);
+      transmit (ce, pos);
     }
   }
-  env = GNUNET_MQ_msg (end,
-		       GNUNET_MESSAGE_TYPE_STATISTICS_END);
-  GNUNET_MQ_send (ce->mq,
-		  env);
+  env = GNUNET_MQ_msg (end, GNUNET_MESSAGE_TYPE_STATISTICS_END);
+  GNUNET_MQ_send (ce->mq, env);
   GNUNET_SERVICE_client_continue (ce->client);
 }
 
@@ -519,14 +484,13 @@ notify_change (struct StatsEntry *se)
     {
       pos->last_value_set = GNUNET_YES;
     }
-    env = GNUNET_MQ_msg (wvm,
-			 GNUNET_MESSAGE_TYPE_STATISTICS_WATCH_VALUE);
-    wvm->flags = htonl (se->persistent ? GNUNET_STATISTICS_SETFLAG_PERSISTENT : 0);
+    env = GNUNET_MQ_msg (wvm, GNUNET_MESSAGE_TYPE_STATISTICS_WATCH_VALUE);
+    wvm->flags =
+      htonl (se->persistent ? GNUNET_STATISTICS_SETFLAG_PERSISTENT : 0);
     wvm->wid = htonl (pos->wid);
     wvm->reserved = htonl (0);
     wvm->value = GNUNET_htonll (se->value);
-    GNUNET_MQ_send (pos->ce->mq,
-		    env);
+    GNUNET_MQ_send (pos->ce->mq, env);
     pos->last_value = se->value;
   }
 }
@@ -541,8 +505,7 @@ notify_change (struct StatsEntry *se)
  * @return subsystem entry, never NULL (subsystem entry is created if necessary)
  */
 static struct SubsystemEntry *
-find_subsystem_entry (struct ClientEntry *ce,
-                      const char *service)
+find_subsystem_entry (struct ClientEntry *ce, const char *service)
 {
   size_t slen;
   struct SubsystemEntry *se;
@@ -551,13 +514,10 @@ find_subsystem_entry (struct ClientEntry *ce,
     se = ce->subsystem;
   else
     se = NULL;
-  if ( (NULL == se) ||
-       (0 != strcmp (service,
-                     se->service)) )
+  if ((NULL == se) || (0 != strcmp (service, se->service)))
   {
     for (se = sub_head; NULL != se; se = se->next)
-      if (0 == strcmp (service,
-                       se->service))
+      if (0 == strcmp (service, se->service))
         break;
     if (NULL != ce)
       ce->subsystem = se;
@@ -568,15 +528,10 @@ find_subsystem_entry (struct ClientEntry *ce,
               "Allocating new subsystem entry `%s'\n",
               service);
   slen = strlen (service) + 1;
-  se = GNUNET_malloc (sizeof (struct SubsystemEntry) +
-                      slen);
-  GNUNET_memcpy (&se[1],
-          service,
-          slen);
+  se = GNUNET_malloc (sizeof (struct SubsystemEntry) + slen);
+  GNUNET_memcpy (&se[1], service, slen);
   se->service = (const char *) &se[1];
-  GNUNET_CONTAINER_DLL_insert (sub_head,
-                               sub_tail,
-                               se);
+  GNUNET_CONTAINER_DLL_insert (sub_head, sub_tail, se);
   if (NULL != ce)
     ce->subsystem = se;
   return se;
@@ -591,13 +546,12 @@ find_subsystem_entry (struct ClientEntry *ce,
  * @return statistis entry, or NULL if not found
  */
 static struct StatsEntry *
-find_stat_entry (struct SubsystemEntry *se,
-                 const char *name)
+find_stat_entry (struct SubsystemEntry *se, const char *name)
 {
   struct StatsEntry *pos;
 
   for (pos = se->stat_head; NULL != pos; pos = pos->next)
-    if  (0 == strcmp (name, pos->name))
+    if (0 == strcmp (name, pos->name))
       return pos;
   return NULL;
 }
@@ -611,20 +565,18 @@ find_stat_entry (struct SubsystemEntry *se,
  * @return #GNUNET_OK if message is well-formed
  */
 static int
-check_set (void *cls,
-	   const struct GNUNET_STATISTICS_SetMessage *msg)
+check_set (void *cls, const struct GNUNET_STATISTICS_SetMessage *msg)
 {
   const char *service;
   const char *name;
   size_t msize;
 
   msize = ntohs (msg->header.size) - sizeof (*msg);
-  if (msize !=
-      GNUNET_STRINGS_buffer_tokenize ((const char *) &msg[1],
-                                      msize,
-                                      2,
-                                      &service,
-                                      &name))
+  if (msize != GNUNET_STRINGS_buffer_tokenize ((const char *) &msg[1],
+                                               msize,
+                                               2,
+                                               &service,
+                                               &name))
   {
     GNUNET_break (0);
     return GNUNET_SYSERR;
@@ -640,8 +592,7 @@ check_set (void *cls,
  * @param message the actual message
  */
 static void
-handle_set (void *cls,
-            const struct GNUNET_STATISTICS_SetMessage *msg)
+handle_set (void *cls, const struct GNUNET_STATISTICS_SetMessage *msg)
 {
   struct ClientEntry *ce = cls;
   const char *service;
@@ -659,14 +610,12 @@ handle_set (void *cls,
 
   msize = ntohs (msg->header.size);
   size = msize - sizeof (struct GNUNET_STATISTICS_SetMessage);
-  GNUNET_assert (size ==
-		 GNUNET_STRINGS_buffer_tokenize ((const char *) &msg[1],
-						 size,
-						 2,
-						 &service,
-						 &name));
-  se = find_subsystem_entry (ce,
-			     service);
+  GNUNET_assert (size == GNUNET_STRINGS_buffer_tokenize ((const char *) &msg[1],
+                                                         size,
+                                                         2,
+                                                         &service,
+                                                         &name));
+  se = find_subsystem_entry (ce, service);
   flags = ntohl (msg->flags);
   value = GNUNET_ntohll (msg->value);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -675,8 +624,7 @@ handle_set (void *cls,
               name,
               (unsigned int) flags,
               (unsigned long long) value);
-  pos = find_stat_entry (se,
-			 name);
+  pos = find_stat_entry (se, name);
   if (NULL != pos)
   {
     initial_set = 0;
@@ -696,8 +644,7 @@ handle_set (void *cls,
       else
       {
         changed = (0 != delta);
-        GNUNET_break ( (delta <= 0) ||
-                       (pos->value + delta > pos->value) );
+        GNUNET_break ((delta <= 0) || (pos->value + delta > pos->value));
         pos->value += delta;
       }
     }
@@ -710,12 +657,8 @@ handle_set (void *cls,
     if (pos != se->stat_head)
     {
       /* move to front for faster setting next time! */
-      GNUNET_CONTAINER_DLL_remove (se->stat_head,
-                                   se->stat_tail,
-                                   pos);
-      GNUNET_CONTAINER_DLL_insert (se->stat_head,
-                                   se->stat_tail,
-                                   pos);
+      GNUNET_CONTAINER_DLL_remove (se->stat_head, se->stat_tail, pos);
+      GNUNET_CONTAINER_DLL_insert (se->stat_head, se->stat_tail, pos);
     }
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Statistic `%s:%s' updated to value %llu (%d).\n",
@@ -723,8 +666,7 @@ handle_set (void *cls,
                 name,
                 (unsigned long long) pos->value,
                 pos->persistent);
-    if ( (changed) ||
-         (1 == initial_set) )
+    if ((changed) || (1 == initial_set))
       notify_change (pos);
     GNUNET_SERVICE_client_continue (ce->client);
     return;
@@ -732,13 +674,11 @@ handle_set (void *cls,
   /* not found, create a new entry */
   nlen = strlen (name) + 1;
   pos = GNUNET_malloc (sizeof (struct StatsEntry) + nlen);
-  GNUNET_memcpy (&pos[1],
-		 name,
-		 nlen);
+  GNUNET_memcpy (&pos[1], name, nlen);
   pos->name = (const char *) &pos[1];
   pos->subsystem = se;
-  if ( (0 == (flags & GNUNET_STATISTICS_SETFLAG_RELATIVE)) ||
-       (0 < (int64_t) GNUNET_ntohll (msg->value)) )
+  if ((0 == (flags & GNUNET_STATISTICS_SETFLAG_RELATIVE)) ||
+      (0 < (int64_t) GNUNET_ntohll (msg->value)))
   {
     pos->value = GNUNET_ntohll (msg->value);
     pos->set = GNUNET_YES;
@@ -749,9 +689,7 @@ handle_set (void *cls,
   }
   pos->uid = uidgen++;
   pos->persistent = (0 != (flags & GNUNET_STATISTICS_SETFLAG_PERSISTENT));
-  GNUNET_CONTAINER_DLL_insert (se->stat_head,
-                               se->stat_tail,
-                               pos);
+  GNUNET_CONTAINER_DLL_insert (se->stat_head, se->stat_tail, pos);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "New statistic on `%s:%s' with value %llu created.\n",
               service,
@@ -770,20 +708,18 @@ handle_set (void *cls,
  * @return #GNUNET_OK if message is well-formed
  */
 static int
-check_watch (void *cls,
-	     const struct GNUNET_MessageHeader *message)
+check_watch (void *cls, const struct GNUNET_MessageHeader *message)
 {
   size_t size;
   const char *service;
   const char *name;
 
   size = ntohs (message->size) - sizeof (struct GNUNET_MessageHeader);
-  if (size !=
-      GNUNET_STRINGS_buffer_tokenize ((const char *) &message[1],
-                                      size,
-                                      2,
-                                      &service,
-                                      &name))
+  if (size != GNUNET_STRINGS_buffer_tokenize ((const char *) &message[1],
+                                              size,
+                                              2,
+                                              &service,
+                                              &name))
   {
     GNUNET_break (0);
     return GNUNET_SYSERR;
@@ -799,8 +735,7 @@ check_watch (void *cls,
  * @param message the actual message
  */
 static void
-handle_watch (void *cls,
-              const struct GNUNET_MessageHeader *message)
+handle_watch (void *cls, const struct GNUNET_MessageHeader *message)
 {
   struct ClientEntry *ce = cls;
   const char *service;
@@ -821,32 +756,25 @@ handle_watch (void *cls,
   msize = ntohs (message->size);
   size = msize - sizeof (struct GNUNET_MessageHeader);
   GNUNET_assert (size ==
-		 GNUNET_STRINGS_buffer_tokenize ((const char *) &message[1],
-						 size,
-						 2,
-						 &service,
-						 &name));
+                 GNUNET_STRINGS_buffer_tokenize ((const char *) &message[1],
+                                                 size,
+                                                 2,
+                                                 &service,
+                                                 &name));
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received request to watch statistic on `%s:%s'\n",
               service,
               name);
-  se = find_subsystem_entry (ce,
-			     service);
-  pos = find_stat_entry (se,
-			 name);
+  se = find_subsystem_entry (ce, service);
+  pos = find_stat_entry (se, name);
   if (NULL == pos)
   {
     nlen = strlen (name) + 1;
-    pos = GNUNET_malloc (sizeof (struct StatsEntry) +
-                         nlen);
-    GNUNET_memcpy (&pos[1],
-		   name,
-		   nlen);
+    pos = GNUNET_malloc (sizeof (struct StatsEntry) + nlen);
+    GNUNET_memcpy (&pos[1], name, nlen);
     pos->name = (const char *) &pos[1];
     pos->subsystem = se;
-    GNUNET_CONTAINER_DLL_insert (se->stat_head,
-                                 se->stat_tail,
-                                 pos);
+    GNUNET_CONTAINER_DLL_insert (se->stat_head, se->stat_tail, pos);
     pos->uid = uidgen++;
     pos->set = GNUNET_NO;
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -859,9 +787,7 @@ handle_watch (void *cls,
   we->ce = ce;
   we->last_value_set = GNUNET_NO;
   we->wid = ce->max_wid++;
-  GNUNET_CONTAINER_DLL_insert (pos->we_head,
-                               pos->we_tail,
-                               we);
+  GNUNET_CONTAINER_DLL_insert (pos->we_head, pos->we_tail, we);
   if (0 != pos->value)
     notify_change (pos);
   GNUNET_SERVICE_client_continue (ce->client);
@@ -877,17 +803,14 @@ handle_watch (void *cls,
  * @param message the actual message
  */
 static void
-handle_disconnect (void *cls,
-		   const struct GNUNET_MessageHeader *message)
+handle_disconnect (void *cls, const struct GNUNET_MessageHeader *message)
 {
   struct ClientEntry *ce = cls;
   struct GNUNET_MQ_Envelope *env;
   struct GNUNET_MessageHeader *msg;
 
-  env = GNUNET_MQ_msg (msg,
-		       GNUNET_MESSAGE_TYPE_STATISTICS_DISCONNECT_CONFIRM);
-  GNUNET_MQ_send (ce->mq,
-		  env);
+  env = GNUNET_MQ_msg (msg, GNUNET_MESSAGE_TYPE_STATISTICS_DISCONNECT_CONFIRM);
+  GNUNET_MQ_send (ce->mq, env);
   GNUNET_SERVICE_client_continue (ce->client);
 }
 
@@ -910,20 +833,14 @@ do_shutdown ()
   GNUNET_assert (0 == client_count);
   while (NULL != (se = sub_head))
   {
-    GNUNET_CONTAINER_DLL_remove (sub_head,
-                                 sub_tail,
-                                 se);
+    GNUNET_CONTAINER_DLL_remove (sub_head, sub_tail, se);
     while (NULL != (pos = se->stat_head))
     {
-      GNUNET_CONTAINER_DLL_remove (se->stat_head,
-                                   se->stat_tail,
-                                   pos);
+      GNUNET_CONTAINER_DLL_remove (se->stat_head, se->stat_tail, pos);
       while (NULL != (we = pos->we_head))
       {
         GNUNET_break (0);
-        GNUNET_CONTAINER_DLL_remove (pos->we_head,
-                                     pos->we_tail,
-                                     we);
+        GNUNET_CONTAINER_DLL_remove (pos->we_head, pos->we_tail, we);
         GNUNET_free (we);
       }
       GNUNET_free (pos);
@@ -957,8 +874,8 @@ shutdown_task (void *cls)
  */
 static void
 client_disconnect_cb (void *cls,
-		      struct GNUNET_SERVICE_Client *client,
-		      void *app_cls)
+                      struct GNUNET_SERVICE_Client *client,
+                      void *app_cls)
 {
   struct ClientEntry *ce = app_cls;
   struct WatchEntry *we;
@@ -977,16 +894,13 @@ client_disconnect_cb (void *cls,
         wen = we->next;
         if (we->ce != ce)
           continue;
-        GNUNET_CONTAINER_DLL_remove (pos->we_head,
-                                     pos->we_tail,
-                                     we);
+        GNUNET_CONTAINER_DLL_remove (pos->we_head, pos->we_tail, we);
         GNUNET_free (we);
       }
     }
   }
   GNUNET_free (ce);
-  if ( (0 == client_count) &&
-       (GNUNET_YES == in_shutdown) )
+  if ((0 == client_count) && (GNUNET_YES == in_shutdown))
     do_shutdown ();
 }
 
@@ -1003,23 +917,19 @@ client_disconnect_cb (void *cls,
  *    #GNUNET_SYSERR to stop further processing with error
  */
 static int
-inject_message (void *cls,
-		const struct GNUNET_MessageHeader *message)
+inject_message (void *cls, const struct GNUNET_MessageHeader *message)
 {
   uint16_t msize = ntohs (message->size);
   const struct GNUNET_STATISTICS_SetMessage *sm;
 
   sm = (const struct GNUNET_STATISTICS_SetMessage *) message;
-  if ( (sizeof (struct GNUNET_STATISTICS_SetMessage) > msize) ||
-       (GNUNET_OK !=
-	check_set (NULL,
-		   sm)) )
+  if ((sizeof (struct GNUNET_STATISTICS_SetMessage) > msize) ||
+      (GNUNET_OK != check_set (NULL, sm)))
   {
     GNUNET_break (0);
     return GNUNET_SYSERR;
   }
-  handle_set (NULL,
-	      sm);
+  handle_set (NULL, sm);
   return GNUNET_OK;
 }
 
@@ -1037,23 +947,19 @@ load ()
   char *buf;
   struct GNUNET_MessageStreamTokenizer *mst;
 
-  if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_filename (cfg,
-                                               "STATISTICS",
-                                               "DATABASE",
-                                               &fn))
+  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_filename (cfg,
+                                                            "STATISTICS",
+                                                            "DATABASE",
+                                                            &fn))
   {
     GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR,
                                "STATISTICS",
                                "DATABASE");
     return;
   }
-  if ( (GNUNET_OK !=
-        GNUNET_DISK_file_size (fn,
-                               &fsize,
-                               GNUNET_NO,
-                               GNUNET_YES)) ||
-       (0 == fsize) )
+  if ((GNUNET_OK !=
+       GNUNET_DISK_file_size (fn, &fsize, GNUNET_NO, GNUNET_YES)) ||
+      (0 == fsize))
   {
     GNUNET_free (fn);
     return;
@@ -1066,39 +972,25 @@ load ()
     GNUNET_free (fn);
     return;
   }
-  if (GNUNET_OK !=
-      GNUNET_BIO_read (rh,
-                       fn,
-                       buf,
-                       fsize))
+  if (GNUNET_OK != GNUNET_BIO_read (rh, fn, buf, fsize))
   {
-    GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING,
-                              "read",
-                              fn);
-    GNUNET_break (GNUNET_OK ==
-                  GNUNET_BIO_read_close (rh,
-					 NULL));
+    GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "read", fn);
+    GNUNET_break (GNUNET_OK == GNUNET_BIO_read_close (rh, NULL));
     GNUNET_free (buf);
     GNUNET_free (fn);
     return;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              _("Loading %llu bytes of statistics from `%s'\n"),
+              _ ("Loading %llu bytes of statistics from `%s'\n"),
               (unsigned long long) fsize,
-	      fn);
-  mst = GNUNET_MST_create (&inject_message,
-			   NULL);
-  GNUNET_break (GNUNET_OK ==
-                GNUNET_MST_from_buffer (mst,
-					buf,
-					(size_t) fsize,
-					GNUNET_YES,
-					GNUNET_NO));
+              fn);
+  mst = GNUNET_MST_create (&inject_message, NULL);
+  GNUNET_break (
+    GNUNET_OK ==
+    GNUNET_MST_from_buffer (mst, buf, (size_t) fsize, GNUNET_YES, GNUNET_NO));
   GNUNET_MST_destroy (mst);
   GNUNET_free (buf);
-  GNUNET_break (GNUNET_OK ==
-                GNUNET_BIO_read_close (rh,
-                                       NULL));
+  GNUNET_break (GNUNET_OK == GNUNET_BIO_read_close (rh, NULL));
   GNUNET_free (fn);
 }
 
@@ -1118,38 +1010,37 @@ run (void *cls,
   cfg = c;
   nc = GNUNET_notification_context_create (16);
   load ();
-  GNUNET_SCHEDULER_add_shutdown (&shutdown_task,
-				 NULL);
+  GNUNET_SCHEDULER_add_shutdown (&shutdown_task, NULL);
 }
 
 
 /**
  * Define "main" method using service macro.
  */
-GNUNET_SERVICE_MAIN
-("statistics",
- GNUNET_SERVICE_OPTION_SOFT_SHUTDOWN,
- &run,
- &client_connect_cb,
- &client_disconnect_cb,
- NULL,
- GNUNET_MQ_hd_var_size (set,
-			GNUNET_MESSAGE_TYPE_STATISTICS_SET,
-			struct GNUNET_STATISTICS_SetMessage,
-			NULL),
- GNUNET_MQ_hd_var_size (get,
-			GNUNET_MESSAGE_TYPE_STATISTICS_GET,
-			struct GNUNET_MessageHeader,
-			NULL),
- GNUNET_MQ_hd_var_size (watch,
-			GNUNET_MESSAGE_TYPE_STATISTICS_WATCH,
-			struct GNUNET_MessageHeader,
-			NULL),
- GNUNET_MQ_hd_fixed_size (disconnect,
-			  GNUNET_MESSAGE_TYPE_STATISTICS_DISCONNECT,
-			  struct GNUNET_MessageHeader,
-			  NULL),
- GNUNET_MQ_handler_end ());
+GNUNET_SERVICE_MAIN (
+  "statistics",
+  GNUNET_SERVICE_OPTION_SOFT_SHUTDOWN,
+  &run,
+  &client_connect_cb,
+  &client_disconnect_cb,
+  NULL,
+  GNUNET_MQ_hd_var_size (set,
+                         GNUNET_MESSAGE_TYPE_STATISTICS_SET,
+                         struct GNUNET_STATISTICS_SetMessage,
+                         NULL),
+  GNUNET_MQ_hd_var_size (get,
+                         GNUNET_MESSAGE_TYPE_STATISTICS_GET,
+                         struct GNUNET_MessageHeader,
+                         NULL),
+  GNUNET_MQ_hd_var_size (watch,
+                         GNUNET_MESSAGE_TYPE_STATISTICS_WATCH,
+                         struct GNUNET_MessageHeader,
+                         NULL),
+  GNUNET_MQ_hd_fixed_size (disconnect,
+                           GNUNET_MESSAGE_TYPE_STATISTICS_DISCONNECT,
+                           struct GNUNET_MessageHeader,
+                           NULL),
+  GNUNET_MQ_handler_end ());
 
 
 #if defined(LINUX) && defined(__GLIBC__)
@@ -1158,8 +1049,7 @@ GNUNET_SERVICE_MAIN
 /**
  * MINIMIZE heap size (way below 128k) since this process doesn't need much.
  */
-void __attribute__ ((constructor))
-GNUNET_STATISTICS_memory_init ()
+void __attribute__ ((constructor)) GNUNET_STATISTICS_memory_init ()
 {
   mallopt (M_TRIM_THRESHOLD, 4 * 1024);
   mallopt (M_TOP_PAD, 1 * 1024);

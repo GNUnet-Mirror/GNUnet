@@ -97,7 +97,7 @@ reply_handle (void *cls,
   req_handle = NULL;
   for (i = 0; i < n; i++)
   {
-    FPRINTF (stdout, "%s\n",
+    fprintf (stdout, "%s\n",
         GNUNET_i2s_full (&recv_peers[i]));
   }
   ret = 0;
@@ -122,12 +122,12 @@ view_update_handle (void *cls,
 
   if (0 == n)
   {
-    FPRINTF (stdout, "Empty view\n");
+    fprintf (stdout, "Empty view\n");
   }
   req_handle = NULL;
   for (i = 0; i < n; i++)
   {
-    FPRINTF (stdout, "%s\n",
+    fprintf (stdout, "%s\n",
         GNUNET_i2s_full (&recv_peers[i]));
   }
 
@@ -159,12 +159,12 @@ stream_input_handle (void *cls,
 
   if (0 == num_peers)
   {
-    FPRINTF (stdout, "No peer was returned\n");
+    fprintf (stdout, "No peer was returned\n");
   }
   req_handle = NULL;
   for (i = 0; i < num_peers; i++)
   {
-    FPRINTF (stdout, "%s\n",
+    fprintf (stdout, "%s\n",
              GNUNET_i2s_full (&recv_peers[i]));
   }
 }
@@ -192,7 +192,7 @@ run (void *cls,
   rps_handle = GNUNET_RPS_connect (cfg);
   if (NULL == rps_handle)
   {
-    FPRINTF (stderr, "Failed to connect to the rps service\n");
+    fprintf (stderr, "Failed to connect to the rps service\n");
     return;
   }
 
@@ -235,7 +235,7 @@ run (void *cls,
   else
   { /* Seed PeerID */
     GNUNET_RPS_seed_ids (rps_handle, 1, &peer_id);
-    FPRINTF (stdout, "Seeded PeerID %s\n", GNUNET_i2s_full (&peer_id));
+    fprintf (stdout, "Seeded PeerID %s\n", GNUNET_i2s_full (&peer_id));
     ret = 0;
     GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
   }

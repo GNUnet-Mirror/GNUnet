@@ -140,13 +140,13 @@ stdin_send (void *cls,
   if ( (GNUNET_MESSAGE_TYPE_WLAN_DATA_TO_HELPER != ntohs (hdr->type)) ||
        (sizeof (struct GNUNET_TRANSPORT_WLAN_RadiotapSendMessage) > sendsize) )
   {
-    FPRINTF (stderr, "%s", "Received malformed message\n");
+    fprintf (stderr, "%s", "Received malformed message\n");
     exit (1);
   }
   payload_size = sendsize - sizeof (struct GNUNET_TRANSPORT_WLAN_RadiotapSendMessage);
   if ((payload_size + sizeof (struct GNUNET_TRANSPORT_WLAN_RadiotapReceiveMessage) + write_pout->size) > MAXLINE * 2)
   {
-    FPRINTF (stderr, "%s",  "Packet too big for buffer\n");
+    fprintf (stderr, "%s",  "Packet too big for buffer\n");
     exit (1);
   }
   memset (&newheader, 0, sizeof (newheader));
@@ -184,7 +184,7 @@ file_in_send (void *cls,
   sendsize = ntohs (hdr->size);
   if ((sendsize + write_std->size) > MAXLINE * 2)
   {
-    FPRINTF (stderr, "%s", "Packet too big for buffer\n");
+    fprintf (stderr, "%s", "Packet too big for buffer\n");
     exit (1);
   }
   GNUNET_memcpy (write_std->buf + write_std->size, hdr, sendsize);
@@ -227,7 +227,7 @@ main (int argc, char *argv[])
   if ( (2 != argc) ||
        ((0 != strcmp (argv[1], "1")) && (0 != strcmp (argv[1], "2"))) )
   {
-    FPRINTF (stderr,
+    fprintf (stderr,
              "%s",
 	     "This program must be started with the operating mode (1 or 2) as the only argument.\n");
     return 1;
@@ -238,7 +238,7 @@ main (int argc, char *argv[])
   if ( (GNUNET_OK != GNUNET_DISK_directory_create_for_file (FIFO_FILE1)) ||
        (GNUNET_OK != GNUNET_DISK_directory_create_for_file (FIFO_FILE2)) )
   {
-    FPRINTF (stderr,
+    fprintf (stderr,
              "Failed to create directory for file `%s'\n",
              FIFO_FILE1);
     return 1;
@@ -249,7 +249,7 @@ main (int argc, char *argv[])
     {
       erg = mkfifo (FIFO_FILE1, 0666);
       if ( (0 != erg) && (EEXIST != errno) )
-	FPRINTF (stderr, "Error in mkfifo(%s): %s\n", FIFO_FILE1,
+	fprintf (stderr, "Error in mkfifo(%s): %s\n", FIFO_FILE1,
 		 strerror (errno));
     }
   }
@@ -259,7 +259,7 @@ main (int argc, char *argv[])
     {
     	GNUNET_break (0 == (erg = mkfifo (FIFO_FILE2, 0666)));
       if ( (0 != erg) && (EEXIST != errno) )
-	FPRINTF (stderr,
+	fprintf (stderr,
                  "Error in mkfifo(%s): %s\n",
                  FIFO_FILE2,
 		 strerror (errno));
@@ -272,7 +272,7 @@ main (int argc, char *argv[])
     fpin = fopen (FIFO_FILE1, "r");
     if (NULL == fpin)
     {
-      FPRINTF (stderr,
+      fprintf (stderr,
                "fopen of read FIFO_FILE1 failed: %s\n",
                STRERROR (errno));
       goto end;
@@ -284,7 +284,7 @@ main (int argc, char *argv[])
     }
     if (NULL == fpout)
     {
-      FPRINTF (stderr,
+      fprintf (stderr,
                "fopen of write FIFO_FILE2 failed: %s\n",
                STRERROR (errno));
       goto end;
@@ -300,7 +300,7 @@ main (int argc, char *argv[])
     }
     if (NULL == fpout)
     {
-      FPRINTF (stderr,
+      fprintf (stderr,
                "fopen of write FIFO_FILE1 failed: %s\n",
                STRERROR (errno));
       goto end;
@@ -308,7 +308,7 @@ main (int argc, char *argv[])
     fpin = fopen (FIFO_FILE2, "r");
     if (NULL == fpin)
     {
-      FPRINTF (stderr,
+      fprintf (stderr,
                "fopen of read FIFO_FILE2 failed: %s\n",
                STRERROR (errno));
       goto end;
@@ -319,7 +319,7 @@ main (int argc, char *argv[])
   GNUNET_assert (fpin >= 0);
   if (fdpin >= FD_SETSIZE)
   {
-    FPRINTF (stderr,
+    fprintf (stderr,
              "File fdpin number too large (%d > %u)\n",
              fdpin,
              (unsigned int) FD_SETSIZE);
@@ -331,7 +331,7 @@ main (int argc, char *argv[])
 
   if (fdpout >= FD_SETSIZE)
   {
-    FPRINTF (stderr,
+    fprintf (stderr,
              "File fdpout number too large (%d > %u)\n",
              fdpout,
              (unsigned int) FD_SETSIZE);
@@ -395,7 +395,7 @@ main (int argc, char *argv[])
       continue;
     if (0 > retval)
     {
-      FPRINTF (stderr, "select failed: %s\n", STRERROR (errno));
+      fprintf (stderr, "select failed: %s\n", STRERROR (errno));
       closeprog = 1;
       break;
     }
@@ -408,7 +408,7 @@ main (int argc, char *argv[])
       if (0 > ret)
       {
         closeprog = 1;
-        FPRINTF (stderr, "Write ERROR to STDOUT_FILENO: %s\n",
+        fprintf (stderr, "Write ERROR to STDOUT_FILENO: %s\n",
                  STRERROR (errno));
         break;
       }
@@ -433,7 +433,7 @@ main (int argc, char *argv[])
       if (0 > ret)
       {
         closeprog = 1;
-        FPRINTF (stderr, "Write ERROR to fdpout failed: %s\n", STRERROR (errno));
+        fprintf (stderr, "Write ERROR to fdpout failed: %s\n", STRERROR (errno));
       }
       else
       {
@@ -454,7 +454,7 @@ main (int argc, char *argv[])
       if (0 > readsize)
       {
         closeprog = 1;
-        FPRINTF (stderr, "Error reading from STDIN_FILENO: %s\n",
+        fprintf (stderr, "Error reading from STDIN_FILENO: %s\n",
                  STRERROR (errno));
       }
       else if (0 < readsize)
@@ -477,7 +477,7 @@ main (int argc, char *argv[])
       if (0 > readsize)
       {
         closeprog = 1;
-        FPRINTF (stderr, "Error reading from fdpin: %s\n", STRERROR (errno));
+        fprintf (stderr, "Error reading from fdpin: %s\n", STRERROR (errno));
         break;
       }
       else if (0 < readsize)

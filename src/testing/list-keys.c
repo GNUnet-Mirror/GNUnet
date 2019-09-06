@@ -15,7 +15,9 @@ static int result;
  * @param cfg the configuration file handle
  */
 static void
-run (void *cls, char *const *args, const char *cfgfile,
+run (void *cls,
+     char *const *args,
+     const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *config)
 {
   char *idfile;
@@ -30,7 +32,7 @@ run (void *cls, char *const *args, const char *cfgfile,
 
   if ((NULL == args) || (NULL == args[0]))
   {
-    FPRINTF (stderr, "Need the hostkey file\n");
+    fprintf (stderr, "Need the hostkey file\n");
     return;
   }
   idfile = args[0];
@@ -42,11 +44,11 @@ run (void *cls, char *const *args, const char *cfgfile,
   }
   if (0 != (fsize % GNUNET_TESTING_HOSTKEYFILESIZE))
   {
-    FPRINTF (stderr,
-             _("Incorrect hostkey file format: %s\n"), idfile);
+    fprintf (stderr, _ ("Incorrect hostkey file format: %s\n"), idfile);
     return;
   }
-  f = GNUNET_DISK_file_open (idfile, GNUNET_DISK_OPEN_READ,
+  f = GNUNET_DISK_file_open (idfile,
+                             GNUNET_DISK_OPEN_READ,
                              GNUNET_DISK_PERM_NONE);
   if (NULL == f)
   {
@@ -65,14 +67,14 @@ run (void *cls, char *const *args, const char *cfgfile,
   {
     if (nskip + cnt >= nmax)
     {
-      PRINTF ("Max keys %u reached\n", nmax);
+      printf ("Max keys %u reached\n", nmax);
       break;
     }
     GNUNET_memcpy (&pkey,
                    data + (cnt * GNUNET_TESTING_HOSTKEYFILESIZE),
                    GNUNET_TESTING_HOSTKEYFILESIZE);
     GNUNET_CRYPTO_eddsa_key_get_public (&pkey, &id.public_key);
-    PRINTF ("Key %u: %s\n", cnt, GNUNET_i2s_full (&id));
+    printf ("Key %u: %s\n", cnt, GNUNET_i2s_full (&id));
   }
   result = GNUNET_OK;
   GNUNET_DISK_file_unmap (map);
@@ -80,23 +82,28 @@ run (void *cls, char *const *args, const char *cfgfile,
 }
 
 
-int main (int argc, char *argv[])
+int
+main (int argc, char *argv[])
 {
-  struct GNUNET_GETOPT_CommandLineOption option[] = {
-    GNUNET_GETOPT_option_uint ('n',
-                                   "num-keys",
-                                   "COUNT",
-                                   gettext_noop ("list COUNT number of keys"),
-                                   &nkeys),
-    GNUNET_GETOPT_OPTION_END
-  };
+  struct GNUNET_GETOPT_CommandLineOption option[] =
+    {GNUNET_GETOPT_option_uint ('n',
+                                "num-keys",
+                                "COUNT",
+                                gettext_noop ("list COUNT number of keys"),
+                                &nkeys),
+     GNUNET_GETOPT_OPTION_END};
   int ret;
 
   result = GNUNET_SYSERR;
   nkeys = 10;
   ret =
-      GNUNET_PROGRAM_run (argc, argv, "list-keys", "Lists the peer IDs corresponding to the given keys file\n",
-                          option, &run, NULL);
+    GNUNET_PROGRAM_run (argc,
+                        argv,
+                        "list-keys",
+                        "Lists the peer IDs corresponding to the given keys file\n",
+                        option,
+                        &run,
+                        NULL);
   if (GNUNET_OK != ret)
     return 1;
   if (GNUNET_SYSERR == result)

@@ -35,13 +35,13 @@
  * Generate a random hashcode.
  */
 static void
-nextHC (struct GNUNET_HashCode * hc)
+nextHC (struct GNUNET_HashCode *hc)
 {
   GNUNET_CRYPTO_hash_create_random (GNUNET_CRYPTO_QUALITY_WEAK, hc);
 }
 
 static int
-add_iterator (void *cls, struct GNUNET_HashCode * next)
+add_iterator (void *cls, struct GNUNET_HashCode *next)
 {
   int *ret = cls;
   struct GNUNET_HashCode pos;
@@ -68,8 +68,8 @@ main (int argc, char *argv[])
 
   GNUNET_log_setup ("test-container-bloomfilter", "WARNING", NULL);
   GNUNET_CRYPTO_seed_weak_random (1);
-  if (0 == STAT (TESTFILE, &sbuf))
-    if (0 != UNLINK (TESTFILE))
+  if (0 == stat (TESTFILE, &sbuf))
+    if (0 != unlink (TESTFILE))
       GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, "unlink", TESTFILE);
   bf = GNUNET_CONTAINER_bloomfilter_load (TESTFILE, SIZE, K);
 
@@ -88,7 +88,9 @@ main (int argc, char *argv[])
   }
   if (ok1 != 200)
   {
-    printf ("Got %d elements out of" "200 expected after insertion.\n", ok1);
+    printf ("Got %d elements out of"
+            "200 expected after insertion.\n",
+            ok1);
     GNUNET_CONTAINER_bloomfilter_free (bf);
     return -1;
   }
@@ -118,7 +120,9 @@ main (int argc, char *argv[])
   }
   if (ok1 != 200)
   {
-    printf ("Got %d elements out of 200 " "expected after reloading.\n", ok1);
+    printf ("Got %d elements out of 200 "
+            "expected after reloading.\n",
+            ok1);
     GNUNET_CONTAINER_bloomfilter_free (bf);
     GNUNET_CONTAINER_bloomfilter_free (bfi);
     return -1;
@@ -126,7 +130,8 @@ main (int argc, char *argv[])
 
   if (ok2 != 200)
   {
-    printf ("Got %d elements out of 200 " "expected after initialization.\n",
+    printf ("Got %d elements out of 200 "
+            "expected after initialization.\n",
             ok2);
     GNUNET_CONTAINER_bloomfilter_free (bf);
     GNUNET_CONTAINER_bloomfilter_free (bfi);
@@ -157,7 +162,8 @@ main (int argc, char *argv[])
   if (ok1 != 100)
   {
     printf ("Expected 100 elements in loaded filter"
-            " after adding 200 and deleting 100, got %d\n", ok1);
+            " after adding 200 and deleting 100, got %d\n",
+            ok1);
     GNUNET_CONTAINER_bloomfilter_free (bf);
     GNUNET_CONTAINER_bloomfilter_free (bfi);
     return -1;
@@ -220,7 +226,8 @@ main (int argc, char *argv[])
   if (ok1 != 20)
   {
     printf ("Expected 20 elements in resized file-backed filter"
-            " after adding 20, got %d\n", ok1);
+            " after adding 20, got %d\n",
+            ok1);
     GNUNET_CONTAINER_bloomfilter_free (bf);
     GNUNET_CONTAINER_bloomfilter_free (bfi);
     return -1;
@@ -228,7 +235,8 @@ main (int argc, char *argv[])
   if (ok2 != 20)
   {
     printf ("Expected 20 elements in resized filter"
-            " after adding 20, got %d\n", ok2);
+            " after adding 20, got %d\n",
+            ok2);
     GNUNET_CONTAINER_bloomfilter_free (bf);
     GNUNET_CONTAINER_bloomfilter_free (bfi);
     return -1;
@@ -238,6 +246,6 @@ main (int argc, char *argv[])
   GNUNET_CONTAINER_bloomfilter_free (bf);
   GNUNET_CONTAINER_bloomfilter_free (bfi);
 
-  GNUNET_break (0 == UNLINK (TESTFILE));
+  GNUNET_break (0 == unlink (TESTFILE));
   return 0;
 }

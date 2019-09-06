@@ -36,14 +36,12 @@
 /**
  * Generic loggins shorthand
  */
-#define LOG(kind,...)                                           \
-  GNUNET_log (kind, __VA_ARGS__)
+#define LOG(kind, ...) GNUNET_log (kind, __VA_ARGS__)
 
 /**
  * Debug logging shorthand
  */
-#define LOG_DEBUG(...)                          \
-  LOG (GNUNET_ERROR_TYPE_DEBUG, __VA_ARGS__)
+#define LOG_DEBUG(...) LOG (GNUNET_ERROR_TYPE_DEBUG, __VA_ARGS__)
 
 
 /**
@@ -210,7 +208,7 @@ static char *data_filename;
  * How long to wait before triggering next round?
  * Default: 60 s.
  */
-static struct GNUNET_TIME_Relative wait_time = { 60 * 1000 };
+static struct GNUNET_TIME_Relative wait_time = {60 * 1000};
 
 /**
  * DLL head for operation list
@@ -300,30 +298,34 @@ shutdown_task (void *cls)
  */
 static void
 handle_estimate (void *cls,
-		 struct GNUNET_TIME_Absolute timestamp,
-                 double estimate, double std_dev)
+                 struct GNUNET_TIME_Absolute timestamp,
+                 double estimate,
+                 double std_dev)
 {
   struct NSEPeer *peer = cls;
   char output_buffer[512];
   size_t size;
 
   if (NULL == output_file)
-    {
-      FPRINTF (stderr,
-	       "Received network size estimate from peer %p. Size: %f std.dev. %f\n",
-	       peer, estimate, std_dev);
-      return;
-    }
+  {
+    fprintf (stderr,
+             "Received network size estimate from peer %p. Size: %f std.dev. %f\n",
+             peer,
+             estimate,
+             std_dev);
+    return;
+  }
   size = GNUNET_snprintf (output_buffer,
-			  sizeof (output_buffer),
-			  "%p %llu %llu %f %f %f\n",
-			  peer, peers_running,
-			  (unsigned long long) timestamp.abs_value_us,
-			  GNUNET_NSE_log_estimate_to_n (estimate), estimate,
-			  std_dev);
+                          sizeof (output_buffer),
+                          "%p %llu %llu %f %f %f\n",
+                          peer,
+                          peers_running,
+                          (unsigned long long) timestamp.abs_value_us,
+                          GNUNET_NSE_log_estimate_to_n (estimate),
+                          estimate,
+                          std_dev);
   if (size != GNUNET_DISK_file_write (output_file, output_buffer, size))
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-		"Unable to write to file!\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Unable to write to file!\n");
 }
 
 
@@ -338,8 +340,7 @@ handle_estimate (void *cls,
  * @return service handle to return in 'op_result', NULL on error
  */
 static void *
-nse_connect_adapter (void *cls,
-		     const struct GNUNET_CONFIGURATION_Handle *cfg)
+nse_connect_adapter (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   struct NSEPeer *current_peer = cls;
 
@@ -355,8 +356,7 @@ nse_connect_adapter (void *cls,
  * @param op_result service handle returned from the connect adapter
  */
 static void
-nse_disconnect_adapter (void *cls,
-			void *op_result)
+nse_disconnect_adapter (void *cls, void *op_result)
 {
   GNUNET_NSE_disconnect (op_result);
 }
@@ -389,9 +389,11 @@ stat_iterator (void *cls,
   flag = strcasecmp (subsystem, "core");
   if (0 != flag)
     flag = 1;
-  size = GNUNET_asprintf (&output_buffer, "%llu %llu %u\n",
+  size = GNUNET_asprintf (&output_buffer,
+                          "%llu %llu %u\n",
                           now.abs_value_us / 1000LL / 1000LL,
-                          value, flag);
+                          value,
+                          flag);
   if (0 > size)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Error formatting output buffer.\n");
@@ -419,8 +421,7 @@ stat_iterator (void *cls,
  * @return service handle to return in 'op_result', NULL on error
  */
 static void *
-stat_connect_adapter (void *cls,
-                      const struct GNUNET_CONFIGURATION_Handle *cfg)
+stat_connect_adapter (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   struct NSEPeer *peer = cls;
 
@@ -440,12 +441,18 @@ stat_disconnect_adapter (void *cls, void *op_result)
 {
   struct NSEPeer *peer = cls;
 
-  GNUNET_break (GNUNET_OK == GNUNET_STATISTICS_watch_cancel
-                (peer->sh, "core", "# peers connected",
-                 stat_iterator, peer));
-  GNUNET_break (GNUNET_OK == GNUNET_STATISTICS_watch_cancel
-                (peer->sh, "nse", "# peers connected",
-                 stat_iterator, peer));
+  GNUNET_break (GNUNET_OK ==
+                GNUNET_STATISTICS_watch_cancel (peer->sh,
+                                                "core",
+                                                "# peers connected",
+                                                stat_iterator,
+                                                peer));
+  GNUNET_break (GNUNET_OK ==
+                GNUNET_STATISTICS_watch_cancel (peer->sh,
+                                                "nse",
+                                                "# peers connected",
+                                                stat_iterator,
+                                                peer));
   GNUNET_STATISTICS_destroy (op_result, GNUNET_NO);
   peer->sh = NULL;
 }
@@ -462,8 +469,10 @@ stat_disconnect_adapter (void *cls, void *op_result)
  *          operation has executed successfully.
  */
 static void
-stat_comp_cb (void *cls, struct GNUNET_TESTBED_Operation *op,
-              void *ca_result, const char *emsg )
+stat_comp_cb (void *cls,
+              struct GNUNET_TESTBED_Operation *op,
+              void *ca_result,
+              const char *emsg)
 {
   struct GNUNET_STATISTICS_Handle *sh = ca_result;
   struct NSEPeer *peer = cls;
@@ -473,12 +482,16 @@ stat_comp_cb (void *cls, struct GNUNET_TESTBED_Operation *op,
     GNUNET_break (0);
     return;
   }
-  GNUNET_break (GNUNET_OK == GNUNET_STATISTICS_watch
-                (sh, "core", "# peers connected",
-                 stat_iterator, peer));
-  GNUNET_break (GNUNET_OK == GNUNET_STATISTICS_watch
-                (sh, "nse", "# peers connected",
-                 stat_iterator, peer));
+  GNUNET_break (GNUNET_OK == GNUNET_STATISTICS_watch (sh,
+                                                      "core",
+                                                      "# peers connected",
+                                                      stat_iterator,
+                                                      peer));
+  GNUNET_break (GNUNET_OK == GNUNET_STATISTICS_watch (sh,
+                                                      "nse",
+                                                      "# peers connected",
+                                                      stat_iterator,
+                                                      peer));
 }
 
 
@@ -500,29 +513,30 @@ connect_nse_service ()
   for (i = 0; i < num_peers_in_round[current_round]; i++)
   {
     if ((num_peers_in_round[current_round] > connection_limit) &&
-	(0 != (i % (num_peers_in_round[current_round] / connection_limit))))
+        (0 != (i % (num_peers_in_round[current_round] / connection_limit))))
       continue;
     LOG_DEBUG ("Connecting to nse service of peer %d\n", i);
     current_peer = GNUNET_new (struct NSEPeer);
     current_peer->daemon = daemons[i];
-    current_peer->nse_op
-        = GNUNET_TESTBED_service_connect (NULL,
-                                          current_peer->daemon,
-                                          "nse",
-                                          NULL, NULL,
-                                          &nse_connect_adapter,
-                                          &nse_disconnect_adapter,
-                                          current_peer);
+    current_peer->nse_op =
+      GNUNET_TESTBED_service_connect (NULL,
+                                      current_peer->daemon,
+                                      "nse",
+                                      NULL,
+                                      NULL,
+                                      &nse_connect_adapter,
+                                      &nse_disconnect_adapter,
+                                      current_peer);
     if (NULL != data_file)
-      current_peer->stat_op
-          = GNUNET_TESTBED_service_connect (NULL,
-                                            current_peer->daemon,
-                                            "statistics",
-                                            stat_comp_cb,
-                                            current_peer,
-                                            &stat_connect_adapter,
-                                            &stat_disconnect_adapter,
-                                            current_peer);
+      current_peer->stat_op =
+        GNUNET_TESTBED_service_connect (NULL,
+                                        current_peer->daemon,
+                                        "statistics",
+                                        stat_comp_cb,
+                                        current_peer,
+                                        &stat_connect_adapter,
+                                        &stat_disconnect_adapter,
+                                        current_peer);
     GNUNET_CONTAINER_DLL_insert (peer_head, peer_tail, current_peer);
     if (++connections == connection_limit)
       break;
@@ -549,9 +563,7 @@ next_round (void *cls);
 static void
 finish_round (void *cls)
 {
-  LOG (GNUNET_ERROR_TYPE_INFO,
-       "Have %u connections\n",
-       total_connections);
+  LOG (GNUNET_ERROR_TYPE_INFO, "Have %u connections\n", total_connections);
   close_monitor_connections ();
   round_task = GNUNET_SCHEDULER_add_now (&next_round, NULL);
 }
@@ -565,12 +577,9 @@ finish_round (void *cls)
 static void
 run_round ()
 {
-  LOG_DEBUG ("Running round %u\n",
-	     current_round);
+  LOG_DEBUG ("Running round %u\n", current_round);
   connect_nse_service ();
-  GNUNET_SCHEDULER_add_delayed (wait_time,
-				&finish_round,
-				NULL);
+  GNUNET_SCHEDULER_add_delayed (wait_time, &finish_round, NULL);
 }
 
 
@@ -583,9 +592,7 @@ make_oplist_entry ()
   struct OpListEntry *entry;
 
   entry = GNUNET_new (struct OpListEntry);
-  GNUNET_CONTAINER_DLL_insert_tail (oplist_head,
-				    oplist_tail,
-				    entry);
+  GNUNET_CONTAINER_DLL_insert_tail (oplist_head, oplist_tail, entry);
   return entry;
 }
 
@@ -599,7 +606,7 @@ make_oplist_entry ()
  */
 static void
 manage_service_cb (void *cls,
-		   struct GNUNET_TESTBED_Operation *op,
+                   struct GNUNET_TESTBED_Operation *op,
                    const char *emsg)
 {
   struct OpListEntry *entry = cls;
@@ -613,9 +620,7 @@ manage_service_cb (void *cls,
   }
   GNUNET_assert (0 != entry->delta);
   peers_running += entry->delta;
-  GNUNET_CONTAINER_DLL_remove (oplist_head,
-			       oplist_tail,
-			       entry);
+  GNUNET_CONTAINER_DLL_remove (oplist_head, oplist_tail, entry);
   GNUNET_free (entry);
   if (num_peers_in_round[current_round] == peers_running)
     run_round ();
@@ -633,7 +638,7 @@ adjust_running_peers ()
   unsigned int i;
 
   /* start peers if we have too few */
-  for (i=peers_running;i<num_peers_in_round[current_round];i++)
+  for (i = peers_running; i < num_peers_in_round[current_round]; i++)
   {
     entry = make_oplist_entry ();
     entry->delta = 1;
@@ -645,16 +650,16 @@ adjust_running_peers ()
                                                     1);
   }
   /* stop peers if we have too many */
-  for (i=num_peers_in_round[current_round];i<peers_running;i++)
+  for (i = num_peers_in_round[current_round]; i < peers_running; i++)
   {
     entry = make_oplist_entry ();
     entry->delta = -1;
-    entry->op =  GNUNET_TESTBED_peer_manage_service (NULL,
-                                                     daemons[i],
-                                                     "nse",
-                                                     &manage_service_cb,
-                                                     entry,
-                                                     0);
+    entry->op = GNUNET_TESTBED_peer_manage_service (NULL,
+                                                    daemons[i],
+                                                    "nse",
+                                                    &manage_service_cb,
+                                                    entry,
+                                                    0);
   }
 }
 
@@ -697,19 +702,19 @@ next_round (void *cls)
  */
 static void
 master_controller_cb (void *cls,
-		      const struct GNUNET_TESTBED_EventInformation *event)
+                      const struct GNUNET_TESTBED_EventInformation *event)
 {
   switch (event->type)
-    {
-    case GNUNET_TESTBED_ET_CONNECT:
-      total_connections++;
-      break;
-    case GNUNET_TESTBED_ET_DISCONNECT:
-      total_connections--;
-      break;
-    default:
-      break;
-    }
+  {
+  case GNUNET_TESTBED_ET_CONNECT:
+    total_connections++;
+    break;
+  case GNUNET_TESTBED_ET_DISCONNECT:
+    total_connections--;
+    break;
+  default:
+    break;
+  }
 }
 
 
@@ -761,7 +766,9 @@ test_master (void *cls,
  * @param cfg configuration handle
  */
 static void
-run (void *cls, char *const *args, const char *cfgfile,
+run (void *cls,
+     char *const *args,
+     const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   char *tok;
@@ -777,46 +784,43 @@ run (void *cls, char *const *args, const char *cfgfile,
     return;
   }
   for (tok = strtok (num_peer_spec, ","); NULL != tok; tok = strtok (NULL, ","))
+  {
+    if (1 != sscanf (tok, "%u", &num))
     {
-      if (1 != sscanf (tok, "%u", &num))
-	{
-	  fprintf (stderr, "You need to specify numbers, not `%s'\n", tok);
-	  return;
-	}
-      if (0 == num)
-	{
-	  fprintf (stderr, "Refusing to run a round with 0 peers\n");
-	  return;
-	}
-      GNUNET_array_append (num_peers_in_round, num_rounds, num);
-      num_peers = GNUNET_MAX (num_peers, num);
-    }
-  if (0 == num_peers)
-    {
-      fprintf (stderr, "Refusing to run a testbed with no rounds\n");
+      fprintf (stderr, "You need to specify numbers, not `%s'\n", tok);
       return;
     }
-  if ( (NULL != data_filename) &&
-       (NULL == (data_file =
-		 GNUNET_DISK_file_open (data_filename,
-					GNUNET_DISK_OPEN_READWRITE |
-					GNUNET_DISK_OPEN_TRUNCATE |
-					GNUNET_DISK_OPEN_CREATE,
-					GNUNET_DISK_PERM_USER_READ |
-					GNUNET_DISK_PERM_USER_WRITE))) )
-    GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR,
-			      "open",
-			      data_filename);
+    if (0 == num)
+    {
+      fprintf (stderr, "Refusing to run a round with 0 peers\n");
+      return;
+    }
+    GNUNET_array_append (num_peers_in_round, num_rounds, num);
+    num_peers = GNUNET_MAX (num_peers, num);
+  }
+  if (0 == num_peers)
+  {
+    fprintf (stderr, "Refusing to run a testbed with no rounds\n");
+    return;
+  }
+  if ((NULL != data_filename) &&
+      (NULL ==
+       (data_file = GNUNET_DISK_file_open (data_filename,
+                                           GNUNET_DISK_OPEN_READWRITE |
+                                             GNUNET_DISK_OPEN_TRUNCATE |
+                                             GNUNET_DISK_OPEN_CREATE,
+                                           GNUNET_DISK_PERM_USER_READ |
+                                             GNUNET_DISK_PERM_USER_WRITE))))
+    GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, "open", data_filename);
 
-  if ( (NULL != output_filename) &&
-       (NULL == (output_file =
-		 GNUNET_DISK_file_open (output_filename,
-					GNUNET_DISK_OPEN_READWRITE |
-					GNUNET_DISK_OPEN_CREATE,
-					GNUNET_DISK_PERM_USER_READ |
-					GNUNET_DISK_PERM_USER_WRITE))) )
-    GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, "open",
-			      output_filename);
+  if ((NULL != output_filename) &&
+      (NULL ==
+       (output_file = GNUNET_DISK_file_open (output_filename,
+                                             GNUNET_DISK_OPEN_READWRITE |
+                                               GNUNET_DISK_OPEN_CREATE,
+                                             GNUNET_DISK_PERM_USER_READ |
+                                               GNUNET_DISK_PERM_USER_WRITE))))
+    GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, "open", output_filename);
   event_mask = 0LL;
   event_mask |= (1LL << GNUNET_TESTBED_ET_PEER_START);
   event_mask |= (1LL << GNUNET_TESTBED_ET_PEER_STOP);
@@ -827,9 +831,9 @@ run (void *cls, char *const *args, const char *cfgfile,
                       num_peers,
                       event_mask,
                       master_controller_cb,
-                      NULL,     /* master_controller_cb cls */
+                      NULL, /* master_controller_cb cls */
                       &test_master,
-                      NULL);    /* test_master cls */
+                      NULL); /* test_master cls */
   GNUNET_SCHEDULER_add_shutdown (&shutdown_task, NULL);
 }
 
@@ -842,56 +846,70 @@ run (void *cls, char *const *args, const char *cfgfile,
 int
 main (int argc, char *const *argv)
 {
-  struct GNUNET_GETOPT_CommandLineOption options[] = {
-    GNUNET_GETOPT_option_uint ('C',
-                                   "connections",
-                                   "COUNT",
-                                   gettext_noop ("limit to the number of connections to NSE services, 0 for none"),
-                                   &connection_limit),
-    GNUNET_GETOPT_option_string ('d',
-                                 "details",
-                                 "FILENAME",
-                                 gettext_noop ("name of the file for writing connection information and statistics"),
-                                 &data_filename),
+  struct GNUNET_GETOPT_CommandLineOption options[] =
+    {GNUNET_GETOPT_option_uint (
+       'C',
+       "connections",
+       "COUNT",
+       gettext_noop (
+         "limit to the number of connections to NSE services, 0 for none"),
+       &connection_limit),
+     GNUNET_GETOPT_option_string (
+       'd',
+       "details",
+       "FILENAME",
+       gettext_noop (
+         "name of the file for writing connection information and statistics"),
+       &data_filename),
 
-    GNUNET_GETOPT_option_string ('H',
-                                 "hosts",
-                                 "FILENAME",
-                                 gettext_noop ("name of the file with the login information for the testbed"),
-                                 &hosts_file),
+     GNUNET_GETOPT_option_string (
+       'H',
+       "hosts",
+       "FILENAME",
+       gettext_noop (
+         "name of the file with the login information for the testbed"),
+       &hosts_file),
 
-    GNUNET_GETOPT_option_string ('o',
-                                 "output",
-                                 "FILENAME",
-                                 gettext_noop ("name of the file for writing the main results"),
-                                 &output_filename),
+     GNUNET_GETOPT_option_string (
+       'o',
+       "output",
+       "FILENAME",
+       gettext_noop ("name of the file for writing the main results"),
+       &output_filename),
 
 
-    GNUNET_GETOPT_option_string ('p',
-                                 "peers",
-                                 "NETWORKSIZESPEC",
-                                 gettext_noop ("Number of peers to run in each round, separated by commas"),
-                                 &num_peer_spec),
+     GNUNET_GETOPT_option_string (
+       'p',
+       "peers",
+       "NETWORKSIZESPEC",
+       gettext_noop (
+         "Number of peers to run in each round, separated by commas"),
+       &num_peer_spec),
 
-    GNUNET_GETOPT_option_increment_uint ('V',
-                                          "verbose",
-                                          gettext_noop ("be verbose (print progress information)"),
-                                          &verbose),
+     GNUNET_GETOPT_option_increment_uint (
+       'V',
+       "verbose",
+       gettext_noop ("be verbose (print progress information)"),
+       &verbose),
 
-    GNUNET_GETOPT_option_relative_time ('w',
-                                            "wait",
-                                            "DELAY",
-                                            gettext_noop ("delay between rounds"),
-                                            &wait_time),
-    GNUNET_GETOPT_OPTION_END
-  };
+     GNUNET_GETOPT_option_relative_time ('w',
+                                         "wait",
+                                         "DELAY",
+                                         gettext_noop ("delay between rounds"),
+                                         &wait_time),
+     GNUNET_GETOPT_OPTION_END};
   if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv, &argc, &argv))
     return 2;
-  if (GNUNET_OK !=
-      GNUNET_PROGRAM_run (argc, argv, "nse-profiler",
-			  gettext_noop
-			  ("Measure quality and performance of the NSE service."),
-			  options, &run, NULL))
+  if (
+    GNUNET_OK !=
+    GNUNET_PROGRAM_run (argc,
+                        argv,
+                        "nse-profiler",
+                        gettext_noop (
+                          "Measure quality and performance of the NSE service."),
+                        options,
+                        &run,
+                        NULL))
     ok = 1;
   return ok;
 }

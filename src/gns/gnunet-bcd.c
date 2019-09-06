@@ -179,7 +179,7 @@ access_handler_callback (void *cls,
       return MHD_NO;
     }
     GNUNET_asprintf (&deffile, "%s%s%s", tmp, DIR_SEPARATOR_STR, "def.tex");
-    f = FOPEN (deffile, "w");
+    f = fopen (deffile, "w");
     if (NULL == f)
     {
       GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, "open", deffile);
@@ -194,9 +194,9 @@ access_handler_callback (void *cls,
                                                      MHD_GET_ARGUMENT_KIND,
                                                      map[i].formname);
       if (NULL != val)
-        FPRINTF (f, "\\def\\%s{%s}\n", map[i].texname, val);
+        fprintf (f, "\\def\\%s{%s}\n", map[i].texname, val);
       else
-        FPRINTF (f, "\\def\\%s{}\n", map[i].texname);
+        fprintf (f, "\\def\\%s{}\n", map[i].texname);
     }
     if (NULL != gpg_fp)
     {
@@ -206,15 +206,15 @@ access_handler_callback (void *cls,
       slen = strlen (gpg_fp);
       gpg1 = GNUNET_strndup (gpg_fp, slen / 2);
       gpg2 = GNUNET_strdup (&gpg_fp[slen / 2]);
-      FPRINTF (f, "\\def\\gpglineone{%s}\n\\def\\gpglinetwo{%s}\n", gpg1, gpg2);
+      fprintf (f, "\\def\\gpglineone{%s}\n\\def\\gpglinetwo{%s}\n", gpg1, gpg2);
       GNUNET_free (gpg2);
       GNUNET_free (gpg1);
     }
-    FPRINTF (f,
+    fprintf (f,
              "\\def\\gns{%s/%s}\n",
              gnskey,
              (NULL == gns_nick) ? "" : gns_nick);
-    FCLOSE (f);
+    fclose (f);
     GNUNET_asprintf (
       &p,
       "cd %s; cp %s gns-bcd.tex | pdflatex --enable-write18 gns-bcd.tex > /dev/null 2> /dev/null",

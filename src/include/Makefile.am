@@ -25,7 +25,7 @@ gnunetinclude_HEADERS = \
 else
 
 gnunetinclude_HEADERS = \
-  platform.h plibc.h $(WINPROC) gettext.h \
+  platform.h $(WINPROC) gettext.h \
   compat.h \
   gnunet_applications.h \
   gnunet_arm_service.h \

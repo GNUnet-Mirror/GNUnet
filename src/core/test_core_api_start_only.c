@@ -135,7 +135,7 @@ setup_peer (struct PeerContext *p,
 static void
 timeout_task (void *cls)
 {
-  FPRINTF (stderr,
+  fprintf (stderr,
 	   "%s",
 	   "Timeout.\n");
   if (NULL != p1.ch)

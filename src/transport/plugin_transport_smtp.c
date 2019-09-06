@@ -667,7 +667,7 @@ inittransport_smtp (struct GNUNET_CoreAPIForTransport * core)
         stats->create (gettext_noop ("# bytes dropped by SMTP (outgoing)"));
   }
   GNUNET_GC_get_configuration_value_filename (core_api->cfg, "SMTP", "PIPE", &pipename);
-  UNLINK (pipename);
+  unlink (pipename);
   if (0 != mkfifo (pipename, S_IWUSR | S_IRUSR | S_IWGRP | S_IWOTH))
   {
     GNUNET_GE_LOG_STRERROR (ectx,
@@ -722,7 +722,7 @@ donetransport_smtp ()
   }
   GNUNET_mutex_destroy (lock);
   lock = NULL;
-  UNLINK (pipename);
+  unlink (pipename);
   GNUNET_free (pipename);
   pipename = NULL;
   GNUNET_free (email);

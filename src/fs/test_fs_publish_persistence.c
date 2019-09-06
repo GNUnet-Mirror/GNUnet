@@ -177,7 +177,7 @@ progress_cb (void *cls,
     break;
   case GNUNET_FS_STATUS_PUBLISH_ERROR:
     ret = event->value.publish.cctx;
-    FPRINTF (stderr, "Error publishing file: %s\n",
+    fprintf (stderr, "Error publishing file: %s\n",
              event->value.publish.specifics.error.message);
     err = 1;
     GNUNET_SCHEDULER_add_now (&abort_publish_task, NULL);

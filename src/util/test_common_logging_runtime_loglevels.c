@@ -237,7 +237,7 @@ read_call (void *cls)
     buf_ptr += rd;
     bytes += rd;
 #if VERBOSE
-    FPRINTF (stderr, "got %d bytes, reading more\n", rd);
+    fprintf (stderr, "got %d bytes, reading more\n", rd);
 #endif
     read_task = GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL,
 						stdout_read_handle,
@@ -247,7 +247,7 @@ read_call (void *cls)
   }
 
 #if VERBOSE
-  FPRINTF (stderr, "bytes is %d:%s\n", bytes, buf);
+  fprintf (stderr, "bytes is %d:%s\n", bytes, buf);
 #endif
 
   /* +------CHILD OUTPUT--
@@ -334,7 +334,7 @@ read_call (void *cls)
                           &bytes, &delays[7], level)))
   {
     if (bytes == LOG_BUFFER_SIZE)
-      FPRINTF (stderr, "%s",  "Ran out of buffer space!\n");
+      fprintf (stderr, "%s",  "Ran out of buffer space!\n");
     GNUNET_break (0);
     ok = 2;
     GNUNET_SCHEDULER_cancel (die_task);

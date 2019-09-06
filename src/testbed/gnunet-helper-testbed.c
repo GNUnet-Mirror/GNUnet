@@ -267,7 +267,7 @@ child_death_task (void *cls)
     GNUNET_OS_process_destroy (testbed);
     testbed = NULL;
     /* Send SIGTERM to our process group */
-    if (0 != PLIBC_KILL (0, GNUNET_TERM_SIG))
+    if (0 != kill (0, GNUNET_TERM_SIG))
     {
       GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "signal");
       GNUNET_SCHEDULER_shutdown (); /* Couldn't send the signal, we shutdown frowning */

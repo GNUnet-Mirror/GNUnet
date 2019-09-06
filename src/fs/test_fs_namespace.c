@@ -85,7 +85,7 @@ static void
 do_timeout (void *cls)
 {
   err = 1;
-  FPRINTF (stderr, "%s",  "Operation timed out\n");
+  fprintf (stderr, "%s",  "Operation timed out\n");
   kill_task = NULL;
   abort_sks_search_task (NULL);
   abort_ksk_search_task (NULL);
@@ -103,7 +103,7 @@ progress_cb (void *cls, const struct GNUNET_FS_ProgressInfo *event)
       if (!GNUNET_FS_uri_test_equal
           (sks_expect_uri, event->value.search.specifics.result.uri))
       {
-        FPRINTF (stderr, "%s",  "Wrong result for sks search!\n");
+        fprintf (stderr, "%s",  "Wrong result for sks search!\n");
         err = 1;
       }
       /* give system 1ms to initiate update search! */
@@ -115,19 +115,19 @@ progress_cb (void *cls, const struct GNUNET_FS_ProgressInfo *event)
       if (!GNUNET_FS_uri_test_equal
           (ksk_expect_uri, event->value.search.specifics.result.uri))
       {
-        FPRINTF (stderr, "%s",  "Wrong result for ksk search!\n");
+        fprintf (stderr, "%s",  "Wrong result for ksk search!\n");
         err = 1;
       }
       GNUNET_SCHEDULER_add_now (&abort_ksk_search_task, NULL);
     }
     else
     {
-      FPRINTF (stderr, "%s",  "Unexpected search result received!\n");
+      fprintf (stderr, "%s",  "Unexpected search result received!\n");
       GNUNET_break (0);
     }
     break;
   case GNUNET_FS_STATUS_SEARCH_ERROR:
-    FPRINTF (stderr, "Error searching file: %s\n",
+    fprintf (stderr, "Error searching file: %s\n",
              event->value.search.specifics.error.message);
     if (sks_search == event->value.search.sc)
       GNUNET_SCHEDULER_add_now (&abort_sks_search_task, NULL);
@@ -152,7 +152,7 @@ progress_cb (void *cls, const struct GNUNET_FS_ProgressInfo *event)
   case GNUNET_FS_STATUS_SEARCH_STOPPED:
     return NULL;
   default:
-    FPRINTF (stderr, "Unexpected event: %d\n", event->status);
+    fprintf (stderr, "Unexpected event: %d\n", event->status);
     break;
   }
   return event->value.search.cctx;
@@ -170,7 +170,7 @@ publish_cont (void *cls, const struct GNUNET_FS_Uri *ksk_uri, const char *emsg)
 
   if (NULL != emsg)
   {
-    FPRINTF (stderr, "Error publishing: %s\n", emsg);
+    fprintf (stderr, "Error publishing: %s\n", emsg);
     err = 1;
     GNUNET_FS_stop (fs);
     return;
@@ -182,7 +182,7 @@ publish_cont (void *cls, const struct GNUNET_FS_Uri *ksk_uri, const char *emsg)
   sks_uri = GNUNET_FS_uri_parse (sbuf, &msg);
   if (NULL == sks_uri)
   {
-    FPRINTF (stderr, "failed to parse URI `%s': %s\n", sbuf, msg);
+    fprintf (stderr, "failed to parse URI `%s': %s\n", sbuf, msg);
     err = 1;
     GNUNET_FS_stop (fs);
     GNUNET_free_non_null (msg);
@@ -239,7 +239,7 @@ adv_cont (void *cls, const struct GNUNET_FS_Uri *uri, const char *emsg)
 
   if (NULL != emsg)
   {
-    FPRINTF (stderr, "Error publishing: %s\n", emsg);
+    fprintf (stderr, "Error publishing: %s\n", emsg);
     err = 1;
     GNUNET_FS_stop (fs);
     return;

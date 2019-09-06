@@ -64,7 +64,7 @@ static void
 end_badly ()
 {
   die_task = NULL;
-  FPRINTF (stderr, "%s",  "Testcase failed (timeout).\n");
+  fprintf (stderr, "%s",  "Testcase failed (timeout).\n");
   GNUNET_REGEX_announce_cancel (a);
   a = NULL;
   GNUNET_REGEX_search_cancel (s);

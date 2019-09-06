@@ -55,7 +55,9 @@ static unsigned int verbose;
  * @return GNUNET_OK to continue iteration
  */
 static int
-print_indexed (void *cls, const char *filename, const struct GNUNET_HashCode * file_id)
+print_indexed (void *cls,
+               const char *filename,
+               const struct GNUNET_HashCode *file_id)
 {
   if (NULL == filename)
   {
@@ -64,9 +66,9 @@ print_indexed (void *cls, const char *filename, const struct GNUNET_HashCode * f
     return GNUNET_OK;
   }
   if (verbose)
-    FPRINTF (stdout, "%s: %s\n", GNUNET_h2s (file_id), filename);
+    fprintf (stdout, "%s: %s\n", GNUNET_h2s (file_id), filename);
   else
-    FPRINTF (stdout, "%s\n", filename);
+    fprintf (stdout, "%s\n", filename);
   return GNUNET_OK;
 }
 
@@ -80,12 +82,18 @@ print_indexed (void *cls, const char *filename, const struct GNUNET_HashCode * f
  * @param cfg configuration
  */
 static void
-run (void *cls, char *const *args, const char *cfgfile,
+run (void *cls,
+     char *const *args,
+     const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   if (list_indexed_files)
   {
-    fs = GNUNET_FS_start (cfg, "gnunet-fs", NULL, NULL, GNUNET_FS_FLAGS_NONE,
+    fs = GNUNET_FS_start (cfg,
+                          "gnunet-fs",
+                          NULL,
+                          NULL,
+                          GNUNET_FS_FLAGS_NONE,
                           GNUNET_FS_OPTIONS_END);
     if (NULL == fs)
     {
@@ -115,21 +123,27 @@ main (int argc, char *const *argv)
   struct GNUNET_GETOPT_CommandLineOption options[] = {
 
     GNUNET_GETOPT_option_flag ('i',
-                                  "list-indexed",
-                                  gettext_noop ("print a list of all indexed files"),
-                                  &list_indexed_files),
+                               "list-indexed",
+                               gettext_noop (
+                                 "print a list of all indexed files"),
+                               &list_indexed_files),
 
     GNUNET_GETOPT_option_verbose (&verbose),
-    GNUNET_GETOPT_OPTION_END
-  };
+    GNUNET_GETOPT_OPTION_END};
 
   if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv, &argc, &argv))
     return 2;
   ret = (GNUNET_OK ==
-	 GNUNET_PROGRAM_run (argc, argv, "gnunet-fs [OPTIONS]",
-			     gettext_noop ("Special file-sharing operations"),
-			     options, &run, NULL)) ? ret : 1;
-  GNUNET_free ((void*) argv);
+         GNUNET_PROGRAM_run (argc,
+                             argv,
+                             "gnunet-fs [OPTIONS]",
+                             gettext_noop ("Special file-sharing operations"),
+                             options,
+                             &run,
+                             NULL))
+          ? ret
+          : 1;
+  GNUNET_free ((void *) argv);
   return ret;
 }
 

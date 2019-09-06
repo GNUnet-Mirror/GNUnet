@@ -205,17 +205,17 @@ update_meter (struct ProgressMeter *meter)
     {
       if (meter->completed == 0)
       {
-        FPRINTF (stdout, "%sProgress: [0%%", meter->startup_string);
+        fprintf (stdout, "%sProgress: [0%%", meter->startup_string);
       }
       else
-        FPRINTF (stdout, "%d%%",
+        fprintf (stdout, "%d%%",
                  (int) (((float) meter->completed / meter->total) * 100));
     }
     else if (meter->completed % meter->dotnum == 0)
-      FPRINTF (stdout, "%s", ".");
+      fprintf (stdout, "%s", ".");
 
     if (meter->completed + 1 == meter->total)
-      FPRINTF (stdout, "%d%%]\n", 100);
+      fprintf (stdout, "%d%%]\n", 100);
     fflush (stdout);
   }
   meter->completed++;

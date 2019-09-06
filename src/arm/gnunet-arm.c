@@ -151,7 +151,7 @@ delete_files ()
     "Will attempt to remove configuration file %s and service directory %s\n",
     config_file,
     dir);
-  if (0 != UNLINK (config_file))
+  if (0 != unlink (config_file))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                 _ ("Failed to remove configuration file %s\n"),
@@ -319,7 +319,7 @@ start_callback (void *cls,
   op = NULL;
   if (GNUNET_ARM_REQUEST_SENT_OK != rs)
   {
-    FPRINTF (stdout,
+    fprintf (stdout,
              _ ("Failed to start the ARM service: %s\n"),
              req_string (rs));
     GNUNET_SCHEDULER_shutdown ();
@@ -328,7 +328,7 @@ start_callback (void *cls,
   if ((GNUNET_ARM_RESULT_STARTING != result) &&
       (GNUNET_ARM_RESULT_IS_STARTED_ALREADY != result))
   {
-    FPRINTF (stdout,
+    fprintf (stdout,
              _ ("Failed to start the ARM service: %s\n"),
              ret_string (result));
     GNUNET_SCHEDULER_shutdown ();
@@ -366,7 +366,7 @@ stop_callback (void *cls,
                      "%s",
                      _ (
                        "Failed to send a stop request to the ARM service: %s\n"));
-    FPRINTF (stdout, msg, req_string (rs));
+    fprintf (stdout, msg, req_string (rs));
     GNUNET_free (msg);
     GNUNET_SCHEDULER_shutdown ();
     return;
@@ -375,7 +375,7 @@ stop_callback (void *cls,
       (GNUNET_ARM_RESULT_STOPPED != result) &&
       (GNUNET_ARM_RESULT_IS_STOPPED_ALREADY != result))
   {
-    FPRINTF (stdout,
+    fprintf (stdout,
              _ ("Failed to stop the ARM service: %s\n"),
              ret_string (result));
     GNUNET_SCHEDULER_shutdown ();
@@ -413,7 +413,7 @@ init_callback (void *cls,
   op = NULL;
   if (GNUNET_ARM_REQUEST_SENT_OK != rs)
   {
-    FPRINTF (stdout,
+    fprintf (stdout,
              _ ("Failed to send a request to start the `%s' service: %s\n"),
              init,
              req_string (rs));
@@ -423,7 +423,7 @@ init_callback (void *cls,
   if ((GNUNET_ARM_RESULT_STARTING != result) &&
       (GNUNET_ARM_RESULT_IS_STARTED_ALREADY != result))
   {
-    FPRINTF (stdout,
+    fprintf (stdout,
              _ ("Failed to start the `%s' service: %s\n"),
              init,
              ret_string (result));
@@ -465,7 +465,7 @@ term_callback (void *cls,
                      _ (
                        "Failed to send a request to kill the `%s' service: %%s\n"),
                      term);
-    FPRINTF (stdout, msg, req_string (rs));
+    fprintf (stdout, msg, req_string (rs));
     GNUNET_free (msg);
     GNUNET_SCHEDULER_shutdown ();
     return;
@@ -473,7 +473,7 @@ term_callback (void *cls,
   if ((GNUNET_ARM_RESULT_STOPPED != result) &&
       (GNUNET_ARM_RESULT_IS_STOPPED_ALREADY != result))
   {
-    FPRINTF (stdout,
+    fprintf (stdout,
              _ ("Failed to kill the `%s' service: %s\n"),
              term,
              ret_string (result));
@@ -515,14 +515,14 @@ list_callback (void *cls,
     GNUNET_asprintf (&msg,
                      "%s",
                      _ ("Failed to request a list of services: %s\n"));
-    FPRINTF (stdout, msg, req_string (rs));
+    fprintf (stdout, msg, req_string (rs));
     GNUNET_free (msg);
     ret = 3;
     GNUNET_SCHEDULER_shutdown ();
   }
   if (NULL == list)
   {
-    FPRINTF (stderr,
+    fprintf (stderr,
              "%s",
              _ ("Error communicating with ARM. ARM not running?\n"));
     GNUNET_SCHEDULER_shutdown ();
@@ -530,9 +530,9 @@ list_callback (void *cls,
     return;
   }
   if (! quiet)
-    FPRINTF (stdout, "%s", _ ("Running services:\n"));
+    fprintf (stdout, "%s", _ ("Running services:\n"));
   for (unsigned int i = 0; i < count; i++)
-    FPRINTF (stdout, "%s\n", list[i]);
+    fprintf (stdout, "%s\n", list[i]);
   al_task = GNUNET_SCHEDULER_add_now (&action_loop, NULL);
 }
 
@@ -661,9 +661,9 @@ srv_status (void *cls,
   if (! quiet)
   {
     if (NULL != msg)
-      FPRINTF (stderr, msg, service);
+      fprintf (stderr, msg, service);
     else
-      FPRINTF (stderr,
+      fprintf (stderr,
                _ ("Unknown status %u for service %s.\n"),
                status,
                service);

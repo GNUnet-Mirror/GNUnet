@@ -226,7 +226,7 @@ FAILURE:
     GNUNET_FSUI_stop (ctx);
   if (filename != NULL)
   {
-    UNLINK (filename);
+    unlink (filename);
     GNUNET_free (filename);
   }
   if (download != NULL)
@@ -236,7 +236,7 @@ FAILURE:
   }
   filename = makeName (43);
   /* TODO: verify file 'filename(42)' == file 'filename(43)' */
-  UNLINK (filename);
+  unlink (filename);
   GNUNET_free (filename);
 
 #if START_DAEMON

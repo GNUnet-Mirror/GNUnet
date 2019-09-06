@@ -217,10 +217,10 @@ custom_shutdown (void *cls)
   }
 
   result = 0;
-  FPRINTF (stderr, "\n");
+  fprintf (stderr, "\n");
   if (stats[0].switch_attempts > 0)
   {
-    FPRINTF (
+    fprintf (
       stderr,
       "Peer 1 tried %u times to switch and succeeded %u times, failed %u times\n",
       stats[0].switch_attempts,
@@ -234,13 +234,13 @@ custom_shutdown (void *cls)
   }
   else if (stats[0].addresses_avail > 1)
   {
-    FPRINTF (stderr,
+    fprintf (stderr,
              "Peer 1 had %u addresses available, but did not try to switch\n",
              stats[0].addresses_avail);
   }
   if (stats[1].switch_attempts > 0)
   {
-    FPRINTF (
+    fprintf (
       stderr,
       "Peer 2 tried %u times to switch and succeeded %u times, failed %u times\n",
       stats[1].switch_attempts,
@@ -254,7 +254,7 @@ custom_shutdown (void *cls)
   }
   else if (stats[1].addresses_avail > 1)
   {
-    FPRINTF (stderr,
+    fprintf (stderr,
              "Peer 2 had %u addresses available, but did not try to switch\n",
              stats[1].addresses_avail);
   }
@@ -262,14 +262,14 @@ custom_shutdown (void *cls)
   if (((stats[0].switch_attempts > 0) || (stats[1].switch_attempts > 0)) &&
       (bytes_sent_after_switch == 0))
   {
-    FPRINTF (stderr, "No data sent after switching!\n");
+    fprintf (stderr, "No data sent after switching!\n");
     GNUNET_break (0);
     result++;
   }
   if (((stats[0].switch_attempts > 0) || (stats[1].switch_attempts > 0)) &&
       (bytes_recv_after_switch == 0))
   {
-    FPRINTF (stderr, "No data received after switching!\n");
+    fprintf (stderr, "No data received after switching!\n");
     GNUNET_break (0);
     result++;
   }
@@ -353,11 +353,11 @@ progress_indicator (void *cls)
   counter++;
   if ((TIMEOUT.rel_value_us / 1000 / 1000LL) < counter)
   {
-    FPRINTF (stderr, "%s", ".\n");
+    fprintf (stderr, "%s", ".\n");
   }
   else
   {
-    FPRINTF (stderr, "%s", ".");
+    fprintf (stderr, "%s", ".");
     measure_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
                                                  &progress_indicator,
                                                  NULL);

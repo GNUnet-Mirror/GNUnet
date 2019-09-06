@@ -66,7 +66,6 @@ struct DataRecord
    * Key under which the item can be found.
    */
   struct GNUNET_HashCode key;
-
 };
 GNUNET_NETWORK_STRUCT_END
 
@@ -185,13 +184,11 @@ get_cb (void *cls,
   qe = NULL;
   if (NULL == key)
   {
-    FPRINTF (stderr,
-             _("Dumped %" PRIu64 " records\n"),
-             record_count);
+    fprintf (stderr, _ ("Dumped %" PRIu64 " records\n"), record_count);
     GNUNET_DISK_file_close (file_handle);
     file_handle = NULL;
     if (insert)
-      start_insert();
+      start_insert ();
     else
     {
       ret = 0;
@@ -213,8 +210,8 @@ get_cb (void *cls,
   len = GNUNET_DISK_file_write (file_handle, &dr, sizeof (dr));
   if (sizeof (dr) != len)
   {
-    FPRINTF (stderr,
-             _("Short write to file: %zd bytes expecting %zd\n"),
+    fprintf (stderr,
+             _ ("Short write to file: %zd bytes expecting %zd\n"),
              len,
              sizeof (dr));
     ret = 1;
@@ -225,8 +222,8 @@ get_cb (void *cls,
   len = GNUNET_DISK_file_write (file_handle, data, size);
   if (size != len)
   {
-    FPRINTF (stderr,
-             _("Short write to file: %zd bytes expecting %zd\n"),
+    fprintf (stderr,
+             _ ("Short write to file: %zd bytes expecting %zd\n"),
              len,
              size);
     ret = 1;
@@ -235,7 +232,7 @@ get_cb (void *cls,
   }
 
   record_count++;
-  do_get(uid + 1);
+  do_get (uid + 1);
 }
 
 
@@ -257,8 +254,7 @@ do_get (const uint64_t next_uid)
                                  NULL /* proc_cls */);
   if (NULL == qe)
   {
-    FPRINTF (stderr,
-             _("Error queueing datastore GET operation\n"));
+    fprintf (stderr, _ ("Error queueing datastore GET operation\n"));
     ret = 1;
     GNUNET_SCHEDULER_shutdown ();
   }
@@ -277,15 +273,13 @@ start_dump ()
   {
     file_handle = GNUNET_DISK_file_open (file_name,
                                          GNUNET_DISK_OPEN_WRITE |
-                                         GNUNET_DISK_OPEN_TRUNCATE |
-                                         GNUNET_DISK_OPEN_CREATE,
+                                           GNUNET_DISK_OPEN_TRUNCATE |
+                                           GNUNET_DISK_OPEN_CREATE,
                                          GNUNET_DISK_PERM_USER_READ |
-                                         GNUNET_DISK_PERM_USER_WRITE);
+                                           GNUNET_DISK_PERM_USER_WRITE);
     if (NULL == file_handle)
     {
-      FPRINTF (stderr,
-               _("Unable to open dump file: %s\n"),
-               file_name);
+      fprintf (stderr, _ ("Unable to open dump file: %s\n"), file_name);
       ret = 1;
       GNUNET_SCHEDULER_shutdown ();
       return;
@@ -296,7 +290,7 @@ start_dump ()
     file_handle = GNUNET_DISK_get_handle_from_int_fd (STDOUT_FILENO);
   }
   GNUNET_DISK_file_write (file_handle, MAGIC_BYTES, MAGIC_LEN);
-  do_get(0);
+  do_get (0);
 }
 
 
@@ -322,9 +316,7 @@ put_cb (void *cls,
   qe = NULL;
   if (GNUNET_SYSERR == success)
   {
-    FPRINTF (stderr,
-             _("Failed to store item: %s, aborting\n"),
-             msg);
+    fprintf (stderr, _ ("Failed to store item: %s, aborting\n"), msg);
     ret = 1;
     GNUNET_SCHEDULER_shutdown ();
     return;
@@ -336,17 +328,15 @@ put_cb (void *cls,
   len = GNUNET_DISK_file_read (file_handle, &dr, sizeof (dr));
   if (0 == len)
   {
-    FPRINTF (stderr,
-             _("Inserted %" PRIu64 " records\n"),
-             record_count);
+    fprintf (stderr, _ ("Inserted %" PRIu64 " records\n"), record_count);
     ret = 0;
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
   else if (sizeof (dr) != len)
   {
-    FPRINTF (stderr,
-             _("Short read from file: %zd bytes expecting %zd\n"),
+    fprintf (stderr,
+             _ ("Short read from file: %zd bytes expecting %zd\n"),
              len,
              sizeof (dr));
     ret = 1;
@@ -359,8 +349,8 @@ put_cb (void *cls,
   len = GNUNET_DISK_file_read (file_handle, data, size);
   if (size != len)
   {
-    FPRINTF (stderr,
-             _("Short read from file: %zd bytes expecting %zd\n"),
+    fprintf (stderr,
+             _ ("Short read from file: %zd bytes expecting %zd\n"),
              len,
              size);
     ret = 1;
@@ -385,8 +375,7 @@ put_cb (void *cls,
                              NULL);
   if (NULL == qe)
   {
-    FPRINTF (stderr,
-             _("Error queueing datastore PUT operation\n"));
+    fprintf (stderr, _ ("Error queueing datastore PUT operation\n"));
     ret = 1;
     GNUNET_SCHEDULER_shutdown ();
   }
@@ -408,9 +397,7 @@ start_insert ()
                                          GNUNET_DISK_PERM_NONE);
     if (NULL == file_handle)
     {
-      FPRINTF (stderr,
-               _("Unable to open dump file: %s\n"),
-               file_name);
+      fprintf (stderr, _ ("Unable to open dump file: %s\n"), file_name);
       ret = 1;
       GNUNET_SCHEDULER_shutdown ();
       return;
@@ -425,11 +412,9 @@ start_insert ()
   ssize_t len;
 
   len = GNUNET_DISK_file_read (file_handle, buf, MAGIC_LEN);
-  if (len != MAGIC_LEN ||
-      0 != memcmp (buf, MAGIC_BYTES, MAGIC_LEN))
+  if (len != MAGIC_LEN || 0 != memcmp (buf, MAGIC_BYTES, MAGIC_LEN))
   {
-    FPRINTF (stderr,
-             _("Input file is not of a supported format\n"));
+    fprintf (stderr, _ ("Input file is not of a supported format\n"));
     return;
   }
   put_cb (NULL, GNUNET_YES, GNUNET_TIME_UNIT_ZERO_ABS, NULL);
@@ -454,20 +439,19 @@ run (void *cls,
   datastore = GNUNET_DATASTORE_connect (cfg);
   if (NULL == datastore)
   {
-    FPRINTF (stderr,
-             _("Failed connecting to the datastore.\n"));
+    fprintf (stderr, _ ("Failed connecting to the datastore.\n"));
     ret = 1;
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
   if (dump)
-    start_dump();
+    start_dump ();
   else if (insert)
-    start_insert();
+    start_insert ();
   else
   {
-    FPRINTF (stderr,
-             _("Please choose at least one operation: %s, %s\n"),
+    fprintf (stderr,
+             _ ("Please choose at least one operation: %s, %s\n"),
              "dump",
              "insert");
     ret = 1;
@@ -484,34 +468,38 @@ run (void *cls,
  * @return 0 ok, 1 on error
  */
 int
-main (int argc,
-      char *const *argv)
+main (int argc, char *const *argv)
 {
-  struct GNUNET_GETOPT_CommandLineOption options[] = {
-    GNUNET_GETOPT_option_flag ('d',
-                               "dump",
-                               gettext_noop ("Dump all records from the datastore"),
-                               &dump),
-    GNUNET_GETOPT_option_flag ('i',
-                               "insert",
-                               gettext_noop ("Insert records into the datastore"),
-                               &insert),
-    GNUNET_GETOPT_option_filename ('f',
-                                   "file",
-                                   "FILENAME",
-                                   gettext_noop ("File to dump or insert"),
-                                   &file_name),
-    GNUNET_GETOPT_OPTION_END
-  };
+  struct GNUNET_GETOPT_CommandLineOption options[] =
+    {GNUNET_GETOPT_option_flag ('d',
+                                "dump",
+                                gettext_noop (
+                                  "Dump all records from the datastore"),
+                                &dump),
+     GNUNET_GETOPT_option_flag ('i',
+                                "insert",
+                                gettext_noop (
+                                  "Insert records into the datastore"),
+                                &insert),
+     GNUNET_GETOPT_option_filename ('f',
+                                    "file",
+                                    "FILENAME",
+                                    gettext_noop ("File to dump or insert"),
+                                    &file_name),
+     GNUNET_GETOPT_OPTION_END};
   if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv, &argc, &argv))
     return 2;
 
   if (GNUNET_OK !=
-      GNUNET_PROGRAM_run (argc, argv, "gnunet-datastore",
-			  gettext_noop ("Manipulate GNUnet datastore"),
-			  options, &run, NULL))
+      GNUNET_PROGRAM_run (argc,
+                          argv,
+                          "gnunet-datastore",
+                          gettext_noop ("Manipulate GNUnet datastore"),
+                          options,
+                          &run,
+                          NULL))
     ret = 1;
-  GNUNET_free ((void*) argv);
+  GNUNET_free ((void *) argv);
   return ret;
 }
 

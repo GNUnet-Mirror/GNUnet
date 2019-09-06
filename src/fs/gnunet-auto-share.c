@@ -512,7 +512,7 @@ determine_id (void *cls, const char *filename)
   struct GNUNET_HashCode fx[2];
   struct GNUNET_HashCode ft;
 
-  if (0 != STAT (filename, &sbuf))
+  if (0 != stat (filename, &sbuf))
   {
     GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "stat", filename);
     return GNUNET_OK;

@@ -84,7 +84,7 @@ main (int argc, char *argv[])
   GNUNET_BLOCK_context_destroy (ctx);
   GNUNET_CONFIGURATION_destroy (cfg);
   if (ret != 0)
-    FPRINTF (stderr, "Tests failed: %d\n", ret);
+    fprintf (stderr, "Tests failed: %d\n", ret);
   return ret;
 }
 

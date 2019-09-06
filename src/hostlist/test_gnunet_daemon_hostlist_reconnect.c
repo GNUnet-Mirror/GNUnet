@@ -237,7 +237,7 @@ main (int argcx, char *argvx[])
                       &ok);
   if (0 == ok)
   {
-    FPRINTF (stderr, "%s", ".");
+    fprintf (stderr, "%s", ".");
     /* now do it again */
     ok = 1;
     GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1,
@@ -247,7 +247,7 @@ main (int argcx, char *argvx[])
                         options,
                         &run,
                         &ok);
-    FPRINTF (stderr, "%s", ".\n");
+    fprintf (stderr, "%s", ".\n");
   }
   GNUNET_DISK_purge_cfg_dir ("test_gnunet_daemon_hostlist_peer1.conf",
                              "GNUNET_TEST_HOME");

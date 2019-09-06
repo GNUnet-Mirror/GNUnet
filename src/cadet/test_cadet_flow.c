@@ -216,16 +216,16 @@ show_end_data (void)
 
   end_time = GNUNET_TIME_absolute_get ();
   total_time = GNUNET_TIME_absolute_get_difference (start_time, end_time);
-  FPRINTF (stderr,
+  fprintf (stderr,
 	   "\nResults of test \"%s\"\n",
 	   test_name);
-  FPRINTF (stderr,
+  fprintf (stderr,
 	   "Test time %s\n",
            GNUNET_STRINGS_relative_time_to_string (total_time, GNUNET_YES));
-  FPRINTF (stderr,
+  fprintf (stderr,
 	   "Test bandwidth: %f kb/s\n",
 	   4 * total_packets * 1.0 / (total_time.rel_value_us / 1000));    // 4bytes * ms
-  FPRINTF (stderr,
+  fprintf (stderr,
 	   "Test throughput: %f packets/s\n\n",
 	   total_packets * 1000.0 / (total_time.rel_value_us / 1000));     // packets * ms
   GAUGER ("CADET",
@@ -863,7 +863,7 @@ main (int argc,
                                argc,
                                argv))
   {
-    FPRINTF (stderr,
+    fprintf (stderr,
              "test failed: problem with CLI parameters\n");
     return 1;
   }

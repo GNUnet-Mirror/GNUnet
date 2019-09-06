@@ -86,7 +86,7 @@ do_stop (void *cls)
     fancy =
         GNUNET_STRINGS_byte_size_fancy (((unsigned long long) FILESIZE) *
                                         1000000LL / del.rel_value_us);
-    FPRINTF (stdout,
+    fprintf (stdout,
              "Download speed was %s/s\n",
              fancy);
     GNUNET_free (fancy);

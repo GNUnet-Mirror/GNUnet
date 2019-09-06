@@ -196,7 +196,25 @@
 #include <sys/endian.h>
 #endif
 
-#include "plibc.h"
+/* From plibc. */
+#ifdef Q_OS_WIN32
+#define WINDOWS 1
+#endif
+
+#ifndef WINDOWS
+#define DIR_SEPARATOR '/'
+#define DIR_SEPARATOR_STR "/"
+#define PATH_SEPARATOR ':'
+#define PATH_SEPARATOR_STR ":"
+#define NEWLINE "\n"
+#else
+#define DIR_SEPARATOR '\\'
+#define DIR_SEPARATOR_STR "\\"
+#define PATH_SEPARATOR ';'
+#define PATH_SEPARATOR_STR ";"
+#define NEWLINE "\r\n"
+#endif
+
 #include "compat.h"
 
 #include <locale.h>

@@ -29,9 +29,10 @@
 #include "gnunet_datacache_plugin.h"
 
 
-#define LOG(kind,...) GNUNET_log_from (kind, "datacache", __VA_ARGS__)
+#define LOG(kind, ...) GNUNET_log_from (kind, "datacache", __VA_ARGS__)
 
-#define LOG_STRERROR_FILE(kind,op,fn) GNUNET_log_from_strerror_file (kind, "datacache", op, fn)
+#define LOG_STRERROR_FILE(kind, op, fn) \
+  GNUNET_log_from_strerror_file (kind, "datacache", op, fn)
 
 /**
  * Internal state of the datacache library.
@@ -89,7 +90,6 @@ struct GNUNET_DATACACHE_Handle
    * How much space is in use right now?
    */
   unsigned long long utilization;
-
 };
 
 
@@ -102,9 +102,7 @@ struct GNUNET_DATACACHE_Handle
  * @param size number of bytes that were made available
  */
 static void
-env_delete_notify (void *cls,
-                   const struct GNUNET_HashCode *key,
-                   size_t size)
+env_delete_notify (void *cls, const struct GNUNET_HashCode *key, size_t size)
 {
   struct GNUNET_DATACACHE_Handle *h = cls;
 
@@ -113,11 +111,10 @@ env_delete_notify (void *cls,
        GNUNET_h2s (key));
   GNUNET_assert (h->utilization >= size);
   h->utilization -= size;
-  GNUNET_CONTAINER_bloomfilter_remove (h->filter,
-                                       key);
+  GNUNET_CONTAINER_bloomfilter_remove (h->filter, key);
   GNUNET_STATISTICS_update (h->stats,
                             gettext_noop ("# bytes stored"),
-                            - (long long) size,
+                            -(long long) size,
                             GNUNET_NO);
   GNUNET_STATISTICS_update (h->stats,
                             gettext_noop ("# items stored"),
@@ -144,54 +141,42 @@ GNUNET_DATACACHE_create (const struct GNUNET_CONFIGURATION_Handle *cfg,
   char *name;
 
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_size (cfg,
-                                           section,
-                                           "QUOTA",
-                                           &quota))
+      GNUNET_CONFIGURATION_get_value_size (cfg, section, "QUOTA", &quota))
   {
-    GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR,
-                               section,
-                               "QUOTA");
+    GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR, section, "QUOTA");
     return NULL;
   }
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_string (cfg,
-                                             section,
-                                             "DATABASE",
-                                             &name))
+      GNUNET_CONFIGURATION_get_value_string (cfg, section, "DATABASE", &name))
   {
-    GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR,
-                               section,
-                               "DATABASE");
+    GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR, section, "DATABASE");
     return NULL;
   }
-  bf_size = quota / 32;         /* 8 bit per entry, 1 bit per 32 kb in DB */
+  bf_size = quota / 32; /* 8 bit per entry, 1 bit per 32 kb in DB */
 
   ret = GNUNET_new (struct GNUNET_DATACACHE_Handle);
 
   if (GNUNET_YES !=
-      GNUNET_CONFIGURATION_get_value_yesno (cfg,
-                                            section,
-                                            "DISABLE_BF"))
+      GNUNET_CONFIGURATION_get_value_yesno (cfg, section, "DISABLE_BF"))
   {
     if (GNUNET_YES !=
-	GNUNET_CONFIGURATION_get_value_yesno (cfg,
-                                              section,
-                                              "DISABLE_BF_RC"))
+        GNUNET_CONFIGURATION_get_value_yesno (cfg, section, "DISABLE_BF_RC"))
     {
       ret->bloom_name = GNUNET_DISK_mktemp ("gnunet-datacachebloom");
     }
     if (NULL != ret->bloom_name)
     {
-      ret->filter = GNUNET_CONTAINER_bloomfilter_load (ret->bloom_name,
-                                                       quota / 1024,     /* 8 bit per entry in DB, expect 1k entries */
-						       5);
+      ret->filter = GNUNET_CONTAINER_bloomfilter_load (
+        ret->bloom_name,
+        quota / 1024, /* 8 bit per entry in DB, expect 1k entries */
+        5);
     }
     if (NULL == ret->filter)
     {
-      ret->filter = GNUNET_CONTAINER_bloomfilter_init (NULL,
-						       bf_size,
-						       5); /* approx. 3% false positives at max use */
+      ret->filter =
+        GNUNET_CONTAINER_bloomfilter_init (NULL,
+                                           bf_size,
+                                           5); /* approx. 3% false positives at max use */
     }
   }
   ret->stats = GNUNET_STATISTICS_create ("datacache", cfg);
@@ -202,19 +187,15 @@ GNUNET_DATACACHE_create (const struct GNUNET_CONFIGURATION_Handle *cfg,
   ret->env.cls = ret;
   ret->env.delete_notify = &env_delete_notify;
   ret->env.quota = quota;
-  LOG (GNUNET_ERROR_TYPE_INFO,
-       _("Loading `%s' datacache plugin\n"),
-       name);
-  GNUNET_asprintf (&libname,
-                   "libgnunet_plugin_datacache_%s",
-                   name);
+  LOG (GNUNET_ERROR_TYPE_INFO, _ ("Loading `%s' datacache plugin\n"), name);
+  GNUNET_asprintf (&libname, "libgnunet_plugin_datacache_%s", name);
   ret->short_name = name;
   ret->lib_name = libname;
   ret->api = GNUNET_PLUGIN_load (libname, &ret->env);
   if (ret->api == NULL)
   {
     LOG (GNUNET_ERROR_TYPE_ERROR,
-         _("Failed to load datacache plugin for `%s'\n"),
+         _ ("Failed to load datacache plugin for `%s'\n"),
          name);
     GNUNET_DATACACHE_destroy (ret);
     return NULL;
@@ -234,23 +215,20 @@ GNUNET_DATACACHE_destroy (struct GNUNET_DATACACHE_Handle *h)
   if (NULL != h->filter)
     GNUNET_CONTAINER_bloomfilter_free (h->filter);
   if (NULL != h->api)
-    GNUNET_break (NULL ==
-                  GNUNET_PLUGIN_unload (h->lib_name,
-                                        h->api));
+    GNUNET_break (NULL == GNUNET_PLUGIN_unload (h->lib_name, h->api));
   GNUNET_free (h->lib_name);
   GNUNET_free (h->short_name);
   GNUNET_free (h->section);
   if (NULL != h->bloom_name)
   {
-    if (0 != UNLINK (h->bloom_name))
+    if (0 != unlink (h->bloom_name))
       GNUNET_log_from_strerror_file (GNUNET_ERROR_TYPE_WARNING,
                                      "datacache",
                                      "unlink",
                                      h->bloom_name);
     GNUNET_free (h->bloom_name);
   }
-  GNUNET_STATISTICS_destroy (h->stats,
-                             GNUNET_NO);
+  GNUNET_STATISTICS_destroy (h->stats, GNUNET_NO);
   GNUNET_free (h);
 }
 
@@ -277,19 +255,19 @@ GNUNET_DATACACHE_put (struct GNUNET_DATACACHE_Handle *h,
                       const char *data,
                       enum GNUNET_BLOCK_Type type,
                       struct GNUNET_TIME_Absolute discard_time,
-		      unsigned int path_info_len,
-		      const struct GNUNET_PeerIdentity *path_info)
+                      unsigned int path_info_len,
+                      const struct GNUNET_PeerIdentity *path_info)
 {
   ssize_t used;
 
   used = h->api->put (h->api->cls,
                       key,
                       xor_distance,
-		      data_size,
+                      data_size,
                       data,
-		      type,
+                      type,
                       discard_time,
-		      path_info_len,
+                      path_info_len,
                       path_info);
   if (-1 == used)
   {
@@ -305,8 +283,7 @@ GNUNET_DATACACHE_put (struct GNUNET_DATACACHE_Handle *h,
        "Stored data under key `%s' in cache\n",
        GNUNET_h2s (key));
   if (NULL != h->filter)
-    GNUNET_CONTAINER_bloomfilter_add (h->filter,
-                                      key);
+    GNUNET_CONTAINER_bloomfilter_add (h->filter, key);
   GNUNET_STATISTICS_update (h->stats,
                             gettext_noop ("# bytes stored"),
                             used,
@@ -316,8 +293,7 @@ GNUNET_DATACACHE_put (struct GNUNET_DATACACHE_Handle *h,
                             1,
                             GNUNET_NO);
   while (h->utilization + used > h->env.quota)
-    GNUNET_assert (GNUNET_OK ==
-		   h->api->del (h->api->cls));
+    GNUNET_assert (GNUNET_OK == h->api->del (h->api->cls));
   h->utilization += used;
   return GNUNET_OK;
 }
@@ -348,23 +324,20 @@ GNUNET_DATACACHE_get (struct GNUNET_DATACACHE_Handle *h,
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Processing request for key `%s'\n",
        GNUNET_h2s (key));
-  if ( (NULL != h->filter) &&
-       (GNUNET_OK != GNUNET_CONTAINER_bloomfilter_test (h->filter, key)) )
+  if ((NULL != h->filter) &&
+      (GNUNET_OK != GNUNET_CONTAINER_bloomfilter_test (h->filter, key)))
   {
     GNUNET_STATISTICS_update (h->stats,
-                              gettext_noop ("# requests filtered by bloom filter"),
+                              gettext_noop (
+                                "# requests filtered by bloom filter"),
                               1,
                               GNUNET_NO);
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Bloomfilter filters request for key `%s'\n",
          GNUNET_h2s (key));
-    return 0;                   /* can not be present */
+    return 0; /* can not be present */
   }
-  return h->api->get (h->api->cls,
-                      key,
-                      type,
-                      iter,
-                      iter_cls);
+  return h->api->get (h->api->cls, key, type, iter, iter_cls);
 }
 
 
@@ -382,14 +355,12 @@ GNUNET_DATACACHE_get_random (struct GNUNET_DATACACHE_Handle *h,
                              void *iter_cls)
 {
   GNUNET_STATISTICS_update (h->stats,
-                            gettext_noop ("# requests for random value received"),
+                            gettext_noop (
+                              "# requests for random value received"),
                             1,
                             GNUNET_NO);
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Processing request for random value\n");
-  return h->api->get_random (h->api->cls,
-                             iter,
-                             iter_cls);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Processing request for random value\n");
+  return h->api->get_random (h->api->cls, iter, iter_cls);
 }
 
 
@@ -414,17 +385,14 @@ GNUNET_DATACACHE_get_closest (struct GNUNET_DATACACHE_Handle *h,
                               void *iter_cls)
 {
   GNUNET_STATISTICS_update (h->stats,
-                            gettext_noop ("# proximity search requests received"),
+                            gettext_noop (
+                              "# proximity search requests received"),
                             1,
                             GNUNET_NO);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Processing proximity search at `%s'\n",
        GNUNET_h2s (key));
-  return h->api->get_closest (h->api->cls,
-                              key,
-                              num_results,
-                              iter,
-                              iter_cls);
+  return h->api->get_closest (h->api->cls, key, num_results, iter, iter_cls);
 }
 
 

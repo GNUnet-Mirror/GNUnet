@@ -177,7 +177,7 @@ main (int argc,
 				       "test_peerinfo_api_data.conf",
 				       &run, NULL))
     return 1;
-  FPRINTF (stderr,
+  fprintf (stderr,
            "Received %u/%u calls before timeout\n",
            numpeers,
 	   NUM_REQUESTS * NUM_REQUESTS / 2);

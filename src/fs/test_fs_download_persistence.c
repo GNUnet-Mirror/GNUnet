@@ -198,13 +198,13 @@ progress_cb (void *cls, const struct GNUNET_FS_ProgressInfo *event)
 		progress.offset);
     break;
   case GNUNET_FS_STATUS_PUBLISH_ERROR:
-    FPRINTF (stderr, "Error publishing file: %s\n",
+    fprintf (stderr, "Error publishing file: %s\n",
              event->value.publish.specifics.error.message);
     GNUNET_break (0);
     GNUNET_SCHEDULER_add_now (&abort_publish_task, NULL);
     break;
   case GNUNET_FS_STATUS_DOWNLOAD_ERROR:
-    FPRINTF (stderr, "Error downloading file: %s\n",
+    fprintf (stderr, "Error downloading file: %s\n",
              event->value.download.specifics.error.message);
     GNUNET_SCHEDULER_add_now (&abort_download_task, NULL);
     break;

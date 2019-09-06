@@ -49,7 +49,7 @@ log_duration (const char *cryptosystem,
   sprintf (s, "%6s %15s", cryptosystem, description);
   t = GNUNET_TIME_absolute_get_duration (start);
   t = GNUNET_TIME_relative_divide (t, l);
-  FPRINTF (stdout,
+  fprintf (stdout,
            "%s: %10s\n",
            s,
            GNUNET_STRINGS_relative_time_to_string (t,

@@ -212,7 +212,7 @@ stats_finished (void *cls,
     return;
   }
   for (i = 0; NULL != stats[i].name; i++)
-    FPRINTF (stderr,
+    fprintf (stderr,
 	     "%6s/%60s = %12llu\n",
 	     stats[i].subsystem,
 	     stats[i].name,

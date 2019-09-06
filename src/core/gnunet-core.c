@@ -108,7 +108,7 @@ monitor_cb (void *cls,
   case GNUNET_CORE_KX_ITERATION_FINISHED:
     return;
   case GNUNET_CORE_KX_CORE_DISCONNECT:
-    FPRINTF (stderr,
+    fprintf (stderr,
              "%s\n",
              _ ("Connection to CORE service lost (reconnecting)"));
     return;
@@ -117,7 +117,7 @@ monitor_cb (void *cls,
     break;
   }
   now_str = GNUNET_STRINGS_absolute_time_to_string (now);
-  FPRINTF (stdout,
+  fprintf (stdout,
            _ ("%24s: %-30s %4s (timeout in %6s)\n"),
            now_str,
            state_str,
@@ -146,13 +146,13 @@ run (void *cls,
   (void) cfgfile;
   if (NULL != args[0])
   {
-    FPRINTF (stderr, _ ("Invalid command line argument `%s'\n"), args[0]);
+    fprintf (stderr, _ ("Invalid command line argument `%s'\n"), args[0]);
     return;
   }
   mh = GNUNET_CORE_monitor_start (cfg, &monitor_cb, NULL);
   if (NULL == mh)
   {
-    FPRINTF (stderr, "%s", _ ("Failed to connect to CORE service!\n"));
+    fprintf (stderr, "%s", _ ("Failed to connect to CORE service!\n"));
     return;
   }
   GNUNET_SCHEDULER_add_shutdown (&shutdown_task, NULL);

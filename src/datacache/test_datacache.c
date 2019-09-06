@@ -84,7 +84,7 @@ run (void *cls,
 			       "testcache");
   if (h == NULL)
   {
-    FPRINTF (stderr,
+    fprintf (stderr,
              "%s",
 	     "Failed to initialize datacache.  Database likely not setup, skipping test.\n");
     ok = 77; /* mark test as skipped */
@@ -183,7 +183,7 @@ main (int argc, char *argv[])
 		      &run,
 		      NULL);
   if ( (0 != ok) && (77 != ok) )
-    FPRINTF (stderr,
+    fprintf (stderr,
 	     "Missed some testcases: %d\n",
 	     ok);
   return ok;

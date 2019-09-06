@@ -51,7 +51,7 @@ my_log (void *ctx,
   (void) date;
   if (strncmp ("test-common-logging-dummy", component, 25) != 0)
     return;
-  FPRINTF (stdout, "%s", msg);
+  fprintf (stdout, "%s", msg);
   fflush (stdout);
 }
 

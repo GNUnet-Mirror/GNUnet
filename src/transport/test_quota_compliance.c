@@ -71,7 +71,7 @@ report ()
     delta = 1;
   datarate = (total_bytes_recv * 1000 * 1000) / delta;
 
-  FPRINTF (stderr,
+  fprintf (stderr,
            "Throughput was %llu b/s\n",
            datarate);
   ccc->global_ret = GNUNET_OK;
@@ -160,11 +160,11 @@ measure (void *cls)
   counter++;
   if ((DURATION.rel_value_us / 1000 / 1000LL) < counter)
   {
-    FPRINTF (stderr, "%s",  ".\n");
+    fprintf (stderr, "%s",  ".\n");
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
-  FPRINTF (stderr, "%s",  ".");
+  fprintf (stderr, "%s",  ".");
   measure_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
                                                &measure,
                                                NULL);

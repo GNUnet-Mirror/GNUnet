@@ -424,7 +424,7 @@ setup_learn_peer (struct PeerContext *p,
   {
     if (GNUNET_YES == GNUNET_DISK_file_test (filename))
     {
-      result = UNLINK (filename);
+      result = unlink (filename);
       if (result == 0)
         GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                     _("Hostlist file `%s' was removed\n"),
@@ -577,7 +577,7 @@ main (int argc, char *argv[])
   if (GNUNET_YES ==
       GNUNET_DISK_file_test ("hostlists_learn_peer.file"))
   {
-    if (0 == UNLINK ("hostlists_learn_peer.file"))
+    if (0 == unlink ("hostlists_learn_peer.file"))
       GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                   "Hostlist file hostlists_learn_peer.file was removed\n");
   }

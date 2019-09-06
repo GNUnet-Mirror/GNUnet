@@ -1,3 +1,8 @@
+Fri Sep 6 00:00:00 UTC 2019
+  Remove plibc, closes #5877 as discussed in
+  https://lists.gnu.org/archive/html/gnunet-developers/2019-09/msg00002.html
+  -ng0
+
 Sun Sep 1 13:25:07 2019 +0200
   Improved support for external applications/services wrt
   localization/gettext.

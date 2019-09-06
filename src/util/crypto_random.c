@@ -80,7 +80,7 @@ glibc_weak_rand32 ()
 static double
 get_weak_random ()
 {
-  return ((double) RANDOM () / RAND_MAX);
+  return ((double) random () / RAND_MAX);
 }
 
 
@@ -93,7 +93,7 @@ get_weak_random ()
 void
 GNUNET_CRYPTO_seed_weak_random (int32_t seed)
 {
-  SRANDOM (seed);
+  srandom (seed);
 }
 
 
@@ -324,7 +324,7 @@ void __attribute__ ((constructor)) GNUNET_CRYPTO_random_init ()
 
   if (! gcry_check_version (NEED_LIBGCRYPT_VERSION))
   {
-    FPRINTF (
+    fprintf (
       stderr,
       _ ("libgcrypt has not the expected version (version %s is required).\n"),
       NEED_LIBGCRYPT_VERSION);
@@ -334,14 +334,14 @@ void __attribute__ ((constructor)) GNUNET_CRYPTO_random_init ()
   gcry_set_allocation_handler (&w_malloc, &w_malloc, &w_check, &realloc, &free);
   /* Disable use of secure memory */
   if ((rc = gcry_control (GCRYCTL_DISABLE_SECMEM, 0)))
-    FPRINTF (stderr,
+    fprintf (stderr,
              "Failed to set libgcrypt option %s: %s\n",
              "DISABLE_SECMEM",
              gcry_strerror (rc));
   /* Otherwise gnunet-ecc takes forever to complete, besides
      we are fine with "just" using GCRY_STRONG_RANDOM */
   if ((rc = gcry_control (GCRYCTL_ENABLE_QUICK_RANDOM, 0)))
-    FPRINTF (stderr,
+    fprintf (stderr,
              "Failed to set libgcrypt option %s: %s\n",
              "ENABLE_QUICK_RANDOM",
              gcry_strerror (rc));

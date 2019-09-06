@@ -63,7 +63,7 @@ check_nse_message (void *cls, struct GNUNET_TIME_Absolute timestamp,
 {
   int *ok = cls;
 
-  FPRINTF (stderr,
+  fprintf (stderr,
            "Received NSE message, estimate %f, standard deviation %f.\n",
            estimate, std_dev);
   /* Fantastic check below. Expect NaN, the only thing not equal to itself. */

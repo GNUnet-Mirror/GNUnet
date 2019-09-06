@@ -45,14 +45,12 @@
 /**
  * Generic logging shortcut
  */
-#define LOG(kind,...)				\
-  GNUNET_log (kind, __VA_ARGS__)
+#define LOG(kind, ...) GNUNET_log (kind, __VA_ARGS__)
 
 /**
  * Debug logging shorthand
  */
-#define LOG_DEBUG(...)				\
-  LOG(GNUNET_ERROR_TYPE_DEBUG, __VA_ARGS__)
+#define LOG_DEBUG(...) LOG (GNUNET_ERROR_TYPE_DEBUG, __VA_ARGS__)
 
 /**
  * Different stages in testing
@@ -294,15 +292,18 @@ static enum Stage result;
 /**
  * shortcut to exit during failure
  */
-#define FAIL_TEST(cond) do {                                    \
-    if (!(cond)) {                                              \
-      GNUNET_break(0);                                          \
-      if (NULL != abort_task)               \
-        GNUNET_SCHEDULER_cancel (abort_task);                   \
-      abort_task = NULL;                    \
-      GNUNET_SCHEDULER_shutdown ();              \
-      return;                                                   \
-    }                                                          \
+#define FAIL_TEST(cond)                       \
+  do                                          \
+  {                                           \
+    if (! (cond))                             \
+    {                                         \
+      GNUNET_break (0);                       \
+      if (NULL != abort_task)                 \
+        GNUNET_SCHEDULER_cancel (abort_task); \
+      abort_task = NULL;                      \
+      GNUNET_SCHEDULER_shutdown ();           \
+      return;                                 \
+    }                                         \
   } while (0)
 
 
@@ -357,9 +358,7 @@ do_shutdown (void *cls)
 static void
 do_abort (void *cls)
 {
-  LOG (GNUNET_ERROR_TYPE_WARNING,
-       "Aborting in stage %d\n",
-       result);
+  LOG (GNUNET_ERROR_TYPE_WARNING, "Aborting in stage %d\n", result);
   abort_task = NULL;
   GNUNET_SCHEDULER_shutdown ();
 }
@@ -430,9 +429,7 @@ delay_task (void *cls)
  * @param emsg NULL if peer is not NULL; else MAY contain the error description
  */
 static void
-peer_create_cb (void *cls,
-                struct GNUNET_TESTBED_Peer *peer,
-                const char *emsg)
+peer_create_cb (void *cls, struct GNUNET_TESTBED_Peer *peer, const char *emsg)
 {
   FAIL_TEST (NULL != peer);
   FAIL_TEST (NULL == emsg);
@@ -455,11 +452,10 @@ peer_create_cb (void *cls,
     slave2_peer = peer;
     GNUNET_TESTBED_operation_done (op);
     op = NULL;
-    delay_task_id =
-        GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
-                                      (GNUNET_TIME_UNIT_SECONDS, 1),
-                                      &delay_task,
-                                      NULL);
+    delay_task_id = GNUNET_SCHEDULER_add_delayed (
+      GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 1),
+      &delay_task,
+      NULL);
     return;
   case SLAVE3_STARTED:
     result = SLAVE3_PEER_CREATE_SUCCESS;
@@ -500,8 +496,7 @@ check_operation_success (const struct GNUNET_TESTBED_EventInformation *event)
  * @param event information about the event
  */
 static void
-controller_cb (void *cls,
-               const struct GNUNET_TESTBED_EventInformation *event)
+controller_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
 {
   switch (result)
   {
@@ -558,8 +553,8 @@ controller_cb (void *cls,
     result = SLAVE3_PEER_START_SUCCESS;
     sleep (1);
     LOG_DEBUG ("**************************************\n");
-    op = GNUNET_TESTBED_overlay_connect (mc, NULL, NULL, slave2_peer,
-                                         slave3_peer);
+    op =
+      GNUNET_TESTBED_overlay_connect (mc, NULL, NULL, slave2_peer, slave3_peer);
     FAIL_TEST (NULL != op);
     break;
   case SLAVE3_PEER_START_SUCCESS:
@@ -570,10 +565,10 @@ controller_cb (void *cls,
     result = SLAVE2_SLAVE3_PEERS_CONNECTED;
     GNUNET_TESTBED_operation_done (op);
     op = NULL;
-    delay_task_id =
-        GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
-                                      (GNUNET_TIME_UNIT_SECONDS, 1), &delay_task,
-                                      NULL);
+    delay_task_id = GNUNET_SCHEDULER_add_delayed (
+      GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 1),
+      &delay_task,
+      NULL);
     break;
   case SLAVE1_PEER_STOP_SUCCESS:
     FAIL_TEST (GNUNET_TESTBED_ET_PEER_START == event->type);
@@ -581,8 +576,8 @@ controller_cb (void *cls,
     FAIL_TEST (event->details.peer_start.peer == slave2_peer);
     GNUNET_TESTBED_operation_done (op);
     result = SLAVE2_PEER_START_SUCCESS;
-    op = GNUNET_TESTBED_overlay_connect (mc, NULL, NULL, master_peer,
-                                         slave2_peer);
+    op =
+      GNUNET_TESTBED_overlay_connect (mc, NULL, NULL, master_peer, slave2_peer);
     break;
   case SLAVE2_PEER_START_SUCCESS:
     FAIL_TEST (NULL != event);
@@ -592,10 +587,10 @@ controller_cb (void *cls,
     result = MASTER_SLAVE2_PEERS_CONNECTED;
     GNUNET_TESTBED_operation_done (op);
     op = NULL;
-    delay_task_id =
-        GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
-                                      (GNUNET_TIME_UNIT_SECONDS, 1), &delay_task,
-                                      NULL);
+    delay_task_id = GNUNET_SCHEDULER_add_delayed (
+      GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 1),
+      &delay_task,
+      NULL);
     break;
   case SLAVE2_SLAVE3_PEERS_CONNECTED:
     FAIL_TEST (GNUNET_TESTBED_ET_PEER_STOP == event->type);
@@ -714,7 +709,8 @@ registration_cont (void *cls, const char *emsg)
  *          GNUNET_TESTBED_controller_stop() shouldn't be called in this case
  */
 static void
-status_cb (void *cls, const struct GNUNET_CONFIGURATION_Handle *config,
+status_cb (void *cls,
+           const struct GNUNET_CONFIGURATION_Handle *config,
            int status)
 {
   switch (result)
@@ -726,8 +722,10 @@ status_cb (void *cls, const struct GNUNET_CONFIGURATION_Handle *config,
     event_mask |= (1L << GNUNET_TESTBED_ET_PEER_STOP);
     event_mask |= (1L << GNUNET_TESTBED_ET_CONNECT);
     event_mask |= (1L << GNUNET_TESTBED_ET_OPERATION_FINISHED);
-    mc = GNUNET_TESTBED_controller_connect (host, event_mask,
-                                            &controller_cb, NULL);
+    mc = GNUNET_TESTBED_controller_connect (host,
+                                            event_mask,
+                                            &controller_cb,
+                                            NULL);
     FAIL_TEST (NULL != mc);
     result = MASTER_STARTED;
     op = GNUNET_TESTBED_peer_create (mc, host, cfg, peer_create_cb, NULL);
@@ -759,7 +757,7 @@ host_habitable_cb (void *cls,
   hc_handle = NULL;
   if (GNUNET_NO == status)
   {
-    (void) PRINTF ("%s",
+    (void) printf ("%s",
                    "Unable to run the test as this system is not configured "
                    "to use password less SSH logins to localhost.\n"
                    "Skipping test\n");
@@ -769,8 +767,7 @@ host_habitable_cb (void *cls,
     result = SKIP;
     return;
   }
-  cp = GNUNET_TESTBED_controller_start ("127.0.0.1", host, status_cb,
-                                        NULL);
+  cp = GNUNET_TESTBED_controller_start ("127.0.0.1", host, status_cb, NULL);
 }
 
 
@@ -783,34 +780,35 @@ host_habitable_cb (void *cls,
  * @param cfg the configuration file handle
  */
 static void
-run (void *cls, char *const *args, const char *cfgfile,
+run (void *cls,
+     char *const *args,
+     const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *config)
 {
   cfg = GNUNET_CONFIGURATION_dup (config);
   host = GNUNET_TESTBED_host_create (NULL, NULL, cfg, 0);
   FAIL_TEST (NULL != host);
-  if (NULL ==
-      (hc_handle =
-       GNUNET_TESTBED_is_host_habitable (host, config, &host_habitable_cb,
-                                         NULL)))
+  if (NULL == (hc_handle = GNUNET_TESTBED_is_host_habitable (host,
+                                                             config,
+                                                             &host_habitable_cb,
+                                                             NULL)))
   {
     GNUNET_TESTBED_host_destroy (host);
     GNUNET_CONFIGURATION_destroy (cfg);
     cfg = NULL;
     host = NULL;
-    (void) PRINTF ("%s",
+    (void) printf ("%s",
                    "Unable to run the test as this system is not configured "
                    "to use password less SSH logins to localhost.\n"
                    "Marking test as successful\n");
     result = SKIP;
     return;
   }
-  abort_task =
-      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
-                                    (GNUNET_TIME_UNIT_MINUTES, 5), &do_abort,
-                                    NULL);
-  GNUNET_SCHEDULER_add_shutdown (&do_shutdown,
-                                 NULL);
+  abort_task = GNUNET_SCHEDULER_add_delayed (
+    GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 5),
+    &do_abort,
+    NULL);
+  GNUNET_SCHEDULER_add_shutdown (&do_shutdown, NULL);
 }
 
 
@@ -820,20 +818,21 @@ run (void *cls, char *const *args, const char *cfgfile,
 int
 main (int argc, char **argv)
 {
-  char *const argv2[] = { "test_testbed_api_controllerlink",
-    "-c", "test_testbed_api.conf",
-    NULL
-  };
-  struct GNUNET_GETOPT_CommandLineOption options[] = {
-    GNUNET_GETOPT_OPTION_END
-  };
+  char *const argv2[] = {"test_testbed_api_controllerlink",
+                         "-c",
+                         "test_testbed_api.conf",
+                         NULL};
+  struct GNUNET_GETOPT_CommandLineOption options[] = {GNUNET_GETOPT_OPTION_END};
   int ret;
 
   result = INIT;
-  ret =
-      GNUNET_PROGRAM_run ((sizeof (argv2) / sizeof (char *)) - 1, argv2,
-                          "test_testbed_api_controllerlink", "nohelp", options,
-                          &run, NULL);
+  ret = GNUNET_PROGRAM_run ((sizeof (argv2) / sizeof (char *)) - 1,
+                            argv2,
+                            "test_testbed_api_controllerlink",
+                            "nohelp",
+                            options,
+                            &run,
+                            NULL);
   if (GNUNET_OK != ret)
     return 1;
   switch (result)
@@ -841,7 +840,7 @@ main (int argc, char **argv)
   case SUCCESS:
     return 0;
   case SKIP:
-    return 77;                  /* Mark test as skipped */
+    return 77; /* Mark test as skipped */
   default:
     return 1;
   }

@@ -305,7 +305,7 @@ show_end_data (void)
     for (j = 0; j < peers_pinging; j++)
     {
       peer = &peers[j];
-      FPRINTF (stdout,
+      fprintf (stdout,
                "ROUND %3u PEER %3u: %10.2f / %10.2f, PINGS: %3u, PONGS: %3u\n",
                i, j, peer->mean[i], sqrt (peer->var[i] / (peer->pongs[i] - 1)),
                peer->pings[i], peer->pongs[i]);

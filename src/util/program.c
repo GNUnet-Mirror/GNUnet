@@ -201,18 +201,18 @@ GNUNET_PROGRAM_run2 (int argc,
   /* prepare */
 #if ENABLE_NLS
   if (NULL != pd->gettext_domain)
+  {
+    setlocale (LC_ALL, "");
+    path = (NULL == pd->gettext_path)
+             ? GNUNET_OS_installation_get_path (GNUNET_OS_IPK_LOCALEDIR)
+             : GNUNET_strdup (pd->gettext_path);
+    if (NULL != path)
     {
-      setlocale (LC_ALL, "");
-      path = (NULL == pd->gettext_path)
-	? GNUNET_OS_installation_get_path (GNUNET_OS_IPK_LOCALEDIR)
-	: GNUNET_strdup (pd->gettext_path);
-      if (NULL != path)
-	{
-	  BINDTEXTDOMAIN (pd->gettext_domain, path);
-	  GNUNET_free (path);
-	}
-      textdomain (pd->gettext_domain);
+      bindtextdomain (pd->gettext_domain, path);
+      GNUNET_free (path);
     }
+    textdomain (pd->gettext_domain);
+  }
 #endif
   cnt = 0;
   while (NULL != options[cnt].name)

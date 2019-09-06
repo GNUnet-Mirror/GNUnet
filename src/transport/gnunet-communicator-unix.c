@@ -430,7 +430,7 @@ resend:
               GNUNET_i2s (&queue->target),
               (int) sent,
               (unsigned int) msg_size,
-              (sent < 0) ? STRERROR (errno) : "ok");
+              (sent < 0) ? strerror (errno) : "ok");
   if (-1 != sent)
   {
     GNUNET_STATISTICS_update (stats,

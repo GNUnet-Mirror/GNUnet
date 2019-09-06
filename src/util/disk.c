@@ -28,11 +28,13 @@
 #include "gnunet_strings_lib.h"
 #include "gnunet_disk_lib.h"
 
-#define LOG(kind,...) GNUNET_log_from (kind, "util-disk", __VA_ARGS__)
+#define LOG(kind, ...) GNUNET_log_from (kind, "util-disk", __VA_ARGS__)
 
-#define LOG_STRERROR(kind,syscall) GNUNET_log_from_strerror (kind, "util-disk", syscall)
+#define LOG_STRERROR(kind, syscall) \
+  GNUNET_log_from_strerror (kind, "util-disk", syscall)
 
-#define LOG_STRERROR_FILE(kind,syscall,filename) GNUNET_log_from_strerror_file (kind, "util-disk", syscall, filename)
+#define LOG_STRERROR_FILE(kind, syscall, filename) \
+  GNUNET_log_from_strerror_file (kind, "util-disk", syscall, filename)
 
 /**
  * Block size for IO for copying files.
@@ -54,9 +56,9 @@
 #endif
 
 #ifndef S_ISLNK
-#define  	_IFMT		0170000 /* type of file */
-#define  	_IFLNK		0120000 /* symbolic link */
-#define  S_ISLNK(m)	(((m)&_IFMT) == _IFLNK)
+#define _IFMT 0170000 /* type of file */
+#define _IFLNK 0120000 /* symbolic link */
+#define S_ISLNK(m) (((m) &_IFMT) == _IFLNK)
 #endif
 
 
@@ -147,7 +149,8 @@ getSizeRec (void *cls, const char *fn)
 {
   struct GetFileSizeData *gfsd = cls;
 
-#if defined (HAVE_STAT64) && !(defined (_FILE_OFFSET_BITS) && _FILE_OFFSET_BITS == 64)
+#if defined(HAVE_STAT64) && \
+  ! (defined(_FILE_OFFSET_BITS) && _FILE_OFFSET_BITS == 64)
   STRUCT_STAT64 buf;
 
   if (0 != STAT64 (fn, &buf))
@@ -158,7 +161,7 @@ getSizeRec (void *cls, const char *fn)
 #else
   struct stat buf;
 
-  if (0 != STAT (fn, &buf))
+  if (0 != stat (fn, &buf))
   {
     LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_DEBUG, "stat", fn);
     return GNUNET_SYSERR;
@@ -169,10 +172,10 @@ getSizeRec (void *cls, const char *fn)
     errno = EISDIR;
     return GNUNET_SYSERR;
   }
-  if ((!S_ISLNK (buf.st_mode)) || (gfsd->include_sym_links == GNUNET_YES))
+  if ((! S_ISLNK (buf.st_mode)) || (gfsd->include_sym_links == GNUNET_YES))
     gfsd->total += buf.st_size;
-  if ((S_ISDIR (buf.st_mode)) && (0 == ACCESS (fn, X_OK)) &&
-      ((!S_ISLNK (buf.st_mode)) || (gfsd->include_sym_links == GNUNET_YES)))
+  if ((S_ISDIR (buf.st_mode)) && (0 == access (fn, X_OK)) &&
+      ((! S_ISLNK (buf.st_mode)) || (gfsd->include_sym_links == GNUNET_YES)))
   {
     if (GNUNET_SYSERR == GNUNET_DISK_directory_scan (fn, &getSizeRec, gfsd))
       return GNUNET_SYSERR;
@@ -191,9 +194,9 @@ int
 GNUNET_DISK_handle_invalid (const struct GNUNET_DISK_FileHandle *h)
 {
 #ifdef MINGW
-  return ((!h) || (h->h == INVALID_HANDLE_VALUE)) ? GNUNET_YES : GNUNET_NO;
+  return ((! h) || (h->h == INVALID_HANDLE_VALUE)) ? GNUNET_YES : GNUNET_NO;
 #else
-  return ((!h) || (h->fd == -1)) ? GNUNET_YES : GNUNET_NO;
+  return ((! h) || (h->fd == -1)) ? GNUNET_YES : GNUNET_NO;
 #endif
 }
 
@@ -205,14 +208,13 @@ GNUNET_DISK_handle_invalid (const struct GNUNET_DISK_FileHandle *h)
  * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
  */
 int
-GNUNET_DISK_file_handle_size (struct GNUNET_DISK_FileHandle *fh,
-			      off_t *size)
+GNUNET_DISK_file_handle_size (struct GNUNET_DISK_FileHandle *fh, off_t *size)
 {
 #if WINDOWS
   BOOL b;
   LARGE_INTEGER li;
   b = GetFileSizeEx (fh->h, &li);
-  if (!b)
+  if (! b)
   {
     SetErrnoFromWinError (GetLastError ());
     return GNUNET_SYSERR;
@@ -221,7 +223,7 @@ GNUNET_DISK_file_handle_size (struct GNUNET_DISK_FileHandle *fh,
 #else
   struct stat sbuf;
 
-  if (0 != FSTAT (fh->fd, &sbuf))
+  if (0 != fstat (fh->fd, &sbuf))
     return GNUNET_SYSERR;
   *size = sbuf.st_size;
 #endif
@@ -239,7 +241,7 @@ GNUNET_DISK_file_handle_size (struct GNUNET_DISK_FileHandle *fh,
  */
 off_t
 GNUNET_DISK_file_seek (const struct GNUNET_DISK_FileHandle *h,
-		       off_t offset,
+                       off_t offset,
                        enum GNUNET_DISK_Seek whence)
 {
   if (h == NULL)
@@ -253,7 +255,7 @@ GNUNET_DISK_file_seek (const struct GNUNET_DISK_FileHandle *h,
   LARGE_INTEGER new_pos;
   BOOL b;
 
-  static DWORD t[] = { FILE_BEGIN, FILE_CURRENT, FILE_END };
+  static DWORD t[] = {FILE_BEGIN, FILE_CURRENT, FILE_END};
   li.QuadPart = offset;
 
   b = SetFilePointerEx (h->h, li, &new_pos, t[whence]);
@@ -264,7 +266,7 @@ GNUNET_DISK_file_seek (const struct GNUNET_DISK_FileHandle *h,
   }
   return (off_t) new_pos.QuadPart;
 #else
-  static int t[] = { SEEK_SET, SEEK_CUR, SEEK_END };
+  static int t[] = {SEEK_SET, SEEK_CUR, SEEK_END};
 
   return lseek (h->fd, offset, t[whence]);
 #endif
@@ -287,9 +289,9 @@ GNUNET_DISK_file_seek (const struct GNUNET_DISK_FileHandle *h,
  */
 int
 GNUNET_DISK_file_size (const char *filename,
-		       uint64_t * size,
+                       uint64_t *size,
                        int include_symbolic_links,
-		       int single_file_mode)
+                       int single_file_mode)
 {
   struct GetFileSizeData gfsd;
   int ret;
@@ -320,8 +322,9 @@ GNUNET_DISK_file_size (const char *filename,
  * @return #GNUNET_OK on success
  */
 int
-GNUNET_DISK_file_get_identifiers (const char *filename, uint64_t * dev,
-                                  uint64_t * ino)
+GNUNET_DISK_file_get_identifiers (const char *filename,
+                                  uint64_t *dev,
+                                  uint64_t *ino)
 {
 #if WINDOWS
   {
@@ -337,12 +340,13 @@ GNUNET_DISK_file_get_identifiers (const char *filename, uint64_t * dev,
       return GNUNET_SYSERR;
     succ = GetFileInformationByHandle (fh->h, &info);
     GNUNET_DISK_file_close (fh);
-    if (!succ)
+    if (! succ)
     {
       return GNUNET_SYSERR;
     }
     *dev = info.dwVolumeSerialNumber;
-    *ino = ((((uint64_t) info.nFileIndexHigh) << (sizeof (DWORD) * 8)) | info.nFileIndexLow);
+    *ino = ((((uint64_t) info.nFileIndexHigh) << (sizeof (DWORD) * 8)) |
+            info.nFileIndexLow);
   }
 #else /* !WINDOWS */
 #if HAVE_STAT
@@ -376,8 +380,8 @@ GNUNET_DISK_file_get_identifiers (const char *filename, uint64_t * dev,
     {
       return GNUNET_SYSERR;
     }
-    *dev = ((uint64_t) fbuf.f_fsid.val[0]) << 32 ||
-        ((uint64_t) fbuf.f_fsid.val[1]);
+    *dev =
+      ((uint64_t) fbuf.f_fsid.val[0]) << 32 || ((uint64_t) fbuf.f_fsid.val[1]);
   }
 #else
   *dev = 0;
@@ -402,9 +406,9 @@ mktemp_name (const char *t)
 
   if ((t[0] != '/') && (t[0] != '\\')
 #if WINDOWS
-      && !(isalpha ((int) t[0]) && (t[0] != '\0') && (t[1] == ':'))
+      && ! (isalpha ((int) t[0]) && (t[0] != '\0') && (t[1] == ':'))
 #endif
-      )
+  )
   {
     /* FIXME: This uses system codepage on W32, not UTF-8 */
     tmpdir = getenv ("TMPDIR");
@@ -506,11 +510,10 @@ GNUNET_DISK_fix_permissions (const char *fn,
   else if (GNUNET_YES == require_gid_match)
     mode = S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IWGRP | S_IXGRP;
   else
-    mode = S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IWGRP | S_IXGRP | S_IROTH | S_IWOTH | S_IXOTH;
+    mode = S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IWGRP | S_IXGRP | S_IROTH |
+           S_IWOTH | S_IXOTH;
   if (0 != chmod (fn, mode))
-    GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING,
-                              "chmod",
-                              fn);
+    GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "chmod", fn);
 }
 
 #endif
@@ -565,15 +568,10 @@ GNUNET_DISK_file_backup (const char *fil)
   num = 0;
   do
   {
-    GNUNET_snprintf (target, slen,
-		     "%s.%u~",
-		     fil,
-		     num++);
+    GNUNET_snprintf (target, slen, "%s.%u~", fil, num++);
   } while (0 == access (target, F_OK));
   if (0 != rename (fil, target))
-    GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR,
-			      "rename",
-			      fil);
+    GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, "rename", fil);
   GNUNET_free (target);
 }
 
@@ -606,7 +604,7 @@ GNUNET_DISK_mktemp (const char *t)
     return NULL;
   }
   umask (omask);
-  if (0 != CLOSE (fd))
+  if (0 != close (fd))
     LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_WARNING, "close", fn);
   return fn;
 }
@@ -625,29 +623,29 @@ GNUNET_DISK_mktemp (const char *t)
  *           does not exist or stat'ed
  */
 int
-GNUNET_DISK_directory_test (const char *fil,
-                            int is_readable)
+GNUNET_DISK_directory_test (const char *fil, int is_readable)
 {
   struct stat filestat;
   int ret;
 
-  ret = STAT (fil, &filestat);
+  ret = stat (fil, &filestat);
   if (ret != 0)
   {
     if (errno != ENOENT)
       LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_WARNING, "stat", fil);
     return GNUNET_SYSERR;
   }
-  if (!S_ISDIR (filestat.st_mode))
+  if (! S_ISDIR (filestat.st_mode))
   {
     LOG (GNUNET_ERROR_TYPE_INFO,
-         "A file already exits with the same name %s\n", fil);
+         "A file already exits with the same name %s\n",
+         fil);
     return GNUNET_NO;
   }
   if (GNUNET_YES == is_readable)
-    ret = ACCESS (fil, R_OK | X_OK);
+    ret = access (fil, R_OK | X_OK);
   else
-    ret = ACCESS (fil, X_OK);
+    ret = access (fil, X_OK);
   if (ret < 0)
   {
     LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_WARNING, "access", fil);
@@ -676,7 +674,7 @@ GNUNET_DISK_file_test (const char *fil)
   if (rdir == NULL)
     return GNUNET_SYSERR;
 
-  ret = STAT (rdir, &filestat);
+  ret = stat (rdir, &filestat);
   if (ret != 0)
   {
     if (errno != ENOENT)
@@ -688,12 +686,12 @@ GNUNET_DISK_file_test (const char *fil)
     GNUNET_free (rdir);
     return GNUNET_NO;
   }
-  if (!S_ISREG (filestat.st_mode))
+  if (! S_ISREG (filestat.st_mode))
   {
     GNUNET_free (rdir);
     return GNUNET_NO;
   }
-  if (ACCESS (rdir, F_OK) < 0)
+  if (access (rdir, F_OK) < 0)
   {
     LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_WARNING, "access", rdir);
     GNUNET_free (rdir);
@@ -728,7 +726,7 @@ GNUNET_DISK_directory_create (const char *dir)
 
   len = strlen (rdir);
 #ifndef MINGW
-  pos = 1;                      /* skip heading '/' */
+  pos = 1; /* skip heading '/' */
 #else
   /* Local or Network path? */
   if (strncmp (rdir, "\\\\", 2) == 0)
@@ -746,7 +744,7 @@ GNUNET_DISK_directory_create (const char *dir)
   }
   else
   {
-    pos = 3;                    /* strlen("C:\\") */
+    pos = 3; /* strlen("C:\\") */
   }
 #endif
   /* Check which low level directories already exist */
@@ -796,11 +794,13 @@ GNUNET_DISK_directory_create (const char *dir)
       if (GNUNET_SYSERR == ret)
       {
 #ifndef MINGW
-        ret = mkdir (rdir, S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH);        /* 755 */
+        ret = mkdir (rdir,
+                     S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IXGRP | S_IROTH |
+                       S_IXOTH); /* 755 */
 #else
         wchar_t wrdir[MAX_PATH + 1];
-        if (ERROR_SUCCESS == plibc_conv_to_win_pathwconv(rdir, wrdir))
-          ret = !CreateDirectoryW (wrdir, NULL);
+        if (ERROR_SUCCESS == plibc_conv_to_win_pathwconv (rdir, wrdir))
+          ret = ! CreateDirectoryW (wrdir, NULL);
         else
           ret = 1;
 #endif
@@ -843,7 +843,7 @@ GNUNET_DISK_directory_create_for_file (const char *filename)
     errno = EINVAL;
     return GNUNET_SYSERR;
   }
-  if (0 == ACCESS (rdir, W_OK))
+  if (0 == access (rdir, W_OK))
   {
     GNUNET_free (rdir);
     return GNUNET_OK;
@@ -860,7 +860,7 @@ GNUNET_DISK_directory_create_for_file (const char *filename)
     rdir = GNUNET_strdup ("/");
   }
   ret = GNUNET_DISK_directory_create (rdir);
-  if ((GNUNET_OK == ret) && (0 != ACCESS (rdir, W_OK)))
+  if ((GNUNET_OK == ret) && (0 != access (rdir, W_OK)))
     ret = GNUNET_NO;
   eno = errno;
   GNUNET_free (rdir);
@@ -893,7 +893,7 @@ GNUNET_DISK_file_read (const struct GNUNET_DISK_FileHandle *h,
 
   if (h->type == GNUNET_DISK_HANLDE_TYPE_FILE)
   {
-    if (!ReadFile (h->h, result, len, &bytes_read, NULL))
+    if (! ReadFile (h->h, result, len, &bytes_read, NULL))
     {
       SetErrnoFromWinError (GetLastError ());
       return GNUNET_SYSERR;
@@ -901,7 +901,7 @@ GNUNET_DISK_file_read (const struct GNUNET_DISK_FileHandle *h,
   }
   else if (h->type == GNUNET_DISK_HANLDE_TYPE_PIPE)
   {
-    if (!ReadFile (h->h, result, len, &bytes_read, h->oOverlapRead))
+    if (! ReadFile (h->h, result, len, &bytes_read, h->oOverlapRead))
     {
       if (GetLastError () != ERROR_IO_PENDING)
       {
@@ -939,8 +939,8 @@ GNUNET_DISK_file_read (const struct GNUNET_DISK_FileHandle *h,
  */
 ssize_t
 GNUNET_DISK_file_read_non_blocking (const struct GNUNET_DISK_FileHandle *h,
-				    void *result,
-				    size_t len)
+                                    void *result,
+                                    size_t len)
 {
   if (NULL == h)
   {
@@ -953,7 +953,7 @@ GNUNET_DISK_file_read_non_blocking (const struct GNUNET_DISK_FileHandle *h,
 
   if (h->type == GNUNET_DISK_HANLDE_TYPE_FILE)
   {
-    if (!ReadFile (h->h, result, len, &bytes_read, NULL))
+    if (! ReadFile (h->h, result, len, &bytes_read, NULL))
     {
       SetErrnoFromWinError (GetLastError ());
       return GNUNET_SYSERR;
@@ -961,26 +961,25 @@ GNUNET_DISK_file_read_non_blocking (const struct GNUNET_DISK_FileHandle *h,
   }
   else if (h->type == GNUNET_DISK_HANLDE_TYPE_PIPE)
   {
-    if (!ReadFile (h->h, result, len, &bytes_read, h->oOverlapRead))
+    if (! ReadFile (h->h, result, len, &bytes_read, h->oOverlapRead))
     {
       if (GetLastError () != ERROR_IO_PENDING)
       {
-        LOG (GNUNET_ERROR_TYPE_DEBUG, "Error reading from pipe: %u\n", GetLastError ());
+        LOG (GNUNET_ERROR_TYPE_DEBUG,
+             "Error reading from pipe: %u\n",
+             GetLastError ());
         SetErrnoFromWinError (GetLastError ());
         return GNUNET_SYSERR;
       }
       else
       {
-        LOG (GNUNET_ERROR_TYPE_DEBUG,
-            "ReadFile() queued a read, cancelling\n");
+        LOG (GNUNET_ERROR_TYPE_DEBUG, "ReadFile() queued a read, cancelling\n");
         CancelIo (h->h);
         errno = EAGAIN;
         return GNUNET_SYSERR;
       }
     }
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Read %u bytes\n",
-         bytes_read);
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "Read %u bytes\n", bytes_read);
   }
   else
   {
@@ -997,11 +996,11 @@ GNUNET_DISK_file_read_non_blocking (const struct GNUNET_DISK_FileHandle *h,
     (void) fcntl (h->fd, F_SETFL, flags | O_NONBLOCK);
   ret = read (h->fd, result, len);
   if (0 == (flags & O_NONBLOCK))
-    {
-      int eno = errno;
-      (void) fcntl (h->fd, F_SETFL, flags);
-      errno = eno;
-    }
+  {
+    int eno = errno;
+    (void) fcntl (h->fd, F_SETFL, flags);
+    errno = eno;
+  }
   return ret;
 #endif
 }
@@ -1016,17 +1015,13 @@ GNUNET_DISK_file_read_non_blocking (const struct GNUNET_DISK_FileHandle *h,
  * @return number of bytes read, #GNUNET_SYSERR on failure
  */
 ssize_t
-GNUNET_DISK_fn_read (const char *fn,
-                     void *result,
-                     size_t len)
+GNUNET_DISK_fn_read (const char *fn, void *result, size_t len)
 {
   struct GNUNET_DISK_FileHandle *fh;
   ssize_t ret;
   int eno;
 
-  fh = GNUNET_DISK_file_open (fn,
-                              GNUNET_DISK_OPEN_READ,
-                              GNUNET_DISK_PERM_NONE);
+  fh = GNUNET_DISK_file_open (fn, GNUNET_DISK_OPEN_READ, GNUNET_DISK_PERM_NONE);
   if (NULL == fh)
     return GNUNET_SYSERR;
   ret = GNUNET_DISK_file_read (fh, result, len);
@@ -1046,9 +1041,9 @@ GNUNET_DISK_fn_read (const char *fn,
  * @return number of bytes written on success, #GNUNET_SYSERR on error
  */
 ssize_t
-GNUNET_DISK_file_write (const struct GNUNET_DISK_FileHandle * h,
+GNUNET_DISK_file_write (const struct GNUNET_DISK_FileHandle *h,
                         const void *buffer,
-			size_t n)
+                        size_t n)
 {
   if (NULL == h)
   {
@@ -1061,7 +1056,7 @@ GNUNET_DISK_file_write (const struct GNUNET_DISK_FileHandle * h,
 
   if (h->type == GNUNET_DISK_HANLDE_TYPE_FILE)
   {
-    if (!WriteFile (h->h, buffer, n, &bytes_written, NULL))
+    if (! WriteFile (h->h, buffer, n, &bytes_written, NULL))
     {
       SetErrnoFromWinError (GetLastError ());
       return GNUNET_SYSERR;
@@ -1070,46 +1065,50 @@ GNUNET_DISK_file_write (const struct GNUNET_DISK_FileHandle * h,
   else if (h->type == GNUNET_DISK_HANLDE_TYPE_PIPE)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "It is a pipe trying to write %u bytes\n", n);
-    if (!WriteFile (h->h, buffer, n, &bytes_written, h->oOverlapWrite))
+    if (! WriteFile (h->h, buffer, n, &bytes_written, h->oOverlapWrite))
     {
       if (GetLastError () != ERROR_IO_PENDING)
       {
         SetErrnoFromWinError (GetLastError ());
-        LOG (GNUNET_ERROR_TYPE_DEBUG, "Error writing to pipe: %u\n",
-            GetLastError ());
+        LOG (GNUNET_ERROR_TYPE_DEBUG,
+             "Error writing to pipe: %u\n",
+             GetLastError ());
         return GNUNET_SYSERR;
       }
       LOG (GNUNET_ERROR_TYPE_DEBUG, "Will get overlapped result\n");
-      if (!GetOverlappedResult (h->h, h->oOverlapWrite, &bytes_written, TRUE))
+      if (! GetOverlappedResult (h->h, h->oOverlapWrite, &bytes_written, TRUE))
       {
         SetErrnoFromWinError (GetLastError ());
         LOG (GNUNET_ERROR_TYPE_DEBUG,
-            "Error getting overlapped result while writing to pipe: %u\n",
-            GetLastError ());
+             "Error getting overlapped result while writing to pipe: %u\n",
+             GetLastError ());
         return GNUNET_SYSERR;
       }
     }
     else
     {
       DWORD ovr;
-      if (!GetOverlappedResult (h->h, h->oOverlapWrite, &ovr, TRUE))
+      if (! GetOverlappedResult (h->h, h->oOverlapWrite, &ovr, TRUE))
       {
         LOG (GNUNET_ERROR_TYPE_DEBUG,
-            "Error getting control overlapped result while writing to pipe: %u\n",
-            GetLastError ());
+             "Error getting control overlapped result while writing to pipe: %u\n",
+             GetLastError ());
       }
       else
       {
         LOG (GNUNET_ERROR_TYPE_DEBUG,
-            "Wrote %u bytes (ovr says %u), picking the greatest\n",
-            bytes_written, ovr);
+             "Wrote %u bytes (ovr says %u), picking the greatest\n",
+             bytes_written,
+             ovr);
       }
     }
     if (bytes_written == 0)
     {
       if (n > 0)
       {
-        LOG (GNUNET_ERROR_TYPE_DEBUG, "Wrote %u bytes, returning -1 with EAGAIN\n", bytes_written);
+        LOG (GNUNET_ERROR_TYPE_DEBUG,
+             "Wrote %u bytes, returning -1 with EAGAIN\n",
+             bytes_written);
         errno = EAGAIN;
         return GNUNET_SYSERR;
       }
@@ -1136,7 +1135,7 @@ GNUNET_DISK_file_write (const struct GNUNET_DISK_FileHandle * h,
  * @return number of bytes written on success, #GNUNET_SYSERR on error
  */
 ssize_t
-GNUNET_DISK_file_write_blocking (const struct GNUNET_DISK_FileHandle * h,
+GNUNET_DISK_file_write_blocking (const struct GNUNET_DISK_FileHandle *h,
                                  const void *buffer,
                                  size_t n)
 {
@@ -1150,28 +1149,28 @@ GNUNET_DISK_file_write_blocking (const struct GNUNET_DISK_FileHandle * h,
   DWORD bytes_written;
   /* We do a non-overlapped write, which is as blocking as it gets */
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Writing %u bytes\n", n);
-  if (!WriteFile (h->h, buffer, n, &bytes_written, NULL))
+  if (! WriteFile (h->h, buffer, n, &bytes_written, NULL))
   {
     SetErrnoFromWinError (GetLastError ());
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "Error writing to pipe: %u\n",
-        GetLastError ());
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Error writing to pipe: %u\n",
+         GetLastError ());
     return GNUNET_SYSERR;
   }
   if (bytes_written == 0 && n > 0)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "Waiting for pipe to clean\n");
     WaitForSingleObject (h->h, INFINITE);
-    if (!WriteFile (h->h, buffer, n, &bytes_written, NULL))
+    if (! WriteFile (h->h, buffer, n, &bytes_written, NULL))
     {
       SetErrnoFromWinError (GetLastError ());
-      LOG (GNUNET_ERROR_TYPE_DEBUG, "Error writing to pipe: %u\n",
-          GetLastError ());
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
+           "Error writing to pipe: %u\n",
+           GetLastError ());
       return GNUNET_SYSERR;
     }
   }
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Wrote %u bytes\n",
-       bytes_written);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Wrote %u bytes\n", bytes_written);
   return bytes_written;
 #else
   int flags;
@@ -1208,9 +1207,11 @@ GNUNET_DISK_fn_write (const char *fn,
   struct GNUNET_DISK_FileHandle *fh;
   ssize_t ret;
 
-  fh = GNUNET_DISK_file_open (fn,
-                              GNUNET_DISK_OPEN_WRITE | GNUNET_DISK_OPEN_TRUNCATE
-                              | GNUNET_DISK_OPEN_CREATE, mode);
+  fh =
+    GNUNET_DISK_file_open (fn,
+                           GNUNET_DISK_OPEN_WRITE | GNUNET_DISK_OPEN_TRUNCATE |
+                             GNUNET_DISK_OPEN_CREATE,
+                           mode);
   if (! fh)
     return GNUNET_SYSERR;
   ret = GNUNET_DISK_file_write (fh, buffer, n);
@@ -1248,45 +1249,39 @@ GNUNET_DISK_directory_scan (const char *dir_name,
   dname = GNUNET_STRINGS_filename_expand (dir_name);
   if (NULL == dname)
     return GNUNET_SYSERR;
-  while ( (strlen (dname) > 0) &&
-          (dname[strlen (dname) - 1] == DIR_SEPARATOR) )
+  while ((strlen (dname) > 0) && (dname[strlen (dname) - 1] == DIR_SEPARATOR))
     dname[strlen (dname) - 1] = '\0';
-  if (0 != STAT (dname, &istat))
+  if (0 != stat (dname, &istat))
   {
-    LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_WARNING,
-                       "stat",
-                       dname);
+    LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_WARNING, "stat", dname);
     GNUNET_free (dname);
     return GNUNET_SYSERR;
   }
   if (! S_ISDIR (istat.st_mode))
   {
     LOG (GNUNET_ERROR_TYPE_WARNING,
-         _("Expected `%s' to be a directory!\n"),
+         _ ("Expected `%s' to be a directory!\n"),
          dir_name);
     GNUNET_free (dname);
     return GNUNET_SYSERR;
   }
   errno = 0;
-  dinfo = OPENDIR (dname);
-  if ( (EACCES == errno) ||
-       (NULL == dinfo) )
+  dinfo = opendir (dname);
+  if ((EACCES == errno) || (NULL == dinfo))
   {
-    LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_WARNING,
-                       "opendir",
-                       dname);
+    LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_WARNING, "opendir", dname);
     if (NULL != dinfo)
-      CLOSEDIR (dinfo);
+      closedir (dinfo);
     GNUNET_free (dname);
     return GNUNET_SYSERR;
   }
   name_len = 256;
   n_size = strlen (dname) + name_len + strlen (DIR_SEPARATOR_STR) + 1;
   name = GNUNET_malloc (n_size);
-  while (NULL != (finfo = READDIR (dinfo)))
+  while (NULL != (finfo = readdir (dinfo)))
   {
-    if ( (0 == strcmp (finfo->d_name, ".")) ||
-         (0 == strcmp (finfo->d_name, "..")) )
+    if ((0 == strcmp (finfo->d_name, ".")) ||
+        (0 == strcmp (finfo->d_name, "..")))
       continue;
     if (NULL != callback)
     {
@@ -1304,16 +1299,14 @@ GNUNET_DISK_directory_scan (const char *dir_name,
                        n_size,
                        "%s%s%s",
                        dname,
-                       (0 == strcmp (dname,
-                                     DIR_SEPARATOR_STR))
-                       ? ""
-                       : DIR_SEPARATOR_STR,
+                       (0 == strcmp (dname, DIR_SEPARATOR_STR))
+                         ? ""
+                         : DIR_SEPARATOR_STR,
                        finfo->d_name);
-      ret = callback (callback_cls,
-                      name);
+      ret = callback (callback_cls, name);
       if (GNUNET_OK != ret)
       {
-        CLOSEDIR (dinfo);
+        closedir (dinfo);
         GNUNET_free (name);
         GNUNET_free (dname);
         if (GNUNET_NO == ret)
@@ -1323,7 +1316,7 @@ GNUNET_DISK_directory_scan (const char *dir_name,
     }
     count++;
   }
-  CLOSEDIR (dinfo);
+  closedir (dinfo);
   GNUNET_free (name);
   GNUNET_free (dname);
   return count;
@@ -1339,8 +1332,7 @@ GNUNET_DISK_directory_scan (const char *dir_name,
  * @return #GNUNET_OK
  */
 static int
-remove_helper (void *unused,
-               const char *fn)
+remove_helper (void *unused, const char *fn)
 {
   (void) unused;
   (void) GNUNET_DISK_directory_remove (fn);
@@ -1365,35 +1357,26 @@ GNUNET_DISK_directory_remove (const char *filename)
     GNUNET_break (0);
     return GNUNET_SYSERR;
   }
-  if (0 != LSTAT (filename, &istat))
-    return GNUNET_NO;           /* file may not exist... */
-  (void) CHMOD (filename,
-                S_IWUSR | S_IRUSR | S_IXUSR);
-  if (0 == UNLINK (filename))
+  if (0 != lstat (filename, &istat))
+    return GNUNET_NO; /* file may not exist... */
+  (void) chmod (filename, S_IWUSR | S_IRUSR | S_IXUSR);
+  if (0 == unlink (filename))
     return GNUNET_OK;
-  if ( (errno != EISDIR) &&
-       /* EISDIR is not sufficient in all cases, e.g.
+  if ((errno != EISDIR) &&
+      /* EISDIR is not sufficient in all cases, e.g.
         * sticky /tmp directory may result in EPERM on BSD.
         * So we also explicitly check "isDirectory" */
-       (GNUNET_YES !=
-        GNUNET_DISK_directory_test (filename,
-                                    GNUNET_YES)) )
+      (GNUNET_YES != GNUNET_DISK_directory_test (filename, GNUNET_YES)))
   {
-    LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_WARNING,
-                       "rmdir",
-                       filename);
+    LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_WARNING, "rmdir", filename);
     return GNUNET_SYSERR;
   }
   if (GNUNET_SYSERR ==
-      GNUNET_DISK_directory_scan (filename,
-                                  &remove_helper,
-                                  NULL))
+      GNUNET_DISK_directory_scan (filename, &remove_helper, NULL))
     return GNUNET_SYSERR;
-  if (0 != RMDIR (filename))
+  if (0 != rmdir (filename))
   {
-    LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_WARNING,
-                       "rmdir",
-                       filename);
+    LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_WARNING, "rmdir", filename);
     return GNUNET_SYSERR;
   }
   return GNUNET_OK;
@@ -1408,8 +1391,7 @@ GNUNET_DISK_directory_remove (const char *filename)
  * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
  */
 int
-GNUNET_DISK_file_copy (const char *src,
-                       const char *dst)
+GNUNET_DISK_file_copy (const char *src, const char *dst)
 {
   char *buf;
   uint64_t pos;
@@ -1419,41 +1401,30 @@ GNUNET_DISK_file_copy (const char *src,
   struct GNUNET_DISK_FileHandle *in;
   struct GNUNET_DISK_FileHandle *out;
 
-  if (GNUNET_OK !=
-      GNUNET_DISK_file_size (src,
-                             &size,
-                             GNUNET_YES,
-                             GNUNET_YES))
+  if (GNUNET_OK != GNUNET_DISK_file_size (src, &size, GNUNET_YES, GNUNET_YES))
   {
-    GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR,
-                              "stat",
-                              src);
+    GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, "stat", src);
     return GNUNET_SYSERR;
   }
   pos = 0;
-  in = GNUNET_DISK_file_open (src,
-                              GNUNET_DISK_OPEN_READ,
-                              GNUNET_DISK_PERM_NONE);
+  in =
+    GNUNET_DISK_file_open (src, GNUNET_DISK_OPEN_READ, GNUNET_DISK_PERM_NONE);
   if (! in)
   {
-    GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR,
-                              "open",
-                              src);
+    GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, "open", src);
     return GNUNET_SYSERR;
   }
   out =
-      GNUNET_DISK_file_open (dst,
-                             GNUNET_DISK_OPEN_WRITE | GNUNET_DISK_OPEN_CREATE |
+    GNUNET_DISK_file_open (dst,
+                           GNUNET_DISK_OPEN_WRITE | GNUNET_DISK_OPEN_CREATE |
                              GNUNET_DISK_OPEN_FAILIFEXISTS,
-                             GNUNET_DISK_PERM_USER_READ |
+                           GNUNET_DISK_PERM_USER_READ |
                              GNUNET_DISK_PERM_USER_WRITE |
                              GNUNET_DISK_PERM_GROUP_READ |
                              GNUNET_DISK_PERM_GROUP_WRITE);
-  if (!out)
+  if (! out)
   {
-    GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR,
-                              "open",
-                              dst);
+    GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, "open", dst);
     GNUNET_DISK_file_close (in);
     return GNUNET_SYSERR;
   }
@@ -1463,17 +1434,11 @@ GNUNET_DISK_file_copy (const char *src,
     len = COPY_BLK_SIZE;
     if (len > size - pos)
       len = size - pos;
-    sret = GNUNET_DISK_file_read (in,
-				  buf,
-				  len);
-    if ( (sret < 0) ||
-	 (len != (size_t) sret) )
+    sret = GNUNET_DISK_file_read (in, buf, len);
+    if ((sret < 0) || (len != (size_t) sret))
       goto FAIL;
-    sret = GNUNET_DISK_file_write (out,
-				   buf,
-				   len);
-    if ( (sret < 0) ||
-	 (len != (size_t) sret) )
+    sret = GNUNET_DISK_file_write (out, buf, len);
+    if ((sret < 0) || (len != (size_t) sret))
       goto FAIL;
     pos += len;
   }
@@ -1503,15 +1468,13 @@ GNUNET_DISK_filename_canonicalize (char *fn)
   {
     c = *idx;
 
-    if (c == '/' || c == '\\' || c == ':' ||
-	c == '*' || c == '?' || c == '"' ||
+    if (c == '/' || c == '\\' || c == ':' || c == '*' || c == '?' || c == '"' ||
         c == '<' || c == '>' || c == '|')
     {
       *idx = '_';
     }
   }
 }
-
 
 
 /**
@@ -1522,8 +1485,7 @@ GNUNET_DISK_filename_canonicalize (char *fn)
  * @return #GNUNET_OK on success, #GNUNET_SYSERR on failure
  */
 int
-GNUNET_DISK_file_change_owner (const char *filename,
-                               const char *user)
+GNUNET_DISK_file_change_owner (const char *filename, const char *user)
 {
 #ifndef MINGW
   struct passwd *pws;
@@ -1532,18 +1494,14 @@ GNUNET_DISK_file_change_owner (const char *filename,
   if (NULL == pws)
   {
     LOG (GNUNET_ERROR_TYPE_ERROR,
-         _("Cannot obtain information about user `%s': %s\n"),
+         _ ("Cannot obtain information about user `%s': %s\n"),
          user,
-         STRERROR (errno));
+         strerror (errno));
     return GNUNET_SYSERR;
   }
-  if (0 != chown (filename,
-                  pws->pw_uid,
-                  pws->pw_gid))
+  if (0 != chown (filename, pws->pw_uid, pws->pw_gid))
   {
-    LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_WARNING,
-                       "chown",
-                       filename);
+    LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_WARNING, "chown", filename);
     return GNUNET_SYSERR;
   }
 #endif
@@ -1590,12 +1548,18 @@ GNUNET_DISK_file_lock (struct GNUNET_DISK_FileHandle *fh,
   diff_high = (DWORD) ((diff >> (sizeof (DWORD) * 8)) & 0xFFFFFFFF);
 
   memset (&o, 0, sizeof (OVERLAPPED));
-  o.Offset = (DWORD) (lock_start & 0xFFFFFFFF);;
-  o.OffsetHigh = (DWORD) (((lock_start & ~0xFFFFFFFF) >> (sizeof (DWORD) * 8)) & 0xFFFFFFFF);
+  o.Offset = (DWORD) (lock_start & 0xFFFFFFFF);
+  ;
+  o.OffsetHigh =
+    (DWORD) (((lock_start & ~0xFFFFFFFF) >> (sizeof (DWORD) * 8)) & 0xFFFFFFFF);
 
-  if (!LockFileEx
-      (fh->h, (excl ? LOCKFILE_EXCLUSIVE_LOCK : 0) | LOCKFILE_FAIL_IMMEDIATELY,
-       0, diff_low, diff_high, &o))
+  if (! LockFileEx (fh->h,
+                    (excl ? LOCKFILE_EXCLUSIVE_LOCK : 0) |
+                      LOCKFILE_FAIL_IMMEDIATELY,
+                    0,
+                    diff_low,
+                    diff_high,
+                    &o))
   {
     SetErrnoFromWinError (GetLastError ());
     return GNUNET_SYSERR;
@@ -1643,10 +1607,12 @@ GNUNET_DISK_file_unlock (struct GNUNET_DISK_FileHandle *fh,
   diff_high = (DWORD) ((diff >> (sizeof (DWORD) * 8)) & 0xFFFFFFFF);
 
   memset (&o, 0, sizeof (OVERLAPPED));
-  o.Offset = (DWORD) (unlock_start & 0xFFFFFFFF);;
-  o.OffsetHigh = (DWORD) (((unlock_start & ~0xFFFFFFFF) >> (sizeof (DWORD) * 8)) & 0xFFFFFFFF);
+  o.Offset = (DWORD) (unlock_start & 0xFFFFFFFF);
+  ;
+  o.OffsetHigh = (DWORD) (
+    ((unlock_start & ~0xFFFFFFFF) >> (sizeof (DWORD) * 8)) & 0xFFFFFFFF);
 
-  if (!UnlockFileEx (fh->h, 0, diff_low, diff_high, &o))
+  if (! UnlockFileEx (fh->h, 0, diff_low, diff_high, &o))
   {
     SetErrnoFromWinError (GetLastError ());
     return GNUNET_SYSERR;
@@ -1694,7 +1660,7 @@ GNUNET_DISK_file_open (const char *fn,
 #ifndef MINGW
   mode = 0;
   if (GNUNET_DISK_OPEN_READWRITE == (flags & GNUNET_DISK_OPEN_READWRITE))
-    oflags = O_RDWR;            /* note: O_RDWR is NOT always O_RDONLY | O_WRONLY */
+    oflags = O_RDWR; /* note: O_RDWR is NOT always O_RDONLY | O_WRONLY */
   else if (flags & GNUNET_DISK_OPEN_READ)
     oflags = O_RDONLY;
   else if (flags & GNUNET_DISK_OPEN_WRITE)
@@ -1706,26 +1672,28 @@ GNUNET_DISK_file_open (const char *fn,
     return NULL;
   }
   if (flags & GNUNET_DISK_OPEN_FAILIFEXISTS)
-      oflags |= (O_CREAT | O_EXCL);
+    oflags |= (O_CREAT | O_EXCL);
   if (flags & GNUNET_DISK_OPEN_TRUNCATE)
     oflags |= O_TRUNC;
   if (flags & GNUNET_DISK_OPEN_APPEND)
     oflags |= O_APPEND;
-  if(GNUNET_NO == GNUNET_DISK_file_test(fn))
-   {
-      if (flags & GNUNET_DISK_OPEN_CREATE )
-	{
-	  (void) GNUNET_DISK_directory_create_for_file (expfn);
-	  oflags |= O_CREAT;
-	  mode = translate_unix_perms (perm);
-	}
+  if (GNUNET_NO == GNUNET_DISK_file_test (fn))
+  {
+    if (flags & GNUNET_DISK_OPEN_CREATE)
+    {
+      (void) GNUNET_DISK_directory_create_for_file (expfn);
+      oflags |= O_CREAT;
+      mode = translate_unix_perms (perm);
+    }
   }
 
-  fd = open (expfn, oflags
+  fd = open (expfn,
+             oflags
 #if O_CLOEXEC
-	     | O_CLOEXEC
+               | O_CLOEXEC
 #endif
-	     | O_LARGEFILE, mode);
+               | O_LARGEFILE,
+             mode);
   if (fd == -1)
   {
     if (0 == (flags & GNUNET_DISK_OPEN_FAILIFEXISTS))
@@ -1767,10 +1735,14 @@ GNUNET_DISK_file_open (const char *fn,
     disp = OPEN_EXISTING;
   }
 
-  if (ERROR_SUCCESS == plibc_conv_to_win_pathwconv(expfn, wexpfn))
-    h = CreateFileW (wexpfn, access,
-                    FILE_SHARE_DELETE | FILE_SHARE_READ | FILE_SHARE_WRITE, NULL,
-                    disp, FILE_ATTRIBUTE_NORMAL, NULL);
+  if (ERROR_SUCCESS == plibc_conv_to_win_pathwconv (expfn, wexpfn))
+    h = CreateFileW (wexpfn,
+                     access,
+                     FILE_SHARE_DELETE | FILE_SHARE_READ | FILE_SHARE_WRITE,
+                     NULL,
+                     disp,
+                     FILE_ATTRIBUTE_NORMAL,
+                     NULL);
   else
     h = INVALID_HANDLE_VALUE;
   if (h == INVALID_HANDLE_VALUE)
@@ -1844,7 +1816,7 @@ GNUNET_DISK_file_close (struct GNUNET_DISK_FileHandle *h)
   }
   if (h->oOverlapWrite)
   {
-    if (!CloseHandle (h->oOverlapWrite->hEvent))
+    if (! CloseHandle (h->oOverlapWrite->hEvent))
     {
       SetErrnoFromWinError (GetLastError ());
       LOG_STRERROR (GNUNET_ERROR_TYPE_WARNING, "close");
@@ -1888,8 +1860,8 @@ GNUNET_DISK_get_handle_from_w32_handle (HANDLE osfh)
     ftype = GNUNET_DISK_HANLDE_TYPE_PIPE;
     break;
   case FILE_TYPE_UNKNOWN:
-    if ( (GetLastError () == NO_ERROR) ||
-         (GetLastError () == ERROR_INVALID_HANDLE) )
+    if ((GetLastError () == NO_ERROR) ||
+        (GetLastError () == ERROR_INVALID_HANDLE))
     {
       if (0 != ResetEvent (osfh))
         ftype = GNUNET_DISK_HANLDE_TYPE_EVENT;
@@ -1938,8 +1910,7 @@ GNUNET_DISK_get_handle_from_int_fd (int fno)
 {
   struct GNUNET_DISK_FileHandle *fh;
 
-  if ( (((off_t) -1) == lseek (fno, 0, SEEK_CUR)) &&
-       (EBADF == errno) )
+  if ((((off_t) -1) == lseek (fno, 0, SEEK_CUR)) && (EBADF == errno))
     return NULL; /* invalid FD */
 
 #ifndef WINDOWS
@@ -2019,7 +1990,8 @@ struct GNUNET_DISK_MapHandle
 void *
 GNUNET_DISK_file_map (const struct GNUNET_DISK_FileHandle *h,
                       struct GNUNET_DISK_MapHandle **m,
-                      enum GNUNET_DISK_MapType access, size_t len)
+                      enum GNUNET_DISK_MapType access,
+                      size_t len)
 {
   if (NULL == h)
   {
@@ -2062,7 +2034,7 @@ GNUNET_DISK_file_map (const struct GNUNET_DISK_FileHandle *h,
   }
 
   (*m)->addr = MapViewOfFile ((*m)->h, mapAccess, 0, 0, len);
-  if (!(*m)->addr)
+  if (! (*m)->addr)
   {
     SetErrnoFromWinError (GetLastError ());
     CloseHandle ((*m)->h);
@@ -2111,7 +2083,7 @@ GNUNET_DISK_file_unmap (struct GNUNET_DISK_MapHandle *h)
   ret = UnmapViewOfFile (h->addr) ? GNUNET_OK : GNUNET_SYSERR;
   if (ret != GNUNET_OK)
     SetErrnoFromWinError (GetLastError ());
-  if (!CloseHandle (h->h) && (ret == GNUNET_OK))
+  if (! CloseHandle (h->h) && (ret == GNUNET_OK))
   {
     ret = GNUNET_SYSERR;
     SetErrnoFromWinError (GetLastError ());
@@ -2155,7 +2127,7 @@ GNUNET_DISK_file_sync (const struct GNUNET_DISK_FileHandle *h)
 
 #if WINDOWS
 #ifndef PIPE_BUF
-#define PIPE_BUF        512
+#define PIPE_BUF 512
 #endif
 /* Copyright Bob Byrnes  <byrnes <at> curl.com>
    http://permalink.gmane.org/gmane.os.cygwin.patches/2121
@@ -2168,9 +2140,12 @@ GNUNET_DISK_file_sync (const struct GNUNET_DISK_FileHandle *h)
    Note that the return value is either NO_ERROR or GetLastError,
    unlike CreatePipe, which returns a bool for success or failure.  */
 static int
-create_selectable_pipe (PHANDLE read_pipe_ptr, PHANDLE write_pipe_ptr,
-                        LPSECURITY_ATTRIBUTES sa_ptr, DWORD psize,
-                        DWORD dwReadMode, DWORD dwWriteMode)
+create_selectable_pipe (PHANDLE read_pipe_ptr,
+                        PHANDLE write_pipe_ptr,
+                        LPSECURITY_ATTRIBUTES sa_ptr,
+                        DWORD psize,
+                        DWORD dwReadMode,
+                        DWORD dwWriteMode)
 {
   /* Default to error. */
   *read_pipe_ptr = *write_pipe_ptr = INVALID_HANDLE_VALUE;
@@ -2191,10 +2166,15 @@ create_selectable_pipe (PHANDLE read_pipe_ptr, PHANDLE write_pipe_ptr,
   {
     static volatile LONG pipe_unique_id;
 
-    snprintf (pipename, sizeof pipename, "\\\\.\\pipe\\gnunet-%d-%ld",
-              getpid (), InterlockedIncrement ((LONG *) & pipe_unique_id));
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "CreateNamedPipe: name = %s, size = %lu\n",
-         pipename, psize);
+    snprintf (pipename,
+              sizeof pipename,
+              "\\\\.\\pipe\\gnunet-%d-%ld",
+              getpid (),
+              InterlockedIncrement ((LONG *) &pipe_unique_id));
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "CreateNamedPipe: name = %s, size = %lu\n",
+         pipename,
+         psize);
     /* Use CreateNamedPipe instead of CreatePipe, because the latter
      * returns a write handle that does not permit FILE_READ_ATTRIBUTES
      * access, on versions of win32 earlier than WinXP SP2.
@@ -2203,10 +2183,15 @@ create_selectable_pipe (PHANDLE read_pipe_ptr, PHANDLE write_pipe_ptr,
      * It's important to only allow a single instance, to ensure that
      * the pipe was not created earlier by some other process, even if
      * the pid has been reused.  */
-    read_pipe = CreateNamedPipeA (pipename, PIPE_ACCESS_INBOUND | FILE_FLAG_FIRST_PIPE_INSTANCE | dwReadMode, PIPE_TYPE_BYTE | PIPE_READMODE_BYTE, 1,   /* max instances */
-                                  psize,        /* output buffer size */
-                                  psize,        /* input buffer size */
-                                  NMPWAIT_USE_DEFAULT_WAIT, sa_ptr);
+    read_pipe = CreateNamedPipeA (pipename,
+                                  PIPE_ACCESS_INBOUND |
+                                    FILE_FLAG_FIRST_PIPE_INSTANCE | dwReadMode,
+                                  PIPE_TYPE_BYTE | PIPE_READMODE_BYTE,
+                                  1, /* max instances */
+                                  psize, /* output buffer size */
+                                  psize, /* input buffer size */
+                                  NMPWAIT_USE_DEFAULT_WAIT,
+                                  sa_ptr);
 
     if (read_pipe != INVALID_HANDLE_VALUE)
     {
@@ -2233,10 +2218,12 @@ create_selectable_pipe (PHANDLE read_pipe_ptr, PHANDLE write_pipe_ptr,
        * Return an anonymous pipe as the best approximation.  */
       LOG (GNUNET_ERROR_TYPE_DEBUG,
            "CreateNamedPipe not implemented, resorting to "
-           "CreatePipe: size = %lu\n", psize);
+           "CreatePipe: size = %lu\n",
+           psize);
       if (CreatePipe (read_pipe_ptr, write_pipe_ptr, sa_ptr, psize))
       {
-        LOG (GNUNET_ERROR_TYPE_DEBUG, "pipe read handle = %p, write handle = %p\n",
+        LOG (GNUNET_ERROR_TYPE_DEBUG,
+             "pipe read handle = %p, write handle = %p\n",
              *read_pipe_ptr,
              *write_pipe_ptr);
         return GNUNET_OK;
@@ -2254,8 +2241,12 @@ create_selectable_pipe (PHANDLE read_pipe_ptr, PHANDLE write_pipe_ptr,
 
   /* Open the named pipe for writing.
    * Be sure to permit FILE_READ_ATTRIBUTES access.  */
-  write_pipe = CreateFileA (pipename, GENERIC_WRITE | FILE_READ_ATTRIBUTES, 0,  /* share mode */
-                            sa_ptr, OPEN_EXISTING, dwWriteMode, /* flags and attributes */
+  write_pipe = CreateFileA (pipename,
+                            GENERIC_WRITE | FILE_READ_ATTRIBUTES,
+                            0, /* share mode */
+                            sa_ptr,
+                            OPEN_EXISTING,
+                            dwWriteMode, /* flags and attributes */
                             0); /* handle to template file */
 
   if (write_pipe == INVALID_HANDLE_VALUE)
@@ -2287,9 +2278,9 @@ create_selectable_pipe (PHANDLE read_pipe_ptr, PHANDLE write_pipe_ptr,
  */
 struct GNUNET_DISK_PipeHandle *
 GNUNET_DISK_pipe (int blocking_read,
-		  int blocking_write,
-		  int inherit_read,
-		  int inherit_write)
+                  int blocking_write,
+                  int inherit_read,
+                  int inherit_write)
 {
 #ifndef MINGW
   int fd[2];
@@ -2302,14 +2293,11 @@ GNUNET_DISK_pipe (int blocking_read,
   if (ret == -1)
   {
     eno = errno;
-    LOG_STRERROR (GNUNET_ERROR_TYPE_ERROR,
-		  "pipe");
+    LOG_STRERROR (GNUNET_ERROR_TYPE_ERROR, "pipe");
     errno = eno;
     return NULL;
   }
-  return GNUNET_DISK_pipe_from_fd (blocking_read,
-				   blocking_write,
-				   fd);
+  return GNUNET_DISK_pipe_from_fd (blocking_read, blocking_write, fd);
 #else
   struct GNUNET_DISK_PipeHandle *p;
   BOOL ret;
@@ -2329,11 +2317,13 @@ GNUNET_DISK_pipe (int blocking_read,
    * Pipes are not seekable, and need no offsets, which is
    * probably why it works for them.
    */
-  ret =
-      create_selectable_pipe (&p->fd[0]->h, &p->fd[1]->h, NULL, 0,
-                              FILE_FLAG_OVERLAPPED,
-                              FILE_FLAG_OVERLAPPED);
-  if (!ret)
+  ret = create_selectable_pipe (&p->fd[0]->h,
+                                &p->fd[1]->h,
+                                NULL,
+                                0,
+                                FILE_FLAG_OVERLAPPED,
+                                FILE_FLAG_OVERLAPPED);
+  if (! ret)
   {
     SetErrnoFromWinError (GetLastError ());
     save_errno = errno;
@@ -2343,9 +2333,13 @@ GNUNET_DISK_pipe (int blocking_read,
     errno = save_errno;
     return NULL;
   }
-  if (!DuplicateHandle
-      (GetCurrentProcess (), p->fd[0]->h, GetCurrentProcess (), &tmp_handle, 0,
-       inherit_read == GNUNET_YES ? TRUE : FALSE, DUPLICATE_SAME_ACCESS))
+  if (! DuplicateHandle (GetCurrentProcess (),
+                         p->fd[0]->h,
+                         GetCurrentProcess (),
+                         &tmp_handle,
+                         0,
+                         inherit_read == GNUNET_YES ? TRUE : FALSE,
+                         DUPLICATE_SAME_ACCESS))
   {
     SetErrnoFromWinError (GetLastError ());
     save_errno = errno;
@@ -2360,9 +2354,13 @@ GNUNET_DISK_pipe (int blocking_read,
   CloseHandle (p->fd[0]->h);
   p->fd[0]->h = tmp_handle;
 
-  if (!DuplicateHandle
-      (GetCurrentProcess (), p->fd[1]->h, GetCurrentProcess (), &tmp_handle, 0,
-       inherit_write == GNUNET_YES ? TRUE : FALSE, DUPLICATE_SAME_ACCESS))
+  if (! DuplicateHandle (GetCurrentProcess (),
+                         p->fd[1]->h,
+                         GetCurrentProcess (),
+                         &tmp_handle,
+                         0,
+                         inherit_write == GNUNET_YES ? TRUE : FALSE,
+                         DUPLICATE_SAME_ACCESS))
   {
     SetErrnoFromWinError (GetLastError ());
     save_errno = errno;
@@ -2423,14 +2421,14 @@ GNUNET_DISK_pipe_from_fd (int blocking_read, int blocking_write, int fd[2])
   {
     p->fd[0] = GNUNET_new (struct GNUNET_DISK_FileHandle);
     p->fd[0]->fd = fd[0];
-    if (!blocking_read)
+    if (! blocking_read)
     {
       flags = fcntl (fd[0], F_GETFL);
       flags |= O_NONBLOCK;
       if (0 > fcntl (fd[0], F_SETFL, flags))
       {
-	ret = -1;
-	eno = errno;
+        ret = -1;
+        eno = errno;
       }
     }
     flags = fcntl (fd[0], F_GETFD);
@@ -2446,14 +2444,14 @@ GNUNET_DISK_pipe_from_fd (int blocking_read, int blocking_write, int fd[2])
   {
     p->fd[1] = GNUNET_new (struct GNUNET_DISK_FileHandle);
     p->fd[1]->fd = fd[1];
-    if (!blocking_write)
+    if (! blocking_write)
     {
       flags = fcntl (fd[1], F_GETFL);
       flags |= O_NONBLOCK;
       if (0 > fcntl (fd[1], F_SETFL, flags))
       {
-	ret = -1;
-	eno = errno;
+        ret = -1;
+        eno = errno;
       }
     }
     flags = fcntl (fd[1], F_GETFD);
@@ -2663,7 +2661,8 @@ GNUNET_DISK_pipe_handle (const struct GNUNET_DISK_PipeHandle *p,
  */
 int
 GNUNET_DISK_internal_file_handle_ (const struct GNUNET_DISK_FileHandle *fh,
-                                   void *dst, size_t dst_len)
+                                   void *dst,
+                                   size_t dst_len)
 {
   if (NULL == fh)
     return GNUNET_SYSERR;
@@ -2689,29 +2688,20 @@ GNUNET_DISK_internal_file_handle_ (const struct GNUNET_DISK_FileHandle *fh,
  * @return #GNUNET_OK on success
  */
 static int
-purge_cfg_dir (void *cls,
-	       const struct GNUNET_CONFIGURATION_Handle *cfg)
+purge_cfg_dir (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   const char *option = cls;
   char *tmpname;
 
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_filename (cfg,
-                                               "PATHS",
-                                               option,
-                                               &tmpname))
+      GNUNET_CONFIGURATION_get_value_filename (cfg, "PATHS", option, &tmpname))
   {
-    GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR,
-                               "PATHS",
-                               option);
+    GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR, "PATHS", option);
     return GNUNET_NO;
   }
-  if (GNUNET_SYSERR ==
-      GNUNET_DISK_directory_remove (tmpname))
+  if (GNUNET_SYSERR == GNUNET_DISK_directory_remove (tmpname))
   {
-    GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR,
-                              "remove",
-                              tmpname);
+    GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, "remove", tmpname);
     GNUNET_free (tmpname);
     return GNUNET_OK;
   }
@@ -2728,13 +2718,12 @@ purge_cfg_dir (void *cls,
  * @param option option with the dir name to purge
  */
 void
-GNUNET_DISK_purge_cfg_dir (const char *cfg_filename,
-                           const char *option)
+GNUNET_DISK_purge_cfg_dir (const char *cfg_filename, const char *option)
 {
   GNUNET_break (GNUNET_OK ==
-		GNUNET_CONFIGURATION_parse_and_run (cfg_filename,
-						    &purge_cfg_dir,
-						    (void *) option));
+                GNUNET_CONFIGURATION_parse_and_run (cfg_filename,
+                                                    &purge_cfg_dir,
+                                                    (void *) option));
 }
 
 

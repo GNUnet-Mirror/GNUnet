@@ -45,13 +45,13 @@ testReadWrite ()
   ret = GNUNET_DISK_fn_read (".testfile", tmp, sizeof (tmp) - 1);
   if (ret < 0)
   {
-    FPRINTF (stderr, "Error reading file `%s' in testReadWrite\n", ".testfile");
+    fprintf (stderr, "Error reading file `%s' in testReadWrite\n", ".testfile");
     return 1;
   }
   tmp[ret] = '\0';
   if (0 != memcmp (tmp, TESTSTRING, strlen (TESTSTRING) + 1))
   {
-    FPRINTF (stderr, "Error in testReadWrite: *%s* != *%s* for file %s\n", tmp,
+    fprintf (stderr, "Error in testReadWrite: *%s* != *%s* for file %s\n", tmp,
              TESTSTRING, ".testfile");
     return 1;
   }
@@ -60,20 +60,20 @@ testReadWrite ()
   ret = GNUNET_DISK_fn_read (".testfile2", tmp, sizeof (tmp) - 1);
   if (ret < 0)
   {
-    FPRINTF (stderr, "Error reading file `%s' in testReadWrite\n",
+    fprintf (stderr, "Error reading file `%s' in testReadWrite\n",
              ".testfile2");
     return 1;
   }
   tmp[ret] = '\0';
   if (0 != memcmp (tmp, TESTSTRING, strlen (TESTSTRING) + 1))
   {
-    FPRINTF (stderr, "Error in testReadWrite: *%s* != *%s* for file %s\n", tmp,
+    fprintf (stderr, "Error in testReadWrite: *%s* != *%s* for file %s\n", tmp,
              TESTSTRING, ".testfile2");
     return 1;
   }
 
-  GNUNET_break (0 == UNLINK (".testfile"));
-  GNUNET_break (0 == UNLINK (".testfile2"));
+  GNUNET_break (0 == unlink (".testfile"));
+  GNUNET_break (0 == unlink (".testfile2"));
   if (GNUNET_NO != GNUNET_DISK_file_test (".testfile"))
     return 1;
 
@@ -99,7 +99,7 @@ testOpenClose ()
                 GNUNET_DISK_file_size (".testfile", &size, GNUNET_NO, GNUNET_YES));
   if (size != 5)
     return 1;
-  GNUNET_break (0 == UNLINK (".testfile"));
+  GNUNET_break (0 == unlink (".testfile"));
 
   return 0;
 }
@@ -281,7 +281,7 @@ main (int argc, char *argv[])
   failureCount += testDirMani ();
   if (0 != failureCount)
   {
-    FPRINTF (stderr,
+    fprintf (stderr,
 	     "\n%u TESTS FAILED!\n",
 	     failureCount);
     return -1;
