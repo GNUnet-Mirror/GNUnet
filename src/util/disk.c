@@ -153,7 +153,7 @@ getSizeRec (void *cls, const char *fn)
   ! (defined(_FILE_OFFSET_BITS) && _FILE_OFFSET_BITS == 64)
   STRUCT_STAT64 buf;
 
-  if (0 != STAT64 (fn, &buf))
+  if (0 != stat64 (fn, &buf))
   {
     LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_DEBUG, "stat64", fn);
     return GNUNET_SYSERR;
