@@ -719,7 +719,6 @@ Here you can find some rules to help you write code for GNUnet.
 @itemize @bullet
 @item gnunet_config.h --- generated
 @item platform.h --- first included
-@item plibc.h --- external library
 @item gnunet_common.h --- fundamental routines
 @item gnunet_directories.h --- generated
 @item gettext.h --- external library
