@@ -179,7 +179,7 @@ AS_CASE(["$host_os"],
      AC_DEFINE_UNQUOTED(_WIN32,1,[This is a Windows system])
      AC_CHECK_LIB(intl, gettext)
      LDFLAGS="$LDFLAGS -Wl,--export-all-symbols"
-     LIBS="$LIBS -lws2_32 -lplibc -lgnurx -lole32"
+     LIBS="$LIBS -lws2_32 -lgnurx -lole32"
      CFLAGS="-mms-bitfields $CFLAGS"
      CPPFLAGS="-D_WIN32_WINNT=0x0501 -DHAVE_STAT64=1 -D__USE_MINGW_ANSI_STDIO=1 $CPPFLAGS"
      build_target="mingw"
@@ -353,11 +353,7 @@ AM_CONDITIONAL(HAVE_GETADDRINFO_A,
 
 # tests only run on Windows
 AS_IF([test "x$build_target" = "xmingw"],
-      [AC_CHECK_LIB(plibc,
-                    plibc_init,
-                    [],
-                    [AC_MSG_ERROR([GNUnet requires PlibC on Windows])])
-       AC_CHECK_LIB(gnurx,
+      [AC_CHECK_LIB(gnurx,
                     regexec,
                     [],
                     [AC_MSG_ERROR([GNUnet requires libgnurx on Windows])])])
