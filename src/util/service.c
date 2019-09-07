@@ -2067,6 +2067,9 @@ GNUNET_SERVICE_run_ (int argc,
                      const struct GNUNET_MQ_MessageHandler *handlers)
 {
   struct GNUNET_SERVICE_Handle sh;
+#if ENABLE_NLS
+  char *path;
+#endif
   char *cfg_filename;
   char *opt_cfg_filename;
   char *loglev;
@@ -2079,6 +2082,7 @@ GNUNET_SERVICE_run_ (int argc,
   struct GNUNET_CONFIGURATION_Handle *cfg;
   int ret;
   int err;
+  const struct GNUNET_OS_ProjectData *pd = GNUNET_OS_project_data_get ();
 
   struct GNUNET_GETOPT_CommandLineOption service_options[] =
     {GNUNET_GETOPT_option_cfgfile (&opt_cfg_filename),
@@ -2090,7 +2094,7 @@ GNUNET_SERVICE_run_ (int argc,
      GNUNET_GETOPT_option_help (NULL),
      GNUNET_GETOPT_option_loglevel (&loglev),
      GNUNET_GETOPT_option_logfile (&logfile),
-     GNUNET_GETOPT_option_version (PACKAGE_VERSION " " VCS_VERSION),
+     GNUNET_GETOPT_option_version (pd->version),
      GNUNET_GETOPT_OPTION_END};
 
   err = 1;
@@ -2101,10 +2105,9 @@ GNUNET_SERVICE_run_ (int argc,
                      "%s%s%s",
                      xdg,
                      DIR_SEPARATOR_STR,
-                     GNUNET_OS_project_data_get ()->config_file);
+                     pd->config_file);
   else
-    cfg_filename =
-      GNUNET_strdup (GNUNET_OS_project_data_get ()->user_config_file);
+    cfg_filename = GNUNET_strdup (pd->user_config_file);
   sh.ready_confirm_fd = -1;
   sh.options = options;
   sh.cfg = cfg = GNUNET_CONFIGURATION_create ();
@@ -2120,6 +2123,21 @@ GNUNET_SERVICE_run_ (int argc,
   logfile = NULL;
   opt_cfg_filename = NULL;
   do_daemonize = 0;
+#if ENABLE_NLS
+  if (NULL != pd->gettext_domain)
+  {
+    setlocale (LC_ALL, "");
+    path = (NULL == pd->gettext_path) ?
+      GNUNET_OS_installation_get_path (GNUNET_OS_IPK_LOCALEDIR) :
+      GNUNET_strdup (pd->gettext_path);
+    if (NULL != path)
+    {
+      bindtextdomain (pd->gettext_domain, path);
+      GNUNET_free (path);
+    }
+    textdomain (pd->gettext_domain);
+  }
+#endif
   ret = GNUNET_GETOPT_run (service_name, service_options, argc, argv);
   if (GNUNET_SYSERR == ret)
     goto shutdown;
