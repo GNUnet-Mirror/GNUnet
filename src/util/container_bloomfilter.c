@@ -45,10 +45,10 @@
 #define LOG(kind, ...) \
   GNUNET_log_from (kind, "util-container-bloomfilter", __VA_ARGS__)
 
-#define LOG_strerror(kind, syscall) \
+#define LOG_STRERROR(kind, syscall) \
   GNUNET_log_from_strerror (kind, "util-container-bloomfilter", syscall)
 
-#define LOG_strerror_FILE(kind, syscall, filename)             \
+#define LOG_STRERROR_FILE(kind, syscall, filename)             \
   GNUNET_log_from_strerror_file (kind,                         \
                                  "util-container-bloomfilter", \
                                  syscall,                      \
@@ -599,7 +599,7 @@ GNUNET_CONTAINER_bloomfilter_load (const char *filename,
     res = GNUNET_DISK_file_read (bf->fh, rbuff, BUFFSIZE);
     if (res == -1)
     {
-      LOG_strerror_FILE (GNUNET_ERROR_TYPE_WARNING, "read", bf->filename);
+      LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_WARNING, "read", bf->filename);
       GNUNET_free (rbuff);
       GNUNET_free (bf->filename);
       GNUNET_DISK_file_close (bf->fh);

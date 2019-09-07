@@ -31,7 +31,7 @@
 
 #define LOG(kind, ...) GNUNET_log_from (kind, "util", __VA_ARGS__)
 
-#define LOG_strerror(kind, syscall) \
+#define LOG_STRERROR(kind, syscall) \
   GNUNET_log_from_strerror (kind, "util", syscall)
 
 
@@ -373,7 +373,7 @@ get_server_addresses (const char *service_name,
       if ((ENOBUFS == errno) || (ENOMEM == errno) || (ENFILE == errno) ||
           (EACCES == errno))
       {
-        LOG_strerror (GNUNET_ERROR_TYPE_ERROR, "socket");
+        LOG_STRERROR (GNUNET_ERROR_TYPE_ERROR, "socket");
         return GNUNET_SYSERR;
       }
       LOG (GNUNET_ERROR_TYPE_INFO,
@@ -464,7 +464,7 @@ get_server_addresses (const char *service_name,
       if ((ENOBUFS == errno) || (ENOMEM == errno) || (ENFILE == errno) ||
           (EACCES == errno))
       {
-        LOG_strerror (GNUNET_ERROR_TYPE_ERROR, "socket");
+        LOG_STRERROR (GNUNET_ERROR_TYPE_ERROR, "socket");
         GNUNET_free_non_null (hostname);
         GNUNET_free (unixpath);
         return GNUNET_SYSERR;
