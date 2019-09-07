@@ -225,7 +225,7 @@ access_handler_callback (void *cls,
     if (WIFSIGNALED (ret) || (0 != WEXITSTATUS (ret)))
       GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, "system", p);
     GNUNET_asprintf (&deffile, "%s%s%s", tmp, DIR_SEPARATOR_STR, "gns-bcd.pdf");
-    fd = OPEN (deffile, O_RDONLY);
+    fd = open (deffile, O_RDONLY);
     if (-1 == fd)
     {
       GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, "open", deffile);
@@ -445,7 +445,7 @@ run (void *cls,
   GNUNET_asprintf (&fn, "%s%s%s", dir, DIR_SEPARATOR_STR, "gns-bcd.html");
   GNUNET_asprintf (&resfile, "%s%s%s", dir, DIR_SEPARATOR_STR, "gns-bcd.tex");
   GNUNET_free (dir);
-  fd = OPEN (fn, O_RDONLY);
+  fd = open (fn, O_RDONLY);
   if (-1 == fd)
   {
     GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, "open", fn);
