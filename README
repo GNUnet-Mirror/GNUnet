@@ -78,6 +78,7 @@ These are the direct dependencies for running GNUnet:
 - openssl            >= 1.0         (binary, used to generate
                                      X.509 certificate
                                      for gnunet-gns-proxy-setup-ca)
+- pkgconf or pkg-config
 - A Posix shell                       (for some scripts)
 - Texinfo            >= 5.2         [*1]
 - libltdl            >= 2.2         (part of GNU libtool)
@@ -469,7 +470,7 @@ $ make install
 $ export $GNUNET_PREFIX=$SOMEWHERE
 $ make check
 
-Some of the testcases require python >= 3.7, and the python module
+Some of the testcases require python >= 3.4, and the python module
 "pexpect" to be installed.
 If any testcases fail to pass on your system, run
 "contrib/scripts/gnunet-bugreport" (in the repository) or "gnunet-bugreport"
@@ -535,11 +536,8 @@ Further Reading
 
   * Using git (NOTE: 1.1 GiB as of 2019-03-09):
     git clone https://git.gnunet.org/bibliography.git
-  * Using Drupal:
+  * Using the webbrowser:
     https://bib.gnunet.org/
-
-  The Drupal access will be replaced by a new interface to our
-  bibliography in the foreseeable future.
 
 
 Stay tuned
