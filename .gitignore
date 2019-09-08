@@ -62,6 +62,8 @@ doc/tutorial/gversion.texi
 # top-level symlink can exist
 .clang-format
 
+uncrustify.cfg
+
 # this exists outside of the main repository
 cmake/
 build

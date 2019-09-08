@@ -1,8 +1,5 @@
 ;; Per-directory local variables for GNU Emacs 23 and later.
 
-((c-mode
-  (eval add-hook 'before-save-hook #'clang-format-buffer nil t)))
-
 ((nil
   . ((fill-column . 78)
      (tab-width   .  4)
