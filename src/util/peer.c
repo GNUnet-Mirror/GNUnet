@@ -11,7 +11,7 @@
       WITHOUT ANY WARRANTY; without even the implied warranty of
       MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
       Affero General Public License for more details.
-     
+
       You should have received a copy of the GNU Affero General Public License
       along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -26,11 +26,10 @@
 #include "platform.h"
 #include "gnunet_peer_lib.h"
 
-#define LOG(kind,...) GNUNET_log_from (kind, "util-peer", __VA_ARGS__)
+#define LOG(kind, ...) GNUNET_log_from(kind, "util-peer", __VA_ARGS__)
 
 
-struct PeerEntry
-{
+struct PeerEntry {
   /**
    * The identifier itself
    */
@@ -80,7 +79,7 @@ static unsigned int free_list_start;
  * @return the interned identity or 0.
  */
 GNUNET_PEER_Id
-GNUNET_PEER_search (const struct GNUNET_PeerIdentity *pid)
+GNUNET_PEER_search(const struct GNUNET_PeerIdentity *pid)
 {
   struct PeerEntry *e;
 
@@ -88,10 +87,10 @@ GNUNET_PEER_search (const struct GNUNET_PeerIdentity *pid)
     return 0;
   if (NULL == map)
     return 0;
-  e = GNUNET_CONTAINER_multipeermap_get (map, pid);
+  e = GNUNET_CONTAINER_multipeermap_get(map, pid);
   if (NULL == e)
     return 0;
-  GNUNET_assert (e->rc > 0);
+  GNUNET_assert(e->rc > 0);
   return e->pid;
 }
 
@@ -104,7 +103,7 @@ GNUNET_PEER_search (const struct GNUNET_PeerIdentity *pid)
  * @return the interned identity.
  */
 GNUNET_PEER_Id
-GNUNET_PEER_intern (const struct GNUNET_PeerIdentity *pid)
+GNUNET_PEER_intern(const struct GNUNET_PeerIdentity *pid)
 {
   GNUNET_PEER_Id ret;
   struct PeerEntry *e;
@@ -113,42 +112,42 @@ GNUNET_PEER_intern (const struct GNUNET_PeerIdentity *pid)
   if (NULL == pid)
     return 0;
   if (NULL == map)
-    map = GNUNET_CONTAINER_multipeermap_create (32, GNUNET_YES);
-  e = GNUNET_CONTAINER_multipeermap_get (map, pid);
+    map = GNUNET_CONTAINER_multipeermap_create(32, GNUNET_YES);
+  e = GNUNET_CONTAINER_multipeermap_get(map, pid);
   if (NULL != e)
-  {
-    GNUNET_assert (e->rc > 0);
-    e->rc++;
-    return e->pid;
-  }
+    {
+      GNUNET_assert(e->rc > 0);
+      e->rc++;
+      return e->pid;
+    }
   ret = free_list_start;
   if (ret == size)
-  {
-    GNUNET_array_grow (table, size, size + 16);
-    for (i = ret; i < size; i++)
     {
-      table[i] = GNUNET_new (struct PeerEntry);
-      table[i]->pid = i + 1;
+      GNUNET_array_grow(table, size, size + 16);
+      for (i = ret; i < size; i++)
+        {
+          table[i] = GNUNET_new(struct PeerEntry);
+          table[i]->pid = i + 1;
+        }
     }
-  }
   if (0 == ret)
-  {
-    memset (&table[0]->id, 0, sizeof (struct GNUNET_PeerIdentity));
-    table[0]->pid = 0;
-    table[0]->rc = 1;
-    ret = 1;
-  }
-  GNUNET_assert (ret < size);
-  GNUNET_assert (0 == table[ret]->rc);
+    {
+      memset(&table[0]->id, 0, sizeof(struct GNUNET_PeerIdentity));
+      table[0]->pid = 0;
+      table[0]->rc = 1;
+      ret = 1;
+    }
+  GNUNET_assert(ret < size);
+  GNUNET_assert(0 == table[ret]->rc);
   free_list_start = table[ret]->pid;
   table[ret]->id = *pid;
   table[ret]->rc = 1;
   table[ret]->pid = ret;
-  GNUNET_break (GNUNET_OK ==
-                GNUNET_CONTAINER_multipeermap_put (map,
-						   &table[ret]->id,
-                                                   table[ret],
-                                                   GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
+  GNUNET_break(GNUNET_OK ==
+               GNUNET_CONTAINER_multipeermap_put(map,
+                                                 &table[ret]->id,
+                                                 table[ret],
+                                                 GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
   return ret;
 }
 
@@ -160,7 +159,7 @@ GNUNET_PEER_intern (const struct GNUNET_PeerIdentity *pid)
  * @param count size of the ids array
  */
 void
-GNUNET_PEER_decrement_rcs (const GNUNET_PEER_Id *ids, unsigned int count)
+GNUNET_PEER_decrement_rcs(const GNUNET_PEER_Id *ids, unsigned int count)
 {
   int i;
   GNUNET_PEER_Id id;
@@ -168,23 +167,23 @@ GNUNET_PEER_decrement_rcs (const GNUNET_PEER_Id *ids, unsigned int count)
   if (0 == count)
     return;
   for (i = count - 1; i >= 0; i--)
-  {
-    id = ids[i];
-    if (0 == id)
-      continue;
-    GNUNET_assert (id < size);
-    GNUNET_assert (table[id]->rc > 0);
-    table[id]->rc--;
-    if (0 == table[id]->rc)
     {
-      GNUNET_break (GNUNET_OK ==
-                    GNUNET_CONTAINER_multipeermap_remove (map,
-                                                          &table[id]->id,
-                                                          table[id]));
-      table[id]->pid = free_list_start;
-      free_list_start = id;
+      id = ids[i];
+      if (0 == id)
+        continue;
+      GNUNET_assert(id < size);
+      GNUNET_assert(table[id]->rc > 0);
+      table[id]->rc--;
+      if (0 == table[id]->rc)
+        {
+          GNUNET_break(GNUNET_OK ==
+                       GNUNET_CONTAINER_multipeermap_remove(map,
+                                                            &table[id]->id,
+                                                            table[id]));
+          table[id]->pid = free_list_start;
+          free_list_start = id;
+        }
     }
-  }
 }
 
 
@@ -195,24 +194,24 @@ GNUNET_PEER_decrement_rcs (const GNUNET_PEER_Id *ids, unsigned int count)
  * @param delta how much to change the RC
  */
 void
-GNUNET_PEER_change_rc (GNUNET_PEER_Id id, int delta)
+GNUNET_PEER_change_rc(GNUNET_PEER_Id id, int delta)
 {
   if (0 == id)
     return;
-  GNUNET_assert (id < size);
-  GNUNET_assert (table[id]->rc > 0);
-  GNUNET_assert ( (delta >= 0) ||
-		  (table[id]->rc >= (unsigned int) (-delta)) );
+  GNUNET_assert(id < size);
+  GNUNET_assert(table[id]->rc > 0);
+  GNUNET_assert((delta >= 0) ||
+                (table[id]->rc >= (unsigned int)(-delta)));
   table[id]->rc += delta;
   if (0 == table[id]->rc)
-  {
-    GNUNET_break (GNUNET_OK ==
-                  GNUNET_CONTAINER_multipeermap_remove (map,
+    {
+      GNUNET_break(GNUNET_OK ==
+                   GNUNET_CONTAINER_multipeermap_remove(map,
                                                         &table[id]->id,
                                                         table[id]));
-    table[id]->pid = free_list_start;
-    free_list_start = id;
-  }
+      table[id]->pid = free_list_start;
+      free_list_start = id;
+    }
 }
 
 
@@ -223,15 +222,15 @@ GNUNET_PEER_change_rc (GNUNET_PEER_Id id, int delta)
  * @param pid where to write the normal peer identity
  */
 void
-GNUNET_PEER_resolve (GNUNET_PEER_Id id, struct GNUNET_PeerIdentity *pid)
+GNUNET_PEER_resolve(GNUNET_PEER_Id id, struct GNUNET_PeerIdentity *pid)
 {
   if (0 == id)
-  {
-    memset (pid, 0, sizeof (struct GNUNET_PeerIdentity));
-    return;
-  }
-  GNUNET_assert (id < size);
-  GNUNET_assert (table[id]->rc > 0);
+    {
+      memset(pid, 0, sizeof(struct GNUNET_PeerIdentity));
+      return;
+    }
+  GNUNET_assert(id < size);
+  GNUNET_assert(table[id]->rc > 0);
   *pid = table[id]->id;
 }
 
@@ -243,10 +242,10 @@ GNUNET_PEER_resolve (GNUNET_PEER_Id id, struct GNUNET_PeerIdentity *pid)
  * @return pointer to peer identity, valid as long 'id' is valid
  */
 const struct GNUNET_PeerIdentity *
-GNUNET_PEER_resolve2 (GNUNET_PEER_Id id)
+GNUNET_PEER_resolve2(GNUNET_PEER_Id id)
 {
-  GNUNET_assert (id < size);
-  GNUNET_assert (table[id]->rc > 0);
+  GNUNET_assert(id < size);
+  GNUNET_assert(table[id]->rc > 0);
   return &table[id]->id;
 }
 

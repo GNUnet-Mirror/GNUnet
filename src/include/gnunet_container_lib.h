@@ -16,7 +16,7 @@
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 
 /**
  * @author Christian Grothoff
@@ -67,10 +67,10 @@
  *         #GNUNET_NO if compression did not help
  */
 int
-GNUNET_try_compression (const char *data,
-                        size_t old_size,
-                        char **result,
-                        size_t *new_size);
+GNUNET_try_compression(const char *data,
+                       size_t old_size,
+                       char **result,
+                       size_t *new_size);
 
 
 /**
@@ -84,7 +84,7 @@ GNUNET_try_compression (const char *data,
  * @return NULL on error, buffer of @a output_size decompressed bytes otherwise
  */
 char *
-GNUNET_decompress (const char *input, size_t input_size, size_t output_size);
+GNUNET_decompress(const char *input, size_t input_size, size_t output_size);
 
 
 #if HAVE_EXTRACTOR_H
@@ -99,8 +99,7 @@ GNUNET_decompress (const char *input, size_t input_size, size_t output_size);
  * Enumeration defining various sources of keywords.  See also
  * http://dublincore.org/documents/1998/09/dces/
  */
-enum EXTRACTOR_MetaType
-{
+enum EXTRACTOR_MetaType {
   EXTRACTOR_METATYPE_RESERVED = 0,
   EXTRACTOR_METATYPE_MIMETYPE = 1,
   EXTRACTOR_METATYPE_FILENAME = 2,
@@ -124,14 +123,12 @@ enum EXTRACTOR_MetaType
   EXTRACTOR_METATYPE_ORIGINAL_TITLE = 162,
   EXTRACTOR_METATYPE_GNUNET_FULL_DATA = 174,
   EXTRACTOR_METATYPE_GNUNET_ORIGINAL_FILENAME = 180,
-
 };
 
 /**
  * Format in which the extracted meta data is presented.
  */
-enum EXTRACTOR_MetaFormat
-{
+enum EXTRACTOR_MetaFormat {
   /**
    * Format is unknown.
    */
@@ -231,9 +228,9 @@ typedef int (*GNUNET_CONTAINER_HashCodeIterator) (void *cls,
  * @return the bloomfilter
  */
 struct GNUNET_CONTAINER_BloomFilter *
-GNUNET_CONTAINER_bloomfilter_load (const char *filename,
-                                   size_t size,
-                                   unsigned int k);
+GNUNET_CONTAINER_bloomfilter_load(const char *filename,
+                                  size_t size,
+                                  unsigned int k);
 
 
 /**
@@ -251,9 +248,9 @@ GNUNET_CONTAINER_bloomfilter_load (const char *filename,
  * @return the bloomfilter
  */
 struct GNUNET_CONTAINER_BloomFilter *
-GNUNET_CONTAINER_bloomfilter_init (const char *data,
-                                   size_t size,
-                                   unsigned int k);
+GNUNET_CONTAINER_bloomfilter_init(const char *data,
+                                  size_t size,
+                                  unsigned int k);
 
 
 /**
@@ -266,7 +263,7 @@ GNUNET_CONTAINER_bloomfilter_init (const char *data,
  * @return #GNUNET_SYSERR if the data array of the wrong size
  */
 int
-GNUNET_CONTAINER_bloomfilter_get_raw_data (
+GNUNET_CONTAINER_bloomfilter_get_raw_data(
   const struct GNUNET_CONTAINER_BloomFilter *bf,
   char *data,
   size_t size);
@@ -281,7 +278,7 @@ GNUNET_CONTAINER_bloomfilter_get_raw_data (
  * @return #GNUNET_YES if the element is in the filter, #GNUNET_NO if not
  */
 int
-GNUNET_CONTAINER_bloomfilter_test (
+GNUNET_CONTAINER_bloomfilter_test(
   const struct GNUNET_CONTAINER_BloomFilter *bf,
   const struct GNUNET_HashCode *e);
 
@@ -294,8 +291,8 @@ GNUNET_CONTAINER_bloomfilter_test (
  * @param e the element
  */
 void
-GNUNET_CONTAINER_bloomfilter_add (struct GNUNET_CONTAINER_BloomFilter *bf,
-                                  const struct GNUNET_HashCode *e);
+GNUNET_CONTAINER_bloomfilter_add(struct GNUNET_CONTAINER_BloomFilter *bf,
+                                 const struct GNUNET_HashCode *e);
 
 
 /**
@@ -306,8 +303,8 @@ GNUNET_CONTAINER_bloomfilter_add (struct GNUNET_CONTAINER_BloomFilter *bf,
  * @param e the element to remove
  */
 void
-GNUNET_CONTAINER_bloomfilter_remove (struct GNUNET_CONTAINER_BloomFilter *bf,
-                                     const struct GNUNET_HashCode *e);
+GNUNET_CONTAINER_bloomfilter_remove(struct GNUNET_CONTAINER_BloomFilter *bf,
+                                    const struct GNUNET_HashCode *e);
 
 
 /**
@@ -318,7 +315,7 @@ GNUNET_CONTAINER_bloomfilter_remove (struct GNUNET_CONTAINER_BloomFilter *bf,
  * @return copy of bf
  */
 struct GNUNET_CONTAINER_BloomFilter *
-GNUNET_CONTAINER_bloomfilter_copy (
+GNUNET_CONTAINER_bloomfilter_copy(
   const struct GNUNET_CONTAINER_BloomFilter *bf);
 
 
@@ -331,7 +328,7 @@ GNUNET_CONTAINER_bloomfilter_copy (
  * @param bf the filter
  */
 void
-GNUNET_CONTAINER_bloomfilter_free (struct GNUNET_CONTAINER_BloomFilter *bf);
+GNUNET_CONTAINER_bloomfilter_free(struct GNUNET_CONTAINER_BloomFilter *bf);
 
 
 /**
@@ -341,7 +338,7 @@ GNUNET_CONTAINER_bloomfilter_free (struct GNUNET_CONTAINER_BloomFilter *bf);
  * @return addresses set per element in the bf
  */
 size_t
-GNUNET_CONTAINER_bloomfilter_get_element_addresses (
+GNUNET_CONTAINER_bloomfilter_get_element_addresses(
   const struct GNUNET_CONTAINER_BloomFilter *bf);
 
 
@@ -353,7 +350,7 @@ GNUNET_CONTAINER_bloomfilter_get_element_addresses (
  * @return number of bytes used for the data of the bloom filter
  */
 size_t
-GNUNET_CONTAINER_bloomfilter_get_size (
+GNUNET_CONTAINER_bloomfilter_get_size(
   const struct GNUNET_CONTAINER_BloomFilter *bf);
 
 
@@ -364,7 +361,7 @@ GNUNET_CONTAINER_bloomfilter_get_size (
  * @param bf the filter
  */
 void
-GNUNET_CONTAINER_bloomfilter_clear (struct GNUNET_CONTAINER_BloomFilter *bf);
+GNUNET_CONTAINER_bloomfilter_clear(struct GNUNET_CONTAINER_BloomFilter *bf);
 
 
 /**
@@ -380,9 +377,9 @@ GNUNET_CONTAINER_bloomfilter_clear (struct GNUNET_CONTAINER_BloomFilter *bf);
  * @return #GNUNET_OK on success
  */
 int
-GNUNET_CONTAINER_bloomfilter_or (struct GNUNET_CONTAINER_BloomFilter *bf,
-                                 const char *data,
-                                 size_t size);
+GNUNET_CONTAINER_bloomfilter_or(struct GNUNET_CONTAINER_BloomFilter *bf,
+                                const char *data,
+                                size_t size);
 
 
 /**
@@ -396,7 +393,7 @@ GNUNET_CONTAINER_bloomfilter_or (struct GNUNET_CONTAINER_BloomFilter *bf,
  * @return #GNUNET_OK on success
  */
 int
-GNUNET_CONTAINER_bloomfilter_or2 (
+GNUNET_CONTAINER_bloomfilter_or2(
   struct GNUNET_CONTAINER_BloomFilter *bf,
   const struct GNUNET_CONTAINER_BloomFilter *to_or);
 
@@ -414,11 +411,11 @@ GNUNET_CONTAINER_bloomfilter_or2 (
  * @param k the new number of #GNUNET_CRYPTO_hash-function to apply per element
  */
 void
-GNUNET_CONTAINER_bloomfilter_resize (struct GNUNET_CONTAINER_BloomFilter *bf,
-                                     GNUNET_CONTAINER_HashCodeIterator iterator,
-                                     void *iterator_cls,
-                                     size_t size,
-                                     unsigned int k);
+GNUNET_CONTAINER_bloomfilter_resize(struct GNUNET_CONTAINER_BloomFilter *bf,
+                                    GNUNET_CONTAINER_HashCodeIterator iterator,
+                                    void *iterator_cls,
+                                    size_t size,
+                                    unsigned int k);
 
 
 /* ****************** metadata ******************* */
@@ -437,7 +434,7 @@ struct GNUNET_CONTAINER_MetaData;
  * @return empty meta-data container
  */
 struct GNUNET_CONTAINER_MetaData *
-GNUNET_CONTAINER_meta_data_create (void);
+GNUNET_CONTAINER_meta_data_create(void);
 
 
 /**
@@ -448,7 +445,7 @@ GNUNET_CONTAINER_meta_data_create (void);
  * @return duplicate meta-data container
  */
 struct GNUNET_CONTAINER_MetaData *
-GNUNET_CONTAINER_meta_data_duplicate (
+GNUNET_CONTAINER_meta_data_duplicate(
   const struct GNUNET_CONTAINER_MetaData *md);
 
 
@@ -459,7 +456,7 @@ GNUNET_CONTAINER_meta_data_duplicate (
  * @param md what to free
  */
 void
-GNUNET_CONTAINER_meta_data_destroy (struct GNUNET_CONTAINER_MetaData *md);
+GNUNET_CONTAINER_meta_data_destroy(struct GNUNET_CONTAINER_MetaData *md);
 
 
 /**
@@ -474,7 +471,7 @@ GNUNET_CONTAINER_meta_data_destroy (struct GNUNET_CONTAINER_MetaData *md);
  * @return #GNUNET_YES if they are equal
  */
 int
-GNUNET_CONTAINER_meta_data_test_equal (
+GNUNET_CONTAINER_meta_data_test_equal(
   const struct GNUNET_CONTAINER_MetaData *md1,
   const struct GNUNET_CONTAINER_MetaData *md2);
 
@@ -498,13 +495,13 @@ GNUNET_CONTAINER_meta_data_test_equal (
  *         data_mime_type and plugin_name are not considered for "exists" checks
  */
 int
-GNUNET_CONTAINER_meta_data_insert (struct GNUNET_CONTAINER_MetaData *md,
-                                   const char *plugin_name,
-                                   enum EXTRACTOR_MetaType type,
-                                   enum EXTRACTOR_MetaFormat format,
-                                   const char *data_mime_type,
-                                   const char *data,
-                                   size_t data_size);
+GNUNET_CONTAINER_meta_data_insert(struct GNUNET_CONTAINER_MetaData *md,
+                                  const char *plugin_name,
+                                  enum EXTRACTOR_MetaType type,
+                                  enum EXTRACTOR_MetaFormat format,
+                                  const char *data_mime_type,
+                                  const char *data,
+                                  size_t data_size);
 
 
 /**
@@ -516,8 +513,8 @@ GNUNET_CONTAINER_meta_data_insert (struct GNUNET_CONTAINER_MetaData *md,
  * @param in metadata to merge
  */
 void
-GNUNET_CONTAINER_meta_data_merge (struct GNUNET_CONTAINER_MetaData *md,
-                                  const struct GNUNET_CONTAINER_MetaData *in);
+GNUNET_CONTAINER_meta_data_merge(struct GNUNET_CONTAINER_MetaData *md,
+                                 const struct GNUNET_CONTAINER_MetaData *in);
 
 
 /**
@@ -532,10 +529,10 @@ GNUNET_CONTAINER_meta_data_merge (struct GNUNET_CONTAINER_MetaData *md,
  * @return #GNUNET_OK on success, #GNUNET_SYSERR if the item does not exist in md
  */
 int
-GNUNET_CONTAINER_meta_data_delete (struct GNUNET_CONTAINER_MetaData *md,
-                                   enum EXTRACTOR_MetaType type,
-                                   const char *data,
-                                   size_t data_size);
+GNUNET_CONTAINER_meta_data_delete(struct GNUNET_CONTAINER_MetaData *md,
+                                  enum EXTRACTOR_MetaType type,
+                                  const char *data,
+                                  size_t data_size);
 
 
 /**
@@ -545,7 +542,7 @@ GNUNET_CONTAINER_meta_data_delete (struct GNUNET_CONTAINER_MetaData *md,
  * @param md metadata to manipulate
  */
 void
-GNUNET_CONTAINER_meta_data_clear (struct GNUNET_CONTAINER_MetaData *md);
+GNUNET_CONTAINER_meta_data_clear(struct GNUNET_CONTAINER_MetaData *md);
 
 
 /**
@@ -556,7 +553,7 @@ GNUNET_CONTAINER_meta_data_clear (struct GNUNET_CONTAINER_MetaData *md);
  * @param md metadata to modify
  */
 void
-GNUNET_CONTAINER_meta_data_add_publication_date (
+GNUNET_CONTAINER_meta_data_add_publication_date(
   struct GNUNET_CONTAINER_MetaData *md);
 
 
@@ -571,9 +568,9 @@ GNUNET_CONTAINER_meta_data_add_publication_date (
  * @return number of entries
  */
 int
-GNUNET_CONTAINER_meta_data_iterate (const struct GNUNET_CONTAINER_MetaData *md,
-                                    EXTRACTOR_MetaDataProcessor iter,
-                                    void *iter_cls);
+GNUNET_CONTAINER_meta_data_iterate(const struct GNUNET_CONTAINER_MetaData *md,
+                                   EXTRACTOR_MetaDataProcessor iter,
+                                   void *iter_cls);
 
 
 /**
@@ -588,7 +585,7 @@ GNUNET_CONTAINER_meta_data_iterate (const struct GNUNET_CONTAINER_MetaData *md,
  * @return NULL if no entry was found
  */
 char *
-GNUNET_CONTAINER_meta_data_get_by_type (
+GNUNET_CONTAINER_meta_data_get_by_type(
   const struct GNUNET_CONTAINER_MetaData *md,
   enum EXTRACTOR_MetaType type);
 
@@ -606,7 +603,7 @@ GNUNET_CONTAINER_meta_data_get_by_type (
  *  otherwise client is responsible for freeing the value!
  */
 char *
-GNUNET_CONTAINER_meta_data_get_first_by_types (
+GNUNET_CONTAINER_meta_data_get_first_by_types(
   const struct GNUNET_CONTAINER_MetaData *md,
   ...);
 
@@ -621,7 +618,7 @@ GNUNET_CONTAINER_meta_data_get_first_by_types (
  * @return number of bytes in thumbnail, 0 if not available
  */
 size_t
-GNUNET_CONTAINER_meta_data_get_thumbnail (
+GNUNET_CONTAINER_meta_data_get_thumbnail(
   const struct GNUNET_CONTAINER_MetaData *md,
   unsigned char **thumb);
 
@@ -630,8 +627,7 @@ GNUNET_CONTAINER_meta_data_get_thumbnail (
  * @ingroup metadata
  * Options for metadata serialization.
  */
-enum GNUNET_CONTAINER_MetaDataSerializationOptions
-{
+enum GNUNET_CONTAINER_MetaDataSerializationOptions {
   /**
    * @ingroup metadata
    * Serialize all of the data.
@@ -669,7 +665,7 @@ enum GNUNET_CONTAINER_MetaDataSerializationOptions
  *         space)
  */
 ssize_t
-GNUNET_CONTAINER_meta_data_serialize (
+GNUNET_CONTAINER_meta_data_serialize(
   const struct GNUNET_CONTAINER_MetaData *md,
   char **target,
   size_t max,
@@ -684,7 +680,7 @@ GNUNET_CONTAINER_meta_data_serialize (
  * @return number of bytes needed for serialization, -1 on error
  */
 ssize_t
-GNUNET_CONTAINER_meta_data_get_serialized_size (
+GNUNET_CONTAINER_meta_data_get_serialized_size(
   const struct GNUNET_CONTAINER_MetaData *md);
 
 
@@ -698,7 +694,7 @@ GNUNET_CONTAINER_meta_data_get_serialized_size (
  *         bad format)
  */
 struct GNUNET_CONTAINER_MetaData *
-GNUNET_CONTAINER_meta_data_deserialize (const char *input, size_t size);
+GNUNET_CONTAINER_meta_data_deserialize(const char *input, size_t size);
 
 
 /* ******************************* HashMap **************************** */
@@ -720,9 +716,7 @@ struct GNUNET_CONTAINER_MultiHashMapIterator;
  * @ingroup hashmap
  * Options for storing values in the HashMap.
  */
-enum GNUNET_CONTAINER_MultiHashMapOption
-{
-
+enum GNUNET_CONTAINER_MultiHashMapOption {
   /**
    * @ingroup hashmap
    * If a value with the given key exists, replace it.  Note that the
@@ -791,7 +785,7 @@ typedef int (*GNUNET_CONTAINER_MulitHashMapIteratorCallback) (
  * @return NULL on error
  */
 struct GNUNET_CONTAINER_MultiHashMap *
-GNUNET_CONTAINER_multihashmap_create (unsigned int len, int do_not_copy_keys);
+GNUNET_CONTAINER_multihashmap_create(unsigned int len, int do_not_copy_keys);
 
 
 /**
@@ -802,7 +796,7 @@ GNUNET_CONTAINER_multihashmap_create (unsigned int len, int do_not_copy_keys);
  * @param map the map
  */
 void
-GNUNET_CONTAINER_multihashmap_destroy (
+GNUNET_CONTAINER_multihashmap_destroy(
   struct GNUNET_CONTAINER_MultiHashMap *map);
 
 
@@ -818,7 +812,7 @@ GNUNET_CONTAINER_multihashmap_destroy (
  *   key-value pairs with value NULL
  */
 void *
-GNUNET_CONTAINER_multihashmap_get (
+GNUNET_CONTAINER_multihashmap_get(
   const struct GNUNET_CONTAINER_MultiHashMap *map,
   const struct GNUNET_HashCode *key);
 
@@ -836,9 +830,9 @@ GNUNET_CONTAINER_multihashmap_get (
  *  is not in the map
  */
 int
-GNUNET_CONTAINER_multihashmap_remove (struct GNUNET_CONTAINER_MultiHashMap *map,
-                                      const struct GNUNET_HashCode *key,
-                                      const void *value);
+GNUNET_CONTAINER_multihashmap_remove(struct GNUNET_CONTAINER_MultiHashMap *map,
+                                     const struct GNUNET_HashCode *key,
+                                     const void *value);
 
 /**
  * @ingroup hashmap
@@ -850,7 +844,7 @@ GNUNET_CONTAINER_multihashmap_remove (struct GNUNET_CONTAINER_MultiHashMap *map,
  * @return number of values removed
  */
 int
-GNUNET_CONTAINER_multihashmap_remove_all (
+GNUNET_CONTAINER_multihashmap_remove_all(
   struct GNUNET_CONTAINER_MultiHashMap *map,
   const struct GNUNET_HashCode *key);
 
@@ -864,7 +858,7 @@ GNUNET_CONTAINER_multihashmap_remove_all (
  * @return number of values removed
  */
 unsigned int
-GNUNET_CONTAINER_multihashmap_clear (struct GNUNET_CONTAINER_MultiHashMap *map);
+GNUNET_CONTAINER_multihashmap_clear(struct GNUNET_CONTAINER_MultiHashMap *map);
 
 
 /**
@@ -878,7 +872,7 @@ GNUNET_CONTAINER_multihashmap_clear (struct GNUNET_CONTAINER_MultiHashMap *map);
  *         #GNUNET_NO if not
  */
 int
-GNUNET_CONTAINER_multihashmap_contains (
+GNUNET_CONTAINER_multihashmap_contains(
   const struct GNUNET_CONTAINER_MultiHashMap *map,
   const struct GNUNET_HashCode *key);
 
@@ -895,7 +889,7 @@ GNUNET_CONTAINER_multihashmap_contains (
  *         #GNUNET_NO if not
  */
 int
-GNUNET_CONTAINER_multihashmap_contains_value (
+GNUNET_CONTAINER_multihashmap_contains_value(
   const struct GNUNET_CONTAINER_MultiHashMap *map,
   const struct GNUNET_HashCode *key,
   const void *value);
@@ -915,7 +909,7 @@ GNUNET_CONTAINER_multihashmap_contains_value (
  *                       value already exists
  */
 int
-GNUNET_CONTAINER_multihashmap_put (
+GNUNET_CONTAINER_multihashmap_put(
   struct GNUNET_CONTAINER_MultiHashMap *map,
   const struct GNUNET_HashCode *key,
   void *value,
@@ -929,7 +923,7 @@ GNUNET_CONTAINER_multihashmap_put (
  * @return the number of key value pairs
  */
 unsigned int
-GNUNET_CONTAINER_multihashmap_size (
+GNUNET_CONTAINER_multihashmap_size(
   const struct GNUNET_CONTAINER_MultiHashMap *map);
 
 
@@ -944,7 +938,7 @@ GNUNET_CONTAINER_multihashmap_size (
  *         #GNUNET_SYSERR if it aborted iteration
  */
 int
-GNUNET_CONTAINER_multihashmap_iterate (
+GNUNET_CONTAINER_multihashmap_iterate(
   struct GNUNET_CONTAINER_MultiHashMap *map,
   GNUNET_CONTAINER_MulitHashMapIteratorCallback it,
   void *it_cls);
@@ -964,7 +958,7 @@ GNUNET_CONTAINER_multihashmap_iterate (
  * @return an iterator over the given multihashmap @a map
  */
 struct GNUNET_CONTAINER_MultiHashMapIterator *
-GNUNET_CONTAINER_multihashmap_iterator_create (
+GNUNET_CONTAINER_multihashmap_iterator_create(
   const struct GNUNET_CONTAINER_MultiHashMap *map);
 
 
@@ -984,7 +978,7 @@ GNUNET_CONTAINER_multihashmap_iterator_create (
  *         #GNUNET_NO if we are out of elements
  */
 int
-GNUNET_CONTAINER_multihashmap_iterator_next (
+GNUNET_CONTAINER_multihashmap_iterator_next(
   struct GNUNET_CONTAINER_MultiHashMapIterator *iter,
   struct GNUNET_HashCode *key,
   const void **value);
@@ -997,7 +991,7 @@ GNUNET_CONTAINER_multihashmap_iterator_next (
  * @param iter the iterator to destroy
  */
 void
-GNUNET_CONTAINER_multihashmap_iterator_destroy (
+GNUNET_CONTAINER_multihashmap_iterator_destroy(
   struct GNUNET_CONTAINER_MultiHashMapIterator *iter);
 
 
@@ -1013,7 +1007,7 @@ GNUNET_CONTAINER_multihashmap_iterator_destroy (
  *         #GNUNET_SYSERR if it aborted iteration
  */
 int
-GNUNET_CONTAINER_multihashmap_get_multiple (
+GNUNET_CONTAINER_multihashmap_get_multiple(
   struct GNUNET_CONTAINER_MultiHashMap *map,
   const struct GNUNET_HashCode *key,
   GNUNET_CONTAINER_MulitHashMapIteratorCallback it,
@@ -1032,7 +1026,7 @@ GNUNET_CONTAINER_multihashmap_get_multiple (
  * @return the number of key value pairs processed, zero or one.
  */
 unsigned int
-GNUNET_CONTAINER_multihashmap_get_random (
+GNUNET_CONTAINER_multihashmap_get_random(
   const struct GNUNET_CONTAINER_MultiHashMap *map,
   GNUNET_CONTAINER_MulitHashMapIteratorCallback it,
   void *it_cls);
@@ -1080,7 +1074,7 @@ struct GNUNET_CONTAINER_MultiPeerMap;
  * @return NULL on error
  */
 struct GNUNET_CONTAINER_MultiPeerMap *
-GNUNET_CONTAINER_multipeermap_create (unsigned int len, int do_not_copy_keys);
+GNUNET_CONTAINER_multipeermap_create(unsigned int len, int do_not_copy_keys);
 
 
 /**
@@ -1091,7 +1085,7 @@ GNUNET_CONTAINER_multipeermap_create (unsigned int len, int do_not_copy_keys);
  * @param map the map
  */
 void
-GNUNET_CONTAINER_multipeermap_destroy (
+GNUNET_CONTAINER_multipeermap_destroy(
   struct GNUNET_CONTAINER_MultiPeerMap *map);
 
 
@@ -1107,7 +1101,7 @@ GNUNET_CONTAINER_multipeermap_destroy (
  *   key-value pairs with value NULL
  */
 void *
-GNUNET_CONTAINER_multipeermap_get (
+GNUNET_CONTAINER_multipeermap_get(
   const struct GNUNET_CONTAINER_MultiPeerMap *map,
   const struct GNUNET_PeerIdentity *key);
 
@@ -1125,9 +1119,9 @@ GNUNET_CONTAINER_multipeermap_get (
  *  is not in the map
  */
 int
-GNUNET_CONTAINER_multipeermap_remove (struct GNUNET_CONTAINER_MultiPeerMap *map,
-                                      const struct GNUNET_PeerIdentity *key,
-                                      const void *value);
+GNUNET_CONTAINER_multipeermap_remove(struct GNUNET_CONTAINER_MultiPeerMap *map,
+                                     const struct GNUNET_PeerIdentity *key,
+                                     const void *value);
 
 /**
  * @ingroup hashmap
@@ -1139,7 +1133,7 @@ GNUNET_CONTAINER_multipeermap_remove (struct GNUNET_CONTAINER_MultiPeerMap *map,
  * @return number of values removed
  */
 int
-GNUNET_CONTAINER_multipeermap_remove_all (
+GNUNET_CONTAINER_multipeermap_remove_all(
   struct GNUNET_CONTAINER_MultiPeerMap *map,
   const struct GNUNET_PeerIdentity *key);
 
@@ -1155,7 +1149,7 @@ GNUNET_CONTAINER_multipeermap_remove_all (
  *         #GNUNET_NO if not
  */
 int
-GNUNET_CONTAINER_multipeermap_contains (
+GNUNET_CONTAINER_multipeermap_contains(
   const struct GNUNET_CONTAINER_MultiPeerMap *map,
   const struct GNUNET_PeerIdentity *key);
 
@@ -1172,7 +1166,7 @@ GNUNET_CONTAINER_multipeermap_contains (
  *         #GNUNET_NO if not
  */
 int
-GNUNET_CONTAINER_multipeermap_contains_value (
+GNUNET_CONTAINER_multipeermap_contains_value(
   const struct GNUNET_CONTAINER_MultiPeerMap *map,
   const struct GNUNET_PeerIdentity *key,
   const void *value);
@@ -1192,7 +1186,7 @@ GNUNET_CONTAINER_multipeermap_contains_value (
  *                       value already exists
  */
 int
-GNUNET_CONTAINER_multipeermap_put (
+GNUNET_CONTAINER_multipeermap_put(
   struct GNUNET_CONTAINER_MultiPeerMap *map,
   const struct GNUNET_PeerIdentity *key,
   void *value,
@@ -1207,7 +1201,7 @@ GNUNET_CONTAINER_multipeermap_put (
  * @return the number of key value pairs
  */
 unsigned int
-GNUNET_CONTAINER_multipeermap_size (
+GNUNET_CONTAINER_multipeermap_size(
   const struct GNUNET_CONTAINER_MultiPeerMap *map);
 
 
@@ -1222,7 +1216,7 @@ GNUNET_CONTAINER_multipeermap_size (
  *         #GNUNET_SYSERR if it aborted iteration
  */
 int
-GNUNET_CONTAINER_multipeermap_iterate (
+GNUNET_CONTAINER_multipeermap_iterate(
   struct GNUNET_CONTAINER_MultiPeerMap *map,
   GNUNET_CONTAINER_PeerMapIterator it,
   void *it_cls);
@@ -1243,7 +1237,7 @@ struct GNUNET_CONTAINER_MultiPeerMapIterator;
  * @return an iterator over the given multihashmap @a map
  */
 struct GNUNET_CONTAINER_MultiPeerMapIterator *
-GNUNET_CONTAINER_multipeermap_iterator_create (
+GNUNET_CONTAINER_multipeermap_iterator_create(
   const struct GNUNET_CONTAINER_MultiPeerMap *map);
 
 
@@ -1263,7 +1257,7 @@ GNUNET_CONTAINER_multipeermap_iterator_create (
  *         #GNUNET_NO if we are out of elements
  */
 int
-GNUNET_CONTAINER_multipeermap_iterator_next (
+GNUNET_CONTAINER_multipeermap_iterator_next(
   struct GNUNET_CONTAINER_MultiPeerMapIterator *iter,
   struct GNUNET_PeerIdentity *key,
   const void **value);
@@ -1276,7 +1270,7 @@ GNUNET_CONTAINER_multipeermap_iterator_next (
  * @param iter the iterator to destroy
  */
 void
-GNUNET_CONTAINER_multipeermap_iterator_destroy (
+GNUNET_CONTAINER_multipeermap_iterator_destroy(
   struct GNUNET_CONTAINER_MultiPeerMapIterator *iter);
 
 
@@ -1292,7 +1286,7 @@ GNUNET_CONTAINER_multipeermap_iterator_destroy (
  *         #GNUNET_SYSERR if it aborted iteration
  */
 int
-GNUNET_CONTAINER_multipeermap_get_multiple (
+GNUNET_CONTAINER_multipeermap_get_multiple(
   struct GNUNET_CONTAINER_MultiPeerMap *map,
   const struct GNUNET_PeerIdentity *key,
   GNUNET_CONTAINER_PeerMapIterator it,
@@ -1311,7 +1305,7 @@ GNUNET_CONTAINER_multipeermap_get_multiple (
  * @return the number of key value pairs processed, zero or one.
  */
 unsigned int
-GNUNET_CONTAINER_multipeermap_get_random (
+GNUNET_CONTAINER_multipeermap_get_random(
   const struct GNUNET_CONTAINER_MultiPeerMap *map,
   GNUNET_CONTAINER_PeerMapIterator it,
   void *it_cls);
@@ -1359,7 +1353,7 @@ struct GNUNET_CONTAINER_MultiShortmap;
  * @return NULL on error
  */
 struct GNUNET_CONTAINER_MultiShortmap *
-GNUNET_CONTAINER_multishortmap_create (unsigned int len, int do_not_copy_keys);
+GNUNET_CONTAINER_multishortmap_create(unsigned int len, int do_not_copy_keys);
 
 
 /**
@@ -1370,7 +1364,7 @@ GNUNET_CONTAINER_multishortmap_create (unsigned int len, int do_not_copy_keys);
  * @param map the map
  */
 void
-GNUNET_CONTAINER_multishortmap_destroy (
+GNUNET_CONTAINER_multishortmap_destroy(
   struct GNUNET_CONTAINER_MultiShortmap *map);
 
 
@@ -1386,7 +1380,7 @@ GNUNET_CONTAINER_multishortmap_destroy (
  *   key-value pairs with value NULL
  */
 void *
-GNUNET_CONTAINER_multishortmap_get (
+GNUNET_CONTAINER_multishortmap_get(
   const struct GNUNET_CONTAINER_MultiShortmap *map,
   const struct GNUNET_ShortHashCode *key);
 
@@ -1404,7 +1398,7 @@ GNUNET_CONTAINER_multishortmap_get (
  *  is not in the map
  */
 int
-GNUNET_CONTAINER_multishortmap_remove (
+GNUNET_CONTAINER_multishortmap_remove(
   struct GNUNET_CONTAINER_MultiShortmap *map,
   const struct GNUNET_ShortHashCode *key,
   const void *value);
@@ -1419,7 +1413,7 @@ GNUNET_CONTAINER_multishortmap_remove (
  * @return number of values removed
  */
 int
-GNUNET_CONTAINER_multishortmap_remove_all (
+GNUNET_CONTAINER_multishortmap_remove_all(
   struct GNUNET_CONTAINER_MultiShortmap *map,
   const struct GNUNET_ShortHashCode *key);
 
@@ -1435,7 +1429,7 @@ GNUNET_CONTAINER_multishortmap_remove_all (
  *         #GNUNET_NO if not
  */
 int
-GNUNET_CONTAINER_multishortmap_contains (
+GNUNET_CONTAINER_multishortmap_contains(
   const struct GNUNET_CONTAINER_MultiShortmap *map,
   const struct GNUNET_ShortHashCode *key);
 
@@ -1452,7 +1446,7 @@ GNUNET_CONTAINER_multishortmap_contains (
  *         #GNUNET_NO if not
  */
 int
-GNUNET_CONTAINER_multishortmap_contains_value (
+GNUNET_CONTAINER_multishortmap_contains_value(
   const struct GNUNET_CONTAINER_MultiShortmap *map,
   const struct GNUNET_ShortHashCode *key,
   const void *value);
@@ -1472,7 +1466,7 @@ GNUNET_CONTAINER_multishortmap_contains_value (
  *                       value already exists
  */
 int
-GNUNET_CONTAINER_multishortmap_put (
+GNUNET_CONTAINER_multishortmap_put(
   struct GNUNET_CONTAINER_MultiShortmap *map,
   const struct GNUNET_ShortHashCode *key,
   void *value,
@@ -1487,7 +1481,7 @@ GNUNET_CONTAINER_multishortmap_put (
  * @return the number of key value pairs
  */
 unsigned int
-GNUNET_CONTAINER_multishortmap_size (
+GNUNET_CONTAINER_multishortmap_size(
   const struct GNUNET_CONTAINER_MultiShortmap *map);
 
 
@@ -1502,7 +1496,7 @@ GNUNET_CONTAINER_multishortmap_size (
  *         #GNUNET_SYSERR if it aborted iteration
  */
 int
-GNUNET_CONTAINER_multishortmap_iterate (
+GNUNET_CONTAINER_multishortmap_iterate(
   struct GNUNET_CONTAINER_MultiShortmap *map,
   GNUNET_CONTAINER_ShortmapIterator it,
   void *it_cls);
@@ -1525,7 +1519,7 @@ struct GNUNET_CONTAINER_MultiShortmapIterator;
  * @return an iterator over the given multihashmap @a map
  */
 struct GNUNET_CONTAINER_MultiShortmapIterator *
-GNUNET_CONTAINER_multishortmap_iterator_create (
+GNUNET_CONTAINER_multishortmap_iterator_create(
   const struct GNUNET_CONTAINER_MultiShortmap *map);
 
 
@@ -1545,7 +1539,7 @@ GNUNET_CONTAINER_multishortmap_iterator_create (
  *         #GNUNET_NO if we are out of elements
  */
 int
-GNUNET_CONTAINER_multishortmap_iterator_next (
+GNUNET_CONTAINER_multishortmap_iterator_next(
   struct GNUNET_CONTAINER_MultiShortmapIterator *iter,
   struct GNUNET_ShortHashCode *key,
   const void **value);
@@ -1558,7 +1552,7 @@ GNUNET_CONTAINER_multishortmap_iterator_next (
  * @param iter the iterator to destroy
  */
 void
-GNUNET_CONTAINER_multishortmap_iterator_destroy (
+GNUNET_CONTAINER_multishortmap_iterator_destroy(
   struct GNUNET_CONTAINER_MultiShortmapIterator *iter);
 
 
@@ -1574,7 +1568,7 @@ GNUNET_CONTAINER_multishortmap_iterator_destroy (
  *         #GNUNET_SYSERR if it aborted iteration
  */
 int
-GNUNET_CONTAINER_multishortmap_get_multiple (
+GNUNET_CONTAINER_multishortmap_get_multiple(
   struct GNUNET_CONTAINER_MultiShortmap *map,
   const struct GNUNET_ShortHashCode *key,
   GNUNET_CONTAINER_ShortmapIterator it,
@@ -1593,7 +1587,7 @@ GNUNET_CONTAINER_multishortmap_get_multiple (
  * @return the number of key value pairs processed, zero or one.
  */
 unsigned int
-GNUNET_CONTAINER_multishortmap_get_random (
+GNUNET_CONTAINER_multishortmap_get_random(
   const struct GNUNET_CONTAINER_MultiShortmap *map,
   GNUNET_CONTAINER_ShortmapIterator it,
   void *it_cls);
@@ -1642,7 +1636,7 @@ struct GNUNET_CONTAINER_MultiUuidmap;
  * @return NULL on error
  */
 struct GNUNET_CONTAINER_MultiUuidmap *
-GNUNET_CONTAINER_multiuuidmap_create (unsigned int len, int do_not_copy_keys);
+GNUNET_CONTAINER_multiuuidmap_create(unsigned int len, int do_not_copy_keys);
 
 
 /**
@@ -1653,7 +1647,7 @@ GNUNET_CONTAINER_multiuuidmap_create (unsigned int len, int do_not_copy_keys);
  * @param map the map
  */
 void
-GNUNET_CONTAINER_multiuuidmap_destroy (
+GNUNET_CONTAINER_multiuuidmap_destroy(
   struct GNUNET_CONTAINER_MultiUuidmap *map);
 
 
@@ -1669,7 +1663,7 @@ GNUNET_CONTAINER_multiuuidmap_destroy (
  *   key-value pairs with value NULL
  */
 void *
-GNUNET_CONTAINER_multiuuidmap_get (
+GNUNET_CONTAINER_multiuuidmap_get(
   const struct GNUNET_CONTAINER_MultiUuidmap *map,
   const struct GNUNET_Uuid *key);
 
@@ -1687,9 +1681,9 @@ GNUNET_CONTAINER_multiuuidmap_get (
  *  is not in the map
  */
 int
-GNUNET_CONTAINER_multiuuidmap_remove (struct GNUNET_CONTAINER_MultiUuidmap *map,
-                                      const struct GNUNET_Uuid *key,
-                                      const void *value);
+GNUNET_CONTAINER_multiuuidmap_remove(struct GNUNET_CONTAINER_MultiUuidmap *map,
+                                     const struct GNUNET_Uuid *key,
+                                     const void *value);
 
 /**
  * @ingroup hashmap
@@ -1701,7 +1695,7 @@ GNUNET_CONTAINER_multiuuidmap_remove (struct GNUNET_CONTAINER_MultiUuidmap *map,
  * @return number of values removed
  */
 int
-GNUNET_CONTAINER_multiuuidmap_remove_all (
+GNUNET_CONTAINER_multiuuidmap_remove_all(
   struct GNUNET_CONTAINER_MultiUuidmap *map,
   const struct GNUNET_Uuid *key);
 
@@ -1717,7 +1711,7 @@ GNUNET_CONTAINER_multiuuidmap_remove_all (
  *         #GNUNET_NO if not
  */
 int
-GNUNET_CONTAINER_multiuuidmap_contains (
+GNUNET_CONTAINER_multiuuidmap_contains(
   const struct GNUNET_CONTAINER_MultiUuidmap *map,
   const struct GNUNET_Uuid *key);
 
@@ -1734,7 +1728,7 @@ GNUNET_CONTAINER_multiuuidmap_contains (
  *         #GNUNET_NO if not
  */
 int
-GNUNET_CONTAINER_multiuuidmap_contains_value (
+GNUNET_CONTAINER_multiuuidmap_contains_value(
   const struct GNUNET_CONTAINER_MultiUuidmap *map,
   const struct GNUNET_Uuid *key,
   const void *value);
@@ -1754,7 +1748,7 @@ GNUNET_CONTAINER_multiuuidmap_contains_value (
  *                       value already exists
  */
 int
-GNUNET_CONTAINER_multiuuidmap_put (
+GNUNET_CONTAINER_multiuuidmap_put(
   struct GNUNET_CONTAINER_MultiUuidmap *map,
   const struct GNUNET_Uuid *key,
   void *value,
@@ -1769,7 +1763,7 @@ GNUNET_CONTAINER_multiuuidmap_put (
  * @return the number of key value pairs
  */
 unsigned int
-GNUNET_CONTAINER_multiuuidmap_size (
+GNUNET_CONTAINER_multiuuidmap_size(
   const struct GNUNET_CONTAINER_MultiUuidmap *map);
 
 
@@ -1784,7 +1778,7 @@ GNUNET_CONTAINER_multiuuidmap_size (
  *         #GNUNET_SYSERR if it aborted iteration
  */
 int
-GNUNET_CONTAINER_multiuuidmap_iterate (
+GNUNET_CONTAINER_multiuuidmap_iterate(
   struct GNUNET_CONTAINER_MultiUuidmap *map,
   GNUNET_CONTAINER_MultiUuidmapIteratorCallback it,
   void *it_cls);
@@ -1807,7 +1801,7 @@ struct GNUNET_CONTAINER_MultiUuidmapIterator;
  * @return an iterator over the given multihashmap @a map
  */
 struct GNUNET_CONTAINER_MultiUuidmapIterator *
-GNUNET_CONTAINER_multiuuidmap_iterator_create (
+GNUNET_CONTAINER_multiuuidmap_iterator_create(
   const struct GNUNET_CONTAINER_MultiUuidmap *map);
 
 
@@ -1827,7 +1821,7 @@ GNUNET_CONTAINER_multiuuidmap_iterator_create (
  *         #GNUNET_NO if we are out of elements
  */
 int
-GNUNET_CONTAINER_multiuuidmap_iterator_next (
+GNUNET_CONTAINER_multiuuidmap_iterator_next(
   struct GNUNET_CONTAINER_MultiUuidmapIterator *iter,
   struct GNUNET_Uuid *key,
   const void **value);
@@ -1840,7 +1834,7 @@ GNUNET_CONTAINER_multiuuidmap_iterator_next (
  * @param iter the iterator to destroy
  */
 void
-GNUNET_CONTAINER_multiuuidmap_iterator_destroy (
+GNUNET_CONTAINER_multiuuidmap_iterator_destroy(
   struct GNUNET_CONTAINER_MultiUuidmapIterator *iter);
 
 
@@ -1856,7 +1850,7 @@ GNUNET_CONTAINER_multiuuidmap_iterator_destroy (
  *         #GNUNET_SYSERR if it aborted iteration
  */
 int
-GNUNET_CONTAINER_multiuuidmap_get_multiple (
+GNUNET_CONTAINER_multiuuidmap_get_multiple(
   struct GNUNET_CONTAINER_MultiUuidmap *map,
   const struct GNUNET_Uuid *key,
   GNUNET_CONTAINER_MultiUuidmapIteratorCallback it,
@@ -1875,7 +1869,7 @@ GNUNET_CONTAINER_multiuuidmap_get_multiple (
  * @return the number of key value pairs processed, zero or one.
  */
 unsigned int
-GNUNET_CONTAINER_multiuuidmap_get_random (
+GNUNET_CONTAINER_multiuuidmap_get_random(
   const struct GNUNET_CONTAINER_MultiUuidmap *map,
   GNUNET_CONTAINER_MultiUuidmapIteratorCallback it,
   void *it_cls);
@@ -1922,7 +1916,7 @@ typedef int (*GNUNET_CONTAINER_MulitHashMapIterator32Callback) (void *cls,
  * @return NULL on error
  */
 struct GNUNET_CONTAINER_MultiHashMap32 *
-GNUNET_CONTAINER_multihashmap32_create (unsigned int len);
+GNUNET_CONTAINER_multihashmap32_create(unsigned int len);
 
 
 /**
@@ -1933,7 +1927,7 @@ GNUNET_CONTAINER_multihashmap32_create (unsigned int len);
  * @param map the map
  */
 void
-GNUNET_CONTAINER_multihashmap32_destroy (
+GNUNET_CONTAINER_multihashmap32_destroy(
   struct GNUNET_CONTAINER_MultiHashMap32 *map);
 
 
@@ -1945,7 +1939,7 @@ GNUNET_CONTAINER_multihashmap32_destroy (
  * @return the number of key value pairs
  */
 unsigned int
-GNUNET_CONTAINER_multihashmap32_size (
+GNUNET_CONTAINER_multihashmap32_size(
   const struct GNUNET_CONTAINER_MultiHashMap32 *map);
 
 
@@ -1961,7 +1955,7 @@ GNUNET_CONTAINER_multihashmap32_size (
  *   key-value pairs with value NULL
  */
 void *
-GNUNET_CONTAINER_multihashmap32_get (
+GNUNET_CONTAINER_multihashmap32_get(
   const struct GNUNET_CONTAINER_MultiHashMap32 *map,
   uint32_t key);
 
@@ -1977,7 +1971,7 @@ GNUNET_CONTAINER_multihashmap32_get (
  *         #GNUNET_SYSERR if it aborted iteration
  */
 int
-GNUNET_CONTAINER_multihashmap32_iterate (
+GNUNET_CONTAINER_multihashmap32_iterate(
   struct GNUNET_CONTAINER_MultiHashMap32 *map,
   GNUNET_CONTAINER_MulitHashMapIterator32Callback it,
   void *it_cls);
@@ -1996,7 +1990,7 @@ GNUNET_CONTAINER_multihashmap32_iterate (
  *  is not in the map
  */
 int
-GNUNET_CONTAINER_multihashmap32_remove (
+GNUNET_CONTAINER_multihashmap32_remove(
   struct GNUNET_CONTAINER_MultiHashMap32 *map,
   uint32_t key,
   const void *value);
@@ -2012,7 +2006,7 @@ GNUNET_CONTAINER_multihashmap32_remove (
  * @return number of values removed
  */
 int
-GNUNET_CONTAINER_multihashmap32_remove_all (
+GNUNET_CONTAINER_multihashmap32_remove_all(
   struct GNUNET_CONTAINER_MultiHashMap32 *map,
   uint32_t key);
 
@@ -2028,7 +2022,7 @@ GNUNET_CONTAINER_multihashmap32_remove_all (
  *         #GNUNET_NO if not
  */
 int
-GNUNET_CONTAINER_multihashmap32_contains (
+GNUNET_CONTAINER_multihashmap32_contains(
   const struct GNUNET_CONTAINER_MultiHashMap32 *map,
   uint32_t key);
 
@@ -2045,7 +2039,7 @@ GNUNET_CONTAINER_multihashmap32_contains (
  *         #GNUNET_NO if not
  */
 int
-GNUNET_CONTAINER_multihashmap32_contains_value (
+GNUNET_CONTAINER_multihashmap32_contains_value(
   const struct GNUNET_CONTAINER_MultiHashMap32 *map,
   uint32_t key,
   const void *value);
@@ -2065,7 +2059,7 @@ GNUNET_CONTAINER_multihashmap32_contains_value (
  *                       value already exists
  */
 int
-GNUNET_CONTAINER_multihashmap32_put (
+GNUNET_CONTAINER_multihashmap32_put(
   struct GNUNET_CONTAINER_MultiHashMap32 *map,
   uint32_t key,
   void *value,
@@ -2084,7 +2078,7 @@ GNUNET_CONTAINER_multihashmap32_put (
  *         #GNUNET_SYSERR if it aborted iteration
  */
 int
-GNUNET_CONTAINER_multihashmap32_get_multiple (
+GNUNET_CONTAINER_multihashmap32_get_multiple(
   struct GNUNET_CONTAINER_MultiHashMap32 *map,
   uint32_t key,
   GNUNET_CONTAINER_MulitHashMapIterator32Callback it,
@@ -2104,7 +2098,7 @@ GNUNET_CONTAINER_multihashmap32_get_multiple (
  * @return an iterator over the given multihashmap map
  */
 struct GNUNET_CONTAINER_MultiHashMap32Iterator *
-GNUNET_CONTAINER_multihashmap32_iterator_create (
+GNUNET_CONTAINER_multihashmap32_iterator_create(
   const struct GNUNET_CONTAINER_MultiHashMap32 *map);
 
 
@@ -2123,7 +2117,7 @@ GNUNET_CONTAINER_multihashmap32_iterator_create (
  *         #GNUNET_NO if we are out of elements
  */
 int
-GNUNET_CONTAINER_multihashmap32_iterator_next (
+GNUNET_CONTAINER_multihashmap32_iterator_next(
   struct GNUNET_CONTAINER_MultiHashMap32Iterator *iter,
   uint32_t *key,
   const void **value);
@@ -2135,7 +2129,7 @@ GNUNET_CONTAINER_multihashmap32_iterator_next (
  * @param iter the iterator to destroy
  */
 void
-GNUNET_CONTAINER_multihashmap32_iterator_destroy (
+GNUNET_CONTAINER_multihashmap32_iterator_destroy(
   struct GNUNET_CONTAINER_MultiHashMapIterator *iter);
 
 
@@ -2153,17 +2147,17 @@ GNUNET_CONTAINER_multihashmap32_iterator_destroy (
  */
 #define GNUNET_CONTAINER_DLL_insert(head, tail, element)                \
   do                                                                    \
-  {                                                                     \
-    GNUNET_assert (((element)->prev == NULL) && ((head) != (element))); \
-    GNUNET_assert (((element)->next == NULL) && ((tail) != (element))); \
-    (element)->next = (head);                                           \
-    (element)->prev = NULL;                                             \
-    if ((tail) == NULL)                                                 \
+    {                                                                     \
+      GNUNET_assert(((element)->prev == NULL) && ((head) != (element))); \
+      GNUNET_assert(((element)->next == NULL) && ((tail) != (element))); \
+      (element)->next = (head);                                           \
+      (element)->prev = NULL;                                             \
+      if ((tail) == NULL)                                                 \
       (tail) = element;                                                 \
-    else                                                                \
-      (head)->prev = element;                                           \
-    (head) = (element);                                                 \
-  } while (0)
+      else                                                                \
+      (head) ->prev = element;                                           \
+      (head) = (element);                                                 \
+    } while (0)
 
 
 /**
@@ -2177,17 +2171,17 @@ GNUNET_CONTAINER_multihashmap32_iterator_destroy (
  */
 #define GNUNET_CONTAINER_DLL_insert_tail(head, tail, element)           \
   do                                                                    \
-  {                                                                     \
-    GNUNET_assert (((element)->prev == NULL) && ((head) != (element))); \
-    GNUNET_assert (((element)->next == NULL) && ((tail) != (element))); \
-    (element)->prev = (tail);                                           \
-    (element)->next = NULL;                                             \
-    if ((head) == NULL)                                                 \
+    {                                                                     \
+      GNUNET_assert(((element)->prev == NULL) && ((head) != (element))); \
+      GNUNET_assert(((element)->next == NULL) && ((tail) != (element))); \
+      (element)->prev = (tail);                                           \
+      (element)->next = NULL;                                             \
+      if ((head) == NULL)                                                 \
       (head) = element;                                                 \
-    else                                                                \
-      (tail)->next = element;                                           \
-    (tail) = (element);                                                 \
-  } while (0)
+      else                                                                \
+      (tail) ->next = element;                                           \
+      (tail) = (element);                                                 \
+    } while (0)
 
 
 /**
@@ -2202,25 +2196,25 @@ GNUNET_CONTAINER_multihashmap32_iterator_destroy (
  */
 #define GNUNET_CONTAINER_DLL_insert_after(head, tail, other, element)   \
   do                                                                    \
-  {                                                                     \
-    GNUNET_assert (((element)->prev == NULL) && ((head) != (element))); \
-    GNUNET_assert (((element)->next == NULL) && ((tail) != (element))); \
-    (element)->prev = (other);                                          \
-    if (NULL == other)                                                  \
-    {                                                                   \
-      (element)->next = (head);                                         \
-      (head) = (element);                                               \
-    }                                                                   \
-    else                                                                \
-    {                                                                   \
-      (element)->next = (other)->next;                                  \
-      (other)->next = (element);                                        \
-    }                                                                   \
-    if (NULL == (element)->next)                                        \
+    {                                                                     \
+      GNUNET_assert(((element)->prev == NULL) && ((head) != (element))); \
+      GNUNET_assert(((element)->next == NULL) && ((tail) != (element))); \
+      (element)->prev = (other);                                          \
+      if (NULL == other)                                                  \
+        {                                                                   \
+          (element)->next = (head);                                         \
+          (head) = (element);                                               \
+        }                                                                   \
+      else                                                                \
+        {                                                                   \
+          (element)->next = (other)->next;                                  \
+          (other)->next = (element);                                        \
+        }                                                                   \
+      if (NULL == (element)->next)                                        \
       (tail) = (element);                                               \
-    else                                                                \
-      (element)->next->prev = (element);                                \
-  } while (0)
+      else                                                                \
+      (element) ->next->prev = (element);                                \
+    } while (0)
 
 
 /**
@@ -2235,25 +2229,25 @@ GNUNET_CONTAINER_multihashmap32_iterator_destroy (
  */
 #define GNUNET_CONTAINER_DLL_insert_before(head, tail, other, element)  \
   do                                                                    \
-  {                                                                     \
-    GNUNET_assert (((element)->prev == NULL) && ((head) != (element))); \
-    GNUNET_assert (((element)->next == NULL) && ((tail) != (element))); \
-    (element)->next = (other);                                          \
-    if (NULL == other)                                                  \
-    {                                                                   \
-      (element)->prev = (tail);                                         \
-      (tail) = (element);                                               \
-    }                                                                   \
-    else                                                                \
-    {                                                                   \
-      (element)->prev = (other)->prev;                                  \
-      (other)->prev = (element);                                        \
-    }                                                                   \
-    if (NULL == (element)->prev)                                        \
+    {                                                                     \
+      GNUNET_assert(((element)->prev == NULL) && ((head) != (element))); \
+      GNUNET_assert(((element)->next == NULL) && ((tail) != (element))); \
+      (element)->next = (other);                                          \
+      if (NULL == other)                                                  \
+        {                                                                   \
+          (element)->prev = (tail);                                         \
+          (tail) = (element);                                               \
+        }                                                                   \
+      else                                                                \
+        {                                                                   \
+          (element)->prev = (other)->prev;                                  \
+          (other)->prev = (element);                                        \
+        }                                                                   \
+      if (NULL == (element)->prev)                                        \
       (head) = (element);                                               \
-    else                                                                \
-      (element)->prev->next = (element);                                \
-  } while (0)
+      else                                                                \
+      (element) ->prev->next = (element);                                \
+    } while (0)
 
 
 /**
@@ -2272,20 +2266,20 @@ GNUNET_CONTAINER_multihashmap32_iterator_destroy (
  */
 #define GNUNET_CONTAINER_DLL_remove(head, tail, element)                \
   do                                                                    \
-  {                                                                     \
-    GNUNET_assert (((element)->prev != NULL) || ((head) == (element))); \
-    GNUNET_assert (((element)->next != NULL) || ((tail) == (element))); \
-    if ((element)->prev == NULL)                                        \
+    {                                                                     \
+      GNUNET_assert(((element)->prev != NULL) || ((head) == (element))); \
+      GNUNET_assert(((element)->next != NULL) || ((tail) == (element))); \
+      if ((element)->prev == NULL)                                        \
       (head) = (element)->next;                                         \
-    else                                                                \
-      (element)->prev->next = (element)->next;                          \
-    if ((element)->next == NULL)                                        \
+      else                                                                \
+      (element) ->prev->next = (element)->next;                          \
+      if ((element)->next == NULL)                                        \
       (tail) = (element)->prev;                                         \
-    else                                                                \
-      (element)->next->prev = (element)->prev;                          \
-    (element)->next = NULL;                                             \
-    (element)->prev = NULL;                                             \
-  } while (0)
+      else                                                                \
+      (element) ->next->prev = (element)->prev;                          \
+      (element)->next = NULL;                                             \
+      (element)->prev = NULL;                                             \
+    } while (0)
 
 
 /* ************ Multi-DLL interface, allows DLL elements to be
@@ -2303,17 +2297,17 @@ GNUNET_CONTAINER_multihashmap32_iterator_destroy (
  */
 #define GNUNET_CONTAINER_MDLL_insert(mdll, head, tail, element)                \
   do                                                                           \
-  {                                                                            \
-    GNUNET_assert (((element)->prev_##mdll == NULL) && ((head) != (element))); \
-    GNUNET_assert (((element)->next_##mdll == NULL) && ((tail) != (element))); \
-    (element)->next_##mdll = (head);                                           \
-    (element)->prev_##mdll = NULL;                                             \
-    if ((tail) == NULL)                                                        \
+    {                                                                            \
+      GNUNET_assert(((element)->prev_ ## mdll == NULL) && ((head) != (element))); \
+      GNUNET_assert(((element)->next_ ## mdll == NULL) && ((tail) != (element))); \
+      (element)->next_ ## mdll = (head);                                           \
+      (element)->prev_ ## mdll = NULL;                                             \
+      if ((tail) == NULL)                                                        \
       (tail) = element;                                                        \
-    else                                                                       \
-      (head)->prev_##mdll = element;                                           \
-    (head) = (element);                                                        \
-  } while (0)
+      else                                                                       \
+      (head) ->prev_ ## mdll = element;                                           \
+      (head) = (element);                                                        \
+    } while (0)
 
 
 /**
@@ -2328,17 +2322,17 @@ GNUNET_CONTAINER_multihashmap32_iterator_destroy (
  */
 #define GNUNET_CONTAINER_MDLL_insert_tail(mdll, head, tail, element)           \
   do                                                                           \
-  {                                                                            \
-    GNUNET_assert (((element)->prev_##mdll == NULL) && ((head) != (element))); \
-    GNUNET_assert (((element)->next_##mdll == NULL) && ((tail) != (element))); \
-    (element)->prev_##mdll = (tail);                                           \
-    (element)->next_##mdll = NULL;                                             \
-    if ((head) == NULL)                                                        \
+    {                                                                            \
+      GNUNET_assert(((element)->prev_ ## mdll == NULL) && ((head) != (element))); \
+      GNUNET_assert(((element)->next_ ## mdll == NULL) && ((tail) != (element))); \
+      (element)->prev_ ## mdll = (tail);                                           \
+      (element)->next_ ## mdll = NULL;                                             \
+      if ((head) == NULL)                                                        \
       (head) = element;                                                        \
-    else                                                                       \
-      (tail)->next_##mdll = element;                                           \
-    (tail) = (element);                                                        \
-  } while (0)
+      else                                                                       \
+      (tail) ->next_ ## mdll = element;                                           \
+      (tail) = (element);                                                        \
+    } while (0)
 
 
 /**
@@ -2354,25 +2348,25 @@ GNUNET_CONTAINER_multihashmap32_iterator_destroy (
  */
 #define GNUNET_CONTAINER_MDLL_insert_after(mdll, head, tail, other, element)   \
   do                                                                           \
-  {                                                                            \
-    GNUNET_assert (((element)->prev_##mdll == NULL) && ((head) != (element))); \
-    GNUNET_assert (((element)->next_##mdll == NULL) && ((tail) != (element))); \
-    (element)->prev_##mdll = (other);                                          \
-    if (NULL == other)                                                         \
-    {                                                                          \
-      (element)->next_##mdll = (head);                                         \
-      (head) = (element);                                                      \
-    }                                                                          \
-    else                                                                       \
-    {                                                                          \
-      (element)->next_##mdll = (other)->next_##mdll;                           \
-      (other)->next_##mdll = (element);                                        \
-    }                                                                          \
-    if (NULL == (element)->next_##mdll)                                        \
+    {                                                                            \
+      GNUNET_assert(((element)->prev_ ## mdll == NULL) && ((head) != (element))); \
+      GNUNET_assert(((element)->next_ ## mdll == NULL) && ((tail) != (element))); \
+      (element)->prev_ ## mdll = (other);                                          \
+      if (NULL == other)                                                         \
+        {                                                                          \
+          (element)->next_ ## mdll = (head);                                         \
+          (head) = (element);                                                      \
+        }                                                                          \
+      else                                                                       \
+        {                                                                          \
+          (element)->next_ ## mdll = (other)->next_ ## mdll;                           \
+          (other)->next_ ## mdll = (element);                                        \
+        }                                                                          \
+      if (NULL == (element)->next_ ## mdll)                                        \
       (tail) = (element);                                                      \
-    else                                                                       \
-      (element)->next_##mdll->prev_##mdll = (element);                         \
-  } while (0)
+      else                                                                       \
+      (element) ->next_ ## mdll->prev_ ## mdll = (element);                         \
+    } while (0)
 
 
 /**
@@ -2388,25 +2382,25 @@ GNUNET_CONTAINER_multihashmap32_iterator_destroy (
  */
 #define GNUNET_CONTAINER_MDLL_insert_before(mdll, head, tail, other, element)  \
   do                                                                           \
-  {                                                                            \
-    GNUNET_assert (((element)->prev_##mdll == NULL) && ((head) != (element))); \
-    GNUNET_assert (((element)->next_##mdll == NULL) && ((tail) != (element))); \
-    (element)->next_##mdll = (other);                                          \
-    if (NULL == other)                                                         \
-    {                                                                          \
-      (element)->prev = (tail);                                                \
-      (tail) = (element);                                                      \
-    }                                                                          \
-    else                                                                       \
-    {                                                                          \
-      (element)->prev_##mdll = (other)->prev_##mdll;                           \
-      (other)->prev_##mdll = (element);                                        \
-    }                                                                          \
-    if (NULL == (element)->prev_##mdll)                                        \
+    {                                                                            \
+      GNUNET_assert(((element)->prev_ ## mdll == NULL) && ((head) != (element))); \
+      GNUNET_assert(((element)->next_ ## mdll == NULL) && ((tail) != (element))); \
+      (element)->next_ ## mdll = (other);                                          \
+      if (NULL == other)                                                         \
+        {                                                                          \
+          (element)->prev = (tail);                                                \
+          (tail) = (element);                                                      \
+        }                                                                          \
+      else                                                                       \
+        {                                                                          \
+          (element)->prev_ ## mdll = (other)->prev_ ## mdll;                           \
+          (other)->prev_ ## mdll = (element);                                        \
+        }                                                                          \
+      if (NULL == (element)->prev_ ## mdll)                                        \
       (head) = (element);                                                      \
-    else                                                                       \
-      (element)->prev_##mdll->next_##mdll = (element);                         \
-  } while (0)
+      else                                                                       \
+      (element) ->prev_ ## mdll->next_ ## mdll = (element);                         \
+    } while (0)
 
 
 /**
@@ -2422,20 +2416,20 @@ GNUNET_CONTAINER_multihashmap32_iterator_destroy (
  */
 #define GNUNET_CONTAINER_MDLL_remove(mdll, head, tail, element)                \
   do                                                                           \
-  {                                                                            \
-    GNUNET_assert (((element)->prev_##mdll != NULL) || ((head) == (element))); \
-    GNUNET_assert (((element)->next_##mdll != NULL) || ((tail) == (element))); \
-    if ((element)->prev_##mdll == NULL)                                        \
-      (head) = (element)->next_##mdll;                                         \
-    else                                                                       \
-      (element)->prev_##mdll->next_##mdll = (element)->next_##mdll;            \
-    if ((element)->next_##mdll == NULL)                                        \
-      (tail) = (element)->prev_##mdll;                                         \
-    else                                                                       \
-      (element)->next_##mdll->prev_##mdll = (element)->prev_##mdll;            \
-    (element)->next_##mdll = NULL;                                             \
-    (element)->prev_##mdll = NULL;                                             \
-  } while (0)
+    {                                                                            \
+      GNUNET_assert(((element)->prev_ ## mdll != NULL) || ((head) == (element))); \
+      GNUNET_assert(((element)->next_ ## mdll != NULL) || ((tail) == (element))); \
+      if ((element)->prev_ ## mdll == NULL)                                        \
+      (head) = (element)->next_ ## mdll;                                         \
+      else                                                                       \
+      (element) ->prev_ ## mdll->next_ ## mdll = (element)->next_ ## mdll;            \
+      if ((element)->next_ ## mdll == NULL)                                        \
+      (tail) = (element)->prev_ ## mdll;                                         \
+      else                                                                       \
+      (element) ->next_ ## mdll->prev_ ## mdll = (element)->prev_ ## mdll;            \
+      (element)->next_ ## mdll = NULL;                                             \
+      (element)->prev_ ## mdll = NULL;                                             \
+    } while (0)
 
 
 /**
@@ -2458,29 +2452,29 @@ GNUNET_CONTAINER_multihashmap32_iterator_destroy (
                                            tail,                            \
                                            element)                         \
   do                                                                        \
-  {                                                                         \
-    if ((NULL == head) || (0 < comparator (comparator_cls, element, head))) \
-    {                                                                       \
-      /* insert at head, element < head */                                  \
-      GNUNET_CONTAINER_DLL_insert (head, tail, element);                    \
-    }                                                                       \
-    else                                                                    \
-    {                                                                       \
-      TYPE *pos;                                                            \
+    {                                                                         \
+      if ((NULL == head) || (0 < comparator(comparator_cls, element, head))) \
+        {                                                                       \
+          /* insert at head, element < head */                                  \
+          GNUNET_CONTAINER_DLL_insert(head, tail, element);                    \
+        }                                                                       \
+      else                                                                    \
+        {                                                                       \
+          TYPE *pos;                                                            \
                                                                             \
-      for (pos = head; NULL != pos; pos = pos->next)                        \
-        if (0 < comparator (comparator_cls, element, pos))                  \
+          for (pos = head; NULL != pos; pos = pos->next)                        \
+          if (0 < comparator(comparator_cls, element, pos))                  \
           break; /* element < pos */                                        \
-      if (NULL == pos) /* => element > tail */                              \
-      {                                                                     \
-        GNUNET_CONTAINER_DLL_insert_tail (head, tail, element);             \
-      }                                                                     \
-      else /* prev < element < pos */                                       \
-      {                                                                     \
-        GNUNET_CONTAINER_DLL_insert_after (head, tail, pos->prev, element); \
-      }                                                                     \
-    }                                                                       \
-  } while (0)
+          if (NULL == pos) /* => element > tail */                              \
+            {                                                                     \
+              GNUNET_CONTAINER_DLL_insert_tail(head, tail, element);             \
+            }                                                                     \
+          else /* prev < element < pos */                                       \
+            {                                                                     \
+              GNUNET_CONTAINER_DLL_insert_after(head, tail, pos->prev, element); \
+            }                                                                     \
+        }                                                                       \
+    } while (0)
 
 
 /* ******************** Heap *************** */
@@ -2497,8 +2491,7 @@ typedef uint64_t GNUNET_CONTAINER_HeapCostType;
  * @ingroup heap
  * Heap type, either max or min.
  */
-enum GNUNET_CONTAINER_HeapOrder
-{
+enum GNUNET_CONTAINER_HeapOrder {
   /**
    * @ingroup heap
    * Heap with the maximum cost at the root.
@@ -2535,7 +2528,7 @@ struct GNUNET_CONTAINER_HeapNode;
  * @return handle to the heap
  */
 struct GNUNET_CONTAINER_Heap *
-GNUNET_CONTAINER_heap_create (enum GNUNET_CONTAINER_HeapOrder order);
+GNUNET_CONTAINER_heap_create(enum GNUNET_CONTAINER_HeapOrder order);
 
 
 /**
@@ -2546,7 +2539,7 @@ GNUNET_CONTAINER_heap_create (enum GNUNET_CONTAINER_HeapOrder order);
  * @param heap heap to destroy
  */
 void
-GNUNET_CONTAINER_heap_destroy (struct GNUNET_CONTAINER_Heap *heap);
+GNUNET_CONTAINER_heap_destroy(struct GNUNET_CONTAINER_Heap *heap);
 
 
 /**
@@ -2557,7 +2550,7 @@ GNUNET_CONTAINER_heap_destroy (struct GNUNET_CONTAINER_Heap *heap);
  * @return Element at the root, or NULL if heap is empty.
  */
 void *
-GNUNET_CONTAINER_heap_peek (const struct GNUNET_CONTAINER_Heap *heap);
+GNUNET_CONTAINER_heap_peek(const struct GNUNET_CONTAINER_Heap *heap);
 
 
 /**
@@ -2570,9 +2563,9 @@ GNUNET_CONTAINER_heap_peek (const struct GNUNET_CONTAINER_Heap *heap);
  *         #GNUNET_NO  if the heap is empty.
  */
 int
-GNUNET_CONTAINER_heap_peek2 (const struct GNUNET_CONTAINER_Heap *heap,
-                             void **element,
-                             GNUNET_CONTAINER_HeapCostType *cost);
+GNUNET_CONTAINER_heap_peek2(const struct GNUNET_CONTAINER_Heap *heap,
+                            void **element,
+                            GNUNET_CONTAINER_HeapCostType *cost);
 
 
 /**
@@ -2583,7 +2576,7 @@ GNUNET_CONTAINER_heap_peek2 (const struct GNUNET_CONTAINER_Heap *heap,
  * @return number of elements stored
  */
 unsigned int
-GNUNET_CONTAINER_heap_get_size (const struct GNUNET_CONTAINER_Heap *heap);
+GNUNET_CONTAINER_heap_get_size(const struct GNUNET_CONTAINER_Heap *heap);
 
 
 /**
@@ -2594,7 +2587,7 @@ GNUNET_CONTAINER_heap_get_size (const struct GNUNET_CONTAINER_Heap *heap);
  * @return cost of the node
  */
 GNUNET_CONTAINER_HeapCostType
-GNUNET_CONTAINER_heap_node_get_cost (
+GNUNET_CONTAINER_heap_node_get_cost(
   const struct GNUNET_CONTAINER_HeapNode *node);
 
 
@@ -2625,9 +2618,9 @@ typedef int (*GNUNET_CONTAINER_HeapIterator) (
  * @param iterator_cls closure for @a iterator
  */
 void
-GNUNET_CONTAINER_heap_iterate (const struct GNUNET_CONTAINER_Heap *heap,
-                               GNUNET_CONTAINER_HeapIterator iterator,
-                               void *iterator_cls);
+GNUNET_CONTAINER_heap_iterate(const struct GNUNET_CONTAINER_Heap *heap,
+                              GNUNET_CONTAINER_HeapIterator iterator,
+                              void *iterator_cls);
 
 /**
  * @ingroup heap
@@ -2642,7 +2635,7 @@ GNUNET_CONTAINER_heap_iterate (const struct GNUNET_CONTAINER_Heap *heap,
  *         NULL if the tree is empty.
  */
 void *
-GNUNET_CONTAINER_heap_walk_get_next (struct GNUNET_CONTAINER_Heap *heap);
+GNUNET_CONTAINER_heap_walk_get_next(struct GNUNET_CONTAINER_Heap *heap);
 
 
 /**
@@ -2655,9 +2648,9 @@ GNUNET_CONTAINER_heap_walk_get_next (struct GNUNET_CONTAINER_Heap *heap);
  * @return node for the new element
  */
 struct GNUNET_CONTAINER_HeapNode *
-GNUNET_CONTAINER_heap_insert (struct GNUNET_CONTAINER_Heap *heap,
-                              void *element,
-                              GNUNET_CONTAINER_HeapCostType cost);
+GNUNET_CONTAINER_heap_insert(struct GNUNET_CONTAINER_Heap *heap,
+                             void *element,
+                             GNUNET_CONTAINER_HeapCostType cost);
 
 
 /**
@@ -2668,7 +2661,7 @@ GNUNET_CONTAINER_heap_insert (struct GNUNET_CONTAINER_Heap *heap,
  * @return element data stored at the root node
  */
 void *
-GNUNET_CONTAINER_heap_remove_root (struct GNUNET_CONTAINER_Heap *heap);
+GNUNET_CONTAINER_heap_remove_root(struct GNUNET_CONTAINER_Heap *heap);
 
 
 /**
@@ -2679,7 +2672,7 @@ GNUNET_CONTAINER_heap_remove_root (struct GNUNET_CONTAINER_Heap *heap);
  * @return element data stored at the node, NULL if heap is empty
  */
 void *
-GNUNET_CONTAINER_heap_remove_node (struct GNUNET_CONTAINER_HeapNode *node);
+GNUNET_CONTAINER_heap_remove_node(struct GNUNET_CONTAINER_HeapNode *node);
 
 
 /**
@@ -2690,8 +2683,8 @@ GNUNET_CONTAINER_heap_remove_node (struct GNUNET_CONTAINER_HeapNode *node);
  * @param new_cost new cost for the node
  */
 void
-GNUNET_CONTAINER_heap_update_cost (struct GNUNET_CONTAINER_HeapNode *node,
-                                   GNUNET_CONTAINER_HeapCostType new_cost);
+GNUNET_CONTAINER_heap_update_cost(struct GNUNET_CONTAINER_HeapNode *node,
+                                  GNUNET_CONTAINER_HeapCostType new_cost);
 
 
 #if 0 /* keep Emacsens' auto-indent happy */

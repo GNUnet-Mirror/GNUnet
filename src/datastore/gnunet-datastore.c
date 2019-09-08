@@ -11,12 +11,12 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 
 /**
  * @file datastore/gnunet-datastore.c
@@ -30,8 +30,7 @@
 
 GNUNET_NETWORK_STRUCT_BEGIN
 
-struct DataRecord
-{
+struct DataRecord {
   /**
    * Number of bytes in the item (NBO).
    */
@@ -122,14 +121,14 @@ static uint64_t record_count;
 
 
 static void
-do_shutdown (void *cls)
+do_shutdown(void *cls)
 {
   if (NULL != qe)
-    GNUNET_DATASTORE_cancel (qe);
+    GNUNET_DATASTORE_cancel(qe);
   if (NULL != datastore)
-    GNUNET_DATASTORE_disconnect (datastore, GNUNET_NO);
+    GNUNET_DATASTORE_disconnect(datastore, GNUNET_NO);
   if (NULL != file_handle)
-    GNUNET_DISK_file_close (file_handle);
+    GNUNET_DISK_file_close(file_handle);
 }
 
 
@@ -137,21 +136,21 @@ do_shutdown (void *cls)
  * Begin dumping the database.
  */
 static void
-start_dump (void);
+start_dump(void);
 
 
 /**
  * Begin inserting into the database.
  */
 static void
-start_insert (void);
+start_insert(void);
 
 
 /**
  * Perform next GET operation.
  */
 static void
-do_get (const uint64_t next_uid);
+do_get(const uint64_t next_uid);
 
 
 /**
@@ -170,69 +169,69 @@ do_get (const uint64_t next_uid);
  *        maybe 0 if no unique identifier is available
  */
 static void
-get_cb (void *cls,
-        const struct GNUNET_HashCode *key,
-        size_t size,
-        const void *data,
-        enum GNUNET_BLOCK_Type type,
-        uint32_t priority,
-        uint32_t anonymity,
-        uint32_t replication,
-        struct GNUNET_TIME_Absolute expiration,
-        uint64_t uid)
+get_cb(void *cls,
+       const struct GNUNET_HashCode *key,
+       size_t size,
+       const void *data,
+       enum GNUNET_BLOCK_Type type,
+       uint32_t priority,
+       uint32_t anonymity,
+       uint32_t replication,
+       struct GNUNET_TIME_Absolute expiration,
+       uint64_t uid)
 {
   qe = NULL;
   if (NULL == key)
-  {
-    fprintf (stderr, _ ("Dumped %" PRIu64 " records\n"), record_count);
-    GNUNET_DISK_file_close (file_handle);
-    file_handle = NULL;
-    if (insert)
-      start_insert ();
-    else
     {
-      ret = 0;
-      GNUNET_SCHEDULER_shutdown ();
+      fprintf(stderr, _("Dumped %" PRIu64 " records\n"), record_count);
+      GNUNET_DISK_file_close(file_handle);
+      file_handle = NULL;
+      if (insert)
+        start_insert();
+      else
+        {
+          ret = 0;
+          GNUNET_SCHEDULER_shutdown();
+        }
+      return;
     }
-    return;
-  }
 
   struct DataRecord dr;
-  dr.size = htonl ((uint32_t) size);
-  dr.type = htonl (type);
-  dr.priority = htonl (priority);
-  dr.anonymity = htonl (anonymity);
-  dr.replication = htonl (replication);
-  dr.expiration = GNUNET_TIME_absolute_hton (expiration);
+  dr.size = htonl((uint32_t)size);
+  dr.type = htonl(type);
+  dr.priority = htonl(priority);
+  dr.anonymity = htonl(anonymity);
+  dr.replication = htonl(replication);
+  dr.expiration = GNUNET_TIME_absolute_hton(expiration);
   dr.key = *key;
 
   ssize_t len;
-  len = GNUNET_DISK_file_write (file_handle, &dr, sizeof (dr));
-  if (sizeof (dr) != len)
-  {
-    fprintf (stderr,
-             _ ("Short write to file: %zd bytes expecting %zd\n"),
-             len,
-             sizeof (dr));
-    ret = 1;
-    GNUNET_SCHEDULER_shutdown ();
-    return;
-  }
+  len = GNUNET_DISK_file_write(file_handle, &dr, sizeof(dr));
+  if (sizeof(dr) != len)
+    {
+      fprintf(stderr,
+              _("Short write to file: %zd bytes expecting %zd\n"),
+              len,
+              sizeof(dr));
+      ret = 1;
+      GNUNET_SCHEDULER_shutdown();
+      return;
+    }
 
-  len = GNUNET_DISK_file_write (file_handle, data, size);
+  len = GNUNET_DISK_file_write(file_handle, data, size);
   if (size != len)
-  {
-    fprintf (stderr,
-             _ ("Short write to file: %zd bytes expecting %zd\n"),
-             len,
-             size);
-    ret = 1;
-    GNUNET_SCHEDULER_shutdown ();
-    return;
-  }
+    {
+      fprintf(stderr,
+              _("Short write to file: %zd bytes expecting %zd\n"),
+              len,
+              size);
+      ret = 1;
+      GNUNET_SCHEDULER_shutdown();
+      return;
+    }
 
   record_count++;
-  do_get (uid + 1);
+  do_get(uid + 1);
 }
 
 
@@ -240,24 +239,24 @@ get_cb (void *cls,
  * Perform next GET operation.
  */
 static void
-do_get (const uint64_t next_uid)
+do_get(const uint64_t next_uid)
 {
-  GNUNET_assert (NULL == qe);
-  qe = GNUNET_DATASTORE_get_key (datastore,
-                                 next_uid,
-                                 false /* random */,
-                                 NULL /* key */,
-                                 GNUNET_BLOCK_TYPE_ANY,
-                                 0 /* queue_priority */,
-                                 1 /* max_queue_size */,
-                                 &get_cb,
-                                 NULL /* proc_cls */);
+  GNUNET_assert(NULL == qe);
+  qe = GNUNET_DATASTORE_get_key(datastore,
+                                next_uid,
+                                false /* random */,
+                                NULL /* key */,
+                                GNUNET_BLOCK_TYPE_ANY,
+                                0 /* queue_priority */,
+                                1 /* max_queue_size */,
+                                &get_cb,
+                                NULL /* proc_cls */);
   if (NULL == qe)
-  {
-    fprintf (stderr, _ ("Error queueing datastore GET operation\n"));
-    ret = 1;
-    GNUNET_SCHEDULER_shutdown ();
-  }
+    {
+      fprintf(stderr, _("Error queueing datastore GET operation\n"));
+      ret = 1;
+      GNUNET_SCHEDULER_shutdown();
+    }
 }
 
 
@@ -265,32 +264,32 @@ do_get (const uint64_t next_uid)
  * Begin dumping the database.
  */
 static void
-start_dump ()
+start_dump()
 {
   record_count = 0;
 
   if (NULL != file_name)
-  {
-    file_handle = GNUNET_DISK_file_open (file_name,
-                                         GNUNET_DISK_OPEN_WRITE |
-                                           GNUNET_DISK_OPEN_TRUNCATE |
-                                           GNUNET_DISK_OPEN_CREATE,
-                                         GNUNET_DISK_PERM_USER_READ |
-                                           GNUNET_DISK_PERM_USER_WRITE);
-    if (NULL == file_handle)
     {
-      fprintf (stderr, _ ("Unable to open dump file: %s\n"), file_name);
-      ret = 1;
-      GNUNET_SCHEDULER_shutdown ();
-      return;
+      file_handle = GNUNET_DISK_file_open(file_name,
+                                          GNUNET_DISK_OPEN_WRITE |
+                                          GNUNET_DISK_OPEN_TRUNCATE |
+                                          GNUNET_DISK_OPEN_CREATE,
+                                          GNUNET_DISK_PERM_USER_READ |
+                                          GNUNET_DISK_PERM_USER_WRITE);
+      if (NULL == file_handle)
+        {
+          fprintf(stderr, _("Unable to open dump file: %s\n"), file_name);
+          ret = 1;
+          GNUNET_SCHEDULER_shutdown();
+          return;
+        }
     }
-  }
   else
-  {
-    file_handle = GNUNET_DISK_get_handle_from_int_fd (STDOUT_FILENO);
-  }
-  GNUNET_DISK_file_write (file_handle, MAGIC_BYTES, MAGIC_LEN);
-  do_get (0);
+    {
+      file_handle = GNUNET_DISK_get_handle_from_int_fd(STDOUT_FILENO);
+    }
+  GNUNET_DISK_file_write(file_handle, MAGIC_BYTES, MAGIC_LEN);
+  do_get(0);
 }
 
 
@@ -308,77 +307,77 @@ start_dump ()
  * @param msg NULL on success, otherwise an error message
  */
 static void
-put_cb (void *cls,
-        int32_t success,
-        struct GNUNET_TIME_Absolute min_expiration,
-        const char *msg)
+put_cb(void *cls,
+       int32_t success,
+       struct GNUNET_TIME_Absolute min_expiration,
+       const char *msg)
 {
   qe = NULL;
   if (GNUNET_SYSERR == success)
-  {
-    fprintf (stderr, _ ("Failed to store item: %s, aborting\n"), msg);
-    ret = 1;
-    GNUNET_SCHEDULER_shutdown ();
-    return;
-  }
+    {
+      fprintf(stderr, _("Failed to store item: %s, aborting\n"), msg);
+      ret = 1;
+      GNUNET_SCHEDULER_shutdown();
+      return;
+    }
 
   struct DataRecord dr;
   ssize_t len;
 
-  len = GNUNET_DISK_file_read (file_handle, &dr, sizeof (dr));
+  len = GNUNET_DISK_file_read(file_handle, &dr, sizeof(dr));
   if (0 == len)
-  {
-    fprintf (stderr, _ ("Inserted %" PRIu64 " records\n"), record_count);
-    ret = 0;
-    GNUNET_SCHEDULER_shutdown ();
-    return;
-  }
-  else if (sizeof (dr) != len)
-  {
-    fprintf (stderr,
-             _ ("Short read from file: %zd bytes expecting %zd\n"),
-             len,
-             sizeof (dr));
-    ret = 1;
-    GNUNET_SCHEDULER_shutdown ();
-    return;
-  }
+    {
+      fprintf(stderr, _("Inserted %" PRIu64 " records\n"), record_count);
+      ret = 0;
+      GNUNET_SCHEDULER_shutdown();
+      return;
+    }
+  else if (sizeof(dr) != len)
+    {
+      fprintf(stderr,
+              _("Short read from file: %zd bytes expecting %zd\n"),
+              len,
+              sizeof(dr));
+      ret = 1;
+      GNUNET_SCHEDULER_shutdown();
+      return;
+    }
 
-  const size_t size = ntohl (dr.size);
+  const size_t size = ntohl(dr.size);
   uint8_t data[size];
-  len = GNUNET_DISK_file_read (file_handle, data, size);
+  len = GNUNET_DISK_file_read(file_handle, data, size);
   if (size != len)
-  {
-    fprintf (stderr,
-             _ ("Short read from file: %zd bytes expecting %zd\n"),
-             len,
-             size);
-    ret = 1;
-    GNUNET_SCHEDULER_shutdown ();
-    return;
-  }
+    {
+      fprintf(stderr,
+              _("Short read from file: %zd bytes expecting %zd\n"),
+              len,
+              size);
+      ret = 1;
+      GNUNET_SCHEDULER_shutdown();
+      return;
+    }
 
   record_count++;
-  qe = GNUNET_DATASTORE_put (datastore,
-                             0,
-                             &dr.key,
-                             size,
-                             data,
-                             ntohl (dr.type),
-                             ntohl (dr.priority),
-                             ntohl (dr.anonymity),
-                             ntohl (dr.replication),
-                             GNUNET_TIME_absolute_ntoh (dr.expiration),
-                             0,
-                             1,
-                             &put_cb,
-                             NULL);
+  qe = GNUNET_DATASTORE_put(datastore,
+                            0,
+                            &dr.key,
+                            size,
+                            data,
+                            ntohl(dr.type),
+                            ntohl(dr.priority),
+                            ntohl(dr.anonymity),
+                            ntohl(dr.replication),
+                            GNUNET_TIME_absolute_ntoh(dr.expiration),
+                            0,
+                            1,
+                            &put_cb,
+                            NULL);
   if (NULL == qe)
-  {
-    fprintf (stderr, _ ("Error queueing datastore PUT operation\n"));
-    ret = 1;
-    GNUNET_SCHEDULER_shutdown ();
-  }
+    {
+      fprintf(stderr, _("Error queueing datastore PUT operation\n"));
+      ret = 1;
+      GNUNET_SCHEDULER_shutdown();
+    }
 }
 
 
@@ -386,38 +385,38 @@ put_cb (void *cls,
  * Begin inserting into the database.
  */
 static void
-start_insert ()
+start_insert()
 {
   record_count = 0;
 
   if (NULL != file_name)
-  {
-    file_handle = GNUNET_DISK_file_open (file_name,
-                                         GNUNET_DISK_OPEN_READ,
-                                         GNUNET_DISK_PERM_NONE);
-    if (NULL == file_handle)
     {
-      fprintf (stderr, _ ("Unable to open dump file: %s\n"), file_name);
-      ret = 1;
-      GNUNET_SCHEDULER_shutdown ();
-      return;
+      file_handle = GNUNET_DISK_file_open(file_name,
+                                          GNUNET_DISK_OPEN_READ,
+                                          GNUNET_DISK_PERM_NONE);
+      if (NULL == file_handle)
+        {
+          fprintf(stderr, _("Unable to open dump file: %s\n"), file_name);
+          ret = 1;
+          GNUNET_SCHEDULER_shutdown();
+          return;
+        }
     }
-  }
   else
-  {
-    file_handle = GNUNET_DISK_get_handle_from_int_fd (STDIN_FILENO);
-  }
+    {
+      file_handle = GNUNET_DISK_get_handle_from_int_fd(STDIN_FILENO);
+    }
 
   uint8_t buf[MAGIC_LEN];
   ssize_t len;
 
-  len = GNUNET_DISK_file_read (file_handle, buf, MAGIC_LEN);
-  if (len != MAGIC_LEN || 0 != memcmp (buf, MAGIC_BYTES, MAGIC_LEN))
-  {
-    fprintf (stderr, _ ("Input file is not of a supported format\n"));
-    return;
-  }
-  put_cb (NULL, GNUNET_YES, GNUNET_TIME_UNIT_ZERO_ABS, NULL);
+  len = GNUNET_DISK_file_read(file_handle, buf, MAGIC_LEN);
+  if (len != MAGIC_LEN || 0 != memcmp(buf, MAGIC_BYTES, MAGIC_LEN))
+    {
+      fprintf(stderr, _("Input file is not of a supported format\n"));
+      return;
+    }
+  put_cb(NULL, GNUNET_YES, GNUNET_TIME_UNIT_ZERO_ABS, NULL);
 }
 
 
@@ -430,33 +429,33 @@ start_insert ()
  * @param cfg configuration
  */
 static void
-run (void *cls,
-     char *const *args,
-     const char *cfgfile,
-     const struct GNUNET_CONFIGURATION_Handle *cfg)
+run(void *cls,
+    char *const *args,
+    const char *cfgfile,
+    const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
-  GNUNET_SCHEDULER_add_shutdown (&do_shutdown, NULL);
-  datastore = GNUNET_DATASTORE_connect (cfg);
+  GNUNET_SCHEDULER_add_shutdown(&do_shutdown, NULL);
+  datastore = GNUNET_DATASTORE_connect(cfg);
   if (NULL == datastore)
-  {
-    fprintf (stderr, _ ("Failed connecting to the datastore.\n"));
-    ret = 1;
-    GNUNET_SCHEDULER_shutdown ();
-    return;
-  }
+    {
+      fprintf(stderr, _("Failed connecting to the datastore.\n"));
+      ret = 1;
+      GNUNET_SCHEDULER_shutdown();
+      return;
+    }
   if (dump)
-    start_dump ();
+    start_dump();
   else if (insert)
-    start_insert ();
+    start_insert();
   else
-  {
-    fprintf (stderr,
-             _ ("Please choose at least one operation: %s, %s\n"),
-             "dump",
-             "insert");
-    ret = 1;
-    GNUNET_SCHEDULER_shutdown ();
-  }
+    {
+      fprintf(stderr,
+              _("Please choose at least one operation: %s, %s\n"),
+              "dump",
+              "insert");
+      ret = 1;
+      GNUNET_SCHEDULER_shutdown();
+    }
 }
 
 
@@ -468,38 +467,39 @@ run (void *cls,
  * @return 0 ok, 1 on error
  */
 int
-main (int argc, char *const *argv)
+main(int argc, char *const *argv)
 {
   struct GNUNET_GETOPT_CommandLineOption options[] =
-    {GNUNET_GETOPT_option_flag ('d',
-                                "dump",
-                                gettext_noop (
-                                  "Dump all records from the datastore"),
-                                &dump),
-     GNUNET_GETOPT_option_flag ('i',
-                                "insert",
-                                gettext_noop (
-                                  "Insert records into the datastore"),
-                                &insert),
-     GNUNET_GETOPT_option_filename ('f',
-                                    "file",
-                                    "FILENAME",
-                                    gettext_noop ("File to dump or insert"),
-                                    &file_name),
-     GNUNET_GETOPT_OPTION_END};
-  if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv, &argc, &argv))
+  { GNUNET_GETOPT_option_flag('d',
+                              "dump",
+                              gettext_noop(
+                                "Dump all records from the datastore"),
+                              &dump),
+    GNUNET_GETOPT_option_flag('i',
+                              "insert",
+                              gettext_noop(
+                                "Insert records into the datastore"),
+                              &insert),
+    GNUNET_GETOPT_option_filename('f',
+                                  "file",
+                                  "FILENAME",
+                                  gettext_noop("File to dump or insert"),
+                                  &file_name),
+    GNUNET_GETOPT_OPTION_END };
+
+  if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args(argc, argv, &argc, &argv))
     return 2;
 
   if (GNUNET_OK !=
-      GNUNET_PROGRAM_run (argc,
-                          argv,
-                          "gnunet-datastore",
-                          gettext_noop ("Manipulate GNUnet datastore"),
-                          options,
-                          &run,
-                          NULL))
+      GNUNET_PROGRAM_run(argc,
+                         argv,
+                         "gnunet-datastore",
+                         gettext_noop("Manipulate GNUnet datastore"),
+                         options,
+                         &run,
+                         NULL))
     ret = 1;
-  GNUNET_free ((void *) argv);
+  GNUNET_free((void *)argv);
   return ret;
 }
 

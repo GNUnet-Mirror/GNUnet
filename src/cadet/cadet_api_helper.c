@@ -11,12 +11,12 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 /**
  * @file cadet/cadet_api_helper.c
  * @brief cadet api: client implementation of cadet service
@@ -41,15 +41,15 @@
  * @return A GNUNET_HashCode usable for the new CADET API.
  */
 const struct GNUNET_HashCode *
-GC_u2h (uint32_t port)
+GC_u2h(uint32_t port)
 {
   static struct GNUNET_HashCode hash;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-              "This is a transitional function, use proper crypto hashes as CADET ports\n");
-  GNUNET_CRYPTO_hash (&port,
-                      sizeof (port),
-                      &hash);
+  GNUNET_log(GNUNET_ERROR_TYPE_WARNING,
+             "This is a transitional function, use proper crypto hashes as CADET ports\n");
+  GNUNET_CRYPTO_hash(&port,
+                     sizeof(port),
+                     &hash);
   return &hash;
 }
 

@@ -11,12 +11,12 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 
 /**
  * @file util/disk.h
@@ -39,7 +39,7 @@
  * @return #GNUNET_OK on success, #GNUNET_SYSERR otherwise
  */
 int
-GNUNET_DISK_internal_file_handle_ (const struct GNUNET_DISK_FileHandle *fh,
-                                   void *dst, size_t dst_len);
+GNUNET_DISK_internal_file_handle_(const struct GNUNET_DISK_FileHandle *fh,
+                                  void *dst, size_t dst_len);
 
 #endif /* GNUNET_DISK_H_ */

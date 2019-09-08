@@ -11,12 +11,12 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 
 /**
  * @file src/dns/gnunet-dns-monitor.c
@@ -62,22 +62,31 @@ static unsigned int verbosity;
  * @return type as string, only valid until the next call to this function
  */
 static const char *
-get_type (uint16_t type)
+get_type(uint16_t type)
 {
   static char buf[6];
+
   switch (type)
-  {
-  case GNUNET_DNSPARSER_TYPE_A: return "A";
-  case GNUNET_DNSPARSER_TYPE_NS: return "NS";
-  case GNUNET_DNSPARSER_TYPE_CNAME: return "CNAME";
-  case GNUNET_DNSPARSER_TYPE_SOA: return "SOA";
-  case GNUNET_DNSPARSER_TYPE_PTR: return "PTR";
-  case GNUNET_DNSPARSER_TYPE_MX: return "MX";
-  case GNUNET_DNSPARSER_TYPE_TXT: return "TXT";
-  case GNUNET_DNSPARSER_TYPE_AAAA: return "AAAA";
-  case GNUNET_DNSPARSER_TYPE_SRV: return "SRV";
-  }
-  GNUNET_snprintf (buf, sizeof (buf), "%u", (unsigned int) type);
+    {
+    case GNUNET_DNSPARSER_TYPE_A: return "A";
+
+    case GNUNET_DNSPARSER_TYPE_NS: return "NS";
+
+    case GNUNET_DNSPARSER_TYPE_CNAME: return "CNAME";
+
+    case GNUNET_DNSPARSER_TYPE_SOA: return "SOA";
+
+    case GNUNET_DNSPARSER_TYPE_PTR: return "PTR";
+
+    case GNUNET_DNSPARSER_TYPE_MX: return "MX";
+
+    case GNUNET_DNSPARSER_TYPE_TXT: return "TXT";
+
+    case GNUNET_DNSPARSER_TYPE_AAAA: return "AAAA";
+
+    case GNUNET_DNSPARSER_TYPE_SRV: return "SRV";
+    }
+  GNUNET_snprintf(buf, sizeof(buf), "%u", (unsigned int)type);
   return buf;
 }
 
@@ -89,16 +98,19 @@ get_type (uint16_t type)
  * @return class as string, only valid until the next call to this function
  */
 static const char *
-get_class (uint16_t class)
+get_class(uint16_t class)
 {
   static char buf[6];
+
   switch (class)
-  {
-  case GNUNET_TUN_DNS_CLASS_INTERNET: return "IN";
-  case GNUNET_TUN_DNS_CLASS_CHAOS: return "CHAOS";
-  case GNUNET_TUN_DNS_CLASS_HESIOD: return "HESIOD";
-  }
-  GNUNET_snprintf (buf, sizeof (buf), "%u", (unsigned int) class);
+    {
+    case GNUNET_TUN_DNS_CLASS_INTERNET: return "IN";
+
+    case GNUNET_TUN_DNS_CLASS_CHAOS: return "CHAOS";
+
+    case GNUNET_TUN_DNS_CLASS_HESIOD: return "HESIOD";
+    }
+  GNUNET_snprintf(buf, sizeof(buf), "%u", (unsigned int)class);
   return buf;
 }
 
@@ -109,13 +121,13 @@ get_class (uint16_t class)
  * @param query query to display.
  */
 static void
-display_query (const struct GNUNET_DNSPARSER_Query *query)
+display_query(const struct GNUNET_DNSPARSER_Query *query)
 {
-  fprintf (stdout,
-	   "\t\t%s %s: %s\n",
-	   get_class (query->dns_traffic_class),
-	   get_type (query->type),
-	   query->name);
+  fprintf(stdout,
+          "\t\t%s %s: %s\n",
+          get_class(query->dns_traffic_class),
+          get_type(query->type),
+          query->name);
 }
 
 
@@ -125,7 +137,7 @@ display_query (const struct GNUNET_DNSPARSER_Query *query)
  * @param record record to display.
  */
 static void
-display_record (const struct GNUNET_DNSPARSER_Record *record)
+display_record(const struct GNUNET_DNSPARSER_Record *record)
 {
   const char *format;
   char buf[INET6_ADDRSTRLEN];
@@ -133,86 +145,93 @@ display_record (const struct GNUNET_DNSPARSER_Record *record)
 
   tmp = NULL;
   switch (record->type)
-  {
-  case GNUNET_DNSPARSER_TYPE_A:
-    if (record->data.raw.data_len != sizeof (struct in_addr))
-      format = "<invalid>";
-    else
-      format = inet_ntop (AF_INET, record->data.raw.data, buf, sizeof (buf));
-    break;
-  case GNUNET_DNSPARSER_TYPE_AAAA:
-    if (record->data.raw.data_len != sizeof (struct in6_addr))
-      format = "<invalid>";
-    else
-      format = inet_ntop (AF_INET6, record->data.raw.data, buf, sizeof (buf));
-    break;
-  case GNUNET_DNSPARSER_TYPE_NS:
-  case GNUNET_DNSPARSER_TYPE_CNAME:
-  case GNUNET_DNSPARSER_TYPE_PTR:
-    format = record->data.hostname;
-    break;
-  case GNUNET_DNSPARSER_TYPE_SOA:
-    if (NULL == record->data.soa)
-      format = "<invalid>";
-    else
     {
-      GNUNET_asprintf (&tmp,
-		       "origin: %s, mail: %s, serial = %u, refresh = %u s, retry = %u s, expire = %u s, minimum = %u s",
-		       record->data.soa->mname,
-		       record->data.soa->rname,
-		       (unsigned int) record->data.soa->serial,
-		       (unsigned int) record->data.soa->refresh,
-		       (unsigned int) record->data.soa->retry,
-		       (unsigned int) record->data.soa->expire,
-		       (unsigned int) record->data.soa->minimum_ttl);
+    case GNUNET_DNSPARSER_TYPE_A:
+      if (record->data.raw.data_len != sizeof(struct in_addr))
+        format = "<invalid>";
+      else
+        format = inet_ntop(AF_INET, record->data.raw.data, buf, sizeof(buf));
+      break;
+
+    case GNUNET_DNSPARSER_TYPE_AAAA:
+      if (record->data.raw.data_len != sizeof(struct in6_addr))
+        format = "<invalid>";
+      else
+        format = inet_ntop(AF_INET6, record->data.raw.data, buf, sizeof(buf));
+      break;
+
+    case GNUNET_DNSPARSER_TYPE_NS:
+    case GNUNET_DNSPARSER_TYPE_CNAME:
+    case GNUNET_DNSPARSER_TYPE_PTR:
+      format = record->data.hostname;
+      break;
+
+    case GNUNET_DNSPARSER_TYPE_SOA:
+      if (NULL == record->data.soa)
+        format = "<invalid>";
+      else
+        {
+          GNUNET_asprintf(&tmp,
+                          "origin: %s, mail: %s, serial = %u, refresh = %u s, retry = %u s, expire = %u s, minimum = %u s",
+                          record->data.soa->mname,
+                          record->data.soa->rname,
+                          (unsigned int)record->data.soa->serial,
+                          (unsigned int)record->data.soa->refresh,
+                          (unsigned int)record->data.soa->retry,
+                          (unsigned int)record->data.soa->expire,
+                          (unsigned int)record->data.soa->minimum_ttl);
+          format = tmp;
+        }
+      break;
+
+    case GNUNET_DNSPARSER_TYPE_MX:
+      if (record->data.mx == NULL)
+        format = "<invalid>";
+      else
+        {
+          GNUNET_asprintf(&tmp,
+                          "%u: %s",
+                          record->data.mx->preference,
+                          record->data.mx->mxhost);
+          format = tmp;
+        }
+      break;
+
+    case GNUNET_DNSPARSER_TYPE_SRV:
+      if (NULL == record->data.srv)
+        format = "<invalid>";
+      else
+        {
+          GNUNET_asprintf(&tmp,
+                          "priority %u, weight = %s, port = %u, target = %s",
+                          (unsigned int)record->data.srv->priority,
+                          (unsigned int)record->data.srv->weight,
+                          (unsigned int)record->data.srv->port,
+                          record->data.srv->target);
+          format = tmp;
+        }
+      break;
+
+    case GNUNET_DNSPARSER_TYPE_TXT:
+      GNUNET_asprintf(&tmp,
+                      "%.*s",
+                      (unsigned int)record->data.raw.data_len,
+                      record->data.raw.data);
       format = tmp;
+      break;
+
+    default:
+      format = "<payload>";
+      break;
     }
-    break;
-  case GNUNET_DNSPARSER_TYPE_MX:
-    if (record->data.mx == NULL)
-      format = "<invalid>";
-    else
-    {
-      GNUNET_asprintf (&tmp,
-		       "%u: %s",
-		       record->data.mx->preference,
-		       record->data.mx->mxhost);
-      format = tmp;
-    }
-    break;
-  case GNUNET_DNSPARSER_TYPE_SRV:
-    if (NULL == record->data.srv)
-      format = "<invalid>";
-    else
-    {
-      GNUNET_asprintf (&tmp,
-		       "priority %u, weight = %s, port = %u, target = %s",
-		       (unsigned int) record->data.srv->priority,
-		       (unsigned int) record->data.srv->weight,
-		       (unsigned int) record->data.srv->port,
-		       record->data.srv->target);
-      format = tmp;
-    }
-    break;
-  case GNUNET_DNSPARSER_TYPE_TXT:
-    GNUNET_asprintf (&tmp,
-		     "%.*s",
-		     (unsigned int) record->data.raw.data_len,
-		     record->data.raw.data);
-    format = tmp;
-    break;
-  default:
-    format = "<payload>";
-    break;
-  }
-  fprintf (stdout,
-	   "\t\t%s %s: %s = %s (%u s)\n",
-	   get_class (record->dns_traffic_class),
-	   get_type (record->type),
-	   record->name,
-	   format,
-	   (unsigned int) (GNUNET_TIME_absolute_get_remaining (record->expiration_time).rel_value_us / 1000LL / 1000LL));
-  GNUNET_free_non_null (tmp);
+  fprintf(stdout,
+          "\t\t%s %s: %s = %s (%u s)\n",
+          get_class(record->dns_traffic_class),
+          get_type(record->type),
+          record->name,
+          format,
+          (unsigned int)(GNUNET_TIME_absolute_get_remaining(record->expiration_time).rel_value_us / 1000LL / 1000LL));
+  GNUNET_free_non_null(tmp);
 }
 
 
@@ -240,62 +259,62 @@ display_record (const struct GNUNET_DNSPARSER_Record *record)
  * @param request udp payload of the DNS request
  */
 static void
-display_request (void *cls,
-		 struct GNUNET_DNS_RequestHandle *rh,
-		 size_t request_length,
-		 const char *request)
+display_request(void *cls,
+                struct GNUNET_DNS_RequestHandle *rh,
+                size_t request_length,
+                const char *request)
 {
   static const char *return_codes[] =
-    {
-      "No error", "Format error", "Server failure", "Name error",
-      "Not implemented", "Refused", "YXDomain", "YXRRset",
-      "NXRRset", "NOT AUTH", "NOT ZONE", "<invalid>",
-      "<invalid>", "<invalid>", "<invalid>", "<invalid>"
-    };
+  {
+    "No error", "Format error", "Server failure", "Name error",
+    "Not implemented", "Refused", "YXDomain", "YXRRset",
+    "NXRRset", "NOT AUTH", "NOT ZONE", "<invalid>",
+    "<invalid>", "<invalid>", "<invalid>", "<invalid>"
+  };
   static const char *op_codes[] =
-    {
-      "Query", "Inverse query", "Status", "<invalid>",
-      "<invalid>", "<invalid>", "<invalid>", "<invalid>",
-      "<invalid>", "<invalid>", "<invalid>", "<invalid>",
-      "<invalid>", "<invalid>", "<invalid>", "<invalid>"
-    };
+  {
+    "Query", "Inverse query", "Status", "<invalid>",
+    "<invalid>", "<invalid>", "<invalid>", "<invalid>",
+    "<invalid>", "<invalid>", "<invalid>", "<invalid>",
+    "<invalid>", "<invalid>", "<invalid>", "<invalid>"
+  };
   struct GNUNET_DNSPARSER_Packet *p;
   unsigned int i;
 
-  p = GNUNET_DNSPARSER_parse (request, request_length);
+  p = GNUNET_DNSPARSER_parse(request, request_length);
   if (NULL == p)
-  {
-    fprintf (stderr, "Received malformed DNS packet!\n");
-    // FIXME: drop instead?
-    GNUNET_DNS_request_forward (rh);
-    return;
-  }
-  fprintf (stdout,
-	   "%s with ID: %5u Flags: %s%s%s%s%s%s, Return Code: %s, Opcode: %s\n",
-	   p->flags.query_or_response ? "Response" : "Query",
-	   p->id,
-	   p->flags.recursion_desired ? "RD " : "",
-	   p->flags.message_truncated ? "MT " : "",
-	   p->flags.authoritative_answer ? "AA " : "",
-	   p->flags.checking_disabled ? "CD " : "",
-	   p->flags.authenticated_data ? "AD " : "",
-	   p->flags.recursion_available ? "RA " : "",
-	   return_codes[p->flags.return_code & 15],
-	   op_codes[p->flags.opcode & 15]);
+    {
+      fprintf(stderr, "Received malformed DNS packet!\n");
+      // FIXME: drop instead?
+      GNUNET_DNS_request_forward(rh);
+      return;
+    }
+  fprintf(stdout,
+          "%s with ID: %5u Flags: %s%s%s%s%s%s, Return Code: %s, Opcode: %s\n",
+          p->flags.query_or_response ? "Response" : "Query",
+          p->id,
+          p->flags.recursion_desired ? "RD " : "",
+          p->flags.message_truncated ? "MT " : "",
+          p->flags.authoritative_answer ? "AA " : "",
+          p->flags.checking_disabled ? "CD " : "",
+          p->flags.authenticated_data ? "AD " : "",
+          p->flags.recursion_available ? "RA " : "",
+          return_codes[p->flags.return_code & 15],
+          op_codes[p->flags.opcode & 15]);
   if (p->num_queries > 0)
-    fprintf (stdout,
-	     "\tQueries:\n");
-  for (i=0;i<p->num_queries;i++)
-    display_query (&p->queries[i]);
+    fprintf(stdout,
+            "\tQueries:\n");
+  for (i = 0; i < p->num_queries; i++)
+    display_query(&p->queries[i]);
 
   if (p->num_answers > 0)
-    fprintf (stdout,
-	     "\tAnswers:\n");
-  for (i=0;i<p->num_answers;i++)
-    display_record (&p->answers[i]);
-  fprintf (stdout, "\n");
-  GNUNET_DNSPARSER_free_packet (p);
-  GNUNET_DNS_request_forward (rh);
+    fprintf(stdout,
+            "\tAnswers:\n");
+  for (i = 0; i < p->num_answers; i++)
+    display_record(&p->answers[i]);
+  fprintf(stdout, "\n");
+  GNUNET_DNSPARSER_free_packet(p);
+  GNUNET_DNS_request_forward(rh);
 }
 
 
@@ -303,13 +322,13 @@ display_request (void *cls,
  * Shutdown.
  */
 static void
-do_disconnect (void *cls)
+do_disconnect(void *cls)
 {
   if (NULL != handle)
-  {
-    GNUNET_DNS_disconnect (handle);
-    handle = NULL;
-  }
+    {
+      GNUNET_DNS_disconnect(handle);
+      handle = NULL;
+    }
 }
 
 
@@ -322,8 +341,8 @@ do_disconnect (void *cls)
  * @param cfg configuration
  */
 static void
-run (void *cls, char *const *args, const char *cfgfile,
-     const struct GNUNET_CONFIGURATION_Handle *cfg)
+run(void *cls, char *const *args, const char *cfgfile,
+    const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   enum GNUNET_DNS_Flags flags;
 
@@ -335,41 +354,40 @@ run (void *cls, char *const *args, const char *cfgfile,
   if (outbound_only)
     flags |= GNUNET_DNS_FLAG_RESPONSE_MONITOR;
   handle =
-    GNUNET_DNS_connect (cfg,
-			flags,
-			&display_request,
-			NULL);
-  GNUNET_SCHEDULER_add_shutdown (&do_disconnect, NULL);
+    GNUNET_DNS_connect(cfg,
+                       flags,
+                       &display_request,
+                       NULL);
+  GNUNET_SCHEDULER_add_shutdown(&do_disconnect, NULL);
 }
 
 
 int
-main (int argc, char *const *argv)
+main(int argc, char *const *argv)
 {
   struct GNUNET_GETOPT_CommandLineOption options[] = {
+    GNUNET_GETOPT_option_flag('i',
+                              "inbound-only",
+                              gettext_noop("only monitor DNS queries"),
+                              &inbound_only),
 
-    GNUNET_GETOPT_option_flag ('i',
-                                  "inbound-only",
-                                  gettext_noop ("only monitor DNS queries"),
-                                  &inbound_only),
+    GNUNET_GETOPT_option_flag('o',
+                              "outbound-only",
+                              gettext_noop("only monitor DNS queries"),
+                              &outbound_only),
 
-    GNUNET_GETOPT_option_flag ('o',
-                                  "outbound-only",
-                                  gettext_noop ("only monitor DNS queries"),
-                                  &outbound_only),
-
-    GNUNET_GETOPT_option_verbose (&verbosity),
+    GNUNET_GETOPT_option_verbose(&verbosity),
     GNUNET_GETOPT_OPTION_END
   };
 
-  if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv, &argc, &argv))
+  if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args(argc, argv, &argc, &argv))
     return 2;
   ret = (GNUNET_OK ==
-	 GNUNET_PROGRAM_run (argc, argv, "gnunet-dns-monitor",
-			     gettext_noop
-			     ("Monitor DNS queries."), options,
-			     &run, NULL)) ? ret : 1;
-  GNUNET_free ((void*) argv);
+         GNUNET_PROGRAM_run(argc, argv, "gnunet-dns-monitor",
+                            gettext_noop
+                              ("Monitor DNS queries."), options,
+                            &run, NULL)) ? ret : 1;
+  GNUNET_free((void*)argv);
   return ret;
 }
 

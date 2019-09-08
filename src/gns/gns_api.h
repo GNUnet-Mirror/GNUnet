@@ -11,12 +11,12 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 /**
  * @file gns/gns_api.h
  * @brief shared data structures of libgnunetgns
@@ -32,9 +32,7 @@
 /**
  * Connection to the GNS service.
  */
-struct GNUNET_GNS_Handle
-{
-
+struct GNUNET_GNS_Handle {
   /**
    * Configuration to use.
    */
@@ -69,7 +67,6 @@ struct GNUNET_GNS_Handle
    * Request Id generator.  Incremented by one for each request.
    */
   uint32_t r_id_gen;
-
 };
 
 

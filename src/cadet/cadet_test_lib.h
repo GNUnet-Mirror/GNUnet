@@ -11,12 +11,12 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 /**
  * @file cadet/cadet_test_lib.h
  * @author Bartlomiej Polot
@@ -52,10 +52,10 @@ struct GNUNET_CADET_TEST_Context;
  * @param cadets Handle to each of the CADETs of the peers.
  */
 typedef void (*GNUNET_CADET_TEST_AppMain) (void *cls,
-                                          struct GNUNET_CADET_TEST_Context *ctx,
-                                          unsigned int num_peers,
-                                          struct GNUNET_TESTBED_Peer **peers,
-                                          struct GNUNET_CADET_Handle **cadets);
+                                           struct GNUNET_CADET_TEST_Context *ctx,
+                                           unsigned int num_peers,
+                                           struct GNUNET_TESTBED_Peer **peers,
+                                           struct GNUNET_CADET_Handle **cadets);
 
 
 /**
@@ -74,16 +74,16 @@ typedef void (*GNUNET_CADET_TEST_AppMain) (void *cls,
  * @param ports Ports the peers offer, NULL-terminated.
  */
 void
-GNUNET_CADET_TEST_ruN (const char *testname,
-                       const char *cfgfile,
-                       unsigned int num_peers,
-                       GNUNET_CADET_TEST_AppMain tmain,
-                       void *tmain_cls,
-                       GNUNET_CADET_ConnectEventHandler connects,
-                       GNUNET_CADET_WindowSizeEventHandler window_changes,
-                       GNUNET_CADET_DisconnectEventHandler disconnects,
-                       struct GNUNET_MQ_MessageHandler *handlers,
-                       const struct GNUNET_HashCode **ports);
+GNUNET_CADET_TEST_ruN(const char *testname,
+                      const char *cfgfile,
+                      unsigned int num_peers,
+                      GNUNET_CADET_TEST_AppMain tmain,
+                      void *tmain_cls,
+                      GNUNET_CADET_ConnectEventHandler connects,
+                      GNUNET_CADET_WindowSizeEventHandler window_changes,
+                      GNUNET_CADET_DisconnectEventHandler disconnects,
+                      struct GNUNET_MQ_MessageHandler *handlers,
+                      const struct GNUNET_HashCode **ports);
 
 /**
  * Clean up the testbed.
@@ -91,7 +91,7 @@ GNUNET_CADET_TEST_ruN (const char *testname,
  * @param ctx handle for the testbed
  */
 void
-GNUNET_CADET_TEST_cleanup (struct GNUNET_CADET_TEST_Context *ctx);
+GNUNET_CADET_TEST_cleanup(struct GNUNET_CADET_TEST_Context *ctx);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

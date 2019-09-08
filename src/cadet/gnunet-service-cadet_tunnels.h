@@ -12,12 +12,12 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 
 /**
  * @file cadet/gnunet-service-cadet_tunnels.h
@@ -41,8 +41,7 @@
 /**
  * All the encryption states a tunnel can be in.
  */
-enum CadetTunnelEState
-{
+enum CadetTunnelEState {
   /**
    * Uninitialized status, we need to send KX.  We will stay
    * in this state until the first connection is up.
@@ -79,7 +78,6 @@ enum CadetTunnelEState
    * Handshake completed: session key available.
    */
   CADET_TUNNEL_KEY_OK
-
 };
 
 
@@ -91,7 +89,7 @@ enum CadetTunnelEState
  * @return Static string the destination peer's ID.
  */
 const char *
-GCT_2s (const struct CadetTunnel *t);
+GCT_2s(const struct CadetTunnel *t);
 
 
 /**
@@ -102,7 +100,7 @@ GCT_2s (const struct CadetTunnel *t);
  * @return new tunnel to @a destination
  */
 struct CadetTunnel *
-GCT_create_tunnel (struct CadetPeer *destination);
+GCT_create_tunnel(struct CadetPeer *destination);
 
 
 /**
@@ -111,7 +109,7 @@ GCT_create_tunnel (struct CadetPeer *destination);
  * @param t tunnel to destroy
  */
 void
-GCT_destroy_tunnel_now (struct CadetTunnel *t);
+GCT_destroy_tunnel_now(struct CadetTunnel *t);
 
 
 /**
@@ -124,9 +122,9 @@ GCT_destroy_tunnel_now (struct CadetTunnel *t);
  *         #GNUNET_SYSERR on failure (duplicate connection)
  */
 int
-GCT_add_inbound_connection (struct CadetTunnel *t,
-                            const struct GNUNET_CADET_ConnectionTunnelIdentifier *cid,
-                            struct CadetPeerPath *path);
+GCT_add_inbound_connection(struct CadetTunnel *t,
+                           const struct GNUNET_CADET_ConnectionTunnelIdentifier *cid,
+                           struct CadetPeerPath *path);
 
 
 /**
@@ -136,7 +134,7 @@ GCT_add_inbound_connection (struct CadetTunnel *t,
  * @param ct binding of connection to tunnel of the connection that was lost.
  */
 void
-GCT_connection_lost (struct CadetTConnection *ct);
+GCT_connection_lost(struct CadetTConnection *ct);
 
 
 /**
@@ -146,7 +144,7 @@ GCT_connection_lost (struct CadetTConnection *ct);
  * @return the destination of the tunnel
  */
 struct CadetPeer *
-GCT_get_destination (struct CadetTunnel *t);
+GCT_get_destination(struct CadetTunnel *t);
 
 
 /**
@@ -158,9 +156,9 @@ GCT_get_destination (struct CadetTunnel *t);
  * @param off offset of the destination on path @a path
  */
 void
-GCT_consider_path (struct CadetTunnel *t,
-                   struct CadetPeerPath *p,
-                   unsigned int off);
+GCT_consider_path(struct CadetTunnel *t,
+                  struct CadetPeerPath *p,
+                  unsigned int off);
 
 
 /**
@@ -171,8 +169,8 @@ GCT_consider_path (struct CadetTunnel *t,
  * @return unique number identifying @a ch within @a t
  */
 struct GNUNET_CADET_ChannelTunnelNumber
-GCT_add_channel (struct CadetTunnel *t,
-                 struct CadetChannel *ch);
+GCT_add_channel(struct CadetTunnel *t,
+                struct CadetChannel *ch);
 
 
 /**
@@ -183,9 +181,9 @@ GCT_add_channel (struct CadetTunnel *t,
  * @param ctn unique number identifying @a ch within @a t
  */
 void
-GCT_remove_channel (struct CadetTunnel *t,
-                    struct CadetChannel *ch,
-                    struct GNUNET_CADET_ChannelTunnelNumber ctn);
+GCT_remove_channel(struct CadetTunnel *t,
+                   struct CadetChannel *ch,
+                   struct GNUNET_CADET_ChannelTunnelNumber ctn);
 
 
 /**
@@ -195,8 +193,8 @@ GCT_remove_channel (struct CadetTunnel *t,
  * @param ctn ID of the channel to destroy
  */
 void
-GCT_send_channel_destroy (struct CadetTunnel *t,
-                          struct GNUNET_CADET_ChannelTunnelNumber ctn);
+GCT_send_channel_destroy(struct CadetTunnel *t,
+                         struct GNUNET_CADET_ChannelTunnelNumber ctn);
 
 
 /**
@@ -223,10 +221,10 @@ typedef void
  * @return Handle to cancel message.
  */
 struct CadetTunnelQueueEntry *
-GCT_send (struct CadetTunnel *t,
-          const struct GNUNET_MessageHeader *message,
-          GCT_SendContinuation cont,
-          void *cont_cls);
+GCT_send(struct CadetTunnel *t,
+         const struct GNUNET_MessageHeader *message,
+         GCT_SendContinuation cont,
+         void *cont_cls);
 
 
 /**
@@ -239,7 +237,7 @@ GCT_send (struct CadetTunnel *t,
  * @param q Handle to the queue entry to cancel.
  */
 void
-GCT_send_cancel (struct CadetTunnelQueueEntry *q);
+GCT_send_cancel(struct CadetTunnelQueueEntry *q);
 
 
 /**
@@ -249,7 +247,7 @@ GCT_send_cancel (struct CadetTunnelQueueEntry *q);
  * @return number of channels using the tunnel
  */
 unsigned int
-GCT_count_channels (struct CadetTunnel *t);
+GCT_count_channels(struct CadetTunnel *t);
 
 
 /**
@@ -259,7 +257,7 @@ GCT_count_channels (struct CadetTunnel *t);
  * @return number of connections available for the tunnel
  */
 unsigned int
-GCT_count_any_connections (const struct CadetTunnel *t);
+GCT_count_any_connections(const struct CadetTunnel *t);
 
 
 /**
@@ -281,9 +279,9 @@ typedef void
  * @param iter_cls Closure for @c iter.
  */
 void
-GCT_iterate_connections (struct CadetTunnel *t,
-                         GCT_ConnectionIterator iter,
-                         void *iter_cls);
+GCT_iterate_connections(struct CadetTunnel *t,
+                        GCT_ConnectionIterator iter,
+                        void *iter_cls);
 
 
 /**
@@ -305,9 +303,9 @@ typedef void
  * @param iter_cls Closure for @c iter.
  */
 void
-GCT_iterate_channels (struct CadetTunnel *t,
-                      GCT_ChannelIterator iter,
-                      void *iter_cls);
+GCT_iterate_channels(struct CadetTunnel *t,
+                     GCT_ChannelIterator iter,
+                     void *iter_cls);
 
 
 /**
@@ -318,7 +316,7 @@ GCT_iterate_channels (struct CadetTunnel *t,
  * @return Tunnel's encryption state.
  */
 enum CadetTunnelEState
-GCT_get_estate (struct CadetTunnel *t);
+GCT_get_estate(struct CadetTunnel *t);
 
 
 /**
@@ -328,8 +326,8 @@ GCT_get_estate (struct CadetTunnel *t);
  * @param msg the key exchange message
  */
 void
-GCT_handle_kx (struct CadetTConnection *ct,
-               const struct GNUNET_CADET_TunnelKeyExchangeMessage *msg);
+GCT_handle_kx(struct CadetTConnection *ct,
+              const struct GNUNET_CADET_TunnelKeyExchangeMessage *msg);
 
 
 /**
@@ -339,8 +337,8 @@ GCT_handle_kx (struct CadetTConnection *ct,
  * @param msg the key exchange message
  */
 void
-GCT_handle_kx_auth (struct CadetTConnection *ct,
-                    const struct GNUNET_CADET_TunnelKeyExchangeAuthMessage *msg);
+GCT_handle_kx_auth(struct CadetTConnection *ct,
+                   const struct GNUNET_CADET_TunnelKeyExchangeAuthMessage *msg);
 
 
 /**
@@ -350,8 +348,8 @@ GCT_handle_kx_auth (struct CadetTConnection *ct,
  * @param msg the encrypted message to decrypt
  */
 void
-GCT_handle_encrypted (struct CadetTConnection *ct,
-                      const struct GNUNET_CADET_TunnelEncryptedMessage *msg);
+GCT_handle_encrypted(struct CadetTConnection *ct,
+                     const struct GNUNET_CADET_TunnelEncryptedMessage *msg);
 
 
 /**
@@ -361,8 +359,8 @@ GCT_handle_encrypted (struct CadetTConnection *ct,
  * @param level Debug level to use.
  */
 void
-GCT_debug (const struct CadetTunnel *t,
-           enum GNUNET_ErrorType level);
+GCT_debug(const struct CadetTunnel *t,
+          enum GNUNET_ErrorType level);
 
 
 #endif

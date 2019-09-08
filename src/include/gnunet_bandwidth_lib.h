@@ -16,7 +16,7 @@
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 
 /**
  * @author Christian Grothoff
@@ -47,8 +47,7 @@ GNUNET_NETWORK_STRUCT_BEGIN
 /**
  * 32-bit bandwidth used for network exchange by GNUnet, in bytes per second.
  */
-struct GNUNET_BANDWIDTH_Value32NBO
-{
+struct GNUNET_BANDWIDTH_Value32NBO {
   /**
    * The actual value (bytes per second).
    */
@@ -83,8 +82,7 @@ typedef void (*GNUNET_BANDWIDTH_ExcessNotificationCallback) (void *cls);
  * structures (reducing malloc-ing); however, values should not be
  * accessed directly by clients (hence the '__').
  */
-struct GNUNET_BANDWIDTH_Tracker
-{
+struct GNUNET_BANDWIDTH_Tracker {
   /**
    * Closure for @e update_cb.
    */
@@ -140,7 +138,7 @@ struct GNUNET_BANDWIDTH_Tracker
 /**
  * Convenience definition to use for 0-bandwidth.
  */
-#define GNUNET_BANDWIDTH_ZERO GNUNET_BANDWIDTH_value_init (0)
+#define GNUNET_BANDWIDTH_ZERO GNUNET_BANDWIDTH_value_init(0)
 
 
 /**
@@ -150,13 +148,13 @@ struct GNUNET_BANDWIDTH_Tracker
  * @return the new bandwidth value
  */
 struct GNUNET_BANDWIDTH_Value32NBO
-GNUNET_BANDWIDTH_value_init (uint32_t bytes_per_second);
+GNUNET_BANDWIDTH_value_init(uint32_t bytes_per_second);
 
 
 /**
  * Maximum possible bandwidth value.
  */
-#define GNUNET_BANDWIDTH_VALUE_MAX GNUNET_BANDWIDTH_value_init (UINT32_MAX)
+#define GNUNET_BANDWIDTH_VALUE_MAX GNUNET_BANDWIDTH_value_init(UINT32_MAX)
 
 
 /**
@@ -168,7 +166,7 @@ GNUNET_BANDWIDTH_value_init (uint32_t bytes_per_second);
  * @return number of bytes available at bps until deadline
  */
 uint64_t
-GNUNET_BANDWIDTH_value_get_available_until (
+GNUNET_BANDWIDTH_value_get_available_until(
   struct GNUNET_BANDWIDTH_Value32NBO bps,
   struct GNUNET_TIME_Relative deadline);
 
@@ -182,8 +180,8 @@ GNUNET_BANDWIDTH_value_get_available_until (
  * @return how long it would take
  */
 struct GNUNET_TIME_Relative
-GNUNET_BANDWIDTH_value_get_delay_for (struct GNUNET_BANDWIDTH_Value32NBO bps,
-                                      uint64_t size);
+GNUNET_BANDWIDTH_value_get_delay_for(struct GNUNET_BANDWIDTH_Value32NBO bps,
+                                     uint64_t size);
 
 
 /**
@@ -194,8 +192,8 @@ GNUNET_BANDWIDTH_value_get_delay_for (struct GNUNET_BANDWIDTH_Value32NBO bps,
  * @return the min of b1 and b2
  */
 struct GNUNET_BANDWIDTH_Value32NBO
-GNUNET_BANDWIDTH_value_min (struct GNUNET_BANDWIDTH_Value32NBO b1,
-                            struct GNUNET_BANDWIDTH_Value32NBO b2);
+GNUNET_BANDWIDTH_value_min(struct GNUNET_BANDWIDTH_Value32NBO b1,
+                           struct GNUNET_BANDWIDTH_Value32NBO b2);
 
 
 /**
@@ -206,8 +204,8 @@ GNUNET_BANDWIDTH_value_min (struct GNUNET_BANDWIDTH_Value32NBO b1,
  * @return the min of b1 and b2
  */
 struct GNUNET_BANDWIDTH_Value32NBO
-GNUNET_BANDWIDTH_value_max (struct GNUNET_BANDWIDTH_Value32NBO b1,
-                            struct GNUNET_BANDWIDTH_Value32NBO b2);
+GNUNET_BANDWIDTH_value_max(struct GNUNET_BANDWIDTH_Value32NBO b1,
+                           struct GNUNET_BANDWIDTH_Value32NBO b2);
 
 
 /**
@@ -218,8 +216,8 @@ GNUNET_BANDWIDTH_value_max (struct GNUNET_BANDWIDTH_Value32NBO b1,
  * @return the sum of b1 and b2
  */
 struct GNUNET_BANDWIDTH_Value32NBO
-GNUNET_BANDWIDTH_value_sum (struct GNUNET_BANDWIDTH_Value32NBO b1,
-                            struct GNUNET_BANDWIDTH_Value32NBO b2);
+GNUNET_BANDWIDTH_value_sum(struct GNUNET_BANDWIDTH_Value32NBO b1,
+                           struct GNUNET_BANDWIDTH_Value32NBO b2);
 
 
 /**
@@ -239,7 +237,7 @@ GNUNET_BANDWIDTH_value_sum (struct GNUNET_BANDWIDTH_Value32NBO b1,
  *        may accumulate before it expires
  */
 void
-GNUNET_BANDWIDTH_tracker_init (
+GNUNET_BANDWIDTH_tracker_init(
   struct GNUNET_BANDWIDTH_Tracker *av,
   GNUNET_BANDWIDTH_TrackerUpdateCallback update_cb,
   void *update_cb_cls,
@@ -266,7 +264,7 @@ GNUNET_BANDWIDTH_tracker_init (
  * @param excess_cb_cls closure for @a excess_cb
  */
 void
-GNUNET_BANDWIDTH_tracker_init2 (
+GNUNET_BANDWIDTH_tracker_init2(
   struct GNUNET_BANDWIDTH_Tracker *av,
   GNUNET_BANDWIDTH_TrackerUpdateCallback update_cb,
   void *update_cb_cls,
@@ -282,7 +280,7 @@ GNUNET_BANDWIDTH_tracker_init2 (
  * @param av the respective trackers
  */
 void
-GNUNET_BANDWIDTH_tracker_notification_stop (
+GNUNET_BANDWIDTH_tracker_notification_stop(
   struct GNUNET_BANDWIDTH_Tracker *av);
 
 
@@ -298,8 +296,8 @@ GNUNET_BANDWIDTH_tracker_notification_stop (
  * @return #GNUNET_YES if this consumption is above the limit
  */
 int
-GNUNET_BANDWIDTH_tracker_consume (struct GNUNET_BANDWIDTH_Tracker *av,
-                                  ssize_t size);
+GNUNET_BANDWIDTH_tracker_consume(struct GNUNET_BANDWIDTH_Tracker *av,
+                                 ssize_t size);
 
 
 /**
@@ -312,8 +310,8 @@ GNUNET_BANDWIDTH_tracker_consume (struct GNUNET_BANDWIDTH_Tracker *av,
  * @return time to wait for consumption to be OK
  */
 struct GNUNET_TIME_Relative
-GNUNET_BANDWIDTH_tracker_get_delay (struct GNUNET_BANDWIDTH_Tracker *av,
-                                    size_t size);
+GNUNET_BANDWIDTH_tracker_get_delay(struct GNUNET_BANDWIDTH_Tracker *av,
+                                   size_t size);
 
 
 /**
@@ -324,7 +322,7 @@ GNUNET_BANDWIDTH_tracker_get_delay (struct GNUNET_BANDWIDTH_Tracker *av,
  * @return number of bytes available for consumption right now
  */
 int64_t
-GNUNET_BANDWIDTH_tracker_get_available (struct GNUNET_BANDWIDTH_Tracker *av);
+GNUNET_BANDWIDTH_tracker_get_available(struct GNUNET_BANDWIDTH_Tracker *av);
 
 
 /**
@@ -334,7 +332,7 @@ GNUNET_BANDWIDTH_tracker_get_available (struct GNUNET_BANDWIDTH_Tracker *av);
  * @param bytes_per_second_limit new limit to assume
  */
 void
-GNUNET_BANDWIDTH_tracker_update_quota (
+GNUNET_BANDWIDTH_tracker_update_quota(
   struct GNUNET_BANDWIDTH_Tracker *av,
   struct GNUNET_BANDWIDTH_Value32NBO bytes_per_second_limit);
 

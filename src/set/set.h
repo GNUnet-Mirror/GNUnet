@@ -11,12 +11,12 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 /**
  * @file set/set.h
  * @brief messages used for the set api
@@ -37,8 +37,7 @@ GNUNET_NETWORK_STRUCT_BEGIN
  * a new set to perform operations with.  Includes the desired
  * set operation type.
  */
-struct GNUNET_SET_CreateMessage
-{
+struct GNUNET_SET_CreateMessage {
   /**
    * Type: #GNUNET_MESSAGE_TYPE_SET_CREATE
    */
@@ -56,8 +55,7 @@ struct GNUNET_SET_CreateMessage
  * incoming requests to perform a certain type of set operation for a
  * certain type of application.
  */
-struct GNUNET_SET_ListenMessage
-{
+struct GNUNET_SET_ListenMessage {
   /**
    * Type: #GNUNET_MESSAGE_TYPE_SET_LISTEN
    */
@@ -72,7 +70,6 @@ struct GNUNET_SET_ListenMessage
    * application id
    */
   struct GNUNET_HashCode app_id;
-
 };
 
 
@@ -80,8 +77,7 @@ struct GNUNET_SET_ListenMessage
  * Message sent by a listening client to the service to accept
  * performing the operation with the other peer.
  */
-struct GNUNET_SET_AcceptMessage
-{
+struct GNUNET_SET_AcceptMessage {
   /**
    * Type: #GNUNET_MESSAGE_TYPE_SET_ACCEPT
    */
@@ -133,8 +129,7 @@ struct GNUNET_SET_AcceptMessage
  * Message sent by a listening client to the service to reject
  * performing the operation with the other peer.
  */
-struct GNUNET_SET_RejectMessage
-{
+struct GNUNET_SET_RejectMessage {
   /**
    * Type: #GNUNET_MESSAGE_TYPE_SET_REJECT
    */
@@ -144,15 +139,13 @@ struct GNUNET_SET_RejectMessage
    * ID of the incoming request we want to reject.
    */
   uint32_t accept_reject_id GNUNET_PACKED;
-
 };
 
 
 /**
  * A request for an operation with another client.
  */
-struct GNUNET_SET_RequestMessage
-{
+struct GNUNET_SET_RequestMessage {
   /**
    * Type: #GNUNET_MESSAGE_TYPE_SET_REQUEST.
    */
@@ -179,8 +172,7 @@ struct GNUNET_SET_RequestMessage
  * client (not as listener).  A set (which determines the operation
  * type) must already exist in association with this client.
  */
-struct GNUNET_SET_EvaluateMessage
-{
+struct GNUNET_SET_EvaluateMessage {
   /**
    * Type: #GNUNET_MESSAGE_TYPE_SET_EVALUATE
    */
@@ -243,8 +235,7 @@ struct GNUNET_SET_EvaluateMessage
  * (set union) or part of the final result, depending on
  * options specified for the operation.
  */
-struct GNUNET_SET_ResultMessage
-{
+struct GNUNET_SET_ResultMessage {
   /**
    * Type: #GNUNET_MESSAGE_TYPE_SET_RESULT
    */
@@ -279,8 +270,7 @@ struct GNUNET_SET_ResultMessage
  * Message sent by client to the service to add or remove
  * an element to/from the set.
  */
-struct GNUNET_SET_ElementMessage
-{
+struct GNUNET_SET_ElementMessage {
   /**
    * Type: #GNUNET_MESSAGE_TYPE_SET_ADD or
    *       #GNUNET_MESSAGE_TYPE_SET_REMOVE
@@ -305,8 +295,7 @@ struct GNUNET_SET_ElementMessage
  * Sent to the service by the client
  * in order to cancel a set operation.
  */
-struct GNUNET_SET_CancelMessage
-{
+struct GNUNET_SET_CancelMessage {
   /**
    * Type: #GNUNET_MESSAGE_TYPE_SET_CANCEL
    */
@@ -323,8 +312,7 @@ struct GNUNET_SET_CancelMessage
  * Set element transmitted by service to client in response to a set
  * iteration request.
  */
-struct GNUNET_SET_IterResponseMessage
-{
+struct GNUNET_SET_IterResponseMessage {
   /**
    * Type: #GNUNET_MESSAGE_TYPE_SET_ITER_ELEMENT
    */
@@ -349,8 +337,7 @@ struct GNUNET_SET_IterResponseMessage
 /**
  * Client acknowledges receiving element in iteration.
  */
-struct GNUNET_SET_IterAckMessage
-{
+struct GNUNET_SET_IterAckMessage {
   /**
    * Type: #GNUNET_MESSAGE_TYPE_SET_ITER_ACK
    */
@@ -366,8 +353,7 @@ struct GNUNET_SET_IterAckMessage
 /**
  * Server responds to a lazy copy request.
  */
-struct GNUNET_SET_CopyLazyResponseMessage
-{
+struct GNUNET_SET_CopyLazyResponseMessage {
   /**
    * Type: #GNUNET_MESSAGE_TYPE_SET_COPY_LAZY_RESPONSE
    */
@@ -383,8 +369,7 @@ struct GNUNET_SET_CopyLazyResponseMessage
 /**
  * Client connects to a lazily copied set.
  */
-struct GNUNET_SET_CopyLazyConnectMessage
-{
+struct GNUNET_SET_CopyLazyConnectMessage {
   /**
    * Type: #GNUNET_MESSAGE_TYPE_SET_COPY_LAZY_CONNECT
    */

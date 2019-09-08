@@ -11,12 +11,12 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 
 /**
  * @author Christian Grothoff
@@ -40,8 +40,7 @@ GNUNET_NETWORK_STRUCT_BEGIN
  * Message which indicates the DHT should cancel outstanding
  * requests and discard any state.
  */
-struct GNUNET_DHT_ClientGetStopMessage
-{
+struct GNUNET_DHT_ClientGetStopMessage {
   /**
    * Type: #GNUNET_MESSAGE_TYPE_DHT_CLIENT_GET_STOP
    */
@@ -61,7 +60,6 @@ struct GNUNET_DHT_ClientGetStopMessage
    * Key of this request
    */
   struct GNUNET_HashCode key;
-
 };
 
 
@@ -69,8 +67,7 @@ struct GNUNET_DHT_ClientGetStopMessage
  * DHT GET message sent from clients to service. Indicates that a GET
  * request should be issued.
  */
-struct GNUNET_DHT_ClientGetMessage
-{
+struct GNUNET_DHT_ClientGetMessage {
   /**
    * Type: #GNUNET_MESSAGE_TYPE_DHT_CLIENT_GET
    */
@@ -104,7 +101,6 @@ struct GNUNET_DHT_ClientGetMessage
   uint64_t unique_id GNUNET_PACKED;
 
   /* Possibly followed by xquery, copied to end of this dealy do */
-
 };
 
 
@@ -112,8 +108,7 @@ struct GNUNET_DHT_ClientGetMessage
  * DHT GET RESULTS KNOWN message sent from clients to service. Indicates that a GET
  * request should exclude certain results which are already known.
  */
-struct GNUNET_DHT_ClientGetResultSeenMessage
-{
+struct GNUNET_DHT_ClientGetResultSeenMessage {
   /**
    * Type: #GNUNET_MESSAGE_TYPE_DHT_CLIENT_GET_RESULTS_KNOWN
    */
@@ -136,7 +131,6 @@ struct GNUNET_DHT_ClientGetResultSeenMessage
   uint64_t unique_id GNUNET_PACKED;
 
   /* Followed by an array of the hash codes of known results */
-
 };
 
 
@@ -144,8 +138,7 @@ struct GNUNET_DHT_ClientGetResultSeenMessage
 /**
  * Reply to a GET send from the service to a client.
  */
-struct GNUNET_DHT_ClientResultMessage
-{
+struct GNUNET_DHT_ClientResultMessage {
   /**
    * Type: #GNUNET_MESSAGE_TYPE_DHT_CLIENT_RESULT
    */
@@ -184,15 +177,13 @@ struct GNUNET_DHT_ClientResultMessage
   struct GNUNET_HashCode key GNUNET_PACKED;
 
   /* put path, get path and actual data are copied to end of this dealy do */
-
 };
 
 
 /**
  * Message to insert data into the DHT, sent from clients to DHT service.
  */
-struct GNUNET_DHT_ClientPutMessage
-{
+struct GNUNET_DHT_ClientPutMessage {
   /**
    * Type: #GNUNET_MESSAGE_TYPE_DHT_CLIENT_PUT
    */
@@ -224,15 +215,13 @@ struct GNUNET_DHT_ClientPutMessage
   struct GNUNET_HashCode key GNUNET_PACKED;
 
   /* DATA copied to end of this message */
-
 };
 
 
 /**
  * Message to monitor put requests going through peer, DHT service -> clients.
  */
-struct GNUNET_DHT_MonitorPutMessage
-{
+struct GNUNET_DHT_MonitorPutMessage {
   /**
    * Type: #GNUNET_MESSAGE_TYPE_DHT_MONITOR_PUT
    */
@@ -277,15 +266,13 @@ struct GNUNET_DHT_MonitorPutMessage
   /* put path (if tracked) */
 
   /* Payload */
-
 };
 
 
 /**
  * Message to request monitoring messages, clients -> DHT service.
  */
-struct GNUNET_DHT_MonitorStartStopMessage
-{
+struct GNUNET_DHT_MonitorStartStopMessage {
   /**
    * Type: #GNUNET_MESSAGE_TYPE_DHT_MONITOR_START or
    * #GNUNET_MESSAGE_TYPE_DHT_MONITOR_STOP
@@ -327,8 +314,7 @@ struct GNUNET_DHT_MonitorStartStopMessage
 /**
  * Message to monitor get requests going through peer, DHT service -> clients.
  */
-struct GNUNET_DHT_MonitorGetMessage
-{
+struct GNUNET_DHT_MonitorGetMessage {
   /**
    * Type: #GNUNET_MESSAGE_TYPE_DHT_MONITOR_GET
    */
@@ -366,14 +352,12 @@ struct GNUNET_DHT_MonitorGetMessage
   struct GNUNET_HashCode key GNUNET_PACKED;
 
   /* get path (if tracked) */
-
 };
 
 /**
  * Message to monitor get results going through peer, DHT service -> clients.
  */
-struct GNUNET_DHT_MonitorGetRespMessage
-{
+struct GNUNET_DHT_MonitorGetRespMessage {
   /**
    * Type: #GNUNET_MESSAGE_TYPE_DHT_P2P_RESULT
    */
@@ -409,7 +393,6 @@ struct GNUNET_DHT_MonitorGetRespMessage
   /* get path (if tracked) */
 
   /* Payload */
-
 };
 
 GNUNET_NETWORK_STRUCT_END

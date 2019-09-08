@@ -11,12 +11,12 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 /**
  * @author Maximilian Szengel
  * @author Christian Grothoff
@@ -77,10 +77,10 @@ struct GNUNET_REGEX_Search;
  *         Must be freed by calling #GNUNET_REGEX_announce_cancel.
  */
 struct GNUNET_REGEX_Announcement *
-GNUNET_REGEX_announce (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                       const char *regex,
-		       struct GNUNET_TIME_Relative refresh_delay,
-                       uint16_t compression);
+GNUNET_REGEX_announce(const struct GNUNET_CONFIGURATION_Handle *cfg,
+                      const char *regex,
+                      struct GNUNET_TIME_Relative refresh_delay,
+                      uint16_t compression);
 
 
 /**
@@ -89,7 +89,7 @@ GNUNET_REGEX_announce (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @param a handle returned by a previous #GNUNET_REGEX_announce call.
  */
 void
-GNUNET_REGEX_announce_cancel (struct GNUNET_REGEX_Announcement *a);
+GNUNET_REGEX_announce_cancel(struct GNUNET_REGEX_Announcement *a);
 
 
 /**
@@ -124,10 +124,10 @@ typedef void
  *         Must be freed by calling #GNUNET_REGEX_search_cancel.
  */
 struct GNUNET_REGEX_Search *
-GNUNET_REGEX_search (const struct GNUNET_CONFIGURATION_Handle *cfg,
-		     const char *string,
-                     GNUNET_REGEX_Found callback,
-                     void *callback_cls);
+GNUNET_REGEX_search(const struct GNUNET_CONFIGURATION_Handle *cfg,
+                    const char *string,
+                    GNUNET_REGEX_Found callback,
+                    void *callback_cls);
 
 
 /**
@@ -136,7 +136,7 @@ GNUNET_REGEX_search (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @param s Handle returned by a previous #GNUNET_REGEX_search call.
  */
 void
-GNUNET_REGEX_search_cancel (struct GNUNET_REGEX_Search *s);
+GNUNET_REGEX_search_cancel(struct GNUNET_REGEX_Search *s);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

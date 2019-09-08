@@ -11,12 +11,12 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 
 /**
  * @author Christian Grothoff
@@ -49,9 +49,7 @@
  * an equivalent enum in gnunet_transport_hello_service.h;
  * might ultimately belong with the new HELLO definition.
  */
-enum GNUNET_NAT_AddressClass
-{
-
+enum GNUNET_NAT_AddressClass {
   /**
    * No address.
    */
@@ -87,7 +85,7 @@ enum GNUNET_NAT_AddressClass
    * Useful for broadcasts.
    */
   GNUNET_NAT_AC_LAN = 8,
-  
+
   /**
    * Addresses useful in the local wired network,
    * i.e. a MAC.  Sensitive, but obvious to people nearby.
@@ -112,12 +110,12 @@ enum GNUNET_NAT_AddressClass
    * Loopback addresses, only useful under special cirumstances.
    */
   GNUNET_NAT_AC_LOOPBACK = 64,
-  
+
   /**
    * Addresses that should be our external IP address
    * on the outside of a NAT.  Might be incorrectly determined.
    * Used as a bit in combination with #GNUNET_NAT_AC_GLOBAL,
-   * or in case of double-NAT with 
+   * or in case of double-NAT with
    * #GNUNET_NAT_AC_LAN.
    */
   GNUNET_NAT_AC_EXTERN = 128,
@@ -132,15 +130,13 @@ enum GNUNET_NAT_AddressClass
    * Bitmask for "any" address.
    */
   GNUNET_NAT_AC_ANY = 65535
-  
 };
 
 
 /**
  * Error Types for the NAT subsystem (which can then later be converted/resolved to a string)
  */
-enum GNUNET_NAT_StatusCode
-{
+enum GNUNET_NAT_StatusCode {
   /**
    * Just the default
    */
@@ -235,7 +231,6 @@ enum GNUNET_NAT_StatusCode
    *
    */
   GNUNET_NAT_ERROR_HELPER_NAT_CLIENT_NOT_FOUND
-  
 };
 
 
@@ -243,8 +238,7 @@ enum GNUNET_NAT_StatusCode
 /**
  * What the situation of the NAT connectivity
  */
-enum GNUNET_NAT_Type
-{
+enum GNUNET_NAT_Type {
   /**
    * We have a direct connection
    */
@@ -269,7 +263,6 @@ enum GNUNET_NAT_Type
    * We know nothing about the NAT.
    */
   GNUNET_NAT_TYPE_UNKNOWN
-
 };
 
 
@@ -281,7 +274,7 @@ enum GNUNET_NAT_Type
  * @param cls closure
  * @param app_ctx[in,out] location where the app can store stuff
  *                  on add and retrieve it on remove
- * @param add_remove #GNUNET_YES to add a new public IP address, 
+ * @param add_remove #GNUNET_YES to add a new public IP address,
  *                   #GNUNET_NO to remove a previous (now invalid) one
  * @param ac address class the address belongs to
  * @param addr either the previous or the new public IP address
@@ -289,9 +282,9 @@ enum GNUNET_NAT_Type
  */
 typedef void
 (*GNUNET_NAT_AddressCallback) (void *cls,
-			       void **app_ctx,
+                               void **app_ctx,
                                int add_remove,
-			       enum GNUNET_NAT_AddressClass ac,
+                               enum GNUNET_NAT_AddressClass ac,
                                const struct sockaddr *addr,
                                socklen_t addrlen);
 
@@ -307,7 +300,7 @@ typedef void
  */
 typedef void
 (*GNUNET_NAT_ReversalCallback) (void *cls,
-				const struct sockaddr *remote_addr,
+                                const struct sockaddr *remote_addr,
                                 socklen_t remote_addrlen);
 
 
@@ -338,15 +331,15 @@ struct GNUNET_NAT_Handle;
  * @return NULL on error, otherwise handle that can be used to unregister
  */
 struct GNUNET_NAT_Handle *
-GNUNET_NAT_register (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                     const char *config_section,
-                     uint8_t proto,
-                     unsigned int num_addrs,
-                     const struct sockaddr **addrs,
-                     const socklen_t *addrlens,
-                     GNUNET_NAT_AddressCallback address_callback,
-                     GNUNET_NAT_ReversalCallback reversal_callback,
-                     void *callback_cls);
+GNUNET_NAT_register(const struct GNUNET_CONFIGURATION_Handle *cfg,
+                    const char *config_section,
+                    uint8_t proto,
+                    unsigned int num_addrs,
+                    const struct sockaddr **addrs,
+                    const socklen_t *addrlens,
+                    GNUNET_NAT_AddressCallback address_callback,
+                    GNUNET_NAT_ReversalCallback reversal_callback,
+                    void *callback_cls);
 
 
 /**
@@ -363,9 +356,9 @@ GNUNET_NAT_register (const struct GNUNET_CONFIGURATION_Handle *cfg,
  *         #GNUNET_SYSERR if the address is malformed
  */
 int
-GNUNET_NAT_test_address (struct GNUNET_NAT_Handle *nh,
-                         const void *addr,
-                         socklen_t addrlen);
+GNUNET_NAT_test_address(struct GNUNET_NAT_Handle *nh,
+                        const void *addr,
+                        socklen_t addrlen);
 
 
 /**
@@ -376,14 +369,14 @@ GNUNET_NAT_test_address (struct GNUNET_NAT_Handle *nh,
  * @param nh handle (used for configuration)
  * @param local_sa our local address of the peer (IPv4-only)
  * @param remote_sa the remote address of the peer (IPv4-only)
- * @return #GNUNET_SYSERR on error, 
+ * @return #GNUNET_SYSERR on error,
  *         #GNUNET_NO if connection reversal is unavailable,
  *         #GNUNET_OK otherwise (presumably in progress)
  */
 int
-GNUNET_NAT_request_reversal (struct GNUNET_NAT_Handle *nh,
-			     const struct sockaddr_in *local_sa,
-			     const struct sockaddr_in *remote_sa);
+GNUNET_NAT_request_reversal(struct GNUNET_NAT_Handle *nh,
+                            const struct sockaddr_in *local_sa,
+                            const struct sockaddr_in *remote_sa);
 
 
 /**
@@ -394,7 +387,7 @@ GNUNET_NAT_request_reversal (struct GNUNET_NAT_Handle *nh,
  * @param nh the handle to unregister
  */
 void
-GNUNET_NAT_unregister (struct GNUNET_NAT_Handle *nh);
+GNUNET_NAT_unregister(struct GNUNET_NAT_Handle *nh);
 
 
 /**
@@ -406,7 +399,7 @@ GNUNET_NAT_unregister (struct GNUNET_NAT_Handle *nh);
  *
  * The function does some basic sanity checks on packet size and
  * content, try to extract a bit of information.
- * 
+ *
  * At the moment this only processes BIND requests, and returns the
  * externally visible address of the request to the rest of the
  * NAT logic.
@@ -421,11 +414,11 @@ GNUNET_NAT_unregister (struct GNUNET_NAT_Handle *nh);
  *         #GNUNET_SYSERR on internal error handling the packet
  */
 int
-GNUNET_NAT_stun_handle_packet (struct GNUNET_NAT_Handle *nh,
-			       const struct sockaddr *sender_addr,
-			       size_t sender_addr_len,
-			       const void *data,
-                               size_t data_size);
+GNUNET_NAT_stun_handle_packet(struct GNUNET_NAT_Handle *nh,
+                              const struct sockaddr *sender_addr,
+                              size_t sender_addr_len,
+                              const void *data,
+                              size_t data_size);
 
 
 /**
@@ -445,7 +438,7 @@ struct GNUNET_NAT_STUN_Handle;
  */
 typedef void
 (*GNUNET_NAT_TestCallback) (void *cls,
-			    enum GNUNET_NAT_StatusCode result);
+                            enum GNUNET_NAT_StatusCode result);
 
 
 /**
@@ -463,11 +456,11 @@ typedef void
  * @return NULL on error
  */
 struct GNUNET_NAT_STUN_Handle *
-GNUNET_NAT_stun_make_request (const char *server,
-                              uint16_t port,
-                              struct GNUNET_NETWORK_Handle *sock,
-                              GNUNET_NAT_TestCallback cb,
-                              void *cb_cls);
+GNUNET_NAT_stun_make_request(const char *server,
+                             uint16_t port,
+                             struct GNUNET_NETWORK_Handle *sock,
+                             GNUNET_NAT_TestCallback cb,
+                             void *cb_cls);
 
 
 /**
@@ -477,7 +470,7 @@ GNUNET_NAT_stun_make_request (const char *server,
  * @param rh request to cancel
  */
 void
-GNUNET_NAT_stun_make_request_cancel (struct GNUNET_NAT_STUN_Handle *rh);
+GNUNET_NAT_stun_make_request_cancel(struct GNUNET_NAT_STUN_Handle *rh);
 
 
 #endif

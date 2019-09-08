@@ -16,7 +16,7 @@
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 
 /**
  * @author Christian Grothoff
@@ -145,7 +145,6 @@ extern "C" {
  * Flags that can be set for a record.
  */
 enum GNUNET_GNSRECORD_Flags {
-
   /**
    * No special options.
    */
@@ -194,7 +193,6 @@ enum GNUNET_GNSRECORD_Flags {
  * A GNS record.
  */
 struct GNUNET_GNSRECORD_Data {
-
   /**
    * Binary value stored in the DNS record.  Note: "data" must never
    * be individually 'malloc'ed, but instead always points into some
@@ -255,7 +253,6 @@ struct GNUNET_GNSRECORD_PlaceData {
  * Information we have in an encrypted block with record data (i.e. in the DHT).
  */
 struct GNUNET_GNSRECORD_Block {
-
   /**
    * Signature of the block.
    */
@@ -292,7 +289,6 @@ struct GNUNET_GNSRECORD_Block {
  * records inseparable from the "main" A/AAAA/VPN/etc. records.
  */
 struct GNUNET_GNSRECORD_BoxRecord {
-
   /**
    * Protocol of the boxed record (6 = TCP, 17 = UDP, etc.).
    * Yes, in IP protocols are usually limited to 8 bits. In NBO.
@@ -344,7 +340,7 @@ GNUNET_NETWORK_STRUCT_END
  * @param rd array of records with data to store
  */
 typedef void (*GNUNET_GNSRECORD_RecordCallback) (
-    void *cls, unsigned int rd_count, const struct GNUNET_GNSRECORD_Data *rd);
+  void *cls, unsigned int rd_count, const struct GNUNET_GNSRECORD_Data *rd);
 
 
 /* ***************** API related to GNSRECORD plugins ************** */
@@ -359,8 +355,8 @@ typedef void (*GNUNET_GNSRECORD_RecordCallback) (
  * @return NULL on error, otherwise human-readable representation of the value
  */
 char *
-GNUNET_GNSRECORD_value_to_string (uint32_t type, const void *data,
-                                  size_t data_size);
+GNUNET_GNSRECORD_value_to_string(uint32_t type, const void *data,
+                                 size_t data_size);
 
 
 /**
@@ -374,8 +370,8 @@ GNUNET_GNSRECORD_value_to_string (uint32_t type, const void *data,
  * @return #GNUNET_OK on success
  */
 int
-GNUNET_GNSRECORD_string_to_value (uint32_t type, const char *s, void **data,
-                                  size_t *data_size);
+GNUNET_GNSRECORD_string_to_value(uint32_t type, const char *s, void **data,
+                                 size_t *data_size);
 
 
 /**
@@ -385,7 +381,7 @@ GNUNET_GNSRECORD_string_to_value (uint32_t type, const char *s, void **data,
  * @return corresponding number, UINT32_MAX on error
  */
 uint32_t
-GNUNET_GNSRECORD_typename_to_number (const char *dns_typename);
+GNUNET_GNSRECORD_typename_to_number(const char *dns_typename);
 
 
 /**
@@ -395,7 +391,7 @@ GNUNET_GNSRECORD_typename_to_number (const char *dns_typename);
  * @return corresponding typestring, NULL on error
  */
 const char *
-GNUNET_GNSRECORD_number_to_typename (uint32_t type);
+GNUNET_GNSRECORD_number_to_typename(uint32_t type);
 
 
 /* convenience APIs for serializing / deserializing GNS records */
@@ -409,8 +405,8 @@ GNUNET_GNSRECORD_number_to_typename (uint32_t type);
  * @return the required size to serialize, -1 on error
  */
 ssize_t
-GNUNET_GNSRECORD_records_get_size (unsigned int rd_count,
-                                   const struct GNUNET_GNSRECORD_Data *rd);
+GNUNET_GNSRECORD_records_get_size(unsigned int rd_count,
+                                  const struct GNUNET_GNSRECORD_Data *rd);
 
 
 /**
@@ -423,9 +419,9 @@ GNUNET_GNSRECORD_records_get_size (unsigned int rd_count,
  * @return the size of serialized records, -1 if records do not fit
  */
 ssize_t
-GNUNET_GNSRECORD_records_serialize (unsigned int rd_count,
-                                    const struct GNUNET_GNSRECORD_Data *rd,
-                                    size_t dest_size, char *dest);
+GNUNET_GNSRECORD_records_serialize(unsigned int rd_count,
+                                   const struct GNUNET_GNSRECORD_Data *rd,
+                                   size_t dest_size, char *dest);
 
 
 /**
@@ -438,9 +434,9 @@ GNUNET_GNSRECORD_records_serialize (unsigned int rd_count,
  * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
  */
 int
-GNUNET_GNSRECORD_records_deserialize (size_t len, const char *src,
-                                      unsigned int rd_count,
-                                      struct GNUNET_GNSRECORD_Data *dest);
+GNUNET_GNSRECORD_records_deserialize(size_t len, const char *src,
+                                     unsigned int rd_count,
+                                     struct GNUNET_GNSRECORD_Data *dest);
 
 
 /* ******* general APIs relating to blocks, records and labels ******** */
@@ -454,7 +450,7 @@ GNUNET_GNSRECORD_records_deserialize (size_t len, const char *src,
  *         #GNUNET_NO if not
  */
 int
-GNUNET_GNSRECORD_is_expired (const struct GNUNET_GNSRECORD_Data *rd);
+GNUNET_GNSRECORD_is_expired(const struct GNUNET_GNSRECORD_Data *rd);
 
 
 /**
@@ -463,7 +459,7 @@ GNUNET_GNSRECORD_is_expired (const struct GNUNET_GNSRECORD_Data *rd);
  * @return converted result
  */
 char *
-GNUNET_GNSRECORD_string_to_lowercase (const char *src);
+GNUNET_GNSRECORD_string_to_lowercase(const char *src);
 
 
 /**
@@ -476,7 +472,7 @@ GNUNET_GNSRECORD_string_to_lowercase (const char *src);
  * #GNUNET_GNSRECORD_z2s.
  */
 const char *
-GNUNET_GNSRECORD_z2s (const struct GNUNET_CRYPTO_EcdsaPublicKey *z);
+GNUNET_GNSRECORD_z2s(const struct GNUNET_CRYPTO_EcdsaPublicKey *z);
 
 
 /**
@@ -490,7 +486,7 @@ GNUNET_GNSRECORD_z2s (const struct GNUNET_CRYPTO_EcdsaPublicKey *z);
  *         key in an encoding suitable for DNS labels.
  */
 const char *
-GNUNET_GNSRECORD_pkey_to_zkey (const struct GNUNET_CRYPTO_EcdsaPublicKey *pkey);
+GNUNET_GNSRECORD_pkey_to_zkey(const struct GNUNET_CRYPTO_EcdsaPublicKey *pkey);
 
 
 /**
@@ -503,8 +499,8 @@ GNUNET_GNSRECORD_pkey_to_zkey (const struct GNUNET_CRYPTO_EcdsaPublicKey *pkey);
  * @return #GNUNET_SYSERR if @a zkey has the wrong syntax
  */
 int
-GNUNET_GNSRECORD_zkey_to_pkey (const char *zkey,
-                               struct GNUNET_CRYPTO_EcdsaPublicKey *pkey);
+GNUNET_GNSRECORD_zkey_to_pkey(const char *zkey,
+                              struct GNUNET_CRYPTO_EcdsaPublicKey *pkey);
 
 
 /**
@@ -515,9 +511,9 @@ GNUNET_GNSRECORD_zkey_to_pkey (const char *zkey,
  * @param query hash to use for the query
  */
 void
-GNUNET_GNSRECORD_query_from_private_key (
-    const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone, const char *label,
-    struct GNUNET_HashCode *query);
+GNUNET_GNSRECORD_query_from_private_key(
+  const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone, const char *label,
+  struct GNUNET_HashCode *query);
 
 
 /**
@@ -528,9 +524,9 @@ GNUNET_GNSRECORD_query_from_private_key (
  * @param query hash to use for the query
  */
 void
-GNUNET_GNSRECORD_query_from_public_key (
-    const struct GNUNET_CRYPTO_EcdsaPublicKey *pub, const char *label,
-    struct GNUNET_HashCode *query);
+GNUNET_GNSRECORD_query_from_public_key(
+  const struct GNUNET_CRYPTO_EcdsaPublicKey *pub, const char *label,
+  struct GNUNET_HashCode *query);
 
 
 /**
@@ -543,11 +539,11 @@ GNUNET_GNSRECORD_query_from_public_key (
  * @param rd_count number of records in @a rd
  */
 struct GNUNET_GNSRECORD_Block *
-GNUNET_GNSRECORD_block_create (const struct GNUNET_CRYPTO_EcdsaPrivateKey *key,
-                               struct GNUNET_TIME_Absolute expire,
-                               const char *label,
-                               const struct GNUNET_GNSRECORD_Data *rd,
-                               unsigned int rd_count);
+GNUNET_GNSRECORD_block_create(const struct GNUNET_CRYPTO_EcdsaPrivateKey *key,
+                              struct GNUNET_TIME_Absolute expire,
+                              const char *label,
+                              const struct GNUNET_GNSRECORD_Data *rd,
+                              unsigned int rd_count);
 
 
 /**
@@ -562,11 +558,11 @@ GNUNET_GNSRECORD_block_create (const struct GNUNET_CRYPTO_EcdsaPrivateKey *key,
  * @param rd_count number of records in @a rd
  */
 struct GNUNET_GNSRECORD_Block *
-GNUNET_GNSRECORD_block_create2 (const struct GNUNET_CRYPTO_EcdsaPrivateKey *key,
-                                struct GNUNET_TIME_Absolute expire,
-                                const char *label,
-                                const struct GNUNET_GNSRECORD_Data *rd,
-                                unsigned int rd_count);
+GNUNET_GNSRECORD_block_create2(const struct GNUNET_CRYPTO_EcdsaPrivateKey *key,
+                               struct GNUNET_TIME_Absolute expire,
+                               const char *label,
+                               const struct GNUNET_GNSRECORD_Data *rd,
+                               unsigned int rd_count);
 
 
 /**
@@ -577,7 +573,7 @@ GNUNET_GNSRECORD_block_create2 (const struct GNUNET_CRYPTO_EcdsaPrivateKey *key,
  * @return #GNUNET_OK if the signature is valid
  */
 int
-GNUNET_GNSRECORD_block_verify (const struct GNUNET_GNSRECORD_Block *block);
+GNUNET_GNSRECORD_block_verify(const struct GNUNET_GNSRECORD_Block *block);
 
 
 /**
@@ -592,10 +588,10 @@ GNUNET_GNSRECORD_block_verify (const struct GNUNET_GNSRECORD_Block *block);
  *        not well-formed
  */
 int
-GNUNET_GNSRECORD_block_decrypt (
-    const struct GNUNET_GNSRECORD_Block *block,
-    const struct GNUNET_CRYPTO_EcdsaPublicKey *zone_key, const char *label,
-    GNUNET_GNSRECORD_RecordCallback proc, void *proc_cls);
+GNUNET_GNSRECORD_block_decrypt(
+  const struct GNUNET_GNSRECORD_Block *block,
+  const struct GNUNET_CRYPTO_EcdsaPublicKey *zone_key, const char *label,
+  GNUNET_GNSRECORD_RecordCallback proc, void *proc_cls);
 
 
 /**
@@ -606,8 +602,8 @@ GNUNET_GNSRECORD_block_decrypt (
  * @return #GNUNET_YES if the records are equal, or #GNUNET_NO if not.
  */
 int
-GNUNET_GNSRECORD_records_cmp (const struct GNUNET_GNSRECORD_Data *a,
-                              const struct GNUNET_GNSRECORD_Data *b);
+GNUNET_GNSRECORD_records_cmp(const struct GNUNET_GNSRECORD_Data *a,
+                             const struct GNUNET_GNSRECORD_Data *b);
 
 
 /**
@@ -620,8 +616,8 @@ GNUNET_GNSRECORD_records_cmp (const struct GNUNET_GNSRECORD_Data *a,
  * @return absolute expiration time
  */
 struct GNUNET_TIME_Absolute
-GNUNET_GNSRECORD_record_get_expiration_time (
-    unsigned int rd_count, const struct GNUNET_GNSRECORD_Data *rd);
+GNUNET_GNSRECORD_record_get_expiration_time(
+  unsigned int rd_count, const struct GNUNET_GNSRECORD_Data *rd);
 
 
 #if 0 /* keep Emacsens' auto-indent happy */

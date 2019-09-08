@@ -11,12 +11,12 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 
 /**
  * @file fs/fs_tree.h
@@ -41,7 +41,7 @@
  * @return depth of the tree, always > 0.  A depth of 1 means only a DBLOCK.
  */
 unsigned int
-GNUNET_FS_compute_depth (uint64_t flen);
+GNUNET_FS_compute_depth(uint64_t flen);
 
 
 /**
@@ -54,7 +54,7 @@ GNUNET_FS_compute_depth (uint64_t flen);
  * @return number of bytes of payload a subtree of this depth may correspond to
  */
 uint64_t
-GNUNET_FS_tree_compute_tree_size (unsigned int depth);
+GNUNET_FS_tree_compute_tree_size(unsigned int depth);
 
 
 /**
@@ -69,8 +69,8 @@ GNUNET_FS_tree_compute_tree_size (unsigned int depth);
  * @return number of bytes stored in this node
  */
 size_t
-GNUNET_FS_tree_calculate_block_size (uint64_t fsize, uint64_t offset,
-                                     unsigned int depth);
+GNUNET_FS_tree_calculate_block_size(uint64_t fsize, uint64_t offset,
+                                    unsigned int depth);
 
 
 /**
@@ -138,11 +138,11 @@ typedef void (*GNUNET_FS_TreeProgressCallback) (void *cls, uint64_t offset,
  * @return tree encoder context
  */
 struct GNUNET_FS_TreeEncoder *
-GNUNET_FS_tree_encoder_create (struct GNUNET_FS_Handle *h, uint64_t size,
-                               void *cls, GNUNET_FS_DataReader reader,
-                               GNUNET_FS_TreeBlockProcessor proc,
-                               GNUNET_FS_TreeProgressCallback progress,
-                               GNUNET_SCHEDULER_TaskCallback cont);
+GNUNET_FS_tree_encoder_create(struct GNUNET_FS_Handle *h, uint64_t size,
+                              void *cls, GNUNET_FS_DataReader reader,
+                              GNUNET_FS_TreeBlockProcessor proc,
+                              GNUNET_FS_TreeProgressCallback progress,
+                              GNUNET_SCHEDULER_TaskCallback cont);
 
 
 /**
@@ -154,7 +154,7 @@ GNUNET_FS_tree_encoder_create (struct GNUNET_FS_Handle *h, uint64_t size,
  * @param te tree encoder to use
  */
 void
-GNUNET_FS_tree_encoder_next (struct GNUNET_FS_TreeEncoder *te);
+GNUNET_FS_tree_encoder_next(struct GNUNET_FS_TreeEncoder *te);
 
 
 /**
@@ -164,7 +164,7 @@ GNUNET_FS_tree_encoder_next (struct GNUNET_FS_TreeEncoder *te);
  * @return uri set to the resulting URI (if encoding finished), NULL otherwise
  */
 struct GNUNET_FS_Uri *
-GNUNET_FS_tree_encoder_get_uri (struct GNUNET_FS_TreeEncoder *te);
+GNUNET_FS_tree_encoder_get_uri(struct GNUNET_FS_TreeEncoder *te);
 
 
 /**
@@ -178,8 +178,8 @@ GNUNET_FS_tree_encoder_get_uri (struct GNUNET_FS_TreeEncoder *te);
  *        both "*emsg" will be set to NULL).
  */
 void
-GNUNET_FS_tree_encoder_finish (struct GNUNET_FS_TreeEncoder *te,
-                               char **emsg);
+GNUNET_FS_tree_encoder_finish(struct GNUNET_FS_TreeEncoder *te,
+                              char **emsg);
 
 
 #if 0
@@ -194,8 +194,8 @@ GNUNET_FS_tree_encoder_finish (struct GNUNET_FS_TreeEncoder *te,
  * @param size set to the size of the resume data
  */
 void
-GNUNET_FS_tree_encoder_resume_get_data (const struct GNUNET_FS_TreeEncoder *te,
-                                        void **data, size_t * size);
+GNUNET_FS_tree_encoder_resume_get_data(const struct GNUNET_FS_TreeEncoder *te,
+                                       void **data, size_t * size);
 
 
 /**
@@ -207,8 +207,8 @@ GNUNET_FS_tree_encoder_resume_get_data (const struct GNUNET_FS_TreeEncoder *te,
  * @param size the size of the resume data
  */
 void
-GNUNET_FS_tree_encoder_resume (struct GNUNET_FS_TreeEncoder *te,
-                               const void *data, size_t size);
+GNUNET_FS_tree_encoder_resume(struct GNUNET_FS_TreeEncoder *te,
+                              const void *data, size_t size);
 
 #endif
 

@@ -16,7 +16,7 @@
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 
 /**
  * @file transport/transport_api_core.c
@@ -32,7 +32,7 @@
 #include "gnunet_transport_core_service.h"
 #include "transport.h"
 
-#define LOG(kind, ...) GNUNET_log_from (kind, "transport-api-core", __VA_ARGS__)
+#define LOG(kind, ...) GNUNET_log_from(kind, "transport-api-core", __VA_ARGS__)
 
 /**
  * How large to start with for the hashmap of neighbours.
@@ -53,9 +53,7 @@
 /**
  * Entry in hash table of all of our current (connected) neighbours.
  */
-struct Neighbour
-{
-
+struct Neighbour {
   /**
    * Identity of this neighbour.
    */
@@ -107,9 +105,7 @@ struct Neighbour
  * Handle for the transport service (includes all of the
  * state for the transport service).
  */
-struct GNUNET_TRANSPORT_CoreHandle
-{
-
+struct GNUNET_TRANSPORT_CoreHandle {
   /**
    * Closure for the callbacks.
    */
@@ -177,7 +173,7 @@ struct GNUNET_TRANSPORT_CoreHandle
  * @param h transport service to reconnect
  */
 static void
-disconnect_and_schedule_reconnect (struct GNUNET_TRANSPORT_CoreHandle *h);
+disconnect_and_schedule_reconnect(struct GNUNET_TRANSPORT_CoreHandle *h);
 
 
 /**
@@ -188,10 +184,10 @@ disconnect_and_schedule_reconnect (struct GNUNET_TRANSPORT_CoreHandle *h);
  * @return NULL if no such peer entry exists
  */
 static struct Neighbour *
-neighbour_find (struct GNUNET_TRANSPORT_CoreHandle *h,
-                const struct GNUNET_PeerIdentity *peer)
+neighbour_find(struct GNUNET_TRANSPORT_CoreHandle *h,
+               const struct GNUNET_PeerIdentity *peer)
 {
-  return GNUNET_CONTAINER_multipeermap_get (h->neighbours, peer);
+  return GNUNET_CONTAINER_multipeermap_get(h->neighbours, peer);
 }
 
 
@@ -206,27 +202,27 @@ neighbour_find (struct GNUNET_TRANSPORT_CoreHandle *h,
  *         #GNUNET_NO if not.
  */
 static int
-neighbour_delete (void *cls, const struct GNUNET_PeerIdentity *key, void *value)
+neighbour_delete(void *cls, const struct GNUNET_PeerIdentity *key, void *value)
 {
   struct GNUNET_TRANSPORT_CoreHandle *handle = cls;
   struct Neighbour *n = value;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Dropping entry for neighbour `%s'.\n",
-       GNUNET_i2s (key));
+  LOG(GNUNET_ERROR_TYPE_DEBUG,
+      "Dropping entry for neighbour `%s'.\n",
+      GNUNET_i2s(key));
   if (NULL != handle->nd_cb)
-    handle->nd_cb (handle->cls, &n->id, n->handlers_cls);
+    handle->nd_cb(handle->cls, &n->id, n->handlers_cls);
   if (NULL != n->env)
-  {
-    GNUNET_MQ_send_cancel (n->env);
-    n->env = NULL;
-  }
-  GNUNET_MQ_destroy (n->mq);
-  GNUNET_assert (NULL == n->mq);
-  GNUNET_assert (
+    {
+      GNUNET_MQ_send_cancel(n->env);
+      n->env = NULL;
+    }
+  GNUNET_MQ_destroy(n->mq);
+  GNUNET_assert(NULL == n->mq);
+  GNUNET_assert(
     GNUNET_YES ==
-    GNUNET_CONTAINER_multipeermap_remove (handle->neighbours, key, n));
-  GNUNET_free (n);
+    GNUNET_CONTAINER_multipeermap_remove(handle->neighbours, key, n));
+  GNUNET_free(n);
   return GNUNET_YES;
 }
 
@@ -241,13 +237,13 @@ neighbour_delete (void *cls, const struct GNUNET_PeerIdentity *key, void *value)
  * @param error error code
  */
 static void
-mq_error_handler (void *cls, enum GNUNET_MQ_Error error)
+mq_error_handler(void *cls, enum GNUNET_MQ_Error error)
 {
   struct GNUNET_TRANSPORT_CoreHandle *h = cls;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Error receiving from transport service, disconnecting temporarily.\n");
-  disconnect_and_schedule_reconnect (h);
+  LOG(GNUNET_ERROR_TYPE_DEBUG,
+      "Error receiving from transport service, disconnecting temporarily.\n");
+  disconnect_and_schedule_reconnect(h);
 }
 
 
@@ -262,13 +258,13 @@ mq_error_handler (void *cls, enum GNUNET_MQ_Error error)
  * @param cls the `struct Neighbour` where the message was sent
  */
 static void
-notify_send_done (void *cls)
+notify_send_done(void *cls)
 {
   struct Neighbour *n = cls;
 
   n->awaiting_done = GNUNET_NO;
   n->env = NULL;
-  GNUNET_MQ_impl_send_continue (n->mq);
+  GNUNET_MQ_impl_send_continue(n->mq);
 }
 
 
@@ -279,18 +275,18 @@ notify_send_done (void *cls)
  * @param n neighbour to perform transmission for
  */
 static void
-do_send (struct Neighbour *n)
+do_send(struct Neighbour *n)
 {
-  GNUNET_assert (0 < n->ready_window);
-  GNUNET_assert (NULL != n->env);
+  GNUNET_assert(0 < n->ready_window);
+  GNUNET_assert(NULL != n->env);
   n->ready_window--;
   n->awaiting_done = GNUNET_YES;
-  GNUNET_MQ_notify_sent (n->env, &notify_send_done, n);
-  GNUNET_MQ_send (n->h->mq, n->env);
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Passed message of type %u for neighbour `%s' to TRANSPORT.\n",
-       ntohs (GNUNET_MQ_env_get_msg (n->env)->type),
-       GNUNET_i2s (&n->id));
+  GNUNET_MQ_notify_sent(n->env, &notify_send_done, n);
+  GNUNET_MQ_send(n->h->mq, n->env);
+  LOG(GNUNET_ERROR_TYPE_DEBUG,
+      "Passed message of type %u for neighbour `%s' to TRANSPORT.\n",
+      ntohs(GNUNET_MQ_env_get_msg(n->env)->type),
+      GNUNET_i2s(&n->id));
 }
 
 
@@ -305,44 +301,44 @@ do_send (struct Neighbour *n)
  * @param impl_state state of the implementation
  */
 static void
-mq_send_impl (struct GNUNET_MQ_Handle *mq,
-              const struct GNUNET_MessageHeader *msg,
-              void *impl_state)
+mq_send_impl(struct GNUNET_MQ_Handle *mq,
+             const struct GNUNET_MessageHeader *msg,
+             void *impl_state)
 {
   struct Neighbour *n = impl_state;
   struct OutboundMessage *obm;
   uint16_t msize;
 
-  msize = ntohs (msg->size);
-  if (msize >= GNUNET_MAX_MESSAGE_SIZE - sizeof (*obm))
-  {
-    GNUNET_break (0);
-    GNUNET_MQ_impl_send_continue (mq);
-    return;
-  }
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "CORE requested transmission of message of type %u to neighbour `%s'.\n",
-       ntohs (msg->type),
-       GNUNET_i2s (&n->id));
+  msize = ntohs(msg->size);
+  if (msize >= GNUNET_MAX_MESSAGE_SIZE - sizeof(*obm))
+    {
+      GNUNET_break(0);
+      GNUNET_MQ_impl_send_continue(mq);
+      return;
+    }
+  LOG(GNUNET_ERROR_TYPE_DEBUG,
+      "CORE requested transmission of message of type %u to neighbour `%s'.\n",
+      ntohs(msg->type),
+      GNUNET_i2s(&n->id));
 
-  GNUNET_assert (NULL == n->env);
+  GNUNET_assert(NULL == n->env);
   n->env =
-    GNUNET_MQ_msg_nested_mh (obm, GNUNET_MESSAGE_TYPE_TRANSPORT_SEND, msg);
-  n->env_size = ntohs (msg->size);
+    GNUNET_MQ_msg_nested_mh(obm, GNUNET_MESSAGE_TYPE_TRANSPORT_SEND, msg);
+  n->env_size = ntohs(msg->size);
   {
     struct GNUNET_MQ_Envelope *env;
 
-    env = GNUNET_MQ_get_current_envelope (mq);
-    obm->priority = htonl ((uint32_t) GNUNET_MQ_env_get_options (env));
+    env = GNUNET_MQ_get_current_envelope(mq);
+    obm->priority = htonl((uint32_t)GNUNET_MQ_env_get_options(env));
   }
   obm->peer = n->id;
   if (0 == n->ready_window)
-  {
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Flow control delays transmission to CORE until we see SEND_OK.\n");
-    return; /* can't send yet, need to wait for SEND_OK */
-  }
-  do_send (n);
+    {
+      LOG(GNUNET_ERROR_TYPE_DEBUG,
+          "Flow control delays transmission to CORE until we see SEND_OK.\n");
+      return; /* can't send yet, need to wait for SEND_OK */
+    }
+  do_send(n);
 }
 
 
@@ -354,11 +350,11 @@ mq_send_impl (struct GNUNET_MQ_Handle *mq,
  * @param impl_state state of the implementation
  */
 static void
-mq_destroy_impl (struct GNUNET_MQ_Handle *mq, void *impl_state)
+mq_destroy_impl(struct GNUNET_MQ_Handle *mq, void *impl_state)
 {
   struct Neighbour *n = impl_state;
 
-  GNUNET_assert (mq == n->mq);
+  GNUNET_assert(mq == n->mq);
   n->mq = NULL;
 }
 
@@ -371,22 +367,22 @@ mq_destroy_impl (struct GNUNET_MQ_Handle *mq, void *impl_state)
  * @param impl_state state specific to the implementation
  */
 static void
-mq_cancel_impl (struct GNUNET_MQ_Handle *mq, void *impl_state)
+mq_cancel_impl(struct GNUNET_MQ_Handle *mq, void *impl_state)
 {
   struct Neighbour *n = impl_state;
 
   n->ready_window++;
   if (GNUNET_YES == n->awaiting_done)
-  {
-    GNUNET_MQ_send_cancel (n->env);
-    n->env = NULL;
-    n->awaiting_done = GNUNET_NO;
-  }
+    {
+      GNUNET_MQ_send_cancel(n->env);
+      n->env = NULL;
+      n->awaiting_done = GNUNET_NO;
+    }
   else
-  {
-    GNUNET_assert (0 == n->ready_window);
-    n->env = NULL;
-  }
+    {
+      GNUNET_assert(0 == n->ready_window);
+      n->env = NULL;
+    }
 }
 
 
@@ -399,11 +395,11 @@ mq_cancel_impl (struct GNUNET_MQ_Handle *mq, void *impl_state)
  * @param error error code
  */
 static void
-peer_mq_error_handler (void *cls, enum GNUNET_MQ_Error error)
+peer_mq_error_handler(void *cls, enum GNUNET_MQ_Error error)
 {
   /* struct Neighbour *n = cls; */
 
-  GNUNET_break_op (0);
+  GNUNET_break_op(0);
 }
 
 
@@ -414,44 +410,44 @@ peer_mq_error_handler (void *cls, enum GNUNET_MQ_Error error)
  * @param cim message received
  */
 static void
-handle_connect (void *cls, const struct ConnectInfoMessage *cim)
+handle_connect(void *cls, const struct ConnectInfoMessage *cim)
 {
   struct GNUNET_TRANSPORT_CoreHandle *h = cls;
   struct Neighbour *n;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Receiving CONNECT message for `%s'\n",
-       GNUNET_i2s (&cim->id));
-  n = neighbour_find (h, &cim->id);
+  LOG(GNUNET_ERROR_TYPE_DEBUG,
+      "Receiving CONNECT message for `%s'\n",
+      GNUNET_i2s(&cim->id));
+  n = neighbour_find(h, &cim->id);
   if (NULL != n)
-  {
-    GNUNET_break (0);
-    disconnect_and_schedule_reconnect (h);
-    return;
-  }
-  n = GNUNET_new (struct Neighbour);
+    {
+      GNUNET_break(0);
+      disconnect_and_schedule_reconnect(h);
+      return;
+    }
+  n = GNUNET_new(struct Neighbour);
   n->id = cim->id;
   n->h = h;
   n->ready_window = SEND_WINDOW_SIZE;
-  GNUNET_assert (GNUNET_OK ==
-                 GNUNET_CONTAINER_multipeermap_put (
-                   h->neighbours,
-                   &n->id,
-                   n,
-                   GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
+  GNUNET_assert(GNUNET_OK ==
+                GNUNET_CONTAINER_multipeermap_put(
+                  h->neighbours,
+                  &n->id,
+                  n,
+                  GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
 
-  n->mq = GNUNET_MQ_queue_for_callbacks (&mq_send_impl,
-                                         &mq_destroy_impl,
-                                         &mq_cancel_impl,
-                                         n,
-                                         h->handlers,
-                                         &peer_mq_error_handler,
-                                         n);
+  n->mq = GNUNET_MQ_queue_for_callbacks(&mq_send_impl,
+                                        &mq_destroy_impl,
+                                        &mq_cancel_impl,
+                                        n,
+                                        h->handlers,
+                                        &peer_mq_error_handler,
+                                        n);
   if (NULL != h->nc_cb)
-  {
-    n->handlers_cls = h->nc_cb (h->cls, &n->id, n->mq);
-    GNUNET_MQ_set_handlers_closure (n->mq, n->handlers_cls);
-  }
+    {
+      n->handlers_cls = h->nc_cb(h->cls, &n->id, n->mq);
+      GNUNET_MQ_set_handlers_closure(n->mq, n->handlers_cls);
+    }
 }
 
 
@@ -462,23 +458,23 @@ handle_connect (void *cls, const struct ConnectInfoMessage *cim)
  * @param dim message received
  */
 static void
-handle_disconnect (void *cls, const struct DisconnectInfoMessage *dim)
+handle_disconnect(void *cls, const struct DisconnectInfoMessage *dim)
 {
   struct GNUNET_TRANSPORT_CoreHandle *h = cls;
   struct Neighbour *n;
 
-  GNUNET_break (ntohl (dim->reserved) == 0);
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Receiving DISCONNECT message for `%s'.\n",
-       GNUNET_i2s (&dim->peer));
-  n = neighbour_find (h, &dim->peer);
+  GNUNET_break(ntohl(dim->reserved) == 0);
+  LOG(GNUNET_ERROR_TYPE_DEBUG,
+      "Receiving DISCONNECT message for `%s'.\n",
+      GNUNET_i2s(&dim->peer));
+  n = neighbour_find(h, &dim->peer);
   if (NULL == n)
-  {
-    GNUNET_break (0);
-    disconnect_and_schedule_reconnect (h);
-    return;
-  }
-  GNUNET_assert (GNUNET_YES == neighbour_delete (h, &dim->peer, n));
+    {
+      GNUNET_break(0);
+      disconnect_and_schedule_reconnect(h);
+      return;
+    }
+  GNUNET_assert(GNUNET_YES == neighbour_delete(h, &dim->peer, n));
 }
 
 
@@ -489,26 +485,26 @@ handle_disconnect (void *cls, const struct DisconnectInfoMessage *dim)
  * @param okm message received
  */
 static void
-handle_send_ok (void *cls, const struct SendOkMessage *okm)
+handle_send_ok(void *cls, const struct SendOkMessage *okm)
 {
   struct GNUNET_TRANSPORT_CoreHandle *h = cls;
   struct Neighbour *n;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Receiving SEND_OK message for transmission to %s\n",
-       GNUNET_i2s (&okm->peer));
-  n = neighbour_find (h, &okm->peer);
+  LOG(GNUNET_ERROR_TYPE_DEBUG,
+      "Receiving SEND_OK message for transmission to %s\n",
+      GNUNET_i2s(&okm->peer));
+  n = neighbour_find(h, &okm->peer);
   if (NULL == n)
-  {
-    /* We should never get a 'SEND_OK' for a peer that we are not
-       connected to */
-    GNUNET_break (0);
-    disconnect_and_schedule_reconnect (h);
-    return;
-  }
+    {
+      /* We should never get a 'SEND_OK' for a peer that we are not
+         connected to */
+      GNUNET_break(0);
+      disconnect_and_schedule_reconnect(h);
+      return;
+    }
   n->ready_window++;
   if ((NULL != n->env) && (1 == n->ready_window))
-    do_send (n);
+    do_send(n);
 }
 
 
@@ -519,23 +515,23 @@ handle_send_ok (void *cls, const struct SendOkMessage *okm)
  * @param im message received
  */
 static int
-check_recv (void *cls, const struct InboundMessage *im)
+check_recv(void *cls, const struct InboundMessage *im)
 {
   const struct GNUNET_MessageHeader *imm;
   uint16_t size;
 
-  size = ntohs (im->header.size) - sizeof (*im);
-  if (size < sizeof (struct GNUNET_MessageHeader))
-  {
-    GNUNET_break (0);
-    return GNUNET_SYSERR;
-  }
-  imm = (const struct GNUNET_MessageHeader *) &im[1];
-  if (ntohs (imm->size) != size)
-  {
-    GNUNET_break (0);
-    return GNUNET_SYSERR;
-  }
+  size = ntohs(im->header.size) - sizeof(*im);
+  if (size < sizeof(struct GNUNET_MessageHeader))
+    {
+      GNUNET_break(0);
+      return GNUNET_SYSERR;
+    }
+  imm = (const struct GNUNET_MessageHeader *)&im[1];
+  if (ntohs(imm->size) != size)
+    {
+      GNUNET_break(0);
+      return GNUNET_SYSERR;
+    }
   return GNUNET_OK;
 }
 
@@ -547,26 +543,26 @@ check_recv (void *cls, const struct InboundMessage *im)
  * @param im message received
  */
 static void
-handle_recv (void *cls, const struct InboundMessage *im)
+handle_recv(void *cls, const struct InboundMessage *im)
 {
   struct GNUNET_TRANSPORT_CoreHandle *h = cls;
   const struct GNUNET_MessageHeader *imm =
-    (const struct GNUNET_MessageHeader *) &im[1];
+    (const struct GNUNET_MessageHeader *)&im[1];
   struct Neighbour *n;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Received message of type %u with %u bytes from `%s'.\n",
-       (unsigned int) ntohs (imm->type),
-       (unsigned int) ntohs (imm->size),
-       GNUNET_i2s (&im->peer));
-  n = neighbour_find (h, &im->peer);
+  LOG(GNUNET_ERROR_TYPE_DEBUG,
+      "Received message of type %u with %u bytes from `%s'.\n",
+      (unsigned int)ntohs(imm->type),
+      (unsigned int)ntohs(imm->size),
+      GNUNET_i2s(&im->peer));
+  n = neighbour_find(h, &im->peer);
   if (NULL == n)
-  {
-    GNUNET_break (0);
-    disconnect_and_schedule_reconnect (h);
-    return;
-  }
-  GNUNET_MQ_inject_message (n->mq, imm);
+    {
+      GNUNET_break(0);
+      disconnect_and_schedule_reconnect(h);
+      return;
+    }
+  GNUNET_MQ_inject_message(n->mq, imm);
 }
 
 
@@ -576,47 +572,47 @@ handle_recv (void *cls, const struct InboundMessage *im)
  * @param cls the handle to the transport service
  */
 static void
-reconnect (void *cls)
+reconnect(void *cls)
 {
   struct GNUNET_TRANSPORT_CoreHandle *h = cls;
   struct GNUNET_MQ_MessageHandler handlers[] =
-    {GNUNET_MQ_hd_fixed_size (connect,
-                              GNUNET_MESSAGE_TYPE_TRANSPORT_CONNECT,
-                              struct ConnectInfoMessage,
-                              h),
-     GNUNET_MQ_hd_fixed_size (disconnect,
-                              GNUNET_MESSAGE_TYPE_TRANSPORT_DISCONNECT,
-                              struct DisconnectInfoMessage,
-                              h),
-     GNUNET_MQ_hd_fixed_size (send_ok,
-                              GNUNET_MESSAGE_TYPE_TRANSPORT_SEND_OK,
-                              struct SendOkMessage,
-                              h),
-     GNUNET_MQ_hd_var_size (recv,
-                            GNUNET_MESSAGE_TYPE_TRANSPORT_RECV,
-                            struct InboundMessage,
+  { GNUNET_MQ_hd_fixed_size(connect,
+                            GNUNET_MESSAGE_TYPE_TRANSPORT_CONNECT,
+                            struct ConnectInfoMessage,
                             h),
-     GNUNET_MQ_handler_end ()};
+    GNUNET_MQ_hd_fixed_size(disconnect,
+                            GNUNET_MESSAGE_TYPE_TRANSPORT_DISCONNECT,
+                            struct DisconnectInfoMessage,
+                            h),
+    GNUNET_MQ_hd_fixed_size(send_ok,
+                            GNUNET_MESSAGE_TYPE_TRANSPORT_SEND_OK,
+                            struct SendOkMessage,
+                            h),
+    GNUNET_MQ_hd_var_size(recv,
+                          GNUNET_MESSAGE_TYPE_TRANSPORT_RECV,
+                          struct InboundMessage,
+                          h),
+    GNUNET_MQ_handler_end() };
   struct GNUNET_MQ_Envelope *env;
   struct StartMessage *s;
   uint32_t options;
 
   h->reconnect_task = NULL;
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Connecting to transport service.\n");
-  GNUNET_assert (NULL == h->mq);
+  LOG(GNUNET_ERROR_TYPE_DEBUG, "Connecting to transport service.\n");
+  GNUNET_assert(NULL == h->mq);
   h->mq =
-    GNUNET_CLIENT_connect (h->cfg, "transport", handlers, &mq_error_handler, h);
+    GNUNET_CLIENT_connect(h->cfg, "transport", handlers, &mq_error_handler, h);
   if (NULL == h->mq)
     return;
-  env = GNUNET_MQ_msg (s, GNUNET_MESSAGE_TYPE_TRANSPORT_START);
+  env = GNUNET_MQ_msg(s, GNUNET_MESSAGE_TYPE_TRANSPORT_START);
   options = 0;
   if (h->check_self)
     options |= 1;
   if (NULL != h->handlers)
     options |= 2;
-  s->options = htonl (options);
+  s->options = htonl(options);
   s->self = h->self;
-  GNUNET_MQ_send (h->mq, env);
+  GNUNET_MQ_send(h->mq, env);
 }
 
 
@@ -626,14 +622,14 @@ reconnect (void *cls)
  * @param h transport service to reconnect
  */
 static void
-disconnect (struct GNUNET_TRANSPORT_CoreHandle *h)
+disconnect(struct GNUNET_TRANSPORT_CoreHandle *h)
 {
-  GNUNET_CONTAINER_multipeermap_iterate (h->neighbours, &neighbour_delete, h);
+  GNUNET_CONTAINER_multipeermap_iterate(h->neighbours, &neighbour_delete, h);
   if (NULL != h->mq)
-  {
-    GNUNET_MQ_destroy (h->mq);
-    h->mq = NULL;
-  }
+    {
+      GNUNET_MQ_destroy(h->mq);
+      h->mq = NULL;
+    }
 }
 
 
@@ -644,16 +640,16 @@ disconnect (struct GNUNET_TRANSPORT_CoreHandle *h)
  * @param h transport service to reconnect
  */
 static void
-disconnect_and_schedule_reconnect (struct GNUNET_TRANSPORT_CoreHandle *h)
+disconnect_and_schedule_reconnect(struct GNUNET_TRANSPORT_CoreHandle *h)
 {
-  GNUNET_assert (NULL == h->reconnect_task);
-  disconnect (h);
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Scheduling task to reconnect to transport service in %s.\n",
-       GNUNET_STRINGS_relative_time_to_string (h->reconnect_delay, GNUNET_YES));
+  GNUNET_assert(NULL == h->reconnect_task);
+  disconnect(h);
+  LOG(GNUNET_ERROR_TYPE_DEBUG,
+      "Scheduling task to reconnect to transport service in %s.\n",
+      GNUNET_STRINGS_relative_time_to_string(h->reconnect_delay, GNUNET_YES));
   h->reconnect_task =
-    GNUNET_SCHEDULER_add_delayed (h->reconnect_delay, &reconnect, h);
-  h->reconnect_delay = GNUNET_TIME_STD_BACKOFF (h->reconnect_delay);
+    GNUNET_SCHEDULER_add_delayed(h->reconnect_delay, &reconnect, h);
+  h->reconnect_delay = GNUNET_TIME_STD_BACKOFF(h->reconnect_delay);
 }
 
 
@@ -665,12 +661,12 @@ disconnect_and_schedule_reconnect (struct GNUNET_TRANSPORT_CoreHandle *h)
  * @return NULL if disconnected, otherwise message queue for @a peer
  */
 struct GNUNET_MQ_Handle *
-GNUNET_TRANSPORT_core_get_mq (struct GNUNET_TRANSPORT_CoreHandle *handle,
-                              const struct GNUNET_PeerIdentity *peer)
+GNUNET_TRANSPORT_core_get_mq(struct GNUNET_TRANSPORT_CoreHandle *handle,
+                             const struct GNUNET_PeerIdentity *peer)
 {
   struct Neighbour *n;
 
-  n = neighbour_find (handle, peer);
+  n = neighbour_find(handle, peer);
   if (NULL == n)
     return NULL;
   return n->mq;
@@ -698,21 +694,21 @@ GNUNET_TRANSPORT_core_get_mq (struct GNUNET_TRANSPORT_CoreHandle *handle,
  * @param pid which peer was the message from that was fully processed by CORE
  */
 void
-GNUNET_TRANSPORT_core_receive_continue (struct GNUNET_TRANSPORT_CoreHandle *ch,
-                                        const struct GNUNET_PeerIdentity *pid)
+GNUNET_TRANSPORT_core_receive_continue(struct GNUNET_TRANSPORT_CoreHandle *ch,
+                                       const struct GNUNET_PeerIdentity *pid)
 {
   struct GNUNET_MQ_Envelope *env;
   struct RecvOkMessage *rok;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Message for %s finished CORE processing, sending RECV_OK.\n",
-       GNUNET_i2s (pid));
+  LOG(GNUNET_ERROR_TYPE_DEBUG,
+      "Message for %s finished CORE processing, sending RECV_OK.\n",
+      GNUNET_i2s(pid));
   if (NULL == ch->mq)
     return;
-  env = GNUNET_MQ_msg (rok, GNUNET_MESSAGE_TYPE_TRANSPORT_RECV_OK);
-  rok->increase_window_delta = htonl (1);
+  env = GNUNET_MQ_msg(rok, GNUNET_MESSAGE_TYPE_TRANSPORT_RECV_OK);
+  rok->increase_window_delta = htonl(1);
   rok->peer = *pid;
-  GNUNET_MQ_send (ch->mq, env);
+  GNUNET_MQ_send(ch->mq, env);
 }
 
 
@@ -730,46 +726,46 @@ GNUNET_TRANSPORT_core_receive_continue (struct GNUNET_TRANSPORT_CoreHandle *ch,
  * @return NULL on error
  */
 struct GNUNET_TRANSPORT_CoreHandle *
-GNUNET_TRANSPORT_core_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                               const struct GNUNET_PeerIdentity *self,
-                               const struct GNUNET_MQ_MessageHandler *handlers,
-                               void *cls,
-                               GNUNET_TRANSPORT_NotifyConnect nc,
-                               GNUNET_TRANSPORT_NotifyDisconnect nd)
+GNUNET_TRANSPORT_core_connect(const struct GNUNET_CONFIGURATION_Handle *cfg,
+                              const struct GNUNET_PeerIdentity *self,
+                              const struct GNUNET_MQ_MessageHandler *handlers,
+                              void *cls,
+                              GNUNET_TRANSPORT_NotifyConnect nc,
+                              GNUNET_TRANSPORT_NotifyDisconnect nd)
 {
   struct GNUNET_TRANSPORT_CoreHandle *h;
   unsigned int i;
 
-  h = GNUNET_new (struct GNUNET_TRANSPORT_CoreHandle);
+  h = GNUNET_new(struct GNUNET_TRANSPORT_CoreHandle);
   if (NULL != self)
-  {
-    h->self = *self;
-    h->check_self = GNUNET_YES;
-  }
+    {
+      h->self = *self;
+      h->check_self = GNUNET_YES;
+    }
   h->cfg = cfg;
   h->cls = cls;
   h->nc_cb = nc;
   h->nd_cb = nd;
   h->reconnect_delay = GNUNET_TIME_UNIT_ZERO;
   if (NULL != handlers)
-  {
-    for (i = 0; NULL != handlers[i].cb; i++)
-      ;
-    h->handlers = GNUNET_new_array (i + 1, struct GNUNET_MQ_MessageHandler);
-    GNUNET_memcpy (h->handlers,
-                   handlers,
-                   i * sizeof (struct GNUNET_MQ_MessageHandler));
-  }
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Connecting to transport service\n");
-  reconnect (h);
+    {
+      for (i = 0; NULL != handlers[i].cb; i++)
+        ;
+      h->handlers = GNUNET_new_array(i + 1, struct GNUNET_MQ_MessageHandler);
+      GNUNET_memcpy(h->handlers,
+                    handlers,
+                    i * sizeof(struct GNUNET_MQ_MessageHandler));
+    }
+  LOG(GNUNET_ERROR_TYPE_DEBUG, "Connecting to transport service\n");
+  reconnect(h);
   if (NULL == h->mq)
-  {
-    GNUNET_free_non_null (h->handlers);
-    GNUNET_free (h);
-    return NULL;
-  }
+    {
+      GNUNET_free_non_null(h->handlers);
+      GNUNET_free(h);
+      return NULL;
+    }
   h->neighbours =
-    GNUNET_CONTAINER_multipeermap_create (STARTING_NEIGHBOURS_SIZE, GNUNET_YES);
+    GNUNET_CONTAINER_multipeermap_create(STARTING_NEIGHBOURS_SIZE, GNUNET_YES);
   return h;
 }
 
@@ -781,22 +777,22 @@ GNUNET_TRANSPORT_core_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * #GNUNET_TRANSPORT_core_connect()
  */
 void
-GNUNET_TRANSPORT_core_disconnect (struct GNUNET_TRANSPORT_CoreHandle *handle)
+GNUNET_TRANSPORT_core_disconnect(struct GNUNET_TRANSPORT_CoreHandle *handle)
 {
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Transport disconnect called!\n");
+  LOG(GNUNET_ERROR_TYPE_DEBUG, "Transport disconnect called!\n");
   /* this disconnects all neighbours... */
-  disconnect (handle);
+  disconnect(handle);
   /* and now we stop trying to connect again... */
   if (NULL != handle->reconnect_task)
-  {
-    GNUNET_SCHEDULER_cancel (handle->reconnect_task);
-    handle->reconnect_task = NULL;
-  }
-  GNUNET_CONTAINER_multipeermap_destroy (handle->neighbours);
+    {
+      GNUNET_SCHEDULER_cancel(handle->reconnect_task);
+      handle->reconnect_task = NULL;
+    }
+  GNUNET_CONTAINER_multipeermap_destroy(handle->neighbours);
   handle->neighbours = NULL;
-  GNUNET_free_non_null (handle->handlers);
+  GNUNET_free_non_null(handle->handlers);
   handle->handlers = NULL;
-  GNUNET_free (handle);
+  GNUNET_free(handle);
 }
 
 

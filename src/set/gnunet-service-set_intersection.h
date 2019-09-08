@@ -12,12 +12,12 @@
       WITHOUT ANY WARRANTY; without even the implied warranty of
       MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
       Affero General Public License for more details.
-     
+
       You should have received a copy of the GNU Affero General Public License
       along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 /**
  * @file set/gnunet-service-set_intersection.h
  * @brief two-peer set operations
@@ -38,8 +38,8 @@
  * @return #GNUNET_OK if @a msg is well-formed
  */
 int
-check_intersection_p2p_bf (void *cls,
-                           const struct BFMessage *msg);
+check_intersection_p2p_bf(void *cls,
+                          const struct BFMessage *msg);
 
 
 /**
@@ -49,8 +49,8 @@ check_intersection_p2p_bf (void *cls,
  * @param msg the header of the message
  */
 void
-handle_intersection_p2p_bf (void *cls,
-                            const struct BFMessage *msg);
+handle_intersection_p2p_bf(void *cls,
+                           const struct BFMessage *msg);
 
 
 /**
@@ -61,8 +61,8 @@ handle_intersection_p2p_bf (void *cls,
  * @param mh the header of the message
  */
 void
-handle_intersection_p2p_element_info (void *cls,
-                                      const struct IntersectionElementInfoMessage *msg);
+handle_intersection_p2p_element_info(void *cls,
+                                     const struct IntersectionElementInfoMessage *msg);
 
 
 /**
@@ -72,8 +72,8 @@ handle_intersection_p2p_element_info (void *cls,
  * @param mh the message
  */
 void
-handle_intersection_p2p_done (void *cls,
-                              const struct IntersectionDoneMessage *idm);
+handle_intersection_p2p_done(void *cls,
+                             const struct IntersectionDoneMessage *idm);
 
 
 #endif

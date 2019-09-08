@@ -11,12 +11,12 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 
 /**
  * @file fs/fs.h
@@ -50,8 +50,7 @@
 /**
  * @brief content hash key
  */
-struct ContentHashKey
-{
+struct ContentHashKey {
   /**
    * Hash of the original content, used for encryption.
    */
@@ -71,9 +70,7 @@ GNUNET_NETWORK_STRUCT_BEGIN
  * Message sent from a GNUnet (fs) publishing activity to sign
  * a LOC URI.
  */
-struct RequestLocSignatureMessage
-{
-
+struct RequestLocSignatureMessage {
   /**
    * Message type will be #GNUNET_MESSAGE_TYPE_FS_REQUEST_LOC_SIGN.
    */
@@ -105,9 +102,7 @@ struct RequestLocSignatureMessage
 /**
  * Message sent from the service with the signed LOC URI.
  */
-struct ResponseLocSignatureMessage
-{
-
+struct ResponseLocSignatureMessage {
   /**
    * Message type will be
    * #GNUNET_MESSAGE_TYPE_FS_REQUEST_LOC_SIGNATURE.
@@ -150,9 +145,7 @@ struct ResponseLocSignatureMessage
  * computing it; this is an optimization that should be safe given
  * that the client is not our adversary).
  */
-struct IndexStartMessage
-{
-
+struct IndexStartMessage {
   /**
    * Message type will be #GNUNET_MESSAGE_TYPE_FS_INDEX_START.
    */
@@ -188,7 +181,6 @@ struct IndexStartMessage
   /* this is followed by a 0-terminated
    * filename of a file with the hash
    * "file_id" as seen by the client */
-
 };
 
 
@@ -196,8 +188,7 @@ struct IndexStartMessage
  * Message send by FS service in response to a request
  * asking for a list of all indexed files.
  */
-struct IndexInfoMessage
-{
+struct IndexInfoMessage {
   /**
    * Message type will be
    * #GNUNET_MESSAGE_TYPE_FS_INDEX_LIST_ENTRY.
@@ -217,7 +208,6 @@ struct IndexInfoMessage
   /* this is followed by a 0-terminated
    * filename of a file with the hash
    * "file_id" as seen by the client */
-
 };
 
 
@@ -228,9 +218,7 @@ struct IndexInfoMessage
  * files and response with a confirmation message (even if the file
  * was already not on the list).
  */
-struct UnindexMessage
-{
-
+struct UnindexMessage {
   /**
    * Message type will be #GNUNET_MESSAGE_TYPE_FS_UNINDEX.
    */
@@ -245,7 +233,6 @@ struct UnindexMessage
    * Hash of the file that we will unindex.
    */
   struct GNUNET_HashCode file_id;
-
 };
 
 
@@ -272,9 +259,7 @@ struct UnindexMessage
  * Message sent from a GNUnet (fs) search activity to the
  * gnunet-service-fs to start a search.
  */
-struct SearchMessage
-{
-
+struct SearchMessage {
   /**
    * Message type will be #GNUNET_MESSAGE_TYPE_FS_START_SEARCH.
    */
@@ -333,9 +318,7 @@ struct SearchMessage
  * single response are considered done.  This message is transmitted
  * between peers.
  */
-struct PutMessage
-{
-
+struct PutMessage {
   /**
    * Message type will be #GNUNET_MESSAGE_TYPE_FS_PUT.
    */
@@ -352,7 +335,6 @@ struct PutMessage
   struct GNUNET_TIME_AbsoluteNBO expiration;
 
   /* this is followed by the actual encrypted content */
-
 };
 
 /**
@@ -361,9 +343,7 @@ struct PutMessage
  * single response are considered done.  This message is transmitted
  * between the service and a client.
  */
-struct ClientPutMessage
-{
-
+struct ClientPutMessage {
   /**
    * Message type will be #GNUNET_MESSAGE_TYPE_FS_PUT.
    */
@@ -398,7 +378,6 @@ struct ClientPutMessage
   uint32_t respect_offered;
 
   /* this is followed by the actual encrypted content */
-
 };
 GNUNET_NETWORK_STRUCT_END
 

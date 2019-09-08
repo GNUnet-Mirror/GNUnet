@@ -11,12 +11,12 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 
 /**
  * @file transport/gnunet-service-transport.h
@@ -83,12 +83,12 @@ extern struct GNUNET_NT_InterfaceScanner *GST_is;
  */
 typedef void
 (*GNUNET_TRANSPORT_NeighbourChangeCallback) (void *cls,
-    const struct GNUNET_PeerIdentity *peer,
-    const struct GNUNET_HELLO_Address *address,
-    enum GNUNET_TRANSPORT_PeerState state,
-    struct GNUNET_TIME_Absolute state_timeout,
-    struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
-    struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out);
+                                             const struct GNUNET_PeerIdentity *peer,
+                                             const struct GNUNET_HELLO_Address *address,
+                                             enum GNUNET_TRANSPORT_PeerState state,
+                                             struct GNUNET_TIME_Absolute state_timeout,
+                                             struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
+                                             struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out);
 
 
 /**
@@ -105,8 +105,8 @@ typedef void
 typedef void
 (*GST_BlacklistTestContinuation) (void *cls,
                                   const struct GNUNET_PeerIdentity *peer,
-				  const struct GNUNET_HELLO_Address *address,
-				  struct GNUNET_ATS_Session *session,
+                                  const struct GNUNET_HELLO_Address *address,
+                                  struct GNUNET_ATS_Session *session,
                                   int result);
 
 
@@ -117,8 +117,8 @@ typedef void
  * @param transport_name transport to blacklist for this peer, NULL for all
  */
 void
-GST_blacklist_add_peer (const struct GNUNET_PeerIdentity *peer,
-                        const char *transport_name);
+GST_blacklist_add_peer(const struct GNUNET_PeerIdentity *peer,
+                       const char *transport_name);
 
 
 /**
@@ -141,12 +141,12 @@ struct GST_BlacklistCheck;
  *        was made instantly and @a cont was already called
  */
 struct GST_BlacklistCheck *
-GST_blacklist_test_allowed (const struct GNUNET_PeerIdentity *peer,
-                            const char *transport_name,
-                            GST_BlacklistTestContinuation cont, 
-			    void *cont_cls,
-			    const struct GNUNET_HELLO_Address *address,
-			    struct GNUNET_ATS_Session *session);
+GST_blacklist_test_allowed(const struct GNUNET_PeerIdentity *peer,
+                           const char *transport_name,
+                           GST_BlacklistTestContinuation cont,
+                           void *cont_cls,
+                           const struct GNUNET_HELLO_Address *address,
+                           struct GNUNET_ATS_Session *session);
 
 
 /**
@@ -156,8 +156,8 @@ GST_blacklist_test_allowed (const struct GNUNET_PeerIdentity *peer,
  * @param session session used to abort matching checks
  */
 void
-GST_blacklist_abort_matching (const struct GNUNET_HELLO_Address *address,
-			      struct GNUNET_ATS_Session *session);
+GST_blacklist_abort_matching(const struct GNUNET_HELLO_Address *address,
+                             struct GNUNET_ATS_Session *session);
 
 /**
  * Cancel a blacklist check.
@@ -165,7 +165,7 @@ GST_blacklist_abort_matching (const struct GNUNET_HELLO_Address *address,
  * @param bc check to cancel
  */
 void
-GST_blacklist_test_cancel (struct GST_BlacklistCheck *bc);
+GST_blacklist_test_cancel(struct GST_BlacklistCheck *bc);
 
 
 /**
@@ -182,10 +182,10 @@ GST_blacklist_test_cancel (struct GST_BlacklistCheck *bc);
  *         (plugins that do not support this, can ignore the return value)
  */
 struct GNUNET_TIME_Relative
-GST_receive_callback (void *cls,
-                      const struct GNUNET_HELLO_Address *address,
-                      struct GNUNET_ATS_Session *session,
-                      const struct GNUNET_MessageHeader *message);
+GST_receive_callback(void *cls,
+                     const struct GNUNET_HELLO_Address *address,
+                     struct GNUNET_ATS_Session *session,
+                     const struct GNUNET_MessageHeader *message);
 
 /**
  * Broadcast the given message to all of our clients.
@@ -194,8 +194,8 @@ GST_receive_callback (void *cls,
  * @param may_drop #GNUNET_YES if the message can be dropped / is payload
  */
 void
-GST_clients_broadcast (const struct GNUNET_MessageHeader *msg,
-                       int may_drop);
+GST_clients_broadcast(const struct GNUNET_MessageHeader *msg,
+                      int may_drop);
 
 
 /**
@@ -207,10 +207,10 @@ GST_clients_broadcast (const struct GNUNET_MessageHeader *msg,
  * @param state_timeout the time out for the state
  */
 void
-GST_clients_broadcast_peer_notification (const struct GNUNET_PeerIdentity *peer,
-                                         const struct GNUNET_HELLO_Address *address,
-                                         enum GNUNET_TRANSPORT_PeerState state,
-                                         struct GNUNET_TIME_Absolute state_timeout);
+GST_clients_broadcast_peer_notification(const struct GNUNET_PeerIdentity *peer,
+                                        const struct GNUNET_HELLO_Address *address,
+                                        enum GNUNET_TRANSPORT_PeerState state,
+                                        struct GNUNET_TIME_Absolute state_timeout);
 
 
 /**
@@ -220,7 +220,7 @@ GST_clients_broadcast_peer_notification (const struct GNUNET_PeerIdentity *peer,
  * @param peer peer that disconnected
  */
 void
-GST_clients_broadcast_disconnect (const struct GNUNET_PeerIdentity *peer);
+GST_clients_broadcast_disconnect(const struct GNUNET_PeerIdentity *peer);
 
 
 

@@ -11,12 +11,12 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 
 /**
  * @author Christian Grothoff
@@ -134,9 +134,9 @@ typedef struct GNUNET_TIME_Relative
  * @return type of the network the address belongs to
  */
 typedef enum GNUNET_NetworkType
-(*GNUNET_TRANSPORT_AddressToType) (void *cls,
-                                   const struct sockaddr *addr,
-                                   size_t addrlen);
+(*GNUNET_TRANSPORT_AddressToType)(void *cls,
+                                  const struct sockaddr *addr,
+                                  size_t addrlen);
 
 
 /**
@@ -203,8 +203,7 @@ typedef const struct GNUNET_MessageHeader *
  * of this type as the first and only argument to the
  * entry point of each transport plugin.
  */
-struct GNUNET_TRANSPORT_PluginEnvironment
-{
+struct GNUNET_TRANSPORT_PluginEnvironment {
   /**
    * Configuration to use.
    */
@@ -277,7 +276,6 @@ struct GNUNET_TRANSPORT_PluginEnvironment
    * UDP) can ignore this value.
    */
   uint32_t max_connections;
-
 };
 
 
@@ -550,8 +548,8 @@ typedef int
  * @return the network type
  */
 typedef enum GNUNET_NetworkType
-(*GNUNET_TRANSPORT_GetNetworkType) (void *cls,
-                                    struct GNUNET_ATS_Session *session);
+(*GNUNET_TRANSPORT_GetNetworkType)(void *cls,
+                                   struct GNUNET_ATS_Session *session);
 
 
 /**
@@ -562,8 +560,8 @@ typedef enum GNUNET_NetworkType
  * @return the network type
  */
 typedef enum GNUNET_NetworkType
-(*GNUNET_TRANSPORT_GetNetworkTypeForAddress) (void *cls,
-                                              const struct GNUNET_HELLO_Address *address);
+(*GNUNET_TRANSPORT_GetNetworkTypeForAddress)(void *cls,
+                                             const struct GNUNET_HELLO_Address *address);
 
 
 /**
@@ -606,9 +604,7 @@ typedef void
  * Each plugin is required to return a pointer to a struct of this
  * type as the return value from its entry point.
  */
-struct GNUNET_TRANSPORT_PluginFunctions
-{
-
+struct GNUNET_TRANSPORT_PluginFunctions {
   /**
    * Closure for all of the callbacks.
    */

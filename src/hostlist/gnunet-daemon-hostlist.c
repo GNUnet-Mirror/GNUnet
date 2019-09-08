@@ -11,12 +11,12 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 
 /**
  * @file hostlist/gnunet-daemon-hostlist.c
@@ -102,8 +102,7 @@ GNUNET_NETWORK_STRUCT_BEGIN
  *    unaligned!)
  * 4) address (address-length bytes; possibly unaligned!)
  */
-struct GNUNET_HOSTLIST_ADV_Message
-{
+struct GNUNET_HOSTLIST_ADV_Message {
   /**
    * Type will be GNUNET_MESSAGE_TYPE_HOSTLIST_ADVERTISEMENT.
    */
@@ -130,8 +129,8 @@ static struct GNUNET_PeerIdentity me;
  * @param my_identity our peer's identity
  */
 static void
-core_init (void *cls,
-           const struct GNUNET_PeerIdentity *my_identity)
+core_init(void *cls,
+          const struct GNUNET_PeerIdentity *my_identity)
 {
   me = *my_identity;
 }
@@ -145,26 +144,26 @@ core_init (void *cls,
  * @return #GNUNET_OK if message is well-formed
  */
 static int
-check_advertisement (void *cls,
-		     const struct GNUNET_MessageHeader *message)
+check_advertisement(void *cls,
+                    const struct GNUNET_MessageHeader *message)
 {
   size_t size;
   size_t uri_size;
   const char *uri;
 
-  size = ntohs (message->size);
-  if (size <= sizeof (struct GNUNET_MessageHeader))
-  {
-    GNUNET_break_op (0);
-    return GNUNET_SYSERR;
-  }
-  uri = (const char *) &message[1];
-  uri_size = size - sizeof (struct GNUNET_MessageHeader);
+  size = ntohs(message->size);
+  if (size <= sizeof(struct GNUNET_MessageHeader))
+    {
+      GNUNET_break_op(0);
+      return GNUNET_SYSERR;
+    }
+  uri = (const char *)&message[1];
+  uri_size = size - sizeof(struct GNUNET_MessageHeader);
   if (uri[uri_size - 1] != '\0')
-  {
-    GNUNET_break_op (0);
-    return GNUNET_SYSERR;
-  }
+    {
+      GNUNET_break_op(0);
+      return GNUNET_SYSERR;
+    }
   return GNUNET_OK;
 }
 
@@ -177,13 +176,13 @@ check_advertisement (void *cls,
  * @return #GNUNET_OK on success
  */
 static void
-handle_advertisement (void *cls,
-		      const struct GNUNET_MessageHeader *message)
+handle_advertisement(void *cls,
+                     const struct GNUNET_MessageHeader *message)
 {
-  const char *uri = (const char *) &message[1];
- 
-  GNUNET_assert (NULL != client_adv_handler);
-  (void) (*client_adv_handler) (uri);
+  const char *uri = (const char *)&message[1];
+
+  GNUNET_assert(NULL != client_adv_handler);
+  (void)(*client_adv_handler)(uri);
 }
 
 
@@ -197,28 +196,28 @@ handle_advertisement (void *cls,
  * @return peer
  */
 static void *
-connect_handler (void *cls,
-		 const struct GNUNET_PeerIdentity *peer,
-		 struct GNUNET_MQ_Handle *mq)
+connect_handler(void *cls,
+                const struct GNUNET_PeerIdentity *peer,
+                struct GNUNET_MQ_Handle *mq)
 {
-  if (0 == GNUNET_memcmp (&me,
-		   peer))
+  if (0 == GNUNET_memcmp(&me,
+                         peer))
     return NULL;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "A new peer connected, notifying client and server\n");
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+             "A new peer connected, notifying client and server\n");
   if (NULL != client_ch)
-    GNUNET_assert (NULL ==
-		   (*client_ch) (cls,
-				 peer,
-				 mq));
+    GNUNET_assert(NULL ==
+                  (*client_ch)(cls,
+                               peer,
+                               mq));
 #if HAVE_MHD
   if (NULL != server_ch)
-    GNUNET_assert (NULL ==
-		   (*server_ch) (cls,
-				 peer,
-				 mq));
+    GNUNET_assert(NULL ==
+                  (*server_ch)(cls,
+                               peer,
+                               mq));
 #endif
-  return (void *) peer;
+  return (void *)peer;
 }
 
 
@@ -230,18 +229,18 @@ connect_handler (void *cls,
  * @param peer peer identity this notification is about
  */
 static void
-disconnect_handler (void *cls,
-                    const struct GNUNET_PeerIdentity *peer,
-		    void *internal_cls)
+disconnect_handler(void *cls,
+                   const struct GNUNET_PeerIdentity *peer,
+                   void *internal_cls)
 {
-  if (0 == GNUNET_memcmp (&me,
-		   peer))
+  if (0 == GNUNET_memcmp(&me,
+                         peer))
     return;
   /* call hostlist client disconnect handler */
   if (NULL != client_dh)
-    (*client_dh) (cls,
-		  peer,
-		  NULL);
+    (*client_dh)(cls,
+                 peer,
+                 NULL);
 }
 
 
@@ -252,31 +251,31 @@ disconnect_handler (void *cls,
  * @param cls NULL
  */
 static void
-cleaning_task (void *cls)
+cleaning_task(void *cls)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Hostlist daemon is shutting down\n");
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+             "Hostlist daemon is shutting down\n");
   if (NULL != core)
-  {
-    GNUNET_CORE_disconnect (core);
-    core = NULL;
-  }
+    {
+      GNUNET_CORE_disconnect(core);
+      core = NULL;
+    }
   if (bootstrapping)
-  {
-    GNUNET_HOSTLIST_client_stop ();
-  }
+    {
+      GNUNET_HOSTLIST_client_stop();
+    }
 #if HAVE_MHD
   if (provide_hostlist)
-  {
-    GNUNET_HOSTLIST_server_stop ();
-  }
+    {
+      GNUNET_HOSTLIST_server_stop();
+    }
 #endif
   if (NULL != stats)
-  {
-    GNUNET_STATISTICS_destroy (stats,
-			       GNUNET_NO);
-    stats = NULL;
-  }
+    {
+      GNUNET_STATISTICS_destroy(stats,
+                                GNUNET_NO);
+      stats = NULL;
+    }
 }
 
 
@@ -289,71 +288,72 @@ cleaning_task (void *cls)
  * @param cfg configuration
  */
 static void
-run (void *cls,
-     char *const *args,
-     const char *cfgfile,
-     const struct GNUNET_CONFIGURATION_Handle *cfg)
+run(void *cls,
+    char *const *args,
+    const char *cfgfile,
+    const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   struct GNUNET_MQ_MessageHandler learn_handlers[] = {
-    GNUNET_MQ_hd_var_size (advertisement,
-                           GNUNET_MESSAGE_TYPE_HOSTLIST_ADVERTISEMENT,
-                           struct GNUNET_MessageHeader,
-                           NULL),
-    GNUNET_MQ_handler_end ()
+    GNUNET_MQ_hd_var_size(advertisement,
+                          GNUNET_MESSAGE_TYPE_HOSTLIST_ADVERTISEMENT,
+                          struct GNUNET_MessageHeader,
+                          NULL),
+    GNUNET_MQ_handler_end()
   };
   struct GNUNET_MQ_MessageHandler no_learn_handlers[] = {
-    GNUNET_MQ_handler_end ()
+    GNUNET_MQ_handler_end()
   };
-  if ((! bootstrapping) && (! learning)
+
+  if ((!bootstrapping) && (!learning)
 #if HAVE_MHD
-      && (! provide_hostlist)
+      && (!provide_hostlist)
 #endif
       )
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                _("None of the functions for the hostlist daemon were enabled.  I have no reason to run!\n"));
-    return;
-  }
-  stats = GNUNET_STATISTICS_create ("hostlist", cfg);
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_WARNING,
+                 _("None of the functions for the hostlist daemon were enabled.  I have no reason to run!\n"));
+      return;
+    }
+  stats = GNUNET_STATISTICS_create("hostlist", cfg);
   if (NULL == stats)
-  {
-    GNUNET_break (0);
-    return;
-  }
+    {
+      GNUNET_break(0);
+      return;
+    }
   if (bootstrapping)
-    GNUNET_HOSTLIST_client_start (cfg,
-				  stats,
-                                  &client_ch,
-                                  &client_dh,
-                                  &client_adv_handler,
-                                  learning);
+    GNUNET_HOSTLIST_client_start(cfg,
+                                 stats,
+                                 &client_ch,
+                                 &client_dh,
+                                 &client_adv_handler,
+                                 learning);
   core =
-    GNUNET_CORE_connect (cfg,
-			 NULL,
-			 &core_init,
-			 &connect_handler,
-			 &disconnect_handler,
-			 learning ? learn_handlers : no_learn_handlers);
+    GNUNET_CORE_connect(cfg,
+                        NULL,
+                        &core_init,
+                        &connect_handler,
+                        &disconnect_handler,
+                        learning ? learn_handlers : no_learn_handlers);
 
 
 #if HAVE_MHD
   if (provide_hostlist)
-    GNUNET_HOSTLIST_server_start (cfg,
-				  stats,
-				  core,
-				  &server_ch,
-                                  advertising);
+    GNUNET_HOSTLIST_server_start(cfg,
+                                 stats,
+                                 core,
+                                 &server_ch,
+                                 advertising);
 #endif
-  GNUNET_SCHEDULER_add_shutdown (&cleaning_task,
-				 NULL);
+  GNUNET_SCHEDULER_add_shutdown(&cleaning_task,
+                                NULL);
 
   if (NULL == core)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _("Failed to connect to `%s' service.\n"), "core");
-    GNUNET_SCHEDULER_shutdown ();
-    return;
-  }
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
+                 _("Failed to connect to `%s' service.\n"), "core");
+      GNUNET_SCHEDULER_shutdown();
+      return;
+    }
 }
 
 
@@ -365,46 +365,46 @@ run (void *cls,
  * @return 0 ok, 1 on error
  */
 int
-main (int argc, char *const *argv)
+main(int argc, char *const *argv)
 {
   struct GNUNET_GETOPT_CommandLineOption options[] = {
 #if HAVE_MHD
-    GNUNET_GETOPT_option_flag ('a',
-                                  "advertise",
-                                  gettext_noop ("advertise our hostlist to other peers"),
-                                  &advertising),
+    GNUNET_GETOPT_option_flag('a',
+                              "advertise",
+                              gettext_noop("advertise our hostlist to other peers"),
+                              &advertising),
 #endif
-    GNUNET_GETOPT_option_flag ('b',
-                                  "bootstrap",
-                                  gettext_noop ("bootstrap using hostlists (it is highly recommended that you always use this option)"),
-                                  &bootstrapping),
-    GNUNET_GETOPT_option_flag ('e',
-                                  "enable-learning",
-                                  gettext_noop ("enable learning about hostlist servers from other peers"),
-                                  &learning),
+    GNUNET_GETOPT_option_flag('b',
+                              "bootstrap",
+                              gettext_noop("bootstrap using hostlists (it is highly recommended that you always use this option)"),
+                              &bootstrapping),
+    GNUNET_GETOPT_option_flag('e',
+                              "enable-learning",
+                              gettext_noop("enable learning about hostlist servers from other peers"),
+                              &learning),
 #if HAVE_MHD
-    GNUNET_GETOPT_option_flag ('p',
-                                  "provide-hostlist",
-                                  gettext_noop ("provide a hostlist server"),
-                                  &provide_hostlist),
+    GNUNET_GETOPT_option_flag('p',
+                              "provide-hostlist",
+                              gettext_noop("provide a hostlist server"),
+                              &provide_hostlist),
 #endif
     GNUNET_GETOPT_OPTION_END
   };
 
   int ret;
 
-  if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv, &argc, &argv))
+  if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args(argc, argv, &argc, &argv))
     return 2;
 
-  GNUNET_log_setup ("hostlist", "WARNING", NULL);
+  GNUNET_log_setup("hostlist", "WARNING", NULL);
   ret =
-      (GNUNET_OK ==
-       GNUNET_PROGRAM_run (argc, argv,
-                           "hostlist",
-                           _("GNUnet hostlist server and client"),
-                           options,
-                           &run, NULL)) ? 0 : 1;
-  GNUNET_free ((void*) argv);
+    (GNUNET_OK ==
+     GNUNET_PROGRAM_run(argc, argv,
+                        "hostlist",
+                        _("GNUnet hostlist server and client"),
+                        options,
+                        &run, NULL)) ? 0 : 1;
+  GNUNET_free((void*)argv);
   return ret;
 }
 

@@ -16,7 +16,7 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-   */
+ */
 /**
  * @author Martin Schanzenbach
  * @file src/rest/gnunet-rest-server.c
@@ -54,7 +54,7 @@
  * After how long do we clean up unused MHD SSL/TLS instances?
  */
 #define MHD_CACHE_TIMEOUT \
-  GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 5)
+  GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MINUTES, 5)
 
 #define GN_REST_STATE_INIT 0
 #define GN_REST_STATE_PROCESSING 1
@@ -142,8 +142,7 @@ static char *allow_credentials;
 /**
  * MHD Connection handle
  */
-struct MhdConnectionHandle
-{
+struct MhdConnectionHandle {
   struct MHD_Connection *con;
 
   struct MHD_Response *response;
@@ -168,21 +167,21 @@ struct MhdConnectionHandle
  * @param cls NULL
  */
 static void
-do_httpd (void *cls);
+do_httpd(void *cls);
 
 
 /**
  * Run MHD now, we have extra data ready for the callback.
  */
 static void
-run_mhd_now ()
+run_mhd_now()
 {
   if (NULL != httpd_task)
-  {
-    GNUNET_SCHEDULER_cancel (httpd_task);
-    httpd_task = NULL;
-  }
-  httpd_task = GNUNET_SCHEDULER_add_now (&do_httpd, NULL);
+    {
+      GNUNET_SCHEDULER_cancel(httpd_task);
+      httpd_task = NULL;
+    }
+  httpd_task = GNUNET_SCHEDULER_add_now(&do_httpd, NULL);
 }
 
 /**
@@ -194,121 +193,121 @@ run_mhd_now ()
  * @param status #GNUNET_OK if successful
  */
 static void
-plugin_callback (void *cls, struct MHD_Response *resp, int status)
+plugin_callback(void *cls, struct MHD_Response *resp, int status)
 {
   struct MhdConnectionHandle *handle = cls;
+
   handle->status = status;
   handle->response = resp;
-  MHD_resume_connection (handle->con);
-  run_mhd_now ();
+  MHD_resume_connection(handle->con);
+  run_mhd_now();
 }
 
 
 static int
-cleanup_url_map (void *cls, const struct GNUNET_HashCode *key, void *value)
+cleanup_url_map(void *cls, const struct GNUNET_HashCode *key, void *value)
 {
-  GNUNET_free_non_null (value);
+  GNUNET_free_non_null(value);
   return GNUNET_YES;
 }
 
 
 static void
-cleanup_handle (struct MhdConnectionHandle *handle)
+cleanup_handle(struct MhdConnectionHandle *handle)
 {
   if (NULL != handle->response)
-    MHD_destroy_response (handle->response);
+    MHD_destroy_response(handle->response);
   if (NULL != handle->data_handle)
-  {
-
-    if (NULL != handle->data_handle->header_param_map)
     {
-      GNUNET_CONTAINER_multihashmap_iterate (handle->data_handle
-                                               ->header_param_map,
-                                             &cleanup_url_map,
-                                             NULL);
-      GNUNET_CONTAINER_multihashmap_destroy (
-        handle->data_handle->header_param_map);
+      if (NULL != handle->data_handle->header_param_map)
+        {
+          GNUNET_CONTAINER_multihashmap_iterate(handle->data_handle
+                                                ->header_param_map,
+                                                &cleanup_url_map,
+                                                NULL);
+          GNUNET_CONTAINER_multihashmap_destroy(
+            handle->data_handle->header_param_map);
+        }
+      if (NULL != handle->data_handle->url_param_map)
+        {
+          GNUNET_CONTAINER_multihashmap_iterate(handle->data_handle->url_param_map,
+                                                &cleanup_url_map,
+                                                NULL);
+          GNUNET_CONTAINER_multihashmap_destroy(
+            handle->data_handle->url_param_map);
+        }
+      GNUNET_free(handle->data_handle);
     }
-    if (NULL != handle->data_handle->url_param_map)
-    {
-      GNUNET_CONTAINER_multihashmap_iterate (handle->data_handle->url_param_map,
-                                             &cleanup_url_map,
-                                             NULL);
-      GNUNET_CONTAINER_multihashmap_destroy (
-        handle->data_handle->url_param_map);
-    }
-    GNUNET_free (handle->data_handle);
-  }
-  GNUNET_free (handle);
+  GNUNET_free(handle);
 }
 
 static int
-header_iterator (void *cls,
-                 enum MHD_ValueKind kind,
-                 const char *key,
-                 const char *value)
+header_iterator(void *cls,
+                enum MHD_ValueKind kind,
+                const char *key,
+                const char *value)
 {
   struct GNUNET_REST_RequestHandle *handle = cls;
   struct GNUNET_HashCode hkey;
   char *val;
   char *lowerkey;
 
-  lowerkey = GNUNET_strdup (key);
-  GNUNET_STRINGS_utf8_tolower (key, lowerkey);
-  GNUNET_CRYPTO_hash (lowerkey, strlen (lowerkey), &hkey);
-  GNUNET_asprintf (&val, "%s", value);
-  if (GNUNET_OK != GNUNET_CONTAINER_multihashmap_put (
-                     handle->header_param_map,
-                     &hkey,
-                     val,
-                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Could not load add header `%s'=%s\n",
-                lowerkey,
-                value);
-  }
-  GNUNET_free (lowerkey);
+  lowerkey = GNUNET_strdup(key);
+  GNUNET_STRINGS_utf8_tolower(key, lowerkey);
+  GNUNET_CRYPTO_hash(lowerkey, strlen(lowerkey), &hkey);
+  GNUNET_asprintf(&val, "%s", value);
+  if (GNUNET_OK != GNUNET_CONTAINER_multihashmap_put(
+        handle->header_param_map,
+        &hkey,
+        val,
+        GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY))
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
+                 "Could not load add header `%s'=%s\n",
+                 lowerkey,
+                 value);
+    }
+  GNUNET_free(lowerkey);
   return MHD_YES;
 }
 
 
 static int
-url_iterator (void *cls,
-              enum MHD_ValueKind kind,
-              const char *key,
-              const char *value)
+url_iterator(void *cls,
+             enum MHD_ValueKind kind,
+             const char *key,
+             const char *value)
 {
   struct GNUNET_REST_RequestHandle *handle = cls;
   struct GNUNET_HashCode hkey;
   char *val;
 
-  GNUNET_CRYPTO_hash (key, strlen (key), &hkey);
-  GNUNET_asprintf (&val, "%s", value);
-  if (GNUNET_OK != GNUNET_CONTAINER_multihashmap_put (
-                     handle->url_param_map,
-                     &hkey,
-                     val,
-                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Could not load add url param `%s'=%s\n",
-                key,
-                value);
-  }
+  GNUNET_CRYPTO_hash(key, strlen(key), &hkey);
+  GNUNET_asprintf(&val, "%s", value);
+  if (GNUNET_OK != GNUNET_CONTAINER_multihashmap_put(
+        handle->url_param_map,
+        &hkey,
+        val,
+        GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY))
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
+                 "Could not load add url param `%s'=%s\n",
+                 key,
+                 value);
+    }
   return MHD_YES;
 }
 
 static int
-post_data_iter (void *cls,
-                enum MHD_ValueKind kind,
-                const char *key,
-                const char *filename,
-                const char *content_type,
-                const char *transfer_encoding,
-                const char *data,
-                uint64_t off,
-                size_t size)
+post_data_iter(void *cls,
+               enum MHD_ValueKind kind,
+               const char *key,
+               const char *filename,
+               const char *content_type,
+               const char *transfer_encoding,
+               const char *data,
+               uint64_t off,
+               size_t size)
 {
   struct GNUNET_REST_RequestHandle *handle = cls;
   struct GNUNET_HashCode hkey;
@@ -317,20 +316,20 @@ post_data_iter (void *cls,
   if (MHD_POSTDATA_KIND != kind)
     return MHD_YES;
 
-  GNUNET_CRYPTO_hash (key, strlen (key), &hkey);
-  GNUNET_asprintf (&val, "%s", data);
-  if (GNUNET_OK != GNUNET_CONTAINER_multihashmap_put (
-                     handle->url_param_map,
-                     &hkey,
-                     val,
-                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Could not load add url param '%s'=%s\n",
-                key,
-                data);
-    GNUNET_free (val);
-  }
+  GNUNET_CRYPTO_hash(key, strlen(key), &hkey);
+  GNUNET_asprintf(&val, "%s", data);
+  if (GNUNET_OK != GNUNET_CONTAINER_multihashmap_put(
+        handle->url_param_map,
+        &hkey,
+        val,
+        GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY))
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
+                 "Could not load add url param '%s'=%s\n",
+                 key,
+                 data);
+      GNUNET_free(val);
+    }
   return MHD_YES;
 }
 
@@ -360,14 +359,14 @@ post_data_iter (void *cls,
  *         error while handling the request
  */
 static int
-create_response (void *cls,
-                 struct MHD_Connection *con,
-                 const char *url,
-                 const char *meth,
-                 const char *ver,
-                 const char *upload_data,
-                 size_t *upload_data_size,
-                 void **con_cls)
+create_response(void *cls,
+                struct MHD_Connection *con,
+                const char *url,
+                const char *meth,
+                const char *ver,
+                const char *upload_data,
+                size_t *upload_data_size,
+                void **con_cls)
 {
   char *plugin_name;
   char *origin;
@@ -378,135 +377,135 @@ create_response (void *cls,
   con_handle = *con_cls;
 
   if (NULL == *con_cls)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "New connection %s\n", url);
-    char tmp_url[strlen (url) + 1];
-    strcpy (tmp_url, url);
-    con_handle = GNUNET_new (struct MhdConnectionHandle);
-    con_handle->con = con;
-    con_handle->state = GN_REST_STATE_INIT;
-    *con_cls = con_handle;
-
-    plugin_name = strtok (tmp_url, "/");
-
-    if (NULL != plugin_name)
     {
-      GNUNET_CRYPTO_hash (plugin_name, strlen (plugin_name), &key);
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "New connection %s\n", url);
+      char tmp_url[strlen(url) + 1];
+      strcpy(tmp_url, url);
+      con_handle = GNUNET_new(struct MhdConnectionHandle);
+      con_handle->con = con;
+      con_handle->state = GN_REST_STATE_INIT;
+      *con_cls = con_handle;
 
-      con_handle->plugin = GNUNET_CONTAINER_multihashmap_get (plugin_map, &key);
-    }
-    if (NULL == con_handle->plugin)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Queueing response with MHD\n");
-      GNUNET_free (con_handle);
-      return MHD_queue_response (con, MHD_HTTP_NOT_FOUND, failure_response);
-    }
+      plugin_name = strtok(tmp_url, "/");
 
-    return MHD_YES;
-  }
-  if (GN_REST_STATE_INIT == con_handle->state)
-  {
-    rest_conndata_handle = GNUNET_new (struct GNUNET_REST_RequestHandle);
-    rest_conndata_handle->method = meth;
-    rest_conndata_handle->url = url;
-    rest_conndata_handle->data = upload_data;
-    rest_conndata_handle->data_size = *upload_data_size;
-    rest_conndata_handle->url_param_map =
-      GNUNET_CONTAINER_multihashmap_create (16, GNUNET_NO);
-    rest_conndata_handle->header_param_map =
-      GNUNET_CONTAINER_multihashmap_create (16, GNUNET_NO);
-    con_handle->data_handle = rest_conndata_handle;
-    MHD_get_connection_values (con,
-                               MHD_GET_ARGUMENT_KIND,
-                               (MHD_KeyValueIterator) &url_iterator,
-                               rest_conndata_handle);
-    MHD_get_connection_values (con,
-                               MHD_HEADER_KIND,
-                               (MHD_KeyValueIterator) &header_iterator,
-                               rest_conndata_handle);
-    con_handle->pp = MHD_create_post_processor (con,
-                                                65536,
-                                                post_data_iter,
-                                                rest_conndata_handle);
-    if (*upload_data_size)
-    {
-      MHD_post_process (con_handle->pp, upload_data, *upload_data_size);
-    }
-    MHD_destroy_post_processor (con_handle->pp);
-
-    con_handle->state = GN_REST_STATE_PROCESSING;
-    con_handle->plugin->process_request (rest_conndata_handle,
-                                         &plugin_callback,
-                                         con_handle);
-    *upload_data_size = 0;
-    run_mhd_now ();
-    return MHD_YES;
-  }
-  if (NULL == con_handle->response)
-  {
-    //Suspend connection until plugin is done
-    MHD_suspend_connection (con_handle->con);
-    return MHD_YES;
-  }
-  MHD_resume_connection (con_handle->con);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Queueing response from plugin with MHD\n");
-  //Handle Preflights for extensions
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Checking origin\n");
-  GNUNET_CRYPTO_hash ("origin", strlen ("origin"), &key);
-  origin = GNUNET_CONTAINER_multihashmap_get (con_handle->data_handle
-                                                ->header_param_map,
-                                              &key);
-  if (NULL != origin)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Origin: %s\n", origin);
-    //Only echo for browser plugins
-    if (GNUNET_YES == echo_origin)
-    {
-      if ((0 ==
-           strncmp ("moz-extension://", origin, strlen ("moz-extension://"))) ||
-          (0 == strncmp ("chrome-extension://",
-                         origin,
-                         strlen ("chrome-extension://"))))
-      {
-        MHD_add_response_header (con_handle->response,
-                                 MHD_HTTP_HEADER_ACCESS_CONTROL_ALLOW_ORIGIN,
-                                 origin);
-      }
-    }
-    if (NULL != allow_origins)
-    {
-      char *tmp = GNUNET_strdup (allow_origins);
-      char *allow_origin = strtok (tmp, ",");
-      while (NULL != allow_origin)
-      {
-        if (0 == strncmp (allow_origin, origin, strlen (allow_origin)))
+      if (NULL != plugin_name)
         {
-          MHD_add_response_header (con_handle->response,
-                                   MHD_HTTP_HEADER_ACCESS_CONTROL_ALLOW_ORIGIN,
-                                   allow_origin);
-          break;
+          GNUNET_CRYPTO_hash(plugin_name, strlen(plugin_name), &key);
+
+          con_handle->plugin = GNUNET_CONTAINER_multihashmap_get(plugin_map, &key);
         }
-        allow_origin = strtok (NULL, ",");
-      }
-      GNUNET_free (tmp);
+      if (NULL == con_handle->plugin)
+        {
+          GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Queueing response with MHD\n");
+          GNUNET_free(con_handle);
+          return MHD_queue_response(con, MHD_HTTP_NOT_FOUND, failure_response);
+        }
+
+      return MHD_YES;
     }
-  }
+  if (GN_REST_STATE_INIT == con_handle->state)
+    {
+      rest_conndata_handle = GNUNET_new(struct GNUNET_REST_RequestHandle);
+      rest_conndata_handle->method = meth;
+      rest_conndata_handle->url = url;
+      rest_conndata_handle->data = upload_data;
+      rest_conndata_handle->data_size = *upload_data_size;
+      rest_conndata_handle->url_param_map =
+        GNUNET_CONTAINER_multihashmap_create(16, GNUNET_NO);
+      rest_conndata_handle->header_param_map =
+        GNUNET_CONTAINER_multihashmap_create(16, GNUNET_NO);
+      con_handle->data_handle = rest_conndata_handle;
+      MHD_get_connection_values(con,
+                                MHD_GET_ARGUMENT_KIND,
+                                (MHD_KeyValueIterator) & url_iterator,
+                                rest_conndata_handle);
+      MHD_get_connection_values(con,
+                                MHD_HEADER_KIND,
+                                (MHD_KeyValueIterator) & header_iterator,
+                                rest_conndata_handle);
+      con_handle->pp = MHD_create_post_processor(con,
+                                                 65536,
+                                                 post_data_iter,
+                                                 rest_conndata_handle);
+      if (*upload_data_size)
+        {
+          MHD_post_process(con_handle->pp, upload_data, *upload_data_size);
+        }
+      MHD_destroy_post_processor(con_handle->pp);
+
+      con_handle->state = GN_REST_STATE_PROCESSING;
+      con_handle->plugin->process_request(rest_conndata_handle,
+                                          &plugin_callback,
+                                          con_handle);
+      *upload_data_size = 0;
+      run_mhd_now();
+      return MHD_YES;
+    }
+  if (NULL == con_handle->response)
+    {
+      //Suspend connection until plugin is done
+      MHD_suspend_connection(con_handle->con);
+      return MHD_YES;
+    }
+  MHD_resume_connection(con_handle->con);
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+             "Queueing response from plugin with MHD\n");
+  //Handle Preflights for extensions
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Checking origin\n");
+  GNUNET_CRYPTO_hash("origin", strlen("origin"), &key);
+  origin = GNUNET_CONTAINER_multihashmap_get(con_handle->data_handle
+                                             ->header_param_map,
+                                             &key);
+  if (NULL != origin)
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Origin: %s\n", origin);
+      //Only echo for browser plugins
+      if (GNUNET_YES == echo_origin)
+        {
+          if ((0 ==
+               strncmp("moz-extension://", origin, strlen("moz-extension://"))) ||
+              (0 == strncmp("chrome-extension://",
+                            origin,
+                            strlen("chrome-extension://"))))
+            {
+              MHD_add_response_header(con_handle->response,
+                                      MHD_HTTP_HEADER_ACCESS_CONTROL_ALLOW_ORIGIN,
+                                      origin);
+            }
+        }
+      if (NULL != allow_origins)
+        {
+          char *tmp = GNUNET_strdup(allow_origins);
+          char *allow_origin = strtok(tmp, ",");
+          while (NULL != allow_origin)
+            {
+              if (0 == strncmp(allow_origin, origin, strlen(allow_origin)))
+                {
+                  MHD_add_response_header(con_handle->response,
+                                          MHD_HTTP_HEADER_ACCESS_CONTROL_ALLOW_ORIGIN,
+                                          allow_origin);
+                  break;
+                }
+              allow_origin = strtok(NULL, ",");
+            }
+          GNUNET_free(tmp);
+        }
+    }
   if (NULL != allow_credentials)
-  {
-    MHD_add_response_header (con_handle->response,
-                             "Access-Control-Allow-Credentials",
-                             allow_credentials);
-  }
+    {
+      MHD_add_response_header(con_handle->response,
+                              "Access-Control-Allow-Credentials",
+                              allow_credentials);
+    }
   if (NULL != allow_headers)
-  {
-    MHD_add_response_header (con_handle->response,
-                             "Access-Control-Allow-Headers",
-                             allow_headers);
-  }
-  run_mhd_now ();
-  int ret = MHD_queue_response (con, con_handle->status, con_handle->response);
-  cleanup_handle (con_handle);
+    {
+      MHD_add_response_header(con_handle->response,
+                              "Access-Control-Allow-Headers",
+                              allow_headers);
+    }
+  run_mhd_now();
+  int ret = MHD_queue_response(con, con_handle->status, con_handle->response);
+  cleanup_handle(con_handle);
   return ret;
 }
 
@@ -523,15 +522,15 @@ create_response (void *cls,
  * @param toe reason for request termination (ignored)
  */
 static void
-mhd_completed_cb (void *cls,
-                  struct MHD_Connection *connection,
-                  void **con_cls,
-                  enum MHD_RequestTerminationCode toe)
+mhd_completed_cb(void *cls,
+                 struct MHD_Connection *connection,
+                 void **con_cls,
+                 enum MHD_RequestTerminationCode toe)
 {
   if (MHD_REQUEST_TERMINATED_COMPLETED_OK != toe)
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "MHD encountered error handling request: %d\n",
-                toe);
+    GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
+               "MHD encountered error handling request: %d\n",
+               toe);
 }
 
 
@@ -539,39 +538,39 @@ mhd_completed_cb (void *cls,
  * Kill the MHD daemon.
  */
 static void
-kill_httpd ()
+kill_httpd()
 {
   if (NULL != httpd)
-  {
-    MHD_stop_daemon (httpd);
-    httpd = NULL;
-  }
+    {
+      MHD_stop_daemon(httpd);
+      httpd = NULL;
+    }
   if (NULL != httpd_task)
-  {
-    GNUNET_SCHEDULER_cancel (httpd_task);
-    httpd_task = NULL;
-  }
+    {
+      GNUNET_SCHEDULER_cancel(httpd_task);
+      httpd_task = NULL;
+    }
   if (NULL != ltask4)
-  {
-    GNUNET_SCHEDULER_cancel (ltask4);
-    ltask4 = NULL;
-  }
+    {
+      GNUNET_SCHEDULER_cancel(ltask4);
+      ltask4 = NULL;
+    }
   if (NULL != ltask6)
-  {
-    GNUNET_SCHEDULER_cancel (ltask6);
-    ltask6 = NULL;
-  }
+    {
+      GNUNET_SCHEDULER_cancel(ltask6);
+      ltask6 = NULL;
+    }
 
   if (NULL != lsock4)
-  {
-    GNUNET_NETWORK_socket_close (lsock4);
-    lsock4 = NULL;
-  }
+    {
+      GNUNET_NETWORK_socket_close(lsock4);
+      lsock4 = NULL;
+    }
   if (NULL != lsock6)
-  {
-    GNUNET_NETWORK_socket_close (lsock6);
-    lsock6 = NULL;
-  }
+    {
+      GNUNET_NETWORK_socket_close(lsock6);
+      lsock6 = NULL;
+    }
 }
 
 
@@ -583,7 +582,7 @@ kill_httpd ()
  * @param hd the daemon to schedule
  */
 static void
-schedule_httpd ()
+schedule_httpd()
 {
   fd_set rs;
   fd_set ws;
@@ -595,50 +594,50 @@ schedule_httpd ()
   MHD_UNSIGNED_LONG_LONG timeout;
   struct GNUNET_TIME_Relative tv;
 
-  FD_ZERO (&rs);
-  FD_ZERO (&ws);
-  FD_ZERO (&es);
+  FD_ZERO(&rs);
+  FD_ZERO(&ws);
+  FD_ZERO(&es);
   max = -1;
-  if (MHD_YES != MHD_get_fdset (httpd, &rs, &ws, &es, &max))
-  {
-    kill_httpd ();
-    return;
-  }
-  haveto = MHD_get_timeout (httpd, &timeout);
+  if (MHD_YES != MHD_get_fdset(httpd, &rs, &ws, &es, &max))
+    {
+      kill_httpd();
+      return;
+    }
+  haveto = MHD_get_timeout(httpd, &timeout);
   if (MHD_YES == haveto)
-    tv.rel_value_us = (uint64_t) timeout * 1000LL;
+    tv.rel_value_us = (uint64_t)timeout * 1000LL;
   else
     tv = GNUNET_TIME_UNIT_FOREVER_REL;
   if (-1 != max)
-  {
-    wrs = GNUNET_NETWORK_fdset_create ();
-    wws = GNUNET_NETWORK_fdset_create ();
-    GNUNET_NETWORK_fdset_copy_native (wrs, &rs, max + 1);
-    GNUNET_NETWORK_fdset_copy_native (wws, &ws, max + 1);
-  }
+    {
+      wrs = GNUNET_NETWORK_fdset_create();
+      wws = GNUNET_NETWORK_fdset_create();
+      GNUNET_NETWORK_fdset_copy_native(wrs, &rs, max + 1);
+      GNUNET_NETWORK_fdset_copy_native(wws, &ws, max + 1);
+    }
   else
-  {
-    wrs = NULL;
-    wws = NULL;
-  }
+    {
+      wrs = NULL;
+      wws = NULL;
+    }
   if (NULL != httpd_task)
-  {
-    GNUNET_SCHEDULER_cancel (httpd_task);
-    httpd_task = NULL;
-  }
+    {
+      GNUNET_SCHEDULER_cancel(httpd_task);
+      httpd_task = NULL;
+    }
   if ((MHD_YES == haveto) || (-1 != max))
-  {
-    httpd_task = GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
-                                              tv,
-                                              wrs,
-                                              wws,
-                                              &do_httpd,
-                                              NULL);
-  }
+    {
+      httpd_task = GNUNET_SCHEDULER_add_select(GNUNET_SCHEDULER_PRIORITY_DEFAULT,
+                                               tv,
+                                               wrs,
+                                               wws,
+                                               &do_httpd,
+                                               NULL);
+    }
   if (NULL != wrs)
-    GNUNET_NETWORK_fdset_destroy (wrs);
+    GNUNET_NETWORK_fdset_destroy(wrs);
   if (NULL != wws)
-    GNUNET_NETWORK_fdset_destroy (wws);
+    GNUNET_NETWORK_fdset_destroy(wws);
 }
 
 /**
@@ -647,11 +646,11 @@ schedule_httpd ()
  * @param cls NULL
  */
 static void
-do_httpd (void *cls)
+do_httpd(void *cls)
 {
   httpd_task = NULL;
-  MHD_run (httpd);
-  schedule_httpd ();
+  MHD_run(httpd);
+  schedule_httpd();
 }
 
 
@@ -662,7 +661,7 @@ do_httpd (void *cls)
  * @param tc the scheduler context
  */
 static void
-do_accept (void *cls)
+do_accept(void *cls)
 {
   struct GNUNET_NETWORK_Handle *lsock = cls;
   struct GNUNET_NETWORK_Handle *s;
@@ -670,42 +669,42 @@ do_accept (void *cls)
   const struct sockaddr *addr;
   socklen_t len;
 
-  GNUNET_assert (NULL != lsock);
+  GNUNET_assert(NULL != lsock);
   if (lsock == lsock4)
-  {
-    ltask4 = GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL,
-                                            lsock,
-                                            &do_accept,
-                                            lsock);
-  }
+    {
+      ltask4 = GNUNET_SCHEDULER_add_read_net(GNUNET_TIME_UNIT_FOREVER_REL,
+                                             lsock,
+                                             &do_accept,
+                                             lsock);
+    }
   else if (lsock == lsock6)
-  {
-    ltask6 = GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL,
-                                            lsock,
-                                            &do_accept,
-                                            lsock);
-  }
+    {
+      ltask6 = GNUNET_SCHEDULER_add_read_net(GNUNET_TIME_UNIT_FOREVER_REL,
+                                             lsock,
+                                             &do_accept,
+                                             lsock);
+    }
   else
-    GNUNET_assert (0);
-  s = GNUNET_NETWORK_socket_accept (lsock, NULL, NULL);
+    GNUNET_assert(0);
+  s = GNUNET_NETWORK_socket_accept(lsock, NULL, NULL);
   if (NULL == s)
-  {
-    GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "accept");
-    return;
-  }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Got an inbound connection, waiting for data\n");
-  fd = GNUNET_NETWORK_get_fd (s);
-  addr = GNUNET_NETWORK_get_addr (s);
-  len = GNUNET_NETWORK_get_addrlen (s);
-  if (MHD_YES != MHD_add_connection (httpd, fd, addr, len))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                _ ("Failed to pass client to MHD\n"));
-    return;
-  }
-  GNUNET_free (s);
-  schedule_httpd ();
+    {
+      GNUNET_log_strerror(GNUNET_ERROR_TYPE_ERROR, "accept");
+      return;
+    }
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+             "Got an inbound connection, waiting for data\n");
+  fd = GNUNET_NETWORK_get_fd(s);
+  addr = GNUNET_NETWORK_get_addr(s);
+  len = GNUNET_NETWORK_get_addrlen(s);
+  if (MHD_YES != MHD_add_connection(httpd, fd, addr, len))
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_WARNING,
+                 _("Failed to pass client to MHD\n"));
+      return;
+    }
+  GNUNET_free(s);
+  schedule_httpd();
 }
 
 
@@ -715,12 +714,12 @@ do_accept (void *cls)
  * @param cls closure
  */
 static void
-do_shutdown (void *cls)
+do_shutdown(void *cls)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Shutting down...\n");
-  kill_httpd ();
-  GNUNET_free_non_null (allow_credentials);
-  GNUNET_free_non_null (allow_headers);
+  GNUNET_log(GNUNET_ERROR_TYPE_INFO, "Shutting down...\n");
+  kill_httpd();
+  GNUNET_free_non_null(allow_credentials);
+  GNUNET_free_non_null(allow_headers);
 }
 
 
@@ -730,31 +729,31 @@ do_shutdown (void *cls)
  * @return NULL on error
  */
 static struct GNUNET_NETWORK_Handle *
-bind_v4 ()
+bind_v4()
 {
   struct GNUNET_NETWORK_Handle *ls;
   struct sockaddr_in sa4;
   int eno;
 
-  memset (&sa4, 0, sizeof (sa4));
+  memset(&sa4, 0, sizeof(sa4));
   sa4.sin_family = AF_INET;
-  sa4.sin_port = htons (port);
+  sa4.sin_port = htons(port);
   sa4.sin_addr.s_addr = address;
 #if HAVE_SOCKADDR_IN_SIN_LEN
-  sa4.sin_len = sizeof (sa4);
+  sa4.sin_len = sizeof(sa4);
 #endif
-  ls = GNUNET_NETWORK_socket_create (AF_INET, SOCK_STREAM, 0);
+  ls = GNUNET_NETWORK_socket_create(AF_INET, SOCK_STREAM, 0);
   if (NULL == ls)
     return NULL;
-  if (GNUNET_OK != GNUNET_NETWORK_socket_bind (ls,
-                                               (const struct sockaddr *) &sa4,
-                                               sizeof (sa4)))
-  {
-    eno = errno;
-    GNUNET_NETWORK_socket_close (ls);
-    errno = eno;
-    return NULL;
-  }
+  if (GNUNET_OK != GNUNET_NETWORK_socket_bind(ls,
+                                              (const struct sockaddr *)&sa4,
+                                              sizeof(sa4)))
+    {
+      eno = errno;
+      GNUNET_NETWORK_socket_close(ls);
+      errno = eno;
+      return NULL;
+    }
   return ls;
 }
 
@@ -765,31 +764,31 @@ bind_v4 ()
  * @return NULL on error
  */
 static struct GNUNET_NETWORK_Handle *
-bind_v6 ()
+bind_v6()
 {
   struct GNUNET_NETWORK_Handle *ls;
   struct sockaddr_in6 sa6;
   int eno;
 
-  memset (&sa6, 0, sizeof (sa6));
+  memset(&sa6, 0, sizeof(sa6));
   sa6.sin6_family = AF_INET6;
-  sa6.sin6_port = htons (port);
+  sa6.sin6_port = htons(port);
   sa6.sin6_addr = address6;
 #if HAVE_SOCKADDR_IN_SIN_LEN
-  sa6.sin6_len = sizeof (sa6);
+  sa6.sin6_len = sizeof(sa6);
 #endif
-  ls = GNUNET_NETWORK_socket_create (AF_INET6, SOCK_STREAM, 0);
+  ls = GNUNET_NETWORK_socket_create(AF_INET6, SOCK_STREAM, 0);
   if (NULL == ls)
     return NULL;
-  if (GNUNET_OK != GNUNET_NETWORK_socket_bind (ls,
-                                               (const struct sockaddr *) &sa6,
-                                               sizeof (sa6)))
-  {
-    eno = errno;
-    GNUNET_NETWORK_socket_close (ls);
-    errno = eno;
-    return NULL;
-  }
+  if (GNUNET_OK != GNUNET_NETWORK_socket_bind(ls,
+                                              (const struct sockaddr *)&sa6,
+                                              sizeof(sa6)))
+    {
+      eno = errno;
+      GNUNET_NETWORK_socket_close(ls);
+      errno = eno;
+      return NULL;
+    }
   return ls;
 }
 
@@ -802,32 +801,33 @@ bind_v6 ()
  * @param lib_ret the object returned by the plugin initializer
  */
 static void
-load_plugin (void *cls, const char *libname, void *lib_ret)
+load_plugin(void *cls, const char *libname, void *lib_ret)
 {
   struct GNUNET_REST_Plugin *plugin = lib_ret;
   struct GNUNET_HashCode key;
+
   if (NULL == lib_ret)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Could not load plugin `%s'\n",
-                libname);
-    return;
-  }
-  GNUNET_assert (1 < strlen (plugin->name));
-  GNUNET_assert ('/' == *plugin->name);
-  GNUNET_CRYPTO_hash (plugin->name + 1, strlen (plugin->name + 1), &key);
-  if (GNUNET_OK != GNUNET_CONTAINER_multihashmap_put (
-                     plugin_map,
-                     &key,
-                     plugin,
-                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Could not load add plugin `%s'\n",
-                libname);
-    return;
-  }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Loaded plugin `%s'\n", libname);
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+                 "Could not load plugin `%s'\n",
+                 libname);
+      return;
+    }
+  GNUNET_assert(1 < strlen(plugin->name));
+  GNUNET_assert('/' == *plugin->name);
+  GNUNET_CRYPTO_hash(plugin->name + 1, strlen(plugin->name + 1), &key);
+  if (GNUNET_OK != GNUNET_CONTAINER_multihashmap_put(
+        plugin_map,
+        &key,
+        plugin,
+        GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY))
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+                 "Could not load add plugin `%s'\n",
+                 libname);
+      return;
+    }
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Loaded plugin `%s'\n", libname);
 }
 
 
@@ -840,174 +840,175 @@ load_plugin (void *cls, const char *libname, void *lib_ret)
  * @param c configuration
  */
 static void
-run (void *cls,
-     char *const *args,
-     const char *cfgfile,
-     const struct GNUNET_CONFIGURATION_Handle *c)
+run(void *cls,
+    char *const *args,
+    const char *cfgfile,
+    const struct GNUNET_CONFIGURATION_Handle *c)
 {
   char *addr_str;
+
   cfg = c;
-  plugin_map = GNUNET_CONTAINER_multihashmap_create (10, GNUNET_NO);
+  plugin_map = GNUNET_CONTAINER_multihashmap_create(10, GNUNET_NO);
 
   /* Get port to bind to */
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_number (cfg, "rest", "HTTP_PORT", &port))
-  {
-    //No address specified
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Using default port...\n");
-    port = GNUNET_REST_SERVICE_PORT;
-  }
+      GNUNET_CONFIGURATION_get_value_number(cfg, "rest", "HTTP_PORT", &port))
+    {
+      //No address specified
+      GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Using default port...\n");
+      port = GNUNET_REST_SERVICE_PORT;
+    }
 
   /* Get address to bind to */
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_string (cfg, "rest", "BIND_TO", &addr_str))
-  {
-    //No address specified
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Don't know what to bind to...\n");
-    GNUNET_SCHEDULER_shutdown ();
-    return;
-  }
-  if (1 != inet_pton (AF_INET, addr_str, &address))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Unable to parse address %s\n",
-                addr_str);
-    GNUNET_free (addr_str);
-    GNUNET_SCHEDULER_shutdown ();
-    return;
-  }
-  GNUNET_free (addr_str);
+      GNUNET_CONFIGURATION_get_value_string(cfg, "rest", "BIND_TO", &addr_str))
+    {
+      //No address specified
+      GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Don't know what to bind to...\n");
+      GNUNET_SCHEDULER_shutdown();
+      return;
+    }
+  if (1 != inet_pton(AF_INET, addr_str, &address))
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
+                 "Unable to parse address %s\n",
+                 addr_str);
+      GNUNET_free(addr_str);
+      GNUNET_SCHEDULER_shutdown();
+      return;
+    }
+  GNUNET_free(addr_str);
   /* Get address to bind to */
-  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_string (cfg,
-                                                          "rest",
-                                                          "BIND_TO6",
-                                                          &addr_str))
-  {
-    //No address specified
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Don't know what to bind6 to...\n");
-    GNUNET_SCHEDULER_shutdown ();
-    return;
-  }
-  if (1 != inet_pton (AF_INET6, addr_str, &address6))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Unable to parse IPv6 address %s\n",
-                addr_str);
-    GNUNET_free (addr_str);
-    GNUNET_SCHEDULER_shutdown ();
-    return;
-  }
-  GNUNET_free (addr_str);
+  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_string(cfg,
+                                                         "rest",
+                                                         "BIND_TO6",
+                                                         &addr_str))
+    {
+      //No address specified
+      GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Don't know what to bind6 to...\n");
+      GNUNET_SCHEDULER_shutdown();
+      return;
+    }
+  if (1 != inet_pton(AF_INET6, addr_str, &address6))
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
+                 "Unable to parse IPv6 address %s\n",
+                 addr_str);
+      GNUNET_free(addr_str);
+      GNUNET_SCHEDULER_shutdown();
+      return;
+    }
+  GNUNET_free(addr_str);
 
 
   /* Get CORS data from cfg */
   echo_origin =
-    GNUNET_CONFIGURATION_get_value_yesno (cfg,
-                                          "rest",
-                                          "REST_ECHO_ORIGIN_WEBEXT");
+    GNUNET_CONFIGURATION_get_value_yesno(cfg,
+                                         "rest",
+                                         "REST_ECHO_ORIGIN_WEBEXT");
   allow_origins = NULL;
-  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_string (cfg,
-                                                          "rest",
-                                                          "REST_ALLOW_ORIGIN",
-                                                          &allow_origins))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                "No CORS Access-Control-Allow-Origin header will be sent...\n");
-  }
+  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_string(cfg,
+                                                         "rest",
+                                                         "REST_ALLOW_ORIGIN",
+                                                         &allow_origins))
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+                 "No CORS Access-Control-Allow-Origin header will be sent...\n");
+    }
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_string (cfg,
-                                             "rest",
-                                             "REST_ALLOW_CREDENTIALS",
-                                             &allow_credentials))
-  {
-    //No origin specified
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                "No CORS Credential Header will be sent...\n");
-  }
+      GNUNET_CONFIGURATION_get_value_string(cfg,
+                                            "rest",
+                                            "REST_ALLOW_CREDENTIALS",
+                                            &allow_credentials))
+    {
+      //No origin specified
+      GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+                 "No CORS Credential Header will be sent...\n");
+    }
 
-  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_string (cfg,
-                                                          "rest",
-                                                          "REST_ALLOW_HEADERS",
-                                                          &allow_headers))
-  {
-    //No origin specified
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                "No CORS Access-Control-Allow-Headers Header will be sent...\n");
-  }
+  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_string(cfg,
+                                                         "rest",
+                                                         "REST_ALLOW_HEADERS",
+                                                         &allow_headers))
+    {
+      //No origin specified
+      GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+                 "No CORS Access-Control-Allow-Headers Header will be sent...\n");
+    }
 
   /* Open listen socket proxy */
-  lsock6 = bind_v6 ();
+  lsock6 = bind_v6();
   if (NULL == lsock6)
-  {
-    GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "bind");
-  }
+    {
+      GNUNET_log_strerror(GNUNET_ERROR_TYPE_ERROR, "bind");
+    }
   else
-  {
-    if (GNUNET_OK != GNUNET_NETWORK_socket_listen (lsock6, 5))
     {
-      GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "listen");
-      GNUNET_NETWORK_socket_close (lsock6);
-      lsock6 = NULL;
+      if (GNUNET_OK != GNUNET_NETWORK_socket_listen(lsock6, 5))
+        {
+          GNUNET_log_strerror(GNUNET_ERROR_TYPE_ERROR, "listen");
+          GNUNET_NETWORK_socket_close(lsock6);
+          lsock6 = NULL;
+        }
+      else
+        {
+          ltask6 = GNUNET_SCHEDULER_add_read_net(GNUNET_TIME_UNIT_FOREVER_REL,
+                                                 lsock6,
+                                                 &do_accept,
+                                                 lsock6);
+        }
     }
-    else
-    {
-      ltask6 = GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL,
-                                              lsock6,
-                                              &do_accept,
-                                              lsock6);
-    }
-  }
-  lsock4 = bind_v4 ();
+  lsock4 = bind_v4();
   if (NULL == lsock4)
-  {
-    GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "bind");
-  }
+    {
+      GNUNET_log_strerror(GNUNET_ERROR_TYPE_ERROR, "bind");
+    }
   else
-  {
-    if (GNUNET_OK != GNUNET_NETWORK_socket_listen (lsock4, 5))
     {
-      GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "listen");
-      GNUNET_NETWORK_socket_close (lsock4);
-      lsock4 = NULL;
+      if (GNUNET_OK != GNUNET_NETWORK_socket_listen(lsock4, 5))
+        {
+          GNUNET_log_strerror(GNUNET_ERROR_TYPE_ERROR, "listen");
+          GNUNET_NETWORK_socket_close(lsock4);
+          lsock4 = NULL;
+        }
+      else
+        {
+          ltask4 = GNUNET_SCHEDULER_add_read_net(GNUNET_TIME_UNIT_FOREVER_REL,
+                                                 lsock4,
+                                                 &do_accept,
+                                                 lsock4);
+        }
     }
-    else
-    {
-      ltask4 = GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL,
-                                              lsock4,
-                                              &do_accept,
-                                              lsock4);
-    }
-  }
   if ((NULL == lsock4) && (NULL == lsock6))
-  {
-    GNUNET_SCHEDULER_shutdown ();
-    return;
-  }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Service listens on port %llu\n", port);
-  httpd = MHD_start_daemon (MHD_USE_DEBUG | MHD_USE_NO_LISTEN_SOCKET |
-                              MHD_ALLOW_SUSPEND_RESUME,
-                            0,
-                            NULL,
-                            NULL,
-                            &create_response,
-                            NULL,
-                            MHD_OPTION_CONNECTION_TIMEOUT,
-                            (unsigned int) 16,
-                            MHD_OPTION_NOTIFY_COMPLETED,
-                            &mhd_completed_cb,
-                            NULL,
-                            MHD_OPTION_END);
+    {
+      GNUNET_SCHEDULER_shutdown();
+      return;
+    }
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Service listens on port %llu\n", port);
+  httpd = MHD_start_daemon(MHD_USE_DEBUG | MHD_USE_NO_LISTEN_SOCKET |
+                           MHD_ALLOW_SUSPEND_RESUME,
+                           0,
+                           NULL,
+                           NULL,
+                           &create_response,
+                           NULL,
+                           MHD_OPTION_CONNECTION_TIMEOUT,
+                           (unsigned int)16,
+                           MHD_OPTION_NOTIFY_COMPLETED,
+                           &mhd_completed_cb,
+                           NULL,
+                           MHD_OPTION_END);
   if (NULL == httpd)
-  {
-    GNUNET_SCHEDULER_shutdown ();
-    return;
-  }
+    {
+      GNUNET_SCHEDULER_shutdown();
+      return;
+    }
   /* Load plugins */
-  GNUNET_PLUGIN_load_all ("libgnunet_plugin_rest",
-                          (void *) cfg,
-                          &load_plugin,
-                          NULL);
-  GNUNET_SCHEDULER_add_shutdown (&do_shutdown, NULL);
+  GNUNET_PLUGIN_load_all("libgnunet_plugin_rest",
+                         (void *)cfg,
+                         &load_plugin,
+                         NULL);
+  GNUNET_SCHEDULER_add_shutdown(&do_shutdown, NULL);
 }
 
 
@@ -1021,29 +1022,29 @@ run (void *cls,
  *
  */
 int
-main (int argc, char *const *argv)
+main(int argc, char *const *argv)
 {
-  struct GNUNET_GETOPT_CommandLineOption options[] = {GNUNET_GETOPT_OPTION_END};
+  struct GNUNET_GETOPT_CommandLineOption options[] = { GNUNET_GETOPT_OPTION_END };
   static const char *err_page = "{}";
   int ret;
 
-  if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv, &argc, &argv))
+  if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args(argc, argv, &argc, &argv))
     return 2;
-  GNUNET_log_setup ("gnunet-rest-server", "WARNING", NULL);
-  failure_response = MHD_create_response_from_buffer (strlen (err_page),
-                                                      (void *) err_page,
-                                                      MHD_RESPMEM_PERSISTENT);
-  ret = (GNUNET_OK == GNUNET_PROGRAM_run (argc,
-                                          argv,
-                                          "gnunet-rest-server",
-                                          _ ("GNUnet REST server"),
-                                          options,
-                                          &run,
-                                          NULL))
-          ? 0
-          : 1;
-  MHD_destroy_response (failure_response);
-  GNUNET_free_non_null ((char *) argv);
+  GNUNET_log_setup("gnunet-rest-server", "WARNING", NULL);
+  failure_response = MHD_create_response_from_buffer(strlen(err_page),
+                                                     (void *)err_page,
+                                                     MHD_RESPMEM_PERSISTENT);
+  ret = (GNUNET_OK == GNUNET_PROGRAM_run(argc,
+                                         argv,
+                                         "gnunet-rest-server",
+                                         _("GNUnet REST server"),
+                                         options,
+                                         &run,
+                                         NULL))
+        ? 0
+        : 1;
+  MHD_destroy_response(failure_response);
+  GNUNET_free_non_null((char *)argv);
   return ret;
 }
 

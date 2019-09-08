@@ -11,12 +11,12 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 
 /**
  * @author Christian Grothoff
@@ -33,8 +33,7 @@ GNUNET_NETWORK_STRUCT_BEGIN
 /**
  * Query key revocation status.
  */
-struct QueryMessage
-{
+struct QueryMessage {
   /**
    * Type: #GNUNET_MESSAGE_TYPE_REVOCATION_QUERY
    */
@@ -49,15 +48,13 @@ struct QueryMessage
    * Key to check.
    */
   struct GNUNET_CRYPTO_EcdsaPublicKey key;
-
 };
 
 
 /**
  * Key revocation response.
  */
-struct QueryResponseMessage
-{
+struct QueryResponseMessage {
   /**
    * Type: #GNUNET_MESSAGE_TYPE_REVOCATION_QUERY_RESPONSE
    */
@@ -67,7 +64,6 @@ struct QueryResponseMessage
    * #GNUNET_NO if revoked, #GNUNET_YES if valid.
    */
   uint32_t is_valid GNUNET_PACKED;
-
 };
 
 
@@ -78,8 +74,7 @@ struct QueryResponseMessage
  * #GNUNET_MESSAGE_TYPE_REVOCATION_REVOKE_RESPONSE (which is just
  * in a `struct GNUNET_MessageHeader`.
  */
-struct RevokeMessage
-{
+struct RevokeMessage {
   /**
    * Type: #GNUNET_MESSAGE_TYPE_REVOCATION_REVOKE
    */
@@ -110,15 +105,13 @@ struct RevokeMessage
    * Key to revoke.
    */
   struct GNUNET_CRYPTO_EcdsaPublicKey public_key;
-
 };
 
 
 /**
  * Key revocation response.
  */
-struct RevocationResponseMessage
-{
+struct RevocationResponseMessage {
   /**
    * Type: #GNUNET_MESSAGE_TYPE_REVOCATION_REVOKE_RESPONSE
    */
@@ -129,7 +122,6 @@ struct RevocationResponseMessage
    * #GNUNET_YES on success
    */
   uint32_t is_valid GNUNET_PACKED;
-
 };
 
 

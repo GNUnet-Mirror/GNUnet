@@ -16,7 +16,7 @@
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 
 /**
  * @author Christian Grothoff
@@ -56,19 +56,17 @@ extern "C"
  */
 typedef void
 (*GNUNET_NAMESTORE_RecordIterator) (void *cls,
-				    uint64_t serial,
-				    const struct GNUNET_CRYPTO_EcdsaPrivateKey *private_key,
-				    const char *label,
-				    unsigned int rd_count,
-				    const struct GNUNET_GNSRECORD_Data *rd);
+                                    uint64_t serial,
+                                    const struct GNUNET_CRYPTO_EcdsaPrivateKey *private_key,
+                                    const char *label,
+                                    unsigned int rd_count,
+                                    const struct GNUNET_GNSRECORD_Data *rd);
 
 
 /**
  * @brief struct returned by the initialization function of the plugin
  */
-struct GNUNET_NAMESTORE_PluginFunctions
-{
-
+struct GNUNET_NAMESTORE_PluginFunctions {
   /**
    * Closure to pass to all plugin functions.
    */
@@ -87,10 +85,10 @@ struct GNUNET_NAMESTORE_PluginFunctions
    */
   int
   (*store_records) (void *cls,
-		    const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
-		    const char *label,
-		    unsigned int rd_count,
-		    const struct GNUNET_GNSRECORD_Data *rd);
+                    const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
+                    const char *label,
+                    unsigned int rd_count,
+                    const struct GNUNET_GNSRECORD_Data *rd);
 
   /**
    * Lookup records in the datastore for which we are the authority.
@@ -104,10 +102,10 @@ struct GNUNET_NAMESTORE_PluginFunctions
    */
   int
   (*lookup_records) (void *cls,
-		     const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
-		     const char *label,
-		     GNUNET_NAMESTORE_RecordIterator iter,
-		     void *iter_cls);
+                     const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
+                     const char *label,
+                     GNUNET_NAMESTORE_RecordIterator iter,
+                     void *iter_cls);
 
 
   /**
@@ -126,11 +124,11 @@ struct GNUNET_NAMESTORE_PluginFunctions
    */
   int
   (*iterate_records) (void *cls,
-		      const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
-		      uint64_t serial,
-		      uint64_t limit,
-		      GNUNET_NAMESTORE_RecordIterator iter,
-		      void *iter_cls);
+                      const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
+                      uint64_t serial,
+                      uint64_t limit,
+                      GNUNET_NAMESTORE_RecordIterator iter,
+                      void *iter_cls);
 
 
   /**
@@ -146,12 +144,10 @@ struct GNUNET_NAMESTORE_PluginFunctions
    */
   int
   (*zone_to_name) (void *cls,
-		   const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
-		   const struct GNUNET_CRYPTO_EcdsaPublicKey *value_zone,
-		   GNUNET_NAMESTORE_RecordIterator iter,
-		   void *iter_cls);
-
-
+                   const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
+                   const struct GNUNET_CRYPTO_EcdsaPublicKey *value_zone,
+                   GNUNET_NAMESTORE_RecordIterator iter,
+                   void *iter_cls);
 };
 
 

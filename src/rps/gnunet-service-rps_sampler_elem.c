@@ -11,12 +11,12 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 
 /**
  * @file rps/gnunet-service-rps_sampler.c
@@ -32,12 +32,12 @@
 
 #include "rps-test_util.h"
 
-#define LOG(kind, ...) GNUNET_log_from(kind,"rps-sampler_elem",__VA_ARGS__)
+#define LOG(kind, ...) GNUNET_log_from(kind, "rps-sampler_elem", __VA_ARGS__)
 
 
 /***********************************************************************
- * WARNING: This section needs to be reviewed regarding the use of
- * functions providing (pseudo)randomness!
+* WARNING: This section needs to be reviewed regarding the use of
+* functions providing (pseudo)randomness!
 ***********************************************************************/
 
 
@@ -47,7 +47,7 @@
  * @param sampler_el The sampler element to (re-) initialise
  */
 void
-RPS_sampler_elem_reinit (struct RPS_SamplerElement *sampler_elem)
+RPS_sampler_elem_reinit(struct RPS_SamplerElement *sampler_elem)
 {
   sampler_elem->is_empty = EMPTY;
 
@@ -58,7 +58,7 @@ RPS_sampler_elem_reinit (struct RPS_SamplerElement *sampler_elem)
 
   sampler_elem->last_client_request = GNUNET_TIME_UNIT_FOREVER_ABS;
 
-  sampler_elem->birth = GNUNET_TIME_absolute_get ();
+  sampler_elem->birth = GNUNET_TIME_absolute_get();
   sampler_elem->num_peers = 0;
   sampler_elem->num_change = 0;
 }
@@ -73,13 +73,13 @@ RPS_sampler_elem_reinit (struct RPS_SamplerElement *sampler_elem)
  * @return a newly created RPS_SamplerElement which currently holds no id.
  */
 struct RPS_SamplerElement *
-RPS_sampler_elem_create (void)
+RPS_sampler_elem_create(void)
 {
   struct RPS_SamplerElement *s;
 
-  s = GNUNET_new (struct RPS_SamplerElement);
+  s = GNUNET_new(struct RPS_SamplerElement);
 
-  RPS_sampler_elem_reinit (s);
+  RPS_sampler_elem_reinit(s);
 
   return s;
 }
@@ -91,9 +91,9 @@ RPS_sampler_elem_create (void)
  * @param sampler_elem the element to destroy
  */
 void
-RPS_sampler_elem_destroy (struct RPS_SamplerElement *sampler_elem)
+RPS_sampler_elem_destroy(struct RPS_SamplerElement *sampler_elem)
 {
-  GNUNET_free (sampler_elem);
+  GNUNET_free(sampler_elem);
 }
 
 
@@ -104,50 +104,50 @@ RPS_sampler_elem_destroy (struct RPS_SamplerElement *sampler_elem)
  * @param new_ID The PeerID to update with
  */
 void
-RPS_sampler_elem_next (struct RPS_SamplerElement *sampler_elem,
-                       const struct GNUNET_PeerIdentity *new_ID)
+RPS_sampler_elem_next(struct RPS_SamplerElement *sampler_elem,
+                      const struct GNUNET_PeerIdentity *new_ID)
 {
   struct GNUNET_HashCode other_hash;
 
   sampler_elem->num_peers++;
 
-  if (0 == GNUNET_memcmp (new_ID, &(sampler_elem->peer_id)))
-  {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "Have already PeerID %s\n",
-        GNUNET_i2s (&(sampler_elem->peer_id)));
-  }
+  if (0 == GNUNET_memcmp(new_ID, &(sampler_elem->peer_id)))
+    {
+      LOG(GNUNET_ERROR_TYPE_DEBUG, "Have already PeerID %s\n",
+          GNUNET_i2s(&(sampler_elem->peer_id)));
+    }
   else
-  {
-    GNUNET_CRYPTO_hmac(&sampler_elem->auth_key,
-        new_ID,
-        sizeof(struct GNUNET_PeerIdentity),
-        &other_hash);
-
-    if (EMPTY == sampler_elem->is_empty)
     {
-      LOG (GNUNET_ERROR_TYPE_DEBUG,
-           "Got PeerID %s; Simply accepting (was empty previously).\n",
-           GNUNET_i2s(new_ID));
-      sampler_elem->peer_id = *new_ID;
-      sampler_elem->peer_id_hash = other_hash;
+      GNUNET_CRYPTO_hmac(&sampler_elem->auth_key,
+                         new_ID,
+                         sizeof(struct GNUNET_PeerIdentity),
+                         &other_hash);
 
-      sampler_elem->num_change++;
-    }
-    else if (0 > GNUNET_CRYPTO_hash_cmp (&other_hash, &sampler_elem->peer_id_hash))
-    {
-      LOG (GNUNET_ERROR_TYPE_DEBUG, "Discarding old PeerID %s\n",
-          GNUNET_i2s (&sampler_elem->peer_id));
-      sampler_elem->peer_id = *new_ID;
-      sampler_elem->peer_id_hash = other_hash;
+      if (EMPTY == sampler_elem->is_empty)
+        {
+          LOG(GNUNET_ERROR_TYPE_DEBUG,
+              "Got PeerID %s; Simply accepting (was empty previously).\n",
+              GNUNET_i2s(new_ID));
+          sampler_elem->peer_id = *new_ID;
+          sampler_elem->peer_id_hash = other_hash;
 
-      sampler_elem->num_change++;
+          sampler_elem->num_change++;
+        }
+      else if (0 > GNUNET_CRYPTO_hash_cmp(&other_hash, &sampler_elem->peer_id_hash))
+        {
+          LOG(GNUNET_ERROR_TYPE_DEBUG, "Discarding old PeerID %s\n",
+              GNUNET_i2s(&sampler_elem->peer_id));
+          sampler_elem->peer_id = *new_ID;
+          sampler_elem->peer_id_hash = other_hash;
+
+          sampler_elem->num_change++;
+        }
+      else
+        {
+          LOG(GNUNET_ERROR_TYPE_DEBUG, "Keeping old PeerID %s\n",
+              GNUNET_i2s(&sampler_elem->peer_id));
+        }
     }
-    else
-    {
-      LOG (GNUNET_ERROR_TYPE_DEBUG, "Keeping old PeerID %s\n",
-          GNUNET_i2s (&sampler_elem->peer_id));
-    }
-  }
   sampler_elem->is_empty = NOT_EMPTY;
 }
 
@@ -158,8 +158,8 @@ RPS_sampler_elem_next (struct RPS_SamplerElement *sampler_elem,
  * @param auth_key the key to use
  */
 void
-RPS_sampler_elem_set (struct RPS_SamplerElement *sampler_elem,
-                      struct GNUNET_CRYPTO_AuthKey auth_key)
+RPS_sampler_elem_set(struct RPS_SamplerElement *sampler_elem,
+                     struct GNUNET_CRYPTO_AuthKey auth_key)
 {
   sampler_elem->auth_key = auth_key;
 }

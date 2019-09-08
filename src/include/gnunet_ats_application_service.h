@@ -1,19 +1,19 @@
 /*
- This file is part of GNUnet.
- Copyright (C) 2010-2015, 2018 GNUnet e.V.
+   This file is part of GNUnet.
+   Copyright (C) 2010-2015, 2018 GNUnet e.V.
 
- GNUnet is free software: you can redistribute it and/or modify it
- under the terms of the GNU Affero General Public License as published
- by the Free Software Foundation, either version 3 of the License,
- or (at your option) any later version.
+   GNUnet is free software: you can redistribute it and/or modify it
+   under the terms of the GNU Affero General Public License as published
+   by the Free Software Foundation, either version 3 of the License,
+   or (at your option) any later version.
 
- GNUnet is distributed in the hope that it will be useful, but
- WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- Affero General Public License for more details.
+   GNUnet is distributed in the hope that it will be useful, but
+   WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   Affero General Public License for more details.
 
- You should have received a copy of the GNU Affero General Public License
- along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   You should have received a copy of the GNU Affero General Public License
+   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
  */
@@ -51,7 +51,7 @@ struct GNUNET_ATS_ApplicationHandle;
  * @return ats application handle, NULL on error
  */
 struct GNUNET_ATS_ApplicationHandle *
-GNUNET_ATS_application_init (const struct GNUNET_CONFIGURATION_Handle *cfg);
+GNUNET_ATS_application_init(const struct GNUNET_CONFIGURATION_Handle *cfg);
 
 
 /**
@@ -60,7 +60,7 @@ GNUNET_ATS_application_init (const struct GNUNET_CONFIGURATION_Handle *cfg);
  * @param ch handle to destroy
  */
 void
-GNUNET_ATS_application_done (struct GNUNET_ATS_ApplicationHandle *ch);
+GNUNET_ATS_application_done(struct GNUNET_ATS_ApplicationHandle *ch);
 
 
 /**
@@ -82,10 +82,10 @@ struct GNUNET_ATS_ApplicationSuggestHandle;
  * @return suggestion handle, NULL if request is already pending
  */
 struct GNUNET_ATS_ApplicationSuggestHandle *
-GNUNET_ATS_application_suggest (struct GNUNET_ATS_ApplicationHandle *ch,
-                                const struct GNUNET_PeerIdentity *peer,
-                                enum GNUNET_MQ_PreferenceKind pk,
-                                struct GNUNET_BANDWIDTH_Value32NBO bw);
+GNUNET_ATS_application_suggest(struct GNUNET_ATS_ApplicationHandle *ch,
+                               const struct GNUNET_PeerIdentity *peer,
+                               enum GNUNET_MQ_PreferenceKind pk,
+                               struct GNUNET_BANDWIDTH_Value32NBO bw);
 
 
 /**
@@ -94,7 +94,7 @@ GNUNET_ATS_application_suggest (struct GNUNET_ATS_ApplicationHandle *ch,
  * @param sh handle
  */
 void
-GNUNET_ATS_application_suggest_cancel (struct GNUNET_ATS_ApplicationSuggestHandle *sh);
+GNUNET_ATS_application_suggest_cancel(struct GNUNET_ATS_ApplicationSuggestHandle *sh);
 
 /** @} */  /* end of group */
 

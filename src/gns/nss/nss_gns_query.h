@@ -16,7 +16,7 @@
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 #ifndef NSS_GNS_QUERY_H
 #define NSS_GNS_QUERY_H
 
@@ -28,20 +28,17 @@
 /* Maximum number of entries to return */
 #define MAX_ENTRIES 16
 
-typedef struct
-{
+typedef struct {
   uint32_t address;
 } ipv4_address_t;
 
 
-typedef struct
-{
+typedef struct {
   uint8_t address[16];
 } ipv6_address_t;
 
 
-struct userdata
-{
+struct userdata {
   int count;
   int data_len; /* only valid when doing reverse lookup */
   union  {

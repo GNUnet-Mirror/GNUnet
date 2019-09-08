@@ -11,12 +11,12 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 
 /**
  * @file cadet/gnunet-service-cadet_hello.h
@@ -49,14 +49,14 @@ extern "C"
  * @param c Configuration.
  */
 void
-GCH_init (const struct GNUNET_CONFIGURATION_Handle *c);
+GCH_init(const struct GNUNET_CONFIGURATION_Handle *c);
 
 
 /**
  * Shut down the hello subsystem.
  */
 void
-GCH_shutdown (void);
+GCH_shutdown(void);
 
 
 /**
@@ -65,7 +65,7 @@ GCH_shutdown (void);
  * @return Own hello message.
  */
 const struct GNUNET_HELLO_Message *
-GCH_get_mine (void);
+GCH_get_mine(void);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

@@ -11,12 +11,12 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 
 /**
  * @file peerinfo/test_peerinfo_api_friend_only.c
@@ -46,9 +46,9 @@ static int global_ret;
 
 
 static ssize_t
-address_generator (void *cls,
-                   size_t max,
-                   void *buf)
+address_generator(void *cls,
+                  size_t max,
+                  void *buf)
 {
   size_t *agc = cls;
   ssize_t ret;
@@ -56,114 +56,113 @@ address_generator (void *cls,
 
   if (0 == *agc)
     return GNUNET_SYSERR; /* Done */
-  memset (&address.peer,
-          0,
-          sizeof (struct GNUNET_PeerIdentity));
+  memset(&address.peer,
+         0,
+         sizeof(struct GNUNET_PeerIdentity));
   address.address = "Address";
   address.transport_name = "peerinfotest";
   address.address_length = *agc;
-  ret = GNUNET_HELLO_add_address (&address,
-                                  GNUNET_TIME_relative_to_absolute (GNUNET_TIME_UNIT_HOURS),
-                                  buf,
-                                  max);
+  ret = GNUNET_HELLO_add_address(&address,
+                                 GNUNET_TIME_relative_to_absolute(GNUNET_TIME_UNIT_HOURS),
+                                 buf,
+                                 max);
   (*agc)--;
   return ret;
 }
 
 
 static void
-add_peer ()
+add_peer()
 {
   struct GNUNET_HELLO_Message *h2;
   size_t agc;
 
   agc = 2;
-  memset (&pid, 32, sizeof (pid));
-  h2 = GNUNET_HELLO_create (&pid.public_key,
-                            &address_generator,
-                            &agc,
-                            GNUNET_YES);
-  GNUNET_PEERINFO_add_peer (h,
-                            h2,
-                            NULL,
-                            NULL);
-  GNUNET_free (h2);
-
+  memset(&pid, 32, sizeof(pid));
+  h2 = GNUNET_HELLO_create(&pid.public_key,
+                           &address_generator,
+                           &agc,
+                           GNUNET_YES);
+  GNUNET_PEERINFO_add_peer(h,
+                           h2,
+                           NULL,
+                           NULL);
+  GNUNET_free(h2);
 }
 
 
 static void
-process (void *cls,
-         const struct GNUNET_PeerIdentity *peer,
-         const struct GNUNET_HELLO_Message *hello,
-         const char *err_msg)
+process(void *cls,
+        const struct GNUNET_PeerIdentity *peer,
+        const struct GNUNET_HELLO_Message *hello,
+        const char *err_msg)
 {
   if (NULL != err_msg)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Error in communication with PEERINFO service: %s\n",
-                err_msg);
-  }
-  if (NULL == peer)
-  {
-    ic = NULL;
-    if ((3 == global_ret) && (retries < 50))
     {
-      /* try again */
-      retries++;
-      add_peer ();
-      ic = GNUNET_PEERINFO_iterate (h,
-                                    GNUNET_NO,
-                                    NULL,
-                                    &process,
-                                    cls);
+      GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
+                 "Error in communication with PEERINFO service: %s\n",
+                 err_msg);
+    }
+  if (NULL == peer)
+    {
+      ic = NULL;
+      if ((3 == global_ret) && (retries < 50))
+        {
+          /* try again */
+          retries++;
+          add_peer();
+          ic = GNUNET_PEERINFO_iterate(h,
+                                       GNUNET_NO,
+                                       NULL,
+                                       &process,
+                                       cls);
+          return;
+        }
+      GNUNET_assert(peer == NULL);
+      GNUNET_PEERINFO_disconnect(h);
+      h = NULL;
+      global_ret = 0;
       return;
     }
-    GNUNET_assert (peer == NULL);
-    GNUNET_PEERINFO_disconnect (h);
-    h = NULL;
-    global_ret = 0;
-    return;
-  }
 
-  if ( (NULL != hello) &&
-       (GNUNET_YES == GNUNET_HELLO_is_friend_only (hello)) )
-  {
-    fprintf (stderr,
-             "Received friend-only HELLO\n");
-    global_ret = 1;
-    GNUNET_PEERINFO_disconnect (h);
-    h = NULL;
-    return;
-  }
+  if ((NULL != hello) &&
+      (GNUNET_YES == GNUNET_HELLO_is_friend_only(hello)))
+    {
+      fprintf(stderr,
+              "Received friend-only HELLO\n");
+      global_ret = 1;
+      GNUNET_PEERINFO_disconnect(h);
+      h = NULL;
+      return;
+    }
 }
 
 
 static void
-run (void *cls,
-     const struct GNUNET_CONFIGURATION_Handle *cfg,
-     struct GNUNET_TESTING_Peer *peer)
+run(void *cls,
+    const struct GNUNET_CONFIGURATION_Handle *cfg,
+    struct GNUNET_TESTING_Peer *peer)
 {
-  h = GNUNET_PEERINFO_connect (cfg);
-  GNUNET_assert (NULL != h);
-  add_peer ();
-  ic = GNUNET_PEERINFO_iterate (h,
-                                GNUNET_NO,
-                                &pid,
-                                &process,
-                                NULL);
+  h = GNUNET_PEERINFO_connect(cfg);
+  GNUNET_assert(NULL != h);
+  add_peer();
+  ic = GNUNET_PEERINFO_iterate(h,
+                               GNUNET_NO,
+                               &pid,
+                               &process,
+                               NULL);
 }
 
 
 int
-main (int argc,
-      char *argv[])
+main(int argc,
+     char *argv[])
 {
   global_ret = 3;
-  if (0 != GNUNET_TESTING_service_run ("test-peerinfo-api-friend-only",
-				       "peerinfo",
-				       "test_peerinfo_api_data.conf",
-				       &run, NULL))
+  if (0 != GNUNET_TESTING_service_run("test-peerinfo-api-friend-only",
+                                      "peerinfo",
+                                      "test_peerinfo_api_data.conf",
+                                      &run, NULL))
     return 1;
   return global_ret;
 }

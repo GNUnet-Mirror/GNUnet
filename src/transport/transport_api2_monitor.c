@@ -16,7 +16,7 @@
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 
 /**
  * @file transport/transport_api2_monitor.c
@@ -33,8 +33,7 @@
 /**
  * Opaque handle to the transport service for monitors.
  */
-struct GNUNET_TRANSPORT_MonitorContext
-{
+struct GNUNET_TRANSPORT_MonitorContext {
   /**
    * Our configuration.
    */
@@ -73,7 +72,7 @@ struct GNUNET_TRANSPORT_MonitorContext
  * @param mc handle to reconnect
  */
 static void
-reconnect (struct GNUNET_TRANSPORT_MonitorContext *mc);
+reconnect(struct GNUNET_TRANSPORT_MonitorContext *mc);
 
 
 /**
@@ -83,17 +82,17 @@ reconnect (struct GNUNET_TRANSPORT_MonitorContext *mc);
  * @param ai address to delete
  */
 static void
-send_start_monitor (struct GNUNET_TRANSPORT_MonitorContext *mc)
+send_start_monitor(struct GNUNET_TRANSPORT_MonitorContext *mc)
 {
   struct GNUNET_MQ_Envelope *env;
   struct GNUNET_TRANSPORT_MonitorStart *smm;
 
   if (NULL == mc->mq)
     return;
-  env = GNUNET_MQ_msg (smm, GNUNET_MESSAGE_TYPE_TRANSPORT_MONITOR_START);
-  smm->one_shot = htonl ((uint32_t) mc->one_shot);
+  env = GNUNET_MQ_msg(smm, GNUNET_MESSAGE_TYPE_TRANSPORT_MONITOR_START);
+  smm->one_shot = htonl((uint32_t)mc->one_shot);
   smm->peer = mc->peer;
-  GNUNET_MQ_send (mc->mq, env);
+  GNUNET_MQ_send(mc->mq, env);
 }
 
 
@@ -103,11 +102,11 @@ send_start_monitor (struct GNUNET_TRANSPORT_MonitorContext *mc)
  * @param mc service to disconnect from
  */
 static void
-disconnect (struct GNUNET_TRANSPORT_MonitorContext *mc)
+disconnect(struct GNUNET_TRANSPORT_MonitorContext *mc)
 {
   if (NULL == mc->mq)
     return;
-  GNUNET_MQ_destroy (mc->mq);
+  GNUNET_MQ_destroy(mc->mq);
   mc->mq = NULL;
 }
 
@@ -119,16 +118,16 @@ disconnect (struct GNUNET_TRANSPORT_MonitorContext *mc)
  * @param error what error happened?
  */
 static void
-error_handler (void *cls, enum GNUNET_MQ_Error error)
+error_handler(void *cls, enum GNUNET_MQ_Error error)
 {
   struct GNUNET_TRANSPORT_MonitorContext *mc = cls;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              "MQ failure %d, reconnecting to transport service.\n",
-              error);
-  disconnect (mc);
+  GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+             "MQ failure %d, reconnecting to transport service.\n",
+             error);
+  disconnect(mc);
   /* TODO: maybe do this with exponential backoff/delay */
-  reconnect (mc);
+  reconnect(mc);
 }
 
 
@@ -141,10 +140,10 @@ error_handler (void *cls, enum GNUNET_MQ_Error error)
  * @return #GNUNET_OK if @a smt is well-formed
  */
 static int
-check_monitor_data (void *cls, const struct GNUNET_TRANSPORT_MonitorData *md)
+check_monitor_data(void *cls, const struct GNUNET_TRANSPORT_MonitorData *md)
 {
-  (void) cls;
-  GNUNET_MQ_check_zero_termination (md);
+  (void)cls;
+  GNUNET_MQ_check_zero_termination(md);
   return GNUNET_OK;
 }
 
@@ -156,21 +155,21 @@ check_monitor_data (void *cls, const struct GNUNET_TRANSPORT_MonitorData *md)
  * @param md monitor data
  */
 static void
-handle_monitor_data (void *cls, const struct GNUNET_TRANSPORT_MonitorData *md)
+handle_monitor_data(void *cls, const struct GNUNET_TRANSPORT_MonitorData *md)
 {
   struct GNUNET_TRANSPORT_MonitorContext *mc = cls;
   struct GNUNET_TRANSPORT_MonitorInformation mi;
 
-  mi.address = (const char *) &md[1];
-  mi.nt = (enum GNUNET_NetworkType) ntohl (md->nt);
-  mi.cs = (enum GNUNET_TRANSPORT_ConnectionStatus) ntohl (md->cs);
-  mi.num_msg_pending = ntohl (md->num_msg_pending);
-  mi.num_bytes_pending = ntohl (md->num_bytes_pending);
-  mi.last_validation = GNUNET_TIME_absolute_ntoh (md->last_validation);
-  mi.valid_until = GNUNET_TIME_absolute_ntoh (md->valid_until);
-  mi.next_validation = GNUNET_TIME_absolute_ntoh (md->next_validation);
-  mi.rtt = GNUNET_TIME_relative_ntoh (md->rtt);
-  mc->cb (mc->cb_cls, &md->peer, &mi);
+  mi.address = (const char *)&md[1];
+  mi.nt = (enum GNUNET_NetworkType)ntohl(md->nt);
+  mi.cs = (enum GNUNET_TRANSPORT_ConnectionStatus)ntohl(md->cs);
+  mi.num_msg_pending = ntohl(md->num_msg_pending);
+  mi.num_bytes_pending = ntohl(md->num_bytes_pending);
+  mi.last_validation = GNUNET_TIME_absolute_ntoh(md->last_validation);
+  mi.valid_until = GNUNET_TIME_absolute_ntoh(md->valid_until);
+  mi.next_validation = GNUNET_TIME_absolute_ntoh(md->next_validation);
+  mi.rtt = GNUNET_TIME_relative_ntoh(md->rtt);
+  mc->cb(mc->cb_cls, &md->peer, &mi);
 }
 
 
@@ -181,19 +180,19 @@ handle_monitor_data (void *cls, const struct GNUNET_TRANSPORT_MonitorData *md)
  * @param me end message
  */
 static void
-handle_monitor_end (void *cls, const struct GNUNET_MessageHeader *me)
+handle_monitor_end(void *cls, const struct GNUNET_MessageHeader *me)
 {
   struct GNUNET_TRANSPORT_MonitorContext *mc = cls;
 
   if (GNUNET_YES != mc->one_shot)
-  {
-    GNUNET_break (0);
-    disconnect (mc);
-    reconnect (mc);
-    return;
-  }
-  mc->cb (mc->cb_cls, NULL, NULL);
-  GNUNET_TRANSPORT_monitor_cancel (mc);
+    {
+      GNUNET_break(0);
+      disconnect(mc);
+      reconnect(mc);
+      return;
+    }
+  mc->cb(mc->cb_cls, NULL, NULL);
+  GNUNET_TRANSPORT_monitor_cancel(mc);
 }
 
 
@@ -203,24 +202,24 @@ handle_monitor_end (void *cls, const struct GNUNET_MessageHeader *me)
  * @param mc handle to reconnect
  */
 static void
-reconnect (struct GNUNET_TRANSPORT_MonitorContext *mc)
+reconnect(struct GNUNET_TRANSPORT_MonitorContext *mc)
 {
   struct GNUNET_MQ_MessageHandler handlers[] =
-    {GNUNET_MQ_hd_var_size (monitor_data,
-                            GNUNET_MESSAGE_TYPE_TRANSPORT_MONITOR_DATA,
-                            struct GNUNET_TRANSPORT_MonitorData,
+  { GNUNET_MQ_hd_var_size(monitor_data,
+                          GNUNET_MESSAGE_TYPE_TRANSPORT_MONITOR_DATA,
+                          struct GNUNET_TRANSPORT_MonitorData,
+                          mc),
+    GNUNET_MQ_hd_fixed_size(monitor_end,
+                            GNUNET_MESSAGE_TYPE_TRANSPORT_MONITOR_END,
+                            struct GNUNET_MessageHeader,
                             mc),
-     GNUNET_MQ_hd_fixed_size (monitor_end,
-                              GNUNET_MESSAGE_TYPE_TRANSPORT_MONITOR_END,
-                              struct GNUNET_MessageHeader,
-                              mc),
-     GNUNET_MQ_handler_end ()};
+    GNUNET_MQ_handler_end() };
 
   mc->mq =
-    GNUNET_CLIENT_connect (mc->cfg, "transport", handlers, &error_handler, mc);
+    GNUNET_CLIENT_connect(mc->cfg, "transport", handlers, &error_handler, mc);
   if (NULL == mc->mq)
     return;
-  send_start_monitor (mc);
+  send_start_monitor(mc);
 }
 
 
@@ -251,27 +250,27 @@ reconnect (struct GNUNET_TRANSPORT_MonitorContext *mc)
  * @param cb_cls closure for @a mc
  */
 struct GNUNET_TRANSPORT_MonitorContext *
-GNUNET_TRANSPORT_monitor (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                          const struct GNUNET_PeerIdentity *peer,
-                          int one_shot,
-                          GNUNET_TRANSPORT_MonitorCallback cb,
-                          void *cb_cls)
+GNUNET_TRANSPORT_monitor(const struct GNUNET_CONFIGURATION_Handle *cfg,
+                         const struct GNUNET_PeerIdentity *peer,
+                         int one_shot,
+                         GNUNET_TRANSPORT_MonitorCallback cb,
+                         void *cb_cls)
 {
   struct GNUNET_TRANSPORT_MonitorContext *mc;
 
-  mc = GNUNET_new (struct GNUNET_TRANSPORT_MonitorContext);
+  mc = GNUNET_new(struct GNUNET_TRANSPORT_MonitorContext);
   mc->cfg = cfg;
   if (NULL != peer)
     mc->peer = *peer;
   mc->one_shot = one_shot;
   mc->cb = cb;
   mc->cb_cls = cb_cls;
-  reconnect (mc);
+  reconnect(mc);
   if (NULL == mc->mq)
-  {
-    GNUNET_free (mc);
-    return NULL;
-  }
+    {
+      GNUNET_free(mc);
+      return NULL;
+    }
   return mc;
 }
 
@@ -282,10 +281,10 @@ GNUNET_TRANSPORT_monitor (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @param pmc handle for the request to cancel
  */
 void
-GNUNET_TRANSPORT_monitor_cancel (struct GNUNET_TRANSPORT_MonitorContext *mc)
+GNUNET_TRANSPORT_monitor_cancel(struct GNUNET_TRANSPORT_MonitorContext *mc)
 {
-  disconnect (mc);
-  GNUNET_free (mc);
+  disconnect(mc);
+  GNUNET_free(mc);
 }
 
 /* end of transport_api2_monitor.c */

@@ -11,12 +11,12 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 
 /**
  * @file dht/gnunet-service-dht_nse.h
@@ -33,20 +33,20 @@
  * @return log of NSE
  */
 double
-GDS_NSE_get (void);
+GDS_NSE_get(void);
 
 
 /**
  * Initialize NSE subsystem.
  */
 void
-GDS_NSE_init (void);
+GDS_NSE_init(void);
 
 
 /**
  * Shutdown NSE subsystem.
  */
 void
-GDS_NSE_done (void);
+GDS_NSE_done(void);
 
 #endif

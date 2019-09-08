@@ -11,12 +11,12 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 
 /**
  * @file transport/plugin_transport_template.c
@@ -31,14 +31,14 @@
 #include "gnunet_transport_service.h"
 #include "gnunet_transport_plugin.h"
 
-#define LOG(kind,...) GNUNET_log_from (kind, "transport-template",__VA_ARGS__)
+#define LOG(kind, ...) GNUNET_log_from(kind, "transport-template", __VA_ARGS__)
 
 /**
  * After how long do we expire an address that we
  * learned from another peer if it is not reconfirmed
  * by anyone?
  */
-#define LEARNED_ADDRESS_EXPIRATION GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_HOURS, 6)
+#define LEARNED_ADDRESS_EXPIRATION GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_HOURS, 6)
 
 #define PLUGIN_NAME "template"
 
@@ -51,8 +51,7 @@ struct Plugin;
 /**
  * Session handle for connections.
  */
-struct GNUNET_ATS_Session
-{
+struct GNUNET_ATS_Session {
   /**
    * To whom are we talking to (set to our identity
    * if we are still waiting for the welcome message)
@@ -102,13 +101,11 @@ struct GNUNET_ATS_Session
    * to send to us.
    */
   uint32_t quota;
-
 };
 
 GNUNET_NETWORK_STRUCT_BEGIN
 
-struct TemplateAddress
-{
+struct TemplateAddress {
   /**
    * Address options in NBO
    */
@@ -122,8 +119,7 @@ GNUNET_NETWORK_STRUCT_END
 /**
  * Encapsulation of all of the state of the plugin.
  */
-struct Plugin
-{
+struct Plugin {
   /**
    * Our environment.
    */
@@ -147,7 +143,6 @@ struct Plugin
   /**
    * Options in HBO to be used with addresses
    */
-
 };
 
 
@@ -161,15 +156,15 @@ struct Plugin
  * @param state new state of the session
  */
 static void
-notify_session_monitor (struct Plugin *plugin,
-                        struct GNUNET_ATS_Session *session,
-                        enum GNUNET_TRANSPORT_SessionState state)
+notify_session_monitor(struct Plugin *plugin,
+                       struct GNUNET_ATS_Session *session,
+                       enum GNUNET_TRANSPORT_SessionState state)
 {
   struct GNUNET_TRANSPORT_SessionInfo info;
 
   if (NULL == plugin->sic)
     return;
-  memset (&info, 0, sizeof (info));
+  memset(&info, 0, sizeof(info));
   info.state = state;
   info.is_inbound = GNUNET_SYSERR; /* FIXME */
   // info.num_msg_pending =
@@ -177,9 +172,9 @@ notify_session_monitor (struct Plugin *plugin,
   // info.receive_delay =
   // info.session_timeout = session->timeout;
   // info.address = session->address;
-  plugin->sic (plugin->sic_cls,
-               session,
-               &info);
+  plugin->sic(plugin->sic_cls,
+              session,
+              &info);
 }
 #endif
 
@@ -212,14 +207,14 @@ notify_session_monitor (struct Plugin *plugin,
  *         and does NOT mean that the message was not transmitted (DV)
  */
 static ssize_t
-template_plugin_send (void *cls,
-                      struct GNUNET_ATS_Session *session,
-                      const char *msgbuf,
-                      size_t msgbuf_size,
-                      unsigned int priority,
-                      struct GNUNET_TIME_Relative to,
-                      GNUNET_TRANSPORT_TransmitContinuation cont,
-                      void *cont_cls)
+template_plugin_send(void *cls,
+                     struct GNUNET_ATS_Session *session,
+                     const char *msgbuf,
+                     size_t msgbuf_size,
+                     unsigned int priority,
+                     struct GNUNET_TIME_Relative to,
+                     GNUNET_TRANSPORT_TransmitContinuation cont,
+                     void *cont_cls)
 {
   /*  struct Plugin *plugin = cls; */
   ssize_t bytes_sent = 0;
@@ -237,8 +232,8 @@ template_plugin_send (void *cls,
  * @param target peer from which to disconnect
  */
 static void
-template_plugin_disconnect_peer (void *cls,
-                                 const struct GNUNET_PeerIdentity *target)
+template_plugin_disconnect_peer(void *cls,
+                                const struct GNUNET_PeerIdentity *target)
 {
   // struct Plugin *plugin = cls;
   // FIXME
@@ -255,8 +250,8 @@ template_plugin_disconnect_peer (void *cls,
  * @return #GNUNET_OK on success
  */
 static int
-template_plugin_disconnect_session (void *cls,
-                                    struct GNUNET_ATS_Session *session)
+template_plugin_disconnect_session(void *cls,
+                                   struct GNUNET_ATS_Session *session)
 {
   // struct Plugin *plugin = cls;
   // FIXME
@@ -273,7 +268,7 @@ template_plugin_disconnect_session (void *cls,
  * @return keepalive factor
  */
 static unsigned int
-template_plugin_query_keepalive_factor (void *cls)
+template_plugin_query_keepalive_factor(void *cls)
 {
   return 3;
 }
@@ -287,10 +282,10 @@ template_plugin_query_keepalive_factor (void *cls)
  * @return the network type in HBO or #GNUNET_SYSERR
  */
 static enum GNUNET_NetworkType
-template_plugin_get_network (void *cls,
-			     struct GNUNET_ATS_Session *session)
+template_plugin_get_network(void *cls,
+                            struct GNUNET_ATS_Session *session)
 {
-  GNUNET_assert (NULL != session);
+  GNUNET_assert(NULL != session);
   return GNUNET_NT_UNSPECIFIED; /* Change to correct network type */
 }
 
@@ -303,8 +298,8 @@ template_plugin_get_network (void *cls,
  * @return the network type
  */
 static enum GNUNET_NetworkType
-template_plugin_get_network_for_address (void *cls,
-                                         const struct GNUNET_HELLO_Address *address)
+template_plugin_get_network_for_address(void *cls,
+                                        const struct GNUNET_HELLO_Address *address)
 {
   return GNUNET_NT_WAN; /* FOR NOW */
 }
@@ -325,15 +320,15 @@ template_plugin_get_network_for_address (void *cls,
  * @param asc_cls closure for @a asc
  */
 static void
-template_plugin_address_pretty_printer (void *cls, const char *type,
-                                        const void *addr, size_t addrlen,
-                                        int numeric,
-                                        struct GNUNET_TIME_Relative timeout,
-                                        GNUNET_TRANSPORT_AddressStringCallback
-                                        asc, void *asc_cls)
+template_plugin_address_pretty_printer(void *cls, const char *type,
+                                       const void *addr, size_t addrlen,
+                                       int numeric,
+                                       struct GNUNET_TIME_Relative timeout,
+                                       GNUNET_TRANSPORT_AddressStringCallback
+                                       asc, void *asc_cls)
 {
-  asc (asc_cls, "converted address", GNUNET_OK); /* return address */
-  asc (asc_cls, NULL, GNUNET_OK); /* done */
+  asc(asc_cls, "converted address", GNUNET_OK);  /* return address */
+  asc(asc_cls, NULL, GNUNET_OK);  /* done */
 }
 
 
@@ -351,7 +346,7 @@ template_plugin_address_pretty_printer (void *cls, const char *type,
  *         and transport
  */
 static int
-template_plugin_address_suggested (void *cls, const void *addr, size_t addrlen)
+template_plugin_address_suggested(void *cls, const void *addr, size_t addrlen)
 {
   /* struct Plugin *plugin = cls; */
 
@@ -372,18 +367,18 @@ template_plugin_address_suggested (void *cls, const void *addr, size_t addrlen)
  * @return string representing the same address
  */
 static const char *
-template_plugin_address_to_string (void *cls, const void *addr, size_t addrlen)
+template_plugin_address_to_string(void *cls, const void *addr, size_t addrlen)
 {
   /*
    * Print address in format template.options.address
    */
 
   if (0 == addrlen)
-  {
-    return TRANSPORT_SESSION_INBOUND_STRING;
-  }
+    {
+      return TRANSPORT_SESSION_INBOUND_STRING;
+    }
 
-  GNUNET_break (0);
+  GNUNET_break(0);
   return NULL;
 }
 
@@ -401,15 +396,15 @@ template_plugin_address_to_string (void *cls, const void *addr, size_t addrlen)
  * @return #GNUNET_OK on success, #GNUNET_SYSERR on failure
  */
 static int
-template_plugin_string_to_address (void *cls,
-                                   const char *addr,
-                                   uint16_t addrlen,
-                                   void **buf, size_t *added)
+template_plugin_string_to_address(void *cls,
+                                  const char *addr,
+                                  uint16_t addrlen,
+                                  void **buf, size_t *added)
 {
   /*
    * Parse string in format template.options.address
    */
-  GNUNET_break (0);
+  GNUNET_break(0);
   return GNUNET_SYSERR;
 }
 
@@ -424,20 +419,19 @@ template_plugin_string_to_address (void *cls,
  * @return the session if the address is valid, NULL otherwise
  */
 static struct GNUNET_ATS_Session *
-template_plugin_get_session (void *cls,
-                        const struct GNUNET_HELLO_Address *address)
+template_plugin_get_session(void *cls,
+                            const struct GNUNET_HELLO_Address *address)
 {
-  GNUNET_break (0);
+  GNUNET_break(0);
   return NULL;
 }
 
 
 static void
-template_plugin_update_session_timeout (void *cls,
-                                        const struct GNUNET_PeerIdentity *peer,
-                                        struct GNUNET_ATS_Session *session)
+template_plugin_update_session_timeout(void *cls,
+                                       const struct GNUNET_PeerIdentity *peer,
+                                       struct GNUNET_ATS_Session *session)
 {
-
 }
 
 
@@ -452,16 +446,16 @@ template_plugin_update_session_timeout (void *cls,
  * @return #GNUNET_OK (continue to iterate)
  */
 static int
-send_session_info_iter (void *cls,
-                        const struct GNUNET_PeerIdentity *peer,
-                        void *value)
+send_session_info_iter(void *cls,
+                       const struct GNUNET_PeerIdentity *peer,
+                       void *value)
 {
   struct Plugin *plugin = cls;
   struct GNUNET_ATS_Session *session = value;
 
-  notify_session_monitor (plugin,
-                          session,
-                          GNUNET_TRANSPORT_SS_UP);
+  notify_session_monitor(plugin,
+                         session,
+                         GNUNET_TRANSPORT_SS_UP);
   return GNUNET_OK;
 }
 #endif
@@ -480,24 +474,24 @@ send_session_info_iter (void *cls,
  * @param sic_cls closure for @a sic
  */
 static void
-template_plugin_setup_monitor (void *cls,
-                               GNUNET_TRANSPORT_SessionInfoCallback sic,
-                               void *sic_cls)
+template_plugin_setup_monitor(void *cls,
+                              GNUNET_TRANSPORT_SessionInfoCallback sic,
+                              void *sic_cls)
 {
   struct Plugin *plugin = cls;
 
   plugin->sic = sic;
   plugin->sic_cls = sic_cls;
   if (NULL != sic)
-  {
+    {
 #if 0
-    GNUNET_CONTAINER_multipeermap_iterate (NULL /* FIXME */,
-                                           &send_session_info_iter,
-                                           plugin);
+      GNUNET_CONTAINER_multipeermap_iterate(NULL /* FIXME */,
+                                            &send_session_info_iter,
+                                            plugin);
 #endif
-    /* signal end of first iteration */
-    sic (sic_cls, NULL, NULL);
-  }
+      /* signal end of first iteration */
+      sic(sic_cls, NULL, NULL);
+    }
 }
 
 
@@ -505,27 +499,27 @@ template_plugin_setup_monitor (void *cls,
  * Entry point for the plugin.
  */
 void *
-libgnunet_plugin_transport_template_init (void *cls)
+libgnunet_plugin_transport_template_init(void *cls)
 {
   struct GNUNET_TRANSPORT_PluginEnvironment *env = cls;
   struct GNUNET_TRANSPORT_PluginFunctions *api;
   struct Plugin *plugin;
 
   if (NULL == env->receive)
-  {
-    /* run in 'stub' mode (i.e. as part of gnunet-peerinfo), don't fully
-       initialze the plugin or the API */
-    api = GNUNET_new (struct GNUNET_TRANSPORT_PluginFunctions);
-    api->cls = NULL;
-    api->address_to_string = &template_plugin_address_to_string;
-    api->string_to_address = &template_plugin_string_to_address;
-    api->address_pretty_printer = &template_plugin_address_pretty_printer;
-    return api;
-  }
+    {
+      /* run in 'stub' mode (i.e. as part of gnunet-peerinfo), don't fully
+         initialze the plugin or the API */
+      api = GNUNET_new(struct GNUNET_TRANSPORT_PluginFunctions);
+      api->cls = NULL;
+      api->address_to_string = &template_plugin_address_to_string;
+      api->string_to_address = &template_plugin_string_to_address;
+      api->address_pretty_printer = &template_plugin_address_pretty_printer;
+      return api;
+    }
 
-  plugin = GNUNET_new (struct Plugin);
+  plugin = GNUNET_new(struct Plugin);
   plugin->env = env;
-  api = GNUNET_new (struct GNUNET_TRANSPORT_PluginFunctions);
+  api = GNUNET_new(struct GNUNET_TRANSPORT_PluginFunctions);
   api->cls = plugin;
   api->send = &template_plugin_send;
   api->disconnect_peer = &template_plugin_disconnect_peer;
@@ -540,7 +534,7 @@ libgnunet_plugin_transport_template_init (void *cls)
   api->get_network_for_address = &template_plugin_get_network_for_address;
   api->update_session_timeout = &template_plugin_update_session_timeout;
   api->setup_monitor = &template_plugin_setup_monitor;
-  LOG (GNUNET_ERROR_TYPE_INFO, "Template plugin successfully loaded\n");
+  LOG(GNUNET_ERROR_TYPE_INFO, "Template plugin successfully loaded\n");
   return api;
 }
 
@@ -549,13 +543,13 @@ libgnunet_plugin_transport_template_init (void *cls)
  * Exit point from the plugin.
  */
 void *
-libgnunet_plugin_transport_template_done (void *cls)
+libgnunet_plugin_transport_template_done(void *cls)
 {
   struct GNUNET_TRANSPORT_PluginFunctions *api = cls;
   struct Plugin *plugin = api->cls;
 
-  GNUNET_free (plugin);
-  GNUNET_free (api);
+  GNUNET_free(plugin);
+  GNUNET_free(api);
   return NULL;
 }
 

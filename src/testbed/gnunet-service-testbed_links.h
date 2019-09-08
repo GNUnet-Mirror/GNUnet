@@ -1,22 +1,22 @@
 /*
-  This file is part of GNUnet.
-  Copyright (C) 2008--2013 GNUnet e.V.
+   This file is part of GNUnet.
+   Copyright (C) 2008--2013 GNUnet e.V.
 
-  GNUnet is free software: you can redistribute it and/or modify it
-  under the terms of the GNU Affero General Public License as published
-  by the Free Software Foundation, either version 3 of the License,
-  or (at your option) any later version.
+   GNUnet is free software: you can redistribute it and/or modify it
+   under the terms of the GNU Affero General Public License as published
+   by the Free Software Foundation, either version 3 of the License,
+   or (at your option) any later version.
 
-  GNUnet is distributed in the hope that it will be useful, but
-  WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-  Affero General Public License for more details.
- 
-  You should have received a copy of the GNU Affero General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   GNUnet is distributed in the hope that it will be useful, but
+   WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   Affero General Public License for more details.
+
+   You should have received a copy of the GNU Affero General Public License
+   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 
 /**
  * @file testbed/gnunet-service-testbed_links.h
@@ -35,8 +35,7 @@ struct Neighbour;
 /**
  * Structure representing a connected(directly-linked) controller
  */
-struct Slave
-{
+struct Slave {
   /**
    * The controller process handle if we had started the controller
    */
@@ -94,7 +93,7 @@ extern unsigned int GST_slave_list_size;
  * Cleans up the neighbour list
  */
 void
-GST_neighbour_list_clean (void);
+GST_neighbour_list_clean(void);
 
 
 /**
@@ -105,14 +104,14 @@ GST_neighbour_list_clean (void);
  *           the list size or neighbour at that index is NULL)
  */
 struct Neighbour *
-GST_get_neighbour (uint32_t id);
+GST_get_neighbour(uint32_t id);
 
 
 /**
  * Function to cleanup the neighbour connect contexts
  */
 void
-GST_free_nccq (void);
+GST_free_nccq(void);
 
 
 /**
@@ -145,9 +144,9 @@ typedef void
  * @param cb_cls the closure for the above callback
  */
 struct NeighbourConnectNotification *
-GST_neighbour_get_connection (struct Neighbour *n,
-                              GST_NeigbourConnectNotifyCallback cb,
-                              void *cb_cls);
+GST_neighbour_get_connection(struct Neighbour *n,
+                             GST_NeigbourConnectNotifyCallback cb,
+                             void *cb_cls);
 
 
 /**
@@ -156,7 +155,7 @@ GST_neighbour_get_connection (struct Neighbour *n,
  * @param h the notification handle
  */
 void
-GST_neighbour_get_connection_cancel (struct NeighbourConnectNotification *h);
+GST_neighbour_get_connection_cancel(struct NeighbourConnectNotification *h);
 
 
 /**
@@ -167,7 +166,7 @@ GST_neighbour_get_connection_cancel (struct NeighbourConnectNotification *h);
  * @param n the neighbour whose connection can be closed
  */
 void
-GST_neighbour_release_connection (struct Neighbour *n);
+GST_neighbour_release_connection(struct Neighbour *n);
 
 
 /**
@@ -176,7 +175,7 @@ GST_neighbour_release_connection (struct Neighbour *n);
  * @param host the host of the neighbour
  */
 struct Neighbour *
-GST_create_neighbour (struct GNUNET_TESTBED_Host *host);
+GST_create_neighbour(struct GNUNET_TESTBED_Host *host);
 
 
 /**
@@ -186,8 +185,8 @@ GST_create_neighbour (struct GNUNET_TESTBED_Host *host);
  * @param msg the actual message
  */
 void
-handle_link_controllers (void *cls,
-                         const struct GNUNET_TESTBED_ControllerLinkRequest *msg);
+handle_link_controllers(void *cls,
+                        const struct GNUNET_TESTBED_ControllerLinkRequest *msg);
 
 
 /**
@@ -197,11 +196,11 @@ handle_link_controllers (void *cls,
  * @param client the client that is history
  */
 void
-GST_link_notify_disconnect (struct GNUNET_SERVICE_Client *client);
+GST_link_notify_disconnect(struct GNUNET_SERVICE_Client *client);
 
 
 /**
  * Cleans up the slave list
  */
 void
-GST_slave_list_clear (void);
+GST_slave_list_clear(void);

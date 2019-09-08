@@ -16,7 +16,7 @@
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 
 /**
  * @author Nils Durner
@@ -39,7 +39,7 @@
 #endif
 
 #ifdef WINDOWS
-#define BREAKPOINT asm("int $3;");
+#define BREAKPOINT asm ("int $3;");
 #define GNUNET_SIGCHLD 17
 #else
 #define BREAKPOINT
@@ -223,11 +223,11 @@
 /**
  * GNU gettext support macro.
  */
-#define _(String) dgettext(PACKAGE,String)
+#define _(String) dgettext(PACKAGE, String)
 #define LIBEXTRACTOR_GETTEXT_DOMAIN "libextractor"
 #else
 #include "libintlemu.h"
-#define _(String) dgettext("org.gnunet.gnunet",String)
+#define _(String) dgettext("org.gnunet.gnunet", String)
 #define LIBEXTRACTOR_GETTEXT_DOMAIN "org.gnunet.libextractor"
 #endif
 
@@ -249,7 +249,7 @@
 #ifdef DARWIN
 #define __BYTE_ORDER BYTE_ORDER
 #define __BIG_ENDIAN BIG_ENDIAN
- /* not available on darwin, override configure */
+/* not available on darwin, override configure */
 #undef HAVE_STAT64
 #undef HAVE_MREMAP
 #endif
@@ -257,7 +257,7 @@
 
 #if !HAVE_ATOLL
 long long
-atoll (const char *nptr);
+atoll(const char *nptr);
 #endif
 
 #if ENABLE_NLS

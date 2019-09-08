@@ -1,19 +1,19 @@
 /*
- This file is part of GNUnet.
- Copyright (C) 2010-2013 GNUnet e.V.
+   This file is part of GNUnet.
+   Copyright (C) 2010-2013 GNUnet e.V.
 
- GNUnet is free software: you can redistribute it and/or modify it
- under the terms of the GNU Affero General Public License as published
- by the Free Software Foundation, either version 3 of the License,
- or (at your option) any later version.
+   GNUnet is free software: you can redistribute it and/or modify it
+   under the terms of the GNU Affero General Public License as published
+   by the Free Software Foundation, either version 3 of the License,
+   or (at your option) any later version.
 
- GNUnet is distributed in the hope that it will be useful, but
- WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- Affero General Public License for more details.
+   GNUnet is distributed in the hope that it will be useful, but
+   WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   Affero General Public License for more details.
 
- You should have received a copy of the GNU Affero General Public License
- along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   You should have received a copy of the GNU Affero General Public License
+   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
  */
@@ -30,27 +30,26 @@
 #include "gnunet_core_service.h"
 #include "ats-testing.h"
 
-#define TEST_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 120)
-#define BENCHMARK_DURATION GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10)
-#define LOGGING_FREQUENCY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 500)
+#define TEST_TIMEOUT GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 120)
+#define BENCHMARK_DURATION GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 10)
+#define LOGGING_FREQUENCY GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MILLISECONDS, 500)
 #define TESTNAME_PREFIX "perf_ats_"
 #define DEFAULT_SLAVES_NUM 2
 #define DEFAULT_MASTERS_NUM 1
 
-#define TEST_ATS_PREFRENCE_FREQUENCY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 1)
+#define TEST_ATS_PREFRENCE_FREQUENCY GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 1)
 #define TEST_ATS_PREFRENCE_START 1.0
 #define TEST_ATS_PREFRENCE_DELTA 1.0
 
 #define TEST_MESSAGE_TYPE_PING 12345
 #define TEST_MESSAGE_TYPE_PONG 12346
 #define TEST_MESSAGE_SIZE 1000
-#define TEST_MESSAGE_FREQUENCY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 1)
+#define TEST_MESSAGE_FREQUENCY GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 1)
 
 /**
  * Information about a benchmarking partner
  */
-struct BenchmarkPartner
-{
+struct BenchmarkPartner {
   /**
    * The peer itself this partner belongs to
    */
@@ -128,8 +127,7 @@ struct BenchmarkPartner
 /**
  * Information we track for a peer in the testbed.
  */
-struct BenchmarkPeer
-{
+struct BenchmarkPeer {
   /**
    * Handle with testbed.
    */

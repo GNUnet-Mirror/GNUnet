@@ -16,7 +16,7 @@
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 
 /**
  * @author Christian Grothoff
@@ -61,8 +61,8 @@ extern "C"
  * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
  */
 int
-GNUNET_STRINGS_fancy_size_to_bytes (const char *fancy_size,
-                                    unsigned long long *size);
+GNUNET_STRINGS_fancy_size_to_bytes(const char *fancy_size,
+                                   unsigned long long *size);
 
 
 /**
@@ -74,8 +74,8 @@ GNUNET_STRINGS_fancy_size_to_bytes (const char *fancy_size,
  * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
  */
 int
-GNUNET_STRINGS_fancy_time_to_relative (const char *fancy_time,
-                                       struct GNUNET_TIME_Relative *rtime);
+GNUNET_STRINGS_fancy_time_to_relative(const char *fancy_time,
+                                      struct GNUNET_TIME_Relative *rtime);
 
 
 /**
@@ -89,8 +89,8 @@ GNUNET_STRINGS_fancy_time_to_relative (const char *fancy_time,
  * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
  */
 int
-GNUNET_STRINGS_fancy_time_to_absolute (const char *fancy_time,
-                                       struct GNUNET_TIME_Absolute *atime);
+GNUNET_STRINGS_fancy_time_to_absolute(const char *fancy_time,
+                                      struct GNUNET_TIME_Absolute *atime);
 
 
 /**
@@ -100,7 +100,7 @@ GNUNET_STRINGS_fancy_time_to_absolute (const char *fancy_time,
  * @return fancy representation of the size (possibly rounded) for humans
  */
 char *
-GNUNET_STRINGS_byte_size_fancy (unsigned long long size);
+GNUNET_STRINGS_byte_size_fancy(unsigned long long size);
 
 
 /**
@@ -117,9 +117,9 @@ GNUNET_STRINGS_byte_size_fancy (unsigned long long size);
  *  string is returned.
  */
 char *
-GNUNET_STRINGS_conv (const char *input, size_t len,
-		     const char *input_charset,
-		     const char *output_charset);
+GNUNET_STRINGS_conv(const char *input, size_t len,
+                    const char *input_charset,
+                    const char *output_charset);
 
 
 /**
@@ -133,9 +133,9 @@ GNUNET_STRINGS_conv (const char *input, size_t len,
  * @return the converted string (0-terminated)
  */
 char *
-GNUNET_STRINGS_to_utf8 (const char *input,
-			size_t len,
-			const char *charset);
+GNUNET_STRINGS_to_utf8(const char *input,
+                       size_t len,
+                       const char *charset);
 
 
 /**
@@ -150,9 +150,9 @@ GNUNET_STRINGS_to_utf8 (const char *input,
  *  string is returned.
  */
 char *
-GNUNET_STRINGS_from_utf8 (const char *input,
-			  size_t len,
-			  const char *charset);
+GNUNET_STRINGS_from_utf8(const char *input,
+                         size_t len,
+                         const char *charset);
 
 
 /**
@@ -163,8 +163,8 @@ GNUNET_STRINGS_from_utf8 (const char *input,
  * @param output output buffer
  */
 void
-GNUNET_STRINGS_utf8_tolower (const char *input,
-			     char *output);
+GNUNET_STRINGS_utf8_tolower(const char *input,
+                            char *output);
 
 
 /**
@@ -175,8 +175,8 @@ GNUNET_STRINGS_utf8_tolower (const char *input,
  * @param output output buffer
  */
 void
-GNUNET_STRINGS_utf8_toupper (const char *input,
-			     char *output);
+GNUNET_STRINGS_utf8_toupper(const char *input,
+                            char *output);
 
 
 /**
@@ -188,7 +188,7 @@ GNUNET_STRINGS_utf8_toupper (const char *input,
  *          NULL is returned on error
  */
 char *
-GNUNET_STRINGS_filename_expand (const char *fil);
+GNUNET_STRINGS_filename_expand(const char *fil);
 
 
 /**
@@ -211,10 +211,10 @@ GNUNET_STRINGS_filename_expand (const char *fil);
  *         (or number of bytes that would have been written)
  */
 size_t
-GNUNET_STRINGS_buffer_fill (char *buffer,
-			    size_t size,
-			    unsigned int count,
-			    ...);
+GNUNET_STRINGS_buffer_fill(char *buffer,
+                           size_t size,
+                           unsigned int count,
+                           ...);
 
 
 /**
@@ -230,9 +230,9 @@ GNUNET_STRINGS_buffer_fill (char *buffer,
  *         in the buffer, or 0 on error.
  */
 unsigned int
-GNUNET_STRINGS_buffer_tokenize (const char *buffer,
-                                size_t size,
-                                unsigned int count, ...);
+GNUNET_STRINGS_buffer_tokenize(const char *buffer,
+                               size_t size,
+                               unsigned int count, ...);
 
 
 
@@ -247,7 +247,7 @@ GNUNET_STRINGS_buffer_tokenize (const char *buffer,
  * @return timestamp in human-readable form in local time
  */
 const char *
-GNUNET_STRINGS_absolute_time_to_string (struct GNUNET_TIME_Absolute t);
+GNUNET_STRINGS_absolute_time_to_string(struct GNUNET_TIME_Absolute t);
 
 
 /**
@@ -261,8 +261,8 @@ GNUNET_STRINGS_absolute_time_to_string (struct GNUNET_TIME_Absolute t);
  * @return string in human-readable form
  */
 const char *
-GNUNET_STRINGS_relative_time_to_string (struct GNUNET_TIME_Relative delta,
-					int do_round);
+GNUNET_STRINGS_relative_time_to_string(struct GNUNET_TIME_Relative delta,
+                                       int do_round);
 
 
 /**
@@ -277,7 +277,7 @@ GNUNET_STRINGS_relative_time_to_string (struct GNUNET_TIME_Relative delta,
  *         itself.
  */
 const char *
-GNUNET_STRINGS_get_short_name (const char *filename);
+GNUNET_STRINGS_get_short_name(const char *filename);
 
 
 /**
@@ -293,10 +293,10 @@ GNUNET_STRINGS_get_short_name (const char *filename);
  * @return pointer to the next byte in 'out' or NULL on error.
  */
 char *
-GNUNET_STRINGS_data_to_string (const void *data,
-			       size_t size,
-			       char *out,
-			       size_t out_size);
+GNUNET_STRINGS_data_to_string(const void *data,
+                              size_t size,
+                              char *out,
+                              size_t out_size);
 
 
 /**
@@ -310,8 +310,8 @@ GNUNET_STRINGS_data_to_string (const void *data,
  * @return freshly allocated, null-terminated string
  */
 char *
-GNUNET_STRINGS_data_to_string_alloc (const void *buf,
-                                     size_t size);
+GNUNET_STRINGS_data_to_string_alloc(const void *buf,
+                                    size_t size);
 
 
 /**
@@ -325,10 +325,10 @@ GNUNET_STRINGS_data_to_string_alloc (const void *buf,
  * @return #GNUNET_OK on success, #GNUNET_SYSERR if result has the wrong encoding
  */
 int
-GNUNET_STRINGS_string_to_data (const char *enc,
-			       size_t enclen,
-			       void *out,
-			       size_t out_size);
+GNUNET_STRINGS_string_to_data(const char *enc,
+                              size_t enclen,
+                              void *out,
+                              size_t out_size);
 
 
 /**
@@ -341,9 +341,9 @@ GNUNET_STRINGS_string_to_data (const char *enc,
  * @return the size of the output
  */
 size_t
-GNUNET_STRINGS_base64_encode (const void *in,
-                              size_t len,
-                              char **output);
+GNUNET_STRINGS_base64_encode(const void *in,
+                             size_t len,
+                             char **output);
 
 
 /**
@@ -356,9 +356,9 @@ GNUNET_STRINGS_base64_encode (const void *in,
  * @return the size of the output
  */
 size_t
-GNUNET_STRINGS_base64_decode (const char *data,
-			      size_t len,
-			      void **output);
+GNUNET_STRINGS_base64_decode(const char *data,
+                             size_t len,
+                             void **output);
 
 
 /**
@@ -369,8 +369,8 @@ GNUNET_STRINGS_base64_decode (const char *data,
  * @return string representing the array of @a pids
  */
 char *
-GNUNET_STRINGS_pp2s (const struct GNUNET_PeerIdentity *pids,
-                     unsigned int num_pids);
+GNUNET_STRINGS_pp2s(const struct GNUNET_PeerIdentity *pids,
+                    unsigned int num_pids);
 
 
 /**
@@ -390,9 +390,9 @@ GNUNET_STRINGS_pp2s (const struct GNUNET_PeerIdentity *pids,
  *         (if they weren't NULL).
  */
 int
-GNUNET_STRINGS_parse_uri (const char *path,
-			  char **scheme_part,
-			  const char **path_part);
+GNUNET_STRINGS_parse_uri(const char *path,
+                         char **scheme_part,
+                         const char **path_part);
 
 
 /**
@@ -410,17 +410,16 @@ GNUNET_STRINGS_parse_uri (const char *path,
  * @return #GNUNET_YES if 'filename' is absolute, #GNUNET_NO otherwise.
  */
 int
-GNUNET_STRINGS_path_is_absolute (const char *filename,
-				 int can_be_uri,
-				 int *r_is_uri,
-				 char **r_uri_scheme);
+GNUNET_STRINGS_path_is_absolute(const char *filename,
+                                int can_be_uri,
+                                int *r_is_uri,
+                                char **r_uri_scheme);
 
 
 /**
  * Flags for what we should check a file for.
  */
-enum GNUNET_STRINGS_FilenameCheck
-{
+enum GNUNET_STRINGS_FilenameCheck {
   /**
    * Check that it exists.
    */
@@ -453,8 +452,8 @@ enum GNUNET_STRINGS_FilenameCheck
  *         fails, #GNUNET_SYSERR when a check can't be performed
  */
 int
-GNUNET_STRINGS_check_filename (const char *filename,
-			       enum GNUNET_STRINGS_FilenameCheck checks);
+GNUNET_STRINGS_check_filename(const char *filename,
+                              enum GNUNET_STRINGS_FilenameCheck checks);
 
 
 /**
@@ -469,9 +468,9 @@ GNUNET_STRINGS_check_filename (const char *filename,
  *         case the contents of r_buf are undefined.
  */
 int
-GNUNET_STRINGS_to_address_ipv6 (const char *zt_addr,
-				uint16_t addrlen,
-				struct sockaddr_in6 *r_buf);
+GNUNET_STRINGS_to_address_ipv6(const char *zt_addr,
+                               uint16_t addrlen,
+                               struct sockaddr_in6 *r_buf);
 
 
 /**
@@ -485,9 +484,9 @@ GNUNET_STRINGS_to_address_ipv6 (const char *zt_addr,
  *         the contents of r_buf are undefined.
  */
 int
-GNUNET_STRINGS_to_address_ipv4 (const char *zt_addr,
-				uint16_t addrlen,
-				struct sockaddr_in *r_buf);
+GNUNET_STRINGS_to_address_ipv4(const char *zt_addr,
+                               uint16_t addrlen,
+                               struct sockaddr_in *r_buf);
 
 
 /**
@@ -500,9 +499,9 @@ GNUNET_STRINGS_to_address_ipv4 (const char *zt_addr,
  * @return 0 on error, otherwise number of bytes in @a sa
  */
 size_t
-GNUNET_STRINGS_parse_socket_addr (const char *addr,
-				  uint8_t *af,
-				  struct sockaddr **sa);
+GNUNET_STRINGS_parse_socket_addr(const char *addr,
+                                 uint8_t *af,
+                                 struct sockaddr **sa);
 
 
 /**
@@ -517,9 +516,9 @@ GNUNET_STRINGS_parse_socket_addr (const char *addr,
  *         case the contents of r_buf are undefined.
  */
 int
-GNUNET_STRINGS_to_address_ip (const char *addr,
-			      uint16_t addrlen,
-			      struct sockaddr_storage *r_buf);
+GNUNET_STRINGS_to_address_ip(const char *addr,
+                             uint16_t addrlen,
+                             struct sockaddr_storage *r_buf);
 
 
 /**
@@ -535,10 +534,10 @@ GNUNET_STRINGS_to_address_ip (const char *addr,
  * @return #GNUNET_OK on success, #GNUNET_SYSERR on failure
  */
 int
-GNUNET_STRINGS_get_utf8_args (int argc,
-			      char *const *argv,
-			      int *u8argc,
-                              char *const **u8argv);
+GNUNET_STRINGS_get_utf8_args(int argc,
+                             char *const *argv,
+                             int *u8argc,
+                             char *const **u8argv);
 
 
 /**
@@ -554,7 +553,7 @@ GNUNET_STRINGS_get_utf8_args (int argc,
  * @param n the length of the string to copy, including its terminating null
  *          byte
  * @return the length of the string that was copied, excluding the terminating
- * 	   null byte
+ *         null byte
  */
 size_t
 GNUNET_strlcpy(char *dst, const char *src, size_t n);
@@ -562,9 +561,7 @@ GNUNET_strlcpy(char *dst, const char *src, size_t n);
 
 /* ***************** IPv4/IPv6 parsing ****************** */
 
-struct GNUNET_STRINGS_PortPolicy
-{
-
+struct GNUNET_STRINGS_PortPolicy {
   /**
    * Starting port range (0 if none given).
    */
@@ -580,15 +577,13 @@ struct GNUNET_STRINGS_PortPolicy
    * ("!" in policy).
    */
   int negate_portrange;
-
 };
 
 
 /**
  * @brief IPV4 network in CIDR notation.
  */
-struct GNUNET_STRINGS_IPv4NetworkPolicy
-{
+struct GNUNET_STRINGS_IPv4NetworkPolicy {
   /**
    * IPv4 address.
    */
@@ -603,15 +598,13 @@ struct GNUNET_STRINGS_IPv4NetworkPolicy
    * Policy for port access.
    */
   struct GNUNET_STRINGS_PortPolicy pp;
-
 };
 
 
 /**
  * @brief network in CIDR notation for IPV6.
  */
-struct GNUNET_STRINGS_IPv6NetworkPolicy
-{
+struct GNUNET_STRINGS_IPv6NetworkPolicy {
   /**
    * IPv6 address.
    */
@@ -626,7 +619,6 @@ struct GNUNET_STRINGS_IPv6NetworkPolicy
    * Policy for port access.
    */
   struct GNUNET_STRINGS_PortPolicy pp;
-
 };
 
 
@@ -642,7 +634,7 @@ struct GNUNET_STRINGS_IPv6NetworkPolicy
  *         NULL if the synatx is flawed
  */
 struct GNUNET_STRINGS_IPv4NetworkPolicy *
-GNUNET_STRINGS_parse_ipv4_policy (const char *routeListX);
+GNUNET_STRINGS_parse_ipv4_policy(const char *routeListX);
 
 
 /**
@@ -657,7 +649,7 @@ GNUNET_STRINGS_parse_ipv4_policy (const char *routeListX);
  * @return the converted list, 0-terminated, NULL if the synatx is flawed
  */
 struct GNUNET_STRINGS_IPv6NetworkPolicy *
-GNUNET_STRINGS_parse_ipv6_policy (const char *routeListX);
+GNUNET_STRINGS_parse_ipv6_policy(const char *routeListX);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

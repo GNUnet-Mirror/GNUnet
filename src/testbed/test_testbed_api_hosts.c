@@ -11,7 +11,7 @@
       WITHOUT ANY WARRANTY; without even the implied warranty of
       MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
       Affero General Public License for more details.
-     
+
       You should have received a copy of the GNU Affero General Public License
       along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -30,8 +30,8 @@
 #include "testbed_api_hosts.h"
 
 
-#define TIME_REL_SECS(sec)						\
-  GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, sec)
+#define TIME_REL_SECS(sec)                                              \
+  GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, sec)
 
 /**
  * configuration handle to use as template configuration while creating hosts
@@ -65,20 +65,20 @@ static int status;
  * @param cls NULL
  */
 static void
-do_shutdown (void *cls)
+do_shutdown(void *cls)
 {
-  GNUNET_TESTBED_host_destroy (host);
+  GNUNET_TESTBED_host_destroy(host);
   while (0 != num_hosts)
-  {
-    GNUNET_TESTBED_host_destroy (hosts[num_hosts - 1]);
-    num_hosts--;
-  }
-  GNUNET_free (hosts);
+    {
+      GNUNET_TESTBED_host_destroy(hosts[num_hosts - 1]);
+      num_hosts--;
+    }
+  GNUNET_free(hosts);
   if (NULL != cfg)
-  {
-    GNUNET_CONFIGURATION_destroy (cfg);
-    cfg = NULL;
-  }
+    {
+      GNUNET_CONFIGURATION_destroy(cfg);
+      cfg = NULL;
+    }
 }
 
 
@@ -91,90 +91,89 @@ do_shutdown (void *cls)
  * @param cfg the configuration file handle
  */
 static void
-run (void *cls, char *const *args, const char *cfgfile,
-     const struct GNUNET_CONFIGURATION_Handle *config)
+run(void *cls, char *const *args, const char *cfgfile,
+    const struct GNUNET_CONFIGURATION_Handle *config)
 {
   unsigned int cnt;
 
-  cfg = GNUNET_CONFIGURATION_dup (config);
-  host = GNUNET_TESTBED_host_create ("localhost", NULL, cfg, 0);
-  GNUNET_assert (NULL != host);
-  GNUNET_assert (0 != GNUNET_TESTBED_host_get_id_ (host));
-  GNUNET_TESTBED_host_destroy (host);
-  host = GNUNET_TESTBED_host_create (NULL, NULL, cfg, 0);
-  GNUNET_assert (NULL != host);
-  GNUNET_assert (0 == GNUNET_TESTBED_host_get_id_ (host));
-  GNUNET_assert (host == GNUNET_TESTBED_host_lookup_by_id_ (0));
+  cfg = GNUNET_CONFIGURATION_dup(config);
+  host = GNUNET_TESTBED_host_create("localhost", NULL, cfg, 0);
+  GNUNET_assert(NULL != host);
+  GNUNET_assert(0 != GNUNET_TESTBED_host_get_id_(host));
+  GNUNET_TESTBED_host_destroy(host);
+  host = GNUNET_TESTBED_host_create(NULL, NULL, cfg, 0);
+  GNUNET_assert(NULL != host);
+  GNUNET_assert(0 == GNUNET_TESTBED_host_get_id_(host));
+  GNUNET_assert(host == GNUNET_TESTBED_host_lookup_by_id_(0));
   hosts = NULL;
-  num_hosts = GNUNET_TESTBED_hosts_load_from_file ("sample_hosts.txt", cfg, &hosts);
-  GNUNET_assert (7 == num_hosts);
-  GNUNET_assert (NULL != hosts);
+  num_hosts = GNUNET_TESTBED_hosts_load_from_file("sample_hosts.txt", cfg, &hosts);
+  GNUNET_assert(7 == num_hosts);
+  GNUNET_assert(NULL != hosts);
   for (cnt = 0; cnt < num_hosts; cnt++)
-  {
-    if (cnt < 3)
     {
-      GNUNET_assert (0 == strcmp ("totakura",
-                                  GNUNET_TESTBED_host_get_username_
-                                  (hosts[cnt])));
-      GNUNET_assert (NULL != GNUNET_TESTBED_host_get_hostname (hosts[cnt]));
-      GNUNET_assert (22 == GNUNET_TESTBED_host_get_ssh_port_ (hosts[cnt]));
+      if (cnt < 3)
+        {
+          GNUNET_assert(0 == strcmp("totakura",
+                                    GNUNET_TESTBED_host_get_username_
+                                      (hosts[cnt])));
+          GNUNET_assert(NULL != GNUNET_TESTBED_host_get_hostname(hosts[cnt]));
+          GNUNET_assert(22 == GNUNET_TESTBED_host_get_ssh_port_(hosts[cnt]));
+        }
+      if (3 == cnt)
+        {
+          GNUNET_assert(0 == strcmp("totakura",
+                                    GNUNET_TESTBED_host_get_username_
+                                      (hosts[cnt])));
+          GNUNET_assert(NULL != GNUNET_TESTBED_host_get_hostname(hosts[cnt]));
+          GNUNET_assert(2022 == GNUNET_TESTBED_host_get_ssh_port_(hosts[cnt]));
+        }
+      if (4 == cnt)
+        {
+          GNUNET_assert(0 == strcmp("totakura",
+                                    GNUNET_TESTBED_host_get_username_
+                                      (hosts[cnt])));
+          GNUNET_assert(0 == strcmp("asgard.realm",
+                                    GNUNET_TESTBED_host_get_hostname
+                                      (hosts[cnt])));
+          GNUNET_assert(22 == GNUNET_TESTBED_host_get_ssh_port_(hosts[cnt]));
+        }
+      if (5 == cnt)
+        {
+          GNUNET_assert(NULL == GNUNET_TESTBED_host_get_username_(hosts[cnt]));
+          GNUNET_assert(0 == strcmp("rivendal",
+                                    GNUNET_TESTBED_host_get_hostname
+                                      (hosts[cnt])));
+          GNUNET_assert(22 == GNUNET_TESTBED_host_get_ssh_port_(hosts[cnt]));
+        }
+      if (6 == cnt)
+        {
+          GNUNET_assert(NULL == GNUNET_TESTBED_host_get_username_(hosts[cnt]));
+          GNUNET_assert(0 == strcmp("rohan",
+                                    GNUNET_TESTBED_host_get_hostname
+                                      (hosts[cnt])));
+          GNUNET_assert(561 == GNUNET_TESTBED_host_get_ssh_port_(hosts[cnt]));
+        }
     }
-    if (3 == cnt)
-    {
-      GNUNET_assert (0 == strcmp ("totakura",
-                                  GNUNET_TESTBED_host_get_username_
-                                  (hosts[cnt])));
-      GNUNET_assert (NULL != GNUNET_TESTBED_host_get_hostname (hosts[cnt]));
-      GNUNET_assert (2022 == GNUNET_TESTBED_host_get_ssh_port_ (hosts[cnt]));
-    }
-    if (4 == cnt)
-    {
-      GNUNET_assert (0 == strcmp ("totakura",
-                                  GNUNET_TESTBED_host_get_username_
-                                  (hosts[cnt])));
-      GNUNET_assert (0 == strcmp ("asgard.realm",
-                                  GNUNET_TESTBED_host_get_hostname
-                                  (hosts[cnt])));
-      GNUNET_assert (22 == GNUNET_TESTBED_host_get_ssh_port_ (hosts[cnt]));
-    }
-    if (5 == cnt)
-    {
-      GNUNET_assert (NULL == GNUNET_TESTBED_host_get_username_ (hosts[cnt]));
-      GNUNET_assert (0 == strcmp ("rivendal",
-                                  GNUNET_TESTBED_host_get_hostname
-                                  (hosts[cnt])));
-      GNUNET_assert (22 == GNUNET_TESTBED_host_get_ssh_port_ (hosts[cnt]));
-    }
-    if (6 == cnt)
-    {
-      GNUNET_assert (NULL == GNUNET_TESTBED_host_get_username_ (hosts[cnt]));
-      GNUNET_assert (0 == strcmp ("rohan",
-                                  GNUNET_TESTBED_host_get_hostname
-                                  (hosts[cnt])));
-      GNUNET_assert (561 == GNUNET_TESTBED_host_get_ssh_port_ (hosts[cnt]));
-    }
-  }
   status = GNUNET_YES;
-  GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
+  GNUNET_SCHEDULER_add_now(&do_shutdown, NULL);
 }
 
 
 int
-main (int argc, char **argv)
+main(int argc, char **argv)
 {
   char *const argv2[] = { "test_testbed_api_hosts",
-    "-c", "test_testbed_api.conf",
-    NULL
-  };
+                          "-c", "test_testbed_api.conf",
+                          NULL };
   struct GNUNET_GETOPT_CommandLineOption options[] = {
     GNUNET_GETOPT_OPTION_END
   };
 
   status = GNUNET_SYSERR;
   if (GNUNET_OK !=
-      GNUNET_PROGRAM_run ((sizeof (argv2) / sizeof (char *)) - 1, argv2,
-                          "test_testbed_api_hosts", "nohelp", options, &run,
-                          NULL))
+      GNUNET_PROGRAM_run((sizeof(argv2) / sizeof(char *)) - 1, argv2,
+                         "test_testbed_api_hosts", "nohelp", options, &run,
+                         NULL))
     return 1;
   return (GNUNET_OK == status) ? 0 : 1;
 }

@@ -11,12 +11,12 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 
 /**
  * @file fs/fs_getopt.c
@@ -43,10 +43,10 @@
  * @return #GNUNET_OK on success
  */
 static int
-getopt_set_keywords (struct GNUNET_GETOPT_CommandLineProcessorContext *ctx,
-		     void *scls,
-		     const char *option,
-		     const char *value)
+getopt_set_keywords(struct GNUNET_GETOPT_CommandLineProcessorContext *ctx,
+                    void *scls,
+                    const char *option,
+                    const char *value)
 {
   struct GNUNET_FS_Uri **uri = scls;
   struct GNUNET_FS_Uri *u = *uri;
@@ -54,64 +54,64 @@ getopt_set_keywords (struct GNUNET_GETOPT_CommandLineProcessorContext *ctx,
   size_t slen;
 
   if (NULL == u)
-  {
-    u = GNUNET_new (struct GNUNET_FS_Uri);
-    *uri = u;
-    u->type = GNUNET_FS_URI_KSK;
-    u->data.ksk.keywordCount = 0;
-    u->data.ksk.keywords = NULL;
-  }
+    {
+      u = GNUNET_new(struct GNUNET_FS_Uri);
+      *uri = u;
+      u->type = GNUNET_FS_URI_KSK;
+      u->data.ksk.keywordCount = 0;
+      u->data.ksk.keywords = NULL;
+    }
   else
-  {
-    GNUNET_assert (GNUNET_FS_URI_KSK == u->type);
-  }
-  slen = strlen (value);
+    {
+      GNUNET_assert(GNUNET_FS_URI_KSK == u->type);
+    }
+  slen = strlen(value);
   if (0 == slen)
     return GNUNET_SYSERR;       /* cannot be empty */
   if (value[0] == '+')
-  {
-    /* simply preserve the "mandatory" flag */
-    if (slen < 2)
-      return GNUNET_SYSERR;     /* empty keywords not allowed */
-    if ((value[1] == '"') && (slen > 3) && (value[slen - 1] == '"'))
     {
-      /* remove the quotes, keep the '+' */
-      val = GNUNET_malloc (slen - 1);
-      val[0] = '+';
-      GNUNET_memcpy (&val[1],
-		     &value[2],
-		     slen - 3);
-      val[slen - 2] = '\0';
+      /* simply preserve the "mandatory" flag */
+      if (slen < 2)
+        return GNUNET_SYSERR;   /* empty keywords not allowed */
+      if ((value[1] == '"') && (slen > 3) && (value[slen - 1] == '"'))
+        {
+          /* remove the quotes, keep the '+' */
+          val = GNUNET_malloc(slen - 1);
+          val[0] = '+';
+          GNUNET_memcpy(&val[1],
+                        &value[2],
+                        slen - 3);
+          val[slen - 2] = '\0';
+        }
+      else
+        {
+          /* no quotes, just keep the '+' */
+          val = GNUNET_strdup(value);
+        }
     }
-    else
-    {
-      /* no quotes, just keep the '+' */
-      val = GNUNET_strdup (value);
-    }
-  }
   else
-  {
-    if ((value[0] == '"') && (slen > 2) && (value[slen - 1] == '"'))
     {
-      /* remove the quotes, add a space */
-      val = GNUNET_malloc (slen);
-      val[0] = ' ';
-      GNUNET_memcpy (&val[1],
-		     &value[1],
-		     slen - 2);
-      val[slen - 1] = '\0';
+      if ((value[0] == '"') && (slen > 2) && (value[slen - 1] == '"'))
+        {
+          /* remove the quotes, add a space */
+          val = GNUNET_malloc(slen);
+          val[0] = ' ';
+          GNUNET_memcpy(&val[1],
+                        &value[1],
+                        slen - 2);
+          val[slen - 1] = '\0';
+        }
+      else
+        {
+          /* add a space to indicate "not mandatory" */
+          val = GNUNET_malloc(slen + 2);
+          strcpy(val, " ");
+          strcat(val, value);
+        }
     }
-    else
-    {
-      /* add a space to indicate "not mandatory" */
-      val = GNUNET_malloc (slen + 2);
-      strcpy (val, " ");
-      strcat (val, value);
-    }
-  }
-  GNUNET_array_append (u->data.ksk.keywords,
-		       u->data.ksk.keywordCount,
-		       val);
+  GNUNET_array_append(u->data.ksk.keywords,
+                      u->data.ksk.keywordCount,
+                      val);
   return GNUNET_OK;
 }
 
@@ -126,11 +126,11 @@ getopt_set_keywords (struct GNUNET_GETOPT_CommandLineProcessorContext *ctx,
  * @param[out] topKeywords set to the desired value
  */
 struct GNUNET_GETOPT_CommandLineOption
-GNUNET_FS_GETOPT_KEYWORDS (char shortName,
-                           const char *name,
-                           const char *argumentHelp,
-                           const char *description,
-                           struct GNUNET_FS_Uri **topKeywords)
+GNUNET_FS_GETOPT_KEYWORDS(char shortName,
+                          const char *name,
+                          const char *argumentHelp,
+                          const char *description,
+                          struct GNUNET_FS_Uri **topKeywords)
 {
   struct GNUNET_GETOPT_CommandLineOption clo = {
     .shortName = shortName,
@@ -139,7 +139,7 @@ GNUNET_FS_GETOPT_KEYWORDS (char shortName,
     .description = description,
     .require_argument = 1,
     .processor = &getopt_set_keywords,
-    .scls = (void *) topKeywords  
+    .scls = (void *)topKeywords
   };
 
   return clo;
@@ -159,12 +159,13 @@ GNUNET_FS_GETOPT_KEYWORDS (char shortName,
  * @return #GNUNET_OK on success
  */
 static int
-getopt_set_metadata (struct GNUNET_GETOPT_CommandLineProcessorContext *ctx,
-                     void *scls,
-                     const char *option,
-                     const char *value)
+getopt_set_metadata(struct GNUNET_GETOPT_CommandLineProcessorContext *ctx,
+                    void *scls,
+                    const char *option,
+                    const char *value)
 {
   struct GNUNET_CONTAINER_MetaData **mm = scls;
+
 #if HAVE_EXTRACTOR_H && HAVE_LIBEXTRACTOR
   enum EXTRACTOR_MetaType type;
   const char *typename;
@@ -175,66 +176,66 @@ getopt_set_metadata (struct GNUNET_GETOPT_CommandLineProcessorContext *ctx,
 
   meta = *mm;
   if (meta == NULL)
-  {
-    meta = GNUNET_CONTAINER_meta_data_create ();
-    *mm = meta;
-  }
+    {
+      meta = GNUNET_CONTAINER_meta_data_create();
+      *mm = meta;
+    }
 
   /* Use GNUNET_STRINGS_get_utf8_args() in main() to acquire utf-8-encoded
    * commandline arguments, so that the following line is not needed.
    */
   /*tmp = GNUNET_STRINGS_to_utf8 (value, strlen (value), locale_charset ());*/
-  tmp = GNUNET_strdup (value);
+  tmp = GNUNET_strdup(value);
 #if HAVE_EXTRACTOR_H && HAVE_LIBEXTRACTOR
-  type = EXTRACTOR_metatype_get_max ();
+  type = EXTRACTOR_metatype_get_max();
   while (type > 0)
-  {
-    type--;
-    typename = EXTRACTOR_metatype_to_string (type);
-    typename_i18n = dgettext (LIBEXTRACTOR_GETTEXT_DOMAIN, typename);
-    if ((strlen (tmp) >= strlen (typename) + 1) &&
-        (tmp[strlen (typename)] == ':') &&
-        (0 == strncmp (typename, tmp, strlen (typename))))
     {
-      GNUNET_CONTAINER_meta_data_insert (meta, "<gnunet>", type,
-                                         EXTRACTOR_METAFORMAT_UTF8,
-                                         "text/plain",
-                                         &tmp[strlen (typename) + 1],
-                                         strlen (&tmp[strlen (typename) + 1]) +
-                                         1);
-      GNUNET_free (tmp);
-      tmp = NULL;
-      break;
+      type--;
+      typename = EXTRACTOR_metatype_to_string(type);
+      typename_i18n = dgettext(LIBEXTRACTOR_GETTEXT_DOMAIN, typename);
+      if ((strlen(tmp) >= strlen(typename) + 1) &&
+          (tmp[strlen(typename)] == ':') &&
+          (0 == strncmp(typename, tmp, strlen(typename))))
+        {
+          GNUNET_CONTAINER_meta_data_insert(meta, "<gnunet>", type,
+                                            EXTRACTOR_METAFORMAT_UTF8,
+                                            "text/plain",
+                                            &tmp[strlen(typename) + 1],
+                                            strlen(&tmp[strlen(typename) + 1]) +
+                                            1);
+          GNUNET_free(tmp);
+          tmp = NULL;
+          break;
+        }
+      if ((strlen(tmp) >= strlen(typename_i18n) + 1) &&
+          (tmp[strlen(typename_i18n)] == ':') &&
+          (0 == strncmp(typename_i18n, tmp, strlen(typename_i18n))))
+        {
+          GNUNET_CONTAINER_meta_data_insert(meta, "<gnunet>", type,
+                                            EXTRACTOR_METAFORMAT_UTF8,
+                                            "text/plain",
+                                            &tmp[strlen(typename_i18n) + 1],
+                                            strlen(&tmp
+                                                   [strlen(typename_i18n) + 1]) +
+                                            1);
+          GNUNET_free(tmp);
+          tmp = NULL;
+          break;
+        }
     }
-    if ((strlen (tmp) >= strlen (typename_i18n) + 1) &&
-        (tmp[strlen (typename_i18n)] == ':') &&
-        (0 == strncmp (typename_i18n, tmp, strlen (typename_i18n))))
-    {
-      GNUNET_CONTAINER_meta_data_insert (meta, "<gnunet>", type,
-                                         EXTRACTOR_METAFORMAT_UTF8,
-                                         "text/plain",
-                                         &tmp[strlen (typename_i18n) + 1],
-                                         strlen (&tmp
-                                                 [strlen (typename_i18n) + 1]) +
-                                         1);
-      GNUNET_free (tmp);
-      tmp = NULL;
-      break;
-    }
-  }
 #endif
 
   if (NULL != tmp)
-  {
-    GNUNET_CONTAINER_meta_data_insert (meta, "<gnunet>",
-                                       EXTRACTOR_METATYPE_UNKNOWN,
-                                       EXTRACTOR_METAFORMAT_UTF8, "text/plain",
-                                       tmp, strlen (tmp) + 1);
-    GNUNET_free (tmp);
-    printf (_
-            ("Unknown metadata type in metadata option `%s'.  Using metadata type `unknown' instead.\n"),
-            value);
-  }
+    {
+      GNUNET_CONTAINER_meta_data_insert(meta, "<gnunet>",
+                                        EXTRACTOR_METATYPE_UNKNOWN,
+                                        EXTRACTOR_METAFORMAT_UTF8, "text/plain",
+                                        tmp, strlen(tmp) + 1);
+      GNUNET_free(tmp);
+      printf(_
+               ("Unknown metadata type in metadata option `%s'.  Using metadata type `unknown' instead.\n"),
+             value);
+    }
   return GNUNET_OK;
 }
 
@@ -248,11 +249,11 @@ getopt_set_metadata (struct GNUNET_GETOPT_CommandLineProcessorContext *ctx,
  * @param[out] metadata set to the desired value
  */
 struct GNUNET_GETOPT_CommandLineOption
-GNUNET_FS_GETOPT_METADATA (char shortName,
-                           const char *name,
-                           const char *argumentHelp,
-                           const char *description,
-                           struct GNUNET_CONTAINER_MetaData **meta)
+GNUNET_FS_GETOPT_METADATA(char shortName,
+                          const char *name,
+                          const char *argumentHelp,
+                          const char *description,
+                          struct GNUNET_CONTAINER_MetaData **meta)
 {
   struct GNUNET_GETOPT_CommandLineOption clo = {
     .shortName = shortName,
@@ -261,7 +262,7 @@ GNUNET_FS_GETOPT_METADATA (char shortName,
     .description = description,
     .require_argument = 1,
     .processor = &getopt_set_metadata,
-    .scls = (void *) meta
+    .scls = (void *)meta
   };
 
   return clo;

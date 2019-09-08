@@ -11,7 +11,7 @@
       WITHOUT ANY WARRANTY; without even the implied warranty of
       MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
       Affero General Public License for more details.
-     
+
       You should have received a copy of the GNU Affero General Public License
       along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -34,14 +34,13 @@
 GNUNET_NETWORK_STRUCT_BEGIN
 
 /***********************************************************************
- * P2P Messages
+* P2P Messages
 ***********************************************************************/
 
 /**
  * P2P Message to send PeerIDs to other peer.
  */
-struct GNUNET_RPS_P2P_PullReplyMessage
-{
+struct GNUNET_RPS_P2P_PullReplyMessage {
   /**
    * Header including size and type in NBO
    */
@@ -58,14 +57,13 @@ struct GNUNET_RPS_P2P_PullReplyMessage
 
 
 /***********************************************************************
- * Client-Service Messages
+* Client-Service Messages
 ***********************************************************************/
 
 /**
  * Message from client to service with seed of peers.
  */
-struct GNUNET_RPS_CS_SeedMessage
-{
+struct GNUNET_RPS_CS_SeedMessage {
   /**
    * Header including size and type in NBO
    */
@@ -83,8 +81,7 @@ struct GNUNET_RPS_CS_SeedMessage
 /**
  * Message from client to service to turn service malicious.
  */
-struct GNUNET_RPS_CS_ActMaliciousMessage
-{
+struct GNUNET_RPS_CS_ActMaliciousMessage {
   /**
    * Header including size and type in NBO
    */
@@ -119,8 +116,7 @@ struct GNUNET_RPS_CS_ActMaliciousMessage
 /**
  * Message from client to service telling it to start a new sub
  */
-struct GNUNET_RPS_CS_SubStartMessage
-{
+struct GNUNET_RPS_CS_SubStartMessage {
   /**
    * Header including size and type in NBO
    */
@@ -146,8 +142,7 @@ struct GNUNET_RPS_CS_SubStartMessage
 /**
  * Message from client to service telling it to stop a new sub
  */
-struct GNUNET_RPS_CS_SubStopMessage
-{
+struct GNUNET_RPS_CS_SubStopMessage {
   /**
    * Header including size and type in NBO
    */
@@ -166,8 +161,7 @@ struct GNUNET_RPS_CS_SubStopMessage
  * Message from client to service indicating that
  * clients wants to get updates of the view
  */
-struct GNUNET_RPS_CS_DEBUG_ViewRequest
-{
+struct GNUNET_RPS_CS_DEBUG_ViewRequest {
   /**
    * Header including size and type in NBO
    */
@@ -183,8 +177,7 @@ struct GNUNET_RPS_CS_DEBUG_ViewRequest
 /**
  * Message from service to client containing current update of view
  */
-struct GNUNET_RPS_CS_DEBUG_ViewReply
-{
+struct GNUNET_RPS_CS_DEBUG_ViewReply {
   /**
    * Header including size and type in NBO
    */
@@ -200,14 +193,13 @@ struct GNUNET_RPS_CS_DEBUG_ViewReply
    */
   uint64_t num_peers GNUNET_PACKED;
 };
-  /* Followed by num_peers * GNUNET_PeerIdentity */
+/* Followed by num_peers * GNUNET_PeerIdentity */
 
 /**
  * Message from client to service indicating that
  * clients wants to get stream of biased peers
  */
-struct GNUNET_RPS_CS_DEBUG_StreamRequest
-{
+struct GNUNET_RPS_CS_DEBUG_StreamRequest {
   /**
    * Header including size and type in NBO
    */
@@ -217,8 +209,7 @@ struct GNUNET_RPS_CS_DEBUG_StreamRequest
 /**
  * Message from service to client containing peer from biased stream
  */
-struct GNUNET_RPS_CS_DEBUG_StreamReply
-{
+struct GNUNET_RPS_CS_DEBUG_StreamReply {
   /**
    * Header including size and type in NBO
    */
@@ -237,14 +228,13 @@ struct GNUNET_RPS_CS_DEBUG_StreamReply
 GNUNET_NETWORK_STRUCT_END
 
 /***********************************************************************
- * Defines from old gnunet-service-rps_peers.h
+* Defines from old gnunet-service-rps_peers.h
 ***********************************************************************/
 
 /**
  * Different flags indicating the status of another peer.
  */
-enum Peers_PeerFlags
-{
+enum Peers_PeerFlags {
   /**
    * If we are waiting for a reply from that peer (sent a pull request).
    */
@@ -273,8 +263,7 @@ enum Peers_PeerFlags
  * This is needed in order to know what to do with a channel when it's
  * destroyed.
  */
-enum Peers_ChannelFlags
-{
+enum Peers_ChannelFlags {
   /**
    * We destroyed the channel because the other peer established a second one.
    */
@@ -296,8 +285,7 @@ enum Peers_ChannelFlags
 /**
  * @brief The role of a channel. Sending or receiving.
  */
-enum Peers_ChannelRole
-{
+enum Peers_ChannelRole {
   /**
    * Channel is used for sending
    */

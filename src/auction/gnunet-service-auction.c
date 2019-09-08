@@ -11,12 +11,12 @@
    WITHOUT ANY WARRANTY; without even the implied warranty of
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
    Affero General Public License for more details.
-  
+
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-   */
+ */
 
 /**
  * @file auction/gnunet-service-auction.c
@@ -36,10 +36,10 @@
  * @return #GNUNET_OK (always)
  */
 static int
-check_create (void *cls, const struct GNUNET_AUCTION_ClientCreateMessage *msg)
+check_create(void *cls, const struct GNUNET_AUCTION_ClientCreateMessage *msg)
 {
-	/* always well-formed due to arbitrary length description */
-	return GNUNET_OK;
+  /* always well-formed due to arbitrary length description */
+  return GNUNET_OK;
 }
 
 
@@ -50,26 +50,26 @@ check_create (void *cls, const struct GNUNET_AUCTION_ClientCreateMessage *msg)
  * @param msg the actual message received
  */
 static void
-handle_create (void *cls, const struct GNUNET_AUCTION_ClientCreateMessage *msg)
+handle_create(void *cls, const struct GNUNET_AUCTION_ClientCreateMessage *msg)
 {
-	struct GNUNET_SERVICE_Client *client = cls;
+  struct GNUNET_SERVICE_Client *client = cls;
 //	struct GNUNET_MQ_Handle *mq;
 //	struct GNUNET_MQ_Envelope *env;
 //	struct GNUNET_AUCTION_blabla em;
-	uint16_t size;
+  uint16_t size;
 
-	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	            "Received CREATE message from client\n");
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+             "Received CREATE message from client\n");
 
-	size = ntohs (msg->header.size);
+  size = ntohs(msg->header.size);
 
-	/**TODO: create auction and return auction object */
+  /**TODO: create auction and return auction object */
 //	mq = GNUNET_SERVICE_client_get_mq (client);
 //	setup_info_message (&em);
 //	env = GNUNET_MQ_msg_copy (&em.header);
 //	GNUNET_MQ_send (mq, env);
 
-	GNUNET_SERVICE_client_continue (client);
+  GNUNET_SERVICE_client_continue(client);
 }
 
 
@@ -79,9 +79,9 @@ handle_create (void *cls, const struct GNUNET_AUCTION_ClientCreateMessage *msg)
  * @param cls unused
  */
 static void
-cleanup_task (void *cls)
+cleanup_task(void *cls)
 {
-	/* FIXME: do clean up here */
+  /* FIXME: do clean up here */
 }
 
 
@@ -94,11 +94,11 @@ cleanup_task (void *cls)
  * @return @a c
  */
 static void *
-client_connect_cb (void *cls,
-                   struct GNUNET_SERVICE_Client *c,
-                   struct GNUNET_MQ_Handle *mq)
+client_connect_cb(void *cls,
+                  struct GNUNET_SERVICE_Client *c,
+                  struct GNUNET_MQ_Handle *mq)
 {
-	return c;
+  return c;
 }
 
 
@@ -110,11 +110,11 @@ client_connect_cb (void *cls,
  * @param internal_cls should be equal to @a c
  */
 static void
-client_disconnect_cb (void *cls,
-                      struct GNUNET_SERVICE_Client *c,
-                      void *internal_cls)
+client_disconnect_cb(void *cls,
+                     struct GNUNET_SERVICE_Client *c,
+                     void *internal_cls)
 {
-	GNUNET_assert (c == internal_cls);
+  GNUNET_assert(c == internal_cls);
 }
 
 
@@ -126,12 +126,12 @@ client_disconnect_cb (void *cls,
  * @param service the initialized service
  */
 static void
-run (void *cls,
-     const struct GNUNET_CONFIGURATION_Handle *cfg,
-     struct GNUNET_SERVICE_Handle *service)
+run(void *cls,
+    const struct GNUNET_CONFIGURATION_Handle *cfg,
+    struct GNUNET_SERVICE_Handle *service)
 {
-	/* FIXME: do setup here */
-	GNUNET_SCHEDULER_add_shutdown (&cleanup_task, NULL);
+  /* FIXME: do setup here */
+  GNUNET_SCHEDULER_add_shutdown(&cleanup_task, NULL);
 }
 
 
@@ -139,17 +139,17 @@ run (void *cls,
  * Define "main" method using service macro.
  */
 GNUNET_SERVICE_MAIN
-("auction",
- GNUNET_SERVICE_OPTION_NONE,
- &run,
- &client_connect_cb,
- &client_disconnect_cb,
- NULL,
- GNUNET_MQ_hd_var_size (create,
+  ("auction",
+  GNUNET_SERVICE_OPTION_NONE,
+  &run,
+  &client_connect_cb,
+  &client_disconnect_cb,
+  NULL,
+  GNUNET_MQ_hd_var_size(create,
                         GNUNET_MESSAGE_TYPE_AUCTION_CLIENT_CREATE,
                         struct GNUNET_AUCTION_ClientCreateMessage,
                         NULL),
- GNUNET_MQ_handler_end ())
+  GNUNET_MQ_handler_end())
 
 
 /* end of gnunet-service-auction.c */

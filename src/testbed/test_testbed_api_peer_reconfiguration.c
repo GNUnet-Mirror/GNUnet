@@ -11,7 +11,7 @@
       WITHOUT ANY WARRANTY; without even the implied warranty of
       MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
       Affero General Public License for more details.
-     
+
       You should have received a copy of the GNU Affero General Public License
       along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -53,7 +53,6 @@ static struct GNUNET_SCHEDULER_Task * abort_task;
  * States in this test
  */
 enum {
-
   /**
    * Test has just been initialized
    */
@@ -68,20 +67,19 @@ enum {
    * Peer has been reconfigured.  Test completed successfully
    */
   STATE_PEER_RECONFIGURED
-
 } state;
 
 /**
  * Fail testcase
  */
 #define FAIL_TEST(cond, ret) do {                               \
-    if (!(cond)) {                                              \
-      GNUNET_break(0);                                          \
-      if (NULL != abort_task)               \
-        GNUNET_SCHEDULER_cancel (abort_task);                   \
-      abort_task = GNUNET_SCHEDULER_add_now (&do_abort, NULL);  \
-      ret;                                                      \
-    }                                                           \
+      if (!(cond)) {                                              \
+          GNUNET_break(0);                                          \
+          if (NULL != abort_task)               \
+          GNUNET_SCHEDULER_cancel (abort_task);                   \
+          abort_task = GNUNET_SCHEDULER_add_now(&do_abort, NULL);  \
+          ret;                                                      \
+        }                                                           \
   } while (0)
 
 
@@ -91,15 +89,15 @@ enum {
  * @param cls NULL
  */
 static void
-do_abort (void *cls)
+do_abort(void *cls)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Aborting\n");
+  GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Aborting\n");
   abort_task = NULL;
   if (NULL != op)
-  {
-    GNUNET_TESTBED_operation_done (op);
-    op = NULL;
-  }
+    {
+      GNUNET_TESTBED_operation_done(op);
+      op = NULL;
+    }
   GNUNET_SCHEDULER_shutdown();
 }
 
@@ -112,29 +110,29 @@ do_abort (void *cls)
  * @param event information about the event
  */
 static void
-controller_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
+controller_cb(void *cls, const struct GNUNET_TESTBED_EventInformation *event)
 {
   if (STATE_PEER_STARTED != state)
     return;
   if (GNUNET_TESTBED_ET_OPERATION_FINISHED != event->type)
-  {
-    GNUNET_TESTBED_operation_done (op);
-    op = NULL;
-    FAIL_TEST (0, return);
-  }
+    {
+      GNUNET_TESTBED_operation_done(op);
+      op = NULL;
+      FAIL_TEST(0, return );
+    }
   if (NULL != event->details.operation_finished.emsg)
-  {
-    fprintf (stderr, "Operation failed: %s\n",
-             event->details.operation_finished.emsg);
-    GNUNET_TESTBED_operation_done (op);
-    op = NULL;
-    FAIL_TEST (0, return);
-  }
-  GNUNET_TESTBED_operation_done (op);
+    {
+      fprintf(stderr, "Operation failed: %s\n",
+              event->details.operation_finished.emsg);
+      GNUNET_TESTBED_operation_done(op);
+      op = NULL;
+      FAIL_TEST(0, return );
+    }
+  GNUNET_TESTBED_operation_done(op);
   state = STATE_PEER_RECONFIGURED;
-  GNUNET_SCHEDULER_cancel (abort_task);
+  GNUNET_SCHEDULER_cancel(abort_task);
   abort_task = NULL;
-  GNUNET_SCHEDULER_shutdown ();
+  GNUNET_SCHEDULER_shutdown();
 }
 
 
@@ -151,27 +149,27 @@ controller_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
  *          failed
  */
 static void
-test_master (void *cls,
-             struct GNUNET_TESTBED_RunHandle *h,
-             unsigned int num_peers,
-             struct GNUNET_TESTBED_Peer **peers_,
-             unsigned int links_succeeded,
-             unsigned int links_failed)
+test_master(void *cls,
+            struct GNUNET_TESTBED_RunHandle *h,
+            unsigned int num_peers,
+            struct GNUNET_TESTBED_Peer **peers_,
+            unsigned int links_succeeded,
+            unsigned int links_failed)
 {
   struct GNUNET_CONFIGURATION_Handle *cfg;
 
-  FAIL_TEST (NUM_PEERS == num_peers, return);
+  FAIL_TEST(NUM_PEERS == num_peers, return );
   state = STATE_PEER_STARTED;
   peers = peers_;
-  cfg = GNUNET_CONFIGURATION_create ();
-  FAIL_TEST (GNUNET_OK == GNUNET_CONFIGURATION_load
-             (cfg, "test_testbed_api_testbed_run_topologyrandom.conf"), return);
-  op = GNUNET_TESTBED_peer_update_configuration (peers[0], cfg);
-  GNUNET_CONFIGURATION_destroy (cfg);
-  FAIL_TEST (NULL != op, return);
-  abort_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
-                                             (GNUNET_TIME_UNIT_SECONDS, 30),
-                                             &do_abort, NULL);
+  cfg = GNUNET_CONFIGURATION_create();
+  FAIL_TEST(GNUNET_OK == GNUNET_CONFIGURATION_load
+              (cfg, "test_testbed_api_testbed_run_topologyrandom.conf"), return );
+  op = GNUNET_TESTBED_peer_update_configuration(peers[0], cfg);
+  GNUNET_CONFIGURATION_destroy(cfg);
+  FAIL_TEST(NULL != op, return );
+  abort_task = GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_relative_multiply
+                                              (GNUNET_TIME_UNIT_SECONDS, 30),
+                                            &do_abort, NULL);
 }
 
 
@@ -179,15 +177,15 @@ test_master (void *cls,
  * Main function
  */
 int
-main (int argc, char **argv)
+main(int argc, char **argv)
 {
   state = STATE_INIT;
-  (void) GNUNET_TESTBED_test_run ("test_testbed_api_peer_reconfiguration",
-                                  "test_testbed_api.conf",
-                                  NUM_PEERS,
-                                  1LL << GNUNET_TESTBED_ET_OPERATION_FINISHED,
-                                  &controller_cb, NULL,
-                                  &test_master, NULL);
+  (void)GNUNET_TESTBED_test_run("test_testbed_api_peer_reconfiguration",
+                                "test_testbed_api.conf",
+                                NUM_PEERS,
+                                1LL << GNUNET_TESTBED_ET_OPERATION_FINISHED,
+                                &controller_cb, NULL,
+                                &test_master, NULL);
   if (STATE_PEER_RECONFIGURED != state)
     return 1;
   return 0;

@@ -11,12 +11,12 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 
 /**
  * @file namecache/namecache_api.c
@@ -37,16 +37,14 @@
 #include "namecache.h"
 
 
-#define LOG(kind,...) GNUNET_log_from (kind, "namecache-api",__VA_ARGS__)
+#define LOG(kind, ...) GNUNET_log_from(kind, "namecache-api", __VA_ARGS__)
 
 
 /**
  * An QueueEntry used to store information for a pending
  * NAMECACHE record operation
  */
-struct GNUNET_NAMECACHE_QueueEntry
-{
-
+struct GNUNET_NAMECACHE_QueueEntry {
   /**
    * Kept in a DLL.
    */
@@ -86,16 +84,13 @@ struct GNUNET_NAMECACHE_QueueEntry
    * The operation id this zone iteration operation has
    */
   uint32_t op_id;
-
 };
 
 
 /**
  * Connection to the NAMECACHE service.
  */
-struct GNUNET_NAMECACHE_Handle
-{
-
+struct GNUNET_NAMECACHE_Handle {
   /**
    * Configuration to use.
    */
@@ -140,7 +135,6 @@ struct GNUNET_NAMECACHE_Handle
    * The last operation id used for a NAMECACHE operation
    */
   uint32_t last_op_id_used;
-
 };
 
 
@@ -150,7 +144,7 @@ struct GNUNET_NAMECACHE_Handle
  * @param h our handle
  */
 static void
-force_reconnect (struct GNUNET_NAMECACHE_Handle *h);
+force_reconnect(struct GNUNET_NAMECACHE_Handle *h);
 
 
 /**
@@ -161,21 +155,21 @@ force_reconnect (struct GNUNET_NAMECACHE_Handle *h);
  * @return NULL if not found, otherwise the queue entry (removed from the queue)
  */
 static struct GNUNET_NAMECACHE_QueueEntry *
-find_qe (struct GNUNET_NAMECACHE_Handle *h,
-         uint32_t rid)
+find_qe(struct GNUNET_NAMECACHE_Handle *h,
+        uint32_t rid)
 {
   struct GNUNET_NAMECACHE_QueueEntry *qe;
 
   for (qe = h->op_head; qe != NULL; qe = qe->next)
-  {
-    if (qe->op_id == rid)
     {
-      GNUNET_CONTAINER_DLL_remove (h->op_head,
-				   h->op_tail,
-				   qe);
-      return qe;
+      if (qe->op_id == rid)
+        {
+          GNUNET_CONTAINER_DLL_remove(h->op_head,
+                                      h->op_tail,
+                                      qe);
+          return qe;
+        }
     }
-  }
   return NULL;
 }
 
@@ -188,8 +182,8 @@ find_qe (struct GNUNET_NAMECACHE_Handle *h,
  * @param msg the message we received
  */
 static int
-check_lookup_block_response (void *cls,
-                             const struct LookupBlockResponseMessage *msg)
+check_lookup_block_response(void *cls,
+                            const struct LookupBlockResponseMessage *msg)
 {
   /* any length will do, format validation is in handler */
   return GNUNET_OK;
@@ -204,62 +198,62 @@ check_lookup_block_response (void *cls,
  * @param msg the message we received
  */
 static void
-handle_lookup_block_response (void *cls,
-			      const struct LookupBlockResponseMessage *msg)
+handle_lookup_block_response(void *cls,
+                             const struct LookupBlockResponseMessage *msg)
 {
   struct GNUNET_NAMECACHE_Handle *h = cls;
   size_t size;
   struct GNUNET_NAMECACHE_QueueEntry *qe;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Received LOOKUP_BLOCK_RESPONSE\n");
-  qe = find_qe (h,
-                ntohl (msg->gns_header.r_id));
+  LOG(GNUNET_ERROR_TYPE_DEBUG,
+      "Received LOOKUP_BLOCK_RESPONSE\n");
+  qe = find_qe(h,
+               ntohl(msg->gns_header.r_id));
   if (NULL == qe)
     return;
-  if (0 == GNUNET_TIME_absolute_ntoh (msg->expire).abs_value_us)
+  if (0 == GNUNET_TIME_absolute_ntoh(msg->expire).abs_value_us)
+    {
+      /* no match found */
+      if (NULL != qe->block_proc)
+        qe->block_proc(qe->block_proc_cls,
+                       NULL);
+      GNUNET_free(qe);
+      return;
+    }
+  size = ntohs(msg->gns_header.header.size)
+         - sizeof(struct LookupBlockResponseMessage);
   {
-    /* no match found */
-    if (NULL != qe->block_proc)
-      qe->block_proc (qe->block_proc_cls,
-                      NULL);
-    GNUNET_free (qe);
-    return;
-  }
-  size = ntohs (msg->gns_header.header.size)
-    - sizeof (struct LookupBlockResponseMessage);
-  {
-    char buf[size + sizeof (struct GNUNET_GNSRECORD_Block)] GNUNET_ALIGN;
+    char buf[size + sizeof(struct GNUNET_GNSRECORD_Block)] GNUNET_ALIGN;
     struct GNUNET_GNSRECORD_Block *block;
 
-    block = (struct GNUNET_GNSRECORD_Block *) buf;
+    block = (struct GNUNET_GNSRECORD_Block *)buf;
     block->signature = msg->signature;
     block->derived_key = msg->derived_key;
-    block->purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_GNS_RECORD_SIGN);
-    block->purpose.size = htonl (size +
-                                 sizeof (struct GNUNET_TIME_AbsoluteNBO) +
-                                 sizeof (struct GNUNET_CRYPTO_EccSignaturePurpose));
+    block->purpose.purpose = htonl(GNUNET_SIGNATURE_PURPOSE_GNS_RECORD_SIGN);
+    block->purpose.size = htonl(size +
+                                sizeof(struct GNUNET_TIME_AbsoluteNBO) +
+                                sizeof(struct GNUNET_CRYPTO_EccSignaturePurpose));
     block->expiration_time = msg->expire;
-    GNUNET_memcpy (&block[1],
-            &msg[1],
-            size);
+    GNUNET_memcpy(&block[1],
+                  &msg[1],
+                  size);
     if (GNUNET_OK !=
-        GNUNET_GNSRECORD_block_verify (block))
-    {
-      GNUNET_break (0);
-      if (NULL != qe->block_proc)
-        qe->block_proc (qe->block_proc_cls,
-                        NULL);
-      force_reconnect (h);
-    }
+        GNUNET_GNSRECORD_block_verify(block))
+      {
+        GNUNET_break(0);
+        if (NULL != qe->block_proc)
+          qe->block_proc(qe->block_proc_cls,
+                         NULL);
+        force_reconnect(h);
+      }
     else
-    {
-      if (NULL != qe->block_proc)
-        qe->block_proc (qe->block_proc_cls,
-                        block);
-    }
+      {
+        if (NULL != qe->block_proc)
+          qe->block_proc(qe->block_proc_cls,
+                         block);
+      }
   }
-  GNUNET_free (qe);
+  GNUNET_free(qe);
 }
 
 
@@ -273,28 +267,28 @@ handle_lookup_block_response (void *cls,
  * @return #GNUNET_OK on success, #GNUNET_SYSERR on error and we did NOT notify the client
  */
 static void
-handle_block_cache_response (void *cls,
-                             const struct BlockCacheResponseMessage *msg)
+handle_block_cache_response(void *cls,
+                            const struct BlockCacheResponseMessage *msg)
 {
   struct GNUNET_NAMECACHE_Handle *h = cls;
   struct GNUNET_NAMECACHE_QueueEntry *qe;
   int res;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Received BLOCK_CACHE_RESPONSE\n");
-  qe = find_qe (h,
-                ntohl (msg->gns_header.r_id));
+  LOG(GNUNET_ERROR_TYPE_DEBUG,
+      "Received BLOCK_CACHE_RESPONSE\n");
+  qe = find_qe(h,
+               ntohl(msg->gns_header.r_id));
   if (NULL == qe)
     return;
-  res = ntohl (msg->op_result);
+  res = ntohl(msg->op_result);
   /* TODO: add actual error message from namecache to response... */
   if (NULL != qe->cont)
-    qe->cont (qe->cont_cls,
-	      res,
-	      (GNUNET_OK == res)
-	      ? NULL
-	      : _("Namecache failed to cache block"));
-  GNUNET_free (qe);
+    qe->cont(qe->cont_cls,
+             res,
+             (GNUNET_OK == res)
+             ? NULL
+             : _("Namecache failed to cache block"));
+  GNUNET_free(qe);
 }
 
 
@@ -307,12 +301,12 @@ handle_block_cache_response (void *cls,
  * @param error error code
  */
 static void
-mq_error_handler (void *cls,
-                  enum GNUNET_MQ_Error error)
+mq_error_handler(void *cls,
+                 enum GNUNET_MQ_Error error)
 {
   struct GNUNET_NAMECACHE_Handle *h = cls;
 
-  force_reconnect (h);
+  force_reconnect(h);
 }
 
 
@@ -322,25 +316,26 @@ mq_error_handler (void *cls,
  * @param h the handle to the NAMECACHE service
  */
 static void
-reconnect (struct GNUNET_NAMECACHE_Handle *h)
+reconnect(struct GNUNET_NAMECACHE_Handle *h)
 {
   struct GNUNET_MQ_MessageHandler handlers[] = {
-    GNUNET_MQ_hd_var_size (lookup_block_response,
-                           GNUNET_MESSAGE_TYPE_NAMECACHE_LOOKUP_BLOCK_RESPONSE,
-                           struct LookupBlockResponseMessage,
-                           h),
-    GNUNET_MQ_hd_fixed_size (block_cache_response,
-                             GNUNET_MESSAGE_TYPE_NAMECACHE_BLOCK_CACHE_RESPONSE,
-                             struct BlockCacheResponseMessage,
-                             h),
-    GNUNET_MQ_handler_end ()
+    GNUNET_MQ_hd_var_size(lookup_block_response,
+                          GNUNET_MESSAGE_TYPE_NAMECACHE_LOOKUP_BLOCK_RESPONSE,
+                          struct LookupBlockResponseMessage,
+                          h),
+    GNUNET_MQ_hd_fixed_size(block_cache_response,
+                            GNUNET_MESSAGE_TYPE_NAMECACHE_BLOCK_CACHE_RESPONSE,
+                            struct BlockCacheResponseMessage,
+                            h),
+    GNUNET_MQ_handler_end()
   };
-  GNUNET_assert (NULL == h->mq);
-  h->mq = GNUNET_CLIENT_connect (h->cfg,
-                                 "namecache",
-                                 handlers,
-                                 &mq_error_handler,
-                                 h);
+
+  GNUNET_assert(NULL == h->mq);
+  h->mq = GNUNET_CLIENT_connect(h->cfg,
+                                "namecache",
+                                handlers,
+                                &mq_error_handler,
+                                h);
 }
 
 
@@ -350,12 +345,12 @@ reconnect (struct GNUNET_NAMECACHE_Handle *h)
  * @param cls handle to use to re-connect.
  */
 static void
-reconnect_task (void *cls)
+reconnect_task(void *cls)
 {
   struct GNUNET_NAMECACHE_Handle *h = cls;
 
   h->reconnect_task = NULL;
-  reconnect (h);
+  reconnect(h);
 }
 
 
@@ -365,30 +360,30 @@ reconnect_task (void *cls)
  * @param h our handle
  */
 static void
-force_reconnect (struct GNUNET_NAMECACHE_Handle *h)
+force_reconnect(struct GNUNET_NAMECACHE_Handle *h)
 {
   struct GNUNET_NAMECACHE_QueueEntry *qe;
 
   h->reconnect = GNUNET_NO;
-  GNUNET_MQ_destroy (h->mq);
+  GNUNET_MQ_destroy(h->mq);
   h->mq = NULL;
   while (NULL != (qe = h->op_head))
-  {
-    GNUNET_CONTAINER_DLL_remove (h->op_head,
-                                 h->op_tail,
-                                 qe);
-    if (NULL != qe->cont)
-      qe->cont (qe->cont_cls,
-                GNUNET_SYSERR,
-                _("Error communicating with namecache service"));
-    GNUNET_free (qe);
-  }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Reconnecting to namecache\n");
-  h->reconnect_delay = GNUNET_TIME_STD_BACKOFF (h->reconnect_delay);
-  h->reconnect_task = GNUNET_SCHEDULER_add_delayed (h->reconnect_delay,
-						    &reconnect_task,
-						    h);
+    {
+      GNUNET_CONTAINER_DLL_remove(h->op_head,
+                                  h->op_tail,
+                                  qe);
+      if (NULL != qe->cont)
+        qe->cont(qe->cont_cls,
+                 GNUNET_SYSERR,
+                 _("Error communicating with namecache service"));
+      GNUNET_free(qe);
+    }
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+             "Reconnecting to namecache\n");
+  h->reconnect_delay = GNUNET_TIME_STD_BACKOFF(h->reconnect_delay);
+  h->reconnect_task = GNUNET_SCHEDULER_add_delayed(h->reconnect_delay,
+                                                   &reconnect_task,
+                                                   h);
 }
 
 
@@ -399,7 +394,7 @@ force_reconnect (struct GNUNET_NAMECACHE_Handle *h)
  * @return next operation id to use
  */
 static uint32_t
-get_op_id (struct GNUNET_NAMECACHE_Handle *h)
+get_op_id(struct GNUNET_NAMECACHE_Handle *h)
 {
   return h->last_op_id_used++;
 }
@@ -412,18 +407,18 @@ get_op_id (struct GNUNET_NAMECACHE_Handle *h)
  * @return handle to the GNS service, or NULL on error
  */
 struct GNUNET_NAMECACHE_Handle *
-GNUNET_NAMECACHE_connect (const struct GNUNET_CONFIGURATION_Handle *cfg)
+GNUNET_NAMECACHE_connect(const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   struct GNUNET_NAMECACHE_Handle *h;
 
-  h = GNUNET_new (struct GNUNET_NAMECACHE_Handle);
+  h = GNUNET_new(struct GNUNET_NAMECACHE_Handle);
   h->cfg = cfg;
-  reconnect (h);
+  reconnect(h);
   if (NULL == h->mq)
-  {
-    GNUNET_free (h);
-    return NULL;
-  }
+    {
+      GNUNET_free(h);
+      return NULL;
+    }
   return h;
 }
 
@@ -435,29 +430,29 @@ GNUNET_NAMECACHE_connect (const struct GNUNET_CONFIGURATION_Handle *cfg)
  * @param h handle to the namecache
  */
 void
-GNUNET_NAMECACHE_disconnect (struct GNUNET_NAMECACHE_Handle *h)
+GNUNET_NAMECACHE_disconnect(struct GNUNET_NAMECACHE_Handle *h)
 {
   struct GNUNET_NAMECACHE_QueueEntry *q;
 
-  GNUNET_break (NULL == h->op_head);
+  GNUNET_break(NULL == h->op_head);
   while (NULL != (q = h->op_head))
-  {
-    GNUNET_CONTAINER_DLL_remove (h->op_head,
-                                 h->op_tail,
-                                 q);
-    GNUNET_free (q);
-  }
+    {
+      GNUNET_CONTAINER_DLL_remove(h->op_head,
+                                  h->op_tail,
+                                  q);
+      GNUNET_free(q);
+    }
   if (NULL != h->mq)
-  {
-    GNUNET_MQ_destroy (h->mq);
-    h->mq = NULL;
-  }
+    {
+      GNUNET_MQ_destroy(h->mq);
+      h->mq = NULL;
+    }
   if (NULL != h->reconnect_task)
-  {
-    GNUNET_SCHEDULER_cancel (h->reconnect_task);
-    h->reconnect_task = NULL;
-  }
-  GNUNET_free (h);
+    {
+      GNUNET_SCHEDULER_cancel(h->reconnect_task);
+      h->reconnect_task = NULL;
+    }
+  GNUNET_free(h);
 }
 
 
@@ -472,10 +467,10 @@ GNUNET_NAMECACHE_disconnect (struct GNUNET_NAMECACHE_Handle *h)
  * @return handle to abort the request, NULL on error
  */
 struct GNUNET_NAMECACHE_QueueEntry *
-GNUNET_NAMECACHE_block_cache (struct GNUNET_NAMECACHE_Handle *h,
-			      const struct GNUNET_GNSRECORD_Block *block,
-			      GNUNET_NAMECACHE_ContinuationWithStatus cont,
-			      void *cont_cls)
+GNUNET_NAMECACHE_block_cache(struct GNUNET_NAMECACHE_Handle *h,
+                             const struct GNUNET_GNSRECORD_Block *block,
+                             GNUNET_NAMECACHE_ContinuationWithStatus cont,
+                             void *cont_cls)
 {
   struct GNUNET_NAMECACHE_QueueEntry *qe;
   struct BlockCacheMessage *msg;
@@ -485,33 +480,33 @@ GNUNET_NAMECACHE_block_cache (struct GNUNET_NAMECACHE_Handle *h,
 
   if (NULL == h->mq)
     return NULL;
-  blen = ntohl (block->purpose.size);
-  GNUNET_assert (blen > (sizeof (struct GNUNET_TIME_AbsoluteNBO) + 
-                         sizeof (struct GNUNET_CRYPTO_EccSignaturePurpose)));
-  blen -= (sizeof (struct GNUNET_TIME_AbsoluteNBO) +
-           sizeof (struct GNUNET_CRYPTO_EccSignaturePurpose));
-  rid = get_op_id (h);
-  qe = GNUNET_new (struct GNUNET_NAMECACHE_QueueEntry);
+  blen = ntohl(block->purpose.size);
+  GNUNET_assert(blen > (sizeof(struct GNUNET_TIME_AbsoluteNBO) +
+                        sizeof(struct GNUNET_CRYPTO_EccSignaturePurpose)));
+  blen -= (sizeof(struct GNUNET_TIME_AbsoluteNBO) +
+           sizeof(struct GNUNET_CRYPTO_EccSignaturePurpose));
+  rid = get_op_id(h);
+  qe = GNUNET_new(struct GNUNET_NAMECACHE_QueueEntry);
   qe->nsh = h;
   qe->cont = cont;
   qe->cont_cls = cont_cls;
   qe->op_id = rid;
-  GNUNET_CONTAINER_DLL_insert_tail (h->op_head,
-                                    h->op_tail,
-                                    qe);
+  GNUNET_CONTAINER_DLL_insert_tail(h->op_head,
+                                   h->op_tail,
+                                   qe);
   /* send msg */
-  env = GNUNET_MQ_msg_extra (msg,
-                             blen,
-                             GNUNET_MESSAGE_TYPE_NAMECACHE_BLOCK_CACHE);
-  msg->gns_header.r_id = htonl (rid);
+  env = GNUNET_MQ_msg_extra(msg,
+                            blen,
+                            GNUNET_MESSAGE_TYPE_NAMECACHE_BLOCK_CACHE);
+  msg->gns_header.r_id = htonl(rid);
   msg->expire = block->expiration_time;
   msg->signature = block->signature;
   msg->derived_key = block->derived_key;
-  GNUNET_memcpy (&msg[1],
-          &block[1],
-          blen);
-  GNUNET_MQ_send (h->mq,
-                  env);
+  GNUNET_memcpy(&msg[1],
+                &block[1],
+                blen);
+  GNUNET_MQ_send(h->mq,
+                 env);
   return qe;
 }
 
@@ -528,10 +523,10 @@ GNUNET_NAMECACHE_block_cache (struct GNUNET_NAMECACHE_Handle *h,
  * @return a handle that can be used to cancel, NULL on error
  */
 struct GNUNET_NAMECACHE_QueueEntry *
-GNUNET_NAMECACHE_lookup_block (struct GNUNET_NAMECACHE_Handle *h,
-			       const struct GNUNET_HashCode *derived_hash,
-			       GNUNET_NAMECACHE_BlockProcessor proc,
-                               void *proc_cls)
+GNUNET_NAMECACHE_lookup_block(struct GNUNET_NAMECACHE_Handle *h,
+                              const struct GNUNET_HashCode *derived_hash,
+                              GNUNET_NAMECACHE_BlockProcessor proc,
+                              void *proc_cls)
 {
   struct GNUNET_NAMECACHE_QueueEntry *qe;
   struct LookupBlockMessage *msg;
@@ -540,24 +535,24 @@ GNUNET_NAMECACHE_lookup_block (struct GNUNET_NAMECACHE_Handle *h,
 
   if (NULL == h->mq)
     return NULL;
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Looking for block under %s\n",
-       GNUNET_h2s (derived_hash));
-  rid = get_op_id (h);
-  qe = GNUNET_new (struct GNUNET_NAMECACHE_QueueEntry);
+  LOG(GNUNET_ERROR_TYPE_DEBUG,
+      "Looking for block under %s\n",
+      GNUNET_h2s(derived_hash));
+  rid = get_op_id(h);
+  qe = GNUNET_new(struct GNUNET_NAMECACHE_QueueEntry);
   qe->nsh = h;
   qe->block_proc = proc;
   qe->block_proc_cls = proc_cls;
   qe->op_id = rid;
-  GNUNET_CONTAINER_DLL_insert_tail (h->op_head,
-                                    h->op_tail,
-                                    qe);
-  env = GNUNET_MQ_msg (msg,
-                       GNUNET_MESSAGE_TYPE_NAMECACHE_LOOKUP_BLOCK);
-  msg->gns_header.r_id = htonl (rid);
+  GNUNET_CONTAINER_DLL_insert_tail(h->op_head,
+                                   h->op_tail,
+                                   qe);
+  env = GNUNET_MQ_msg(msg,
+                      GNUNET_MESSAGE_TYPE_NAMECACHE_LOOKUP_BLOCK);
+  msg->gns_header.r_id = htonl(rid);
   msg->query = *derived_hash;
-  GNUNET_MQ_send (h->mq,
-                  env);
+  GNUNET_MQ_send(h->mq,
+                 env);
   return qe;
 }
 
@@ -569,13 +564,13 @@ GNUNET_NAMECACHE_lookup_block (struct GNUNET_NAMECACHE_Handle *h,
  * @param qe operation to cancel
  */
 void
-GNUNET_NAMECACHE_cancel (struct GNUNET_NAMECACHE_QueueEntry *qe)
+GNUNET_NAMECACHE_cancel(struct GNUNET_NAMECACHE_QueueEntry *qe)
 {
   struct GNUNET_NAMECACHE_Handle *h = qe->nsh;
 
-  GNUNET_CONTAINER_DLL_remove (h->op_head,
-                               h->op_tail,
-                               qe);
+  GNUNET_CONTAINER_DLL_remove(h->op_head,
+                              h->op_tail,
+                              qe);
   GNUNET_free(qe);
 }
 

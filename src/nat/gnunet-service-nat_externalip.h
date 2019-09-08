@@ -11,19 +11,19 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 /**
  * Code to figure out what our external IPv4 address(es) might
  * be (external IPv4s are what is seen on the rest of the Internet).
  *
  * This can be implemented using different methods, and we allow
  * the main service to be notified about changes to what we believe
- * is our external IPv4 address.  
+ * is our external IPv4 address.
  *
  * Note that this is explicitly only about NATed systems; if one
  * of our network interfaces has a global IP address this does
@@ -46,7 +46,7 @@
  * @param have_nat #GNUNET_YES if we believe we are behind NAT
  */
 void
-GN_nat_status_changed (int have_nat);
+GN_nat_status_changed(int have_nat);
 
 
 /**
@@ -58,8 +58,8 @@ GN_nat_status_changed (int have_nat);
  */
 typedef void
 (*GN_NotifyExternalIPv4Change)(void *cls,
-			       const struct in_addr *ip,
-			       int add_remove);
+                               const struct in_addr *ip,
+                               int add_remove);
 
 
 /**
@@ -76,8 +76,8 @@ struct GN_ExternalIPMonitor;
  * @return handle to cancel
  */
 struct GN_ExternalIPMonitor *
-GN_external_ipv4_monitor_start (GN_NotifyExternalIPv4Change cb,
-				void *cb_cls);
+GN_external_ipv4_monitor_start(GN_NotifyExternalIPv4Change cb,
+                               void *cb_cls);
 
 
 /**
@@ -86,7 +86,7 @@ GN_external_ipv4_monitor_start (GN_NotifyExternalIPv4Change cb,
  * @param mon monitor to call
  */
 void
-GN_external_ipv4_monitor_stop (struct GN_ExternalIPMonitor *mon);
+GN_external_ipv4_monitor_stop(struct GN_ExternalIPMonitor *mon);
 
 
 #endif

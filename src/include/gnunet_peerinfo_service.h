@@ -11,12 +11,12 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 /**
  * @author Christian Grothoff
  *
@@ -64,7 +64,7 @@ struct GNUNET_PEERINFO_Handle;
  *         etablishment may happen asynchronously).
  */
 struct GNUNET_PEERINFO_Handle *
-GNUNET_PEERINFO_connect (const struct GNUNET_CONFIGURATION_Handle *cfg);
+GNUNET_PEERINFO_connect(const struct GNUNET_CONFIGURATION_Handle *cfg);
 
 
 /**
@@ -77,7 +77,7 @@ GNUNET_PEERINFO_connect (const struct GNUNET_CONFIGURATION_Handle *cfg);
  * @param h handle to disconnect
  */
 void
-GNUNET_PEERINFO_disconnect (struct GNUNET_PEERINFO_Handle *h);
+GNUNET_PEERINFO_disconnect(struct GNUNET_PEERINFO_Handle *h);
 
 
 /**
@@ -99,10 +99,10 @@ GNUNET_PEERINFO_disconnect (struct GNUNET_PEERINFO_Handle *h);
  *        calling @a cont must be prevented)
  */
 struct GNUNET_MQ_Envelope *
-GNUNET_PEERINFO_add_peer (struct GNUNET_PEERINFO_Handle *h,
-                          const struct GNUNET_HELLO_Message *hello,
-			  GNUNET_SCHEDULER_TaskCallback cont,
-			  void *cont_cls);
+GNUNET_PEERINFO_add_peer(struct GNUNET_PEERINFO_Handle *h,
+                         const struct GNUNET_HELLO_Message *hello,
+                         GNUNET_SCHEDULER_TaskCallback cont,
+                         void *cont_cls);
 
 
 /**
@@ -145,11 +145,11 @@ struct GNUNET_PEERINFO_IteratorContext;
  * @return iterator context
  */
 struct GNUNET_PEERINFO_IteratorContext *
-GNUNET_PEERINFO_iterate (struct GNUNET_PEERINFO_Handle *h,
-			 int include_friend_only,
-                         const struct GNUNET_PeerIdentity *peer,
-                         GNUNET_PEERINFO_Processor callback,
-                         void *callback_cls);
+GNUNET_PEERINFO_iterate(struct GNUNET_PEERINFO_Handle *h,
+                        int include_friend_only,
+                        const struct GNUNET_PeerIdentity *peer,
+                        GNUNET_PEERINFO_Processor callback,
+                        void *callback_cls);
 
 
 /**
@@ -158,7 +158,7 @@ GNUNET_PEERINFO_iterate (struct GNUNET_PEERINFO_Handle *h,
  * @param ic context of the iterator to cancel
  */
 void
-GNUNET_PEERINFO_iterate_cancel (struct GNUNET_PEERINFO_IteratorContext *ic);
+GNUNET_PEERINFO_iterate_cancel(struct GNUNET_PEERINFO_IteratorContext *ic);
 
 
 /**
@@ -183,10 +183,10 @@ struct GNUNET_PEERINFO_NotifyContext;
  * @return NULL on error
  */
 struct GNUNET_PEERINFO_NotifyContext *
-GNUNET_PEERINFO_notify (const struct GNUNET_CONFIGURATION_Handle *cfg,
-			int include_friend_only,
-                        GNUNET_PEERINFO_Processor callback,
-                        void *callback_cls);
+GNUNET_PEERINFO_notify(const struct GNUNET_CONFIGURATION_Handle *cfg,
+                       int include_friend_only,
+                       GNUNET_PEERINFO_Processor callback,
+                       void *callback_cls);
 
 
 /**
@@ -195,7 +195,7 @@ GNUNET_PEERINFO_notify (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @param nc context to stop notifying
  */
 void
-GNUNET_PEERINFO_notify_cancel (struct GNUNET_PEERINFO_NotifyContext *nc);
+GNUNET_PEERINFO_notify_cancel(struct GNUNET_PEERINFO_NotifyContext *nc);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

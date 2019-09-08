@@ -16,7 +16,7 @@
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 
 /**
  * @file fs/gnunet-service-fs_cadet_client.c
@@ -42,7 +42,7 @@
  * After how long do we reset connections without replies?
  */
 #define CLIENT_RETRY_TIMEOUT \
-  GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30)
+  GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 30)
 
 
 /**
@@ -54,9 +54,7 @@ struct CadetHandle;
 /**
  * Handle for a request that is going out via cadet API.
  */
-struct GSF_CadetRequest
-{
-
+struct GSF_CadetRequest {
   /**
    * DLL.
    */
@@ -103,8 +101,7 @@ struct GSF_CadetRequest
 /**
  * Handle for a cadet to another peer.
  */
-struct CadetHandle
-{
+struct CadetHandle {
   /**
    * Head of DLL of pending requests on this cadet.
    */
@@ -168,7 +165,7 @@ struct GNUNET_CONTAINER_MultiPeerMap *cadet_map;
  * @param cls `struct CadetHandle` to process
  */
 static void
-transmit_pending (void *cls);
+transmit_pending(void *cls);
 
 
 /**
@@ -181,15 +178,15 @@ transmit_pending (void *cls);
  * @return #GNUNET_YES (continue to iterate)
  */
 static int
-move_to_pending (void *cls, const struct GNUNET_HashCode *key, void *value)
+move_to_pending(void *cls, const struct GNUNET_HashCode *key, void *value)
 {
   struct CadetHandle *mh = cls;
   struct GSF_CadetRequest *sr = value;
 
-  GNUNET_assert (
+  GNUNET_assert(
     GNUNET_YES ==
-    GNUNET_CONTAINER_multihashmap_remove (mh->waiting_map, key, value));
-  GNUNET_CONTAINER_DLL_insert (mh->pending_head, mh->pending_tail, sr);
+    GNUNET_CONTAINER_multihashmap_remove(mh->waiting_map, key, value));
+  GNUNET_CONTAINER_DLL_insert(mh->pending_head, mh->pending_tail, sr);
   sr->was_transmitted = GNUNET_NO;
   return GNUNET_YES;
 }
@@ -204,7 +201,7 @@ move_to_pending (void *cls, const struct GNUNET_HashCode *key, void *value)
  * @return #GNUNET_OK on success, #GNUNET_SYSERR to stop further processing
  */
 static int
-check_reply (void *cls, const struct CadetReplyMessage *srm)
+check_reply(void *cls, const struct CadetReplyMessage *srm)
 {
   /* We check later... */
   return GNUNET_OK;
@@ -217,7 +214,7 @@ check_reply (void *cls, const struct CadetReplyMessage *srm)
  * @param cls the `struct CadetHandle` to tear down
  */
 static void
-reset_cadet_task (void *cls);
+reset_cadet_task(void *cls);
 
 
 /**
@@ -227,20 +224,18 @@ reset_cadet_task (void *cls);
  * @param mh cadet to reset
  */
 static void
-reset_cadet_async (struct CadetHandle *mh)
+reset_cadet_async(struct CadetHandle *mh)
 {
   if (NULL != mh->reset_task)
-    GNUNET_SCHEDULER_cancel (mh->reset_task);
-  mh->reset_task = GNUNET_SCHEDULER_add_now (&reset_cadet_task, mh);
+    GNUNET_SCHEDULER_cancel(mh->reset_task);
+  mh->reset_task = GNUNET_SCHEDULER_add_now(&reset_cadet_task, mh);
 }
 
 
 /**
  * Closure for handle_reply().
  */
-struct HandleReplyClosure
-{
-
+struct HandleReplyClosure {
   /**
    * Reply payload.
    */
@@ -278,18 +273,18 @@ struct HandleReplyClosure
  * @return #GNUNET_YES (continue to iterate)
  */
 static int
-process_reply (void *cls, const struct GNUNET_HashCode *key, void *value)
+process_reply(void *cls, const struct GNUNET_HashCode *key, void *value)
 {
   struct HandleReplyClosure *hrc = cls;
   struct GSF_CadetRequest *sr = value;
 
-  sr->proc (sr->proc_cls,
-            hrc->type,
-            hrc->expiration,
-            hrc->data_size,
-            hrc->data);
+  sr->proc(sr->proc_cls,
+           hrc->type,
+           hrc->expiration,
+           hrc->data_size,
+           hrc->data);
   sr->proc = NULL;
-  GSF_cadet_query_cancel (sr);
+  GSF_cadet_query_cancel(sr);
   hrc->found = GNUNET_YES;
   return GNUNET_YES;
 }
@@ -306,11 +301,11 @@ process_reply (void *cls, const struct GNUNET_HashCode *key, void *value)
  * @return #GNUNET_YES (continue to iterate)
  */
 static int
-free_waiting_entry (void *cls, const struct GNUNET_HashCode *key, void *value)
+free_waiting_entry(void *cls, const struct GNUNET_HashCode *key, void *value)
 {
   struct GSF_CadetRequest *sr = value;
 
-  GSF_cadet_query_cancel (sr);
+  GSF_cadet_query_cancel(sr);
   return GNUNET_YES;
 }
 
@@ -323,7 +318,7 @@ free_waiting_entry (void *cls, const struct GNUNET_HashCode *key, void *value)
  * @param srm the actual message
  */
 static void
-handle_reply (void *cls, const struct CadetReplyMessage *srm)
+handle_reply(void *cls, const struct CadetReplyMessage *srm)
 {
   struct CadetHandle *mh = cls;
   struct HandleReplyClosure hrc;
@@ -331,47 +326,47 @@ handle_reply (void *cls, const struct CadetReplyMessage *srm)
   enum GNUNET_BLOCK_Type type;
   struct GNUNET_HashCode query;
 
-  msize = ntohs (srm->header.size) - sizeof (struct CadetReplyMessage);
-  type = (enum GNUNET_BLOCK_Type) ntohl (srm->type);
+  msize = ntohs(srm->header.size) - sizeof(struct CadetReplyMessage);
+  type = (enum GNUNET_BLOCK_Type)ntohl(srm->type);
   if (GNUNET_YES !=
-      GNUNET_BLOCK_get_key (GSF_block_ctx, type, &srm[1], msize, &query))
-  {
-    GNUNET_break_op (0);
-    GNUNET_log (
-      GNUNET_ERROR_TYPE_WARNING,
-      "Received bogus reply of type %u with %u bytes via cadet from peer %s\n",
-      type,
-      msize,
-      GNUNET_i2s (&mh->target));
-    reset_cadet_async (mh);
-    return;
-  }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Received reply `%s' via cadet from peer %s\n",
-              GNUNET_h2s (&query),
-              GNUNET_i2s (&mh->target));
-  GNUNET_CADET_receive_done (mh->channel);
-  GNUNET_STATISTICS_update (GSF_stats,
-                            gettext_noop ("# replies received via cadet"),
-                            1,
-                            GNUNET_NO);
+      GNUNET_BLOCK_get_key(GSF_block_ctx, type, &srm[1], msize, &query))
+    {
+      GNUNET_break_op(0);
+      GNUNET_log(
+        GNUNET_ERROR_TYPE_WARNING,
+        "Received bogus reply of type %u with %u bytes via cadet from peer %s\n",
+        type,
+        msize,
+        GNUNET_i2s(&mh->target));
+      reset_cadet_async(mh);
+      return;
+    }
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+             "Received reply `%s' via cadet from peer %s\n",
+             GNUNET_h2s(&query),
+             GNUNET_i2s(&mh->target));
+  GNUNET_CADET_receive_done(mh->channel);
+  GNUNET_STATISTICS_update(GSF_stats,
+                           gettext_noop("# replies received via cadet"),
+                           1,
+                           GNUNET_NO);
   hrc.data = &srm[1];
   hrc.data_size = msize;
-  hrc.expiration = GNUNET_TIME_absolute_ntoh (srm->expiration);
+  hrc.expiration = GNUNET_TIME_absolute_ntoh(srm->expiration);
   hrc.type = type;
   hrc.found = GNUNET_NO;
-  GNUNET_CONTAINER_multihashmap_get_multiple (mh->waiting_map,
-                                              &query,
-                                              &process_reply,
-                                              &hrc);
+  GNUNET_CONTAINER_multihashmap_get_multiple(mh->waiting_map,
+                                             &query,
+                                             &process_reply,
+                                             &hrc);
   if (GNUNET_NO == hrc.found)
-  {
-    GNUNET_STATISTICS_update (GSF_stats,
-                              gettext_noop (
-                                "# replies received via cadet dropped"),
-                              1,
-                              GNUNET_NO);
-  }
+    {
+      GNUNET_STATISTICS_update(GSF_stats,
+                               gettext_noop(
+                                 "# replies received via cadet dropped"),
+                               1,
+                               GNUNET_NO);
+    }
 }
 
 
@@ -383,34 +378,34 @@ handle_reply (void *cls, const struct CadetReplyMessage *srm)
  * @param channel channel of the disconnecting client
  */
 static void
-disconnect_cb (void *cls, const struct GNUNET_CADET_Channel *channel)
+disconnect_cb(void *cls, const struct GNUNET_CADET_Channel *channel)
 {
   struct CadetHandle *mh = cls;
   struct GSF_CadetRequest *sr;
 
   if (NULL == mh->channel)
     return; /* being destroyed elsewhere */
-  GNUNET_assert (channel == mh->channel);
+  GNUNET_assert(channel == mh->channel);
   mh->channel = NULL;
   while (NULL != (sr = mh->pending_head))
-    GSF_cadet_query_cancel (sr);
+    GSF_cadet_query_cancel(sr);
   /* first remove `mh` from the `cadet_map`, so that if the
      callback from `free_waiting_entry()` happens to re-issue
      the request, we don't immediately have it back in the
      `waiting_map`. */
-  GNUNET_assert (GNUNET_OK == GNUNET_CONTAINER_multipeermap_remove (cadet_map,
-                                                                    &mh->target,
-                                                                    mh));
-  GNUNET_CONTAINER_multihashmap_iterate (mh->waiting_map,
-                                         &free_waiting_entry,
-                                         mh);
+  GNUNET_assert(GNUNET_OK == GNUNET_CONTAINER_multipeermap_remove(cadet_map,
+                                                                  &mh->target,
+                                                                  mh));
+  GNUNET_CONTAINER_multihashmap_iterate(mh->waiting_map,
+                                        &free_waiting_entry,
+                                        mh);
   if (NULL != mh->timeout_task)
-    GNUNET_SCHEDULER_cancel (mh->timeout_task);
+    GNUNET_SCHEDULER_cancel(mh->timeout_task);
   if (NULL != mh->reset_task)
-    GNUNET_SCHEDULER_cancel (mh->reset_task);
-  GNUNET_assert (0 == GNUNET_CONTAINER_multihashmap_size (mh->waiting_map));
-  GNUNET_CONTAINER_multihashmap_destroy (mh->waiting_map);
-  GNUNET_free (mh);
+    GNUNET_SCHEDULER_cancel(mh->reset_task);
+  GNUNET_assert(0 == GNUNET_CONTAINER_multihashmap_size(mh->waiting_map));
+  GNUNET_CONTAINER_multihashmap_destroy(mh->waiting_map);
+  GNUNET_free(mh);
 }
 
 
@@ -429,16 +424,16 @@ disconnect_cb (void *cls, const struct GNUNET_CADET_Channel *channel)
  *                    this value will be negative..
  */
 static void
-window_change_cb (void *cls,
-                  const struct GNUNET_CADET_Channel *channel,
-                  int window_size)
+window_change_cb(void *cls,
+                 const struct GNUNET_CADET_Channel *channel,
+                 int window_size)
 {
   /* FIXME: for flow control, implement? */
 #if 0
   /* Something like this instead of the GNUNET_MQ_notify_sent() in
      transmit_pending() might be good (once the window change CB works...) */
   if (0 < window_size) /* test needed? */
-    transmit_pending (mh);
+    transmit_pending(mh);
 #endif
 }
 
@@ -449,38 +444,38 @@ window_change_cb (void *cls,
  * @param mh cadet to reset
  */
 static void
-reset_cadet (struct CadetHandle *mh)
+reset_cadet(struct CadetHandle *mh)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Resetting cadet channel to %s\n",
-              GNUNET_i2s (&mh->target));
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+             "Resetting cadet channel to %s\n",
+             GNUNET_i2s(&mh->target));
   if (NULL != mh->channel)
-  {
-    GNUNET_CADET_channel_destroy (mh->channel);
-    mh->channel = NULL;
-  }
-  GNUNET_CONTAINER_multihashmap_iterate (mh->waiting_map, &move_to_pending, mh);
+    {
+      GNUNET_CADET_channel_destroy(mh->channel);
+      mh->channel = NULL;
+    }
+  GNUNET_CONTAINER_multihashmap_iterate(mh->waiting_map, &move_to_pending, mh);
   {
     struct GNUNET_MQ_MessageHandler handlers[] =
-      {GNUNET_MQ_hd_var_size (reply,
-                              GNUNET_MESSAGE_TYPE_FS_CADET_REPLY,
-                              struct CadetReplyMessage,
-                              mh),
-       GNUNET_MQ_handler_end ()};
+    { GNUNET_MQ_hd_var_size(reply,
+                            GNUNET_MESSAGE_TYPE_FS_CADET_REPLY,
+                            struct CadetReplyMessage,
+                            mh),
+      GNUNET_MQ_handler_end() };
     struct GNUNET_HashCode port;
 
-    GNUNET_CRYPTO_hash (GNUNET_APPLICATION_PORT_FS_BLOCK_TRANSFER,
-                        strlen (GNUNET_APPLICATION_PORT_FS_BLOCK_TRANSFER),
-                        &port);
-    mh->channel = GNUNET_CADET_channel_create (cadet_handle,
-                                               mh,
-                                               &mh->target,
-                                               &port,
-                                               &window_change_cb,
-                                               &disconnect_cb,
-                                               handlers);
+    GNUNET_CRYPTO_hash(GNUNET_APPLICATION_PORT_FS_BLOCK_TRANSFER,
+                       strlen(GNUNET_APPLICATION_PORT_FS_BLOCK_TRANSFER),
+                       &port);
+    mh->channel = GNUNET_CADET_channel_create(cadet_handle,
+                                              mh,
+                                              &mh->target,
+                                              &port,
+                                              &window_change_cb,
+                                              &disconnect_cb,
+                                              handlers);
   }
-  transmit_pending (mh);
+  transmit_pending(mh);
 }
 
 
@@ -490,19 +485,19 @@ reset_cadet (struct CadetHandle *mh)
  * @param cls the `struct CadetHandle` to tear down
  */
 static void
-cadet_timeout (void *cls)
+cadet_timeout(void *cls)
 {
   struct CadetHandle *mh = cls;
   struct GNUNET_CADET_Channel *tun;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Timeout on cadet channel to %s\n",
-              GNUNET_i2s (&mh->target));
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+             "Timeout on cadet channel to %s\n",
+             GNUNET_i2s(&mh->target));
   mh->timeout_task = NULL;
   tun = mh->channel;
   mh->channel = NULL;
   if (NULL != tun)
-    GNUNET_CADET_channel_destroy (tun);
+    GNUNET_CADET_channel_destroy(tun);
 }
 
 
@@ -512,12 +507,12 @@ cadet_timeout (void *cls)
  * @param cls the `struct CadetHandle` to tear down
  */
 static void
-reset_cadet_task (void *cls)
+reset_cadet_task(void *cls)
 {
   struct CadetHandle *mh = cls;
 
   mh->reset_task = NULL;
-  reset_cadet (mh);
+  reset_cadet(mh);
 }
 
 
@@ -527,36 +522,36 @@ reset_cadet_task (void *cls)
  * @param cls `struct CadetHandle` to process
  */
 static void
-transmit_pending (void *cls)
+transmit_pending(void *cls)
 {
   struct CadetHandle *mh = cls;
-  struct GNUNET_MQ_Handle *mq = GNUNET_CADET_get_mq (mh->channel);
+  struct GNUNET_MQ_Handle *mq = GNUNET_CADET_get_mq(mh->channel);
   struct GSF_CadetRequest *sr;
   struct GNUNET_MQ_Envelope *env;
   struct CadetQueryMessage *sqm;
 
-  if ((0 != GNUNET_MQ_get_length (mq)) || (NULL == (sr = mh->pending_head)))
+  if ((0 != GNUNET_MQ_get_length(mq)) || (NULL == (sr = mh->pending_head)))
     return;
-  GNUNET_CONTAINER_DLL_remove (mh->pending_head, mh->pending_tail, sr);
-  GNUNET_assert (GNUNET_OK == GNUNET_CONTAINER_multihashmap_put (
-                                mh->waiting_map,
-                                &sr->query,
-                                sr,
-                                GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE));
+  GNUNET_CONTAINER_DLL_remove(mh->pending_head, mh->pending_tail, sr);
+  GNUNET_assert(GNUNET_OK == GNUNET_CONTAINER_multihashmap_put(
+                  mh->waiting_map,
+                  &sr->query,
+                  sr,
+                  GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE));
   sr->was_transmitted = GNUNET_YES;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Sending query for %s via cadet to %s\n",
-              GNUNET_h2s (&sr->query),
-              GNUNET_i2s (&mh->target));
-  env = GNUNET_MQ_msg (sqm, GNUNET_MESSAGE_TYPE_FS_CADET_QUERY);
-  GNUNET_MQ_env_set_options (env,
-                             GNUNET_MQ_PREF_GOODPUT |
-                               GNUNET_MQ_PREF_CORK_ALLOWED |
-                               GNUNET_MQ_PREF_OUT_OF_ORDER);
-  sqm->type = htonl (sr->type);
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+             "Sending query for %s via cadet to %s\n",
+             GNUNET_h2s(&sr->query),
+             GNUNET_i2s(&mh->target));
+  env = GNUNET_MQ_msg(sqm, GNUNET_MESSAGE_TYPE_FS_CADET_QUERY);
+  GNUNET_MQ_env_set_options(env,
+                            GNUNET_MQ_PREF_GOODPUT |
+                            GNUNET_MQ_PREF_CORK_ALLOWED |
+                            GNUNET_MQ_PREF_OUT_OF_ORDER);
+  sqm->type = htonl(sr->type);
   sqm->query = sr->query;
-  GNUNET_MQ_notify_sent (env, &transmit_pending, mh);
-  GNUNET_MQ_send (mq, env);
+  GNUNET_MQ_notify_sent(env, &transmit_pending, mh);
+  GNUNET_MQ_send(mq, env);
 }
 
 
@@ -566,53 +561,53 @@ transmit_pending (void *cls)
  * @param target peer we want to communicate with
  */
 static struct CadetHandle *
-get_cadet (const struct GNUNET_PeerIdentity *target)
+get_cadet(const struct GNUNET_PeerIdentity *target)
 {
   struct CadetHandle *mh;
 
-  mh = GNUNET_CONTAINER_multipeermap_get (cadet_map, target);
+  mh = GNUNET_CONTAINER_multipeermap_get(cadet_map, target);
   if (NULL != mh)
-  {
-    if (NULL != mh->timeout_task)
     {
-      GNUNET_SCHEDULER_cancel (mh->timeout_task);
-      mh->timeout_task = NULL;
+      if (NULL != mh->timeout_task)
+        {
+          GNUNET_SCHEDULER_cancel(mh->timeout_task);
+          mh->timeout_task = NULL;
+        }
+      return mh;
     }
-    return mh;
-  }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Creating cadet channel to %s\n",
-              GNUNET_i2s (target));
-  mh = GNUNET_new (struct CadetHandle);
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+             "Creating cadet channel to %s\n",
+             GNUNET_i2s(target));
+  mh = GNUNET_new(struct CadetHandle);
   mh->reset_task =
-    GNUNET_SCHEDULER_add_delayed (CLIENT_RETRY_TIMEOUT, &reset_cadet_task, mh);
-  mh->waiting_map = GNUNET_CONTAINER_multihashmap_create (16, GNUNET_YES);
+    GNUNET_SCHEDULER_add_delayed(CLIENT_RETRY_TIMEOUT, &reset_cadet_task, mh);
+  mh->waiting_map = GNUNET_CONTAINER_multihashmap_create(16, GNUNET_YES);
   mh->target = *target;
-  GNUNET_assert (GNUNET_OK ==
-                 GNUNET_CONTAINER_multipeermap_put (
-                   cadet_map,
-                   &mh->target,
-                   mh,
-                   GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
+  GNUNET_assert(GNUNET_OK ==
+                GNUNET_CONTAINER_multipeermap_put(
+                  cadet_map,
+                  &mh->target,
+                  mh,
+                  GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
   {
     struct GNUNET_MQ_MessageHandler handlers[] =
-      {GNUNET_MQ_hd_var_size (reply,
-                              GNUNET_MESSAGE_TYPE_FS_CADET_REPLY,
-                              struct CadetReplyMessage,
-                              mh),
-       GNUNET_MQ_handler_end ()};
+    { GNUNET_MQ_hd_var_size(reply,
+                            GNUNET_MESSAGE_TYPE_FS_CADET_REPLY,
+                            struct CadetReplyMessage,
+                            mh),
+      GNUNET_MQ_handler_end() };
     struct GNUNET_HashCode port;
 
-    GNUNET_CRYPTO_hash (GNUNET_APPLICATION_PORT_FS_BLOCK_TRANSFER,
-                        strlen (GNUNET_APPLICATION_PORT_FS_BLOCK_TRANSFER),
-                        &port);
-    mh->channel = GNUNET_CADET_channel_create (cadet_handle,
-                                               mh,
-                                               &mh->target,
-                                               &port,
-                                               &window_change_cb,
-                                               &disconnect_cb,
-                                               handlers);
+    GNUNET_CRYPTO_hash(GNUNET_APPLICATION_PORT_FS_BLOCK_TRANSFER,
+                       strlen(GNUNET_APPLICATION_PORT_FS_BLOCK_TRANSFER),
+                       &port);
+    mh->channel = GNUNET_CADET_channel_create(cadet_handle,
+                                              mh,
+                                              &mh->target,
+                                              &port,
+                                              &window_change_cb,
+                                              &disconnect_cb,
+                                              handlers);
   }
   return mh;
 }
@@ -629,28 +624,28 @@ get_cadet (const struct GNUNET_PeerIdentity *target)
  * @return handle to cancel the operation
  */
 struct GSF_CadetRequest *
-GSF_cadet_query (const struct GNUNET_PeerIdentity *target,
-                 const struct GNUNET_HashCode *query,
-                 enum GNUNET_BLOCK_Type type,
-                 GSF_CadetReplyProcessor proc,
-                 void *proc_cls)
+GSF_cadet_query(const struct GNUNET_PeerIdentity *target,
+                const struct GNUNET_HashCode *query,
+                enum GNUNET_BLOCK_Type type,
+                GSF_CadetReplyProcessor proc,
+                void *proc_cls)
 {
   struct CadetHandle *mh;
   struct GSF_CadetRequest *sr;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Preparing to send query for %s via cadet to %s\n",
-              GNUNET_h2s (query),
-              GNUNET_i2s (target));
-  mh = get_cadet (target);
-  sr = GNUNET_new (struct GSF_CadetRequest);
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+             "Preparing to send query for %s via cadet to %s\n",
+             GNUNET_h2s(query),
+             GNUNET_i2s(target));
+  mh = get_cadet(target);
+  sr = GNUNET_new(struct GSF_CadetRequest);
   sr->mh = mh;
   sr->proc = proc;
   sr->proc_cls = proc_cls;
   sr->type = type;
   sr->query = *query;
-  GNUNET_CONTAINER_DLL_insert (mh->pending_head, mh->pending_tail, sr);
-  transmit_pending (mh);
+  GNUNET_CONTAINER_DLL_insert(mh->pending_head, mh->pending_tail, sr);
+  transmit_pending(mh);
   return sr;
 }
 
@@ -662,7 +657,7 @@ GSF_cadet_query (const struct GNUNET_PeerIdentity *target,
  * @param sr request to cancel
  */
 void
-GSF_cadet_query_cancel (struct GSF_CadetRequest *sr)
+GSF_cadet_query_cancel(struct GSF_CadetRequest *sr)
 {
   struct CadetHandle *mh = sr->mh;
   GSF_CadetReplyProcessor p;
@@ -670,26 +665,26 @@ GSF_cadet_query_cancel (struct GSF_CadetRequest *sr)
   p = sr->proc;
   sr->proc = NULL;
   if (NULL != p)
-  {
-    /* signal failure / cancellation to callback */
-    p (sr->proc_cls, GNUNET_BLOCK_TYPE_ANY, GNUNET_TIME_UNIT_ZERO_ABS, 0, NULL);
-  }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Cancelled query for %s via cadet to %s\n",
-              GNUNET_h2s (&sr->query),
-              GNUNET_i2s (&sr->mh->target));
+    {
+      /* signal failure / cancellation to callback */
+      p(sr->proc_cls, GNUNET_BLOCK_TYPE_ANY, GNUNET_TIME_UNIT_ZERO_ABS, 0, NULL);
+    }
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+             "Cancelled query for %s via cadet to %s\n",
+             GNUNET_h2s(&sr->query),
+             GNUNET_i2s(&sr->mh->target));
   if (GNUNET_YES == sr->was_transmitted)
-    GNUNET_assert (
+    GNUNET_assert(
       GNUNET_OK ==
-      GNUNET_CONTAINER_multihashmap_remove (mh->waiting_map, &sr->query, sr));
+      GNUNET_CONTAINER_multihashmap_remove(mh->waiting_map, &sr->query, sr));
   else
-    GNUNET_CONTAINER_DLL_remove (mh->pending_head, mh->pending_tail, sr);
-  GNUNET_free (sr);
-  if ((0 == GNUNET_CONTAINER_multihashmap_size (mh->waiting_map)) &&
+    GNUNET_CONTAINER_DLL_remove(mh->pending_head, mh->pending_tail, sr);
+  GNUNET_free(sr);
+  if ((0 == GNUNET_CONTAINER_multihashmap_size(mh->waiting_map)) &&
       (NULL == mh->pending_head))
-    mh->timeout_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
-                                                     &cadet_timeout,
-                                                     mh);
+    mh->timeout_task = GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_UNIT_SECONDS,
+                                                    &cadet_timeout,
+                                                    mh);
 }
 
 
@@ -702,27 +697,27 @@ GSF_cadet_query_cancel (struct GSF_CadetRequest *sr)
  * @return #GNUNET_YES (continue to iterate)
  */
 int
-GSF_cadet_release_clients (void *cls,
-                           const struct GNUNET_PeerIdentity *key,
-                           void *value)
+GSF_cadet_release_clients(void *cls,
+                          const struct GNUNET_PeerIdentity *key,
+                          void *value)
 {
   struct CadetHandle *mh = value;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Timeout on cadet channel to %s\n",
-              GNUNET_i2s (&mh->target));
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+             "Timeout on cadet channel to %s\n",
+             GNUNET_i2s(&mh->target));
   if (NULL != mh->channel)
-  {
-    struct GNUNET_CADET_Channel *channel = mh->channel;
+    {
+      struct GNUNET_CADET_Channel *channel = mh->channel;
 
-    mh->channel = NULL;
-    GNUNET_CADET_channel_destroy (channel);
-  }
+      mh->channel = NULL;
+      GNUNET_CADET_channel_destroy(channel);
+    }
   if (NULL != mh->reset_task)
-  {
-    GNUNET_SCHEDULER_cancel (mh->reset_task);
-    mh->reset_task = NULL;
-  }
+    {
+      GNUNET_SCHEDULER_cancel(mh->reset_task);
+      mh->reset_task = NULL;
+    }
   return GNUNET_YES;
 }
 

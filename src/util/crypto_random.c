@@ -17,7 +17,7 @@
 
      SPDX-License-Identifier: AGPL3.0-or-later
 
-*/
+ */
 
 /**
  * @file util/crypto_random.c
@@ -28,23 +28,23 @@
 #include "gnunet_crypto_lib.h"
 #include <gcrypt.h>
 
-#define LOG(kind, ...) GNUNET_log_from (kind, "util-crypto-random", __VA_ARGS__)
+#define LOG(kind, ...) GNUNET_log_from(kind, "util-crypto-random", __VA_ARGS__)
 
 #define LOG_STRERROR(kind, syscall) \
-  GNUNET_log_from_strerror (kind, "util-crypto-random", syscall)
+  GNUNET_log_from_strerror(kind, "util-crypto-random", syscall)
 
 
 /* TODO: ndurner, move this to plibc? */
 /* The code is derived from glibc, obviously */
-#if ! HAVE_RANDOM || ! HAVE_SRANDOM
+#if !HAVE_RANDOM || !HAVE_SRANDOM
 #ifdef RANDOM
 #undef RANDOM
 #endif
 #ifdef SRANDOM
 #undef SRANDOM
 #endif
-#define RANDOM() glibc_weak_rand32 ()
-#define SRANDOM(s) glibc_weak_srand32 (s)
+#define RANDOM() glibc_weak_rand32()
+#define SRANDOM(s) glibc_weak_srand32(s)
 #if defined(RAND_MAX)
 #undef RAND_MAX
 #endif
@@ -55,14 +55,14 @@ static int32_t glibc_weak_rand32_state = 1;
 
 
 void
-glibc_weak_srand32 (int32_t s)
+glibc_weak_srand32(int32_t s)
 {
   glibc_weak_rand32_state = s;
 }
 
 
 int32_t
-glibc_weak_rand32 ()
+glibc_weak_rand32()
 {
   int32_t val = glibc_weak_rand32_state;
 
@@ -78,9 +78,9 @@ glibc_weak_rand32 ()
  * @return number between 0 and 1.
  */
 static double
-get_weak_random ()
+get_weak_random()
 {
-  return ((double) random () / RAND_MAX);
+  return((double)random() / RAND_MAX);
 }
 
 
@@ -91,9 +91,9 @@ get_weak_random ()
  * @param seed the seed to use
  */
 void
-GNUNET_CRYPTO_seed_weak_random (int32_t seed)
+GNUNET_CRYPTO_seed_weak_random(int32_t seed)
 {
-  srandom (seed);
+  srandom(seed);
 }
 
 
@@ -106,12 +106,12 @@ GNUNET_CRYPTO_seed_weak_random (int32_t seed)
  * @param length buffer length
  */
 void
-GNUNET_CRYPTO_zero_keys (void *buffer, size_t length)
+GNUNET_CRYPTO_zero_keys(void *buffer, size_t length)
 {
 #if HAVE_MEMSET_S
-  memset_s (buffer, length, 0, length);
+  memset_s(buffer, length, 0, length);
 #elif HAVE_EXPLICIT_BZERO
-  explicit_bzero (buffer, length);
+  explicit_bzero(buffer, length);
 #else
   volatile unsigned char *p = buffer;
   while (length--)
@@ -129,37 +129,40 @@ GNUNET_CRYPTO_zero_keys (void *buffer, size_t length)
  * @param length buffer length
  */
 void
-GNUNET_CRYPTO_random_block (enum GNUNET_CRYPTO_Quality mode,
-                            void *buffer,
-                            size_t length)
+GNUNET_CRYPTO_random_block(enum GNUNET_CRYPTO_Quality mode,
+                           void *buffer,
+                           size_t length)
 {
 #ifdef gcry_fast_random_poll
   static unsigned int invokeCount;
 #endif
   switch (mode)
-  {
-  case GNUNET_CRYPTO_QUALITY_STRONG:
-    /* see http://lists.gnupg.org/pipermail/gcrypt-devel/2004-May/000613.html */
+    {
+    case GNUNET_CRYPTO_QUALITY_STRONG:
+      /* see http://lists.gnupg.org/pipermail/gcrypt-devel/2004-May/000613.html */
 #ifdef gcry_fast_random_poll
-    if ((invokeCount++ % 256) == 0)
-      gcry_fast_random_poll ();
+      if ((invokeCount++ % 256) == 0)
+        gcry_fast_random_poll();
 #endif
-    gcry_randomize (buffer, length, GCRY_STRONG_RANDOM);
-    return;
-  case GNUNET_CRYPTO_QUALITY_NONCE:
-    gcry_create_nonce (buffer, length);
-    return;
-  case GNUNET_CRYPTO_QUALITY_WEAK:
-    /* see http://lists.gnupg.org/pipermail/gcrypt-devel/2004-May/000613.html */
+      gcry_randomize(buffer, length, GCRY_STRONG_RANDOM);
+      return;
+
+    case GNUNET_CRYPTO_QUALITY_NONCE:
+      gcry_create_nonce(buffer, length);
+      return;
+
+    case GNUNET_CRYPTO_QUALITY_WEAK:
+      /* see http://lists.gnupg.org/pipermail/gcrypt-devel/2004-May/000613.html */
 #ifdef gcry_fast_random_poll
-    if ((invokeCount++ % 256) == 0)
-      gcry_fast_random_poll ();
+      if ((invokeCount++ % 256) == 0)
+        gcry_fast_random_poll();
 #endif
-    gcry_randomize (buffer, length, GCRY_WEAK_RANDOM);
-    return;
-  default:
-    GNUNET_assert (0);
-  }
+      gcry_randomize(buffer, length, GCRY_WEAK_RANDOM);
+      return;
+
+    default:
+      GNUNET_assert(0);
+    }
 }
 
 
@@ -171,7 +174,7 @@ GNUNET_CRYPTO_random_block (enum GNUNET_CRYPTO_Quality mode,
  * @return a random value in the interval [0,i[.
  */
 uint32_t
-GNUNET_CRYPTO_random_u32 (enum GNUNET_CRYPTO_Quality mode, uint32_t i)
+GNUNET_CRYPTO_random_u32(enum GNUNET_CRYPTO_Quality mode, uint32_t i)
 {
 #ifdef gcry_fast_random_poll
   static unsigned int invokeCount;
@@ -179,39 +182,44 @@ GNUNET_CRYPTO_random_u32 (enum GNUNET_CRYPTO_Quality mode, uint32_t i)
   uint32_t ret;
   uint32_t ul;
 
-  GNUNET_assert (i > 0);
+  GNUNET_assert(i > 0);
 
   switch (mode)
-  {
-  case GNUNET_CRYPTO_QUALITY_STRONG:
-    /* see http://lists.gnupg.org/pipermail/gcrypt-devel/2004-May/000613.html */
+    {
+    case GNUNET_CRYPTO_QUALITY_STRONG:
+      /* see http://lists.gnupg.org/pipermail/gcrypt-devel/2004-May/000613.html */
 #ifdef gcry_fast_random_poll
-    if ((invokeCount++ % 256) == 0)
-      gcry_fast_random_poll ();
+      if ((invokeCount++ % 256) == 0)
+        gcry_fast_random_poll();
 #endif
-    ul = UINT32_MAX - (UINT32_MAX % i);
-    do
-    {
-      gcry_randomize ((unsigned char *) &ret,
-                      sizeof (uint32_t),
-                      GCRY_STRONG_RANDOM);
-    } while (ret >= ul);
-    return ret % i;
-  case GNUNET_CRYPTO_QUALITY_NONCE:
-    ul = UINT32_MAX - (UINT32_MAX % i);
-    do
-    {
-      gcry_create_nonce (&ret, sizeof (ret));
-    } while (ret >= ul);
-    return ret % i;
-  case GNUNET_CRYPTO_QUALITY_WEAK:
-    ret = i * get_weak_random ();
-    if (ret >= i)
-      ret = i - 1;
-    return ret;
-  default:
-    GNUNET_assert (0);
-  }
+      ul = UINT32_MAX - (UINT32_MAX % i);
+      do
+        {
+          gcry_randomize((unsigned char *)&ret,
+                         sizeof(uint32_t),
+                         GCRY_STRONG_RANDOM);
+        }
+      while (ret >= ul);
+      return ret % i;
+
+    case GNUNET_CRYPTO_QUALITY_NONCE:
+      ul = UINT32_MAX - (UINT32_MAX % i);
+      do
+        {
+          gcry_create_nonce(&ret, sizeof(ret));
+        }
+      while (ret >= ul);
+      return ret % i;
+
+    case GNUNET_CRYPTO_QUALITY_WEAK:
+      ret = i * get_weak_random();
+      if (ret >= i)
+        ret = i - 1;
+      return ret;
+
+    default:
+      GNUNET_assert(0);
+    }
   return 0;
 }
 
@@ -225,24 +233,24 @@ GNUNET_CRYPTO_random_u32 (enum GNUNET_CRYPTO_Quality mode, uint32_t i)
  * @return the permutation array (allocated from heap)
  */
 unsigned int *
-GNUNET_CRYPTO_random_permute (enum GNUNET_CRYPTO_Quality mode, unsigned int n)
+GNUNET_CRYPTO_random_permute(enum GNUNET_CRYPTO_Quality mode, unsigned int n)
 {
   unsigned int *ret;
   unsigned int i;
   unsigned int tmp;
   uint32_t x;
 
-  GNUNET_assert (n > 0);
-  ret = GNUNET_malloc (n * sizeof (unsigned int));
+  GNUNET_assert(n > 0);
+  ret = GNUNET_malloc(n * sizeof(unsigned int));
   for (i = 0; i < n; i++)
     ret[i] = i;
   for (i = n - 1; i > 0; i--)
-  {
-    x = GNUNET_CRYPTO_random_u32 (mode, i + 1);
-    tmp = ret[x];
-    ret[x] = ret[i];
-    ret[i] = tmp;
-  }
+    {
+      x = GNUNET_CRYPTO_random_u32(mode, i + 1);
+      tmp = ret[x];
+      ret[x] = ret[i];
+      ret[i] = tmp;
+    }
   return ret;
 }
 
@@ -255,39 +263,44 @@ GNUNET_CRYPTO_random_permute (enum GNUNET_CRYPTO_Quality mode, unsigned int n)
  * @return random 64-bit number
  */
 uint64_t
-GNUNET_CRYPTO_random_u64 (enum GNUNET_CRYPTO_Quality mode, uint64_t max)
+GNUNET_CRYPTO_random_u64(enum GNUNET_CRYPTO_Quality mode, uint64_t max)
 {
   uint64_t ret;
   uint64_t ul;
 
-  GNUNET_assert (max > 0);
+  GNUNET_assert(max > 0);
   switch (mode)
-  {
-  case GNUNET_CRYPTO_QUALITY_STRONG:
-    ul = UINT64_MAX - (UINT64_MAX % max);
-    do
     {
-      gcry_randomize ((unsigned char *) &ret,
-                      sizeof (uint64_t),
-                      GCRY_STRONG_RANDOM);
-    } while (ret >= ul);
-    return ret % max;
-  case GNUNET_CRYPTO_QUALITY_NONCE:
-    ul = UINT64_MAX - (UINT64_MAX % max);
-    do
-    {
-      gcry_create_nonce (&ret, sizeof (ret));
-    } while (ret >= ul);
+    case GNUNET_CRYPTO_QUALITY_STRONG:
+      ul = UINT64_MAX - (UINT64_MAX % max);
+      do
+        {
+          gcry_randomize((unsigned char *)&ret,
+                         sizeof(uint64_t),
+                         GCRY_STRONG_RANDOM);
+        }
+      while (ret >= ul);
+      return ret % max;
 
-    return ret % max;
-  case GNUNET_CRYPTO_QUALITY_WEAK:
-    ret = max * get_weak_random ();
-    if (ret >= max)
-      ret = max - 1;
-    return ret;
-  default:
-    GNUNET_assert (0);
-  }
+    case GNUNET_CRYPTO_QUALITY_NONCE:
+      ul = UINT64_MAX - (UINT64_MAX % max);
+      do
+        {
+          gcry_create_nonce(&ret, sizeof(ret));
+        }
+      while (ret >= ul);
+
+      return ret % max;
+
+    case GNUNET_CRYPTO_QUALITY_WEAK:
+      ret = max * get_weak_random();
+      if (ret >= max)
+        ret = max - 1;
+      return ret;
+
+    default:
+      GNUNET_assert(0);
+    }
   return 0;
 }
 
@@ -297,9 +310,9 @@ GNUNET_CRYPTO_random_u64 (enum GNUNET_CRYPTO_Quality mode, uint64_t max)
  * strategy of libgcrypt implementation.
  */
 static void *
-w_malloc (size_t n)
+w_malloc(size_t n)
 {
-  return calloc (n, 1);
+  return calloc(n, 1);
 }
 
 
@@ -308,9 +321,9 @@ w_malloc (size_t n)
  * strategy of libgcrypt implementation.
  */
 static int
-w_check (const void *p)
+w_check(const void *p)
 {
-  (void) p;
+  (void)p;
   return 0; /* not secure memory */
 }
 
@@ -318,49 +331,49 @@ w_check (const void *p)
 /**
  * Initialize libgcrypt.
  */
-void __attribute__ ((constructor)) GNUNET_CRYPTO_random_init ()
+void __attribute__ ((constructor)) GNUNET_CRYPTO_random_init()
 {
   gcry_error_t rc;
 
-  if (! gcry_check_version (NEED_LIBGCRYPT_VERSION))
-  {
-    fprintf (
-      stderr,
-      _ ("libgcrypt has not the expected version (version %s is required).\n"),
-      NEED_LIBGCRYPT_VERSION);
-    GNUNET_assert (0);
-  }
+  if (!gcry_check_version(NEED_LIBGCRYPT_VERSION))
+    {
+      fprintf(
+        stderr,
+        _("libgcrypt has not the expected version (version %s is required).\n"),
+        NEED_LIBGCRYPT_VERSION);
+      GNUNET_assert(0);
+    }
   /* set custom allocators */
-  gcry_set_allocation_handler (&w_malloc, &w_malloc, &w_check, &realloc, &free);
+  gcry_set_allocation_handler(&w_malloc, &w_malloc, &w_check, &realloc, &free);
   /* Disable use of secure memory */
-  if ((rc = gcry_control (GCRYCTL_DISABLE_SECMEM, 0)))
-    fprintf (stderr,
-             "Failed to set libgcrypt option %s: %s\n",
-             "DISABLE_SECMEM",
-             gcry_strerror (rc));
+  if ((rc = gcry_control(GCRYCTL_DISABLE_SECMEM, 0)))
+    fprintf(stderr,
+            "Failed to set libgcrypt option %s: %s\n",
+            "DISABLE_SECMEM",
+            gcry_strerror(rc));
   /* Otherwise gnunet-ecc takes forever to complete, besides
      we are fine with "just" using GCRY_STRONG_RANDOM */
-  if ((rc = gcry_control (GCRYCTL_ENABLE_QUICK_RANDOM, 0)))
-    fprintf (stderr,
-             "Failed to set libgcrypt option %s: %s\n",
-             "ENABLE_QUICK_RANDOM",
-             gcry_strerror (rc));
-  gcry_control (GCRYCTL_INITIALIZATION_FINISHED, 0);
-  gcry_fast_random_poll ();
-  GNUNET_CRYPTO_seed_weak_random (
-    time (NULL) ^
-    GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_NONCE, UINT32_MAX));
+  if ((rc = gcry_control(GCRYCTL_ENABLE_QUICK_RANDOM, 0)))
+    fprintf(stderr,
+            "Failed to set libgcrypt option %s: %s\n",
+            "ENABLE_QUICK_RANDOM",
+            gcry_strerror(rc));
+  gcry_control(GCRYCTL_INITIALIZATION_FINISHED, 0);
+  gcry_fast_random_poll();
+  GNUNET_CRYPTO_seed_weak_random(
+    time(NULL) ^
+    GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_NONCE, UINT32_MAX));
 }
 
 
 /**
  * Nicely shut down libgcrypt.
  */
-void __attribute__ ((destructor)) GNUNET_CRYPTO_random_fini ()
+void __attribute__ ((destructor)) GNUNET_CRYPTO_random_fini()
 {
-  gcry_set_progress_handler (NULL, NULL);
+  gcry_set_progress_handler(NULL, NULL);
 #ifdef GCRYCTL_CLOSE_RANDOM_DEVICE
-  (void) gcry_control (GCRYCTL_CLOSE_RANDOM_DEVICE, 0);
+  (void)gcry_control(GCRYCTL_CLOSE_RANDOM_DEVICE, 0);
 #endif
 }
 

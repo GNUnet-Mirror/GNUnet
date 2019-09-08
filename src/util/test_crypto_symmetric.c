@@ -11,13 +11,13 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
 
-*/
+ */
 /**
  * @author Christian Grothoff
  * @file util/test_crypto_symmetric.c
@@ -30,46 +30,46 @@
 #define INITVALUE "InitializationVectorValueinitializationvectorvalue"
 
 static int
-testSymcipher ()
+testSymcipher()
 {
   struct GNUNET_CRYPTO_SymmetricSessionKey key;
   char result[100];
   int size;
   char res[100];
 
-  GNUNET_CRYPTO_symmetric_create_session_key (&key);
+  GNUNET_CRYPTO_symmetric_create_session_key(&key);
   size =
-      GNUNET_CRYPTO_symmetric_encrypt (TESTSTRING, strlen (TESTSTRING) + 1, &key,
-                                 (const struct
-                                  GNUNET_CRYPTO_SymmetricInitializationVector *)
-                                 INITVALUE, result);
+    GNUNET_CRYPTO_symmetric_encrypt(TESTSTRING, strlen(TESTSTRING) + 1, &key,
+                                    (const struct
+                                     GNUNET_CRYPTO_SymmetricInitializationVector *)
+                                    INITVALUE, result);
   if (size == -1)
-  {
-    printf ("symciphertest failed: encryptBlock returned %d\n", size);
-    return 1;
-  }
+    {
+      printf("symciphertest failed: encryptBlock returned %d\n", size);
+      return 1;
+    }
   size =
-      GNUNET_CRYPTO_symmetric_decrypt (result, size, &key,
-                                 (const struct
-                                  GNUNET_CRYPTO_SymmetricInitializationVector *)
-                                 INITVALUE, res);
-  if (strlen (TESTSTRING) + 1 != size)
-  {
-    printf ("symciphertest failed: decryptBlock returned %d\n", size);
-    return 1;
-  }
-  if (0 != strcmp (res, TESTSTRING))
-  {
-    printf ("symciphertest failed: %s != %s\n", res, TESTSTRING);
-    return 1;
-  }
+    GNUNET_CRYPTO_symmetric_decrypt(result, size, &key,
+                                    (const struct
+                                     GNUNET_CRYPTO_SymmetricInitializationVector *)
+                                    INITVALUE, res);
+  if (strlen(TESTSTRING) + 1 != size)
+    {
+      printf("symciphertest failed: decryptBlock returned %d\n", size);
+      return 1;
+    }
+  if (0 != strcmp(res, TESTSTRING))
+    {
+      printf("symciphertest failed: %s != %s\n", res, TESTSTRING);
+      return 1;
+    }
   else
     return 0;
 }
 
 
 static int
-verifyCrypto ()
+verifyCrypto()
 {
   struct GNUNET_CRYPTO_SymmetricSessionKey key;
   char result[GNUNET_CRYPTO_AES_KEY_LENGTH];
@@ -103,68 +103,68 @@ verifyCrypto ()
   res = NULL;
   ret = 0;
 
-  GNUNET_memcpy (key.aes_key, raw_key_aes, GNUNET_CRYPTO_AES_KEY_LENGTH);
-  GNUNET_memcpy (key.twofish_key, raw_key_twofish, GNUNET_CRYPTO_AES_KEY_LENGTH);
+  GNUNET_memcpy(key.aes_key, raw_key_aes, GNUNET_CRYPTO_AES_KEY_LENGTH);
+  GNUNET_memcpy(key.twofish_key, raw_key_twofish, GNUNET_CRYPTO_AES_KEY_LENGTH);
   if (GNUNET_CRYPTO_AES_KEY_LENGTH !=
-      GNUNET_CRYPTO_symmetric_encrypt (plain, GNUNET_CRYPTO_AES_KEY_LENGTH, &key,
-                                       (const struct
-                                        GNUNET_CRYPTO_SymmetricInitializationVector *)
-                                       "testtesttesttesttesttesttesttest",
-                                       result))
-  {
-    printf ("Wrong return value from encrypt block.\n");
-    ret = 1;
-    goto error;
-  }
+      GNUNET_CRYPTO_symmetric_encrypt(plain, GNUNET_CRYPTO_AES_KEY_LENGTH, &key,
+                                      (const struct
+                                       GNUNET_CRYPTO_SymmetricInitializationVector *)
+                                      "testtesttesttesttesttesttesttest",
+                                      result))
+    {
+      printf("Wrong return value from encrypt block.\n");
+      ret = 1;
+      goto error;
+    }
 
-  if (0 != memcmp (encrresult, result, GNUNET_CRYPTO_AES_KEY_LENGTH))
-  {
-    int i;
-    printf ("Encrypted result wrong.\n");
-    for (i=0;i<GNUNET_CRYPTO_AES_KEY_LENGTH;i++)
-      printf ("%u, ", (uint8_t) result[i]);
-    ret = 1;
-    goto error;
-  }
+  if (0 != memcmp(encrresult, result, GNUNET_CRYPTO_AES_KEY_LENGTH))
+    {
+      int i;
+      printf("Encrypted result wrong.\n");
+      for (i = 0; i < GNUNET_CRYPTO_AES_KEY_LENGTH; i++)
+        printf("%u, ", (uint8_t)result[i]);
+      ret = 1;
+      goto error;
+    }
 
-  res = GNUNET_malloc (GNUNET_CRYPTO_AES_KEY_LENGTH);
+  res = GNUNET_malloc(GNUNET_CRYPTO_AES_KEY_LENGTH);
   if (GNUNET_CRYPTO_AES_KEY_LENGTH !=
-      GNUNET_CRYPTO_symmetric_decrypt (result, GNUNET_CRYPTO_AES_KEY_LENGTH, &key,
-                                 (const struct
-                                  GNUNET_CRYPTO_SymmetricInitializationVector *)
-                                 "testtesttesttesttesttesttesttest", res))
-  {
-    printf ("Wrong return value from decrypt block.\n");
-    ret = 1;
-    goto error;
-  }
-  if (0 != memcmp (res, plain, GNUNET_CRYPTO_AES_KEY_LENGTH))
-  {
-    printf ("Decrypted result does not match input.\n");
-    ret = 1;
-  }
+      GNUNET_CRYPTO_symmetric_decrypt(result, GNUNET_CRYPTO_AES_KEY_LENGTH, &key,
+                                      (const struct
+                                       GNUNET_CRYPTO_SymmetricInitializationVector *)
+                                      "testtesttesttesttesttesttesttest", res))
+    {
+      printf("Wrong return value from decrypt block.\n");
+      ret = 1;
+      goto error;
+    }
+  if (0 != memcmp(res, plain, GNUNET_CRYPTO_AES_KEY_LENGTH))
+    {
+      printf("Decrypted result does not match input.\n");
+      ret = 1;
+    }
 error:
-  GNUNET_free_non_null (res);
+  GNUNET_free_non_null(res);
   return ret;
 }
 
 
 int
-main (int argc, char *argv[])
+main(int argc, char *argv[])
 {
   int failureCount = 0;
 
-  GNUNET_log_setup ("test-crypto-aes", "WARNING", NULL);
-  GNUNET_assert (strlen (INITVALUE) >
-                 sizeof (struct GNUNET_CRYPTO_SymmetricInitializationVector));
-  failureCount += testSymcipher ();
-  failureCount += verifyCrypto ();
+  GNUNET_log_setup("test-crypto-aes", "WARNING", NULL);
+  GNUNET_assert(strlen(INITVALUE) >
+                sizeof(struct GNUNET_CRYPTO_SymmetricInitializationVector));
+  failureCount += testSymcipher();
+  failureCount += verifyCrypto();
 
   if (failureCount != 0)
-  {
-    printf ("%d TESTS FAILED!\n", failureCount);
-    return -1;
-  }
+    {
+      printf("%d TESTS FAILED!\n", failureCount);
+      return -1;
+    }
   return 0;
 }
 

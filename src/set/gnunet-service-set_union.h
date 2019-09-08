@@ -12,12 +12,12 @@
       WITHOUT ANY WARRANTY; without even the implied warranty of
       MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
       Affero General Public License for more details.
-     
+
       You should have received a copy of the GNU Affero General Public License
       along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 /**
  * @file set/gnunet-service-set_union.h
  * @brief two-peer set operations
@@ -38,8 +38,8 @@
  * @param msg the message
  */
 int
-check_union_p2p_strata_estimator (void *cls,
-                                  const struct StrataEstimatorMessage *msg);
+check_union_p2p_strata_estimator(void *cls,
+                                 const struct StrataEstimatorMessage *msg);
 
 
 /**
@@ -49,8 +49,8 @@ check_union_p2p_strata_estimator (void *cls,
  * @param msg the message
  */
 void
-handle_union_p2p_strata_estimator (void *cls,
-                                   const struct StrataEstimatorMessage *msg);
+handle_union_p2p_strata_estimator(void *cls,
+                                  const struct StrataEstimatorMessage *msg);
 
 
 /**
@@ -64,8 +64,8 @@ handle_union_p2p_strata_estimator (void *cls,
  * @return #GNUNET_OK if @a msg is well-formed
  */
 int
-check_union_p2p_ibf (void *cls,
-                     const struct IBFMessage *msg);
+check_union_p2p_ibf(void *cls,
+                    const struct IBFMessage *msg);
 
 
 /**
@@ -78,8 +78,8 @@ check_union_p2p_ibf (void *cls,
  * @param msg the header of the message
  */
 void
-handle_union_p2p_ibf (void *cls,
-                      const struct IBFMessage *msg);
+handle_union_p2p_ibf(void *cls,
+                     const struct IBFMessage *msg);
 
 
 /**
@@ -89,8 +89,8 @@ handle_union_p2p_ibf (void *cls,
  * @param emsg the message
  */
 int
-check_union_p2p_elements (void *cls,
-                          const struct GNUNET_SET_ElementMessage *emsg);
+check_union_p2p_elements(void *cls,
+                         const struct GNUNET_SET_ElementMessage *emsg);
 
 
 /**
@@ -102,8 +102,8 @@ check_union_p2p_elements (void *cls,
  * @param emsg the message
  */
 void
-handle_union_p2p_elements (void *cls,
-                           const struct GNUNET_SET_ElementMessage *emsg);
+handle_union_p2p_elements(void *cls,
+                          const struct GNUNET_SET_ElementMessage *emsg);
 
 
 /**
@@ -113,8 +113,8 @@ handle_union_p2p_elements (void *cls,
  * @param emsg the message
  */
 int
-check_union_p2p_full_element (void *cls,
-                              const struct GNUNET_SET_ElementMessage *emsg);
+check_union_p2p_full_element(void *cls,
+                             const struct GNUNET_SET_ElementMessage *emsg);
 
 
 /**
@@ -124,8 +124,8 @@ check_union_p2p_full_element (void *cls,
  * @param emsg the message
  */
 void
-handle_union_p2p_full_element (void *cls,
-                               const struct GNUNET_SET_ElementMessage *emsg);
+handle_union_p2p_full_element(void *cls,
+                              const struct GNUNET_SET_ElementMessage *emsg);
 
 
 /**
@@ -136,8 +136,8 @@ handle_union_p2p_full_element (void *cls,
  * @param msg the message
  */
 int
-check_union_p2p_inquiry (void *cls,
-                         const struct InquiryMessage *msg);
+check_union_p2p_inquiry(void *cls,
+                        const struct InquiryMessage *msg);
 
 
 /**
@@ -148,8 +148,8 @@ check_union_p2p_inquiry (void *cls,
  * @param msg the message
  */
 void
-handle_union_p2p_inquiry (void *cls,
-                          const struct InquiryMessage *msg);
+handle_union_p2p_inquiry(void *cls,
+                         const struct InquiryMessage *msg);
 
 
 
@@ -160,8 +160,8 @@ handle_union_p2p_inquiry (void *cls,
  * @param mh the demand message
  */
 void
-handle_union_p2p_request_full (void *cls,
-                               const struct GNUNET_MessageHeader *mh);
+handle_union_p2p_request_full(void *cls,
+                              const struct GNUNET_MessageHeader *mh);
 
 
 
@@ -172,8 +172,8 @@ handle_union_p2p_request_full (void *cls,
  * @param mh the demand message
  */
 void
-handle_union_p2p_full_done (void *cls,
-                            const struct GNUNET_MessageHeader *mh);
+handle_union_p2p_full_done(void *cls,
+                           const struct GNUNET_MessageHeader *mh);
 
 
 /**
@@ -185,8 +185,8 @@ handle_union_p2p_full_done (void *cls,
  * @return #GNUNET_OK if @a mh is well-formed
  */
 int
-check_union_p2p_demand (void *cls,
-                        const struct GNUNET_MessageHeader *mh);
+check_union_p2p_demand(void *cls,
+                       const struct GNUNET_MessageHeader *mh);
 
 
 /**
@@ -197,8 +197,8 @@ check_union_p2p_demand (void *cls,
  * @param mh the demand message
  */
 void
-handle_union_p2p_demand (void *cls,
-                         const struct GNUNET_MessageHeader *mh);
+handle_union_p2p_demand(void *cls,
+                        const struct GNUNET_MessageHeader *mh);
 
 
 /**
@@ -209,8 +209,8 @@ handle_union_p2p_demand (void *cls,
  * @return #GNUNET_OK if @a mh is well-formed
  */
 int
-check_union_p2p_offer (void *cls,
-                       const struct GNUNET_MessageHeader *mh);
+check_union_p2p_offer(void *cls,
+                      const struct GNUNET_MessageHeader *mh);
 
 
 /**
@@ -221,8 +221,8 @@ check_union_p2p_offer (void *cls,
  * @param mh the message
  */
 void
-handle_union_p2p_offer (void *cls,
-                        const struct GNUNET_MessageHeader *mh);
+handle_union_p2p_offer(void *cls,
+                       const struct GNUNET_MessageHeader *mh);
 
 
 /**
@@ -232,8 +232,8 @@ handle_union_p2p_offer (void *cls,
  * @param mh the message
  */
 void
-handle_union_p2p_done (void *cls,
-                       const struct GNUNET_MessageHeader *mh);
+handle_union_p2p_done(void *cls,
+                      const struct GNUNET_MessageHeader *mh);
 
 /**
  * Handle an over message from a remote peer
@@ -242,8 +242,8 @@ handle_union_p2p_done (void *cls,
  * @param mh the message
  */
 void
-handle_union_p2p_over (void *cls,
-                       const struct GNUNET_MessageHeader *mh);
+handle_union_p2p_over(void *cls,
+                      const struct GNUNET_MessageHeader *mh);
 
 
 #endif

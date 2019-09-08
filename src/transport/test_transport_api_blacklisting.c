@@ -11,12 +11,12 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 
 /**
  * @file transport/test_transport_api_blacklisting.c
@@ -28,7 +28,7 @@
 #include "gnunet_transport_service.h"
 #include "transport-testing.h"
 
-#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30)
+#define TIMEOUT GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 30)
 
 static struct GNUNET_TRANSPORT_TESTING_ConnectCheckContext *ccc;
 
@@ -46,135 +46,135 @@ static struct GNUNET_SCHEDULER_Task *shutdown_task;
 
 
 static void
-end (void *cls)
+end(void *cls)
 {
   shutdown_task = NULL;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Stopping\n");
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+             "Stopping\n");
   if ((GNUNET_YES == blacklist_request_p1) &&
       (GNUNET_YES == blacklist_request_p2) &&
-      (GNUNET_NO == connected) )
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Peers were never connected, success\n");
-    ccc->global_ret = GNUNET_OK;
-  }
+      (GNUNET_NO == connected))
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+                 "Peers were never connected, success\n");
+      ccc->global_ret = GNUNET_OK;
+    }
   else
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Peers were not connected, fail\n");
-    ccc->global_ret = GNUNET_SYSERR;
-  }
-  GNUNET_SCHEDULER_shutdown ();
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
+                 "Peers were not connected, fail\n");
+      ccc->global_ret = GNUNET_SYSERR;
+    }
+  GNUNET_SCHEDULER_shutdown();
 }
 
 
 static void
-custom_shutdown (void *cls)
+custom_shutdown(void *cls)
 {
   if (NULL != shutdown_task)
-  {
-    GNUNET_SCHEDULER_cancel (shutdown_task);
-    shutdown_task = NULL;
-  }
+    {
+      GNUNET_SCHEDULER_cancel(shutdown_task);
+      shutdown_task = NULL;
+    }
   if (NULL != blacklist_p1)
-  {
-    GNUNET_TRANSPORT_blacklist_cancel (blacklist_p1);
-    blacklist_p1 = NULL;
-  }
+    {
+      GNUNET_TRANSPORT_blacklist_cancel(blacklist_p1);
+      blacklist_p1 = NULL;
+    }
   if (NULL != blacklist_p2)
-  {
-    GNUNET_TRANSPORT_blacklist_cancel (blacklist_p2);
-    blacklist_p2 = NULL;
-  }
+    {
+      GNUNET_TRANSPORT_blacklist_cancel(blacklist_p2);
+      blacklist_p2 = NULL;
+    }
 }
 
 
 static void
-notify_receive (void *cls,
-                struct GNUNET_TRANSPORT_TESTING_PeerContext *receiver,
-                const struct GNUNET_PeerIdentity *sender,
-                const struct GNUNET_TRANSPORT_TESTING_TestMessage *message)
+notify_receive(void *cls,
+               struct GNUNET_TRANSPORT_TESTING_PeerContext *receiver,
+               const struct GNUNET_PeerIdentity *sender,
+               const struct GNUNET_TRANSPORT_TESTING_TestMessage *message)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-              "Unexpectedly even received the message despite blacklist\n");
+  GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
+             "Unexpectedly even received the message despite blacklist\n");
   connected = GNUNET_YES;
-  GNUNET_SCHEDULER_cancel (shutdown_task);
-  end (NULL);
+  GNUNET_SCHEDULER_cancel(shutdown_task);
+  end(NULL);
 }
 
 
 static void
-notify_connect (void *cls,
-                struct GNUNET_TRANSPORT_TESTING_PeerContext *me,
-                const struct GNUNET_PeerIdentity *other)
+notify_connect(void *cls,
+               struct GNUNET_TRANSPORT_TESTING_PeerContext *me,
+               const struct GNUNET_PeerIdentity *other)
 {
-  GNUNET_TRANSPORT_TESTING_log_connect (cls,
-                                        me,
-                                        other);
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-              "Peers connected despite blacklist!\n");
+  GNUNET_TRANSPORT_TESTING_log_connect(cls,
+                                       me,
+                                       other);
+  GNUNET_log(GNUNET_ERROR_TYPE_WARNING,
+             "Peers connected despite blacklist!\n");
   connected = GNUNET_YES; /* this test now failed */
-  GNUNET_SCHEDULER_cancel (shutdown_task);
-  end (NULL);
+  GNUNET_SCHEDULER_cancel(shutdown_task);
+  end(NULL);
 }
 
 
 static int
-blacklist_cb (void *cls,
-              const struct GNUNET_PeerIdentity *pid)
+blacklist_cb(void *cls,
+             const struct GNUNET_PeerIdentity *pid)
 {
   struct GNUNET_TRANSPORT_TESTING_PeerContext *p = cls;
   int res = GNUNET_SYSERR;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Peer %u: Blacklist request for peer `%s'\n",
-              p->no,
-              GNUNET_i2s (pid));
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+             "Peer %u: Blacklist request for peer `%s'\n",
+             p->no,
+             GNUNET_i2s(pid));
 
   if (p == ccc->p[0])
-  {
-    blacklist_request_p1 = GNUNET_YES;
-    res = GNUNET_OK;
-  }
+    {
+      blacklist_request_p1 = GNUNET_YES;
+      res = GNUNET_OK;
+    }
   if (p == ccc->p[1])
-  {
-    blacklist_request_p2 = GNUNET_YES;
-    res = GNUNET_SYSERR;
-  }
+    {
+      blacklist_request_p2 = GNUNET_YES;
+      res = GNUNET_SYSERR;
+    }
 
-  if ( (GNUNET_YES == blacklist_request_p2) &&
-       (GNUNET_YES == blacklist_request_p1) &&
-       (NULL == shutdown_task) )
-  {
-    shutdown_task
-      = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 3),
-                                      &end,
-                                      NULL);
-  }
+  if ((GNUNET_YES == blacklist_request_p2) &&
+      (GNUNET_YES == blacklist_request_p1) &&
+      (NULL == shutdown_task))
+    {
+      shutdown_task
+        = GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 3),
+                                       &end,
+                                       NULL);
+    }
   return res;
 }
 
 
 static void
-start_blacklist (void *cls)
+start_blacklist(void *cls)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Starting blacklists\n");
-  blacklist_p1 = GNUNET_TRANSPORT_blacklist (ccc->p[0]->cfg,
-                                             &blacklist_cb,
-                                             ccc->p[0]);
-  GNUNET_assert (NULL != blacklist_p1);
-  blacklist_p2 = GNUNET_TRANSPORT_blacklist (ccc->p[1]->cfg,
-                                             &blacklist_cb,
-                                             ccc->p[1]);
-  GNUNET_assert (NULL != blacklist_p2);
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+             "Starting blacklists\n");
+  blacklist_p1 = GNUNET_TRANSPORT_blacklist(ccc->p[0]->cfg,
+                                            &blacklist_cb,
+                                            ccc->p[0]);
+  GNUNET_assert(NULL != blacklist_p1);
+  blacklist_p2 = GNUNET_TRANSPORT_blacklist(ccc->p[1]->cfg,
+                                            &blacklist_cb,
+                                            ccc->p[1]);
+  GNUNET_assert(NULL != blacklist_p2);
 }
 
 
 int
-main (int argc,
-      char *argv[])
+main(int argc,
+     char *argv[])
 {
   struct GNUNET_TRANSPORT_TESTING_SendClosure sc = {
     .num_messages = 1
@@ -194,9 +194,9 @@ main (int argc,
 
   ccc = &my_ccc;
   if (GNUNET_OK !=
-      GNUNET_TRANSPORT_TESTING_main (2,
-                                     &GNUNET_TRANSPORT_TESTING_connect_check,
-                                     ccc))
+      GNUNET_TRANSPORT_TESTING_main(2,
+                                    &GNUNET_TRANSPORT_TESTING_connect_check,
+                                    ccc))
     return 1;
   return 0;
 }

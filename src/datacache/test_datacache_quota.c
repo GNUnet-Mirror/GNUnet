@@ -16,7 +16,7 @@
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 /*
  * @file datacache/test_datacache_quota.c
  * @brief Test for the quota code of the datacache implementations.
@@ -27,7 +27,7 @@
 #include "gnunet_datacache_lib.h"
 #include "gnunet_testing_lib.h"
 
-#define ASSERT(x) do { if (! (x)) { printf("Error at %s:%d\n", __FILE__, __LINE__); goto FAILURE;} } while (0)
+#define ASSERT(x) do { if (!(x)) { printf("Error at %s:%d\n", __FILE__, __LINE__); goto FAILURE; } } while (0)
 
 static int ok;
 
@@ -43,10 +43,10 @@ static const char *plugin_name;
  * some of the data from the last iteration is still there.
  */
 static void
-run (void *cls,
-     char *const *args,
-     const char *cfgfile,
-     const struct GNUNET_CONFIGURATION_Handle *cfg)
+run(void *cls,
+    char *const *args,
+    const char *cfgfile,
+    const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   struct GNUNET_DATACACHE_Handle *h;
   struct GNUNET_HashCode k;
@@ -54,74 +54,74 @@ run (void *cls,
   char buf[3200];
   struct GNUNET_TIME_Absolute exp;
 
-  (void) cls;
-  (void) args;
-  (void) cfgfile;
+  (void)cls;
+  (void)args;
+  (void)cfgfile;
   ok = 0;
-  h = GNUNET_DATACACHE_create (cfg,
-			       "testcache");
+  h = GNUNET_DATACACHE_create(cfg,
+                              "testcache");
 
   if (h == NULL)
-  {
-    fprintf (stderr,
-             "%s",
-             "Failed to initialize datacache.  Database likely not setup, skipping test.\n");
-    return;
-  }
-  exp = GNUNET_TIME_relative_to_absolute (GNUNET_TIME_UNIT_HOURS);
-  memset (buf, 1, sizeof (buf));
-  memset (&k, 0, sizeof (struct GNUNET_HashCode));
-  for (unsigned int i = 0; i < 10; i++)
-  {
-    fprintf (stderr,
-             "%s",
-             ".");
-    GNUNET_CRYPTO_hash (&k,
-                        sizeof (struct GNUNET_HashCode),
-                        &n);
-    for (unsigned int j = i; j < sizeof (buf); j += 10)
     {
-      exp.abs_value_us++;
-      buf[j] = i;
-      ASSERT (GNUNET_OK ==
-              GNUNET_DATACACHE_put (h,
-                                    &k,
-                                    GNUNET_YES,
-                                    j,
-                                    buf,
-                                    1 + i,
-                                    exp,
-                                    0,
-                                    NULL));
-      ASSERT (0 < GNUNET_DATACACHE_get (h, &k, 1 + i, NULL, NULL));
+      fprintf(stderr,
+              "%s",
+              "Failed to initialize datacache.  Database likely not setup, skipping test.\n");
+      return;
     }
-    k = n;
-  }
-  fprintf (stderr, "%s",  "\n");
-  memset (&k, 0, sizeof (struct GNUNET_HashCode));
+  exp = GNUNET_TIME_relative_to_absolute(GNUNET_TIME_UNIT_HOURS);
+  memset(buf, 1, sizeof(buf));
+  memset(&k, 0, sizeof(struct GNUNET_HashCode));
   for (unsigned int i = 0; i < 10; i++)
-  {
-    fprintf (stderr, "%s",  ".");
-    GNUNET_CRYPTO_hash (&k, sizeof (struct GNUNET_HashCode), &n);
-    if (i < 2)
-      ASSERT (0 == GNUNET_DATACACHE_get (h, &k, 1 + i, NULL, NULL));
-    if (i == 9)
-      ASSERT (0 < GNUNET_DATACACHE_get (h, &k, 1 + i, NULL, NULL));
-    k = n;
-  }
-  fprintf (stderr, "%s",  "\n");
-  GNUNET_DATACACHE_destroy (h);
+    {
+      fprintf(stderr,
+              "%s",
+              ".");
+      GNUNET_CRYPTO_hash(&k,
+                         sizeof(struct GNUNET_HashCode),
+                         &n);
+      for (unsigned int j = i; j < sizeof(buf); j += 10)
+        {
+          exp.abs_value_us++;
+          buf[j] = i;
+          ASSERT(GNUNET_OK ==
+                 GNUNET_DATACACHE_put(h,
+                                      &k,
+                                      GNUNET_YES,
+                                      j,
+                                      buf,
+                                      1 + i,
+                                      exp,
+                                      0,
+                                      NULL));
+          ASSERT(0 < GNUNET_DATACACHE_get(h, &k, 1 + i, NULL, NULL));
+        }
+      k = n;
+    }
+  fprintf(stderr, "%s", "\n");
+  memset(&k, 0, sizeof(struct GNUNET_HashCode));
+  for (unsigned int i = 0; i < 10; i++)
+    {
+      fprintf(stderr, "%s", ".");
+      GNUNET_CRYPTO_hash(&k, sizeof(struct GNUNET_HashCode), &n);
+      if (i < 2)
+        ASSERT(0 == GNUNET_DATACACHE_get(h, &k, 1 + i, NULL, NULL));
+      if (i == 9)
+        ASSERT(0 < GNUNET_DATACACHE_get(h, &k, 1 + i, NULL, NULL));
+      k = n;
+    }
+  fprintf(stderr, "%s", "\n");
+  GNUNET_DATACACHE_destroy(h);
   return;
 FAILURE:
   if (h != NULL)
-    GNUNET_DATACACHE_destroy (h);
+    GNUNET_DATACACHE_destroy(h);
   ok = GNUNET_SYSERR;
 }
 
 
 int
-main (int argc,
-      char *argv[])
+main(int argc,
+     char *argv[])
 {
   char cfg_name[PATH_MAX];
   char *const xargv[] = {
@@ -134,27 +134,27 @@ main (int argc,
     GNUNET_GETOPT_OPTION_END
   };
 
-  (void) argc;
-  GNUNET_log_setup ("test-datacache-quota",
-                    "WARNING",
-                    NULL);
+  (void)argc;
+  GNUNET_log_setup("test-datacache-quota",
+                   "WARNING",
+                   NULL);
 
-  plugin_name = GNUNET_TESTING_get_testname_from_underscore (argv[0]);
-  GNUNET_snprintf (cfg_name,
-		   sizeof (cfg_name),
-		   "test_datacache_data_%s.conf",
-                   plugin_name);
-  GNUNET_PROGRAM_run ((sizeof (xargv) / sizeof (char *)) - 1,
-		      xargv,
-                      "test-datacache-quota",
-		      "nohelp",
-		      options,
-		      &run,
-		      NULL);
+  plugin_name = GNUNET_TESTING_get_testname_from_underscore(argv[0]);
+  GNUNET_snprintf(cfg_name,
+                  sizeof(cfg_name),
+                  "test_datacache_data_%s.conf",
+                  plugin_name);
+  GNUNET_PROGRAM_run((sizeof(xargv) / sizeof(char *)) - 1,
+                     xargv,
+                     "test-datacache-quota",
+                     "nohelp",
+                     options,
+                     &run,
+                     NULL);
   if (0 != ok)
-    fprintf (stderr,
-	     "Missed some testcases: %d\n",
-	     ok);
+    fprintf(stderr,
+            "Missed some testcases: %d\n",
+            ok);
   return ok;
 }
 

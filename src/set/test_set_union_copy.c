@@ -11,12 +11,12 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 
 /**
  * @file set/test_set_union_copy.c
@@ -47,34 +47,34 @@ static struct GNUNET_SCHEDULER_Task *tt;
 
 
 static void
-add_element_str (struct GNUNET_SET_Handle *set,
-                 char *str)
+add_element_str(struct GNUNET_SET_Handle *set,
+                char *str)
 {
   struct GNUNET_SET_Element element;
 
   element.element_type = 0;
   element.data = str;
-  element.size = strlen (str);
-  GNUNET_SET_add_element (set,
-                          &element,
-                          NULL,
-                          NULL);
+  element.size = strlen(str);
+  GNUNET_SET_add_element(set,
+                         &element,
+                         NULL,
+                         NULL);
 }
 
 
 static void
-remove_element_str (struct GNUNET_SET_Handle *set,
-                    char *str)
+remove_element_str(struct GNUNET_SET_Handle *set,
+                   char *str)
 {
   struct GNUNET_SET_Element element;
 
   element.element_type = 0;
   element.data = str;
-  element.size = strlen (str);
-  GNUNET_SET_remove_element (set,
-                             &element,
-                             NULL,
-                             NULL);
+  element.size = strlen(str);
+  GNUNET_SET_remove_element(set,
+                            &element,
+                            NULL,
+                            NULL);
 }
 
 
@@ -84,16 +84,15 @@ remove_element_str (struct GNUNET_SET_Handle *set,
  * @param cls closure
  */
 static void
-timeout_fail (void *cls)
+timeout_fail(void *cls)
 {
   tt = NULL;
-  GNUNET_SCHEDULER_shutdown ();
+  GNUNET_SCHEDULER_shutdown();
   ret = 1;
 }
 
 
-struct CountIterClosure
-{
+struct CountIterClosure {
   unsigned int expected_count;
   unsigned int ongoing_count;
   GNUNET_SCHEDULER_TaskCallback cont;
@@ -103,33 +102,33 @@ struct CountIterClosure
 
 
 static int
-check_count_iter (void *cls,
-                  const struct GNUNET_SET_Element *element)
+check_count_iter(void *cls,
+                 const struct GNUNET_SET_Element *element)
 {
   struct CountIterClosure *ci_cls = cls;
 
   if (NULL == element)
-  {
-    if (ci_cls->expected_count != ci_cls->ongoing_count)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  "Expected count (what: %s) to be %u, but it's actually %u\n",
-                  ci_cls->what,
-                  ci_cls->expected_count,
-                  ci_cls->ongoing_count);
-      ret = 1;
-      GNUNET_SCHEDULER_shutdown ();
+      if (ci_cls->expected_count != ci_cls->ongoing_count)
+        {
+          GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
+                     "Expected count (what: %s) to be %u, but it's actually %u\n",
+                     ci_cls->what,
+                     ci_cls->expected_count,
+                     ci_cls->ongoing_count);
+          ret = 1;
+          GNUNET_SCHEDULER_shutdown();
+          return GNUNET_NO;
+        }
+      ci_cls->cont(ci_cls->cont_cls);
+      GNUNET_free(ci_cls);
       return GNUNET_NO;
     }
-    ci_cls->cont (ci_cls->cont_cls);
-    GNUNET_free (ci_cls);
-    return GNUNET_NO;
-  }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Set `%s' has element %.*s\n",
-              ci_cls->what,
-              (int) element->size,
-              (const char *) element->data);
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+             "Set `%s' has element %.*s\n",
+             ci_cls->what,
+             (int)element->size,
+             (const char *)element->data);
 
   ci_cls->ongoing_count++;
   return GNUNET_YES;
@@ -137,17 +136,17 @@ check_count_iter (void *cls,
 
 
 static void
-check_count (struct GNUNET_SET_Handle *set,
-             char *what,
-             unsigned int expected_count,
-             GNUNET_SCHEDULER_TaskCallback cont,
-             void *cont_cls)
+check_count(struct GNUNET_SET_Handle *set,
+            char *what,
+            unsigned int expected_count,
+            GNUNET_SCHEDULER_TaskCallback cont,
+            void *cont_cls)
 {
-  struct CountIterClosure *ci_cls = GNUNET_new (struct CountIterClosure);
+  struct CountIterClosure *ci_cls = GNUNET_new(struct CountIterClosure);
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Checking count of %s\n",
-              what);
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+             "Checking count of %s\n",
+             what);
 
   ci_cls->expected_count = expected_count;
   ci_cls->ongoing_count = 0;
@@ -155,65 +154,65 @@ check_count (struct GNUNET_SET_Handle *set,
   ci_cls->cont_cls = cont_cls;
   ci_cls->what = what;
 
-  GNUNET_assert (GNUNET_YES ==
-                 GNUNET_SET_iterate (set,
-                                     &check_count_iter,
-                                     ci_cls));
+  GNUNET_assert(GNUNET_YES ==
+                GNUNET_SET_iterate(set,
+                                   &check_count_iter,
+                                   ci_cls));
 }
 
 
 static void
-test_done (void *cls)
+test_done(void *cls)
 {
-  GNUNET_SCHEDULER_shutdown ();
+  GNUNET_SCHEDULER_shutdown();
 }
 
 
 static void
-check_new_set_count (void *cls)
+check_new_set_count(void *cls)
 {
-  check_count (set2,
-               "new set",
-               3,
-               &test_done,
-               NULL);
+  check_count(set2,
+              "new set",
+              3,
+              &test_done,
+              NULL);
 }
 
 
 static void
-copy_done (void *cls,
-           struct GNUNET_SET_Handle *new_set)
+copy_done(void *cls,
+          struct GNUNET_SET_Handle *new_set)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "copy done\n");
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+             "copy done\n");
   set2 = new_set;
-  remove_element_str (set2,
-                      "k5555");
-  add_element_str (set2,
-                   "n66666");
-  add_element_str (set2,
-                   "new2butremoved");
-  remove_element_str (set2,
-                      "new2butremoved");
-  remove_element_str (set2,
-                      "new3justremoved");
+  remove_element_str(set2,
+                     "k5555");
+  add_element_str(set2,
+                  "n66666");
+  add_element_str(set2,
+                  "new2butremoved");
+  remove_element_str(set2,
+                     "new2butremoved");
+  remove_element_str(set2,
+                     "new3justremoved");
   // Check that set1 didn't change.
-  check_count (set1,
-               "old set",
-               3,
-               &check_new_set_count,
-               NULL);
+  check_count(set1,
+              "old set",
+              3,
+              &check_new_set_count,
+              NULL);
 }
 
 
 static void
-test_copy (void *cls)
+test_copy(void *cls)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "about to copy\n");
-  GNUNET_SET_copy_lazy (set1,
-                        &copy_done,
-                        NULL);
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+             "about to copy\n");
+  GNUNET_SET_copy_lazy(set1,
+                       &copy_done,
+                       NULL);
 }
 
 
@@ -223,23 +222,23 @@ test_copy (void *cls)
  * @param cls closure
  */
 static void
-do_shutdown (void *cls)
+do_shutdown(void *cls)
 {
   if (NULL != tt)
-  {
-    GNUNET_SCHEDULER_cancel (tt);
-    tt = NULL;
-  }
+    {
+      GNUNET_SCHEDULER_cancel(tt);
+      tt = NULL;
+    }
   if (NULL != set1)
-  {
-    GNUNET_SET_destroy (set1);
-    set1 = NULL;
-  }
+    {
+      GNUNET_SET_destroy(set1);
+      set1 = NULL;
+    }
   if (NULL != set2)
-  {
-    GNUNET_SET_destroy (set2);
-    set2 = NULL;
-  }
+    {
+      GNUNET_SET_destroy(set2);
+      set2 = NULL;
+    }
 }
 
 
@@ -252,59 +251,59 @@ do_shutdown (void *cls)
  * @param peer identity of the peer that was created
  */
 static void
-run (void *cls,
-     const struct GNUNET_CONFIGURATION_Handle *cfg,
-     struct GNUNET_TESTING_Peer *peer)
+run(void *cls,
+    const struct GNUNET_CONFIGURATION_Handle *cfg,
+    struct GNUNET_TESTING_Peer *peer)
 {
-  tt = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5),
-				     &timeout_fail,
-                                     NULL);
-  GNUNET_SCHEDULER_add_shutdown (&do_shutdown,
-                                 NULL);
+  tt = GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 5),
+                                    &timeout_fail,
+                                    NULL);
+  GNUNET_SCHEDULER_add_shutdown(&do_shutdown,
+                                NULL);
   config = cfg;
-  GNUNET_TESTING_peer_get_identity (peer,
-                                    &local_id);
+  GNUNET_TESTING_peer_get_identity(peer,
+                                   &local_id);
 
-  set1 = GNUNET_SET_create (cfg,
-                            GNUNET_SET_OPERATION_UNION);
-  add_element_str (set1,
-                   "333");
-  add_element_str (set1,
-                   "k444");
+  set1 = GNUNET_SET_create(cfg,
+                           GNUNET_SET_OPERATION_UNION);
+  add_element_str(set1,
+                  "333");
+  add_element_str(set1,
+                  "k444");
   /* duplicate -- ignored */
-  add_element_str (set1,
-                   "k444");
-  remove_element_str (set1,
-                      "333");
+  add_element_str(set1,
+                  "k444");
+  remove_element_str(set1,
+                     "333");
   /* non-existent -- ignored */
-  remove_element_str (set1,
-                      "999999999");
-  add_element_str (set1,
-                   "k5555");
+  remove_element_str(set1,
+                     "999999999");
+  add_element_str(set1,
+                  "k5555");
   /* duplicate -- ignored */
-  remove_element_str (set1,
-                      "333");
-  add_element_str (set1,
-                   "k2");
+  remove_element_str(set1,
+                     "333");
+  add_element_str(set1,
+                  "k2");
 
-  check_count (set1,
-               "initial test",
-               3,
-               &test_copy,
-               NULL);
+  check_count(set1,
+              "initial test",
+              3,
+              &test_copy,
+              NULL);
 }
 
 
 int
-main (int argc, char **argv)
+main(int argc, char **argv)
 {
-  if (0 != GNUNET_TESTING_peer_run ("test_set_union_copy",
-                                    "test_set.conf",
-                                    &run, NULL))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "failed to start testing peer\n");
-    return 1;
-  }
+  if (0 != GNUNET_TESTING_peer_run("test_set_union_copy",
+                                   "test_set.conf",
+                                   &run, NULL))
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
+                 "failed to start testing peer\n");
+      return 1;
+    }
   return ret;
 }

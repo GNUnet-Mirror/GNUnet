@@ -92,9 +92,7 @@
 /**
  * A DNS query.
  */
-struct GNUNET_DNSPARSER_Query
-{
-
+struct GNUNET_DNSPARSER_Query {
   /**
    * Name of the record that the query is for (0-terminated).
    * In UTF-8 format.  The library will convert from and to DNS-IDNA
@@ -113,16 +111,13 @@ struct GNUNET_DNSPARSER_Query
    * See GNUNET_TUN_DNS_CLASS_*.
    */
   uint16_t dns_traffic_class;
-
 };
 
 
 /**
  * Information from MX records (RFC 1035).
  */
-struct GNUNET_DNSPARSER_MxRecord
-{
-
+struct GNUNET_DNSPARSER_MxRecord {
   /**
    * Preference for this entry (lower value is higher preference).
    */
@@ -136,16 +131,13 @@ struct GNUNET_DNSPARSER_MxRecord
    * creating the DNS packet will fail.
    */
   char *mxhost;
-
 };
 
 
 /**
  * Information from SRV records (RFC 2782).
  */
-struct GNUNET_DNSPARSER_SrvRecord
-{
-
+struct GNUNET_DNSPARSER_SrvRecord {
   /**
    * Hostname offering the service.
    * In UTF-8 format.  The library will convert from and to DNS-IDNA
@@ -173,15 +165,13 @@ struct GNUNET_DNSPARSER_SrvRecord
    * TCP or UDP port of the service.
    */
   uint16_t port;
-
 };
 
 
 /**
  * DNS CERT types as defined in RFC 4398.
  */
-enum GNUNET_DNSPARSER_CertType
-{
+enum GNUNET_DNSPARSER_CertType {
   /**
    *  Reserved value
    */
@@ -233,8 +223,7 @@ enum GNUNET_DNSPARSER_CertType
  * DNSCERT algorithms as defined in http://www.iana.org/assignments/
  *  dns-sec-alg-numbers/dns-sec-alg-numbers.xhtml, under dns-sec-alg-numbers-1
  */
-enum GNUNET_DNSPARSER_CertAlgorithm
-{
+enum GNUNET_DNSPARSER_CertAlgorithm {
   /**
    * No defined
    */
@@ -304,16 +293,13 @@ enum GNUNET_DNSPARSER_CertAlgorithm
    * ECDSA Curve P-384/SHA384
    */
   GNUNET_DNSPARSER_CERTALGO_ECDSA_P384SHA384 = 14
-
 };
 
 
 /**
  * Information from CERT records (RFC 4034).
  */
-struct GNUNET_DNSPARSER_CertRecord
-{
-
+struct GNUNET_DNSPARSER_CertRecord {
   /**
    * Certificate type
    */
@@ -338,16 +324,13 @@ struct GNUNET_DNSPARSER_CertRecord
    * Data of the certificate.
    */
   char *certificate_data;
-
 };
 
 
 /**
  * Information from SOA records (RFC 1035).
  */
-struct GNUNET_DNSPARSER_SoaRecord
-{
-
+struct GNUNET_DNSPARSER_SoaRecord {
   /**
    * The domainname of the name server that was the
    * original or primary source of data for this zone.
@@ -395,7 +378,6 @@ struct GNUNET_DNSPARSER_SoaRecord
    * from this zone.
    */
   uint32_t minimum_ttl;
-
 };
 
 
@@ -404,8 +386,7 @@ struct GNUNET_DNSPARSER_SoaRecord
  * The tag is followed by the tag_len.
  * The value is followed by the tag for (d - tag_len - 2) bytes
  */
-struct GNUNET_DNSPARSER_CaaRecord
-{
+struct GNUNET_DNSPARSER_CaaRecord {
   /**
    * The flags of the CAA record.
    */
@@ -422,9 +403,7 @@ struct GNUNET_DNSPARSER_CaaRecord
 /**
  * Binary record information (unparsed).
  */
-struct GNUNET_DNSPARSER_RawRecord
-{
-
+struct GNUNET_DNSPARSER_RawRecord {
   /**
    * Binary record data.
    */
@@ -440,9 +419,7 @@ struct GNUNET_DNSPARSER_RawRecord
 /**
  * A DNS response record.
  */
-struct GNUNET_DNSPARSER_Record
-{
-
+struct GNUNET_DNSPARSER_Record {
   /**
    * Name of the record that the query is for (0-terminated).
    * In UTF-8 format.  The library will convert from and to DNS-IDNA
@@ -455,9 +432,7 @@ struct GNUNET_DNSPARSER_Record
   /**
    * Payload of the record (which one of these is valid depends on the 'type').
    */
-  union
-  {
-
+  union {
     /**
      * For NS, CNAME and PTR records, this is the uncompressed 0-terminated hostname.
      * In UTF-8 format.  The library will convert from and to DNS-IDNA
@@ -491,7 +466,6 @@ struct GNUNET_DNSPARSER_Record
      * Raw data for all other types.
      */
     struct GNUNET_DNSPARSER_RawRecord raw;
-
   } data;
 
 
@@ -509,15 +483,13 @@ struct GNUNET_DNSPARSER_Record
    * See GNUNET_TUN_DNS_CLASS_*.
    */
   uint16_t dns_traffic_class;
-
 };
 
 
 /**
  * Easy-to-process, parsed version of a DNS packet.
  */
-struct GNUNET_DNSPARSER_Packet
-{
+struct GNUNET_DNSPARSER_Packet {
   /**
    * Array of all queries in the packet, must contain "num_queries" entries.
    */
@@ -567,7 +539,6 @@ struct GNUNET_DNSPARSER_Packet
    * DNS ID (to match replies to requests).
    */
   uint16_t id;
-
 };
 
 
@@ -580,7 +551,7 @@ struct GNUNET_DNSPARSER_Packet
  *         #GNUNET_SYSERR if the label is not valid for DNS names
  */
 int
-GNUNET_DNSPARSER_check_label (const char *label);
+GNUNET_DNSPARSER_check_label(const char *label);
 
 
 /**
@@ -593,7 +564,7 @@ GNUNET_DNSPARSER_check_label (const char *label);
  *         #GNUNET_SYSERR if the label is not valid for DNS names
  */
 int
-GNUNET_DNSPARSER_check_name (const char *name);
+GNUNET_DNSPARSER_check_name(const char *name);
 
 
 /**
@@ -605,8 +576,8 @@ GNUNET_DNSPARSER_check_name (const char *name);
  * @return NULL on error, otherwise the parsed packet
  */
 struct GNUNET_DNSPARSER_Packet *
-GNUNET_DNSPARSER_parse (const char *udp_payload,
-			size_t udp_payload_length);
+GNUNET_DNSPARSER_parse(const char *udp_payload,
+                       size_t udp_payload_length);
 
 
 /**
@@ -615,7 +586,7 @@ GNUNET_DNSPARSER_parse (const char *udp_payload,
  * @param p packet to free
  */
 void
-GNUNET_DNSPARSER_free_packet (struct GNUNET_DNSPARSER_Packet *p);
+GNUNET_DNSPARSER_free_packet(struct GNUNET_DNSPARSER_Packet *p);
 
 
 /**
@@ -633,10 +604,10 @@ GNUNET_DNSPARSER_free_packet (struct GNUNET_DNSPARSER_Packet *p);
  *         #GNUNET_OK if @a p was packed completely into @a buf
  */
 int
-GNUNET_DNSPARSER_pack (const struct GNUNET_DNSPARSER_Packet *p,
-		       uint16_t max,
-		       char **buf,
-		       size_t *buf_length);
+GNUNET_DNSPARSER_pack(const struct GNUNET_DNSPARSER_Packet *p,
+                      uint16_t max,
+                      char **buf,
+                      size_t *buf_length);
 
 /* ***************** low-level packing API ******************** */
 
@@ -654,10 +625,10 @@ GNUNET_DNSPARSER_pack (const struct GNUNET_DNSPARSER_Packet *p,
  *         #GNUNET_OK if @a name was added to @a dst
  */
 int
-GNUNET_DNSPARSER_builder_add_name (char *dst,
-				   size_t dst_len,
-				   size_t *off,
-				   const char *name);
+GNUNET_DNSPARSER_builder_add_name(char *dst,
+                                  size_t dst_len,
+                                  size_t *off,
+                                  const char *name);
 
 
 /**
@@ -673,10 +644,10 @@ GNUNET_DNSPARSER_builder_add_name (char *dst,
  *         #GNUNET_OK if @a query was added to @a dst
  */
 int
-GNUNET_DNSPARSER_builder_add_query (char *dst,
-				    size_t dst_len,
-				    size_t *off,
-				    const struct GNUNET_DNSPARSER_Query *query);
+GNUNET_DNSPARSER_builder_add_query(char *dst,
+                                   size_t dst_len,
+                                   size_t *off,
+                                   const struct GNUNET_DNSPARSER_Query *query);
 
 
 /**
@@ -692,10 +663,10 @@ GNUNET_DNSPARSER_builder_add_query (char *dst,
  *         #GNUNET_OK if @a mx was added to @a dst
  */
 int
-GNUNET_DNSPARSER_builder_add_mx (char *dst,
-				 size_t dst_len,
-				 size_t *off,
-				 const struct GNUNET_DNSPARSER_MxRecord *mx);
+GNUNET_DNSPARSER_builder_add_mx(char *dst,
+                                size_t dst_len,
+                                size_t *off,
+                                const struct GNUNET_DNSPARSER_MxRecord *mx);
 
 
 /**
@@ -711,10 +682,10 @@ GNUNET_DNSPARSER_builder_add_mx (char *dst,
  *         #GNUNET_OK if @a soa was added to @a dst
  */
 int
-GNUNET_DNSPARSER_builder_add_soa (char *dst,
-				  size_t dst_len,
-				  size_t *off,
-				  const struct GNUNET_DNSPARSER_SoaRecord *soa);
+GNUNET_DNSPARSER_builder_add_soa(char *dst,
+                                 size_t dst_len,
+                                 size_t *off,
+                                 const struct GNUNET_DNSPARSER_SoaRecord *soa);
 
 
 /**
@@ -730,10 +701,10 @@ GNUNET_DNSPARSER_builder_add_soa (char *dst,
  *         #GNUNET_OK if @a soa was added to @a dst
  */
 int
-GNUNET_DNSPARSER_builder_add_cert (char *dst,
-                                   size_t dst_len,
-                                   size_t *off,
-                                   const struct GNUNET_DNSPARSER_CertRecord *cert);
+GNUNET_DNSPARSER_builder_add_cert(char *dst,
+                                  size_t dst_len,
+                                  size_t *off,
+                                  const struct GNUNET_DNSPARSER_CertRecord *cert);
 
 
 /**
@@ -749,10 +720,10 @@ GNUNET_DNSPARSER_builder_add_cert (char *dst,
  *         #GNUNET_OK if @a srv was added to @a dst
  */
 int
-GNUNET_DNSPARSER_builder_add_srv (char *dst,
-				  size_t dst_len,
-				  size_t *off,
-				  const struct GNUNET_DNSPARSER_SrvRecord *srv);
+GNUNET_DNSPARSER_builder_add_srv(char *dst,
+                                 size_t dst_len,
+                                 size_t *off,
+                                 const struct GNUNET_DNSPARSER_SrvRecord *srv);
 
 /* ***************** low-level parsing API ******************** */
 
@@ -767,10 +738,10 @@ GNUNET_DNSPARSER_builder_add_srv (char *dst,
  * @return #GNUNET_OK on success, #GNUNET_SYSERR if the record is malformed
  */
 int
-GNUNET_DNSPARSER_parse_record (const char *udp_payload,
-			       size_t udp_payload_length,
-			       size_t *off,
-			       struct GNUNET_DNSPARSER_Record *r);
+GNUNET_DNSPARSER_parse_record(const char *udp_payload,
+                              size_t udp_payload_length,
+                              size_t *off,
+                              struct GNUNET_DNSPARSER_Record *r);
 
 
 /**
@@ -783,9 +754,9 @@ GNUNET_DNSPARSER_parse_record (const char *udp_payload,
  * @return name as 0-terminated C string on success, NULL if the payload is malformed
  */
 char *
-GNUNET_DNSPARSER_parse_name (const char *udp_payload,
-			     size_t udp_payload_length,
-			     size_t *off);
+GNUNET_DNSPARSER_parse_name(const char *udp_payload,
+                            size_t udp_payload_length,
+                            size_t *off);
 
 
 /**
@@ -799,10 +770,10 @@ GNUNET_DNSPARSER_parse_name (const char *udp_payload,
  * @return #GNUNET_OK on success, #GNUNET_SYSERR if the query is malformed
  */
 int
-GNUNET_DNSPARSER_parse_query (const char *udp_payload,
-			      size_t udp_payload_length,
-			      size_t *off,
-			      struct GNUNET_DNSPARSER_Query *q);
+GNUNET_DNSPARSER_parse_query(const char *udp_payload,
+                             size_t udp_payload_length,
+                             size_t *off,
+                             struct GNUNET_DNSPARSER_Query *q);
 
 
 /**
@@ -815,9 +786,9 @@ GNUNET_DNSPARSER_parse_query (const char *udp_payload,
  * @return the parsed SOA record, NULL on error
  */
 struct GNUNET_DNSPARSER_SoaRecord *
-GNUNET_DNSPARSER_parse_soa (const char *udp_payload,
-			    size_t udp_payload_length,
-			    size_t *off);
+GNUNET_DNSPARSER_parse_soa(const char *udp_payload,
+                           size_t udp_payload_length,
+                           size_t *off);
 
 
 /**
@@ -830,9 +801,9 @@ GNUNET_DNSPARSER_parse_soa (const char *udp_payload,
  * @return the parsed CERT record, NULL on error
  */
 struct GNUNET_DNSPARSER_CertRecord *
-GNUNET_DNSPARSER_parse_cert (const char *udp_payload,
-                             size_t udp_payload_length,
-                             size_t *off);
+GNUNET_DNSPARSER_parse_cert(const char *udp_payload,
+                            size_t udp_payload_length,
+                            size_t *off);
 
 
 /**
@@ -845,9 +816,9 @@ GNUNET_DNSPARSER_parse_cert (const char *udp_payload,
  * @return the parsed MX record, NULL on error
  */
 struct GNUNET_DNSPARSER_MxRecord *
-GNUNET_DNSPARSER_parse_mx (const char *udp_payload,
-			   size_t udp_payload_length,
-			   size_t *off);
+GNUNET_DNSPARSER_parse_mx(const char *udp_payload,
+                          size_t udp_payload_length,
+                          size_t *off);
 
 
 /**
@@ -860,9 +831,9 @@ GNUNET_DNSPARSER_parse_mx (const char *udp_payload,
  * @return the parsed SRV record, NULL on error
  */
 struct GNUNET_DNSPARSER_SrvRecord *
-GNUNET_DNSPARSER_parse_srv (const char *udp_payload,
-			    size_t udp_payload_length,
-			    size_t *off);
+GNUNET_DNSPARSER_parse_srv(const char *udp_payload,
+                           size_t udp_payload_length,
+                           size_t *off);
 
 /* ***************** low-level duplication API ******************** */
 
@@ -873,7 +844,7 @@ GNUNET_DNSPARSER_parse_srv (const char *udp_payload,
  * @return the newly allocated record
  */
 struct GNUNET_DNSPARSER_Record *
-GNUNET_DNSPARSER_duplicate_record (const struct GNUNET_DNSPARSER_Record *r);
+GNUNET_DNSPARSER_duplicate_record(const struct GNUNET_DNSPARSER_Record *r);
 
 
 /**
@@ -883,7 +854,7 @@ GNUNET_DNSPARSER_duplicate_record (const struct GNUNET_DNSPARSER_Record *r);
  * @return the newly allocated record
  */
 struct GNUNET_DNSPARSER_SoaRecord *
-GNUNET_DNSPARSER_duplicate_soa_record (const struct GNUNET_DNSPARSER_SoaRecord *r);
+GNUNET_DNSPARSER_duplicate_soa_record(const struct GNUNET_DNSPARSER_SoaRecord *r);
 
 
 /**
@@ -893,7 +864,7 @@ GNUNET_DNSPARSER_duplicate_soa_record (const struct GNUNET_DNSPARSER_SoaRecord *
  * @return the newly allocated record
  */
 struct GNUNET_DNSPARSER_CertRecord *
-GNUNET_DNSPARSER_duplicate_cert_record (const struct GNUNET_DNSPARSER_CertRecord *r);
+GNUNET_DNSPARSER_duplicate_cert_record(const struct GNUNET_DNSPARSER_CertRecord *r);
 
 
 /**
@@ -903,7 +874,7 @@ GNUNET_DNSPARSER_duplicate_cert_record (const struct GNUNET_DNSPARSER_CertRecord
  * @return the newly allocated record
  */
 struct GNUNET_DNSPARSER_MxRecord *
-GNUNET_DNSPARSER_duplicate_mx_record (const struct GNUNET_DNSPARSER_MxRecord *r);
+GNUNET_DNSPARSER_duplicate_mx_record(const struct GNUNET_DNSPARSER_MxRecord *r);
 
 
 /**
@@ -913,7 +884,7 @@ GNUNET_DNSPARSER_duplicate_mx_record (const struct GNUNET_DNSPARSER_MxRecord *r)
  * @return the newly allocated record
  */
 struct GNUNET_DNSPARSER_SrvRecord *
-GNUNET_DNSPARSER_duplicate_srv_record (const struct GNUNET_DNSPARSER_SrvRecord *r);
+GNUNET_DNSPARSER_duplicate_srv_record(const struct GNUNET_DNSPARSER_SrvRecord *r);
 
 
 /* ***************** low-level deallocation API ******************** */
@@ -924,7 +895,7 @@ GNUNET_DNSPARSER_duplicate_srv_record (const struct GNUNET_DNSPARSER_SrvRecord *
  * @param r record to free
  */
 void
-GNUNET_DNSPARSER_free_record (struct GNUNET_DNSPARSER_Record *r);
+GNUNET_DNSPARSER_free_record(struct GNUNET_DNSPARSER_Record *r);
 
 
 /**
@@ -933,7 +904,7 @@ GNUNET_DNSPARSER_free_record (struct GNUNET_DNSPARSER_Record *r);
  * @param mx record to free
  */
 void
-GNUNET_DNSPARSER_free_mx (struct GNUNET_DNSPARSER_MxRecord *mx);
+GNUNET_DNSPARSER_free_mx(struct GNUNET_DNSPARSER_MxRecord *mx);
 
 
 /**
@@ -942,7 +913,7 @@ GNUNET_DNSPARSER_free_mx (struct GNUNET_DNSPARSER_MxRecord *mx);
  * @param srv record to free
  */
 void
-GNUNET_DNSPARSER_free_srv (struct GNUNET_DNSPARSER_SrvRecord *srv);
+GNUNET_DNSPARSER_free_srv(struct GNUNET_DNSPARSER_SrvRecord *srv);
 
 
 /**
@@ -951,7 +922,7 @@ GNUNET_DNSPARSER_free_srv (struct GNUNET_DNSPARSER_SrvRecord *srv);
  * @param soa record to free
  */
 void
-GNUNET_DNSPARSER_free_soa (struct GNUNET_DNSPARSER_SoaRecord *soa);
+GNUNET_DNSPARSER_free_soa(struct GNUNET_DNSPARSER_SoaRecord *soa);
 
 
 /**
@@ -960,7 +931,7 @@ GNUNET_DNSPARSER_free_soa (struct GNUNET_DNSPARSER_SoaRecord *soa);
  * @param cert record to free
  */
 void
-GNUNET_DNSPARSER_free_cert (struct GNUNET_DNSPARSER_CertRecord *cert);
+GNUNET_DNSPARSER_free_cert(struct GNUNET_DNSPARSER_CertRecord *cert);
 
 
 /**
@@ -971,8 +942,8 @@ GNUNET_DNSPARSER_free_cert (struct GNUNET_DNSPARSER_CertRecord *cert);
  * @return HEX string (lower case)
  */
 char *
-GNUNET_DNSPARSER_bin_to_hex (const void *data,
-                             size_t data_size);
+GNUNET_DNSPARSER_bin_to_hex(const void *data,
+                            size_t data_size);
 
 
 /**
@@ -984,8 +955,8 @@ GNUNET_DNSPARSER_bin_to_hex (const void *data,
  * @return number of bytes written to data
  */
 size_t
-GNUNET_DNSPARSER_hex_to_bin (const char *hex,
-                             void *data);
+GNUNET_DNSPARSER_hex_to_bin(const char *hex,
+                            void *data);
 
 
 #endif

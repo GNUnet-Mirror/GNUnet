@@ -11,12 +11,12 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 
 /**
  * @file transport/transport_api_blacklist.c
@@ -34,9 +34,7 @@
 /**
  * Handle for blacklisting requests.
  */
-struct GNUNET_TRANSPORT_Blacklist
-{
-
+struct GNUNET_TRANSPORT_Blacklist {
   /**
    * Connection to transport service.
    */
@@ -57,7 +55,6 @@ struct GNUNET_TRANSPORT_Blacklist
    * Closure for @e cb.
    */
   void *cb_cls;
-
 };
 
 
@@ -67,7 +64,7 @@ struct GNUNET_TRANSPORT_Blacklist
  * @param br overall handle
  */
 static void
-reconnect (struct GNUNET_TRANSPORT_Blacklist *br);
+reconnect(struct GNUNET_TRANSPORT_Blacklist *br);
 
 
 /**
@@ -77,21 +74,21 @@ reconnect (struct GNUNET_TRANSPORT_Blacklist *br);
  * @param bm query
  */
 static void
-handle_query (void *cls,
-              const struct BlacklistMessage *bm)
+handle_query(void *cls,
+             const struct BlacklistMessage *bm)
 {
   struct GNUNET_TRANSPORT_Blacklist *br = cls;
   struct GNUNET_MQ_Envelope *env;
   struct BlacklistMessage *res;
 
-  GNUNET_break (0 == ntohl (bm->is_allowed));
-  env = GNUNET_MQ_msg (res,
-                       GNUNET_MESSAGE_TYPE_TRANSPORT_BLACKLIST_REPLY);
-  res->is_allowed = htonl (br->cb (br->cb_cls,
-                                   &bm->peer));
+  GNUNET_break(0 == ntohl(bm->is_allowed));
+  env = GNUNET_MQ_msg(res,
+                      GNUNET_MESSAGE_TYPE_TRANSPORT_BLACKLIST_REPLY);
+  res->is_allowed = htonl(br->cb(br->cb_cls,
+                                 &bm->peer));
   res->peer = bm->peer;
-  GNUNET_MQ_send (br->mq,
-                  env);
+  GNUNET_MQ_send(br->mq,
+                 env);
 }
 
 /**
@@ -103,12 +100,12 @@ handle_query (void *cls,
  * @param error error code
  */
 static void
-mq_error_handler (void *cls,
-                  enum GNUNET_MQ_Error error)
+mq_error_handler(void *cls,
+                 enum GNUNET_MQ_Error error)
 {
   struct GNUNET_TRANSPORT_Blacklist *br = cls;
 
-  reconnect (br);
+  reconnect(br);
 }
 
 
@@ -118,31 +115,31 @@ mq_error_handler (void *cls,
  * @param br overall handle
  */
 static void
-reconnect (struct GNUNET_TRANSPORT_Blacklist *br)
+reconnect(struct GNUNET_TRANSPORT_Blacklist *br)
 {
   struct GNUNET_MQ_MessageHandler handlers[] = {
-    GNUNET_MQ_hd_fixed_size (query,
-                             GNUNET_MESSAGE_TYPE_TRANSPORT_BLACKLIST_QUERY,
-                             struct BlacklistMessage,
-                             br),
-    GNUNET_MQ_handler_end ()
+    GNUNET_MQ_hd_fixed_size(query,
+                            GNUNET_MESSAGE_TYPE_TRANSPORT_BLACKLIST_QUERY,
+                            struct BlacklistMessage,
+                            br),
+    GNUNET_MQ_handler_end()
   };
   struct GNUNET_MQ_Envelope *env;
   struct GNUNET_MessageHeader *req;
 
   if (NULL != br->mq)
-    GNUNET_MQ_destroy (br->mq);
-  br->mq = GNUNET_CLIENT_connect (br->cfg,
-                                  "transport",
-                                  handlers,
-                                  &mq_error_handler,
-                                  br);
+    GNUNET_MQ_destroy(br->mq);
+  br->mq = GNUNET_CLIENT_connect(br->cfg,
+                                 "transport",
+                                 handlers,
+                                 &mq_error_handler,
+                                 br);
   if (NULL == br->mq)
     return;
-  env = GNUNET_MQ_msg (req,
-                       GNUNET_MESSAGE_TYPE_TRANSPORT_BLACKLIST_INIT);
-  GNUNET_MQ_send (br->mq,
-                  env);
+  env = GNUNET_MQ_msg(req,
+                      GNUNET_MESSAGE_TYPE_TRANSPORT_BLACKLIST_INIT);
+  GNUNET_MQ_send(br->mq,
+                 env);
 }
 
 
@@ -161,22 +158,22 @@ reconnect (struct GNUNET_TRANSPORT_Blacklist *br)
  * @return NULL on error, otherwise handle for cancellation
  */
 struct GNUNET_TRANSPORT_Blacklist *
-GNUNET_TRANSPORT_blacklist (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                            GNUNET_TRANSPORT_BlacklistCallback cb,
-                            void *cb_cls)
+GNUNET_TRANSPORT_blacklist(const struct GNUNET_CONFIGURATION_Handle *cfg,
+                           GNUNET_TRANSPORT_BlacklistCallback cb,
+                           void *cb_cls)
 {
   struct GNUNET_TRANSPORT_Blacklist *br;
 
-  br = GNUNET_new (struct GNUNET_TRANSPORT_Blacklist);
+  br = GNUNET_new(struct GNUNET_TRANSPORT_Blacklist);
   br->cfg = cfg;
   br->cb = cb;
   br->cb_cls = cb_cls;
-  reconnect (br);
+  reconnect(br);
   if (NULL == br->mq)
-  {
-    GNUNET_free (br);
-    return NULL;
-  }
+    {
+      GNUNET_free(br);
+      return NULL;
+    }
   return br;
 }
 
@@ -188,10 +185,10 @@ GNUNET_TRANSPORT_blacklist (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @param br handle of the request that is to be cancelled
  */
 void
-GNUNET_TRANSPORT_blacklist_cancel (struct GNUNET_TRANSPORT_Blacklist *br)
+GNUNET_TRANSPORT_blacklist_cancel(struct GNUNET_TRANSPORT_Blacklist *br)
 {
-  GNUNET_MQ_destroy (br->mq);
-  GNUNET_free (br);
+  GNUNET_MQ_destroy(br->mq);
+  GNUNET_free(br);
 }
 
 

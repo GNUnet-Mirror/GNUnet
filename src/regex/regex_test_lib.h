@@ -11,7 +11,7 @@
  *  WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  *  Affero General Public License for more details.
- * 
+ *
  *  You should have received a copy of the GNU Affero General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -54,7 +54,7 @@ extern "C"
  * @return A string with a single regex that matches any of the original regexes
  */
 char *
-REGEX_TEST_combine (char * const regexes[], unsigned int alphabet_size);
+REGEX_TEST_combine(char * const regexes[], unsigned int alphabet_size);
 
 
 /**
@@ -67,7 +67,7 @@ REGEX_TEST_combine (char * const regexes[], unsigned int alphabet_size);
  * @return A newly allocated, NULL terminated array of regexes.
  */
 char **
-REGEX_TEST_read_from_file (const char *filename);
+REGEX_TEST_read_from_file(const char *filename);
 
 
 /**
@@ -76,7 +76,7 @@ REGEX_TEST_read_from_file (const char *filename);
  * @param regexes NULL-terminated array of regexes.
  */
 void
-REGEX_TEST_free_from_file (char **regexes);
+REGEX_TEST_free_from_file(char **regexes);
 
 
 /**
@@ -93,7 +93,7 @@ REGEX_TEST_free_from_file (char **regexes);
  *         needs to be freed, otherwise.
  */
 char *
-REGEX_TEST_generate_random_regex (size_t rx_length, char *matching_str);
+REGEX_TEST_generate_random_regex(size_t rx_length, char *matching_str);
 
 
 /**
@@ -106,15 +106,14 @@ REGEX_TEST_generate_random_regex (size_t rx_length, char *matching_str);
  * @return random string that needs to be freed.
  */
 char *
-REGEX_TEST_generate_random_string (size_t max_len);
+REGEX_TEST_generate_random_string(size_t max_len);
 
 
 /**
  * Options for graph creation function
  * REGEX_TEST_automaton_save_graph.
  */
-enum REGEX_TEST_GraphSavingOptions
-{
+enum REGEX_TEST_GraphSavingOptions {
   /**
    * Default. Do nothing special.
    */
@@ -142,9 +141,9 @@ enum REGEX_TEST_GraphSavingOptions
  *                mode
  */
 void
-REGEX_TEST_automaton_save_graph (struct REGEX_INTERNAL_Automaton *a,
-                                   const char *filename,
-                                   enum REGEX_TEST_GraphSavingOptions options);
+REGEX_TEST_automaton_save_graph(struct REGEX_INTERNAL_Automaton *a,
+                                const char *filename,
+                                enum REGEX_TEST_GraphSavingOptions options);
 
 
 

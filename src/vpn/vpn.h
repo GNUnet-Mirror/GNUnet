@@ -11,12 +11,12 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 
 /**
  * @file vpn/vpn.h
@@ -35,8 +35,7 @@ GNUNET_NETWORK_STRUCT_BEGIN
  * the setup of a redirection from some IP via an exit node to
  * some global Internet address.
  */
-struct RedirectToIpRequestMessage
-{
+struct RedirectToIpRequestMessage {
   /**
    * Type is #GNUNET_MESSAGE_TYPE_VPN_CLIENT_REDIRECT_TO_IP
    */
@@ -69,7 +68,6 @@ struct RedirectToIpRequestMessage
   uint64_t request_id GNUNET_PACKED;
 
   /* followed by destination address ('struct in_addr' or 'struct in6_addr') */
-
 };
 
 
@@ -78,8 +76,7 @@ struct RedirectToIpRequestMessage
  * the setup of a redirection from some IP to a service running
  * at a particular peer.
  */
-struct RedirectToServiceRequestMessage
-{
+struct RedirectToServiceRequestMessage {
   /**
    * Type is #GNUNET_MESSAGE_TYPE_VPN_CLIENT_REDIRECT_TO_SERVICE
    */
@@ -120,7 +117,6 @@ struct RedirectToServiceRequestMessage
    * Picked by the client.
    */
   uint64_t request_id GNUNET_PACKED;
-
 };
 
 
@@ -128,9 +124,7 @@ struct RedirectToServiceRequestMessage
  * Response from the VPN service to a VPN client informing about
  * the IP that was assigned for the requested redirection.
  */
-struct RedirectToIpResponseMessage
-{
-
+struct RedirectToIpResponseMessage {
   /**
    * Type is #GNUNET_MESSAGE_TYPE_VPN_CLIENT_USE_IP
    */
@@ -148,7 +142,6 @@ struct RedirectToIpResponseMessage
   uint64_t request_id GNUNET_PACKED;
 
   /* followed by destination address ('struct in_addr' or 'struct in6_addr') */
-
 };
 
 GNUNET_NETWORK_STRUCT_END

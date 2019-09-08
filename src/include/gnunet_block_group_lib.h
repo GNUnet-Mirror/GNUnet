@@ -11,12 +11,12 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 
 /**
  * @author Christian Grothoff
@@ -57,8 +57,8 @@ extern "C"
  * @return must be a power of two and smaller or equal to 2^15.
  */
 size_t
-GNUNET_BLOCK_GROUP_compute_bloomfilter_size (unsigned int entry_count,
-                                             unsigned int k);
+GNUNET_BLOCK_GROUP_compute_bloomfilter_size(unsigned int entry_count,
+                                            unsigned int k);
 
 
 /**
@@ -75,13 +75,13 @@ GNUNET_BLOCK_GROUP_compute_bloomfilter_size (unsigned int entry_count,
  *         by this @a type of block (this is not an error)
  */
 struct GNUNET_BLOCK_Group *
-GNUNET_BLOCK_GROUP_bf_create (void *cls,
-                              size_t bf_size,
-                              unsigned int bf_k,
-                              enum GNUNET_BLOCK_Type type,
-                              uint32_t nonce,
-                              const void *raw_data,
-                              size_t raw_data_size);
+GNUNET_BLOCK_GROUP_bf_create(void *cls,
+                             size_t bf_size,
+                             unsigned int bf_k,
+                             enum GNUNET_BLOCK_Type type,
+                             uint32_t nonce,
+                             const void *raw_data,
+                             size_t raw_data_size);
 
 
 /**
@@ -95,8 +95,8 @@ GNUNET_BLOCK_GROUP_bf_create (void *cls,
  *         #GNUNET_NO if @a hc was definitively not in @bg (but now is)
  */
 int
-GNUNET_BLOCK_GROUP_bf_test_and_set (struct GNUNET_BLOCK_Group *bg,
-                                    const struct GNUNET_HashCode *hc);
+GNUNET_BLOCK_GROUP_bf_test_and_set(struct GNUNET_BLOCK_Group *bg,
+                                   const struct GNUNET_HashCode *hc);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

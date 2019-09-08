@@ -11,12 +11,12 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 
 /**
  * @author Christian Grothoff
@@ -55,9 +55,9 @@ extern "C"
  */
 typedef char *
 (*GNUNET_GNSRECORD_ValueToStringFunction) (void *cls,
-					   uint32_t type,
-					   const void *data,
-					   size_t data_size);
+                                           uint32_t type,
+                                           const void *data,
+                                           size_t data_size);
 
 
 /**
@@ -74,10 +74,10 @@ typedef char *
  */
 typedef int
 (*GNUNET_GNSRECORD_StringToValueFunction) (void *cls,
-					   uint32_t type,
-					   const char *s,
-					   void **data,
-					   size_t *data_size);
+                                           uint32_t type,
+                                           const char *s,
+                                           void **data,
+                                           size_t *data_size);
 
 
 /**
@@ -90,7 +90,7 @@ typedef int
  */
 typedef uint32_t
 (*GNUNET_GNSRECORD_TypenameToNumberFunction) (void *cls,
-					      const char *dns_typename);
+                                              const char *dns_typename);
 
 
 /**
@@ -103,16 +103,14 @@ typedef uint32_t
  */
 typedef const char *
 (*GNUNET_GNSRECORD_NumberToTypenameFunction) (void *cls,
-					      uint32_t type);
+                                              uint32_t type);
 
 
 /**
  * Each plugin is required to return a pointer to a struct of this
  * type as the return value from its entry point.
  */
-struct GNUNET_GNSRECORD_PluginFunctions
-{
-
+struct GNUNET_GNSRECORD_PluginFunctions {
   /**
    * Closure for all of the callbacks.
    */
@@ -137,7 +135,6 @@ struct GNUNET_GNSRECORD_PluginFunctions
    * Number to typename.
    */
   GNUNET_GNSRECORD_NumberToTypenameFunction number_to_typename;
-
 };
 
 /** @} */  /* end of group */

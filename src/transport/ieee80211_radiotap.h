@@ -40,7 +40,7 @@
 // #include <asm/unaligned.h>
 
 /* Base version of the radiotap packet header data */
-#define PKTHDR_RADIOTAP_VERSION		0
+#define PKTHDR_RADIOTAP_VERSION         0
 
 /* A generic radio capture format is desirable. There is one for
  * Linux, but it is neither rigidly defined (there were not even
@@ -61,8 +61,7 @@
  * The radio capture header precedes the 802.11 header.
  * All data in the header is little endian on all platforms.
  */
-struct ieee80211_radiotap_header
-{
+struct ieee80211_radiotap_header {
   u8 it_version;                /* Version 0. Only increases
                                  * for drastic changes,
                                  * introduction of compatible
@@ -180,8 +179,7 @@ struct ieee80211_radiotap_header
  *     Number of unicast retries a transmitted frame used.
  *
  */
-enum ieee80211_radiotap_type
-{
+enum ieee80211_radiotap_type {
   IEEE80211_RADIOTAP_TSFT = 0,
   IEEE80211_RADIOTAP_FLAGS = 1,
   IEEE80211_RADIOTAP_RATE = 2,
@@ -208,68 +206,68 @@ enum ieee80211_radiotap_type
 };
 
 /* Channel flags. */
-#define	IEEE80211_CHAN_TURBO	0x0010  /* Turbo channel */
-#define	IEEE80211_CHAN_CCK	0x0020  /* CCK channel */
-#define	IEEE80211_CHAN_OFDM	0x0040  /* OFDM channel */
-#define	IEEE80211_CHAN_2GHZ	0x0080  /* 2 GHz spectrum channel. */
-#define	IEEE80211_CHAN_5GHZ	0x0100  /* 5 GHz spectrum channel */
-#define	IEEE80211_CHAN_PASSIVE	0x0200  /* Only passive scan allowed */
-#define	IEEE80211_CHAN_DYN	0x0400  /* Dynamic CCK-OFDM channel */
-#define	IEEE80211_CHAN_GFSK	0x0800  /* GFSK channel (FHSS PHY) */
+#define IEEE80211_CHAN_TURBO    0x0010  /* Turbo channel */
+#define IEEE80211_CHAN_CCK      0x0020  /* CCK channel */
+#define IEEE80211_CHAN_OFDM     0x0040  /* OFDM channel */
+#define IEEE80211_CHAN_2GHZ     0x0080  /* 2 GHz spectrum channel. */
+#define IEEE80211_CHAN_5GHZ     0x0100  /* 5 GHz spectrum channel */
+#define IEEE80211_CHAN_PASSIVE  0x0200  /* Only passive scan allowed */
+#define IEEE80211_CHAN_DYN      0x0400  /* Dynamic CCK-OFDM channel */
+#define IEEE80211_CHAN_GFSK     0x0800  /* GFSK channel (FHSS PHY) */
 
 /* For IEEE80211_RADIOTAP_FLAGS */
-#define	IEEE80211_RADIOTAP_F_CFP	0x01    /* sent/received
+#define IEEE80211_RADIOTAP_F_CFP        0x01    /* sent/received
                                                  * during CFP
                                                  */
-#define	IEEE80211_RADIOTAP_F_SHORTPRE	0x02    /* sent/received
+#define IEEE80211_RADIOTAP_F_SHORTPRE   0x02    /* sent/received
                                                  * with short
                                                  * preamble
                                                  */
-#define	IEEE80211_RADIOTAP_F_WEP	0x04    /* sent/received
+#define IEEE80211_RADIOTAP_F_WEP        0x04    /* sent/received
                                                  * with WEP encryption
                                                  */
-#define	IEEE80211_RADIOTAP_F_FRAG	0x08    /* sent/received
+#define IEEE80211_RADIOTAP_F_FRAG       0x08    /* sent/received
                                                  * with fragmentation
                                                  */
-#define	IEEE80211_RADIOTAP_F_FCS	0x10    /* frame includes FCS */
-#define	IEEE80211_RADIOTAP_F_DATAPAD	0x20    /* frame has padding between
+#define IEEE80211_RADIOTAP_F_FCS        0x10    /* frame includes FCS */
+#define IEEE80211_RADIOTAP_F_DATAPAD    0x20    /* frame has padding between
                                                  * 802.11 header and payload
                                                  * (to 32-bit boundary)
                                                  */
-#define IEEE80211_RADIOTAP_F_BADFCS	0x40    /* bad FCS */
+#define IEEE80211_RADIOTAP_F_BADFCS     0x40    /* bad FCS */
 
 /* For IEEE80211_RADIOTAP_RX_FLAGS */
-#define IEEE80211_RADIOTAP_F_RX_BADPLCP	0x0002  /* frame has bad PLCP */
+#define IEEE80211_RADIOTAP_F_RX_BADPLCP 0x0002  /* frame has bad PLCP */
 
 /* For IEEE80211_RADIOTAP_TX_FLAGS */
-#define IEEE80211_RADIOTAP_F_TX_FAIL	0x0001  /* failed due to excessive
+#define IEEE80211_RADIOTAP_F_TX_FAIL    0x0001  /* failed due to excessive
                                                  * retries */
-#define IEEE80211_RADIOTAP_F_TX_CTS	0x0002  /* used cts 'protection' */
-#define IEEE80211_RADIOTAP_F_TX_RTS	0x0004  /* used rts/cts handshake */
+#define IEEE80211_RADIOTAP_F_TX_CTS     0x0002  /* used cts 'protection' */
+#define IEEE80211_RADIOTAP_F_TX_RTS     0x0004  /* used rts/cts handshake */
 
 /* Ugly macro to convert literal channel numbers into their mhz equivalents
  * There are certianly some conditions that will break this (like feeding it '30')
  * but they shouldn't arise since nothing talks on channel 30. */
 #define ieee80211chan2mhz(x) \
-	(((x) <= 14) ? \
-	(((x) == 14) ? 2484 : ((x) * 5) + 2407) : \
-	((x) + 1000) * 5)
+  (((x) <= 14) ? \
+   (((x) == 14) ? 2484 : ((x) * 5) + 2407) : \
+   ((x) + 1000) * 5)
 
 /* helpers */
 static inline u16
-get_unaligned_le16 (const u8 *p)
+get_unaligned_le16(const u8 *p)
 {
   return p[0] | p[1] << 8;
 }
 
 
 static inline int
-ieee80211_get_radiotap_len (unsigned char *data)
+ieee80211_get_radiotap_len(unsigned char *data)
 {
   struct ieee80211_radiotap_header *hdr =
-      (struct ieee80211_radiotap_header *) data;
+    (struct ieee80211_radiotap_header *)data;
 
-  return get_unaligned_le16 ((const u8 *) &hdr->it_len);
+  return get_unaligned_le16((const u8 *)&hdr->it_len);
 }
 
 #endif /* IEEE80211_RADIOTAP_H */

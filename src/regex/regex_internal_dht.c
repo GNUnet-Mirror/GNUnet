@@ -11,12 +11,12 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 /**
  * @file src/regex/regex_internal_dht.c
  * @brief library to announce regexes in the network and match strings
@@ -32,7 +32,7 @@
 #include "gnunet_signatures.h"
 
 
-#define LOG(kind,...) GNUNET_log_from (kind,"regex-dht",__VA_ARGS__)
+#define LOG(kind, ...) GNUNET_log_from(kind, "regex-dht", __VA_ARGS__)
 
 /**
  * DHT replication level to use.
@@ -53,8 +53,7 @@
 /**
  * Handle to store cached data about a regex announce.
  */
-struct REGEX_INTERNAL_Announcement
-{
+struct REGEX_INTERNAL_Announcement {
   /**
    * DHT handle to use, must be initialized externally.
    */
@@ -93,92 +92,92 @@ struct REGEX_INTERNAL_Announcement
  * @param edges edges leaving current state.
  */
 static void
-regex_iterator (void *cls,
-                const struct GNUNET_HashCode *key,
-                const char *proof,
-                int accepting,
-                unsigned int num_edges,
-                const struct REGEX_BLOCK_Edge *edges)
+regex_iterator(void *cls,
+               const struct GNUNET_HashCode *key,
+               const char *proof,
+               int accepting,
+               unsigned int num_edges,
+               const struct REGEX_BLOCK_Edge *edges)
 {
   struct REGEX_INTERNAL_Announcement *h = cls;
   struct RegexBlock *block;
   size_t size;
   unsigned int i;
 
-  LOG (GNUNET_ERROR_TYPE_INFO,
-       "DHT PUT for state %s with proof `%s' and %u edges:\n",
-       GNUNET_h2s (key),
-       proof,
-       num_edges);
+  LOG(GNUNET_ERROR_TYPE_INFO,
+      "DHT PUT for state %s with proof `%s' and %u edges:\n",
+      GNUNET_h2s(key),
+      proof,
+      num_edges);
   for (i = 0; i < num_edges; i++)
-  {
-    LOG (GNUNET_ERROR_TYPE_INFO,
-         "Edge %u `%s' towards %s\n",
-         i,
-         edges[i].label,
-         GNUNET_h2s (&edges[i].destination));
-  }
+    {
+      LOG(GNUNET_ERROR_TYPE_INFO,
+          "Edge %u `%s' towards %s\n",
+          i,
+          edges[i].label,
+          GNUNET_h2s(&edges[i].destination));
+    }
   if (GNUNET_YES == accepting)
-  {
-    struct RegexAcceptBlock ab;
+    {
+      struct RegexAcceptBlock ab;
 
-    LOG (GNUNET_ERROR_TYPE_INFO,
-         "State %s is accepting, putting own id\n",
-         GNUNET_h2s (key));
-    size = sizeof (struct RegexAcceptBlock);
-    ab.purpose.size = ntohl (sizeof (struct GNUNET_CRYPTO_EccSignaturePurpose) +
-                             sizeof (struct GNUNET_TIME_AbsoluteNBO) +
-                             sizeof (struct GNUNET_HashCode));
-    ab.purpose.purpose = ntohl (GNUNET_SIGNATURE_PURPOSE_REGEX_ACCEPT);
-    ab.expiration_time = GNUNET_TIME_absolute_hton (GNUNET_TIME_relative_to_absolute (GNUNET_CONSTANTS_DHT_MAX_EXPIRATION));
-    ab.key = *key;
-    GNUNET_CRYPTO_eddsa_key_get_public (h->priv,
-                                        &ab.peer.public_key);
-    GNUNET_assert (GNUNET_OK ==
-                   GNUNET_CRYPTO_eddsa_sign (h->priv,
-                                           &ab.purpose,
-                                           &ab.signature));
+      LOG(GNUNET_ERROR_TYPE_INFO,
+          "State %s is accepting, putting own id\n",
+          GNUNET_h2s(key));
+      size = sizeof(struct RegexAcceptBlock);
+      ab.purpose.size = ntohl(sizeof(struct GNUNET_CRYPTO_EccSignaturePurpose) +
+                              sizeof(struct GNUNET_TIME_AbsoluteNBO) +
+                              sizeof(struct GNUNET_HashCode));
+      ab.purpose.purpose = ntohl(GNUNET_SIGNATURE_PURPOSE_REGEX_ACCEPT);
+      ab.expiration_time = GNUNET_TIME_absolute_hton(GNUNET_TIME_relative_to_absolute(GNUNET_CONSTANTS_DHT_MAX_EXPIRATION));
+      ab.key = *key;
+      GNUNET_CRYPTO_eddsa_key_get_public(h->priv,
+                                         &ab.peer.public_key);
+      GNUNET_assert(GNUNET_OK ==
+                    GNUNET_CRYPTO_eddsa_sign(h->priv,
+                                             &ab.purpose,
+                                             &ab.signature));
 
-    GNUNET_STATISTICS_update (h->stats, "# regex accepting blocks stored",
-                              1, GNUNET_NO);
-    GNUNET_STATISTICS_update (h->stats, "# regex accepting block bytes stored",
-                              sizeof (struct RegexAcceptBlock), GNUNET_NO);
-    (void)
-    GNUNET_DHT_put (h->dht, key,
-                    DHT_REPLICATION,
-                    DHT_OPT | GNUNET_DHT_RO_RECORD_ROUTE,
-                    GNUNET_BLOCK_TYPE_REGEX_ACCEPT,
-                    size,
-                    &ab,
-                    GNUNET_TIME_relative_to_absolute (DHT_TTL),
-                    NULL, NULL);
-  }
-  block = REGEX_BLOCK_create (proof,
-                              num_edges,
-			      edges,
-                              accepting,
-                              &size);
+      GNUNET_STATISTICS_update(h->stats, "# regex accepting blocks stored",
+                               1, GNUNET_NO);
+      GNUNET_STATISTICS_update(h->stats, "# regex accepting block bytes stored",
+                               sizeof(struct RegexAcceptBlock), GNUNET_NO);
+      (void)
+      GNUNET_DHT_put(h->dht, key,
+                     DHT_REPLICATION,
+                     DHT_OPT | GNUNET_DHT_RO_RECORD_ROUTE,
+                     GNUNET_BLOCK_TYPE_REGEX_ACCEPT,
+                     size,
+                     &ab,
+                     GNUNET_TIME_relative_to_absolute(DHT_TTL),
+                     NULL, NULL);
+    }
+  block = REGEX_BLOCK_create(proof,
+                             num_edges,
+                             edges,
+                             accepting,
+                             &size);
   if (NULL == block)
     return;
-  (void) GNUNET_DHT_put (h->dht,
-			 key,
-			 DHT_REPLICATION,
-			 DHT_OPT,
-			 GNUNET_BLOCK_TYPE_REGEX,
-			 size,
-			 block,
-			 GNUNET_TIME_relative_to_absolute (DHT_TTL),
-			 NULL,
-			 NULL);
-  GNUNET_STATISTICS_update (h->stats,
-                            "# regex blocks stored",
-                            1,
-			    GNUNET_NO);
-  GNUNET_STATISTICS_update (h->stats,
-                            "# regex block bytes stored",
-                            size,
-			    GNUNET_NO);
-  GNUNET_free (block);
+  (void)GNUNET_DHT_put(h->dht,
+                       key,
+                       DHT_REPLICATION,
+                       DHT_OPT,
+                       GNUNET_BLOCK_TYPE_REGEX,
+                       size,
+                       block,
+                       GNUNET_TIME_relative_to_absolute(DHT_TTL),
+                       NULL,
+                       NULL);
+  GNUNET_STATISTICS_update(h->stats,
+                           "# regex blocks stored",
+                           1,
+                           GNUNET_NO);
+  GNUNET_STATISTICS_update(h->stats,
+                           "# regex block bytes stored",
+                           size,
+                           GNUNET_NO);
+  GNUNET_free(block);
 }
 
 
@@ -195,22 +194,22 @@ regex_iterator (void *cls,
  *         Must be freed by calling #REGEX_INTERNAL_announce_cancel().
  */
 struct REGEX_INTERNAL_Announcement *
-REGEX_INTERNAL_announce (struct GNUNET_DHT_Handle *dht,
-			 const struct GNUNET_CRYPTO_EddsaPrivateKey *priv,
-			 const char *regex,
-			 uint16_t compression,
-			 struct GNUNET_STATISTICS_Handle *stats)
+REGEX_INTERNAL_announce(struct GNUNET_DHT_Handle *dht,
+                        const struct GNUNET_CRYPTO_EddsaPrivateKey *priv,
+                        const char *regex,
+                        uint16_t compression,
+                        struct GNUNET_STATISTICS_Handle *stats)
 {
   struct REGEX_INTERNAL_Announcement *h;
 
-  GNUNET_assert (NULL != dht);
-  h = GNUNET_new (struct REGEX_INTERNAL_Announcement);
+  GNUNET_assert(NULL != dht);
+  h = GNUNET_new(struct REGEX_INTERNAL_Announcement);
   h->regex = regex;
   h->dht = dht;
   h->stats = stats;
   h->priv = priv;
-  h->dfa = REGEX_INTERNAL_construct_dfa (regex, strlen (regex), compression);
-  REGEX_INTERNAL_reannounce (h);
+  h->dfa = REGEX_INTERNAL_construct_dfa(regex, strlen(regex), compression);
+  REGEX_INTERNAL_reannounce(h);
   return h;
 }
 
@@ -222,15 +221,15 @@ REGEX_INTERNAL_announce (struct GNUNET_DHT_Handle *dht,
  * @param h Handle returned by a previous #REGEX_INTERNAL_announce call().
  */
 void
-REGEX_INTERNAL_reannounce (struct REGEX_INTERNAL_Announcement *h)
+REGEX_INTERNAL_reannounce(struct REGEX_INTERNAL_Announcement *h)
 {
-  GNUNET_assert (NULL != h->dfa); /* make sure to call announce first */
-  LOG (GNUNET_ERROR_TYPE_INFO,
-       "REGEX_INTERNAL_reannounce: %s\n",
-       h->regex);
-  REGEX_INTERNAL_iterate_reachable_edges (h->dfa,
-                                          &regex_iterator,
-                                          h);
+  GNUNET_assert(NULL != h->dfa);  /* make sure to call announce first */
+  LOG(GNUNET_ERROR_TYPE_INFO,
+      "REGEX_INTERNAL_reannounce: %s\n",
+      h->regex);
+  REGEX_INTERNAL_iterate_reachable_edges(h->dfa,
+                                         &regex_iterator,
+                                         h);
 }
 
 
@@ -241,10 +240,10 @@ REGEX_INTERNAL_reannounce (struct REGEX_INTERNAL_Announcement *h)
  * @param h Handle returned by a previous #REGEX_INTERNAL_announce() call.
  */
 void
-REGEX_INTERNAL_announce_cancel (struct REGEX_INTERNAL_Announcement *h)
+REGEX_INTERNAL_announce_cancel(struct REGEX_INTERNAL_Announcement *h)
 {
-  REGEX_INTERNAL_automaton_destroy (h->dfa);
-  GNUNET_free (h);
+  REGEX_INTERNAL_automaton_destroy(h->dfa);
+  GNUNET_free(h);
 }
 
 
@@ -255,8 +254,7 @@ REGEX_INTERNAL_announce_cancel (struct REGEX_INTERNAL_Announcement *h)
  * Struct to keep state of running searches that have consumed a part of
  * the inital string.
  */
-struct RegexSearchContext
-{
+struct RegexSearchContext {
   /**
    * Part of the description already consumed by
    * this particular search branch.
@@ -284,8 +282,7 @@ struct RegexSearchContext
 /**
  * Type of values in `dht_get_results`.
  */
-struct Result
-{
+struct Result {
   /**
    * Number of bytes in data.
    */
@@ -302,8 +299,7 @@ struct Result
  * Struct to keep information of searches of services described by a regex
  * using a user-provided string service description.
  */
-struct REGEX_INTERNAL_Search
-{
+struct REGEX_INTERNAL_Search {
   /**
    * DHT handle to use, must be initialized externally.
    */
@@ -360,9 +356,9 @@ struct REGEX_INTERNAL_Search
  * @param ctx Context of the search.
  */
 static void
-regex_next_edge (const struct RegexBlock *block,
-                 size_t size,
-                 struct RegexSearchContext *ctx);
+regex_next_edge(const struct RegexBlock *block,
+                size_t size,
+                struct RegexSearchContext *ctx);
 
 
 /**
@@ -381,33 +377,33 @@ regex_next_edge (const struct RegexBlock *block,
  * @param data Pointer to the result data.
  */
 static void
-dht_get_string_accept_handler (void *cls, struct GNUNET_TIME_Absolute exp,
-                               const struct GNUNET_HashCode *key,
-                               const struct GNUNET_PeerIdentity *get_path,
-                               unsigned int get_path_length,
-                               const struct GNUNET_PeerIdentity *put_path,
-                               unsigned int put_path_length,
-                               enum GNUNET_BLOCK_Type type,
-                               size_t size, const void *data)
+dht_get_string_accept_handler(void *cls, struct GNUNET_TIME_Absolute exp,
+                              const struct GNUNET_HashCode *key,
+                              const struct GNUNET_PeerIdentity *get_path,
+                              unsigned int get_path_length,
+                              const struct GNUNET_PeerIdentity *put_path,
+                              unsigned int put_path_length,
+                              enum GNUNET_BLOCK_Type type,
+                              size_t size, const void *data)
 {
   const struct RegexAcceptBlock *block = data;
   struct RegexSearchContext *ctx = cls;
   struct REGEX_INTERNAL_Search *info = ctx->info;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Regex result accept for %s (key %s)\n",
-       info->description, GNUNET_h2s(key));
+  LOG(GNUNET_ERROR_TYPE_DEBUG,
+      "Regex result accept for %s (key %s)\n",
+      info->description, GNUNET_h2s(key));
 
-  GNUNET_STATISTICS_update (info->stats,
-			    "# regex accepting blocks found",
-                            1, GNUNET_NO);
-  GNUNET_STATISTICS_update (info->stats,
-			    "# regex accepting block bytes found",
-                            size, GNUNET_NO);
-  info->callback (info->callback_cls,
-                  &block->peer,
-                  get_path, get_path_length,
-                  put_path, put_path_length);
+  GNUNET_STATISTICS_update(info->stats,
+                           "# regex accepting blocks found",
+                           1, GNUNET_NO);
+  GNUNET_STATISTICS_update(info->stats,
+                           "# regex accepting block bytes found",
+                           size, GNUNET_NO);
+  info->callback(info->callback_cls,
+                 &block->peer,
+                 get_path, get_path_length,
+                 put_path, put_path_length);
 }
 
 
@@ -419,28 +415,28 @@ dht_get_string_accept_handler (void *cls, struct GNUNET_TIME_Absolute exp,
  * @param ctx Context containing info about the string, tunnel, etc.
  */
 static void
-regex_find_path (const struct GNUNET_HashCode *key,
-                 struct RegexSearchContext *ctx)
+regex_find_path(const struct GNUNET_HashCode *key,
+                struct RegexSearchContext *ctx)
 {
   struct GNUNET_DHT_GetHandle *get_h;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Accept state found, now searching for paths to %s\n",
-       GNUNET_h2s (key),
-       (unsigned int) ctx->position);
-  get_h = GNUNET_DHT_get_start (ctx->info->dht,    /* handle */
-                                GNUNET_BLOCK_TYPE_REGEX_ACCEPT, /* type */
-                                key,     /* key to search */
-                                DHT_REPLICATION, /* replication level */
-                                DHT_OPT | GNUNET_DHT_RO_RECORD_ROUTE,
-                                NULL,       /* xquery */ // FIXME BLOOMFILTER
-                                0,     /* xquery bits */ // FIXME BLOOMFILTER SIZE
-                                &dht_get_string_accept_handler, ctx);
-  GNUNET_break (GNUNET_OK ==
-                GNUNET_CONTAINER_multihashmap_put(ctx->info->dht_get_handles,
-                                                  key,
-                                                  get_h,
-                                                  GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE));
+  LOG(GNUNET_ERROR_TYPE_DEBUG,
+      "Accept state found, now searching for paths to %s\n",
+      GNUNET_h2s(key),
+      (unsigned int)ctx->position);
+  get_h = GNUNET_DHT_get_start(ctx->info->dht,     /* handle */
+                               GNUNET_BLOCK_TYPE_REGEX_ACCEPT,  /* type */
+                               key,      /* key to search */
+                               DHT_REPLICATION,  /* replication level */
+                               DHT_OPT | GNUNET_DHT_RO_RECORD_ROUTE,
+                               NULL, /* xquery */        // FIXME BLOOMFILTER
+                               0, /* xquery bits */      // FIXME BLOOMFILTER SIZE
+                               &dht_get_string_accept_handler, ctx);
+  GNUNET_break(GNUNET_OK ==
+               GNUNET_CONTAINER_multihashmap_put(ctx->info->dht_get_handles,
+                                                 key,
+                                                 get_h,
+                                                 GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE));
 }
 
 
@@ -462,14 +458,14 @@ regex_find_path (const struct GNUNET_HashCode *key,
  * TODO: re-issue the request after certain time? cancel after X results?
  */
 static void
-dht_get_string_handler (void *cls, struct GNUNET_TIME_Absolute exp,
-                        const struct GNUNET_HashCode *key,
-                        const struct GNUNET_PeerIdentity *get_path,
-                        unsigned int get_path_length,
-                        const struct GNUNET_PeerIdentity *put_path,
-                        unsigned int put_path_length,
-                        enum GNUNET_BLOCK_Type type,
-                        size_t size, const void *data)
+dht_get_string_handler(void *cls, struct GNUNET_TIME_Absolute exp,
+                       const struct GNUNET_HashCode *key,
+                       const struct GNUNET_PeerIdentity *get_path,
+                       unsigned int get_path_length,
+                       const struct GNUNET_PeerIdentity *put_path,
+                       unsigned int put_path_length,
+                       enum GNUNET_BLOCK_Type type,
+                       size_t size, const void *data)
 {
   const struct RegexBlock *block = data;
   struct RegexSearchContext *ctx = cls;
@@ -477,32 +473,32 @@ dht_get_string_handler (void *cls, struct GNUNET_TIME_Absolute exp,
   size_t len;
   struct Result *copy;
 
-  LOG (GNUNET_ERROR_TYPE_INFO,
-       "DHT GET result for %s (%s)\n",
-       GNUNET_h2s (key), ctx->info->description);
-  copy = GNUNET_malloc (sizeof (struct Result) + size);
+  LOG(GNUNET_ERROR_TYPE_INFO,
+      "DHT GET result for %s (%s)\n",
+      GNUNET_h2s(key), ctx->info->description);
+  copy = GNUNET_malloc(sizeof(struct Result) + size);
   copy->size = size;
   copy->data = &copy[1];
-  GNUNET_memcpy (&copy[1], block, size);
-  GNUNET_break (GNUNET_OK ==
-		GNUNET_CONTAINER_multihashmap_put (info->dht_get_results,
-						   key, copy,
-						   GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE));
-  len = strlen (info->description);
+  GNUNET_memcpy(&copy[1], block, size);
+  GNUNET_break(GNUNET_OK ==
+               GNUNET_CONTAINER_multihashmap_put(info->dht_get_results,
+                                                 key, copy,
+                                                 GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE));
+  len = strlen(info->description);
   if (len == ctx->position) // String processed
-  {
-    if (GNUNET_YES == GNUNET_BLOCK_is_accepting (block, size))
     {
-      regex_find_path (key, ctx);
+      if (GNUNET_YES == GNUNET_BLOCK_is_accepting(block, size))
+        {
+          regex_find_path(key, ctx);
+        }
+      else
+        {
+          LOG(GNUNET_ERROR_TYPE_INFO, "block not accepting!\n");
+          /* FIXME REGEX this block not successful, wait for more? start timeout? */
+        }
+      return;
     }
-    else
-    {
-      LOG (GNUNET_ERROR_TYPE_INFO, "block not accepting!\n");
-      /* FIXME REGEX this block not successful, wait for more? start timeout? */
-    }
-    return;
-  }
-  regex_next_edge (block, size, ctx);
+  regex_next_edge(block, size, ctx);
 }
 
 
@@ -515,32 +511,32 @@ dht_get_string_handler (void *cls, struct GNUNET_TIME_Absolute exp,
  * @return #GNUNET_YES: we should always continue to iterate.
  */
 static int
-regex_result_iterator (void *cls,
-                       const struct GNUNET_HashCode * key,
-                       void *value)
+regex_result_iterator(void *cls,
+                      const struct GNUNET_HashCode * key,
+                      void *value)
 {
   struct Result *result = value;
   const struct RegexBlock *block = result->data;
   struct RegexSearchContext *ctx = cls;
 
-  if ( (GNUNET_YES ==
-	GNUNET_BLOCK_is_accepting (block, result->size)) &&
-       (ctx->position == strlen (ctx->info->description)) )
-  {
-    LOG (GNUNET_ERROR_TYPE_INFO,
-	 "Found accepting known block\n");
-    regex_find_path (key, ctx);
-    return GNUNET_YES; // We found an accept state!
-  }
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "* %u, %u, [%u]\n",
-       ctx->position,
-       strlen (ctx->info->description),
-       GNUNET_BLOCK_is_accepting (block, result->size));
-  regex_next_edge (block, result->size, ctx);
+  if ((GNUNET_YES ==
+       GNUNET_BLOCK_is_accepting(block, result->size)) &&
+      (ctx->position == strlen(ctx->info->description)))
+    {
+      LOG(GNUNET_ERROR_TYPE_INFO,
+          "Found accepting known block\n");
+      regex_find_path(key, ctx);
+      return GNUNET_YES; // We found an accept state!
+    }
+  LOG(GNUNET_ERROR_TYPE_DEBUG,
+      "* %u, %u, [%u]\n",
+      ctx->position,
+      strlen(ctx->info->description),
+      GNUNET_BLOCK_is_accepting(block, result->size));
+  regex_next_edge(block, result->size, ctx);
 
-  GNUNET_STATISTICS_update (ctx->info->stats, "# regex cadet blocks iterated",
-                            1, GNUNET_NO);
+  GNUNET_STATISTICS_update(ctx->info->stats, "# regex cadet blocks iterated",
+                           1, GNUNET_NO);
 
   return GNUNET_YES;
 }
@@ -556,43 +552,43 @@ regex_result_iterator (void *cls,
  * @return #GNUNET_YES if should keep iterating, #GNUNET_NO otherwise.
  */
 static int
-regex_edge_iterator (void *cls,
-                     const char *token,
-                     size_t len,
-                     const struct GNUNET_HashCode *key)
+regex_edge_iterator(void *cls,
+                    const char *token,
+                    size_t len,
+                    const struct GNUNET_HashCode *key)
 {
   struct RegexSearchContext *ctx = cls;
   struct REGEX_INTERNAL_Search *info = ctx->info;
   const char *current;
   size_t current_len;
 
-  GNUNET_STATISTICS_update (info->stats, "# regex edges iterated",
-                            1, GNUNET_NO);
+  GNUNET_STATISTICS_update(info->stats, "# regex edges iterated",
+                           1, GNUNET_NO);
   current = &info->description[ctx->position];
-  current_len = strlen (info->description) - ctx->position;
+  current_len = strlen(info->description) - ctx->position;
   if (len > current_len)
-  {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "Token too long, END\n");
-    return GNUNET_YES;
-  }
-  if (0 != strncmp (current, token, len))
-  {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "Token doesn't match, END\n");
-    return GNUNET_YES;
-  }
+    {
+      LOG(GNUNET_ERROR_TYPE_DEBUG, "Token too long, END\n");
+      return GNUNET_YES;
+    }
+  if (0 != strncmp(current, token, len))
+    {
+      LOG(GNUNET_ERROR_TYPE_DEBUG, "Token doesn't match, END\n");
+      return GNUNET_YES;
+    }
 
   if (len > ctx->longest_match)
-  {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "Token is longer, KEEP\n");
-    ctx->longest_match = len;
-    ctx->hash = *key;
-  }
+    {
+      LOG(GNUNET_ERROR_TYPE_DEBUG, "Token is longer, KEEP\n");
+      ctx->longest_match = len;
+      ctx->hash = *key;
+    }
   else
-  {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "Token is not longer, IGNORE\n");
-  }
+    {
+      LOG(GNUNET_ERROR_TYPE_DEBUG, "Token is not longer, IGNORE\n");
+    }
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "*    End of regex edge iterator\n");
+  LOG(GNUNET_ERROR_TYPE_DEBUG, "*    End of regex edge iterator\n");
   return GNUNET_YES;
 }
 
@@ -605,9 +601,9 @@ regex_edge_iterator (void *cls,
  * @param ctx Context of the search.
  */
 static void
-regex_next_edge (const struct RegexBlock *block,
-                 size_t size,
-                 struct RegexSearchContext *ctx)
+regex_next_edge(const struct RegexBlock *block,
+                size_t size,
+                struct RegexSearchContext *ctx)
 {
   struct RegexSearchContext *new_ctx;
   struct REGEX_INTERNAL_Search *info = ctx->info;
@@ -616,69 +612,69 @@ regex_next_edge (const struct RegexBlock *block,
   const char *rest;
   int result;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Next edge\n");
+  LOG(GNUNET_ERROR_TYPE_DEBUG, "Next edge\n");
   /* Find the longest match for the current string position,
    * among tokens in the given block */
   ctx->longest_match = 0;
-  result = REGEX_BLOCK_iterate (block, size,
-                                &regex_edge_iterator, ctx);
-  GNUNET_break (GNUNET_OK == result);
+  result = REGEX_BLOCK_iterate(block, size,
+                               &regex_edge_iterator, ctx);
+  GNUNET_break(GNUNET_OK == result);
 
   /* Did anything match? */
   if (0 == ctx->longest_match)
-  {
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-	 "no match in block\n");
-    return;
-  }
+    {
+      LOG(GNUNET_ERROR_TYPE_DEBUG,
+          "no match in block\n");
+      return;
+    }
 
   hash = &ctx->hash;
-  new_ctx = GNUNET_new (struct RegexSearchContext);
+  new_ctx = GNUNET_new(struct RegexSearchContext);
   new_ctx->info = info;
   new_ctx->position = ctx->position + ctx->longest_match;
-  GNUNET_array_append (info->contexts, info->n_contexts, new_ctx);
+  GNUNET_array_append(info->contexts, info->n_contexts, new_ctx);
 
   /* Check whether we already have a DHT GET running for it */
   if (GNUNET_YES ==
-      GNUNET_CONTAINER_multihashmap_contains (info->dht_get_handles, hash))
-  {
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-	 "GET for %s running, END\n",
-         GNUNET_h2s (hash));
-    GNUNET_CONTAINER_multihashmap_get_multiple (info->dht_get_results,
-                                                hash,
-                                                &regex_result_iterator,
-                                                new_ctx);
-    return; /* We are already looking for it */
-  }
+      GNUNET_CONTAINER_multihashmap_contains(info->dht_get_handles, hash))
+    {
+      LOG(GNUNET_ERROR_TYPE_DEBUG,
+          "GET for %s running, END\n",
+          GNUNET_h2s(hash));
+      GNUNET_CONTAINER_multihashmap_get_multiple(info->dht_get_results,
+                                                 hash,
+                                                 &regex_result_iterator,
+                                                 new_ctx);
+      return; /* We are already looking for it */
+    }
 
-  GNUNET_STATISTICS_update (info->stats, "# regex nodes traversed",
-                            1, GNUNET_NO);
+  GNUNET_STATISTICS_update(info->stats, "# regex nodes traversed",
+                           1, GNUNET_NO);
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Following edges at %s for offset %u in `%s'\n",
-       GNUNET_h2s (hash),
-       (unsigned int) ctx->position,
-       info->description);
+  LOG(GNUNET_ERROR_TYPE_DEBUG,
+      "Following edges at %s for offset %u in `%s'\n",
+      GNUNET_h2s(hash),
+      (unsigned int)ctx->position,
+      info->description);
   rest = &new_ctx->info->description[new_ctx->position];
   get_h =
-      GNUNET_DHT_get_start (info->dht,    /* handle */
-                            GNUNET_BLOCK_TYPE_REGEX, /* type */
-                            hash,     /* key to search */
-                            DHT_REPLICATION, /* replication level */
-                            DHT_OPT,
-                            rest, /* xquery */
-                            strlen (rest) + 1,     /* xquery bits */
-                            &dht_get_string_handler, new_ctx);
+    GNUNET_DHT_get_start(info->dht,       /* handle */
+                         GNUNET_BLOCK_TYPE_REGEX,    /* type */
+                         hash,        /* key to search */
+                         DHT_REPLICATION,    /* replication level */
+                         DHT_OPT,
+                         rest,    /* xquery */
+                         strlen(rest) + 1,         /* xquery bits */
+                         &dht_get_string_handler, new_ctx);
   if (GNUNET_OK !=
       GNUNET_CONTAINER_multihashmap_put(info->dht_get_handles,
                                         hash,
                                         get_h,
                                         GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST))
-  {
-    GNUNET_break (0);
-    return;
-  }
+    {
+      GNUNET_break(0);
+      return;
+    }
 }
 
 
@@ -696,11 +692,11 @@ regex_next_edge (const struct RegexBlock *block,
  *         Must be freed by calling #REGEX_INTERNAL_search_cancel().
  */
 struct REGEX_INTERNAL_Search *
-REGEX_INTERNAL_search (struct GNUNET_DHT_Handle *dht,
-                       const char *string,
-                       REGEX_INTERNAL_Found callback,
-                       void *callback_cls,
-                       struct GNUNET_STATISTICS_Handle *stats)
+REGEX_INTERNAL_search(struct GNUNET_DHT_Handle *dht,
+                      const char *string,
+                      REGEX_INTERNAL_Found callback,
+                      void *callback_cls,
+                      struct GNUNET_STATISTICS_Handle *stats)
 {
   struct REGEX_INTERNAL_Search *h;
   struct GNUNET_DHT_GetHandle *get_h;
@@ -710,50 +706,50 @@ REGEX_INTERNAL_search (struct GNUNET_DHT_Handle *dht,
   size_t len;
 
   /* Initialize handle */
-  GNUNET_assert (NULL != dht);
-  GNUNET_assert (NULL != callback);
-  h = GNUNET_new (struct REGEX_INTERNAL_Search);
+  GNUNET_assert(NULL != dht);
+  GNUNET_assert(NULL != callback);
+  h = GNUNET_new(struct REGEX_INTERNAL_Search);
   h->dht = dht;
-  h->description = GNUNET_strdup (string);
+  h->description = GNUNET_strdup(string);
   h->callback = callback;
   h->callback_cls = callback_cls;
   h->stats = stats;
-  h->dht_get_handles = GNUNET_CONTAINER_multihashmap_create (32, GNUNET_NO);
-  h->dht_get_results = GNUNET_CONTAINER_multihashmap_create (32, GNUNET_NO);
+  h->dht_get_handles = GNUNET_CONTAINER_multihashmap_create(32, GNUNET_NO);
+  h->dht_get_results = GNUNET_CONTAINER_multihashmap_create(32, GNUNET_NO);
 
   /* Initialize context */
-  len = strlen (string);
-  size = REGEX_INTERNAL_get_first_key (string, len, &key);
-  LOG (GNUNET_ERROR_TYPE_INFO,
-       "Initial key for `%s' is %s (based on `%.*s')\n",
-       string,
-       GNUNET_h2s (&key),
-       size,
-       string);
-  ctx = GNUNET_new (struct RegexSearchContext);
+  len = strlen(string);
+  size = REGEX_INTERNAL_get_first_key(string, len, &key);
+  LOG(GNUNET_ERROR_TYPE_INFO,
+      "Initial key for `%s' is %s (based on `%.*s')\n",
+      string,
+      GNUNET_h2s(&key),
+      size,
+      string);
+  ctx = GNUNET_new(struct RegexSearchContext);
   ctx->position = size;
   ctx->info = h;
-  GNUNET_array_append (h->contexts,
-                       h->n_contexts,
-                       ctx);
+  GNUNET_array_append(h->contexts,
+                      h->n_contexts,
+                      ctx);
   /* Start search in DHT */
-  get_h = GNUNET_DHT_get_start (h->dht,    /* handle */
-                                GNUNET_BLOCK_TYPE_REGEX, /* type */
-                                &key,     /* key to search */
-                                DHT_REPLICATION, /* replication level */
-                                DHT_OPT,
-                                &h->description[size],           /* xquery */
-                                // FIXME add BLOOMFILTER to exclude filtered peers
-                                len + 1 - size,                /* xquery bits */
-                                // FIXME add BLOOMFILTER SIZE
-                                &dht_get_string_handler, ctx);
-  GNUNET_break (
+  get_h = GNUNET_DHT_get_start(h->dht,     /* handle */
+                               GNUNET_BLOCK_TYPE_REGEX,  /* type */
+                               &key,      /* key to search */
+                               DHT_REPLICATION,  /* replication level */
+                               DHT_OPT,
+                               &h->description[size],            /* xquery */
+                               // FIXME add BLOOMFILTER to exclude filtered peers
+                               len + 1 - size,                 /* xquery bits */
+                               // FIXME add BLOOMFILTER SIZE
+                               &dht_get_string_handler, ctx);
+  GNUNET_break(
     GNUNET_OK ==
-    GNUNET_CONTAINER_multihashmap_put (h->dht_get_handles,
-                                       &key,
-                                       get_h,
-                                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST)
-               );
+    GNUNET_CONTAINER_multihashmap_put(h->dht_get_handles,
+                                      &key,
+                                      get_h,
+                                      GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST)
+    );
 
   return h;
 }
@@ -770,13 +766,13 @@ REGEX_INTERNAL_search (struct GNUNET_DHT_Handle *dht,
  *         #GNUNET_NO if not.
  */
 static int
-regex_cancel_dht_get (void *cls,
-                      const struct GNUNET_HashCode * key,
-                      void *value)
+regex_cancel_dht_get(void *cls,
+                     const struct GNUNET_HashCode * key,
+                     void *value)
 {
   struct GNUNET_DHT_GetHandle *h = value;
 
-  GNUNET_DHT_get_stop (h);
+  GNUNET_DHT_get_stop(h);
   return GNUNET_YES;
 }
 
@@ -792,11 +788,11 @@ regex_cancel_dht_get (void *cls,
  *         #GNUNET_NO if not.
  */
 static int
-regex_free_result (void *cls,
-                   const struct GNUNET_HashCode * key,
-                   void *value)
+regex_free_result(void *cls,
+                  const struct GNUNET_HashCode * key,
+                  void *value)
 {
-  GNUNET_free (value);
+  GNUNET_free(value);
   return GNUNET_YES;
 }
 
@@ -807,24 +803,24 @@ regex_free_result (void *cls,
  * @param h the search context.
  */
 void
-REGEX_INTERNAL_search_cancel (struct REGEX_INTERNAL_Search *h)
+REGEX_INTERNAL_search_cancel(struct REGEX_INTERNAL_Search *h)
 {
   unsigned int i;
 
-  GNUNET_free (h->description);
-  GNUNET_CONTAINER_multihashmap_iterate (h->dht_get_handles,
-                                         &regex_cancel_dht_get, NULL);
-  GNUNET_CONTAINER_multihashmap_iterate (h->dht_get_results,
-                                         &regex_free_result, NULL);
-  GNUNET_CONTAINER_multihashmap_destroy (h->dht_get_results);
-  GNUNET_CONTAINER_multihashmap_destroy (h->dht_get_handles);
+  GNUNET_free(h->description);
+  GNUNET_CONTAINER_multihashmap_iterate(h->dht_get_handles,
+                                        &regex_cancel_dht_get, NULL);
+  GNUNET_CONTAINER_multihashmap_iterate(h->dht_get_results,
+                                        &regex_free_result, NULL);
+  GNUNET_CONTAINER_multihashmap_destroy(h->dht_get_results);
+  GNUNET_CONTAINER_multihashmap_destroy(h->dht_get_handles);
   if (0 < h->n_contexts)
-  {
-    for (i = 0; i < h->n_contexts; i++)
-      GNUNET_free (h->contexts[i]);
-    GNUNET_free (h->contexts);
-  }
-  GNUNET_free (h);
+    {
+      for (i = 0; i < h->n_contexts; i++)
+        GNUNET_free(h->contexts[i]);
+      GNUNET_free(h->contexts);
+    }
+  GNUNET_free(h);
 }
 
 

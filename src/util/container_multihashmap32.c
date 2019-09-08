@@ -16,7 +16,7 @@
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 /**
  * @file util/container_multihashmap32.c
  * @brief a version of hash map implemented in container_multihashmap.c but with
@@ -29,7 +29,7 @@
 #include "gnunet_container_lib.h"
 
 #define LOG(kind, ...) \
-  GNUNET_log_from (kind, "util-container-multihashmap32", __VA_ARGS__)
+  GNUNET_log_from(kind, "util-container-multihashmap32", __VA_ARGS__)
 
 
 /**
@@ -43,9 +43,7 @@
 /**
  * An entry in the hash map.
  */
-struct MapEntry
-{
-
+struct MapEntry {
   /**
    * Key for the entry.
    */
@@ -65,9 +63,7 @@ struct MapEntry
 /**
  * Internal representation of the hash map.
  */
-struct GNUNET_CONTAINER_MultiHashMap32
-{
-
+struct GNUNET_CONTAINER_MultiHashMap32 {
   /**
    * All of our buckets.
    */
@@ -108,8 +104,7 @@ struct GNUNET_CONTAINER_MultiHashMap32
  * Cursor into a multihashmap.
  * Allows to enumerate elements asynchronously.
  */
-struct GNUNET_CONTAINER_MultiHashMap32Iterator
-{
+struct GNUNET_CONTAINER_MultiHashMap32Iterator {
   /**
    * Position in the bucket @e idx
    */
@@ -140,18 +135,18 @@ struct GNUNET_CONTAINER_MultiHashMap32Iterator
  * @return NULL on error
  */
 struct GNUNET_CONTAINER_MultiHashMap32 *
-GNUNET_CONTAINER_multihashmap32_create (unsigned int len)
+GNUNET_CONTAINER_multihashmap32_create(unsigned int len)
 {
   struct GNUNET_CONTAINER_MultiHashMap32 *ret;
 
-  GNUNET_assert (len > 0);
-  ret = GNUNET_new (struct GNUNET_CONTAINER_MultiHashMap32);
-  ret->map = GNUNET_malloc_large (len * sizeof (struct MapEntry *));
+  GNUNET_assert(len > 0);
+  ret = GNUNET_new(struct GNUNET_CONTAINER_MultiHashMap32);
+  ret->map = GNUNET_malloc_large(len * sizeof(struct MapEntry *));
   if (NULL == ret->map)
-  {
-    GNUNET_free (ret);
-    return NULL;
-  }
+    {
+      GNUNET_free(ret);
+      return NULL;
+    }
   ret->map_length = len;
   return ret;
 }
@@ -164,21 +159,21 @@ GNUNET_CONTAINER_multihashmap32_create (unsigned int len)
  * @param map the map
  */
 void
-GNUNET_CONTAINER_multihashmap32_destroy (
+GNUNET_CONTAINER_multihashmap32_destroy(
   struct GNUNET_CONTAINER_MultiHashMap32 *map)
 {
   struct MapEntry *e;
 
   for (unsigned int i = 0; i < map->map_length; i++)
-  {
-    while (NULL != (e = map->map[i]))
     {
-      map->map[i] = e->next;
-      GNUNET_free (e);
+      while (NULL != (e = map->map[i]))
+        {
+          map->map[i] = e->next;
+          GNUNET_free(e);
+        }
     }
-  }
-  GNUNET_free (map->map);
-  GNUNET_free (map);
+  GNUNET_free(map->map);
+  GNUNET_free(map);
 }
 
 
@@ -190,10 +185,10 @@ GNUNET_CONTAINER_multihashmap32_destroy (
  * @return offset into the "map" array of "m"
  */
 static unsigned int
-idx_of (const struct GNUNET_CONTAINER_MultiHashMap32 *m, const uint32_t key)
+idx_of(const struct GNUNET_CONTAINER_MultiHashMap32 *m, const uint32_t key)
 {
-  GNUNET_assert (NULL != m);
-  return ((unsigned int) key) % m->map_length;
+  GNUNET_assert(NULL != m);
+  return ((unsigned int)key) % m->map_length;
 }
 
 
@@ -204,7 +199,7 @@ idx_of (const struct GNUNET_CONTAINER_MultiHashMap32 *m, const uint32_t key)
  * @return the number of key value pairs
  */
 unsigned int
-GNUNET_CONTAINER_multihashmap32_size (
+GNUNET_CONTAINER_multihashmap32_size(
   const struct GNUNET_CONTAINER_MultiHashMap32 *map)
 {
   return map->size;
@@ -222,19 +217,19 @@ GNUNET_CONTAINER_multihashmap32_size (
  *   key-value pairs with value NULL
  */
 void *
-GNUNET_CONTAINER_multihashmap32_get (
+GNUNET_CONTAINER_multihashmap32_get(
   const struct GNUNET_CONTAINER_MultiHashMap32 *map,
   uint32_t key)
 {
   struct MapEntry *e;
 
-  e = map->map[idx_of (map, key)];
+  e = map->map[idx_of(map, key)];
   while (NULL != e)
-  {
-    if (key == e->key)
-      return e->value;
-    e = e->next;
-  }
+    {
+      if (key == e->key)
+        return e->value;
+      e = e->next;
+    }
   return NULL;
 }
 
@@ -249,7 +244,7 @@ GNUNET_CONTAINER_multihashmap32_get (
  *         #GNUNET_SYSERR if it aborted iteration
  */
 int
-GNUNET_CONTAINER_multihashmap32_iterate (
+GNUNET_CONTAINER_multihashmap32_iterate(
   struct GNUNET_CONTAINER_MultiHashMap32 *map,
   GNUNET_CONTAINER_MulitHashMapIterator32Callback it,
   void *it_cls)
@@ -258,29 +253,29 @@ GNUNET_CONTAINER_multihashmap32_iterate (
   struct MapEntry **ce;
 
   count = 0;
-  GNUNET_assert (NULL != map);
+  GNUNET_assert(NULL != map);
   ce = &map->next_cache[map->next_cache_off];
-  GNUNET_assert (++map->next_cache_off < NEXT_CACHE_SIZE);
+  GNUNET_assert(++map->next_cache_off < NEXT_CACHE_SIZE);
   for (unsigned int i = 0; i < map->map_length; i++)
-  {
-    struct MapEntry *e;
-
-    *ce = map->map[i];
-    while (NULL != (e = *ce))
     {
-      *ce = e->next;
-      if (NULL != it)
-      {
-        if (GNUNET_OK != it (it_cls, e->key, e->value))
+      struct MapEntry *e;
+
+      *ce = map->map[i];
+      while (NULL != (e = *ce))
         {
-          GNUNET_assert (--map->next_cache_off < NEXT_CACHE_SIZE);
-          return GNUNET_SYSERR;
+          *ce = e->next;
+          if (NULL != it)
+            {
+              if (GNUNET_OK != it(it_cls, e->key, e->value))
+                {
+                  GNUNET_assert(--map->next_cache_off < NEXT_CACHE_SIZE);
+                  return GNUNET_SYSERR;
+                }
+            }
+          count++;
         }
-      }
-      count++;
     }
-  }
-  GNUNET_assert (--map->next_cache_off < NEXT_CACHE_SIZE);
+  GNUNET_assert(--map->next_cache_off < NEXT_CACHE_SIZE);
   return count;
 }
 
@@ -293,8 +288,8 @@ GNUNET_CONTAINER_multihashmap32_iterate (
  * @param bme the entry that is about to be free'd
  */
 static void
-update_next_cache (struct GNUNET_CONTAINER_MultiHashMap32 *map,
-                   const struct MapEntry *me)
+update_next_cache(struct GNUNET_CONTAINER_MultiHashMap32 *map,
+                  const struct MapEntry *me)
 {
   for (unsigned int i = 0; i < map->next_cache_off; i++)
     if (map->next_cache[i] == me)
@@ -314,7 +309,7 @@ update_next_cache (struct GNUNET_CONTAINER_MultiHashMap32 *map,
  *  is not in the map
  */
 int
-GNUNET_CONTAINER_multihashmap32_remove (
+GNUNET_CONTAINER_multihashmap32_remove(
   struct GNUNET_CONTAINER_MultiHashMap32 *map,
   uint32_t key,
   const void *value)
@@ -325,25 +320,25 @@ GNUNET_CONTAINER_multihashmap32_remove (
 
   map->modification_counter++;
 
-  i = idx_of (map, key);
+  i = idx_of(map, key);
   p = NULL;
   e = map->map[i];
   while (e != NULL)
-  {
-    if ((key == e->key) && (value == e->value))
     {
-      if (p == NULL)
-        map->map[i] = e->next;
-      else
-        p->next = e->next;
-      update_next_cache (map, e);
-      GNUNET_free (e);
-      map->size--;
-      return GNUNET_YES;
+      if ((key == e->key) && (value == e->value))
+        {
+          if (p == NULL)
+            map->map[i] = e->next;
+          else
+            p->next = e->next;
+          update_next_cache(map, e);
+          GNUNET_free(e);
+          map->size--;
+          return GNUNET_YES;
+        }
+      p = e;
+      e = e->next;
     }
-    p = e;
-    e = e->next;
-  }
   return GNUNET_NO;
 }
 
@@ -357,7 +352,7 @@ GNUNET_CONTAINER_multihashmap32_remove (
  * @return number of values removed
  */
 int
-GNUNET_CONTAINER_multihashmap32_remove_all (
+GNUNET_CONTAINER_multihashmap32_remove_all(
   struct GNUNET_CONTAINER_MultiHashMap32 *map,
   uint32_t key)
 {
@@ -369,32 +364,32 @@ GNUNET_CONTAINER_multihashmap32_remove_all (
   map->modification_counter++;
 
   ret = 0;
-  i = idx_of (map, key);
+  i = idx_of(map, key);
   p = NULL;
   e = map->map[i];
   while (e != NULL)
-  {
-    if (key == e->key)
     {
-      if (p == NULL)
-        map->map[i] = e->next;
+      if (key == e->key)
+        {
+          if (p == NULL)
+            map->map[i] = e->next;
+          else
+            p->next = e->next;
+          update_next_cache(map, e);
+          GNUNET_free(e);
+          map->size--;
+          if (p == NULL)
+            e = map->map[i];
+          else
+            e = p->next;
+          ret++;
+        }
       else
-        p->next = e->next;
-      update_next_cache (map, e);
-      GNUNET_free (e);
-      map->size--;
-      if (p == NULL)
-        e = map->map[i];
-      else
-        e = p->next;
-      ret++;
+        {
+          p = e;
+          e = e->next;
+        }
     }
-    else
-    {
-      p = e;
-      e = e->next;
-    }
-  }
   return ret;
 }
 
@@ -409,19 +404,19 @@ GNUNET_CONTAINER_multihashmap32_remove_all (
  *         #GNUNET_NO if not
  */
 int
-GNUNET_CONTAINER_multihashmap32_contains (
+GNUNET_CONTAINER_multihashmap32_contains(
   const struct GNUNET_CONTAINER_MultiHashMap32 *map,
   uint32_t key)
 {
   struct MapEntry *e;
 
-  e = map->map[idx_of (map, key)];
+  e = map->map[idx_of(map, key)];
   while (e != NULL)
-  {
-    if (key == e->key)
-      return GNUNET_YES;
-    e = e->next;
-  }
+    {
+      if (key == e->key)
+        return GNUNET_YES;
+      e = e->next;
+    }
   return GNUNET_NO;
 }
 
@@ -437,20 +432,20 @@ GNUNET_CONTAINER_multihashmap32_contains (
  *         #GNUNET_NO if not
  */
 int
-GNUNET_CONTAINER_multihashmap32_contains_value (
+GNUNET_CONTAINER_multihashmap32_contains_value(
   const struct GNUNET_CONTAINER_MultiHashMap32 *map,
   uint32_t key,
   const void *value)
 {
   struct MapEntry *e;
 
-  e = map->map[idx_of (map, key)];
+  e = map->map[idx_of(map, key)];
   while (e != NULL)
-  {
-    if ((key == e->key) && (e->value == value))
-      return GNUNET_YES;
-    e = e->next;
-  }
+    {
+      if ((key == e->key) && (e->value == value))
+        return GNUNET_YES;
+      e = e->next;
+    }
   return GNUNET_NO;
 }
 
@@ -461,7 +456,7 @@ GNUNET_CONTAINER_multihashmap32_contains_value (
  * @param map the hash map to grow
  */
 static void
-grow (struct GNUNET_CONTAINER_MultiHashMap32 *map)
+grow(struct GNUNET_CONTAINER_MultiHashMap32 *map)
 {
   struct MapEntry **old_map;
   struct MapEntry **new_map;
@@ -477,23 +472,23 @@ grow (struct GNUNET_CONTAINER_MultiHashMap32 *map)
     new_len = old_len; /* never use 0 */
   if (new_len == old_len)
     return; /* nothing changed */
-  new_map = GNUNET_malloc_large (new_len * sizeof (struct MapEntry *));
+  new_map = GNUNET_malloc_large(new_len * sizeof(struct MapEntry *));
   if (NULL == new_map)
     return; /* grow not possible */
   map->modification_counter++;
   map->map_length = new_len;
   map->map = new_map;
   for (unsigned int i = 0; i < old_len; i++)
-  {
-    while (NULL != (e = old_map[i]))
     {
-      old_map[i] = e->next;
-      idx = idx_of (map, e->key);
-      e->next = new_map[idx];
-      new_map[idx] = e;
+      while (NULL != (e = old_map[i]))
+        {
+          old_map[i] = e->next;
+          idx = idx_of(map, e->key);
+          e->next = new_map[idx];
+          new_map[idx] = e;
+        }
     }
-  }
-  GNUNET_free (old_map);
+  GNUNET_free(old_map);
 }
 
 
@@ -510,7 +505,7 @@ grow (struct GNUNET_CONTAINER_MultiHashMap32 *map)
  *                       value already exists
  */
 int
-GNUNET_CONTAINER_multihashmap32_put (
+GNUNET_CONTAINER_multihashmap32_put(
   struct GNUNET_CONTAINER_MultiHashMap32 *map,
   uint32_t key,
   void *value,
@@ -519,29 +514,29 @@ GNUNET_CONTAINER_multihashmap32_put (
   struct MapEntry *e;
   unsigned int i;
 
-  i = idx_of (map, key);
+  i = idx_of(map, key);
   if ((opt != GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE) &&
       (opt != GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST))
-  {
-    e = map->map[i];
-    while (e != NULL)
     {
-      if (key == e->key)
-      {
-        if (opt == GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY)
-          return GNUNET_SYSERR;
-        e->value = value;
-        return GNUNET_NO;
-      }
-      e = e->next;
+      e = map->map[i];
+      while (e != NULL)
+        {
+          if (key == e->key)
+            {
+              if (opt == GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY)
+                return GNUNET_SYSERR;
+              e->value = value;
+              return GNUNET_NO;
+            }
+          e = e->next;
+        }
     }
-  }
   if (map->size / 3 >= map->map_length / 4)
-  {
-    grow (map);
-    i = idx_of (map, key);
-  }
-  e = GNUNET_new (struct MapEntry);
+    {
+      grow(map);
+      i = idx_of(map, key);
+    }
+  e = GNUNET_new(struct MapEntry);
   e->key = key;
   e->value = value;
   e->next = map->map[i];
@@ -562,7 +557,7 @@ GNUNET_CONTAINER_multihashmap32_put (
  *         GNUNET_SYSERR if it aborted iteration
  */
 int
-GNUNET_CONTAINER_multihashmap32_get_multiple (
+GNUNET_CONTAINER_multihashmap32_get_multiple(
   struct GNUNET_CONTAINER_MultiHashMap32 *map,
   uint32_t key,
   GNUNET_CONTAINER_MulitHashMapIterator32Callback it,
@@ -574,22 +569,22 @@ GNUNET_CONTAINER_multihashmap32_get_multiple (
 
   count = 0;
   ce = &map->next_cache[map->next_cache_off];
-  GNUNET_assert (++map->next_cache_off < NEXT_CACHE_SIZE);
+  GNUNET_assert(++map->next_cache_off < NEXT_CACHE_SIZE);
 
-  *ce = map->map[idx_of (map, key)];
+  *ce = map->map[idx_of(map, key)];
   while (NULL != (e = *ce))
-  {
-    *ce = e->next;
-    if (key != e->key)
-      continue;
-    if ((NULL != it) && (GNUNET_OK != it (it_cls, key, e->value)))
     {
-      GNUNET_assert (--map->next_cache_off < NEXT_CACHE_SIZE);
-      return GNUNET_SYSERR;
+      *ce = e->next;
+      if (key != e->key)
+        continue;
+      if ((NULL != it) && (GNUNET_OK != it(it_cls, key, e->value)))
+        {
+          GNUNET_assert(--map->next_cache_off < NEXT_CACHE_SIZE);
+          return GNUNET_SYSERR;
+        }
+      count++;
     }
-    count++;
-  }
-  GNUNET_assert (--map->next_cache_off < NEXT_CACHE_SIZE);
+  GNUNET_assert(--map->next_cache_off < NEXT_CACHE_SIZE);
   return count;
 }
 
@@ -607,12 +602,12 @@ GNUNET_CONTAINER_multihashmap32_get_multiple (
  * @return an iterator over the given multihashmap @a map
  */
 struct GNUNET_CONTAINER_MultiHashMap32Iterator *
-GNUNET_CONTAINER_multihashmap32_iterator_create (
+GNUNET_CONTAINER_multihashmap32_iterator_create(
   const struct GNUNET_CONTAINER_MultiHashMap32 *map)
 {
   struct GNUNET_CONTAINER_MultiHashMap32Iterator *iter;
 
-  iter = GNUNET_new (struct GNUNET_CONTAINER_MultiHashMap32Iterator);
+  iter = GNUNET_new(struct GNUNET_CONTAINER_MultiHashMap32Iterator);
   iter->map = map;
   iter->modification_counter = map->modification_counter;
   iter->me = map->map[0];
@@ -635,32 +630,32 @@ GNUNET_CONTAINER_multihashmap32_iterator_create (
  *         #GNUNET_NO if we are out of elements
  */
 int
-GNUNET_CONTAINER_multihashmap32_iterator_next (
+GNUNET_CONTAINER_multihashmap32_iterator_next(
   struct GNUNET_CONTAINER_MultiHashMap32Iterator *iter,
   uint32_t *key,
   const void **value)
 {
   /* make sure the map has not been modified */
-  GNUNET_assert (iter->modification_counter == iter->map->modification_counter);
+  GNUNET_assert(iter->modification_counter == iter->map->modification_counter);
 
   /* look for the next entry, skipping empty buckets */
   while (1)
-  {
-    if (iter->idx >= iter->map->map_length)
-      return GNUNET_NO;
-    if (NULL != iter->me)
     {
-      if (NULL != key)
-        *key = iter->me->key;
-      if (NULL != value)
-        *value = iter->me->value;
-      iter->me = iter->me->next;
-      return GNUNET_YES;
+      if (iter->idx >= iter->map->map_length)
+        return GNUNET_NO;
+      if (NULL != iter->me)
+        {
+          if (NULL != key)
+            *key = iter->me->key;
+          if (NULL != value)
+            *value = iter->me->value;
+          iter->me = iter->me->next;
+          return GNUNET_YES;
+        }
+      iter->idx += 1;
+      if (iter->idx < iter->map->map_length)
+        iter->me = iter->map->map[iter->idx];
     }
-    iter->idx += 1;
-    if (iter->idx < iter->map->map_length)
-      iter->me = iter->map->map[iter->idx];
-  }
 }
 
 
@@ -670,10 +665,10 @@ GNUNET_CONTAINER_multihashmap32_iterator_next (
  * @param iter the iterator to destroy
  */
 void
-GNUNET_CONTAINER_multihashmap32_iterator_destroy (
+GNUNET_CONTAINER_multihashmap32_iterator_destroy(
   struct GNUNET_CONTAINER_MultiHashMapIterator *iter)
 {
-  GNUNET_free (iter);
+  GNUNET_free(iter);
 }
 
 

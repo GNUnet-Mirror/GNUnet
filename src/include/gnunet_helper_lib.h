@@ -11,12 +11,12 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 
 /**
  * @author Philipp Toelke
@@ -74,12 +74,12 @@ typedef void
  * @return the new Handle, NULL on error
  */
 struct GNUNET_HELPER_Handle *
-GNUNET_HELPER_start (int with_control_pipe,
-		     const char *binary_name,
-		     char *const binary_argv[],
-		     GNUNET_MessageTokenizerCallback cb,
-		     GNUNET_HELPER_ExceptionCallback exp_cb,
-		     void *cb_cls);
+GNUNET_HELPER_start(int with_control_pipe,
+                    const char *binary_name,
+                    char *const binary_argv[],
+                    GNUNET_MessageTokenizerCallback cb,
+                    GNUNET_HELPER_ExceptionCallback exp_cb,
+                    void *cb_cls);
 
 
 /**
@@ -92,7 +92,7 @@ GNUNET_HELPER_start (int with_control_pipe,
  * @return #GNUNET_OK on success; #GNUNET_SYSERR on error
  */
 int
-GNUNET_HELPER_kill (struct GNUNET_HELPER_Handle *h, int soft_kill);
+GNUNET_HELPER_kill(struct GNUNET_HELPER_Handle *h, int soft_kill);
 
 
 /**
@@ -104,7 +104,7 @@ GNUNET_HELPER_kill (struct GNUNET_HELPER_Handle *h, int soft_kill);
  * @return #GNUNET_OK on success; #GNUNET_SYSERR on error
  */
 int
-GNUNET_HELPER_wait (struct GNUNET_HELPER_Handle *h);
+GNUNET_HELPER_wait(struct GNUNET_HELPER_Handle *h);
 
 
 /**
@@ -113,7 +113,7 @@ GNUNET_HELPER_wait (struct GNUNET_HELPER_Handle *h);
  * @param h the helper handle to free
  */
 void
-GNUNET_HELPER_destroy (struct GNUNET_HELPER_Handle *h);
+GNUNET_HELPER_destroy(struct GNUNET_HELPER_Handle *h);
 
 
 /**
@@ -125,7 +125,7 @@ GNUNET_HELPER_destroy (struct GNUNET_HELPER_Handle *h);
  *          stdin; #GNUNET_NO to signal termination by sending SIGTERM to helper
  */
 void
-GNUNET_HELPER_stop (struct GNUNET_HELPER_Handle *h, int soft_kill);
+GNUNET_HELPER_stop(struct GNUNET_HELPER_Handle *h, int soft_kill);
 
 
 /**
@@ -137,7 +137,7 @@ GNUNET_HELPER_stop (struct GNUNET_HELPER_Handle *h, int soft_kill);
  *               #GNUNET_SYSERR during GNUNET_HELPER_destroy
  */
 typedef void (*GNUNET_HELPER_Continuation)(void *cls,
-					   int result);
+                                           int result);
 
 
 /**
@@ -160,11 +160,11 @@ struct GNUNET_HELPER_SendHandle;
  *         not be abortable)
  */
 struct GNUNET_HELPER_SendHandle *
-GNUNET_HELPER_send (struct GNUNET_HELPER_Handle *h,
-		    const struct GNUNET_MessageHeader *msg,
-		    int can_drop,
-		    GNUNET_HELPER_Continuation cont,
-		    void *cont_cls);
+GNUNET_HELPER_send(struct GNUNET_HELPER_Handle *h,
+                   const struct GNUNET_MessageHeader *msg,
+                   int can_drop,
+                   GNUNET_HELPER_Continuation cont,
+                   void *cont_cls);
 
 
 /**
@@ -174,7 +174,7 @@ GNUNET_HELPER_send (struct GNUNET_HELPER_Handle *h,
  * @param sh operation to cancel
  */
 void
-GNUNET_HELPER_send_cancel (struct GNUNET_HELPER_SendHandle *sh);
+GNUNET_HELPER_send_cancel(struct GNUNET_HELPER_SendHandle *sh);
 
 
 #endif

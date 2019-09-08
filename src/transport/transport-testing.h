@@ -16,7 +16,7 @@
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 
 /**
  * @file transport-testing.h
@@ -51,8 +51,7 @@ struct GNUNET_TRANSPORT_TESTING_Handle;
 /**
  * Context for a single peer
  */
-struct GNUNET_TRANSPORT_TESTING_PeerContext
-{
+struct GNUNET_TRANSPORT_TESTING_PeerContext {
   /**
    * Next element in the DLL
    */
@@ -153,8 +152,7 @@ struct GNUNET_TRANSPORT_TESTING_PeerContext
 /**
  * Handle for a request to connect two peers.
  */
-struct GNUNET_TRANSPORT_TESTING_ConnectRequest
-{
+struct GNUNET_TRANSPORT_TESTING_ConnectRequest {
   /**
    * Kept in a DLL.
    */
@@ -226,8 +224,7 @@ struct GNUNET_TRANSPORT_TESTING_ConnectRequest
 /**
  * Handle for a test run.
  */
-struct GNUNET_TRANSPORT_TESTING_Handle
-{
+struct GNUNET_TRANSPORT_TESTING_Handle {
   /**
    * Testing library system handle
    */
@@ -261,7 +258,7 @@ struct GNUNET_TRANSPORT_TESTING_Handle
  * @return transport testing handle
  */
 struct GNUNET_TRANSPORT_TESTING_Handle *
-GNUNET_TRANSPORT_TESTING_init (void);
+GNUNET_TRANSPORT_TESTING_init(void);
 
 
 /**
@@ -270,7 +267,7 @@ GNUNET_TRANSPORT_TESTING_init (void);
  * @param tth transport testing handle
  */
 void
-GNUNET_TRANSPORT_TESTING_done (struct GNUNET_TRANSPORT_TESTING_Handle *tth);
+GNUNET_TRANSPORT_TESTING_done(struct GNUNET_TRANSPORT_TESTING_Handle *tth);
 
 
 /**
@@ -288,7 +285,7 @@ GNUNET_TRANSPORT_TESTING_done (struct GNUNET_TRANSPORT_TESTING_Handle *tth);
  * @return the peer context
  */
 struct GNUNET_TRANSPORT_TESTING_PeerContext *
-GNUNET_TRANSPORT_TESTING_start_peer (
+GNUNET_TRANSPORT_TESTING_start_peer(
   struct GNUNET_TRANSPORT_TESTING_Handle *tth,
   const char *cfgname,
   int peer_id,
@@ -306,7 +303,7 @@ GNUNET_TRANSPORT_TESTING_start_peer (
  * @param p the peer
  */
 void
-GNUNET_TRANSPORT_TESTING_stop_peer (
+GNUNET_TRANSPORT_TESTING_stop_peer(
   struct GNUNET_TRANSPORT_TESTING_PeerContext *pc);
 
 
@@ -319,7 +316,7 @@ GNUNET_TRANSPORT_TESTING_stop_peer (
  * @return #GNUNET_OK in success otherwise #GNUNET_SYSERR
  */
 int
-GNUNET_TRANSPORT_TESTING_restart_peer (
+GNUNET_TRANSPORT_TESTING_restart_peer(
   struct GNUNET_TRANSPORT_TESTING_PeerContext *p,
   GNUNET_SCHEDULER_TaskCallback restart_cb,
   void *restart_cb_cls);
@@ -338,7 +335,7 @@ GNUNET_TRANSPORT_TESTING_restart_peer (
  * @return a connect request handle
  */
 struct GNUNET_TRANSPORT_TESTING_ConnectRequest *
-GNUNET_TRANSPORT_TESTING_connect_peers (
+GNUNET_TRANSPORT_TESTING_connect_peers(
   struct GNUNET_TRANSPORT_TESTING_PeerContext *p1,
   struct GNUNET_TRANSPORT_TESTING_PeerContext *p2,
   GNUNET_SCHEDULER_TaskCallback cb,
@@ -353,7 +350,7 @@ GNUNET_TRANSPORT_TESTING_connect_peers (
  * @param cc a connect request handle
  */
 void
-GNUNET_TRANSPORT_TESTING_connect_peers_cancel (
+GNUNET_TRANSPORT_TESTING_connect_peers_cancel(
   struct GNUNET_TRANSPORT_TESTING_ConnectRequest *cc);
 
 
@@ -377,7 +374,7 @@ typedef void (*GNUNET_TRANSPORT_TESTING_ConnectContextCallback) (
  * @param cb_cls closure for @a cb
  */
 void
-GNUNET_TRANSPORT_TESTING_find_connecting_context (
+GNUNET_TRANSPORT_TESTING_find_connecting_context(
   struct GNUNET_TRANSPORT_TESTING_PeerContext *p1,
   struct GNUNET_TRANSPORT_TESTING_PeerContext *p2,
   GNUNET_TRANSPORT_TESTING_ConnectContextCallback cb,
@@ -413,8 +410,7 @@ struct GNUNET_TRANSPORT_TESTING_InternalPeerContext;
 
 
 GNUNET_NETWORK_STRUCT_BEGIN
-struct GNUNET_TRANSPORT_TESTING_TestMessage
-{
+struct GNUNET_TRANSPORT_TESTING_TestMessage {
   /**
    * Type is (usually) #GNUNET_TRANSPORT_TESTING_SIMPLE_MTYPE.
    */
@@ -475,9 +471,7 @@ typedef void (*GNUNET_TRANSPORT_TESTING_NotifyDisconnect) (
  * Closure that must be passed to
  * #GNUNET_TRANSPORT_TESTING_connect_check.
  */
-struct GNUNET_TRANSPORT_TESTING_ConnectCheckContext
-{
-
+struct GNUNET_TRANSPORT_TESTING_ConnectCheckContext {
   /**
    * How should we continue after the connect?
    */
@@ -640,7 +634,7 @@ struct GNUNET_TRANSPORT_TESTING_ConnectCheckContext
  * @return NULL if @a peer was not found
  */
 struct GNUNET_TRANSPORT_TESTING_PeerContext *
-GNUNET_TRANSPORT_TESTING_find_peer (
+GNUNET_TRANSPORT_TESTING_find_peer(
   struct GNUNET_TRANSPORT_TESTING_ConnectCheckContext *ccc,
   const struct GNUNET_PeerIdentity *peer);
 
@@ -662,7 +656,7 @@ GNUNET_TRANSPORT_TESTING_find_peer (
  * @return #GNUNET_SYSERR on error
  */
 int
-GNUNET_TRANSPORT_TESTING_connect_check (
+GNUNET_TRANSPORT_TESTING_connect_check(
   void *cls,
   struct GNUNET_TRANSPORT_TESTING_Handle *tth_,
   const char *test_plugin_,
@@ -703,11 +697,11 @@ typedef int (*GNUNET_TRANSPORT_TESTING_CheckCallback) (
  * @return #GNUNET_OK on success
  */
 int
-GNUNET_TRANSPORT_TESTING_main_ (const char *argv0,
-                                const char *filename,
-                                unsigned int num_peers,
-                                GNUNET_TRANSPORT_TESTING_CheckCallback check,
-                                void *check_cls);
+GNUNET_TRANSPORT_TESTING_main_(const char *argv0,
+                               const char *filename,
+                               unsigned int num_peers,
+                               GNUNET_TRANSPORT_TESTING_CheckCallback check,
+                               void *check_cls);
 
 
 /**
@@ -719,11 +713,11 @@ GNUNET_TRANSPORT_TESTING_main_ (const char *argv0,
  * @return #GNUNET_OK on success
  */
 #define GNUNET_TRANSPORT_TESTING_main(num_peers, check, check_cls) \
-  GNUNET_TRANSPORT_TESTING_main_ (argv[0],                         \
-                                  __FILE__,                        \
-                                  num_peers,                       \
-                                  check,                           \
-                                  check_cls)
+  GNUNET_TRANSPORT_TESTING_main_(argv[0],                         \
+                                 __FILE__,                        \
+                                 num_peers,                       \
+                                 check,                           \
+                                 check_cls)
 
 /* ***************** Convenience functions for sending ********* */
 
@@ -745,7 +739,7 @@ GNUNET_TRANSPORT_TESTING_main_ (const char *argv0,
  *         #GNUNET_SYSERR if @a msize is illegal
  */
 int
-GNUNET_TRANSPORT_TESTING_send (
+GNUNET_TRANSPORT_TESTING_send(
   struct GNUNET_TRANSPORT_TESTING_PeerContext *sender,
   struct GNUNET_TRANSPORT_TESTING_PeerContext *receiver,
   uint16_t mtype,
@@ -771,8 +765,7 @@ GNUNET_TRANSPORT_TESTING_send (
  * #GNUNET_TRANSPORT_TESTING_simple_send() and
  * #GNUNET_TRANSPORT_TESTING_large_send().
  */
-struct GNUNET_TRANSPORT_TESTING_SendClosure
-{
+struct GNUNET_TRANSPORT_TESTING_SendClosure {
   /**
    * Context for the transmission.
    */
@@ -812,7 +805,7 @@ struct GNUNET_TRANSPORT_TESTING_SendClosure
  *        of which should be currently connected
  */
 void
-GNUNET_TRANSPORT_TESTING_simple_send (void *cls);
+GNUNET_TRANSPORT_TESTING_simple_send(void *cls);
 
 /**
  * Size of a message sent with
@@ -830,7 +823,7 @@ GNUNET_TRANSPORT_TESTING_simple_send (void *cls);
  *        of which should be currently connected
  */
 void
-GNUNET_TRANSPORT_TESTING_large_send (void *cls);
+GNUNET_TRANSPORT_TESTING_large_send(void *cls);
 
 
 /* ********************** log-only convenience functions ************* */
@@ -844,7 +837,7 @@ GNUNET_TRANSPORT_TESTING_large_send (void *cls);
  * @param other peer that connected.
  */
 void
-GNUNET_TRANSPORT_TESTING_log_connect (
+GNUNET_TRANSPORT_TESTING_log_connect(
   void *cls,
   struct GNUNET_TRANSPORT_TESTING_PeerContext *me,
   const struct GNUNET_PeerIdentity *other);
@@ -858,7 +851,7 @@ GNUNET_TRANSPORT_TESTING_log_connect (
  * @param other peer that disconnected.
  */
 void
-GNUNET_TRANSPORT_TESTING_log_disconnect (
+GNUNET_TRANSPORT_TESTING_log_disconnect(
   void *cls,
   struct GNUNET_TRANSPORT_TESTING_PeerContext *me,
   const struct GNUNET_PeerIdentity *other);
@@ -875,7 +868,7 @@ GNUNET_TRANSPORT_TESTING_log_disconnect (
  * @return resulting test name
  */
 char *
-GNUNET_TRANSPORT_TESTING_get_test_name (const char *file);
+GNUNET_TRANSPORT_TESTING_get_test_name(const char *file);
 
 
 /**
@@ -887,7 +880,7 @@ GNUNET_TRANSPORT_TESTING_get_test_name (const char *file);
  * @return configuration name to use
  */
 char *
-GNUNET_TRANSPORT_TESTING_get_config_name (const char *file, int count);
+GNUNET_TRANSPORT_TESTING_get_config_name(const char *file, int count);
 
 
 /**
@@ -897,8 +890,8 @@ GNUNET_TRANSPORT_TESTING_get_config_name (const char *file, int count);
  * @return the plugin name
  */
 char *
-GNUNET_TRANSPORT_TESTING_get_test_plugin_name (const char *executable,
-                                               const char *testname);
+GNUNET_TRANSPORT_TESTING_get_test_plugin_name(const char *executable,
+                                              const char *testname);
 
 
 /**
@@ -909,7 +902,7 @@ GNUNET_TRANSPORT_TESTING_get_test_plugin_name (const char *executable,
  * @return the source name
  */
 char *
-GNUNET_TRANSPORT_TESTING_get_test_source_name (const char *file);
+GNUNET_TRANSPORT_TESTING_get_test_source_name(const char *file);
 
 #endif
 /* end of transport_testing.h */

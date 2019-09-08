@@ -11,7 +11,7 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -20,7 +20,7 @@
      For the actual CRC code:
      Copyright abandoned; this code is in the public domain.
      Provided to GNUnet by peter@horizon.com
-*/
+ */
 
 /**
  * @file util/test_crypto_crc.c
@@ -205,16 +205,16 @@ static int expected[] = {
 };
 
 int
-main (int argc, char *argv[])
+main(int argc, char *argv[])
 {
   char buf[1024];
   int i;
 
-  GNUNET_log_setup ("test-crypto-crc", "WARNING", NULL);
+  GNUNET_log_setup("test-crypto-crc", "WARNING", NULL);
   for (i = 0; i < 1024; i++)
-    buf[i] = (char) i;
+    buf[i] = (char)i;
   for (i = 0; i < 1024; i++)
-    if (expected[i] != GNUNET_CRYPTO_crc32_n (&buf[i], 1024 - i))
+    if (expected[i] != GNUNET_CRYPTO_crc32_n(&buf[i], 1024 - i))
       return 1;
   return 0;
 }

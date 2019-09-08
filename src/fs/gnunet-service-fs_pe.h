@@ -11,12 +11,12 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 
 /**
  * @file fs/gnunet-service-fs_pe.h
@@ -36,8 +36,8 @@
  * @param pr request with the entry
  */
 void
-GSF_plan_add_ (struct GSF_ConnectedPeer *cp,
-               struct GSF_PendingRequest *pr);
+GSF_plan_add_(struct GSF_ConnectedPeer *cp,
+              struct GSF_PendingRequest *pr);
 
 
 /**
@@ -47,7 +47,7 @@ GSF_plan_add_ (struct GSF_ConnectedPeer *cp,
  * @param cp connected peer
  */
 void
-GSF_plan_notify_peer_disconnect_ (const struct GSF_ConnectedPeer *cp);
+GSF_plan_notify_peer_disconnect_(const struct GSF_ConnectedPeer *cp);
 
 
 /**
@@ -57,7 +57,7 @@ GSF_plan_notify_peer_disconnect_ (const struct GSF_ConnectedPeer *cp);
  * @param pr request that is done
  */
 void
-GSF_plan_notify_request_done_ (struct GSF_PendingRequest *pr);
+GSF_plan_notify_request_done_(struct GSF_PendingRequest *pr);
 
 /**
  * Get the last transmission attempt time for the request plan list
@@ -69,22 +69,22 @@ GSF_plan_notify_request_done_ (struct GSF_PendingRequest *pr);
  * @return GNUNET_YES if 'result' was changed, GNUNET_NO otherwise.
  */
 int
-GSF_request_plan_reference_get_last_transmission_ (struct GSF_PendingRequestPlanBijection *pr_head,
-						   struct GSF_ConnectedPeer *sender,
-						   struct GNUNET_TIME_Absolute *result);
+GSF_request_plan_reference_get_last_transmission_(struct GSF_PendingRequestPlanBijection *pr_head,
+                                                  struct GSF_ConnectedPeer *sender,
+                                                  struct GNUNET_TIME_Absolute *result);
 
 /**
  * Initialize plan subsystem.
  */
 void
-GSF_plan_init (void);
+GSF_plan_init(void);
 
 
 /**
  * Shutdown plan subsystem.
  */
 void
-GSF_plan_done (void);
+GSF_plan_done(void);
 
 
 #endif

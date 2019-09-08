@@ -11,12 +11,12 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 
 /**
  * @file peerstore/gnunet-peerstore.c
@@ -41,13 +41,13 @@ static struct GNUNET_PEERSTORE_Handle *peerstore_handle;
  * @param cls unused
  */
 static void
-shutdown_task (void *cls)
+shutdown_task(void *cls)
 {
   if (NULL != peerstore_handle)
-  {
-    GNUNET_PEERSTORE_disconnect (peerstore_handle, GNUNET_YES);
-    peerstore_handle = NULL;
-  }
+    {
+      GNUNET_PEERSTORE_disconnect(peerstore_handle, GNUNET_YES);
+      peerstore_handle = NULL;
+    }
 }
 
 
@@ -60,15 +60,15 @@ shutdown_task (void *cls)
  * @param cfg configuration
  */
 static void
-run (void *cls,
-     char *const *args,
-     const char *cfgfile,
-     const struct GNUNET_CONFIGURATION_Handle *cfg)
+run(void *cls,
+    char *const *args,
+    const char *cfgfile,
+    const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
-  GNUNET_SCHEDULER_add_shutdown (&shutdown_task,
-				 NULL);
-  peerstore_handle = GNUNET_PEERSTORE_connect (cfg);
-  GNUNET_assert (NULL != peerstore_handle);
+  GNUNET_SCHEDULER_add_shutdown(&shutdown_task,
+                                NULL);
+  peerstore_handle = GNUNET_PEERSTORE_connect(cfg);
+  GNUNET_assert(NULL != peerstore_handle);
   ret = 0;
 }
 
@@ -81,15 +81,16 @@ run (void *cls,
  * @return 0 ok, 1 on error
  */
 int
-main (int argc, char *const *argv)
+main(int argc, char *const *argv)
 {
   static const struct GNUNET_GETOPT_CommandLineOption options[] = {
     GNUNET_GETOPT_OPTION_END
   };
+
   return (GNUNET_OK ==
-          GNUNET_PROGRAM_run (argc, argv, "gnunet-peerstore [options [value]]",
-                              gettext_noop ("peerstore"), options, &run,
-                              NULL)) ? ret : 1;
+          GNUNET_PROGRAM_run(argc, argv, "gnunet-peerstore [options [value]]",
+                             gettext_noop("peerstore"), options, &run,
+                             NULL)) ? ret : 1;
 }
 
 /* end of gnunet-peerstore.c */

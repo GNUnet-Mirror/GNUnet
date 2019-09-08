@@ -11,12 +11,12 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 
 /**
  * @author Christian Grothoff
@@ -63,8 +63,8 @@ struct GNUNET_DATACACHE_Handle;
  * @return handle to use to access the service
  */
 struct GNUNET_DATACACHE_Handle *
-GNUNET_DATACACHE_create (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                         const char *section);
+GNUNET_DATACACHE_create(const struct GNUNET_CONFIGURATION_Handle *cfg,
+                        const char *section);
 
 
 /**
@@ -73,7 +73,7 @@ GNUNET_DATACACHE_create (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @param h handle to the datastore
  */
 void
-GNUNET_DATACACHE_destroy (struct GNUNET_DATACACHE_Handle *h);
+GNUNET_DATACACHE_destroy(struct GNUNET_DATACACHE_Handle *h);
 
 
 /**
@@ -115,15 +115,15 @@ typedef int
  * @return #GNUNET_OK on success, #GNUNET_SYSERR on error, #GNUNET_NO if duplicate
  */
 int
-GNUNET_DATACACHE_put (struct GNUNET_DATACACHE_Handle *h,
-                      const struct GNUNET_HashCode *key,
-                      uint32_t xor_distance,
-                      size_t data_size,
-                      const char *data,
-                      enum GNUNET_BLOCK_Type type,
-                      struct GNUNET_TIME_Absolute discard_time,
-		      unsigned int path_info_len,
-		      const struct GNUNET_PeerIdentity *path_info);
+GNUNET_DATACACHE_put(struct GNUNET_DATACACHE_Handle *h,
+                     const struct GNUNET_HashCode *key,
+                     uint32_t xor_distance,
+                     size_t data_size,
+                     const char *data,
+                     enum GNUNET_BLOCK_Type type,
+                     struct GNUNET_TIME_Absolute discard_time,
+                     unsigned int path_info_len,
+                     const struct GNUNET_PeerIdentity *path_info);
 
 
 /**
@@ -138,11 +138,11 @@ GNUNET_DATACACHE_put (struct GNUNET_DATACACHE_Handle *h,
  * @return the number of results found
  */
 unsigned int
-GNUNET_DATACACHE_get (struct GNUNET_DATACACHE_Handle *h,
-                      const struct GNUNET_HashCode *key,
-                      enum GNUNET_BLOCK_Type type,
-                      GNUNET_DATACACHE_Iterator iter,
-                      void *iter_cls);
+GNUNET_DATACACHE_get(struct GNUNET_DATACACHE_Handle *h,
+                     const struct GNUNET_HashCode *key,
+                     enum GNUNET_BLOCK_Type type,
+                     GNUNET_DATACACHE_Iterator iter,
+                     void *iter_cls);
 
 
 /**
@@ -154,9 +154,9 @@ GNUNET_DATACACHE_get (struct GNUNET_DATACACHE_Handle *h,
  * @return the number of results found (zero or 1)
  */
 unsigned int
-GNUNET_DATACACHE_get_random (struct GNUNET_DATACACHE_Handle *h,
-                             GNUNET_DATACACHE_Iterator iter,
-                             void *iter_cls);
+GNUNET_DATACACHE_get_random(struct GNUNET_DATACACHE_Handle *h,
+                            GNUNET_DATACACHE_Iterator iter,
+                            void *iter_cls);
 
 
 /**
@@ -173,11 +173,11 @@ GNUNET_DATACACHE_get_random (struct GNUNET_DATACACHE_Handle *h,
  * @return the number of results found
  */
 unsigned int
-GNUNET_DATACACHE_get_closest (struct GNUNET_DATACACHE_Handle *h,
-                              const struct GNUNET_HashCode *key,
-                              unsigned int num_results,
-                              GNUNET_DATACACHE_Iterator iter,
-                              void *iter_cls);
+GNUNET_DATACACHE_get_closest(struct GNUNET_DATACACHE_Handle *h,
+                             const struct GNUNET_HashCode *key,
+                             unsigned int num_results,
+                             GNUNET_DATACACHE_Iterator iter,
+                             void *iter_cls);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

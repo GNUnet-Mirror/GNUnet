@@ -16,7 +16,7 @@
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 
 /**
  * @author Christian Grothoff
@@ -75,10 +75,10 @@ struct GNUNET_TRANSPORT_OfferHelloHandle;
  *
  */
 struct GNUNET_TRANSPORT_OfferHelloHandle *
-GNUNET_TRANSPORT_offer_hello (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                              const struct GNUNET_MessageHeader *hello,
-                              GNUNET_SCHEDULER_TaskCallback cont,
-                              void *cont_cls);
+GNUNET_TRANSPORT_offer_hello(const struct GNUNET_CONFIGURATION_Handle *cfg,
+                             const struct GNUNET_MessageHeader *hello,
+                             GNUNET_SCHEDULER_TaskCallback cont,
+                             void *cont_cls);
 
 
 /**
@@ -87,7 +87,7 @@ GNUNET_TRANSPORT_offer_hello (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @param ohh the `struct GNUNET_TRANSPORT_OfferHelloHandle` to cancel
  */
 void
-GNUNET_TRANSPORT_offer_hello_cancel (
+GNUNET_TRANSPORT_offer_hello_cancel(
   struct GNUNET_TRANSPORT_OfferHelloHandle *ohh);
 
 
@@ -133,7 +133,7 @@ typedef void (*GNUNET_TRANSPORT_AddressToStringCallback) (void *cls,
  * @return handle to cancel the operation, NULL on error
  */
 struct GNUNET_TRANSPORT_AddressToStringContext *
-GNUNET_TRANSPORT_address_to_string (
+GNUNET_TRANSPORT_address_to_string(
   const struct GNUNET_CONFIGURATION_Handle *cfg,
   const struct GNUNET_HELLO_Address *address,
   int numeric,
@@ -148,7 +148,7 @@ GNUNET_TRANSPORT_address_to_string (
  * @param alc the context handle
  */
 void
-GNUNET_TRANSPORT_address_to_string_cancel (
+GNUNET_TRANSPORT_address_to_string_cancel(
   struct GNUNET_TRANSPORT_AddressToStringContext *alc);
 
 
@@ -211,8 +211,7 @@ GNUNET_TRANSPORT_address_to_string_cancel (
  * to 0).
  *
  */
-enum GNUNET_TRANSPORT_PeerState
-{
+enum GNUNET_TRANSPORT_PeerState {
   /**
    * Fresh peer or completely disconnected
    */
@@ -289,7 +288,7 @@ enum GNUNET_TRANSPORT_PeerState
  * @param state the state
  */
 const char *
-GNUNET_TRANSPORT_ps2s (enum GNUNET_TRANSPORT_PeerState state);
+GNUNET_TRANSPORT_ps2s(enum GNUNET_TRANSPORT_PeerState state);
 
 
 /**
@@ -299,7 +298,7 @@ GNUNET_TRANSPORT_ps2s (enum GNUNET_TRANSPORT_PeerState state);
  * @return #GNUNET_YES or #GNUNET_NO
  */
 int
-GNUNET_TRANSPORT_is_connected (enum GNUNET_TRANSPORT_PeerState state);
+GNUNET_TRANSPORT_is_connected(enum GNUNET_TRANSPORT_PeerState state);
 
 
 /**
@@ -361,7 +360,7 @@ typedef void (*GNUNET_TRANSPORT_PeerIterateCallback) (
  * @param peer_callback_cls closure for @a peer_callback
  */
 struct GNUNET_TRANSPORT_PeerMonitoringContext *
-GNUNET_TRANSPORT_monitor_peers (
+GNUNET_TRANSPORT_monitor_peers(
   const struct GNUNET_CONFIGURATION_Handle *cfg,
   const struct GNUNET_PeerIdentity *peer,
   int one_shot,
@@ -375,7 +374,7 @@ GNUNET_TRANSPORT_monitor_peers (
  * @param pic handle for the request to cancel
  */
 void
-GNUNET_TRANSPORT_monitor_peers_cancel (
+GNUNET_TRANSPORT_monitor_peers_cancel(
   struct GNUNET_TRANSPORT_PeerMonitoringContext *pic);
 
 
@@ -414,9 +413,9 @@ typedef int (*GNUNET_TRANSPORT_BlacklistCallback) (
  * @return NULL on error, otherwise handle for cancellation
  */
 struct GNUNET_TRANSPORT_Blacklist *
-GNUNET_TRANSPORT_blacklist (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                            GNUNET_TRANSPORT_BlacklistCallback cb,
-                            void *cb_cls);
+GNUNET_TRANSPORT_blacklist(const struct GNUNET_CONFIGURATION_Handle *cfg,
+                           GNUNET_TRANSPORT_BlacklistCallback cb,
+                           void *cb_cls);
 
 
 /**
@@ -426,7 +425,7 @@ GNUNET_TRANSPORT_blacklist (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @param br handle of the request that is to be cancelled
  */
 void
-GNUNET_TRANSPORT_blacklist_cancel (struct GNUNET_TRANSPORT_Blacklist *br);
+GNUNET_TRANSPORT_blacklist_cancel(struct GNUNET_TRANSPORT_Blacklist *br);
 
 
 /**
@@ -444,9 +443,7 @@ struct GNUNET_TRANSPORT_PluginSession;
 /**
  * Possible states of a session in a plugin.
  */
-enum GNUNET_TRANSPORT_SessionState
-{
-
+enum GNUNET_TRANSPORT_SessionState {
   /**
    * The session was created (first call for each session object).
    */
@@ -473,16 +470,13 @@ enum GNUNET_TRANSPORT_SessionState
    * Last call for each session object.
    */
   GNUNET_TRANSPORT_SS_DONE
-
 };
 
 
 /**
  * Information about a plugin's session.
  */
-struct GNUNET_TRANSPORT_SessionInfo
-{
-
+struct GNUNET_TRANSPORT_SessionInfo {
   /**
    * New state of the session.
    */
@@ -561,9 +555,9 @@ typedef void (*GNUNET_TRANSPORT_SessionMonitorCallback) (
  * @return NULL on error, otherwise handle for cancellation
  */
 struct GNUNET_TRANSPORT_PluginMonitor *
-GNUNET_TRANSPORT_monitor_plugins (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                                  GNUNET_TRANSPORT_SessionMonitorCallback cb,
-                                  void *cb_cls);
+GNUNET_TRANSPORT_monitor_plugins(const struct GNUNET_CONFIGURATION_Handle *cfg,
+                                 GNUNET_TRANSPORT_SessionMonitorCallback cb,
+                                 void *cb_cls);
 
 
 /**
@@ -574,7 +568,7 @@ GNUNET_TRANSPORT_monitor_plugins (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @param pm handle of the request that is to be cancelled
  */
 void
-GNUNET_TRANSPORT_monitor_plugins_cancel (
+GNUNET_TRANSPORT_monitor_plugins_cancel(
   struct GNUNET_TRANSPORT_PluginMonitor *pm);
 
 
@@ -659,13 +653,13 @@ typedef void (*GNUNET_TRANSPORT_NotifyExcessBandwidth) (
  * @return NULL on error
  */
 struct GNUNET_TRANSPORT_CoreHandle *
-GNUNET_TRANSPORT_core_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                               const struct GNUNET_PeerIdentity *self,
-                               const struct GNUNET_MQ_MessageHandler *handlers,
-                               void *cls,
-                               GNUNET_TRANSPORT_NotifyConnect nc,
-                               GNUNET_TRANSPORT_NotifyDisconnect nd,
-                               GNUNET_TRANSPORT_NotifyExcessBandwidth neb);
+GNUNET_TRANSPORT_core_connect(const struct GNUNET_CONFIGURATION_Handle *cfg,
+                              const struct GNUNET_PeerIdentity *self,
+                              const struct GNUNET_MQ_MessageHandler *handlers,
+                              void *cls,
+                              GNUNET_TRANSPORT_NotifyConnect nc,
+                              GNUNET_TRANSPORT_NotifyDisconnect nd,
+                              GNUNET_TRANSPORT_NotifyExcessBandwidth neb);
 
 
 /**
@@ -674,7 +668,7 @@ GNUNET_TRANSPORT_core_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @param handle handle returned from connect
  */
 void
-GNUNET_TRANSPORT_core_disconnect (struct GNUNET_TRANSPORT_CoreHandle *handle);
+GNUNET_TRANSPORT_core_disconnect(struct GNUNET_TRANSPORT_CoreHandle *handle);
 
 
 /**
@@ -685,8 +679,8 @@ GNUNET_TRANSPORT_core_disconnect (struct GNUNET_TRANSPORT_CoreHandle *handle);
  * @return NULL if disconnected, otherwise message queue for @a peer
  */
 struct GNUNET_MQ_Handle *
-GNUNET_TRANSPORT_core_get_mq (struct GNUNET_TRANSPORT_CoreHandle *handle,
-                              const struct GNUNET_PeerIdentity *peer);
+GNUNET_TRANSPORT_core_get_mq(struct GNUNET_TRANSPORT_CoreHandle *handle,
+                             const struct GNUNET_PeerIdentity *peer);
 
 
 #if 0 /* keep Emacsens' auto-indent happy */

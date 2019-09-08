@@ -11,12 +11,12 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 /**
  * @file transport/gnunet-service-transport_hello.h
  * @brief hello API
@@ -50,16 +50,16 @@ typedef void
  * @param cb_cls closure for @a cb
  */
 void
-GST_hello_start (int friend_only,
-                 GST_HelloCallback cb,
-                 void *cb_cls);
+GST_hello_start(int friend_only,
+                GST_HelloCallback cb,
+                void *cb_cls);
 
 
 /**
  * Shutdown the HELLO module.
  */
 void
-GST_hello_stop (void);
+GST_hello_stop(void);
 
 
 /**
@@ -68,7 +68,7 @@ GST_hello_stop (void);
  * @return our HELLO message
  */
 const struct GNUNET_MessageHeader *
-GST_hello_get (void);
+GST_hello_get(void);
 
 
 /**
@@ -78,8 +78,8 @@ GST_hello_get (void);
  * @param address address to add or remove
  */
 void
-GST_hello_modify_addresses (int addremove,
-                            const struct GNUNET_HELLO_Address *address);
+GST_hello_modify_addresses(int addremove,
+                           const struct GNUNET_HELLO_Address *address);
 
 
 /**
@@ -93,9 +93,9 @@ GST_hello_modify_addresses (int addremove,
  *         #GNUNET_NO if not
  */
 int
-GST_hello_test_address (const struct GNUNET_HELLO_Address *address,
-                        struct GNUNET_CRYPTO_EddsaSignature **sig,
-                        struct GNUNET_TIME_Absolute **sig_expiration);
+GST_hello_test_address(const struct GNUNET_HELLO_Address *address,
+                       struct GNUNET_CRYPTO_EddsaSignature **sig,
+                       struct GNUNET_TIME_Absolute **sig_expiration);
 
 
 #endif

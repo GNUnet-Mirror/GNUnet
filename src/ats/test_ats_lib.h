@@ -11,12 +11,12 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 /**
  * @file ats/test_ats_lib.h
  * @brief test ATS library with a generic interpreter for running ATS tests
@@ -33,8 +33,7 @@
 /**
  * Commands for the interpreter.
  */
-enum CommandCode
-{
+enum CommandCode {
   /**
    * End the test (passing).
    */
@@ -123,15 +122,13 @@ enum CommandCode
    * Wait for a bit.
    */
   CMD_SLEEP
-
 };
 
 
 /**
  * Details for the #CMD_ADD_ADDRESS command.
  */
-struct CommandAddAddress
-{
+struct CommandAddAddress {
   /**
    * Number of the peer (used to generate PID).
    */
@@ -172,8 +169,7 @@ struct CommandAddAddress
 /**
  * Details for the #CMD_DEL_ADDRESS command.
  */
-struct CommandDelAddress
-{
+struct CommandDelAddress {
   /**
    * Label of the corresponding #CMD_ADD_ADDRESS that
    * we are now to remove.
@@ -185,8 +181,7 @@ struct CommandDelAddress
 /**
  * Details for the #CMD_AWAIT_ADDRESS_SUGGESTION command.
  */
-struct CommandAwaitAddressSuggestion
-{
+struct CommandAwaitAddressSuggestion {
   /**
    * For which peer do we expect a suggestion?
    */
@@ -198,28 +193,24 @@ struct CommandAwaitAddressSuggestion
    * use NULL for "any" available address.
    */
   const char *add_label;
-
 };
 
 
 /**
  * Details for the #CMD_AWAIT_DISCONNECT_SUGGESTION command.
  */
-struct CommandAwaitDisconnectSuggestion
-{
+struct CommandAwaitDisconnectSuggestion {
   /**
    * For which peer do we expect the disconnect?
    */
   unsigned int pid;
-
 };
 
 
 /**
  * Details for the #CMD_REQUEST_CONNECTION_START command.
  */
-struct CommandRequestConnectionStart
-{
+struct CommandRequestConnectionStart {
   /**
    * Identity of the peer we would like to connect to.
    */
@@ -236,8 +227,7 @@ struct CommandRequestConnectionStart
 /**
  * Details for the #CMD_REQUEST_CONNECTION_STOP command.
  */
-struct CommandRequestConnectionStop
-{
+struct CommandRequestConnectionStop {
   /**
    * Label of the corresponding #CMD_REQUEST_CONNECTION_START that
    * we are now stopping.
@@ -249,8 +239,7 @@ struct CommandRequestConnectionStop
 /**
  * Details for the #CMD_AWAIT_ADDRESS_INFORMATION command.
  */
-struct CommandAwaitAddressInformation
-{
+struct CommandAwaitAddressInformation {
   /**
    * For which address do we expect information?
    * The address is identified by the respective
@@ -264,15 +253,13 @@ struct CommandAwaitAddressInformation
    * the properties from the @e add_label.
    */
   const char *update_label;
-
 };
 
 
 /**
  * Details for the #CMD_UPDATE_ADDRESS command.
  */
-struct CommandUpdateAddress
-{
+struct CommandUpdateAddress {
   /**
    * Label of the addresses's add operation.
    */
@@ -282,16 +269,14 @@ struct CommandUpdateAddress
    * Performance properties to supply.
    */
   struct GNUNET_ATS_Properties properties;
-
 };
 
 
 /**
  * Details for the #CMD_ADD_SESSION command.
  */
-struct CommandAddSession
-{
- /**
+struct CommandAddSession {
+  /**
    * Label of the addresses's add operation.
    */
   const char *add_label;
@@ -300,43 +285,37 @@ struct CommandAddSession
    * Session to supply.
    */
   unsigned int session;
-
 };
 
 
 /**
  * Details for the #CMD_DEL_SESSION command.
  */
-struct CommandDelSession
-{
- /**
+struct CommandDelSession {
+  /**
    * Label of the addresses's add operation.
    */
   const char *add_session_label;
-
 };
 
 
 /**
  * Details for the #CMD_CHANGE_PREFERENCE command.
  */
-struct CommandChangePreference
-{
+struct CommandChangePreference {
   /**
    * Identity of the peer we have a preference change towards.
    */
   unsigned int pid;
 
   /* FIXME: preference details! */
-
 };
 
 
 /**
  * Details for the #CMD_PROVIDE_FEEDBACK command.
  */
-struct CommandProvideFeedback
-{
+struct CommandProvideFeedback {
   /**
    * Identity of the peer we have a feedback for.
    */
@@ -354,8 +333,7 @@ struct CommandProvideFeedback
 /**
  * Details for the #CMD_LIST_ADDRESSES command.
  */
-struct CommandListAddresses
-{
+struct CommandListAddresses {
   /**
    * Identity of the peer we want a list for.
    */
@@ -403,15 +381,13 @@ struct CommandListAddresses
    * #GNUNET_ATS_performance_list_addresses().
    */
   struct GNUNET_ATS_AddressListHandle *alh;
-
 };
 
 
 /**
  * Details for the #CMD_RESERVE_BANDWIDTH command.
  */
-struct CommandReserveBandwidth
-{
+struct CommandReserveBandwidth {
   /**
    * For which peer do we reserve bandwidth?
    */
@@ -435,15 +411,13 @@ struct CommandReserveBandwidth
    * #GNUNET_ATS_reserve_bandwidth().
    */
   struct GNUNET_ATS_ReservationContext *rc;
-
 };
 
 
 /**
  * Details for the #CMD_SLEEP command.
  */
-struct CommandSleep
-{
+struct CommandSleep {
   /**
    * How long should we wait before running the next command?
    */
@@ -454,8 +428,7 @@ struct CommandSleep
 /**
  * A command for the test case interpreter.
  */
-struct Command
-{
+struct Command {
   /**
    * Command code to run.
    */
@@ -470,7 +443,6 @@ struct Command
    * Additional arguments to commands, if any.
    */
   union {
-
     struct CommandAddAddress add_address;
 
     struct CommandDelAddress del_address;
@@ -500,9 +472,7 @@ struct Command
     struct CommandReserveBandwidth reserve_bandwidth;
 
     struct CommandSleep sleep;
-
   } details;
-
 };
 
 
@@ -516,9 +486,9 @@ struct Command
  * @return 0 on success
  */
 int
-TEST_ATS_run (int argc,
-              char *argv[],
-              struct Command *cmds,
-              struct GNUNET_TIME_Relative timeout);
+TEST_ATS_run(int argc,
+             char *argv[],
+             struct Command *cmds,
+             struct GNUNET_TIME_Relative timeout);
 
 #endif

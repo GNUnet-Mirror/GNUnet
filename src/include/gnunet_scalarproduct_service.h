@@ -11,7 +11,7 @@
       WITHOUT ANY WARRANTY; without even the implied warranty of
       MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
       Affero General Public License for more details.
-     
+
       You should have received a copy of the GNU Affero General Public License
       along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -49,9 +49,7 @@ extern "C" {
 /**
  * Result status values for the computation.
  */
-enum GNUNET_SCALARPRODUCT_ResponseStatus
-{
-
+enum GNUNET_SCALARPRODUCT_ResponseStatus {
   /**
    * Operation is still active (never returned, used internally).
    */
@@ -95,8 +93,7 @@ GNUNET_NETWORK_STRUCT_BEGIN
 /**
  * An element key-value pair for scalarproduct
  */
-struct GNUNET_SCALARPRODUCT_Element
-{
+struct GNUNET_SCALARPRODUCT_Element {
   /**
    * Key used to identify matching pairs of values to multiply.
    */
@@ -155,13 +152,13 @@ struct GNUNET_SCALARPRODUCT_ComputationHandle;
  * @return a new handle for this computation
  */
 struct GNUNET_SCALARPRODUCT_ComputationHandle *
-GNUNET_SCALARPRODUCT_start_computation (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                              const struct GNUNET_HashCode *session_key,
-                              const struct GNUNET_PeerIdentity *peer,
-                              const struct GNUNET_SCALARPRODUCT_Element *elements,
-                              uint32_t element_count,
-                              GNUNET_SCALARPRODUCT_DatumProcessor cont,
-                              void *cont_cls);
+GNUNET_SCALARPRODUCT_start_computation(const struct GNUNET_CONFIGURATION_Handle *cfg,
+                                       const struct GNUNET_HashCode *session_key,
+                                       const struct GNUNET_PeerIdentity *peer,
+                                       const struct GNUNET_SCALARPRODUCT_Element *elements,
+                                       uint32_t element_count,
+                                       GNUNET_SCALARPRODUCT_DatumProcessor cont,
+                                       void *cont_cls);
 
 
 /**
@@ -176,12 +173,12 @@ GNUNET_SCALARPRODUCT_start_computation (const struct GNUNET_CONFIGURATION_Handle
  * @return a new handle for this computation
  */
 struct GNUNET_SCALARPRODUCT_ComputationHandle *
-GNUNET_SCALARPRODUCT_accept_computation (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                                         const struct GNUNET_HashCode *key,
-                                         const struct GNUNET_SCALARPRODUCT_Element *elements,
-                                         uint32_t element_count,
-                                         GNUNET_SCALARPRODUCT_ContinuationWithStatus cont,
-                                         void *cont_cls);
+GNUNET_SCALARPRODUCT_accept_computation(const struct GNUNET_CONFIGURATION_Handle *cfg,
+                                        const struct GNUNET_HashCode *key,
+                                        const struct GNUNET_SCALARPRODUCT_Element *elements,
+                                        uint32_t element_count,
+                                        GNUNET_SCALARPRODUCT_ContinuationWithStatus cont,
+                                        void *cont_cls);
 
 
 /**
@@ -191,7 +188,7 @@ GNUNET_SCALARPRODUCT_accept_computation (const struct GNUNET_CONFIGURATION_Handl
  * @param h computation handle to terminate
  */
 void
-GNUNET_SCALARPRODUCT_cancel (struct GNUNET_SCALARPRODUCT_ComputationHandle *h);
+GNUNET_SCALARPRODUCT_cancel(struct GNUNET_SCALARPRODUCT_ComputationHandle *h);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

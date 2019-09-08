@@ -11,7 +11,7 @@
       WITHOUT ANY WARRANTY; without even the implied warranty of
       MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
       Affero General Public License for more details.
-     
+
       You should have received a copy of the GNU Affero General Public License
       along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -49,10 +49,10 @@ static struct GNUNET_TESTBED_Operation *op;
  * @param tc scheduler task context
  */
 static void
-do_shutdown (void *cls)
+do_shutdown(void *cls)
 {
   if (NULL != op)
-    GNUNET_TESTBED_operation_done (op);
+    GNUNET_TESTBED_operation_done(op);
   op = NULL;
 }
 
@@ -66,21 +66,21 @@ do_shutdown (void *cls)
  *          operation has executed successfully.
  */
 static void
-overlay_connect_status (void *cls,
-                        struct GNUNET_TESTBED_Operation *op_,
-                        const char *emsg)
+overlay_connect_status(void *cls,
+                       struct GNUNET_TESTBED_Operation *op_,
+                       const char *emsg)
 {
-  GNUNET_assert (op_ == op);
-  GNUNET_TESTBED_operation_done (op);
+  GNUNET_assert(op_ == op);
+  GNUNET_TESTBED_operation_done(op);
   op = NULL;
   if (NULL == emsg)
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Peers 0 and 2 should not get connected\n");
+    GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Peers 0 and 2 should not get connected\n");
   else
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peers 0 and 2 not connected: %s.  Success!\n", emsg);
-    result = GNUNET_OK;
-  }
-  GNUNET_SCHEDULER_shutdown ();
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Peers 0 and 2 not connected: %s.  Success!\n", emsg);
+      result = GNUNET_OK;
+    }
+  GNUNET_SCHEDULER_shutdown();
 }
 
 
@@ -98,29 +98,29 @@ overlay_connect_status (void *cls,
  *          failed
  */
 static void
-test_master (void *cls,
-             struct GNUNET_TESTBED_RunHandle *h,
-             unsigned int num_peers,
-             struct GNUNET_TESTBED_Peer **peers_,
-             unsigned int links_succeeded,
-             unsigned int links_failed)
+test_master(void *cls,
+            struct GNUNET_TESTBED_RunHandle *h,
+            unsigned int num_peers,
+            struct GNUNET_TESTBED_Peer **peers_,
+            unsigned int links_succeeded,
+            unsigned int links_failed)
 {
-  GNUNET_assert (NULL == cls);
+  GNUNET_assert(NULL == cls);
   if (NULL == peers_)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Failing test due to timeout\n");
-    GNUNET_SCHEDULER_shutdown ();
-    return;
-  }
-  GNUNET_assert (NUM_PEERS == num_peers);
-  op = GNUNET_TESTBED_overlay_connect (NULL,
-                                       &overlay_connect_status,
-                                       NULL,
-                                       peers_[0],
-                                       peers_[2]);
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS,
-                                                               60),
-                                &do_shutdown, NULL);
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Failing test due to timeout\n");
+      GNUNET_SCHEDULER_shutdown();
+      return;
+    }
+  GNUNET_assert(NUM_PEERS == num_peers);
+  op = GNUNET_TESTBED_overlay_connect(NULL,
+                                      &overlay_connect_status,
+                                      NULL,
+                                      peers_[0],
+                                      peers_[2]);
+  GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS,
+                                                             60),
+                               &do_shutdown, NULL);
 }
 
 
@@ -136,7 +136,7 @@ test_master (void *cls,
  * Main function
  */
 int
-main (int argc, char **argv)
+main(int argc, char **argv)
 {
   struct GNUNET_CONFIGURATION_Handle *cfg;
   char pwd[PATH_MAX];
@@ -145,26 +145,26 @@ main (int argc, char **argv)
 
   result = GNUNET_SYSERR;
   event_mask = 0;
-  cfg = GNUNET_CONFIGURATION_create ();
-  GNUNET_assert (GNUNET_YES ==
-                 GNUNET_CONFIGURATION_parse (cfg,
-                                             "test_testbed_underlay.conf.in"));
-  if (NULL == getcwd (pwd, PATH_MAX))
+  cfg = GNUNET_CONFIGURATION_create();
+  GNUNET_assert(GNUNET_YES ==
+                GNUNET_CONFIGURATION_parse(cfg,
+                                           "test_testbed_underlay.conf.in"));
+  if (NULL == getcwd(pwd, PATH_MAX))
     return 1;
-  GNUNET_assert (0 < GNUNET_asprintf (&dbfile, "%s/%s", pwd,
-                                      "test-underlay.sqlite"));
-  GNUNET_CONFIGURATION_set_value_string (cfg, "TESTBED-UNDERLAY","DBFILE", dbfile);
-  GNUNET_assert (GNUNET_OK == GNUNET_CONFIGURATION_write
-                 (cfg, "test_testbed_underlay.conf"));
-  GNUNET_CONFIGURATION_destroy (cfg);
+  GNUNET_assert(0 < GNUNET_asprintf(&dbfile, "%s/%s", pwd,
+                                    "test-underlay.sqlite"));
+  GNUNET_CONFIGURATION_set_value_string(cfg, "TESTBED-UNDERLAY", "DBFILE", dbfile);
+  GNUNET_assert(GNUNET_OK == GNUNET_CONFIGURATION_write
+                  (cfg, "test_testbed_underlay.conf"));
+  GNUNET_CONFIGURATION_destroy(cfg);
   cfg = NULL;
-  GNUNET_free (dbfile);
+  GNUNET_free(dbfile);
   dbfile = NULL;
-  (void) GNUNET_TESTBED_test_run ("test_testbed_underlay",
-                                  "test_testbed_underlay.conf", NUM_PEERS,
-                                  event_mask, NULL, NULL,
-                                  &test_master, NULL);
-  (void) unlink ("test_testbed_underlay.conf");
+  (void)GNUNET_TESTBED_test_run("test_testbed_underlay",
+                                "test_testbed_underlay.conf", NUM_PEERS,
+                                event_mask, NULL, NULL,
+                                &test_master, NULL);
+  (void)unlink("test_testbed_underlay.conf");
   if (GNUNET_OK != result)
     return 1;
   return 0;

@@ -11,7 +11,7 @@
       WITHOUT ANY WARRANTY; without even the implied warranty of
       MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
       Affero General Public License for more details.
-     
+
       You should have received a copy of the GNU Affero General Public License
       along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -31,8 +31,7 @@
 /**
  * An entry to hold data which will be used to calculate SD
  */
-struct SDEntry
-{
+struct SDEntry {
   /**
    * DLL next pointer
    */
@@ -53,8 +52,7 @@ struct SDEntry
 /**
  * Opaque handle for calculating SD
  */
-struct SDHandle
-{
+struct SDHandle {
   /**
    * DLL head for storing entries
    */
@@ -104,12 +102,12 @@ struct SDHandle
  * @return the initialized handle
  */
 struct SDHandle *
-GNUNET_TESTBED_SD_init_ (unsigned int max_cnt)
+GNUNET_TESTBED_SD_init_(unsigned int max_cnt)
 {
   struct SDHandle *h;
 
-  GNUNET_assert (1 < max_cnt);
-  h = GNUNET_new (struct SDHandle);
+  GNUNET_assert(1 < max_cnt);
+  h = GNUNET_new(struct SDHandle);
   h->max_cnt = max_cnt;
   return h;
 }
@@ -121,16 +119,16 @@ GNUNET_TESTBED_SD_init_ (unsigned int max_cnt)
  * @param h the SD handle
  */
 void
-GNUNET_TESTBED_SD_destroy_ (struct SDHandle *h)
+GNUNET_TESTBED_SD_destroy_(struct SDHandle *h)
 {
   struct SDEntry *entry;
 
   while (NULL != (entry = h->head))
-  {
-    GNUNET_CONTAINER_DLL_remove (h->head, h->tail, entry);
-    GNUNET_free (entry);
-  }
-  GNUNET_free (h);
+    {
+      GNUNET_CONTAINER_DLL_remove(h->head, h->tail, entry);
+      GNUNET_free(entry);
+    }
+  GNUNET_free(h);
 }
 
 
@@ -141,7 +139,7 @@ GNUNET_TESTBED_SD_destroy_ (struct SDHandle *h)
  * @param amount the reading value
  */
 void
-GNUNET_TESTBED_SD_add_data_ (struct SDHandle *h, unsigned int amount)
+GNUNET_TESTBED_SD_add_data_(struct SDHandle *h, unsigned int amount)
 {
   struct SDEntry *entry;
   double sqavg;
@@ -149,25 +147,25 @@ GNUNET_TESTBED_SD_add_data_ (struct SDHandle *h, unsigned int amount)
 
   entry = NULL;
   if (h->cnt == h->max_cnt)
-  {
-    entry = h->head;
-    GNUNET_CONTAINER_DLL_remove (h->head, h->tail, entry);
-    h->sum -= entry->amount;
-    h->sqsum -=
-        ((unsigned long) entry->amount) * ((unsigned long) entry->amount);
-    h->cnt--;
-  }
-  GNUNET_assert (h->cnt < h->max_cnt);
+    {
+      entry = h->head;
+      GNUNET_CONTAINER_DLL_remove(h->head, h->tail, entry);
+      h->sum -= entry->amount;
+      h->sqsum -=
+        ((unsigned long)entry->amount) * ((unsigned long)entry->amount);
+      h->cnt--;
+    }
+  GNUNET_assert(h->cnt < h->max_cnt);
   if (NULL == entry)
-    entry = GNUNET_new (struct SDEntry);
+    entry = GNUNET_new(struct SDEntry);
   entry->amount = amount;
-  GNUNET_CONTAINER_DLL_insert_tail (h->head, h->tail, entry);
+  GNUNET_CONTAINER_DLL_insert_tail(h->head, h->tail, entry);
   h->sum += amount;
   h->cnt++;
-  h->avg = ((float) h->sum) / ((float) h->cnt);
-  h->sqsum += ((unsigned long) amount) * ((unsigned long) amount);
-  sqsum_avg = ((double) h->sqsum) / ((double) h->cnt);
-  sqavg = ((double) h->avg) * ((double) h->avg);
+  h->avg = ((float)h->sum) / ((float)h->cnt);
+  h->sqsum += ((unsigned long)amount) * ((unsigned long)amount);
+  sqsum_avg = ((double)h->sqsum) / ((double)h->cnt);
+  sqavg = ((double)h->avg) * ((double)h->avg);
   h->vr = sqsum_avg - sqavg;
 }
 
@@ -182,8 +180,8 @@ GNUNET_TESTBED_SD_add_data_ (struct SDHandle *h, unsigned int amount)
  *   be calculated; GNUNET_OK if the deviation is returned through factor
  */
 int
-GNUNET_TESTBED_SD_deviation_factor_ (struct SDHandle *h, unsigned int amount,
-                                     int *factor)
+GNUNET_TESTBED_SD_deviation_factor_(struct SDHandle *h, unsigned int amount,
+                                    int *factor)
 {
   double diff;
   int f;
@@ -191,19 +189,19 @@ GNUNET_TESTBED_SD_deviation_factor_ (struct SDHandle *h, unsigned int amount,
 
   if (h->cnt < 2)
     return GNUNET_SYSERR;
-  if (((float) amount) > h->avg)
-  {
-    diff = ((float) amount) - h->avg;
-    f = 1;
-  }
+  if (((float)amount) > h->avg)
+    {
+      diff = ((float)amount) - h->avg;
+      f = 1;
+    }
   else
-  {
-    diff = h->avg - ((float) amount);
-    f = -1;
-  }
+    {
+      diff = h->avg - ((float)amount);
+      f = -1;
+    }
   diff *= diff;
   for (n = 1; n < 4; n++)
-    if (diff < (((double) (n * n)) * h->vr))
+    if (diff < (((double)(n * n)) * h->vr))
       break;
   *factor = f * n;
   return GNUNET_OK;

@@ -16,7 +16,7 @@
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 
 /**
  * @file util/client.c
@@ -33,7 +33,7 @@
 #include "gnunet_socks.h"
 
 
-#define LOG(kind,...) GNUNET_log_from (kind, "util-client",__VA_ARGS__)
+#define LOG(kind, ...) GNUNET_log_from(kind, "util-client", __VA_ARGS__)
 
 /**
  * Timeout we use on TCP connect before trying another
@@ -41,7 +41,7 @@
  * is this value divided by the number of address families.
  * Default is 5s.
  */
-#define CONNECT_RETRY_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
+#define CONNECT_RETRY_TIMEOUT GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 5)
 
 
 
@@ -55,9 +55,7 @@ struct ClientState;
  * During connect, we try multiple possible IP addresses
  * to find out which one might work.
  */
-struct AddressProbe
-{
-
+struct AddressProbe {
   /**
    * This is a linked list.
    */
@@ -98,9 +96,7 @@ struct AddressProbe
 /**
  * Internal state for a client connected to a GNUnet service.
  */
-struct ClientState
-{
-
+struct ClientState {
   /**
    * The connection handle, NULL if not live
    */
@@ -200,7 +196,6 @@ struct ClientState
    * deferred.
    */
   int in_destroy;
-
 };
 
 
@@ -210,7 +205,7 @@ struct ClientState
  * @param cls the `struct ClientState` to try to connect to the service
  */
 static void
-start_connect (void *cls);
+start_connect(void *cls);
 
 
 /**
@@ -220,26 +215,26 @@ start_connect (void *cls);
  * @param cstate the connection we tried to establish
  */
 static void
-connect_fail_continuation (struct ClientState *cstate)
+connect_fail_continuation(struct ClientState *cstate)
 {
-  GNUNET_break (NULL == cstate->ap_head);
-  GNUNET_break (NULL == cstate->ap_tail);
-  GNUNET_break (NULL == cstate->dns_active);
-  GNUNET_break (NULL == cstate->sock);
-  GNUNET_assert (NULL == cstate->send_task);
-  GNUNET_assert (NULL == cstate->recv_task);
+  GNUNET_break(NULL == cstate->ap_head);
+  GNUNET_break(NULL == cstate->ap_tail);
+  GNUNET_break(NULL == cstate->dns_active);
+  GNUNET_break(NULL == cstate->sock);
+  GNUNET_assert(NULL == cstate->send_task);
+  GNUNET_assert(NULL == cstate->recv_task);
   // GNUNET_assert (NULL == cstate->proxy_handshake);
 
-  cstate->back_off = GNUNET_TIME_STD_BACKOFF (cstate->back_off);
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Failed to establish connection to `%s', no further addresses to try, will try again in %s.\n",
-       cstate->service_name,
-       GNUNET_STRINGS_relative_time_to_string (cstate->back_off,
-                                               GNUNET_YES));
+  cstate->back_off = GNUNET_TIME_STD_BACKOFF(cstate->back_off);
+  LOG(GNUNET_ERROR_TYPE_DEBUG,
+      "Failed to establish connection to `%s', no further addresses to try, will try again in %s.\n",
+      cstate->service_name,
+      GNUNET_STRINGS_relative_time_to_string(cstate->back_off,
+                                             GNUNET_YES));
   cstate->retry_task
-    = GNUNET_SCHEDULER_add_delayed (cstate->back_off,
-                                    &start_connect,
-                                    cstate);
+    = GNUNET_SCHEDULER_add_delayed(cstate->back_off,
+                                   &start_connect,
+                                   cstate);
 }
 
 
@@ -249,7 +244,7 @@ connect_fail_continuation (struct ClientState *cstate)
  * @param cls the `struct ClientState` with the `msg` to transmit
  */
 static void
-transmit_ready (void *cls)
+transmit_ready(void *cls)
 {
   struct ClientState *cstate = cls;
   ssize_t ret;
@@ -260,55 +255,56 @@ transmit_ready (void *cls)
   cstate->send_task = NULL;
   if (GNUNET_YES == cstate->in_destroy)
     return;
-  pos = (const char *) cstate->msg;
-  len = ntohs (cstate->msg->size);
-  GNUNET_assert (cstate->msg_off < len);
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "message of type %u trying to send with socket %p (MQ: %p\n",
-       ntohs(cstate->msg->type),
-       cstate->sock,
-       cstate->mq);
+  pos = (const char *)cstate->msg;
+  len = ntohs(cstate->msg->size);
+  GNUNET_assert(cstate->msg_off < len);
+  LOG(GNUNET_ERROR_TYPE_DEBUG,
+      "message of type %u trying to send with socket %p (MQ: %p\n",
+      ntohs(cstate->msg->type),
+      cstate->sock,
+      cstate->mq);
 
- RETRY:
-  ret = GNUNET_NETWORK_socket_send (cstate->sock,
-                                    &pos[cstate->msg_off],
-                                    len - cstate->msg_off);
+RETRY:
+  ret = GNUNET_NETWORK_socket_send(cstate->sock,
+                                   &pos[cstate->msg_off],
+                                   len - cstate->msg_off);
   if (-1 == ret)
-  {
-    LOG (GNUNET_ERROR_TYPE_WARNING,
-         "Error during sending message of type %u\n",
-         ntohs(cstate->msg->type));
-    if (EINTR == errno){
-      LOG (GNUNET_ERROR_TYPE_DEBUG,
-           "Retrying message of type %u\n",
-           ntohs(cstate->msg->type));
-      goto RETRY;
+    {
+      LOG(GNUNET_ERROR_TYPE_WARNING,
+          "Error during sending message of type %u\n",
+          ntohs(cstate->msg->type));
+      if (EINTR == errno)
+        {
+          LOG(GNUNET_ERROR_TYPE_DEBUG,
+              "Retrying message of type %u\n",
+              ntohs(cstate->msg->type));
+          goto RETRY;
+        }
+      GNUNET_MQ_inject_error(cstate->mq,
+                             GNUNET_MQ_ERROR_WRITE);
+      return;
     }
-    GNUNET_MQ_inject_error (cstate->mq,
-                            GNUNET_MQ_ERROR_WRITE);
-    return;
-  }
   notify_in_flight = (0 == cstate->msg_off);
   cstate->msg_off += ret;
   if (cstate->msg_off < len)
-  {
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "rescheduling message of type %u\n",
-         ntohs(cstate->msg->type));
-    cstate->send_task
-      = GNUNET_SCHEDULER_add_write_net (GNUNET_TIME_UNIT_FOREVER_REL,
-                                        cstate->sock,
-                                        &transmit_ready,
-                                        cstate);
-    if (notify_in_flight)
-      GNUNET_MQ_impl_send_in_flight (cstate->mq);
-    return;
-  }
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "sending message of type %u successful\n",
-       ntohs(cstate->msg->type));
+    {
+      LOG(GNUNET_ERROR_TYPE_DEBUG,
+          "rescheduling message of type %u\n",
+          ntohs(cstate->msg->type));
+      cstate->send_task
+        = GNUNET_SCHEDULER_add_write_net(GNUNET_TIME_UNIT_FOREVER_REL,
+                                         cstate->sock,
+                                         &transmit_ready,
+                                         cstate);
+      if (notify_in_flight)
+        GNUNET_MQ_impl_send_in_flight(cstate->mq);
+      return;
+    }
+  LOG(GNUNET_ERROR_TYPE_DEBUG,
+      "sending message of type %u successful\n",
+      ntohs(cstate->msg->type));
   cstate->msg = NULL;
-  GNUNET_MQ_impl_send_continue (cstate->mq);
+  GNUNET_MQ_impl_send_continue(cstate->mq);
 }
 
 
@@ -323,20 +319,20 @@ transmit_ready (void *cls)
  *     #GNUNET_SYSERR to stop further processing due to error
  */
 static int
-recv_message (void *cls,
-              const struct GNUNET_MessageHeader *msg)
+recv_message(void *cls,
+             const struct GNUNET_MessageHeader *msg)
 {
   struct ClientState *cstate = cls;
 
   if (GNUNET_YES == cstate->in_destroy)
     return GNUNET_NO;
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Received message of type %u and size %u from %s\n",
-       ntohs (msg->type),
-       ntohs (msg->size),
-       cstate->service_name);
-  GNUNET_MQ_inject_message (cstate->mq,
-                            msg);
+  LOG(GNUNET_ERROR_TYPE_DEBUG,
+      "Received message of type %u and size %u from %s\n",
+      ntohs(msg->type),
+      ntohs(msg->size),
+      cstate->service_name);
+  GNUNET_MQ_inject_message(cstate->mq,
+                           msg);
   if (GNUNET_YES == cstate->in_destroy)
     return GNUNET_NO;
   return GNUNET_OK;
@@ -349,20 +345,20 @@ recv_message (void *cls,
  * @param cstate handle of the client state to process
  */
 static void
-cancel_aps (struct ClientState *cstate)
+cancel_aps(struct ClientState *cstate)
 {
   struct AddressProbe *pos;
 
   while (NULL != (pos = cstate->ap_head))
-  {
-    GNUNET_break (GNUNET_OK ==
-                  GNUNET_NETWORK_socket_close (pos->sock));
-    GNUNET_SCHEDULER_cancel (pos->task);
-    GNUNET_CONTAINER_DLL_remove (cstate->ap_head,
-				 cstate->ap_tail,
-				 pos);
-    GNUNET_free (pos);
-  }
+    {
+      GNUNET_break(GNUNET_OK ==
+                   GNUNET_NETWORK_socket_close(pos->sock));
+      GNUNET_SCHEDULER_cancel(pos->task);
+      GNUNET_CONTAINER_DLL_remove(cstate->ap_head,
+                                  cstate->ap_tail,
+                                  pos);
+      GNUNET_free(pos);
+    }
 }
 
 
@@ -374,51 +370,51 @@ cancel_aps (struct ClientState *cstate)
  * @param impl_state our `struct ClientState`
  */
 static void
-connection_client_destroy_impl (struct GNUNET_MQ_Handle *mq,
-                                void *impl_state)
+connection_client_destroy_impl(struct GNUNET_MQ_Handle *mq,
+                               void *impl_state)
 {
   struct ClientState *cstate = impl_state;
 
-  (void) mq;
+  (void)mq;
   if (NULL != cstate->dns_active)
-  {
-    GNUNET_RESOLVER_request_cancel (cstate->dns_active);
-    cstate->dns_active = NULL;
-  }
+    {
+      GNUNET_RESOLVER_request_cancel(cstate->dns_active);
+      cstate->dns_active = NULL;
+    }
   if (NULL != cstate->send_task)
-  {
-    GNUNET_SCHEDULER_cancel (cstate->send_task);
-    cstate->send_task = NULL;
-  }
+    {
+      GNUNET_SCHEDULER_cancel(cstate->send_task);
+      cstate->send_task = NULL;
+    }
   if (NULL != cstate->retry_task)
-  {
-    GNUNET_SCHEDULER_cancel (cstate->retry_task);
-    cstate->retry_task = NULL;
-  }
+    {
+      GNUNET_SCHEDULER_cancel(cstate->retry_task);
+      cstate->retry_task = NULL;
+    }
   if (GNUNET_SYSERR == cstate->in_destroy)
-  {
-    /* defer destruction */
-    cstate->in_destroy = GNUNET_YES;
-    cstate->mq = NULL;
-    return;
-  }
+    {
+      /* defer destruction */
+      cstate->in_destroy = GNUNET_YES;
+      cstate->mq = NULL;
+      return;
+    }
   if (NULL != cstate->recv_task)
-  {
-    GNUNET_SCHEDULER_cancel (cstate->recv_task);
-    cstate->recv_task = NULL;
-  }
+    {
+      GNUNET_SCHEDULER_cancel(cstate->recv_task);
+      cstate->recv_task = NULL;
+    }
   if (NULL != cstate->sock)
-  {
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "destroying socket: %p\n",
-         cstate->sock);
-    GNUNET_NETWORK_socket_close (cstate->sock);
-  }
-  cancel_aps (cstate);
-  GNUNET_free (cstate->service_name);
-  GNUNET_free_non_null (cstate->hostname);
-  GNUNET_MST_destroy (cstate->mst);
-  GNUNET_free (cstate);
+    {
+      LOG(GNUNET_ERROR_TYPE_DEBUG,
+          "destroying socket: %p\n",
+          cstate->sock);
+      GNUNET_NETWORK_socket_close(cstate->sock);
+    }
+  cancel_aps(cstate);
+  GNUNET_free(cstate->service_name);
+  GNUNET_free_non_null(cstate->hostname);
+  GNUNET_MST_destroy(cstate->mst);
+  GNUNET_free(cstate);
 }
 
 
@@ -428,39 +424,39 @@ connection_client_destroy_impl (struct GNUNET_MQ_Handle *mq,
  * @param cls `struct ClientState` with connection to read from
  */
 static void
-receive_ready (void *cls)
+receive_ready(void *cls)
 {
   struct ClientState *cstate = cls;
   int ret;
 
   cstate->recv_task = NULL;
   cstate->in_destroy = GNUNET_SYSERR;
-  ret = GNUNET_MST_read (cstate->mst,
-                         cstate->sock,
-                         GNUNET_NO,
-                         GNUNET_NO);
+  ret = GNUNET_MST_read(cstate->mst,
+                        cstate->sock,
+                        GNUNET_NO,
+                        GNUNET_NO);
   if (GNUNET_SYSERR == ret)
-  {
-    if (NULL != cstate->mq)
-      GNUNET_MQ_inject_error (cstate->mq,
-			      GNUNET_MQ_ERROR_READ);
-    if (GNUNET_YES == cstate->in_destroy)
-      connection_client_destroy_impl (cstate->mq,
-				      cstate);
-    return;
-  }
+    {
+      if (NULL != cstate->mq)
+        GNUNET_MQ_inject_error(cstate->mq,
+                               GNUNET_MQ_ERROR_READ);
+      if (GNUNET_YES == cstate->in_destroy)
+        connection_client_destroy_impl(cstate->mq,
+                                       cstate);
+      return;
+    }
   if (GNUNET_YES == cstate->in_destroy)
-  {
-    connection_client_destroy_impl (cstate->mq,
-                                    cstate);
-    return;
-  }
+    {
+      connection_client_destroy_impl(cstate->mq,
+                                     cstate);
+      return;
+    }
   cstate->in_destroy = GNUNET_NO;
   cstate->recv_task
-    = GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL,
-                                     cstate->sock,
-                                     &receive_ready,
-                                     cstate);
+    = GNUNET_SCHEDULER_add_read_net(GNUNET_TIME_UNIT_FOREVER_REL,
+                                    cstate->sock,
+                                    &receive_ready,
+                                    cstate);
 }
 
 
@@ -470,23 +466,23 @@ receive_ready (void *cls)
  * @param cstate the connection we tried to establish
  */
 static void
-connect_success_continuation (struct ClientState *cstate)
+connect_success_continuation(struct ClientState *cstate)
 {
-  GNUNET_assert (NULL == cstate->recv_task);
+  GNUNET_assert(NULL == cstate->recv_task);
   cstate->recv_task
-    = GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL,
-                                     cstate->sock,
-                                     &receive_ready,
-                                     cstate);
+    = GNUNET_SCHEDULER_add_read_net(GNUNET_TIME_UNIT_FOREVER_REL,
+                                    cstate->sock,
+                                    &receive_ready,
+                                    cstate);
   if (NULL != cstate->msg)
-  {
-    GNUNET_assert (NULL == cstate->send_task);
-    cstate->send_task
-      = GNUNET_SCHEDULER_add_write_net (GNUNET_TIME_UNIT_FOREVER_REL,
-                                        cstate->sock,
-                                        &transmit_ready,
-                                        cstate);
-  }
+    {
+      GNUNET_assert(NULL == cstate->send_task);
+      cstate->send_task
+        = GNUNET_SCHEDULER_add_write_net(GNUNET_TIME_UNIT_FOREVER_REL,
+                                         cstate->sock,
+                                         &transmit_ready,
+                                         cstate);
+    }
 }
 
 
@@ -498,8 +494,8 @@ connect_success_continuation (struct ClientState *cstate)
  * @return NULL on error, socket connected to UNIX otherwise
  */
 static struct GNUNET_NETWORK_Handle *
-try_unixpath (const char *service_name,
-	      const struct GNUNET_CONFIGURATION_Handle *cfg)
+try_unixpath(const char *service_name,
+             const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
 #if AF_UNIX
   struct GNUNET_NETWORK_Handle *sock;
@@ -508,67 +504,67 @@ try_unixpath (const char *service_name,
 
   unixpath = NULL;
   if ((GNUNET_OK ==
-       GNUNET_CONFIGURATION_get_value_filename (cfg,
-                                                service_name,
-                                                "UNIXPATH",
-                                                &unixpath)) &&
-      (0 < strlen (unixpath)))
-  {
-    /* We have a non-NULL unixpath, need to validate it */
-    if (strlen (unixpath) >= sizeof (s_un.sun_path))
+       GNUNET_CONFIGURATION_get_value_filename(cfg,
+                                               service_name,
+                                               "UNIXPATH",
+                                               &unixpath)) &&
+      (0 < strlen(unixpath)))
     {
-      LOG (GNUNET_ERROR_TYPE_WARNING,
-	   _("UNIXPATH `%s' too long, maximum length is %llu\n"),
-           unixpath,
-	   (unsigned long long) sizeof (s_un.sun_path));
-      unixpath = GNUNET_NETWORK_shorten_unixpath (unixpath);
-      LOG (GNUNET_ERROR_TYPE_INFO,
-	   _("Using `%s' instead\n"),
-           unixpath);
-      if (NULL == unixpath)
-	return NULL;
-    }
-    memset (&s_un,
-            0,
-            sizeof (s_un));
-    s_un.sun_family = AF_UNIX;
-    GNUNET_strlcpy (s_un.sun_path,
-                    unixpath,
-                    sizeof (s_un.sun_path));
+      /* We have a non-NULL unixpath, need to validate it */
+      if (strlen(unixpath) >= sizeof(s_un.sun_path))
+        {
+          LOG(GNUNET_ERROR_TYPE_WARNING,
+              _("UNIXPATH `%s' too long, maximum length is %llu\n"),
+              unixpath,
+              (unsigned long long)sizeof(s_un.sun_path));
+          unixpath = GNUNET_NETWORK_shorten_unixpath(unixpath);
+          LOG(GNUNET_ERROR_TYPE_INFO,
+              _("Using `%s' instead\n"),
+              unixpath);
+          if (NULL == unixpath)
+            return NULL;
+        }
+      memset(&s_un,
+             0,
+             sizeof(s_un));
+      s_un.sun_family = AF_UNIX;
+      GNUNET_strlcpy(s_un.sun_path,
+                     unixpath,
+                     sizeof(s_un.sun_path));
 #ifdef LINUX
-    {
-      int abstract;
+      {
+        int abstract;
 
-      abstract = GNUNET_CONFIGURATION_get_value_yesno (cfg,
-                                                       "TESTING",
-                                                       "USE_ABSTRACT_SOCKETS");
-      if (GNUNET_YES == abstract)
-        s_un.sun_path[0] = '\0';
-    }
+        abstract = GNUNET_CONFIGURATION_get_value_yesno(cfg,
+                                                        "TESTING",
+                                                        "USE_ABSTRACT_SOCKETS");
+        if (GNUNET_YES == abstract)
+          s_un.sun_path[0] = '\0';
+      }
 #endif
 #if HAVE_SOCKADDR_UN_SUN_LEN
-    s_un.sun_len = (u_char) sizeof (struct sockaddr_un);
+      s_un.sun_len = (u_char)sizeof(struct sockaddr_un);
 #endif
-    sock = GNUNET_NETWORK_socket_create (AF_UNIX,
-                                         SOCK_STREAM,
-                                         0);
-    if ( (NULL != sock) &&
-         ( (GNUNET_OK ==
-            GNUNET_NETWORK_socket_connect (sock,
-                                           (struct sockaddr *) &s_un,
-                                           sizeof (s_un))) ||
-           (EINPROGRESS == errno) ) )
-    {
-      LOG (GNUNET_ERROR_TYPE_DEBUG,
-           "Successfully connected to unixpath `%s'!\n",
-	   unixpath);
-      GNUNET_free (unixpath);
-      return sock;
+      sock = GNUNET_NETWORK_socket_create(AF_UNIX,
+                                          SOCK_STREAM,
+                                          0);
+      if ((NULL != sock) &&
+          ((GNUNET_OK ==
+            GNUNET_NETWORK_socket_connect(sock,
+                                          (struct sockaddr *)&s_un,
+                                          sizeof(s_un))) ||
+           (EINPROGRESS == errno)))
+        {
+          LOG(GNUNET_ERROR_TYPE_DEBUG,
+              "Successfully connected to unixpath `%s'!\n",
+              unixpath);
+          GNUNET_free(unixpath);
+          return sock;
+        }
+      if (NULL != sock)
+        GNUNET_NETWORK_socket_close(sock);
     }
-    if (NULL != sock)
-      GNUNET_NETWORK_socket_close (sock);
-  }
-  GNUNET_free_non_null (unixpath);
+  GNUNET_free_non_null(unixpath);
 #endif
   return NULL;
 }
@@ -581,7 +577,7 @@ try_unixpath (const char *service_name,
  * @param cls the `struct AddressProbe *` with the address that we are probing
  */
 static void
-connect_probe_continuation (void *cls)
+connect_probe_continuation(void *cls)
 {
   struct AddressProbe *ap = cls;
   struct ClientState *cstate = ap->cstate;
@@ -590,40 +586,40 @@ connect_probe_continuation (void *cls)
   socklen_t len;
 
   ap->task = NULL;
-  GNUNET_assert (NULL != ap->sock);
-  GNUNET_CONTAINER_DLL_remove (cstate->ap_head,
-			       cstate->ap_tail,
-			       ap);
-  len = sizeof (error);
+  GNUNET_assert(NULL != ap->sock);
+  GNUNET_CONTAINER_DLL_remove(cstate->ap_head,
+                              cstate->ap_tail,
+                              ap);
+  len = sizeof(error);
   error = 0;
-  tc = GNUNET_SCHEDULER_get_task_context ();
-  if ( (0 == (tc->reason & GNUNET_SCHEDULER_REASON_WRITE_READY)) ||
-       (GNUNET_OK !=
-	GNUNET_NETWORK_socket_getsockopt (ap->sock,
-					  SOL_SOCKET,
-					  SO_ERROR,
-					  &error,
-					  &len)) ||
-       (0 != error) )
-  {
-    GNUNET_break (GNUNET_OK ==
-		  GNUNET_NETWORK_socket_close (ap->sock));
-    GNUNET_free (ap);
-    if ( (NULL == cstate->ap_head) &&
-         //	 (NULL == cstate->proxy_handshake) &&
-	 (NULL == cstate->dns_active) )
-      connect_fail_continuation (cstate);
-    return;
-  }
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Connection to `%s' succeeded!\n",
-       cstate->service_name);
+  tc = GNUNET_SCHEDULER_get_task_context();
+  if ((0 == (tc->reason & GNUNET_SCHEDULER_REASON_WRITE_READY)) ||
+      (GNUNET_OK !=
+       GNUNET_NETWORK_socket_getsockopt(ap->sock,
+                                        SOL_SOCKET,
+                                        SO_ERROR,
+                                        &error,
+                                        &len)) ||
+      (0 != error))
+    {
+      GNUNET_break(GNUNET_OK ==
+                   GNUNET_NETWORK_socket_close(ap->sock));
+      GNUNET_free(ap);
+      if ((NULL == cstate->ap_head) &&
+          //	 (NULL == cstate->proxy_handshake) &&
+          (NULL == cstate->dns_active))
+        connect_fail_continuation(cstate);
+      return;
+    }
+  LOG(GNUNET_ERROR_TYPE_DEBUG,
+      "Connection to `%s' succeeded!\n",
+      cstate->service_name);
   /* trigger jobs that waited for the connection */
-  GNUNET_assert (NULL == cstate->sock);
+  GNUNET_assert(NULL == cstate->sock);
   cstate->sock = ap->sock;
-  GNUNET_free (ap);
-  cancel_aps (cstate);
-  connect_success_continuation (cstate);
+  GNUNET_free(ap);
+  cancel_aps(cstate);
+  connect_success_continuation(cstate);
 }
 
 
@@ -636,80 +632,82 @@ connect_probe_continuation (void *cls)
  * @param addrlen length of @a addr
  */
 static void
-try_connect_using_address (void *cls,
-                           const struct sockaddr *addr,
-                           socklen_t addrlen)
+try_connect_using_address(void *cls,
+                          const struct sockaddr *addr,
+                          socklen_t addrlen)
 {
   struct ClientState *cstate = cls;
   struct AddressProbe *ap;
 
   if (NULL == addr)
-  {
-    cstate->dns_active = NULL;
-    if ( (NULL == cstate->ap_head) &&
-         //  (NULL == cstate->proxy_handshake) &&
-         (NULL == cstate->sock) )
-      connect_fail_continuation (cstate);
-    return;
-  }
+    {
+      cstate->dns_active = NULL;
+      if ((NULL == cstate->ap_head) &&
+          //  (NULL == cstate->proxy_handshake) &&
+          (NULL == cstate->sock))
+        connect_fail_continuation(cstate);
+      return;
+    }
   if (NULL != cstate->sock)
     return;                     /* already connected */
   /* try to connect */
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Trying to connect using address `%s:%u'\n",
-       GNUNET_a2s (addr,
-                   addrlen),
-       cstate->port);
-  ap = GNUNET_malloc (sizeof (struct AddressProbe) + addrlen);
-  ap->addr = (const struct sockaddr *) &ap[1];
-  GNUNET_memcpy (&ap[1],
-                 addr,
-                 addrlen);
+  LOG(GNUNET_ERROR_TYPE_DEBUG,
+      "Trying to connect using address `%s:%u'\n",
+      GNUNET_a2s(addr,
+                 addrlen),
+      cstate->port);
+  ap = GNUNET_malloc(sizeof(struct AddressProbe) + addrlen);
+  ap->addr = (const struct sockaddr *)&ap[1];
+  GNUNET_memcpy(&ap[1],
+                addr,
+                addrlen);
   ap->addrlen = addrlen;
   ap->cstate = cstate;
 
   switch (ap->addr->sa_family)
-  {
-  case AF_INET:
-    ((struct sockaddr_in *) ap->addr)->sin_port = htons (cstate->port);
-    break;
-  case AF_INET6:
-    ((struct sockaddr_in6 *) ap->addr)->sin6_port = htons (cstate->port);
-    break;
-  default:
-    GNUNET_break (0);
-    GNUNET_free (ap);
-    return;                     /* not supported by us */
-  }
-  ap->sock = GNUNET_NETWORK_socket_create (ap->addr->sa_family,
-					   SOCK_STREAM,
-                                           0);
+    {
+    case AF_INET:
+      ((struct sockaddr_in *)ap->addr)->sin_port = htons(cstate->port);
+      break;
+
+    case AF_INET6:
+      ((struct sockaddr_in6 *)ap->addr)->sin6_port = htons(cstate->port);
+      break;
+
+    default:
+      GNUNET_break(0);
+      GNUNET_free(ap);
+      return;                   /* not supported by us */
+    }
+  ap->sock = GNUNET_NETWORK_socket_create(ap->addr->sa_family,
+                                          SOCK_STREAM,
+                                          0);
   if (NULL == ap->sock)
-  {
-    GNUNET_free (ap);
-    return;                     /* not supported by OS */
-  }
-  if ( (GNUNET_OK !=
-        GNUNET_NETWORK_socket_connect (ap->sock,
-                                       ap->addr,
-                                       ap->addrlen)) &&
-       (EINPROGRESS != errno) )
-  {
-    /* maybe refused / unsupported address, try next */
-    GNUNET_log_strerror (GNUNET_ERROR_TYPE_INFO,
-                         "connect");
-    GNUNET_break (GNUNET_OK ==
-                  GNUNET_NETWORK_socket_close (ap->sock));
-    GNUNET_free (ap);
-    return;
-  }
-  GNUNET_CONTAINER_DLL_insert (cstate->ap_head,
-                               cstate->ap_tail,
-                               ap);
-  ap->task = GNUNET_SCHEDULER_add_write_net (CONNECT_RETRY_TIMEOUT,
-					     ap->sock,
-					     &connect_probe_continuation,
-					     ap);
+    {
+      GNUNET_free(ap);
+      return;                   /* not supported by OS */
+    }
+  if ((GNUNET_OK !=
+       GNUNET_NETWORK_socket_connect(ap->sock,
+                                     ap->addr,
+                                     ap->addrlen)) &&
+      (EINPROGRESS != errno))
+    {
+      /* maybe refused / unsupported address, try next */
+      GNUNET_log_strerror(GNUNET_ERROR_TYPE_INFO,
+                          "connect");
+      GNUNET_break(GNUNET_OK ==
+                   GNUNET_NETWORK_socket_close(ap->sock));
+      GNUNET_free(ap);
+      return;
+    }
+  GNUNET_CONTAINER_DLL_insert(cstate->ap_head,
+                              cstate->ap_tail,
+                              ap);
+  ap->task = GNUNET_SCHEDULER_add_write_net(CONNECT_RETRY_TIMEOUT,
+                                            ap->sock,
+                                            &connect_probe_continuation,
+                                            ap);
 }
 
 
@@ -722,55 +720,56 @@ try_connect_using_address (void *cls,
  * @return #GNUNET_OK if the configuration is valid, #GNUNET_SYSERR if not
  */
 static int
-test_service_configuration (const char *service_name,
-			    const struct GNUNET_CONFIGURATION_Handle *cfg)
+test_service_configuration(const char *service_name,
+                           const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   int ret = GNUNET_SYSERR;
   char *hostname = NULL;
   unsigned long long port;
+
 #if AF_UNIX
   char *unixpath = NULL;
 
   if ((GNUNET_OK ==
-       GNUNET_CONFIGURATION_get_value_filename (cfg,
-                                                service_name,
-                                                "UNIXPATH",
-                                                &unixpath)) &&
-      (0 < strlen (unixpath)))
+       GNUNET_CONFIGURATION_get_value_filename(cfg,
+                                               service_name,
+                                               "UNIXPATH",
+                                               &unixpath)) &&
+      (0 < strlen(unixpath)))
     ret = GNUNET_OK;
   else if ((GNUNET_OK ==
-            GNUNET_CONFIGURATION_have_value (cfg,
-                                             service_name,
-                                             "UNIXPATH")))
-  {
-    GNUNET_log_config_invalid (GNUNET_ERROR_TYPE_ERROR,
-                               service_name,
-                               "UNIXPATH",
-                               _("not a valid filename"));
-    return GNUNET_SYSERR; /* UNIXPATH specified but invalid! */
-  }
-  GNUNET_free_non_null (unixpath);
+            GNUNET_CONFIGURATION_have_value(cfg,
+                                            service_name,
+                                            "UNIXPATH")))
+    {
+      GNUNET_log_config_invalid(GNUNET_ERROR_TYPE_ERROR,
+                                service_name,
+                                "UNIXPATH",
+                                _("not a valid filename"));
+      return GNUNET_SYSERR; /* UNIXPATH specified but invalid! */
+    }
+  GNUNET_free_non_null(unixpath);
 #endif
 
-  if ( (GNUNET_YES ==
-	GNUNET_CONFIGURATION_have_value (cfg,
-                                         service_name,
-                                         "PORT")) &&
-       (GNUNET_OK ==
-	GNUNET_CONFIGURATION_get_value_number (cfg,
-                                               service_name,
-                                               "PORT",
-                                               &port)) &&
-       (port <= 65535) &&
-       (0 != port) &&
-       (GNUNET_OK ==
-	GNUNET_CONFIGURATION_get_value_string (cfg,
-                                               service_name,
-                                               "HOSTNAME",
-					       &hostname)) &&
-       (0 != strlen (hostname)) )
+  if ((GNUNET_YES ==
+       GNUNET_CONFIGURATION_have_value(cfg,
+                                       service_name,
+                                       "PORT")) &&
+      (GNUNET_OK ==
+       GNUNET_CONFIGURATION_get_value_number(cfg,
+                                             service_name,
+                                             "PORT",
+                                             &port)) &&
+      (port <= 65535) &&
+      (0 != port) &&
+      (GNUNET_OK ==
+       GNUNET_CONFIGURATION_get_value_string(cfg,
+                                             service_name,
+                                             "HOSTNAME",
+                                             &hostname)) &&
+      (0 != strlen(hostname)))
     ret = GNUNET_OK;
-  GNUNET_free_non_null (hostname);
+  GNUNET_free_non_null(hostname);
   return ret;
 }
 
@@ -781,7 +780,7 @@ test_service_configuration (const char *service_name,
  * @param cls the `struct ClientState` to try to connect to the service
  */
 static void
-start_connect (void *cls)
+start_connect(void *cls)
 {
   struct ClientState *cstate = cls;
 
@@ -789,41 +788,41 @@ start_connect (void *cls)
 #if 0
   /* Never use a local source if a proxy is configured */
   if (GNUNET_YES ==
-      GNUNET_SOCKS_check_service (cstate->service_name,
-                                  cstate->cfg))
-  {
-    socks_connect (cstate);
-    return;
-  }
-#endif
-
-  if ( (0 == (cstate->attempts++ % 2)) ||
-       (0 == cstate->port) ||
-       (NULL == cstate->hostname) )
-  {
-    /* on even rounds, try UNIX first, or always
-       if we do not have a DNS name and TCP port. */
-    cstate->sock = try_unixpath (cstate->service_name,
-                                 cstate->cfg);
-    if (NULL != cstate->sock)
+      GNUNET_SOCKS_check_service(cstate->service_name,
+                                 cstate->cfg))
     {
-      connect_success_continuation (cstate);
+      socks_connect(cstate);
       return;
     }
-  }
-  if ( (NULL == cstate->hostname) ||
-       (0 == cstate->port) )
-  {
-    /* All options failed. Boo! */
-    connect_fail_continuation (cstate);
-    return;
-  }
+#endif
+
+  if ((0 == (cstate->attempts++ % 2)) ||
+      (0 == cstate->port) ||
+      (NULL == cstate->hostname))
+    {
+      /* on even rounds, try UNIX first, or always
+         if we do not have a DNS name and TCP port. */
+      cstate->sock = try_unixpath(cstate->service_name,
+                                  cstate->cfg);
+      if (NULL != cstate->sock)
+        {
+          connect_success_continuation(cstate);
+          return;
+        }
+    }
+  if ((NULL == cstate->hostname) ||
+      (0 == cstate->port))
+    {
+      /* All options failed. Boo! */
+      connect_fail_continuation(cstate);
+      return;
+    }
   cstate->dns_active
-    = GNUNET_RESOLVER_ip_get (cstate->hostname,
-			      AF_UNSPEC,
-                              CONNECT_RETRY_TIMEOUT,
-                              &try_connect_using_address,
-			      cstate);
+    = GNUNET_RESOLVER_ip_get(cstate->hostname,
+                             AF_UNSPEC,
+                             CONNECT_RETRY_TIMEOUT,
+                             &try_connect_using_address,
+                             cstate);
 }
 
 
@@ -835,30 +834,30 @@ start_connect (void *cls)
  * @param impl_state our `struct ClientState`
  */
 static void
-connection_client_send_impl (struct GNUNET_MQ_Handle *mq,
-                             const struct GNUNET_MessageHeader *msg,
-                             void *impl_state)
+connection_client_send_impl(struct GNUNET_MQ_Handle *mq,
+                            const struct GNUNET_MessageHeader *msg,
+                            void *impl_state)
 {
   struct ClientState *cstate = impl_state;
 
-  (void) mq;
+  (void)mq;
   /* only one message at a time allowed */
-  GNUNET_assert (NULL == cstate->msg);
-  GNUNET_assert (NULL == cstate->send_task);
+  GNUNET_assert(NULL == cstate->msg);
+  GNUNET_assert(NULL == cstate->send_task);
   cstate->msg = msg;
   cstate->msg_off = 0;
   if (NULL == cstate->sock)
-  {
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "message of type %u waiting for socket\n",
-         ntohs(msg->type));
-    return; /* still waiting for connection */
-  }
+    {
+      LOG(GNUNET_ERROR_TYPE_DEBUG,
+          "message of type %u waiting for socket\n",
+          ntohs(msg->type));
+      return; /* still waiting for connection */
+    }
   cstate->send_task
-    = GNUNET_SCHEDULER_add_write_net (GNUNET_TIME_UNIT_FOREVER_REL,
-                                      cstate->sock,
-                                      &transmit_ready,
-                                      cstate);
+    = GNUNET_SCHEDULER_add_write_net(GNUNET_TIME_UNIT_FOREVER_REL,
+                                     cstate->sock,
+                                     &transmit_ready,
+                                     cstate);
 }
 
 
@@ -869,20 +868,20 @@ connection_client_send_impl (struct GNUNET_MQ_Handle *mq,
  * @param impl_state our `struct ClientState`
  */
 static void
-connection_client_cancel_impl (struct GNUNET_MQ_Handle *mq,
-                               void *impl_state)
+connection_client_cancel_impl(struct GNUNET_MQ_Handle *mq,
+                              void *impl_state)
 {
   struct ClientState *cstate = impl_state;
 
-  (void) mq;
-  GNUNET_assert (NULL != cstate->msg);
-  GNUNET_assert (0 == cstate->msg_off);
+  (void)mq;
+  GNUNET_assert(NULL != cstate->msg);
+  GNUNET_assert(0 == cstate->msg_off);
   cstate->msg = NULL;
   if (NULL != cstate->send_task)
-  {
-    GNUNET_SCHEDULER_cancel (cstate->send_task);
-    cstate->send_task = NULL;
-  }
+    {
+      GNUNET_SCHEDULER_cancel(cstate->send_task);
+      cstate->send_task = NULL;
+    }
 }
 
 
@@ -898,57 +897,57 @@ connection_client_cancel_impl (struct GNUNET_MQ_Handle *mq,
  * @return the message queue, NULL on error
  */
 struct GNUNET_MQ_Handle *
-GNUNET_CLIENT_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
-		       const char *service_name,
-		       const struct GNUNET_MQ_MessageHandler *handlers,
-		       GNUNET_MQ_ErrorHandler error_handler,
-		       void *error_handler_cls)
+GNUNET_CLIENT_connect(const struct GNUNET_CONFIGURATION_Handle *cfg,
+                      const char *service_name,
+                      const struct GNUNET_MQ_MessageHandler *handlers,
+                      GNUNET_MQ_ErrorHandler error_handler,
+                      void *error_handler_cls)
 {
   struct ClientState *cstate;
 
   if (GNUNET_OK !=
-      test_service_configuration (service_name,
-				  cfg))
+      test_service_configuration(service_name,
+                                 cfg))
     return NULL;
-  cstate = GNUNET_new (struct ClientState);
-  cstate->service_name = GNUNET_strdup (service_name);
+  cstate = GNUNET_new(struct ClientState);
+  cstate->service_name = GNUNET_strdup(service_name);
   cstate->cfg = cfg;
-  cstate->retry_task = GNUNET_SCHEDULER_add_now (&start_connect,
-                                                 cstate);
-  cstate->mst = GNUNET_MST_create (&recv_message,
-                                   cstate);
+  cstate->retry_task = GNUNET_SCHEDULER_add_now(&start_connect,
+                                                cstate);
+  cstate->mst = GNUNET_MST_create(&recv_message,
+                                  cstate);
   if (GNUNET_YES ==
-      GNUNET_CONFIGURATION_have_value (cfg,
-                                       service_name,
-                                       "PORT"))
-  {
-    if (! ( (GNUNET_OK !=
-	     GNUNET_CONFIGURATION_get_value_number (cfg,
-						    service_name,
-						    "PORT",
-						    &cstate->port)) ||
-	    (cstate->port > 65535) ||
-	    (GNUNET_OK !=
-	     GNUNET_CONFIGURATION_get_value_string (cfg,
-						    service_name,
-						    "HOSTNAME",
-						    &cstate->hostname)) ) &&
-	(0 == strlen (cstate->hostname)) )
+      GNUNET_CONFIGURATION_have_value(cfg,
+                                      service_name,
+                                      "PORT"))
     {
-      GNUNET_free (cstate->hostname);
-      cstate->hostname = NULL;
-      LOG (GNUNET_ERROR_TYPE_WARNING,
-	   _("Need a non-empty hostname for service `%s'.\n"),
-	   service_name);
+      if (!((GNUNET_OK !=
+             GNUNET_CONFIGURATION_get_value_number(cfg,
+                                                   service_name,
+                                                   "PORT",
+                                                   &cstate->port)) ||
+            (cstate->port > 65535) ||
+            (GNUNET_OK !=
+             GNUNET_CONFIGURATION_get_value_string(cfg,
+                                                   service_name,
+                                                   "HOSTNAME",
+                                                   &cstate->hostname))) &&
+          (0 == strlen(cstate->hostname)))
+        {
+          GNUNET_free(cstate->hostname);
+          cstate->hostname = NULL;
+          LOG(GNUNET_ERROR_TYPE_WARNING,
+              _("Need a non-empty hostname for service `%s'.\n"),
+              service_name);
+        }
     }
-  }
-  cstate->mq = GNUNET_MQ_queue_for_callbacks (&connection_client_send_impl,
-					      &connection_client_destroy_impl,
-					      &connection_client_cancel_impl,
-					      cstate,
-					      handlers,
-					      error_handler,
-					      error_handler_cls);
+  cstate->mq = GNUNET_MQ_queue_for_callbacks(&connection_client_send_impl,
+                                             &connection_client_destroy_impl,
+                                             &connection_client_cancel_impl,
+                                             cstate,
+                                             handlers,
+                                             error_handler,
+                                             error_handler_cls);
   return cstate->mq;
 }
 

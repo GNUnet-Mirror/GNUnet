@@ -11,7 +11,7 @@
       WITHOUT ANY WARRANTY; without even the implied warranty of
       MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
       Affero General Public License for more details.
-     
+
       You should have received a copy of the GNU Affero General Public License
       along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -32,8 +32,7 @@
 /**
  * States for Service connect operations
  */
-enum State
-{
+enum State {
   /**
    * Initial state
    */
@@ -54,8 +53,7 @@ enum State
 /**
  * Data accessed during service connections
  */
-struct ServiceConnectData
-{
+struct ServiceConnectData {
   /**
    * helper function callback to establish the connection
    */
@@ -120,7 +118,6 @@ struct ServiceConnectData
    * State information
    */
   enum State state;
-
 };
 
 
@@ -132,7 +129,7 @@ struct ServiceConnectData
  * @param msg message received, NULL on timeout or fatal error
  */
 static void
-configuration_receiver (void *cls, const struct GNUNET_MessageHeader *msg)
+configuration_receiver(void *cls, const struct GNUNET_MessageHeader *msg)
 {
   struct ServiceConnectData *data = cls;
   struct GNUNET_TESTBED_Controller *c;
@@ -141,26 +138,26 @@ configuration_receiver (void *cls, const struct GNUNET_MessageHeader *msg)
   uint16_t mtype;
 
   c = data->peer->controller;
-  mtype = ntohs (msg->type);
+  mtype = ntohs(msg->type);
   emsg = NULL;
   info.type = GNUNET_TESTBED_ET_OPERATION_FINISHED;
   info.op = data->operation;
   info.op_cls = data->op_cls;
   if (GNUNET_MESSAGE_TYPE_TESTBED_OPERATION_FAIL_EVENT == mtype)
-  {
-    emsg =
-        GNUNET_TESTBED_parse_error_string_ ((const struct
-                                             GNUNET_TESTBED_OperationFailureEventMessage
-                                             *) msg);
-    if (NULL == emsg)
-      emsg = "Unknown error";
-    info.details.operation_finished.emsg = emsg;
-    info.details.operation_finished.generic = NULL;
-    goto call_cb;
-  }
-  data->cfg = GNUNET_TESTBED_extract_config_ (msg);
-  GNUNET_assert (NULL == data->op_result);
-  data->op_result = data->ca (data->cada_cls, data->cfg);
+    {
+      emsg =
+        GNUNET_TESTBED_parse_error_string_((const struct
+                                            GNUNET_TESTBED_OperationFailureEventMessage
+                                            *)msg);
+      if (NULL == emsg)
+        emsg = "Unknown error";
+      info.details.operation_finished.emsg = emsg;
+      info.details.operation_finished.generic = NULL;
+      goto call_cb;
+    }
+  data->cfg = GNUNET_TESTBED_extract_config_(msg);
+  GNUNET_assert(NULL == data->op_result);
+  data->op_result = data->ca(data->cada_cls, data->cfg);
   info.details.operation_finished.emsg = NULL;
   info.details.operation_finished.generic = data->op_result;
   data->state = SERVICE_CONNECTED;
@@ -168,9 +165,9 @@ configuration_receiver (void *cls, const struct GNUNET_MessageHeader *msg)
 call_cb:
   if ((0 != (GNUNET_TESTBED_ET_OPERATION_FINISHED & c->event_mask)) &&
       (NULL != c->cc))
-    c->cc (c->cc_cls, &info);
+    c->cc(c->cc_cls, &info);
   if (NULL != data->cb)
-    data->cb (data->cb_cls, data->operation, data->op_result, emsg);
+    data->cb(data->cb_cls, data->operation, data->op_result, emsg);
 }
 
 
@@ -180,23 +177,23 @@ call_cb:
  * @param cls the closure from GNUNET_TESTBED_operation_create_()
  */
 static void
-opstart_service_connect (void *cls)
+opstart_service_connect(void *cls)
 {
   struct ServiceConnectData *data = cls;
   struct GNUNET_TESTBED_PeerGetConfigurationMessage *msg;
   struct GNUNET_TESTBED_Controller *c;
   uint64_t op_id;
 
-  GNUNET_assert (NULL != data);
-  GNUNET_assert (NULL != data->peer);
+  GNUNET_assert(NULL != data);
+  GNUNET_assert(NULL != data->peer);
   c = data->peer->controller;
-  op_id = GNUNET_TESTBED_get_next_op_id (c);
+  op_id = GNUNET_TESTBED_get_next_op_id(c);
   msg =
-      GNUNET_TESTBED_generate_peergetconfig_msg_ (data->peer->unique_id, op_id);
+    GNUNET_TESTBED_generate_peergetconfig_msg_(data->peer->unique_id, op_id);
   data->opc =
-      GNUNET_TESTBED_forward_operation_msg_ (c, op_id, &msg->header,
-                                             &configuration_receiver, data);
-  GNUNET_free (msg);
+    GNUNET_TESTBED_forward_operation_msg_(c, op_id, &msg->header,
+                                          &configuration_receiver, data);
+  GNUNET_free(msg);
   data->state = CFG_REQUEST_QUEUED;
 }
 
@@ -208,26 +205,28 @@ opstart_service_connect (void *cls)
  * @param cls the closure from GNUNET_TESTBED_operation_create_()
  */
 static void
-oprelease_service_connect (void *cls)
+oprelease_service_connect(void *cls)
 {
   struct ServiceConnectData *data = cls;
 
   switch (data->state)
-  {
-  case INIT:
-    break;
-  case CFG_REQUEST_QUEUED:
-    GNUNET_assert (NULL != data->opc);
-    GNUNET_TESTBED_forward_operation_msg_cancel_ (data->opc);
-    break;
-  case SERVICE_CONNECTED:
-    GNUNET_assert (NULL != data->cfg);
-    GNUNET_CONFIGURATION_destroy (data->cfg);
-    if (NULL != data->da)
-      data->da (data->cada_cls, data->op_result);
-    break;
-  }
-  GNUNET_free (data);
+    {
+    case INIT:
+      break;
+
+    case CFG_REQUEST_QUEUED:
+      GNUNET_assert(NULL != data->opc);
+      GNUNET_TESTBED_forward_operation_msg_cancel_(data->opc);
+      break;
+
+    case SERVICE_CONNECTED:
+      GNUNET_assert(NULL != data->cfg);
+      GNUNET_CONFIGURATION_destroy(data->cfg);
+      if (NULL != data->da)
+        data->da(data->cada_cls, data->op_result);
+      break;
+    }
+  GNUNET_free(data);
 }
 
 
@@ -253,17 +252,17 @@ oprelease_service_connect (void *cls)
  * @return handle for the operation
  */
 struct GNUNET_TESTBED_Operation *
-GNUNET_TESTBED_service_connect (void *op_cls, struct GNUNET_TESTBED_Peer *peer,
-                                const char *service_name,
-                                GNUNET_TESTBED_ServiceConnectCompletionCallback
-                                cb, void *cb_cls,
-                                GNUNET_TESTBED_ConnectAdapter ca,
-                                GNUNET_TESTBED_DisconnectAdapter da,
-                                void *cada_cls)
+GNUNET_TESTBED_service_connect(void *op_cls, struct GNUNET_TESTBED_Peer *peer,
+                               const char *service_name,
+                               GNUNET_TESTBED_ServiceConnectCompletionCallback
+                               cb, void *cb_cls,
+                               GNUNET_TESTBED_ConnectAdapter ca,
+                               GNUNET_TESTBED_DisconnectAdapter da,
+                               void *cada_cls)
 {
   struct ServiceConnectData *data;
 
-  data = GNUNET_new (struct ServiceConnectData);
+  data = GNUNET_new(struct ServiceConnectData);
   data->ca = ca;
   data->da = da;
   data->cada_cls = cada_cls;
@@ -273,15 +272,15 @@ GNUNET_TESTBED_service_connect (void *op_cls, struct GNUNET_TESTBED_Peer *peer,
   data->cb = cb;
   data->cb_cls = cb_cls;
   data->operation =
-      GNUNET_TESTBED_operation_create_ (data, &opstart_service_connect,
-                                        &oprelease_service_connect);
-  GNUNET_TESTBED_operation_queue_insert_ (peer->
-                                          controller->opq_parallel_service_connections,
-                                          data->operation);
-  GNUNET_TESTBED_operation_queue_insert_ (peer->
-                                          controller->opq_parallel_operations,
-                                          data->operation);
-  GNUNET_TESTBED_operation_begin_wait_ (data->operation);
+    GNUNET_TESTBED_operation_create_(data, &opstart_service_connect,
+                                     &oprelease_service_connect);
+  GNUNET_TESTBED_operation_queue_insert_(peer->
+                                         controller->opq_parallel_service_connections,
+                                         data->operation);
+  GNUNET_TESTBED_operation_queue_insert_(peer->
+                                         controller->opq_parallel_operations,
+                                         data->operation);
+  GNUNET_TESTBED_operation_begin_wait_(data->operation);
   return data->operation;
 }
 

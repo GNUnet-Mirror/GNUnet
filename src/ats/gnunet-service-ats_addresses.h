@@ -1,19 +1,19 @@
 /*
- This file is part of GNUnet.
- Copyright (C) 2011-2014 GNUnet e.V.
+   This file is part of GNUnet.
+   Copyright (C) 2011-2014 GNUnet e.V.
 
- GNUnet is free software: you can redistribute it and/or modify it
- under the terms of the GNU Affero General Public License as published
- by the Free Software Foundation, either version 3 of the License,
- or (at your option) any later version.
+   GNUnet is free software: you can redistribute it and/or modify it
+   under the terms of the GNU Affero General Public License as published
+   by the Free Software Foundation, either version 3 of the License,
+   or (at your option) any later version.
 
- GNUnet is distributed in the hope that it will be useful, but
- WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- Affero General Public License for more details.
+   GNUnet is distributed in the hope that it will be useful, but
+   WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   Affero General Public License for more details.
 
- You should have received a copy of the GNU Affero General Public License
- along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   You should have received a copy of the GNU Affero General Public License
+   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
  */
@@ -226,8 +226,7 @@
 /**
  * Information provided by ATS normalization
  */
-struct GAS_NormalizationInfo
-{
+struct GAS_NormalizationInfo {
   /**
    * Next index to use in averaging queue
    */
@@ -253,8 +252,7 @@ struct GAS_NormalizationInfo
 /**
  * Address with additional information
  */
-struct ATS_Address
-{
+struct ATS_Address {
   /**
    * Peer ID this address is for.
    */
@@ -350,11 +348,10 @@ struct ATS_Address
    */
   struct GAS_NormalizationInfo norm_utilization_in;
 
-    /**
+  /**
    * Normalized utilization outbound for this address.
    */
   struct GAS_NormalizationInfo norm_utilization_out;
-
 };
 
 
@@ -369,14 +366,14 @@ extern struct GNUNET_CONTAINER_MultiPeerMap *GSA_addresses;
  * known and current performance information.
  */
 void
-GAS_addresses_init (void);
+GAS_addresses_init(void);
 
 
 /**
  * Shutdown address subsystem.
  */
 void
-GAS_addresses_done (void);
+GAS_addresses_done(void);
 
 
 /**
@@ -391,13 +388,13 @@ GAS_addresses_done (void);
  * @param prop performance information for this address
  */
 void
-GAS_addresses_add (const struct GNUNET_PeerIdentity *peer,
-                   const char *plugin_name,
-                   const void *plugin_addr,
-                   size_t plugin_addr_len,
-                   uint32_t local_address_info,
-                   uint32_t session_id,
-                   const struct GNUNET_ATS_Properties *prop);
+GAS_addresses_add(const struct GNUNET_PeerIdentity *peer,
+                  const char *plugin_name,
+                  const void *plugin_addr,
+                  size_t plugin_addr_len,
+                  uint32_t local_address_info,
+                  uint32_t session_id,
+                  const struct GNUNET_ATS_Properties *prop);
 
 
 /**
@@ -408,9 +405,9 @@ GAS_addresses_add (const struct GNUNET_PeerIdentity *peer,
  * @param prop performance information for this address
  */
 void
-GAS_addresses_update (const struct GNUNET_PeerIdentity *peer,
-                      uint32_t session_id,
-                      const struct GNUNET_ATS_Properties *prop);
+GAS_addresses_update(const struct GNUNET_PeerIdentity *peer,
+                     uint32_t session_id,
+                     const struct GNUNET_ATS_Properties *prop);
 
 
 /**
@@ -420,15 +417,15 @@ GAS_addresses_update (const struct GNUNET_PeerIdentity *peer,
  * @param session_id session id, can never be 0
  */
 void
-GAS_addresses_destroy (const struct GNUNET_PeerIdentity *peer,
-                       uint32_t session_id);
+GAS_addresses_destroy(const struct GNUNET_PeerIdentity *peer,
+                      uint32_t session_id);
 
 
 /**
  * Remove all addresses.
  */
 void
-GAS_addresses_destroy_all (void);
+GAS_addresses_destroy_all(void);
 
 
 /**
@@ -466,9 +463,9 @@ typedef void
  * @param pi_it_cls the closure for @a pi_it
  */
 void
-GAS_addresses_get_peer_info (const struct GNUNET_PeerIdentity *peer,
-                             GNUNET_ATS_PeerInfo_Iterator pi_it,
-                             void *pi_it_cls);
+GAS_addresses_get_peer_info(const struct GNUNET_PeerIdentity *peer,
+                            GNUNET_ATS_PeerInfo_Iterator pi_it,
+                            void *pi_it_cls);
 
 
 /**
@@ -478,8 +475,8 @@ GAS_addresses_get_peer_info (const struct GNUNET_PeerIdentity *peer,
  * @param alrm the request message
  */
 void
-GAS_handle_request_address_list (struct GNUNET_SERVICE_Client *client,
-                                 const struct AddressListRequestMessage *alrm);
+GAS_handle_request_address_list(struct GNUNET_SERVICE_Client *client,
+                                const struct AddressListRequestMessage *alrm);
 
 
 #endif

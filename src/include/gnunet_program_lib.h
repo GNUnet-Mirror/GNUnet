@@ -11,12 +11,12 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 
 /**
  * @author Christian Grothoff
@@ -75,14 +75,14 @@ typedef void
  * @return #GNUNET_SYSERR on error, #GNUNET_OK on success
  */
 int
-GNUNET_PROGRAM_run2 (int argc,
-                     char *const *argv,
-                     const char *binaryName,
-                     const char *binaryHelp,
-                     const struct GNUNET_GETOPT_CommandLineOption *options,
-                     GNUNET_PROGRAM_Main task,
-                     void *task_cls,
-                     int run_without_scheduler);
+GNUNET_PROGRAM_run2(int argc,
+                    char *const *argv,
+                    const char *binaryName,
+                    const char *binaryHelp,
+                    const struct GNUNET_GETOPT_CommandLineOption *options,
+                    GNUNET_PROGRAM_Main task,
+                    void *task_cls,
+                    int run_without_scheduler);
 
 
 /**
@@ -99,13 +99,13 @@ GNUNET_PROGRAM_run2 (int argc,
  * @return #GNUNET_SYSERR on error, #GNUNET_OK on success
  */
 int
-GNUNET_PROGRAM_run (int argc,
-                    char *const *argv,
-                    const char *binaryName,
-                    const char *binaryHelp,
-                    const struct GNUNET_GETOPT_CommandLineOption *options,
-                    GNUNET_PROGRAM_Main task,
-		    void *task_cls);
+GNUNET_PROGRAM_run(int argc,
+                   char *const *argv,
+                   const char *binaryName,
+                   const char *binaryHelp,
+                   const struct GNUNET_GETOPT_CommandLineOption *options,
+                   GNUNET_PROGRAM_Main task,
+                   void *task_cls);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

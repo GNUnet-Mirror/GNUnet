@@ -11,12 +11,12 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 
 /**
  * @file peerinfo-tool/gnunet-peerinfo_plugins.h
@@ -34,14 +34,14 @@
  * @param cfg configuration to use
  */
 void
-GPI_plugins_load (const struct GNUNET_CONFIGURATION_Handle *cfg);
+GPI_plugins_load(const struct GNUNET_CONFIGURATION_Handle *cfg);
 
 
 /**
  * Unload all plugins
  */
 void
-GPI_plugins_unload (void);
+GPI_plugins_unload(void);
 
 
 /**
@@ -51,7 +51,7 @@ GPI_plugins_unload (void);
  * @return the plugin's API, NULL if the plugin is not loaded
  */
 struct GNUNET_TRANSPORT_PluginFunctions *
-GPI_plugins_find (const char *name);
+GPI_plugins_find(const char *name);
 
 
 #endif

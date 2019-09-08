@@ -1,19 +1,19 @@
 /*
- This file is part of GNUnet.
- Copyright (C) 2017 GNUnet e.V.
+   This file is part of GNUnet.
+   Copyright (C) 2017 GNUnet e.V.
 
- GNUnet is free software: you can redistribute it and/or modify it
- under the terms of the GNU Affero General Public License as published
- by the Free Software Foundation, either version 3 of the License,
- or (at your option) any later version.
+   GNUnet is free software: you can redistribute it and/or modify it
+   under the terms of the GNU Affero General Public License as published
+   by the Free Software Foundation, either version 3 of the License,
+   or (at your option) any later version.
 
- GNUnet is distributed in the hope that it will be useful, but
- WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- Affero General Public License for more details.
+   GNUnet is distributed in the hope that it will be useful, but
+   WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   Affero General Public License for more details.
 
- You should have received a copy of the GNU Affero General Public License
- along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   You should have received a copy of the GNU Affero General Public License
+   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
  */
@@ -30,8 +30,7 @@
 /**
  * Element in the DLL.
  */
-struct Element
-{
+struct Element {
   /**
    * Required pointer to previous element.
    */
@@ -58,9 +57,9 @@ struct Element
  * @return #GNUNET_YES if @e1 < @e2, otherwise #GNUNET_NO
  */
 static int
-cmp_elem (void *cls,
-          struct Element *e1,
-          struct Element *e2)
+cmp_elem(void *cls,
+         struct Element *e1,
+         struct Element *e2)
 {
   if (e1->value == e2->value)
     return 0;
@@ -69,7 +68,7 @@ cmp_elem (void *cls,
 
 
 int
-main (int argc, char **argv)
+main(int argc, char **argv)
 {
   unsigned int values[] = {
     4, 5, 8, 6, 9, 3, 7, 2, 1, 0
@@ -79,33 +78,33 @@ main (int argc, char **argv)
   struct Element *e;
   unsigned int want;
 
-  GNUNET_log_setup ("test-container-dll",
-                    "WARNING",
-                    NULL);
-  for (unsigned int off=0;
+  GNUNET_log_setup("test-container-dll",
+                   "WARNING",
+                   NULL);
+  for (unsigned int off = 0;
        0 != values[off];
        off++)
-  {
-    e = GNUNET_new (struct Element);
-    e->value = values[off];
-    GNUNET_CONTAINER_DLL_insert_sorted (struct Element,
-                                        cmp_elem,
-                                        NULL,
-                                        head,
-                                        tail,
-                                        e);
-  }
+    {
+      e = GNUNET_new(struct Element);
+      e->value = values[off];
+      GNUNET_CONTAINER_DLL_insert_sorted(struct Element,
+                                         cmp_elem,
+                                         NULL,
+                                         head,
+                                         tail,
+                                         e);
+    }
 
   want = 1;
   while (NULL != (e = head))
-  {
-    GNUNET_assert (e->value == want);
-    GNUNET_CONTAINER_DLL_remove (head,
-                                 tail,
-                                 e);
-    GNUNET_free (e);
-    want++;
-  }
+    {
+      GNUNET_assert(e->value == want);
+      GNUNET_CONTAINER_DLL_remove(head,
+                                  tail,
+                                  e);
+      GNUNET_free(e);
+      want++;
+    }
   return 0;
 }
 

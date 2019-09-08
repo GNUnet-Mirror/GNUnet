@@ -11,12 +11,12 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 
 /**
  * @file util/winproc.c
@@ -69,15 +69,15 @@ TAddAce GNAddAce;
 TAddAccessAllowedAce GNAddAccessAllowedAce;
 TSetNamedSecurityInfo GNSetNamedSecurityInfo;
 
-#define LOG(kind,...) GNUNET_log_from (kind, "util-winproc", __VA_ARGS__)
+#define LOG(kind, ...) GNUNET_log_from(kind, "util-winproc", __VA_ARGS__)
 /**
  * Log (panic) messages from PlibC
  */
 void
-plibc_panic (int err, char *msg)
+plibc_panic(int err, char *msg)
 {
-  LOG (((err == INT_MAX) ? GNUNET_ERROR_TYPE_DEBUG : GNUNET_ERROR_TYPE_ERROR),
-       "%s", msg);
+  LOG(((err == INT_MAX) ? GNUNET_ERROR_TYPE_DEBUG : GNUNET_ERROR_TYPE_ERROR),
+      "%s", msg);
 }
 
 #ifdef W32_VEH
@@ -91,45 +91,46 @@ plibc_panic (int err, char *msg)
  * only way out of WaitForSingleObject() is to time out after 1 minute).
  */
 LONG __stdcall
-GNWinVEH (PEXCEPTION_POINTERS ExceptionInfo)
+GNWinVEH(PEXCEPTION_POINTERS ExceptionInfo)
 {
   char debugger[MAX_PATH + 1];
   char *debugger_env = NULL;
-  if (IsDebuggerPresent ())
-  {
-    DebugBreak ();
-    return EXCEPTION_CONTINUE_EXECUTION;
-  }
-  debugger_env = getenv ("GNUNET_DEBUGGER");
-  if (debugger_env != NULL)
-  {
-    STARTUPINFO si;
-    PROCESS_INFORMATION pi;
-    HANDLE event;
-    SECURITY_ATTRIBUTES sa;
-    memset (&si, 0, sizeof (si));
-    si.cb = sizeof (si);
-    memset (&pi, 0, sizeof (pi));
-    memset (&sa, 0, sizeof (sa));
-    sa.nLength = sizeof (sa);
-    sa.bInheritHandle = TRUE;
-    event = CreateEvent (&sa, FALSE, FALSE, NULL);
-    snprintf (debugger, MAX_PATH + 1, debugger_env, GetCurrentProcessId (), (uintptr_t) event);
-    debugger[MAX_PATH] = '\0';
-    if (0 != CreateProcessA (NULL, debugger, NULL, NULL, TRUE, CREATE_NEW_CONSOLE, NULL, NULL, &si, &pi))
+
+  if (IsDebuggerPresent())
     {
-      CloseHandle (pi.hProcess);
-      CloseHandle (pi.hThread);
-      WaitForSingleObject (event, 60000);
-      CloseHandle (event);
-      if (IsDebuggerPresent ())
-      {
-        return EXCEPTION_CONTINUE_EXECUTION;
-      }
+      DebugBreak();
+      return EXCEPTION_CONTINUE_EXECUTION;
     }
-    else
-      CloseHandle (event);
-  }
+  debugger_env = getenv("GNUNET_DEBUGGER");
+  if (debugger_env != NULL)
+    {
+      STARTUPINFO si;
+      PROCESS_INFORMATION pi;
+      HANDLE event;
+      SECURITY_ATTRIBUTES sa;
+      memset(&si, 0, sizeof(si));
+      si.cb = sizeof(si);
+      memset(&pi, 0, sizeof(pi));
+      memset(&sa, 0, sizeof(sa));
+      sa.nLength = sizeof(sa);
+      sa.bInheritHandle = TRUE;
+      event = CreateEvent(&sa, FALSE, FALSE, NULL);
+      snprintf(debugger, MAX_PATH + 1, debugger_env, GetCurrentProcessId(), (uintptr_t)event);
+      debugger[MAX_PATH] = '\0';
+      if (0 != CreateProcessA(NULL, debugger, NULL, NULL, TRUE, CREATE_NEW_CONSOLE, NULL, NULL, &si, &pi))
+        {
+          CloseHandle(pi.hProcess);
+          CloseHandle(pi.hThread);
+          WaitForSingleObject(event, 60000);
+          CloseHandle(event);
+          if (IsDebuggerPresent())
+            {
+              return EXCEPTION_CONTINUE_EXECUTION;
+            }
+        }
+      else
+        CloseHandle(event);
+    }
   return EXCEPTION_CONTINUE_SEARCH;
 }
 #endif
@@ -138,168 +139,168 @@ GNWinVEH (PEXCEPTION_POINTERS ExceptionInfo)
  * @brief Initialize PlibC and set up Windows environment
  * @param logging context, NULL means stderr
  * @return Error code from winerror.h, ERROR_SUCCESS on success
-*/
+ */
 int
-GNInitWinEnv ()
+GNInitWinEnv()
 {
   int ret;
 
-  plibc_initialized ();
-  plibc_set_panic_proc (plibc_panic);
-  ret = plibc_init_utf8 ("GNU", PACKAGE, 1);
-  plibc_set_stat_size_size (sizeof (((struct stat *) 0)->st_size));
-  plibc_set_stat_time_size (sizeof (((struct stat *) 0)->st_mtime));
+  plibc_initialized();
+  plibc_set_panic_proc(plibc_panic);
+  ret = plibc_init_utf8("GNU", PACKAGE, 1);
+  plibc_set_stat_size_size(sizeof(((struct stat *)0)->st_size));
+  plibc_set_stat_time_size(sizeof(((struct stat *)0)->st_mtime));
   /* don't load other DLLs twice */
   if (hNTDLL)
     return ret;
 
 #ifdef W32_VEH
   if (GNWinVEH_handle == NULL)
-  {
-    GNWinVEH_handle = AddVectoredExceptionHandler (1, &GNWinVEH);
-    if (GNWinVEH_handle == NULL)
     {
-      /* This is bad, but what can we do? */
-      printf ("Failed to set up an exception handler!\n");
+      GNWinVEH_handle = AddVectoredExceptionHandler(1, &GNWinVEH);
+      if (GNWinVEH_handle == NULL)
+        {
+          /* This is bad, but what can we do? */
+          printf("Failed to set up an exception handler!\n");
+        }
     }
-  }
 #endif
 
-  hNTDLL = LoadLibrary ("ntdll.dll");
+  hNTDLL = LoadLibrary("ntdll.dll");
 
   /* Function to get CPU usage under Win NT */
   if (hNTDLL)
-  {
-    GNNtQuerySystemInformation =
-        (TNtQuerySystemInformation) GetProcAddress (hNTDLL,
-                                                    "NtQuerySystemInformation");
-  }
+    {
+      GNNtQuerySystemInformation =
+        (TNtQuerySystemInformation)GetProcAddress(hNTDLL,
+                                                  "NtQuerySystemInformation");
+    }
   else
-  {
-    GNNtQuerySystemInformation = NULL;
-  }
+    {
+      GNNtQuerySystemInformation = NULL;
+    }
 
   /* Functions to get information about a network adapter */
-  hIphlpapi = LoadLibrary ("iphlpapi.dll");
+  hIphlpapi = LoadLibrary("iphlpapi.dll");
   if (hIphlpapi)
-  {
-    GNGetIfEntry = (TGetIfEntry) GetProcAddress (hIphlpapi, "GetIfEntry");
-    GNGetIpAddrTable =
-        (TGetIpAddrTable) GetProcAddress (hIphlpapi, "GetIpAddrTable");
-    GNGetIfTable = (TGetIfTable) GetProcAddress (hIphlpapi, "GetIfTable");
-    GNGetBestInterfaceEx =
-        (TGetBestInterfaceEx) GetProcAddress (hIphlpapi, "GetBestInterfaceEx");
-    GNGetAdaptersInfo =
-        (TGetAdaptersInfo) GetProcAddress (hIphlpapi, "GetAdaptersInfo");
-  }
+    {
+      GNGetIfEntry = (TGetIfEntry)GetProcAddress(hIphlpapi, "GetIfEntry");
+      GNGetIpAddrTable =
+        (TGetIpAddrTable)GetProcAddress(hIphlpapi, "GetIpAddrTable");
+      GNGetIfTable = (TGetIfTable)GetProcAddress(hIphlpapi, "GetIfTable");
+      GNGetBestInterfaceEx =
+        (TGetBestInterfaceEx)GetProcAddress(hIphlpapi, "GetBestInterfaceEx");
+      GNGetAdaptersInfo =
+        (TGetAdaptersInfo)GetProcAddress(hIphlpapi, "GetAdaptersInfo");
+    }
   else
-  {
-    GNGetIfEntry = NULL;
-    GNGetIpAddrTable = NULL;
-    GNGetIfTable = NULL;
-    GNGetBestInterfaceEx = NULL;
-    GNGetAdaptersInfo = NULL;
-  }
+    {
+      GNGetIfEntry = NULL;
+      GNGetIpAddrTable = NULL;
+      GNGetIfTable = NULL;
+      GNGetBestInterfaceEx = NULL;
+      GNGetAdaptersInfo = NULL;
+    }
 
   /* Service & Account functions */
-  hAdvapi = LoadLibrary ("advapi32.dll");
+  hAdvapi = LoadLibrary("advapi32.dll");
   if (hAdvapi)
-  {
-    GNOpenSCManager =
-        (TOpenSCManager) GetProcAddress (hAdvapi, "OpenSCManagerA");
-    GNCreateService =
-        (TCreateService) GetProcAddress (hAdvapi, "CreateServiceA");
-    GNCloseServiceHandle =
-        (TCloseServiceHandle) GetProcAddress (hAdvapi, "CloseServiceHandle");
-    GNDeleteService =
-        (TDeleteService) GetProcAddress (hAdvapi, "DeleteService");
-    GNRegisterServiceCtrlHandler =
-        (TRegisterServiceCtrlHandler) GetProcAddress (hAdvapi,
-                                                      "RegisterServiceCtrlHandlerA");
-    GNSetServiceStatus =
-        (TSetServiceStatus) GetProcAddress (hAdvapi, "SetServiceStatus");
-    GNStartServiceCtrlDispatcher =
-        (TStartServiceCtrlDispatcher) GetProcAddress (hAdvapi,
-                                                      "StartServiceCtrlDispatcherA");
-    GNControlService =
-        (TControlService) GetProcAddress (hAdvapi, "ControlService");
-    GNOpenService = (TOpenService) GetProcAddress (hAdvapi, "OpenServiceA");
+    {
+      GNOpenSCManager =
+        (TOpenSCManager)GetProcAddress(hAdvapi, "OpenSCManagerA");
+      GNCreateService =
+        (TCreateService)GetProcAddress(hAdvapi, "CreateServiceA");
+      GNCloseServiceHandle =
+        (TCloseServiceHandle)GetProcAddress(hAdvapi, "CloseServiceHandle");
+      GNDeleteService =
+        (TDeleteService)GetProcAddress(hAdvapi, "DeleteService");
+      GNRegisterServiceCtrlHandler =
+        (TRegisterServiceCtrlHandler)GetProcAddress(hAdvapi,
+                                                    "RegisterServiceCtrlHandlerA");
+      GNSetServiceStatus =
+        (TSetServiceStatus)GetProcAddress(hAdvapi, "SetServiceStatus");
+      GNStartServiceCtrlDispatcher =
+        (TStartServiceCtrlDispatcher)GetProcAddress(hAdvapi,
+                                                    "StartServiceCtrlDispatcherA");
+      GNControlService =
+        (TControlService)GetProcAddress(hAdvapi, "ControlService");
+      GNOpenService = (TOpenService)GetProcAddress(hAdvapi, "OpenServiceA");
 
-    GNLsaOpenPolicy =
-        (TLsaOpenPolicy) GetProcAddress (hAdvapi, "LsaOpenPolicy");
-    GNLsaAddAccountRights =
-        (TLsaAddAccountRights) GetProcAddress (hAdvapi, "LsaAddAccountRights");
-    GNLsaRemoveAccountRights =
-        (TLsaRemoveAccountRights) GetProcAddress (hAdvapi,
-                                                  "LsaRemoveAccountRights");
-    GNLsaClose = (TLsaClose) GetProcAddress (hAdvapi, "LsaClose");
-    GNLookupAccountName =
-        (TLookupAccountName) GetProcAddress (hAdvapi, "LookupAccountNameA");
+      GNLsaOpenPolicy =
+        (TLsaOpenPolicy)GetProcAddress(hAdvapi, "LsaOpenPolicy");
+      GNLsaAddAccountRights =
+        (TLsaAddAccountRights)GetProcAddress(hAdvapi, "LsaAddAccountRights");
+      GNLsaRemoveAccountRights =
+        (TLsaRemoveAccountRights)GetProcAddress(hAdvapi,
+                                                "LsaRemoveAccountRights");
+      GNLsaClose = (TLsaClose)GetProcAddress(hAdvapi, "LsaClose");
+      GNLookupAccountName =
+        (TLookupAccountName)GetProcAddress(hAdvapi, "LookupAccountNameA");
 
-    GNGetFileSecurity =
-        (TGetFileSecurity) GetProcAddress (hAdvapi, "GetFileSecurityA");
-    GNInitializeSecurityDescriptor =
-        (TInitializeSecurityDescriptor) GetProcAddress (hAdvapi,
-                                                        "InitializeSecurityDescriptor");
-    GNGetSecurityDescriptorDacl =
-        (TGetSecurityDescriptorDacl) GetProcAddress (hAdvapi,
-                                                     "GetSecurityDescriptorDacl");
-    GNGetAclInformation =
-        (TGetAclInformation) GetProcAddress (hAdvapi, "GetAclInformation");
-    GNInitializeAcl =
-        (TInitializeAcl) GetProcAddress (hAdvapi, "InitializeAcl");
-    GNGetAce = (TGetAce) GetProcAddress (hAdvapi, "GetAce");
-    GNEqualSid = (TEqualSid) GetProcAddress (hAdvapi, "EqualSid");
-    GNAddAce = (TAddAce) GetProcAddress (hAdvapi, "AddAce");
-    GNAddAccessAllowedAce =
-        (TAddAccessAllowedAce) GetProcAddress (hAdvapi, "AddAccessAllowedAce");
-    GNSetNamedSecurityInfo =
-        (TSetNamedSecurityInfo) GetProcAddress (hAdvapi,
-                                                "SetNamedSecurityInfoA");
-  }
+      GNGetFileSecurity =
+        (TGetFileSecurity)GetProcAddress(hAdvapi, "GetFileSecurityA");
+      GNInitializeSecurityDescriptor =
+        (TInitializeSecurityDescriptor)GetProcAddress(hAdvapi,
+                                                      "InitializeSecurityDescriptor");
+      GNGetSecurityDescriptorDacl =
+        (TGetSecurityDescriptorDacl)GetProcAddress(hAdvapi,
+                                                   "GetSecurityDescriptorDacl");
+      GNGetAclInformation =
+        (TGetAclInformation)GetProcAddress(hAdvapi, "GetAclInformation");
+      GNInitializeAcl =
+        (TInitializeAcl)GetProcAddress(hAdvapi, "InitializeAcl");
+      GNGetAce = (TGetAce)GetProcAddress(hAdvapi, "GetAce");
+      GNEqualSid = (TEqualSid)GetProcAddress(hAdvapi, "EqualSid");
+      GNAddAce = (TAddAce)GetProcAddress(hAdvapi, "AddAce");
+      GNAddAccessAllowedAce =
+        (TAddAccessAllowedAce)GetProcAddress(hAdvapi, "AddAccessAllowedAce");
+      GNSetNamedSecurityInfo =
+        (TSetNamedSecurityInfo)GetProcAddress(hAdvapi,
+                                              "SetNamedSecurityInfoA");
+    }
   else
-  {
-    GNOpenSCManager = NULL;
-    GNCreateService = NULL;
-    GNCloseServiceHandle = NULL;
-    GNDeleteService = NULL;
-    GNRegisterServiceCtrlHandler = NULL;
-    GNSetServiceStatus = NULL;
-    GNStartServiceCtrlDispatcher = NULL;
-    GNControlService = NULL;
-    GNOpenService = NULL;
+    {
+      GNOpenSCManager = NULL;
+      GNCreateService = NULL;
+      GNCloseServiceHandle = NULL;
+      GNDeleteService = NULL;
+      GNRegisterServiceCtrlHandler = NULL;
+      GNSetServiceStatus = NULL;
+      GNStartServiceCtrlDispatcher = NULL;
+      GNControlService = NULL;
+      GNOpenService = NULL;
 
-    GNLsaOpenPolicy = NULL;
-    GNLsaAddAccountRights = NULL;
-    GNLsaRemoveAccountRights = NULL;
-    GNLsaClose = NULL;
-    GNLookupAccountName = NULL;
+      GNLsaOpenPolicy = NULL;
+      GNLsaAddAccountRights = NULL;
+      GNLsaRemoveAccountRights = NULL;
+      GNLsaClose = NULL;
+      GNLookupAccountName = NULL;
 
-    GNGetFileSecurity = NULL;
-    GNInitializeSecurityDescriptor = NULL;
-    GNGetSecurityDescriptorDacl = NULL;
-    GNGetAclInformation = NULL;
-    GNInitializeAcl = NULL;
-    GNGetAce = NULL;
-    GNEqualSid = NULL;
-    GNAddAce = NULL;
-    GNAddAccessAllowedAce = NULL;
-    GNSetNamedSecurityInfo = NULL;
-  }
+      GNGetFileSecurity = NULL;
+      GNInitializeSecurityDescriptor = NULL;
+      GNGetSecurityDescriptorDacl = NULL;
+      GNGetAclInformation = NULL;
+      GNInitializeAcl = NULL;
+      GNGetAce = NULL;
+      GNEqualSid = NULL;
+      GNAddAce = NULL;
+      GNAddAccessAllowedAce = NULL;
+      GNSetNamedSecurityInfo = NULL;
+    }
 
   /* Account function */
-  hNetapi = LoadLibrary ("netapi32.dll");
+  hNetapi = LoadLibrary("netapi32.dll");
   if (hNetapi)
-  {
-    GNNetUserAdd = (TNetUserAdd) GetProcAddress (hNetapi, "NetUserAdd");
-    GNNetUserSetInfo =
-        (TNetUserSetInfo) GetProcAddress (hNetapi, "NetUserSetInfo");
-  }
+    {
+      GNNetUserAdd = (TNetUserAdd)GetProcAddress(hNetapi, "NetUserAdd");
+      GNNetUserSetInfo =
+        (TNetUserSetInfo)GetProcAddress(hNetapi, "NetUserSetInfo");
+    }
   else
-  {
-    GNNetUserAdd = NULL;
-    GNNetUserSetInfo = NULL;
-  }
+    {
+      GNNetUserAdd = NULL;
+      GNNetUserSetInfo = NULL;
+    }
 
   return ret;
 }
@@ -308,32 +309,32 @@ GNInitWinEnv ()
  * Clean up Windows environment
  */
 void
-GNShutdownWinEnv ()
+GNShutdownWinEnv()
 {
-  plibc_shutdown ();
+  plibc_shutdown();
 
 #ifdef W32_VEH
   if (GNWinVEH_handle != NULL)
-  {
-    RemoveVectoredExceptionHandler (GNWinVEH_handle);
-    GNWinVEH_handle = NULL;
-  }
+    {
+      RemoveVectoredExceptionHandler(GNWinVEH_handle);
+      GNWinVEH_handle = NULL;
+    }
 #endif
 
-  FreeLibrary (hNTDLL);
-  FreeLibrary (hIphlpapi);
-  FreeLibrary (hAdvapi);
-  FreeLibrary (hNetapi);
+  FreeLibrary(hNTDLL);
+  FreeLibrary(hIphlpapi);
+  FreeLibrary(hAdvapi);
+  FreeLibrary(hNetapi);
 
-  CoUninitialize ();
+  CoUninitialize();
 }
 
 #endif /* MINGW */
 
 #if !HAVE_ATOLL
 long long
-atoll (const char *nptr)
+atoll(const char *nptr)
 {
-  return atol (nptr);
+  return atol(nptr);
 }
 #endif

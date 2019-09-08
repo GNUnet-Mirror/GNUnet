@@ -11,12 +11,12 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 
 /**
  * @file datacache/plugin_datacache_template.c
@@ -31,8 +31,7 @@
 /**
  * Context for all functions in this plugin.
  */
-struct Plugin
-{
+struct Plugin {
   /**
    * Our execution environment.
    */
@@ -55,17 +54,17 @@ struct Plugin
  * @return 0 if duplicate, -1 on error, number of bytes used otherwise
  */
 static ssize_t
-template_plugin_put (void *cls,
-                     const struct GNUNET_HashCode *key,
-                     uint32_t xor_distance,
-                     size_t size,
-                     const char *data,
-                     enum GNUNET_BLOCK_Type type,
-                     struct GNUNET_TIME_Absolute discard_time,
-		     unsigned int path_info_len,
-		     const struct GNUNET_PeerIdentity *path_info)
+template_plugin_put(void *cls,
+                    const struct GNUNET_HashCode *key,
+                    uint32_t xor_distance,
+                    size_t size,
+                    const char *data,
+                    enum GNUNET_BLOCK_Type type,
+                    struct GNUNET_TIME_Absolute discard_time,
+                    unsigned int path_info_len,
+                    const struct GNUNET_PeerIdentity *path_info)
 {
-  GNUNET_break (0);
+  GNUNET_break(0);
   return -1;
 }
 
@@ -82,13 +81,13 @@ template_plugin_put (void *cls,
  * @return the number of results found
  */
 static unsigned int
-template_plugin_get (void *cls,
-                     const struct GNUNET_HashCode *key,
-                     enum GNUNET_BLOCK_Type type,
-                     GNUNET_DATACACHE_Iterator iter,
-                     void *iter_cls)
+template_plugin_get(void *cls,
+                    const struct GNUNET_HashCode *key,
+                    enum GNUNET_BLOCK_Type type,
+                    GNUNET_DATACACHE_Iterator iter,
+                    void *iter_cls)
 {
-  GNUNET_break (0);
+  GNUNET_break(0);
   return 0;
 }
 
@@ -101,9 +100,9 @@ template_plugin_get (void *cls,
  * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
  */
 static int
-template_plugin_del (void *cls)
+template_plugin_del(void *cls)
 {
-  GNUNET_break (0);
+  GNUNET_break(0);
   return GNUNET_SYSERR;
 }
 
@@ -117,11 +116,11 @@ template_plugin_del (void *cls)
  * @return the number of results found (zero or one)
  */
 static unsigned int
-template_plugin_get_random (void *cls,
-                            GNUNET_DATACACHE_Iterator iter,
-                            void *iter_cls)
+template_plugin_get_random(void *cls,
+                           GNUNET_DATACACHE_Iterator iter,
+                           void *iter_cls)
 {
-  GNUNET_break (0);
+  GNUNET_break(0);
   return 0;
 }
 
@@ -141,13 +140,13 @@ template_plugin_get_random (void *cls,
  * @return the number of results found
  */
 static unsigned int
-template_plugin_get_closest (void *cls,
-                             const struct GNUNET_HashCode *key,
-                             unsigned int num_results,
-                             GNUNET_DATACACHE_Iterator iter,
-                             void *iter_cls)
+template_plugin_get_closest(void *cls,
+                            const struct GNUNET_HashCode *key,
+                            unsigned int num_results,
+                            GNUNET_DATACACHE_Iterator iter,
+                            void *iter_cls)
 {
-  GNUNET_break (0);
+  GNUNET_break(0);
   return 0;
 }
 
@@ -159,24 +158,24 @@ template_plugin_get_closest (void *cls,
  * @return the plugin's closure (our `struct Plugin`)
  */
 void *
-libgnunet_plugin_datacache_template_init (void *cls)
+libgnunet_plugin_datacache_template_init(void *cls)
 {
   struct GNUNET_DATACACHE_PluginEnvironment *env = cls;
   struct GNUNET_DATACACHE_PluginFunctions *api;
   struct Plugin *plugin;
 
-  plugin = GNUNET_new (struct Plugin);
+  plugin = GNUNET_new(struct Plugin);
   plugin->env = env;
-  api = GNUNET_new (struct GNUNET_DATACACHE_PluginFunctions);
+  api = GNUNET_new(struct GNUNET_DATACACHE_PluginFunctions);
   api->cls = plugin;
   api->get = &template_plugin_get;
   api->put = &template_plugin_put;
   api->del = &template_plugin_del;
   api->get_random = &template_plugin_get_random;
   api->get_closest = &template_plugin_get_closest;
-  GNUNET_log_from (GNUNET_ERROR_TYPE_INFO,
-                   "template",
-                   "Template datacache running\n");
+  GNUNET_log_from(GNUNET_ERROR_TYPE_INFO,
+                  "template",
+                  "Template datacache running\n");
   return api;
 }
 
@@ -188,13 +187,13 @@ libgnunet_plugin_datacache_template_init (void *cls)
  * @return NULL
  */
 void *
-libgnunet_plugin_datacache_template_done (void *cls)
+libgnunet_plugin_datacache_template_done(void *cls)
 {
   struct GNUNET_DATACACHE_PluginFunctions *api = cls;
   struct Plugin *plugin = api->cls;
 
-  GNUNET_free (plugin);
-  GNUNET_free (api);
+  GNUNET_free(plugin);
+  GNUNET_free(api);
   return NULL;
 }
 

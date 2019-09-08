@@ -11,7 +11,7 @@
       WITHOUT ANY WARRANTY; without even the implied warranty of
       MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
       Affero General Public License for more details.
-     
+
       You should have received a copy of the GNU Affero General Public License
       along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -40,8 +40,7 @@ struct OperationQueue;
 /**
  * The type of operation queue
  */
-enum OperationQueueType
-{
+enum OperationQueueType {
   /**
    * Operation queue which permits a fixed maximum number of operations to be
    * active at any time
@@ -65,8 +64,8 @@ enum OperationQueueType
  * @return handle to the queue
  */
 struct OperationQueue *
-GNUNET_TESTBED_operation_queue_create_ (enum OperationQueueType type,
-                                        unsigned int max_active);
+GNUNET_TESTBED_operation_queue_create_(enum OperationQueueType type,
+                                       unsigned int max_active);
 
 
 /**
@@ -76,7 +75,7 @@ GNUNET_TESTBED_operation_queue_create_ (enum OperationQueueType type,
  * @param queue queue to destroy
  */
 void
-GNUNET_TESTBED_operation_queue_destroy_ (struct OperationQueue *queue);
+GNUNET_TESTBED_operation_queue_destroy_(struct OperationQueue *queue);
 
 
 /**
@@ -87,7 +86,7 @@ GNUNET_TESTBED_operation_queue_destroy_ (struct OperationQueue *queue);
  *           is not empty)
  */
 int
-GNUNET_TESTBED_operation_queue_destroy_empty_ (struct OperationQueue *queue);
+GNUNET_TESTBED_operation_queue_destroy_empty_(struct OperationQueue *queue);
 
 
 /**
@@ -99,8 +98,8 @@ GNUNET_TESTBED_operation_queue_destroy_empty_ (struct OperationQueue *queue);
  * @param max_active the new maximum number of active operations
  */
 void
-GNUNET_TESTBED_operation_queue_reset_max_active_ (struct OperationQueue *queue,
-                                                  unsigned int max_active);
+GNUNET_TESTBED_operation_queue_reset_max_active_(struct OperationQueue *queue,
+                                                 unsigned int max_active);
 
 
 /**
@@ -115,9 +114,9 @@ GNUNET_TESTBED_operation_queue_reset_max_active_ (struct OperationQueue *queue,
  *          operation. Should be greater than 0.
  */
 void
-GNUNET_TESTBED_operation_queue_insert2_ (struct OperationQueue *queue,
-                                         struct GNUNET_TESTBED_Operation *op,
-                                         unsigned int nres);
+GNUNET_TESTBED_operation_queue_insert2_(struct OperationQueue *queue,
+                                        struct GNUNET_TESTBED_Operation *op,
+                                        unsigned int nres);
 
 
 /**
@@ -130,8 +129,8 @@ GNUNET_TESTBED_operation_queue_insert2_ (struct OperationQueue *queue,
  * @param op operation to add to the queue
  */
 void
-GNUNET_TESTBED_operation_queue_insert_ (struct OperationQueue *queue,
-                                        struct GNUNET_TESTBED_Operation *op);
+GNUNET_TESTBED_operation_queue_insert_(struct OperationQueue *queue,
+                                       struct GNUNET_TESTBED_Operation *op);
 
 
 /**
@@ -144,7 +143,7 @@ GNUNET_TESTBED_operation_queue_insert_ (struct OperationQueue *queue,
  * @param op the operation to marks as waiting
  */
 void
-GNUNET_TESTBED_operation_begin_wait_ (struct GNUNET_TESTBED_Operation *op);
+GNUNET_TESTBED_operation_begin_wait_(struct GNUNET_TESTBED_Operation *op);
 
 
 /**
@@ -182,8 +181,8 @@ typedef void (*OperationRelease) (void *cls);
  * @return handle to the operation
  */
 struct GNUNET_TESTBED_Operation *
-GNUNET_TESTBED_operation_create_ (void *cls, OperationStart start,
-                                  OperationRelease release);
+GNUNET_TESTBED_operation_create_(void *cls, OperationStart start,
+                                 OperationRelease release);
 
 
 /**
@@ -193,7 +192,7 @@ GNUNET_TESTBED_operation_create_ (void *cls, OperationStart start,
  * @param op operation that finished
  */
 void
-GNUNET_TESTBED_operation_release_ (struct GNUNET_TESTBED_Operation *op);
+GNUNET_TESTBED_operation_release_(struct GNUNET_TESTBED_Operation *op);
 
 
 /**
@@ -206,7 +205,7 @@ GNUNET_TESTBED_operation_release_ (struct GNUNET_TESTBED_Operation *op);
  *          it as inactive.
  */
 void
-GNUNET_TESTBED_operation_inactivate_ (struct GNUNET_TESTBED_Operation *op);
+GNUNET_TESTBED_operation_inactivate_(struct GNUNET_TESTBED_Operation *op);
 
 
 /**
@@ -217,7 +216,7 @@ GNUNET_TESTBED_operation_inactivate_ (struct GNUNET_TESTBED_Operation *op);
  * @param op the operation to be marked as active
  */
 void
-GNUNET_TESTBED_operation_activate_ (struct GNUNET_TESTBED_Operation *op);
+GNUNET_TESTBED_operation_activate_(struct GNUNET_TESTBED_Operation *op);
 
 
 /**
@@ -226,7 +225,7 @@ GNUNET_TESTBED_operation_activate_ (struct GNUNET_TESTBED_Operation *op);
  * @param op the operation to be marked as failed
  */
 void
-GNUNET_TESTBED_operation_mark_failed (struct GNUNET_TESTBED_Operation *op);
+GNUNET_TESTBED_operation_mark_failed(struct GNUNET_TESTBED_Operation *op);
 
 
 #endif

@@ -16,7 +16,7 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-   */
+ */
 /**
  * @author Martin Schanzenbach
  * @author Philippe Buschmann
@@ -61,7 +61,7 @@
 /**
  * How long until we time out during address lookup?
  */
-#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
+#define TIMEOUT GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 5)
 /**
  * The configuration handle
  */
@@ -75,8 +75,7 @@ static char* allow_methods;
 /**
  * @brief struct returned by the initialization function of the plugin
  */
-struct Plugin
-{
+struct Plugin {
   const struct GNUNET_CONFIGURATION_Handle *cfg;
 };
 
@@ -84,8 +83,7 @@ struct Plugin
 /**
  * Record we keep for each printable address.
  */
-struct AddressRecord
-{
+struct AddressRecord {
   /**
    * Current address-to-string context (if active, otherwise NULL).
    */
@@ -111,8 +109,7 @@ struct AddressRecord
 /**
  * Structure we use to collect printable address information.
  */
-struct PrintContext
-{
+struct PrintContext {
   /**
    * Kept in DLL.
    */
@@ -157,7 +154,6 @@ struct PrintContext
    * RequestHandle
    */
   struct RequestHandle *handle;
-
 };
 
 /**
@@ -173,8 +169,7 @@ static struct PrintContext *pc_tail;
 /**
  * The request handle
  */
-struct RequestHandle
-{
+struct RequestHandle {
   /**
    * JSON temporary array
    */
@@ -214,7 +209,7 @@ struct RequestHandle
    * Rest connection
    */
   struct GNUNET_REST_RequestHandle *rest_handle;
-  
+
   /**
    * Desired timeout for the lookup (default is no timeout).
    */
@@ -249,7 +244,6 @@ struct RequestHandle
    * Reponse code
    */
   int response_code;
-
 };
 
 
@@ -258,51 +252,51 @@ struct RequestHandle
  * @param handle Handle to clean up
  */
 static void
-cleanup_handle (void *cls)
+cleanup_handle(void *cls)
 {
   struct RequestHandle *handle = cls;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Cleaning up\n");
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+             "Cleaning up\n");
   if (NULL != handle->timeout_task)
-  {
-    GNUNET_SCHEDULER_cancel (handle->timeout_task);
-    handle->timeout_task = NULL;
-  }
+    {
+      GNUNET_SCHEDULER_cancel(handle->timeout_task);
+      handle->timeout_task = NULL;
+    }
   if (NULL != handle->url)
-    GNUNET_free (handle->url);
+    GNUNET_free(handle->url);
   if (NULL != handle->emsg)
-    GNUNET_free (handle->emsg);
+    GNUNET_free(handle->emsg);
   if (NULL != handle->address)
-    GNUNET_free ((char*)handle->address);
+    GNUNET_free((char*)handle->address);
   if (NULL != handle->expiration_str)
-    GNUNET_free (handle->expiration_str);
+    GNUNET_free(handle->expiration_str);
   if (NULL != handle->pubkey)
-    GNUNET_free (handle->pubkey);
+    GNUNET_free(handle->pubkey);
 
   if (NULL != handle->temp_array)
-  {
-    json_decref(handle->temp_array);
-    handle->temp_array = NULL;
-  }
+    {
+      json_decref(handle->temp_array);
+      handle->temp_array = NULL;
+    }
   if (NULL != handle->response)
-  {
-    json_decref(handle->response);
-    handle->response = NULL;
-  }
+    {
+      json_decref(handle->response);
+      handle->response = NULL;
+    }
 
   if (NULL != handle->list_it)
-  {
-    GNUNET_PEERINFO_iterate_cancel(handle->list_it);
-    handle->list_it = NULL;
-  }
+    {
+      GNUNET_PEERINFO_iterate_cancel(handle->list_it);
+      handle->list_it = NULL;
+    }
   if (NULL != handle->peerinfo_handle)
-  {
-    GNUNET_PEERINFO_disconnect(handle->peerinfo_handle);
-    handle->peerinfo_handle = NULL;
-  }
-  
-  GNUNET_free (handle);
+    {
+      GNUNET_PEERINFO_disconnect(handle->peerinfo_handle);
+      handle->peerinfo_handle = NULL;
+    }
+
+  GNUNET_free(handle);
 }
 
 
@@ -312,7 +306,7 @@ cleanup_handle (void *cls)
  * @param cls the `struct RequestHandle`
  */
 static void
-do_error (void *cls)
+do_error(void *cls)
 {
   struct RequestHandle *handle = cls;
   struct MHD_Response *resp;
@@ -322,16 +316,16 @@ do_error (void *cls)
   if (NULL == handle->emsg)
     handle->emsg = GNUNET_strdup(GNUNET_REST_PEERINFO_ERROR_UNKNOWN);
 
-  json_object_set_new(json_error,"error", json_string(handle->emsg));
+  json_object_set_new(json_error, "error", json_string(handle->emsg));
 
   if (0 == handle->response_code)
     handle->response_code = MHD_HTTP_OK;
-  response = json_dumps (json_error, 0);
-  resp = GNUNET_REST_create_response (response);
-  handle->proc (handle->proc_cls, resp, handle->response_code);
+  response = json_dumps(json_error, 0);
+  resp = GNUNET_REST_create_response(response);
+  handle->proc(handle->proc_cls, resp, handle->response_code);
   json_decref(json_error);
   GNUNET_free(response);
-  GNUNET_SCHEDULER_add_now (&cleanup_handle, handle);
+  GNUNET_SCHEDULER_add_now(&cleanup_handle, handle);
 }
 
 
@@ -341,26 +335,26 @@ do_error (void *cls)
  * @param cls the `struct RequestHandle`
  */
 static void
-peerinfo_list_finished (void *cls)
+peerinfo_list_finished(void *cls)
 {
   struct RequestHandle *handle = cls;
   char *result_str;
   struct MHD_Response *resp;
 
   if (NULL == handle->response)
-  {
-    handle->response_code = MHD_HTTP_NOT_FOUND;
-    handle->emsg = GNUNET_strdup ("No peers found");
-    GNUNET_SCHEDULER_add_now (&do_error, handle);
-    return;
-  }
+    {
+      handle->response_code = MHD_HTTP_NOT_FOUND;
+      handle->emsg = GNUNET_strdup("No peers found");
+      GNUNET_SCHEDULER_add_now(&do_error, handle);
+      return;
+    }
 
-  result_str = json_dumps (handle->response, 0);
+  result_str = json_dumps(handle->response, 0);
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Result %s\n", result_str);
-  resp = GNUNET_REST_create_response (result_str);
-  handle->proc (handle->proc_cls, resp, MHD_HTTP_OK);
-  GNUNET_free_non_null (result_str);
-  GNUNET_SCHEDULER_add_now (&cleanup_handle, handle);
+  resp = GNUNET_REST_create_response(result_str);
+  handle->proc(handle->proc_cls, resp, MHD_HTTP_OK);
+  GNUNET_free_non_null(result_str);
+  GNUNET_SCHEDULER_add_now(&cleanup_handle, handle);
 }
 
 
@@ -373,16 +367,16 @@ peerinfo_list_finished (void *cls)
  * @return #GNUNET_OK to keep the address and continue
  */
 static int
-count_address (void *cls,
-               const struct GNUNET_HELLO_Address *address,
-               struct GNUNET_TIME_Absolute expiration)
+count_address(void *cls,
+              const struct GNUNET_HELLO_Address *address,
+              struct GNUNET_TIME_Absolute expiration)
 {
   struct PrintContext *pc = cls;
 
-  if (0 == GNUNET_TIME_absolute_get_remaining (expiration).rel_value_us)
-  {
-    return GNUNET_OK;          /* ignore expired address */
-  }
+  if (0 == GNUNET_TIME_absolute_get_remaining(expiration).rel_value_us)
+    {
+      return GNUNET_OK;        /* ignore expired address */
+    }
 
   pc->off++;
   return GNUNET_OK;
@@ -395,7 +389,7 @@ count_address (void *cls,
  * @param pc printing context
  */
 static void
-dump_pc (struct PrintContext *pc)
+dump_pc(struct PrintContext *pc)
 {
   struct RequestHandle *handle;
   unsigned int i;
@@ -411,59 +405,58 @@ dump_pc (struct PrintContext *pc)
   response_entry = json_object();
 
   for (i = 0; i < pc->num_addresses; i++)
-  {
-    if (NULL != pc->address_list[i].result)
     {
-      object = json_object ();
-      address = json_string(pc->address_list[i].result);
-      expires = json_string(
-	  GNUNET_STRINGS_absolute_time_to_string (pc->address_list[i].expiration));
-      json_object_set (object, "address", address);
-      json_object_set (object, "expires", expires);
+      if (NULL != pc->address_list[i].result)
+        {
+          object = json_object();
+          address = json_string(pc->address_list[i].result);
+          expires = json_string(
+            GNUNET_STRINGS_absolute_time_to_string(pc->address_list[i].expiration));
+          json_object_set(object, "address", address);
+          json_object_set(object, "expires", expires);
 
-      json_decref(address);
-      json_decref(expires);
+          json_decref(address);
+          json_decref(expires);
 
-      json_array_append(temp_array, object);
-      json_decref(object);
-      GNUNET_free (pc->address_list[i].result);
+          json_array_append(temp_array, object);
+          json_decref(object);
+          GNUNET_free(pc->address_list[i].result);
+        }
     }
-  }
 
   if (0 < json_array_size(temp_array))
-  {
-    GNUNET_asprintf(&friend_and_peer,
-		    "%s%s",
-		    (GNUNET_YES == pc->friend_only) ? "F2F:" : "",
-		    GNUNET_i2s_full (&pc->peer));
-    friend_and_peer_json = json_string(friend_and_peer);
-    json_object_set(response_entry,
-		    GNUNET_REST_PEERINFO_PEER,
-		    friend_and_peer_json);
-    json_object_set(response_entry,
-		    GNUNET_REST_PEERINFO_ARRAY,
-		    temp_array);
-    json_array_append(pc->handle->response, response_entry);
-    json_decref(friend_and_peer_json);
-    GNUNET_free(friend_and_peer);
-  }
+    {
+      GNUNET_asprintf(&friend_and_peer,
+                      "%s%s",
+                      (GNUNET_YES == pc->friend_only) ? "F2F:" : "",
+                      GNUNET_i2s_full(&pc->peer));
+      friend_and_peer_json = json_string(friend_and_peer);
+      json_object_set(response_entry,
+                      GNUNET_REST_PEERINFO_PEER,
+                      friend_and_peer_json);
+      json_object_set(response_entry,
+                      GNUNET_REST_PEERINFO_ARRAY,
+                      temp_array);
+      json_array_append(pc->handle->response, response_entry);
+      json_decref(friend_and_peer_json);
+      GNUNET_free(friend_and_peer);
+    }
 
-  json_decref (temp_array);
+  json_decref(temp_array);
   json_decref(response_entry);
 
-  GNUNET_free_non_null (pc->address_list);
-  GNUNET_CONTAINER_DLL_remove (pc_head,
-			       pc_tail,
-			       pc);
+  GNUNET_free_non_null(pc->address_list);
+  GNUNET_CONTAINER_DLL_remove(pc_head,
+                              pc_tail,
+                              pc);
   handle = pc->handle;
-  GNUNET_free (pc);
+  GNUNET_free(pc);
 
-  if ( (NULL == pc_head) &&
-       (NULL == handle->list_it) )
-  {
-    GNUNET_SCHEDULER_add_now (&peerinfo_list_finished, handle);
-  }
-
+  if ((NULL == pc_head) &&
+      (NULL == handle->list_it))
+    {
+      GNUNET_SCHEDULER_add_now(&peerinfo_list_finished, handle);
+    }
 }
 
 
@@ -478,31 +471,31 @@ dump_pc (struct PrintContext *pc)
  *        if #GNUNET_SYSERR: address is invalid
  */
 static void
-process_resolved_address (void *cls,
-                          const char *address,
-                          int res)
+process_resolved_address(void *cls,
+                         const char *address,
+                         int res)
 {
   struct AddressRecord *ar = cls;
   struct PrintContext *pc = ar->pc;
 
   if (NULL != address)
-  {
-    if (0 != strlen (address))
     {
-      if (NULL != ar->result)
-        GNUNET_free (ar->result);
-      ar->result = GNUNET_strdup (address);
+      if (0 != strlen(address))
+        {
+          if (NULL != ar->result)
+            GNUNET_free(ar->result);
+          ar->result = GNUNET_strdup(address);
+        }
+      return;
     }
-    return;
-  }
   ar->atsc = NULL;
   if (GNUNET_SYSERR == res)
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                _("Failure: Cannot convert address to string for peer `%s'\n"),
-                GNUNET_i2s (&ar->pc->peer));
+    GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+               _("Failure: Cannot convert address to string for peer `%s'\n"),
+               GNUNET_i2s(&ar->pc->peer));
   pc->num_addresses++;
   if (pc->num_addresses == pc->address_list_size)
-    dump_pc (ar->pc);
+    dump_pc(ar->pc);
 }
 
 
@@ -515,33 +508,33 @@ process_resolved_address (void *cls,
  * @return #GNUNET_OK to keep the address and continue
  */
 static int
-print_address (void *cls,
-               const struct GNUNET_HELLO_Address *address,
-               struct GNUNET_TIME_Absolute expiration)
+print_address(void *cls,
+              const struct GNUNET_HELLO_Address *address,
+              struct GNUNET_TIME_Absolute expiration)
 {
   struct PrintContext *pc = cls;
   struct AddressRecord *ar;
 
-  if (0 == GNUNET_TIME_absolute_get_remaining (expiration).rel_value_us)
-  {
-    return GNUNET_OK;          /* ignore expired address */
-  }
+  if (0 == GNUNET_TIME_absolute_get_remaining(expiration).rel_value_us)
+    {
+      return GNUNET_OK;        /* ignore expired address */
+    }
 
-  GNUNET_assert (0 < pc->off);
+  GNUNET_assert(0 < pc->off);
   ar = &pc->address_list[--pc->off];
   ar->pc = pc;
   ar->expiration = expiration;
-  GNUNET_asprintf (&ar->result,
-                   "%s:%u:%u",
-                   address->transport_name,
-                   address->address_length,
-                   address->local_info);
-  ar->atsc = GNUNET_TRANSPORT_address_to_string (cfg,
-                                                 address,
-						 GNUNET_NO,
-						 TIMEOUT,
-						 &process_resolved_address,
-						 ar);
+  GNUNET_asprintf(&ar->result,
+                  "%s:%u:%u",
+                  address->transport_name,
+                  address->address_length,
+                  address->local_info);
+  ar->atsc = GNUNET_TRANSPORT_address_to_string(cfg,
+                                                address,
+                                                GNUNET_NO,
+                                                TIMEOUT,
+                                                &process_resolved_address,
+                                                ar);
   return GNUNET_OK;
 }
 
@@ -557,63 +550,63 @@ print_address (void *cls,
  */
 void
 peerinfo_list_iteration(void *cls,
-	                const struct GNUNET_PeerIdentity *peer,
-	                const struct GNUNET_HELLO_Message *hello,
-	                const char *err_msg)
+                        const struct GNUNET_PeerIdentity *peer,
+                        const struct GNUNET_HELLO_Message *hello,
+                        const char *err_msg)
 {
   struct RequestHandle *handle = cls;
   struct PrintContext *pc;
   int friend_only;
 
   if (NULL == handle->response)
-  {
-    handle->response = json_array();
-  }
+    {
+      handle->response = json_array();
+    }
 
   if (NULL == peer)
-  {
-    handle->list_it = NULL;
-    handle->emsg = GNUNET_strdup ("Error in communication with peerinfo");
-    if (NULL != err_msg)
     {
-      GNUNET_free(handle->emsg);
-      handle->emsg = GNUNET_strdup (err_msg);
-      handle->response_code = MHD_HTTP_INTERNAL_SERVER_ERROR;
+      handle->list_it = NULL;
+      handle->emsg = GNUNET_strdup("Error in communication with peerinfo");
+      if (NULL != err_msg)
+        {
+          GNUNET_free(handle->emsg);
+          handle->emsg = GNUNET_strdup(err_msg);
+          handle->response_code = MHD_HTTP_INTERNAL_SERVER_ERROR;
+        }
+      if (NULL == pc_head)
+        GNUNET_SCHEDULER_add_now(&do_error, handle);
+      return;
     }
-    if (NULL == pc_head)
-      GNUNET_SCHEDULER_add_now (&do_error, handle);
-    return;
-  }
   if (NULL == hello)
     return;
 
   friend_only = GNUNET_NO;
   if (NULL != hello)
-    friend_only = GNUNET_HELLO_is_friend_only (hello);
+    friend_only = GNUNET_HELLO_is_friend_only(hello);
 
   pc = GNUNET_new(struct PrintContext);
-  GNUNET_CONTAINER_DLL_insert (pc_head,
-			       pc_tail,
-			       pc);
+  GNUNET_CONTAINER_DLL_insert(pc_head,
+                              pc_tail,
+                              pc);
   pc->peer = *peer;
   pc->friend_only = friend_only;
   pc->handle = handle;
-  GNUNET_HELLO_iterate_addresses (hello,
-				  GNUNET_NO,
-				  &count_address,
-				  pc);
+  GNUNET_HELLO_iterate_addresses(hello,
+                                 GNUNET_NO,
+                                 &count_address,
+                                 pc);
   if (0 == pc->off)
-  {
-    dump_pc (pc);
-    return;
-  }
+    {
+      dump_pc(pc);
+      return;
+    }
   pc->address_list_size = pc->off;
   pc->address_list = GNUNET_malloc(
-      sizeof(struct AddressRecord) * pc->off);
-  GNUNET_HELLO_iterate_addresses (hello,
-				  GNUNET_NO,
-				  &print_address,
-				  pc);
+    sizeof(struct AddressRecord) * pc->off);
+  GNUNET_HELLO_iterate_addresses(hello,
+                                 GNUNET_NO,
+                                 &print_address,
+                                 pc);
 }
 
 /**
@@ -624,9 +617,9 @@ peerinfo_list_iteration(void *cls,
  * @param cls the RequestHandle
  */
 void
-peerinfo_get (struct GNUNET_REST_RequestHandle *con_handle,
-                 const char* url,
-                 void *cls)
+peerinfo_get(struct GNUNET_REST_RequestHandle *con_handle,
+             const char* url,
+             void *cls)
 {
   struct RequestHandle *handle = cls;
   struct GNUNET_HashCode key;
@@ -636,38 +629,38 @@ peerinfo_get (struct GNUNET_REST_RequestHandle *con_handle,
   char* include_friend_only_str;
 
   include_friend_only = GNUNET_NO;
-  GNUNET_CRYPTO_hash (GNUNET_REST_PEERINFO_FRIEND,
-		      strlen (GNUNET_REST_PEERINFO_FRIEND),
-		      &key);
-  if ( GNUNET_YES
-      == GNUNET_CONTAINER_multihashmap_contains (con_handle->url_param_map,
-						 &key))
-  {
-    include_friend_only_str = GNUNET_CONTAINER_multihashmap_get (
-	      con_handle->url_param_map, &key);
-    if (0 == strcmp(include_friend_only_str, "yes"))
+  GNUNET_CRYPTO_hash(GNUNET_REST_PEERINFO_FRIEND,
+                     strlen(GNUNET_REST_PEERINFO_FRIEND),
+                     &key);
+  if (GNUNET_YES
+      == GNUNET_CONTAINER_multihashmap_contains(con_handle->url_param_map,
+                                                &key))
     {
-      include_friend_only = GNUNET_YES;
+      include_friend_only_str = GNUNET_CONTAINER_multihashmap_get(
+        con_handle->url_param_map, &key);
+      if (0 == strcmp(include_friend_only_str, "yes"))
+        {
+          include_friend_only = GNUNET_YES;
+        }
     }
-  }
 
   specific_peer = NULL;
-  GNUNET_CRYPTO_hash (GNUNET_REST_PEERINFO_PEER,
-		      strlen (GNUNET_REST_PEERINFO_PEER),
-		      &key);
-  if ( GNUNET_YES
-      == GNUNET_CONTAINER_multihashmap_contains (con_handle->url_param_map,
-						 &key))
-  {
-    //peer_id = *(unsigned int*)GNUNET_CONTAINER_multihashmap_get (con_handle->url_param_map, &key);
-    //specific_peer = GNUNET_PEER_resolve2(peer_id);
-  }
+  GNUNET_CRYPTO_hash(GNUNET_REST_PEERINFO_PEER,
+                     strlen(GNUNET_REST_PEERINFO_PEER),
+                     &key);
+  if (GNUNET_YES
+      == GNUNET_CONTAINER_multihashmap_contains(con_handle->url_param_map,
+                                                &key))
+    {
+      //peer_id = *(unsigned int*)GNUNET_CONTAINER_multihashmap_get (con_handle->url_param_map, &key);
+      //specific_peer = GNUNET_PEER_resolve2(peer_id);
+    }
 
   handle->list_it = GNUNET_PEERINFO_iterate(handle->peerinfo_handle,
-					    include_friend_only,
-					    specific_peer,
-					    &peerinfo_list_iteration,
-					    handle);
+                                            include_friend_only,
+                                            specific_peer,
+                                            &peerinfo_list_iteration,
+                                            handle);
 }
 
 
@@ -680,20 +673,20 @@ peerinfo_get (struct GNUNET_REST_RequestHandle *con_handle,
  * @param cls the RequestHandle
  */
 static void
-options_cont (struct GNUNET_REST_RequestHandle *con_handle,
-              const char* url,
-              void *cls)
+options_cont(struct GNUNET_REST_RequestHandle *con_handle,
+             const char* url,
+             void *cls)
 {
   struct MHD_Response *resp;
   struct RequestHandle *handle = cls;
 
   //independent of path return all options
-  resp = GNUNET_REST_create_response (NULL);
-  MHD_add_response_header (resp,
-                           "Access-Control-Allow-Methods",
-                           allow_methods);
-  handle->proc (handle->proc_cls, resp, MHD_HTTP_OK);
-  GNUNET_SCHEDULER_add_now (&cleanup_handle, handle);
+  resp = GNUNET_REST_create_response(NULL);
+  MHD_add_response_header(resp,
+                          "Access-Control-Allow-Methods",
+                          allow_methods);
+  handle->proc(handle->proc_cls, resp, MHD_HTTP_OK);
+  GNUNET_SCHEDULER_add_now(&cleanup_handle, handle);
   return;
 }
 
@@ -704,23 +697,23 @@ options_cont (struct GNUNET_REST_RequestHandle *con_handle,
  * @param handle the request handle
  */
 static void
-init_cont (struct RequestHandle *handle)
+init_cont(struct RequestHandle *handle)
 {
   struct GNUNET_REST_RequestHandlerError err;
   static const struct GNUNET_REST_RequestHandler handlers[] = {
-    {MHD_HTTP_METHOD_GET, GNUNET_REST_API_NS_PEERINFO, &peerinfo_get},
-    {MHD_HTTP_METHOD_OPTIONS, GNUNET_REST_API_NS_PEERINFO, &options_cont},
+    { MHD_HTTP_METHOD_GET, GNUNET_REST_API_NS_PEERINFO, &peerinfo_get },
+    { MHD_HTTP_METHOD_OPTIONS, GNUNET_REST_API_NS_PEERINFO, &options_cont },
     GNUNET_REST_HANDLER_END
   };
 
-  if (GNUNET_NO == GNUNET_REST_handle_request (handle->rest_handle,
-                                               handlers,
-                                               &err,
-                                               handle))
-  {
-    handle->response_code = err.error_code;
-    GNUNET_SCHEDULER_add_now (&do_error, handle);
-  }
+  if (GNUNET_NO == GNUNET_REST_handle_request(handle->rest_handle,
+                                              handlers,
+                                              &err,
+                                              handle))
+    {
+      handle->response_code = err.error_code;
+      GNUNET_SCHEDULER_add_now(&do_error, handle);
+    }
 }
 
 
@@ -737,29 +730,29 @@ init_cont (struct RequestHandle *handle)
  */
 static void
 rest_process_request(struct GNUNET_REST_RequestHandle *rest_handle,
-                              GNUNET_REST_ResultProcessor proc,
-                              void *proc_cls)
+                     GNUNET_REST_ResultProcessor proc,
+                     void *proc_cls)
 {
-  struct RequestHandle *handle = GNUNET_new (struct RequestHandle);
-  
+  struct RequestHandle *handle = GNUNET_new(struct RequestHandle);
+
   handle->response_code = 0;
-  handle->timeout = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 60);
+  handle->timeout = GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 60);
   handle->proc_cls = proc_cls;
   handle->proc = proc;
   handle->rest_handle = rest_handle;
-  
-  handle->url = GNUNET_strdup (rest_handle->url);
-  if (handle->url[strlen (handle->url)-1] == '/')
-    handle->url[strlen (handle->url)-1] = '\0';
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Connecting...\n");
+
+  handle->url = GNUNET_strdup(rest_handle->url);
+  if (handle->url[strlen(handle->url) - 1] == '/')
+    handle->url[strlen(handle->url) - 1] = '\0';
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Connecting...\n");
   handle->peerinfo_handle = GNUNET_PEERINFO_connect(cfg);
   init_cont(handle);
   handle->timeout_task =
-    GNUNET_SCHEDULER_add_delayed (handle->timeout,
-                                  &do_error,
-                                  handle);
-  
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Connected\n");
+    GNUNET_SCHEDULER_add_delayed(handle->timeout,
+                                 &do_error,
+                                 handle);
+
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Connected\n");
 }
 
 
@@ -770,7 +763,7 @@ rest_process_request(struct GNUNET_REST_RequestHandle *rest_handle,
  * @return NULL on error, otherwise the plugin context
  */
 void *
-libgnunet_plugin_rest_peerinfo_init (void *cls)
+libgnunet_plugin_rest_peerinfo_init(void *cls)
 {
   static struct Plugin plugin;
   struct GNUNET_REST_Plugin *api;
@@ -778,22 +771,22 @@ libgnunet_plugin_rest_peerinfo_init (void *cls)
   cfg = cls;
   if (NULL != plugin.cfg)
     return NULL;                /* can only initialize once! */
-  memset (&plugin, 0, sizeof (struct Plugin));
+  memset(&plugin, 0, sizeof(struct Plugin));
   plugin.cfg = cfg;
-  api = GNUNET_new (struct GNUNET_REST_Plugin);
+  api = GNUNET_new(struct GNUNET_REST_Plugin);
   api->cls = &plugin;
   api->name = GNUNET_REST_API_NS_PEERINFO;
   api->process_request = &rest_process_request;
-  GNUNET_asprintf (&allow_methods,
-                   "%s, %s, %s, %s, %s",
-                   MHD_HTTP_METHOD_GET,
-                   MHD_HTTP_METHOD_POST,
-                   MHD_HTTP_METHOD_PUT,
-                   MHD_HTTP_METHOD_DELETE,
-                   MHD_HTTP_METHOD_OPTIONS);
+  GNUNET_asprintf(&allow_methods,
+                  "%s, %s, %s, %s, %s",
+                  MHD_HTTP_METHOD_GET,
+                  MHD_HTTP_METHOD_POST,
+                  MHD_HTTP_METHOD_PUT,
+                  MHD_HTTP_METHOD_DELETE,
+                  MHD_HTTP_METHOD_OPTIONS);
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              _("Peerinfo REST API initialized\n"));
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+             _("Peerinfo REST API initialized\n"));
   return api;
 }
 
@@ -805,16 +798,17 @@ libgnunet_plugin_rest_peerinfo_init (void *cls)
  * @return always NULL
  */
 void *
-libgnunet_plugin_rest_peerinfo_done (void *cls)
+libgnunet_plugin_rest_peerinfo_done(void *cls)
 {
   struct GNUNET_REST_Plugin *api = cls;
   struct Plugin *plugin = api->cls;
+
   plugin->cfg = NULL;
 
-  GNUNET_free_non_null (allow_methods);
-  GNUNET_free (api);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Peerinfo REST plugin is finished\n");
+  GNUNET_free_non_null(allow_methods);
+  GNUNET_free(api);
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+             "Peerinfo REST plugin is finished\n");
   return NULL;
 }
 

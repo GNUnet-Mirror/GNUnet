@@ -16,7 +16,7 @@
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 /*
  * @file datacache/perf_datacache.c
  * @brief Performance evaluation for the datacache implementations.
@@ -29,7 +29,7 @@
 #include <gauger.h>
 
 
-#define ASSERT(x) do { if (! (x)) { printf("Error at %s:%d\n", __FILE__, __LINE__); goto FAILURE;} } while (0)
+#define ASSERT(x) do { if (!(x)) { printf("Error at %s:%d\n", __FILE__, __LINE__); goto FAILURE; } } while (0)
 
 #define ITERATIONS 10000
 
@@ -44,22 +44,22 @@ static const char *plugin_name;
 
 
 static int
-checkIt (void *cls,
-         const struct GNUNET_HashCode * key, size_t size, const char *data,
-         enum GNUNET_BLOCK_Type type,
-	 struct GNUNET_TIME_Absolute exp,
-	 unsigned int path_len,
-	 const struct GNUNET_PeerIdentity *path)
+checkIt(void *cls,
+        const struct GNUNET_HashCode * key, size_t size, const char *data,
+        enum GNUNET_BLOCK_Type type,
+        struct GNUNET_TIME_Absolute exp,
+        unsigned int path_len,
+        const struct GNUNET_PeerIdentity *path)
 {
-  if ((size == sizeof (struct GNUNET_HashCode)) && (0 == memcmp (data, cls, size)))
+  if ((size == sizeof(struct GNUNET_HashCode)) && (0 == memcmp(data, cls, size)))
     found++;
   return GNUNET_OK;
 }
 
 
 static void
-run (void *cls, char *const *args, const char *cfgfile,
-     const struct GNUNET_CONFIGURATION_Handle *cfg)
+run(void *cls, char *const *args, const char *cfgfile,
+    const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   struct GNUNET_DATACACHE_Handle *h;
   struct GNUNET_HashCode k;
@@ -70,67 +70,67 @@ run (void *cls, char *const *args, const char *cfgfile,
   char gstr[128];
 
   ok = 0;
-  h = GNUNET_DATACACHE_create (cfg, "perfcache");
+  h = GNUNET_DATACACHE_create(cfg, "perfcache");
 
   if (h == NULL)
-  {
-    fprintf (stderr, "%s", "Failed to initialize datacache.  Database likely not setup, skipping test.\n");
-    ok = 77; /* mark test as skipped */
-    return;
-  }
-  exp = GNUNET_TIME_relative_to_absolute (GNUNET_TIME_UNIT_HOURS);
-  start = GNUNET_TIME_absolute_get ();
-  memset (&k, 0, sizeof (struct GNUNET_HashCode));
+    {
+      fprintf(stderr, "%s", "Failed to initialize datacache.  Database likely not setup, skipping test.\n");
+      ok = 77; /* mark test as skipped */
+      return;
+    }
+  exp = GNUNET_TIME_relative_to_absolute(GNUNET_TIME_UNIT_HOURS);
+  start = GNUNET_TIME_absolute_get();
+  memset(&k, 0, sizeof(struct GNUNET_HashCode));
   for (i = 0; i < ITERATIONS; i++)
-  {
-    if (0 == i % (ITERATIONS / 80))
-      fprintf (stderr, "%s",  ".");
-    GNUNET_CRYPTO_hash (&k, sizeof (struct GNUNET_HashCode), &n);
-    ASSERT (GNUNET_OK ==
-            GNUNET_DATACACHE_put (h, &k, sizeof (struct GNUNET_HashCode),
-                                  (const char *) &n, 1 + i % 16, exp,
-				  0, NULL));
-    k = n;
-  }
-  fprintf (stderr, "%s",  "\n");
-  fprintf (stdout, "Stored %u items in %s\n", ITERATIONS,
-	   GNUNET_STRINGS_relative_time_to_string (GNUNET_TIME_absolute_get_duration (start), GNUNET_YES));
-  GNUNET_snprintf (gstr, sizeof (gstr), "DATACACHE-%s", plugin_name);
-  GAUGER (gstr, "Time to PUT item in datacache",
-          GNUNET_TIME_absolute_get_duration (start).rel_value_us / 1000LL / ITERATIONS,
-          "ms/item");
-  start = GNUNET_TIME_absolute_get ();
-  memset (&k, 0, sizeof (struct GNUNET_HashCode));
+    {
+      if (0 == i % (ITERATIONS / 80))
+        fprintf(stderr, "%s", ".");
+      GNUNET_CRYPTO_hash(&k, sizeof(struct GNUNET_HashCode), &n);
+      ASSERT(GNUNET_OK ==
+             GNUNET_DATACACHE_put(h, &k, sizeof(struct GNUNET_HashCode),
+                                  (const char *)&n, 1 + i % 16, exp,
+                                  0, NULL));
+      k = n;
+    }
+  fprintf(stderr, "%s", "\n");
+  fprintf(stdout, "Stored %u items in %s\n", ITERATIONS,
+          GNUNET_STRINGS_relative_time_to_string(GNUNET_TIME_absolute_get_duration(start), GNUNET_YES));
+  GNUNET_snprintf(gstr, sizeof(gstr), "DATACACHE-%s", plugin_name);
+  GAUGER(gstr, "Time to PUT item in datacache",
+         GNUNET_TIME_absolute_get_duration(start).rel_value_us / 1000LL / ITERATIONS,
+         "ms/item");
+  start = GNUNET_TIME_absolute_get();
+  memset(&k, 0, sizeof(struct GNUNET_HashCode));
   for (i = 0; i < ITERATIONS; i++)
-  {
-    if (0 == i % (ITERATIONS / 80))
-      fprintf (stderr, "%s",  ".");
-    GNUNET_CRYPTO_hash (&k, sizeof (struct GNUNET_HashCode), &n);
-    GNUNET_DATACACHE_get (h, &k, 1 + i % 16, &checkIt, &n);
-    k = n;
-  }
-  fprintf (stderr, "%s",  "\n");
-  fprintf (stdout,
-           "Found %u/%u items in %s (%u were deleted during storage processing)\n",
-           found, ITERATIONS,
-           GNUNET_STRINGS_relative_time_to_string (GNUNET_TIME_absolute_get_duration (start), GNUNET_YES),
-           ITERATIONS - found);
+    {
+      if (0 == i % (ITERATIONS / 80))
+        fprintf(stderr, "%s", ".");
+      GNUNET_CRYPTO_hash(&k, sizeof(struct GNUNET_HashCode), &n);
+      GNUNET_DATACACHE_get(h, &k, 1 + i % 16, &checkIt, &n);
+      k = n;
+    }
+  fprintf(stderr, "%s", "\n");
+  fprintf(stdout,
+          "Found %u/%u items in %s (%u were deleted during storage processing)\n",
+          found, ITERATIONS,
+          GNUNET_STRINGS_relative_time_to_string(GNUNET_TIME_absolute_get_duration(start), GNUNET_YES),
+          ITERATIONS - found);
   if (found > 0)
-    GAUGER (gstr, "Time to GET item from datacache",
-            GNUNET_TIME_absolute_get_duration (start).rel_value_us / 1000LL / found,
-            "ms/item");
-  GNUNET_DATACACHE_destroy (h);
-  ASSERT (ok == 0);
+    GAUGER(gstr, "Time to GET item from datacache",
+           GNUNET_TIME_absolute_get_duration(start).rel_value_us / 1000LL / found,
+           "ms/item");
+  GNUNET_DATACACHE_destroy(h);
+  ASSERT(ok == 0);
   return;
 FAILURE:
   if (h != NULL)
-    GNUNET_DATACACHE_destroy (h);
+    GNUNET_DATACACHE_destroy(h);
   ok = GNUNET_SYSERR;
 }
 
 
 int
-main (int argc, char *argv[])
+main(int argc, char *argv[])
 {
   char cfg_name[PATH_MAX];
   char *const xargv[] = {
@@ -143,16 +143,16 @@ main (int argc, char *argv[])
     GNUNET_GETOPT_OPTION_END
   };
 
-  GNUNET_log_setup ("perf-datacache",
-                    "WARNING",
-                    NULL);
-  plugin_name = GNUNET_TESTING_get_testname_from_underscore (argv[0]);
-  GNUNET_snprintf (cfg_name, sizeof (cfg_name), "perf_datacache_data_%s.conf",
-                   plugin_name);
-  GNUNET_PROGRAM_run ((sizeof (xargv) / sizeof (char *)) - 1, xargv,
-                      "perf-datacache", "nohelp", options, &run, NULL);
-  if ( (0 != ok) && (77 != ok) )
-    fprintf (stderr, "Missed some perfcases: %d\n", ok);
+  GNUNET_log_setup("perf-datacache",
+                   "WARNING",
+                   NULL);
+  plugin_name = GNUNET_TESTING_get_testname_from_underscore(argv[0]);
+  GNUNET_snprintf(cfg_name, sizeof(cfg_name), "perf_datacache_data_%s.conf",
+                  plugin_name);
+  GNUNET_PROGRAM_run((sizeof(xargv) / sizeof(char *)) - 1, xargv,
+                     "perf-datacache", "nohelp", options, &run, NULL);
+  if ((0 != ok) && (77 != ok))
+    fprintf(stderr, "Missed some perfcases: %d\n", ok);
   return ok;
 }
 

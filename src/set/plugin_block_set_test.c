@@ -11,12 +11,12 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 
 /**
  * @file set/plugin_block_set_test.c
@@ -46,20 +46,20 @@
  * @return characterization of result
  */
 static enum GNUNET_BLOCK_EvaluationResult
-block_plugin_set_test_evaluate (void *cls,
-                                struct GNUNET_BLOCK_Context *ctx,
-                                enum GNUNET_BLOCK_Type type,
-                                struct GNUNET_BLOCK_Group *group,
-                                enum GNUNET_BLOCK_EvaluationOptions eo,
-                                const struct GNUNET_HashCode *query,
-                                const void *xquery,
-                                size_t xquery_size,
-                                const void *reply_block,
-                                size_t reply_block_size)
+block_plugin_set_test_evaluate(void *cls,
+                               struct GNUNET_BLOCK_Context *ctx,
+                               enum GNUNET_BLOCK_Type type,
+                               struct GNUNET_BLOCK_Group *group,
+                               enum GNUNET_BLOCK_EvaluationOptions eo,
+                               const struct GNUNET_HashCode *query,
+                               const void *xquery,
+                               size_t xquery_size,
+                               const void *reply_block,
+                               size_t reply_block_size)
 {
-  if ( (NULL == reply_block) ||
-       (reply_block_size == 0) ||
-       (0 != ((char *) reply_block)[0]) )
+  if ((NULL == reply_block) ||
+      (reply_block_size == 0) ||
+      (0 != ((char *)reply_block)[0]))
     return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;
   return GNUNET_BLOCK_EVALUATION_OK_MORE;
 }
@@ -77,11 +77,11 @@ block_plugin_set_test_evaluate (void *cls,
  *         (or if extracting a key from a block of this type does not work)
  */
 static int
-block_plugin_set_test_get_key (void *cls,
-                               enum GNUNET_BLOCK_Type type,
-                               const void *block,
-                               size_t block_size,
-			       struct GNUNET_HashCode *key)
+block_plugin_set_test_get_key(void *cls,
+                              enum GNUNET_BLOCK_Type type,
+                              const void *block,
+                              size_t block_size,
+                              struct GNUNET_HashCode *key)
 {
   return GNUNET_SYSERR;
 }
@@ -91,7 +91,7 @@ block_plugin_set_test_get_key (void *cls,
  * Entry point for the plugin.
  */
 void *
-libgnunet_plugin_block_set_test_init (void *cls)
+libgnunet_plugin_block_set_test_init(void *cls)
 {
   static enum GNUNET_BLOCK_Type types[] =
   {
@@ -100,7 +100,7 @@ libgnunet_plugin_block_set_test_init (void *cls)
   };
   struct GNUNET_BLOCK_PluginFunctions *api;
 
-  api = GNUNET_new (struct GNUNET_BLOCK_PluginFunctions);
+  api = GNUNET_new(struct GNUNET_BLOCK_PluginFunctions);
   api->evaluate = &block_plugin_set_test_evaluate;
   api->get_key = &block_plugin_set_test_get_key;
   api->types = types;
@@ -112,11 +112,11 @@ libgnunet_plugin_block_set_test_init (void *cls)
  * Exit point from the plugin.
  */
 void *
-libgnunet_plugin_block_set_test_done (void *cls)
+libgnunet_plugin_block_set_test_done(void *cls)
 {
   struct GNUNET_BLOCK_PluginFunctions *api = cls;
 
-  GNUNET_free (api);
+  GNUNET_free(api);
   return NULL;
 }
 

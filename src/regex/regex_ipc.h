@@ -11,12 +11,12 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 /**
  * @file regex/regex_ipc.h
  * @brief regex IPC messages (not called 'regex.h' due to conflict with
@@ -31,9 +31,7 @@
 /**
  * Request for regex service to announce capability.
  */
-struct AnnounceMessage
-{
-
+struct AnnounceMessage {
   /**
    * Type is GNUNET_MESSAGE_TYPE_REGEX_ANNOUNCE
    */
@@ -61,23 +59,20 @@ struct AnnounceMessage
 /**
  * Message to initiate regex search.
  */
-struct RegexSearchMessage
-{
+struct RegexSearchMessage {
   /**
    * Type is GNUNET_MESSAGE_TYPE_REGEX_SEARCH
    */
   struct GNUNET_MessageHeader header;
 
   /* followed by 0-terminated search string */
-
 };
 
 
 /**
  * Result from regex search.
  */
-struct ResultMessage
-{
+struct ResultMessage {
   /**
    * Type is GNUNET_MESSAGE_TYPE_REGEX_RESULT
    */
@@ -99,7 +94,6 @@ struct ResultMessage
   struct GNUNET_PeerIdentity id;
 
   /* followed by GET path and PUT path arrays */
-
 };
 
 

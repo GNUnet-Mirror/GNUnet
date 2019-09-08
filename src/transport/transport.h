@@ -16,7 +16,7 @@
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 
 /**
  * @file transport/transport.h
@@ -55,13 +55,13 @@
  * Maximum frequency for re-evaluating latencies for all transport addresses.
  */
 #define LATENCY_EVALUATION_MAX_DELAY \
-  GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_HOURS, 1)
+  GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_HOURS, 1)
 
 /**
  * Maximum frequency for re-evaluating latencies for connected addresses.
  */
 #define CONNECTED_LATENCY_EVALUATION_MAX_DELAY \
-  GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 1)
+  GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MINUTES, 1)
 
 /**
  * Similiar to GNUNET_TRANSPORT_NotifyDisconnect but in and out quotas are
@@ -88,9 +88,7 @@ GNUNET_NETWORK_STRUCT_BEGIN
  * asking to check if both processes agree about this
  * peers identity.
  */
-struct StartMessage
-{
-
+struct StartMessage {
   /**
    * Type will be #GNUNET_MESSAGE_TYPE_TRANSPORT_START
    */
@@ -115,24 +113,20 @@ struct StartMessage
  * Message from the transport service to the library
  * informing about neighbors.
  */
-struct ConnectInfoMessage
-{
-
+struct ConnectInfoMessage {
   /**
    * Type will be #GNUNET_MESSAGE_TYPE_TRANSPORT_CONNECT
    */
   struct GNUNET_MessageHeader header;
 
 #if (defined(GNUNET_TRANSPORT_COMMUNICATION_VERSION) || \
-     defined(GNUNET_TRANSPORT_CORE_VERSION))
+  defined(GNUNET_TRANSPORT_CORE_VERSION))
 
   /**
    * Always zero, for alignment.
    */
   uint32_t reserved GNUNET_PACKED;
-
 #else
-
   /**
    * Current outbound quota for this peer
    */
@@ -150,9 +144,7 @@ struct ConnectInfoMessage
  * Message from the transport service to the library
  * informing about disconnects.
  */
-struct DisconnectInfoMessage
-{
-
+struct DisconnectInfoMessage {
   /**
    * Type will be #GNUNET_MESSAGE_TYPE_TRANSPORT_DISCONNECT
    */
@@ -177,9 +169,7 @@ struct DisconnectInfoMessage
  *
  * NOTE: no longer used in TNG!
  */
-struct QuotaSetMessage
-{
-
+struct QuotaSetMessage {
   /**
    * Type will be #GNUNET_MESSAGE_TYPE_TRANSPORT_SET_QUOTA
    */
@@ -201,9 +191,7 @@ struct QuotaSetMessage
  * Message used to notify the transport API about a message
  * received from the network.  The actual message follows.
  */
-struct InboundMessage
-{
-
+struct InboundMessage {
   /**
    * Type will be #GNUNET_MESSAGE_TYPE_TRANSPORT_RECV
    */
@@ -220,21 +208,17 @@ struct InboundMessage
  * Message used to notify the transport API that it can
  * send another message to the transport service.
  */
-struct SendOkMessage
-{
-
+struct SendOkMessage {
   /**
    * Type will be #GNUNET_MESSAGE_TYPE_TRANSPORT_SEND_OK
    */
   struct GNUNET_MessageHeader header;
 
 #if (defined(GNUNET_TRANSPORT_COMMUNICATION_VERSION) || \
-     defined(GNUNET_TRANSPORT_CORE_VERSION))
+  defined(GNUNET_TRANSPORT_CORE_VERSION))
 
   uint32_t reserved GNUNET_PACKED;
-
 #else
-
   /**
    * #GNUNET_OK if the transmission succeeded,
    * #GNUNET_SYSERR if it failed (i.e. network disconnect);
@@ -253,7 +237,6 @@ struct SendOkMessage
    * Includes plugin and protocol specific overheads.
    */
   uint32_t bytes_physical GNUNET_PACKED;
-
 #endif
 
   /**
@@ -268,9 +251,7 @@ struct SendOkMessage
  * send another message to the transport service.
  * (Used to implement flow control.)
  */
-struct RecvOkMessage
-{
-
+struct RecvOkMessage {
   /**
    * Type will be #GNUNET_MESSAGE_TYPE_TRANSPORT_RECV_OK
    */
@@ -293,9 +274,7 @@ struct RecvOkMessage
  * Message used to notify the transport service about a message
  * to be transmitted to another peer.  The actual message follows.
  */
-struct OutboundMessage
-{
-
+struct OutboundMessage {
   /**
    * Type will be #GNUNET_MESSAGE_TYPE_TRANSPORT_SEND
    */
@@ -306,8 +285,8 @@ struct OutboundMessage
    */
   uint32_t priority GNUNET_PACKED;
 
-#if ! (defined(GNUNET_TRANSPORT_COMMUNICATION_VERSION) || \
-       defined(GNUNET_TRANSPORT_CORE_VERSION))
+#if !(defined(GNUNET_TRANSPORT_COMMUNICATION_VERSION) || \
+  defined(GNUNET_TRANSPORT_CORE_VERSION))
 
   /**
    * Allowed delay.
@@ -322,8 +301,8 @@ struct OutboundMessage
 };
 
 
-#if ! (defined(GNUNET_TRANSPORT_COMMUNICATION_VERSION) || \
-       defined(GNUNET_TRANSPORT_CORE_VERSION))
+#if !(defined(GNUNET_TRANSPORT_COMMUNICATION_VERSION) || \
+  defined(GNUNET_TRANSPORT_CORE_VERSION))
 
 
 /**
@@ -333,9 +312,7 @@ struct OutboundMessage
  * last message must have a @e res of #GNUNET_OK and an @e addr_len
  * of zero.
  */
-struct AddressToStringResultMessage
-{
-
+struct AddressToStringResultMessage {
   /**
    * Type will be #GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_TO_STRING_REPLY
    */
@@ -359,9 +336,7 @@ struct AddressToStringResultMessage
  * asking for converting a transport address to a
  * human-readable UTF-8 string.
  */
-struct AddressLookupMessage
-{
-
+struct AddressLookupMessage {
   /**
    * Type will be #GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_TO_STRING
    */
@@ -398,8 +373,7 @@ struct AddressLookupMessage
  * Memory layout:
  * [AddressIterateResponseMessage][address[addrlen]][transportname[pluginlen]]
  */
-struct ValidationIterateResponseMessage
-{
+struct ValidationIterateResponseMessage {
   /**
    * Type is #GNUNET_MESSAGE_TYPE_TRANSPORT_MONITOR_VALIDATION_RESPONSE
    */
@@ -459,8 +433,7 @@ struct ValidationIterateResponseMessage
  * Message from the library to the transport service
  * asking for binary addresses known for a peer.
  */
-struct ValidationMonitorMessage
-{
+struct ValidationMonitorMessage {
   /**
    * Type will be #GNUNET_MESSAGE_TYPE_TRANSPORT_MONITOR_VALIDATION_REQUEST
    */
@@ -482,8 +455,7 @@ struct ValidationMonitorMessage
  * Message from the library to the transport service
  * asking for binary addresses known for a peer.
  */
-struct PeerMonitorMessage
-{
+struct PeerMonitorMessage {
   /**
    * Type will be #GNUNET_MESSAGE_TYPE_TRANSPORT_MONITOR_PEER_REQUEST
    */
@@ -505,8 +477,7 @@ struct PeerMonitorMessage
  * Message from the library to the transport service
  * asking for binary addresses known for a peer.
  */
-struct TrafficMetricMessage
-{
+struct TrafficMetricMessage {
   /**
    * Type will be #GNUNET_MESSAGE_TYPE_TRANSPORT_TRAFFIC_METRIC
    */
@@ -549,8 +520,7 @@ struct TrafficMetricMessage
  * Memory layout:
  * [AddressIterateResponseMessage][address[addrlen]][transportname[pluginlen]]
  */
-struct PeerIterateResponseMessage
-{
+struct PeerIterateResponseMessage {
   /**
    * Type is #GNUNET_MESSAGE_TYPE_TRANSPORT_MONITOR_PEER_RESPONSE
    */
@@ -597,9 +567,7 @@ struct PeerIterateResponseMessage
  * Change in blacklisting (either request or notification,
  * depending on which direction it is going).
  */
-struct BlacklistMessage
-{
-
+struct BlacklistMessage {
   /**
    * Type will be #GNUNET_MESSAGE_TYPE_TRANSPORT_BLACKLIST_QUERY or
    * #GNUNET_MESSAGE_TYPE_TRANSPORT_BLACKLIST_REPLY.
@@ -622,9 +590,7 @@ struct BlacklistMessage
 /**
  * Transport-level connection status update.
  */
-struct TransportPluginMonitorMessage
-{
-
+struct TransportPluginMonitorMessage {
   /**
    * Type will be #GNUNET_MESSAGE_TYPE_TRANSPORT_MONITOR_PLUGIN_EVENT.
    */
@@ -697,9 +663,7 @@ struct TransportPluginMonitorMessage
  * Communicator goes online.  Note which addresses it can
  * work with.
  */
-struct GNUNET_TRANSPORT_CommunicatorAvailableMessage
-{
-
+struct GNUNET_TRANSPORT_CommunicatorAvailableMessage {
   /**
    * Type will be #GNUNET_MESSAGE_TYPE_TRANSPORT_NEW_COMMUNICATOR.
    */
@@ -717,9 +681,7 @@ struct GNUNET_TRANSPORT_CommunicatorAvailableMessage
 /**
  * Add address to the list.
  */
-struct GNUNET_TRANSPORT_AddAddressMessage
-{
-
+struct GNUNET_TRANSPORT_AddAddressMessage {
   /**
    * Type will be #GNUNET_MESSAGE_TYPE_TRANSPORT_ADD_ADDRESS.
    */
@@ -747,9 +709,7 @@ struct GNUNET_TRANSPORT_AddAddressMessage
 /**
  * Remove address from the list.
  */
-struct GNUNET_TRANSPORT_DelAddressMessage
-{
-
+struct GNUNET_TRANSPORT_DelAddressMessage {
   /**
    * Type will be #GNUNET_MESSAGE_TYPE_TRANSPORT_DEL_ADDRESS.
    */
@@ -765,9 +725,7 @@ struct GNUNET_TRANSPORT_DelAddressMessage
 /**
  * Inform transport about an incoming message.
  */
-struct GNUNET_TRANSPORT_IncomingMessage
-{
-
+struct GNUNET_TRANSPORT_IncomingMessage {
   /**
    * Type will be #GNUNET_MESSAGE_TYPE_TRANSPORT_INCOMING_MSG.
    */
@@ -802,9 +760,7 @@ struct GNUNET_TRANSPORT_IncomingMessage
  * Transport informs us about being done with an incoming message.
  * (only sent if fc_on was set).
  */
-struct GNUNET_TRANSPORT_IncomingMessageAck
-{
-
+struct GNUNET_TRANSPORT_IncomingMessageAck {
   /**
    * Type will be #GNUNET_MESSAGE_TYPE_TRANSPORT_INCOMING_MSG_ACK.
    */
@@ -830,9 +786,7 @@ struct GNUNET_TRANSPORT_IncomingMessageAck
 /**
  * Add queue to the transport
  */
-struct GNUNET_TRANSPORT_AddQueueMessage
-{
-
+struct GNUNET_TRANSPORT_AddQueueMessage {
   /**
    * Type will be #GNUNET_MESSAGE_TYPE_TRANSPORT_QUEUE_SETUP.
    */
@@ -870,9 +824,7 @@ struct GNUNET_TRANSPORT_AddQueueMessage
 /**
  * Remove queue, it is no longer available.
  */
-struct GNUNET_TRANSPORT_DelQueueMessage
-{
-
+struct GNUNET_TRANSPORT_DelQueueMessage {
   /**
    * Type will be #GNUNET_MESSAGE_TYPE_TRANSPORT_QUEUE_TEARDOWN.
    */
@@ -893,9 +845,7 @@ struct GNUNET_TRANSPORT_DelQueueMessage
 /**
  * Transport tells communicator that it wants a new queue.
  */
-struct GNUNET_TRANSPORT_CreateQueue
-{
-
+struct GNUNET_TRANSPORT_CreateQueue {
   /**
    * Type will be #GNUNET_MESSAGE_TYPE_TRANSPORT_QUEUE_CREATE.
    */
@@ -918,9 +868,7 @@ struct GNUNET_TRANSPORT_CreateQueue
 /**
  * Communicator tells transport how queue creation went down.
  */
-struct GNUNET_TRANSPORT_CreateQueueResponse
-{
-
+struct GNUNET_TRANSPORT_CreateQueueResponse {
   /**
    * Type will be #GNUNET_MESSAGE_TYPE_TRANSPORT_QUEUE_CREATE_OK or
    * #GNUNET_MESSAGE_TYPE_TRANSPORT_QUEUE_CREATE_FAIL.
@@ -937,9 +885,7 @@ struct GNUNET_TRANSPORT_CreateQueueResponse
 /**
  * Inform communicator about transport's desire to send a message.
  */
-struct GNUNET_TRANSPORT_SendMessageTo
-{
-
+struct GNUNET_TRANSPORT_SendMessageTo {
   /**
    * Type will be #GNUNET_MESSAGE_TYPE_TRANSPORT_SEND_MSG.
    */
@@ -967,9 +913,7 @@ struct GNUNET_TRANSPORT_SendMessageTo
 /**
  * Inform transport that message was sent.
  */
-struct GNUNET_TRANSPORT_SendMessageToAck
-{
-
+struct GNUNET_TRANSPORT_SendMessageToAck {
   /**
    * Type will be #GNUNET_MESSAGE_TYPE_TRANSPORT_SEND_MSG_ACK.
    */
@@ -997,8 +941,7 @@ struct GNUNET_TRANSPORT_SendMessageToAck
  * transmission of a backchannel message with the given peer @e pid
  * and communicator.
  */
-struct GNUNET_TRANSPORT_CommunicatorBackchannel
-{
+struct GNUNET_TRANSPORT_CommunicatorBackchannel {
   /**
    * Type will be #GNUNET_MESSAGE_TYPE_TRANSPORT_COMMUNICATOR_BACKCHANNEL
    */
@@ -1026,8 +969,7 @@ struct GNUNET_TRANSPORT_CommunicatorBackchannel
  * Message from transport to communicator passing along a backchannel
  * message from the given peer @e pid.
  */
-struct GNUNET_TRANSPORT_CommunicatorBackchannelIncoming
-{
+struct GNUNET_TRANSPORT_CommunicatorBackchannelIncoming {
   /**
    * Type will be
    * #GNUNET_MESSAGE_TYPE_TRANSPORT_COMMUNICATOR_BACKCHANNEL_INCOMING
@@ -1052,9 +994,7 @@ struct GNUNET_TRANSPORT_CommunicatorBackchannelIncoming
 /**
  * Request to start monitoring.
  */
-struct GNUNET_TRANSPORT_MonitorStart
-{
-
+struct GNUNET_TRANSPORT_MonitorStart {
   /**
    * Type will be #GNUNET_MESSAGE_TYPE_TRANSPORT_MONITOR_START.
    */
@@ -1075,9 +1015,7 @@ struct GNUNET_TRANSPORT_MonitorStart
 /**
  * Monitoring data.
  */
-struct GNUNET_TRANSPORT_MonitorData
-{
-
+struct GNUNET_TRANSPORT_MonitorData {
   /**
    * Type will be #GNUNET_MESSAGE_TYPE_TRANSPORT_MONITOR_DATA.
    */
@@ -1127,9 +1065,7 @@ struct GNUNET_TRANSPORT_MonitorData
 /**
  * Request to verify address.
  */
-struct GNUNET_TRANSPORT_AddressToVerify
-{
-
+struct GNUNET_TRANSPORT_AddressToVerify {
   /**
    * Type will be #GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_CONSIDER_VERIFY.
    */
@@ -1153,8 +1089,7 @@ struct GNUNET_TRANSPORT_AddressToVerify
  * Application client to TRANSPORT service: we would like to have
  * address suggestions for this peer.
  */
-struct ExpressPreferenceMessage
-{
+struct ExpressPreferenceMessage {
   /**
    * Type is #GNUNET_MESSAGE_TYPE_TRANSPORT_SUGGEST or
    * #GNUNET_MESSAGE_TYPE_TRANSPORT_SUGGEST_CANCEL to stop
@@ -1184,9 +1119,7 @@ struct ExpressPreferenceMessage
  * We got an address of another peer, TRANSPORT service
  * should validate it.  There is no response.
  */
-struct RequestHelloValidationMessage
-{
-
+struct RequestHelloValidationMessage {
   /**
    * Type is #GNUNET_MESSAGE_TYPE_TRANSPORT_REQUEST_HELLO_VALIDATION.
    */

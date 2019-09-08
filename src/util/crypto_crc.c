@@ -11,7 +11,7 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -20,7 +20,7 @@
      For the actual CRC-32 code:
      Copyright abandoned; this code is in the public domain.
      Provided to GNUnet by peter@horizon.com
-*/
+ */
 
 /**
  * @file util/crypto_crc.c
@@ -30,7 +30,7 @@
 #include "platform.h"
 #include "gnunet_crypto_lib.h"
 
-#define LOG(kind,...) GNUNET_log_from (kind, "util-crypto-crc", __VA_ARGS__)
+#define LOG(kind, ...) GNUNET_log_from(kind, "util-crypto-crc", __VA_ARGS__)
 
 /* Avoid wasting space on 8-byte longs. */
 #if UINT_MAX >= 0xffffffff
@@ -53,7 +53,7 @@ static GNUNET_uLong crc_table[256];
  * even on a table that someone else is using concurrently.
  */
 static void
-crc_init ()
+crc_init()
 {
   static int once;
   unsigned int i, j;
@@ -64,12 +64,12 @@ crc_init ()
   once = 1;
   crc_table[0] = 0;
   for (i = 128; i; i >>= 1)
-  {
-    h = (h >> 1) ^ ((h & 1) ? POLYNOMIAL : 0);
-    /* h is now crc_table[i] */
-    for (j = 0; j < 256; j += 2 * i)
-      crc_table[i + j] = crc_table[j] ^ h;
-  }
+    {
+      h = (h >> 1) ^ ((h & 1) ? POLYNOMIAL : 0);
+      /* h is now crc_table[i] */
+      for (j = 0; j < 256; j += 2 * i)
+        crc_table[i + j] = crc_table[j] ^ h;
+    }
 }
 
 /*
@@ -83,10 +83,10 @@ crc_init ()
  * property of detecting all burst errors of length 32 bits or less.
  */
 static GNUNET_uLong
-crc32 (GNUNET_uLong crc, const char *buf, size_t len)
+crc32(GNUNET_uLong crc, const char *buf, size_t len)
 {
-  crc_init ();
-  GNUNET_assert (crc_table[255] != 0);
+  crc_init();
+  GNUNET_assert(crc_table[255] != 0);
   crc ^= 0xffffffff;
   while (len--)
     crc = (crc >> 8) ^ crc_table[(crc ^ *buf++) & 0xff];
@@ -102,12 +102,12 @@ crc32 (GNUNET_uLong crc, const char *buf, size_t len)
  * @return the resulting CRC32 checksum
  */
 int32_t
-GNUNET_CRYPTO_crc32_n (const void *buf, size_t len)
+GNUNET_CRYPTO_crc32_n(const void *buf, size_t len)
 {
   GNUNET_uLong crc;
 
-  crc = crc32 (0L, Z_NULL, 0);
-  crc = crc32 (crc, (char *) buf, len);
+  crc = crc32(0L, Z_NULL, 0);
+  crc = crc32(crc, (char *)buf, len);
   return crc;
 }
 
@@ -121,9 +121,10 @@ GNUNET_CRYPTO_crc32_n (const void *buf, size_t len)
  * @return updated crc sum (must be subjected to #GNUNET_CRYPTO_crc16_finish() to get actual crc16)
  */
 uint32_t
-GNUNET_CRYPTO_crc16_step (uint32_t sum, const void *buf, size_t len)
+GNUNET_CRYPTO_crc16_step(uint32_t sum, const void *buf, size_t len)
 {
   const uint16_t *hdr = buf;
+
   for (; len >= 2; len -= 2)
     sum += *(hdr++);
   if (len == 1)
@@ -139,7 +140,7 @@ GNUNET_CRYPTO_crc16_step (uint32_t sum, const void *buf, size_t len)
  * @return crc16 value
  */
 uint16_t
-GNUNET_CRYPTO_crc16_finish (uint32_t sum)
+GNUNET_CRYPTO_crc16_finish(uint32_t sum)
 {
   sum = (sum >> 16) + (sum & 0xFFFF);
   sum += (sum >> 16);
@@ -156,12 +157,12 @@ GNUNET_CRYPTO_crc16_finish (uint32_t sum)
  * @return crc16 value
  */
 uint16_t
-GNUNET_CRYPTO_crc16_n (const void *buf, size_t len)
+GNUNET_CRYPTO_crc16_n(const void *buf, size_t len)
 {
   const uint16_t *hdr = buf;
-  uint32_t sum = GNUNET_CRYPTO_crc16_step (0, hdr, len);
+  uint32_t sum = GNUNET_CRYPTO_crc16_step(0, hdr, len);
 
-  return GNUNET_CRYPTO_crc16_finish (sum);
+  return GNUNET_CRYPTO_crc16_finish(sum);
 }
 
 
@@ -174,8 +175,8 @@ GNUNET_CRYPTO_crc16_n (const void *buf, size_t len)
  * @return crc8 value
  */
 uint8_t
-GNUNET_CRYPTO_crc8_n (const void *buf,
-                      size_t len)
+GNUNET_CRYPTO_crc8_n(const void *buf,
+                     size_t len)
 {
   const uint8_t *data = buf;
   unsigned int crc = 0;
@@ -183,16 +184,16 @@ GNUNET_CRYPTO_crc8_n (const void *buf,
   int j;
 
   for (j = len; 0 != j; j--)
-  {
-    crc ^= (*data++ << 8);
-    for (i = 8; 0 != i; i--)
     {
-      if (0 != (crc & 0x8000))
-        crc ^= (0x1070 << 3);
-      crc <<= 1;
+      crc ^= (*data++ << 8);
+      for (i = 8; 0 != i; i--)
+        {
+          if (0 != (crc & 0x8000))
+            crc ^= (0x1070 << 3);
+          crc <<= 1;
+        }
     }
-  }
-  return (uint8_t) (crc >> 8);
+  return (uint8_t)(crc >> 8);
 }
 
 

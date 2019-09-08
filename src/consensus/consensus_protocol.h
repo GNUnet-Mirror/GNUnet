@@ -11,12 +11,12 @@
       WITHOUT ANY WARRANTY; without even the implied warranty of
       MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
       Affero General Public License for more details.
-     
+
       You should have received a copy of the GNU Affero General Public License
       along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 
 
 /**
@@ -42,8 +42,7 @@ GNUNET_NETWORK_STRUCT_BEGIN
  * Essentially contains all the fields
  * from 'struct TaskKey', but in NBO.
  */
-struct GNUNET_CONSENSUS_RoundContextMessage
-{
+struct GNUNET_CONSENSUS_RoundContextMessage {
   /**
    * Type: #GNUNET_MESSAGE_TYPE_CONSENSUS_P2P_ROUND_CONTEXT
    */
@@ -98,8 +97,7 @@ enum {
 /**
  * Consensus element, either marker or payload.
  */
-struct ConsensusElement
-{
+struct ConsensusElement {
   /**
    * Payload element_type, only valid
    * if this is not a marker element.
@@ -115,16 +113,14 @@ struct ConsensusElement
 };
 
 
-struct ConsensusSizeElement
-{
+struct ConsensusSizeElement {
   struct ConsensusElement ce;
 
   uint64_t size GNUNET_PACKED;
   uint8_t sender_index;
 };
 
-struct ConsensusStuffedElement
-{
+struct ConsensusStuffedElement {
   struct ConsensusElement ce;
   struct GNUNET_HashCode rand GNUNET_PACKED;
 };

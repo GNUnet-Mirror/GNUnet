@@ -16,7 +16,7 @@
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 /**
  * @file util/test_peer.c
  * @brief testcase for peer.c
@@ -36,102 +36,102 @@ static struct GNUNET_PeerIdentity pidArr[NUMBER_OF_PEERS];
 
 
 static void
-generatePeerIdList ()
+generatePeerIdList()
 {
   for (unsigned int i = 0; i < NUMBER_OF_PEERS; i++)
-  {
-    gcry_randomize (&pidArr[i],
-                    sizeof (struct GNUNET_PeerIdentity),
-                    GCRY_STRONG_RANDOM);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Peer %u: %s\n",
-                i,
-                GNUNET_i2s (&pidArr[i]));
-  }
+    {
+      gcry_randomize(&pidArr[i],
+                     sizeof(struct GNUNET_PeerIdentity),
+                     GCRY_STRONG_RANDOM);
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+                 "Peer %u: %s\n",
+                 i,
+                 GNUNET_i2s(&pidArr[i]));
+    }
 }
 
 
 static int
-check ()
+check()
 {
   GNUNET_PEER_Id pid;
   struct GNUNET_PeerIdentity res;
   GNUNET_PEER_Id ids[] = { 1, 2, 3 };
 
-  GNUNET_assert (0 == GNUNET_PEER_intern (NULL));
+  GNUNET_assert(0 == GNUNET_PEER_intern(NULL));
   /* Insert Peers into PeerEntry table and hashmap */
   for (unsigned int i = 0; i < NUMBER_OF_PEERS; i++)
-  {
-    pid = GNUNET_PEER_intern (&pidArr[i]);
-    if (pid != (i + 1))
     {
-      fprintf (stderr, "%s",  "Unexpected Peer ID returned by intern function\n");
-      return 1;
+      pid = GNUNET_PEER_intern(&pidArr[i]);
+      if (pid != (i + 1))
+        {
+          fprintf(stderr, "%s", "Unexpected Peer ID returned by intern function\n");
+          return 1;
+        }
     }
-  }
 
   /* Referencing the first 3 peers once again */
   for (unsigned int i = 0; i < 3; i++)
-  {
-    pid = GNUNET_PEER_intern (&pidArr[i]);
-    if (pid != (i + 1))
     {
-      fprintf (stderr, "%s",  "Unexpected Peer ID returned by intern function\n");
-      return 1;
+      pid = GNUNET_PEER_intern(&pidArr[i]);
+      if (pid != (i + 1))
+        {
+          fprintf(stderr, "%s", "Unexpected Peer ID returned by intern function\n");
+          return 1;
+        }
     }
-  }
 
   /* Dereferencing the first 3 peers once [decrementing their reference count] */
-  GNUNET_PEER_decrement_rcs (ids, 3);
+  GNUNET_PEER_decrement_rcs(ids, 3);
 
   /* re-referencing the first 3 peers using the change_rc function */
   for (unsigned int i = 1; i <= 3; i++)
-    GNUNET_PEER_change_rc (i, 1);
+    GNUNET_PEER_change_rc(i, 1);
 
   /* Removing the second Peer from the PeerEntry hash map */
-  GNUNET_PEER_change_rc (2, -2);
+  GNUNET_PEER_change_rc(2, -2);
 
   /* convert the pid of the first PeerEntry into that of the third */
-  GNUNET_PEER_resolve (1,
-                       &res);
-  GNUNET_assert (0 ==
-                 GNUNET_memcmp (&res,
-                                &pidArr[0]));
+  GNUNET_PEER_resolve(1,
+                      &res);
+  GNUNET_assert(0 ==
+                GNUNET_memcmp(&res,
+                              &pidArr[0]));
 
   /*
    * Attempt to convert pid = 0 (which is reserved)
    * into a peer identity object, the peer identity memory
    * is expected to be set to zero
    */
-  GNUNET_log_skip (1, GNUNET_YES);
-  GNUNET_PEER_resolve (0, &res);
-  GNUNET_assert (0 ==
-                 GNUNET_is_zero (&res));
+  GNUNET_log_skip(1, GNUNET_YES);
+  GNUNET_PEER_resolve(0, &res);
+  GNUNET_assert(0 ==
+                GNUNET_is_zero(&res));
 
   /* Removing peer entries 1 and 3 from table using the list decrement function */
   /* If count = 0, nothing should be done whatsoever */
-  GNUNET_PEER_decrement_rcs (ids, 0);
+  GNUNET_PEER_decrement_rcs(ids, 0);
 
   ids[1] = 3;
-  GNUNET_PEER_decrement_rcs (ids, 2);
-  GNUNET_PEER_decrement_rcs (ids, 2);
+  GNUNET_PEER_decrement_rcs(ids, 2);
+  GNUNET_PEER_decrement_rcs(ids, 2);
 
   return 0;
 }
 
 
 int
-main ()
+main()
 {
-  GNUNET_log_setup ("test-peer",
-                    "ERROR",
-                    NULL);
+  GNUNET_log_setup("test-peer",
+                   "ERROR",
+                   NULL);
   for (unsigned int i = 0; i < 1; i++)
-  {
-    generatePeerIdList ();
-    if (0 != check ())
-      return 1;
-  }
+    {
+      generatePeerIdList();
+      if (0 != check())
+        return 1;
+    }
   return 0;
 }
 

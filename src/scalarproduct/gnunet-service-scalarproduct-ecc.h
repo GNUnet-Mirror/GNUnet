@@ -11,7 +11,7 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -37,8 +37,7 @@ GNUNET_NETWORK_STRUCT_BEGIN
  * send a `struct AliceCryptodataMessage *`.  Bob is not expected
  * to respond via CADET in the meantime.
  */
-struct EccServiceRequestMessage
-{
+struct EccServiceRequestMessage {
   /**
    * Type is #GNUNET_MESSAGE_TYPE_SCALARPRODUCT_ECC_SESSION_INITIALIZATION
    */
@@ -53,7 +52,6 @@ struct EccServiceRequestMessage
    * The transaction/session key used to identify a session
    */
   struct GNUNET_HashCode session_id;
-
 };
 
 
@@ -62,8 +60,7 @@ struct EccServiceRequestMessage
  * (after set intersection).  Alice may send messages of this
  * type repeatedly to transmit all values.
  */
-struct EccAliceCryptodataMessage
-{
+struct EccAliceCryptodataMessage {
   /**
    * Type is #GNUNET_MESSAGE_TYPE_SCALARPRODUCT_ECC_ALICE_CRYPTODATA
    */
@@ -87,8 +84,7 @@ struct EccAliceCryptodataMessage
  * conversation may be continued with `struct BobCryptodataMultipartMessage`
  * messages afterwards.
  */
-struct EccBobCryptodataMessage
-{
+struct EccBobCryptodataMessage {
   /**
    * GNUNET message header with type
    * #GNUNET_MESSAGE_TYPE_SCALARPRODUCT_ECC_BOB_CRYPTODATA.
@@ -110,7 +106,6 @@ struct EccBobCryptodataMessage
    * The product of the h_i^{b_i} values.
    */
   struct GNUNET_CRYPTO_EccPoint prod_h_i_b_i;
-
 };
 
 

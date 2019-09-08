@@ -1,19 +1,19 @@
 /*
- This file is part of GNUnet
- Copyright (C) 2009-2015, 2018 GNUnet e.V.
+   This file is part of GNUnet
+   Copyright (C) 2009-2015, 2018 GNUnet e.V.
 
- GNUnet is free software: you can redistribute it and/or modify it
- under the terms of the GNU Affero General Public License as published
- by the Free Software Foundation, either version 3 of the License,
- or (at your option) any later version.
+   GNUnet is free software: you can redistribute it and/or modify it
+   under the terms of the GNU Affero General Public License as published
+   by the Free Software Foundation, either version 3 of the License,
+   or (at your option) any later version.
 
- GNUnet is distributed in the hope that it will be useful, but
- WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- Affero General Public License for more details.
+   GNUnet is distributed in the hope that it will be useful, but
+   WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   Affero General Public License for more details.
 
- You should have received a copy of the GNU Affero General Public License
- along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   You should have received a copy of the GNU Affero General Public License
+   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
  */
@@ -47,7 +47,6 @@
  * Preference being expressed by an application client.
  */
 struct GNUNET_ATS_Preference {
-
   /**
    * Peer to get address suggestions for.
    */
@@ -74,7 +73,6 @@ struct GNUNET_ATS_Session;
  * Plugin-relevant information about a session.
  */
 struct GNUNET_ATS_SessionData {
-
   /**
    * Peer the session is with.
    */
@@ -89,12 +87,11 @@ struct GNUNET_ATS_SessionData {
    * Handle to the session that has the given properties.
    */
   struct GNUNET_ATS_Session *session;
-  
+
   /**
    * Is the session inbound only?
    */
   int inbound_only;
-  
 };
 
 /**
@@ -116,9 +113,7 @@ struct GNUNET_ATS_SessionHandle;
  * Each solver is required to set up and return an instance
  * of this struct during initialization.
  */
-struct GNUNET_ATS_SolverFunctions
-{
-
+struct GNUNET_ATS_SolverFunctions {
   /**
    * Closure to pass to all solver functions in this struct.
    */
@@ -133,20 +128,20 @@ struct GNUNET_ATS_SolverFunctions
    */
   struct GNUNET_ATS_PreferenceHandle *
   (*preference_add)(void *cls,
-		    const struct GNUNET_ATS_Preference *pref);
+                    const struct GNUNET_ATS_Preference *pref);
 
   /**
    * The plugin should end respecting a preference.
    *
    * @param cls the closure
-   * @param ph whatever @e preference_add returned 
+   * @param ph whatever @e preference_add returned
    * @param pref the preference to delete
    * @return plugin's internal representation, or NULL
    */
   void
-  (*preference_del)(void *cls,		    
-		    struct GNUNET_ATS_PreferenceHandle *ph,
-		    const struct GNUNET_ATS_Preference *pref);
+  (*preference_del)(void *cls,
+                    struct GNUNET_ATS_PreferenceHandle *ph,
+                    const struct GNUNET_ATS_Preference *pref);
 
   /**
    * Transport established a new session with performance
@@ -159,8 +154,8 @@ struct GNUNET_ATS_SolverFunctions
    */
   struct GNUNET_ATS_SessionHandle *
   (*session_add)(void *cls,
-		 const struct GNUNET_ATS_SessionData *data,
-		 const char *address);
+                 const struct GNUNET_ATS_SessionData *data,
+                 const char *address);
 
   /**
    * @a data changed for a given @a sh, solver should consider
@@ -172,8 +167,8 @@ struct GNUNET_ATS_SolverFunctions
    */
   void
   (*session_update)(void *cls,
-		    struct GNUNET_ATS_SessionHandle *sh,
-		    const struct GNUNET_ATS_SessionData *data);
+                    struct GNUNET_ATS_SessionHandle *sh,
+                    const struct GNUNET_ATS_SessionData *data);
 
   /**
    * A session went away. Solver should update accordingly.
@@ -184,9 +179,8 @@ struct GNUNET_ATS_SolverFunctions
    */
   void
   (*session_del)(void *cls,
-		 struct GNUNET_ATS_SessionHandle *sh,
-		 const struct GNUNET_ATS_SessionData *data);
-  
+                 struct GNUNET_ATS_SessionHandle *sh,
+                 const struct GNUNET_ATS_SessionData *data);
 };
 
 
@@ -195,8 +189,7 @@ struct GNUNET_ATS_SolverFunctions
  * of this type as to the initialization function
  * of the ATS plugins.
  */
-struct GNUNET_ATS_PluginEnvironment
-{
+struct GNUNET_ATS_PluginEnvironment {
   /**
    * Configuration handle to be used by the solver
    */
@@ -222,11 +215,11 @@ struct GNUNET_ATS_PluginEnvironment
    */
   void
   (*suggest_cb) (void *cls,
-		 const struct GNUNET_PeerIdentity *pid,
-		 const char *address);
+                 const struct GNUNET_PeerIdentity *pid,
+                 const char *address);
 
   /**
-   * Tell the transport that it should allocate the given 
+   * Tell the transport that it should allocate the given
    * bandwidth to the specified session.
    *
    * @param cls closure, NULL
@@ -237,15 +230,14 @@ struct GNUNET_ATS_PluginEnvironment
    */
   void
   (*allocate_cb) (void *cls,
-		  struct GNUNET_ATS_Session *session,
-		  const struct GNUNET_PeerIdentity *peer,
-		  struct GNUNET_BANDWIDTH_Value32NBO bw_in,
-		  struct GNUNET_BANDWIDTH_Value32NBO bw_out);
-  
+                  struct GNUNET_ATS_Session *session,
+                  const struct GNUNET_PeerIdentity *peer,
+                  struct GNUNET_BANDWIDTH_Value32NBO bw_in,
+                  struct GNUNET_BANDWIDTH_Value32NBO bw_out);
 };
 
 
-  
+
 #endif
 
 /** @} */  /* end of group */

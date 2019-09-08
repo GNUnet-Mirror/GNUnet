@@ -11,12 +11,12 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 
 /**
  * @file dht/gnunet-service-dht_neighbours.h
@@ -58,16 +58,16 @@ extern struct GNUNET_HashCode my_identity_hash;
  * @return #GNUNET_OK if the request was forwarded, #GNUNET_NO if not
  */
 int
-GDS_NEIGHBOURS_handle_put (enum GNUNET_BLOCK_Type type,
-                           enum GNUNET_DHT_RouteOption options,
-                           uint32_t desired_replication_level,
-                           struct GNUNET_TIME_Absolute expiration_time,
-                           uint32_t hop_count,
-                           struct GNUNET_CONTAINER_BloomFilter *bf,
-                           const struct GNUNET_HashCode *key,
-                           unsigned int put_path_length,
-                           struct GNUNET_PeerIdentity *put_path,
-                           const void *data, size_t data_size);
+GDS_NEIGHBOURS_handle_put(enum GNUNET_BLOCK_Type type,
+                          enum GNUNET_DHT_RouteOption options,
+                          uint32_t desired_replication_level,
+                          struct GNUNET_TIME_Absolute expiration_time,
+                          uint32_t hop_count,
+                          struct GNUNET_CONTAINER_BloomFilter *bf,
+                          const struct GNUNET_HashCode *key,
+                          unsigned int put_path_length,
+                          struct GNUNET_PeerIdentity *put_path,
+                          const void *data, size_t data_size);
 
 
 /**
@@ -88,15 +88,15 @@ GDS_NEIGHBOURS_handle_put (enum GNUNET_BLOCK_Type type,
  * @return #GNUNET_OK if the request was forwarded, #GNUNET_NO if not
  */
 int
-GDS_NEIGHBOURS_handle_get (enum GNUNET_BLOCK_Type type,
-                           enum GNUNET_DHT_RouteOption options,
-                           uint32_t desired_replication_level,
-                           uint32_t hop_count,
-                           const struct GNUNET_HashCode *key,
-                           const void *xquery,
-                           size_t xquery_size,
-                           struct GNUNET_BLOCK_Group *bg,
-                           struct GNUNET_CONTAINER_BloomFilter *peer_bf);
+GDS_NEIGHBOURS_handle_get(enum GNUNET_BLOCK_Type type,
+                          enum GNUNET_DHT_RouteOption options,
+                          uint32_t desired_replication_level,
+                          uint32_t hop_count,
+                          const struct GNUNET_HashCode *key,
+                          const void *xquery,
+                          size_t xquery_size,
+                          struct GNUNET_BLOCK_Group *bg,
+                          struct GNUNET_CONTAINER_BloomFilter *peer_bf);
 
 
 /**
@@ -116,16 +116,16 @@ GDS_NEIGHBOURS_handle_get (enum GNUNET_BLOCK_Type type,
  * @param data_size number of bytes in data
  */
 void
-GDS_NEIGHBOURS_handle_reply (const struct GNUNET_PeerIdentity *target,
-                             enum GNUNET_BLOCK_Type type,
-                             struct GNUNET_TIME_Absolute expiration_time,
-                             const struct GNUNET_HashCode *key,
-                             unsigned int put_path_length,
-                             const struct GNUNET_PeerIdentity *put_path,
-                             unsigned int get_path_length,
-                             const struct GNUNET_PeerIdentity *get_path,
-                             const void *data,
-                             size_t data_size);
+GDS_NEIGHBOURS_handle_reply(const struct GNUNET_PeerIdentity *target,
+                            enum GNUNET_BLOCK_Type type,
+                            struct GNUNET_TIME_Absolute expiration_time,
+                            const struct GNUNET_HashCode *key,
+                            unsigned int put_path_length,
+                            const struct GNUNET_PeerIdentity *put_path,
+                            unsigned int get_path_length,
+                            const struct GNUNET_PeerIdentity *get_path,
+                            const void *data,
+                            size_t data_size);
 
 
 /**
@@ -139,8 +139,8 @@ GDS_NEIGHBOURS_handle_reply (const struct GNUNET_PeerIdentity *target,
  *         #GNUNET_NO otherwise.
  */
 int
-GDS_am_closest_peer (const struct GNUNET_HashCode *key,
-                     const struct GNUNET_CONTAINER_BloomFilter *bloom);
+GDS_am_closest_peer(const struct GNUNET_HashCode *key,
+                    const struct GNUNET_CONTAINER_BloomFilter *bloom);
 
 
 
@@ -150,14 +150,14 @@ GDS_am_closest_peer (const struct GNUNET_HashCode *key,
  * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
  */
 int
-GDS_NEIGHBOURS_init (void);
+GDS_NEIGHBOURS_init(void);
 
 
 /**
  * Shutdown neighbours subsystem.
  */
 void
-GDS_NEIGHBOURS_done (void);
+GDS_NEIGHBOURS_done(void);
 
 
 /**
@@ -166,7 +166,7 @@ GDS_NEIGHBOURS_done (void);
  * @return identity of the local node
  */
 struct GNUNET_PeerIdentity *
-GDS_NEIGHBOURS_get_id (void);
+GDS_NEIGHBOURS_get_id(void);
 
 
 #endif

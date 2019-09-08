@@ -11,7 +11,7 @@
       WITHOUT ANY WARRANTY; without even the implied warranty of
       MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
       Affero General Public License for more details.
-     
+
       You should have received a copy of the GNU Affero General Public License
       along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -33,9 +33,7 @@ GNUNET_NETWORK_STRUCT_BEGIN
 /**
  * Message carrying a PEERSTORE record message
  */
-struct StoreRecordMessage
-{
-
+struct StoreRecordMessage {
   /**
    * GNUnet message header
    */
@@ -81,16 +79,13 @@ struct StoreRecordMessage
   uint32_t /* enum GNUNET_PEERSTORE_StoreOption */ options GNUNET_PACKED;
 
   /* Followed by key and value */
-
 };
 
 
 /**
  * Message carrying record key hash
  */
-struct StoreKeyHashMessage
-{
-
+struct StoreKeyHashMessage {
   /**
    * GNUnet message header
    */
@@ -105,7 +100,6 @@ struct StoreKeyHashMessage
    * Hash of a record key
    */
   struct GNUNET_HashCode keyhash;
-
 };
 
 GNUNET_NETWORK_STRUCT_END

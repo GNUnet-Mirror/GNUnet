@@ -11,12 +11,12 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 
 /**
  * @file fs/test_fs.c
@@ -33,16 +33,16 @@
 #define CHECK(a) if (!(a)) { ok = GNUNET_NO; GNUNET_GE_BREAK(NULL, 0); goto FAILURE; }
 
 static char *
-makeName (unsigned int i)
+makeName(unsigned int i)
 {
   char *fn;
 
-  fn = GNUNET_malloc (strlen ("/tmp/gnunet-basic_fsui_test/BASIC_FSUI_TEST") +
-                      14);
-  GNUNET_snprintf (fn,
-                   strlen ("/tmp/gnunet-basic_fsui_test/BASIC_FSUI_TEST") + 14,
-                   "/tmp/gnunet-basic_fsui_test/BASIC_FSUI_TEST%u", i);
-  GNUNET_disk_directory_create_for_file (NULL, fn);
+  fn = GNUNET_malloc(strlen("/tmp/gnunet-basic_fsui_test/BASIC_FSUI_TEST") +
+                     14);
+  GNUNET_snprintf(fn,
+                  strlen("/tmp/gnunet-basic_fsui_test/BASIC_FSUI_TEST") + 14,
+                  "/tmp/gnunet-basic_fsui_test/BASIC_FSUI_TEST%u", i);
+  GNUNET_disk_directory_create_for_file(NULL, fn);
   return fn;
 }
 
@@ -55,42 +55,47 @@ static struct GNUNET_ECRS_URI *search_uri;
 static struct GNUNET_FSUI_Context *ctx;
 
 static void *
-eventCallback (void *cls, const GNUNET_FSUI_Event * event)
+eventCallback(void *cls, const GNUNET_FSUI_Event * event)
 {
   static char unused;
 
   switch (event->type)
-  {
-  case GNUNET_FSUI_search_resumed:
-  case GNUNET_FSUI_download_resumed:
-  case GNUNET_FSUI_upload_resumed:
-  case GNUNET_FSUI_unindex_resumed:
-    return &unused;
-  case GNUNET_FSUI_search_result:
+    {
+    case GNUNET_FSUI_search_resumed:
+    case GNUNET_FSUI_download_resumed:
+    case GNUNET_FSUI_upload_resumed:
+    case GNUNET_FSUI_unindex_resumed:
+      return &unused;
+
+    case GNUNET_FSUI_search_result:
 #if DEBUG_VERBOSE
-    printf ("Received search result\n");
+      printf("Received search result\n");
 #endif
-    search_uri = GNUNET_ECRS_uri_duplicate (event->data.SearchResult.fi.uri);
-    search_meta = GNUNET_meta_data_duplicate (event->data.SearchResult.fi.meta);
-    break;
-  case GNUNET_FSUI_upload_completed:
+      search_uri = GNUNET_ECRS_uri_duplicate(event->data.SearchResult.fi.uri);
+      search_meta = GNUNET_meta_data_duplicate(event->data.SearchResult.fi.meta);
+      break;
+
+    case GNUNET_FSUI_upload_completed:
 #if DEBUG_VERBOSE
-    printf ("Upload complete.\n");
+      printf("Upload complete.\n");
 #endif
-    break;
-  case GNUNET_FSUI_download_completed:
+      break;
+
+    case GNUNET_FSUI_download_completed:
 #if DEBUG_VERBOSE
-    printf ("Download complete.\n");
+      printf("Download complete.\n");
 #endif
-    break;
-  case GNUNET_FSUI_unindex_completed:
+      break;
+
+    case GNUNET_FSUI_unindex_completed:
 #if DEBUG_VERBOSE
-    printf ("Unindex complete.\n");
+      printf("Unindex complete.\n");
 #endif
-    break;
-  default:
-    break;
-  }
+      break;
+
+    default:
+      break;
+    }
   lastEvent = event->type;
   return NULL;
 }
@@ -98,7 +103,7 @@ eventCallback (void *cls, const GNUNET_FSUI_Event * event)
 #define START_DAEMON 1
 
 int
-main (int argc, char *argv[])
+main(int argc, char *argv[])
 {
 #if START_DAEMON
   struct GNUNET_OS_Process *daemon;
@@ -122,128 +127,128 @@ main (int argc, char *argv[])
   struct GNUNET_FSUI_UnindexList *unindex = NULL;
   struct GNUNET_FSUI_DownloadList *download = NULL;
 
-  cfg = GNUNET_GC_create ();
-  if (-1 == GNUNET_GC_parse_configuration (cfg, "check.conf"))
-  {
-    GNUNET_GC_free (cfg);
-    return -1;
-  }
+  cfg = GNUNET_GC_create();
+  if (-1 == GNUNET_GC_parse_configuration(cfg, "check.conf"))
+    {
+      GNUNET_GC_free(cfg);
+      return -1;
+    }
 #if START_DAEMON
-  daemon = GNUNET_daemon_start (NULL, cfg, "peer.conf", GNUNET_NO);
-  GNUNET_GE_ASSERT (NULL, daemon != NULL);
-  CHECK (GNUNET_OK ==
-         GNUNET_wait_for_daemon_running (NULL, cfg, 60 * GNUNET_CRON_SECONDS));
+  daemon = GNUNET_daemon_start(NULL, cfg, "peer.conf", GNUNET_NO);
+  GNUNET_GE_ASSERT(NULL, daemon != NULL);
+  CHECK(GNUNET_OK ==
+        GNUNET_wait_for_daemon_running(NULL, cfg, 60 * GNUNET_CRON_SECONDS));
 #endif
-  GNUNET_thread_sleep (5 * GNUNET_CRON_SECONDS);        /* give apps time to start */
+  GNUNET_thread_sleep(5 * GNUNET_CRON_SECONDS);         /* give apps time to start */
   ok = GNUNET_YES;
 
   /* ACTUAL TEST CODE */
-  ctx = GNUNET_FSUI_start (NULL, cfg, "basic_fsui_test", 32,    /* thread pool size */
-                           GNUNET_NO,   /* no resume */
-                           &eventCallback, NULL);
-  CHECK (ctx != NULL);
-  filename = makeName (42);
-  GNUNET_disk_file_write (NULL, filename, "foo bar test!",
-                          strlen ("foo bar test!"), "600");
-  meta = GNUNET_meta_data_create ();
+  ctx = GNUNET_FSUI_start(NULL, cfg, "basic_fsui_test", 32,     /* thread pool size */
+                          GNUNET_NO,    /* no resume */
+                          &eventCallback, NULL);
+  CHECK(ctx != NULL);
+  filename = makeName(42);
+  GNUNET_disk_file_write(NULL, filename, "foo bar test!",
+                         strlen("foo bar test!"), "600");
+  meta = GNUNET_meta_data_create();
   kuri =
-      GNUNET_ECRS_keyword_command_line_to_uri (NULL, 2,
-                                               (const char **) keywords);
+    GNUNET_ECRS_keyword_command_line_to_uri(NULL, 2,
+                                            (const char **)keywords);
   /* upload */
-  upload = GNUNET_FSUI_upload_start (ctx, filename, (GNUNET_FSUI_DirectoryScanCallback) & GNUNET_disk_directory_scan, NULL, 0,  /* anonymity */
-                                     0, /* priority */
-                                     GNUNET_YES, GNUNET_NO, GNUNET_NO,
-                                     GNUNET_get_time () + 5 * GNUNET_CRON_HOURS,
-                                     meta, kuri, kuri);
-  CHECK (upload != NULL);
-  GNUNET_ECRS_uri_destroy (kuri);
-  GNUNET_meta_data_destroy (meta);
+  upload = GNUNET_FSUI_upload_start(ctx, filename, (GNUNET_FSUI_DirectoryScanCallback) & GNUNET_disk_directory_scan, NULL, 0,   /* anonymity */
+                                    0,  /* priority */
+                                    GNUNET_YES, GNUNET_NO, GNUNET_NO,
+                                    GNUNET_get_time() + 5 * GNUNET_CRON_HOURS,
+                                    meta, kuri, kuri);
+  CHECK(upload != NULL);
+  GNUNET_ECRS_uri_destroy(kuri);
+  GNUNET_meta_data_destroy(meta);
   prog = 0;
   while (lastEvent != GNUNET_FSUI_upload_completed)
-  {
-    prog++;
-    CHECK (prog < 10000) GNUNET_thread_sleep (50 * GNUNET_CRON_MILLISECONDS);
-    if (GNUNET_shutdown_test () == GNUNET_YES)
-      break;
-  }
+    {
+      prog++;
+      CHECK(prog < 10000) GNUNET_thread_sleep(50 * GNUNET_CRON_MILLISECONDS);
+      if (GNUNET_shutdown_test() == GNUNET_YES)
+        break;
+    }
 
   /* search */
-  GNUNET_snprintf (keyword, 40, "+%s +%s", keywords[0], keywords[1]);
-  uri = GNUNET_ECRS_keyword_string_to_uri (NULL, keyword);
-  search = GNUNET_FSUI_search_start (ctx, 0, uri);
-  GNUNET_ECRS_uri_destroy (uri);
-  CHECK (search != NULL);
+  GNUNET_snprintf(keyword, 40, "+%s +%s", keywords[0], keywords[1]);
+  uri = GNUNET_ECRS_keyword_string_to_uri(NULL, keyword);
+  search = GNUNET_FSUI_search_start(ctx, 0, uri);
+  GNUNET_ECRS_uri_destroy(uri);
+  CHECK(search != NULL);
   prog = 0;
   while (lastEvent != GNUNET_FSUI_search_result)
-  {
-    prog++;
-    CHECK (prog < 10000);
-    GNUNET_thread_sleep (50 * GNUNET_CRON_MILLISECONDS);
-    if (GNUNET_shutdown_test () == GNUNET_YES)
-      break;
-  }
-  GNUNET_FSUI_search_abort (search);
-  GNUNET_FSUI_search_stop (search);
+    {
+      prog++;
+      CHECK(prog < 10000);
+      GNUNET_thread_sleep(50 * GNUNET_CRON_MILLISECONDS);
+      if (GNUNET_shutdown_test() == GNUNET_YES)
+        break;
+    }
+  GNUNET_FSUI_search_abort(search);
+  GNUNET_FSUI_search_stop(search);
 
   /* download */
-  fn = makeName (43);
+  fn = makeName(43);
   download =
-      GNUNET_FSUI_download_start (ctx, 0, GNUNET_NO, search_uri, search_meta,
-                                  fn, NULL, NULL);
-  GNUNET_free (fn);
+    GNUNET_FSUI_download_start(ctx, 0, GNUNET_NO, search_uri, search_meta,
+                               fn, NULL, NULL);
+  GNUNET_free(fn);
   prog = 0;
   while (lastEvent != GNUNET_FSUI_download_completed)
-  {
-    prog++;
-    CHECK (prog < 10000);
-    GNUNET_thread_sleep (50 * GNUNET_CRON_MILLISECONDS);
-    if (GNUNET_shutdown_test () == GNUNET_YES)
-      break;
-  }
-  GNUNET_FSUI_download_stop (download);
+    {
+      prog++;
+      CHECK(prog < 10000);
+      GNUNET_thread_sleep(50 * GNUNET_CRON_MILLISECONDS);
+      if (GNUNET_shutdown_test() == GNUNET_YES)
+        break;
+    }
+  GNUNET_FSUI_download_stop(download);
   download = NULL;
-  GNUNET_ECRS_uri_destroy (search_uri);
-  GNUNET_meta_data_destroy (search_meta);
+  GNUNET_ECRS_uri_destroy(search_uri);
+  GNUNET_meta_data_destroy(search_meta);
   /* unindex */
-  unindex = GNUNET_FSUI_unindex_start (ctx, filename);
+  unindex = GNUNET_FSUI_unindex_start(ctx, filename);
   prog = 0;
   while (lastEvent != GNUNET_FSUI_unindex_completed)
-  {
-    prog++;
-    CHECK (prog < 10000);
-    GNUNET_thread_sleep (50 * GNUNET_CRON_MILLISECONDS);
-    if (GNUNET_shutdown_test () == GNUNET_YES)
-      break;
-  }
+    {
+      prog++;
+      CHECK(prog < 10000);
+      GNUNET_thread_sleep(50 * GNUNET_CRON_MILLISECONDS);
+      if (GNUNET_shutdown_test() == GNUNET_YES)
+        break;
+    }
   if (lastEvent != GNUNET_FSUI_unindex_completed)
-    GNUNET_FSUI_unindex_abort (unindex);
-  GNUNET_FSUI_unindex_stop (unindex);
+    GNUNET_FSUI_unindex_abort(unindex);
+  GNUNET_FSUI_unindex_stop(unindex);
 
 
   /* END OF TEST CODE */
 FAILURE:
   if (ctx != NULL)
-    GNUNET_FSUI_stop (ctx);
+    GNUNET_FSUI_stop(ctx);
   if (filename != NULL)
-  {
-    unlink (filename);
-    GNUNET_free (filename);
-  }
+    {
+      unlink(filename);
+      GNUNET_free(filename);
+    }
   if (download != NULL)
-  {
-    GNUNET_FSUI_download_abort (download);
-    GNUNET_FSUI_download_stop (download);
-  }
-  filename = makeName (43);
+    {
+      GNUNET_FSUI_download_abort(download);
+      GNUNET_FSUI_download_stop(download);
+    }
+  filename = makeName(43);
   /* TODO: verify file 'filename(42)' == file 'filename(43)' */
-  unlink (filename);
-  GNUNET_free (filename);
+  unlink(filename);
+  GNUNET_free(filename);
 
 #if START_DAEMON
-  GNUNET_GE_ASSERT (NULL, GNUNET_OK == GNUNET_daemon_stop (NULL, daemon));
-  GNUNET_OS_process_destroy (daemon);
+  GNUNET_GE_ASSERT(NULL, GNUNET_OK == GNUNET_daemon_stop(NULL, daemon));
+  GNUNET_OS_process_destroy(daemon);
 #endif
-  GNUNET_GC_free (cfg);
+  GNUNET_GC_free(cfg);
 
   return (ok == GNUNET_YES) ? 0 : 1;
 }

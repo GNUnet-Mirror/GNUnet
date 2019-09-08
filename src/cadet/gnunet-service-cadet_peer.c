@@ -16,7 +16,7 @@
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 
 /**
  * @file cadet/gnunet-service-cadet_peer.c
@@ -46,7 +46,7 @@
 #include "gnunet-service-cadet_tunnels.h"
 
 
-#define LOG(level, ...) GNUNET_log_from(level,"cadet-per",__VA_ARGS__)
+#define LOG(level, ...) GNUNET_log_from(level, "cadet-per", __VA_ARGS__)
 
 
 /**
@@ -69,9 +69,7 @@
  * Data structure used to track whom we have to notify about changes
  * to our message queue.
  */
-struct GCP_MessageQueueManager
-{
-
+struct GCP_MessageQueueManager {
   /**
    * Kept in a DLL.
    */
@@ -101,15 +99,13 @@ struct GCP_MessageQueueManager
    * Envelope this manager would like to transmit once it is its turn.
    */
   struct GNUNET_MQ_Envelope *env;
-
 };
 
 
 /**
  * Struct containing all information regarding a given peer
  */
-struct CadetPeer
-{
+struct CadetPeer {
   /**
    * ID of the peer
    */
@@ -229,7 +225,6 @@ struct CadetPeer
    * The arrays should be grown as needed.
    */
   unsigned int path_dll_length;
-
 };
 
 
@@ -240,23 +235,23 @@ struct CadetPeer
  * @return Static string for it's ID.
  */
 const char *
-GCP_2s (const struct CadetPeer *cp)
+GCP_2s(const struct CadetPeer *cp)
 {
   static char buf[5];
   char *ret;
 
   if ((NULL == cp) ||
-      (0 == GNUNET_is_zero (&cp->pid.public_key)))
+      (0 == GNUNET_is_zero(&cp->pid.public_key)))
     return "NULL";
 
-  ret = GNUNET_CRYPTO_eddsa_public_key_to_string (&cp->pid.public_key);
+  ret = GNUNET_CRYPTO_eddsa_public_key_to_string(&cp->pid.public_key);
   if (NULL == ret)
     return "NULL";
 
-  GNUNET_strlcpy (buf,
-                  ret,
-                  sizeof (buf));
-  GNUNET_free (ret);
+  GNUNET_strlcpy(buf,
+                 ret,
+                 sizeof(buf));
+  GNUNET_free(ret);
   return buf;
 }
 
@@ -277,8 +272,8 @@ GCP_2s (const struct CadetPeer *cp)
  *         positive scores mean path is more desirable
  */
 double
-GCP_get_desirability_of_path (struct CadetPeer *cp,
-                              unsigned int off)
+GCP_get_desirability_of_path(struct CadetPeer *cp,
+                             unsigned int off)
 {
   unsigned int num_alts = cp->num_paths;
   unsigned int off_sum;
@@ -286,20 +281,20 @@ GCP_get_desirability_of_path (struct CadetPeer *cp,
   double path_delta;
   double weight_alts;
 
-  GNUNET_assert (num_alts >= 1); /* 'path' should be in there! */
-  GNUNET_assert (0 != cp->path_dll_length);
+  GNUNET_assert(num_alts >= 1);  /* 'path' should be in there! */
+  GNUNET_assert(0 != cp->path_dll_length);
 
   /* We maintain 'off_sum' in 'peer' and thereby
      avoid the SLOW recalculation each time. Kept here
      just to document what is going on. */
 #if SLOW
   off_sum = 0;
-  for (unsigned int j=0;j<cp->path_dll_length;j++)
+  for (unsigned int j = 0; j < cp->path_dll_length; j++)
     for (struct CadetPeerPathEntry *pe = cp->path_heads[j];
          NULL != pe;
          pe = pe->next)
       off_sum += j;
-  GNUNET_assert (off_sum == cp->off_sum);
+  GNUNET_assert(off_sum == cp->off_sum);
 #else
   off_sum = cp->off_sum;
 #endif
@@ -307,8 +302,8 @@ GCP_get_desirability_of_path (struct CadetPeer *cp,
   path_delta = off - avg_sum;
   /* path_delta positiv: path off of peer above average (bad path for peer),
      path_delta negativ: path off of peer below average (good path for peer) */
-  if (path_delta <= - 1.0)
-    weight_alts = - num_alts / path_delta; /* discount alternative paths */
+  if (path_delta <= -1.0)
+    weight_alts = -num_alts / path_delta;  /* discount alternative paths */
   else if (path_delta >= 1.0)
     weight_alts = num_alts * path_delta; /* overcount alternative paths */
   else
@@ -328,63 +323,63 @@ GCP_get_desirability_of_path (struct CadetPeer *cp,
  * @param cls peer to clean up
  */
 static void
-destroy_peer (void *cls)
+destroy_peer(void *cls)
 {
   struct CadetPeer *cp = cls;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Destroying state about peer %s\n",
-       GCP_2s (cp));
+  LOG(GNUNET_ERROR_TYPE_DEBUG,
+      "Destroying state about peer %s\n",
+      GCP_2s(cp));
   cp->destroy_task = NULL;
-  GNUNET_assert (NULL == cp->t);
-  GNUNET_assert (NULL == cp->core_mq);
-  GNUNET_assert (0 == cp->num_paths);
-  for (unsigned int i=0;i<cp->path_dll_length;i++)
-    GNUNET_assert (NULL == cp->path_heads[i]);
-  GNUNET_assert (0 == GNUNET_CONTAINER_multishortmap_size (cp->connections));
-  GNUNET_assert (GNUNET_YES ==
-                 GNUNET_CONTAINER_multipeermap_remove (peers,
-                                                       &cp->pid,
-                                                       cp));
-  GNUNET_free_non_null (cp->path_heads);
-  GNUNET_free_non_null (cp->path_tails);
+  GNUNET_assert(NULL == cp->t);
+  GNUNET_assert(NULL == cp->core_mq);
+  GNUNET_assert(0 == cp->num_paths);
+  for (unsigned int i = 0; i < cp->path_dll_length; i++)
+    GNUNET_assert(NULL == cp->path_heads[i]);
+  GNUNET_assert(0 == GNUNET_CONTAINER_multishortmap_size(cp->connections));
+  GNUNET_assert(GNUNET_YES ==
+                GNUNET_CONTAINER_multipeermap_remove(peers,
+                                                     &cp->pid,
+                                                     cp));
+  GNUNET_free_non_null(cp->path_heads);
+  GNUNET_free_non_null(cp->path_tails);
   cp->path_dll_length = 0;
   if (NULL != cp->search_h)
-  {
-    GCD_search_stop (cp->search_h);
-    cp->search_h = NULL;
-  }
+    {
+      GCD_search_stop(cp->search_h);
+      cp->search_h = NULL;
+    }
   /* FIXME: clean up search_delayedXXX! */
 
   if (NULL != cp->hello_offer)
-  {
-    GNUNET_TRANSPORT_offer_hello_cancel (cp->hello_offer);
-    cp->hello_offer = NULL;
-  }
+    {
+      GNUNET_TRANSPORT_offer_hello_cancel(cp->hello_offer);
+      cp->hello_offer = NULL;
+    }
   if (NULL != cp->connectivity_suggestion)
-  {
-    GNUNET_ATS_connectivity_suggest_cancel (cp->connectivity_suggestion);
-    cp->connectivity_suggestion = NULL;
-  }
-  GNUNET_CONTAINER_multishortmap_destroy (cp->connections);
+    {
+      GNUNET_ATS_connectivity_suggest_cancel(cp->connectivity_suggestion);
+      cp->connectivity_suggestion = NULL;
+    }
+  GNUNET_CONTAINER_multishortmap_destroy(cp->connections);
   if (NULL != cp->path_heap)
-  {
-    GNUNET_CONTAINER_heap_destroy (cp->path_heap);
-    cp->path_heap = NULL;
-  }
+    {
+      GNUNET_CONTAINER_heap_destroy(cp->path_heap);
+      cp->path_heap = NULL;
+    }
   if (NULL != cp->heap_cleanup_task)
-  {
-    GNUNET_SCHEDULER_cancel (cp->heap_cleanup_task);
-    cp->heap_cleanup_task = NULL;
-  }
-  GNUNET_free_non_null (cp->hello);
+    {
+      GNUNET_SCHEDULER_cancel(cp->heap_cleanup_task);
+      cp->heap_cleanup_task = NULL;
+    }
+  GNUNET_free_non_null(cp->hello);
   /* Peer should not be freed if paths exist; if there are no paths,
      there ought to be no connections, and without connections, no
      notifications. Thus we can assert that mqm_head is empty at this
      point. */
-  GNUNET_assert (NULL == cp->mqm_head);
-  GNUNET_assert (NULL == cp->mqm_ready_ptr);
-  GNUNET_free (cp);
+  GNUNET_assert(NULL == cp->mqm_head);
+  GNUNET_assert(NULL == cp->mqm_ready_ptr);
+  GNUNET_free(cp);
 }
 
 
@@ -394,64 +389,64 @@ destroy_peer (void *cls)
  * @param cp the more-active peer
  */
 static void
-consider_peer_activate (struct CadetPeer *cp)
+consider_peer_activate(struct CadetPeer *cp)
 {
   uint32_t strength;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Updating peer %s activation state (%u connections)%s%s\n",
-       GCP_2s (cp),
-       GNUNET_CONTAINER_multishortmap_size (cp->connections),
-       (NULL == cp->t) ? "" : " with tunnel",
-       (NULL == cp->core_mq) ? "" : " with CORE link");
+  LOG(GNUNET_ERROR_TYPE_DEBUG,
+      "Updating peer %s activation state (%u connections)%s%s\n",
+      GCP_2s(cp),
+      GNUNET_CONTAINER_multishortmap_size(cp->connections),
+      (NULL == cp->t) ? "" : " with tunnel",
+      (NULL == cp->core_mq) ? "" : " with CORE link");
   if (NULL != cp->destroy_task)
-  {
-    /* It's active, do not destory! */
-    GNUNET_SCHEDULER_cancel (cp->destroy_task);
-    cp->destroy_task = NULL;
-  }
-  if ( (0 == GNUNET_CONTAINER_multishortmap_size (cp->connections)) &&
-       (NULL == cp->t) )
-  {
-    /* We're just on a path or directly connected; don't bother too much */
-    if (NULL != cp->connectivity_suggestion)
     {
-      GNUNET_ATS_connectivity_suggest_cancel (cp->connectivity_suggestion);
-      cp->connectivity_suggestion = NULL;
+      /* It's active, do not destory! */
+      GNUNET_SCHEDULER_cancel(cp->destroy_task);
+      cp->destroy_task = NULL;
     }
-    if (NULL != cp->search_h)
+  if ((0 == GNUNET_CONTAINER_multishortmap_size(cp->connections)) &&
+      (NULL == cp->t))
     {
-      GCD_search_stop (cp->search_h);
-      cp->search_h = NULL;
+      /* We're just on a path or directly connected; don't bother too much */
+      if (NULL != cp->connectivity_suggestion)
+        {
+          GNUNET_ATS_connectivity_suggest_cancel(cp->connectivity_suggestion);
+          cp->connectivity_suggestion = NULL;
+        }
+      if (NULL != cp->search_h)
+        {
+          GCD_search_stop(cp->search_h);
+          cp->search_h = NULL;
+        }
+      return;
     }
-    return;
-  }
   if (NULL == cp->core_mq)
-  {
-    /* Lacks direct connection, try to create one by querying the DHT */
-    if ( (NULL == cp->search_h) &&
-         (DESIRED_CONNECTIONS_PER_TUNNEL > cp->num_paths) )
-      cp->search_h
-        = GCD_search (&cp->pid);
-  }
-  else
-  {
-    /* Have direct connection, stop DHT search if active */
-    if (NULL != cp->search_h)
     {
-      GCD_search_stop (cp->search_h);
-      cp->search_h = NULL;
+      /* Lacks direct connection, try to create one by querying the DHT */
+      if ((NULL == cp->search_h) &&
+          (DESIRED_CONNECTIONS_PER_TUNNEL > cp->num_paths))
+        cp->search_h
+          = GCD_search(&cp->pid);
     }
-  }
+  else
+    {
+      /* Have direct connection, stop DHT search if active */
+      if (NULL != cp->search_h)
+        {
+          GCD_search_stop(cp->search_h);
+          cp->search_h = NULL;
+        }
+    }
 
   /* If we have a tunnel, our urge for connections is much bigger */
   strength = (NULL != cp->t) ? 32 : 1;
   if (NULL != cp->connectivity_suggestion)
-    GNUNET_ATS_connectivity_suggest_cancel (cp->connectivity_suggestion);
+    GNUNET_ATS_connectivity_suggest_cancel(cp->connectivity_suggestion);
   cp->connectivity_suggestion
-    = GNUNET_ATS_connectivity_suggest (ats_ch,
-                                       &cp->pid,
-                                       strength);
+    = GNUNET_ATS_connectivity_suggest(ats_ch,
+                                      &cp->pid,
+                                      strength);
 }
 
 
@@ -461,7 +456,7 @@ consider_peer_activate (struct CadetPeer *cp)
  * @param cp peer to clean up
  */
 static void
-consider_peer_destroy (struct CadetPeer *cp);
+consider_peer_destroy(struct CadetPeer *cp);
 
 
 /**
@@ -471,15 +466,15 @@ consider_peer_destroy (struct CadetPeer *cp);
  * @param cls a `struct CadetPeer`.
  */
 static void
-drop_paths (void *cls)
+drop_paths(void *cls)
 {
   struct CadetPeer *cp = cls;
   struct CadetPeerPath *path;
 
   cp->destroy_task = NULL;
-  while (NULL != (path = GNUNET_CONTAINER_heap_remove_root (cp->path_heap)))
-    GCPP_release (path);
-  consider_peer_destroy (cp);
+  while (NULL != (path = GNUNET_CONTAINER_heap_remove_root(cp->path_heap)))
+    GCPP_release(path);
+  consider_peer_destroy(cp);
 }
 
 
@@ -489,43 +484,43 @@ drop_paths (void *cls)
  * @param cp peer to clean up
  */
 static void
-consider_peer_destroy (struct CadetPeer *cp)
+consider_peer_destroy(struct CadetPeer *cp)
 {
   struct GNUNET_TIME_Relative exp;
 
   if (NULL != cp->destroy_task)
-  {
-    GNUNET_SCHEDULER_cancel (cp->destroy_task);
-    cp->destroy_task = NULL;
-  }
+    {
+      GNUNET_SCHEDULER_cancel(cp->destroy_task);
+      cp->destroy_task = NULL;
+    }
   if (NULL != cp->t)
     return; /* still relevant! */
   if (NULL != cp->core_mq)
     return; /* still relevant! */
-  if (0 != GNUNET_CONTAINER_multishortmap_size (cp->connections))
+  if (0 != GNUNET_CONTAINER_multishortmap_size(cp->connections))
     return; /* still relevant! */
-  if ( (NULL != cp->path_heap) &&
-       (0 < GNUNET_CONTAINER_heap_get_size (cp->path_heap)) )
-  {
-    cp->destroy_task = GNUNET_SCHEDULER_add_delayed (IDLE_PATH_TIMEOUT,
-                                                     &drop_paths,
-                                                     cp);
-    return;
-  }
+  if ((NULL != cp->path_heap) &&
+      (0 < GNUNET_CONTAINER_heap_get_size(cp->path_heap)))
+    {
+      cp->destroy_task = GNUNET_SCHEDULER_add_delayed(IDLE_PATH_TIMEOUT,
+                                                      &drop_paths,
+                                                      cp);
+      return;
+    }
   if (0 != cp->num_paths)
     return; /* still relevant! */
   if (NULL != cp->hello)
-  {
-    /* relevant only until HELLO expires */
-    exp = GNUNET_TIME_absolute_get_remaining (GNUNET_HELLO_get_last_expiration (cp->hello));
-    cp->destroy_task = GNUNET_SCHEDULER_add_delayed (exp,
-                                                     &destroy_peer,
-                                                     cp);
-    return;
-  }
-  cp->destroy_task = GNUNET_SCHEDULER_add_delayed (IDLE_PEER_TIMEOUT,
-                                                   &destroy_peer,
-                                                   cp);
+    {
+      /* relevant only until HELLO expires */
+      exp = GNUNET_TIME_absolute_get_remaining(GNUNET_HELLO_get_last_expiration(cp->hello));
+      cp->destroy_task = GNUNET_SCHEDULER_add_delayed(exp,
+                                                      &destroy_peer,
+                                                      cp);
+      return;
+    }
+  cp->destroy_task = GNUNET_SCHEDULER_add_delayed(IDLE_PEER_TIMEOUT,
+                                                  &destroy_peer,
+                                                  cp);
 }
 
 
@@ -536,60 +531,60 @@ consider_peer_destroy (struct CadetPeer *cp)
  * @param mq message queue to set (can be NULL)
  */
 void
-GCP_set_mq (struct CadetPeer *cp,
-            struct GNUNET_MQ_Handle *mq)
+GCP_set_mq(struct CadetPeer *cp,
+           struct GNUNET_MQ_Handle *mq)
 {
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Message queue for peer %s is now %p\n",
-       GCP_2s (cp),
-       mq);
+  LOG(GNUNET_ERROR_TYPE_DEBUG,
+      "Message queue for peer %s is now %p\n",
+      GCP_2s(cp),
+      mq);
   cp->core_mq = mq;
   for (struct GCP_MessageQueueManager *mqm = cp->mqm_head, *next;
        NULL != mqm;
        mqm = next)
-  {
-    /* Save next pointer in case mqm gets freed by the callback */
-    next = mqm->next;
-    if (NULL == mq)
     {
-      if (NULL != mqm->env)
-      {
-        GNUNET_MQ_discard (mqm->env);
-        mqm->env = NULL;
-        mqm->cb (mqm->cb_cls,
-                 GNUNET_SYSERR);
-      }
+      /* Save next pointer in case mqm gets freed by the callback */
+      next = mqm->next;
+      if (NULL == mq)
+        {
+          if (NULL != mqm->env)
+            {
+              GNUNET_MQ_discard(mqm->env);
+              mqm->env = NULL;
+              mqm->cb(mqm->cb_cls,
+                      GNUNET_SYSERR);
+            }
+          else
+            {
+              mqm->cb(mqm->cb_cls,
+                      GNUNET_NO);
+            }
+        }
       else
-      {
-        mqm->cb (mqm->cb_cls,
-                 GNUNET_NO);
-      }
+        {
+          GNUNET_assert(NULL == mqm->env);
+          mqm->cb(mqm->cb_cls,
+                  GNUNET_YES);
+        }
     }
-    else
-    {
-      GNUNET_assert (NULL == mqm->env);
-      mqm->cb (mqm->cb_cls,
-               GNUNET_YES);
-    }
-  }
-  if ( (NULL != mq) ||
-       (NULL != cp->t) )
-    consider_peer_activate (cp);
+  if ((NULL != mq) ||
+      (NULL != cp->t))
+    consider_peer_activate(cp);
   else
-    consider_peer_destroy (cp);
+    consider_peer_destroy(cp);
 
-  if ( (NULL != mq) &&
-       (NULL != cp->t) )
-  {
-    /* have a new, direct path to the target, notify tunnel */
-    struct CadetPeerPath *path;
+  if ((NULL != mq) &&
+      (NULL != cp->t))
+    {
+      /* have a new, direct path to the target, notify tunnel */
+      struct CadetPeerPath *path;
 
-    path = GCPP_get_path_from_route (1,
-                                     &cp->pid);
-    GCT_consider_path (cp->t,
-                       path,
-                       0);
-  }
+      path = GCPP_get_path_from_route(1,
+                                      &cp->pid);
+      GCT_consider_path(cp->t,
+                        path,
+                        0);
+    }
 }
 
 
@@ -600,12 +595,12 @@ GCP_set_mq (struct CadetPeer *cp,
  * @return #GNUNET_YES or #GNUNET_NO with the decision to drop.
  */
 static int
-should_I_drop (void)
+should_I_drop(void)
 {
   if (0 == drop_percent)
     return GNUNET_NO;
-  if (GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
-                                101) < drop_percent)
+  if (GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_WEAK,
+                               101) < drop_percent)
     return GNUNET_YES;
   return GNUNET_NO;
 }
@@ -618,7 +613,7 @@ should_I_drop (void)
  * @param cls the `struct CadetPeeer` where we made progress
  */
 static void
-mqm_send_done (void *cls);
+mqm_send_done(void *cls);
 
 
 /**
@@ -627,68 +622,69 @@ mqm_send_done (void *cls);
  * @param mqm mqm to transmit message for now
  */
 static void
-mqm_execute (struct GCP_MessageQueueManager *mqm)
+mqm_execute(struct GCP_MessageQueueManager *mqm)
 {
   struct CadetPeer *cp = mqm->cp;
 
   /* Move ready pointer to the next entry that might be ready. */
-  if ( (mqm == cp->mqm_ready_ptr) &&
-       (NULL != mqm->next) )
+  if ((mqm == cp->mqm_ready_ptr) &&
+      (NULL != mqm->next))
     cp->mqm_ready_ptr = mqm->next;
   /* Move entry to the end of the DLL, to be fair. */
   if (mqm != cp->mqm_tail)
-  {
-    GNUNET_CONTAINER_DLL_remove (cp->mqm_head,
-                                 cp->mqm_tail,
-                                 mqm);
-    GNUNET_CONTAINER_DLL_insert_tail (cp->mqm_head,
-                                      cp->mqm_tail,
-                                      mqm);
-  }
-  cp->mqm_ready_counter--;
-  if (GNUNET_YES == should_I_drop ())
-  {
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "DROPPING message to peer %s from MQM %p\n",
-         GCP_2s (cp),
-         mqm);
-    GNUNET_MQ_discard (mqm->env);
-    mqm->env = NULL;
-    mqm_send_done (cp);
-  }
-  else
-  {
     {
-      const struct GNUNET_MessageHeader *mh;
-
-      mh = GNUNET_MQ_env_get_msg (mqm->env);
-      switch (ntohs (mh->type))
-      {
-      case GNUNET_MESSAGE_TYPE_CADET_TUNNEL_KX:
-        {
-          const struct GNUNET_CADET_TunnelKeyExchangeMessage *msg
-            = (const struct GNUNET_CADET_TunnelKeyExchangeMessage *) mh;
-          LOG (GNUNET_ERROR_TYPE_DEBUG,
-               "P2P forwarding KX with ephemeral %s to %s on CID %s\n",
-               GNUNET_e2s (&msg->ephemeral_key),
-               GCP_2s (cp),
-               GNUNET_sh2s (&msg->cid.connection_of_tunnel));
-        }
-        break;
-      default:
-        break;
-      }
+      GNUNET_CONTAINER_DLL_remove(cp->mqm_head,
+                                  cp->mqm_tail,
+                                  mqm);
+      GNUNET_CONTAINER_DLL_insert_tail(cp->mqm_head,
+                                       cp->mqm_tail,
+                                       mqm);
     }
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Sending to peer %s from MQM %p\n",
-         GCP_2s (cp),
-         mqm);
-    GNUNET_MQ_send (cp->core_mq,
-                    mqm->env);
-    mqm->env = NULL;
-  }
-  mqm->cb (mqm->cb_cls,
-           GNUNET_YES);
+  cp->mqm_ready_counter--;
+  if (GNUNET_YES == should_I_drop())
+    {
+      LOG(GNUNET_ERROR_TYPE_DEBUG,
+          "DROPPING message to peer %s from MQM %p\n",
+          GCP_2s(cp),
+          mqm);
+      GNUNET_MQ_discard(mqm->env);
+      mqm->env = NULL;
+      mqm_send_done(cp);
+    }
+  else
+    {
+      {
+        const struct GNUNET_MessageHeader *mh;
+
+        mh = GNUNET_MQ_env_get_msg(mqm->env);
+        switch (ntohs(mh->type))
+          {
+          case GNUNET_MESSAGE_TYPE_CADET_TUNNEL_KX:
+          {
+            const struct GNUNET_CADET_TunnelKeyExchangeMessage *msg
+              = (const struct GNUNET_CADET_TunnelKeyExchangeMessage *)mh;
+            LOG(GNUNET_ERROR_TYPE_DEBUG,
+                "P2P forwarding KX with ephemeral %s to %s on CID %s\n",
+                GNUNET_e2s(&msg->ephemeral_key),
+                GCP_2s(cp),
+                GNUNET_sh2s(&msg->cid.connection_of_tunnel));
+          }
+          break;
+
+          default:
+            break;
+          }
+      }
+      LOG(GNUNET_ERROR_TYPE_DEBUG,
+          "Sending to peer %s from MQM %p\n",
+          GCP_2s(cp),
+          mqm);
+      GNUNET_MQ_send(cp->core_mq,
+                     mqm->env);
+      mqm->env = NULL;
+    }
+  mqm->cb(mqm->cb_cls,
+          GNUNET_YES);
 }
 
 
@@ -700,18 +696,18 @@ mqm_execute (struct GCP_MessageQueueManager *mqm)
  * @param cp peer to try to send the next ready message to
  */
 static void
-send_next_ready (struct CadetPeer *cp)
+send_next_ready(struct CadetPeer *cp)
 {
   struct GCP_MessageQueueManager *mqm;
 
   if (0 == cp->mqm_ready_counter)
     return;
-  while ( (NULL != (mqm = cp->mqm_ready_ptr)) &&
-          (NULL == mqm->env) )
+  while ((NULL != (mqm = cp->mqm_ready_ptr)) &&
+         (NULL == mqm->env))
     cp->mqm_ready_ptr = mqm->next;
   if (NULL == mqm)
     return; /* nothing to do */
-  mqm_execute (mqm);
+  mqm_execute(mqm);
 }
 
 
@@ -722,14 +718,14 @@ send_next_ready (struct CadetPeer *cp)
  * @param cls the `struct CadetPeeer` where we made progress
  */
 static void
-mqm_send_done (void *cls)
+mqm_send_done(void *cls)
 {
   struct CadetPeer *cp = cls;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Sending to peer %s completed\n",
-       GCP_2s (cp));
-  send_next_ready (cp);
+  LOG(GNUNET_ERROR_TYPE_DEBUG,
+      "Sending to peer %s completed\n",
+      GCP_2s(cp));
+  send_next_ready(cp);
 }
 
 
@@ -741,30 +737,30 @@ mqm_send_done (void *cls)
  *            yet have a #GNUNET_MQ_notify_sent() callback attached to it
  */
 void
-GCP_send (struct GCP_MessageQueueManager *mqm,
-          struct GNUNET_MQ_Envelope *env)
+GCP_send(struct GCP_MessageQueueManager *mqm,
+         struct GNUNET_MQ_Envelope *env)
 {
   struct CadetPeer *cp = mqm->cp;
 
-  GNUNET_assert (NULL != env);
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Queueing message to peer %s in MQM %p\n",
-       GCP_2s (cp),
-       mqm);
-  GNUNET_assert (NULL != cp->core_mq);
-  GNUNET_assert (NULL == mqm->env);
-  GNUNET_MQ_notify_sent (env,
-                         &mqm_send_done,
-                         cp);
+  GNUNET_assert(NULL != env);
+  LOG(GNUNET_ERROR_TYPE_DEBUG,
+      "Queueing message to peer %s in MQM %p\n",
+      GCP_2s(cp),
+      mqm);
+  GNUNET_assert(NULL != cp->core_mq);
+  GNUNET_assert(NULL == mqm->env);
+  GNUNET_MQ_notify_sent(env,
+                        &mqm_send_done,
+                        cp);
   mqm->env = env;
   cp->mqm_ready_counter++;
   if (mqm != cp->mqm_ready_ptr)
     cp->mqm_ready_ptr = cp->mqm_head;
   if (1 == cp->mqm_ready_counter)
     cp->mqm_ready_ptr = mqm;
-  if (0 != GNUNET_MQ_get_length (cp->core_mq))
+  if (0 != GNUNET_MQ_get_length(cp->core_mq))
     return;
-  send_next_ready (cp);
+  send_next_ready(cp);
 }
 
 
@@ -777,18 +773,18 @@ GCP_send (struct GCP_MessageQueueManager *mqm,
  * @return #GNUNET_OK (continue to iterate)
  */
 static int
-destroy_iterator_cb (void *cls,
-                     const struct GNUNET_PeerIdentity *pid,
-                     void *value)
+destroy_iterator_cb(void *cls,
+                    const struct GNUNET_PeerIdentity *pid,
+                    void *value)
 {
   struct CadetPeer *cp = value;
 
   if (NULL != cp->destroy_task)
-  {
-    GNUNET_SCHEDULER_cancel (cp->destroy_task);
-    cp->destroy_task = NULL;
-  }
-  destroy_peer (cp);
+    {
+      GNUNET_SCHEDULER_cancel(cp->destroy_task);
+      cp->destroy_task = NULL;
+    }
+  destroy_peer(cp);
   return GNUNET_OK;
 }
 
@@ -799,13 +795,13 @@ destroy_iterator_cb (void *cls,
  * connections are down.
  */
 void
-GCP_destroy_all_peers ()
+GCP_destroy_all_peers()
 {
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Destroying all peers now\n");
-  GNUNET_CONTAINER_multipeermap_iterate (peers,
-                                         &destroy_iterator_cb,
-                                         NULL);
+  LOG(GNUNET_ERROR_TYPE_DEBUG,
+      "Destroying all peers now\n");
+  GNUNET_CONTAINER_multipeermap_iterate(peers,
+                                        &destroy_iterator_cb,
+                                        NULL);
 }
 
 
@@ -816,17 +812,17 @@ GCP_destroy_all_peers ()
  * @param cp peer to drop paths to
  */
 void
-GCP_drop_owned_paths (struct CadetPeer *cp)
+GCP_drop_owned_paths(struct CadetPeer *cp)
 {
   struct CadetPeerPath *path;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Destroying all paths to %s\n",
-       GCP_2s (cp));
+  LOG(GNUNET_ERROR_TYPE_DEBUG,
+      "Destroying all paths to %s\n",
+      GCP_2s(cp));
   while (NULL != (path =
-                  GNUNET_CONTAINER_heap_remove_root (cp->path_heap)))
-    GCPP_release (path);
-  GNUNET_CONTAINER_heap_destroy (cp->path_heap);
+                    GNUNET_CONTAINER_heap_remove_root(cp->path_heap)))
+    GCPP_release(path);
+  GNUNET_CONTAINER_heap_destroy(cp->path_heap);
   cp->path_heap = NULL;
 }
 
@@ -839,55 +835,55 @@ GCP_drop_owned_paths (struct CadetPeer *cp)
  * @param off offset of this peer on the path
  */
 void
-GCP_path_entry_add (struct CadetPeer *cp,
-                    struct CadetPeerPathEntry *entry,
-                    unsigned int off)
+GCP_path_entry_add(struct CadetPeer *cp,
+                   struct CadetPeerPathEntry *entry,
+                   unsigned int off)
 {
-  GNUNET_assert (cp == GCPP_get_peer_at_offset (entry->path,
-                                                off));
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Discovered that peer %s is on path %s at offset %u\n",
-       GCP_2s (cp),
-       GCPP_2s (entry->path),
-       off);
+  GNUNET_assert(cp == GCPP_get_peer_at_offset(entry->path,
+                                              off));
+  LOG(GNUNET_ERROR_TYPE_DEBUG,
+      "Discovered that peer %s is on path %s at offset %u\n",
+      GCP_2s(cp),
+      GCPP_2s(entry->path),
+      off);
   if (off >= cp->path_dll_length)
-  {
-    unsigned int len = cp->path_dll_length;
+    {
+      unsigned int len = cp->path_dll_length;
 
-    GNUNET_array_grow (cp->path_heads,
-                       len,
-                       off + 4);
-    GNUNET_array_grow (cp->path_tails,
-                       cp->path_dll_length,
-                       off + 4);
-  }
-  GNUNET_CONTAINER_DLL_insert (cp->path_heads[off],
-                               cp->path_tails[off],
-                               entry);
+      GNUNET_array_grow(cp->path_heads,
+                        len,
+                        off + 4);
+      GNUNET_array_grow(cp->path_tails,
+                        cp->path_dll_length,
+                        off + 4);
+    }
+  GNUNET_CONTAINER_DLL_insert(cp->path_heads[off],
+                              cp->path_tails[off],
+                              entry);
   cp->off_sum += off;
   cp->num_paths++;
 
   /* If we have a tunnel to this peer, tell the tunnel that there is a
      new path available. */
   if (NULL != cp->t)
-    GCT_consider_path (cp->t,
-                       entry->path,
-                       off);
+    GCT_consider_path(cp->t,
+                      entry->path,
+                      off);
 
-  if ( (NULL != cp->search_h) &&
-       (DESIRED_CONNECTIONS_PER_TUNNEL <= cp->num_paths) )
-  {
-    /* Now I have enough paths, stop search */
-    GCD_search_stop (cp->search_h);
-    cp->search_h = NULL;
-  }
+  if ((NULL != cp->search_h) &&
+      (DESIRED_CONNECTIONS_PER_TUNNEL <= cp->num_paths))
+    {
+      /* Now I have enough paths, stop search */
+      GCD_search_stop(cp->search_h);
+      cp->search_h = NULL;
+    }
   if (NULL != cp->destroy_task)
-  {
-    /* paths changed, this resets the destroy timeout counter
-       and aborts a destroy task that may no longer be valid
-       to have (as we now have more paths via this peer). */
-    consider_peer_destroy (cp);
-  }
+    {
+      /* paths changed, this resets the destroy timeout counter
+         and aborts a destroy task that may no longer be valid
+         to have (as we now have more paths via this peer). */
+      consider_peer_destroy(cp);
+    }
 }
 
 
@@ -899,32 +895,32 @@ GCP_path_entry_add (struct CadetPeer *cp,
  * @param off offset of this peer on the path
  */
 void
-GCP_path_entry_remove (struct CadetPeer *cp,
-                       struct CadetPeerPathEntry *entry,
-                       unsigned int off)
+GCP_path_entry_remove(struct CadetPeer *cp,
+                      struct CadetPeerPathEntry *entry,
+                      unsigned int off)
 {
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Removing knowledge about peer %s beging on path %s at offset %u\n",
-       GCP_2s (cp),
-       GCPP_2s (entry->path),
-       off);
-  GNUNET_CONTAINER_DLL_remove (cp->path_heads[off],
-                               cp->path_tails[off],
-                               entry);
-  GNUNET_assert (0 < cp->num_paths);
+  LOG(GNUNET_ERROR_TYPE_DEBUG,
+      "Removing knowledge about peer %s beging on path %s at offset %u\n",
+      GCP_2s(cp),
+      GCPP_2s(entry->path),
+      off);
+  GNUNET_CONTAINER_DLL_remove(cp->path_heads[off],
+                              cp->path_tails[off],
+                              entry);
+  GNUNET_assert(0 < cp->num_paths);
   cp->off_sum -= off;
   cp->num_paths--;
-  if ( (NULL == cp->core_mq) &&
-       (NULL != cp->t) &&
-       (NULL == cp->search_h) &&
-       (DESIRED_CONNECTIONS_PER_TUNNEL > cp->num_paths) )
+  if ((NULL == cp->core_mq) &&
+      (NULL != cp->t) &&
+      (NULL == cp->search_h) &&
+      (DESIRED_CONNECTIONS_PER_TUNNEL > cp->num_paths))
     cp->search_h
-      = GCD_search (&cp->pid);
+      = GCD_search(&cp->pid);
   if (NULL == cp->destroy_task)
-  {
-    /* paths changed, we might now be ready for destruction, check again */
-    consider_peer_destroy (cp);
-  }
+    {
+      /* paths changed, we might now be ready for destruction, check again */
+      consider_peer_destroy(cp);
+    }
 }
 
 
@@ -935,32 +931,32 @@ GCP_path_entry_remove (struct CadetPeer *cp,
  * @param cls the `struct CadetPeer` to maintain the path heap for
  */
 static void
-path_heap_cleanup (void *cls)
+path_heap_cleanup(void *cls)
 {
   struct CadetPeer *cp = cls;
   struct CadetPeerPath *root;
 
   cp->heap_cleanup_task = NULL;
-  while (GNUNET_CONTAINER_heap_get_size (cp->path_heap) >=
+  while (GNUNET_CONTAINER_heap_get_size(cp->path_heap) >=
          2 * DESIRED_CONNECTIONS_PER_TUNNEL)
-  {
-    /* Now we have way too many, drop least desirable UNLESS it is in use!
-       (Note that this intentionally keeps highly desireable, but currently
-       unused paths around in the hope that we might be able to switch, even
-       if the number of paths exceeds the threshold.) */
-    root = GNUNET_CONTAINER_heap_peek (cp->path_heap);
-    GNUNET_assert (NULL != root);
-    if (NULL !=
-        GCPP_get_connection (root,
-                             cp,
-                             GCPP_get_length (root) - 1))
-      break; /* can't fix */
-    /* Got plenty of paths to this destination, and this is a low-quality
-       one that we don't care about. Allow it to die. */
-    GNUNET_assert (root ==
-                   GNUNET_CONTAINER_heap_remove_root (cp->path_heap));
-    GCPP_release (root);
-  }
+    {
+      /* Now we have way too many, drop least desirable UNLESS it is in use!
+         (Note that this intentionally keeps highly desireable, but currently
+         unused paths around in the hope that we might be able to switch, even
+         if the number of paths exceeds the threshold.) */
+      root = GNUNET_CONTAINER_heap_peek(cp->path_heap);
+      GNUNET_assert(NULL != root);
+      if (NULL !=
+          GCPP_get_connection(root,
+                              cp,
+                              GCPP_get_length(root) - 1))
+        break; /* can't fix */
+      /* Got plenty of paths to this destination, and this is a low-quality
+         one that we don't care about. Allow it to die. */
+      GNUNET_assert(root ==
+                    GNUNET_CONTAINER_heap_remove_root(cp->path_heap));
+      GCPP_release(root);
+    }
 }
 
 
@@ -976,66 +972,66 @@ path_heap_cleanup (void *cls)
  *         otherwise the node in the peer's path heap for the @a path.
  */
 struct GNUNET_CONTAINER_HeapNode *
-GCP_attach_path (struct CadetPeer *cp,
-                 struct CadetPeerPath *path,
-                 unsigned int off,
-                 int force)
+GCP_attach_path(struct CadetPeer *cp,
+                struct CadetPeerPath *path,
+                unsigned int off,
+                int force)
 {
   GNUNET_CONTAINER_HeapCostType desirability;
   struct CadetPeerPath *root;
   GNUNET_CONTAINER_HeapCostType root_desirability;
   struct GNUNET_CONTAINER_HeapNode *hn;
 
-  GNUNET_assert (off == GCPP_get_length (path) - 1);
-  GNUNET_assert (cp == GCPP_get_peer_at_offset (path,
-                                                off));
+  GNUNET_assert(off == GCPP_get_length(path) - 1);
+  GNUNET_assert(cp == GCPP_get_peer_at_offset(path,
+                                              off));
   if (NULL == cp->path_heap)
-  {
-    /* #GCP_drop_owned_paths() was already called, we cannot take new ones! */
-    GNUNET_assert (GNUNET_NO == force);
-    return NULL;
-  }
-  desirability = GCPP_get_desirability (path);
-  if (GNUNET_NO == force)
-  {
-    /* FIXME: desirability is not yet initialized; tricky! */
-    if (GNUNET_NO ==
-        GNUNET_CONTAINER_heap_peek2 (cp->path_heap,
-                                     (void **) &root,
-                                     &root_desirability))
     {
-      root = NULL;
-      root_desirability = 0;
-    }
-
-    if ( (DESIRED_CONNECTIONS_PER_TUNNEL > cp->num_paths) &&
-         (desirability < root_desirability) )
-    {
-      LOG (GNUNET_ERROR_TYPE_DEBUG,
-           "Decided to not attach path %s to peer %s due to undesirability\n",
-           GCPP_2s (path),
-           GCP_2s (cp));
+      /* #GCP_drop_owned_paths() was already called, we cannot take new ones! */
+      GNUNET_assert(GNUNET_NO == force);
       return NULL;
     }
-  }
+  desirability = GCPP_get_desirability(path);
+  if (GNUNET_NO == force)
+    {
+      /* FIXME: desirability is not yet initialized; tricky! */
+      if (GNUNET_NO ==
+          GNUNET_CONTAINER_heap_peek2(cp->path_heap,
+                                      (void **)&root,
+                                      &root_desirability))
+        {
+          root = NULL;
+          root_desirability = 0;
+        }
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Attaching path %s to peer %s (%s)\n",
-       GCPP_2s (path),
-       GCP_2s (cp),
-       (GNUNET_NO == force) ? "desirable" : "forced");
+      if ((DESIRED_CONNECTIONS_PER_TUNNEL > cp->num_paths) &&
+          (desirability < root_desirability))
+        {
+          LOG(GNUNET_ERROR_TYPE_DEBUG,
+              "Decided to not attach path %s to peer %s due to undesirability\n",
+              GCPP_2s(path),
+              GCP_2s(cp));
+          return NULL;
+        }
+    }
+
+  LOG(GNUNET_ERROR_TYPE_DEBUG,
+      "Attaching path %s to peer %s (%s)\n",
+      GCPP_2s(path),
+      GCP_2s(cp),
+      (GNUNET_NO == force) ? "desirable" : "forced");
 
   /* Yes, we'd like to add this path, add to our heap */
-  hn = GNUNET_CONTAINER_heap_insert (cp->path_heap,
-                                     path,
-                                     desirability);
+  hn = GNUNET_CONTAINER_heap_insert(cp->path_heap,
+                                    path,
+                                    desirability);
 
   /* Consider maybe dropping other paths because of the new one */
-  if ( (GNUNET_CONTAINER_heap_get_size (cp->path_heap) >=
-        2 * DESIRED_CONNECTIONS_PER_TUNNEL) &&
-       (NULL != cp->heap_cleanup_task) )
-    cp->heap_cleanup_task = GNUNET_SCHEDULER_add_now (&path_heap_cleanup,
-                                                      cp);
+  if ((GNUNET_CONTAINER_heap_get_size(cp->path_heap) >=
+       2 * DESIRED_CONNECTIONS_PER_TUNNEL) &&
+      (NULL != cp->heap_cleanup_task))
+    cp->heap_cleanup_task = GNUNET_SCHEDULER_add_now(&path_heap_cleanup,
+                                                     cp);
   return hn;
 }
 
@@ -1050,16 +1046,16 @@ GCP_attach_path (struct CadetPeer *cp,
  * @param hn note in @a cp's path heap that must be deleted
  */
 void
-GCP_detach_path (struct CadetPeer *cp,
-                 struct CadetPeerPath *path,
-                 struct GNUNET_CONTAINER_HeapNode *hn)
+GCP_detach_path(struct CadetPeer *cp,
+                struct CadetPeerPath *path,
+                struct GNUNET_CONTAINER_HeapNode *hn)
 {
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Detatching path %s from peer %s\n",
-       GCPP_2s (path),
-       GCP_2s (cp));
-  GNUNET_assert (path ==
-                 GNUNET_CONTAINER_heap_remove_node (hn));
+  LOG(GNUNET_ERROR_TYPE_DEBUG,
+      "Detatching path %s from peer %s\n",
+      GCPP_2s(path),
+      GCP_2s(cp));
+  GNUNET_assert(path ==
+                GNUNET_CONTAINER_heap_remove_node(hn));
 }
 
 
@@ -1070,23 +1066,23 @@ GCP_detach_path (struct CadetPeer *cp,
  * @param cc the connection to add
  */
 void
-GCP_add_connection (struct CadetPeer *cp,
-                    struct CadetConnection *cc)
+GCP_add_connection(struct CadetPeer *cp,
+                   struct CadetConnection *cc)
 {
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Adding %s to peer %s\n",
-       GCC_2s (cc),
-       GCP_2s (cp));
-  GNUNET_assert (GNUNET_OK ==
-                 GNUNET_CONTAINER_multishortmap_put (cp->connections,
-                                                     &GCC_get_id (cc)->connection_of_tunnel,
-                                                     cc,
-                                                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
+  LOG(GNUNET_ERROR_TYPE_DEBUG,
+      "Adding %s to peer %s\n",
+      GCC_2s(cc),
+      GCP_2s(cp));
+  GNUNET_assert(GNUNET_OK ==
+                GNUNET_CONTAINER_multishortmap_put(cp->connections,
+                                                   &GCC_get_id(cc)->connection_of_tunnel,
+                                                   cc,
+                                                   GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
   if (NULL != cp->destroy_task)
-  {
-    GNUNET_SCHEDULER_cancel (cp->destroy_task);
-    cp->destroy_task = NULL;
-  }
+    {
+      GNUNET_SCHEDULER_cancel(cp->destroy_task);
+      cp->destroy_task = NULL;
+    }
 }
 
 
@@ -1097,18 +1093,18 @@ GCP_add_connection (struct CadetPeer *cp,
  * @param cc the connection to remove
  */
 void
-GCP_remove_connection (struct CadetPeer *cp,
-                       struct CadetConnection *cc)
+GCP_remove_connection(struct CadetPeer *cp,
+                      struct CadetConnection *cc)
 {
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Removing connection %s from peer %s\n",
-       GCC_2s (cc),
-       GCP_2s (cp));
-  GNUNET_assert (GNUNET_YES ==
-                 GNUNET_CONTAINER_multishortmap_remove (cp->connections,
-                                                        &GCC_get_id (cc)->connection_of_tunnel,
-                                                        cc));
-  consider_peer_destroy (cp);
+  LOG(GNUNET_ERROR_TYPE_DEBUG,
+      "Removing connection %s from peer %s\n",
+      GCC_2s(cc),
+      GCP_2s(cp));
+  GNUNET_assert(GNUNET_YES ==
+                GNUNET_CONTAINER_multishortmap_remove(cp->connections,
+                                                      &GCC_get_id(cc)->connection_of_tunnel,
+                                                      cc));
+  consider_peer_destroy(cp);
 }
 
 
@@ -1124,30 +1120,30 @@ GCP_remove_connection (struct CadetPeer *cp,
  *         NULL if unknown and not requested @a create
  */
 struct CadetPeer *
-GCP_get (const struct GNUNET_PeerIdentity *peer_id,
-         int create)
+GCP_get(const struct GNUNET_PeerIdentity *peer_id,
+        int create)
 {
   struct CadetPeer *cp;
 
-  cp = GNUNET_CONTAINER_multipeermap_get (peers,
-                                          peer_id);
+  cp = GNUNET_CONTAINER_multipeermap_get(peers,
+                                         peer_id);
   if (NULL != cp)
     return cp;
   if (GNUNET_NO == create)
     return NULL;
-  cp = GNUNET_new (struct CadetPeer);
+  cp = GNUNET_new(struct CadetPeer);
   cp->pid = *peer_id;
-  cp->connections = GNUNET_CONTAINER_multishortmap_create (32,
-                                                           GNUNET_YES);
-  cp->path_heap = GNUNET_CONTAINER_heap_create (GNUNET_CONTAINER_HEAP_ORDER_MIN);
-  GNUNET_assert (GNUNET_YES ==
-                 GNUNET_CONTAINER_multipeermap_put (peers,
-                                                    &cp->pid,
-                                                    cp,
-                                                    GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Creating peer %s\n",
-       GCP_2s (cp));
+  cp->connections = GNUNET_CONTAINER_multishortmap_create(32,
+                                                          GNUNET_YES);
+  cp->path_heap = GNUNET_CONTAINER_heap_create(GNUNET_CONTAINER_HEAP_ORDER_MIN);
+  GNUNET_assert(GNUNET_YES ==
+                GNUNET_CONTAINER_multipeermap_put(peers,
+                                                  &cp->pid,
+                                                  cp,
+                                                  GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
+  LOG(GNUNET_ERROR_TYPE_DEBUG,
+      "Creating peer %s\n",
+      GCP_2s(cp));
   return cp;
 }
 
@@ -1159,7 +1155,7 @@ GCP_get (const struct GNUNET_PeerIdentity *peer_id,
  * @return the peer identity
  */
 const struct GNUNET_PeerIdentity *
-GCP_get_id (struct CadetPeer *cp)
+GCP_get_id(struct CadetPeer *cp)
 {
   return &cp->pid;
 }
@@ -1172,12 +1168,12 @@ GCP_get_id (struct CadetPeer *cp)
  * @param cls Closure for @c iter.
  */
 void
-GCP_iterate_all (GNUNET_CONTAINER_PeerMapIterator iter,
-                 void *cls)
+GCP_iterate_all(GNUNET_CONTAINER_PeerMapIterator iter,
+                void *cls)
 {
-  GNUNET_CONTAINER_multipeermap_iterate (peers,
-                                         iter,
-                                         cls);
+  GNUNET_CONTAINER_multipeermap_iterate(peers,
+                                        iter,
+                                        cls);
 }
 
 
@@ -1188,7 +1184,7 @@ GCP_iterate_all (GNUNET_CONTAINER_PeerMapIterator iter,
  * @return Number of known paths.
  */
 unsigned int
-GCP_count_paths (const struct CadetPeer *cp)
+GCP_count_paths(const struct CadetPeer *cp)
 {
   return cp->num_paths;
 }
@@ -1203,45 +1199,45 @@ GCP_count_paths (const struct CadetPeer *cp)
  * @return Number of iterated paths.
  */
 unsigned int
-GCP_iterate_paths (struct CadetPeer *cp,
-                   GCP_PathIterator callback,
-                   void *callback_cls)
+GCP_iterate_paths(struct CadetPeer *cp,
+                  GCP_PathIterator callback,
+                  void *callback_cls)
 {
   unsigned int ret = 0;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Iterating over paths to peer %s%s\n",
-       GCP_2s (cp),
-       (NULL == cp->core_mq) ? "" : " including direct link");
+  LOG(GNUNET_ERROR_TYPE_DEBUG,
+      "Iterating over paths to peer %s%s\n",
+      GCP_2s(cp),
+      (NULL == cp->core_mq) ? "" : " including direct link");
   if (NULL != cp->core_mq)
-  {
-    /* FIXME: this branch seems to duplicate the
-       i=0 case below (direct link). Leave out!??? -CG */
-    struct CadetPeerPath *path;
-
-    path = GCPP_get_path_from_route (1,
-                                     &cp->pid);
-    ret++;
-    if (GNUNET_NO ==
-        callback (callback_cls,
-                  path,
-                  0))
-      return ret;
-  }
-  for (unsigned int i=0;i<cp->path_dll_length;i++)
-  {
-    for (struct CadetPeerPathEntry *pe = cp->path_heads[i];
-         NULL != pe;
-         pe = pe->next)
     {
+      /* FIXME: this branch seems to duplicate the
+         i=0 case below (direct link). Leave out!??? -CG */
+      struct CadetPeerPath *path;
+
+      path = GCPP_get_path_from_route(1,
+                                      &cp->pid);
       ret++;
       if (GNUNET_NO ==
-          callback (callback_cls,
-                    pe->path,
-                    i))
+          callback(callback_cls,
+                   path,
+                   0))
         return ret;
     }
-  }
+  for (unsigned int i = 0; i < cp->path_dll_length; i++)
+    {
+      for (struct CadetPeerPathEntry *pe = cp->path_heads[i];
+           NULL != pe;
+           pe = pe->next)
+        {
+          ret++;
+          if (GNUNET_NO ==
+              callback(callback_cls,
+                       pe->path,
+                       i))
+            return ret;
+        }
+    }
   return ret;
 }
 
@@ -1254,29 +1250,29 @@ GCP_iterate_paths (struct CadetPeer *cp,
  * @return Number of iterated paths.
  */
 unsigned int
-GCP_iterate_indirect_paths (struct CadetPeer *cp,
-                               GCP_PathIterator callback,
-                               void *callback_cls)
+GCP_iterate_indirect_paths(struct CadetPeer *cp,
+                           GCP_PathIterator callback,
+                           void *callback_cls)
 {
   unsigned int ret = 0;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Iterating over paths to peer %s without direct link\n",
-       GCP_2s (cp));
-  for (unsigned int i=1;i<cp->path_dll_length;i++)
-  {
-    for (struct CadetPeerPathEntry *pe = cp->path_heads[i];
-         NULL != pe;
-         pe = pe->next)
+  LOG(GNUNET_ERROR_TYPE_DEBUG,
+      "Iterating over paths to peer %s without direct link\n",
+      GCP_2s(cp));
+  for (unsigned int i = 1; i < cp->path_dll_length; i++)
     {
-      ret++;
-      if (GNUNET_NO ==
-          callback (callback_cls,
-                    pe->path,
-                    i))
-        return ret;
+      for (struct CadetPeerPathEntry *pe = cp->path_heads[i];
+           NULL != pe;
+           pe = pe->next)
+        {
+          ret++;
+          if (GNUNET_NO ==
+              callback(callback_cls,
+                       pe->path,
+                       i))
+            return ret;
+        }
     }
-  }
   return ret;
 }
 
@@ -1292,32 +1288,32 @@ GCP_iterate_indirect_paths (struct CadetPeer *cp,
  * @return Number of iterated paths.
  */
 unsigned int
-GCP_iterate_paths_at (struct CadetPeer *cp,
-                      unsigned int dist,
-                      GCP_PathIterator callback,
-                      void *callback_cls)
+GCP_iterate_paths_at(struct CadetPeer *cp,
+                     unsigned int dist,
+                     GCP_PathIterator callback,
+                     void *callback_cls)
 {
   unsigned int ret = 0;
 
   if (dist >= cp->path_dll_length)
-  {
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Asked to look for paths at distance %u, but maximum for me is < %u\n",
-         dist,
-         cp->path_dll_length);
-    return 0;
-  }
+    {
+      LOG(GNUNET_ERROR_TYPE_DEBUG,
+          "Asked to look for paths at distance %u, but maximum for me is < %u\n",
+          dist,
+          cp->path_dll_length);
+      return 0;
+    }
   for (struct CadetPeerPathEntry *pe = cp->path_heads[dist];
        NULL != pe;
        pe = pe->next)
-  {
-    if (GNUNET_NO ==
-        callback (callback_cls,
-                  pe->path,
-                  dist))
-      return ret;
-    ret++;
-  }
+    {
+      if (GNUNET_NO ==
+          callback(callback_cls,
+                   pe->path,
+                   dist))
+        return ret;
+      ret++;
+    }
   return ret;
 }
 
@@ -1330,16 +1326,16 @@ GCP_iterate_paths_at (struct CadetPeer *cp,
  * @return Tunnel towards peer.
  */
 struct CadetTunnel *
-GCP_get_tunnel (struct CadetPeer *cp,
-                int create)
+GCP_get_tunnel(struct CadetPeer *cp,
+               int create)
 {
   if (NULL == cp)
     return NULL;
-  if ( (NULL != cp->t) ||
-       (GNUNET_NO == create) )
+  if ((NULL != cp->t) ||
+      (GNUNET_NO == create))
     return cp->t;
-  cp->t = GCT_create_tunnel (cp);
-  consider_peer_activate (cp);
+  cp->t = GCT_create_tunnel(cp);
+  consider_peer_activate(cp);
   return cp->t;
 }
 
@@ -1351,7 +1347,7 @@ GCP_get_tunnel (struct CadetPeer *cp,
  * @param cls the `struct CadetPeer` where the offer completed
  */
 static void
-hello_offer_done (void *cls)
+hello_offer_done(void *cls)
 {
   struct CadetPeer *cp = cls;
 
@@ -1367,39 +1363,39 @@ hello_offer_done (void *cls)
  * @param hello the HELLO to remember
  */
 void
-GCP_set_hello (struct CadetPeer *cp,
-               const struct GNUNET_HELLO_Message *hello)
+GCP_set_hello(struct CadetPeer *cp,
+              const struct GNUNET_HELLO_Message *hello)
 {
   struct GNUNET_HELLO_Message *mrg;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Got %u byte HELLO for peer %s\n",
-       (unsigned int) GNUNET_HELLO_size (hello),
-       GCP_2s (cp));
+  LOG(GNUNET_ERROR_TYPE_DEBUG,
+      "Got %u byte HELLO for peer %s\n",
+      (unsigned int)GNUNET_HELLO_size(hello),
+      GCP_2s(cp));
   if (NULL != cp->hello_offer)
-  {
-    GNUNET_TRANSPORT_offer_hello_cancel (cp->hello_offer);
-    cp->hello_offer = NULL;
-  }
+    {
+      GNUNET_TRANSPORT_offer_hello_cancel(cp->hello_offer);
+      cp->hello_offer = NULL;
+    }
   if (NULL != cp->hello)
-  {
-    mrg = GNUNET_HELLO_merge (hello,
-                              cp->hello);
-    GNUNET_free (cp->hello);
-    cp->hello = mrg;
-  }
+    {
+      mrg = GNUNET_HELLO_merge(hello,
+                               cp->hello);
+      GNUNET_free(cp->hello);
+      cp->hello = mrg;
+    }
   else
-  {
-    cp->hello = GNUNET_memdup (hello,
-                               GNUNET_HELLO_size (hello));
-  }
+    {
+      cp->hello = GNUNET_memdup(hello,
+                                GNUNET_HELLO_size(hello));
+    }
   cp->hello_offer
-    = GNUNET_TRANSPORT_offer_hello (cfg,
-                                    GNUNET_HELLO_get_header (cp->hello) ,
-                                    &hello_offer_done,
-                                    cp);
+    = GNUNET_TRANSPORT_offer_hello(cfg,
+                                   GNUNET_HELLO_get_header(cp->hello),
+                                   &hello_offer_done,
+                                   cp);
   /* New HELLO means cp's destruction time may change... */
-  consider_peer_destroy (cp);
+  consider_peer_destroy(cp);
 }
 
 
@@ -1411,16 +1407,16 @@ GCP_set_hello (struct CadetPeer *cp,
  * @param t the dead tunnel
  */
 void
-GCP_drop_tunnel (struct CadetPeer *cp,
-                 struct CadetTunnel *t)
+GCP_drop_tunnel(struct CadetPeer *cp,
+                struct CadetTunnel *t)
 {
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Dropping tunnel %s to peer %s\n",
-       GCT_2s (t),
-       GCP_2s (cp));
-  GNUNET_assert (cp->t == t);
+  LOG(GNUNET_ERROR_TYPE_DEBUG,
+      "Dropping tunnel %s to peer %s\n",
+      GCT_2s(t),
+      GCP_2s(cp));
+  GNUNET_assert(cp->t == t);
   cp->t = NULL;
-  consider_peer_destroy (cp);
+  consider_peer_destroy(cp);
 }
 
 
@@ -1431,7 +1427,7 @@ GCP_drop_tunnel (struct CadetPeer *cp,
  * @return #GNUNET_YES if @a cp has a core-level connection
  */
 int
-GCP_has_core_connection (struct CadetPeer *cp)
+GCP_has_core_connection(struct CadetPeer *cp)
 {
   return (NULL != cp->core_mq) ? GNUNET_YES : GNUNET_NO;
 }
@@ -1446,26 +1442,26 @@ GCP_has_core_connection (struct CadetPeer *cp)
  * @return handle to cancel request
  */
 struct GCP_MessageQueueManager *
-GCP_request_mq (struct CadetPeer *cp,
-                GCP_MessageQueueNotificationCallback cb,
-                void *cb_cls)
+GCP_request_mq(struct CadetPeer *cp,
+               GCP_MessageQueueNotificationCallback cb,
+               void *cb_cls)
 {
   struct GCP_MessageQueueManager *mqm;
 
-  mqm = GNUNET_new (struct GCP_MessageQueueManager);
+  mqm = GNUNET_new(struct GCP_MessageQueueManager);
   mqm->cb = cb;
   mqm->cb_cls = cb_cls;
   mqm->cp = cp;
-  GNUNET_CONTAINER_DLL_insert (cp->mqm_head,
-                               cp->mqm_tail,
-                               mqm);
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Creating MQM %p for peer %s\n",
-       mqm,
-       GCP_2s (cp));
+  GNUNET_CONTAINER_DLL_insert(cp->mqm_head,
+                              cp->mqm_tail,
+                              mqm);
+  LOG(GNUNET_ERROR_TYPE_DEBUG,
+      "Creating MQM %p for peer %s\n",
+      mqm,
+      GCP_2s(cp));
   if (NULL != cp->core_mq)
-    cb (cb_cls,
-        GNUNET_YES);
+    cb(cb_cls,
+       GNUNET_YES);
   return mqm;
 }
 
@@ -1477,39 +1473,39 @@ GCP_request_mq (struct CadetPeer *cp,
  * @param last_env final message to transmit, or NULL
  */
 void
-GCP_request_mq_cancel (struct GCP_MessageQueueManager *mqm,
-                       struct GNUNET_MQ_Envelope *last_env)
+GCP_request_mq_cancel(struct GCP_MessageQueueManager *mqm,
+                      struct GNUNET_MQ_Envelope *last_env)
 {
   struct CadetPeer *cp = mqm->cp;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Destroying MQM %p for peer %s%s\n",
-       mqm,
-       GCP_2s (cp),
-       (NULL == last_env) ? "" : " with last ditch transmission");
+  LOG(GNUNET_ERROR_TYPE_DEBUG,
+      "Destroying MQM %p for peer %s%s\n",
+      mqm,
+      GCP_2s(cp),
+      (NULL == last_env) ? "" : " with last ditch transmission");
   if (NULL != mqm->env)
-    GNUNET_MQ_discard (mqm->env);
+    GNUNET_MQ_discard(mqm->env);
   if (NULL != last_env)
-  {
-    if (NULL != cp->core_mq)
     {
-      GNUNET_MQ_notify_sent (last_env,
-                             &mqm_send_done,
-                             cp);
-      GNUNET_MQ_send (cp->core_mq,
-                      last_env);
+      if (NULL != cp->core_mq)
+        {
+          GNUNET_MQ_notify_sent(last_env,
+                                &mqm_send_done,
+                                cp);
+          GNUNET_MQ_send(cp->core_mq,
+                         last_env);
+        }
+      else
+        {
+          GNUNET_MQ_discard(last_env);
+        }
     }
-    else
-    {
-      GNUNET_MQ_discard (last_env);
-    }
-  }
   if (cp->mqm_ready_ptr == mqm)
     cp->mqm_ready_ptr = mqm->next;
-  GNUNET_CONTAINER_DLL_remove (cp->mqm_head,
-                               cp->mqm_tail,
-                               mqm);
-  GNUNET_free (mqm);
+  GNUNET_CONTAINER_DLL_remove(cp->mqm_head,
+                              cp->mqm_tail,
+                              mqm);
+  GNUNET_free(mqm);
 }
 
 
@@ -1523,27 +1519,27 @@ GCP_request_mq_cancel (struct GCP_MessageQueueManager *mqm,
  * @param env envelope with the message to send
  */
 void
-GCP_send_ooo (struct CadetPeer *cp,
-              struct GNUNET_MQ_Envelope *env)
+GCP_send_ooo(struct CadetPeer *cp,
+             struct GNUNET_MQ_Envelope *env)
 {
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Sending message to %s out of management\n",
-       GCP_2s (cp));
+  LOG(GNUNET_ERROR_TYPE_DEBUG,
+      "Sending message to %s out of management\n",
+      GCP_2s(cp));
   if (NULL == cp->core_mq)
-  {
-    GNUNET_MQ_discard (env);
-    return;
-  }
-  if (GNUNET_MQ_get_length (cp->core_mq) > MAX_OOO_QUEUE_SIZE)
-  {
-    GNUNET_MQ_discard (env);
-    return;
-  }
-  GNUNET_MQ_notify_sent (env,
-                         &mqm_send_done,
-                         cp);
-  GNUNET_MQ_send (cp->core_mq,
-                  env);
+    {
+      GNUNET_MQ_discard(env);
+      return;
+    }
+  if (GNUNET_MQ_get_length(cp->core_mq) > MAX_OOO_QUEUE_SIZE)
+    {
+      GNUNET_MQ_discard(env);
+      return;
+    }
+  GNUNET_MQ_notify_sent(env,
+                        &mqm_send_done,
+                        cp);
+  GNUNET_MQ_send(cp->core_mq,
+                 env);
 }
 
 

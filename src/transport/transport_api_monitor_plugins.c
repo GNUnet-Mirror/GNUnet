@@ -11,12 +11,12 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 
 /**
  * @file transport/transport_api_monitor_plugins.c
@@ -35,9 +35,7 @@
 /**
  * Handle for a plugin session state monitor.
  */
-struct GNUNET_TRANSPORT_PluginMonitor
-{
-
+struct GNUNET_TRANSPORT_PluginMonitor {
   /**
    * Connection to the service.
    */
@@ -73,7 +71,6 @@ struct GNUNET_TRANSPORT_PluginMonitor
    * Task ID for reconnect.
    */
   struct GNUNET_SCHEDULER_Task *reconnect_task;
-
 };
 
 
@@ -81,8 +78,7 @@ struct GNUNET_TRANSPORT_PluginMonitor
  * Abstract representation of a plugin's session.
  * Corresponds to the `struct GNUNET_ATS_Session` within the TRANSPORT service.
  */
-struct GNUNET_TRANSPORT_PluginSession
-{
+struct GNUNET_TRANSPORT_PluginSession {
   /**
    * Unique session identifier.
    */
@@ -102,7 +98,7 @@ struct GNUNET_TRANSPORT_PluginSession
  * @param cls our `struct GNUNET_TRANSPORT_PluginMonitor *`
  */
 static void
-do_plugin_connect (void *cls);
+do_plugin_connect(void *cls);
 
 
 /**
@@ -114,23 +110,23 @@ do_plugin_connect (void *cls);
  * @return #GNUNET_OK (continue to iterate)
  */
 static int
-free_entry (void *cls,
-            uint32_t key,
-            void *value)
+free_entry(void *cls,
+           uint32_t key,
+           void *value)
 {
   struct GNUNET_TRANSPORT_PluginMonitor *pm = cls;
   struct GNUNET_TRANSPORT_PluginSession *ps = value;
 
-  pm->cb (pm->cb_cls,
-          ps,
-          &ps->client_ctx,
-          NULL);
-  GNUNET_break (GNUNET_YES ==
-                GNUNET_CONTAINER_multihashmap32_remove (pm->sessions,
-                                                        key,
-                                                        ps));
-  GNUNET_break (NULL == ps->client_ctx);
-  GNUNET_free (ps);
+  pm->cb(pm->cb_cls,
+         ps,
+         &ps->client_ctx,
+         NULL);
+  GNUNET_break(GNUNET_YES ==
+               GNUNET_CONTAINER_multihashmap32_remove(pm->sessions,
+                                                      key,
+                                                      ps));
+  GNUNET_break(NULL == ps->client_ctx);
+  GNUNET_free(ps);
   return GNUNET_OK;
 }
 
@@ -141,17 +137,17 @@ free_entry (void *cls,
  * @param pm our context
  */
 static void
-reconnect_plugin_ctx (struct GNUNET_TRANSPORT_PluginMonitor *pm)
+reconnect_plugin_ctx(struct GNUNET_TRANSPORT_PluginMonitor *pm)
 {
-  GNUNET_MQ_destroy (pm->mq);
+  GNUNET_MQ_destroy(pm->mq);
   pm->mq = NULL;
-  GNUNET_CONTAINER_multihashmap32_iterate (pm->sessions,
-                                           &free_entry,
-                                           pm);
-  pm->backoff = GNUNET_TIME_STD_BACKOFF (pm->backoff);
-  pm->reconnect_task = GNUNET_SCHEDULER_add_delayed (pm->backoff,
-                                                     &do_plugin_connect,
-                                                     pm);
+  GNUNET_CONTAINER_multihashmap32_iterate(pm->sessions,
+                                          &free_entry,
+                                          pm);
+  pm->backoff = GNUNET_TIME_STD_BACKOFF(pm->backoff);
+  pm->reconnect_task = GNUNET_SCHEDULER_add_delayed(pm->backoff,
+                                                    &do_plugin_connect,
+                                                    pm);
 }
 
 
@@ -162,18 +158,16 @@ reconnect_plugin_ctx (struct GNUNET_TRANSPORT_PluginMonitor *pm)
  * @return 32-bit hash map index
  */
 static uint32_t
-wrap_id (uint64_t id)
+wrap_id(uint64_t id)
 {
-  return ((uint32_t) id) ^ ((uint32_t) (id >> 32));
+  return ((uint32_t)id) ^ ((uint32_t)(id >> 32));
 }
 
 
 /**
  * Context for #locate_by_id().
  */
-struct SearchContext
-{
-
+struct SearchContext {
   /**
    * Result.
    */
@@ -183,7 +177,6 @@ struct SearchContext
    * ID to locate.
    */
   uint64_t session_id;
-
 };
 
 
@@ -196,18 +189,18 @@ struct SearchContext
  * @return #GNUNET_OK (continue to iterate), or #GNUNET_SYSERR (match found)
  */
 static int
-locate_by_id (void *cls,
-              uint32_t key,
-              void *value)
+locate_by_id(void *cls,
+             uint32_t key,
+             void *value)
 {
   struct SearchContext *sc = cls;
   struct GNUNET_TRANSPORT_PluginSession *ps = value;
 
   if (sc->session_id == ps->session_id)
-  {
-    sc->ps = ps;
-    return GNUNET_SYSERR;
-  }
+    {
+      sc->ps = ps;
+      return GNUNET_SYSERR;
+    }
   return GNUNET_OK;
 }
 
@@ -220,25 +213,25 @@ locate_by_id (void *cls,
  * @return #GNUNET_Ok if message is well-formed
  */
 static int
-check_event (void *cls,
-             const struct TransportPluginMonitorMessage *tpmm)
+check_event(void *cls,
+            const struct TransportPluginMonitorMessage *tpmm)
 {
   const char *pname;
   size_t pname_len;
   size_t paddr_len;
 
-  pname = (const char *) &tpmm[1];
-  pname_len = ntohs (tpmm->plugin_name_len);
-  paddr_len = ntohs (tpmm->plugin_address_len);
-  if ( (pname_len +
-        paddr_len +
-        sizeof (struct TransportPluginMonitorMessage) != ntohs (tpmm->header.size)) ||
-       ( (0 != pname_len) &&
-         ('\0' != pname[pname_len - 1]) ) )
-  {
-    GNUNET_break (0);
-    return GNUNET_SYSERR;
-  }
+  pname = (const char *)&tpmm[1];
+  pname_len = ntohs(tpmm->plugin_name_len);
+  paddr_len = ntohs(tpmm->plugin_address_len);
+  if ((pname_len +
+       paddr_len +
+       sizeof(struct TransportPluginMonitorMessage) != ntohs(tpmm->header.size)) ||
+      ((0 != pname_len) &&
+       ('\0' != pname[pname_len - 1])))
+    {
+      GNUNET_break(0);
+      return GNUNET_SYSERR;
+    }
   return GNUNET_OK;
 }
 
@@ -250,8 +243,8 @@ check_event (void *cls,
  * @paramm tpmm message with event data
  */
 static void
-handle_event (void *cls,
-              const struct TransportPluginMonitorMessage *tpmm)
+handle_event(void *cls,
+             const struct TransportPluginMonitorMessage *tpmm)
 {
   struct GNUNET_TRANSPORT_PluginMonitor *pm = cls;
   struct GNUNET_TRANSPORT_PluginSession *ps;
@@ -264,64 +257,63 @@ handle_event (void *cls,
   struct GNUNET_HELLO_Address addr;
   struct SearchContext rv;
 
-  pname = (const char *) &tpmm[1];
-  pname_len = ntohs (tpmm->plugin_name_len);
-  paddr_len = ntohs (tpmm->plugin_address_len);
+  pname = (const char *)&tpmm[1];
+  pname_len = ntohs(tpmm->plugin_name_len);
+  paddr_len = ntohs(tpmm->plugin_address_len);
   paddr = &pname[pname_len];
   ps = NULL;
-  ss = (enum GNUNET_TRANSPORT_SessionState) ntohs (tpmm->session_state);
+  ss = (enum GNUNET_TRANSPORT_SessionState)ntohs(tpmm->session_state);
   if (GNUNET_TRANSPORT_SS_INIT == ss)
-  {
-    ps = GNUNET_new (struct GNUNET_TRANSPORT_PluginSession);
-    ps->session_id = tpmm->session_id;
-    (void) GNUNET_CONTAINER_multihashmap32_put (pm->sessions,
-                                                wrap_id (tpmm->session_id),
+    {
+      ps = GNUNET_new(struct GNUNET_TRANSPORT_PluginSession);
+      ps->session_id = tpmm->session_id;
+      (void)GNUNET_CONTAINER_multihashmap32_put(pm->sessions,
+                                                wrap_id(tpmm->session_id),
                                                 ps,
                                                 GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
-
-  }
+    }
   else
-  {
-    rv.session_id = tpmm->session_id;
-    rv.ps = NULL;
-    (void) GNUNET_CONTAINER_multihashmap32_get_multiple (pm->sessions,
-                                                         wrap_id (tpmm->session_id),
+    {
+      rv.session_id = tpmm->session_id;
+      rv.ps = NULL;
+      (void)GNUNET_CONTAINER_multihashmap32_get_multiple(pm->sessions,
+                                                         wrap_id(tpmm->session_id),
                                                          &locate_by_id,
                                                          &rv);
-    ps = rv.ps;
-    if (NULL == ps)
-    {
-      GNUNET_break (0);
-      reconnect_plugin_ctx (pm);
-      return;
+      ps = rv.ps;
+      if (NULL == ps)
+        {
+          GNUNET_break(0);
+          reconnect_plugin_ctx(pm);
+          return;
+        }
     }
-  }
   info.state = ss;
-  info.is_inbound = (int16_t) ntohs (tpmm->is_inbound);
-  info.num_msg_pending = ntohl (tpmm->msgs_pending);
-  info.num_bytes_pending = ntohl (tpmm->bytes_pending);
-  info.receive_delay = GNUNET_TIME_absolute_ntoh (tpmm->delay);
-  info.session_timeout = GNUNET_TIME_absolute_ntoh (tpmm->timeout);
+  info.is_inbound = (int16_t)ntohs(tpmm->is_inbound);
+  info.num_msg_pending = ntohl(tpmm->msgs_pending);
+  info.num_bytes_pending = ntohl(tpmm->bytes_pending);
+  info.receive_delay = GNUNET_TIME_absolute_ntoh(tpmm->delay);
+  info.session_timeout = GNUNET_TIME_absolute_ntoh(tpmm->timeout);
   info.address = &addr;
   addr.peer = tpmm->peer;
   addr.address = (0 == paddr_len) ? NULL : paddr;
   addr.address_length = paddr_len;
   addr.transport_name = (0 == pname_len) ? NULL : pname;
   addr.local_info = GNUNET_HELLO_ADDRESS_INFO_NONE;
-  pm->cb (pm->cb_cls,
-          ps,
-          &ps->client_ctx,
-          &info);
+  pm->cb(pm->cb_cls,
+         ps,
+         &ps->client_ctx,
+         &info);
 
   if (GNUNET_TRANSPORT_SS_DONE == ss)
-  {
-    GNUNET_break (NULL == ps->client_ctx);
-    GNUNET_assert (GNUNET_YES ==
-                   GNUNET_CONTAINER_multihashmap32_remove (pm->sessions,
-                                                           wrap_id (tpmm->session_id),
+    {
+      GNUNET_break(NULL == ps->client_ctx);
+      GNUNET_assert(GNUNET_YES ==
+                    GNUNET_CONTAINER_multihashmap32_remove(pm->sessions,
+                                                           wrap_id(tpmm->session_id),
                                                            ps));
-    GNUNET_free (ps);
-  }
+      GNUNET_free(ps);
+    }
 }
 
 
@@ -332,16 +324,16 @@ handle_event (void *cls,
  * @param msg message from the service
  */
 static void
-handle_sync (void *cls,
-             const struct GNUNET_MessageHeader *msg)
+handle_sync(void *cls,
+            const struct GNUNET_MessageHeader *msg)
 {
   struct GNUNET_TRANSPORT_PluginMonitor *pm = cls;
 
   /* we are in sync, notify callback */
-  pm->cb (pm->cb_cls,
-          NULL,
-          NULL,
-          NULL);
+  pm->cb(pm->cb_cls,
+         NULL,
+         NULL,
+         NULL);
 }
 
 
@@ -355,12 +347,12 @@ handle_sync (void *cls,
  * @param error error code
  */
 static void
-mq_error_handler (void *cls,
-                  enum GNUNET_MQ_Error error)
+mq_error_handler(void *cls,
+                 enum GNUNET_MQ_Error error)
 {
   struct GNUNET_TRANSPORT_PluginMonitor *pm = cls;
 
-  reconnect_plugin_ctx (pm);
+  reconnect_plugin_ctx(pm);
 }
 
 
@@ -370,35 +362,35 @@ mq_error_handler (void *cls,
  * @param cls our `struct GNUNET_TRANSPORT_PluginMonitor *`
  */
 static void
-do_plugin_connect (void *cls)
+do_plugin_connect(void *cls)
 {
   struct GNUNET_TRANSPORT_PluginMonitor *pm = cls;
   struct GNUNET_MQ_MessageHandler handlers[] = {
-    GNUNET_MQ_hd_var_size (event,
-                           GNUNET_MESSAGE_TYPE_TRANSPORT_MONITOR_PLUGIN_EVENT,
-                           struct TransportPluginMonitorMessage,
-                           pm),
-    GNUNET_MQ_hd_fixed_size (sync,
-                             GNUNET_MESSAGE_TYPE_TRANSPORT_MONITOR_PLUGIN_SYNC,
-                             struct GNUNET_MessageHeader,
-                             pm),
-    GNUNET_MQ_handler_end ()
+    GNUNET_MQ_hd_var_size(event,
+                          GNUNET_MESSAGE_TYPE_TRANSPORT_MONITOR_PLUGIN_EVENT,
+                          struct TransportPluginMonitorMessage,
+                          pm),
+    GNUNET_MQ_hd_fixed_size(sync,
+                            GNUNET_MESSAGE_TYPE_TRANSPORT_MONITOR_PLUGIN_SYNC,
+                            struct GNUNET_MessageHeader,
+                            pm),
+    GNUNET_MQ_handler_end()
   };
   struct GNUNET_MessageHeader *msg;
   struct GNUNET_MQ_Envelope *env;
 
   pm->reconnect_task = NULL;
-  pm->mq = GNUNET_CLIENT_connect (pm->cfg,
-                                  "transport",
-                                  handlers,
-                                  &mq_error_handler,
-                                  pm);
+  pm->mq = GNUNET_CLIENT_connect(pm->cfg,
+                                 "transport",
+                                 handlers,
+                                 &mq_error_handler,
+                                 pm);
   if (NULL == pm->mq)
     return;
-  env = GNUNET_MQ_msg (msg,
-                       GNUNET_MESSAGE_TYPE_TRANSPORT_MONITOR_PLUGIN_START);
-  GNUNET_MQ_send (pm->mq,
-                  env);
+  env = GNUNET_MQ_msg(msg,
+                      GNUNET_MESSAGE_TYPE_TRANSPORT_MONITOR_PLUGIN_START);
+  GNUNET_MQ_send(pm->mq,
+                 env);
 }
 
 
@@ -412,23 +404,23 @@ do_plugin_connect (void *cls)
  * @return NULL on error, otherwise handle for cancellation
  */
 struct GNUNET_TRANSPORT_PluginMonitor *
-GNUNET_TRANSPORT_monitor_plugins (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                                  GNUNET_TRANSPORT_SessionMonitorCallback cb,
-                                  void *cb_cls)
+GNUNET_TRANSPORT_monitor_plugins(const struct GNUNET_CONFIGURATION_Handle *cfg,
+                                 GNUNET_TRANSPORT_SessionMonitorCallback cb,
+                                 void *cb_cls)
 {
   struct GNUNET_TRANSPORT_PluginMonitor *pm;
 
-  pm = GNUNET_new (struct GNUNET_TRANSPORT_PluginMonitor);
+  pm = GNUNET_new(struct GNUNET_TRANSPORT_PluginMonitor);
   pm->cb = cb;
   pm->cb_cls = cb_cls;
   pm->cfg = cfg;
-  do_plugin_connect (pm);
+  do_plugin_connect(pm);
   if (NULL == pm->mq)
-  {
-    GNUNET_free (pm);
-    return NULL;
-  }
-  pm->sessions = GNUNET_CONTAINER_multihashmap32_create (128);
+    {
+      GNUNET_free(pm);
+      return NULL;
+    }
+  pm->sessions = GNUNET_CONTAINER_multihashmap32_create(128);
   return pm;
 }
 
@@ -442,23 +434,23 @@ GNUNET_TRANSPORT_monitor_plugins (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @param pm handle of the request that is to be cancelled
  */
 void
-GNUNET_TRANSPORT_monitor_plugins_cancel (struct GNUNET_TRANSPORT_PluginMonitor *pm)
+GNUNET_TRANSPORT_monitor_plugins_cancel(struct GNUNET_TRANSPORT_PluginMonitor *pm)
 {
   if (NULL != pm->mq)
-  {
-    GNUNET_MQ_destroy (pm->mq);
-    pm->mq = NULL;
-  }
+    {
+      GNUNET_MQ_destroy(pm->mq);
+      pm->mq = NULL;
+    }
   if (NULL != pm->reconnect_task)
-  {
-    GNUNET_SCHEDULER_cancel (pm->reconnect_task);
-    pm->reconnect_task = NULL;
-  }
-  GNUNET_CONTAINER_multihashmap32_iterate (pm->sessions,
-                                           &free_entry,
-                                           pm);
-  GNUNET_CONTAINER_multihashmap32_destroy (pm->sessions);
-  GNUNET_free (pm);
+    {
+      GNUNET_SCHEDULER_cancel(pm->reconnect_task);
+      pm->reconnect_task = NULL;
+    }
+  GNUNET_CONTAINER_multihashmap32_iterate(pm->sessions,
+                                          &free_entry,
+                                          pm);
+  GNUNET_CONTAINER_multihashmap32_destroy(pm->sessions);
+  GNUNET_free(pm);
 }
 
 

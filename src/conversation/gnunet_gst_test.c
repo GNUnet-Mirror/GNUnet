@@ -1,22 +1,22 @@
 /*
-  This file is part of GNUnet.
-  Copyright (C) 2016 GNUnet e.V.
+   This file is part of GNUnet.
+   Copyright (C) 2016 GNUnet e.V.
 
-  GNUnet is free software: you can redistribute it and/or modify it
-  under the terms of the GNU Affero General Public License as published
-  by the Free Software Foundation, either version 3 of the License,
-  or (at your option) any later version.
+   GNUnet is free software: you can redistribute it and/or modify it
+   under the terms of the GNU Affero General Public License as published
+   by the Free Software Foundation, either version 3 of the License,
+   or (at your option) any later version.
 
-  GNUnet is distributed in the hope that it will be useful, but
-  WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-  Affero General Public License for more details.
- 
-  You should have received a copy of the GNU Affero General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   GNUnet is distributed in the hope that it will be useful, but
+   WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   Affero General Public License for more details.
+
+   You should have received a copy of the GNU Affero General Public License
+   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 /**
  * @file conversation/gnunet_gst_test.c
  * @brief FIXME
@@ -27,7 +27,7 @@
 #include "gnunet_gst.h"
 
 int
-main (int argc, char *argv[])
+main(int argc, char *argv[])
 {
   struct GNUNET_gstData *gst;
   // GstBus *bus;
@@ -48,14 +48,14 @@ main (int argc, char *argv[])
 
   gg_load_configuration(gst);
 /*
-  gst->audiobackend = JACK;
-  gst->dropsilence = TRUE;
-  gst->usertp = FALSE;
-  */
+   gst->audiobackend = JACK;
+   gst->dropsilence = TRUE;
+   gst->usertp = FALSE;
+ */
   /* Initialize GStreamer */
-  gst_init (&argc, &argv);
+  gst_init(&argc, &argv);
 
-  gst->pipeline = GST_PIPELINE(gst_pipeline_new ("gnunet-media-helper"));
+  gst->pipeline = GST_PIPELINE(gst_pipeline_new("gnunet-media-helper"));
 
 #ifdef IS_SPEAKER
   int type = SPEAKER;
@@ -64,39 +64,34 @@ main (int argc, char *argv[])
 #ifdef IS_MIC
   int type = MICROPHONE;
   printf("this is the microphone \n");
-
 #endif
-  if ( type == SPEAKER)
-  {
+  if (type == SPEAKER)
+    {
+      gnunetsrc = GST_ELEMENT(get_app(gst, SOURCE));
 
-    gnunetsrc = GST_ELEMENT(get_app(gst, SOURCE));
+      sink = GST_ELEMENT(get_audiobin(gst, SINK));
+      decoder = GST_ELEMENT(get_coder(gst, DECODER));
+      gst_bin_add_many(GST_BIN(gst->pipeline), gnunetsrc, decoder, sink, NULL);
+      gst_element_link_many(gnunetsrc, decoder, sink, NULL);
+    }
+  if (type == MICROPHONE)
+    {
+      source = GST_ELEMENT(get_audiobin(gst, SOURCE));
 
-    sink = GST_ELEMENT(get_audiobin(gst, SINK));
-    decoder = GST_ELEMENT(get_coder(gst, DECODER));
-    gst_bin_add_many( GST_BIN(gst->pipeline), gnunetsrc, decoder, sink, NULL);
-    gst_element_link_many( gnunetsrc, decoder, sink , NULL);
+      encoder = GST_ELEMENT(get_coder(gst, ENCODER));
 
-  }
-  if ( type == MICROPHONE ) {
+      gnunetsink = GST_ELEMENT(get_app(gst, SINK));
 
-    source = GST_ELEMENT(get_audiobin(gst, SOURCE));
-
-    encoder = GST_ELEMENT(get_coder(gst, ENCODER));
-
-    gnunetsink = GST_ELEMENT(get_app(gst, SINK));
-
-    gst_bin_add_many( GST_BIN(gst->pipeline), source, encoder, gnunetsink, NULL);
-    gst_element_link_many( source, encoder, gnunetsink , NULL);
-
-
-  }
+      gst_bin_add_many(GST_BIN(gst->pipeline), source, encoder, gnunetsink, NULL);
+      gst_element_link_many(source, encoder, gnunetsink, NULL);
+    }
   /*
-  gst_bin_add_many( GST_BIN(gst->pipeline), appsource, appsink, source, encoder, decoder, sink, NULL);
-  gst_element_link_many( source, encoder, decoder, sink , NULL);
-*/
+     gst_bin_add_many( GST_BIN(gst->pipeline), appsource, appsink, source, encoder, decoder, sink, NULL);
+     gst_element_link_many( source, encoder, decoder, sink , NULL);
+   */
   pl_graph(gst->pipeline);
   /* Start playing */
-  gst_element_set_state (GST_ELEMENT(gst->pipeline), GST_STATE_PLAYING);
+  gst_element_set_state(GST_ELEMENT(gst->pipeline), GST_STATE_PLAYING);
 
   //pl_graph(gst->pipeline);
 
@@ -109,14 +104,12 @@ main (int argc, char *argv[])
 
 
   // start pushing buffers
- if ( type == MICROPHONE )
- {
+  if (type == MICROPHONE)
+    {
+      GMainLoop *loop;
+      loop = g_main_loop_new(NULL, FALSE);
 
-
-    GMainLoop *loop;
-    loop = g_main_loop_new (NULL, FALSE);
-
-     g_main_loop_run (loop);
+      g_main_loop_run(loop);
 
 /*
    while ( 1 )
@@ -124,21 +117,21 @@ main (int argc, char *argv[])
          GstFlowReturn flow;
          flow = on_appsink_new_sample (gst->appsink, gst);
     }
-*/
+ */
     }
- if ( type == SPEAKER )
- {
-   while ( 1 )
-   {
+  if (type == SPEAKER)
+    {
+      while (1)
+        {
 //      printf("read.. \n");
-      gnunet_read(gst);
-   }
- }
-  g_print ("Returned, stopping playback\n");
+          gnunet_read(gst);
+        }
+    }
+  g_print("Returned, stopping playback\n");
 
   // gst_object_unref (bus);
-  gst_element_set_state (GST_ELEMENT(gst->pipeline), GST_STATE_NULL);
-  gst_object_unref (gst->pipeline);
+  gst_element_set_state(GST_ELEMENT(gst->pipeline), GST_STATE_NULL);
+  gst_object_unref(gst->pipeline);
 
   return 0;
 }

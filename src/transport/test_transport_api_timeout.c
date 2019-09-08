@@ -11,12 +11,12 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 /**
  * @file transport/test_transport_api_timeout.c
  * @brief test case for transport plugin implementations complying timeout
@@ -34,9 +34,9 @@
 /**
  * How long until we give up on transmitting the message?
  */
-#define WAIT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30)
+#define WAIT GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 30)
 
-#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 90)
+#define TIMEOUT GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 90)
 
 #define MTYPE 12345
 
@@ -52,94 +52,94 @@ static unsigned int disconnects;
 
 
 static void
-custom_shutdown (void *cls)
+custom_shutdown(void *cls)
 {
   if (NULL != timer_task)
-  {
-    GNUNET_SCHEDULER_cancel (timer_task);
-    timer_task = NULL;
-  }
+    {
+      GNUNET_SCHEDULER_cancel(timer_task);
+      timer_task = NULL;
+    }
   if (0 == disconnects)
-  {
-    ccc->global_ret = GNUNET_OK;
-  }
+    {
+      ccc->global_ret = GNUNET_OK;
+    }
   else
-  {
-    ccc->global_ret =- GNUNET_SYSERR;
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Fail! Had %u disconnects while waiting %s\n",
-                disconnects,
-		GNUNET_STRINGS_relative_time_to_string (WAIT,
-							GNUNET_YES));
-  }
+    {
+      ccc->global_ret = -GNUNET_SYSERR;
+      GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
+                 "Fail! Had %u disconnects while waiting %s\n",
+                 disconnects,
+                 GNUNET_STRINGS_relative_time_to_string(WAIT,
+                                                        GNUNET_YES));
+    }
 }
 
 
 static void
-notify_receive (void *cls,
-                struct GNUNET_TRANSPORT_TESTING_PeerContext *receiver,
-                const struct GNUNET_PeerIdentity *sender,
-                const struct GNUNET_TRANSPORT_TESTING_TestMessage *message)
+notify_receive(void *cls,
+               struct GNUNET_TRANSPORT_TESTING_PeerContext *receiver,
+               const struct GNUNET_PeerIdentity *sender,
+               const struct GNUNET_TRANSPORT_TESTING_TestMessage *message)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Received message of type %d from peer %s!\n",
-              ntohs (message->header.type),
-	      GNUNET_i2s (sender));
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+             "Received message of type %d from peer %s!\n",
+             ntohs(message->header.type),
+             GNUNET_i2s(sender));
 }
 
 
 static void
-notify_disconnect (void *cls,
-                   struct GNUNET_TRANSPORT_TESTING_PeerContext *me,
-                   const struct GNUNET_PeerIdentity *other)
+notify_disconnect(void *cls,
+                  struct GNUNET_TRANSPORT_TESTING_PeerContext *me,
+                  const struct GNUNET_PeerIdentity *other)
 {
-  GNUNET_TRANSPORT_TESTING_log_disconnect (cls,
-                                           me,
-                                           other);
+  GNUNET_TRANSPORT_TESTING_log_disconnect(cls,
+                                          me,
+                                          other);
   if (shutdown_flag != GNUNET_YES)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "FAIL! Peer `%s' disconnected during waiting period!\n",
-                GNUNET_i2s (other));
-    disconnects++;
-  }
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
+                 "FAIL! Peer `%s' disconnected during waiting period!\n",
+                 GNUNET_i2s(other));
+      disconnects++;
+    }
 }
 
 
 static void
-timer (void *cls)
+timer(void *cls)
 {
   static unsigned int percentage;
 
   timer_task = NULL;
   percentage += 10;
-  time_running = GNUNET_TIME_relative_add (time_running,
-					   GNUNET_TIME_relative_divide (WAIT,
-									10));
+  time_running = GNUNET_TIME_relative_add(time_running,
+                                          GNUNET_TIME_relative_divide(WAIT,
+                                                                      10));
 
   if (time_running.rel_value_us ==
-      GNUNET_TIME_relative_max (time_running, WAIT).rel_value_us)
-  {
-    fprintf (stderr, "%s",  "100%%\n");
-    shutdown_flag = GNUNET_YES;
-    GNUNET_SCHEDULER_shutdown ();
-  }
+      GNUNET_TIME_relative_max(time_running, WAIT).rel_value_us)
+    {
+      fprintf(stderr, "%s", "100%%\n");
+      shutdown_flag = GNUNET_YES;
+      GNUNET_SCHEDULER_shutdown();
+    }
   else
-  {
-    fprintf (stderr,
-	     "%u%%..",
-	     percentage);
-    timer_task =
-        GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_divide (WAIT, 10),
-                                      &timer,
-				      NULL);
-  }
+    {
+      fprintf(stderr,
+              "%u%%..",
+              percentage);
+      timer_task =
+        GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_relative_divide(WAIT, 10),
+                                     &timer,
+                                     NULL);
+    }
 }
 
 
 int
-main (int argc,
-      char *argv[])
+main(int argc,
+     char *argv[])
 {
   struct GNUNET_TRANSPORT_TESTING_ConnectCheckContext my_ccc = {
     .connect_continuation = &timer,
@@ -153,9 +153,9 @@ main (int argc,
 
   ccc = &my_ccc;
   if (GNUNET_OK !=
-      GNUNET_TRANSPORT_TESTING_main (2,
-                                     &GNUNET_TRANSPORT_TESTING_connect_check,
-                                     ccc))
+      GNUNET_TRANSPORT_TESTING_main(2,
+                                    &GNUNET_TRANSPORT_TESTING_connect_check,
+                                    ccc))
     return 1;
   return 0;
 }

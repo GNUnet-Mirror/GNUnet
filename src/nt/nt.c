@@ -16,7 +16,7 @@
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 /**
  * @file nt/nt_api_scanner.c
  * @brief LAN interface scanning to determine IPs in LAN
@@ -30,7 +30,7 @@
 /**
  * How frequently do we scan the interfaces for changes to the addresses?
  */
-#define INTERFACE_PROCESSING_INTERVAL GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 2)
+#define INTERFACE_PROCESSING_INTERVAL GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MINUTES, 2)
 
 
 /**
@@ -40,22 +40,28 @@
  * @return a string or NULL if invalid
  */
 const char *
-GNUNET_NT_to_string (enum GNUNET_NetworkType net)
+GNUNET_NT_to_string(enum GNUNET_NetworkType net)
 {
   switch (net)
     {
     case GNUNET_NT_UNSPECIFIED:
       return "UNSPECIFIED";
+
     case GNUNET_NT_LOOPBACK:
       return "LOOPBACK";
+
     case GNUNET_NT_LAN:
       return "LAN";
+
     case GNUNET_NT_WAN:
       return "WAN";
+
     case GNUNET_NT_WLAN:
       return "WLAN";
+
     case GNUNET_NT_BT:
       return "BLUETOOTH";
+
     default:
       return NULL;
     }
@@ -68,8 +74,7 @@ GNUNET_NT_to_string (enum GNUNET_NetworkType net)
  * (maybe we can do that heuristically based on interface
  * name in the future?).
  */
-struct NT_Network
-{
+struct NT_Network {
   /**
    * Kept in a DLL.
    */
@@ -100,9 +105,7 @@ struct NT_Network
 /**
  * Handle to the interface scanner.
  */
-struct GNUNET_NT_InterfaceScanner
-{
-
+struct GNUNET_NT_InterfaceScanner {
   /**
    * Head of LAN networks list.
    */
@@ -117,7 +120,6 @@ struct GNUNET_NT_InterfaceScanner
    * Task for periodically refreshing our LAN network list.
    */
   struct GNUNET_SCHEDULER_Task *interface_task;
-
 };
 
 
@@ -127,17 +129,17 @@ struct GNUNET_NT_InterfaceScanner
  * @param is scanner to clean up
  */
 static void
-delete_networks (struct GNUNET_NT_InterfaceScanner *is)
+delete_networks(struct GNUNET_NT_InterfaceScanner *is)
 {
   struct NT_Network *cur;
 
   while (NULL != (cur = is->net_head))
-  {
-    GNUNET_CONTAINER_DLL_remove (is->net_head,
-                                 is->net_tail,
-                                 cur);
-    GNUNET_free (cur);
-  }
+    {
+      GNUNET_CONTAINER_DLL_remove(is->net_head,
+                                  is->net_tail,
+                                  cur);
+      GNUNET_free(cur);
+    }
 }
 
 
@@ -156,116 +158,117 @@ delete_networks (struct GNUNET_NT_InterfaceScanner *is)
  * @return #GNUNET_OK to continue iteration
  */
 static int
-interface_proc (void *cls,
-                const char *name,
-                int isDefault,
-                const struct sockaddr *addr,
-                const struct sockaddr *broadcast_addr,
-                const struct sockaddr *netmask,
-                socklen_t addrlen)
+interface_proc(void *cls,
+               const char *name,
+               int isDefault,
+               const struct sockaddr *addr,
+               const struct sockaddr *broadcast_addr,
+               const struct sockaddr *netmask,
+               socklen_t addrlen)
 {
   struct GNUNET_NT_InterfaceScanner *is = cls;
   /* Calculate network */
   struct NT_Network *net = NULL;
-  (void) name;
-  (void) isDefault;
-  (void) broadcast_addr;
+
+  (void)name;
+  (void)isDefault;
+  (void)broadcast_addr;
 
   /* Skipping IPv4 loopback addresses since we have special check  */
-  if  (addr->sa_family == AF_INET)
-  {
-    const struct sockaddr_in *a4 = (const struct sockaddr_in *) addr;
+  if (addr->sa_family == AF_INET)
+    {
+      const struct sockaddr_in *a4 = (const struct sockaddr_in *)addr;
 
-    if ((a4->sin_addr.s_addr & htonl(0xff000000)) == htonl (0x7f000000))
-       return GNUNET_OK;
-  }
+      if ((a4->sin_addr.s_addr & htonl(0xff000000)) == htonl(0x7f000000))
+        return GNUNET_OK;
+    }
   /* Skipping IPv6 loopback addresses since we have special check  */
-  if  (addr->sa_family == AF_INET6)
-  {
-    const struct sockaddr_in6 *a6 = (const struct sockaddr_in6 *) addr;
-    if (IN6_IS_ADDR_LOOPBACK (&a6->sin6_addr))
-      return GNUNET_OK;
-  }
+  if (addr->sa_family == AF_INET6)
+    {
+      const struct sockaddr_in6 *a6 = (const struct sockaddr_in6 *)addr;
+      if (IN6_IS_ADDR_LOOPBACK(&a6->sin6_addr))
+        return GNUNET_OK;
+    }
 
   if (addr->sa_family == AF_INET)
-  {
-    const struct sockaddr_in *addr4 = (const struct sockaddr_in *) addr;
-    const struct sockaddr_in *netmask4 = (const struct sockaddr_in *) netmask;
-    struct sockaddr_in *tmp;
-    struct sockaddr_in network4;
+    {
+      const struct sockaddr_in *addr4 = (const struct sockaddr_in *)addr;
+      const struct sockaddr_in *netmask4 = (const struct sockaddr_in *)netmask;
+      struct sockaddr_in *tmp;
+      struct sockaddr_in network4;
 
-    net = GNUNET_malloc (sizeof (struct NT_Network) + 2 * sizeof (struct sockaddr_in));
-    tmp = (struct sockaddr_in *) &net[1];
-    net->network = (struct sockaddr *) &tmp[0];
-    net->netmask = (struct sockaddr *) &tmp[1];
-    net->length = addrlen;
+      net = GNUNET_malloc(sizeof(struct NT_Network) + 2 * sizeof(struct sockaddr_in));
+      tmp = (struct sockaddr_in *)&net[1];
+      net->network = (struct sockaddr *)&tmp[0];
+      net->netmask = (struct sockaddr *)&tmp[1];
+      net->length = addrlen;
 
-    memset (&network4,
-            0,
-            sizeof (network4));
-    network4.sin_family = AF_INET;
+      memset(&network4,
+             0,
+             sizeof(network4));
+      network4.sin_family = AF_INET;
 #if HAVE_SOCKADDR_IN_SIN_LEN
-    network4.sin_len = sizeof (network4);
+      network4.sin_len = sizeof(network4);
 #endif
-    network4.sin_addr.s_addr = (addr4->sin_addr.s_addr & netmask4->sin_addr.s_addr);
+      network4.sin_addr.s_addr = (addr4->sin_addr.s_addr & netmask4->sin_addr.s_addr);
 
-    GNUNET_memcpy (net->netmask,
-                   netmask4,
-                   sizeof (struct sockaddr_in));
-    GNUNET_memcpy (net->network,
-                   &network4,
-                   sizeof (struct sockaddr_in));
-  }
+      GNUNET_memcpy(net->netmask,
+                    netmask4,
+                    sizeof(struct sockaddr_in));
+      GNUNET_memcpy(net->network,
+                    &network4,
+                    sizeof(struct sockaddr_in));
+    }
 
   if (addr->sa_family == AF_INET6)
-  {
-    const struct sockaddr_in6 *addr6 = (const struct sockaddr_in6 *) addr;
-    const struct sockaddr_in6 *netmask6 = (const struct sockaddr_in6 *) netmask;
-    struct sockaddr_in6 * tmp;
-    struct sockaddr_in6 network6;
+    {
+      const struct sockaddr_in6 *addr6 = (const struct sockaddr_in6 *)addr;
+      const struct sockaddr_in6 *netmask6 = (const struct sockaddr_in6 *)netmask;
+      struct sockaddr_in6 * tmp;
+      struct sockaddr_in6 network6;
 
-    net = GNUNET_malloc (sizeof (struct NT_Network) + 2 * sizeof (struct sockaddr_in6));
-    tmp = (struct sockaddr_in6 *) &net[1];
-    net->network = (struct sockaddr *) &tmp[0];
-    net->netmask = (struct sockaddr *) &tmp[1];
-    net->length = addrlen;
+      net = GNUNET_malloc(sizeof(struct NT_Network) + 2 * sizeof(struct sockaddr_in6));
+      tmp = (struct sockaddr_in6 *)&net[1];
+      net->network = (struct sockaddr *)&tmp[0];
+      net->netmask = (struct sockaddr *)&tmp[1];
+      net->length = addrlen;
 
-    memset (&network6, 0, sizeof (network6));
-    network6.sin6_family = AF_INET6;
+      memset(&network6, 0, sizeof(network6));
+      network6.sin6_family = AF_INET6;
 #if HAVE_SOCKADDR_IN_SIN_LEN
-    network6.sin6_len = sizeof (network6);
+      network6.sin6_len = sizeof(network6);
 #endif
-    unsigned int c = 0;
-    uint32_t *addr_elem = (uint32_t *) &addr6->sin6_addr;
-    uint32_t *mask_elem = (uint32_t *) &netmask6->sin6_addr;
-    uint32_t *net_elem = (uint32_t *) &network6.sin6_addr;
-    for (c = 0; c < 4; c++)
-      net_elem[c] = addr_elem[c] & mask_elem[c];
+      unsigned int c = 0;
+      uint32_t *addr_elem = (uint32_t *)&addr6->sin6_addr;
+      uint32_t *mask_elem = (uint32_t *)&netmask6->sin6_addr;
+      uint32_t *net_elem = (uint32_t *)&network6.sin6_addr;
+      for (c = 0; c < 4; c++)
+        net_elem[c] = addr_elem[c] & mask_elem[c];
 
-    GNUNET_memcpy (net->netmask,
-                   netmask6,
-                   sizeof (struct sockaddr_in6));
-    GNUNET_memcpy (net->network,
-                   &network6,
-                   sizeof (struct sockaddr_in6));
-  }
+      GNUNET_memcpy(net->netmask,
+                    netmask6,
+                    sizeof(struct sockaddr_in6));
+      GNUNET_memcpy(net->network,
+                    &network6,
+                    sizeof(struct sockaddr_in6));
+    }
   if (NULL == net)
     return GNUNET_OK; /* odd / unsupported address family */
 
   /* Store in list */
 #if VERBOSE_NT
-  char * netmask = GNUNET_strdup (GNUNET_a2s((struct sockaddr *) net->netmask, addrlen));
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
-                   "nt",
-                   "Adding network `%s', netmask `%s'\n",
-                   GNUNET_a2s ((struct sockaddr *) net->network,
-                               addrlen),
-                   netmask);
-  GNUNET_free (netmask);
+  char * netmask = GNUNET_strdup(GNUNET_a2s((struct sockaddr *)net->netmask, addrlen));
+  GNUNET_log_from(GNUNET_ERROR_TYPE_DEBUG,
+                  "nt",
+                  "Adding network `%s', netmask `%s'\n",
+                  GNUNET_a2s((struct sockaddr *)net->network,
+                             addrlen),
+                  netmask);
+  GNUNET_free(netmask);
 #endif
-  GNUNET_CONTAINER_DLL_insert (is->net_head,
-                               is->net_tail,
-                               net);
+  GNUNET_CONTAINER_DLL_insert(is->net_head,
+                              is->net_tail,
+                              net);
 
   return GNUNET_OK;
 }
@@ -277,17 +280,17 @@ interface_proc (void *cls,
  * @param cls closure
  */
 static void
-get_addresses (void *cls)
+get_addresses(void *cls)
 {
   struct GNUNET_NT_InterfaceScanner *is = cls;
 
   is->interface_task = NULL;
-  delete_networks (is);
-  GNUNET_OS_network_interfaces_list (&interface_proc,
-                                     is);
-  is->interface_task = GNUNET_SCHEDULER_add_delayed (INTERFACE_PROCESSING_INTERVAL,
-                                                     &get_addresses,
-                                                     is);
+  delete_networks(is);
+  GNUNET_OS_network_interfaces_list(&interface_proc,
+                                    is);
+  is->interface_task = GNUNET_SCHEDULER_add_delayed(INTERFACE_PROCESSING_INTERVAL,
+                                                    &get_addresses,
+                                                    is);
 }
 
 
@@ -300,9 +303,9 @@ get_addresses (void *cls)
  * @return type of the network the address belongs to
  */
 enum GNUNET_NetworkType
-GNUNET_NT_scanner_get_type (struct GNUNET_NT_InterfaceScanner *is,
-                            const struct sockaddr *addr,
-                            socklen_t addrlen)
+GNUNET_NT_scanner_get_type(struct GNUNET_NT_InterfaceScanner *is,
+                           const struct sockaddr *addr,
+                           socklen_t addrlen)
 {
   struct NT_Network *cur = is->net_head;
   enum GNUNET_NetworkType type = GNUNET_NT_UNSPECIFIED;
@@ -312,74 +315,77 @@ GNUNET_NT_scanner_get_type (struct GNUNET_NT_InterfaceScanner *is,
     case AF_UNIX:
       type = GNUNET_NT_LOOPBACK;
       break;
+
     case AF_INET:
-      {
-        const struct sockaddr_in *a4 = (const struct sockaddr_in *) addr;
+    {
+      const struct sockaddr_in *a4 = (const struct sockaddr_in *)addr;
 
-        if ((a4->sin_addr.s_addr & htonl(0xff000000)) == htonl (0x7f000000))
-          type = GNUNET_NT_LOOPBACK;
-        break;
-      }
-    case AF_INET6:
-      {
-        const struct sockaddr_in6 *a6 = (const struct sockaddr_in6 *) addr;
-
-        if (IN6_IS_ADDR_LOOPBACK (&a6->sin6_addr))
-          type = GNUNET_NT_LOOPBACK;
-        break;
-      }
-    default:
-      GNUNET_break (0);
+      if ((a4->sin_addr.s_addr & htonl(0xff000000)) == htonl(0x7f000000))
+        type = GNUNET_NT_LOOPBACK;
       break;
-   }
+    }
+
+    case AF_INET6:
+    {
+      const struct sockaddr_in6 *a6 = (const struct sockaddr_in6 *)addr;
+
+      if (IN6_IS_ADDR_LOOPBACK(&a6->sin6_addr))
+        type = GNUNET_NT_LOOPBACK;
+      break;
+    }
+
+    default:
+      GNUNET_break(0);
+      break;
+    }
 
   /* Check local networks */
   while ((NULL != cur) && (GNUNET_NT_UNSPECIFIED == type))
-  {
-    if (addrlen != cur->length)
     {
+      if (addrlen != cur->length)
+        {
+          cur = cur->next;
+          continue;
+        }
+      if (addr->sa_family == AF_INET)
+        {
+          const struct sockaddr_in *a4 = (const struct sockaddr_in *)addr;
+          const struct sockaddr_in *net4 = (const struct sockaddr_in *)cur->network;
+          const struct sockaddr_in *mask4 = (const struct sockaddr_in *)cur->netmask;
+
+          if (((a4->sin_addr.s_addr & mask4->sin_addr.s_addr)) == net4->sin_addr.s_addr)
+            type = GNUNET_NT_LAN;
+        }
+      if (addr->sa_family == AF_INET6)
+        {
+          const struct sockaddr_in6 *a6 = (const struct sockaddr_in6 *)addr;
+          const struct sockaddr_in6 *net6 = (const struct sockaddr_in6 *)cur->network;
+          const struct sockaddr_in6 *mask6 = (const struct sockaddr_in6 *)cur->netmask;
+
+          int res = GNUNET_YES;
+          int c = 0;
+          uint32_t *addr_elem = (uint32_t *)&a6->sin6_addr;
+          uint32_t *mask_elem = (uint32_t *)&mask6->sin6_addr;
+          uint32_t *net_elem = (uint32_t *)&net6->sin6_addr;
+          for (c = 0; c < 4; c++)
+            if ((addr_elem[c] & mask_elem[c]) != net_elem[c])
+              res = GNUNET_NO;
+
+          if (res == GNUNET_YES)
+            type = GNUNET_NT_LAN;
+        }
       cur = cur->next;
-      continue;
     }
-    if (addr->sa_family == AF_INET)
-    {
-      const struct sockaddr_in *a4 = (const struct sockaddr_in *) addr;
-      const struct sockaddr_in *net4 = (const struct sockaddr_in *) cur->network;
-      const struct sockaddr_in *mask4 = (const struct sockaddr_in *) cur->netmask;
-
-      if (((a4->sin_addr.s_addr & mask4->sin_addr.s_addr)) == net4->sin_addr.s_addr)
-        type = GNUNET_NT_LAN;
-    }
-    if (addr->sa_family == AF_INET6)
-    {
-      const struct sockaddr_in6 *a6 = (const struct sockaddr_in6 *) addr;
-      const struct sockaddr_in6 *net6 = (const struct sockaddr_in6 *) cur->network;
-      const struct sockaddr_in6 *mask6 = (const struct sockaddr_in6 *) cur->netmask;
-
-      int res = GNUNET_YES;
-      int c = 0;
-      uint32_t *addr_elem = (uint32_t *) &a6->sin6_addr;
-      uint32_t *mask_elem = (uint32_t *) &mask6->sin6_addr;
-      uint32_t *net_elem = (uint32_t *) &net6->sin6_addr;
-      for (c = 0; c < 4; c++)
-        if ((addr_elem[c] & mask_elem[c]) != net_elem[c])
-          res = GNUNET_NO;
-
-      if (res == GNUNET_YES)
-        type = GNUNET_NT_LAN;
-    }
-    cur = cur->next;
-  }
 
   /* no local network found for this address, default: WAN */
   if (type == GNUNET_NT_UNSPECIFIED)
     type = GNUNET_NT_WAN;
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
-                   "nt-scanner-api",
-                   "`%s' is in network `%s'\n",
-                   GNUNET_a2s (addr,
-                               addrlen),
-                   GNUNET_NT_to_string (type));
+  GNUNET_log_from(GNUNET_ERROR_TYPE_DEBUG,
+                  "nt-scanner-api",
+                  "`%s' is in network `%s'\n",
+                  GNUNET_a2s(addr,
+                             addrlen),
+                  GNUNET_NT_to_string(type));
   return type;
 }
 
@@ -390,16 +396,16 @@ GNUNET_NT_scanner_get_type (struct GNUNET_NT_InterfaceScanner *is,
  * @return interface scanner
  */
 struct GNUNET_NT_InterfaceScanner *
-GNUNET_NT_scanner_init ()
+GNUNET_NT_scanner_init()
 {
   struct GNUNET_NT_InterfaceScanner *is;
 
-  is = GNUNET_new (struct GNUNET_NT_InterfaceScanner);
-  GNUNET_OS_network_interfaces_list (&interface_proc,
-                                     is);
-  is->interface_task = GNUNET_SCHEDULER_add_delayed (INTERFACE_PROCESSING_INTERVAL,
-                                                     &get_addresses,
-                                                     is);
+  is = GNUNET_new(struct GNUNET_NT_InterfaceScanner);
+  GNUNET_OS_network_interfaces_list(&interface_proc,
+                                    is);
+  is->interface_task = GNUNET_SCHEDULER_add_delayed(INTERFACE_PROCESSING_INTERVAL,
+                                                    &get_addresses,
+                                                    is);
   return is;
 }
 
@@ -410,15 +416,15 @@ GNUNET_NT_scanner_init ()
  * @param is handle to release
  */
 void
-GNUNET_NT_scanner_done (struct GNUNET_NT_InterfaceScanner *is)
+GNUNET_NT_scanner_done(struct GNUNET_NT_InterfaceScanner *is)
 {
   if (NULL != is->interface_task)
-  {
-    GNUNET_SCHEDULER_cancel (is->interface_task);
-    is->interface_task = NULL;
-  }
-  delete_networks (is);
-  GNUNET_free (is);
+    {
+      GNUNET_SCHEDULER_cancel(is->interface_task);
+      is->interface_task = NULL;
+    }
+  delete_networks(is);
+  GNUNET_free(is);
 }
 
 

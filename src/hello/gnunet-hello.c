@@ -11,12 +11,12 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 /**
  * @file hello/gnunet-hello.c
  * @brief change HELLO files to never expire
@@ -29,8 +29,7 @@
 /**
  * Closure for #add_to_buf().
  */
-struct AddContext
-{
+struct AddContext {
   /**
    * Where to add.
    */
@@ -59,17 +58,17 @@ static int address_count;
  * @return #GNUNET_OK keep iterating
  */
 static int
-add_to_buf (void *cls,
-            const struct GNUNET_HELLO_Address *address,
-            struct GNUNET_TIME_Absolute expiration)
+add_to_buf(void *cls,
+           const struct GNUNET_HELLO_Address *address,
+           struct GNUNET_TIME_Absolute expiration)
 {
   struct AddContext *ac = cls;
   size_t ret;
 
-  ret = GNUNET_HELLO_add_address (address,
-                                  GNUNET_TIME_UNIT_FOREVER_ABS,
-                                  ac->buf,
-                                  ac->max);
+  ret = GNUNET_HELLO_add_address(address,
+                                 GNUNET_TIME_UNIT_FOREVER_ABS,
+                                 ac->buf,
+                                 ac->max);
   ac->buf += ret;
   ac->max -= ret;
   ac->ret += ret;
@@ -87,7 +86,7 @@ add_to_buf (void *cls,
  * @return number of bytes added, 0 to terminate
  */
 static ssize_t
-add_from_hello (void *cls, size_t max, void *buf)
+add_from_hello(void *cls, size_t max, void *buf)
 {
   struct GNUNET_HELLO_Message **orig = cls;
   struct AddContext ac;
@@ -97,116 +96,117 @@ add_from_hello (void *cls, size_t max, void *buf)
   ac.buf = buf;
   ac.max = max;
   ac.ret = 0;
-  GNUNET_assert (
+  GNUNET_assert(
     NULL ==
-    GNUNET_HELLO_iterate_addresses (*orig, GNUNET_NO, &add_to_buf, &ac));
+    GNUNET_HELLO_iterate_addresses(*orig, GNUNET_NO, &add_to_buf, &ac));
   *orig = NULL;
   return ac.ret;
 }
 
 
 int
-main (int argc, char *argv[])
+main(int argc, char *argv[])
 {
   struct GNUNET_DISK_FileHandle *fh;
   struct GNUNET_HELLO_Message *orig;
   struct GNUNET_HELLO_Message *result;
   struct GNUNET_PeerIdentity pid;
   uint64_t fsize;
+
   address_count = 0;
 
-  GNUNET_log_setup ("gnunet-hello", "INFO", NULL);
+  GNUNET_log_setup("gnunet-hello", "INFO", NULL);
   if (argc != 2)
-  {
-    fprintf (stderr, "%s", _ ("Call with name of HELLO file to modify.\n"));
-    return 1;
-  }
+    {
+      fprintf(stderr, "%s", _("Call with name of HELLO file to modify.\n"));
+      return 1;
+    }
   if (GNUNET_OK !=
-      GNUNET_DISK_file_size (argv[1], &fsize, GNUNET_YES, GNUNET_YES))
-  {
-    fprintf (stderr,
-             _ ("Error accessing file `%s': %s\n"),
-             argv[1],
-             strerror (errno));
-    return 1;
-  }
+      GNUNET_DISK_file_size(argv[1], &fsize, GNUNET_YES, GNUNET_YES))
+    {
+      fprintf(stderr,
+              _("Error accessing file `%s': %s\n"),
+              argv[1],
+              strerror(errno));
+      return 1;
+    }
   if (fsize > 65536)
-  {
-    fprintf (stderr, _ ("File `%s' is too big to be a HELLO\n"), argv[1]);
-    return 1;
-  }
-  if (fsize < sizeof (struct GNUNET_MessageHeader))
-  {
-    fprintf (stderr, _ ("File `%s' is too small to be a HELLO\n"), argv[1]);
-    return 1;
-  }
-  fh = GNUNET_DISK_file_open (argv[1],
-                              GNUNET_DISK_OPEN_READ,
-                              GNUNET_DISK_PERM_USER_READ);
+    {
+      fprintf(stderr, _("File `%s' is too big to be a HELLO\n"), argv[1]);
+      return 1;
+    }
+  if (fsize < sizeof(struct GNUNET_MessageHeader))
+    {
+      fprintf(stderr, _("File `%s' is too small to be a HELLO\n"), argv[1]);
+      return 1;
+    }
+  fh = GNUNET_DISK_file_open(argv[1],
+                             GNUNET_DISK_OPEN_READ,
+                             GNUNET_DISK_PERM_USER_READ);
   if (NULL == fh)
-  {
-    fprintf (stderr,
-             _ ("Error opening file `%s': %s\n"),
-             argv[1],
-             strerror (errno));
-    return 1;
-  }
+    {
+      fprintf(stderr,
+              _("Error opening file `%s': %s\n"),
+              argv[1],
+              strerror(errno));
+      return 1;
+    }
   {
     char buf[fsize] GNUNET_ALIGN;
 
-    GNUNET_assert (fsize == GNUNET_DISK_file_read (fh, buf, fsize));
-    GNUNET_assert (GNUNET_OK == GNUNET_DISK_file_close (fh));
-    orig = (struct GNUNET_HELLO_Message *) buf;
-    if ((fsize < GNUNET_HELLO_size (orig)) ||
-        (GNUNET_OK != GNUNET_HELLO_get_id (orig, &pid)))
-    {
-      fprintf (stderr,
-               _ ("Did not find well-formed HELLO in file `%s'\n"),
-               argv[1]);
-      return 1;
-    }
+    GNUNET_assert(fsize == GNUNET_DISK_file_read(fh, buf, fsize));
+    GNUNET_assert(GNUNET_OK == GNUNET_DISK_file_close(fh));
+    orig = (struct GNUNET_HELLO_Message *)buf;
+    if ((fsize < GNUNET_HELLO_size(orig)) ||
+        (GNUNET_OK != GNUNET_HELLO_get_id(orig, &pid)))
+      {
+        fprintf(stderr,
+                _("Did not find well-formed HELLO in file `%s'\n"),
+                argv[1]);
+        return 1;
+      }
     {
       char *pids;
 
-      pids = GNUNET_CRYPTO_eddsa_public_key_to_string (&pid.public_key);
-      fprintf (stdout, "Processing HELLO for peer `%s'\n", pids);
-      GNUNET_free (pids);
+      pids = GNUNET_CRYPTO_eddsa_public_key_to_string(&pid.public_key);
+      fprintf(stdout, "Processing HELLO for peer `%s'\n", pids);
+      GNUNET_free(pids);
     }
-    result = GNUNET_HELLO_create (&pid.public_key,
-                                  &add_from_hello,
-                                  &orig,
-                                  GNUNET_HELLO_is_friend_only (orig));
-    GNUNET_assert (NULL != result);
+    result = GNUNET_HELLO_create(&pid.public_key,
+                                 &add_from_hello,
+                                 &orig,
+                                 GNUNET_HELLO_is_friend_only(orig));
+    GNUNET_assert(NULL != result);
     fh =
-      GNUNET_DISK_file_open (argv[1],
-                             GNUNET_DISK_OPEN_WRITE | GNUNET_DISK_OPEN_TRUNCATE,
-                             GNUNET_DISK_PERM_USER_READ |
-                               GNUNET_DISK_PERM_USER_WRITE);
+      GNUNET_DISK_file_open(argv[1],
+                            GNUNET_DISK_OPEN_WRITE | GNUNET_DISK_OPEN_TRUNCATE,
+                            GNUNET_DISK_PERM_USER_READ |
+                            GNUNET_DISK_PERM_USER_WRITE);
     if (NULL == fh)
-    {
-      fprintf (stderr,
-               _ ("Error opening file `%s': %s\n"),
-               argv[1],
-               strerror (errno));
-      GNUNET_free (result);
-      return 1;
-    }
-    fsize = GNUNET_HELLO_size (result);
-    if (fsize != GNUNET_DISK_file_write (fh, result, fsize))
-    {
-      fprintf (stderr,
-               _ ("Error writing HELLO to file `%s': %s\n"),
-               argv[1],
-               strerror (errno));
-      (void) GNUNET_DISK_file_close (fh);
-      return 1;
-    }
-    GNUNET_assert (GNUNET_OK == GNUNET_DISK_file_close (fh));
+      {
+        fprintf(stderr,
+                _("Error opening file `%s': %s\n"),
+                argv[1],
+                strerror(errno));
+        GNUNET_free(result);
+        return 1;
+      }
+    fsize = GNUNET_HELLO_size(result);
+    if (fsize != GNUNET_DISK_file_write(fh, result, fsize))
+      {
+        fprintf(stderr,
+                _("Error writing HELLO to file `%s': %s\n"),
+                argv[1],
+                strerror(errno));
+        (void)GNUNET_DISK_file_close(fh);
+        return 1;
+      }
+    GNUNET_assert(GNUNET_OK == GNUNET_DISK_file_close(fh));
   }
-  fprintf (stderr,
-           _ ("Modified %u addresses, wrote %u bytes\n"),
-           address_count,
-           (unsigned int) fsize);
+  fprintf(stderr,
+          _("Modified %u addresses, wrote %u bytes\n"),
+          address_count,
+          (unsigned int)fsize);
   return 0;
 }
 

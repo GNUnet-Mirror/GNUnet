@@ -11,7 +11,7 @@
       WITHOUT ANY WARRANTY; without even the implied warranty of
       MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
       Affero General Public License for more details.
-     
+
       You should have received a copy of the GNU Affero General Public License
       along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -38,8 +38,8 @@
  *          fresh. The caller should free it. Can be NULL.
  */
 unsigned int
-GNUNET_TESTBED_2dtorus_calc_links (unsigned int num_peers, unsigned int *rows,
-                                   unsigned int **rows_len);
+GNUNET_TESTBED_2dtorus_calc_links(unsigned int num_peers, unsigned int *rows,
+                                  unsigned int **rows_len);
 
 
 /**
@@ -52,8 +52,8 @@ GNUNET_TESTBED_2dtorus_calc_links (unsigned int num_peers, unsigned int *rows,
  *         known topology, GNUNET_NO if not
  */
 int
-GNUNET_TESTBED_topology_get_ (enum GNUNET_TESTBED_TopologyOption *topology,
-                              const char *topology_string);
+GNUNET_TESTBED_topology_get_(enum GNUNET_TESTBED_TopologyOption *topology,
+                             const char *topology_string);
 
 
 /**
@@ -64,7 +64,7 @@ GNUNET_TESTBED_topology_get_ (enum GNUNET_TESTBED_TopologyOption *topology,
  *           expressed as a string
  */
 char *
-GNUNET_TESTBED_topology_to_str_ (enum GNUNET_TESTBED_TopologyOption topology);
+GNUNET_TESTBED_topology_to_str_(enum GNUNET_TESTBED_TopologyOption topology);
 
 
 /**
@@ -104,10 +104,10 @@ typedef int (*underlay_link_processor) (void *cls,
  *          underlay link processor returned GNUNET_SYSERR
  */
 int
-GNUNET_TESTBED_underlay_construct_ (int num_peers,
-                                    underlay_link_processor proc,
-                                    void *cls,
-                                    ...);
+GNUNET_TESTBED_underlay_construct_(int num_peers,
+                                   underlay_link_processor proc,
+                                   void *cls,
+                                   ...);
 
 #endif
 /* end of  testbed_api_topology.h */

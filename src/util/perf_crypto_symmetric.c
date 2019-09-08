@@ -11,12 +11,12 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 
 /**
  * @author Christian Grothoff
@@ -29,7 +29,7 @@
 
 
 static void
-perfEncrypt ()
+perfEncrypt()
 {
   unsigned int i;
   char buf[64 * 1024];
@@ -37,38 +37,38 @@ perfEncrypt ()
   struct GNUNET_CRYPTO_SymmetricSessionKey sk;
   struct GNUNET_CRYPTO_SymmetricInitializationVector iv;
 
-  GNUNET_CRYPTO_symmetric_create_session_key (&sk);
+  GNUNET_CRYPTO_symmetric_create_session_key(&sk);
 
-  memset (buf, 1, sizeof (buf));
+  memset(buf, 1, sizeof(buf));
   for (i = 0; i < 1024; i++)
-  {
-    memset (&iv, (int8_t) i, sizeof (iv));
-    GNUNET_CRYPTO_symmetric_encrypt (buf, sizeof (buf),
-                               &sk, &iv,
-                               rbuf);
-    GNUNET_CRYPTO_symmetric_decrypt (rbuf, sizeof (buf),
-                               &sk, &iv,
-                               buf);
-  }
-  memset (rbuf, 1, sizeof (rbuf));
-  GNUNET_assert (0 == memcmp (rbuf, buf, sizeof (buf)));
+    {
+      memset(&iv, (int8_t)i, sizeof(iv));
+      GNUNET_CRYPTO_symmetric_encrypt(buf, sizeof(buf),
+                                      &sk, &iv,
+                                      rbuf);
+      GNUNET_CRYPTO_symmetric_decrypt(rbuf, sizeof(buf),
+                                      &sk, &iv,
+                                      buf);
+    }
+  memset(rbuf, 1, sizeof(rbuf));
+  GNUNET_assert(0 == memcmp(rbuf, buf, sizeof(buf)));
 }
 
 
 int
-main (int argc, char *argv[])
+main(int argc, char *argv[])
 {
   struct GNUNET_TIME_Absolute start;
 
-  start = GNUNET_TIME_absolute_get ();
-  perfEncrypt ();
-  printf ("Encrypt perf took %s\n",
-          GNUNET_STRINGS_relative_time_to_string (GNUNET_TIME_absolute_get_duration (start),
-						  GNUNET_YES));
-  GAUGER ("UTIL", "Symmetric encryption",
-          64 * 1024 / (1 +
-		       GNUNET_TIME_absolute_get_duration
-		       (start).rel_value_us / 1000LL), "kb/ms");
+  start = GNUNET_TIME_absolute_get();
+  perfEncrypt();
+  printf("Encrypt perf took %s\n",
+         GNUNET_STRINGS_relative_time_to_string(GNUNET_TIME_absolute_get_duration(start),
+                                                GNUNET_YES));
+  GAUGER("UTIL", "Symmetric encryption",
+         64 * 1024 / (1 +
+                      GNUNET_TIME_absolute_get_duration
+                        (start).rel_value_us / 1000LL), "kb/ms");
   return 0;
 }
 

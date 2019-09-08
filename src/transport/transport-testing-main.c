@@ -11,12 +11,12 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 /**
  * @file transport-testing-main.c
  * @brief convenience main function for tests
@@ -28,8 +28,7 @@
 /**
  * Closure for #connect_cb.
  */
-struct GNUNET_TRANSPORT_TESTING_ConnectRequestList
-{
+struct GNUNET_TRANSPORT_TESTING_ConnectRequestList {
   /**
    * Stored in a DLL.
    */
@@ -59,7 +58,6 @@ struct GNUNET_TRANSPORT_TESTING_ConnectRequestList
    * Peer being connected.
    */
   struct GNUNET_TRANSPORT_TESTING_PeerContext *p2;
-
 };
 
 
@@ -69,41 +67,41 @@ struct GNUNET_TRANSPORT_TESTING_ConnectRequestList
  * @param cls our `struct GNUNET_TRANSPORT_TESTING_ConnectCheckContext *`
  */
 static void
-do_shutdown (void *cls)
+do_shutdown(void *cls)
 {
   struct GNUNET_TRANSPORT_TESTING_ConnectCheckContext *ccc = cls;
   struct GNUNET_TRANSPORT_TESTING_ConnectRequestList *crl;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Testcase shutting down\n");
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+             "Testcase shutting down\n");
   if (NULL != ccc->shutdown_task)
-    ccc->shutdown_task (ccc->shutdown_task_cls);
+    ccc->shutdown_task(ccc->shutdown_task_cls);
   if (NULL != ccc->timeout_task)
-  {
-    GNUNET_SCHEDULER_cancel (ccc->timeout_task);
-    ccc->timeout_task = NULL;
-  }
-  if (NULL != ccc->connect_task)
-  {
-    GNUNET_SCHEDULER_cancel (ccc->connect_task);
-    ccc->connect_task = NULL;
-  }
-  while (NULL != (crl = ccc->crl_head))
-  {
-    GNUNET_CONTAINER_DLL_remove (ccc->crl_head,
-                                 ccc->crl_tail,
-                                 crl);
-    GNUNET_TRANSPORT_TESTING_connect_peers_cancel (crl->cr);
-    GNUNET_free (crl);
-  }
-  for (unsigned int i=0;i<ccc->num_peers;i++)
-  {
-    if (NULL != ccc->p[i])
     {
-      GNUNET_TRANSPORT_TESTING_stop_peer (ccc->p[i]);
-      ccc->p[i] = NULL;
+      GNUNET_SCHEDULER_cancel(ccc->timeout_task);
+      ccc->timeout_task = NULL;
     }
-  }
+  if (NULL != ccc->connect_task)
+    {
+      GNUNET_SCHEDULER_cancel(ccc->connect_task);
+      ccc->connect_task = NULL;
+    }
+  while (NULL != (crl = ccc->crl_head))
+    {
+      GNUNET_CONTAINER_DLL_remove(ccc->crl_head,
+                                  ccc->crl_tail,
+                                  crl);
+      GNUNET_TRANSPORT_TESTING_connect_peers_cancel(crl->cr);
+      GNUNET_free(crl);
+    }
+  for (unsigned int i = 0; i < ccc->num_peers; i++)
+    {
+      if (NULL != ccc->p[i])
+        {
+          GNUNET_TRANSPORT_TESTING_stop_peer(ccc->p[i]);
+          ccc->p[i] = NULL;
+        }
+    }
 }
 
 
@@ -113,15 +111,15 @@ do_shutdown (void *cls)
  * @param cls our `struct GNUNET_TRANSPORT_TESTING_ConnectCheckContext *`
  */
 static void
-do_timeout (void *cls)
+do_timeout(void *cls)
 {
   struct GNUNET_TRANSPORT_TESTING_ConnectCheckContext *ccc = cls;
 
   ccc->timeout_task = NULL;
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-              "Testcase timed out\n");
+  GNUNET_log(GNUNET_ERROR_TYPE_WARNING,
+             "Testcase timed out\n");
   ccc->global_ret = GNUNET_SYSERR;
-  GNUNET_SCHEDULER_shutdown ();
+  GNUNET_SCHEDULER_shutdown();
 }
 
 
@@ -130,8 +128,7 @@ do_timeout (void *cls)
  * #connect_cb, #disconnect_cb, #my_nc and #start_cb.
  * Allows us to identify which peer this is about.
  */
-struct GNUNET_TRANSPORT_TESTING_InternalPeerContext
-{
+struct GNUNET_TRANSPORT_TESTING_InternalPeerContext {
   /**
    * Overall context of the callback.
    */
@@ -147,8 +144,7 @@ struct GNUNET_TRANSPORT_TESTING_InternalPeerContext
 /**
  * Information tracked per connected peer.
  */
-struct ConnectPairInfo
-{
+struct ConnectPairInfo {
   /**
    * Peer this is about.
    */
@@ -168,33 +164,33 @@ struct ConnectPairInfo
  * @param cls our `struct GNUNET_TRANSPORT_TESTING_ConnectRequestList *`
  */
 static void
-connect_cb (void *cls)
+connect_cb(void *cls)
 {
   struct GNUNET_TRANSPORT_TESTING_ConnectRequestList *crl = cls;
   struct GNUNET_TRANSPORT_TESTING_ConnectCheckContext *ccc = crl->ccc;
 
-  GNUNET_CONTAINER_DLL_remove (ccc->crl_head,
-                               ccc->crl_tail,
-                               crl);
+  GNUNET_CONTAINER_DLL_remove(ccc->crl_head,
+                              ccc->crl_tail,
+                              crl);
   {
-    char *p1_c = GNUNET_strdup (GNUNET_i2s (&crl->p1->id));
+    char *p1_c = GNUNET_strdup(GNUNET_i2s(&crl->p1->id));
 
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                "Peers connected: %u (%s) <-> %u (%s)\n",
-                crl->p1->no,
-                p1_c,
-                crl->p2->no,
-                GNUNET_i2s (&crl->p2->id));
-    GNUNET_free (p1_c);
-    GNUNET_free (crl);
+    GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+               "Peers connected: %u (%s) <-> %u (%s)\n",
+               crl->p1->no,
+               p1_c,
+               crl->p2->no,
+               GNUNET_i2s(&crl->p2->id));
+    GNUNET_free(p1_c);
+    GNUNET_free(crl);
   }
   if (NULL == ccc->crl_head)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "All connections UP, launching custom test logic.\n");
-    GNUNET_SCHEDULER_add_now (ccc->connect_continuation,
-                              ccc->connect_continuation_cls);
-  }
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+                 "All connections UP, launching custom test logic.\n");
+      GNUNET_SCHEDULER_add_now(ccc->connect_continuation,
+                               ccc->connect_continuation_cls);
+    }
 }
 
 
@@ -206,14 +202,14 @@ connect_cb (void *cls)
  * @return NULL if @a peer was not found
  */
 struct GNUNET_TRANSPORT_TESTING_PeerContext *
-GNUNET_TRANSPORT_TESTING_find_peer (struct GNUNET_TRANSPORT_TESTING_ConnectCheckContext *ccc,
-                                    const struct GNUNET_PeerIdentity *peer)
+GNUNET_TRANSPORT_TESTING_find_peer(struct GNUNET_TRANSPORT_TESTING_ConnectCheckContext *ccc,
+                                   const struct GNUNET_PeerIdentity *peer)
 {
-  for (unsigned int i=0;i<ccc->num_peers;i++)
-    if ( (NULL != ccc->p[i]) &&
-         (0 == memcmp (peer,
-                       &ccc->p[i]->id,
-                       sizeof (*peer))) )
+  for (unsigned int i = 0; i < ccc->num_peers; i++)
+    if ((NULL != ccc->p[i]) &&
+        (0 == memcmp(peer,
+                     &ccc->p[i]->id,
+                     sizeof(*peer))))
       return ccc->p[i];
   return NULL;
 }
@@ -228,19 +224,19 @@ GNUNET_TRANSPORT_TESTING_find_peer (struct GNUNET_TRANSPORT_TESTING_ConnectCheck
  * @return closure for message handlers
  */
 static void *
-my_nc (void *cls,
-       const struct GNUNET_PeerIdentity *peer,
-       struct GNUNET_MQ_Handle *mq)
+my_nc(void *cls,
+      const struct GNUNET_PeerIdentity *peer,
+      struct GNUNET_MQ_Handle *mq)
 {
   struct GNUNET_TRANSPORT_TESTING_InternalPeerContext *ipi = cls;
   struct GNUNET_TRANSPORT_TESTING_ConnectCheckContext *ccc = ipi->ccc;
   struct ConnectPairInfo *cpi;
 
   if (NULL != ccc->nc)
-    ccc->nc (ccc->cls,
-             ccc->p[ipi->off],
-             peer);
-  cpi = GNUNET_new (struct ConnectPairInfo);
+    ccc->nc(ccc->cls,
+            ccc->p[ipi->off],
+            peer);
+  cpi = GNUNET_new(struct ConnectPairInfo);
   cpi->ipi = ipi;
   cpi->sender = peer; /* valid until disconnect */
   return cpi;
@@ -255,19 +251,56 @@ my_nc (void *cls,
  * @param custom_cls return value from @my_nc
  */
 static void
-my_nd (void *cls,
-       const struct GNUNET_PeerIdentity *peer,
-       void *custom_cls)
+my_nd(void *cls,
+      const struct GNUNET_PeerIdentity *peer,
+      void *custom_cls)
 {
   struct GNUNET_TRANSPORT_TESTING_InternalPeerContext *ipi = cls;
   struct GNUNET_TRANSPORT_TESTING_ConnectCheckContext *ccc = ipi->ccc;
   struct ConnectPairInfo *cpi = custom_cls;
 
   if (NULL != ccc->nd)
-    ccc->nd (ccc->cls,
+    ccc->nd(ccc->cls,
+            ccc->p[ipi->off],
+            peer);
+  GNUNET_free(cpi);
+}
+
+
+/**
+ * Wrapper around receiving data.  Calls client's rec function.
+ *
+ * @param cls our `struct ConnectPairInfo *`
+ * @param message message we received
+ * @return #GNUNET_OK (all messages are fine)
+ */
+static int
+check_test(void *cls,
+           const struct GNUNET_TRANSPORT_TESTING_TestMessage *message)
+{
+  return GNUNET_OK;
+}
+
+
+/**
+ * Wrapper around receiving data.  Calls client's rec function.
+ *
+ * @param cls our `struct ConnectPairInfo *`
+ * @param message message we received
+ */
+static void
+handle_test(void *cls,
+            const struct GNUNET_TRANSPORT_TESTING_TestMessage *message)
+{
+  struct ConnectPairInfo *cpi = cls;
+  struct GNUNET_TRANSPORT_TESTING_InternalPeerContext *ipi = cpi->ipi;
+  struct GNUNET_TRANSPORT_TESTING_ConnectCheckContext *ccc = ipi->ccc;
+
+  if (NULL != ccc->rec)
+    ccc->rec(ccc->cls,
              ccc->p[ipi->off],
-             peer);
-  GNUNET_free (cpi);
+             cpi->sender,
+             message);
 }
 
 
@@ -279,8 +312,8 @@ my_nd (void *cls,
  * @return #GNUNET_OK (all messages are fine)
  */
 static int
-check_test (void *cls,
-	    const struct GNUNET_TRANSPORT_TESTING_TestMessage *message)
+check_test2(void *cls,
+            const struct GNUNET_TRANSPORT_TESTING_TestMessage *message)
 {
   return GNUNET_OK;
 }
@@ -293,55 +326,18 @@ check_test (void *cls,
  * @param message message we received
  */
 static void
-handle_test (void *cls,
-	     const struct GNUNET_TRANSPORT_TESTING_TestMessage *message)
+handle_test2(void *cls,
+             const struct GNUNET_TRANSPORT_TESTING_TestMessage *message)
 {
   struct ConnectPairInfo *cpi = cls;
   struct GNUNET_TRANSPORT_TESTING_InternalPeerContext *ipi = cpi->ipi;
   struct GNUNET_TRANSPORT_TESTING_ConnectCheckContext *ccc = ipi->ccc;
 
   if (NULL != ccc->rec)
-    ccc->rec (ccc->cls,
-              ccc->p[ipi->off],
-              cpi->sender,
-              message);
-}
-
-
-/**
- * Wrapper around receiving data.  Calls client's rec function.
- *
- * @param cls our `struct ConnectPairInfo *`
- * @param message message we received
- * @return #GNUNET_OK (all messages are fine)
- */
-static int
-check_test2 (void *cls,
-	     const struct GNUNET_TRANSPORT_TESTING_TestMessage *message)
-{
-  return GNUNET_OK;
-}
-
-
-/**
- * Wrapper around receiving data.  Calls client's rec function.
- *
- * @param cls our `struct ConnectPairInfo *`
- * @param message message we received
- */
-static void
-handle_test2 (void *cls,
-	      const struct GNUNET_TRANSPORT_TESTING_TestMessage *message)
-{
-  struct ConnectPairInfo *cpi = cls;
-  struct GNUNET_TRANSPORT_TESTING_InternalPeerContext *ipi = cpi->ipi;
-  struct GNUNET_TRANSPORT_TESTING_ConnectCheckContext *ccc = ipi->ccc;
-
-  if (NULL != ccc->rec)
-    ccc->rec (ccc->cls,
-              ccc->p[ipi->off],
-              cpi->sender,
-              message);
+    ccc->rec(ccc->cls,
+             ccc->p[ipi->off],
+             cpi->sender,
+             message);
 }
 
 
@@ -351,41 +347,41 @@ handle_test2 (void *cls,
  * @param cls our `struct GNUNET_TRANSPORT_TESTING_ConnectCheckContext`
  */
 static void
-do_connect (void *cls)
+do_connect(void *cls)
 {
   struct GNUNET_TRANSPORT_TESTING_ConnectCheckContext *ccc = cls;
 
   ccc->connect_task = NULL;
-  for (unsigned int i=0;i<ccc->num_peers;i++)
-    for (unsigned int j=(ccc->bi_directional ? 0 : i+1);j<ccc->num_peers;j++)
-    {
-      struct GNUNET_TRANSPORT_TESTING_ConnectRequestList *crl;
-
-      if (i == j)
-        continue;
-      crl = GNUNET_new (struct GNUNET_TRANSPORT_TESTING_ConnectRequestList);
-      GNUNET_CONTAINER_DLL_insert (ccc->crl_head,
-                                   ccc->crl_tail,
-                                   crl);
-      crl->ccc = ccc;
-      crl->p1 = ccc->p[i];
-      crl->p2 = ccc->p[j];
+  for (unsigned int i = 0; i < ccc->num_peers; i++)
+    for (unsigned int j = (ccc->bi_directional ? 0 : i + 1); j < ccc->num_peers; j++)
       {
-        char *sender_c = GNUNET_strdup (GNUNET_i2s (&ccc->p[0]->id));
+        struct GNUNET_TRANSPORT_TESTING_ConnectRequestList *crl;
 
-        GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                    "Test tries to connect peer %u (`%s') -> peer %u (`%s')\n",
-                    ccc->p[0]->no,
-                    sender_c,
-                    ccc->p[1]->no,
-                    GNUNET_i2s (&ccc->p[1]->id));
-        GNUNET_free (sender_c);
+        if (i == j)
+          continue;
+        crl = GNUNET_new(struct GNUNET_TRANSPORT_TESTING_ConnectRequestList);
+        GNUNET_CONTAINER_DLL_insert(ccc->crl_head,
+                                    ccc->crl_tail,
+                                    crl);
+        crl->ccc = ccc;
+        crl->p1 = ccc->p[i];
+        crl->p2 = ccc->p[j];
+        {
+          char *sender_c = GNUNET_strdup(GNUNET_i2s(&ccc->p[0]->id));
+
+          GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+                     "Test tries to connect peer %u (`%s') -> peer %u (`%s')\n",
+                     ccc->p[0]->no,
+                     sender_c,
+                     ccc->p[1]->no,
+                     GNUNET_i2s(&ccc->p[1]->id));
+          GNUNET_free(sender_c);
+        }
+        crl->cr = GNUNET_TRANSPORT_TESTING_connect_peers(ccc->p[i],
+                                                         ccc->p[j],
+                                                         &connect_cb,
+                                                         crl);
       }
-      crl->cr = GNUNET_TRANSPORT_TESTING_connect_peers (ccc->p[i],
-                                                        ccc->p[j],
-                                                        &connect_cb,
-                                                        crl);
-    }
 }
 
 
@@ -397,32 +393,32 @@ do_connect (void *cls)
  * @param cls our `struct GNUNET_TRANSPORT_TESTING_InternalPeerContext *`
  */
 static void
-start_cb (void *cls)
+start_cb(void *cls)
 {
   struct GNUNET_TRANSPORT_TESTING_InternalPeerContext *ipi = cls;
   struct GNUNET_TRANSPORT_TESTING_ConnectCheckContext *ccc = ipi->ccc;
   struct GNUNET_TRANSPORT_TESTING_PeerContext *p = ccc->p[ipi->off];
 
   ccc->started++;
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              "Peer %u (`%s') started\n",
-              p->no,
-              GNUNET_i2s (&p->id));
+  GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+             "Peer %u (`%s') started\n",
+             p->no,
+             GNUNET_i2s(&p->id));
   if (ccc->started != ccc->num_peers)
     return;
   if (NULL != ccc->pre_connect_task)
-  {
-    /* Run the custom per-connect job, then give it a second to
-       go into effect before we continue connecting peers. */
-    ccc->pre_connect_task (ccc->pre_connect_task_cls);
-    ccc->connect_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
-                                                      &do_connect,
-                                                      ccc);
-  }
+    {
+      /* Run the custom per-connect job, then give it a second to
+         go into effect before we continue connecting peers. */
+      ccc->pre_connect_task(ccc->pre_connect_task_cls);
+      ccc->connect_task = GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_UNIT_SECONDS,
+                                                       &do_connect,
+                                                       ccc);
+    }
   else
-  {
-    do_connect (ccc);
-  }
+    {
+      do_connect(ccc);
+    }
 }
 
 
@@ -437,52 +433,52 @@ start_cb (void *cls)
  * @param cfg configuration
  */
 static void
-connect_check_run (void *cls,
-                   char *const *args,
-                   const char *cfgfile,
-                   const struct GNUNET_CONFIGURATION_Handle *cfg)
+connect_check_run(void *cls,
+                  char *const *args,
+                  const char *cfgfile,
+                  const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   struct GNUNET_TRANSPORT_TESTING_ConnectCheckContext *ccc = cls;
   int ok;
 
   ccc->cfg = cfg;
-  ccc->timeout_task = GNUNET_SCHEDULER_add_delayed (ccc->timeout,
-                                                    &do_timeout,
-                                                    ccc);
-  GNUNET_SCHEDULER_add_shutdown (&do_shutdown,
-                                 ccc);
+  ccc->timeout_task = GNUNET_SCHEDULER_add_delayed(ccc->timeout,
+                                                   &do_timeout,
+                                                   ccc);
+  GNUNET_SCHEDULER_add_shutdown(&do_shutdown,
+                                ccc);
   ok = GNUNET_OK;
-  for (unsigned int i=0;i<ccc->num_peers;i++)
-  {
-    struct GNUNET_MQ_MessageHandler handlers[] = {
-      GNUNET_MQ_hd_var_size (test,
-                             GNUNET_TRANSPORT_TESTING_SIMPLE_MTYPE,
-                             struct GNUNET_TRANSPORT_TESTING_TestMessage,
-                             NULL),
-      GNUNET_MQ_hd_var_size (test2,
-                             GNUNET_TRANSPORT_TESTING_SIMPLE_MTYPE2,
-                             struct GNUNET_TRANSPORT_TESTING_TestMessage,
-                             NULL),
-      GNUNET_MQ_handler_end()
-    };
-    ccc->p[i] = GNUNET_TRANSPORT_TESTING_start_peer (ccc->tth,
-                                                     ccc->cfg_files[i],
-                                                     i + 1,
-                                                     handlers,
-                                                     &my_nc,
-                                                     &my_nd,
-						     &ccc->ip[i],
-                                                     &start_cb,
-                                                     &ccc->ip[i]);
-    if (NULL == ccc->p[i])
-      ok = GNUNET_SYSERR;
-  }
+  for (unsigned int i = 0; i < ccc->num_peers; i++)
+    {
+      struct GNUNET_MQ_MessageHandler handlers[] = {
+        GNUNET_MQ_hd_var_size(test,
+                              GNUNET_TRANSPORT_TESTING_SIMPLE_MTYPE,
+                              struct GNUNET_TRANSPORT_TESTING_TestMessage,
+                              NULL),
+        GNUNET_MQ_hd_var_size(test2,
+                              GNUNET_TRANSPORT_TESTING_SIMPLE_MTYPE2,
+                              struct GNUNET_TRANSPORT_TESTING_TestMessage,
+                              NULL),
+        GNUNET_MQ_handler_end()
+      };
+      ccc->p[i] = GNUNET_TRANSPORT_TESTING_start_peer(ccc->tth,
+                                                      ccc->cfg_files[i],
+                                                      i + 1,
+                                                      handlers,
+                                                      &my_nc,
+                                                      &my_nd,
+                                                      &ccc->ip[i],
+                                                      &start_cb,
+                                                      &ccc->ip[i]);
+      if (NULL == ccc->p[i])
+        ok = GNUNET_SYSERR;
+    }
   if (GNUNET_OK != ok)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Fail! Could not start peers!\n");
-    GNUNET_SCHEDULER_shutdown ();
-  }
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
+                 "Fail! Could not start peers!\n");
+      GNUNET_SCHEDULER_shutdown();
+    }
 }
 
 
@@ -502,12 +498,12 @@ connect_check_run (void *cls,
  * @return #GNUNET_SYSERR on error
  */
 int
-GNUNET_TRANSPORT_TESTING_connect_check (void *cls,
-                                        struct GNUNET_TRANSPORT_TESTING_Handle *tth_,
-                                        const char *test_plugin_,
-                                        const char *test_name_,
-                                        unsigned int num_peers,
-                                        char *cfg_files[])
+GNUNET_TRANSPORT_TESTING_connect_check(void *cls,
+                                       struct GNUNET_TRANSPORT_TESTING_Handle *tth_,
+                                       const char *test_plugin_,
+                                       const char *test_name_,
+                                       unsigned int num_peers,
+                                       char *cfg_files[])
 {
   static struct GNUNET_GETOPT_CommandLineOption options[] = {
     GNUNET_GETOPT_OPTION_END
@@ -516,9 +512,9 @@ GNUNET_TRANSPORT_TESTING_connect_check (void *cls,
   struct GNUNET_TRANSPORT_TESTING_PeerContext *p[num_peers];
   struct GNUNET_TRANSPORT_TESTING_InternalPeerContext ip[num_peers];
   char * argv[] = {
-    (char *) test_name_,
+    (char *)test_name_,
     "-c",
-    (char *) ccc->config_file,
+    (char *)ccc->config_file,
     NULL
   };
 
@@ -530,19 +526,19 @@ GNUNET_TRANSPORT_TESTING_connect_check (void *cls,
   ccc->global_ret = GNUNET_OK;
   ccc->p = p;
   ccc->ip = ip;
-  for (unsigned int i=0;i<num_peers;i++)
-  {
-    ip[i].off = i;
-    ip[i].ccc = ccc;
-  }
+  for (unsigned int i = 0; i < num_peers; i++)
+    {
+      ip[i].off = i;
+      ip[i].ccc = ccc;
+    }
   if (GNUNET_OK !=
-      GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1,
-                          argv,
-                          test_name_,
-                          "nohelp",
-                          options,
-                          &connect_check_run,
-                          ccc))
+      GNUNET_PROGRAM_run((sizeof(argv) / sizeof(char *)) - 1,
+                         argv,
+                         test_name_,
+                         "nohelp",
+                         options,
+                         &connect_check_run,
+                         ccc))
     return GNUNET_SYSERR;
   return ccc->global_ret;
 }
@@ -559,11 +555,11 @@ GNUNET_TRANSPORT_TESTING_connect_check (void *cls,
  * @return #GNUNET_OK on success
  */
 int
-GNUNET_TRANSPORT_TESTING_main_ (const char *argv0,
-                                const char *filename,
-                                unsigned int num_peers,
-                                GNUNET_TRANSPORT_TESTING_CheckCallback check,
-                                void *check_cls)
+GNUNET_TRANSPORT_TESTING_main_(const char *argv0,
+                               const char *filename,
+                               unsigned int num_peers,
+                               GNUNET_TRANSPORT_TESTING_CheckCallback check,
+                               void *check_cls)
 {
   struct GNUNET_TRANSPORT_TESTING_Handle *tth;
   char *test_name;
@@ -573,36 +569,36 @@ GNUNET_TRANSPORT_TESTING_main_ (const char *argv0,
   int ret;
 
   ret = GNUNET_OK;
-  test_name = GNUNET_TRANSPORT_TESTING_get_test_name (argv0);
-  GNUNET_log_setup (test_name,
-                    "WARNING",
-                    NULL);
-  test_source = GNUNET_TRANSPORT_TESTING_get_test_source_name (filename);
-  test_plugin = GNUNET_TRANSPORT_TESTING_get_test_plugin_name (argv0,
-                                                               test_source);
-  for (unsigned int i=0;i<num_peers;i++)
-    cfg_names[i] = GNUNET_TRANSPORT_TESTING_get_config_name (argv0,
-                                                             i+1);
-  tth = GNUNET_TRANSPORT_TESTING_init ();
+  test_name = GNUNET_TRANSPORT_TESTING_get_test_name(argv0);
+  GNUNET_log_setup(test_name,
+                   "WARNING",
+                   NULL);
+  test_source = GNUNET_TRANSPORT_TESTING_get_test_source_name(filename);
+  test_plugin = GNUNET_TRANSPORT_TESTING_get_test_plugin_name(argv0,
+                                                              test_source);
+  for (unsigned int i = 0; i < num_peers; i++)
+    cfg_names[i] = GNUNET_TRANSPORT_TESTING_get_config_name(argv0,
+                                                            i + 1);
+  tth = GNUNET_TRANSPORT_TESTING_init();
   if (NULL == tth)
-  {
-    ret = GNUNET_SYSERR;
-  }
+    {
+      ret = GNUNET_SYSERR;
+    }
   else
-  {
-    ret = check (check_cls,
-                 tth,
-                 test_plugin,
-                 test_name,
-                 num_peers,
-                 cfg_names);
-    GNUNET_TRANSPORT_TESTING_done (tth);
-  }
-  for (unsigned int i=0;i<num_peers;i++)
-    GNUNET_free (cfg_names[i]);
-  GNUNET_free (test_source);
-  GNUNET_free_non_null (test_plugin);
-  GNUNET_free (test_name);
+    {
+      ret = check(check_cls,
+                  tth,
+                  test_plugin,
+                  test_name,
+                  num_peers,
+                  cfg_names);
+      GNUNET_TRANSPORT_TESTING_done(tth);
+    }
+  for (unsigned int i = 0; i < num_peers; i++)
+    GNUNET_free(cfg_names[i]);
+  GNUNET_free(test_source);
+  GNUNET_free_non_null(test_plugin);
+  GNUNET_free(test_name);
   return ret;
 }
 

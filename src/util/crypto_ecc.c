@@ -16,7 +16,7 @@
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 
 /**
  * @file util/crypto_ecc.c
@@ -39,13 +39,13 @@
  */
 #define CURVE "Ed25519"
 
-#define LOG(kind, ...) GNUNET_log_from (kind, "util-crypto-ecc", __VA_ARGS__)
+#define LOG(kind, ...) GNUNET_log_from(kind, "util-crypto-ecc", __VA_ARGS__)
 
 #define LOG_STRERROR(kind, syscall) \
-  GNUNET_log_from_strerror (kind, "util-crypto-ecc", syscall)
+  GNUNET_log_from_strerror(kind, "util-crypto-ecc", syscall)
 
 #define LOG_STRERROR_FILE(kind, syscall, filename) \
-  GNUNET_log_from_strerror_file (kind, "util-crypto-ecc", syscall, filename)
+  GNUNET_log_from_strerror_file(kind, "util-crypto-ecc", syscall, filename)
 
 /**
  * Log an error message at log-level 'level' that indicates
@@ -54,14 +54,14 @@
  */
 #define LOG_GCRY(level, cmd, rc)                      \
   do                                                  \
-  {                                                   \
-    LOG (level,                                       \
-         _ ("`%s' failed at %s:%d with error: %s\n"), \
-         cmd,                                         \
-         __FILE__,                                    \
-         __LINE__,                                    \
-         gcry_strerror (rc));                         \
-  } while (0)
+    {                                                   \
+      LOG(level,                                       \
+          _("`%s' failed at %s:%d with error: %s\n"), \
+          cmd,                                         \
+          __FILE__,                                    \
+          __LINE__,                                    \
+          gcry_strerror(rc));                         \
+    } while (0)
 
 
 /**
@@ -74,10 +74,10 @@
  * @return 0 on success
  */
 static int
-key_from_sexp (gcry_mpi_t *array,
-               gcry_sexp_t sexp,
-               const char *topname,
-               const char *elems)
+key_from_sexp(gcry_mpi_t *array,
+              gcry_sexp_t sexp,
+              const char *topname,
+              const char *elems)
 {
   gcry_sexp_t list;
   gcry_sexp_t l2;
@@ -85,43 +85,43 @@ key_from_sexp (gcry_mpi_t *array,
   unsigned int i;
   unsigned int idx;
 
-  list = gcry_sexp_find_token (sexp, topname, 0);
-  if (! list)
+  list = gcry_sexp_find_token(sexp, topname, 0);
+  if (!list)
     return 1;
-  l2 = gcry_sexp_cadr (list);
-  gcry_sexp_release (list);
+  l2 = gcry_sexp_cadr(list);
+  gcry_sexp_release(list);
   list = l2;
-  if (! list)
+  if (!list)
     return 2;
 
   idx = 0;
   for (s = elems; *s; s++, idx++)
-  {
-    l2 = gcry_sexp_find_token (list, s, 1);
-    if (! l2)
     {
-      for (i = 0; i < idx; i++)
-      {
-        gcry_free (array[i]);
-        array[i] = NULL;
-      }
-      gcry_sexp_release (list);
-      return 3; /* required parameter not found */
+      l2 = gcry_sexp_find_token(list, s, 1);
+      if (!l2)
+        {
+          for (i = 0; i < idx; i++)
+            {
+              gcry_free(array[i]);
+              array[i] = NULL;
+            }
+          gcry_sexp_release(list);
+          return 3; /* required parameter not found */
+        }
+      array[idx] = gcry_sexp_nth_mpi(l2, 1, GCRYMPI_FMT_USG);
+      gcry_sexp_release(l2);
+      if (!array[idx])
+        {
+          for (i = 0; i < idx; i++)
+            {
+              gcry_free(array[i]);
+              array[i] = NULL;
+            }
+          gcry_sexp_release(list);
+          return 4; /* required parameter is invalid */
+        }
     }
-    array[idx] = gcry_sexp_nth_mpi (l2, 1, GCRYMPI_FMT_USG);
-    gcry_sexp_release (l2);
-    if (! array[idx])
-    {
-      for (i = 0; i < idx; i++)
-      {
-        gcry_free (array[i]);
-        array[i] = NULL;
-      }
-      gcry_sexp_release (list);
-      return 4; /* required parameter is invalid */
-    }
-  }
-  gcry_sexp_release (list);
+  gcry_sexp_release(list);
   return 0;
 }
 
@@ -134,28 +134,28 @@ key_from_sexp (gcry_mpi_t *array,
  * @return NULL on error
  */
 static gcry_sexp_t
-decode_private_ecdsa_key (const struct GNUNET_CRYPTO_EcdsaPrivateKey *priv)
+decode_private_ecdsa_key(const struct GNUNET_CRYPTO_EcdsaPrivateKey *priv)
 {
   gcry_sexp_t result;
   int rc;
 
-  rc = gcry_sexp_build (&result,
-                        NULL,
-                        "(private-key(ecc(curve \"" CURVE "\")"
-                        "(d %b)))",
-                        (int) sizeof (priv->d),
-                        priv->d);
+  rc = gcry_sexp_build(&result,
+                       NULL,
+                       "(private-key(ecc(curve \"" CURVE "\")"
+                       "(d %b)))",
+                       (int)sizeof(priv->d),
+                       priv->d);
   if (0 != rc)
-  {
-    LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_sexp_build", rc);
-    GNUNET_assert (0);
-  }
+    {
+      LOG_GCRY(GNUNET_ERROR_TYPE_ERROR, "gcry_sexp_build", rc);
+      GNUNET_assert(0);
+    }
 #if EXTRA_CHECKS
-  if (0 != (rc = gcry_pk_testkey (result)))
-  {
-    LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_pk_testkey", rc);
-    GNUNET_assert (0);
-  }
+  if (0 != (rc = gcry_pk_testkey(result)))
+    {
+      LOG_GCRY(GNUNET_ERROR_TYPE_ERROR, "gcry_pk_testkey", rc);
+      GNUNET_assert(0);
+    }
 #endif
   return result;
 }
@@ -169,28 +169,28 @@ decode_private_ecdsa_key (const struct GNUNET_CRYPTO_EcdsaPrivateKey *priv)
  * @return NULL on error
  */
 static gcry_sexp_t
-decode_private_eddsa_key (const struct GNUNET_CRYPTO_EddsaPrivateKey *priv)
+decode_private_eddsa_key(const struct GNUNET_CRYPTO_EddsaPrivateKey *priv)
 {
   gcry_sexp_t result;
   int rc;
 
-  rc = gcry_sexp_build (&result,
-                        NULL,
-                        "(private-key(ecc(curve \"" CURVE "\")"
-                        "(flags eddsa)(d %b)))",
-                        (int) sizeof (priv->d),
-                        priv->d);
+  rc = gcry_sexp_build(&result,
+                       NULL,
+                       "(private-key(ecc(curve \"" CURVE "\")"
+                       "(flags eddsa)(d %b)))",
+                       (int)sizeof(priv->d),
+                       priv->d);
   if (0 != rc)
-  {
-    LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_sexp_build", rc);
-    GNUNET_assert (0);
-  }
+    {
+      LOG_GCRY(GNUNET_ERROR_TYPE_ERROR, "gcry_sexp_build", rc);
+      GNUNET_assert(0);
+    }
 #if EXTRA_CHECKS
-  if (0 != (rc = gcry_pk_testkey (result)))
-  {
-    LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_pk_testkey", rc);
-    GNUNET_assert (0);
-  }
+  if (0 != (rc = gcry_pk_testkey(result)))
+    {
+      LOG_GCRY(GNUNET_ERROR_TYPE_ERROR, "gcry_pk_testkey", rc);
+      GNUNET_assert(0);
+    }
 #endif
   return result;
 }
@@ -204,28 +204,28 @@ decode_private_eddsa_key (const struct GNUNET_CRYPTO_EddsaPrivateKey *priv)
  * @return NULL on error
  */
 static gcry_sexp_t
-decode_private_ecdhe_key (const struct GNUNET_CRYPTO_EcdhePrivateKey *priv)
+decode_private_ecdhe_key(const struct GNUNET_CRYPTO_EcdhePrivateKey *priv)
 {
   gcry_sexp_t result;
   int rc;
 
-  rc = gcry_sexp_build (&result,
-                        NULL,
-                        "(private-key(ecc(curve \"" CURVE "\")"
-                        "(d %b)))",
-                        (int) sizeof (priv->d),
-                        priv->d);
+  rc = gcry_sexp_build(&result,
+                       NULL,
+                       "(private-key(ecc(curve \"" CURVE "\")"
+                       "(d %b)))",
+                       (int)sizeof(priv->d),
+                       priv->d);
   if (0 != rc)
-  {
-    LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_sexp_build", rc);
-    GNUNET_assert (0);
-  }
+    {
+      LOG_GCRY(GNUNET_ERROR_TYPE_ERROR, "gcry_sexp_build", rc);
+      GNUNET_assert(0);
+    }
 #if EXTRA_CHECKS
-  if (0 != (rc = gcry_pk_testkey (result)))
-  {
-    LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_pk_testkey", rc);
-    GNUNET_assert (0);
-  }
+  if (0 != (rc = gcry_pk_testkey(result)))
+    {
+      LOG_GCRY(GNUNET_ERROR_TYPE_ERROR, "gcry_pk_testkey", rc);
+      GNUNET_assert(0);
+    }
 #endif
   return result;
 }
@@ -238,7 +238,7 @@ decode_private_ecdhe_key (const struct GNUNET_CRYPTO_EcdhePrivateKey *priv)
  * @param pub where to write the public key
  */
 void
-GNUNET_CRYPTO_ecdsa_key_get_public (
+GNUNET_CRYPTO_ecdsa_key_get_public(
   const struct GNUNET_CRYPTO_EcdsaPrivateKey *priv,
   struct GNUNET_CRYPTO_EcdsaPublicKey *pub)
 {
@@ -246,19 +246,19 @@ GNUNET_CRYPTO_ecdsa_key_get_public (
   gcry_ctx_t ctx;
   gcry_mpi_t q;
 
-  BENCHMARK_START (ecdsa_key_get_public);
+  BENCHMARK_START(ecdsa_key_get_public);
 
-  sexp = decode_private_ecdsa_key (priv);
-  GNUNET_assert (NULL != sexp);
-  GNUNET_assert (0 == gcry_mpi_ec_new (&ctx, sexp, NULL));
-  gcry_sexp_release (sexp);
-  q = gcry_mpi_ec_get_mpi ("q@eddsa", ctx, 0);
-  GNUNET_assert (NULL != q);
-  GNUNET_CRYPTO_mpi_print_unsigned (pub->q_y, sizeof (pub->q_y), q);
-  gcry_mpi_release (q);
-  gcry_ctx_release (ctx);
+  sexp = decode_private_ecdsa_key(priv);
+  GNUNET_assert(NULL != sexp);
+  GNUNET_assert(0 == gcry_mpi_ec_new(&ctx, sexp, NULL));
+  gcry_sexp_release(sexp);
+  q = gcry_mpi_ec_get_mpi("q@eddsa", ctx, 0);
+  GNUNET_assert(NULL != q);
+  GNUNET_CRYPTO_mpi_print_unsigned(pub->q_y, sizeof(pub->q_y), q);
+  gcry_mpi_release(q);
+  gcry_ctx_release(ctx);
 
-  BENCHMARK_END (ecdsa_key_get_public);
+  BENCHMARK_END(ecdsa_key_get_public);
 }
 
 
@@ -269,7 +269,7 @@ GNUNET_CRYPTO_ecdsa_key_get_public (
  * @param pub where to write the public key
  */
 void
-GNUNET_CRYPTO_eddsa_key_get_public (
+GNUNET_CRYPTO_eddsa_key_get_public(
   const struct GNUNET_CRYPTO_EddsaPrivateKey *priv,
   struct GNUNET_CRYPTO_EddsaPublicKey *pub)
 {
@@ -277,19 +277,19 @@ GNUNET_CRYPTO_eddsa_key_get_public (
   gcry_ctx_t ctx;
   gcry_mpi_t q;
 
-  BENCHMARK_START (eddsa_key_get_public);
+  BENCHMARK_START(eddsa_key_get_public);
 
-  sexp = decode_private_eddsa_key (priv);
-  GNUNET_assert (NULL != sexp);
-  GNUNET_assert (0 == gcry_mpi_ec_new (&ctx, sexp, NULL));
-  gcry_sexp_release (sexp);
-  q = gcry_mpi_ec_get_mpi ("q@eddsa", ctx, 0);
-  GNUNET_assert (q);
-  GNUNET_CRYPTO_mpi_print_unsigned (pub->q_y, sizeof (pub->q_y), q);
-  gcry_mpi_release (q);
-  gcry_ctx_release (ctx);
+  sexp = decode_private_eddsa_key(priv);
+  GNUNET_assert(NULL != sexp);
+  GNUNET_assert(0 == gcry_mpi_ec_new(&ctx, sexp, NULL));
+  gcry_sexp_release(sexp);
+  q = gcry_mpi_ec_get_mpi("q@eddsa", ctx, 0);
+  GNUNET_assert(q);
+  GNUNET_CRYPTO_mpi_print_unsigned(pub->q_y, sizeof(pub->q_y), q);
+  gcry_mpi_release(q);
+  gcry_ctx_release(ctx);
 
-  BENCHMARK_END (eddsa_key_get_public);
+  BENCHMARK_END(eddsa_key_get_public);
 }
 
 
@@ -300,7 +300,7 @@ GNUNET_CRYPTO_eddsa_key_get_public (
  * @param pub where to write the public key
  */
 void
-GNUNET_CRYPTO_ecdhe_key_get_public (
+GNUNET_CRYPTO_ecdhe_key_get_public(
   const struct GNUNET_CRYPTO_EcdhePrivateKey *priv,
   struct GNUNET_CRYPTO_EcdhePublicKey *pub)
 {
@@ -308,19 +308,19 @@ GNUNET_CRYPTO_ecdhe_key_get_public (
   gcry_ctx_t ctx;
   gcry_mpi_t q;
 
-  BENCHMARK_START (ecdhe_key_get_public);
+  BENCHMARK_START(ecdhe_key_get_public);
 
-  sexp = decode_private_ecdhe_key (priv);
-  GNUNET_assert (NULL != sexp);
-  GNUNET_assert (0 == gcry_mpi_ec_new (&ctx, sexp, NULL));
-  gcry_sexp_release (sexp);
-  q = gcry_mpi_ec_get_mpi ("q@eddsa", ctx, 0);
-  GNUNET_assert (q);
-  GNUNET_CRYPTO_mpi_print_unsigned (pub->q_y, sizeof (pub->q_y), q);
-  gcry_mpi_release (q);
-  gcry_ctx_release (ctx);
+  sexp = decode_private_ecdhe_key(priv);
+  GNUNET_assert(NULL != sexp);
+  GNUNET_assert(0 == gcry_mpi_ec_new(&ctx, sexp, NULL));
+  gcry_sexp_release(sexp);
+  q = gcry_mpi_ec_get_mpi("q@eddsa", ctx, 0);
+  GNUNET_assert(q);
+  GNUNET_CRYPTO_mpi_print_unsigned(pub->q_y, sizeof(pub->q_y), q);
+  gcry_mpi_release(q);
+  gcry_ctx_release(ctx);
 
-  BENCHMARK_END (ecdhe_key_get_public);
+  BENCHMARK_END(ecdhe_key_get_public);
 }
 
 
@@ -331,27 +331,27 @@ GNUNET_CRYPTO_ecdhe_key_get_public (
  * @return string representing @a pub
  */
 char *
-GNUNET_CRYPTO_ecdsa_public_key_to_string (
+GNUNET_CRYPTO_ecdsa_public_key_to_string(
   const struct GNUNET_CRYPTO_EcdsaPublicKey *pub)
 {
   char *pubkeybuf;
-  size_t keylen = (sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey)) * 8;
+  size_t keylen = (sizeof(struct GNUNET_CRYPTO_EcdsaPublicKey)) * 8;
   char *end;
 
   if (keylen % 5 > 0)
     keylen += 5 - keylen % 5;
   keylen /= 5;
-  pubkeybuf = GNUNET_malloc (keylen + 1);
+  pubkeybuf = GNUNET_malloc(keylen + 1);
   end =
-    GNUNET_STRINGS_data_to_string ((unsigned char *) pub,
-                                   sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey),
-                                   pubkeybuf,
-                                   keylen);
+    GNUNET_STRINGS_data_to_string((unsigned char *)pub,
+                                  sizeof(struct GNUNET_CRYPTO_EcdsaPublicKey),
+                                  pubkeybuf,
+                                  keylen);
   if (NULL == end)
-  {
-    GNUNET_free (pubkeybuf);
-    return NULL;
-  }
+    {
+      GNUNET_free(pubkeybuf);
+      return NULL;
+    }
   *end = '\0';
   return pubkeybuf;
 }
@@ -364,27 +364,27 @@ GNUNET_CRYPTO_ecdsa_public_key_to_string (
  * @return string representing @a pub
  */
 char *
-GNUNET_CRYPTO_eddsa_public_key_to_string (
+GNUNET_CRYPTO_eddsa_public_key_to_string(
   const struct GNUNET_CRYPTO_EddsaPublicKey *pub)
 {
   char *pubkeybuf;
-  size_t keylen = (sizeof (struct GNUNET_CRYPTO_EddsaPublicKey)) * 8;
+  size_t keylen = (sizeof(struct GNUNET_CRYPTO_EddsaPublicKey)) * 8;
   char *end;
 
   if (keylen % 5 > 0)
     keylen += 5 - keylen % 5;
   keylen /= 5;
-  pubkeybuf = GNUNET_malloc (keylen + 1);
+  pubkeybuf = GNUNET_malloc(keylen + 1);
   end =
-    GNUNET_STRINGS_data_to_string ((unsigned char *) pub,
-                                   sizeof (struct GNUNET_CRYPTO_EddsaPublicKey),
-                                   pubkeybuf,
-                                   keylen);
+    GNUNET_STRINGS_data_to_string((unsigned char *)pub,
+                                  sizeof(struct GNUNET_CRYPTO_EddsaPublicKey),
+                                  pubkeybuf,
+                                  keylen);
   if (NULL == end)
-  {
-    GNUNET_free (pubkeybuf);
-    return NULL;
-  }
+    {
+      GNUNET_free(pubkeybuf);
+      return NULL;
+    }
   *end = '\0';
   return pubkeybuf;
 }
@@ -397,27 +397,27 @@ GNUNET_CRYPTO_eddsa_public_key_to_string (
  * @return string representing @a pub
  */
 char *
-GNUNET_CRYPTO_eddsa_private_key_to_string (
+GNUNET_CRYPTO_eddsa_private_key_to_string(
   const struct GNUNET_CRYPTO_EddsaPrivateKey *priv)
 {
   char *privkeybuf;
-  size_t keylen = (sizeof (struct GNUNET_CRYPTO_EddsaPrivateKey)) * 8;
+  size_t keylen = (sizeof(struct GNUNET_CRYPTO_EddsaPrivateKey)) * 8;
   char *end;
 
   if (keylen % 5 > 0)
     keylen += 5 - keylen % 5;
   keylen /= 5;
-  privkeybuf = GNUNET_malloc (keylen + 1);
-  end = GNUNET_STRINGS_data_to_string ((unsigned char *) priv,
-                                       sizeof (
-                                         struct GNUNET_CRYPTO_EddsaPrivateKey),
-                                       privkeybuf,
-                                       keylen);
+  privkeybuf = GNUNET_malloc(keylen + 1);
+  end = GNUNET_STRINGS_data_to_string((unsigned char *)priv,
+                                      sizeof(
+                                        struct GNUNET_CRYPTO_EddsaPrivateKey),
+                                      privkeybuf,
+                                      keylen);
   if (NULL == end)
-  {
-    GNUNET_free (privkeybuf);
-    return NULL;
-  }
+    {
+      GNUNET_free(privkeybuf);
+      return NULL;
+    }
   *end = '\0';
   return privkeybuf;
 }
@@ -430,27 +430,27 @@ GNUNET_CRYPTO_eddsa_private_key_to_string (
  * @return string representing @a priv
  */
 char *
-GNUNET_CRYPTO_ecdsa_private_key_to_string (
+GNUNET_CRYPTO_ecdsa_private_key_to_string(
   const struct GNUNET_CRYPTO_EcdsaPrivateKey *priv)
 {
   char *privkeybuf;
-  size_t keylen = (sizeof (struct GNUNET_CRYPTO_EcdsaPrivateKey)) * 8;
+  size_t keylen = (sizeof(struct GNUNET_CRYPTO_EcdsaPrivateKey)) * 8;
   char *end;
 
   if (keylen % 5 > 0)
     keylen += 5 - keylen % 5;
   keylen /= 5;
-  privkeybuf = GNUNET_malloc (keylen + 1);
-  end = GNUNET_STRINGS_data_to_string ((unsigned char *) priv,
-                                       sizeof (
-                                         struct GNUNET_CRYPTO_EcdsaPrivateKey),
-                                       privkeybuf,
-                                       keylen);
+  privkeybuf = GNUNET_malloc(keylen + 1);
+  end = GNUNET_STRINGS_data_to_string((unsigned char *)priv,
+                                      sizeof(
+                                        struct GNUNET_CRYPTO_EcdsaPrivateKey),
+                                      privkeybuf,
+                                      keylen);
   if (NULL == end)
-  {
-    GNUNET_free (privkeybuf);
-    return NULL;
-  }
+    {
+      GNUNET_free(privkeybuf);
+      return NULL;
+    }
   *end = '\0';
   return privkeybuf;
 }
@@ -465,12 +465,12 @@ GNUNET_CRYPTO_ecdsa_private_key_to_string (
  * @return #GNUNET_OK on success
  */
 int
-GNUNET_CRYPTO_ecdsa_public_key_from_string (
+GNUNET_CRYPTO_ecdsa_public_key_from_string(
   const char *enc,
   size_t enclen,
   struct GNUNET_CRYPTO_EcdsaPublicKey *pub)
 {
-  size_t keylen = (sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey)) * 8;
+  size_t keylen = (sizeof(struct GNUNET_CRYPTO_EcdsaPublicKey)) * 8;
 
   if (keylen % 5 > 0)
     keylen += 5 - keylen % 5;
@@ -479,11 +479,11 @@ GNUNET_CRYPTO_ecdsa_public_key_from_string (
     return GNUNET_SYSERR;
 
   if (GNUNET_OK !=
-      GNUNET_STRINGS_string_to_data (enc,
-                                     enclen,
-                                     pub,
-                                     sizeof (
-                                       struct GNUNET_CRYPTO_EcdsaPublicKey)))
+      GNUNET_STRINGS_string_to_data(enc,
+                                    enclen,
+                                    pub,
+                                    sizeof(
+                                      struct GNUNET_CRYPTO_EcdsaPublicKey)))
     return GNUNET_SYSERR;
   return GNUNET_OK;
 }
@@ -498,12 +498,12 @@ GNUNET_CRYPTO_ecdsa_public_key_from_string (
  * @return #GNUNET_OK on success
  */
 int
-GNUNET_CRYPTO_eddsa_public_key_from_string (
+GNUNET_CRYPTO_eddsa_public_key_from_string(
   const char *enc,
   size_t enclen,
   struct GNUNET_CRYPTO_EddsaPublicKey *pub)
 {
-  size_t keylen = (sizeof (struct GNUNET_CRYPTO_EddsaPublicKey)) * 8;
+  size_t keylen = (sizeof(struct GNUNET_CRYPTO_EddsaPublicKey)) * 8;
 
   if (keylen % 5 > 0)
     keylen += 5 - keylen % 5;
@@ -512,11 +512,11 @@ GNUNET_CRYPTO_eddsa_public_key_from_string (
     return GNUNET_SYSERR;
 
   if (GNUNET_OK !=
-      GNUNET_STRINGS_string_to_data (enc,
-                                     enclen,
-                                     pub,
-                                     sizeof (
-                                       struct GNUNET_CRYPTO_EddsaPublicKey)))
+      GNUNET_STRINGS_string_to_data(enc,
+                                    enclen,
+                                    pub,
+                                    sizeof(
+                                      struct GNUNET_CRYPTO_EddsaPublicKey)))
     return GNUNET_SYSERR;
   return GNUNET_OK;
 }
@@ -531,12 +531,12 @@ GNUNET_CRYPTO_eddsa_public_key_from_string (
  * @return #GNUNET_OK on success
  */
 int
-GNUNET_CRYPTO_eddsa_private_key_from_string (
+GNUNET_CRYPTO_eddsa_private_key_from_string(
   const char *enc,
   size_t enclen,
   struct GNUNET_CRYPTO_EddsaPrivateKey *priv)
 {
-  size_t keylen = (sizeof (struct GNUNET_CRYPTO_EddsaPrivateKey)) * 8;
+  size_t keylen = (sizeof(struct GNUNET_CRYPTO_EddsaPrivateKey)) * 8;
 
   if (keylen % 5 > 0)
     keylen += 5 - keylen % 5;
@@ -545,18 +545,18 @@ GNUNET_CRYPTO_eddsa_private_key_from_string (
     return GNUNET_SYSERR;
 
   if (GNUNET_OK !=
-      GNUNET_STRINGS_string_to_data (enc,
-                                     enclen,
-                                     priv,
-                                     sizeof (
-                                       struct GNUNET_CRYPTO_EddsaPrivateKey)))
+      GNUNET_STRINGS_string_to_data(enc,
+                                    enclen,
+                                    priv,
+                                    sizeof(
+                                      struct GNUNET_CRYPTO_EddsaPrivateKey)))
     return GNUNET_SYSERR;
 #if CRYPTO_BUG
-  if (GNUNET_OK != check_eddsa_key (priv))
-  {
-    GNUNET_break (0);
-    return GNUNET_OK;
-  }
+  if (GNUNET_OK != check_eddsa_key(priv))
+    {
+      GNUNET_break(0);
+      return GNUNET_OK;
+    }
 #endif
   return GNUNET_OK;
 }
@@ -569,9 +569,9 @@ GNUNET_CRYPTO_eddsa_private_key_from_string (
  * @param pk location of the key
  */
 void
-GNUNET_CRYPTO_ecdhe_key_clear (struct GNUNET_CRYPTO_EcdhePrivateKey *pk)
+GNUNET_CRYPTO_ecdhe_key_clear(struct GNUNET_CRYPTO_EcdhePrivateKey *pk)
 {
-  memset (pk, 0, sizeof (struct GNUNET_CRYPTO_EcdhePrivateKey));
+  memset(pk, 0, sizeof(struct GNUNET_CRYPTO_EcdhePrivateKey));
 }
 
 
@@ -582,9 +582,9 @@ GNUNET_CRYPTO_ecdhe_key_clear (struct GNUNET_CRYPTO_EcdhePrivateKey *pk)
  * @param pk location of the key
  */
 void
-GNUNET_CRYPTO_ecdsa_key_clear (struct GNUNET_CRYPTO_EcdsaPrivateKey *pk)
+GNUNET_CRYPTO_ecdsa_key_clear(struct GNUNET_CRYPTO_EcdsaPrivateKey *pk)
 {
-  memset (pk, 0, sizeof (struct GNUNET_CRYPTO_EcdsaPrivateKey));
+  memset(pk, 0, sizeof(struct GNUNET_CRYPTO_EcdsaPrivateKey));
 }
 
 
@@ -595,9 +595,9 @@ GNUNET_CRYPTO_ecdsa_key_clear (struct GNUNET_CRYPTO_EcdsaPrivateKey *pk)
  * @param pk location of the key
  */
 void
-GNUNET_CRYPTO_eddsa_key_clear (struct GNUNET_CRYPTO_EddsaPrivateKey *pk)
+GNUNET_CRYPTO_eddsa_key_clear(struct GNUNET_CRYPTO_EddsaPrivateKey *pk)
 {
-  memset (pk, 0, sizeof (struct GNUNET_CRYPTO_EddsaPrivateKey));
+  memset(pk, 0, sizeof(struct GNUNET_CRYPTO_EddsaPrivateKey));
 }
 
 
@@ -607,16 +607,16 @@ GNUNET_CRYPTO_eddsa_key_clear (struct GNUNET_CRYPTO_EddsaPrivateKey *pk)
  * @return fresh private key
  */
 struct GNUNET_CRYPTO_EcdhePrivateKey *
-GNUNET_CRYPTO_ecdhe_key_create ()
+GNUNET_CRYPTO_ecdhe_key_create()
 {
   struct GNUNET_CRYPTO_EcdhePrivateKey *priv;
 
-  priv = GNUNET_new (struct GNUNET_CRYPTO_EcdhePrivateKey);
-  if (GNUNET_OK != GNUNET_CRYPTO_ecdhe_key_create2 (priv))
-  {
-    GNUNET_free (priv);
-    return NULL;
-  }
+  priv = GNUNET_new(struct GNUNET_CRYPTO_EcdhePrivateKey);
+  if (GNUNET_OK != GNUNET_CRYPTO_ecdhe_key_create2(priv))
+    {
+      GNUNET_free(priv);
+      return NULL;
+    }
   return priv;
 }
 
@@ -629,54 +629,54 @@ GNUNET_CRYPTO_ecdhe_key_create ()
  * @return #GNUNET_OK on success, #GNUNET_SYSERR on failure
  */
 int
-GNUNET_CRYPTO_ecdhe_key_create2 (struct GNUNET_CRYPTO_EcdhePrivateKey *pk)
+GNUNET_CRYPTO_ecdhe_key_create2(struct GNUNET_CRYPTO_EcdhePrivateKey *pk)
 {
   gcry_sexp_t priv_sexp;
   gcry_sexp_t s_keyparam;
   gcry_mpi_t d;
   int rc;
 
-  BENCHMARK_START (ecdhe_key_create);
+  BENCHMARK_START(ecdhe_key_create);
 
   /* NOTE: For libgcrypt >= 1.7, we do not need the 'eddsa' flag here,
      but should also be harmless. For libgcrypt < 1.7, using 'eddsa'
      disables an expensive key testing routine. We do not want to run
      the expensive check for ECDHE, as we generate TONS of keys to
      use for a very short time. */
-  if (0 != (rc = gcry_sexp_build (&s_keyparam,
-                                  NULL,
-                                  "(genkey(ecc(curve \"" CURVE "\")"
-                                  "(flags eddsa no-keytest)))")))
-  {
-    LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_sexp_build", rc);
-    return GNUNET_SYSERR;
-  }
-  if (0 != (rc = gcry_pk_genkey (&priv_sexp, s_keyparam)))
-  {
-    LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_pk_genkey", rc);
-    gcry_sexp_release (s_keyparam);
-    return GNUNET_SYSERR;
-  }
-  gcry_sexp_release (s_keyparam);
+  if (0 != (rc = gcry_sexp_build(&s_keyparam,
+                                 NULL,
+                                 "(genkey(ecc(curve \"" CURVE "\")"
+                                 "(flags eddsa no-keytest)))")))
+    {
+      LOG_GCRY(GNUNET_ERROR_TYPE_ERROR, "gcry_sexp_build", rc);
+      return GNUNET_SYSERR;
+    }
+  if (0 != (rc = gcry_pk_genkey(&priv_sexp, s_keyparam)))
+    {
+      LOG_GCRY(GNUNET_ERROR_TYPE_ERROR, "gcry_pk_genkey", rc);
+      gcry_sexp_release(s_keyparam);
+      return GNUNET_SYSERR;
+    }
+  gcry_sexp_release(s_keyparam);
 #if EXTRA_CHECKS
-  if (0 != (rc = gcry_pk_testkey (priv_sexp)))
-  {
-    LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_pk_testkey", rc);
-    gcry_sexp_release (priv_sexp);
-    return GNUNET_SYSERR;
-  }
+  if (0 != (rc = gcry_pk_testkey(priv_sexp)))
+    {
+      LOG_GCRY(GNUNET_ERROR_TYPE_ERROR, "gcry_pk_testkey", rc);
+      gcry_sexp_release(priv_sexp);
+      return GNUNET_SYSERR;
+    }
 #endif
-  if (0 != (rc = key_from_sexp (&d, priv_sexp, "private-key", "d")))
-  {
-    LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "key_from_sexp", rc);
-    gcry_sexp_release (priv_sexp);
-    return GNUNET_SYSERR;
-  }
-  gcry_sexp_release (priv_sexp);
-  GNUNET_CRYPTO_mpi_print_unsigned (pk->d, sizeof (pk->d), d);
-  gcry_mpi_release (d);
+  if (0 != (rc = key_from_sexp(&d, priv_sexp, "private-key", "d")))
+    {
+      LOG_GCRY(GNUNET_ERROR_TYPE_ERROR, "key_from_sexp", rc);
+      gcry_sexp_release(priv_sexp);
+      return GNUNET_SYSERR;
+    }
+  gcry_sexp_release(priv_sexp);
+  GNUNET_CRYPTO_mpi_print_unsigned(pk->d, sizeof(pk->d), d);
+  gcry_mpi_release(d);
 
-  BENCHMARK_END (ecdhe_key_create);
+  BENCHMARK_END(ecdhe_key_create);
 
   return GNUNET_OK;
 }
@@ -688,7 +688,7 @@ GNUNET_CRYPTO_ecdhe_key_create2 (struct GNUNET_CRYPTO_EcdhePrivateKey *pk)
  * @return fresh private key
  */
 struct GNUNET_CRYPTO_EcdsaPrivateKey *
-GNUNET_CRYPTO_ecdsa_key_create ()
+GNUNET_CRYPTO_ecdsa_key_create()
 {
   struct GNUNET_CRYPTO_EcdsaPrivateKey *priv;
   gcry_sexp_t priv_sexp;
@@ -696,43 +696,43 @@ GNUNET_CRYPTO_ecdsa_key_create ()
   gcry_mpi_t d;
   int rc;
 
-  BENCHMARK_START (ecdsa_key_create);
+  BENCHMARK_START(ecdsa_key_create);
 
-  if (0 != (rc = gcry_sexp_build (&s_keyparam,
-                                  NULL,
-                                  "(genkey(ecc(curve \"" CURVE "\")"
-                                  "(flags)))")))
-  {
-    LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_sexp_build", rc);
-    return NULL;
-  }
-  if (0 != (rc = gcry_pk_genkey (&priv_sexp, s_keyparam)))
-  {
-    LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_pk_genkey", rc);
-    gcry_sexp_release (s_keyparam);
-    return NULL;
-  }
-  gcry_sexp_release (s_keyparam);
+  if (0 != (rc = gcry_sexp_build(&s_keyparam,
+                                 NULL,
+                                 "(genkey(ecc(curve \"" CURVE "\")"
+                                 "(flags)))")))
+    {
+      LOG_GCRY(GNUNET_ERROR_TYPE_ERROR, "gcry_sexp_build", rc);
+      return NULL;
+    }
+  if (0 != (rc = gcry_pk_genkey(&priv_sexp, s_keyparam)))
+    {
+      LOG_GCRY(GNUNET_ERROR_TYPE_ERROR, "gcry_pk_genkey", rc);
+      gcry_sexp_release(s_keyparam);
+      return NULL;
+    }
+  gcry_sexp_release(s_keyparam);
 #if EXTRA_CHECKS
-  if (0 != (rc = gcry_pk_testkey (priv_sexp)))
-  {
-    LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_pk_testkey", rc);
-    gcry_sexp_release (priv_sexp);
-    return NULL;
-  }
+  if (0 != (rc = gcry_pk_testkey(priv_sexp)))
+    {
+      LOG_GCRY(GNUNET_ERROR_TYPE_ERROR, "gcry_pk_testkey", rc);
+      gcry_sexp_release(priv_sexp);
+      return NULL;
+    }
 #endif
-  if (0 != (rc = key_from_sexp (&d, priv_sexp, "private-key", "d")))
-  {
-    LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "key_from_sexp", rc);
-    gcry_sexp_release (priv_sexp);
-    return NULL;
-  }
-  gcry_sexp_release (priv_sexp);
-  priv = GNUNET_new (struct GNUNET_CRYPTO_EcdsaPrivateKey);
-  GNUNET_CRYPTO_mpi_print_unsigned (priv->d, sizeof (priv->d), d);
-  gcry_mpi_release (d);
+  if (0 != (rc = key_from_sexp(&d, priv_sexp, "private-key", "d")))
+    {
+      LOG_GCRY(GNUNET_ERROR_TYPE_ERROR, "key_from_sexp", rc);
+      gcry_sexp_release(priv_sexp);
+      return NULL;
+    }
+  gcry_sexp_release(priv_sexp);
+  priv = GNUNET_new(struct GNUNET_CRYPTO_EcdsaPrivateKey);
+  GNUNET_CRYPTO_mpi_print_unsigned(priv->d, sizeof(priv->d), d);
+  gcry_mpi_release(d);
 
-  BENCHMARK_END (ecdsa_key_create);
+  BENCHMARK_END(ecdsa_key_create);
 
   return priv;
 }
@@ -743,7 +743,7 @@ GNUNET_CRYPTO_ecdsa_key_create ()
  * @return fresh private key
  */
 struct GNUNET_CRYPTO_EddsaPrivateKey *
-GNUNET_CRYPTO_eddsa_key_create ()
+GNUNET_CRYPTO_eddsa_key_create()
 {
   struct GNUNET_CRYPTO_EddsaPrivateKey *priv;
   gcry_sexp_t priv_sexp;
@@ -751,55 +751,55 @@ GNUNET_CRYPTO_eddsa_key_create ()
   gcry_mpi_t d;
   int rc;
 
-  BENCHMARK_START (eddsa_key_create);
+  BENCHMARK_START(eddsa_key_create);
 
 #if CRYPTO_BUG
 again:
 #endif
-  if (0 != (rc = gcry_sexp_build (&s_keyparam,
-                                  NULL,
-                                  "(genkey(ecc(curve \"" CURVE "\")"
-                                  "(flags eddsa)))")))
-  {
-    LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_sexp_build", rc);
-    return NULL;
-  }
-  if (0 != (rc = gcry_pk_genkey (&priv_sexp, s_keyparam)))
-  {
-    LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_pk_genkey", rc);
-    gcry_sexp_release (s_keyparam);
-    return NULL;
-  }
-  gcry_sexp_release (s_keyparam);
+  if (0 != (rc = gcry_sexp_build(&s_keyparam,
+                                 NULL,
+                                 "(genkey(ecc(curve \"" CURVE "\")"
+                                 "(flags eddsa)))")))
+    {
+      LOG_GCRY(GNUNET_ERROR_TYPE_ERROR, "gcry_sexp_build", rc);
+      return NULL;
+    }
+  if (0 != (rc = gcry_pk_genkey(&priv_sexp, s_keyparam)))
+    {
+      LOG_GCRY(GNUNET_ERROR_TYPE_ERROR, "gcry_pk_genkey", rc);
+      gcry_sexp_release(s_keyparam);
+      return NULL;
+    }
+  gcry_sexp_release(s_keyparam);
 #if EXTRA_CHECKS
-  if (0 != (rc = gcry_pk_testkey (priv_sexp)))
-  {
-    LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_pk_testkey", rc);
-    gcry_sexp_release (priv_sexp);
-    return NULL;
-  }
+  if (0 != (rc = gcry_pk_testkey(priv_sexp)))
+    {
+      LOG_GCRY(GNUNET_ERROR_TYPE_ERROR, "gcry_pk_testkey", rc);
+      gcry_sexp_release(priv_sexp);
+      return NULL;
+    }
 #endif
-  if (0 != (rc = key_from_sexp (&d, priv_sexp, "private-key", "d")))
-  {
-    LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "key_from_sexp", rc);
-    gcry_sexp_release (priv_sexp);
-    return NULL;
-  }
-  gcry_sexp_release (priv_sexp);
-  priv = GNUNET_new (struct GNUNET_CRYPTO_EddsaPrivateKey);
-  GNUNET_CRYPTO_mpi_print_unsigned (priv->d, sizeof (priv->d), d);
-  gcry_mpi_release (d);
+  if (0 != (rc = key_from_sexp(&d, priv_sexp, "private-key", "d")))
+    {
+      LOG_GCRY(GNUNET_ERROR_TYPE_ERROR, "key_from_sexp", rc);
+      gcry_sexp_release(priv_sexp);
+      return NULL;
+    }
+  gcry_sexp_release(priv_sexp);
+  priv = GNUNET_new(struct GNUNET_CRYPTO_EddsaPrivateKey);
+  GNUNET_CRYPTO_mpi_print_unsigned(priv->d, sizeof(priv->d), d);
+  gcry_mpi_release(d);
 
 #if CRYPTO_BUG
-  if (GNUNET_OK != check_eddsa_key (priv))
-  {
-    GNUNET_break (0);
-    GNUNET_free (priv);
-    goto again;
-  }
+  if (GNUNET_OK != check_eddsa_key(priv))
+    {
+      GNUNET_break(0);
+      GNUNET_free(priv);
+      goto again;
+    }
 #endif
 
-  BENCHMARK_END (eddsa_key_create);
+  BENCHMARK_END(eddsa_key_create);
 
   return priv;
 }
@@ -811,7 +811,7 @@ again:
  * @return "anonymous" private key
  */
 const struct GNUNET_CRYPTO_EcdsaPrivateKey *
-GNUNET_CRYPTO_ecdsa_key_get_anonymous ()
+GNUNET_CRYPTO_ecdsa_key_get_anonymous()
 {
   /**
    * 'anonymous' pseudonym (global static, d=1, public key = G
@@ -822,9 +822,9 @@ GNUNET_CRYPTO_ecdsa_key_get_anonymous ()
 
   if (once)
     return &anonymous;
-  GNUNET_CRYPTO_mpi_print_unsigned (anonymous.d,
-                                    sizeof (anonymous.d),
-                                    GCRYMPI_CONST_ONE);
+  GNUNET_CRYPTO_mpi_print_unsigned(anonymous.d,
+                                   sizeof(anonymous.d),
+                                   GCRYMPI_CONST_ONE);
   once = 1;
   return &anonymous;
 }
@@ -838,7 +838,7 @@ GNUNET_CRYPTO_ecdsa_key_get_anonymous ()
  * @return converted s-expression
  */
 static gcry_sexp_t
-data_to_eddsa_value (const struct GNUNET_CRYPTO_EccSignaturePurpose *purpose)
+data_to_eddsa_value(const struct GNUNET_CRYPTO_EccSignaturePurpose *purpose)
 {
   gcry_sexp_t data;
   int rc;
@@ -847,29 +847,29 @@ data_to_eddsa_value (const struct GNUNET_CRYPTO_EccSignaturePurpose *purpose)
 #if 1
   struct GNUNET_HashCode hc;
 
-  GNUNET_CRYPTO_hash (purpose, ntohl (purpose->size), &hc);
-  if (0 != (rc = gcry_sexp_build (&data,
-                                  NULL,
-                                  "(data(flags eddsa)(hash-algo %s)(value %b))",
-                                  "sha512",
-                                  (int) sizeof (hc),
-                                  &hc)))
-  {
-    LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_sexp_build", rc);
-    return NULL;
-  }
+  GNUNET_CRYPTO_hash(purpose, ntohl(purpose->size), &hc);
+  if (0 != (rc = gcry_sexp_build(&data,
+                                 NULL,
+                                 "(data(flags eddsa)(hash-algo %s)(value %b))",
+                                 "sha512",
+                                 (int)sizeof(hc),
+                                 &hc)))
+    {
+      LOG_GCRY(GNUNET_ERROR_TYPE_ERROR, "gcry_sexp_build", rc);
+      return NULL;
+    }
 #else
-  GNUNET_CRYPTO_hash (purpose, ntohl (purpose->size), &hc);
-  if (0 != (rc = gcry_sexp_build (&data,
-                                  NULL,
-                                  "(data(flags eddsa)(hash-algo %s)(value %b))",
-                                  "sha512",
-                                  ntohl (purpose->size),
-                                  purpose)))
-  {
-    LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_sexp_build", rc);
-    return NULL;
-  }
+  GNUNET_CRYPTO_hash(purpose, ntohl(purpose->size), &hc);
+  if (0 != (rc = gcry_sexp_build(&data,
+                                 NULL,
+                                 "(data(flags eddsa)(hash-algo %s)(value %b))",
+                                 "sha512",
+                                 ntohl(purpose->size),
+                                 purpose)))
+    {
+      LOG_GCRY(GNUNET_ERROR_TYPE_ERROR, "gcry_sexp_build", rc);
+      return NULL;
+    }
 #endif
   return data;
 }
@@ -883,7 +883,7 @@ data_to_eddsa_value (const struct GNUNET_CRYPTO_EccSignaturePurpose *purpose)
  * @return converted s-expression
  */
 static gcry_sexp_t
-data_to_ecdsa_value (const struct GNUNET_CRYPTO_EccSignaturePurpose *purpose)
+data_to_ecdsa_value(const struct GNUNET_CRYPTO_EccSignaturePurpose *purpose)
 {
   gcry_sexp_t data;
   int rc;
@@ -892,28 +892,28 @@ data_to_ecdsa_value (const struct GNUNET_CRYPTO_EccSignaturePurpose *purpose)
 #if 1
   struct GNUNET_HashCode hc;
 
-  GNUNET_CRYPTO_hash (purpose, ntohl (purpose->size), &hc);
-  if (0 != (rc = gcry_sexp_build (&data,
-                                  NULL,
-                                  "(data(flags rfc6979)(hash %s %b))",
-                                  "sha512",
-                                  (int) sizeof (hc),
-                                  &hc)))
-  {
-    LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_sexp_build", rc);
-    return NULL;
-  }
+  GNUNET_CRYPTO_hash(purpose, ntohl(purpose->size), &hc);
+  if (0 != (rc = gcry_sexp_build(&data,
+                                 NULL,
+                                 "(data(flags rfc6979)(hash %s %b))",
+                                 "sha512",
+                                 (int)sizeof(hc),
+                                 &hc)))
+    {
+      LOG_GCRY(GNUNET_ERROR_TYPE_ERROR, "gcry_sexp_build", rc);
+      return NULL;
+    }
 #else
-  if (0 != (rc = gcry_sexp_build (&data,
-                                  NULL,
-                                  "(data(flags rfc6979)(hash %s %b))",
-                                  "sha512",
-                                  ntohl (purpose->size),
-                                  purpose)))
-  {
-    LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_sexp_build", rc);
-    return NULL;
-  }
+  if (0 != (rc = gcry_sexp_build(&data,
+                                 NULL,
+                                 "(data(flags rfc6979)(hash %s %b))",
+                                 "sha512",
+                                 ntohl(purpose->size),
+                                 purpose)))
+    {
+      LOG_GCRY(GNUNET_ERROR_TYPE_ERROR, "gcry_sexp_build", rc);
+      return NULL;
+    }
 #endif
   return data;
 }
@@ -928,7 +928,7 @@ data_to_ecdsa_value (const struct GNUNET_CRYPTO_EccSignaturePurpose *purpose)
  * @return #GNUNET_SYSERR on error, #GNUNET_OK on success
  */
 int
-GNUNET_CRYPTO_ecdsa_sign (
+GNUNET_CRYPTO_ecdsa_sign(
   const struct GNUNET_CRYPTO_EcdsaPrivateKey *priv,
   const struct GNUNET_CRYPTO_EccSignaturePurpose *purpose,
   struct GNUNET_CRYPTO_EcdsaSignature *sig)
@@ -939,39 +939,39 @@ GNUNET_CRYPTO_ecdsa_sign (
   int rc;
   gcry_mpi_t rs[2];
 
-  BENCHMARK_START (ecdsa_sign);
+  BENCHMARK_START(ecdsa_sign);
 
-  priv_sexp = decode_private_ecdsa_key (priv);
-  data = data_to_ecdsa_value (purpose);
-  if (0 != (rc = gcry_pk_sign (&sig_sexp, data, priv_sexp)))
-  {
-    LOG (GNUNET_ERROR_TYPE_WARNING,
-         _ ("ECC signing failed at %s:%d: %s\n"),
-         __FILE__,
-         __LINE__,
-         gcry_strerror (rc));
-    gcry_sexp_release (data);
-    gcry_sexp_release (priv_sexp);
-    return GNUNET_SYSERR;
-  }
-  gcry_sexp_release (priv_sexp);
-  gcry_sexp_release (data);
+  priv_sexp = decode_private_ecdsa_key(priv);
+  data = data_to_ecdsa_value(purpose);
+  if (0 != (rc = gcry_pk_sign(&sig_sexp, data, priv_sexp)))
+    {
+      LOG(GNUNET_ERROR_TYPE_WARNING,
+          _("ECC signing failed at %s:%d: %s\n"),
+          __FILE__,
+          __LINE__,
+          gcry_strerror(rc));
+      gcry_sexp_release(data);
+      gcry_sexp_release(priv_sexp);
+      return GNUNET_SYSERR;
+    }
+  gcry_sexp_release(priv_sexp);
+  gcry_sexp_release(data);
 
   /* extract 'r' and 's' values from sexpression 'sig_sexp' and store in
      'signature' */
-  if (0 != (rc = key_from_sexp (rs, sig_sexp, "sig-val", "rs")))
-  {
-    GNUNET_break (0);
-    gcry_sexp_release (sig_sexp);
-    return GNUNET_SYSERR;
-  }
-  gcry_sexp_release (sig_sexp);
-  GNUNET_CRYPTO_mpi_print_unsigned (sig->r, sizeof (sig->r), rs[0]);
-  GNUNET_CRYPTO_mpi_print_unsigned (sig->s, sizeof (sig->s), rs[1]);
-  gcry_mpi_release (rs[0]);
-  gcry_mpi_release (rs[1]);
+  if (0 != (rc = key_from_sexp(rs, sig_sexp, "sig-val", "rs")))
+    {
+      GNUNET_break(0);
+      gcry_sexp_release(sig_sexp);
+      return GNUNET_SYSERR;
+    }
+  gcry_sexp_release(sig_sexp);
+  GNUNET_CRYPTO_mpi_print_unsigned(sig->r, sizeof(sig->r), rs[0]);
+  GNUNET_CRYPTO_mpi_print_unsigned(sig->s, sizeof(sig->s), rs[1]);
+  gcry_mpi_release(rs[0]);
+  gcry_mpi_release(rs[1]);
 
-  BENCHMARK_END (ecdsa_sign);
+  BENCHMARK_END(ecdsa_sign);
 
   return GNUNET_OK;
 }
@@ -986,7 +986,7 @@ GNUNET_CRYPTO_ecdsa_sign (
  * @return #GNUNET_SYSERR on error, #GNUNET_OK on success
  */
 int
-GNUNET_CRYPTO_eddsa_sign (
+GNUNET_CRYPTO_eddsa_sign(
   const struct GNUNET_CRYPTO_EddsaPrivateKey *priv,
   const struct GNUNET_CRYPTO_EccSignaturePurpose *purpose,
   struct GNUNET_CRYPTO_EddsaSignature *sig)
@@ -997,39 +997,39 @@ GNUNET_CRYPTO_eddsa_sign (
   int rc;
   gcry_mpi_t rs[2];
 
-  BENCHMARK_START (eddsa_sign);
+  BENCHMARK_START(eddsa_sign);
 
-  priv_sexp = decode_private_eddsa_key (priv);
-  data = data_to_eddsa_value (purpose);
-  if (0 != (rc = gcry_pk_sign (&sig_sexp, data, priv_sexp)))
-  {
-    LOG (GNUNET_ERROR_TYPE_WARNING,
-         _ ("EdDSA signing failed at %s:%d: %s\n"),
-         __FILE__,
-         __LINE__,
-         gcry_strerror (rc));
-    gcry_sexp_release (data);
-    gcry_sexp_release (priv_sexp);
-    return GNUNET_SYSERR;
-  }
-  gcry_sexp_release (priv_sexp);
-  gcry_sexp_release (data);
+  priv_sexp = decode_private_eddsa_key(priv);
+  data = data_to_eddsa_value(purpose);
+  if (0 != (rc = gcry_pk_sign(&sig_sexp, data, priv_sexp)))
+    {
+      LOG(GNUNET_ERROR_TYPE_WARNING,
+          _("EdDSA signing failed at %s:%d: %s\n"),
+          __FILE__,
+          __LINE__,
+          gcry_strerror(rc));
+      gcry_sexp_release(data);
+      gcry_sexp_release(priv_sexp);
+      return GNUNET_SYSERR;
+    }
+  gcry_sexp_release(priv_sexp);
+  gcry_sexp_release(data);
 
   /* extract 'r' and 's' values from sexpression 'sig_sexp' and store in
      'signature' */
-  if (0 != (rc = key_from_sexp (rs, sig_sexp, "sig-val", "rs")))
-  {
-    GNUNET_break (0);
-    gcry_sexp_release (sig_sexp);
-    return GNUNET_SYSERR;
-  }
-  gcry_sexp_release (sig_sexp);
-  GNUNET_CRYPTO_mpi_print_unsigned (sig->r, sizeof (sig->r), rs[0]);
-  GNUNET_CRYPTO_mpi_print_unsigned (sig->s, sizeof (sig->s), rs[1]);
-  gcry_mpi_release (rs[0]);
-  gcry_mpi_release (rs[1]);
+  if (0 != (rc = key_from_sexp(rs, sig_sexp, "sig-val", "rs")))
+    {
+      GNUNET_break(0);
+      gcry_sexp_release(sig_sexp);
+      return GNUNET_SYSERR;
+    }
+  gcry_sexp_release(sig_sexp);
+  GNUNET_CRYPTO_mpi_print_unsigned(sig->r, sizeof(sig->r), rs[0]);
+  GNUNET_CRYPTO_mpi_print_unsigned(sig->s, sizeof(sig->s), rs[1]);
+  gcry_mpi_release(rs[0]);
+  gcry_mpi_release(rs[1]);
 
-  BENCHMARK_END (eddsa_sign);
+  BENCHMARK_END(eddsa_sign);
 
   return GNUNET_OK;
 }
@@ -1045,7 +1045,7 @@ GNUNET_CRYPTO_eddsa_sign (
  * @returns #GNUNET_OK if ok, #GNUNET_SYSERR if invalid
  */
 int
-GNUNET_CRYPTO_ecdsa_verify (
+GNUNET_CRYPTO_ecdsa_verify(
   uint32_t purpose,
   const struct GNUNET_CRYPTO_EccSignaturePurpose *validate,
   const struct GNUNET_CRYPTO_EcdsaSignature *sig,
@@ -1056,49 +1056,49 @@ GNUNET_CRYPTO_ecdsa_verify (
   gcry_sexp_t pub_sexpr;
   int rc;
 
-  BENCHMARK_START (ecdsa_verify);
+  BENCHMARK_START(ecdsa_verify);
 
-  if (purpose != ntohl (validate->purpose))
+  if (purpose != ntohl(validate->purpose))
     return GNUNET_SYSERR; /* purpose mismatch */
 
   /* build s-expression for signature */
-  if (0 != (rc = gcry_sexp_build (&sig_sexpr,
-                                  NULL,
-                                  "(sig-val(ecdsa(r %b)(s %b)))",
-                                  (int) sizeof (sig->r),
-                                  sig->r,
-                                  (int) sizeof (sig->s),
-                                  sig->s)))
-  {
-    LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_sexp_build", rc);
-    return GNUNET_SYSERR;
-  }
-  data = data_to_ecdsa_value (validate);
-  if (0 != (rc = gcry_sexp_build (&pub_sexpr,
-                                  NULL,
-                                  "(public-key(ecc(curve " CURVE ")(q %b)))",
-                                  (int) sizeof (pub->q_y),
-                                  pub->q_y)))
-  {
-    gcry_sexp_release (data);
-    gcry_sexp_release (sig_sexpr);
-    return GNUNET_SYSERR;
-  }
-  rc = gcry_pk_verify (sig_sexpr, data, pub_sexpr);
-  gcry_sexp_release (pub_sexpr);
-  gcry_sexp_release (data);
-  gcry_sexp_release (sig_sexpr);
+  if (0 != (rc = gcry_sexp_build(&sig_sexpr,
+                                 NULL,
+                                 "(sig-val(ecdsa(r %b)(s %b)))",
+                                 (int)sizeof(sig->r),
+                                 sig->r,
+                                 (int)sizeof(sig->s),
+                                 sig->s)))
+    {
+      LOG_GCRY(GNUNET_ERROR_TYPE_ERROR, "gcry_sexp_build", rc);
+      return GNUNET_SYSERR;
+    }
+  data = data_to_ecdsa_value(validate);
+  if (0 != (rc = gcry_sexp_build(&pub_sexpr,
+                                 NULL,
+                                 "(public-key(ecc(curve " CURVE ")(q %b)))",
+                                 (int)sizeof(pub->q_y),
+                                 pub->q_y)))
+    {
+      gcry_sexp_release(data);
+      gcry_sexp_release(sig_sexpr);
+      return GNUNET_SYSERR;
+    }
+  rc = gcry_pk_verify(sig_sexpr, data, pub_sexpr);
+  gcry_sexp_release(pub_sexpr);
+  gcry_sexp_release(data);
+  gcry_sexp_release(sig_sexpr);
   if (0 != rc)
-  {
-    LOG (GNUNET_ERROR_TYPE_INFO,
-         _ ("ECDSA signature verification failed at %s:%d: %s\n"),
-         __FILE__,
-         __LINE__,
-         gcry_strerror (rc));
-    BENCHMARK_END (ecdsa_verify);
-    return GNUNET_SYSERR;
-  }
-  BENCHMARK_END (ecdsa_verify);
+    {
+      LOG(GNUNET_ERROR_TYPE_INFO,
+          _("ECDSA signature verification failed at %s:%d: %s\n"),
+          __FILE__,
+          __LINE__,
+          gcry_strerror(rc));
+      BENCHMARK_END(ecdsa_verify);
+      return GNUNET_SYSERR;
+    }
+  BENCHMARK_END(ecdsa_verify);
   return GNUNET_OK;
 }
 
@@ -1113,7 +1113,7 @@ GNUNET_CRYPTO_ecdsa_verify (
  * @returns #GNUNET_OK if ok, #GNUNET_SYSERR if invalid
  */
 int
-GNUNET_CRYPTO_eddsa_verify (
+GNUNET_CRYPTO_eddsa_verify(
   uint32_t purpose,
   const struct GNUNET_CRYPTO_EccSignaturePurpose *validate,
   const struct GNUNET_CRYPTO_EddsaSignature *sig,
@@ -1124,51 +1124,51 @@ GNUNET_CRYPTO_eddsa_verify (
   gcry_sexp_t pub_sexpr;
   int rc;
 
-  BENCHMARK_START (eddsa_verify);
+  BENCHMARK_START(eddsa_verify);
 
-  if (purpose != ntohl (validate->purpose))
+  if (purpose != ntohl(validate->purpose))
     return GNUNET_SYSERR; /* purpose mismatch */
 
   /* build s-expression for signature */
-  if (0 != (rc = gcry_sexp_build (&sig_sexpr,
-                                  NULL,
-                                  "(sig-val(eddsa(r %b)(s %b)))",
-                                  (int) sizeof (sig->r),
-                                  sig->r,
-                                  (int) sizeof (sig->s),
-                                  sig->s)))
-  {
-    LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_sexp_build", rc);
-    return GNUNET_SYSERR;
-  }
-  data = data_to_eddsa_value (validate);
-  if (0 != (rc = gcry_sexp_build (&pub_sexpr,
-                                  NULL,
-                                  "(public-key(ecc(curve " CURVE
-                                  ")(flags eddsa)(q %b)))",
-                                  (int) sizeof (pub->q_y),
-                                  pub->q_y)))
-  {
-    gcry_sexp_release (data);
-    gcry_sexp_release (sig_sexpr);
-    return GNUNET_SYSERR;
-  }
-  rc = gcry_pk_verify (sig_sexpr, data, pub_sexpr);
-  gcry_sexp_release (pub_sexpr);
-  gcry_sexp_release (data);
-  gcry_sexp_release (sig_sexpr);
+  if (0 != (rc = gcry_sexp_build(&sig_sexpr,
+                                 NULL,
+                                 "(sig-val(eddsa(r %b)(s %b)))",
+                                 (int)sizeof(sig->r),
+                                 sig->r,
+                                 (int)sizeof(sig->s),
+                                 sig->s)))
+    {
+      LOG_GCRY(GNUNET_ERROR_TYPE_ERROR, "gcry_sexp_build", rc);
+      return GNUNET_SYSERR;
+    }
+  data = data_to_eddsa_value(validate);
+  if (0 != (rc = gcry_sexp_build(&pub_sexpr,
+                                 NULL,
+                                 "(public-key(ecc(curve " CURVE
+                                 ")(flags eddsa)(q %b)))",
+                                 (int)sizeof(pub->q_y),
+                                 pub->q_y)))
+    {
+      gcry_sexp_release(data);
+      gcry_sexp_release(sig_sexpr);
+      return GNUNET_SYSERR;
+    }
+  rc = gcry_pk_verify(sig_sexpr, data, pub_sexpr);
+  gcry_sexp_release(pub_sexpr);
+  gcry_sexp_release(data);
+  gcry_sexp_release(sig_sexpr);
   if (0 != rc)
-  {
-    LOG (GNUNET_ERROR_TYPE_INFO,
-         _ ("EdDSA signature verification of type %u failed at %s:%d: %s\n"),
-         (unsigned int) purpose,
-         __FILE__,
-         __LINE__,
-         gcry_strerror (rc));
-    BENCHMARK_END (eddsa_verify);
-    return GNUNET_SYSERR;
-  }
-  BENCHMARK_END (eddsa_verify);
+    {
+      LOG(GNUNET_ERROR_TYPE_INFO,
+          _("EdDSA signature verification of type %u failed at %s:%d: %s\n"),
+          (unsigned int)purpose,
+          __FILE__,
+          __LINE__,
+          gcry_strerror(rc));
+      BENCHMARK_END(eddsa_verify);
+      return GNUNET_SYSERR;
+    }
+  BENCHMARK_END(eddsa_verify);
   return GNUNET_OK;
 }
 
@@ -1182,9 +1182,9 @@ GNUNET_CRYPTO_eddsa_verify (
  * @return #GNUNET_SYSERR on error, #GNUNET_OK on success
  */
 int
-GNUNET_CRYPTO_ecc_ecdh (const struct GNUNET_CRYPTO_EcdhePrivateKey *priv,
-                        const struct GNUNET_CRYPTO_EcdhePublicKey *pub,
-                        struct GNUNET_HashCode *key_material)
+GNUNET_CRYPTO_ecc_ecdh(const struct GNUNET_CRYPTO_EcdhePrivateKey *priv,
+                       const struct GNUNET_CRYPTO_EcdhePublicKey *pub,
+                       struct GNUNET_HashCode *key_material)
 {
   gcry_mpi_point_t result;
   gcry_mpi_point_t q;
@@ -1195,51 +1195,51 @@ GNUNET_CRYPTO_ecc_ecdh (const struct GNUNET_CRYPTO_EcdhePrivateKey *priv,
   unsigned char xbuf[256 / 8];
   size_t rsize;
 
-  BENCHMARK_START (ecc_ecdh);
+  BENCHMARK_START(ecc_ecdh);
 
   /* first, extract the q = dP value from the public key */
-  if (0 != gcry_sexp_build (&pub_sexpr,
-                            NULL,
-                            "(public-key(ecc(curve " CURVE ")(q %b)))",
-                            (int) sizeof (pub->q_y),
-                            pub->q_y))
+  if (0 != gcry_sexp_build(&pub_sexpr,
+                           NULL,
+                           "(public-key(ecc(curve " CURVE ")(q %b)))",
+                           (int)sizeof(pub->q_y),
+                           pub->q_y))
     return GNUNET_SYSERR;
-  GNUNET_assert (0 == gcry_mpi_ec_new (&ctx, pub_sexpr, NULL));
-  gcry_sexp_release (pub_sexpr);
-  q = gcry_mpi_ec_get_point ("q", ctx, 0);
+  GNUNET_assert(0 == gcry_mpi_ec_new(&ctx, pub_sexpr, NULL));
+  gcry_sexp_release(pub_sexpr);
+  q = gcry_mpi_ec_get_point("q", ctx, 0);
 
   /* second, extract the d value from our private key */
-  GNUNET_CRYPTO_mpi_scan_unsigned (&d, priv->d, sizeof (priv->d));
+  GNUNET_CRYPTO_mpi_scan_unsigned(&d, priv->d, sizeof(priv->d));
 
   /* then call the 'multiply' function, to compute the product */
-  result = gcry_mpi_point_new (0);
-  gcry_mpi_ec_mul (result, d, q, ctx);
-  gcry_mpi_point_release (q);
-  gcry_mpi_release (d);
+  result = gcry_mpi_point_new(0);
+  gcry_mpi_ec_mul(result, d, q, ctx);
+  gcry_mpi_point_release(q);
+  gcry_mpi_release(d);
 
   /* finally, convert point to string for hashing */
-  result_x = gcry_mpi_new (256);
-  if (gcry_mpi_ec_get_affine (result_x, NULL, result, ctx))
-  {
-    LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "get_affine failed", 0);
-    gcry_mpi_point_release (result);
-    gcry_ctx_release (ctx);
-    return GNUNET_SYSERR;
-  }
-  gcry_mpi_point_release (result);
-  gcry_ctx_release (ctx);
+  result_x = gcry_mpi_new(256);
+  if (gcry_mpi_ec_get_affine(result_x, NULL, result, ctx))
+    {
+      LOG_GCRY(GNUNET_ERROR_TYPE_ERROR, "get_affine failed", 0);
+      gcry_mpi_point_release(result);
+      gcry_ctx_release(ctx);
+      return GNUNET_SYSERR;
+    }
+  gcry_mpi_point_release(result);
+  gcry_ctx_release(ctx);
 
-  rsize = sizeof (xbuf);
-  GNUNET_assert (! gcry_mpi_get_flag (result_x, GCRYMPI_FLAG_OPAQUE));
+  rsize = sizeof(xbuf);
+  GNUNET_assert(!gcry_mpi_get_flag(result_x, GCRYMPI_FLAG_OPAQUE));
   /* result_x can be negative here, so we do not use 'GNUNET_CRYPTO_mpi_print_unsigned'
      as that does not include the sign bit; x should be a 255-bit
      value, so with the sign it should fit snugly into the 256-bit
      xbuf */
-  GNUNET_assert (
-    0 == gcry_mpi_print (GCRYMPI_FMT_STD, xbuf, rsize, &rsize, result_x));
-  GNUNET_CRYPTO_hash (xbuf, rsize, key_material);
-  gcry_mpi_release (result_x);
-  BENCHMARK_END (ecc_ecdh);
+  GNUNET_assert(
+    0 == gcry_mpi_print(GCRYMPI_FMT_STD, xbuf, rsize, &rsize, result_x));
+  GNUNET_CRYPTO_hash(xbuf, rsize, key_material);
+  gcry_mpi_release(result_x);
+  BENCHMARK_END(ecc_ecdh);
   return GNUNET_OK;
 }
 
@@ -1255,27 +1255,27 @@ GNUNET_CRYPTO_ecc_ecdh (const struct GNUNET_CRYPTO_EcdhePrivateKey *priv,
  * @return h value
  */
 static gcry_mpi_t
-derive_h (const struct GNUNET_CRYPTO_EcdsaPublicKey *pub,
-          const char *label,
-          const char *context)
+derive_h(const struct GNUNET_CRYPTO_EcdsaPublicKey *pub,
+         const char *label,
+         const char *context)
 {
   gcry_mpi_t h;
   struct GNUNET_HashCode hc;
   static const char *const salt = "key-derivation";
 
-  GNUNET_CRYPTO_kdf (&hc,
-                     sizeof (hc),
-                     salt,
-                     strlen (salt),
-                     pub,
-                     sizeof (*pub),
-                     label,
-                     strlen (label),
-                     context,
-                     strlen (context),
-                     NULL,
-                     0);
-  GNUNET_CRYPTO_mpi_scan_unsigned (&h, (unsigned char *) &hc, sizeof (hc));
+  GNUNET_CRYPTO_kdf(&hc,
+                    sizeof(hc),
+                    salt,
+                    strlen(salt),
+                    pub,
+                    sizeof(*pub),
+                    label,
+                    strlen(label),
+                    context,
+                    strlen(context),
+                    NULL,
+                    0);
+  GNUNET_CRYPTO_mpi_scan_unsigned(&h, (unsigned char *)&hc, sizeof(hc));
   return h;
 }
 
@@ -1293,7 +1293,7 @@ derive_h (const struct GNUNET_CRYPTO_EcdsaPublicKey *pub,
  * @return derived private key
  */
 struct GNUNET_CRYPTO_EcdsaPrivateKey *
-GNUNET_CRYPTO_ecdsa_private_key_derive (
+GNUNET_CRYPTO_ecdsa_private_key_derive(
   const struct GNUNET_CRYPTO_EcdsaPrivateKey *priv,
   const char *label,
   const char *context)
@@ -1306,22 +1306,22 @@ GNUNET_CRYPTO_ecdsa_private_key_derive (
   gcry_mpi_t n;
   gcry_ctx_t ctx;
 
-  GNUNET_assert (0 == gcry_mpi_ec_new (&ctx, NULL, CURVE));
+  GNUNET_assert(0 == gcry_mpi_ec_new(&ctx, NULL, CURVE));
 
-  n = gcry_mpi_ec_get_mpi ("n", ctx, 1);
-  GNUNET_CRYPTO_ecdsa_key_get_public (priv, &pub);
+  n = gcry_mpi_ec_get_mpi("n", ctx, 1);
+  GNUNET_CRYPTO_ecdsa_key_get_public(priv, &pub);
 
-  h = derive_h (&pub, label, context);
-  GNUNET_CRYPTO_mpi_scan_unsigned (&x, priv->d, sizeof (priv->d));
-  d = gcry_mpi_new (256);
-  gcry_mpi_mulm (d, h, x, n);
-  gcry_mpi_release (h);
-  gcry_mpi_release (x);
-  gcry_mpi_release (n);
-  gcry_ctx_release (ctx);
-  ret = GNUNET_new (struct GNUNET_CRYPTO_EcdsaPrivateKey);
-  GNUNET_CRYPTO_mpi_print_unsigned (ret->d, sizeof (ret->d), d);
-  gcry_mpi_release (d);
+  h = derive_h(&pub, label, context);
+  GNUNET_CRYPTO_mpi_scan_unsigned(&x, priv->d, sizeof(priv->d));
+  d = gcry_mpi_new(256);
+  gcry_mpi_mulm(d, h, x, n);
+  gcry_mpi_release(h);
+  gcry_mpi_release(x);
+  gcry_mpi_release(n);
+  gcry_ctx_release(ctx);
+  ret = GNUNET_new(struct GNUNET_CRYPTO_EcdsaPrivateKey);
+  GNUNET_CRYPTO_mpi_print_unsigned(ret->d, sizeof(ret->d), d);
+  gcry_mpi_release(d);
   return ret;
 }
 
@@ -1337,7 +1337,7 @@ GNUNET_CRYPTO_ecdsa_private_key_derive (
  * @param result where to write the derived public key
  */
 void
-GNUNET_CRYPTO_ecdsa_public_key_derive (
+GNUNET_CRYPTO_ecdsa_public_key_derive(
   const struct GNUNET_CRYPTO_EcdsaPublicKey *pub,
   const char *label,
   const char *context,
@@ -1351,39 +1351,39 @@ GNUNET_CRYPTO_ecdsa_public_key_derive (
   gcry_mpi_point_t q;
   gcry_mpi_point_t v;
 
-  GNUNET_assert (0 == gcry_mpi_ec_new (&ctx, NULL, CURVE));
+  GNUNET_assert(0 == gcry_mpi_ec_new(&ctx, NULL, CURVE));
 
   /* obtain point 'q' from original public key.  The provided 'q' is
      compressed thus we first store it in the context and then get it
      back as a (decompresssed) point.  */
-  q_y = gcry_mpi_set_opaque_copy (NULL, pub->q_y, 8 * sizeof (pub->q_y));
-  GNUNET_assert (NULL != q_y);
-  GNUNET_assert (0 == gcry_mpi_ec_set_mpi ("q", q_y, ctx));
-  gcry_mpi_release (q_y);
-  q = gcry_mpi_ec_get_point ("q", ctx, 0);
-  GNUNET_assert (q);
+  q_y = gcry_mpi_set_opaque_copy(NULL, pub->q_y, 8 * sizeof(pub->q_y));
+  GNUNET_assert(NULL != q_y);
+  GNUNET_assert(0 == gcry_mpi_ec_set_mpi("q", q_y, ctx));
+  gcry_mpi_release(q_y);
+  q = gcry_mpi_ec_get_point("q", ctx, 0);
+  GNUNET_assert(q);
 
   /* calculate h_mod_n = h % n */
-  h = derive_h (pub, label, context);
-  n = gcry_mpi_ec_get_mpi ("n", ctx, 1);
-  h_mod_n = gcry_mpi_new (256);
-  gcry_mpi_mod (h_mod_n, h, n);
+  h = derive_h(pub, label, context);
+  n = gcry_mpi_ec_get_mpi("n", ctx, 1);
+  h_mod_n = gcry_mpi_new(256);
+  gcry_mpi_mod(h_mod_n, h, n);
   /* calculate v = h_mod_n * q */
-  v = gcry_mpi_point_new (0);
-  gcry_mpi_ec_mul (v, h_mod_n, q, ctx);
-  gcry_mpi_release (h_mod_n);
-  gcry_mpi_release (h);
-  gcry_mpi_release (n);
-  gcry_mpi_point_release (q);
+  v = gcry_mpi_point_new(0);
+  gcry_mpi_ec_mul(v, h_mod_n, q, ctx);
+  gcry_mpi_release(h_mod_n);
+  gcry_mpi_release(h);
+  gcry_mpi_release(n);
+  gcry_mpi_point_release(q);
 
   /* convert point 'v' to public key that we return */
-  GNUNET_assert (0 == gcry_mpi_ec_set_point ("q", v, ctx));
-  gcry_mpi_point_release (v);
-  q_y = gcry_mpi_ec_get_mpi ("q@eddsa", ctx, 0);
-  GNUNET_assert (q_y);
-  GNUNET_CRYPTO_mpi_print_unsigned (result->q_y, sizeof (result->q_y), q_y);
-  gcry_mpi_release (q_y);
-  gcry_ctx_release (ctx);
+  GNUNET_assert(0 == gcry_mpi_ec_set_point("q", v, ctx));
+  gcry_mpi_point_release(v);
+  q_y = gcry_mpi_ec_get_mpi("q@eddsa", ctx, 0);
+  GNUNET_assert(q_y);
+  GNUNET_CRYPTO_mpi_print_unsigned(result->q_y, sizeof(result->q_y), q_y);
+  gcry_mpi_release(q_y);
+  gcry_ctx_release(ctx);
 }
 
 
@@ -1394,17 +1394,17 @@ GNUNET_CRYPTO_ecdsa_public_key_derive (
  * @param length number of bytes in @a buffer
  */
 static void
-reverse_buffer (unsigned char *buffer, size_t length)
+reverse_buffer(unsigned char *buffer, size_t length)
 {
   unsigned char tmp;
   size_t i;
 
   for (i = 0; i < length / 2; i++)
-  {
-    tmp = buffer[i];
-    buffer[i] = buffer[length - 1 - i];
-    buffer[length - 1 - i] = tmp;
-  }
+    {
+      tmp = buffer[i];
+      buffer[i] = buffer[length - 1 - i];
+      buffer[length - 1 - i] = tmp;
+    }
 }
 
 
@@ -1416,7 +1416,7 @@ reverse_buffer (unsigned char *buffer, size_t length)
  * @return value used for the calculation in EdDSA
  */
 static gcry_mpi_t
-eddsa_d_to_a (gcry_mpi_t d)
+eddsa_d_to_a(gcry_mpi_t d)
 {
   unsigned char rawmpi[32]; /* 256-bit value */
   size_t rawmpilen;
@@ -1429,25 +1429,25 @@ eddsa_d_to_a (gcry_mpi_t d)
 
   /* Note that we clear DIGEST so we can use it as input to left pad
      the key with zeroes for hashing.  */
-  memset (digest, 0, sizeof digest);
-  memset (hvec, 0, sizeof hvec);
-  rawmpilen = sizeof (rawmpi);
-  GNUNET_assert (
-    0 == gcry_mpi_print (GCRYMPI_FMT_USG, rawmpi, rawmpilen, &rawmpilen, d));
+  memset(digest, 0, sizeof digest);
+  memset(hvec, 0, sizeof hvec);
+  rawmpilen = sizeof(rawmpi);
+  GNUNET_assert(
+    0 == gcry_mpi_print(GCRYMPI_FMT_USG, rawmpi, rawmpilen, &rawmpilen, d));
   hvec[0].data = digest;
   hvec[0].off = 0;
   hvec[0].len = b > rawmpilen ? (b - rawmpilen) : 0;
   hvec[1].data = rawmpi;
   hvec[1].off = 0;
   hvec[1].len = rawmpilen;
-  GNUNET_assert (
-    0 == gcry_md_hash_buffers (GCRY_MD_SHA512, 0 /* flags */, digest, hvec, 2));
+  GNUNET_assert(
+    0 == gcry_md_hash_buffers(GCRY_MD_SHA512, 0 /* flags */, digest, hvec, 2));
   /* Compute the A value.  */
-  reverse_buffer (digest, 32); /* Only the first half of the hash.  */
+  reverse_buffer(digest, 32);  /* Only the first half of the hash.  */
   digest[0] = (digest[0] & 0x7f) | 0x40;
   digest[31] &= 0xf8;
 
-  GNUNET_CRYPTO_mpi_scan_unsigned (&a, digest, 32);
+  GNUNET_CRYPTO_mpi_scan_unsigned(&a, digest, 32);
   return a;
 }
 
@@ -1461,32 +1461,32 @@ eddsa_d_to_a (gcry_mpi_t d)
  * @return #GNUNET_OK on success
  */
 static int
-point_to_hash (gcry_mpi_point_t result,
-               gcry_ctx_t ctx,
-               struct GNUNET_HashCode *key_material)
+point_to_hash(gcry_mpi_point_t result,
+              gcry_ctx_t ctx,
+              struct GNUNET_HashCode *key_material)
 {
   gcry_mpi_t result_x;
   unsigned char xbuf[256 / 8];
   size_t rsize;
 
   /* finally, convert point to string for hashing */
-  result_x = gcry_mpi_new (256);
-  if (gcry_mpi_ec_get_affine (result_x, NULL, result, ctx))
-  {
-    LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "get_affine failed", 0);
-    return GNUNET_SYSERR;
-  }
+  result_x = gcry_mpi_new(256);
+  if (gcry_mpi_ec_get_affine(result_x, NULL, result, ctx))
+    {
+      LOG_GCRY(GNUNET_ERROR_TYPE_ERROR, "get_affine failed", 0);
+      return GNUNET_SYSERR;
+    }
 
-  rsize = sizeof (xbuf);
-  GNUNET_assert (! gcry_mpi_get_flag (result_x, GCRYMPI_FLAG_OPAQUE));
+  rsize = sizeof(xbuf);
+  GNUNET_assert(!gcry_mpi_get_flag(result_x, GCRYMPI_FLAG_OPAQUE));
   /* result_x can be negative here, so we do not use 'GNUNET_CRYPTO_mpi_print_unsigned'
      as that does not include the sign bit; x should be a 255-bit
      value, so with the sign it should fit snugly into the 256-bit
      xbuf */
-  GNUNET_assert (
-    0 == gcry_mpi_print (GCRYMPI_FMT_STD, xbuf, rsize, &rsize, result_x));
-  GNUNET_CRYPTO_hash (xbuf, rsize, key_material);
-  gcry_mpi_release (result_x);
+  GNUNET_assert(
+    0 == gcry_mpi_print(GCRYMPI_FMT_STD, xbuf, rsize, &rsize, result_x));
+  GNUNET_CRYPTO_hash(xbuf, rsize, key_material);
+  gcry_mpi_release(result_x);
   return GNUNET_OK;
 }
 
@@ -1502,9 +1502,9 @@ point_to_hash (gcry_mpi_point_t result,
  * @return #GNUNET_SYSERR on error, #GNUNET_OK on success
  */
 int
-GNUNET_CRYPTO_eddsa_ecdh (const struct GNUNET_CRYPTO_EddsaPrivateKey *priv,
-                          const struct GNUNET_CRYPTO_EcdhePublicKey *pub,
-                          struct GNUNET_HashCode *key_material)
+GNUNET_CRYPTO_eddsa_ecdh(const struct GNUNET_CRYPTO_EddsaPrivateKey *priv,
+                         const struct GNUNET_CRYPTO_EcdhePublicKey *pub,
+                         struct GNUNET_HashCode *key_material)
 {
   gcry_mpi_point_t result;
   gcry_mpi_point_t q;
@@ -1514,36 +1514,36 @@ GNUNET_CRYPTO_eddsa_ecdh (const struct GNUNET_CRYPTO_EddsaPrivateKey *priv,
   gcry_sexp_t pub_sexpr;
   int ret;
 
-  BENCHMARK_START (eddsa_ecdh);
+  BENCHMARK_START(eddsa_ecdh);
 
   /* first, extract the q = dP value from the public key */
-  if (0 != gcry_sexp_build (&pub_sexpr,
-                            NULL,
-                            "(public-key(ecc(curve " CURVE ")(q %b)))",
-                            (int) sizeof (pub->q_y),
-                            pub->q_y))
+  if (0 != gcry_sexp_build(&pub_sexpr,
+                           NULL,
+                           "(public-key(ecc(curve " CURVE ")(q %b)))",
+                           (int)sizeof(pub->q_y),
+                           pub->q_y))
     return GNUNET_SYSERR;
-  GNUNET_assert (0 == gcry_mpi_ec_new (&ctx, pub_sexpr, NULL));
-  gcry_sexp_release (pub_sexpr);
-  q = gcry_mpi_ec_get_point ("q", ctx, 0);
+  GNUNET_assert(0 == gcry_mpi_ec_new(&ctx, pub_sexpr, NULL));
+  gcry_sexp_release(pub_sexpr);
+  q = gcry_mpi_ec_get_point("q", ctx, 0);
 
   /* second, extract the d value from our private key */
-  GNUNET_CRYPTO_mpi_scan_unsigned (&d, priv->d, sizeof (priv->d));
+  GNUNET_CRYPTO_mpi_scan_unsigned(&d, priv->d, sizeof(priv->d));
 
   /* NOW, because this is EdDSA, HASH 'd' first! */
-  a = eddsa_d_to_a (d);
-  gcry_mpi_release (d);
+  a = eddsa_d_to_a(d);
+  gcry_mpi_release(d);
 
   /* then call the 'multiply' function, to compute the product */
-  result = gcry_mpi_point_new (0);
-  gcry_mpi_ec_mul (result, a, q, ctx);
-  gcry_mpi_point_release (q);
-  gcry_mpi_release (a);
+  result = gcry_mpi_point_new(0);
+  gcry_mpi_ec_mul(result, a, q, ctx);
+  gcry_mpi_point_release(q);
+  gcry_mpi_release(a);
 
-  ret = point_to_hash (result, ctx, key_material);
-  gcry_mpi_point_release (result);
-  gcry_ctx_release (ctx);
-  BENCHMARK_END (eddsa_ecdh);
+  ret = point_to_hash(result, ctx, key_material);
+  gcry_mpi_point_release(result);
+  gcry_ctx_release(ctx);
+  BENCHMARK_END(eddsa_ecdh);
   return ret;
 }
 
@@ -1559,9 +1559,9 @@ GNUNET_CRYPTO_eddsa_ecdh (const struct GNUNET_CRYPTO_EddsaPrivateKey *priv,
  * @return #GNUNET_SYSERR on error, #GNUNET_OK on success
  */
 int
-GNUNET_CRYPTO_ecdsa_ecdh (const struct GNUNET_CRYPTO_EcdsaPrivateKey *priv,
-                          const struct GNUNET_CRYPTO_EcdhePublicKey *pub,
-                          struct GNUNET_HashCode *key_material)
+GNUNET_CRYPTO_ecdsa_ecdh(const struct GNUNET_CRYPTO_EcdsaPrivateKey *priv,
+                         const struct GNUNET_CRYPTO_EcdhePublicKey *pub,
+                         struct GNUNET_HashCode *key_material)
 {
   gcry_mpi_point_t result;
   gcry_mpi_point_t q;
@@ -1570,33 +1570,33 @@ GNUNET_CRYPTO_ecdsa_ecdh (const struct GNUNET_CRYPTO_EcdsaPrivateKey *priv,
   gcry_sexp_t pub_sexpr;
   int ret;
 
-  BENCHMARK_START (ecdsa_ecdh);
+  BENCHMARK_START(ecdsa_ecdh);
 
   /* first, extract the q = dP value from the public key */
-  if (0 != gcry_sexp_build (&pub_sexpr,
-                            NULL,
-                            "(public-key(ecc(curve " CURVE ")(q %b)))",
-                            (int) sizeof (pub->q_y),
-                            pub->q_y))
+  if (0 != gcry_sexp_build(&pub_sexpr,
+                           NULL,
+                           "(public-key(ecc(curve " CURVE ")(q %b)))",
+                           (int)sizeof(pub->q_y),
+                           pub->q_y))
     return GNUNET_SYSERR;
-  GNUNET_assert (0 == gcry_mpi_ec_new (&ctx, pub_sexpr, NULL));
-  gcry_sexp_release (pub_sexpr);
-  q = gcry_mpi_ec_get_point ("q", ctx, 0);
+  GNUNET_assert(0 == gcry_mpi_ec_new(&ctx, pub_sexpr, NULL));
+  gcry_sexp_release(pub_sexpr);
+  q = gcry_mpi_ec_get_point("q", ctx, 0);
 
   /* second, extract the d value from our private key */
-  GNUNET_CRYPTO_mpi_scan_unsigned (&d, priv->d, sizeof (priv->d));
+  GNUNET_CRYPTO_mpi_scan_unsigned(&d, priv->d, sizeof(priv->d));
 
   /* then call the 'multiply' function, to compute the product */
-  result = gcry_mpi_point_new (0);
-  gcry_mpi_ec_mul (result, d, q, ctx);
-  gcry_mpi_point_release (q);
-  gcry_mpi_release (d);
+  result = gcry_mpi_point_new(0);
+  gcry_mpi_ec_mul(result, d, q, ctx);
+  gcry_mpi_point_release(q);
+  gcry_mpi_release(d);
 
   /* finally, convert point to string for hashing */
-  ret = point_to_hash (result, ctx, key_material);
-  gcry_mpi_point_release (result);
-  gcry_ctx_release (ctx);
-  BENCHMARK_END (ecdsa_ecdh);
+  ret = point_to_hash(result, ctx, key_material);
+  gcry_mpi_point_release(result);
+  gcry_ctx_release(ctx);
+  BENCHMARK_END(ecdsa_ecdh);
   return ret;
 }
 
@@ -1612,9 +1612,9 @@ GNUNET_CRYPTO_ecdsa_ecdh (const struct GNUNET_CRYPTO_EcdsaPrivateKey *priv,
  * @return #GNUNET_SYSERR on error, #GNUNET_OK on success
  */
 int
-GNUNET_CRYPTO_ecdh_eddsa (const struct GNUNET_CRYPTO_EcdhePrivateKey *priv,
-                          const struct GNUNET_CRYPTO_EddsaPublicKey *pub,
-                          struct GNUNET_HashCode *key_material)
+GNUNET_CRYPTO_ecdh_eddsa(const struct GNUNET_CRYPTO_EcdhePrivateKey *priv,
+                         const struct GNUNET_CRYPTO_EddsaPublicKey *pub,
+                         struct GNUNET_HashCode *key_material)
 {
   gcry_mpi_point_t result;
   gcry_mpi_point_t q;
@@ -1623,33 +1623,33 @@ GNUNET_CRYPTO_ecdh_eddsa (const struct GNUNET_CRYPTO_EcdhePrivateKey *priv,
   gcry_sexp_t pub_sexpr;
   int ret;
 
-  BENCHMARK_START (ecdh_eddsa);
+  BENCHMARK_START(ecdh_eddsa);
 
   /* first, extract the q = dP value from the public key */
-  if (0 != gcry_sexp_build (&pub_sexpr,
-                            NULL,
-                            "(public-key(ecc(curve " CURVE ")(q %b)))",
-                            (int) sizeof (pub->q_y),
-                            pub->q_y))
+  if (0 != gcry_sexp_build(&pub_sexpr,
+                           NULL,
+                           "(public-key(ecc(curve " CURVE ")(q %b)))",
+                           (int)sizeof(pub->q_y),
+                           pub->q_y))
     return GNUNET_SYSERR;
-  GNUNET_assert (0 == gcry_mpi_ec_new (&ctx, pub_sexpr, NULL));
-  gcry_sexp_release (pub_sexpr);
-  q = gcry_mpi_ec_get_point ("q", ctx, 0);
+  GNUNET_assert(0 == gcry_mpi_ec_new(&ctx, pub_sexpr, NULL));
+  gcry_sexp_release(pub_sexpr);
+  q = gcry_mpi_ec_get_point("q", ctx, 0);
 
   /* second, extract the d value from our private key */
-  GNUNET_CRYPTO_mpi_scan_unsigned (&d, priv->d, sizeof (priv->d));
+  GNUNET_CRYPTO_mpi_scan_unsigned(&d, priv->d, sizeof(priv->d));
 
   /* then call the 'multiply' function, to compute the product */
-  result = gcry_mpi_point_new (0);
-  gcry_mpi_ec_mul (result, d, q, ctx);
-  gcry_mpi_point_release (q);
-  gcry_mpi_release (d);
+  result = gcry_mpi_point_new(0);
+  gcry_mpi_ec_mul(result, d, q, ctx);
+  gcry_mpi_point_release(q);
+  gcry_mpi_release(d);
 
   /* finally, convert point to string for hashing */
-  ret = point_to_hash (result, ctx, key_material);
-  gcry_mpi_point_release (result);
-  gcry_ctx_release (ctx);
-  BENCHMARK_END (ecdh_eddsa);
+  ret = point_to_hash(result, ctx, key_material);
+  gcry_mpi_point_release(result);
+  gcry_ctx_release(ctx);
+  BENCHMARK_END(ecdh_eddsa);
   return ret;
 }
 
@@ -1664,14 +1664,14 @@ GNUNET_CRYPTO_ecdh_eddsa (const struct GNUNET_CRYPTO_EcdhePrivateKey *priv,
  * @return #GNUNET_SYSERR on error, #GNUNET_OK on success
  */
 int
-GNUNET_CRYPTO_ecdh_ecdsa (const struct GNUNET_CRYPTO_EcdhePrivateKey *priv,
-                          const struct GNUNET_CRYPTO_EcdsaPublicKey *pub,
-                          struct GNUNET_HashCode *key_material)
+GNUNET_CRYPTO_ecdh_ecdsa(const struct GNUNET_CRYPTO_EcdhePrivateKey *priv,
+                         const struct GNUNET_CRYPTO_EcdsaPublicKey *pub,
+                         struct GNUNET_HashCode *key_material)
 {
-  return GNUNET_CRYPTO_ecdh_eddsa (priv,
-                                   (const struct GNUNET_CRYPTO_EddsaPublicKey *)
-                                     pub,
-                                   key_material);
+  return GNUNET_CRYPTO_ecdh_eddsa(priv,
+                                  (const struct GNUNET_CRYPTO_EddsaPublicKey *)
+                                  pub,
+                                  key_material);
 }
 
 /* end of crypto_ecc.c */

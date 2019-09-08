@@ -11,12 +11,12 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 
 /**
  * @file dht/gnunet-service-dht.c
@@ -66,14 +66,14 @@ struct GNUNET_TIME_Relative hello_expiration;
  * @param message HELLO message of peer
  */
 static void
-process_hello (void *cls,
-	       const struct GNUNET_MessageHeader *message)
+process_hello(void *cls,
+              const struct GNUNET_MessageHeader *message)
 {
-  GNUNET_free_non_null (GDS_my_hello);
-  GDS_my_hello = GNUNET_malloc (ntohs (message->size));
-  GNUNET_memcpy (GDS_my_hello,
-                 message,
-                 ntohs (message->size));
+  GNUNET_free_non_null(GDS_my_hello);
+  GDS_my_hello = GNUNET_malloc(ntohs(message->size));
+  GNUNET_memcpy(GDS_my_hello,
+                message,
+                ntohs(message->size));
 }
 
 
@@ -83,32 +83,32 @@ process_hello (void *cls,
  * @param cls unused
  */
 static void
-shutdown_task (void *cls)
+shutdown_task(void *cls)
 {
   if (NULL != ghh)
-  {
-    GNUNET_TRANSPORT_hello_get_cancel (ghh);
-    ghh = NULL;
-  }
-  GDS_NEIGHBOURS_done ();
-  GDS_DATACACHE_done ();
-  GDS_ROUTING_done ();
-  GDS_HELLO_done ();
-  GDS_NSE_done ();
+    {
+      GNUNET_TRANSPORT_hello_get_cancel(ghh);
+      ghh = NULL;
+    }
+  GDS_NEIGHBOURS_done();
+  GDS_DATACACHE_done();
+  GDS_ROUTING_done();
+  GDS_HELLO_done();
+  GDS_NSE_done();
   if (NULL != GDS_block_context)
-  {
-    GNUNET_BLOCK_context_destroy (GDS_block_context);
-    GDS_block_context = NULL;
-  }
+    {
+      GNUNET_BLOCK_context_destroy(GDS_block_context);
+      GDS_block_context = NULL;
+    }
   if (NULL != GDS_stats)
-  {
-    GNUNET_STATISTICS_destroy (GDS_stats,
-			       GNUNET_YES);
-    GDS_stats = NULL;
-  }
-  GNUNET_free_non_null (GDS_my_hello);
+    {
+      GNUNET_STATISTICS_destroy(GDS_stats,
+                                GNUNET_YES);
+      GDS_stats = NULL;
+    }
+  GNUNET_free_non_null(GDS_my_hello);
   GDS_my_hello = NULL;
-  GDS_CLIENTS_stop ();
+  GDS_CLIENTS_stop();
 }
 
 
@@ -120,40 +120,40 @@ shutdown_task (void *cls)
  * @param service the initialized service
  */
 static void
-run (void *cls,
-     const struct GNUNET_CONFIGURATION_Handle *c,
-     struct GNUNET_SERVICE_Handle *service)
+run(void *cls,
+    const struct GNUNET_CONFIGURATION_Handle *c,
+    struct GNUNET_SERVICE_Handle *service)
 {
   GDS_cfg = c;
   GDS_service = service;
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_time (c,
-					   "transport",
-					   "HELLO_EXPIRATION",
-					   &hello_expiration))
-  {
-    hello_expiration = GNUNET_CONSTANTS_HELLO_ADDRESS_EXPIRATION;
-  }
-  GDS_block_context = GNUNET_BLOCK_context_create (GDS_cfg);
-  GDS_stats = GNUNET_STATISTICS_create ("dht",
-                                        GDS_cfg);
-  GNUNET_SERVICE_suspend (GDS_service);
-  GDS_CLIENTS_init ();
-  GDS_ROUTING_init ();
-  GDS_NSE_init ();
-  GDS_DATACACHE_init ();
-  GDS_HELLO_init ();
-  if (GNUNET_OK != GDS_NEIGHBOURS_init ())
-  {
-    shutdown_task (NULL);
-    return;
-  }
-  GNUNET_SCHEDULER_add_shutdown (&shutdown_task,
-				 NULL);
-  ghh = GNUNET_TRANSPORT_hello_get (GDS_cfg,
-				    GNUNET_TRANSPORT_AC_GLOBAL,
-                                    &process_hello,
-                                    NULL);
+      GNUNET_CONFIGURATION_get_value_time(c,
+                                          "transport",
+                                          "HELLO_EXPIRATION",
+                                          &hello_expiration))
+    {
+      hello_expiration = GNUNET_CONSTANTS_HELLO_ADDRESS_EXPIRATION;
+    }
+  GDS_block_context = GNUNET_BLOCK_context_create(GDS_cfg);
+  GDS_stats = GNUNET_STATISTICS_create("dht",
+                                       GDS_cfg);
+  GNUNET_SERVICE_suspend(GDS_service);
+  GDS_CLIENTS_init();
+  GDS_ROUTING_init();
+  GDS_NSE_init();
+  GDS_DATACACHE_init();
+  GDS_HELLO_init();
+  if (GNUNET_OK != GDS_NEIGHBOURS_init())
+    {
+      shutdown_task(NULL);
+      return;
+    }
+  GNUNET_SCHEDULER_add_shutdown(&shutdown_task,
+                                NULL);
+  ghh = GNUNET_TRANSPORT_hello_get(GDS_cfg,
+                                   GNUNET_TRANSPORT_AC_GLOBAL,
+                                   &process_hello,
+                                   NULL);
 }
 
 

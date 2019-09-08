@@ -11,12 +11,12 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 /**
  * @file cadet/cadet_api_get_channel.c
  * @brief cadet api: client implementation of cadet service
@@ -34,9 +34,7 @@
 /**
  * Operation handle.
  */
-struct GNUNET_CADET_ChannelMonitor
-{
-
+struct GNUNET_CADET_ChannelMonitor {
   /**
    * Channel callback.
    */
@@ -56,7 +54,7 @@ struct GNUNET_CADET_ChannelMonitor
    * Message queue to talk to CADET service.
    */
   struct GNUNET_MQ_Handle *mq;
-  
+
   /**
    * Task to reconnect.
    */
@@ -71,7 +69,6 @@ struct GNUNET_CADET_ChannelMonitor
    * Peer we want information about.
    */
   struct GNUNET_PeerIdentity peer;
-
 };
 
 
@@ -84,11 +81,11 @@ struct GNUNET_CADET_ChannelMonitor
  *         #GNUNET_SYSERR otherwise
  */
 static int
-check_channel_info (void *cls,
-		    const struct GNUNET_CADET_ChannelInfoMessage *message)
+check_channel_info(void *cls,
+                   const struct GNUNET_CADET_ChannelInfoMessage *message)
 {
-  (void) cls;
-  
+  (void)cls;
+
   return GNUNET_OK;
 }
 
@@ -96,39 +93,39 @@ check_channel_info (void *cls,
 /**
  * Process a local peer info reply, pass info to the user.
  *
- * @param cls Closure 
+ * @param cls Closure
  * @param message Message itself.
  */
 static void
-handle_channel_info (void *cls,
-		     const struct GNUNET_CADET_ChannelInfoMessage *message)
+handle_channel_info(void *cls,
+                    const struct GNUNET_CADET_ChannelInfoMessage *message)
 {
   struct GNUNET_CADET_ChannelMonitor *cm = cls;
   struct GNUNET_CADET_ChannelInternals ci;
 
   ci.root = message->root;
   ci.dest = message->dest;
-  cm->channel_cb (cm->channel_cb_cls,
-		  &ci);
-  GNUNET_CADET_get_channel_cancel (cm);
+  cm->channel_cb(cm->channel_cb_cls,
+                 &ci);
+  GNUNET_CADET_get_channel_cancel(cm);
 }
 
 
 /**
  * Process a local peer info reply, pass info to the user.
  *
- * @param cls Closure 
+ * @param cls Closure
  * @param message Message itself.
  */
 static void
-handle_channel_info_end (void *cls,
-			 const struct GNUNET_MessageHeader *message)
+handle_channel_info_end(void *cls,
+                        const struct GNUNET_MessageHeader *message)
 {
   struct GNUNET_CADET_ChannelMonitor *cm = cls;
 
-  cm->channel_cb (cm->channel_cb_cls,
-		  NULL);
-  GNUNET_CADET_get_channel_cancel (cm);
+  cm->channel_cb(cm->channel_cb_cls,
+                 NULL);
+  GNUNET_CADET_get_channel_cancel(cm);
 }
 
 
@@ -138,7 +135,7 @@ handle_channel_info_end (void *cls,
  * @param cls a `struct GNUNET_CADET_ChannelMonitor` operation
  */
 static void
-reconnect (void *cls);
+reconnect(void *cls);
 
 
 /**
@@ -148,18 +145,18 @@ reconnect (void *cls);
  * @param error error code from MQ
  */
 static void
-error_handler (void *cls,
-	       enum GNUNET_MQ_Error error)
+error_handler(void *cls,
+              enum GNUNET_MQ_Error error)
 {
   struct GNUNET_CADET_ChannelMonitor *cm = cls;
 
-  GNUNET_MQ_destroy (cm->mq);
+  GNUNET_MQ_destroy(cm->mq);
   cm->mq = NULL;
-  cm->backoff = GNUNET_TIME_randomized_backoff (cm->backoff,
-						GNUNET_TIME_UNIT_MINUTES);
-  cm->reconnect_task = GNUNET_SCHEDULER_add_delayed (cm->backoff,
-						     &reconnect,
-						     cm);
+  cm->backoff = GNUNET_TIME_randomized_backoff(cm->backoff,
+                                               GNUNET_TIME_UNIT_MINUTES);
+  cm->reconnect_task = GNUNET_SCHEDULER_add_delayed(cm->backoff,
+                                                    &reconnect,
+                                                    cm);
 }
 
 
@@ -169,36 +166,36 @@ error_handler (void *cls,
  * @param cls a `struct GNUNET_CADET_ChannelMonitor` operation
  */
 static void
-reconnect (void *cls)
+reconnect(void *cls)
 {
   struct GNUNET_CADET_ChannelMonitor *cm = cls;
   struct GNUNET_MQ_MessageHandler handlers[] = {
-    GNUNET_MQ_hd_fixed_size (channel_info_end,
-			     GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_CHANNEL_END,
-			     struct GNUNET_MessageHeader,
-			     cm),
-    GNUNET_MQ_hd_var_size (channel_info,
-                           GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_CHANNEL,
-                           struct GNUNET_CADET_ChannelInfoMessage,
-                           cm),
-    GNUNET_MQ_handler_end ()
+    GNUNET_MQ_hd_fixed_size(channel_info_end,
+                            GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_CHANNEL_END,
+                            struct GNUNET_MessageHeader,
+                            cm),
+    GNUNET_MQ_hd_var_size(channel_info,
+                          GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_CHANNEL,
+                          struct GNUNET_CADET_ChannelInfoMessage,
+                          cm),
+    GNUNET_MQ_handler_end()
   };
   struct GNUNET_CADET_RequestChannelInfoMessage *msg;
   struct GNUNET_MQ_Envelope *env;
- 
+
   cm->reconnect_task = NULL;
-  cm->mq = GNUNET_CLIENT_connect (cm->cfg,
-				  "cadet",
-				  handlers,
-				  &error_handler,
-				  cm);
+  cm->mq = GNUNET_CLIENT_connect(cm->cfg,
+                                 "cadet",
+                                 handlers,
+                                 &error_handler,
+                                 cm);
   if (NULL == cm->mq)
-    return;	       		 
-  env = GNUNET_MQ_msg (msg,
-		       GNUNET_MESSAGE_TYPE_CADET_LOCAL_REQUEST_INFO_CHANNEL);
+    return;
+  env = GNUNET_MQ_msg(msg,
+                      GNUNET_MESSAGE_TYPE_CADET_LOCAL_REQUEST_INFO_CHANNEL);
   msg->target = cm->peer;
-  GNUNET_MQ_send (cm->mq,
-                  env);
+  GNUNET_MQ_send(cm->mq,
+                 env);
 }
 
 
@@ -212,29 +209,29 @@ reconnect (void *cls)
  * @return NULL on error
  */
 struct GNUNET_CADET_ChannelMonitor *
-GNUNET_CADET_get_channel (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                          struct GNUNET_PeerIdentity *peer,
-                          GNUNET_CADET_ChannelCB callback,
-                          void *callback_cls)
+GNUNET_CADET_get_channel(const struct GNUNET_CONFIGURATION_Handle *cfg,
+                         struct GNUNET_PeerIdentity *peer,
+                         GNUNET_CADET_ChannelCB callback,
+                         void *callback_cls)
 {
   struct GNUNET_CADET_ChannelMonitor *cm;
 
   if (NULL == callback)
-  {
-    GNUNET_break (0);
-    return NULL;
-  }
-  cm = GNUNET_new (struct GNUNET_CADET_ChannelMonitor);
+    {
+      GNUNET_break(0);
+      return NULL;
+    }
+  cm = GNUNET_new(struct GNUNET_CADET_ChannelMonitor);
   cm->channel_cb = callback;
   cm->channel_cb_cls = callback_cls;
   cm->cfg = cfg;
   cm->peer = *peer;
-  reconnect (cm);
+  reconnect(cm);
   if (NULL == cm->mq)
-  {
-    GNUNET_free (cm);
-    return NULL;
-  }
+    {
+      GNUNET_free(cm);
+      return NULL;
+    }
   return cm;
 }
 
@@ -246,15 +243,15 @@ GNUNET_CADET_get_channel (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @return Closure that was given to #GNUNET_CADET_get_channel().
  */
 void *
-GNUNET_CADET_get_channel_cancel (struct GNUNET_CADET_ChannelMonitor *cm)
+GNUNET_CADET_get_channel_cancel(struct GNUNET_CADET_ChannelMonitor *cm)
 {
   void *ret = cm->channel_cb_cls;
 
   if (NULL != cm->mq)
-    GNUNET_MQ_destroy (cm->mq);
+    GNUNET_MQ_destroy(cm->mq);
   if (NULL != cm->reconnect_task)
-    GNUNET_SCHEDULER_cancel (cm->reconnect_task);
-  GNUNET_free (cm);
+    GNUNET_SCHEDULER_cancel(cm->reconnect_task);
+  GNUNET_free(cm);
   return ret;
 }
 

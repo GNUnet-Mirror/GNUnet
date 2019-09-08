@@ -11,12 +11,12 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 
 /**
  * @file ats/gnunet-service-ats_connectivity.c
@@ -35,8 +35,7 @@
 /**
  * Active connection requests.
  */
-struct ConnectionRequest
-{
+struct ConnectionRequest {
   /**
    * Client that made the request.
    */
@@ -61,14 +60,14 @@ static struct GNUNET_CONTAINER_MultiPeerMap *connection_requests;
  * @return #GNUNET_YES if so, #GNUNET_NO if not
  */
 unsigned int
-GAS_connectivity_has_peer (void *cls,
-                           const struct GNUNET_PeerIdentity *peer)
+GAS_connectivity_has_peer(void *cls,
+                          const struct GNUNET_PeerIdentity *peer)
 {
   if (NULL == connection_requests)
     return 0;
   /* TODO: return sum of 'strength's of connectivity requests */
-  return GNUNET_CONTAINER_multipeermap_contains (connection_requests,
-                                                 peer);
+  return GNUNET_CONTAINER_multipeermap_contains(connection_requests,
+                                                peer);
 }
 
 
@@ -79,22 +78,22 @@ GAS_connectivity_has_peer (void *cls,
  * @param message the request message
  */
 void
-GAS_handle_request_address (struct GNUNET_SERVICE_Client *client,
-			    const struct RequestAddressMessage *msg)
+GAS_handle_request_address(struct GNUNET_SERVICE_Client *client,
+                           const struct RequestAddressMessage *msg)
 {
   struct ConnectionRequest *cr;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Received `%s' message\n",
-              "GNUNET_MESSAGE_TYPE_ATS_REQUEST_ADDRESS");
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+             "Received `%s' message\n",
+             "GNUNET_MESSAGE_TYPE_ATS_REQUEST_ADDRESS");
   /* FIXME: should not ignore "msg->strength" */
-  cr = GNUNET_new (struct ConnectionRequest);
+  cr = GNUNET_new(struct ConnectionRequest);
   cr->client = client;
-  (void) GNUNET_CONTAINER_multipeermap_put (connection_requests,
-                                            &msg->peer,
-                                            cr,
-                                            GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
-  GAS_plugin_request_connect_start (&msg->peer);
+  (void)GNUNET_CONTAINER_multipeermap_put(connection_requests,
+                                          &msg->peer,
+                                          cr,
+                                          GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
+  GAS_plugin_request_connect_start(&msg->peer);
 }
 
 
@@ -108,25 +107,25 @@ GAS_handle_request_address (struct GNUNET_SERVICE_Client *client,
  * @return #GNUNET_OK (continue to iterate)
  */
 static int
-free_matching_requests (void *cls,
-                        const struct GNUNET_PeerIdentity *pid,
-                        void *value)
+free_matching_requests(void *cls,
+                       const struct GNUNET_PeerIdentity *pid,
+                       void *value)
 {
   struct GNUNET_SERVICE_Client *client = cls;
   struct ConnectionRequest *cr = value;
 
   if (cr->client == client)
-  {
-    GAS_plugin_request_connect_stop (pid);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Removed request pending for peer `%s\n",
-                GNUNET_i2s (pid));
-    GNUNET_assert (GNUNET_YES ==
-                   GNUNET_CONTAINER_multipeermap_remove (connection_requests,
+    {
+      GAS_plugin_request_connect_stop(pid);
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+                 "Removed request pending for peer `%s\n",
+                 GNUNET_i2s(pid));
+      GNUNET_assert(GNUNET_YES ==
+                    GNUNET_CONTAINER_multipeermap_remove(connection_requests,
                                                          pid,
                                                          cr));
-    GNUNET_free (cr);
-  }
+      GNUNET_free(cr);
+    }
   return GNUNET_OK;
 }
 
@@ -139,17 +138,17 @@ free_matching_requests (void *cls,
  * @param msg the request message
  */
 void
-GAS_handle_request_address_cancel (struct GNUNET_SERVICE_Client *client,
-				   const struct RequestAddressMessage *msg)
+GAS_handle_request_address_cancel(struct GNUNET_SERVICE_Client *client,
+                                  const struct RequestAddressMessage *msg)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Received GNUNET_MESSAGE_TYPE_ATS_REQUEST_ADDRESS_CANCEL message for peer %s\n",
-              GNUNET_i2s (&msg->peer));
-  GNUNET_break (0 == ntohl (msg->strength));
-  GNUNET_CONTAINER_multipeermap_get_multiple (connection_requests,
-                                              &msg->peer,
-                                              &free_matching_requests,
-                                              client);
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+             "Received GNUNET_MESSAGE_TYPE_ATS_REQUEST_ADDRESS_CANCEL message for peer %s\n",
+             GNUNET_i2s(&msg->peer));
+  GNUNET_break(0 == ntohl(msg->strength));
+  GNUNET_CONTAINER_multipeermap_get_multiple(connection_requests,
+                                             &msg->peer,
+                                             &free_matching_requests,
+                                             client);
 }
 
 
@@ -160,11 +159,11 @@ GAS_handle_request_address_cancel (struct GNUNET_SERVICE_Client *client,
  * @param client handle of the (now dead) client
  */
 void
-GAS_connectivity_remove_client (struct GNUNET_SERVICE_Client *client)
+GAS_connectivity_remove_client(struct GNUNET_SERVICE_Client *client)
 {
-  GNUNET_CONTAINER_multipeermap_iterate (connection_requests,
-                                         &free_matching_requests,
-                                         client);
+  GNUNET_CONTAINER_multipeermap_iterate(connection_requests,
+                                        &free_matching_requests,
+                                        client);
 }
 
 
@@ -172,11 +171,11 @@ GAS_connectivity_remove_client (struct GNUNET_SERVICE_Client *client)
  * Shutdown connectivity subsystem.
  */
 void
-GAS_connectivity_init ()
+GAS_connectivity_init()
 {
   connection_requests
-    = GNUNET_CONTAINER_multipeermap_create (32,
-					    GNUNET_NO);
+    = GNUNET_CONTAINER_multipeermap_create(32,
+                                           GNUNET_NO);
 }
 
 
@@ -189,15 +188,15 @@ GAS_connectivity_init ()
  * @return #GNUNET_OK (continue to iterate)
  */
 static int
-free_request (void *cls,
-              const struct GNUNET_PeerIdentity *pid,
-              void *value)
+free_request(void *cls,
+             const struct GNUNET_PeerIdentity *pid,
+             void *value)
 {
   struct ConnectionRequest *cr = value;
 
-  free_matching_requests (cr->client,
-                          pid,
-                          cr);
+  free_matching_requests(cr->client,
+                         pid,
+                         cr);
   return GNUNET_OK;
 }
 
@@ -206,14 +205,14 @@ free_request (void *cls,
  * Shutdown connectivity subsystem.
  */
 void
-GAS_connectivity_done ()
+GAS_connectivity_done()
 {
-  GAS_plugin_solver_lock ();
-  GNUNET_CONTAINER_multipeermap_iterate (connection_requests,
-                                         &free_request,
-                                         NULL);
-  GAS_plugin_solver_unlock ();
-  GNUNET_CONTAINER_multipeermap_destroy (connection_requests);
+  GAS_plugin_solver_lock();
+  GNUNET_CONTAINER_multipeermap_iterate(connection_requests,
+                                        &free_request,
+                                        NULL);
+  GAS_plugin_solver_unlock();
+  GNUNET_CONTAINER_multipeermap_destroy(connection_requests);
   connection_requests = NULL;
 }
 

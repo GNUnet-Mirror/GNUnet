@@ -11,12 +11,12 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 /**
  * @file util/test_strings_to_data.c
  * @brief testcase for strings.c
@@ -26,7 +26,7 @@
 
 
 int
-main (int argc, char *argv[])
+main(int argc, char *argv[])
 {
   char buf[1024];
   char *end;
@@ -35,26 +35,27 @@ main (int argc, char *argv[])
   unsigned int i;
   int ret = 0;
 
-  GNUNET_log_setup ("util", "DEBUG", NULL);
-  for (i=0;i<sizeof(src);i++)
-  {
-    memset (src, i, sizeof (src));
-    memset (dst, i+1, sizeof (dst));
+  GNUNET_log_setup("util", "DEBUG", NULL);
+  for (i = 0; i < sizeof(src); i++)
+    {
+      memset(src, i, sizeof(src));
+      memset(dst, i + 1, sizeof(dst));
 
-    end = GNUNET_STRINGS_data_to_string (&src, i, buf, sizeof (buf));
-    GNUNET_assert (NULL != end);
-    end[0] = '\0';
-    if (GNUNET_OK !=
-	GNUNET_STRINGS_string_to_data (buf, strlen (buf), dst, i))
-    {
-      fprintf (stderr, "%u failed decode (%u bytes)\n", i, (unsigned int) strlen (buf));
-      ret = 1;
-    } else if (0 != memcmp (src, dst, i))
-    {
-      fprintf (stderr, "%u wrong decode (%u bytes)\n", i, (unsigned int) strlen (buf));
-      ret = 1;
+      end = GNUNET_STRINGS_data_to_string(&src, i, buf, sizeof(buf));
+      GNUNET_assert(NULL != end);
+      end[0] = '\0';
+      if (GNUNET_OK !=
+          GNUNET_STRINGS_string_to_data(buf, strlen(buf), dst, i))
+        {
+          fprintf(stderr, "%u failed decode (%u bytes)\n", i, (unsigned int)strlen(buf));
+          ret = 1;
+        }
+      else if (0 != memcmp(src, dst, i))
+        {
+          fprintf(stderr, "%u wrong decode (%u bytes)\n", i, (unsigned int)strlen(buf));
+          ret = 1;
+        }
     }
-  }
   return ret;
 }
 

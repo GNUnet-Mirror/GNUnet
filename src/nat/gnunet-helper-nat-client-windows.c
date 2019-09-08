@@ -11,12 +11,12 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 
 /**
  * @file src/nat/gnunet-helper-nat-client-windows.c
@@ -43,7 +43,7 @@
  */
 #define _GNU_SOURCE
 /* Instead of including gnunet_common.h */
-#define GNUNET_memcpy(dst,src,n) do { if (0 != n) { (void) memcpy (dst,src,n); } } while (0)
+#define GNUNET_memcpy(dst, src, n) do { if (0 != n) { (void)memcpy(dst, src, n); } } while (0)
 
 #define FD_SETSIZE 1024
 #include <winsock2.h>
@@ -73,9 +73,7 @@
 /**
  * IPv4 header.
  */
-struct ip_header
-{
-
+struct ip_header {
   /**
    * Version (4 bits) + Internet header length (4 bits)
    */
@@ -131,8 +129,7 @@ struct ip_header
 /**
  * Format of ICMP packet.
  */
-struct icmp_ttl_exceeded_header
-{
+struct icmp_ttl_exceeded_header {
   uint8_t type;
 
   uint8_t code;
@@ -144,8 +141,7 @@ struct icmp_ttl_exceeded_header
   /* followed by original payload */
 };
 
-struct icmp_echo_header
-{
+struct icmp_echo_header {
   uint8_t type;
 
   uint8_t code;
@@ -158,8 +154,7 @@ struct icmp_echo_header
 /**
  * Beginning of UDP packet.
  */
-struct udp_header
-{
+struct udp_header {
   uint16_t src_port;
 
   uint16_t dst_port;
@@ -200,14 +195,14 @@ static uint16_t port;
  * @return 1 on success
  */
 static int
-inet_pton (int af, const char *cp, struct in_addr *buf)
+inet_pton(int af, const char *cp, struct in_addr *buf)
 {
-  buf->s_addr = inet_addr (cp);
+  buf->s_addr = inet_addr(cp);
   if (buf->s_addr == INADDR_NONE)
-  {
-    fprintf (stderr, "Error %d handling address %s", WSAGetLastError (), cp);
-    return 0;
-  }
+    {
+      fprintf(stderr, "Error %d handling address %s", WSAGetLastError(), cp);
+      return 0;
+    }
   return 1;
 }
 
@@ -220,7 +215,7 @@ inet_pton (int af, const char *cp, struct in_addr *buf)
  * @return the CRC 16.
  */
 static uint16_t
-calc_checksum (const uint16_t * data, unsigned int bytes)
+calc_checksum(const uint16_t * data, unsigned int bytes)
 {
   uint32_t sum;
   unsigned int i;
@@ -229,7 +224,7 @@ calc_checksum (const uint16_t * data, unsigned int bytes)
   for (i = 0; i < bytes / 2; i++)
     sum += data[i];
   sum = (sum & 0xffff) + (sum >> 16);
-  sum = htons (0xffff - sum);
+  sum = htons(0xffff - sum);
   return sum;
 }
 
@@ -241,11 +236,11 @@ calc_checksum (const uint16_t * data, unsigned int bytes)
  * @param other target address
  */
 static void
-send_icmp_udp (const struct in_addr *my_ip, const struct in_addr *other)
+send_icmp_udp(const struct in_addr *my_ip, const struct in_addr *other)
 {
-  char packet[sizeof (struct ip_header) * 2 +
-              sizeof (struct icmp_ttl_exceeded_header) +
-              sizeof (struct udp_header)];
+  char packet[sizeof(struct ip_header) * 2 +
+              sizeof(struct icmp_ttl_exceeded_header) +
+              sizeof(struct udp_header)];
   struct ip_header ip_pkt;
   struct icmp_ttl_exceeded_header icmp_pkt;
   struct udp_header udp_pkt;
@@ -257,8 +252,8 @@ send_icmp_udp (const struct in_addr *my_ip, const struct in_addr *other)
   off = 0;
   ip_pkt.vers_ihl = 0x45;
   ip_pkt.tos = 0;
-  ip_pkt.pkt_len = htons (sizeof (packet));
-  ip_pkt.id = htons (256);
+  ip_pkt.pkt_len = htons(sizeof(packet));
+  ip_pkt.id = htons(256);
   ip_pkt.flags_frag_offset = 0;
   ip_pkt.ttl = 128;
   ip_pkt.proto = IPPROTO_ICMP;
@@ -266,23 +261,23 @@ send_icmp_udp (const struct in_addr *my_ip, const struct in_addr *other)
   ip_pkt.src_ip = my_ip->s_addr;
   ip_pkt.dst_ip = other->s_addr;
   ip_pkt.checksum =
-      htons (calc_checksum ((uint16_t *) & ip_pkt, sizeof (struct ip_header)));
-  GNUNET_memcpy (&packet[off], &ip_pkt, sizeof (struct ip_header));
-  off += sizeof (struct ip_header);
+    htons(calc_checksum((uint16_t *)&ip_pkt, sizeof(struct ip_header)));
+  GNUNET_memcpy(&packet[off], &ip_pkt, sizeof(struct ip_header));
+  off += sizeof(struct ip_header);
 
   icmp_pkt.type = ICMP_TIME_EXCEEDED;
   icmp_pkt.code = 0;
   icmp_pkt.checksum = 0;
   icmp_pkt.unused = 0;
-  GNUNET_memcpy (&packet[off], &icmp_pkt, sizeof (struct icmp_ttl_exceeded_header));
-  off += sizeof (struct icmp_ttl_exceeded_header);
+  GNUNET_memcpy(&packet[off], &icmp_pkt, sizeof(struct icmp_ttl_exceeded_header));
+  off += sizeof(struct icmp_ttl_exceeded_header);
 
   /* ip header of the presumably 'lost' udp packet */
   ip_pkt.vers_ihl = 0x45;
   ip_pkt.tos = 0;
   ip_pkt.pkt_len =
-      htons (sizeof (struct ip_header) + sizeof (struct udp_header));
-  ip_pkt.id = htons (0);
+    htons(sizeof(struct ip_header) + sizeof(struct udp_header));
+  ip_pkt.id = htons(0);
   ip_pkt.flags_frag_offset = 0;
   ip_pkt.ttl = 128;
   ip_pkt.proto = IPPROTO_UDP;
@@ -290,41 +285,41 @@ send_icmp_udp (const struct in_addr *my_ip, const struct in_addr *other)
   ip_pkt.src_ip = other->s_addr;
   ip_pkt.dst_ip = dummy.s_addr;
   ip_pkt.checksum =
-      htons (calc_checksum ((uint16_t *) & ip_pkt, sizeof (struct ip_header)));
-  GNUNET_memcpy (&packet[off], &ip_pkt, sizeof (struct ip_header));
-  off += sizeof (struct ip_header);
+    htons(calc_checksum((uint16_t *)&ip_pkt, sizeof(struct ip_header)));
+  GNUNET_memcpy(&packet[off], &ip_pkt, sizeof(struct ip_header));
+  off += sizeof(struct ip_header);
 
   /* build UDP header */
-  udp_pkt.src_port = htons (NAT_TRAV_PORT);
-  udp_pkt.dst_port = htons (NAT_TRAV_PORT);
-  udp_pkt.length = htons (port);
+  udp_pkt.src_port = htons(NAT_TRAV_PORT);
+  udp_pkt.dst_port = htons(NAT_TRAV_PORT);
+  udp_pkt.length = htons(port);
   udp_pkt.crc = 0;
-  GNUNET_memcpy (&packet[off], &udp_pkt, sizeof (struct udp_header));
-  off += sizeof (struct udp_header);
+  GNUNET_memcpy(&packet[off], &udp_pkt, sizeof(struct udp_header));
+  off += sizeof(struct udp_header);
 
   /* no go back to calculate ICMP packet checksum */
   icmp_pkt.checksum =
-      htons (calc_checksum
-             ((uint16_t *) & packet[off],
-              sizeof (struct icmp_ttl_exceeded_header) +
-              sizeof (struct ip_header) + sizeof (struct udp_header)));
-  GNUNET_memcpy (&packet[sizeof (struct ip_header)], &icmp_pkt,
-          sizeof (struct icmp_ttl_exceeded_header));
+    htons(calc_checksum
+            ((uint16_t *)&packet[off],
+            sizeof(struct icmp_ttl_exceeded_header) +
+            sizeof(struct ip_header) + sizeof(struct udp_header)));
+  GNUNET_memcpy(&packet[sizeof(struct ip_header)], &icmp_pkt,
+                sizeof(struct icmp_ttl_exceeded_header));
 
-  memset (&dst, 0, sizeof (dst));
+  memset(&dst, 0, sizeof(dst));
   dst.sin_family = AF_INET;
   dst.sin_addr = *other;
   err =
-      sendto (rawsock, packet, sizeof (packet), 0, (struct sockaddr *) &dst,
-              sizeof (dst));
+    sendto(rawsock, packet, sizeof(packet), 0, (struct sockaddr *)&dst,
+           sizeof(dst));
   if (err < 0)
-  {
-    fprintf (stderr, "sendto failed: %s\n", strerror (errno));
-  }
-  else if (sizeof (packet) != (size_t) err)
-  {
-    fprintf (stderr, "Error: partial send of ICMP message\n");
-  }
+    {
+      fprintf(stderr, "sendto failed: %s\n", strerror(errno));
+    }
+  else if (sizeof(packet) != (size_t)err)
+    {
+      fprintf(stderr, "Error: partial send of ICMP message\n");
+    }
 }
 
 
@@ -335,15 +330,15 @@ send_icmp_udp (const struct in_addr *my_ip, const struct in_addr *other)
  * @param other target address
  */
 static void
-send_icmp (const struct in_addr *my_ip, const struct in_addr *other)
+send_icmp(const struct in_addr *my_ip, const struct in_addr *other)
 {
   struct ip_header ip_pkt;
   struct icmp_ttl_exceeded_header icmp_ttl;
   struct icmp_echo_header icmp_echo;
   struct sockaddr_in dst;
-  char packet[sizeof (struct ip_header) * 2 +
-              sizeof (struct icmp_ttl_exceeded_header) +
-              sizeof (struct icmp_echo_header)];
+  char packet[sizeof(struct ip_header) * 2 +
+              sizeof(struct icmp_ttl_exceeded_header) +
+              sizeof(struct icmp_echo_header)];
   size_t off;
   int err;
 
@@ -351,8 +346,8 @@ send_icmp (const struct in_addr *my_ip, const struct in_addr *other)
   off = 0;
   ip_pkt.vers_ihl = 0x45;
   ip_pkt.tos = 0;
-  ip_pkt.pkt_len = htons (sizeof (packet));
-  ip_pkt.id = htons (256);
+  ip_pkt.pkt_len = htons(sizeof(packet));
+  ip_pkt.id = htons(256);
   ip_pkt.flags_frag_offset = 0;
   ip_pkt.ttl = IPDEFTTL;
   ip_pkt.proto = IPPROTO_ICMP;
@@ -360,24 +355,24 @@ send_icmp (const struct in_addr *my_ip, const struct in_addr *other)
   ip_pkt.src_ip = my_ip->s_addr;
   ip_pkt.dst_ip = other->s_addr;
   ip_pkt.checksum =
-      htons (calc_checksum ((uint16_t *) & ip_pkt, sizeof (struct ip_header)));
-  GNUNET_memcpy (&packet[off], &ip_pkt, sizeof (struct ip_header));
-  off += sizeof (ip_pkt);
+    htons(calc_checksum((uint16_t *)&ip_pkt, sizeof(struct ip_header)));
+  GNUNET_memcpy(&packet[off], &ip_pkt, sizeof(struct ip_header));
+  off += sizeof(ip_pkt);
 
   /* icmp reply: time exceeded */
   icmp_ttl.type = ICMP_TIME_EXCEEDED;
   icmp_ttl.code = 0;
   icmp_ttl.checksum = 0;
   icmp_ttl.unused = 0;
-  GNUNET_memcpy (&packet[off], &icmp_ttl, sizeof (struct icmp_ttl_exceeded_header));
-  off += sizeof (struct icmp_ttl_exceeded_header);
+  GNUNET_memcpy(&packet[off], &icmp_ttl, sizeof(struct icmp_ttl_exceeded_header));
+  off += sizeof(struct icmp_ttl_exceeded_header);
 
   /* ip header of the presumably 'lost' udp packet */
   ip_pkt.vers_ihl = 0x45;
   ip_pkt.tos = 0;
   ip_pkt.pkt_len =
-      htons (sizeof (struct ip_header) + sizeof (struct icmp_echo_header));
-  ip_pkt.id = htons (256);
+    htons(sizeof(struct ip_header) + sizeof(struct icmp_echo_header));
+  ip_pkt.id = htons(256);
   ip_pkt.flags_frag_offset = 0;
   ip_pkt.ttl = 1;               /* real TTL would be 1 on a time exceeded packet */
   ip_pkt.proto = IPPROTO_ICMP;
@@ -385,44 +380,44 @@ send_icmp (const struct in_addr *my_ip, const struct in_addr *other)
   ip_pkt.dst_ip = dummy.s_addr;
   ip_pkt.checksum = 0;
   ip_pkt.checksum =
-      htons (calc_checksum ((uint16_t *) & ip_pkt, sizeof (struct ip_header)));
-  GNUNET_memcpy (&packet[off], &ip_pkt, sizeof (struct ip_header));
-  off += sizeof (struct ip_header);
+    htons(calc_checksum((uint16_t *)&ip_pkt, sizeof(struct ip_header)));
+  GNUNET_memcpy(&packet[off], &ip_pkt, sizeof(struct ip_header));
+  off += sizeof(struct ip_header);
 
   icmp_echo.type = ICMP_ECHO;
   icmp_echo.code = 0;
-  icmp_echo.reserved = htonl (port);
+  icmp_echo.reserved = htonl(port);
   icmp_echo.checksum = 0;
   icmp_echo.checksum =
-      htons (calc_checksum
-             ((uint16_t *) & icmp_echo, sizeof (struct icmp_echo_header)));
-  GNUNET_memcpy (&packet[off], &icmp_echo, sizeof (struct icmp_echo_header));
+    htons(calc_checksum
+            ((uint16_t *)&icmp_echo, sizeof(struct icmp_echo_header)));
+  GNUNET_memcpy(&packet[off], &icmp_echo, sizeof(struct icmp_echo_header));
 
   /* no go back to calculate ICMP packet checksum */
-  off = sizeof (struct ip_header);
+  off = sizeof(struct ip_header);
   icmp_ttl.checksum =
-      htons (calc_checksum
-             ((uint16_t *) & packet[off],
-              sizeof (struct icmp_ttl_exceeded_header) +
-              sizeof (struct ip_header) + sizeof (struct icmp_echo_header)));
-  GNUNET_memcpy (&packet[off], &icmp_ttl, sizeof (struct icmp_ttl_exceeded_header));
+    htons(calc_checksum
+            ((uint16_t *)&packet[off],
+            sizeof(struct icmp_ttl_exceeded_header) +
+            sizeof(struct ip_header) + sizeof(struct icmp_echo_header)));
+  GNUNET_memcpy(&packet[off], &icmp_ttl, sizeof(struct icmp_ttl_exceeded_header));
 
-  memset (&dst, 0, sizeof (dst));
+  memset(&dst, 0, sizeof(dst));
   dst.sin_family = AF_INET;
   dst.sin_addr = *other;
 
   err =
-      sendto (rawsock, packet, sizeof (packet), 0, (struct sockaddr *) &dst,
-              sizeof (dst));
+    sendto(rawsock, packet, sizeof(packet), 0, (struct sockaddr *)&dst,
+           sizeof(dst));
 
   if (err < 0)
-  {
-    fprintf (stderr, "sendto failed: %s\n", strerror (errno));
-  }
-  else if (sizeof (packet) != (size_t) err)
-  {
-    fprintf (stderr, "Error: partial send of ICMP message\n");
-  }
+    {
+      fprintf(stderr, "sendto failed: %s\n", strerror(errno));
+    }
+  else if (sizeof(packet) != (size_t)err)
+    {
+      fprintf(stderr, "Error: partial send of ICMP message\n");
+    }
 }
 
 
@@ -432,100 +427,102 @@ send_icmp (const struct in_addr *my_ip, const struct in_addr *other)
  * @return INVALID_SOCKET on error
  */
 static SOCKET
-make_raw_socket ()
+make_raw_socket()
 {
   DWORD bOptVal = TRUE;
-  int bOptLen = sizeof (bOptVal);
+  int bOptLen = sizeof(bOptVal);
   SOCKET ret;
 
-  ret = socket (AF_INET, SOCK_RAW, IPPROTO_RAW);
+  ret = socket(AF_INET, SOCK_RAW, IPPROTO_RAW);
   if (INVALID_SOCKET == ret)
-  {
-    fprintf (stderr, "Error opening RAW socket: %s\n", strerror (errno));
-    return INVALID_SOCKET;
-  }
+    {
+      fprintf(stderr, "Error opening RAW socket: %s\n", strerror(errno));
+      return INVALID_SOCKET;
+    }
   if (0 !=
-      setsockopt (ret, SOL_SOCKET, SO_BROADCAST, (char *) &bOptVal, bOptLen))
-  {
-    fprintf (stderr, "Error setting SO_BROADCAST to ON: %s\n",
-             strerror (errno));
-    closesocket (rawsock);
-    return INVALID_SOCKET;
-  }
+      setsockopt(ret, SOL_SOCKET, SO_BROADCAST, (char *)&bOptVal, bOptLen))
+    {
+      fprintf(stderr, "Error setting SO_BROADCAST to ON: %s\n",
+              strerror(errno));
+      closesocket(rawsock);
+      return INVALID_SOCKET;
+    }
 
-  if (0 != setsockopt (ret, IPPROTO_IP, IP_HDRINCL, (char *) &bOptVal, bOptLen))
-  {
-    fprintf (stderr, "Error setting IP_HDRINCL to ON: %s\n", strerror (errno));
-    closesocket (rawsock);
-    return INVALID_SOCKET;
-  }
+  if (0 != setsockopt(ret, IPPROTO_IP, IP_HDRINCL, (char *)&bOptVal, bOptLen))
+    {
+      fprintf(stderr, "Error setting IP_HDRINCL to ON: %s\n", strerror(errno));
+      closesocket(rawsock);
+      return INVALID_SOCKET;
+    }
   return ret;
 }
 
 
 int
-main (int argc, char *const *argv)
+main(int argc, char *const *argv)
 {
   struct in_addr external;
   struct in_addr target;
   WSADATA wsaData;
   unsigned int p;
 
-  if (argc > 1 && 0 != strcmp (argv[1], "-d")){
+  if (argc > 1 && 0 != strcmp(argv[1], "-d"))
+    {
       privilege_testing = TRUE;
-      fprintf (stderr,
-	       "%s",
-	       "DEBUG: Running binary in privilege testing mode.");
+      fprintf(stderr,
+              "%s",
+              "DEBUG: Running binary in privilege testing mode.");
       argv++;
       argc--;
     }
 
   if (argc != 4)
-  {
-    fprintf (stderr,
-             "%s",
-	     "This program must be started with our IP, the targets external IP, and our port as arguments.\n");
-    return 1;
-  }
-  if ((1 != inet_pton (AF_INET, argv[1], &external)) ||
-      (1 != inet_pton (AF_INET, argv[2], &target)))
-  {
-    fprintf (stderr,
-	     "Error parsing IPv4 address: %s\n",
-	     strerror (errno));
-    return 1;
-  }
-  if ((1 != sscanf (argv[3], "%u", &p)) || (0 == p) || (0xFFFF < p))
-  {
-    fprintf (stderr,
-	     "Error parsing port value `%s'\n",
-	     argv[3]);
-    return 1;
-  }
-  port = (uint16_t) p;
+    {
+      fprintf(stderr,
+              "%s",
+              "This program must be started with our IP, the targets external IP, and our port as arguments.\n");
+      return 1;
+    }
+  if ((1 != inet_pton(AF_INET, argv[1], &external)) ||
+      (1 != inet_pton(AF_INET, argv[2], &target)))
+    {
+      fprintf(stderr,
+              "Error parsing IPv4 address: %s\n",
+              strerror(errno));
+      return 1;
+    }
+  if ((1 != sscanf(argv[3], "%u", &p)) || (0 == p) || (0xFFFF < p))
+    {
+      fprintf(stderr,
+              "Error parsing port value `%s'\n",
+              argv[3]);
+      return 1;
+    }
+  port = (uint16_t)p;
 
-  if (0 != WSAStartup (MAKEWORD (2, 1), &wsaData))
-  {
-    fprintf (stderr,
-	     "%s",
-	     "Failed to find Winsock 2.1 or better.\n");
-    return 2;
-  }
-  if (1 != inet_pton (AF_INET, DUMMY_IP, &dummy))
-  {
-    fprintf (stderr,
-	     "%s",
-	     "Internal error converting dummy IP to binary.\n");
-    return 2;
-  }
-  if (-1 == (rawsock = make_raw_socket ()))
+  if (0 != WSAStartup(MAKEWORD(2, 1), &wsaData))
+    {
+      fprintf(stderr,
+              "%s",
+              "Failed to find Winsock 2.1 or better.\n");
+      return 2;
+    }
+  if (1 != inet_pton(AF_INET, DUMMY_IP, &dummy))
+    {
+      fprintf(stderr,
+              "%s",
+              "Internal error converting dummy IP to binary.\n");
+      return 2;
+    }
+  if (-1 == (rawsock = make_raw_socket()))
     return 3;
-  if (!privilege_testing){
-    send_icmp (&external, &target);
-    send_icmp_udp (&external, &target);
-  }
-  closesocket (rawsock);
-  WSACleanup ();
+  if (!privilege_testing)
+    {
+      send_icmp(&external, &target);
+      send_icmp_udp(&external, &target);
+    }
+  closesocket(rawsock);
+  WSACleanup();
   return 0;
 }
 

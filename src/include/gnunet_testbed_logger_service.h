@@ -11,7 +11,7 @@
       WITHOUT ANY WARRANTY; without even the implied warranty of
       MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
       Affero General Public License for more details.
-     
+
       You should have received a copy of the GNU Affero General Public License
       along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -56,7 +56,7 @@ struct GNUNET_TESTBED_LOGGER_Handle;
  *           upon any error
  */
 struct GNUNET_TESTBED_LOGGER_Handle *
-GNUNET_TESTBED_LOGGER_connect (const struct GNUNET_CONFIGURATION_Handle *cfg);
+GNUNET_TESTBED_LOGGER_connect(const struct GNUNET_CONFIGURATION_Handle *cfg);
 
 
 /**
@@ -65,7 +65,7 @@ GNUNET_TESTBED_LOGGER_connect (const struct GNUNET_CONFIGURATION_Handle *cfg);
  * @param h the logger handle
  */
 void
-GNUNET_TESTBED_LOGGER_disconnect (struct GNUNET_TESTBED_LOGGER_Handle *h);
+GNUNET_TESTBED_LOGGER_disconnect(struct GNUNET_TESTBED_LOGGER_Handle *h);
 
 
 /**
@@ -90,9 +90,9 @@ typedef void
  * @param size how many bytes of @a data to send
  */
 void
-GNUNET_TESTBED_LOGGER_write (struct GNUNET_TESTBED_LOGGER_Handle *h,
-                             const void *data,
-                             size_t size);
+GNUNET_TESTBED_LOGGER_write(struct GNUNET_TESTBED_LOGGER_Handle *h,
+                            const void *data,
+                            size_t size);
 
 
 /**
@@ -103,9 +103,9 @@ GNUNET_TESTBED_LOGGER_write (struct GNUNET_TESTBED_LOGGER_Handle *h,
  * @param cb_cls the closure for @a cb
  */
 void
-GNUNET_TESTBED_LOGGER_flush (struct GNUNET_TESTBED_LOGGER_Handle *h,
-                             GNUNET_TESTBED_LOGGER_FlushCompletion cb,
-                             void *cb_cls);
+GNUNET_TESTBED_LOGGER_flush(struct GNUNET_TESTBED_LOGGER_Handle *h,
+                            GNUNET_TESTBED_LOGGER_FlushCompletion cb,
+                            void *cb_cls);
 
 
 /**
@@ -116,7 +116,7 @@ GNUNET_TESTBED_LOGGER_flush (struct GNUNET_TESTBED_LOGGER_Handle *h,
  * @param h the logger handle
  */
 void
-GNUNET_TESTBED_LOGGER_flush_cancel (struct GNUNET_TESTBED_LOGGER_Handle *h);
+GNUNET_TESTBED_LOGGER_flush_cancel(struct GNUNET_TESTBED_LOGGER_Handle *h);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

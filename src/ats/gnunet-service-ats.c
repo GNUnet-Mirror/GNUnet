@@ -11,12 +11,12 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 /**
  * @file ats/gnunet-service-ats.c
  * @brief ats service
@@ -50,43 +50,47 @@ struct GNUNET_STATISTICS_Handle *GSA_stats;
  * @param msg the start message
  */
 static void
-handle_ats_start (void *cls,
-                  const struct ClientStartMessage *msg)
+handle_ats_start(void *cls,
+                 const struct ClientStartMessage *msg)
 {
   struct GNUNET_SERVICE_Client *client = cls;
   enum StartFlag flag;
 
-  flag = ntohl (msg->start_flag);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Received ATS_START (%d) message\n",
-              (int) flag);
+  flag = ntohl(msg->start_flag);
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+             "Received ATS_START (%d) message\n",
+             (int)flag);
   switch (flag)
-  {
-  case START_FLAG_SCHEDULING:
-    if (GNUNET_OK !=
-	GAS_scheduling_add_client (client))
     {
-      GNUNET_SERVICE_client_drop (client);
+    case START_FLAG_SCHEDULING:
+      if (GNUNET_OK !=
+          GAS_scheduling_add_client(client))
+        {
+          GNUNET_SERVICE_client_drop(client);
+          return;
+        }
+      break;
+
+    case START_FLAG_PERFORMANCE_WITH_PIC:
+      GAS_performance_add_client(client,
+                                 flag);
+      break;
+
+    case START_FLAG_PERFORMANCE_NO_PIC:
+      GAS_performance_add_client(client,
+                                 flag);
+      break;
+
+    case START_FLAG_CONNECTION_SUGGESTION:
+      /* This client won't receive messages from us, no need to 'add' */
+      break;
+
+    default:
+      GNUNET_break(0);
+      GNUNET_SERVICE_client_drop(client);
       return;
     }
-    break;
-  case START_FLAG_PERFORMANCE_WITH_PIC:
-    GAS_performance_add_client (client,
-                                flag);
-    break;
-  case START_FLAG_PERFORMANCE_NO_PIC:
-    GAS_performance_add_client (client,
-                                flag);
-    break;
-  case START_FLAG_CONNECTION_SUGGESTION:
-    /* This client won't receive messages from us, no need to 'add' */
-    break;
-  default:
-    GNUNET_break (0);
-    GNUNET_SERVICE_client_drop (client);
-    return;
-  }
-  GNUNET_SERVICE_client_continue (client);
+  GNUNET_SERVICE_client_continue(client);
 }
 
 
@@ -98,14 +102,14 @@ handle_ats_start (void *cls,
  * @param message the request message
  */
 static void
-handle_reservation_request (void *cls,
-			    const struct ReservationRequestMessage *message)
+handle_reservation_request(void *cls,
+                           const struct ReservationRequestMessage *message)
 {
   struct GNUNET_SERVICE_Client *client = cls;
 
-  GAS_handle_reservation_request (client,
-				  message);
-  GNUNET_SERVICE_client_continue (client);
+  GAS_handle_reservation_request(client,
+                                 message);
+  GNUNET_SERVICE_client_continue(client);
 }
 
 
@@ -117,23 +121,23 @@ handle_reservation_request (void *cls,
  * @return #GNUNET_OK if @a message is well-formed
  */
 static int
-check_feedback (void *cls,
-		const struct FeedbackPreferenceMessage *message)
+check_feedback(void *cls,
+               const struct FeedbackPreferenceMessage *message)
 {
   uint16_t msize;
   uint32_t nump;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Received PREFERENCE_FEEDBACK message\n");
-  msize = ntohs (message->header.size);
-  nump = ntohl (message->num_feedback);
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+             "Received PREFERENCE_FEEDBACK message\n");
+  msize = ntohs(message->header.size);
+  nump = ntohl(message->num_feedback);
   if (msize !=
-      sizeof (struct FeedbackPreferenceMessage) +
-      nump * sizeof (struct PreferenceInformation))
-  {
-    GNUNET_break (0);
-    return GNUNET_SYSERR;
-  }
+      sizeof(struct FeedbackPreferenceMessage) +
+      nump * sizeof(struct PreferenceInformation))
+    {
+      GNUNET_break(0);
+      return GNUNET_SYSERR;
+    }
   return GNUNET_OK;
 }
 
@@ -145,42 +149,42 @@ check_feedback (void *cls,
  * @param msg the request message
  */
 static void
-handle_feedback (void *cls,
-		 const struct FeedbackPreferenceMessage *msg)
+handle_feedback(void *cls,
+                const struct FeedbackPreferenceMessage *msg)
 {
   struct GNUNET_SERVICE_Client *client = cls;
   const struct PreferenceInformation *pi;
   uint32_t nump;
 
-  nump = ntohl (msg->num_feedback);
+  nump = ntohl(msg->num_feedback);
   if (GNUNET_NO ==
-      GNUNET_CONTAINER_multipeermap_contains (GSA_addresses,
-					      &msg->peer))
-  {
-    GNUNET_log(GNUNET_ERROR_TYPE_WARNING,
-	       "Received PREFERENCE FEEDBACK for unknown peer `%s'\n",
-	       GNUNET_i2s (&msg->peer));
-    GNUNET_SERVICE_client_continue (client);
-    return;
-  }
+      GNUNET_CONTAINER_multipeermap_contains(GSA_addresses,
+                                             &msg->peer))
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_WARNING,
+                 "Received PREFERENCE FEEDBACK for unknown peer `%s'\n",
+                 GNUNET_i2s(&msg->peer));
+      GNUNET_SERVICE_client_continue(client);
+      return;
+    }
 
-  GNUNET_STATISTICS_update (GSA_stats,
-                            "# preference feedbacks requests processed",
-                            1,
-                            GNUNET_NO);
-  pi = (const struct PreferenceInformation *) &msg[1];
+  GNUNET_STATISTICS_update(GSA_stats,
+                           "# preference feedbacks requests processed",
+                           1,
+                           GNUNET_NO);
+  pi = (const struct PreferenceInformation *)&msg[1];
   for (uint32_t i = 0; i < nump; i++)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		"Received PREFERENCE FEEDBACK for peer `%s'\n",
-		GNUNET_i2s (&msg->peer));
-    GAS_plugin_notify_feedback (client,
-				&msg->peer,
-				GNUNET_TIME_relative_ntoh (msg->scope),
-				(enum GNUNET_ATS_PreferenceKind) ntohl (pi[i].preference_kind),
-				pi[i].preference_value);
-  }
-  GNUNET_SERVICE_client_continue (client);
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+                 "Received PREFERENCE FEEDBACK for peer `%s'\n",
+                 GNUNET_i2s(&msg->peer));
+      GAS_plugin_notify_feedback(client,
+                                 &msg->peer,
+                                 GNUNET_TIME_relative_ntoh(msg->scope),
+                                 (enum GNUNET_ATS_PreferenceKind)ntohl(pi[i].preference_kind),
+                                 pi[i].preference_value);
+    }
+  GNUNET_SERVICE_client_continue(client);
 }
 
 
@@ -191,14 +195,14 @@ handle_feedback (void *cls,
  * @param message the request message
  */
 static void
-handle_request_address_list (void *cls,
-			     const struct AddressListRequestMessage *message)
+handle_request_address_list(void *cls,
+                            const struct AddressListRequestMessage *message)
 {
   struct GNUNET_SERVICE_Client *client = cls;
 
-  GAS_handle_request_address_list (client,
-				   message);
-  GNUNET_SERVICE_client_continue (client);
+  GAS_handle_request_address_list(client,
+                                  message);
+  GNUNET_SERVICE_client_continue(client);
 }
 
 
@@ -209,14 +213,14 @@ handle_request_address_list (void *cls,
  * @param message the request message
  */
 static void
-handle_request_address (void *cls,
-			const struct RequestAddressMessage * message)
+handle_request_address(void *cls,
+                       const struct RequestAddressMessage * message)
 {
   struct GNUNET_SERVICE_Client *client = cls;
 
-  GAS_handle_request_address (client,
-			      message);
-  GNUNET_SERVICE_client_continue (client);
+  GAS_handle_request_address(client,
+                             message);
+  GNUNET_SERVICE_client_continue(client);
 }
 
 
@@ -227,14 +231,14 @@ handle_request_address (void *cls,
  * @param message the request message
  */
 static void
-handle_request_address_cancel (void *cls,
-			       const struct RequestAddressMessage *message)
+handle_request_address_cancel(void *cls,
+                              const struct RequestAddressMessage *message)
 {
   struct GNUNET_SERVICE_Client *client = cls;
 
-  GAS_handle_request_address_cancel (client,
-				     message);
-  GNUNET_SERVICE_client_continue (client);
+  GAS_handle_request_address_cancel(client,
+                                    message);
+  GNUNET_SERVICE_client_continue(client);
 }
 
 
@@ -245,8 +249,8 @@ handle_request_address_cancel (void *cls,
  * @param m the request message
  */
 static int
-check_address_add (void *cls,
-		   const struct AddressAddMessage *m)
+check_address_add(void *cls,
+                  const struct AddressAddMessage *m)
 {
   const char *address;
   const char *plugin_name;
@@ -254,23 +258,23 @@ check_address_add (void *cls,
   uint16_t plugin_name_length;
   uint16_t size;
 
-  size = ntohs (m->header.size);
-  address_length = ntohs (m->address_length);
-  plugin_name_length = ntohs (m->plugin_name_length);
-  address = (const char *) &m[1];
+  size = ntohs(m->header.size);
+  address_length = ntohs(m->address_length);
+  plugin_name_length = ntohs(m->plugin_name_length);
+  address = (const char *)&m[1];
   if (plugin_name_length != 0)
     plugin_name = &address[address_length];
   else
     plugin_name = "";
 
-  if ( (address_length + plugin_name_length +
-	sizeof (struct AddressAddMessage) != size) ||
-       ( (plugin_name_length > 0) &&
-	 (plugin_name[plugin_name_length - 1] != '\0') ) )
-  {
-    GNUNET_break (0);
-    return GNUNET_SYSERR;
-  }
+  if ((address_length + plugin_name_length +
+       sizeof(struct AddressAddMessage) != size) ||
+      ((plugin_name_length > 0) &&
+       (plugin_name[plugin_name_length - 1] != '\0')))
+    {
+      GNUNET_break(0);
+      return GNUNET_SYSERR;
+    }
   return GNUNET_OK;
 }
 
@@ -282,13 +286,13 @@ check_address_add (void *cls,
  * @param message the request message
  */
 static void
-handle_address_add (void *cls,
-		    const struct AddressAddMessage *message)
+handle_address_add(void *cls,
+                   const struct AddressAddMessage *message)
 {
   struct GNUNET_SERVICE_Client *client = cls;
 
-  GAS_handle_address_add (message);
-  GNUNET_SERVICE_client_continue (client);
+  GAS_handle_address_add(message);
+  GNUNET_SERVICE_client_continue(client);
 }
 
 
@@ -299,13 +303,13 @@ handle_address_add (void *cls,
  * @param message the request message
  */
 static void
-handle_address_update (void *cls,
-		       const struct AddressUpdateMessage *message)
+handle_address_update(void *cls,
+                      const struct AddressUpdateMessage *message)
 {
   struct GNUNET_SERVICE_Client *client = cls;
 
-  GAS_handle_address_update (message);
-  GNUNET_SERVICE_client_continue (client);
+  GAS_handle_address_update(message);
+  GNUNET_SERVICE_client_continue(client);
 }
 
 
@@ -316,13 +320,13 @@ handle_address_update (void *cls,
  * @param message the request message
  */
 static void
-handle_address_destroyed (void *cls,
-			  const struct AddressDestroyedMessage *message)
+handle_address_destroyed(void *cls,
+                         const struct AddressDestroyedMessage *message)
 {
   struct GNUNET_SERVICE_Client *client = cls;
 
-  GAS_handle_address_destroyed (message);
-  GNUNET_SERVICE_client_continue (client);
+  GAS_handle_address_destroyed(message);
+  GNUNET_SERVICE_client_continue(client);
 }
 
 
@@ -334,22 +338,22 @@ handle_address_destroyed (void *cls,
  * @return #GNUNET_OK if @a message is well-formed
  */
 static int
-check_preference_change (void *cls,
-			 const struct ChangePreferenceMessage *message)
+check_preference_change(void *cls,
+                        const struct ChangePreferenceMessage *message)
 {
   uint16_t msize;
   uint32_t nump;
 
-  msize = ntohs (message->header.size);
-  nump = ntohl (message->num_preferences);
-  if ( (msize !=
-        sizeof (struct ChangePreferenceMessage) +
-        nump * sizeof (struct PreferenceInformation)) ||
-       (UINT16_MAX / sizeof (struct PreferenceInformation) < nump) )
-  {
-    GNUNET_break (0);
-    return GNUNET_SYSERR;
-  }
+  msize = ntohs(message->header.size);
+  nump = ntohl(message->num_preferences);
+  if ((msize !=
+       sizeof(struct ChangePreferenceMessage) +
+       nump * sizeof(struct PreferenceInformation)) ||
+      (UINT16_MAX / sizeof(struct PreferenceInformation) < nump))
+    {
+      GNUNET_break(0);
+      return GNUNET_SYSERR;
+    }
   return GNUNET_OK;
 }
 
@@ -361,14 +365,14 @@ check_preference_change (void *cls,
  * @param message the request message
  */
 static void
-handle_preference_change (void *cls,
-			  const struct ChangePreferenceMessage *message)
+handle_preference_change(void *cls,
+                         const struct ChangePreferenceMessage *message)
 {
   struct GNUNET_SERVICE_Client *client = cls;
 
-  GAS_handle_preference_change (client,
-				message);
-  GNUNET_SERVICE_client_continue (client);
+  GAS_handle_preference_change(client,
+                               message);
+  GNUNET_SERVICE_client_continue(client);
 }
 
 
@@ -382,9 +386,9 @@ handle_preference_change (void *cls,
  * @return @a client
  */
 static void *
-client_connect_cb (void *cls,
-		   struct GNUNET_SERVICE_Client *client,
-		   struct GNUNET_MQ_Handle *mq)
+client_connect_cb(void *cls,
+                  struct GNUNET_SERVICE_Client *client,
+                  struct GNUNET_MQ_Handle *mq)
 {
   return client;
 }
@@ -399,15 +403,15 @@ client_connect_cb (void *cls,
  * @param app_ctx
  */
 static void
-client_disconnect_cb (void *cls,
-		      struct GNUNET_SERVICE_Client *client,
-		      void *app_ctx)
+client_disconnect_cb(void *cls,
+                     struct GNUNET_SERVICE_Client *client,
+                     void *app_ctx)
 {
   if (NULL == client)
     return;
-  GAS_scheduling_remove_client (client);
-  GAS_connectivity_remove_client (client);
-  GAS_preference_client_disconnect (client);
+  GAS_scheduling_remove_client(client);
+  GAS_connectivity_remove_client(client);
+  GAS_preference_client_disconnect(client);
 }
 
 
@@ -417,22 +421,22 @@ client_disconnect_cb (void *cls,
  * @param cls unused
  */
 static void
-cleanup_task (void *cls)
+cleanup_task(void *cls)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "ATS shutdown initiated\n");
-  GAS_connectivity_done ();
-  GAS_addresses_done ();
-  GAS_plugin_done ();
-  GAS_normalization_stop ();
-  GAS_performance_done ();
-  GAS_preference_done ();
-  GAS_reservations_done ();
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+             "ATS shutdown initiated\n");
+  GAS_connectivity_done();
+  GAS_addresses_done();
+  GAS_plugin_done();
+  GAS_normalization_stop();
+  GAS_performance_done();
+  GAS_preference_done();
+  GAS_reservations_done();
   if (NULL != GSA_stats)
-  {
-    GNUNET_STATISTICS_destroy (GSA_stats, GNUNET_NO);
-    GSA_stats = NULL;
-  }
+    {
+      GNUNET_STATISTICS_destroy(GSA_stats, GNUNET_NO);
+      GSA_stats = NULL;
+    }
 }
 
 
@@ -444,37 +448,37 @@ cleanup_task (void *cls)
  * @param service the initialized service
  */
 static void
-run (void *cls,
-     const struct GNUNET_CONFIGURATION_Handle *cfg,
-     struct GNUNET_SERVICE_Handle *service)
+run(void *cls,
+    const struct GNUNET_CONFIGURATION_Handle *cfg,
+    struct GNUNET_SERVICE_Handle *service)
 {
-  GSA_stats = GNUNET_STATISTICS_create ("ats",
-					cfg);
-  GAS_reservations_init ();
-  GAS_connectivity_init ();
-  GAS_preference_init ();
-  GAS_normalization_start ();
-  GAS_addresses_init ();
+  GSA_stats = GNUNET_STATISTICS_create("ats",
+                                       cfg);
+  GAS_reservations_init();
+  GAS_connectivity_init();
+  GAS_preference_init();
+  GAS_normalization_start();
+  GAS_addresses_init();
   if (GNUNET_OK !=
-      GAS_plugin_init (cfg))
-  {
-    GNUNET_break (0);
-    GAS_addresses_done ();
-    GAS_normalization_stop ();
-    GAS_reservations_done ();
-    GAS_connectivity_done ();
-    GAS_preference_done ();
-    if (NULL != GSA_stats)
+      GAS_plugin_init(cfg))
     {
-      GNUNET_STATISTICS_destroy (GSA_stats,
-				 GNUNET_NO);
-      GSA_stats = NULL;
+      GNUNET_break(0);
+      GAS_addresses_done();
+      GAS_normalization_stop();
+      GAS_reservations_done();
+      GAS_connectivity_done();
+      GAS_preference_done();
+      if (NULL != GSA_stats)
+        {
+          GNUNET_STATISTICS_destroy(GSA_stats,
+                                    GNUNET_NO);
+          GSA_stats = NULL;
+        }
+      return;
     }
-    return;
-  }
-  GAS_performance_init ();
-  GNUNET_SCHEDULER_add_shutdown (&cleanup_task,
-				 NULL);
+  GAS_performance_init();
+  GNUNET_SCHEDULER_add_shutdown(&cleanup_task,
+                                NULL);
 }
 
 
@@ -482,53 +486,53 @@ run (void *cls,
  * Define "main" method using service macro.
  */
 GNUNET_SERVICE_MAIN
-("ats",
- GNUNET_SERVICE_OPTION_NONE,
- &run,
- &client_connect_cb,
- &client_disconnect_cb,
- NULL,
- GNUNET_MQ_hd_fixed_size (ats_start,
-			  GNUNET_MESSAGE_TYPE_ATS_START,
-			  struct ClientStartMessage,
-			  NULL),
- GNUNET_MQ_hd_fixed_size (request_address,
-			  GNUNET_MESSAGE_TYPE_ATS_REQUEST_ADDRESS,
-			  struct RequestAddressMessage,
-			  NULL),
- GNUNET_MQ_hd_fixed_size (request_address_cancel, 
-			  GNUNET_MESSAGE_TYPE_ATS_REQUEST_ADDRESS_CANCEL,
-			  struct RequestAddressMessage,
-			  NULL),
- GNUNET_MQ_hd_fixed_size (request_address_list, 
-			  GNUNET_MESSAGE_TYPE_ATS_ADDRESSLIST_REQUEST,
-			  struct AddressListRequestMessage,
-			  NULL),
- GNUNET_MQ_hd_var_size (address_add, 
-			GNUNET_MESSAGE_TYPE_ATS_ADDRESS_ADD,
-			struct AddressAddMessage,
-			NULL),
- GNUNET_MQ_hd_fixed_size (address_update, 
-			  GNUNET_MESSAGE_TYPE_ATS_ADDRESS_UPDATE,
-			  struct AddressUpdateMessage,
-			  NULL),
- GNUNET_MQ_hd_fixed_size (address_destroyed, 
-			  GNUNET_MESSAGE_TYPE_ATS_ADDRESS_DESTROYED,
-			  struct AddressDestroyedMessage,
-			  NULL),
- GNUNET_MQ_hd_fixed_size (reservation_request, 
-			  GNUNET_MESSAGE_TYPE_ATS_RESERVATION_REQUEST,
-			  struct ReservationRequestMessage,
-			  NULL),
- GNUNET_MQ_hd_var_size (preference_change, 
-			GNUNET_MESSAGE_TYPE_ATS_PREFERENCE_CHANGE,
-			struct ChangePreferenceMessage,
-			NULL),
- GNUNET_MQ_hd_var_size (feedback, 
-			GNUNET_MESSAGE_TYPE_ATS_PREFERENCE_FEEDBACK,
-			struct FeedbackPreferenceMessage,
-			NULL),
- GNUNET_MQ_handler_end ());
+  ("ats",
+  GNUNET_SERVICE_OPTION_NONE,
+  &run,
+  &client_connect_cb,
+  &client_disconnect_cb,
+  NULL,
+  GNUNET_MQ_hd_fixed_size(ats_start,
+                          GNUNET_MESSAGE_TYPE_ATS_START,
+                          struct ClientStartMessage,
+                          NULL),
+  GNUNET_MQ_hd_fixed_size(request_address,
+                          GNUNET_MESSAGE_TYPE_ATS_REQUEST_ADDRESS,
+                          struct RequestAddressMessage,
+                          NULL),
+  GNUNET_MQ_hd_fixed_size(request_address_cancel,
+                          GNUNET_MESSAGE_TYPE_ATS_REQUEST_ADDRESS_CANCEL,
+                          struct RequestAddressMessage,
+                          NULL),
+  GNUNET_MQ_hd_fixed_size(request_address_list,
+                          GNUNET_MESSAGE_TYPE_ATS_ADDRESSLIST_REQUEST,
+                          struct AddressListRequestMessage,
+                          NULL),
+  GNUNET_MQ_hd_var_size(address_add,
+                        GNUNET_MESSAGE_TYPE_ATS_ADDRESS_ADD,
+                        struct AddressAddMessage,
+                        NULL),
+  GNUNET_MQ_hd_fixed_size(address_update,
+                          GNUNET_MESSAGE_TYPE_ATS_ADDRESS_UPDATE,
+                          struct AddressUpdateMessage,
+                          NULL),
+  GNUNET_MQ_hd_fixed_size(address_destroyed,
+                          GNUNET_MESSAGE_TYPE_ATS_ADDRESS_DESTROYED,
+                          struct AddressDestroyedMessage,
+                          NULL),
+  GNUNET_MQ_hd_fixed_size(reservation_request,
+                          GNUNET_MESSAGE_TYPE_ATS_RESERVATION_REQUEST,
+                          struct ReservationRequestMessage,
+                          NULL),
+  GNUNET_MQ_hd_var_size(preference_change,
+                        GNUNET_MESSAGE_TYPE_ATS_PREFERENCE_CHANGE,
+                        struct ChangePreferenceMessage,
+                        NULL),
+  GNUNET_MQ_hd_var_size(feedback,
+                        GNUNET_MESSAGE_TYPE_ATS_PREFERENCE_FEEDBACK,
+                        struct FeedbackPreferenceMessage,
+                        NULL),
+  GNUNET_MQ_handler_end());
 
 
 /* end of gnunet-service-ats.c */

@@ -1,22 +1,22 @@
 /*
-  This file is part of GNUnet
-  Copyright (C) 2017 GNUnet e.V.
+   This file is part of GNUnet
+   Copyright (C) 2017 GNUnet e.V.
 
-  GNUnet is free software: you can redistribute it and/or modify it
-  under the terms of the GNU Affero General Public License as published
-  by the Free Software Foundation, either version 3 of the License,
-  or (at your option) any later version.
+   GNUnet is free software: you can redistribute it and/or modify it
+   under the terms of the GNU Affero General Public License as published
+   by the Free Software Foundation, either version 3 of the License,
+   or (at your option) any later version.
 
-  GNUnet is distributed in the hope that it will be useful, but
-  WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-  Affero General Public License for more details.
- 
-  You should have received a copy of the GNU Affero General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   GNUnet is distributed in the hope that it will be useful, but
+   WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   Affero General Public License for more details.
+
+   You should have received a copy of the GNU Affero General Public License
+   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 /**
  * @file sq/sq_query_helper.c
  * @brief helper functions for queries
@@ -38,18 +38,18 @@
  * @return #GNUNET_SYSERR on error, #GNUNET_OK on success
  */
 static int
-bind_fixed_blob (void *cls,
-                 const void *data,
-                 size_t data_len,
-                 sqlite3_stmt *stmt,
-                 unsigned int off)
+bind_fixed_blob(void *cls,
+                const void *data,
+                size_t data_len,
+                sqlite3_stmt *stmt,
+                unsigned int off)
 {
   if (SQLITE_OK !=
-      sqlite3_bind_blob64 (stmt,
-                           (int) off,
-                           data,
-                           (sqlite3_uint64) data_len,
-                           SQLITE_TRANSIENT))
+      sqlite3_bind_blob64(stmt,
+                          (int)off,
+                          data,
+                          (sqlite3_uint64)data_len,
+                          SQLITE_TRANSIENT))
     return GNUNET_SYSERR;
   return GNUNET_OK;
 }
@@ -63,8 +63,8 @@ bind_fixed_blob (void *cls,
  * @oaran ptr_size number of bytes in @a ptr
  */
 struct GNUNET_SQ_QueryParam
-GNUNET_SQ_query_param_fixed_size (const void *ptr,
-				  size_t ptr_size)
+GNUNET_SQ_query_param_fixed_size(const void *ptr,
+                                 size_t ptr_size)
 {
   struct GNUNET_SQ_QueryParam qp = {
     .conv = &bind_fixed_blob,
@@ -72,6 +72,7 @@ GNUNET_SQ_query_param_fixed_size (const void *ptr,
     .size = ptr_size,
     .num_params = 1
   };
+
   return qp;
 }
 
@@ -88,26 +89,26 @@ GNUNET_SQ_query_param_fixed_size (const void *ptr,
  * @return #GNUNET_SYSERR on error, #GNUNET_OK on success
  */
 static int
-bind_string (void *cls,
-             const void *data,
-             size_t data_len,
-             sqlite3_stmt *stmt,
-             unsigned int off)
+bind_string(void *cls,
+            const void *data,
+            size_t data_len,
+            sqlite3_stmt *stmt,
+            unsigned int off)
 {
   if (NULL == data)
-  {
-    if (SQLITE_OK !=
-        sqlite3_bind_null (stmt,
-                           (int) off))
-      return GNUNET_SYSERR;
-    return GNUNET_OK;
-  }
+    {
+      if (SQLITE_OK !=
+          sqlite3_bind_null(stmt,
+                            (int)off))
+        return GNUNET_SYSERR;
+      return GNUNET_OK;
+    }
   if (SQLITE_OK !=
-      sqlite3_bind_text (stmt,
-                         (int) off,
-                         (const char *) data,
-                         -1,
-                         SQLITE_TRANSIENT))
+      sqlite3_bind_text(stmt,
+                        (int)off,
+                        (const char *)data,
+                        -1,
+                        SQLITE_TRANSIENT))
     return GNUNET_SYSERR;
   return GNUNET_OK;
 }
@@ -119,13 +120,14 @@ bind_string (void *cls,
  * @param ptr pointer to the string query parameter to pass
  */
 struct GNUNET_SQ_QueryParam
-GNUNET_SQ_query_param_string (const char *ptr)
+GNUNET_SQ_query_param_string(const char *ptr)
 {
   struct GNUNET_SQ_QueryParam qp = {
     .conv = &bind_string,
     .data = ptr,
     .num_params = 1
   };
+
   return qp;
 }
 
@@ -142,30 +144,30 @@ GNUNET_SQ_query_param_string (const char *ptr)
  * @return #GNUNET_SYSERR on error, #GNUNET_OK on success
  */
 static int
-bind_rsa_pub (void *cls,
-              const void *data,
-              size_t data_len,
-              sqlite3_stmt *stmt,
-              unsigned int off)
+bind_rsa_pub(void *cls,
+             const void *data,
+             size_t data_len,
+             sqlite3_stmt *stmt,
+             unsigned int off)
 {
   const struct GNUNET_CRYPTO_RsaPublicKey *rsa = data;
   char *buf;
   size_t buf_size;
 
-  GNUNET_break (NULL == cls);
-  buf_size = GNUNET_CRYPTO_rsa_public_key_encode (rsa,
-						  &buf);
+  GNUNET_break(NULL == cls);
+  buf_size = GNUNET_CRYPTO_rsa_public_key_encode(rsa,
+                                                 &buf);
   if (SQLITE_OK !=
-      sqlite3_bind_blob64 (stmt,
-                           (int) off,
-                           buf,
-                           (sqlite3_uint64) buf_size,
-                           SQLITE_TRANSIENT))
-  {
-    GNUNET_free (buf);
-    return GNUNET_SYSERR;
-  }
-  GNUNET_free (buf);
+      sqlite3_bind_blob64(stmt,
+                          (int)off,
+                          buf,
+                          (sqlite3_uint64)buf_size,
+                          SQLITE_TRANSIENT))
+    {
+      GNUNET_free(buf);
+      return GNUNET_SYSERR;
+    }
+  GNUNET_free(buf);
   return GNUNET_OK;
 }
 
@@ -177,14 +179,15 @@ bind_rsa_pub (void *cls,
  * @param x the query parameter to pass.
  */
 struct GNUNET_SQ_QueryParam
-GNUNET_SQ_query_param_rsa_public_key (const struct GNUNET_CRYPTO_RsaPublicKey *x)
+GNUNET_SQ_query_param_rsa_public_key(const struct GNUNET_CRYPTO_RsaPublicKey *x)
 {
- struct GNUNET_SQ_QueryParam qp = {
+  struct GNUNET_SQ_QueryParam qp = {
     .conv = &bind_rsa_pub,
     .data = x,
     .num_params = 1
   };
- return qp;
+
+  return qp;
 }
 
 
@@ -200,30 +203,30 @@ GNUNET_SQ_query_param_rsa_public_key (const struct GNUNET_CRYPTO_RsaPublicKey *x
  * @return #GNUNET_SYSERR on error, #GNUNET_OK on success
  */
 static int
-bind_rsa_sig (void *cls,
-              const void *data,
-              size_t data_len,
-              sqlite3_stmt *stmt,
-              unsigned int off)
+bind_rsa_sig(void *cls,
+             const void *data,
+             size_t data_len,
+             sqlite3_stmt *stmt,
+             unsigned int off)
 {
   const struct GNUNET_CRYPTO_RsaSignature *sig = data;
   char *buf;
   size_t buf_size;
 
-  GNUNET_break (NULL == cls);
-  buf_size = GNUNET_CRYPTO_rsa_signature_encode (sig,
-						 &buf);
+  GNUNET_break(NULL == cls);
+  buf_size = GNUNET_CRYPTO_rsa_signature_encode(sig,
+                                                &buf);
   if (SQLITE_OK !=
-      sqlite3_bind_blob64 (stmt,
-                           (int) off,
-                           buf,
-                           (sqlite3_uint64) buf_size,
-                           SQLITE_TRANSIENT))
-  {
-    GNUNET_free (buf);
-    return GNUNET_SYSERR;
-  }
-  GNUNET_free (buf);
+      sqlite3_bind_blob64(stmt,
+                          (int)off,
+                          buf,
+                          (sqlite3_uint64)buf_size,
+                          SQLITE_TRANSIENT))
+    {
+      GNUNET_free(buf);
+      return GNUNET_SYSERR;
+    }
+  GNUNET_free(buf);
   return GNUNET_OK;
 }
 
@@ -235,14 +238,15 @@ bind_rsa_sig (void *cls,
  * @param x the query parameter to pass
  */
 struct GNUNET_SQ_QueryParam
-GNUNET_SQ_query_param_rsa_signature (const struct GNUNET_CRYPTO_RsaSignature *x)
+GNUNET_SQ_query_param_rsa_signature(const struct GNUNET_CRYPTO_RsaSignature *x)
 {
- struct GNUNET_SQ_QueryParam qp = {
+  struct GNUNET_SQ_QueryParam qp = {
     .conv = &bind_rsa_sig,
     .data = x,
     .num_params = 1
   };
- return qp;
+
+  return qp;
 }
 
 
@@ -258,11 +262,11 @@ GNUNET_SQ_query_param_rsa_signature (const struct GNUNET_CRYPTO_RsaSignature *x)
  * @return #GNUNET_SYSERR on error, #GNUNET_OK on success
  */
 static int
-bind_abstime (void *cls,
-              const void *data,
-              size_t data_len,
-              sqlite3_stmt *stmt,
-              unsigned int off)
+bind_abstime(void *cls,
+             const void *data,
+             size_t data_len,
+             sqlite3_stmt *stmt,
+             unsigned int off)
 {
   const struct GNUNET_TIME_Absolute *u = data;
   struct GNUNET_TIME_Absolute abs;
@@ -270,11 +274,11 @@ bind_abstime (void *cls,
   abs = *u;
   if (abs.abs_value_us > INT64_MAX)
     abs.abs_value_us = INT64_MAX;
-  GNUNET_assert (sizeof (uint64_t) == data_len);
+  GNUNET_assert(sizeof(uint64_t) == data_len);
   if (SQLITE_OK !=
-      sqlite3_bind_int64 (stmt,
-                          (int) off,
-                          (sqlite3_int64) abs.abs_value_us))
+      sqlite3_bind_int64(stmt,
+                         (int)off,
+                         (sqlite3_int64)abs.abs_value_us))
     return GNUNET_SYSERR;
   return GNUNET_OK;
 }
@@ -287,14 +291,15 @@ bind_abstime (void *cls,
  * @param x pointer to the query parameter to pass
  */
 struct GNUNET_SQ_QueryParam
-GNUNET_SQ_query_param_absolute_time (const struct GNUNET_TIME_Absolute *x)
+GNUNET_SQ_query_param_absolute_time(const struct GNUNET_TIME_Absolute *x)
 {
- struct GNUNET_SQ_QueryParam qp = {
+  struct GNUNET_SQ_QueryParam qp = {
     .conv = &bind_abstime,
     .data = x,
-    .size = sizeof (struct GNUNET_TIME_Absolute),
+    .size = sizeof(struct GNUNET_TIME_Absolute),
     .num_params = 1
   };
+
   return qp;
 }
 
@@ -311,23 +316,23 @@ GNUNET_SQ_query_param_absolute_time (const struct GNUNET_TIME_Absolute *x)
  * @return #GNUNET_SYSERR on error, #GNUNET_OK on success
  */
 static int
-bind_nbotime (void *cls,
-              const void *data,
-              size_t data_len,
-              sqlite3_stmt *stmt,
-              unsigned int off)
+bind_nbotime(void *cls,
+             const void *data,
+             size_t data_len,
+             sqlite3_stmt *stmt,
+             unsigned int off)
 {
   const struct GNUNET_TIME_AbsoluteNBO *u = data;
   struct GNUNET_TIME_Absolute abs;
 
-  abs = GNUNET_TIME_absolute_ntoh (*u);
+  abs = GNUNET_TIME_absolute_ntoh(*u);
   if (abs.abs_value_us > INT64_MAX)
     abs.abs_value_us = INT64_MAX;
-  GNUNET_assert (sizeof (uint64_t) == data_len);
+  GNUNET_assert(sizeof(uint64_t) == data_len);
   if (SQLITE_OK !=
-      sqlite3_bind_int64 (stmt,
-                          (int) off,
-                          (sqlite3_int64) abs.abs_value_us))
+      sqlite3_bind_int64(stmt,
+                         (int)off,
+                         (sqlite3_int64)abs.abs_value_us))
     return GNUNET_SYSERR;
   return GNUNET_OK;
 }
@@ -340,14 +345,15 @@ bind_nbotime (void *cls,
  * @param x pointer to the query parameter to pass
  */
 struct GNUNET_SQ_QueryParam
-GNUNET_SQ_query_param_absolute_time_nbo (const struct GNUNET_TIME_AbsoluteNBO *x)
+GNUNET_SQ_query_param_absolute_time_nbo(const struct GNUNET_TIME_AbsoluteNBO *x)
 {
- struct GNUNET_SQ_QueryParam qp = {
+  struct GNUNET_SQ_QueryParam qp = {
     .conv = &bind_nbotime,
     .data = x,
-    .size = sizeof (struct GNUNET_TIME_AbsoluteNBO),
+    .size = sizeof(struct GNUNET_TIME_AbsoluteNBO),
     .num_params = 1
   };
+
   return qp;
 }
 
@@ -364,19 +370,19 @@ GNUNET_SQ_query_param_absolute_time_nbo (const struct GNUNET_TIME_AbsoluteNBO *x
  * @return #GNUNET_SYSERR on error, #GNUNET_OK on success
  */
 static int
-bind_u16 (void *cls,
-          const void *data,
-          size_t data_len,
-          sqlite3_stmt *stmt,
-          unsigned int off)
+bind_u16(void *cls,
+         const void *data,
+         size_t data_len,
+         sqlite3_stmt *stmt,
+         unsigned int off)
 {
   const uint16_t *u = data;
 
-  GNUNET_assert (sizeof (uint16_t) == data_len);
+  GNUNET_assert(sizeof(uint16_t) == data_len);
   if (SQLITE_OK !=
-      sqlite3_bind_int (stmt,
-                        (int) off,
-                        (int) *u))
+      sqlite3_bind_int(stmt,
+                       (int)off,
+                       (int)*u))
     return GNUNET_SYSERR;
   return GNUNET_OK;
 }
@@ -388,14 +394,15 @@ bind_u16 (void *cls,
  * @param x pointer to the query parameter to pass
  */
 struct GNUNET_SQ_QueryParam
-GNUNET_SQ_query_param_uint16 (const uint16_t *x)
+GNUNET_SQ_query_param_uint16(const uint16_t *x)
 {
- struct GNUNET_SQ_QueryParam qp = {
+  struct GNUNET_SQ_QueryParam qp = {
     .conv = &bind_u16,
     .data = x,
-    .size = sizeof (uint16_t),
+    .size = sizeof(uint16_t),
     .num_params = 1
   };
+
   return qp;
 }
 
@@ -412,19 +419,19 @@ GNUNET_SQ_query_param_uint16 (const uint16_t *x)
  * @return #GNUNET_SYSERR on error, #GNUNET_OK on success
  */
 static int
-bind_u32 (void *cls,
-          const void *data,
-          size_t data_len,
-          sqlite3_stmt *stmt,
-          unsigned int off)
+bind_u32(void *cls,
+         const void *data,
+         size_t data_len,
+         sqlite3_stmt *stmt,
+         unsigned int off)
 {
   const uint32_t *u = data;
 
-  GNUNET_assert (sizeof (uint32_t) == data_len);
+  GNUNET_assert(sizeof(uint32_t) == data_len);
   if (SQLITE_OK !=
-      sqlite3_bind_int64 (stmt,
-                          (int) off,
-                          (sqlite3_int64) *u))
+      sqlite3_bind_int64(stmt,
+                         (int)off,
+                         (sqlite3_int64) * u))
     return GNUNET_SYSERR;
   return GNUNET_OK;
 }
@@ -435,14 +442,15 @@ bind_u32 (void *cls,
  * @param x pointer to the query parameter to pass
  */
 struct GNUNET_SQ_QueryParam
-GNUNET_SQ_query_param_uint32 (const uint32_t *x)
+GNUNET_SQ_query_param_uint32(const uint32_t *x)
 {
- struct GNUNET_SQ_QueryParam qp = {
+  struct GNUNET_SQ_QueryParam qp = {
     .conv = &bind_u32,
     .data = x,
-    .size = sizeof (uint32_t),
+    .size = sizeof(uint32_t),
     .num_params = 1
   };
+
   return qp;
 }
 
@@ -459,19 +467,19 @@ GNUNET_SQ_query_param_uint32 (const uint32_t *x)
  * @return #GNUNET_SYSERR on error, #GNUNET_OK on success
  */
 static int
-bind_u64 (void *cls,
-          const void *data,
-          size_t data_len,
-          sqlite3_stmt *stmt,
-          unsigned int off)
+bind_u64(void *cls,
+         const void *data,
+         size_t data_len,
+         sqlite3_stmt *stmt,
+         unsigned int off)
 {
   const uint64_t *u = data;
 
-  GNUNET_assert (sizeof (uint64_t) == data_len);
+  GNUNET_assert(sizeof(uint64_t) == data_len);
   if (SQLITE_OK !=
-      sqlite3_bind_int64 (stmt,
-                          (int) off,
-                          (sqlite3_int64) *u))
+      sqlite3_bind_int64(stmt,
+                         (int)off,
+                         (sqlite3_int64) * u))
     return GNUNET_SYSERR;
   return GNUNET_OK;
 }
@@ -483,14 +491,15 @@ bind_u64 (void *cls,
  * @param x pointer to the query parameter to pass
  */
 struct GNUNET_SQ_QueryParam
-GNUNET_SQ_query_param_uint64 (const uint64_t *x)
+GNUNET_SQ_query_param_uint64(const uint64_t *x)
 {
   struct GNUNET_SQ_QueryParam qp = {
     .conv = &bind_u64,
     .data = x,
-    .size = sizeof (uint64_t),
+    .size = sizeof(uint64_t),
     .num_params = 1
   };
+
   return qp;
 }
 

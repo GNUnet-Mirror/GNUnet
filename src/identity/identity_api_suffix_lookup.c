@@ -16,7 +16,7 @@
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 
 /**
  * @file identity/identity_api_suffix_lookup.c
@@ -28,15 +28,13 @@
 #include "gnunet_identity_service.h"
 #include "identity.h"
 
-#define LOG(kind, ...) GNUNET_log_from (kind, "identity-api", __VA_ARGS__)
+#define LOG(kind, ...) GNUNET_log_from(kind, "identity-api", __VA_ARGS__)
 
 
 /**
  * Handle for ego lookup.
  */
-struct GNUNET_IDENTITY_EgoSuffixLookup
-{
-
+struct GNUNET_IDENTITY_EgoSuffixLookup {
   /**
    * Connection to service.
    */
@@ -68,11 +66,11 @@ struct GNUNET_IDENTITY_EgoSuffixLookup
  * @return #GNUNET_OK if the message is well-formed
  */
 static int
-check_identity_result_code (void *cls, const struct ResultCodeMessage *rcm)
+check_identity_result_code(void *cls, const struct ResultCodeMessage *rcm)
 {
-  (void) cls;
-  if (sizeof (*rcm) != htons (rcm->header.size))
-    GNUNET_MQ_check_zero_termination (rcm);
+  (void)cls;
+  if (sizeof(*rcm) != htons(rcm->header.size))
+    GNUNET_MQ_check_zero_termination(rcm);
   return GNUNET_OK;
 }
 
@@ -84,13 +82,13 @@ check_identity_result_code (void *cls, const struct ResultCodeMessage *rcm)
  * @param rcm result message received
  */
 static void
-handle_identity_result_code (void *cls, const struct ResultCodeMessage *rcm)
+handle_identity_result_code(void *cls, const struct ResultCodeMessage *rcm)
 {
   struct GNUNET_IDENTITY_EgoSuffixLookup *el = cls;
 
-  (void) rcm;
-  el->cb (el->cb_cls, NULL, NULL);
-  GNUNET_IDENTITY_ego_lookup_by_suffix_cancel (el);
+  (void)rcm;
+  el->cb(el->cb_cls, NULL, NULL);
+  GNUNET_IDENTITY_ego_lookup_by_suffix_cancel(el);
 }
 
 
@@ -102,19 +100,19 @@ handle_identity_result_code (void *cls, const struct ResultCodeMessage *rcm)
  * @return #GNUNET_OK if the message is well-formed
  */
 static int
-check_identity_update (void *cls, const struct UpdateMessage *um)
+check_identity_update(void *cls, const struct UpdateMessage *um)
 {
-  uint16_t size = ntohs (um->header.size);
-  uint16_t name_len = ntohs (um->name_len);
-  const char *str = (const char *) &um[1];
+  uint16_t size = ntohs(um->header.size);
+  uint16_t name_len = ntohs(um->name_len);
+  const char *str = (const char *)&um[1];
 
-  (void) cls;
-  if ((size != name_len + sizeof (struct UpdateMessage)) ||
+  (void)cls;
+  if ((size != name_len + sizeof(struct UpdateMessage)) ||
       ((0 != name_len) && ('\0' != str[name_len - 1])))
-  {
-    GNUNET_break (0);
-    return GNUNET_SYSERR;
-  }
+    {
+      GNUNET_break(0);
+      return GNUNET_SYSERR;
+    }
   return GNUNET_OK;
 }
 
@@ -126,14 +124,14 @@ check_identity_update (void *cls, const struct UpdateMessage *um)
  * @param um message received
  */
 static void
-handle_identity_update (void *cls, const struct UpdateMessage *um)
+handle_identity_update(void *cls, const struct UpdateMessage *um)
 {
   struct GNUNET_IDENTITY_EgoSuffixLookup *el = cls;
-  uint16_t name_len = ntohs (um->name_len);
-  const char *str = (0 == name_len) ? NULL : (const char *) &um[1];
+  uint16_t name_len = ntohs(um->name_len);
+  const char *str = (0 == name_len) ? NULL : (const char *)&um[1];
 
-  el->cb (el->cb_cls, &um->private_key, str);
-  GNUNET_IDENTITY_ego_lookup_by_suffix_cancel (el);
+  el->cb(el->cb_cls, &um->private_key, str);
+  GNUNET_IDENTITY_ego_lookup_by_suffix_cancel(el);
 }
 
 
@@ -146,13 +144,13 @@ handle_identity_update (void *cls, const struct UpdateMessage *um)
  * @param error error code
  */
 static void
-mq_error_handler (void *cls, enum GNUNET_MQ_Error error)
+mq_error_handler(void *cls, enum GNUNET_MQ_Error error)
 {
   struct GNUNET_IDENTITY_EgoSuffixLookup *el = cls;
 
-  (void) error;
-  el->cb (el->cb_cls, NULL, NULL);
-  GNUNET_IDENTITY_ego_lookup_by_suffix_cancel (el);
+  (void)error;
+  el->cb(el->cb_cls, NULL, NULL);
+  GNUNET_IDENTITY_ego_lookup_by_suffix_cancel(el);
 }
 
 
@@ -166,46 +164,46 @@ mq_error_handler (void *cls, enum GNUNET_MQ_Error error)
  * @return NULL on error
  */
 struct GNUNET_IDENTITY_EgoSuffixLookup *
-GNUNET_IDENTITY_ego_lookup_by_suffix (const struct GNUNET_CONFIGURATION_Handle *cfg,
-				      const char *suffix,
-				      GNUNET_IDENTITY_EgoSuffixCallback cb,
-				      void *cb_cls)
+GNUNET_IDENTITY_ego_lookup_by_suffix(const struct GNUNET_CONFIGURATION_Handle *cfg,
+                                     const char *suffix,
+                                     GNUNET_IDENTITY_EgoSuffixCallback cb,
+                                     void *cb_cls)
 {
   struct GNUNET_IDENTITY_EgoSuffixLookup *el;
   struct GNUNET_MQ_Envelope *env;
   struct GNUNET_MessageHeader *req;
   size_t nlen;
 
-  GNUNET_assert (NULL != cb);
-  el = GNUNET_new (struct GNUNET_IDENTITY_EgoSuffixLookup);
+  GNUNET_assert(NULL != cb);
+  el = GNUNET_new(struct GNUNET_IDENTITY_EgoSuffixLookup);
   el->cb = cb;
   el->cb_cls = cb_cls;
   {
     struct GNUNET_MQ_MessageHandler handlers[] =
-      {GNUNET_MQ_hd_var_size (identity_result_code,
-                              GNUNET_MESSAGE_TYPE_IDENTITY_RESULT_CODE,
-                              struct ResultCodeMessage,
-                              el),
-       GNUNET_MQ_hd_var_size (identity_update,
-                              GNUNET_MESSAGE_TYPE_IDENTITY_UPDATE,
-                              struct UpdateMessage,
-                              el),
-       GNUNET_MQ_handler_end ()};
+    { GNUNET_MQ_hd_var_size(identity_result_code,
+                            GNUNET_MESSAGE_TYPE_IDENTITY_RESULT_CODE,
+                            struct ResultCodeMessage,
+                            el),
+      GNUNET_MQ_hd_var_size(identity_update,
+                            GNUNET_MESSAGE_TYPE_IDENTITY_UPDATE,
+                            struct UpdateMessage,
+                            el),
+      GNUNET_MQ_handler_end() };
 
     el->mq =
-      GNUNET_CLIENT_connect (cfg, "identity", handlers, &mq_error_handler, el);
+      GNUNET_CLIENT_connect(cfg, "identity", handlers, &mq_error_handler, el);
   }
   if (NULL == el->mq)
-  {
-    GNUNET_break (0);
-    GNUNET_free (el);
-    return NULL;
-  }
-  el->suffix = GNUNET_strdup (suffix);
-  nlen = strlen (suffix) + 1;
-  env = GNUNET_MQ_msg_extra (req, nlen, GNUNET_MESSAGE_TYPE_IDENTITY_LOOKUP_BY_SUFFIX);
-  memcpy (&req[1], suffix, nlen);
-  GNUNET_MQ_send (el->mq, env);
+    {
+      GNUNET_break(0);
+      GNUNET_free(el);
+      return NULL;
+    }
+  el->suffix = GNUNET_strdup(suffix);
+  nlen = strlen(suffix) + 1;
+  env = GNUNET_MQ_msg_extra(req, nlen, GNUNET_MESSAGE_TYPE_IDENTITY_LOOKUP_BY_SUFFIX);
+  memcpy(&req[1], suffix, nlen);
+  GNUNET_MQ_send(el->mq, env);
   return el;
 }
 
@@ -216,11 +214,11 @@ GNUNET_IDENTITY_ego_lookup_by_suffix (const struct GNUNET_CONFIGURATION_Handle *
  * @param el handle for lookup to abort
  */
 void
-GNUNET_IDENTITY_ego_lookup_by_suffix_cancel (struct GNUNET_IDENTITY_EgoSuffixLookup *el)
+GNUNET_IDENTITY_ego_lookup_by_suffix_cancel(struct GNUNET_IDENTITY_EgoSuffixLookup *el)
 {
-  GNUNET_MQ_destroy (el->mq);
-  GNUNET_free (el->suffix);
-  GNUNET_free (el);
+  GNUNET_MQ_destroy(el->mq);
+  GNUNET_free(el->suffix);
+  GNUNET_free(el);
 }
 
 

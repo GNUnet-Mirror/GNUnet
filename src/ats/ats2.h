@@ -16,7 +16,7 @@
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 /**
  * @file ats/ats2.h
  * @brief automatic transport selection messages
@@ -36,9 +36,7 @@ GNUNET_NETWORK_STRUCT_BEGIN
 /**
  * ATS performance characteristics for an address.
  */
-struct PropertiesNBO
-{
-
+struct PropertiesNBO {
   /**
    * Delay.  Time between when the time packet is sent and the packet
    * arrives.  FOREVER if we did not (successfully) measure yet.
@@ -101,7 +99,6 @@ struct PropertiesNBO
    * A `enum GNUNET_TRANSPORT_CommunicatorCharacteristics` in NBO.
    */
   uint32_t cc;
-
 };
 
 
@@ -109,8 +106,7 @@ struct PropertiesNBO
  * Application client to ATS service: we would like to have
  * address suggestions for this peer.
  */
-struct ExpressPreferenceMessage
-{
+struct ExpressPreferenceMessage {
   /**
    * Type is #GNUNET_MESSAGE_TYPE_ATS_SUGGEST or
    * #GNUNET_MESSAGE_TYPE_ATS_SUGGEST_CANCEL to stop
@@ -133,15 +129,13 @@ struct ExpressPreferenceMessage
    * How much bandwidth in bytes/second does the application expect?
    */
   struct GNUNET_BANDWIDTH_Value32NBO bw;
-
 };
 
 
 /**
  * Transport client to ATS service: here is another session you can use.
  */
-struct SessionAddMessage
-{
+struct SessionAddMessage {
   /**
    * Type is #GNUNET_MESSAGE_TYPE_ATS_SESSION_ADD or
    * #GNUNET_MESSAGE_TYPE_ATS_SESSION_ADD_INBOUND_ONLY
@@ -167,7 +161,6 @@ struct SessionAddMessage
   /* followed by:
    * - char * address (including '\0'-termination).
    */
-
 };
 
 
@@ -175,8 +168,7 @@ struct SessionAddMessage
  * Message used to notify ATS that the performance
  * characteristics for an session have changed.
  */
-struct SessionUpdateMessage
-{
+struct SessionUpdateMessage {
   /**
    * Message of type #GNUNET_MESSAGE_TYPE_ATS_SESSION_UPDATE.
    */
@@ -198,7 +190,6 @@ struct SessionUpdateMessage
    * Performance properties of the session.
    */
   struct PropertiesNBO properties;
-
 };
 
 
@@ -207,8 +198,7 @@ struct SessionUpdateMessage
  * was destroyed and must thus henceforth no longer be considered
  * for scheduling.
  */
-struct SessionDelMessage
-{
+struct SessionDelMessage {
   /**
    * Type is #GNUNET_MESSAGE_TYPE_ATS_SESSION_DEL.
    */
@@ -225,7 +215,6 @@ struct SessionDelMessage
    * to find the session faster).
    */
   struct GNUNET_PeerIdentity peer;
-
 };
 
 
@@ -234,8 +223,7 @@ struct SessionDelMessage
  * identified by the given @e session_id for the given @e peer with
  * the given @e bandwidth_in and @e bandwidth_out limits from now on.
  */
-struct SessionAllocationMessage
-{
+struct SessionAllocationMessage {
   /**
    * A message of type #GNUNET_MESSAGE_TYPE_ATS_SESSION_ALLOCATION.
    */
@@ -263,7 +251,6 @@ struct SessionAllocationMessage
    * How much bandwidth we are allowed for receiving.
    */
   struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in;
-
 };
 
 
@@ -271,8 +258,7 @@ struct SessionAllocationMessage
  * ATS Service suggests to the transport service to try the address
  * for the given @e peer.
  */
-struct AddressSuggestionMessage
-{
+struct AddressSuggestionMessage {
   /**
    * A message of type #GNUNET_MESSAGE_TYPE_ATS_ADDRESS_SUGGESTION.
    */

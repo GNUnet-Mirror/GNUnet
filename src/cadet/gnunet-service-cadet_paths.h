@@ -12,12 +12,12 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 
 /**
  * @file cadet/gnunet-service-cadet-new_paths.h
@@ -43,10 +43,10 @@
  * @param put_path_length length of the @a put_path
  */
 void
-GCPP_try_path_from_dht (const struct GNUNET_PeerIdentity *get_path,
-                        unsigned int get_path_length,
-                        const struct GNUNET_PeerIdentity *put_path,
-                        unsigned int put_path_length);
+GCPP_try_path_from_dht(const struct GNUNET_PeerIdentity *get_path,
+                       unsigned int get_path_length,
+                       const struct GNUNET_PeerIdentity *put_path,
+                       unsigned int put_path_length);
 
 
 /**
@@ -57,8 +57,8 @@ GCPP_try_path_from_dht (const struct GNUNET_PeerIdentity *get_path,
  * @return corresponding path object
  */
 struct CadetPeerPath *
-GCPP_get_path_from_route (unsigned int path_length,
-                          const struct GNUNET_PeerIdentity *pids);
+GCPP_get_path_from_route(unsigned int path_length,
+                         const struct GNUNET_PeerIdentity *pids);
 
 
 /**
@@ -69,7 +69,7 @@ GCPP_get_path_from_route (unsigned int path_length,
  * @return number of peers on the path
  */
 unsigned int
-GCPP_get_length (struct CadetPeerPath *path);
+GCPP_get_length(struct CadetPeerPath *path);
 
 
 /**
@@ -83,9 +83,9 @@ GCPP_get_length (struct CadetPeerPath *path);
  *         otherwise connection from us to @a destination via @a path
  */
 struct CadetConnection *
-GCPP_get_connection (struct CadetPeerPath *path,
-                     struct CadetPeer *destination,
-                     unsigned int off);
+GCPP_get_connection(struct CadetPeerPath *path,
+                    struct CadetPeer *destination,
+                    unsigned int off);
 
 
 /**
@@ -97,9 +97,9 @@ GCPP_get_connection (struct CadetPeerPath *path,
  * @param cc the connection to remember
  */
 void
-GCPP_add_connection (struct CadetPeerPath *path,
-                     unsigned int off,
-                     struct CadetConnection *cc);
+GCPP_add_connection(struct CadetPeerPath *path,
+                    unsigned int off,
+                    struct CadetConnection *cc);
 
 
 /**
@@ -111,9 +111,9 @@ GCPP_add_connection (struct CadetPeerPath *path,
  * @param cc the connection to forget
  */
 void
-GCPP_del_connection (struct CadetPeerPath *path,
-                     unsigned int off,
-                     struct CadetConnection *cc);
+GCPP_del_connection(struct CadetPeerPath *path,
+                    unsigned int off,
+                    struct CadetConnection *cc);
 
 
 /**
@@ -124,8 +124,8 @@ GCPP_del_connection (struct CadetPeerPath *path,
  * @return offset of @a cp on @a path, or UINT_MAX if not found
  */
 unsigned int
-GCPP_find_peer (struct CadetPeerPath *path,
-                struct CadetPeer *cp);
+GCPP_find_peer(struct CadetPeerPath *path,
+               struct CadetPeer *cp);
 
 
 /**
@@ -142,7 +142,7 @@ GCPP_find_peer (struct CadetPeerPath *path,
  * @return desirability of the path, larger is more desirable
  */
 GNUNET_CONTAINER_HeapCostType
-GCPP_get_desirability (const struct CadetPeerPath *path);
+GCPP_get_desirability(const struct CadetPeerPath *path);
 
 
 /**
@@ -154,7 +154,7 @@ GCPP_get_desirability (const struct CadetPeerPath *path);
  * @param path the path that is being released
  */
 void
-GCPP_release (struct CadetPeerPath *path);
+GCPP_release(struct CadetPeerPath *path);
 
 
 /**
@@ -165,8 +165,8 @@ GCPP_release (struct CadetPeerPath *path);
  * @return peer at offset @a off
  */
 struct CadetPeer *
-GCPP_get_peer_at_offset (struct CadetPeerPath *path,
-                         unsigned int off);
+GCPP_get_peer_at_offset(struct CadetPeerPath *path,
+                        unsigned int off);
 
 
 /**
@@ -176,7 +176,7 @@ GCPP_get_peer_at_offset (struct CadetPeerPath *path,
  * @return string, statically allocated
  */
 const char *
-GCPP_2s (struct CadetPeerPath *p);
+GCPP_2s(struct CadetPeerPath *p);
 
 
 #endif

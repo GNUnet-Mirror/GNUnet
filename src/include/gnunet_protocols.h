@@ -16,7 +16,7 @@
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 
 /**
  * @author Christian Grothoff
@@ -85,8 +85,8 @@ extern "C" {
 #define GNUNET_MESSAGE_TYPE_RESOLVER_RESPONSE 5
 
 /*******************************************************************************
- * AGPL source code download
- * *****************************************************************************/
+* AGPL source code download
+* *****************************************************************************/
 
 /**
  * Message to request source code link.
@@ -3048,8 +3048,8 @@ extern "C" {
 
 
 /*******************************************************
-  NEW (TNG) Transport service
-  ******************************************************* */
+   NEW (TNG) Transport service
+ ******************************************************* */
 
 /**
  * @brief inform transport to add an address of this peer

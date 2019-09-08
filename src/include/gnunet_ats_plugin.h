@@ -1,19 +1,19 @@
 /*
- This file is part of GNUnet
- Copyright (C) 2009-2015 GNUnet e.V.
+   This file is part of GNUnet
+   Copyright (C) 2009-2015 GNUnet e.V.
 
- GNUnet is free software: you can redistribute it and/or modify it
- under the terms of the GNU Affero General Public License as published
- by the Free Software Foundation, either version 3 of the License,
- or (at your option) any later version.
+   GNUnet is free software: you can redistribute it and/or modify it
+   under the terms of the GNU Affero General Public License as published
+   by the Free Software Foundation, either version 3 of the License,
+   or (at your option) any later version.
 
- GNUnet is distributed in the hope that it will be useful, but
- WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- Affero General Public License for more details.
+   GNUnet is distributed in the hope that it will be useful, but
+   WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   Affero General Public License for more details.
 
- You should have received a copy of the GNU Affero General Public License
- along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   You should have received a copy of the GNU Affero General Public License
+   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
  */
@@ -163,9 +163,7 @@ typedef void
  * Each solver is required to set up and return an instance
  * of this struct during initialization.
  */
-struct GNUNET_ATS_SolverFunctions
-{
-
+struct GNUNET_ATS_SolverFunctions {
   /**
    * Closure to pass to all solver functions in this struct.
    */
@@ -248,8 +246,7 @@ struct GNUNET_ATS_SolverFunctions
  * #GAS_OP_SOLVE_UPDATE_NOTIFICATION_STOP
  *
  */
-enum GAS_Solver_Operation
-{
+enum GAS_Solver_Operation {
   /**
    * A solution iteration has been started
    */
@@ -311,8 +308,7 @@ enum GAS_Solver_Operation
 /**
  * Status of a GAS_Solver_Operation operation
  */
-enum GAS_Solver_Status
-{
+enum GAS_Solver_Status {
   /**
    * Success
    */
@@ -328,8 +324,7 @@ enum GAS_Solver_Status
 /**
  * Status of the operation
  */
-enum GAS_Solver_Additional_Information
-{
+enum GAS_Solver_Additional_Information {
   /**
    * No more specific information
    */
@@ -416,8 +411,7 @@ typedef unsigned int
  * of this type as to the initialization function
  * of the ATS plugins.
  */
-struct GNUNET_ATS_PluginEnvironment
-{
+struct GNUNET_ATS_PluginEnvironment {
   /**
    * Configuration handle to be used by the solver
    */

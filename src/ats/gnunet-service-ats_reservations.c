@@ -11,12 +11,12 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 /**
  * @file ats/gnunet-service-ats_reservations.c
  * @brief ats service, inbound bandwidth reservation management
@@ -53,38 +53,38 @@ static struct GNUNET_CONTAINER_MultiPeerMap *trackers;
  *         until the reservation might succeed
  */
 static struct GNUNET_TIME_Relative
-reservations_reserve (const struct GNUNET_PeerIdentity *peer,
-                      int32_t amount)
+reservations_reserve(const struct GNUNET_PeerIdentity *peer,
+                     int32_t amount)
 {
   struct GNUNET_BANDWIDTH_Tracker *tracker;
   struct GNUNET_TIME_Relative ret;
 
-  tracker = GNUNET_CONTAINER_multipeermap_get (trackers,
-                                               peer);
+  tracker = GNUNET_CONTAINER_multipeermap_get(trackers,
+                                              peer);
   if (NULL == tracker)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Not connected, allowing reservation of %d bytes\n",
-                (int) amount);
-    return GNUNET_TIME_UNIT_ZERO;       /* not connected, satisfy now */
-  }
-  if (amount >= 0)
-  {
-    ret = GNUNET_BANDWIDTH_tracker_get_delay (tracker, amount);
-    if (ret.rel_value_us > 0)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Delay to satisfy reservation for %d bytes is %s\n",
-                  (int) amount,
-		  GNUNET_STRINGS_relative_time_to_string (ret,
-							  GNUNET_YES));
-      return ret;
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+                 "Not connected, allowing reservation of %d bytes\n",
+                 (int)amount);
+      return GNUNET_TIME_UNIT_ZERO;     /* not connected, satisfy now */
     }
-  }
-  (void) GNUNET_BANDWIDTH_tracker_consume (tracker, amount);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Reserved %d bytes\n",
-              (int) amount);
+  if (amount >= 0)
+    {
+      ret = GNUNET_BANDWIDTH_tracker_get_delay(tracker, amount);
+      if (ret.rel_value_us > 0)
+        {
+          GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+                     "Delay to satisfy reservation for %d bytes is %s\n",
+                     (int)amount,
+                     GNUNET_STRINGS_relative_time_to_string(ret,
+                                                            GNUNET_YES));
+          return ret;
+        }
+    }
+  (void)GNUNET_BANDWIDTH_tracker_consume(tracker, amount);
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+             "Reserved %d bytes\n",
+             (int)amount);
   return GNUNET_TIME_UNIT_ZERO;
 }
 
@@ -98,40 +98,40 @@ reservations_reserve (const struct GNUNET_PeerIdentity *peer,
  *        this peer (estimate)
  */
 void
-GAS_reservations_set_bandwidth (const struct GNUNET_PeerIdentity *peer,
-                                struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in)
+GAS_reservations_set_bandwidth(const struct GNUNET_PeerIdentity *peer,
+                               struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in)
 {
   struct GNUNET_BANDWIDTH_Tracker *tracker;
 
-  tracker = GNUNET_CONTAINER_multipeermap_get (trackers, peer);
-  if (0 == ntohl (bandwidth_in.value__))
-  {
-    if (NULL == tracker)
-      return;
-    GNUNET_assert (GNUNET_YES ==
-                   GNUNET_CONTAINER_multipeermap_remove (trackers,
+  tracker = GNUNET_CONTAINER_multipeermap_get(trackers, peer);
+  if (0 == ntohl(bandwidth_in.value__))
+    {
+      if (NULL == tracker)
+        return;
+      GNUNET_assert(GNUNET_YES ==
+                    GNUNET_CONTAINER_multipeermap_remove(trackers,
                                                          peer,
                                                          tracker));
-    GNUNET_free (tracker);
-    return;
-  }
+      GNUNET_free(tracker);
+      return;
+    }
   if (NULL == tracker)
-  {
-    tracker = GNUNET_new (struct GNUNET_BANDWIDTH_Tracker);
-    GNUNET_BANDWIDTH_tracker_init (tracker,
-                                   NULL,
-                                   NULL,
-                                   bandwidth_in,
-                                   MAX_BANDWIDTH_CARRY_S);
-    GNUNET_assert (GNUNET_OK ==
-                   GNUNET_CONTAINER_multipeermap_put (trackers,
+    {
+      tracker = GNUNET_new(struct GNUNET_BANDWIDTH_Tracker);
+      GNUNET_BANDWIDTH_tracker_init(tracker,
+                                    NULL,
+                                    NULL,
+                                    bandwidth_in,
+                                    MAX_BANDWIDTH_CARRY_S);
+      GNUNET_assert(GNUNET_OK ==
+                    GNUNET_CONTAINER_multipeermap_put(trackers,
                                                       peer,
                                                       tracker,
                                                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
-    return;
-  }
-  GNUNET_BANDWIDTH_tracker_update_quota (tracker,
-                                         bandwidth_in);
+      return;
+    }
+  GNUNET_BANDWIDTH_tracker_update_quota(tracker,
+                                        bandwidth_in);
 }
 
 
@@ -142,31 +142,31 @@ GAS_reservations_set_bandwidth (const struct GNUNET_PeerIdentity *peer,
  * @param msg the request message
  */
 void
-GAS_handle_reservation_request (struct GNUNET_SERVICE_Client *client,
-                                const struct ReservationRequestMessage *msg)
+GAS_handle_reservation_request(struct GNUNET_SERVICE_Client *client,
+                               const struct ReservationRequestMessage *msg)
 {
   struct GNUNET_MQ_Envelope *env;
   struct ReservationResultMessage *result;
   int32_t amount;
   struct GNUNET_TIME_Relative res_delay;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Received RESERVATION_REQUEST message\n");
-  amount = (int32_t) ntohl (msg->amount);
-  res_delay = reservations_reserve (&msg->peer, amount);
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+             "Received RESERVATION_REQUEST message\n");
+  amount = (int32_t)ntohl(msg->amount);
+  res_delay = reservations_reserve(&msg->peer, amount);
   if (res_delay.rel_value_us > 0)
     amount = 0;
-  env = GNUNET_MQ_msg (result,
-		       GNUNET_MESSAGE_TYPE_ATS_RESERVATION_RESULT);
-  result->amount = htonl (amount);
+  env = GNUNET_MQ_msg(result,
+                      GNUNET_MESSAGE_TYPE_ATS_RESERVATION_RESULT);
+  result->amount = htonl(amount);
   result->peer = msg->peer;
-  result->res_delay = GNUNET_TIME_relative_hton (res_delay);
-  GNUNET_STATISTICS_update (GSA_stats,
-                            "# reservation requests processed",
-                            1,
-                            GNUNET_NO);
-  GNUNET_MQ_send (GNUNET_SERVICE_client_get_mq (client),
-		  env);
+  result->res_delay = GNUNET_TIME_relative_hton(res_delay);
+  GNUNET_STATISTICS_update(GSA_stats,
+                           "# reservation requests processed",
+                           1,
+                           GNUNET_NO);
+  GNUNET_MQ_send(GNUNET_SERVICE_client_get_mq(client),
+                 env);
 }
 
 
@@ -174,10 +174,10 @@ GAS_handle_reservation_request (struct GNUNET_SERVICE_Client *client,
  * Initialize reservations subsystem.
  */
 void
-GAS_reservations_init ()
+GAS_reservations_init()
 {
-  trackers = GNUNET_CONTAINER_multipeermap_create (128,
-                                                   GNUNET_NO);
+  trackers = GNUNET_CONTAINER_multipeermap_create(128,
+                                                  GNUNET_NO);
 }
 
 
@@ -190,13 +190,13 @@ GAS_reservations_init ()
  * @return #GNUNET_OK (continue to iterate)
  */
 static int
-free_tracker (void *cls,
-	      const struct GNUNET_PeerIdentity *key,
-	      void *value)
+free_tracker(void *cls,
+             const struct GNUNET_PeerIdentity *key,
+             void *value)
 {
   struct GNUNET_BANDWIDTH_Tracker *tracker = value;
 
-  GNUNET_free (tracker);
+  GNUNET_free(tracker);
   return GNUNET_OK;
 }
 
@@ -205,12 +205,12 @@ free_tracker (void *cls,
  * Shutdown reservations subsystem.
  */
 void
-GAS_reservations_done ()
+GAS_reservations_done()
 {
-  GNUNET_CONTAINER_multipeermap_iterate (trackers,
-                                         &free_tracker,
-                                         NULL);
-  GNUNET_CONTAINER_multipeermap_destroy (trackers);
+  GNUNET_CONTAINER_multipeermap_iterate(trackers,
+                                        &free_tracker,
+                                        NULL);
+  GNUNET_CONTAINER_multipeermap_destroy(trackers);
 }
 
 /* end of gnunet-service-ats_reservations.c */

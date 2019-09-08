@@ -11,12 +11,12 @@
    WITHOUT ANY WARRANTY; without even the implied warranty of
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
    Affero General Public License for more details.
-  
+
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-   */
+ */
 /**
  * @author Martin Schanzenbach
  *
@@ -45,9 +45,7 @@ extern "C"
 /**
  * @brief struct returned by the initialization function of the plugin
  */
-struct GNUNET_REST_Plugin
-{
-
+struct GNUNET_REST_Plugin {
   /**
    *
    * The closure of the plugin
@@ -74,7 +72,6 @@ struct GNUNET_REST_Plugin
   void (*process_request) (struct GNUNET_REST_RequestHandle *handle,
                            GNUNET_REST_ResultProcessor proc,
                            void *proc_cls);
-
 };
 
 

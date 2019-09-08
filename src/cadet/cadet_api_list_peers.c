@@ -11,12 +11,12 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 /**
  * @file cadet/cadet_api_list_peers.c
  * @brief cadet api: client implementation of cadet service
@@ -34,9 +34,7 @@
 /**
  * Operation handle.
  */
-struct GNUNET_CADET_PeersLister
-{
-
+struct GNUNET_CADET_PeersLister {
   /**
    * Monitor callback
    */
@@ -66,7 +64,6 @@ struct GNUNET_CADET_PeersLister
    * Backoff for reconnect attempts.
    */
   struct GNUNET_TIME_Relative backoff;
-  
 };
 
 
@@ -77,18 +74,18 @@ struct GNUNET_CADET_PeersLister
  * @param info Message itself.
  */
 static void
-handle_get_peers (void *cls,
-                  const struct GNUNET_CADET_LocalInfoPeers *info)
+handle_get_peers(void *cls,
+                 const struct GNUNET_CADET_LocalInfoPeers *info)
 {
   struct GNUNET_CADET_PeersLister *pl = cls;
   struct GNUNET_CADET_PeerListEntry ple;
 
   ple.peer = info->destination;
-  ple.have_tunnel = (int) ntohs (info->tunnel);
-  ple.n_paths = (unsigned int) ntohs (info->paths);
-  ple.best_path_length = (unsigned int) ntohl (info->best_path_length);
-  pl->peers_cb (pl->peers_cb_cls,
-		&ple);
+  ple.have_tunnel = (int)ntohs(info->tunnel);
+  ple.n_paths = (unsigned int)ntohs(info->paths);
+  ple.best_path_length = (unsigned int)ntohl(info->best_path_length);
+  pl->peers_cb(pl->peers_cb_cls,
+               &ple);
 }
 
 
@@ -99,15 +96,16 @@ handle_get_peers (void *cls,
  * @param msg Message itself.
  */
 static void
-handle_get_peers_end (void *cls,
-		      const struct GNUNET_MessageHeader *msg)
+handle_get_peers_end(void *cls,
+                     const struct GNUNET_MessageHeader *msg)
 {
   struct GNUNET_CADET_PeersLister *pl = cls;
-  (void) msg;
 
-  pl->peers_cb (pl->peers_cb_cls,
-		NULL);
-  GNUNET_CADET_list_peers_cancel (pl);
+  (void)msg;
+
+  pl->peers_cb(pl->peers_cb_cls,
+               NULL);
+  GNUNET_CADET_list_peers_cancel(pl);
 }
 
 
@@ -117,7 +115,7 @@ handle_get_peers_end (void *cls,
  * @param cls a `struct GNUNET_CADET_PeersLister` operation
  */
 static void
-reconnect (void *cls);
+reconnect(void *cls);
 
 
 /**
@@ -127,18 +125,18 @@ reconnect (void *cls);
  * @param error error code from MQ
  */
 static void
-error_handler (void *cls,
-	       enum GNUNET_MQ_Error error)
+error_handler(void *cls,
+              enum GNUNET_MQ_Error error)
 {
   struct GNUNET_CADET_PeersLister *pl = cls;
 
-  GNUNET_MQ_destroy (pl->mq);
+  GNUNET_MQ_destroy(pl->mq);
   pl->mq = NULL;
-  pl->backoff = GNUNET_TIME_randomized_backoff (pl->backoff,
-						GNUNET_TIME_UNIT_MINUTES);
-  pl->reconnect_task = GNUNET_SCHEDULER_add_delayed (pl->backoff,
-						     &reconnect,
-						     pl);
+  pl->backoff = GNUNET_TIME_randomized_backoff(pl->backoff,
+                                               GNUNET_TIME_UNIT_MINUTES);
+  pl->reconnect_task = GNUNET_SCHEDULER_add_delayed(pl->backoff,
+                                                    &reconnect,
+                                                    pl);
 }
 
 
@@ -148,35 +146,35 @@ error_handler (void *cls,
  * @param cls a `struct GNUNET_CADET_PeersLister` operation
  */
 static void
-reconnect (void *cls)
+reconnect(void *cls)
 {
   struct GNUNET_CADET_PeersLister *pl = cls;
   struct GNUNET_MQ_MessageHandler handlers[] = {
-    GNUNET_MQ_hd_fixed_size (get_peers,
-			     GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_PEERS,
-			     struct GNUNET_CADET_LocalInfoPeers,
-			     pl),
-    GNUNET_MQ_hd_fixed_size (get_peers_end,
-			     GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_PEERS_END,
-			     struct GNUNET_MessageHeader,
-			     pl),
-    GNUNET_MQ_handler_end ()
+    GNUNET_MQ_hd_fixed_size(get_peers,
+                            GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_PEERS,
+                            struct GNUNET_CADET_LocalInfoPeers,
+                            pl),
+    GNUNET_MQ_hd_fixed_size(get_peers_end,
+                            GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_PEERS_END,
+                            struct GNUNET_MessageHeader,
+                            pl),
+    GNUNET_MQ_handler_end()
   };
   struct GNUNET_MessageHeader *msg;
   struct GNUNET_MQ_Envelope *env;
 
   pl->reconnect_task = NULL;
-  pl->mq = GNUNET_CLIENT_connect (pl->cfg,
-				  "cadet",
-				  handlers,
-				  &error_handler,
-				  pl);	
+  pl->mq = GNUNET_CLIENT_connect(pl->cfg,
+                                 "cadet",
+                                 handlers,
+                                 &error_handler,
+                                 pl);
   if (NULL == pl->mq)
     return;
-  env = GNUNET_MQ_msg (msg,
-		       GNUNET_MESSAGE_TYPE_CADET_LOCAL_REQUEST_INFO_PEERS);
-  GNUNET_MQ_send (pl->mq,
-                  env);
+  env = GNUNET_MQ_msg(msg,
+                      GNUNET_MESSAGE_TYPE_CADET_LOCAL_REQUEST_INFO_PEERS);
+  GNUNET_MQ_send(pl->mq,
+                 env);
 }
 
 
@@ -191,27 +189,27 @@ reconnect (void *cls)
  * @return NULL on error
  */
 struct GNUNET_CADET_PeersLister *
-GNUNET_CADET_list_peers (const struct GNUNET_CONFIGURATION_Handle *cfg,
-			 GNUNET_CADET_PeersCB callback,
-			 void *callback_cls)
+GNUNET_CADET_list_peers(const struct GNUNET_CONFIGURATION_Handle *cfg,
+                        GNUNET_CADET_PeersCB callback,
+                        void *callback_cls)
 {
   struct GNUNET_CADET_PeersLister *pl;
 
   if (NULL == callback)
-  {
-    GNUNET_break (0);
-    return NULL;
-  }
-  pl = GNUNET_new (struct GNUNET_CADET_PeersLister);
+    {
+      GNUNET_break(0);
+      return NULL;
+    }
+  pl = GNUNET_new(struct GNUNET_CADET_PeersLister);
   pl->peers_cb = callback;
   pl->peers_cb_cls = callback_cls;
   pl->cfg = cfg;
-  reconnect (pl);
+  reconnect(pl);
   if (NULL == pl->mq)
-  {
-    GNUNET_free (pl);
-    return NULL;
-  }
+    {
+      GNUNET_free(pl);
+      return NULL;
+    }
   return pl;
 }
 
@@ -223,15 +221,15 @@ GNUNET_CADET_list_peers (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @return Closure given to GNUNET_CADET_get_peers().
  */
 void *
-GNUNET_CADET_list_peers_cancel (struct GNUNET_CADET_PeersLister *pl)
+GNUNET_CADET_list_peers_cancel(struct GNUNET_CADET_PeersLister *pl)
 {
   void *ret = pl->peers_cb_cls;
 
   if (NULL != pl->mq)
-    GNUNET_MQ_destroy (pl->mq);
+    GNUNET_MQ_destroy(pl->mq);
   if (NULL != pl->reconnect_task)
-    GNUNET_SCHEDULER_cancel (pl->reconnect_task);
-  GNUNET_free (pl);
+    GNUNET_SCHEDULER_cancel(pl->reconnect_task);
+  GNUNET_free(pl);
   return ret;
 }
 

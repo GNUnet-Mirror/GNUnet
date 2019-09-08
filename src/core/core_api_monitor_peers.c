@@ -16,7 +16,7 @@
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 
 /**
  * @file core/core_api_monitor_peers.c
@@ -32,9 +32,7 @@
 /**
  * Handle to a CORE monitoring operation.
  */
-struct GNUNET_CORE_MonitorHandle
-{
-
+struct GNUNET_CORE_MonitorHandle {
   /**
    * Our configuration.
    */
@@ -64,7 +62,7 @@ struct GNUNET_CORE_MonitorHandle
  * @param mh monitoring session to reconnect to CORE
  */
 static void
-reconnect (struct GNUNET_CORE_MonitorHandle *mh);
+reconnect(struct GNUNET_CORE_MonitorHandle *mh);
 
 
 /**
@@ -76,12 +74,12 @@ reconnect (struct GNUNET_CORE_MonitorHandle *mh);
  * @param error error code
  */
 static void
-handle_mq_error (void *cls, enum GNUNET_MQ_Error error)
+handle_mq_error(void *cls, enum GNUNET_MQ_Error error)
 {
   struct GNUNET_CORE_MonitorHandle *mh = cls;
 
-  (void) error;
-  reconnect (mh);
+  (void)error;
+  reconnect(mh);
 }
 
 
@@ -92,14 +90,14 @@ handle_mq_error (void *cls, enum GNUNET_MQ_Error error)
  * @param mon_message monitor message
  */
 static void
-handle_receive_info (void *cls, const struct MonitorNotifyMessage *mon_message)
+handle_receive_info(void *cls, const struct MonitorNotifyMessage *mon_message)
 {
   struct GNUNET_CORE_MonitorHandle *mh = cls;
 
-  mh->peer_cb (mh->peer_cb_cls,
-               &mon_message->peer,
-               (enum GNUNET_CORE_KxState) ntohl (mon_message->state),
-               GNUNET_TIME_absolute_ntoh (mon_message->timeout));
+  mh->peer_cb(mh->peer_cb_cls,
+              &mon_message->peer,
+              (enum GNUNET_CORE_KxState)ntohl(mon_message->state),
+              GNUNET_TIME_absolute_ntoh(mon_message->timeout));
 }
 
 
@@ -110,32 +108,32 @@ handle_receive_info (void *cls, const struct MonitorNotifyMessage *mon_message)
  * @param mh monitoring session to reconnect to CORE
  */
 static void
-reconnect (struct GNUNET_CORE_MonitorHandle *mh)
+reconnect(struct GNUNET_CORE_MonitorHandle *mh)
 {
   struct GNUNET_MQ_MessageHandler handlers[] =
-    {GNUNET_MQ_hd_fixed_size (receive_info,
-                              GNUNET_MESSAGE_TYPE_CORE_MONITOR_NOTIFY,
-                              struct MonitorNotifyMessage,
-                              mh),
-     GNUNET_MQ_handler_end ()};
+  { GNUNET_MQ_hd_fixed_size(receive_info,
+                            GNUNET_MESSAGE_TYPE_CORE_MONITOR_NOTIFY,
+                            struct MonitorNotifyMessage,
+                            mh),
+    GNUNET_MQ_handler_end() };
   struct GNUNET_MQ_Envelope *env;
   struct GNUNET_MessageHeader *msg;
 
   if (NULL != mh->mq)
-    GNUNET_MQ_destroy (mh->mq);
+    GNUNET_MQ_destroy(mh->mq);
   /* FIXME: use backoff? */
   mh->mq =
-    GNUNET_CLIENT_connect (mh->cfg, "core", handlers, &handle_mq_error, mh);
+    GNUNET_CLIENT_connect(mh->cfg, "core", handlers, &handle_mq_error, mh);
   if (NULL == mh->mq)
     return;
   /* notify callback about reconnect */
   if (NULL != mh->peer_cb)
-    mh->peer_cb (mh->peer_cb_cls,
-                 NULL,
-                 GNUNET_CORE_KX_CORE_DISCONNECT,
-                 GNUNET_TIME_UNIT_FOREVER_ABS);
-  env = GNUNET_MQ_msg (msg, GNUNET_MESSAGE_TYPE_CORE_MONITOR_PEERS);
-  GNUNET_MQ_send (mh->mq, env);
+    mh->peer_cb(mh->peer_cb_cls,
+                NULL,
+                GNUNET_CORE_KX_CORE_DISCONNECT,
+                GNUNET_TIME_UNIT_FOREVER_ABS);
+  env = GNUNET_MQ_msg(msg, GNUNET_MESSAGE_TYPE_CORE_MONITOR_PEERS);
+  GNUNET_MQ_send(mh->mq, env);
 }
 
 
@@ -156,23 +154,23 @@ reconnect (struct GNUNET_CORE_MonitorHandle *mh)
  * @return NULL on error
  */
 struct GNUNET_CORE_MonitorHandle *
-GNUNET_CORE_monitor_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                           GNUNET_CORE_MonitorCallback peer_cb,
-                           void *peer_cb_cls)
+GNUNET_CORE_monitor_start(const struct GNUNET_CONFIGURATION_Handle *cfg,
+                          GNUNET_CORE_MonitorCallback peer_cb,
+                          void *peer_cb_cls)
 {
   struct GNUNET_CORE_MonitorHandle *mh;
 
-  GNUNET_assert (NULL != peer_cb);
-  mh = GNUNET_new (struct GNUNET_CORE_MonitorHandle);
+  GNUNET_assert(NULL != peer_cb);
+  mh = GNUNET_new(struct GNUNET_CORE_MonitorHandle);
   mh->cfg = cfg;
-  reconnect (mh);
+  reconnect(mh);
   mh->peer_cb = peer_cb;
   mh->peer_cb_cls = peer_cb_cls;
   if (NULL == mh->mq)
-  {
-    GNUNET_free (mh);
-    return NULL;
-  }
+    {
+      GNUNET_free(mh);
+      return NULL;
+    }
   return mh;
 }
 
@@ -183,14 +181,14 @@ GNUNET_CORE_monitor_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @param mh monitor to stop
  */
 void
-GNUNET_CORE_monitor_stop (struct GNUNET_CORE_MonitorHandle *mh)
+GNUNET_CORE_monitor_stop(struct GNUNET_CORE_MonitorHandle *mh)
 {
   if (NULL != mh->mq)
-  {
-    GNUNET_MQ_destroy (mh->mq);
-    mh->mq = NULL;
-  }
-  GNUNET_free (mh);
+    {
+      GNUNET_MQ_destroy(mh->mq);
+      mh->mq = NULL;
+    }
+  GNUNET_free(mh);
 }
 
 

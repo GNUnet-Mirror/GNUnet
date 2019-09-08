@@ -1,19 +1,19 @@
 /*
- This file is part of GNUnet.
- Copyright (C) 2010-2013, 2016, 2017 GNUnet e.V.
+   This file is part of GNUnet.
+   Copyright (C) 2010-2013, 2016, 2017 GNUnet e.V.
 
- GNUnet is free software: you can redistribute it and/or modify it
- under the terms of the GNU Affero General Public License as published
- by the Free Software Foundation, either version 3 of the License,
- or (at your option) any later version.
+   GNUnet is free software: you can redistribute it and/or modify it
+   under the terms of the GNU Affero General Public License as published
+   by the Free Software Foundation, either version 3 of the License,
+   or (at your option) any later version.
 
- GNUnet is distributed in the hope that it will be useful, but
- WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- Affero General Public License for more details.
+   GNUnet is distributed in the hope that it will be useful, but
+   WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   Affero General Public License for more details.
 
- You should have received a copy of the GNU Affero General Public License
- along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   You should have received a copy of the GNU Affero General Public License
+   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
  */
@@ -30,8 +30,7 @@
 /**
  * Connect peers with testbed
  */
-struct TestbedConnectOperation
-{
+struct TestbedConnectOperation {
   /**
    * The benchmarking master initiating this connection
    */
@@ -59,7 +58,7 @@ struct GNUNET_ATS_TEST_Topology *top;
  * @param cls NULL
  */
 static void
-do_shutdown (void *cls)
+do_shutdown(void *cls)
 {
   int c_m;
   int c_s;
@@ -68,119 +67,119 @@ do_shutdown (void *cls)
 
   top->state.benchmarking = GNUNET_NO;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-	      "Benchmarking done\n");
+  GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+             "Benchmarking done\n");
 
-  GNUNET_ATS_TEST_generate_traffic_stop_all ();
+  GNUNET_ATS_TEST_generate_traffic_stop_all();
 
   for (c_m = 0; c_m < top->num_masters; c_m++)
-  {
-    p = &top->mps[c_m];
-    if (NULL != top->mps[c_m].peer_id_op)
     {
-      GNUNET_TESTBED_operation_done (p->peer_id_op);
-      p->peer_id_op = NULL;
-    }
+      p = &top->mps[c_m];
+      if (NULL != top->mps[c_m].peer_id_op)
+        {
+          GNUNET_TESTBED_operation_done(p->peer_id_op);
+          p->peer_id_op = NULL;
+        }
 
-    if (NULL != p->ats_task)
-      GNUNET_SCHEDULER_cancel (p->ats_task);
-    p->ats_task = NULL;
+      if (NULL != p->ats_task)
+        GNUNET_SCHEDULER_cancel(p->ats_task);
+      p->ats_task = NULL;
 
-    for (c_op = 0; c_op < p->num_partners; c_op++)
-    {
-      if ( (NULL != p->core_connect_ops) &&
-           (NULL != p->core_connect_ops[c_op].connect_op) )
-      {
-        GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-		    "Failed to connect peer 0 and %u\n",
-		    c_op);
-        GNUNET_TESTBED_operation_done (p->core_connect_ops[c_op].connect_op);
-        p->core_connect_ops[c_op].connect_op = NULL;
-      }
-    }
+      for (c_op = 0; c_op < p->num_partners; c_op++)
+        {
+          if ((NULL != p->core_connect_ops) &&
+              (NULL != p->core_connect_ops[c_op].connect_op))
+            {
+              GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+                         "Failed to connect peer 0 and %u\n",
+                         c_op);
+              GNUNET_TESTBED_operation_done(p->core_connect_ops[c_op].connect_op);
+              p->core_connect_ops[c_op].connect_op = NULL;
+            }
+        }
 
-    if (NULL != p->ats_perf_op)
-    {
-      GNUNET_TESTBED_operation_done (p->ats_perf_op);
-      p->ats_perf_op = NULL;
-    }
+      if (NULL != p->ats_perf_op)
+        {
+          GNUNET_TESTBED_operation_done(p->ats_perf_op);
+          p->ats_perf_op = NULL;
+        }
 
-    if (NULL != p->comm_op)
-    {
-      GNUNET_TESTBED_operation_done (p->comm_op);
-      p->comm_op = NULL;
+      if (NULL != p->comm_op)
+        {
+          GNUNET_TESTBED_operation_done(p->comm_op);
+          p->comm_op = NULL;
+        }
+      GNUNET_free_non_null(p->core_connect_ops);
+      GNUNET_free(p->partners);
+      p->partners = NULL;
     }
-    GNUNET_free_non_null (p->core_connect_ops);
-    GNUNET_free(p->partners);
-    p->partners = NULL;
-  }
 
   for (c_s = 0; c_s < top->num_slaves; c_s++)
-  {
-    p = &top->sps[c_s];
-    if (NULL != p->peer_id_op)
     {
-      GNUNET_TESTBED_operation_done (p->peer_id_op);
-      p->peer_id_op = NULL;
+      p = &top->sps[c_s];
+      if (NULL != p->peer_id_op)
+        {
+          GNUNET_TESTBED_operation_done(p->peer_id_op);
+          p->peer_id_op = NULL;
+        }
+      if (NULL != p->ats_perf_op)
+        {
+          GNUNET_TESTBED_operation_done(p->ats_perf_op);
+          p->ats_perf_op = NULL;
+        }
+      if (NULL != p->comm_op)
+        {
+          GNUNET_TESTBED_operation_done(p->comm_op);
+          p->comm_op = NULL;
+        }
+      GNUNET_free(p->partners);
+      p->partners = NULL;
     }
-    if (NULL != p->ats_perf_op)
-    {
-      GNUNET_TESTBED_operation_done (p->ats_perf_op);
-      p->ats_perf_op = NULL;
-    }
-    if (NULL != p->comm_op)
-    {
-      GNUNET_TESTBED_operation_done (p->comm_op);
-      p->comm_op = NULL;
-    }
-    GNUNET_free(p->partners);
-    p->partners = NULL;
-  }
-  GNUNET_SCHEDULER_shutdown ();
-  GNUNET_free (top);
+  GNUNET_SCHEDULER_shutdown();
+  GNUNET_free(top);
   top = NULL;
 }
 
 
 static struct BenchmarkPartner *
-find_partner (struct BenchmarkPeer *me,
-	      const struct GNUNET_PeerIdentity *peer)
+find_partner(struct BenchmarkPeer *me,
+             const struct GNUNET_PeerIdentity *peer)
 {
   int c_m;
 
   for (c_m = 0; c_m < me->num_partners; c_m++)
-  {
-    /* Find a partner with other as destination */
-    if (0 == GNUNET_memcmp (peer,
-		     &me->partners[c_m].dest->id))
     {
-      return &me->partners[c_m];
+      /* Find a partner with other as destination */
+      if (0 == GNUNET_memcmp(peer,
+                             &me->partners[c_m].dest->id))
+        {
+          return &me->partners[c_m];
+        }
     }
-  }
 
   return NULL;
 }
 
 
 static struct BenchmarkPeer *
-find_peer (const struct GNUNET_PeerIdentity * peer)
+find_peer(const struct GNUNET_PeerIdentity * peer)
 {
   int c_p;
 
   for (c_p = 0; c_p < top->num_masters; c_p++)
-  {
-    if (0 == GNUNET_memcmp (&top->mps[c_p].id,
-		     peer))
-      return &top->mps[c_p];
-  }
+    {
+      if (0 == GNUNET_memcmp(&top->mps[c_p].id,
+                             peer))
+        return &top->mps[c_p];
+    }
 
   for (c_p = 0; c_p < top->num_slaves; c_p++)
-  {
-    if (0 == GNUNET_memcmp (&top->sps[c_p].id,
-		     peer))
-      return &top->sps[c_p];
-  }
-  return NULL ;
+    {
+      if (0 == GNUNET_memcmp(&top->sps[c_p].id,
+                             peer))
+        return &top->sps[c_p];
+    }
+  return NULL;
 }
 
 
@@ -193,9 +192,9 @@ find_peer (const struct GNUNET_PeerIdentity * peer)
  * @return the `struct BenchmarkPartner` of @a peer
  */
 static void *
-comm_connect_cb (void *cls,
-		 const struct GNUNET_PeerIdentity *peer,
-		 struct GNUNET_MQ_Handle *mq)
+comm_connect_cb(void *cls,
+                const struct GNUNET_PeerIdentity *peer,
+                struct GNUNET_MQ_Handle *mq)
 {
   struct BenchmarkPeer *me = cls;
   struct BenchmarkPeer *remote;
@@ -204,60 +203,60 @@ comm_connect_cb (void *cls,
   int c;
   int completed;
 
-  remote = find_peer (peer);
+  remote = find_peer(peer);
   if (NULL == remote)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-		"Unknown peer connected: `%s'\n",
-		GNUNET_i2s (peer));
-    GNUNET_break (0);
-    return NULL;
-  }
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_WARNING,
+                 "Unknown peer connected: `%s'\n",
+                 GNUNET_i2s(peer));
+      GNUNET_break(0);
+      return NULL;
+    }
 
-  id = GNUNET_strdup (GNUNET_i2s (&me->id));
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "%s [%u] `%s' connected to %s [%u] %s\n",
-	      (me->master == GNUNET_YES) ? "Master": "Slave",
-	      me->no,
-	      id,
-	      (remote->master == GNUNET_YES) ? "Master": "Slave",
-	      remote->no,
-	      GNUNET_i2s (peer));
+  id = GNUNET_strdup(GNUNET_i2s(&me->id));
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+             "%s [%u] `%s' connected to %s [%u] %s\n",
+             (me->master == GNUNET_YES) ? "Master" : "Slave",
+             me->no,
+             id,
+             (remote->master == GNUNET_YES) ? "Master" : "Slave",
+             remote->no,
+             GNUNET_i2s(peer));
 
   me->core_connections++;
   if ((GNUNET_YES == me->master) &&
       (GNUNET_NO == remote->master) &&
       (GNUNET_NO == top->state.connected_CORE))
-  {
-    me->core_slave_connections++;
+    {
+      me->core_slave_connections++;
 
-    if (me->core_slave_connections == top->num_slaves)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-		  "Master [%u] connected all slaves\n",
-		  me->no);
+      if (me->core_slave_connections == top->num_slaves)
+        {
+          GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+                     "Master [%u] connected all slaves\n",
+                     me->no);
+        }
+      completed = GNUNET_YES;
+      for (c = 0; c < top->num_masters; c++)
+        {
+          if (top->mps[c].core_slave_connections != top->num_slaves)
+            completed = GNUNET_NO;
+        }
+      if (GNUNET_YES == completed)
+        {
+          GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+                     "All master peers connected all slave peers\n");
+          top->state.connected_CORE = GNUNET_YES;
+          /* Notify about setup done */
+          if (NULL != top->done_cb)
+            top->done_cb(top->done_cb_cls,
+                         top->mps,
+                         top->sps);
+        }
     }
-    completed = GNUNET_YES;
-    for (c = 0; c < top->num_masters; c++)
-    {
-      if (top->mps[c].core_slave_connections != top->num_slaves)
-        completed = GNUNET_NO;
-    }
-    if (GNUNET_YES == completed)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                  "All master peers connected all slave peers\n");
-      top->state.connected_CORE = GNUNET_YES;
-      /* Notify about setup done */
-      if (NULL != top->done_cb)
-        top->done_cb (top->done_cb_cls,
-		      top->mps,
-		      top->sps);
-    }
-  }
-  GNUNET_free (id);
-  p = find_partner (me,
-		    peer);
+  GNUNET_free(id);
+  p = find_partner(me,
+                   peer);
   if (NULL != p)
     p->mq = mq;
   return p;
@@ -270,9 +269,9 @@ comm_connect_cb (void *cls,
  * @param internal_cls the `struct BenchmarkPartner` of @a peer
  */
 static void
-comm_disconnect_cb (void *cls,
-		    const struct GNUNET_PeerIdentity *peer,
-		    void *internal_cls)
+comm_disconnect_cb(void *cls,
+                   const struct GNUNET_PeerIdentity *peer,
+                   void *internal_cls)
 {
   struct BenchmarkPeer *me = cls;
   struct BenchmarkPartner *p = internal_cls;
@@ -281,169 +280,170 @@ comm_disconnect_cb (void *cls,
   if (NULL == p)
     return;
 
-  id = GNUNET_strdup (GNUNET_i2s (&me->id));
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "%s disconnected from %s\n",
-	      id,
-	      GNUNET_i2s (peer));
-  GNUNET_assert (me->core_connections > 0);
+  id = GNUNET_strdup(GNUNET_i2s(&me->id));
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+             "%s disconnected from %s\n",
+             id,
+             GNUNET_i2s(peer));
+  GNUNET_assert(me->core_connections > 0);
   me->core_connections--;
 
-  if ( (GNUNET_YES == top->state.benchmarking) &&
-       ( (GNUNET_YES == me->master) ||
-	 (GNUNET_YES == p->dest->master) ) )
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		"%s disconnected from %s while benchmarking\n",
-		id,
-		GNUNET_i2s (peer));
-  }
+  if ((GNUNET_YES == top->state.benchmarking) &&
+      ((GNUNET_YES == me->master) ||
+       (GNUNET_YES == p->dest->master)))
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
+                 "%s disconnected from %s while benchmarking\n",
+                 id,
+                 GNUNET_i2s(peer));
+    }
   GNUNET_free(id);
 }
 
 
 static void
-handle_pong (void *cls,
-	     const struct TestMessage *message)
+handle_pong(void *cls,
+            const struct TestMessage *message)
 {
   struct BenchmarkPartner *p = cls;
 
-  GNUNET_ATS_TEST_traffic_handle_pong (p);
+  GNUNET_ATS_TEST_traffic_handle_pong(p);
 }
 
 
 static void
-handle_ping (void *cls,
-	     const struct TestMessage *message)
+handle_ping(void *cls,
+            const struct TestMessage *message)
 {
   struct BenchmarkPartner *p = cls;
 
-  GNUNET_ATS_TEST_traffic_handle_ping (p);
+  GNUNET_ATS_TEST_traffic_handle_ping(p);
 }
 
 
 static void *
-transport_connect_adapter (void *cls,
-                           const struct GNUNET_CONFIGURATION_Handle *cfg)
+transport_connect_adapter(void *cls,
+                          const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   struct BenchmarkPeer *me = cls;
   struct GNUNET_MQ_MessageHandler handlers[] = {
-    GNUNET_MQ_hd_fixed_size (ping,
-                             TEST_MESSAGE_TYPE_PING,
-                             struct TestMessage,
-                             me),
-    GNUNET_MQ_hd_fixed_size (pong,
-                             TEST_MESSAGE_TYPE_PONG,
-                             struct TestMessage,
-                             me),
-    GNUNET_MQ_handler_end ()
+    GNUNET_MQ_hd_fixed_size(ping,
+                            TEST_MESSAGE_TYPE_PING,
+                            struct TestMessage,
+                            me),
+    GNUNET_MQ_hd_fixed_size(pong,
+                            TEST_MESSAGE_TYPE_PONG,
+                            struct TestMessage,
+                            me),
+    GNUNET_MQ_handler_end()
   };
 
-  me->th = GNUNET_TRANSPORT_core_connect (cfg,
-					  &me->id,
-					  handlers,
-					  me,
-					  &comm_connect_cb,
-					  &comm_disconnect_cb,
-					  NULL);
+  me->th = GNUNET_TRANSPORT_core_connect(cfg,
+                                         &me->id,
+                                         handlers,
+                                         me,
+                                         &comm_connect_cb,
+                                         &comm_disconnect_cb,
+                                         NULL);
   if (NULL == me->th)
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		"Failed to create transport connection \n");
+    GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
+               "Failed to create transport connection \n");
   return me->th;
 }
 
 
 static void
-transport_disconnect_adapter (void *cls,
-			      void *op_result)
+transport_disconnect_adapter(void *cls,
+                             void *op_result)
 {
   struct BenchmarkPeer *me = cls;
 
-  GNUNET_TRANSPORT_core_disconnect (me->th);
+  GNUNET_TRANSPORT_core_disconnect(me->th);
   me->th = NULL;
 }
 
 
 static void *
-core_connect_adapter (void *cls,
-		      const struct GNUNET_CONFIGURATION_Handle *cfg)
+core_connect_adapter(void *cls,
+                     const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   struct BenchmarkPeer *me = cls;
   struct GNUNET_MQ_MessageHandler handlers[] = {
-    GNUNET_MQ_hd_fixed_size (ping,
-                             TEST_MESSAGE_TYPE_PING,
-                             struct TestMessage,
-                             me),
-    GNUNET_MQ_hd_fixed_size (pong,
-                             TEST_MESSAGE_TYPE_PONG,
-                             struct TestMessage,
-                             me),
-    GNUNET_MQ_handler_end ()
+    GNUNET_MQ_hd_fixed_size(ping,
+                            TEST_MESSAGE_TYPE_PING,
+                            struct TestMessage,
+                            me),
+    GNUNET_MQ_hd_fixed_size(pong,
+                            TEST_MESSAGE_TYPE_PONG,
+                            struct TestMessage,
+                            me),
+    GNUNET_MQ_handler_end()
   };
 
-  me->ch = GNUNET_CORE_connect (cfg,
-				me,
-				NULL,
-				&comm_connect_cb,
-				&comm_disconnect_cb,
-				handlers);
+  me->ch = GNUNET_CORE_connect(cfg,
+                               me,
+                               NULL,
+                               &comm_connect_cb,
+                               &comm_disconnect_cb,
+                               handlers);
   if (NULL == me->ch)
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		"Failed to create core connection \n");
+    GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
+               "Failed to create core connection \n");
   return me->ch;
 }
 
 
 static void
-core_disconnect_adapter (void *cls,
-			 void *op_result)
+core_disconnect_adapter(void *cls,
+                        void *op_result)
 {
   struct BenchmarkPeer *me = cls;
 
-  GNUNET_CORE_disconnect (me->ch);
+  GNUNET_CORE_disconnect(me->ch);
   me->ch = NULL;
 }
 
 
 static void
-connect_completion_callback (void *cls,
-                             struct GNUNET_TESTBED_Operation *op,
-                             const char *emsg)
+connect_completion_callback(void *cls,
+                            struct GNUNET_TESTBED_Operation *op,
+                            const char *emsg)
 {
   struct TestbedConnectOperation *cop = cls;
   static int ops = 0;
   int c;
+
   if (NULL == emsg)
-  {
-    GNUNET_log(GNUNET_ERROR_TYPE_INFO,
-               _("Connected master [%u] with slave [%u]\n"),
-               cop->master->no,
-               cop->slave->no);
-  }
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+                 _("Connected master [%u] with slave [%u]\n"),
+                 cop->master->no,
+                 cop->slave->no);
+    }
   else
-  {
-    GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
-        _("Failed to connect master peer [%u] with slave [%u]\n"),
-        cop->master->no, cop->slave->no);
-    GNUNET_break(0);
-    GNUNET_SCHEDULER_shutdown ();
-  }
-  GNUNET_TESTBED_operation_done (op);
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
+                 _("Failed to connect master peer [%u] with slave [%u]\n"),
+                 cop->master->no, cop->slave->no);
+      GNUNET_break(0);
+      GNUNET_SCHEDULER_shutdown();
+    }
+  GNUNET_TESTBED_operation_done(op);
   ops++;
   for (c = 0; c < top->num_slaves; c++)
-  {
-    if (cop == &cop->master->core_connect_ops[c])
-      cop->master->core_connect_ops[c].connect_op = NULL;
-  }
+    {
+      if (cop == &cop->master->core_connect_ops[c])
+        cop->master->core_connect_ops[c].connect_op = NULL;
+    }
   if (ops == top->num_masters * top->num_slaves)
-  {
-    top->state.connected_PEERS = GNUNET_YES;
-  }
+    {
+      top->state.connected_PEERS = GNUNET_YES;
+    }
 }
 
 
 static void
-do_connect_peers (void *cls)
+do_connect_peers(void *cls)
 {
   int c_m;
   int c_s;
@@ -453,142 +453,143 @@ do_connect_peers (void *cls)
       (top->state.connected_COMM_service == GNUNET_NO))
     return;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-	      "Connecting peers on CORE level\n");
+  GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+             "Connecting peers on CORE level\n");
   for (c_m = 0; c_m < top->num_masters; c_m++)
-  {
-    p = &top->mps[c_m];
-    p->core_connect_ops = GNUNET_malloc (top->num_slaves *
-        sizeof (struct TestbedConnectOperation));
-
-    for (c_s = 0; c_s < top->num_slaves; c_s++)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-		 "Connecting master [%u] with slave [%u]\n",
-		  p->no,
-		  top->sps[c_s].no);
-      p->core_connect_ops[c_s].master = p;
-      p->core_connect_ops[c_s].slave = &top->sps[c_s];
-      p->core_connect_ops[c_s].connect_op
-	= GNUNET_TESTBED_overlay_connect (NULL,
-					  &connect_completion_callback,
-					  &p->core_connect_ops[c_s],
-					  top->sps[c_s].peer,
-					  p->peer);
-      if (NULL == p->core_connect_ops[c_s].connect_op)
-       {
-        GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		    "Could not connect master [%u] and slave [%u]\n",
-		    p->no,
-		    top->sps[c_s].no);
-        GNUNET_break(0);
-        GNUNET_SCHEDULER_shutdown ();
-        return;
-      }
+      p = &top->mps[c_m];
+      p->core_connect_ops = GNUNET_malloc(top->num_slaves *
+                                          sizeof(struct TestbedConnectOperation));
+
+      for (c_s = 0; c_s < top->num_slaves; c_s++)
+        {
+          GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+                     "Connecting master [%u] with slave [%u]\n",
+                     p->no,
+                     top->sps[c_s].no);
+          p->core_connect_ops[c_s].master = p;
+          p->core_connect_ops[c_s].slave = &top->sps[c_s];
+          p->core_connect_ops[c_s].connect_op
+            = GNUNET_TESTBED_overlay_connect(NULL,
+                                             &connect_completion_callback,
+                                             &p->core_connect_ops[c_s],
+                                             top->sps[c_s].peer,
+                                             p->peer);
+          if (NULL == p->core_connect_ops[c_s].connect_op)
+            {
+              GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
+                         "Could not connect master [%u] and slave [%u]\n",
+                         p->no,
+                         top->sps[c_s].no);
+              GNUNET_break(0);
+              GNUNET_SCHEDULER_shutdown();
+              return;
+            }
+        }
     }
-  }
 }
 
 
 static void
-comm_connect_completion_cb (void *cls,
-                            struct GNUNET_TESTBED_Operation *op,
-                            void *ca_result,
-                            const char *emsg)
+comm_connect_completion_cb(void *cls,
+                           struct GNUNET_TESTBED_Operation *op,
+                           void *ca_result,
+                           const char *emsg)
 {
   static int comm_done = 0;
 
   if ((NULL != emsg) || (NULL == ca_result))
-  {
-    GNUNET_log(GNUNET_ERROR_TYPE_INFO,
-               "Initialization failed, shutdown\n");
-    GNUNET_break(0);
-    GNUNET_SCHEDULER_shutdown ();
-    return;
-  }
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+                 "Initialization failed, shutdown\n");
+      GNUNET_break(0);
+      GNUNET_SCHEDULER_shutdown();
+      return;
+    }
   comm_done++;
 
   if (comm_done == top->num_slaves + top->num_masters)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-		"Connected to all %s services\n",
-		(GNUNET_YES == top->test_core) ? "CORE" : "TRANSPORT");
-    top->state.connected_COMM_service = GNUNET_YES;
-    GNUNET_SCHEDULER_add_now (&do_connect_peers,
-			      NULL);
-  }
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+                 "Connected to all %s services\n",
+                 (GNUNET_YES == top->test_core) ? "CORE" : "TRANSPORT");
+      top->state.connected_COMM_service = GNUNET_YES;
+      GNUNET_SCHEDULER_add_now(&do_connect_peers,
+                               NULL);
+    }
 }
 
 
 static void
-do_comm_connect (void *cls)
+do_comm_connect(void *cls)
 {
   int c_s;
   int c_m;
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-	      "Connecting to all %s services\n",
-	      (GNUNET_YES == top->test_core) ? "CORE" : "TRANSPORT");
+
+  GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+             "Connecting to all %s services\n",
+             (GNUNET_YES == top->test_core) ? "CORE" : "TRANSPORT");
   for (c_m = 0; c_m < top->num_masters; c_m++)
-  {
-    if (GNUNET_YES == top->test_core)
-      top->mps[c_m].comm_op
-	= GNUNET_TESTBED_service_connect (NULL,
-					  top->mps[c_m].peer,
-					  "core",
-					  &comm_connect_completion_cb,
-					  NULL,
-					  &core_connect_adapter,
-					  &core_disconnect_adapter,
-					  &top->mps[c_m]);
-    else
     {
-      top->mps[c_m].comm_op
-	= GNUNET_TESTBED_service_connect (NULL,
-					  top->mps[c_m].peer,
-					  "transport",
-					  &comm_connect_completion_cb,
-					  NULL,
-					  &transport_connect_adapter,
-					  &transport_disconnect_adapter,
-					  &top->mps[c_m]);
+      if (GNUNET_YES == top->test_core)
+        top->mps[c_m].comm_op
+          = GNUNET_TESTBED_service_connect(NULL,
+                                           top->mps[c_m].peer,
+                                           "core",
+                                           &comm_connect_completion_cb,
+                                           NULL,
+                                           &core_connect_adapter,
+                                           &core_disconnect_adapter,
+                                           &top->mps[c_m]);
+      else
+        {
+          top->mps[c_m].comm_op
+            = GNUNET_TESTBED_service_connect(NULL,
+                                             top->mps[c_m].peer,
+                                             "transport",
+                                             &comm_connect_completion_cb,
+                                             NULL,
+                                             &transport_connect_adapter,
+                                             &transport_disconnect_adapter,
+                                             &top->mps[c_m]);
+        }
     }
-  }
 
   for (c_s = 0; c_s < top->num_slaves; c_s++)
-  {
-    if (GNUNET_YES == top->test_core)
-      top->sps[c_s].comm_op
-	= GNUNET_TESTBED_service_connect (NULL,
-					  top->sps[c_s].peer,
-					  "core",
-					  &comm_connect_completion_cb,
-					  NULL,
-					  &core_connect_adapter,
-					  &core_disconnect_adapter,
-					  &top->sps[c_s]);
-    else
     {
-      top->sps[c_s].comm_op
-	= GNUNET_TESTBED_service_connect (NULL,
-					  top->sps[c_s].peer,
-					  "transport",
-					  &comm_connect_completion_cb,
-					  NULL,
-					  &transport_connect_adapter,
-					  &transport_disconnect_adapter,
-					  &top->sps[c_s]);
+      if (GNUNET_YES == top->test_core)
+        top->sps[c_s].comm_op
+          = GNUNET_TESTBED_service_connect(NULL,
+                                           top->sps[c_s].peer,
+                                           "core",
+                                           &comm_connect_completion_cb,
+                                           NULL,
+                                           &core_connect_adapter,
+                                           &core_disconnect_adapter,
+                                           &top->sps[c_s]);
+      else
+        {
+          top->sps[c_s].comm_op
+            = GNUNET_TESTBED_service_connect(NULL,
+                                             top->sps[c_s].peer,
+                                             "transport",
+                                             &comm_connect_completion_cb,
+                                             NULL,
+                                             &transport_connect_adapter,
+                                             &transport_disconnect_adapter,
+                                             &top->sps[c_s]);
+        }
     }
-  }
 }
 
 
 static void
-ats_performance_info_cb (void *cls,
-                         const struct GNUNET_HELLO_Address *address,
-                         int address_active,
-                         struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
-                         struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
-                         const struct GNUNET_ATS_Properties *ats_prop)
+ats_performance_info_cb(void *cls,
+                        const struct GNUNET_HELLO_Address *address,
+                        int address_active,
+                        struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
+                        struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
+                        const struct GNUNET_ATS_Properties *ats_prop)
 {
   struct BenchmarkPeer *me = cls;
   struct BenchmarkPartner *p;
@@ -596,36 +597,36 @@ ats_performance_info_cb (void *cls,
   char *peer_id;
 
   if (NULL == address)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		"Peer %u: ATS Service disconnected!\n",
-		me->no);
-    return;
-  }
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
+                 "Peer %u: ATS Service disconnected!\n",
+                 me->no);
+      return;
+    }
 
-  p = find_partner (me,
-		    &address->peer);
+  p = find_partner(me,
+                   &address->peer);
   if (NULL == p)
-  {
-    /* This is not one of my partners
-     * Will happen since the peers will connect to each other due to gossiping
-     */
-    return;
-  }
-  peer_id = GNUNET_strdup (GNUNET_i2s (&me->id));
+    {
+      /* This is not one of my partners
+       * Will happen since the peers will connect to each other due to gossiping
+       */
+      return;
+    }
+  peer_id = GNUNET_strdup(GNUNET_i2s(&me->id));
 
   log = GNUNET_NO;
-  if ((p->bandwidth_in != ntohl (bandwidth_in.value__)) ||
-      (p->bandwidth_out != ntohl (bandwidth_out.value__)))
-      log = GNUNET_YES;
-  p->bandwidth_in = ntohl (bandwidth_in.value__);
-  p->bandwidth_out = ntohl (bandwidth_out.value__);
+  if ((p->bandwidth_in != ntohl(bandwidth_in.value__)) ||
+      (p->bandwidth_out != ntohl(bandwidth_out.value__)))
+    log = GNUNET_YES;
+  p->bandwidth_in = ntohl(bandwidth_in.value__);
+  p->bandwidth_out = ntohl(bandwidth_out.value__);
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "%s [%u] received ATS information: %s\n",
-	      (GNUNET_YES == p->me->master) ? "Master" : "Slave",
-	      p->me->no,
-	      GNUNET_i2s (&p->dest->id));
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+             "%s [%u] received ATS information: %s\n",
+             (GNUNET_YES == p->me->master) ? "Master" : "Slave",
+             p->me->no,
+             GNUNET_i2s(&p->dest->id));
 
   p->props.utilization_out = ats_prop->utilization_out;
   p->props.utilization_in = ats_prop->utilization_in;
@@ -634,113 +635,113 @@ ats_performance_info_cb (void *cls,
   p->props.distance = ats_prop->distance;
 
   if (GNUNET_YES == log)
-    top->ats_perf_cb (cls, address,
-                      address_active,
-                      bandwidth_out,
-                      bandwidth_in,
-                      ats_prop);
+    top->ats_perf_cb(cls, address,
+                     address_active,
+                     bandwidth_out,
+                     bandwidth_in,
+                     ats_prop);
   GNUNET_free(peer_id);
 }
 
 
 static void *
-ats_perf_connect_adapter (void *cls,
-			  const struct GNUNET_CONFIGURATION_Handle *cfg)
+ats_perf_connect_adapter(void *cls,
+                         const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   struct BenchmarkPeer *me = cls;
 
   me->ats_perf_handle
-    = GNUNET_ATS_performance_init (cfg,
-				   &ats_performance_info_cb,
-				   me);
+    = GNUNET_ATS_performance_init(cfg,
+                                  &ats_performance_info_cb,
+                                  me);
   if (NULL == me->ats_perf_handle)
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		"Failed to create ATS performance handle \n");
+    GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
+               "Failed to create ATS performance handle \n");
   return me->ats_perf_handle;
 }
 
 
 static void
-ats_perf_disconnect_adapter (void *cls,
-			     void *op_result)
+ats_perf_disconnect_adapter(void *cls,
+                            void *op_result)
 {
   struct BenchmarkPeer *me = cls;
 
-  GNUNET_ATS_performance_done (me->ats_perf_handle);
+  GNUNET_ATS_performance_done(me->ats_perf_handle);
   me->ats_perf_handle = NULL;
 }
 
 
 static void
-ats_connect_completion_cb (void *cls,
-			   struct GNUNET_TESTBED_Operation *op,
-			   void *ca_result,
-			   const char *emsg)
+ats_connect_completion_cb(void *cls,
+                          struct GNUNET_TESTBED_Operation *op,
+                          void *ca_result,
+                          const char *emsg)
 {
   static int op_done = 0;
 
   if ((NULL != emsg) || (NULL == ca_result))
-  {
-    GNUNET_log(GNUNET_ERROR_TYPE_INFO,
-               "Initialization failed, shutdown\n");
-    GNUNET_break(0);
-    GNUNET_SCHEDULER_shutdown ();
-    return;
-  }
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+                 "Initialization failed, shutdown\n");
+      GNUNET_break(0);
+      GNUNET_SCHEDULER_shutdown();
+      return;
+    }
   op_done++;
   if (op_done == (top->num_masters + top->num_slaves))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-		"Connected to all ATS services\n");
-    top->state.connected_ATS_service = GNUNET_YES;
-    GNUNET_SCHEDULER_add_now (&do_comm_connect,
-			      NULL);
-  }
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+                 "Connected to all ATS services\n");
+      top->state.connected_ATS_service = GNUNET_YES;
+      GNUNET_SCHEDULER_add_now(&do_comm_connect,
+                               NULL);
+    }
 }
 
 
 static void
-do_connect_ats (void *cls)
+do_connect_ats(void *cls)
 {
   int c_m;
   int c_s;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-	      "Connecting to all ATS services\n");
+  GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+             "Connecting to all ATS services\n");
   for (c_m = 0; c_m < top->num_masters; c_m++)
-  {
-    top->mps[c_m].ats_perf_op
-      = GNUNET_TESTBED_service_connect (NULL,
-					top->mps[c_m].peer,
-					"ats",
-					&ats_connect_completion_cb,
-					NULL,
-					&ats_perf_connect_adapter,
-					&ats_perf_disconnect_adapter,
-					&top->mps[c_m]);
-  }
+    {
+      top->mps[c_m].ats_perf_op
+        = GNUNET_TESTBED_service_connect(NULL,
+                                         top->mps[c_m].peer,
+                                         "ats",
+                                         &ats_connect_completion_cb,
+                                         NULL,
+                                         &ats_perf_connect_adapter,
+                                         &ats_perf_disconnect_adapter,
+                                         &top->mps[c_m]);
+    }
 
   for (c_s = 0; c_s < top->num_slaves; c_s++)
-  {
-    top->sps[c_s].ats_perf_op
-      = GNUNET_TESTBED_service_connect (NULL,
-					top->sps[c_s].peer,
-					"ats",
-					&ats_connect_completion_cb,
-					NULL,
-					&ats_perf_connect_adapter,
-					&ats_perf_disconnect_adapter,
-					&top->sps[c_s]);
-  }
+    {
+      top->sps[c_s].ats_perf_op
+        = GNUNET_TESTBED_service_connect(NULL,
+                                         top->sps[c_s].peer,
+                                         "ats",
+                                         &ats_connect_completion_cb,
+                                         NULL,
+                                         &ats_perf_connect_adapter,
+                                         &ats_perf_disconnect_adapter,
+                                         &top->sps[c_s]);
+    }
 }
 
 
 
 static void
-peerinformation_cb (void *cb_cls,
-		    struct GNUNET_TESTBED_Operation *op,
-		    const struct GNUNET_TESTBED_PeerInformation *pinfo,
-		    const char *emsg)
+peerinformation_cb(void *cb_cls,
+                   struct GNUNET_TESTBED_Operation *op,
+                   const struct GNUNET_TESTBED_PeerInformation *pinfo,
+                   const char *emsg)
 {
   struct BenchmarkPeer *p = cb_cls;
   static int done = 0;
@@ -748,23 +749,23 @@ peerinformation_cb (void *cb_cls,
   GNUNET_assert(pinfo->pit == GNUNET_TESTBED_PIT_IDENTITY);
 
   p->id = *pinfo->result.id;
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-	      "%s [%u] has peer id `%s'\n",
-	      (p->master == GNUNET_YES) ? "Master" : "Slave",
-	      p->no,
-	      GNUNET_i2s (&p->id));
+  GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+             "%s [%u] has peer id `%s'\n",
+             (p->master == GNUNET_YES) ? "Master" : "Slave",
+             p->no,
+             GNUNET_i2s(&p->id));
 
-  GNUNET_TESTBED_operation_done (op);
+  GNUNET_TESTBED_operation_done(op);
   p->peer_id_op = NULL;
   done++;
 
   if (done == top->num_slaves + top->num_masters)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-		"Retrieved all peer ID, connect to ATS\n");
-    GNUNET_SCHEDULER_add_now (&do_connect_ats,
-			      NULL);
-  }
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+                 "Retrieved all peer ID, connect to ATS\n");
+      GNUNET_SCHEDULER_add_now(&do_connect_ats,
+                               NULL);
+    }
 }
 
 
@@ -781,85 +782,85 @@ peerinformation_cb (void *cb_cls,
  *          failed
  */
 static void
-main_run (void *cls,
-	  struct GNUNET_TESTBED_RunHandle *h,
-          unsigned int num_peers,
-          struct GNUNET_TESTBED_Peer **peers_,
-          unsigned int links_succeeded,
-          unsigned int links_failed)
+main_run(void *cls,
+         struct GNUNET_TESTBED_RunHandle *h,
+         unsigned int num_peers,
+         struct GNUNET_TESTBED_Peer **peers_,
+         unsigned int links_succeeded,
+         unsigned int links_failed)
 {
   int c_m;
   int c_s;
 
-  GNUNET_assert (NULL == cls);
-  GNUNET_assert (top->num_masters + top->num_slaves == num_peers);
-  GNUNET_assert (NULL != peers_);
+  GNUNET_assert(NULL == cls);
+  GNUNET_assert(top->num_masters + top->num_slaves == num_peers);
+  GNUNET_assert(NULL != peers_);
 
-  GNUNET_SCHEDULER_add_shutdown (&do_shutdown,
-                                 top);
+  GNUNET_SCHEDULER_add_shutdown(&do_shutdown,
+                                top);
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              "Setting up %u masters and %u slaves\n",
-              top->num_masters,
-              top->num_slaves);
+  GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+             "Setting up %u masters and %u slaves\n",
+             top->num_masters,
+             top->num_slaves);
 
   /* Setup master peers */
   for (c_m = 0; c_m < top->num_masters; c_m++)
-  {
-    GNUNET_assert(NULL != peers_[c_m]);
-    top->mps[c_m].peer = peers_[c_m];
-    top->mps[c_m].no = c_m;
-    top->mps[c_m].master = GNUNET_YES;
-    top->mps[c_m].pref_partner = &top->sps[c_m];
-    top->mps[c_m].pref_value = TEST_ATS_PREFERENCE_DEFAULT;
-    top->mps[c_m].partners =
-        GNUNET_malloc (top->num_slaves * sizeof (struct BenchmarkPartner));
-    top->mps[c_m].num_partners = top->num_slaves;
-    /* Initialize partners */
-    for (c_s = 0; c_s < top->num_slaves; c_s++)
     {
-      top->mps[c_m].partners[c_s].me = &top->mps[c_m];
-      top->mps[c_m].partners[c_s].dest = &top->sps[c_s];
+      GNUNET_assert(NULL != peers_[c_m]);
+      top->mps[c_m].peer = peers_[c_m];
+      top->mps[c_m].no = c_m;
+      top->mps[c_m].master = GNUNET_YES;
+      top->mps[c_m].pref_partner = &top->sps[c_m];
+      top->mps[c_m].pref_value = TEST_ATS_PREFERENCE_DEFAULT;
+      top->mps[c_m].partners =
+        GNUNET_malloc(top->num_slaves * sizeof(struct BenchmarkPartner));
+      top->mps[c_m].num_partners = top->num_slaves;
+      /* Initialize partners */
+      for (c_s = 0; c_s < top->num_slaves; c_s++)
+        {
+          top->mps[c_m].partners[c_s].me = &top->mps[c_m];
+          top->mps[c_m].partners[c_s].dest = &top->sps[c_s];
+        }
+      /* Get configuration */
+      top->mps[c_m].peer_id_op
+        = GNUNET_TESTBED_peer_get_information(top->mps[c_m].peer,
+                                              GNUNET_TESTBED_PIT_IDENTITY,
+                                              &peerinformation_cb,
+                                              &top->mps[c_m]);
     }
-    /* Get configuration */
-    top->mps[c_m].peer_id_op
-      = GNUNET_TESTBED_peer_get_information (top->mps[c_m].peer,
-					     GNUNET_TESTBED_PIT_IDENTITY,
-					     &peerinformation_cb,
-					     &top->mps[c_m]);
-  }
 
   /* Setup slave peers */
   for (c_s = 0; c_s < top->num_slaves; c_s++)
-  {
-    GNUNET_assert(NULL != peers_[c_s + top->num_masters]);
-    top->sps[c_s].peer = peers_[c_s + top->num_masters];
-    top->sps[c_s].no = c_s + top->num_masters;
-    top->sps[c_s].master = GNUNET_NO;
-    top->sps[c_s].partners =
-      GNUNET_new_array (top->num_masters,
-			struct BenchmarkPartner);
-    top->sps[c_s].num_partners = top->num_masters;
-    /* Initialize partners */
-    for (c_m = 0; c_m < top->num_masters; c_m++)
     {
-      top->sps[c_s].partners[c_m].me = &top->sps[c_s];
-      top->sps[c_s].partners[c_m].dest = &top->mps[c_m];
+      GNUNET_assert(NULL != peers_[c_s + top->num_masters]);
+      top->sps[c_s].peer = peers_[c_s + top->num_masters];
+      top->sps[c_s].no = c_s + top->num_masters;
+      top->sps[c_s].master = GNUNET_NO;
+      top->sps[c_s].partners =
+        GNUNET_new_array(top->num_masters,
+                         struct BenchmarkPartner);
+      top->sps[c_s].num_partners = top->num_masters;
+      /* Initialize partners */
+      for (c_m = 0; c_m < top->num_masters; c_m++)
+        {
+          top->sps[c_s].partners[c_m].me = &top->sps[c_s];
+          top->sps[c_s].partners[c_m].dest = &top->mps[c_m];
 
-      /* Initialize properties */
-      top->sps[c_s].partners[c_m].props.delay = GNUNET_TIME_UNIT_ZERO;
-      top->sps[c_s].partners[c_m].props.distance = 0;
-      top->sps[c_s].partners[c_m].props.scope = GNUNET_NT_UNSPECIFIED;
-      top->sps[c_s].partners[c_m].props.utilization_in = 0;
-      top->sps[c_s].partners[c_m].props.utilization_out = 0;
+          /* Initialize properties */
+          top->sps[c_s].partners[c_m].props.delay = GNUNET_TIME_UNIT_ZERO;
+          top->sps[c_s].partners[c_m].props.distance = 0;
+          top->sps[c_s].partners[c_m].props.scope = GNUNET_NT_UNSPECIFIED;
+          top->sps[c_s].partners[c_m].props.utilization_in = 0;
+          top->sps[c_s].partners[c_m].props.utilization_out = 0;
+        }
+      /* Get configuration */
+      top->sps[c_s].peer_id_op
+        = GNUNET_TESTBED_peer_get_information(top->sps[c_s].peer,
+                                              GNUNET_TESTBED_PIT_IDENTITY,
+                                              &peerinformation_cb,
+                                              &top->sps[c_s]);
     }
-    /* Get configuration */
-    top->sps[c_s].peer_id_op
-      = GNUNET_TESTBED_peer_get_information (top->sps[c_s].peer,
-					     GNUNET_TESTBED_PIT_IDENTITY,
-					     &peerinformation_cb,
-					     &top->sps[c_s]);
-  }
 }
 
 
@@ -870,24 +871,26 @@ main_run (void *cls,
  * @param event the controller event
  */
 static void
-controller_event_cb (void *cls,
-                     const struct GNUNET_TESTBED_EventInformation *event)
+controller_event_cb(void *cls,
+                    const struct GNUNET_TESTBED_EventInformation *event)
 {
   switch (event->type)
-  {
-  case GNUNET_TESTBED_ET_CONNECT:
-    break;
-  case GNUNET_TESTBED_ET_OPERATION_FINISHED:
-    break;
-  default:
-    GNUNET_break(0);
-    GNUNET_SCHEDULER_shutdown ();
-  }
+    {
+    case GNUNET_TESTBED_ET_CONNECT:
+      break;
+
+    case GNUNET_TESTBED_ET_OPERATION_FINISHED:
+      break;
+
+    default:
+      GNUNET_break(0);
+      GNUNET_SCHEDULER_shutdown();
+    }
 }
 
 
 struct BenchmarkPeer *
-GNUNET_ATS_TEST_get_peer (int src)
+GNUNET_ATS_TEST_get_peer(int src)
 {
   if (src > top->num_masters)
     return NULL;
@@ -896,8 +899,8 @@ GNUNET_ATS_TEST_get_peer (int src)
 
 
 struct BenchmarkPartner *
-GNUNET_ATS_TEST_get_partner (int src,
-			     int dest)
+GNUNET_ATS_TEST_get_partner(int src,
+                            int dest)
 {
   if (src > top->num_masters)
     return NULL;
@@ -920,37 +923,37 @@ GNUNET_ATS_TEST_get_partner (int src,
  * @param log_request_cb callback to call when logging is required
  */
 void
-GNUNET_ATS_TEST_create_topology (char *name, char *cfg_file,
-                                 unsigned int num_slaves,
-                                 unsigned int num_masters,
-                                 int test_core,
-                                 GNUNET_ATS_TEST_TopologySetupDoneCallback done_cb,
-                                 void *done_cb_cls,
-                                 GNUNET_ATS_AddressInformationCallback log_request_cb)
+GNUNET_ATS_TEST_create_topology(char *name, char *cfg_file,
+                                unsigned int num_slaves,
+                                unsigned int num_masters,
+                                int test_core,
+                                GNUNET_ATS_TEST_TopologySetupDoneCallback done_cb,
+                                void *done_cb_cls,
+                                GNUNET_ATS_AddressInformationCallback log_request_cb)
 {
-  top = GNUNET_new (struct GNUNET_ATS_TEST_Topology);
+  top = GNUNET_new(struct GNUNET_ATS_TEST_Topology);
   top->num_masters = num_masters;
   top->num_slaves = num_slaves;
   top->done_cb = done_cb;
   top->done_cb_cls = done_cb_cls;
   top->test_core = test_core;
   top->ats_perf_cb = log_request_cb;
-  top->mps = GNUNET_new_array (num_masters,
-			       struct BenchmarkPeer);
-  top->sps = GNUNET_new_array (num_slaves,
-			       struct BenchmarkPeer);
+  top->mps = GNUNET_new_array(num_masters,
+                              struct BenchmarkPeer);
+  top->sps = GNUNET_new_array(num_slaves,
+                              struct BenchmarkPeer);
 
   /* Start topology */
   uint64_t event_mask;
   event_mask = 0;
   event_mask |= (1LL << GNUNET_TESTBED_ET_CONNECT);
   event_mask |= (1LL << GNUNET_TESTBED_ET_OPERATION_FINISHED);
-  (void) GNUNET_TESTBED_test_run (name,
-				  cfg_file,
-                                  num_slaves + num_masters,
-                                  event_mask,
-                                  &controller_event_cb, NULL,
-                                  &main_run, NULL);
+  (void)GNUNET_TESTBED_test_run(name,
+                                cfg_file,
+                                num_slaves + num_masters,
+                                event_mask,
+                                &controller_event_cb, NULL,
+                                &main_run, NULL);
 }
 
 
@@ -958,7 +961,7 @@ GNUNET_ATS_TEST_create_topology (char *name, char *cfg_file,
  * Shutdown topology
  */
 void
-GNUNET_ATS_TEST_shutdown_topology (void)
+GNUNET_ATS_TEST_shutdown_topology(void)
 {
   if (NULL == top)
     return;

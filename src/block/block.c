@@ -11,12 +11,12 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 
 /**
  * @file block/block.c
@@ -34,8 +34,7 @@
 /**
  * Handle for a plugin.
  */
-struct Plugin
-{
+struct Plugin {
   /**
    * Name of the shared library.
    */
@@ -51,8 +50,7 @@ struct Plugin
 /**
  * Handle to an initialized block library.
  */
-struct GNUNET_BLOCK_Context
-{
+struct GNUNET_BLOCK_Context {
   /**
    * Array of our plugins.
    */
@@ -78,18 +76,18 @@ struct GNUNET_BLOCK_Context
  * @param hc where to store the result.
  */
 void
-GNUNET_BLOCK_mingle_hash (const struct GNUNET_HashCode *in,
-			  uint32_t mingle_number,
-                          struct GNUNET_HashCode *hc)
+GNUNET_BLOCK_mingle_hash(const struct GNUNET_HashCode *in,
+                         uint32_t mingle_number,
+                         struct GNUNET_HashCode *hc)
 {
   struct GNUNET_HashCode m;
 
-  GNUNET_CRYPTO_hash (&mingle_number,
-                      sizeof (uint32_t),
-                      &m);
-  GNUNET_CRYPTO_hash_xor (&m,
-                          in,
-                          hc);
+  GNUNET_CRYPTO_hash(&mingle_number,
+                     sizeof(uint32_t),
+                     &m);
+  GNUNET_CRYPTO_hash_xor(&m,
+                         in,
+                         hc);
 }
 
 
@@ -101,23 +99,23 @@ GNUNET_BLOCK_mingle_hash (const struct GNUNET_HashCode *in,
  * @param lib_ret the plugin API
  */
 static void
-add_plugin (void *cls,
-	    const char *library_name,
-	    void *lib_ret)
+add_plugin(void *cls,
+           const char *library_name,
+           void *lib_ret)
 {
   struct GNUNET_BLOCK_Context *ctx = cls;
   struct GNUNET_BLOCK_PluginFunctions *api = lib_ret;
   struct Plugin *plugin;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Loading block plugin `%s'\n",
-              library_name);
-  plugin = GNUNET_new (struct Plugin);
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+             "Loading block plugin `%s'\n",
+             library_name);
+  plugin = GNUNET_new(struct Plugin);
   plugin->api = api;
-  plugin->library_name = GNUNET_strdup (library_name);
-  GNUNET_array_append (ctx->plugins,
-                       ctx->num_plugins,
-                       plugin);
+  plugin->library_name = GNUNET_strdup(library_name);
+  GNUNET_array_append(ctx->plugins,
+                      ctx->num_plugins,
+                      plugin);
 }
 
 
@@ -129,16 +127,16 @@ add_plugin (void *cls,
  * @return NULL on error
  */
 struct GNUNET_BLOCK_Context *
-GNUNET_BLOCK_context_create (const struct GNUNET_CONFIGURATION_Handle *cfg)
+GNUNET_BLOCK_context_create(const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   struct GNUNET_BLOCK_Context *ctx;
 
-  ctx = GNUNET_new (struct GNUNET_BLOCK_Context);
+  ctx = GNUNET_new(struct GNUNET_BLOCK_Context);
   ctx->cfg = cfg;
-  GNUNET_PLUGIN_load_all ("libgnunet_plugin_block_",
-                          (void *) cfg,
-                          &add_plugin,
-                          ctx);
+  GNUNET_PLUGIN_load_all("libgnunet_plugin_block_",
+                         (void *)cfg,
+                         &add_plugin,
+                         ctx);
   return ctx;
 }
 
@@ -149,21 +147,21 @@ GNUNET_BLOCK_context_create (const struct GNUNET_CONFIGURATION_Handle *cfg)
  * @param ctx context to destroy
  */
 void
-GNUNET_BLOCK_context_destroy (struct GNUNET_BLOCK_Context *ctx)
+GNUNET_BLOCK_context_destroy(struct GNUNET_BLOCK_Context *ctx)
 {
   struct Plugin *plugin;
 
   for (unsigned int i = 0; i < ctx->num_plugins; i++)
-  {
-    plugin = ctx->plugins[i];
-    GNUNET_break (NULL ==
-                  GNUNET_PLUGIN_unload (plugin->library_name,
+    {
+      plugin = ctx->plugins[i];
+      GNUNET_break(NULL ==
+                   GNUNET_PLUGIN_unload(plugin->library_name,
                                         plugin->api));
-    GNUNET_free (plugin->library_name);
-    GNUNET_free (plugin);
-  }
-  GNUNET_free (ctx->plugins);
-  GNUNET_free (ctx);
+      GNUNET_free(plugin->library_name);
+      GNUNET_free(plugin);
+    }
+  GNUNET_free(ctx->plugins);
+  GNUNET_free(ctx);
 }
 
 
@@ -178,10 +176,10 @@ GNUNET_BLOCK_context_destroy (struct GNUNET_BLOCK_Context *ctx)
  *         supported, #GNUNET_SYSERR on error
  */
 int
-GNUNET_BLOCK_group_serialize (struct GNUNET_BLOCK_Group *bg,
-                              uint32_t *nonce,
-                              void **raw_data,
-                              size_t *raw_data_size)
+GNUNET_BLOCK_group_serialize(struct GNUNET_BLOCK_Group *bg,
+                             uint32_t *nonce,
+                             void **raw_data,
+                             size_t *raw_data_size)
 {
   *nonce = 0;
   *raw_data = NULL;
@@ -190,10 +188,10 @@ GNUNET_BLOCK_group_serialize (struct GNUNET_BLOCK_Group *bg,
     return GNUNET_NO;
   if (NULL == bg->serialize_cb)
     return GNUNET_NO;
-  return bg->serialize_cb (bg,
-                           nonce,
-                           raw_data,
-                           raw_data_size);
+  return bg->serialize_cb(bg,
+                          nonce,
+                          raw_data,
+                          raw_data_size);
 }
 
 
@@ -203,11 +201,11 @@ GNUNET_BLOCK_group_serialize (struct GNUNET_BLOCK_Group *bg,
  * @param bg group to destroy, NULL is allowed
  */
 void
-GNUNET_BLOCK_group_destroy (struct GNUNET_BLOCK_Group *bg)
+GNUNET_BLOCK_group_destroy(struct GNUNET_BLOCK_Group *bg)
 {
   if (NULL == bg)
     return;
-  bg->destroy_cb (bg);
+  bg->destroy_cb(bg);
 }
 
 
@@ -224,24 +222,24 @@ GNUNET_BLOCK_group_destroy (struct GNUNET_BLOCK_Group *bg)
  *         #GNUNET_SYSERR if merging is not supported
  */
 int
-GNUNET_BLOCK_group_merge (struct GNUNET_BLOCK_Group *bg1,
-                          struct GNUNET_BLOCK_Group *bg2)
+GNUNET_BLOCK_group_merge(struct GNUNET_BLOCK_Group *bg1,
+                         struct GNUNET_BLOCK_Group *bg2)
 {
   int ret;
 
   if (NULL == bg2)
     return GNUNET_OK;
   if (NULL == bg1)
-  {
-    bg2->destroy_cb (bg2);
-    return GNUNET_OK;
-  }
+    {
+      bg2->destroy_cb(bg2);
+      return GNUNET_OK;
+    }
   if (NULL == bg1->merge_cb)
     return GNUNET_SYSERR;
-  GNUNET_assert (bg1->merge_cb == bg1->merge_cb);
-  ret = bg1->merge_cb (bg1,
-                       bg2);
-  bg2->destroy_cb (bg2);
+  GNUNET_assert(bg1->merge_cb == bg1->merge_cb);
+  ret = bg1->merge_cb(bg1,
+                      bg2);
+  bg2->destroy_cb(bg2);
   return ret;
 }
 
@@ -254,23 +252,23 @@ GNUNET_BLOCK_group_merge (struct GNUNET_BLOCK_Group *bg1,
  * @return NULL if no matching plugin exists
  */
 static struct GNUNET_BLOCK_PluginFunctions *
-find_plugin (struct GNUNET_BLOCK_Context *ctx,
-	     enum GNUNET_BLOCK_Type type)
+find_plugin(struct GNUNET_BLOCK_Context *ctx,
+            enum GNUNET_BLOCK_Type type)
 {
   struct Plugin *plugin;
   unsigned int j;
 
   for (unsigned i = 0; i < ctx->num_plugins; i++)
-  {
-    plugin = ctx->plugins[i];
-    j = 0;
-    while (0 != (plugin->api->types[j]))
     {
-      if (type == plugin->api->types[j])
-        return plugin->api;
-      j++;
+      plugin = ctx->plugins[i];
+      j = 0;
+      while (0 != (plugin->api->types[j]))
+        {
+          if (type == plugin->api->types[j])
+            return plugin->api;
+          j++;
+        }
     }
-  }
   return NULL;
 }
 
@@ -287,32 +285,32 @@ find_plugin (struct GNUNET_BLOCK_Context *ctx,
  *         by this @a type of block (this is not an error)
  */
 struct GNUNET_BLOCK_Group *
-GNUNET_BLOCK_group_create (struct GNUNET_BLOCK_Context *ctx,
-                           enum GNUNET_BLOCK_Type type,
-                           uint32_t nonce,
-                           const void *raw_data,
-                           size_t raw_data_size,
-                           ...)
+GNUNET_BLOCK_group_create(struct GNUNET_BLOCK_Context *ctx,
+                          enum GNUNET_BLOCK_Type type,
+                          uint32_t nonce,
+                          const void *raw_data,
+                          size_t raw_data_size,
+                          ...)
 {
   struct GNUNET_BLOCK_PluginFunctions *plugin;
   struct GNUNET_BLOCK_Group *bg;
   va_list ap;
 
-  plugin = find_plugin (ctx,
-                        type);
+  plugin = find_plugin(ctx,
+                       type);
   if (NULL == plugin)
     return NULL;
   if (NULL == plugin->create_group)
     return NULL;
-  va_start (ap,
-            raw_data_size);
-  bg = plugin->create_group (plugin->cls,
-                             type,
-                             nonce,
-                             raw_data,
-                             raw_data_size,
-                             ap);
-  va_end (ap);
+  va_start(ap,
+           raw_data_size);
+  bg = plugin->create_group(plugin->cls,
+                            type,
+                            nonce,
+                            raw_data,
+                            raw_data_size,
+                            ap);
+  va_end(ap);
   return bg;
 }
 
@@ -336,31 +334,31 @@ GNUNET_BLOCK_group_create (struct GNUNET_BLOCK_Context *ctx,
  * @return characterization of result
  */
 enum GNUNET_BLOCK_EvaluationResult
-GNUNET_BLOCK_evaluate (struct GNUNET_BLOCK_Context *ctx,
-                       enum GNUNET_BLOCK_Type type,
-                       struct GNUNET_BLOCK_Group *group,
-                       enum GNUNET_BLOCK_EvaluationOptions eo,
-                       const struct GNUNET_HashCode *query,
-                       const void *xquery,
-                       size_t xquery_size,
-                       const void *reply_block,
-                       size_t reply_block_size)
+GNUNET_BLOCK_evaluate(struct GNUNET_BLOCK_Context *ctx,
+                      enum GNUNET_BLOCK_Type type,
+                      struct GNUNET_BLOCK_Group *group,
+                      enum GNUNET_BLOCK_EvaluationOptions eo,
+                      const struct GNUNET_HashCode *query,
+                      const void *xquery,
+                      size_t xquery_size,
+                      const void *reply_block,
+                      size_t reply_block_size)
 {
-  struct GNUNET_BLOCK_PluginFunctions *plugin = find_plugin (ctx,
-                                                             type);
+  struct GNUNET_BLOCK_PluginFunctions *plugin = find_plugin(ctx,
+                                                            type);
 
   if (NULL == plugin)
     return GNUNET_BLOCK_EVALUATION_TYPE_NOT_SUPPORTED;
-  return plugin->evaluate (plugin->cls,
-                           ctx,
-                           type,
-                           group,
-                           eo,
-                           query,
-                           xquery,
-                           xquery_size,
-                           reply_block,
-                           reply_block_size);
+  return plugin->evaluate(plugin->cls,
+                          ctx,
+                          type,
+                          group,
+                          eo,
+                          query,
+                          xquery,
+                          xquery_size,
+                          reply_block,
+                          reply_block_size);
 }
 
 
@@ -376,22 +374,22 @@ GNUNET_BLOCK_evaluate (struct GNUNET_BLOCK_Context *ctx,
  *         (or if extracting a key from a block of this type does not work)
  */
 int
-GNUNET_BLOCK_get_key (struct GNUNET_BLOCK_Context *ctx,
-                      enum GNUNET_BLOCK_Type type,
-                      const void *block,
-                      size_t block_size,
-                      struct GNUNET_HashCode *key)
+GNUNET_BLOCK_get_key(struct GNUNET_BLOCK_Context *ctx,
+                     enum GNUNET_BLOCK_Type type,
+                     const void *block,
+                     size_t block_size,
+                     struct GNUNET_HashCode *key)
 {
-  struct GNUNET_BLOCK_PluginFunctions *plugin = find_plugin (ctx,
-                                                             type);
+  struct GNUNET_BLOCK_PluginFunctions *plugin = find_plugin(ctx,
+                                                            type);
 
   if (plugin == NULL)
     return GNUNET_BLOCK_EVALUATION_TYPE_NOT_SUPPORTED;
-  return plugin->get_key (plugin->cls,
-                          type,
-                          block,
-                          block_size,
-                          key);
+  return plugin->get_key(plugin->cls,
+                         type,
+                         block,
+                         block_size,
+                         key);
 }
 
 
@@ -407,17 +405,17 @@ GNUNET_BLOCK_get_key (struct GNUNET_BLOCK_Context *ctx,
  * @return #GNUNET_SYSERR if not supported, #GNUNET_OK on success
  */
 int
-GNUNET_BLOCK_group_set_seen (struct GNUNET_BLOCK_Group *bg,
-                             const struct GNUNET_HashCode *seen_results,
-                             unsigned int seen_results_count)
+GNUNET_BLOCK_group_set_seen(struct GNUNET_BLOCK_Group *bg,
+                            const struct GNUNET_HashCode *seen_results,
+                            unsigned int seen_results_count)
 {
   if (NULL == bg)
     return GNUNET_OK;
   if (NULL == bg->mark_seen_cb)
     return GNUNET_SYSERR;
-  bg->mark_seen_cb (bg,
-                    seen_results,
-                    seen_results_count);
+  bg->mark_seen_cb(bg,
+                   seen_results,
+                   seen_results_count);
   return GNUNET_OK;
 }
 

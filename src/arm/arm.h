@@ -11,12 +11,12 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 
 /**
  * @author Christian Grothoff
@@ -38,9 +38,7 @@ GNUNET_NETWORK_STRUCT_BEGIN
 /**
  * Status update from ARM to client.
  */
-struct GNUNET_ARM_StatusMessage
-{
-
+struct GNUNET_ARM_StatusMessage {
   /**
    * Reply to client, of type is #GNUNET_MESSAGE_TYPE_ARM_STATUS.
    */
@@ -54,8 +52,7 @@ struct GNUNET_ARM_StatusMessage
   /* followed by a 0-terminated service name */
 };
 
-struct GNUNET_ARM_Message
-{
+struct GNUNET_ARM_Message {
   /**
    * Reply to client, type is #GNUNET_MESSAGE_TYPE_ARM_RESULT or
    * #GNUNET_MESSAGE_TYPE_ARM_LIST_RESULT.
@@ -84,9 +81,7 @@ struct GNUNET_ARM_Message
 /**
  * Reply from ARM to client.
  */
-struct GNUNET_ARM_ResultMessage
-{
-
+struct GNUNET_ARM_ResultMessage {
   /**
    * Reply to client, of type is #GNUNET_MESSAGE_TYPE_ARM_RESULT, with an ID.
    */
@@ -104,8 +99,7 @@ struct GNUNET_ARM_ResultMessage
  * '\0' terminated strings. header->size contains the
  * total size (including all strings).
  */
-struct GNUNET_ARM_ListResultMessage
-{
+struct GNUNET_ARM_ListResultMessage {
   /**
    * Reply to client, of type is #GNUNET_MESSAGE_TYPE_ARM_LIST_RESULT,
    * with an ID.

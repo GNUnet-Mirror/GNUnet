@@ -11,7 +11,7 @@
       WITHOUT ANY WARRANTY; without even the implied warranty of
       MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
       Affero General Public License for more details.
-     
+
       You should have received a copy of the GNU Affero General Public License
       along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -33,8 +33,7 @@ GNUNET_NETWORK_STRUCT_BEGIN
 /**
  * Message from client to GNS service to lookup records.
  */
-struct LookupMessage
-{
+struct LookupMessage {
   /**
    * Header of type #GNUNET_MESSAGE_TYPE_GNS_LOOKUP
    */
@@ -73,10 +72,9 @@ struct LookupMessage
 /**
  * Message from GNS service to client: new results.
  */
-struct LookupResultMessage
-{
+struct LookupResultMessage {
   /**
-    * Header of type #GNUNET_MESSAGE_TYPE_GNS_LOOKUP_RESULT
+   * Header of type #GNUNET_MESSAGE_TYPE_GNS_LOOKUP_RESULT
    */
   struct GNUNET_MessageHeader header;
 
@@ -91,7 +89,6 @@ struct LookupResultMessage
   uint32_t rd_count GNUNET_PACKED;
 
   /* followed by rd_count GNUNET_GNSRECORD_Data structs*/
-
 };
 
 

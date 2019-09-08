@@ -11,12 +11,12 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 
 /**
  * @author Christian Grothoff
@@ -37,8 +37,7 @@ GNUNET_NETWORK_STRUCT_BEGIN
 /**
  * This is the structure describing an DNS exit service.
  */
-struct GNUNET_DNS_Advertisement
-{
+struct GNUNET_DNS_Advertisement {
   /**
    * Signature of the peer affirming that it is offering the service.
    */
@@ -59,7 +58,6 @@ struct GNUNET_DNS_Advertisement
    * The peer providing this service
    */
   struct GNUNET_PeerIdentity peer;
-
 };
 GNUNET_NETWORK_STRUCT_END
 

@@ -11,12 +11,12 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 
 /**
  * @file rps/gnunet-service-rps_custommap.h
@@ -61,7 +61,7 @@ struct CustomPeerMap;
  * @return the newly created custom peer map
  */
 struct CustomPeerMap *
-CustomPeerMap_create (unsigned int len);
+CustomPeerMap_create(unsigned int len);
 
 /**
  * Get the size of the custom peer map
@@ -71,7 +71,7 @@ CustomPeerMap_create (unsigned int len);
  * @return size of the map
  */
 unsigned int
-CustomPeerMap_size (const struct CustomPeerMap *c_peer_map);
+CustomPeerMap_size(const struct CustomPeerMap *c_peer_map);
 
 /**
  * Insert peer into the custom peer map
@@ -83,8 +83,8 @@ CustomPeerMap_size (const struct CustomPeerMap *c_peer_map);
  *         GNUNET_NO if map did contain peer previously
  */
 int
-CustomPeerMap_put (const struct CustomPeerMap *c_peer_map,
-                   const struct GNUNET_PeerIdentity *peer);
+CustomPeerMap_put(const struct CustomPeerMap *c_peer_map,
+                  const struct GNUNET_PeerIdentity *peer);
 
 /**
  * Check whether custom peer map contains a peer
@@ -96,8 +96,8 @@ CustomPeerMap_put (const struct CustomPeerMap *c_peer_map,
  *         GNUNET_NO  otherwise
  */
 int
-CustomPeerMap_contains_peer (const struct CustomPeerMap *c_peer_map,
-                             const struct GNUNET_PeerIdentity *peer);
+CustomPeerMap_contains_peer(const struct CustomPeerMap *c_peer_map,
+                            const struct GNUNET_PeerIdentity *peer);
 
 /**
  * Remove peer from custom peer map
@@ -109,8 +109,8 @@ CustomPeerMap_contains_peer (const struct CustomPeerMap *c_peer_map,
  *         GNUNET_NO if map does not contain peer
  */
 int
-CustomPeerMap_remove_peer (const struct CustomPeerMap *c_peer_map,
-                           const struct GNUNET_PeerIdentity *peer);
+CustomPeerMap_remove_peer(const struct CustomPeerMap *c_peer_map,
+                          const struct GNUNET_PeerIdentity *peer);
 
 /**
  * Get a peer by index
@@ -122,8 +122,8 @@ CustomPeerMap_remove_peer (const struct CustomPeerMap *c_peer_map,
  *         if this index is not known, return NULL
  */
 struct GNUNET_PeerIdentity *
-CustomPeerMap_get_peer_by_index (const struct CustomPeerMap *c_peer_map,
-                                 uint32_t index);
+CustomPeerMap_get_peer_by_index(const struct CustomPeerMap *c_peer_map,
+                                uint32_t index);
 
 /**
  * Remove peer from custom peer map by index
@@ -135,8 +135,8 @@ CustomPeerMap_get_peer_by_index (const struct CustomPeerMap *c_peer_map,
  *         GNUNET_NO if map does not contain (index of) peer
  */
 int
-CustomPeerMap_remove_peer_by_index (const struct CustomPeerMap *c_peer_map,
-                                    uint32_t index);
+CustomPeerMap_remove_peer_by_index(const struct CustomPeerMap *c_peer_map,
+                                   uint32_t index);
 
 /**
  * Clear the custom peer map
@@ -146,7 +146,7 @@ CustomPeerMap_remove_peer_by_index (const struct CustomPeerMap *c_peer_map,
  * @return size of the map
  */
 void
-CustomPeerMap_clear (const struct CustomPeerMap *c_peer_map);
+CustomPeerMap_clear(const struct CustomPeerMap *c_peer_map);
 
 /**
  * Destroy peermap.
@@ -154,6 +154,6 @@ CustomPeerMap_clear (const struct CustomPeerMap *c_peer_map);
  * @param c_peer_map the map to destroy
  */
 void
-CustomPeerMap_destroy (struct CustomPeerMap *c_peer_map);
+CustomPeerMap_destroy(struct CustomPeerMap *c_peer_map);
 
 /* end of gnunet-service-rps_custommap.h */

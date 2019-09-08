@@ -11,7 +11,7 @@
       WITHOUT ANY WARRANTY; without even the implied warranty of
       MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
       Affero General Public License for more details.
-     
+
       You should have received a copy of the GNU Affero General Public License
       along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -74,8 +74,7 @@ struct GNUNET_DHT_FindPeerHandle;
 /**
  * Options for routing.
  */
-enum GNUNET_DHT_RouteOption
-{
+enum GNUNET_DHT_RouteOption {
   /**
    * Default.  Do nothing special.
    */
@@ -119,8 +118,8 @@ enum GNUNET_DHT_RouteOption
  * @return NULL on error
  */
 struct GNUNET_DHT_Handle *
-GNUNET_DHT_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                    unsigned int ht_len);
+GNUNET_DHT_connect(const struct GNUNET_CONFIGURATION_Handle *cfg,
+                   unsigned int ht_len);
 
 
 /**
@@ -129,7 +128,7 @@ GNUNET_DHT_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @param handle connection to shut down
  */
 void
-GNUNET_DHT_disconnect (struct GNUNET_DHT_Handle *handle);
+GNUNET_DHT_disconnect(struct GNUNET_DHT_Handle *handle);
 
 
 /* *************** Standard API: get and put ******************* */
@@ -160,16 +159,16 @@ struct GNUNET_DHT_PutHandle;
  *        (size too big)
  */
 struct GNUNET_DHT_PutHandle *
-GNUNET_DHT_put (struct GNUNET_DHT_Handle *handle,
-                const struct GNUNET_HashCode *key,
-                uint32_t desired_replication_level,
-                enum GNUNET_DHT_RouteOption options,
-                enum GNUNET_BLOCK_Type type,
-                size_t size,
-                const void *data,
-                struct GNUNET_TIME_Absolute exp,
-                GNUNET_SCHEDULER_TaskCallback cont,
-                void *cont_cls);
+GNUNET_DHT_put(struct GNUNET_DHT_Handle *handle,
+               const struct GNUNET_HashCode *key,
+               uint32_t desired_replication_level,
+               enum GNUNET_DHT_RouteOption options,
+               enum GNUNET_BLOCK_Type type,
+               size_t size,
+               const void *data,
+               struct GNUNET_TIME_Absolute exp,
+               GNUNET_SCHEDULER_TaskCallback cont,
+               void *cont_cls);
 
 
 /**
@@ -184,7 +183,7 @@ GNUNET_DHT_put (struct GNUNET_DHT_Handle *handle,
  * @param ph put operation to cancel ('cont' will no longer be called)
  */
 void
-GNUNET_DHT_put_cancel (struct GNUNET_DHT_PutHandle *ph);
+GNUNET_DHT_put_cancel(struct GNUNET_DHT_PutHandle *ph);
 
 
 /**
@@ -234,15 +233,15 @@ typedef void
  * @return handle to stop the async get
  */
 struct GNUNET_DHT_GetHandle *
-GNUNET_DHT_get_start (struct GNUNET_DHT_Handle *handle,
-                      enum GNUNET_BLOCK_Type type,
-                      const struct GNUNET_HashCode *key,
-                      uint32_t desired_replication_level,
-                      enum GNUNET_DHT_RouteOption options,
-                      const void *xquery,
-                      size_t xquery_size,
-                      GNUNET_DHT_GetIterator iter,
-                      void *iter_cls);
+GNUNET_DHT_get_start(struct GNUNET_DHT_Handle *handle,
+                     enum GNUNET_BLOCK_Type type,
+                     const struct GNUNET_HashCode *key,
+                     uint32_t desired_replication_level,
+                     enum GNUNET_DHT_RouteOption options,
+                     const void *xquery,
+                     size_t xquery_size,
+                     GNUNET_DHT_GetIterator iter,
+                     void *iter_cls);
 
 
 /**
@@ -256,9 +255,9 @@ GNUNET_DHT_get_start (struct GNUNET_DHT_Handle *handle,
  *        to be blocked
  */
 void
-GNUNET_DHT_get_filter_known_results (struct GNUNET_DHT_GetHandle *get_handle,
-				     unsigned int num_results,
-				     const struct GNUNET_HashCode *results);
+GNUNET_DHT_get_filter_known_results(struct GNUNET_DHT_GetHandle *get_handle,
+                                    unsigned int num_results,
+                                    const struct GNUNET_HashCode *results);
 
 /**
  * Stop async DHT-get.  Frees associated resources.
@@ -266,7 +265,7 @@ GNUNET_DHT_get_filter_known_results (struct GNUNET_DHT_GetHandle *get_handle,
  * @param get_handle GET operation to stop.
  */
 void
-GNUNET_DHT_get_stop (struct GNUNET_DHT_GetHandle *get_handle);
+GNUNET_DHT_get_stop(struct GNUNET_DHT_GetHandle *get_handle);
 
 
 /* *************** Extended API: monitor ******************* */
@@ -369,13 +368,13 @@ typedef void
  * @return Handle to stop monitoring.
  */
 struct GNUNET_DHT_MonitorHandle *
-GNUNET_DHT_monitor_start (struct GNUNET_DHT_Handle *handle,
-                          enum GNUNET_BLOCK_Type type,
-                          const struct GNUNET_HashCode *key,
-                          GNUNET_DHT_MonitorGetCB get_cb,
-                          GNUNET_DHT_MonitorGetRespCB get_resp_cb,
-                          GNUNET_DHT_MonitorPutCB put_cb,
-                          void *cb_cls);
+GNUNET_DHT_monitor_start(struct GNUNET_DHT_Handle *handle,
+                         enum GNUNET_BLOCK_Type type,
+                         const struct GNUNET_HashCode *key,
+                         GNUNET_DHT_MonitorGetCB get_cb,
+                         GNUNET_DHT_MonitorGetRespCB get_resp_cb,
+                         GNUNET_DHT_MonitorPutCB put_cb,
+                         void *cb_cls);
 
 
 /**
@@ -386,7 +385,7 @@ GNUNET_DHT_monitor_start (struct GNUNET_DHT_Handle *handle,
  *         #GNUNET_DHT_monitor_start().
  */
 void
-GNUNET_DHT_monitor_stop (struct GNUNET_DHT_MonitorHandle *handle);
+GNUNET_DHT_monitor_stop(struct GNUNET_DHT_MonitorHandle *handle);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

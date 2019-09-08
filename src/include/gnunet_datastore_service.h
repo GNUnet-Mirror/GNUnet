@@ -11,12 +11,12 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 
 /**
  * @author Christian Grothoff
@@ -72,7 +72,7 @@ struct GNUNET_DATASTORE_Handle;
  * @return handle to use to access the service
  */
 struct GNUNET_DATASTORE_Handle *
-GNUNET_DATASTORE_connect (const struct GNUNET_CONFIGURATION_Handle *cfg);
+GNUNET_DATASTORE_connect(const struct GNUNET_CONFIGURATION_Handle *cfg);
 
 
 /**
@@ -83,8 +83,8 @@ GNUNET_DATASTORE_connect (const struct GNUNET_CONFIGURATION_Handle *cfg);
  * @param drop set to #GNUNET_YES to delete all data in datastore (!)
  */
 void
-GNUNET_DATASTORE_disconnect (struct GNUNET_DATASTORE_Handle *h,
-                             int drop);
+GNUNET_DATASTORE_disconnect(struct GNUNET_DATASTORE_Handle *h,
+                            int drop);
 
 
 /**
@@ -123,11 +123,11 @@ typedef void
  *         (or rather, will already have been invoked)
  */
 struct GNUNET_DATASTORE_QueueEntry *
-GNUNET_DATASTORE_reserve (struct GNUNET_DATASTORE_Handle *h,
-                          uint64_t amount,
-                          uint32_t entries,
-                          GNUNET_DATASTORE_ContinuationWithStatus cont,
-                          void *cont_cls);
+GNUNET_DATASTORE_reserve(struct GNUNET_DATASTORE_Handle *h,
+                         uint64_t amount,
+                         uint32_t entries,
+                         GNUNET_DATASTORE_ContinuationWithStatus cont,
+                         void *cont_cls);
 
 
 /**
@@ -156,20 +156,20 @@ GNUNET_DATASTORE_reserve (struct GNUNET_DATASTORE_Handle *h,
  *         (or rather, will already have been invoked)
  */
 struct GNUNET_DATASTORE_QueueEntry *
-GNUNET_DATASTORE_put (struct GNUNET_DATASTORE_Handle *h,
-                      uint32_t rid,
-                      const struct GNUNET_HashCode *key,
-                      size_t size,
-                      const void *data,
-                      enum GNUNET_BLOCK_Type type,
-                      uint32_t priority,
-                      uint32_t anonymity,
-                      uint32_t replication,
-                      struct GNUNET_TIME_Absolute expiration,
-                      unsigned int queue_priority,
-                      unsigned int max_queue_size,
-                      GNUNET_DATASTORE_ContinuationWithStatus cont,
-                      void *cont_cls);
+GNUNET_DATASTORE_put(struct GNUNET_DATASTORE_Handle *h,
+                     uint32_t rid,
+                     const struct GNUNET_HashCode *key,
+                     size_t size,
+                     const void *data,
+                     enum GNUNET_BLOCK_Type type,
+                     uint32_t priority,
+                     uint32_t anonymity,
+                     uint32_t replication,
+                     struct GNUNET_TIME_Absolute expiration,
+                     unsigned int queue_priority,
+                     unsigned int max_queue_size,
+                     GNUNET_DATASTORE_ContinuationWithStatus cont,
+                     void *cont_cls);
 
 
 /**
@@ -193,11 +193,11 @@ GNUNET_DATASTORE_put (struct GNUNET_DATASTORE_Handle *h,
  *         (or rather, will already have been invoked)
  */
 struct GNUNET_DATASTORE_QueueEntry *
-GNUNET_DATASTORE_release_reserve (struct GNUNET_DATASTORE_Handle *h,
-                                  uint32_t rid, unsigned int queue_priority,
-                                  unsigned int max_queue_size,
-                                  GNUNET_DATASTORE_ContinuationWithStatus cont,
-                                  void *cont_cls);
+GNUNET_DATASTORE_release_reserve(struct GNUNET_DATASTORE_Handle *h,
+                                 uint32_t rid, unsigned int queue_priority,
+                                 unsigned int max_queue_size,
+                                 GNUNET_DATASTORE_ContinuationWithStatus cont,
+                                 void *cont_cls);
 
 
 /**
@@ -220,14 +220,14 @@ GNUNET_DATASTORE_release_reserve (struct GNUNET_DATASTORE_Handle *h,
  *         (or rather, will already have been invoked)
  */
 struct GNUNET_DATASTORE_QueueEntry *
-GNUNET_DATASTORE_remove (struct GNUNET_DATASTORE_Handle *h,
-                         const struct GNUNET_HashCode *key,
-                         size_t size,
-                         const void *data,
-                         unsigned int queue_priority,
-                         unsigned int max_queue_size,
-                         GNUNET_DATASTORE_ContinuationWithStatus cont,
-                         void *cont_cls);
+GNUNET_DATASTORE_remove(struct GNUNET_DATASTORE_Handle *h,
+                        const struct GNUNET_HashCode *key,
+                        size_t size,
+                        const void *data,
+                        unsigned int queue_priority,
+                        unsigned int max_queue_size,
+                        GNUNET_DATASTORE_ContinuationWithStatus cont,
+                        void *cont_cls);
 
 
 /**
@@ -277,15 +277,15 @@ typedef void
  *         cancel
  */
 struct GNUNET_DATASTORE_QueueEntry *
-GNUNET_DATASTORE_get_key (struct GNUNET_DATASTORE_Handle *h,
-                          uint64_t next_uid,
-                          bool random,
-                          const struct GNUNET_HashCode *key,
-                          enum GNUNET_BLOCK_Type type,
-                          unsigned int queue_priority,
-                          unsigned int max_queue_size,
-                          GNUNET_DATASTORE_DatumProcessor proc,
-                          void *proc_cls);
+GNUNET_DATASTORE_get_key(struct GNUNET_DATASTORE_Handle *h,
+                         uint64_t next_uid,
+                         bool random,
+                         const struct GNUNET_HashCode *key,
+                         enum GNUNET_BLOCK_Type type,
+                         unsigned int queue_priority,
+                         unsigned int max_queue_size,
+                         GNUNET_DATASTORE_DatumProcessor proc,
+                         void *proc_cls);
 
 
 /**
@@ -305,13 +305,13 @@ GNUNET_DATASTORE_get_key (struct GNUNET_DATASTORE_Handle *h,
  *         cancel
  */
 struct GNUNET_DATASTORE_QueueEntry *
-GNUNET_DATASTORE_get_zero_anonymity (struct GNUNET_DATASTORE_Handle *h,
-                                     uint64_t next_uid,
-                                     unsigned int queue_priority,
-                                     unsigned int max_queue_size,
-                                     enum GNUNET_BLOCK_Type type,
-                                     GNUNET_DATASTORE_DatumProcessor proc,
-                                     void *proc_cls);
+GNUNET_DATASTORE_get_zero_anonymity(struct GNUNET_DATASTORE_Handle *h,
+                                    uint64_t next_uid,
+                                    unsigned int queue_priority,
+                                    unsigned int max_queue_size,
+                                    enum GNUNET_BLOCK_Type type,
+                                    GNUNET_DATASTORE_DatumProcessor proc,
+                                    void *proc_cls);
 
 
 /**
@@ -333,11 +333,11 @@ GNUNET_DATASTORE_get_zero_anonymity (struct GNUNET_DATASTORE_Handle *h,
  *         cancel
  */
 struct GNUNET_DATASTORE_QueueEntry *
-GNUNET_DATASTORE_get_for_replication (struct GNUNET_DATASTORE_Handle *h,
-                                      unsigned int queue_priority,
-                                      unsigned int max_queue_size,
-                                      GNUNET_DATASTORE_DatumProcessor proc,
-                                      void *proc_cls);
+GNUNET_DATASTORE_get_for_replication(struct GNUNET_DATASTORE_Handle *h,
+                                     unsigned int queue_priority,
+                                     unsigned int max_queue_size,
+                                     GNUNET_DATASTORE_DatumProcessor proc,
+                                     void *proc_cls);
 
 
 
@@ -348,7 +348,7 @@ GNUNET_DATASTORE_get_for_replication (struct GNUNET_DATASTORE_Handle *h,
  * @param qe operation to cancel
  */
 void
-GNUNET_DATASTORE_cancel (struct GNUNET_DATASTORE_QueueEntry *qe);
+GNUNET_DATASTORE_cancel(struct GNUNET_DATASTORE_QueueEntry *qe);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

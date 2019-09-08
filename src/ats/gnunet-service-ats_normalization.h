@@ -11,12 +11,12 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 
 /**
  * @file ats/gnunet-service-ats_normalization.h
@@ -40,21 +40,21 @@
  * @param address the address to update
  */
 void
-GAS_normalization_update_property (struct ATS_Address *address);
+GAS_normalization_update_property(struct ATS_Address *address);
 
 
 /**
  * Start the normalization component
  */
 void
-GAS_normalization_start (void);
+GAS_normalization_start(void);
 
 
 /**
  * Stop the normalization component and free all items
  */
 void
-GAS_normalization_stop (void);
+GAS_normalization_stop(void);
 
 #endif
 /* end of gnunet-service-ats_normalization.h */

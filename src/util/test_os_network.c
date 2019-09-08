@@ -16,7 +16,7 @@
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 /**
  * @file util/test_os_network.c
  * @brief testcase for util/os_network.c
@@ -31,13 +31,13 @@
  * (success).
  */
 static int
-proc (void *cls,
-      const char *name,
-      int isDefault,
-      const struct sockaddr *addr,
-      const struct sockaddr *broadcast_addr,
-      const struct sockaddr *netmask,
-      socklen_t addrlen)
+proc(void *cls,
+     const char *name,
+     int isDefault,
+     const struct sockaddr *addr,
+     const struct sockaddr *broadcast_addr,
+     const struct sockaddr *netmask,
+     socklen_t addrlen)
 {
   int *ok = cls;
   char buf[INET6_ADDRSTRLEN];
@@ -45,45 +45,45 @@ proc (void *cls,
 
   if (NULL == addr)
     return GNUNET_OK;
-  if (addrlen == sizeof (struct sockaddr_in))
+  if (addrlen == sizeof(struct sockaddr_in))
     protocol = "IPv4";
   else
     protocol = "IPv6";
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "%s Address `%s'\n",
-              protocol,
-              GNUNET_a2s ((const struct sockaddr *) addr,
-                          addrlen) );
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Netmask `%s'\n",
-              GNUNET_a2s ((const struct sockaddr *) netmask,
-                          addrlen) );
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "`%s'\n",
-              GNUNET_a2s ((const struct sockaddr *) broadcast_addr,
-                          addrlen) );
-  inet_ntop (addr->sa_family,
-             (addr->sa_family ==
-              AF_INET) ? (void *) &((struct sockaddr_in *) addr)->sin_addr
-             : (void *) &((struct sockaddr_in6 *) addr)->sin6_addr, buf,
-             sizeof (buf));
-  if ((0 == strcmp ("::1", buf)) || (0 == strcmp ("127.0.0.1", buf)))
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+             "%s Address `%s'\n",
+             protocol,
+             GNUNET_a2s((const struct sockaddr *)addr,
+                        addrlen));
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+             "Netmask `%s'\n",
+             GNUNET_a2s((const struct sockaddr *)netmask,
+                        addrlen));
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+             "`%s'\n",
+             GNUNET_a2s((const struct sockaddr *)broadcast_addr,
+                        addrlen));
+  inet_ntop(addr->sa_family,
+            (addr->sa_family ==
+             AF_INET) ? (void *)&((struct sockaddr_in *)addr)->sin_addr
+            : (void *)&((struct sockaddr_in6 *)addr)->sin6_addr, buf,
+            sizeof(buf));
+  if ((0 == strcmp("::1", buf)) || (0 == strcmp("127.0.0.1", buf)))
     *ok = 0;
   return GNUNET_OK;
 }
 
 
 int
-main (int argc, char *argv[])
+main(int argc, char *argv[])
 {
   int ret;
 
-  GNUNET_log_setup ("test-os-network",
-                    "WARNING",
-                    NULL);
+  GNUNET_log_setup("test-os-network",
+                   "WARNING",
+                   NULL);
   ret = 1;
-  GNUNET_OS_network_interfaces_list (&proc,
-                                     &ret);
+  GNUNET_OS_network_interfaces_list(&proc,
+                                    &ret);
   return ret;
 }
 

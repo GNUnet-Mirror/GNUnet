@@ -11,13 +11,13 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
 
-*/
+ */
 /**
  * @file util/test_crypto_eddsa.c
  * @brief testcase for ECC public key crypto
@@ -39,7 +39,7 @@ static struct GNUNET_CRYPTO_EddsaPrivateKey *key;
 
 
 static int
-testSignVerify ()
+testSignVerify()
 {
   struct GNUNET_CRYPTO_EddsaSignature sig;
   struct GNUNET_CRYPTO_EccSignaturePurpose purp;
@@ -48,47 +48,47 @@ testSignVerify ()
   struct GNUNET_TIME_Absolute start;
   int ok = GNUNET_OK;
 
-  fprintf (stderr, "%s",  "W");
-  GNUNET_CRYPTO_eddsa_key_get_public (key, &pkey);
-  start = GNUNET_TIME_absolute_get ();
-  purp.size = htonl (sizeof (struct GNUNET_CRYPTO_EccSignaturePurpose));
-  purp.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_TEST);
+  fprintf(stderr, "%s", "W");
+  GNUNET_CRYPTO_eddsa_key_get_public(key, &pkey);
+  start = GNUNET_TIME_absolute_get();
+  purp.size = htonl(sizeof(struct GNUNET_CRYPTO_EccSignaturePurpose));
+  purp.purpose = htonl(GNUNET_SIGNATURE_PURPOSE_TEST);
 
   for (i = 0; i < ITER; i++)
-  {
-    fprintf (stderr, "%s",  "."); fflush (stderr);
-    if (GNUNET_SYSERR == GNUNET_CRYPTO_eddsa_sign (key, &purp, &sig))
     {
-      fprintf (stderr, "%s",  "GNUNET_CRYPTO_eddsa_sign returned SYSERR\n");
-      ok = GNUNET_SYSERR;
-      continue;
+      fprintf(stderr, "%s", "."); fflush(stderr);
+      if (GNUNET_SYSERR == GNUNET_CRYPTO_eddsa_sign(key, &purp, &sig))
+        {
+          fprintf(stderr, "%s", "GNUNET_CRYPTO_eddsa_sign returned SYSERR\n");
+          ok = GNUNET_SYSERR;
+          continue;
+        }
+      if (GNUNET_SYSERR ==
+          GNUNET_CRYPTO_eddsa_verify(GNUNET_SIGNATURE_PURPOSE_TEST, &purp, &sig,
+                                     &pkey))
+        {
+          printf("GNUNET_CRYPTO_eddsa_verify failed!\n");
+          ok = GNUNET_SYSERR;
+          continue;
+        }
+      if (GNUNET_SYSERR !=
+          GNUNET_CRYPTO_eddsa_verify(GNUNET_SIGNATURE_PURPOSE_TRANSPORT_PONG_OWN,
+                                     &purp, &sig, &pkey))
+        {
+          printf("GNUNET_CRYPTO_eddsa_verify failed to fail!\n");
+          ok = GNUNET_SYSERR;
+          continue;
+        }
     }
-    if (GNUNET_SYSERR ==
-        GNUNET_CRYPTO_eddsa_verify (GNUNET_SIGNATURE_PURPOSE_TEST, &purp, &sig,
-                                  &pkey))
-    {
-      printf ("GNUNET_CRYPTO_eddsa_verify failed!\n");
-      ok = GNUNET_SYSERR;
-      continue;
-    }
-    if (GNUNET_SYSERR !=
-        GNUNET_CRYPTO_eddsa_verify (GNUNET_SIGNATURE_PURPOSE_TRANSPORT_PONG_OWN,
-                                  &purp, &sig, &pkey))
-    {
-      printf ("GNUNET_CRYPTO_eddsa_verify failed to fail!\n");
-      ok = GNUNET_SYSERR;
-      continue;
-    }
-  }
-  printf ("%d EdDSA sign/verify operations %s\n", ITER,
-          GNUNET_STRINGS_relative_time_to_string (GNUNET_TIME_absolute_get_duration (start), GNUNET_YES));
+  printf("%d EdDSA sign/verify operations %s\n", ITER,
+         GNUNET_STRINGS_relative_time_to_string(GNUNET_TIME_absolute_get_duration(start), GNUNET_YES));
   return ok;
 }
 
 
 #if PERF
 static int
-testSignPerformance ()
+testSignPerformance()
 {
   struct GNUNET_CRYPTO_EccSignaturePurpose purp;
   struct GNUNET_CRYPTO_EddsaSignature sig;
@@ -97,112 +97,112 @@ testSignPerformance ()
   struct GNUNET_TIME_Absolute start;
   int ok = GNUNET_OK;
 
-  purp.size = htonl (sizeof (struct GNUNET_CRYPTO_EccSignaturePurpose));
-  purp.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_TEST);
-  fprintf (stderr, "%s",  "W");
-  GNUNET_CRYPTO_eddsa_key_get_public (key, &pkey);
-  start = GNUNET_TIME_absolute_get ();
+  purp.size = htonl(sizeof(struct GNUNET_CRYPTO_EccSignaturePurpose));
+  purp.purpose = htonl(GNUNET_SIGNATURE_PURPOSE_TEST);
+  fprintf(stderr, "%s", "W");
+  GNUNET_CRYPTO_eddsa_key_get_public(key, &pkey);
+  start = GNUNET_TIME_absolute_get();
   for (i = 0; i < ITER; i++)
-  {
-    fprintf (stderr, "%s",  "."); fflush (stderr);
-    if (GNUNET_SYSERR == GNUNET_CRYPTO_eddsa_sign (key, &purp, &sig))
     {
-      fprintf (stderr, "%s",  "GNUNET_CRYPTO_eddsa_sign returned SYSERR\n");
-      ok = GNUNET_SYSERR;
-      continue;
+      fprintf(stderr, "%s", "."); fflush(stderr);
+      if (GNUNET_SYSERR == GNUNET_CRYPTO_eddsa_sign(key, &purp, &sig))
+        {
+          fprintf(stderr, "%s", "GNUNET_CRYPTO_eddsa_sign returned SYSERR\n");
+          ok = GNUNET_SYSERR;
+          continue;
+        }
     }
-  }
-  printf ("%d EdDSA sign operations %s\n", ITER,
-          GNUNET_STRINGS_relative_time_to_string (GNUNET_TIME_absolute_get_duration (start),
-						  GNUNET_YES));
+  printf("%d EdDSA sign operations %s\n", ITER,
+         GNUNET_STRINGS_relative_time_to_string(GNUNET_TIME_absolute_get_duration(start),
+                                                GNUNET_YES));
   return ok;
 }
 #endif
 
 
 static int
-testCreateFromFile ()
+testCreateFromFile()
 {
   struct GNUNET_CRYPTO_EddsaPublicKey p1;
   struct GNUNET_CRYPTO_EddsaPublicKey p2;
 
-  key = GNUNET_CRYPTO_eddsa_key_create_from_file (KEYFILE);
-  GNUNET_assert (NULL != key);
-  GNUNET_CRYPTO_eddsa_key_get_public (key, &p1);
-  GNUNET_free (key);
-  key = GNUNET_CRYPTO_eddsa_key_create_from_file (KEYFILE);
-  GNUNET_assert (NULL != key);
-  GNUNET_CRYPTO_eddsa_key_get_public (key, &p2);
-  GNUNET_assert (0 == memcmp (&p1, &p2, sizeof (p1)));
-  GNUNET_free (key);
-  GNUNET_assert (0 == unlink (KEYFILE));
-  key = GNUNET_CRYPTO_eddsa_key_create_from_file (KEYFILE);
-  GNUNET_assert (NULL != key);
-  GNUNET_CRYPTO_eddsa_key_get_public (key, &p2);
-  GNUNET_assert (0 != memcmp (&p1, &p2, sizeof (p1)));
-  GNUNET_free (key);
+  key = GNUNET_CRYPTO_eddsa_key_create_from_file(KEYFILE);
+  GNUNET_assert(NULL != key);
+  GNUNET_CRYPTO_eddsa_key_get_public(key, &p1);
+  GNUNET_free(key);
+  key = GNUNET_CRYPTO_eddsa_key_create_from_file(KEYFILE);
+  GNUNET_assert(NULL != key);
+  GNUNET_CRYPTO_eddsa_key_get_public(key, &p2);
+  GNUNET_assert(0 == memcmp(&p1, &p2, sizeof(p1)));
+  GNUNET_free(key);
+  GNUNET_assert(0 == unlink(KEYFILE));
+  key = GNUNET_CRYPTO_eddsa_key_create_from_file(KEYFILE);
+  GNUNET_assert(NULL != key);
+  GNUNET_CRYPTO_eddsa_key_get_public(key, &p2);
+  GNUNET_assert(0 != memcmp(&p1, &p2, sizeof(p1)));
+  GNUNET_free(key);
   return GNUNET_OK;
 }
 
 
 static void
-perf_keygen ()
+perf_keygen()
 {
   struct GNUNET_TIME_Absolute start;
   struct GNUNET_CRYPTO_EddsaPrivateKey *pk;
   int i;
 
-  fprintf (stderr, "%s",  "W");
-  start = GNUNET_TIME_absolute_get ();
-  for (i=0;i<10;i++)
-  {
-    fprintf (stderr, "."); fflush (stderr);
-    pk = GNUNET_CRYPTO_eddsa_key_create ();
-    GNUNET_free (pk);
-  }
-  for (;i<25;i++)
-    fprintf (stderr, ".");
-  fflush (stderr);
-  printf ("10 EdDSA keys created in %s\n",
-          GNUNET_STRINGS_relative_time_to_string (GNUNET_TIME_absolute_get_duration (start), GNUNET_YES));
+  fprintf(stderr, "%s", "W");
+  start = GNUNET_TIME_absolute_get();
+  for (i = 0; i < 10; i++)
+    {
+      fprintf(stderr, "."); fflush(stderr);
+      pk = GNUNET_CRYPTO_eddsa_key_create();
+      GNUNET_free(pk);
+    }
+  for (; i < 25; i++)
+    fprintf(stderr, ".");
+  fflush(stderr);
+  printf("10 EdDSA keys created in %s\n",
+         GNUNET_STRINGS_relative_time_to_string(GNUNET_TIME_absolute_get_duration(start), GNUNET_YES));
 }
 
 
 int
-main (int argc, char *argv[])
+main(int argc, char *argv[])
 {
   int failure_count = 0;
 
-  if (! gcry_check_version ("1.6.0"))
-  {
-    fprintf (stderr,
-             _("libgcrypt has not the expected version (version %s is required).\n"),
-             "1.6.0");
-    return 0;
-  }
-  if (getenv ("GNUNET_GCRYPT_DEBUG"))
-    gcry_control (GCRYCTL_SET_DEBUG_FLAGS, 1u , 0);
-  GNUNET_log_setup ("test-crypto-eddsa", "WARNING", NULL);
-  key = GNUNET_CRYPTO_eddsa_key_create ();
+  if (!gcry_check_version("1.6.0"))
+    {
+      fprintf(stderr,
+              _("libgcrypt has not the expected version (version %s is required).\n"),
+              "1.6.0");
+      return 0;
+    }
+  if (getenv("GNUNET_GCRYPT_DEBUG"))
+    gcry_control(GCRYCTL_SET_DEBUG_FLAGS, 1u, 0);
+  GNUNET_log_setup("test-crypto-eddsa", "WARNING", NULL);
+  key = GNUNET_CRYPTO_eddsa_key_create();
 #if PERF
-  if (GNUNET_OK != testSignPerformance ())
+  if (GNUNET_OK != testSignPerformance())
     failure_count++;
 #endif
-  if (GNUNET_OK != testSignVerify ())
+  if (GNUNET_OK != testSignVerify())
     failure_count++;
-  GNUNET_free (key);
-  if (GNUNET_OK != testCreateFromFile ())
+  GNUNET_free(key);
+  if (GNUNET_OK != testCreateFromFile())
     failure_count++;
-  GNUNET_assert (0 == unlink (KEYFILE));
-  perf_keygen ();
+  GNUNET_assert(0 == unlink(KEYFILE));
+  perf_keygen();
 
   if (0 != failure_count)
-  {
-    fprintf (stderr,
-	     "\n\n%d TESTS FAILED!\n\n",
-	     failure_count);
-    return -1;
-  }
+    {
+      fprintf(stderr,
+              "\n\n%d TESTS FAILED!\n\n",
+              failure_count);
+      return -1;
+    }
   return 0;
 }
 

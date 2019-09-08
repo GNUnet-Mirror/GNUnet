@@ -16,7 +16,7 @@
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 
 /**
  * @author Christian Grothoff
@@ -65,8 +65,7 @@ extern "C" {
  * These information are only valid for the local peer and are not serialized
  * when a #GNUNET_HELLO_Message is created
  */
-enum GNUNET_HELLO_AddressInfo
-{
+enum GNUNET_HELLO_AddressInfo {
   /**
    * No additional information
    */
@@ -86,9 +85,7 @@ enum GNUNET_HELLO_AddressInfo
  * separated.  This is NOT the format that would be used
  * on the wire.
  */
-struct GNUNET_HELLO_Address
-{
-
+struct GNUNET_HELLO_Address {
   /**
    * For which peer is this an address?
    */
@@ -135,11 +132,11 @@ struct GNUNET_HELLO_Address
  * @return the address struct
  */
 struct GNUNET_HELLO_Address *
-GNUNET_HELLO_address_allocate (const struct GNUNET_PeerIdentity *peer,
-                               const char *transport_name,
-                               const void *address,
-                               size_t address_length,
-                               enum GNUNET_HELLO_AddressInfo local_info);
+GNUNET_HELLO_address_allocate(const struct GNUNET_PeerIdentity *peer,
+                              const char *transport_name,
+                              const void *address,
+                              size_t address_length,
+                              enum GNUNET_HELLO_AddressInfo local_info);
 
 
 /**
@@ -149,7 +146,7 @@ GNUNET_HELLO_address_allocate (const struct GNUNET_PeerIdentity *peer,
  * @return a copy of the address struct
  */
 struct GNUNET_HELLO_Address *
-GNUNET_HELLO_address_copy (const struct GNUNET_HELLO_Address *address);
+GNUNET_HELLO_address_copy(const struct GNUNET_HELLO_Address *address);
 
 
 /**
@@ -161,8 +158,8 @@ GNUNET_HELLO_address_copy (const struct GNUNET_HELLO_Address *address);
  * @return 0 if the addresses are equal, -1 if @a a1< @a a2, 1 if @a a1> @a a2.
  */
 int
-GNUNET_HELLO_address_cmp (const struct GNUNET_HELLO_Address *a1,
-                          const struct GNUNET_HELLO_Address *a2);
+GNUNET_HELLO_address_cmp(const struct GNUNET_HELLO_Address *a1,
+                         const struct GNUNET_HELLO_Address *a2);
 
 
 /**
@@ -172,7 +169,7 @@ GNUNET_HELLO_address_cmp (const struct GNUNET_HELLO_Address *a1,
  * @return the size
  */
 size_t
-GNUNET_HELLO_address_get_size (const struct GNUNET_HELLO_Address *address);
+GNUNET_HELLO_address_get_size(const struct GNUNET_HELLO_Address *address);
 
 
 /**
@@ -183,8 +180,8 @@ GNUNET_HELLO_address_get_size (const struct GNUNET_HELLO_Address *address);
  * @return #GNUNET_YES or #GNUNET_NO
  */
 int
-GNUNET_HELLO_address_check_option (const struct GNUNET_HELLO_Address *address,
-                                   enum GNUNET_HELLO_AddressInfo option);
+GNUNET_HELLO_address_check_option(const struct GNUNET_HELLO_Address *address,
+                                  enum GNUNET_HELLO_AddressInfo option);
 
 
 /**
@@ -192,7 +189,7 @@ GNUNET_HELLO_address_check_option (const struct GNUNET_HELLO_Address *address,
  *
  * @param addr address to free
  */
-#define GNUNET_HELLO_address_free(addr) GNUNET_free (addr)
+#define GNUNET_HELLO_address_free(addr) GNUNET_free(addr)
 
 
 GNUNET_NETWORK_STRUCT_BEGIN
@@ -210,8 +207,7 @@ GNUNET_NETWORK_STRUCT_BEGIN
  *    unaligned!)
  * 4) address (address-length bytes; possibly unaligned!)
  */
-struct GNUNET_HELLO_Message
-{
+struct GNUNET_HELLO_Message {
   /**
    * Type will be #GNUNET_MESSAGE_TYPE_HELLO.
    */
@@ -237,7 +233,7 @@ GNUNET_NETWORK_STRUCT_END
  * @return #GNUNET_YES for friend-only or #GNUNET_NO otherwise
  */
 int
-GNUNET_HELLO_is_friend_only (const struct GNUNET_HELLO_Message *h);
+GNUNET_HELLO_is_friend_only(const struct GNUNET_HELLO_Message *h);
 
 
 /**
@@ -252,10 +248,10 @@ GNUNET_HELLO_is_friend_only (const struct GNUNET_HELLO_Message *h);
  *         the target buffer was not big enough.
  */
 size_t
-GNUNET_HELLO_add_address (const struct GNUNET_HELLO_Address *address,
-                          struct GNUNET_TIME_Absolute expiration,
-                          char *target,
-                          size_t max);
+GNUNET_HELLO_add_address(const struct GNUNET_HELLO_Address *address,
+                         struct GNUNET_TIME_Absolute expiration,
+                         char *target,
+                         size_t max);
 
 
 /**
@@ -289,10 +285,10 @@ typedef ssize_t (*GNUNET_HELLO_GenerateAddressListCallback) (void *cls,
  * @return the hello message
  */
 struct GNUNET_HELLO_Message *
-GNUNET_HELLO_create (const struct GNUNET_CRYPTO_EddsaPublicKey *public_key,
-                     GNUNET_HELLO_GenerateAddressListCallback addrgen,
-                     void *addrgen_cls,
-                     int friend_only);
+GNUNET_HELLO_create(const struct GNUNET_CRYPTO_EddsaPublicKey *public_key,
+                    GNUNET_HELLO_GenerateAddressListCallback addrgen,
+                    void *addrgen_cls,
+                    int friend_only);
 
 
 /**
@@ -302,7 +298,7 @@ GNUNET_HELLO_create (const struct GNUNET_CRYPTO_EddsaPublicKey *public_key,
  * @return the size, 0 if HELLO is invalid
  */
 uint16_t
-GNUNET_HELLO_size (const struct GNUNET_HELLO_Message *hello);
+GNUNET_HELLO_size(const struct GNUNET_HELLO_Message *hello);
 
 
 /**
@@ -315,8 +311,8 @@ GNUNET_HELLO_size (const struct GNUNET_HELLO_Message *hello);
  * @return the combined hello message
  */
 struct GNUNET_HELLO_Message *
-GNUNET_HELLO_merge (const struct GNUNET_HELLO_Message *h1,
-                    const struct GNUNET_HELLO_Message *h2);
+GNUNET_HELLO_merge(const struct GNUNET_HELLO_Message *h1,
+                   const struct GNUNET_HELLO_Message *h2);
 
 
 /**
@@ -336,9 +332,9 @@ GNUNET_HELLO_merge (const struct GNUNET_HELLO_Message *h1,
  *         do not match at all
  */
 struct GNUNET_TIME_Absolute
-GNUNET_HELLO_equals (const struct GNUNET_HELLO_Message *h1,
-                     const struct GNUNET_HELLO_Message *h2,
-                     struct GNUNET_TIME_Absolute now);
+GNUNET_HELLO_equals(const struct GNUNET_HELLO_Message *h1,
+                    const struct GNUNET_HELLO_Message *h2,
+                    struct GNUNET_TIME_Absolute now);
 
 
 /**
@@ -364,7 +360,7 @@ typedef int (*GNUNET_HELLO_AddressIterator) (
  * @return time the last address expires, 0 if there are no addresses in the HELLO
  */
 struct GNUNET_TIME_Absolute
-GNUNET_HELLO_get_last_expiration (const struct GNUNET_HELLO_Message *msg);
+GNUNET_HELLO_get_last_expiration(const struct GNUNET_HELLO_Message *msg);
 
 
 /**
@@ -380,10 +376,10 @@ GNUNET_HELLO_get_last_expiration (const struct GNUNET_HELLO_Message *msg);
  * @return the modified HELLO or NULL
  */
 struct GNUNET_HELLO_Message *
-GNUNET_HELLO_iterate_addresses (const struct GNUNET_HELLO_Message *msg,
-                                int return_modified,
-                                GNUNET_HELLO_AddressIterator it,
-                                void *it_cls);
+GNUNET_HELLO_iterate_addresses(const struct GNUNET_HELLO_Message *msg,
+                               int return_modified,
+                               GNUNET_HELLO_AddressIterator it,
+                               void *it_cls);
 
 
 /**
@@ -400,7 +396,7 @@ GNUNET_HELLO_iterate_addresses (const struct GNUNET_HELLO_Message *msg,
  * @param it_cls closure for @a it
  */
 void
-GNUNET_HELLO_iterate_new_addresses (
+GNUNET_HELLO_iterate_new_addresses(
   const struct GNUNET_HELLO_Message *new_hello,
   const struct GNUNET_HELLO_Message *old_hello,
   struct GNUNET_TIME_Absolute expiration_limit,
@@ -416,8 +412,8 @@ GNUNET_HELLO_iterate_new_addresses (
  * @return #GNUNET_SYSERR if the HELLO was malformed
  */
 int
-GNUNET_HELLO_get_id (const struct GNUNET_HELLO_Message *hello,
-                     struct GNUNET_PeerIdentity *peer);
+GNUNET_HELLO_get_id(const struct GNUNET_HELLO_Message *hello,
+                    struct GNUNET_PeerIdentity *peer);
 
 
 /**
@@ -429,7 +425,7 @@ GNUNET_HELLO_get_id (const struct GNUNET_HELLO_Message *hello,
  * @return header or NULL if the HELLO was malformed
  */
 struct GNUNET_MessageHeader *
-GNUNET_HELLO_get_header (struct GNUNET_HELLO_Message *hello);
+GNUNET_HELLO_get_header(struct GNUNET_HELLO_Message *hello);
 
 
 /**
@@ -440,7 +436,7 @@ GNUNET_HELLO_get_header (struct GNUNET_HELLO_Message *hello);
  * @return NULL if a plugin with name @a name is not known/loadable
  */
 typedef struct GNUNET_TRANSPORT_PluginFunctions *(
-  *GNUNET_HELLO_TransportPluginsFind) (const char *name);
+*GNUNET_HELLO_TransportPluginsFind) (const char *name);
 
 
 /**
@@ -451,8 +447,8 @@ typedef struct GNUNET_TRANSPORT_PluginFunctions *(
  * @return Hello URI string
  */
 char *
-GNUNET_HELLO_compose_uri (const struct GNUNET_HELLO_Message *hello,
-                          GNUNET_HELLO_TransportPluginsFind plugins_find);
+GNUNET_HELLO_compose_uri(const struct GNUNET_HELLO_Message *hello,
+                         GNUNET_HELLO_TransportPluginsFind plugins_find);
 
 
 /**
@@ -465,10 +461,10 @@ GNUNET_HELLO_compose_uri (const struct GNUNET_HELLO_Message *hello,
  * @return #GNUNET_OK on success, #GNUNET_SYSERR if the URI was invalid, #GNUNET_NO on other errors
  */
 int
-GNUNET_HELLO_parse_uri (const char *uri,
-                        struct GNUNET_CRYPTO_EddsaPublicKey *pubkey,
-                        struct GNUNET_HELLO_Message **hello,
-                        GNUNET_HELLO_TransportPluginsFind plugins_find);
+GNUNET_HELLO_parse_uri(const char *uri,
+                       struct GNUNET_CRYPTO_EddsaPublicKey *pubkey,
+                       struct GNUNET_HELLO_Message **hello,
+                       GNUNET_HELLO_TransportPluginsFind plugins_find);
 
 
 /* NG API */
@@ -486,7 +482,7 @@ GNUNET_HELLO_parse_uri (const char *uri,
  * @param result_size[out] set to size of @a result
  */
 void
-GNUNET_HELLO_sign_address (
+GNUNET_HELLO_sign_address(
   const char *address,
   enum GNUNET_NetworkType nt,
   struct GNUNET_TIME_Absolute mono_time,
@@ -506,11 +502,11 @@ GNUNET_HELLO_sign_address (
  * @return NULL on error, otherwise the address
  */
 char *
-GNUNET_HELLO_extract_address (const void *raw,
-                              size_t raw_size,
-                              const struct GNUNET_PeerIdentity *pid,
-                              enum GNUNET_NetworkType *nt,
-                              struct GNUNET_TIME_Absolute *mono_time);
+GNUNET_HELLO_extract_address(const void *raw,
+                             size_t raw_size,
+                             const struct GNUNET_PeerIdentity *pid,
+                             enum GNUNET_NetworkType *nt,
+                             struct GNUNET_TIME_Absolute *mono_time);
 
 
 /**
@@ -521,7 +517,7 @@ GNUNET_HELLO_extract_address (const void *raw,
  * @return NULL if the address is mal-formed, otherwise the prefix
  */
 char *
-GNUNET_HELLO_address_to_prefix (const char *address);
+GNUNET_HELLO_address_to_prefix(const char *address);
 
 
 #if 0 /* keep Emacsens' auto-indent happy */

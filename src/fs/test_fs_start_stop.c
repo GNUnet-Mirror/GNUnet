@@ -11,12 +11,12 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 /**
  * @file fs/test_fs_start_stop.c
  * @brief testcase for fs.c (start-stop only)
@@ -30,32 +30,32 @@
 
 
 static void *
-progress_cb (void *cls, const struct GNUNET_FS_ProgressInfo *event)
+progress_cb(void *cls, const struct GNUNET_FS_ProgressInfo *event)
 {
   return NULL;
 }
 
 
 static void
-run (void *cls,
-     const struct GNUNET_CONFIGURATION_Handle *cfg,
-     struct GNUNET_TESTING_Peer *peer)
+run(void *cls,
+    const struct GNUNET_CONFIGURATION_Handle *cfg,
+    struct GNUNET_TESTING_Peer *peer)
 {
   struct GNUNET_FS_Handle *fs;
 
-  fs = GNUNET_FS_start (cfg, "test-fs-start-stop", &progress_cb, NULL,
-                        GNUNET_FS_FLAGS_NONE, GNUNET_FS_OPTIONS_END);
-  GNUNET_assert (NULL != fs);
-  GNUNET_FS_stop (fs);
+  fs = GNUNET_FS_start(cfg, "test-fs-start-stop", &progress_cb, NULL,
+                       GNUNET_FS_FLAGS_NONE, GNUNET_FS_OPTIONS_END);
+  GNUNET_assert(NULL != fs);
+  GNUNET_FS_stop(fs);
 }
 
 
 int
-main (int argc, char *argv[])
+main(int argc, char *argv[])
 {
-  if (0 != GNUNET_TESTING_peer_run ("test-fs-start-stop",
-				    "test_fs_data.conf",
-				    &run, NULL))
+  if (0 != GNUNET_TESTING_peer_run("test-fs-start-stop",
+                                   "test_fs_data.conf",
+                                   &run, NULL))
     return 1;
   return 0;
 }

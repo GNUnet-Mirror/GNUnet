@@ -1,22 +1,22 @@
 /*
-  This file is part of GNUnet
-  Copyright (C) 2014, 2015, 2016 GNUnet e.V.
+   This file is part of GNUnet
+   Copyright (C) 2014, 2015, 2016 GNUnet e.V.
 
-  GNUnet is free software: you can redistribute it and/or modify it
-  under the terms of the GNU Affero General Public License as published
-  by the Free Software Foundation, either version 3 of the License,
-  or (at your option) any later version.
+   GNUnet is free software: you can redistribute it and/or modify it
+   under the terms of the GNU Affero General Public License as published
+   by the Free Software Foundation, either version 3 of the License,
+   or (at your option) any later version.
 
-  GNUnet is distributed in the hope that it will be useful, but
-  WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-  Affero General Public License for more details.
+   GNUnet is distributed in the hope that it will be useful, but
+   WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   Affero General Public License for more details.
 
-  You should have received a copy of the GNU Affero General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   You should have received a copy of the GNU Affero General Public License
+   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 /**
  * @file gnunet_json_lib.h
  * @brief functions to parse JSON objects into GNUnet objects
@@ -67,8 +67,7 @@ typedef void (*GNUNET_JSON_Cleaner) (void *cls,
 /**
  * @brief Entry in parser specification for #GNUNET_JSON_parse().
  */
-struct GNUNET_JSON_Specification
-{
+struct GNUNET_JSON_Specification {
   /**
    * Function for how to parse this type of entry.
    */
@@ -126,10 +125,10 @@ struct GNUNET_JSON_Specification
  * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
  */
 int
-GNUNET_JSON_parse (const json_t *root,
-                   struct GNUNET_JSON_Specification *spec,
-                   const char **error_json_name,
-                   unsigned int *error_line);
+GNUNET_JSON_parse(const json_t *root,
+                  struct GNUNET_JSON_Specification *spec,
+                  const char **error_json_name,
+                  unsigned int *error_line);
 
 
 /**
@@ -139,7 +138,7 @@ GNUNET_JSON_parse (const json_t *root,
  * @param spec specification of the parse operation
  */
 void
-GNUNET_JSON_parse_free (struct GNUNET_JSON_Specification *spec);
+GNUNET_JSON_parse_free(struct GNUNET_JSON_Specification *spec);
 
 
 /* ****************** Canonical parser specifications ******************* */
@@ -149,7 +148,7 @@ GNUNET_JSON_parse_free (struct GNUNET_JSON_Specification *spec);
  * End of a parser specification.
  */
 struct GNUNET_JSON_Specification
-GNUNET_JSON_spec_end (void);
+GNUNET_JSON_spec_end(void);
 
 
 /**
@@ -159,7 +158,7 @@ GNUNET_JSON_spec_end (void);
  * @return spec copy of @a spec with optional bit set
  */
 struct GNUNET_JSON_Specification
-GNUNET_JSON_spec_mark_optional (struct GNUNET_JSON_Specification spec);
+GNUNET_JSON_spec_mark_optional(struct GNUNET_JSON_Specification spec);
 
 
 /**
@@ -171,7 +170,7 @@ GNUNET_JSON_spec_mark_optional (struct GNUNET_JSON_Specification spec);
  * @param size number of bytes expected in @a obj
  */
 struct GNUNET_JSON_Specification
-GNUNET_JSON_spec_fixed (const char *name, void *obj, size_t size);
+GNUNET_JSON_spec_fixed(const char *name, void *obj, size_t size);
 
 
 /**
@@ -182,7 +181,7 @@ GNUNET_JSON_spec_fixed (const char *name, void *obj, size_t size);
  * @param obj pointer where to write the data (type of `*obj` will determine size)
  */
 #define GNUNET_JSON_spec_fixed_auto(name, obj) \
-  GNUNET_JSON_spec_fixed (name, obj, sizeof (*obj))
+  GNUNET_JSON_spec_fixed(name, obj, sizeof(*obj))
 
 
 /**
@@ -194,7 +193,7 @@ GNUNET_JSON_spec_fixed (const char *name, void *obj, size_t size);
  * @param[out] size where to store the number of bytes allocated for @a obj
  */
 struct GNUNET_JSON_Specification
-GNUNET_JSON_spec_varsize (const char *name, void **obj, size_t *size);
+GNUNET_JSON_spec_varsize(const char *name, void **obj, size_t *size);
 
 
 /**
@@ -204,7 +203,7 @@ GNUNET_JSON_spec_varsize (const char *name, void **obj, size_t *size);
  * @param strptr where to store a pointer to the field
  */
 struct GNUNET_JSON_Specification
-GNUNET_JSON_spec_string (const char *name, const char **strptr);
+GNUNET_JSON_spec_string(const char *name, const char **strptr);
 
 /**
  * JSON object.
@@ -213,7 +212,7 @@ GNUNET_JSON_spec_string (const char *name, const char **strptr);
  * @param[out] jsonp where to store the JSON found under @a name
  */
 struct GNUNET_JSON_Specification
-GNUNET_JSON_spec_json (const char *name, json_t **jsonp);
+GNUNET_JSON_spec_json(const char *name, json_t **jsonp);
 
 
 /**
@@ -223,7 +222,7 @@ GNUNET_JSON_spec_json (const char *name, json_t **jsonp);
  * @param[out] u8 where to store the integer found under @a name
  */
 struct GNUNET_JSON_Specification
-GNUNET_JSON_spec_uint8 (const char *name, uint8_t *u8);
+GNUNET_JSON_spec_uint8(const char *name, uint8_t *u8);
 
 
 /**
@@ -233,7 +232,7 @@ GNUNET_JSON_spec_uint8 (const char *name, uint8_t *u8);
  * @param[out] u16 where to store the integer found under @a name
  */
 struct GNUNET_JSON_Specification
-GNUNET_JSON_spec_uint16 (const char *name, uint16_t *u16);
+GNUNET_JSON_spec_uint16(const char *name, uint16_t *u16);
 
 
 /**
@@ -243,7 +242,7 @@ GNUNET_JSON_spec_uint16 (const char *name, uint16_t *u16);
  * @param[out] u32 where to store the integer found under @a name
  */
 struct GNUNET_JSON_Specification
-GNUNET_JSON_spec_uint32 (const char *name, uint32_t *u32);
+GNUNET_JSON_spec_uint32(const char *name, uint32_t *u32);
 
 
 /**
@@ -253,7 +252,7 @@ GNUNET_JSON_spec_uint32 (const char *name, uint32_t *u32);
  * @param[out] u64 where to store the integer found under @a name
  */
 struct GNUNET_JSON_Specification
-GNUNET_JSON_spec_uint64 (const char *name, uint64_t *u64);
+GNUNET_JSON_spec_uint64(const char *name, uint64_t *u64);
 
 
 /**
@@ -263,7 +262,7 @@ GNUNET_JSON_spec_uint64 (const char *name, uint64_t *u64);
  * @param[out] boolean where to store the boolean found under @a name
  */
 struct GNUNET_JSON_Specification
-GNUNET_JSON_spec_boolean (const char *name, int *boolean);
+GNUNET_JSON_spec_boolean(const char *name, int *boolean);
 
 
 /* ************ GNUnet-specific parser specifications ******************* */
@@ -275,8 +274,8 @@ GNUNET_JSON_spec_boolean (const char *name, int *boolean);
  * @param[out] at where to store the absolute time found under @a name
  */
 struct GNUNET_JSON_Specification
-GNUNET_JSON_spec_absolute_time (const char *name,
-                                struct GNUNET_TIME_Absolute *at);
+GNUNET_JSON_spec_absolute_time(const char *name,
+                               struct GNUNET_TIME_Absolute *at);
 
 
 /**
@@ -286,8 +285,8 @@ GNUNET_JSON_spec_absolute_time (const char *name,
  * @param[out] at where to store the absolute time found under @a name
  */
 struct GNUNET_JSON_Specification
-GNUNET_JSON_spec_absolute_time_nbo (const char *name,
-                                    struct GNUNET_TIME_AbsoluteNBO *at);
+GNUNET_JSON_spec_absolute_time_nbo(const char *name,
+                                   struct GNUNET_TIME_AbsoluteNBO *at);
 
 
 /**
@@ -297,8 +296,8 @@ GNUNET_JSON_spec_absolute_time_nbo (const char *name,
  * @param[out] rt where to store the relative time found under @a name
  */
 struct GNUNET_JSON_Specification
-GNUNET_JSON_spec_relative_time (const char *name,
-                                struct GNUNET_TIME_Relative *rt);
+GNUNET_JSON_spec_relative_time(const char *name,
+                               struct GNUNET_TIME_Relative *rt);
 
 
 /**
@@ -308,8 +307,8 @@ GNUNET_JSON_spec_relative_time (const char *name,
  * @param pk where to store the RSA key found under @a name
  */
 struct GNUNET_JSON_Specification
-GNUNET_JSON_spec_rsa_public_key (const char *name,
-                                 struct GNUNET_CRYPTO_RsaPublicKey **pk);
+GNUNET_JSON_spec_rsa_public_key(const char *name,
+                                struct GNUNET_CRYPTO_RsaPublicKey **pk);
 
 
 /**
@@ -319,8 +318,8 @@ GNUNET_JSON_spec_rsa_public_key (const char *name,
  * @param sig where to store the RSA signature found under @a name
  */
 struct GNUNET_JSON_Specification
-GNUNET_JSON_spec_rsa_signature (const char *name,
-                                struct GNUNET_CRYPTO_RsaSignature **sig);
+GNUNET_JSON_spec_rsa_signature(const char *name,
+                               struct GNUNET_CRYPTO_RsaSignature **sig);
 
 
 /**
@@ -330,9 +329,9 @@ GNUNET_JSON_spec_rsa_signature (const char *name,
  * @return JSON Specification
  */
 struct GNUNET_JSON_Specification
-GNUNET_JSON_spec_gnsrecord (struct GNUNET_GNSRECORD_Data **rd,
-                            unsigned int *rd_count,
-                            char **name);
+GNUNET_JSON_spec_gnsrecord(struct GNUNET_GNSRECORD_Data **rd,
+                           unsigned int *rd_count,
+                           char **name);
 
 
 /* ****************** Generic generator interface ******************* */
@@ -347,7 +346,7 @@ GNUNET_JSON_spec_gnsrecord (struct GNUNET_GNSRECORD_Data **rd,
  * @return json string that encodes @a data
  */
 json_t *
-GNUNET_JSON_from_data (const void *data, size_t size);
+GNUNET_JSON_from_data(const void *data, size_t size);
 
 
 /**
@@ -358,7 +357,7 @@ GNUNET_JSON_from_data (const void *data, size_t size);
  * @return json string that encodes @a data
  */
 #define GNUNET_JSON_from_data_auto(ptr) \
-  GNUNET_JSON_from_data (ptr, sizeof (*ptr))
+  GNUNET_JSON_from_data(ptr, sizeof(*ptr))
 
 
 /**
@@ -368,7 +367,7 @@ GNUNET_JSON_from_data (const void *data, size_t size);
  * @return a json string with the timestamp in @a stamp
  */
 json_t *
-GNUNET_JSON_from_time_abs (struct GNUNET_TIME_Absolute stamp);
+GNUNET_JSON_from_time_abs(struct GNUNET_TIME_Absolute stamp);
 
 
 /**
@@ -378,7 +377,7 @@ GNUNET_JSON_from_time_abs (struct GNUNET_TIME_Absolute stamp);
  * @return a json string with the timestamp in @a stamp
  */
 json_t *
-GNUNET_JSON_from_time_abs_nbo (struct GNUNET_TIME_AbsoluteNBO stamp);
+GNUNET_JSON_from_time_abs_nbo(struct GNUNET_TIME_AbsoluteNBO stamp);
 
 
 /**
@@ -388,7 +387,7 @@ GNUNET_JSON_from_time_abs_nbo (struct GNUNET_TIME_AbsoluteNBO stamp);
  * @return a json string with the timestamp in @a stamp
  */
 json_t *
-GNUNET_JSON_from_time_rel (struct GNUNET_TIME_Relative stamp);
+GNUNET_JSON_from_time_rel(struct GNUNET_TIME_Relative stamp);
 
 
 /**
@@ -398,7 +397,7 @@ GNUNET_JSON_from_time_rel (struct GNUNET_TIME_Relative stamp);
  * @return corresponding JSON encoding
  */
 json_t *
-GNUNET_JSON_from_rsa_public_key (const struct GNUNET_CRYPTO_RsaPublicKey *pk);
+GNUNET_JSON_from_rsa_public_key(const struct GNUNET_CRYPTO_RsaPublicKey *pk);
 
 
 /**
@@ -408,7 +407,7 @@ GNUNET_JSON_from_rsa_public_key (const struct GNUNET_CRYPTO_RsaPublicKey *pk);
  * @return corresponding JSON encoding
  */
 json_t *
-GNUNET_JSON_from_rsa_signature (const struct GNUNET_CRYPTO_RsaSignature *sig);
+GNUNET_JSON_from_rsa_signature(const struct GNUNET_CRYPTO_RsaSignature *sig);
 
 /**
  * Convert Gns record to JSON.
@@ -418,17 +417,16 @@ GNUNET_JSON_from_rsa_signature (const struct GNUNET_CRYPTO_RsaSignature *sig);
  * @return corresponding JSON encoding
  */
 json_t *
-GNUNET_JSON_from_gnsrecord (const char *rname,
-                            const struct GNUNET_GNSRECORD_Data *rd,
-                            unsigned int rd_count);
+GNUNET_JSON_from_gnsrecord(const char *rname,
+                           const struct GNUNET_GNSRECORD_Data *rd,
+                           unsigned int rd_count);
 
 /* ******************* Helpers for MHD upload handling ******************* */
 
 /**
  * Return codes from #GNUNET_JSON_post_parser().
  */
-enum GNUNET_JSON_PostResult
-{
+enum GNUNET_JSON_PostResult {
   /**
    * Parsing successful, JSON result is in `*json`.
    */
@@ -472,12 +470,12 @@ enum GNUNET_JSON_PostResult
  * @return result code indicating the status of the operation
  */
 enum GNUNET_JSON_PostResult
-GNUNET_JSON_post_parser (size_t buffer_max,
-                         struct MHD_Connection *connection,
-                         void **con_cls,
-                         const char *upload_data,
-                         size_t *upload_data_size,
-                         json_t **json);
+GNUNET_JSON_post_parser(size_t buffer_max,
+                        struct MHD_Connection *connection,
+                        void **con_cls,
+                        const char *upload_data,
+                        size_t *upload_data_size,
+                        json_t **json);
 
 
 /**
@@ -488,7 +486,7 @@ GNUNET_JSON_post_parser (size_t buffer_max,
  *        #GNUNET_JSON_post_parser(), to be cleaned up
  */
 void
-GNUNET_JSON_post_parser_cleanup (void *con_cls);
+GNUNET_JSON_post_parser_cleanup(void *con_cls);
 
 
 /* ****************** GETOPT JSON helper ******************* */
@@ -504,11 +502,11 @@ GNUNET_JSON_post_parser_cleanup (void *con_cls);
  * @param[out] val set to the JSON specified at the command line
  */
 struct GNUNET_GETOPT_CommandLineOption
-GNUNET_JSON_getopt (char shortName,
-                    const char *name,
-                    const char *argumentHelp,
-                    const char *description,
-                    json_t **json);
+GNUNET_JSON_getopt(char shortName,
+                   const char *name,
+                   const char *argumentHelp,
+                   const char *description,
+                   json_t **json);
 
 #endif
 

@@ -12,12 +12,12 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 /**
  * @file transport-testing-loggers.c
  * @brief convenience functions for logging common events in tests
@@ -34,19 +34,19 @@
  * @param other peer that connected.
  */
 void
-GNUNET_TRANSPORT_TESTING_log_connect (void *cls,
-                                      struct GNUNET_TRANSPORT_TESTING_PeerContext *me,
-                                      const struct GNUNET_PeerIdentity *other)
+GNUNET_TRANSPORT_TESTING_log_connect(void *cls,
+                                     struct GNUNET_TRANSPORT_TESTING_PeerContext *me,
+                                     const struct GNUNET_PeerIdentity *other)
 {
   char *ps;
 
-  ps = GNUNET_strdup (GNUNET_i2s (&me->id));
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              "Peer %s connected to %u (%s)!\n",
-              GNUNET_i2s (other),
-              me->no,
-              ps);
-  GNUNET_free (ps);
+  ps = GNUNET_strdup(GNUNET_i2s(&me->id));
+  GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+             "Peer %s connected to %u (%s)!\n",
+             GNUNET_i2s(other),
+             me->no,
+             ps);
+  GNUNET_free(ps);
 }
 
 
@@ -59,19 +59,19 @@ GNUNET_TRANSPORT_TESTING_log_connect (void *cls,
  * @param other peer that disconnected.
  */
 void
-GNUNET_TRANSPORT_TESTING_log_disconnect (void *cls,
-                                         struct GNUNET_TRANSPORT_TESTING_PeerContext *me,
-                                         const struct GNUNET_PeerIdentity *other)
+GNUNET_TRANSPORT_TESTING_log_disconnect(void *cls,
+                                        struct GNUNET_TRANSPORT_TESTING_PeerContext *me,
+                                        const struct GNUNET_PeerIdentity *other)
 {
   char *ps;
 
-  ps = GNUNET_strdup (GNUNET_i2s (&me->id));
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              "Peer `%s' disconnected from %u (%s)!\n",
-              GNUNET_i2s (other),
-              me->no,
-              ps);
-  GNUNET_free (ps);
+  ps = GNUNET_strdup(GNUNET_i2s(&me->id));
+  GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+             "Peer `%s' disconnected from %u (%s)!\n",
+             GNUNET_i2s(other),
+             me->no,
+             ps);
+  GNUNET_free(ps);
 }
 
 /* end of transport-testing-loggers.c */

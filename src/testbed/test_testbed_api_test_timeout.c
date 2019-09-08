@@ -1,22 +1,22 @@
 /*
-  This file is part of GNUnet
-  Copyright (C) 2008--2013 GNUnet e.V.
+   This file is part of GNUnet
+   Copyright (C) 2008--2013 GNUnet e.V.
 
-  GNUnet is free software: you can redistribute it and/or modify it
-  under the terms of the GNU Affero General Public License as published
-  by the Free Software Foundation, either version 3 of the License,
-  or (at your option) any later version.
+   GNUnet is free software: you can redistribute it and/or modify it
+   under the terms of the GNU Affero General Public License as published
+   by the Free Software Foundation, either version 3 of the License,
+   or (at your option) any later version.
 
-  GNUnet is distributed in the hope that it will be useful, but
-  WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-  Affero General Public License for more details.
- 
-  You should have received a copy of the GNU Affero General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   GNUnet is distributed in the hope that it will be useful, but
+   WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   Affero General Public License for more details.
+
+   You should have received a copy of the GNU Affero General Public License
+   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 
 /**
  * @file src/testbed/test_testbed_api_test.c
@@ -34,8 +34,8 @@
 /**
  * Generic logging shortcut
  */
-#define LOG(kind,...)				\
-  GNUNET_log (kind, __VA_ARGS__)
+#define LOG(kind, ...)                           \
+  GNUNET_log(kind, __VA_ARGS__)
 
 /**
  * Number of peers we want to start
@@ -52,11 +52,11 @@ static int result;
  * shortcut to exit during failure
  */
 #define FAIL_TEST(cond) do {                                            \
-    if (!(cond)) {                                                      \
-      GNUNET_break(0);                                                  \
-      GNUNET_SCHEDULER_shutdown ();                                     \
-      return;                                                           \
-    }                                                                   \
+      if (!(cond)) {                                                      \
+          GNUNET_break(0);                                                  \
+          GNUNET_SCHEDULER_shutdown();                                     \
+          return;                                                           \
+        }                                                                   \
   } while (0)
 
 
@@ -67,10 +67,10 @@ static int result;
  * @param event the controller event
  */
 static void
-controller_event_cb (void *cls,
-                     const struct GNUNET_TESTBED_EventInformation *event)
+controller_event_cb(void *cls,
+                    const struct GNUNET_TESTBED_EventInformation *event)
 {
-  FAIL_TEST (0);
+  FAIL_TEST(0);
 }
 
 
@@ -87,18 +87,18 @@ controller_event_cb (void *cls,
  *          failed
  */
 static void
-test_master (void *cls,
-             struct GNUNET_TESTBED_RunHandle *h,
-             unsigned int num_peers,
-             struct GNUNET_TESTBED_Peer **peers_,
-             unsigned int links_succeeded,
-             unsigned int links_failed)
+test_master(void *cls,
+            struct GNUNET_TESTBED_RunHandle *h,
+            unsigned int num_peers,
+            struct GNUNET_TESTBED_Peer **peers_,
+            unsigned int links_succeeded,
+            unsigned int links_failed)
 {
-  FAIL_TEST (NULL == cls);
-  FAIL_TEST (0 == num_peers);
-  FAIL_TEST (NULL == peers_);
+  FAIL_TEST(NULL == cls);
+  FAIL_TEST(0 == num_peers);
+  FAIL_TEST(NULL == peers_);
   result = GNUNET_OK;
-  GNUNET_SCHEDULER_shutdown ();
+  GNUNET_SCHEDULER_shutdown();
 }
 
 
@@ -106,16 +106,16 @@ test_master (void *cls,
  * Main function
  */
 int
-main (int argc, char **argv)
+main(int argc, char **argv)
 {
   uint64_t event_mask;
 
   result = GNUNET_SYSERR;
   event_mask = 0;
-  (void) GNUNET_TESTBED_test_run ("test_testbed_api_test",
-                                  "test_testbed_api_test_timeout.conf", NUM_PEERS,
-                                  event_mask, &controller_event_cb, NULL,
-                                  &test_master, NULL);
+  (void)GNUNET_TESTBED_test_run("test_testbed_api_test",
+                                "test_testbed_api_test_timeout.conf", NUM_PEERS,
+                                event_mask, &controller_event_cb, NULL,
+                                &test_master, NULL);
   if (GNUNET_OK != result)
     return 1;
   return 0;

@@ -11,12 +11,12 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 
 /**
  * @file ats/gnunet-service-ats.h
@@ -31,7 +31,7 @@
 
 #define GAS_normalization_queue_length 3
 
-#define BANDWIDTH_ZERO GNUNET_BANDWIDTH_value_init (0)
+#define BANDWIDTH_ZERO GNUNET_BANDWIDTH_value_init(0)
 
 /**
  * Handle for statistics.

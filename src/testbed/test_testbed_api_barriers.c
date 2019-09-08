@@ -11,7 +11,7 @@
       WITHOUT ANY WARRANTY; without even the implied warranty of
       MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
       Affero General Public License for more details.
-     
+
       You should have received a copy of the GNU Affero General Public License
       along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -33,8 +33,8 @@
 /**
  * logging short hand
  */
-#define LOG(type,...) \
-  GNUNET_log (type, __VA_ARGS__);
+#define LOG(type, ...) \
+  GNUNET_log(type, __VA_ARGS__);
 
 /**
  * Number of peers we start in this test case
@@ -65,10 +65,10 @@ static void
 shutdown_handler(void *cls)
 {
   if (NULL != timeout_task)
-  {
-    GNUNET_SCHEDULER_cancel(timeout_task);
-    timeout_task = NULL;
-  }
+    {
+      GNUNET_SCHEDULER_cancel(timeout_task);
+      timeout_task = NULL;
+    }
 }
 
 
@@ -78,12 +78,12 @@ shutdown_handler(void *cls)
  * @param cls NULL
  */
 static void
-do_timeout (void *cls)
+do_timeout(void *cls)
 {
   timeout_task = NULL;
   if (barrier != NULL)
-      GNUNET_TESTBED_barrier_cancel (barrier);
-  GNUNET_SCHEDULER_shutdown ();
+    GNUNET_TESTBED_barrier_cancel(barrier);
+  GNUNET_SCHEDULER_shutdown();
 }
 
 
@@ -101,40 +101,43 @@ do_timeout (void *cls)
  *   error messsage
  */
 static void
-barrier_cb (void *cls,
-            const char *name,
-            struct GNUNET_TESTBED_Barrier *_barrier,
-            enum GNUNET_TESTBED_BarrierStatus status,
-            const char *emsg)
+barrier_cb(void *cls,
+           const char *name,
+           struct GNUNET_TESTBED_Barrier *_barrier,
+           enum GNUNET_TESTBED_BarrierStatus status,
+           const char *emsg)
 {
   static enum GNUNET_TESTBED_BarrierStatus old_status;
 
-  GNUNET_assert (NULL == cls);
-  GNUNET_assert (_barrier == barrier);
+  GNUNET_assert(NULL == cls);
+  GNUNET_assert(_barrier == barrier);
   switch (status)
-  {
-  case GNUNET_TESTBED_BARRIERSTATUS_INITIALISED:
-    LOG (GNUNET_ERROR_TYPE_INFO,
-         "Barrier initialised\n");
-    old_status = status;
-    return;
-  case GNUNET_TESTBED_BARRIERSTATUS_ERROR:
-    LOG (GNUNET_ERROR_TYPE_ERROR,
-         "Barrier initialisation failed: %s",
-         (NULL == emsg) ? "unknown reason" : emsg);
-    break;
-  case GNUNET_TESTBED_BARRIERSTATUS_CROSSED:
-    LOG (GNUNET_ERROR_TYPE_INFO,
-         "Barrier crossed\n");
-    if (old_status == GNUNET_TESTBED_BARRIERSTATUS_INITIALISED)
-      result = GNUNET_OK;
-    break;
-  default:
-    GNUNET_assert (0);
-    return;
-  }
+    {
+    case GNUNET_TESTBED_BARRIERSTATUS_INITIALISED:
+      LOG(GNUNET_ERROR_TYPE_INFO,
+          "Barrier initialised\n");
+      old_status = status;
+      return;
+
+    case GNUNET_TESTBED_BARRIERSTATUS_ERROR:
+      LOG(GNUNET_ERROR_TYPE_ERROR,
+          "Barrier initialisation failed: %s",
+          (NULL == emsg) ? "unknown reason" : emsg);
+      break;
+
+    case GNUNET_TESTBED_BARRIERSTATUS_CROSSED:
+      LOG(GNUNET_ERROR_TYPE_INFO,
+          "Barrier crossed\n");
+      if (old_status == GNUNET_TESTBED_BARRIERSTATUS_INITIALISED)
+        result = GNUNET_OK;
+      break;
+
+    default:
+      GNUNET_assert(0);
+      return;
+    }
   barrier = NULL;
-  GNUNET_SCHEDULER_shutdown ();
+  GNUNET_SCHEDULER_shutdown();
 }
 
 
@@ -151,34 +154,34 @@ barrier_cb (void *cls,
  *          failed
  */
 static void
-test_master (void *cls,
-             struct GNUNET_TESTBED_RunHandle *h,
-             unsigned int num_peers,
-             struct GNUNET_TESTBED_Peer **peers_,
-             unsigned int links_succeeded,
-             unsigned int links_failed)
+test_master(void *cls,
+            struct GNUNET_TESTBED_RunHandle *h,
+            unsigned int num_peers,
+            struct GNUNET_TESTBED_Peer **peers_,
+            unsigned int links_succeeded,
+            unsigned int links_failed)
 {
   struct GNUNET_TESTBED_Controller *c;
 
-  GNUNET_assert (NULL == cls);
+  GNUNET_assert(NULL == cls);
   if (NULL == peers_)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Failing test due to timeout\n");
-    return;
-  }
-  GNUNET_assert (NUM_PEERS == num_peers);
-  c = GNUNET_TESTBED_run_get_controller_handle (h);
-  barrier = GNUNET_TESTBED_barrier_init (c,
-                                         TEST_BARRIER_NAME,
-                                         100,
-                                         &barrier_cb,
-                                         NULL);
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
+                 "Failing test due to timeout\n");
+      return;
+    }
+  GNUNET_assert(NUM_PEERS == num_peers);
+  c = GNUNET_TESTBED_run_get_controller_handle(h);
+  barrier = GNUNET_TESTBED_barrier_init(c,
+                                        TEST_BARRIER_NAME,
+                                        100,
+                                        &barrier_cb,
+                                        NULL);
   timeout_task =
-      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
-                                    (GNUNET_TIME_UNIT_SECONDS,
-                                     10 * (NUM_PEERS + 1)),
-                                    &do_timeout, NULL);
+    GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_relative_multiply
+                                   (GNUNET_TIME_UNIT_SECONDS,
+                                   10 * (NUM_PEERS + 1)),
+                                 &do_timeout, NULL);
   GNUNET_SCHEDULER_add_shutdown(&shutdown_handler, NULL);
 }
 
@@ -195,7 +198,7 @@ test_master (void *cls,
  * Main function
  */
 int
-main (int argc, char **argv)
+main(int argc, char **argv)
 {
   struct GNUNET_CONFIGURATION_Handle *cfg;
   char pwd[PATH_MAX];
@@ -204,26 +207,26 @@ main (int argc, char **argv)
 
   result = GNUNET_SYSERR;
   event_mask = 0;
-  cfg = GNUNET_CONFIGURATION_create ();
-  GNUNET_assert (GNUNET_YES ==
-                 GNUNET_CONFIGURATION_parse (cfg,
-                                             "test_testbed_api_barriers.conf.in"));
-  if (NULL == getcwd (pwd, PATH_MAX))
+  cfg = GNUNET_CONFIGURATION_create();
+  GNUNET_assert(GNUNET_YES ==
+                GNUNET_CONFIGURATION_parse(cfg,
+                                           "test_testbed_api_barriers.conf.in"));
+  if (NULL == getcwd(pwd, PATH_MAX))
     return 1;
-  GNUNET_assert (0 < GNUNET_asprintf (&binary, "%s/%s", pwd,
-                                      "gnunet-service-test-barriers"));
-  GNUNET_CONFIGURATION_set_value_string (cfg, "test-barriers","BINARY", binary);
-  GNUNET_assert (GNUNET_OK == GNUNET_CONFIGURATION_write
-                 (cfg, "test_testbed_api_barriers.conf"));
-  GNUNET_CONFIGURATION_destroy (cfg);
+  GNUNET_assert(0 < GNUNET_asprintf(&binary, "%s/%s", pwd,
+                                    "gnunet-service-test-barriers"));
+  GNUNET_CONFIGURATION_set_value_string(cfg, "test-barriers", "BINARY", binary);
+  GNUNET_assert(GNUNET_OK == GNUNET_CONFIGURATION_write
+                  (cfg, "test_testbed_api_barriers.conf"));
+  GNUNET_CONFIGURATION_destroy(cfg);
   cfg = NULL;
-  GNUNET_free (binary);
+  GNUNET_free(binary);
   binary = NULL;
-  (void) GNUNET_TESTBED_test_run ("test_testbed_api_barriers",
-                                  "test_testbed_api_barriers.conf", NUM_PEERS,
-                                  event_mask, NULL, NULL,
-                                  &test_master, NULL);
-  (void) unlink ("test_testbed_api_barriers.conf");
+  (void)GNUNET_TESTBED_test_run("test_testbed_api_barriers",
+                                "test_testbed_api_barriers.conf", NUM_PEERS,
+                                event_mask, NULL, NULL,
+                                &test_master, NULL);
+  (void)unlink("test_testbed_api_barriers.conf");
   if (GNUNET_OK != result)
     return 1;
   return 0;

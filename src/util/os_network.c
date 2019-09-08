@@ -17,7 +17,7 @@
 
      SPDX-License-Identifier: AGPL3.0-or-later
 
-*/
+ */
 /**
  * @file util/os_network.c
  * @brief function to determine available network interfaces
@@ -31,11 +31,11 @@
 #include "gnunet_util_lib.h"
 
 
-#define LOG(kind,...) GNUNET_log_from (kind, "util-os-network", __VA_ARGS__)
-#define LOG_STRERROR_FILE(kind,syscall,filename) GNUNET_log_from_strerror_file (kind, "util-os-network", syscall, filename)
+#define LOG(kind, ...) GNUNET_log_from(kind, "util-os-network", __VA_ARGS__)
+#define LOG_STRERROR_FILE(kind, syscall, filename) GNUNET_log_from_strerror_file(kind, "util-os-network", syscall, filename)
 
 
-#if ! (HAVE_GETIFADDRS && HAVE_FREEIFADDRS) && !MINGW
+#if !(HAVE_GETIFADDRS && HAVE_FREEIFADDRS) && !MINGW
 /**
  * Try to enumerate all network interfaces using 'ifconfig'.
  *
@@ -44,8 +44,8 @@
  * @return #GNUNET_OK if it worked
  */
 static int
-try_ifconfig (GNUNET_OS_NetworkInterfaceProcessor proc,
-              void *proc_cls)
+try_ifconfig(GNUNET_OS_NetworkInterfaceProcessor proc,
+             void *proc_cls)
 {
   int i;
   char line[1024];
@@ -70,159 +70,159 @@ try_ifconfig (GNUNET_OS_NetworkInterfaceProcessor proc,
   static char *pcall;
 
   if (NULL == pcall)
-  {
-    const char *sbin_ifconfig;
+    {
+      const char *sbin_ifconfig;
 
 #ifdef IFCONFIG
-    if (0 == access (IFCONFIG, X_OK))
-      sbin_ifconfig = IFCONFIG;
-    else
+      if (0 == access(IFCONFIG, X_OK))
+        sbin_ifconfig = IFCONFIG;
+      else
 #endif
-    if (0 == access ("/sbin/ifconfig", X_OK))
-      sbin_ifconfig = "/sbin/ifconfig";
-    else if (0 == access ("/usr/sbin/ifconfig", X_OK))
-      sbin_ifconfig = "/usr/sbin/ifconfig";
-    else
-      sbin_ifconfig = "ifconfig";
-    GNUNET_asprintf (&pcall,
-                     "%s -a 2> /dev/null",
-                     sbin_ifconfig);
-  }
-  f = popen (pcall, "r");
+      if (0 == access("/sbin/ifconfig", X_OK))
+        sbin_ifconfig = "/sbin/ifconfig";
+      else if (0 == access("/usr/sbin/ifconfig", X_OK))
+        sbin_ifconfig = "/usr/sbin/ifconfig";
+      else
+        sbin_ifconfig = "ifconfig";
+      GNUNET_asprintf(&pcall,
+                      "%s -a 2> /dev/null",
+                      sbin_ifconfig);
+    }
+  f = popen(pcall, "r");
   if (NULL == f)
-  {
-    LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_WARNING | GNUNET_ERROR_TYPE_BULK,
-                       "popen",
-                       "ifconfig");
+    {
+      LOG_STRERROR_FILE(GNUNET_ERROR_TYPE_WARNING | GNUNET_ERROR_TYPE_BULK,
+                        "popen",
+                        "ifconfig");
 
-    return GNUNET_SYSERR;
-  }
+      return GNUNET_SYSERR;
+    }
 
   have_ifc = GNUNET_NO;
   ifc[11] = '\0';
-  while (NULL != fgets (line, sizeof (line), f))
-  {
-    if (strlen (line) == 0)
+  while (NULL != fgets(line, sizeof(line), f))
     {
-      have_ifc = GNUNET_NO;
-      continue;
-    }
-    if (!isspace (line[0]))
-    {
-      have_ifc = (1 == SSCANF (line, "%11s", ifc)) ? GNUNET_YES : GNUNET_NO;
-      /* would end with ':' on OSX, fix it! */
-      if (ifc[strlen (ifc) - 1] == ':')
-        ifc[strlen (ifc) - 1] = '\0';
-      continue;
-    }
-    if (!have_ifc)
-      continue;                 /* strange input, hope for the best */
-
-    /* make parsing of ipv6 addresses easier */
-    for (replace = line; *replace != '\0'; replace++)
-    {
-      if (*replace == '/')
-        *replace = ' ';
-    }
-    prefixlen = -1;
-
-    start = line;
-    while (('\0' != *start) && (isspace (*start)))
-      start++;
-
-    /* Zero-out stack allocated values */
-    memset (addrstr, 0, 128);
-    memset (netmaskstr, 0, 128);
-    memset (bcstr, 0, 128);
-    prefixlen = 0;
-
-    if ( /* Linux */
-         (3 == SSCANF (start, "inet addr:%127s Bcast:%127s Mask:%127s", addrstr, bcstr, netmaskstr)) ||
-         (2 == SSCANF (start, "inet addr:%127s Mask:%127s", addrstr, netmaskstr)) ||
-         (2 == SSCANF (start, "inet6 addr:%127s %d", addrstr, &prefixlen)) ||
-         /* Solaris, OS X */
-         (1 == SSCANF (start, "inet %127s", addrstr)) ||
-         (1 == SSCANF (start, "inet6 %127s", addrstr)))
-    {
-      /* IPv4 */
-      if (1 == inet_pton (AF_INET, addrstr, &v4))
-      {
-        memset (&a4, 0, sizeof (a4));
-        a4.sin_family = AF_INET;
-#if HAVE_SOCKADDR_IN_SIN_LEN
-        a4.sin_len = (u_char) sizeof (struct sockaddr_in);
-#endif
-        a4.sin_addr = v4;
-
-        pass_bcaddr = NULL;
-        pass_netmask = NULL;
-        if (1 == inet_pton (AF_INET, bcstr, &v4))
+      if (strlen(line) == 0)
         {
-          memset (&bcaddr, 0, sizeof (bcaddr));
-          bcaddr.sin_family = AF_INET;
-#if HAVE_SOCKADDR_IN_SIN_LEN
-          bcaddr.sin_len = (u_char) sizeof (struct sockaddr_in);
-#endif
-          bcaddr.sin_addr = v4;
-          pass_bcaddr = (struct sockaddr *) &bcaddr;
+          have_ifc = GNUNET_NO;
+          continue;
         }
-        if (1 == inet_pton (AF_INET, netmaskstr, &v4))
+      if (!isspace(line[0]))
         {
-          memset (&netmask, 0, sizeof (netmask));
-          netmask.sin_family = AF_INET;
-#if HAVE_SOCKADDR_IN_SIN_LEN
-          netmask.sin_len = (u_char) sizeof (struct sockaddr_in);
-#endif
-          netmask.sin_addr = v4;
-          pass_netmask = (struct sockaddr *) &netmask;
+          have_ifc = (1 == SSCANF(line, "%11s", ifc)) ? GNUNET_YES : GNUNET_NO;
+          /* would end with ':' on OSX, fix it! */
+          if (ifc[strlen(ifc) - 1] == ':')
+            ifc[strlen(ifc) - 1] = '\0';
+          continue;
         }
+      if (!have_ifc)
+        continue;               /* strange input, hope for the best */
 
-
-        if (GNUNET_OK !=
-            proc (proc_cls, ifc, 0 == strcmp (ifc, GNUNET_DEFAULT_INTERFACE),
-                  (const struct sockaddr *) &a4,
-                  pass_bcaddr, pass_netmask, sizeof (a4)))
-          break;
-        continue;
-      }
-      /* IPv6 */
-      if (1 == inet_pton (AF_INET6, addrstr, &v6))
-      {
-        memset (&a6, 0, sizeof (a6));
-        a6.sin6_family = AF_INET6;
-#if HAVE_SOCKADDR_IN_SIN_LEN
-        a6.sin6_len = (u_char) sizeof (struct sockaddr_in6);
-#endif
-        a6.sin6_addr = v6;
-
-        pass_netmask = NULL;
-        if (prefixlen != -1)
+      /* make parsing of ipv6 addresses easier */
+      for (replace = line; *replace != '\0'; replace++)
         {
-          memset (v6.s6_addr, 0, sizeof (v6.s6_addr));
-          for (i = 0; i < prefixlen; i++)
-          {
-            v6.s6_addr[i >> 3] |= 1 << (i & 7);
-          }
-          memset (&netmask6, 0, sizeof (netmask6));
-          netmask6.sin6_family = AF_INET6;
-#if HAVE_SOCKADDR_IN_SIN_LEN
-          netmask6.sin6_len = (u_char) sizeof (struct sockaddr_in6);
-#endif
-          netmask6.sin6_addr = v6;
-
-          pass_netmask = (struct sockaddr *) &netmask6;
+          if (*replace == '/')
+            *replace = ' ';
         }
+      prefixlen = -1;
 
-        if (GNUNET_OK !=
-            proc (proc_cls, ifc, 0 == strcmp (ifc, GNUNET_DEFAULT_INTERFACE),
-                  (const struct sockaddr *) &a6,
-                  NULL, pass_netmask, sizeof (a6)))
-          break;
-        continue;
-      }
+      start = line;
+      while (('\0' != *start) && (isspace(*start)))
+        start++;
+
+      /* Zero-out stack allocated values */
+      memset(addrstr, 0, 128);
+      memset(netmaskstr, 0, 128);
+      memset(bcstr, 0, 128);
+      prefixlen = 0;
+
+      if ( /* Linux */
+        (3 == SSCANF(start, "inet addr:%127s Bcast:%127s Mask:%127s", addrstr, bcstr, netmaskstr)) ||
+        (2 == SSCANF(start, "inet addr:%127s Mask:%127s", addrstr, netmaskstr)) ||
+        (2 == SSCANF(start, "inet6 addr:%127s %d", addrstr, &prefixlen)) ||
+        /* Solaris, OS X */
+        (1 == SSCANF(start, "inet %127s", addrstr)) ||
+        (1 == SSCANF(start, "inet6 %127s", addrstr)))
+        {
+          /* IPv4 */
+          if (1 == inet_pton(AF_INET, addrstr, &v4))
+            {
+              memset(&a4, 0, sizeof(a4));
+              a4.sin_family = AF_INET;
+#if HAVE_SOCKADDR_IN_SIN_LEN
+              a4.sin_len = (u_char)sizeof(struct sockaddr_in);
+#endif
+              a4.sin_addr = v4;
+
+              pass_bcaddr = NULL;
+              pass_netmask = NULL;
+              if (1 == inet_pton(AF_INET, bcstr, &v4))
+                {
+                  memset(&bcaddr, 0, sizeof(bcaddr));
+                  bcaddr.sin_family = AF_INET;
+#if HAVE_SOCKADDR_IN_SIN_LEN
+                  bcaddr.sin_len = (u_char)sizeof(struct sockaddr_in);
+#endif
+                  bcaddr.sin_addr = v4;
+                  pass_bcaddr = (struct sockaddr *)&bcaddr;
+                }
+              if (1 == inet_pton(AF_INET, netmaskstr, &v4))
+                {
+                  memset(&netmask, 0, sizeof(netmask));
+                  netmask.sin_family = AF_INET;
+#if HAVE_SOCKADDR_IN_SIN_LEN
+                  netmask.sin_len = (u_char)sizeof(struct sockaddr_in);
+#endif
+                  netmask.sin_addr = v4;
+                  pass_netmask = (struct sockaddr *)&netmask;
+                }
+
+
+              if (GNUNET_OK !=
+                  proc(proc_cls, ifc, 0 == strcmp(ifc, GNUNET_DEFAULT_INTERFACE),
+                       (const struct sockaddr *)&a4,
+                       pass_bcaddr, pass_netmask, sizeof(a4)))
+                break;
+              continue;
+            }
+          /* IPv6 */
+          if (1 == inet_pton(AF_INET6, addrstr, &v6))
+            {
+              memset(&a6, 0, sizeof(a6));
+              a6.sin6_family = AF_INET6;
+#if HAVE_SOCKADDR_IN_SIN_LEN
+              a6.sin6_len = (u_char)sizeof(struct sockaddr_in6);
+#endif
+              a6.sin6_addr = v6;
+
+              pass_netmask = NULL;
+              if (prefixlen != -1)
+                {
+                  memset(v6.s6_addr, 0, sizeof(v6.s6_addr));
+                  for (i = 0; i < prefixlen; i++)
+                    {
+                      v6.s6_addr[i >> 3] |= 1 << (i & 7);
+                    }
+                  memset(&netmask6, 0, sizeof(netmask6));
+                  netmask6.sin6_family = AF_INET6;
+#if HAVE_SOCKADDR_IN_SIN_LEN
+                  netmask6.sin6_len = (u_char)sizeof(struct sockaddr_in6);
+#endif
+                  netmask6.sin6_addr = v6;
+
+                  pass_netmask = (struct sockaddr *)&netmask6;
+                }
+
+              if (GNUNET_OK !=
+                  proc(proc_cls, ifc, 0 == strcmp(ifc, GNUNET_DEFAULT_INTERFACE),
+                       (const struct sockaddr *)&a6,
+                       NULL, pass_netmask, sizeof(a6)))
+                break;
+              continue;
+            }
+        }
     }
-  }
-  pclose (f);
+  pclose(f);
   return GNUNET_OK;
 }
 
@@ -235,8 +235,8 @@ try_ifconfig (GNUNET_OS_NetworkInterfaceProcessor proc,
  * @return #GNUNET_OK if it worked
  */
 static int
-try_ip (GNUNET_OS_NetworkInterfaceProcessor proc,
-        void *proc_cls)
+try_ip(GNUNET_OS_NetworkInterfaceProcessor proc,
+       void *proc_cls)
 {
   char line[1024];
   char *replace;
@@ -255,124 +255,124 @@ try_ip (GNUNET_OS_NetworkInterfaceProcessor proc,
   static char *pcall;
 
   if (NULL == pcall)
-  {
-    const char *sbin_ip;
+    {
+      const char *sbin_ip;
 
 #ifdef IFCONFIG
-    if (0 == access (PATH_TO_IP, X_OK))
-      sbin_ip = PATH_TO_IP;
-    else
+      if (0 == access(PATH_TO_IP, X_OK))
+        sbin_ip = PATH_TO_IP;
+      else
 #endif
-    if (0 == access ("/sbin/ip", X_OK))
-      sbin_ip = "/sbin/ip";
-    else if (0 == access ("/usr/sbin/ip", X_OK))
-      sbin_ip = "/usr/sbin/ip";
-    else
-      sbin_ip = "if";
-    GNUNET_asprintf (&pcall,
-                     "%s -o add 2> /dev/null",
-                     sbin_ip);
-  }
-  f = popen (pcall, "r");
-  if (! f)
-  {
-    LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_WARNING | GNUNET_ERROR_TYPE_BULK,
-                       "popen",
-                       "ip");
-    return GNUNET_SYSERR;
-  }
-
-  while (NULL != fgets (line, sizeof (line), f))
-  {
-    /* make parsing easier */
-    for (replace = line; *replace != '\0'; replace++)
-    {
-      if (*replace == '/')
-        *replace = ' ';
+      if (0 == access("/sbin/ip", X_OK))
+        sbin_ip = "/sbin/ip";
+      else if (0 == access("/usr/sbin/ip", X_OK))
+        sbin_ip = "/usr/sbin/ip";
+      else
+        sbin_ip = "if";
+      GNUNET_asprintf(&pcall,
+                      "%s -o add 2> /dev/null",
+                      sbin_ip);
     }
-    /* Zero-out stack allocated values */
-    memset (ifname, 0, 64);
-    memset (afstr, 0, 6);
-    memset (addrstr, 0, 128);
-    if (4 != SSCANF (line,
-                     "%*u: %63s %5s %127s %6u",
-                     ifname,
-                     afstr,
-                     addrstr,
-                     &prefixlen))
-      continue;
-    /* IPv4 */
-    if ( (0 == strcasecmp ("inet",
+  f = popen(pcall, "r");
+  if (!f)
+    {
+      LOG_STRERROR_FILE(GNUNET_ERROR_TYPE_WARNING | GNUNET_ERROR_TYPE_BULK,
+                        "popen",
+                        "ip");
+      return GNUNET_SYSERR;
+    }
+
+  while (NULL != fgets(line, sizeof(line), f))
+    {
+      /* make parsing easier */
+      for (replace = line; *replace != '\0'; replace++)
+        {
+          if (*replace == '/')
+            *replace = ' ';
+        }
+      /* Zero-out stack allocated values */
+      memset(ifname, 0, 64);
+      memset(afstr, 0, 6);
+      memset(addrstr, 0, 128);
+      if (4 != SSCANF(line,
+                      "%*u: %63s %5s %127s %6u",
+                      ifname,
+                      afstr,
+                      addrstr,
+                      &prefixlen))
+        continue;
+      /* IPv4 */
+      if ((0 == strcasecmp("inet",
                            afstr)) &&
-         (1 == inet_pton (AF_INET,
+          (1 == inet_pton(AF_INET,
                           addrstr,
-                          &v4)) )
-    {
-      memset (&a4, 0, sizeof (a4));
-      a4.sin_family = AF_INET;
+                          &v4)))
+        {
+          memset(&a4, 0, sizeof(a4));
+          a4.sin_family = AF_INET;
 #if HAVE_SOCKADDR_IN_SIN_LEN
-      a4.sin_len = (u_char) sizeof (struct sockaddr_in);
+          a4.sin_len = (u_char)sizeof(struct sockaddr_in);
 #endif
-      a4.sin_addr = v4;
+          a4.sin_addr = v4;
 
-      memset (&v4.s_addr, 0, sizeof (v4.s_addr));
-      for (i = 0; i < prefixlen; i++)
-        v4.s_addr |= 1 << (i & 7);
-      memset (&netmask, 0, sizeof (netmask));
-      netmask.sin_family = AF_INET;
+          memset(&v4.s_addr, 0, sizeof(v4.s_addr));
+          for (i = 0; i < prefixlen; i++)
+            v4.s_addr |= 1 << (i & 7);
+          memset(&netmask, 0, sizeof(netmask));
+          netmask.sin_family = AF_INET;
 #if HAVE_SOCKADDR_IN_SIN_LEN
-      netmask.sin_len = (u_char) sizeof (struct sockaddr_in);
+          netmask.sin_len = (u_char)sizeof(struct sockaddr_in);
 #endif
-      netmask.sin_addr = v4;
+          netmask.sin_addr = v4;
 
-      if (GNUNET_OK !=
-          proc (proc_cls,
-                ifname,
-                (0 == strcmp (ifname,
-                              GNUNET_DEFAULT_INTERFACE)),
-                (const struct sockaddr *) &a4,
-                NULL,
-                (const struct sockaddr *) &netmask,
-                sizeof (a4)))
-        break;
-    }
-    /* IPv6 */
-    if ( (0 == strcasecmp ("inet6",
+          if (GNUNET_OK !=
+              proc(proc_cls,
+                   ifname,
+                   (0 == strcmp(ifname,
+                                GNUNET_DEFAULT_INTERFACE)),
+                   (const struct sockaddr *)&a4,
+                   NULL,
+                   (const struct sockaddr *)&netmask,
+                   sizeof(a4)))
+            break;
+        }
+      /* IPv6 */
+      if ((0 == strcasecmp("inet6",
                            afstr)) &&
-         (1 == inet_pton (AF_INET6,
+          (1 == inet_pton(AF_INET6,
                           addrstr,
-                          &v6)) )
-    {
-      memset (&a6, 0, sizeof (a6));
-      a6.sin6_family = AF_INET6;
+                          &v6)))
+        {
+          memset(&a6, 0, sizeof(a6));
+          a6.sin6_family = AF_INET6;
 #if HAVE_SOCKADDR_IN_SIN_LEN
-      a6.sin6_len = (u_char) sizeof (struct sockaddr_in6);
+          a6.sin6_len = (u_char)sizeof(struct sockaddr_in6);
 #endif
-      a6.sin6_addr = v6;
+          a6.sin6_addr = v6;
 
-      memset (v6.s6_addr, 0, sizeof (v6.s6_addr));
-      for (i = 0; i < prefixlen; i++)
-        v6.s6_addr[i >> 3] |= 1 << (i & 7);
-      memset (&netmask6, 0, sizeof (netmask6));
-      netmask6.sin6_family = AF_INET6;
+          memset(v6.s6_addr, 0, sizeof(v6.s6_addr));
+          for (i = 0; i < prefixlen; i++)
+            v6.s6_addr[i >> 3] |= 1 << (i & 7);
+          memset(&netmask6, 0, sizeof(netmask6));
+          netmask6.sin6_family = AF_INET6;
 #if HAVE_SOCKADDR_IN_SIN_LEN
-      netmask6.sin6_len = (u_char) sizeof (struct sockaddr_in6);
+          netmask6.sin6_len = (u_char)sizeof(struct sockaddr_in6);
 #endif
-      netmask6.sin6_addr = v6;
+          netmask6.sin6_addr = v6;
 
-      if (GNUNET_OK !=
-          proc (proc_cls,
-                ifname,
-                (0 == strcmp (ifname,
-                              GNUNET_DEFAULT_INTERFACE)),
-                (const struct sockaddr *) &a6,
-                NULL,
-                (const struct sockaddr *) &netmask6,
-                sizeof (a6)))
-        break;
+          if (GNUNET_OK !=
+              proc(proc_cls,
+                   ifname,
+                   (0 == strcmp(ifname,
+                                GNUNET_DEFAULT_INTERFACE)),
+                   (const struct sockaddr *)&a6,
+                   NULL,
+                   (const struct sockaddr *)&netmask6,
+                   sizeof(a6)))
+            break;
+        }
     }
-  }
-  pclose (f);
+  pclose(f);
   return GNUNET_OK;
 }
 #endif
@@ -385,8 +385,8 @@ try_ip (GNUNET_OS_NetworkInterfaceProcessor proc,
  * @param proc_cls closure for @a proc
  */
 void
-GNUNET_OS_network_interfaces_list (GNUNET_OS_NetworkInterfaceProcessor proc,
-                                   void *proc_cls)
+GNUNET_OS_network_interfaces_list(GNUNET_OS_NetworkInterfaceProcessor proc,
+                                  void *proc_cls)
 {
 #ifdef MINGW
   int r;
@@ -394,67 +394,65 @@ GNUNET_OS_network_interfaces_list (GNUNET_OS_NetworkInterfaceProcessor proc,
   struct EnumNICs3_results *results = NULL;
   int results_count;
 
-  r = EnumNICs3 (&results, &results_count);
+  r = EnumNICs3(&results, &results_count);
   if (r != GNUNET_OK)
     return;
 
   for (i = 0; i < results_count; i++)
-  {
-    if (GNUNET_OK !=
-        proc (proc_cls, results[i].pretty_name, results[i].is_default,
-              (const struct sockaddr *) &results[i].address,
-              results[i].
-              flags & ENUMNICS3_BCAST_OK ?
-              (const struct sockaddr *) &results[i].broadcast : NULL,
-              results[i].flags & ENUMNICS3_MASK_OK ?
-              (const struct sockaddr *) &results[i].mask : NULL,
-              results[i].addr_size))
-      break;
-  }
-  EnumNICs3_free (results);
+    {
+      if (GNUNET_OK !=
+          proc(proc_cls, results[i].pretty_name, results[i].is_default,
+               (const struct sockaddr *)&results[i].address,
+               results[i].
+               flags & ENUMNICS3_BCAST_OK ?
+               (const struct sockaddr *)&results[i].broadcast : NULL,
+               results[i].flags & ENUMNICS3_MASK_OK ?
+               (const struct sockaddr *)&results[i].mask : NULL,
+               results[i].addr_size))
+        break;
+    }
+  EnumNICs3_free(results);
   return;
-
 #elif HAVE_GETIFADDRS && HAVE_FREEIFADDRS
-
   struct ifaddrs *ifa_first;
   struct ifaddrs *ifa_ptr;
   socklen_t alen;
 
-  if (getifaddrs (&ifa_first) == 0)
-  {
-    for (ifa_ptr = ifa_first; ifa_ptr != NULL; ifa_ptr = ifa_ptr->ifa_next)
+  if (getifaddrs(&ifa_first) == 0)
     {
-      if (ifa_ptr->ifa_name != NULL && ifa_ptr->ifa_addr != NULL &&
-          (ifa_ptr->ifa_flags & IFF_UP) != 0)
-      {
-        if ((ifa_ptr->ifa_addr->sa_family != AF_INET) &&
-            (ifa_ptr->ifa_addr->sa_family != AF_INET6))
-          continue;
-        if (ifa_ptr->ifa_addr->sa_family == AF_INET)
-          alen = sizeof (struct sockaddr_in);
-        else
-          alen = sizeof (struct sockaddr_in6);
-        if (GNUNET_OK !=
-            proc (proc_cls, ifa_ptr->ifa_name,
-                  0 == strcmp (ifa_ptr->ifa_name, GNUNET_DEFAULT_INTERFACE),
-                  ifa_ptr->ifa_addr, ifa_ptr->ifa_broadaddr,
-                  ifa_ptr->ifa_netmask, alen))
-          break;
-      }
+      for (ifa_ptr = ifa_first; ifa_ptr != NULL; ifa_ptr = ifa_ptr->ifa_next)
+        {
+          if (ifa_ptr->ifa_name != NULL && ifa_ptr->ifa_addr != NULL &&
+              (ifa_ptr->ifa_flags & IFF_UP) != 0)
+            {
+              if ((ifa_ptr->ifa_addr->sa_family != AF_INET) &&
+                  (ifa_ptr->ifa_addr->sa_family != AF_INET6))
+                continue;
+              if (ifa_ptr->ifa_addr->sa_family == AF_INET)
+                alen = sizeof(struct sockaddr_in);
+              else
+                alen = sizeof(struct sockaddr_in6);
+              if (GNUNET_OK !=
+                  proc(proc_cls, ifa_ptr->ifa_name,
+                       0 == strcmp(ifa_ptr->ifa_name, GNUNET_DEFAULT_INTERFACE),
+                       ifa_ptr->ifa_addr, ifa_ptr->ifa_broadaddr,
+                       ifa_ptr->ifa_netmask, alen))
+                break;
+            }
+        }
+      freeifaddrs(ifa_first);
     }
-    freeifaddrs (ifa_first);
-  }
 #else
   if (GNUNET_OK ==
-      try_ip (proc,
-              proc_cls))
+      try_ip(proc,
+             proc_cls))
     return;
   if (GNUNET_OK ==
-      try_ifconfig (proc,
-                    proc_cls))
+      try_ifconfig(proc,
+                   proc_cls))
     return;
-  LOG (GNUNET_ERROR_TYPE_WARNING | GNUNET_ERROR_TYPE_BULK,
-       "Failed to enumerate network interfaces\n");
+  LOG(GNUNET_ERROR_TYPE_WARNING | GNUNET_ERROR_TYPE_BULK,
+      "Failed to enumerate network interfaces\n");
 #endif
 }
 

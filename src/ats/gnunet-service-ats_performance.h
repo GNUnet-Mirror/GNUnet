@@ -11,12 +11,12 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 
 /**
  * @file ats/gnunet-service-ats_performance.h
@@ -50,15 +50,15 @@
  * @param bandwidth_in assigned inbound bandwidth
  */
 void
-GAS_performance_notify_all_clients (const struct GNUNET_PeerIdentity *peer,
-                                    const char *plugin_name,
-                                    const void *plugin_addr,
-                                    size_t plugin_addr_len,
-                                    int active,
-                                    const struct GNUNET_ATS_Properties *prop,
-                                    enum GNUNET_HELLO_AddressInfo local_address_info,
-                                    struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
-                                    struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in);
+GAS_performance_notify_all_clients(const struct GNUNET_PeerIdentity *peer,
+                                   const char *plugin_name,
+                                   const void *plugin_addr,
+                                   size_t plugin_addr_len,
+                                   int active,
+                                   const struct GNUNET_ATS_Properties *prop,
+                                   enum GNUNET_HELLO_AddressInfo local_address_info,
+                                   struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
+                                   struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in);
 
 
 /**
@@ -68,8 +68,8 @@ GAS_performance_notify_all_clients (const struct GNUNET_PeerIdentity *peer,
  * @param flag flag specifying the type of the client
  */
 void
-GAS_performance_add_client (struct GNUNET_SERVICE_Client *client,
-                            enum StartFlag flag);
+GAS_performance_add_client(struct GNUNET_SERVICE_Client *client,
+                           enum StartFlag flag);
 
 
 /**
@@ -79,14 +79,14 @@ GAS_performance_add_client (struct GNUNET_SERVICE_Client *client,
  * @param addresses the address handle to use
  */
 void
-GAS_performance_init (void);
+GAS_performance_init(void);
 
 
 /**
  * Shutdown performance subsystem.
  */
 void
-GAS_performance_done (void);
+GAS_performance_done(void);
 
 
 #endif

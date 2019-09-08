@@ -1,22 +1,22 @@
- /*
-  This file is part of GNUnet
-  Copyright (C) 2014, 2015, 2016 GNUnet e.V.
+/*
+   This file is part of GNUnet
+   Copyright (C) 2014, 2015, 2016 GNUnet e.V.
 
-  GNUnet is free software: you can redistribute it and/or modify it
-  under the terms of the GNU Affero General Public License as published
-  by the Free Software Foundation, either version 3 of the License,
-  or (at your option) any later version.
+   GNUnet is free software: you can redistribute it and/or modify it
+   under the terms of the GNU Affero General Public License as published
+   by the Free Software Foundation, either version 3 of the License,
+   or (at your option) any later version.
 
-  GNUnet is distributed in the hope that it will be useful, but
-  WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-  Affero General Public License for more details.
+   GNUnet is distributed in the hope that it will be useful, but
+   WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   Affero General Public License for more details.
 
-  You should have received a copy of the GNU Affero General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   You should have received a copy of the GNU Affero General Public License
+   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-     SPDX-License-Identifier: AGPL3.0-or-later
-*/
+    SPDX-License-Identifier: AGPL3.0-or-later
+ */
 /**
  * @file pq/pq_result_helper.c
  * @brief functions to extract result values
@@ -35,17 +35,17 @@
  * @param rd result data to clean up
  */
 static void
-clean_varsize_blob (void *cls,
-		    void *rd)
+clean_varsize_blob(void *cls,
+                   void *rd)
 {
   void **dst = rd;
 
-  (void) cls;
+  (void)cls;
   if (NULL != *dst)
-  {
-    GNUNET_free (*dst);
-    *dst = NULL;
-  }
+    {
+      GNUNET_free(*dst);
+      *dst = NULL;
+    }
 }
 
 
@@ -63,51 +63,51 @@ clean_varsize_blob (void *cls,
  *   #GNUNET_SYSERR if a result was invalid (non-existing field)
  */
 static int
-extract_varsize_blob (void *cls,
-		      PGresult *result,
-		      int row,
-		      const char *fname,
-		      size_t *dst_size,
-		      void *dst)
+extract_varsize_blob(void *cls,
+                     PGresult *result,
+                     int row,
+                     const char *fname,
+                     size_t *dst_size,
+                     void *dst)
 {
   size_t len;
   const char *res;
   void *idst;
   int fnum;
 
-  (void) cls;
+  (void)cls;
   *dst_size = 0;
-  *((void **) dst) = NULL;
+  *((void **)dst) = NULL;
 
-  fnum = PQfnumber (result,
-		    fname);
+  fnum = PQfnumber(result,
+                   fname);
   if (fnum < 0)
-  {
-    GNUNET_break (0);
-    return GNUNET_SYSERR;
-  }
-  if (PQgetisnull (result,
-		   row,
-		   fnum))
-  {
-    /* Let's allow this for varsize */
-    return GNUNET_OK;
-  }
+    {
+      GNUNET_break(0);
+      return GNUNET_SYSERR;
+    }
+  if (PQgetisnull(result,
+                  row,
+                  fnum))
+    {
+      /* Let's allow this for varsize */
+      return GNUNET_OK;
+    }
   /* if a field is null, continue but
    * remember that we now return a different result */
-  len = PQgetlength (result,
-		     row,
-		     fnum);
-  res = PQgetvalue (result,
-		    row,
-		    fnum);
-  GNUNET_assert (NULL != res);
+  len = PQgetlength(result,
+                    row,
+                    fnum);
+  res = PQgetvalue(result,
+                   row,
+                   fnum);
+  GNUNET_assert(NULL != res);
   *dst_size = len;
-  idst = GNUNET_malloc (len);
-  *((void **) dst) = idst;
-  GNUNET_memcpy (idst,
-                 res,
-                 len);
+  idst = GNUNET_malloc(len);
+  *((void **)dst) = idst;
+  GNUNET_memcpy(idst,
+                res,
+                len);
   return GNUNET_OK;
 }
 
@@ -121,14 +121,15 @@ extract_varsize_blob (void *cls,
  * @return array entry for the result specification to use
  */
 struct GNUNET_PQ_ResultSpec
-GNUNET_PQ_result_spec_variable_size (const char *name,
-				     void **dst,
-				     size_t *sptr)
+GNUNET_PQ_result_spec_variable_size(const char *name,
+                                    void **dst,
+                                    size_t *sptr)
 {
   struct GNUNET_PQ_ResultSpec res =
-    { &extract_varsize_blob,
-      &clean_varsize_blob, NULL,
-      (void *) (dst), 0, name, sptr };
+  { &extract_varsize_blob,
+    &clean_varsize_blob, NULL,
+    (void *)(dst), 0, name, sptr };
+
   return res;
 }
 
@@ -147,50 +148,50 @@ GNUNET_PQ_result_spec_variable_size (const char *name,
  *   #GNUNET_SYSERR if a result was invalid (non-existing field or NULL)
  */
 static int
-extract_fixed_blob (void *cls,
-		    PGresult *result,
-		    int row,
-		    const char *fname,
-		    size_t *dst_size,
-		    void *dst)
+extract_fixed_blob(void *cls,
+                   PGresult *result,
+                   int row,
+                   const char *fname,
+                   size_t *dst_size,
+                   void *dst)
 {
   size_t len;
   const char *res;
   int fnum;
 
-  (void) cls;
-  fnum = PQfnumber (result,
-		    fname);
+  (void)cls;
+  fnum = PQfnumber(result,
+                   fname);
   if (fnum < 0)
-  {
-    GNUNET_break (0);
-    return GNUNET_SYSERR;
-  }
-  if (PQgetisnull (result,
-		   row,
-		   fnum))
-  {
-    GNUNET_break (0);
-    return GNUNET_SYSERR;
-  }
+    {
+      GNUNET_break(0);
+      return GNUNET_SYSERR;
+    }
+  if (PQgetisnull(result,
+                  row,
+                  fnum))
+    {
+      GNUNET_break(0);
+      return GNUNET_SYSERR;
+    }
 
   /* if a field is null, continue but
    * remember that we now return a different result */
-  len = PQgetlength (result,
-		     row,
-		     fnum);
+  len = PQgetlength(result,
+                    row,
+                    fnum);
   if (*dst_size != len)
-  {
-    GNUNET_break (0);
-    return GNUNET_SYSERR;
-  }
-  res = PQgetvalue (result,
-		    row,
-		    fnum);
-  GNUNET_assert (NULL != res);
-  GNUNET_memcpy (dst,
-                 res,
-                 len);
+    {
+      GNUNET_break(0);
+      return GNUNET_SYSERR;
+    }
+  res = PQgetvalue(result,
+                   row,
+                   fnum);
+  GNUNET_assert(NULL != res);
+  GNUNET_memcpy(dst,
+                res,
+                len);
   return GNUNET_OK;
 }
 
@@ -204,14 +205,15 @@ extract_fixed_blob (void *cls,
  * @return array entry for the result specification to use
  */
 struct GNUNET_PQ_ResultSpec
-GNUNET_PQ_result_spec_fixed_size (const char *name,
-				  void *dst,
-				  size_t dst_size)
+GNUNET_PQ_result_spec_fixed_size(const char *name,
+                                 void *dst,
+                                 size_t dst_size)
 {
   struct GNUNET_PQ_ResultSpec res =
-    { &extract_fixed_blob,
-      NULL, NULL,
-      (dst), dst_size, name, NULL };
+  { &extract_fixed_blob,
+    NULL, NULL,
+    (dst), dst_size, name, NULL };
+
   return res;
 }
 
@@ -230,49 +232,49 @@ GNUNET_PQ_result_spec_fixed_size (const char *name,
  *   #GNUNET_SYSERR if a result was invalid (non-existing field or NULL)
  */
 static int
-extract_rsa_public_key (void *cls,
-			PGresult *result,
-			int row,
-			const char *fname,
-			size_t *dst_size,
-			void *dst)
+extract_rsa_public_key(void *cls,
+                       PGresult *result,
+                       int row,
+                       const char *fname,
+                       size_t *dst_size,
+                       void *dst)
 {
   struct GNUNET_CRYPTO_RsaPublicKey **pk = dst;
   size_t len;
   const char *res;
   int fnum;
 
-  (void) cls;
+  (void)cls;
   *pk = NULL;
-  fnum = PQfnumber (result,
-		    fname);
+  fnum = PQfnumber(result,
+                   fname);
   if (fnum < 0)
-  {
-    GNUNET_break (0);
-    return GNUNET_SYSERR;
-  }
-  if (PQgetisnull (result,
-		   row,
-		   fnum))
-  {
-    GNUNET_break (0);
-    return GNUNET_SYSERR;
-  }
+    {
+      GNUNET_break(0);
+      return GNUNET_SYSERR;
+    }
+  if (PQgetisnull(result,
+                  row,
+                  fnum))
+    {
+      GNUNET_break(0);
+      return GNUNET_SYSERR;
+    }
   /* if a field is null, continue but
    * remember that we now return a different result */
-  len = PQgetlength (result,
-		     row,
-		     fnum);
-  res = PQgetvalue (result,
-		    row,
-		    fnum);
-  *pk = GNUNET_CRYPTO_rsa_public_key_decode (res,
-					     len);
+  len = PQgetlength(result,
+                    row,
+                    fnum);
+  res = PQgetvalue(result,
+                   row,
+                   fnum);
+  *pk = GNUNET_CRYPTO_rsa_public_key_decode(res,
+                                            len);
   if (NULL == *pk)
-  {
-    GNUNET_break (0);
-    return GNUNET_SYSERR;
-  }
+    {
+      GNUNET_break(0);
+      return GNUNET_SYSERR;
+    }
   return GNUNET_OK;
 }
 
@@ -285,17 +287,17 @@ extract_rsa_public_key (void *cls,
  * @param rd result data to clean up
  */
 static void
-clean_rsa_public_key (void *cls,
-		      void *rd)
+clean_rsa_public_key(void *cls,
+                     void *rd)
 {
   struct GNUNET_CRYPTO_RsaPublicKey **pk = rd;
 
-  (void) cls;
+  (void)cls;
   if (NULL != *pk)
-  {
-    GNUNET_CRYPTO_rsa_public_key_free (*pk);
-    *pk = NULL;
-  }
+    {
+      GNUNET_CRYPTO_rsa_public_key_free(*pk);
+      *pk = NULL;
+    }
 }
 
 
@@ -307,14 +309,15 @@ clean_rsa_public_key (void *cls,
  * @return array entry for the result specification to use
  */
 struct GNUNET_PQ_ResultSpec
-GNUNET_PQ_result_spec_rsa_public_key (const char *name,
-				      struct GNUNET_CRYPTO_RsaPublicKey **rsa)
+GNUNET_PQ_result_spec_rsa_public_key(const char *name,
+                                     struct GNUNET_CRYPTO_RsaPublicKey **rsa)
 {
   struct GNUNET_PQ_ResultSpec res =
-    { &extract_rsa_public_key,
-      &clean_rsa_public_key,
-      NULL,
-      (void *) rsa, 0, name, NULL };
+  { &extract_rsa_public_key,
+    &clean_rsa_public_key,
+    NULL,
+    (void *)rsa, 0, name, NULL };
+
   return res;
 }
 
@@ -333,49 +336,49 @@ GNUNET_PQ_result_spec_rsa_public_key (const char *name,
  *   #GNUNET_SYSERR if a result was invalid (non-existing field or NULL)
  */
 static int
-extract_rsa_signature (void *cls,
-		       PGresult *result,
-		       int row,
-		       const char *fname,
-		       size_t *dst_size,
-		       void *dst)
+extract_rsa_signature(void *cls,
+                      PGresult *result,
+                      int row,
+                      const char *fname,
+                      size_t *dst_size,
+                      void *dst)
 {
   struct GNUNET_CRYPTO_RsaSignature **sig = dst;
   size_t len;
   const char *res;
   int fnum;
 
-  (void) cls;
+  (void)cls;
   *sig = NULL;
-  fnum = PQfnumber (result,
-		    fname);
+  fnum = PQfnumber(result,
+                   fname);
   if (fnum < 0)
-  {
-    GNUNET_break (0);
-    return GNUNET_SYSERR;
-  }
-  if (PQgetisnull (result,
-		   row,
-		   fnum))
-  {
-    GNUNET_break (0);
-    return GNUNET_SYSERR;
-  }
+    {
+      GNUNET_break(0);
+      return GNUNET_SYSERR;
+    }
+  if (PQgetisnull(result,
+                  row,
+                  fnum))
+    {
+      GNUNET_break(0);
+      return GNUNET_SYSERR;
+    }
   /* if a field is null, continue but
    * remember that we now return a different result */
-  len = PQgetlength (result,
-		     row,
-		     fnum);
-  res = PQgetvalue (result,
-		    row,
-		    fnum);
-  *sig = GNUNET_CRYPTO_rsa_signature_decode (res,
-					     len);
+  len = PQgetlength(result,
+                    row,
+                    fnum);
+  res = PQgetvalue(result,
+                   row,
+                   fnum);
+  *sig = GNUNET_CRYPTO_rsa_signature_decode(res,
+                                            len);
   if (NULL == *sig)
-  {
-    GNUNET_break (0);
-    return GNUNET_SYSERR;
-  }
+    {
+      GNUNET_break(0);
+      return GNUNET_SYSERR;
+    }
   return GNUNET_OK;
 }
 
@@ -388,17 +391,17 @@ extract_rsa_signature (void *cls,
  * @param rd result data to clean up
  */
 static void
-clean_rsa_signature (void *cls,
-		     void *rd)
+clean_rsa_signature(void *cls,
+                    void *rd)
 {
   struct GNUNET_CRYPTO_RsaSignature **sig = rd;
 
-  (void) cls;
+  (void)cls;
   if (NULL != *sig)
-  {
-    GNUNET_CRYPTO_rsa_signature_free (*sig);
-    *sig = NULL;
-  }
+    {
+      GNUNET_CRYPTO_rsa_signature_free(*sig);
+      *sig = NULL;
+    }
 }
 
 
@@ -410,14 +413,15 @@ clean_rsa_signature (void *cls,
  * @return array entry for the result specification to use
  */
 struct GNUNET_PQ_ResultSpec
-GNUNET_PQ_result_spec_rsa_signature (const char *name,
-				    struct GNUNET_CRYPTO_RsaSignature **sig)
+GNUNET_PQ_result_spec_rsa_signature(const char *name,
+                                    struct GNUNET_CRYPTO_RsaSignature **sig)
 {
   struct GNUNET_PQ_ResultSpec res =
-    { &extract_rsa_signature,
-      &clean_rsa_signature,
-      NULL,
-      (void *) sig, 0, (name), NULL };
+  { &extract_rsa_signature,
+    &clean_rsa_signature,
+    NULL,
+    (void *)sig, 0, (name), NULL };
+
   return res;
 }
 
@@ -436,49 +440,49 @@ GNUNET_PQ_result_spec_rsa_signature (const char *name,
  *   #GNUNET_SYSERR if a result was invalid (non-existing field or NULL)
  */
 static int
-extract_string (void *cls,
-                PGresult *result,
-                int row,
-                const char *fname,
-                size_t *dst_size,
-                void *dst)
+extract_string(void *cls,
+               PGresult *result,
+               int row,
+               const char *fname,
+               size_t *dst_size,
+               void *dst)
 {
   char **str = dst;
   size_t len;
   const char *res;
   int fnum;
 
-  (void) cls;
+  (void)cls;
   *str = NULL;
-  fnum = PQfnumber (result,
-		    fname);
+  fnum = PQfnumber(result,
+                   fname);
   if (fnum < 0)
-  {
-    GNUNET_break (0);
-    return GNUNET_SYSERR;
-  }
-  if (PQgetisnull (result,
-		   row,
-		   fnum))
-  {
-    GNUNET_break (0);
-    return GNUNET_SYSERR;
-  }
+    {
+      GNUNET_break(0);
+      return GNUNET_SYSERR;
+    }
+  if (PQgetisnull(result,
+                  row,
+                  fnum))
+    {
+      GNUNET_break(0);
+      return GNUNET_SYSERR;
+    }
   /* if a field is null, continue but
    * remember that we now return a different result */
-  len = PQgetlength (result,
-		     row,
-		     fnum);
-  res = PQgetvalue (result,
-		    row,
-		    fnum);
-  *str = GNUNET_strndup (res,
-                         len);
+  len = PQgetlength(result,
+                    row,
+                    fnum);
+  res = PQgetvalue(result,
+                   row,
+                   fnum);
+  *str = GNUNET_strndup(res,
+                        len);
   if (NULL == *str)
-  {
-    GNUNET_break (0);
-    return GNUNET_SYSERR;
-  }
+    {
+      GNUNET_break(0);
+      return GNUNET_SYSERR;
+    }
   return GNUNET_OK;
 }
 
@@ -491,17 +495,17 @@ extract_string (void *cls,
  * @param rd result data to clean up
  */
 static void
-clean_string (void *cls,
-              void *rd)
+clean_string(void *cls,
+             void *rd)
 {
   char **str = rd;
 
-  (void) cls;
+  (void)cls;
   if (NULL != *str)
-  {
-    GNUNET_free (*str);
-    *str = NULL;
-  }
+    {
+      GNUNET_free(*str);
+      *str = NULL;
+    }
 }
 
 
@@ -513,14 +517,15 @@ clean_string (void *cls,
  * @return array entry for the result specification to use
  */
 struct GNUNET_PQ_ResultSpec
-GNUNET_PQ_result_spec_string (const char *name,
-                              char **dst)
+GNUNET_PQ_result_spec_string(const char *name,
+                             char **dst)
 {
   struct GNUNET_PQ_ResultSpec res =
-    { &extract_string,
-      &clean_string,
-      NULL,
-      (void *) dst, 0, (name), NULL };
+  { &extract_string,
+    &clean_string,
+    NULL,
+    (void *)dst, 0, (name), NULL };
+
   return res;
 }
 
@@ -539,53 +544,53 @@ GNUNET_PQ_result_spec_string (const char *name,
  *   #GNUNET_SYSERR if a result was invalid (non-existing field or NULL)
  */
 static int
-extract_abs_time (void *cls,
-		  PGresult *result,
-		  int row,
-		  const char *fname,
-		  size_t *dst_size,
-		  void *dst)
+extract_abs_time(void *cls,
+                 PGresult *result,
+                 int row,
+                 const char *fname,
+                 size_t *dst_size,
+                 void *dst)
 {
   struct GNUNET_TIME_Absolute *udst = dst;
   const int64_t *res;
   int fnum;
 
-  (void) cls;
-  fnum = PQfnumber (result,
-		    fname);
+  (void)cls;
+  fnum = PQfnumber(result,
+                   fname);
   if (fnum < 0)
-  {
-    GNUNET_break (0);
-    return GNUNET_SYSERR;
-  }
-  if (PQgetisnull (result,
-		   row,
-		   fnum))
-  {
-    GNUNET_break (0);
-    return GNUNET_SYSERR;
-  }
-  GNUNET_assert (NULL != dst);
-  if (sizeof (struct GNUNET_TIME_Absolute) != *dst_size)
-  {
-    GNUNET_break (0);
-    return GNUNET_SYSERR;
-  }
-  if (sizeof (int64_t) !=
-      PQgetlength (result,
-                   row,
-                   fnum))
-  {
-    GNUNET_break (0);
-    return GNUNET_SYSERR;
-  }
-  res = (int64_t *) PQgetvalue (result,
-				row,
-				fnum);
+    {
+      GNUNET_break(0);
+      return GNUNET_SYSERR;
+    }
+  if (PQgetisnull(result,
+                  row,
+                  fnum))
+    {
+      GNUNET_break(0);
+      return GNUNET_SYSERR;
+    }
+  GNUNET_assert(NULL != dst);
+  if (sizeof(struct GNUNET_TIME_Absolute) != *dst_size)
+    {
+      GNUNET_break(0);
+      return GNUNET_SYSERR;
+    }
+  if (sizeof(int64_t) !=
+      PQgetlength(result,
+                  row,
+                  fnum))
+    {
+      GNUNET_break(0);
+      return GNUNET_SYSERR;
+    }
+  res = (int64_t *)PQgetvalue(result,
+                              row,
+                              fnum);
   if (INT64_MAX == *res)
     *udst = GNUNET_TIME_UNIT_FOREVER_ABS;
   else
-    udst->abs_value_us = GNUNET_ntohll ((uint64_t) *res);
+    udst->abs_value_us = GNUNET_ntohll((uint64_t)*res);
   return GNUNET_OK;
 }
 
@@ -598,14 +603,15 @@ extract_abs_time (void *cls,
  * @return array entry for the result specification to use
  */
 struct GNUNET_PQ_ResultSpec
-GNUNET_PQ_result_spec_absolute_time (const char *name,
-				     struct GNUNET_TIME_Absolute *at)
+GNUNET_PQ_result_spec_absolute_time(const char *name,
+                                    struct GNUNET_TIME_Absolute *at)
 {
   struct GNUNET_PQ_ResultSpec res =
-    { &extract_abs_time,
-      NULL,
-      NULL,
-      (void *) at, sizeof (*at), (name), NULL };
+  { &extract_abs_time,
+    NULL,
+    NULL,
+    (void *)at, sizeof(*at), (name), NULL };
+
   return res;
 }
 
@@ -618,11 +624,12 @@ GNUNET_PQ_result_spec_absolute_time (const char *name,
  * @return array entry for the result specification to use
  */
 struct GNUNET_PQ_ResultSpec
-GNUNET_PQ_result_spec_absolute_time_nbo (const char *name,
-					 struct GNUNET_TIME_AbsoluteNBO *at)
+GNUNET_PQ_result_spec_absolute_time_nbo(const char *name,
+                                        struct GNUNET_TIME_AbsoluteNBO *at)
 {
   struct GNUNET_PQ_ResultSpec res =
     GNUNET_PQ_result_spec_auto_from_type(name, &at->abs_value_us__);
+
   return res;
 }
 
@@ -641,50 +648,50 @@ GNUNET_PQ_result_spec_absolute_time_nbo (const char *name,
  *   #GNUNET_SYSERR if a result was invalid (non-existing field or NULL)
  */
 static int
-extract_uint16 (void *cls,
-		PGresult *result,
-		int row,
-		const char *fname,
-		size_t *dst_size,
-		void *dst)
+extract_uint16(void *cls,
+               PGresult *result,
+               int row,
+               const char *fname,
+               size_t *dst_size,
+               void *dst)
 {
   uint16_t *udst = dst;
   const uint16_t *res;
   int fnum;
 
-  (void) cls;
-  fnum = PQfnumber (result,
-		    fname);
+  (void)cls;
+  fnum = PQfnumber(result,
+                   fname);
   if (fnum < 0)
-  {
-    GNUNET_break (0);
-    return GNUNET_SYSERR;
-  }
-  if (PQgetisnull (result,
-		   row,
-		   fnum))
-  {
-    GNUNET_break (0);
-    return GNUNET_SYSERR;
-  }
-  GNUNET_assert (NULL != dst);
-  if (sizeof (uint16_t) != *dst_size)
-  {
-    GNUNET_break (0);
-    return GNUNET_SYSERR;
-  }
-  if (sizeof (uint16_t) !=
-      PQgetlength (result,
-                   row,
-                   fnum))
-  {
-    GNUNET_break (0);
-    return GNUNET_SYSERR;
-  }
-  res = (uint16_t *) PQgetvalue (result,
-				 row,
-				 fnum);
-  *udst = ntohs (*res);
+    {
+      GNUNET_break(0);
+      return GNUNET_SYSERR;
+    }
+  if (PQgetisnull(result,
+                  row,
+                  fnum))
+    {
+      GNUNET_break(0);
+      return GNUNET_SYSERR;
+    }
+  GNUNET_assert(NULL != dst);
+  if (sizeof(uint16_t) != *dst_size)
+    {
+      GNUNET_break(0);
+      return GNUNET_SYSERR;
+    }
+  if (sizeof(uint16_t) !=
+      PQgetlength(result,
+                  row,
+                  fnum))
+    {
+      GNUNET_break(0);
+      return GNUNET_SYSERR;
+    }
+  res = (uint16_t *)PQgetvalue(result,
+                               row,
+                               fnum);
+  *udst = ntohs(*res);
   return GNUNET_OK;
 }
 
@@ -697,14 +704,15 @@ extract_uint16 (void *cls,
  * @return array entry for the result specification to use
  */
 struct GNUNET_PQ_ResultSpec
-GNUNET_PQ_result_spec_uint16 (const char *name,
-			      uint16_t *u16)
+GNUNET_PQ_result_spec_uint16(const char *name,
+                             uint16_t *u16)
 {
   struct GNUNET_PQ_ResultSpec res =
-    { &extract_uint16,
-      NULL,
-      NULL,
-      (void *) u16, sizeof (*u16), (name), NULL };
+  { &extract_uint16,
+    NULL,
+    NULL,
+    (void *)u16, sizeof(*u16), (name), NULL };
+
   return res;
 }
 
@@ -723,50 +731,50 @@ GNUNET_PQ_result_spec_uint16 (const char *name,
  *   #GNUNET_SYSERR if a result was invalid (non-existing field or NULL)
  */
 static int
-extract_uint32 (void *cls,
-		PGresult *result,
-		int row,
-		const char *fname,
-		size_t *dst_size,
-		void *dst)
+extract_uint32(void *cls,
+               PGresult *result,
+               int row,
+               const char *fname,
+               size_t *dst_size,
+               void *dst)
 {
   uint32_t *udst = dst;
   const uint32_t *res;
   int fnum;
 
-  (void) cls;
-  fnum = PQfnumber (result,
-		    fname);
+  (void)cls;
+  fnum = PQfnumber(result,
+                   fname);
   if (fnum < 0)
-  {
-    GNUNET_break (0);
-    return GNUNET_SYSERR;
-  }
-  if (PQgetisnull (result,
-		   row,
-		   fnum))
-  {
-    GNUNET_break (0);
-    return GNUNET_SYSERR;
-  }
-  GNUNET_assert (NULL != dst);
-  if (sizeof (uint32_t) != *dst_size)
-  {
-    GNUNET_break (0);
-    return GNUNET_SYSERR;
-  }
-  if (sizeof (uint32_t) !=
-      PQgetlength (result,
-                   row,
-                   fnum))
-  {
-    GNUNET_break (0);
-    return GNUNET_SYSERR;
-  }
-  res = (uint32_t *) PQgetvalue (result,
-				 row,
-				 fnum);
-  *udst = ntohl (*res);
+    {
+      GNUNET_break(0);
+      return GNUNET_SYSERR;
+    }
+  if (PQgetisnull(result,
+                  row,
+                  fnum))
+    {
+      GNUNET_break(0);
+      return GNUNET_SYSERR;
+    }
+  GNUNET_assert(NULL != dst);
+  if (sizeof(uint32_t) != *dst_size)
+    {
+      GNUNET_break(0);
+      return GNUNET_SYSERR;
+    }
+  if (sizeof(uint32_t) !=
+      PQgetlength(result,
+                  row,
+                  fnum))
+    {
+      GNUNET_break(0);
+      return GNUNET_SYSERR;
+    }
+  res = (uint32_t *)PQgetvalue(result,
+                               row,
+                               fnum);
+  *udst = ntohl(*res);
   return GNUNET_OK;
 }
 
@@ -779,14 +787,15 @@ extract_uint32 (void *cls,
  * @return array entry for the result specification to use
  */
 struct GNUNET_PQ_ResultSpec
-GNUNET_PQ_result_spec_uint32 (const char *name,
-			      uint32_t *u32)
+GNUNET_PQ_result_spec_uint32(const char *name,
+                             uint32_t *u32)
 {
   struct GNUNET_PQ_ResultSpec res =
-    { &extract_uint32,
-      NULL,
-      NULL,
-      (void *) u32, sizeof (*u32), (name), NULL };
+  { &extract_uint32,
+    NULL,
+    NULL,
+    (void *)u32, sizeof(*u32), (name), NULL };
+
   return res;
 }
 
@@ -805,50 +814,50 @@ GNUNET_PQ_result_spec_uint32 (const char *name,
  *   #GNUNET_SYSERR if a result was invalid (non-existing field or NULL)
  */
 static int
-extract_uint64 (void *cls,
-		PGresult *result,
-		int row,
-		const char *fname,
-		size_t *dst_size,
-		void *dst)
+extract_uint64(void *cls,
+               PGresult *result,
+               int row,
+               const char *fname,
+               size_t *dst_size,
+               void *dst)
 {
   uint64_t *udst = dst;
   const uint64_t *res;
   int fnum;
 
-  (void) cls;
-  fnum = PQfnumber (result,
-		    fname);
+  (void)cls;
+  fnum = PQfnumber(result,
+                   fname);
   if (fnum < 0)
-  {
-    GNUNET_break (0);
-    return GNUNET_SYSERR;
-  }
-  if (PQgetisnull (result,
-		   row,
-		   fnum))
-  {
-    GNUNET_break (0);
-    return GNUNET_SYSERR;
-  }
-  GNUNET_assert (NULL != dst);
-  if (sizeof (uint64_t) != *dst_size)
-  {
-    GNUNET_break (0);
-    return GNUNET_SYSERR;
-  }
-  if (sizeof (uint64_t) !=
-      PQgetlength (result,
-                   row,
-                   fnum))
-  {
-    GNUNET_break (0);
-    return GNUNET_SYSERR;
-  }
-  res = (uint64_t *) PQgetvalue (result,
-				 row,
-				 fnum);
-  *udst = GNUNET_ntohll (*res);
+    {
+      GNUNET_break(0);
+      return GNUNET_SYSERR;
+    }
+  if (PQgetisnull(result,
+                  row,
+                  fnum))
+    {
+      GNUNET_break(0);
+      return GNUNET_SYSERR;
+    }
+  GNUNET_assert(NULL != dst);
+  if (sizeof(uint64_t) != *dst_size)
+    {
+      GNUNET_break(0);
+      return GNUNET_SYSERR;
+    }
+  if (sizeof(uint64_t) !=
+      PQgetlength(result,
+                  row,
+                  fnum))
+    {
+      GNUNET_break(0);
+      return GNUNET_SYSERR;
+    }
+  res = (uint64_t *)PQgetvalue(result,
+                               row,
+                               fnum);
+  *udst = GNUNET_ntohll(*res);
   return GNUNET_OK;
 }
 
@@ -861,14 +870,15 @@ extract_uint64 (void *cls,
  * @return array entry for the result specification to use
  */
 struct GNUNET_PQ_ResultSpec
-GNUNET_PQ_result_spec_uint64 (const char *name,
-			      uint64_t *u64)
+GNUNET_PQ_result_spec_uint64(const char *name,
+                             uint64_t *u64)
 {
   struct GNUNET_PQ_ResultSpec res =
-    { &extract_uint64,
-      NULL,
-      NULL,
-      (void *) u64, sizeof (*u64), (name), NULL };
+  { &extract_uint64,
+    NULL,
+    NULL,
+    (void *)u64, sizeof(*u64), (name), NULL };
+
   return res;
 }
 

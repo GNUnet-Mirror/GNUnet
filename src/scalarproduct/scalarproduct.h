@@ -11,19 +11,19 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 /**
  * @file   scalarproduct.h
  * @brief  Scalar Product API Message Types
  * @author Christian M. Fuchs
  */
 #ifndef SCALARPRODUCT_H
-#define	SCALARPRODUCT_H
+#define SCALARPRODUCT_H
 
 GNUNET_NETWORK_STRUCT_BEGIN
 
@@ -32,15 +32,14 @@ GNUNET_NETWORK_STRUCT_BEGIN
  * a failure of the command 'cmd' with the message given
  * by gcry_strerror(rc).
  */
-#define LOG_GCRY(level, cmd, rc) do { LOG(level, _("`%s' failed at %s:%d with error: %s\n"), cmd, __FILE__, __LINE__, gcry_strerror(rc)); } while(0)
+#define LOG_GCRY(level, cmd, rc) do { LOG(level, _("`%s' failed at %s:%d with error: %s\n"), cmd, __FILE__, __LINE__, gcry_strerror(rc)); } while (0)
 
 
 /**
  * Message type passed from client to service
  * to initiate a request or responder role
  */
-struct AliceComputationMessage
-{
+struct AliceComputationMessage {
   /**
    * GNUNET message header with type
    * #GNUNET_MESSAGE_TYPE_SCALARPRODUCT_CLIENT_TO_ALICE
@@ -82,8 +81,7 @@ struct AliceComputationMessage
  * Message type passed from client to service
  * to initiate a request or responder role
  */
-struct BobComputationMessage
-{
+struct BobComputationMessage {
   /**
    * GNUNET message header with type
    * #GNUNET_MESSAGE_TYPE_SCALARPRODUCT_CLIENT_TO_BOB
@@ -119,8 +117,7 @@ struct BobComputationMessage
 /**
  * multipart messages following `struct ComputationMessage`
  */
-struct ComputationBobCryptodataMultipartMessage
-{
+struct ComputationBobCryptodataMultipartMessage {
   /**
    * GNUNET message header
    */
@@ -141,8 +138,7 @@ struct ComputationBobCryptodataMultipartMessage
  * Message type passed from service client
  * to finalize a session as requester or responder
  */
-struct ClientResponseMessage
-{
+struct ClientResponseMessage {
   /**
    * GNUNET message header
    */
@@ -171,4 +167,4 @@ struct ClientResponseMessage
 
 GNUNET_NETWORK_STRUCT_END
 
-#endif	/* SCALARPRODUCT_H */
+#endif  /* SCALARPRODUCT_H */

@@ -16,7 +16,7 @@
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 /**
  * @file src/regex/regex_internal.c
  * @brief library to create Deterministic Finite Automatons (DFAs) from regular
@@ -39,8 +39,7 @@
 /**
  * Set of states using MDLL API.
  */
-struct REGEX_INTERNAL_StateSet_MDLL
-{
+struct REGEX_INTERNAL_StateSet_MDLL {
   /**
    * MDLL of states.
    */
@@ -65,11 +64,11 @@ struct REGEX_INTERNAL_StateSet_MDLL
  * @param state state to be appended
  */
 static void
-state_set_append (struct REGEX_INTERNAL_StateSet *set,
-                  struct REGEX_INTERNAL_State *state)
+state_set_append(struct REGEX_INTERNAL_StateSet *set,
+                 struct REGEX_INTERNAL_State *state)
 {
   if (set->off == set->size)
-    GNUNET_array_grow (set->states, set->size, set->size * 2 + 4);
+    GNUNET_array_grow(set->states, set->size, set->size * 2 + 4);
   set->states[set->off++] = state;
 }
 
@@ -83,14 +82,14 @@ state_set_append (struct REGEX_INTERNAL_StateSet *set,
  * @return 0 if the strings are the same or both NULL, 1 or -1 if not.
  */
 static int
-nullstrcmp (const char *str1, const char *str2)
+nullstrcmp(const char *str1, const char *str2)
 {
   if ((NULL == str1) != (NULL == str2))
     return -1;
   if ((NULL == str1) && (NULL == str2))
     return 0;
 
-  return strcmp (str1, str2);
+  return strcmp(str1, str2);
 }
 
 
@@ -104,40 +103,40 @@ nullstrcmp (const char *str1, const char *str2)
  * @param to_state state to where the transition should point to
  */
 static void
-state_add_transition (struct REGEX_INTERNAL_Context *ctx,
-                      struct REGEX_INTERNAL_State *from_state,
-                      const char *label,
-                      struct REGEX_INTERNAL_State *to_state)
+state_add_transition(struct REGEX_INTERNAL_Context *ctx,
+                     struct REGEX_INTERNAL_State *from_state,
+                     const char *label,
+                     struct REGEX_INTERNAL_State *to_state)
 {
   struct REGEX_INTERNAL_Transition *t;
   struct REGEX_INTERNAL_Transition *oth;
 
   if (NULL == from_state)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Could not create Transition.\n");
-    return;
-  }
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Could not create Transition.\n");
+      return;
+    }
 
   /* Do not add duplicate state transitions */
   for (t = from_state->transitions_head; NULL != t; t = t->next)
-  {
-    if (t->to_state == to_state && 0 == nullstrcmp (t->label, label) &&
-        t->from_state == from_state)
-      return;
-  }
+    {
+      if (t->to_state == to_state && 0 == nullstrcmp(t->label, label) &&
+          t->from_state == from_state)
+        return;
+    }
 
   /* sort transitions by label */
   for (oth = from_state->transitions_head; NULL != oth; oth = oth->next)
-  {
-    if (0 < nullstrcmp (oth->label, label))
-      break;
-  }
+    {
+      if (0 < nullstrcmp(oth->label, label))
+        break;
+    }
 
-  t = GNUNET_new (struct REGEX_INTERNAL_Transition);
+  t = GNUNET_new(struct REGEX_INTERNAL_Transition);
   if (NULL != ctx)
     t->id = ctx->transition_id++;
   if (NULL != label)
-    t->label = GNUNET_strdup (label);
+    t->label = GNUNET_strdup(label);
   else
     t->label = NULL;
   t->to_state = to_state;
@@ -145,10 +144,10 @@ state_add_transition (struct REGEX_INTERNAL_Context *ctx,
 
   /* Add outgoing transition to 'from_state' */
   from_state->transition_count++;
-  GNUNET_CONTAINER_DLL_insert_before (from_state->transitions_head,
-                                      from_state->transitions_tail,
-                                      oth,
-                                      t);
+  GNUNET_CONTAINER_DLL_insert_before(from_state->transitions_head,
+                                     from_state->transitions_tail,
+                                     oth,
+                                     t);
 }
 
 
@@ -159,8 +158,8 @@ state_add_transition (struct REGEX_INTERNAL_Context *ctx,
  * @param transition transition that should be removed from state 'state'.
  */
 static void
-state_remove_transition (struct REGEX_INTERNAL_State *state,
-                         struct REGEX_INTERNAL_Transition *transition)
+state_remove_transition(struct REGEX_INTERNAL_State *state,
+                        struct REGEX_INTERNAL_Transition *transition)
 {
   if (NULL == state || NULL == transition)
     return;
@@ -168,14 +167,14 @@ state_remove_transition (struct REGEX_INTERNAL_State *state,
   if (transition->from_state != state)
     return;
 
-  GNUNET_free_non_null (transition->label);
+  GNUNET_free_non_null(transition->label);
 
   state->transition_count--;
-  GNUNET_CONTAINER_DLL_remove (state->transitions_head,
-                               state->transitions_tail,
-                               transition);
+  GNUNET_CONTAINER_DLL_remove(state->transitions_head,
+                              state->transitions_tail,
+                              transition);
 
-  GNUNET_free (transition);
+  GNUNET_free(transition);
 }
 
 
@@ -190,10 +189,10 @@ state_remove_transition (struct REGEX_INTERNAL_State *state,
  *         less than, equal to, or greater than the second.
  */
 static int
-state_compare (const void *a, const void *b)
+state_compare(const void *a, const void *b)
 {
-  struct REGEX_INTERNAL_State **s1 = (struct REGEX_INTERNAL_State **) a;
-  struct REGEX_INTERNAL_State **s2 = (struct REGEX_INTERNAL_State **) b;
+  struct REGEX_INTERNAL_State **s1 = (struct REGEX_INTERNAL_State **)a;
+  struct REGEX_INTERNAL_State **s2 = (struct REGEX_INTERNAL_State **)b;
 
   return (*s1)->id - (*s2)->id;
 }
@@ -209,7 +208,7 @@ state_compare (const void *a, const void *b)
  * @return number of edges.
  */
 static unsigned int
-state_get_edges (struct REGEX_INTERNAL_State *s, struct REGEX_BLOCK_Edge *edges)
+state_get_edges(struct REGEX_INTERNAL_State *s, struct REGEX_BLOCK_Edge *edges)
 {
   struct REGEX_INTERNAL_Transition *t;
   unsigned int count;
@@ -220,14 +219,14 @@ state_get_edges (struct REGEX_INTERNAL_State *s, struct REGEX_BLOCK_Edge *edges)
   count = 0;
 
   for (t = s->transitions_head; NULL != t; t = t->next)
-  {
-    if (NULL != t->to_state)
     {
-      edges[count].label = t->label;
-      edges[count].destination = t->to_state->hash;
-      count++;
+      if (NULL != t->to_state)
+        {
+          edges[count].label = t->label;
+          edges[count].destination = t->to_state->hash;
+          count++;
+        }
     }
-  }
   return count;
 }
 
@@ -241,8 +240,8 @@ state_get_edges (struct REGEX_INTERNAL_State *s, struct REGEX_BLOCK_Edge *edges)
  * @return 0 if the sets are equal, otherwise non-zero
  */
 static int
-state_set_compare (struct REGEX_INTERNAL_StateSet *sset1,
-                   struct REGEX_INTERNAL_StateSet *sset2)
+state_set_compare(struct REGEX_INTERNAL_StateSet *sset1,
+                  struct REGEX_INTERNAL_StateSet *sset2)
 {
   int result;
   unsigned int i;
@@ -256,7 +255,7 @@ state_set_compare (struct REGEX_INTERNAL_StateSet *sset1,
   if (result > 0)
     return 1;
   for (i = 0; i < sset1->off; i++)
-    if (0 != (result = state_compare (&sset1->states[i], &sset2->states[i])))
+    if (0 != (result = state_compare(&sset1->states[i], &sset2->states[i])))
       break;
   return result;
 }
@@ -268,9 +267,9 @@ state_set_compare (struct REGEX_INTERNAL_StateSet *sset1,
  * @param set set to be cleared
  */
 static void
-state_set_clear (struct REGEX_INTERNAL_StateSet *set)
+state_set_clear(struct REGEX_INTERNAL_StateSet *set)
 {
-  GNUNET_array_grow (set->states, set->size, 0);
+  GNUNET_array_grow(set->states, set->size, 0);
   set->off = 0;
 }
 
@@ -282,7 +281,7 @@ state_set_clear (struct REGEX_INTERNAL_StateSet *set)
  * @param a automaton to be cleared
  */
 static void
-automaton_fragment_clear (struct REGEX_INTERNAL_Automaton *a)
+automaton_fragment_clear(struct REGEX_INTERNAL_Automaton *a)
 {
   if (NULL == a)
     return;
@@ -292,7 +291,7 @@ automaton_fragment_clear (struct REGEX_INTERNAL_Automaton *a)
   a->states_head = NULL;
   a->states_tail = NULL;
   a->state_count = 0;
-  GNUNET_free (a);
+  GNUNET_free(a);
 }
 
 
@@ -302,7 +301,7 @@ automaton_fragment_clear (struct REGEX_INTERNAL_Automaton *a)
  * @param s state that should be destroyed
  */
 static void
-automaton_destroy_state (struct REGEX_INTERNAL_State *s)
+automaton_destroy_state(struct REGEX_INTERNAL_State *s)
 {
   struct REGEX_INTERNAL_Transition *t;
   struct REGEX_INTERNAL_Transition *next_t;
@@ -310,16 +309,16 @@ automaton_destroy_state (struct REGEX_INTERNAL_State *s)
   if (NULL == s)
     return;
 
-  GNUNET_free_non_null (s->name);
-  GNUNET_free_non_null (s->proof);
-  state_set_clear (&s->nfa_set);
+  GNUNET_free_non_null(s->name);
+  GNUNET_free_non_null(s->proof);
+  state_set_clear(&s->nfa_set);
   for (t = s->transitions_head; NULL != t; t = next_t)
-  {
-    next_t = t->next;
-    state_remove_transition (s, t);
-  }
+    {
+      next_t = t->next;
+      state_remove_transition(s, t);
+    }
 
-  GNUNET_free (s);
+  GNUNET_free(s);
 }
 
 
@@ -332,8 +331,8 @@ automaton_destroy_state (struct REGEX_INTERNAL_State *s)
  * @param s state to remove
  */
 static void
-automaton_remove_state (struct REGEX_INTERNAL_Automaton *a,
-                        struct REGEX_INTERNAL_State *s)
+automaton_remove_state(struct REGEX_INTERNAL_Automaton *a,
+                       struct REGEX_INTERNAL_State *s)
 {
   struct REGEX_INTERNAL_State *s_check;
   struct REGEX_INTERNAL_Transition *t_check;
@@ -344,21 +343,21 @@ automaton_remove_state (struct REGEX_INTERNAL_Automaton *a,
 
   /* remove all transitions leading to this state */
   for (s_check = a->states_head; NULL != s_check; s_check = s_check->next)
-  {
-    for (t_check = s_check->transitions_head; NULL != t_check;
-         t_check = t_check_next)
     {
-      t_check_next = t_check->next;
-      if (t_check->to_state == s)
-        state_remove_transition (s_check, t_check);
+      for (t_check = s_check->transitions_head; NULL != t_check;
+           t_check = t_check_next)
+        {
+          t_check_next = t_check->next;
+          if (t_check->to_state == s)
+            state_remove_transition(s_check, t_check);
+        }
     }
-  }
 
   /* remove state */
-  GNUNET_CONTAINER_DLL_remove (a->states_head, a->states_tail, s);
+  GNUNET_CONTAINER_DLL_remove(a->states_head, a->states_tail, s);
   a->state_count--;
 
-  automaton_destroy_state (s);
+  automaton_destroy_state(s);
 }
 
 
@@ -372,10 +371,10 @@ automaton_remove_state (struct REGEX_INTERNAL_Automaton *a,
  * @param s2 second state, will be destroyed
  */
 static void
-automaton_merge_states (struct REGEX_INTERNAL_Context *ctx,
-                        struct REGEX_INTERNAL_Automaton *a,
-                        struct REGEX_INTERNAL_State *s1,
-                        struct REGEX_INTERNAL_State *s2)
+automaton_merge_states(struct REGEX_INTERNAL_Context *ctx,
+                       struct REGEX_INTERNAL_Automaton *a,
+                       struct REGEX_INTERNAL_State *s1,
+                       struct REGEX_INTERNAL_State *s2)
 {
   struct REGEX_INTERNAL_State *s_check;
   struct REGEX_INTERNAL_Transition *t_check;
@@ -389,47 +388,47 @@ automaton_merge_states (struct REGEX_INTERNAL_Context *ctx,
   /* 1. Make all transitions pointing to s2 point to s1, unless this transition
    * does not already exists, if it already exists remove transition. */
   for (s_check = a->states_head; NULL != s_check; s_check = s_check->next)
-  {
-    for (t_check = s_check->transitions_head; NULL != t_check; t_check = t_next)
     {
-      t_next = t_check->next;
-
-      if (s2 == t_check->to_state)
-      {
-        is_dup = GNUNET_NO;
-        for (t = t_check->from_state->transitions_head; NULL != t; t = t->next)
+      for (t_check = s_check->transitions_head; NULL != t_check; t_check = t_next)
         {
-          if (t->to_state == s1 && 0 == strcmp (t_check->label, t->label))
-            is_dup = GNUNET_YES;
+          t_next = t_check->next;
+
+          if (s2 == t_check->to_state)
+            {
+              is_dup = GNUNET_NO;
+              for (t = t_check->from_state->transitions_head; NULL != t; t = t->next)
+                {
+                  if (t->to_state == s1 && 0 == strcmp(t_check->label, t->label))
+                    is_dup = GNUNET_YES;
+                }
+              if (GNUNET_NO == is_dup)
+                t_check->to_state = s1;
+              else
+                state_remove_transition(t_check->from_state, t_check);
+            }
         }
-        if (GNUNET_NO == is_dup)
-          t_check->to_state = s1;
-        else
-          state_remove_transition (t_check->from_state, t_check);
-      }
     }
-  }
 
   /* 2. Add all transitions from s2 to sX to s1 */
   for (t_check = s2->transitions_head; NULL != t_check; t_check = t_check->next)
-  {
-    if (t_check->to_state != s1)
-      state_add_transition (ctx, s1, t_check->label, t_check->to_state);
-  }
+    {
+      if (t_check->to_state != s1)
+        state_add_transition(ctx, s1, t_check->label, t_check->to_state);
+    }
 
   /* 3. Rename s1 to {s1,s2} */
 #if REGEX_DEBUG_DFA
   char *new_name;
 
   new_name = s1->name;
-  GNUNET_asprintf (&s1->name, "{%s,%s}", new_name, s2->name);
-  GNUNET_free (new_name);
+  GNUNET_asprintf(&s1->name, "{%s,%s}", new_name, s2->name);
+  GNUNET_free(new_name);
 #endif
 
   /* remove state */
-  GNUNET_CONTAINER_DLL_remove (a->states_head, a->states_tail, s2);
+  GNUNET_CONTAINER_DLL_remove(a->states_head, a->states_tail, s2);
   a->state_count--;
-  automaton_destroy_state (s2);
+  automaton_destroy_state(s2);
 }
 
 
@@ -441,10 +440,10 @@ automaton_merge_states (struct REGEX_INTERNAL_Context *ctx,
  * @param s state that should be added
  */
 static void
-automaton_add_state (struct REGEX_INTERNAL_Automaton *a,
-                     struct REGEX_INTERNAL_State *s)
+automaton_add_state(struct REGEX_INTERNAL_Automaton *a,
+                    struct REGEX_INTERNAL_State *s)
 {
-  GNUNET_CONTAINER_DLL_insert (a->states_head, a->states_tail, s);
+  GNUNET_CONTAINER_DLL_insert(a->states_head, a->states_tail, s);
   a->state_count++;
 }
 
@@ -464,13 +463,13 @@ automaton_add_state (struct REGEX_INTERNAL_Automaton *a,
  * @param action_cls closure for action.
  */
 static void
-automaton_state_traverse (struct REGEX_INTERNAL_State *s,
-                          int *marks,
-                          unsigned int *count,
-                          REGEX_INTERNAL_traverse_check check,
-                          void *check_cls,
-                          REGEX_INTERNAL_traverse_action action,
-                          void *action_cls)
+automaton_state_traverse(struct REGEX_INTERNAL_State *s,
+                         int *marks,
+                         unsigned int *count,
+                         REGEX_INTERNAL_traverse_check check,
+                         void *check_cls,
+                         REGEX_INTERNAL_traverse_action action,
+                         void *action_cls)
 {
   struct REGEX_INTERNAL_Transition *t;
 
@@ -480,24 +479,24 @@ automaton_state_traverse (struct REGEX_INTERNAL_State *s,
   marks[s->traversal_id] = GNUNET_YES;
 
   if (NULL != action)
-    action (action_cls, *count, s);
+    action(action_cls, *count, s);
 
   (*count)++;
 
   for (t = s->transitions_head; NULL != t; t = t->next)
-  {
-    if (NULL == check ||
-        (NULL != check && GNUNET_YES == check (check_cls, s, t)))
     {
-      automaton_state_traverse (t->to_state,
-                                marks,
-                                count,
-                                check,
-                                check_cls,
-                                action,
-                                action_cls);
+      if (NULL == check ||
+          (NULL != check && GNUNET_YES == check(check_cls, s, t)))
+        {
+          automaton_state_traverse(t->to_state,
+                                   marks,
+                                   count,
+                                   check,
+                                   check_cls,
+                                   action,
+                                   action_cls);
+        }
     }
-  }
 }
 
 
@@ -515,12 +514,12 @@ automaton_state_traverse (struct REGEX_INTERNAL_State *s,
  * @param action_cls closure for @a action
  */
 void
-REGEX_INTERNAL_automaton_traverse (const struct REGEX_INTERNAL_Automaton *a,
-                                   struct REGEX_INTERNAL_State *start,
-                                   REGEX_INTERNAL_traverse_check check,
-                                   void *check_cls,
-                                   REGEX_INTERNAL_traverse_action action,
-                                   void *action_cls)
+REGEX_INTERNAL_automaton_traverse(const struct REGEX_INTERNAL_Automaton *a,
+                                  struct REGEX_INTERNAL_State *start,
+                                  REGEX_INTERNAL_traverse_check check,
+                                  void *check_cls,
+                                  REGEX_INTERNAL_traverse_action action,
+                                  void *action_cls)
 {
   unsigned int count;
   struct REGEX_INTERNAL_State *s;
@@ -532,10 +531,10 @@ REGEX_INTERNAL_automaton_traverse (const struct REGEX_INTERNAL_Automaton *a,
 
   for (count = 0, s = a->states_head; NULL != s && count < a->state_count;
        s = s->next, count++)
-  {
-    s->traversal_id = count;
-    marks[s->traversal_id] = GNUNET_NO;
-  }
+    {
+      s->traversal_id = count;
+      marks[s->traversal_id] = GNUNET_NO;
+    }
 
   count = 0;
 
@@ -544,21 +543,20 @@ REGEX_INTERNAL_automaton_traverse (const struct REGEX_INTERNAL_Automaton *a,
   else
     s = start;
 
-  automaton_state_traverse (s,
-                            marks,
-                            &count,
-                            check,
-                            check_cls,
-                            action,
-                            action_cls);
+  automaton_state_traverse(s,
+                           marks,
+                           &count,
+                           check,
+                           check_cls,
+                           action,
+                           action_cls);
 }
 
 
 /**
  * String container for faster string operations.
  */
-struct StringBuffer
-{
+struct StringBuffer {
   /**
    * Buffer holding the string (may start in the middle!);
    * NOT 0-terminated!
@@ -607,7 +605,7 @@ struct StringBuffer
  * @return 0 if the strings are the same or both NULL, 1 or -1 if not.
  */
 static int
-sb_nullstrcmp (const struct StringBuffer *s1, const struct StringBuffer *s2)
+sb_nullstrcmp(const struct StringBuffer *s1, const struct StringBuffer *s2)
 {
   if ((GNUNET_YES == s1->null_flag) && (GNUNET_YES == s2->null_flag))
     return 0;
@@ -617,7 +615,7 @@ sb_nullstrcmp (const struct StringBuffer *s1, const struct StringBuffer *s2)
     return -1;
   if (0 == s1->slen)
     return 0;
-  return memcmp (s1->sbuf, s2->sbuf, s1->slen);
+  return memcmp(s1->sbuf, s2->sbuf, s1->slen);
 }
 
 
@@ -630,13 +628,13 @@ sb_nullstrcmp (const struct StringBuffer *s1, const struct StringBuffer *s2)
  * @return 0 if the strings are the same, 1 or -1 if not.
  */
 static int
-sb_strcmp (const struct StringBuffer *s1, const struct StringBuffer *s2)
+sb_strcmp(const struct StringBuffer *s1, const struct StringBuffer *s2)
 {
   if (s1->slen != s2->slen)
     return -1;
   if (0 == s1->slen)
     return 0;
-  return memcmp (s1->sbuf, s2->sbuf, s1->slen);
+  return memcmp(s1->sbuf, s2->sbuf, s1->slen);
 }
 
 
@@ -648,17 +646,17 @@ sb_strcmp (const struct StringBuffer *s1, const struct StringBuffer *s2)
  * @param nlen target length for the buffer, must be at least ret->slen
  */
 static void
-sb_realloc (struct StringBuffer *ret, size_t nlen)
+sb_realloc(struct StringBuffer *ret, size_t nlen)
 {
   char *old;
 
-  GNUNET_assert (nlen >= ret->slen);
+  GNUNET_assert(nlen >= ret->slen);
   old = ret->abuf;
-  ret->abuf = GNUNET_malloc (nlen);
+  ret->abuf = GNUNET_malloc(nlen);
   ret->blen = nlen;
-  GNUNET_memcpy (ret->abuf, ret->sbuf, ret->slen);
+  GNUNET_memcpy(ret->abuf, ret->sbuf, ret->slen);
   ret->sbuf = ret->abuf;
-  GNUNET_free_non_null (old);
+  GNUNET_free_non_null(old);
 }
 
 
@@ -669,14 +667,14 @@ sb_realloc (struct StringBuffer *ret, size_t nlen)
  * @param sarg string to append
  */
 static void
-sb_append (struct StringBuffer *ret, const struct StringBuffer *sarg)
+sb_append(struct StringBuffer *ret, const struct StringBuffer *sarg)
 {
   if (GNUNET_YES == ret->null_flag)
     ret->slen = 0;
   ret->null_flag = GNUNET_NO;
   if (ret->blen < sarg->slen + ret->slen)
-    sb_realloc (ret, ret->blen + sarg->slen + 128);
-  GNUNET_memcpy (&ret->sbuf[ret->slen], sarg->sbuf, sarg->slen);
+    sb_realloc(ret, ret->blen + sarg->slen + 128);
+  GNUNET_memcpy(&ret->sbuf[ret->slen], sarg->sbuf, sarg->slen);
   ret->slen += sarg->slen;
 }
 
@@ -688,16 +686,16 @@ sb_append (struct StringBuffer *ret, const struct StringBuffer *sarg)
  * @param cstr string to append
  */
 static void
-sb_append_cstr (struct StringBuffer *ret, const char *cstr)
+sb_append_cstr(struct StringBuffer *ret, const char *cstr)
 {
-  size_t cstr_len = strlen (cstr);
+  size_t cstr_len = strlen(cstr);
 
   if (GNUNET_YES == ret->null_flag)
     ret->slen = 0;
   ret->null_flag = GNUNET_NO;
   if (ret->blen < cstr_len + ret->slen)
-    sb_realloc (ret, ret->blen + cstr_len + 128);
-  GNUNET_memcpy (&ret->sbuf[ret->slen], cstr, cstr_len);
+    sb_realloc(ret, ret->blen + cstr_len + 128);
+  GNUNET_memcpy(&ret->sbuf[ret->slen], cstr, cstr_len);
   ret->slen += cstr_len;
 }
 
@@ -713,20 +711,20 @@ sb_append_cstr (struct StringBuffer *ret, const char *cstr)
  * @param extra_chars how long will the result be, in addition to 'sarg' length
  */
 static void
-sb_wrap (struct StringBuffer *ret, const char *format, size_t extra_chars)
+sb_wrap(struct StringBuffer *ret, const char *format, size_t extra_chars)
 {
   char *temp;
 
   if (GNUNET_YES == ret->null_flag)
     ret->slen = 0;
   ret->null_flag = GNUNET_NO;
-  temp = GNUNET_malloc (ret->slen + extra_chars + 1);
-  GNUNET_snprintf (temp,
-                   ret->slen + extra_chars + 1,
-                   format,
-                   (int) ret->slen,
-                   ret->sbuf);
-  GNUNET_free_non_null (ret->abuf);
+  temp = GNUNET_malloc(ret->slen + extra_chars + 1);
+  GNUNET_snprintf(temp,
+                  ret->slen + extra_chars + 1,
+                  format,
+                  (int)ret->slen,
+                  ret->sbuf);
+  GNUNET_free_non_null(ret->abuf);
   ret->abuf = temp;
   ret->sbuf = temp;
   ret->blen = ret->slen + extra_chars + 1;
@@ -744,17 +742,17 @@ sb_wrap (struct StringBuffer *ret, const char *format, size_t extra_chars)
  * @param sarg string to print into the format
  */
 static void
-sb_printf1 (struct StringBuffer *ret,
-            const char *format,
-            size_t extra_chars,
-            const struct StringBuffer *sarg)
+sb_printf1(struct StringBuffer *ret,
+           const char *format,
+           size_t extra_chars,
+           const struct StringBuffer *sarg)
 {
   if (ret->blen < sarg->slen + extra_chars + 1)
-    sb_realloc (ret, sarg->slen + extra_chars + 1);
+    sb_realloc(ret, sarg->slen + extra_chars + 1);
   ret->null_flag = GNUNET_NO;
   ret->sbuf = ret->abuf;
   ret->slen = sarg->slen + extra_chars;
-  GNUNET_snprintf (ret->sbuf, ret->blen, format, (int) sarg->slen, sarg->sbuf);
+  GNUNET_snprintf(ret->sbuf, ret->blen, format, (int)sarg->slen, sarg->sbuf);
 }
 
 
@@ -768,24 +766,24 @@ sb_printf1 (struct StringBuffer *ret,
  * @param sarg2 second string to print into the format
  */
 static void
-sb_printf2 (struct StringBuffer *ret,
-            const char *format,
-            size_t extra_chars,
-            const struct StringBuffer *sarg1,
-            const struct StringBuffer *sarg2)
+sb_printf2(struct StringBuffer *ret,
+           const char *format,
+           size_t extra_chars,
+           const struct StringBuffer *sarg1,
+           const struct StringBuffer *sarg2)
 {
   if (ret->blen < sarg1->slen + sarg2->slen + extra_chars + 1)
-    sb_realloc (ret, sarg1->slen + sarg2->slen + extra_chars + 1);
+    sb_realloc(ret, sarg1->slen + sarg2->slen + extra_chars + 1);
   ret->null_flag = GNUNET_NO;
   ret->slen = sarg1->slen + sarg2->slen + extra_chars;
   ret->sbuf = ret->abuf;
-  GNUNET_snprintf (ret->sbuf,
-                   ret->blen,
-                   format,
-                   (int) sarg1->slen,
-                   sarg1->sbuf,
-                   (int) sarg2->slen,
-                   sarg2->sbuf);
+  GNUNET_snprintf(ret->sbuf,
+                  ret->blen,
+                  format,
+                  (int)sarg1->slen,
+                  sarg1->sbuf,
+                  (int)sarg2->slen,
+                  sarg2->sbuf);
 }
 
 
@@ -801,27 +799,27 @@ sb_printf2 (struct StringBuffer *ret,
  * @param sarg3 third string to print into the format
  */
 static void
-sb_printf3 (struct StringBuffer *ret,
-            const char *format,
-            size_t extra_chars,
-            const struct StringBuffer *sarg1,
-            const struct StringBuffer *sarg2,
-            const struct StringBuffer *sarg3)
+sb_printf3(struct StringBuffer *ret,
+           const char *format,
+           size_t extra_chars,
+           const struct StringBuffer *sarg1,
+           const struct StringBuffer *sarg2,
+           const struct StringBuffer *sarg3)
 {
   if (ret->blen < sarg1->slen + sarg2->slen + sarg3->slen + extra_chars + 1)
-    sb_realloc (ret, sarg1->slen + sarg2->slen + sarg3->slen + extra_chars + 1);
+    sb_realloc(ret, sarg1->slen + sarg2->slen + sarg3->slen + extra_chars + 1);
   ret->null_flag = GNUNET_NO;
   ret->slen = sarg1->slen + sarg2->slen + sarg3->slen + extra_chars;
   ret->sbuf = ret->abuf;
-  GNUNET_snprintf (ret->sbuf,
-                   ret->blen,
-                   format,
-                   (int) sarg1->slen,
-                   sarg1->sbuf,
-                   (int) sarg2->slen,
-                   sarg2->sbuf,
-                   (int) sarg3->slen,
-                   sarg3->sbuf);
+  GNUNET_snprintf(ret->sbuf,
+                  ret->blen,
+                  format,
+                  (int)sarg1->slen,
+                  sarg1->sbuf,
+                  (int)sarg2->slen,
+                  sarg2->sbuf,
+                  (int)sarg3->slen,
+                  sarg3->sbuf);
 }
 
 
@@ -832,9 +830,9 @@ sb_printf3 (struct StringBuffer *ret,
  *        should not be individually allocated)
  */
 static void
-sb_free (struct StringBuffer *sb)
+sb_free(struct StringBuffer *sb)
 {
-  GNUNET_array_grow (sb->abuf, sb->blen, 0);
+  GNUNET_array_grow(sb->abuf, sb->blen, 0);
   sb->slen = 0;
   sb->sbuf = NULL;
   sb->null_flag = GNUNET_YES;
@@ -848,19 +846,19 @@ sb_free (struct StringBuffer *sb)
  * @param out output string
  */
 static void
-sb_strdup (struct StringBuffer *out, const struct StringBuffer *in)
+sb_strdup(struct StringBuffer *out, const struct StringBuffer *in)
 
 {
   out->null_flag = in->null_flag;
   if (GNUNET_YES == out->null_flag)
     return;
   if (out->blen < in->slen)
-  {
-    GNUNET_array_grow (out->abuf, out->blen, in->slen);
-  }
+    {
+      GNUNET_array_grow(out->abuf, out->blen, in->slen);
+    }
   out->sbuf = out->abuf;
   out->slen = in->slen;
-  GNUNET_memcpy (out->sbuf, in->sbuf, out->slen);
+  GNUNET_memcpy(out->sbuf, in->sbuf, out->slen);
 }
 
 
@@ -871,21 +869,21 @@ sb_strdup (struct StringBuffer *out, const struct StringBuffer *in)
  * @param out output string
  */
 static void
-sb_strdup_cstr (struct StringBuffer *out, const char *cstr)
+sb_strdup_cstr(struct StringBuffer *out, const char *cstr)
 {
   if (NULL == cstr)
-  {
-    out->null_flag = GNUNET_YES;
-    return;
-  }
+    {
+      out->null_flag = GNUNET_YES;
+      return;
+    }
   out->null_flag = GNUNET_NO;
-  out->slen = strlen (cstr);
+  out->slen = strlen(cstr);
   if (out->blen < out->slen)
-  {
-    GNUNET_array_grow (out->abuf, out->blen, out->slen);
-  }
+    {
+      GNUNET_array_grow(out->abuf, out->blen, out->slen);
+    }
   out->sbuf = out->abuf;
-  GNUNET_memcpy (out->sbuf, cstr, out->slen);
+  GNUNET_memcpy(out->sbuf, cstr, out->slen);
 }
 
 
@@ -898,7 +896,7 @@ sb_strdup_cstr (struct StringBuffer *out, const char *cstr)
  * @return #GNUNET_YES if parentheses are needed, #GNUNET_NO otherwise
  */
 static int
-needs_parentheses (const struct StringBuffer *str)
+needs_parentheses(const struct StringBuffer *str)
 {
   size_t slen;
   const char *op;
@@ -916,23 +914,23 @@ needs_parentheses (const struct StringBuffer *str)
   cnt = 1;
   pos++;
   while (cnt > 0)
-  {
-    cl = memchr (pos, ')', end - pos);
-    if (NULL == cl)
     {
-      GNUNET_break (0);
-      return GNUNET_YES;
+      cl = memchr(pos, ')', end - pos);
+      if (NULL == cl)
+        {
+          GNUNET_break(0);
+          return GNUNET_YES;
+        }
+      /* while '(' before ')', count opening parens */
+      while ((NULL != (op = memchr(pos, '(', end - pos))) && (op < cl))
+        {
+          cnt++;
+          pos = op + 1;
+        }
+      /* got ')' first */
+      cnt--;
+      pos = cl + 1;
     }
-    /* while '(' before ')', count opening parens */
-    while ((NULL != (op = memchr (pos, '(', end - pos))) && (op < cl))
-    {
-      cnt++;
-      pos = op + 1;
-    }
-    /* got ')' first */
-    cnt--;
-    pos = cl + 1;
-  }
   return (*pos == '\0') ? GNUNET_NO : GNUNET_YES;
 }
 
@@ -947,7 +945,7 @@ needs_parentheses (const struct StringBuffer *str)
  *         epsilon could be found, NULL if 'str' was NULL
  */
 static void
-remove_parentheses (struct StringBuffer *str)
+remove_parentheses(struct StringBuffer *str)
 {
   size_t slen;
   const char *pos;
@@ -966,30 +964,30 @@ remove_parentheses (struct StringBuffer *str)
   cnt = 0;
   pos = &sbuf[1];
   end = &sbuf[slen - 1];
-  op = memchr (pos, '(', end - pos);
-  cp = memchr (pos, ')', end - pos);
+  op = memchr(pos, '(', end - pos);
+  cp = memchr(pos, ')', end - pos);
   while (NULL != cp)
-  {
-    while ((NULL != op) && (op < cp))
     {
-      cnt++;
-      pos = op + 1;
-      op = memchr (pos, '(', end - pos);
+      while ((NULL != op) && (op < cp))
+        {
+          cnt++;
+          pos = op + 1;
+          op = memchr(pos, '(', end - pos);
+        }
+      while ((NULL != cp) && ((NULL == op) || (cp < op)))
+        {
+          if (0 == cnt)
+            return; /* can't strip parens */
+          cnt--;
+          pos = cp + 1;
+          cp = memchr(pos, ')', end - pos);
+        }
     }
-    while ((NULL != cp) && ((NULL == op) || (cp < op)))
-    {
-      if (0 == cnt)
-        return; /* can't strip parens */
-      cnt--;
-      pos = cp + 1;
-      cp = memchr (pos, ')', end - pos);
-    }
-  }
   if (0 != cnt)
-  {
-    GNUNET_break (0);
-    return;
-  }
+    {
+      GNUNET_break(0);
+      return;
+    }
   str->sbuf++;
   str->slen -= 2;
 }
@@ -1004,7 +1002,7 @@ remove_parentheses (struct StringBuffer *str)
  * @return 0 if str has no epsilon, 1 if str starts with '(|' and ends with ')'
  */
 static int
-has_epsilon (const struct StringBuffer *str)
+has_epsilon(const struct StringBuffer *str)
 {
   return (GNUNET_YES != str->null_flag) && (0 < str->slen) &&
          ('(' == str->sbuf[0]) && ('|' == str->sbuf[1]) &&
@@ -1022,27 +1020,27 @@ has_epsilon (const struct StringBuffer *str)
  *         epsilon could be found, NULL if 'str' was NULL
  */
 static void
-remove_epsilon (const struct StringBuffer *str, struct StringBuffer *ret)
+remove_epsilon(const struct StringBuffer *str, struct StringBuffer *ret)
 {
   if (GNUNET_YES == str->null_flag)
-  {
-    ret->null_flag = GNUNET_YES;
-    return;
-  }
+    {
+      ret->null_flag = GNUNET_YES;
+      return;
+    }
   if ((str->slen > 1) && ('(' == str->sbuf[0]) && ('|' == str->sbuf[1]) &&
       (')' == str->sbuf[str->slen - 1]))
-  {
-    /* remove epsilon */
-    if (ret->blen < str->slen - 3)
     {
-      GNUNET_array_grow (ret->abuf, ret->blen, str->slen - 3);
+      /* remove epsilon */
+      if (ret->blen < str->slen - 3)
+        {
+          GNUNET_array_grow(ret->abuf, ret->blen, str->slen - 3);
+        }
+      ret->sbuf = ret->abuf;
+      ret->slen = str->slen - 3;
+      GNUNET_memcpy(ret->sbuf, &str->sbuf[2], ret->slen);
+      return;
     }
-    ret->sbuf = ret->abuf;
-    ret->slen = str->slen - 3;
-    GNUNET_memcpy (ret->sbuf, &str->sbuf[2], ret->slen);
-    return;
-  }
-  sb_strdup (ret, str);
+  sb_strdup(ret, str);
 }
 
 
@@ -1056,18 +1054,18 @@ remove_epsilon (const struct StringBuffer *str, struct StringBuffer *ret)
  * @return -1 if any of the strings is NULL, 0 if equal, non 0 otherwise
  */
 static int
-sb_strncmp (const struct StringBuffer *str1,
-            const struct StringBuffer *str2,
-            size_t n)
+sb_strncmp(const struct StringBuffer *str1,
+           const struct StringBuffer *str2,
+           size_t n)
 {
   size_t max;
 
   if ((str1->slen != str2->slen) && ((str1->slen < n) || (str2->slen < n)))
     return -1;
-  max = GNUNET_MAX (str1->slen, str2->slen);
+  max = GNUNET_MAX(str1->slen, str2->slen);
   if (max > n)
     max = n;
-  return memcmp (str1->sbuf, str2->sbuf, max);
+  return memcmp(str1->sbuf, str2->sbuf, max);
 }
 
 
@@ -1081,11 +1079,11 @@ sb_strncmp (const struct StringBuffer *str1,
  * @return -1 if any of the strings is NULL, 0 if equal, non 0 otherwise
  */
 static int
-sb_strncmp_cstr (const struct StringBuffer *str1, const char *str2, size_t n)
+sb_strncmp_cstr(const struct StringBuffer *str1, const char *str2, size_t n)
 {
   if (str1->slen < n)
     return -1;
-  return memcmp (str1->sbuf, str2, n);
+  return memcmp(str1->sbuf, str2, n);
 }
 
 
@@ -1097,10 +1095,10 @@ sb_strncmp_cstr (const struct StringBuffer *str1, const char *str2, size_t n)
  * @param n desired target length
  */
 static void
-sb_init (struct StringBuffer *sb, size_t n)
+sb_init(struct StringBuffer *sb, size_t n)
 {
   sb->null_flag = GNUNET_NO;
-  sb->abuf = sb->sbuf = (0 == n) ? NULL : GNUNET_malloc (n);
+  sb->abuf = sb->sbuf = (0 == n) ? NULL : GNUNET_malloc(n);
   sb->blen = n;
   sb->slen = 0;
 }
@@ -1116,14 +1114,14 @@ sb_init (struct StringBuffer *sb, size_t n)
  * @return -1 if any of the strings is NULL, 0 if equal, non 0 otherwise
  */
 static int
-sb_strkcmp (const struct StringBuffer *str1,
-            const struct StringBuffer *str2,
-            size_t k)
+sb_strkcmp(const struct StringBuffer *str1,
+           const struct StringBuffer *str2,
+           size_t k)
 {
   if ((GNUNET_YES == str1->null_flag) || (GNUNET_YES == str2->null_flag) ||
       (k > str1->slen) || (str1->slen - k != str2->slen))
     return -1;
-  return memcmp (&str1->sbuf[k], str2->sbuf, str2->slen);
+  return memcmp(&str1->sbuf[k], str2->sbuf, str2->slen);
 }
 
 
@@ -1136,9 +1134,9 @@ sb_strkcmp (const struct StringBuffer *str1,
  * @param s current state.
  */
 static void
-number_states (void *cls,
-               const unsigned int count,
-               struct REGEX_INTERNAL_State *s)
+number_states(void *cls,
+              const unsigned int count,
+              struct REGEX_INTERNAL_State *s)
 {
   struct REGEX_INTERNAL_State **states = cls;
 
@@ -1149,8 +1147,8 @@ number_states (void *cls,
 
 
 #define PRIS(a)                                     \
-  ((GNUNET_YES == a.null_flag) ? 6 : (int) a.slen), \
-    ((GNUNET_YES == a.null_flag) ? "(null)" : a.sbuf)
+  ((GNUNET_YES == a.null_flag) ? 6 : (int)a.slen), \
+  ((GNUNET_YES == a.null_flag) ? "(null)" : a.sbuf)
 
 
 /**
@@ -1168,13 +1166,13 @@ number_states (void *cls,
  * @param R_cur_r optimization -- kept between iterations to avoid realloc
  */
 static void
-automaton_create_proofs_simplify (const struct StringBuffer *R_last_ij,
-                                  const struct StringBuffer *R_last_ik,
-                                  const struct StringBuffer *R_last_kk,
-                                  const struct StringBuffer *R_last_kj,
-                                  struct StringBuffer *R_cur_ij,
-                                  struct StringBuffer *R_cur_l,
-                                  struct StringBuffer *R_cur_r)
+automaton_create_proofs_simplify(const struct StringBuffer *R_last_ij,
+                                 const struct StringBuffer *R_last_ik,
+                                 const struct StringBuffer *R_last_kk,
+                                 const struct StringBuffer *R_last_kj,
+                                 struct StringBuffer *R_cur_ij,
+                                 struct StringBuffer *R_cur_l,
+                                 struct StringBuffer *R_cur_r)
 {
   struct StringBuffer R_temp_ij;
   struct StringBuffer R_temp_ik;
@@ -1202,27 +1200,27 @@ automaton_create_proofs_simplify (const struct StringBuffer *R_last_ij,
   if ((GNUNET_YES == R_last_ij->null_flag) &&
       ((GNUNET_YES == R_last_ik->null_flag) ||
        (GNUNET_YES == R_last_kj->null_flag)))
-  {
-    /* R^{(k)}_{ij} = N | N */
-    R_cur_ij->null_flag = GNUNET_YES;
-    R_cur_ij->synced = GNUNET_NO;
-    return;
-  }
+    {
+      /* R^{(k)}_{ij} = N | N */
+      R_cur_ij->null_flag = GNUNET_YES;
+      R_cur_ij->synced = GNUNET_NO;
+      return;
+    }
 
   if ((GNUNET_YES == R_last_ik->null_flag) ||
       (GNUNET_YES == R_last_kj->null_flag))
-  {
-    /*  R^{(k)}_{ij} = R^{(k-1)}_{ij} | N */
-    if (GNUNET_YES == R_last_ij->synced)
     {
+      /*  R^{(k)}_{ij} = R^{(k-1)}_{ij} | N */
+      if (GNUNET_YES == R_last_ij->synced)
+        {
+          R_cur_ij->synced = GNUNET_YES;
+          R_cur_ij->null_flag = GNUNET_NO;
+          return;
+        }
       R_cur_ij->synced = GNUNET_YES;
-      R_cur_ij->null_flag = GNUNET_NO;
+      sb_strdup(R_cur_ij, R_last_ij);
       return;
     }
-    R_cur_ij->synced = GNUNET_YES;
-    sb_strdup (R_cur_ij, R_last_ij);
-    return;
-  }
   R_cur_ij->synced = GNUNET_NO;
 
   /* $R^{(k)}_{ij} = N | R^{(k-1)}_{ik} ( R^{(k-1)}_{kk} )^* R^{(k-1)}_{kj} OR
@@ -1234,334 +1232,334 @@ automaton_create_proofs_simplify (const struct StringBuffer *R_last_ij,
   R_cur_l->slen = 0;
 
   /* cache results from strcmp, we might need these many times */
-  ij_kj_cmp = sb_nullstrcmp (R_last_ij, R_last_kj);
-  ij_ik_cmp = sb_nullstrcmp (R_last_ij, R_last_ik);
-  ik_kk_cmp = sb_nullstrcmp (R_last_ik, R_last_kk);
-  kk_kj_cmp = sb_nullstrcmp (R_last_kk, R_last_kj);
+  ij_kj_cmp = sb_nullstrcmp(R_last_ij, R_last_kj);
+  ij_ik_cmp = sb_nullstrcmp(R_last_ij, R_last_ik);
+  ik_kk_cmp = sb_nullstrcmp(R_last_ik, R_last_kk);
+  kk_kj_cmp = sb_nullstrcmp(R_last_kk, R_last_kj);
 
   /* Assign R_temp_(ik|kk|kj) to R_last[][] and remove epsilon as well
    * as parentheses, so we can better compare the contents */
 
-  memset (&R_temp_ij, 0, sizeof (struct StringBuffer));
-  memset (&R_temp_ik, 0, sizeof (struct StringBuffer));
-  memset (&R_temp_kk, 0, sizeof (struct StringBuffer));
-  memset (&R_temp_kj, 0, sizeof (struct StringBuffer));
-  remove_epsilon (R_last_ik, &R_temp_ik);
-  remove_epsilon (R_last_kk, &R_temp_kk);
-  remove_epsilon (R_last_kj, &R_temp_kj);
-  remove_parentheses (&R_temp_ik);
-  remove_parentheses (&R_temp_kk);
-  remove_parentheses (&R_temp_kj);
-  clean_ik_kk_cmp = sb_nullstrcmp (R_last_ik, &R_temp_kk);
-  clean_kk_kj_cmp = sb_nullstrcmp (&R_temp_kk, R_last_kj);
+  memset(&R_temp_ij, 0, sizeof(struct StringBuffer));
+  memset(&R_temp_ik, 0, sizeof(struct StringBuffer));
+  memset(&R_temp_kk, 0, sizeof(struct StringBuffer));
+  memset(&R_temp_kj, 0, sizeof(struct StringBuffer));
+  remove_epsilon(R_last_ik, &R_temp_ik);
+  remove_epsilon(R_last_kk, &R_temp_kk);
+  remove_epsilon(R_last_kj, &R_temp_kj);
+  remove_parentheses(&R_temp_ik);
+  remove_parentheses(&R_temp_kk);
+  remove_parentheses(&R_temp_kj);
+  clean_ik_kk_cmp = sb_nullstrcmp(R_last_ik, &R_temp_kk);
+  clean_kk_kj_cmp = sb_nullstrcmp(&R_temp_kk, R_last_kj);
 
   /* construct R_cur_l (and, if necessary R_cur_r) */
   if (GNUNET_YES != R_last_ij->null_flag)
-  {
-    /* Assign R_temp_ij to R_last_ij and remove epsilon as well
-     * as parentheses, so we can better compare the contents */
-    remove_epsilon (R_last_ij, &R_temp_ij);
-    remove_parentheses (&R_temp_ij);
+    {
+      /* Assign R_temp_ij to R_last_ij and remove epsilon as well
+       * as parentheses, so we can better compare the contents */
+      remove_epsilon(R_last_ij, &R_temp_ij);
+      remove_parentheses(&R_temp_ij);
 
-    if ((0 == sb_strcmp (&R_temp_ij, &R_temp_ik)) &&
-        (0 == sb_strcmp (&R_temp_ik, &R_temp_kk)) &&
-        (0 == sb_strcmp (&R_temp_kk, &R_temp_kj)))
-    {
-      if (0 == R_temp_ij.slen)
-      {
-        R_cur_r->null_flag = GNUNET_NO;
-      }
-      else if ((0 == sb_strncmp_cstr (R_last_ij, "(|", 2)) ||
-               (0 == sb_strncmp_cstr (R_last_ik, "(|", 2) &&
-                0 == sb_strncmp_cstr (R_last_kj, "(|", 2)))
-      {
-        /*
-         * a|(e|a)a*(e|a) = a*
-         * a|(e|a)(e|a)*(e|a) = a*
-         * (e|a)|aa*a = a*
-         * (e|a)|aa*(e|a) = a*
-         * (e|a)|(e|a)a*a = a*
-         * (e|a)|(e|a)a*(e|a) = a*
-         * (e|a)|(e|a)(e|a)*(e|a) = a*
-         */
-        if (GNUNET_YES == needs_parentheses (&R_temp_ij))
-          sb_printf1 (R_cur_r, "(%.*s)*", 3, &R_temp_ij);
-        else
-          sb_printf1 (R_cur_r, "%.*s*", 1, &R_temp_ij);
-      }
-      else
-      {
-        /*
-         * a|aa*a = a+
-         * a|(e|a)a*a = a+
-         * a|aa*(e|a) = a+
-         * a|(e|a)(e|a)*a = a+
-         * a|a(e|a)*(e|a) = a+
-         */
-        if (GNUNET_YES == needs_parentheses (&R_temp_ij))
-          sb_printf1 (R_cur_r, "(%.*s)+", 3, &R_temp_ij);
-        else
-          sb_printf1 (R_cur_r, "%.*s+", 1, &R_temp_ij);
-      }
-    }
-    else if ((0 == ij_ik_cmp) && (0 == clean_kk_kj_cmp) &&
-             (0 != clean_ik_kk_cmp))
-    {
-      /* a|ab*b = ab* */
-      if (0 == R_last_kk->slen)
-        sb_strdup (R_cur_r, R_last_ij);
-      else if (GNUNET_YES == needs_parentheses (&R_temp_kk))
-        sb_printf2 (R_cur_r, "%.*s(%.*s)*", 3, R_last_ij, &R_temp_kk);
-      else
-        sb_printf2 (R_cur_r, "%.*s%.*s*", 1, R_last_ij, R_last_kk);
-      R_cur_l->null_flag = GNUNET_YES;
-    }
-    else if ((0 == ij_kj_cmp) && (0 == clean_ik_kk_cmp) &&
-             (0 != clean_kk_kj_cmp))
-    {
-      /* a|bb*a = b*a */
-      if (R_last_kk->slen < 1)
-      {
-        sb_strdup (R_cur_r, R_last_kj);
-      }
-      else if (GNUNET_YES == needs_parentheses (&R_temp_kk))
-        sb_printf2 (R_cur_r, "(%.*s)*%.*s", 3, &R_temp_kk, R_last_kj);
-      else
-        sb_printf2 (R_cur_r, "%.*s*%.*s", 1, &R_temp_kk, R_last_kj);
+      if ((0 == sb_strcmp(&R_temp_ij, &R_temp_ik)) &&
+          (0 == sb_strcmp(&R_temp_ik, &R_temp_kk)) &&
+          (0 == sb_strcmp(&R_temp_kk, &R_temp_kj)))
+        {
+          if (0 == R_temp_ij.slen)
+            {
+              R_cur_r->null_flag = GNUNET_NO;
+            }
+          else if ((0 == sb_strncmp_cstr(R_last_ij, "(|", 2)) ||
+                   (0 == sb_strncmp_cstr(R_last_ik, "(|", 2) &&
+                    0 == sb_strncmp_cstr(R_last_kj, "(|", 2)))
+            {
+              /*
+               * a|(e|a)a*(e|a) = a*
+               * a|(e|a)(e|a)*(e|a) = a*
+               * (e|a)|aa*a = a*
+               * (e|a)|aa*(e|a) = a*
+               * (e|a)|(e|a)a*a = a*
+               * (e|a)|(e|a)a*(e|a) = a*
+               * (e|a)|(e|a)(e|a)*(e|a) = a*
+               */
+              if (GNUNET_YES == needs_parentheses(&R_temp_ij))
+                sb_printf1(R_cur_r, "(%.*s)*", 3, &R_temp_ij);
+              else
+                sb_printf1(R_cur_r, "%.*s*", 1, &R_temp_ij);
+            }
+          else
+            {
+              /*
+               * a|aa*a = a+
+               * a|(e|a)a*a = a+
+               * a|aa*(e|a) = a+
+               * a|(e|a)(e|a)*a = a+
+               * a|a(e|a)*(e|a) = a+
+               */
+              if (GNUNET_YES == needs_parentheses(&R_temp_ij))
+                sb_printf1(R_cur_r, "(%.*s)+", 3, &R_temp_ij);
+              else
+                sb_printf1(R_cur_r, "%.*s+", 1, &R_temp_ij);
+            }
+        }
+      else if ((0 == ij_ik_cmp) && (0 == clean_kk_kj_cmp) &&
+               (0 != clean_ik_kk_cmp))
+        {
+          /* a|ab*b = ab* */
+          if (0 == R_last_kk->slen)
+            sb_strdup(R_cur_r, R_last_ij);
+          else if (GNUNET_YES == needs_parentheses(&R_temp_kk))
+            sb_printf2(R_cur_r, "%.*s(%.*s)*", 3, R_last_ij, &R_temp_kk);
+          else
+            sb_printf2(R_cur_r, "%.*s%.*s*", 1, R_last_ij, R_last_kk);
+          R_cur_l->null_flag = GNUNET_YES;
+        }
+      else if ((0 == ij_kj_cmp) && (0 == clean_ik_kk_cmp) &&
+               (0 != clean_kk_kj_cmp))
+        {
+          /* a|bb*a = b*a */
+          if (R_last_kk->slen < 1)
+            {
+              sb_strdup(R_cur_r, R_last_kj);
+            }
+          else if (GNUNET_YES == needs_parentheses(&R_temp_kk))
+            sb_printf2(R_cur_r, "(%.*s)*%.*s", 3, &R_temp_kk, R_last_kj);
+          else
+            sb_printf2(R_cur_r, "%.*s*%.*s", 1, &R_temp_kk, R_last_kj);
 
-      R_cur_l->null_flag = GNUNET_YES;
-    }
-    else if ((0 == ij_ik_cmp) && (0 == kk_kj_cmp) &&
-             (! has_epsilon (R_last_ij)) && has_epsilon (R_last_kk))
-    {
-      /* a|a(e|b)*(e|b) = a|ab* = a|a|ab|abb|abbb|... = ab* */
-      if (needs_parentheses (&R_temp_kk))
-        sb_printf2 (R_cur_r, "%.*s(%.*s)*", 3, R_last_ij, &R_temp_kk);
+          R_cur_l->null_flag = GNUNET_YES;
+        }
+      else if ((0 == ij_ik_cmp) && (0 == kk_kj_cmp) &&
+               (!has_epsilon(R_last_ij)) && has_epsilon(R_last_kk))
+        {
+          /* a|a(e|b)*(e|b) = a|ab* = a|a|ab|abb|abbb|... = ab* */
+          if (needs_parentheses(&R_temp_kk))
+            sb_printf2(R_cur_r, "%.*s(%.*s)*", 3, R_last_ij, &R_temp_kk);
+          else
+            sb_printf2(R_cur_r, "%.*s%.*s*", 1, R_last_ij, &R_temp_kk);
+          R_cur_l->null_flag = GNUNET_YES;
+        }
+      else if ((0 == ij_kj_cmp) && (0 == ik_kk_cmp) &&
+               (!has_epsilon(R_last_ij)) && has_epsilon(R_last_kk))
+        {
+          /* a|(e|b)(e|b)*a = a|b*a = a|a|ba|bba|bbba|...  = b*a */
+          if (needs_parentheses(&R_temp_kk))
+            sb_printf2(R_cur_r, "(%.*s)*%.*s", 3, &R_temp_kk, R_last_ij);
+          else
+            sb_printf2(R_cur_r, "%.*s*%.*s", 1, &R_temp_kk, R_last_ij);
+          R_cur_l->null_flag = GNUNET_YES;
+        }
       else
-        sb_printf2 (R_cur_r, "%.*s%.*s*", 1, R_last_ij, &R_temp_kk);
-      R_cur_l->null_flag = GNUNET_YES;
+        {
+          sb_strdup(R_cur_l, R_last_ij);
+          remove_parentheses(R_cur_l);
+        }
     }
-    else if ((0 == ij_kj_cmp) && (0 == ik_kk_cmp) &&
-             (! has_epsilon (R_last_ij)) && has_epsilon (R_last_kk))
-    {
-      /* a|(e|b)(e|b)*a = a|b*a = a|a|ba|bba|bbba|...  = b*a */
-      if (needs_parentheses (&R_temp_kk))
-        sb_printf2 (R_cur_r, "(%.*s)*%.*s", 3, &R_temp_kk, R_last_ij);
-      else
-        sb_printf2 (R_cur_r, "%.*s*%.*s", 1, &R_temp_kk, R_last_ij);
-      R_cur_l->null_flag = GNUNET_YES;
-    }
-    else
-    {
-      sb_strdup (R_cur_l, R_last_ij);
-      remove_parentheses (R_cur_l);
-    }
-  }
   else
-  {
-    /* we have no left side */
-    R_cur_l->null_flag = GNUNET_YES;
-  }
+    {
+      /* we have no left side */
+      R_cur_l->null_flag = GNUNET_YES;
+    }
 
   /* construct R_cur_r, if not already constructed */
   if (GNUNET_YES == R_cur_r->null_flag)
-  {
-    length = R_temp_kk.slen - R_last_ik->slen;
-
-    /* a(ba)*bx = (ab)+x */
-    if ((length > 0) && (GNUNET_YES != R_last_kk->null_flag) &&
-        (0 < R_last_kk->slen) && (GNUNET_YES != R_last_kj->null_flag) &&
-        (0 < R_last_kj->slen) && (GNUNET_YES != R_last_ik->null_flag) &&
-        (0 < R_last_ik->slen) &&
-        (0 == sb_strkcmp (&R_temp_kk, R_last_ik, length)) &&
-        (0 == sb_strncmp (&R_temp_kk, R_last_kj, length)))
     {
-      struct StringBuffer temp_a;
-      struct StringBuffer temp_b;
+      length = R_temp_kk.slen - R_last_ik->slen;
 
-      sb_init (&temp_a, length);
-      sb_init (&temp_b, R_last_kj->slen - length);
-
-      length_l = length;
-      temp_a.sbuf = temp_a.abuf;
-      GNUNET_memcpy (temp_a.sbuf, R_last_kj->sbuf, length_l);
-      temp_a.slen = length_l;
-
-      length_r = R_last_kj->slen - length;
-      temp_b.sbuf = temp_b.abuf;
-      GNUNET_memcpy (temp_b.sbuf, &R_last_kj->sbuf[length], length_r);
-      temp_b.slen = length_r;
-
-      /* e|(ab)+ = (ab)* */
-      if ((GNUNET_YES != R_cur_l->null_flag) && (0 == R_cur_l->slen) &&
-          (0 == temp_b.slen))
-      {
-        sb_printf2 (R_cur_r, "(%.*s%.*s)*", 3, R_last_ik, &temp_a);
-        sb_free (R_cur_l);
-        R_cur_l->null_flag = GNUNET_YES;
-      }
-      else
-      {
-        sb_printf3 (R_cur_r, "(%.*s%.*s)+%.*s", 3, R_last_ik, &temp_a, &temp_b);
-      }
-      sb_free (&temp_a);
-      sb_free (&temp_b);
-    }
-    else if (0 == sb_strcmp (&R_temp_ik, &R_temp_kk) &&
-             0 == sb_strcmp (&R_temp_kk, &R_temp_kj))
-    {
-      /*
-       * (e|a)a*(e|a) = a*
-       * (e|a)(e|a)*(e|a) = a*
-       */
-      if (has_epsilon (R_last_ik) && has_epsilon (R_last_kj))
-      {
-        if (needs_parentheses (&R_temp_kk))
-          sb_printf1 (R_cur_r, "(%.*s)*", 3, &R_temp_kk);
-        else
-          sb_printf1 (R_cur_r, "%.*s*", 1, &R_temp_kk);
-      }
-      /* aa*a = a+a */
-      else if ((0 == clean_ik_kk_cmp) && (0 == clean_kk_kj_cmp) &&
-               (! has_epsilon (R_last_ik)))
-      {
-        if (needs_parentheses (&R_temp_kk))
-          sb_printf2 (R_cur_r, "(%.*s)+%.*s", 3, &R_temp_kk, &R_temp_kk);
-        else
-          sb_printf2 (R_cur_r, "%.*s+%.*s", 1, &R_temp_kk, &R_temp_kk);
-      }
-      /*
-       * (e|a)a*a = a+
-       * aa*(e|a) = a+
-       * a(e|a)*(e|a) = a+
-       * (e|a)a*a = a+
-       */
-      else
-      {
-        eps_check = (has_epsilon (R_last_ik) + has_epsilon (R_last_kk) +
-                     has_epsilon (R_last_kj));
-
-        if (1 == eps_check)
+      /* a(ba)*bx = (ab)+x */
+      if ((length > 0) && (GNUNET_YES != R_last_kk->null_flag) &&
+          (0 < R_last_kk->slen) && (GNUNET_YES != R_last_kj->null_flag) &&
+          (0 < R_last_kj->slen) && (GNUNET_YES != R_last_ik->null_flag) &&
+          (0 < R_last_ik->slen) &&
+          (0 == sb_strkcmp(&R_temp_kk, R_last_ik, length)) &&
+          (0 == sb_strncmp(&R_temp_kk, R_last_kj, length)))
         {
-          if (needs_parentheses (&R_temp_kk))
-            sb_printf1 (R_cur_r, "(%.*s)+", 3, &R_temp_kk);
+          struct StringBuffer temp_a;
+          struct StringBuffer temp_b;
+
+          sb_init(&temp_a, length);
+          sb_init(&temp_b, R_last_kj->slen - length);
+
+          length_l = length;
+          temp_a.sbuf = temp_a.abuf;
+          GNUNET_memcpy(temp_a.sbuf, R_last_kj->sbuf, length_l);
+          temp_a.slen = length_l;
+
+          length_r = R_last_kj->slen - length;
+          temp_b.sbuf = temp_b.abuf;
+          GNUNET_memcpy(temp_b.sbuf, &R_last_kj->sbuf[length], length_r);
+          temp_b.slen = length_r;
+
+          /* e|(ab)+ = (ab)* */
+          if ((GNUNET_YES != R_cur_l->null_flag) && (0 == R_cur_l->slen) &&
+              (0 == temp_b.slen))
+            {
+              sb_printf2(R_cur_r, "(%.*s%.*s)*", 3, R_last_ik, &temp_a);
+              sb_free(R_cur_l);
+              R_cur_l->null_flag = GNUNET_YES;
+            }
           else
-            sb_printf1 (R_cur_r, "%.*s+", 1, &R_temp_kk);
+            {
+              sb_printf3(R_cur_r, "(%.*s%.*s)+%.*s", 3, R_last_ik, &temp_a, &temp_b);
+            }
+          sb_free(&temp_a);
+          sb_free(&temp_b);
         }
-      }
-    }
-    /*
-     * aa*b = a+b
-     * (e|a)(e|a)*b = a*b
-     */
-    else if (0 == sb_strcmp (&R_temp_ik, &R_temp_kk))
-    {
-      if (has_epsilon (R_last_ik))
-      {
-        if (needs_parentheses (&R_temp_kk))
-          sb_printf2 (R_cur_r, "(%.*s)*%.*s", 3, &R_temp_kk, R_last_kj);
-        else
-          sb_printf2 (R_cur_r, "%.*s*%.*s", 1, &R_temp_kk, R_last_kj);
-      }
-      else
-      {
-        if (needs_parentheses (&R_temp_kk))
-          sb_printf2 (R_cur_r, "(%.*s)+%.*s", 3, &R_temp_kk, R_last_kj);
-        else
-          sb_printf2 (R_cur_r, "%.*s+%.*s", 1, &R_temp_kk, R_last_kj);
-      }
-    }
-    /*
-     * ba*a = ba+
-     * b(e|a)*(e|a) = ba*
-     */
-    else if (0 == sb_strcmp (&R_temp_kk, &R_temp_kj))
-    {
-      if (has_epsilon (R_last_kj))
-      {
-        if (needs_parentheses (&R_temp_kk))
-          sb_printf2 (R_cur_r, "%.*s(%.*s)*", 3, R_last_ik, &R_temp_kk);
-        else
-          sb_printf2 (R_cur_r, "%.*s%.*s*", 1, R_last_ik, &R_temp_kk);
-      }
-      else
-      {
-        if (needs_parentheses (&R_temp_kk))
-          sb_printf2 (R_cur_r, "(%.*s)+%.*s", 3, R_last_ik, &R_temp_kk);
-        else
-          sb_printf2 (R_cur_r, "%.*s+%.*s", 1, R_last_ik, &R_temp_kk);
-      }
-    }
-    else
-    {
-      if (0 < R_temp_kk.slen)
-      {
-        if (needs_parentheses (&R_temp_kk))
+      else if (0 == sb_strcmp(&R_temp_ik, &R_temp_kk) &&
+               0 == sb_strcmp(&R_temp_kk, &R_temp_kj))
         {
-          sb_printf3 (R_cur_r,
-                      "%.*s(%.*s)*%.*s",
-                      3,
-                      R_last_ik,
-                      &R_temp_kk,
-                      R_last_kj);
+          /*
+           * (e|a)a*(e|a) = a*
+           * (e|a)(e|a)*(e|a) = a*
+           */
+          if (has_epsilon(R_last_ik) && has_epsilon(R_last_kj))
+            {
+              if (needs_parentheses(&R_temp_kk))
+                sb_printf1(R_cur_r, "(%.*s)*", 3, &R_temp_kk);
+              else
+                sb_printf1(R_cur_r, "%.*s*", 1, &R_temp_kk);
+            }
+          /* aa*a = a+a */
+          else if ((0 == clean_ik_kk_cmp) && (0 == clean_kk_kj_cmp) &&
+                   (!has_epsilon(R_last_ik)))
+            {
+              if (needs_parentheses(&R_temp_kk))
+                sb_printf2(R_cur_r, "(%.*s)+%.*s", 3, &R_temp_kk, &R_temp_kk);
+              else
+                sb_printf2(R_cur_r, "%.*s+%.*s", 1, &R_temp_kk, &R_temp_kk);
+            }
+          /*
+           * (e|a)a*a = a+
+           * aa*(e|a) = a+
+           * a(e|a)*(e|a) = a+
+           * (e|a)a*a = a+
+           */
+          else
+            {
+              eps_check = (has_epsilon(R_last_ik) + has_epsilon(R_last_kk) +
+                           has_epsilon(R_last_kj));
+
+              if (1 == eps_check)
+                {
+                  if (needs_parentheses(&R_temp_kk))
+                    sb_printf1(R_cur_r, "(%.*s)+", 3, &R_temp_kk);
+                  else
+                    sb_printf1(R_cur_r, "%.*s+", 1, &R_temp_kk);
+                }
+            }
         }
-        else
+      /*
+       * aa*b = a+b
+       * (e|a)(e|a)*b = a*b
+       */
+      else if (0 == sb_strcmp(&R_temp_ik, &R_temp_kk))
         {
-          sb_printf3 (R_cur_r,
-                      "%.*s%.*s*%.*s",
-                      1,
-                      R_last_ik,
-                      &R_temp_kk,
-                      R_last_kj);
+          if (has_epsilon(R_last_ik))
+            {
+              if (needs_parentheses(&R_temp_kk))
+                sb_printf2(R_cur_r, "(%.*s)*%.*s", 3, &R_temp_kk, R_last_kj);
+              else
+                sb_printf2(R_cur_r, "%.*s*%.*s", 1, &R_temp_kk, R_last_kj);
+            }
+          else
+            {
+              if (needs_parentheses(&R_temp_kk))
+                sb_printf2(R_cur_r, "(%.*s)+%.*s", 3, &R_temp_kk, R_last_kj);
+              else
+                sb_printf2(R_cur_r, "%.*s+%.*s", 1, &R_temp_kk, R_last_kj);
+            }
         }
-      }
+      /*
+       * ba*a = ba+
+       * b(e|a)*(e|a) = ba*
+       */
+      else if (0 == sb_strcmp(&R_temp_kk, &R_temp_kj))
+        {
+          if (has_epsilon(R_last_kj))
+            {
+              if (needs_parentheses(&R_temp_kk))
+                sb_printf2(R_cur_r, "%.*s(%.*s)*", 3, R_last_ik, &R_temp_kk);
+              else
+                sb_printf2(R_cur_r, "%.*s%.*s*", 1, R_last_ik, &R_temp_kk);
+            }
+          else
+            {
+              if (needs_parentheses(&R_temp_kk))
+                sb_printf2(R_cur_r, "(%.*s)+%.*s", 3, R_last_ik, &R_temp_kk);
+              else
+                sb_printf2(R_cur_r, "%.*s+%.*s", 1, R_last_ik, &R_temp_kk);
+            }
+        }
       else
-      {
-        sb_printf2 (R_cur_r, "%.*s%.*s", 0, R_last_ik, R_last_kj);
-      }
+        {
+          if (0 < R_temp_kk.slen)
+            {
+              if (needs_parentheses(&R_temp_kk))
+                {
+                  sb_printf3(R_cur_r,
+                             "%.*s(%.*s)*%.*s",
+                             3,
+                             R_last_ik,
+                             &R_temp_kk,
+                             R_last_kj);
+                }
+              else
+                {
+                  sb_printf3(R_cur_r,
+                             "%.*s%.*s*%.*s",
+                             1,
+                             R_last_ik,
+                             &R_temp_kk,
+                             R_last_kj);
+                }
+            }
+          else
+            {
+              sb_printf2(R_cur_r, "%.*s%.*s", 0, R_last_ik, R_last_kj);
+            }
+        }
     }
-  }
-  sb_free (&R_temp_ij);
-  sb_free (&R_temp_ik);
-  sb_free (&R_temp_kk);
-  sb_free (&R_temp_kj);
+  sb_free(&R_temp_ij);
+  sb_free(&R_temp_ik);
+  sb_free(&R_temp_kk);
+  sb_free(&R_temp_kj);
 
   if ((GNUNET_YES == R_cur_l->null_flag) && (GNUNET_YES == R_cur_r->null_flag))
-  {
-    R_cur_ij->null_flag = GNUNET_YES;
-    return;
-  }
+    {
+      R_cur_ij->null_flag = GNUNET_YES;
+      return;
+    }
 
   if ((GNUNET_YES != R_cur_l->null_flag) && (GNUNET_YES == R_cur_r->null_flag))
-  {
-    struct StringBuffer tmp;
+    {
+      struct StringBuffer tmp;
 
-    tmp = *R_cur_ij;
-    *R_cur_ij = *R_cur_l;
-    *R_cur_l = tmp;
-    return;
-  }
+      tmp = *R_cur_ij;
+      *R_cur_ij = *R_cur_l;
+      *R_cur_l = tmp;
+      return;
+    }
 
   if ((GNUNET_YES == R_cur_l->null_flag) && (GNUNET_YES != R_cur_r->null_flag))
-  {
-    struct StringBuffer tmp;
+    {
+      struct StringBuffer tmp;
 
-    tmp = *R_cur_ij;
-    *R_cur_ij = *R_cur_r;
-    *R_cur_r = tmp;
-    return;
-  }
+      tmp = *R_cur_ij;
+      *R_cur_ij = *R_cur_r;
+      *R_cur_r = tmp;
+      return;
+    }
 
-  if (0 == sb_nullstrcmp (R_cur_l, R_cur_r))
-  {
-    struct StringBuffer tmp;
+  if (0 == sb_nullstrcmp(R_cur_l, R_cur_r))
+    {
+      struct StringBuffer tmp;
 
-    tmp = *R_cur_ij;
-    *R_cur_ij = *R_cur_l;
-    *R_cur_l = tmp;
-    return;
-  }
-  sb_printf2 (R_cur_ij, "(%.*s|%.*s)", 3, R_cur_l, R_cur_r);
+      tmp = *R_cur_ij;
+      *R_cur_ij = *R_cur_l;
+      *R_cur_l = tmp;
+      return;
+    }
+  sb_printf2(R_cur_ij, "(%.*s|%.*s)", 3, R_cur_l, R_cur_r);
 }
 
 
@@ -1577,7 +1575,7 @@ automaton_create_proofs_simplify (const struct StringBuffer *R_last_ij,
  * @param a automaton for which to assign proofs and hashes, must not be NULL
  */
 static int
-automaton_create_proofs (struct REGEX_INTERNAL_Automaton *a)
+automaton_create_proofs(struct REGEX_INTERNAL_Automaton *a)
 {
   unsigned int n = a->state_count;
   struct REGEX_INTERNAL_State *states[n];
@@ -1592,143 +1590,143 @@ automaton_create_proofs (struct REGEX_INTERNAL_Automaton *a)
   unsigned int j;
   unsigned int k;
 
-  R_last = GNUNET_malloc_large (sizeof (struct StringBuffer) * n * n);
-  R_cur = GNUNET_malloc_large (sizeof (struct StringBuffer) * n * n);
+  R_last = GNUNET_malloc_large(sizeof(struct StringBuffer) * n * n);
+  R_cur = GNUNET_malloc_large(sizeof(struct StringBuffer) * n * n);
   if ((NULL == R_last) || (NULL == R_cur))
-  {
-    GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "malloc");
-    GNUNET_free_non_null (R_cur);
-    GNUNET_free_non_null (R_last);
-    return GNUNET_SYSERR;
-  }
+    {
+      GNUNET_log_strerror(GNUNET_ERROR_TYPE_ERROR, "malloc");
+      GNUNET_free_non_null(R_cur);
+      GNUNET_free_non_null(R_last);
+      return GNUNET_SYSERR;
+    }
 
   /* create depth-first numbering of the states, initializes 'state' */
-  REGEX_INTERNAL_automaton_traverse (a,
-                                     a->start,
-                                     NULL,
-                                     NULL,
-                                     &number_states,
-                                     states);
+  REGEX_INTERNAL_automaton_traverse(a,
+                                    a->start,
+                                    NULL,
+                                    NULL,
+                                    &number_states,
+                                    states);
 
   for (i = 0; i < n; i++)
-    GNUNET_assert (NULL != states[i]);
+    GNUNET_assert(NULL != states[i]);
   for (i = 0; i < n; i++)
     for (j = 0; j < n; j++)
       R_last[i * n + j].null_flag = GNUNET_YES;
 
   /* Compute regular expressions of length "1" between each pair of states */
   for (i = 0; i < n; i++)
-  {
-    for (t = states[i]->transitions_head; NULL != t; t = t->next)
     {
-      j = t->to_state->dfs_id;
-      if (GNUNET_YES == R_last[i * n + j].null_flag)
-      {
-        sb_strdup_cstr (&R_last[i * n + j], t->label);
-      }
+      for (t = states[i]->transitions_head; NULL != t; t = t->next)
+        {
+          j = t->to_state->dfs_id;
+          if (GNUNET_YES == R_last[i * n + j].null_flag)
+            {
+              sb_strdup_cstr(&R_last[i * n + j], t->label);
+            }
+          else
+            {
+              sb_append_cstr(&R_last[i * n + j], "|");
+              sb_append_cstr(&R_last[i * n + j], t->label);
+            }
+        }
+      /* add self-loop: i is reachable from i via epsilon-transition */
+      if (GNUNET_YES == R_last[i * n + i].null_flag)
+        {
+          R_last[i * n + i].slen = 0;
+          R_last[i * n + i].null_flag = GNUNET_NO;
+        }
       else
-      {
-        sb_append_cstr (&R_last[i * n + j], "|");
-        sb_append_cstr (&R_last[i * n + j], t->label);
-      }
+        {
+          sb_wrap(&R_last[i * n + i], "(|%.*s)", 3);
+        }
     }
-    /* add self-loop: i is reachable from i via epsilon-transition */
-    if (GNUNET_YES == R_last[i * n + i].null_flag)
-    {
-      R_last[i * n + i].slen = 0;
-      R_last[i * n + i].null_flag = GNUNET_NO;
-    }
-    else
-    {
-      sb_wrap (&R_last[i * n + i], "(|%.*s)", 3);
-    }
-  }
   for (i = 0; i < n; i++)
     for (j = 0; j < n; j++)
-      if (needs_parentheses (&R_last[i * n + j]))
-        sb_wrap (&R_last[i * n + j], "(%.*s)", 2);
+      if (needs_parentheses(&R_last[i * n + j]))
+        sb_wrap(&R_last[i * n + j], "(%.*s)", 2);
   /* Compute regular expressions of length "k" between each pair of states per
    * induction */
-  memset (&R_cur_l, 0, sizeof (struct StringBuffer));
-  memset (&R_cur_r, 0, sizeof (struct StringBuffer));
+  memset(&R_cur_l, 0, sizeof(struct StringBuffer));
+  memset(&R_cur_r, 0, sizeof(struct StringBuffer));
   for (k = 0; k < n; k++)
-  {
-    for (i = 0; i < n; i++)
     {
-      for (j = 0; j < n; j++)
-      {
-        /* Basis for the recursion:
-         * $R^{(k)}_{ij} = R^{(k-1)}_{ij} | R^{(k-1)}_{ik} ( R^{(k-1)}_{kk} )^* R^{(k-1)}_{kj}
-         * R_last == R^{(k-1)}, R_cur == R^{(k)}
-         */
+      for (i = 0; i < n; i++)
+        {
+          for (j = 0; j < n; j++)
+            {
+              /* Basis for the recursion:
+               * $R^{(k)}_{ij} = R^{(k-1)}_{ij} | R^{(k-1)}_{ik} ( R^{(k-1)}_{kk} )^* R^{(k-1)}_{kj}
+               * R_last == R^{(k-1)}, R_cur == R^{(k)}
+               */
 
-        /* Create R_cur[i][j] and simplify the expression */
-        automaton_create_proofs_simplify (&R_last[i * n + j],
-                                          &R_last[i * n + k],
-                                          &R_last[k * n + k],
-                                          &R_last[k * n + j],
-                                          &R_cur[i * n + j],
-                                          &R_cur_l,
-                                          &R_cur_r);
-      }
+              /* Create R_cur[i][j] and simplify the expression */
+              automaton_create_proofs_simplify(&R_last[i * n + j],
+                                               &R_last[i * n + k],
+                                               &R_last[k * n + k],
+                                               &R_last[k * n + j],
+                                               &R_cur[i * n + j],
+                                               &R_cur_l,
+                                               &R_cur_r);
+            }
+        }
+      /* set R_last = R_cur */
+      R_swap = R_last;
+      R_last = R_cur;
+      R_cur = R_swap;
+      /* clear 'R_cur' for next iteration */
+      for (i = 0; i < n; i++)
+        for (j = 0; j < n; j++)
+          R_cur[i * n + j].null_flag = GNUNET_YES;
     }
-    /* set R_last = R_cur */
-    R_swap = R_last;
-    R_last = R_cur;
-    R_cur = R_swap;
-    /* clear 'R_cur' for next iteration */
-    for (i = 0; i < n; i++)
-      for (j = 0; j < n; j++)
-        R_cur[i * n + j].null_flag = GNUNET_YES;
-  }
-  sb_free (&R_cur_l);
-  sb_free (&R_cur_r);
+  sb_free(&R_cur_l);
+  sb_free(&R_cur_r);
   /* assign proofs and hashes */
   for (i = 0; i < n; i++)
-  {
-    if (GNUNET_YES != R_last[a->start->dfs_id * n + i].null_flag)
     {
-      states[i]->proof = GNUNET_strndup (R_last[a->start->dfs_id * n + i].sbuf,
-                                         R_last[a->start->dfs_id * n + i].slen);
-      GNUNET_CRYPTO_hash (states[i]->proof,
-                          strlen (states[i]->proof),
-                          &states[i]->hash);
+      if (GNUNET_YES != R_last[a->start->dfs_id * n + i].null_flag)
+        {
+          states[i]->proof = GNUNET_strndup(R_last[a->start->dfs_id * n + i].sbuf,
+                                            R_last[a->start->dfs_id * n + i].slen);
+          GNUNET_CRYPTO_hash(states[i]->proof,
+                             strlen(states[i]->proof),
+                             &states[i]->hash);
+        }
     }
-  }
 
   /* complete regex for whole DFA: union of all pairs (start state/accepting
    * state(s)). */
-  sb_init (&complete_regex, 16 * n);
+  sb_init(&complete_regex, 16 * n);
   for (i = 0; i < n; i++)
-  {
-    if (states[i]->accepting)
     {
-      if ((0 == complete_regex.slen) &&
-          (0 < R_last[a->start->dfs_id * n + i].slen))
-      {
-        sb_append (&complete_regex, &R_last[a->start->dfs_id * n + i]);
-      }
-      else if ((GNUNET_YES != R_last[a->start->dfs_id * n + i].null_flag) &&
-               (0 < R_last[a->start->dfs_id * n + i].slen))
-      {
-        sb_append_cstr (&complete_regex, "|");
-        sb_append (&complete_regex, &R_last[a->start->dfs_id * n + i]);
-      }
+      if (states[i]->accepting)
+        {
+          if ((0 == complete_regex.slen) &&
+              (0 < R_last[a->start->dfs_id * n + i].slen))
+            {
+              sb_append(&complete_regex, &R_last[a->start->dfs_id * n + i]);
+            }
+          else if ((GNUNET_YES != R_last[a->start->dfs_id * n + i].null_flag) &&
+                   (0 < R_last[a->start->dfs_id * n + i].slen))
+            {
+              sb_append_cstr(&complete_regex, "|");
+              sb_append(&complete_regex, &R_last[a->start->dfs_id * n + i]);
+            }
+        }
     }
-  }
   a->canonical_regex =
-    GNUNET_strndup (complete_regex.sbuf, complete_regex.slen);
+    GNUNET_strndup(complete_regex.sbuf, complete_regex.slen);
 
   /* cleanup */
-  sb_free (&complete_regex);
+  sb_free(&complete_regex);
   for (i = 0; i < n; i++)
     for (j = 0; j < n; j++)
-    {
-      sb_free (&R_cur[i * n + j]);
-      sb_free (&R_last[i * n + j]);
-    }
-  GNUNET_free (R_cur);
-  GNUNET_free (R_last);
+      {
+        sb_free(&R_cur[i * n + j]);
+        sb_free(&R_last[i * n + j]);
+      }
+  GNUNET_free(R_cur);
+  GNUNET_free(R_last);
   return GNUNET_OK;
 }
 
@@ -1743,8 +1741,8 @@ automaton_create_proofs (struct REGEX_INTERNAL_Automaton *a)
  * @return new DFA state
  */
 static struct REGEX_INTERNAL_State *
-dfa_state_create (struct REGEX_INTERNAL_Context *ctx,
-                  struct REGEX_INTERNAL_StateSet *nfa_states)
+dfa_state_create(struct REGEX_INTERNAL_Context *ctx,
+                 struct REGEX_INTERNAL_StateSet *nfa_states)
 {
   struct REGEX_INTERNAL_State *s;
   char *pos;
@@ -1753,16 +1751,16 @@ dfa_state_create (struct REGEX_INTERNAL_Context *ctx,
   struct REGEX_INTERNAL_Transition *ctran;
   unsigned int i;
 
-  s = GNUNET_new (struct REGEX_INTERNAL_State);
+  s = GNUNET_new(struct REGEX_INTERNAL_State);
   s->id = ctx->state_id++;
   s->index = -1;
   s->lowlink = -1;
 
   if (NULL == nfa_states)
-  {
-    GNUNET_asprintf (&s->name, "s%i", s->id);
-    return s;
-  }
+    {
+      GNUNET_asprintf(&s->name, "s%i", s->id);
+      return s;
+    }
 
   s->nfa_set = *nfa_states;
 
@@ -1771,30 +1769,30 @@ dfa_state_create (struct REGEX_INTERNAL_Context *ctx,
 
   /* Create a name based on 'nfa_states' */
   len = nfa_states->off * 14 + 4;
-  s->name = GNUNET_malloc (len);
-  strcat (s->name, "{");
+  s->name = GNUNET_malloc(len);
+  strcat(s->name, "{");
   pos = s->name + 1;
 
   for (i = 0; i < nfa_states->off; i++)
-  {
-    cstate = nfa_states->states[i];
-    GNUNET_snprintf (pos, pos - s->name + len, "%i,", cstate->id);
-    pos += strlen (pos);
+    {
+      cstate = nfa_states->states[i];
+      GNUNET_snprintf(pos, pos - s->name + len, "%i,", cstate->id);
+      pos += strlen(pos);
 
-    /* Add a transition for each distinct label to NULL state */
-    for (ctran = cstate->transitions_head; NULL != ctran; ctran = ctran->next)
-      if (NULL != ctran->label)
-        state_add_transition (ctx, s, ctran->label, NULL);
+      /* Add a transition for each distinct label to NULL state */
+      for (ctran = cstate->transitions_head; NULL != ctran; ctran = ctran->next)
+        if (NULL != ctran->label)
+          state_add_transition(ctx, s, ctran->label, NULL);
 
-    /* If the nfa_states contain an accepting state, the new dfa state is also
-     * accepting. */
-    if (cstate->accepting)
-      s->accepting = 1;
-  }
+      /* If the nfa_states contain an accepting state, the new dfa state is also
+       * accepting. */
+      if (cstate->accepting)
+        s->accepting = 1;
+    }
   pos[-1] = '}';
-  s->name = GNUNET_realloc (s->name, strlen (s->name) + 1);
+  s->name = GNUNET_realloc(s->name, strlen(s->name) + 1);
 
-  memset (nfa_states, 0, sizeof (struct REGEX_INTERNAL_StateSet));
+  memset(nfa_states, 0, sizeof(struct REGEX_INTERNAL_StateSet));
   return s;
 }
 
@@ -1813,7 +1811,7 @@ dfa_state_create (struct REGEX_INTERNAL_Context *ctx,
  * @return length of the substring comsumed from 'str'
  */
 static unsigned int
-dfa_move (struct REGEX_INTERNAL_State **s, const char *str)
+dfa_move(struct REGEX_INTERNAL_State **s, const char *str)
 {
   struct REGEX_INTERNAL_Transition *t;
   struct REGEX_INTERNAL_State *new_s;
@@ -1826,18 +1824,18 @@ dfa_move (struct REGEX_INTERNAL_State **s, const char *str)
   new_s = NULL;
   max_len = 0;
   for (t = (*s)->transitions_head; NULL != t; t = t->next)
-  {
-    len = strlen (t->label);
-
-    if (0 == strncmp (t->label, str, len))
     {
-      if (len >= max_len)
-      {
-        max_len = len;
-        new_s = t->to_state;
-      }
+      len = strlen(t->label);
+
+      if (0 == strncmp(t->label, str, len))
+        {
+          if (len >= max_len)
+            {
+              max_len = len;
+              new_s = t->to_state;
+            }
+        }
     }
-  }
 
   *s = new_s;
   return max_len;
@@ -1854,9 +1852,9 @@ dfa_move (struct REGEX_INTERNAL_State **s, const char *str)
  * @param s state where the marked attribute will be set to #GNUNET_YES.
  */
 static void
-mark_states (void *cls,
-             const unsigned int count,
-             struct REGEX_INTERNAL_State *s)
+mark_states(void *cls,
+            const unsigned int count,
+            struct REGEX_INTERNAL_State *s)
 {
   s->marked = GNUNET_YES;
 }
@@ -1869,7 +1867,7 @@ mark_states (void *cls,
  * @param a DFA automaton
  */
 static void
-dfa_remove_unreachable_states (struct REGEX_INTERNAL_Automaton *a)
+dfa_remove_unreachable_states(struct REGEX_INTERNAL_Automaton *a)
 {
   struct REGEX_INTERNAL_State *s;
   struct REGEX_INTERNAL_State *s_next;
@@ -1879,20 +1877,20 @@ dfa_remove_unreachable_states (struct REGEX_INTERNAL_Automaton *a)
     s->marked = GNUNET_NO;
 
   /* 2. traverse dfa from start state and mark all visited states */
-  REGEX_INTERNAL_automaton_traverse (a,
-                                     a->start,
-                                     NULL,
-                                     NULL,
-                                     &mark_states,
-                                     NULL);
+  REGEX_INTERNAL_automaton_traverse(a,
+                                    a->start,
+                                    NULL,
+                                    NULL,
+                                    &mark_states,
+                                    NULL);
 
   /* 3. delete all states that were not visited */
   for (s = a->states_head; NULL != s; s = s_next)
-  {
-    s_next = s->next;
-    if (GNUNET_NO == s->marked)
-      automaton_remove_state (a, s);
-  }
+    {
+      s_next = s->next;
+      if (GNUNET_NO == s->marked)
+        automaton_remove_state(a, s);
+    }
 }
 
 
@@ -1903,38 +1901,38 @@ dfa_remove_unreachable_states (struct REGEX_INTERNAL_Automaton *a)
  * @param a DFA automaton
  */
 static void
-dfa_remove_dead_states (struct REGEX_INTERNAL_Automaton *a)
+dfa_remove_dead_states(struct REGEX_INTERNAL_Automaton *a)
 {
   struct REGEX_INTERNAL_State *s;
   struct REGEX_INTERNAL_State *s_next;
   struct REGEX_INTERNAL_Transition *t;
   int dead;
 
-  GNUNET_assert (DFA == a->type);
+  GNUNET_assert(DFA == a->type);
 
   for (s = a->states_head; NULL != s; s = s_next)
-  {
-    s_next = s->next;
-
-    if (s->accepting)
-      continue;
-
-    dead = 1;
-    for (t = s->transitions_head; NULL != t; t = t->next)
     {
-      if (NULL != t->to_state && t->to_state != s)
-      {
-        dead = 0;
-        break;
-      }
+      s_next = s->next;
+
+      if (s->accepting)
+        continue;
+
+      dead = 1;
+      for (t = s->transitions_head; NULL != t; t = t->next)
+        {
+          if (NULL != t->to_state && t->to_state != s)
+            {
+              dead = 0;
+              break;
+            }
+        }
+
+      if (0 == dead)
+        continue;
+
+      /* state s is dead, remove it */
+      automaton_remove_state(a, s);
     }
-
-    if (0 == dead)
-      continue;
-
-    /* state s is dead, remove it */
-    automaton_remove_state (a, s);
-  }
 }
 
 
@@ -1946,8 +1944,8 @@ dfa_remove_dead_states (struct REGEX_INTERNAL_Automaton *a)
  * @return #GNUNET_OK on success
  */
 static int
-dfa_merge_nondistinguishable_states (struct REGEX_INTERNAL_Context *ctx,
-                                     struct REGEX_INTERNAL_Automaton *a)
+dfa_merge_nondistinguishable_states(struct REGEX_INTERNAL_Context *ctx,
+                                    struct REGEX_INTERNAL_Automaton *a)
 {
   uint32_t *table;
   struct REGEX_INTERNAL_State *s1;
@@ -1964,20 +1962,20 @@ dfa_merge_nondistinguishable_states (struct REGEX_INTERNAL_Context *ctx,
   unsigned long long idx1;
 
   if ((NULL == a) || (0 == a->state_count))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Could not merge nondistinguishable states, automaton was NULL.\n");
-    return GNUNET_SYSERR;
-  }
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
+                 "Could not merge nondistinguishable states, automaton was NULL.\n");
+      return GNUNET_SYSERR;
+    }
 
   state_cnt = a->state_count;
-  table = GNUNET_malloc_large (
-    (sizeof (uint32_t) * state_cnt * state_cnt / 32) + sizeof (uint32_t));
+  table = GNUNET_malloc_large(
+    (sizeof(uint32_t) * state_cnt * state_cnt / 32) + sizeof(uint32_t));
   if (NULL == table)
-  {
-    GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "malloc");
-    return GNUNET_SYSERR;
-  }
+    {
+      GNUNET_log_strerror(GNUNET_ERROR_TYPE_ERROR, "malloc");
+      return GNUNET_SYSERR;
+    }
 
   for (i = 0, s1 = a->states_head; NULL != s1; s1 = s1->next)
     s1->marked = i++;
@@ -1985,74 +1983,74 @@ dfa_merge_nondistinguishable_states (struct REGEX_INTERNAL_Context *ctx,
   /* Mark all pairs of accepting/!accepting states */
   for (s1 = a->states_head; NULL != s1; s1 = s1->next)
     for (s2 = a->states_head; NULL != s2; s2 = s2->next)
-      if ((s1->accepting && ! s2->accepting) ||
-          (! s1->accepting && s2->accepting))
-      {
-        idx = (unsigned long long) s1->marked * state_cnt + s2->marked;
-        table[idx / 32] |= (1U << (idx % 32));
-      }
+      if ((s1->accepting && !s2->accepting) ||
+          (!s1->accepting && s2->accepting))
+        {
+          idx = (unsigned long long)s1->marked * state_cnt + s2->marked;
+          table[idx / 32] |= (1U << (idx % 32));
+        }
 
   /* Find all equal states */
   change = 1;
   while (0 != change)
-  {
-    change = 0;
-    for (s1 = a->states_head; NULL != s1; s1 = s1->next)
     {
-      for (s2 = a->states_head; NULL != s2 && s1 != s2; s2 = s2->next)
-      {
-        idx = (unsigned long long) s1->marked * state_cnt + s2->marked;
-        if (0 != (table[idx / 32] & (1U << (idx % 32))))
-          continue;
-        num_equal_edges = 0;
-        for (t1 = s1->transitions_head; NULL != t1; t1 = t1->next)
+      change = 0;
+      for (s1 = a->states_head; NULL != s1; s1 = s1->next)
         {
-          for (t2 = s2->transitions_head; NULL != t2; t2 = t2->next)
-          {
-            if (0 == strcmp (t1->label, t2->label))
+          for (s2 = a->states_head; NULL != s2 && s1 != s2; s2 = s2->next)
             {
-              num_equal_edges++;
-              /* same edge, but targets definitively different, so we're different
-		 as well */
-              if (t1->to_state->marked > t2->to_state->marked)
-                idx1 = (unsigned long long) t1->to_state->marked * state_cnt +
-                       t2->to_state->marked;
-              else
-                idx1 = (unsigned long long) t2->to_state->marked * state_cnt +
-                       t1->to_state->marked;
-              if (0 != (table[idx1 / 32] & (1U << (idx1 % 32))))
-              {
-                table[idx / 32] |= (1U << (idx % 32));
-                change = 1; /* changed a marker, need to run again */
-              }
+              idx = (unsigned long long)s1->marked * state_cnt + s2->marked;
+              if (0 != (table[idx / 32] & (1U << (idx % 32))))
+                continue;
+              num_equal_edges = 0;
+              for (t1 = s1->transitions_head; NULL != t1; t1 = t1->next)
+                {
+                  for (t2 = s2->transitions_head; NULL != t2; t2 = t2->next)
+                    {
+                      if (0 == strcmp(t1->label, t2->label))
+                        {
+                          num_equal_edges++;
+                          /* same edge, but targets definitively different, so we're different
+                             as well */
+                          if (t1->to_state->marked > t2->to_state->marked)
+                            idx1 = (unsigned long long)t1->to_state->marked * state_cnt +
+                                   t2->to_state->marked;
+                          else
+                            idx1 = (unsigned long long)t2->to_state->marked * state_cnt +
+                                   t1->to_state->marked;
+                          if (0 != (table[idx1 / 32] & (1U << (idx1 % 32))))
+                            {
+                              table[idx / 32] |= (1U << (idx % 32));
+                              change = 1; /* changed a marker, need to run again */
+                            }
+                        }
+                    }
+                }
+              if ((num_equal_edges != s1->transition_count) ||
+                  (num_equal_edges != s2->transition_count))
+                {
+                  /* Make sure ALL edges of possible equal states are the same */
+                  table[idx / 32] |= (1U << (idx % 32));
+                  change = 1; /* changed a marker, need to run again */
+                }
             }
-          }
         }
-        if ((num_equal_edges != s1->transition_count) ||
-            (num_equal_edges != s2->transition_count))
-        {
-          /* Make sure ALL edges of possible equal states are the same */
-          table[idx / 32] |= (1U << (idx % 32));
-          change = 1; /* changed a marker, need to run again */
-        }
-      }
     }
-  }
 
   /* Merge states that are equal */
   for (s1 = a->states_head; NULL != s1; s1 = s1_next)
-  {
-    s1_next = s1->next;
-    for (s2 = a->states_head; NULL != s2 && s1 != s2; s2 = s2_next)
     {
-      s2_next = s2->next;
-      idx = (unsigned long long) s1->marked * state_cnt + s2->marked;
-      if (0 == (table[idx / 32] & (1U << (idx % 32))))
-        automaton_merge_states (ctx, a, s1, s2);
+      s1_next = s1->next;
+      for (s2 = a->states_head; NULL != s2 && s1 != s2; s2 = s2_next)
+        {
+          s2_next = s2->next;
+          idx = (unsigned long long)s1->marked * state_cnt + s2->marked;
+          if (0 == (table[idx / 32] & (1U << (idx % 32))))
+            automaton_merge_states(ctx, a, s1, s2);
+        }
     }
-  }
 
-  GNUNET_free (table);
+  GNUNET_free(table);
   return GNUNET_OK;
 }
 
@@ -2066,22 +2064,22 @@ dfa_merge_nondistinguishable_states (struct REGEX_INTERNAL_Context *ctx,
  * @return GNUNET_OK on success
  */
 static int
-dfa_minimize (struct REGEX_INTERNAL_Context *ctx,
-              struct REGEX_INTERNAL_Automaton *a)
+dfa_minimize(struct REGEX_INTERNAL_Context *ctx,
+             struct REGEX_INTERNAL_Automaton *a)
 {
   if (NULL == a)
     return GNUNET_SYSERR;
 
-  GNUNET_assert (DFA == a->type);
+  GNUNET_assert(DFA == a->type);
 
   /* 1. remove unreachable states */
-  dfa_remove_unreachable_states (a);
+  dfa_remove_unreachable_states(a);
 
   /* 2. remove dead states */
-  dfa_remove_dead_states (a);
+  dfa_remove_dead_states(a);
 
   /* 3. Merge nondistinguishable states */
-  if (GNUNET_OK != dfa_merge_nondistinguishable_states (ctx, a))
+  if (GNUNET_OK != dfa_merge_nondistinguishable_states(ctx, a))
     return GNUNET_SYSERR;
   return GNUNET_OK;
 }
@@ -2090,8 +2088,7 @@ dfa_minimize (struct REGEX_INTERNAL_Context *ctx,
 /**
  * Context for adding strided transitions to a DFA.
  */
-struct REGEX_INTERNAL_Strided_Context
-{
+struct REGEX_INTERNAL_Strided_Context {
   /**
    * Length of the strides.
    */
@@ -2121,50 +2118,50 @@ struct REGEX_INTERNAL_Strided_Context
  * @param s current state in the depth-first traversal
  */
 static void
-dfa_add_multi_strides_helper (void *cls,
-                              const unsigned int depth,
-                              char *label,
-                              struct REGEX_INTERNAL_State *start,
-                              struct REGEX_INTERNAL_State *s)
+dfa_add_multi_strides_helper(void *cls,
+                             const unsigned int depth,
+                             char *label,
+                             struct REGEX_INTERNAL_State *start,
+                             struct REGEX_INTERNAL_State *s)
 {
   struct REGEX_INTERNAL_Strided_Context *ctx = cls;
   struct REGEX_INTERNAL_Transition *t;
   char *new_label;
 
   if (depth == ctx->stride)
-  {
-    t = GNUNET_new (struct REGEX_INTERNAL_Transition);
-    t->label = GNUNET_strdup (label);
-    t->to_state = s;
-    t->from_state = start;
-    GNUNET_CONTAINER_DLL_insert (ctx->transitions_head,
-                                 ctx->transitions_tail,
-                                 t);
-  }
-  else
-  {
-    for (t = s->transitions_head; NULL != t; t = t->next)
     {
-      /* Do not consider self-loops, because it end's up in too many
-       * transitions */
-      if (t->to_state == t->from_state)
-        continue;
-
-      if (NULL != label)
-      {
-        GNUNET_asprintf (&new_label, "%s%s", label, t->label);
-      }
-      else
-        new_label = GNUNET_strdup (t->label);
-
-      dfa_add_multi_strides_helper (cls,
-                                    (depth + 1),
-                                    new_label,
-                                    start,
-                                    t->to_state);
+      t = GNUNET_new(struct REGEX_INTERNAL_Transition);
+      t->label = GNUNET_strdup(label);
+      t->to_state = s;
+      t->from_state = start;
+      GNUNET_CONTAINER_DLL_insert(ctx->transitions_head,
+                                  ctx->transitions_tail,
+                                  t);
     }
-  }
-  GNUNET_free_non_null (label);
+  else
+    {
+      for (t = s->transitions_head; NULL != t; t = t->next)
+        {
+          /* Do not consider self-loops, because it end's up in too many
+           * transitions */
+          if (t->to_state == t->from_state)
+            continue;
+
+          if (NULL != label)
+            {
+              GNUNET_asprintf(&new_label, "%s%s", label, t->label);
+            }
+          else
+            new_label = GNUNET_strdup(t->label);
+
+          dfa_add_multi_strides_helper(cls,
+                                       (depth + 1),
+                                       new_label,
+                                       start,
+                                       t->to_state);
+        }
+    }
+  GNUNET_free_non_null(label);
 }
 
 
@@ -2177,11 +2174,11 @@ dfa_add_multi_strides_helper (void *cls,
  * @param s current state.
  */
 static void
-dfa_add_multi_strides (void *cls,
-                       const unsigned int count,
-                       struct REGEX_INTERNAL_State *s)
+dfa_add_multi_strides(void *cls,
+                      const unsigned int count,
+                      struct REGEX_INTERNAL_State *s)
 {
-  dfa_add_multi_strides_helper (cls, 0, NULL, s, s);
+  dfa_add_multi_strides_helper(cls, 0, NULL, s, s);
 }
 
 
@@ -2193,11 +2190,11 @@ dfa_add_multi_strides (void *cls,
  * @param stride_len length of the strides.
  */
 void
-REGEX_INTERNAL_dfa_add_multi_strides (struct REGEX_INTERNAL_Context *regex_ctx,
-                                      struct REGEX_INTERNAL_Automaton *dfa,
-                                      const unsigned int stride_len)
+REGEX_INTERNAL_dfa_add_multi_strides(struct REGEX_INTERNAL_Context *regex_ctx,
+                                     struct REGEX_INTERNAL_Automaton *dfa,
+                                     const unsigned int stride_len)
 {
-  struct REGEX_INTERNAL_Strided_Context ctx = {stride_len, NULL, NULL};
+  struct REGEX_INTERNAL_Strided_Context ctx = { stride_len, NULL, NULL };
   struct REGEX_INTERNAL_Transition *t;
   struct REGEX_INTERNAL_Transition *t_next;
 
@@ -2205,22 +2202,22 @@ REGEX_INTERNAL_dfa_add_multi_strides (struct REGEX_INTERNAL_Context *regex_ctx,
     return;
 
   /* Compute the new transitions of given stride_len */
-  REGEX_INTERNAL_automaton_traverse (dfa,
-                                     dfa->start,
-                                     NULL,
-                                     NULL,
-                                     &dfa_add_multi_strides,
-                                     &ctx);
+  REGEX_INTERNAL_automaton_traverse(dfa,
+                                    dfa->start,
+                                    NULL,
+                                    NULL,
+                                    &dfa_add_multi_strides,
+                                    &ctx);
 
   /* Add all the new transitions to the automaton. */
   for (t = ctx.transitions_head; NULL != t; t = t_next)
-  {
-    t_next = t->next;
-    state_add_transition (regex_ctx, t->from_state, t->label, t->to_state);
-    GNUNET_CONTAINER_DLL_remove (ctx.transitions_head, ctx.transitions_tail, t);
-    GNUNET_free_non_null (t->label);
-    GNUNET_free (t);
-  }
+    {
+      t_next = t->next;
+      state_add_transition(regex_ctx, t->from_state, t->label, t->to_state);
+      GNUNET_CONTAINER_DLL_remove(ctx.transitions_head, ctx.transitions_tail, t);
+      GNUNET_free_non_null(t->label);
+      GNUNET_free(t);
+    }
 
   /* Mark this automaton as multistrided */
   dfa->is_multistrided = GNUNET_YES;
@@ -2240,13 +2237,13 @@ REGEX_INTERNAL_dfa_add_multi_strides (struct REGEX_INTERNAL_Context *regex_ctx,
  * @param transitions_tail transitions DLL.
  */
 void
-dfa_compress_paths_helper (struct REGEX_INTERNAL_Automaton *dfa,
-                           struct REGEX_INTERNAL_State *start,
-                           struct REGEX_INTERNAL_State *cur,
-                           char *label,
-                           unsigned int max_len,
-                           struct REGEX_INTERNAL_Transition **transitions_head,
-                           struct REGEX_INTERNAL_Transition **transitions_tail)
+dfa_compress_paths_helper(struct REGEX_INTERNAL_Automaton *dfa,
+                          struct REGEX_INTERNAL_State *start,
+                          struct REGEX_INTERNAL_State *cur,
+                          char *label,
+                          unsigned int max_len,
+                          struct REGEX_INTERNAL_Transition **transitions_head,
+                          struct REGEX_INTERNAL_Transition **transitions_tail)
 {
   struct REGEX_INTERNAL_Transition *t;
   char *new_label;
@@ -2255,27 +2252,27 @@ dfa_compress_paths_helper (struct REGEX_INTERNAL_Automaton *dfa,
   if (NULL != label &&
       ((cur->incoming_transition_count > 1 || GNUNET_YES == cur->accepting ||
         GNUNET_YES == cur->marked) ||
-       (start != dfa->start && max_len > 0 && max_len == strlen (label)) ||
-       (start == dfa->start && GNUNET_REGEX_INITIAL_BYTES == strlen (label))))
-  {
-    t = GNUNET_new (struct REGEX_INTERNAL_Transition);
-    t->label = GNUNET_strdup (label);
-    t->to_state = cur;
-    t->from_state = start;
-    GNUNET_CONTAINER_DLL_insert (*transitions_head, *transitions_tail, t);
-
-    if (GNUNET_NO == cur->marked)
+       (start != dfa->start && max_len > 0 && max_len == strlen(label)) ||
+       (start == dfa->start && GNUNET_REGEX_INITIAL_BYTES == strlen(label))))
     {
-      dfa_compress_paths_helper (dfa,
-                                 cur,
-                                 cur,
-                                 NULL,
-                                 max_len,
-                                 transitions_head,
-                                 transitions_tail);
+      t = GNUNET_new(struct REGEX_INTERNAL_Transition);
+      t->label = GNUNET_strdup(label);
+      t->to_state = cur;
+      t->from_state = start;
+      GNUNET_CONTAINER_DLL_insert(*transitions_head, *transitions_tail, t);
+
+      if (GNUNET_NO == cur->marked)
+        {
+          dfa_compress_paths_helper(dfa,
+                                    cur,
+                                    cur,
+                                    NULL,
+                                    max_len,
+                                    transitions_head,
+                                    transitions_tail);
+        }
+      return;
     }
-    return;
-  }
   else if (cur != start)
     cur->contained = GNUNET_YES;
 
@@ -2286,24 +2283,24 @@ dfa_compress_paths_helper (struct REGEX_INTERNAL_Automaton *dfa,
 
 
   for (t = cur->transitions_head; NULL != t; t = t->next)
-  {
-    if (NULL != label)
-      GNUNET_asprintf (&new_label, "%s%s", label, t->label);
-    else
-      new_label = GNUNET_strdup (t->label);
-
-    if (t->to_state != cur)
     {
-      dfa_compress_paths_helper (dfa,
-                                 start,
-                                 t->to_state,
-                                 new_label,
-                                 max_len,
-                                 transitions_head,
-                                 transitions_tail);
+      if (NULL != label)
+        GNUNET_asprintf(&new_label, "%s%s", label, t->label);
+      else
+        new_label = GNUNET_strdup(t->label);
+
+      if (t->to_state != cur)
+        {
+          dfa_compress_paths_helper(dfa,
+                                    start,
+                                    t->to_state,
+                                    new_label,
+                                    max_len,
+                                    transitions_head,
+                                    transitions_tail);
+        }
+      GNUNET_free(new_label);
     }
-    GNUNET_free (new_label);
-  }
 }
 
 
@@ -2316,9 +2313,9 @@ dfa_compress_paths_helper (struct REGEX_INTERNAL_Automaton *dfa,
  * @param max_len maximal length of the compressed paths.
  */
 static void
-dfa_compress_paths (struct REGEX_INTERNAL_Context *regex_ctx,
-                    struct REGEX_INTERNAL_Automaton *dfa,
-                    unsigned int max_len)
+dfa_compress_paths(struct REGEX_INTERNAL_Context *regex_ctx,
+                   struct REGEX_INTERNAL_Automaton *dfa,
+                   unsigned int max_len)
 {
   struct REGEX_INTERNAL_State *s;
   struct REGEX_INTERNAL_State *s_next;
@@ -2332,47 +2329,47 @@ dfa_compress_paths (struct REGEX_INTERNAL_Context *regex_ctx,
 
   /* Count the incoming transitions on each state. */
   for (s = dfa->states_head; NULL != s; s = s->next)
-  {
-    for (t = s->transitions_head; NULL != t; t = t->next)
     {
-      if (NULL != t->to_state)
-        t->to_state->incoming_transition_count++;
+      for (t = s->transitions_head; NULL != t; t = t->next)
+        {
+          if (NULL != t->to_state)
+            t->to_state->incoming_transition_count++;
+        }
     }
-  }
 
   /* Unmark all states. */
   for (s = dfa->states_head; NULL != s; s = s->next)
-  {
-    s->marked = GNUNET_NO;
-    s->contained = GNUNET_NO;
-  }
+    {
+      s->marked = GNUNET_NO;
+      s->contained = GNUNET_NO;
+    }
 
   /* Add strides and mark states that can be deleted. */
-  dfa_compress_paths_helper (dfa,
-                             dfa->start,
-                             dfa->start,
-                             NULL,
-                             max_len,
-                             &transitions_head,
-                             &transitions_tail);
+  dfa_compress_paths_helper(dfa,
+                            dfa->start,
+                            dfa->start,
+                            NULL,
+                            max_len,
+                            &transitions_head,
+                            &transitions_tail);
 
   /* Add all the new transitions to the automaton. */
   for (t = transitions_head; NULL != t; t = t_next)
-  {
-    t_next = t->next;
-    state_add_transition (regex_ctx, t->from_state, t->label, t->to_state);
-    GNUNET_CONTAINER_DLL_remove (transitions_head, transitions_tail, t);
-    GNUNET_free_non_null (t->label);
-    GNUNET_free (t);
-  }
+    {
+      t_next = t->next;
+      state_add_transition(regex_ctx, t->from_state, t->label, t->to_state);
+      GNUNET_CONTAINER_DLL_remove(transitions_head, transitions_tail, t);
+      GNUNET_free_non_null(t->label);
+      GNUNET_free(t);
+    }
 
   /* Remove marked states (including their incoming and outgoing transitions). */
   for (s = dfa->states_head; NULL != s; s = s_next)
-  {
-    s_next = s->next;
-    if (GNUNET_YES == s->contained)
-      automaton_remove_state (dfa, s);
-  }
+    {
+      s_next = s->next;
+      if (GNUNET_YES == s->contained)
+        automaton_remove_state(dfa, s);
+    }
 }
 
 
@@ -2386,12 +2383,12 @@ dfa_compress_paths (struct REGEX_INTERNAL_Context *regex_ctx,
  * @return new NFA fragment
  */
 static struct REGEX_INTERNAL_Automaton *
-nfa_fragment_create (struct REGEX_INTERNAL_State *start,
-                     struct REGEX_INTERNAL_State *end)
+nfa_fragment_create(struct REGEX_INTERNAL_State *start,
+                    struct REGEX_INTERNAL_State *end)
 {
   struct REGEX_INTERNAL_Automaton *n;
 
-  n = GNUNET_new (struct REGEX_INTERNAL_Automaton);
+  n = GNUNET_new(struct REGEX_INTERNAL_Automaton);
 
   n->type = NFA;
   n->start = NULL;
@@ -2401,8 +2398,8 @@ nfa_fragment_create (struct REGEX_INTERNAL_State *start,
   if (NULL == start || NULL == end)
     return n;
 
-  automaton_add_state (n, end);
-  automaton_add_state (n, start);
+  automaton_add_state(n, end);
+  automaton_add_state(n, start);
 
   n->state_count = 2;
 
@@ -2421,30 +2418,30 @@ nfa_fragment_create (struct REGEX_INTERNAL_State *start,
  * @param states_tail tail of the DLL of states
  */
 static void
-nfa_add_states (struct REGEX_INTERNAL_Automaton *n,
-                struct REGEX_INTERNAL_State *states_head,
-                struct REGEX_INTERNAL_State *states_tail)
+nfa_add_states(struct REGEX_INTERNAL_Automaton *n,
+               struct REGEX_INTERNAL_State *states_head,
+               struct REGEX_INTERNAL_State *states_tail)
 {
   struct REGEX_INTERNAL_State *s;
 
   if (NULL == n || NULL == states_head)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Could not add states\n");
-    return;
-  }
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Could not add states\n");
+      return;
+    }
 
   if (NULL == n->states_head)
-  {
-    n->states_head = states_head;
-    n->states_tail = states_tail;
-    return;
-  }
+    {
+      n->states_head = states_head;
+      n->states_tail = states_tail;
+      return;
+    }
 
   if (NULL != states_head)
-  {
-    n->states_tail->next = states_head;
-    n->states_tail = states_tail;
-  }
+    {
+      n->states_tail->next = states_head;
+      n->states_tail = states_tail;
+    }
 
   for (s = states_head; NULL != s; s = s->next)
     n->state_count++;
@@ -2460,11 +2457,11 @@ nfa_add_states (struct REGEX_INTERNAL_Automaton *n,
  * @return new NFA state
  */
 static struct REGEX_INTERNAL_State *
-nfa_state_create (struct REGEX_INTERNAL_Context *ctx, int accepting)
+nfa_state_create(struct REGEX_INTERNAL_Context *ctx, int accepting)
 {
   struct REGEX_INTERNAL_State *s;
 
-  s = GNUNET_new (struct REGEX_INTERNAL_State);
+  s = GNUNET_new(struct REGEX_INTERNAL_State);
   s->id = ctx->state_id++;
   s->accepting = accepting;
   s->marked = GNUNET_NO;
@@ -2473,7 +2470,7 @@ nfa_state_create (struct REGEX_INTERNAL_Context *ctx, int accepting)
   s->lowlink = -1;
   s->scc_id = 0;
   s->name = NULL;
-  GNUNET_asprintf (&s->name, "s%i", s->id);
+  GNUNET_asprintf(&s->name, "s%i", s->id);
 
   return s;
 }
@@ -2489,10 +2486,10 @@ nfa_state_create (struct REGEX_INTERNAL_Context *ctx, int accepting)
  *                pass NULL for epsilon transition
  */
 static void
-nfa_closure_set_create (struct REGEX_INTERNAL_StateSet *ret,
-                        struct REGEX_INTERNAL_Automaton *nfa,
-                        struct REGEX_INTERNAL_StateSet *states,
-                        const char *label)
+nfa_closure_set_create(struct REGEX_INTERNAL_StateSet *ret,
+                       struct REGEX_INTERNAL_Automaton *nfa,
+                       struct REGEX_INTERNAL_StateSet *states,
+                       const char *label)
 {
   struct REGEX_INTERNAL_State *s;
   unsigned int i;
@@ -2501,58 +2498,58 @@ nfa_closure_set_create (struct REGEX_INTERNAL_StateSet *ret,
   struct REGEX_INTERNAL_State *currentstate;
   struct REGEX_INTERNAL_Transition *ctran;
 
-  memset (ret, 0, sizeof (struct REGEX_INTERNAL_StateSet));
+  memset(ret, 0, sizeof(struct REGEX_INTERNAL_StateSet));
   if (NULL == states)
     return;
 
   for (i = 0; i < states->off; i++)
-  {
-    s = states->states[i];
-
-    /* Add start state to closure only for epsilon closure */
-    if (NULL == label)
-      state_set_append (ret, s);
-
-    /* initialize work stack */
-    cls_stack.head = NULL;
-    cls_stack.tail = NULL;
-    GNUNET_CONTAINER_MDLL_insert (ST, cls_stack.head, cls_stack.tail, s);
-    cls_stack.len = 1;
-
-    while (NULL != (currentstate = cls_stack.tail))
     {
-      GNUNET_CONTAINER_MDLL_remove (ST,
-                                    cls_stack.head,
-                                    cls_stack.tail,
-                                    currentstate);
-      cls_stack.len--;
-      for (ctran = currentstate->transitions_head; NULL != ctran;
-           ctran = ctran->next)
-      {
-        if (NULL == (clsstate = ctran->to_state))
-          continue;
-        if (0 != clsstate->contained)
-          continue;
-        if (0 != nullstrcmp (label, ctran->label))
-          continue;
-        state_set_append (ret, clsstate);
-        GNUNET_CONTAINER_MDLL_insert_tail (ST,
-                                           cls_stack.head,
-                                           cls_stack.tail,
-                                           clsstate);
-        cls_stack.len++;
-        clsstate->contained = 1;
-      }
+      s = states->states[i];
+
+      /* Add start state to closure only for epsilon closure */
+      if (NULL == label)
+        state_set_append(ret, s);
+
+      /* initialize work stack */
+      cls_stack.head = NULL;
+      cls_stack.tail = NULL;
+      GNUNET_CONTAINER_MDLL_insert(ST, cls_stack.head, cls_stack.tail, s);
+      cls_stack.len = 1;
+
+      while (NULL != (currentstate = cls_stack.tail))
+        {
+          GNUNET_CONTAINER_MDLL_remove(ST,
+                                       cls_stack.head,
+                                       cls_stack.tail,
+                                       currentstate);
+          cls_stack.len--;
+          for (ctran = currentstate->transitions_head; NULL != ctran;
+               ctran = ctran->next)
+            {
+              if (NULL == (clsstate = ctran->to_state))
+                continue;
+              if (0 != clsstate->contained)
+                continue;
+              if (0 != nullstrcmp(label, ctran->label))
+                continue;
+              state_set_append(ret, clsstate);
+              GNUNET_CONTAINER_MDLL_insert_tail(ST,
+                                                cls_stack.head,
+                                                cls_stack.tail,
+                                                clsstate);
+              cls_stack.len++;
+              clsstate->contained = 1;
+            }
+        }
     }
-  }
   for (i = 0; i < ret->off; i++)
     ret->states[i]->contained = 0;
 
   if (ret->off > 1)
-    qsort (ret->states,
-           ret->off,
-           sizeof (struct REGEX_INTERNAL_State *),
-           &state_compare);
+    qsort(ret->states,
+          ret->off,
+          sizeof(struct REGEX_INTERNAL_State *),
+          &state_compare);
 }
 
 
@@ -2562,33 +2559,33 @@ nfa_closure_set_create (struct REGEX_INTERNAL_StateSet *ret,
  * @param ctx context
  */
 static void
-nfa_add_concatenation (struct REGEX_INTERNAL_Context *ctx)
+nfa_add_concatenation(struct REGEX_INTERNAL_Context *ctx)
 {
   struct REGEX_INTERNAL_Automaton *a;
   struct REGEX_INTERNAL_Automaton *b;
   struct REGEX_INTERNAL_Automaton *new_nfa;
 
   b = ctx->stack_tail;
-  GNUNET_assert (NULL != b);
-  GNUNET_CONTAINER_DLL_remove (ctx->stack_head, ctx->stack_tail, b);
+  GNUNET_assert(NULL != b);
+  GNUNET_CONTAINER_DLL_remove(ctx->stack_head, ctx->stack_tail, b);
   a = ctx->stack_tail;
-  GNUNET_assert (NULL != a);
-  GNUNET_CONTAINER_DLL_remove (ctx->stack_head, ctx->stack_tail, a);
+  GNUNET_assert(NULL != a);
+  GNUNET_CONTAINER_DLL_remove(ctx->stack_head, ctx->stack_tail, a);
 
-  state_add_transition (ctx, a->end, NULL, b->start);
+  state_add_transition(ctx, a->end, NULL, b->start);
   a->end->accepting = 0;
   b->end->accepting = 1;
 
-  new_nfa = nfa_fragment_create (NULL, NULL);
-  nfa_add_states (new_nfa, a->states_head, a->states_tail);
-  nfa_add_states (new_nfa, b->states_head, b->states_tail);
+  new_nfa = nfa_fragment_create(NULL, NULL);
+  nfa_add_states(new_nfa, a->states_head, a->states_tail);
+  nfa_add_states(new_nfa, b->states_head, b->states_tail);
   new_nfa->start = a->start;
   new_nfa->end = b->end;
   new_nfa->state_count += a->state_count + b->state_count;
-  automaton_fragment_clear (a);
-  automaton_fragment_clear (b);
+  automaton_fragment_clear(a);
+  automaton_fragment_clear(b);
 
-  GNUNET_CONTAINER_DLL_insert_tail (ctx->stack_head, ctx->stack_tail, new_nfa);
+  GNUNET_CONTAINER_DLL_insert_tail(ctx->stack_head, ctx->stack_tail, new_nfa);
 }
 
 
@@ -2598,7 +2595,7 @@ nfa_add_concatenation (struct REGEX_INTERNAL_Context *ctx)
  * @param ctx context
  */
 static void
-nfa_add_star_op (struct REGEX_INTERNAL_Context *ctx)
+nfa_add_star_op(struct REGEX_INTERNAL_Context *ctx)
 {
   struct REGEX_INTERNAL_Automaton *a;
   struct REGEX_INTERNAL_Automaton *new_nfa;
@@ -2608,31 +2605,31 @@ nfa_add_star_op (struct REGEX_INTERNAL_Context *ctx)
   a = ctx->stack_tail;
 
   if (NULL == a)
-  {
-    GNUNET_log (
-      GNUNET_ERROR_TYPE_ERROR,
-      "nfa_add_star_op failed, because there was no element on the stack");
-    return;
-  }
+    {
+      GNUNET_log(
+        GNUNET_ERROR_TYPE_ERROR,
+        "nfa_add_star_op failed, because there was no element on the stack");
+      return;
+    }
 
-  GNUNET_CONTAINER_DLL_remove (ctx->stack_head, ctx->stack_tail, a);
+  GNUNET_CONTAINER_DLL_remove(ctx->stack_head, ctx->stack_tail, a);
 
-  start = nfa_state_create (ctx, 0);
-  end = nfa_state_create (ctx, 1);
+  start = nfa_state_create(ctx, 0);
+  end = nfa_state_create(ctx, 1);
 
-  state_add_transition (ctx, start, NULL, a->start);
-  state_add_transition (ctx, start, NULL, end);
-  state_add_transition (ctx, a->end, NULL, a->start);
-  state_add_transition (ctx, a->end, NULL, end);
+  state_add_transition(ctx, start, NULL, a->start);
+  state_add_transition(ctx, start, NULL, end);
+  state_add_transition(ctx, a->end, NULL, a->start);
+  state_add_transition(ctx, a->end, NULL, end);
 
   a->end->accepting = 0;
   end->accepting = 1;
 
-  new_nfa = nfa_fragment_create (start, end);
-  nfa_add_states (new_nfa, a->states_head, a->states_tail);
-  automaton_fragment_clear (a);
+  new_nfa = nfa_fragment_create(start, end);
+  nfa_add_states(new_nfa, a->states_head, a->states_tail);
+  automaton_fragment_clear(a);
 
-  GNUNET_CONTAINER_DLL_insert_tail (ctx->stack_head, ctx->stack_tail, new_nfa);
+  GNUNET_CONTAINER_DLL_insert_tail(ctx->stack_head, ctx->stack_tail, new_nfa);
 }
 
 
@@ -2642,25 +2639,25 @@ nfa_add_star_op (struct REGEX_INTERNAL_Context *ctx)
  * @param ctx context
  */
 static void
-nfa_add_plus_op (struct REGEX_INTERNAL_Context *ctx)
+nfa_add_plus_op(struct REGEX_INTERNAL_Context *ctx)
 {
   struct REGEX_INTERNAL_Automaton *a;
 
   a = ctx->stack_tail;
 
   if (NULL == a)
-  {
-    GNUNET_log (
-      GNUNET_ERROR_TYPE_ERROR,
-      "nfa_add_plus_op failed, because there was no element on the stack");
-    return;
-  }
+    {
+      GNUNET_log(
+        GNUNET_ERROR_TYPE_ERROR,
+        "nfa_add_plus_op failed, because there was no element on the stack");
+      return;
+    }
 
-  GNUNET_CONTAINER_DLL_remove (ctx->stack_head, ctx->stack_tail, a);
+  GNUNET_CONTAINER_DLL_remove(ctx->stack_head, ctx->stack_tail, a);
 
-  state_add_transition (ctx, a->end, NULL, a->start);
+  state_add_transition(ctx, a->end, NULL, a->start);
 
-  GNUNET_CONTAINER_DLL_insert_tail (ctx->stack_head, ctx->stack_tail, a);
+  GNUNET_CONTAINER_DLL_insert_tail(ctx->stack_head, ctx->stack_tail, a);
 }
 
 
@@ -2670,7 +2667,7 @@ nfa_add_plus_op (struct REGEX_INTERNAL_Context *ctx)
  * @param ctx context
  */
 static void
-nfa_add_question_op (struct REGEX_INTERNAL_Context *ctx)
+nfa_add_question_op(struct REGEX_INTERNAL_Context *ctx)
 {
   struct REGEX_INTERNAL_Automaton *a;
   struct REGEX_INTERNAL_Automaton *new_nfa;
@@ -2679,28 +2676,28 @@ nfa_add_question_op (struct REGEX_INTERNAL_Context *ctx)
 
   a = ctx->stack_tail;
   if (NULL == a)
-  {
-    GNUNET_log (
-      GNUNET_ERROR_TYPE_ERROR,
-      "nfa_add_question_op failed, because there was no element on the stack");
-    return;
-  }
+    {
+      GNUNET_log(
+        GNUNET_ERROR_TYPE_ERROR,
+        "nfa_add_question_op failed, because there was no element on the stack");
+      return;
+    }
 
-  GNUNET_CONTAINER_DLL_remove (ctx->stack_head, ctx->stack_tail, a);
+  GNUNET_CONTAINER_DLL_remove(ctx->stack_head, ctx->stack_tail, a);
 
-  start = nfa_state_create (ctx, 0);
-  end = nfa_state_create (ctx, 1);
+  start = nfa_state_create(ctx, 0);
+  end = nfa_state_create(ctx, 1);
 
-  state_add_transition (ctx, start, NULL, a->start);
-  state_add_transition (ctx, start, NULL, end);
-  state_add_transition (ctx, a->end, NULL, end);
+  state_add_transition(ctx, start, NULL, a->start);
+  state_add_transition(ctx, start, NULL, end);
+  state_add_transition(ctx, a->end, NULL, end);
 
   a->end->accepting = 0;
 
-  new_nfa = nfa_fragment_create (start, end);
-  nfa_add_states (new_nfa, a->states_head, a->states_tail);
-  GNUNET_CONTAINER_DLL_insert_tail (ctx->stack_head, ctx->stack_tail, new_nfa);
-  automaton_fragment_clear (a);
+  new_nfa = nfa_fragment_create(start, end);
+  nfa_add_states(new_nfa, a->states_head, a->states_tail);
+  GNUNET_CONTAINER_DLL_insert_tail(ctx->stack_head, ctx->stack_tail, new_nfa);
+  automaton_fragment_clear(a);
 }
 
 
@@ -2711,7 +2708,7 @@ nfa_add_question_op (struct REGEX_INTERNAL_Context *ctx)
  * @param ctx context
  */
 static void
-nfa_add_alternation (struct REGEX_INTERNAL_Context *ctx)
+nfa_add_alternation(struct REGEX_INTERNAL_Context *ctx)
 {
   struct REGEX_INTERNAL_Automaton *a;
   struct REGEX_INTERNAL_Automaton *b;
@@ -2720,31 +2717,31 @@ nfa_add_alternation (struct REGEX_INTERNAL_Context *ctx)
   struct REGEX_INTERNAL_State *end;
 
   b = ctx->stack_tail;
-  GNUNET_assert (NULL != b);
-  GNUNET_CONTAINER_DLL_remove (ctx->stack_head, ctx->stack_tail, b);
+  GNUNET_assert(NULL != b);
+  GNUNET_CONTAINER_DLL_remove(ctx->stack_head, ctx->stack_tail, b);
   a = ctx->stack_tail;
-  GNUNET_assert (NULL != a);
-  GNUNET_CONTAINER_DLL_remove (ctx->stack_head, ctx->stack_tail, a);
+  GNUNET_assert(NULL != a);
+  GNUNET_CONTAINER_DLL_remove(ctx->stack_head, ctx->stack_tail, a);
 
-  start = nfa_state_create (ctx, 0);
-  end = nfa_state_create (ctx, 1);
-  state_add_transition (ctx, start, NULL, a->start);
-  state_add_transition (ctx, start, NULL, b->start);
+  start = nfa_state_create(ctx, 0);
+  end = nfa_state_create(ctx, 1);
+  state_add_transition(ctx, start, NULL, a->start);
+  state_add_transition(ctx, start, NULL, b->start);
 
-  state_add_transition (ctx, a->end, NULL, end);
-  state_add_transition (ctx, b->end, NULL, end);
+  state_add_transition(ctx, a->end, NULL, end);
+  state_add_transition(ctx, b->end, NULL, end);
 
   a->end->accepting = 0;
   b->end->accepting = 0;
   end->accepting = 1;
 
-  new_nfa = nfa_fragment_create (start, end);
-  nfa_add_states (new_nfa, a->states_head, a->states_tail);
-  nfa_add_states (new_nfa, b->states_head, b->states_tail);
-  automaton_fragment_clear (a);
-  automaton_fragment_clear (b);
+  new_nfa = nfa_fragment_create(start, end);
+  nfa_add_states(new_nfa, a->states_head, a->states_tail);
+  nfa_add_states(new_nfa, b->states_head, b->states_tail);
+  automaton_fragment_clear(a);
+  automaton_fragment_clear(b);
 
-  GNUNET_CONTAINER_DLL_insert_tail (ctx->stack_head, ctx->stack_tail, new_nfa);
+  GNUNET_CONTAINER_DLL_insert_tail(ctx->stack_head, ctx->stack_tail, new_nfa);
 }
 
 
@@ -2755,20 +2752,20 @@ nfa_add_alternation (struct REGEX_INTERNAL_Context *ctx)
  * @param label label for nfa transition
  */
 static void
-nfa_add_label (struct REGEX_INTERNAL_Context *ctx, const char *label)
+nfa_add_label(struct REGEX_INTERNAL_Context *ctx, const char *label)
 {
   struct REGEX_INTERNAL_Automaton *n;
   struct REGEX_INTERNAL_State *start;
   struct REGEX_INTERNAL_State *end;
 
-  GNUNET_assert (NULL != ctx);
+  GNUNET_assert(NULL != ctx);
 
-  start = nfa_state_create (ctx, 0);
-  end = nfa_state_create (ctx, 1);
-  state_add_transition (ctx, start, label, end);
-  n = nfa_fragment_create (start, end);
-  GNUNET_assert (NULL != n);
-  GNUNET_CONTAINER_DLL_insert_tail (ctx->stack_head, ctx->stack_tail, n);
+  start = nfa_state_create(ctx, 0);
+  end = nfa_state_create(ctx, 1);
+  state_add_transition(ctx, start, label, end);
+  n = nfa_fragment_create(start, end);
+  GNUNET_assert(NULL != n);
+  GNUNET_CONTAINER_DLL_insert_tail(ctx->stack_head, ctx->stack_tail, n);
 }
 
 
@@ -2778,13 +2775,13 @@ nfa_add_label (struct REGEX_INTERNAL_Context *ctx, const char *label)
  * @param ctx context
  */
 static void
-REGEX_INTERNAL_context_init (struct REGEX_INTERNAL_Context *ctx)
+REGEX_INTERNAL_context_init(struct REGEX_INTERNAL_Context *ctx)
 {
   if (NULL == ctx)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Context was NULL!");
-    return;
-  }
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Context was NULL!");
+      return;
+    }
   ctx->state_id = 0;
   ctx->transition_id = 0;
   ctx->stack_head = NULL;
@@ -2801,7 +2798,7 @@ REGEX_INTERNAL_context_init (struct REGEX_INTERNAL_Context *ctx)
  * @return NFA, needs to be freed using REGEX_INTERNAL_destroy_automaton
  */
 struct REGEX_INTERNAL_Automaton *
-REGEX_INTERNAL_construct_nfa (const char *regex, const size_t len)
+REGEX_INTERNAL_construct_nfa(const char *regex, const size_t len)
 {
   struct REGEX_INTERNAL_Context ctx;
   struct REGEX_INTERNAL_Automaton *nfa;
@@ -2813,20 +2810,20 @@ REGEX_INTERNAL_construct_nfa (const char *regex, const size_t len)
   unsigned int atomcount;
   unsigned int poff;
   unsigned int psize;
-  struct
-  {
+
+  struct {
     int altcount;
     int atomcount;
   } * p;
 
-  if (NULL == regex || 0 == strlen (regex) || 0 == len)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Could not parse regex. Empty regex string provided.\n");
+  if (NULL == regex || 0 == strlen(regex) || 0 == len)
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
+                 "Could not parse regex. Empty regex string provided.\n");
 
-    return NULL;
-  }
-  REGEX_INTERNAL_context_init (&ctx);
+      return NULL;
+    }
+  REGEX_INTERNAL_context_init(&ctx);
 
   regexp = regex;
   curlabel[1] = '\0';
@@ -2838,123 +2835,129 @@ REGEX_INTERNAL_construct_nfa (const char *regex, const size_t len)
   psize = 0;
 
   for (count = 0; count < len && *regexp; count++, regexp++)
-  {
-    switch (*regexp)
     {
-    case '(':
-      if (atomcount > 1)
-      {
-        --atomcount;
-        nfa_add_concatenation (&ctx);
-      }
-      if (poff == psize)
-        GNUNET_array_grow (p, psize, psize * 2 + 4); /* FIXME why *2 +4? */
-      p[poff].altcount = altcount;
-      p[poff].atomcount = atomcount;
-      poff++;
-      altcount = 0;
-      atomcount = 0;
-      break;
-    case '|':
-      if (0 == atomcount)
-      {
-        error_msg = "Cannot append '|' to nothing";
-        goto error;
-      }
-      while (--atomcount > 0)
-        nfa_add_concatenation (&ctx);
-      altcount++;
-      break;
-    case ')':
-      if (0 == poff)
-      {
-        error_msg = "Missing opening '('";
-        goto error;
-      }
-      if (0 == atomcount)
-      {
-        /* Ignore this: "()" */
-        poff--;
-        altcount = p[poff].altcount;
-        atomcount = p[poff].atomcount;
-        break;
-      }
-      while (--atomcount > 0)
-        nfa_add_concatenation (&ctx);
-      for (; altcount > 0; altcount--)
-        nfa_add_alternation (&ctx);
-      poff--;
-      altcount = p[poff].altcount;
-      atomcount = p[poff].atomcount;
-      atomcount++;
-      break;
-    case '*':
-      if (atomcount == 0)
-      {
-        error_msg = "Cannot append '*' to nothing";
-        goto error;
-      }
-      nfa_add_star_op (&ctx);
-      break;
-    case '+':
-      if (atomcount == 0)
-      {
-        error_msg = "Cannot append '+' to nothing";
-        goto error;
-      }
-      nfa_add_plus_op (&ctx);
-      break;
-    case '?':
-      if (atomcount == 0)
-      {
-        error_msg = "Cannot append '?' to nothing";
-        goto error;
-      }
-      nfa_add_question_op (&ctx);
-      break;
-    default:
-      if (atomcount > 1)
-      {
-        --atomcount;
-        nfa_add_concatenation (&ctx);
-      }
-      curlabel[0] = *regexp;
-      nfa_add_label (&ctx, curlabel);
-      atomcount++;
-      break;
-    }
-  }
-  if (0 != poff)
-  {
-    error_msg = "Unbalanced parenthesis";
-    goto error;
-  }
-  while (--atomcount > 0)
-    nfa_add_concatenation (&ctx);
-  for (; altcount > 0; altcount--)
-    nfa_add_alternation (&ctx);
+      switch (*regexp)
+        {
+        case '(':
+          if (atomcount > 1)
+            {
+              --atomcount;
+              nfa_add_concatenation(&ctx);
+            }
+          if (poff == psize)
+            GNUNET_array_grow(p, psize, psize * 2 + 4); /* FIXME why *2 +4? */
+          p[poff].altcount = altcount;
+          p[poff].atomcount = atomcount;
+          poff++;
+          altcount = 0;
+          atomcount = 0;
+          break;
 
-  GNUNET_array_grow (p, psize, 0);
+        case '|':
+          if (0 == atomcount)
+            {
+              error_msg = "Cannot append '|' to nothing";
+              goto error;
+            }
+          while (--atomcount > 0)
+            nfa_add_concatenation(&ctx);
+          altcount++;
+          break;
+
+        case ')':
+          if (0 == poff)
+            {
+              error_msg = "Missing opening '('";
+              goto error;
+            }
+          if (0 == atomcount)
+            {
+              /* Ignore this: "()" */
+              poff--;
+              altcount = p[poff].altcount;
+              atomcount = p[poff].atomcount;
+              break;
+            }
+          while (--atomcount > 0)
+            nfa_add_concatenation(&ctx);
+          for (; altcount > 0; altcount--)
+            nfa_add_alternation(&ctx);
+          poff--;
+          altcount = p[poff].altcount;
+          atomcount = p[poff].atomcount;
+          atomcount++;
+          break;
+
+        case '*':
+          if (atomcount == 0)
+            {
+              error_msg = "Cannot append '*' to nothing";
+              goto error;
+            }
+          nfa_add_star_op(&ctx);
+          break;
+
+        case '+':
+          if (atomcount == 0)
+            {
+              error_msg = "Cannot append '+' to nothing";
+              goto error;
+            }
+          nfa_add_plus_op(&ctx);
+          break;
+
+        case '?':
+          if (atomcount == 0)
+            {
+              error_msg = "Cannot append '?' to nothing";
+              goto error;
+            }
+          nfa_add_question_op(&ctx);
+          break;
+
+        default:
+          if (atomcount > 1)
+            {
+              --atomcount;
+              nfa_add_concatenation(&ctx);
+            }
+          curlabel[0] = *regexp;
+          nfa_add_label(&ctx, curlabel);
+          atomcount++;
+          break;
+        }
+    }
+  if (0 != poff)
+    {
+      error_msg = "Unbalanced parenthesis";
+      goto error;
+    }
+  while (--atomcount > 0)
+    nfa_add_concatenation(&ctx);
+  for (; altcount > 0; altcount--)
+    nfa_add_alternation(&ctx);
+
+  GNUNET_array_grow(p, psize, 0);
 
   nfa = ctx.stack_tail;
-  GNUNET_CONTAINER_DLL_remove (ctx.stack_head, ctx.stack_tail, nfa);
+  GNUNET_CONTAINER_DLL_remove(ctx.stack_head, ctx.stack_tail, nfa);
 
   if (NULL != ctx.stack_head)
-  {
-    error_msg = "Creating the NFA failed. NFA stack was not empty!";
-    goto error;
-  }
+    {
+      error_msg = "Creating the NFA failed. NFA stack was not empty!";
+      goto error;
+    }
 
   /* Remember the regex that was used to generate this NFA */
-  nfa->regex = GNUNET_strdup (regex);
+  nfa->regex = GNUNET_strdup(regex);
 
   /* create depth-first numbering of the states for pretty printing */
-  REGEX_INTERNAL_automaton_traverse (nfa,
-                                     NULL,
-                                     NULL,
-                                     NULL,
-                                     &number_states,
-                                     NULL);
+  REGEX_INTERNAL_automaton_traverse(nfa,
+                                    NULL,
+                                    NULL,
+                                    NULL,
+                                    &number_states,
+                                    NULL);
 
   /* No multistriding added so far */
   nfa->is_multistrided = GNUNET_NO;
@@ -2962,17 +2965,17 @@ REGEX_INTERNAL_construct_nfa (const char *regex, const size_t len)
   return nfa;
 
 error:
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Could not parse regex: `%s'\n", regex);
+  GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Could not parse regex: `%s'\n", regex);
   if (NULL != error_msg)
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "%s\n", error_msg);
+    GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "%s\n", error_msg);
 
-  GNUNET_free_non_null (p);
+  GNUNET_free_non_null(p);
 
   while (NULL != (nfa = ctx.stack_head))
-  {
-    GNUNET_CONTAINER_DLL_remove (ctx.stack_head, ctx.stack_tail, nfa);
-    REGEX_INTERNAL_automaton_destroy (nfa);
-  }
+    {
+      GNUNET_CONTAINER_DLL_remove(ctx.stack_head, ctx.stack_tail, nfa);
+      REGEX_INTERNAL_automaton_destroy(nfa);
+    }
 
   return NULL;
 }
@@ -2988,10 +2991,10 @@ error:
  *                  for starting.
  */
 static void
-construct_dfa_states (struct REGEX_INTERNAL_Context *ctx,
-                      struct REGEX_INTERNAL_Automaton *nfa,
-                      struct REGEX_INTERNAL_Automaton *dfa,
-                      struct REGEX_INTERNAL_State *dfa_state)
+construct_dfa_states(struct REGEX_INTERNAL_Context *ctx,
+                     struct REGEX_INTERNAL_Automaton *nfa,
+                     struct REGEX_INTERNAL_Automaton *dfa,
+                     struct REGEX_INTERNAL_State *dfa_state)
 {
   struct REGEX_INTERNAL_Transition *ctran;
   struct REGEX_INTERNAL_State *new_dfa_state;
@@ -3001,37 +3004,37 @@ construct_dfa_states (struct REGEX_INTERNAL_Context *ctx,
   struct REGEX_INTERNAL_StateSet nfa_set;
 
   for (ctran = dfa_state->transitions_head; NULL != ctran; ctran = ctran->next)
-  {
-    if (NULL == ctran->label || NULL != ctran->to_state)
-      continue;
+    {
+      if (NULL == ctran->label || NULL != ctran->to_state)
+        continue;
 
-    nfa_closure_set_create (&tmp, nfa, &dfa_state->nfa_set, ctran->label);
-    nfa_closure_set_create (&nfa_set, nfa, &tmp, NULL);
-    state_set_clear (&tmp);
+      nfa_closure_set_create(&tmp, nfa, &dfa_state->nfa_set, ctran->label);
+      nfa_closure_set_create(&nfa_set, nfa, &tmp, NULL);
+      state_set_clear(&tmp);
 
-    state_contains = NULL;
-    for (state_iter = dfa->states_head; NULL != state_iter;
-         state_iter = state_iter->next)
-    {
-      if (0 == state_set_compare (&state_iter->nfa_set, &nfa_set))
-      {
-        state_contains = state_iter;
-        break;
-      }
+      state_contains = NULL;
+      for (state_iter = dfa->states_head; NULL != state_iter;
+           state_iter = state_iter->next)
+        {
+          if (0 == state_set_compare(&state_iter->nfa_set, &nfa_set))
+            {
+              state_contains = state_iter;
+              break;
+            }
+        }
+      if (NULL == state_contains)
+        {
+          new_dfa_state = dfa_state_create(ctx, &nfa_set);
+          automaton_add_state(dfa, new_dfa_state);
+          ctran->to_state = new_dfa_state;
+          construct_dfa_states(ctx, nfa, dfa, new_dfa_state);
+        }
+      else
+        {
+          ctran->to_state = state_contains;
+          state_set_clear(&nfa_set);
+        }
     }
-    if (NULL == state_contains)
-    {
-      new_dfa_state = dfa_state_create (ctx, &nfa_set);
-      automaton_add_state (dfa, new_dfa_state);
-      ctran->to_state = new_dfa_state;
-      construct_dfa_states (ctx, nfa, dfa, new_dfa_state);
-    }
-    else
-    {
-      ctran->to_state = state_contains;
-      state_set_clear (&nfa_set);
-    }
-  }
 }
 
 
@@ -3053,9 +3056,9 @@ construct_dfa_states (struct REGEX_INTERNAL_Context *ctx,
  * @return DFA, needs to be freed using REGEX_INTERNAL_automaton_destroy.
  */
 struct REGEX_INTERNAL_Automaton *
-REGEX_INTERNAL_construct_dfa (const char *regex,
-                              const size_t len,
-                              unsigned int max_path_len)
+REGEX_INTERNAL_construct_dfa(const char *regex,
+                             const size_t len,
+                             unsigned int max_path_len)
 {
   struct REGEX_INTERNAL_Context ctx;
   struct REGEX_INTERNAL_Automaton *dfa;
@@ -3063,50 +3066,50 @@ REGEX_INTERNAL_construct_dfa (const char *regex,
   struct REGEX_INTERNAL_StateSet nfa_start_eps_cls;
   struct REGEX_INTERNAL_StateSet singleton_set;
 
-  REGEX_INTERNAL_context_init (&ctx);
+  REGEX_INTERNAL_context_init(&ctx);
 
   /* Create NFA */
-  nfa = REGEX_INTERNAL_construct_nfa (regex, len);
+  nfa = REGEX_INTERNAL_construct_nfa(regex, len);
 
   if (NULL == nfa)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Could not create DFA, because NFA creation failed\n");
-    return NULL;
-  }
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
+                 "Could not create DFA, because NFA creation failed\n");
+      return NULL;
+    }
 
-  dfa = GNUNET_new (struct REGEX_INTERNAL_Automaton);
+  dfa = GNUNET_new(struct REGEX_INTERNAL_Automaton);
   dfa->type = DFA;
-  dfa->regex = GNUNET_strdup (regex);
+  dfa->regex = GNUNET_strdup(regex);
 
   /* Create DFA start state from epsilon closure */
-  memset (&singleton_set, 0, sizeof (struct REGEX_INTERNAL_StateSet));
-  state_set_append (&singleton_set, nfa->start);
-  nfa_closure_set_create (&nfa_start_eps_cls, nfa, &singleton_set, NULL);
-  state_set_clear (&singleton_set);
-  dfa->start = dfa_state_create (&ctx, &nfa_start_eps_cls);
-  automaton_add_state (dfa, dfa->start);
+  memset(&singleton_set, 0, sizeof(struct REGEX_INTERNAL_StateSet));
+  state_set_append(&singleton_set, nfa->start);
+  nfa_closure_set_create(&nfa_start_eps_cls, nfa, &singleton_set, NULL);
+  state_set_clear(&singleton_set);
+  dfa->start = dfa_state_create(&ctx, &nfa_start_eps_cls);
+  automaton_add_state(dfa, dfa->start);
 
-  construct_dfa_states (&ctx, nfa, dfa, dfa->start);
-  REGEX_INTERNAL_automaton_destroy (nfa);
+  construct_dfa_states(&ctx, nfa, dfa, dfa->start);
+  REGEX_INTERNAL_automaton_destroy(nfa);
 
   /* Minimize DFA */
-  if (GNUNET_OK != dfa_minimize (&ctx, dfa))
-  {
-    REGEX_INTERNAL_automaton_destroy (dfa);
-    return NULL;
-  }
+  if (GNUNET_OK != dfa_minimize(&ctx, dfa))
+    {
+      REGEX_INTERNAL_automaton_destroy(dfa);
+      return NULL;
+    }
 
   /* Create proofs and hashes for all states */
-  if (GNUNET_OK != automaton_create_proofs (dfa))
-  {
-    REGEX_INTERNAL_automaton_destroy (dfa);
-    return NULL;
-  }
+  if (GNUNET_OK != automaton_create_proofs(dfa))
+    {
+      REGEX_INTERNAL_automaton_destroy(dfa);
+      return NULL;
+    }
 
   /* Compress linear DFA paths */
   if (1 != max_path_len)
-    dfa_compress_paths (&ctx, dfa, max_path_len);
+    dfa_compress_paths(&ctx, dfa, max_path_len);
 
   return dfa;
 }
@@ -3119,7 +3122,7 @@ REGEX_INTERNAL_construct_dfa (const char *regex,
  * @param a automaton to be destroyed
  */
 void
-REGEX_INTERNAL_automaton_destroy (struct REGEX_INTERNAL_Automaton *a)
+REGEX_INTERNAL_automaton_destroy(struct REGEX_INTERNAL_Automaton *a)
 {
   struct REGEX_INTERNAL_State *s;
   struct REGEX_INTERNAL_State *next_state;
@@ -3127,17 +3130,17 @@ REGEX_INTERNAL_automaton_destroy (struct REGEX_INTERNAL_Automaton *a)
   if (NULL == a)
     return;
 
-  GNUNET_free_non_null (a->regex);
-  GNUNET_free_non_null (a->canonical_regex);
+  GNUNET_free_non_null(a->regex);
+  GNUNET_free_non_null(a->canonical_regex);
 
   for (s = a->states_head; NULL != s; s = next_state)
-  {
-    next_state = s->next;
-    GNUNET_CONTAINER_DLL_remove (a->states_head, a->states_tail, s);
-    automaton_destroy_state (s);
-  }
+    {
+      next_state = s->next;
+      GNUNET_CONTAINER_DLL_remove(a->states_head, a->states_tail, s);
+      automaton_destroy_state(s);
+    }
 
-  GNUNET_free (a);
+  GNUNET_free(a);
 }
 
 
@@ -3150,32 +3153,32 @@ REGEX_INTERNAL_automaton_destroy (struct REGEX_INTERNAL_Automaton *a)
  * @return 0 if string matches, non-0 otherwise
  */
 static int
-evaluate_dfa (struct REGEX_INTERNAL_Automaton *a, const char *string)
+evaluate_dfa(struct REGEX_INTERNAL_Automaton *a, const char *string)
 {
   const char *strp;
   struct REGEX_INTERNAL_State *s;
   unsigned int step_len;
 
   if (DFA != a->type)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Tried to evaluate DFA, but NFA automaton given");
-    return -1;
-  }
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
+                 "Tried to evaluate DFA, but NFA automaton given");
+      return -1;
+    }
 
   s = a->start;
 
   /* If the string is empty but the starting state is accepting, we accept. */
-  if ((NULL == string || 0 == strlen (string)) && s->accepting)
+  if ((NULL == string || 0 == strlen(string)) && s->accepting)
     return 0;
 
   for (strp = string; NULL != strp && *strp; strp += step_len)
-  {
-    step_len = dfa_move (&s, strp);
+    {
+      step_len = dfa_move(&s, strp);
 
-    if (NULL == s)
-      break;
-  }
+      if (NULL == s)
+        break;
+    }
 
   if (NULL != s && s->accepting)
     return 0;
@@ -3192,7 +3195,7 @@ evaluate_dfa (struct REGEX_INTERNAL_Automaton *a, const char *string)
  * @return 0 if string matches, non-0 otherwise
  */
 static int
-evaluate_nfa (struct REGEX_INTERNAL_Automaton *a, const char *string)
+evaluate_nfa(struct REGEX_INTERNAL_Automaton *a, const char *string)
 {
   const char *strp;
   char str[2];
@@ -3204,43 +3207,43 @@ evaluate_nfa (struct REGEX_INTERNAL_Automaton *a, const char *string)
   int result;
 
   if (NFA != a->type)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Tried to evaluate NFA, but DFA automaton given");
-    return -1;
-  }
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
+                 "Tried to evaluate NFA, but DFA automaton given");
+      return -1;
+    }
 
   /* If the string is empty but the starting state is accepting, we accept. */
-  if ((NULL == string || 0 == strlen (string)) && a->start->accepting)
+  if ((NULL == string || 0 == strlen(string)) && a->start->accepting)
     return 0;
 
   result = 1;
-  memset (&singleton_set, 0, sizeof (struct REGEX_INTERNAL_StateSet));
-  state_set_append (&singleton_set, a->start);
-  nfa_closure_set_create (&sset, a, &singleton_set, NULL);
-  state_set_clear (&singleton_set);
+  memset(&singleton_set, 0, sizeof(struct REGEX_INTERNAL_StateSet));
+  state_set_append(&singleton_set, a->start);
+  nfa_closure_set_create(&sset, a, &singleton_set, NULL);
+  state_set_clear(&singleton_set);
 
   str[1] = '\0';
   for (strp = string; NULL != strp && *strp; strp++)
-  {
-    str[0] = *strp;
-    nfa_closure_set_create (&new_sset, a, &sset, str);
-    state_set_clear (&sset);
-    nfa_closure_set_create (&sset, a, &new_sset, 0);
-    state_set_clear (&new_sset);
-  }
+    {
+      str[0] = *strp;
+      nfa_closure_set_create(&new_sset, a, &sset, str);
+      state_set_clear(&sset);
+      nfa_closure_set_create(&sset, a, &new_sset, 0);
+      state_set_clear(&new_sset);
+    }
 
   for (i = 0; i < sset.off; i++)
-  {
-    s = sset.states[i];
-    if ((NULL != s) && (s->accepting))
     {
-      result = 0;
-      break;
+      s = sset.states[i];
+      if ((NULL != s) && (s->accepting))
+        {
+          result = 0;
+          break;
+        }
     }
-  }
 
-  state_set_clear (&sset);
+  state_set_clear(&sset);
   return result;
 }
 
@@ -3253,24 +3256,26 @@ evaluate_nfa (struct REGEX_INTERNAL_Automaton *a, const char *string)
  * @return 0 if string matches, non-0 otherwise
  */
 int
-REGEX_INTERNAL_eval (struct REGEX_INTERNAL_Automaton *a, const char *string)
+REGEX_INTERNAL_eval(struct REGEX_INTERNAL_Automaton *a, const char *string)
 {
   int result;
 
   switch (a->type)
-  {
-  case DFA:
-    result = evaluate_dfa (a, string);
-    break;
-  case NFA:
-    result = evaluate_nfa (a, string);
-    break;
-  default:
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Evaluating regex failed, automaton has no type!\n");
-    result = GNUNET_SYSERR;
-    break;
-  }
+    {
+    case DFA:
+      result = evaluate_dfa(a, string);
+      break;
+
+    case NFA:
+      result = evaluate_nfa(a, string);
+      break;
+
+    default:
+      GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
+                 "Evaluating regex failed, automaton has no type!\n");
+      result = GNUNET_SYSERR;
+      break;
+    }
 
   return result;
 }
@@ -3288,7 +3293,7 @@ REGEX_INTERNAL_eval (struct REGEX_INTERNAL_Automaton *a, const char *string)
  * @return
  */
 const char *
-REGEX_INTERNAL_get_canonical_regex (struct REGEX_INTERNAL_Automaton *a)
+REGEX_INTERNAL_get_canonical_regex(struct REGEX_INTERNAL_Automaton *a)
 {
   if (NULL == a)
     return NULL;
@@ -3305,7 +3310,7 @@ REGEX_INTERNAL_get_canonical_regex (struct REGEX_INTERNAL_Automaton *a)
  * @return number of transitions in the given automaton.
  */
 unsigned int
-REGEX_INTERNAL_get_transition_count (struct REGEX_INTERNAL_Automaton *a)
+REGEX_INTERNAL_get_transition_count(struct REGEX_INTERNAL_Automaton *a)
 {
   unsigned int t_count;
   struct REGEX_INTERNAL_State *s;
@@ -3332,20 +3337,20 @@ REGEX_INTERNAL_get_transition_count (struct REGEX_INTERNAL_Automaton *a)
  *         to construct the key
  */
 size_t
-REGEX_INTERNAL_get_first_key (const char *input_string,
-                              size_t string_len,
-                              struct GNUNET_HashCode *key)
+REGEX_INTERNAL_get_first_key(const char *input_string,
+                             size_t string_len,
+                             struct GNUNET_HashCode *key)
 {
   size_t size;
 
   size = string_len < GNUNET_REGEX_INITIAL_BYTES ? string_len
-                                                 : GNUNET_REGEX_INITIAL_BYTES;
+         : GNUNET_REGEX_INITIAL_BYTES;
   if (NULL == input_string)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Given input string was NULL!\n");
-    return 0;
-  }
-  GNUNET_CRYPTO_hash (input_string, size, key);
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Given input string was NULL!\n");
+      return 0;
+    }
+  GNUNET_CRYPTO_hash(input_string, size, key);
 
   return size;
 }
@@ -3362,12 +3367,12 @@ REGEX_INTERNAL_get_first_key (const char *input_string,
  * @param iterator_cls closure for the @a iterator function.
  */
 static void
-iterate_initial_edge (unsigned int min_len,
-                      unsigned int max_len,
-                      char *consumed_string,
-                      struct REGEX_INTERNAL_State *state,
-                      REGEX_INTERNAL_KeyIterator iterator,
-                      void *iterator_cls)
+iterate_initial_edge(unsigned int min_len,
+                     unsigned int max_len,
+                     char *consumed_string,
+                     struct REGEX_INTERNAL_State *state,
+                     REGEX_INTERNAL_KeyIterator iterator,
+                     void *iterator_cls)
 {
   char *temp;
   struct REGEX_INTERNAL_Transition *t;
@@ -3379,91 +3384,91 @@ iterate_initial_edge (unsigned int min_len,
   unsigned int cur_len;
 
   if (NULL != consumed_string)
-    cur_len = strlen (consumed_string);
+    cur_len = strlen(consumed_string);
   else
     cur_len = 0;
 
   if (((cur_len >= min_len) || (GNUNET_YES == state->accepting)) &&
       (cur_len > 0) && (NULL != consumed_string))
-  {
-    if (cur_len <= max_len)
     {
-      if ((NULL != state->proof) &&
-          (0 != strcmp (consumed_string, state->proof)))
-      {
-        (void) state_get_edges (state, edges);
-        GNUNET_CRYPTO_hash (consumed_string, strlen (consumed_string), &hash);
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                    "Start state for string `%s' is %s\n",
-                    consumed_string,
-                    GNUNET_h2s (&hash));
-        iterator (iterator_cls,
-                  &hash,
-                  consumed_string,
-                  state->accepting,
-                  num_edges,
-                  edges);
-      }
+      if (cur_len <= max_len)
+        {
+          if ((NULL != state->proof) &&
+              (0 != strcmp(consumed_string, state->proof)))
+            {
+              (void)state_get_edges(state, edges);
+              GNUNET_CRYPTO_hash(consumed_string, strlen(consumed_string), &hash);
+              GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+                         "Start state for string `%s' is %s\n",
+                         consumed_string,
+                         GNUNET_h2s(&hash));
+              iterator(iterator_cls,
+                       &hash,
+                       consumed_string,
+                       state->accepting,
+                       num_edges,
+                       edges);
+            }
 
-      if ((GNUNET_YES == state->accepting) && (cur_len > 1) &&
-          (state->transition_count < 1) && (cur_len < max_len))
-      {
-        /* Special case for regex consisting of just a string that is shorter than
-         * max_len */
-        edge[0].label = &consumed_string[cur_len - 1];
-        edge[0].destination = state->hash;
-        temp = GNUNET_strdup (consumed_string);
-        temp[cur_len - 1] = '\0';
-        GNUNET_CRYPTO_hash (temp, cur_len - 1, &hash_new);
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                    "Start state for short string `%s' is %s\n",
-                    temp,
-                    GNUNET_h2s (&hash_new));
-        iterator (iterator_cls, &hash_new, temp, GNUNET_NO, 1, edge);
-        GNUNET_free (temp);
-      }
+          if ((GNUNET_YES == state->accepting) && (cur_len > 1) &&
+              (state->transition_count < 1) && (cur_len < max_len))
+            {
+              /* Special case for regex consisting of just a string that is shorter than
+               * max_len */
+              edge[0].label = &consumed_string[cur_len - 1];
+              edge[0].destination = state->hash;
+              temp = GNUNET_strdup(consumed_string);
+              temp[cur_len - 1] = '\0';
+              GNUNET_CRYPTO_hash(temp, cur_len - 1, &hash_new);
+              GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+                         "Start state for short string `%s' is %s\n",
+                         temp,
+                         GNUNET_h2s(&hash_new));
+              iterator(iterator_cls, &hash_new, temp, GNUNET_NO, 1, edge);
+              GNUNET_free(temp);
+            }
+        }
+      else /* cur_len > max_len */
+        {
+          /* Case where the concatenated labels are longer than max_len, then split. */
+          edge[0].label = &consumed_string[max_len];
+          edge[0].destination = state->hash;
+          temp = GNUNET_strdup(consumed_string);
+          temp[max_len] = '\0';
+          GNUNET_CRYPTO_hash(temp, max_len, &hash);
+          GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+                     "Start state at split edge `%s'-`%s` is %s\n",
+                     temp,
+                     edge[0].label,
+                     GNUNET_h2s(&hash_new));
+          iterator(iterator_cls, &hash, temp, GNUNET_NO, 1, edge);
+          GNUNET_free(temp);
+        }
     }
-    else /* cur_len > max_len */
-    {
-      /* Case where the concatenated labels are longer than max_len, then split. */
-      edge[0].label = &consumed_string[max_len];
-      edge[0].destination = state->hash;
-      temp = GNUNET_strdup (consumed_string);
-      temp[max_len] = '\0';
-      GNUNET_CRYPTO_hash (temp, max_len, &hash);
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Start state at split edge `%s'-`%s` is %s\n",
-                  temp,
-                  edge[0].label,
-                  GNUNET_h2s (&hash_new));
-      iterator (iterator_cls, &hash, temp, GNUNET_NO, 1, edge);
-      GNUNET_free (temp);
-    }
-  }
 
   if (cur_len < max_len)
-  {
-    for (t = state->transitions_head; NULL != t; t = t->next)
     {
-      if (NULL != strchr (t->label, (int) '.'))
-      {
-        /* Wildcards not allowed during starting states */
-        GNUNET_break (0);
-        continue;
-      }
-      if (NULL != consumed_string)
-        GNUNET_asprintf (&temp, "%s%s", consumed_string, t->label);
-      else
-        GNUNET_asprintf (&temp, "%s", t->label);
-      iterate_initial_edge (min_len,
-                            max_len,
-                            temp,
-                            t->to_state,
-                            iterator,
-                            iterator_cls);
-      GNUNET_free (temp);
+      for (t = state->transitions_head; NULL != t; t = t->next)
+        {
+          if (NULL != strchr(t->label, (int)'.'))
+            {
+              /* Wildcards not allowed during starting states */
+              GNUNET_break(0);
+              continue;
+            }
+          if (NULL != consumed_string)
+            GNUNET_asprintf(&temp, "%s%s", consumed_string, t->label);
+          else
+            GNUNET_asprintf(&temp, "%s", t->label);
+          iterate_initial_edge(min_len,
+                               max_len,
+                               temp,
+                               t->to_state,
+                               iterator,
+                               iterator_cls);
+          GNUNET_free(temp);
+        }
     }
-  }
 }
 
 
@@ -3476,41 +3481,41 @@ iterate_initial_edge (unsigned int min_len,
  * @param iterator_cls closure.
  */
 void
-REGEX_INTERNAL_iterate_all_edges (struct REGEX_INTERNAL_Automaton *a,
-                                  REGEX_INTERNAL_KeyIterator iterator,
-                                  void *iterator_cls)
+REGEX_INTERNAL_iterate_all_edges(struct REGEX_INTERNAL_Automaton *a,
+                                 REGEX_INTERNAL_KeyIterator iterator,
+                                 void *iterator_cls)
 {
   struct REGEX_INTERNAL_State *s;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Iterating over starting edges\n");
-  iterate_initial_edge (GNUNET_REGEX_INITIAL_BYTES,
-                        GNUNET_REGEX_INITIAL_BYTES,
-                        NULL,
-                        a->start,
-                        iterator,
-                        iterator_cls);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Iterating over DFA edges\n");
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Iterating over starting edges\n");
+  iterate_initial_edge(GNUNET_REGEX_INITIAL_BYTES,
+                       GNUNET_REGEX_INITIAL_BYTES,
+                       NULL,
+                       a->start,
+                       iterator,
+                       iterator_cls);
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Iterating over DFA edges\n");
   for (s = a->states_head; NULL != s; s = s->next)
-  {
-    struct REGEX_BLOCK_Edge edges[s->transition_count];
-    unsigned int num_edges;
-
-    num_edges = state_get_edges (s, edges);
-    if (((NULL != s->proof) && (0 < strlen (s->proof))) || s->accepting)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Creating DFA edges at `%s' under key %s\n",
-                  s->proof,
-                  GNUNET_h2s (&s->hash));
-      iterator (iterator_cls,
-                &s->hash,
-                s->proof,
-                s->accepting,
-                num_edges,
-                edges);
+      struct REGEX_BLOCK_Edge edges[s->transition_count];
+      unsigned int num_edges;
+
+      num_edges = state_get_edges(s, edges);
+      if (((NULL != s->proof) && (0 < strlen(s->proof))) || s->accepting)
+        {
+          GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+                     "Creating DFA edges at `%s' under key %s\n",
+                     s->proof,
+                     GNUNET_h2s(&s->hash));
+          iterator(iterator_cls,
+                   &s->hash,
+                   s->proof,
+                   s->accepting,
+                   num_edges,
+                   edges);
+        }
+      s->marked = GNUNET_NO;
     }
-    s->marked = GNUNET_NO;
-  }
 }
 
 
@@ -3520,8 +3525,7 @@ REGEX_INTERNAL_iterate_all_edges (struct REGEX_INTERNAL_Automaton *a,
  * Contains the same info as the Regex Iterator parametes except the key,
  * which comes directly from the HashMap iterator.
  */
-struct temporal_state_store
-{
+struct temporal_state_store {
   int reachable;
   char *proof;
   int accepting;
@@ -3533,8 +3537,7 @@ struct temporal_state_store
 /**
  * Store regex iterator and cls in one place to pass to the hashmap iterator.
  */
-struct client_iterator
-{
+struct client_iterator {
   REGEX_INTERNAL_KeyIterator iterator;
   void *iterator_cls;
 };
@@ -3552,31 +3555,31 @@ struct client_iterator
  * @param edges edges leaving current state.
  */
 static void
-store_all_states (void *cls,
-                  const struct GNUNET_HashCode *key,
-                  const char *proof,
-                  int accepting,
-                  unsigned int num_edges,
-                  const struct REGEX_BLOCK_Edge *edges)
+store_all_states(void *cls,
+                 const struct GNUNET_HashCode *key,
+                 const char *proof,
+                 int accepting,
+                 unsigned int num_edges,
+                 const struct REGEX_BLOCK_Edge *edges)
 {
   struct GNUNET_CONTAINER_MultiHashMap *hm = cls;
   struct temporal_state_store *tmp;
   size_t edges_size;
 
-  tmp = GNUNET_new (struct temporal_state_store);
+  tmp = GNUNET_new(struct temporal_state_store);
   tmp->reachable = GNUNET_NO;
-  tmp->proof = GNUNET_strdup (proof);
+  tmp->proof = GNUNET_strdup(proof);
   tmp->accepting = accepting;
   tmp->num_edges = num_edges;
-  edges_size = sizeof (struct REGEX_BLOCK_Edge) * num_edges;
-  tmp->edges = GNUNET_malloc (edges_size);
-  GNUNET_memcpy (tmp->edges, edges, edges_size);
-  GNUNET_assert (GNUNET_YES ==
-                 GNUNET_CONTAINER_multihashmap_put (
-                   hm,
-                   key,
-                   tmp,
-                   GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST));
+  edges_size = sizeof(struct REGEX_BLOCK_Edge) * num_edges;
+  tmp->edges = GNUNET_malloc(edges_size);
+  GNUNET_memcpy(tmp->edges, edges, edges_size);
+  GNUNET_assert(GNUNET_YES ==
+                GNUNET_CONTAINER_multihashmap_put(
+                  hm,
+                  key,
+                  tmp,
+                  GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST));
 }
 
 
@@ -3589,8 +3592,8 @@ store_all_states (void *cls,
  * @param hm HashMap which stores all the states indexed by key.
  */
 static void
-mark_as_reachable (struct temporal_state_store *state,
-                   struct GNUNET_CONTAINER_MultiHashMap *hm)
+mark_as_reachable(struct temporal_state_store *state,
+                  struct GNUNET_CONTAINER_MultiHashMap *hm)
 {
   struct temporal_state_store *child;
   unsigned int i;
@@ -3601,16 +3604,16 @@ mark_as_reachable (struct temporal_state_store *state,
 
   state->reachable = GNUNET_YES;
   for (i = 0; i < state->num_edges; i++)
-  {
-    child =
-      GNUNET_CONTAINER_multihashmap_get (hm, &state->edges[i].destination);
-    if (NULL == child)
     {
-      GNUNET_break (0);
-      continue;
+      child =
+        GNUNET_CONTAINER_multihashmap_get(hm, &state->edges[i].destination);
+      if (NULL == child)
+        {
+          GNUNET_break(0);
+          continue;
+        }
+      mark_as_reachable(child, hm);
     }
-    mark_as_reachable (child, hm);
-  }
 }
 
 
@@ -3624,9 +3627,9 @@ mark_as_reachable (struct temporal_state_store *state,
  *         #GNUNET_NO if not.
  */
 static int
-reachability_iterator (void *cls,
-                       const struct GNUNET_HashCode *key,
-                       void *value)
+reachability_iterator(void *cls,
+                      const struct GNUNET_HashCode *key,
+                      void *value)
 {
   struct GNUNET_CONTAINER_MultiHashMap *hm = cls;
   struct temporal_state_store *state = value;
@@ -3635,12 +3638,12 @@ reachability_iterator (void *cls,
     /* already visited and marked */
     return GNUNET_YES;
 
-  if (GNUNET_REGEX_INITIAL_BYTES > strlen (state->proof) &&
+  if (GNUNET_REGEX_INITIAL_BYTES > strlen(state->proof) &&
       GNUNET_NO == state->accepting)
     /* not directly reachable */
     return GNUNET_YES;
 
-  mark_as_reachable (state, hm);
+  mark_as_reachable(state, hm);
   return GNUNET_YES;
 }
 
@@ -3656,23 +3659,23 @@ reachability_iterator (void *cls,
  *         #GNUNET_NO if not.
  */
 static int
-iterate_reachables (void *cls, const struct GNUNET_HashCode *key, void *value)
+iterate_reachables(void *cls, const struct GNUNET_HashCode *key, void *value)
 {
   struct client_iterator *ci = cls;
   struct temporal_state_store *state = value;
 
   if (GNUNET_YES == state->reachable)
-  {
-    ci->iterator (ci->iterator_cls,
-                  key,
-                  state->proof,
-                  state->accepting,
-                  state->num_edges,
-                  state->edges);
-  }
-  GNUNET_free (state->edges);
-  GNUNET_free (state->proof);
-  GNUNET_free (state);
+    {
+      ci->iterator(ci->iterator_cls,
+                   key,
+                   state->proof,
+                   state->accepting,
+                   state->num_edges,
+                   state->edges);
+    }
+  GNUNET_free(state->edges);
+  GNUNET_free(state->proof);
+  GNUNET_free(state);
   return GNUNET_YES;
 }
 
@@ -3687,22 +3690,22 @@ iterate_reachables (void *cls, const struct GNUNET_HashCode *key, void *value)
  * @param iterator_cls closure.
  */
 void
-REGEX_INTERNAL_iterate_reachable_edges (struct REGEX_INTERNAL_Automaton *a,
-                                        REGEX_INTERNAL_KeyIterator iterator,
-                                        void *iterator_cls)
+REGEX_INTERNAL_iterate_reachable_edges(struct REGEX_INTERNAL_Automaton *a,
+                                       REGEX_INTERNAL_KeyIterator iterator,
+                                       void *iterator_cls)
 {
   struct GNUNET_CONTAINER_MultiHashMap *hm;
   struct client_iterator ci;
 
-  hm = GNUNET_CONTAINER_multihashmap_create (a->state_count * 2, GNUNET_NO);
+  hm = GNUNET_CONTAINER_multihashmap_create(a->state_count * 2, GNUNET_NO);
   ci.iterator = iterator;
   ci.iterator_cls = iterator_cls;
 
-  REGEX_INTERNAL_iterate_all_edges (a, &store_all_states, hm);
-  GNUNET_CONTAINER_multihashmap_iterate (hm, &reachability_iterator, hm);
-  GNUNET_CONTAINER_multihashmap_iterate (hm, &iterate_reachables, &ci);
+  REGEX_INTERNAL_iterate_all_edges(a, &store_all_states, hm);
+  GNUNET_CONTAINER_multihashmap_iterate(hm, &reachability_iterator, hm);
+  GNUNET_CONTAINER_multihashmap_iterate(hm, &iterate_reachables, &ci);
 
-  GNUNET_CONTAINER_multihashmap_destroy (hm);
+  GNUNET_CONTAINER_multihashmap_destroy(hm);
 }
 
 

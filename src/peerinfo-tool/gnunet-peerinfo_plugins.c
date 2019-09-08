@@ -11,12 +11,12 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 
 /**
  * @file peerinfo-tool/gnunet-peerinfo_plugins.c
@@ -31,8 +31,7 @@
 /**
  * Entry in doubly-linked list of all of our plugins.
  */
-struct TransportPlugin
-{
+struct TransportPlugin {
   /**
    * This is a doubly-linked list.
    */
@@ -64,7 +63,6 @@ struct TransportPlugin
    * for this plugin.
    */
   struct GNUNET_TRANSPORT_PluginEnvironment env;
-
 };
 
 /**
@@ -88,7 +86,7 @@ static struct TransportPlugin *plugins_tail;
  * @param cfg configuration to use
  */
 void
-GPI_plugins_load (const struct GNUNET_CONFIGURATION_Handle *cfg)
+GPI_plugins_load(const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   struct TransportPlugin *plug;
   struct TransportPlugin *next;
@@ -99,41 +97,41 @@ GPI_plugins_load (const struct GNUNET_CONFIGURATION_Handle *cfg)
   if (NULL != plugins_head)
     return; /* already loaded */
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_string (cfg, "TRANSPORT", "PLUGINS",
-                                             &plugs))
+      GNUNET_CONFIGURATION_get_value_string(cfg, "TRANSPORT", "PLUGINS",
+                                            &plugs))
     return;
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Starting transport plugins `%s'\n"),
-              plugs);
-  for (pos = strtok (plugs, " "); pos != NULL; pos = strtok (NULL, " "))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Loading `%s' transport plugin\n"),
-                pos);
-    GNUNET_asprintf (&libname, "libgnunet_plugin_transport_%s", pos);
-    plug = GNUNET_new (struct TransportPlugin);
-    plug->short_name = GNUNET_strdup (pos);
-    plug->lib_name = libname;
-    plug->env.cfg = cfg;
-    plug->env.cls = plug->short_name;
-    GNUNET_CONTAINER_DLL_insert (plugins_head, plugins_tail, plug);
-  }
-  GNUNET_free (plugs);
+  GNUNET_log(GNUNET_ERROR_TYPE_INFO, _("Starting transport plugins `%s'\n"),
+             plugs);
+  for (pos = strtok(plugs, " "); pos != NULL; pos = strtok(NULL, " "))
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_INFO, _("Loading `%s' transport plugin\n"),
+                 pos);
+      GNUNET_asprintf(&libname, "libgnunet_plugin_transport_%s", pos);
+      plug = GNUNET_new(struct TransportPlugin);
+      plug->short_name = GNUNET_strdup(pos);
+      plug->lib_name = libname;
+      plug->env.cfg = cfg;
+      plug->env.cls = plug->short_name;
+      GNUNET_CONTAINER_DLL_insert(plugins_head, plugins_tail, plug);
+    }
+  GNUNET_free(plugs);
   next = plugins_head;
   while (next != NULL)
-  {
-    plug = next;
-    next = plug->next;
-    plug->api = GNUNET_PLUGIN_load (plug->lib_name, &plug->env);
-    if (plug->api == NULL)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  _("Failed to load transport plugin for `%s'\n"),
-                  plug->lib_name);
-      GNUNET_CONTAINER_DLL_remove (plugins_head, plugins_tail, plug);
-      GNUNET_free (plug->short_name);
-      GNUNET_free (plug->lib_name);
-      GNUNET_free (plug);
+      plug = next;
+      next = plug->next;
+      plug->api = GNUNET_PLUGIN_load(plug->lib_name, &plug->env);
+      if (plug->api == NULL)
+        {
+          GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
+                     _("Failed to load transport plugin for `%s'\n"),
+                     plug->lib_name);
+          GNUNET_CONTAINER_DLL_remove(plugins_head, plugins_tail, plug);
+          GNUNET_free(plug->short_name);
+          GNUNET_free(plug->lib_name);
+          GNUNET_free(plug);
+        }
     }
-  }
 }
 
 
@@ -141,18 +139,18 @@ GPI_plugins_load (const struct GNUNET_CONFIGURATION_Handle *cfg)
  * Unload all plugins
  */
 void
-GPI_plugins_unload ()
+GPI_plugins_unload()
 {
   struct TransportPlugin *plug;
 
   while (NULL != (plug = plugins_head))
-  {
-    GNUNET_break (NULL == GNUNET_PLUGIN_unload (plug->lib_name, plug->api));
-    GNUNET_free (plug->lib_name);
-    GNUNET_free (plug->short_name);
-    GNUNET_CONTAINER_DLL_remove (plugins_head, plugins_tail, plug);
-    GNUNET_free (plug);
-  }
+    {
+      GNUNET_break(NULL == GNUNET_PLUGIN_unload(plug->lib_name, plug->api));
+      GNUNET_free(plug->lib_name);
+      GNUNET_free(plug->short_name);
+      GNUNET_CONTAINER_DLL_remove(plugins_head, plugins_tail, plug);
+      GNUNET_free(plug);
+    }
 }
 
 
@@ -163,31 +161,32 @@ GPI_plugins_unload ()
  * @return the plugin's API, NULL if the plugin is not loaded
  */
 struct GNUNET_TRANSPORT_PluginFunctions *
-GPI_plugins_find (const char *name)
+GPI_plugins_find(const char *name)
 {
   struct TransportPlugin *head = plugins_head;
 
-  char *stripped = GNUNET_strdup (name);
+  char *stripped = GNUNET_strdup(name);
   char *head_stripped;
-  char *sep = strchr (stripped, '_');
+  char *sep = strchr(stripped, '_');
+
   if (NULL != sep)
     sep[0] = '\0';
 
   while (head != NULL)
-  {
-  	head_stripped = GNUNET_strdup(head->short_name);
-    char *head_sep = strchr (head_stripped, '_');
-    if (NULL != head_sep)
-    	head_sep[0] = '\0';
-    if (0 == strcmp (head_stripped, stripped))
     {
-    	GNUNET_free (head_stripped);
-      break;
+      head_stripped = GNUNET_strdup(head->short_name);
+      char *head_sep = strchr(head_stripped, '_');
+      if (NULL != head_sep)
+        head_sep[0] = '\0';
+      if (0 == strcmp(head_stripped, stripped))
+        {
+          GNUNET_free(head_stripped);
+          break;
+        }
+      GNUNET_free(head_stripped);
+      head = head->next;
     }
-    GNUNET_free (head_stripped);
-    head = head->next;
-  }
-  GNUNET_free (stripped);
+  GNUNET_free(stripped);
   if (NULL == head)
     return NULL;
   return head->api;

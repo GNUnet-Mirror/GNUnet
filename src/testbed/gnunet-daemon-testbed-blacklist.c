@@ -11,12 +11,12 @@
       WITHOUT ANY WARRANTY; without even the implied warranty of
       MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
       Affero General Public License for more details.
-     
+
       You should have received a copy of the GNU Affero General Public License
       along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 
 
 /**
@@ -34,14 +34,14 @@
 /**
  * Logging shorthand
  */
-#define LOG(type,...)                           \
-  GNUNET_log (type, __VA_ARGS__)
+#define LOG(type, ...)                           \
+  GNUNET_log(type, __VA_ARGS__)
 
 /**
  * Debug logging shorthand
  */
 #define DEBUG(...)                              \
-  LOG (GNUNET_ERROR_TYPE_DEBUG, __VA_ARGS__)
+  LOG(GNUNET_ERROR_TYPE_DEBUG, __VA_ARGS__)
 
 /**
  * Allow access from the peers read from the whitelist
@@ -79,13 +79,13 @@ static int mode;
  * Cleaup and destroy the map
  */
 static void
-cleanup_map ()
+cleanup_map()
 {
   if (NULL != map)
-  {
-    GNUNET_CONTAINER_multipeermap_destroy (map);
-    map = NULL;
-  }
+    {
+      GNUNET_CONTAINER_multipeermap_destroy(map);
+      map = NULL;
+    }
 }
 
 
@@ -95,11 +95,11 @@ cleanup_map ()
  * @param cls NULL
  */
 static void
-do_shutdown (void *cls)
+do_shutdown(void *cls)
 {
-  cleanup_map ();
+  cleanup_map();
   if (NULL != bh)
-    GNUNET_TRANSPORT_blacklist_cancel (bh);
+    GNUNET_TRANSPORT_blacklist_cancel(bh);
 }
 
 
@@ -111,12 +111,12 @@ do_shutdown (void *cls)
  * @return GNUNET_OK if the connection is allowed, GNUNET_SYSERR if not
  */
 static int
-check_access (void *cls, const struct GNUNET_PeerIdentity * pid)
+check_access(void *cls, const struct GNUNET_PeerIdentity * pid)
 {
   int contains;
 
   if (NULL != map)
-    contains = GNUNET_CONTAINER_multipeermap_contains (map, pid);
+    contains = GNUNET_CONTAINER_multipeermap_contains(map, pid);
   else
     contains = GNUNET_NO;
   if (ACCESS_DENY == mode)
@@ -133,42 +133,42 @@ check_access (void *cls, const struct GNUNET_PeerIdentity * pid)
  * @param cfg the configuration for connecting to the peer's transport service
  */
 static void
-setup_ac (const char *fname,
-	  const struct GNUNET_CONFIGURATION_Handle *cfg)
+setup_ac(const char *fname,
+         const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   uint64_t fsize;
   unsigned int npeers;
   unsigned int cnt;
 
-  GNUNET_assert (GNUNET_OK !=
-		 GNUNET_DISK_file_size (fname, &fsize, GNUNET_NO,
-					GNUNET_YES));
-  if (0 != (fsize % sizeof (struct GNUNET_PeerIdentity)))
-  {
-    GNUNET_break (0);
-    return;
-  }
-  npeers = fsize / sizeof (struct GNUNET_PeerIdentity);
-  if (0 != npeers)
-  {
-    map = GNUNET_CONTAINER_multipeermap_create (npeers, GNUNET_YES);
-    ilist = GNUNET_malloc_large (fsize);
-    GNUNET_assert (fsize == GNUNET_DISK_fn_read (fname, ilist, fsize));
-  }
-  for (cnt = 0; cnt < npeers; cnt++)
-  {
-    if (GNUNET_SYSERR ==
-	GNUNET_CONTAINER_multipeermap_put (map, &ilist[cnt],
-					   &ilist[cnt],
-					   GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY))
+  GNUNET_assert(GNUNET_OK !=
+                GNUNET_DISK_file_size(fname, &fsize, GNUNET_NO,
+                                      GNUNET_YES));
+  if (0 != (fsize % sizeof(struct GNUNET_PeerIdentity)))
     {
-      cleanup_map ();
-      GNUNET_free (ilist);
+      GNUNET_break(0);
       return;
     }
-  }
-  GNUNET_SCHEDULER_add_shutdown (&do_shutdown, NULL);
-  bh = GNUNET_TRANSPORT_blacklist (cfg, &check_access, NULL);
+  npeers = fsize / sizeof(struct GNUNET_PeerIdentity);
+  if (0 != npeers)
+    {
+      map = GNUNET_CONTAINER_multipeermap_create(npeers, GNUNET_YES);
+      ilist = GNUNET_malloc_large(fsize);
+      GNUNET_assert(fsize == GNUNET_DISK_fn_read(fname, ilist, fsize));
+    }
+  for (cnt = 0; cnt < npeers; cnt++)
+    {
+      if (GNUNET_SYSERR ==
+          GNUNET_CONTAINER_multipeermap_put(map, &ilist[cnt],
+                                            &ilist[cnt],
+                                            GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY))
+        {
+          cleanup_map();
+          GNUNET_free(ilist);
+          return;
+        }
+    }
+  GNUNET_SCHEDULER_add_shutdown(&do_shutdown, NULL);
+  bh = GNUNET_TRANSPORT_blacklist(cfg, &check_access, NULL);
 }
 
 
@@ -181,45 +181,45 @@ setup_ac (const char *fname,
  * @param c configuration
  */
 static void
-run (void *cls,
-     char *const *args,
-     const char *cfgfile,
-     const struct GNUNET_CONFIGURATION_Handle *c)
+run(void *cls,
+    char *const *args,
+    const char *cfgfile,
+    const struct GNUNET_CONFIGURATION_Handle *c)
 {
   char *shome;
   char *fname;
 
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_filename (c,
-					       "PATHS",
-					       "GNUNET_HOME",
-					       &shome))
-  {
-    GNUNET_break (0);
-    return;
-  }
-  GNUNET_asprintf (&fname,
-                   "%s/whitelist",
-                   shome);
-  if (GNUNET_YES == GNUNET_DISK_file_test (fname))
-  {
-    mode = ACCESS_ALLOW;
-    setup_ac (fname, c);
-    GNUNET_free (shome);
-    GNUNET_free (fname);
-    return;
-  }
-  GNUNET_free (fname);
-  GNUNET_asprintf (&fname,
-                   "%s/blacklist",
-                   shome);
-  if (GNUNET_YES == GNUNET_DISK_file_test (fname))
-  {
-    mode = ACCESS_DENY;
-    setup_ac (shome, c);
-  }
-  GNUNET_free (shome);
-  GNUNET_free (fname);
+      GNUNET_CONFIGURATION_get_value_filename(c,
+                                              "PATHS",
+                                              "GNUNET_HOME",
+                                              &shome))
+    {
+      GNUNET_break(0);
+      return;
+    }
+  GNUNET_asprintf(&fname,
+                  "%s/whitelist",
+                  shome);
+  if (GNUNET_YES == GNUNET_DISK_file_test(fname))
+    {
+      mode = ACCESS_ALLOW;
+      setup_ac(fname, c);
+      GNUNET_free(shome);
+      GNUNET_free(fname);
+      return;
+    }
+  GNUNET_free(fname);
+  GNUNET_asprintf(&fname,
+                  "%s/blacklist",
+                  shome);
+  if (GNUNET_YES == GNUNET_DISK_file_test(fname))
+    {
+      mode = ACCESS_DENY;
+      setup_ac(shome, c);
+    }
+  GNUNET_free(shome);
+  GNUNET_free(fname);
 }
 
 
@@ -231,7 +231,7 @@ run (void *cls,
  * @return 0 ok, 1 on error
  */
 int
-main (int argc, char *const *argv)
+main(int argc, char *const *argv)
 {
   static const struct GNUNET_GETOPT_CommandLineOption options[] = {
     GNUNET_GETOPT_OPTION_END
@@ -239,15 +239,15 @@ main (int argc, char *const *argv)
   int ret;
 
   if (GNUNET_OK !=
-      GNUNET_STRINGS_get_utf8_args (argc, argv,
-				    &argc, &argv))
+      GNUNET_STRINGS_get_utf8_args(argc, argv,
+                                   &argc, &argv))
     return 2;
   ret =
-      (GNUNET_OK ==
-       GNUNET_PROGRAM_run (argc, argv,
-			   "gnunet-daemon-testbed-blacklist",
-                           _("Daemon to restrict incoming transport layer connections during testbed deployments"),
-                           options, &run, NULL)) ? 0 : 1;
-  GNUNET_free ((void*) argv);
+    (GNUNET_OK ==
+     GNUNET_PROGRAM_run(argc, argv,
+                        "gnunet-daemon-testbed-blacklist",
+                        _("Daemon to restrict incoming transport layer connections during testbed deployments"),
+                        options, &run, NULL)) ? 0 : 1;
+  GNUNET_free((void*)argv);
   return ret;
 }

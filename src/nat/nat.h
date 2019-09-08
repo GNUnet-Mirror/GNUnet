@@ -11,12 +11,12 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 
 /**
  * @file src/nat/nat.h
@@ -36,8 +36,7 @@ GNUNET_NETWORK_STRUCT_BEGIN
  * Request to test NAT traversal, sent to the gnunet-nat-server
  * (not the service!).
  */
-struct GNUNET_NAT_TestMessage
-{
+struct GNUNET_NAT_TestMessage {
   /**
    * Header with type #GNUNET_MESSAGE_TYPE_NAT_TEST
    */
@@ -62,7 +61,6 @@ struct GNUNET_NAT_TestMessage
    * #GNUNET_YES for TCP, #GNUNET_NO for UDP.
    */
   int32_t is_tcp;
-
 };
 
 
@@ -70,8 +68,7 @@ struct GNUNET_NAT_TestMessage
  * Flags specifying the events this client would be
  * interested in being told about.
  */
-enum GNUNET_NAT_RegisterFlags
-{
+enum GNUNET_NAT_RegisterFlags {
   /**
    * This client does not want any notifications.
    */
@@ -93,8 +90,7 @@ enum GNUNET_NAT_RegisterFlags
 /**
  * Message sent by a client to register with its addresses.
  */
-struct GNUNET_NAT_RegisterMessage
-{
+struct GNUNET_NAT_RegisterMessage {
   /**
    * Header with type #GNUNET_MESSAGE_TYPE_NAT_REGISTER
    */
@@ -127,15 +123,13 @@ struct GNUNET_NAT_RegisterMessage
      sockaddr' */
 
   /* Followed by @e str_len section name to use for options */
-  
 };
 
 
 /**
  * Client telling the service to (possibly) handle a STUN message.
  */
-struct GNUNET_NAT_HandleStunMessage
-{
+struct GNUNET_NAT_HandleStunMessage {
   /**
    * Header with type #GNUNET_MESSAGE_TYPE_NAT_HANDLE_STUN
    */
@@ -160,8 +154,7 @@ struct GNUNET_NAT_HandleStunMessage
 /**
  * Client asking the service to initiate connection reversal.
  */
-struct GNUNET_NAT_RequestConnectionReversalMessage
-{
+struct GNUNET_NAT_RequestConnectionReversalMessage {
   /**
    * Header with type #GNUNET_MESSAGE_TYPE_NAT_REQUEST_CONNECTION_REVERSAL
    */
@@ -180,31 +173,27 @@ struct GNUNET_NAT_RequestConnectionReversalMessage
   /* followed by a `struct sockaddr` of @e local_addr_size bytes */
 
   /* followed by a `struct sockaddr` of @e remote_addr_size bytes */
-
 };
 
 
 /**
  * Service telling a client that connection reversal was requested.
  */
-struct GNUNET_NAT_ConnectionReversalRequestedMessage
-{
+struct GNUNET_NAT_ConnectionReversalRequestedMessage {
   /**
    * Header with type #GNUNET_MESSAGE_TYPE_NAT_CONNECTION_REVERSAL_REQUESTED
    */
   struct GNUNET_MessageHeader header;
 
   /* followed by a `struct sockaddr_in` */
-  
 };
 
 
 /**
- * Service notifying the client about changes in the set of 
+ * Service notifying the client about changes in the set of
  * addresses it has.
  */
-struct GNUNET_NAT_AddressChangeNotificationMessage
-{
+struct GNUNET_NAT_AddressChangeNotificationMessage {
   /**
    * Header with type #GNUNET_MESSAGE_TYPE_NAT_ADDRESS_CHANGE
    */
@@ -212,7 +201,7 @@ struct GNUNET_NAT_AddressChangeNotificationMessage
 
   /**
    * #GNUNET_YES to add, #GNUNET_NO to remove the address from the list.
-   */ 
+   */
   int32_t add_remove GNUNET_PACKED;
 
   /**
@@ -220,7 +209,6 @@ struct GNUNET_NAT_AddressChangeNotificationMessage
    */
   uint32_t addr_class GNUNET_PACKED;
   /* followed by a `struct sockaddr` */
-  
 };
 
 

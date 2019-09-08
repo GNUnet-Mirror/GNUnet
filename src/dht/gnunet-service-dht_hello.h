@@ -11,12 +11,12 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 
 /**
  * @file dht/gnunet-service-dht_hello.h
@@ -36,20 +36,20 @@
  * @return HELLO for the given peer
  */
 const struct GNUNET_HELLO_Message *
-GDS_HELLO_get (const struct GNUNET_PeerIdentity *peer);
+GDS_HELLO_get(const struct GNUNET_PeerIdentity *peer);
 
 
 /**
  * Initialize HELLO subsystem.
  */
 void
-GDS_HELLO_init (void);
+GDS_HELLO_init(void);
 
 
 /**
  * Shutdown HELLO subsystem.
  */
 void
-GDS_HELLO_done (void);
+GDS_HELLO_done(void);
 
 #endif

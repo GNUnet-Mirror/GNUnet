@@ -11,12 +11,12 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 
 /**
  * @file consensus/test_consensus_api.c
@@ -36,30 +36,31 @@ static unsigned int elements_received;
 
 
 static void
-conclude_done (void *cls)
+conclude_done(void *cls)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "conclude over\n");
+  GNUNET_log(GNUNET_ERROR_TYPE_INFO, "conclude over\n");
   if (2 != elements_received)
-    GNUNET_assert (0);
-  GNUNET_SCHEDULER_shutdown ();
+    GNUNET_assert(0);
+  GNUNET_SCHEDULER_shutdown();
 }
 
 static void
-on_new_element (void *cls,
-                const struct GNUNET_SET_Element *element)
+on_new_element(void *cls,
+               const struct GNUNET_SET_Element *element)
 {
   elements_received++;
 }
 
 static void
-insert_done (void *cls, int success)
+insert_done(void *cls, int success)
 {
   /* make sure cb is only called once */
   static int called = GNUNET_NO;
-  GNUNET_assert (GNUNET_NO == called);
+
+  GNUNET_assert(GNUNET_NO == called);
   called = GNUNET_YES;
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "insert done\n");
-  GNUNET_CONSENSUS_conclude (consensus, &conclude_done, NULL);
+  GNUNET_log(GNUNET_ERROR_TYPE_INFO, "insert done\n");
+  GNUNET_CONSENSUS_conclude(consensus, &conclude_done, NULL);
 }
 
 
@@ -69,47 +70,47 @@ insert_done (void *cls, int success)
  * @param cls closure
  */
 static void
-on_shutdown (void *cls)
+on_shutdown(void *cls)
 {
   if (NULL != consensus)
-  {
-    GNUNET_CONSENSUS_destroy (consensus);
-    consensus = NULL;
-  }
+    {
+      GNUNET_CONSENSUS_destroy(consensus);
+      consensus = NULL;
+    }
 }
 
 
 static void
-run (void *cls,
-     const struct GNUNET_CONFIGURATION_Handle *cfg,
-     struct GNUNET_TESTING_Peer *peer)
+run(void *cls,
+    const struct GNUNET_CONFIGURATION_Handle *cfg,
+    struct GNUNET_TESTING_Peer *peer)
 {
   char *str = "foo";
 
-  struct GNUNET_SET_Element el1 = {4, 0, "foo"};
-  struct GNUNET_SET_Element el2 = {5, 0, "quux"};
+  struct GNUNET_SET_Element el1 = { 4, 0, "foo" };
+  struct GNUNET_SET_Element el2 = { 5, 0, "quux" };
 
-  GNUNET_log_setup ("test_consensus_api",
-                    "INFO",
-                    NULL);
-  GNUNET_SCHEDULER_add_shutdown (&on_shutdown, NULL);
+  GNUNET_log_setup("test_consensus_api",
+                   "INFO",
+                   NULL);
+  GNUNET_SCHEDULER_add_shutdown(&on_shutdown, NULL);
 
-  GNUNET_CRYPTO_hash (str, strlen (str), &session_id);
-  consensus = GNUNET_CONSENSUS_create (cfg, 0, NULL, &session_id,
-      GNUNET_TIME_relative_to_absolute (GNUNET_TIME_UNIT_SECONDS),
-      GNUNET_TIME_relative_to_absolute (GNUNET_TIME_UNIT_MINUTES),
-      on_new_element, &consensus);
-  GNUNET_assert (consensus != NULL);
+  GNUNET_CRYPTO_hash(str, strlen(str), &session_id);
+  consensus = GNUNET_CONSENSUS_create(cfg, 0, NULL, &session_id,
+                                      GNUNET_TIME_relative_to_absolute(GNUNET_TIME_UNIT_SECONDS),
+                                      GNUNET_TIME_relative_to_absolute(GNUNET_TIME_UNIT_MINUTES),
+                                      on_new_element, &consensus);
+  GNUNET_assert(consensus != NULL);
 
-  GNUNET_CONSENSUS_insert (consensus, &el1, NULL, &consensus);
-  GNUNET_CONSENSUS_insert (consensus, &el2, &insert_done, &consensus);
+  GNUNET_CONSENSUS_insert(consensus, &el1, NULL, &consensus);
+  GNUNET_CONSENSUS_insert(consensus, &el2, &insert_done, &consensus);
 }
 
 
 int
-main (int argc, char **argv)
+main(int argc, char **argv)
 {
-  return GNUNET_TESTING_peer_run ("test_consensus_api",
-				  "test_consensus.conf",
-				  &run, NULL);
+  return GNUNET_TESTING_peer_run("test_consensus_api",
+                                 "test_consensus.conf",
+                                 &run, NULL);
 }

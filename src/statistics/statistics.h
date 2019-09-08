@@ -11,12 +11,12 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 
 /**
  * @author Christian Grothoff
@@ -37,8 +37,7 @@ GNUNET_NETWORK_STRUCT_BEGIN
  * The struct is be followed by the service name and
  * name of the statistic, both 0-terminated.
  */
-struct GNUNET_STATISTICS_ReplyMessage
-{
+struct GNUNET_STATISTICS_ReplyMessage {
   /**
    * Type:  GNUNET_MESSAGE_TYPE_STATISTICS_VALUE
    */
@@ -56,14 +55,13 @@ struct GNUNET_STATISTICS_ReplyMessage
    * The value.
    */
   uint64_t value GNUNET_PACKED;
-
 };
 
 /**
  * Flag for the `struct GNUNET_STATISTICS_ReplyMessage` UID only.
  * Note that other messages use #GNUNET_STATISTICS_SETFLAG_PERSISTENT.
  */
-#define GNUNET_STATISTICS_PERSIST_BIT ((uint32_t) (1LLU<<31))
+#define GNUNET_STATISTICS_PERSIST_BIT ((uint32_t)(1LLU << 31))
 
 /**
  * The value being set is an absolute change.
@@ -89,8 +87,7 @@ struct GNUNET_STATISTICS_ReplyMessage
  * by the subsystem name and the name of
  * the statistic (each 0-terminated).
  */
-struct GNUNET_STATISTICS_SetMessage
-{
+struct GNUNET_STATISTICS_SetMessage {
   /**
    * Type: #GNUNET_MESSAGE_TYPE_STATISTICS_SET
    */
@@ -107,15 +104,13 @@ struct GNUNET_STATISTICS_SetMessage
    * be signed even though the type given here is unsigned.
    */
   uint64_t value GNUNET_PACKED;
-
 };
 
 
 /**
  * Message transmitted if a watched value changes.
  */
-struct GNUNET_STATISTICS_WatchValueMessage
-{
+struct GNUNET_STATISTICS_WatchValueMessage {
   /**
    * Type: #GNUNET_MESSAGE_TYPE_STATISTICS_WATCH_VALUE
    */
@@ -145,7 +140,6 @@ struct GNUNET_STATISTICS_WatchValueMessage
    * be signed even though the type given here is unsigned.
    */
   uint64_t value GNUNET_PACKED;
-
 };
 GNUNET_NETWORK_STRUCT_END
 

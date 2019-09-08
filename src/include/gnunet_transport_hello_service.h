@@ -16,7 +16,7 @@
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 
 /**
  * @author Christian Grothoff
@@ -58,9 +58,7 @@ extern "C" {
  * classes to filter addresses by which domain they make
  * sense to be used in.  These are used in a bitmask.
  */
-enum GNUNET_TRANSPORT_AddressClass
-{
-
+enum GNUNET_TRANSPORT_AddressClass {
   /**
    * No address.
    */
@@ -108,7 +106,6 @@ enum GNUNET_TRANSPORT_AddressClass
    * Bitmask for "any" address.
    */
   GNUNET_TRANSPORT_AC_ANY = 65535
-
 };
 
 
@@ -141,10 +138,10 @@ struct GNUNET_TRANSPORT_HelloGetHandle;
  * @return handle to cancel the operation
  */
 struct GNUNET_TRANSPORT_HelloGetHandle *
-GNUNET_TRANSPORT_hello_get (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                            enum GNUNET_TRANSPORT_AddressClass ac,
-                            GNUNET_TRANSPORT_HelloUpdateCallback rec,
-                            void *rec_cls);
+GNUNET_TRANSPORT_hello_get(const struct GNUNET_CONFIGURATION_Handle *cfg,
+                           enum GNUNET_TRANSPORT_AddressClass ac,
+                           GNUNET_TRANSPORT_HelloUpdateCallback rec,
+                           void *rec_cls);
 
 
 /**
@@ -153,7 +150,7 @@ GNUNET_TRANSPORT_hello_get (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @param ghh handle to cancel
  */
 void
-GNUNET_TRANSPORT_hello_get_cancel (struct GNUNET_TRANSPORT_HelloGetHandle *ghh);
+GNUNET_TRANSPORT_hello_get_cancel(struct GNUNET_TRANSPORT_HelloGetHandle *ghh);
 
 
 /**
@@ -183,9 +180,9 @@ typedef void (*GNUNET_TRANSPORT_AddressCallback) (
  * @return #GNUNET_OK if hello was well-formed, #GNUNET_SYSERR if not
  */
 int
-GNUNET_TRANSPORT_hello_parse (const struct GNUNET_MessageHeader *hello,
-                              GNUNET_TRANSPORT_AddressCallback cb,
-                              void *cb_cls);
+GNUNET_TRANSPORT_hello_parse(const struct GNUNET_MessageHeader *hello,
+                             GNUNET_TRANSPORT_AddressCallback cb,
+                             void *cb_cls);
 
 
 #if 0 /* keep Emacsens' auto-indent happy */

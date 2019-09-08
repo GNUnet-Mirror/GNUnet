@@ -11,12 +11,12 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 
 /**
  * @file fs/fs_directory.c
@@ -51,18 +51,18 @@
  *  we have no mime-type information (treat as #GNUNET_NO)
  */
 int
-GNUNET_FS_meta_data_test_for_directory (const struct GNUNET_CONTAINER_MetaData *md)
+GNUNET_FS_meta_data_test_for_directory(const struct GNUNET_CONTAINER_MetaData *md)
 {
   char *mime;
   int ret;
 
   if (NULL == md)
     return GNUNET_SYSERR;
-  mime = GNUNET_CONTAINER_meta_data_get_by_type (md, EXTRACTOR_METATYPE_MIMETYPE);
+  mime = GNUNET_CONTAINER_meta_data_get_by_type(md, EXTRACTOR_METATYPE_MIMETYPE);
   if (NULL == mime)
     return GNUNET_SYSERR;
-  ret = (0 == strcasecmp (mime, GNUNET_FS_DIRECTORY_MIME)) ? GNUNET_YES : GNUNET_NO;
-  GNUNET_free (mime);
+  ret = (0 == strcasecmp(mime, GNUNET_FS_DIRECTORY_MIME)) ? GNUNET_YES : GNUNET_NO;
+  GNUNET_free(mime);
   return ret;
 }
 
@@ -74,32 +74,30 @@ GNUNET_FS_meta_data_test_for_directory (const struct GNUNET_CONTAINER_MetaData *
  * @param md metadata to add mimetype to
  */
 void
-GNUNET_FS_meta_data_make_directory (struct GNUNET_CONTAINER_MetaData *md)
+GNUNET_FS_meta_data_make_directory(struct GNUNET_CONTAINER_MetaData *md)
 {
   char *mime;
 
   mime =
-      GNUNET_CONTAINER_meta_data_get_by_type (md, EXTRACTOR_METATYPE_MIMETYPE);
+    GNUNET_CONTAINER_meta_data_get_by_type(md, EXTRACTOR_METATYPE_MIMETYPE);
   if (mime != NULL)
-  {
-    GNUNET_break (0 == strcmp (mime, GNUNET_FS_DIRECTORY_MIME));
-    GNUNET_free (mime);
-    return;
-  }
-  GNUNET_CONTAINER_meta_data_insert (md, "<gnunet>",
-                                     EXTRACTOR_METATYPE_MIMETYPE,
-                                     EXTRACTOR_METAFORMAT_UTF8, "text/plain",
-                                     GNUNET_FS_DIRECTORY_MIME,
-                                     strlen (GNUNET_FS_DIRECTORY_MIME) + 1);
+    {
+      GNUNET_break(0 == strcmp(mime, GNUNET_FS_DIRECTORY_MIME));
+      GNUNET_free(mime);
+      return;
+    }
+  GNUNET_CONTAINER_meta_data_insert(md, "<gnunet>",
+                                    EXTRACTOR_METATYPE_MIMETYPE,
+                                    EXTRACTOR_METAFORMAT_UTF8, "text/plain",
+                                    GNUNET_FS_DIRECTORY_MIME,
+                                    strlen(GNUNET_FS_DIRECTORY_MIME) + 1);
 }
 
 
 /**
  * Closure for 'find_full_data'.
  */
-struct GetFullDataClosure
-{
-
+struct GetFullDataClosure {
   /**
    * Extracted binary meta data.
    */
@@ -130,22 +128,22 @@ struct GetFullDataClosure
  * @return 0 to continue extracting, 1 to abort
  */
 static int
-find_full_data (void *cls, const char *plugin_name,
-                enum EXTRACTOR_MetaType type, enum EXTRACTOR_MetaFormat format,
-                const char *data_mime_type, const char *data, size_t data_len)
+find_full_data(void *cls, const char *plugin_name,
+               enum EXTRACTOR_MetaType type, enum EXTRACTOR_MetaFormat format,
+               const char *data_mime_type, const char *data, size_t data_len)
 {
   struct GetFullDataClosure *gfdc = cls;
 
   if (type == EXTRACTOR_METATYPE_GNUNET_FULL_DATA)
-  {
-    gfdc->size = data_len;
-    if (data_len > 0)
     {
-      gfdc->data = GNUNET_malloc (data_len);
-      GNUNET_memcpy (gfdc->data, data, data_len);
+      gfdc->size = data_len;
+      if (data_len > 0)
+        {
+          gfdc->data = GNUNET_malloc(data_len);
+          GNUNET_memcpy(gfdc->data, data, data_len);
+        }
+      return 1;
     }
-    return 1;
-  }
   return 0;
 }
 
@@ -176,11 +174,11 @@ find_full_data (void *cls, const char *plugin_name,
  *         #GNUNET_SYSERR if @a data does not represent a directory
  */
 int
-GNUNET_FS_directory_list_contents (size_t size,
-                                   const void *data,
-                                   uint64_t offset,
-                                   GNUNET_FS_DirectoryEntryProcessor dep,
-                                   void *dep_cls)
+GNUNET_FS_directory_list_contents(size_t size,
+                                  const void *data,
+                                  uint64_t offset,
+                                  GNUNET_FS_DirectoryEntryProcessor dep,
+                                  void *dep_cls)
 {
   struct GetFullDataClosure full_data;
   const char *cdata = data;
@@ -194,132 +192,131 @@ GNUNET_FS_directory_list_contents (size_t size,
   char *filename;
 
   if ((offset == 0) &&
-      ((size < 8 + sizeof (uint32_t)) ||
-       (0 != memcmp (cdata,
-                     GNUNET_FS_DIRECTORY_MAGIC,
-                     8))))
+      ((size < 8 + sizeof(uint32_t)) ||
+       (0 != memcmp(cdata,
+                    GNUNET_FS_DIRECTORY_MAGIC,
+                    8))))
     return GNUNET_SYSERR;
   pos = offset;
   if (offset == 0)
-  {
-    GNUNET_memcpy (&mdSize,
-                   &cdata[8],
-                   sizeof (uint32_t));
-    mdSize = ntohl (mdSize);
-    if (mdSize > size - 8 - sizeof (uint32_t))
     {
-      /* invalid size */
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                  _("MAGIC mismatch.  This is not a GNUnet directory.\n"));
-      return GNUNET_SYSERR;
+      GNUNET_memcpy(&mdSize,
+                    &cdata[8],
+                    sizeof(uint32_t));
+      mdSize = ntohl(mdSize);
+      if (mdSize > size - 8 - sizeof(uint32_t))
+        {
+          /* invalid size */
+          GNUNET_log(GNUNET_ERROR_TYPE_WARNING,
+                     _("MAGIC mismatch.  This is not a GNUnet directory.\n"));
+          return GNUNET_SYSERR;
+        }
+      md = GNUNET_CONTAINER_meta_data_deserialize(&cdata[8 + sizeof(uint32_t)],
+                                                  mdSize);
+      if (md == NULL)
+        {
+          GNUNET_break(0);
+          return GNUNET_SYSERR; /* malformed ! */
+        }
+      dep(dep_cls,
+          NULL,
+          NULL,
+          md,
+          0,
+          NULL);
+      GNUNET_CONTAINER_meta_data_destroy(md);
+      pos = 8 + sizeof(uint32_t) + mdSize;
     }
-    md = GNUNET_CONTAINER_meta_data_deserialize (&cdata[8 + sizeof (uint32_t)],
-                                                 mdSize);
-    if (md == NULL)
-    {
-      GNUNET_break (0);
-      return GNUNET_SYSERR;     /* malformed ! */
-    }
-    dep (dep_cls,
-         NULL,
-         NULL,
-         md,
-         0,
-         NULL);
-    GNUNET_CONTAINER_meta_data_destroy (md);
-    pos = 8 + sizeof (uint32_t) + mdSize;
-  }
   while (pos < size)
-  {
-    /* find end of URI */
-    if (cdata[pos] == '\0')
     {
-      /* URI is never empty, must be end of block,
-       * skip to next alignment */
-      align = ((pos / DBLOCK_SIZE) + 1) * DBLOCK_SIZE;
-      if (align == pos)
-      {
-        /* if we were already aligned, still skip a block! */
-        align += DBLOCK_SIZE;
-      }
-      pos = align;
-      if (pos >= size)
-      {
-        /* malformed - or partial download... */
-        break;
-      }
-    }
-    epos = pos;
-    while ((epos < size) && (cdata[epos] != '\0'))
-      epos++;
-    if (epos >= size)
-      return GNUNET_NO;         /* malformed - or partial download */
+      /* find end of URI */
+      if (cdata[pos] == '\0')
+        {
+          /* URI is never empty, must be end of block,
+           * skip to next alignment */
+          align = ((pos / DBLOCK_SIZE) + 1) * DBLOCK_SIZE;
+          if (align == pos)
+            {
+              /* if we were already aligned, still skip a block! */
+              align += DBLOCK_SIZE;
+            }
+          pos = align;
+          if (pos >= size)
+            {
+              /* malformed - or partial download... */
+              break;
+            }
+        }
+      epos = pos;
+      while ((epos < size) && (cdata[epos] != '\0'))
+        epos++;
+      if (epos >= size)
+        return GNUNET_NO;       /* malformed - or partial download */
 
-    uri = GNUNET_FS_uri_parse (&cdata[pos], &emsg);
-    pos = epos + 1;
-    if (NULL == uri)
-    {
-      GNUNET_free (emsg);
-      pos--;                    /* go back to '\0' to force going to next alignment */
-      continue;
-    }
-    if (GNUNET_FS_uri_test_ksk (uri))
-    {
-      GNUNET_FS_uri_destroy (uri);
-      GNUNET_break (0);
-      return GNUNET_NO;         /* illegal in directory! */
-    }
+      uri = GNUNET_FS_uri_parse(&cdata[pos], &emsg);
+      pos = epos + 1;
+      if (NULL == uri)
+        {
+          GNUNET_free(emsg);
+          pos--;                /* go back to '\0' to force going to next alignment */
+          continue;
+        }
+      if (GNUNET_FS_uri_test_ksk(uri))
+        {
+          GNUNET_FS_uri_destroy(uri);
+          GNUNET_break(0);
+          return GNUNET_NO;     /* illegal in directory! */
+        }
 
-    GNUNET_memcpy (&mdSize,
-                   &cdata[pos],
-                   sizeof (uint32_t));
-    mdSize = ntohl (mdSize);
-    pos += sizeof (uint32_t);
-    if (pos + mdSize > size)
-    {
-      GNUNET_FS_uri_destroy (uri);
-      return GNUNET_NO;         /* malformed - or partial download */
-    }
+      GNUNET_memcpy(&mdSize,
+                    &cdata[pos],
+                    sizeof(uint32_t));
+      mdSize = ntohl(mdSize);
+      pos += sizeof(uint32_t);
+      if (pos + mdSize > size)
+        {
+          GNUNET_FS_uri_destroy(uri);
+          return GNUNET_NO;     /* malformed - or partial download */
+        }
 
-    md = GNUNET_CONTAINER_meta_data_deserialize (&cdata[pos],
-                                                 mdSize);
-    if (NULL == md)
-    {
-      GNUNET_FS_uri_destroy (uri);
-      GNUNET_break (0);
-      return GNUNET_NO;         /* malformed ! */
+      md = GNUNET_CONTAINER_meta_data_deserialize(&cdata[pos],
+                                                  mdSize);
+      if (NULL == md)
+        {
+          GNUNET_FS_uri_destroy(uri);
+          GNUNET_break(0);
+          return GNUNET_NO;     /* malformed ! */
+        }
+      pos += mdSize;
+      filename =
+        GNUNET_CONTAINER_meta_data_get_by_type(md,
+                                               EXTRACTOR_METATYPE_GNUNET_ORIGINAL_FILENAME);
+      full_data.size = 0;
+      full_data.data = NULL;
+      GNUNET_CONTAINER_meta_data_iterate(md,
+                                         &find_full_data,
+                                         &full_data);
+      if (NULL != dep)
+        {
+          dep(dep_cls,
+              filename,
+              uri,
+              md,
+              full_data.size,
+              full_data.data);
+        }
+      GNUNET_free_non_null(full_data.data);
+      GNUNET_free_non_null(filename);
+      GNUNET_CONTAINER_meta_data_destroy(md);
+      GNUNET_FS_uri_destroy(uri);
     }
-    pos += mdSize;
-    filename =
-        GNUNET_CONTAINER_meta_data_get_by_type (md,
-                                                EXTRACTOR_METATYPE_GNUNET_ORIGINAL_FILENAME);
-    full_data.size = 0;
-    full_data.data = NULL;
-    GNUNET_CONTAINER_meta_data_iterate (md,
-                                        &find_full_data,
-                                        &full_data);
-    if (NULL != dep)
-    {
-      dep (dep_cls,
-           filename,
-           uri,
-           md,
-           full_data.size,
-           full_data.data);
-    }
-    GNUNET_free_non_null (full_data.data);
-    GNUNET_free_non_null (filename);
-    GNUNET_CONTAINER_meta_data_destroy (md);
-    GNUNET_FS_uri_destroy (uri);
-  }
   return GNUNET_OK;
 }
 
 /**
  * Entries in the directory (builder).
  */
-struct BuilderEntry
-{
+struct BuilderEntry {
   /**
    * This is a linked list.
    */
@@ -334,8 +331,7 @@ struct BuilderEntry
 /**
  * Internal state of a directory builder.
  */
-struct GNUNET_FS_DirectoryBuilder
-{
+struct GNUNET_FS_DirectoryBuilder {
   /**
    * Meta-data for the directory itself.
    */
@@ -359,17 +355,17 @@ struct GNUNET_FS_DirectoryBuilder
  * @param mdir metadata for the directory
  */
 struct GNUNET_FS_DirectoryBuilder *
-GNUNET_FS_directory_builder_create (const struct GNUNET_CONTAINER_MetaData
-                                    *mdir)
+GNUNET_FS_directory_builder_create(const struct GNUNET_CONTAINER_MetaData
+                                   *mdir)
 {
   struct GNUNET_FS_DirectoryBuilder *ret;
 
-  ret = GNUNET_new (struct GNUNET_FS_DirectoryBuilder);
+  ret = GNUNET_new(struct GNUNET_FS_DirectoryBuilder);
   if (mdir != NULL)
-    ret->meta = GNUNET_CONTAINER_meta_data_duplicate (mdir);
+    ret->meta = GNUNET_CONTAINER_meta_data_duplicate(mdir);
   else
-    ret->meta = GNUNET_CONTAINER_meta_data_create ();
-  GNUNET_FS_meta_data_make_directory (ret->meta);
+    ret->meta = GNUNET_CONTAINER_meta_data_create();
+  GNUNET_FS_meta_data_make_directory(ret->meta);
   return ret;
 }
 
@@ -385,10 +381,10 @@ GNUNET_FS_directory_builder_create (const struct GNUNET_CONTAINER_MetaData
  *        by the uri which must be of type LOC or CHK
  */
 void
-GNUNET_FS_directory_builder_add (struct GNUNET_FS_DirectoryBuilder *bld,
-                                 const struct GNUNET_FS_Uri *uri,
-                                 const struct GNUNET_CONTAINER_MetaData *md,
-                                 const void *data)
+GNUNET_FS_directory_builder_add(struct GNUNET_FS_DirectoryBuilder *bld,
+                                const struct GNUNET_FS_Uri *uri,
+                                const struct GNUNET_CONTAINER_MetaData *md,
+                                const void *data)
 {
   struct GNUNET_FS_Uri *curi;
   struct BuilderEntry *e;
@@ -404,71 +400,71 @@ GNUNET_FS_directory_builder_add (struct GNUNET_FS_DirectoryBuilder *bld,
   struct GNUNET_CONTAINER_MetaData *meta;
   const struct GNUNET_CONTAINER_MetaData *meta_use;
 
-  GNUNET_assert (!GNUNET_FS_uri_test_ksk (uri));
+  GNUNET_assert(!GNUNET_FS_uri_test_ksk(uri));
   if (NULL != data)
-  {
-    GNUNET_assert (!GNUNET_FS_uri_test_sks (uri));
-    if (GNUNET_FS_uri_test_chk (uri))
     {
-      fsize = GNUNET_FS_uri_chk_get_file_size (uri);
+      GNUNET_assert(!GNUNET_FS_uri_test_sks(uri));
+      if (GNUNET_FS_uri_test_chk(uri))
+        {
+          fsize = GNUNET_FS_uri_chk_get_file_size(uri);
+        }
+      else
+        {
+          curi = GNUNET_FS_uri_loc_get_uri(uri);
+          GNUNET_assert(NULL != curi);
+          fsize = GNUNET_FS_uri_chk_get_file_size(curi);
+          GNUNET_FS_uri_destroy(curi);
+        }
     }
-    else
-    {
-      curi = GNUNET_FS_uri_loc_get_uri (uri);
-      GNUNET_assert (NULL != curi);
-      fsize = GNUNET_FS_uri_chk_get_file_size (curi);
-      GNUNET_FS_uri_destroy (curi);
-    }
-  }
   else
-  {
-    fsize = 0;                  /* not given */
-  }
+    {
+      fsize = 0;                /* not given */
+    }
   if (fsize > MAX_INLINE_SIZE)
     fsize = 0;                  /* too large */
-  uris = GNUNET_FS_uri_to_string (uri);
-  slen = strlen (uris) + 1;
-  mds = GNUNET_CONTAINER_meta_data_get_serialized_size (md);
+  uris = GNUNET_FS_uri_to_string(uri);
+  slen = strlen(uris) + 1;
+  mds = GNUNET_CONTAINER_meta_data_get_serialized_size(md);
   meta_use = md;
   meta = NULL;
   if (fsize > 0)
-  {
-    meta = GNUNET_CONTAINER_meta_data_duplicate (md);
-    GNUNET_CONTAINER_meta_data_insert (meta, "<gnunet>",
-                                       EXTRACTOR_METATYPE_GNUNET_FULL_DATA,
-                                       EXTRACTOR_METAFORMAT_BINARY, NULL, data,
-                                       fsize);
-    mdxs = GNUNET_CONTAINER_meta_data_get_serialized_size (meta);
-    if ((slen + sizeof (uint32_t) + mdxs - 1) / DBLOCK_SIZE ==
-        (slen + sizeof (uint32_t) + mds - 1) / DBLOCK_SIZE)
     {
-      /* adding full data would not cause us to cross
-       * additional blocks, so add it! */
-      meta_use = meta;
-      mds = mdxs;
+      meta = GNUNET_CONTAINER_meta_data_duplicate(md);
+      GNUNET_CONTAINER_meta_data_insert(meta, "<gnunet>",
+                                        EXTRACTOR_METATYPE_GNUNET_FULL_DATA,
+                                        EXTRACTOR_METAFORMAT_BINARY, NULL, data,
+                                        fsize);
+      mdxs = GNUNET_CONTAINER_meta_data_get_serialized_size(meta);
+      if ((slen + sizeof(uint32_t) + mdxs - 1) / DBLOCK_SIZE ==
+          (slen + sizeof(uint32_t) + mds - 1) / DBLOCK_SIZE)
+        {
+          /* adding full data would not cause us to cross
+           * additional blocks, so add it! */
+          meta_use = meta;
+          mds = mdxs;
+        }
     }
-  }
 
   if (mds > GNUNET_MAX_MALLOC_CHECKED / 2)
     mds = GNUNET_MAX_MALLOC_CHECKED / 2;
-  e = GNUNET_malloc (sizeof (struct BuilderEntry) + slen + mds +
-                     sizeof (uint32_t));
-  ser = (char *) &e[1];
-  GNUNET_memcpy (ser, uris, slen);
-  GNUNET_free (uris);
-  sptr = &ser[slen + sizeof (uint32_t)];
+  e = GNUNET_malloc(sizeof(struct BuilderEntry) + slen + mds +
+                    sizeof(uint32_t));
+  ser = (char *)&e[1];
+  GNUNET_memcpy(ser, uris, slen);
+  GNUNET_free(uris);
+  sptr = &ser[slen + sizeof(uint32_t)];
   ret =
-      GNUNET_CONTAINER_meta_data_serialize (meta_use, &sptr, mds,
-                                            GNUNET_CONTAINER_META_DATA_SERIALIZE_PART);
+    GNUNET_CONTAINER_meta_data_serialize(meta_use, &sptr, mds,
+                                         GNUNET_CONTAINER_META_DATA_SERIALIZE_PART);
   if (NULL != meta)
-    GNUNET_CONTAINER_meta_data_destroy (meta);
+    GNUNET_CONTAINER_meta_data_destroy(meta);
   if (ret == -1)
     mds = 0;
   else
     mds = ret;
-  big = htonl (mds);
-  GNUNET_memcpy (&ser[slen], &big, sizeof (uint32_t));
-  e->len = slen + sizeof (uint32_t) + mds;
+  big = htonl(mds);
+  GNUNET_memcpy(&ser[slen], &big, sizeof(uint32_t));
+  e->len = slen + sizeof(uint32_t) + mds;
   e->next = bld->head;
   bld->head = e;
   bld->count++;
@@ -481,7 +477,7 @@ GNUNET_FS_directory_builder_add (struct GNUNET_FS_DirectoryBuilder *bld,
  * after alignment to the DBLOCK_SIZE.
  */
 static size_t
-do_align (size_t start_position, size_t end_position)
+do_align(size_t start_position, size_t end_position)
 {
   size_t align;
 
@@ -502,8 +498,8 @@ do_align (size_t start_position, size_t end_position)
  * @param perm the permutation of the blocks (updated)
  */
 static void
-block_align (size_t start, unsigned int count, const size_t * sizes,
-             unsigned int *perm)
+block_align(size_t start, unsigned int count, const size_t * sizes,
+            unsigned int *perm)
 {
   unsigned int i;
   unsigned int j;
@@ -517,46 +513,46 @@ block_align (size_t start, unsigned int count, const size_t * sizes,
 
   cpos = start;
   for (i = 0; i < count; i++)
-  {
-    start = cpos;
-    badness = 0x7FFFFFFF;
-    best = -1;
-    for (j = i; j < count; j++)
     {
-      cval = perm[j];
-      cend = cpos + sizes[cval];
-      if (cpos % DBLOCK_SIZE == 0)
-      {
-        /* prefer placing the largest blocks first */
-        cbad = -(cend % DBLOCK_SIZE);
-      }
-      else
-      {
-        if (cpos / DBLOCK_SIZE == cend / DBLOCK_SIZE)
+      start = cpos;
+      badness = 0x7FFFFFFF;
+      best = -1;
+      for (j = i; j < count; j++)
         {
-          /* Data fits into the same block! Prefer small left-overs! */
-          cbad = DBLOCK_SIZE - cend % DBLOCK_SIZE;
+          cval = perm[j];
+          cend = cpos + sizes[cval];
+          if (cpos % DBLOCK_SIZE == 0)
+            {
+              /* prefer placing the largest blocks first */
+              cbad = -(cend % DBLOCK_SIZE);
+            }
+          else
+            {
+              if (cpos / DBLOCK_SIZE == cend / DBLOCK_SIZE)
+                {
+                  /* Data fits into the same block! Prefer small left-overs! */
+                  cbad = DBLOCK_SIZE - cend % DBLOCK_SIZE;
+                }
+              else
+                {
+                  /* Would have to waste space to re-align, add big factor, this
+                   * case is a real loss (proportional to space wasted)! */
+                  cbad = DBLOCK_SIZE * (DBLOCK_SIZE - cpos % DBLOCK_SIZE);
+                }
+            }
+          if (cbad < badness)
+            {
+              best = j;
+              badness = cbad;
+            }
         }
-        else
-        {
-          /* Would have to waste space to re-align, add big factor, this
-           * case is a real loss (proportional to space wasted)! */
-          cbad = DBLOCK_SIZE * (DBLOCK_SIZE - cpos % DBLOCK_SIZE);
-        }
-      }
-      if (cbad < badness)
-      {
-        best = j;
-        badness = cbad;
-      }
+      GNUNET_assert(best != -1);
+      tmp = perm[i];
+      perm[i] = perm[best];
+      perm[best] = tmp;
+      cpos += sizes[perm[i]];
+      cpos = do_align(start, cpos);
     }
-    GNUNET_assert (best != -1);
-    tmp = perm[i];
-    perm[i] = perm[best];
-    perm[best] = tmp;
-    cpos += sizes[perm[i]];
-    cpos = do_align (start, cpos);
-  }
 }
 
 
@@ -571,9 +567,9 @@ block_align (size_t start, unsigned int count, const size_t * sizes,
  * @return #GNUNET_OK on success
  */
 int
-GNUNET_FS_directory_builder_finish (struct GNUNET_FS_DirectoryBuilder *bld,
-                                    size_t * rsize,
-                                    void **rdata)
+GNUNET_FS_directory_builder_finish(struct GNUNET_FS_DirectoryBuilder *bld,
+                                   size_t * rsize,
+                                   void **rdata)
 {
   char *data;
   char *sptr;
@@ -589,82 +585,82 @@ GNUNET_FS_directory_builder_finish (struct GNUNET_FS_DirectoryBuilder *bld,
   ssize_t ret;
   uint32_t big;
 
-  size = strlen (GNUNET_DIRECTORY_MAGIC) + sizeof (uint32_t);
-  size += GNUNET_CONTAINER_meta_data_get_serialized_size (bld->meta);
+  size = strlen(GNUNET_DIRECTORY_MAGIC) + sizeof(uint32_t);
+  size += GNUNET_CONTAINER_meta_data_get_serialized_size(bld->meta);
   sizes = NULL;
   perm = NULL;
   bes = NULL;
   if (0 < bld->count)
-  {
-    sizes = GNUNET_new_array (bld->count,
-                              size_t);
-    perm = GNUNET_new_array (bld->count,
-                             unsigned int);
-    bes = GNUNET_new_array (bld->count,
-                            struct BuilderEntry *);
-    pos = bld->head;
-    for (i = 0; i < bld->count; i++)
     {
-      perm[i] = i;
-      bes[i] = pos;
-      sizes[i] = pos->len;
-      pos = pos->next;
+      sizes = GNUNET_new_array(bld->count,
+                               size_t);
+      perm = GNUNET_new_array(bld->count,
+                              unsigned int);
+      bes = GNUNET_new_array(bld->count,
+                             struct BuilderEntry *);
+      pos = bld->head;
+      for (i = 0; i < bld->count; i++)
+        {
+          perm[i] = i;
+          bes[i] = pos;
+          sizes[i] = pos->len;
+          pos = pos->next;
+        }
+      block_align(size, bld->count, sizes, perm);
+      /* compute final size with alignment */
+      for (i = 0; i < bld->count; i++)
+        {
+          psize = size;
+          size += sizes[perm[i]];
+          size = do_align(psize, size);
+        }
     }
-    block_align (size, bld->count, sizes, perm);
-    /* compute final size with alignment */
-    for (i = 0; i < bld->count; i++)
-    {
-      psize = size;
-      size += sizes[perm[i]];
-      size = do_align (psize, size);
-    }
-  }
   *rsize = size;
-  data = GNUNET_malloc_large (size);
+  data = GNUNET_malloc_large(size);
   if (data == NULL)
-  {
-    GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR,
-                         "malloc");
-    *rsize = 0;
-    *rdata = NULL;
-    GNUNET_free_non_null (sizes);
-    GNUNET_free_non_null (perm);
-    GNUNET_free_non_null (bes);
-    return GNUNET_SYSERR;
-  }
+    {
+      GNUNET_log_strerror(GNUNET_ERROR_TYPE_ERROR,
+                          "malloc");
+      *rsize = 0;
+      *rdata = NULL;
+      GNUNET_free_non_null(sizes);
+      GNUNET_free_non_null(perm);
+      GNUNET_free_non_null(bes);
+      return GNUNET_SYSERR;
+    }
   *rdata = data;
-  GNUNET_memcpy (data,
-                 GNUNET_DIRECTORY_MAGIC,
-                 strlen (GNUNET_DIRECTORY_MAGIC));
-  off = strlen (GNUNET_DIRECTORY_MAGIC);
+  GNUNET_memcpy(data,
+                GNUNET_DIRECTORY_MAGIC,
+                strlen(GNUNET_DIRECTORY_MAGIC));
+  off = strlen(GNUNET_DIRECTORY_MAGIC);
 
-  sptr = &data[off + sizeof (uint32_t)];
+  sptr = &data[off + sizeof(uint32_t)];
   ret =
-      GNUNET_CONTAINER_meta_data_serialize (bld->meta,
-                                            &sptr,
-                                            size - off - sizeof (uint32_t),
-                                            GNUNET_CONTAINER_META_DATA_SERIALIZE_FULL);
-  GNUNET_assert (ret != -1);
-  big = htonl (ret);
-  GNUNET_memcpy (&data[off],
-                 &big,
-                 sizeof (uint32_t));
-  off += sizeof (uint32_t) + ret;
+    GNUNET_CONTAINER_meta_data_serialize(bld->meta,
+                                         &sptr,
+                                         size - off - sizeof(uint32_t),
+                                         GNUNET_CONTAINER_META_DATA_SERIALIZE_FULL);
+  GNUNET_assert(ret != -1);
+  big = htonl(ret);
+  GNUNET_memcpy(&data[off],
+                &big,
+                sizeof(uint32_t));
+  off += sizeof(uint32_t) + ret;
   for (j = 0; j < bld->count; j++)
-  {
-    i = perm[j];
-    psize = off;
-    off += sizes[i];
-    off = do_align (psize, off);
-    GNUNET_memcpy (&data[off - sizes[i]], &(bes[i])[1], sizes[i]);
-    GNUNET_free (bes[i]);
-  }
-  GNUNET_free_non_null (sizes);
-  GNUNET_free_non_null (perm);
-  GNUNET_free_non_null (bes);
-  GNUNET_assert (off == size);
-  GNUNET_CONTAINER_meta_data_destroy (bld->meta);
-  GNUNET_free (bld);
+    {
+      i = perm[j];
+      psize = off;
+      off += sizes[i];
+      off = do_align(psize, off);
+      GNUNET_memcpy(&data[off - sizes[i]], &(bes[i])[1], sizes[i]);
+      GNUNET_free(bes[i]);
+    }
+  GNUNET_free_non_null(sizes);
+  GNUNET_free_non_null(perm);
+  GNUNET_free_non_null(bes);
+  GNUNET_assert(off == size);
+  GNUNET_CONTAINER_meta_data_destroy(bld->meta);
+  GNUNET_free(bld);
   return GNUNET_OK;
 }
 

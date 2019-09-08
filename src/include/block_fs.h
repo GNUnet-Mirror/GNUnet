@@ -11,12 +11,12 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 
 /**
  * @author Christian Grothoff
@@ -47,9 +47,7 @@ GNUNET_NETWORK_STRUCT_BEGIN
 /**
  * @brief universal block for keyword and namespace search results
  */
-struct UBlock
-{
-
+struct UBlock {
   /**
    * Signature using pseudonym and search keyword / identifier.
    */
@@ -72,7 +70,6 @@ struct UBlock
   /* 0-terminated URI here */
 
   /* variable-size Meta-Data follows here */
-
 };
 
 
@@ -81,8 +78,7 @@ struct UBlock
  *        can be obtained directly from reading
  *        the plaintext file)
  */
-struct OnDemandBlock
-{
+struct OnDemandBlock {
   /**
    * Hash code of the entire content of the
    * file that was indexed (used to uniquely
@@ -95,7 +91,6 @@ struct OnDemandBlock
    * this on-demand encoded block? (in NBO)
    */
   uint64_t offset GNUNET_PACKED;
-
 };
 GNUNET_NETWORK_STRUCT_END
 

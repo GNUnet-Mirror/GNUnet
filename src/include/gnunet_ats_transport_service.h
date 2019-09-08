@@ -1,19 +1,19 @@
 /*
- This file is part of GNUnet.
- Copyright (C) 2010-2015, 2018 GNUnet e.V.
+   This file is part of GNUnet.
+   Copyright (C) 2010-2015, 2018 GNUnet e.V.
 
- GNUnet is free software: you can redistribute it and/or modify it
- under the terms of the GNU Affero General Public License as published
- by the Free Software Foundation, either version 3 of the License,
- or (at your option) any later version.
+   GNUnet is free software: you can redistribute it and/or modify it
+   under the terms of the GNU Affero General Public License as published
+   by the Free Software Foundation, either version 3 of the License,
+   or (at your option) any later version.
 
- GNUnet is distributed in the hope that it will be useful, but
- WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- Affero General Public License for more details.
+   GNUnet is distributed in the hope that it will be useful, but
+   WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   Affero General Public License for more details.
 
- You should have received a copy of the GNU Affero General Public License
- along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   You should have received a copy of the GNU Affero General Public License
+   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
  */
@@ -43,9 +43,7 @@
 /**
  * ATS performance characteristics for a session.
  */
-struct GNUNET_ATS_Properties
-{
-
+struct GNUNET_ATS_Properties {
   /**
    * Delay.  Time between when the time packet is sent and the packet
    * arrives.  FOREVER if we did not (successfully) measure yet.
@@ -106,7 +104,6 @@ struct GNUNET_ATS_Properties
    * What characteristics does this communicator have?
    */
   enum GNUNET_TRANSPORT_CommunicatorCharacteristics cc;
-
 };
 
 
@@ -166,11 +163,11 @@ typedef void
  * @return ats context
  */
 struct GNUNET_ATS_TransportHandle *
-GNUNET_ATS_transport_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                           GNUNET_ATS_AllocationCallback alloc_cb,
-                           void *alloc_cb_cls,
-                           GNUNET_ATS_SuggestionCallback suggest_cb,
-                           void *suggest_cb_cls);
+GNUNET_ATS_transport_init(const struct GNUNET_CONFIGURATION_Handle *cfg,
+                          GNUNET_ATS_AllocationCallback alloc_cb,
+                          void *alloc_cb_cls,
+                          GNUNET_ATS_SuggestionCallback suggest_cb,
+                          void *suggest_cb_cls);
 
 
 /**
@@ -179,7 +176,7 @@ GNUNET_ATS_transport_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @param ath handle to release
  */
 void
-GNUNET_ATS_transport_done (struct GNUNET_ATS_TransportHandle *ath);
+GNUNET_ATS_transport_done(struct GNUNET_ATS_TransportHandle *ath);
 
 
 /**
@@ -203,11 +200,11 @@ struct GNUNET_ATS_SessionRecord;
  *         session is invalid)
  */
 struct GNUNET_ATS_SessionRecord *
-GNUNET_ATS_session_add (struct GNUNET_ATS_TransportHandle *ath,
-                        const struct GNUNET_PeerIdentity *pid,
-                        const char *address,
-                        struct GNUNET_ATS_Session *session,
-                        const struct GNUNET_ATS_Properties *prop);
+GNUNET_ATS_session_add(struct GNUNET_ATS_TransportHandle *ath,
+                       const struct GNUNET_PeerIdentity *pid,
+                       const char *address,
+                       struct GNUNET_ATS_Session *session,
+                       const struct GNUNET_ATS_Properties *prop);
 
 
 /**
@@ -218,8 +215,8 @@ GNUNET_ATS_session_add (struct GNUNET_ATS_TransportHandle *ath,
  * @param prop performance data for the session
  */
 void
-GNUNET_ATS_session_update (struct GNUNET_ATS_SessionRecord *ar,
-                           const struct GNUNET_ATS_Properties *prop);
+GNUNET_ATS_session_update(struct GNUNET_ATS_SessionRecord *ar,
+                          const struct GNUNET_ATS_Properties *prop);
 
 
 /**
@@ -230,7 +227,7 @@ GNUNET_ATS_session_update (struct GNUNET_ATS_SessionRecord *ar,
  * @param ar session record to drop
  */
 void
-GNUNET_ATS_session_del (struct GNUNET_ATS_SessionRecord *ar);
+GNUNET_ATS_session_del(struct GNUNET_ATS_SessionRecord *ar);
 
 
 #endif

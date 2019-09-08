@@ -11,12 +11,12 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 /**
  * @file transport/test_transport_api_disconnect.c
  * @brief base test case for transport implementations
@@ -32,7 +32,7 @@
 /**
  * How long until we give up on transmitting the message?
  */
-#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 120)
+#define TIMEOUT GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 120)
 
 
 static struct GNUNET_TRANSPORT_TESTING_ConnectCheckContext *ccc;
@@ -41,69 +41,69 @@ static int shutdown_;
 
 
 static void
-notify_disconnect (void *cls,
-                   struct GNUNET_TRANSPORT_TESTING_PeerContext *me,
-                   const struct GNUNET_PeerIdentity *other)
+notify_disconnect(void *cls,
+                  struct GNUNET_TRANSPORT_TESTING_PeerContext *me,
+                  const struct GNUNET_PeerIdentity *other)
 {
   if (me != ccc->p[0])
     return;
-  GNUNET_TRANSPORT_TESTING_log_disconnect (cls,
-                                           me,
-                                           other);
+  GNUNET_TRANSPORT_TESTING_log_disconnect(cls,
+                                          me,
+                                          other);
   if (GNUNET_YES == shutdown_)
-  {
-    ccc->global_ret = GNUNET_OK;
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Test good, shutting down...\n");
-    GNUNET_SCHEDULER_shutdown ();
-  }
+    {
+      ccc->global_ret = GNUNET_OK;
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+                 "Test good, shutting down...\n");
+      GNUNET_SCHEDULER_shutdown();
+    }
 }
 
 
 static void
-stop_peer (void *cls)
+stop_peer(void *cls)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Shutting down peer %u (`%s')\n",
-              ccc->p[1]->no,
-              GNUNET_i2s (&ccc->p[1]->id));
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+             "Shutting down peer %u (`%s')\n",
+             ccc->p[1]->no,
+             GNUNET_i2s(&ccc->p[1]->id));
   shutdown_ = GNUNET_YES;
-  GNUNET_TRANSPORT_TESTING_stop_peer (ccc->p[1]);
+  GNUNET_TRANSPORT_TESTING_stop_peer(ccc->p[1]);
   ccc->p[1] = NULL;
 }
 
 
 static void
-notify_receive (void *cls,
-                struct GNUNET_TRANSPORT_TESTING_PeerContext *receiver,
-                const struct GNUNET_PeerIdentity *sender,
-                const struct GNUNET_TRANSPORT_TESTING_TestMessage *message)
+notify_receive(void *cls,
+               struct GNUNET_TRANSPORT_TESTING_PeerContext *receiver,
+               const struct GNUNET_PeerIdentity *sender,
+               const struct GNUNET_TRANSPORT_TESTING_TestMessage *message)
 {
   {
-    char *ps = GNUNET_strdup (GNUNET_i2s (&receiver->id));
+    char *ps = GNUNET_strdup(GNUNET_i2s(&receiver->id));
 
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Peer %u (`%s') received message of type %d and size %u size from peer %s!\n",
-                receiver->no,
-                ps,
-                ntohs (message->header.type),
-                ntohs (message->header.size),
-                GNUNET_i2s (sender));
-    GNUNET_free (ps);
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+               "Peer %u (`%s') received message of type %d and size %u size from peer %s!\n",
+               receiver->no,
+               ps,
+               ntohs(message->header.type),
+               ntohs(message->header.size),
+               GNUNET_i2s(sender));
+    GNUNET_free(ps);
   }
-  if ((GNUNET_TRANSPORT_TESTING_SIMPLE_MTYPE == ntohs (message->header.type)) &&
-      (sizeof (struct GNUNET_TRANSPORT_TESTING_TestMessage) == ntohs (message->header.size)))
-  {
-    GNUNET_SCHEDULER_add_now (&stop_peer,
-                              NULL);
-    return;
-  }
+  if ((GNUNET_TRANSPORT_TESTING_SIMPLE_MTYPE == ntohs(message->header.type)) &&
+      (sizeof(struct GNUNET_TRANSPORT_TESTING_TestMessage) == ntohs(message->header.size)))
+    {
+      GNUNET_SCHEDULER_add_now(&stop_peer,
+                               NULL);
+      return;
+    }
 }
 
 
 int
-main (int argc,
-      char *argv[])
+main(int argc,
+     char *argv[])
 {
   struct GNUNET_TRANSPORT_TESTING_SendClosure sc = {
     .num_messages = 1
@@ -118,13 +118,13 @@ main (int argc,
     .timeout = TIMEOUT,
     .global_ret = GNUNET_SYSERR
   };
-  
+
   ccc = &my_ccc;
   sc.ccc = ccc;
   if (GNUNET_OK !=
-      GNUNET_TRANSPORT_TESTING_main (2,
-                                     &GNUNET_TRANSPORT_TESTING_connect_check,
-                                     ccc))
+      GNUNET_TRANSPORT_TESTING_main(2,
+                                    &GNUNET_TRANSPORT_TESTING_connect_check,
+                                    ccc))
     return 1;
   return 0;
 }

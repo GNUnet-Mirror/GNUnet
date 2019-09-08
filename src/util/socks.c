@@ -11,12 +11,12 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 
 /**
  * @file util/socks.c
@@ -29,10 +29,10 @@
 #include "gnunet_util_lib.h"
 
 
-#define LOG(kind, ...) GNUNET_log_from (kind, "util-socks", __VA_ARGS__)
+#define LOG(kind, ...) GNUNET_log_from(kind, "util-socks", __VA_ARGS__)
 
 #define LOG_STRERROR(kind, syscall) \
-  GNUNET_log_from_strerror (kind, "util-socks", syscall)
+  GNUNET_log_from_strerror(kind, "util-socks", syscall)
 
 
 /* SOCKS5 authentication methods */
@@ -58,33 +58,43 @@
 #define SOCKS5_REP_INVADDR 0x09 /* Inalid address */
 
 const char *
-SOCKS5_REP_names (int rep)
+SOCKS5_REP_names(int rep)
 {
   switch (rep)
-  {
-  case SOCKS5_REP_SUCCEEDED:
-    return "succeeded";
-  case SOCKS5_REP_FAIL:
-    return "general SOCKS server failure";
-  case SOCKS5_REP_NALLOWED:
-    return "connection not allowed by ruleset";
-  case SOCKS5_REP_NUNREACH:
-    return "Network unreachable";
-  case SOCKS5_REP_HUNREACH:
-    return "Host unreachable";
-  case SOCKS5_REP_REFUSED:
-    return "connection refused";
-  case SOCKS5_REP_EXPIRED:
-    return "TTL expired";
-  case SOCKS5_REP_CNOTSUP:
-    return "Command not supported";
-  case SOCKS5_REP_ANOTSUP:
-    return "Address not supported";
-  case SOCKS5_REP_INVADDR:
-    return "Invalid address";
-  default:
-    return NULL;
-  }
+    {
+    case SOCKS5_REP_SUCCEEDED:
+      return "succeeded";
+
+    case SOCKS5_REP_FAIL:
+      return "general SOCKS server failure";
+
+    case SOCKS5_REP_NALLOWED:
+      return "connection not allowed by ruleset";
+
+    case SOCKS5_REP_NUNREACH:
+      return "Network unreachable";
+
+    case SOCKS5_REP_HUNREACH:
+      return "Host unreachable";
+
+    case SOCKS5_REP_REFUSED:
+      return "connection refused";
+
+    case SOCKS5_REP_EXPIRED:
+      return "TTL expired";
+
+    case SOCKS5_REP_CNOTSUP:
+      return "Command not supported";
+
+    case SOCKS5_REP_ANOTSUP:
+      return "Address not supported";
+
+    case SOCKS5_REP_INVADDR:
+      return "Invalid address";
+
+    default:
+      return NULL;
+    }
 };
 
 
@@ -98,18 +108,18 @@ SOCKS5_REP_names (int rep)
  * @return pointer to the end of the encoded string in the buffer
  */
 unsigned char *
-SOCK5_proto_string (unsigned char *b, const char *s)
+SOCK5_proto_string(unsigned char *b, const char *s)
 {
-  size_t l = strlen (s);
+  size_t l = strlen(s);
 
   if (l > 255)
-  {
-    LOG (GNUNET_ERROR_TYPE_WARNING,
-         "SOCKS5 cannot handle hostnames, usernames, or passwords over 255 bytes, truncating.\n");
-    l = 255;
-  }
-  *(b++) = (unsigned char) l;
-  memcpy (b, s, l);
+    {
+      LOG(GNUNET_ERROR_TYPE_WARNING,
+          "SOCKS5 cannot handle hostnames, usernames, or passwords over 255 bytes, truncating.\n");
+      l = 255;
+    }
+  *(b++) = (unsigned char)l;
+  memcpy(b, s, l);
   return b + l;
 }
 
@@ -122,9 +132,7 @@ SOCK5_proto_string (unsigned char *b, const char *s)
 /**
  * State of the SOCKS5 handshake.
  */
-struct GNUNET_SOCKS_Handshake
-{
-
+struct GNUNET_SOCKS_Handshake {
   /**
    * Connection handle used for SOCKS5
    */
@@ -171,16 +179,16 @@ struct GNUNET_SOCKS_Handshake
 /* Regitering prototypes */
 
 void
-register_reciever (struct GNUNET_SOCKS_Handshake *ih, int want);
+register_reciever(struct GNUNET_SOCKS_Handshake *ih, int want);
 
 /* In fact, the client sends first rule in GNUnet suggests one could take
-   * large mac read sizes without fear of screwing up the proxied protocol,
-   * but we make a proper SOCKS5 client. */
+ * large mac read sizes without fear of screwing up the proxied protocol,
+ * but we make a proper SOCKS5 client. */
 #define register_reciever_wants(ih) ((SOCKS5_step_cmd == ih->step) ? 10 : 2)
 
 
 struct GNUNET_CONNECTION_TransmitHandle *
-register_sender (struct GNUNET_SOCKS_Handshake *ih);
+register_sender(struct GNUNET_SOCKS_Handshake *ih);
 
 
 /**
@@ -191,9 +199,9 @@ register_sender (struct GNUNET_SOCKS_Handshake *ih);
  * @return Connection handle that becomes usable when the handshake completes.
  */
 void
-SOCKS5_handshake_done (struct GNUNET_SOCKS_Handshake *ih)
+SOCKS5_handshake_done(struct GNUNET_SOCKS_Handshake *ih)
 {
-  GNUNET_CONNECTION_acivate_proxied (ih->target_connection);
+  GNUNET_CONNECTION_acivate_proxied(ih->target_connection);
 }
 
 
@@ -203,100 +211,109 @@ SOCKS5_handshake_done (struct GNUNET_SOCKS_Handshake *ih)
  * @param ih SOCKS5 Handshake
  */
 void
-SOCKS5_handshake_step (struct GNUNET_SOCKS_Handshake *ih)
+SOCKS5_handshake_step(struct GNUNET_SOCKS_Handshake *ih)
 {
   unsigned char *b = ih->instart;
   size_t available = ih->inend - b;
 
-  int want = register_reciever_wants (ih);
+  int want = register_reciever_wants(ih);
+
   if (available < want)
-  {
-    register_reciever (ih, want - available);
-    return;
-  }
-  GNUNET_assert (SOCKS5_step_done > ih->step && ih->step >= 0);
+    {
+      register_reciever(ih, want - available);
+      return;
+    }
+  GNUNET_assert(SOCKS5_step_done > ih->step && ih->step >= 0);
   switch (ih->step)
-  {
-  case SOCKS5_step_greet: /* SOCKS5 server's greeting */
-    if (b[0] != 5)
     {
-      LOG (GNUNET_ERROR_TYPE_ERROR, "Not a SOCKS5 server\n");
-      GNUNET_assert (0);
-    }
-    switch (b[1])
-    {
-    case SOCKS5_AUTH_NOAUTH:
-      ih->step = SOCKS5_step_cmd; /* no authentication to do */
+    case SOCKS5_step_greet: /* SOCKS5 server's greeting */
+      if (b[0] != 5)
+        {
+          LOG(GNUNET_ERROR_TYPE_ERROR, "Not a SOCKS5 server\n");
+          GNUNET_assert(0);
+        }
+      switch (b[1])
+        {
+        case SOCKS5_AUTH_NOAUTH:
+          ih->step = SOCKS5_step_cmd; /* no authentication to do */
+          break;
+
+        case SOCKS5_AUTH_USERPASS:
+          ih->step = SOCKS5_step_auth;
+          break;
+
+        case SOCKS5_AUTH_REJECT:
+          LOG(GNUNET_ERROR_TYPE_ERROR, "No authentication method accepted\n");
+          return;
+
+        default:
+          LOG(GNUNET_ERROR_TYPE_ERROR,
+              "Not a SOCKS5 server / Nonsensical authentication\n");
+          return;
+        }
+      b += 2;
       break;
-    case SOCKS5_AUTH_USERPASS:
-      ih->step = SOCKS5_step_auth;
+
+    case SOCKS5_step_auth: /* SOCKS5 server's responce to authentication */
+      if (b[1] != 0)
+        {
+          LOG(GNUNET_ERROR_TYPE_ERROR, "SOCKS5 authentication failed\n");
+          GNUNET_assert(0);
+        }
+      ih->step = SOCKS5_step_cmd;
+      b += 2;
       break;
-    case SOCKS5_AUTH_REJECT:
-      LOG (GNUNET_ERROR_TYPE_ERROR, "No authentication method accepted\n");
+
+    case SOCKS5_step_cmd: /* SOCKS5 server's responce to command */
+      if (b[0] != 5)
+        {
+          LOG(GNUNET_ERROR_TYPE_ERROR, "SOCKS5 protocol error\n");
+          GNUNET_assert(0);
+        }
+      if (0 != b[1])
+        {
+          LOG(GNUNET_ERROR_TYPE_ERROR,
+              "SOCKS5 connection error : %s\n",
+              SOCKS5_REP_names(b[1]));
+          return;
+        }
+      b += 3;
+      /* There is no reason to verify host and port afaik. */
+      switch (*(b++))
+        {
+        case 1: /* IPv4 */
+          b += sizeof(struct in_addr); /* 4 */
+          break;
+
+        case 4: /* IPv6 */
+          b += sizeof(struct in6_addr); /* 16 */
+          break;
+
+        case 3: /* hostname */
+          b += *b;
+          break;
+        }
+      b += 2; /* port */
+      if (b > ih->inend)
+        {
+          register_reciever(ih, b - ih->inend);
+          return;
+        }
+      ih->step = SOCKS5_step_done;
+      LOG(GNUNET_ERROR_TYPE_DEBUG,
+          "SOCKS5 server : %s\n",
+          SOCKS5_REP_names(b[1]));
+      ih->instart = b;
+      SOCKS5_handshake_done(ih);
       return;
-    default:
-      LOG (GNUNET_ERROR_TYPE_ERROR,
-           "Not a SOCKS5 server / Nonsensical authentication\n");
-      return;
+
+    case SOCKS5_step_done:
+      GNUNET_assert(0);
     }
-    b += 2;
-    break;
-  case SOCKS5_step_auth: /* SOCKS5 server's responce to authentication */
-    if (b[1] != 0)
-    {
-      LOG (GNUNET_ERROR_TYPE_ERROR, "SOCKS5 authentication failed\n");
-      GNUNET_assert (0);
-    }
-    ih->step = SOCKS5_step_cmd;
-    b += 2;
-    break;
-  case SOCKS5_step_cmd: /* SOCKS5 server's responce to command */
-    if (b[0] != 5)
-    {
-      LOG (GNUNET_ERROR_TYPE_ERROR, "SOCKS5 protocol error\n");
-      GNUNET_assert (0);
-    }
-    if (0 != b[1])
-    {
-      LOG (GNUNET_ERROR_TYPE_ERROR,
-           "SOCKS5 connection error : %s\n",
-           SOCKS5_REP_names (b[1]));
-      return;
-    }
-    b += 3;
-    /* There is no reason to verify host and port afaik. */
-    switch (*(b++))
-    {
-    case 1: /* IPv4 */
-      b += sizeof (struct in_addr); /* 4 */
-      break;
-    case 4: /* IPv6 */
-      b += sizeof (struct in6_addr); /* 16 */
-      break;
-    case 3: /* hostname */
-      b += *b;
-      break;
-    }
-    b += 2; /* port */
-    if (b > ih->inend)
-    {
-      register_reciever (ih, b - ih->inend);
-      return;
-    }
-    ih->step = SOCKS5_step_done;
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "SOCKS5 server : %s\n",
-         SOCKS5_REP_names (b[1]));
-    ih->instart = b;
-    SOCKS5_handshake_done (ih);
-    return;
-  case SOCKS5_step_done:
-    GNUNET_assert (0);
-  }
   ih->instart = b;
   /* Do not reschedule the sender unless we're done reading.
    * I imagine this lets us avoid ever cancelling the transmit handle. */
-  register_sender (ih);
+  register_sender(ih);
 }
 
 
@@ -308,18 +325,19 @@ SOCKS5_handshake_step (struct GNUNET_SOCKS_Handshake *ih)
  * @param handler_cls closure for @a handler
  */
 void
-reciever (void *cls,
-          const void *buf,
-          size_t available,
-          const struct sockaddr *addr,
-          socklen_t addrlen,
-          int errCode)
+reciever(void *cls,
+         const void *buf,
+         size_t available,
+         const struct sockaddr *addr,
+         socklen_t addrlen,
+         int errCode)
 {
   struct GNUNET_SOCKS_Handshake *ih = cls;
-  GNUNET_assert (&ih->inend[available] < &ih->inbuf[1024]);
-  GNUNET_memcpy (ih->inend, buf, available);
+
+  GNUNET_assert(&ih->inend[available] < &ih->inbuf[1024]);
+  GNUNET_memcpy(ih->inend, buf, available);
   ih->inend += available;
-  SOCKS5_handshake_step (ih);
+  SOCKS5_handshake_step(ih);
 }
 
 
@@ -331,13 +349,13 @@ reciever (void *cls,
  * @param handler_cls closure for @a handler
  */
 void
-register_reciever (struct GNUNET_SOCKS_Handshake *ih, int want)
+register_reciever(struct GNUNET_SOCKS_Handshake *ih, int want)
 {
-  GNUNET_CONNECTION_receive (ih->socks5_connection,
-                             want,
-                             GNUNET_TIME_relative_get_minute_ (),
-                             &reciever,
-                             ih);
+  GNUNET_CONNECTION_receive(ih->socks5_connection,
+                            want,
+                            GNUNET_TIME_relative_get_minute_(),
+                            &reciever,
+                            ih);
 }
 
 
@@ -350,7 +368,7 @@ register_reciever (struct GNUNET_SOCKS_Handshake *ih, int want)
  * @return number of bytes written to @a buf
  */
 size_t
-transmit_ready (void *cls, size_t size, void *buf)
+transmit_ready(void *cls, size_t size, void *buf)
 {
   struct GNUNET_SOCKS_Handshake *ih = cls;
 
@@ -370,32 +388,32 @@ transmit_ready (void *cls, size_t size, void *buf)
    * maybe that should change for error handling pruposes.  It appears that
    * successful operations, including DNS resolution, do not use this.  */
   if (NULL == buf)
-  {
-    if (0 == ih->step)
     {
-      LOG (GNUNET_ERROR_TYPE_WARNING,
-           "Timeout contacting SOCKS server, retrying indefinitely, but probably hopeless.\n");
-      register_sender (ih);
+      if (0 == ih->step)
+        {
+          LOG(GNUNET_ERROR_TYPE_WARNING,
+              "Timeout contacting SOCKS server, retrying indefinitely, but probably hopeless.\n");
+          register_sender(ih);
+        }
+      else
+        {
+          LOG(GNUNET_ERROR_TYPE_ERROR,
+              "Timeout during mid SOCKS handshake (step %u), probably not a SOCKS server.\n",
+              ih->step);
+          GNUNET_break(0);
+        }
+      return 0;
     }
-    else
-    {
-      LOG (GNUNET_ERROR_TYPE_ERROR,
-           "Timeout during mid SOCKS handshake (step %u), probably not a SOCKS server.\n",
-           ih->step);
-      GNUNET_break (0);
-    }
-    return 0;
-  }
 
-  GNUNET_assert ((1024 >= size) && (size > 0));
-  GNUNET_assert ((SOCKS5_step_done > ih->step) && (ih->step >= 0));
+  GNUNET_assert((1024 >= size) && (size > 0));
+  GNUNET_assert((SOCKS5_step_done > ih->step) && (ih->step >= 0));
   unsigned char *b = ih->outstep[ih->step];
   unsigned char *e = ih->outstep[ih->step + 1];
-  GNUNET_assert (e <= &ih->outbuf[1024]);
+  GNUNET_assert(e <= &ih->outbuf[1024]);
   unsigned int l = e - b;
-  GNUNET_assert (size >= l);
-  GNUNET_memcpy (buf, b, l);
-  register_reciever (ih, register_reciever_wants (ih));
+  GNUNET_assert(size >= l);
+  GNUNET_memcpy(buf, b, l);
+  register_reciever(ih, register_reciever_wants(ih));
   return l;
 }
 
@@ -408,22 +426,22 @@ transmit_ready (void *cls, size_t size, void *buf)
  *         NULL if we are already going to notify someone else (busy)
  */
 struct GNUNET_CONNECTION_TransmitHandle *
-register_sender (struct GNUNET_SOCKS_Handshake *ih)
+register_sender(struct GNUNET_SOCKS_Handshake *ih)
 {
   struct GNUNET_TIME_Relative timeout = GNUNET_TIME_UNIT_MINUTES;
 
-  GNUNET_assert (SOCKS5_step_done > ih->step);
-  GNUNET_assert (ih->step >= 0);
+  GNUNET_assert(SOCKS5_step_done > ih->step);
+  GNUNET_assert(ih->step >= 0);
   if (0 == ih->step)
-    timeout = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 3);
+    timeout = GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MINUTES, 3);
   unsigned char *b = ih->outstep[ih->step];
   unsigned char *e = ih->outstep[ih->step + 1];
-  GNUNET_assert (ih->outbuf <= b && b < e && e < &ih->outbuf[1024]);
-  ih->th = GNUNET_CONNECTION_notify_transmit_ready (ih->socks5_connection,
-                                                    e - b,
-                                                    timeout,
-                                                    &transmit_ready,
-                                                    ih);
+  GNUNET_assert(ih->outbuf <= b && b < e && e < &ih->outbuf[1024]);
+  ih->th = GNUNET_CONNECTION_notify_transmit_ready(ih->socks5_connection,
+                                                   e - b,
+                                                   timeout,
+                                                   &transmit_ready,
+                                                   ih);
   return ih->th;
 }
 
@@ -438,10 +456,10 @@ register_sender (struct GNUNET_SOCKS_Handshake *ih)
  * @return Valid SOCKS5 hanbdshake handle
  */
 struct GNUNET_SOCKS_Handshake *
-GNUNET_SOCKS_init_handshake (const char *user, const char *pass)
+GNUNET_SOCKS_init_handshake(const char *user, const char *pass)
 {
   struct GNUNET_SOCKS_Handshake *ih =
-    GNUNET_new (struct GNUNET_SOCKS_Handshake);
+    GNUNET_new(struct GNUNET_SOCKS_Handshake);
   unsigned char *b = ih->outbuf;
 
   ih->outstep[SOCKS5_step_greet] = b;
@@ -453,10 +471,10 @@ GNUNET_SOCKS_init_handshake (const char *user, const char *pass)
    * And some SOCKS5 servers might require this.  */
   *(b++) = SOCKS5_AUTH_NOAUTH;
   if (NULL != user)
-  {
-    *(b++) = SOCKS5_AUTH_USERPASS;
-    (*n)++;
-  }
+    {
+      *(b++) = SOCKS5_AUTH_USERPASS;
+      (*n)++;
+    }
   /* There is no apperent reason to support authentication methods beyond
    * username and password since afaik Tor does not support them. */
 
@@ -469,8 +487,8 @@ GNUNET_SOCKS_init_handshake (const char *user, const char *pass)
 
   ih->outstep[SOCKS5_step_auth] = b;
   *(b++) = 1; /* subnegotiation ver.: 1 */
-  b = SOCK5_proto_string (b, user);
-  b = SOCK5_proto_string (b, pass);
+  b = SOCK5_proto_string(b, user);
+  b = SOCK5_proto_string(b, pass);
 
   ih->outstep[SOCKS5_step_cmd] = b;
 
@@ -487,9 +505,9 @@ GNUNET_SOCKS_init_handshake (const char *user, const char *pass)
  * @return Valid SOCKS5 hanbdshake handle
  */
 struct GNUNET_SOCKS_Handshake *
-GNUNET_SOCKS_init_handshake_noauth ()
+GNUNET_SOCKS_init_handshake_noauth()
 {
-  return GNUNET_SOCKS_init_handshake (NULL, NULL);
+  return GNUNET_SOCKS_init_handshake(NULL, NULL);
 }
 
 
@@ -502,12 +520,11 @@ GNUNET_SOCKS_init_handshake_noauth ()
  * @param port
  */
 void
-GNUNET_SOCKS_set_handshake_destination (struct GNUNET_SOCKS_Handshake *ih,
-                                        const char *host,
-                                        uint16_t port)
+GNUNET_SOCKS_set_handshake_destination(struct GNUNET_SOCKS_Handshake *ih,
+                                       const char *host,
+                                       uint16_t port)
 {
-  union
-  {
+  union {
     struct in_addr in4;
     struct in6_addr in6;
   } ia;
@@ -518,26 +535,26 @@ GNUNET_SOCKS_set_handshake_destination (struct GNUNET_SOCKS_Handshake *ih,
   *(b++) = 0; /* reserved */
 
   /* Specify destination */
-  if (1 == inet_pton (AF_INET, host, &ia.in4))
-  {
-    *(b++) = 1; /* IPv4 */
-    GNUNET_memcpy (b, &ia.in4, sizeof (struct in_addr));
-    b += sizeof (struct in_addr); /* 4 */
-  }
-  else if (1 == inet_pton (AF_INET6, host, &ia.in6))
-  {
-    *(b++) = 4; /* IPv6 */
-    GNUNET_memcpy (b, &ia.in6, sizeof (struct in6_addr));
-    b += sizeof (struct in6_addr); /* 16 */
-  }
+  if (1 == inet_pton(AF_INET, host, &ia.in4))
+    {
+      *(b++) = 1; /* IPv4 */
+      GNUNET_memcpy(b, &ia.in4, sizeof(struct in_addr));
+      b += sizeof(struct in_addr); /* 4 */
+    }
+  else if (1 == inet_pton(AF_INET6, host, &ia.in6))
+    {
+      *(b++) = 4; /* IPv6 */
+      GNUNET_memcpy(b, &ia.in6, sizeof(struct in6_addr));
+      b += sizeof(struct in6_addr); /* 16 */
+    }
   else
-  {
-    *(b++) = 3; /* hostname */
-    b = SOCK5_proto_string (b, host);
-  }
+    {
+      *(b++) = 3; /* hostname */
+      b = SOCK5_proto_string(b, host);
+    }
 
   /* Specify port */
-  *(uint16_t *) b = htons (port);
+  *(uint16_t *)b = htons(port);
   b += 2;
 
   ih->outstep[SOCKS5_step_done] = b;
@@ -552,12 +569,12 @@ GNUNET_SOCKS_set_handshake_destination (struct GNUNET_SOCKS_Handshake *ih,
  * @return Connection handle that becomes usable when the SOCKS5 handshake completes.
  */
 struct GNUNET_CONNECTION_Handle *
-GNUNET_SOCKS_run_handshake (struct GNUNET_SOCKS_Handshake *ih,
-                            struct GNUNET_CONNECTION_Handle *c)
+GNUNET_SOCKS_run_handshake(struct GNUNET_SOCKS_Handshake *ih,
+                           struct GNUNET_CONNECTION_Handle *c)
 {
   ih->socks5_connection = c;
-  ih->target_connection = GNUNET_CONNECTION_create_proxied_from_handshake (c);
-  register_sender (ih);
+  ih->target_connection = GNUNET_CONNECTION_create_proxied_from_handshake(c);
+  register_sender(ih);
 
   return ih->target_connection;
 }
@@ -572,11 +589,11 @@ GNUNET_SOCKS_run_handshake (struct GNUNET_SOCKS_Handshake *ih,
  * @return GNUNET_YES if so, GNUNET_NO if not
  */
 int
-GNUNET_SOCKS_check_service (const char *service_name,
-                            const struct GNUNET_CONFIGURATION_Handle *cfg)
+GNUNET_SOCKS_check_service(const char *service_name,
+                           const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
-  return GNUNET_CONFIGURATION_have_value (cfg, service_name, "SOCKSPORT") ||
-         GNUNET_CONFIGURATION_have_value (cfg, service_name, "SOCKSHOST");
+  return GNUNET_CONFIGURATION_have_value(cfg, service_name, "SOCKSPORT") ||
+         GNUNET_CONFIGURATION_have_value(cfg, service_name, "SOCKSHOST");
 }
 
 
@@ -589,8 +606,8 @@ GNUNET_SOCKS_check_service (const char *service_name,
  *         NULL if SOCKS not configured or not configured properly
  */
 struct GNUNET_CONNECTION_Handle *
-GNUNET_SOCKS_do_connect (const char *service_name,
-                         const struct GNUNET_CONFIGURATION_Handle *cfg)
+GNUNET_SOCKS_do_connect(const char *service_name,
+                        const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   struct GNUNET_SOCKS_Handshake *ih;
   struct GNUNET_CONNECTION_Handle *socks5; /* *proxied */
@@ -601,70 +618,70 @@ GNUNET_SOCKS_do_connect (const char *service_name,
   unsigned long long port0;
   unsigned long long port1;
 
-  if (GNUNET_YES != GNUNET_SOCKS_check_service (service_name, cfg))
+  if (GNUNET_YES != GNUNET_SOCKS_check_service(service_name, cfg))
     return NULL;
-  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_number (cfg,
-                                                          service_name,
-                                                          "SOCKSPORT",
-                                                          &port0))
+  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_number(cfg,
+                                                         service_name,
+                                                         "SOCKSPORT",
+                                                         &port0))
     port0 = 9050;
   /* A typical Tor client should usually try port 9150 for the TBB too, but
    * GNUnet can probably assume a system Tor installation. */
   if (port0 > 65535 || port0 <= 0)
-  {
-    LOG (GNUNET_ERROR_TYPE_WARNING,
-         _ (
-           "Attempting to use invalid port %d as SOCKS proxy for service `%s'.\n"),
-         port0,
-         service_name);
-    return NULL;
-  }
-  if ((GNUNET_OK != GNUNET_CONFIGURATION_get_value_number (cfg,
-                                                           service_name,
-                                                           "PORT",
-                                                           &port1)) ||
+    {
+      LOG(GNUNET_ERROR_TYPE_WARNING,
+          _(
+            "Attempting to use invalid port %d as SOCKS proxy for service `%s'.\n"),
+          port0,
+          service_name);
+      return NULL;
+    }
+  if ((GNUNET_OK != GNUNET_CONFIGURATION_get_value_number(cfg,
+                                                          service_name,
+                                                          "PORT",
+                                                          &port1)) ||
       (port1 > 65535) || (port1 <= 0) ||
-      (GNUNET_OK != GNUNET_CONFIGURATION_get_value_string (cfg,
-                                                           service_name,
-                                                           "HOSTNAME",
-                                                           &host1)))
-  {
-    LOG (GNUNET_ERROR_TYPE_WARNING,
-         _ (
-           "Attempting to proxy service `%s' to invalid port %d or hostname.\n"),
-         service_name,
-         port1);
-    return NULL;
-  }
+      (GNUNET_OK != GNUNET_CONFIGURATION_get_value_string(cfg,
+                                                          service_name,
+                                                          "HOSTNAME",
+                                                          &host1)))
+    {
+      LOG(GNUNET_ERROR_TYPE_WARNING,
+          _(
+            "Attempting to proxy service `%s' to invalid port %d or hostname.\n"),
+          service_name,
+          port1);
+      return NULL;
+    }
   /* Appeared to still work after host0 corrupted, so either test case is broken, or
      this whole routine is not being called. */
-  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_string (cfg,
-                                                          service_name,
-                                                          "SOCKSHOST",
-                                                          &host0))
+  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_string(cfg,
+                                                         service_name,
+                                                         "SOCKSHOST",
+                                                         &host0))
     host0 = NULL;
-  socks5 = GNUNET_CONNECTION_create_from_connect (cfg,
-                                                  (host0 != NULL) ? host0
-                                                                  : "127.0.0.1",
-                                                  port0);
-  GNUNET_free_non_null (host0);
+  socks5 = GNUNET_CONNECTION_create_from_connect(cfg,
+                                                 (host0 != NULL) ? host0
+                                                 : "127.0.0.1",
+                                                 port0);
+  GNUNET_free_non_null(host0);
 
   /* Sets to NULL if they do not exist */
-  (void) GNUNET_CONFIGURATION_get_value_string (cfg,
-                                                service_name,
-                                                "SOCKSUSER",
-                                                &user);
-  (void) GNUNET_CONFIGURATION_get_value_string (cfg,
-                                                service_name,
-                                                "SOCKSPASS",
-                                                &pass);
-  ih = GNUNET_SOCKS_init_handshake (user, pass);
-  GNUNET_free_non_null (user);
-  GNUNET_free_non_null (pass);
+  (void)GNUNET_CONFIGURATION_get_value_string(cfg,
+                                              service_name,
+                                              "SOCKSUSER",
+                                              &user);
+  (void)GNUNET_CONFIGURATION_get_value_string(cfg,
+                                              service_name,
+                                              "SOCKSPASS",
+                                              &pass);
+  ih = GNUNET_SOCKS_init_handshake(user, pass);
+  GNUNET_free_non_null(user);
+  GNUNET_free_non_null(pass);
 
-  GNUNET_SOCKS_set_handshake_destination (ih, host1, port1);
-  GNUNET_free (host1);
-  return GNUNET_SOCKS_run_handshake (ih, socks5);
+  GNUNET_SOCKS_set_handshake_destination(ih, host1, port1);
+  GNUNET_free(host1);
+  return GNUNET_SOCKS_run_handshake(ih, socks5);
 }
 
 /* socks.c */

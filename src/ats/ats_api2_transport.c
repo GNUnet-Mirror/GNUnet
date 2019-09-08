@@ -16,7 +16,7 @@
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 /**
  * @file ats/ats_api2_transport.c
  * @brief address suggestions and bandwidth allocation
@@ -27,7 +27,7 @@
 #include "gnunet_ats_transport_service.h"
 #include "ats2.h"
 
-#define LOG(kind,...) GNUNET_log_from(kind, "ats-transport-api", __VA_ARGS__)
+#define LOG(kind, ...) GNUNET_log_from(kind, "ats-transport-api", __VA_ARGS__)
 
 
 /**
@@ -35,9 +35,7 @@
  * doesn't matter if we have a session, any session that ATS is
  * allowed to suggest right now should be tracked.
  */
-struct GNUNET_ATS_SessionRecord
-{
-
+struct GNUNET_ATS_SessionRecord {
   /**
    * Transport handle this session record belongs to.
    */
@@ -75,16 +73,13 @@ struct GNUNET_ATS_SessionRecord
    * messages.
    */
   uint32_t slot;
-
 };
 
 
 /**
  * Handle to the ATS subsystem for bandwidth/transport transport information.
  */
-struct GNUNET_ATS_TransportHandle
-{
-
+struct GNUNET_ATS_TransportHandle {
   /**
    * Our configuration.
    */
@@ -129,7 +124,6 @@ struct GNUNET_ATS_TransportHandle
    * Reconnect backoff delay.
    */
   struct GNUNET_TIME_Relative backoff;
-
 };
 
 
@@ -141,18 +135,18 @@ struct GNUNET_ATS_TransportHandle
  * @param hbo value read
  */
 static void
-properties_hton (struct PropertiesNBO *nbo,
-                 const struct GNUNET_ATS_Properties *hbo)
+properties_hton(struct PropertiesNBO *nbo,
+                const struct GNUNET_ATS_Properties *hbo)
 {
-  nbo->delay = GNUNET_TIME_relative_hton (hbo->delay);
-  nbo->goodput_out = htonl (hbo->goodput_out);
-  nbo->goodput_in = htonl (hbo->goodput_in);
-  nbo->utilization_out = htonl (hbo->utilization_out);
-  nbo->utilization_in = htonl (hbo->utilization_in);
-  nbo->distance = htonl (hbo->distance);
-  nbo->mtu = htonl (hbo->mtu);
-  nbo->nt = htonl ((uint32_t) hbo->nt);
-  nbo->cc = htonl ((uint32_t) hbo->cc);
+  nbo->delay = GNUNET_TIME_relative_hton(hbo->delay);
+  nbo->goodput_out = htonl(hbo->goodput_out);
+  nbo->goodput_in = htonl(hbo->goodput_in);
+  nbo->utilization_out = htonl(hbo->utilization_out);
+  nbo->utilization_in = htonl(hbo->utilization_in);
+  nbo->distance = htonl(hbo->distance);
+  nbo->mtu = htonl(hbo->mtu);
+  nbo->nt = htonl((uint32_t)hbo->nt);
+  nbo->cc = htonl((uint32_t)hbo->cc);
 }
 
 
@@ -162,7 +156,7 @@ properties_hton (struct PropertiesNBO *nbo,
  * @param sh handle to use to re-connect.
  */
 static void
-reconnect (struct GNUNET_ATS_TransportHandle *ath);
+reconnect(struct GNUNET_ATS_TransportHandle *ath);
 
 
 /**
@@ -171,12 +165,12 @@ reconnect (struct GNUNET_ATS_TransportHandle *ath);
  * @param cls handle to use to re-connect.
  */
 static void
-reconnect_task (void *cls)
+reconnect_task(void *cls)
 {
   struct GNUNET_ATS_TransportHandle *ath = cls;
 
   ath->task = NULL;
-  reconnect (ath);
+  reconnect(ath);
 }
 
 
@@ -186,20 +180,20 @@ reconnect_task (void *cls)
  * @param ath our handle
  */
 static void
-force_reconnect (struct GNUNET_ATS_TransportHandle *ath)
+force_reconnect(struct GNUNET_ATS_TransportHandle *ath)
 {
   if (NULL != ath->mq)
-  {
-    GNUNET_MQ_destroy (ath->mq);
-    ath->mq = NULL;
-  }
+    {
+      GNUNET_MQ_destroy(ath->mq);
+      ath->mq = NULL;
+    }
   /* FIXME: do we tell transport service about disconnect events? CON:
      initially ATS will have a really screwed picture of the world and
      the rapid change would be bad.  PRO: if we don't, ATS and
      transport may disagree about the allocation for a while...
      For now: lazy: do nothing. */
-  ath->backoff = GNUNET_TIME_STD_BACKOFF (ath->backoff);
-  ath->task = GNUNET_SCHEDULER_add_delayed (ath->backoff,
+  ath->backoff = GNUNET_TIME_STD_BACKOFF(ath->backoff);
+  ath->task = GNUNET_SCHEDULER_add_delayed(ath->backoff,
                                            &reconnect_task,
                                            ath);
 }
@@ -212,11 +206,11 @@ force_reconnect (struct GNUNET_ATS_TransportHandle *ath)
  * @param m message received
  */
 static int
-check_ats_address_suggestion (void *cls,
-                              const struct AddressSuggestionMessage *m)
+check_ats_address_suggestion(void *cls,
+                             const struct AddressSuggestionMessage *m)
 {
-  (void) cls;
-  GNUNET_MQ_check_zero_termination (m);
+  (void)cls;
+  GNUNET_MQ_check_zero_termination(m);
   return GNUNET_SYSERR;
 }
 
@@ -228,13 +222,13 @@ check_ats_address_suggestion (void *cls,
  * @param m message received
  */
 static void
-handle_ats_address_suggestion (void *cls,
-			       const struct AddressSuggestionMessage *m)
+handle_ats_address_suggestion(void *cls,
+                              const struct AddressSuggestionMessage *m)
 {
   struct GNUNET_ATS_TransportHandle *ath = cls;
-  const char *address = (const char *) &m[1];
+  const char *address = (const char *)&m[1];
 
-  ath->suggest_cb (ath->suggest_cb_cls,
+  ath->suggest_cb(ath->suggest_cb_cls,
                   &m->peer,
                   address);
 }
@@ -243,8 +237,7 @@ handle_ats_address_suggestion (void *cls,
 /**
  * Closure for #match_session_cb.
  */
-struct FindContext
-{
+struct FindContext {
   /**
    * Key to look for.
    */
@@ -266,19 +259,19 @@ struct FindContext
  * @return #GNUNET_NO if match found, #GNUNET_YES to continue searching
  */
 static int
-match_session_cb (void *cls,
-                  const struct GNUNET_PeerIdentity *pid,
-                  void *value)
+match_session_cb(void *cls,
+                 const struct GNUNET_PeerIdentity *pid,
+                 void *value)
 {
   struct FindContext *fc = cls;
   struct GNUNET_ATS_SessionRecord *sr = value;
 
-  (void) pid;
+  (void)pid;
   if (fc->session_id == sr->slot)
-  {
-    fc->sr = sr;
-    return GNUNET_NO;
-  }
+    {
+      fc->sr = sr;
+      return GNUNET_NO;
+    }
   return GNUNET_YES;
 }
 
@@ -293,18 +286,19 @@ match_session_cb (void *cls,
  * @return NULL if no such record exists
  */
 static struct GNUNET_ATS_SessionRecord *
-find_session (struct GNUNET_ATS_TransportHandle *ath,
-              uint32_t session_id,
-              const struct GNUNET_PeerIdentity *pid)
+find_session(struct GNUNET_ATS_TransportHandle *ath,
+             uint32_t session_id,
+             const struct GNUNET_PeerIdentity *pid)
 {
   struct FindContext fc = {
     .session_id = session_id,
     .sr = NULL
   };
-  GNUNET_CONTAINER_multipeermap_get_multiple (ath->records,
-                                              pid,
-                                              &match_session_cb,
-                                              &fc);
+
+  GNUNET_CONTAINER_multipeermap_get_multiple(ath->records,
+                                             pid,
+                                             &match_session_cb,
+                                             &fc);
   return fc.sr;
 }
 
@@ -316,34 +310,34 @@ find_session (struct GNUNET_ATS_TransportHandle *ath,
  * @param m message received
  */
 static void
-handle_ats_session_allocation (void *cls,
-			       const struct SessionAllocationMessage *m)
+handle_ats_session_allocation(void *cls,
+                              const struct SessionAllocationMessage *m)
 {
   struct GNUNET_ATS_TransportHandle *ath = cls;
   struct GNUNET_ATS_SessionRecord *ar;
   uint32_t session_id;
 
-  session_id = ntohl (m->session_id);
-  ar = find_session (ath,
-                     session_id,
-                     &m->peer);
+  session_id = ntohl(m->session_id);
+  ar = find_session(ath,
+                    session_id,
+                    &m->peer);
   if (NULL == ar)
-  {
-    /* this can (rarely) happen if ATS changes an sessiones allocation
-       just when the transport service deleted it */
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                "Allocation ignored, session unknown\n");
-    return;
-  }
+    {
+      /* this can (rarely) happen if ATS changes an sessiones allocation
+         just when the transport service deleted it */
+      GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+                 "Allocation ignored, session unknown\n");
+      return;
+    }
   ath->backoff = GNUNET_TIME_UNIT_ZERO;
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "ATS allocates bandwidth for peer `%s' using address %s\n",
-       GNUNET_i2s (&ar->pid),
-       ar->address);
-  ath->alloc_cb (ath->alloc_cb_cls,
-                 ar->session,
-                 m->bandwidth_out,
-                 m->bandwidth_in);
+  LOG(GNUNET_ERROR_TYPE_DEBUG,
+      "ATS allocates bandwidth for peer `%s' using address %s\n",
+      GNUNET_i2s(&ar->pid),
+      ar->address);
+  ath->alloc_cb(ath->alloc_cb_cls,
+                ar->session,
+                m->bandwidth_out,
+                m->bandwidth_in);
 }
 
 
@@ -355,15 +349,15 @@ handle_ats_session_allocation (void *cls,
  * @param error details about the error
  */
 static void
-error_handler (void *cls,
-               enum GNUNET_MQ_Error error)
+error_handler(void *cls,
+              enum GNUNET_MQ_Error error)
 {
   struct GNUNET_ATS_TransportHandle *ath = cls;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "ATS connection died (code %d), reconnecting\n",
-       (int) error);
-  force_reconnect (ath);
+  LOG(GNUNET_ERROR_TYPE_DEBUG,
+      "ATS connection died (code %d), reconnecting\n",
+      (int)error);
+  force_reconnect(ath);
 }
 
 
@@ -374,7 +368,7 @@ error_handler (void *cls,
  * @param ar the session to inform the ATS service about
  */
 static void
-send_add_session_message (const struct GNUNET_ATS_SessionRecord *ar)
+send_add_session_message(const struct GNUNET_ATS_SessionRecord *ar)
 {
   struct GNUNET_ATS_TransportHandle *ath = ar->ath;
   struct GNUNET_MQ_Envelope *ev;
@@ -383,26 +377,26 @@ send_add_session_message (const struct GNUNET_ATS_SessionRecord *ar)
 
   if (NULL == ath->mq)
     return; /* disconnected, skip for now */
-  alen = strlen (ar->address) + 1;
-  ev = GNUNET_MQ_msg_extra (m,
-                            alen,
-                            (NULL == ar->session)
-                            ? GNUNET_MESSAGE_TYPE_ATS_SESSION_ADD_INBOUND_ONLY
-                            : GNUNET_MESSAGE_TYPE_ATS_SESSION_ADD);
+  alen = strlen(ar->address) + 1;
+  ev = GNUNET_MQ_msg_extra(m,
+                           alen,
+                           (NULL == ar->session)
+                           ? GNUNET_MESSAGE_TYPE_ATS_SESSION_ADD_INBOUND_ONLY
+                           : GNUNET_MESSAGE_TYPE_ATS_SESSION_ADD);
   m->peer = ar->pid;
-  m->session_id = htonl (ar->slot);
-  properties_hton (&m->properties,
-                   &ar->properties);
-  GNUNET_memcpy (&m[1],
-                 ar->address,
-                 alen);
+  m->session_id = htonl(ar->slot);
+  properties_hton(&m->properties,
+                  &ar->properties);
+  GNUNET_memcpy(&m[1],
+                ar->address,
+                alen);
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Adding address `%s' for peer `%s'\n",
-       ar->address,
-       GNUNET_i2s (&ar->pid));
-  GNUNET_MQ_send (ath->mq,
-                  ev);
+  LOG(GNUNET_ERROR_TYPE_DEBUG,
+      "Adding address `%s' for peer `%s'\n",
+      ar->address,
+      GNUNET_i2s(&ar->pid));
+  GNUNET_MQ_send(ath->mq,
+                 ev);
 }
 
 
@@ -415,15 +409,15 @@ send_add_session_message (const struct GNUNET_ATS_SessionRecord *ar)
  * @return #GNUNET_OK
  */
 static int
-send_add_session_cb (void *cls,
-                     const struct GNUNET_PeerIdentity *pid,
-                     void *value)
+send_add_session_cb(void *cls,
+                    const struct GNUNET_PeerIdentity *pid,
+                    void *value)
 {
   struct GNUNET_ATS_SessionRecord *ar = value;
 
-  (void) cls;
-  (void) pid;
-  send_add_session_message (ar);
+  (void)cls;
+  (void)pid;
+  send_add_session_message(ar);
   return GNUNET_OK;
 }
 
@@ -434,43 +428,43 @@ send_add_session_cb (void *cls,
  * @param ath handle to use to re-connect.
  */
 static void
-reconnect (struct GNUNET_ATS_TransportHandle *ath)
+reconnect(struct GNUNET_ATS_TransportHandle *ath)
 {
   struct GNUNET_MQ_MessageHandler handlers[] = {
-    GNUNET_MQ_hd_var_size (ats_address_suggestion,
-                           GNUNET_MESSAGE_TYPE_ATS_ADDRESS_SUGGESTION,
-                           struct AddressSuggestionMessage,
-                           ath),
-    GNUNET_MQ_hd_fixed_size (ats_session_allocation,
-                             GNUNET_MESSAGE_TYPE_ATS_SESSION_ALLOCATION,
-                             struct SessionAllocationMessage,
-                             ath),
-    GNUNET_MQ_handler_end ()
+    GNUNET_MQ_hd_var_size(ats_address_suggestion,
+                          GNUNET_MESSAGE_TYPE_ATS_ADDRESS_SUGGESTION,
+                          struct AddressSuggestionMessage,
+                          ath),
+    GNUNET_MQ_hd_fixed_size(ats_session_allocation,
+                            GNUNET_MESSAGE_TYPE_ATS_SESSION_ALLOCATION,
+                            struct SessionAllocationMessage,
+                            ath),
+    GNUNET_MQ_handler_end()
   };
   struct GNUNET_MQ_Envelope *ev;
   struct GNUNET_MessageHeader *init;
 
-  GNUNET_assert (NULL == ath->mq);
-  ath->mq = GNUNET_CLIENT_connect (ath->cfg,
+  GNUNET_assert(NULL == ath->mq);
+  ath->mq = GNUNET_CLIENT_connect(ath->cfg,
                                   "ats",
                                   handlers,
                                   &error_handler,
                                   ath);
   if (NULL == ath->mq)
-  {
-    GNUNET_break (0);
-    force_reconnect (ath);
-    return;
-  }
-  ev = GNUNET_MQ_msg (init,
-                      GNUNET_MESSAGE_TYPE_ATS_START);
-  GNUNET_MQ_send (ath->mq,
-                  ev);
+    {
+      GNUNET_break(0);
+      force_reconnect(ath);
+      return;
+    }
+  ev = GNUNET_MQ_msg(init,
+                     GNUNET_MESSAGE_TYPE_ATS_START);
+  GNUNET_MQ_send(ath->mq,
+                 ev);
   if (NULL == ath->mq)
     return;
-  GNUNET_CONTAINER_multipeermap_iterate (ath->records,
-                                         &send_add_session_cb,
-                                         ath);
+  GNUNET_CONTAINER_multipeermap_iterate(ath->records,
+                                        &send_add_session_cb,
+                                        ath);
 }
 
 
@@ -485,23 +479,23 @@ reconnect (struct GNUNET_ATS_TransportHandle *ath)
  * @return ats context
  */
 struct GNUNET_ATS_TransportHandle *
-GNUNET_ATS_transport_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                           GNUNET_ATS_AllocationCallback alloc_cb,
-                           void *alloc_cb_cls,
-                           GNUNET_ATS_SuggestionCallback suggest_cb,
-                           void *suggest_cb_cls)
+GNUNET_ATS_transport_init(const struct GNUNET_CONFIGURATION_Handle *cfg,
+                          GNUNET_ATS_AllocationCallback alloc_cb,
+                          void *alloc_cb_cls,
+                          GNUNET_ATS_SuggestionCallback suggest_cb,
+                          void *suggest_cb_cls)
 {
   struct GNUNET_ATS_TransportHandle *ath;
 
-  ath = GNUNET_new (struct GNUNET_ATS_TransportHandle);
+  ath = GNUNET_new(struct GNUNET_ATS_TransportHandle);
   ath->cfg = cfg;
   ath->suggest_cb = suggest_cb;
   ath->suggest_cb_cls = suggest_cb_cls;
   ath->alloc_cb = alloc_cb;
   ath->alloc_cb_cls = alloc_cb_cls;
-  ath->records = GNUNET_CONTAINER_multipeermap_create (128,
+  ath->records = GNUNET_CONTAINER_multipeermap_create(128,
                                                       GNUNET_YES);
-  reconnect (ath);
+  reconnect(ath);
   return ath;
 }
 
@@ -515,15 +509,15 @@ GNUNET_ATS_transport_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @return #GNUNET_OK
  */
 static int
-free_record (void *cls,
-             const struct GNUNET_PeerIdentity *pid,
-             void *value)
+free_record(void *cls,
+            const struct GNUNET_PeerIdentity *pid,
+            void *value)
 {
   struct GNUNET_ATS_SessionRecord *ar = value;
 
-  (void) cls;
-  (void) pid;
-  GNUNET_free (ar);
+  (void)cls;
+  (void)pid;
+  GNUNET_free(ar);
   return GNUNET_OK;
 }
 
@@ -534,23 +528,23 @@ free_record (void *cls,
  * @param ath handle to release
  */
 void
-GNUNET_ATS_transport_done (struct GNUNET_ATS_TransportHandle *ath)
+GNUNET_ATS_transport_done(struct GNUNET_ATS_TransportHandle *ath)
 {
   if (NULL != ath->mq)
-  {
-    GNUNET_MQ_destroy (ath->mq);
-    ath->mq = NULL;
-  }
+    {
+      GNUNET_MQ_destroy(ath->mq);
+      ath->mq = NULL;
+    }
   if (NULL != ath->task)
-  {
-    GNUNET_SCHEDULER_cancel (ath->task);
-    ath->task = NULL;
-  }
-  GNUNET_CONTAINER_multipeermap_iterate (ath->records,
-                                         &free_record,
-                                         NULL);
-  GNUNET_CONTAINER_multipeermap_destroy (ath->records);
-  GNUNET_free (ath);
+    {
+      GNUNET_SCHEDULER_cancel(ath->task);
+      ath->task = NULL;
+    }
+  GNUNET_CONTAINER_multipeermap_iterate(ath->records,
+                                        &free_record,
+                                        NULL);
+  GNUNET_CONTAINER_multipeermap_destroy(ath->records);
+  GNUNET_free(ath);
 }
 
 
@@ -569,55 +563,56 @@ GNUNET_ATS_transport_done (struct GNUNET_ATS_TransportHandle *ath)
  *         on error (i.e. ATS knows this exact session already)
  */
 struct GNUNET_ATS_SessionRecord *
-GNUNET_ATS_session_add (struct GNUNET_ATS_TransportHandle *ath,
-                        const struct GNUNET_PeerIdentity *pid,
-                        const char *address,
-                        struct GNUNET_ATS_Session *session,
-                        const struct GNUNET_ATS_Properties *prop)
+GNUNET_ATS_session_add(struct GNUNET_ATS_TransportHandle *ath,
+                       const struct GNUNET_PeerIdentity *pid,
+                       const char *address,
+                       struct GNUNET_ATS_Session *session,
+                       const struct GNUNET_ATS_Properties *prop)
 {
   struct GNUNET_ATS_SessionRecord *ar;
   uint32_t s;
   size_t alen;
 
   if (NULL == address)
-  {
-    /* we need a valid address */
-    GNUNET_break (0);
-    return NULL;
-  }
-  alen = strlen (address) + 1;
-  if ( (alen + sizeof (struct SessionAddMessage) >= GNUNET_MAX_MESSAGE_SIZE) ||
-       (alen >= GNUNET_MAX_MESSAGE_SIZE) )
-  {
-    /* address too large for us, this should not happen */
-    GNUNET_break (0);
-    return NULL;
-  }
+    {
+      /* we need a valid address */
+      GNUNET_break(0);
+      return NULL;
+    }
+  alen = strlen(address) + 1;
+  if ((alen + sizeof(struct SessionAddMessage) >= GNUNET_MAX_MESSAGE_SIZE) ||
+      (alen >= GNUNET_MAX_MESSAGE_SIZE))
+    {
+      /* address too large for us, this should not happen */
+      GNUNET_break(0);
+      return NULL;
+    }
 
   /* Spin 's' until we find an unused session ID for this pid */
-  for (s = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
-                                     UINT32_MAX);
-       NULL != find_session (ath,
-                             s,
-                             pid);
-       s++) ;
+  for (s = GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_WEAK,
+                                    UINT32_MAX);
+       NULL != find_session(ath,
+                            s,
+                            pid);
+       s++)
+    ;
 
-  alen = strlen (address) + 1;
-  ar = GNUNET_malloc (sizeof (struct GNUNET_ATS_SessionRecord) + alen);
+  alen = strlen(address) + 1;
+  ar = GNUNET_malloc(sizeof(struct GNUNET_ATS_SessionRecord) + alen);
   ar->ath = ath;
   ar->slot = s;
   ar->session = session;
-  ar->address = (const char *) &ar[1];
+  ar->address = (const char *)&ar[1];
   ar->pid = *pid;
   ar->properties = *prop;
-  memcpy (&ar[1],
-          address,
-          alen);
-  (void) GNUNET_CONTAINER_multipeermap_put (ath->records,
-                                            &ar->pid,
-                                            ar,
-                                            GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
-  send_add_session_message (ar);
+  memcpy(&ar[1],
+         address,
+         alen);
+  (void)GNUNET_CONTAINER_multipeermap_put(ath->records,
+                                          &ar->pid,
+                                          ar,
+                                          GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
+  send_add_session_message(ar);
   return ar;
 }
 
@@ -634,28 +629,28 @@ GNUNET_ATS_session_add (struct GNUNET_ATS_TransportHandle *ath,
  * @param prop performance data for the session
  */
 void
-GNUNET_ATS_session_update (struct GNUNET_ATS_SessionRecord *ar,
-                           const struct GNUNET_ATS_Properties *prop)
+GNUNET_ATS_session_update(struct GNUNET_ATS_SessionRecord *ar,
+                          const struct GNUNET_ATS_Properties *prop)
 {
   struct GNUNET_ATS_TransportHandle *ath = ar->ath;
   struct GNUNET_MQ_Envelope *ev;
   struct SessionUpdateMessage *m;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Updating address `%s' for peer `%s'\n",
-       ar->address,
-       GNUNET_i2s (&ar->pid));
+  LOG(GNUNET_ERROR_TYPE_DEBUG,
+      "Updating address `%s' for peer `%s'\n",
+      ar->address,
+      GNUNET_i2s(&ar->pid));
   ar->properties = *prop;
   if (NULL == ath->mq)
     return; /* disconnected, skip for now */
-  ev = GNUNET_MQ_msg (m,
-                      GNUNET_MESSAGE_TYPE_ATS_SESSION_UPDATE);
-  m->session_id = htonl (ar->slot);
+  ev = GNUNET_MQ_msg(m,
+                     GNUNET_MESSAGE_TYPE_ATS_SESSION_UPDATE);
+  m->session_id = htonl(ar->slot);
   m->peer = ar->pid;
-  properties_hton (&m->properties,
-                   &ar->properties);
-  GNUNET_MQ_send (ath->mq,
-                  ev);
+  properties_hton(&m->properties,
+                  &ar->properties);
+  GNUNET_MQ_send(ath->mq,
+                 ev);
 }
 
 
@@ -667,24 +662,24 @@ GNUNET_ATS_session_update (struct GNUNET_ATS_SessionRecord *ar,
  * @param ar session record to drop
  */
 void
-GNUNET_ATS_session_del (struct GNUNET_ATS_SessionRecord *ar)
+GNUNET_ATS_session_del(struct GNUNET_ATS_SessionRecord *ar)
 {
   struct GNUNET_ATS_TransportHandle *ath = ar->ath;
   struct GNUNET_MQ_Envelope *ev;
   struct SessionDelMessage *m;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Deleting address `%s' for peer `%s'\n",
-       ar->address,
-       GNUNET_i2s (&ar->pid));
+  LOG(GNUNET_ERROR_TYPE_DEBUG,
+      "Deleting address `%s' for peer `%s'\n",
+      ar->address,
+      GNUNET_i2s(&ar->pid));
   if (NULL == ath->mq)
     return;
-  ev = GNUNET_MQ_msg (m,
-                      GNUNET_MESSAGE_TYPE_ATS_SESSION_DEL);
-  m->session_id = htonl (ar->slot);
+  ev = GNUNET_MQ_msg(m,
+                     GNUNET_MESSAGE_TYPE_ATS_SESSION_DEL);
+  m->session_id = htonl(ar->slot);
   m->peer = ar->pid;
-  GNUNET_MQ_send (ath->mq,
-                  ev);
+  GNUNET_MQ_send(ath->mq,
+                 ev);
 }
 
 

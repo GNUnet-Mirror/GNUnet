@@ -16,7 +16,7 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
    SPDX-License-Identifier: AGPL3.0-or-later
-   */
+ */
 
 /**
  * @author Martin Schanzenbach
@@ -63,8 +63,7 @@ struct RECLAIM_TICKETS_RevokeHandle;
 /**
  * List of tickets
  */
-struct TicketRecordsEntry
-{
+struct TicketRecordsEntry {
   /**
    * DLL
    */
@@ -162,10 +161,10 @@ typedef void (*RECLAIM_TICKETS_RevokeCallback) (void *cls, int32_t success);
  * @return handle to the operation
  */
 struct RECLAIM_TICKETS_RevokeHandle *
-RECLAIM_TICKETS_revoke (const struct GNUNET_RECLAIM_Ticket *ticket,
-                        const struct GNUNET_CRYPTO_EcdsaPrivateKey *identity,
-                        RECLAIM_TICKETS_RevokeCallback cb,
-                        void *cb_cls);
+RECLAIM_TICKETS_revoke(const struct GNUNET_RECLAIM_Ticket *ticket,
+                       const struct GNUNET_CRYPTO_EcdsaPrivateKey *identity,
+                       RECLAIM_TICKETS_RevokeCallback cb,
+                       void *cb_cls);
 
 
 /**
@@ -174,7 +173,7 @@ RECLAIM_TICKETS_revoke (const struct GNUNET_RECLAIM_Ticket *ticket,
  * @param rh handle to the operation
  */
 void
-RECLAIM_TICKETS_revoke_cancel (struct RECLAIM_TICKETS_RevokeHandle *rh);
+RECLAIM_TICKETS_revoke_cancel(struct RECLAIM_TICKETS_RevokeHandle *rh);
 
 
 /**
@@ -189,10 +188,10 @@ RECLAIM_TICKETS_revoke_cancel (struct RECLAIM_TICKETS_RevokeHandle *rh);
  * @return handle to the operation
  */
 struct RECLAIM_TICKETS_ConsumeHandle *
-RECLAIM_TICKETS_consume (const struct GNUNET_CRYPTO_EcdsaPrivateKey *id,
-                         const struct GNUNET_RECLAIM_Ticket *ticket,
-                         RECLAIM_TICKETS_ConsumeCallback cb,
-                         void *cb_cls);
+RECLAIM_TICKETS_consume(const struct GNUNET_CRYPTO_EcdsaPrivateKey *id,
+                        const struct GNUNET_RECLAIM_Ticket *ticket,
+                        RECLAIM_TICKETS_ConsumeCallback cb,
+                        void *cb_cls);
 
 
 /**
@@ -201,7 +200,7 @@ RECLAIM_TICKETS_consume (const struct GNUNET_CRYPTO_EcdsaPrivateKey *id,
  * @param cth the operation to cancel
  */
 void
-RECLAIM_TICKETS_consume_cancel (struct RECLAIM_TICKETS_ConsumeHandle *cth);
+RECLAIM_TICKETS_consume_cancel(struct RECLAIM_TICKETS_ConsumeHandle *cth);
 
 
 /**
@@ -216,11 +215,11 @@ RECLAIM_TICKETS_consume_cancel (struct RECLAIM_TICKETS_ConsumeHandle *cth);
  * FIXME: Return handle??
  */
 void
-RECLAIM_TICKETS_issue (const struct GNUNET_CRYPTO_EcdsaPrivateKey *identity,
-                       const struct GNUNET_RECLAIM_ATTRIBUTE_ClaimList *attrs,
-                       const struct GNUNET_CRYPTO_EcdsaPublicKey *audience,
-                       RECLAIM_TICKETS_TicketResult cb,
-                       void *cb_cls);
+RECLAIM_TICKETS_issue(const struct GNUNET_CRYPTO_EcdsaPrivateKey *identity,
+                      const struct GNUNET_RECLAIM_ATTRIBUTE_ClaimList *attrs,
+                      const struct GNUNET_CRYPTO_EcdsaPublicKey *audience,
+                      RECLAIM_TICKETS_TicketResult cb,
+                      void *cb_cls);
 
 
 /**
@@ -229,7 +228,7 @@ RECLAIM_TICKETS_issue (const struct GNUNET_CRYPTO_EcdsaPrivateKey *identity,
  * @param iter the iteration to continue
  */
 void
-RECLAIM_TICKETS_iteration_next (struct RECLAIM_TICKETS_Iterator *iter);
+RECLAIM_TICKETS_iteration_next(struct RECLAIM_TICKETS_Iterator *iter);
 
 
 /**
@@ -238,7 +237,7 @@ RECLAIM_TICKETS_iteration_next (struct RECLAIM_TICKETS_Iterator *iter);
  * @param iter iteration to cancel
  */
 void
-RECLAIM_TICKETS_iteration_stop (struct RECLAIM_TICKETS_Iterator *iter);
+RECLAIM_TICKETS_iteration_stop(struct RECLAIM_TICKETS_Iterator *iter);
 
 
 /**
@@ -250,7 +249,7 @@ RECLAIM_TICKETS_iteration_stop (struct RECLAIM_TICKETS_Iterator *iter);
  * @return a handle to the iteration
  */
 struct RECLAIM_TICKETS_Iterator *
-RECLAIM_TICKETS_iteration_start (
+RECLAIM_TICKETS_iteration_start(
   const struct GNUNET_CRYPTO_EcdsaPrivateKey *identity,
   RECLAIM_TICKETS_TicketIter cb,
   void *cb_cls);
@@ -263,7 +262,7 @@ RECLAIM_TICKETS_iteration_start (
  * @return GNUNET_SYSERR on error
  */
 int
-RECLAIM_TICKETS_init (const struct GNUNET_CONFIGURATION_Handle *c);
+RECLAIM_TICKETS_init(const struct GNUNET_CONFIGURATION_Handle *c);
 
 
 /**
@@ -271,6 +270,6 @@ RECLAIM_TICKETS_init (const struct GNUNET_CONFIGURATION_Handle *c);
  * FIXME: cancel all pending operations (gns, ns etc)
  */
 void
-RECLAIM_TICKETS_deinit (void);
+RECLAIM_TICKETS_deinit(void);
 
 #endif

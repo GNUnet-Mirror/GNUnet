@@ -11,7 +11,7 @@
       WITHOUT ANY WARRANTY; without even the implied warranty of
       MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
       Affero General Public License for more details.
-     
+
       You should have received a copy of the GNU Affero General Public License
       along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -32,8 +32,7 @@ GNUNET_NETWORK_STRUCT_BEGIN
 /**
  * Message from client to Credential service to collect credentials.
  */
-struct CollectMessage
-{
+struct CollectMessage {
   /**
    * Header of type #GNUNET_MESSAGE_TYPE_CREDENTIAL_VERIFY
    */
@@ -60,15 +59,13 @@ struct CollectMessage
   uint32_t id GNUNET_PACKED;
 
   /* Followed by the zero-terminated attribute */
-
 };
 
 
 /**
  * Message from client to Credential service to verify attributes.
  */
-struct VerifyMessage
-{
+struct VerifyMessage {
   /**
    * Header of type #GNUNET_MESSAGE_TYPE_CREDENTIAL_VERIFY
    */
@@ -100,17 +97,15 @@ struct VerifyMessage
   uint32_t id GNUNET_PACKED;
 
   /* Followed by the zero-terminated attribute and credentials to look up */
-
 };
 
 
 /**
  * Message from CREDENTIAL service to client: new results.
  */
-struct DelegationChainResultMessage
-{
+struct DelegationChainResultMessage {
   /**
-    * Header of type #GNUNET_MESSAGE_TYPE_CREDENTIAL_VERIFY_RESULT
+   * Header of type #GNUNET_MESSAGE_TYPE_CREDENTIAL_VERIFY_RESULT
    */
   struct GNUNET_MessageHeader header;
 
@@ -118,7 +113,7 @@ struct DelegationChainResultMessage
    * Unique identifier for this request (for key collisions).
    */
   uint32_t id GNUNET_PACKED;
-  
+
   /**
    * Indicates if credential has been found at all
    */
@@ -135,16 +130,14 @@ struct DelegationChainResultMessage
   uint32_t c_count GNUNET_PACKED;
 
   /* followed by ad_count GNUNET_CREDENTIAL_RecordData structs*/
-
 };
 
-struct DelegationRecordData
-{
+struct DelegationRecordData {
   /**
    * Subject key
    */
   struct GNUNET_CRYPTO_EcdsaPublicKey subject_key;
-  
+
   /**
    * Subject attributes
    */
@@ -152,23 +145,22 @@ struct DelegationRecordData
 };
 
 
-struct ChainEntry
-{
+struct ChainEntry {
   /**
    * Issuer key
    */
   struct GNUNET_CRYPTO_EcdsaPublicKey issuer_key;
-  
+
   /**
    * Subject key
    */
   struct GNUNET_CRYPTO_EcdsaPublicKey subject_key;
-  
+
   /**
    * Issuer attributes
    */
   uint32_t issuer_attribute_len GNUNET_PACKED;
-  
+
   /**
    * Subject attributes
    */
@@ -176,9 +168,7 @@ struct ChainEntry
 };
 
 
-struct CredentialEntry
-{
-
+struct CredentialEntry {
   /**
    * The signature for this credential by the issuer
    */
@@ -203,7 +193,7 @@ struct CredentialEntry
    * Expiration time of this credential
    */
   uint64_t expiration GNUNET_PACKED;
-   
+
   /**
    * Issuer attribute length
    */

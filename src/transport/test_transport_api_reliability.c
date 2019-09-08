@@ -16,7 +16,7 @@
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 /**
  * @file transport/test_transport_api_reliability.c
  * @brief base test case for transport implementations
@@ -48,7 +48,7 @@
 /**
  * Testcase timeout
  */
-#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 450 * FACTOR)
+#define TIMEOUT GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 450 * FACTOR)
 
 /**
  * If we are in an "xhdr" test, the factor by which we divide
@@ -83,7 +83,7 @@ static char bitmap[TOTAL_MSGS / 8];
  * Get the desired message size for message number @a iter.
  */
 static size_t
-get_size (unsigned int iter)
+get_size(unsigned int iter)
 {
   size_t ret;
 
@@ -91,10 +91,10 @@ get_size (unsigned int iter)
 #ifndef LINUX
   /* FreeBSD/OSX etc. Unix DGRAMs do not work
    * with large messages */
-  if (0 == strcmp ("unix", ccc->test_plugin))
-    ret = sizeof (struct GNUNET_TRANSPORT_TESTING_TestMessage) + (ret % 1024);
+  if (0 == strcmp("unix", ccc->test_plugin))
+    ret = sizeof(struct GNUNET_TRANSPORT_TESTING_TestMessage) + (ret % 1024);
 #endif
-  ret = sizeof (struct GNUNET_TRANSPORT_TESTING_TestMessage) + (ret % 60000);
+  ret = sizeof(struct GNUNET_TRANSPORT_TESTING_TestMessage) + (ret % 60000);
   return ret;
 }
 
@@ -108,9 +108,9 @@ get_size (unsigned int iter)
  * @return message size of the message
  */
 static size_t
-get_size_cnt (unsigned int cnt_down)
+get_size_cnt(unsigned int cnt_down)
 {
-  size_t ret = get_size (TOTAL_MSGS / xhdr - 1 - cnt_down);
+  size_t ret = get_size(TOTAL_MSGS / xhdr - 1 - cnt_down);
 
   total_bytes += ret;
   return ret;
@@ -124,19 +124,19 @@ get_size_cnt (unsigned int cnt_down)
  * @return #GNUNET_SYSERR on error, #GNUNET_OK on success
  */
 static int
-set_bit (unsigned int bitIdx)
+set_bit(unsigned int bitIdx)
 {
   size_t arraySlot;
   unsigned int targetBit;
 
-  if (bitIdx >= sizeof (bitmap) * 8)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "tried to set bit %u of %u(!?!?)\n",
-                bitIdx,
-                (unsigned int) sizeof (bitmap) * 8);
-    return GNUNET_SYSERR;
-  }
+  if (bitIdx >= sizeof(bitmap) * 8)
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
+                 "tried to set bit %u of %u(!?!?)\n",
+                 bitIdx,
+                 (unsigned int)sizeof(bitmap) * 8);
+      return GNUNET_SYSERR;
+    }
   arraySlot = bitIdx / 8;
   targetBit = (1L << (bitIdx % 8));
   bitmap[arraySlot] |= targetBit;
@@ -152,143 +152,143 @@ set_bit (unsigned int bitIdx)
  * @return Bit @a bit from @a map
  */
 static int
-get_bit (const char *map,
-         unsigned int bit)
+get_bit(const char *map,
+        unsigned int bit)
 {
   if (bit > TOTAL_MSGS)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "get bit %u of %u(!?!?)\n",
-                bit,
-                (unsigned int) sizeof (bitmap) * 8);
-    return 0;
-  }
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
+                 "get bit %u of %u(!?!?)\n",
+                 bit,
+                 (unsigned int)sizeof(bitmap) * 8);
+      return 0;
+    }
   return ((map)[bit >> 3] & (1 << (bit & 7))) > 0;
 }
 
 
 static void
-custom_shutdown (void *cls)
+custom_shutdown(void *cls)
 {
   unsigned long long delta;
   unsigned long long rate;
   int ok;
 
   /* Calculcate statistics   */
-  delta = GNUNET_TIME_absolute_get_duration (start_time).rel_value_us;
+  delta = GNUNET_TIME_absolute_get_duration(start_time).rel_value_us;
   if (0 == delta)
     delta = 1;
-  rate = (1000LL* 1000ll * total_bytes) / (1024 * delta);
-  fprintf (stderr,
-           "\nThroughput was %llu KiBytes/s\n",
-           rate);
+  rate = (1000LL * 1000ll * total_bytes) / (1024 * delta);
+  fprintf(stderr,
+          "\nThroughput was %llu KiBytes/s\n",
+          rate);
   {
     char *value_name;
 
-    GNUNET_asprintf (&value_name,
-                     "unreliable_%s",
-                     ccc->test_plugin);
-    GAUGER ("TRANSPORT",
-            value_name,
-            (int) rate,
-            "kb/s");
-    GNUNET_free (value_name);
+    GNUNET_asprintf(&value_name,
+                    "unreliable_%s",
+                    ccc->test_plugin);
+    GAUGER("TRANSPORT",
+           value_name,
+           (int)rate,
+           "kb/s");
+    GNUNET_free(value_name);
   }
 
   ok = 0;
   for (unsigned int i = 0; i < TOTAL_MSGS / xhdr; i++)
-  {
-    if (get_bit (bitmap, i) == 0)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  "Did not receive message %d\n",
-                  i);
-      ok = -1;
+      if (get_bit(bitmap, i) == 0)
+        {
+          GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
+                     "Did not receive message %d\n",
+                     i);
+          ok = -1;
+        }
     }
-  }
   if (0 != ok)
     ccc->global_ret = GNUNET_SYSERR; /* fail: messages missing! */
 }
 
 
 static void
-notify_receive (void *cls,
-                struct GNUNET_TRANSPORT_TESTING_PeerContext *receiver,
-                const struct GNUNET_PeerIdentity *sender,
-                const struct GNUNET_TRANSPORT_TESTING_TestMessage *hdr)
+notify_receive(void *cls,
+               struct GNUNET_TRANSPORT_TESTING_PeerContext *receiver,
+               const struct GNUNET_PeerIdentity *sender,
+               const struct GNUNET_TRANSPORT_TESTING_TestMessage *hdr)
 {
   static int n;
   unsigned int s;
   char cbuf[GNUNET_MAX_MESSAGE_SIZE - 1];
 
-  if (GNUNET_TRANSPORT_TESTING_SIMPLE_MTYPE != ntohs (hdr->header.type))
+  if (GNUNET_TRANSPORT_TESTING_SIMPLE_MTYPE != ntohs(hdr->header.type))
     return;
-  msg_recv = ntohl (hdr->num);
-  s = get_size (ntohl (hdr->num));
+  msg_recv = ntohl(hdr->num);
+  s = get_size(ntohl(hdr->num));
 
-  if (ntohs (hdr->header.size) != s)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Expected message %u of size %u, got %u bytes of message %u\n",
-                (uint32_t) ntohl (hdr->num),
-                s,
-                ntohs (hdr->header.size),
-                (uint32_t) ntohl (hdr->num));
-    ccc->global_ret = GNUNET_SYSERR;
-    GNUNET_SCHEDULER_shutdown ();
-    return;
-  }
+  if (ntohs(hdr->header.size) != s)
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
+                 "Expected message %u of size %u, got %u bytes of message %u\n",
+                 (uint32_t)ntohl(hdr->num),
+                 s,
+                 ntohs(hdr->header.size),
+                 (uint32_t)ntohl(hdr->num));
+      ccc->global_ret = GNUNET_SYSERR;
+      GNUNET_SCHEDULER_shutdown();
+      return;
+    }
 
-  memset (cbuf,
-	  ntohl (hdr->num),
-	  s - sizeof (struct GNUNET_TRANSPORT_TESTING_TestMessage));
+  memset(cbuf,
+         ntohl(hdr->num),
+         s - sizeof(struct GNUNET_TRANSPORT_TESTING_TestMessage));
   if (0 !=
-      memcmp (cbuf,
-	      &hdr[1],
-	      s - sizeof (struct GNUNET_TRANSPORT_TESTING_TestMessage)))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Expected message %u with bits %u, but body did not match\n",
-                (uint32_t) ntohl (hdr->num),
-                (unsigned char) ntohl (hdr->num));
-    ccc->global_ret = GNUNET_SYSERR;
-    GNUNET_SCHEDULER_shutdown ();
-    return;
-  }
+      memcmp(cbuf,
+             &hdr[1],
+             s - sizeof(struct GNUNET_TRANSPORT_TESTING_TestMessage)))
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
+                 "Expected message %u with bits %u, but body did not match\n",
+                 (uint32_t)ntohl(hdr->num),
+                 (unsigned char)ntohl(hdr->num));
+      ccc->global_ret = GNUNET_SYSERR;
+      GNUNET_SCHEDULER_shutdown();
+      return;
+    }
 #if VERBOSE
-  if (0 == ntohl (hdr->num) % 5)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Got message %u of size %u\n",
-                (uint32_t) ntohl (hdr->num),
-                ntohs (hdr->header.size));
-  }
+  if (0 == ntohl(hdr->num) % 5)
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+                 "Got message %u of size %u\n",
+                 (uint32_t)ntohl(hdr->num),
+                 ntohs(hdr->header.size));
+    }
 #endif
   n++;
-  if (GNUNET_SYSERR == set_bit (ntohl (hdr->num)))
-  {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  "Message id %u is bigger than maxmimum number of messages %u expected\n",
-                  (uint32_t) ntohl (hdr->num),
-                  TOTAL_MSGS / xhdr);
-  }
+  if (GNUNET_SYSERR == set_bit(ntohl(hdr->num)))
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
+                 "Message id %u is bigger than maxmimum number of messages %u expected\n",
+                 (uint32_t)ntohl(hdr->num),
+                 TOTAL_MSGS / xhdr);
+    }
   if (0 == (n % (TOTAL_MSGS / xhdr / 100)))
-  {
-    fprintf (stderr, "%s",  ".");
-  }
+    {
+      fprintf(stderr, "%s", ".");
+    }
   if (n == TOTAL_MSGS / xhdr)
-  {
-    /* end testcase with success */
-    ccc->global_ret = GNUNET_OK;
-    GNUNET_SCHEDULER_shutdown ();
-  }
+    {
+      /* end testcase with success */
+      ccc->global_ret = GNUNET_OK;
+      GNUNET_SCHEDULER_shutdown();
+    }
 }
 
 
 int
-main (int argc, char *argv[])
+main(int argc, char *argv[])
 {
-  if (0 == strstr (argv[0], "xhdr"))
+  if (0 == strstr(argv[0], "xhdr"))
     xhdr = 30;
   struct GNUNET_TRANSPORT_TESTING_SendClosure sc = {
     .num_messages = TOTAL_MSGS / xhdr,
@@ -308,11 +308,11 @@ main (int argc, char *argv[])
 
   ccc = &my_ccc;
   sc.ccc = ccc;
-  start_time = GNUNET_TIME_absolute_get ();
+  start_time = GNUNET_TIME_absolute_get();
   if (GNUNET_OK !=
-      GNUNET_TRANSPORT_TESTING_main (2,
-                                     &GNUNET_TRANSPORT_TESTING_connect_check,
-                                     ccc))
+      GNUNET_TRANSPORT_TESTING_main(2,
+                                    &GNUNET_TRANSPORT_TESTING_connect_check,
+                                    ccc))
     return 1;
   return 0;
 }

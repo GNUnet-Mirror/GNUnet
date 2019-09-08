@@ -11,12 +11,12 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 
 /**
  * @file transport/gnunet-service-transport_neighbours.h
@@ -42,7 +42,7 @@
  * @param message containing information
  */
 void
-GST_manipulation_set_metric (const struct TrafficMetricMessage *tm);
+GST_manipulation_set_metric(const struct TrafficMetricMessage *tm);
 
 
 /**
@@ -56,12 +56,12 @@ GST_manipulation_set_metric (const struct TrafficMetricMessage *tm);
  * @param cont_cls cls for continuation
  */
 void
-GST_manipulation_send (const struct GNUNET_PeerIdentity *target,
-                       const void *msg,
-                       size_t msg_size,
-                       struct GNUNET_TIME_Relative timeout,
-                       GST_NeighbourSendContinuation cont,
-                       void *cont_cls);
+GST_manipulation_send(const struct GNUNET_PeerIdentity *target,
+                      const void *msg,
+                      size_t msg_size,
+                      struct GNUNET_TIME_Relative timeout,
+                      GST_NeighbourSendContinuation cont,
+                      void *cont_cls);
 
 
 /**
@@ -75,10 +75,10 @@ GST_manipulation_send (const struct GNUNET_PeerIdentity *target,
  * @return manipulated delay for next receive
  */
 struct GNUNET_TIME_Relative
-GST_manipulation_recv (void *cls,
-                       const struct GNUNET_HELLO_Address *address,
-                       struct GNUNET_ATS_Session *session,
-                       const struct GNUNET_MessageHeader *message);
+GST_manipulation_recv(void *cls,
+                      const struct GNUNET_HELLO_Address *address,
+                      struct GNUNET_ATS_Session *session,
+                      const struct GNUNET_MessageHeader *message);
 
 
 /**
@@ -90,9 +90,9 @@ GST_manipulation_recv (void *cls,
  * @param prop[IN|OUT] metrics to modify
  */
 void
-GST_manipulation_manipulate_metrics (const struct GNUNET_HELLO_Address *address,
-                                     struct GNUNET_ATS_Session *session,
-                                     struct GNUNET_ATS_Properties *prop);
+GST_manipulation_manipulate_metrics(const struct GNUNET_HELLO_Address *address,
+                                    struct GNUNET_ATS_Session *session,
+                                    struct GNUNET_ATS_Properties *prop);
 
 
 /**
@@ -101,21 +101,21 @@ GST_manipulation_manipulate_metrics (const struct GNUNET_HELLO_Address *address,
  * @param peer the disconnecting peer
  */
 void
-GST_manipulation_peer_disconnect (const struct GNUNET_PeerIdentity *peer);
+GST_manipulation_peer_disconnect(const struct GNUNET_PeerIdentity *peer);
 
 
 /**
  * Initialize traffic manipulation
  */
 void
-GST_manipulation_init (void);
+GST_manipulation_init(void);
 
 
 /**
  * Stop traffic manipulation
  */
 void
-GST_manipulation_stop (void);
+GST_manipulation_stop(void);
 
 #endif
 /* end of file gnunet-service-transport_neighbours.h */

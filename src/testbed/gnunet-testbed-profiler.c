@@ -16,7 +16,7 @@
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 
 /**
  * @file testbed/gnunet-testbed-profiler.c
@@ -32,8 +32,8 @@
 /**
  * Generic loggins shorthand
  */
-#define LOG(kind,...)                                           \
-  GNUNET_log (kind, __VA_ARGS__)
+#define LOG(kind, ...)                                           \
+  GNUNET_log(kind, __VA_ARGS__)
 
 
 /**
@@ -104,18 +104,18 @@ static int noninteractive;
  * @param cls NULL
  */
 static void
-do_shutdown (void *cls)
+do_shutdown(void *cls)
 {
   if (NULL != abort_task)
-  {
-    GNUNET_SCHEDULER_cancel (abort_task);
-    abort_task = NULL;
-  }
+    {
+      GNUNET_SCHEDULER_cancel(abort_task);
+      abort_task = NULL;
+    }
   if (NULL != cfg)
-  {
-    GNUNET_CONFIGURATION_destroy (cfg);
-    cfg = NULL;
-  }
+    {
+      GNUNET_CONFIGURATION_destroy(cfg);
+      cfg = NULL;
+    }
 }
 
 
@@ -125,13 +125,13 @@ do_shutdown (void *cls)
  * @param cls NULL
  */
 static void
-do_abort (void *cls)
+do_abort(void *cls)
 {
   abort_task = NULL;
-  LOG (GNUNET_ERROR_TYPE_WARNING,
-       "Aborting\n");
+  LOG(GNUNET_ERROR_TYPE_WARNING,
+      "Aborting\n");
   result = GNUNET_SYSERR;
-  GNUNET_SCHEDULER_shutdown ();
+  GNUNET_SCHEDULER_shutdown();
 }
 
 
@@ -140,15 +140,15 @@ do_abort (void *cls)
  * many failed
  */
 static void
-print_overlay_links_summary ()
+print_overlay_links_summary()
 {
   static int printed_already;
 
   if (GNUNET_YES == printed_already)
     return;
   printed_already = GNUNET_YES;
-  printf ("%u links succeeded\n", established_links);
-  printf ("%u links failed due to timeouts\n", failed_links);
+  printf("%u links succeeded\n", established_links);
+  printf("%u links failed due to timeouts\n", failed_links);
 }
 
 
@@ -159,41 +159,43 @@ print_overlay_links_summary ()
  * @param event the controller event
  */
 static void
-controller_event_cb (void *cls,
-                     const struct GNUNET_TESTBED_EventInformation *event)
+controller_event_cb(void *cls,
+                    const struct GNUNET_TESTBED_EventInformation *event)
 {
   switch (event->type)
-  {
-  case GNUNET_TESTBED_ET_OPERATION_FINISHED:
-    /* Control reaches here when a peer linking operation fails */
-    if (NULL != event->details.operation_finished.emsg)
     {
-      printf ("F");
-      fflush (stdout);
-      failed_links++;
-      if (++cont_fails > num_cont_fails)
-      {
-        printf ("\nAborting due to very high failure rate\n");
-        print_overlay_links_summary ();
-	GNUNET_SCHEDULER_shutdown ();
-        return;
-      }
+    case GNUNET_TESTBED_ET_OPERATION_FINISHED:
+      /* Control reaches here when a peer linking operation fails */
+      if (NULL != event->details.operation_finished.emsg)
+        {
+          printf("F");
+          fflush(stdout);
+          failed_links++;
+          if (++cont_fails > num_cont_fails)
+            {
+              printf("\nAborting due to very high failure rate\n");
+              print_overlay_links_summary();
+              GNUNET_SCHEDULER_shutdown();
+              return;
+            }
+        }
+      break;
+
+    case GNUNET_TESTBED_ET_CONNECT:
+    {
+      if (0 != cont_fails)
+        cont_fails--;
+      if (0 == established_links)
+        printf("Establishing links. Please wait\n");
+      printf(".");
+      fflush(stdout);
+      established_links++;
     }
     break;
-  case GNUNET_TESTBED_ET_CONNECT:
-  {
-    if (0 != cont_fails)
-      cont_fails--;
-    if (0 == established_links)
-      printf ("Establishing links. Please wait\n");
-    printf (".");
-    fflush (stdout);
-    established_links++;
-  }
-    break;
-  default:
-    GNUNET_break (0);
-  }
+
+    default:
+      GNUNET_break(0);
+    }
 }
 
 
@@ -209,30 +211,30 @@ controller_event_cb (void *cls,
  * @param links_failed the number of overlay link
  */
 static void
-test_run (void *cls,
-          struct GNUNET_TESTBED_RunHandle *h,
-          unsigned int num_peers, struct GNUNET_TESTBED_Peer **peers,
-          unsigned int links_succeeded,
-          unsigned int links_failed)
+test_run(void *cls,
+         struct GNUNET_TESTBED_RunHandle *h,
+         unsigned int num_peers, struct GNUNET_TESTBED_Peer **peers,
+         unsigned int links_succeeded,
+         unsigned int links_failed)
 {
   result = GNUNET_OK;
-  fprintf (stdout, "\n");
-  print_overlay_links_summary ();
-  GNUNET_SCHEDULER_add_shutdown (&do_shutdown, NULL);
+  fprintf(stdout, "\n");
+  print_overlay_links_summary();
+  GNUNET_SCHEDULER_add_shutdown(&do_shutdown, NULL);
   if (noninteractive)
-  {
-    GNUNET_SCHEDULER_cancel (abort_task);
-    abort_task = NULL;
-    return;
-  }
+    {
+      GNUNET_SCHEDULER_cancel(abort_task);
+      abort_task = NULL;
+      return;
+    }
 #if (!ENABLE_SUPERMUC)
-  fprintf (stdout, "Testbed running, waiting for keystroke to shut down\n");
-  fflush (stdout);
-  (void) getc (stdin);
+  fprintf(stdout, "Testbed running, waiting for keystroke to shut down\n");
+  fflush(stdout);
+  (void)getc(stdin);
 #endif
-  fprintf (stdout, "Shutting down. Please wait\n");
-  fflush (stdout);
-  GNUNET_SCHEDULER_shutdown ();
+  fprintf(stdout, "Shutting down. Please wait\n");
+  fflush(stdout);
+  GNUNET_SCHEDULER_shutdown();
 }
 
 
@@ -245,25 +247,25 @@ test_run (void *cls,
  * @param config configuration
  */
 static void
-run (void *cls, char *const *args, const char *cfgfile,
-     const struct GNUNET_CONFIGURATION_Handle *config)
+run(void *cls, char *const *args, const char *cfgfile,
+    const struct GNUNET_CONFIGURATION_Handle *config)
 {
   if (0 == num_peers)
-  {
-    LOG (GNUNET_ERROR_TYPE_ERROR, _("Exiting as the number of peers is %u\n"),
-         num_peers);
-    return;
-  }
-  cfg = GNUNET_CONFIGURATION_dup (config);
+    {
+      LOG(GNUNET_ERROR_TYPE_ERROR, _("Exiting as the number of peers is %u\n"),
+          num_peers);
+      return;
+    }
+  cfg = GNUNET_CONFIGURATION_dup(config);
   event_mask = 0;
   event_mask |= (1LL << GNUNET_TESTBED_ET_CONNECT);
   event_mask |= (1LL << GNUNET_TESTBED_ET_OPERATION_FINISHED);
-  GNUNET_TESTBED_run (hosts_file, cfg, num_peers, event_mask,
-		      &controller_event_cb, NULL,
-		      &test_run, NULL);
+  GNUNET_TESTBED_run(hosts_file, cfg, num_peers, event_mask,
+                     &controller_event_cb, NULL,
+                     &test_run, NULL);
   abort_task =
-      GNUNET_SCHEDULER_add_shutdown (&do_abort,
-				     NULL);
+    GNUNET_SCHEDULER_add_shutdown(&do_abort,
+                                  NULL);
 }
 
 
@@ -273,47 +275,47 @@ run (void *cls, char *const *args, const char *cfgfile,
  * @return 0 on success
  */
 int
-main (int argc, char *const *argv)
+main(int argc, char *const *argv)
 {
   struct GNUNET_GETOPT_CommandLineOption options[] = {
-    GNUNET_GETOPT_option_uint ('p',
-                               "num-peers",
-                               "COUNT",
-                               gettext_noop ("create COUNT number of peers"),
-                               &num_peers),
-    GNUNET_GETOPT_option_uint ('e',
-                               "num-errors",
-                               "COUNT",
-                               gettext_noop ("tolerate COUNT number of continious timeout failures"),
-                               &num_cont_fails),
-    GNUNET_GETOPT_option_flag ('n',
-                               "non-interactive",
-                               gettext_noop ("run profiler in non-interactive mode where upon "
-                                             "testbed setup the profiler does not wait for a "
-                                             "keystroke but continues to run until a termination "
-                                             "signal is received"),
-                                  &noninteractive),
+    GNUNET_GETOPT_option_uint('p',
+                              "num-peers",
+                              "COUNT",
+                              gettext_noop("create COUNT number of peers"),
+                              &num_peers),
+    GNUNET_GETOPT_option_uint('e',
+                              "num-errors",
+                              "COUNT",
+                              gettext_noop("tolerate COUNT number of continious timeout failures"),
+                              &num_cont_fails),
+    GNUNET_GETOPT_option_flag('n',
+                              "non-interactive",
+                              gettext_noop("run profiler in non-interactive mode where upon "
+                                           "testbed setup the profiler does not wait for a "
+                                           "keystroke but continues to run until a termination "
+                                           "signal is received"),
+                              &noninteractive),
 #if !ENABLE_SUPERMUC
-    GNUNET_GETOPT_option_string ('H',
-                                 "hosts",
-                                 "FILENAME",
-                                 gettext_noop ("name of the file with the login information for the testbed"),
-                                 &hosts_file),
+    GNUNET_GETOPT_option_string('H',
+                                "hosts",
+                                "FILENAME",
+                                gettext_noop("name of the file with the login information for the testbed"),
+                                &hosts_file),
 #endif
     GNUNET_GETOPT_OPTION_END
   };
   const char *binaryHelp = "gnunet-testbed-profiler [OPTIONS]";
   int ret;
 
-  unsetenv ("XDG_DATA_HOME");
-  unsetenv ("XDG_CONFIG_HOME");
-  if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv, &argc, &argv))
+  unsetenv("XDG_DATA_HOME");
+  unsetenv("XDG_CONFIG_HOME");
+  if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args(argc, argv, &argc, &argv))
     return 2;
   result = GNUNET_SYSERR;
   ret =
-      GNUNET_PROGRAM_run (argc, argv, "gnunet-testbed-profiler", binaryHelp,
-                          options, &run, NULL);
-  GNUNET_free ((void *) argv);
+    GNUNET_PROGRAM_run(argc, argv, "gnunet-testbed-profiler", binaryHelp,
+                       options, &run, NULL);
+  GNUNET_free((void *)argv);
   if (GNUNET_OK != ret)
     return ret;
   if (GNUNET_OK != result)

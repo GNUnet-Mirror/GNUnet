@@ -11,12 +11,12 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 
 /**
  * @file block/plugin_block_template.c
@@ -56,37 +56,37 @@
  *         by this @a type of block (this is not an error)
  */
 static struct GNUNET_BLOCK_Group *
-block_plugin_template_create_group (void *cls,
-                                    enum GNUNET_BLOCK_Type type,
-                                    uint32_t nonce,
-                                    const void *raw_data,
-                                    size_t raw_data_size,
-                                    va_list va)
+block_plugin_template_create_group(void *cls,
+                                   enum GNUNET_BLOCK_Type type,
+                                   uint32_t nonce,
+                                   const void *raw_data,
+                                   size_t raw_data_size,
+                                   va_list va)
 {
   unsigned int bf_size;
   const char *guard;
 
-  guard = va_arg (va, const char *);
-  if (0 == strcmp (guard,
-                   "seen-set-size"))
-    bf_size = GNUNET_BLOCK_GROUP_compute_bloomfilter_size (va_arg (va, unsigned int),
-                                                           BLOOMFILTER_K);
-  else if (0 == strcmp (guard,
-                        "filter-size"))
-    bf_size = va_arg (va, unsigned int);
+  guard = va_arg(va, const char *);
+  if (0 == strcmp(guard,
+                  "seen-set-size"))
+    bf_size = GNUNET_BLOCK_GROUP_compute_bloomfilter_size(va_arg(va, unsigned int),
+                                                          BLOOMFILTER_K);
+  else if (0 == strcmp(guard,
+                       "filter-size"))
+    bf_size = va_arg(va, unsigned int);
   else
-  {
-    GNUNET_break (0);
-    bf_size = TEMPLATE_BF_SIZE;
-  }
-  GNUNET_break (NULL == va_arg (va, const char *));
-  return GNUNET_BLOCK_GROUP_bf_create (cls,
-                                       bf_size,
-                                       BLOOMFILTER_K,
-                                       type,
-                                       nonce,
-                                       raw_data,
-                                       raw_data_size);
+    {
+      GNUNET_break(0);
+      bf_size = TEMPLATE_BF_SIZE;
+    }
+  GNUNET_break(NULL == va_arg(va, const char *));
+  return GNUNET_BLOCK_GROUP_bf_create(cls,
+                                      bf_size,
+                                      BLOOMFILTER_K,
+                                      type,
+                                      nonce,
+                                      raw_data,
+                                      raw_data_size);
 }
 
 
@@ -107,27 +107,27 @@ block_plugin_template_create_group (void *cls,
  * @return characterization of result
  */
 static enum GNUNET_BLOCK_EvaluationResult
-block_plugin_template_evaluate (void *cls,
-                                struct GNUNET_BLOCK_Context *ctx,
-                                enum GNUNET_BLOCK_Type type,
-                                struct GNUNET_BLOCK_Group *group,
-                                enum GNUNET_BLOCK_EvaluationOptions eo,
-                                const struct GNUNET_HashCode *query,
-                                const void *xquery,
-                                size_t xquery_size,
-                                const void *reply_block,
-                                size_t reply_block_size)
+block_plugin_template_evaluate(void *cls,
+                               struct GNUNET_BLOCK_Context *ctx,
+                               enum GNUNET_BLOCK_Type type,
+                               struct GNUNET_BLOCK_Group *group,
+                               enum GNUNET_BLOCK_EvaluationOptions eo,
+                               const struct GNUNET_HashCode *query,
+                               const void *xquery,
+                               size_t xquery_size,
+                               const void *reply_block,
+                               size_t reply_block_size)
 {
   struct GNUNET_HashCode chash;
 
   if (NULL == reply_block)
     return GNUNET_BLOCK_EVALUATION_REQUEST_VALID;
-  GNUNET_CRYPTO_hash (reply_block,
-                      reply_block_size,
-                      &chash);
+  GNUNET_CRYPTO_hash(reply_block,
+                     reply_block_size,
+                     &chash);
   if (GNUNET_YES ==
-      GNUNET_BLOCK_GROUP_bf_test_and_set (group,
-                                          &chash))
+      GNUNET_BLOCK_GROUP_bf_test_and_set(group,
+                                         &chash))
     return GNUNET_BLOCK_EVALUATION_OK_DUPLICATE;
   return GNUNET_BLOCK_EVALUATION_TYPE_NOT_SUPPORTED;
 }
@@ -145,11 +145,11 @@ block_plugin_template_evaluate (void *cls,
  *         (or if extracting a key from a block of this type does not work)
  */
 static int
-block_plugin_template_get_key (void *cls,
-                               enum GNUNET_BLOCK_Type type,
-                               const void *block,
-                               size_t block_size,
-			       struct GNUNET_HashCode *key)
+block_plugin_template_get_key(void *cls,
+                              enum GNUNET_BLOCK_Type type,
+                              const void *block,
+                              size_t block_size,
+                              struct GNUNET_HashCode *key)
 {
   return GNUNET_SYSERR;
 }
@@ -161,7 +161,7 @@ block_plugin_template_get_key (void *cls,
  * @param cls a `const struct GNUNET_CONFIGURATION_Handle`
  */
 void *
-libgnunet_plugin_block_template_init (void *cls)
+libgnunet_plugin_block_template_init(void *cls)
 {
   static enum GNUNET_BLOCK_Type types[] =
   {
@@ -170,7 +170,7 @@ libgnunet_plugin_block_template_init (void *cls)
   };
   struct GNUNET_BLOCK_PluginFunctions *api;
 
-  api = GNUNET_new (struct GNUNET_BLOCK_PluginFunctions);
+  api = GNUNET_new(struct GNUNET_BLOCK_PluginFunctions);
   api->evaluate = &block_plugin_template_evaluate;
   api->get_key = &block_plugin_template_get_key;
   api->create_group = &block_plugin_template_create_group;
@@ -183,11 +183,11 @@ libgnunet_plugin_block_template_init (void *cls)
  * Exit point from the plugin.
  */
 void *
-libgnunet_plugin_block_template_done (void *cls)
+libgnunet_plugin_block_template_done(void *cls)
 {
   struct GNUNET_BLOCK_PluginFunctions *api = cls;
 
-  GNUNET_free (api);
+  GNUNET_free(api);
   return NULL;
 }
 

@@ -11,12 +11,12 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 /**
  * @file hostlist/gnunet-daemon-hostlist_client.h
  * @brief hostlist support.  Downloads HELLOs via HTTP.
@@ -51,19 +51,19 @@ typedef void
  * @return #GNUNET_OK on success
  */
 int
-GNUNET_HOSTLIST_client_start (const struct GNUNET_CONFIGURATION_Handle *c,
-                              struct GNUNET_STATISTICS_Handle *st,
-                              GNUNET_CORE_ConnectEventHandler *ch,
-                              GNUNET_CORE_DisconnectEventHandler *dh,
-                              GNUNET_HOSTLIST_UriHandler *msgh,
-                              int learn);
+GNUNET_HOSTLIST_client_start(const struct GNUNET_CONFIGURATION_Handle *c,
+                             struct GNUNET_STATISTICS_Handle *st,
+                             GNUNET_CORE_ConnectEventHandler *ch,
+                             GNUNET_CORE_DisconnectEventHandler *dh,
+                             GNUNET_HOSTLIST_UriHandler *msgh,
+                             int learn);
 
 
 /**
  * Stop downloading hostlists from hostlist servers as necessary.
  */
 void
-GNUNET_HOSTLIST_client_stop (void);
+GNUNET_HOSTLIST_client_stop(void);
 
 
 #endif

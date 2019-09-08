@@ -11,12 +11,12 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 
 /**
  * @author Omar Tarabai
@@ -46,9 +46,7 @@ extern "C"
 /**
  * @brief struct returned by the initialization function of the plugin
  */
-struct GNUNET_PEERSTORE_PluginFunctions
-{
-
+struct GNUNET_PEERSTORE_PluginFunctions {
   /**
    * Closure to pass to all plugin functions.
    */
@@ -119,7 +117,6 @@ struct GNUNET_PEERSTORE_PluginFunctions
                      struct GNUNET_TIME_Absolute now,
                      GNUNET_PEERSTORE_Continuation cont,
                      void *cont_cls);
-
 };
 
 

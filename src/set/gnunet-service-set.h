@@ -11,12 +11,12 @@
       WITHOUT ANY WARRANTY; without even the implied warranty of
       MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
       Affero General Public License for more details.
-     
+
       You should have received a copy of the GNU Affero General Public License
       along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 /**
  * @file set/gnunet-service-set.h
  * @brief common components for the implementation the different set operations
@@ -86,7 +86,7 @@ typedef struct SetState *
  */
 typedef void
 (*SetAddRemoveImpl) (struct SetState *state,
-                  struct ElementEntry *ee);
+                     struct ElementEntry *ee);
 
 
 /**
@@ -159,8 +159,7 @@ typedef void
  * Dispatch table for a specific set operation.  Every set operation
  * has to implement the callback in this struct.
  */
-struct SetVT
-{
+struct SetVT {
   /**
    * Callback for the set creation.
    */
@@ -205,7 +204,6 @@ struct SetVT
    * Callback called in case the CADET channel died.
    */
   OpChannelDeathImpl channel_death;
-
 };
 
 
@@ -213,8 +211,7 @@ struct SetVT
  * MutationEvent gives information about changes
  * to an element (removal / addition) in a set content.
  */
-struct MutationEvent
-{
+struct MutationEvent {
   /**
    * First generation affected by this mutation event.
    *
@@ -237,8 +234,7 @@ struct MutationEvent
  * Element`, so that the remove and add operations are reasonably
  * fast.
  */
-struct ElementEntry
-{
+struct ElementEntry {
   /**
    * The actual element. The data for the element
    * should be allocated at the end of this struct.
@@ -285,8 +281,7 @@ struct Listener;
 /**
  * State we keep per client.
  */
-struct ClientState
-{
+struct ClientState {
   /**
    * Set, if associated with the client, otherwise NULL.
    */
@@ -306,16 +301,13 @@ struct ClientState
    * Message queue.
    */
   struct GNUNET_MQ_Handle *mq;
-
 };
 
 
 /**
  * Operation context used to execute a set operation.
  */
-struct Operation
-{
-
+struct Operation {
   /**
    * Kept in a DLL of the listener, if @e listener is non-NULL.
    */
@@ -427,7 +419,6 @@ struct Operation
    * was created.
    */
   unsigned int generation_created;
-
 };
 
 
@@ -435,9 +426,7 @@ struct Operation
  * SetContent stores the actual set elements, which may be shared by
  * multiple generations derived from one set.
  */
-struct SetContent
-{
-
+struct SetContent {
   /**
    * Maps `struct GNUNET_HashCode *` to `struct ElementEntry *`.
    */
@@ -474,8 +463,7 @@ struct SetContent
 };
 
 
-struct GenerationRange
-{
+struct GenerationRange {
   /**
    * First generation that is excluded.
    */
@@ -491,8 +479,7 @@ struct GenerationRange
 /**
  * Information about a mutation to apply to a set.
  */
-struct PendingMutation
-{
+struct PendingMutation {
   /**
    * Mutations are kept in a DLL.
    */
@@ -520,9 +507,7 @@ struct PendingMutation
 /**
  * A set that supports a specific operation with other peers.
  */
-struct Set
-{
-
+struct Set {
   /**
    * Sets are held in a doubly linked list (in `sets_head` and `sets_tail`).
    */
@@ -606,7 +591,6 @@ struct Set
    * can distinguish iterations.
    */
   uint16_t iteration_id;
-
 };
 
 
@@ -627,8 +611,8 @@ extern struct GNUNET_STATISTICS_Handle *_GSS_statistics;
  * @param gc #GNUNET_YES to perform garbage collection on the set
  */
 void
-_GSS_operation_destroy (struct Operation *op,
-                        int gc);
+_GSS_operation_destroy(struct Operation *op,
+                       int gc);
 
 
 /**
@@ -637,7 +621,7 @@ _GSS_operation_destroy (struct Operation *op,
  * logic in the various places where it is called.
  */
 void
-_GSS_operation_destroy2 (struct Operation *op);
+_GSS_operation_destroy2(struct Operation *op);
 
 
 /**
@@ -646,7 +630,7 @@ _GSS_operation_destroy2 (struct Operation *op);
  * @return the operation specific VTable
  */
 const struct SetVT *
-_GSS_union_vt (void);
+_GSS_union_vt(void);
 
 
 /**
@@ -655,7 +639,7 @@ _GSS_union_vt (void);
  * @return the operation specific VTable
  */
 const struct SetVT *
-_GSS_intersection_vt (void);
+_GSS_intersection_vt(void);
 
 
 /**
@@ -666,8 +650,8 @@ _GSS_intersection_vt (void);
  * @return #GNUNET_YES if the element is in the set, #GNUNET_NO if not
  */
 int
-_GSS_is_element_of_operation (struct ElementEntry *ee,
-                              struct Operation *op);
+_GSS_is_element_of_operation(struct ElementEntry *ee,
+                             struct Operation *op);
 
 
 #endif

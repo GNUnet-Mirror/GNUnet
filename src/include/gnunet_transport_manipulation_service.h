@@ -11,12 +11,12 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 
 /**
  * @author Christian Grothoff
@@ -66,7 +66,7 @@ struct GNUNET_TRANSPORT_ManipulationHandle;
  * @return NULL on error
  */
 struct GNUNET_TRANSPORT_ManipulationHandle *
-GNUNET_TRANSPORT_manipulation_connect (const struct GNUNET_CONFIGURATION_Handle *cfg);
+GNUNET_TRANSPORT_manipulation_connect(const struct GNUNET_CONFIGURATION_Handle *cfg);
 
 
 /**
@@ -75,7 +75,7 @@ GNUNET_TRANSPORT_manipulation_connect (const struct GNUNET_CONFIGURATION_Handle 
  * @param handle handle returned from connect
  */
 void
-GNUNET_TRANSPORT_manipulation_disconnect (struct GNUNET_TRANSPORT_ManipulationHandle *handle);
+GNUNET_TRANSPORT_manipulation_disconnect(struct GNUNET_TRANSPORT_ManipulationHandle *handle);
 
 
 /**
@@ -91,11 +91,11 @@ GNUNET_TRANSPORT_manipulation_disconnect (struct GNUNET_TRANSPORT_ManipulationHa
  * with one message delay.
  */
 void
-GNUNET_TRANSPORT_manipulation_set (struct GNUNET_TRANSPORT_ManipulationHandle *handle,
-				   const struct GNUNET_PeerIdentity *peer,
-				   const struct GNUNET_ATS_Properties *prop,
-				   struct GNUNET_TIME_Relative delay_in,
-				   struct GNUNET_TIME_Relative delay_out);
+GNUNET_TRANSPORT_manipulation_set(struct GNUNET_TRANSPORT_ManipulationHandle *handle,
+                                  const struct GNUNET_PeerIdentity *peer,
+                                  const struct GNUNET_ATS_Properties *prop,
+                                  struct GNUNET_TIME_Relative delay_in,
+                                  struct GNUNET_TIME_Relative delay_out);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

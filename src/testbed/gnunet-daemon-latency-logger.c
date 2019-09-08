@@ -11,12 +11,12 @@
       WITHOUT ANY WARRANTY; without even the implied warranty of
       MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
       Affero General Public License for more details.
-     
+
       You should have received a copy of the GNU Affero General Public License
       along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 
 /**
  * @file testbed/gnunet-daemon-latency-logger.c
@@ -33,14 +33,14 @@
 /**
  * Logging shorthand
  */
-#define LOG(type,...)                           \
-  GNUNET_log (type, __VA_ARGS__)
+#define LOG(type, ...)                           \
+  GNUNET_log(type, __VA_ARGS__)
 
 /**
  * Debug logging shorthand
  */
 #define DEBUG(...)                              \
-  LOG (GNUNET_ERROR_TYPE_DEBUG, __VA_ARGS__)
+  LOG(GNUNET_ERROR_TYPE_DEBUG, __VA_ARGS__)
 
 /**
  * Log an error message at log-level 'level' that indicates
@@ -49,19 +49,18 @@
  */
 #define LOG_SQLITE(db, msg, level, cmd)                                 \
   do {                                                                  \
-    GNUNET_log_from (level, "sqlite", _("`%s' failed at %s:%d with error: %s\n"), \
-                     cmd, __FILE__,__LINE__, sqlite3_errmsg(db));  \
-    if (msg != NULL)                                                    \
-      GNUNET_asprintf(msg, _("`%s' failed at %s:%u with error: %s"), cmd, \
-                      __FILE__, __LINE__, sqlite3_errmsg(db));     \
-  } while(0)
+      GNUNET_log_from(level, "sqlite", _("`%s' failed at %s:%d with error: %s\n"), \
+                      cmd, __FILE__, __LINE__, sqlite3_errmsg(db));  \
+      if (msg != NULL)                                                    \
+      GNUNET_asprintf (msg, _("`%s' failed at %s:%u with error: %s"), cmd, \
+                       __FILE__, __LINE__, sqlite3_errmsg(db));     \
+    } while (0)
 
 
 /**
  * Entry type to be used in the map to store old latency values
  */
-struct Entry
-{
+struct Entry {
   /**
    *  The peer's identity
    */
@@ -72,7 +71,6 @@ struct Entry
    * FIXME: type!
    */
   unsigned int latency;
-
 };
 
 
@@ -109,15 +107,15 @@ static struct sqlite3_stmt *stmt_insert;
  *         #GNUNET_NO if not.
  */
 static int
-free_iterator (void *cls,
-               const struct GNUNET_PeerIdentity *key,
-               void *value)
+free_iterator(void *cls,
+              const struct GNUNET_PeerIdentity *key,
+              void *value)
 {
   struct Entry *e = cls;
 
-  GNUNET_assert (GNUNET_YES ==
-                 GNUNET_CONTAINER_multipeermap_remove (map, key, e));
-  GNUNET_free (e);
+  GNUNET_assert(GNUNET_YES ==
+                GNUNET_CONTAINER_multipeermap_remove(map, key, e));
+  GNUNET_free(e);
   return GNUNET_YES;
 }
 
@@ -129,24 +127,24 @@ free_iterator (void *cls,
  * @return
  */
 static void
-do_shutdown (void *cls)
+do_shutdown(void *cls)
 {
-  GNUNET_ATS_performance_done (ats);
+  GNUNET_ATS_performance_done(ats);
   ats = NULL;
   if (NULL != stmt_insert)
-  {
-    sqlite3_finalize (stmt_insert);
-    stmt_insert = NULL;
-  }
-  GNUNET_break (SQLITE_OK == sqlite3_close (db));
+    {
+      sqlite3_finalize(stmt_insert);
+      stmt_insert = NULL;
+    }
+  GNUNET_break(SQLITE_OK == sqlite3_close(db));
   db = NULL;
   if (NULL != map)
-  {
-    GNUNET_assert (GNUNET_SYSERR !=
-                   GNUNET_CONTAINER_multipeermap_iterate (map, free_iterator, NULL));
-    GNUNET_CONTAINER_multipeermap_destroy (map);
-    map = NULL;
-  }
+    {
+      GNUNET_assert(GNUNET_SYSERR !=
+                    GNUNET_CONTAINER_multipeermap_iterate(map, free_iterator, NULL));
+      GNUNET_CONTAINER_multipeermap_destroy(map);
+      map = NULL;
+    }
 }
 
 /**
@@ -163,85 +161,85 @@ do_shutdown (void *cls)
  * @param prop performance data for the address (as far as known)
  */
 static void
-addr_info_cb (void *cls,
-              const struct GNUNET_HELLO_Address *address,
-              int address_active,
-              struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
-              struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
-              const struct GNUNET_ATS_Properties *prop)
+addr_info_cb(void *cls,
+             const struct GNUNET_HELLO_Address *address,
+             int address_active,
+             struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
+             struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
+             const struct GNUNET_ATS_Properties *prop)
 {
   static const char *query_insert =
-      "INSERT INTO ats_info("
-      " id,"
-      " val,"
-      " timestamp"
-      ") VALUES ("
-      " ?1,"
-      " ?2,"
-      " datetime('now')"
-      ");";
+    "INSERT INTO ats_info("
+    " id,"
+    " val,"
+    " timestamp"
+    ") VALUES ("
+    " ?1,"
+    " ?2,"
+    " datetime('now')"
+    ");";
   struct Entry *entry;
   int latency; /* FIXME: type!? */
 
   if (NULL == address)
-  {
-    /* ATS service temporarily disconnected */
-    return;
-  }
+    {
+      /* ATS service temporarily disconnected */
+      return;
+    }
 
-  GNUNET_assert (NULL != db);
+  GNUNET_assert(NULL != db);
   if (GNUNET_YES != address_active)
     return;
-  latency = (int) prop->delay.rel_value_us;
+  latency = (int)prop->delay.rel_value_us;
   entry = NULL;
-  if (GNUNET_YES == GNUNET_CONTAINER_multipeermap_contains (map,
-                                                            &address->peer))
-  {
-    entry = GNUNET_CONTAINER_multipeermap_get (map, &address->peer);
-    GNUNET_assert (NULL != entry);
-    if (latency == entry->latency)
-      return;
-  }
-  if (NULL == stmt_insert)
-  {
-    if (SQLITE_OK != sqlite3_prepare_v2 (db, query_insert, -1, &stmt_insert,
-                                         NULL))
+  if (GNUNET_YES == GNUNET_CONTAINER_multipeermap_contains(map,
+                                                           &address->peer))
     {
-      LOG_SQLITE (db, NULL, GNUNET_ERROR_TYPE_ERROR, "sqlite3_prepare_v2");
+      entry = GNUNET_CONTAINER_multipeermap_get(map, &address->peer);
+      GNUNET_assert(NULL != entry);
+      if (latency == entry->latency)
+        return;
+    }
+  if (NULL == stmt_insert)
+    {
+      if (SQLITE_OK != sqlite3_prepare_v2(db, query_insert, -1, &stmt_insert,
+                                          NULL))
+        {
+          LOG_SQLITE(db, NULL, GNUNET_ERROR_TYPE_ERROR, "sqlite3_prepare_v2");
+          goto err_shutdown;
+        }
+    }
+  if ((SQLITE_OK != sqlite3_bind_text(stmt_insert, 1,
+                                      GNUNET_i2s(&address->peer), -1,
+                                      SQLITE_STATIC)) ||
+      (SQLITE_OK != sqlite3_bind_int(stmt_insert, 2, latency)))
+    {
+      LOG_SQLITE(db, NULL, GNUNET_ERROR_TYPE_ERROR, "sqlite3_bind_text");
       goto err_shutdown;
     }
-  }
-  if ( (SQLITE_OK != sqlite3_bind_text (stmt_insert, 1,
-                                        GNUNET_i2s (&address->peer), -1,
-                                        SQLITE_STATIC)) ||
-        (SQLITE_OK != sqlite3_bind_int (stmt_insert, 2, latency)) )
-  {
-     LOG_SQLITE (db, NULL, GNUNET_ERROR_TYPE_ERROR, "sqlite3_bind_text");
-     goto err_shutdown;
-  }
-  if (SQLITE_DONE != sqlite3_step (stmt_insert))
-  {
-    LOG_SQLITE (db, NULL, GNUNET_ERROR_TYPE_ERROR, "sqlite3_step");
-    goto err_shutdown;
-  }
-  if (SQLITE_OK != sqlite3_reset (stmt_insert))
-  {
-    LOG_SQLITE (db, NULL, GNUNET_ERROR_TYPE_ERROR, "sqlite3_insert");
-    goto err_shutdown;
-  }
+  if (SQLITE_DONE != sqlite3_step(stmt_insert))
+    {
+      LOG_SQLITE(db, NULL, GNUNET_ERROR_TYPE_ERROR, "sqlite3_step");
+      goto err_shutdown;
+    }
+  if (SQLITE_OK != sqlite3_reset(stmt_insert))
+    {
+      LOG_SQLITE(db, NULL, GNUNET_ERROR_TYPE_ERROR, "sqlite3_insert");
+      goto err_shutdown;
+    }
   if (NULL == entry)
-  {
-    entry = GNUNET_new (struct Entry);
-    entry->id = address->peer;
-    GNUNET_CONTAINER_multipeermap_put (map,
-                                       &entry->id, entry,
-                                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
-  }
+    {
+      entry = GNUNET_new(struct Entry);
+      entry->id = address->peer;
+      GNUNET_CONTAINER_multipeermap_put(map,
+                                        &entry->id, entry,
+                                        GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
+    }
   entry->latency = latency;
   return;
 
- err_shutdown:
-      GNUNET_SCHEDULER_shutdown ();
+err_shutdown:
+  GNUNET_SCHEDULER_shutdown();
 }
 
 
@@ -254,45 +252,45 @@ addr_info_cb (void *cls,
  * @param c configuration
  */
 static void
-run (void *cls, char *const *args, const char *cfgfile,
-     const struct GNUNET_CONFIGURATION_Handle *c)
+run(void *cls, char *const *args, const char *cfgfile,
+    const struct GNUNET_CONFIGURATION_Handle *c)
 {
   const char *query_create =
-      "CREATE TABLE ats_info ("
-      "id TEXT,"
-      "val INTEGER,"
-      "timestamp NUMERIC"
-      ");";
+    "CREATE TABLE ats_info ("
+    "id TEXT,"
+    "val INTEGER,"
+    "timestamp NUMERIC"
+    ");";
   char *dbfile;
 
-  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_filename (c, "LATENCY-LOGGER",
-                                                            "DBFILE",
-                                                            &dbfile))
-  {
-    GNUNET_break (0);
-    return;
-  }
-  if (SQLITE_OK != sqlite3_open (dbfile, &db))
-  {
-    if (NULL != db)
+  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_filename(c, "LATENCY-LOGGER",
+                                                           "DBFILE",
+                                                           &dbfile))
     {
-      LOG_SQLITE (db, NULL, GNUNET_ERROR_TYPE_ERROR, "sqlite_open_v2");
-      GNUNET_break (SQLITE_OK == sqlite3_close (db));
+      GNUNET_break(0);
+      return;
     }
-    else
-      LOG (GNUNET_ERROR_TYPE_ERROR, "Cannot open sqlite file %s\n", dbfile);
-    GNUNET_free (dbfile);
-    return;
-  }
-  if (0 != sqlite3_exec (db, query_create, NULL, NULL, NULL))
-    DEBUG ("SQLite Error: %d.  Perhaps the database `%s' already exits.\n",
-           sqlite3_errcode (db), dbfile);
-  DEBUG ("Opened database %s\n", dbfile);
-  GNUNET_free (dbfile);
+  if (SQLITE_OK != sqlite3_open(dbfile, &db))
+    {
+      if (NULL != db)
+        {
+          LOG_SQLITE(db, NULL, GNUNET_ERROR_TYPE_ERROR, "sqlite_open_v2");
+          GNUNET_break(SQLITE_OK == sqlite3_close(db));
+        }
+      else
+        LOG(GNUNET_ERROR_TYPE_ERROR, "Cannot open sqlite file %s\n", dbfile);
+      GNUNET_free(dbfile);
+      return;
+    }
+  if (0 != sqlite3_exec(db, query_create, NULL, NULL, NULL))
+    DEBUG("SQLite Error: %d.  Perhaps the database `%s' already exits.\n",
+          sqlite3_errcode(db), dbfile);
+  DEBUG("Opened database %s\n", dbfile);
+  GNUNET_free(dbfile);
   dbfile = NULL;
-  ats = GNUNET_ATS_performance_init (c, &addr_info_cb, NULL);
-  map = GNUNET_CONTAINER_multipeermap_create (30, GNUNET_YES);
-  GNUNET_SCHEDULER_add_shutdown (&do_shutdown, NULL);
+  ats = GNUNET_ATS_performance_init(c, &addr_info_cb, NULL);
+  map = GNUNET_CONTAINER_multipeermap_create(30, GNUNET_YES);
+  GNUNET_SCHEDULER_add_shutdown(&do_shutdown, NULL);
 }
 
 
@@ -300,20 +298,20 @@ run (void *cls, char *const *args, const char *cfgfile,
  * Execution entry point
  */
 int
-main (int argc, char * const *argv)
+main(int argc, char * const *argv)
 {
   static const struct GNUNET_GETOPT_CommandLineOption options[] = {
     GNUNET_GETOPT_OPTION_END
   };
   int ret;
 
-  if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv, &argc, &argv))
+  if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args(argc, argv, &argc, &argv))
     return 2;
   ret =
-      (GNUNET_OK ==
-       GNUNET_PROGRAM_run (argc, argv, "gnunet-daemon-latency-logger",
-                           _("Daemon to log latency values of connections to neighbours"),
-                           options, &run, NULL)) ? 0 : 1;
-  GNUNET_free ((void*) argv);
+    (GNUNET_OK ==
+     GNUNET_PROGRAM_run(argc, argv, "gnunet-daemon-latency-logger",
+                        _("Daemon to log latency values of connections to neighbours"),
+                        options, &run, NULL)) ? 0 : 1;
+  GNUNET_free((void*)argv);
   return ret;
 }

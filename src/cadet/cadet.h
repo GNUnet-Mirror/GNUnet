@@ -16,7 +16,7 @@
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 
 /**
  * @author Bartlomiej Polot
@@ -35,18 +35,18 @@ extern "C" {
 
 #include <stdint.h>
 
-#if ! defined(GNUNET_CULL_LOGGING)
+#if !defined(GNUNET_CULL_LOGGING)
 #define CADET_TIMING_START                 \
   struct GNUNET_TIME_Absolute __timestamp; \
-  __timestamp = GNUNET_TIME_absolute_get ()
+  __timestamp = GNUNET_TIME_absolute_get()
 
 #define CADET_TIMING_END                                        \
   struct GNUNET_TIME_Relative __duration;                       \
-  __duration = GNUNET_TIME_absolute_get_duration (__timestamp); \
-  LOG (GNUNET_ERROR_TYPE_INFO,                                  \
-       " %s duration %s\n",                                     \
-       __FUNCTION__,                                            \
-       GNUNET_STRINGS_relative_time_to_string (__duration, GNUNET_YES));
+  __duration = GNUNET_TIME_absolute_get_duration(__timestamp); \
+  LOG(GNUNET_ERROR_TYPE_INFO,                                  \
+      " %s duration %s\n",                                     \
+      __FUNCTION__,                                            \
+      GNUNET_STRINGS_relative_time_to_string(__duration, GNUNET_YES));
 #else
 #define CADET_TIMING_START
 #define CADET_TIMING_END
@@ -99,8 +99,7 @@ GNUNET_NETWORK_STRUCT_BEGIN
 /**
  * Number uniquely identifying a channel of a client.
  */
-struct GNUNET_CADET_ClientChannelNumber
-{
+struct GNUNET_CADET_ClientChannelNumber {
   /**
    * Values for channel numbering.
    * Local channel numbers given by the service (incoming) are
@@ -115,8 +114,7 @@ struct GNUNET_CADET_ClientChannelNumber
 /**
  * Message for a client to create and destroy channels.
  */
-struct GNUNET_CADET_PortMessage
-{
+struct GNUNET_CADET_PortMessage {
   /**
    * Type: #GNUNET_MESSAGE_TYPE_CADET_LOCAL_PORT_OPEN
    * or #GNUNET_MESSAGE_TYPE_CADET_LOCAL_PORT_CLOSE
@@ -135,8 +133,7 @@ struct GNUNET_CADET_PortMessage
 /**
  * Message for a client to create channels.
  */
-struct GNUNET_CADET_LocalChannelCreateMessage
-{
+struct GNUNET_CADET_LocalChannelCreateMessage {
   /**
    * Type: #GNUNET_MESSAGE_TYPE_CADET_LOCAL_CHANNEL_CREATE
    *
@@ -169,8 +166,7 @@ struct GNUNET_CADET_LocalChannelCreateMessage
 /**
  * Message for or to a client to destroy tunnel.
  */
-struct GNUNET_CADET_LocalChannelDestroyMessage
-{
+struct GNUNET_CADET_LocalChannelDestroyMessage {
   /**
    * Type: #GNUNET_MESSAGE_TYPE_CADET_LOCAL_CHANNEL_DESTROY
    */
@@ -186,8 +182,7 @@ struct GNUNET_CADET_LocalChannelDestroyMessage
 /**
  * Message for cadet data traffic.
  */
-struct GNUNET_CADET_LocalData
-{
+struct GNUNET_CADET_LocalData {
   /**
    * Type: #GNUNET_MESSAGE_TYPE_CADET_LOCAL_DATA
    */
@@ -214,8 +209,7 @@ struct GNUNET_CADET_LocalData
  * Message to allow the client send more data to the service
  * (always service -> client).
  */
-struct GNUNET_CADET_LocalAck
-{
+struct GNUNET_CADET_LocalAck {
   /**
    * Type: #GNUNET_MESSAGE_TYPE_CADET_LOCAL_ACK
    */
@@ -233,8 +227,7 @@ struct GNUNET_CADET_LocalAck
  *
  * TODO: split into two messages!
  */
-struct GNUNET_CADET_LocalInfo
-{
+struct GNUNET_CADET_LocalInfo {
   /**
    * Type: #GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_TUNNEL or
    * #GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_PEER
@@ -256,8 +249,7 @@ struct GNUNET_CADET_LocalInfo
 /**
  * Message to inform the client about channels in the service.
  */
-struct GNUNET_CADET_RequestPathInfoMessage
-{
+struct GNUNET_CADET_RequestPathInfoMessage {
   /**
    * Type: #GNUNET_MESSAGE_TYPE_CADET_LOCAL_REQUEST_INFO_PATH
    */
@@ -278,8 +270,7 @@ struct GNUNET_CADET_RequestPathInfoMessage
 /**
  * Message to inform the client about channels in the service.
  */
-struct GNUNET_CADET_ChannelInfoMessage
-{
+struct GNUNET_CADET_ChannelInfoMessage {
   /**
    * Type: #GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_CHANNEL.
    */
@@ -302,8 +293,7 @@ struct GNUNET_CADET_ChannelInfoMessage
 /**
  * Message to as the service about information on a channel.
  */
-struct GNUNET_CADET_RequestChannelInfoMessage
-{
+struct GNUNET_CADET_RequestChannelInfoMessage {
   /**
    * Type: #GNUNET_MESSAGE_TYPE_CADET_LOCAL_REQUEST_INFO_CHANNEL.
    */
@@ -319,8 +309,7 @@ struct GNUNET_CADET_RequestChannelInfoMessage
 /**
  * Message to inform the client about one of the paths known to the service.
  */
-struct GNUNET_CADET_LocalInfoPath
-{
+struct GNUNET_CADET_LocalInfoPath {
   /**
    * Type: #GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_PATH.
    */
@@ -336,8 +325,7 @@ struct GNUNET_CADET_LocalInfoPath
 /**
  * Message to inform the client about one of the peers in the service.
  */
-struct GNUNET_CADET_LocalInfoPeers
-{
+struct GNUNET_CADET_LocalInfoPeers {
   /**
    * Type: #GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_PEERS
    */
@@ -370,8 +358,7 @@ struct GNUNET_CADET_LocalInfoPeers
  *
  * TODO: split into two messages!
  */
-struct GNUNET_CADET_LocalInfoTunnel
-{
+struct GNUNET_CADET_LocalInfoTunnel {
   /**
    * Type: #GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_TUNNEL
    * or #GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_TUNNELS
@@ -419,7 +406,7 @@ GNUNET_NETWORK_STRUCT_END
  * @return String representing FWD or BCK.
  */
 char *
-GC_f2s (int fwd);
+GC_f2s(int fwd);
 
 
 /**
@@ -431,7 +418,7 @@ GC_f2s (int fwd);
  * @return True if bigger (arg1) has a higher value than smaller (arg 2).
  */
 int
-GC_is_pid_bigger (uint32_t bigger, uint32_t smaller);
+GC_is_pid_bigger(uint32_t bigger, uint32_t smaller);
 
 
 /**
@@ -443,7 +430,7 @@ GC_is_pid_bigger (uint32_t bigger, uint32_t smaller);
  * @return Highest ACK value from the two.
  */
 uint32_t
-GC_max_pid (uint32_t a, uint32_t b);
+GC_max_pid(uint32_t a, uint32_t b);
 
 
 /**
@@ -455,7 +442,7 @@ GC_max_pid (uint32_t a, uint32_t b);
  * @return Lowest ACK value from the two.
  */
 uint32_t
-GC_min_pid (uint32_t a, uint32_t b);
+GC_min_pid(uint32_t a, uint32_t b);
 
 
 /**
@@ -468,7 +455,7 @@ GC_min_pid (uint32_t a, uint32_t b);
  * @return The size of the output.
  */
 size_t
-GC_bin2s (void *bin, unsigned int len, char **output);
+GC_bin2s(void *bin, unsigned int len, char **output);
 
 
 /**
@@ -482,7 +469,7 @@ GC_bin2s (void *bin, unsigned int len, char **output);
  * @return Human readable string description.
  */
 const char *
-GC_m2s (uint16_t m);
+GC_m2s(uint16_t m);
 
 #if 0 /* keep Emacsens' auto-indent happy */
 {

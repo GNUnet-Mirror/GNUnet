@@ -16,7 +16,7 @@
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 
 /**
  * @author Martin Schanzenbach
@@ -64,8 +64,7 @@ struct GNUNET_RECLAIM_Operation;
  * The contents of a ticket must be protected and should be treated as a
  * shared secret between user and relying party.
  */
-struct GNUNET_RECLAIM_Ticket
-{
+struct GNUNET_RECLAIM_Ticket {
   /**
    * The ticket issuer (= the user)
    */
@@ -92,7 +91,7 @@ struct GNUNET_RECLAIM_Ticket
  * @param ticket the ticket
  */
 typedef void (*GNUNET_RECLAIM_TicketCallback) (
-    void *cls, const struct GNUNET_RECLAIM_Ticket *ticket);
+  void *cls, const struct GNUNET_RECLAIM_Ticket *ticket);
 
 
 /**
@@ -116,8 +115,8 @@ typedef void (*GNUNET_RECLAIM_ContinuationWithStatus) (void *cls,
  * @param attr The attribute
  */
 typedef void (*GNUNET_RECLAIM_AttributeResult) (
-    void *cls, const struct GNUNET_CRYPTO_EcdsaPublicKey *identity,
-    const struct GNUNET_RECLAIM_ATTRIBUTE_Claim *attr);
+  void *cls, const struct GNUNET_CRYPTO_EcdsaPublicKey *identity,
+  const struct GNUNET_RECLAIM_ATTRIBUTE_Claim *attr);
 
 
 /**
@@ -127,7 +126,7 @@ typedef void (*GNUNET_RECLAIM_AttributeResult) (
  * @return handle to communicate with the service
  */
 struct GNUNET_RECLAIM_Handle *
-GNUNET_RECLAIM_connect (const struct GNUNET_CONFIGURATION_Handle *cfg);
+GNUNET_RECLAIM_connect(const struct GNUNET_CONFIGURATION_Handle *cfg);
 
 
 /**
@@ -143,12 +142,12 @@ GNUNET_RECLAIM_connect (const struct GNUNET_CONFIGURATION_Handle *cfg);
  * @return handle Used to to abort the request
  */
 struct GNUNET_RECLAIM_Operation *
-GNUNET_RECLAIM_attribute_store (
-    struct GNUNET_RECLAIM_Handle *h,
-    const struct GNUNET_CRYPTO_EcdsaPrivateKey *pkey,
-    const struct GNUNET_RECLAIM_ATTRIBUTE_Claim *attr,
-    const struct GNUNET_TIME_Relative *exp_interval,
-    GNUNET_RECLAIM_ContinuationWithStatus cont, void *cont_cls);
+GNUNET_RECLAIM_attribute_store(
+  struct GNUNET_RECLAIM_Handle *h,
+  const struct GNUNET_CRYPTO_EcdsaPrivateKey *pkey,
+  const struct GNUNET_RECLAIM_ATTRIBUTE_Claim *attr,
+  const struct GNUNET_TIME_Relative *exp_interval,
+  GNUNET_RECLAIM_ContinuationWithStatus cont, void *cont_cls);
 
 
 /**
@@ -163,11 +162,11 @@ GNUNET_RECLAIM_attribute_store (
  * @return handle Used to to abort the request
  */
 struct GNUNET_RECLAIM_Operation *
-GNUNET_RECLAIM_attribute_delete (
-    struct GNUNET_RECLAIM_Handle *h,
-    const struct GNUNET_CRYPTO_EcdsaPrivateKey *pkey,
-    const struct GNUNET_RECLAIM_ATTRIBUTE_Claim *attr,
-    GNUNET_RECLAIM_ContinuationWithStatus cont, void *cont_cls);
+GNUNET_RECLAIM_attribute_delete(
+  struct GNUNET_RECLAIM_Handle *h,
+  const struct GNUNET_CRYPTO_EcdsaPrivateKey *pkey,
+  const struct GNUNET_RECLAIM_ATTRIBUTE_Claim *attr,
+  GNUNET_RECLAIM_ContinuationWithStatus cont, void *cont_cls);
 
 
 /**
@@ -195,12 +194,12 @@ GNUNET_RECLAIM_attribute_delete (
  * @return an iterator Handle to use for iteration
  */
 struct GNUNET_RECLAIM_AttributeIterator *
-GNUNET_RECLAIM_get_attributes_start (
-    struct GNUNET_RECLAIM_Handle *h,
-    const struct GNUNET_CRYPTO_EcdsaPrivateKey *identity,
-    GNUNET_SCHEDULER_TaskCallback error_cb, void *error_cb_cls,
-    GNUNET_RECLAIM_AttributeResult proc, void *proc_cls,
-    GNUNET_SCHEDULER_TaskCallback finish_cb, void *finish_cb_cls);
+GNUNET_RECLAIM_get_attributes_start(
+  struct GNUNET_RECLAIM_Handle *h,
+  const struct GNUNET_CRYPTO_EcdsaPrivateKey *identity,
+  GNUNET_SCHEDULER_TaskCallback error_cb, void *error_cb_cls,
+  GNUNET_RECLAIM_AttributeResult proc, void *proc_cls,
+  GNUNET_SCHEDULER_TaskCallback finish_cb, void *finish_cb_cls);
 
 
 /**
@@ -210,8 +209,8 @@ GNUNET_RECLAIM_get_attributes_start (
  * @param it The iterator
  */
 void
-GNUNET_RECLAIM_get_attributes_next (
-    struct GNUNET_RECLAIM_AttributeIterator *it);
+GNUNET_RECLAIM_get_attributes_next(
+  struct GNUNET_RECLAIM_AttributeIterator *it);
 
 
 /**
@@ -222,8 +221,8 @@ GNUNET_RECLAIM_get_attributes_next (
  * @param it the iterator
  */
 void
-GNUNET_RECLAIM_get_attributes_stop (
-    struct GNUNET_RECLAIM_AttributeIterator *it);
+GNUNET_RECLAIM_get_attributes_stop(
+  struct GNUNET_RECLAIM_AttributeIterator *it);
 
 
 /**
@@ -240,12 +239,12 @@ GNUNET_RECLAIM_get_attributes_stop (
  * @return handle to abort the operation
  */
 struct GNUNET_RECLAIM_Operation *
-GNUNET_RECLAIM_ticket_issue (
-    struct GNUNET_RECLAIM_Handle *h,
-    const struct GNUNET_CRYPTO_EcdsaPrivateKey *iss,
-    const struct GNUNET_CRYPTO_EcdsaPublicKey *rp,
-    const struct GNUNET_RECLAIM_ATTRIBUTE_ClaimList *attrs,
-    GNUNET_RECLAIM_TicketCallback cb, void *cb_cls);
+GNUNET_RECLAIM_ticket_issue(
+  struct GNUNET_RECLAIM_Handle *h,
+  const struct GNUNET_CRYPTO_EcdsaPrivateKey *iss,
+  const struct GNUNET_CRYPTO_EcdsaPublicKey *rp,
+  const struct GNUNET_RECLAIM_ATTRIBUTE_ClaimList *attrs,
+  GNUNET_RECLAIM_TicketCallback cb, void *cb_cls);
 
 
 /**
@@ -262,11 +261,11 @@ GNUNET_RECLAIM_ticket_issue (
  * @return handle to abort the operation
  */
 struct GNUNET_RECLAIM_Operation *
-GNUNET_RECLAIM_ticket_revoke (
-    struct GNUNET_RECLAIM_Handle *h,
-    const struct GNUNET_CRYPTO_EcdsaPrivateKey *identity,
-    const struct GNUNET_RECLAIM_Ticket *ticket,
-    GNUNET_RECLAIM_ContinuationWithStatus cb, void *cb_cls);
+GNUNET_RECLAIM_ticket_revoke(
+  struct GNUNET_RECLAIM_Handle *h,
+  const struct GNUNET_CRYPTO_EcdsaPrivateKey *identity,
+  const struct GNUNET_RECLAIM_Ticket *ticket,
+  GNUNET_RECLAIM_ContinuationWithStatus cb, void *cb_cls);
 
 
 /**
@@ -282,11 +281,11 @@ GNUNET_RECLAIM_ticket_revoke (
  * @return handle to abort the operation
  */
 struct GNUNET_RECLAIM_Operation *
-GNUNET_RECLAIM_ticket_consume (
-    struct GNUNET_RECLAIM_Handle *h,
-    const struct GNUNET_CRYPTO_EcdsaPrivateKey *identity,
-    const struct GNUNET_RECLAIM_Ticket *ticket,
-    GNUNET_RECLAIM_AttributeResult cb, void *cb_cls);
+GNUNET_RECLAIM_ticket_consume(
+  struct GNUNET_RECLAIM_Handle *h,
+  const struct GNUNET_CRYPTO_EcdsaPrivateKey *identity,
+  const struct GNUNET_RECLAIM_Ticket *ticket,
+  GNUNET_RECLAIM_AttributeResult cb, void *cb_cls);
 
 
 /**
@@ -307,12 +306,12 @@ GNUNET_RECLAIM_ticket_consume (
  * @return an iterator handle to use for iteration
  */
 struct GNUNET_RECLAIM_TicketIterator *
-GNUNET_RECLAIM_ticket_iteration_start (
-    struct GNUNET_RECLAIM_Handle *h,
-    const struct GNUNET_CRYPTO_EcdsaPrivateKey *identity,
-    GNUNET_SCHEDULER_TaskCallback error_cb, void *error_cb_cls,
-    GNUNET_RECLAIM_TicketCallback proc, void *proc_cls,
-    GNUNET_SCHEDULER_TaskCallback finish_cb, void *finish_cb_cls);
+GNUNET_RECLAIM_ticket_iteration_start(
+  struct GNUNET_RECLAIM_Handle *h,
+  const struct GNUNET_CRYPTO_EcdsaPrivateKey *identity,
+  GNUNET_SCHEDULER_TaskCallback error_cb, void *error_cb_cls,
+  GNUNET_RECLAIM_TicketCallback proc, void *proc_cls,
+  GNUNET_SCHEDULER_TaskCallback finish_cb, void *finish_cb_cls);
 
 
 /**
@@ -322,7 +321,7 @@ GNUNET_RECLAIM_ticket_iteration_start (
  * @param it the iterator
  */
 void
-GNUNET_RECLAIM_ticket_iteration_next (struct GNUNET_RECLAIM_TicketIterator *it);
+GNUNET_RECLAIM_ticket_iteration_next(struct GNUNET_RECLAIM_TicketIterator *it);
 
 
 /**
@@ -333,7 +332,7 @@ GNUNET_RECLAIM_ticket_iteration_next (struct GNUNET_RECLAIM_TicketIterator *it);
  * @param it the iterator
  */
 void
-GNUNET_RECLAIM_ticket_iteration_stop (struct GNUNET_RECLAIM_TicketIterator *it);
+GNUNET_RECLAIM_ticket_iteration_stop(struct GNUNET_RECLAIM_TicketIterator *it);
 
 
 /**
@@ -342,7 +341,7 @@ GNUNET_RECLAIM_ticket_iteration_stop (struct GNUNET_RECLAIM_TicketIterator *it);
  * @param h identity provider service to disconnect
  */
 void
-GNUNET_RECLAIM_disconnect (struct GNUNET_RECLAIM_Handle *h);
+GNUNET_RECLAIM_disconnect(struct GNUNET_RECLAIM_Handle *h);
 
 
 /**
@@ -354,7 +353,7 @@ GNUNET_RECLAIM_disconnect (struct GNUNET_RECLAIM_Handle *h);
  * @param op operation to cancel
  */
 void
-GNUNET_RECLAIM_cancel (struct GNUNET_RECLAIM_Operation *op);
+GNUNET_RECLAIM_cancel(struct GNUNET_RECLAIM_Operation *op);
 
 
 #if 0 /* keep Emacsens' auto-indent happy */

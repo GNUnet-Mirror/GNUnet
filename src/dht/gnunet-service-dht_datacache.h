@@ -11,12 +11,12 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 
 /**
  * @file dht/gnunet-service-dht_datacache.h
@@ -44,13 +44,13 @@
  * @param data application payload data
  */
 void
-GDS_DATACACHE_handle_put (struct GNUNET_TIME_Absolute expiration,
-                          const struct GNUNET_HashCode *key,
-                          unsigned int put_path_length,
-                          const struct GNUNET_PeerIdentity *put_path,
-                          enum GNUNET_BLOCK_Type type,
-                          size_t data_size,
-                          const void *data);
+GDS_DATACACHE_handle_put(struct GNUNET_TIME_Absolute expiration,
+                         const struct GNUNET_HashCode *key,
+                         unsigned int put_path_length,
+                         const struct GNUNET_PeerIdentity *put_path,
+                         enum GNUNET_BLOCK_Type type,
+                         size_t data_size,
+                         const void *data);
 
 
 /**
@@ -93,13 +93,13 @@ typedef void
  * @return evaluation result for the local replies
  */
 enum GNUNET_BLOCK_EvaluationResult
-GDS_DATACACHE_handle_get (const struct GNUNET_HashCode *key,
-                          enum GNUNET_BLOCK_Type type,
-                          const void *xquery,
-                          size_t xquery_size,
-                          struct GNUNET_BLOCK_Group *bg,
-                          GDS_DATACACHE_GetCallback gc,
-                          void *gc_cls);
+GDS_DATACACHE_handle_get(const struct GNUNET_HashCode *key,
+                         enum GNUNET_BLOCK_Type type,
+                         const void *xquery,
+                         size_t xquery_size,
+                         struct GNUNET_BLOCK_Group *bg,
+                         GDS_DATACACHE_GetCallback gc,
+                         void *gc_cls);
 
 
 /**
@@ -111,7 +111,7 @@ GDS_DATACACHE_handle_get (const struct GNUNET_HashCode *key,
  * @return #GNUNET_OK on success, #GNUNET_SYSERR if the datacache is empty
  */
 int
-GDS_DATACACHE_get_random_key (struct GNUNET_HashCode *key);
+GDS_DATACACHE_get_random_key(struct GNUNET_HashCode *key);
 
 
 /**
@@ -148,22 +148,22 @@ typedef void
  * @param cb_cls closure for @a cb
  */
 void
-GDS_DATACACHE_get_successors (const struct GNUNET_HashCode *key,
-                              GDS_DATACACHE_SuccessorCallback cb,
-                              void *cb_cls);
+GDS_DATACACHE_get_successors(const struct GNUNET_HashCode *key,
+                             GDS_DATACACHE_SuccessorCallback cb,
+                             void *cb_cls);
 
 
 /**
  * Initialize datacache subsystem.
  */
 void
-GDS_DATACACHE_init (void);
+GDS_DATACACHE_init(void);
 
 
 /**
  * Shutdown datacache subsystem.
  */
 void
-GDS_DATACACHE_done (void);
+GDS_DATACACHE_done(void);
 
 #endif

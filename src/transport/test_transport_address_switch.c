@@ -1,19 +1,19 @@
 /*
- This file is part of GNUnet.
- Copyright (C) 2009, 2010, 2011, 2016 GNUnet e.V.
+   This file is part of GNUnet.
+   Copyright (C) 2009, 2010, 2011, 2016 GNUnet e.V.
 
- GNUnet is free software: you can redistribute it and/or modify it
- under the terms of the GNU Affero General Public License as published
- by the Free Software Foundation, either version 3 of the License,
- or (at your option) any later version.
+   GNUnet is free software: you can redistribute it and/or modify it
+   under the terms of the GNU Affero General Public License as published
+   by the Free Software Foundation, either version 3 of the License,
+   or (at your option) any later version.
 
- GNUnet is distributed in the hope that it will be useful, but
- WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- Affero General Public License for more details.
+   GNUnet is distributed in the hope that it will be useful, but
+   WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   Affero General Public License for more details.
 
- You should have received a copy of the GNU Affero General Public License
- along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   You should have received a copy of the GNU Affero General Public License
+   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
  */
@@ -51,7 +51,7 @@
 /**
  * Testcase timeout (set aggressively as we know this test doesn't work right now)
  */
-#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30)
+#define TIMEOUT GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 30)
 
 
 static struct GNUNET_TRANSPORT_TESTING_ConnectCheckContext *ccc;
@@ -62,8 +62,7 @@ static struct GNUNET_SCHEDULER_Task *measure_task;
 /**
  * Statistics we track per peer.
  */
-struct PeerStats
-{
+struct PeerStats {
   struct GNUNET_STATISTICS_Handle *stat;
 
   unsigned int addresses_avail;
@@ -84,16 +83,16 @@ static unsigned long long bytes_recv_after_switch;
 
 
 static int
-stat_start_attempt_cb (void *cls,
-                       const char *subsystem,
-                       const char *name,
-                       uint64_t value,
-                       int is_persistent)
+stat_start_attempt_cb(void *cls,
+                      const char *subsystem,
+                      const char *name,
+                      uint64_t value,
+                      int is_persistent)
 {
   struct PeerStats *stat = cls;
 
   stat->switch_attempts++;
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Switch attempted (%p)", stat);
+  GNUNET_log(GNUNET_ERROR_TYPE_INFO, "Switch attempted (%p)", stat);
   bytes_recv_after_switch = 0;
   bytes_sent_after_switch = 0;
 
@@ -102,26 +101,26 @@ stat_start_attempt_cb (void *cls,
 
 
 static int
-stat_success_attempt_cb (void *cls,
-                         const char *subsystem,
-                         const char *name,
-                         uint64_t value,
-                         int is_persistent)
+stat_success_attempt_cb(void *cls,
+                        const char *subsystem,
+                        const char *name,
+                        uint64_t value,
+                        int is_persistent)
 {
   struct PeerStats *stat = cls;
 
   stat->switch_success++;
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Switch succeeded (%p)", stat);
+  GNUNET_log(GNUNET_ERROR_TYPE_INFO, "Switch succeeded (%p)", stat);
   return GNUNET_OK;
 }
 
 
 static int
-stat_fail_attempt_cb (void *cls,
-                      const char *subsystem,
-                      const char *name,
-                      uint64_t value,
-                      int is_persistent)
+stat_fail_attempt_cb(void *cls,
+                     const char *subsystem,
+                     const char *name,
+                     uint64_t value,
+                     int is_persistent)
 {
   struct PeerStats *stat = cls;
 
@@ -129,17 +128,17 @@ stat_fail_attempt_cb (void *cls,
     return GNUNET_OK;
 
   stat->switch_fail++;
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Switch failed (%p)", stat);
+  GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Switch failed (%p)", stat);
   return GNUNET_OK;
 }
 
 
 static int
-stat_addresses_available (void *cls,
-                          const char *subsystem,
-                          const char *name,
-                          uint64_t value,
-                          int is_persistent)
+stat_addresses_available(void *cls,
+                         const char *subsystem,
+                         const char *name,
+                         uint64_t value,
+                         int is_persistent)
 {
   struct PeerStats *stat = cls;
 
@@ -151,9 +150,7 @@ stat_addresses_available (void *cls,
 /**
  * List of statistics entries we care about.
  */
-static struct WatchEntry
-{
-
+static struct WatchEntry {
   /**
    * Name of the statistic we watch.
    */
@@ -164,115 +161,115 @@ static struct WatchEntry
    */
   GNUNET_STATISTICS_Iterator stat_handler;
 } watches[] =
-  {{"# Attempts to switch addresses", &stat_start_attempt_cb},
-   {"# Successful attempts to switch addresses", &stat_success_attempt_cb},
-   {"# Failed attempts to switch addresses (failed to send CONNECT CONT)",
-    &stat_fail_attempt_cb},
-   {"# Failed attempts to switch addresses (failed to send CONNECT)",
-    &stat_fail_attempt_cb},
-   {"# Failed attempts to switch addresses (no response)",
-    &stat_fail_attempt_cb},
-   {"# transport addresses", &stat_addresses_available},
-   {NULL, NULL}};
+{ { "# Attempts to switch addresses", &stat_start_attempt_cb },
+  { "# Successful attempts to switch addresses", &stat_success_attempt_cb },
+  { "# Failed attempts to switch addresses (failed to send CONNECT CONT)",
+      &stat_fail_attempt_cb },
+  { "# Failed attempts to switch addresses (failed to send CONNECT)",
+      &stat_fail_attempt_cb },
+  { "# Failed attempts to switch addresses (no response)",
+      &stat_fail_attempt_cb },
+  { "# transport addresses", &stat_addresses_available },
+  { NULL, NULL } };
 
 
 static void
-custom_shutdown (void *cls)
+custom_shutdown(void *cls)
 {
   int result;
 
   if (NULL != measure_task)
-  {
-    GNUNET_SCHEDULER_cancel (measure_task);
-    measure_task = NULL;
-  }
+    {
+      GNUNET_SCHEDULER_cancel(measure_task);
+      measure_task = NULL;
+    }
   if (0 == stats[0].switch_attempts + stats[1].switch_attempts)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                "Test did not work, as peers didn't switch (flawed testcase)!\n");
-    ccc->global_ret = 77;
-  }
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_WARNING,
+                 "Test did not work, as peers didn't switch (flawed testcase)!\n");
+      ccc->global_ret = 77;
+    }
   else
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Fail (timeout)! No transmission after switch! Stopping peers\n");
-    ccc->global_ret = 77; /* GNUNET_SYSERR; */
-  }
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
+                 "Fail (timeout)! No transmission after switch! Stopping peers\n");
+      ccc->global_ret = 77; /* GNUNET_SYSERR; */
+    }
 
   /* stop statistics */
   for (unsigned int i = 0; i < 2; i++)
-  {
-    if (NULL != stats[i].stat)
     {
-      for (unsigned int j = 0; NULL != watches[j].stat_name; j++)
-        GNUNET_assert (GNUNET_OK ==
-                       GNUNET_STATISTICS_watch_cancel (stats[i].stat,
-                                                       "transport",
-                                                       watches[j].stat_name,
-                                                       watches[j].stat_handler,
-                                                       &stats[i]));
-      GNUNET_STATISTICS_destroy (stats[i].stat, GNUNET_NO);
-      stats[i].stat = NULL;
+      if (NULL != stats[i].stat)
+        {
+          for (unsigned int j = 0; NULL != watches[j].stat_name; j++)
+            GNUNET_assert(GNUNET_OK ==
+                          GNUNET_STATISTICS_watch_cancel(stats[i].stat,
+                                                         "transport",
+                                                         watches[j].stat_name,
+                                                         watches[j].stat_handler,
+                                                         &stats[i]));
+          GNUNET_STATISTICS_destroy(stats[i].stat, GNUNET_NO);
+          stats[i].stat = NULL;
+        }
     }
-  }
 
   result = 0;
-  fprintf (stderr, "\n");
+  fprintf(stderr, "\n");
   if (stats[0].switch_attempts > 0)
-  {
-    fprintf (
-      stderr,
-      "Peer 1 tried %u times to switch and succeeded %u times, failed %u times\n",
-      stats[0].switch_attempts,
-      stats[0].switch_success,
-      stats[0].switch_fail);
-    if (stats[0].switch_success != stats[0].switch_attempts)
     {
-      GNUNET_break (0);
-      result++;
+      fprintf(
+        stderr,
+        "Peer 1 tried %u times to switch and succeeded %u times, failed %u times\n",
+        stats[0].switch_attempts,
+        stats[0].switch_success,
+        stats[0].switch_fail);
+      if (stats[0].switch_success != stats[0].switch_attempts)
+        {
+          GNUNET_break(0);
+          result++;
+        }
     }
-  }
   else if (stats[0].addresses_avail > 1)
-  {
-    fprintf (stderr,
-             "Peer 1 had %u addresses available, but did not try to switch\n",
-             stats[0].addresses_avail);
-  }
-  if (stats[1].switch_attempts > 0)
-  {
-    fprintf (
-      stderr,
-      "Peer 2 tried %u times to switch and succeeded %u times, failed %u times\n",
-      stats[1].switch_attempts,
-      stats[1].switch_success,
-      stats[1].switch_fail);
-    if (stats[1].switch_success != stats[1].switch_attempts)
     {
-      GNUNET_break (0);
-      result++;
+      fprintf(stderr,
+              "Peer 1 had %u addresses available, but did not try to switch\n",
+              stats[0].addresses_avail);
     }
-  }
+  if (stats[1].switch_attempts > 0)
+    {
+      fprintf(
+        stderr,
+        "Peer 2 tried %u times to switch and succeeded %u times, failed %u times\n",
+        stats[1].switch_attempts,
+        stats[1].switch_success,
+        stats[1].switch_fail);
+      if (stats[1].switch_success != stats[1].switch_attempts)
+        {
+          GNUNET_break(0);
+          result++;
+        }
+    }
   else if (stats[1].addresses_avail > 1)
-  {
-    fprintf (stderr,
-             "Peer 2 had %u addresses available, but did not try to switch\n",
-             stats[1].addresses_avail);
-  }
+    {
+      fprintf(stderr,
+              "Peer 2 had %u addresses available, but did not try to switch\n",
+              stats[1].addresses_avail);
+    }
 
   if (((stats[0].switch_attempts > 0) || (stats[1].switch_attempts > 0)) &&
       (bytes_sent_after_switch == 0))
-  {
-    fprintf (stderr, "No data sent after switching!\n");
-    GNUNET_break (0);
-    result++;
-  }
+    {
+      fprintf(stderr, "No data sent after switching!\n");
+      GNUNET_break(0);
+      result++;
+    }
   if (((stats[0].switch_attempts > 0) || (stats[1].switch_attempts > 0)) &&
       (bytes_recv_after_switch == 0))
-  {
-    fprintf (stderr, "No data received after switching!\n");
-    GNUNET_break (0);
-    result++;
-  }
+    {
+      fprintf(stderr, "No data received after switching!\n");
+      GNUNET_break(0);
+      result++;
+    }
 #if 0
   /* This test is not really expected to pass right now... */
   if (0 != result)
@@ -282,146 +279,147 @@ custom_shutdown (void *cls)
 
 
 static void
-notify_receive (void *cls,
-                struct GNUNET_TRANSPORT_TESTING_PeerContext *receiver,
-                const struct GNUNET_PeerIdentity *sender,
-                const struct GNUNET_TRANSPORT_TESTING_TestMessage *hdr)
+notify_receive(void *cls,
+               struct GNUNET_TRANSPORT_TESTING_PeerContext *receiver,
+               const struct GNUNET_PeerIdentity *sender,
+               const struct GNUNET_TRANSPORT_TESTING_TestMessage *hdr)
 {
-  if (GNUNET_TRANSPORT_TESTING_SIMPLE_MTYPE != ntohs (hdr->header.type))
+  if (GNUNET_TRANSPORT_TESTING_SIMPLE_MTYPE != ntohs(hdr->header.type))
     return;
 
   {
-    char *ps = GNUNET_strdup (GNUNET_i2s (&receiver->id));
+    char *ps = GNUNET_strdup(GNUNET_i2s(&receiver->id));
 
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                "Peer %u (`%s') got message %u of size %u from peer (`%s')\n",
-                receiver->no,
-                ps,
-                (uint32_t) ntohl (hdr->num),
-                ntohs (hdr->header.size),
-                GNUNET_i2s (sender));
-    GNUNET_free (ps);
+    GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+               "Peer %u (`%s') got message %u of size %u from peer (`%s')\n",
+               receiver->no,
+               ps,
+               (uint32_t)ntohl(hdr->num),
+               ntohs(hdr->header.size),
+               GNUNET_i2s(sender));
+    GNUNET_free(ps);
   }
   if (((stats[0].switch_attempts >= 1) || (stats[1].switch_attempts >= 1)) &&
       (stats[0].switch_attempts ==
        stats[0].switch_fail + stats[0].switch_success) &&
       (stats[1].switch_attempts ==
        stats[1].switch_fail + stats[1].switch_success))
-  {
-    bytes_recv_after_switch += ntohs (hdr->header.size);
-    if ((bytes_sent_after_switch > 0) && (bytes_recv_after_switch > 0))
     {
-      /* A peer switched addresses and sent and received data after the
-       * switch operations */
-      GNUNET_SCHEDULER_shutdown ();
+      bytes_recv_after_switch += ntohs(hdr->header.size);
+      if ((bytes_sent_after_switch > 0) && (bytes_recv_after_switch > 0))
+        {
+          /* A peer switched addresses and sent and received data after the
+           * switch operations */
+          GNUNET_SCHEDULER_shutdown();
+        }
     }
-  }
 }
 
 
 static void
-notify_send (void *cls)
+notify_send(void *cls)
 {
   static uint32_t cnt;
 
-  GNUNET_assert (
+  GNUNET_assert(
     GNUNET_OK ==
-    GNUNET_TRANSPORT_TESTING_send (ccc->p[1],
-                                   ccc->p[0],
-                                   GNUNET_TRANSPORT_TESTING_SIMPLE_MTYPE,
-                                   GNUNET_TRANSPORT_TESTING_LARGE_MESSAGE_SIZE,
-                                   ++cnt,
-                                   &notify_send,
-                                   NULL));
+    GNUNET_TRANSPORT_TESTING_send(ccc->p[1],
+                                  ccc->p[0],
+                                  GNUNET_TRANSPORT_TESTING_SIMPLE_MTYPE,
+                                  GNUNET_TRANSPORT_TESTING_LARGE_MESSAGE_SIZE,
+                                  ++cnt,
+                                  &notify_send,
+                                  NULL));
   if (((stats[0].switch_attempts >= 1) || (stats[1].switch_attempts >= 1)) &&
       (stats[0].switch_attempts ==
        stats[0].switch_fail + stats[0].switch_success) &&
       (stats[1].switch_attempts ==
        stats[1].switch_fail + stats[1].switch_success))
-  {
-    bytes_sent_after_switch += GNUNET_TRANSPORT_TESTING_LARGE_MESSAGE_SIZE;
-  }
+    {
+      bytes_sent_after_switch += GNUNET_TRANSPORT_TESTING_LARGE_MESSAGE_SIZE;
+    }
 }
 
 
 static void
-progress_indicator (void *cls)
+progress_indicator(void *cls)
 {
   static int counter;
 
   measure_task = NULL;
   counter++;
   if ((TIMEOUT.rel_value_us / 1000 / 1000LL) < counter)
-  {
-    fprintf (stderr, "%s", ".\n");
-  }
+    {
+      fprintf(stderr, "%s", ".\n");
+    }
   else
-  {
-    fprintf (stderr, "%s", ".");
-    measure_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
-                                                 &progress_indicator,
-                                                 NULL);
-  }
+    {
+      fprintf(stderr, "%s", ".");
+      measure_task = GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_UNIT_SECONDS,
+                                                  &progress_indicator,
+                                                  NULL);
+    }
 }
 
 
 static void
-connected_cb (void *cls)
+connected_cb(void *cls)
 {
   for (unsigned int i = 0; i < 2; i++)
-  {
-    stats[i].stat = GNUNET_STATISTICS_create ("transport", ccc->p[i]->cfg);
-    if (NULL == stats[i].stat)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  "Fail! Could not create statistics for peers!\n");
-      ccc->global_ret = GNUNET_SYSERR;
-      GNUNET_SCHEDULER_shutdown ();
-      return;
+      stats[i].stat = GNUNET_STATISTICS_create("transport", ccc->p[i]->cfg);
+      if (NULL == stats[i].stat)
+        {
+          GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
+                     "Fail! Could not create statistics for peers!\n");
+          ccc->global_ret = GNUNET_SYSERR;
+          GNUNET_SCHEDULER_shutdown();
+          return;
+        }
+      for (unsigned int j = 0; NULL != watches[j].stat_name; j++)
+        {
+          GNUNET_STATISTICS_watch(stats[i].stat,
+                                  "transport",
+                                  watches[j].stat_name,
+                                  watches[j].stat_handler,
+                                  &stats[i]);
+        }
     }
-    for (unsigned int j = 0; NULL != watches[j].stat_name; j++)
-    {
-      GNUNET_STATISTICS_watch (stats[i].stat,
-                               "transport",
-                               watches[j].stat_name,
-                               watches[j].stat_handler,
-                               &stats[i]);
-    }
-  }
   /* Show progress */
   ccc->global_ret = GNUNET_OK;
-  measure_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
-                                               &progress_indicator,
-                                               NULL);
+  measure_task = GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_UNIT_SECONDS,
+                                              &progress_indicator,
+                                              NULL);
   /* Peers are connected, start transmit test messages */
-  GNUNET_assert (
+  GNUNET_assert(
     GNUNET_OK ==
-    GNUNET_TRANSPORT_TESTING_send (ccc->p[1],
-                                   ccc->p[0],
-                                   GNUNET_TRANSPORT_TESTING_SIMPLE_MTYPE,
-                                   GNUNET_TRANSPORT_TESTING_LARGE_MESSAGE_SIZE,
-                                   0,
-                                   &notify_send,
-                                   NULL));
+    GNUNET_TRANSPORT_TESTING_send(ccc->p[1],
+                                  ccc->p[0],
+                                  GNUNET_TRANSPORT_TESTING_SIMPLE_MTYPE,
+                                  GNUNET_TRANSPORT_TESTING_LARGE_MESSAGE_SIZE,
+                                  0,
+                                  &notify_send,
+                                  NULL));
 }
 
 
 int
-main (int argc, char *argv[])
+main(int argc, char *argv[])
 {
   struct GNUNET_TRANSPORT_TESTING_ConnectCheckContext my_ccc =
-    {.connect_continuation = &connected_cb,
-     .config_file = "test_transport_api_data.conf",
-     .rec = &notify_receive,
-     .nc = &GNUNET_TRANSPORT_TESTING_log_connect,
-     .shutdown_task = &custom_shutdown,
-     .timeout = TIMEOUT};
+  { .connect_continuation = &connected_cb,
+    .config_file = "test_transport_api_data.conf",
+    .rec = &notify_receive,
+    .nc = &GNUNET_TRANSPORT_TESTING_log_connect,
+    .shutdown_task = &custom_shutdown,
+    .timeout = TIMEOUT };
+
   ccc = &my_ccc;
   int ret;
 
-  ret = GNUNET_TRANSPORT_TESTING_main (2,
-                                       &GNUNET_TRANSPORT_TESTING_connect_check,
-                                       ccc);
+  ret = GNUNET_TRANSPORT_TESTING_main(2,
+                                      &GNUNET_TRANSPORT_TESTING_connect_check,
+                                      ccc);
   if (77 == ret)
     return 77;
   if (GNUNET_OK != ret)

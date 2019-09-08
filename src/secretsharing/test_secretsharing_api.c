@@ -11,12 +11,12 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 
 /**
  * @file secretsharing/test_secretsharing_api.c
@@ -34,70 +34,68 @@ static struct GNUNET_SECRETSHARING_Session *keygen;
 
 
 static void
-secret_ready_cb (void *cls,
-                 struct GNUNET_SECRETSHARING_Share *my_share,
-                 struct GNUNET_SECRETSHARING_PublicKey *public_key,
-                 unsigned int num_ready_peers,
-                 const struct GNUNET_PeerIdentity *ready_peers)
+secret_ready_cb(void *cls,
+                struct GNUNET_SECRETSHARING_Share *my_share,
+                struct GNUNET_SECRETSHARING_PublicKey *public_key,
+                unsigned int num_ready_peers,
+                const struct GNUNET_PeerIdentity *ready_peers)
 {
   keygen = NULL;
   if (num_ready_peers == 1)
     success = 1;
   // FIXME: check that our share is valid, which we can do as there's only
   // one peer.
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "secret ready, shutting down\n");
-  GNUNET_SCHEDULER_shutdown ();
+  GNUNET_log(GNUNET_ERROR_TYPE_INFO, "secret ready, shutting down\n");
+  GNUNET_SCHEDULER_shutdown();
 }
 
 
 static void
-handle_shutdown (void *cls)
+handle_shutdown(void *cls)
 {
   if (NULL != keygen)
-  {
-    GNUNET_SECRETSHARING_session_destroy (keygen);
-    keygen = NULL;
-  }
+    {
+      GNUNET_SECRETSHARING_session_destroy(keygen);
+      keygen = NULL;
+    }
 }
 
 
 static void
-run (void *cls,
-     const struct GNUNET_CONFIGURATION_Handle *cfg,
-     struct GNUNET_TESTING_Peer *peer)
+run(void *cls,
+    const struct GNUNET_CONFIGURATION_Handle *cfg,
+    struct GNUNET_TESTING_Peer *peer)
 {
   struct GNUNET_HashCode session_id;
   struct GNUNET_TIME_Absolute start;
   struct GNUNET_TIME_Absolute deadline;
 
-  GNUNET_SCHEDULER_add_shutdown (&handle_shutdown, NULL);
+  GNUNET_SCHEDULER_add_shutdown(&handle_shutdown, NULL);
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "testing secretsharing api\n");
+  GNUNET_log(GNUNET_ERROR_TYPE_INFO, "testing secretsharing api\n");
 
-  GNUNET_CRYPTO_hash_create_random (GNUNET_CRYPTO_QUALITY_WEAK, &session_id);
+  GNUNET_CRYPTO_hash_create_random(GNUNET_CRYPTO_QUALITY_WEAK, &session_id);
 
-  start = GNUNET_TIME_absolute_get ();
-  deadline = GNUNET_TIME_absolute_add (start, GNUNET_TIME_UNIT_SECONDS);
+  start = GNUNET_TIME_absolute_get();
+  deadline = GNUNET_TIME_absolute_add(start, GNUNET_TIME_UNIT_SECONDS);
 
-  keygen = GNUNET_SECRETSHARING_create_session (cfg,
-                                                0, NULL, /* only the local peer */
-                                                &session_id,
-                                                start, deadline,
-                                                1,
-                                                secret_ready_cb, NULL);
-
-
+  keygen = GNUNET_SECRETSHARING_create_session(cfg,
+                                               0, NULL,  /* only the local peer */
+                                               &session_id,
+                                               start, deadline,
+                                               1,
+                                               secret_ready_cb, NULL);
 }
 
 
 int
-main (int argc, char **argv)
+main(int argc, char **argv)
 {
-
   int ret;
-  ret = GNUNET_TESTING_peer_run ("test_secretsharing_api",
-                                 "test_secretsharing.conf",
-                                 &run, NULL);
+
+  ret = GNUNET_TESTING_peer_run("test_secretsharing_api",
+                                "test_secretsharing.conf",
+                                &run, NULL);
   if (0 != ret)
     return ret;
   return (GNUNET_YES == success) ? 0 : 1;

@@ -11,12 +11,12 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 
 /**
  * @author Florian Dold
@@ -35,8 +35,7 @@
 
 GNUNET_NETWORK_STRUCT_BEGIN
 
-struct GNUNET_SECRETSHARING_FieldElement
-{
+struct GNUNET_SECRETSHARING_FieldElement {
   /**
    * Value of an element in &lt;elgamal_g&gt;.
    */
@@ -44,8 +43,7 @@ struct GNUNET_SECRETSHARING_FieldElement
 };
 
 
-struct GNUNET_SECRETSHARING_CreateMessage
-{
+struct GNUNET_SECRETSHARING_CreateMessage {
   /**
    * Type: GNUNET_MESSAGE_TYPE_SECRETSHARING_CLIENT_GENERATE
    */
@@ -82,8 +80,7 @@ struct GNUNET_SECRETSHARING_CreateMessage
 
 
 
-struct GNUNET_SECRETSHARING_ShareHeaderNBO
-{
+struct GNUNET_SECRETSHARING_ShareHeaderNBO {
   /**
    * Threshold for the key this share belongs to.
    */
@@ -116,20 +113,17 @@ struct GNUNET_SECRETSHARING_ShareHeaderNBO
  * Notify the client that then threshold secret has been
  * established.
  */
-struct GNUNET_SECRETSHARING_SecretReadyMessage
-{
+struct GNUNET_SECRETSHARING_SecretReadyMessage {
   /**
    * Type: GNUNET_MESSAGE_TYPE_SECRETSHARING_CLIENT_SECRET_READY
    */
   struct GNUNET_MessageHeader header;
 
   /* rest: the serialized share */
-
 };
 
 
-struct GNUNET_SECRETSHARING_DecryptRequestMessage
-{
+struct GNUNET_SECRETSHARING_DecryptRequestMessage {
   /**
    * Type: GNUNET_MESSAGE_TYPE_SECRETSHARING_CLIENT_DECRYPT_REQUEST
    */
@@ -154,8 +148,7 @@ struct GNUNET_SECRETSHARING_DecryptRequestMessage
 };
 
 
-struct GNUNET_SECRETSHARING_DecryptResponseMessage
-{
+struct GNUNET_SECRETSHARING_DecryptResponseMessage {
   /**
    * Type: #GNUNET_MESSAGE_TYPE_SECRETSHARING_CLIENT_DECRYPT_DONE
    */
@@ -180,8 +173,7 @@ GNUNET_NETWORK_STRUCT_END
 /**
  * A share, with all values in in host byte order.
  */
-struct GNUNET_SECRETSHARING_Share
-{
+struct GNUNET_SECRETSHARING_Share {
   /**
    * Threshold for the key this share belongs to.
    */

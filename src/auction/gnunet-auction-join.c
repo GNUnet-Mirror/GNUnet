@@ -11,12 +11,12 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 
 /**
  * @file auction/gnunet-auction.c
@@ -42,10 +42,10 @@ static int ret;
  * @param cfg configuration
  */
 static void
-run (void *cls,
-     char *const *args,
-     const char *cfgfile,
-     const struct GNUNET_CONFIGURATION_Handle *cfg)
+run(void *cls,
+    char *const *args,
+    const char *cfgfile,
+    const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   /* main code here */
 }
@@ -59,25 +59,26 @@ run (void *cls,
  * @return 0 ok, 1 on error
  */
 int
-main (int argc, char *const *argv)
+main(int argc, char *const *argv)
 {
   static const struct GNUNET_GETOPT_CommandLineOption options[] = {
     /* FIMXE: add options here */
     GNUNET_GETOPT_OPTION_END
   };
+
   if (GNUNET_OK !=
-      GNUNET_STRINGS_get_utf8_args (argc, argv,
-				    &argc, &argv))
+      GNUNET_STRINGS_get_utf8_args(argc, argv,
+                                   &argc, &argv))
     return 2;
 
   ret = (GNUNET_OK ==
-	 GNUNET_PROGRAM_run (argc, argv,
-			     "gnunet-auction",
-			     gettext_noop ("help text"),
-			     options,
-			     &run,
-			     NULL)) ? ret : 1;
-  GNUNET_free ((void*) argv);
+         GNUNET_PROGRAM_run(argc, argv,
+                            "gnunet-auction",
+                            gettext_noop("help text"),
+                            options,
+                            &run,
+                            NULL)) ? ret : 1;
+  GNUNET_free((void*)argv);
   return ret;
 }
 

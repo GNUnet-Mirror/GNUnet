@@ -11,12 +11,12 @@
    WITHOUT ANY WARRANTY; without even the implied warranty of
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
    Affero General Public License for more details.
-  
+
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-   */
+ */
 /**
  * @author Martin Schanzenbach
  * @file gns/plugin_rest_copying.c
@@ -35,15 +35,13 @@
 /**
  * @brief struct returned by the initialization function of the plugin
  */
-struct Plugin
-{
+struct Plugin {
   const struct GNUNET_CONFIGURATION_Handle *cfg;
 };
 
 const struct GNUNET_CONFIGURATION_Handle *cfg;
 
-struct RequestHandle
-{
+struct RequestHandle {
   /**
    * Handle to rest request
    */
@@ -63,7 +61,6 @@ struct RequestHandle
    * HTTP response code
    */
   int response_code;
-
 };
 
 
@@ -73,11 +70,11 @@ struct RequestHandle
  * @param handle Handle to clean up
  */
 static void
-cleanup_handle (struct RequestHandle *handle)
+cleanup_handle(struct RequestHandle *handle)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Cleaning up\n");
-  GNUNET_free (handle);
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+             "Cleaning up\n");
+  GNUNET_free(handle);
 }
 
 
@@ -88,14 +85,14 @@ cleanup_handle (struct RequestHandle *handle)
  * @param tc scheduler context
  */
 static void
-do_error (void *cls)
+do_error(void *cls)
 {
   struct RequestHandle *handle = cls;
   struct MHD_Response *resp;
 
-  resp = GNUNET_REST_create_response (NULL);
-  handle->proc (handle->proc_cls, resp, handle->response_code);
-  cleanup_handle (handle);
+  resp = GNUNET_REST_create_response(NULL);
+  handle->proc(handle->proc_cls, resp, handle->response_code);
+  cleanup_handle(handle);
 }
 
 
@@ -105,18 +102,18 @@ do_error (void *cls)
  * @param handle the lookup handle
  */
 static void
-get_cont (struct GNUNET_REST_RequestHandle *con_handle,
-              const char* url,
-              void *cls)
+get_cont(struct GNUNET_REST_RequestHandle *con_handle,
+         const char* url,
+         void *cls)
 {
   struct MHD_Response *resp;
   struct RequestHandle *handle = cls;
 
-  resp = GNUNET_REST_create_response (GNUNET_REST_COPYING_TEXT);
-  handle->proc (handle->proc_cls,
-                resp,
-                MHD_HTTP_OK);
-  cleanup_handle (handle);
+  resp = GNUNET_REST_create_response(GNUNET_REST_COPYING_TEXT);
+  handle->proc(handle->proc_cls,
+               resp,
+               MHD_HTTP_OK);
+  cleanup_handle(handle);
 }
 
 
@@ -127,21 +124,21 @@ get_cont (struct GNUNET_REST_RequestHandle *con_handle,
  * @param handle the lookup handle
  */
 static void
-options_cont (struct GNUNET_REST_RequestHandle *con_handle,
-              const char* url,
-              void *cls)
+options_cont(struct GNUNET_REST_RequestHandle *con_handle,
+             const char* url,
+             void *cls)
 {
   struct MHD_Response *resp;
   struct RequestHandle *handle = cls;
 
-  resp = GNUNET_REST_create_response (NULL);
-  MHD_add_response_header (resp,
-                           "Access-Control-Allow-Methods",
-                           MHD_HTTP_METHOD_GET);
-  handle->proc (handle->proc_cls,
-                resp,
-                MHD_HTTP_OK);
-  cleanup_handle (handle);
+  resp = GNUNET_REST_create_response(NULL);
+  MHD_add_response_header(resp,
+                          "Access-Control-Allow-Methods",
+                          MHD_HTTP_METHOD_GET);
+  handle->proc(handle->proc_cls,
+               resp,
+               MHD_HTTP_OK);
+  cleanup_handle(handle);
 }
 
 
@@ -157,30 +154,30 @@ options_cont (struct GNUNET_REST_RequestHandle *con_handle,
  * @return #GNUNET_OK if request accepted
  */
 static void
-rest_copying_process_request (struct GNUNET_REST_RequestHandle *conndata_handle,
-                              GNUNET_REST_ResultProcessor proc,
-                              void *proc_cls)
+rest_copying_process_request(struct GNUNET_REST_RequestHandle *conndata_handle,
+                             GNUNET_REST_ResultProcessor proc,
+                             void *proc_cls)
 {
   static const struct GNUNET_REST_RequestHandler handlers[] = {
-    {MHD_HTTP_METHOD_GET, GNUNET_REST_API_NS_COPYING, &get_cont},
-    {MHD_HTTP_METHOD_OPTIONS, GNUNET_REST_API_NS_COPYING, &options_cont},
+    { MHD_HTTP_METHOD_GET, GNUNET_REST_API_NS_COPYING, &get_cont },
+    { MHD_HTTP_METHOD_OPTIONS, GNUNET_REST_API_NS_COPYING, &options_cont },
     GNUNET_REST_HANDLER_END
   };
-  struct RequestHandle *handle = GNUNET_new (struct RequestHandle);
+  struct RequestHandle *handle = GNUNET_new(struct RequestHandle);
   struct GNUNET_REST_RequestHandlerError err;
 
   handle->proc_cls = proc_cls;
   handle->proc = proc;
   handle->rest_handle = conndata_handle;
 
-  if (GNUNET_NO == GNUNET_REST_handle_request (conndata_handle,
-                                               handlers,
-                                               &err,
-                                               handle))
-  {
-    handle->response_code = err.error_code;
-    GNUNET_SCHEDULER_add_now (&do_error, handle);
-  }
+  if (GNUNET_NO == GNUNET_REST_handle_request(conndata_handle,
+                                              handlers,
+                                              &err,
+                                              handle))
+    {
+      handle->response_code = err.error_code;
+      GNUNET_SCHEDULER_add_now(&do_error, handle);
+    }
 }
 
 
@@ -191,22 +188,23 @@ rest_copying_process_request (struct GNUNET_REST_RequestHandle *conndata_handle,
  * @return NULL on error, otherwise the plugin context
  */
 void *
-libgnunet_plugin_rest_copying_init (void *cls)
+libgnunet_plugin_rest_copying_init(void *cls)
 {
   static struct Plugin plugin;
+
   cfg = cls;
   struct GNUNET_REST_Plugin *api;
 
   if (NULL != plugin.cfg)
     return NULL;                /* can only initialize once! */
-  memset (&plugin, 0, sizeof (struct Plugin));
+  memset(&plugin, 0, sizeof(struct Plugin));
   plugin.cfg = cfg;
-  api = GNUNET_new (struct GNUNET_REST_Plugin);
+  api = GNUNET_new(struct GNUNET_REST_Plugin);
   api->cls = &plugin;
   api->name = GNUNET_REST_API_NS_COPYING;
   api->process_request = &rest_copying_process_request;
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              _("COPYING REST API initialized\n"));
+  GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+             _("COPYING REST API initialized\n"));
   return api;
 }
 
@@ -218,15 +216,15 @@ libgnunet_plugin_rest_copying_init (void *cls)
  * @return always NULL
  */
 void *
-libgnunet_plugin_rest_copying_done (void *cls)
+libgnunet_plugin_rest_copying_done(void *cls)
 {
   struct GNUNET_REST_Plugin *api = cls;
   struct Plugin *plugin = api->cls;
 
   plugin->cfg = NULL;
-  GNUNET_free (api);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "COPYING REST plugin is finished\n");
+  GNUNET_free(api);
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+             "COPYING REST plugin is finished\n");
   return NULL;
 }
 

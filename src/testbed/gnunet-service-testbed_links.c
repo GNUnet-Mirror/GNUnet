@@ -1,22 +1,22 @@
 /*
-  This file is part of GNUnet.
-  Copyright (C) 2008--2013 GNUnet e.V.
+   This file is part of GNUnet.
+   Copyright (C) 2008--2013 GNUnet e.V.
 
-  GNUnet is free software: you can redistribute it and/or modify it
-  under the terms of the GNU Affero General Public License as published
-  by the Free Software Foundation, either version 3 of the License,
-  or (at your option) any later version.
+   GNUnet is free software: you can redistribute it and/or modify it
+   under the terms of the GNU Affero General Public License as published
+   by the Free Software Foundation, either version 3 of the License,
+   or (at your option) any later version.
 
-  GNUnet is distributed in the hope that it will be useful, but
-  WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-  Affero General Public License for more details.
- 
-  You should have received a copy of the GNU Affero General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   GNUnet is distributed in the hope that it will be useful, but
+   WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   Affero General Public License for more details.
+
+   You should have received a copy of the GNU Affero General Public License
+   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 
 /**
  * @file testbed/gnunet-service-testbed_links.c
@@ -33,8 +33,8 @@
 #ifdef LOG
 #undef LOG
 #endif
-#define LOG(kind,...)                                   \
-  GNUNET_log_from (kind, "testbed-links", __VA_ARGS__)
+#define LOG(kind, ...)                                   \
+  GNUNET_log_from(kind, "testbed-links", __VA_ARGS__)
 
 /**
  * The event mask for the events we listen from sub-controllers
@@ -45,8 +45,7 @@
 /**
  * States of LCFContext
  */
-enum LCFContextState
-{
+enum LCFContextState {
   /**
    * The Context has been initialized; Nothing has been done on it
    */
@@ -72,8 +71,7 @@ enum LCFContextState
 /**
  * Link controllers request forwarding context
  */
-struct LCFContext
-{
+struct LCFContext {
   /**
    * The LCFContext
    */
@@ -128,7 +126,6 @@ struct LCFContext
    * The slave host
    */
   uint32_t slave_host_id;
-
 };
 
 
@@ -136,8 +133,7 @@ struct LCFContext
  * Notification context to be used to notify when connection to the neighbour's
  * controller is opened
  */
-struct NeighbourConnectNotification
-{
+struct NeighbourConnectNotification {
   /**
    * DLL next for inclusion in neighbour's list of notification requests
    */
@@ -168,8 +164,7 @@ struct NeighbourConnectNotification
 /**
  * A connected controller which is not our child
  */
-struct Neighbour
-{
+struct Neighbour {
   /**
    * The controller handle
    */
@@ -228,8 +223,7 @@ static unsigned int neighbour_list_size;
  * Context information for establishing a link to neighbour (Used is
  * GST_handle_link_controllers()
  */
-struct NeighbourConnectCtxt
-{
+struct NeighbourConnectCtxt {
   /**
    * DLL next for inclusion in the corresponding context list
    */
@@ -319,13 +313,13 @@ static unsigned int route_list_size;
  * @param slave the slave controller to add
  */
 static void
-slave_list_add (struct Slave *slave)
+slave_list_add(struct Slave *slave)
 {
   if (slave->host_id >= GST_slave_list_size)
-    GST_array_grow_large_enough (GST_slave_list,
-                                 GST_slave_list_size,
-                                 slave->host_id);
-  GNUNET_assert (NULL == GST_slave_list[slave->host_id]);
+    GST_array_grow_large_enough(GST_slave_list,
+                                GST_slave_list_size,
+                                slave->host_id);
+  GNUNET_assert(NULL == GST_slave_list[slave->host_id]);
   GST_slave_list[slave->host_id] = slave;
 }
 
@@ -340,9 +334,9 @@ slave_list_add (struct Slave *slave)
  * @return #GNUNET_OK (continue iterating)
  */
 static int
-drop_client_entries (void *cls,
-                     const struct GNUNET_HashCode *key,
-                     void *value)
+drop_client_entries(void *cls,
+                    const struct GNUNET_HashCode *key,
+                    void *value)
 {
   struct GNUNET_SERVICE_Client *client = cls;
   struct RegisteredHostContext *rhc = value;
@@ -350,11 +344,11 @@ drop_client_entries (void *cls,
   struct ForwardedOverlayConnectContext *foccn;
 
   for (focc = rhc->focc_dll_head; NULL != focc; focc = foccn)
-  {
-    foccn = focc->next;
-    if (focc->client == client)
-      GST_cleanup_focc (focc);
-  }
+    {
+      foccn = focc->next;
+      if (focc->client == client)
+        GST_cleanup_focc(focc);
+    }
   return GNUNET_OK;
 }
 
@@ -365,11 +359,11 @@ drop_client_entries (void *cls,
  * @param route the route to add
  */
 static void
-route_list_add (struct Route *route)
+route_list_add(struct Route *route)
 {
   if (route->dest >= route_list_size)
-    GST_array_grow_large_enough (route_list, route_list_size, route->dest);
-  GNUNET_assert (NULL == route_list[route->dest]);
+    GST_array_grow_large_enough(route_list, route_list_size, route->dest);
+  GNUNET_assert(NULL == route_list[route->dest]);
   route_list[route->dest] = route;
 }
 
@@ -381,11 +375,11 @@ route_list_add (struct Route *route)
  * @param n the neighbour to add
  */
 static void
-neighbour_list_add (struct Neighbour *n)
+neighbour_list_add(struct Neighbour *n)
 {
   if (n->host_id >= neighbour_list_size)
-    GST_array_grow_large_enough (neighbour_list, neighbour_list_size, n->host_id);
-  GNUNET_assert (NULL == neighbour_list[n->host_id]);
+    GST_array_grow_large_enough(neighbour_list, neighbour_list_size, n->host_id);
+  GNUNET_assert(NULL == neighbour_list[n->host_id]);
   neighbour_list[n->host_id] = n;
 }
 
@@ -394,14 +388,14 @@ neighbour_list_add (struct Neighbour *n)
  * Cleans up the route list
  */
 void
-GST_route_list_clear ()
+GST_route_list_clear()
 {
   unsigned int id;
 
   for (id = 0; id < route_list_size; id++)
     if (NULL != route_list[id])
-      GNUNET_free (route_list[id]);
-  GNUNET_free_non_null (route_list);
+      GNUNET_free(route_list[id]);
+  GNUNET_free_non_null(route_list);
   route_list = NULL;
 }
 
@@ -416,20 +410,20 @@ GST_route_list_clear ()
  *         #GNUNET_NO if not.
  */
 static int
-reghost_free_iterator (void *cls,
-                       const struct GNUNET_HashCode *key,
-                       void *value)
+reghost_free_iterator(void *cls,
+                      const struct GNUNET_HashCode *key,
+                      void *value)
 {
   struct Slave *slave = cls;
   struct RegisteredHostContext *rhc = value;
   struct ForwardedOverlayConnectContext *focc;
 
-  GNUNET_assert (GNUNET_YES ==
-                 GNUNET_CONTAINER_multihashmap_remove (slave->reghost_map, key,
-                                                       value));
+  GNUNET_assert(GNUNET_YES ==
+                GNUNET_CONTAINER_multihashmap_remove(slave->reghost_map, key,
+                                                     value));
   while (NULL != (focc = rhc->focc_dll_head))
-    GST_cleanup_focc (focc);
-  GNUNET_free (value);
+    GST_cleanup_focc(focc);
+  GNUNET_free(value);
   return GNUNET_YES;
 }
 
@@ -440,30 +434,30 @@ reghost_free_iterator (void *cls,
  * @param slave the #Slave object
  */
 static void
-kill_slave (struct Slave *slave)
+kill_slave(struct Slave *slave)
 {
   struct HostRegistration *hr_entry;
 
   while (NULL != (hr_entry = slave->hr_dll_head))
-  {
-    GNUNET_CONTAINER_DLL_remove (slave->hr_dll_head, slave->hr_dll_tail,
-                                 hr_entry);
-    GNUNET_free (hr_entry);
-  }
+    {
+      GNUNET_CONTAINER_DLL_remove(slave->hr_dll_head, slave->hr_dll_tail,
+                                  hr_entry);
+      GNUNET_free(hr_entry);
+    }
   if (NULL != slave->rhandle)
-    GNUNET_TESTBED_cancel_registration (slave->rhandle);
-  GNUNET_assert (GNUNET_SYSERR !=
-                 GNUNET_CONTAINER_multihashmap_iterate (slave->reghost_map,
-                                                        reghost_free_iterator,
-                                                        slave));
-  GNUNET_CONTAINER_multihashmap_destroy (slave->reghost_map);
+    GNUNET_TESTBED_cancel_registration(slave->rhandle);
+  GNUNET_assert(GNUNET_SYSERR !=
+                GNUNET_CONTAINER_multihashmap_iterate(slave->reghost_map,
+                                                      reghost_free_iterator,
+                                                      slave));
+  GNUNET_CONTAINER_multihashmap_destroy(slave->reghost_map);
   if (NULL != slave->controller)
-    GNUNET_TESTBED_controller_disconnect (slave->controller);
+    GNUNET_TESTBED_controller_disconnect(slave->controller);
   if (NULL != slave->controller_proc)
-  {
-    LOG_DEBUG ("Stopping a slave\n");
-    GNUNET_TESTBED_controller_kill_ (slave->controller_proc);
-  }
+    {
+      LOG_DEBUG("Stopping a slave\n");
+      GNUNET_TESTBED_controller_kill_(slave->controller_proc);
+    }
 }
 
 
@@ -473,15 +467,15 @@ kill_slave (struct Slave *slave)
  * @param slave the #Slave object
  */
 static void
-destroy_slave (struct Slave *slave)
+destroy_slave(struct Slave *slave)
 {
   if (NULL != slave->controller_proc)
-  {
-    GNUNET_TESTBED_controller_destroy_ (slave->controller_proc);
-    LOG_DEBUG ("Slave stopped\n");
-  }
+    {
+      GNUNET_TESTBED_controller_destroy_(slave->controller_proc);
+      LOG_DEBUG("Slave stopped\n");
+    }
   GST_slave_list[slave->host_id] = NULL;
-  GNUNET_free (slave);
+  GNUNET_free(slave);
 }
 
 
@@ -489,26 +483,26 @@ destroy_slave (struct Slave *slave)
  * Cleans up the slave list
  */
 void
-GST_slave_list_clear ()
+GST_slave_list_clear()
 {
   struct Slave *slave;
   unsigned int id;
 
   for (id = 0; id < GST_slave_list_size; id++)
-  {
-    slave = GST_slave_list[id];
-    if (NULL == slave)
-      continue;
-    kill_slave (slave);
-  }
+    {
+      slave = GST_slave_list[id];
+      if (NULL == slave)
+        continue;
+      kill_slave(slave);
+    }
   for (id = 0; id < GST_slave_list_size; id++)
-  {
-    slave = GST_slave_list[id];
-    if (NULL == slave)
-      continue;
-    destroy_slave (slave);
-  }
-  GNUNET_free_non_null (GST_slave_list);
+    {
+      slave = GST_slave_list[id];
+      if (NULL == slave)
+        continue;
+      destroy_slave(slave);
+    }
+  GNUNET_free_non_null(GST_slave_list);
   GST_slave_list = NULL;
 }
 
@@ -522,18 +516,18 @@ GST_slave_list_clear ()
  *           is found
  */
 struct Route *
-GST_find_dest_route (uint32_t host_id)
+GST_find_dest_route(uint32_t host_id)
 {
   struct Route *route;
 
   if (route_list_size <= host_id)
     return NULL;
   while (NULL != (route = route_list[host_id]))
-  {
-    if (route->thru == GST_context->host_id)
-      break;
-    host_id = route->thru;
-  }
+    {
+      if (route->thru == GST_context->host_id)
+        break;
+      host_id = route->thru;
+    }
   return route;
 }
 
@@ -551,10 +545,10 @@ GST_find_dest_route (uint32_t host_id)
  *          NULL if cfg is set!
  */
 static void
-send_controller_link_response (struct GNUNET_SERVICE_Client *client,
-                               uint64_t operation_id,
-                               const struct GNUNET_CONFIGURATION_Handle *cfg,
-                               const char *emsg)
+send_controller_link_response(struct GNUNET_SERVICE_Client *client,
+                              uint64_t operation_id,
+                              const struct GNUNET_CONFIGURATION_Handle *cfg,
+                              const char *emsg)
 {
   struct GNUNET_MQ_Envelope *env;
   struct GNUNET_TESTBED_ControllerLinkResponse *msg;
@@ -563,40 +557,40 @@ send_controller_link_response (struct GNUNET_SERVICE_Client *client,
   size_t xconfig_size;
   uint16_t msize;
 
-  GNUNET_assert ((NULL == cfg) || (NULL == emsg));
+  GNUNET_assert((NULL == cfg) || (NULL == emsg));
   xconfig = NULL;
   xconfig_size = 0;
   config_size = 0;
   msize = 0;
   if (NULL != cfg)
-  {
-    xconfig = GNUNET_TESTBED_compress_cfg_ (cfg,
-                                            &config_size,
-                                            &xconfig_size);
-    msize += xconfig_size;
-  }
+    {
+      xconfig = GNUNET_TESTBED_compress_cfg_(cfg,
+                                             &config_size,
+                                             &xconfig_size);
+      msize += xconfig_size;
+    }
   if (NULL != emsg)
-    msize += strlen (emsg);
-  env = GNUNET_MQ_msg_extra (msg,
-                             msize,
-                             GNUNET_MESSAGE_TYPE_TESTBED_LINK_CONTROLLERS_RESULT);
+    msize += strlen(emsg);
+  env = GNUNET_MQ_msg_extra(msg,
+                            msize,
+                            GNUNET_MESSAGE_TYPE_TESTBED_LINK_CONTROLLERS_RESULT);
   if (NULL == emsg)
-    msg->success = htons (GNUNET_YES);
-  msg->operation_id = GNUNET_htonll (operation_id);
-  msg->config_size = htons ((uint16_t) config_size);
+    msg->success = htons(GNUNET_YES);
+  msg->operation_id = GNUNET_htonll(operation_id);
+  msg->config_size = htons((uint16_t)config_size);
   if (NULL != xconfig)
-  {
-    GNUNET_memcpy (&msg[1],
-                   xconfig,
-                   xconfig_size);
-    GNUNET_free (xconfig);
-  }
+    {
+      GNUNET_memcpy(&msg[1],
+                    xconfig,
+                    xconfig_size);
+      GNUNET_free(xconfig);
+    }
   if (NULL != emsg)
-    GNUNET_memcpy (&msg[1],
-                   emsg,
-                   strlen (emsg));
-  GNUNET_MQ_send (GNUNET_SERVICE_client_get_mq (client),
-                  env);
+    GNUNET_memcpy(&msg[1],
+                  emsg,
+                  strlen(emsg));
+  GNUNET_MQ_send(GNUNET_SERVICE_client_get_mq(client),
+                 env);
 }
 
 
@@ -606,7 +600,7 @@ send_controller_link_response (struct GNUNET_SERVICE_Client *client,
  * @param cls the LCFContext
  */
 static void
-lcf_proc_task (void *cls);
+lcf_proc_task(void *cls);
 
 
 /**
@@ -616,38 +610,40 @@ lcf_proc_task (void *cls);
  * @param emsg the error message; NULL if host registration is successful
  */
 static void
-lcf_proc_cc (void *cls,
-             const char *emsg)
+lcf_proc_cc(void *cls,
+            const char *emsg)
 {
   struct LCFContext *lcf = cls;
 
-  GNUNET_assert (NULL == lcf_proc_task_id);
+  GNUNET_assert(NULL == lcf_proc_task_id);
   switch (lcf->state)
-  {
-  case INIT:
-    if (NULL != emsg)
-      goto registration_error;
-    lcf->state = DELEGATED_HOST_REGISTERED;
-    lcf_proc_task_id = GNUNET_SCHEDULER_add_now (&lcf_proc_task, lcf);
-    break;
-  case DELEGATED_HOST_REGISTERED:
-    if (NULL != emsg)
-      goto registration_error;
-    lcf->state = SLAVE_HOST_REGISTERED;
-    lcf_proc_task_id = GNUNET_SCHEDULER_add_now (&lcf_proc_task, lcf);
-    break;
-  default:
-    GNUNET_assert (0);          /* Shouldn't reach here */
-  }
+    {
+    case INIT:
+      if (NULL != emsg)
+        goto registration_error;
+      lcf->state = DELEGATED_HOST_REGISTERED;
+      lcf_proc_task_id = GNUNET_SCHEDULER_add_now(&lcf_proc_task, lcf);
+      break;
+
+    case DELEGATED_HOST_REGISTERED:
+      if (NULL != emsg)
+        goto registration_error;
+      lcf->state = SLAVE_HOST_REGISTERED;
+      lcf_proc_task_id = GNUNET_SCHEDULER_add_now(&lcf_proc_task, lcf);
+      break;
+
+    default:
+      GNUNET_assert(0);         /* Shouldn't reach here */
+    }
   return;
 
 registration_error:
-  LOG (GNUNET_ERROR_TYPE_WARNING,
-       "Host registration failed with message: %s\n",
-       emsg);
+  LOG(GNUNET_ERROR_TYPE_WARNING,
+      "Host registration failed with message: %s\n",
+      emsg);
   lcf->state = FINISHED;
-  lcf_proc_task_id = GNUNET_SCHEDULER_add_now (&lcf_proc_task,
-                                               lcf);
+  lcf_proc_task_id = GNUNET_SCHEDULER_add_now(&lcf_proc_task,
+                                              lcf);
 }
 
 
@@ -657,7 +653,7 @@ registration_error:
  * @param cls the LCFContext
  */
 static void
-lcf_proc_task (void *cls);
+lcf_proc_task(void *cls);
 
 
 /**
@@ -666,21 +662,21 @@ lcf_proc_task (void *cls);
  * @param cls the LCFContext
  */
 static void
-lcf_forwarded_operation_timeout (void *cls)
+lcf_forwarded_operation_timeout(void *cls)
 {
   struct LCFContext *lcf = cls;
 
   lcf->timeout_task = NULL;
   //  GST_forwarded_operation_timeout (lcf->fopc, tc);
-  LOG (GNUNET_ERROR_TYPE_WARNING,
-       "A forwarded controller link operation has timed out\n");
-  send_controller_link_response (lcf->client,
-                                 lcf->operation_id,
-                                 NULL,
-                                 "A forwarded controller link operation has timed out\n");
-  GNUNET_assert (NULL == lcf_proc_task_id);
-  lcf_proc_task_id = GNUNET_SCHEDULER_add_now (&lcf_proc_task,
-                                               lcf);
+  LOG(GNUNET_ERROR_TYPE_WARNING,
+      "A forwarded controller link operation has timed out\n");
+  send_controller_link_response(lcf->client,
+                                lcf->operation_id,
+                                NULL,
+                                "A forwarded controller link operation has timed out\n");
+  GNUNET_assert(NULL == lcf_proc_task_id);
+  lcf_proc_task_id = GNUNET_SCHEDULER_add_now(&lcf_proc_task,
+                                              lcf);
 }
 
 
@@ -690,65 +686,68 @@ lcf_forwarded_operation_timeout (void *cls)
  * @param cls the LCFContext
  */
 static void
-lcf_proc_task (void *cls)
+lcf_proc_task(void *cls)
 {
   struct LCFContext *lcf = cls;
 
   lcf_proc_task_id = NULL;
   switch (lcf->state)
-  {
-  case INIT:
-    if (GNUNET_NO ==
-        GNUNET_TESTBED_is_host_registered_ (GST_host_list
-                                            [lcf->delegated_host_id],
-                                            lcf->gateway->controller))
     {
-      GST_queue_host_registration (lcf->gateway, lcf_proc_cc, lcf,
-                                   GST_host_list[lcf->delegated_host_id]);
+    case INIT:
+      if (GNUNET_NO ==
+          GNUNET_TESTBED_is_host_registered_(GST_host_list
+                                             [lcf->delegated_host_id],
+                                             lcf->gateway->controller))
+        {
+          GST_queue_host_registration(lcf->gateway, lcf_proc_cc, lcf,
+                                      GST_host_list[lcf->delegated_host_id]);
+        }
+      else
+        {
+          lcf->state = DELEGATED_HOST_REGISTERED;
+          lcf_proc_task_id = GNUNET_SCHEDULER_add_now(&lcf_proc_task, lcf);
+        }
+      break;
+
+    case DELEGATED_HOST_REGISTERED:
+      if (GNUNET_NO ==
+          GNUNET_TESTBED_is_host_registered_(GST_host_list[lcf->slave_host_id],
+                                             lcf->gateway->controller))
+        {
+          GST_queue_host_registration(lcf->gateway, lcf_proc_cc, lcf,
+                                      GST_host_list[lcf->slave_host_id]);
+        }
+      else
+        {
+          lcf->state = SLAVE_HOST_REGISTERED;
+          lcf_proc_task_id = GNUNET_SCHEDULER_add_now(&lcf_proc_task, lcf);
+        }
+      break;
+
+    case SLAVE_HOST_REGISTERED:
+      lcf->op = GNUNET_TESTBED_controller_link(lcf,
+                                               lcf->gateway->controller,
+                                               GST_host_list[lcf->delegated_host_id],
+                                               GST_host_list[lcf->slave_host_id],
+                                               lcf->is_subordinate);
+      lcf->timeout_task =
+        GNUNET_SCHEDULER_add_delayed(GST_timeout,
+                                     &lcf_forwarded_operation_timeout,
+                                     lcf);
+      lcf->state = FINISHED;
+      break;
+
+    case FINISHED:
+      if (NULL != lcf->op)
+        GNUNET_TESTBED_operation_done(lcf->op);
+      GNUNET_CONTAINER_DLL_remove(lcf_head,
+                                  lcf_tail,
+                                  lcf);
+      GNUNET_free(lcf);
+      if (NULL != lcf_head)
+        lcf_proc_task_id = GNUNET_SCHEDULER_add_now(&lcf_proc_task,
+                                                    lcf_head);
     }
-    else
-    {
-      lcf->state = DELEGATED_HOST_REGISTERED;
-      lcf_proc_task_id = GNUNET_SCHEDULER_add_now (&lcf_proc_task, lcf);
-    }
-    break;
-  case DELEGATED_HOST_REGISTERED:
-    if (GNUNET_NO ==
-        GNUNET_TESTBED_is_host_registered_ (GST_host_list[lcf->slave_host_id],
-                                            lcf->gateway->controller))
-    {
-      GST_queue_host_registration (lcf->gateway, lcf_proc_cc, lcf,
-                                   GST_host_list[lcf->slave_host_id]);
-    }
-    else
-    {
-      lcf->state = SLAVE_HOST_REGISTERED;
-      lcf_proc_task_id = GNUNET_SCHEDULER_add_now (&lcf_proc_task, lcf);
-    }
-    break;
-  case SLAVE_HOST_REGISTERED:
-    lcf->op = GNUNET_TESTBED_controller_link (lcf,
-                                              lcf->gateway->controller,
-                                              GST_host_list[lcf->delegated_host_id],
-                                              GST_host_list[lcf->slave_host_id],
-                                              lcf->is_subordinate);
-    lcf->timeout_task =
-        GNUNET_SCHEDULER_add_delayed (GST_timeout,
-                                      &lcf_forwarded_operation_timeout,
-                                      lcf);
-    lcf->state = FINISHED;
-    break;
-  case FINISHED:
-    if (NULL != lcf->op)
-      GNUNET_TESTBED_operation_done (lcf->op);
-    GNUNET_CONTAINER_DLL_remove (lcf_head,
-                                 lcf_tail,
-                                 lcf);
-    GNUNET_free (lcf);
-    if (NULL != lcf_head)
-      lcf_proc_task_id = GNUNET_SCHEDULER_add_now (&lcf_proc_task,
-                                                   lcf_head);
-  }
 }
 
 
@@ -759,30 +758,30 @@ lcf_proc_task (void *cls)
  * @param event information about the event
  */
 static void
-slave_event_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
+slave_event_cb(void *cls, const struct GNUNET_TESTBED_EventInformation *event)
 {
   struct LCFContext *lcf;
 
   /* We currently only get here when working on LCFContexts */
-  GNUNET_assert (GNUNET_TESTBED_ET_OPERATION_FINISHED == event->type);
+  GNUNET_assert(GNUNET_TESTBED_ET_OPERATION_FINISHED == event->type);
   lcf = event->op_cls;
-  GNUNET_assert (lcf->op == event->op);
-  GNUNET_TESTBED_operation_done (lcf->op);
+  GNUNET_assert(lcf->op == event->op);
+  GNUNET_TESTBED_operation_done(lcf->op);
   lcf->op = NULL;
-  GNUNET_assert (FINISHED == lcf->state);
-  GNUNET_assert (NULL != lcf->timeout_task);
-  GNUNET_SCHEDULER_cancel (lcf->timeout_task);
+  GNUNET_assert(FINISHED == lcf->state);
+  GNUNET_assert(NULL != lcf->timeout_task);
+  GNUNET_SCHEDULER_cancel(lcf->timeout_task);
   if (NULL == event->details.operation_finished.emsg)
-    send_controller_link_response (lcf->client, lcf->operation_id,
-                                   GNUNET_TESTBED_host_get_cfg_
-                                   (GST_host_list[lcf->delegated_host_id]),
-                                   NULL);
+    send_controller_link_response(lcf->client, lcf->operation_id,
+                                  GNUNET_TESTBED_host_get_cfg_
+                                    (GST_host_list[lcf->delegated_host_id]),
+                                  NULL);
   else
-    send_controller_link_response (lcf->client, lcf->operation_id,
-                                   NULL,
-                                   event->details.operation_finished.emsg);
-  GNUNET_assert (NULL == lcf_proc_task_id);
-  lcf_proc_task_id = GNUNET_SCHEDULER_add_now (&lcf_proc_task, lcf);
+    send_controller_link_response(lcf->client, lcf->operation_id,
+                                  NULL,
+                                  event->details.operation_finished.emsg);
+  GNUNET_assert(NULL == lcf_proc_task_id);
+  lcf_proc_task_id = GNUNET_SCHEDULER_add_now(&lcf_proc_task, lcf);
   return;
 }
 
@@ -797,56 +796,56 @@ slave_event_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
  *          GNUNET_TESTBED_controller_stop() shouldn't be called in this case
  */
 static void
-slave_status_cb (void *cls,
-                 const struct GNUNET_CONFIGURATION_Handle *cfg,
-                 int status)
+slave_status_cb(void *cls,
+                const struct GNUNET_CONFIGURATION_Handle *cfg,
+                int status)
 {
   struct Slave *slave = cls;
   struct LinkControllersContext *lcc;
 
   lcc = slave->lcc;
   if (GNUNET_SYSERR == status)
-  {
-    slave->controller_proc = NULL;
-    /* Stop all link controller forwarding tasks since we shutdown here anyway
-       and as these tasks they depend on the operation queues which are created
-       through GNUNET_TESTBED_controller_connect() and in kill_slave() we call
-       the destructor function GNUNET_TESTBED_controller_disconnect() */
-    GST_free_lcf ();
-    kill_slave (slave);
-    destroy_slave (slave);
-    slave = NULL;
-    LOG (GNUNET_ERROR_TYPE_WARNING, "Unexpected slave shutdown\n");
-    GNUNET_SCHEDULER_shutdown ();       /* We too shutdown */
-    goto clean_lcc;
-  }
-  slave->controller =
-      GNUNET_TESTBED_controller_connect (GST_host_list[slave->host_id],
-                                         EVENT_MASK, &slave_event_cb,
-                                         slave);
-  if (NULL != slave->controller)
-  {
-    send_controller_link_response (lcc->client, lcc->operation_id, cfg, NULL);
-  }
-  else
-  {
-    send_controller_link_response (lcc->client, lcc->operation_id, NULL,
-                                   "Could not connect to delegated controller");
-    kill_slave (slave);
-    destroy_slave (slave);
-    slave = NULL;
-  }
-
- clean_lcc:
-  if (NULL != lcc)
-  {
-    if (NULL != lcc->client)
     {
-      GNUNET_SERVICE_client_continue (lcc->client);
-      lcc->client = NULL;
+      slave->controller_proc = NULL;
+      /* Stop all link controller forwarding tasks since we shutdown here anyway
+         and as these tasks they depend on the operation queues which are created
+         through GNUNET_TESTBED_controller_connect() and in kill_slave() we call
+         the destructor function GNUNET_TESTBED_controller_disconnect() */
+      GST_free_lcf();
+      kill_slave(slave);
+      destroy_slave(slave);
+      slave = NULL;
+      LOG(GNUNET_ERROR_TYPE_WARNING, "Unexpected slave shutdown\n");
+      GNUNET_SCHEDULER_shutdown();      /* We too shutdown */
+      goto clean_lcc;
     }
-    GNUNET_free (lcc);
-  }
+  slave->controller =
+    GNUNET_TESTBED_controller_connect(GST_host_list[slave->host_id],
+                                      EVENT_MASK, &slave_event_cb,
+                                      slave);
+  if (NULL != slave->controller)
+    {
+      send_controller_link_response(lcc->client, lcc->operation_id, cfg, NULL);
+    }
+  else
+    {
+      send_controller_link_response(lcc->client, lcc->operation_id, NULL,
+                                    "Could not connect to delegated controller");
+      kill_slave(slave);
+      destroy_slave(slave);
+      slave = NULL;
+    }
+
+clean_lcc:
+  if (NULL != lcc)
+    {
+      if (NULL != lcc->client)
+        {
+          GNUNET_SERVICE_client_continue(lcc->client);
+          lcc->client = NULL;
+        }
+      GNUNET_free(lcc);
+    }
   if (NULL != slave)
     slave->lcc = NULL;
 }
@@ -861,7 +860,7 @@ slave_status_cb (void *cls,
  * @param n the neighbour
  */
 static void
-trigger_notifications (struct Neighbour *n);
+trigger_notifications(struct Neighbour *n);
 
 
 /**
@@ -871,19 +870,19 @@ trigger_notifications (struct Neighbour *n);
  * @param cls the neighbour
  */
 static void
-neighbour_connect_notify_task (void *cls)
+neighbour_connect_notify_task(void *cls)
 {
   struct Neighbour *n = cls;
   struct NeighbourConnectNotification *h;
 
-  GNUNET_assert (NULL != (h = n->nl_head));
-  GNUNET_assert (NULL != n->notify_task);
+  GNUNET_assert(NULL != (h = n->nl_head));
+  GNUNET_assert(NULL != n->notify_task);
   n->notify_task = NULL;
-  GNUNET_assert (NULL != n->controller);
-  GNUNET_CONTAINER_DLL_remove (n->nl_head, n->nl_tail, h);
-  trigger_notifications (n);
-  h->cb (h->cb_cls, n->controller);
-  GNUNET_free (h);
+  GNUNET_assert(NULL != n->controller);
+  GNUNET_CONTAINER_DLL_remove(n->nl_head, n->nl_tail, h);
+  trigger_notifications(n);
+  h->cb(h->cb_cls, n->controller);
+  GNUNET_free(h);
 }
 
 
@@ -896,9 +895,9 @@ neighbour_connect_notify_task (void *cls)
  * @param n the neighbour
  */
 static void
-trigger_notifications (struct Neighbour *n)
+trigger_notifications(struct Neighbour *n)
 {
-  GNUNET_assert (NULL != n->conn_op);
+  GNUNET_assert(NULL != n->conn_op);
   if (NULL == n->nl_head)
     return;
   if (NULL == n->controller)
@@ -906,14 +905,14 @@ trigger_notifications (struct Neighbour *n)
   if (NULL != n->notify_task)
     return;
   if (1 == n->inactive)
-  {
-    GNUNET_assert (0 == n->reference_cnt);
-    GNUNET_TESTBED_operation_activate_ (n->conn_op);
-    n->inactive = 0;
-  }
+    {
+      GNUNET_assert(0 == n->reference_cnt);
+      GNUNET_TESTBED_operation_activate_(n->conn_op);
+      n->inactive = 0;
+    }
   n->reference_cnt++;
   n->notify_task =
-      GNUNET_SCHEDULER_add_now (&neighbour_connect_notify_task, n);
+    GNUNET_SCHEDULER_add_now(&neighbour_connect_notify_task, n);
 }
 
 
@@ -925,18 +924,18 @@ trigger_notifications (struct Neighbour *n)
  * @param cls the neighbour
  */
 static void
-opstart_neighbour_conn (void *cls)
+opstart_neighbour_conn(void *cls)
 {
   struct Neighbour *n = cls;
 
-  GNUNET_assert (NULL != n->conn_op);
-  GNUNET_assert (NULL == n->controller);
-  LOG_DEBUG ("Opening connection to controller on host %u\n", n->host_id);
-  n->controller = GNUNET_TESTBED_controller_connect (GST_host_list[n->host_id],
-                                                     EVENT_MASK,
-                                                     &slave_event_cb,
-                                                     NULL);
-  trigger_notifications (n);
+  GNUNET_assert(NULL != n->conn_op);
+  GNUNET_assert(NULL == n->controller);
+  LOG_DEBUG("Opening connection to controller on host %u\n", n->host_id);
+  n->controller = GNUNET_TESTBED_controller_connect(GST_host_list[n->host_id],
+                                                    EVENT_MASK,
+                                                    &slave_event_cb,
+                                                    NULL);
+  trigger_notifications(n);
 }
 
 
@@ -946,21 +945,21 @@ opstart_neighbour_conn (void *cls)
  * @param cls the neighbour
  */
 static void
-oprelease_neighbour_conn (void *cls)
+oprelease_neighbour_conn(void *cls)
 {
-   struct Neighbour *n = cls;
+  struct Neighbour *n = cls;
 
-   GNUNET_assert (0 == n->reference_cnt);
-   GNUNET_assert (NULL == n->notify_task);
-   GNUNET_assert (NULL == n->nl_head);
-   if (NULL != n->controller)
-   {
-     LOG_DEBUG ("Closing connection to controller on host %u\n", n->host_id);
-     GNUNET_TESTBED_controller_disconnect (n->controller);
-     n->controller = NULL;
-   }
-   n->conn_op = NULL;
-   n->inactive = 0;
+  GNUNET_assert(0 == n->reference_cnt);
+  GNUNET_assert(NULL == n->notify_task);
+  GNUNET_assert(NULL == n->nl_head);
+  if (NULL != n->controller)
+    {
+      LOG_DEBUG("Closing connection to controller on host %u\n", n->host_id);
+      GNUNET_TESTBED_controller_disconnect(n->controller);
+      n->controller = NULL;
+    }
+  n->conn_op = NULL;
+  n->inactive = 0;
 }
 
 
@@ -976,30 +975,30 @@ oprelease_neighbour_conn (void *cls)
  * @param cb_cls the closure for the above callback
  */
 struct NeighbourConnectNotification *
-GST_neighbour_get_connection (struct Neighbour *n,
-                              GST_NeigbourConnectNotifyCallback cb,
-                              void *cb_cls)
+GST_neighbour_get_connection(struct Neighbour *n,
+                             GST_NeigbourConnectNotifyCallback cb,
+                             void *cb_cls)
 {
   struct NeighbourConnectNotification *h;
 
-  GNUNET_assert (NULL != cb);
-  LOG_DEBUG ("Attempting to get connection to controller on host %u\n",
-             n->host_id);
-  h = GNUNET_new (struct NeighbourConnectNotification);
+  GNUNET_assert(NULL != cb);
+  LOG_DEBUG("Attempting to get connection to controller on host %u\n",
+            n->host_id);
+  h = GNUNET_new(struct NeighbourConnectNotification);
   h->n = n;
-  h->cb  = cb;
+  h->cb = cb;
   h->cb_cls = cb_cls;
-  GNUNET_CONTAINER_DLL_insert_tail (n->nl_head, n->nl_tail, h);
+  GNUNET_CONTAINER_DLL_insert_tail(n->nl_head, n->nl_tail, h);
   if (NULL == n->conn_op)
-  {
-    GNUNET_assert (NULL == n->controller);
-    n->conn_op = GNUNET_TESTBED_operation_create_ (n, &opstart_neighbour_conn,
-                                                   &oprelease_neighbour_conn);
-    GNUNET_TESTBED_operation_queue_insert_ (GST_opq_openfds, n->conn_op);
-    GNUNET_TESTBED_operation_begin_wait_ (n->conn_op);
-    return h;
-  }
-  trigger_notifications (n);
+    {
+      GNUNET_assert(NULL == n->controller);
+      n->conn_op = GNUNET_TESTBED_operation_create_(n, &opstart_neighbour_conn,
+                                                    &oprelease_neighbour_conn);
+      GNUNET_TESTBED_operation_queue_insert_(GST_opq_openfds, n->conn_op);
+      GNUNET_TESTBED_operation_begin_wait_(n->conn_op);
+      return h;
+    }
+  trigger_notifications(n);
   return h;
 }
 
@@ -1010,33 +1009,33 @@ GST_neighbour_get_connection (struct Neighbour *n,
  * @param h the notification handle
  */
 void
-GST_neighbour_get_connection_cancel (struct NeighbourConnectNotification *h)
+GST_neighbour_get_connection_cancel(struct NeighbourConnectNotification *h)
 {
   struct Neighbour *n;
   int cleanup_task;
 
   n = h->n;
   cleanup_task = (h == n->nl_head) ? GNUNET_YES : GNUNET_NO;
-  GNUNET_CONTAINER_DLL_remove (n->nl_head, n->nl_tail, h);
-  GNUNET_free (h);
+  GNUNET_CONTAINER_DLL_remove(n->nl_head, n->nl_tail, h);
+  GNUNET_free(h);
   if (GNUNET_NO == cleanup_task)
     return;
   if (NULL == n->notify_task)
     return;
-  GNUNET_assert (0 < n->reference_cnt);
+  GNUNET_assert(0 < n->reference_cnt);
   n->reference_cnt--;
-  GNUNET_SCHEDULER_cancel (n->notify_task);
+  GNUNET_SCHEDULER_cancel(n->notify_task);
   n->notify_task = NULL;
   if (NULL == n->nl_head)
-  {
-    if ( (0 == n->reference_cnt) && (0 == n->inactive) )
     {
-      n->inactive = 1;
-      GNUNET_TESTBED_operation_inactivate_ (n->conn_op);
+      if ((0 == n->reference_cnt) && (0 == n->inactive))
+        {
+          n->inactive = 1;
+          GNUNET_TESTBED_operation_inactivate_(n->conn_op);
+        }
+      return;
     }
-    return;
-  }
-  trigger_notifications (n);
+  trigger_notifications(n);
 }
 
 
@@ -1048,16 +1047,16 @@ GST_neighbour_get_connection_cancel (struct NeighbourConnectNotification *h)
  * @param n the neighbour whose connection can be closed
  */
 void
-GST_neighbour_release_connection (struct Neighbour *n)
+GST_neighbour_release_connection(struct Neighbour *n)
 {
-  GNUNET_assert (0 == n->inactive);
-  GNUNET_assert (0 < n->reference_cnt);
+  GNUNET_assert(0 == n->inactive);
+  GNUNET_assert(0 < n->reference_cnt);
   n->reference_cnt--;
   if (0 == n->reference_cnt)
-  {
-    n->inactive = 1;
-    GNUNET_TESTBED_operation_inactivate_ (n->conn_op);
-  }
+    {
+      n->inactive = 1;
+      GNUNET_TESTBED_operation_inactivate_(n->conn_op);
+    }
 }
 
 
@@ -1067,16 +1066,16 @@ GST_neighbour_release_connection (struct Neighbour *n)
  * @param ncc the neighbour connect context to cleanup
  */
 static void
-cleanup_ncc (struct NeighbourConnectCtxt *ncc)
+cleanup_ncc(struct NeighbourConnectCtxt *ncc)
 {
   if (NULL != ncc->nh)
-    GST_neighbour_get_connection_cancel (ncc->nh);
+    GST_neighbour_get_connection_cancel(ncc->nh);
   if (NULL != ncc->timeout_task)
-    GNUNET_SCHEDULER_cancel (ncc->timeout_task);
-  GNUNET_CONTAINER_DLL_remove (ncc_head,
-                               ncc_tail,
-                               ncc);
-  GNUNET_free (ncc);
+    GNUNET_SCHEDULER_cancel(ncc->timeout_task);
+  GNUNET_CONTAINER_DLL_remove(ncc_head,
+                              ncc_tail,
+                              ncc);
+  GNUNET_free(ncc);
 }
 
 
@@ -1084,21 +1083,21 @@ cleanup_ncc (struct NeighbourConnectCtxt *ncc)
  * Cleans up the neighbour list
  */
 void
-GST_neighbour_list_clean ()
+GST_neighbour_list_clean()
 {
   struct Neighbour *n;
   unsigned int id;
 
   for (id = 0; id < neighbour_list_size; id++)
-  {
-    if (NULL == (n = neighbour_list[id]))
-      continue;
-    if (NULL != n->conn_op)
-      GNUNET_TESTBED_operation_release_ (n->conn_op);
-    GNUNET_free (n);
-    neighbour_list[id] = NULL;
-  }
-  GNUNET_free_non_null (neighbour_list);
+    {
+      if (NULL == (n = neighbour_list[id]))
+        continue;
+      if (NULL != n->conn_op)
+        GNUNET_TESTBED_operation_release_(n->conn_op);
+      GNUNET_free(n);
+      neighbour_list[id] = NULL;
+    }
+  GNUNET_free_non_null(neighbour_list);
 }
 
 
@@ -1110,7 +1109,7 @@ GST_neighbour_list_clean ()
  *           the list size or neighbour at that index is NULL)
  */
 struct Neighbour *
-GST_get_neighbour (uint32_t id)
+GST_get_neighbour(uint32_t id)
 {
   if (neighbour_list_size <= id)
     return NULL;
@@ -1122,10 +1121,10 @@ GST_get_neighbour (uint32_t id)
  * Function to cleanup the neighbour connect contexts
  */
 void
-GST_free_nccq ()
+GST_free_nccq()
 {
   while (NULL != ncc_head)
-    cleanup_ncc (ncc_head);
+    cleanup_ncc(ncc_head);
 }
 
 
@@ -1135,16 +1134,16 @@ GST_free_nccq ()
  * @param cls the NeighbourConnectCtxt created in GST_handle_link_controllers()
  */
 static void
-timeout_neighbour_connect (void *cls)
+timeout_neighbour_connect(void *cls)
 {
- struct NeighbourConnectCtxt *ncc = cls;
+  struct NeighbourConnectCtxt *ncc = cls;
 
- ncc->timeout_task = NULL;
- send_controller_link_response (ncc->client,
+  ncc->timeout_task = NULL;
+  send_controller_link_response(ncc->client,
                                 ncc->op_id,
                                 NULL,
                                 "Could not connect to delegated controller");
- cleanup_ncc (ncc);
+  cleanup_ncc(ncc);
 }
 
 
@@ -1155,20 +1154,20 @@ timeout_neighbour_connect (void *cls)
  * @param c the handle the neighbour's controller
  */
 static void
-neighbour_connect_cb (void *cls,
-                      struct GNUNET_TESTBED_Controller *c)
+neighbour_connect_cb(void *cls,
+                     struct GNUNET_TESTBED_Controller *c)
 {
   struct NeighbourConnectCtxt *ncc = cls;
 
-  GNUNET_SCHEDULER_cancel (ncc->timeout_task);
+  GNUNET_SCHEDULER_cancel(ncc->timeout_task);
   ncc->timeout_task = NULL;
   ncc->nh = NULL;
-  GST_neighbour_release_connection (ncc->n);
-  send_controller_link_response (ncc->client,
-                                 ncc->op_id,
-                                 NULL,
-                                 NULL);
-  cleanup_ncc (ncc);
+  GST_neighbour_release_connection(ncc->n);
+  send_controller_link_response(ncc->client,
+                                ncc->op_id,
+                                NULL,
+                                NULL);
+  cleanup_ncc(ncc);
 }
 
 
@@ -1178,13 +1177,13 @@ neighbour_connect_cb (void *cls,
  * @param host the host of the neighbour
  */
 struct Neighbour *
-GST_create_neighbour (struct GNUNET_TESTBED_Host *host)
+GST_create_neighbour(struct GNUNET_TESTBED_Host *host)
 {
   struct Neighbour *n;
 
-  n = GNUNET_new (struct Neighbour);
-  n->host_id = GNUNET_TESTBED_host_get_id_ (host);
-  neighbour_list_add (n);   /* just add; connect on-demand */
+  n = GNUNET_new(struct Neighbour);
+  n->host_id = GNUNET_TESTBED_host_get_id_(host);
+  neighbour_list_add(n);    /* just add; connect on-demand */
   return n;
 }
 
@@ -1196,8 +1195,8 @@ GST_create_neighbour (struct GNUNET_TESTBED_Host *host)
  * @param msg the actual message
  */
 void
-handle_link_controllers (void *cls,
-                         const struct GNUNET_TESTBED_ControllerLinkRequest *msg)
+handle_link_controllers(void *cls,
+                        const struct GNUNET_TESTBED_ControllerLinkRequest *msg)
 {
   struct GNUNET_SERVICE_Client *client = cls;
   struct LCFContext *lcf;
@@ -1208,169 +1207,169 @@ handle_link_controllers (void *cls,
   uint32_t slave_host_id;
 
   if (NULL == GST_context)
-  {
-    GNUNET_break (0);
-    GNUNET_SERVICE_client_drop (client);
-    return;
-  }
-  delegated_host_id = ntohl (msg->delegated_host_id);
+    {
+      GNUNET_break(0);
+      GNUNET_SERVICE_client_drop(client);
+      return;
+    }
+  delegated_host_id = ntohl(msg->delegated_host_id);
   if (delegated_host_id == GST_context->host_id)
-  {
-    GNUNET_break (0);
-    LOG (GNUNET_ERROR_TYPE_WARNING,
-         "Trying to link ourselves\n");
-    GNUNET_SERVICE_client_drop (client);
-    return;
-  }
+    {
+      GNUNET_break(0);
+      LOG(GNUNET_ERROR_TYPE_WARNING,
+          "Trying to link ourselves\n");
+      GNUNET_SERVICE_client_drop(client);
+      return;
+    }
   if ((delegated_host_id >= GST_host_list_size) ||
       (NULL == GST_host_list[delegated_host_id]))
-  {
-    LOG (GNUNET_ERROR_TYPE_WARNING,
-         "Delegated host %u not registered with us\n",
-         delegated_host_id);
-    GNUNET_SERVICE_client_drop (client);
-    return;
-  }
-  slave_host_id = ntohl (msg->slave_host_id);
+    {
+      LOG(GNUNET_ERROR_TYPE_WARNING,
+          "Delegated host %u not registered with us\n",
+          delegated_host_id);
+      GNUNET_SERVICE_client_drop(client);
+      return;
+    }
+  slave_host_id = ntohl(msg->slave_host_id);
   if ((slave_host_id >= GST_host_list_size) ||
       (NULL == GST_host_list[slave_host_id]))
-  {
-    LOG (GNUNET_ERROR_TYPE_WARNING,
-         "Slave host %u not registered with us\n",
-         slave_host_id);
-    GNUNET_SERVICE_client_drop (client);
-    return;
-  }
+    {
+      LOG(GNUNET_ERROR_TYPE_WARNING,
+          "Slave host %u not registered with us\n",
+          slave_host_id);
+      GNUNET_SERVICE_client_drop(client);
+      return;
+    }
   if (slave_host_id == delegated_host_id)
-  {
-    LOG (GNUNET_ERROR_TYPE_WARNING,
-         "Slave and delegated host are same\n");
-    GNUNET_SERVICE_client_drop (client);
-    return;
-  }
-  op_id = GNUNET_ntohll (msg->operation_id);
+    {
+      LOG(GNUNET_ERROR_TYPE_WARNING,
+          "Slave and delegated host are same\n");
+      GNUNET_SERVICE_client_drop(client);
+      return;
+    }
+  op_id = GNUNET_ntohll(msg->operation_id);
   if (slave_host_id == GST_context->host_id)    /* Link from us */
-  {
-    struct Slave *slave;
-    struct LinkControllersContext *lcc;
-
-    if (1 != msg->is_subordinate)
     {
-      struct Neighbour *n;
-      struct NeighbourConnectCtxt *ncc;
+      struct Slave *slave;
+      struct LinkControllersContext *lcc;
 
-      if ((delegated_host_id < neighbour_list_size) &&
-        (NULL != neighbour_list[delegated_host_id]))
-      {
-        GNUNET_break (0);
-        GNUNET_SERVICE_client_drop (client);
-        return;
-      }
-      LOG_DEBUG ("Received request to establish a link to host %u\n",
-                 delegated_host_id);
-      n = GST_create_neighbour (GST_host_list[delegated_host_id]);
-      ncc = GNUNET_new (struct NeighbourConnectCtxt);
-      ncc->n = n;
-      ncc->op_id = op_id;
-      ncc->client = client;
-      ncc->nh = GST_neighbour_get_connection (n,
-                                              &neighbour_connect_cb,
-                                              ncc);
-      ncc->timeout_task
-        = GNUNET_SCHEDULER_add_delayed (GST_timeout,
-                                        &timeout_neighbour_connect,
-                                        ncc);
-      GNUNET_CONTAINER_DLL_insert_tail (ncc_head,
-                                        ncc_tail,
-                                        ncc);
-      GNUNET_SERVICE_client_continue (client);
+      if (1 != msg->is_subordinate)
+        {
+          struct Neighbour *n;
+          struct NeighbourConnectCtxt *ncc;
+
+          if ((delegated_host_id < neighbour_list_size) &&
+              (NULL != neighbour_list[delegated_host_id]))
+            {
+              GNUNET_break(0);
+              GNUNET_SERVICE_client_drop(client);
+              return;
+            }
+          LOG_DEBUG("Received request to establish a link to host %u\n",
+                    delegated_host_id);
+          n = GST_create_neighbour(GST_host_list[delegated_host_id]);
+          ncc = GNUNET_new(struct NeighbourConnectCtxt);
+          ncc->n = n;
+          ncc->op_id = op_id;
+          ncc->client = client;
+          ncc->nh = GST_neighbour_get_connection(n,
+                                                 &neighbour_connect_cb,
+                                                 ncc);
+          ncc->timeout_task
+            = GNUNET_SCHEDULER_add_delayed(GST_timeout,
+                                           &timeout_neighbour_connect,
+                                           ncc);
+          GNUNET_CONTAINER_DLL_insert_tail(ncc_head,
+                                           ncc_tail,
+                                           ncc);
+          GNUNET_SERVICE_client_continue(client);
+          return;
+        }
+      if ((delegated_host_id < GST_slave_list_size) &&
+          (NULL != GST_slave_list[delegated_host_id]))
+        {
+          GNUNET_break(0);
+          GNUNET_SERVICE_client_drop(client);
+          return;
+        }
+      LOG_DEBUG("Received request to start and establish a link to host %u\n",
+                delegated_host_id);
+      slave = GNUNET_new(struct Slave);
+      slave->host_id = delegated_host_id;
+      slave->reghost_map = GNUNET_CONTAINER_multihashmap_create(100,
+                                                                GNUNET_NO);
+      slave_list_add(slave);
+      lcc = GNUNET_new(struct LinkControllersContext);
+      lcc->operation_id = op_id;
+      lcc->client = client;
+      slave->lcc = lcc;
+      slave->controller_proc
+        = GNUNET_TESTBED_controller_start(GST_context->master_ip,
+                                          GST_host_list[slave->host_id],
+                                          &slave_status_cb,
+                                          slave);
+      new_route = GNUNET_new(struct Route);
+      new_route->dest = delegated_host_id;
+      new_route->thru = GST_context->host_id;
+      route_list_add(new_route);
       return;
     }
-    if ( (delegated_host_id < GST_slave_list_size) &&
-         (NULL != GST_slave_list[delegated_host_id]) )
-    {
-      GNUNET_break (0);
-      GNUNET_SERVICE_client_drop (client);
-      return;
-    }
-    LOG_DEBUG ("Received request to start and establish a link to host %u\n",
-               delegated_host_id);
-    slave = GNUNET_new (struct Slave);
-    slave->host_id = delegated_host_id;
-    slave->reghost_map = GNUNET_CONTAINER_multihashmap_create (100,
-                                                               GNUNET_NO);
-    slave_list_add (slave);
-    lcc = GNUNET_new (struct LinkControllersContext);
-    lcc->operation_id = op_id;
-    lcc->client = client;
-    slave->lcc = lcc;
-    slave->controller_proc
-      = GNUNET_TESTBED_controller_start (GST_context->master_ip,
-                                         GST_host_list[slave->host_id],
-                                         &slave_status_cb,
-                                         slave);
-    new_route = GNUNET_new (struct Route);
-    new_route->dest = delegated_host_id;
-    new_route->thru = GST_context->host_id;
-    route_list_add (new_route);
-    return;
-  }
 
   /* Route the request */
   if (slave_host_id >= route_list_size)
-  {
-    LOG (GNUNET_ERROR_TYPE_WARNING,
-         "No route towards slave host");
-    GNUNET_SERVICE_client_drop (client);
-    return;
-  }
-  lcf = GNUNET_new (struct LCFContext);
+    {
+      LOG(GNUNET_ERROR_TYPE_WARNING,
+          "No route towards slave host");
+      GNUNET_SERVICE_client_drop(client);
+      return;
+    }
+  lcf = GNUNET_new(struct LCFContext);
   lcf->delegated_host_id = delegated_host_id;
   lcf->slave_host_id = slave_host_id;
-  route = GST_find_dest_route (slave_host_id);
-  GNUNET_assert (NULL != route);        /* because we add routes carefully */
-  GNUNET_assert (route->dest < GST_slave_list_size);
-  GNUNET_assert (NULL != GST_slave_list[route->dest]);
+  route = GST_find_dest_route(slave_host_id);
+  GNUNET_assert(NULL != route);         /* because we add routes carefully */
+  GNUNET_assert(route->dest < GST_slave_list_size);
+  GNUNET_assert(NULL != GST_slave_list[route->dest]);
   lcf->is_subordinate = msg->is_subordinate;
   lcf->state = INIT;
   lcf->operation_id = op_id;
   lcf->gateway = GST_slave_list[route->dest];
   lcf->client = client;
   if (NULL == lcf_head)
-  {
-    GNUNET_assert (NULL == lcf_proc_task_id);
-    GNUNET_CONTAINER_DLL_insert_tail (lcf_head,
-                                      lcf_tail,
-                                      lcf);
-    lcf_proc_task_id = GNUNET_SCHEDULER_add_now (&lcf_proc_task,
-                                                 lcf);
-  }
+    {
+      GNUNET_assert(NULL == lcf_proc_task_id);
+      GNUNET_CONTAINER_DLL_insert_tail(lcf_head,
+                                       lcf_tail,
+                                       lcf);
+      lcf_proc_task_id = GNUNET_SCHEDULER_add_now(&lcf_proc_task,
+                                                  lcf);
+    }
   else
-  {
-    GNUNET_CONTAINER_DLL_insert_tail (lcf_head,
-                                      lcf_tail,
-                                      lcf);
-  }
+    {
+      GNUNET_CONTAINER_DLL_insert_tail(lcf_head,
+                                       lcf_tail,
+                                       lcf);
+    }
   /* FIXME: Adding a new route should happen after the controllers are linked
    * successfully */
   if (1 != msg->is_subordinate)
-  {
-    GNUNET_SERVICE_client_continue (client);
-    return;
-  }
-  if ( (delegated_host_id < route_list_size) &&
-       (NULL != route_list[delegated_host_id]) )
-  {
-    GNUNET_break_op (0);        /* Are you trying to link delegated host twice
+    {
+      GNUNET_SERVICE_client_continue(client);
+      return;
+    }
+  if ((delegated_host_id < route_list_size) &&
+      (NULL != route_list[delegated_host_id]))
+    {
+      GNUNET_break_op(0);       /* Are you trying to link delegated host twice
                                  * with is subordinate flag set to GNUNET_YES? */
-    GNUNET_SERVICE_client_drop (client);
-    return;
-  }
-  new_route = GNUNET_new (struct Route);
+      GNUNET_SERVICE_client_drop(client);
+      return;
+    }
+  new_route = GNUNET_new(struct Route);
   new_route->dest = delegated_host_id;
   new_route->thru = route->dest;
-  route_list_add (new_route);
-  GNUNET_SERVICE_client_continue (client);
+  route_list_add(new_route);
+  GNUNET_SERVICE_client_continue(client);
 }
 
 
@@ -1381,7 +1380,7 @@ handle_link_controllers (void *cls,
  * @param client the client that is history
  */
 void
-GST_link_notify_disconnect (struct GNUNET_SERVICE_Client *client)
+GST_link_notify_disconnect(struct GNUNET_SERVICE_Client *client)
 {
   struct NeighbourConnectCtxt *ncc;
   struct NeighbourConnectCtxt *nccn;
@@ -1389,44 +1388,44 @@ GST_link_notify_disconnect (struct GNUNET_SERVICE_Client *client)
   struct LCFContext *lcfn;
 
   for (ncc = ncc_head; NULL != ncc; ncc = nccn)
-  {
-    nccn = ncc->next;
-    if (ncc->client == client)
-      cleanup_ncc (ncc);
-  }
-  for (unsigned int i=0;i<GST_slave_list_size;i++)
-  {
-    struct Slave *slave = GST_slave_list[i];
-    struct LinkControllersContext *lcc;
+    {
+      nccn = ncc->next;
+      if (ncc->client == client)
+        cleanup_ncc(ncc);
+    }
+  for (unsigned int i = 0; i < GST_slave_list_size; i++)
+    {
+      struct Slave *slave = GST_slave_list[i];
+      struct LinkControllersContext *lcc;
 
-    if (NULL == slave)
-      continue;
-    GNUNET_CONTAINER_multihashmap_iterate (slave->reghost_map,
-                                           &drop_client_entries,
-                                           client);
-    lcc = slave->lcc;
-    if (NULL == lcc)
-      continue;
-    if (lcc->client == client)
-    {
-      slave->lcc = NULL;
-      GNUNET_free (lcc);
+      if (NULL == slave)
+        continue;
+      GNUNET_CONTAINER_multihashmap_iterate(slave->reghost_map,
+                                            &drop_client_entries,
+                                            client);
+      lcc = slave->lcc;
+      if (NULL == lcc)
+        continue;
+      if (lcc->client == client)
+        {
+          slave->lcc = NULL;
+          GNUNET_free(lcc);
+        }
     }
-  }
   for (lcf = lcf_head; NULL != lcf; lcf = lcfn)
-  {
-    lcfn = lcf->next;
-    if ( (NULL != lcf) &&
-         (client == lcf->client) )
     {
-      if (NULL != lcf->op)
-        GNUNET_TESTBED_operation_done (lcf->op);
-      GNUNET_CONTAINER_DLL_remove (lcf_head,
-                                   lcf_tail,
-                                   lcf);
-      GNUNET_free (lcf);
+      lcfn = lcf->next;
+      if ((NULL != lcf) &&
+          (client == lcf->client))
+        {
+          if (NULL != lcf->op)
+            GNUNET_TESTBED_operation_done(lcf->op);
+          GNUNET_CONTAINER_DLL_remove(lcf_head,
+                                      lcf_tail,
+                                      lcf);
+          GNUNET_free(lcf);
+        }
     }
-  }
 }
 
 
@@ -1434,28 +1433,28 @@ GST_link_notify_disconnect (struct GNUNET_SERVICE_Client *client)
  * Cleans up the queue used for forwarding link controllers requests
  */
 void
-GST_free_lcf ()
+GST_free_lcf()
 {
   struct LCFContext *lcf;
 
   if (NULL != lcf_head)
-  {
-    if (NULL != lcf_proc_task_id)
     {
-      GNUNET_SCHEDULER_cancel (lcf_proc_task_id);
-      lcf_proc_task_id = NULL;
+      if (NULL != lcf_proc_task_id)
+        {
+          GNUNET_SCHEDULER_cancel(lcf_proc_task_id);
+          lcf_proc_task_id = NULL;
+        }
     }
-  }
-  GNUNET_assert (NULL == lcf_proc_task_id);
+  GNUNET_assert(NULL == lcf_proc_task_id);
   for (lcf = lcf_head; NULL != lcf; lcf = lcf_head)
-  {
-    if (NULL != lcf->op)
-      GNUNET_TESTBED_operation_done (lcf->op);
-    if (NULL != lcf->timeout_task)
-      GNUNET_SCHEDULER_cancel (lcf->timeout_task);
-    GNUNET_CONTAINER_DLL_remove (lcf_head,
-                                 lcf_tail,
-                                 lcf);
-    GNUNET_free (lcf);
-  }
+    {
+      if (NULL != lcf->op)
+        GNUNET_TESTBED_operation_done(lcf->op);
+      if (NULL != lcf->timeout_task)
+        GNUNET_SCHEDULER_cancel(lcf->timeout_task);
+      GNUNET_CONTAINER_DLL_remove(lcf_head,
+                                  lcf_tail,
+                                  lcf);
+      GNUNET_free(lcf);
+    }
 }

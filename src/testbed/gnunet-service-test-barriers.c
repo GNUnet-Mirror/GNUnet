@@ -11,7 +11,7 @@
       WITHOUT ANY WARRANTY; without even the implied warranty of
       MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
       Affero General Public License for more details.
-     
+
       You should have received a copy of the GNU Affero General Public License
       along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -33,8 +33,8 @@
 /**
  * logging short hand
  */
-#define LOG(type,...) \
-  GNUNET_log (type, __VA_ARGS__);
+#define LOG(type, ...) \
+  GNUNET_log(type, __VA_ARGS__);
 
 /**
  * Our barrier wait handle
@@ -50,18 +50,18 @@ static struct GNUNET_SCHEDULER_Task *tt;
  * @param cls NULL
  */
 static void
-do_shutdown (void *cls)
+do_shutdown(void *cls)
 {
   if (NULL != wh)
-  {
-    GNUNET_TESTBED_barrier_wait_cancel (wh);
-    wh = NULL;
-  }
+    {
+      GNUNET_TESTBED_barrier_wait_cancel(wh);
+      wh = NULL;
+    }
   if (NULL != tt)
-  {
-    GNUNET_SCHEDULER_cancel (tt);
-    tt = NULL;
-  }
+    {
+      GNUNET_SCHEDULER_cancel(tt);
+      tt = NULL;
+    }
 }
 
 
@@ -76,13 +76,13 @@ do_shutdown (void *cls)
  *   #GNUNET_OK if the barrier is crossed
  */
 static void
-barrier_wait_cb (void *cls,
-                 const char *name,
-                 int status)
+barrier_wait_cb(void *cls,
+                const char *name,
+                int status)
 {
-  GNUNET_break (NULL == cls);
+  GNUNET_break(NULL == cls);
   wh = NULL;
-  GNUNET_break (GNUNET_OK == status);
+  GNUNET_break(GNUNET_OK == status);
 }
 
 
@@ -93,13 +93,13 @@ barrier_wait_cb (void *cls,
  * @return
  */
 static void
-do_wait (void *cls)
+do_wait(void *cls)
 {
   tt = NULL;
-  wh = GNUNET_TESTBED_barrier_wait (TEST_BARRIER_NAME,
-				    &barrier_wait_cb,
-				    NULL);
-  GNUNET_break (NULL != wh);
+  wh = GNUNET_TESTBED_barrier_wait(TEST_BARRIER_NAME,
+                                   &barrier_wait_cb,
+                                   NULL);
+  GNUNET_break(NULL != wh);
 }
 
 
@@ -112,20 +112,20 @@ do_wait (void *cls)
  * @param config the configuration file handle
  */
 static void
-run (void *cls,
-     char *const *args,
-     const char *cfgfile,
-     const struct GNUNET_CONFIGURATION_Handle *config)
+run(void *cls,
+    char *const *args,
+    const char *cfgfile,
+    const struct GNUNET_CONFIGURATION_Handle *config)
 {
   unsigned int rsec;
 
-  rsec = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_NONCE,
-                                   10);
-  tt = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS,
-                                                                    rsec),
-				     &do_wait,
-                                     NULL);
-  GNUNET_SCHEDULER_add_shutdown (&do_shutdown, NULL);
+  rsec = GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_NONCE,
+                                  10);
+  tt = GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS,
+                                                                  rsec),
+                                    &do_wait,
+                                    NULL);
+  GNUNET_SCHEDULER_add_shutdown(&do_shutdown, NULL);
 }
 
 
@@ -134,7 +134,7 @@ run (void *cls,
  * Main
  */
 int
-main (int argc, char **argv)
+main(int argc, char **argv)
 {
   struct GNUNET_GETOPT_CommandLineOption options[] = {
     GNUNET_GETOPT_OPTION_END
@@ -142,11 +142,11 @@ main (int argc, char **argv)
   int ret;
 
   ret =
-      GNUNET_PROGRAM_run (argc, argv,
-                          "test-barriers",
-                          "nohelp",
-                          options,
-                          &run,
-                          NULL);
+    GNUNET_PROGRAM_run(argc, argv,
+                       "test-barriers",
+                       "nohelp",
+                       options,
+                       &run,
+                       NULL);
   return ret;
 }

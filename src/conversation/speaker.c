@@ -1,19 +1,19 @@
 /*
-  This file is part of GNUnet
-  Copyright (C) 2013 GNUnet e.V.
+   This file is part of GNUnet
+   Copyright (C) 2013 GNUnet e.V.
 
-  GNUnet is free software: you can redistribute it and/or modify it
-  under the terms of the GNU Affero General Public License as published
-  by the Free Software Foundation, either version 3 of the License,
-  or (at your option) any later version.
+   GNUnet is free software: you can redistribute it and/or modify it
+   under the terms of the GNU Affero General Public License as published
+   by the Free Software Foundation, either version 3 of the License,
+   or (at your option) any later version.
 
-  GNUnet is distributed in the hope that it will be useful, but
-  WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-  Affero General Public License for more details.
- 
-  You should have received a copy of the GNU Affero General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   GNUnet is distributed in the hope that it will be useful, but
+   WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   Affero General Public License for more details.
+
+   You should have received a copy of the GNU Affero General Public License
+   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
  */
@@ -33,8 +33,7 @@
 /**
  * Internal data structures for the speaker.
  */
-struct Speaker
-{
+struct Speaker {
   /**
    * Our configuration.
    */
@@ -44,7 +43,6 @@ struct Speaker
    * Handle for the playback helper
    */
   struct GNUNET_HELPER_Handle *playback_helper;
-
 };
 
 
@@ -55,7 +53,7 @@ struct Speaker
  * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
  */
 static int
-enable (void *cls)
+enable(void *cls)
 {
   struct Speaker *spe = cls;
   static char *playback_helper_argv[] =
@@ -64,17 +62,17 @@ enable (void *cls)
     NULL
   };
 
-  spe->playback_helper = GNUNET_HELPER_start (GNUNET_NO,
-					      "gnunet-helper-audio-playback",
-					      playback_helper_argv,
-					      NULL,
-					      NULL, spe);
+  spe->playback_helper = GNUNET_HELPER_start(GNUNET_NO,
+                                             "gnunet-helper-audio-playback",
+                                             playback_helper_argv,
+                                             NULL,
+                                             NULL, spe);
   if (NULL == spe->playback_helper)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		_("Could not start playback audio helper.\n"));
-    return GNUNET_SYSERR;
-  }
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
+                 _("Could not start playback audio helper.\n"));
+      return GNUNET_SYSERR;
+    }
   return GNUNET_OK;
 }
 
@@ -85,18 +83,18 @@ enable (void *cls)
  * @param cls closure with the `struct Speaker`
  */
 static void
-disable (void *cls)
+disable(void *cls)
 {
   struct Speaker *spe = cls;
 
   if (NULL == spe->playback_helper)
-  {
-    GNUNET_break (0);
-    return;
-  }
-  GNUNET_break (GNUNET_OK ==
-		GNUNET_HELPER_kill (spe->playback_helper, GNUNET_NO));
-  GNUNET_HELPER_destroy (spe->playback_helper);
+    {
+      GNUNET_break(0);
+      return;
+    }
+  GNUNET_break(GNUNET_OK ==
+               GNUNET_HELPER_kill(spe->playback_helper, GNUNET_NO));
+  GNUNET_HELPER_destroy(spe->playback_helper);
   spe->playback_helper = NULL;
 }
 
@@ -107,12 +105,12 @@ disable (void *cls)
  * @param cls closure with the `struct Speaker`
  */
 static void
-destroy (void *cls)
+destroy(void *cls)
 {
   struct Speaker *spe = cls;
 
   if (NULL != spe->playback_helper)
-    disable (spe);
+    disable(spe);
 }
 
 
@@ -125,27 +123,27 @@ destroy (void *cls)
  *        opaque to the API but should be OPUS.
  */
 static void
-play (void *cls,
-      size_t data_size,
-      const void *data)
+play(void *cls,
+     size_t data_size,
+     const void *data)
 {
   struct Speaker *spe = cls;
-  char buf[sizeof (struct AudioMessage) + data_size];
+  char buf[sizeof(struct AudioMessage) + data_size];
   struct AudioMessage *am;
 
   if (NULL == spe->playback_helper)
-  {
-    GNUNET_break (0);
-    return;
-  }
-  am = (struct AudioMessage *) buf;
-  am->header.size = htons (sizeof (struct AudioMessage) + data_size);
-  am->header.type = htons (GNUNET_MESSAGE_TYPE_CONVERSATION_AUDIO);
-  GNUNET_memcpy (&am[1], data, data_size);
-  (void) GNUNET_HELPER_send (spe->playback_helper,
-			     &am->header,
-			     GNUNET_NO,
-			     NULL, NULL);
+    {
+      GNUNET_break(0);
+      return;
+    }
+  am = (struct AudioMessage *)buf;
+  am->header.size = htons(sizeof(struct AudioMessage) + data_size);
+  am->header.type = htons(GNUNET_MESSAGE_TYPE_CONVERSATION_AUDIO);
+  GNUNET_memcpy(&am[1], data, data_size);
+  (void)GNUNET_HELPER_send(spe->playback_helper,
+                           &am->header,
+                           GNUNET_NO,
+                           NULL, NULL);
 }
 
 
@@ -157,14 +155,14 @@ play (void *cls,
  * @return NULL on error
  */
 struct GNUNET_SPEAKER_Handle *
-GNUNET_SPEAKER_create_from_hardware (const struct GNUNET_CONFIGURATION_Handle *cfg)
+GNUNET_SPEAKER_create_from_hardware(const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   struct GNUNET_SPEAKER_Handle *speaker;
   struct Speaker *spe;
 
-  spe = GNUNET_new (struct Speaker);
+  spe = GNUNET_new(struct Speaker);
   spe->cfg = cfg;
-  speaker = GNUNET_new (struct GNUNET_SPEAKER_Handle);
+  speaker = GNUNET_new(struct GNUNET_SPEAKER_Handle);
   speaker->cls = spe;
   speaker->enable_speaker = &enable;
   speaker->play = &play;
@@ -180,10 +178,10 @@ GNUNET_SPEAKER_create_from_hardware (const struct GNUNET_CONFIGURATION_Handle *c
  * @param speaker speaker to destroy
  */
 void
-GNUNET_SPEAKER_destroy (struct GNUNET_SPEAKER_Handle *speaker)
+GNUNET_SPEAKER_destroy(struct GNUNET_SPEAKER_Handle *speaker)
 {
-  speaker->destroy_speaker (speaker->cls);
-  GNUNET_free (speaker);
+  speaker->destroy_speaker(speaker->cls);
+  GNUNET_free(speaker);
 }
 
 /* end of speaker.c */

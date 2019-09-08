@@ -11,12 +11,12 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 
 /**
  * @author Christian Grothoff
@@ -55,7 +55,7 @@ struct GNUNET_BIO_ReadHandle;
  * @return IO handle on success, NULL on error
  */
 struct GNUNET_BIO_ReadHandle *
-GNUNET_BIO_read_open (const char *fn);
+GNUNET_BIO_read_open(const char *fn);
 
 
 /**
@@ -67,7 +67,7 @@ GNUNET_BIO_read_open (const char *fn);
  * @return #GNUNET_OK on success, #GNUNET_SYSERR otherwise
  */
 int
-GNUNET_BIO_read_close (struct GNUNET_BIO_ReadHandle *h, char **emsg);
+GNUNET_BIO_read_close(struct GNUNET_BIO_ReadHandle *h, char **emsg);
 
 
 /**
@@ -80,8 +80,8 @@ GNUNET_BIO_read_close (struct GNUNET_BIO_ReadHandle *h, char **emsg);
  * @return #GNUNET_OK on success, #GNUNET_SYSERR on failure
  */
 int
-GNUNET_BIO_read (struct GNUNET_BIO_ReadHandle *h, const char *what,
-                 void *result, size_t len);
+GNUNET_BIO_read(struct GNUNET_BIO_ReadHandle *h, const char *what,
+                void *result, size_t len);
 
 
 /**
@@ -95,9 +95,9 @@ GNUNET_BIO_read (struct GNUNET_BIO_ReadHandle *h, const char *what,
  * @return #GNUNET_OK on success, #GNUNET_SYSERR on failure
  */
 int
-GNUNET_BIO_read_fn (struct GNUNET_BIO_ReadHandle *h,
-                    const char *file, int line,
-                    void *result, size_t len);
+GNUNET_BIO_read_fn(struct GNUNET_BIO_ReadHandle *h,
+                   const char *file, int line,
+                   void *result, size_t len);
 
 /**
  * Read 0-terminated string from a file.
@@ -110,8 +110,8 @@ GNUNET_BIO_read_fn (struct GNUNET_BIO_ReadHandle *h,
  * @return #GNUNET_OK on success, #GNUNET_SYSERR on failure
  */
 int
-GNUNET_BIO_read_string (struct GNUNET_BIO_ReadHandle *h, const char *what,
-                        char **result, size_t max_length);
+GNUNET_BIO_read_string(struct GNUNET_BIO_ReadHandle *h, const char *what,
+                       char **result, size_t max_length);
 
 
 /**
@@ -123,8 +123,8 @@ GNUNET_BIO_read_string (struct GNUNET_BIO_ReadHandle *h, const char *what,
  * @return #GNUNET_OK on success, #GNUNET_SYSERR on failure
  */
 int
-GNUNET_BIO_read_meta_data (struct GNUNET_BIO_ReadHandle *h, const char *what,
-                           struct GNUNET_CONTAINER_MetaData **result);
+GNUNET_BIO_read_meta_data(struct GNUNET_BIO_ReadHandle *h, const char *what,
+                          struct GNUNET_CONTAINER_MetaData **result);
 
 
 /**
@@ -133,7 +133,7 @@ GNUNET_BIO_read_meta_data (struct GNUNET_BIO_ReadHandle *h, const char *what,
  * @param h hande to open file
  * @param f address of float to read
  */
-#define GNUNET_BIO_read_float(h, f) (GNUNET_BIO_read_fn (h, __FILE__, __LINE__, f, sizeof(float)))
+#define GNUNET_BIO_read_float(h, f) (GNUNET_BIO_read_fn(h, __FILE__, __LINE__, f, sizeof(float)))
 
 
 
@@ -143,7 +143,7 @@ GNUNET_BIO_read_meta_data (struct GNUNET_BIO_ReadHandle *h, const char *what,
  * @param h hande to open file
  * @param f address of double to read
  */
-#define GNUNET_BIO_read_double(h, f) (GNUNET_BIO_read_fn (h, __FILE__, __LINE__, f, sizeof(double)))
+#define GNUNET_BIO_read_double(h, f) (GNUNET_BIO_read_fn(h, __FILE__, __LINE__, f, sizeof(double)))
 
 
 /**
@@ -156,8 +156,8 @@ GNUNET_BIO_read_meta_data (struct GNUNET_BIO_ReadHandle *h, const char *what,
  * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
  */
 int
-GNUNET_BIO_read_int32__ (struct GNUNET_BIO_ReadHandle *h, const char *file,
-                         int line, int32_t * i);
+GNUNET_BIO_read_int32__(struct GNUNET_BIO_ReadHandle *h, const char *file,
+                        int line, int32_t * i);
 
 
 /**
@@ -166,7 +166,7 @@ GNUNET_BIO_read_int32__ (struct GNUNET_BIO_ReadHandle *h, const char *file,
  * @param h hande to open file
  * @param i address of 32-bit integer to read
  */
-#define GNUNET_BIO_read_int32(h, i) GNUNET_BIO_read_int32__ (h, __FILE__, __LINE__, (int32_t*) i)
+#define GNUNET_BIO_read_int32(h, i) GNUNET_BIO_read_int32__(h, __FILE__, __LINE__, (int32_t*)i)
 
 
 /**
@@ -179,8 +179,8 @@ GNUNET_BIO_read_int32__ (struct GNUNET_BIO_ReadHandle *h, const char *file,
  * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
  */
 int
-GNUNET_BIO_read_int64__ (struct GNUNET_BIO_ReadHandle *h, const char *file,
-                         int line, int64_t * i);
+GNUNET_BIO_read_int64__(struct GNUNET_BIO_ReadHandle *h, const char *file,
+                        int line, int64_t * i);
 
 
 /**
@@ -189,7 +189,7 @@ GNUNET_BIO_read_int64__ (struct GNUNET_BIO_ReadHandle *h, const char *file,
  * @param h hande to open file
  * @param i address of 64-bit integer to read
  */
-#define GNUNET_BIO_read_int64(h, i) GNUNET_BIO_read_int64__ (h, __FILE__, __LINE__, (int64_t*) i)
+#define GNUNET_BIO_read_int64(h, i) GNUNET_BIO_read_int64__(h, __FILE__, __LINE__, (int64_t*)i)
 
 
 /**
@@ -204,7 +204,7 @@ struct GNUNET_BIO_WriteHandle;
  * @return IO handle on success, NULL on error
  */
 struct GNUNET_BIO_WriteHandle *
-GNUNET_BIO_write_open (const char *fn);
+GNUNET_BIO_write_open(const char *fn);
 
 
 /**
@@ -214,7 +214,7 @@ GNUNET_BIO_write_open (const char *fn);
  * @return GNUNET_OK on success, GNUNET_SYSERR otherwise
  */
 int
-GNUNET_BIO_write_close (struct GNUNET_BIO_WriteHandle *h);
+GNUNET_BIO_write_close(struct GNUNET_BIO_WriteHandle *h);
 
 
 /**
@@ -226,8 +226,8 @@ GNUNET_BIO_write_close (struct GNUNET_BIO_WriteHandle *h);
  * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
  */
 int
-GNUNET_BIO_write (struct GNUNET_BIO_WriteHandle *h, const void *buffer,
-                  size_t n);
+GNUNET_BIO_write(struct GNUNET_BIO_WriteHandle *h, const void *buffer,
+                 size_t n);
 
 
 /**
@@ -238,7 +238,7 @@ GNUNET_BIO_write (struct GNUNET_BIO_WriteHandle *h, const void *buffer,
  *           the file is closed
  */
 int
-GNUNET_BIO_flush (struct GNUNET_BIO_WriteHandle *h);
+GNUNET_BIO_flush(struct GNUNET_BIO_WriteHandle *h);
 
 
 /**
@@ -249,7 +249,7 @@ GNUNET_BIO_flush (struct GNUNET_BIO_WriteHandle *h);
  * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
  */
 int
-GNUNET_BIO_write_string (struct GNUNET_BIO_WriteHandle *h, const char *s);
+GNUNET_BIO_write_string(struct GNUNET_BIO_WriteHandle *h, const char *s);
 
 
 /**
@@ -260,8 +260,8 @@ GNUNET_BIO_write_string (struct GNUNET_BIO_WriteHandle *h, const char *s);
  * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
  */
 int
-GNUNET_BIO_write_meta_data (struct GNUNET_BIO_WriteHandle *h,
-                            const struct GNUNET_CONTAINER_MetaData *m);
+GNUNET_BIO_write_meta_data(struct GNUNET_BIO_WriteHandle *h,
+                           const struct GNUNET_CONTAINER_MetaData *m);
 
 
 
@@ -271,7 +271,7 @@ GNUNET_BIO_write_meta_data (struct GNUNET_BIO_WriteHandle *h,
  * @param h hande to open file
  * @param f float to write (must be a variable)
  */
-#define GNUNET_BIO_write_float(h, f) GNUNET_BIO_write (h, &f, sizeof(float))
+#define GNUNET_BIO_write_float(h, f) GNUNET_BIO_write(h, &f, sizeof(float))
 
 
 
@@ -281,7 +281,7 @@ GNUNET_BIO_write_meta_data (struct GNUNET_BIO_WriteHandle *h,
  * @param h hande to open file
  * @param f double to write (must be a variable)
  */
-#define GNUNET_BIO_write_double(h, f) GNUNET_BIO_write (h, &f, sizeof(double))
+#define GNUNET_BIO_write_double(h, f) GNUNET_BIO_write(h, &f, sizeof(double))
 
 
 /**
@@ -292,7 +292,7 @@ GNUNET_BIO_write_meta_data (struct GNUNET_BIO_WriteHandle *h,
  * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
  */
 int
-GNUNET_BIO_write_int32 (struct GNUNET_BIO_WriteHandle *h, int32_t i);
+GNUNET_BIO_write_int32(struct GNUNET_BIO_WriteHandle *h, int32_t i);
 
 
 /**
@@ -303,7 +303,7 @@ GNUNET_BIO_write_int32 (struct GNUNET_BIO_WriteHandle *h, int32_t i);
  * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
  */
 int
-GNUNET_BIO_write_int64 (struct GNUNET_BIO_WriteHandle *h, int64_t i);
+GNUNET_BIO_write_int64(struct GNUNET_BIO_WriteHandle *h, int64_t i);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

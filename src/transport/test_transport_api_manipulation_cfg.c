@@ -11,12 +11,12 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 /**
  * @file transport/test_transport_api_manipulation_cfg.c
  * @brief base test case for transport traffic manipulation implementation
@@ -35,12 +35,12 @@
 /**
  * How long until we give up on transmitting the message?
  */
-#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 120)
+#define TIMEOUT GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 120)
 
 
 #define TEST_MESSAGE_SIZE 2600
 
-#define TEST_RESPONSE_MESSAGE_TYPE 
+#define TEST_RESPONSE_MESSAGE_TYPE
 
 /**
  * Test delay, in microseconds.
@@ -56,104 +56,107 @@ static struct GNUNET_TIME_Absolute start_response;
 
 
 static void
-sendtask_response_task (void *cls)
+sendtask_response_task(void *cls)
 {
   int ret;
-  
+
   start_response = GNUNET_TIME_absolute_get();
-  ret = GNUNET_TRANSPORT_TESTING_send (ccc->p[1],
-				       ccc->p[0],
-				       GNUNET_TRANSPORT_TESTING_SIMPLE_MTYPE2,
-				       TEST_MESSAGE_SIZE,
-				       1,
-				       NULL,
-				       NULL);
+  ret = GNUNET_TRANSPORT_TESTING_send(ccc->p[1],
+                                      ccc->p[0],
+                                      GNUNET_TRANSPORT_TESTING_SIMPLE_MTYPE2,
+                                      TEST_MESSAGE_SIZE,
+                                      1,
+                                      NULL,
+                                      NULL);
   if (GNUNET_NO == ret)
-  {
-    GNUNET_break (0);
-    GNUNET_SCHEDULER_shutdown ();
-    return;
-  }
-  GNUNET_assert (GNUNET_SYSERR != ret);
+    {
+      GNUNET_break(0);
+      GNUNET_SCHEDULER_shutdown();
+      return;
+    }
+  GNUNET_assert(GNUNET_SYSERR != ret);
 }
 
 
 static void
-notify_receive (void *cls,
-                struct GNUNET_TRANSPORT_TESTING_PeerContext *receiver,
-                const struct GNUNET_PeerIdentity *sender,
-                const struct GNUNET_TRANSPORT_TESTING_TestMessage *message)
+notify_receive(void *cls,
+               struct GNUNET_TRANSPORT_TESTING_PeerContext *receiver,
+               const struct GNUNET_PeerIdentity *sender,
+               const struct GNUNET_TRANSPORT_TESTING_TestMessage *message)
 {
   struct GNUNET_TIME_Relative duration;
 
   {
-    char *ps = GNUNET_strdup (GNUNET_i2s (&receiver->id));
+    char *ps = GNUNET_strdup(GNUNET_i2s(&receiver->id));
 
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Peer %u (`%s') received message of type %d and size %u size from peer %s)!\n",
-                receiver->no,
-                ps,
-                ntohs (message->header.type),
-                ntohs (message->header.size),
-                GNUNET_i2s (sender));
-    GNUNET_free (ps);
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+               "Peer %u (`%s') received message of type %d and size %u size from peer %s)!\n",
+               receiver->no,
+               ps,
+               ntohs(message->header.type),
+               ntohs(message->header.size),
+               GNUNET_i2s(sender));
+    GNUNET_free(ps);
   }
 
-  switch (ntohs (message->header.type)) {
-  case GNUNET_TRANSPORT_TESTING_SIMPLE_MTYPE:
-    duration = GNUNET_TIME_absolute_get_difference (start_request,
-						    GNUNET_TIME_absolute_get());
-    if (duration.rel_value_us >= TEST_DELAY)
+  switch (ntohs(message->header.type))
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                  "Request message was delayed for %s\n",
-                  GNUNET_STRINGS_relative_time_to_string (duration,
-                                                          GNUNET_YES));
+    case GNUNET_TRANSPORT_TESTING_SIMPLE_MTYPE:
+      duration = GNUNET_TIME_absolute_get_difference(start_request,
+                                                     GNUNET_TIME_absolute_get());
+      if (duration.rel_value_us >= TEST_DELAY)
+        {
+          GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+                     "Request message was delayed for %s\n",
+                     GNUNET_STRINGS_relative_time_to_string(duration,
+                                                            GNUNET_YES));
+        }
+      else
+        {
+          GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
+                     "Request message was delayed for unexpected duration %s\n",
+                     GNUNET_STRINGS_relative_time_to_string(duration,
+                                                            GNUNET_YES));
+          ccc->global_ret = GNUNET_SYSERR;
+          GNUNET_SCHEDULER_shutdown();
+        }
+      /* Send response */
+      GNUNET_SCHEDULER_add_now(&sendtask_response_task,
+                               NULL);
+      return;
+
+    case GNUNET_TRANSPORT_TESTING_SIMPLE_MTYPE2:
+      duration = GNUNET_TIME_absolute_get_difference(start_response,
+                                                     GNUNET_TIME_absolute_get());
+      if (duration.rel_value_us >= TEST_DELAY)
+        {
+          GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+                     "Response message was delayed for %s\n",
+                     GNUNET_STRINGS_relative_time_to_string(duration,
+                                                            GNUNET_YES));
+          ccc->global_ret = GNUNET_OK;
+        }
+      else
+        {
+          GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
+                     "Response message was delayed for unexpected duration %s\n",
+                     GNUNET_STRINGS_relative_time_to_string(duration,
+                                                            GNUNET_YES));
+          ccc->global_ret = GNUNET_SYSERR;
+        }
+      GNUNET_SCHEDULER_shutdown();
+      break;
+
+    default:
+      GNUNET_break(0);
+      break;
     }
-    else
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  "Request message was delayed for unexpected duration %s\n",
-                  GNUNET_STRINGS_relative_time_to_string (duration,
-                                                          GNUNET_YES));
-      ccc->global_ret = GNUNET_SYSERR;
-      GNUNET_SCHEDULER_shutdown ();
-    }
-    /* Send response */
-    GNUNET_SCHEDULER_add_now (&sendtask_response_task,
-			      NULL);
-    return;
-  case GNUNET_TRANSPORT_TESTING_SIMPLE_MTYPE2:
-    duration = GNUNET_TIME_absolute_get_difference(start_response,
-                                                   GNUNET_TIME_absolute_get());
-    if (duration.rel_value_us >= TEST_DELAY)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                  "Response message was delayed for %s\n",
-                  GNUNET_STRINGS_relative_time_to_string (duration,
-                                                          GNUNET_YES));
-      ccc->global_ret = GNUNET_OK;
-    }
-    else
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  "Response message was delayed for unexpected duration %s\n",
-                  GNUNET_STRINGS_relative_time_to_string (duration,
-                                                          GNUNET_YES));
-      ccc->global_ret = GNUNET_SYSERR;
-    }
-    GNUNET_SCHEDULER_shutdown ();
-    break;
-  default:
-    GNUNET_break (0);
-    break;
-  }
 }
 
 
 int
-main (int argc,
-      char *argv[])
+main(int argc,
+     char *argv[])
 {
   struct GNUNET_TRANSPORT_TESTING_SendClosure sc = {
     .num_messages = 1
@@ -170,11 +173,11 @@ main (int argc,
 
   ccc = &my_ccc;
   sc.ccc = ccc;
-  start_request = GNUNET_TIME_absolute_get ();
+  start_request = GNUNET_TIME_absolute_get();
   if (GNUNET_OK !=
-      GNUNET_TRANSPORT_TESTING_main (2,
-                                     &GNUNET_TRANSPORT_TESTING_connect_check,
-                                     ccc))
+      GNUNET_TRANSPORT_TESTING_main(2,
+                                    &GNUNET_TRANSPORT_TESTING_connect_check,
+                                    ccc))
     return 1;
   return 0;
 }

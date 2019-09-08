@@ -11,7 +11,7 @@
       WITHOUT ANY WARRANTY; without even the implied warranty of
       MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
       Affero General Public License for more details.
-     
+
       You should have received a copy of the GNU Affero General Public License
       along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -35,26 +35,25 @@
 /**
  * Enumeration of possible states a peer could be in
  */
-enum PeerState
-{
-    /**
-     * State to signify that this peer is invalid
-     */
+enum PeerState {
+  /**
+   * State to signify that this peer is invalid
+   */
   TESTBED_PS_INVALID,
 
-    /**
-     * The peer has been created
-     */
+  /**
+   * The peer has been created
+   */
   TESTBED_PS_CREATED,
 
-    /**
-     * The peer is running
-     */
+  /**
+   * The peer is running
+   */
   TESTBED_PS_STARTED,
 
-    /**
-     * The peer is stopped
-     */
+  /**
+   * The peer is stopped
+   */
   TESTBED_PS_STOPPED,
 };
 
@@ -63,8 +62,7 @@ enum PeerState
  * A peer controlled by the testing framework.  A peer runs
  * at a particular host.
  */
-struct GNUNET_TESTBED_Peer
-{
+struct GNUNET_TESTBED_Peer {
   /**
    * peer list DLL
    */
@@ -106,8 +104,7 @@ struct GNUNET_TESTBED_Peer
 /**
  * Data for the OperationType OP_PEER_CREATE
  */
-struct PeerCreateData
-{
+struct PeerCreateData {
   /**
    * The host where the peer has to be created
    */
@@ -132,15 +129,13 @@ struct PeerCreateData
    * The peer structure to return when we get success message
    */
   struct GNUNET_TESTBED_Peer *peer;
-
 };
 
 
 /**
  * Data for OperationType OP_PEER_START and OP_PEER_STOP
  */
-struct PeerEventData
-{
+struct PeerEventData {
   /**
    * The handle of the peer to start
    */
@@ -155,15 +150,13 @@ struct PeerEventData
    * Closure for the above callback
    */
   void *pcc_cls;
-
 };
 
 
 /**
  * Data for the OperationType OP_PEER_DESTROY;
  */
-struct PeerDestroyData
-{
+struct PeerDestroyData {
   /**
    * The peer structure
    */
@@ -176,8 +169,7 @@ struct PeerDestroyData
 /**
  * Data for the OperationType OP_PEER_INFO
  */
-struct PeerInfoData
-{
+struct PeerInfoData {
   /**
    * The peer whose information has been requested
    */
@@ -203,8 +195,7 @@ struct PeerInfoData
 /**
  * Data for the operations of type OP_PEER_RECONFIGURE
  */
-struct PeerReconfigureData
-{
+struct PeerReconfigureData {
   /**
    * The peer whose information has been requested
    */
@@ -225,9 +216,7 @@ struct PeerReconfigureData
 /**
  * Data structure for OperationType OP_OVERLAY_CONNECT
  */
-struct OverlayConnectData
-{
-
+struct OverlayConnectData {
   /**
    * Peer A to connect to peer B
    */
@@ -254,7 +243,6 @@ struct OverlayConnectData
    * overlay connection between peer 1 and peer 2.
    */
   struct OperationContext *sub_opc;
-
 };
 
 
@@ -270,7 +258,6 @@ struct ManageServiceData {
   unsigned int start;
 
   uint16_t msize;
-
 };
 
 
@@ -283,8 +270,8 @@ struct ManageServiceData {
  * @return the PeerGetConfigurationMessage
  */
 struct GNUNET_TESTBED_PeerGetConfigurationMessage *
-GNUNET_TESTBED_generate_peergetconfig_msg_ (uint32_t peer_id,
-                                            uint64_t operation_id);
+GNUNET_TESTBED_generate_peergetconfig_msg_(uint32_t peer_id,
+                                           uint64_t operation_id);
 
 
 /**
@@ -293,7 +280,7 @@ GNUNET_TESTBED_generate_peergetconfig_msg_ (uint32_t peer_id,
  * @param peer the peer to add to the peer list
  */
 void
-GNUNET_TESTBED_peer_register_ (struct GNUNET_TESTBED_Peer *peer);
+GNUNET_TESTBED_peer_register_(struct GNUNET_TESTBED_Peer *peer);
 
 
 /**
@@ -302,14 +289,14 @@ GNUNET_TESTBED_peer_register_ (struct GNUNET_TESTBED_Peer *peer);
  * @param peer the peer to remove
  */
 void
-GNUNET_TESTBED_peer_deregister_ (struct GNUNET_TESTBED_Peer *peer);
+GNUNET_TESTBED_peer_deregister_(struct GNUNET_TESTBED_Peer *peer);
 
 
 /**
  * Frees all peers
  */
 void
-GNUNET_TESTBED_cleanup_peers_ (void);
+GNUNET_TESTBED_cleanup_peers_(void);
 
 #endif
 /* end of testbed_api_peers.h */

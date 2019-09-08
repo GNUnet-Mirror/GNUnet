@@ -11,13 +11,13 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
 
-*/
+ */
 
 /**
  * @file util/test_crypto_random.c
@@ -27,43 +27,42 @@
 #include "gnunet_util_lib.h"
 
 static int
-test (enum GNUNET_CRYPTO_Quality mode)
+test(enum GNUNET_CRYPTO_Quality mode)
 {
-
   int buf[1024];
   unsigned int *b2;
   int i;
   unsigned long long n;
 
   for (i = 0; i < 1024; i++)
-    GNUNET_break (1024 > (buf[i] = GNUNET_CRYPTO_random_u32 (mode, 1024)));
+    GNUNET_break(1024 > (buf[i] = GNUNET_CRYPTO_random_u32(mode, 1024)));
   for (i = 0; i < 10; i++)
-  {
-    b2 = GNUNET_CRYPTO_random_permute (mode, 1024);
-    if (0 == memcmp (b2, buf, sizeof (buf)))
     {
-      fprintf (stderr, "%s",  "!");
-      GNUNET_free (b2);
-      continue;
+      b2 = GNUNET_CRYPTO_random_permute(mode, 1024);
+      if (0 == memcmp(b2, buf, sizeof(buf)))
+        {
+          fprintf(stderr, "%s", "!");
+          GNUNET_free(b2);
+          continue;
+        }
+      GNUNET_free(b2);
+      break;
     }
-    GNUNET_free (b2);
-    break;
-  }
   if (i == 10)
     return 1;                   /* virtually impossible... */
 
   for (n = 10; n < 1024LL * 1024LL * 1024LL; n *= 10)
-    GNUNET_break (n > GNUNET_CRYPTO_random_u64 (mode, n));
+    GNUNET_break(n > GNUNET_CRYPTO_random_u64(mode, n));
   return 0;
 }
 
 int
-main (int argc, char *argv[])
+main(int argc, char *argv[])
 {
-  GNUNET_log_setup ("test-crypto-random", "WARNING", NULL);
-  if (0 != test (GNUNET_CRYPTO_QUALITY_WEAK))
+  GNUNET_log_setup("test-crypto-random", "WARNING", NULL);
+  if (0 != test(GNUNET_CRYPTO_QUALITY_WEAK))
     return 1;
-  if (0 != test (GNUNET_CRYPTO_QUALITY_STRONG))
+  if (0 != test(GNUNET_CRYPTO_QUALITY_STRONG))
     return 1;
 
   return 0;

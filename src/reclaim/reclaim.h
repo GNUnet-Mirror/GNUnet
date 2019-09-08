@@ -16,7 +16,7 @@
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 
 /**
  * @author Martin Schanzenbach
@@ -37,8 +37,7 @@ GNUNET_NETWORK_STRUCT_BEGIN
 /**
  * Use to store an identity attribute
  */
-struct AttributeStoreMessage
-{
+struct AttributeStoreMessage {
   /**
    * Type: #GNUNET_MESSAGE_TYPE_IDENTITY_SET_DEFAULT
    */
@@ -71,8 +70,7 @@ struct AttributeStoreMessage
 /**
  * Use to delete an identity attribute
  */
-struct AttributeDeleteMessage
-{
+struct AttributeDeleteMessage {
   /**
    * Type: #GNUNET_MESSAGE_TYPE_IDENTITY_SET_DEFAULT
    */
@@ -100,8 +98,7 @@ struct AttributeDeleteMessage
 /**
  * Attribute store/delete response message
  */
-struct SuccessResultMessage
-{
+struct SuccessResultMessage {
   /**
    * Message header
    */
@@ -121,8 +118,7 @@ struct SuccessResultMessage
 /**
  * Attribute is returned from the idp.
  */
-struct AttributeResultMessage
-{
+struct AttributeResultMessage {
   /**
    * Message header
    */
@@ -157,8 +153,7 @@ struct AttributeResultMessage
 /**
  * Start a attribute iteration for the given identity
  */
-struct AttributeIterationStartMessage
-{
+struct AttributeIterationStartMessage {
   /**
    * Message
    */
@@ -179,8 +174,7 @@ struct AttributeIterationStartMessage
 /**
  * Ask for next result of attribute iteration for the given operation
  */
-struct AttributeIterationNextMessage
-{
+struct AttributeIterationNextMessage {
   /**
    * Type will be #GNUNET_MESSAGE_TYPE_RECLAIM_ATTRIBUTE_ITERATION_NEXT
    */
@@ -196,8 +190,7 @@ struct AttributeIterationNextMessage
 /**
  * Stop attribute iteration for the given operation
  */
-struct AttributeIterationStopMessage
-{
+struct AttributeIterationStopMessage {
   /**
    * Type will be #GNUNET_MESSAGE_TYPE_RECLAIM_ATTRIBUTE_ITERATION_STOP
    */
@@ -212,8 +205,7 @@ struct AttributeIterationStopMessage
 /**
  * Start a ticket iteration for the given identity
  */
-struct TicketIterationStartMessage
-{
+struct TicketIterationStartMessage {
   /**
    * Message
    */
@@ -234,8 +226,7 @@ struct TicketIterationStartMessage
 /**
  * Ask for next result of ticket iteration for the given operation
  */
-struct TicketIterationNextMessage
-{
+struct TicketIterationNextMessage {
   /**
    * Type will be #GNUNET_MESSAGE_TYPE_RECLAIM_TICKET_ITERATION_NEXT
    */
@@ -251,8 +242,7 @@ struct TicketIterationNextMessage
 /**
  * Stop ticket iteration for the given operation
  */
-struct TicketIterationStopMessage
-{
+struct TicketIterationStopMessage {
   /**
    * Type will be #GNUNET_MESSAGE_TYPE_RECLAIM_TICKET_ITERATION_STOP
    */
@@ -268,8 +258,7 @@ struct TicketIterationStopMessage
 /**
  * Ticket issue message
  */
-struct IssueTicketMessage
-{
+struct IssueTicketMessage {
   /**
    * Type will be #GNUNET_MESSAGE_TYPE_RECLAIM_ISSUE_TICKET
    */
@@ -301,8 +290,7 @@ struct IssueTicketMessage
 /**
  * Ticket revoke message
  */
-struct RevokeTicketMessage
-{
+struct RevokeTicketMessage {
   /**
    * Type will be #GNUNET_MESSAGE_TYPE_RECLAIM_REVOKE_TICKET
    */
@@ -332,8 +320,7 @@ struct RevokeTicketMessage
 /**
  * Ticket revoke message
  */
-struct RevokeTicketResultMessage
-{
+struct RevokeTicketResultMessage {
   /**
    * Type will be #GNUNET_MESSAGE_TYPE_RECLAIM_REVOKE_TICKET_RESULT
    */
@@ -354,8 +341,7 @@ struct RevokeTicketResultMessage
 /**
  * Ticket result message
  */
-struct TicketResultMessage
-{
+struct TicketResultMessage {
   /**
    * Type will be #GNUNET_MESSAGE_TYPE_RECLAIM_TICKET_RESULT
    */
@@ -375,8 +361,7 @@ struct TicketResultMessage
 /**
  * Ticket consume message
  */
-struct ConsumeTicketMessage
-{
+struct ConsumeTicketMessage {
   /**
    * Type will be #GNUNET_MESSAGE_TYPE_RECLAIM_CONSUME_TICKET
    */
@@ -401,8 +386,7 @@ struct ConsumeTicketMessage
 /**
  * Attribute list is returned from the idp.
  */
-struct ConsumeTicketResultMessage
-{
+struct ConsumeTicketResultMessage {
   /**
    * Message header
    */

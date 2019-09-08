@@ -11,12 +11,12 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 
 /**
  * @author Markus Teich
@@ -34,8 +34,7 @@ GNUNET_NETWORK_STRUCT_BEGIN
 /**
  * Auction creation request sent from the client to the service
  */
-struct GNUNET_AUCTION_ClientCreateMessage
-{
+struct GNUNET_AUCTION_ClientCreateMessage {
   /**
    * Type: GNUNET_MESSAGE_TYPE_AUCTION_CLIENT_CREATE
    */

@@ -11,12 +11,12 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 
 /**
  * @file fs/fs_sharetree.c
@@ -34,9 +34,7 @@
  * Entry for each unique keyword to track how often
  * it occured.  Contains the keyword and the counter.
  */
-struct KeywordCounter
-{
-
+struct KeywordCounter {
   /**
    * This is a doubly-linked list
    */
@@ -56,16 +54,13 @@ struct KeywordCounter
    * How many files have this keyword?
    */
   unsigned int count;
-
 };
 
 
 /**
  * Aggregate information we keep for meta data in each directory.
  */
-struct MetaCounter
-{
-
+struct MetaCounter {
   /**
    * This is a doubly-linked list
    */
@@ -111,7 +106,6 @@ struct MetaCounter
    * (type and format do not have to match).
    */
   unsigned int count;
-
 };
 
 
@@ -119,9 +113,7 @@ struct MetaCounter
  * A structure that forms a singly-linked list that serves as a stack
  * for metadata-processing function.
  */
-struct TrimContext
-{
-
+struct TrimContext {
   /**
    * Map from the hash over the keyword to an 'struct KeywordCounter *'
    * counter that says how often this keyword was
@@ -145,7 +137,6 @@ struct TrimContext
    * Number of times an item has to be found to be moved to the parent.
    */
   unsigned int move_threshold;
-
 };
 
 
@@ -158,26 +149,26 @@ struct TrimContext
  * @return always GNUNET_OK
  */
 static int
-add_to_keyword_counter (void *cls, const char *keyword, int is_mandatory)
+add_to_keyword_counter(void *cls, const char *keyword, int is_mandatory)
 {
   struct GNUNET_CONTAINER_MultiHashMap *mcm = cls;
   struct KeywordCounter *cnt;
   struct GNUNET_HashCode hc;
   size_t klen;
 
-  klen = strlen (keyword) + 1;
-  GNUNET_CRYPTO_hash (keyword, klen - 1, &hc);
-  cnt = GNUNET_CONTAINER_multihashmap_get (mcm, &hc);
+  klen = strlen(keyword) + 1;
+  GNUNET_CRYPTO_hash(keyword, klen - 1, &hc);
+  cnt = GNUNET_CONTAINER_multihashmap_get(mcm, &hc);
   if (cnt == NULL)
-  {
-    cnt = GNUNET_malloc (sizeof (struct KeywordCounter) + klen);
-    cnt->value = (const char *) &cnt[1];
-    GNUNET_memcpy (&cnt[1], keyword, klen);
-    GNUNET_assert (GNUNET_OK ==
-		   GNUNET_CONTAINER_multihashmap_put (mcm,
-						      &hc, cnt,
-						      GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
-  }
+    {
+      cnt = GNUNET_malloc(sizeof(struct KeywordCounter) + klen);
+      cnt->value = (const char *)&cnt[1];
+      GNUNET_memcpy(&cnt[1], keyword, klen);
+      GNUNET_assert(GNUNET_OK ==
+                    GNUNET_CONTAINER_multihashmap_put(mcm,
+                                                      &hc, cnt,
+                                                      GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
+    }
   cnt->count++;
   return GNUNET_OK;
 }
@@ -201,30 +192,30 @@ add_to_keyword_counter (void *cls, const char *keyword, int is_mandatory)
  * @return 0 to continue extracting / iterating
  */
 static int
-add_to_meta_counter (void *cls, const char *plugin_name,
-		     enum EXTRACTOR_MetaType type, enum EXTRACTOR_MetaFormat format,
-		     const char *data_mime_type, const char *data, size_t data_len)
+add_to_meta_counter(void *cls, const char *plugin_name,
+                    enum EXTRACTOR_MetaType type, enum EXTRACTOR_MetaFormat format,
+                    const char *data_mime_type, const char *data, size_t data_len)
 {
   struct GNUNET_CONTAINER_MultiHashMap *map = cls;
   struct GNUNET_HashCode key;
   struct MetaCounter *cnt;
 
-  GNUNET_CRYPTO_hash (data, data_len, &key);
-  cnt = GNUNET_CONTAINER_multihashmap_get (map, &key);
+  GNUNET_CRYPTO_hash(data, data_len, &key);
+  cnt = GNUNET_CONTAINER_multihashmap_get(map, &key);
   if (NULL == cnt)
-  {
-    cnt = GNUNET_new (struct MetaCounter);
-    cnt->data = data;
-    cnt->data_size = data_len;
-    cnt->plugin_name = plugin_name;
-    cnt->type = type;
-    cnt->format = format;
-    cnt->data_mime_type = data_mime_type;
-    GNUNET_assert (GNUNET_OK ==
-		   GNUNET_CONTAINER_multihashmap_put (map,
-						      &key, cnt,
-						      GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
-  }
+    {
+      cnt = GNUNET_new(struct MetaCounter);
+      cnt->data = data;
+      cnt->data_size = data_len;
+      cnt->plugin_name = plugin_name;
+      cnt->type = type;
+      cnt->format = format;
+      cnt->data_mime_type = data_mime_type;
+      GNUNET_assert(GNUNET_OK ==
+                    GNUNET_CONTAINER_multihashmap_put(map,
+                                                      &key, cnt,
+                                                      GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
+    }
   cnt->count++;
   return 0;
 }
@@ -239,21 +230,21 @@ add_to_meta_counter (void *cls, const char *plugin_name,
  * @return always GNUNET_OK
  */
 static int
-remove_high_frequency_keywords (void *cls, const char *keyword, int is_mandatory)
+remove_high_frequency_keywords(void *cls, const char *keyword, int is_mandatory)
 {
   struct TrimContext *tc = cls;
   struct KeywordCounter *counter;
   struct GNUNET_HashCode hc;
   size_t klen;
 
-  klen = strlen (keyword) + 1;
-  GNUNET_CRYPTO_hash (keyword, klen - 1, &hc);
-  counter = GNUNET_CONTAINER_multihashmap_get (tc->keywordcounter, &hc);
-  GNUNET_assert (NULL != counter);
+  klen = strlen(keyword) + 1;
+  GNUNET_CRYPTO_hash(keyword, klen - 1, &hc);
+  counter = GNUNET_CONTAINER_multihashmap_get(tc->keywordcounter, &hc);
+  GNUNET_assert(NULL != counter);
   if (counter->count < tc->move_threshold)
     return GNUNET_OK;
-  GNUNET_FS_uri_ksk_remove_keyword (tc->pos->ksk_uri,
-				    counter->value);
+  GNUNET_FS_uri_ksk_remove_keyword(tc->pos->ksk_uri,
+                                   counter->value);
   return GNUNET_OK;
 }
 
@@ -268,23 +259,23 @@ remove_high_frequency_keywords (void *cls, const char *keyword, int is_mandatory
  * @return GNUNET_YES (always)
  */
 static int
-migrate_and_drop_keywords (void *cls, const struct GNUNET_HashCode * key, void *value)
+migrate_and_drop_keywords(void *cls, const struct GNUNET_HashCode * key, void *value)
 {
   struct TrimContext *tc = cls;
   struct KeywordCounter *counter = value;
 
   if (counter->count >= tc->move_threshold)
-  {
-    if (NULL == tc->pos->ksk_uri)
-      tc->pos->ksk_uri = GNUNET_FS_uri_ksk_create_from_args (1, &counter->value);
-    else
-      GNUNET_FS_uri_ksk_add_keyword (tc->pos->ksk_uri, counter->value, GNUNET_NO);
-  }
-  GNUNET_assert (GNUNET_YES ==
-		 GNUNET_CONTAINER_multihashmap_remove (tc->keywordcounter,
-						       key,
-						       counter));
-  GNUNET_free (counter);
+    {
+      if (NULL == tc->pos->ksk_uri)
+        tc->pos->ksk_uri = GNUNET_FS_uri_ksk_create_from_args(1, &counter->value);
+      else
+        GNUNET_FS_uri_ksk_add_keyword(tc->pos->ksk_uri, counter->value, GNUNET_NO);
+    }
+  GNUNET_assert(GNUNET_YES ==
+                GNUNET_CONTAINER_multihashmap_remove(tc->keywordcounter,
+                                                     key,
+                                                     counter));
+  GNUNET_free(counter);
   return GNUNET_YES;
 }
 
@@ -299,27 +290,27 @@ migrate_and_drop_keywords (void *cls, const struct GNUNET_HashCode * key, void *
  * @return GNUNET_YES (always)
  */
 static int
-migrate_and_drop_metadata (void *cls, const struct GNUNET_HashCode * key, void *value)
+migrate_and_drop_metadata(void *cls, const struct GNUNET_HashCode * key, void *value)
 {
   struct TrimContext *tc = cls;
   struct MetaCounter *counter = value;
 
   if (counter->count >= tc->move_threshold)
-  {
-    if (NULL == tc->pos->meta)
-      tc->pos->meta = GNUNET_CONTAINER_meta_data_create ();
-    GNUNET_CONTAINER_meta_data_insert (tc->pos->meta,
-				       counter->plugin_name,
-				       counter->type,
-				       counter->format,
-				       counter->data_mime_type, counter->data,
-				       counter->data_size);
-  }
-  GNUNET_assert (GNUNET_YES ==
-		 GNUNET_CONTAINER_multihashmap_remove (tc->metacounter,
-						       key,
-						       counter));
-  GNUNET_free (counter);
+    {
+      if (NULL == tc->pos->meta)
+        tc->pos->meta = GNUNET_CONTAINER_meta_data_create();
+      GNUNET_CONTAINER_meta_data_insert(tc->pos->meta,
+                                        counter->plugin_name,
+                                        counter->type,
+                                        counter->format,
+                                        counter->data_mime_type, counter->data,
+                                        counter->data_size);
+    }
+  GNUNET_assert(GNUNET_YES ==
+                GNUNET_CONTAINER_multihashmap_remove(tc->metacounter,
+                                                     key,
+                                                     counter));
+  GNUNET_free(counter);
   return GNUNET_YES;
 }
 
@@ -332,8 +323,8 @@ migrate_and_drop_metadata (void *cls, const struct GNUNET_HashCode * key, void *
  * @param tree tree to trim
  */
 static void
-share_tree_trim (struct TrimContext *tc,
-		 struct GNUNET_FS_ShareTreeItem *tree)
+share_tree_trim(struct TrimContext *tc,
+                struct GNUNET_FS_ShareTreeItem *tree)
 {
   struct GNUNET_FS_ShareTreeItem *pos;
   unsigned int num_children;
@@ -341,64 +332,64 @@ share_tree_trim (struct TrimContext *tc,
   /* first, trim all children */
   num_children = 0;
   for (pos = tree->children_head; NULL != pos; pos = pos->next)
-  {
-    share_tree_trim (tc, pos);
-    num_children++;
-  }
+    {
+      share_tree_trim(tc, pos);
+      num_children++;
+    }
 
   /* consider adding filename to directory meta data */
   if (tree->is_directory == GNUNET_YES)
-  {
-    const char *user = getenv ("USER");
-    if ( (user == NULL) ||
-	 (0 != strncasecmp (user, tree->short_filename, strlen(user))))
     {
-      /* only use filename if it doesn't match $USER */
-      if (NULL == tree->meta)
-	tree->meta = GNUNET_CONTAINER_meta_data_create ();
-      GNUNET_CONTAINER_meta_data_insert (tree->meta, "<libgnunetfs>",
-					 EXTRACTOR_METATYPE_GNUNET_ORIGINAL_FILENAME,
-					 EXTRACTOR_METAFORMAT_UTF8,
-					 "text/plain", tree->short_filename,
-					 strlen (tree->short_filename) + 1);
+      const char *user = getenv("USER");
+      if ((user == NULL) ||
+          (0 != strncasecmp(user, tree->short_filename, strlen(user))))
+        {
+          /* only use filename if it doesn't match $USER */
+          if (NULL == tree->meta)
+            tree->meta = GNUNET_CONTAINER_meta_data_create();
+          GNUNET_CONTAINER_meta_data_insert(tree->meta, "<libgnunetfs>",
+                                            EXTRACTOR_METATYPE_GNUNET_ORIGINAL_FILENAME,
+                                            EXTRACTOR_METAFORMAT_UTF8,
+                                            "text/plain", tree->short_filename,
+                                            strlen(tree->short_filename) + 1);
+        }
     }
-  }
 
   if (1 >= num_children)
     return; /* nothing to trim */
 
   /* now, count keywords and meta data in children */
   for (pos = tree->children_head; NULL != pos; pos = pos->next)
-  {
-    if (NULL != pos->meta)
-      GNUNET_CONTAINER_meta_data_iterate (pos->meta, &add_to_meta_counter, tc->metacounter);
-    if (NULL != pos->ksk_uri)
-      GNUNET_FS_uri_ksk_get_keywords (pos->ksk_uri, &add_to_keyword_counter, tc->keywordcounter);
-  }
+    {
+      if (NULL != pos->meta)
+        GNUNET_CONTAINER_meta_data_iterate(pos->meta, &add_to_meta_counter, tc->metacounter);
+      if (NULL != pos->ksk_uri)
+        GNUNET_FS_uri_ksk_get_keywords(pos->ksk_uri, &add_to_keyword_counter, tc->keywordcounter);
+    }
 
   /* calculate threshold for moving keywords / meta data */
   tc->move_threshold = 1 + (num_children / 2);
 
   /* remove high-frequency keywords from children */
   for (pos = tree->children_head; NULL != pos; pos = pos->next)
-  {
-    tc->pos = pos;
-    if (NULL != pos->ksk_uri)
     {
-      struct GNUNET_FS_Uri *ksk_uri_copy = GNUNET_FS_uri_dup (pos->ksk_uri);
-      GNUNET_FS_uri_ksk_get_keywords (ksk_uri_copy, &remove_high_frequency_keywords, tc);
-      GNUNET_FS_uri_destroy (ksk_uri_copy);
+      tc->pos = pos;
+      if (NULL != pos->ksk_uri)
+        {
+          struct GNUNET_FS_Uri *ksk_uri_copy = GNUNET_FS_uri_dup(pos->ksk_uri);
+          GNUNET_FS_uri_ksk_get_keywords(ksk_uri_copy, &remove_high_frequency_keywords, tc);
+          GNUNET_FS_uri_destroy(ksk_uri_copy);
+        }
     }
-  }
 
   /* add high-frequency meta data and keywords to parent */
   tc->pos = tree;
-  GNUNET_CONTAINER_multihashmap_iterate (tc->keywordcounter,
-					 &migrate_and_drop_keywords,
-					 tc);
-  GNUNET_CONTAINER_multihashmap_iterate (tc->metacounter,
-					 &migrate_and_drop_metadata,
-					 tc);
+  GNUNET_CONTAINER_multihashmap_iterate(tc->keywordcounter,
+                                        &migrate_and_drop_keywords,
+                                        tc);
+  GNUNET_CONTAINER_multihashmap_iterate(tc->metacounter,
+                                        &migrate_and_drop_metadata,
+                                        tc);
 }
 
 
@@ -409,17 +400,17 @@ share_tree_trim (struct TrimContext *tc,
  * @param toplevel toplevel directory in the tree, returned by the scanner
  */
 void
-GNUNET_FS_share_tree_trim (struct GNUNET_FS_ShareTreeItem *toplevel)
+GNUNET_FS_share_tree_trim(struct GNUNET_FS_ShareTreeItem *toplevel)
 {
   struct TrimContext tc;
 
   if (toplevel == NULL)
     return;
-  tc.keywordcounter = GNUNET_CONTAINER_multihashmap_create (1024, GNUNET_NO);
-  tc.metacounter = GNUNET_CONTAINER_multihashmap_create (1024, GNUNET_NO);
-  share_tree_trim (&tc, toplevel);
-  GNUNET_CONTAINER_multihashmap_destroy (tc.keywordcounter);
-  GNUNET_CONTAINER_multihashmap_destroy (tc.metacounter);
+  tc.keywordcounter = GNUNET_CONTAINER_multihashmap_create(1024, GNUNET_NO);
+  tc.metacounter = GNUNET_CONTAINER_multihashmap_create(1024, GNUNET_NO);
+  share_tree_trim(&tc, toplevel);
+  GNUNET_CONTAINER_multihashmap_destroy(tc.keywordcounter);
+  GNUNET_CONTAINER_multihashmap_destroy(tc.metacounter);
 }
 
 
@@ -429,23 +420,23 @@ GNUNET_FS_share_tree_trim (struct GNUNET_FS_ShareTreeItem *toplevel)
  * @param toplevel toplevel of the tree to be freed
  */
 void
-GNUNET_FS_share_tree_free (struct GNUNET_FS_ShareTreeItem *toplevel)
+GNUNET_FS_share_tree_free(struct GNUNET_FS_ShareTreeItem *toplevel)
 {
   struct GNUNET_FS_ShareTreeItem *pos;
 
   while (NULL != (pos = toplevel->children_head))
-    GNUNET_FS_share_tree_free (pos);
+    GNUNET_FS_share_tree_free(pos);
   if (NULL != toplevel->parent)
-    GNUNET_CONTAINER_DLL_remove (toplevel->parent->children_head,
-				 toplevel->parent->children_tail,
-				 toplevel);
+    GNUNET_CONTAINER_DLL_remove(toplevel->parent->children_head,
+                                toplevel->parent->children_tail,
+                                toplevel);
   if (NULL != toplevel->meta)
-    GNUNET_CONTAINER_meta_data_destroy (toplevel->meta);
+    GNUNET_CONTAINER_meta_data_destroy(toplevel->meta);
   if (NULL != toplevel->ksk_uri)
-    GNUNET_FS_uri_destroy (toplevel->ksk_uri);
-  GNUNET_free_non_null (toplevel->filename);
-  GNUNET_free_non_null (toplevel->short_filename);
-  GNUNET_free (toplevel);
+    GNUNET_FS_uri_destroy(toplevel->ksk_uri);
+  GNUNET_free_non_null(toplevel->filename);
+  GNUNET_free_non_null(toplevel->short_filename);
+  GNUNET_free(toplevel);
 }
 
 /* end fs_sharetree.c */

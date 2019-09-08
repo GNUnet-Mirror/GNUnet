@@ -11,12 +11,12 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 
 /**
  * @author Christian Grothoff
@@ -55,7 +55,7 @@
  */
 typedef void
 (*GNUNET_DATASTORE_DiskUtilizationChange) (void *cls,
-					   int delta);
+                                           int delta);
 
 
 /**
@@ -63,8 +63,7 @@ typedef void
  * of this type as the first and only argument to the
  * entry point of each datastore plugin.
  */
-struct GNUNET_DATASTORE_PluginEnvironment
-{
+struct GNUNET_DATASTORE_PluginEnvironment {
   /**
    * Configuration to use.
    */
@@ -79,7 +78,6 @@ struct GNUNET_DATASTORE_PluginEnvironment
    * Closure.
    */
   void *cls;
-
 };
 
 
@@ -125,7 +123,7 @@ typedef int
  */
 typedef void
 (*PluginEstimateSize) (void *cls,
-		       unsigned long long *estimate);
+                       unsigned long long *estimate);
 
 
 /**
@@ -140,10 +138,10 @@ typedef void
  */
 typedef void
 (*PluginPutCont) (void *cls,
-		  const struct GNUNET_HashCode *key,
-		  uint32_t size,
-		  int status,
-		  const char *msg);
+                  const struct GNUNET_HashCode *key,
+                  uint32_t size,
+                  int status,
+                  const char *msg);
 
 
 /**
@@ -188,8 +186,8 @@ typedef void
  */
 typedef void
 (*PluginKeyProcessor) (void *cls,
-		       const struct GNUNET_HashCode *key,
-		       unsigned int count);
+                       const struct GNUNET_HashCode *key,
+                       unsigned int count);
 
 
 /**
@@ -201,7 +199,7 @@ typedef void
  */
 typedef void
 (*PluginGetKeys) (void *cls,
-		  PluginKeyProcessor proc,
+                  PluginKeyProcessor proc,
                   void *proc_cls);
 
 
@@ -277,8 +275,8 @@ typedef void
  */
 typedef void
 (*PluginGetRandom) (void *cls,
-		    PluginDatumProcessor proc,
-		    void *proc_cls);
+                    PluginDatumProcessor proc,
+                    void *proc_cls);
 
 
 /**
@@ -313,9 +311,7 @@ typedef void
  * Each plugin is required to return a pointer to a struct of this
  * type as the return value from its entry point.
  */
-struct GNUNET_DATASTORE_PluginFunctions
-{
-
+struct GNUNET_DATASTORE_PluginFunctions {
   /**
    * Closure to use for all of the following callbacks
    * (except "next_request").

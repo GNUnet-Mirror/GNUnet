@@ -11,12 +11,12 @@
    WITHOUT ANY WARRANTY; without even the implied warranty of
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
    Affero General Public License for more details.
-  
+
    You should have received a copy of the GNU Affero General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-   */
+ */
 
 /**
  * @file auction/gnunet-auction-create.c
@@ -54,94 +54,94 @@ static int interactive; /** keep running in foreground */
  * @param cfg configuration
  */
 static void
-run (void *cls,
-	 char *const *args,
-	 const char *cfgfile,
-	 const struct GNUNET_CONFIGURATION_Handle *cfg)
+run(void *cls,
+    char *const *args,
+    const char *cfgfile,
+    const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
-	unsigned int i;
-	double cur, prev = DBL_MAX;
-	json_t *pmap;
-	json_t *parray;
-	json_t *pnode;
-	json_error_t jerr;
+  unsigned int i;
+  double cur, prev = DBL_MAX;
+  json_t *pmap;
+  json_t *parray;
+  json_t *pnode;
+  json_error_t jerr;
 
-	/* cmdline parsing */
-	if (GNUNET_TIME_UNIT_ZERO.rel_value_us == dstart.rel_value_us)
-	{
-		GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		            "required argument --regtime missing or invalid (zero)\n");
-		goto fail;
-	}
-	if (GNUNET_TIME_UNIT_ZERO.rel_value_us == dround.rel_value_us)
-	{
-		GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		            "required argument --roundtime missing or invalid (zero)\n");
-		goto fail;
-	}
-	if (!fndesc)
-	{
-		GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		            "required argument --description missing\n");
-		goto fail;
-	}
-	if (!fnprices)
-	{
-		GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		            "required argument --pricemap missing\n");
-		goto fail;
-	}
+  /* cmdline parsing */
+  if (GNUNET_TIME_UNIT_ZERO.rel_value_us == dstart.rel_value_us)
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
+                 "required argument --regtime missing or invalid (zero)\n");
+      goto fail;
+    }
+  if (GNUNET_TIME_UNIT_ZERO.rel_value_us == dround.rel_value_us)
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
+                 "required argument --roundtime missing or invalid (zero)\n");
+      goto fail;
+    }
+  if (!fndesc)
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
+                 "required argument --description missing\n");
+      goto fail;
+    }
+  if (!fnprices)
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
+                 "required argument --pricemap missing\n");
+      goto fail;
+    }
 
-	/* parse and check pricemap validity */
-	if (!(pmap = json_load_file (fnprices, JSON_DECODE_INT_AS_REAL, &jerr)))
-	{
-		GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		            "parsing pricemap json at %d:%d: %s\n",
-		            jerr.line, jerr.column, jerr.text);
-		goto fail;
-	}
-	if (-1 == json_unpack_ex (pmap, &jerr, JSON_VALIDATE_ONLY,
-	                          "{s:s, s:[]}", "currency", "prices"))
-	{
-		GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		            "validating pricemap: %s\n", jerr.text);
-		goto fail;
-	}
-	if (!(parray = json_object_get (pmap, "prices")) || !json_is_array (parray))
-	{
-		GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		            "could not get `prices` array node from pricemap\n");
-		goto fail;
-	}
-	if (0 == json_array_size (parray))
-	{
-		GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "empty pricemap array\n");
-		goto fail;
-	}
-	json_array_foreach (parray, i, pnode)
-	{
-		if (-1 == json_unpack_ex (pnode, &jerr, 0, "F", &cur))
-		{
-			GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-			            "validating pricearray index %d: %s\n", i, jerr.text);
-			goto fail;
-		}
-		if (prev <= cur)
-		{
-			GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-			            "validating pricearray index %d: "
-			            "prices must be strictly monotonically decreasing\n",
-			            i);
-			goto fail;
-		}
-		prev = cur;
-	}
+  /* parse and check pricemap validity */
+  if (!(pmap = json_load_file(fnprices, JSON_DECODE_INT_AS_REAL, &jerr)))
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
+                 "parsing pricemap json at %d:%d: %s\n",
+                 jerr.line, jerr.column, jerr.text);
+      goto fail;
+    }
+  if (-1 == json_unpack_ex(pmap, &jerr, JSON_VALIDATE_ONLY,
+                           "{s:s, s:[]}", "currency", "prices"))
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
+                 "validating pricemap: %s\n", jerr.text);
+      goto fail;
+    }
+  if (!(parray = json_object_get(pmap, "prices")) || !json_is_array(parray))
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
+                 "could not get `prices` array node from pricemap\n");
+      goto fail;
+    }
+  if (0 == json_array_size(parray))
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "empty pricemap array\n");
+      goto fail;
+    }
+  json_array_foreach(parray, i, pnode)
+  {
+    if (-1 == json_unpack_ex(pnode, &jerr, 0, "F", &cur))
+      {
+        GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
+                   "validating pricearray index %d: %s\n", i, jerr.text);
+        goto fail;
+      }
+    if (prev <= cur)
+      {
+        GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
+                   "validating pricearray index %d: "
+                   "prices must be strictly monotonically decreasing\n",
+                   i);
+        goto fail;
+      }
+    prev = cur;
+  }
 
-	return;
+  return;
 
 fail:
-	ret = 1;
-	return;
+  ret = 1;
+  return;
 }
 
 
@@ -153,64 +153,64 @@ fail:
  * @return 0 ok, 1 on error
  */
 int
-main (int argc, char *const *argv)
+main(int argc, char *const *argv)
 {
-	struct GNUNET_GETOPT_CommandLineOption options[] = {
+  struct GNUNET_GETOPT_CommandLineOption options[] = {
+    GNUNET_GETOPT_option_filename('d',
+                                  "description",
+                                  "FILE",
+                                  gettext_noop("description of the item to be sold"),
+                                  &fndesc),
 
-                GNUNET_GETOPT_option_filename ('d',
-                                               "description",
-                                               "FILE",
-                                               gettext_noop ("description of the item to be sold"),
-                                               &fndesc),
+    GNUNET_GETOPT_option_filename('p',
+                                  "pricemap",
+                                  "FILE",
+                                  gettext_noop("mapping of possible prices"),
+                                  &fnprices),
 
-                GNUNET_GETOPT_option_filename ('p',
-                                               "pricemap",
-                                               "FILE",
-                                               gettext_noop ("mapping of possible prices"),
-                                               &fnprices),
+    GNUNET_GETOPT_option_relative_time('r',
+                                       "roundtime",
+                                       "DURATION",
+                                       gettext_noop("max duration per round"),
+                                       &dround),
 
-                GNUNET_GETOPT_option_relative_time ('r',
-                                                        "roundtime",
-                                                        "DURATION",
-                                                        gettext_noop ("max duration per round"),
-                                                        &dround),
+    GNUNET_GETOPT_option_relative_time('s',
+                                       "regtime",
+                                       "DURATION",
+                                       gettext_noop("duration until auction starts"),
+                                       &dstart),
+    GNUNET_GETOPT_option_uint('m',
+                              "m",
+                              "NUMBER",
+                              gettext_noop("number of items to sell\n"
+                                           "0 for first price auction\n"
+                                           ">0 for vickrey/M+1st price auction"),
+                              &m),
 
-                GNUNET_GETOPT_option_relative_time ('s',
-                                                        "regtime",
-                                                        "DURATION",
-                                                        gettext_noop ("duration until auction starts"),
-                                                        &dstart),
-                GNUNET_GETOPT_option_uint ('m',
-                                               "m",
-                                               "NUMBER",
-                                               gettext_noop ("number of items to sell\n"
-                                                             "0 for first price auction\n"
-			                                     ">0 for vickrey/M+1st price auction"),
-                                               &m), 
+    GNUNET_GETOPT_option_flag('u',
+                              "public",
+                              gettext_noop("public auction outcome"),
+                              &outcome),
 
-                GNUNET_GETOPT_option_flag ('u',
-                                              "public",
-                                              gettext_noop ("public auction outcome"),
-                                              &outcome),
+    GNUNET_GETOPT_option_flag('i',
+                              "interactive",
+                              gettext_noop("keep running in foreground until auction completes"),
+                              &interactive),
 
-                GNUNET_GETOPT_option_flag ('i',
-                                              "interactive",
-                                              gettext_noop ("keep running in foreground until auction completes"),
-                                              &interactive),
+    GNUNET_GETOPT_OPTION_END
+  };
 
-		GNUNET_GETOPT_OPTION_END
-	};
-	if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv, &argc, &argv))
-		return 2;
+  if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args(argc, argv, &argc, &argv))
+    return 2;
 
-	ret = (GNUNET_OK ==
-		   GNUNET_PROGRAM_run (argc, argv,
-							   "gnunet-auction-create",
-							   gettext_noop ("create a new auction and "
-							                 "start listening for bidders"),
-							   options,
-							   &run,
-							   NULL)) ? ret : 1;
-	GNUNET_free ((void*) argv);
-	return ret;
+  ret = (GNUNET_OK ==
+         GNUNET_PROGRAM_run(argc, argv,
+                            "gnunet-auction-create",
+                            gettext_noop("create a new auction and "
+                                         "start listening for bidders"),
+                            options,
+                            &run,
+                            NULL)) ? ret : 1;
+  GNUNET_free((void*)argv);
+  return ret;
 }

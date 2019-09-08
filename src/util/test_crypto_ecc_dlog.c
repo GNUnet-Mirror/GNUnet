@@ -11,13 +11,13 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
 
-*/
+ */
 /**
  * @file util/test_crypto_ecc_dlog.c
  * @brief testcase for ECC DLOG calculation
@@ -48,12 +48,12 @@
 
 /**
  * How many values do we test?
- */  
+ */
 #define TEST_ITER 10
 
 /**
  * Range of values to use for MATH tests.
- */  
+ */
 #define MATH_MAX 5
 
 
@@ -63,7 +63,7 @@
  * @param edc context for ECC operations
  */
 static void
-test_dlog (struct GNUNET_CRYPTO_EccDlogContext *edc)
+test_dlog(struct GNUNET_CRYPTO_EccDlogContext *edc)
 {
   gcry_mpi_t fact;
   gcry_mpi_t n;
@@ -74,46 +74,46 @@ test_dlog (struct GNUNET_CRYPTO_EccDlogContext *edc)
   int x;
   int iret;
 
-  GNUNET_assert (0 == gcry_mpi_ec_new (&ctx, NULL, CURVE));
-  g = gcry_mpi_ec_get_point ("g", ctx, 0);
-  GNUNET_assert (NULL != g);
-  n = gcry_mpi_ec_get_mpi ("n", ctx, 0);
-  q = gcry_mpi_point_new (0);
-  fact = gcry_mpi_new (0);
-  for (i=0;i<TEST_ITER;i++)
-  {
-    fprintf (stderr, ".");
-    x = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
-				  MAX_FACT);
-    if (0 == GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
-				       2))
+  GNUNET_assert(0 == gcry_mpi_ec_new(&ctx, NULL, CURVE));
+  g = gcry_mpi_ec_get_point("g", ctx, 0);
+  GNUNET_assert(NULL != g);
+  n = gcry_mpi_ec_get_mpi("n", ctx, 0);
+  q = gcry_mpi_point_new(0);
+  fact = gcry_mpi_new(0);
+  for (i = 0; i < TEST_ITER; i++)
     {
-      gcry_mpi_set_ui (fact, x);
-      gcry_mpi_sub (fact, n, fact);
-      x = - x;
+      fprintf(stderr, ".");
+      x = GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_WEAK,
+                                   MAX_FACT);
+      if (0 == GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_WEAK,
+                                        2))
+        {
+          gcry_mpi_set_ui(fact, x);
+          gcry_mpi_sub(fact, n, fact);
+          x = -x;
+        }
+      else
+        {
+          gcry_mpi_set_ui(fact, x);
+        }
+      gcry_mpi_ec_mul(q, fact, g, ctx);
+      if (x !=
+          (iret = GNUNET_CRYPTO_ecc_dlog(edc,
+                                         q)))
+        {
+          fprintf(stderr,
+                  "DLOG failed for value %d (%d)\n",
+                  x,
+                  iret);
+          GNUNET_assert(0);
+        }
     }
-    else 
-    {
-      gcry_mpi_set_ui (fact, x);
-    }
-    gcry_mpi_ec_mul (q, fact, g, ctx);
-    if  (x !=
-	 (iret = GNUNET_CRYPTO_ecc_dlog (edc,
-					 q)))
-    {
-      fprintf (stderr, 
-	       "DLOG failed for value %d (%d)\n", 
-	       x,
-	       iret);
-      GNUNET_assert (0);
-    }
-  }
-  gcry_mpi_release (fact);
-  gcry_mpi_release (n);
-  gcry_mpi_point_release (g);
-  gcry_mpi_point_release (q);
-  gcry_ctx_release (ctx);
-  fprintf (stderr, "\n");
+  gcry_mpi_release(fact);
+  gcry_mpi_release(n);
+  gcry_mpi_point_release(g);
+  gcry_mpi_point_release(q);
+  gcry_ctx_release(ctx);
+  fprintf(stderr, "\n");
 }
 
 
@@ -123,7 +123,7 @@ test_dlog (struct GNUNET_CRYPTO_EccDlogContext *edc)
  * @param edc context for ECC operations
  */
 static void
-test_math (struct GNUNET_CRYPTO_EccDlogContext *edc)
+test_math(struct GNUNET_CRYPTO_EccDlogContext *edc)
 {
   int i;
   int j;
@@ -135,59 +135,59 @@ test_math (struct GNUNET_CRYPTO_EccDlogContext *edc)
   gcry_mpi_point_t r_inv;
   gcry_mpi_point_t sum;
 
-  for (i=-MATH_MAX;i<MATH_MAX;i++)
-  {
-    ip = GNUNET_CRYPTO_ecc_dexp (edc, i);
-    for (j=-MATH_MAX;j<MATH_MAX;j++)
+  for (i = -MATH_MAX; i < MATH_MAX; i++)
     {
-      fprintf (stderr, ".");
-      jp = GNUNET_CRYPTO_ecc_dexp (edc, j);
-      GNUNET_CRYPTO_ecc_rnd (edc,
-			     &r,
-			     &r_inv);
-      ir = GNUNET_CRYPTO_ecc_add (edc, ip, r);
-      irj = GNUNET_CRYPTO_ecc_add (edc, ir, jp);
-      sum = GNUNET_CRYPTO_ecc_add (edc, irj, r_inv);
-      GNUNET_assert (i + j ==
-		     GNUNET_CRYPTO_ecc_dlog (edc,
-					     sum));
-      GNUNET_CRYPTO_ecc_free (jp);
-      GNUNET_CRYPTO_ecc_free (ir);
-      GNUNET_CRYPTO_ecc_free (irj);
-      GNUNET_CRYPTO_ecc_free (r);
-      GNUNET_CRYPTO_ecc_free (r_inv);
-      GNUNET_CRYPTO_ecc_free (sum);
+      ip = GNUNET_CRYPTO_ecc_dexp(edc, i);
+      for (j = -MATH_MAX; j < MATH_MAX; j++)
+        {
+          fprintf(stderr, ".");
+          jp = GNUNET_CRYPTO_ecc_dexp(edc, j);
+          GNUNET_CRYPTO_ecc_rnd(edc,
+                                &r,
+                                &r_inv);
+          ir = GNUNET_CRYPTO_ecc_add(edc, ip, r);
+          irj = GNUNET_CRYPTO_ecc_add(edc, ir, jp);
+          sum = GNUNET_CRYPTO_ecc_add(edc, irj, r_inv);
+          GNUNET_assert(i + j ==
+                        GNUNET_CRYPTO_ecc_dlog(edc,
+                                               sum));
+          GNUNET_CRYPTO_ecc_free(jp);
+          GNUNET_CRYPTO_ecc_free(ir);
+          GNUNET_CRYPTO_ecc_free(irj);
+          GNUNET_CRYPTO_ecc_free(r);
+          GNUNET_CRYPTO_ecc_free(r_inv);
+          GNUNET_CRYPTO_ecc_free(sum);
+        }
+      GNUNET_CRYPTO_ecc_free(ip);
     }
-    GNUNET_CRYPTO_ecc_free (ip);
-  }
-  fprintf (stderr, "\n");
+  fprintf(stderr, "\n");
 }
 
 
 
 int
-main (int argc, char *argv[])
+main(int argc, char *argv[])
 {
   struct GNUNET_CRYPTO_EccDlogContext *edc;
 
-  if (! gcry_check_version ("1.6.0"))
-  {
-    fprintf (stderr,
-             _
-             ("libgcrypt has not the expected version (version %s is required).\n"),
-             "1.6.0");
-    return 0;
-  }
-  if (getenv ("GNUNET_GCRYPT_DEBUG"))
-    gcry_control (GCRYCTL_SET_DEBUG_FLAGS, 1u , 0);
-  GNUNET_log_setup ("test-crypto-ecc-dlog", 
-		    "WARNING", 
-		    NULL);
-  edc = GNUNET_CRYPTO_ecc_dlog_prepare (MAX_FACT,
-					MAX_MEM);
-  test_dlog (edc);
-  test_math (edc);
-  GNUNET_CRYPTO_ecc_dlog_release (edc);
+  if (!gcry_check_version("1.6.0"))
+    {
+      fprintf(stderr,
+              _
+                ("libgcrypt has not the expected version (version %s is required).\n"),
+              "1.6.0");
+      return 0;
+    }
+  if (getenv("GNUNET_GCRYPT_DEBUG"))
+    gcry_control(GCRYCTL_SET_DEBUG_FLAGS, 1u, 0);
+  GNUNET_log_setup("test-crypto-ecc-dlog",
+                   "WARNING",
+                   NULL);
+  edc = GNUNET_CRYPTO_ecc_dlog_prepare(MAX_FACT,
+                                       MAX_MEM);
+  test_dlog(edc);
+  test_math(edc);
+  GNUNET_CRYPTO_ecc_dlog_release(edc);
   return 0;
 }
 

@@ -11,12 +11,12 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 
 /**
  * @author Christian Grothoff
@@ -57,11 +57,11 @@ extern "C"
  * @return the message queue, NULL on error
  */
 struct GNUNET_MQ_Handle *
-GNUNET_CLIENT_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                       const char *service_name,
-                       const struct GNUNET_MQ_MessageHandler *handlers,
-                       GNUNET_MQ_ErrorHandler error_handler,
-                       void *error_handler_cls);
+GNUNET_CLIENT_connect(const struct GNUNET_CONFIGURATION_Handle *cfg,
+                      const char *service_name,
+                      const struct GNUNET_MQ_MessageHandler *handlers,
+                      GNUNET_MQ_ErrorHandler error_handler,
+                      void *error_handler_cls);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

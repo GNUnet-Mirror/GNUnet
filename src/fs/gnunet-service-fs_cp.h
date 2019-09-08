@@ -11,12 +11,12 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 
 /**
  * @file fs/gnunet-service-fs_cp.h
@@ -60,9 +60,7 @@
 /**
  * Performance data kept for a peer.
  */
-struct GSF_PeerPerformanceData
-{
-
+struct GSF_PeerPerformanceData {
   /**
    * List of the last clients for which this peer successfully
    * answered a query.
@@ -128,7 +126,7 @@ struct GSF_PeerPerformanceData
    * The peer's identity (pointer).
    */
   const struct GNUNET_PeerIdentity *peer;
-  
+
   /**
    * Respect rating for this peer
    */
@@ -143,7 +141,6 @@ struct GSF_PeerPerformanceData
    * Number of pending replies (queries are not counted)
    */
   unsigned int pending_replies;
-
 };
 
 
@@ -205,9 +202,9 @@ struct GSF_PeerTransmitHandle;
  * @return internal handle for the peer
  */
 void *
-GSF_peer_connect_handler (void *cls,
-			  const struct GNUNET_PeerIdentity *peer,
-			  struct GNUNET_MQ_Handle *mq);
+GSF_peer_connect_handler(void *cls,
+                         const struct GNUNET_PeerIdentity *peer,
+                         struct GNUNET_MQ_Handle *mq);
 
 
 /**
@@ -217,7 +214,7 @@ GSF_peer_connect_handler (void *cls,
  * @return NULL if this peer is not currently connected
  */
 struct GSF_ConnectedPeer *
-GSF_peer_get_ (const struct GNUNET_PeerIdentity *peer);
+GSF_peer_get_(const struct GNUNET_PeerIdentity *peer);
 
 
 /**
@@ -227,8 +224,8 @@ GSF_peer_get_ (const struct GNUNET_PeerIdentity *peer);
  * @param latency current latency value
  */
 void
-GSF_update_peer_latency_ (const struct GNUNET_PeerIdentity *id,
-			  struct GNUNET_TIME_Relative latency);
+GSF_update_peer_latency_(const struct GNUNET_PeerIdentity *id,
+                         struct GNUNET_TIME_Relative latency);
 
 
 /**
@@ -242,10 +239,10 @@ GSF_update_peer_latency_ (const struct GNUNET_PeerIdentity *id,
  * @param env envelope of message to send
  */
 void
-GSF_peer_transmit_ (struct GSF_ConnectedPeer *cp,
-                    int is_query,
-                    uint32_t priority,
-		    struct GNUNET_MQ_Envelope *env);
+GSF_peer_transmit_(struct GSF_ConnectedPeer *cp,
+                   int is_query,
+                   uint32_t priority,
+                   struct GNUNET_MQ_Envelope *env);
 
 
 /**
@@ -256,9 +253,9 @@ GSF_peer_transmit_ (struct GSF_ConnectedPeer *cp,
  * @param request_priority priority of the original request
  */
 void
-GSF_peer_update_performance_ (struct GSF_ConnectedPeer *cp,
-                              struct GNUNET_TIME_Absolute request_time,
-                              uint32_t request_priority);
+GSF_peer_update_performance_(struct GSF_ConnectedPeer *cp,
+                             struct GNUNET_TIME_Absolute request_time,
+                             uint32_t request_priority);
 
 
 /**
@@ -269,8 +266,8 @@ GSF_peer_update_performance_ (struct GSF_ConnectedPeer *cp,
  * @param initiator_client local client on responsible for query
  */
 void
-GSF_peer_update_responder_client_ (struct GSF_ConnectedPeer *cp,
-                                   struct GSF_LocalClient *initiator_client);
+GSF_peer_update_responder_client_(struct GSF_ConnectedPeer *cp,
+                                  struct GSF_LocalClient *initiator_client);
 
 
 /**
@@ -281,9 +278,9 @@ GSF_peer_update_responder_client_ (struct GSF_ConnectedPeer *cp,
  * @param initiator_peer other peer responsible for query
  */
 void
-GSF_peer_update_responder_peer_ (struct GSF_ConnectedPeer *cp,
-                                 const struct GSF_ConnectedPeer
-                                 *initiator_peer);
+GSF_peer_update_responder_peer_(struct GSF_ConnectedPeer *cp,
+                                const struct GSF_ConnectedPeer
+                                *initiator_peer);
 
 
 /**
@@ -293,8 +290,8 @@ GSF_peer_update_responder_peer_ (struct GSF_ConnectedPeer *cp,
  * @param msm the actual message
  */
 void
-handle_p2p_migration_stop (void *cls,
-			   const struct MigrationStopMessage *message);
+handle_p2p_migration_stop(void *cls,
+                          const struct MigrationStopMessage *message);
 
 
 /**
@@ -304,8 +301,8 @@ handle_p2p_migration_stop (void *cls,
  * @param gm the actual message
  */
 void
-handle_p2p_get (void *cls,
-		const struct GetMessage *gm);
+handle_p2p_get(void *cls,
+               const struct GetMessage *gm);
 
 
 /**
@@ -315,7 +312,7 @@ handle_p2p_get (void *cls,
  * @return performance data record for the peer
  */
 struct GSF_PeerPerformanceData *
-GSF_get_peer_performance_data_ (struct GSF_ConnectedPeer *cp);
+GSF_get_peer_performance_data_(struct GSF_ConnectedPeer *cp);
 
 
 /**
@@ -326,8 +323,8 @@ GSF_get_peer_performance_data_ (struct GSF_ConnectedPeer *cp);
  * @param block_time until when to block
  */
 void
-GSF_block_peer_migration_ (struct GSF_ConnectedPeer *cp,
-                           struct GNUNET_TIME_Absolute block_time);
+GSF_block_peer_migration_(struct GSF_ConnectedPeer *cp,
+                          struct GNUNET_TIME_Absolute block_time);
 
 
 /**
@@ -339,9 +336,9 @@ GSF_block_peer_migration_ (struct GSF_ConnectedPeer *cp,
  * @param internal_cls our `struct GSF_ConnectedPeer` for @a peer
  */
 void
-GSF_peer_disconnect_handler (void *cls,
-			     const struct GNUNET_PeerIdentity *peer,
-			     void *internal_cls);
+GSF_peer_disconnect_handler(void *cls,
+                            const struct GNUNET_PeerIdentity *peer,
+                            void *internal_cls);
 
 
 /**
@@ -351,7 +348,7 @@ GSF_peer_disconnect_handler (void *cls,
  * @param lc handle to the local client (henceforth invalid)
  */
 void
-GSF_handle_local_client_disconnect_ (const struct GSF_LocalClient *lc);
+GSF_handle_local_client_disconnect_(const struct GSF_LocalClient *lc);
 
 
 /**
@@ -364,8 +361,8 @@ GSF_handle_local_client_disconnect_ (const struct GSF_LocalClient *lc);
  * @param pref preference change
  */
 void
-GSF_connected_peer_change_preference_ (struct GSF_ConnectedPeer *cp,
-                                       uint64_t pref);
+GSF_connected_peer_change_preference_(struct GSF_ConnectedPeer *cp,
+                                      uint64_t pref);
 
 
 /**
@@ -375,8 +372,8 @@ GSF_connected_peer_change_preference_ (struct GSF_ConnectedPeer *cp,
  * @param id identity to set (written to)
  */
 void
-GSF_connected_peer_get_identity_ (const struct GSF_ConnectedPeer *cp,
-                                  struct GNUNET_PeerIdentity *id);
+GSF_connected_peer_get_identity_(const struct GSF_ConnectedPeer *cp,
+                                 struct GNUNET_PeerIdentity *id);
 
 
 /**
@@ -386,7 +383,7 @@ GSF_connected_peer_get_identity_ (const struct GSF_ConnectedPeer *cp,
  * @return reference to peer identity, valid until peer disconnects (!)
  */
 const struct GNUNET_PeerIdentity *
-GSF_connected_peer_get_identity2_ (const struct GSF_ConnectedPeer *cp);
+GSF_connected_peer_get_identity2_(const struct GSF_ConnectedPeer *cp);
 
 
 
@@ -397,21 +394,21 @@ GSF_connected_peer_get_identity2_ (const struct GSF_ConnectedPeer *cp);
  * @param it_cls closure for it
  */
 void
-GSF_iterate_connected_peers_ (GSF_ConnectedPeerIterator it, void *it_cls);
+GSF_iterate_connected_peers_(GSF_ConnectedPeerIterator it, void *it_cls);
 
 
 /**
  * Initialize peer management subsystem.
  */
 void
-GSF_connected_peer_init_ (void);
+GSF_connected_peer_init_(void);
 
 
 /**
  * Shutdown peer management subsystem.
  */
 void
-GSF_connected_peer_done_ (void);
+GSF_connected_peer_done_(void);
 
 
 #endif

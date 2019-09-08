@@ -11,12 +11,12 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 /**
  * @file util/test_scheduler_delay.c
  * @brief testcase for delay of scheduler, measures how
@@ -43,51 +43,51 @@ static unsigned long long cumDelta;
  * @param cls closure
  */
 static void
-test_task (void *cls)
+test_task(void *cls)
 {
   struct GNUNET_TIME_Absolute now;
 
-  now = GNUNET_TIME_absolute_get ();
+  now = GNUNET_TIME_absolute_get();
   if (now.abs_value_us > target.abs_value_us)
     cumDelta += (now.abs_value_us - target.abs_value_us);
   else
     cumDelta += (target.abs_value_us - now.abs_value_us);
   target =
-      GNUNET_TIME_relative_to_absolute (GNUNET_TIME_relative_multiply
-                                        (GNUNET_TIME_UNIT_MICROSECONDS, i));
-  fprintf (stderr, "%s",  ".");
+    GNUNET_TIME_relative_to_absolute(GNUNET_TIME_relative_multiply
+                                       (GNUNET_TIME_UNIT_MICROSECONDS, i));
+  fprintf(stderr, "%s", ".");
   if (i > MAXV)
-  {
-    fprintf (stderr, "%s",  "\n");
-    return;
-  }
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
-                                (GNUNET_TIME_UNIT_MICROSECONDS, i),
-				&test_task,
-                                NULL);
+    {
+      fprintf(stderr, "%s", "\n");
+      return;
+    }
+  GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_relative_multiply
+                                 (GNUNET_TIME_UNIT_MICROSECONDS, i),
+                               &test_task,
+                               NULL);
   i += INCR;
 }
 
 
 int
-main (int argc, char *argv[])
+main(int argc, char *argv[])
 {
-  GNUNET_log_setup ("test-scheduler-delay",
-		    "WARNING",
-		    NULL);
-  target = GNUNET_TIME_absolute_get ();
-  GNUNET_SCHEDULER_run (&test_task, NULL);
-  fprintf (stdout,
-	   "Sleep precision: %llu microseconds (average delta). ",
-           cumDelta / (MAXV / INCR));
+  GNUNET_log_setup("test-scheduler-delay",
+                   "WARNING",
+                   NULL);
+  target = GNUNET_TIME_absolute_get();
+  GNUNET_SCHEDULER_run(&test_task, NULL);
+  fprintf(stdout,
+          "Sleep precision: %llu microseconds (average delta). ",
+          cumDelta / (MAXV / INCR));
   if (cumDelta <= 500 * MAXV / INCR)
-    fprintf (stdout, "%s",  "Timer precision is excellent.\n");
+    fprintf(stdout, "%s", "Timer precision is excellent.\n");
   else if (cumDelta <= 5000 * MAXV / INCR)        /* 5 ms average deviation */
-    fprintf (stdout, "%s",  "Timer precision is good.\n");
+    fprintf(stdout, "%s", "Timer precision is good.\n");
   else if (cumDelta > 25000 * MAXV / INCR)
-    fprintf (stdout, "%s",  "Timer precision is awful.\n");
+    fprintf(stdout, "%s", "Timer precision is awful.\n");
   else
-    fprintf (stdout, "%s",  "Timer precision is acceptable.\n");
+    fprintf(stdout, "%s", "Timer precision is acceptable.\n");
   return 0;
 }
 

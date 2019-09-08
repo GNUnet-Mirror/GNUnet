@@ -11,12 +11,12 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 
 /**
  * @file include/gnunet_abe_lib.h
@@ -60,7 +60,7 @@ struct GNUNET_CRYPTO_AbeKey;
  * @return fresh private key; free using #GNUNET_ABE_cpabe_delete_master_key
  */
 struct GNUNET_ABE_AbeMasterKey *
-GNUNET_ABE_cpabe_create_master_key (void);
+GNUNET_ABE_cpabe_create_master_key(void);
 
 /**
  * @ingroup abe
@@ -70,7 +70,7 @@ GNUNET_ABE_cpabe_create_master_key (void);
  * @return fresh private key; free using #GNUNET_free
  */
 void
-GNUNET_ABE_cpabe_delete_master_key (struct GNUNET_ABE_AbeMasterKey *key);
+GNUNET_ABE_cpabe_delete_master_key(struct GNUNET_ABE_AbeMasterKey *key);
 
 /**
  * @ingroup abe
@@ -81,8 +81,8 @@ GNUNET_ABE_cpabe_delete_master_key (struct GNUNET_ABE_AbeMasterKey *key);
  * @return fresh private key; free using #GNUNET_ABE_cpabe_delete_key
  */
 struct GNUNET_ABE_AbeKey *
-GNUNET_ABE_cpabe_create_key (struct GNUNET_ABE_AbeMasterKey *key,
-                                char **attrs);
+GNUNET_ABE_cpabe_create_key(struct GNUNET_ABE_AbeMasterKey *key,
+                            char **attrs);
 
 /**
  * @ingroup abe
@@ -93,8 +93,8 @@ GNUNET_ABE_cpabe_create_key (struct GNUNET_ABE_AbeMasterKey *key,
  * @return fresh private key; free using #GNUNET_free
  */
 void
-GNUNET_ABE_cpabe_delete_key (struct GNUNET_ABE_AbeKey *key,
-                                int delete_pub);
+GNUNET_ABE_cpabe_delete_key(struct GNUNET_ABE_AbeKey *key,
+                            int delete_pub);
 
 
 /**
@@ -109,11 +109,11 @@ GNUNET_ABE_cpabe_delete_key (struct GNUNET_ABE_AbeKey *key,
  * @return the size of the encrypted block, -1 for errors
  */
 ssize_t
-GNUNET_ABE_cpabe_encrypt (const void *block,
-                             size_t size,
-                             const char *policy,
-                             const struct GNUNET_ABE_AbeMasterKey *key,
-                             void **result);
+GNUNET_ABE_cpabe_encrypt(const void *block,
+                         size_t size,
+                         const char *policy,
+                         const struct GNUNET_ABE_AbeMasterKey *key,
+                         void **result);
 
 /**
  * @ingroup abe
@@ -126,10 +126,10 @@ GNUNET_ABE_cpabe_encrypt (const void *block,
  * @return the size of the encrypted block, -1 for errors
  */
 ssize_t
-GNUNET_ABE_cpabe_decrypt (const void *block,
-                             size_t size,
-                             const struct GNUNET_ABE_AbeKey *key,
-                             void **result);
+GNUNET_ABE_cpabe_decrypt(const void *block,
+                         size_t size,
+                         const struct GNUNET_ABE_AbeKey *key,
+                         void **result);
 
 /**
  * @ingroup abe
@@ -140,8 +140,8 @@ GNUNET_ABE_cpabe_decrypt (const void *block,
  * @return the size of the encrypted block, -1 for errors
  */
 ssize_t
-GNUNET_ABE_cpabe_serialize_key (const struct GNUNET_ABE_AbeKey *key,
-                                   void **result);
+GNUNET_ABE_cpabe_serialize_key(const struct GNUNET_ABE_AbeKey *key,
+                               void **result);
 
 /**
  * @ingroup abe
@@ -152,8 +152,8 @@ GNUNET_ABE_cpabe_serialize_key (const struct GNUNET_ABE_AbeKey *key,
  * @return the ABE key. NULL of unsuccessful
  */
 struct GNUNET_ABE_AbeKey*
-GNUNET_ABE_cpabe_deserialize_key (const void *data,
-                                     size_t len);
+GNUNET_ABE_cpabe_deserialize_key(const void *data,
+                                 size_t len);
 
 /**
  * @ingroup abe
@@ -164,8 +164,8 @@ GNUNET_ABE_cpabe_deserialize_key (const void *data,
  * @return the size of the encrypted block, -1 for errors
  */
 ssize_t
-GNUNET_ABE_cpabe_serialize_master_key (const struct GNUNET_ABE_AbeMasterKey *key,
-                                          void **result);
+GNUNET_ABE_cpabe_serialize_master_key(const struct GNUNET_ABE_AbeMasterKey *key,
+                                      void **result);
 
 /**
  * @ingroup abe
@@ -176,8 +176,8 @@ GNUNET_ABE_cpabe_serialize_master_key (const struct GNUNET_ABE_AbeMasterKey *key
  * @return the ABE key. NULL of unsuccessful
  */
 struct GNUNET_ABE_AbeMasterKey*
-GNUNET_ABE_cpabe_deserialize_master_key (const void *data,
-                                            size_t len);
+GNUNET_ABE_cpabe_deserialize_master_key(const void *data,
+                                        size_t len);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

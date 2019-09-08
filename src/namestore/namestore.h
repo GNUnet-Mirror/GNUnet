@@ -11,12 +11,12 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 
 /**
  * @file namestore/namestore.h
@@ -37,8 +37,7 @@ GNUNET_NETWORK_STRUCT_BEGIN
 /**
  * Generic namestore message with op id
  */
-struct GNUNET_NAMESTORE_Header
-{
+struct GNUNET_NAMESTORE_Header {
   /**
    * header.type will be GNUNET_MESSAGE_TYPE_NAMESTORE_*
    * header.size will be message size
@@ -55,8 +54,7 @@ struct GNUNET_NAMESTORE_Header
 /**
  * Store a record to the namestore (as authority).
  */
-struct RecordStoreMessage
-{
+struct RecordStoreMessage {
   /**
    * Type will be #GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_STORE
    */
@@ -102,8 +100,7 @@ struct RecordStoreMessage
 /**
  * Response to a record storage request.
  */
-struct RecordStoreResponseMessage
-{
+struct RecordStoreResponseMessage {
   /**
    * Type will be #GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_STORE_RESPONSE
    */
@@ -119,8 +116,7 @@ struct RecordStoreResponseMessage
 /**
  * Lookup a label
  */
-struct LabelLookupMessage
-{
+struct LabelLookupMessage {
   /**
    * Type will be #GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_LOOKUP
    */
@@ -145,8 +141,7 @@ struct LabelLookupMessage
 /**
  * Lookup a label
  */
-struct LabelLookupResponseMessage
-{
+struct LabelLookupResponseMessage {
   /**
    * Type will be #GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_LOOKUP_RESPONSE
    */
@@ -189,8 +184,7 @@ struct LabelLookupResponseMessage
 /**
  * Lookup a name for a zone hash
  */
-struct ZoneToNameMessage
-{
+struct ZoneToNameMessage {
   /**
    * Type will be #GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_TO_NAME
    */
@@ -211,8 +205,7 @@ struct ZoneToNameMessage
 /**
  * Respone for zone to name lookup
  */
-struct ZoneToNameResponseMessage
-{
+struct ZoneToNameResponseMessage {
   /**
    * Type will be #GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_TO_NAME_RESPONSE
    */
@@ -248,15 +241,13 @@ struct ZoneToNameResponseMessage
    * name with length name_len
    * serialized record data with rd_count records
    */
-
 };
 
 
 /**
  * Record is returned from the namestore (as authority).
  */
-struct RecordResultMessage
-{
+struct RecordResultMessage {
   /**
    * Type will be #GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_RESULT
    */
@@ -297,8 +288,7 @@ struct RecordResultMessage
 /**
  * Start monitoring a zone.
  */
-struct ZoneMonitorStartMessage
-{
+struct ZoneMonitorStartMessage {
   /**
    * Type will be #GNUNET_MESSAGE_TYPE_NAMESTORE_MONITOR_START
    */
@@ -314,15 +304,13 @@ struct ZoneMonitorStartMessage
    * Zone key.
    */
   struct GNUNET_CRYPTO_EcdsaPrivateKey zone;
-
 };
 
 
 /**
  * Ask for next result of zone iteration for the given operation
  */
-struct ZoneMonitorNextMessage
-{
+struct ZoneMonitorNextMessage {
   /**
    * Type will be #GNUNET_MESSAGE_TYPE_NAMESTORE_MONITOR_NEXT
    */
@@ -339,7 +327,6 @@ struct ZoneMonitorNextMessage
    * should be send again). In NBO.
    */
   uint64_t limit;
-
 };
 
 
@@ -347,8 +334,7 @@ struct ZoneMonitorNextMessage
 /**
  * Start a zone iteration for the given zone
  */
-struct ZoneIterationStartMessage
-{
+struct ZoneIterationStartMessage {
   /**
    * Type will be #GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_ITERATION_START
    */
@@ -358,15 +344,13 @@ struct ZoneIterationStartMessage
    * Zone key.  All zeros for "all zones".
    */
   struct GNUNET_CRYPTO_EcdsaPrivateKey zone;
-
 };
 
 
 /**
  * Ask for next result of zone iteration for the given operation
  */
-struct ZoneIterationNextMessage
-{
+struct ZoneIterationNextMessage {
   /**
    * Type will be #GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_ITERATION_NEXT
    */
@@ -378,15 +362,13 @@ struct ZoneIterationNextMessage
    * should be send again). In NBO.
    */
   uint64_t limit;
-
 };
 
 
 /**
  * Stop zone iteration for the given operation
  */
-struct ZoneIterationStopMessage
-{
+struct ZoneIterationStopMessage {
   /**
    * Type will be #GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_ITERATION_STOP
    */

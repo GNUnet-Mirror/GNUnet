@@ -11,12 +11,12 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 
 /**
  * @author Christian Grothoff
@@ -54,15 +54,13 @@ extern "C"
  * @param block lookup result
  */
 typedef void (*GNUNET_NAMECACHE_BlockCallback) (void *cls,
-						const struct GNUNET_GNSRECORD_Block *block);
+                                                const struct GNUNET_GNSRECORD_Block *block);
 
 
 /**
  * @brief struct returned by the initialization function of the plugin
  */
-struct GNUNET_NAMECACHE_PluginFunctions
-{
-
+struct GNUNET_NAMECACHE_PluginFunctions {
   /**
    * Closure to pass to all plugin functions.
    */
@@ -77,7 +75,7 @@ struct GNUNET_NAMECACHE_PluginFunctions
    * @return #GNUNET_OK on success, else #GNUNET_SYSERR
    */
   int (*cache_block) (void *cls,
-		      const struct GNUNET_GNSRECORD_Block *block);
+                      const struct GNUNET_GNSRECORD_Block *block);
 
 
   /**
@@ -91,10 +89,8 @@ struct GNUNET_NAMECACHE_PluginFunctions
    * @return #GNUNET_OK on success, #GNUNET_NO if there were no results, #GNUNET_SYSERR on error
    */
   int (*lookup_block) (void *cls,
-		       const struct GNUNET_HashCode *query,
-		       GNUNET_NAMECACHE_BlockCallback iter, void *iter_cls);
-
-
+                       const struct GNUNET_HashCode *query,
+                       GNUNET_NAMECACHE_BlockCallback iter, void *iter_cls);
 };
 
 

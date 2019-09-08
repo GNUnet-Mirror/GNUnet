@@ -11,12 +11,12 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 
 /**
  * @file rps/rps-sampler_client.h
@@ -53,7 +53,7 @@ struct RPS_SamplerRequestHandleSingleInfo;
  * @return the size of the sampler
  */
 unsigned int
-RPS_sampler_get_size (struct RPS_Sampler *sampler);
+RPS_sampler_get_size(struct RPS_Sampler *sampler);
 
 
 /**
@@ -63,7 +63,7 @@ RPS_sampler_get_size (struct RPS_Sampler *sampler);
  * @param new_size the new size of the sampler (not 0)
  */
 void
-RPS_sampler_resize (struct RPS_Sampler *sampler, unsigned int new_size);
+RPS_sampler_resize(struct RPS_Sampler *sampler, unsigned int new_size);
 
 
 /**
@@ -74,8 +74,8 @@ RPS_sampler_resize (struct RPS_Sampler *sampler, unsigned int new_size);
  * @return a handle to a sampler that consists of sampler elements.
  */
 struct RPS_Sampler *
-RPS_sampler_mod_init (size_t init_size,
-                      struct GNUNET_TIME_Relative max_round_interval);
+RPS_sampler_mod_init(size_t init_size,
+                     struct GNUNET_TIME_Relative max_round_interval);
 
 
 /**
@@ -84,9 +84,9 @@ RPS_sampler_mod_init (size_t init_size,
  * @param sampler the sampler to update.
  * @param id the PeerID that is put in the sampler
  */
-  void
-RPS_sampler_update (struct RPS_Sampler *sampler,
-                    const struct GNUNET_PeerIdentity *id);
+void
+RPS_sampler_update(struct RPS_Sampler *sampler,
+                   const struct GNUNET_PeerIdentity *id);
 
 
 /**
@@ -98,9 +98,9 @@ RPS_sampler_update (struct RPS_Sampler *sampler,
  * @param sampler the sampler to reinitialise a sampler in.
  * @param id the id of the samplers to update.
  */
-  void
-RPS_sampler_reinitialise_by_value (struct RPS_Sampler *sampler,
-                                   const struct GNUNET_PeerIdentity *id);
+void
+RPS_sampler_reinitialise_by_value(struct RPS_Sampler *sampler,
+                                  const struct GNUNET_PeerIdentity *id);
 
 
 /**
@@ -116,10 +116,10 @@ RPS_sampler_reinitialise_by_value (struct RPS_Sampler *sampler,
  * @param num_peers the number of peers requested
  */
 struct RPS_SamplerRequestHandle *
-RPS_sampler_get_n_rand_peers (struct RPS_Sampler *sampler,
-                              uint32_t num_peers,
-                              RPS_sampler_n_rand_peers_ready_cb cb,
-                              void *cls);
+RPS_sampler_get_n_rand_peers(struct RPS_Sampler *sampler,
+                             uint32_t num_peers,
+                             RPS_sampler_n_rand_peers_ready_cb cb,
+                             void *cls);
 
 
 /**
@@ -128,7 +128,7 @@ RPS_sampler_get_n_rand_peers (struct RPS_Sampler *sampler,
  * @param req_handle the handle to the request
  */
 void
-RPS_sampler_request_cancel (struct RPS_SamplerRequestHandle *req_handle);
+RPS_sampler_request_cancel(struct RPS_SamplerRequestHandle *req_handle);
 
 
 /**
@@ -139,9 +139,9 @@ RPS_sampler_request_cancel (struct RPS_SamplerRequestHandle *req_handle);
  *
  * @return the number of occurrences of id.
  */
-  uint32_t
-RPS_sampler_count_id (struct RPS_Sampler *sampler,
-                      const struct GNUNET_PeerIdentity *id);
+uint32_t
+RPS_sampler_count_id(struct RPS_Sampler *sampler,
+                     const struct GNUNET_PeerIdentity *id);
 
 
 /**
@@ -149,8 +149,8 @@ RPS_sampler_count_id (struct RPS_Sampler *sampler,
  *
  * @param sampler the sampler to destroy.
  */
-  void
-RPS_sampler_destroy (struct RPS_Sampler *sampler);
+void
+RPS_sampler_destroy(struct RPS_Sampler *sampler);
 
 #endif /* RPS_SAMPLER_CLIENT_H */
 /* end of gnunet-service-rps.c */

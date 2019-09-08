@@ -11,12 +11,12 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 /**
  * Message types for STUN server resolution
  *
@@ -28,18 +28,17 @@
  */
 
 
-#define STUN_IGNORE		(0)
-#define STUN_ACCEPT		(1)
+#define STUN_IGNORE             (0)
+#define STUN_ACCEPT             (1)
 
-#define STUN_MAGIC_COOKIE	0x2112A442
+#define STUN_MAGIC_COOKIE       0x2112A442
 
 typedef struct {
   uint32_t id[3];
 } GNUNET_PACKED stun_trans_id;
 
 
-struct stun_header
-{
+struct stun_header {
   uint16_t msgtype;
   uint16_t msglen;
   uint32_t magic;
@@ -47,8 +46,7 @@ struct stun_header
 } GNUNET_PACKED;
 
 
-struct stun_attr
-{
+struct stun_attr {
   uint16_t attr;
   uint16_t len;
 } GNUNET_PACKED;
@@ -57,14 +55,13 @@ struct stun_attr
 /**
  * The format normally used for addresses carried by STUN messages.
  */
-struct stun_addr
-{
-  uint8_t  unused;
+struct stun_addr {
+  uint8_t unused;
 
   /**
    * Address family, we expect AF_INET.
    */
-  uint8_t  family;
+  uint8_t family;
 
   /**
    * Port number.
@@ -74,7 +71,7 @@ struct stun_addr
   /**
    * IPv4 address. Should this be "struct in_addr"?
    */
-  uint32_t   addr;
+  uint32_t addr;
 } GNUNET_PACKED;
 
 
@@ -136,10 +133,10 @@ enum StunAttributes {
  * @return the converted StunClass
  */
 static enum StunClasses
-decode_class (int msg)
+decode_class(int msg)
 {
   /* Sorry for the magic, but this maps the class according to rfc5245 */
-  return (enum StunClasses) ((msg & 0x0010) >> 4) | ((msg & 0x0100) >> 7);
+  return (enum StunClasses)((msg & 0x0010) >> 4) | ((msg & 0x0100) >> 7);
 }
 
 
@@ -150,9 +147,9 @@ decode_class (int msg)
  * @return the converted StunMethod
  */
 static enum StunMethods
-decode_method (int msg)
+decode_method(int msg)
 {
-  return (enum StunMethods) (msg & 0x000f) | ((msg & 0x00e0) >> 1) | ((msg & 0x3e00) >> 2);
+  return (enum StunMethods)(msg & 0x000f) | ((msg & 0x00e0) >> 1) | ((msg & 0x3e00) >> 2);
 }
 
 
@@ -164,7 +161,7 @@ decode_method (int msg)
  */
 GNUNET_UNUSED
 static const char *
-stun_msg2str (int msg)
+stun_msg2str(int msg)
 {
   static const struct {
     enum StunClasses value;
@@ -189,25 +186,25 @@ stun_msg2str (int msg)
   enum StunClasses cvalue;
   enum StunMethods mvalue;
 
-  cvalue = decode_class (msg);
+  cvalue = decode_class(msg);
   for (unsigned int i = 0; classes[i].name; i++)
     if (classes[i].value == cvalue)
-    {
-      msg_class = classes[i].name;
-      break;
-    }
-  mvalue = decode_method (msg);
+      {
+        msg_class = classes[i].name;
+        break;
+      }
+  mvalue = decode_method(msg);
   for (unsigned int i = 0; methods[i].name; i++)
     if (methods[i].value == mvalue)
-    {
-      method = methods[i].name;
-      break;
-    }
-  GNUNET_snprintf (result,
-                   sizeof(result),
-                   "%s %s",
-                   method ? : "Unknown Method",
-                   msg_class ? : "Unknown Class Message");
+      {
+        method = methods[i].name;
+        break;
+      }
+  GNUNET_snprintf(result,
+                  sizeof(result),
+                  "%s %s",
+                  method ? : "Unknown Method",
+                  msg_class ? : "Unknown Class Message");
   return result;
 }
 
@@ -220,7 +217,7 @@ stun_msg2str (int msg)
  */
 GNUNET_UNUSED
 static const char *
-stun_attr2str (enum StunAttributes msg)
+stun_attr2str(enum StunAttributes msg)
 {
   static const struct {
     enum StunAttributes value;

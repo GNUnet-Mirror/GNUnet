@@ -11,12 +11,12 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 /**
  * @file transport/test_transport_testing_restart.c
  * @brief test case for transport testing library:
@@ -26,7 +26,7 @@
 #include "gnunet_transport_service.h"
 #include "transport-testing.h"
 
-#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30)
+#define TIMEOUT GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 30)
 
 
 static struct GNUNET_SCHEDULER_Task *timeout_task;
@@ -39,124 +39,123 @@ static int ret;
 
 
 static void
-end ()
+end()
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Stopping peers\n");
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+             "Stopping peers\n");
   if (NULL != timeout_task)
-    GNUNET_SCHEDULER_cancel (timeout_task);
+    GNUNET_SCHEDULER_cancel(timeout_task);
   if (NULL != p)
-    GNUNET_TRANSPORT_TESTING_stop_peer (p);
+    GNUNET_TRANSPORT_TESTING_stop_peer(p);
   if (NULL != tth)
-    GNUNET_TRANSPORT_TESTING_done (tth);
+    GNUNET_TRANSPORT_TESTING_done(tth);
 }
 
 
 static void
-end_badly ()
+end_badly()
 {
   timeout_task = NULL;
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-              "Timeout!\n");
-  end ();
+  GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
+             "Timeout!\n");
+  end();
   ret = GNUNET_SYSERR;
 }
 
 
 static void
-restart_cb (void *cls)
+restart_cb(void *cls)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Peer %u (`%s') successfully restarted\n",
-              p->no,
-              GNUNET_i2s (&p->id));
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+             "Peer %u (`%s') successfully restarted\n",
+             p->no,
+             GNUNET_i2s(&p->id));
   ret = 0;
-  GNUNET_SCHEDULER_add_now (&end,
-                            NULL);
+  GNUNET_SCHEDULER_add_now(&end,
+                           NULL);
 }
 
 
 static void
-restart_task ()
+restart_task()
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Peer %u (`%s') restarting\n",
-              p->no,
-              GNUNET_i2s (&p->id));
-  GNUNET_TRANSPORT_TESTING_restart_peer (p,
-                                         &restart_cb,
-                                         p);
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+             "Peer %u (`%s') restarting\n",
+             p->no,
+             GNUNET_i2s(&p->id));
+  GNUNET_TRANSPORT_TESTING_restart_peer(p,
+                                        &restart_cb,
+                                        p);
 }
 
 
 static void
-start_cb (void *cls)
+start_cb(void *cls)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Peer %u (`%s') successfully started\n",
-              p->no,
-              GNUNET_i2s (&p->id));
-  GNUNET_SCHEDULER_add_now (&restart_task,
-                            NULL);
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+             "Peer %u (`%s') successfully started\n",
+             p->no,
+             GNUNET_i2s(&p->id));
+  GNUNET_SCHEDULER_add_now(&restart_task,
+                           NULL);
 }
 
 
 static void
-run (void *cls,
-     char *const *args,
-     const char *cfgfile,
-     const struct GNUNET_CONFIGURATION_Handle *cfg)
+run(void *cls,
+    char *const *args,
+    const char *cfgfile,
+    const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   ret = 1;
-  tth = GNUNET_TRANSPORT_TESTING_init ();
-  GNUNET_assert (NULL != tth);
+  tth = GNUNET_TRANSPORT_TESTING_init();
+  GNUNET_assert(NULL != tth);
 
   timeout_task
-    = GNUNET_SCHEDULER_add_delayed (TIMEOUT,
-                                    &end_badly,
-                                    NULL);
+    = GNUNET_SCHEDULER_add_delayed(TIMEOUT,
+                                   &end_badly,
+                                   NULL);
   p = GNUNET_TRANSPORT_TESTING_start_peer(tth,
                                           cfgfile,
                                           1,
                                           NULL, /* receive cb */
                                           NULL, /* connect cb */
                                           NULL, /* disconnect cb */
-					  NULL, /* nc/nd closure */
+                                          NULL, /* nc/nd closure */
                                           start_cb, /* startup cb */
                                           NULL); /* closure */
   if (NULL == p)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Failed to start peer\n");
-    end ();
-    ret = 1;
-  }
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
+                 "Failed to start peer\n");
+      end();
+      ret = 1;
+    }
 }
 
 
 int
-main (int argc,
-      char *argv[])
+main(int argc,
+     char *argv[])
 {
   char *const argv_1[] = { "test_transport_testing_restart",
-    "-c",
-    "test_transport_api_data.conf",
-    NULL
-  };
+                           "-c",
+                           "test_transport_api_data.conf",
+                           NULL };
   struct GNUNET_GETOPT_CommandLineOption options[] = {
     GNUNET_GETOPT_OPTION_END
   };
 
-  GNUNET_log_setup ("test_transport_testing_restart",
-                    "WARNING",
-                    NULL);
-  GNUNET_PROGRAM_run ((sizeof (argv_1) / sizeof (char *)) - 1,
-                      argv_1,
-                      "test_transport_testing_restart",
-                      "nohelp",
-                      options,
-                      &run,
-                      NULL);
+  GNUNET_log_setup("test_transport_testing_restart",
+                   "WARNING",
+                   NULL);
+  GNUNET_PROGRAM_run((sizeof(argv_1) / sizeof(char *)) - 1,
+                     argv_1,
+                     "test_transport_testing_restart",
+                     "nohelp",
+                     options,
+                     &run,
+                     NULL);
   return ret;
 }
 

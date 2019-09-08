@@ -11,12 +11,12 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 
 /**
  * @file datastore/plugin_datastore_template.c
@@ -31,8 +31,7 @@
 /**
  * Context for all functions in this plugin.
  */
-struct Plugin
-{
+struct Plugin {
   /**
    * Our execution environment.
    */
@@ -48,11 +47,11 @@ struct Plugin
  * @return number of bytes used on disk
  */
 static void
-template_plugin_estimate_size (void *cls, unsigned long long *estimate)
+template_plugin_estimate_size(void *cls, unsigned long long *estimate)
 {
   if (NULL == estimate)
     return;
-  GNUNET_break (0);
+  GNUNET_break(0);
   *estimate = 0;
 }
 
@@ -74,21 +73,21 @@ template_plugin_estimate_size (void *cls, unsigned long long *estimate)
  * @param cont_cls continuation closure
  */
 static void
-template_plugin_put (void *cls,
-                     const struct GNUNET_HashCode *key,
-                     bool absent,
-                     uint32_t size,
-                     const void *data,
-                     enum GNUNET_BLOCK_Type type,
-                     uint32_t priority,
-                     uint32_t anonymity,
-                     uint32_t replication,
-                     struct GNUNET_TIME_Absolute expiration,
-                     PluginPutCont cont,
-                     void *cont_cls)
+template_plugin_put(void *cls,
+                    const struct GNUNET_HashCode *key,
+                    bool absent,
+                    uint32_t size,
+                    const void *data,
+                    enum GNUNET_BLOCK_Type type,
+                    uint32_t priority,
+                    uint32_t anonymity,
+                    uint32_t replication,
+                    struct GNUNET_TIME_Absolute expiration,
+                    PluginPutCont cont,
+                    void *cont_cls)
 {
-  GNUNET_break (0);
-  cont (cont_cls, key, size, GNUNET_SYSERR, "not implemented");
+  GNUNET_break(0);
+  cont(cont_cls, key, size, GNUNET_SYSERR, "not implemented");
 }
 
 
@@ -106,15 +105,15 @@ template_plugin_put (void *cls,
  * @param proc_cls closure for proc
  */
 static void
-template_plugin_get_key (void *cls,
-                         uint64_t next_uid,
-                         bool random,
-                         const struct GNUNET_HashCode *key,
-                         enum GNUNET_BLOCK_Type type,
-                         PluginDatumProcessor proc,
-                         void *proc_cls)
+template_plugin_get_key(void *cls,
+                        uint64_t next_uid,
+                        bool random,
+                        const struct GNUNET_HashCode *key,
+                        enum GNUNET_BLOCK_Type type,
+                        PluginDatumProcessor proc,
+                        void *proc_cls)
 {
-  GNUNET_break (0);
+  GNUNET_break(0);
 }
 
 
@@ -131,10 +130,10 @@ template_plugin_get_key (void *cls,
  * @param proc_cls closure for proc
  */
 static void
-template_plugin_get_replication (void *cls, PluginDatumProcessor proc,
-                                 void *proc_cls)
+template_plugin_get_replication(void *cls, PluginDatumProcessor proc,
+                                void *proc_cls)
 {
-  GNUNET_break (0);
+  GNUNET_break(0);
 }
 
 
@@ -147,10 +146,10 @@ template_plugin_get_replication (void *cls, PluginDatumProcessor proc,
  * @param proc_cls closure for proc
  */
 static void
-template_plugin_get_expiration (void *cls, PluginDatumProcessor proc,
-                                void *proc_cls)
+template_plugin_get_expiration(void *cls, PluginDatumProcessor proc,
+                               void *proc_cls)
 {
-  GNUNET_break (0);
+  GNUNET_break(0);
 }
 
 
@@ -166,11 +165,11 @@ template_plugin_get_expiration (void *cls, PluginDatumProcessor proc,
  * @param proc_cls closure for proc
  */
 static void
-template_plugin_get_zero_anonymity (void *cls, uint64_t next_uid,
-                                    enum GNUNET_BLOCK_Type type,
-                                    PluginDatumProcessor proc, void *proc_cls)
+template_plugin_get_zero_anonymity(void *cls, uint64_t next_uid,
+                                   enum GNUNET_BLOCK_Type type,
+                                   PluginDatumProcessor proc, void *proc_cls)
 {
-  GNUNET_break (0);
+  GNUNET_break(0);
 }
 
 
@@ -178,9 +177,9 @@ template_plugin_get_zero_anonymity (void *cls, uint64_t next_uid,
  * Drop database.
  */
 static void
-template_plugin_drop (void *cls)
+template_plugin_drop(void *cls)
 {
-  GNUNET_break (0);
+  GNUNET_break(0);
 }
 
 
@@ -192,11 +191,11 @@ template_plugin_drop (void *cls)
  * @param proc_cls closure for proc
  */
 static void
-template_get_keys (void *cls,
-		   PluginKeyProcessor proc,
-		   void *proc_cls)
+template_get_keys(void *cls,
+                  PluginKeyProcessor proc,
+                  void *proc_cls)
 {
-  proc (proc_cls, NULL, 0);
+  proc(proc_cls, NULL, 0);
 }
 
 
@@ -211,15 +210,15 @@ template_get_keys (void *cls,
  * @param cont_cls continuation closure for @a cont
  */
 static void
-template_plugin_remove_key (void *cls,
-                            const struct GNUNET_HashCode *key,
-                            uint32_t size,
-                            const void *data,
-                            PluginRemoveCont cont,
-                            void *cont_cls)
+template_plugin_remove_key(void *cls,
+                           const struct GNUNET_HashCode *key,
+                           uint32_t size,
+                           const void *data,
+                           PluginRemoveCont cont,
+                           void *cont_cls)
 {
-  GNUNET_break (0);
-  cont (cont_cls, key, size, GNUNET_SYSERR, "not implemented");
+  GNUNET_break(0);
+  cont(cont_cls, key, size, GNUNET_SYSERR, "not implemented");
 }
 
 
@@ -230,15 +229,15 @@ template_plugin_remove_key (void *cls,
  * @return our "struct Plugin*"
  */
 void *
-libgnunet_plugin_datastore_template_init (void *cls)
+libgnunet_plugin_datastore_template_init(void *cls)
 {
   struct GNUNET_DATASTORE_PluginEnvironment *env = cls;
   struct GNUNET_DATASTORE_PluginFunctions *api;
   struct Plugin *plugin;
 
-  plugin = GNUNET_new (struct Plugin);
+  plugin = GNUNET_new(struct Plugin);
   plugin->env = env;
-  api = GNUNET_new (struct GNUNET_DATASTORE_PluginFunctions);
+  api = GNUNET_new(struct GNUNET_DATASTORE_PluginFunctions);
   api->cls = plugin;
   api->estimate_size = &template_plugin_estimate_size;
   api->put = &template_plugin_put;
@@ -249,8 +248,8 @@ libgnunet_plugin_datastore_template_init (void *cls)
   api->drop = &template_plugin_drop;
   api->get_keys = &template_get_keys;
   api->remove_key = &template_plugin_remove_key;
-  GNUNET_log_from (GNUNET_ERROR_TYPE_INFO, "template",
-                   _("Template database running\n"));
+  GNUNET_log_from(GNUNET_ERROR_TYPE_INFO, "template",
+                  _("Template database running\n"));
   return api;
 }
 
@@ -261,13 +260,13 @@ libgnunet_plugin_datastore_template_init (void *cls)
  * @return always NULL
  */
 void *
-libgnunet_plugin_datastore_template_done (void *cls)
+libgnunet_plugin_datastore_template_done(void *cls)
 {
   struct GNUNET_DATASTORE_PluginFunctions *api = cls;
   struct Plugin *plugin = api->cls;
 
-  GNUNET_free (plugin);
-  GNUNET_free (api);
+  GNUNET_free(plugin);
+  GNUNET_free(api);
   return NULL;
 }
 

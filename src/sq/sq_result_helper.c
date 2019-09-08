@@ -1,23 +1,23 @@
 
 /*
-  This file is part of GNUnet
-  Copyright (C) 2017 GNUnet e.V.
+   This file is part of GNUnet
+   Copyright (C) 2017 GNUnet e.V.
 
-  GNUnet is free software: you can redistribute it and/or modify it
-  under the terms of the GNU Affero General Public License as published
-  by the Free Software Foundation, either version 3 of the License,
-  or (at your option) any later version.
+   GNUnet is free software: you can redistribute it and/or modify it
+   under the terms of the GNU Affero General Public License as published
+   by the Free Software Foundation, either version 3 of the License,
+   or (at your option) any later version.
 
-  GNUnet is distributed in the hope that it will be useful, but
-  WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-  Affero General Public License for more details.
- 
-  You should have received a copy of the GNU Affero General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   GNUnet is distributed in the hope that it will be useful, but
+   WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   Affero General Public License for more details.
+
+   You should have received a copy of the GNU Affero General Public License
+   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 /**
  * @file sq/sq_result_helper.c
  * @brief helper functions for queries
@@ -40,53 +40,53 @@
  *   #GNUNET_SYSERR if a result was invalid (non-existing field or NULL)
  */
 static int
-extract_var_blob (void *cls,
-                  sqlite3_stmt *result,
-                  unsigned int column,
-                  size_t *dst_size,
-                  void *dst)
+extract_var_blob(void *cls,
+                 sqlite3_stmt *result,
+                 unsigned int column,
+                 size_t *dst_size,
+                 void *dst)
 {
   int have;
   const void *ret;
-  void **rdst = (void **) dst;
+  void **rdst = (void **)dst;
 
   if (SQLITE_NULL ==
-      sqlite3_column_type (result,
-                           column))
-  {
-    *rdst = NULL;
-    *dst_size = 0;
-    return GNUNET_YES;
-  }
+      sqlite3_column_type(result,
+                          column))
+    {
+      *rdst = NULL;
+      *dst_size = 0;
+      return GNUNET_YES;
+    }
 
   if (SQLITE_BLOB !=
-      sqlite3_column_type (result,
-                           column))
-  {
-    GNUNET_break (0);
-    return GNUNET_SYSERR;
-  }
+      sqlite3_column_type(result,
+                          column))
+    {
+      GNUNET_break(0);
+      return GNUNET_SYSERR;
+    }
   /* sqlite manual says to invoke 'sqlite3_column_blob()'
      before calling sqlite3_column_bytes() */
-  ret = sqlite3_column_blob (result,
-                             column);
-  have = sqlite3_column_bytes (result,
-                               column);
+  ret = sqlite3_column_blob(result,
+                            column);
+  have = sqlite3_column_bytes(result,
+                              column);
   if (have < 0)
-  {
-    GNUNET_break (0);
-    return GNUNET_SYSERR;
-  }
+    {
+      GNUNET_break(0);
+      return GNUNET_SYSERR;
+    }
   *dst_size = have;
   if (0 == have)
-  {
-    *rdst = NULL;
-    return GNUNET_OK;
-  }
-  *rdst = GNUNET_malloc (have);
-  GNUNET_memcpy (*rdst,
-                 ret,
-                 have);
+    {
+      *rdst = NULL;
+      return GNUNET_OK;
+    }
+  *rdst = GNUNET_malloc(have);
+  GNUNET_memcpy(*rdst,
+                ret,
+                have);
   return GNUNET_OK;
 }
 
@@ -97,15 +97,15 @@ extract_var_blob (void *cls,
  * @param cls pointer to pointer of allocation
  */
 static void
-clean_var_blob (void *cls)
+clean_var_blob(void *cls)
 {
-  void **dptr = (void **) cls;
+  void **dptr = (void **)cls;
 
   if (NULL != *dptr)
-  {
-    GNUNET_free (*dptr);
-    *dptr = NULL;
-  }
+    {
+      GNUNET_free(*dptr);
+      *dptr = NULL;
+    }
 }
 
 
@@ -117,8 +117,8 @@ clean_var_blob (void *cls)
  * @return array entry for the result specification to use
  */
 struct GNUNET_SQ_ResultSpec
-GNUNET_SQ_result_spec_variable_size (void **dst,
-				     size_t *sptr)
+GNUNET_SQ_result_spec_variable_size(void **dst,
+                                    size_t *sptr)
 {
   struct GNUNET_SQ_ResultSpec rs = {
     .conv = &extract_var_blob,
@@ -146,44 +146,44 @@ GNUNET_SQ_result_spec_variable_size (void **dst,
  *   #GNUNET_SYSERR if a result was invalid (non-existing field or NULL)
  */
 static int
-extract_fixed_blob (void *cls,
-                    sqlite3_stmt *result,
-                    unsigned int column,
-                    size_t *dst_size,
-                    void *dst)
+extract_fixed_blob(void *cls,
+                   sqlite3_stmt *result,
+                   unsigned int column,
+                   size_t *dst_size,
+                   void *dst)
 {
   int have;
   const void *ret;
 
-  if ( (0 == *dst_size) &&
-       (SQLITE_NULL ==
-        sqlite3_column_type (result,
-                             column)) )
-  {
-    return GNUNET_YES;
-  }
+  if ((0 == *dst_size) &&
+      (SQLITE_NULL ==
+       sqlite3_column_type(result,
+                           column)))
+    {
+      return GNUNET_YES;
+    }
 
   if (SQLITE_BLOB !=
-      sqlite3_column_type (result,
-                           column))
-  {
-    GNUNET_break (0);
-    return GNUNET_SYSERR;
-  }
+      sqlite3_column_type(result,
+                          column))
+    {
+      GNUNET_break(0);
+      return GNUNET_SYSERR;
+    }
   /* sqlite manual says to invoke 'sqlite3_column_blob()'
      before calling sqlite3_column_bytes() */
-  ret = sqlite3_column_blob (result,
-                             column);
-  have = sqlite3_column_bytes (result,
-                               column);
+  ret = sqlite3_column_blob(result,
+                            column);
+  have = sqlite3_column_bytes(result,
+                              column);
   if (*dst_size != have)
-  {
-    GNUNET_break (0);
-    return GNUNET_SYSERR;
-  }
-  GNUNET_memcpy (dst,
-                 ret,
-                 have);
+    {
+      GNUNET_break(0);
+      return GNUNET_SYSERR;
+    }
+  GNUNET_memcpy(dst,
+                ret,
+                have);
   return GNUNET_OK;
 }
 
@@ -196,8 +196,8 @@ extract_fixed_blob (void *cls,
  * @return array entry for the result specification to use
  */
 struct GNUNET_SQ_ResultSpec
-GNUNET_SQ_result_spec_fixed_size (void *dst,
-				  size_t dst_size)
+GNUNET_SQ_result_spec_fixed_size(void *dst,
+                                 size_t dst_size)
 {
   struct GNUNET_SQ_ResultSpec rs = {
     .conv = &extract_fixed_blob,
@@ -223,40 +223,40 @@ GNUNET_SQ_result_spec_fixed_size (void *dst,
  *   #GNUNET_SYSERR if a result was invalid (non-existing field or NULL)
  */
 static int
-extract_utf8_string (void *cls,
-                     sqlite3_stmt *result,
-                     unsigned int column,
-                     size_t *dst_size,
-                     void *dst)
+extract_utf8_string(void *cls,
+                    sqlite3_stmt *result,
+                    unsigned int column,
+                    size_t *dst_size,
+                    void *dst)
 {
   const char *text;
   char **rdst = dst;
 
   if (SQLITE_NULL ==
-      sqlite3_column_type (result,
-                           column))
-  {
-    *rdst = NULL;
-    return GNUNET_OK;
-  }
+      sqlite3_column_type(result,
+                          column))
+    {
+      *rdst = NULL;
+      return GNUNET_OK;
+    }
   if (SQLITE_TEXT !=
-      sqlite3_column_type (result,
-                           column))
-  {
-    GNUNET_break (0);
-    return GNUNET_SYSERR;
-  }
+      sqlite3_column_type(result,
+                          column))
+    {
+      GNUNET_break(0);
+      return GNUNET_SYSERR;
+    }
   /* sqlite manual guarantees that 'sqlite3_column_text()'
      is 0-terminated */
-  text = (const char *) sqlite3_column_text (result,
-                                             column);
+  text = (const char *)sqlite3_column_text(result,
+                                           column);
   if (NULL == text)
-  {
-    GNUNET_break (0);
-    return GNUNET_SYSERR;
-  }
-  *dst_size = strlen (text) + 1;
-  *rdst = GNUNET_strdup (text);
+    {
+      GNUNET_break(0);
+      return GNUNET_SYSERR;
+    }
+  *dst_size = strlen(text) + 1;
+  *rdst = GNUNET_strdup(text);
   return GNUNET_OK;
 }
 
@@ -267,15 +267,15 @@ extract_utf8_string (void *cls,
  * @param cls pointer to pointer of allocation
  */
 static void
-clean_utf8_string (void *cls)
+clean_utf8_string(void *cls)
 {
-  char **dptr = (char **) cls;
+  char **dptr = (char **)cls;
 
   if (NULL != *dptr)
-  {
-    GNUNET_free (*dptr);
-    *dptr = NULL;
-  }
+    {
+      GNUNET_free(*dptr);
+      *dptr = NULL;
+    }
 }
 
 
@@ -286,7 +286,7 @@ clean_utf8_string (void *cls)
  * @return array entry for the result specification to use
  */
 struct GNUNET_SQ_ResultSpec
-GNUNET_SQ_result_spec_string (char **dst)
+GNUNET_SQ_result_spec_string(char **dst)
 {
   struct GNUNET_SQ_ResultSpec rs = {
     .conv = &extract_utf8_string,
@@ -313,42 +313,42 @@ GNUNET_SQ_result_spec_string (char **dst)
  *   #GNUNET_SYSERR if a result was invalid (non-existing field or NULL)
  */
 static int
-extract_rsa_pub (void *cls,
-                 sqlite3_stmt *result,
-                 unsigned int column,
-                 size_t *dst_size,
-                 void *dst)
+extract_rsa_pub(void *cls,
+                sqlite3_stmt *result,
+                unsigned int column,
+                size_t *dst_size,
+                void *dst)
 {
   struct GNUNET_CRYPTO_RsaPublicKey **pk = dst;
   int have;
   const void *ret;
 
   if (SQLITE_BLOB !=
-      sqlite3_column_type (result,
-                           column))
-  {
-    GNUNET_break (0);
-    return GNUNET_SYSERR;
-  }
+      sqlite3_column_type(result,
+                          column))
+    {
+      GNUNET_break(0);
+      return GNUNET_SYSERR;
+    }
   /* sqlite manual says to invoke 'sqlite3_column_blob()'
      before calling sqlite3_column_bytes() */
-  ret = sqlite3_column_blob (result,
-                             column);
-  have = sqlite3_column_bytes (result,
-                               column);
+  ret = sqlite3_column_blob(result,
+                            column);
+  have = sqlite3_column_bytes(result,
+                              column);
   if (have < 0)
-  {
-    GNUNET_break (0);
-    return GNUNET_SYSERR;
-  }
+    {
+      GNUNET_break(0);
+      return GNUNET_SYSERR;
+    }
 
-  *pk = GNUNET_CRYPTO_rsa_public_key_decode (ret,
-					     have);
+  *pk = GNUNET_CRYPTO_rsa_public_key_decode(ret,
+                                            have);
   if (NULL == *pk)
-  {
-    GNUNET_break (0);
-    return GNUNET_SYSERR;
-  }
+    {
+      GNUNET_break(0);
+      return GNUNET_SYSERR;
+    }
   return GNUNET_OK;
 }
 
@@ -360,15 +360,15 @@ extract_rsa_pub (void *cls,
  * @param cls closure
  */
 static void
-clean_rsa_pub (void *cls)
+clean_rsa_pub(void *cls)
 {
   struct GNUNET_CRYPTO_RsaPublicKey **pk = cls;
 
   if (NULL != *pk)
-  {
-    GNUNET_CRYPTO_rsa_public_key_free (*pk);
-    *pk = NULL;
-  }
+    {
+      GNUNET_CRYPTO_rsa_public_key_free(*pk);
+      *pk = NULL;
+    }
 }
 
 
@@ -379,7 +379,7 @@ clean_rsa_pub (void *cls)
  * @return array entry for the result specification to use
  */
 struct GNUNET_SQ_ResultSpec
-GNUNET_SQ_result_spec_rsa_public_key (struct GNUNET_CRYPTO_RsaPublicKey **rsa)
+GNUNET_SQ_result_spec_rsa_public_key(struct GNUNET_CRYPTO_RsaPublicKey **rsa)
 {
   struct GNUNET_SQ_ResultSpec rs = {
     .conv = &extract_rsa_pub,
@@ -406,42 +406,42 @@ GNUNET_SQ_result_spec_rsa_public_key (struct GNUNET_CRYPTO_RsaPublicKey **rsa)
  *   #GNUNET_SYSERR if a result was invalid (non-existing field or NULL)
  */
 static int
-extract_rsa_sig (void *cls,
-                 sqlite3_stmt *result,
-                 unsigned int column,
-                 size_t *dst_size,
-                 void *dst)
+extract_rsa_sig(void *cls,
+                sqlite3_stmt *result,
+                unsigned int column,
+                size_t *dst_size,
+                void *dst)
 {
   struct GNUNET_CRYPTO_RsaSignature **sig = dst;
   int have;
   const void *ret;
 
   if (SQLITE_BLOB !=
-      sqlite3_column_type (result,
-                           column))
-  {
-    GNUNET_break (0);
-    return GNUNET_SYSERR;
-  }
+      sqlite3_column_type(result,
+                          column))
+    {
+      GNUNET_break(0);
+      return GNUNET_SYSERR;
+    }
   /* sqlite manual says to invoke 'sqlite3_column_blob()'
      before calling sqlite3_column_bytes() */
-  ret = sqlite3_column_blob (result,
-                             column);
-  have = sqlite3_column_bytes (result,
-                               column);
+  ret = sqlite3_column_blob(result,
+                            column);
+  have = sqlite3_column_bytes(result,
+                              column);
   if (have < 0)
-  {
-    GNUNET_break (0);
-    return GNUNET_SYSERR;
-  }
+    {
+      GNUNET_break(0);
+      return GNUNET_SYSERR;
+    }
 
-  *sig = GNUNET_CRYPTO_rsa_signature_decode (ret,
-					     have);
+  *sig = GNUNET_CRYPTO_rsa_signature_decode(ret,
+                                            have);
   if (NULL == *sig)
-  {
-    GNUNET_break (0);
-    return GNUNET_SYSERR;
-  }
+    {
+      GNUNET_break(0);
+      return GNUNET_SYSERR;
+    }
   return GNUNET_OK;
 }
 
@@ -453,15 +453,15 @@ extract_rsa_sig (void *cls,
  * @param cls result data to clean up
  */
 static void
-clean_rsa_sig (void *cls)
+clean_rsa_sig(void *cls)
 {
   struct GNUNET_CRYPTO_RsaSignature **sig = cls;
 
   if (NULL != *sig)
-  {
-    GNUNET_CRYPTO_rsa_signature_free (*sig);
-    *sig = NULL;
-  }
+    {
+      GNUNET_CRYPTO_rsa_signature_free(*sig);
+      *sig = NULL;
+    }
 }
 
 
@@ -472,7 +472,7 @@ clean_rsa_sig (void *cls)
  * @return array entry for the result specification to use
  */
 struct GNUNET_SQ_ResultSpec
-GNUNET_SQ_result_spec_rsa_signature (struct GNUNET_CRYPTO_RsaSignature **sig)
+GNUNET_SQ_result_spec_rsa_signature(struct GNUNET_CRYPTO_RsaSignature **sig)
 {
   struct GNUNET_SQ_ResultSpec rs = {
     .conv = &extract_rsa_sig,
@@ -499,25 +499,25 @@ GNUNET_SQ_result_spec_rsa_signature (struct GNUNET_CRYPTO_RsaSignature **sig)
  *   #GNUNET_SYSERR if a result was invalid (non-existing field or NULL)
  */
 static int
-extract_abs_time (void *cls,
-                  sqlite3_stmt *result,
-                  unsigned int column,
-                  size_t *dst_size,
-                  void *dst)
+extract_abs_time(void *cls,
+                 sqlite3_stmt *result,
+                 unsigned int column,
+                 size_t *dst_size,
+                 void *dst)
 {
   struct GNUNET_TIME_Absolute *u = dst;
   struct GNUNET_TIME_Absolute t;
 
-  GNUNET_assert (sizeof (uint64_t) == *dst_size);
+  GNUNET_assert(sizeof(uint64_t) == *dst_size);
   if (SQLITE_INTEGER !=
-      sqlite3_column_type (result,
-                           column))
-  {
-    GNUNET_break (0);
-    return GNUNET_SYSERR;
-  }
-  t.abs_value_us = (uint64_t) sqlite3_column_int64 (result,
-                                                    column);
+      sqlite3_column_type(result,
+                          column))
+    {
+      GNUNET_break(0);
+      return GNUNET_SYSERR;
+    }
+  t.abs_value_us = (uint64_t)sqlite3_column_int64(result,
+                                                  column);
   if (INT64_MAX == t.abs_value_us)
     t = GNUNET_TIME_UNIT_FOREVER_ABS;
   *u = t;
@@ -532,12 +532,12 @@ extract_abs_time (void *cls,
  * @return array entry for the result specification to use
  */
 struct GNUNET_SQ_ResultSpec
-GNUNET_SQ_result_spec_absolute_time (struct GNUNET_TIME_Absolute *at)
+GNUNET_SQ_result_spec_absolute_time(struct GNUNET_TIME_Absolute *at)
 {
   struct GNUNET_SQ_ResultSpec rs = {
     .conv = &extract_abs_time,
     .dst = at,
-    .dst_size = sizeof (struct GNUNET_TIME_Absolute),
+    .dst_size = sizeof(struct GNUNET_TIME_Absolute),
     .num_params = 1
   };
 
@@ -558,28 +558,28 @@ GNUNET_SQ_result_spec_absolute_time (struct GNUNET_TIME_Absolute *at)
  *   #GNUNET_SYSERR if a result was invalid (non-existing field or NULL)
  */
 static int
-extract_abs_time_nbo (void *cls,
-                      sqlite3_stmt *result,
-                      unsigned int column,
-                      size_t *dst_size,
-                      void *dst)
+extract_abs_time_nbo(void *cls,
+                     sqlite3_stmt *result,
+                     unsigned int column,
+                     size_t *dst_size,
+                     void *dst)
 {
   struct GNUNET_TIME_AbsoluteNBO *u = dst;
   struct GNUNET_TIME_Absolute t;
 
-  GNUNET_assert (sizeof (uint64_t) == *dst_size);
+  GNUNET_assert(sizeof(uint64_t) == *dst_size);
   if (SQLITE_INTEGER !=
-      sqlite3_column_type (result,
-                           column))
-  {
-    GNUNET_break (0);
-    return GNUNET_SYSERR;
-  }
-  t.abs_value_us = (uint64_t) sqlite3_column_int64 (result,
-                                                    column);
+      sqlite3_column_type(result,
+                          column))
+    {
+      GNUNET_break(0);
+      return GNUNET_SYSERR;
+    }
+  t.abs_value_us = (uint64_t)sqlite3_column_int64(result,
+                                                  column);
   if (INT64_MAX == t.abs_value_us)
     t = GNUNET_TIME_UNIT_FOREVER_ABS;
-  *u = GNUNET_TIME_absolute_hton (t);
+  *u = GNUNET_TIME_absolute_hton(t);
   return GNUNET_OK;
 }
 
@@ -591,12 +591,12 @@ extract_abs_time_nbo (void *cls,
  * @return array entry for the result specification to use
  */
 struct GNUNET_SQ_ResultSpec
-GNUNET_SQ_result_spec_absolute_time_nbo (struct GNUNET_TIME_AbsoluteNBO *at)
+GNUNET_SQ_result_spec_absolute_time_nbo(struct GNUNET_TIME_AbsoluteNBO *at)
 {
   struct GNUNET_SQ_ResultSpec rs = {
     .conv = &extract_abs_time_nbo,
     .dst = at,
-    .dst_size = sizeof (struct GNUNET_TIME_AbsoluteNBO),
+    .dst_size = sizeof(struct GNUNET_TIME_AbsoluteNBO),
     .num_params = 1
   };
 
@@ -617,31 +617,31 @@ GNUNET_SQ_result_spec_absolute_time_nbo (struct GNUNET_TIME_AbsoluteNBO *at)
  *   #GNUNET_SYSERR if a result was invalid (non-existing field or NULL)
  */
 static int
-extract_uint16 (void *cls,
-                sqlite3_stmt *result,
-                unsigned int column,
-                size_t *dst_size,
-                void *dst)
+extract_uint16(void *cls,
+               sqlite3_stmt *result,
+               unsigned int column,
+               size_t *dst_size,
+               void *dst)
 {
   uint64_t v;
   uint16_t *u = dst;
 
-  GNUNET_assert (sizeof (uint16_t) == *dst_size);
+  GNUNET_assert(sizeof(uint16_t) == *dst_size);
   if (SQLITE_INTEGER !=
-      sqlite3_column_type (result,
-                           column))
-  {
-    GNUNET_break (0);
-    return GNUNET_SYSERR;
-  }
-  v = (uint64_t) sqlite3_column_int64 (result,
-                                       column);
+      sqlite3_column_type(result,
+                          column))
+    {
+      GNUNET_break(0);
+      return GNUNET_SYSERR;
+    }
+  v = (uint64_t)sqlite3_column_int64(result,
+                                     column);
   if (v > UINT16_MAX)
-  {
-    GNUNET_break (0);
-    return GNUNET_SYSERR;
-  }
-  *u = (uint16_t) v;
+    {
+      GNUNET_break(0);
+      return GNUNET_SYSERR;
+    }
+  *u = (uint16_t)v;
   return GNUNET_OK;
 }
 
@@ -653,12 +653,12 @@ extract_uint16 (void *cls,
  * @return array entry for the result specification to use
  */
 struct GNUNET_SQ_ResultSpec
-GNUNET_SQ_result_spec_uint16 (uint16_t *u16)
+GNUNET_SQ_result_spec_uint16(uint16_t *u16)
 {
   struct GNUNET_SQ_ResultSpec rs = {
     .conv = &extract_uint16,
     .dst = u16,
-    .dst_size = sizeof (uint16_t),
+    .dst_size = sizeof(uint16_t),
     .num_params = 1
   };
 
@@ -679,31 +679,31 @@ GNUNET_SQ_result_spec_uint16 (uint16_t *u16)
  *   #GNUNET_SYSERR if a result was invalid (non-existing field or NULL)
  */
 static int
-extract_uint32 (void *cls,
-                sqlite3_stmt *result,
-                unsigned int column,
-                size_t *dst_size,
-                void *dst)
+extract_uint32(void *cls,
+               sqlite3_stmt *result,
+               unsigned int column,
+               size_t *dst_size,
+               void *dst)
 {
   uint64_t v;
   uint32_t *u = dst;
 
-  GNUNET_assert (sizeof (uint32_t) == *dst_size);
+  GNUNET_assert(sizeof(uint32_t) == *dst_size);
   if (SQLITE_INTEGER !=
-      sqlite3_column_type (result,
-                           column))
-  {
-    GNUNET_break (0);
-    return GNUNET_SYSERR;
-  }
-  v = (uint64_t) sqlite3_column_int64 (result,
-                                       column);
+      sqlite3_column_type(result,
+                          column))
+    {
+      GNUNET_break(0);
+      return GNUNET_SYSERR;
+    }
+  v = (uint64_t)sqlite3_column_int64(result,
+                                     column);
   if (v > UINT32_MAX)
-  {
-    GNUNET_break (0);
-    return GNUNET_SYSERR;
-  }
-  *u = (uint32_t) v;
+    {
+      GNUNET_break(0);
+      return GNUNET_SYSERR;
+    }
+  *u = (uint32_t)v;
   return GNUNET_OK;
 }
 
@@ -715,12 +715,12 @@ extract_uint32 (void *cls,
  * @return array entry for the result specification to use
  */
 struct GNUNET_SQ_ResultSpec
-GNUNET_SQ_result_spec_uint32 (uint32_t *u32)
+GNUNET_SQ_result_spec_uint32(uint32_t *u32)
 {
   struct GNUNET_SQ_ResultSpec rs = {
     .conv = &extract_uint32,
     .dst = u32,
-    .dst_size = sizeof (uint32_t),
+    .dst_size = sizeof(uint32_t),
     .num_params = 1
   };
 
@@ -741,24 +741,24 @@ GNUNET_SQ_result_spec_uint32 (uint32_t *u32)
  *   #GNUNET_SYSERR if a result was invalid (non-existing field or NULL)
  */
 static int
-extract_uint64 (void *cls,
-                sqlite3_stmt *result,
-                unsigned int column,
-                size_t *dst_size,
-                void *dst)
+extract_uint64(void *cls,
+               sqlite3_stmt *result,
+               unsigned int column,
+               size_t *dst_size,
+               void *dst)
 {
   uint64_t *u = dst;
 
-  GNUNET_assert (sizeof (uint64_t) == *dst_size);
+  GNUNET_assert(sizeof(uint64_t) == *dst_size);
   if (SQLITE_INTEGER !=
-      sqlite3_column_type (result,
-                           column))
-  {
-    GNUNET_break (0);
-    return GNUNET_SYSERR;
-  }
-  *u = (uint64_t) sqlite3_column_int64 (result,
-                                        column);
+      sqlite3_column_type(result,
+                          column))
+    {
+      GNUNET_break(0);
+      return GNUNET_SYSERR;
+    }
+  *u = (uint64_t)sqlite3_column_int64(result,
+                                      column);
   return GNUNET_OK;
 }
 
@@ -770,12 +770,12 @@ extract_uint64 (void *cls,
  * @return array entry for the result specification to use
  */
 struct GNUNET_SQ_ResultSpec
-GNUNET_SQ_result_spec_uint64 (uint64_t *u64)
+GNUNET_SQ_result_spec_uint64(uint64_t *u64)
 {
   struct GNUNET_SQ_ResultSpec rs = {
     .conv = &extract_uint64,
     .dst = u64,
-    .dst_size = sizeof (uint64_t),
+    .dst_size = sizeof(uint64_t),
     .num_params = 1
   };
 

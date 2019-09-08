@@ -11,12 +11,12 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 
 /**
  * @file rps/gnunet-service-rps_sampler.c
@@ -37,7 +37,7 @@
 
 #include "rps-test_util.h"
 
-#define LOG(kind, ...) GNUNET_log_from(kind,"rps-sampler",__VA_ARGS__)
+#define LOG(kind, ...) GNUNET_log_from(kind, "rps-sampler", __VA_ARGS__)
 
 
 // multiple 'clients'?
@@ -49,8 +49,8 @@
 // hist_size_init, hist_size_max
 
 /***********************************************************************
- * WARNING: This section needs to be reviewed regarding the use of
- * functions providing (pseudo)randomness!
+* WARNING: This section needs to be reviewed regarding the use of
+* functions providing (pseudo)randomness!
 ***********************************************************************/
 
 // TODO care about invalid input of the caller (size 0 or less...)
@@ -68,8 +68,7 @@ typedef void
  *
  * Meant to be an entry in an DLL.
  */
-struct SamplerNotifyUpdateCTX
-{
+struct SamplerNotifyUpdateCTX {
   /**
    * @brief The Callback to call on updates
    */
@@ -107,14 +106,13 @@ typedef void
  * Only used internally
  */
 static void
-sampler_get_rand_peer (void *cls);
+sampler_get_rand_peer(void *cls);
 
 
 /**
  * Closure to _get_n_rand_peers_ready_cb()
  */
-struct RPS_SamplerRequestHandle
-{
+struct RPS_SamplerRequestHandle {
   /**
    * DLL
    */
@@ -193,8 +191,8 @@ static uint32_t client_get_index;
  * @return a handle to a sampler that consists of sampler elements.
  */
 struct RPS_Sampler *
-RPS_sampler_init (size_t init_size,
-                  struct GNUNET_TIME_Relative max_round_interval)
+RPS_sampler_init(size_t init_size,
+                 struct GNUNET_TIME_Relative max_round_interval)
 {
   struct RPS_Sampler *sampler;
 
@@ -202,13 +200,13 @@ RPS_sampler_init (size_t init_size,
   min_size = 10; // TODO make input to _samplers_init()
   max_size = 1000; // TODO make input to _samplers_init()
 
-  sampler = GNUNET_new (struct RPS_Sampler);
+  sampler = GNUNET_new(struct RPS_Sampler);
 
   sampler->max_round_interval = max_round_interval;
   sampler->get_peers = sampler_get_rand_peer;
   //sampler->sampler_elements = GNUNET_new_array(init_size, struct GNUNET_PeerIdentity);
   //GNUNET_array_grow (sampler->sampler_elements, sampler->sampler_size, min_size);
-  RPS_sampler_resize (sampler, init_size);
+  RPS_sampler_resize(sampler, init_size);
 
   client_get_index = 0;
 
@@ -224,7 +222,7 @@ RPS_sampler_init (size_t init_size,
  * Only used internally
  */
 static void
-sampler_get_rand_peer (void *cls)
+sampler_get_rand_peer(void *cls)
 {
   struct GetPeerCls *gpc = cls;
   uint32_t r_index;
@@ -238,28 +236,28 @@ sampler_get_rand_peer (void *cls)
    * Choose the r_index of the peer we want to return
    * at random from the interval of the gossip list
    */
-  r_index = GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_STRONG,
-      sampler->sampler_size);
+  r_index = GNUNET_CRYPTO_random_u64(GNUNET_CRYPTO_QUALITY_STRONG,
+                                     sampler->sampler_size);
 
   if (EMPTY == sampler->sampler_elements[r_index]->is_empty)
-  {
-    //LOG (GNUNET_ERROR_TYPE_DEBUG,
-    //     "Not returning randomly selected, empty PeerID. - Rescheduling.\n");
+    {
+      //LOG (GNUNET_ERROR_TYPE_DEBUG,
+      //     "Not returning randomly selected, empty PeerID. - Rescheduling.\n");
 
-    gpc->notify_ctx =
-      sampler_notify_on_update (sampler,
-                                &sampler_get_rand_peer,
-                                gpc);
-    return;
-  }
+      gpc->notify_ctx =
+        sampler_notify_on_update(sampler,
+                                 &sampler_get_rand_peer,
+                                 gpc);
+      return;
+    }
 
-  GNUNET_CONTAINER_DLL_remove (gpc->req_handle->gpc_head,
-                               gpc->req_handle->gpc_tail,
-                               gpc);
+  GNUNET_CONTAINER_DLL_remove(gpc->req_handle->gpc_head,
+                              gpc->req_handle->gpc_tail,
+                              gpc);
   *gpc->id = sampler->sampler_elements[r_index]->peer_id;
-  gpc->cont (gpc->cont_cls, gpc->id, 0, sampler->sampler_elements[r_index]->num_peers);
+  gpc->cont(gpc->cont_cls, gpc->id, 0, sampler->sampler_elements[r_index]->num_peers);
 
-  GNUNET_free (gpc);
+  GNUNET_free(gpc);
 }
 
 

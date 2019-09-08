@@ -11,12 +11,12 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 /**
  * @file util/test_configuration.c
  * @brief Test that the configuration module works.
@@ -28,8 +28,7 @@
 
 
 /* Test Configuration Diffs Options */
-enum
-{
+enum {
   EDIT_NOTHING,
   EDIT_SECTION,
   EDIT_ALL,
@@ -44,8 +43,7 @@ enum
 static struct GNUNET_CONFIGURATION_Handle *cfg;
 static struct GNUNET_CONFIGURATION_Handle *cfg_default;
 
-struct DiffsCBData
-{
+struct DiffsCBData {
   struct GNUNET_CONFIGURATION_Handle *cfg;
   struct GNUNET_CONFIGURATION_Handle *cfgDiffs;
   const char *section;
@@ -55,7 +53,7 @@ struct DiffsCBData
 
 
 static void
-initDiffsCBData (struct DiffsCBData *cbData)
+initDiffsCBData(struct DiffsCBData *cbData)
 {
   cbData->section = NULL;
   cbData->cfg = NULL;
@@ -68,129 +66,138 @@ initDiffsCBData (struct DiffsCBData *cbData)
 /**
  * callback function for modifying
  * and comparing configuration
-*/
+ */
 static void
-diffsCallBack (void *cls, const char *section, const char *option,
-               const char *value)
+diffsCallBack(void *cls, const char *section, const char *option,
+              const char *value)
 {
   struct DiffsCBData *cbData = cls;
   int cbOption = cbData->callBackOption;
 
   switch (cbOption)
-  {
-  case EDIT_SECTION:
-    if (NULL == cbData->section)
-      cbData->section = section;
-    if (strcmp (cbData->section, section) == 0)
     {
-      GNUNET_CONFIGURATION_set_value_string (cbData->cfg, section, option,
-                                             "new-value");
-      GNUNET_CONFIGURATION_set_value_string (cbData->cfgDiffs, section, option,
-                                             "new-value");
-    }
-    break;
-  case EDIT_ALL:
-    GNUNET_CONFIGURATION_set_value_string (cbData->cfg, section, option,
-                                           "new-value");
-    GNUNET_CONFIGURATION_set_value_string (cbData->cfgDiffs, section, option,
-                                           "new-value");
-    break;
-  case ADD_NEW_ENTRY:
-  {
-    static int hit = 0;
+    case EDIT_SECTION:
+      if (NULL == cbData->section)
+        cbData->section = section;
+      if (strcmp(cbData->section, section) == 0)
+        {
+          GNUNET_CONFIGURATION_set_value_string(cbData->cfg, section, option,
+                                                "new-value");
+          GNUNET_CONFIGURATION_set_value_string(cbData->cfgDiffs, section, option,
+                                                "new-value");
+        }
+      break;
 
-    if (hit == 0)
-    {
-      hit = 1;
-      GNUNET_CONFIGURATION_set_value_string (cbData->cfg, section, "new-key",
-                                             "new-value");
-      GNUNET_CONFIGURATION_set_value_string (cbData->cfgDiffs, section,
-                                             "new-key", "new-value");
-    }
-    break;
-  }
-  case COMPARE:
-  {
-    int ret;
-    char *diffValue;
+    case EDIT_ALL:
+      GNUNET_CONFIGURATION_set_value_string(cbData->cfg, section, option,
+                                            "new-value");
+      GNUNET_CONFIGURATION_set_value_string(cbData->cfgDiffs, section, option,
+                                            "new-value");
+      break;
 
-    diffValue = NULL;
-    ret =
-        GNUNET_CONFIGURATION_get_value_string (cbData->cfgDiffs, section,
-                                               option, &diffValue);
-    if (NULL != diffValue)
+    case ADD_NEW_ENTRY:
     {
-      if (ret == GNUNET_SYSERR || strcmp (diffValue, value) != 0)
+      static int hit = 0;
+
+      if (hit == 0)
+        {
+          hit = 1;
+          GNUNET_CONFIGURATION_set_value_string(cbData->cfg, section, "new-key",
+                                                "new-value");
+          GNUNET_CONFIGURATION_set_value_string(cbData->cfgDiffs, section,
+                                                "new-key", "new-value");
+        }
+      break;
+    }
+
+    case COMPARE:
+    {
+      int ret;
+      char *diffValue;
+
+      diffValue = NULL;
+      ret =
+        GNUNET_CONFIGURATION_get_value_string(cbData->cfgDiffs, section,
+                                              option, &diffValue);
+      if (NULL != diffValue)
+        {
+          if (ret == GNUNET_SYSERR || strcmp(diffValue, value) != 0)
+            cbData->status = 1;
+        }
+      else
         cbData->status = 1;
+      GNUNET_free_non_null(diffValue);
+      break;
     }
-    else
-      cbData->status = 1;
-    GNUNET_free_non_null (diffValue);
-    break;
-  }
+
 #if 0
-  case PRINT:
-    if (NULL == cbData->section)
-    {
-      cbData->section = section;
-      printf ("\nSection: %s\n", section);
-    }
-    else if (strcmp (cbData->section, section) != 0)
-    {
-      cbData->section = section;
-      printf ("\nSection: %s\n", section);
-    }
-    printf ("%s = %s\n", option, value);
+    case PRINT:
+      if (NULL == cbData->section)
+        {
+          cbData->section = section;
+          printf("\nSection: %s\n", section);
+        }
+      else if (strcmp(cbData->section, section) != 0)
+        {
+          cbData->section = section;
+          printf("\nSection: %s\n", section);
+        }
+      printf("%s = %s\n", option, value);
 #endif
-  default:
-    break;
-  }
+    default:
+      break;
+    }
 }
 
 
 static struct GNUNET_CONFIGURATION_Handle *
-editConfiguration (struct GNUNET_CONFIGURATION_Handle *cfg, int option)
+editConfiguration(struct GNUNET_CONFIGURATION_Handle *cfg, int option)
 {
   struct DiffsCBData diffsCB;
 
-  initDiffsCBData (&diffsCB);
-  diffsCB.cfgDiffs = GNUNET_CONFIGURATION_create ();
+  initDiffsCBData(&diffsCB);
+  diffsCB.cfgDiffs = GNUNET_CONFIGURATION_create();
 
   switch (option)
-  {
-  case EDIT_SECTION:
-  case EDIT_ALL:
-  case ADD_NEW_ENTRY:
-    diffsCB.callBackOption = option;
-    diffsCB.cfg = cfg;
-    GNUNET_CONFIGURATION_iterate (cfg, diffsCallBack, &diffsCB);
-    break;
-  case EDIT_NOTHING:
-    /* Do nothing */
-    break;
-  case ADD_NEW_SECTION:
-  {
-    int i;
-    char *key;
-
-    for (i = 0; i < 5; i++)
     {
-      GNUNET_asprintf (&key, "key%d", i);
-      GNUNET_CONFIGURATION_set_value_string (cfg, "new-section", key,
-                                             "new-value");
-      GNUNET_CONFIGURATION_set_value_string (diffsCB.cfgDiffs, "new-section",
-                                             key, "new-value");
-      GNUNET_free (key);
+    case EDIT_SECTION:
+    case EDIT_ALL:
+    case ADD_NEW_ENTRY:
+      diffsCB.callBackOption = option;
+      diffsCB.cfg = cfg;
+      GNUNET_CONFIGURATION_iterate(cfg, diffsCallBack, &diffsCB);
+      break;
+
+    case EDIT_NOTHING:
+      /* Do nothing */
+      break;
+
+    case ADD_NEW_SECTION:
+    {
+      int i;
+      char *key;
+
+      for (i = 0; i < 5; i++)
+        {
+          GNUNET_asprintf(&key, "key%d", i);
+          GNUNET_CONFIGURATION_set_value_string(cfg, "new-section", key,
+                                                "new-value");
+          GNUNET_CONFIGURATION_set_value_string(diffsCB.cfgDiffs, "new-section",
+                                                key, "new-value");
+          GNUNET_free(key);
+        }
+      break;
     }
-    break;
-  }
-  case REMOVE_SECTION:
-    break;
-  case REMOVE_ENTRY:
-    break;
-  default:
-    break;
-  }
+
+    case REMOVE_SECTION:
+      break;
+
+    case REMOVE_ENTRY:
+      break;
+
+    default:
+      break;
+    }
 
   return diffsCB.cfgDiffs;
 }
@@ -199,7 +206,7 @@ editConfiguration (struct GNUNET_CONFIGURATION_Handle *cfg, int option)
  * Checking configuration diffs
  */
 static int
-checkDiffs (struct GNUNET_CONFIGURATION_Handle *cfg_default, int option)
+checkDiffs(struct GNUNET_CONFIGURATION_Handle *cfg_default, int option)
 {
   struct GNUNET_CONFIGURATION_Handle *cfg;
   struct GNUNET_CONFIGURATION_Handle *cfgDiffs;
@@ -207,139 +214,139 @@ checkDiffs (struct GNUNET_CONFIGURATION_Handle *cfg_default, int option)
   int ret;
   char *diffsFileName;
 
-  initDiffsCBData (&cbData);
+  initDiffsCBData(&cbData);
 
-  cfg = GNUNET_CONFIGURATION_create ();
+  cfg = GNUNET_CONFIGURATION_create();
   /* load defaults */
-  GNUNET_assert (GNUNET_OK == GNUNET_CONFIGURATION_load (cfg, NULL));
+  GNUNET_assert(GNUNET_OK == GNUNET_CONFIGURATION_load(cfg, NULL));
 
   /* Modify configuration and save it */
-  cfgDiffs = editConfiguration (cfg, option);
-  diffsFileName = GNUNET_DISK_mktemp ("gnunet-test-configurations-diffs.conf");
+  cfgDiffs = editConfiguration(cfg, option);
+  diffsFileName = GNUNET_DISK_mktemp("gnunet-test-configurations-diffs.conf");
   if (diffsFileName == NULL)
-  {
-    GNUNET_break (0);
-    GNUNET_CONFIGURATION_destroy (cfg);
-    GNUNET_CONFIGURATION_destroy (cfgDiffs);
-    return 1;
-  }
-  GNUNET_CONFIGURATION_write_diffs (cfg_default, cfg, diffsFileName);
-  GNUNET_CONFIGURATION_destroy (cfg);
+    {
+      GNUNET_break(0);
+      GNUNET_CONFIGURATION_destroy(cfg);
+      GNUNET_CONFIGURATION_destroy(cfgDiffs);
+      return 1;
+    }
+  GNUNET_CONFIGURATION_write_diffs(cfg_default, cfg, diffsFileName);
+  GNUNET_CONFIGURATION_destroy(cfg);
 
   /* Compare the dumped configuration with modifications done */
-  cfg = GNUNET_CONFIGURATION_create ();
-  GNUNET_assert (GNUNET_OK == GNUNET_CONFIGURATION_parse (cfg, diffsFileName));
-  if (0 != remove (diffsFileName))
-    GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "remove", diffsFileName);
+  cfg = GNUNET_CONFIGURATION_create();
+  GNUNET_assert(GNUNET_OK == GNUNET_CONFIGURATION_parse(cfg, diffsFileName));
+  if (0 != remove(diffsFileName))
+    GNUNET_log_strerror_file(GNUNET_ERROR_TYPE_WARNING, "remove", diffsFileName);
   cbData.callBackOption = COMPARE;
   cbData.cfgDiffs = cfgDiffs;
-  GNUNET_CONFIGURATION_iterate (cfg, diffsCallBack, &cbData);
+  GNUNET_CONFIGURATION_iterate(cfg, diffsCallBack, &cbData);
   if (1 == (ret = cbData.status))
-  {
-    fprintf (stderr, "%s",
-             "Incorrect Configuration Diffs: Diffs may contain data not actually edited\n");
-    goto housekeeping;
-  }
+    {
+      fprintf(stderr, "%s",
+              "Incorrect Configuration Diffs: Diffs may contain data not actually edited\n");
+      goto housekeeping;
+    }
   cbData.cfgDiffs = cfg;
-  GNUNET_CONFIGURATION_iterate (cfgDiffs, diffsCallBack, &cbData);
+  GNUNET_CONFIGURATION_iterate(cfgDiffs, diffsCallBack, &cbData);
   if ((ret = cbData.status) == 1)
-    fprintf (stderr, "%s",
-             "Incorrect Configuration Diffs: Data may be missing in diffs\n");
+    fprintf(stderr, "%s",
+            "Incorrect Configuration Diffs: Data may be missing in diffs\n");
 
 housekeeping:
 #if 0
   cbData.section = NULL;
   cbData.callBackOption = PRINT;
-  printf ("\nExpected Diffs:\n");
-  GNUNET_CONFIGURATION_iterate (cfgDiffs, diffsCallBack, &cbData);
+  printf("\nExpected Diffs:\n");
+  GNUNET_CONFIGURATION_iterate(cfgDiffs, diffsCallBack, &cbData);
   cbData.section = NULL;
-  printf ("\nActual Diffs:\n");
-  GNUNET_CONFIGURATION_iterate (cfg, diffsCallBack, &cbData);
+  printf("\nActual Diffs:\n");
+  GNUNET_CONFIGURATION_iterate(cfg, diffsCallBack, &cbData);
 #endif
-  GNUNET_CONFIGURATION_destroy (cfg);
-  GNUNET_CONFIGURATION_destroy (cfgDiffs);
-  GNUNET_free (diffsFileName);
+  GNUNET_CONFIGURATION_destroy(cfg);
+  GNUNET_CONFIGURATION_destroy(cfgDiffs);
+  GNUNET_free(diffsFileName);
   return ret;
 }
 
 
 static int
-testConfig ()
+testConfig()
 {
   char *c;
   unsigned long long l;
 
-  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_string (cfg, "test", "b", &c))
+  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_string(cfg, "test", "b", &c))
     return 1;
-  if (0 != strcmp ("b", c))
-  {
-    fprintf (stderr, "Got `%s'\n", c);
-    GNUNET_free (c);
-    return 2;
-  }
-  GNUNET_free (c);
+  if (0 != strcmp("b", c))
+    {
+      fprintf(stderr, "Got `%s'\n", c);
+      GNUNET_free(c);
+      return 2;
+    }
+  GNUNET_free(c);
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_number (cfg, "test", "five", &l))
-  {
-    GNUNET_break (0);
-    return 3;
-  }
+      GNUNET_CONFIGURATION_get_value_number(cfg, "test", "five", &l))
+    {
+      GNUNET_break(0);
+      return 3;
+    }
   if (5 != l)
-  {
-    GNUNET_break (0);
-    return 4;
-  }
-  GNUNET_CONFIGURATION_set_value_string (cfg, "more", "c", "YES");
-  if (GNUNET_NO == GNUNET_CONFIGURATION_get_value_yesno (cfg, "more", "c"))
-  {
-    GNUNET_break (0);
-    return 5;
-  }
-  GNUNET_CONFIGURATION_set_value_number (cfg, "NUMBERS", "TEN", 10);
+    {
+      GNUNET_break(0);
+      return 4;
+    }
+  GNUNET_CONFIGURATION_set_value_string(cfg, "more", "c", "YES");
+  if (GNUNET_NO == GNUNET_CONFIGURATION_get_value_yesno(cfg, "more", "c"))
+    {
+      GNUNET_break(0);
+      return 5;
+    }
+  GNUNET_CONFIGURATION_set_value_number(cfg, "NUMBERS", "TEN", 10);
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_string (cfg, "NUMBERS", "TEN", &c))
-  {
-    GNUNET_break (0);
-    return 6;
-  }
-  if (0 != strcmp (c, "10"))
-  {
-    GNUNET_free (c);
-    GNUNET_break (0);
-    return 7;
-  }
-  GNUNET_free (c);
+      GNUNET_CONFIGURATION_get_value_string(cfg, "NUMBERS", "TEN", &c))
+    {
+      GNUNET_break(0);
+      return 6;
+    }
+  if (0 != strcmp(c, "10"))
+    {
+      GNUNET_free(c);
+      GNUNET_break(0);
+      return 7;
+    }
+  GNUNET_free(c);
 
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_filename (cfg, "last", "test", &c))
-  {
-    GNUNET_break (0);
-    return 8;
-  }
+      GNUNET_CONFIGURATION_get_value_filename(cfg, "last", "test", &c))
+    {
+      GNUNET_break(0);
+      return 8;
+    }
 #ifndef MINGW
-  if (0 != strcmp (c, "/hello/world"))
+  if (0 != strcmp(c, "/hello/world"))
 #else
 #define HI "\\hello\\world"
-  if (strstr (c, HI) != c + strlen (c) - strlen (HI))
+  if (strstr(c, HI) != c + strlen(c) - strlen(HI))
 #endif
-  {
-    GNUNET_break (0);
-    GNUNET_free (c);
-    return 9;
-  }
-  GNUNET_free (c);
+    {
+      GNUNET_break(0);
+      GNUNET_free(c);
+      return 9;
+    }
+  GNUNET_free(c);
 
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_size (cfg, "last", "size", &l))
-  {
-    GNUNET_break (0);
-    return 10;
-  }
+      GNUNET_CONFIGURATION_get_value_size(cfg, "last", "size", &l))
+    {
+      GNUNET_break(0);
+      return 10;
+    }
   if (l != 512 * 1024)
-  {
-    GNUNET_break (0);
-    return 11;
-  }
+    {
+      GNUNET_break(0);
+      return 11;
+    }
   return 0;
 }
 
@@ -352,198 +359,198 @@ static const char *want[] = {
 };
 
 static int
-check (void *data, const char *fn)
+check(void *data, const char *fn)
 {
   int *idx = data;
 
-  if (0 == strcmp (want[*idx], fn))
-  {
-    (*idx)++;
-    return GNUNET_OK;
-  }
-  GNUNET_break (0);
+  if (0 == strcmp(want[*idx], fn))
+    {
+      (*idx)++;
+      return GNUNET_OK;
+    }
+  GNUNET_break(0);
   return GNUNET_SYSERR;
 }
 
 static int
-testConfigFilenames ()
+testConfigFilenames()
 {
   int idx;
 
   idx = 0;
   if (3 !=
-      GNUNET_CONFIGURATION_iterate_value_filenames (cfg, "FILENAMES", "test",
-                                                    &check, &idx))
-  {
-    GNUNET_break (0);
-    return 8;
-  }
+      GNUNET_CONFIGURATION_iterate_value_filenames(cfg, "FILENAMES", "test",
+                                                   &check, &idx))
+    {
+      GNUNET_break(0);
+      return 8;
+    }
   if (idx != 3)
     return 16;
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_remove_value_filename (cfg, "FILENAMES", "test",
-                                                  "/File Name"))
-  {
-    GNUNET_break (0);
-    return 24;
-  }
+      GNUNET_CONFIGURATION_remove_value_filename(cfg, "FILENAMES", "test",
+                                                 "/File Name"))
+    {
+      GNUNET_break(0);
+      return 24;
+    }
 
   if (GNUNET_NO !=
-      GNUNET_CONFIGURATION_remove_value_filename (cfg, "FILENAMES", "test",
-                                                  "/File Name"))
-  {
-    GNUNET_break (0);
-    return 32;
-  }
+      GNUNET_CONFIGURATION_remove_value_filename(cfg, "FILENAMES", "test",
+                                                 "/File Name"))
+    {
+      GNUNET_break(0);
+      return 32;
+    }
   if (GNUNET_NO !=
-      GNUNET_CONFIGURATION_remove_value_filename (cfg, "FILENAMES", "test",
-                                                  "Stuff"))
-  {
-    GNUNET_break (0);
-    return 40;
-  }
+      GNUNET_CONFIGURATION_remove_value_filename(cfg, "FILENAMES", "test",
+                                                 "Stuff"))
+    {
+      GNUNET_break(0);
+      return 40;
+    }
 
   if (GNUNET_NO !=
-      GNUNET_CONFIGURATION_append_value_filename (cfg, "FILENAMES", "test",
-                                                  "/Hello"))
-  {
-    GNUNET_break (0);
-    return 48;
-  }
+      GNUNET_CONFIGURATION_append_value_filename(cfg, "FILENAMES", "test",
+                                                 "/Hello"))
+    {
+      GNUNET_break(0);
+      return 48;
+    }
   if (GNUNET_NO !=
-      GNUNET_CONFIGURATION_append_value_filename (cfg, "FILENAMES", "test",
-                                                  "/World"))
-  {
-    GNUNET_break (0);
-    return 56;
-  }
-
-  if (GNUNET_YES !=
-      GNUNET_CONFIGURATION_append_value_filename (cfg, "FILENAMES", "test",
-                                                  "/File 1"))
-  {
-    GNUNET_break (0);
-    return 64;
-  }
+      GNUNET_CONFIGURATION_append_value_filename(cfg, "FILENAMES", "test",
+                                                 "/World"))
+    {
+      GNUNET_break(0);
+      return 56;
+    }
 
   if (GNUNET_YES !=
-      GNUNET_CONFIGURATION_append_value_filename (cfg, "FILENAMES", "test",
-                                                  "/File 2"))
-  {
-    GNUNET_break (0);
-    return 72;
-  }
+      GNUNET_CONFIGURATION_append_value_filename(cfg, "FILENAMES", "test",
+                                                 "/File 1"))
+    {
+      GNUNET_break(0);
+      return 64;
+    }
+
+  if (GNUNET_YES !=
+      GNUNET_CONFIGURATION_append_value_filename(cfg, "FILENAMES", "test",
+                                                 "/File 2"))
+    {
+      GNUNET_break(0);
+      return 72;
+    }
 
   idx = 0;
   want[1] = "/World";
   want[2] = "/File 1";
   want[3] = "/File 2";
   if (4 !=
-      GNUNET_CONFIGURATION_iterate_value_filenames (cfg, "FILENAMES", "test",
-                                                    &check, &idx))
-  {
-    GNUNET_break (0);
-    return 80;
-  }
+      GNUNET_CONFIGURATION_iterate_value_filenames(cfg, "FILENAMES", "test",
+                                                   &check, &idx))
+    {
+      GNUNET_break(0);
+      return 80;
+    }
   if (idx != 4)
-  {
-    GNUNET_break (0);
-    return 88;
-  }
+    {
+      GNUNET_break(0);
+      return 88;
+    }
   return 0;
 }
 
 
 int
-main (int argc, char *argv[])
+main(int argc, char *argv[])
 {
   int failureCount = 0;
   char *c;
 
-  GNUNET_log_setup ("test_configuration", "WARNING", NULL);
-  cfg = GNUNET_CONFIGURATION_create ();
-  GNUNET_assert (cfg != NULL);
+  GNUNET_log_setup("test_configuration", "WARNING", NULL);
+  cfg = GNUNET_CONFIGURATION_create();
+  GNUNET_assert(cfg != NULL);
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_parse (cfg, "test_configuration_data.conf"))
-  {
-    fprintf (stderr, "%s",  "Failed to parse configuration file\n");
-    GNUNET_CONFIGURATION_destroy (cfg);
-    return 1;
-  }
-  failureCount += testConfig ();
+      GNUNET_CONFIGURATION_parse(cfg, "test_configuration_data.conf"))
+    {
+      fprintf(stderr, "%s", "Failed to parse configuration file\n");
+      GNUNET_CONFIGURATION_destroy(cfg);
+      return 1;
+    }
+  failureCount += testConfig();
   if (failureCount > 0)
     goto error;
 
-  failureCount = testConfigFilenames ();
+  failureCount = testConfigFilenames();
   if (failureCount > 0)
     goto error;
 
-  if (GNUNET_OK != GNUNET_CONFIGURATION_write (cfg, "/tmp/gnunet-test.conf"))
-  {
-    fprintf (stderr, "%s",  "Failed to write configuration file\n");
-    GNUNET_CONFIGURATION_destroy (cfg);
-    return 1;
-  }
-  GNUNET_CONFIGURATION_destroy (cfg);
-  GNUNET_assert (0 == unlink ("/tmp/gnunet-test.conf"));
+  if (GNUNET_OK != GNUNET_CONFIGURATION_write(cfg, "/tmp/gnunet-test.conf"))
+    {
+      fprintf(stderr, "%s", "Failed to write configuration file\n");
+      GNUNET_CONFIGURATION_destroy(cfg);
+      return 1;
+    }
+  GNUNET_CONFIGURATION_destroy(cfg);
+  GNUNET_assert(0 == unlink("/tmp/gnunet-test.conf"));
 
-  cfg = GNUNET_CONFIGURATION_create ();
+  cfg = GNUNET_CONFIGURATION_create();
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_load (cfg, "test_configuration_data.conf"))
-  {
-    GNUNET_break (0);
-    GNUNET_CONFIGURATION_destroy (cfg);
-    return 1;
-  }
+      GNUNET_CONFIGURATION_load(cfg, "test_configuration_data.conf"))
+    {
+      GNUNET_break(0);
+      GNUNET_CONFIGURATION_destroy(cfg);
+      return 1;
+    }
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_string (cfg, "TESTING", "WEAKRANDOM", &c))
-  {
-    GNUNET_break (0);
-    GNUNET_CONFIGURATION_destroy (cfg);
-    return 1;
-  }
-  if (0 != strcmp (c, "YES"))
-  {
-    GNUNET_break (0);
-    GNUNET_free (c);
-    GNUNET_CONFIGURATION_destroy (cfg);
-    return 1;
-  }
+      GNUNET_CONFIGURATION_get_value_string(cfg, "TESTING", "WEAKRANDOM", &c))
+    {
+      GNUNET_break(0);
+      GNUNET_CONFIGURATION_destroy(cfg);
+      return 1;
+    }
+  if (0 != strcmp(c, "YES"))
+    {
+      GNUNET_break(0);
+      GNUNET_free(c);
+      GNUNET_CONFIGURATION_destroy(cfg);
+      return 1;
+    }
 
-  GNUNET_free (c);
-  GNUNET_CONFIGURATION_destroy (cfg);
+  GNUNET_free(c);
+  GNUNET_CONFIGURATION_destroy(cfg);
 
   /* Testing configuration diffs */
-  cfg_default = GNUNET_CONFIGURATION_create ();
-  if (GNUNET_OK != GNUNET_CONFIGURATION_load (cfg_default, NULL))
-  {
-    GNUNET_break (0);
-    GNUNET_CONFIGURATION_destroy (cfg_default);
-    return 1;
-  }
+  cfg_default = GNUNET_CONFIGURATION_create();
+  if (GNUNET_OK != GNUNET_CONFIGURATION_load(cfg_default, NULL))
+    {
+      GNUNET_break(0);
+      GNUNET_CONFIGURATION_destroy(cfg_default);
+      return 1;
+    }
 
   /* Nothing changed in the new configuration */
-  failureCount += checkDiffs (cfg_default, EDIT_NOTHING);
+  failureCount += checkDiffs(cfg_default, EDIT_NOTHING);
 
   /* Modify all entries of the last section */
-  failureCount += checkDiffs (cfg_default, EDIT_SECTION);
+  failureCount += checkDiffs(cfg_default, EDIT_SECTION);
 
   /* Add a new section */
-  failureCount += checkDiffs (cfg_default, ADD_NEW_SECTION);
+  failureCount += checkDiffs(cfg_default, ADD_NEW_SECTION);
 
   /* Add a new entry to the last section */
-  failureCount += checkDiffs (cfg_default, ADD_NEW_ENTRY);
+  failureCount += checkDiffs(cfg_default, ADD_NEW_ENTRY);
 
   /* Modify all entries in the configuration */
-  failureCount += checkDiffs (cfg_default, EDIT_ALL);
+  failureCount += checkDiffs(cfg_default, EDIT_ALL);
 
-  GNUNET_CONFIGURATION_destroy (cfg_default);
+  GNUNET_CONFIGURATION_destroy(cfg_default);
 
 error:
   if (failureCount != 0)
-  {
-    fprintf (stderr, "Test failed: %u\n", failureCount);
-    return 1;
-  }
+    {
+      fprintf(stderr, "Test failed: %u\n", failureCount);
+      return 1;
+    }
   return 0;
 }

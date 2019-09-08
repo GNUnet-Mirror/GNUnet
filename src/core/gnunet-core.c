@@ -11,12 +11,12 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 
 /**
  * @file core/gnunet-core.c
@@ -46,14 +46,14 @@ static struct GNUNET_CORE_MonitorHandle *mh;
  * @param cls NULL
  */
 static void
-shutdown_task (void *cls)
+shutdown_task(void *cls)
 {
-  (void) cls;
+  (void)cls;
   if (NULL != mh)
-  {
-    GNUNET_CORE_monitor_stop (mh);
-    mh = NULL;
-  }
+    {
+      GNUNET_CORE_monitor_stop(mh);
+      mh = NULL;
+    }
 }
 
 
@@ -67,64 +67,72 @@ shutdown_task (void *cls)
  * @param timeout timeout for the new state
  */
 static void
-monitor_cb (void *cls,
-            const struct GNUNET_PeerIdentity *peer,
-            enum GNUNET_CORE_KxState state,
-            struct GNUNET_TIME_Absolute timeout)
+monitor_cb(void *cls,
+           const struct GNUNET_PeerIdentity *peer,
+           enum GNUNET_CORE_KxState state,
+           struct GNUNET_TIME_Absolute timeout)
 {
-  struct GNUNET_TIME_Absolute now = GNUNET_TIME_absolute_get ();
+  struct GNUNET_TIME_Absolute now = GNUNET_TIME_absolute_get();
   const char *now_str;
   const char *state_str;
 
-  (void) cls;
+  (void)cls;
   if (((NULL == peer) || (GNUNET_CORE_KX_ITERATION_FINISHED == state)) &&
       (GNUNET_NO == monitor_connections))
-  {
-    GNUNET_SCHEDULER_shutdown ();
-    return;
-  }
+    {
+      GNUNET_SCHEDULER_shutdown();
+      return;
+    }
 
   switch (state)
-  {
-  case GNUNET_CORE_KX_STATE_DOWN:
-    /* should never happen, as we immediately send the key */
-    state_str = _ ("fresh connection");
-    break;
-  case GNUNET_CORE_KX_STATE_KEY_SENT:
-    state_str = _ ("key sent");
-    break;
-  case GNUNET_CORE_KX_STATE_KEY_RECEIVED:
-    state_str = _ ("key received");
-    break;
-  case GNUNET_CORE_KX_STATE_UP:
-    state_str = _ ("connection established");
-    break;
-  case GNUNET_CORE_KX_STATE_REKEY_SENT:
-    state_str = _ ("rekeying");
-    break;
-  case GNUNET_CORE_KX_PEER_DISCONNECT:
-    state_str = _ ("disconnected");
-    break;
-  case GNUNET_CORE_KX_ITERATION_FINISHED:
-    return;
-  case GNUNET_CORE_KX_CORE_DISCONNECT:
-    fprintf (stderr,
-             "%s\n",
-             _ ("Connection to CORE service lost (reconnecting)"));
-    return;
-  default:
-    state_str = _ ("unknown state");
-    break;
-  }
-  now_str = GNUNET_STRINGS_absolute_time_to_string (now);
-  fprintf (stdout,
-           _ ("%24s: %-30s %4s (timeout in %6s)\n"),
-           now_str,
-           state_str,
-           GNUNET_i2s (peer),
-           GNUNET_STRINGS_relative_time_to_string (
-             GNUNET_TIME_absolute_get_remaining (timeout),
-             GNUNET_YES));
+    {
+    case GNUNET_CORE_KX_STATE_DOWN:
+      /* should never happen, as we immediately send the key */
+      state_str = _("fresh connection");
+      break;
+
+    case GNUNET_CORE_KX_STATE_KEY_SENT:
+      state_str = _("key sent");
+      break;
+
+    case GNUNET_CORE_KX_STATE_KEY_RECEIVED:
+      state_str = _("key received");
+      break;
+
+    case GNUNET_CORE_KX_STATE_UP:
+      state_str = _("connection established");
+      break;
+
+    case GNUNET_CORE_KX_STATE_REKEY_SENT:
+      state_str = _("rekeying");
+      break;
+
+    case GNUNET_CORE_KX_PEER_DISCONNECT:
+      state_str = _("disconnected");
+      break;
+
+    case GNUNET_CORE_KX_ITERATION_FINISHED:
+      return;
+
+    case GNUNET_CORE_KX_CORE_DISCONNECT:
+      fprintf(stderr,
+              "%s\n",
+              _("Connection to CORE service lost (reconnecting)"));
+      return;
+
+    default:
+      state_str = _("unknown state");
+      break;
+    }
+  now_str = GNUNET_STRINGS_absolute_time_to_string(now);
+  fprintf(stdout,
+          _("%24s: %-30s %4s (timeout in %6s)\n"),
+          now_str,
+          state_str,
+          GNUNET_i2s(peer),
+          GNUNET_STRINGS_relative_time_to_string(
+            GNUNET_TIME_absolute_get_remaining(timeout),
+            GNUNET_YES));
 }
 
 
@@ -137,25 +145,25 @@ monitor_cb (void *cls,
  * @param cfg configuration
  */
 static void
-run (void *cls,
-     char *const *args,
-     const char *cfgfile,
-     const struct GNUNET_CONFIGURATION_Handle *cfg)
+run(void *cls,
+    char *const *args,
+    const char *cfgfile,
+    const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
-  (void) cls;
-  (void) cfgfile;
+  (void)cls;
+  (void)cfgfile;
   if (NULL != args[0])
-  {
-    fprintf (stderr, _ ("Invalid command line argument `%s'\n"), args[0]);
-    return;
-  }
-  mh = GNUNET_CORE_monitor_start (cfg, &monitor_cb, NULL);
+    {
+      fprintf(stderr, _("Invalid command line argument `%s'\n"), args[0]);
+      return;
+    }
+  mh = GNUNET_CORE_monitor_start(cfg, &monitor_cb, NULL);
   if (NULL == mh)
-  {
-    fprintf (stderr, "%s", _ ("Failed to connect to CORE service!\n"));
-    return;
-  }
-  GNUNET_SCHEDULER_add_shutdown (&shutdown_task, NULL);
+    {
+      fprintf(stderr, "%s", _("Failed to connect to CORE service!\n"));
+      return;
+    }
+  GNUNET_SCHEDULER_add_shutdown(&shutdown_task, NULL);
 }
 
 
@@ -167,30 +175,30 @@ run (void *cls,
  * @return 0 ok, 1 on error
  */
 int
-main (int argc, char *const *argv)
+main(int argc, char *const *argv)
 {
   int res;
   struct GNUNET_GETOPT_CommandLineOption options[] =
-    {GNUNET_GETOPT_option_flag (
-       'm',
-       "monitor",
-       gettext_noop (
-         "provide information about all current connections (continuously)"),
-       &monitor_connections),
-     GNUNET_GETOPT_OPTION_END};
+  { GNUNET_GETOPT_option_flag(
+      'm',
+      "monitor",
+      gettext_noop(
+        "provide information about all current connections (continuously)"),
+      &monitor_connections),
+    GNUNET_GETOPT_OPTION_END };
 
-  if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv, &argc, &argv))
+  if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args(argc, argv, &argc, &argv))
     return 2;
-  res = GNUNET_PROGRAM_run (argc,
-                            argv,
-                            "gnunet-core",
-                            gettext_noop (
-                              "Print information about connected peers."),
-                            options,
-                            &run,
-                            NULL);
+  res = GNUNET_PROGRAM_run(argc,
+                           argv,
+                           "gnunet-core",
+                           gettext_noop(
+                             "Print information about connected peers."),
+                           options,
+                           &run,
+                           NULL);
 
-  GNUNET_free ((void *) argv);
+  GNUNET_free((void *)argv);
   if (GNUNET_OK == res)
     return 0;
   return 1;

@@ -11,12 +11,12 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 
 /**
  * @file datastore/datastore.h
@@ -36,8 +36,7 @@ GNUNET_NETWORK_STRUCT_BEGIN
  * Message from datastore service informing client about
  * the current size of the datastore.
  */
-struct ReserveMessage
-{
+struct ReserveMessage {
   /**
    * Type is GNUNET_MESSAGE_TYPE_DATASTORE_RESERVE.
    */
@@ -61,8 +60,7 @@ struct ReserveMessage
  * This header is optionally followed by a variable-size,
  * 0-terminated error message.
  */
-struct StatusMessage
-{
+struct StatusMessage {
   /**
    * Type is GNUNET_MESSAGE_TYPE_DATASTORE_STATUS.
    */
@@ -78,7 +76,6 @@ struct StatusMessage
    * by the datacache at this time, zero for unknown or no limit.
    */
   struct GNUNET_TIME_AbsoluteNBO min_expiration;
-
 };
 
 
@@ -87,8 +84,7 @@ struct StatusMessage
  * the remainder of the reserved bytes can now be released
  * for other requests.
  */
-struct ReleaseReserveMessage
-{
+struct ReleaseReserveMessage {
   /**
    * Type is GNUNET_MESSAGE_TYPE_DATASTORE_RELEASE_RESERVE.
    */
@@ -98,7 +94,6 @@ struct ReleaseReserveMessage
    * Reservation id.
    */
   int32_t rid GNUNET_PACKED;
-
 };
 
 
@@ -106,8 +101,7 @@ struct ReleaseReserveMessage
  * Message to the datastore service asking about specific
  * content.
  */
-struct GetKeyMessage
-{
+struct GetKeyMessage {
   /**
    * Type is #GNUNET_MESSAGE_TYPE_DATASTORE_GET_KEY.
    */
@@ -132,7 +126,6 @@ struct GetKeyMessage
    * Desired key.
    */
   struct GNUNET_HashCode key;
-
 };
 
 
@@ -140,8 +133,7 @@ struct GetKeyMessage
  * Message to the datastore service asking about specific
  * content.
  */
-struct GetMessage
-{
+struct GetMessage {
   /**
    * Type is #GNUNET_MESSAGE_TYPE_DATASTORE_GET.
    */
@@ -161,7 +153,6 @@ struct GetMessage
    * If true return a random result
    */
   uint32_t random GNUNET_PACKED;
-
 };
 
 
@@ -169,8 +160,7 @@ struct GetMessage
  * Message to the datastore service asking about zero
  * anonymity content.
  */
-struct GetZeroAnonymityMessage
-{
+struct GetZeroAnonymityMessage {
   /**
    * Type is GNUNET_MESSAGE_TYPE_DATASTORE_GET_ZERO_ANONYMITY.
    */
@@ -185,7 +175,6 @@ struct GetZeroAnonymityMessage
    * UID at which to start the search
    */
   uint64_t next_uid GNUNET_PACKED;
-
 };
 
 
@@ -193,8 +182,7 @@ struct GetZeroAnonymityMessage
  * Message transmitting content from or to the datastore
  * service.
  */
-struct DataMessage
-{
+struct DataMessage {
   /**
    * Type is either GNUNET_MESSAGE_TYPE_DATASTORE_PUT,
    * GNUNET_MESSAGE_TYPE_DATASTORE_REMOVE or
@@ -255,7 +243,6 @@ struct DataMessage
    * Key under which the item can be found.
    */
   struct GNUNET_HashCode key;
-
 };
 GNUNET_NETWORK_STRUCT_END
 

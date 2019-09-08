@@ -11,12 +11,12 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 
 /**
  * @file transport/plugin_transport_http.h
@@ -62,13 +62,12 @@
 #define OUTBOUND GNUNET_NO
 
 
-#define HTTP_NOT_VALIDATED_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 15)
+#define HTTP_NOT_VALIDATED_TIMEOUT GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 15)
 
 /**
  * Encapsulation of all of the state of the plugin.
  */
-struct Plugin
-{
+struct Plugin {
   /**
    * Our environment.
    */
@@ -262,7 +261,6 @@ struct Plugin
    * curl perform task
    */
   struct GNUNET_SCHEDULER_Task * client_perform_task;
-
 };
 
 GNUNET_NETWORK_STRUCT_BEGIN
@@ -270,8 +268,7 @@ GNUNET_NETWORK_STRUCT_BEGIN
 /**
  * HTTP addresses including a full URI
  */
-struct HttpAddress
-{
+struct HttpAddress {
   /**
    * Length of the address following in NBO
    */
@@ -286,8 +283,7 @@ struct HttpAddress
 /**
  * IPv4 addresses
  */
-struct IPv4HttpAddress
-{
+struct IPv4HttpAddress {
   /**
    * IPv4 address, in network byte order.
    */
@@ -302,8 +298,7 @@ struct IPv4HttpAddress
 /**
  * IPv4 addresses
  */
-struct IPv6HttpAddress
-{
+struct IPv6HttpAddress {
   /**
    * IPv6 address.
    */
@@ -317,8 +312,7 @@ struct IPv6HttpAddress
 GNUNET_NETWORK_STRUCT_END
 
 
-struct ServerRequest
-{
+struct ServerRequest {
   /**
    * _RECV or _SEND
    */
@@ -344,8 +338,7 @@ struct ServerRequest
 /**
  * Session handle for connections.
  */
-struct GNUNET_ATS_Session
-{
+struct GNUNET_ATS_Session {
   /**
    * To whom are we talking to
    */
@@ -455,8 +448,7 @@ struct GNUNET_ATS_Session
 /**
  *  Message to send using http
  */
-struct HTTP_Message
-{
+struct HTTP_Message {
   /**
    * next pointer for double linked list
    */
@@ -497,81 +489,81 @@ struct HTTP_Message
 
 
 struct GNUNET_ATS_Session *
-create_session (struct Plugin *plugin,
-                const struct GNUNET_PeerIdentity *target,
-                const void *addr,
-                size_t addrlen);
+create_session(struct Plugin *plugin,
+               const struct GNUNET_PeerIdentity *target,
+               const void *addr,
+               size_t addrlen);
 
 
 int
-exist_session (struct Plugin *plugin,
-               struct GNUNET_ATS_Session *s);
+exist_session(struct Plugin *plugin,
+              struct GNUNET_ATS_Session *s);
 
 
 void
-delete_session (struct GNUNET_ATS_Session *s);
+delete_session(struct GNUNET_ATS_Session *s);
 
 
 int
-exist_session (struct Plugin *plugin,
-               struct GNUNET_ATS_Session *s);
+exist_session(struct Plugin *plugin,
+              struct GNUNET_ATS_Session *s);
 
 
 struct GNUNET_TIME_Relative
-http_plugin_receive (void *cls,
-                     const struct GNUNET_PeerIdentity *peer,
-                     const struct GNUNET_MessageHeader *message,
-                     struct GNUNET_ATS_Session *session,
-                     const char *sender_address,
-                     uint16_t sender_address_len);
+http_plugin_receive(void *cls,
+                    const struct GNUNET_PeerIdentity *peer,
+                    const struct GNUNET_MessageHeader *message,
+                    struct GNUNET_ATS_Session *session,
+                    const char *sender_address,
+                    uint16_t sender_address_len);
 
 
 const char *
-http_plugin_address_to_string (void *cls,
-                               const void *addr,
-                               size_t addrlen);
+http_plugin_address_to_string(void *cls,
+                              const void *addr,
+                              size_t addrlen);
 
 
 int
-client_disconnect (struct GNUNET_ATS_Session *s);
+client_disconnect(struct GNUNET_ATS_Session *s);
 
 
 int
-client_connect (struct GNUNET_ATS_Session *s);
+client_connect(struct GNUNET_ATS_Session *s);
 
 
 int
-client_send (struct GNUNET_ATS_Session *s, struct HTTP_Message *msg);
+client_send(struct GNUNET_ATS_Session *s, struct HTTP_Message *msg);
 
 
 int
-client_start (struct Plugin *plugin);
+client_start(struct Plugin *plugin);
 
 
 void
-client_stop (struct Plugin *plugin);
+client_stop(struct Plugin *plugin);
 
 
 int
-server_disconnect (struct GNUNET_ATS_Session *s);
+server_disconnect(struct GNUNET_ATS_Session *s);
 
 
 int
-server_send (struct GNUNET_ATS_Session *s, struct HTTP_Message *msg);
+server_send(struct GNUNET_ATS_Session *s, struct HTTP_Message *msg);
 
 
 int
-server_start (struct Plugin *plugin);
+server_start(struct Plugin *plugin);
 
 
 void
-server_stop (struct Plugin *plugin);
+server_stop(struct Plugin *plugin);
 
 
 void
-notify_session_end (void *cls,
-                    const struct GNUNET_PeerIdentity *peer,
-                    struct GNUNET_ATS_Session *s);
+notify_session_end(void *cls,
+                   const struct GNUNET_PeerIdentity *peer,
+                   struct GNUNET_ATS_Session *s);
 
 
 /*#ifndef PLUGIN_TRANSPORT_HTTP_H*/

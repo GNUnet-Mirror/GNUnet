@@ -11,7 +11,7 @@
       WITHOUT ANY WARRANTY; without even the implied warranty of
       MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
       Affero General Public License for more details.
-     
+
       You should have received a copy of the GNU Affero General Public License
       along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -41,7 +41,7 @@ struct SDHandle;
  * @return the initialized handle
  */
 struct SDHandle *
-GNUNET_TESTBED_SD_init_ (unsigned int max_cnt);
+GNUNET_TESTBED_SD_init_(unsigned int max_cnt);
 
 
 /**
@@ -50,7 +50,7 @@ GNUNET_TESTBED_SD_init_ (unsigned int max_cnt);
  * @param h the SD handle
  */
 void
-GNUNET_TESTBED_SD_destroy_ (struct SDHandle *h);
+GNUNET_TESTBED_SD_destroy_(struct SDHandle *h);
 
 
 /**
@@ -60,7 +60,7 @@ GNUNET_TESTBED_SD_destroy_ (struct SDHandle *h);
  * @param amount the reading value
  */
 void
-GNUNET_TESTBED_SD_add_data_ (struct SDHandle *h, unsigned int amount);
+GNUNET_TESTBED_SD_add_data_(struct SDHandle *h, unsigned int amount);
 
 
 /**
@@ -74,8 +74,8 @@ GNUNET_TESTBED_SD_add_data_ (struct SDHandle *h, unsigned int amount);
  *           maximum of 4 is returned for deviations equal to or larger than 4
  */
 int
-GNUNET_TESTBED_SD_deviation_factor_ (struct SDHandle *h, unsigned int amount,
-                                     int *factor);
+GNUNET_TESTBED_SD_deviation_factor_(struct SDHandle *h, unsigned int amount,
+                                    int *factor);
 
 #endif
 /* end of testbed_api.h */

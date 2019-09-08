@@ -11,12 +11,12 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 /**
  * @file regex/test_regex_proofs.c
  * @brief test for regex.c
@@ -40,32 +40,32 @@
  * @return 0 on success, 1 on failure
  */
 static unsigned int
-test_proof (const char *regex)
+test_proof(const char *regex)
 {
   unsigned int error;
   struct REGEX_INTERNAL_Automaton *dfa;
   char *c_rx1;
   const char *c_rx2;
 
-  dfa = REGEX_INTERNAL_construct_dfa (regex, strlen (regex), 1);
-  GNUNET_assert (NULL != dfa);
-  c_rx1 = GNUNET_strdup (REGEX_INTERNAL_get_canonical_regex (dfa));
-  REGEX_INTERNAL_automaton_destroy (dfa);
-  dfa = REGEX_INTERNAL_construct_dfa (c_rx1, strlen (c_rx1), 1);
-  GNUNET_assert (NULL != dfa);
-  c_rx2 = REGEX_INTERNAL_get_canonical_regex (dfa);
+  dfa = REGEX_INTERNAL_construct_dfa(regex, strlen(regex), 1);
+  GNUNET_assert(NULL != dfa);
+  c_rx1 = GNUNET_strdup(REGEX_INTERNAL_get_canonical_regex(dfa));
+  REGEX_INTERNAL_automaton_destroy(dfa);
+  dfa = REGEX_INTERNAL_construct_dfa(c_rx1, strlen(c_rx1), 1);
+  GNUNET_assert(NULL != dfa);
+  c_rx2 = REGEX_INTERNAL_get_canonical_regex(dfa);
 
-  error = (0 == strcmp (c_rx1, c_rx2)) ? 0 : 1;
+  error = (0 == strcmp(c_rx1, c_rx2)) ? 0 : 1;
 
   if (error > 0)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Comparing canonical regex of\n%s\nfailed:\n%s\nvs.\n%s\n",
-                regex, c_rx1, c_rx2);
-  }
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
+                 "Comparing canonical regex of\n%s\nfailed:\n%s\nvs.\n%s\n",
+                 regex, c_rx1, c_rx2);
+    }
 
-  GNUNET_free (c_rx1);
-  REGEX_INTERNAL_automaton_destroy (dfa);
+  GNUNET_free(c_rx1);
+  REGEX_INTERNAL_automaton_destroy(dfa);
 
   return error;
 }
@@ -81,7 +81,7 @@ test_proof (const char *regex)
  * @return 0 on succes, number of failures otherwise.
  */
 static unsigned int
-test_proofs_random (unsigned int count, size_t rx_length)
+test_proofs_random(unsigned int count, size_t rx_length)
 {
   unsigned int i;
   char *rand_rx;
@@ -90,11 +90,11 @@ test_proofs_random (unsigned int count, size_t rx_length)
   failures = 0;
 
   for (i = 0; i < count; i++)
-  {
-    rand_rx = REGEX_TEST_generate_random_regex (rx_length, NULL);
-    failures += test_proof (rand_rx);
-    GNUNET_free (rand_rx);
-  }
+    {
+      rand_rx = REGEX_TEST_generate_random_regex(rx_length, NULL);
+      failures += test_proof(rand_rx);
+      GNUNET_free(rand_rx);
+    }
 
   return failures;
 }
@@ -106,7 +106,7 @@ test_proofs_random (unsigned int count, size_t rx_length)
  * @return 0 on success, number of failures otherwise.
  */
 static unsigned int
-test_proofs_static ()
+test_proofs_static()
 {
   unsigned int i;
   unsigned int error;
@@ -130,43 +130,43 @@ test_proofs_static ()
   error = 0;
 
   for (i = 0; i < 8; i += 2)
-  {
-    dfa1 = REGEX_INTERNAL_construct_dfa (regex[i], strlen (regex[i]), 1);
-    dfa2 = REGEX_INTERNAL_construct_dfa (regex[i + 1], strlen (regex[i + 1]), 1);
-    GNUNET_assert (NULL != dfa1);
-    GNUNET_assert (NULL != dfa2);
-
-    canon_rx1 = REGEX_INTERNAL_get_canonical_regex (dfa1);
-    canon_rx2 = REGEX_INTERNAL_get_canonical_regex (dfa2);
-
-    error += (0 == strcmp (canon_rx1, canon_rx2)) ? 0 : 1;
-
-    if (error > 0)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  "Comparing canonical regex failed:\nrx1:\t%s\ncrx1:\t%s\nrx2:\t%s\ncrx2:\t%s\n",
-                  regex[i], canon_rx1, regex[i + 1], canon_rx2);
-    }
+      dfa1 = REGEX_INTERNAL_construct_dfa(regex[i], strlen(regex[i]), 1);
+      dfa2 = REGEX_INTERNAL_construct_dfa(regex[i + 1], strlen(regex[i + 1]), 1);
+      GNUNET_assert(NULL != dfa1);
+      GNUNET_assert(NULL != dfa2);
 
-    REGEX_INTERNAL_automaton_destroy (dfa1);
-    REGEX_INTERNAL_automaton_destroy (dfa2);
-  }
+      canon_rx1 = REGEX_INTERNAL_get_canonical_regex(dfa1);
+      canon_rx2 = REGEX_INTERNAL_get_canonical_regex(dfa2);
+
+      error += (0 == strcmp(canon_rx1, canon_rx2)) ? 0 : 1;
+
+      if (error > 0)
+        {
+          GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
+                     "Comparing canonical regex failed:\nrx1:\t%s\ncrx1:\t%s\nrx2:\t%s\ncrx2:\t%s\n",
+                     regex[i], canon_rx1, regex[i + 1], canon_rx2);
+        }
+
+      REGEX_INTERNAL_automaton_destroy(dfa1);
+      REGEX_INTERNAL_automaton_destroy(dfa2);
+    }
 
   return error;
 }
 
 
 int
-main (int argc, char *argv[])
+main(int argc, char *argv[])
 {
-  GNUNET_log_setup ("test-regex", "WARNING", NULL);
+  GNUNET_log_setup("test-regex", "WARNING", NULL);
 
   int error;
 
   error = 0;
 
-  error += test_proofs_static ();
-  error += test_proofs_random (100, 30);
+  error += test_proofs_static();
+  error += test_proofs_random(100, 30);
 
   return error;
 }

@@ -11,12 +11,12 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 
 /**
  * @file util/speedup.c
@@ -27,7 +27,7 @@
 #include "gnunet_util_lib.h"
 #include "speedup.h"
 
-#define LOG(kind,...) GNUNET_log_from (kind, "util-speedup", __VA_ARGS__)
+#define LOG(kind, ...) GNUNET_log_from(kind, "util-speedup", __VA_ARGS__)
 
 
 static struct GNUNET_TIME_Relative interval;
@@ -38,20 +38,20 @@ static struct GNUNET_SCHEDULER_Task *speedup_task;
 
 
 static void
-do_speedup (void *cls)
+do_speedup(void *cls)
 {
   static long long current_offset;
 
-  (void) cls;
+  (void)cls;
   speedup_task = NULL;
   current_offset += delta.rel_value_us;
-  GNUNET_TIME_set_offset (current_offset);
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Speeding up execution time by %s\n",
-       GNUNET_STRINGS_relative_time_to_string (delta, GNUNET_NO));
-  speedup_task = GNUNET_SCHEDULER_add_delayed (interval,
-					       &do_speedup,
-					       NULL);
+  GNUNET_TIME_set_offset(current_offset);
+  LOG(GNUNET_ERROR_TYPE_DEBUG,
+      "Speeding up execution time by %s\n",
+      GNUNET_STRINGS_relative_time_to_string(delta, GNUNET_NO));
+  speedup_task = GNUNET_SCHEDULER_add_delayed(interval,
+                                              &do_speedup,
+                                              NULL);
 }
 
 
@@ -62,38 +62,38 @@ do_speedup (void *cls)
  * @return #GNUNET_OK on success, #GNUNET_SYSERR if the speedup was not configured
  */
 int
-GNUNET_SPEEDUP_start_ (const struct GNUNET_CONFIGURATION_Handle *cfg)
+GNUNET_SPEEDUP_start_(const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
-  GNUNET_assert (NULL == speedup_task);
+  GNUNET_assert(NULL == speedup_task);
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_time (cfg,
-					   "testing",
-                                           "SPEEDUP_INTERVAL",
-					   &interval))
+      GNUNET_CONFIGURATION_get_value_time(cfg,
+                                          "testing",
+                                          "SPEEDUP_INTERVAL",
+                                          &interval))
     return GNUNET_SYSERR;
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_time (cfg,
-					   "testing",
-                                           "SPEEDUP_DELTA",
-					   &delta))
+      GNUNET_CONFIGURATION_get_value_time(cfg,
+                                          "testing",
+                                          "SPEEDUP_DELTA",
+                                          &delta))
     return GNUNET_SYSERR;
 
-  if ( (0 == interval.rel_value_us) ||
-       (0 == delta.rel_value_us) )
-  {
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-	 "Speed up disabled\n");
-    return GNUNET_OK;
-  }
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Speed up execution by %s\n",
-       GNUNET_STRINGS_relative_time_to_string (delta, GNUNET_NO));
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Speed up executed every %s\n",
-       GNUNET_STRINGS_relative_time_to_string (interval, GNUNET_NO));
-  speedup_task = GNUNET_SCHEDULER_add_now_with_lifeness (GNUNET_NO,
-                                                         &do_speedup,
-							 NULL);
+  if ((0 == interval.rel_value_us) ||
+      (0 == delta.rel_value_us))
+    {
+      LOG(GNUNET_ERROR_TYPE_DEBUG,
+          "Speed up disabled\n");
+      return GNUNET_OK;
+    }
+  LOG(GNUNET_ERROR_TYPE_DEBUG,
+      "Speed up execution by %s\n",
+      GNUNET_STRINGS_relative_time_to_string(delta, GNUNET_NO));
+  LOG(GNUNET_ERROR_TYPE_DEBUG,
+      "Speed up executed every %s\n",
+      GNUNET_STRINGS_relative_time_to_string(interval, GNUNET_NO));
+  speedup_task = GNUNET_SCHEDULER_add_now_with_lifeness(GNUNET_NO,
+                                                        &do_speedup,
+                                                        NULL);
   return GNUNET_OK;
 }
 
@@ -102,17 +102,17 @@ GNUNET_SPEEDUP_start_ (const struct GNUNET_CONFIGURATION_Handle *cfg)
  * Stop tasks that modify clock behavior.
  */
 void
-GNUNET_SPEEDUP_stop_ ()
+GNUNET_SPEEDUP_stop_()
 {
   if (NULL != speedup_task)
-  {
-    GNUNET_SCHEDULER_cancel (speedup_task);
-    speedup_task = NULL;
-  }
-  if ( (0 != interval.rel_value_us) &&
-       (0 != delta.rel_value_us) )
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-	 "Stopped execution speed up\n");
+    {
+      GNUNET_SCHEDULER_cancel(speedup_task);
+      speedup_task = NULL;
+    }
+  if ((0 != interval.rel_value_us) &&
+      (0 != delta.rel_value_us))
+    LOG(GNUNET_ERROR_TYPE_DEBUG,
+        "Stopped execution speed up\n");
 }
 
 /* end of speedup.c */

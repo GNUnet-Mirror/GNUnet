@@ -11,7 +11,7 @@
       WITHOUT ANY WARRANTY; without even the implied warranty of
       MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
       Affero General Public License for more details.
-     
+
       You should have received a copy of the GNU Affero General Public License
       along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -62,8 +62,8 @@ struct GNUNET_RPS_Request_Handle;
  * @param peers array with num_peers PeerIDs
  */
 typedef void (* GNUNET_RPS_NotifyReadyCB) (void *cls,
-    uint64_t num_peers,
-    const struct GNUNET_PeerIdentity *peers);
+                                           uint64_t num_peers,
+                                           const struct GNUNET_PeerIdentity *peers);
 
 
 /**
@@ -76,9 +76,9 @@ typedef void (* GNUNET_RPS_NotifyReadyCB) (void *cls,
  * @param num_observed Number of IDs this sampler has observed
  */
 typedef void (* GNUNET_RPS_NotifyReadySingleInfoCB) (void *cls,
-    const struct GNUNET_PeerIdentity *peer,
-    double probability,
-    uint32_t num_observed);
+                                                     const struct GNUNET_PeerIdentity *peer,
+                                                     double probability,
+                                                     uint32_t num_observed);
 
 
 /**
@@ -88,7 +88,7 @@ typedef void (* GNUNET_RPS_NotifyReadySingleInfoCB) (void *cls,
  * @return handle to the rps service
  */
 struct GNUNET_RPS_Handle *
-GNUNET_RPS_connect (const struct GNUNET_CONFIGURATION_Handle *cfg);
+GNUNET_RPS_connect(const struct GNUNET_CONFIGURATION_Handle *cfg);
 
 
 /**
@@ -98,8 +98,8 @@ GNUNET_RPS_connect (const struct GNUNET_CONFIGURATION_Handle *cfg);
  * @param shared_value The shared value that defines the members of the sub (-group)
  */
 void
-GNUNET_RPS_sub_start (struct GNUNET_RPS_Handle *h,
-                      const char *shared_value);
+GNUNET_RPS_sub_start(struct GNUNET_RPS_Handle *h,
+                     const char *shared_value);
 
 
 /**
@@ -109,8 +109,8 @@ GNUNET_RPS_sub_start (struct GNUNET_RPS_Handle *h,
  * @param shared_value The shared value that defines the members of the sub (-group)
  */
 void
-GNUNET_RPS_sub_stop (struct GNUNET_RPS_Handle *h,
-                     const char *shared_value);
+GNUNET_RPS_sub_stop(struct GNUNET_RPS_Handle *h,
+                    const char *shared_value);
 
 
 /**
@@ -128,9 +128,9 @@ GNUNET_RPS_sub_stop (struct GNUNET_RPS_Handle *h,
  * @return handle to this request
  */
 struct GNUNET_RPS_Request_Handle *
-GNUNET_RPS_request_peers (struct GNUNET_RPS_Handle *h, uint32_t n,
-                          GNUNET_RPS_NotifyReadyCB ready_cb,
-                          void *cls);
+GNUNET_RPS_request_peers(struct GNUNET_RPS_Handle *h, uint32_t n,
+                         GNUNET_RPS_NotifyReadyCB ready_cb,
+                         void *cls);
 
 
 /**
@@ -142,9 +142,9 @@ GNUNET_RPS_request_peers (struct GNUNET_RPS_Handle *h, uint32_t n,
  * @return a handle to cancel this request
  */
 struct GNUNET_RPS_Request_Handle_Single_Info *
-GNUNET_RPS_request_peer_info (struct GNUNET_RPS_Handle *rps_handle,
-                              GNUNET_RPS_NotifyReadySingleInfoCB ready_cb,
-                              void *cls);
+GNUNET_RPS_request_peer_info(struct GNUNET_RPS_Handle *rps_handle,
+                             GNUNET_RPS_NotifyReadySingleInfoCB ready_cb,
+                             void *cls);
 
 
 /**
@@ -155,8 +155,8 @@ GNUNET_RPS_request_peer_info (struct GNUNET_RPS_Handle *rps_handle,
  * @param ids the ids of the peers seeded
  */
 void
-GNUNET_RPS_seed_ids (struct GNUNET_RPS_Handle *h, uint32_t n,
-                     const struct GNUNET_PeerIdentity * ids);
+GNUNET_RPS_seed_ids(struct GNUNET_RPS_Handle *h, uint32_t n,
+                    const struct GNUNET_PeerIdentity * ids);
 
 /**
  * Cancle an issued request.
@@ -164,7 +164,7 @@ GNUNET_RPS_seed_ids (struct GNUNET_RPS_Handle *h, uint32_t n,
  * @param rh handle of the pending request to be canceled
  */
 void
-GNUNET_RPS_request_cancel (struct GNUNET_RPS_Request_Handle *rh);
+GNUNET_RPS_request_cancel(struct GNUNET_RPS_Request_Handle *rh);
 
 
 /**
@@ -173,8 +173,8 @@ GNUNET_RPS_request_cancel (struct GNUNET_RPS_Request_Handle *rh);
  * @param rhs request handle of request to cancle
  */
 void
-GNUNET_RPS_request_single_info_cancel (
-    struct GNUNET_RPS_Request_Handle_Single_Info *rhs);
+GNUNET_RPS_request_single_info_cancel(
+  struct GNUNET_RPS_Request_Handle_Single_Info *rhs);
 
 
 #if ENABLE_MALICIOUS
@@ -192,12 +192,12 @@ GNUNET_RPS_request_single_info_cancel (
  *            if @type is 2 the last id is the id of the
  *            peer to be isolated from the rest
  */
-  void
-GNUNET_RPS_act_malicious (struct GNUNET_RPS_Handle *h,
-                          uint32_t type,
-                          uint32_t num_peers,
-                          const struct GNUNET_PeerIdentity *ids,
-                          const struct GNUNET_PeerIdentity *target_peer);
+void
+GNUNET_RPS_act_malicious(struct GNUNET_RPS_Handle *h,
+                         uint32_t type,
+                         uint32_t num_peers,
+                         const struct GNUNET_PeerIdentity *ids,
+                         const struct GNUNET_PeerIdentity *target_peer);
 #endif /* ENABLE_MALICIOUS */
 
 /* Get internals for debugging/profiling purposes */
@@ -212,10 +212,10 @@ GNUNET_RPS_act_malicious (struct GNUNET_RPS_Handle *h,
  * @param ready_cb the callback called when the peers are available
  */
 void
-GNUNET_RPS_view_request (struct GNUNET_RPS_Handle *rps_handle,
-                         uint32_t num_updates,
-                         GNUNET_RPS_NotifyReadyCB view_update_cb,
-                         void *cls);
+GNUNET_RPS_view_request(struct GNUNET_RPS_Handle *rps_handle,
+                        uint32_t num_updates,
+                        GNUNET_RPS_NotifyReadyCB view_update_cb,
+                        void *cls);
 
 
 /**
@@ -226,9 +226,9 @@ GNUNET_RPS_view_request (struct GNUNET_RPS_Handle *rps_handle,
  * @param ready_cb the callback called when the peers are available
  */
 struct GNUNET_RPS_StreamRequestHandle *
-GNUNET_RPS_stream_request (struct GNUNET_RPS_Handle *rps_handle,
-                           GNUNET_RPS_NotifyReadyCB stream_input_cb,
-                           void *cls);
+GNUNET_RPS_stream_request(struct GNUNET_RPS_Handle *rps_handle,
+                          GNUNET_RPS_NotifyReadyCB stream_input_cb,
+                          void *cls);
 
 
 /**
@@ -237,7 +237,7 @@ GNUNET_RPS_stream_request (struct GNUNET_RPS_Handle *rps_handle,
  * @param srh The request handle to cancel
  */
 void
-GNUNET_RPS_stream_cancel (struct GNUNET_RPS_StreamRequestHandle *srh);
+GNUNET_RPS_stream_cancel(struct GNUNET_RPS_StreamRequestHandle *srh);
 
 
 /**
@@ -245,8 +245,8 @@ GNUNET_RPS_stream_cancel (struct GNUNET_RPS_StreamRequestHandle *srh);
  *
  * @param h the handle to the rps service
  */
-  void
-GNUNET_RPS_disconnect (struct GNUNET_RPS_Handle *h);
+void
+GNUNET_RPS_disconnect(struct GNUNET_RPS_Handle *h);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

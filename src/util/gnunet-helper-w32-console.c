@@ -11,12 +11,12 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 
 /**
  * @file src/util/gnunet-helper-w32-console.c
@@ -45,9 +45,9 @@ static HANDLE parent_handle;
  * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
  */
 static int
-write_all (int output, 
-           const void *buf,
-	   size_t size)
+write_all(int output,
+          const void *buf,
+          size_t size)
 {
   const char *cbuf = buf;
   size_t total;
@@ -55,17 +55,18 @@ write_all (int output,
 
   total = 0;
   do
-  {
-    wr = write (output,
-		&cbuf[total],
-		size - total);
-    if (wr > 0)
-      total += wr;
-  } while ( (wr > 0) && (total < size) );
+    {
+      wr = write(output,
+                 &cbuf[total],
+                 size - total);
+      if (wr > 0)
+        total += wr;
+    }
+  while ((wr > 0) && (total < size));
   if (wr <= 0)
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		"Failed to write to stdout: %s\n",
-		strerror (errno));
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+               "Failed to write to stdout: %s\n",
+               strerror(errno));
   return (total == size) ? GNUNET_OK : GNUNET_SYSERR;
 }
 
@@ -80,24 +81,24 @@ write_all (int output,
  * @return #GNUNET_SYSERR to stop scanning (the pipe was broken somehow)
  */
 static int
-write_message (int output,
-               uint16_t message_type,
-	       const char *data,
-	       size_t data_length)
+write_message(int output,
+              uint16_t message_type,
+              const char *data,
+              size_t data_length)
 {
   struct GNUNET_MessageHeader hdr;
 
 #if 0
-  fprintf (stderr,
-	   "Helper sends %u-byte message of type %u\n",
-	   (unsigned int) (sizeof (struct GNUNET_MessageHeader) + data_length),
-	   (unsigned int) message_type);
+  fprintf(stderr,
+          "Helper sends %u-byte message of type %u\n",
+          (unsigned int)(sizeof(struct GNUNET_MessageHeader) + data_length),
+          (unsigned int)message_type);
 #endif
-  hdr.type = htons (message_type);
-  hdr.size = htons (sizeof (struct GNUNET_MessageHeader) + data_length);
-  if (GNUNET_OK != write_all (output, &hdr, sizeof (hdr)))
+  hdr.type = htons(message_type);
+  hdr.size = htons(sizeof(struct GNUNET_MessageHeader) + data_length);
+  if (GNUNET_OK != write_all(output, &hdr, sizeof(hdr)))
     return GNUNET_SYSERR;
-  if (GNUNET_OK != write_all (output, data, data_length))
+  if (GNUNET_OK != write_all(output, data, data_length))
     return GNUNET_SYSERR;
   return GNUNET_OK;
 }
@@ -112,7 +113,7 @@ write_message (int output,
  * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
  */
 static int
-read_events (HANDLE console, int output_stream)
+read_events(HANDLE console, int output_stream)
 {
   DWORD rr;
   BOOL b;
@@ -121,30 +122,30 @@ read_events (HANDLE console, int output_stream)
   int result;
 
   result = GNUNET_SYSERR;
-  buf = malloc (sizeof (INPUT_RECORD) * buffer_size);
+  buf = malloc(sizeof(INPUT_RECORD) * buffer_size);
   if (NULL == buf)
     return result;
   b = TRUE;
   rr = 1;
   while (TRUE == b && 0 < rr)
-  {
-    rr = 0;
-    b = ReadConsoleInput (console, buf, buffer_size, &rr);
-    if (FALSE == b && ERROR_SUCCESS != GetLastError ())
-      break;
-    for (i = 0; i < rr; i++)
     {
-      int r;
-      r = write_message (output_stream,
-                         GNUNET_MESSAGE_TYPE_W32_CONSOLE_HELPER_INPUT,
-                         (const char *) &buf[i],
-                         sizeof (INPUT_RECORD));
-      if (GNUNET_OK != r)
+      rr = 0;
+      b = ReadConsoleInput(console, buf, buffer_size, &rr);
+      if (FALSE == b && ERROR_SUCCESS != GetLastError())
+        break;
+      for (i = 0; i < rr; i++)
+        {
+          int r;
+          r = write_message(output_stream,
+                            GNUNET_MESSAGE_TYPE_W32_CONSOLE_HELPER_INPUT,
+                            (const char *)&buf[i],
+                            sizeof(INPUT_RECORD));
+          if (GNUNET_OK != r)
+            break;
+        }
+      if (rr + 1 != i)
         break;
     }
-    if (rr + 1 != i)
-      break;
-  }
   return result;
 }
 
@@ -158,7 +159,7 @@ read_events (HANDLE console, int output_stream)
  * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
  */
 static int
-read_chars (HANDLE console, int output_stream)
+read_chars(HANDLE console, int output_stream)
 {
   DWORD rr;
   BOOL b;
@@ -171,78 +172,78 @@ read_chars (HANDLE console, int output_stream)
   int result;
 
   result = GNUNET_SYSERR;
-  buf = malloc (sizeof (wchar_t) * buffer_size);
+  buf = malloc(sizeof(wchar_t) * buffer_size);
   if (NULL == buf)
     return result;
-  small_ubuf = malloc (sizeof (char) * buffer_size * 2);
+  small_ubuf = malloc(sizeof(char) * buffer_size * 2);
   if (NULL == small_ubuf)
-  {
-    free (buf);
-    return result;
-  }
+    {
+      free(buf);
+      return result;
+    }
   b = TRUE;
   rr = 1;
   while (TRUE == b)
-  {
-    large_ubuf = NULL;
-    rr = 0;
-    b = ReadConsoleW (console, buf, buffer_size, &rr, NULL);
-    if (FALSE == b && ERROR_SUCCESS != GetLastError ())
-      break;
-    if (0 == rr)
-      continue;
-    /* Caveat: if the UTF-16-encoded string is longer than BUFFER_SIZE,
-     * there's a possibility that we will read up to a word that constitutes
-     * a part of a multi-byte UTF-16 codepoint. Converting that to UTF-8
-     * will either drop invalid word (flags == 0) or bail out because of it
-     * (flags == WC_ERR_INVALID_CHARS).
-     */
-    conv = WideCharToMultiByte (CP_UTF8, 0, buf, rr, small_ubuf, 0, NULL, FALSE);
-    if (0 == conv || 0xFFFD == conv)
-      continue;
-    if (conv <= buffer_size * 2 - 1)
     {
-      memset (small_ubuf, 0, buffer_size * 2);
-      conv = WideCharToMultiByte (CP_UTF8, 0, buf, rr, small_ubuf, buffer_size * 2 - 1, NULL, FALSE);
+      large_ubuf = NULL;
+      rr = 0;
+      b = ReadConsoleW(console, buf, buffer_size, &rr, NULL);
+      if (FALSE == b && ERROR_SUCCESS != GetLastError())
+        break;
+      if (0 == rr)
+        continue;
+      /* Caveat: if the UTF-16-encoded string is longer than BUFFER_SIZE,
+       * there's a possibility that we will read up to a word that constitutes
+       * a part of a multi-byte UTF-16 codepoint. Converting that to UTF-8
+       * will either drop invalid word (flags == 0) or bail out because of it
+       * (flags == WC_ERR_INVALID_CHARS).
+       */
+      conv = WideCharToMultiByte(CP_UTF8, 0, buf, rr, small_ubuf, 0, NULL, FALSE);
       if (0 == conv || 0xFFFD == conv)
         continue;
-      ubuf = small_ubuf;
+      if (conv <= buffer_size * 2 - 1)
+        {
+          memset(small_ubuf, 0, buffer_size * 2);
+          conv = WideCharToMultiByte(CP_UTF8, 0, buf, rr, small_ubuf, buffer_size * 2 - 1, NULL, FALSE);
+          if (0 == conv || 0xFFFD == conv)
+            continue;
+          ubuf = small_ubuf;
+        }
+      else
+        {
+          large_ubuf = malloc(conv + 1);
+          if (NULL == large_ubuf)
+            continue;
+          memset(large_ubuf, 0, conv + 1);
+          conv = WideCharToMultiByte(CP_UTF8, 0, buf, rr, large_ubuf, conv, NULL, FALSE);
+          if (0 == conv || 0xFFFD == conv)
+            {
+              free(large_ubuf);
+              large_ubuf = NULL;
+              continue;
+            }
+          ubuf = large_ubuf;
+        }
+      r = write_message(output_stream,
+                        GNUNET_MESSAGE_TYPE_W32_CONSOLE_HELPER_CHARS,
+                        ubuf,
+                        conv + 1);
+      if (large_ubuf)
+        free(large_ubuf);
+      if (GNUNET_OK != r)
+        break;
     }
-    else
-    {
-      large_ubuf = malloc (conv + 1);
-      if (NULL == large_ubuf)
-        continue;
-      memset (large_ubuf, 0, conv + 1);
-      conv = WideCharToMultiByte (CP_UTF8, 0, buf, rr, large_ubuf, conv, NULL, FALSE);
-      if (0 == conv || 0xFFFD == conv)
-      {
-        free (large_ubuf);
-        large_ubuf = NULL;
-        continue;
-      }
-      ubuf = large_ubuf;
-    }
-    r = write_message (output_stream,
-                       GNUNET_MESSAGE_TYPE_W32_CONSOLE_HELPER_CHARS,
-                       ubuf,
-                       conv + 1);
-    if (large_ubuf)
-      free (large_ubuf);
-    if (GNUNET_OK != r)
-      break;
-  }
-  free (small_ubuf);
-  free (buf);
+  free(small_ubuf);
+  free(buf);
   return result;
 }
 
 
 DWORD WINAPI
-watch_parent (LPVOID param)
+watch_parent(LPVOID param)
 {
-  WaitForSingleObject (parent_handle, INFINITE);
-  ExitProcess (1);
+  WaitForSingleObject(parent_handle, INFINITE);
+  ExitProcess(1);
   return 0;
 }
 
@@ -257,62 +258,62 @@ watch_parent (LPVOID param)
  * @return 0 on success
  */
 int
-main (int argc,
-      char *const *argv)
+main(int argc,
+     char *const *argv)
 {
   HANDLE os_stdin;
   DWORD parent_pid;
+
   /* We're using stdout to communicate binary data back to the parent; use
    * binary mode.
    */
-  _setmode (1, _O_BINARY);
+  _setmode(1, _O_BINARY);
 
   if (argc != 4)
-  {
-    fprintf (stderr,
-        "Usage: gnunet-helper-w32-console <chars|events> <buffer size> <parent pid>\n");
-    return 2;
-  }
+    {
+      fprintf(stderr,
+              "Usage: gnunet-helper-w32-console <chars|events> <buffer size> <parent pid>\n");
+      return 2;
+    }
 
-  if (0 == strcmp (argv[1], "chars"))
+  if (0 == strcmp(argv[1], "chars"))
     chars = GNUNET_YES;
-  else if (0 == strcmp (argv[1], "events"))
+  else if (0 == strcmp(argv[1], "events"))
     chars = GNUNET_NO;
   else
     return 3;
 
-  buffer_size = strtoul (argv[2], NULL, 10);
+  buffer_size = strtoul(argv[2], NULL, 10);
   if (buffer_size <= 0)
     return 4;
 
-  parent_pid = (DWORD) strtoul (argv[3], NULL, 10);
+  parent_pid = (DWORD)strtoul(argv[3], NULL, 10);
   if (parent_pid == 0)
     return 5;
-  parent_handle = OpenProcess (SYNCHRONIZE, FALSE, parent_pid);
+  parent_handle = OpenProcess(SYNCHRONIZE, FALSE, parent_pid);
   if (NULL == parent_handle)
     return 6;
 
-  CreateThread (NULL, 0, watch_parent, NULL, 0, NULL);
+  CreateThread(NULL, 0, watch_parent, NULL, 0, NULL);
 
-  if (0 == AttachConsole (ATTACH_PARENT_PROCESS))
-  {
-    if (ERROR_ACCESS_DENIED != GetLastError ())
-      return 5;
-  }
+  if (0 == AttachConsole(ATTACH_PARENT_PROCESS))
+    {
+      if (ERROR_ACCESS_DENIED != GetLastError())
+        return 5;
+    }
 
   /* Helper API overrides stdin, so we just attach to the console that we
    * inherited. If we did.
    */
-  os_stdin = CreateFile ("CONIN$", GENERIC_READ | GENERIC_WRITE,
-      FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, 0, 0);
+  os_stdin = CreateFile("CONIN$", GENERIC_READ | GENERIC_WRITE,
+                        FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, 0, 0);
   if (INVALID_HANDLE_VALUE == os_stdin)
     return 1;
 
   if (GNUNET_NO == chars)
-    return read_events (os_stdin, 1);
+    return read_events(os_stdin, 1);
   else
-    return read_chars (os_stdin, 1);
-
+    return read_chars(os_stdin, 1);
 }
 
 /* end of gnunet-helper-w32-console.c */

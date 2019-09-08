@@ -11,12 +11,12 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 
 /**
  * @file src/regex/perf-regex.c
@@ -42,23 +42,23 @@
  * @param edges edges leaving current state.
  */
 static void
-print_edge (void *cls,
-	    const struct GNUNET_HashCode *key,
-	    const char *proof,
-	    int accepting,
-	    unsigned int num_edges,
-	    const struct REGEX_BLOCK_Edge *edges)
+print_edge(void *cls,
+           const struct GNUNET_HashCode *key,
+           const char *proof,
+           int accepting,
+           unsigned int num_edges,
+           const struct REGEX_BLOCK_Edge *edges)
 {
   unsigned int i;
 
-  printf ("%s: %s, proof: `%s'\n",
-	  GNUNET_h2s (key),
-	  accepting ? "ACCEPTING" : "",
-	  proof);
+  printf("%s: %s, proof: `%s'\n",
+         GNUNET_h2s(key),
+         accepting ? "ACCEPTING" : "",
+         proof);
   for (i = 0; i < num_edges; i++)
-    printf ("    `%s': %s\n",
-	    edges[i].label,
-	    GNUNET_h2s (&edges[i].destination));
+    printf("    `%s': %s\n",
+           edges[i].label,
+           GNUNET_h2s(&edges[i].destination));
 }
 
 
@@ -73,7 +73,7 @@ print_edge (void *cls,
  * @return 0 ok, 1 on error
  */
 int
-main (int argc, char *const *argv)
+main(int argc, char *const *argv)
 {
   struct REGEX_INTERNAL_Automaton* dfa;
   char **regexes;
@@ -83,45 +83,45 @@ main (int argc, char *const *argv)
   unsigned int alphabet_size;
   long size;
 
-  GNUNET_log_setup ("perf-regex", "DEBUG", NULL);
+  GNUNET_log_setup("perf-regex", "DEBUG", NULL);
   if (4 != argc)
-  {
-    fprintf (stderr,
-	     "Usage: %s REGEX_FILE ALPHABET_SIZE COMPRESSION\n",
-	     argv[0]);
-    return 1;
-  }
-  regexes = REGEX_TEST_read_from_file (argv[1]);
+    {
+      fprintf(stderr,
+              "Usage: %s REGEX_FILE ALPHABET_SIZE COMPRESSION\n",
+              argv[0]);
+      return 1;
+    }
+  regexes = REGEX_TEST_read_from_file(argv[1]);
   if (NULL == regexes)
-  {
-    fprintf (stderr,
-	     "Failed to read regexes from `%s'\n",
-	     argv[1]);
-    return 2;
-  }
-  alphabet_size = atoi (argv[2]);
-  compression = atoi (argv[3]);
-  printf ("********* PERF-REGEX *********'\n");
-  printf ("Using:\n file '%s'\n Alphabet size %u\n compression %d\n",
-          argv[1], alphabet_size, compression);
+    {
+      fprintf(stderr,
+              "Failed to read regexes from `%s'\n",
+              argv[1]);
+      return 2;
+    }
+  alphabet_size = atoi(argv[2]);
+  compression = atoi(argv[3]);
+  printf("********* PERF-REGEX *********'\n");
+  printf("Using:\n file '%s'\n Alphabet size %u\n compression %d\n",
+         argv[1], alphabet_size, compression);
   fflush(stdout);
-  buffer = REGEX_TEST_combine (regexes, alphabet_size);
-  GNUNET_asprintf (&regex, "GNUNET_REGEX_PROFILER_(%s)(0|1)*", buffer);
-  size = strlen (regex);
+  buffer = REGEX_TEST_combine(regexes, alphabet_size);
+  GNUNET_asprintf(&regex, "GNUNET_REGEX_PROFILER_(%s)(0|1)*", buffer);
+  size = strlen(regex);
 
-  fprintf (stderr,
-	   "Combined regex (%ld bytes):\n%s\n",
-	   size,
-	   regex);
-  dfa = REGEX_INTERNAL_construct_dfa (regex, size, compression);
-  printf ("********* ALL EDGES *********'\n");
-  REGEX_INTERNAL_iterate_all_edges (dfa, &print_edge, NULL);
-  printf ("\n\n********* REACHABLE EDGES *********'\n");
-  REGEX_INTERNAL_iterate_reachable_edges (dfa, &print_edge, NULL);
-  REGEX_INTERNAL_automaton_destroy (dfa);
-  GNUNET_free (buffer);
-  REGEX_TEST_free_from_file (regexes);
-  GNUNET_free (regex);
+  fprintf(stderr,
+          "Combined regex (%ld bytes):\n%s\n",
+          size,
+          regex);
+  dfa = REGEX_INTERNAL_construct_dfa(regex, size, compression);
+  printf("********* ALL EDGES *********'\n");
+  REGEX_INTERNAL_iterate_all_edges(dfa, &print_edge, NULL);
+  printf("\n\n********* REACHABLE EDGES *********'\n");
+  REGEX_INTERNAL_iterate_reachable_edges(dfa, &print_edge, NULL);
+  REGEX_INTERNAL_automaton_destroy(dfa);
+  GNUNET_free(buffer);
+  REGEX_TEST_free_from_file(regexes);
+  GNUNET_free(regex);
   return 0;
 }
 

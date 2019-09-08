@@ -11,12 +11,12 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 
 /**
  * @file rps/gnunet-service-rps_view.h
@@ -35,7 +35,7 @@ struct View;
  * @return The newly created view
  */
 struct View *
-View_create (unsigned int len);
+View_create(unsigned int len);
 
 
 /**
@@ -47,8 +47,8 @@ View_create (unsigned int len);
  * @param len the (maximum) length for the view
  */
 void
-View_change_len (struct View *view,
-                 unsigned int len);
+View_change_len(struct View *view,
+                unsigned int len);
 
 /**
  * Get the view as an array
@@ -56,7 +56,7 @@ View_change_len (struct View *view,
  * @return the view in array representation
  */
 const struct GNUNET_PeerIdentity *
-View_get_as_array (const struct View *view);
+View_get_as_array(const struct View *view);
 
 
 /**
@@ -66,7 +66,7 @@ View_get_as_array (const struct View *view);
  * @return current number of actually contained peers
  */
 unsigned int
-View_size (const struct View *view);
+View_size(const struct View *view);
 
 
 /**
@@ -79,8 +79,8 @@ View_size (const struct View *view);
  *         GNUNET_NO if peer was not inserted
  */
 int
-View_put (struct View *view,
-          const struct GNUNET_PeerIdentity *peer);
+View_put(struct View *view,
+         const struct GNUNET_PeerIdentity *peer);
 
 
 /**
@@ -93,8 +93,8 @@ View_put (struct View *view,
  *         GNUNET_NO otherwise
  */
 int
-View_contains_peer (const struct View *view,
-                    const struct GNUNET_PeerIdentity *peer);
+View_contains_peer(const struct View *view,
+                   const struct GNUNET_PeerIdentity *peer);
 
 
 /**
@@ -107,8 +107,8 @@ View_contains_peer (const struct View *view,
  *         GNUNET_NO if view does not contain peer
  */
 int
-View_remove_peer (struct View *view,
-                  const struct GNUNET_PeerIdentity *peer);
+View_remove_peer(struct View *view,
+                 const struct GNUNET_PeerIdentity *peer);
 
 
 /**
@@ -121,8 +121,8 @@ View_remove_peer (struct View *view,
  *         NULL if this index is not known
  */
 const struct GNUNET_PeerIdentity *
-View_get_peer_by_index (const struct View *view,
-                        uint32_t index);
+View_get_peer_by_index(const struct View *view,
+                       uint32_t index);
 
 
 /**
@@ -131,7 +131,7 @@ View_get_peer_by_index (const struct View *view,
  * @param view The view to clear
  */
 void
-View_clear (struct View *view);
+View_clear(struct View *view);
 
 
 /**
@@ -140,6 +140,6 @@ View_clear (struct View *view);
  * @param view the view to destroy
  */
 void
-View_destroy (struct View *view);
+View_destroy(struct View *view);
 
 /* end of gnunet-service-rps_view.h */

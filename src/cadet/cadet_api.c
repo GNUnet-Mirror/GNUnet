@@ -16,7 +16,7 @@
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 /**
  * @file cadet/cadet_api.c
  * @brief cadet api: client implementation of cadet service
@@ -30,13 +30,12 @@
 #include "cadet.h"
 #include "cadet_protocol.h"
 
-#define LOG(kind, ...) GNUNET_log_from (kind, "cadet-api", __VA_ARGS__)
+#define LOG(kind, ...) GNUNET_log_from(kind, "cadet-api", __VA_ARGS__)
 
 /**
  * Opaque handle to the service.
  */
-struct GNUNET_CADET_Handle
-{
+struct GNUNET_CADET_Handle {
   /**
    * Message queue.
    */
@@ -77,9 +76,7 @@ struct GNUNET_CADET_Handle
 /**
  * Opaque handle to a channel.
  */
-struct GNUNET_CADET_Channel
-{
-
+struct GNUNET_CADET_Channel {
   /**
    * Other end of the channel.
    */
@@ -143,9 +140,7 @@ struct GNUNET_CADET_Channel
 /**
  * Opaque handle to a port.
  */
-struct GNUNET_CADET_Port
-{
-
+struct GNUNET_CADET_Port {
   /**
    * Port "number"
    */
@@ -196,10 +191,10 @@ struct GNUNET_CADET_Port
  * @return The port handle if known, NULL otherwise.
  */
 static struct GNUNET_CADET_Port *
-find_port (const struct GNUNET_CADET_Handle *h,
-           const struct GNUNET_HashCode *hash)
+find_port(const struct GNUNET_CADET_Handle *h,
+          const struct GNUNET_HashCode *hash)
 {
-  return GNUNET_CONTAINER_multihashmap_get (h->ports, hash);
+  return GNUNET_CONTAINER_multihashmap_get(h->ports, hash);
 }
 
 
@@ -211,11 +206,11 @@ find_port (const struct GNUNET_CADET_Handle *h,
  * @return handle to the required channel or NULL if not found
  */
 static struct GNUNET_CADET_Channel *
-find_channel (struct GNUNET_CADET_Handle *h,
-              struct GNUNET_CADET_ClientChannelNumber ccn)
+find_channel(struct GNUNET_CADET_Handle *h,
+             struct GNUNET_CADET_ClientChannelNumber ccn)
 {
-  return GNUNET_CONTAINER_multihashmap32_get (h->channels,
-                                              ntohl (ccn.channel_of_client));
+  return GNUNET_CONTAINER_multihashmap32_get(h->channels,
+                                             ntohl(ccn.channel_of_client));
 }
 
 
@@ -227,33 +222,33 @@ find_channel (struct GNUNET_CADET_Handle *h,
  * @return Handle to the created channel.
  */
 static struct GNUNET_CADET_Channel *
-create_channel (struct GNUNET_CADET_Handle *h,
-                const struct GNUNET_CADET_ClientChannelNumber *ccnp)
+create_channel(struct GNUNET_CADET_Handle *h,
+               const struct GNUNET_CADET_ClientChannelNumber *ccnp)
 {
   struct GNUNET_CADET_Channel *ch;
   struct GNUNET_CADET_ClientChannelNumber ccn;
 
-  ch = GNUNET_new (struct GNUNET_CADET_Channel);
+  ch = GNUNET_new(struct GNUNET_CADET_Channel);
   ch->cadet = h;
   if (NULL == ccnp)
-  {
-    while (NULL != find_channel (h, h->next_ccn))
-      h->next_ccn.channel_of_client =
-        htonl (GNUNET_CADET_LOCAL_CHANNEL_ID_CLI |
-               (1 + ntohl (h->next_ccn.channel_of_client)));
-    ccn = h->next_ccn;
-  }
+    {
+      while (NULL != find_channel(h, h->next_ccn))
+        h->next_ccn.channel_of_client =
+          htonl(GNUNET_CADET_LOCAL_CHANNEL_ID_CLI |
+                (1 + ntohl(h->next_ccn.channel_of_client)));
+      ccn = h->next_ccn;
+    }
   else
-  {
-    ccn = *ccnp;
-  }
+    {
+      ccn = *ccnp;
+    }
   ch->ccn = ccn;
-  GNUNET_assert (GNUNET_OK ==
-                 GNUNET_CONTAINER_multihashmap32_put (
-                   h->channels,
-                   ntohl (ch->ccn.channel_of_client),
-                   ch,
-                   GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
+  GNUNET_assert(GNUNET_OK ==
+                GNUNET_CONTAINER_multihashmap32_put(
+                  h->channels,
+                  ntohl(ch->ccn.channel_of_client),
+                  ch,
+                  GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
   return ch;
 }
 
@@ -269,31 +264,31 @@ create_channel (struct GNUNET_CADET_Handle *h,
  * @param call_cleaner Whether to call the cleaner handler.
  */
 static void
-destroy_channel (struct GNUNET_CADET_Channel *ch)
+destroy_channel(struct GNUNET_CADET_Channel *ch)
 {
   struct GNUNET_CADET_Handle *h = ch->cadet;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Destroying channel %X of %p\n",
-       htonl (ch->ccn.channel_of_client),
-       h);
-  GNUNET_assert (
+  LOG(GNUNET_ERROR_TYPE_DEBUG,
+      "Destroying channel %X of %p\n",
+      htonl(ch->ccn.channel_of_client),
+      h);
+  GNUNET_assert(
     GNUNET_YES ==
-    GNUNET_CONTAINER_multihashmap32_remove (h->channels,
-                                            ntohl (ch->ccn.channel_of_client),
-                                            ch));
+    GNUNET_CONTAINER_multihashmap32_remove(h->channels,
+                                           ntohl(ch->ccn.channel_of_client),
+                                           ch));
   if (NULL != ch->mq_cont)
-  {
-    GNUNET_SCHEDULER_cancel (ch->mq_cont);
-    ch->mq_cont = NULL;
-  }
+    {
+      GNUNET_SCHEDULER_cancel(ch->mq_cont);
+      ch->mq_cont = NULL;
+    }
   /* signal channel destruction */
   if (NULL != ch->disconnects)
-    ch->disconnects (ch->ctx, ch);
+    ch->disconnects(ch->ctx, ch);
   if (NULL != ch->pending_env)
-    GNUNET_MQ_discard (ch->pending_env);
-  GNUNET_MQ_destroy (ch->mq);
-  GNUNET_free (ch);
+    GNUNET_MQ_discard(ch->pending_env);
+  GNUNET_MQ_destroy(ch->mq);
+  GNUNET_free(ch);
 }
 
 
@@ -304,7 +299,7 @@ destroy_channel (struct GNUNET_CADET_Channel *ch)
  * @param h handle to the cadet
  */
 static void
-reconnect (struct GNUNET_CADET_Handle *h);
+reconnect(struct GNUNET_CADET_Handle *h);
 
 
 /**
@@ -317,17 +312,17 @@ reconnect (struct GNUNET_CADET_Handle *h);
  * @return #GNUNET_OK (continue to iterate)
  */
 static int
-open_port_cb (void *cls, const struct GNUNET_HashCode *id, void *value)
+open_port_cb(void *cls, const struct GNUNET_HashCode *id, void *value)
 {
   struct GNUNET_CADET_Handle *h = cls;
   struct GNUNET_CADET_Port *port = value;
   struct GNUNET_CADET_PortMessage *msg;
   struct GNUNET_MQ_Envelope *env;
 
-  (void) id;
-  env = GNUNET_MQ_msg (msg, GNUNET_MESSAGE_TYPE_CADET_LOCAL_PORT_OPEN);
+  (void)id;
+  env = GNUNET_MQ_msg(msg, GNUNET_MESSAGE_TYPE_CADET_LOCAL_PORT_OPEN);
   msg->port = port->id;
-  GNUNET_MQ_send (h->mq, env);
+  GNUNET_MQ_send(h->mq, env);
   return GNUNET_OK;
 }
 
@@ -339,14 +334,14 @@ open_port_cb (void *cls, const struct GNUNET_HashCode *id, void *value)
  * @param cls closure (cadet handle)
  */
 static void
-reconnect_cbk (void *cls)
+reconnect_cbk(void *cls)
 {
   struct GNUNET_CADET_Handle *h = cls;
 
   h->reconnect_task = NULL;
-  h->reconnect_time = GNUNET_TIME_STD_BACKOFF (h->reconnect_time);
-  reconnect (h);
-  GNUNET_CONTAINER_multihashmap_iterate (h->ports, &open_port_cb, h);
+  h->reconnect_time = GNUNET_TIME_STD_BACKOFF(h->reconnect_time);
+  reconnect(h);
+  GNUNET_CONTAINER_multihashmap_iterate(h->ports, &open_port_cb, h);
 }
 
 
@@ -356,12 +351,12 @@ reconnect_cbk (void *cls)
  * @param ch Channel to notify about.
  */
 static void
-notify_window_size (struct GNUNET_CADET_Channel *ch)
+notify_window_size(struct GNUNET_CADET_Channel *ch)
 {
   if (NULL != ch->window_changes)
-    ch->window_changes (ch->ctx,
-                        ch, /* FIXME: remove 'ch'? */
-                        ch->allow_send);
+    ch->window_changes(ch->ctx,
+                       ch,  /* FIXME: remove 'ch'? */
+                       ch->allow_send);
 }
 
 
@@ -371,32 +366,32 @@ notify_window_size (struct GNUNET_CADET_Channel *ch)
  * @param cls Closure (channel whose mq to activate).
  */
 static void
-cadet_mq_send_now (void *cls)
+cadet_mq_send_now(void *cls)
 {
   struct GNUNET_CADET_Channel *ch = cls;
   struct GNUNET_MQ_Envelope *env = ch->pending_env;
 
   ch->mq_cont = NULL;
   if (0 == ch->allow_send)
-  {
-    /* how did we get here? */
-    GNUNET_break (0);
-    return;
-  }
+    {
+      /* how did we get here? */
+      GNUNET_break(0);
+      return;
+    }
   if (NULL == env)
-  {
-    /* how did we get here? */
-    GNUNET_break (0);
-    return;
-  }
+    {
+      /* how did we get here? */
+      GNUNET_break(0);
+      return;
+    }
   ch->allow_send--;
   ch->pending_env = NULL;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Sending message on channel %s to CADET, new window size is %u\n",
-              GNUNET_i2s (&ch->peer),
-              ch->allow_send);
-  GNUNET_MQ_send (ch->cadet->mq, env);
-  GNUNET_MQ_impl_send_continue (ch->mq);
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+             "Sending message on channel %s to CADET, new window size is %u\n",
+             GNUNET_i2s(&ch->peer),
+             ch->allow_send);
+  GNUNET_MQ_send(ch->cadet->mq, env);
+  GNUNET_MQ_impl_send_continue(ch->mq);
 }
 
 
@@ -413,9 +408,9 @@ cadet_mq_send_now (void *cls)
  * @param impl_state state of the implementation
  */
 static void
-cadet_mq_send_impl (struct GNUNET_MQ_Handle *mq,
-                    const struct GNUNET_MessageHeader *msg,
-                    void *impl_state)
+cadet_mq_send_impl(struct GNUNET_MQ_Handle *mq,
+                   const struct GNUNET_MessageHeader *msg,
+                   void *impl_state)
 {
   struct GNUNET_CADET_Channel *ch = impl_state;
   struct GNUNET_CADET_Handle *h = ch->cadet;
@@ -426,31 +421,31 @@ cadet_mq_send_impl (struct GNUNET_MQ_Handle *mq,
   enum GNUNET_MQ_PriorityPreferences pp;
 
   if (NULL == h->mq)
-  {
-    /* We're currently reconnecting, pretend this worked */
-    GNUNET_MQ_impl_send_continue (mq);
-    return;
-  }
-  orig_env = GNUNET_MQ_get_current_envelope (mq);
-  pp = GNUNET_MQ_env_get_options (orig_env);
+    {
+      /* We're currently reconnecting, pretend this worked */
+      GNUNET_MQ_impl_send_continue(mq);
+      return;
+    }
+  orig_env = GNUNET_MQ_get_current_envelope(mq);
+  pp = GNUNET_MQ_env_get_options(orig_env);
 
   /* check message size for sanity */
-  msize = ntohs (msg->size);
+  msize = ntohs(msg->size);
   if (msize > GNUNET_CONSTANTS_MAX_CADET_MESSAGE_SIZE)
-  {
-    GNUNET_break (0);
-    GNUNET_MQ_impl_send_continue (mq);
-    return;
-  }
-  env = GNUNET_MQ_msg_nested_mh (cadet_msg,
-                                 GNUNET_MESSAGE_TYPE_CADET_LOCAL_DATA,
-                                 msg);
+    {
+      GNUNET_break(0);
+      GNUNET_MQ_impl_send_continue(mq);
+      return;
+    }
+  env = GNUNET_MQ_msg_nested_mh(cadet_msg,
+                                GNUNET_MESSAGE_TYPE_CADET_LOCAL_DATA,
+                                msg);
   cadet_msg->ccn = ch->ccn;
-  cadet_msg->pp = htonl ((uint32_t) pp);
-  GNUNET_assert (NULL == ch->pending_env);
+  cadet_msg->pp = htonl((uint32_t)pp);
+  GNUNET_assert(NULL == ch->pending_env);
   ch->pending_env = env;
   if (0 < ch->allow_send)
-    ch->mq_cont = GNUNET_SCHEDULER_add_now (&cadet_mq_send_now, ch);
+    ch->mq_cont = GNUNET_SCHEDULER_add_now(&cadet_mq_send_now, ch);
 }
 
 
@@ -462,11 +457,11 @@ cadet_mq_send_impl (struct GNUNET_MQ_Handle *mq,
  * @param impl_state state of the implementation
  */
 static void
-cadet_mq_destroy_impl (struct GNUNET_MQ_Handle *mq, void *impl_state)
+cadet_mq_destroy_impl(struct GNUNET_MQ_Handle *mq, void *impl_state)
 {
   struct GNUNET_CADET_Channel *ch = impl_state;
 
-  GNUNET_assert (mq == ch->mq);
+  GNUNET_assert(mq == ch->mq);
   ch->mq = NULL;
 }
 
@@ -480,25 +475,25 @@ cadet_mq_destroy_impl (struct GNUNET_MQ_Handle *mq, void *impl_state)
  * @param error error code
  */
 static void
-cadet_mq_error_handler (void *cls, enum GNUNET_MQ_Error error)
+cadet_mq_error_handler(void *cls, enum GNUNET_MQ_Error error)
 {
   struct GNUNET_CADET_Channel *ch = cls;
 
   if (GNUNET_MQ_ERROR_NO_MATCH == error)
-  {
-    /* Got a message we did not understand, still try to continue! */
-    GNUNET_break_op (0);
-    GNUNET_CADET_receive_done (ch);
-  }
+    {
+      /* Got a message we did not understand, still try to continue! */
+      GNUNET_break_op(0);
+      GNUNET_CADET_receive_done(ch);
+    }
   else
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "MQ error in communication with CADET: %d\n",
-                error);
-    if (NULL != ch->disconnects)
-      ch->disconnects (ch->ctx, ch);
-    GNUNET_CADET_channel_destroy (ch);
-  }
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
+                 "MQ error in communication with CADET: %d\n",
+                 error);
+      if (NULL != ch->disconnects)
+        ch->disconnects(ch->ctx, ch);
+      GNUNET_CADET_channel_destroy(ch);
+    }
 }
 
 
@@ -510,19 +505,19 @@ cadet_mq_error_handler (void *cls, enum GNUNET_MQ_Error error)
  * @param impl_state state specific to the implementation
  */
 static void
-cadet_mq_cancel_impl (struct GNUNET_MQ_Handle *mq, void *impl_state)
+cadet_mq_cancel_impl(struct GNUNET_MQ_Handle *mq, void *impl_state)
 {
   struct GNUNET_CADET_Channel *ch = impl_state;
 
-  (void) mq;
-  GNUNET_assert (NULL != ch->pending_env);
-  GNUNET_MQ_discard (ch->pending_env);
+  (void)mq;
+  GNUNET_assert(NULL != ch->pending_env);
+  GNUNET_MQ_discard(ch->pending_env);
   ch->pending_env = NULL;
   if (NULL != ch->mq_cont)
-  {
-    GNUNET_SCHEDULER_cancel (ch->mq_cont);
-    ch->mq_cont = NULL;
-  }
+    {
+      GNUNET_SCHEDULER_cancel(ch->mq_cont);
+      ch->mq_cont = NULL;
+    }
 }
 
 
@@ -533,7 +528,7 @@ cadet_mq_cancel_impl (struct GNUNET_MQ_Handle *mq, void *impl_state)
  * @param msg   A message with the details of the new incoming channel
  */
 static void
-handle_channel_created (
+handle_channel_created(
   void *cls,
   const struct GNUNET_CADET_LocalChannelCreateMessage *msg)
 {
@@ -545,52 +540,52 @@ handle_channel_created (
 
   ccn = msg->ccn;
   port_number = &msg->port;
-  if (ntohl (ccn.channel_of_client) >= GNUNET_CADET_LOCAL_CHANNEL_ID_CLI)
-  {
-    GNUNET_break (0);
-    return;
-  }
-  port = find_port (h, port_number);
+  if (ntohl(ccn.channel_of_client) >= GNUNET_CADET_LOCAL_CHANNEL_ID_CLI)
+    {
+      GNUNET_break(0);
+      return;
+    }
+  port = find_port(h, port_number);
   if (NULL == port)
-  {
-    /* We could have closed the port but the service didn't know about it yet
-     * This is not an error.
-     */
-    struct GNUNET_CADET_LocalChannelDestroyMessage *d_msg;
-    struct GNUNET_MQ_Envelope *env;
+    {
+      /* We could have closed the port but the service didn't know about it yet
+       * This is not an error.
+       */
+      struct GNUNET_CADET_LocalChannelDestroyMessage *d_msg;
+      struct GNUNET_MQ_Envelope *env;
 
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "No handler for incoming channel %X (on port %s, recently closed?)\n",
-         ntohl (ccn.channel_of_client),
-         GNUNET_h2s (port_number));
-    env =
-      GNUNET_MQ_msg (d_msg, GNUNET_MESSAGE_TYPE_CADET_LOCAL_CHANNEL_DESTROY);
-    d_msg->ccn = msg->ccn;
-    GNUNET_MQ_send (h->mq, env);
-    return;
-  }
+      LOG(GNUNET_ERROR_TYPE_DEBUG,
+          "No handler for incoming channel %X (on port %s, recently closed?)\n",
+          ntohl(ccn.channel_of_client),
+          GNUNET_h2s(port_number));
+      env =
+        GNUNET_MQ_msg(d_msg, GNUNET_MESSAGE_TYPE_CADET_LOCAL_CHANNEL_DESTROY);
+      d_msg->ccn = msg->ccn;
+      GNUNET_MQ_send(h->mq, env);
+      return;
+    }
 
-  ch = create_channel (h, &ccn);
+  ch = create_channel(h, &ccn);
   ch->peer = msg->peer;
   ch->incoming_port = port;
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Creating incoming channel %X [%s] %p\n",
-       ntohl (ccn.channel_of_client),
-       GNUNET_h2s (port_number),
-       ch);
+  LOG(GNUNET_ERROR_TYPE_DEBUG,
+      "Creating incoming channel %X [%s] %p\n",
+      ntohl(ccn.channel_of_client),
+      GNUNET_h2s(port_number),
+      ch);
 
-  GNUNET_assert (NULL != port->connects);
+  GNUNET_assert(NULL != port->connects);
   ch->window_changes = port->window_changes;
   ch->disconnects = port->disconnects;
-  ch->mq = GNUNET_MQ_queue_for_callbacks (&cadet_mq_send_impl,
-                                          &cadet_mq_destroy_impl,
-                                          &cadet_mq_cancel_impl,
-                                          ch,
-                                          port->handlers,
-                                          &cadet_mq_error_handler,
-                                          ch);
-  ch->ctx = port->connects (port->cls, ch, &msg->peer);
-  GNUNET_MQ_set_handlers_closure (ch->mq, ch->ctx);
+  ch->mq = GNUNET_MQ_queue_for_callbacks(&cadet_mq_send_impl,
+                                         &cadet_mq_destroy_impl,
+                                         &cadet_mq_cancel_impl,
+                                         ch,
+                                         port->handlers,
+                                         &cadet_mq_error_handler,
+                                         ch);
+  ch->ctx = port->connects(port->cls, ch, &msg->peer);
+  GNUNET_MQ_set_handlers_closure(ch->mq, ch->ctx);
 }
 
 
@@ -601,25 +596,25 @@ handle_channel_created (
  * @param msg   A message with the details of the channel being destroyed
  */
 static void
-handle_channel_destroy (
+handle_channel_destroy(
   void *cls,
   const struct GNUNET_CADET_LocalChannelDestroyMessage *msg)
 {
   struct GNUNET_CADET_Handle *h = cls;
   struct GNUNET_CADET_Channel *ch;
 
-  ch = find_channel (h, msg->ccn);
+  ch = find_channel(h, msg->ccn);
   if (NULL == ch)
-  {
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Received channel destroy for unknown channel %X from CADET service (recently close?)\n",
-         ntohl (msg->ccn.channel_of_client));
-    return;
-  }
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Received channel destroy for channel %X from CADET service\n",
-       ntohl (msg->ccn.channel_of_client));
-  destroy_channel (ch);
+    {
+      LOG(GNUNET_ERROR_TYPE_DEBUG,
+          "Received channel destroy for unknown channel %X from CADET service (recently close?)\n",
+          ntohl(msg->ccn.channel_of_client));
+      return;
+    }
+  LOG(GNUNET_ERROR_TYPE_DEBUG,
+      "Received channel destroy for channel %X from CADET service\n",
+      ntohl(msg->ccn.channel_of_client));
+  destroy_channel(ch);
 }
 
 
@@ -632,17 +627,17 @@ handle_channel_destroy (
  *         #GNUNET_SYSERR otherwise
  */
 static int
-check_local_data (void *cls, const struct GNUNET_CADET_LocalData *message)
+check_local_data(void *cls, const struct GNUNET_CADET_LocalData *message)
 {
   uint16_t size;
 
-  (void) cls;
-  size = ntohs (message->header.size);
-  if (sizeof (*message) + sizeof (struct GNUNET_MessageHeader) > size)
-  {
-    GNUNET_break (0);
-    return GNUNET_SYSERR;
-  }
+  (void)cls;
+  size = ntohs(message->header.size);
+  if (sizeof(*message) + sizeof(struct GNUNET_MessageHeader) > size)
+    {
+      GNUNET_break(0);
+      return GNUNET_SYSERR;
+    }
   return GNUNET_OK;
 }
 
@@ -654,7 +649,7 @@ check_local_data (void *cls, const struct GNUNET_CADET_LocalData *message)
  * @param message A message encapsulating the data
  */
 static void
-handle_local_data (void *cls, const struct GNUNET_CADET_LocalData *message)
+handle_local_data(void *cls, const struct GNUNET_CADET_LocalData *message)
 {
   struct GNUNET_CADET_Handle *h = cls;
   const struct GNUNET_MessageHeader *payload;
@@ -662,25 +657,25 @@ handle_local_data (void *cls, const struct GNUNET_CADET_LocalData *message)
   uint16_t type;
   int fwd;
 
-  ch = find_channel (h, message->ccn);
+  ch = find_channel(h, message->ccn);
   if (NULL == ch)
-  {
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Unknown channel %X for incoming data (recently closed?)\n",
-         ntohl (message->ccn.channel_of_client));
-    return;
-  }
+    {
+      LOG(GNUNET_ERROR_TYPE_DEBUG,
+          "Unknown channel %X for incoming data (recently closed?)\n",
+          ntohl(message->ccn.channel_of_client));
+      return;
+    }
 
-  payload = (const struct GNUNET_MessageHeader *) &message[1];
-  type = ntohs (payload->type);
-  fwd = ntohl (ch->ccn.channel_of_client) <= GNUNET_CADET_LOCAL_CHANNEL_ID_CLI;
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Got a %s data on channel %s [%X] of type %u\n",
-       fwd ? "FWD" : "BWD",
-       GNUNET_i2s (&ch->peer),
-       ntohl (message->ccn.channel_of_client),
-       type);
-  GNUNET_MQ_inject_message (ch->mq, payload);
+  payload = (const struct GNUNET_MessageHeader *)&message[1];
+  type = ntohs(payload->type);
+  fwd = ntohl(ch->ccn.channel_of_client) <= GNUNET_CADET_LOCAL_CHANNEL_ID_CLI;
+  LOG(GNUNET_ERROR_TYPE_DEBUG,
+      "Got a %s data on channel %s [%X] of type %u\n",
+      fwd ? "FWD" : "BWD",
+      GNUNET_i2s(&ch->peer),
+      ntohl(message->ccn.channel_of_client),
+      type);
+  GNUNET_MQ_inject_message(ch->mq, payload);
 }
 
 
@@ -692,37 +687,37 @@ handle_local_data (void *cls, const struct GNUNET_CADET_LocalData *message)
  * @param message Message itself.
  */
 static void
-handle_local_ack (void *cls, const struct GNUNET_CADET_LocalAck *message)
+handle_local_ack(void *cls, const struct GNUNET_CADET_LocalAck *message)
 {
   struct GNUNET_CADET_Handle *h = cls;
   struct GNUNET_CADET_Channel *ch;
 
-  ch = find_channel (h, message->ccn);
+  ch = find_channel(h, message->ccn);
   if (NULL == ch)
-  {
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "ACK on unknown channel %X\n",
-         ntohl (message->ccn.channel_of_client));
-    return;
-  }
+    {
+      LOG(GNUNET_ERROR_TYPE_DEBUG,
+          "ACK on unknown channel %X\n",
+          ntohl(message->ccn.channel_of_client));
+      return;
+    }
   ch->allow_send++;
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Got an ACK on mq channel %X (peer %s); new window size is %u!\n",
-       ntohl (ch->ccn.channel_of_client),
-       GNUNET_i2s (&ch->peer),
-       ch->allow_send);
+  LOG(GNUNET_ERROR_TYPE_DEBUG,
+      "Got an ACK on mq channel %X (peer %s); new window size is %u!\n",
+      ntohl(ch->ccn.channel_of_client),
+      GNUNET_i2s(&ch->peer),
+      ch->allow_send);
   if (NULL == ch->pending_env)
-  {
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Got an ACK on mq channel %X, allow send now %u!\n",
-         ntohl (ch->ccn.channel_of_client),
-         ch->allow_send);
-    notify_window_size (ch);
-    return;
-  }
+    {
+      LOG(GNUNET_ERROR_TYPE_DEBUG,
+          "Got an ACK on mq channel %X, allow send now %u!\n",
+          ntohl(ch->ccn.channel_of_client),
+          ch->allow_send);
+      notify_window_size(ch);
+      return;
+    }
   if (NULL != ch->mq_cont)
     return; /* already working on it! */
-  ch->mq_cont = GNUNET_SCHEDULER_add_now (&cadet_mq_send_now, ch);
+  ch->mq_cont = GNUNET_SCHEDULER_add_now(&cadet_mq_send_now, ch);
 }
 
 
@@ -736,16 +731,16 @@ handle_local_ack (void *cls, const struct GNUNET_CADET_LocalAck *message)
  * @return #GNUNET_OK (continue to iterate)
  */
 static int
-destroy_channel_cb (void *cls, uint32_t cid, void *value)
+destroy_channel_cb(void *cls, uint32_t cid, void *value)
 {
   /* struct GNUNET_CADET_Handle *handle = cls; */
   struct GNUNET_CADET_Channel *ch = value;
 
-  (void) cls;
-  (void) cid;
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              "Destroying channel due to GNUNET_CADET_disconnect()\n");
-  destroy_channel (ch);
+  (void)cls;
+  (void)cid;
+  GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+             "Destroying channel due to GNUNET_CADET_disconnect()\n");
+  destroy_channel(ch);
   return GNUNET_OK;
 }
 
@@ -759,17 +754,17 @@ destroy_channel_cb (void *cls, uint32_t cid, void *value)
  * @param error error code
  */
 static void
-handle_mq_error (void *cls, enum GNUNET_MQ_Error error)
+handle_mq_error(void *cls, enum GNUNET_MQ_Error error)
 {
   struct GNUNET_CADET_Handle *h = cls;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MQ ERROR: %u\n", error);
-  GNUNET_CONTAINER_multihashmap32_iterate (h->channels, &destroy_channel_cb, h);
-  GNUNET_MQ_destroy (h->mq);
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "MQ ERROR: %u\n", error);
+  GNUNET_CONTAINER_multihashmap32_iterate(h->channels, &destroy_channel_cb, h);
+  GNUNET_MQ_destroy(h->mq);
   h->mq = NULL;
-  GNUNET_assert (NULL == h->reconnect_task);
+  GNUNET_assert(NULL == h->reconnect_task);
   h->reconnect_task =
-    GNUNET_SCHEDULER_add_delayed (h->reconnect_time, &reconnect_cbk, h);
+    GNUNET_SCHEDULER_add_delayed(h->reconnect_time, &reconnect_cbk, h);
 }
 
 
@@ -780,30 +775,30 @@ handle_mq_error (void *cls, enum GNUNET_MQ_Error error)
  * @param h handle to the cadet
  */
 static void
-reconnect (struct GNUNET_CADET_Handle *h)
+reconnect(struct GNUNET_CADET_Handle *h)
 {
   struct GNUNET_MQ_MessageHandler handlers[] =
-    {GNUNET_MQ_hd_fixed_size (channel_created,
-                              GNUNET_MESSAGE_TYPE_CADET_LOCAL_CHANNEL_CREATE,
-                              struct GNUNET_CADET_LocalChannelCreateMessage,
-                              h),
-     GNUNET_MQ_hd_fixed_size (channel_destroy,
-                              GNUNET_MESSAGE_TYPE_CADET_LOCAL_CHANNEL_DESTROY,
-                              struct GNUNET_CADET_LocalChannelDestroyMessage,
-                              h),
-     GNUNET_MQ_hd_var_size (local_data,
-                            GNUNET_MESSAGE_TYPE_CADET_LOCAL_DATA,
-                            struct GNUNET_CADET_LocalData,
+  { GNUNET_MQ_hd_fixed_size(channel_created,
+                            GNUNET_MESSAGE_TYPE_CADET_LOCAL_CHANNEL_CREATE,
+                            struct GNUNET_CADET_LocalChannelCreateMessage,
                             h),
-     GNUNET_MQ_hd_fixed_size (local_ack,
-                              GNUNET_MESSAGE_TYPE_CADET_LOCAL_ACK,
-                              struct GNUNET_CADET_LocalAck,
-                              h),
-     GNUNET_MQ_handler_end ()};
+    GNUNET_MQ_hd_fixed_size(channel_destroy,
+                            GNUNET_MESSAGE_TYPE_CADET_LOCAL_CHANNEL_DESTROY,
+                            struct GNUNET_CADET_LocalChannelDestroyMessage,
+                            h),
+    GNUNET_MQ_hd_var_size(local_data,
+                          GNUNET_MESSAGE_TYPE_CADET_LOCAL_DATA,
+                          struct GNUNET_CADET_LocalData,
+                          h),
+    GNUNET_MQ_hd_fixed_size(local_ack,
+                            GNUNET_MESSAGE_TYPE_CADET_LOCAL_ACK,
+                            struct GNUNET_CADET_LocalAck,
+                            h),
+    GNUNET_MQ_handler_end() };
 
-  GNUNET_assert (NULL == h->mq);
+  GNUNET_assert(NULL == h->mq);
   h->mq =
-    GNUNET_CLIENT_connect (h->cfg, "cadet", handlers, &handle_mq_error, h);
+    GNUNET_CLIENT_connect(h->cfg, "cadet", handlers, &handle_mq_error, h);
 }
 
 
@@ -817,16 +812,16 @@ reconnect (struct GNUNET_CADET_Handle *h)
  * @return #GNUNET_OK (continue to iterate)
  */
 static int
-destroy_port_cb (void *cls, const struct GNUNET_HashCode *id, void *value)
+destroy_port_cb(void *cls, const struct GNUNET_HashCode *id, void *value)
 {
   /* struct GNUNET_CADET_Handle *handle = cls; */
   struct GNUNET_CADET_Port *port = value;
 
-  (void) cls;
-  (void) id;
+  (void)cls;
+  (void)id;
   /* This is a warning, the app should have cleanly closed all open ports */
-  GNUNET_break (0);
-  GNUNET_CADET_close_port (port);
+  GNUNET_break(0);
+  GNUNET_CADET_close_port(port);
   return GNUNET_OK;
 }
 
@@ -840,29 +835,29 @@ destroy_port_cb (void *cls, const struct GNUNET_HashCode *id, void *value)
  * @param handle connection to cadet to disconnect
  */
 void
-GNUNET_CADET_disconnect (struct GNUNET_CADET_Handle *handle)
+GNUNET_CADET_disconnect(struct GNUNET_CADET_Handle *handle)
 {
-  GNUNET_CONTAINER_multihashmap_iterate (handle->ports,
-                                         &destroy_port_cb,
-                                         handle);
-  GNUNET_CONTAINER_multihashmap_destroy (handle->ports);
+  GNUNET_CONTAINER_multihashmap_iterate(handle->ports,
+                                        &destroy_port_cb,
+                                        handle);
+  GNUNET_CONTAINER_multihashmap_destroy(handle->ports);
   handle->ports = NULL;
-  GNUNET_CONTAINER_multihashmap32_iterate (handle->channels,
-                                           &destroy_channel_cb,
-                                           handle);
-  GNUNET_CONTAINER_multihashmap32_destroy (handle->channels);
+  GNUNET_CONTAINER_multihashmap32_iterate(handle->channels,
+                                          &destroy_channel_cb,
+                                          handle);
+  GNUNET_CONTAINER_multihashmap32_destroy(handle->channels);
   handle->channels = NULL;
   if (NULL != handle->mq)
-  {
-    GNUNET_MQ_destroy (handle->mq);
-    handle->mq = NULL;
-  }
+    {
+      GNUNET_MQ_destroy(handle->mq);
+      handle->mq = NULL;
+    }
   if (NULL != handle->reconnect_task)
-  {
-    GNUNET_SCHEDULER_cancel (handle->reconnect_task);
-    handle->reconnect_task = NULL;
-  }
-  GNUNET_free (handle);
+    {
+      GNUNET_SCHEDULER_cancel(handle->reconnect_task);
+      handle->reconnect_task = NULL;
+    }
+  GNUNET_free(handle);
 }
 
 
@@ -873,22 +868,22 @@ GNUNET_CADET_disconnect (struct GNUNET_CADET_Handle *handle)
  * @param p Port handle.
  */
 void
-GNUNET_CADET_close_port (struct GNUNET_CADET_Port *p)
+GNUNET_CADET_close_port(struct GNUNET_CADET_Port *p)
 {
-  GNUNET_assert (
+  GNUNET_assert(
     GNUNET_YES ==
-    GNUNET_CONTAINER_multihashmap_remove (p->cadet->ports, &p->id, p));
+    GNUNET_CONTAINER_multihashmap_remove(p->cadet->ports, &p->id, p));
   if (NULL != p->cadet->mq)
-  {
-    struct GNUNET_CADET_PortMessage *msg;
-    struct GNUNET_MQ_Envelope *env;
+    {
+      struct GNUNET_CADET_PortMessage *msg;
+      struct GNUNET_MQ_Envelope *env;
 
-    env = GNUNET_MQ_msg (msg, GNUNET_MESSAGE_TYPE_CADET_LOCAL_PORT_CLOSE);
-    msg->port = p->id;
-    GNUNET_MQ_send (p->cadet->mq, env);
-  }
-  GNUNET_free_non_null (p->handlers);
-  GNUNET_free (p);
+      env = GNUNET_MQ_msg(msg, GNUNET_MESSAGE_TYPE_CADET_LOCAL_PORT_CLOSE);
+      msg->port = p->id;
+      GNUNET_MQ_send(p->cadet->mq, env);
+    }
+  GNUNET_free_non_null(p->handlers);
+  GNUNET_free(p);
 }
 
 
@@ -902,22 +897,22 @@ GNUNET_CADET_close_port (struct GNUNET_CADET_Port *p)
  * @param channel Channel handle, becomes invalid after this call.
  */
 void
-GNUNET_CADET_channel_destroy (struct GNUNET_CADET_Channel *channel)
+GNUNET_CADET_channel_destroy(struct GNUNET_CADET_Channel *channel)
 {
   struct GNUNET_CADET_Handle *h = channel->cadet;
   struct GNUNET_CADET_LocalChannelDestroyMessage *msg;
   struct GNUNET_MQ_Envelope *env;
 
   if (NULL != h->mq)
-  {
-    env = GNUNET_MQ_msg (msg, GNUNET_MESSAGE_TYPE_CADET_LOCAL_CHANNEL_DESTROY);
-    msg->ccn = channel->ccn;
-    GNUNET_MQ_send (h->mq, env);
-  }
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              "Destroying channel due to GNUNET_CADET_channel_destroy()\n");
+    {
+      env = GNUNET_MQ_msg(msg, GNUNET_MESSAGE_TYPE_CADET_LOCAL_CHANNEL_DESTROY);
+      msg->ccn = channel->ccn;
+      GNUNET_MQ_send(h->mq, env);
+    }
+  GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+             "Destroying channel due to GNUNET_CADET_channel_destroy()\n");
   channel->disconnects = NULL;
-  destroy_channel (channel);
+  destroy_channel(channel);
 }
 
 
@@ -931,18 +926,19 @@ GNUNET_CADET_channel_destroy (struct GNUNET_CADET_Channel *channel)
  * @return Union with an answer to the query.
  */
 const union GNUNET_CADET_ChannelInfo *
-GNUNET_CADET_channel_get_info (struct GNUNET_CADET_Channel *channel,
-                               enum GNUNET_CADET_ChannelInfoOption option,
-                               ...)
+GNUNET_CADET_channel_get_info(struct GNUNET_CADET_Channel *channel,
+                              enum GNUNET_CADET_ChannelInfoOption option,
+                              ...)
 {
   switch (option)
-  {
-  case GNUNET_CADET_OPTION_PEER:
-    return (const union GNUNET_CADET_ChannelInfo *) &channel->peer;
-  default:
-    GNUNET_break (0);
-    return NULL;
-  }
+    {
+    case GNUNET_CADET_OPTION_PEER:
+      return (const union GNUNET_CADET_ChannelInfo *)&channel->peer;
+
+    default:
+      GNUNET_break(0);
+      return NULL;
+    }
 }
 
 
@@ -952,17 +948,17 @@ GNUNET_CADET_channel_get_info (struct GNUNET_CADET_Channel *channel,
  * @param ch Channel on which to send the ACK.
  */
 void
-GNUNET_CADET_receive_done (struct GNUNET_CADET_Channel *channel)
+GNUNET_CADET_receive_done(struct GNUNET_CADET_Channel *channel)
 {
   struct GNUNET_CADET_LocalAck *msg;
   struct GNUNET_MQ_Envelope *env;
 
-  env = GNUNET_MQ_msg (msg, GNUNET_MESSAGE_TYPE_CADET_LOCAL_ACK);
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Sending ACK on channel %X\n",
-       ntohl (channel->ccn.channel_of_client));
+  env = GNUNET_MQ_msg(msg, GNUNET_MESSAGE_TYPE_CADET_LOCAL_ACK);
+  LOG(GNUNET_ERROR_TYPE_DEBUG,
+      "Sending ACK on channel %X\n",
+      ntohl(channel->ccn.channel_of_client));
   msg->ccn = channel->ccn;
-  GNUNET_MQ_send (channel->cadet->mq, env);
+  GNUNET_MQ_send(channel->cadet->mq, env);
 }
 
 
@@ -974,23 +970,23 @@ GNUNET_CADET_receive_done (struct GNUNET_CADET_Channel *channel)
  * @return Handle to the cadet service NULL on error.
  */
 struct GNUNET_CADET_Handle *
-GNUNET_CADET_connect (const struct GNUNET_CONFIGURATION_Handle *cfg)
+GNUNET_CADET_connect(const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   struct GNUNET_CADET_Handle *h;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "GNUNET_CADET_connect()\n");
-  h = GNUNET_new (struct GNUNET_CADET_Handle);
+  LOG(GNUNET_ERROR_TYPE_DEBUG, "GNUNET_CADET_connect()\n");
+  h = GNUNET_new(struct GNUNET_CADET_Handle);
   h->cfg = cfg;
-  h->ports = GNUNET_CONTAINER_multihashmap_create (4, GNUNET_YES);
-  h->channels = GNUNET_CONTAINER_multihashmap32_create (4);
-  reconnect (h);
+  h->ports = GNUNET_CONTAINER_multihashmap_create(4, GNUNET_YES);
+  h->channels = GNUNET_CONTAINER_multihashmap32_create(4);
+  reconnect(h);
   if (NULL == h->mq)
-  {
-    GNUNET_break (0);
-    GNUNET_CADET_disconnect (h);
-    return NULL;
-  }
-  h->next_ccn.channel_of_client = htonl (GNUNET_CADET_LOCAL_CHANNEL_ID_CLI);
+    {
+      GNUNET_break(0);
+      GNUNET_CADET_disconnect(h);
+      return NULL;
+    }
+  h->next_ccn.channel_of_client = htonl(GNUNET_CADET_LOCAL_CHANNEL_ID_CLI);
   return h;
 }
 
@@ -1008,41 +1004,41 @@ GNUNET_CADET_connect (const struct GNUNET_CONFIGURATION_Handle *cfg)
  * @return Port handle, NULL if port is in use
  */
 struct GNUNET_CADET_Port *
-GNUNET_CADET_open_port (struct GNUNET_CADET_Handle *h,
-                        const struct GNUNET_HashCode *port,
-                        GNUNET_CADET_ConnectEventHandler connects,
-                        void *connects_cls,
-                        GNUNET_CADET_WindowSizeEventHandler window_changes,
-                        GNUNET_CADET_DisconnectEventHandler disconnects,
-                        const struct GNUNET_MQ_MessageHandler *handlers)
+GNUNET_CADET_open_port(struct GNUNET_CADET_Handle *h,
+                       const struct GNUNET_HashCode *port,
+                       GNUNET_CADET_ConnectEventHandler connects,
+                       void *connects_cls,
+                       GNUNET_CADET_WindowSizeEventHandler window_changes,
+                       GNUNET_CADET_DisconnectEventHandler disconnects,
+                       const struct GNUNET_MQ_MessageHandler *handlers)
 {
   struct GNUNET_CADET_Port *p;
 
-  GNUNET_assert (NULL != connects);
-  GNUNET_assert (NULL != disconnects);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Listening to CADET port %s\n",
-              GNUNET_h2s (port));
+  GNUNET_assert(NULL != connects);
+  GNUNET_assert(NULL != disconnects);
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+             "Listening to CADET port %s\n",
+             GNUNET_h2s(port));
 
-  p = GNUNET_new (struct GNUNET_CADET_Port);
+  p = GNUNET_new(struct GNUNET_CADET_Port);
   p->cadet = h;
   p->id = *port;
-  if (GNUNET_OK != GNUNET_CONTAINER_multihashmap_put (
-                     h->ports,
-                     &p->id,
-                     p,
-                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY))
-  {
-    GNUNET_free (p);
-    return NULL;
-  }
+  if (GNUNET_OK != GNUNET_CONTAINER_multihashmap_put(
+        h->ports,
+        &p->id,
+        p,
+        GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY))
+    {
+      GNUNET_free(p);
+      return NULL;
+    }
   p->connects = connects;
   p->cls = connects_cls;
   p->window_changes = window_changes;
   p->disconnects = disconnects;
-  p->handlers = GNUNET_MQ_copy_handlers (handlers);
+  p->handlers = GNUNET_MQ_copy_handlers(handlers);
 
-  GNUNET_assert (GNUNET_OK == open_port_cb (h, &p->id, p));
+  GNUNET_assert(GNUNET_OK == open_port_cb(h, &p->id, p));
   return p;
 }
 
@@ -1066,45 +1062,45 @@ GNUNET_CADET_open_port (struct GNUNET_CADET_Handle *h,
  * @return Handle to the channel.
  */
 struct GNUNET_CADET_Channel *
-GNUNET_CADET_channel_create (struct GNUNET_CADET_Handle *h,
-                             void *channel_cls,
-                             const struct GNUNET_PeerIdentity *destination,
-                             const struct GNUNET_HashCode *port,
-                             GNUNET_CADET_WindowSizeEventHandler window_changes,
-                             GNUNET_CADET_DisconnectEventHandler disconnects,
-                             const struct GNUNET_MQ_MessageHandler *handlers)
+GNUNET_CADET_channel_create(struct GNUNET_CADET_Handle *h,
+                            void *channel_cls,
+                            const struct GNUNET_PeerIdentity *destination,
+                            const struct GNUNET_HashCode *port,
+                            GNUNET_CADET_WindowSizeEventHandler window_changes,
+                            GNUNET_CADET_DisconnectEventHandler disconnects,
+                            const struct GNUNET_MQ_MessageHandler *handlers)
 {
   struct GNUNET_CADET_Channel *ch;
   struct GNUNET_CADET_LocalChannelCreateMessage *msg;
   struct GNUNET_MQ_Envelope *env;
 
-  GNUNET_assert (NULL != disconnects);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Creating channel to peer %s at port %s\n",
-              GNUNET_i2s (destination),
-              GNUNET_h2s (port));
-  ch = create_channel (h, NULL);
+  GNUNET_assert(NULL != disconnects);
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+             "Creating channel to peer %s at port %s\n",
+             GNUNET_i2s(destination),
+             GNUNET_h2s(port));
+  ch = create_channel(h, NULL);
   ch->ctx = channel_cls;
   ch->peer = *destination;
   ch->window_changes = window_changes;
   ch->disconnects = disconnects;
 
   /* Create MQ for channel */
-  ch->mq = GNUNET_MQ_queue_for_callbacks (&cadet_mq_send_impl,
-                                          &cadet_mq_destroy_impl,
-                                          &cadet_mq_cancel_impl,
-                                          ch,
-                                          handlers,
-                                          &cadet_mq_error_handler,
-                                          ch);
-  GNUNET_MQ_set_handlers_closure (ch->mq, channel_cls);
+  ch->mq = GNUNET_MQ_queue_for_callbacks(&cadet_mq_send_impl,
+                                         &cadet_mq_destroy_impl,
+                                         &cadet_mq_cancel_impl,
+                                         ch,
+                                         handlers,
+                                         &cadet_mq_error_handler,
+                                         ch);
+  GNUNET_MQ_set_handlers_closure(ch->mq, channel_cls);
 
   /* Request channel creation to service */
-  env = GNUNET_MQ_msg (msg, GNUNET_MESSAGE_TYPE_CADET_LOCAL_CHANNEL_CREATE);
+  env = GNUNET_MQ_msg(msg, GNUNET_MESSAGE_TYPE_CADET_LOCAL_CHANNEL_CREATE);
   msg->ccn = ch->ccn;
   msg->port = *port;
   msg->peer = *destination;
-  GNUNET_MQ_send (h->mq, env);
+  GNUNET_MQ_send(h->mq, env);
   return ch;
 }
 
@@ -1117,7 +1113,7 @@ GNUNET_CADET_channel_create (struct GNUNET_CADET_Handle *h,
  * @return NULL if @a channel is not yet connected.
  */
 struct GNUNET_MQ_Handle *
-GNUNET_CADET_get_mq (const struct GNUNET_CADET_Channel *channel)
+GNUNET_CADET_get_mq(const struct GNUNET_CADET_Channel *channel)
 {
   return channel->mq;
 }

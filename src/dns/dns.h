@@ -11,7 +11,7 @@
       WITHOUT ANY WARRANTY; without even the implied warranty of
       MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
       Affero General Public License for more details.
-     
+
       You should have received a copy of the GNU Affero General Public License
       along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -32,10 +32,9 @@ GNUNET_NETWORK_STRUCT_BEGIN
 /**
  * Message from client to DNS service to register itself.
  */
-struct GNUNET_DNS_Register
-{
+struct GNUNET_DNS_Register {
   /**
-    * Header of type #GNUNET_MESSAGE_TYPE_DNS_CLIENT_INIT
+   * Header of type #GNUNET_MESSAGE_TYPE_DNS_CLIENT_INIT
    */
   struct GNUNET_MessageHeader header;
 
@@ -49,10 +48,9 @@ struct GNUNET_DNS_Register
 /**
  * Message from DNS service to client: please handle a request.
  */
-struct GNUNET_DNS_Request
-{
+struct GNUNET_DNS_Request {
   /**
-    * Header of type #GNUNET_MESSAGE_TYPE_DNS_CLIENT_REQUEST
+   * Header of type #GNUNET_MESSAGE_TYPE_DNS_CLIENT_REQUEST
    */
   struct GNUNET_MessageHeader header;
 
@@ -67,15 +65,13 @@ struct GNUNET_DNS_Request
   uint64_t request_id GNUNET_PACKED;
 
   /* followed by original DNS request (without UDP header) */
-
 };
 
 
 /**
  * Message from client to DNS service: here is my reply.
  */
-struct GNUNET_DNS_Response
-{
+struct GNUNET_DNS_Response {
   /**
    * Header of type #GNUNET_MESSAGE_TYPE_DNS_CLIENT_RESPONSE
    */
@@ -92,7 +88,6 @@ struct GNUNET_DNS_Response
   uint64_t request_id GNUNET_PACKED;
 
   /* followed by original DNS request (without UDP header) */
-
 };
 
 

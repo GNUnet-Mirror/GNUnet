@@ -1,22 +1,22 @@
 /*
-  This file is part of GNUnet
-  Copyright (C) 2014 GNUnet e.V.
+   This file is part of GNUnet
+   Copyright (C) 2014 GNUnet e.V.
 
-  GNUnet is free software: you can redistribute it and/or modify it
-  under the terms of the GNU Affero General Public License as published
-  by the Free Software Foundation, either version 3 of the License,
-  or (at your option) any later version.
+   GNUnet is free software: you can redistribute it and/or modify it
+   under the terms of the GNU Affero General Public License as published
+   by the Free Software Foundation, either version 3 of the License,
+   or (at your option) any later version.
 
-  GNUnet is distributed in the hope that it will be useful, but
-  WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-  Affero General Public License for more details.
- 
-  You should have received a copy of the GNU Affero General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   GNUnet is distributed in the hope that it will be useful, but
+   WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   Affero General Public License for more details.
+
+   You should have received a copy of the GNU Affero General Public License
+   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 /**
  * @file util/test_crypto_hash_context.c
  * @brief test case for incremental hashing
@@ -34,15 +34,15 @@ int main()
   struct GNUNET_HashCode hc2;
   struct GNUNET_HashContext *hctx;
 
-  memset (data, 42, LEN);
+  memset(data, 42, LEN);
 
-  hctx = GNUNET_CRYPTO_hash_context_start ();
-  GNUNET_CRYPTO_hash_context_read (hctx, data, LEN);
-  GNUNET_CRYPTO_hash_context_finish (hctx, &hc1);
+  hctx = GNUNET_CRYPTO_hash_context_start();
+  GNUNET_CRYPTO_hash_context_read(hctx, data, LEN);
+  GNUNET_CRYPTO_hash_context_finish(hctx, &hc1);
 
-  GNUNET_CRYPTO_hash (data, LEN, &hc2);
+  GNUNET_CRYPTO_hash(data, LEN, &hc2);
 
-  if (0 == memcmp (&hc1, &hc2, sizeof (struct GNUNET_HashCode)))
+  if (0 == memcmp(&hc1, &hc2, sizeof(struct GNUNET_HashCode)))
     return 0;
   return 1;
 }

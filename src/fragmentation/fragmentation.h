@@ -11,12 +11,12 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 /**
  * @file src/fragmentation/fragmentation.h
  * @brief library to help fragment messages
@@ -33,9 +33,7 @@ GNUNET_NETWORK_STRUCT_BEGIN
  * Header for a message fragment.  Followed by the
  * original message.
  */
-struct FragmentHeader
-{
-
+struct FragmentHeader {
   /**
    * Message header.
    */
@@ -56,16 +54,13 @@ struct FragmentHeader
    * message.  Will be a multiple of the MTU.
    */
   uint16_t offset GNUNET_PACKED;
-
 };
 
 
 /**
  * Message fragment acknowledgement.
  */
-struct FragmentAcknowledgement
-{
-
+struct FragmentAcknowledgement {
   /**
    * Message header.
    */
@@ -82,7 +77,6 @@ struct FragmentAcknowledgement
    * have not yet been received).
    */
   uint64_t bits GNUNET_PACKED;
-
 };
 GNUNET_NETWORK_STRUCT_END
 

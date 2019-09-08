@@ -11,12 +11,12 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 /**
  * @file gns/gnunet-service-gns_resolver.h
  * @brief GNUnet GNS service
@@ -39,17 +39,17 @@
  * @param max_bg_queries maximum amount of background queries
  */
 void
-GNS_resolver_init (struct GNUNET_NAMECACHE_Handle *nc,
-		   struct GNUNET_DHT_Handle *dht,
-		   const struct GNUNET_CONFIGURATION_Handle *c,
-		   unsigned long long max_bg_queries);
+GNS_resolver_init(struct GNUNET_NAMECACHE_Handle *nc,
+                  struct GNUNET_DHT_Handle *dht,
+                  const struct GNUNET_CONFIGURATION_Handle *c,
+                  unsigned long long max_bg_queries);
 
 
 /**
  * Cleanup resolver: Terminate pending lookups
  */
 void
-GNS_resolver_done (void);
+GNS_resolver_done(void);
 
 
 /**
@@ -84,12 +84,12 @@ typedef void
  * @return handle to cancel operation
  */
 struct GNS_ResolverHandle *
-GNS_resolver_lookup (const struct GNUNET_CRYPTO_EcdsaPublicKey *zone,
-		     uint32_t record_type,
-		     const char *name,
-		     enum GNUNET_GNS_LocalOptions options,
-		     GNS_ResultProcessor proc,
-		     void *proc_cls);
+GNS_resolver_lookup(const struct GNUNET_CRYPTO_EcdsaPublicKey *zone,
+                    uint32_t record_type,
+                    const char *name,
+                    enum GNUNET_GNS_LocalOptions options,
+                    GNS_ResultProcessor proc,
+                    void *proc_cls);
 
 
 /**
@@ -98,6 +98,6 @@ GNS_resolver_lookup (const struct GNUNET_CRYPTO_EcdsaPublicKey *zone,
  * @param rh resolution to abort
  */
 void
-GNS_resolver_lookup_cancel (struct GNS_ResolverHandle *rh);
+GNS_resolver_lookup_cancel(struct GNS_ResolverHandle *rh);
 
 #endif

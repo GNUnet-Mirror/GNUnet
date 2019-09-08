@@ -11,12 +11,12 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 
 /**
  * @file ats/gnunet-service-ats_reservations.h
@@ -39,9 +39,9 @@
  *        this peer (estimate)
  */
 void
-GAS_reservations_set_bandwidth (const struct GNUNET_PeerIdentity *peer,
-                                struct GNUNET_BANDWIDTH_Value32NBO
-                                bandwidth_in);
+GAS_reservations_set_bandwidth(const struct GNUNET_PeerIdentity *peer,
+                               struct GNUNET_BANDWIDTH_Value32NBO
+                               bandwidth_in);
 
 
 /**
@@ -51,8 +51,8 @@ GAS_reservations_set_bandwidth (const struct GNUNET_PeerIdentity *peer,
  * @param message the request message
  */
 void
-GAS_handle_reservation_request (struct GNUNET_SERVICE_Client *client,
-                                const struct ReservationRequestMessage *message);
+GAS_handle_reservation_request(struct GNUNET_SERVICE_Client *client,
+                               const struct ReservationRequestMessage *message);
 
 
 /**
@@ -61,13 +61,13 @@ GAS_handle_reservation_request (struct GNUNET_SERVICE_Client *client,
  * @param server handle to our server
  */
 void
-GAS_reservations_init (void);
+GAS_reservations_init(void);
 
 
 /**
  * Shutdown reservations subsystem.
  */
 void
-GAS_reservations_done (void);
+GAS_reservations_done(void);
 
 #endif

@@ -11,12 +11,12 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 /**
  * @author Christian Grothoff
  *
@@ -77,8 +77,8 @@ typedef int
  * @return the mysql context
  */
 struct GNUNET_MYSQL_Context *
-GNUNET_MYSQL_context_create (const struct GNUNET_CONFIGURATION_Handle *cfg,
-			     const char *section);
+GNUNET_MYSQL_context_create(const struct GNUNET_CONFIGURATION_Handle *cfg,
+                            const char *section);
 
 
 /**
@@ -87,7 +87,7 @@ GNUNET_MYSQL_context_create (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @param mc context to destroy
  */
 void
-GNUNET_MYSQL_context_destroy (struct GNUNET_MYSQL_Context *mc);
+GNUNET_MYSQL_context_destroy(struct GNUNET_MYSQL_Context *mc);
 
 
 /**
@@ -98,7 +98,7 @@ GNUNET_MYSQL_context_destroy (struct GNUNET_MYSQL_Context *mc);
  * @param mc mysql context
  */
 void
-GNUNET_MYSQL_statements_invalidate (struct GNUNET_MYSQL_Context *mc);
+GNUNET_MYSQL_statements_invalidate(struct GNUNET_MYSQL_Context *mc);
 
 
 /**
@@ -110,7 +110,7 @@ GNUNET_MYSQL_statements_invalidate (struct GNUNET_MYSQL_Context *mc);
  * @return MySQL statement handle, NULL on error
  */
 MYSQL_STMT *
-GNUNET_MYSQL_statement_get_stmt (struct GNUNET_MYSQL_StatementHandle *sh);
+GNUNET_MYSQL_statement_get_stmt(struct GNUNET_MYSQL_StatementHandle *sh);
 
 
 /**
@@ -122,8 +122,8 @@ GNUNET_MYSQL_statement_get_stmt (struct GNUNET_MYSQL_StatementHandle *sh);
  * @return prepared statement, NULL on error
  */
 struct GNUNET_MYSQL_StatementHandle *
-GNUNET_MYSQL_statement_prepare (struct GNUNET_MYSQL_Context *mc,
-				const char *query);
+GNUNET_MYSQL_statement_prepare(struct GNUNET_MYSQL_Context *mc,
+                               const char *query);
 
 
 /**
@@ -135,8 +135,8 @@ GNUNET_MYSQL_statement_prepare (struct GNUNET_MYSQL_Context *mc,
  *         #GNUNET_SYSERR if there was a problem
  */
 int
-GNUNET_MYSQL_statement_run (struct GNUNET_MYSQL_Context *mc,
-			    const char *sql);
+GNUNET_MYSQL_statement_run(struct GNUNET_MYSQL_Context *mc,
+                           const char *sql);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

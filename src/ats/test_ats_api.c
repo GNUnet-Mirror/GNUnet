@@ -11,12 +11,12 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 /**
  * @file ats/test_ats_api.c
  * @brief test ATS
@@ -28,7 +28,7 @@
 /**
  * Global timeout for the testcase.
  */
-#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 3)
+#define TIMEOUT GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 3)
 
 /**
  * Definition of the test as a sequence of commands.
@@ -89,7 +89,7 @@ static struct Command test_commands[] = {
     .code = CMD_ADD_SESSION,
     .label = "add-session-0-0-1",
     .details.add_session = {
-      .add_label ="add-address-0-0",
+      .add_label = "add-address-0-0",
       .session = 1
     }
   },
@@ -104,7 +104,7 @@ static struct Command test_commands[] = {
     .code = CMD_CHANGE_PREFERENCE,
     .details.change_preference = {
       .pid = 0
-      /* FIXME: preference details */
+             /* FIXME: preference details */
     }
   },
   {
@@ -233,13 +233,13 @@ static struct Command test_commands[] = {
 
 
 int
-main (int argc,
-      char *argv[])
+main(int argc,
+     char *argv[])
 {
-  return TEST_ATS_run (argc,
-                       argv,
-                       test_commands,
-                       TIMEOUT);
+  return TEST_ATS_run(argc,
+                      argv,
+                      test_commands,
+                      TIMEOUT);
 }
 
 

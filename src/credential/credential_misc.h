@@ -27,10 +27,10 @@
 #include "gnunet_credential_service.h"
 
 char *
-GNUNET_CREDENTIAL_credential_to_string (
-    const struct GNUNET_CREDENTIAL_Credential *cred);
+GNUNET_CREDENTIAL_credential_to_string(
+  const struct GNUNET_CREDENTIAL_Credential *cred);
 
 struct GNUNET_CREDENTIAL_Credential *
-GNUNET_CREDENTIAL_credential_from_string (const char *str);
+GNUNET_CREDENTIAL_credential_from_string(const char *str);
 
 #endif

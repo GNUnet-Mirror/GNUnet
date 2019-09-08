@@ -11,12 +11,12 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 
 /**
  * @file nat/gnunet-service-nat_mini.c
@@ -54,8 +54,8 @@ struct GNUNET_NAT_ExternalHandle;
  * @return handle for cancellation (can only be used until @a cb is called), NULL on error
  */
 struct GNUNET_NAT_ExternalHandle *
-GNUNET_NAT_mini_get_external_ipv4_ (GNUNET_NAT_IPCallback cb,
-                                    void *cb_cls);
+GNUNET_NAT_mini_get_external_ipv4_(GNUNET_NAT_IPCallback cb,
+                                   void *cb_cls);
 
 
 /**
@@ -64,7 +64,7 @@ GNUNET_NAT_mini_get_external_ipv4_ (GNUNET_NAT_IPCallback cb,
  * @param eh operation to cancel
  */
 void
-GNUNET_NAT_mini_get_external_ipv4_cancel_ (struct GNUNET_NAT_ExternalHandle *eh);
+GNUNET_NAT_mini_get_external_ipv4_cancel_(struct GNUNET_NAT_ExternalHandle *eh);
 
 
 /**
@@ -106,10 +106,10 @@ typedef void
  * @return NULL on error
  */
 struct GNUNET_NAT_MiniHandle *
-GNUNET_NAT_mini_map_start (uint16_t port,
-                           int is_tcp,
-                           GNUNET_NAT_MiniAddressCallback ac,
-                           void *ac_cls);
+GNUNET_NAT_mini_map_start(uint16_t port,
+                          int is_tcp,
+                          GNUNET_NAT_MiniAddressCallback ac,
+                          void *ac_cls);
 
 
 /**
@@ -121,7 +121,7 @@ GNUNET_NAT_mini_map_start (uint16_t port,
  * @param mini the handle
  */
 void
-GNUNET_NAT_mini_map_stop (struct GNUNET_NAT_MiniHandle *mini);
+GNUNET_NAT_mini_map_stop(struct GNUNET_NAT_MiniHandle *mini);
 
 
 #endif

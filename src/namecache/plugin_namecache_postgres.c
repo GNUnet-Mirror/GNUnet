@@ -1,22 +1,22 @@
- /*
-  * This file is part of GNUnet
-  * Copyright (C) 2009-2013, 2016, 2017 GNUnet e.V.
-  *
-  * GNUnet is free software: you can redistribute it and/or modify it
-  * under the terms of the GNU Affero General Public License as published
-  * by the Free Software Foundation, either version 3 of the License,
-  * or (at your option) any later version.
-  *
-  * GNUnet is distributed in the hope that it will be useful, but
-  * WITHOUT ANY WARRANTY; without even the implied warranty of
-  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-  * Affero General Public License for more details.
-  *
-  * You should have received a copy of the GNU Affero General Public License
-  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+/*
+ * This file is part of GNUnet
+ * Copyright (C) 2009-2013, 2016, 2017 GNUnet e.V.
+ *
+ * GNUnet is free software: you can redistribute it and/or modify it
+ * under the terms of the GNU Affero General Public License as published
+ * by the Free Software Foundation, either version 3 of the License,
+ * or (at your option) any later version.
+ *
+ * GNUnet is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-     SPDX-License-Identifier: AGPL3.0-or-later
-  */
+    SPDX-License-Identifier: AGPL3.0-or-later
+ */
 
 /**
  * @file namecache/plugin_namecache_postgres.c
@@ -31,22 +31,19 @@
 #include "namecache.h"
 
 
-#define LOG(kind,...) GNUNET_log_from (kind, "namecache-postgres", __VA_ARGS__)
+#define LOG(kind, ...) GNUNET_log_from(kind, "namecache-postgres", __VA_ARGS__)
 
 
 /**
  * Context for all functions in this plugin.
  */
-struct Plugin
-{
-
+struct Plugin {
   const struct GNUNET_CONFIGURATION_Handle *cfg;
 
   /**
    * Native Postgres database handle.
    */
   PGconn *dbh;
-
 };
 
 
@@ -59,81 +56,81 @@ struct Plugin
  * @return #GNUNET_OK on success
  */
 static int
-database_setup (struct Plugin *plugin)
+database_setup(struct Plugin *plugin)
 {
   struct GNUNET_PQ_ExecuteStatement es_temporary =
-    GNUNET_PQ_make_execute ("CREATE TEMPORARY TABLE IF NOT EXISTS ns096blocks ("
-                            " query BYTEA NOT NULL DEFAULT '',"
-                            " block BYTEA NOT NULL DEFAULT '',"
-                            " expiration_time BIGINT NOT NULL DEFAULT 0"
-                            ")"
-                            "WITH OIDS");
+    GNUNET_PQ_make_execute("CREATE TEMPORARY TABLE IF NOT EXISTS ns096blocks ("
+                           " query BYTEA NOT NULL DEFAULT '',"
+                           " block BYTEA NOT NULL DEFAULT '',"
+                           " expiration_time BIGINT NOT NULL DEFAULT 0"
+                           ")"
+                           "WITH OIDS");
   struct GNUNET_PQ_ExecuteStatement es_default =
-    GNUNET_PQ_make_execute ("CREATE TABLE IF NOT EXISTS ns096blocks ("
-                            " query BYTEA NOT NULL DEFAULT '',"
-                            " block BYTEA NOT NULL DEFAULT '',"
-                            " expiration_time BIGINT NOT NULL DEFAULT 0"
-                            ")"
-                            "WITH OIDS");
+    GNUNET_PQ_make_execute("CREATE TABLE IF NOT EXISTS ns096blocks ("
+                           " query BYTEA NOT NULL DEFAULT '',"
+                           " block BYTEA NOT NULL DEFAULT '',"
+                           " expiration_time BIGINT NOT NULL DEFAULT 0"
+                           ")"
+                           "WITH OIDS");
   const struct GNUNET_PQ_ExecuteStatement *cr;
 
-  plugin->dbh = GNUNET_PQ_connect_with_cfg (plugin->cfg,
-                                            "namecache-postgres");
+  plugin->dbh = GNUNET_PQ_connect_with_cfg(plugin->cfg,
+                                           "namecache-postgres");
   if (NULL == plugin->dbh)
     return GNUNET_SYSERR;
   if (GNUNET_YES ==
-      GNUNET_CONFIGURATION_get_value_yesno (plugin->cfg,
-					    "namecache-postgres",
-					    "TEMPORARY_TABLE"))
-  {
-    cr = &es_temporary;
-  }
+      GNUNET_CONFIGURATION_get_value_yesno(plugin->cfg,
+                                           "namecache-postgres",
+                                           "TEMPORARY_TABLE"))
+    {
+      cr = &es_temporary;
+    }
   else
-  {
-    cr = &es_default;
-  }
+    {
+      cr = &es_default;
+    }
 
   {
     struct GNUNET_PQ_ExecuteStatement es[] = {
       *cr,
-      GNUNET_PQ_make_try_execute ("CREATE INDEX ir_query_hash ON ns096blocks (query,expiration_time)"),
-      GNUNET_PQ_make_try_execute ("CREATE INDEX ir_block_expiration ON ns096blocks (expiration_time)"),
+      GNUNET_PQ_make_try_execute("CREATE INDEX ir_query_hash ON ns096blocks (query,expiration_time)"),
+      GNUNET_PQ_make_try_execute("CREATE INDEX ir_block_expiration ON ns096blocks (expiration_time)"),
       GNUNET_PQ_EXECUTE_STATEMENT_END
     };
 
     if (GNUNET_OK !=
-        GNUNET_PQ_exec_statements (plugin->dbh,
-                                   es))
-    {
-      PQfinish (plugin->dbh);
-      plugin->dbh = NULL;
-      return GNUNET_SYSERR;
-    }
+        GNUNET_PQ_exec_statements(plugin->dbh,
+                                  es))
+      {
+        PQfinish(plugin->dbh);
+        plugin->dbh = NULL;
+        return GNUNET_SYSERR;
+      }
   }
 
   {
     struct GNUNET_PQ_PreparedStatement ps[] = {
-      GNUNET_PQ_make_prepare ("cache_block",
-                              "INSERT INTO ns096blocks (query, block, expiration_time) VALUES "
-                              "($1, $2, $3)", 3),
-      GNUNET_PQ_make_prepare ("expire_blocks",
-                              "DELETE FROM ns096blocks WHERE expiration_time<$1", 1),
-      GNUNET_PQ_make_prepare ("delete_block",
-                              "DELETE FROM ns096blocks WHERE query=$1 AND expiration_time<=$2", 2),
-      GNUNET_PQ_make_prepare ("lookup_block",
-                              "SELECT block FROM ns096blocks WHERE query=$1"
-                              " ORDER BY expiration_time DESC LIMIT 1", 1),
+      GNUNET_PQ_make_prepare("cache_block",
+                             "INSERT INTO ns096blocks (query, block, expiration_time) VALUES "
+                             "($1, $2, $3)", 3),
+      GNUNET_PQ_make_prepare("expire_blocks",
+                             "DELETE FROM ns096blocks WHERE expiration_time<$1", 1),
+      GNUNET_PQ_make_prepare("delete_block",
+                             "DELETE FROM ns096blocks WHERE query=$1 AND expiration_time<=$2", 2),
+      GNUNET_PQ_make_prepare("lookup_block",
+                             "SELECT block FROM ns096blocks WHERE query=$1"
+                             " ORDER BY expiration_time DESC LIMIT 1", 1),
       GNUNET_PQ_PREPARED_STATEMENT_END
     };
 
     if (GNUNET_OK !=
-        GNUNET_PQ_prepare_statements (plugin->dbh,
-                                      ps))
-    {
-      PQfinish (plugin->dbh);
-      plugin->dbh = NULL;
-      return GNUNET_SYSERR;
-    }
+        GNUNET_PQ_prepare_statements(plugin->dbh,
+                                     ps))
+      {
+        PQfinish(plugin->dbh);
+        plugin->dbh = NULL;
+        return GNUNET_SYSERR;
+      }
   }
 
   return GNUNET_OK;
@@ -146,19 +143,19 @@ database_setup (struct Plugin *plugin)
  * @param plugin the plugin
  */
 static void
-namecache_postgres_expire_blocks (struct Plugin *plugin)
+namecache_postgres_expire_blocks(struct Plugin *plugin)
 {
-  struct GNUNET_TIME_Absolute now = GNUNET_TIME_absolute_get ();
+  struct GNUNET_TIME_Absolute now = GNUNET_TIME_absolute_get();
   struct GNUNET_PQ_QueryParam params[] = {
-    GNUNET_PQ_query_param_absolute_time (&now),
+    GNUNET_PQ_query_param_absolute_time(&now),
     GNUNET_PQ_query_param_end
   };
   enum GNUNET_DB_QueryStatus res;
 
-  res = GNUNET_PQ_eval_prepared_non_select (plugin->dbh,
-                                            "expire_blocks",
-                                            params);
-  GNUNET_break (GNUNET_DB_STATUS_HARD_ERROR != res);
+  res = GNUNET_PQ_eval_prepared_non_select(plugin->dbh,
+                                           "expire_blocks",
+                                           params);
+  GNUNET_break(GNUNET_DB_STATUS_HARD_ERROR != res);
 }
 
 
@@ -170,21 +167,21 @@ namecache_postgres_expire_blocks (struct Plugin *plugin)
  * @param expiration_time how old does the block have to be for deletion
  */
 static void
-delete_old_block (struct Plugin *plugin,
-                  const struct GNUNET_HashCode *query,
-                  struct GNUNET_TIME_AbsoluteNBO expiration_time)
+delete_old_block(struct Plugin *plugin,
+                 const struct GNUNET_HashCode *query,
+                 struct GNUNET_TIME_AbsoluteNBO expiration_time)
 {
   struct GNUNET_PQ_QueryParam params[] = {
-    GNUNET_PQ_query_param_auto_from_type (query),
-    GNUNET_PQ_query_param_absolute_time_nbo (&expiration_time),
+    GNUNET_PQ_query_param_auto_from_type(query),
+    GNUNET_PQ_query_param_absolute_time_nbo(&expiration_time),
     GNUNET_PQ_query_param_end
   };
   enum GNUNET_DB_QueryStatus res;
 
-  res = GNUNET_PQ_eval_prepared_non_select (plugin->dbh,
-                                            "delete_block",
-                                            params);
-  GNUNET_break (GNUNET_DB_STATUS_HARD_ERROR != res);
+  res = GNUNET_PQ_eval_prepared_non_select(plugin->dbh,
+                                           "delete_block",
+                                           params);
+  GNUNET_break(GNUNET_DB_STATUS_HARD_ERROR != res);
 }
 
 
@@ -196,38 +193,38 @@ delete_old_block (struct Plugin *plugin,
  * @return #GNUNET_OK on success, else #GNUNET_SYSERR
  */
 static int
-namecache_postgres_cache_block (void *cls,
-                                const struct GNUNET_GNSRECORD_Block *block)
+namecache_postgres_cache_block(void *cls,
+                               const struct GNUNET_GNSRECORD_Block *block)
 {
   struct Plugin *plugin = cls;
   struct GNUNET_HashCode query;
-  size_t block_size = ntohl (block->purpose.size) +
-    sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey) +
-    sizeof (struct GNUNET_CRYPTO_EcdsaSignature);
+  size_t block_size = ntohl(block->purpose.size) +
+                      sizeof(struct GNUNET_CRYPTO_EcdsaPublicKey) +
+                      sizeof(struct GNUNET_CRYPTO_EcdsaSignature);
   struct GNUNET_PQ_QueryParam params[] = {
-    GNUNET_PQ_query_param_auto_from_type (&query),
-    GNUNET_PQ_query_param_fixed_size (block, block_size),
-    GNUNET_PQ_query_param_absolute_time_nbo (&block->expiration_time),
+    GNUNET_PQ_query_param_auto_from_type(&query),
+    GNUNET_PQ_query_param_fixed_size(block, block_size),
+    GNUNET_PQ_query_param_absolute_time_nbo(&block->expiration_time),
     GNUNET_PQ_query_param_end
   };
   enum GNUNET_DB_QueryStatus res;
 
-  namecache_postgres_expire_blocks (plugin);
-  GNUNET_CRYPTO_hash (&block->derived_key,
-		      sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey),
-		      &query);
+  namecache_postgres_expire_blocks(plugin);
+  GNUNET_CRYPTO_hash(&block->derived_key,
+                     sizeof(struct GNUNET_CRYPTO_EcdsaPublicKey),
+                     &query);
   if (block_size > 64 * 65536)
-  {
-    GNUNET_break (0);
-    return GNUNET_SYSERR;
-  }
-  delete_old_block (plugin,
-                    &query,
-                    block->expiration_time);
+    {
+      GNUNET_break(0);
+      return GNUNET_SYSERR;
+    }
+  delete_old_block(plugin,
+                   &query,
+                   block->expiration_time);
 
-  res = GNUNET_PQ_eval_prepared_non_select (plugin->dbh,
-                                            "cache_block",
-                                            params);
+  res = GNUNET_PQ_eval_prepared_non_select(plugin->dbh,
+                                           "cache_block",
+                                           params);
   if (0 > res)
     return GNUNET_SYSERR;
   return GNUNET_OK;
@@ -245,57 +242,57 @@ namecache_postgres_cache_block (void *cls,
  * @return #GNUNET_OK on success, #GNUNET_NO if there were no results, #GNUNET_SYSERR on error
  */
 static int
-namecache_postgres_lookup_block (void *cls,
-                                 const struct GNUNET_HashCode *query,
-                                 GNUNET_NAMECACHE_BlockCallback iter,
-                                 void *iter_cls)
+namecache_postgres_lookup_block(void *cls,
+                                const struct GNUNET_HashCode *query,
+                                GNUNET_NAMECACHE_BlockCallback iter,
+                                void *iter_cls)
 {
   struct Plugin *plugin = cls;
   size_t bsize;
   struct GNUNET_GNSRECORD_Block *block;
   struct GNUNET_PQ_QueryParam params[] = {
-    GNUNET_PQ_query_param_auto_from_type (query),
+    GNUNET_PQ_query_param_auto_from_type(query),
     GNUNET_PQ_query_param_end
   };
   struct GNUNET_PQ_ResultSpec rs[] = {
-    GNUNET_PQ_result_spec_variable_size ("block",
-                                         (void **) &block,
-                                         &bsize),
+    GNUNET_PQ_result_spec_variable_size("block",
+                                        (void **)&block,
+                                        &bsize),
     GNUNET_PQ_result_spec_end
   };
   enum GNUNET_DB_QueryStatus res;
 
-  res = GNUNET_PQ_eval_prepared_singleton_select (plugin->dbh,
-                                                  "lookup_block",
-                                                  params,
-                                                  rs);
+  res = GNUNET_PQ_eval_prepared_singleton_select(plugin->dbh,
+                                                 "lookup_block",
+                                                 params,
+                                                 rs);
   if (0 > res)
-  {
-    LOG (GNUNET_ERROR_TYPE_WARNING,
-	 "Failing lookup block in namecache (postgres error)\n");
-    return GNUNET_SYSERR;
-  }
+    {
+      LOG(GNUNET_ERROR_TYPE_WARNING,
+          "Failing lookup block in namecache (postgres error)\n");
+      return GNUNET_SYSERR;
+    }
   if (GNUNET_DB_STATUS_SUCCESS_NO_RESULTS == res)
-  {
-    /* no result */
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-	 "Ending iteration (no more results)\n");
-    return GNUNET_NO;
-  }
-  if ( (bsize < sizeof (*block)) ||
-       (bsize != ntohl (block->purpose.size) +
-        sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey) +
-        sizeof (struct GNUNET_CRYPTO_EcdsaSignature)) )
-  {
-    GNUNET_break (0);
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-	 "Failing lookup (corrupt block)\n");
-    GNUNET_PQ_cleanup_result (rs);
-    return GNUNET_SYSERR;
-  }
-  iter (iter_cls,
-        block);
-  GNUNET_PQ_cleanup_result (rs);
+    {
+      /* no result */
+      LOG(GNUNET_ERROR_TYPE_DEBUG,
+          "Ending iteration (no more results)\n");
+      return GNUNET_NO;
+    }
+  if ((bsize < sizeof(*block)) ||
+      (bsize != ntohl(block->purpose.size) +
+       sizeof(struct GNUNET_CRYPTO_EcdsaPublicKey) +
+       sizeof(struct GNUNET_CRYPTO_EcdsaSignature)))
+    {
+      GNUNET_break(0);
+      LOG(GNUNET_ERROR_TYPE_DEBUG,
+          "Failing lookup (corrupt block)\n");
+      GNUNET_PQ_cleanup_result(rs);
+      return GNUNET_SYSERR;
+    }
+  iter(iter_cls,
+       block);
+  GNUNET_PQ_cleanup_result(rs);
   return GNUNET_OK;
 }
 
@@ -307,9 +304,9 @@ namecache_postgres_lookup_block (void *cls,
  * @param plugin the plugin context (state for this module)
  */
 static void
-database_shutdown (struct Plugin *plugin)
+database_shutdown(struct Plugin *plugin)
 {
-  PQfinish (plugin->dbh);
+  PQfinish(plugin->dbh);
   plugin->dbh = NULL;
 }
 
@@ -321,7 +318,7 @@ database_shutdown (struct Plugin *plugin)
  * @return NULL on error, otherwise the plugin context
  */
 void *
-libgnunet_plugin_namecache_postgres_init (void *cls)
+libgnunet_plugin_namecache_postgres_init(void *cls)
 {
   static struct Plugin plugin;
   const struct GNUNET_CONFIGURATION_Handle *cfg = cls;
@@ -329,19 +326,19 @@ libgnunet_plugin_namecache_postgres_init (void *cls)
 
   if (NULL != plugin.cfg)
     return NULL;                /* can only initialize once! */
-  memset (&plugin, 0, sizeof (struct Plugin));
+  memset(&plugin, 0, sizeof(struct Plugin));
   plugin.cfg = cfg;
-  if (GNUNET_OK != database_setup (&plugin))
-  {
-    database_shutdown (&plugin);
-    return NULL;
-  }
-  api = GNUNET_new (struct GNUNET_NAMECACHE_PluginFunctions);
+  if (GNUNET_OK != database_setup(&plugin))
+    {
+      database_shutdown(&plugin);
+      return NULL;
+    }
+  api = GNUNET_new(struct GNUNET_NAMECACHE_PluginFunctions);
   api->cls = &plugin;
   api->cache_block = &namecache_postgres_cache_block;
   api->lookup_block = &namecache_postgres_lookup_block;
-  LOG (GNUNET_ERROR_TYPE_INFO,
-       "Postgres namecache plugin running\n");
+  LOG(GNUNET_ERROR_TYPE_INFO,
+      "Postgres namecache plugin running\n");
   return api;
 }
 
@@ -353,16 +350,16 @@ libgnunet_plugin_namecache_postgres_init (void *cls)
  * @return always NULL
  */
 void *
-libgnunet_plugin_namecache_postgres_done (void *cls)
+libgnunet_plugin_namecache_postgres_done(void *cls)
 {
   struct GNUNET_NAMECACHE_PluginFunctions *api = cls;
   struct Plugin *plugin = api->cls;
 
-  database_shutdown (plugin);
+  database_shutdown(plugin);
   plugin->cfg = NULL;
-  GNUNET_free (api);
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Postgres namecache plugin is finished\n");
+  GNUNET_free(api);
+  LOG(GNUNET_ERROR_TYPE_DEBUG,
+      "Postgres namecache plugin is finished\n");
   return NULL;
 }
 

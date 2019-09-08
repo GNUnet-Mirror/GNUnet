@@ -11,12 +11,12 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 
 
 /**
@@ -34,7 +34,7 @@
 #include <inttypes.h>
 
 char*
-GNUNET_CREDENTIAL_credential_to_string (const struct GNUNET_CREDENTIAL_Credential *cred)
+GNUNET_CREDENTIAL_credential_to_string(const struct GNUNET_CREDENTIAL_Credential *cred)
 {
   char *cred_str;
   char *subject_pkey;
@@ -42,29 +42,30 @@ GNUNET_CREDENTIAL_credential_to_string (const struct GNUNET_CREDENTIAL_Credentia
   char *signature;
 
 
-  subject_pkey = GNUNET_CRYPTO_ecdsa_public_key_to_string (&cred->subject_key);
-  issuer_pkey = GNUNET_CRYPTO_ecdsa_public_key_to_string (&cred->issuer_key);
-  GNUNET_STRINGS_base64_encode ((char*)&cred->signature,
-                                sizeof (struct GNUNET_CRYPTO_EcdsaSignature),
-                                &signature);
-  GNUNET_asprintf (&cred_str,
-                   "%s.%s -> %s | %s | %"SCNu64,
-                   issuer_pkey,
-                   cred->issuer_attribute,
-                   subject_pkey,
-                   signature,
-                   cred->expiration.abs_value_us);
-  GNUNET_free (subject_pkey);
-  GNUNET_free (issuer_pkey);
-  GNUNET_free (signature);
+  subject_pkey = GNUNET_CRYPTO_ecdsa_public_key_to_string(&cred->subject_key);
+  issuer_pkey = GNUNET_CRYPTO_ecdsa_public_key_to_string(&cred->issuer_key);
+  GNUNET_STRINGS_base64_encode((char*)&cred->signature,
+                               sizeof(struct GNUNET_CRYPTO_EcdsaSignature),
+                               &signature);
+  GNUNET_asprintf(&cred_str,
+                  "%s.%s -> %s | %s | %" SCNu64,
+                  issuer_pkey,
+                  cred->issuer_attribute,
+                  subject_pkey,
+                  signature,
+                  cred->expiration.abs_value_us);
+  GNUNET_free(subject_pkey);
+  GNUNET_free(issuer_pkey);
+  GNUNET_free(signature);
   return cred_str;
 }
 
 struct GNUNET_CREDENTIAL_Credential*
-GNUNET_CREDENTIAL_credential_from_string (const char* s)
+GNUNET_CREDENTIAL_credential_from_string(const char* s)
 {
   struct GNUNET_CREDENTIAL_Credential *cred;
-  size_t enclen = (sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey)) * 8;
+  size_t enclen = (sizeof(struct GNUNET_CRYPTO_EcdsaPublicKey)) * 8;
+
   if (enclen % 5 > 0)
     enclen += 5 - enclen % 5;
   enclen /= 5; /* 260/5 = 52 */
@@ -76,36 +77,36 @@ GNUNET_CREDENTIAL_credential_from_string (const char* s)
   struct GNUNET_CRYPTO_EcdsaSignature *sig;
   struct GNUNET_TIME_Absolute etime_abs;
 
-  if (5 != SSCANF (s,
-                   "%52s.%253s -> %52s | %s | %"SCNu64,
-                   issuer_pkey,
-                   name,
-                   subject_pkey,
-                   signature,
-                   &etime_abs.abs_value_us))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _("Unable to parse CRED record string `%s'\n"),
-                s);
-    return NULL;
-  }
-  cred = GNUNET_malloc (sizeof (struct GNUNET_CREDENTIAL_Credential) + strlen (name) + 1);
-  GNUNET_CRYPTO_ecdsa_public_key_from_string (subject_pkey,
-                                              strlen (subject_pkey),
-                                              &cred->subject_key);
-  GNUNET_CRYPTO_ecdsa_public_key_from_string (issuer_pkey,
-                                              strlen (issuer_pkey),
-                                              &cred->issuer_key);
-  GNUNET_assert (sizeof (struct GNUNET_CRYPTO_EcdsaSignature) == GNUNET_STRINGS_base64_decode (signature,
-                                strlen (signature),
-                                (char**)&sig));
+  if (5 != SSCANF(s,
+                  "%52s.%253s -> %52s | %s | %" SCNu64,
+                  issuer_pkey,
+                  name,
+                  subject_pkey,
+                  signature,
+                  &etime_abs.abs_value_us))
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
+                 _("Unable to parse CRED record string `%s'\n"),
+                 s);
+      return NULL;
+    }
+  cred = GNUNET_malloc(sizeof(struct GNUNET_CREDENTIAL_Credential) + strlen(name) + 1);
+  GNUNET_CRYPTO_ecdsa_public_key_from_string(subject_pkey,
+                                             strlen(subject_pkey),
+                                             &cred->subject_key);
+  GNUNET_CRYPTO_ecdsa_public_key_from_string(issuer_pkey,
+                                             strlen(issuer_pkey),
+                                             &cred->issuer_key);
+  GNUNET_assert(sizeof(struct GNUNET_CRYPTO_EcdsaSignature) == GNUNET_STRINGS_base64_decode(signature,
+                                                                                            strlen(signature),
+                                                                                            (char**)&sig));
   cred->signature = *sig;
   cred->expiration = etime_abs;
-  GNUNET_free (sig);
-  GNUNET_memcpy (&cred[1],
-                 name,
-                 strlen (name)+1);
-  cred->issuer_attribute_len = strlen ((char*)&cred[1]);
+  GNUNET_free(sig);
+  GNUNET_memcpy(&cred[1],
+                name,
+                strlen(name) + 1);
+  cred->issuer_attribute_len = strlen((char*)&cred[1]);
   cred->issuer_attribute = (char*)&cred[1];
   return cred;
 }
@@ -119,50 +120,50 @@ GNUNET_CREDENTIAL_credential_from_string (const char* s)
  * @return handle to the queued request
  */
 struct GNUNET_CREDENTIAL_Credential *
-GNUNET_CREDENTIAL_credential_issue (const struct GNUNET_CRYPTO_EcdsaPrivateKey *issuer,
-                                    struct GNUNET_CRYPTO_EcdsaPublicKey *subject,
-                                    const char *attribute,
-                                    struct GNUNET_TIME_Absolute *expiration)
+GNUNET_CREDENTIAL_credential_issue(const struct GNUNET_CRYPTO_EcdsaPrivateKey *issuer,
+                                   struct GNUNET_CRYPTO_EcdsaPublicKey *subject,
+                                   const char *attribute,
+                                   struct GNUNET_TIME_Absolute *expiration)
 {
   struct CredentialEntry *crd;
   struct GNUNET_CREDENTIAL_Credential *cred;
   size_t size;
 
-  size = sizeof (struct CredentialEntry) + strlen (attribute) + 1;
-  crd = GNUNET_malloc (size);
-  cred = GNUNET_malloc (sizeof (struct GNUNET_CREDENTIAL_Credential) + strlen (attribute) + 1);
-  crd->purpose.size = htonl (size - sizeof (struct GNUNET_CRYPTO_EcdsaSignature));
+  size = sizeof(struct CredentialEntry) + strlen(attribute) + 1;
+  crd = GNUNET_malloc(size);
+  cred = GNUNET_malloc(sizeof(struct GNUNET_CREDENTIAL_Credential) + strlen(attribute) + 1);
+  crd->purpose.size = htonl(size - sizeof(struct GNUNET_CRYPTO_EcdsaSignature));
 
-  crd->purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_CREDENTIAL);
-  GNUNET_CRYPTO_ecdsa_key_get_public (issuer,
-                                      &crd->issuer_key);
+  crd->purpose.purpose = htonl(GNUNET_SIGNATURE_PURPOSE_CREDENTIAL);
+  GNUNET_CRYPTO_ecdsa_key_get_public(issuer,
+                                     &crd->issuer_key);
   crd->subject_key = *subject;
-  crd->expiration = GNUNET_htonll (expiration->abs_value_us);
-  crd->issuer_attribute_len = htonl (strlen (attribute)+1);
-  GNUNET_memcpy ((char*)&crd[1],
-                 attribute,
-                 strlen (attribute)+1);
+  crd->expiration = GNUNET_htonll(expiration->abs_value_us);
+  crd->issuer_attribute_len = htonl(strlen(attribute) + 1);
+  GNUNET_memcpy((char*)&crd[1],
+                attribute,
+                strlen(attribute) + 1);
   if (GNUNET_OK !=
-      GNUNET_CRYPTO_ecdsa_sign (issuer,
-                                &crd->purpose,
-                                &crd->signature))
-  {
-    GNUNET_break (0);
-    GNUNET_free (crd);
-    GNUNET_free (cred);
-    return NULL;
-  }
+      GNUNET_CRYPTO_ecdsa_sign(issuer,
+                               &crd->purpose,
+                               &crd->signature))
+    {
+      GNUNET_break(0);
+      GNUNET_free(crd);
+      GNUNET_free(cred);
+      return NULL;
+    }
   cred->signature = crd->signature;
   cred->expiration = *expiration;
-  GNUNET_CRYPTO_ecdsa_key_get_public (issuer,
-                                      &cred->issuer_key);
+  GNUNET_CRYPTO_ecdsa_key_get_public(issuer,
+                                     &cred->issuer_key);
 
   cred->subject_key = *subject;
-  GNUNET_memcpy (&cred[1],
-                 attribute,
-                 strlen (attribute)+1);
+  GNUNET_memcpy(&cred[1],
+                attribute,
+                strlen(attribute) + 1);
   cred->issuer_attribute = (char*)&cred[1];
-  GNUNET_free (crd);
+  GNUNET_free(crd);
   return cred;
 }
 

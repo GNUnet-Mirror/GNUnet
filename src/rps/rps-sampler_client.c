@@ -11,12 +11,12 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 
 /**
  * @file rps/gnunet-service-rps_sampler.c
@@ -37,7 +37,7 @@
 
 #include "rps-test_util.h"
 
-#define LOG(kind, ...) GNUNET_log_from(kind,"rps-sampler",__VA_ARGS__)
+#define LOG(kind, ...) GNUNET_log_from(kind, "rps-sampler", __VA_ARGS__)
 
 
 // multiple 'clients'?
@@ -49,8 +49,8 @@
 // hist_size_init, hist_size_max
 
 /***********************************************************************
- * WARNING: This section needs to be reviewed regarding the use of
- * functions providing (pseudo)randomness!
+* WARNING: This section needs to be reviewed regarding the use of
+* functions providing (pseudo)randomness!
 ***********************************************************************/
 
 // TODO care about invalid input of the caller (size 0 or less...)
@@ -68,8 +68,7 @@ typedef void
  *
  * Meant to be an entry in an DLL.
  */
-struct SamplerNotifyUpdateCTX
-{
+struct SamplerNotifyUpdateCTX {
   /**
    * @brief The Callback to call on updates
    */
@@ -107,14 +106,13 @@ typedef void
  * corrsponding peer to the client.
  */
 static void
-sampler_mod_get_rand_peer (void *cls);
+sampler_mod_get_rand_peer(void *cls);
 
 
 /**
  * Closure to _get_n_rand_peers_ready_cb()
  */
-struct RPS_SamplerRequestHandle
-{
+struct RPS_SamplerRequestHandle {
   /**
    * DLL
    */
@@ -162,8 +160,7 @@ struct RPS_SamplerRequestHandle
 /**
  * Closure to _get_rand_peer_info()
  */
-struct RPS_SamplerRequestHandleSingleInfo
-{
+struct RPS_SamplerRequestHandleSingleInfo {
   /**
    * DLL
    */
@@ -233,8 +230,8 @@ static uint32_t client_get_index;
  * @return a handle to a sampler that consists of sampler elements.
  */
 struct RPS_Sampler *
-RPS_sampler_mod_init (size_t init_size,
-                      struct GNUNET_TIME_Relative max_round_interval)
+RPS_sampler_mod_init(size_t init_size,
+                     struct GNUNET_TIME_Relative max_round_interval)
 {
   struct RPS_Sampler *sampler;
 
@@ -242,7 +239,7 @@ RPS_sampler_mod_init (size_t init_size,
   min_size = 10; // TODO make input to _samplers_init()
   max_size = 1000; // TODO make input to _samplers_init()
 
-  sampler = GNUNET_new (struct RPS_Sampler);
+  sampler = GNUNET_new(struct RPS_Sampler);
   sampler->max_round_interval = max_round_interval;
   sampler->get_peers = sampler_mod_get_rand_peer;
   //sampler->sampler_elements = GNUNET_new_array(init_size, struct GNUNET_PeerIdentity);
@@ -252,7 +249,7 @@ RPS_sampler_mod_init (size_t init_size,
 
   //GNUNET_assert (init_size == sampler->sampler_size);
 
-  RPS_sampler_resize (sampler, init_size);
+  RPS_sampler_resize(sampler, init_size);
 
   return sampler;
 }
@@ -274,22 +271,22 @@ RPS_sampler_mod_init (size_t init_size,
  * @return The estimated probability
  */
 static double
-prob_observed_n_peers (uint32_t num_peers_estim,
-                       uint32_t num_peers_observed,
-                       double deficiency_factor)
+prob_observed_n_peers(uint32_t num_peers_estim,
+                      uint32_t num_peers_observed,
+                      double deficiency_factor)
 {
-  uint32_t num_peers = num_peers_estim * (1/deficiency_factor);
+  uint32_t num_peers = num_peers_estim * (1 / deficiency_factor);
   uint64_t sum = 0;
 
   for (uint32_t i = 0; i < num_peers; i++)
-  {
-    uint64_t a = pow (-1, num_peers-i);
-    uint64_t b = binom (num_peers, i);
-    uint64_t c = pow (i, num_peers_observed);
-    sum += a * b * c;
-  }
+    {
+      uint64_t a = pow(-1, num_peers - i);
+      uint64_t b = binom(num_peers, i);
+      uint64_t c = pow(i, num_peers_observed);
+      sum += a * b * c;
+    }
 
-  return sum / (double) pow (num_peers, num_peers_observed);
+  return sum / (double)pow(num_peers, num_peers_observed);
 }
 
 
@@ -299,7 +296,7 @@ prob_observed_n_peers (uint32_t num_peers_estim,
  * This reinitialises the queried sampler element.
  */
 static void
-sampler_mod_get_rand_peer (void *cls)
+sampler_mod_get_rand_peer(void *cls)
 {
   struct GetPeerCls *gpc = cls;
   struct RPS_SamplerElement *s_elem;
@@ -310,72 +307,72 @@ sampler_mod_get_rand_peer (void *cls)
 
   gpc->get_peer_task = NULL;
   gpc->notify_ctx = NULL;
-  GNUNET_assert ( (NULL != gpc->req_handle) ||
-                  (NULL != gpc->req_single_info_handle) );
+  GNUNET_assert((NULL != gpc->req_handle) ||
+                (NULL != gpc->req_single_info_handle));
   if (NULL != gpc->req_handle)
     sampler = gpc->req_handle->sampler;
   else
     sampler = gpc->req_single_info_handle->sampler;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Single peer was requested\n");
+  LOG(GNUNET_ERROR_TYPE_DEBUG, "Single peer was requested\n");
 
   /* Cycle the #client_get_index one step further */
   client_get_index = (client_get_index + 1) % sampler->sampler_size;
 
   s_elem = sampler->sampler_elements[client_get_index];
   *gpc->id = s_elem->peer_id;
-  GNUNET_assert (NULL != s_elem);
+  GNUNET_assert(NULL != s_elem);
 
   if (EMPTY == s_elem->is_empty)
-  {
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-	 "Sampler_mod element empty, rescheduling.\n");
-    GNUNET_assert (NULL == gpc->notify_ctx);
-    gpc->notify_ctx =
-      sampler_notify_on_update (sampler,
-                                &sampler_mod_get_rand_peer,
-                                gpc);
-    return;
-  }
+    {
+      LOG(GNUNET_ERROR_TYPE_DEBUG,
+          "Sampler_mod element empty, rescheduling.\n");
+      GNUNET_assert(NULL == gpc->notify_ctx);
+      gpc->notify_ctx =
+        sampler_notify_on_update(sampler,
+                                 &sampler_mod_get_rand_peer,
+                                 gpc);
+      return;
+    }
 
   /* Check whether we may use this sampler to give it back to the client */
   if (GNUNET_TIME_UNIT_FOREVER_ABS.abs_value_us != s_elem->last_client_request.abs_value_us)
-  {
-    // TODO remove this condition at least for the client sampler
-    last_request_diff =
-      GNUNET_TIME_absolute_get_difference (s_elem->last_client_request,
-                                           GNUNET_TIME_absolute_get ());
-    /* We're not going to give it back now if it was
-     * already requested by a client this round */
-    if (last_request_diff.rel_value_us < sampler->max_round_interval.rel_value_us)
     {
-      LOG (GNUNET_ERROR_TYPE_DEBUG,
-          "Last client request on this sampler was less than max round interval ago -- scheduling for later\n");
-      ///* How many time remains untile the next round has started? */
-      //inv_last_request_diff =
-      //  GNUNET_TIME_absolute_get_difference (last_request_diff,
-      //                                       sampler->max_round_interval);
-      // add a little delay
-      /* Schedule it one round later */
-      GNUNET_assert (NULL == gpc->notify_ctx);
+      // TODO remove this condition at least for the client sampler
+      last_request_diff =
+        GNUNET_TIME_absolute_get_difference(s_elem->last_client_request,
+                                            GNUNET_TIME_absolute_get());
+      /* We're not going to give it back now if it was
+       * already requested by a client this round */
+      if (last_request_diff.rel_value_us < sampler->max_round_interval.rel_value_us)
+        {
+          LOG(GNUNET_ERROR_TYPE_DEBUG,
+              "Last client request on this sampler was less than max round interval ago -- scheduling for later\n");
+          ///* How many time remains untile the next round has started? */
+          //inv_last_request_diff =
+          //  GNUNET_TIME_absolute_get_difference (last_request_diff,
+          //                                       sampler->max_round_interval);
+          // add a little delay
+          /* Schedule it one round later */
+          GNUNET_assert(NULL == gpc->notify_ctx);
+          gpc->notify_ctx =
+            sampler_notify_on_update(sampler,
+                                     &sampler_mod_get_rand_peer,
+                                     gpc);
+          return;
+        }
+    }
+  if (2 > s_elem->num_peers)
+    {
+      LOG(GNUNET_ERROR_TYPE_DEBUG,
+          "This s_elem saw less than two peers -- scheduling for later\n");
+      GNUNET_assert(NULL == gpc->notify_ctx);
       gpc->notify_ctx =
-        sampler_notify_on_update (sampler,
-                                  &sampler_mod_get_rand_peer,
-                                  gpc);
+        sampler_notify_on_update(sampler,
+                                 &sampler_mod_get_rand_peer,
+                                 gpc);
       return;
     }
-  }
-  if (2 > s_elem->num_peers)
-  {
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-        "This s_elem saw less than two peers -- scheduling for later\n");
-    GNUNET_assert (NULL == gpc->notify_ctx);
-    gpc->notify_ctx =
-      sampler_notify_on_update (sampler,
-                                &sampler_mod_get_rand_peer,
-                                gpc);
-    return;
-  }
   /* compute probability */
   /* Currently disabled due to numerical limitations */
   //prob_observed_n = prob_observed_n_peers (sampler->num_peers_estim,
@@ -413,23 +410,23 @@ sampler_mod_get_rand_peer (void *cls)
 //                         GNUNET_NO);
 
   num_observed = s_elem->num_peers;
-  RPS_sampler_elem_reinit (s_elem);
-  s_elem->last_client_request = GNUNET_TIME_absolute_get ();
+  RPS_sampler_elem_reinit(s_elem);
+  s_elem->last_client_request = GNUNET_TIME_absolute_get();
 
   if (NULL != gpc->req_handle)
-  {
-    GNUNET_CONTAINER_DLL_remove (gpc->req_handle->gpc_head,
-                                 gpc->req_handle->gpc_tail,
-                                 gpc);
-  }
+    {
+      GNUNET_CONTAINER_DLL_remove(gpc->req_handle->gpc_head,
+                                  gpc->req_handle->gpc_tail,
+                                  gpc);
+    }
   else
-  {
-    GNUNET_CONTAINER_DLL_remove (gpc->req_single_info_handle->gpc_head,
-                                 gpc->req_single_info_handle->gpc_tail,
-                                 gpc);
-  }
-  gpc->cont (gpc->cont_cls, gpc->id, prob_observed_n, num_observed);
-  GNUNET_free (gpc);
+    {
+      GNUNET_CONTAINER_DLL_remove(gpc->req_single_info_handle->gpc_head,
+                                  gpc->req_single_info_handle->gpc_tail,
+                                  gpc);
+    }
+  gpc->cont(gpc->cont_cls, gpc->id, prob_observed_n, num_observed);
+  GNUNET_free(gpc);
 }
 
 

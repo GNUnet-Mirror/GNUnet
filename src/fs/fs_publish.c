@@ -16,7 +16,7 @@
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 /**
  * @file fs/fs_publish.c
  * @brief publish a file or directory in GNUnet
@@ -44,10 +44,10 @@
  * @return value returned from callback
  */
 void *
-GNUNET_FS_publish_make_status_ (struct GNUNET_FS_ProgressInfo *pi,
-                                struct GNUNET_FS_PublishContext *pc,
-                                const struct GNUNET_FS_FileInformation *p,
-                                uint64_t offset)
+GNUNET_FS_publish_make_status_(struct GNUNET_FS_ProgressInfo *pi,
+                               struct GNUNET_FS_PublishContext *pc,
+                               const struct GNUNET_FS_FileInformation *p,
+                               uint64_t offset)
 {
   pi->value.publish.pc = pc;
   pi->value.publish.fi = p;
@@ -55,16 +55,16 @@ GNUNET_FS_publish_make_status_ (struct GNUNET_FS_ProgressInfo *pi,
   pi->value.publish.pctx = (NULL == p->dir) ? NULL : p->dir->client_info;
   pi->value.publish.filename = p->filename;
   pi->value.publish.size =
-      (GNUNET_YES == p->is_directory) ? p->data.dir.dir_size : p->data.file.file_size;
+    (GNUNET_YES == p->is_directory) ? p->data.dir.dir_size : p->data.file.file_size;
   pi->value.publish.eta =
-      GNUNET_TIME_calculate_eta (p->start_time, offset,
-                                 pi->value.publish.size);
+    GNUNET_TIME_calculate_eta(p->start_time, offset,
+                              pi->value.publish.size);
   pi->value.publish.completed = offset;
   pi->value.publish.duration =
-      GNUNET_TIME_absolute_get_duration (p->start_time);
+    GNUNET_TIME_absolute_get_duration(p->start_time);
   pi->value.publish.anonymity = p->bo.anonymity_level;
   pi->fsh = pc->h;
-  return pc->h->upcb (pc->h->upcb_cls, pi);
+  return pc->h->upcb(pc->h->upcb_cls, pi);
 }
 
 
@@ -74,31 +74,31 @@ GNUNET_FS_publish_make_status_ (struct GNUNET_FS_ProgressInfo *pi,
  * @param pc struct to clean up
  */
 static void
-publish_cleanup (struct GNUNET_FS_PublishContext *pc)
+publish_cleanup(struct GNUNET_FS_PublishContext *pc)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Cleaning up publish context (done!)\n");
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+             "Cleaning up publish context (done!)\n");
   if (NULL != pc->fhc)
-  {
-    GNUNET_CRYPTO_hash_file_cancel (pc->fhc);
-    pc->fhc = NULL;
-  }
-  GNUNET_FS_file_information_destroy (pc->fi, NULL, NULL);
-  GNUNET_free_non_null (pc->nid);
-  GNUNET_free_non_null (pc->nuid);
-  GNUNET_free_non_null (pc->serialization);
+    {
+      GNUNET_CRYPTO_hash_file_cancel(pc->fhc);
+      pc->fhc = NULL;
+    }
+  GNUNET_FS_file_information_destroy(pc->fi, NULL, NULL);
+  GNUNET_free_non_null(pc->nid);
+  GNUNET_free_non_null(pc->nuid);
+  GNUNET_free_non_null(pc->serialization);
   if (NULL != pc->dsh)
-  {
-    GNUNET_DATASTORE_disconnect (pc->dsh, GNUNET_NO);
-    pc->dsh = NULL;
-  }
+    {
+      GNUNET_DATASTORE_disconnect(pc->dsh, GNUNET_NO);
+      pc->dsh = NULL;
+    }
   if (NULL != pc->mq)
-  {
-    GNUNET_MQ_destroy (pc->mq);
-    pc->mq = NULL;
-  }
-  GNUNET_assert (NULL == pc->upload_task);
-  GNUNET_free (pc);
+    {
+      GNUNET_MQ_destroy(pc->mq);
+      pc->mq = NULL;
+    }
+  GNUNET_assert(NULL == pc->upload_task);
+  GNUNET_free(pc);
 }
 
 
@@ -112,42 +112,42 @@ publish_cleanup (struct GNUNET_FS_PublishContext *pc)
  * @param msg error message (or NULL)
  */
 static void
-ds_put_cont (void *cls,
-             int success,
-	     struct GNUNET_TIME_Absolute min_expiration,
-	     const char *msg)
+ds_put_cont(void *cls,
+            int success,
+            struct GNUNET_TIME_Absolute min_expiration,
+            const char *msg)
 {
   struct GNUNET_FS_PublishContext *pc = cls;
   struct GNUNET_FS_ProgressInfo pi;
 
   pc->qre = NULL;
   if (GNUNET_SYSERR == success)
-  {
-    GNUNET_asprintf (&pc->fi_pos->emsg,
-                     _("Publishing failed: %s"),
-                     msg);
-    pi.status = GNUNET_FS_STATUS_PUBLISH_ERROR;
-    pi.value.publish.eta = GNUNET_TIME_UNIT_FOREVER_REL;
-    pi.value.publish.specifics.error.message = pc->fi_pos->emsg;
-    pc->fi_pos->client_info =
-        GNUNET_FS_publish_make_status_ (&pi, pc, pc->fi_pos, 0);
-    if ((GNUNET_YES != pc->fi_pos->is_directory) &&
-        (NULL != pc->fi_pos->filename) &&
-        (GNUNET_YES == pc->any_done) &&
-        (GNUNET_YES == pc->fi_pos->data.file.do_index))
     {
-      /* run unindex to clean up */
-      GNUNET_FS_unindex_start (pc->h,
-                               pc->fi_pos->filename,
-                               NULL);
+      GNUNET_asprintf(&pc->fi_pos->emsg,
+                      _("Publishing failed: %s"),
+                      msg);
+      pi.status = GNUNET_FS_STATUS_PUBLISH_ERROR;
+      pi.value.publish.eta = GNUNET_TIME_UNIT_FOREVER_REL;
+      pi.value.publish.specifics.error.message = pc->fi_pos->emsg;
+      pc->fi_pos->client_info =
+        GNUNET_FS_publish_make_status_(&pi, pc, pc->fi_pos, 0);
+      if ((GNUNET_YES != pc->fi_pos->is_directory) &&
+          (NULL != pc->fi_pos->filename) &&
+          (GNUNET_YES == pc->any_done) &&
+          (GNUNET_YES == pc->fi_pos->data.file.do_index))
+        {
+          /* run unindex to clean up */
+          GNUNET_FS_unindex_start(pc->h,
+                                  pc->fi_pos->filename,
+                                  NULL);
+        }
+      return;
     }
-    return;
-  }
   pc->any_done = GNUNET_YES;
-  GNUNET_assert (NULL == pc->upload_task);
+  GNUNET_assert(NULL == pc->upload_task);
   pc->upload_task =
-      GNUNET_SCHEDULER_add_with_priority (GNUNET_SCHEDULER_PRIORITY_BACKGROUND,
-                                          &GNUNET_FS_publish_main_, pc);
+    GNUNET_SCHEDULER_add_with_priority(GNUNET_SCHEDULER_PRIORITY_BACKGROUND,
+                                       &GNUNET_FS_publish_main_, pc);
 }
 
 
@@ -160,8 +160,8 @@ ds_put_cont (void *cls,
  * @param pc context of the publication
  */
 static void
-signal_publish_completion (struct GNUNET_FS_FileInformation *p,
-                           struct GNUNET_FS_PublishContext *pc)
+signal_publish_completion(struct GNUNET_FS_FileInformation *p,
+                          struct GNUNET_FS_PublishContext *pc)
 {
   struct GNUNET_FS_ProgressInfo pi;
 
@@ -170,8 +170,8 @@ signal_publish_completion (struct GNUNET_FS_FileInformation *p,
   pi.value.publish.specifics.completed.chk_uri = p->chk_uri;
   pi.value.publish.specifics.completed.sks_uri = p->sks_uri;
   p->client_info =
-      GNUNET_FS_publish_make_status_ (&pi, pc, p,
-                                      p->data.file.file_size);
+    GNUNET_FS_publish_make_status_(&pi, pc, p,
+                                   p->data.file.file_size);
 }
 
 
@@ -185,28 +185,27 @@ signal_publish_completion (struct GNUNET_FS_FileInformation *p,
  * @param emsg error message
  */
 static void
-signal_publish_error (struct GNUNET_FS_FileInformation *p,
-                      struct GNUNET_FS_PublishContext *pc,
-                      const char *emsg)
+signal_publish_error(struct GNUNET_FS_FileInformation *p,
+                     struct GNUNET_FS_PublishContext *pc,
+                     const char *emsg)
 {
   struct GNUNET_FS_ProgressInfo pi;
 
-  p->emsg = GNUNET_strdup (emsg);
+  p->emsg = GNUNET_strdup(emsg);
   pi.status = GNUNET_FS_STATUS_PUBLISH_ERROR;
   pi.value.publish.eta = GNUNET_TIME_UNIT_FOREVER_REL;
   pi.value.publish.specifics.error.message = emsg;
-  p->client_info = GNUNET_FS_publish_make_status_ (&pi, pc, p, 0);
+  p->client_info = GNUNET_FS_publish_make_status_(&pi, pc, p, 0);
   if ((p->is_directory != GNUNET_YES) &&
       (NULL != p->filename) &&
       (GNUNET_YES == pc->any_done) &&
       (p->data.file.do_index == GNUNET_YES))
-  {
-    /* run unindex to clean up */
-    GNUNET_FS_unindex_start (pc->h,
-                             p->filename,
-                             NULL);
-  }
-
+    {
+      /* run unindex to clean up */
+      GNUNET_FS_unindex_start(pc->h,
+                              p->filename,
+                              NULL);
+    }
 }
 
 
@@ -219,18 +218,18 @@ signal_publish_error (struct GNUNET_FS_FileInformation *p,
  * @param msg error message (typically NULL, not used)
  */
 static void
-finish_release_reserve (void *cls, int success,
-			struct GNUNET_TIME_Absolute min_expiration,
-			const char *msg)
+finish_release_reserve(void *cls, int success,
+                       struct GNUNET_TIME_Absolute min_expiration,
+                       const char *msg)
 {
   struct GNUNET_FS_PublishContext *pc = cls;
 
   pc->qre = NULL;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Releasing reserve done!\n");
-  signal_publish_completion (pc->fi, pc);
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+             "Releasing reserve done!\n");
+  signal_publish_completion(pc->fi, pc);
   pc->all_done = GNUNET_YES;
-  GNUNET_FS_publish_sync_ (pc);
+  GNUNET_FS_publish_sync_(pc);
 }
 
 
@@ -243,35 +242,35 @@ finish_release_reserve (void *cls, int success,
  * @param emsg NULL on success, otherwise error message
  */
 static void
-publish_sblocks_cont (void *cls,
-                      const struct GNUNET_FS_Uri *uri,
-                      const char *emsg)
+publish_sblocks_cont(void *cls,
+                     const struct GNUNET_FS_Uri *uri,
+                     const char *emsg)
 {
   struct GNUNET_FS_PublishContext *pc = cls;
 
   pc->sks_pc = NULL;
   if (NULL != emsg)
-  {
-    signal_publish_error (pc->fi, pc, emsg);
-    GNUNET_FS_publish_sync_ (pc);
-    return;
-  }
+    {
+      signal_publish_error(pc->fi, pc, emsg);
+      GNUNET_FS_publish_sync_(pc);
+      return;
+    }
   if (NULL != uri)
-  {
-    /* sks publication, remember namespace URI */
-    pc->fi->sks_uri = GNUNET_FS_uri_dup (uri);
-  }
-  GNUNET_assert (pc->qre == NULL);
+    {
+      /* sks publication, remember namespace URI */
+      pc->fi->sks_uri = GNUNET_FS_uri_dup(uri);
+    }
+  GNUNET_assert(pc->qre == NULL);
   if ((pc->dsh != NULL) && (pc->rid != 0))
-  {
-    pc->qre =
-        GNUNET_DATASTORE_release_reserve (pc->dsh, pc->rid, UINT_MAX, UINT_MAX,
-                                          &finish_release_reserve, pc);
-  }
+    {
+      pc->qre =
+        GNUNET_DATASTORE_release_reserve(pc->dsh, pc->rid, UINT_MAX, UINT_MAX,
+                                         &finish_release_reserve, pc);
+    }
   else
-  {
-    finish_release_reserve (pc, GNUNET_OK, GNUNET_TIME_UNIT_ZERO_ABS, NULL);
-  }
+    {
+      finish_release_reserve(pc, GNUNET_OK, GNUNET_TIME_UNIT_ZERO_ABS, NULL);
+    }
 }
 
 
@@ -282,20 +281,20 @@ publish_sblocks_cont (void *cls,
  * @param pc overall upload data
  */
 static void
-publish_sblock (struct GNUNET_FS_PublishContext *pc)
+publish_sblock(struct GNUNET_FS_PublishContext *pc)
 {
   if (NULL != pc->ns)
-    pc->sks_pc = GNUNET_FS_publish_sks (pc->h,
-					pc->ns,
-					pc->nid,
-					pc->nuid,
-					pc->fi->meta,
-					pc->fi->chk_uri,
-					&pc->fi->bo,
-					pc->options,
-					&publish_sblocks_cont, pc);
+    pc->sks_pc = GNUNET_FS_publish_sks(pc->h,
+                                       pc->ns,
+                                       pc->nid,
+                                       pc->nuid,
+                                       pc->fi->meta,
+                                       pc->fi->chk_uri,
+                                       &pc->fi->bo,
+                                       pc->options,
+                                       &publish_sblocks_cont, pc);
   else
-    publish_sblocks_cont (pc, NULL, NULL);
+    publish_sblocks_cont(pc, NULL, NULL);
 }
 
 
@@ -309,44 +308,44 @@ publish_sblock (struct GNUNET_FS_PublishContext *pc)
  * @param emsg NULL on success, otherwise error message
  */
 static void
-publish_kblocks_cont (void *cls,
-                      const struct GNUNET_FS_Uri *uri,
-                      const char *emsg)
+publish_kblocks_cont(void *cls,
+                     const struct GNUNET_FS_Uri *uri,
+                     const char *emsg)
 {
   struct GNUNET_FS_PublishContext *pc = cls;
   struct GNUNET_FS_FileInformation *p = pc->fi_pos;
 
   pc->ksk_pc = NULL;
   if (NULL != emsg)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		"Error uploading KSK blocks: %s\n",
-                emsg);
-    signal_publish_error (p, pc, emsg);
-    GNUNET_FS_file_information_sync_ (p);
-    GNUNET_FS_publish_sync_ (pc);
-    GNUNET_assert (NULL == pc->upload_task);
-    pc->upload_task =
-      GNUNET_SCHEDULER_add_with_priority
-      (GNUNET_SCHEDULER_PRIORITY_BACKGROUND,
-       &GNUNET_FS_publish_main_,
-       pc);
-    return;
-  }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "KSK blocks published, moving on to next file\n");
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+                 "Error uploading KSK blocks: %s\n",
+                 emsg);
+      signal_publish_error(p, pc, emsg);
+      GNUNET_FS_file_information_sync_(p);
+      GNUNET_FS_publish_sync_(pc);
+      GNUNET_assert(NULL == pc->upload_task);
+      pc->upload_task =
+        GNUNET_SCHEDULER_add_with_priority
+          (GNUNET_SCHEDULER_PRIORITY_BACKGROUND,
+          &GNUNET_FS_publish_main_,
+          pc);
+      return;
+    }
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+             "KSK blocks published, moving on to next file\n");
   if (NULL != p->dir)
-    signal_publish_completion (p, pc);
+    signal_publish_completion(p, pc);
   /* move on to next file */
   if (NULL != p->next)
     pc->fi_pos = p->next;
   else
     pc->fi_pos = p->dir;
-  GNUNET_FS_publish_sync_ (pc);
-  GNUNET_assert (NULL == pc->upload_task);
+  GNUNET_FS_publish_sync_(pc);
+  GNUNET_assert(NULL == pc->upload_task);
   pc->upload_task =
-      GNUNET_SCHEDULER_add_with_priority (GNUNET_SCHEDULER_PRIORITY_BACKGROUND,
-                                          &GNUNET_FS_publish_main_, pc);
+    GNUNET_SCHEDULER_add_with_priority(GNUNET_SCHEDULER_PRIORITY_BACKGROUND,
+                                       &GNUNET_FS_publish_main_, pc);
 }
 
 
@@ -364,11 +363,11 @@ publish_kblocks_cont (void *cls,
  * @return number of bytes copied to buf, 0 on error
  */
 static size_t
-block_reader (void *cls,
-              uint64_t offset,
-              size_t max,
-              void *buf,
-              char **emsg)
+block_reader(void *cls,
+             uint64_t offset,
+             size_t max,
+             void *buf,
+             char **emsg)
 {
   struct GNUNET_FS_PublishContext *pc = cls;
   struct GNUNET_FS_FileInformation *p;
@@ -377,31 +376,31 @@ block_reader (void *cls,
 
   p = pc->fi_pos;
   if (GNUNET_YES == p->is_directory)
-  {
-    pt_size = GNUNET_MIN (max, p->data.dir.dir_size - offset);
-    dd = p->data.dir.dir_data;
-    GNUNET_memcpy (buf, &dd[offset], pt_size);
-  }
-  else
-  {
-    if (UINT64_MAX == offset)
     {
-      if (&GNUNET_FS_data_reader_file_ == p->data.file.reader)
-      {
-	/* force closing the file to avoid keeping too many files open */
-	p->data.file.reader (p->data.file.reader_cls, offset, 0, NULL, NULL);
-      }
-      return 0;
+      pt_size = GNUNET_MIN(max, p->data.dir.dir_size - offset);
+      dd = p->data.dir.dir_data;
+      GNUNET_memcpy(buf, &dd[offset], pt_size);
     }
-    pt_size = GNUNET_MIN (max, p->data.file.file_size - offset);
-    if (0 == pt_size)
-      return 0;                 /* calling reader with pt_size==0
+  else
+    {
+      if (UINT64_MAX == offset)
+        {
+          if (&GNUNET_FS_data_reader_file_ == p->data.file.reader)
+            {
+              /* force closing the file to avoid keeping too many files open */
+              p->data.file.reader(p->data.file.reader_cls, offset, 0, NULL, NULL);
+            }
+          return 0;
+        }
+      pt_size = GNUNET_MIN(max, p->data.file.file_size - offset);
+      if (0 == pt_size)
+        return 0;               /* calling reader with pt_size==0
                                  * might free buf, so don't! */
-    if (pt_size !=
-        p->data.file.reader (p->data.file.reader_cls, offset, pt_size, buf,
-                             emsg))
-      return 0;
-  }
+      if (pt_size !=
+          p->data.file.reader(p->data.file.reader_cls, offset, pt_size, buf,
+                              emsg))
+        return 0;
+    }
   return pt_size;
 }
 
@@ -414,7 +413,7 @@ block_reader (void *cls,
  * @param cls our publishing context
  */
 static void
-encode_cont (void *cls)
+encode_cont(void *cls)
 {
   struct GNUNET_FS_PublishContext *pc = cls;
   struct GNUNET_FS_FileInformation *p;
@@ -422,44 +421,44 @@ encode_cont (void *cls)
   char *emsg;
   uint64_t flen;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Finished with tree encoder\n");
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+             "Finished with tree encoder\n");
   p = pc->fi_pos;
-  p->chk_uri = GNUNET_FS_tree_encoder_get_uri (p->te);
-  GNUNET_FS_file_information_sync_ (p);
-  GNUNET_FS_tree_encoder_finish (p->te, &emsg);
+  p->chk_uri = GNUNET_FS_tree_encoder_get_uri(p->te);
+  GNUNET_FS_file_information_sync_(p);
+  GNUNET_FS_tree_encoder_finish(p->te, &emsg);
   p->te = NULL;
   if (NULL != emsg)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		"Error during tree walk: %s\n",
-		emsg);
-    GNUNET_asprintf (&p->emsg,
-		     _("Publishing failed: %s"),
-		     emsg);
-    GNUNET_free (emsg);
-    pi.status = GNUNET_FS_STATUS_PUBLISH_ERROR;
-    pi.value.publish.eta = GNUNET_TIME_UNIT_FOREVER_REL;
-    pi.value.publish.specifics.error.message = p->emsg;
-    p->client_info = GNUNET_FS_publish_make_status_ (&pi, pc, p, 0);
-  }
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+                 "Error during tree walk: %s\n",
+                 emsg);
+      GNUNET_asprintf(&p->emsg,
+                      _("Publishing failed: %s"),
+                      emsg);
+      GNUNET_free(emsg);
+      pi.status = GNUNET_FS_STATUS_PUBLISH_ERROR;
+      pi.value.publish.eta = GNUNET_TIME_UNIT_FOREVER_REL;
+      pi.value.publish.specifics.error.message = p->emsg;
+      p->client_info = GNUNET_FS_publish_make_status_(&pi, pc, p, 0);
+    }
   else
-  {
-    /* final progress event */
-    GNUNET_assert (NULL != p->chk_uri);
-    flen = GNUNET_FS_uri_chk_get_file_size (p->chk_uri);
-    pi.status = GNUNET_FS_STATUS_PUBLISH_PROGRESS;
-    pi.value.publish.specifics.progress.data = NULL;
-    pi.value.publish.specifics.progress.offset = flen;
-    pi.value.publish.specifics.progress.data_len = 0;
-    pi.value.publish.specifics.progress.depth = GNUNET_FS_compute_depth (flen);
-    p->client_info = GNUNET_FS_publish_make_status_ (&pi, pc, p, flen);
-  }
+    {
+      /* final progress event */
+      GNUNET_assert(NULL != p->chk_uri);
+      flen = GNUNET_FS_uri_chk_get_file_size(p->chk_uri);
+      pi.status = GNUNET_FS_STATUS_PUBLISH_PROGRESS;
+      pi.value.publish.specifics.progress.data = NULL;
+      pi.value.publish.specifics.progress.offset = flen;
+      pi.value.publish.specifics.progress.data_len = 0;
+      pi.value.publish.specifics.progress.depth = GNUNET_FS_compute_depth(flen);
+      p->client_info = GNUNET_FS_publish_make_status_(&pi, pc, p, flen);
+    }
   /* continue with main */  /* continue with main */
-  GNUNET_assert (NULL == pc->upload_task);
+  GNUNET_assert(NULL == pc->upload_task);
   pc->upload_task =
-      GNUNET_SCHEDULER_add_with_priority (GNUNET_SCHEDULER_PRIORITY_BACKGROUND,
-                                          &GNUNET_FS_publish_main_, pc);
+    GNUNET_SCHEDULER_add_with_priority(GNUNET_SCHEDULER_PRIORITY_BACKGROUND,
+                                       &GNUNET_FS_publish_main_, pc);
 }
 
 
@@ -478,13 +477,13 @@ encode_cont (void *cls)
  * @param block_size size of @a block (in bytes)
  */
 static void
-block_proc (void *cls,
-            const struct ContentHashKey *chk,
-            uint64_t offset,
-            unsigned int depth,
-            enum GNUNET_BLOCK_Type type,
-            const void *block,
-            uint16_t block_size)
+block_proc(void *cls,
+           const struct ContentHashKey *chk,
+           uint64_t offset,
+           unsigned int depth,
+           enum GNUNET_BLOCK_Type type,
+           const void *block,
+           uint16_t block_size)
 {
   struct GNUNET_FS_PublishContext *pc = cls;
   struct GNUNET_FS_FileInformation *p;
@@ -492,62 +491,62 @@ block_proc (void *cls,
 
   p = pc->fi_pos;
   if (NULL == pc->dsh)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Waiting for datastore connection\n");
-    GNUNET_assert (NULL == pc->upload_task);
-    pc->upload_task =
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+                 "Waiting for datastore connection\n");
+      GNUNET_assert(NULL == pc->upload_task);
+      pc->upload_task =
         GNUNET_SCHEDULER_add_with_priority
-        (GNUNET_SCHEDULER_PRIORITY_BACKGROUND, &GNUNET_FS_publish_main_, pc);
-    return;
-  }
+          (GNUNET_SCHEDULER_PRIORITY_BACKGROUND, &GNUNET_FS_publish_main_, pc);
+      return;
+    }
 
-  if ( (GNUNET_YES != p->is_directory) &&
-       (GNUNET_YES == p->data.file.do_index) &&
-       (GNUNET_BLOCK_TYPE_FS_DBLOCK == type) )
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Indexing block `%s' for offset %llu with index size %u\n",
-                GNUNET_h2s (&chk->query),
-                (unsigned long long) offset,
-                (unsigned int) sizeof (struct OnDemandBlock));
-    odb.offset = GNUNET_htonll (offset);
-    odb.file_id = p->data.file.file_id;
-    GNUNET_assert (pc->qre == NULL);
-    pc->qre =
-        GNUNET_DATASTORE_put (pc->dsh,
-                              (p->is_directory == GNUNET_YES) ? 0 : pc->rid,
-                              &chk->query,
-                              sizeof (struct OnDemandBlock),
-                              &odb,
-                              GNUNET_BLOCK_TYPE_FS_ONDEMAND,
-                              p->bo.content_priority,
-                              p->bo.anonymity_level,
-                              p->bo.replication_level,
-                              p->bo.expiration_time,
-                              -2, 1,
-                              &ds_put_cont, pc);
-    return;
-  }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Publishing block `%s' for offset %llu with size %u\n",
-              GNUNET_h2s (&chk->query),
-              (unsigned long long) offset,
-              (unsigned int) block_size);
-  GNUNET_assert (pc->qre == NULL);
+  if ((GNUNET_YES != p->is_directory) &&
+      (GNUNET_YES == p->data.file.do_index) &&
+      (GNUNET_BLOCK_TYPE_FS_DBLOCK == type))
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+                 "Indexing block `%s' for offset %llu with index size %u\n",
+                 GNUNET_h2s(&chk->query),
+                 (unsigned long long)offset,
+                 (unsigned int)sizeof(struct OnDemandBlock));
+      odb.offset = GNUNET_htonll(offset);
+      odb.file_id = p->data.file.file_id;
+      GNUNET_assert(pc->qre == NULL);
+      pc->qre =
+        GNUNET_DATASTORE_put(pc->dsh,
+                             (p->is_directory == GNUNET_YES) ? 0 : pc->rid,
+                             &chk->query,
+                             sizeof(struct OnDemandBlock),
+                             &odb,
+                             GNUNET_BLOCK_TYPE_FS_ONDEMAND,
+                             p->bo.content_priority,
+                             p->bo.anonymity_level,
+                             p->bo.replication_level,
+                             p->bo.expiration_time,
+                             -2, 1,
+                             &ds_put_cont, pc);
+      return;
+    }
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+             "Publishing block `%s' for offset %llu with size %u\n",
+             GNUNET_h2s(&chk->query),
+             (unsigned long long)offset,
+             (unsigned int)block_size);
+  GNUNET_assert(pc->qre == NULL);
   pc->qre =
-      GNUNET_DATASTORE_put (pc->dsh, (p->is_directory == GNUNET_YES) ? 0 : pc->rid,
-                            &chk->query,
-                            block_size,
-                            block,
-                            type,
-                            p->bo.content_priority,
-                            p->bo.anonymity_level,
-                            p->bo.replication_level,
-                            p->bo.expiration_time,
-                            -2, 1,
-                            &ds_put_cont,
-                            pc);
+    GNUNET_DATASTORE_put(pc->dsh, (p->is_directory == GNUNET_YES) ? 0 : pc->rid,
+                         &chk->query,
+                         block_size,
+                         block,
+                         type,
+                         p->bo.content_priority,
+                         p->bo.anonymity_level,
+                         p->bo.replication_level,
+                         p->bo.expiration_time,
+                         -2, 1,
+                         &ds_put_cont,
+                         pc);
 }
 
 
@@ -562,10 +561,10 @@ block_proc (void *cls,
  * @param depth depth of the block in the tree, 0 for DBLOCK
  */
 static void
-progress_proc (void *cls, uint64_t offset,
-               const void *pt_block,
-               size_t pt_size,
-               unsigned int depth)
+progress_proc(void *cls, uint64_t offset,
+              const void *pt_block,
+              size_t pt_size,
+              unsigned int depth)
 {
   struct GNUNET_FS_PublishContext *pc = cls;
   struct GNUNET_FS_FileInformation *p;
@@ -578,24 +577,23 @@ progress_proc (void *cls, uint64_t offset,
   pi.value.publish.specifics.progress.offset = offset;
   pi.value.publish.specifics.progress.data_len = pt_size;
   pi.value.publish.specifics.progress.depth = depth;
-  p->client_info = GNUNET_FS_publish_make_status_ (&pi, pc, p, offset);
-  if ( (0 != depth) ||
-       (GNUNET_YES == p->is_directory) )
+  p->client_info = GNUNET_FS_publish_make_status_(&pi, pc, p, offset);
+  if ((0 != depth) ||
+      (GNUNET_YES == p->is_directory))
     return;
   while (NULL != (par = p->dir))
-  {
-    p = par;
-    GNUNET_assert (GNUNET_YES == par->is_directory);
-    p->data.dir.contents_completed += pt_size;
-    pi.status = GNUNET_FS_STATUS_PUBLISH_PROGRESS_DIRECTORY;
-    pi.value.publish.specifics.progress_directory.completed = p->data.dir.contents_completed;
-    pi.value.publish.specifics.progress_directory.total = p->data.dir.contents_size;
-    pi.value.publish.specifics.progress_directory.eta = GNUNET_TIME_calculate_eta (p->start_time,
-                                                                                   p->data.dir.contents_completed,
-                                                                                   p->data.dir.contents_size);
-    p->client_info = GNUNET_FS_publish_make_status_ (&pi, pc, p, 0);
-
-  }
+    {
+      p = par;
+      GNUNET_assert(GNUNET_YES == par->is_directory);
+      p->data.dir.contents_completed += pt_size;
+      pi.status = GNUNET_FS_STATUS_PUBLISH_PROGRESS_DIRECTORY;
+      pi.value.publish.specifics.progress_directory.completed = p->data.dir.contents_completed;
+      pi.value.publish.specifics.progress_directory.total = p->data.dir.contents_size;
+      pi.value.publish.specifics.progress_directory.eta = GNUNET_TIME_calculate_eta(p->start_time,
+                                                                                    p->data.dir.contents_completed,
+                                                                                    p->data.dir.contents_size);
+      p->client_info = GNUNET_FS_publish_make_status_(&pi, pc, p, 0);
+    }
 }
 
 
@@ -607,7 +605,7 @@ progress_proc (void *cls, uint64_t offset,
  * @param pc overall upload data
  */
 static void
-publish_content (struct GNUNET_FS_PublishContext *pc)
+publish_content(struct GNUNET_FS_PublishContext *pc)
 {
   struct GNUNET_FS_FileInformation *p;
   char *emsg;
@@ -617,65 +615,64 @@ publish_content (struct GNUNET_FS_PublishContext *pc)
   uint64_t size;
 
   p = pc->fi_pos;
-  GNUNET_assert (NULL != p);
+  GNUNET_assert(NULL != p);
   if (NULL == p->te)
-  {
-    if (GNUNET_YES == p->is_directory)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Creating directory\n");
-      db = GNUNET_FS_directory_builder_create (p->meta);
-      dirpos = p->data.dir.entries;
-      while (NULL != dirpos)
-      {
-        if (GNUNET_YES == dirpos->is_directory)
+      if (GNUNET_YES == p->is_directory)
         {
-          raw_data = dirpos->data.dir.dir_data;
-          dirpos->data.dir.dir_data = NULL;
-        }
-        else
-        {
-          raw_data = NULL;
-          if ((dirpos->data.file.file_size < MAX_INLINE_SIZE) &&
-              (dirpos->data.file.file_size > 0))
-          {
-            raw_data = GNUNET_malloc (dirpos->data.file.file_size);
-            emsg = NULL;
-            if (dirpos->data.file.file_size !=
-                dirpos->data.file.reader (dirpos->data.file.reader_cls, 0,
-                                          dirpos->data.file.file_size, raw_data,
-                                          &emsg))
+          GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Creating directory\n");
+          db = GNUNET_FS_directory_builder_create(p->meta);
+          dirpos = p->data.dir.entries;
+          while (NULL != dirpos)
             {
-              GNUNET_free_non_null (emsg);
-              GNUNET_free (raw_data);
-              raw_data = NULL;
+              if (GNUNET_YES == dirpos->is_directory)
+                {
+                  raw_data = dirpos->data.dir.dir_data;
+                  dirpos->data.dir.dir_data = NULL;
+                }
+              else
+                {
+                  raw_data = NULL;
+                  if ((dirpos->data.file.file_size < MAX_INLINE_SIZE) &&
+                      (dirpos->data.file.file_size > 0))
+                    {
+                      raw_data = GNUNET_malloc(dirpos->data.file.file_size);
+                      emsg = NULL;
+                      if (dirpos->data.file.file_size !=
+                          dirpos->data.file.reader(dirpos->data.file.reader_cls, 0,
+                                                   dirpos->data.file.file_size, raw_data,
+                                                   &emsg))
+                        {
+                          GNUNET_free_non_null(emsg);
+                          GNUNET_free(raw_data);
+                          raw_data = NULL;
+                        }
+                      dirpos->data.file.reader(dirpos->data.file.reader_cls, UINT64_MAX, 0, 0, NULL);
+                    }
+                }
+              GNUNET_FS_directory_builder_add(db, dirpos->chk_uri, dirpos->meta,
+                                              raw_data);
+              GNUNET_free_non_null(raw_data);
+              dirpos = dirpos->next;
             }
-	    dirpos->data.file.reader (dirpos->data.file.reader_cls, UINT64_MAX, 0, 0, NULL);
-          }
+          GNUNET_free_non_null(p->data.dir.dir_data);
+          p->data.dir.dir_data = NULL;
+          p->data.dir.dir_size = 0;
+          GNUNET_FS_directory_builder_finish(db, &p->data.dir.dir_size,
+                                             &p->data.dir.dir_data);
+          GNUNET_FS_file_information_sync_(p);
         }
-        GNUNET_FS_directory_builder_add (db, dirpos->chk_uri, dirpos->meta,
-                                         raw_data);
-        GNUNET_free_non_null (raw_data);
-        dirpos = dirpos->next;
-      }
-      GNUNET_free_non_null (p->data.dir.dir_data);
-      p->data.dir.dir_data = NULL;
-      p->data.dir.dir_size = 0;
-      GNUNET_FS_directory_builder_finish (db, &p->data.dir.dir_size,
-                                          &p->data.dir.dir_data);
-      GNUNET_FS_file_information_sync_ (p);
+      size = (GNUNET_YES == p->is_directory) ? p->data.dir.dir_size : p->data.file.file_size;
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+                 "Creating tree encoder\n");
+      p->te =
+        GNUNET_FS_tree_encoder_create(pc->h, size, pc, &block_reader,
+                                      &block_proc, &progress_proc,
+                                      &encode_cont);
     }
-    size = (GNUNET_YES == p->is_directory) ? p->data.dir.dir_size : p->data.file.file_size;
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		"Creating tree encoder\n");
-    p->te =
-        GNUNET_FS_tree_encoder_create (pc->h, size, pc, &block_reader,
-                                       &block_proc, &progress_proc,
-                                       &encode_cont);
-
-  }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Processing next block from tree\n");
-  GNUNET_FS_tree_encoder_next (p->te);
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+             "Processing next block from tree\n");
+  GNUNET_FS_tree_encoder_next(p->te);
 }
 
 
@@ -687,17 +684,17 @@ publish_content (struct GNUNET_FS_PublishContext *pc)
  * @param msg the response we got
  */
 static int
-check_index_start_failed (void *cls,
-                          const struct GNUNET_MessageHeader *msg)
+check_index_start_failed(void *cls,
+                         const struct GNUNET_MessageHeader *msg)
 {
-  size_t msize = ntohs (msg->size) - sizeof (*msg);
-  const char *emsg = (const char *) &msg[1];
+  size_t msize = ntohs(msg->size) - sizeof(*msg);
+  const char *emsg = (const char *)&msg[1];
 
-  if (emsg[msize - sizeof (struct GNUNET_MessageHeader) - 1] != '\0')
-  {
-    GNUNET_break (0);
-    return GNUNET_SYSERR;
-  }
+  if (emsg[msize - sizeof(struct GNUNET_MessageHeader) - 1] != '\0')
+    {
+      GNUNET_break(0);
+      return GNUNET_SYSERR;
+    }
   return GNUNET_OK;
 }
 
@@ -710,27 +707,27 @@ check_index_start_failed (void *cls,
  * @param msg the response we got
  */
 static void
-handle_index_start_failed (void *cls,
-                           const struct GNUNET_MessageHeader *msg)
+handle_index_start_failed(void *cls,
+                          const struct GNUNET_MessageHeader *msg)
 {
   struct GNUNET_FS_PublishContext *pc = cls;
   struct GNUNET_FS_FileInformation *p;
-  const char *emsg = (const char *) &msg[1];
+  const char *emsg = (const char *)&msg[1];
   char *msgtxt;
 
-  GNUNET_MQ_destroy (pc->mq);
+  GNUNET_MQ_destroy(pc->mq);
   pc->mq = NULL;
   p = pc->fi_pos;
-  GNUNET_asprintf (&msgtxt,
-                   _("Can not index file `%s': %s.\n"),
-                   p->filename,
-                   gettext (emsg));
-  signal_publish_error (p,
-                        pc,
-                        msgtxt);
-  GNUNET_free (msgtxt);
-  GNUNET_FS_file_information_sync_ (p);
-  GNUNET_FS_publish_sync_ (pc);
+  GNUNET_asprintf(&msgtxt,
+                  _("Can not index file `%s': %s.\n"),
+                  p->filename,
+                  gettext(emsg));
+  signal_publish_error(p,
+                       pc,
+                       msgtxt);
+  GNUNET_free(msgtxt);
+  GNUNET_FS_file_information_sync_(p);
+  GNUNET_FS_publish_sync_(pc);
 }
 
 
@@ -742,18 +739,18 @@ handle_index_start_failed (void *cls,
  * @param msg the response we got
  */
 static void
-handle_index_start_ok (void *cls,
-                       const struct GNUNET_MessageHeader *msg)
+handle_index_start_ok(void *cls,
+                      const struct GNUNET_MessageHeader *msg)
 {
   struct GNUNET_FS_PublishContext *pc = cls;
   struct GNUNET_FS_FileInformation *p;
 
-  GNUNET_MQ_destroy (pc->mq);
+  GNUNET_MQ_destroy(pc->mq);
   pc->mq = NULL;
   p = pc->fi_pos;
   p->data.file.index_start_confirmed = GNUNET_YES;
-  GNUNET_FS_file_information_sync_ (p);
-  publish_content (pc);
+  GNUNET_FS_file_information_sync_(p);
+  publish_content(pc);
 }
 
 
@@ -766,25 +763,25 @@ handle_index_start_ok (void *cls,
  * @param error error code
  */
 static void
-index_mq_error_handler (void *cls,
-                        enum GNUNET_MQ_Error error)
+index_mq_error_handler(void *cls,
+                       enum GNUNET_MQ_Error error)
 {
   struct GNUNET_FS_PublishContext *pc = cls;
   struct GNUNET_FS_FileInformation *p;
 
   if (NULL != pc->mq)
-  {
-    GNUNET_MQ_destroy (pc->mq);
-    pc->mq = NULL;
-  }
+    {
+      GNUNET_MQ_destroy(pc->mq);
+      pc->mq = NULL;
+    }
   p = pc->fi_pos;
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-              _("Can not index file `%s': %s.  Will try to insert instead.\n"),
-              p->filename,
-              _("error on index-start request to `fs' service"));
+  GNUNET_log(GNUNET_ERROR_TYPE_WARNING,
+             _("Can not index file `%s': %s.  Will try to insert instead.\n"),
+             p->filename,
+             _("error on index-start request to `fs' service"));
   p->data.file.do_index = GNUNET_NO;
-  GNUNET_FS_file_information_sync_ (p);
-  publish_content (pc);
+  GNUNET_FS_file_information_sync_(p);
+  publish_content(pc);
 }
 
 
@@ -796,20 +793,20 @@ index_mq_error_handler (void *cls,
  * @param res resulting hash, NULL on error
  */
 static void
-hash_for_index_cb (void *cls,
-		   const struct GNUNET_HashCode *res)
+hash_for_index_cb(void *cls,
+                  const struct GNUNET_HashCode *res)
 {
   struct GNUNET_FS_PublishContext *pc = cls;
   struct GNUNET_MQ_MessageHandler handlers[] = {
-    GNUNET_MQ_hd_fixed_size (index_start_ok,
-                             GNUNET_MESSAGE_TYPE_FS_INDEX_START_OK,
-                             struct GNUNET_MessageHeader,
-                             pc),
-    GNUNET_MQ_hd_var_size (index_start_failed,
-                           GNUNET_MESSAGE_TYPE_FS_INDEX_START_FAILED,
-                           struct GNUNET_MessageHeader,
-                           pc),
-    GNUNET_MQ_handler_end ()
+    GNUNET_MQ_hd_fixed_size(index_start_ok,
+                            GNUNET_MESSAGE_TYPE_FS_INDEX_START_OK,
+                            struct GNUNET_MessageHeader,
+                            pc),
+    GNUNET_MQ_hd_var_size(index_start_failed,
+                          GNUNET_MESSAGE_TYPE_FS_INDEX_START_FAILED,
+                          struct GNUNET_MessageHeader,
+                          pc),
+    GNUNET_MQ_handler_end()
   };
   struct GNUNET_FS_FileInformation *p;
   struct GNUNET_MQ_Envelope *env;
@@ -822,97 +819,97 @@ hash_for_index_cb (void *cls,
   pc->fhc = NULL;
   p = pc->fi_pos;
   if (NULL == res)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                _("Can not index file `%s': %s.  Will try to insert instead.\n"),
-                p->filename,
-		_("failed to compute hash"));
-    p->data.file.do_index = GNUNET_NO;
-    GNUNET_FS_file_information_sync_ (p);
-    publish_content (pc);
-    return;
-  }
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_WARNING,
+                 _("Can not index file `%s': %s.  Will try to insert instead.\n"),
+                 p->filename,
+                 _("failed to compute hash"));
+      p->data.file.do_index = GNUNET_NO;
+      GNUNET_FS_file_information_sync_(p);
+      publish_content(pc);
+      return;
+    }
   if (GNUNET_YES == p->data.file.index_start_confirmed)
-  {
-    publish_content (pc);
-    return;
-  }
-  fn = GNUNET_STRINGS_filename_expand (p->filename);
-  GNUNET_assert (fn != NULL);
-  slen = strlen (fn) + 1;
+    {
+      publish_content(pc);
+      return;
+    }
+  fn = GNUNET_STRINGS_filename_expand(p->filename);
+  GNUNET_assert(fn != NULL);
+  slen = strlen(fn) + 1;
   if (slen >=
-      GNUNET_MAX_MESSAGE_SIZE - sizeof (struct IndexStartMessage))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                _
-                ("Can not index file `%s': %s.  Will try to insert instead.\n"),
-                fn, _("filename too long"));
-    GNUNET_free (fn);
-    p->data.file.do_index = GNUNET_NO;
-    GNUNET_FS_file_information_sync_ (p);
-    publish_content (pc);
-    return;
-  }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Hash of indexed file `%s' is `%s'\n",
-              p->filename,
-              GNUNET_h2s (res));
+      GNUNET_MAX_MESSAGE_SIZE - sizeof(struct IndexStartMessage))
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_WARNING,
+                 _
+                   ("Can not index file `%s': %s.  Will try to insert instead.\n"),
+                 fn, _("filename too long"));
+      GNUNET_free(fn);
+      p->data.file.do_index = GNUNET_NO;
+      GNUNET_FS_file_information_sync_(p);
+      publish_content(pc);
+      return;
+    }
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+             "Hash of indexed file `%s' is `%s'\n",
+             p->filename,
+             GNUNET_h2s(res));
   if (0 != (pc->options & GNUNET_FS_PUBLISH_OPTION_SIMULATE_ONLY))
-  {
-    p->data.file.file_id = *res;
-    p->data.file.have_hash = GNUNET_YES;
-    p->data.file.index_start_confirmed = GNUNET_YES;
-    GNUNET_FS_file_information_sync_ (p);
-    publish_content (pc);
-    GNUNET_free (fn);
-    return;
-  }
-  pc->mq = GNUNET_CLIENT_connect (pc->h->cfg,
-                                  "fs",
-                                  handlers,
-                                  &index_mq_error_handler,
-                                  pc);
+    {
+      p->data.file.file_id = *res;
+      p->data.file.have_hash = GNUNET_YES;
+      p->data.file.index_start_confirmed = GNUNET_YES;
+      GNUNET_FS_file_information_sync_(p);
+      publish_content(pc);
+      GNUNET_free(fn);
+      return;
+    }
+  pc->mq = GNUNET_CLIENT_connect(pc->h->cfg,
+                                 "fs",
+                                 handlers,
+                                 &index_mq_error_handler,
+                                 pc);
   if (NULL == pc->mq)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                _("Can not index file `%s': %s.  Will try to insert instead.\n"),
-                p->filename,
-		_("could not connect to `fs' service"));
-    p->data.file.do_index = GNUNET_NO;
-    publish_content (pc);
-    GNUNET_free (fn);
-    return;
-  }
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_WARNING,
+                 _("Can not index file `%s': %s.  Will try to insert instead.\n"),
+                 p->filename,
+                 _("could not connect to `fs' service"));
+      p->data.file.do_index = GNUNET_NO;
+      publish_content(pc);
+      GNUNET_free(fn);
+      return;
+    }
   if (p->data.file.have_hash != GNUNET_YES)
-  {
-    p->data.file.file_id = *res;
-    p->data.file.have_hash = GNUNET_YES;
-    GNUNET_FS_file_information_sync_ (p);
-  }
-  env = GNUNET_MQ_msg_extra (ism,
-                             slen,
-                             GNUNET_MESSAGE_TYPE_FS_INDEX_START);
+    {
+      p->data.file.file_id = *res;
+      p->data.file.have_hash = GNUNET_YES;
+      GNUNET_FS_file_information_sync_(p);
+    }
+  env = GNUNET_MQ_msg_extra(ism,
+                            slen,
+                            GNUNET_MESSAGE_TYPE_FS_INDEX_START);
   if (GNUNET_OK ==
-      GNUNET_DISK_file_get_identifiers (p->filename,
-                                        &dev,
-                                        &ino))
-  {
-    ism->device = GNUNET_htonll (dev);
-    ism->inode = GNUNET_htonll (ino);
-  }
+      GNUNET_DISK_file_get_identifiers(p->filename,
+                                       &dev,
+                                       &ino))
+    {
+      ism->device = GNUNET_htonll(dev);
+      ism->inode = GNUNET_htonll(ino);
+    }
   else
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                _("Failed to get file identifiers for `%s'\n"),
-                p->filename);
-  }
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+                 _("Failed to get file identifiers for `%s'\n"),
+                 p->filename);
+    }
   ism->file_id = *res;
-  GNUNET_memcpy (&ism[1],
-          fn,
-          slen);
-  GNUNET_free (fn);
-  GNUNET_MQ_send (pc->mq,
-                  env);
+  GNUNET_memcpy(&ism[1],
+                fn,
+                slen);
+  GNUNET_free(fn);
+  GNUNET_MQ_send(pc->mq,
+                 env);
 }
 
 
@@ -922,27 +919,27 @@ hash_for_index_cb (void *cls,
  * @param pc publishing context to do this for
  */
 static void
-publish_kblocks (struct GNUNET_FS_PublishContext *pc)
+publish_kblocks(struct GNUNET_FS_PublishContext *pc)
 {
   struct GNUNET_FS_FileInformation *p;
 
   p = pc->fi_pos;
   /* upload of "p" complete, publish KBlocks! */
   if (NULL != p->keywords)
-  {
-    pc->ksk_pc = GNUNET_FS_publish_ksk (pc->h,
-                                        p->keywords,
-                                        p->meta,
-                                        p->chk_uri,
-                                        &p->bo,
-                                        pc->options,
-                                        &publish_kblocks_cont,
-                                        pc);
-  }
+    {
+      pc->ksk_pc = GNUNET_FS_publish_ksk(pc->h,
+                                         p->keywords,
+                                         p->meta,
+                                         p->chk_uri,
+                                         &p->bo,
+                                         pc->options,
+                                         &publish_kblocks_cont,
+                                         pc);
+    }
   else
-  {
-    publish_kblocks_cont (pc, p->chk_uri, NULL);
-  }
+    {
+      publish_kblocks_cont(pc, p->chk_uri, NULL);
+    }
 }
 
 
@@ -953,8 +950,8 @@ publish_kblocks (struct GNUNET_FS_PublishContext *pc)
  * @param sig the response we got
  */
 static void
-handle_signature_response (void *cls,
-                           const struct ResponseLocSignatureMessage *sig)
+handle_signature_response(void *cls,
+                          const struct ResponseLocSignatureMessage *sig)
 {
   struct GNUNET_FS_PublishContext *pc = cls;
   struct GNUNET_FS_FileInformation *p;
@@ -964,11 +961,11 @@ handle_signature_response (void *cls,
   /* p->data.loc.fi kept from CHK before */
   p->chk_uri->data.loc.peer = sig->peer;
   p->chk_uri->data.loc.expirationTime
-    = GNUNET_TIME_absolute_ntoh (sig->expiration_time);
+    = GNUNET_TIME_absolute_ntoh(sig->expiration_time);
   p->chk_uri->data.loc.contentSignature = sig->signature;
-  GNUNET_FS_file_information_sync_ (p);
-  GNUNET_FS_publish_sync_ (pc);
-  publish_kblocks (pc);
+  GNUNET_FS_file_information_sync_(p);
+  GNUNET_FS_publish_sync_(pc);
+  publish_kblocks(pc);
 }
 
 
@@ -981,19 +978,19 @@ handle_signature_response (void *cls,
  * @param error error code
  */
 static void
-loc_mq_error_handler (void *cls,
-                      enum GNUNET_MQ_Error error)
+loc_mq_error_handler(void *cls,
+                     enum GNUNET_MQ_Error error)
 {
   struct GNUNET_FS_PublishContext *pc = cls;
 
   if (NULL != pc->mq)
-  {
-    GNUNET_MQ_destroy (pc->mq);
-    pc->mq = NULL;
-  }
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-              _("Can not create LOC URI. Will continue with CHK instead.\n"));
-  publish_kblocks (pc);
+    {
+      GNUNET_MQ_destroy(pc->mq);
+      pc->mq = NULL;
+    }
+  GNUNET_log(GNUNET_ERROR_TYPE_WARNING,
+             _("Can not create LOC URI. Will continue with CHK instead.\n"));
+  publish_kblocks(pc);
 }
 
 
@@ -1005,42 +1002,42 @@ loc_mq_error_handler (void *cls,
  * @param pc the publishing context do to this for
  */
 static void
-create_loc_uri (struct GNUNET_FS_PublishContext *pc)
+create_loc_uri(struct GNUNET_FS_PublishContext *pc)
 {
   struct GNUNET_MQ_MessageHandler handlers[] = {
-    GNUNET_MQ_hd_fixed_size (signature_response,
-                             GNUNET_MESSAGE_TYPE_FS_REQUEST_LOC_SIGNATURE,
-                             struct ResponseLocSignatureMessage,
-                             pc),
-    GNUNET_MQ_handler_end ()
+    GNUNET_MQ_hd_fixed_size(signature_response,
+                            GNUNET_MESSAGE_TYPE_FS_REQUEST_LOC_SIGNATURE,
+                            struct ResponseLocSignatureMessage,
+                            pc),
+    GNUNET_MQ_handler_end()
   };
   struct GNUNET_MQ_Envelope *env;
   struct RequestLocSignatureMessage *req;
   struct GNUNET_FS_FileInformation *p;
 
   if (NULL != pc->mq)
-    GNUNET_MQ_destroy (pc->mq);
-  pc->mq = GNUNET_CLIENT_connect (pc->h->cfg,
-                                  "fs",
-                                  handlers,
-                                  &loc_mq_error_handler,
-                                  pc);
+    GNUNET_MQ_destroy(pc->mq);
+  pc->mq = GNUNET_CLIENT_connect(pc->h->cfg,
+                                 "fs",
+                                 handlers,
+                                 &loc_mq_error_handler,
+                                 pc);
   if (NULL == pc->mq)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                _("Can not create LOC URI. Will continue with CHK instead.\n"));
-    publish_kblocks (pc);
-    return;
-  }
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_WARNING,
+                 _("Can not create LOC URI. Will continue with CHK instead.\n"));
+      publish_kblocks(pc);
+      return;
+    }
   p = pc->fi_pos;
-  env = GNUNET_MQ_msg (req,
-                       GNUNET_MESSAGE_TYPE_FS_REQUEST_LOC_SIGN);
-  req->purpose = htonl (GNUNET_SIGNATURE_PURPOSE_PEER_PLACEMENT);
-  req->expiration_time = GNUNET_TIME_absolute_hton (p->bo.expiration_time);
+  env = GNUNET_MQ_msg(req,
+                      GNUNET_MESSAGE_TYPE_FS_REQUEST_LOC_SIGN);
+  req->purpose = htonl(GNUNET_SIGNATURE_PURPOSE_PEER_PLACEMENT);
+  req->expiration_time = GNUNET_TIME_absolute_hton(p->bo.expiration_time);
   req->chk = p->chk_uri->data.chk.chk;
-  req->file_length = GNUNET_htonll (p->chk_uri->data.chk.file_length);
-  GNUNET_MQ_send (pc->mq,
-                  env);
+  req->file_length = GNUNET_htonll(p->chk_uri->data.chk.file_length);
+  GNUNET_MQ_send(pc->mq,
+                 env);
 }
 
 
@@ -1050,7 +1047,7 @@ create_loc_uri (struct GNUNET_FS_PublishContext *pc)
  * @param cls `struct GNUNET_FS_PublishContext *` identifies the upload
  */
 void
-GNUNET_FS_publish_main_ (void *cls)
+GNUNET_FS_publish_main_(void *cls)
 {
   struct GNUNET_FS_PublishContext *pc = cls;
   struct GNUNET_FS_ProgressInfo pi;
@@ -1060,108 +1057,108 @@ GNUNET_FS_publish_main_ (void *cls)
   pc->upload_task = NULL;
   p = pc->fi_pos;
   if (NULL == p)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Publishing complete, now publishing SKS and KSK blocks.\n");
-    /* upload of entire hierarchy complete,
-     * publish namespace entries */
-    GNUNET_FS_publish_sync_ (pc);
-    publish_sblock (pc);
-    return;
-  }
-  /* find starting position */
-  while ( (GNUNET_YES == p->is_directory) &&
-	  (NULL != p->data.dir.entries) &&
-	  (NULL == p->emsg) &&
-	  (NULL == p->data.dir.entries->chk_uri) )
-  {
-    p = p->data.dir.entries;
-    pc->fi_pos = p;
-    GNUNET_FS_publish_sync_ (pc);
-  }
-  /* abort on error */
-  if (NULL != p->emsg)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		"Error uploading: %s\n",
-		p->emsg);
-    /* error with current file, abort all
-     * related files as well! */
-    while (NULL != p->dir)
     {
-      fn = GNUNET_CONTAINER_meta_data_get_by_type (p->meta,
-                                                   EXTRACTOR_METATYPE_GNUNET_ORIGINAL_FILENAME);
-      p = p->dir;
-      if (fn != NULL)
-      {
-        GNUNET_asprintf (&p->emsg,
-                         _("Recursive upload failed at `%s': %s"),
-                         fn,
-                         p->emsg);
-        GNUNET_free (fn);
-      }
-      else
-      {
-        GNUNET_asprintf (&p->emsg,
-                         _("Recursive upload failed: %s"),
-                         p->emsg);
-      }
-      pi.status = GNUNET_FS_STATUS_PUBLISH_ERROR;
-      pi.value.publish.eta = GNUNET_TIME_UNIT_FOREVER_REL;
-      pi.value.publish.specifics.error.message = p->emsg;
-      p->client_info = GNUNET_FS_publish_make_status_ (&pi, pc, p, 0);
-    }
-    pc->all_done = GNUNET_YES;
-    GNUNET_FS_publish_sync_ (pc);
-    return;
-  }
-  /* handle completion */
-  if (NULL != p->chk_uri)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "File upload complete, now publishing KSK blocks.\n");
-    GNUNET_FS_publish_sync_ (pc);
-
-    if ( (0 == p->bo.anonymity_level) &&
-         (GNUNET_YES !=
-          GNUNET_FS_uri_test_loc (p->chk_uri)) )
-    {
-      /* zero anonymity, box CHK URI in LOC URI */
-      create_loc_uri (pc);
-    }
-    else
-    {
-      publish_kblocks (pc);
-    }
-    return;
-  }
-  if ((GNUNET_YES != p->is_directory) && (p->data.file.do_index))
-  {
-    if (NULL == p->filename)
-    {
-      p->data.file.do_index = GNUNET_NO;
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                  _("Can not index file `%s': %s.  Will try to insert instead.\n"),
-                  "<no-name>",
-                  _("needs to be an actual file"));
-      GNUNET_FS_file_information_sync_ (p);
-      publish_content (pc);
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+                 "Publishing complete, now publishing SKS and KSK blocks.\n");
+      /* upload of entire hierarchy complete,
+       * publish namespace entries */
+      GNUNET_FS_publish_sync_(pc);
+      publish_sblock(pc);
       return;
     }
-    if (p->data.file.have_hash)
+  /* find starting position */
+  while ((GNUNET_YES == p->is_directory) &&
+         (NULL != p->data.dir.entries) &&
+         (NULL == p->emsg) &&
+         (NULL == p->data.dir.entries->chk_uri))
     {
-      hash_for_index_cb (pc, &p->data.file.file_id);
+      p = p->data.dir.entries;
+      pc->fi_pos = p;
+      GNUNET_FS_publish_sync_(pc);
     }
-    else
+  /* abort on error */
+  if (NULL != p->emsg)
     {
-      p->start_time = GNUNET_TIME_absolute_get ();
-      pc->fhc =
-          GNUNET_CRYPTO_hash_file (GNUNET_SCHEDULER_PRIORITY_IDLE, p->filename,
-                                   HASHING_BLOCKSIZE, &hash_for_index_cb, pc);
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+                 "Error uploading: %s\n",
+                 p->emsg);
+      /* error with current file, abort all
+       * related files as well! */
+      while (NULL != p->dir)
+        {
+          fn = GNUNET_CONTAINER_meta_data_get_by_type(p->meta,
+                                                      EXTRACTOR_METATYPE_GNUNET_ORIGINAL_FILENAME);
+          p = p->dir;
+          if (fn != NULL)
+            {
+              GNUNET_asprintf(&p->emsg,
+                              _("Recursive upload failed at `%s': %s"),
+                              fn,
+                              p->emsg);
+              GNUNET_free(fn);
+            }
+          else
+            {
+              GNUNET_asprintf(&p->emsg,
+                              _("Recursive upload failed: %s"),
+                              p->emsg);
+            }
+          pi.status = GNUNET_FS_STATUS_PUBLISH_ERROR;
+          pi.value.publish.eta = GNUNET_TIME_UNIT_FOREVER_REL;
+          pi.value.publish.specifics.error.message = p->emsg;
+          p->client_info = GNUNET_FS_publish_make_status_(&pi, pc, p, 0);
+        }
+      pc->all_done = GNUNET_YES;
+      GNUNET_FS_publish_sync_(pc);
+      return;
     }
-    return;
-  }
-  publish_content (pc);
+  /* handle completion */
+  if (NULL != p->chk_uri)
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+                 "File upload complete, now publishing KSK blocks.\n");
+      GNUNET_FS_publish_sync_(pc);
+
+      if ((0 == p->bo.anonymity_level) &&
+          (GNUNET_YES !=
+           GNUNET_FS_uri_test_loc(p->chk_uri)))
+        {
+          /* zero anonymity, box CHK URI in LOC URI */
+          create_loc_uri(pc);
+        }
+      else
+        {
+          publish_kblocks(pc);
+        }
+      return;
+    }
+  if ((GNUNET_YES != p->is_directory) && (p->data.file.do_index))
+    {
+      if (NULL == p->filename)
+        {
+          p->data.file.do_index = GNUNET_NO;
+          GNUNET_log(GNUNET_ERROR_TYPE_WARNING,
+                     _("Can not index file `%s': %s.  Will try to insert instead.\n"),
+                     "<no-name>",
+                     _("needs to be an actual file"));
+          GNUNET_FS_file_information_sync_(p);
+          publish_content(pc);
+          return;
+        }
+      if (p->data.file.have_hash)
+        {
+          hash_for_index_cb(pc, &p->data.file.file_id);
+        }
+      else
+        {
+          p->start_time = GNUNET_TIME_absolute_get();
+          pc->fhc =
+            GNUNET_CRYPTO_hash_file(GNUNET_SCHEDULER_PRIORITY_IDLE, p->filename,
+                                    HASHING_BLOCKSIZE, &hash_for_index_cb, pc);
+        }
+      return;
+    }
+  publish_content(pc);
 }
 
 
@@ -1180,14 +1177,14 @@ GNUNET_FS_publish_main_ (void *cls)
  * @return #GNUNET_OK to continue (always)
  */
 static int
-fip_signal_start (void *cls,
-		  struct GNUNET_FS_FileInformation *fi,
-                  uint64_t length,
-		  struct GNUNET_CONTAINER_MetaData *meta,
-                  struct GNUNET_FS_Uri **uri,
-		  struct GNUNET_FS_BlockOptions *bo,
-                  int *do_index,
-		  void **client_info)
+fip_signal_start(void *cls,
+                 struct GNUNET_FS_FileInformation *fi,
+                 uint64_t length,
+                 struct GNUNET_CONTAINER_MetaData *meta,
+                 struct GNUNET_FS_Uri **uri,
+                 struct GNUNET_FS_BlockOptions *bo,
+                 int *do_index,
+                 void **client_info)
 {
   struct GNUNET_FS_PublishContext *pc = cls;
   struct GNUNET_FS_ProgressInfo pi;
@@ -1195,52 +1192,52 @@ fip_signal_start (void *cls,
   uint64_t left;
 
   if (GNUNET_YES == pc->skip_next_fi_callback)
-  {
-    pc->skip_next_fi_callback = GNUNET_NO;
-    return GNUNET_OK;
-  }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Starting publish operation\n");
+    {
+      pc->skip_next_fi_callback = GNUNET_NO;
+      return GNUNET_OK;
+    }
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+             "Starting publish operation\n");
   if (*do_index)
-  {
-    /* space for on-demand blocks */
-    pc->reserve_space +=
+    {
+      /* space for on-demand blocks */
+      pc->reserve_space +=
         ((length + DBLOCK_SIZE -
-          1) / DBLOCK_SIZE) * sizeof (struct OnDemandBlock);
-  }
+          1) / DBLOCK_SIZE) * sizeof(struct OnDemandBlock);
+    }
   else
-  {
-    /* space for DBlocks */
-    pc->reserve_space += length;
-  }
+    {
+      /* space for DBlocks */
+      pc->reserve_space += length;
+    }
   /* entries for IBlocks and DBlocks, space for IBlocks */
   left = length;
   while (1)
-  {
-    left = (left + DBLOCK_SIZE - 1) / DBLOCK_SIZE;
-    pc->reserve_entries += left;
-    if (left <= 1)
-      break;
-    left = left * sizeof (struct ContentHashKey);
-    pc->reserve_space += left;
-  }
+    {
+      left = (left + DBLOCK_SIZE - 1) / DBLOCK_SIZE;
+      pc->reserve_entries += left;
+      if (left <= 1)
+        break;
+      left = left * sizeof(struct ContentHashKey);
+      pc->reserve_space += left;
+    }
   pc->reserve_entries++;
   /* entries and space for keywords */
   if (NULL != *uri)
-  {
-    kc = GNUNET_FS_uri_ksk_get_keyword_count (*uri);
-    pc->reserve_entries += kc;
-    pc->reserve_space += GNUNET_MAX_MESSAGE_SIZE * kc;
-  }
+    {
+      kc = GNUNET_FS_uri_ksk_get_keyword_count(*uri);
+      pc->reserve_entries += kc;
+      pc->reserve_space += GNUNET_MAX_MESSAGE_SIZE * kc;
+    }
   pi.status = GNUNET_FS_STATUS_PUBLISH_START;
-  *client_info = GNUNET_FS_publish_make_status_ (&pi, pc, fi, 0);
-  GNUNET_FS_file_information_sync_ (fi);
+  *client_info = GNUNET_FS_publish_make_status_(&pi, pc, fi, 0);
+  GNUNET_FS_file_information_sync_(fi);
   if ((fi->is_directory) && (fi->dir != NULL))
-  {
-    /* We are a directory, and we are not top-level; process entries in directory */
-    pc->skip_next_fi_callback = GNUNET_YES;
-    GNUNET_FS_file_information_inspect (fi, &fip_signal_start, pc);
-  }
+    {
+      /* We are a directory, and we are not top-level; process entries in directory */
+      pc->skip_next_fi_callback = GNUNET_YES;
+      GNUNET_FS_file_information_inspect(fi, &fip_signal_start, pc);
+    }
   return GNUNET_OK;
 }
 
@@ -1253,39 +1250,39 @@ fip_signal_start (void *cls,
  * @param pc the publish context of which a file is being suspended
  */
 static void
-suspend_operation (struct GNUNET_FS_FileInformation *fi,
-		   struct GNUNET_FS_PublishContext *pc)
+suspend_operation(struct GNUNET_FS_FileInformation *fi,
+                  struct GNUNET_FS_PublishContext *pc)
 {
   struct GNUNET_FS_ProgressInfo pi;
   uint64_t off;
 
   if (NULL != pc->ksk_pc)
-  {
-    GNUNET_FS_publish_ksk_cancel (pc->ksk_pc);
-    pc->ksk_pc = NULL;
-  }
+    {
+      GNUNET_FS_publish_ksk_cancel(pc->ksk_pc);
+      pc->ksk_pc = NULL;
+    }
   if (NULL != pc->sks_pc)
-  {
-    GNUNET_FS_publish_sks_cancel (pc->sks_pc);
-    pc->sks_pc = NULL;
-  }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Suspending publish operation\n");
-  GNUNET_free_non_null (fi->serialization);
+    {
+      GNUNET_FS_publish_sks_cancel(pc->sks_pc);
+      pc->sks_pc = NULL;
+    }
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+             "Suspending publish operation\n");
+  GNUNET_free_non_null(fi->serialization);
   fi->serialization = NULL;
   off = (NULL == fi->chk_uri) ? 0 : (GNUNET_YES == fi->is_directory) ? fi->data.dir.dir_size : fi->data.file.file_size;
   pi.status = GNUNET_FS_STATUS_PUBLISH_SUSPEND;
-  GNUNET_break (NULL == GNUNET_FS_publish_make_status_ (&pi, pc, fi, off));
+  GNUNET_break(NULL == GNUNET_FS_publish_make_status_(&pi, pc, fi, off));
   if (NULL != pc->qre)
-  {
-    GNUNET_DATASTORE_cancel (pc->qre);
-    pc->qre = NULL;
-  }
+    {
+      GNUNET_DATASTORE_cancel(pc->qre);
+      pc->qre = NULL;
+    }
   if (NULL != pc->dsh)
-  {
-    GNUNET_DATASTORE_disconnect (pc->dsh, GNUNET_NO);
-    pc->dsh = NULL;
-  }
+    {
+      GNUNET_DATASTORE_disconnect(pc->dsh, GNUNET_NO);
+      pc->dsh = NULL;
+    }
   pc->rid = 0;
 }
 
@@ -1305,29 +1302,29 @@ suspend_operation (struct GNUNET_FS_FileInformation *fi,
  * @return #GNUNET_OK to continue (always)
  */
 static int
-fip_signal_suspend (void *cls,
-		    struct GNUNET_FS_FileInformation *fi,
-                    uint64_t length,
-		    struct GNUNET_CONTAINER_MetaData *meta,
-                    struct GNUNET_FS_Uri **uri,
-                    struct GNUNET_FS_BlockOptions *bo,
-		    int *do_index,
-                    void **client_info)
+fip_signal_suspend(void *cls,
+                   struct GNUNET_FS_FileInformation *fi,
+                   uint64_t length,
+                   struct GNUNET_CONTAINER_MetaData *meta,
+                   struct GNUNET_FS_Uri **uri,
+                   struct GNUNET_FS_BlockOptions *bo,
+                   int *do_index,
+                   void **client_info)
 {
   struct GNUNET_FS_PublishContext *pc = cls;
 
   if (GNUNET_YES == pc->skip_next_fi_callback)
-  {
-    pc->skip_next_fi_callback = GNUNET_NO;
-    return GNUNET_OK;
-  }
-  if (GNUNET_YES == GNUNET_FS_meta_data_test_for_directory (meta))
-  {
-    /* process entries in directory */
-    pc->skip_next_fi_callback = GNUNET_YES;
-    GNUNET_FS_file_information_inspect (fi, &fip_signal_suspend, pc);
-  }
-  suspend_operation (fi, pc);
+    {
+      pc->skip_next_fi_callback = GNUNET_NO;
+      return GNUNET_OK;
+    }
+  if (GNUNET_YES == GNUNET_FS_meta_data_test_for_directory(meta))
+    {
+      /* process entries in directory */
+      pc->skip_next_fi_callback = GNUNET_YES;
+      GNUNET_FS_file_information_inspect(fi, &fip_signal_suspend, pc);
+    }
+  suspend_operation(fi, pc);
   *client_info = NULL;
   return GNUNET_OK;
 }
@@ -1340,21 +1337,21 @@ fip_signal_suspend (void *cls,
  * @param cls the `struct GNUNET_FS_PublishContext` to signal for
  */
 void
-GNUNET_FS_publish_signal_suspend_ (void *cls)
+GNUNET_FS_publish_signal_suspend_(void *cls)
 {
   struct GNUNET_FS_PublishContext *pc = cls;
 
   if (NULL != pc->upload_task)
-  {
-    GNUNET_SCHEDULER_cancel (pc->upload_task);
-    pc->upload_task = NULL;
-  }
+    {
+      GNUNET_SCHEDULER_cancel(pc->upload_task);
+      pc->upload_task = NULL;
+    }
   pc->skip_next_fi_callback = GNUNET_YES;
-  GNUNET_FS_file_information_inspect (pc->fi, &fip_signal_suspend, pc);
-  suspend_operation (pc->fi, pc);
-  GNUNET_FS_end_top (pc->h, pc->top);
+  GNUNET_FS_file_information_inspect(pc->fi, &fip_signal_suspend, pc);
+  suspend_operation(pc->fi, pc);
+  GNUNET_FS_end_top(pc->h, pc->top);
   pc->top = NULL;
-  publish_cleanup (pc);
+  publish_cleanup(pc);
 }
 
 
@@ -1368,30 +1365,30 @@ GNUNET_FS_publish_signal_suspend_ (void *cls)
  * @param msg error message on error, otherwise NULL
  */
 static void
-finish_reserve (void *cls,
-                int success,
-		struct GNUNET_TIME_Absolute min_expiration,
-		const char *msg)
+finish_reserve(void *cls,
+               int success,
+               struct GNUNET_TIME_Absolute min_expiration,
+               const char *msg)
 {
   struct GNUNET_FS_PublishContext *pc = cls;
 
   pc->qre = NULL;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Reservation complete (%d)!\n",
-              success);
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+             "Reservation complete (%d)!\n",
+             success);
   if ((msg != NULL) || (success <= 0))
-  {
-    GNUNET_asprintf (&pc->fi->emsg,
-		     _("Datastore failure: %s"),
-                     msg);
-    signal_publish_error (pc->fi, pc, pc->fi->emsg);
-    return;
-  }
+    {
+      GNUNET_asprintf(&pc->fi->emsg,
+                      _("Datastore failure: %s"),
+                      msg);
+      signal_publish_error(pc->fi, pc, pc->fi->emsg);
+      return;
+    }
   pc->rid = success;
-  GNUNET_assert (NULL == pc->upload_task);
+  GNUNET_assert(NULL == pc->upload_task);
   pc->upload_task =
-      GNUNET_SCHEDULER_add_with_priority (GNUNET_SCHEDULER_PRIORITY_BACKGROUND,
-                                          &GNUNET_FS_publish_main_, pc);
+    GNUNET_SCHEDULER_add_with_priority(GNUNET_SCHEDULER_PRIORITY_BACKGROUND,
+                                       &GNUNET_FS_publish_main_, pc);
 }
 
 
@@ -1401,7 +1398,7 @@ finish_reserve (void *cls,
  * @param fi file structure to traverse
  */
 static uint64_t
-compute_contents_size (struct GNUNET_FS_FileInformation *fi)
+compute_contents_size(struct GNUNET_FS_FileInformation *fi)
 {
   struct GNUNET_FS_FileInformation *ent;
 
@@ -1409,7 +1406,7 @@ compute_contents_size (struct GNUNET_FS_FileInformation *fi)
     return fi->data.file.file_size;
   fi->data.dir.contents_size = 0;
   for (ent = fi->data.dir.entries; NULL != ent; ent = ent->next)
-    fi->data.dir.contents_size += compute_contents_size (ent);
+    fi->data.dir.contents_size += compute_contents_size(ent);
   return fi->data.dir.contents_size;
 }
 
@@ -1428,67 +1425,67 @@ compute_contents_size (struct GNUNET_FS_FileInformation *fi)
  * @return context that can be used to control the publish operation
  */
 struct GNUNET_FS_PublishContext *
-GNUNET_FS_publish_start (struct GNUNET_FS_Handle *h,
-                         struct GNUNET_FS_FileInformation *fi,
-                         const struct GNUNET_CRYPTO_EcdsaPrivateKey *ns,
-			 const char *nid,
-                         const char *nuid,
-                         enum GNUNET_FS_PublishOptions options)
+GNUNET_FS_publish_start(struct GNUNET_FS_Handle *h,
+                        struct GNUNET_FS_FileInformation *fi,
+                        const struct GNUNET_CRYPTO_EcdsaPrivateKey *ns,
+                        const char *nid,
+                        const char *nuid,
+                        enum GNUNET_FS_PublishOptions options)
 {
   struct GNUNET_FS_PublishContext *ret;
   struct GNUNET_DATASTORE_Handle *dsh;
 
-  GNUNET_assert (NULL != h);
-  compute_contents_size (fi);
+  GNUNET_assert(NULL != h);
+  compute_contents_size(fi);
   if (0 == (options & GNUNET_FS_PUBLISH_OPTION_SIMULATE_ONLY))
-  {
-    dsh = GNUNET_DATASTORE_connect (h->cfg);
-    if (NULL == dsh)
-      return NULL;
-  }
+    {
+      dsh = GNUNET_DATASTORE_connect(h->cfg);
+      if (NULL == dsh)
+        return NULL;
+    }
   else
-  {
-    dsh = NULL;
-  }
-  ret = GNUNET_new (struct GNUNET_FS_PublishContext);
+    {
+      dsh = NULL;
+    }
+  ret = GNUNET_new(struct GNUNET_FS_PublishContext);
   ret->dsh = dsh;
   ret->h = h;
   ret->fi = fi;
   if (NULL != ns)
-  {
-    ret->ns = GNUNET_new (struct GNUNET_CRYPTO_EcdsaPrivateKey);
-    *ret->ns = *ns;
-    GNUNET_assert (NULL != nid);
-    ret->nid = GNUNET_strdup (nid);
-    if (NULL != nuid)
-      ret->nuid = GNUNET_strdup (nuid);
-  }
+    {
+      ret->ns = GNUNET_new(struct GNUNET_CRYPTO_EcdsaPrivateKey);
+      *ret->ns = *ns;
+      GNUNET_assert(NULL != nid);
+      ret->nid = GNUNET_strdup(nid);
+      if (NULL != nuid)
+        ret->nuid = GNUNET_strdup(nuid);
+    }
   ret->options = options;
   /* signal start */
-  GNUNET_FS_file_information_inspect (ret->fi, &fip_signal_start, ret);
+  GNUNET_FS_file_information_inspect(ret->fi, &fip_signal_start, ret);
   ret->fi_pos = ret->fi;
-  ret->top = GNUNET_FS_make_top (h, &GNUNET_FS_publish_signal_suspend_, ret);
-  GNUNET_FS_publish_sync_ (ret);
+  ret->top = GNUNET_FS_make_top(h, &GNUNET_FS_publish_signal_suspend_, ret);
+  GNUNET_FS_publish_sync_(ret);
   if (NULL != ret->dsh)
-  {
-    GNUNET_assert (NULL == ret->qre);
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                _("Reserving space for %u entries and %llu bytes for publication\n"),
-                (unsigned int) ret->reserve_entries,
-                (unsigned long long) ret->reserve_space);
-    ret->qre =
-        GNUNET_DATASTORE_reserve (ret->dsh, ret->reserve_space,
-                                  ret->reserve_entries,
-                                  &finish_reserve,
-                                  ret);
-  }
+    {
+      GNUNET_assert(NULL == ret->qre);
+      GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+                 _("Reserving space for %u entries and %llu bytes for publication\n"),
+                 (unsigned int)ret->reserve_entries,
+                 (unsigned long long)ret->reserve_space);
+      ret->qre =
+        GNUNET_DATASTORE_reserve(ret->dsh, ret->reserve_space,
+                                 ret->reserve_entries,
+                                 &finish_reserve,
+                                 ret);
+    }
   else
-  {
-    GNUNET_assert (NULL == ret->upload_task);
-    ret->upload_task =
+    {
+      GNUNET_assert(NULL == ret->upload_task);
+      ret->upload_task =
         GNUNET_SCHEDULER_add_with_priority
-        (GNUNET_SCHEDULER_PRIORITY_BACKGROUND, &GNUNET_FS_publish_main_, ret);
-  }
+          (GNUNET_SCHEDULER_PRIORITY_BACKGROUND, &GNUNET_FS_publish_main_, ret);
+    }
   return ret;
 }
 
@@ -1508,39 +1505,39 @@ GNUNET_FS_publish_start (struct GNUNET_FS_Handle *h,
  * @return #GNUNET_OK to continue (always)
  */
 static int
-fip_signal_stop (void *cls,
-                 struct GNUNET_FS_FileInformation *fi,
-                 uint64_t length,
-                 struct GNUNET_CONTAINER_MetaData *meta,
-                 struct GNUNET_FS_Uri **uri,
-                 struct GNUNET_FS_BlockOptions *bo,
-                 int *do_index, void **client_info)
+fip_signal_stop(void *cls,
+                struct GNUNET_FS_FileInformation *fi,
+                uint64_t length,
+                struct GNUNET_CONTAINER_MetaData *meta,
+                struct GNUNET_FS_Uri **uri,
+                struct GNUNET_FS_BlockOptions *bo,
+                int *do_index, void **client_info)
 {
   struct GNUNET_FS_PublishContext *pc = cls;
   struct GNUNET_FS_ProgressInfo pi;
   uint64_t off;
 
   if (GNUNET_YES == pc->skip_next_fi_callback)
-  {
-    pc->skip_next_fi_callback = GNUNET_NO;
-    return GNUNET_OK;
-  }
-  if (GNUNET_YES == GNUNET_FS_meta_data_test_for_directory (meta))
-  {
-    /* process entries in directory first */
-    pc->skip_next_fi_callback = GNUNET_YES;
-    GNUNET_FS_file_information_inspect (fi, &fip_signal_stop, pc);
-  }
+    {
+      pc->skip_next_fi_callback = GNUNET_NO;
+      return GNUNET_OK;
+    }
+  if (GNUNET_YES == GNUNET_FS_meta_data_test_for_directory(meta))
+    {
+      /* process entries in directory first */
+      pc->skip_next_fi_callback = GNUNET_YES;
+      GNUNET_FS_file_information_inspect(fi, &fip_signal_stop, pc);
+    }
   if (NULL != fi->serialization)
-  {
-    GNUNET_FS_remove_sync_file_ (pc->h, GNUNET_FS_SYNC_PATH_FILE_INFO,
-                                 fi->serialization);
-    GNUNET_free (fi->serialization);
-    fi->serialization = NULL;
-  }
+    {
+      GNUNET_FS_remove_sync_file_(pc->h, GNUNET_FS_SYNC_PATH_FILE_INFO,
+                                  fi->serialization);
+      GNUNET_free(fi->serialization);
+      fi->serialization = NULL;
+    }
   off = (fi->chk_uri == NULL) ? 0 : length;
   pi.status = GNUNET_FS_STATUS_PUBLISH_STOPPED;
-  GNUNET_break (NULL == GNUNET_FS_publish_make_status_ (&pi, pc, fi, off));
+  GNUNET_break(NULL == GNUNET_FS_publish_make_status_(&pi, pc, fi, off));
   *client_info = NULL;
   return GNUNET_OK;
 }
@@ -1555,56 +1552,56 @@ fip_signal_stop (void *cls,
  * @param pc context for the upload to stop
  */
 void
-GNUNET_FS_publish_stop (struct GNUNET_FS_PublishContext *pc)
+GNUNET_FS_publish_stop(struct GNUNET_FS_PublishContext *pc)
 {
   struct GNUNET_FS_ProgressInfo pi;
   uint64_t off;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Publish stop called\n");
-  GNUNET_FS_end_top (pc->h, pc->top);
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+             "Publish stop called\n");
+  GNUNET_FS_end_top(pc->h, pc->top);
   if (NULL != pc->ksk_pc)
-  {
-    GNUNET_FS_publish_ksk_cancel (pc->ksk_pc);
-    pc->ksk_pc = NULL;
-  }
+    {
+      GNUNET_FS_publish_ksk_cancel(pc->ksk_pc);
+      pc->ksk_pc = NULL;
+    }
   if (NULL != pc->sks_pc)
-  {
-    GNUNET_FS_publish_sks_cancel (pc->sks_pc);
-    pc->sks_pc = NULL;
-  }
+    {
+      GNUNET_FS_publish_sks_cancel(pc->sks_pc);
+      pc->sks_pc = NULL;
+    }
   if (NULL != pc->upload_task)
-  {
-    GNUNET_SCHEDULER_cancel (pc->upload_task);
-    pc->upload_task = NULL;
-  }
+    {
+      GNUNET_SCHEDULER_cancel(pc->upload_task);
+      pc->upload_task = NULL;
+    }
   pc->skip_next_fi_callback = GNUNET_YES;
-  GNUNET_FS_file_information_inspect (pc->fi, &fip_signal_stop, pc);
+  GNUNET_FS_file_information_inspect(pc->fi, &fip_signal_stop, pc);
 
   if (NULL != pc->fi->serialization)
-  {
-    GNUNET_FS_remove_sync_file_ (pc->h, GNUNET_FS_SYNC_PATH_FILE_INFO,
-                                 pc->fi->serialization);
-    GNUNET_free (pc->fi->serialization);
-    pc->fi->serialization = NULL;
-  }
-  off = (NULL == pc->fi->chk_uri) ? 0 : GNUNET_ntohll (pc->fi->chk_uri->data.chk.file_length);
+    {
+      GNUNET_FS_remove_sync_file_(pc->h, GNUNET_FS_SYNC_PATH_FILE_INFO,
+                                  pc->fi->serialization);
+      GNUNET_free(pc->fi->serialization);
+      pc->fi->serialization = NULL;
+    }
+  off = (NULL == pc->fi->chk_uri) ? 0 : GNUNET_ntohll(pc->fi->chk_uri->data.chk.file_length);
 
   if (NULL != pc->serialization)
-  {
-    GNUNET_FS_remove_sync_file_ (pc->h, GNUNET_FS_SYNC_PATH_MASTER_PUBLISH,
-                                 pc->serialization);
-    GNUNET_free (pc->serialization);
-    pc->serialization = NULL;
-  }
+    {
+      GNUNET_FS_remove_sync_file_(pc->h, GNUNET_FS_SYNC_PATH_MASTER_PUBLISH,
+                                  pc->serialization);
+      GNUNET_free(pc->serialization);
+      pc->serialization = NULL;
+    }
   if (NULL != pc->qre)
-  {
-    GNUNET_DATASTORE_cancel (pc->qre);
-    pc->qre = NULL;
-  }
+    {
+      GNUNET_DATASTORE_cancel(pc->qre);
+      pc->qre = NULL;
+    }
   pi.status = GNUNET_FS_STATUS_PUBLISH_STOPPED;
-  GNUNET_break (NULL == GNUNET_FS_publish_make_status_ (&pi, pc, pc->fi, off));
-  publish_cleanup (pc);
+  GNUNET_break(NULL == GNUNET_FS_publish_make_status_(&pi, pc, pc->fi, off));
+  publish_cleanup(pc);
 }
 
 

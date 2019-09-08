@@ -50,7 +50,7 @@ extern "C"
 /**
  * Smallest supported message.
  */
-#define GNUNET_MIN_MESSAGE_SIZE sizeof (struct GNUNET_MessageHeader)
+#define GNUNET_MIN_MESSAGE_SIZE sizeof(struct GNUNET_MessageHeader)
 
 /**
  * NOTE: You MUST adjust this URL to point to the location of a

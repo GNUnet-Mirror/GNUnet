@@ -11,12 +11,12 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 /**
  * @file gns/gnunet-service-gns.h
  * @brief GNU Name System (main service)
@@ -35,8 +35,8 @@
  * @return #GNUNET_YES if @a tld was found #GNUNET_NO if not
  */
 int
-GNS_find_tld (const char *tld_str,
-              struct GNUNET_CRYPTO_EcdsaPublicKey *pkey);
+GNS_find_tld(const char *tld_str,
+             struct GNUNET_CRYPTO_EcdsaPublicKey *pkey);
 
 
 /**
@@ -47,7 +47,7 @@ GNS_find_tld (const char *tld_str,
  *         or @a name if @a name does not contain a "."
  */
 const char *
-GNS_get_tld (const char *name);
+GNS_get_tld(const char *name);
 
 
 #endif

@@ -11,12 +11,12 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 
 /**
  * @file src/nat-auto/nat-auto.h
@@ -36,8 +36,7 @@ GNUNET_NETWORK_STRUCT_BEGIN
  * Request to test NAT traversal, sent to the gnunet-nat-server
  * (not the service!).
  */
-struct GNUNET_NAT_AUTO_TestMessage
-{
+struct GNUNET_NAT_AUTO_TestMessage {
   /**
    * Header with type #GNUNET_MESSAGE_TYPE_NAT_TEST
    */
@@ -62,35 +61,31 @@ struct GNUNET_NAT_AUTO_TestMessage
    * #GNUNET_YES for TCP, #GNUNET_NO for UDP.
    */
   int32_t is_tcp;
-
 };
 
 
 /**
  * Client requesting automatic configuration.
  */
-struct GNUNET_NAT_AUTO_AutoconfigRequestMessage
-{
+struct GNUNET_NAT_AUTO_AutoconfigRequestMessage {
   /**
    * Header with type #GNUNET_MESSAGE_TYPE_NAT_REQUEST_AUTO_CFG
    */
   struct GNUNET_MessageHeader header;
 
   /* Followed by configuration (diff, serialized, compressed) */
-  
 };
 
 
 /**
  * Service responding with proposed configuration.
  */
-struct GNUNET_NAT_AUTO_AutoconfigResultMessage
-{
+struct GNUNET_NAT_AUTO_AutoconfigResultMessage {
   /**
    * Header with type #GNUNET_MESSAGE_TYPE_NAT_AUTO_CFG_RESULT
    */
   struct GNUNET_MessageHeader header;
-  
+
   /**
    * An `enum GNUNET_NAT_StatusCode` in NBO.
    */

@@ -16,7 +16,7 @@
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 /**
  * @author Christian Grothoff
  *
@@ -125,12 +125,12 @@ typedef void (*GNUNET_CORE_StartupCallback) (
  *           NULL on error (in this case, init is never called)
  */
 struct GNUNET_CORE_Handle *
-GNUNET_CORE_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                     void *cls,
-                     GNUNET_CORE_StartupCallback init,
-                     GNUNET_CORE_ConnectEventHandler connects,
-                     GNUNET_CORE_DisconnectEventHandler disconnects,
-                     const struct GNUNET_MQ_MessageHandler *handlers);
+GNUNET_CORE_connect(const struct GNUNET_CONFIGURATION_Handle *cfg,
+                    void *cls,
+                    GNUNET_CORE_StartupCallback init,
+                    GNUNET_CORE_ConnectEventHandler connects,
+                    GNUNET_CORE_DisconnectEventHandler disconnects,
+                    const struct GNUNET_MQ_MessageHandler *handlers);
 
 
 /**
@@ -139,7 +139,7 @@ GNUNET_CORE_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @param handle connection to core to disconnect
  */
 void
-GNUNET_CORE_disconnect (struct GNUNET_CORE_Handle *handle);
+GNUNET_CORE_disconnect(struct GNUNET_CORE_Handle *handle);
 
 
 /**
@@ -150,8 +150,8 @@ GNUNET_CORE_disconnect (struct GNUNET_CORE_Handle *handle);
  * @return NULL if @a pid is not connected
  */
 struct GNUNET_MQ_Handle *
-GNUNET_CORE_get_mq (const struct GNUNET_CORE_Handle *h,
-                    const struct GNUNET_PeerIdentity *pid);
+GNUNET_CORE_get_mq(const struct GNUNET_CORE_Handle *h,
+                   const struct GNUNET_PeerIdentity *pid);
 
 
 /**
@@ -173,8 +173,7 @@ struct GNUNET_CORE_MonitorHandle;
  * #GNUNET_CORE_KX_STATE_REKEY_SENT until the rekey operation is
  * confirmed by a PONG from the other peer.
  */
-enum GNUNET_CORE_KxState
-{
+enum GNUNET_CORE_KxState {
   /**
    * No handshake yet.
    */
@@ -228,7 +227,6 @@ enum GNUNET_CORE_KxState
    * crashed and thus all connection state should be assumed lost.
    */
   GNUNET_CORE_KX_CORE_DISCONNECT
-
 };
 
 
@@ -265,9 +263,9 @@ typedef void (*GNUNET_CORE_MonitorCallback) (
  * @return NULL on error
  */
 struct GNUNET_CORE_MonitorHandle *
-GNUNET_CORE_monitor_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                           GNUNET_CORE_MonitorCallback peer_cb,
-                           void *peer_cb_cls);
+GNUNET_CORE_monitor_start(const struct GNUNET_CONFIGURATION_Handle *cfg,
+                          GNUNET_CORE_MonitorCallback peer_cb,
+                          void *peer_cb_cls);
 
 
 /**
@@ -276,7 +274,7 @@ GNUNET_CORE_monitor_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @param mh monitor to stop
  */
 void
-GNUNET_CORE_monitor_stop (struct GNUNET_CORE_MonitorHandle *mh);
+GNUNET_CORE_monitor_stop(struct GNUNET_CORE_MonitorHandle *mh);
 
 
 /**
@@ -292,8 +290,8 @@ GNUNET_CORE_monitor_stop (struct GNUNET_CORE_MonitorHandle *mh);
  * @return #GNUNET_YES if the peer is connected to us; #GNUNET_NO if not
  */
 int
-GNUNET_CORE_is_peer_connected_sync (const struct GNUNET_CORE_Handle *h,
-                                    const struct GNUNET_PeerIdentity *pid);
+GNUNET_CORE_is_peer_connected_sync(const struct GNUNET_CORE_Handle *h,
+                                   const struct GNUNET_PeerIdentity *pid);
 
 
 /**
@@ -310,8 +308,8 @@ GNUNET_CORE_is_peer_connected_sync (const struct GNUNET_CORE_Handle *h,
  *         to the target peer
  */
 struct GNUNET_MQ_Handle *
-GNUNET_CORE_mq_create (struct GNUNET_CORE_Handle *h,
-                       const struct GNUNET_PeerIdentity *target);
+GNUNET_CORE_mq_create(struct GNUNET_CORE_Handle *h,
+                      const struct GNUNET_PeerIdentity *target);
 
 
 #if 0 /* keep Emacsens' auto-indent happy */

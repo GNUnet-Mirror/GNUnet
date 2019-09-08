@@ -11,12 +11,12 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 
 /**
  * @file
@@ -40,14 +40,14 @@ struct GNUNET_OP_Handle;
  * Create new operations handle.
  */
 struct GNUNET_OP_Handle *
-GNUNET_OP_create ();
+GNUNET_OP_create();
 
 
 /**
  * Destroy operations handle.
  */
 void
-GNUNET_OP_destroy (struct GNUNET_OP_Handle *h);
+GNUNET_OP_destroy(struct GNUNET_OP_Handle *h);
 
 
 /**
@@ -59,7 +59,7 @@ GNUNET_OP_destroy (struct GNUNET_OP_Handle *h);
  * @return Operation ID to use.
  */
 uint64_t
-GNUNET_OP_get_next_id (struct GNUNET_OP_Handle *h);
+GNUNET_OP_get_next_id(struct GNUNET_OP_Handle *h);
 
 
 /**
@@ -80,11 +80,11 @@ GNUNET_OP_get_next_id (struct GNUNET_OP_Handle *h);
  *         #GNUNET_NO  if not found.
  */
 int
-GNUNET_OP_get (struct GNUNET_OP_Handle *h,
-               uint64_t op_id,
-               GNUNET_ResultCallback *result_cb,
-               void **cls,
-               void **ctx);
+GNUNET_OP_get(struct GNUNET_OP_Handle *h,
+              uint64_t op_id,
+              GNUNET_ResultCallback *result_cb,
+              void **cls,
+              void **ctx);
 
 
 /**
@@ -102,10 +102,10 @@ GNUNET_OP_get (struct GNUNET_OP_Handle *h,
  * @return ID of the new operation.
  */
 uint64_t
-GNUNET_OP_add (struct GNUNET_OP_Handle *h,
-               GNUNET_ResultCallback result_cb,
-               void *cls,
-               void *ctx);
+GNUNET_OP_add(struct GNUNET_OP_Handle *h,
+              GNUNET_ResultCallback result_cb,
+              void *cls,
+              void *ctx);
 
 
 /**
@@ -128,12 +128,12 @@ GNUNET_OP_add (struct GNUNET_OP_Handle *h,
  *         #GNUNET_NO  if the operation was not found.
  */
 int
-GNUNET_OP_result (struct GNUNET_OP_Handle *h,
-                  uint64_t op_id,
-                  int64_t result_code,
-                  const void *data,
-                  uint16_t data_size,
-                  void **ctx);
+GNUNET_OP_result(struct GNUNET_OP_Handle *h,
+                 uint64_t op_id,
+                 int64_t result_code,
+                 const void *data,
+                 uint16_t data_size,
+                 void **ctx);
 
 
 /**
@@ -148,8 +148,8 @@ GNUNET_OP_result (struct GNUNET_OP_Handle *h,
  *         #GNUNET_NO  if the operation was not found.
  */
 int
-GNUNET_OP_remove (struct GNUNET_OP_Handle *h,
-                  uint64_t op_id);
+GNUNET_OP_remove(struct GNUNET_OP_Handle *h,
+                 uint64_t op_id);
 
 
 #endif // GNUNET_OP_H

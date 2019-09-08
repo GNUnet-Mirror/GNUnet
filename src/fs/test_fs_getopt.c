@@ -11,12 +11,12 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 /**
  * @file fs/test_fs_getopt.c
  * @brief test for fs_getopt.c
@@ -27,11 +27,11 @@
 
 
 int
-main (int argc, char *argv[])
+main(int argc, char *argv[])
 {
-  GNUNET_log_setup ("test_fs_getopt",
-                    "WARNING",
-                    NULL);
-  fprintf (stderr, "%s",  "WARNING: testcase not yet written.\n");
+  GNUNET_log_setup("test_fs_getopt",
+                   "WARNING",
+                   NULL);
+  fprintf(stderr, "%s", "WARNING: testcase not yet written.\n");
   return 0;                     /* testcase passed */
 }

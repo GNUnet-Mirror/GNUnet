@@ -1,19 +1,19 @@
 /*
- This file is part of GNUnet.
- Copyright (C) 2010-2015, 2018, 2019 GNUnet e.V.
+   This file is part of GNUnet.
+   Copyright (C) 2010-2015, 2018, 2019 GNUnet e.V.
 
- GNUnet is free software: you can redistribute it and/or modify it
- under the terms of the GNU Affero General Public License as published
- by the Free Software Foundation, either version 3 of the License,
- or (at your option) any later version.
+   GNUnet is free software: you can redistribute it and/or modify it
+   under the terms of the GNU Affero General Public License as published
+   by the Free Software Foundation, either version 3 of the License,
+   or (at your option) any later version.
 
- GNUnet is distributed in the hope that it will be useful, but
- WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- Affero General Public License for more details.
+   GNUnet is distributed in the hope that it will be useful, but
+   WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   Affero General Public License for more details.
 
- You should have received a copy of the GNU Affero General Public License
- along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   You should have received a copy of the GNU Affero General Public License
+   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
  */
@@ -50,7 +50,7 @@ struct GNUNET_TRANSPORT_ApplicationHandle;
  * @return ats application handle, NULL on error
  */
 struct GNUNET_TRANSPORT_ApplicationHandle *
-GNUNET_TRANSPORT_application_init (
+GNUNET_TRANSPORT_application_init(
   const struct GNUNET_CONFIGURATION_Handle *cfg);
 
 
@@ -60,7 +60,7 @@ GNUNET_TRANSPORT_application_init (
  * @param ch handle to destroy
  */
 void
-GNUNET_TRANSPORT_application_done (
+GNUNET_TRANSPORT_application_done(
   struct GNUNET_TRANSPORT_ApplicationHandle *ch);
 
 
@@ -75,7 +75,7 @@ GNUNET_TRANSPORT_application_done (
  * @return suggest handle, NULL if a request is already pending
  */
 struct GNUNET_TRANSPORT_ApplicationSuggestHandle *
-GNUNET_TRANSPORT_application_suggest (
+GNUNET_TRANSPORT_application_suggest(
   struct GNUNET_TRANSPORT_ApplicationHandle *ch,
   const struct GNUNET_PeerIdentity *peer,
   enum GNUNET_MQ_PriorityPreferences pk,
@@ -88,7 +88,7 @@ GNUNET_TRANSPORT_application_suggest (
  * @param sh handle to stop
  */
 void
-GNUNET_TRANSPORT_application_suggest_cancel (
+GNUNET_TRANSPORT_application_suggest_cancel(
   struct GNUNET_TRANSPORT_ApplicationSuggestHandle *sh);
 
 
@@ -108,7 +108,7 @@ GNUNET_TRANSPORT_application_suggest_cancel (
  * @param addr address to validate
  */
 void
-GNUNET_TRANSPORT_application_validate (
+GNUNET_TRANSPORT_application_validate(
   struct GNUNET_TRANSPORT_ApplicationHandle *ch,
   const struct GNUNET_PeerIdentity *peer,
   enum GNUNET_NetworkType nt,

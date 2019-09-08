@@ -11,12 +11,12 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 
 /**
  * @author Christian Grothoff
@@ -40,8 +40,7 @@ GNUNET_NETWORK_STRUCT_BEGIN
  * will just be a header without any data (used to indicate the end of
  * the list).
  */
-struct GNUNET_RESOLVER_GetMessage
-{
+struct GNUNET_RESOLVER_GetMessage {
   /**
    * Type:  #GNUNET_MESSAGE_TYPE_RESOLVER_REQUEST
    */
@@ -66,12 +65,10 @@ struct GNUNET_RESOLVER_GetMessage
 
   /* followed by 0-terminated string for A/AAAA-lookup or
      by 'struct in_addr' / 'struct in6_addr' for reverse lookup */
-
 };
 
 
-struct GNUNET_RESOLVER_ResponseMessage
-{
+struct GNUNET_RESOLVER_ResponseMessage {
   /**
    * Type: #GNUNET_MESSAGE_TYPE_RESOLVER_RESPONSE
    */

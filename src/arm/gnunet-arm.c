@@ -16,7 +16,7 @@
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 
 /**
  * @file arm/gnunet-arm.c
@@ -144,25 +144,25 @@ static struct GNUNET_ARM_Operation *op;
  * were specified when gnunet-arm was run.
  */
 static void
-delete_files ()
+delete_files()
 {
-  GNUNET_log (
+  GNUNET_log(
     GNUNET_ERROR_TYPE_DEBUG,
     "Will attempt to remove configuration file %s and service directory %s\n",
     config_file,
     dir);
-  if (0 != unlink (config_file))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                _ ("Failed to remove configuration file %s\n"),
-                config_file);
-  }
-  if (GNUNET_OK != GNUNET_DISK_directory_remove (dir))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                _ ("Failed to remove servicehome directory %s\n"),
-                dir);
-  }
+  if (0 != unlink(config_file))
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_WARNING,
+                 _("Failed to remove configuration file %s\n"),
+                 config_file);
+    }
+  if (GNUNET_OK != GNUNET_DISK_directory_remove(dir))
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_WARNING,
+                 _("Failed to remove servicehome directory %s\n"),
+                 dir);
+    }
 }
 
 
@@ -173,37 +173,37 @@ delete_files ()
  * @param cls closure, unused
  */
 static void
-shutdown_task (void *cls)
+shutdown_task(void *cls)
 {
-  (void) cls;
+  (void)cls;
   if (NULL != al_task)
-  {
-    GNUNET_SCHEDULER_cancel (al_task);
-    al_task = NULL;
-  }
+    {
+      GNUNET_SCHEDULER_cancel(al_task);
+      al_task = NULL;
+    }
   if (NULL != op)
-  {
-    GNUNET_ARM_operation_cancel (op);
-    op = NULL;
-  }
+    {
+      GNUNET_ARM_operation_cancel(op);
+      op = NULL;
+    }
   if (NULL != h)
-  {
-    GNUNET_ARM_disconnect (h);
-    h = NULL;
-  }
+    {
+      GNUNET_ARM_disconnect(h);
+      h = NULL;
+    }
   if (NULL != m)
-  {
-    GNUNET_ARM_monitor_stop (m);
-    m = NULL;
-  }
+    {
+      GNUNET_ARM_monitor_stop(m);
+      m = NULL;
+    }
   if (NULL != timeout_task)
-  {
-    GNUNET_SCHEDULER_cancel (timeout_task);
-    timeout_task = NULL;
-  }
+    {
+      GNUNET_SCHEDULER_cancel(timeout_task);
+      timeout_task = NULL;
+    }
   if ((GNUNET_YES == end) && (GNUNET_YES == delete))
-    delete_files ();
-  GNUNET_CONFIGURATION_destroy (cfg);
+    delete_files();
+  GNUNET_CONFIGURATION_destroy(cfg);
   cfg = NULL;
 }
 
@@ -215,16 +215,17 @@ shutdown_task (void *cls)
  * @return a string interpretation of the request status
  */
 static const char *
-req_string (enum GNUNET_ARM_RequestStatus rs)
+req_string(enum GNUNET_ARM_RequestStatus rs)
 {
   switch (rs)
-  {
-  case GNUNET_ARM_REQUEST_SENT_OK:
-    return _ ("Message was sent successfully");
-  case GNUNET_ARM_REQUEST_DISCONNECTED:
-    return _ ("We disconnected from ARM before we could send a request");
-  }
-  return _ ("Unknown request status");
+    {
+    case GNUNET_ARM_REQUEST_SENT_OK:
+      return _("Message was sent successfully");
+
+    case GNUNET_ARM_REQUEST_DISCONNECTED:
+      return _("We disconnected from ARM before we could send a request");
+    }
+  return _("Unknown request status");
 }
 
 
@@ -235,32 +236,41 @@ req_string (enum GNUNET_ARM_RequestStatus rs)
  * @return a string interpretation
  */
 static const char *
-ret_string (enum GNUNET_ARM_Result result)
+ret_string(enum GNUNET_ARM_Result result)
 {
   switch (result)
-  {
-  case GNUNET_ARM_RESULT_STOPPED:
-    return _ ("is stopped");
-  case GNUNET_ARM_RESULT_STARTING:
-    return _ ("is starting");
-  case GNUNET_ARM_RESULT_STOPPING:
-    return _ ("is stopping");
-  case GNUNET_ARM_RESULT_IS_STARTING_ALREADY:
-    return _ ("is starting already");
-  case GNUNET_ARM_RESULT_IS_STOPPING_ALREADY:
-    return _ ("is stopping already");
-  case GNUNET_ARM_RESULT_IS_STARTED_ALREADY:
-    return _ ("is started already");
-  case GNUNET_ARM_RESULT_IS_STOPPED_ALREADY:
-    return _ ("is stopped already");
-  case GNUNET_ARM_RESULT_IS_NOT_KNOWN:
-    return _ ("service is not known to ARM");
-  case GNUNET_ARM_RESULT_START_FAILED:
-    return _ ("service failed to start");
-  case GNUNET_ARM_RESULT_IN_SHUTDOWN:
-    return _ ("service cannot be manipulated because ARM is shutting down");
-  }
-  return _ ("Unknown result code.");
+    {
+    case GNUNET_ARM_RESULT_STOPPED:
+      return _("is stopped");
+
+    case GNUNET_ARM_RESULT_STARTING:
+      return _("is starting");
+
+    case GNUNET_ARM_RESULT_STOPPING:
+      return _("is stopping");
+
+    case GNUNET_ARM_RESULT_IS_STARTING_ALREADY:
+      return _("is starting already");
+
+    case GNUNET_ARM_RESULT_IS_STOPPING_ALREADY:
+      return _("is stopping already");
+
+    case GNUNET_ARM_RESULT_IS_STARTED_ALREADY:
+      return _("is started already");
+
+    case GNUNET_ARM_RESULT_IS_STOPPED_ALREADY:
+      return _("is stopped already");
+
+    case GNUNET_ARM_RESULT_IS_NOT_KNOWN:
+      return _("service is not known to ARM");
+
+    case GNUNET_ARM_RESULT_START_FAILED:
+      return _("service failed to start");
+
+    case GNUNET_ARM_RESULT_IN_SHUTDOWN:
+      return _("service cannot be manipulated because ARM is shutting down");
+    }
+  return _("Unknown result code.");
 }
 
 
@@ -270,7 +280,7 @@ ret_string (enum GNUNET_ARM_Result result)
  * @param cls closure
  */
 static void
-action_loop (void *cls);
+action_loop(void *cls);
 
 
 /**
@@ -283,18 +293,18 @@ action_loop (void *cls);
  *                  #GNUNET_SYSERR on error.
  */
 static void
-conn_status (void *cls, int connected)
+conn_status(void *cls, int connected)
 {
   static int once;
 
-  (void) cls;
+  (void)cls;
   if ((GNUNET_SYSERR == connected) && (0 == once))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _ ("Fatal error initializing ARM API.\n"));
-    GNUNET_SCHEDULER_shutdown ();
-    return;
-  }
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
+                 _("Fatal error initializing ARM API.\n"));
+      GNUNET_SCHEDULER_shutdown();
+      return;
+    }
   once = 1;
 }
 
@@ -311,32 +321,32 @@ conn_status (void *cls, int connected)
  *               according to ARM
  */
 static void
-start_callback (void *cls,
-                enum GNUNET_ARM_RequestStatus rs,
-                enum GNUNET_ARM_Result result)
+start_callback(void *cls,
+               enum GNUNET_ARM_RequestStatus rs,
+               enum GNUNET_ARM_Result result)
 {
-  (void) cls;
+  (void)cls;
   op = NULL;
   if (GNUNET_ARM_REQUEST_SENT_OK != rs)
-  {
-    fprintf (stdout,
-             _ ("Failed to start the ARM service: %s\n"),
-             req_string (rs));
-    GNUNET_SCHEDULER_shutdown ();
-    return;
-  }
+    {
+      fprintf(stdout,
+              _("Failed to start the ARM service: %s\n"),
+              req_string(rs));
+      GNUNET_SCHEDULER_shutdown();
+      return;
+    }
   if ((GNUNET_ARM_RESULT_STARTING != result) &&
       (GNUNET_ARM_RESULT_IS_STARTED_ALREADY != result))
-  {
-    fprintf (stdout,
-             _ ("Failed to start the ARM service: %s\n"),
-             ret_string (result));
-    GNUNET_SCHEDULER_shutdown ();
-    return;
-  }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "ARM service [re]start successful\n");
+    {
+      fprintf(stdout,
+              _("Failed to start the ARM service: %s\n"),
+              ret_string(result));
+      GNUNET_SCHEDULER_shutdown();
+      return;
+    }
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "ARM service [re]start successful\n");
   start = 0;
-  al_task = GNUNET_SCHEDULER_add_now (&action_loop, NULL);
+  al_task = GNUNET_SCHEDULER_add_now(&action_loop, NULL);
 }
 
 
@@ -352,44 +362,44 @@ start_callback (void *cls,
  *               according to ARM
  */
 static void
-stop_callback (void *cls,
-               enum GNUNET_ARM_RequestStatus rs,
-               enum GNUNET_ARM_Result result)
+stop_callback(void *cls,
+              enum GNUNET_ARM_RequestStatus rs,
+              enum GNUNET_ARM_Result result)
 {
   char *msg;
 
-  (void) cls;
+  (void)cls;
   op = NULL;
   if (GNUNET_ARM_REQUEST_SENT_OK != rs)
-  {
-    GNUNET_asprintf (&msg,
-                     "%s",
-                     _ (
-                       "Failed to send a stop request to the ARM service: %s\n"));
-    fprintf (stdout, msg, req_string (rs));
-    GNUNET_free (msg);
-    GNUNET_SCHEDULER_shutdown ();
-    return;
-  }
+    {
+      GNUNET_asprintf(&msg,
+                      "%s",
+                      _(
+                        "Failed to send a stop request to the ARM service: %s\n"));
+      fprintf(stdout, msg, req_string(rs));
+      GNUNET_free(msg);
+      GNUNET_SCHEDULER_shutdown();
+      return;
+    }
   if ((GNUNET_ARM_RESULT_STOPPING != result) &&
       (GNUNET_ARM_RESULT_STOPPED != result) &&
       (GNUNET_ARM_RESULT_IS_STOPPED_ALREADY != result))
-  {
-    fprintf (stdout,
-             _ ("Failed to stop the ARM service: %s\n"),
-             ret_string (result));
-    GNUNET_SCHEDULER_shutdown ();
-    return;
-  }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "ARM service shutdown successful\n");
+    {
+      fprintf(stdout,
+              _("Failed to stop the ARM service: %s\n"),
+              ret_string(result));
+      GNUNET_SCHEDULER_shutdown();
+      return;
+    }
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "ARM service shutdown successful\n");
   end = 0;
   if (restart)
-  {
-    restart = 0;
-    start = 1;
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Initiating an ARM restart\n");
-  }
-  al_task = GNUNET_SCHEDULER_add_now (&action_loop, NULL);
+    {
+      restart = 0;
+      start = 1;
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Initiating an ARM restart\n");
+    }
+  al_task = GNUNET_SCHEDULER_add_now(&action_loop, NULL);
 }
 
 
@@ -405,37 +415,37 @@ stop_callback (void *cls,
  *               according to ARM
  */
 static void
-init_callback (void *cls,
-               enum GNUNET_ARM_RequestStatus rs,
-               enum GNUNET_ARM_Result result)
+init_callback(void *cls,
+              enum GNUNET_ARM_RequestStatus rs,
+              enum GNUNET_ARM_Result result)
 {
-  (void) cls;
+  (void)cls;
   op = NULL;
   if (GNUNET_ARM_REQUEST_SENT_OK != rs)
-  {
-    fprintf (stdout,
-             _ ("Failed to send a request to start the `%s' service: %s\n"),
-             init,
-             req_string (rs));
-    GNUNET_SCHEDULER_shutdown ();
-    return;
-  }
+    {
+      fprintf(stdout,
+              _("Failed to send a request to start the `%s' service: %s\n"),
+              init,
+              req_string(rs));
+      GNUNET_SCHEDULER_shutdown();
+      return;
+    }
   if ((GNUNET_ARM_RESULT_STARTING != result) &&
       (GNUNET_ARM_RESULT_IS_STARTED_ALREADY != result))
-  {
-    fprintf (stdout,
-             _ ("Failed to start the `%s' service: %s\n"),
-             init,
-             ret_string (result));
-    GNUNET_SCHEDULER_shutdown ();
-    return;
-  }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Service %s [re]started successfully\n",
-              init);
-  GNUNET_free (init);
+    {
+      fprintf(stdout,
+              _("Failed to start the `%s' service: %s\n"),
+              init,
+              ret_string(result));
+      GNUNET_SCHEDULER_shutdown();
+      return;
+    }
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+             "Service %s [re]started successfully\n",
+             init);
+  GNUNET_free(init);
   init = NULL;
-  al_task = GNUNET_SCHEDULER_add_now (&action_loop, NULL);
+  al_task = GNUNET_SCHEDULER_add_now(&action_loop, NULL);
 }
 
 
@@ -451,42 +461,42 @@ init_callback (void *cls,
  *               according to ARM
  */
 static void
-term_callback (void *cls,
-               enum GNUNET_ARM_RequestStatus rs,
-               enum GNUNET_ARM_Result result)
+term_callback(void *cls,
+              enum GNUNET_ARM_RequestStatus rs,
+              enum GNUNET_ARM_Result result)
 {
   char *msg;
 
-  (void) cls;
+  (void)cls;
   op = NULL;
   if (GNUNET_ARM_REQUEST_SENT_OK != rs)
-  {
-    GNUNET_asprintf (&msg,
-                     _ (
-                       "Failed to send a request to kill the `%s' service: %%s\n"),
-                     term);
-    fprintf (stdout, msg, req_string (rs));
-    GNUNET_free (msg);
-    GNUNET_SCHEDULER_shutdown ();
-    return;
-  }
+    {
+      GNUNET_asprintf(&msg,
+                      _(
+                        "Failed to send a request to kill the `%s' service: %%s\n"),
+                      term);
+      fprintf(stdout, msg, req_string(rs));
+      GNUNET_free(msg);
+      GNUNET_SCHEDULER_shutdown();
+      return;
+    }
   if ((GNUNET_ARM_RESULT_STOPPED != result) &&
       (GNUNET_ARM_RESULT_IS_STOPPED_ALREADY != result))
-  {
-    fprintf (stdout,
-             _ ("Failed to kill the `%s' service: %s\n"),
-             term,
-             ret_string (result));
-    GNUNET_SCHEDULER_shutdown ();
-    return;
-  }
+    {
+      fprintf(stdout,
+              _("Failed to kill the `%s' service: %s\n"),
+              term,
+              ret_string(result));
+      GNUNET_SCHEDULER_shutdown();
+      return;
+    }
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Service %s stopped successfully\n",
-              term);
-  GNUNET_free (term);
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+             "Service %s stopped successfully\n",
+             term);
+  GNUNET_free(term);
   term = NULL;
-  al_task = GNUNET_SCHEDULER_add_now (&action_loop, NULL);
+  al_task = GNUNET_SCHEDULER_add_now(&action_loop, NULL);
 }
 
 
@@ -501,39 +511,39 @@ term_callback (void *cls,
  * @param list list of services that are running
  */
 static void
-list_callback (void *cls,
-               enum GNUNET_ARM_RequestStatus rs,
-               unsigned int count,
-               const char *const *list)
+list_callback(void *cls,
+              enum GNUNET_ARM_RequestStatus rs,
+              unsigned int count,
+              const char *const *list)
 {
-  (void) cls;
+  (void)cls;
   op = NULL;
   if (GNUNET_ARM_REQUEST_SENT_OK != rs)
-  {
-    char *msg;
+    {
+      char *msg;
 
-    GNUNET_asprintf (&msg,
-                     "%s",
-                     _ ("Failed to request a list of services: %s\n"));
-    fprintf (stdout, msg, req_string (rs));
-    GNUNET_free (msg);
-    ret = 3;
-    GNUNET_SCHEDULER_shutdown ();
-  }
+      GNUNET_asprintf(&msg,
+                      "%s",
+                      _("Failed to request a list of services: %s\n"));
+      fprintf(stdout, msg, req_string(rs));
+      GNUNET_free(msg);
+      ret = 3;
+      GNUNET_SCHEDULER_shutdown();
+    }
   if (NULL == list)
-  {
-    fprintf (stderr,
-             "%s",
-             _ ("Error communicating with ARM. ARM not running?\n"));
-    GNUNET_SCHEDULER_shutdown ();
-    ret = 3;
-    return;
-  }
-  if (! quiet)
-    fprintf (stdout, "%s", _ ("Running services:\n"));
+    {
+      fprintf(stderr,
+              "%s",
+              _("Error communicating with ARM. ARM not running?\n"));
+      GNUNET_SCHEDULER_shutdown();
+      ret = 3;
+      return;
+    }
+  if (!quiet)
+    fprintf(stdout, "%s", _("Running services:\n"));
   for (unsigned int i = 0; i < count; i++)
-    fprintf (stdout, "%s\n", list[i]);
-  al_task = GNUNET_SCHEDULER_add_now (&action_loop, NULL);
+    fprintf(stdout, "%s\n", list[i]);
+  al_task = GNUNET_SCHEDULER_add_now(&action_loop, NULL);
 }
 
 
@@ -544,85 +554,91 @@ list_callback (void *cls,
  * @param cls closure, unused
  */
 static void
-action_loop (void *cls)
+action_loop(void *cls)
 {
-  (void) cls;
+  (void)cls;
   al_task = NULL;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Running requested actions\n");
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Running requested actions\n");
   while (1)
-  {
-    switch (phase++)
     {
-    case 0:
-      if (NULL != term)
-      {
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Termination action\n");
-        op = GNUNET_ARM_request_service_stop (h, term, &term_callback, NULL);
-        return;
-      }
-      break;
-    case 1:
-      if (end || restart)
-      {
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "End action\n");
-        op = GNUNET_ARM_request_service_stop (h, "arm", &stop_callback, NULL);
-        return;
-      }
-      break;
-    case 2:
-      if (start)
-      {
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Start action\n");
-        op =
-          GNUNET_ARM_request_service_start (h,
-                                            "arm",
-                                            (no_stdout
-                                               ? 0
-                                               : GNUNET_OS_INHERIT_STD_OUT) |
-                                              (no_stderr
-                                                 ? 0
-                                                 : GNUNET_OS_INHERIT_STD_ERR),
-                                            &start_callback,
-                                            NULL);
-        return;
-      }
-      break;
-    case 3:
-      if (NULL != init)
-      {
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Initialization action\n");
-        op = GNUNET_ARM_request_service_start (h,
-                                               init,
-                                               GNUNET_OS_INHERIT_STD_NONE,
-                                               &init_callback,
-                                               NULL);
-        return;
-      }
-      break;
-    case 4:
-      if (list)
-      {
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                    "Going to list all running services controlled by ARM.\n");
-        op = GNUNET_ARM_request_service_list (h, &list_callback, &list);
-        return;
-      }
-      break;
-    case 5:
-      if (monitor)
-      {
-        if (! quiet)
-          fprintf (stderr, _ ("Now only monitoring, press CTRL-C to stop.\n"));
-        quiet =
-          0; /* does not make sense to stay quiet in monitor mode at this time */
-        return; /* done with tasks, just monitor */
-      }
-      break;
-    default: /* last phase */
-      GNUNET_SCHEDULER_shutdown ();
-      return;
+      switch (phase++)
+        {
+        case 0:
+          if (NULL != term)
+            {
+              GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Termination action\n");
+              op = GNUNET_ARM_request_service_stop(h, term, &term_callback, NULL);
+              return;
+            }
+          break;
+
+        case 1:
+          if (end || restart)
+            {
+              GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "End action\n");
+              op = GNUNET_ARM_request_service_stop(h, "arm", &stop_callback, NULL);
+              return;
+            }
+          break;
+
+        case 2:
+          if (start)
+            {
+              GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Start action\n");
+              op =
+                GNUNET_ARM_request_service_start(h,
+                                                 "arm",
+                                                 (no_stdout
+                                                  ? 0
+                                                  : GNUNET_OS_INHERIT_STD_OUT) |
+                                                 (no_stderr
+                                                  ? 0
+                                                  : GNUNET_OS_INHERIT_STD_ERR),
+                                                 &start_callback,
+                                                 NULL);
+              return;
+            }
+          break;
+
+        case 3:
+          if (NULL != init)
+            {
+              GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Initialization action\n");
+              op = GNUNET_ARM_request_service_start(h,
+                                                    init,
+                                                    GNUNET_OS_INHERIT_STD_NONE,
+                                                    &init_callback,
+                                                    NULL);
+              return;
+            }
+          break;
+
+        case 4:
+          if (list)
+            {
+              GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+                         "Going to list all running services controlled by ARM.\n");
+              op = GNUNET_ARM_request_service_list(h, &list_callback, &list);
+              return;
+            }
+          break;
+
+        case 5:
+          if (monitor)
+            {
+              if (!quiet)
+                fprintf(stderr, _("Now only monitoring, press CTRL-C to stop.\n"));
+              quiet =
+                0; /* does not make sense to stay quiet in monitor mode at this time */
+              return; /* done with tasks, just monitor */
+            }
+          break;
+
+        default: /* last phase */
+          GNUNET_SCHEDULER_shutdown();
+          return;
+        }
     }
-  }
 }
 
 
@@ -634,44 +650,48 @@ action_loop (void *cls)
  * @param status status of the service
  */
 static void
-srv_status (void *cls,
-            const char *service,
-            enum GNUNET_ARM_ServiceStatus status)
+srv_status(void *cls,
+           const char *service,
+           enum GNUNET_ARM_ServiceStatus status)
 {
   const char *msg;
 
-  (void) cls;
+  (void)cls;
   switch (status)
-  {
-  case GNUNET_ARM_SERVICE_MONITORING_STARTED:
-    return; /* this should be done silently */
-  case GNUNET_ARM_SERVICE_STOPPED:
-    msg = _ ("Stopped %s.\n");
-    break;
-  case GNUNET_ARM_SERVICE_STARTING:
-    msg = _ ("Starting %s...\n");
-    break;
-  case GNUNET_ARM_SERVICE_STOPPING:
-    msg = _ ("Stopping %s...\n");
-    break;
-  default:
-    msg = NULL;
-    break;
-  }
-  if (! quiet)
-  {
-    if (NULL != msg)
-      fprintf (stderr, msg, service);
-    else
-      fprintf (stderr,
-               _ ("Unknown status %u for service %s.\n"),
-               status,
-               service);
-  }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Got service %s status %d\n",
-              service,
-              (int) status);
+    {
+    case GNUNET_ARM_SERVICE_MONITORING_STARTED:
+      return; /* this should be done silently */
+
+    case GNUNET_ARM_SERVICE_STOPPED:
+      msg = _("Stopped %s.\n");
+      break;
+
+    case GNUNET_ARM_SERVICE_STARTING:
+      msg = _("Starting %s...\n");
+      break;
+
+    case GNUNET_ARM_SERVICE_STOPPING:
+      msg = _("Stopping %s...\n");
+      break;
+
+    default:
+      msg = NULL;
+      break;
+    }
+  if (!quiet)
+    {
+      if (NULL != msg)
+        fprintf(stderr, msg, service);
+      else
+        fprintf(stderr,
+                _("Unknown status %u for service %s.\n"),
+                status,
+                service);
+    }
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+             "Got service %s status %d\n",
+             service,
+             (int)status);
 }
 
 
@@ -679,12 +699,12 @@ srv_status (void *cls,
  * Task run on timeout (if -T is given).
  */
 static void
-timeout_task_cb (void *cls)
+timeout_task_cb(void *cls)
 {
-  (void) cls;
+  (void)cls;
   timeout_task = NULL;
   ret = 2;
-  GNUNET_SCHEDULER_shutdown ();
+  GNUNET_SCHEDULER_shutdown();
 }
 
 
@@ -697,34 +717,34 @@ timeout_task_cb (void *cls)
  * @param c configuration
  */
 static void
-run (void *cls,
-     char *const *args,
-     const char *cfgfile,
-     const struct GNUNET_CONFIGURATION_Handle *c)
+run(void *cls,
+    char *const *args,
+    const char *cfgfile,
+    const struct GNUNET_CONFIGURATION_Handle *c)
 {
-  (void) cls;
-  (void) args;
-  (void) cfgfile;
-  cfg = GNUNET_CONFIGURATION_dup (c);
+  (void)cls;
+  (void)args;
+  (void)cfgfile;
+  cfg = GNUNET_CONFIGURATION_dup(c);
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_string (cfg, "PATHS", "GNUNET_HOME", &dir))
-  {
-    GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR, "PATHS", "GNUNET_HOME");
-    return;
-  }
-  (void) GNUNET_CONFIGURATION_get_value_filename (cfg,
-                                                  "arm",
-                                                  "CONFIG",
-                                                  &config_file);
-  if (NULL == (h = GNUNET_ARM_connect (cfg, &conn_status, NULL)))
+      GNUNET_CONFIGURATION_get_value_string(cfg, "PATHS", "GNUNET_HOME", &dir))
+    {
+      GNUNET_log_config_missing(GNUNET_ERROR_TYPE_ERROR, "PATHS", "GNUNET_HOME");
+      return;
+    }
+  (void)GNUNET_CONFIGURATION_get_value_filename(cfg,
+                                                "arm",
+                                                "CONFIG",
+                                                &config_file);
+  if (NULL == (h = GNUNET_ARM_connect(cfg, &conn_status, NULL)))
     return;
   if (monitor)
-    m = GNUNET_ARM_monitor_start (cfg, &srv_status, NULL);
-  al_task = GNUNET_SCHEDULER_add_now (&action_loop, NULL);
-  GNUNET_SCHEDULER_add_shutdown (&shutdown_task, NULL);
+    m = GNUNET_ARM_monitor_start(cfg, &srv_status, NULL);
+  al_task = GNUNET_SCHEDULER_add_now(&action_loop, NULL);
+  GNUNET_SCHEDULER_add_shutdown(&shutdown_task, NULL);
   if (0 != timeout.rel_value_us)
     timeout_task =
-      GNUNET_SCHEDULER_add_delayed (timeout, &timeout_task_cb, NULL);
+      GNUNET_SCHEDULER_add_delayed(timeout, &timeout_task_cb, NULL);
 }
 
 
@@ -736,88 +756,88 @@ run (void *cls,
  * @return 0 ok, 1 on error, 2 on timeout
  */
 int
-main (int argc, char *const *argv)
+main(int argc, char *const *argv)
 {
   struct GNUNET_GETOPT_CommandLineOption options[] =
-    {GNUNET_GETOPT_option_flag ('e',
-                                "end",
-                                gettext_noop ("stop all GNUnet services"),
-                                &end),
-     GNUNET_GETOPT_option_string ('i',
-                                  "init",
-                                  "SERVICE",
-                                  gettext_noop ("start a particular service"),
-                                  &init),
-     GNUNET_GETOPT_option_string ('k',
-                                  "kill",
-                                  "SERVICE",
-                                  gettext_noop ("stop a particular service"),
-                                  &term),
-     GNUNET_GETOPT_option_flag ('s',
-                                "start",
-                                gettext_noop (
-                                  "start all GNUnet default services"),
-                                &start),
-     GNUNET_GETOPT_option_flag ('r',
-                                "restart",
-                                gettext_noop (
-                                  "stop and start all GNUnet default services"),
-                                &restart),
-     GNUNET_GETOPT_option_flag ('d',
-                                "delete",
-                                gettext_noop (
-                                  "delete config file and directory on exit"),
-                                &delete),
-     GNUNET_GETOPT_option_flag ('m',
-                                "monitor",
-                                gettext_noop ("monitor ARM activities"),
-                                &monitor),
-     GNUNET_GETOPT_option_flag ('q',
-                                "quiet",
-                                gettext_noop ("don't print status messages"),
-                                &quiet),
-     GNUNET_GETOPT_option_relative_time (
-       'T',
-       "timeout",
-       "DELAY",
-       gettext_noop (
-         "exit with error status if operation does not finish after DELAY"),
-       &timeout),
-     GNUNET_GETOPT_option_flag ('I',
-                                "info",
-                                gettext_noop (
-                                  "list currently running services"),
-                                &list),
-     GNUNET_GETOPT_option_flag (
-       'O',
-       "no-stdout",
-       gettext_noop ("don't let gnunet-service-arm inherit standard output"),
-       &no_stdout),
-     GNUNET_GETOPT_option_flag (
-       'E',
-       "no-stderr",
-       gettext_noop ("don't let gnunet-service-arm inherit standard error"),
-       &no_stderr),
-     GNUNET_GETOPT_OPTION_END};
+  { GNUNET_GETOPT_option_flag('e',
+                              "end",
+                              gettext_noop("stop all GNUnet services"),
+                              &end),
+    GNUNET_GETOPT_option_string('i',
+                                "init",
+                                "SERVICE",
+                                gettext_noop("start a particular service"),
+                                &init),
+    GNUNET_GETOPT_option_string('k',
+                                "kill",
+                                "SERVICE",
+                                gettext_noop("stop a particular service"),
+                                &term),
+    GNUNET_GETOPT_option_flag('s',
+                              "start",
+                              gettext_noop(
+                                "start all GNUnet default services"),
+                              &start),
+    GNUNET_GETOPT_option_flag('r',
+                              "restart",
+                              gettext_noop(
+                                "stop and start all GNUnet default services"),
+                              &restart),
+    GNUNET_GETOPT_option_flag('d',
+                              "delete",
+                              gettext_noop(
+                                "delete config file and directory on exit"),
+                              &delete),
+    GNUNET_GETOPT_option_flag('m',
+                              "monitor",
+                              gettext_noop("monitor ARM activities"),
+                              &monitor),
+    GNUNET_GETOPT_option_flag('q',
+                              "quiet",
+                              gettext_noop("don't print status messages"),
+                              &quiet),
+    GNUNET_GETOPT_option_relative_time(
+      'T',
+      "timeout",
+      "DELAY",
+      gettext_noop(
+        "exit with error status if operation does not finish after DELAY"),
+      &timeout),
+    GNUNET_GETOPT_option_flag('I',
+                              "info",
+                              gettext_noop(
+                                "list currently running services"),
+                              &list),
+    GNUNET_GETOPT_option_flag(
+      'O',
+      "no-stdout",
+      gettext_noop("don't let gnunet-service-arm inherit standard output"),
+      &no_stdout),
+    GNUNET_GETOPT_option_flag(
+      'E',
+      "no-stderr",
+      gettext_noop("don't let gnunet-service-arm inherit standard error"),
+      &no_stderr),
+    GNUNET_GETOPT_OPTION_END };
   int lret;
 
-  if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv, &argc, &argv))
+  if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args(argc, argv, &argc, &argv))
     return 2;
   if (GNUNET_OK ==
-      (lret = GNUNET_PROGRAM_run (
+      (lret = GNUNET_PROGRAM_run(
          argc,
          argv,
          "gnunet-arm",
-         gettext_noop (
+         gettext_noop(
            "Control services and the Automated Restart Manager (ARM)"),
          options,
          &run,
          NULL)))
-  {
-    GNUNET_free ((void *) argv);
-    return ret;
-  }
-  GNUNET_free ((void *) argv);
+    {
+      GNUNET_free((void *)argv);
+      return ret;
+    }
+  GNUNET_free((void *)argv);
   return lret;
 }
 

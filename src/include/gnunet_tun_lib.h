@@ -16,7 +16,7 @@
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 
 /**
  * @author Philipp Toelke
@@ -78,8 +78,7 @@ GNUNET_NETWORK_STRUCT_BEGIN
 /**
  * Header from Linux TUN interface.
  */
-struct GNUNET_TUN_Layer2PacketHeader
-{
+struct GNUNET_TUN_Layer2PacketHeader {
   /**
    * Some flags (unused).
    */
@@ -95,8 +94,7 @@ struct GNUNET_TUN_Layer2PacketHeader
 /**
  * Standard IPv4 header.
  */
-struct GNUNET_TUN_IPv4Header
-{
+struct GNUNET_TUN_IPv4Header {
 #if __BYTE_ORDER == __LITTLE_ENDIAN
   unsigned int header_length : 4 GNUNET_PACKED;
   unsigned int version : 4 GNUNET_PACKED;
@@ -152,8 +150,7 @@ struct GNUNET_TUN_IPv4Header
 /**
  * Standard IPv6 header.
  */
-struct GNUNET_TUN_IPv6Header
-{
+struct GNUNET_TUN_IPv6Header {
 #if __BYTE_ORDER == __LITTLE_ENDIAN
   unsigned int traffic_class_h : 4 GNUNET_PACKED;
   unsigned int version : 4 GNUNET_PACKED;
@@ -208,8 +205,7 @@ struct GNUNET_TUN_IPv6Header
 /**
  * TCP packet header.
  */
-struct GNUNET_TUN_TcpHeader
-{
+struct GNUNET_TUN_TcpHeader {
   /**
    * Source port (in NBO).
    */
@@ -276,8 +272,7 @@ struct GNUNET_TUN_TcpHeader
 /**
  * UDP packet header.
  */
-struct GNUNET_TUN_UdpHeader
-{
+struct GNUNET_TUN_UdpHeader {
   /**
    * Source port (in NBO).
    */
@@ -336,8 +331,7 @@ struct GNUNET_TUN_UdpHeader
 /**
  * DNS flags (largely RFC 1035 / RFC 2136).
  */
-struct GNUNET_TUN_DnsFlags
-{
+struct GNUNET_TUN_DnsFlags {
 #if __BYTE_ORDER == __LITTLE_ENDIAN
   /**
    * Set to 1 if recursion is desired (client -> server)
@@ -389,7 +383,6 @@ struct GNUNET_TUN_DnsFlags
    */
   unsigned int recursion_available : 1 GNUNET_PACKED;
 #elif __BYTE_ORDER == __BIG_ENDIAN
-
   /**
    * query:0, response:1
    */
@@ -443,15 +436,13 @@ struct GNUNET_TUN_DnsFlags
 #else
 #error byteorder undefined
 #endif
-
 } GNUNET_GCC_STRUCT_LAYOUT;
 
 
 /**
  * DNS header.
  */
-struct GNUNET_TUN_DnsHeader
-{
+struct GNUNET_TUN_DnsHeader {
   /**
    * Unique identifier for the request/response.
    */
@@ -487,8 +478,7 @@ struct GNUNET_TUN_DnsHeader
 /**
  * Payload of DNS SOA record (header).
  */
-struct GNUNET_TUN_DnsSoaRecord
-{
+struct GNUNET_TUN_DnsSoaRecord {
   /**
    * The version number of the original copy of the zone.   (NBO)
    */
@@ -522,9 +512,7 @@ struct GNUNET_TUN_DnsSoaRecord
 /**
  * Payload of DNS SRV record (header).
  */
-struct GNUNET_TUN_DnsSrvRecord
-{
-
+struct GNUNET_TUN_DnsSrvRecord {
   /**
    * Preference for this entry (lower value is higher preference).  Clients
    * will contact hosts from the lowest-priority group first and fall back
@@ -551,9 +539,7 @@ struct GNUNET_TUN_DnsSrvRecord
 /**
  * Payload of DNS CERT record.
  */
-struct GNUNET_TUN_DnsCertRecord
-{
-
+struct GNUNET_TUN_DnsCertRecord {
   /**
    * Certificate type
    */
@@ -577,9 +563,7 @@ struct GNUNET_TUN_DnsCertRecord
  * Payload of DNSSEC TLSA record.
  * http://datatracker.ietf.org/doc/draft-ietf-dane-protocol/
  */
-struct GNUNET_TUN_DnsTlsaRecord
-{
-
+struct GNUNET_TUN_DnsTlsaRecord {
   /**
    * Certificate usage
    * 0: CA cert
@@ -623,8 +607,7 @@ struct GNUNET_TUN_DnsTlsaRecord
 /**
  * Payload of GNS VPN record
  */
-struct GNUNET_TUN_GnsVpnRecord
-{
+struct GNUNET_TUN_GnsVpnRecord {
   /**
    * The peer to contact
    */
@@ -642,8 +625,7 @@ struct GNUNET_TUN_GnsVpnRecord
 /**
  * DNS query prefix.
  */
-struct GNUNET_TUN_DnsQueryLine
-{
+struct GNUNET_TUN_DnsQueryLine {
   /**
    * Desired type (GNUNET_DNSPARSER_TYPE_XXX). (NBO)
    */
@@ -659,8 +641,7 @@ struct GNUNET_TUN_DnsQueryLine
 /**
  * General DNS record prefix.
  */
-struct GNUNET_TUN_DnsRecordLine
-{
+struct GNUNET_TUN_DnsRecordLine {
   /**
    * Record type (GNUNET_DNSPARSER_TYPE_XXX). (NBO)
    */
@@ -703,19 +684,16 @@ struct GNUNET_TUN_DnsRecordLine
 /**
  * ICMP header.
  */
-struct GNUNET_TUN_IcmpHeader
-{
+struct GNUNET_TUN_IcmpHeader {
   uint8_t type;
   uint8_t code;
   uint16_t crc GNUNET_PACKED;
 
-  union
-  {
+  union {
     /**
      * ICMP Echo (request/reply)
      */
-    struct
-    {
+    struct {
       uint16_t identifier GNUNET_PACKED;
       uint16_t sequence_number GNUNET_PACKED;
     } echo;
@@ -723,8 +701,7 @@ struct GNUNET_TUN_IcmpHeader
     /**
      * ICMP Destination Unreachable (RFC 1191)
      */
-    struct ih_pmtu
-    {
+    struct ih_pmtu {
       uint16_t empty GNUNET_PACKED;
       uint16_t next_hop_mtu GNUNET_PACKED;
       /* followed by original IP header + first 8 bytes of original IP datagram
@@ -740,7 +717,6 @@ struct GNUNET_TUN_IcmpHeader
      * MTU for packets that are too big (IPv6).
      */
     uint32_t packet_too_big_mtu GNUNET_PACKED;
-
   } quench;
 };
 
@@ -759,11 +735,11 @@ GNUNET_NETWORK_STRUCT_END
  * @param dst destination IP address to use
  */
 void
-GNUNET_TUN_initialize_ipv4_header (struct GNUNET_TUN_IPv4Header *ip,
-                                   uint8_t protocol,
-                                   uint16_t payload_length,
-                                   const struct in_addr *src,
-                                   const struct in_addr *dst);
+GNUNET_TUN_initialize_ipv4_header(struct GNUNET_TUN_IPv4Header *ip,
+                                  uint8_t protocol,
+                                  uint16_t payload_length,
+                                  const struct in_addr *src,
+                                  const struct in_addr *dst);
 
 
 /**
@@ -777,11 +753,11 @@ GNUNET_TUN_initialize_ipv4_header (struct GNUNET_TUN_IPv4Header *ip,
  * @param dst destination IP address to use
  */
 void
-GNUNET_TUN_initialize_ipv6_header (struct GNUNET_TUN_IPv6Header *ip,
-                                   uint8_t protocol,
-                                   uint16_t payload_length,
-                                   const struct in6_addr *src,
-                                   const struct in6_addr *dst);
+GNUNET_TUN_initialize_ipv6_header(struct GNUNET_TUN_IPv6Header *ip,
+                                  uint8_t protocol,
+                                  uint16_t payload_length,
+                                  const struct in6_addr *src,
+                                  const struct in6_addr *dst);
 
 /**
  * Calculate IPv4 TCP checksum.
@@ -792,10 +768,10 @@ GNUNET_TUN_initialize_ipv6_header (struct GNUNET_TUN_IPv6Header *ip,
  * @param payload_length number of bytes of TCP @a payload
  */
 void
-GNUNET_TUN_calculate_tcp4_checksum (const struct GNUNET_TUN_IPv4Header *ip,
-                                    struct GNUNET_TUN_TcpHeader *tcp,
-                                    const void *payload,
-                                    uint16_t payload_length);
+GNUNET_TUN_calculate_tcp4_checksum(const struct GNUNET_TUN_IPv4Header *ip,
+                                   struct GNUNET_TUN_TcpHeader *tcp,
+                                   const void *payload,
+                                   uint16_t payload_length);
 
 /**
  * Calculate IPv6 TCP checksum.
@@ -806,10 +782,10 @@ GNUNET_TUN_calculate_tcp4_checksum (const struct GNUNET_TUN_IPv4Header *ip,
  * @param payload_length number of bytes of TCP payload
  */
 void
-GNUNET_TUN_calculate_tcp6_checksum (const struct GNUNET_TUN_IPv6Header *ip,
-                                    struct GNUNET_TUN_TcpHeader *tcp,
-                                    const void *payload,
-                                    uint16_t payload_length);
+GNUNET_TUN_calculate_tcp6_checksum(const struct GNUNET_TUN_IPv6Header *ip,
+                                   struct GNUNET_TUN_TcpHeader *tcp,
+                                   const void *payload,
+                                   uint16_t payload_length);
 
 /**
  * Calculate IPv4 UDP checksum.
@@ -820,10 +796,10 @@ GNUNET_TUN_calculate_tcp6_checksum (const struct GNUNET_TUN_IPv6Header *ip,
  * @param payload_length number of bytes of UDP @a payload
  */
 void
-GNUNET_TUN_calculate_udp4_checksum (const struct GNUNET_TUN_IPv4Header *ip,
-                                    struct GNUNET_TUN_UdpHeader *udp,
-                                    const void *payload,
-                                    uint16_t payload_length);
+GNUNET_TUN_calculate_udp4_checksum(const struct GNUNET_TUN_IPv4Header *ip,
+                                   struct GNUNET_TUN_UdpHeader *udp,
+                                   const void *payload,
+                                   uint16_t payload_length);
 
 
 /**
@@ -835,10 +811,10 @@ GNUNET_TUN_calculate_udp4_checksum (const struct GNUNET_TUN_IPv4Header *ip,
  * @param payload_length number of bytes of @a payload
  */
 void
-GNUNET_TUN_calculate_udp6_checksum (const struct GNUNET_TUN_IPv6Header *ip,
-                                    struct GNUNET_TUN_UdpHeader *udp,
-                                    const void *payload,
-                                    uint16_t payload_length);
+GNUNET_TUN_calculate_udp6_checksum(const struct GNUNET_TUN_IPv6Header *ip,
+                                   struct GNUNET_TUN_UdpHeader *udp,
+                                   const void *payload,
+                                   uint16_t payload_length);
 
 
 /**
@@ -849,9 +825,9 @@ GNUNET_TUN_calculate_udp6_checksum (const struct GNUNET_TUN_IPv6Header *ip,
  * @param payload_length number of bytes of @a payload
  */
 void
-GNUNET_TUN_calculate_icmp_checksum (struct GNUNET_TUN_IcmpHeader *icmp,
-                                    const void *payload,
-                                    uint16_t payload_length);
+GNUNET_TUN_calculate_icmp_checksum(struct GNUNET_TUN_IcmpHeader *icmp,
+                                   const void *payload,
+                                   uint16_t payload_length);
 
 
 /**
@@ -863,9 +839,9 @@ GNUNET_TUN_calculate_icmp_checksum (struct GNUNET_TUN_IcmpHeader *icmp,
  *              bytes long.
  */
 void
-GNUNET_TUN_ipv4toregexsearch (const struct in_addr *ip,
-                              uint16_t port,
-                              char *rxstr);
+GNUNET_TUN_ipv4toregexsearch(const struct in_addr *ip,
+                             uint16_t port,
+                             char *rxstr);
 
 
 /**
@@ -877,9 +853,9 @@ GNUNET_TUN_ipv4toregexsearch (const struct in_addr *ip,
  *              bytes long.
  */
 void
-GNUNET_TUN_ipv6toregexsearch (const struct in6_addr *ipv6,
-                              uint16_t port,
-                              char *rxstr);
+GNUNET_TUN_ipv6toregexsearch(const struct in6_addr *ipv6,
+                             uint16_t port,
+                             char *rxstr);
 
 
 /**
@@ -892,7 +868,7 @@ GNUNET_TUN_ipv6toregexsearch (const struct in6_addr *ipv6,
  * @return regular expression, NULL on error
  */
 char *
-GNUNET_TUN_ipv6policy2regex (const char *policy);
+GNUNET_TUN_ipv6policy2regex(const char *policy);
 
 
 /**
@@ -905,7 +881,7 @@ GNUNET_TUN_ipv6policy2regex (const char *policy);
  * @return regular expression, NULL on error
  */
 char *
-GNUNET_TUN_ipv4policy2regex (const char *policy);
+GNUNET_TUN_ipv4policy2regex(const char *policy);
 
 
 /**
@@ -917,8 +893,8 @@ GNUNET_TUN_ipv4policy2regex (const char *policy);
  * @param[out] hc corresponding hash
  */
 void
-GNUNET_TUN_service_name_to_hash (const char *service_name,
-                                 struct GNUNET_HashCode *hc);
+GNUNET_TUN_service_name_to_hash(const char *service_name,
+                                struct GNUNET_HashCode *hc);
 
 
 /**
@@ -930,9 +906,9 @@ GNUNET_TUN_service_name_to_hash (const char *service_name,
  * @return #GNUNET_YES if they are equal
  */
 int
-GNUNET_TUN_sockaddr_cmp (const struct sockaddr *sa,
-                         const struct sockaddr *sb,
-                         int include_port);
+GNUNET_TUN_sockaddr_cmp(const struct sockaddr *sa,
+                        const struct sockaddr *sb,
+                        int include_port);
 
 
 /**
@@ -945,9 +921,9 @@ GNUNET_TUN_sockaddr_cmp (const struct sockaddr *sa,
  * @param[out] cadet_port CADET port to use
  */
 void
-GNUNET_TUN_compute_service_cadet_port (const struct GNUNET_HashCode *desc,
-                                       uint16_t ip_port,
-                                       struct GNUNET_HashCode *cadet_port);
+GNUNET_TUN_compute_service_cadet_port(const struct GNUNET_HashCode *desc,
+                                      uint16_t ip_port,
+                                      struct GNUNET_HashCode *cadet_port);
 
 #endif
 

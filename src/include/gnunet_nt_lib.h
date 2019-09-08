@@ -1,19 +1,19 @@
 /*
- This file is part of GNUnet.
- Copyright (C) 2010-2015, 2018 GNUnet e.V.
+   This file is part of GNUnet.
+   Copyright (C) 2010-2015, 2018 GNUnet e.V.
 
- GNUnet is free software: you can redistribute it and/or modify it
- under the terms of the GNU Affero General Public License as published
- by the Free Software Foundation, either version 3 of the License,
- or (at your option) any later version.
+   GNUnet is free software: you can redistribute it and/or modify it
+   under the terms of the GNU Affero General Public License as published
+   by the Free Software Foundation, either version 3 of the License,
+   or (at your option) any later version.
 
- GNUnet is distributed in the hope that it will be useful, but
- WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- Affero General Public License for more details.
+   GNUnet is distributed in the hope that it will be useful, but
+   WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   Affero General Public License for more details.
 
- You should have received a copy of the GNU Affero General Public License
- along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   You should have received a copy of the GNU Affero General Public License
+   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
  */
@@ -32,8 +32,7 @@
 /**
  * Types of networks (with separate quotas) we support.
  */
-enum GNUNET_NetworkType
-{
+enum GNUNET_NetworkType {
   /**
    * Category of last resort.
    */
@@ -68,7 +67,6 @@ enum GNUNET_NetworkType
  * Number of network types supported by ATS
  */
 #define GNUNET_NT_COUNT 6
-
 };
 
 
@@ -79,7 +77,7 @@ enum GNUNET_NetworkType
  * @return a string or NULL if invalid
  */
 const char *
-GNUNET_NT_to_string (enum GNUNET_NetworkType net);
+GNUNET_NT_to_string(enum GNUNET_NetworkType net);
 
 
 /**
@@ -97,9 +95,9 @@ struct GNUNET_NT_InterfaceScanner;
  * @return type of the network the address belongs to
  */
 enum GNUNET_NetworkType
-GNUNET_NT_scanner_get_type (struct GNUNET_NT_InterfaceScanner *is,
-                            const struct sockaddr *addr,
-                            socklen_t addrlen);
+GNUNET_NT_scanner_get_type(struct GNUNET_NT_InterfaceScanner *is,
+                           const struct sockaddr *addr,
+                           socklen_t addrlen);
 
 
 /**
@@ -108,7 +106,7 @@ GNUNET_NT_scanner_get_type (struct GNUNET_NT_InterfaceScanner *is,
  * @return scanner handle, NULL on error
  */
 struct GNUNET_NT_InterfaceScanner *
-GNUNET_NT_scanner_init (void);
+GNUNET_NT_scanner_init(void);
 
 
 /**
@@ -117,7 +115,7 @@ GNUNET_NT_scanner_init (void);
  * @param is scanner we are done with
  */
 void
-GNUNET_NT_scanner_done (struct GNUNET_NT_InterfaceScanner *is);
+GNUNET_NT_scanner_done(struct GNUNET_NT_InterfaceScanner *is);
 
 
 #endif

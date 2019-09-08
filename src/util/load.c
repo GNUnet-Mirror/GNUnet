@@ -11,12 +11,12 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 
 /**
  * @file util/load.c
@@ -27,14 +27,12 @@
 #include "gnunet_util_lib.h"
 
 
-#define LOG(kind,...) GNUNET_log_from (kind, "util-load", __VA_ARGS__)
+#define LOG(kind, ...) GNUNET_log_from(kind, "util-load", __VA_ARGS__)
 
 /**
  * Values we track for load calculations.
  */
-struct GNUNET_LOAD_Value
-{
-
+struct GNUNET_LOAD_Value {
   /**
    * How fast should the load decline if no values are added?
    */
@@ -77,39 +75,38 @@ struct GNUNET_LOAD_Value
    * load is so high that we currently cannot calculate it.
    */
   double load;
-
 };
 
 
 static void
-internal_update (struct GNUNET_LOAD_Value *load)
+internal_update(struct GNUNET_LOAD_Value *load)
 {
   struct GNUNET_TIME_Relative delta;
   unsigned int n;
 
   if (load->autodecline.rel_value_us == GNUNET_TIME_UNIT_FOREVER_REL.rel_value_us)
     return;
-  delta = GNUNET_TIME_absolute_get_duration (load->last_update);
+  delta = GNUNET_TIME_absolute_get_duration(load->last_update);
   if (delta.rel_value_us < load->autodecline.rel_value_us)
     return;
   if (0 == load->autodecline.rel_value_us)
-  {
-    load->runavg_delay = 0.0;
-    load->load = 0;
-    return;
-  }
+    {
+      load->runavg_delay = 0.0;
+      load->load = 0;
+      return;
+    }
   n = delta.rel_value_us / load->autodecline.rel_value_us;
   if (n > 16)
-  {
-    load->runavg_delay = 0.0;
-    load->load = 0;
-    return;
-  }
+    {
+      load->runavg_delay = 0.0;
+      load->load = 0;
+      return;
+    }
   while (n > 0)
-  {
-    n--;
-    load->runavg_delay = (load->runavg_delay * 7.0) / 8.0;
-  }
+    {
+      n--;
+      load->runavg_delay = (load->runavg_delay * 7.0) / 8.0;
+    }
 }
 
 
@@ -122,13 +119,13 @@ internal_update (struct GNUNET_LOAD_Value *load)
  * @return the new load value
  */
 struct GNUNET_LOAD_Value *
-GNUNET_LOAD_value_init (struct GNUNET_TIME_Relative autodecline)
+GNUNET_LOAD_value_init(struct GNUNET_TIME_Relative autodecline)
 {
   struct GNUNET_LOAD_Value *ret;
 
-  ret = GNUNET_new (struct GNUNET_LOAD_Value);
+  ret = GNUNET_new(struct GNUNET_LOAD_Value);
   ret->autodecline = autodecline;
-  ret->last_update = GNUNET_TIME_absolute_get ();
+  ret->last_update = GNUNET_TIME_absolute_get();
   return ret;
 }
 
@@ -140,10 +137,10 @@ GNUNET_LOAD_value_init (struct GNUNET_TIME_Relative autodecline)
  * @param autodecline frequency of load decline
  */
 void
-GNUNET_LOAD_value_set_decline (struct GNUNET_LOAD_Value *load,
-                               struct GNUNET_TIME_Relative autodecline)
+GNUNET_LOAD_value_set_decline(struct GNUNET_LOAD_Value *load,
+                              struct GNUNET_TIME_Relative autodecline)
 {
-  internal_update (load);
+  internal_update(load);
   load->autodecline = autodecline;
 }
 
@@ -154,7 +151,7 @@ GNUNET_LOAD_value_set_decline (struct GNUNET_LOAD_Value *load,
  * @param load load to update
  */
 static void
-calculate_load (struct GNUNET_LOAD_Value *load)
+calculate_load(struct GNUNET_LOAD_Value *load)
 {
   double stddev;
   double avgdel;
@@ -171,13 +168,13 @@ calculate_load (struct GNUNET_LOAD_Value *load)
    * = (sum (val_i^2 - 2 avg val_i + avg^2) / (n-1)
    * = (sum (val_i^2) - 2 avg sum (val_i) + n * avg^2) / (n-1)
    */
-  sum_val_i = (double) load->cummulative_delay;
-  n = ((double) load->cummulative_request_count);
+  sum_val_i = (double)load->cummulative_delay;
+  n = ((double)load->cummulative_request_count);
   nm1 = n - 1.0;
   avgdel = sum_val_i / n;
   stddev =
-      (((double) load->cummulative_squared_delay) - 2.0 * avgdel * sum_val_i +
-       n * avgdel * avgdel) / nm1;
+    (((double)load->cummulative_squared_delay) - 2.0 * avgdel * sum_val_i +
+     n * avgdel * avgdel) / nm1;
   if (stddev <= 0)
     stddev = 0.01;              /* must have been rounding error or zero; prevent division by zero */
   /* now calculate load based on how far out we are from
@@ -199,10 +196,10 @@ calculate_load (struct GNUNET_LOAD_Value *load)
  *         that we could not do proper calculations
  */
 double
-GNUNET_LOAD_get_load (struct GNUNET_LOAD_Value *load)
+GNUNET_LOAD_get_load(struct GNUNET_LOAD_Value *load)
 {
-  internal_update (load);
-  calculate_load (load);
+  internal_update(load);
+  calculate_load(load);
   return load->load;
 }
 
@@ -214,16 +211,16 @@ GNUNET_LOAD_get_load (struct GNUNET_LOAD_Value *load)
  * @return zero if update was never called
  */
 double
-GNUNET_LOAD_get_average (struct GNUNET_LOAD_Value *load)
+GNUNET_LOAD_get_average(struct GNUNET_LOAD_Value *load)
 {
   double n;
   double sum_val_i;
 
-  internal_update (load);
+  internal_update(load);
   if (load->cummulative_request_count == 0)
     return 0.0;
-  n = ((double) load->cummulative_request_count);
-  sum_val_i = (double) load->cummulative_delay;
+  n = ((double)load->cummulative_request_count);
+  sum_val_i = (double)load->cummulative_delay;
   return sum_val_i / n;
 }
 
@@ -235,19 +232,19 @@ GNUNET_LOAD_get_average (struct GNUNET_LOAD_Value *load)
  * @param data latest measurement value (for example, delay)
  */
 void
-GNUNET_LOAD_update (struct GNUNET_LOAD_Value *load, uint64_t data)
+GNUNET_LOAD_update(struct GNUNET_LOAD_Value *load, uint64_t data)
 {
   uint32_t dv;
 
-  internal_update (load);
-  load->last_update = GNUNET_TIME_absolute_get ();
+  internal_update(load);
+  load->last_update = GNUNET_TIME_absolute_get();
   if (data > 64 * 1024)
-  {
-    /* very large */
-    load->load = 100.0;
-    return;
-  }
-  dv = (uint32_t) data;
+    {
+      /* very large */
+      load->load = 100.0;
+      return;
+    }
+  dv = (uint32_t)data;
   load->cummulative_delay += dv;
   load->cummulative_squared_delay += dv * dv;
   load->cummulative_request_count++;

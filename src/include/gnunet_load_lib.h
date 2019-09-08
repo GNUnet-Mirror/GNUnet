@@ -11,12 +11,12 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 
 /**
  * @author Christian Grothoff
@@ -57,7 +57,7 @@ struct GNUNET_LOAD_Value;
  * @return the new load value
  */
 struct GNUNET_LOAD_Value *
-GNUNET_LOAD_value_init (struct GNUNET_TIME_Relative autodecline);
+GNUNET_LOAD_value_init(struct GNUNET_TIME_Relative autodecline);
 
 
 /**
@@ -67,8 +67,8 @@ GNUNET_LOAD_value_init (struct GNUNET_TIME_Relative autodecline);
  * @param autodecline frequency of load decline
  */
 void
-GNUNET_LOAD_value_set_decline (struct GNUNET_LOAD_Value *load,
-                               struct GNUNET_TIME_Relative autodecline);
+GNUNET_LOAD_value_set_decline(struct GNUNET_LOAD_Value *load,
+                              struct GNUNET_TIME_Relative autodecline);
 
 
 /**
@@ -76,7 +76,7 @@ GNUNET_LOAD_value_set_decline (struct GNUNET_LOAD_Value *load,
  *
  * @param lv value to free
  */
-#define GNUNET_LOAD_value_free(lv) GNUNET_free (lv)
+#define GNUNET_LOAD_value_free(lv) GNUNET_free(lv)
 
 
 /**
@@ -89,7 +89,7 @@ GNUNET_LOAD_value_set_decline (struct GNUNET_LOAD_Value *load,
  *         that we could not do proper calculations
  */
 double
-GNUNET_LOAD_get_load (struct GNUNET_LOAD_Value *load);
+GNUNET_LOAD_get_load(struct GNUNET_LOAD_Value *load);
 
 
 /**
@@ -99,7 +99,7 @@ GNUNET_LOAD_get_load (struct GNUNET_LOAD_Value *load);
  * @return zero if update was never called
  */
 double
-GNUNET_LOAD_get_average (struct GNUNET_LOAD_Value *load);
+GNUNET_LOAD_get_average(struct GNUNET_LOAD_Value *load);
 
 
 /**
@@ -109,7 +109,7 @@ GNUNET_LOAD_get_average (struct GNUNET_LOAD_Value *load);
  * @param data latest measurement value (for example, delay)
  */
 void
-GNUNET_LOAD_update (struct GNUNET_LOAD_Value *load, uint64_t data);
+GNUNET_LOAD_update(struct GNUNET_LOAD_Value *load, uint64_t data);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

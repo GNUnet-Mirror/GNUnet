@@ -11,7 +11,7 @@
       WITHOUT ANY WARRANTY; without even the implied warranty of
       MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
       Affero General Public License for more details.
-     
+
       You should have received a copy of the GNU Affero General Public License
       along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -46,7 +46,7 @@ static struct GNUNET_TESTBED_Operation *op;
 /**
  * dummy pointer
  */
-static void *dummy_cls = (void *) 0xDEAD0001;
+static void *dummy_cls = (void *)0xDEAD0001;
 
 /**
  * Abort task identifier
@@ -73,13 +73,13 @@ static unsigned int num_seen_peers;
  * Fail testcase
  */
 #define FAIL_TEST(cond, ret) do {                               \
-    if (!(cond)) {                                              \
-      GNUNET_break(0);                                          \
-      if (NULL != abort_task)               \
-        GNUNET_SCHEDULER_cancel (abort_task);                   \
-      abort_task = GNUNET_SCHEDULER_add_now (&do_abort, NULL);  \
-      ret;                                                      \
-    }                                                           \
+      if (!(cond)) {                                              \
+          GNUNET_break(0);                                          \
+          if (NULL != abort_task)               \
+          GNUNET_SCHEDULER_cancel (abort_task);                   \
+          abort_task = GNUNET_SCHEDULER_add_now(&do_abort, NULL);  \
+          ret;                                                      \
+        }                                                           \
   } while (0)
 
 
@@ -89,15 +89,15 @@ static unsigned int num_seen_peers;
  * @param cls NULL
  */
 static void
-do_abort (void *cls)
+do_abort(void *cls)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Test timed out -- Aborting\n");
+  GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Test timed out -- Aborting\n");
   abort_task = NULL;
   if (NULL != op)
-  {
-    GNUNET_TESTBED_operation_done (op);
-    op = NULL;
-  }
+    {
+      GNUNET_TESTBED_operation_done(op);
+      op = NULL;
+    }
   result = GNUNET_SYSERR;
 }
 
@@ -114,20 +114,20 @@ do_abort (void *cls)
  * @return GNUNET_OK to continue, GNUNET_SYSERR to abort iteration
  */
 static int
-stats_iterator (void *cls,
-                const struct GNUNET_TESTBED_Peer *peer,
-                const char *subsystem, const char *name, uint64_t value,
-                int is_persistent)
+stats_iterator(void *cls,
+               const struct GNUNET_TESTBED_Peer *peer,
+               const char *subsystem, const char *name, uint64_t value,
+               int is_persistent)
 {
   unsigned int cnt;
 
-  FAIL_TEST (cls == dummy_cls, return GNUNET_SYSERR);
+  FAIL_TEST(cls == dummy_cls, return GNUNET_SYSERR);
   for (cnt = 0; cnt < num_seen_peers; cnt++)
-    FAIL_TEST (peer != seen_peers[cnt], return GNUNET_SYSERR);
-  FAIL_TEST (NULL != subsystem, return GNUNET_SYSERR);
-  FAIL_TEST (NULL != name, return GNUNET_SYSERR);
-  GNUNET_array_append (seen_peers, num_seen_peers,
-                       (struct GNUNET_TESTBED_Peer *) peer);
+    FAIL_TEST(peer != seen_peers[cnt], return GNUNET_SYSERR);
+  FAIL_TEST(NULL != subsystem, return GNUNET_SYSERR);
+  FAIL_TEST(NULL != name, return GNUNET_SYSERR);
+  GNUNET_array_append(seen_peers, num_seen_peers,
+                      (struct GNUNET_TESTBED_Peer *)peer);
   return GNUNET_SYSERR;
 }
 
@@ -141,16 +141,16 @@ stats_iterator (void *cls,
  *          operation has executed successfully.
  */
 static void
-op_comp_cb (void *cls,
-            struct GNUNET_TESTBED_Operation *op,
-            const char *emsg)
+op_comp_cb(void *cls,
+           struct GNUNET_TESTBED_Operation *op,
+           const char *emsg)
 {
-  FAIL_TEST (cls == dummy_cls, return);
+  FAIL_TEST(cls == dummy_cls, return );
   result = GNUNET_OK;
-  GNUNET_TESTBED_operation_done (op);
+  GNUNET_TESTBED_operation_done(op);
   op = NULL;
-  GNUNET_SCHEDULER_cancel (abort_task);
-  GNUNET_SCHEDULER_shutdown ();
+  GNUNET_SCHEDULER_cancel(abort_task);
+  GNUNET_SCHEDULER_shutdown();
 }
 
 
@@ -167,23 +167,23 @@ op_comp_cb (void *cls,
  *          failed
  */
 static void
-test_master (void *cls,
-             struct GNUNET_TESTBED_RunHandle *h,
-             unsigned int num_peers,
-             struct GNUNET_TESTBED_Peer **peers_,
-             unsigned int links_succeeded,
-             unsigned int links_failed)
+test_master(void *cls,
+            struct GNUNET_TESTBED_RunHandle *h,
+            unsigned int num_peers,
+            struct GNUNET_TESTBED_Peer **peers_,
+            unsigned int links_succeeded,
+            unsigned int links_failed)
 {
-  FAIL_TEST (NUM_PEERS == num_peers, return);
+  FAIL_TEST(NUM_PEERS == num_peers, return );
   peers = peers_;
-  op = GNUNET_TESTBED_get_statistics (num_peers, peers,
-                                      NULL, NULL,
-                                      &stats_iterator,
-                                      &op_comp_cb,
-                                      dummy_cls);
-  abort_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
-                                             (GNUNET_TIME_UNIT_MINUTES, 1),
-                                             &do_abort, NULL);
+  op = GNUNET_TESTBED_get_statistics(num_peers, peers,
+                                     NULL, NULL,
+                                     &stats_iterator,
+                                     &op_comp_cb,
+                                     dummy_cls);
+  abort_task = GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_relative_multiply
+                                              (GNUNET_TIME_UNIT_MINUTES, 1),
+                                            &do_abort, NULL);
 }
 
 
@@ -191,14 +191,14 @@ test_master (void *cls,
  * Main function
  */
 int
-main (int argc, char **argv)
+main(int argc, char **argv)
 {
-  (void) GNUNET_TESTBED_test_run ("test_testbed_api_statistics",
-                                  "test_testbed_api_statistics.conf",
-                                  NUM_PEERS,
-                                  1LL, NULL, NULL,
-                                  &test_master, NULL);
-  GNUNET_free_non_null (seen_peers);
+  (void)GNUNET_TESTBED_test_run("test_testbed_api_statistics",
+                                "test_testbed_api_statistics.conf",
+                                NUM_PEERS,
+                                1LL, NULL, NULL,
+                                &test_master, NULL);
+  GNUNET_free_non_null(seen_peers);
   if (GNUNET_OK != result)
     return 1;
   return 0;

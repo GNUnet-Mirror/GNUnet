@@ -16,7 +16,7 @@
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 /**
  * @author Christian Grothoff
  *
@@ -107,12 +107,12 @@ typedef void (*GNUNET_TRANSPORT_NotifyDisconnect) (
  * @return NULL on error
  */
 struct GNUNET_TRANSPORT_CoreHandle *
-GNUNET_TRANSPORT_core_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                               const struct GNUNET_PeerIdentity *self,
-                               const struct GNUNET_MQ_MessageHandler *handlers,
-                               void *cls,
-                               GNUNET_TRANSPORT_NotifyConnect nc,
-                               GNUNET_TRANSPORT_NotifyDisconnect nd);
+GNUNET_TRANSPORT_core_connect(const struct GNUNET_CONFIGURATION_Handle *cfg,
+                              const struct GNUNET_PeerIdentity *self,
+                              const struct GNUNET_MQ_MessageHandler *handlers,
+                              void *cls,
+                              GNUNET_TRANSPORT_NotifyConnect nc,
+                              GNUNET_TRANSPORT_NotifyDisconnect nd);
 
 
 /**
@@ -121,7 +121,7 @@ GNUNET_TRANSPORT_core_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @param handle handle returned from connect
  */
 void
-GNUNET_TRANSPORT_core_disconnect (struct GNUNET_TRANSPORT_CoreHandle *handle);
+GNUNET_TRANSPORT_core_disconnect(struct GNUNET_TRANSPORT_CoreHandle *handle);
 
 
 /**
@@ -145,8 +145,8 @@ GNUNET_TRANSPORT_core_disconnect (struct GNUNET_TRANSPORT_CoreHandle *handle);
  * @param pid which peer was the message from that was fully processed by CORE
  */
 void
-GNUNET_TRANSPORT_core_receive_continue (struct GNUNET_TRANSPORT_CoreHandle *ch,
-                                        const struct GNUNET_PeerIdentity *pid);
+GNUNET_TRANSPORT_core_receive_continue(struct GNUNET_TRANSPORT_CoreHandle *ch,
+                                       const struct GNUNET_PeerIdentity *pid);
 
 
 /**
@@ -158,8 +158,8 @@ GNUNET_TRANSPORT_core_receive_continue (struct GNUNET_TRANSPORT_CoreHandle *ch,
  * @return NULL if disconnected, otherwise message queue for @a peer
  */
 struct GNUNET_MQ_Handle *
-GNUNET_TRANSPORT_core_get_mq (struct GNUNET_TRANSPORT_CoreHandle *handle,
-                              const struct GNUNET_PeerIdentity *peer);
+GNUNET_TRANSPORT_core_get_mq(struct GNUNET_TRANSPORT_CoreHandle *handle,
+                             const struct GNUNET_PeerIdentity *peer);
 
 
 #if 0 /* keep Emacsens' auto-indent happy */

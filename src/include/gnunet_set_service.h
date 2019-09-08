@@ -11,7 +11,7 @@
       WITHOUT ANY WARRANTY; without even the implied warranty of
       MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
       Affero General Public License for more details.
-     
+
       You should have received a copy of the GNU Affero General Public License
       along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -52,7 +52,7 @@ extern "C"
 /**
  * Maximum size of a context message for set operation requests.
  */
-#define GNUNET_SET_CONTEXT_MESSAGE_MAX_SIZE ((1<<16) - 1024)
+#define GNUNET_SET_CONTEXT_MESSAGE_MAX_SIZE ((1 << 16) - 1024)
 
 
 /**
@@ -79,8 +79,7 @@ struct GNUNET_SET_OperationHandle;
 /**
  * The operation that a set set supports.
  */
-enum GNUNET_SET_OperationType
-{
+enum GNUNET_SET_OperationType {
   /**
    * A purely local set that does not support any operation.
    */
@@ -101,8 +100,7 @@ enum GNUNET_SET_OperationType
 /**
  * Status for the result callback
  */
-enum GNUNET_SET_Status
-{
+enum GNUNET_SET_Status {
   /**
    * Everything went ok, we are transmitting an element of the
    * result (in set, or to be removed from set, depending on
@@ -157,8 +155,7 @@ enum GNUNET_SET_Status
 /**
  * The way results are given to the client.
  */
-enum GNUNET_SET_ResultMode
-{
+enum GNUNET_SET_ResultMode {
   /**
    * Client gets every element in the resulting set.
    *
@@ -193,8 +190,7 @@ enum GNUNET_SET_ResultMode
 /**
  * Element stored in a set.
  */
-struct GNUNET_SET_Element
-{
+struct GNUNET_SET_Element {
   /**
    * Number of bytes in the buffer pointed to by data.
    */
@@ -217,8 +213,7 @@ struct GNUNET_SET_Element
  *
  * Used as tag for struct #GNUNET_SET_Option.
  */
-enum GNUNET_SET_OptionType
-{
+enum GNUNET_SET_OptionType {
   /**
    * List terminator.
    */
@@ -248,8 +243,7 @@ enum GNUNET_SET_OptionType
 /**
  * Option for set operations.
  */
-struct GNUNET_SET_Option
-{
+struct GNUNET_SET_Option {
   /**
    * Type of the option.
    */
@@ -341,8 +335,8 @@ typedef void
  * @return a handle to the set
  */
 struct GNUNET_SET_Handle *
-GNUNET_SET_create (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                   enum GNUNET_SET_OperationType op);
+GNUNET_SET_create(const struct GNUNET_CONFIGURATION_Handle *cfg,
+                  enum GNUNET_SET_OperationType op);
 
 
 /**
@@ -359,10 +353,10 @@ GNUNET_SET_create (const struct GNUNET_CONFIGURATION_Handle *cfg,
  *         set is invalid (e.g. the set service crashed)
  */
 int
-GNUNET_SET_add_element (struct GNUNET_SET_Handle *set,
-                        const struct GNUNET_SET_Element *element,
-                        GNUNET_SET_Continuation cont,
-                        void *cont_cls);
+GNUNET_SET_add_element(struct GNUNET_SET_Handle *set,
+                       const struct GNUNET_SET_Element *element,
+                       GNUNET_SET_Continuation cont,
+                       void *cont_cls);
 
 
 /**
@@ -379,16 +373,16 @@ GNUNET_SET_add_element (struct GNUNET_SET_Handle *set,
  *         set is invalid (e.g. the set service crashed)
  */
 int
-GNUNET_SET_remove_element (struct GNUNET_SET_Handle *set,
-                           const struct GNUNET_SET_Element *element,
-                           GNUNET_SET_Continuation cont,
-                           void *cont_cls);
+GNUNET_SET_remove_element(struct GNUNET_SET_Handle *set,
+                          const struct GNUNET_SET_Element *element,
+                          GNUNET_SET_Continuation cont,
+                          void *cont_cls);
 
 
 void
-GNUNET_SET_copy_lazy (struct GNUNET_SET_Handle *set,
-                      GNUNET_SET_CopyReadyCallback cb,
-                      void *cls);
+GNUNET_SET_copy_lazy(struct GNUNET_SET_Handle *set,
+                     GNUNET_SET_CopyReadyCallback cb,
+                     void *cls);
 
 
 /**
@@ -400,7 +394,7 @@ GNUNET_SET_copy_lazy (struct GNUNET_SET_Handle *set,
  * @param set set to destroy
  */
 void
-GNUNET_SET_destroy (struct GNUNET_SET_Handle *set);
+GNUNET_SET_destroy(struct GNUNET_SET_Handle *set);
 
 
 /**
@@ -418,13 +412,13 @@ GNUNET_SET_destroy (struct GNUNET_SET_Handle *set);
  * @return a handle to cancel the operation
  */
 struct GNUNET_SET_OperationHandle *
-GNUNET_SET_prepare (const struct GNUNET_PeerIdentity *other_peer,
-                    const struct GNUNET_HashCode *app_id,
-                    const struct GNUNET_MessageHeader *context_msg,
-                    enum GNUNET_SET_ResultMode result_mode,
-                    struct GNUNET_SET_Option options[],
-                    GNUNET_SET_ResultIterator result_cb,
-                    void *result_cls);
+GNUNET_SET_prepare(const struct GNUNET_PeerIdentity *other_peer,
+                   const struct GNUNET_HashCode *app_id,
+                   const struct GNUNET_MessageHeader *context_msg,
+                   enum GNUNET_SET_ResultMode result_mode,
+                   struct GNUNET_SET_Option options[],
+                   GNUNET_SET_ResultIterator result_cb,
+                   void *result_cls);
 
 
 /**
@@ -442,11 +436,11 @@ GNUNET_SET_prepare (const struct GNUNET_PeerIdentity *other_peer,
  * @return a handle that can be used to cancel the listen operation
  */
 struct GNUNET_SET_ListenHandle *
-GNUNET_SET_listen (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                   enum GNUNET_SET_OperationType op_type,
-                   const struct GNUNET_HashCode *app_id,
-                   GNUNET_SET_ListenCallback listen_cb,
-                   void *listen_cls);
+GNUNET_SET_listen(const struct GNUNET_CONFIGURATION_Handle *cfg,
+                  enum GNUNET_SET_OperationType op_type,
+                  const struct GNUNET_HashCode *app_id,
+                  GNUNET_SET_ListenCallback listen_cb,
+                  void *listen_cls);
 
 
 /**
@@ -458,7 +452,7 @@ GNUNET_SET_listen (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @param lh handle for the listen operation
  */
 void
-GNUNET_SET_listen_cancel (struct GNUNET_SET_ListenHandle *lh);
+GNUNET_SET_listen_cancel(struct GNUNET_SET_ListenHandle *lh);
 
 
 /**
@@ -476,11 +470,11 @@ GNUNET_SET_listen_cancel (struct GNUNET_SET_ListenHandle *lh);
  * @return a handle to cancel the operation
  */
 struct GNUNET_SET_OperationHandle *
-GNUNET_SET_accept (struct GNUNET_SET_Request *request,
-                   enum GNUNET_SET_ResultMode result_mode,
-                   struct GNUNET_SET_Option options[],
-                   GNUNET_SET_ResultIterator result_cb,
-                   void *result_cls);
+GNUNET_SET_accept(struct GNUNET_SET_Request *request,
+                  enum GNUNET_SET_ResultMode result_mode,
+                  struct GNUNET_SET_Option options[],
+                  GNUNET_SET_ResultIterator result_cb,
+                  void *result_cls);
 
 
 /**
@@ -497,8 +491,8 @@ GNUNET_SET_accept (struct GNUNET_SET_Request *request,
  *         set is invalid (e.g. the set service crashed)
  */
 int
-GNUNET_SET_commit (struct GNUNET_SET_OperationHandle *oh,
-                   struct GNUNET_SET_Handle *set);
+GNUNET_SET_commit(struct GNUNET_SET_OperationHandle *oh,
+                  struct GNUNET_SET_Handle *set);
 
 
 /**
@@ -509,7 +503,7 @@ GNUNET_SET_commit (struct GNUNET_SET_OperationHandle *oh,
  * @param oh set operation to cancel
  */
 void
-GNUNET_SET_operation_cancel (struct GNUNET_SET_OperationHandle *oh);
+GNUNET_SET_operation_cancel(struct GNUNET_SET_OperationHandle *oh);
 
 
 /**
@@ -526,9 +520,9 @@ GNUNET_SET_operation_cancel (struct GNUNET_SET_OperationHandle *oh);
  *         #GNUNET_SYSERR if the set is invalid (e.g. the server crashed, disconnected)
  */
 int
-GNUNET_SET_iterate (struct GNUNET_SET_Handle *set,
-                    GNUNET_SET_ElementIterator iter,
-                    void *iter_cls);
+GNUNET_SET_iterate(struct GNUNET_SET_Handle *set,
+                   GNUNET_SET_ElementIterator iter,
+                   void *iter_cls);
 
 
 /**
@@ -539,7 +533,7 @@ GNUNET_SET_iterate (struct GNUNET_SET_Handle *set,
  * @param set the set to stop iterating over
  */
 void
-GNUNET_SET_iterate_cancel (struct GNUNET_SET_Handle *set);
+GNUNET_SET_iterate_cancel(struct GNUNET_SET_Handle *set);
 
 
 /**
@@ -550,7 +544,7 @@ GNUNET_SET_iterate_cancel (struct GNUNET_SET_Handle *set);
  * @return the copied element
  */
 struct GNUNET_SET_Element *
-GNUNET_SET_element_dup (const struct GNUNET_SET_Element *element);
+GNUNET_SET_element_dup(const struct GNUNET_SET_Element *element);
 
 
 /**
@@ -561,8 +555,8 @@ GNUNET_SET_element_dup (const struct GNUNET_SET_Element *element);
  *        should be stored
  */
 void
-GNUNET_SET_element_hash (const struct GNUNET_SET_Element *element,
-                         struct GNUNET_HashCode *ret_hash);
+GNUNET_SET_element_hash(const struct GNUNET_SET_Element *element,
+                        struct GNUNET_HashCode *ret_hash);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

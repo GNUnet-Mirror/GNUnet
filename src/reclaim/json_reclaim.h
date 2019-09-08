@@ -16,7 +16,7 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
    SPDX-License-Identifier: AGPL3.0-or-later
-   */
+ */
 
 /**
  * @file rest-plugins/json_reclaim.h
@@ -36,7 +36,7 @@
  * @return JSON Specification
  */
 struct GNUNET_JSON_Specification
-GNUNET_RECLAIM_JSON_spec_claim (struct GNUNET_RECLAIM_ATTRIBUTE_Claim **attr);
+GNUNET_RECLAIM_JSON_spec_claim(struct GNUNET_RECLAIM_ATTRIBUTE_Claim **attr);
 
 /**
  * JSON Specification for Reclaim tickets.
@@ -45,4 +45,4 @@ GNUNET_RECLAIM_JSON_spec_claim (struct GNUNET_RECLAIM_ATTRIBUTE_Claim **attr);
  * @return JSON Specification
  */
 struct GNUNET_JSON_Specification
-GNUNET_RECLAIM_JSON_spec_ticket (struct GNUNET_RECLAIM_Ticket **ticket);
+GNUNET_RECLAIM_JSON_spec_ticket(struct GNUNET_RECLAIM_Ticket **ticket);

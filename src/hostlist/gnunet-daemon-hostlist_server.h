@@ -11,12 +11,12 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 
 /**
  * @file hostlist/gnunet-daemon-hostlist_server.h
@@ -43,18 +43,18 @@
  * @return #GNUNET_OK on success
  */
 int
-GNUNET_HOSTLIST_server_start (const struct GNUNET_CONFIGURATION_Handle *c,
-                              struct GNUNET_STATISTICS_Handle *st,
-                              struct GNUNET_CORE_Handle *core,
-                              GNUNET_CORE_ConnectEventHandler *server_ch,
-			      int advertise);
+GNUNET_HOSTLIST_server_start(const struct GNUNET_CONFIGURATION_Handle *c,
+                             struct GNUNET_STATISTICS_Handle *st,
+                             struct GNUNET_CORE_Handle *core,
+                             GNUNET_CORE_ConnectEventHandler *server_ch,
+                             int advertise);
 
 
 /**
  * Stop server offering our hostlist.
  */
 void
-GNUNET_HOSTLIST_server_stop (void);
+GNUNET_HOSTLIST_server_stop(void);
 
 
 #endif

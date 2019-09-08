@@ -11,12 +11,12 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 
 /**
  * @author Christian Grothoff
@@ -68,8 +68,8 @@ typedef void
  * @return context that can be used to restore, NULL on error
  */
 struct GNUNET_SIGNAL_Context *
-GNUNET_SIGNAL_handler_install (int signal,
-                               GNUNET_SIGNAL_Handler handler);
+GNUNET_SIGNAL_handler_install(int signal,
+                              GNUNET_SIGNAL_Handler handler);
 
 
 /**
@@ -79,7 +79,7 @@ GNUNET_SIGNAL_handler_install (int signal,
  *            signal handler was installed
  */
 void
-GNUNET_SIGNAL_handler_uninstall (struct GNUNET_SIGNAL_Context *ctx);
+GNUNET_SIGNAL_handler_uninstall(struct GNUNET_SIGNAL_Context *ctx);
 
 
 /**
@@ -90,7 +90,7 @@ GNUNET_SIGNAL_handler_uninstall (struct GNUNET_SIGNAL_Context *ctx);
  * @param sig the signal to raise
  */
 void
-GNUNET_SIGNAL_raise (const int sig);
+GNUNET_SIGNAL_raise(const int sig);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

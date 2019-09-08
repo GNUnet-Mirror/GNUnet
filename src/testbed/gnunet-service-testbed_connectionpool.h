@@ -1,22 +1,22 @@
 /*
-  This file is part of GNUnet.
-  Copyright (C) 2008--2015 GNUnet e.V.
+   This file is part of GNUnet.
+   Copyright (C) 2008--2015 GNUnet e.V.
 
-  GNUnet is free software: you can redistribute it and/or modify it
-  under the terms of the GNU Affero General Public License as published
-  by the Free Software Foundation, either version 3 of the License,
-  or (at your option) any later version.
+   GNUnet is free software: you can redistribute it and/or modify it
+   under the terms of the GNU Affero General Public License as published
+   by the Free Software Foundation, either version 3 of the License,
+   or (at your option) any later version.
 
-  GNUnet is distributed in the hope that it will be useful, but
-  WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-  Affero General Public License for more details.
+   GNUnet is distributed in the hope that it will be useful, but
+   WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   Affero General Public License for more details.
 
-  You should have received a copy of the GNU Affero General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   You should have received a copy of the GNU Affero General Public License
+   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 
 /**
  * @file testbed/gnunet-service-testbed_connectionpool.h
@@ -36,8 +36,7 @@ struct GST_ConnectionPool_GetHandle;
 /**
  * The type of service
  */
-enum GST_ConnectionPool_Service
-{
+enum GST_ConnectionPool_Service {
   /**
    * Transport service
    */
@@ -63,14 +62,14 @@ enum GST_ConnectionPool_Service
  *   #GST_ConnectionPool_Service
  */
 void
-GST_connection_pool_init (unsigned int size);
+GST_connection_pool_init(unsigned int size);
 
 
 /**
  * Cleanup the connection pool
  */
 void
-GST_connection_pool_destroy (void);
+GST_connection_pool_destroy(void);
 
 /**
  * Functions of this type are called when the needed handle is available for
@@ -142,7 +141,7 @@ typedef void (*GST_connection_pool_peer_connect_notify) (
  *           longer being used
  */
 struct GST_ConnectionPool_GetHandle *
-GST_connection_pool_get_handle (
+GST_connection_pool_get_handle(
   unsigned int peer_id,
   const struct GNUNET_CONFIGURATION_Handle *cfg,
   enum GST_ConnectionPool_Service service,
@@ -166,7 +165,7 @@ GST_connection_pool_get_handle (
  * @param gh the handle
  */
 void
-GST_connection_pool_get_handle_done (struct GST_ConnectionPool_GetHandle *gh);
+GST_connection_pool_get_handle_done(struct GST_ConnectionPool_GetHandle *gh);
 
 
 /* End of gnunet-service-testbed_connectionpool.h */

@@ -11,12 +11,12 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 /**
  * @file regex/test_regex_graph_api.c
  * @brief test for regex_graph.c
@@ -39,39 +39,39 @@
  * @return 0 if ok, non 0 on error.
  */
 static int
-filecheck (const char *filename)
+filecheck(const char *filename)
 {
   int error = 0;
   FILE *fp;
 
   /* Check if file was created and delete it again */
-  if (NULL == (fp = fopen (filename, "r")))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Could not find graph %s\n", filename);
-    return 1;
-  }
+  if (NULL == (fp = fopen(filename, "r")))
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Could not find graph %s\n", filename);
+      return 1;
+    }
 
-  GNUNET_break (0 == fseek (fp, 0L, SEEK_END));
-  if (1 > ftell (fp))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Graph writing failed, got empty file (%s)!\n", filename);
-    error = 2;
-  }
+  GNUNET_break(0 == fseek(fp, 0L, SEEK_END));
+  if (1 > ftell(fp))
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
+                 "Graph writing failed, got empty file (%s)!\n", filename);
+      error = 2;
+    }
 
-  GNUNET_assert (0 == fclose (fp));
+  GNUNET_assert(0 == fclose(fp));
 
   if (!KEEP_FILES)
-  {
-    if (0 != unlink (filename))
-      GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, "unlink", filename);
-  }
+    {
+      if (0 != unlink(filename))
+        GNUNET_log_strerror_file(GNUNET_ERROR_TYPE_ERROR, "unlink", filename);
+    }
   return error;
 }
 
 
 int
-main (int argc, char *argv[])
+main(int argc, char *argv[])
 {
   int error;
   struct REGEX_INTERNAL_Automaton *a;
@@ -93,66 +93,65 @@ main (int argc, char *argv[])
     "PADPADPADPADPADPabcdefghixxxxxxxxxxxxxjklmnop*qstoisdjfguisdfguihsdfgbdsuivggsd"
   };
 
-  GNUNET_log_setup ("test-regex", "WARNING", NULL);
+  GNUNET_log_setup("test-regex", "WARNING", NULL);
   error = 0;
   for (i = 0; i < 12; i++)
-  {
-    /* Check NFA graph creation */
-    a = REGEX_INTERNAL_construct_nfa (regex[i], strlen (regex[i]));
-    REGEX_TEST_automaton_save_graph (a, filename, REGEX_TEST_GRAPH_DEFAULT);
-    REGEX_INTERNAL_automaton_destroy (a);
-    error += filecheck (filename);
+    {
+      /* Check NFA graph creation */
+      a = REGEX_INTERNAL_construct_nfa(regex[i], strlen(regex[i]));
+      REGEX_TEST_automaton_save_graph(a, filename, REGEX_TEST_GRAPH_DEFAULT);
+      REGEX_INTERNAL_automaton_destroy(a);
+      error += filecheck(filename);
 
-    a = REGEX_INTERNAL_construct_nfa (regex[i], strlen (regex[i]));
-    REGEX_TEST_automaton_save_graph (a, filename,
-                                       REGEX_TEST_GRAPH_DEFAULT |
-                                       REGEX_TEST_GRAPH_VERBOSE);
-    REGEX_INTERNAL_automaton_destroy (a);
-    error += filecheck (filename);
+      a = REGEX_INTERNAL_construct_nfa(regex[i], strlen(regex[i]));
+      REGEX_TEST_automaton_save_graph(a, filename,
+                                      REGEX_TEST_GRAPH_DEFAULT |
+                                      REGEX_TEST_GRAPH_VERBOSE);
+      REGEX_INTERNAL_automaton_destroy(a);
+      error += filecheck(filename);
 
-    a = REGEX_INTERNAL_construct_nfa (regex[i], strlen (regex[i]));
-    REGEX_TEST_automaton_save_graph (a, filename,
-                                       REGEX_TEST_GRAPH_DEFAULT |
-                                       REGEX_TEST_GRAPH_COLORING);
-    REGEX_INTERNAL_automaton_destroy (a);
-    error += filecheck (filename);
+      a = REGEX_INTERNAL_construct_nfa(regex[i], strlen(regex[i]));
+      REGEX_TEST_automaton_save_graph(a, filename,
+                                      REGEX_TEST_GRAPH_DEFAULT |
+                                      REGEX_TEST_GRAPH_COLORING);
+      REGEX_INTERNAL_automaton_destroy(a);
+      error += filecheck(filename);
 
-    a = REGEX_INTERNAL_construct_nfa (regex[i], strlen (regex[i]));
-    REGEX_TEST_automaton_save_graph (a, filename,
-                                       REGEX_TEST_GRAPH_DEFAULT |
-                                       REGEX_TEST_GRAPH_VERBOSE |
-                                       REGEX_TEST_GRAPH_COLORING);
-    REGEX_INTERNAL_automaton_destroy (a);
-    error += filecheck (filename);
-
-
-    /* Check DFA graph creation */
-    a = REGEX_INTERNAL_construct_dfa (regex[i], strlen (regex[i]), 0);
-    REGEX_TEST_automaton_save_graph (a, filename, REGEX_TEST_GRAPH_DEFAULT);
-    REGEX_INTERNAL_automaton_destroy (a);
-    error += filecheck (filename);
-
-    a = REGEX_INTERNAL_construct_dfa (regex[i], strlen (regex[i]), 0);
-    REGEX_TEST_automaton_save_graph (a, filename,
-                                       REGEX_TEST_GRAPH_DEFAULT |
-                                       REGEX_TEST_GRAPH_VERBOSE);
-    REGEX_INTERNAL_automaton_destroy (a);
-    error += filecheck (filename);
-
-    a = REGEX_INTERNAL_construct_dfa (regex[i], strlen (regex[i]), 0);
-    REGEX_TEST_automaton_save_graph (a, filename,
-                                       REGEX_TEST_GRAPH_DEFAULT |
-                                       REGEX_TEST_GRAPH_COLORING);
-    REGEX_INTERNAL_automaton_destroy (a);
-    error += filecheck (filename);
+      a = REGEX_INTERNAL_construct_nfa(regex[i], strlen(regex[i]));
+      REGEX_TEST_automaton_save_graph(a, filename,
+                                      REGEX_TEST_GRAPH_DEFAULT |
+                                      REGEX_TEST_GRAPH_VERBOSE |
+                                      REGEX_TEST_GRAPH_COLORING);
+      REGEX_INTERNAL_automaton_destroy(a);
+      error += filecheck(filename);
 
 
-    a = REGEX_INTERNAL_construct_dfa (regex[i], strlen (regex[i]), 4);
-    REGEX_TEST_automaton_save_graph (a, filename, REGEX_TEST_GRAPH_DEFAULT);
-    REGEX_INTERNAL_automaton_destroy (a);
-    error += filecheck (filename);
+      /* Check DFA graph creation */
+      a = REGEX_INTERNAL_construct_dfa(regex[i], strlen(regex[i]), 0);
+      REGEX_TEST_automaton_save_graph(a, filename, REGEX_TEST_GRAPH_DEFAULT);
+      REGEX_INTERNAL_automaton_destroy(a);
+      error += filecheck(filename);
 
-  }
+      a = REGEX_INTERNAL_construct_dfa(regex[i], strlen(regex[i]), 0);
+      REGEX_TEST_automaton_save_graph(a, filename,
+                                      REGEX_TEST_GRAPH_DEFAULT |
+                                      REGEX_TEST_GRAPH_VERBOSE);
+      REGEX_INTERNAL_automaton_destroy(a);
+      error += filecheck(filename);
+
+      a = REGEX_INTERNAL_construct_dfa(regex[i], strlen(regex[i]), 0);
+      REGEX_TEST_automaton_save_graph(a, filename,
+                                      REGEX_TEST_GRAPH_DEFAULT |
+                                      REGEX_TEST_GRAPH_COLORING);
+      REGEX_INTERNAL_automaton_destroy(a);
+      error += filecheck(filename);
+
+
+      a = REGEX_INTERNAL_construct_dfa(regex[i], strlen(regex[i]), 4);
+      REGEX_TEST_automaton_save_graph(a, filename, REGEX_TEST_GRAPH_DEFAULT);
+      REGEX_INTERNAL_automaton_destroy(a);
+      error += filecheck(filename);
+    }
 
   return error;
 }

@@ -11,12 +11,12 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 
 /**
  * @file fs/gnunet-service-fs_push.h
@@ -33,14 +33,14 @@
  * Setup the module.
  */
 void
-GSF_push_init_ (void);
+GSF_push_init_(void);
 
 
 /**
  * Shutdown the module.
  */
 void
-GSF_push_done_ (void);
+GSF_push_done_(void);
 
 
 /**
@@ -50,7 +50,7 @@ GSF_push_done_ (void);
  * @param peer handle for the peer that connected
  */
 void
-GSF_push_start_ (struct GSF_ConnectedPeer *peer);
+GSF_push_start_(struct GSF_ConnectedPeer *peer);
 
 
 /**
@@ -60,7 +60,7 @@ GSF_push_start_ (struct GSF_ConnectedPeer *peer);
  * @param peer handle for the peer that disconnected
  */
 void
-GSF_push_stop_ (struct GSF_ConnectedPeer *peer);
+GSF_push_stop_(struct GSF_ConnectedPeer *peer);
 
 
 #endif

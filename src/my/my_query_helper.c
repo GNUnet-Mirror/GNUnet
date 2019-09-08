@@ -11,12 +11,12 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 /**
  * @file my/my_query_helper.c
  * @brief library to help with access to a MySQL database
@@ -36,11 +36,11 @@
  * @param qbind array of parameter to clean up
  */
 static void
-my_clean_query (void *cls,
-                MYSQL_BIND *qbind)
+my_clean_query(void *cls,
+               MYSQL_BIND *qbind)
 {
-  (void) cls;
-  GNUNET_free (qbind[0].buffer);
+  (void)cls;
+  GNUNET_free(qbind[0].buffer);
 }
 
 
@@ -53,13 +53,13 @@ my_clean_query (void *cls,
  * @return -1 on error
  */
 static int
-my_conv_fixed_size (void *cls,
-                    const struct GNUNET_MY_QueryParam *qp,
-                    MYSQL_BIND *qbind)
+my_conv_fixed_size(void *cls,
+                   const struct GNUNET_MY_QueryParam *qp,
+                   MYSQL_BIND *qbind)
 {
-  (void) cls;
-  GNUNET_assert (1 == qp->num_params);
-  qbind->buffer = (void *) qp->data;
+  (void)cls;
+  GNUNET_assert(1 == qp->num_params);
+  qbind->buffer = (void *)qp->data;
   qbind->buffer_length = qp->data_len;
   qbind->buffer_type = MYSQL_TYPE_BLOB;
 
@@ -75,8 +75,8 @@ my_conv_fixed_size (void *cls,
  * @param ptr_size number of bytes in @a ptr
  */
 struct GNUNET_MY_QueryParam
-GNUNET_MY_query_param_fixed_size (const void *ptr,
-				  size_t ptr_size)
+GNUNET_MY_query_param_fixed_size(const void *ptr,
+                                 size_t ptr_size)
 {
   struct GNUNET_MY_QueryParam qp = {
     .conv = &my_conv_fixed_size,
@@ -84,8 +84,9 @@ GNUNET_MY_query_param_fixed_size (const void *ptr,
     .conv_cls = NULL,
     .num_params = 1,
     .data = ptr,
-    .data_len = (unsigned long) ptr_size
+    .data_len = (unsigned long)ptr_size
   };
+
   return qp;
 }
 
@@ -99,13 +100,13 @@ GNUNET_MY_query_param_fixed_size (const void *ptr,
  * @return -1 on error
  */
 static int
-my_conv_string (void *cls,
-                const struct GNUNET_MY_QueryParam *qp,
-                MYSQL_BIND *qbind)
+my_conv_string(void *cls,
+               const struct GNUNET_MY_QueryParam *qp,
+               MYSQL_BIND *qbind)
 {
-  (void) cls;
-  GNUNET_assert (1 == qp->num_params);
-  qbind->buffer = (void *) qp->data;
+  (void)cls;
+  GNUNET_assert(1 == qp->num_params);
+  qbind->buffer = (void *)qp->data;
   qbind->buffer_length = qp->data_len;
   qbind->buffer_type = MYSQL_TYPE_STRING;
   return 1;
@@ -118,7 +119,7 @@ my_conv_string (void *cls,
  * @param ptr pointer to the string query parameter to pass
  */
 struct GNUNET_MY_QueryParam
-GNUNET_MY_query_param_string (const char *ptr)
+GNUNET_MY_query_param_string(const char *ptr)
 {
   struct GNUNET_MY_QueryParam qp = {
     .conv = &my_conv_string,
@@ -126,8 +127,9 @@ GNUNET_MY_query_param_string (const char *ptr)
     .conv_cls = NULL,
     .num_params = 1,
     .data = ptr,
-    .data_len = strlen (ptr)
+    .data_len = strlen(ptr)
   };
+
   return qp;
 }
 
@@ -141,14 +143,14 @@ GNUNET_MY_query_param_string (const char *ptr)
  * @return -1 on error
  */
 static int
-my_conv_uint16 (void *cls,
-                const struct GNUNET_MY_QueryParam *qp,
-                MYSQL_BIND *qbind)
+my_conv_uint16(void *cls,
+               const struct GNUNET_MY_QueryParam *qp,
+               MYSQL_BIND *qbind)
 {
-  (void) cls;
-  GNUNET_assert (1 == qp->num_params);
-  qbind->buffer = (void *) qp->data;
-  qbind->buffer_length = sizeof (uint16_t);
+  (void)cls;
+  GNUNET_assert(1 == qp->num_params);
+  qbind->buffer = (void *)qp->data;
+  qbind->buffer_length = sizeof(uint16_t);
   qbind->buffer_type = MYSQL_TYPE_SHORT;
   qbind->is_unsigned = 1;
   return 1;
@@ -161,7 +163,7 @@ my_conv_uint16 (void *cls,
  * @param x pointer to the query parameter to pass
  */
 struct GNUNET_MY_QueryParam
-GNUNET_MY_query_param_uint16 (const uint16_t *x)
+GNUNET_MY_query_param_uint16(const uint16_t *x)
 {
   struct GNUNET_MY_QueryParam res = {
     .conv = &my_conv_uint16,
@@ -169,7 +171,7 @@ GNUNET_MY_query_param_uint16 (const uint16_t *x)
     .conv_cls = NULL,
     .num_params = 1,
     .data = x,
-    .data_len = sizeof (*x)
+    .data_len = sizeof(*x)
   };
 
   return res;
@@ -185,13 +187,13 @@ GNUNET_MY_query_param_uint16 (const uint16_t *x)
  * @return -1 on error
  */
 static int
-my_conv_uint32 (void *cls,
-                const struct GNUNET_MY_QueryParam *qp,
-                MYSQL_BIND *qbind)
+my_conv_uint32(void *cls,
+               const struct GNUNET_MY_QueryParam *qp,
+               MYSQL_BIND *qbind)
 {
-  (void) cls;
-  GNUNET_assert (1 == qp->num_params);
-  qbind->buffer = (void *) qp->data;
+  (void)cls;
+  GNUNET_assert(1 == qp->num_params);
+  qbind->buffer = (void *)qp->data;
   qbind->buffer_length = sizeof(uint32_t);
   qbind->buffer_type = MYSQL_TYPE_LONG;
   qbind->is_unsigned = 1;
@@ -205,7 +207,7 @@ my_conv_uint32 (void *cls,
  * @param x pointer to the query parameter to pass
  */
 struct GNUNET_MY_QueryParam
-GNUNET_MY_query_param_uint32 (const uint32_t *x)
+GNUNET_MY_query_param_uint32(const uint32_t *x)
 {
   struct GNUNET_MY_QueryParam res = {
     .conv = &my_conv_uint32,
@@ -213,7 +215,7 @@ GNUNET_MY_query_param_uint32 (const uint32_t *x)
     .conv_cls = NULL,
     .num_params = 1,
     .data = x,
-    .data_len = sizeof (*x)
+    .data_len = sizeof(*x)
   };
 
   return res;
@@ -229,14 +231,14 @@ GNUNET_MY_query_param_uint32 (const uint32_t *x)
  * @return -1 on error
  */
 static int
-my_conv_uint64 (void *cls,
-                const struct GNUNET_MY_QueryParam *qp,
-                MYSQL_BIND * qbind)
+my_conv_uint64(void *cls,
+               const struct GNUNET_MY_QueryParam *qp,
+               MYSQL_BIND * qbind)
 {
-  (void) cls;
-  GNUNET_assert (1 == qp->num_params);
-  qbind->buffer = (void *) qp->data;
-  qbind->buffer_length = sizeof (uint64_t);
+  (void)cls;
+  GNUNET_assert(1 == qp->num_params);
+  qbind->buffer = (void *)qp->data;
+  qbind->buffer_length = sizeof(uint64_t);
   qbind->buffer_type = MYSQL_TYPE_LONGLONG;
   qbind->is_unsigned = 1;
   return 1;
@@ -249,7 +251,7 @@ my_conv_uint64 (void *cls,
  * @param x pointer to the query parameter to pass
  */
 struct GNUNET_MY_QueryParam
-GNUNET_MY_query_param_uint64 (const uint64_t *x)
+GNUNET_MY_query_param_uint64(const uint64_t *x)
 {
   struct GNUNET_MY_QueryParam res = {
     .conv = &my_conv_uint64,
@@ -273,19 +275,19 @@ GNUNET_MY_query_param_uint64 (const uint64_t *x)
  * @return -1 on error
  */
 static int
-my_conv_rsa_public_key (void *cls,
-                        const struct GNUNET_MY_QueryParam *qp,
-                        MYSQL_BIND * qbind)
+my_conv_rsa_public_key(void *cls,
+                       const struct GNUNET_MY_QueryParam *qp,
+                       MYSQL_BIND * qbind)
 {
   const struct GNUNET_CRYPTO_RsaPublicKey *rsa = qp->data;
   char *buf;
   size_t buf_size;
 
-  (void) cls;
+  (void)cls;
   GNUNET_assert(1 == qp->num_params);
-  buf_size = GNUNET_CRYPTO_rsa_public_key_encode (rsa,
-						  &buf);
-  qbind->buffer = (void *) buf;
+  buf_size = GNUNET_CRYPTO_rsa_public_key_encode(rsa,
+                                                 &buf);
+  qbind->buffer = (void *)buf;
   qbind->buffer_length = buf_size;
   qbind->buffer_type = MYSQL_TYPE_BLOB;
   return 1;
@@ -300,7 +302,7 @@ my_conv_rsa_public_key (void *cls,
  * @return array entry for the query parameters to use
  */
 struct GNUNET_MY_QueryParam
-GNUNET_MY_query_param_rsa_public_key (const struct GNUNET_CRYPTO_RsaPublicKey *x)
+GNUNET_MY_query_param_rsa_public_key(const struct GNUNET_CRYPTO_RsaPublicKey *x)
 {
   struct GNUNET_MY_QueryParam res = {
     .conv = &my_conv_rsa_public_key,
@@ -316,27 +318,27 @@ GNUNET_MY_query_param_rsa_public_key (const struct GNUNET_CRYPTO_RsaPublicKey *x
 
 
 /**
-  * Function called to convert input argument into SQL parameters
-  *
-  *@param cls closure
-  *@param pq data about the query
-  *@param qbind array of parameters to initialize
-  *@return -1 on error
-  */
+ * Function called to convert input argument into SQL parameters
+ *
+ *@param cls closure
+ *@param pq data about the query
+ *@param qbind array of parameters to initialize
+ *@return -1 on error
+ */
 static int
-my_conv_rsa_signature (void *cls,
-                       const struct GNUNET_MY_QueryParam *qp,
-                       MYSQL_BIND *qbind)
+my_conv_rsa_signature(void *cls,
+                      const struct GNUNET_MY_QueryParam *qp,
+                      MYSQL_BIND *qbind)
 {
   const struct GNUNET_CRYPTO_RsaSignature *sig = qp->data;
   char *buf;
   size_t buf_size;
 
-  (void) cls;
+  (void)cls;
   GNUNET_assert(1 == qp->num_params);
-  buf_size = GNUNET_CRYPTO_rsa_signature_encode (sig,
-                                                 &buf);
-  qbind->buffer = (void *) buf;
+  buf_size = GNUNET_CRYPTO_rsa_signature_encode(sig,
+                                                &buf);
+  qbind->buffer = (void *)buf;
   qbind->buffer_length = buf_size;
   qbind->buffer_type = MYSQL_TYPE_BLOB;
   return 1;
@@ -351,7 +353,7 @@ my_conv_rsa_signature (void *cls,
  * @return array entry for the query parameters to use
  */
 struct GNUNET_MY_QueryParam
-GNUNET_MY_query_param_rsa_signature (const struct GNUNET_CRYPTO_RsaSignature *x)
+GNUNET_MY_query_param_rsa_signature(const struct GNUNET_CRYPTO_RsaSignature *x)
 {
   struct GNUNET_MY_QueryParam res = {
     .conv = &my_conv_rsa_signature,
@@ -361,6 +363,7 @@ GNUNET_MY_query_param_rsa_signature (const struct GNUNET_CRYPTO_RsaSignature *x)
     .data = (x),
     .data_len = 0
   };
+
   return res;
 }
 
@@ -373,9 +376,9 @@ GNUNET_MY_query_param_rsa_signature (const struct GNUNET_CRYPTO_RsaSignature *x)
  * @return array entry for the query parameters to use
  */
 struct GNUNET_MY_QueryParam
-GNUNET_MY_query_param_absolute_time (const struct GNUNET_TIME_Absolute *x)
+GNUNET_MY_query_param_absolute_time(const struct GNUNET_TIME_Absolute *x)
 {
-  return GNUNET_MY_query_param_uint64 (&x->abs_value_us);
+  return GNUNET_MY_query_param_uint64(&x->abs_value_us);
 }
 
 
@@ -386,9 +389,9 @@ GNUNET_MY_query_param_absolute_time (const struct GNUNET_TIME_Absolute *x)
  * @param x pointer to the query parameter to pass
  */
 struct GNUNET_MY_QueryParam
-GNUNET_MY_query_param_absolute_time_nbo (const struct GNUNET_TIME_AbsoluteNBO *x)
+GNUNET_MY_query_param_absolute_time_nbo(const struct GNUNET_TIME_AbsoluteNBO *x)
 {
-  return GNUNET_MY_query_param_auto_from_type (&x->abs_value_us__);
+  return GNUNET_MY_query_param_auto_from_type(&x->abs_value_us__);
 }
 
 

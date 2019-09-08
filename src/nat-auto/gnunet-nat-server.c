@@ -11,12 +11,12 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
-*/
+ */
 
 /**
  * @file src/nat/gnunet-nat-server.c
@@ -33,8 +33,7 @@
 /**
  * Information we track per client.
  */
-struct ClientData
-{
+struct ClientData {
   /**
    * Timeout task.
    */
@@ -61,9 +60,9 @@ static const struct GNUNET_CONFIGURATION_Handle *cfg;
  * @param is_tcp mark for TCP (#GNUNET_YES)  or UDP (#GNUNET_NO)
  */
 static void
-try_anat (uint32_t dst_ipv4,
-          uint16_t dport,
-          int is_tcp)
+try_anat(uint32_t dst_ipv4,
+         uint16_t dport,
+         int is_tcp)
 {
   struct GNUNET_NAT_Handle *h;
   struct sockaddr_in lsa;
@@ -71,45 +70,44 @@ try_anat (uint32_t dst_ipv4,
   const struct sockaddr *sa;
   socklen_t sa_len;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Asking for connection reversal with %x and code %u\n",
-              (unsigned int) dst_ipv4,
-              (unsigned int) dport);
-  memset (&lsa, 0, sizeof (lsa));
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+             "Asking for connection reversal with %x and code %u\n",
+             (unsigned int)dst_ipv4,
+             (unsigned int)dport);
+  memset(&lsa, 0, sizeof(lsa));
   lsa.sin_family = AF_INET;
 #if HAVE_SOCKADDR_IN_SIN_LEN
-  lsa.sin_len = sizeof (sa);
+  lsa.sin_len = sizeof(sa);
 #endif
   lsa.sin_addr.s_addr = 0;
-  lsa.sin_port = htons (dport);
-  memset (&rsa, 0, sizeof (rsa));
+  lsa.sin_port = htons(dport);
+  memset(&rsa, 0, sizeof(rsa));
   rsa.sin_family = AF_INET;
 #if HAVE_SOCKADDR_IN_SIN_LEN
-  rsa.sin_len = sizeof (sa);
+  rsa.sin_len = sizeof(sa);
 #endif
   rsa.sin_addr.s_addr = dst_ipv4;
-  rsa.sin_port = htons (dport);
-  sa_len = sizeof (lsa);
-  sa = (const struct sockaddr *) &lsa;
-  h = GNUNET_NAT_register (cfg,
-			   "none",
-                           is_tcp ? IPPROTO_TCP : IPPROTO_UDP,
-                           1,
-			   &sa,
-			   &sa_len,
-                           NULL, NULL, NULL);
-  GNUNET_NAT_request_reversal (h,
-			       &lsa,
-			       &rsa);
-  GNUNET_NAT_unregister (h);
+  rsa.sin_port = htons(dport);
+  sa_len = sizeof(lsa);
+  sa = (const struct sockaddr *)&lsa;
+  h = GNUNET_NAT_register(cfg,
+                          "none",
+                          is_tcp ? IPPROTO_TCP : IPPROTO_UDP,
+                          1,
+                          &sa,
+                          &sa_len,
+                          NULL, NULL, NULL);
+  GNUNET_NAT_request_reversal(h,
+                              &lsa,
+                              &rsa);
+  GNUNET_NAT_unregister(h);
 }
 
 
 /**
  * Closure for #tcp_send.
  */
-struct TcpContext
-{
+struct TcpContext {
   /**
    * TCP  socket.
    */
@@ -129,24 +127,24 @@ struct TcpContext
  * @param cls the `struct TcpContext`
  */
 static void
-tcp_send (void *cls)
+tcp_send(void *cls)
 {
   struct TcpContext *ctx = cls;
   const struct GNUNET_SCHEDULER_TaskContext *tc;
 
-  tc = GNUNET_SCHEDULER_get_task_context ();
+  tc = GNUNET_SCHEDULER_get_task_context();
   if ((NULL != tc->write_ready) &&
-      (GNUNET_NETWORK_fdset_isset (tc->write_ready, ctx->s)))
-  {
-    if (-1 ==
-        GNUNET_NETWORK_socket_send (ctx->s, &ctx->data, sizeof (ctx->data)))
+      (GNUNET_NETWORK_fdset_isset(tc->write_ready, ctx->s)))
     {
-      GNUNET_log_strerror (GNUNET_ERROR_TYPE_DEBUG, "send");
+      if (-1 ==
+          GNUNET_NETWORK_socket_send(ctx->s, &ctx->data, sizeof(ctx->data)))
+        {
+          GNUNET_log_strerror(GNUNET_ERROR_TYPE_DEBUG, "send");
+        }
+      GNUNET_NETWORK_socket_shutdown(ctx->s, SHUT_RDWR);
     }
-    GNUNET_NETWORK_socket_shutdown (ctx->s, SHUT_RDWR);
-  }
-  GNUNET_NETWORK_socket_close (ctx->s);
-  GNUNET_free (ctx);
+  GNUNET_NETWORK_socket_close(ctx->s);
+  GNUNET_free(ctx);
 }
 
 
@@ -159,52 +157,52 @@ tcp_send (void *cls)
  * @param data data to send
  */
 static void
-try_send_tcp (uint32_t dst_ipv4,
-              uint16_t dport,
-              uint16_t data)
+try_send_tcp(uint32_t dst_ipv4,
+             uint16_t dport,
+             uint16_t data)
 {
   struct GNUNET_NETWORK_Handle *s;
   struct sockaddr_in sa;
   struct TcpContext *ctx;
 
-  s = GNUNET_NETWORK_socket_create (AF_INET,
-                                    SOCK_STREAM,
-                                    0);
+  s = GNUNET_NETWORK_socket_create(AF_INET,
+                                   SOCK_STREAM,
+                                   0);
   if (NULL == s)
-  {
-    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING,
-                         "socket");
-    return;
-  }
-  memset (&sa, 0, sizeof (sa));
+    {
+      GNUNET_log_strerror(GNUNET_ERROR_TYPE_WARNING,
+                          "socket");
+      return;
+    }
+  memset(&sa, 0, sizeof(sa));
   sa.sin_family = AF_INET;
 #if HAVE_SOCKADDR_IN_SIN_LEN
-  sa.sin_len = sizeof (sa);
+  sa.sin_len = sizeof(sa);
 #endif
   sa.sin_addr.s_addr = dst_ipv4;
-  sa.sin_port = htons (dport);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Sending TCP message to `%s'\n",
-              GNUNET_a2s ((struct sockaddr *) &sa,
-                          sizeof (sa)));
-  if ( (GNUNET_OK !=
-        GNUNET_NETWORK_socket_connect (s,
-                                       (const struct sockaddr *) &sa,
-                                       sizeof (sa))) &&
-       (errno != EINPROGRESS) )
-  {
-    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING,
-                         "connect");
-    GNUNET_NETWORK_socket_close (s);
-    return;
-  }
-  ctx = GNUNET_new (struct TcpContext);
+  sa.sin_port = htons(dport);
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+             "Sending TCP message to `%s'\n",
+             GNUNET_a2s((struct sockaddr *)&sa,
+                        sizeof(sa)));
+  if ((GNUNET_OK !=
+       GNUNET_NETWORK_socket_connect(s,
+                                     (const struct sockaddr *)&sa,
+                                     sizeof(sa))) &&
+      (errno != EINPROGRESS))
+    {
+      GNUNET_log_strerror(GNUNET_ERROR_TYPE_WARNING,
+                          "connect");
+      GNUNET_NETWORK_socket_close(s);
+      return;
+    }
+  ctx = GNUNET_new(struct TcpContext);
   ctx->s = s;
   ctx->data = data;
-  GNUNET_SCHEDULER_add_write_net (GNUNET_TIME_UNIT_SECONDS,
-                                  s,
-                                  &tcp_send,
-                                  ctx);
+  GNUNET_SCHEDULER_add_write_net(GNUNET_TIME_UNIT_SECONDS,
+                                 s,
+                                 &tcp_send,
+                                 ctx);
 }
 
 
@@ -217,42 +215,42 @@ try_send_tcp (uint32_t dst_ipv4,
  * @param data data to send
  */
 static void
-try_send_udp (uint32_t dst_ipv4,
-              uint16_t dport,
-              uint16_t data)
+try_send_udp(uint32_t dst_ipv4,
+             uint16_t dport,
+             uint16_t data)
 {
   struct GNUNET_NETWORK_Handle *s;
   struct sockaddr_in sa;
 
-  s = GNUNET_NETWORK_socket_create (AF_INET,
-                                    SOCK_DGRAM,
-                                    0);
+  s = GNUNET_NETWORK_socket_create(AF_INET,
+                                   SOCK_DGRAM,
+                                   0);
   if (NULL == s)
-  {
-    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING,
-                         "socket");
-    return;
-  }
-  memset (&sa, 0, sizeof (sa));
+    {
+      GNUNET_log_strerror(GNUNET_ERROR_TYPE_WARNING,
+                          "socket");
+      return;
+    }
+  memset(&sa, 0, sizeof(sa));
   sa.sin_family = AF_INET;
 #if HAVE_SOCKADDR_IN_SIN_LEN
-  sa.sin_len = sizeof (sa);
+  sa.sin_len = sizeof(sa);
 #endif
   sa.sin_addr.s_addr = dst_ipv4;
-  sa.sin_port = htons (dport);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Sending UDP packet to `%s'\n",
-              GNUNET_a2s ((struct sockaddr *) &sa,
-                          sizeof (sa)));
+  sa.sin_port = htons(dport);
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+             "Sending UDP packet to `%s'\n",
+             GNUNET_a2s((struct sockaddr *)&sa,
+                        sizeof(sa)));
   if (-1 ==
-      GNUNET_NETWORK_socket_sendto (s,
-                                    &data,
-                                    sizeof (data),
-                                    (const struct sockaddr *) &sa,
-                                    sizeof (sa)))
-    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING,
-                         "sendto");
-  GNUNET_NETWORK_socket_close (s);
+      GNUNET_NETWORK_socket_sendto(s,
+                                   &data,
+                                   sizeof(data),
+                                   (const struct sockaddr *)&sa,
+                                   sizeof(sa)))
+    GNUNET_log_strerror(GNUNET_ERROR_TYPE_WARNING,
+                        "sendto");
+  GNUNET_NETWORK_socket_close(s);
 }
 
 
@@ -264,28 +262,28 @@ try_send_udp (uint32_t dst_ipv4,
  * @param msg message with details about what to test
  */
 static void
-handle_test (void *cls,
-             const struct GNUNET_NAT_AUTO_TestMessage *tm)
+handle_test(void *cls,
+            const struct GNUNET_NAT_AUTO_TestMessage *tm)
 {
   struct ClientData *cd = cls;
   uint16_t dport;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Received test request\n");
-  dport = ntohs (tm->dport);
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+             "Received test request\n");
+  dport = ntohs(tm->dport);
   if (0 == dport)
-    try_anat (tm->dst_ipv4,
-              ntohs (tm->data),
-              (int) ntohl (tm->is_tcp));
-  else if (GNUNET_YES == ntohl (tm->is_tcp))
-    try_send_tcp (tm->dst_ipv4,
-                  dport,
-                  tm->data);
+    try_anat(tm->dst_ipv4,
+             ntohs(tm->data),
+             (int)ntohl(tm->is_tcp));
+  else if (GNUNET_YES == ntohl(tm->is_tcp))
+    try_send_tcp(tm->dst_ipv4,
+                 dport,
+                 tm->data);
   else
-    try_send_udp (tm->dst_ipv4,
-                  dport,
-                  tm->data);
-  GNUNET_SERVICE_client_drop (cd->client);
+    try_send_udp(tm->dst_ipv4,
+                 dport,
+                 tm->data);
+  GNUNET_SERVICE_client_drop(cd->client);
 }
 
 
@@ -297,9 +295,9 @@ handle_test (void *cls,
  * @param srv service handle
  */
 static void
-run (void *cls,
-     const struct GNUNET_CONFIGURATION_Handle *c,
-     struct GNUNET_SERVICE_Handle *srv)
+run(void *cls,
+    const struct GNUNET_CONFIGURATION_Handle *c,
+    struct GNUNET_SERVICE_Handle *srv)
 {
   cfg = c;
 }
@@ -311,12 +309,12 @@ run (void *cls,
  * @param cls our `struct ClientData` of a client to drop
  */
 static void
-force_timeout (void *cls)
+force_timeout(void *cls)
 {
   struct ClientData *cd = cls;
 
   cd->tt = NULL;
-  GNUNET_SERVICE_client_drop (cd->client);
+  GNUNET_SERVICE_client_drop(cd->client);
 }
 
 
@@ -330,17 +328,17 @@ force_timeout (void *cls)
  * @return our `struct ClientData`
  */
 static void *
-client_connect_cb (void *cls,
-		   struct GNUNET_SERVICE_Client *c,
-		   struct GNUNET_MQ_Handle *mq)
+client_connect_cb(void *cls,
+                  struct GNUNET_SERVICE_Client *c,
+                  struct GNUNET_MQ_Handle *mq)
 {
   struct ClientData *cd;
 
-  cd = GNUNET_new (struct ClientData);
+  cd = GNUNET_new(struct ClientData);
   cd->client = c;
-  cd->tt = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
-                                         &force_timeout,
-                                         cd);
+  cd->tt = GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_UNIT_SECONDS,
+                                        &force_timeout,
+                                        cd);
   return cd;
 }
 
@@ -353,15 +351,15 @@ client_connect_cb (void *cls,
  * @param internal_cls our `struct ClientData`
  */
 static void
-client_disconnect_cb (void *cls,
-		      struct GNUNET_SERVICE_Client *c,
-		      void *internal_cls)
+client_disconnect_cb(void *cls,
+                     struct GNUNET_SERVICE_Client *c,
+                     void *internal_cls)
 {
   struct ClientData *cd = internal_cls;
 
   if (NULL != cd->tt)
-    GNUNET_SCHEDULER_cancel (cd->tt);
-  GNUNET_free (cd);
+    GNUNET_SCHEDULER_cancel(cd->tt);
+  GNUNET_free(cd);
 }
 
 
@@ -369,17 +367,17 @@ client_disconnect_cb (void *cls,
  * Define "main" method using service macro.
  */
 GNUNET_SERVICE_MAIN
-("nat-server",
- GNUNET_SERVICE_OPTION_NONE,
- &run,
- &client_connect_cb,
- &client_disconnect_cb,
- NULL,
- GNUNET_MQ_hd_fixed_size (test,
-			  GNUNET_MESSAGE_TYPE_NAT_TEST,
-			  struct GNUNET_NAT_AUTO_TestMessage,
-			  NULL),
- GNUNET_MQ_handler_end ());
+  ("nat-server",
+  GNUNET_SERVICE_OPTION_NONE,
+  &run,
+  &client_connect_cb,
+  &client_disconnect_cb,
+  NULL,
+  GNUNET_MQ_hd_fixed_size(test,
+                          GNUNET_MESSAGE_TYPE_NAT_TEST,
+                          struct GNUNET_NAT_AUTO_TestMessage,
+                          NULL),
+  GNUNET_MQ_handler_end());
 
 
 #if defined(LINUX) && defined(__GLIBC__)
@@ -389,11 +387,11 @@ GNUNET_SERVICE_MAIN
  * MINIMIZE heap size (way below 128k) since this process doesn't need much.
  */
 void __attribute__ ((constructor))
-GNUNET_ARM_memory_init ()
+GNUNET_ARM_memory_init()
 {
-  mallopt (M_TRIM_THRESHOLD, 4 * 1024);
-  mallopt (M_TOP_PAD, 1 * 1024);
-  malloc_trim (0);
+  mallopt(M_TRIM_THRESHOLD, 4 * 1024);
+  mallopt(M_TOP_PAD, 1 * 1024);
+  malloc_trim(0);
 }
 #endif
 
