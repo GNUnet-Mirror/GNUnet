@@ -2111,7 +2111,7 @@ wlan_plugin_string_to_address(void *cls,
       return GNUNET_SYSERR;
     }
 
-  if (8 != SSCANF(addr,
+  if (8 != sscanf(addr,
                   "%4s.%u.%X:%X:%X:%X:%X:%X",
                   plugin, &options,
                   &a[0], &a[1], &a[2],

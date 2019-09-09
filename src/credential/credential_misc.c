@@ -77,7 +77,7 @@ GNUNET_CREDENTIAL_credential_from_string(const char* s)
   struct GNUNET_CRYPTO_EcdsaSignature *sig;
   struct GNUNET_TIME_Absolute etime_abs;
 
-  if (5 != SSCANF(s,
+  if (5 != sscanf(s,
                   "%52s.%253s -> %52s | %s | %" SCNu64,
                   issuer_pkey,
                   name,

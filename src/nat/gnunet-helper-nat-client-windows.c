@@ -22,7 +22,7 @@
  * @file src/nat/gnunet-helper-nat-client-windows.c
  * @brief Tool to help bypass NATs using ICMP method; must run as
  *        administrator on W32
- *        This code is forx W32.
+ *        This code is for W32.
  * @author Nathan Evans
  *
  * This program will send ONE ICMP message using RAW sockets
@@ -172,7 +172,7 @@ static boolean privilege_testing = FALSE;
 /**
  * Socket we use to send our ICMP packets.
  */
-static SOCKET rawsock;
+static _win_socket rawsock;
 
 /**
  * Target "dummy" address.
@@ -426,21 +426,21 @@ send_icmp(const struct in_addr *my_ip, const struct in_addr *other)
  *
  * @return INVALID_SOCKET on error
  */
-static SOCKET
+static _win_socket
 make_raw_socket()
 {
   DWORD bOptVal = TRUE;
   int bOptLen = sizeof(bOptVal);
-  SOCKET ret;
+  _win_socket ret;
 
-  ret = socket(AF_INET, SOCK_RAW, IPPROTO_RAW);
+  ret = _win_socket(AF_INET, SOCK_RAW, IPPROTO_RAW);
   if (INVALID_SOCKET == ret)
     {
       fprintf(stderr, "Error opening RAW socket: %s\n", strerror(errno));
       return INVALID_SOCKET;
     }
   if (0 !=
-      setsockopt(ret, SOL_SOCKET, SO_BROADCAST, (char *)&bOptVal, bOptLen))
+      _win_setsockopt(ret, SOL_SOCKET, SO_BROADCAST, (char *)&bOptVal, bOptLen))
     {
       fprintf(stderr, "Error setting SO_BROADCAST to ON: %s\n",
               strerror(errno));
@@ -448,7 +448,7 @@ make_raw_socket()
       return INVALID_SOCKET;
     }
 
-  if (0 != setsockopt(ret, IPPROTO_IP, IP_HDRINCL, (char *)&bOptVal, bOptLen))
+  if (0 != _win_setsockopt(ret, IPPROTO_IP, IP_HDRINCL, (char *)&bOptVal, bOptLen))
     {
       fprintf(stderr, "Error setting IP_HDRINCL to ON: %s\n", strerror(errno));
       closesocket(rawsock);

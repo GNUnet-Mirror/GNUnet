@@ -123,7 +123,7 @@ main(int argc, char *argv[])
               "e.g. mon0 11-22-33-44-55-66 12-34-56-78-90-ab\n");
       return 1;
     }
-  if (6 != SSCANF(argv[2],
+  if (6 != sscanf(argv[2],
                   "%x-%x-%x-%x-%x-%x",
                   &temp[0],
                   &temp[1],
@@ -139,7 +139,7 @@ main(int argc, char *argv[])
     }
   for (i = 0; i < 6; i++)
     outmac.mac[i] = temp[i];
-  if (6 != SSCANF(argv[3],
+  if (6 != sscanf(argv[3],
                   "%x-%x-%x-%x-%x-%x",
                   &temp[0],
                   &temp[1],

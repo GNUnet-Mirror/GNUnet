@@ -156,7 +156,7 @@ get_path_from_proc_maps()
     return NULL;
   while (NULL != fgets(line, sizeof(line), f))
     {
-      if ((1 == SSCANF(line,
+      if ((1 == sscanf(line,
                        "%*x-%*x %*c%*c%*c%*c %*x %*2x:%*2x %*u%*[ ]%1023s",
                        dir)) &&
           (NULL != (lgu = strstr(dir, current_pd->libname))))

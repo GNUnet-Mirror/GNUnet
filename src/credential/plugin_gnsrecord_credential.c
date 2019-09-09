@@ -162,7 +162,7 @@ credential_string_to_value(void *cls, uint32_t type, const char *s,
       *data_size = sizeof(struct GNUNET_CREDENTIAL_DelegationRecord);
       while (NULL != token)
         {
-          matches = SSCANF(token, "%s %s", subject_pkey, attr_str);
+          matches = sscanf(token, "%s %s", subject_pkey, attr_str);
           if (0 == matches)
             {
               GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
@@ -195,7 +195,7 @@ credential_string_to_value(void *cls, uint32_t type, const char *s,
       memset(set, 0, sizeof(struct GNUNET_CREDENTIAL_DelegationSet) * entries);
       for (i = 0; i < entries; i++)
         {
-          matches = SSCANF(token, "%s %s", subject_pkey, attr_str);
+          matches = sscanf(token, "%s %s", subject_pkey, attr_str);
           GNUNET_CRYPTO_ecdsa_public_key_from_string(
             subject_pkey, strlen(subject_pkey), &set[i].subject_key);
           if (2 == matches)

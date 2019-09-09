@@ -109,7 +109,7 @@ try_ifconfig(GNUNET_OS_NetworkInterfaceProcessor proc,
         }
       if (!isspace(line[0]))
         {
-          have_ifc = (1 == SSCANF(line, "%11s", ifc)) ? GNUNET_YES : GNUNET_NO;
+          have_ifc = (1 == sscanf(line, "%11s", ifc)) ? GNUNET_YES : GNUNET_NO;
           /* would end with ':' on OSX, fix it! */
           if (ifc[strlen(ifc) - 1] == ':')
             ifc[strlen(ifc) - 1] = '\0';
@@ -137,12 +137,12 @@ try_ifconfig(GNUNET_OS_NetworkInterfaceProcessor proc,
       prefixlen = 0;
 
       if ( /* Linux */
-        (3 == SSCANF(start, "inet addr:%127s Bcast:%127s Mask:%127s", addrstr, bcstr, netmaskstr)) ||
-        (2 == SSCANF(start, "inet addr:%127s Mask:%127s", addrstr, netmaskstr)) ||
-        (2 == SSCANF(start, "inet6 addr:%127s %d", addrstr, &prefixlen)) ||
+        (3 == sscanf(start, "inet addr:%127s Bcast:%127s Mask:%127s", addrstr, bcstr, netmaskstr)) ||
+        (2 == sscanf(start, "inet addr:%127s Mask:%127s", addrstr, netmaskstr)) ||
+        (2 == sscanf(start, "inet6 addr:%127s %d", addrstr, &prefixlen)) ||
         /* Solaris, OS X */
-        (1 == SSCANF(start, "inet %127s", addrstr)) ||
-        (1 == SSCANF(start, "inet6 %127s", addrstr)))
+        (1 == sscanf(start, "inet %127s", addrstr)) ||
+        (1 == sscanf(start, "inet6 %127s", addrstr)))
         {
           /* IPv4 */
           if (1 == inet_pton(AF_INET, addrstr, &v4))
@@ -294,7 +294,7 @@ try_ip(GNUNET_OS_NetworkInterfaceProcessor proc,
       memset(ifname, 0, 64);
       memset(afstr, 0, 6);
       memset(addrstr, 0, 128);
-      if (4 != SSCANF(line,
+      if (4 != sscanf(line,
                       "%*u: %63s %5s %127s %6u",
                       ifname,
                       afstr,

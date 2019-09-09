@@ -192,17 +192,17 @@ static boolean privilege_testing = FALSE;
 /**
  * Socket we use to receive "fake" ICMP replies.
  */
-static SOCKET icmpsock;
+static _win_socket icmpsock;
 
 /**
  * Socket we use to send our ICMP requests.
  */
-static SOCKET rawsock;
+static _win_socket rawsock;
 
 /**
  * Socket we use to send our UDP requests.
  */
-static SOCKET udpsock;
+static _win_socket udpsock;
 
 /**
  * Target "dummy" address.
@@ -438,12 +438,12 @@ process_icmp_response()
  *
  * @return INVALID_SOCKET on error
  */
-static SOCKET
+static _win_socket
 make_icmp_socket()
 {
-  SOCKET ret;
+  _win_socket ret;
 
-  ret = socket(AF_INET, SOCK_RAW, IPPROTO_ICMP);
+  ret = _win_socket(AF_INET, SOCK_RAW, IPPROTO_ICMP);
   if (INVALID_SOCKET == ret)
     {
       fprintf(stderr, "Error opening RAW socket: %s\n", strerror(errno));
@@ -458,13 +458,13 @@ make_icmp_socket()
  *
  * @return INVALID_SOCKET on error
  */
-static SOCKET
+static _win_socket
 make_raw_socket()
 {
   DWORD bOptVal = TRUE;
   int bOptLen = sizeof(bOptVal);
 
-  rawsock = socket(AF_INET, SOCK_RAW, IPPROTO_ICMP);
+  rawsock = _win_socket(AF_INET, SOCK_RAW, IPPROTO_ICMP);
   if (INVALID_SOCKET == rawsock)
     {
       fprintf(stderr, "Error opening RAW socket: %s\n", strerror(errno));
@@ -472,7 +472,7 @@ make_raw_socket()
     }
 
   if (0 !=
-      setsockopt(rawsock, SOL_SOCKET, SO_BROADCAST, (char *)&bOptVal,
+      _win_setsockopt(rawsock, SOL_SOCKET, SO_BROADCAST, (char *)&bOptVal,
                  bOptLen))
     {
       fprintf(stderr, "Error setting SO_BROADCAST to ON: %s\n",
@@ -481,7 +481,7 @@ make_raw_socket()
       return INVALID_SOCKET;
     }
   if (0 !=
-      setsockopt(rawsock, IPPROTO_IP, IP_HDRINCL, (char *)&bOptVal, bOptLen))
+      _win_setsockopt(rawsock, IPPROTO_IP, IP_HDRINCL, (char *)&bOptVal, bOptLen))
     {
       fprintf(stderr, "Error setting IP_HDRINCL to ON: %s\n", strerror(errno));
       closesocket(rawsock);
@@ -497,13 +497,13 @@ make_raw_socket()
  * @param my_ip source address (our ip address)
  * @return INVALID_SOCKET on error
  */
-static SOCKET
+static _win_socket
 make_udp_socket(const struct in_addr *my_ip)
 {
-  SOCKET ret;
+  _win_socket ret;
   struct sockaddr_in addr;
 
-  ret = socket(AF_INET, SOCK_DGRAM, 0);
+  ret = _win_socket(AF_INET, SOCK_DGRAM, 0);
   if (INVALID_SOCKET == ret)
     {
       fprintf(stderr, "Error opening UDP socket: %s\n", strerror(errno));
