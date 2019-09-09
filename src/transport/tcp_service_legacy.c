@@ -895,7 +895,7 @@ receive_sockets_from_parent(struct LEGACY_SERVICE_Context *sctx)
         {
           WSAPROTOCOL_INFOA pi;
           uint64_t size;
-          SOCKET s;
+          socket s;
 
           ret = ReadFile(lsocks_pipe, &size, sizeof(size), &rd, NULL);
           if ((0 == ret) || (sizeof(size) != rd) || (sizeof(pi) != size))

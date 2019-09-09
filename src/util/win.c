@@ -218,7 +218,7 @@ _IP_ADAPTER_ADDRESSES_DEFINE(_VISTA, _IP_ADAPTER_ADDRESSES_ADD_VISTA)
 _IP_ADAPTER_ADDRESSES_DEFINE(_2008_OR_VISTASP1, _IP_ADAPTER_ADDRESSES_ADD_2008_OR_VISTASP1)
 
 static int
-EnumNICs_IPv6_get_ifs_count(SOCKET s)
+EnumNICs_IPv6_get_ifs_count(_win_socket s)
 {
   DWORD dwret = 0, err;
   int iret;
@@ -234,7 +234,7 @@ EnumNICs_IPv6_get_ifs_count(SOCKET s)
 }
 
 static int
-EnumNICs_IPv6_get_ifs(SOCKET s, SOCKET_ADDRESS_LIST *inf, int size)
+EnumNICs_IPv6_get_ifs(_win_socket s, SOCKET_ADDRESS_LIST *inf, int size)
 {
   int iret;
   DWORD dwret = 0;
@@ -303,8 +303,8 @@ int
 EnumNICs2(INTERFACE_INFO **ifs4, int *ifs4_len, SOCKET_ADDRESS_LIST **ifs6)
 {
   int result = 0;
-  SOCKET s4;
-  SOCKET s6;
+  _win_socket s4;
+  _win_socket s6;
   int ifs4len = 0;
   int ifs6len = 0;
   INTERFACE_INFO *interfaces4 = NULL;

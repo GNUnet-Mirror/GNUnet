@@ -47,7 +47,7 @@ struct GNUNET_NETWORK_Handle {
 #ifndef MINGW
   int fd;
 #else
-  SOCKET fd;
+  _win_socket fd;
 #endif
 
   /**
@@ -1608,7 +1608,7 @@ struct _select_params {
   /**
    * FIXME.
    */
-  SOCKET wakeup_socket;
+  _win_socket wakeup_socket;
 
   /**
    * Set to return value from select.
@@ -1660,9 +1660,9 @@ static HANDLE select_finished_event;
 
 static HANDLE select_standby_event;
 
-static SOCKET select_wakeup_socket = -1;
+static _win_socket select_wakeup_socket = -1;
 
-static SOCKET select_send_socket = -1;
+static _win_socket select_send_socket = -1;
 
 static struct timeval select_timeout;
 
@@ -1675,7 +1675,7 @@ static struct timeval select_timeout;
 static void
 initialize_select_thread()
 {
-  SOCKET select_listening_socket = -1;
+  _win_socket select_listening_socket = -1;
   struct sockaddr_in s_in;
   int alen;
   int res;
