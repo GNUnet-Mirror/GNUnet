@@ -149,7 +149,7 @@ getSizeRec(void *cls, const char *fn)
 
 #if defined(HAVE_STAT64) && \
   !(defined(_FILE_OFFSET_BITS) && _FILE_OFFSET_BITS == 64)
-  struct _stati64 buf;
+  struct _stat64 buf;
 
   if (0 != stat64(fn, &buf))
     {
