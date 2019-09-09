@@ -85,18 +85,18 @@ AC_DEFUN([CC_CHECK_CFLAGS_SILENT], [
 # CC_CHECK_CFLAG_APPEND(FLAG, [action-if-found], [action-if-not-found])
 # Check for CFLAG and appends them to CFLAGS if supported
 AC_DEFUN([CC_CHECK_CFLAG_APPEND], [
-  AC_CACHE_CHECK([if $CC supports $1 flag],
+  AC_CACHE_CHECK([if $CC supports -Wno-$1 flag],
     AS_TR_SH([cc_cv_cflags_$1]),
-    CC_CHECK_CFLAGS_SILENT([$1])
+    CC_CHECK_CFLAGS_SILENT([-W$1]) #gcc is stupid. It does not fail with the -W-no option for backwards compat but then shows the error "in case something goes wrong".
   )
 
   AS_IF([eval test x$]AS_TR_SH([cc_cv_cflags_$1])[ = xyes],
-    [CFLAGS="$CFLAGS $1"; $2], [$3])
+    [CFLAGS="$CFLAGS -Wno-$1"; $2], [$3])
 ])
 
 
 # We make heavy use of this, llvm/gcc and gcc-9 give warnings so disable.
-CC_CHECK_CFLAG_APPEND([-Wno-address-of-packed-member])
+CC_CHECK_CFLAG_APPEND([address-of-packed-member])
 
 # Use Linux interface name unless the OS has a different preference
 DEFAULT_INTERFACE="\"eth0\""
