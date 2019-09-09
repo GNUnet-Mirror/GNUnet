@@ -233,7 +233,7 @@ proc_acks(void *cls,
       if (ret == GNUNET_NO)
         {
 #if DETAILS
-          fprintf(stderr, "%s", "AA ");  /* duplciate ACK */
+          fprintf(stderr, "%s", "AA ");  /* duplicate ACK */
 #endif
           acks++;
           return;
