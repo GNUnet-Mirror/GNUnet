@@ -86,11 +86,11 @@ AC_DEFUN([CC_CHECK_CFLAGS_SILENT], [
 # Check for CFLAG and appends them to CFLAGS if supported
 AC_DEFUN([CC_CHECK_CFLAG_APPEND], [
   AC_CACHE_CHECK([if $CC supports -Wno-$1 flag],
-    AS_TR_SH([cc_cv_cflags_$1]),
+    AS_TR_SH([cc_cv_cflags_-W$1]),
     CC_CHECK_CFLAGS_SILENT([-W$1]) #gcc is stupid. It does not fail with the -W-no option for backwards compat but then shows the error "in case something goes wrong".
   )
 
-  AS_IF([eval test x$]AS_TR_SH([cc_cv_cflags_$1])[ = xyes],
+  AS_IF([eval test x$]AS_TR_SH([cc_cv_cflags_-W$1])[ = xyes],
     [CFLAGS="$CFLAGS -Wno-$1"; $2], [$3])
 ])
 
