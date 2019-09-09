@@ -239,7 +239,7 @@ access_handler_callback(void *cls,
           (response = MHD_create_response_from_fd((size_t)st.st_size, fd)))
         {
           GNUNET_break(0);
-          GNUNET_break(0 == CLOSE(fd));
+          GNUNET_break(0 == close(fd));
           GNUNET_free(deffile);
           GNUNET_free(p);
           GNUNET_DISK_directory_remove(tmp);
@@ -455,7 +455,7 @@ run(void *cls,
     {
       GNUNET_log_strerror_file(GNUNET_ERROR_TYPE_ERROR, "open", fn);
       GNUNET_free(fn);
-      GNUNET_break(0 == CLOSE(fd));
+      GNUNET_break(0 == close(fd));
       return;
     }
   GNUNET_free(fn);
@@ -463,7 +463,7 @@ run(void *cls,
       (main_response = MHD_create_response_from_fd((size_t)st.st_size, fd)))
     {
       GNUNET_break(0);
-      GNUNET_break(0 == CLOSE(fd));
+      GNUNET_break(0 == close(fd));
       return;
     }
   (void)MHD_add_response_header(main_response,
