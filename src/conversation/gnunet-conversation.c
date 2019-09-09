@@ -29,9 +29,6 @@
 #include "gnunet_gnsrecord_lib.h"
 #include "gnunet_conversation_service.h"
 #include "gnunet_namestore_service.h"
-#ifdef WINDOWS
-#include "../util/gnunet-helper-w32-console.h"
-#endif
 
 /**
  * Maximum length allowed for the command line input.
@@ -41,13 +38,6 @@
 #define XSTRINGIFY(x) STRINGIFY(x)
 
 #define STRINGIFY(x) (#x)
-
-#ifdef WINDOWS
-/**
- * Helper that reads the console for us.
- */
-struct GNUNET_HELPER_Handle *stdin_hlp;
-#endif
 
 /**
  * Possible states of the phone.
@@ -1016,13 +1006,6 @@ static void
 do_stop_task(void *cls)
 {
   (void)cls;
-#ifdef WINDOWS
-  if (NULL != stdin_hlp)
-    {
-      GNUNET_HELPER_stop(stdin_hlp, GNUNET_NO);
-      stdin_hlp = NULL;
-    }
-#endif
   if (NULL != call)
     {
       GNUNET_CONVERSATION_call_stop(call);
@@ -1088,38 +1071,6 @@ handle_command_string(char *message, size_t str_len)
     ptr = NULL;
   commands[i].Action(ptr);
 }
-
-
-#ifdef WINDOWS
-static int
-console_reader_chars(void *cls,
-                     void *client,
-                     const struct GNUNET_MessageHeader *message)
-{
-  char *chars;
-  size_t str_size;
-
-  (void)cls;
-  switch (ntohs(message->type))
-    {
-    case GNUNET_MESSAGE_TYPE_W32_CONSOLE_HELPER_CHARS:
-      chars = (char *)&message[1];
-      str_size = ntohs(message->size) - sizeof(struct GNUNET_MessageHeader);
-      if (chars[str_size - 1] != '\0')
-        return GNUNET_SYSERR;
-      /* FIXME: is it ok that we pass part of a const struct to
-       * this function that may mangle the contents?
-       */
-      handle_command_string(chars, str_size - 1);
-      break;
-
-    default:
-      GNUNET_break(0);
-      break;
-    }
-  return GNUNET_OK;
-}
-#endif
 
 
 /**
@@ -1213,30 +1164,6 @@ run(void *cls,
       return;
     }
   id = GNUNET_IDENTITY_connect(cfg, &identity_cb, NULL);
-#ifdef WINDOWS
-  if (stdin_fh == NULL)
-    {
-      static char cpid[64];
-      static char *args[] = { "gnunet-helper-w32-console.exe",
-                              "chars",
-                              XSTRINGIFY(MAX_MESSAGE_LENGTH),
-                              cpid,
-                              NULL };
-      snprintf(cpid, 64, "%d", GetCurrentProcessId());
-      stdin_hlp = GNUNET_HELPER_start(GNUNET_NO,
-                                      "gnunet-helper-w32-console",
-                                      args,
-                                      console_reader_chars,
-                                      NULL,
-                                      NULL);
-      if (NULL == stdin_hlp)
-        {
-          fprintf(stderr, "%s", _("Failed to start gnunet-helper-w32-console\n"));
-          return;
-        }
-    }
-  else
-#endif
   handle_cmd_task =
     GNUNET_SCHEDULER_add_with_priority(GNUNET_SCHEDULER_PRIORITY_UI,
                                        &handle_command,
@@ -1271,21 +1198,12 @@ main(int argc, char *const *argv)
     GNUNET_GETOPT_OPTION_END };
   int ret;
 
-#ifndef WINDOWS
   int flags;
   flags = fcntl(0, F_GETFL, 0);
   flags |= O_NONBLOCK;
   if (0 != fcntl(0, F_SETFL, flags))
     GNUNET_log_strerror(GNUNET_ERROR_TYPE_WARNING, "fcntl");
   stdin_fh = GNUNET_DISK_get_handle_from_int_fd(0);
-#else
-  if (FILE_TYPE_CHAR == GetFileType((HANDLE)_get_osfhandle(0)))
-    {
-      stdin_fh = NULL;
-    }
-  else
-    stdin_fh = GNUNET_DISK_get_handle_from_int_fd(0);
-#endif
 
   if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args(argc, argv, &argc, &argv))
     return 2;

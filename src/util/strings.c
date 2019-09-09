@@ -789,31 +789,9 @@ GNUNET_STRINGS_absolute_time_to_string(struct GNUNET_TIME_Absolute t)
    * (otherwise we'd have to detect current codepage or use W32API character
    * set conversion routines to convert to UTF8).
    */
-#ifndef WINDOWS
+
   strftime(buf, sizeof(buf), "%a %b %d %H:%M:%S %Y", tp);
-#else
-  {
-    static wchar_t wbuf[255];
-    uint8_t *conved;
-    size_t ssize;
 
-    wcsftime(wbuf,
-             sizeof(wbuf) / sizeof(wchar_t),
-             L"%a %b %d %H:%M:%S %Y",
-             tp);
-
-    ssize = sizeof(buf);
-    conved = u16_to_u8(wbuf,
-                       sizeof(wbuf) / sizeof(wchar_t),
-                       (uint8_t *)buf,
-                       &ssize);
-    if (conved != (uint8_t *)buf)
-      {
-        GNUNET_strlcpy(buf, (char *)conved, sizeof(buf));
-        free(conved);
-      }
-  }
-#endif
   return buf;
 }
 
@@ -1168,9 +1146,6 @@ GNUNET_STRINGS_path_is_absolute(const char *filename,
                                 int *r_is_uri,
                                 char **r_uri_scheme)
 {
-#if WINDOWS
-  size_t len;
-#endif
   const char *post_scheme_path;
   int is_uri;
   char *uri;
@@ -1190,14 +1165,7 @@ GNUNET_STRINGS_path_is_absolute(const char *filename,
             *r_uri_scheme = uri;
           else
             GNUNET_free_non_null(uri);
-#if WINDOWS
-          len = strlen(post_scheme_path);
-          /* Special check for file:///c:/blah
-           * We want to parse 'c:/', not '/c:/'
-           */
-          if (post_scheme_path[0] == '/' && len >= 3 && post_scheme_path[2] == ':')
-            post_scheme_path = &post_scheme_path[1];
-#endif
+
           return GNUNET_STRINGS_path_is_absolute(post_scheme_path,
                                                  GNUNET_NO,
                                                  NULL,
@@ -1209,22 +1177,9 @@ GNUNET_STRINGS_path_is_absolute(const char *filename,
       if (r_is_uri)
         *r_is_uri = GNUNET_NO;
     }
-#if WINDOWS
-  len = strlen(filename);
-  if (len >= 3 &&
-      ((filename[0] >= 'A' && filename[0] <= 'Z') ||
-       (filename[0] >= 'a' && filename[0] <= 'z')) &&
-      filename[1] == ':' && (filename[2] == '/' || filename[2] == '\\'))
-    return GNUNET_YES;
-#endif
+
   return GNUNET_NO;
 }
-
-#if MINGW
-#define _IFMT 0170000 /* type of file */
-#define _IFLNK 0120000 /* symbolic link */
-#define S_ISLNK(m) (((m) & _IFMT) == _IFLNK)
-#endif
 
 
 /**
@@ -1521,53 +1476,11 @@ GNUNET_STRINGS_get_utf8_args(int argc,
                              int *u8argc,
                              char *const **u8argv)
 {
-#if WINDOWS
-  wchar_t *wcmd;
-  wchar_t **wargv;
-  int wargc;
-  int i;
-  char **split_u8argv;
-
-  wcmd = GetCommandLineW();
-  if (NULL == wcmd)
-    return GNUNET_SYSERR;
-  wargv = CommandLineToArgvW(wcmd, &wargc);
-  if (NULL == wargv)
-    return GNUNET_SYSERR;
-
-  split_u8argv = GNUNET_malloc(argc * sizeof(char *));
-
-  for (i = 0; i < wargc; i++)
-    {
-      size_t strl;
-      /* Hopefully it will allocate us NUL-terminated strings... */
-      split_u8argv[i] =
-        (char *)u16_to_u8(wargv[i], wcslen(wargv[i]) + 1, NULL, &strl);
-      if (NULL == split_u8argv[i])
-        {
-          int j;
-          for (j = 0; j < i; j++)
-            free(split_u8argv[j]);
-          GNUNET_free(split_u8argv);
-          LocalFree(wargv);
-          return GNUNET_SYSERR;
-        }
-    }
-
-  *u8argv = _make_continuous_arg_copy(wargc, split_u8argv);
-  *u8argc = wargc;
-
-  for (i = 0; i < wargc; i++)
-    free(split_u8argv[i]);
-  free(split_u8argv);
-  return GNUNET_OK;
-#else
   char *const *new_argv =
     (char *const *)_make_continuous_arg_copy(argc, argv);
   *u8argv = new_argv;
   *u8argc = argc;
   return GNUNET_OK;
-#endif
 }
 
 

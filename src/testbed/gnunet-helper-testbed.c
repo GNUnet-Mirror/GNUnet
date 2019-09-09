@@ -60,11 +60,7 @@
 /**
  * We need pipe control only on WINDOWS
  */
-#if WINDOWS
-#define PIPE_CONTROL GNUNET_YES
-#else
 #define PIPE_CONTROL GNUNET_NO
-#endif
 
 
 /**
@@ -394,25 +390,17 @@ tokenizer_cb(void *cls, const struct GNUNET_MessageHeader *message)
     {
       /* unsetting the variable will invalidate the pointer! */
       evstr = GNUNET_strdup(evstr);
-#ifdef WINDOWS
-      GNUNET_break(0 != SetEnvironmentVariable(GNUNET_TESTING_PREFIX, NULL));
-#else
       GNUNET_break(0 == unsetenv(GNUNET_TESTING_PREFIX));
-#endif
     }
   test_system =
     GNUNET_TESTING_system_create("testbed-helper", trusted_ip, hostname, NULL);
   if (NULL != evstr)
     {
-#ifdef WINDOWS
-      GNUNET_assert(0 != SetEnvironmentVariable(GNUNET_TESTING_PREFIX, evstr));
-#else
       char *evar;
 
       GNUNET_asprintf(&evar, GNUNET_TESTING_PREFIX "=%s", evstr);
       GNUNET_assert(0 == putenv(evar)); /* consumes 'evar',
                                            see putenv(): becomes part of envrionment! */
-#endif
       GNUNET_free(evstr);
       evstr = NULL;
     }

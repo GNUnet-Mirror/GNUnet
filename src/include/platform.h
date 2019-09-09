@@ -38,13 +38,8 @@
 #endif
 #endif
 
-#ifdef WINDOWS
-#define BREAKPOINT asm ("int $3;");
-#define GNUNET_SIGCHLD 17
-#else
 #define BREAKPOINT
 #define GNUNET_SIGCHLD SIGCHLD
-#endif
 
 #ifdef HAVE_SYS_TYPES_H
 #include <sys/types.h>
@@ -70,18 +65,6 @@
 
 #define VERBOSE_STATS 0
 
-#ifdef CYGWIN
-#include <sys/reent.h>
-#endif
-
-#ifdef _MSC_VER
-#ifndef FD_SETSIZE
-#define FD_SETSIZE 1024
-#endif
-#include <Winsock2.h>
-#include <ws2tcpip.h>
-#else
-#ifndef MINGW
 #include <netdb.h>
 #include <sys/socket.h>
 #include <sys/un.h>
@@ -100,10 +83,6 @@
 #include <sys/ioctl.h>
 #include <sys/wait.h>
 #include <grp.h>
-#else
-#include "winproc.h"
-#endif
-#endif
 
 #include <string.h>
 #include <stdio.h>
@@ -114,20 +93,13 @@
 #include <errno.h>
 #include <signal.h>
 #include <libgen.h>
-#ifdef WINDOWS
-#include <malloc.h>             /* for alloca(), on other OSes it's in stdlib.h */
-#endif
 #ifdef HAVE_MALLOC_H
 #include <malloc.h>             /* for mallinfo on GNU */
 #endif
-#ifndef _MSC_VER
 #include <unistd.h>             /* KLB_FIX */
-#endif
 #include <sys/stat.h>
 #include <sys/types.h>
-#ifndef _MSC_VER
 #include <dirent.h>             /* KLB_FIX */
-#endif
 #include <fcntl.h>
 #include <math.h>
 #if HAVE_SYS_PARAM_H
@@ -170,10 +142,6 @@
 #if HAVE_SYS_UCRED_H
 #include <sys/ucred.h>
 #endif
-#ifdef CYGWIN
-#include <windows.h>
-#include <cygwin/if.h>
-#endif
 #if HAVE_IFADDRS_H
 #include <ifaddrs.h>
 #endif
@@ -196,24 +164,11 @@
 #include <sys/endian.h>
 #endif
 
-/* From plibc. */
-#ifdef Q_OS_WIN32
-#define WINDOWS 1
-#endif
-
-#ifndef WINDOWS
 #define DIR_SEPARATOR '/'
 #define DIR_SEPARATOR_STR "/"
 #define PATH_SEPARATOR ':'
 #define PATH_SEPARATOR_STR ":"
 #define NEWLINE "\n"
-#else
-#define DIR_SEPARATOR '\\'
-#define DIR_SEPARATOR_STR "\\"
-#define PATH_SEPARATOR ';'
-#define PATH_SEPARATOR_STR ";"
-#define NEWLINE "\r\n"
-#endif
 
 #include "compat.h"
 
@@ -231,15 +186,7 @@
 #define LIBEXTRACTOR_GETTEXT_DOMAIN "org.gnunet.libextractor"
 #endif
 
-#ifdef CYGWIN
-#define SIOCGIFCONF     _IOW('s', 100, struct ifconf)   /* get if list */
-#define SIOCGIFFLAGS    _IOW('s', 101, struct ifreq)    /* Get if flags */
-#define SIOCGIFADDR     _IOW('s', 102, struct ifreq)    /* Get if addr */
-#endif
-
-#ifndef MINGW
 #include <sys/mman.h>
-#endif
 
 #ifdef FREEBSD
 #define __BYTE_ORDER BYTE_ORDER
@@ -286,13 +233,8 @@ atoll(const char *nptr);
 #define MAKE_UNALIGNED(val) val
 #endif
 
-#if WINDOWS
-#define FDTYPE HANDLE
-#define SOCKTYPE SOCKET
-#else
 #define FDTYPE int
 #define SOCKTYPE int
-#endif
 
 /**
  * The termination signal

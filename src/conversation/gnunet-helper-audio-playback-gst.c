@@ -273,10 +273,6 @@ main(int argc, char **argv)
   termhandler = signal(SIGTERM,
                        &signalhandler);
 
-#ifdef WINDOWS
-  setmode(0, _O_BINARY);
-#endif
-
   /* Initialisation */
   gst_init(&argc, &argv);
 

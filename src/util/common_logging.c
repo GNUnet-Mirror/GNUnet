@@ -241,13 +241,6 @@ static int gnunet_force_log_parsed;
 static int gnunet_force_log_present;
 #endif
 
-#ifdef WINDOWS
-/**
- * Contains the number of performance counts per second.
- */
-static LARGE_INTEGER performance_frequency;
-#endif
-
 
 /**
  * Convert a textual description of a loglevel
@@ -283,9 +276,6 @@ get_type(const char *log)
 void
 GNUNET_abort_()
 {
-#if WINDOWS
-  DebugBreak();
-#endif
   abort();
 }
 
@@ -377,14 +367,10 @@ setup_log_file(const struct tm *tm)
               strerror(errno));
       return GNUNET_SYSERR;
     }
-#if WINDOWS
-  altlog_fd =
-    open(fn, O_APPEND | O_BINARY | O_WRONLY | O_CREAT, _S_IREAD | _S_IWRITE);
-#else
   altlog_fd = open(fn,
                    O_APPEND | O_WRONLY | O_CREAT,
                    S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
-#endif
+
   if (-1 != altlog_fd)
     {
       if (NULL != GNUNET_stderr)
@@ -725,9 +711,6 @@ GNUNET_log_setup(const char *comp, const char *loglevel, const char *logfile)
 #if !defined(GNUNET_CULL_LOGGING)
   parse_all_definitions();
 #endif
-#ifdef WINDOWS
-  QueryPerformanceFrequency(&performance_frequency);
-#endif
   GNUNET_free_non_null(component);
   GNUNET_asprintf(&component, "%s-%d", comp, getpid());
   GNUNET_free_non_null(component_nopid);
@@ -809,10 +792,6 @@ GNUNET_logger_remove(GNUNET_Logger logger, void *logger_cls)
   GNUNET_free(pos);
 }
 
-#if WINDOWS
-CRITICAL_SECTION output_message_cs;
-#endif
-
 
 /**
  * Actually output the log message.
@@ -830,9 +809,6 @@ output_message(enum GNUNET_ErrorType kind,
 {
   struct CustomLogger *pos;
 
-#if WINDOWS
-  EnterCriticalSection(&output_message_cs);
-#endif
   /* only use the standard logger if no custom loggers are present */
   if ((NULL != GNUNET_stderr) && (NULL == loggers))
     {
@@ -887,9 +863,6 @@ output_message(enum GNUNET_ErrorType kind,
       pos->logger(pos->logger_cls, kind, comp, datestr, msg);
       pos = pos->next;
     }
-#if WINDOWS
-  LeaveCriticalSection(&output_message_cs);
-#endif
 }
 
 
@@ -1003,33 +976,7 @@ mylog(enum GNUNET_ErrorType kind,
   {
     char buf[size];
     long long offset;
-#ifdef WINDOWS
-    LARGE_INTEGER pc;
-    time_t timetmp;
 
-    offset = GNUNET_TIME_get_offset();
-    time(&timetmp);
-    timetmp += offset / 1000;
-    tmptr = localtime(&timetmp);
-    pc.QuadPart = 0;
-    QueryPerformanceCounter(&pc);
-    if (NULL == tmptr)
-      {
-        strcpy(date, "localtime error");
-      }
-    else
-      {
-        if (0 ==
-            strftime(date2, DATE_STR_SIZE, "%b %d %H:%M:%S-%%020llu", tmptr))
-          abort();
-        if (0 > snprintf(date,
-                         sizeof(date),
-                         date2,
-                         (long long)(pc.QuadPart /
-                                     (performance_frequency.QuadPart / 1000))))
-          abort();
-      }
-#else
     struct timeval timeofday;
 
     gettimeofday(&timeofday, NULL);
@@ -1069,7 +1016,7 @@ mylog(enum GNUNET_ErrorType kind,
         if (0 > snprintf(date, sizeof(date), date2, timeofday.tv_usec))
           abort();
       }
-#endif
+
     vsnprintf(buf, size, message, va);
 #if !(defined(GNUNET_CULL_LOGGING) || TALER_WALLET_ONLY)
     if (NULL != tmptr)
@@ -1433,13 +1380,9 @@ GNUNET_i2s_full(const struct GNUNET_PeerIdentity *pid)
 const char *
 GNUNET_a2s(const struct sockaddr *addr, socklen_t addrlen)
 {
-#ifndef WINDOWS
 #define LEN                           \
   GNUNET_MAX((INET6_ADDRSTRLEN + 8), \
              (1 + sizeof(struct sockaddr_un) - sizeof(sa_family_t)))
-#else
-#define LEN (INET6_ADDRSTRLEN + 8)
-#endif
   static char buf[LEN];
 #undef LEN
   static char b2[6];
@@ -1603,13 +1546,6 @@ GNUNET_async_scope_get(struct GNUNET_AsyncScopeSave *scope_ret)
 void __attribute__ ((constructor)) GNUNET_util_cl_init()
 {
   GNUNET_stderr = stderr;
-#ifdef MINGW
-  GNInitWinEnv(NULL);
-#endif
-#if WINDOWS
-  if (!InitializeCriticalSectionAndSpinCount(&output_message_cs, 0x00000400))
-    GNUNET_abort_();
-#endif
 }
 
 
@@ -1618,12 +1554,7 @@ void __attribute__ ((constructor)) GNUNET_util_cl_init()
  */
 void __attribute__ ((destructor)) GNUNET_util_cl_fini()
 {
-#if WINDOWS
-  DeleteCriticalSection(&output_message_cs);
-#endif
-#ifdef MINGW
-  GNShutdownWinEnv();
-#endif
+
 }
 
 /* end of common_logging.c */

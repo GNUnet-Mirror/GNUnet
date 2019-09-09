@@ -795,11 +795,6 @@ libgnunet_plugin_datacache_sqlite_done(void *cls)
   if (SQLITE_OK != result)
     LOG_SQLITE(plugin->dbh, GNUNET_ERROR_TYPE_ERROR, "sqlite3_close");
 
-#if WINDOWS && !defined(__CYGWIN__)
-  if ((NULL != plugin->fn) && (0 != unlink(plugin->fn)))
-    LOG_STRERROR_FILE(GNUNET_ERROR_TYPE_WARNING, "unlink", plugin->fn);
-  GNUNET_free_non_null(plugin->fn);
-#endif
   GNUNET_free(plugin);
   GNUNET_free(api);
   return NULL;

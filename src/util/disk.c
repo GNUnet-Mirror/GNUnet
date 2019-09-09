@@ -208,23 +208,11 @@ GNUNET_DISK_handle_invalid(const struct GNUNET_DISK_FileHandle *h)
 int
 GNUNET_DISK_file_handle_size(struct GNUNET_DISK_FileHandle *fh, off_t *size)
 {
-#if WINDOWS
-  BOOL b;
-  LARGE_INTEGER li;
-  b = GetFileSizeEx(fh->h, &li);
-  if (!b)
-    {
-      SetErrnoFromWinError(GetLastError());
-      return GNUNET_SYSERR;
-    }
-  *size = (off_t)li.QuadPart;
-#else
   struct stat sbuf;
 
   if (0 != fstat(fh->fd, &sbuf))
     return GNUNET_SYSERR;
   *size = sbuf.st_size;
-#endif
   return GNUNET_OK;
 }
 
@@ -324,29 +312,6 @@ GNUNET_DISK_file_get_identifiers(const char *filename,
                                  uint64_t *dev,
                                  uint64_t *ino)
 {
-#if WINDOWS
-  {
-    // FIXME NILS: test this
-    struct GNUNET_DISK_FileHandle *fh;
-    BY_HANDLE_FILE_INFORMATION info;
-    int succ;
-
-    fh = GNUNET_DISK_file_open(filename,
-                               GNUNET_DISK_OPEN_READ,
-                               GNUNET_DISK_PERM_NONE);
-    if (NULL == fh)
-      return GNUNET_SYSERR;
-    succ = GetFileInformationByHandle(fh->h, &info);
-    GNUNET_DISK_file_close(fh);
-    if (!succ)
-      {
-        return GNUNET_SYSERR;
-      }
-    *dev = info.dwVolumeSerialNumber;
-    *ino = ((((uint64_t)info.nFileIndexHigh) << (sizeof(DWORD) * 8)) |
-            info.nFileIndexLow);
-  }
-#else /* !WINDOWS */
 #if HAVE_STAT
   {
     struct stat sbuf;
@@ -384,7 +349,6 @@ GNUNET_DISK_file_get_identifiers(const char *filename,
 #else
   *dev = 0;
 #endif
-#endif /* !WINDOWS */
   return GNUNET_OK;
 }
 
@@ -402,11 +366,7 @@ mktemp_name(const char *t)
   char *tmpl;
   char *fn;
 
-  if ((t[0] != '/') && (t[0] != '\\')
-#if WINDOWS
-      && !(isalpha((int)t[0]) && (t[0] != '\0') && (t[1] == ':'))
-#endif
-      )
+  if ((t[0] != '/') && (t[0] != '\\'))
     {
       /* FIXME: This uses system codepage on W32, not UTF-8 */
       tmpdir = getenv("TMPDIR");
@@ -422,71 +382,10 @@ mktemp_name(const char *t)
     {
       GNUNET_asprintf(&tmpl, "%s%s", t, "XXXXXX");
     }
-#ifdef MINGW
-  fn = (char *)GNUNET_malloc(MAX_PATH + 1);
-  if (ERROR_SUCCESS != plibc_conv_to_win_path(tmpl, fn))
-    {
-      GNUNET_free(fn);
-      GNUNET_free(tmpl);
-      return NULL;
-    }
-  GNUNET_free(tmpl);
-#else
   fn = tmpl;
-#endif
   return fn;
 }
 
-
-#if WINDOWS
-static char *
-mkdtemp(char *fn)
-{
-  char *random_fn;
-  char *tfn;
-
-  while (1)
-    {
-      tfn = GNUNET_strdup(fn);
-      random_fn = _mktemp(tfn);
-      if (NULL == random_fn)
-        {
-          GNUNET_free(tfn);
-          return NULL;
-        }
-      /* FIXME: assume fn to be UTF-8-encoded and do the right thing */
-      if (0 == CreateDirectoryA(tfn, NULL))
-        {
-          DWORD error = GetLastError();
-          GNUNET_free(tfn);
-          if (ERROR_ALREADY_EXISTS == error)
-            continue;
-          return NULL;
-        }
-      break;
-    }
-  strcpy(fn, tfn);
-  return fn;
-}
-
-/**
- * Update POSIX permissions mask of a file on disk.  If both argumets
- * are #GNUNET_NO, the file is made world-read-write-executable (777).
- * Does nothing on W32.
- *
- * @param fn name of the file to update
- * @param require_uid_match #GNUNET_YES means 700
- * @param require_gid_match #GNUNET_YES means 770 unless @a require_uid_match is set
- */
-void
-GNUNET_DISK_fix_permissions(const char *fn,
-                            int require_uid_match,
-                            int require_gid_match)
-{
-  /* nothing on W32 */
-}
-
-#else
 
 /**
  * Update POSIX permissions mask of a file on disk.  If both argumets
@@ -514,7 +413,6 @@ GNUNET_DISK_fix_permissions(const char *fn,
     GNUNET_log_strerror_file(GNUNET_ERROR_TYPE_WARNING, "chmod", fn);
 }
 
-#endif
 
 /**
  * Create an (empty) temporary directory on disk.  If the given name is not
@@ -724,28 +622,9 @@ GNUNET_DISK_directory_create(const char *dir)
     }
 
   len = strlen(rdir);
-#ifndef MINGW
+
   pos = 1; /* skip heading '/' */
-#else
-  /* Local or Network path? */
-  if (strncmp(rdir, "\\\\", 2) == 0)
-    {
-      pos = 2;
-      while (rdir[pos])
-        {
-          if (rdir[pos] == '\\')
-            {
-              pos++;
-              break;
-            }
-          pos++;
-        }
-    }
-  else
-    {
-      pos = 3; /* strlen("C:\\") */
-    }
-#endif
+
   /* Check which low level directories already exist */
   pos2 = len;
   rdir[len] = DIR_SEPARATOR;
@@ -792,17 +671,10 @@ GNUNET_DISK_directory_create(const char *dir)
             }
           if (GNUNET_SYSERR == ret)
             {
-#ifndef MINGW
               ret = mkdir(rdir,
                           S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IXGRP | S_IROTH |
                           S_IXOTH); /* 755 */
-#else
-              wchar_t wrdir[MAX_PATH + 1];
-              if (ERROR_SUCCESS == plibc_conv_to_win_pathwconv(rdir, wrdir))
-                ret = !CreateDirectoryW(wrdir, NULL);
-              else
-                ret = 1;
-#endif
+
               if ((ret != 0) && (errno != EEXIST))
                 {
                   LOG_STRERROR_FILE(GNUNET_ERROR_TYPE_ERROR, "mkdir", rdir);
@@ -887,42 +759,7 @@ GNUNET_DISK_file_read(const struct GNUNET_DISK_FileHandle *h,
       return GNUNET_SYSERR;
     }
 
-#ifdef MINGW
-  DWORD bytes_read;
-
-  if (h->type == GNUNET_DISK_HANLDE_TYPE_FILE)
-    {
-      if (!ReadFile(h->h, result, len, &bytes_read, NULL))
-        {
-          SetErrnoFromWinError(GetLastError());
-          return GNUNET_SYSERR;
-        }
-    }
-  else if (h->type == GNUNET_DISK_HANLDE_TYPE_PIPE)
-    {
-      if (!ReadFile(h->h, result, len, &bytes_read, h->oOverlapRead))
-        {
-          if (GetLastError() != ERROR_IO_PENDING)
-            {
-              LOG(GNUNET_ERROR_TYPE_DEBUG,
-                  "Error reading from pipe: %u\n",
-                  GetLastError());
-              SetErrnoFromWinError(GetLastError());
-              return GNUNET_SYSERR;
-            }
-          LOG(GNUNET_ERROR_TYPE_DEBUG, "Will get overlapped result\n");
-          GetOverlappedResult(h->h, h->oOverlapRead, &bytes_read, TRUE);
-        }
-      LOG(GNUNET_ERROR_TYPE_DEBUG, "Read %u bytes from pipe\n", bytes_read);
-    }
-  else
-    {
-      bytes_read = 0;
-    }
-  return bytes_read;
-#else
   return read(h->fd, result, len);
-#endif
 }
 
 
@@ -947,45 +784,6 @@ GNUNET_DISK_file_read_non_blocking(const struct GNUNET_DISK_FileHandle *h,
       return GNUNET_SYSERR;
     }
 
-#ifdef MINGW
-  DWORD bytes_read;
-
-  if (h->type == GNUNET_DISK_HANLDE_TYPE_FILE)
-    {
-      if (!ReadFile(h->h, result, len, &bytes_read, NULL))
-        {
-          SetErrnoFromWinError(GetLastError());
-          return GNUNET_SYSERR;
-        }
-    }
-  else if (h->type == GNUNET_DISK_HANLDE_TYPE_PIPE)
-    {
-      if (!ReadFile(h->h, result, len, &bytes_read, h->oOverlapRead))
-        {
-          if (GetLastError() != ERROR_IO_PENDING)
-            {
-              LOG(GNUNET_ERROR_TYPE_DEBUG,
-                  "Error reading from pipe: %u\n",
-                  GetLastError());
-              SetErrnoFromWinError(GetLastError());
-              return GNUNET_SYSERR;
-            }
-          else
-            {
-              LOG(GNUNET_ERROR_TYPE_DEBUG, "ReadFile() queued a read, cancelling\n");
-              CancelIo(h->h);
-              errno = EAGAIN;
-              return GNUNET_SYSERR;
-            }
-        }
-      LOG(GNUNET_ERROR_TYPE_DEBUG, "Read %u bytes\n", bytes_read);
-    }
-  else
-    {
-      bytes_read = 0;
-    }
-  return bytes_read;
-#else
   int flags;
   ssize_t ret;
 
@@ -1001,7 +799,6 @@ GNUNET_DISK_file_read_non_blocking(const struct GNUNET_DISK_FileHandle *h,
       errno = eno;
     }
   return ret;
-#endif
 }
 
 
@@ -1050,78 +847,8 @@ GNUNET_DISK_file_write(const struct GNUNET_DISK_FileHandle *h,
       return GNUNET_SYSERR;
     }
 
-#ifdef MINGW
-  DWORD bytes_written;
 
-  if (h->type == GNUNET_DISK_HANLDE_TYPE_FILE)
-    {
-      if (!WriteFile(h->h, buffer, n, &bytes_written, NULL))
-        {
-          SetErrnoFromWinError(GetLastError());
-          return GNUNET_SYSERR;
-        }
-    }
-  else if (h->type == GNUNET_DISK_HANLDE_TYPE_PIPE)
-    {
-      LOG(GNUNET_ERROR_TYPE_DEBUG, "It is a pipe trying to write %u bytes\n", n);
-      if (!WriteFile(h->h, buffer, n, &bytes_written, h->oOverlapWrite))
-        {
-          if (GetLastError() != ERROR_IO_PENDING)
-            {
-              SetErrnoFromWinError(GetLastError());
-              LOG(GNUNET_ERROR_TYPE_DEBUG,
-                  "Error writing to pipe: %u\n",
-                  GetLastError());
-              return GNUNET_SYSERR;
-            }
-          LOG(GNUNET_ERROR_TYPE_DEBUG, "Will get overlapped result\n");
-          if (!GetOverlappedResult(h->h, h->oOverlapWrite, &bytes_written, TRUE))
-            {
-              SetErrnoFromWinError(GetLastError());
-              LOG(GNUNET_ERROR_TYPE_DEBUG,
-                  "Error getting overlapped result while writing to pipe: %u\n",
-                  GetLastError());
-              return GNUNET_SYSERR;
-            }
-        }
-      else
-        {
-          DWORD ovr;
-          if (!GetOverlappedResult(h->h, h->oOverlapWrite, &ovr, TRUE))
-            {
-              LOG(GNUNET_ERROR_TYPE_DEBUG,
-                  "Error getting control overlapped result while writing to pipe: %u\n",
-                  GetLastError());
-            }
-          else
-            {
-              LOG(GNUNET_ERROR_TYPE_DEBUG,
-                  "Wrote %u bytes (ovr says %u), picking the greatest\n",
-                  bytes_written,
-                  ovr);
-            }
-        }
-      if (bytes_written == 0)
-        {
-          if (n > 0)
-            {
-              LOG(GNUNET_ERROR_TYPE_DEBUG,
-                  "Wrote %u bytes, returning -1 with EAGAIN\n",
-                  bytes_written);
-              errno = EAGAIN;
-              return GNUNET_SYSERR;
-            }
-        }
-      LOG(GNUNET_ERROR_TYPE_DEBUG, "Wrote %u bytes\n", bytes_written);
-    }
-  else
-    {
-      bytes_written = 0;
-    }
-  return bytes_written;
-#else
   return write(h->fd, buffer, n);
-#endif
 }
 
 
@@ -1144,34 +871,7 @@ GNUNET_DISK_file_write_blocking(const struct GNUNET_DISK_FileHandle *h,
       return GNUNET_SYSERR;
     }
 
-#ifdef MINGW
-  DWORD bytes_written;
-  /* We do a non-overlapped write, which is as blocking as it gets */
-  LOG(GNUNET_ERROR_TYPE_DEBUG, "Writing %u bytes\n", n);
-  if (!WriteFile(h->h, buffer, n, &bytes_written, NULL))
-    {
-      SetErrnoFromWinError(GetLastError());
-      LOG(GNUNET_ERROR_TYPE_DEBUG,
-          "Error writing to pipe: %u\n",
-          GetLastError());
-      return GNUNET_SYSERR;
-    }
-  if (bytes_written == 0 && n > 0)
-    {
-      LOG(GNUNET_ERROR_TYPE_DEBUG, "Waiting for pipe to clean\n");
-      WaitForSingleObject(h->h, INFINITE);
-      if (!WriteFile(h->h, buffer, n, &bytes_written, NULL))
-        {
-          SetErrnoFromWinError(GetLastError());
-          LOG(GNUNET_ERROR_TYPE_DEBUG,
-              "Error writing to pipe: %u\n",
-              GetLastError());
-          return GNUNET_SYSERR;
-        }
-    }
-  LOG(GNUNET_ERROR_TYPE_DEBUG, "Wrote %u bytes\n", bytes_written);
-  return bytes_written;
-#else
+
   int flags;
   ssize_t ret;
 
@@ -1183,7 +883,6 @@ GNUNET_DISK_file_write_blocking(const struct GNUNET_DISK_FileHandle *h,
   if (0 == (flags & O_NONBLOCK))
     (void)fcntl(h->fd, F_SETFL, flags);
   return ret;
-#endif
 }
 
 
@@ -1486,7 +1185,6 @@ GNUNET_DISK_filename_canonicalize(char *fn)
 int
 GNUNET_DISK_file_change_owner(const char *filename, const char *user)
 {
-#ifndef MINGW
   struct passwd *pws;
 
   pws = getpwnam(user);
@@ -1503,7 +1201,6 @@ GNUNET_DISK_file_change_owner(const char *filename, const char *user)
       LOG_STRERROR_FILE(GNUNET_ERROR_TYPE_WARNING, "chown", filename);
       return GNUNET_SYSERR;
     }
-#endif
   return GNUNET_OK;
 }
 
@@ -1529,7 +1226,6 @@ GNUNET_DISK_file_lock(struct GNUNET_DISK_FileHandle *fh,
       return GNUNET_SYSERR;
     }
 
-#ifndef MINGW
   struct flock fl;
 
   memset(&fl, 0, sizeof(struct flock));
@@ -1539,33 +1235,6 @@ GNUNET_DISK_file_lock(struct GNUNET_DISK_FileHandle *fh,
   fl.l_len = lock_end;
 
   return fcntl(fh->fd, F_SETLK, &fl) != 0 ? GNUNET_SYSERR : GNUNET_OK;
-#else
-  OVERLAPPED o;
-  off_t diff = lock_end - lock_start;
-  DWORD diff_low, diff_high;
-  diff_low = (DWORD)(diff & 0xFFFFFFFF);
-  diff_high = (DWORD)((diff >> (sizeof(DWORD) * 8)) & 0xFFFFFFFF);
-
-  memset(&o, 0, sizeof(OVERLAPPED));
-  o.Offset = (DWORD)(lock_start & 0xFFFFFFFF);
-  ;
-  o.OffsetHigh =
-    (DWORD)(((lock_start & ~0xFFFFFFFF) >> (sizeof(DWORD) * 8)) & 0xFFFFFFFF);
-
-  if (!LockFileEx(fh->h,
-                  (excl ? LOCKFILE_EXCLUSIVE_LOCK : 0) |
-                  LOCKFILE_FAIL_IMMEDIATELY,
-                  0,
-                  diff_low,
-                  diff_high,
-                  &o))
-    {
-      SetErrnoFromWinError(GetLastError());
-      return GNUNET_SYSERR;
-    }
-
-  return GNUNET_OK;
-#endif
 }
 
 
@@ -1588,7 +1257,6 @@ GNUNET_DISK_file_unlock(struct GNUNET_DISK_FileHandle *fh,
       return GNUNET_SYSERR;
     }
 
-#ifndef MINGW
   struct flock fl;
 
   memset(&fl, 0, sizeof(struct flock));
@@ -1598,27 +1266,6 @@ GNUNET_DISK_file_unlock(struct GNUNET_DISK_FileHandle *fh,
   fl.l_len = unlock_end;
 
   return fcntl(fh->fd, F_SETLK, &fl) != 0 ? GNUNET_SYSERR : GNUNET_OK;
-#else
-  OVERLAPPED o;
-  off_t diff = unlock_end - unlock_start;
-  DWORD diff_low, diff_high;
-  diff_low = (DWORD)(diff & 0xFFFFFFFF);
-  diff_high = (DWORD)((diff >> (sizeof(DWORD) * 8)) & 0xFFFFFFFF);
-
-  memset(&o, 0, sizeof(OVERLAPPED));
-  o.Offset = (DWORD)(unlock_start & 0xFFFFFFFF);
-  ;
-  o.OffsetHigh = (DWORD)(
-    ((unlock_start & ~0xFFFFFFFF) >> (sizeof(DWORD) * 8)) & 0xFFFFFFFF);
-
-  if (!UnlockFileEx(fh->h, 0, diff_low, diff_high, &o))
-    {
-      SetErrnoFromWinError(GetLastError());
-      return GNUNET_SYSERR;
-    }
-
-  return GNUNET_OK;
-#endif
 }
 
 
@@ -1642,16 +1289,9 @@ GNUNET_DISK_file_open(const char *fn,
   char *expfn;
   struct GNUNET_DISK_FileHandle *ret;
 
-#ifdef MINGW
-  DWORD access;
-  DWORD disp;
-  HANDLE h;
-  wchar_t wexpfn[MAX_PATH + 1];
-#else
   int oflags;
   int mode;
   int fd;
-#endif
 
   expfn = GNUNET_STRINGS_filename_expand(fn);
   if (NULL == expfn)
@@ -1767,12 +1407,9 @@ GNUNET_DISK_file_open(const char *fn,
 #endif
 
   ret = GNUNET_new(struct GNUNET_DISK_FileHandle);
-#ifdef MINGW
-  ret->h = h;
-  ret->type = GNUNET_DISK_HANLDE_TYPE_FILE;
-#else
+
   ret->fd = fd;
-#endif
+
   GNUNET_free(expfn);
   return ret;
 }
@@ -1797,110 +1434,16 @@ GNUNET_DISK_file_close(struct GNUNET_DISK_FileHandle *h)
 
   ret = GNUNET_OK;
 
-#if MINGW
-  if (!CloseHandle(h->h))
-    {
-      SetErrnoFromWinError(GetLastError());
-      LOG_STRERROR(GNUNET_ERROR_TYPE_WARNING, "close");
-      ret = GNUNET_SYSERR;
-    }
-  if (h->oOverlapRead)
-    {
-      if (!CloseHandle(h->oOverlapRead->hEvent))
-        {
-          SetErrnoFromWinError(GetLastError());
-          LOG_STRERROR(GNUNET_ERROR_TYPE_WARNING, "close");
-          ret = GNUNET_SYSERR;
-        }
-      GNUNET_free(h->oOverlapRead);
-    }
-  if (h->oOverlapWrite)
-    {
-      if (!CloseHandle(h->oOverlapWrite->hEvent))
-        {
-          SetErrnoFromWinError(GetLastError());
-          LOG_STRERROR(GNUNET_ERROR_TYPE_WARNING, "close");
-          ret = GNUNET_SYSERR;
-        }
-      GNUNET_free(h->oOverlapWrite);
-    }
-#else
   if (close(h->fd) != 0)
     {
       LOG_STRERROR(GNUNET_ERROR_TYPE_WARNING, "close");
       ret = GNUNET_SYSERR;
     }
-#endif
+
   GNUNET_free(h);
   return ret;
 }
 
-
-#ifdef WINDOWS
-/**
- * Get a GNUnet file handle from a W32 handle.
- *
- * @param handle native handle
- * @return GNUnet file handle corresponding to the W32 handle
- */
-struct GNUNET_DISK_FileHandle *
-GNUNET_DISK_get_handle_from_w32_handle(HANDLE osfh)
-{
-  struct GNUNET_DISK_FileHandle *fh;
-  DWORD dwret;
-  enum GNUNET_FILE_Type ftype;
-
-  dwret = GetFileType(osfh);
-  switch (dwret)
-    {
-    case FILE_TYPE_DISK:
-      ftype = GNUNET_DISK_HANLDE_TYPE_FILE;
-      break;
-
-    case FILE_TYPE_PIPE:
-      ftype = GNUNET_DISK_HANLDE_TYPE_PIPE;
-      break;
-
-    case FILE_TYPE_UNKNOWN:
-      if ((GetLastError() == NO_ERROR) ||
-          (GetLastError() == ERROR_INVALID_HANDLE))
-        {
-          if (0 != ResetEvent(osfh))
-            ftype = GNUNET_DISK_HANLDE_TYPE_EVENT;
-          else
-            return NULL;
-        }
-      else
-        return NULL;
-      break;
-
-    default:
-      return NULL;
-    }
-
-  fh = GNUNET_new(struct GNUNET_DISK_FileHandle);
-
-  fh->h = osfh;
-  fh->type = ftype;
-  if (ftype == GNUNET_DISK_HANLDE_TYPE_PIPE)
-    {
-      /**
-       * Note that we can't make it overlapped if it isn't already.
-       * (ReOpenFile() is only available in 2003/Vista).
-       * The process that opened this file in the first place (usually a parent
-       * process, if this is stdin/stdout/stderr) must make it overlapped,
-       * otherwise we're screwed, as selecting on non-overlapped handle
-       * will block.
-       */
-      fh->oOverlapRead = GNUNET_new(OVERLAPPED);
-      fh->oOverlapWrite = GNUNET_new(OVERLAPPED);
-      fh->oOverlapRead->hEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
-      fh->oOverlapWrite->hEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
-    }
-
-  return fh;
-}
-#endif
 
 /**
  * Get a handle from a native integer FD.
@@ -1916,19 +1459,9 @@ GNUNET_DISK_get_handle_from_int_fd(int fno)
   if ((((off_t)-1) == lseek(fno, 0, SEEK_CUR)) && (EBADF == errno))
     return NULL; /* invalid FD */
 
-#ifndef WINDOWS
   fh = GNUNET_new(struct GNUNET_DISK_FileHandle);
 
   fh->fd = fno;
-#else
-  intptr_t osfh;
-
-  osfh = _get_osfhandle(fno);
-  if (INVALID_HANDLE_VALUE == (HANDLE)osfh)
-    return NULL;
-
-  fh = GNUNET_DISK_get_handle_from_w32_handle((HANDLE)osfh);
-#endif
 
   return fh;
 }
@@ -1962,17 +1495,10 @@ struct GNUNET_DISK_MapHandle {
    */
   void *addr;
 
-#ifdef MINGW
-  /**
-   * Underlying OS handle.
-   */
-  HANDLE h;
-#else
   /**
    * Number of bytes mapped.
    */
   size_t len;
-#endif
 };
 
 
@@ -2001,50 +1527,6 @@ GNUNET_DISK_file_map(const struct GNUNET_DISK_FileHandle *h,
       return NULL;
     }
 
-#ifdef MINGW
-  DWORD mapAccess, protect;
-
-  if ((access & GNUNET_DISK_MAP_TYPE_READ) &&
-      (access & GNUNET_DISK_MAP_TYPE_WRITE))
-    {
-      protect = PAGE_READWRITE;
-      mapAccess = FILE_MAP_ALL_ACCESS;
-    }
-  else if (access & GNUNET_DISK_MAP_TYPE_READ)
-    {
-      protect = PAGE_READONLY;
-      mapAccess = FILE_MAP_READ;
-    }
-  else if (access & GNUNET_DISK_MAP_TYPE_WRITE)
-    {
-      protect = PAGE_READWRITE;
-      mapAccess = FILE_MAP_WRITE;
-    }
-  else
-    {
-      GNUNET_break(0);
-      return NULL;
-    }
-
-  *m = GNUNET_new(struct GNUNET_DISK_MapHandle);
-  (*m)->h = CreateFileMapping(h->h, NULL, protect, 0, 0, NULL);
-  if ((*m)->h == INVALID_HANDLE_VALUE)
-    {
-      SetErrnoFromWinError(GetLastError());
-      GNUNET_free(*m);
-      return NULL;
-    }
-
-  (*m)->addr = MapViewOfFile((*m)->h, mapAccess, 0, 0, len);
-  if (!(*m)->addr)
-    {
-      SetErrnoFromWinError(GetLastError());
-      CloseHandle((*m)->h);
-      GNUNET_free(*m);
-    }
-
-  return (*m)->addr;
-#else
   int prot;
 
   prot = 0;
@@ -2062,7 +1544,6 @@ GNUNET_DISK_file_map(const struct GNUNET_DISK_FileHandle *h,
     }
   (*m)->len = len;
   return (*m)->addr;
-#endif
 }
 
 /**
@@ -2081,18 +1562,8 @@ GNUNET_DISK_file_unmap(struct GNUNET_DISK_MapHandle *h)
       return GNUNET_SYSERR;
     }
 
-#ifdef MINGW
-  ret = UnmapViewOfFile(h->addr) ? GNUNET_OK : GNUNET_SYSERR;
-  if (ret != GNUNET_OK)
-    SetErrnoFromWinError(GetLastError());
-  if (!CloseHandle(h->h) && (ret == GNUNET_OK))
-    {
-      ret = GNUNET_SYSERR;
-      SetErrnoFromWinError(GetLastError());
-    }
-#else
   ret = munmap(h->addr, h->len) != -1 ? GNUNET_OK : GNUNET_SYSERR;
-#endif
+
   GNUNET_free(h);
   return ret;
 }
@@ -2112,164 +1583,12 @@ GNUNET_DISK_file_sync(const struct GNUNET_DISK_FileHandle *h)
       return GNUNET_SYSERR;
     }
 
-#ifdef MINGW
-  int ret;
-
-  ret = FlushFileBuffers(h->h) ? GNUNET_OK : GNUNET_SYSERR;
-  if (ret != GNUNET_OK)
-    SetErrnoFromWinError(GetLastError());
-  return ret;
-#elif defined(FREEBSD) || defined(OPENBSD) || defined(DARWIN)
+#if defined(FREEBSD) || defined(OPENBSD) || defined(DARWIN)
   return fsync(h->fd) == -1 ? GNUNET_SYSERR : GNUNET_OK;
 #else
   return fdatasync(h->fd) == -1 ? GNUNET_SYSERR : GNUNET_OK;
 #endif
 }
-
-
-#if WINDOWS
-#ifndef PIPE_BUF
-#define PIPE_BUF 512
-#endif
-/* Copyright Bob Byrnes  <byrnes <at> curl.com>
-   http://permalink.gmane.org/gmane.os.cygwin.patches/2121
- */
-/* Create a pipe, and return handles to the read and write ends,
-   just like CreatePipe, but ensure that the write end permits
-   FILE_READ_ATTRIBUTES access, on later versions of win32 where
-   this is supported.  This access is needed by NtQueryInformationFile,
-   which is used to implement select and nonblocking writes.
-   Note that the return value is either NO_ERROR or GetLastError,
-   unlike CreatePipe, which returns a bool for success or failure.  */
-static int
-create_selectable_pipe(PHANDLE read_pipe_ptr,
-                       PHANDLE write_pipe_ptr,
-                       LPSECURITY_ATTRIBUTES sa_ptr,
-                       DWORD psize,
-                       DWORD dwReadMode,
-                       DWORD dwWriteMode)
-{
-  /* Default to error. */
-  *read_pipe_ptr = *write_pipe_ptr = INVALID_HANDLE_VALUE;
-
-  HANDLE read_pipe;
-  HANDLE write_pipe;
-
-  /* Ensure that there is enough pipe buffer space for atomic writes.  */
-  if (psize < PIPE_BUF)
-    psize = PIPE_BUF;
-
-  char pipename[MAX_PATH];
-
-  /* Retry CreateNamedPipe as long as the pipe name is in use.
-   * Retrying will probably never be necessary, but we want
-   * to be as robust as possible.  */
-  while (1)
-    {
-      static volatile LONG pipe_unique_id;
-
-      snprintf(pipename,
-               sizeof pipename,
-               "\\\\.\\pipe\\gnunet-%d-%ld",
-               getpid(),
-               InterlockedIncrement((LONG *)&pipe_unique_id));
-      LOG(GNUNET_ERROR_TYPE_DEBUG,
-          "CreateNamedPipe: name = %s, size = %lu\n",
-          pipename,
-          psize);
-      /* Use CreateNamedPipe instead of CreatePipe, because the latter
-       * returns a write handle that does not permit FILE_READ_ATTRIBUTES
-       * access, on versions of win32 earlier than WinXP SP2.
-       * CreatePipe also stupidly creates a full duplex pipe, which is
-       * a waste, since only a single direction is actually used.
-       * It's important to only allow a single instance, to ensure that
-       * the pipe was not created earlier by some other process, even if
-       * the pid has been reused.  */
-      read_pipe = CreateNamedPipeA(pipename,
-                                   PIPE_ACCESS_INBOUND |
-                                   FILE_FLAG_FIRST_PIPE_INSTANCE | dwReadMode,
-                                   PIPE_TYPE_BYTE | PIPE_READMODE_BYTE,
-                                   1, /* max instances */
-                                   psize, /* output buffer size */
-                                   psize, /* input buffer size */
-                                   NMPWAIT_USE_DEFAULT_WAIT,
-                                   sa_ptr);
-
-      if (read_pipe != INVALID_HANDLE_VALUE)
-        {
-          LOG(GNUNET_ERROR_TYPE_DEBUG, "pipe read handle = %p\n", read_pipe);
-          break;
-        }
-
-      DWORD err = GetLastError();
-
-      switch (err)
-        {
-        case ERROR_PIPE_BUSY:
-          /* The pipe is already open with compatible parameters.
-           * Pick a new name and retry.  */
-          LOG(GNUNET_ERROR_TYPE_DEBUG, "pipe busy, retrying\n");
-          continue;
-
-        case ERROR_ACCESS_DENIED:
-          /* The pipe is already open with incompatible parameters.
-           * Pick a new name and retry.  */
-          LOG(GNUNET_ERROR_TYPE_DEBUG, "pipe access denied, retrying\n");
-          continue;
-
-        case ERROR_CALL_NOT_IMPLEMENTED:
-          /* We are on an older Win9x platform without named pipes.
-          * Return an anonymous pipe as the best approximation.  */
-          LOG(GNUNET_ERROR_TYPE_DEBUG,
-              "CreateNamedPipe not implemented, resorting to "
-              "CreatePipe: size = %lu\n",
-              psize);
-          if (CreatePipe(read_pipe_ptr, write_pipe_ptr, sa_ptr, psize))
-            {
-              LOG(GNUNET_ERROR_TYPE_DEBUG,
-                  "pipe read handle = %p, write handle = %p\n",
-                  *read_pipe_ptr,
-                  *write_pipe_ptr);
-              return GNUNET_OK;
-            }
-          err = GetLastError();
-          LOG(GNUNET_ERROR_TYPE_ERROR, "CreatePipe failed: %d\n", err);
-          return err;
-
-        default:
-          LOG(GNUNET_ERROR_TYPE_ERROR, "CreateNamedPipe failed: %d\n", err);
-          return err;
-        }
-      /* NOTREACHED */
-    }
-  LOG(GNUNET_ERROR_TYPE_DEBUG, "CreateFile: name = %s\n", pipename);
-
-  /* Open the named pipe for writing.
-   * Be sure to permit FILE_READ_ATTRIBUTES access.  */
-  write_pipe = CreateFileA(pipename,
-                           GENERIC_WRITE | FILE_READ_ATTRIBUTES,
-                           0,  /* share mode */
-                           sa_ptr,
-                           OPEN_EXISTING,
-                           dwWriteMode,  /* flags and attributes */
-                           0);  /* handle to template file */
-
-  if (write_pipe == INVALID_HANDLE_VALUE)
-    {
-      /* Failure. */
-      DWORD err = GetLastError();
-
-      LOG(GNUNET_ERROR_TYPE_DEBUG, "CreateFile failed: %d\n", err);
-      CloseHandle(read_pipe);
-      return err;
-    }
-  LOG(GNUNET_ERROR_TYPE_DEBUG, "pipe write handle = %p\n", write_pipe);
-  /* Success. */
-  *read_pipe_ptr = read_pipe;
-  *write_pipe_ptr = write_pipe;
-  return GNUNET_OK;
-}
-#endif
 
 
 /**
@@ -2287,7 +1606,6 @@ GNUNET_DISK_pipe(int blocking_read,
                  int inherit_read,
                  int inherit_write)
 {
-#ifndef MINGW
   int fd[2];
   int ret;
   int eno;
@@ -2303,99 +1621,6 @@ GNUNET_DISK_pipe(int blocking_read,
       return NULL;
     }
   return GNUNET_DISK_pipe_from_fd(blocking_read, blocking_write, fd);
-#else
-  struct GNUNET_DISK_PipeHandle *p;
-  BOOL ret;
-  HANDLE tmp_handle;
-  int save_errno;
-
-  p = GNUNET_new(struct GNUNET_DISK_PipeHandle);
-  p->fd[0] = GNUNET_new(struct GNUNET_DISK_FileHandle);
-  p->fd[1] = GNUNET_new(struct GNUNET_DISK_FileHandle);
-
-  /* All pipes are overlapped. If you want them to block - just
-   * call WriteFile() and ReadFile() with NULL overlapped pointer.
-   * NOTE: calling with NULL overlapped pointer works only
-   * for pipes, and doesn't seem to be a documented feature.
-   * It will NOT work for files, because overlapped files need
-   * to read offsets from the overlapped structure, regardless.
-   * Pipes are not seekable, and need no offsets, which is
-   * probably why it works for them.
-   */
-  ret = create_selectable_pipe(&p->fd[0]->h,
-                               &p->fd[1]->h,
-                               NULL,
-                               0,
-                               FILE_FLAG_OVERLAPPED,
-                               FILE_FLAG_OVERLAPPED);
-  if (!ret)
-    {
-      SetErrnoFromWinError(GetLastError());
-      save_errno = errno;
-      GNUNET_free(p->fd[0]);
-      GNUNET_free(p->fd[1]);
-      GNUNET_free(p);
-      errno = save_errno;
-      return NULL;
-    }
-  if (!DuplicateHandle(GetCurrentProcess(),
-                       p->fd[0]->h,
-                       GetCurrentProcess(),
-                       &tmp_handle,
-                       0,
-                       inherit_read == GNUNET_YES ? TRUE : FALSE,
-                       DUPLICATE_SAME_ACCESS))
-    {
-      SetErrnoFromWinError(GetLastError());
-      save_errno = errno;
-      CloseHandle(p->fd[0]->h);
-      CloseHandle(p->fd[1]->h);
-      GNUNET_free(p->fd[0]);
-      GNUNET_free(p->fd[1]);
-      GNUNET_free(p);
-      errno = save_errno;
-      return NULL;
-    }
-  CloseHandle(p->fd[0]->h);
-  p->fd[0]->h = tmp_handle;
-
-  if (!DuplicateHandle(GetCurrentProcess(),
-                       p->fd[1]->h,
-                       GetCurrentProcess(),
-                       &tmp_handle,
-                       0,
-                       inherit_write == GNUNET_YES ? TRUE : FALSE,
-                       DUPLICATE_SAME_ACCESS))
-    {
-      SetErrnoFromWinError(GetLastError());
-      save_errno = errno;
-      CloseHandle(p->fd[0]->h);
-      CloseHandle(p->fd[1]->h);
-      GNUNET_free(p->fd[0]);
-      GNUNET_free(p->fd[1]);
-      GNUNET_free(p);
-      errno = save_errno;
-      return NULL;
-    }
-  CloseHandle(p->fd[1]->h);
-  p->fd[1]->h = tmp_handle;
-
-  p->fd[0]->type = GNUNET_DISK_HANLDE_TYPE_PIPE;
-  p->fd[1]->type = GNUNET_DISK_HANLDE_TYPE_PIPE;
-
-  p->fd[0]->oOverlapRead = GNUNET_new(OVERLAPPED);
-  p->fd[0]->oOverlapWrite = GNUNET_new(OVERLAPPED);
-  p->fd[1]->oOverlapRead = GNUNET_new(OVERLAPPED);
-  p->fd[1]->oOverlapWrite = GNUNET_new(OVERLAPPED);
-
-  p->fd[0]->oOverlapRead->hEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
-  p->fd[0]->oOverlapWrite->hEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
-
-  p->fd[1]->oOverlapRead->hEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
-  p->fd[1]->oOverlapWrite->hEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
-
-  return p;
-#endif
 }
 
 
@@ -2416,7 +1641,6 @@ GNUNET_DISK_pipe_from_fd(int blocking_read, int blocking_write, int fd[2])
 
   p = GNUNET_new(struct GNUNET_DISK_PipeHandle);
 
-#ifndef MINGW
   int ret;
   int flags;
   int eno = 0; /* make gcc happy */
@@ -2481,44 +1705,7 @@ GNUNET_DISK_pipe_from_fd(int blocking_read, int blocking_write, int fd[2])
       errno = eno;
       return NULL;
     }
-#else
-  if (fd[0] >= 0)
-    {
-      p->fd[0] = GNUNET_new(struct GNUNET_DISK_FileHandle);
-      p->fd[0]->h = (HANDLE)_get_osfhandle(fd[0]);
-      if (p->fd[0]->h != INVALID_HANDLE_VALUE)
-        {
-          p->fd[0]->type = GNUNET_DISK_HANLDE_TYPE_PIPE;
-          p->fd[0]->oOverlapRead = GNUNET_new(OVERLAPPED);
-          p->fd[0]->oOverlapWrite = GNUNET_new(OVERLAPPED);
-          p->fd[0]->oOverlapRead->hEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
-          p->fd[0]->oOverlapWrite->hEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
-        }
-      else
-        {
-          GNUNET_free(p->fd[0]);
-          p->fd[0] = NULL;
-        }
-    }
-  if (fd[1] >= 0)
-    {
-      p->fd[1] = GNUNET_new(struct GNUNET_DISK_FileHandle);
-      p->fd[1]->h = (HANDLE)_get_osfhandle(fd[1]);
-      if (p->fd[1]->h != INVALID_HANDLE_VALUE)
-        {
-          p->fd[1]->type = GNUNET_DISK_HANLDE_TYPE_PIPE;
-          p->fd[1]->oOverlapRead = GNUNET_new(OVERLAPPED);
-          p->fd[1]->oOverlapWrite = GNUNET_new(OVERLAPPED);
-          p->fd[1]->oOverlapRead->hEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
-          p->fd[1]->oOverlapWrite->hEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
-        }
-      else
-        {
-          GNUNET_free(p->fd[1]);
-          p->fd[1] = NULL;
-        }
-    }
-#endif
+
   return p;
 }
 
@@ -2671,15 +1858,10 @@ GNUNET_DISK_internal_file_handle_(const struct GNUNET_DISK_FileHandle *fh,
 {
   if (NULL == fh)
     return GNUNET_SYSERR;
-#ifdef MINGW
-  if (dst_len < sizeof(HANDLE))
-    return GNUNET_SYSERR;
-  *((HANDLE *)dst) = fh->h;
-#else
+
   if (dst_len < sizeof(int))
     return GNUNET_SYSERR;
   *((int *)dst) = fh->fd;
-#endif
 
   return GNUNET_OK;
 }

@@ -763,11 +763,8 @@ start_process(struct ServiceList *sl,
           sli->accept_task = NULL;
         }
     }
-#if WINDOWS
-  GNUNET_array_append(lsocks, ls, INVALID_SOCKET);
-#else
+
   GNUNET_array_append(lsocks, ls, -1);
-#endif
 
   /* obtain configuration */
   if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_string(cfg,
@@ -1002,10 +999,8 @@ create_listen_socket(struct sockaddr *sa,
   struct GNUNET_NETWORK_Handle *sock;
   struct ServiceListeningInfo *sli;
 
-#ifndef WINDOWS
   int match_uid;
   int match_gid;
-#endif
 
   switch (sa->sa_family)
     {
@@ -1056,10 +1051,8 @@ create_listen_socket(struct sockaddr *sa,
     GNUNET_log_strerror(GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
                         "setsockopt");
 #endif
-#ifndef WINDOWS
   if (AF_UNIX == sa->sa_family)
     GNUNET_NETWORK_unix_precheck((struct sockaddr_un *)sa);
-#endif
   if (GNUNET_OK !=
       GNUNET_NETWORK_socket_bind(sock, (const struct sockaddr *)sa, addr_len))
     {
@@ -1074,7 +1067,6 @@ create_listen_socket(struct sockaddr *sa,
       GNUNET_free(sa);
       return;
     }
-#ifndef WINDOWS
   if ((AF_UNIX == sa->sa_family)
 #ifdef LINUX
       /* Permission settings are not required when abstract sockets are used */
@@ -1090,7 +1082,6 @@ create_listen_socket(struct sockaddr *sa,
                                   match_uid,
                                   match_gid);
     }
-#endif
   if (GNUNET_OK != GNUNET_NETWORK_socket_listen(sock, 5))
     {
       GNUNET_log_strerror(GNUNET_ERROR_TYPE_ERROR, "listen");
@@ -1884,13 +1875,9 @@ setup_service(void *cls, const char *section)
   sl->config = config;
   sl->backoff = GNUNET_TIME_UNIT_MILLISECONDS;
   sl->restart_at = GNUNET_TIME_UNIT_FOREVER_ABS;
-#if WINDOWS
-  sl->pipe_control = GNUNET_YES;
-#else
   if (GNUNET_CONFIGURATION_have_value(cfg, section, "PIPECONTROL"))
     sl->pipe_control =
       GNUNET_CONFIGURATION_get_value_yesno(cfg, section, "PIPECONTROL");
-#endif
   GNUNET_CONTAINER_DLL_insert(running_head, running_tail, sl);
   if (GNUNET_YES ==
       GNUNET_CONFIGURATION_get_value_yesno(cfg, section, "IMMEDIATE_START"))

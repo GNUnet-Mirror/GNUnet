@@ -38,9 +38,6 @@
 #include <idn/idna.h>
 #endif
 #endif
-#if WINDOWS
-#include <idn-free.h>
-#endif
 #include "gnunet_util_lib.h"
 
 
@@ -65,11 +62,7 @@ GNUNET_DNSPARSER_check_label(const char *label)
   if (IDNA_SUCCESS != idna_to_ascii_8z(label, &output, IDNA_ALLOW_UNASSIGNED))
     return GNUNET_SYSERR;
   slen = strlen(output);
-#if WINDOWS
-  idn_free(output);
-#else
   free(output);
-#endif
   return (slen > 63) ? GNUNET_SYSERR : GNUNET_OK;
 }
 
@@ -101,11 +94,7 @@ GNUNET_DNSPARSER_check_name(const char *name)
   if (IDNA_SUCCESS != idna_to_ascii_8z(name, &output, IDNA_ALLOW_UNASSIGNED))
     return GNUNET_SYSERR;
   slen = strlen(output);
-#if WINDOWS
-  idn_free(output);
-#else
   free(output);
-#endif
   return (slen > 253) ? GNUNET_SYSERR : GNUNET_OK;
 }
 
@@ -276,11 +265,7 @@ parse_name(const char *udp_payload,
             {
               GNUNET_free(tmp);
               GNUNET_asprintf(&tmp, "%s%s.", ret, utf8);
-#if WINDOWS
-              idn_free(utf8);
-#else
               free(utf8);
-#endif
             }
           GNUNET_free(ret);
           ret = tmp;
@@ -954,18 +939,10 @@ GNUNET_DNSPARSER_builder_add_name(char *dst,
   while (NULL != dot);
   dst[pos++] = '\0'; /* terminator */
   *off = pos;
-#if WINDOWS
-  idn_free(idna_start);
-#else
   free(idna_start);
-#endif
   return GNUNET_OK;
 fail:
-#if WINDOWS
-  idn_free(idna_start);
-#else
   free(idna_start);
-#endif
   return GNUNET_NO;
 }
 

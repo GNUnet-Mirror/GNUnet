@@ -114,18 +114,6 @@ main(int argc, char *argv[])
 
   if (atx.abs_value_us != at.abs_value_us)
     {
-#ifdef WINDOWS
-      DWORD tzv;
-      TIME_ZONE_INFORMATION tzi;
-      tzv = GetTimeZoneInformation(&tzi);
-      if (TIME_ZONE_ID_INVALID != tzv)
-        {
-          atx.abs_value_us -= 1000LL * 1000LL * tzi.Bias * 60LL;
-        }
-      if (atx.abs_value_us == at.abs_value_us)
-        fprintf(stderr,
-                "WARNING:  GNUNET_STRINGS_fancy_time_to_absolute() miscalculates timezone!\n");
-#endif
       GNUNET_assert(0);
     }
 

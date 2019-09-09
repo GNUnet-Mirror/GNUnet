@@ -112,10 +112,6 @@ GNUNET_FS_file_information_create_from_file(
   const char *fn;
   const char *ss;
 
-#if WINDOWS
-  char fn_conv[MAX_PATH];
-#endif
-
   /* FIXME: should include_symbolic_links be GNUNET_NO or GNUNET_YES here? */
   if (GNUNET_OK !=
       GNUNET_DISK_file_size(filename, &fsize, GNUNET_NO, GNUNET_YES))
@@ -143,18 +139,12 @@ GNUNET_FS_file_information_create_from_file(
     return NULL;
   ret->h = h;
   ret->filename = GNUNET_strdup(filename);
-#if !WINDOWS
   fn = filename;
-#else
-  plibc_conv_to_win_path(filename, fn_conv);
-  fn = fn_conv;
-#endif
   while (NULL != (ss = strstr(fn, DIR_SEPARATOR_STR)))
     fn = ss + 1;
 /* FIXME: If we assume that on other platforms CRT is UTF-8-aware, then
  * this should be changed to EXTRACTOR_METAFORMAT_UTF8
  */
-#if !WINDOWS
   GNUNET_CONTAINER_meta_data_insert(ret->meta,
                                     "<gnunet>",
                                     EXTRACTOR_METATYPE_GNUNET_ORIGINAL_FILENAME,
@@ -162,15 +152,6 @@ GNUNET_FS_file_information_create_from_file(
                                     "text/plain",
                                     fn,
                                     strlen(fn) + 1);
-#else
-  GNUNET_CONTAINER_meta_data_insert(ret->meta,
-                                    "<gnunet>",
-                                    EXTRACTOR_METATYPE_GNUNET_ORIGINAL_FILENAME,
-                                    EXTRACTOR_METAFORMAT_UTF8,
-                                    "text/plain",
-                                    fn,
-                                    strlen(fn) + 1);
-#endif
   return ret;
 }
 

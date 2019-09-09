@@ -335,11 +335,10 @@ check_access(void *cls,
              (!check_ipv6_listed(sctx->v6_denied, &i6->sin6_addr)));
       break;
 
-#ifndef WINDOWS
     case AF_UNIX:
       ret = GNUNET_OK; /* controlled using file-system ACL now */
       break;
-#endif
+
     default:
       LOG(GNUNET_ERROR_TYPE_WARNING,
           _("Unknown address family %d\n"),
@@ -1203,7 +1202,7 @@ service_task(void *cls)
       sctx->ret = GNUNET_SYSERR;
       return;
     }
-#ifndef WINDOWS
+
   if (NULL != sctx->addrs)
     for (i = 0; NULL != sctx->addrs[i]; i++)
       if ((AF_UNIX == sctx->addrs[i]->sa_family) &&
@@ -1213,8 +1212,6 @@ service_task(void *cls)
                                     ->sun_path,
                                     sctx->match_uid,
                                     sctx->match_gid);
-#endif
-
 
   if (0 == (sctx->options & LEGACY_SERVICE_OPTION_MANUAL_SHUTDOWN))
     {
@@ -1647,7 +1644,7 @@ LEGACY_SERVICE_start(const char *service_name,
       LEGACY_SERVICE_stop(sctx);
       return NULL;
     }
-#ifndef WINDOWS
+
   if (NULL != sctx->addrs)
     for (i = 0; NULL != sctx->addrs[i]; i++)
       if ((AF_UNIX == sctx->addrs[i]->sa_family) &&
@@ -1657,7 +1654,7 @@ LEGACY_SERVICE_start(const char *service_name,
                                     ->sun_path,
                                     sctx->match_uid,
                                     sctx->match_gid);
-#endif
+
   sctx->my_handlers = GNUNET_malloc(sizeof(defhandlers));
   GNUNET_memcpy(sctx->my_handlers, defhandlers, sizeof(defhandlers));
   i = 0;

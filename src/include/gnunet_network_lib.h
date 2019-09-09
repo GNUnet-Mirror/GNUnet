@@ -60,25 +60,6 @@ struct GNUNET_NETWORK_FDSet {
    */
   fd_set sds;
 
-#ifdef WINDOWS
-  /**
-   * Array of file handles (from pipes) that are also in
-   * the FDSet.  Needed as those cannot go into @e sds
-   * on W32.
-   */
-  const struct GNUNET_DISK_FileHandle **handles;
-
-  /**
-   * Size of the @e handles array
-   */
-  unsigned int handles_size;
-
-  /**
-   * Number of @e handles slots in use. Always
-   * smaller than @e handles_size.
-   */
-  unsigned int handles_pos;
-#endif
 };
 
 #include "gnunet_disk_lib.h"
@@ -107,7 +88,6 @@ char *
 GNUNET_NETWORK_shorten_unixpath(char *unixpath);
 
 
-#ifndef WINDOWS
 /**
  * If services crash, they can leave a unix domain socket file on the
  * disk. This needs to be manually removed, because otherwise both
@@ -119,7 +99,6 @@ GNUNET_NETWORK_shorten_unixpath(char *unixpath);
  */
 void
 GNUNET_NETWORK_unix_precheck(const struct sockaddr_un *un);
-#endif
 
 
 /**
@@ -404,19 +383,6 @@ GNUNET_NETWORK_fdset_zero(struct GNUNET_NETWORK_FDSet *fds);
 void
 GNUNET_NETWORK_fdset_set(struct GNUNET_NETWORK_FDSet *fds,
                          const struct GNUNET_NETWORK_Handle *desc);
-
-
-#if WINDOWS
-/**
- * Add a W32 file handle to the fd set
- *
- * @param fds fd set
- * @param h the file handle to add
- */
-void
-GNUNET_NETWORK_fdset_handle_set_native_w32_handle(struct GNUNET_NETWORK_FDSet *fds,
-                                                  HANDLE h);
-#endif
 
 
 /**

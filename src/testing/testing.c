@@ -40,11 +40,7 @@
 /**
  * We need pipe control only on WINDOWS
  */
-#if WINDOWS
-#define PIPE_CONTROL GNUNET_YES
-#else
 #define PIPE_CONTROL GNUNET_NO
-#endif
 
 
 /**

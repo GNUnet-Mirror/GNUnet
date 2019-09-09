@@ -157,12 +157,10 @@ get_my_cnf_path(const struct GNUNET_CONFIGURATION_Handle *cfg,
   char *home_dir;
   struct stat st;
 
-#ifndef WINDOWS
   struct passwd *pw;
-#endif
+
   int configured;
 
-#ifndef WINDOWS
   pw = getpwuid(getuid());
   if (!pw)
     {
@@ -185,13 +183,7 @@ get_my_cnf_path(const struct GNUNET_CONFIGURATION_Handle *cfg,
       GNUNET_free(home_dir);
       configured = GNUNET_NO;
     }
-#else
-  home_dir = (char *)GNUNET_malloc(_MAX_PATH + 1);
-  plibc_conv_to_win_path("~/", home_dir);
-  GNUNET_asprintf(&cnffile, "%s/.my.cnf", home_dir);
-  GNUNET_free(home_dir);
-  configured = GNUNET_NO;
-#endif
+
   GNUNET_log_from(GNUNET_ERROR_TYPE_INFO,
                   "mysql",
                   _("Trying to use file `%s' for MySQL configuration.\n"),

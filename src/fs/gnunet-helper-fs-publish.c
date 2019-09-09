@@ -434,7 +434,6 @@ extract_files(struct ScanTreeNode *item)
 }
 
 
-#ifndef WINDOWS
 /**
  * Install a signal handler to ignore SIGPIPE.
  */
@@ -479,8 +478,6 @@ make_dev_zero(int fd, int flags)
   GNUNET_assert(0 == close(z));
 }
 
-#endif
-
 
 /**
  * Main function of the helper process to extract meta data.
@@ -499,23 +496,12 @@ main(int argc, char *const *argv)
   const char *ex;
   struct ScanTreeNode *root;
 
-#if WINDOWS
-  /* We're using stdout to communicate binary data back to the parent; use
-   * binary mode.
-   */
-  _setmode(1, _O_BINARY);
-  /* Get utf-8-encoded arguments */
-  if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args(argc, argv, &argc, &argv))
-    return 5;
-  output_stream = 1; /* stdout */
-#else
   ignore_sigpipe();
   /* move stdout to some other FD for IPC, bind
      stdout/stderr to /dev/null */
   output_stream = dup(1);
   make_dev_zero(1, O_WRONLY);
   make_dev_zero(2, O_WRONLY);
-#endif
 
   /* parse command line */
   if ((3 != argc) && (2 != argc))
@@ -523,9 +509,6 @@ main(int argc, char *const *argv)
       fprintf(stderr,
               "%s",
               "gnunet-helper-fs-publish needs exactly one or two arguments\n");
-#if WINDOWS
-      GNUNET_free((void *)argv);
-#endif
       return 1;
     }
   filename_expanded = argv[1];
@@ -548,9 +531,6 @@ main(int argc, char *const *argv)
 #if HAVE_LIBEXTRACTOR
       EXTRACTOR_plugin_remove_all(plugins);
 #endif
-#if WINDOWS
-      GNUNET_free((void *)argv);
-#endif
       return 2;
     }
   /* signal that we're done counting files, so that a percentage of
@@ -562,9 +542,6 @@ main(int argc, char *const *argv)
     {
 #if HAVE_LIBEXTRACTOR
       EXTRACTOR_plugin_remove_all(plugins);
-#endif
-#if WINDOWS
-      GNUNET_free((void *)argv);
 #endif
       return 3;
     }
@@ -579,9 +556,6 @@ main(int argc, char *const *argv)
 #if HAVE_LIBEXTRACTOR
           EXTRACTOR_plugin_remove_all(plugins);
 #endif
-#if WINDOWS
-          GNUNET_free((void *)argv);
-#endif
           return 4;
         }
       free_tree(root);
@@ -592,9 +566,6 @@ main(int argc, char *const *argv)
                       0);
 #if HAVE_LIBEXTRACTOR
   EXTRACTOR_plugin_remove_all(plugins);
-#endif
-#if WINDOWS
-  GNUNET_free((void *)argv);
 #endif
   return 0;
 }

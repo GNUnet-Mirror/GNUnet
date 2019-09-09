@@ -159,14 +159,6 @@ run_process_and_wait(int pipe_control,
       GNUNET_free(args);
       return 1;
     }
-#ifdef WINDOWS
-  if (GNUNET_OS_PROCESS_EXITED != *st || 0 != *code)
-    {
-      ret = 7;
-      fprintf(stderr, "`%s' did not end correctly (%d, %d)\n", args, *st, *code);
-      return 1;
-    }
-#endif
   return 0;
 }
 

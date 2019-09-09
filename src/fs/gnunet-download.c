@@ -87,13 +87,8 @@ display_bar(unsigned long long x, unsigned long long n, unsigned int w)
   unsigned int endeq;
   float ratio_complete;
 
-#if !WINDOWS
   if (0 == isatty(1))
     return;
-#else
-  if (FILE_TYPE_CHAR != GetFileType(GetStdHandle(STD_OUTPUT_HANDLE)))
-    return;
-#endif
   ratio_complete = x / (float)n;
   endeq = ratio_complete * w;
   GNUNET_snprintf(buf, sizeof(buf), "%3d%% [", (int)(ratio_complete * 100));
@@ -175,13 +170,8 @@ progress_cb(void *cls, const struct GNUNET_FS_ProgressInfo *info)
       break;
 
     case GNUNET_FS_STATUS_DOWNLOAD_ERROR:
-#if !WINDOWS
       if (0 != isatty(1))
         fprintf(stdout, "\n");
-#else
-      if (FILE_TYPE_CHAR == GetFileType(GetStdHandle(STD_OUTPUT_HANDLE)))
-        fprintf(stdout, "\n");
-#endif
       fprintf(stderr,
               _("Error downloading: %s.\n"),
               info->value.download.specifics.error.message);
@@ -192,13 +182,8 @@ progress_cb(void *cls, const struct GNUNET_FS_ProgressInfo *info)
       s = GNUNET_STRINGS_byte_size_fancy(
         info->value.download.completed * 1000 /
         (info->value.download.duration.rel_value_us + 1));
-#if !WINDOWS
       if (0 != isatty(1))
         fprintf(stdout, "\n");
-#else
-      if (FILE_TYPE_CHAR == GetFileType(GetStdHandle(STD_OUTPUT_HANDLE)))
-        fprintf(stdout, "\n");
-#endif
       fprintf(stdout,
               _("Downloading `%s' done (%s/s).\n"),
               info->value.download.filename,

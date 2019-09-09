@@ -11,8 +11,6 @@
 #ifndef __GAUGER_H__
 #define __GAUGER_H__
 
-#ifndef WINDOWS
-
 #include <unistd.h>
 #include <stdio.h>
 #include <sys/wait.h>
@@ -78,33 +76,5 @@
         waitpid(__gauger_p, NULL, 0); \
       } \
   }
-
-#else /* WINDOWS */
-
-#include <stdlib.h>
-#include <stdio.h>
-#include <windef.h>
-
-#define GAUGER(category, counter, value, unit) \
-  { \
-    char __gauger_commandline[MAX_PATH]; \
-    \
-    snprintf(__gauger_commandline, MAX_PATH, "gauger.py -n \"%s\" -d \"%Lf\" -u \"%s\" -c \"%s\"", \
-             (counter), (long double)(value), (unit), (category));    \
-    __gauger_commandline[MAX_PATH - 1] = '\0'; \
-    system(__gauger_commandline); \
-  }
-
-#define GAUGER_ID(category, counter, value, unit, id) \
-  { \
-    char __gauger_commandline[MAX_PATH]; \
-    \
-    snprintf(__gauger_commandline, MAX_PATH, "gauger.py -n \"%s\" -d \"%Lf\" -u \"%s\" -i \"%s\" -c \"%s\"", \
-             (counter), (long double)(value), (unit), (id), (category)); \
-    __gauger_commandline[MAX_PATH - 1] = '\0'; \
-    system(__gauger_commandline); \
-  }
-
-#endif // WINDOWS
 
 #endif

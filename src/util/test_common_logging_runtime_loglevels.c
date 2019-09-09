@@ -152,22 +152,12 @@ read_output_line(int phase_from1, int phase_to1, int phase_from2,
 
         case 2:                /* read the delay, finished by '\n' */
           t[j++] = r[i];
-#if WINDOWS
-          if (r[i] == '\r' && r[i + 1] == '\n')
-            {
-              i += 1;
-              t[j - 1] = '\0';
-              *delay = strtol(t, NULL, 10);
-              stop = 1;
-            }
-#else
           if (r[i] == '\n')
             {
               t[j - 1] = '\0';
               *delay = strtol(t, NULL, 10);
               stop = 1;
             }
-#endif
           break;
         }
     }

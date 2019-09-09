@@ -175,10 +175,6 @@ main(int argc, char **argv)
   dump_pure_ogg = getenv("GNUNET_RECORD_PURE_OGG") ? 1 : 0;
 #endif
 
-#ifdef WINDOWS
-  setmode(1, _O_BINARY);
-#endif
-
   /* Initialisation */
   gst_init(&argc, &argv);
 

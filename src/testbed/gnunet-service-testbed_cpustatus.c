@@ -54,9 +54,6 @@
 
 static processor_cpu_load_info_t prev_cpu_load;
 #endif
-#ifdef WINDOWS
-#include <winternl.h>
-#endif
 
 #define DEBUG_STATUSCALLS GNUNET_NO
 

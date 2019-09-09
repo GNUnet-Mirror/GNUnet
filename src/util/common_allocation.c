@@ -285,9 +285,6 @@ GNUNET_xrealloc_(void *ptr, size_t n, const char *filename, int linenumber)
 #define BAADFOOD_STR "\xBA\xAD\xF0\x0D"
 #endif
 
-#if WINDOWS
-#define M_SIZE(p) _msize(p)
-#endif
 #if HAVE_MALLOC_NP_H
 #include <malloc_np.h>
 #endif

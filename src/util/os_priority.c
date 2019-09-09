@@ -46,12 +46,6 @@ struct GNUNET_OS_Process {
    */
   pid_t pid;
 
-#if WINDOWS
-  /**
-   * Process handle.
-   */
-  HANDLE handle;
-#endif
 
   /**
    * Pipe we use to signal the process.
@@ -174,12 +168,7 @@ GNUNET_OS_install_parent_control_handler(void *cls)
       putenv(GNUNET_OS_CONTROL_PIPE "=");
       return;
     }
-#if !defined(WINDOWS)
   if (pipe_fd >= FD_SETSIZE)
-#else
-  if ((FILE_TYPE_UNKNOWN == GetFileType((HANDLE)(uintptr_t)pipe_fd)) &&
-      (0 != GetLastError()))
-#endif
     {
       LOG(GNUNET_ERROR_TYPE_ERROR,
           "GNUNET_OS_CONTROL_PIPE `%s' contains garbage?\n",
@@ -187,12 +176,9 @@ GNUNET_OS_install_parent_control_handler(void *cls)
       putenv(GNUNET_OS_CONTROL_PIPE "=");
       return;
     }
-#if WINDOWS
-  control_pipe =
-    GNUNET_DISK_get_handle_from_w32_handle((HANDLE)(uintptr_t)pipe_fd);
-#else
+
   control_pipe = GNUNET_DISK_get_handle_from_int_fd((int)pipe_fd);
-#endif
+
   if (NULL == control_pipe)
     {
       LOG_STRERROR_FILE(GNUNET_ERROR_TYPE_WARNING, "open", env_buf);
@@ -222,12 +208,7 @@ GNUNET_OS_install_parent_control_handler(void *cls)
 struct GNUNET_OS_Process *
 GNUNET_OS_process_current()
 {
-#if WINDOWS
-  current_process.pid = GetCurrentProcessId();
-  current_process.handle = GetCurrentProcess();
-#else
   current_process.pid = 0;
-#endif
   return &current_process;
 }
 
@@ -259,72 +240,24 @@ GNUNET_OS_process_kill(struct GNUNET_OS_Process *proc, int sig)
   /* pipe failed or non-existent, try other methods */
   switch (sig)
     {
-#if !defined(WINDOWS)
     case SIGHUP:
-#endif
     case SIGINT:
     case SIGKILL:
     case SIGTERM:
 #if (SIGTERM != GNUNET_TERM_SIG)
     case GNUNET_TERM_SIG:
 #endif
-#if defined(WINDOWS) && !defined(__CYGWIN__)
-      {
-        DWORD exitcode;
-        int must_kill = GNUNET_YES;
-        if (0 != GetExitCodeProcess(proc->handle, &exitcode))
-          must_kill = (exitcode == STILL_ACTIVE) ? GNUNET_YES : GNUNET_NO;
-        if (GNUNET_YES == must_kill)
-          {
-            if (0 == SafeTerminateProcess(proc->handle, 0, 0))
-              {
-                DWORD error_code = GetLastError();
-                if ((error_code != WAIT_TIMEOUT) &&
-                    (error_code != ERROR_PROCESS_ABORTED))
-                  {
-                    LOG((error_code == ERROR_ACCESS_DENIED) ? GNUNET_ERROR_TYPE_INFO
-                        : GNUNET_ERROR_TYPE_WARNING,
-                        "SafeTermiateProcess failed with code %lu\n",
-                        error_code);
-                    /* The problem here is that a process that is already dying
-                     * might cause SafeTerminateProcess to fail with
-                     * ERROR_ACCESS_DENIED, but the process WILL die eventually.
-                     * If we really had a permissions problem, hanging up (which
-                     * is what will happen in process_wait() in that case) is
-                     * a valid option.
-                     */
-                    if (ERROR_ACCESS_DENIED == error_code)
-                      {
-                        errno = 0;
-                      }
-                    else
-                      {
-                        SetErrnoFromWinError(error_code);
-                        return -1;
-                      }
-                  }
-              }
-          }
-      }
-      return 0;
-#else
       LOG(GNUNET_ERROR_TYPE_DEBUG,
           "Sending signal %d to pid: %u via system call\n",
           sig,
           proc->pid);
       return kill(proc->pid, sig);
-#endif
     default:
-#if defined(WINDOWS)
-      errno = EINVAL;
-      return -1;
-#else
       LOG(GNUNET_ERROR_TYPE_DEBUG,
           "Sending signal %d to pid: %u via system call\n",
           sig,
           proc->pid);
       return kill(proc->pid, sig);
-#endif
     }
 }
 
@@ -354,152 +287,11 @@ GNUNET_OS_process_destroy(struct GNUNET_OS_Process *proc)
 {
   if (NULL != proc->control_pipe)
     GNUNET_DISK_file_close(proc->control_pipe);
-#if defined(WINDOWS)
-  if (NULL != proc->handle)
-    CloseHandle(proc->handle);
-#endif
+
   GNUNET_free(proc);
 }
 
 
-#if WINDOWS
-#include "gnunet_signal_lib.h"
-
-extern GNUNET_SIGNAL_Handler w32_sigchld_handler;
-
-/**
- * Make seaspider happy.
- */
-#define DWORD_WINAPI DWORD WINAPI
-
-
-/**
- * @brief Waits for a process to terminate and invokes the SIGCHLD handler
- * @param proc pointer to process structure
- */
-static DWORD_WINAPI
-child_wait_thread(void *arg)
-{
-  struct GNUNET_OS_Process *proc = (struct GNUNET_OS_Process *)arg;
-
-  WaitForSingleObject(proc->handle, INFINITE);
-
-  if (w32_sigchld_handler)
-    w32_sigchld_handler();
-
-  return 0;
-}
-#endif
-
-
-#if MINGW
-static char *
-CreateCustomEnvTable(char **vars)
-{
-  char *win32_env_table;
-  char *ptr;
-  char **var_ptr;
-  char *result;
-  char *result_ptr;
-  size_t tablesize = 0;
-  size_t items_count = 0;
-  size_t n_found = 0;
-  size_t n_var;
-  char *index = NULL;
-  size_t c;
-  size_t var_len;
-  char *var;
-  char *val;
-
-  win32_env_table = GetEnvironmentStringsA();
-  if (NULL == win32_env_table)
-    return NULL;
-  for (c = 0, var_ptr = vars; *var_ptr; var_ptr += 2, c++)
-    ;
-  n_var = c;
-  index = GNUNET_malloc(sizeof(char *) * n_var);
-  for (c = 0; c < n_var; c++)
-    index[c] = 0;
-  for (items_count = 0, ptr = win32_env_table; ptr[0] != 0; items_count++)
-    {
-      size_t len = strlen(ptr);
-      int found = 0;
-
-      for (var_ptr = vars; *var_ptr; var_ptr++)
-        {
-          var = *var_ptr++;
-          val = *var_ptr;
-          var_len = strlen(var);
-          if (strncmp(var, ptr, var_len) == 0)
-            {
-              found = 1;
-              index[c] = 1;
-              tablesize += var_len + strlen(val) + 1;
-              break;
-            }
-        }
-      if (!found)
-        tablesize += len + 1;
-      ptr += len + 1;
-    }
-  for (n_found = 0, c = 0, var_ptr = vars; *var_ptr; var_ptr++, c++)
-    {
-      var = *var_ptr++;
-      val = *var_ptr;
-      if (index[c] != 1)
-        n_found += strlen(var) + strlen(val) + 1;
-    }
-  result = GNUNET_malloc(tablesize + n_found + 1);
-  for (result_ptr = result, ptr = win32_env_table; ptr[0] != 0;)
-    {
-      size_t len = strlen(ptr);
-      int found = 0;
-
-      for (c = 0, var_ptr = vars; *var_ptr; var_ptr++, c++)
-        {
-          var = *var_ptr++;
-          val = *var_ptr;
-          var_len = strlen(var);
-          if (strncmp(var, ptr, var_len) == 0)
-            {
-              found = 1;
-              break;
-            }
-        }
-      if (!found)
-        {
-          strcpy(result_ptr, ptr);
-          result_ptr += len + 1;
-        }
-      else
-        {
-          strcpy(result_ptr, var);
-          result_ptr += var_len;
-          strcpy(result_ptr, val);
-          result_ptr += strlen(val) + 1;
-        }
-      ptr += len + 1;
-    }
-  for (c = 0, var_ptr = vars; *var_ptr; var_ptr++, c++)
-    {
-      var = *var_ptr++;
-      val = *var_ptr;
-      var_len = strlen(var);
-      if (index[c] != 1)
-        {
-          strcpy(result_ptr, var);
-          result_ptr += var_len;
-          strcpy(result_ptr, val);
-          result_ptr += strlen(val) + 1;
-        }
-    }
-  FreeEnvironmentStrings(win32_env_table);
-  GNUNET_free(index);
-  *result_ptr = 0;
-  return result;
-}
-
-#else
 
 /**
  * Open '/dev/null' and make the result the given
@@ -529,7 +321,6 @@ open_dev_null(int target_fd, int flags)
     }
   GNUNET_break(0 == close(fd));
 }
-#endif
 
 
 /**

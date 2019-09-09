@@ -39,8 +39,6 @@
 #if DARWIN
 #include <mach-o/ldsyms.h>
 #include <mach-o/dyld.h>
-#elif WINDOWS
-#include <windows.h>
 #endif
 
 
@@ -212,124 +210,6 @@ get_path_from_proc_exe()
 #endif
 
 
-#if WINDOWS
-static HINSTANCE dll_instance;
-
-
-/**
- * GNUNET_util_cl_init() in common_logging.c is preferred.
- * This function is only for thread-local storage (not used in GNUnet)
- * and hInstance saving.
- */
-BOOL WINAPI
-DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
-{
-  switch (fdwReason)
-    {
-    case DLL_PROCESS_ATTACH:
-      dll_instance = hinstDLL;
-      break;
-
-    case DLL_THREAD_ATTACH:
-      break;
-
-    case DLL_THREAD_DETACH:
-      break;
-
-    case DLL_PROCESS_DETACH:
-      break;
-    }
-  return TRUE;
-}
-
-
-/**
- * Try to determine path with win32-specific function
- *
- * @return NULL on error
- */
-static char *
-get_path_from_module_filename()
-{
-  size_t pathlen = 512;
-  DWORD real_pathlen;
-  wchar_t *idx;
-  wchar_t *modulepath = NULL;
-  char *upath;
-  uint8_t *u8_string;
-  size_t u8_string_length;
-
-  /* This braindead function won't tell us how much space it needs, so
-   * we start at 1024 and double the space up if it doesn't fit, until
-   * it fits, or we exceed the threshold.
-   */
-  do
-    {
-      pathlen = pathlen * 2;
-      modulepath = GNUNET_realloc(modulepath, pathlen * sizeof(wchar_t));
-      SetLastError(0);
-      real_pathlen =
-        GetModuleFileNameW(dll_instance, modulepath, pathlen * sizeof(wchar_t));
-    }
-  while (real_pathlen >= pathlen && pathlen < 16 * 1024);
-  if (real_pathlen >= pathlen)
-    GNUNET_assert(0);
-  /* To be safe */
-  modulepath[real_pathlen] = '\0';
-
-  idx = modulepath + real_pathlen;
-  while ((idx > modulepath) && (*idx != L'\\') && (*idx != L'/'))
-    idx--;
-  *idx = L'\0';
-
-  /* Now modulepath holds full path to the directory where libgnunetutil is.
-   * This directory should look like <GNUNET_PREFIX>/bin or <GNUNET_PREFIX>.
-   */
-  if (wcschr(modulepath, L'/') || wcschr(modulepath, L'\\'))
-    {
-      /* At least one directory component (i.e. we're not in a root directory) */
-      wchar_t *dirname = idx;
-      while ((dirname > modulepath) && (*dirname != L'\\') && (*dirname != L'/'))
-        dirname--;
-      *dirname = L'\0';
-      if (dirname > modulepath)
-        {
-          dirname++;
-          /* Now modulepath holds full path to the parent directory of the directory
-           * where libgnunetutil is.
-           * dirname holds the name of the directory where libgnunetutil is.
-           */
-          if (wcsicmp(dirname, L"bin") == 0)
-            {
-              /* pass */
-            }
-          else
-            {
-              /* Roll back our changes to modulepath */
-              dirname--;
-              *dirname = L'/';
-            }
-        }
-    }
-
-  /* modulepath is GNUNET_PREFIX */
-  u8_string =
-    u16_to_u8(modulepath, wcslen(modulepath), NULL, &u8_string_length);
-  if (NULL == u8_string)
-    GNUNET_assert(0);
-
-  upath = GNUNET_malloc(u8_string_length + 1);
-  GNUNET_memcpy(upath, u8_string, u8_string_length);
-  upath[u8_string_length] = '\0';
-
-  free(u8_string);
-  GNUNET_free(modulepath);
-
-  return upath;
-}
-#endif
-
-
 #if DARWIN
 /**
  * Signature of the '_NSGetExecutablePath" function.
@@ -433,12 +313,9 @@ get_path_from_PATH(const char *binary)
 
   if (NULL == (p = getenv("PATH")))
     return NULL;
-#if WINDOWS
-  /* On W32 look in CWD first. */
-  GNUNET_asprintf(&path, ".%c%s", PATH_SEPARATOR, p);
-#else
+
   path = GNUNET_strdup(p);  /* because we write on it */
-#endif
+
   buf = GNUNET_malloc(strlen(path) + strlen(binary) + 1 + 1);
   pos = path;
   while (NULL != (end = strchr(pos, PATH_SEPARATOR)))
@@ -512,10 +389,6 @@ os_get_gnunet_path()
   if (NULL != (ret = get_path_from_proc_exe()))
     return ret;
 #endif
-#if WINDOWS
-  if (NULL != (ret = get_path_from_module_filename()))
-    return ret;
-#endif
 #if DARWIN
   if (NULL != (ret = get_path_from_dyld_image()))
     return ret;
@@ -546,10 +419,6 @@ os_get_exec_path()
 
 #if LINUX
   if (NULL != (ret = get_path_from_proc_exe()))
-    return ret;
-#endif
-#if WINDOWS
-  if (NULL != (ret = get_path_from_module_filename()))
     return ret;
 #endif
 #if DARWIN

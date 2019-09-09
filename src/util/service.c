@@ -825,11 +825,10 @@ accept_client(void *cls)
                  (!check_ipv6_listed(sh->v6_denied, &v6->sin6_addr))));
           break;
 
-#ifndef WINDOWS
         case AF_UNIX:
           ok = GNUNET_OK; /* controlled using file-system ACL now */
           break;
-#endif
+
         default:
           LOG(GNUNET_ERROR_TYPE_WARNING,
               _("Unknown address family %d\n"),
