@@ -234,7 +234,7 @@ access_handler_callback(void *cls,
           GNUNET_free(tmp);
           return MHD_NO;
         }
-      GNUNET_break(0 == STAT(deffile, &st));
+      GNUNET_break(0 == stat(deffile, &st));
       if (NULL ==
           (response = MHD_create_response_from_fd((size_t)st.st_size, fd)))
         {
@@ -451,7 +451,7 @@ run(void *cls,
       GNUNET_free(fn);
       return;
     }
-  if (0 != STAT(fn, &st))
+  if (0 != stat(fn, &st))
     {
       GNUNET_log_strerror_file(GNUNET_ERROR_TYPE_ERROR, "open", fn);
       GNUNET_free(fn);
