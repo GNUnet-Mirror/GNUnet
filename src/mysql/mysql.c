@@ -196,7 +196,7 @@ get_my_cnf_path(const struct GNUNET_CONFIGURATION_Handle *cfg,
                   "mysql",
                   _("Trying to use file `%s' for MySQL configuration.\n"),
                   cnffile);
-  if ((0 != STAT(cnffile, &st)) || (0 != ACCESS(cnffile, R_OK)) ||
+  if ((0 != stat(cnffile, &st)) || (0 != access(cnffile, R_OK)) ||
       (!S_ISREG(st.st_mode)))
     {
       if (configured == GNUNET_YES)

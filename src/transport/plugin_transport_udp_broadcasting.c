@@ -450,7 +450,7 @@ iface_proc(void *cls,
       GNUNET_asprintf(&filename,
                       "/dev/cryogenic/%s",
                       name);
-      if (0 == ACCESS(name, R_OK))
+      if (0 == access(name, R_OK))
         {
           ba->cryogenic_fd =
             GNUNET_DISK_file_open(filename,
@@ -505,7 +505,7 @@ iface_proc(void *cls,
           GNUNET_asprintf(&filename,
                           "/dev/cryogenic/%s",
                           name);
-          if (0 == ACCESS(name, R_OK))
+          if (0 == access(name, R_OK))
             {
               ba->cryogenic_fd =
                 GNUNET_DISK_file_open(filename,

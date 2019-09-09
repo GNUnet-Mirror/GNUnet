@@ -421,7 +421,7 @@ main(int argc, char *const *argv)
   int ret = 0;
 
 #ifndef MINGW
-  if (0 != ACCESS("/dev/net/tun", R_OK))
+  if (0 != access("/dev/net/tun", R_OK))
     {
       GNUNET_log_strerror_file(GNUNET_ERROR_TYPE_ERROR,
                                "access",
