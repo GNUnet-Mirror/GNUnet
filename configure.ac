@@ -70,7 +70,7 @@ AS_IF([gcc -fno-strict-aliasing -S -o /dev/null -xc /dev/null >/dev/null 2>&1],
 AC_DEFUN([CC_CHECK_CFLAGS_SILENT], [
   AC_CACHE_VAL(AS_TR_SH([cc_cv_cflags_$1]),
     [ac_save_CFLAGS="$CFLAGS"
-     CFLAGS="$CFLAGS $1"
+     CFLAGS="$CFLAGS $1 -Werror"
      AC_LINK_IFELSE([AC_LANG_SOURCE([int main() { return 0; }])],
        [eval "AS_TR_SH([cc_cv_cflags_$1])='yes'"],
        [eval "AS_TR_SH([cc_cv_cflags_$1])='no'"])
