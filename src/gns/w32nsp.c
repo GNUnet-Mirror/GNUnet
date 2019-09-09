@@ -81,7 +81,7 @@
 static CRITICAL_SECTION records_cs;
 
 struct record {
-  SOCKET s;
+  _win_socket s;
   DWORD flags;
   uint8_t state;
   char *buf;
@@ -112,7 +112,7 @@ resize_records()
 }
 
 static int
-add_record(SOCKET s, const wchar_t *name, DWORD flags)
+add_record(_win_socket s, const wchar_t *name, DWORD flags)
 {
   int res = 1;
   int i;
@@ -162,14 +162,14 @@ typedef struct _NSP_ROUTINE_XP {
   LPNSPIOCTL NSPIoctl;
 } NSP_ROUTINE_XP;
 
-static SOCKET
+static _win_socket
 connect_to_dns_resolver()
 {
   struct sockaddr_in addr;
-  SOCKET r;
+  _win_socket r;
   int ret;
 
-  r = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+  r = _win_socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
   if (INVALID_SOCKET == r)
     {
       SetLastError(16004);
@@ -180,7 +180,7 @@ connect_to_dns_resolver()
   addr.sin_port = htons(5353);  /* TCP 5353 is not registered; UDP 5353 is */
   addr.sin_addr.s_addr = inet_addr("127.0.0.1");
 
-  ret = connect(r, (struct sockaddr *)&addr, sizeof(addr));
+  ret = _win_connect(r, (struct sockaddr *)&addr, sizeof(addr));
   if (SOCKET_ERROR == ret)
     {
       DWORD err = GetLastError();
@@ -195,7 +195,7 @@ connect_to_dns_resolver()
 static int
 send_name_to_ip_request(LPWSAQUERYSETW lpqsRestrictions,
                         LPWSASERVICECLASSINFOW lpServiceClassInfo, DWORD dwControlFlags,
-                        SOCKET *resolver)
+                        _win_socket *resolver)
 {
   struct GNUNET_W32RESOLVER_GetMessage *msg;
   int af4 = 0;
@@ -399,7 +399,7 @@ GNUNET_W32NSP_LookupServiceNext(HANDLE hLookup, DWORD dwControlFlags,
   //EnterCriticalSection (&records_cs);
   for (i = 0; i < records_len; i++)
     {
-      if (records[i].s == (SOCKET)hLookup)
+      if (records[i].s == (_win_socket)hLookup)
         {
           rec = i;
           break;
@@ -446,13 +446,13 @@ GNUNET_W32NSP_LookupServiceNext(HANDLE hLookup, DWORD dwControlFlags,
 #if VERBOSE
   {
     unsigned long have;
-    int ior = ioctlsocket((SOCKET)hLookup, FIONREAD, &have);
+    int ior = ioctlsocket((_win_socket)hLookup, FIONREAD, &have);
     DEBUGLOG("GNUNET_W32NSP_LookupServiceNext: reading %d bytes as a header from %p, %lu bytes available\n", to_receive, hLookup, have);
   }
 #endif
   while (to_receive > 0)
     {
-      t = recv((SOCKET)hLookup, &((char *)&header)[rc], to_receive, 0);
+      t = recv((_win_socket)hLookup, &((char *)&header)[rc], to_receive, 0);
       if (t > 0)
         {
           rc += t;
@@ -464,7 +464,7 @@ GNUNET_W32NSP_LookupServiceNext(HANDLE hLookup, DWORD dwControlFlags,
 #if VERBOSE
   {
     unsigned long have;
-    int ior = ioctlsocket((SOCKET)hLookup, FIONREAD, &have);
+    int ior = ioctlsocket((_win_socket)hLookup, FIONREAD, &have);
     DEBUGLOG("GNUNET_W32NSP_LookupServiceNext: read %d bytes as a header from %p, %lu bytes available\n", rc, hLookup, have);
   }
 #endif
@@ -520,14 +520,14 @@ GNUNET_W32NSP_LookupServiceNext(HANDLE hLookup, DWORD dwControlFlags,
 #if VERBOSE
   {
     unsigned long have;
-    int ior = ioctlsocket((SOCKET)hLookup, FIONREAD, &have);
+    int ior = ioctlsocket((_win_socket)hLookup, FIONREAD, &have);
     DEBUGLOG("GNUNET_W32NSP_LookupServiceNext: reading %d bytes as a body from %p, %lu bytes available\n", to_receive, hLookup, have);
   }
 #endif
   while (to_receive > 0)
     {
       DEBUGLOG("GNUNET_W32NSP_LookupServiceNext: recv (%d)\n", to_receive);
-      t = recv((SOCKET)hLookup, &((char *)&((struct GNUNET_MessageHeader *)buf)[1])[rc], to_receive, 0);
+      t = recv((_win_socket)hLookup, &((char *)&((struct GNUNET_MessageHeader *)buf)[1])[rc], to_receive, 0);
       DEBUGLOG("GNUNET_W32NSP_LookupServiceNext: recv returned %d\n", t);
       if (t > 0)
         {
@@ -540,7 +540,7 @@ GNUNET_W32NSP_LookupServiceNext(HANDLE hLookup, DWORD dwControlFlags,
 #if VERBOSE
   {
     unsigned long have;
-    int ior = ioctlsocket((SOCKET)hLookup, FIONREAD, &have);
+    int ior = ioctlsocket((_win_socket)hLookup, FIONREAD, &have);
     DEBUGLOG("GNUNET_W32NSP_LookupServiceNext: read %d bytes as a body from %p, %lu bytes available\n", rc, hLookup, have);
   }
 #endif
@@ -591,7 +591,7 @@ GNUNET_W32NSP_LookupServiceEnd(HANDLE hLookup)
   //EnterCriticalSection (&records_cs);
   for (i = 0; i < records_len; i++)
     {
-      if (records[i].s == (SOCKET)hLookup)
+      if (records[i].s == (_win_socket)hLookup)
         {
           rec = i;
           break;
