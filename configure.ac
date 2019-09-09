@@ -71,7 +71,7 @@ AC_DEFUN([CC_CHECK_CFLAGS_SILENT], [
   AC_CACHE_VAL(AS_TR_SH([cc_cv_cflags_$1]),
     [ac_save_CFLAGS="$CFLAGS"
      CFLAGS="$CFLAGS $1"
-     AC_COMPILE_IFELSE([AC_LANG_SOURCE([int main() { return 0; }])],
+     AC_LINK_IFELSE([AC_LANG_SOURCE([int main() { return 0; }])],
        [eval "AS_TR_SH([cc_cv_cflags_$1])='yes'"],
        [eval "AS_TR_SH([cc_cv_cflags_$1])='no'"])
      CFLAGS="$ac_save_CFLAGS"
@@ -81,9 +81,22 @@ AC_DEFUN([CC_CHECK_CFLAGS_SILENT], [
     [$2], [$3])
 ])
 
+
+# CC_CHECK_CFLAG_APPEND(FLAG, [action-if-found], [action-if-not-found])
+# Check for CFLAG and appends them to CFLAGS if supported
+AC_DEFUN([CC_CHECK_CFLAG_APPEND], [
+  AC_CACHE_CHECK([if $CC supports $1 flag],
+    AS_TR_SH([cc_cv_cflags_$1]),
+    CC_CHECK_CFLAGS_SILENT([$1])
+  )
+
+  AS_IF([eval test x$]AS_TR_SH([cc_cv_cflags_$1])[ = xyes],
+    [CFLAGS="$CFLAGS $1"; $2], [$3])
+])
+
+
 # We make heavy use of this, llvm/gcc and gcc-9 give warnings so disable.
-CC_CHECK_CFLAGS_SILENT([-Wno-address-of-packed-member],
-                      [CFLAGS="-Wno-address-of-packed-member $CFLAGS"])
+CC_CHECK_CFLAG_APPEND([-Wno-address-of-packed-member])
 
 # Use Linux interface name unless the OS has a different preference
 DEFAULT_INTERFACE="\"eth0\""
