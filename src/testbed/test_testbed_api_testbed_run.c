@@ -215,18 +215,7 @@ main(int argc, char **argv)
     }
   testname++;
   testname = GNUNET_strdup(testname);
-#ifdef MINGW
-  {
-    char *period;
 
-    /* check and remove .exe extension */
-    period = strrchr(testname, (int)'.');
-    if (NULL != period)
-      *period = '\0';
-    else
-      GNUNET_break(0);          /* Windows with no .exe? */
-  }
-#endif
   if (0 == strcmp("waitforever", testname))
     wait_forever = GNUNET_YES;
   if ((GNUNET_YES != wait_forever) && (0 != strcmp("run", testname)))

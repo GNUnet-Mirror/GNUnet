@@ -291,16 +291,12 @@ do_dns_read(struct GNUNET_DNSSTUB_RequestSocket *rs,
   ssize_t r;
   int len;
 
-#ifndef MINGW
   if (0 != ioctl(GNUNET_NETWORK_get_fd(dnsout), FIONREAD, &len))
     {
       /* conservative choice: */
       len = UINT16_MAX;
     }
-#else
-  /* port the code above? */
-  len = UINT16_MAX;
-#endif
+
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Receiving %d byte DNS reply\n", len);
   {
     unsigned char buf[len] GNUNET_ALIGN;

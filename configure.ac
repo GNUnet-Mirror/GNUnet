@@ -175,34 +175,6 @@ AS_CASE(["$host_os"],
      DLLDIR=lib
      UNIXONLY="#"
   ],
-  [*cygwin*],[
-     AC_DEFINE_UNQUOTED(CYGWIN,1,[This is a Cygwin system])
-     AC_DEFINE_UNQUOTED(WINDOWS,1,[This is a Windows system])
-     AC_CHECK_LIB(intl, gettext)
-     CFLAGS="-mms-bitfields $CFLAGS"
-     build_target="cygwin"
-     LIBPREFIX=lib
-     DLLDIR=bin
-     AC_PROG_CXX
-     UNIXONLY=""
-  ],
-  [*mingw*],[
-     AC_DEFINE_UNQUOTED(MINGW,1,[This is a MinGW system])
-     AC_DEFINE_UNQUOTED(WINDOWS,1,[This is a Windows system])
-     AC_DEFINE_UNQUOTED(_WIN32,1,[This is a Windows system])
-     AC_CHECK_LIB(intl, gettext)
-     LDFLAGS="$LDFLAGS -Wl,--export-all-symbols"
-     LIBS="$LIBS -lws2_32 -lgnurx -lole32"
-     CFLAGS="-mms-bitfields $CFLAGS"
-     CPPFLAGS="-D_WIN32_WINNT=0x0501 -DHAVE_STAT64=1 -D__USE_MINGW_ANSI_STDIO=1 $CPPFLAGS"
-     build_target="mingw"
-     AC_PROG_CXX
-     LIBPREFIX=lib
-     DLLDIR=bin
-     UNIXONLY=""
-     funcstocheck=""
-     native_srcdir=$(cd $srcdir; pwd -W)
-  ],
   [gnu*],[
      AC_DEFINE_UNQUOTED(GNU,1,[This is a GNU system])
      build_target="gnu"
@@ -223,8 +195,6 @@ AC_SUBST(UNIXONLY)
 
 AC_MSG_CHECKING([for build target])
 AM_CONDITIONAL(DARWIN,  test "$build_target" = "darwin")
-AM_CONDITIONAL(CYGWIN,  test "$build_target" = "cygwin")
-AM_CONDITIONAL(MINGW,   test "$build_target" = "mingw")
 AM_CONDITIONAL(SOLARIS, test "$build_target" = "solaris")
 AM_CONDITIONAL(XFREEBSD, test "$build_target" = "freebsd")
 AM_CONDITIONAL(OPENBSD, test "$build_target" = "openbsd")
@@ -289,7 +259,7 @@ AS_IF([test x"$VAR_IP6TABLES_BINARY" = x"false"],
      [VAR_IP6TABLES_BINARY="/sbin/ip6tables"],
      [AS_IF([test -x "/usr/sbin/ip6tables"],
         [VAR_IP6TABLES_BINARY="/usr/sbin/ip6tables"])])])
-	
+
 
 AS_IF([test x"$VAR_IP6TABLES_BINARY" != x"false"],
   [AC_DEFINE_UNQUOTED([IP6TABLES], "$VAR_IP6TABLES_BINARY", [Path to ip6tables])],
@@ -363,13 +333,6 @@ AC_CHECK_LIB(anl,
                                           [getaddrinfo_a supported])])
 AM_CONDITIONAL(HAVE_GETADDRINFO_A,
                [test "$have_addrinfo_a" = 1])
-
-# tests only run on Windows
-AS_IF([test "x$build_target" = "xmingw"],
-      [AC_CHECK_LIB(gnurx,
-                    regexec,
-                    [],
-                    [AC_MSG_ERROR([GNUnet requires libgnurx on Windows])])])
 
 # libgcrypt
 gcrypt=0
@@ -1185,9 +1148,6 @@ CPPFLAGS=$SAVE_CPPFLAGS
 AC_CHECK_TYPES([sigset_t, off_t], [], [], [#include <sys/types.h>])
 AC_CHECK_TYPES([size_t], [], [], [#include <stdio.h>])
 
-AS_IF([test "$build_target" = "mingw"]
- [CYGWIN_MYSQL_MAGIC="#include <mysql/my_global.h>"])
-
 # test for mysql
 mysql=false
 mysqlfail=false
@@ -1202,7 +1162,7 @@ AC_ARG_WITH(mysql,
      [yes|""],[
       AC_CHECK_HEADERS(mysql/mysql.h,
        AC_CHECK_LIB(mysqlclient, mysql_init,
-       mysql=true), [], [$CYGWIN_MYSQL_MAGIC])
+       mysql=true), [], [])
      ],[
       LDFLAGS="-L$with_mysql/lib -L$with_mysql/lib/mysql $LDFLAGS $ZLIBS"
       CPPFLAGS="-I$with_mysql/include $CPPFLAGS"
@@ -1211,7 +1171,7 @@ AC_ARG_WITH(mysql,
         MYSQL_LDFLAGS="-L$with_mysql/lib -L$with_mysql/lib/mysql"
         MYSQL_CPPFLAGS="-I$with_mysql/include"
 
-        mysql=true), [], [$CYGWIN_MYSQL_MAGIC])
+        mysql=true), [], [])
      ])
   ],
   [AC_MSG_RESULT([--with-mysql not specified])
@@ -1228,7 +1188,7 @@ AC_ARG_WITH(mysql,
       MYSQL_LDFLAGS="-L$MYSQL_LIBDIR"
       mysql=true
 
-     , [], [$CYGWIN_MYSQL_MAGIC])])
+     , [], [])])
   ])
 
 AC_SUBST(MYSQL_LDFLAGS)
@@ -1240,7 +1200,7 @@ AS_IF([test "$mysql" = "true" -a "x$enable_mysql_version_check" = "xyes"],
  [
   AC_MSG_CHECKING(mysql version)
   AC_COMPILE_IFELSE([AC_LANG_PROGRAM(
-    [[$CYGWIN_MYSQL_MAGIC
+    [[
       #include <mysql/mysql.h>]],
     [[
       #if (MYSQL_VERSION_ID < 40100)

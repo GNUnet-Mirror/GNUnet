@@ -15,7 +15,6 @@ EXTRA_DIST = \
   test_gns_lookup.conf \
   test_gns_proxy.conf \
   test_gns_simple_lookup.conf \
-  gns-helper-service-w32.conf \
   w32nsp.def \
   openssl.cnf \
   gnunet-gns-proxy-setup-ca.in \
@@ -25,14 +24,6 @@ EXTRA_DIST = \
   $(check_SCRIPTS) \
   $(pkgdata_DATA)
 
-if MINGW
-  WINFLAGS = -Wl,--no-undefined -Wl,--export-all-symbols
-  DO_W32_HELPER = gnunet-gns-helper-service-w32
-  DO_W32_NSP = libw32nsp.la
-  DO_W32_NSPTOOLS = w32nsp-install w32nsp-uninstall w32nsp-resolve
-  DO_W32_HS_CONF = gns-helper-service-w32.conf
-  DO_NONPOSIX_GNSIMPORT = gnunet-gns-import
-endif
 USE_VPN = $(top_builddir)/src/vpn/libgnunetvpn.la
 
 if USE_COVERAGE
@@ -46,11 +37,9 @@ libexecdir= $(pkglibdir)/libexec/
 plugindir = $(libdir)/gnunet
 
 pkgcfg_DATA = \
-  gns.conf \
-  $(DO_W32_HS_CONF)
+  gns.conf
 
 lib_LTLIBRARIES = \
-  $(DO_W32_NSP) \
   libgnunetgns.la
 
 
@@ -73,12 +62,9 @@ endif
 libexec_PROGRAMS = \
   gnunet-service-gns \
   gnunet-dns2gns \
-  $(DO_W32_HELPER) \
   $(DO_PROXY)
 
 bin_PROGRAMS = \
-  $(DO_W32_NSPTOOLS) \
-  $(DO_NONPOSIX_GNSIMPORT) \
   gnunet-gns
 
 noinst_PROGRAMS = \
@@ -199,35 +185,15 @@ test_gns_proxy_LDADD = $(MHD_LIBS) $(LIB_GNURL) -lgnutls \
   $(GN_LIBINTL)
 test_gns_proxy_CFLAGS = $(MHD_CFLAGS) $(CPP_GNURL) $(AM_CFLAGS)
 
-gnunet_gns_helper_service_w32_SOURCES = \
-  gnunet-gns-helper-service-w32.c
-gnunet_gns_helper_service_w32_LDADD = \
-  libgnunetgns.la \
-  $(top_builddir)/src/identity/libgnunetidentity.la \
-  $(top_builddir)/src/util/libgnunetutil.la \
-  $(GN_LIBINTL)
+#gnunet_gns_import_SOURCES = \
+#  gnunet-gns-import.c
+#gnunet_gns_import_LDADD = \
+#  $(top_builddir)/src/identity/libgnunetidentity.la \
+#  $(top_builddir)/src/namestore/libgnunetnamestore.la \
+#  $(top_builddir)/src/gnsrecord/libgnunetgnsrecord.la \
+#  $(top_builddir)/src/util/libgnunetutil.la \
+#  $(GN_LIBINTL)
 
-gnunet_gns_import_SOURCES = \
-  gnunet-gns-import.c
-gnunet_gns_import_LDADD = \
-  $(top_builddir)/src/identity/libgnunetidentity.la \
-  $(top_builddir)/src/namestore/libgnunetnamestore.la \
-  $(top_builddir)/src/gnsrecord/libgnunetgnsrecord.la \
-  $(top_builddir)/src/util/libgnunetutil.la \
-  $(GN_LIBINTL)
-
-
-w32nsp_install_SOURCES = \
-  w32nsp-install.c
-w32nsp_install_LDADD = -lws2_32
-
-w32nsp_uninstall_SOURCES = \
-  w32nsp-uninstall.c
-w32nsp_uninstall_LDADD = -lws2_32
-
-w32nsp_resolve_SOURCES = \
-  w32nsp-resolve.c
-w32nsp_resolve_LDADD = -lws2_32
 
 gnunet_service_gns_SOURCES = \
  gnunet-service-gns.c gnunet-service-gns.h \
@@ -246,14 +212,6 @@ gnunet_service_gns_LDADD = \
   $(USE_VPN) \
   $(GN_LIBINTL)
 
-
-libw32nsp_la_SOURCES = \
-  w32nsp.c
-libw32nsp_la_LIBADD = \
-  -lole32 -lws2_32
-libw32nsp_la_LDFLAGS = \
-  -export-symbols $(top_srcdir)/src/gns/w32nsp.def \
-  -no-undefined -static-libgcc
 
 libgnunetgns_la_SOURCES = \
  gns_api.c gns_api.h \

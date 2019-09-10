@@ -35,7 +35,7 @@
 #define LOG_STRERROR_FILE(kind, syscall, filename) GNUNET_log_from_strerror_file(kind, "util-os-network", syscall, filename)
 
 
-#if !(HAVE_GETIFADDRS && HAVE_FREEIFADDRS) && !MINGW
+#if !(HAVE_GETIFADDRS && HAVE_FREEIFADDRS)
 /**
  * Try to enumerate all network interfaces using 'ifconfig'.
  *
@@ -388,32 +388,7 @@ void
 GNUNET_OS_network_interfaces_list(GNUNET_OS_NetworkInterfaceProcessor proc,
                                   void *proc_cls)
 {
-#ifdef MINGW
-  int r;
-  int i;
-  struct EnumNICs3_results *results = NULL;
-  int results_count;
-
-  r = EnumNICs3(&results, &results_count);
-  if (r != GNUNET_OK)
-    return;
-
-  for (i = 0; i < results_count; i++)
-    {
-      if (GNUNET_OK !=
-          proc(proc_cls, results[i].pretty_name, results[i].is_default,
-               (const struct sockaddr *)&results[i].address,
-               results[i].
-               flags & ENUMNICS3_BCAST_OK ?
-               (const struct sockaddr *)&results[i].broadcast : NULL,
-               results[i].flags & ENUMNICS3_MASK_OK ?
-               (const struct sockaddr *)&results[i].mask : NULL,
-               results[i].addr_size))
-        break;
-    }
-  EnumNICs3_free(results);
-  return;
-#elif HAVE_GETIFADDRS && HAVE_FREEIFADDRS
+#if HAVE_GETIFADDRS && HAVE_FREEIFADDRS
   struct ifaddrs *ifa_first;
   struct ifaddrs *ifa_ptr;
   socklen_t alen;

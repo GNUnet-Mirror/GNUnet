@@ -65,14 +65,12 @@
 #include <gst/app/gstappsink.h>
 
 // sockets
-#ifndef MINGW
 #if HAVE_NETINET_IN_H
 #include <netinet/in.h>
 #endif
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <netdb.h>
-#endif
 
 #include <sys/types.h>
 #include <fcntl.h>

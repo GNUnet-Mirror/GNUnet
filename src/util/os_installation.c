@@ -764,26 +764,6 @@ GNUNET_OS_check_helper_binary(const char *binary,
   char *p;
   char *pf;
 
-#ifdef MINGW
-  char *binaryexe;
-
-  GNUNET_asprintf(&binaryexe, "%s.exe", binary);
-  if ((GNUNET_YES ==
-       GNUNET_STRINGS_path_is_absolute(binaryexe, GNUNET_NO, NULL, NULL)) ||
-      (0 == strncmp(binary, "./", 2)))
-    p = GNUNET_strdup(binaryexe);
-  else
-    {
-      p = get_path_from_PATH(binaryexe);
-      if (NULL != p)
-        {
-          GNUNET_asprintf(&pf, "%s/%s", p, binaryexe);
-          GNUNET_free(p);
-          p = pf;
-        }
-    }
-  GNUNET_free(binaryexe);
-#else
   if ((GNUNET_YES ==
        GNUNET_STRINGS_path_is_absolute(binary, GNUNET_NO, NULL, NULL)) ||
       (0 == strncmp(binary, "./", 2)))
@@ -800,7 +780,7 @@ GNUNET_OS_check_helper_binary(const char *binary,
           p = pf;
         }
     }
-#endif
+
   if (NULL == p)
     {
       LOG(GNUNET_ERROR_TYPE_INFO,
@@ -814,14 +794,14 @@ GNUNET_OS_check_helper_binary(const char *binary,
       GNUNET_free(p);
       return GNUNET_SYSERR;
     }
-#ifndef MINGW
+
   if (0 == getuid())
     {
       /* as we run as root, we don't insist on SUID */
       GNUNET_free(p);
       return GNUNET_YES;
     }
-#endif
+
   if (0 != stat(p, &statbuf))
     {
       LOG_STRERROR_FILE(GNUNET_ERROR_TYPE_WARNING, "stat", p);
@@ -830,7 +810,6 @@ GNUNET_OS_check_helper_binary(const char *binary,
     }
   if (check_suid)
     {
-#ifndef MINGW
       (void)params;
       if ((0 != (statbuf.st_mode & S_ISUID)) && (0 == statbuf.st_uid))
         {
@@ -841,57 +820,6 @@ GNUNET_OS_check_helper_binary(const char *binary,
                  _("Binary `%s' exists, but is not SUID\n"),
                  p);
       /* binary exists, but not SUID */
-#else
-      STARTUPINFO start;
-      char parameters[512];
-      PROCESS_INFORMATION proc;
-      DWORD exit_value;
-
-      GNUNET_snprintf(parameters, sizeof(parameters), "-d %s", params);
-      memset(&start, 0, sizeof(start));
-      start.cb = sizeof(start);
-      memset(&proc, 0, sizeof(proc));
-
-
-      // Start the child process.
-      if (!(CreateProcess(
-              p, // current windows (2k3 and up can handle / instead of \ in paths))
-              parameters, // execute dryrun/priviliege checking mode
-              NULL, // Process handle not inheritable
-              NULL, // Thread handle not inheritable
-              FALSE, // Set handle inheritance to FALSE
-              CREATE_DEFAULT_ERROR_MODE, // No creation flags
-              NULL, // Use parent's environment block
-              NULL, // Use parent's starting directory
-              &start, // Pointer to STARTUPINFO structure
-              &proc) // Pointer to PROCESS_INFORMATION structure
-            ))
-        {
-          LOG(GNUNET_ERROR_TYPE_ERROR,
-              _("CreateProcess failed for binary %s (%d).\n"),
-              p,
-              GetLastError());
-          return GNUNET_SYSERR;
-        }
-
-      // Wait until child process exits.
-      WaitForSingleObject(proc.hProcess, INFINITE);
-
-      if (!GetExitCodeProcess(proc.hProcess, &exit_value))
-        {
-          LOG(GNUNET_ERROR_TYPE_ERROR,
-              _("GetExitCodeProcess failed for binary %s (%d).\n"),
-              p,
-              GetLastError());
-          return GNUNET_SYSERR;
-        }
-      // Close process and thread handles.
-      CloseHandle(proc.hProcess);
-      CloseHandle(proc.hThread);
-
-      if (!exit_value)
-        return GNUNET_YES;
-#endif
     }
   GNUNET_free(p);
   return GNUNET_NO;

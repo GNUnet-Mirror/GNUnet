@@ -18,18 +18,16 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301
 # USA.
 
-EXTRA_DIST = map-file 
+EXTRA_DIST = map-file
 
 AM_LDFLAGS=-avoid-version -module -export-dynamic
 
 nssdir = $(libdir)/gnunet/nss
 
-if !MINGW
 nss_LTLIBRARIES = \
 	libnss_gns.la \
 	libnss_gns4.la \
 	libnss_gns6.la
-endif
 
 sources = nss_gns_query.h nss_gns_query.c
 
@@ -45,4 +43,3 @@ libnss_gns4_la_LDFLAGS=$(libnss_gns_la_LDFLAGS)
 libnss_gns6_la_SOURCES=$(libnss_gns_la_SOURCES)
 libnss_gns6_la_CFLAGS=$(libnss_gns_la_CFLAGS) -DNSS_IPV6_ONLY=1
 libnss_gns6_la_LDFLAGS=$(libnss_gns_la_LDFLAGS)
-

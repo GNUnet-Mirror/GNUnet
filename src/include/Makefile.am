@@ -3,10 +3,6 @@ SUBDIRS = .
 
 gnunetincludedir = $(includedir)/gnunet
 
-if MINGW
-  WINPROC = winproc.h
-endif
-
 EXTRA_DIST = \
   gauger.h \
   block_fs.h \
@@ -15,7 +11,7 @@ EXTRA_DIST = \
 
 if TALER_ONLY
 gnunetinclude_HEADERS = \
-  platform.h plibc.h $(WINPROC) gettext.h \
+  platform.h gettext.h \
   gnunet_common.h \
   gnunet_container_lib.h \
   gnunet_crypto_lib.h \
@@ -25,7 +21,7 @@ gnunetinclude_HEADERS = \
 else
 
 gnunetinclude_HEADERS = \
-  platform.h $(WINPROC) gettext.h \
+  platform.h gettext.h \
   compat.h \
   gnunet_applications.h \
   gnunet_arm_service.h \

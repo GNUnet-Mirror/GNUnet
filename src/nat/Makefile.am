@@ -1,13 +1,6 @@
 # This Makefile.am is in the public domain
 AM_CPPFLAGS = -I$(top_srcdir)/src/include
 
-if MINGW
-  WINFLAGS = -Wl,--no-undefined -Wl,--export-all-symbols
-  NATBIN = gnunet-helper-nat-server gnunet-helper-nat-client
-  NATSERVER = gnunet-helper-nat-server-windows.c
-  NATCLIENT = gnunet-helper-nat-client-windows.c
-endif
-
 libexecdir= $(pkglibdir)/libexec/
 
 pkgcfgdir= $(pkgdatadir)/config.d/
@@ -45,7 +38,7 @@ gnunet_helper_nat_server_SOURCES = \
  $(NATSERVER)
 
 gnunet_helper_nat_client_SOURCES = \
- $(NATCLIENT)         
+ $(NATCLIENT)
 
 
 gnunet_nat_SOURCES = \

@@ -206,11 +206,10 @@ main(int argc,
                    NULL);
   ret += check("test_service");
   ret += check("test_service");
-#ifndef MINGW
   s = GNUNET_NETWORK_socket_create(PF_INET6,
                                    SOCK_STREAM,
                                    0);
-#endif
+
   if (NULL == s)
     {
       if ((errno == ENOBUFS) ||

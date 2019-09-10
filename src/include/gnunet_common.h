@@ -42,9 +42,6 @@
 #if HAVE_NETINET_IN_H
 #include <netinet/in.h>
 #endif
-#ifdef MINGW
-#include "winproc.h"
-#endif
 #ifdef HAVE_STDINT_H
 #include <stdint.h>
 #endif
@@ -189,11 +186,7 @@ extern "C" {
 /**
  * gcc-ism to get gcc bitfield layout when compiling with -mms-bitfields
  */
-#if MINGW
-#define GNUNET_GCC_STRUCT_LAYOUT __attribute__ ((gcc_struct))
-#else
 #define GNUNET_GCC_STRUCT_LAYOUT
-#endif
 
 /**
  * gcc-ism to force alignment; we use this to align char-arrays
@@ -216,28 +209,6 @@ extern "C" {
  */
 #define GNUNET_NORETURN __attribute__ ((noreturn))
 
-#if MINGW
-#if __GNUC__ > 3
-/**
- * gcc 4.x-ism to pack structures even on W32 (to be used before structs);
- * Using this would cause structs to be unaligned on the stack on Sparc,
- * so we *only* use this on W32 (see #670578 from Debian); fortunately,
- * W32 doesn't run on sparc anyway.
- */
-#define GNUNET_NETWORK_STRUCT_BEGIN _Pragma("pack(push)") _Pragma ("pack(1)")
-
-/**
- * gcc 4.x-ism to pack structures even on W32 (to be used after structs)
- * Using this would cause structs to be unaligned on the stack on Sparc,
- * so we *only* use this on W32 (see #670578 from Debian); fortunately,
- * W32 doesn't run on sparc anyway.
- */
-#define GNUNET_NETWORK_STRUCT_END _Pragma("pack(pop)")
-
-#else
-#error gcc 4.x or higher required on W32 systems
-#endif
-#else
 /**
  * Define as empty, GNUNET_PACKED should suffice, but this won't work on W32
  */
@@ -247,7 +218,6 @@ extern "C" {
  * Define as empty, GNUNET_PACKED should suffice, but this won't work on W32;
  */
 #define GNUNET_NETWORK_STRUCT_END
-#endif
 
 /* ************************ super-general types *********************** */
 

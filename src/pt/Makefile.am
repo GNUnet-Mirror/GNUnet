@@ -1,10 +1,6 @@
 # This Makefile.am is in the public domain
 AM_CPPFLAGS = -I$(top_srcdir)/src/include
 
-if MINGW
-  WINFLAGS = -Wl,--no-undefined -Wl,--export-all-symbols
-endif
-
 if USE_COVERAGE
   AM_CFLAGS = --coverage -O0
 endif
@@ -46,13 +42,6 @@ if LINUX
  test_gnunet_vpn-4_over \
  test_gns_vpn
 endif
-if MINGW
- VPN_TEST = \
- test_gnunet_vpn-4_to_6 \
- test_gnunet_vpn-6_to_4 \
- test_gnunet_vpn-6_over \
- test_gnunet_vpn-4_over
-endif
 else
 if HAVE_LIBCURL
 LIB_GNURL=@LIBCURL@
@@ -64,13 +53,6 @@ if LINUX
  test_gnunet_vpn-6_over \
  test_gnunet_vpn-4_over \
  test_gns_vpn
-endif
-if MINGW
- VPN_TEST = \
- test_gnunet_vpn-4_to_6 \
- test_gnunet_vpn-6_to_4 \
- test_gnunet_vpn-6_over \
- test_gnunet_vpn-4_over
 endif
 endif
 endif

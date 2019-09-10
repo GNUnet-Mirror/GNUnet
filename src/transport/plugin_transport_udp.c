@@ -2929,20 +2929,7 @@ udp_select_read(struct Plugin *plugin, struct GNUNET_NETWORK_Handle *rsock)
                                         (struct sockaddr *)&addr,
                                         &fromlen);
   sa = (const struct sockaddr *)&addr;
-#if MINGW
-  /* On SOCK_DGRAM UDP sockets recvfrom might fail with a
-   * WSAECONNRESET error to indicate that previous sendto() (yes, sendto!)
-   * on this socket has failed.
-   * Quote from MSDN:
-   *   WSAECONNRESET - The virtual circuit was reset by the remote side
-   *   executing a hard or abortive close. The application should close
-   *   the socket; it is no longer usable. On a UDP-datagram socket this
-   *   error indicates a previous send operation resulted in an ICMP Port
-   *   Unreachable message.
-   */
-  if ((-1 == size) && (ECONNRESET == errno))
-    return;
-#endif
+
   if (-1 == size)
     {
       LOG(GNUNET_ERROR_TYPE_DEBUG,

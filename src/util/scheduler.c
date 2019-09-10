@@ -108,7 +108,6 @@ struct GNUNET_SCHEDULER_Handle {
   struct GNUNET_SIGNAL_Context *shc_gterm;
 #endif
 
-#ifndef MINGW
   /**
    * context of the SIGQUIT handler
    */
@@ -123,7 +122,6 @@ struct GNUNET_SCHEDULER_Handle {
    * context of hte SIGPIPE handler
    */
   struct GNUNET_SIGNAL_Context *shc_pipe;
-#endif
 };
 
 
@@ -621,13 +619,11 @@ static pid_t my_pid;
 /**
  * Signal handler called for SIGPIPE.
  */
-#ifndef MINGW
 static void
 sighandler_pipe()
 {
   return;
 }
-#endif
 
 
 ///**
@@ -1396,7 +1392,6 @@ check_fd(struct GNUNET_SCHEDULER_Task *t, int raw_fd)
  * @return unique task identifier for the job
  *         only valid until @a task is started!
  */
-#ifndef MINGW
 static struct GNUNET_SCHEDULER_Task *
 add_without_sets(struct GNUNET_TIME_Relative delay,
                  enum GNUNET_SCHEDULER_Priority priority,
@@ -1446,7 +1441,6 @@ add_without_sets(struct GNUNET_TIME_Relative delay,
   init_backtrace(t);
   return t;
 }
-#endif
 
 
 /**
@@ -1586,22 +1580,6 @@ GNUNET_SCHEDULER_add_net_with_priority(struct GNUNET_TIME_Relative delay,
 {
   /* scheduler must be running */
   GNUNET_assert(NULL != scheduler_driver);
-
-#if MINGW
-  struct GNUNET_NETWORK_FDSet *s;
-  struct GNUNET_SCHEDULER_Task * ret;
-
-  GNUNET_assert(NULL != fd);
-  s = GNUNET_NETWORK_fdset_create();
-  GNUNET_NETWORK_fdset_set(s, fd);
-  ret = GNUNET_SCHEDULER_add_select(
-    priority, delay,
-    on_read  ? s : NULL,
-    on_write ? s : NULL,
-    task, task_cls);
-  GNUNET_NETWORK_fdset_destroy(s);
-  return ret;
-#else
   GNUNET_assert(on_read || on_write);
   GNUNET_assert(GNUNET_NETWORK_get_fd(fd) >= 0);
   return add_without_sets(delay, priority,
@@ -1610,7 +1588,6 @@ GNUNET_SCHEDULER_add_net_with_priority(struct GNUNET_TIME_Relative delay,
                           NULL,
                           NULL,
                           task, task_cls);
-#endif
 }
 
 
@@ -1710,22 +1687,6 @@ GNUNET_SCHEDULER_add_file_with_priority(struct GNUNET_TIME_Relative delay,
 {
   /* scheduler must be running */
   GNUNET_assert(NULL != scheduler_driver);
-
-#if MINGW
-  struct GNUNET_NETWORK_FDSet *s;
-  struct GNUNET_SCHEDULER_Task * ret;
-
-  GNUNET_assert(NULL != fd);
-  s = GNUNET_NETWORK_fdset_create();
-  GNUNET_NETWORK_fdset_handle_set(s, fd);
-  ret = GNUNET_SCHEDULER_add_select(
-    priority, delay,
-    on_read  ? s : NULL,
-    on_write ? s : NULL,
-    task, task_cls);
-  GNUNET_NETWORK_fdset_destroy(s);
-  return ret;
-#else
   GNUNET_assert(on_read || on_write);
   GNUNET_assert(fd->fd >= 0);
   return add_without_sets(delay, priority,
@@ -1734,7 +1695,6 @@ GNUNET_SCHEDULER_add_file_with_priority(struct GNUNET_TIME_Relative delay,
                           on_read ? fd : NULL,
                           on_write ? fd : NULL,
                           task, task_cls);
-#endif
 }
 
 
@@ -2218,14 +2178,12 @@ GNUNET_SCHEDULER_driver_init(const struct GNUNET_SCHEDULER_Driver *driver)
   sh->shc_gterm = GNUNET_SIGNAL_handler_install(GNUNET_TERM_SIG,
                                                 &sighandler_shutdown);
 #endif
-#ifndef MINGW
   sh->shc_pipe = GNUNET_SIGNAL_handler_install(SIGPIPE,
                                                &sighandler_pipe);
   sh->shc_quit = GNUNET_SIGNAL_handler_install(SIGQUIT,
                                                &sighandler_shutdown);
   sh->shc_hup = GNUNET_SIGNAL_handler_install(SIGHUP,
                                               &sighandler_shutdown);
-#endif
 
   /* Setup initial tasks */
   current_priority = GNUNET_SCHEDULER_PRIORITY_DEFAULT;
@@ -2282,11 +2240,9 @@ GNUNET_SCHEDULER_driver_done(struct GNUNET_SCHEDULER_Handle *sh)
 #if (SIGTERM != GNUNET_TERM_SIG)
   GNUNET_SIGNAL_handler_uninstall(sh->shc_gterm);
 #endif
-#ifndef MINGW
   GNUNET_SIGNAL_handler_uninstall(sh->shc_pipe);
   GNUNET_SIGNAL_handler_uninstall(sh->shc_quit);
   GNUNET_SIGNAL_handler_uninstall(sh->shc_hup);
-#endif
   GNUNET_DISK_pipe_close(shutdown_pipe_handle);
   shutdown_pipe_handle = NULL;
   scheduler_driver = NULL;
@@ -2352,7 +2308,6 @@ select_loop(struct GNUNET_SCHEDULER_Handle *sh,
 
           LOG_STRERROR(GNUNET_ERROR_TYPE_ERROR,
                        "select");
-#ifndef MINGW
 #if USE_LSOF
           char lsof[512];
 
@@ -2365,7 +2320,6 @@ select_loop(struct GNUNET_SCHEDULER_Handle *sh,
           if (0 != system(lsof))
             LOG_STRERROR(GNUNET_ERROR_TYPE_WARNING,
                          "system");
-#endif
 #endif
 #if DEBUG_FDS
           for (struct Scheduled *s = context->scheduled_head;

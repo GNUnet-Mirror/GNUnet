@@ -398,114 +398,6 @@ ABORT_KSTAT:
   }
 #endif
 
-#if MINGW
-  /* Win NT? */
-  if (GNNtQuerySystemInformation)
-    {
-      static double dLastKernel;
-      static double dLastIdle;
-      static double dLastUser;
-      double dKernel;
-      double dIdle;
-      double dUser;
-      double dDiffKernel;
-      double dDiffIdle;
-      double dDiffUser;
-      SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION theInfo;
-
-      if (GNNtQuerySystemInformation(SystemProcessorPerformanceInformation,
-                                     &theInfo,
-                                     sizeof(theInfo), NULL) == NO_ERROR)
-        {
-          /* PORT-ME MINGW: Multi-processor? */
-          dKernel = Li2Double(theInfo.KernelTime);
-          dIdle = Li2Double(theInfo.IdleTime);
-          dUser = Li2Double(theInfo.UserTime);
-          dDiffKernel = dKernel - dLastKernel;
-          dDiffIdle = dIdle - dLastIdle;
-          dDiffUser = dUser - dLastUser;
-
-          if (((dDiffKernel + dDiffUser) > 0) &&
-              (dLastIdle + dLastKernel + dLastUser > 0))
-            currentCPULoad =
-              100.0 - (dDiffIdle / (dDiffKernel + dDiffUser)) * 100.0;
-          else
-            currentCPULoad = -1;        /* don't know (yet) */
-
-          dLastKernel = dKernel;
-          dLastIdle = dIdle;
-          dLastUser = dUser;
-
-          currentIOLoad = -1;   /* FIXME-MINGW */
-          return GNUNET_OK;
-        }
-      else
-        {
-          /* only warn once, if there is a problem with
-             NtQuery..., we're going to hit it frequently... */
-          static int once;
-          if (once == 0)
-            {
-              once = 1;
-              GNUNET_log(GNUNET_ERROR_TYPE_WARNING,
-                         "Cannot query the CPU usage (Windows NT).\n");
-            }
-          return GNUNET_SYSERR;
-        }
-    }
-  else
-    {                           /* Win 9x */
-      HKEY hKey;
-      DWORD dwDataSize, dwType, dwDummy;
-
-      /* Start query */
-      if (RegOpenKeyEx(HKEY_DYN_DATA,
-                       "PerfStats\\StartSrv",
-                       0, KEY_ALL_ACCESS, &hKey) != ERROR_SUCCESS)
-        {
-          /* only warn once */
-          static int once = 0;
-          if (once == 0)
-            {
-              once = 1;
-              GNUNET_log(GNUNET_ERROR_TYPE_WARNING,
-                         "Cannot query the CPU usage (Win 9x)\n");
-            }
-        }
-
-      RegOpenKeyEx(HKEY_DYN_DATA,
-                   "PerfStats\\StartStat", 0, KEY_ALL_ACCESS, &hKey);
-      dwDataSize = sizeof(dwDummy);
-      RegQueryValueEx(hKey,
-                      "KERNEL\\CPUUsage",
-                      NULL, &dwType, (LPBYTE)&dwDummy, &dwDataSize);
-      RegCloseKey(hKey);
-
-      /* Get CPU usage */
-      RegOpenKeyEx(HKEY_DYN_DATA,
-                   "PerfStats\\StatData", 0, KEY_ALL_ACCESS, &hKey);
-      dwDataSize = sizeof(currentCPULoad);
-      RegQueryValueEx(hKey,
-                      "KERNEL\\CPUUsage",
-                      NULL, &dwType, (LPBYTE)&currentCPULoad, &dwDataSize);
-      RegCloseKey(hKey);
-      currentIOLoad = -1;       /* FIXME-MINGW! */
-
-      /* Stop query */
-      RegOpenKeyEx(HKEY_DYN_DATA,
-                   "PerfStats\\StopStat", 0, KEY_ALL_ACCESS, &hKey);
-      RegOpenKeyEx(HKEY_DYN_DATA,
-                   "PerfStats\\StopSrv", 0, KEY_ALL_ACCESS, &hKey);
-      dwDataSize = sizeof(dwDummy);
-      RegQueryValueEx(hKey,
-                      "KERNEL\\CPUUsage",
-                      NULL, &dwType, (LPBYTE)&dwDummy, &dwDataSize);
-      RegCloseKey(hKey);
-
-      return GNUNET_OK;
-    }
-#endif
-
   /* loadaverage not defined and no platform
      specific alternative defined
      => default: error
@@ -695,12 +587,6 @@ GST_stats_init(const struct GNUNET_CONFIGURATION_Handle *cfg)
   char *fn;
   size_t len;
 
-#if MINGW
-  GNUNET_log(GNUNET_ERROR_TYPE_WARNING,
-             "Load statistics logging now available for windows\n");
-  return;                       /* No logging on windows for now :( */
-#endif
-
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_filename(cfg, "testbed",
                                               "STATS_DIR", &stats_dir))
@@ -747,9 +633,6 @@ GST_stats_init(const struct GNUNET_CONFIGURATION_Handle *cfg)
 void
 GST_stats_destroy()
 {
-#if MINGW
-  return;
-#endif
   if (NULL == bw)
     return;
 #ifdef LINUX

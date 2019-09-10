@@ -211,7 +211,6 @@ checkShutdown()
 }
 
 
-#ifndef MINGW
 static void
 taskSig(void *cls)
 {
@@ -244,7 +243,6 @@ checkSignal()
   GNUNET_SCHEDULER_run(&taskSig, &ok);
   return ok;
 }
-#endif
 
 
 static void
@@ -283,9 +281,7 @@ main(int argc, char *argv[])
   GNUNET_log_setup("test_scheduler", "WARNING", NULL);
   ret += check();
   ret += checkCancel();
-#ifndef MINGW
   ret += checkSignal();
-#endif
   ret += checkShutdown();
   GNUNET_DISK_pipe_close(p);
 

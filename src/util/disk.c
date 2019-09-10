@@ -96,7 +96,6 @@ struct GetFileSizeData {
 };
 
 
-#ifndef MINGW
 /**
  * Translate GNUnet-internal permission bitmap to UNIX file
  * access permission bitmap.
@@ -131,7 +130,6 @@ translate_unix_perms(enum GNUNET_DISK_AccessPermissions perm)
 
   return mode;
 }
-#endif
 
 
 /**
@@ -191,11 +189,7 @@ getSizeRec(void *cls, const char *fn)
 int
 GNUNET_DISK_handle_invalid(const struct GNUNET_DISK_FileHandle *h)
 {
-#ifdef MINGW
-  return ((!h) || (h->h == INVALID_HANDLE_VALUE)) ? GNUNET_YES : GNUNET_NO;
-#else
   return ((!h) || (h->fd == -1)) ? GNUNET_YES : GNUNET_NO;
-#endif
 }
 
 /**
@@ -236,26 +230,9 @@ GNUNET_DISK_file_seek(const struct GNUNET_DISK_FileHandle *h,
       return GNUNET_SYSERR;
     }
 
-#ifdef MINGW
-  LARGE_INTEGER li;
-  LARGE_INTEGER new_pos;
-  BOOL b;
-
-  static DWORD t[] = { FILE_BEGIN, FILE_CURRENT, FILE_END };
-  li.QuadPart = offset;
-
-  b = SetFilePointerEx(h->h, li, &new_pos, t[whence]);
-  if (b == 0)
-    {
-      SetErrnoFromWinError(GetLastError());
-      return GNUNET_SYSERR;
-    }
-  return (off_t)new_pos.QuadPart;
-#else
   static int t[] = { SEEK_SET, SEEK_CUR, SEEK_END };
 
   return lseek(h->fd, offset, t[whence]);
-#endif
 }
 
 
@@ -1296,7 +1273,7 @@ GNUNET_DISK_file_open(const char *fn,
   expfn = GNUNET_STRINGS_filename_expand(fn);
   if (NULL == expfn)
     return NULL;
-#ifndef MINGW
+
   mode = 0;
   if (GNUNET_DISK_OPEN_READWRITE == (flags & GNUNET_DISK_OPEN_READWRITE))
     oflags = O_RDWR; /* note: O_RDWR is NOT always O_RDONLY | O_WRONLY */
@@ -1342,69 +1319,6 @@ GNUNET_DISK_file_open(const char *fn,
       GNUNET_free(expfn);
       return NULL;
     }
-#else
-  access = 0;
-  disp = OPEN_ALWAYS;
-
-  if (GNUNET_DISK_OPEN_READWRITE == (flags & GNUNET_DISK_OPEN_READWRITE))
-    access = FILE_READ_DATA | FILE_WRITE_DATA;
-  else if (flags & GNUNET_DISK_OPEN_READ)
-    access = FILE_READ_DATA;
-  else if (flags & GNUNET_DISK_OPEN_WRITE)
-    access = FILE_WRITE_DATA;
-
-  if (flags & GNUNET_DISK_OPEN_FAILIFEXISTS)
-    {
-      disp = CREATE_NEW;
-    }
-  else if (flags & GNUNET_DISK_OPEN_CREATE)
-    {
-      (void)GNUNET_DISK_directory_create_for_file(expfn);
-      if (flags & GNUNET_DISK_OPEN_TRUNCATE)
-        disp = CREATE_ALWAYS;
-      else
-        disp = OPEN_ALWAYS;
-    }
-  else if (flags & GNUNET_DISK_OPEN_TRUNCATE)
-    {
-      disp = TRUNCATE_EXISTING;
-    }
-  else
-    {
-      disp = OPEN_EXISTING;
-    }
-
-  if (ERROR_SUCCESS == plibc_conv_to_win_pathwconv(expfn, wexpfn))
-    h = CreateFileW(wexpfn,
-                    access,
-                    FILE_SHARE_DELETE | FILE_SHARE_READ | FILE_SHARE_WRITE,
-                    NULL,
-                    disp,
-                    FILE_ATTRIBUTE_NORMAL,
-                    NULL);
-  else
-    h = INVALID_HANDLE_VALUE;
-  if (h == INVALID_HANDLE_VALUE)
-    {
-      int err;
-      SetErrnoFromWinError(GetLastError());
-      err = errno;
-      LOG_STRERROR_FILE(GNUNET_ERROR_TYPE_INFO, "open", expfn);
-      GNUNET_free(expfn);
-      errno = err;
-      return NULL;
-    }
-
-  if (flags & GNUNET_DISK_OPEN_APPEND)
-    if (SetFilePointer(h, 0, 0, FILE_END) == INVALID_SET_FILE_POINTER)
-      {
-        SetErrnoFromWinError(GetLastError());
-        LOG_STRERROR_FILE(GNUNET_ERROR_TYPE_WARNING, "SetFilePointer", expfn);
-        CloseHandle(h);
-        GNUNET_free(expfn);
-        return NULL;
-      }
-#endif
 
   ret = GNUNET_new(struct GNUNET_DISK_FileHandle);
 

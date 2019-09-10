@@ -759,10 +759,6 @@ GNUNET_NETWORK_socket_recvfrom(const struct GNUNET_NETWORK_Handle *desc,
                  flags,
                  src_addr,
                  addrlen);
-#ifdef MINGW
-  if (SOCKET_ERROR == ret)
-    SetErrnoFromWinsockError(WSAGetLastError());
-#endif
   return ret;
 }
 
@@ -792,10 +788,6 @@ GNUNET_NETWORK_socket_recv(const struct GNUNET_NETWORK_Handle *desc,
              buffer,
              length,
              flags);
-#ifdef MINGW
-  if (SOCKET_ERROR == ret)
-    SetErrnoFromWinsockError(WSAGetLastError());
-#endif
   return ret;
 }
 
@@ -827,10 +819,6 @@ GNUNET_NETWORK_socket_send(const struct GNUNET_NETWORK_Handle *desc,
              buffer,
              length,
              flags);
-#ifdef MINGW
-  if (SOCKET_ERROR == ret)
-    SetErrnoFromWinsockError(WSAGetLastError());
-#endif
   return ret;
 }
 
@@ -865,10 +853,6 @@ GNUNET_NETWORK_socket_sendto(const struct GNUNET_NETWORK_Handle *desc,
   flags |= MSG_NOSIGNAL;
 #endif
   ret = sendto(desc->fd, message, length, flags, dest_addr, dest_len);
-#ifdef MINGW
-  if (SOCKET_ERROR == ret)
-    SetErrnoFromWinsockError(WSAGetLastError());
-#endif
   return ret;
 }
 
@@ -897,10 +881,7 @@ GNUNET_NETWORK_socket_setsockopt(struct GNUNET_NETWORK_Handle *fd,
                    option_name,
                    option_value,
                    option_len);
-#ifdef MINGW
-  if (SOCKET_ERROR == ret)
-    SetErrnoFromWinsockError(WSAGetLastError());
-#endif
+
   return ret == 0 ? GNUNET_OK : GNUNET_SYSERR;
 }
 
@@ -950,10 +931,7 @@ GNUNET_NETWORK_socket_shutdown(struct GNUNET_NETWORK_Handle *desc,
   int ret;
 
   ret = shutdown(desc->fd, how);
-#ifdef MINGW
-  if (0 != ret)
-    SetErrnoFromWinsockError(WSAGetLastError());
-#endif
+
   return (0 == ret) ? GNUNET_OK : GNUNET_SYSERR;
 }
 
@@ -1054,7 +1032,6 @@ void
 GNUNET_NETWORK_fdset_add(struct GNUNET_NETWORK_FDSet *dst,
                          const struct GNUNET_NETWORK_FDSet *src)
 {
-#ifndef MINGW
   int nfds;
 
   for (nfds = src->nsds; nfds >= 0; nfds--)
@@ -1062,31 +1039,6 @@ GNUNET_NETWORK_fdset_add(struct GNUNET_NETWORK_FDSet *dst,
       FD_SET(nfds, &dst->sds);
   dst->nsds = GNUNET_MAX(dst->nsds,
                          src->nsds);
-#else
-  /* This is MinGW32-specific implementation that relies on the code that
-   * winsock2.h defines for FD_SET. Namely, it relies on FD_SET checking
-   * that fd being added is not already in the set.
-   * Also relies on us knowing what's inside fd_set (fd_count and fd_array).
-   *
-   * NOTE: I don't understand why the UNIX-logic wouldn't work
-   * for the first part here as well. -CG
-   */
-  unsigned int i;
-
-  for (i = 0; i < src->sds.fd_count; i++)
-    FD_SET(src->sds.fd_array[i],
-           &dst->sds);
-  dst->nsds = GNUNET_MAX(src->nsds,
-                         dst->nsds);
-
-  /* also copy over `struct GNUNET_DISK_FileHandle` array */
-  if (dst->handles_pos + src->handles_pos > dst->handles_size)
-    GNUNET_array_grow(dst->handles,
-                      dst->handles_size,
-                      ((dst->handles_pos + src->handles_pos) << 1));
-  for (i = 0; i < src->handles_pos; i++)
-    dst->handles[dst->handles_pos++] = src->handles[i];
-#endif
 }
 
 
@@ -1103,16 +1055,6 @@ GNUNET_NETWORK_fdset_copy(struct GNUNET_NETWORK_FDSet *to,
   FD_COPY(&from->sds,
           &to->sds);
   to->nsds = from->nsds;
-#ifdef MINGW
-  if (from->handles_pos > to->handles_size)
-    GNUNET_array_grow(to->handles,
-                      to->handles_size,
-                      from->handles_pos * 2);
-  GNUNET_memcpy(to->handles,
-                from->handles,
-                from->handles_pos * sizeof(struct GNUNET_NETWORK_Handle *));
-  to->handles_pos = from->handles_pos;
-#endif
 }
 
 
@@ -1217,13 +1159,6 @@ void
 GNUNET_NETWORK_fdset_handle_set(struct GNUNET_NETWORK_FDSet *fds,
                                 const struct GNUNET_DISK_FileHandle *h)
 {
-#ifdef MINGW
-  if (fds->handles_pos == fds->handles_size)
-    GNUNET_array_grow(fds->handles,
-                      fds->handles_size,
-                      fds->handles_size * 2 + 2);
-  fds->handles[fds->handles_pos++] = h;
-#else
   int fd;
 
   GNUNET_assert(GNUNET_OK ==
@@ -1234,7 +1169,6 @@ GNUNET_NETWORK_fdset_handle_set(struct GNUNET_NETWORK_FDSet *fds,
          &fds->sds);
   fds->nsds = GNUNET_MAX(fd + 1,
                          fds->nsds);
-#endif
 }
 
 
@@ -1247,22 +1181,7 @@ void
 GNUNET_NETWORK_fdset_handle_set_first(struct GNUNET_NETWORK_FDSet *fds,
                                       const struct GNUNET_DISK_FileHandle *h)
 {
-#ifdef MINGW
-  if (fds->handles_pos == fds->handles_size)
-    GNUNET_array_grow(fds->handles,
-                      fds->handles_size,
-                      fds->handles_size * 2 + 2);
-  fds->handles[fds->handles_pos] = h;
-  if (fds->handles[0] != h)
-    {
-      const struct GNUNET_DISK_FileHandle *bak = fds->handles[0];
-      fds->handles[0] = h;
-      fds->handles[fds->handles_pos] = bak;
-    }
-  fds->handles_pos++;
-#else
   GNUNET_NETWORK_fdset_handle_set(fds, h);
-#endif
 }
 
 
@@ -1277,40 +1196,9 @@ int
 GNUNET_NETWORK_fdset_handle_isset(const struct GNUNET_NETWORK_FDSet *fds,
                                   const struct GNUNET_DISK_FileHandle *h)
 {
-#ifdef MINGW
-  unsigned int i;
-
-  for (i = 0; i < fds->handles_pos; i++)
-    if (fds->handles[i] == h)
-      return GNUNET_YES;
-  return GNUNET_NO;
-#else
   return FD_ISSET(h->fd,
                   &fds->sds);
-#endif
 }
-
-
-#ifdef MINGW
-/**
- * Numerically compare pointers to sort them.
- * Used to test for overlap in the arrays.
- *
- * @param p1 a pointer
- * @param p2 a pointer
- * @return -1, 0 or 1, if the p1 < p2, p1==p2 or p1 > p2.
- */
-static int
-ptr_cmp(const void *p1,
-        const void *p2)
-{
-  if (p1 == p2)
-    return 0;
-  if ((intptr_t)p1 < (intptr_t)p2)
-    return -1;
-  return 1;
-}
-#endif
 
 
 /**
@@ -1324,7 +1212,6 @@ int
 GNUNET_NETWORK_fdset_overlap(const struct GNUNET_NETWORK_FDSet *fds1,
                              const struct GNUNET_NETWORK_FDSet *fds2)
 {
-#ifndef MINGW
   int nfds;
 
   nfds = GNUNET_MIN(fds1->nsds,
@@ -1339,53 +1226,6 @@ GNUNET_NETWORK_fdset_overlap(const struct GNUNET_NETWORK_FDSet *fds1,
         return GNUNET_YES;
     }
   return GNUNET_NO;
-#else
-  unsigned int i;
-  unsigned int j;
-
-  /* This code is somewhat hacky, we are not supposed to know what's
-   * inside of fd_set; also the O(n^2) is really bad... */
-  for (i = 0; i < fds1->sds.fd_count; i++)
-    for (j = 0; j < fds2->sds.fd_count; j++)
-      if (fds1->sds.fd_array[i] == fds2->sds.fd_array[j])
-        return GNUNET_YES;
-
-  /* take a short cut if possible */
-  if ((0 == fds1->handles_pos) ||
-      (0 == fds2->handles_pos))
-    return GNUNET_NO;
-
-  /* Sort file handles array to avoid quadratic complexity when
-     checking for overlap */
-  qsort(fds1->handles,
-        fds1->handles_pos,
-        sizeof(void *),
-        &ptr_cmp);
-  qsort(fds2->handles,
-        fds2->handles_pos,
-        sizeof(void *),
-        &ptr_cmp);
-  i = 0;
-  j = 0;
-  while ((i < fds1->handles_pos) &&
-         (j < fds2->handles_pos))
-    {
-      switch (ptr_cmp(fds1->handles[i],
-                      fds2->handles[j]))
-        {
-        case -1:
-          i++;
-          break;
-
-        case 0:
-          return GNUNET_YES;
-
-        case 1:
-          j++;
-        }
-    }
-  return GNUNET_NO;
-#endif
 }
 
 
@@ -1413,191 +1253,9 @@ GNUNET_NETWORK_fdset_create()
 void
 GNUNET_NETWORK_fdset_destroy(struct GNUNET_NETWORK_FDSet *fds)
 {
-#ifdef MINGW
-  GNUNET_array_grow(fds->handles,
-                    fds->handles_size,
-                    0);
-#endif
   GNUNET_free(fds);
 }
 
-
-#if MINGW
-/**
- * FIXME.
- */
-struct _select_params {
-  /**
-   * Read set.
-   */
-  fd_set *r;
-
-  /**
-   * Write set.
-   */
-  fd_set *w;
-
-  /**
-   * Except set.
-   */
-  fd_set *e;
-
-  /**
-   * Timeout for select().
-   */
-  struct timeval *tv;
-
-  /**
-   * FIXME.
-   */
-  HANDLE wakeup;
-
-  /**
-   * FIXME.
-   */
-  HANDLE standby;
-
-  /**
-   * FIXME.
-   */
-  _win_socket wakeup_socket;
-
-  /**
-   * Set to return value from select.
-   */
-  int status;
-};
-
-
-/**
- * FIXME.
- */
-static DWORD WINAPI
-_selector(LPVOID p)
-{
-  struct _select_params *sp = p;
-
-  while (1)
-    {
-      WaitForSingleObject(sp->standby,
-                          INFINITE);
-      ResetEvent(sp->standby);
-      sp->status = select(1,
-                          sp->r,
-                          sp->w,
-                          sp->e,
-                          sp->tv);
-      if (FD_ISSET(sp->wakeup_socket,
-                   sp->r))
-        {
-          FD_CLR(sp->wakeup_socket,
-                 sp->r);
-          sp->status -= 1;
-        }
-      SetEvent(sp->wakeup);
-    }
-  return 0;
-}
-
-
-static HANDLE hEventPipeWrite;
-
-static HANDLE hEventReadReady;
-
-static struct _select_params sp;
-
-static HANDLE select_thread;
-
-static HANDLE select_finished_event;
-
-static HANDLE select_standby_event;
-
-static _win_socket select_wakeup_socket = -1;
-
-static _win_socket select_send_socket = -1;
-
-static struct timeval select_timeout;
-
-
-/**
- * On W32, we actually use a thread to help with the
- * event loop due to W32-API limitations.  This function
- * initializes that thread.
- */
-static void
-initialize_select_thread()
-{
-  _win_socket select_listening_socket = -1;
-  struct sockaddr_in s_in;
-  int alen;
-  int res;
-  unsigned long p;
-
-  select_standby_event = CreateEvent(NULL, TRUE, FALSE, NULL);
-  select_finished_event = CreateEvent(NULL, TRUE, FALSE, NULL);
-
-  select_wakeup_socket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-
-  select_listening_socket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-
-  p = 1;
-  res = ioctlsocket(select_wakeup_socket, FIONBIO, &p);
-  LOG(GNUNET_ERROR_TYPE_DEBUG,
-      "Select thread initialization: ioctlsocket() returns %d\n",
-      res);
-
-  alen = sizeof(s_in);
-  s_in.sin_family = AF_INET;
-  s_in.sin_port = 0;
-  s_in.sin_addr.S_un.S_un_b.s_b1 = 127;
-  s_in.sin_addr.S_un.S_un_b.s_b2 = 0;
-  s_in.sin_addr.S_un.S_un_b.s_b3 = 0;
-  s_in.sin_addr.S_un.S_un_b.s_b4 = 1;
-  res = bind(select_listening_socket,
-             (const struct sockaddr *)&s_in,
-             sizeof(s_in));
-  LOG(GNUNET_ERROR_TYPE_DEBUG,
-      "Select thread initialization: bind() returns %d\n",
-      res);
-
-  res = getsockname(select_listening_socket,
-                    (struct sockaddr *)&s_in,
-                    &alen);
-  LOG(GNUNET_ERROR_TYPE_DEBUG,
-      "Select thread initialization: getsockname() returns %d\n",
-      res);
-
-  res = listen(select_listening_socket,
-               SOMAXCONN);
-  LOG(GNUNET_ERROR_TYPE_DEBUG,
-      "Select thread initialization: listen() returns %d\n",
-      res);
-  res = connect(select_wakeup_socket,
-                (const struct sockaddr *)&s_in,
-                sizeof(s_in));
-  LOG(GNUNET_ERROR_TYPE_DEBUG,
-      "Select thread initialization: connect() returns %d\n",
-      res);
-
-  select_send_socket = accept(select_listening_socket,
-                              (struct sockaddr *)&s_in,
-                              &alen);
-
-  closesocket(select_listening_socket);
-
-  sp.wakeup = select_finished_event;
-  sp.standby = select_standby_event;
-  sp.wakeup_socket = select_wakeup_socket;
-
-  select_thread = CreateThread(NULL,
-                               0,
-                               _selector,
-                               &sp,
-                               0, NULL);
-}
-
-
-#endif
 
 /**
  * Test if the given @a port is available.
@@ -1657,7 +1315,6 @@ GNUNET_NETWORK_test_port_free(int ipproto,
 }
 
 
-#ifndef MINGW
 /**
  * Check if sockets or pipes meet certain conditions
  *
@@ -1713,524 +1370,5 @@ GNUNET_NETWORK_socket_select(struct GNUNET_NETWORK_FDSet *rfds,
                 (timeout.rel_value_us ==
                  GNUNET_TIME_UNIT_FOREVER_REL.rel_value_us) ? NULL : &tv);
 }
-
-
-#else
-/* MINGW */
-
-
-/**
- * Non-blocking test if a pipe is ready for reading.
- *
- * @param fh pipe handle
- * @return #GNUNET_YES if the pipe is ready for reading
- */
-static int
-pipe_read_ready(const struct GNUNET_DISK_FileHandle *fh)
-{
-  DWORD error;
-  BOOL bret;
-  DWORD waitstatus = 0;
-
-  SetLastError(0);
-  bret = PeekNamedPipe(fh->h, NULL, 0, NULL, &waitstatus, NULL);
-  error = GetLastError();
-  if (0 == bret)
-    {
-      /* TODO: either add more errors to this condition, or eliminate it
-       * entirely (failed to peek -> pipe is in serious trouble, should
-       * be selected as readable).
-       */
-      if ((error != ERROR_BROKEN_PIPE) &&
-          (error != ERROR_INVALID_HANDLE))
-        return GNUNET_NO;
-    }
-  else if (waitstatus <= 0)
-    return GNUNET_NO;
-  return GNUNET_YES;
-}
-
-
-/**
- * Non-blocking test if a pipe is having an IO exception.
- *
- * @param fh pipe handle
- * @return #GNUNET_YES if the pipe is having an IO exception.
- */
-static int
-pipe_except_ready(const struct GNUNET_DISK_FileHandle *fh)
-{
-  DWORD dwBytes;
-
-  if (PeekNamedPipe(fh->h, NULL, 0, NULL, &dwBytes, NULL))
-    return GNUNET_NO;
-  return GNUNET_YES;
-}
-
-
-/**
- * Iterate over handles in fds, destructively rewrite the
- * handles array contents of fds so that it starts with the
- * handles that are ready, and update handles_pos accordingly.
- *
- * @param fds set of handles (usually pipes) to be checked for readiness
- * @param except GNUNET_NO if fds should be checked for readiness to read,
- * GNUNET_YES if fds should be checked for exceptions
- * (there is no way to check for write-readiness - pipes are always write-ready)
- * @param set_for_sure a HANDLE that is known to be set already,
- * because WaitForMultipleObjects() returned its index.
- * @return number of ready handles
- */
-static int
-check_handles_status(struct GNUNET_NETWORK_FDSet *fds,
-                     int except,
-                     HANDLE set_for_sure)
-{
-  const struct GNUNET_DISK_FileHandle *fh;
-  unsigned int roff;
-  unsigned int woff;
-
-  for (woff = 0, roff = 0; roff < fds->handles_pos; roff++)
-    {
-      fh = fds->handles[roff];
-      if (fh == set_for_sure)
-        {
-          fds->handles[woff++] = fh;
-        }
-      else if (fh->type == GNUNET_DISK_HANLDE_TYPE_PIPE)
-        {
-          if ((except && pipe_except_ready(fh)) ||
-              (!except && pipe_read_ready(fh)))
-            fds->handles[woff++] = fh;
-        }
-      else if (fh->type == GNUNET_DISK_HANLDE_TYPE_FILE)
-        {
-          if (!except)
-            fds->handles[woff++] = fh;
-        }
-      else
-        {
-          if (WAIT_OBJECT_0 == WaitForSingleObject(fh->h, 0))
-            fds->handles[woff++] = fh;
-        }
-    }
-  fds->handles_pos = woff;
-  return woff;
-}
-
-
-/**
- * Check if sockets or pipes meet certain conditions, version for W32.
- *
- * @param rfds set of sockets or pipes to be checked for readability
- * @param wfds set of sockets or pipes to be checked for writability
- * @param efds set of sockets or pipes to be checked for exceptions
- * @param timeout relative value when to return
- * @return number of selected sockets or pipes, #GNUNET_SYSERR on error
- */
-int
-GNUNET_NETWORK_socket_select(struct GNUNET_NETWORK_FDSet *rfds,
-                             struct GNUNET_NETWORK_FDSet *wfds,
-                             struct GNUNET_NETWORK_FDSet *efds,
-                             const struct GNUNET_TIME_Relative timeout)
-{
-  const struct GNUNET_DISK_FileHandle *fh;
-  int nfds;
-  int handles;
-  unsigned int i;
-  int retcode;
-  uint64_t mcs_total;
-  DWORD ms_rounded;
-  int nhandles = 0;
-  int read_pipes_off;
-  HANDLE handle_array[FD_SETSIZE + 2];
-  int returncode;
-  int returnedpos = 0;
-  int selectret;
-  fd_set aread;
-  fd_set awrite;
-  fd_set aexcept;
-
-  nfds = 0;
-  handles = 0;
-  if (NULL != rfds)
-    {
-      nfds = GNUNET_MAX(nfds, rfds->nsds);
-      handles += rfds->handles_pos;
-    }
-  if (NULL != wfds)
-    {
-      nfds = GNUNET_MAX(nfds, wfds->nsds);
-      handles += wfds->handles_pos;
-    }
-  if (NULL != efds)
-    {
-      nfds = GNUNET_MAX(nfds, efds->nsds);
-      handles += efds->handles_pos;
-    }
-
-  if ((0 == nfds) &&
-      (GNUNET_TIME_UNIT_FOREVER_REL.rel_value_us == timeout.rel_value_us) &&
-      (0 == handles))
-    {
-      GNUNET_break(0);
-      LOG(GNUNET_ERROR_TYPE_ERROR,
-          _("Fatal internal logic error, process hangs in `%s' (abort with CTRL-C)!\n"),
-          "select");
-    }
-#define SAFE_FD_ISSET(fd, set)  (set != NULL && FD_ISSET(fd, set))
-  /* calculate how long we need to wait in microseconds */
-  if (timeout.rel_value_us == GNUNET_TIME_UNIT_FOREVER_REL.rel_value_us)
-    {
-      mcs_total = INFINITE;
-      ms_rounded = INFINITE;
-    }
-  else
-    {
-      mcs_total = timeout.rel_value_us / GNUNET_TIME_UNIT_MICROSECONDS.rel_value_us;
-      ms_rounded = (DWORD)(mcs_total / GNUNET_TIME_UNIT_MILLISECONDS.rel_value_us);
-      if (mcs_total > 0 && ms_rounded == 0)
-        ms_rounded = 1;
-    }
-  /* select() may be used as a portable way to sleep */
-  if (!(rfds || wfds || efds))
-    {
-      Sleep(ms_rounded);
-      return 0;
-    }
-
-  if (NULL == select_thread)
-    initialize_select_thread();
-
-  FD_ZERO(&aread);
-  FD_ZERO(&awrite);
-  FD_ZERO(&aexcept);
-  if (rfds)
-    FD_COPY(&rfds->sds, &aread);
-  if (wfds)
-    FD_COPY(&wfds->sds, &awrite);
-  if (efds)
-    FD_COPY(&efds->sds, &aexcept);
-
-  /* Start by doing a fast check on sockets and pipes (without
-     waiting). It is cheap, and is sufficient most of the time.  By
-     profiling we detected that to be true in 90% of the cases.
-   */
-
-  /* Do the select now */
-  select_timeout.tv_sec = 0;
-  select_timeout.tv_usec = 0;
-
-  /* Copy all the writes to the except, so we can detect connect() errors */
-  for (i = 0; i < awrite.fd_count; i++)
-    FD_SET(awrite.fd_array[i],
-           &aexcept);
-  if ((aread.fd_count > 0) ||
-      (awrite.fd_count > 0) ||
-      (aexcept.fd_count > 0))
-    selectret = select(1,
-                       (NULL != rfds) ? &aread : NULL,
-                       (NULL != wfds) ? &awrite : NULL,
-                       &aexcept,
-                       &select_timeout);
-  else
-    selectret = 0;
-  if (-1 == selectret)
-    {
-      /* Throw an error early on, while we still have the context. */
-      LOG(GNUNET_ERROR_TYPE_ERROR,
-          "W32 select(%d, %d, %d) failed: %lu\n",
-          rfds ? aread.fd_count : 0,
-          wfds ? awrite.fd_count : 0,
-          aexcept.fd_count,
-          GetLastError());
-      GNUNET_assert(0);
-    }
-
-  /* Check aexcept, if something is in there and we copied that
-     FD before to detect connect() errors, add it back to the
-     write set to report errors. */
-  if (NULL != wfds)
-    for (i = 0; i < aexcept.fd_count; i++)
-      if (FD_ISSET(aexcept.fd_array[i],
-                   &wfds->sds))
-        FD_SET(aexcept.fd_array[i],
-               &awrite);
-
-
-  /* If our select returned something or is a 0-timed request, then
-     also check the pipes and get out of here! */
-  /* Sadly, it means code duplication :( */
-  if ((selectret > 0) || (0 == mcs_total))
-    {
-      retcode = 0;
-
-      /* Read Pipes */
-      if (rfds && (rfds->handles_pos > 0))
-        retcode += check_handles_status(rfds, GNUNET_NO, NULL);
-
-      /* wfds handles remain untouched, on W32
-         we pretend our pipes are "always" write-ready */
-
-      /* except pipes */
-      if (efds && (efds->handles_pos > 0))
-        retcode += check_handles_status(efds, GNUNET_YES, NULL);
-
-      if (rfds)
-        {
-          GNUNET_NETWORK_fdset_zero(rfds);
-          if (selectret != -1)
-            GNUNET_NETWORK_fdset_copy_native(rfds, &aread, selectret);
-        }
-      if (wfds)
-        {
-          GNUNET_NETWORK_fdset_zero(wfds);
-          if (selectret != -1)
-            GNUNET_NETWORK_fdset_copy_native(wfds, &awrite, selectret);
-        }
-      if (efds)
-        {
-          GNUNET_NETWORK_fdset_zero(efds);
-          if (selectret != -1)
-            GNUNET_NETWORK_fdset_copy_native(efds, &aexcept, selectret);
-        }
-      if (-1 == selectret)
-        return -1;
-      /* Add our select() FDs to the total return value */
-      retcode += selectret;
-      return retcode;
-    }
-
-  /* If we got this far, use slower implementation that is able to do a waiting select
-     on both sockets and pipes simultaneously */
-
-  /* Events for pipes */
-  if (!hEventReadReady)
-    hEventReadReady = CreateEvent(NULL, TRUE, TRUE, NULL);
-  if (!hEventPipeWrite)
-    hEventPipeWrite = CreateEvent(NULL, TRUE, TRUE, NULL);
-  retcode = 0;
-
-  FD_ZERO(&aread);
-  FD_ZERO(&awrite);
-  FD_ZERO(&aexcept);
-  if (rfds)
-    FD_COPY(&rfds->sds, &aread);
-  if (wfds)
-    FD_COPY(&wfds->sds, &awrite);
-  if (efds)
-    FD_COPY(&efds->sds, &aexcept);
-  /* We will first Add the PIPES to the events */
-  /* Track how far in `handle_array` the read pipes go,
-     so we may by-pass them quickly if none of them
-     are selected. */
-  read_pipes_off = 0;
-  if (rfds && (rfds->handles_pos > 0))
-    {
-      for (i = 0; i < rfds->handles_pos; i++)
-        {
-          fh = rfds->handles[i];
-          if (fh->type == GNUNET_DISK_HANLDE_TYPE_EVENT)
-            {
-              handle_array[nhandles++] = fh->h;
-              continue;
-            }
-          if (fh->type != GNUNET_DISK_HANLDE_TYPE_PIPE)
-            continue;
-          /* Read zero bytes to check the status of the pipe */
-          if (!ReadFile(fh->h, NULL, 0, NULL, fh->oOverlapRead))
-            {
-              DWORD error_code = GetLastError();
-
-              if (error_code == ERROR_IO_PENDING)
-                {
-                  /* add as unready */
-                  handle_array[nhandles++] = fh->oOverlapRead->hEvent;
-                  read_pipes_off++;
-                }
-              else
-                {
-                  /* add as ready */
-                  handle_array[nhandles++] = hEventReadReady;
-                  read_pipes_off++;
-                }
-            }
-          else
-            {
-              /* error also counts as ready */
-              handle_array[nhandles++] = hEventReadReady;
-              read_pipes_off++;
-            }
-        }
-    }
-
-  if (wfds && (wfds->handles_pos > 0))
-    {
-      LOG(GNUNET_ERROR_TYPE_DEBUG,
-          "Adding the write ready event to the array as %d\n",
-          nhandles);
-      handle_array[nhandles++] = hEventPipeWrite;
-    }
-
-  sp.status = 0;
-  if (nfds > 0)
-    {
-      LOG(GNUNET_ERROR_TYPE_DEBUG,
-          "Adding the socket event to the array as %d\n",
-          nhandles);
-      handle_array[nhandles++] = select_finished_event;
-      if (timeout.rel_value_us == GNUNET_TIME_UNIT_FOREVER_REL.rel_value_us)
-        {
-          sp.tv = NULL;
-        }
-      else
-        {
-          select_timeout.tv_sec = timeout.rel_value_us / GNUNET_TIME_UNIT_SECONDS.rel_value_us;
-          select_timeout.tv_usec = (timeout.rel_value_us -
-                                    (select_timeout.tv_sec *
-                                     GNUNET_TIME_UNIT_SECONDS.rel_value_us));
-          sp.tv = &select_timeout;
-        }
-      FD_SET(select_wakeup_socket, &aread);
-      do
-        {
-          i = recv(select_wakeup_socket,
-                   (char *)&returnedpos,
-                   1,
-                   0);
-        }
-      while (i == 1);
-      sp.r = &aread;
-      sp.w = &awrite;
-      sp.e = &aexcept;
-      /* Failed connections cause sockets to be set in errorfds on W32,
-       * but on POSIX it should set them in writefds.
-       * First copy all awrite sockets to aexcept, later we'll
-       * check aexcept and set its contents in awrite as well
-       * Sockets are also set in errorfds when OOB data is available,
-       * but we don't use OOB data.
-       */
-      for (i = 0; i < awrite.fd_count; i++)
-        FD_SET(awrite.fd_array[i],
-               &aexcept);
-      ResetEvent(select_finished_event);
-      SetEvent(select_standby_event);
-    }
-
-  /* NULL-terminate array */
-  handle_array[nhandles] = NULL;
-  LOG(GNUNET_ERROR_TYPE_DEBUG,
-      "nfds: %d, handles: %d, will wait: %llu mcs\n",
-      nfds,
-      nhandles,
-      mcs_total);
-  if (nhandles)
-    {
-      returncode
-        = WaitForMultipleObjects(nhandles,
-                                 handle_array,
-                                 FALSE,
-                                 ms_rounded);
-      LOG(GNUNET_ERROR_TYPE_DEBUG,
-          "WaitForMultipleObjects Returned: %d\n",
-          returncode);
-    }
-  else if (nfds > 0)
-    {
-      GNUNET_break(0); /* This branch shouldn't actually be executed...*/
-      i = (int)WaitForSingleObject(select_finished_event,
-                                   INFINITE);
-      returncode = WAIT_TIMEOUT;
-    }
-  else
-    {
-      /* Shouldn't come this far. If it does - investigate. */
-      GNUNET_assert(0);
-    }
-
-  if (nfds > 0)
-    {
-      /* Don't wake up select-thread when delay is 0, it should return immediately
-       * and wake up by itself.
-       */
-      if (0 != mcs_total)
-        i = send(select_send_socket,
-                 (const char *)&returnedpos,
-                 1,
-                 0);
-      i = (int)WaitForSingleObject(select_finished_event,
-                                   INFINITE);
-      LOG(GNUNET_ERROR_TYPE_DEBUG,
-          "Finished waiting for the select thread: %d %d\n",
-          i,
-          sp.status);
-      if (0 != mcs_total)
-        {
-          do
-            {
-              i = recv(select_wakeup_socket,
-                       (char *)&returnedpos,
-                       1, 0);
-            }
-          while (1 == i);
-        }
-      /* Check aexcept, add its contents to awrite */
-      for (i = 0; i < aexcept.fd_count; i++)
-        FD_SET(aexcept.fd_array[i], &awrite);
-    }
-
-  returnedpos = returncode - WAIT_OBJECT_0;
-  LOG(GNUNET_ERROR_TYPE_DEBUG,
-      "return pos is: %d\n",
-      returnedpos);
-
-  if (rfds)
-    {
-      /* We queued a zero-long read on each pipe to check
-       * its state, now we must cancel these read operations.
-       * This must be done while rfds->handles_pos is still
-       * intact and matches the number of read handles that we
-       * got from the caller.
-       */
-      for (i = 0; i < rfds->handles_pos; i++)
-        {
-          fh = rfds->handles[i];
-          if (GNUNET_DISK_HANLDE_TYPE_PIPE == fh->type)
-            CancelIo(fh->h);
-        }
-
-      /* We may have some pipes ready for reading. */
-      if (returnedpos < read_pipes_off)
-        retcode += check_handles_status(rfds, GNUNET_NO, handle_array[returnedpos]);
-      else
-        rfds->handles_pos = 0;
-
-      if (-1 != sp.status)
-        GNUNET_NETWORK_fdset_copy_native(rfds, &aread, retcode);
-    }
-  if (wfds)
-    {
-      retcode += wfds->handles_pos;
-      /* wfds handles remain untouched */
-      if (-1 != sp.status)
-        GNUNET_NETWORK_fdset_copy_native(wfds, &awrite, retcode);
-    }
-  if (efds)
-    {
-      retcode += check_handles_status(rfds,
-                                      GNUNET_YES,
-                                      returnedpos < nhandles ? handle_array[returnedpos] : NULL);
-      if (-1 != sp.status)
-        GNUNET_NETWORK_fdset_copy_native(efds, &aexcept, retcode);
-    }
-
-  if (sp.status > 0)
-    retcode += sp.status;
-
-  return retcode;
-}
-
-/* MINGW */
-#endif
 
 /* end of network.c */

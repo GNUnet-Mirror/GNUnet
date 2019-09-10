@@ -67,11 +67,9 @@ main(int argc, char *argv[])
                                                 (GNUNET_TIME_UNIT_MILLISECONDS,
                                                 7 * 60 * 60 * 1000), GNUNET_YES);
   WANTNF(buf, bc);
-#ifndef MINGW
+
   hdir = getenv("HOME");
-#else
-  hdir = getenv("USERPROFILE");
-#endif
+
   GNUNET_snprintf(buf, sizeof(buf), "%s%s", hdir, DIR_SEPARATOR_STR);
   b = GNUNET_STRINGS_filename_expand("~");
   GNUNET_assert(b != NULL);

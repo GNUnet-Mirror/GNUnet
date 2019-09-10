@@ -3,10 +3,6 @@ SUBDIRS = .
 
 plugindir = $(libdir)/gnunet
 
-if MINGW
-  WINFLAGS = -no-undefined -Wl,--export-all-symbols
-endif
-
 AM_CPPFLAGS = \
   $(GNUNET_CPPFLAGS) \
   -I$(top_srcdir)/src/include \

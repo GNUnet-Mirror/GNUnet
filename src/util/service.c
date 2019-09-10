@@ -1354,93 +1354,6 @@ get_server_addresses(const char *service_name,
 }
 
 
-#ifdef MINGW
-/**
- * Read listen sockets from the parent process (ARM).
- *
- * @param sh service context to initialize
- * @return NULL-terminated array of sockets on success,
- *         NULL if not ok (must bind yourself)
- */
-static struct GNUNET_NETWORK_Handle **
-receive_sockets_from_parent(struct GNUNET_SERVICE_Handle *sh)
-{
-  static struct GNUNET_NETWORK_Handle **lsocks;
-  const char *env_buf;
-  int fail;
-  uint64_t count;
-  uint64_t i;
-  HANDLE lsocks_pipe;
-
-  env_buf = getenv("GNUNET_OS_READ_LSOCKS");
-  if ((NULL == env_buf) || (strlen(env_buf) <= 0))
-    return NULL;
-  /* Using W32 API directly here, because this pipe will
-   * never be used outside of this function, and it's just too much of a bother
-   * to create a GNUnet API that boxes a HANDLE (the way it is done with socks)
-   */
-  lsocks_pipe = (HANDLE)strtoul(env_buf, NULL, 10);
-  if ((0 == lsocks_pipe) || (INVALID_HANDLE_VALUE == lsocks_pipe))
-    return NULL;
-  fail = 1;
-  do
-    {
-      int ret;
-      int fail2;
-      DWORD rd;
-
-      ret = ReadFile(lsocks_pipe, &count, sizeof(count), &rd, NULL);
-      if ((0 == ret) || (sizeof(count) != rd) || (0 == count))
-        break;
-      lsocks = GNUNET_new_array(count + 1, struct GNUNET_NETWORK_Handle *);
-
-      fail2 = 1;
-      for (i = 0; i < count; i++)
-        {
-          WSAPROTOCOL_INFOA pi;
-          uint64_t size;
-          _win_socket s;
-
-          ret = ReadFile(lsocks_pipe, &size, sizeof(size), &rd, NULL);
-          if ((0 == ret) || (sizeof(size) != rd) || (sizeof(pi) != size))
-            break;
-          ret = ReadFile(lsocks_pipe, &pi, sizeof(pi), &rd, NULL);
-          if ((0 == ret) || (sizeof(pi) != rd))
-            break;
-          s = WSASocketA(pi.iAddressFamily,
-                         pi.iSocketType,
-                         pi.iProtocol,
-                         &pi,
-                         0,
-                         WSA_FLAG_OVERLAPPED);
-          lsocks[i] = GNUNET_NETWORK_socket_box_native(s);
-          if (NULL == lsocks[i])
-            break;
-          else if (i == count - 1)
-            fail2 = 0;
-        }
-      if (fail2)
-        break;
-      lsocks[count] = NULL;
-      fail = 0;
-    }
-  while (fail);
-  CloseHandle(lsocks_pipe);
-
-  if (fail)
-    {
-      LOG(GNUNET_ERROR_TYPE_ERROR,
-          _("Could not access a pre-bound socket, will try to bind myself\n"));
-      for (i = 0; (i < count) && (NULL != lsocks[i]); i++)
-        GNUNET_break(GNUNET_OK == GNUNET_NETWORK_socket_close(lsocks[i]));
-      GNUNET_free(lsocks);
-      return NULL;
-    }
-  return lsocks;
-}
-#endif
-
-
 /**
  * Create and initialize a listen socket for the server.
  *
@@ -1557,13 +1470,10 @@ setup_service(struct GNUNET_SERVICE_Handle *sh)
 {
   int tolerant;
   struct GNUNET_NETWORK_Handle **lsocks;
-
-#ifndef MINGW
   const char *nfds;
   unsigned int cnt;
   int flags;
   char dummy[2];
-#endif
 
   if (GNUNET_CONFIGURATION_have_value(sh->cfg, sh->service_name, "TOLERANT"))
     {
@@ -1583,7 +1493,7 @@ setup_service(struct GNUNET_SERVICE_Handle *sh)
     tolerant = GNUNET_NO;
 
   lsocks = NULL;
-#ifndef MINGW
+
   errno = 0;
   if ((NULL != (nfds = getenv("LISTEN_FDS"))) &&
       (1 == sscanf(nfds, "%u%1s", &cnt, dummy)) && (cnt > 0) &&
@@ -1611,13 +1521,6 @@ setup_service(struct GNUNET_SERVICE_Handle *sh)
         }
       unsetenv("LISTEN_FDS");
     }
-#else
-  if (NULL != getenv("GNUNET_OS_READ_LSOCKS"))
-    {
-      lsocks = receive_sockets_from_parent(sh);
-      putenv("GNUNET_OS_READ_LSOCKS=");
-    }
-#endif
 
   if (NULL != lsocks)
     {
@@ -1723,7 +1626,7 @@ set_user_id(struct GNUNET_SERVICE_Handle *sh)
 
   if (NULL == (user = get_user_name(sh)))
     return GNUNET_OK; /* keep */
-#ifndef MINGW
+
   struct passwd *pws;
 
   errno = 0;
@@ -1754,7 +1657,7 @@ set_user_id(struct GNUNET_SERVICE_Handle *sh)
           return GNUNET_SYSERR;
         }
     }
-#endif
+
   GNUNET_free(user);
   return GNUNET_OK;
 }
@@ -1808,7 +1711,6 @@ pid_file_delete(struct GNUNET_SERVICE_Handle *sh)
 static int
 detach_terminal(struct GNUNET_SERVICE_Handle *sh)
 {
-#ifndef MINGW
   pid_t pid;
   int nullfd;
   int filedes[2];
@@ -1875,11 +1777,7 @@ detach_terminal(struct GNUNET_SERVICE_Handle *sh)
   if (-1 == pid)
     LOG_STRERROR(GNUNET_ERROR_TYPE_ERROR, "setsid");
   sh->ready_confirm_fd = filedes[1];
-#else
-  /* FIXME: we probably need to do something else
-   * elsewhere in order to fork the process itself... */
-  FreeConsole();
-#endif
+
   return GNUNET_OK;
 }
 

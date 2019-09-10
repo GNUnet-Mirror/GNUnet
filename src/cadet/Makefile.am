@@ -1,10 +1,6 @@
 # This Makefile.am is in the public domain
 AM_CPPFLAGS = -I$(top_srcdir)/src/include
 
-if MINGW
-  WINFLAGS = -Wl,--no-undefined -Wl,--export-all-symbols
-endif
-
 if USE_COVERAGE
   AM_CFLAGS = --coverage -O0
   XLIB = -lgcov
@@ -38,7 +34,7 @@ libgnunetcadet_la_SOURCES = \
   cadet_api_get_path.c \
   cadet_api_list_peers.c \
   cadet_api_list_tunnels.c \
-  cadet_api_helper.c 
+  cadet_api_helper.c
 libgnunetcadet_la_LIBADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(XLIB) \

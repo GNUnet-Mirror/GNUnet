@@ -602,20 +602,13 @@ char *
 GNUNET_STRINGS_filename_expand(const char *fil)
 {
   char *buffer;
-
-#ifndef MINGW
   size_t len;
   char *fm;
   const char *fil_ptr;
-#else
-  char *fn;
-  long lRet;
-#endif
 
   if (fil == NULL)
     return NULL;
 
-#ifndef MINGW
   if (fil[0] == DIR_SEPARATOR)
     /* absolute path, just copy */
     return GNUNET_strdup(fil);
@@ -677,34 +670,6 @@ GNUNET_STRINGS_filename_expand(const char *fil)
                   fil_ptr);
   GNUNET_free(fm);
   return buffer;
-#else
-  fn = GNUNET_malloc(MAX_PATH + 1);
-
-  if ((lRet = plibc_conv_to_win_path(fil, fn)) != ERROR_SUCCESS)
-    {
-      SetErrnoFromWinError(lRet);
-      LOG_STRERROR(GNUNET_ERROR_TYPE_WARNING, "plibc_conv_to_win_path");
-      return NULL;
-    }
-  /* is the path relative? */
-  if ((0 != strncmp(fn + 1, ":\\", 2)) && (0 != strncmp(fn, "\\\\", 2)))
-    {
-      char szCurDir[MAX_PATH + 1];
-
-      lRet = GetCurrentDirectory(MAX_PATH + 1, szCurDir);
-      if (lRet + strlen(fn) + 1 > (MAX_PATH + 1))
-        {
-          SetErrnoFromWinError(ERROR_BUFFER_OVERFLOW);
-          LOG_STRERROR(GNUNET_ERROR_TYPE_WARNING, "GetCurrentDirectory");
-          return NULL;
-        }
-      GNUNET_asprintf(&buffer, "%s\\%s", szCurDir, fn);
-      GNUNET_free(fn);
-      fn = buffer;
-    }
-
-  return fn;
-#endif
 }
 
 

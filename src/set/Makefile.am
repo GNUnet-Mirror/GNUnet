@@ -10,10 +10,6 @@ plugindir = $(libdir)/gnunet
 pkgcfg_DATA = \
   set.conf
 
-if MINGW
- WINFLAGS = -Wl,--no-undefined -Wl,--export-all-symbols
-endif
-
 if USE_COVERAGE
   AM_CFLAGS = -fprofile-arcs -ftest-coverage
 endif

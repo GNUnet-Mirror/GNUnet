@@ -114,18 +114,12 @@ if HAVE_LIBBLUETOOTH
  BT_QUOTA_TEST = test_quota_compliance_bluetooth \
     test_quota_compliance_bluetooth_asymmetric
 endif
-else
-if MINGW
- BT_BIN = gnunet-helper-transport-bluetooth
- BT_PLUGIN_LA = libgnunet_plugin_transport_bluetooth.la
-endif
 endif
 
 # end of HAVE_EXPERIMENTAL
 endif
 
 
-if !MINGW
 UNIX_PLUGIN_LA = libgnunet_plugin_transport_unix.la
 UNIX_PLUGIN_TEST = test_transport_api_unix
 UNIX_TEST = test_plugin_unix
@@ -136,7 +130,7 @@ UNIX_QUOTA_TEST = test_quota_compliance_unix \
 if LINUX
  UNIX_API_ABSTRACT_TEST = test_transport_api_unix_abstract
 endif
-endif
+
 
 noinst_PROGRAMS = \
  gnunet-transport-profiler \
@@ -319,13 +313,9 @@ gnunet_transport_wlan_receiver_LDADD = \
 
 gnunet_helper_transport_bluetooth_SOURCES = \
  gnunet-helper-transport-bluetooth.c
-if MINGW
- gnunet_helper_transport_bluetooth_LDADD = \
-  $(top_builddir)/src/util/libgnunetutil.la
- gnunet_helper_transport_bluetooth_LDFLAGS = -lws2_32
-else
- gnunet_helper_transport_bluetooth_LDFLAGS = -lbluetooth
-endif
+
+gnunet_helper_transport_bluetooth_LDFLAGS = -lbluetooth
+
 
 gnunet_transport_profiler_SOURCES = \
  gnunet-transport-profiler.c

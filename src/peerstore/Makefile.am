@@ -10,10 +10,6 @@ libexecdir= $(pkglibdir)/libexec/
 dist_pkgcfg_DATA = \
   peerstore.conf
 
-if MINGW
- WINFLAGS = -Wl,--no-undefined -Wl,--export-all-symbols
-endif
-
 if USE_COVERAGE
   AM_CFLAGS = -fprofile-arcs -ftest-coverage
 endif

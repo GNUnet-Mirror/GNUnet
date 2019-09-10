@@ -1,11 +1,6 @@
 # This Makefile.am is in the public domain
 AM_CPPFLAGS = -I$(top_srcdir)/src/include
 
-if MINGW
-  WINFLAGS = -Wl,--no-undefined,--export-all-symbols
-  EXITBIN = gnunet-helper-exit
-endif
-
 if USE_COVERAGE
   AM_CFLAGS = --coverage -O0
 endif
@@ -32,20 +27,10 @@ libexec_PROGRAMS = \
   gnunet-daemon-exit \
   $(EXITBIN)
 
-if MINGW
-  gnunet_helper_exit_LDFLAGS = \
-    -no-undefined -Wl,--export-all-symbols
 
-  gnunet_helper_exit_LDADD = \
-    -lsetupapi -lnewdev -lshell32 -liconv -lstdc++ \
-    -lcomdlg32 -lgdi32 -liphlpapi
+gnunet_helper_exit_SOURCES = \
+  gnunet-helper-exit.c
 
-  gnunet_helper_exit_SOURCES = \
-    gnunet-helper-exit-windows.c
-else
-  gnunet_helper_exit_SOURCES = \
-   gnunet-helper-exit.c
-endif
 gnunet_daemon_exit_SOURCES = \
  gnunet-daemon-exit.c exit.h
 gnunet_daemon_exit_LDADD = \

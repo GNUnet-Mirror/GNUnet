@@ -21,30 +21,23 @@
  */
 #include "gnunet_config.h"
 
-#ifdef MINGW
-  #include "platform.h"
-  #include "gnunet_util_lib.h"
-  #include <bthdef.h>
-  #include <ws2bth.h>
-#else
-  #define SOCKTYPE int
-  #include <bluetooth/bluetooth.h>
-  #include <bluetooth/hci.h>
-  #include <bluetooth/hci_lib.h>
-  #include <bluetooth/rfcomm.h>
-  #include <bluetooth/sdp.h>
-  #include <bluetooth/sdp_lib.h>
-  #include <errno.h>
-  #include <linux/if.h>
-  #include <stdio.h>
-  #include <stdlib.h>
-  #include <sys/ioctl.h>
-  #include <sys/param.h>
-  #include <sys/socket.h>
-  #include <sys/stat.h>
-  #include <sys/types.h>
-  #include <unistd.h>
-#endif
+#define SOCKTYPE int
+#include <bluetooth/bluetooth.h>
+#include <bluetooth/hci.h>
+#include <bluetooth/hci_lib.h>
+#include <bluetooth/rfcomm.h>
+#include <bluetooth/sdp.h>
+#include <bluetooth/sdp_lib.h>
+#include <errno.h>
+#include <linux/if.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/ioctl.h>
+#include <sys/param.h>
+#include <sys/socket.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <unistd.h>
 
 #include "plugin_transport_wlan.h"
 #include "gnunet_protocols.h"
@@ -67,34 +60,6 @@
  */
 #define MAX_LOOPS 5
 
-#ifdef MINGW
-/* Maximum size of the interface's name */
-  #define IFNAMSIZ 16
-
-  #ifndef NS_BTH
-    #define NS_BTH 16
-  #endif
-/**
- * A copy of the MAC Address.
- */
-struct GNUNET_TRANSPORT_WLAN_MacAddress_Copy {
-  UINT8 mac[MAC_ADDR_SIZE];
-};
-
-/**
- * The UUID used for the SDP service.
- * {31191E56-FA7E-4517-870E-71B86BBCC52F}
- */
-  #define GNUNET_BLUETOOTH_SDP_UUID \
-  { \
-    0x31, 0x19, 0x1E, 0x56, \
-    0xFA, 0x7E, \
-    0x45, 0x17, \
-    0x87, 0x0E, \
-    0x71, 0xB8, 0x6B, 0xBC, 0xC5, 0x2F \
-  }
-#endif
-
 /**
  * In bluez library, the maximum name length of a device is 8
  */
@@ -110,17 +75,6 @@ struct HardwareInfos {
    */
   char iface[IFNAMSIZ];
 
- #ifdef MINGW
-  /**
-   * socket handle
-   */
-  struct GNUNET_NETWORK_Handle *handle;
-
-  /**
-   * MAC address of our own bluetooth interface.
-   */
-  struct GNUNET_TRANSPORT_WLAN_MacAddress_Copy pl_mac;
- #else
   /**
    * file descriptor for the rfcomm socket
    */
@@ -135,7 +89,6 @@ struct HardwareInfos {
    * SDP session
    */
   sdp_session_t *session;
- #endif
 };
 
 /**
@@ -606,61 +559,6 @@ check_crc_buf_osdep(const unsigned char *buf, size_t len)
 
 
 /* ************** end of clone  ***************** */
-
-#ifdef MINGW
-/**
- * Function used to get the code of last error and to print the type of error.
- */
-static void
-print_last_error()
-{
-  LPVOID lpMsgBuf = NULL;
-
-  if (FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
-                    NULL, GetLastError(), 0, (LPTSTR)&lpMsgBuf, 0, NULL))
-    fprintf(stderr, "%s\n", (char *)lpMsgBuf);
-  else
-    fprintf(stderr, "Failed to format the message for the last error! Error number : %d\n", GetLastError());
-}
-
-/**
- * Function used to initialize the Windows Sockets
- */
-static void
-initialize_windows_sockets()
-{
-  WSADATA wsaData;
-  WORD wVersionRequested = MAKEWORD(2, 0);
-
-  if (WSAStartup(wVersionRequested, &wsaData) != NO_ERROR)
-    {
-      fprintf(stderr, "Error initializing window sockets!\n");
-      print_last_error();
-      ExitProcess(2);
-    }
-}
-
-/**
- * Function used to convert the GUID.
- * @param bytes the GUID represented as a char array
- * @param uuid pointer to the GUID
- */
-static void
-convert_guid(char *bytes, GUID * uuid)
-{
-  int i;
-
-  uuid->Data1 = ((bytes[0] << 24) & 0xff000000) | ((bytes[1] << 16) & 0x00ff0000) | ((bytes[2] << 8) & 0x0000ff00) | (bytes[3] & 0x000000ff);
-  uuid->Data2 = ((bytes[4] << 8) & 0xff00) | (bytes[5] & 0x00ff);
-  uuid->Data3 = ((bytes[6] << 8) & 0xff00) | (bytes[7] & 0x00ff);
-
-  for (i = 0; i < 8; i++)
-    {
-      uuid->Data4[i] = bytes[i + 8];
-    }
-}
-#endif
-
 #ifdef LINUX
 /**
  * Function for assigning a port number
@@ -688,79 +586,6 @@ bind_socket(int socket, struct sockaddr_rc *addr)
 }
 #endif
 
-#ifdef MINGW
-/**
- * Function used for creating the service record and registering it.
- *
- * @param dev pointer to the device struct
- * @return 0 on success
- */
-static int
-register_service(struct HardwareInfos *dev)
-{
-  /* advertise the service */
-  CSADDR_INFO addr_info;
-  WSAQUERYSET wqs;
-  GUID guid;
-  unsigned char uuid[] = GNUNET_BLUETOOTH_SDP_UUID;
-  SOCKADDR_BTH addr;
-  int addr_len = sizeof(SOCKADDR_BTH);
-  int fd;
-
-  /* get the port on which we are listening on */
-  memset(&addr, 0, sizeof(SOCKADDR_BTH));
-  fd = GNUNET_NETWORK_get_fd(dev->handle);
-  if (fd <= 0)
-    {
-      fprintf(stderr, "Failed to get the file descriptor\n");
-      return -1;
-    }
-  if (SOCKET_ERROR == getsockname(fd, (SOCKADDR*)&addr, &addr_len))
-    {
-      fprintf(stderr, "Failed to get the port on which we are listening on: \n");
-      print_last_error();
-      return -1;
-    }
-
-  /* save the device address */
-  GNUNET_memcpy(&dev->pl_mac, &addr.btAddr, sizeof(BTH_ADDR));
-
-  /* set the address information */
-  memset(&addr_info, 0, sizeof(CSADDR_INFO));
-  addr_info.iProtocol = BTHPROTO_RFCOMM;
-  addr_info.iSocketType = SOCK_STREAM;
-  addr_info.LocalAddr.lpSockaddr = (LPSOCKADDR)&addr;
-  addr_info.LocalAddr.iSockaddrLength = sizeof(addr);
-  addr_info.RemoteAddr.lpSockaddr = (LPSOCKADDR)&addr;
-  addr_info.RemoteAddr.iSockaddrLength = sizeof(addr);
-
-  convert_guid((char *)uuid, &guid);
-
-  /* register the service */
-  memset(&wqs, 0, sizeof(WSAQUERYSET));
-  wqs.dwSize = sizeof(WSAQUERYSET);
-  wqs.dwNameSpace = NS_BTH;
-  wqs.lpszServiceInstanceName = "GNUnet Bluetooth Service";
-  wqs.lpszComment = "This is the service used by the GNUnnet plugin transport";
-  wqs.lpServiceClassId = &guid;
-  wqs.dwNumberOfCsAddrs = 1;
-  wqs.lpcsaBuffer = &addr_info;
-  wqs.lpBlob = 0;
-
-  if (SOCKET_ERROR == WSASetService(&wqs, RNRSERVICE_REGISTER, 0))
-    {
-      fprintf(stderr, "Failed to register the SDP service: ");
-      print_last_error();
-      return -1;
-    }
-  else
-    {
-      fprintf(stderr, "The SDP service was registered\n");
-    }
-
-  return 0;
-}
-#else
 /**
  * Function used for creating the service record and registering it.
  *
@@ -849,96 +674,7 @@ register_service(struct HardwareInfos *dev, int rc_channel)
 
   return 0;
 }
-#endif
 
-#ifdef MINGW
-/**
- * Function for searching and browsing for a service. This will return the
- * port number on which the service is running.
- *
- * @param dest target address
- * @return channel
- */
-static int
-get_channel(const char *dest)
-{
-  HANDLE h;
-  WSAQUERYSET *wqs;
-  DWORD wqs_len = sizeof(WSAQUERYSET);
-  int done = 0;
-  int channel = -1;
-  GUID guid;
-  unsigned char uuid[] = GNUNET_BLUETOOTH_SDP_UUID;
-
-  convert_guid((char *)uuid, &guid);
-
-  wqs = (WSAQUERYSET*)malloc(wqs_len);
-  ZeroMemory(wqs, wqs_len);
-
-  wqs->dwSize = sizeof(WSAQUERYSET);
-  wqs->lpServiceClassId = &guid;
-  wqs->dwNameSpace = NS_BTH;
-  wqs->dwNumberOfCsAddrs = 0;
-  wqs->lpszContext = (LPSTR)dest;
-
-  if (SOCKET_ERROR == WSALookupServiceBegin(wqs, LUP_FLUSHCACHE | LUP_RETURN_ALL, &h))
-    {
-      if (GetLastError() == WSASERVICE_NOT_FOUND)
-        {
-          fprintf(stderr, "WARNING! The device with address %s wasn't found. Skipping the message!", dest);
-          return -1;
-        }
-      else
-        {
-          fprintf(stderr, "Failed to find the port number: ");
-          print_last_error();
-          ExitProcess(2);
-          return -1;
-        }
-    }
-
-  /* search the sdp service */
-  while (!done)
-    {
-      if (SOCKET_ERROR == WSALookupServiceNext(h, LUP_FLUSHCACHE | LUP_RETURN_ALL, &wqs_len, wqs))
-        {
-          int error = WSAGetLastError();
-
-          switch (error)
-            {
-            case WSAEFAULT:
-              free(wqs);
-              wqs = (WSAQUERYSET*)malloc(wqs_len);
-              break;
-
-            case WSANO_DATA:
-              fprintf(stderr, "Failed! The address was valid but there was no data record of requested type\n");
-              done = 1;
-              break;
-
-            case WSA_E_NO_MORE:
-              done = 1;
-              break;
-
-            default:
-              fprintf(stderr, "Failed to look over the services: ");
-              print_last_error();
-              WSALookupServiceEnd(h);
-              ExitProcess(2);
-            }
-        }
-      else
-        {
-          channel = ((SOCKADDR_BTH*)wqs->lpcsaBuffer->RemoteAddr.lpSockaddr)->port;
-        }
-    }
-
-  free(wqs);
-  WSALookupServiceEnd(h);
-
-  return channel;
-}
-#else
 /**
  * Function used for searching and browsing for a service. This will return the
  * port number on which the service is running.
@@ -1011,7 +747,6 @@ get_channel(struct HardwareInfos *dev, bdaddr_t dest)
 
   return channel;
 }
-#endif
 
 /**
  * Read from the socket and put the result into the buffer for transmission to 'stdout'.
@@ -1030,22 +765,14 @@ read_from_the_socket(void *sock,
 {
   unsigned char tmpbuf[buf_size];
   ssize_t count;
-
-  #ifdef MINGW
-  count = GNUNET_NETWORK_socket_recv((struct GNUNET_NETWORK_Handle *)sock, tmpbuf, buf_size);
-  #else
   count = read(*((int *)sock), tmpbuf, buf_size);
-  #endif
 
   if (0 > count)
     {
       if (EAGAIN == errno)
         return 0;
-    #if MINGW
-      print_last_error();
-    #else
+
       fprintf(stderr, "Failed to read from the HCI socket: %s\n", strerror(errno));
-    #endif
 
       return -1;
     }
@@ -1088,43 +815,6 @@ read_from_the_socket(void *sock,
 static int
 open_device(struct HardwareInfos *dev)
 {
-  #ifdef MINGW
-  SOCKADDR_BTH addr;
-
-  /* bind the RFCOMM socket to the interface */
-  addr.addressFamily = AF_BTH;
-  addr.btAddr = 0;
-  addr.port = BT_PORT_ANY;
-
-  if (GNUNET_OK !=
-      GNUNET_NETWORK_socket_bind(dev->handle, (const SOCKADDR*)&addr, sizeof(SOCKADDR_BTH)))
-    {
-      fprintf(stderr, "Failed to bind the socket: ");
-      if (GetLastError() == WSAENETDOWN)
-        {
-          fprintf(stderr, "Please make sure that your Bluetooth device is ON!\n");
-          ExitProcess(2);
-        }
-      print_last_error();
-      return -1;
-    }
-
-  /* start listening on the socket */
-  if (GNUNET_NETWORK_socket_listen(dev->handle, 4) != GNUNET_OK)
-    {
-      fprintf(stderr, "Failed to listen on the socket: ");
-      print_last_error();
-      return -1;
-    }
-
-  /* register the sdp service */
-  if (register_service(dev) != 0)
-    {
-      fprintf(stderr, "Failed to register a service: ");
-      print_last_error();
-      return 1;
-    }
-  #else
   int i, dev_id = -1, fd_hci;
   struct {
     struct hci_dev_list_req list;
@@ -1279,7 +969,6 @@ open_device(struct HardwareInfos *dev)
               dev->iface, strerror(errno));
       return 1;
     }
-  #endif
 
   return 0;
 }
@@ -1299,12 +988,7 @@ mac_set(struct GNUNET_TRANSPORT_WLAN_Ieee80211Frame *taIeeeHeader,
 {
   taIeeeHeader->frame_control = htons(IEEE80211_FC0_TYPE_DATA);
   taIeeeHeader->addr3 = mac_bssid_gnunet;
-
-  #ifdef MINGW
-  GNUNET_memcpy(&taIeeeHeader->addr2, &dev->pl_mac, sizeof(struct GNUNET_TRANSPORT_WLAN_MacAddress));
-  #else
   taIeeeHeader->addr2 = dev->pl_mac;
-  #endif
 }
 
 #ifdef LINUX

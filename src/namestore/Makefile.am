@@ -10,11 +10,6 @@ libexecdir= $(pkglibdir)/libexec/
 pkgcfg_DATA = \
    namestore.conf
 
-
-if MINGW
-  WINFLAGS = -Wl,--no-undefined -Wl,--export-all-symbols
-endif
-
 if USE_COVERAGE
   AM_CFLAGS = --coverage -O0
   XLIBS = -lgcov

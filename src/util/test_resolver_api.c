@@ -307,11 +307,8 @@ run(void *cls, char *const *args, const char *cfgfile,
 #if HAVE_SOCKADDR_IN_SIN_LEN
   sa.sin_len = (u_char)sizeof(sa);
 #endif
-#ifndef MINGW
   inet_aton(ROOTSERVER_IP, &sa.sin_addr);
-#else
-  sa.sin_addr.S_un.S_addr = inet_addr(ROOTSERVER_IP);
-#endif
+
   GNUNET_RESOLVER_hostname_get((const struct sockaddr *)&sa,
                                sizeof(struct sockaddr), GNUNET_YES, timeout,
                                &check_rootserver_name, cls);
