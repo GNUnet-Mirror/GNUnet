@@ -11,7 +11,7 @@
 #    WITHOUT ANY WARRANTY; without even the implied warranty of
 #    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
 #    Affero General Public License for more details.
-#   
+#
 #    You should have received a copy of the GNU Affero General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
@@ -31,24 +31,14 @@ import time
 import signal
 import terminate
 
-if os.name == 'nt':
-    from win32com.client import GetObject
-    WMI = GetObject('winmgmts:')
-
-
 def get_process_list():
     result = []
-    if os.name == 'nt':
-        processes = WMI.InstancesOf('Win32_Process')
-        for p in processes:
-            result.append((p.Properties_('ProcessId').Value, re.sub(r'(.+)\.exe', r'\1', p.Properties_('Name').Value)))
-    else:
-        pids = [pid for pid in os.listdir('/proc') if pid.isdigit()]
-        for pid in pids:
-            with open(os.path.join('/proc', pid, 'cmdline'), 'rb') as p:
-                cmdline = p.read().split('\x00')
-                if len(cmdline) > 0:
-                    result.append((pid, cmdline[0]))
+    pids = [pid for pid in os.listdir('/proc') if pid.isdigit()]
+    for pid in pids:
+        with open(os.path.join('/proc', pid, 'cmdline'), 'rb') as p:
+            cmdline = p.read().split('\x00')
+            if len(cmdline) > 0:
+                result.append((pid, cmdline[0]))
     return result
 
 
