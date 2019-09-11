@@ -62,8 +62,9 @@ AC_FUNC_FSEEKO
 
 
 CFLAGS="-Wall $CFLAGS"
+AC_MSG_CHECKING(whether cc can use -fno-strict-aliasing)
 # use '-fno-strict-aliasing', but only if the compiler can take it
-AS_IF([gcc -fno-strict-aliasing -S -o /dev/null -xc /dev/null >/dev/null 2>&1],
+AS_IF([$CC -fno-strict-aliasing -S -o /dev/null -xc /dev/null >/dev/null 2>&1],
  [CFLAGS="-fno-strict-aliasing $CFLAGS"])
 
 # A helper which allows us to check cflags if compiler
@@ -197,6 +198,7 @@ AC_SUBST(UNIXONLY)
 AC_MSG_CHECKING([for build target])
 AM_CONDITIONAL(DARWIN,  test "$build_target" = "darwin")
 AM_CONDITIONAL(SOLARIS, test "$build_target" = "solaris")
+AM_CONDITIONAL(XNETBSD, test "$build_target" = "netbsd")
 AM_CONDITIONAL(XFREEBSD, test "$build_target" = "freebsd")
 AM_CONDITIONAL(OPENBSD, test "$build_target" = "openbsd")
 AM_CONDITIONAL(LINUX, test "$build_target" = "linux")
@@ -318,8 +320,6 @@ AC_CHECK_MEMBER(struct tm.tm_gmtoff,
      [Define if struct tm has the tm_gmtoff member.])],
      ,
      [#include <time.h>])
-
-AC_CHECK_DECLS([_stati64])
 
 # 'save' libs; only those libs found so far will be
 # linked against _everywhere_.  For the others, we
@@ -593,8 +593,6 @@ AC_LANG_POP(C)
 # check for bluetooth library
 bluetooth=0
 CHECK_LIBHEADER(BLUETOOTH, bluetooth, ba2str, bluetooth/bluetooth.h,bluetooth=1,)
-AS_IF([test "$build_target" = "mingw"],
- [bluetooth=1])
 AM_CONDITIONAL(HAVE_LIBBLUETOOTH, [test "$bluetooth" = 1])
 AS_IF([test "$bluetooth" = 1],
  [AC_DEFINE([HAVE_LIBBLUETOOTH],[1],[Have bluetooth library])],
@@ -657,8 +655,6 @@ AS_IF([test "x$jansson" = x1],
 pulse=0
 libpulse_msg="no"
 CHECK_LIBHEADER(LIBPULSE, pulse, pa_stream_peek, pulse/simple.h,pulse=1,)
-AS_IF([test "$build_target" = "mingw"],
-      [pulse=0])
 AS_IF([test "$pulse" = 1],
       [AC_DEFINE([HAVE_PULSE],[1],[Have libpulse(audio) library])
        libpulse_msg="yes"])
@@ -1916,7 +1912,7 @@ AC_SUBST(features_msg)
 # TODO: reduce the length of the last message block ("the message")
 
 AC_MSG_NOTICE([
-GNUnet Configuration (incomplete!)
+GNUnet Configuration
 
 gnunet version:                 ${VERSION}
 
