@@ -153,6 +153,7 @@ AS_CASE(["$host_os"],
   [*netbsd*],[
      AC_DEFINE_UNQUOTED(SOMEBSD,1,[This is a BSD system])
      AC_DEFINE_UNQUOTED(NETBSD,1,[This is a NetBSD system])
+     build_target="netbsd"
      LIBPREFIX=
      DLLDIR=lib
      UNIXONLY="#"
