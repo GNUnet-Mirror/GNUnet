@@ -107,9 +107,9 @@ echo "+++ Starting to Resolve +++"
 DELS=`$DO_TIMEOUT gnunet-credential --collect --issuer=$EPUB_KEY --attribute=$DISC_ATTR --ego=alice --backward -c test_credential_lookup.conf | paste -d, -s`
 echo $DELS
 echo gnunet-credential --verify --issuer=$EPUB_KEY --attribute=$DISC_ATTR --subject=$ALICE_KEY --delegate=\'$DELS\' --backward -c test_credential_lookup.conf
-RES_DELS=`gnunet-credential --verify --issuer=$EPUB_KEY --attribute=$DISC_ATTR --subject=$ALICE_KEY --delegate="$DELS" --backward -c test_credential_lookup.conf`
+gnunet-credential --verify --issuer=$EPUB_KEY --attribute=$DISC_ATTR --subject=$ALICE_KEY --delegate="$DELS" --backward -c test_credential_lookup.conf
 
-
+RES=$?
 
 # Cleanup properly
 gnunet-namestore -z epub -d -n $DISC_ATTR -t ATTR -c test_credential_lookup.conf
@@ -123,13 +123,11 @@ gnunet-namestore -z stateu -d -n $STATE_STUD_ATTR -t ATTR -c test_credential_loo
 
 gnunet-arm -e -c test_credential_lookup.conf
 
-if [ "$RES_DELS" != "Failed." ]
+if [ $RES == 0 ]
 then
-  # TODO: replace echo -e bashism
-  echo -e "${RES_DELS}"
   exit 0
 else
-  echo "FAIL: Failed to verify credential $RES_DELS."
+  echo "FAIL: Failed to verify credential."
   exit 1
 fi
 

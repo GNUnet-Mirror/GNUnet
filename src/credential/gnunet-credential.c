@@ -76,6 +76,11 @@ static struct GNUNET_CREDENTIAL_Request *collect_request;
 static struct GNUNET_SCHEDULER_Task *tt;
 
 /**
+ * Return value of the commandline.
+ */
+static int ret = 0;
+
+/**
  * Subject pubkey string
  */
 static char *subject;
@@ -265,9 +270,18 @@ do_timeout (void *cls)
 
 static void
 handle_intermediate_result(void *cls,
-struct GNUNET_CREDENTIAL_Delegation *dd)
+  struct GNUNET_CREDENTIAL_Delegation *dd,
+  bool is_bw)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Intermediate result: %s.%s <- %s.%s\n",
+  char *prefix = "";
+  // TODO change to printf
+  if(is_bw)
+    prefix = "Backward -";
+  else
+    prefix = "Forward -";
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "%s Intermediate result: %s.%s <- %s.%s\n",
+      prefix,
       GNUNET_CRYPTO_ecdsa_public_key_to_string (&dd->issuer_key),
       dd->issuer_attribute,
       GNUNET_CRYPTO_ecdsa_public_key_to_string (&dd->subject_key),
@@ -316,7 +330,7 @@ handle_verify_result (void *cls,
 
   verify_request = NULL;
   if (NULL == dele)
-    printf ("Failed.\n");
+    ret = 1;
   else
   {
     printf ("Delegation Chain:\n");
@@ -1032,22 +1046,21 @@ main (int argc, char *const *argv)
          "Indicates that the collect/verify process is done via forward search."),
        &backward),
      GNUNET_GETOPT_OPTION_END};
-  int ret;
+
 
   timeout = GNUNET_TIME_UNIT_FOREVER_REL;
   if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv, &argc, &argv))
     return 2;
 
   GNUNET_log_setup ("gnunet-credential", "WARNING", NULL);
-  ret = (GNUNET_OK == GNUNET_PROGRAM_run (argc,
+  if (GNUNET_OK == GNUNET_PROGRAM_run (argc,
                                           argv,
                                           "gnunet-credential",
                                           _ ("GNUnet credential resolver tool"),
                                           options,
                                           &run,
                                           NULL))
-          ? 0
-          : 1;
+    ret = 1;
   GNUNET_free ((void *) argv);
   return ret;
 }

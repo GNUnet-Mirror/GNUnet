@@ -68,7 +68,9 @@ echo "+++ Starting to Resolve +++"
 DELS=`$DO_TIMEOUT gnunet-credential --collect --issuer=$AKEY --attribute="a" --ego=g --forward --backward -c test_credential_lookup.conf | paste -d, -s - -`
 echo $DELS
 echo gnunet-credential --verify --issuer=$AKEY --attribute="a" --subject=$GKEY --delegate=\'$DELS\' --forward --backward -c test_credential_lookup.conf
-RES_DELS=`gnunet-credential --verify --issuer=$AKEY --attribute="a" --subject=$GKEY --delegate="$DELS" --forward --backward -c test_credential_lookup.conf`
+gnunet-credential --verify --issuer=$AKEY --attribute="a" --subject=$GKEY --delegate="$DELS" --forward --backward -c test_credential_lookup.conf
+
+RES = $?
 
 # Cleanup properly
 gnunet-namestore -z a -d -n "a" -t ATTR -c test_credential_lookup.conf
@@ -80,13 +82,10 @@ gnunet-namestore -z g -d -n "@" -t DEL -c test_credential_lookup.conf
 
 gnunet-arm -e -c test_credential_lookup.conf
 
-if [ "$RES_DELS" != "Failed." ]
+if [ $RES == 0 ]
 then
-  # TODO: replace echo -e bashism
-  echo -e "${RES_DELS}"
   exit 0
 else
-  echo "FAIL: Failed to verify credential $RES_DELS."
+  echo "FAIL: Failed to verify credential."
   exit 1
 fi
-

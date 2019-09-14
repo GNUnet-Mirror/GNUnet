@@ -270,12 +270,15 @@ handle_intermediate (void *cls, const struct DelegationChainIntermediateMessage 
   struct GNUNET_CREDENTIAL_Handle *handle = cls;
   uint32_t r_id = ntohl (vr_msg->id);
   uint32_t size = ntohl (vr_msg->size);
+  bool is_bw = ntohs(vr_msg->is_bw);
   struct GNUNET_CREDENTIAL_Request *vr;
   GNUNET_CREDENTIAL_IntermediateResultProcessor proc;
   void *proc_cls;
   struct GNUNET_CREDENTIAL_Delegation *dd;
 
+
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Received intermediate reply from CREDENTIAL service\n");
+
   for (vr = handle->request_head; NULL != vr; vr = vr->next)
     if (vr->r_id == r_id)
       break;
@@ -294,8 +297,8 @@ handle_intermediate (void *cls, const struct DelegationChainIntermediateMessage 
                                                     dd,
                                                     0,
                                                     NULL));
-
-  proc (proc_cls, dd);
+  sleep(2);
+  proc (proc_cls, dd, is_bw);
 }
 
 

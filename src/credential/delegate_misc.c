@@ -151,7 +151,7 @@ GNUNET_CREDENTIAL_delegate_from_string (const char *s)
   GNUNET_assert (sizeof (struct GNUNET_CRYPTO_EcdsaSignature) ==
                  GNUNET_STRINGS_base64_decode (signature,
                                                strlen (signature),
-                                               (char **) &sig));
+                                               (void **) &sig));
   dele->signature = *sig;
   dele->expiration = etime_abs;
   GNUNET_free (sig);

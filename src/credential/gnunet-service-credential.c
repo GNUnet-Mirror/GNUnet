@@ -247,6 +247,10 @@ struct DelegationSetQueueEntry
 struct VerifyRequestHandle
 {
   /**
+   * True if created by a collect request.
+   */
+  bool is_collect;
+  /**
    * We keep these in a DLL.
    */
   struct VerifyRequestHandle *next;
@@ -480,11 +484,15 @@ shutdown_task (void *cls)
 }
 
 static void
-send_intermediate_response(struct VerifyRequestHandle *vrh, struct DelegationChainEntry *ch_entry){
+send_intermediate_response(struct VerifyRequestHandle *vrh, struct DelegationChainEntry *ch_entry, bool is_bw){
   struct DelegationChainIntermediateMessage *rmsg;
   struct GNUNET_MQ_Envelope *env;
   struct GNUNET_CREDENTIAL_Delegation *dd;
   size_t size;
+
+  // Don't report immediate results during collect
+  if(vrh->is_collect)
+    return;
 
   dd = GNUNET_new (struct GNUNET_CREDENTIAL_Delegation);
   dd->issuer_key = ch_entry->issuer_key;
@@ -510,6 +518,7 @@ send_intermediate_response(struct VerifyRequestHandle *vrh, struct DelegationCha
                              GNUNET_MESSAGE_TYPE_CREDENTIAL_INTERMEDIATE_RESULT);
   // Assign id so that client can find associated request
   rmsg->id = vrh->request_id;
+  rmsg->is_bw = htons(is_bw);
   rmsg->size = htonl(size);
 
   GNUNET_assert (
@@ -864,7 +873,7 @@ forward_resolution (void *cls,
       GNUNET_strdup (del->issuer_attribute);
     
     // Found new entry, repoting intermediate result
-    send_intermediate_response(vrh, ds_entry->delegation_chain_entry);
+    send_intermediate_response(vrh, ds_entry->delegation_chain_entry, false);
 
     // current delegation as parent
     ds_entry->parent_queue_entry = dq_entry;
@@ -1080,7 +1089,7 @@ backward_resolution (void *cls,
         GNUNET_strdup (current_set->lookup_attribute);
 
       // Found new entry, repoting intermediate result
-      send_intermediate_response(vrh, ds_entry->delegation_chain_entry);
+      send_intermediate_response(vrh, ds_entry->delegation_chain_entry, true);
 
       ds_entry->parent_queue_entry = dq_entry; // current_delegation;
 
@@ -1208,7 +1217,7 @@ backward_resolution (void *cls,
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                     "%s still to go...\n",
                     ds_entry->attr_trailer);
-
+      // TODO remove
       vrh->pending_lookups++;
       ds_entry->handle = vrh;
       ds_entry->lookup_request =
@@ -1449,6 +1458,7 @@ handle_verify (void *cls, const struct VerifyMessage *v_msg)
   GNUNET_memcpy (issuer_attribute, attr, ntohs (v_msg->issuer_attribute_len));
   issuer_attribute[ntohs (v_msg->issuer_attribute_len)] = '\0';
   vrh = GNUNET_new (struct VerifyRequestHandle);
+  vrh->is_collect = false;
   GNUNET_CONTAINER_DLL_insert (vrh_head, vrh_tail, vrh);
   vrh->client = client;
   vrh->request_id = v_msg->id;
@@ -1623,6 +1633,7 @@ handle_collect (void *cls, const struct CollectMessage *c_msg)
   GNUNET_memcpy (issuer_attribute, attr, ntohs (c_msg->issuer_attribute_len));
   issuer_attribute[ntohs (c_msg->issuer_attribute_len)] = '\0';
   vrh = GNUNET_new (struct VerifyRequestHandle);
+  vrh->is_collect = true;
   GNUNET_CONTAINER_DLL_insert (vrh_head, vrh_tail, vrh);
   vrh->client = client;
   vrh->request_id = c_msg->id;

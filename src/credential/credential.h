@@ -160,6 +160,8 @@ struct DelegationChainIntermediateMessage
    */
   uint32_t id GNUNET_PACKED;
 
+  uint16_t is_bw GNUNET_PACKED;
+
   uint32_t size GNUNET_PACKED;
 };
 

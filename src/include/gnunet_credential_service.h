@@ -262,7 +262,8 @@ typedef void (*GNUNET_CREDENTIAL_CredentialResultProcessor) (void *cls,
                                                          struct GNUNET_CREDENTIAL_Delegate *delegte);
                                                         
 typedef void (*GNUNET_CREDENTIAL_IntermediateResultProcessor) (void *cls,
-                                                         struct GNUNET_CREDENTIAL_Delegation *delegation);
+                                                         struct GNUNET_CREDENTIAL_Delegation *delegation,
+                                                         bool is_bw);
 
 /**
  * Iterator called on obtained result for an attribute delegation.

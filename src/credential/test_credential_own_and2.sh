@@ -51,7 +51,6 @@ gnunet-namestore -D -z b
 
 SIGNED=`$DO_TIMEOUT gnunet-credential --signSubjectSide --ego=g --attribute="g" --subject="$FKEY" --ttl="2019-12-12 10:00:00"`
 gnunet-credential --createSubjectSide --ego=f --import "$SIGNED" --private
-gnunet-namestore -D -z h
 SIGNED=`$DO_TIMEOUT gnunet-credential --signSubjectSide --ego=c --attribute="c" --subject="$FKEY" --ttl="2019-12-12 10:00:00"`
 gnunet-credential --createSubjectSide --ego=f --import "$SIGNED" --private
 gnunet-namestore -D -z f
@@ -62,27 +61,22 @@ echo "+++ Starting to Resolve +++"
 DELS=`$DO_TIMEOUT gnunet-credential --collect --issuer=$AKEY --attribute="a" --ego=f --backward -c test_credential_lookup.conf | paste -d, -s`
 echo $DELS
 echo gnunet-credential --verify --issuer=$AKEY --attribute="a" --subject=$FKEY --delegate=\'$DELS\'  --backward -c test_credential_lookup.conf
-RES_DELS=`gnunet-credential --verify --issuer=$AKEY --attribute="a" --subject=$FKEY --delegate="$DELS"  --backward -c test_credential_lookup.conf`
+gnunet-credential --verify --issuer=$AKEY --attribute="a" --subject=$FKEY --delegate="$DELS"  --backward -c test_credential_lookup.conf
+
+RES = $?
 
 # Cleanup properly
-gnunet-namestore -z epub -d -n $DISC_ATTR -t ATTR -c test_credential_lookup.conf
-gnunet-namestore -z eorg -d -n $PREF_ATTR -t ATTR -c test_credential_lookup.conf
-gnunet-namestore -z stateu -d -n $STATE_STUD_ATTR -t ATTR -c test_credential_lookup.conf
-#gnunet-namestore -z a -d -n $STATE_STUD_ATTR -t ATTR -c test_credential_lookup.conf
-#gnunet-namestore -z d -d -n $STATE_STUD_ATTR -t ATTR -c test_credential_lookup.conf
-#gnunet-namestore -z e -d -n $STATE_STUD_ATTR -t ATTR -c test_credential_lookup.conf
-#gnunet-namestore -z f -d -n $STATE_STUD_ATTR -t ATTR -c test_credential_lookup.conf
-#gnunet-namestore -z g -d -n $STATE_STUD_ATTR -t ATTR -c test_credential_lookup.conf
+gnunet-namestore -z a -d -n "a" -t ATTR -c test_credential_lookup.conf
+gnunet-namestore -z b -d -n "b" -t ATTR -c test_credential_lookup.conf
+gnunet-namestore -z f -d -n "@" -t DEL -c test_credential_lookup.conf
 
 gnunet-arm -e -c test_credential_lookup.conf
 
-if [ "$RES_DELS" != "Failed." ]
+if [ $RES == 0 ]
 then
-  # TODO: replace echo -e bashism
-  echo -e "${RES_DELS}"
   exit 0
 else
-  echo "FAIL: Failed to verify credential $RES_DELS."
+  echo "FAIL: Failed to verify credential."
   exit 1
 fi
 
