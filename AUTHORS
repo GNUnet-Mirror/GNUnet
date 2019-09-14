@@ -3,7 +3,7 @@ Homepage: https://gnunet.org/
 Maintainer: Christian Grothoff <christian@grothoff.org>
 Bug reports: https://bugs.gnunet.org
 Security related bug reports: security@gnunet.org
-License: some GPLv2+, mostly AGPLv3+
+License: mostly AGPLv3+, some (GPL3+,MIT/X11,LGPL3+,Public Domain,BSD-3)
 
 Primary developers (0.9.x series):
 Alejandra Morales
