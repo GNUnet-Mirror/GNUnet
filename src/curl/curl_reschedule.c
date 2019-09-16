@@ -144,7 +144,6 @@ context_task (void *cls)
   struct GNUNET_TIME_Relative delay;
 
   rc->task = NULL;
-
   GNUNET_CURL_perform2 (rc->ctx, rc->parser, rc->cleaner);
   max_fd = -1;
   timeout = -1;
