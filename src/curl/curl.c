@@ -40,23 +40,23 @@
  * @param code what was the curl error code
  */
 #define CURL_STRERROR(type, function, code)                                \
-  GNUNET_log(type,                                                        \
-             "Curl function `%s' has failed at `%s:%d' with error: %s\n", \
-             function,                                                    \
-             __FILE__,                                                    \
-             __LINE__,                                                    \
-             curl_easy_strerror(code));
+  GNUNET_log (type,                                                        \
+              "Curl function `%s' has failed at `%s:%d' with error: %s\n", \
+              function,                                                    \
+              __FILE__,                                                    \
+              __LINE__,                                                    \
+              curl_easy_strerror (code));
 
 /**
  * Print JSON parsing related error information
  */
 #define JSON_WARN(error)                                 \
-  GNUNET_log(GNUNET_ERROR_TYPE_WARNING,                 \
-             "JSON parsing failed at %s:%u: %s (%s)\n", \
-             __FILE__,                                  \
-             __LINE__,                                  \
-             error.text,                                \
-             error.source)
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,                 \
+              "JSON parsing failed at %s:%u: %s (%s)\n", \
+              __FILE__,                                  \
+              __LINE__,                                  \
+              error.text,                                \
+              error.source)
 
 
 /**
@@ -68,7 +68,8 @@ static int curl_fail;
 /**
  * Jobs are CURL requests running within a `struct GNUNET_CURL_Context`.
  */
-struct GNUNET_CURL_Job {
+struct GNUNET_CURL_Job
+{
   /**
    * We keep jobs in a DLL.
    */
@@ -115,7 +116,8 @@ struct GNUNET_CURL_Job {
 /**
  * Context
  */
-struct GNUNET_CURL_Context {
+struct GNUNET_CURL_Context
+{
   /**
    * Curl multi handle
    */
@@ -169,30 +171,30 @@ struct GNUNET_CURL_Context {
  * @return library context
  */
 struct GNUNET_CURL_Context *
-GNUNET_CURL_init(GNUNET_CURL_RescheduleCallback cb, void *cb_cls)
+GNUNET_CURL_init (GNUNET_CURL_RescheduleCallback cb, void *cb_cls)
 {
   struct GNUNET_CURL_Context *ctx;
   CURLM *multi;
   CURLSH *share;
 
   if (curl_fail)
-    {
-      GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Curl was not initialised properly\n");
-      return NULL;
-    }
-  if (NULL == (multi = curl_multi_init()))
-    {
-      GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
-                 "Failed to create a Curl multi handle\n");
-      return NULL;
-    }
-  if (NULL == (share = curl_share_init()))
-    {
-      GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
-                 "Failed to create a Curl share handle\n");
-      return NULL;
-    }
-  ctx = GNUNET_new(struct GNUNET_CURL_Context);
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Curl was not initialised properly\n");
+    return NULL;
+  }
+  if (NULL == (multi = curl_multi_init ()))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Failed to create a Curl multi handle\n");
+    return NULL;
+  }
+  if (NULL == (share = curl_share_init ()))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Failed to create a Curl share handle\n");
+    return NULL;
+  }
+  ctx = GNUNET_new (struct GNUNET_CURL_Context);
   ctx->cb = cb;
   ctx->cb_cls = cb_cls;
   ctx->multi = multi;
@@ -208,8 +210,8 @@ GNUNET_CURL_init(GNUNET_CURL_RescheduleCallback cb, void *cb_cls)
  * @param header_name name of the header to send.
  */
 void
-GNUNET_CURL_enable_async_scope_header(struct GNUNET_CURL_Context *ctx,
-                                      const char *header_name)
+GNUNET_CURL_enable_async_scope_header (struct GNUNET_CURL_Context *ctx,
+                                       const char *header_name)
 {
   ctx->async_scope_id_header = header_name;
 }
@@ -229,26 +231,26 @@ GNUNET_CURL_enable_async_scope_header(struct GNUNET_CURL_Context *ctx,
  * @return number of bytes processed from @a bufptr
  */
 static size_t
-download_cb(char *bufptr, size_t size, size_t nitems, void *cls)
+download_cb (char *bufptr, size_t size, size_t nitems, void *cls)
 {
   struct GNUNET_CURL_DownloadBuffer *db = cls;
   size_t msize;
   void *buf;
 
   if (0 == size * nitems)
-    {
-      /* Nothing (left) to do */
-      return 0;
-    }
+  {
+    /* Nothing (left) to do */
+    return 0;
+  }
   msize = size * nitems;
   if ((msize + db->buf_size) >= GNUNET_MAX_MALLOC_CHECKED)
-    {
-      db->eno = ENOMEM;
-      return 0; /* signals an error to curl */
-    }
-  db->buf = GNUNET_realloc(db->buf, db->buf_size + msize);
+  {
+    db->eno = ENOMEM;
+    return 0;   /* signals an error to curl */
+  }
+  db->buf = GNUNET_realloc (db->buf, db->buf_size + msize);
   buf = db->buf + db->buf_size;
-  GNUNET_memcpy(buf, bufptr, msize);
+  GNUNET_memcpy (buf, bufptr, msize);
   db->buf_size += msize;
   return msize;
 }
@@ -274,77 +276,77 @@ download_cb(char *bufptr, size_t size, size_t nitems, void *cls)
  * @return NULL on error (in this case, @eh is still released!)
  */
 struct GNUNET_CURL_Job *
-GNUNET_CURL_job_add2(struct GNUNET_CURL_Context *ctx,
-                     CURL *eh,
-                     const struct curl_slist *job_headers,
-                     GNUNET_CURL_JobCompletionCallback jcc,
-                     void *jcc_cls)
+GNUNET_CURL_job_add2 (struct GNUNET_CURL_Context *ctx,
+                      CURL *eh,
+                      const struct curl_slist *job_headers,
+                      GNUNET_CURL_JobCompletionCallback jcc,
+                      void *jcc_cls)
 {
   struct GNUNET_CURL_Job *job;
   struct curl_slist *all_headers = NULL;
 
   for (const struct curl_slist *curr = job_headers; curr != NULL;
        curr = curr->next)
-    {
-      GNUNET_assert(NULL !=
-                    (all_headers = curl_slist_append(all_headers, curr->data)));
-    }
+  {
+    GNUNET_assert (NULL !=
+                   (all_headers = curl_slist_append (all_headers, curr->data)));
+  }
 
   for (const struct curl_slist *curr = ctx->common_headers; curr != NULL;
        curr = curr->next)
-    {
-      GNUNET_assert(NULL !=
-                    (all_headers = curl_slist_append(all_headers, curr->data)));
-    }
+  {
+    GNUNET_assert (NULL !=
+                   (all_headers = curl_slist_append (all_headers, curr->data)));
+  }
 
   if (NULL != ctx->async_scope_id_header)
+  {
+    struct GNUNET_AsyncScopeSave scope;
+
+    GNUNET_async_scope_get (&scope);
+    if (GNUNET_YES == scope.have_scope)
     {
-      struct GNUNET_AsyncScopeSave scope;
-
-      GNUNET_async_scope_get(&scope);
-      if (GNUNET_YES == scope.have_scope)
-        {
-          char *aid_header = NULL;
-          aid_header =
-            GNUNET_STRINGS_data_to_string_alloc(&scope.scope_id,
-                                                sizeof(
-                                                  struct GNUNET_AsyncScopeId));
-          GNUNET_assert(NULL != aid_header);
-          GNUNET_assert(NULL != curl_slist_append(all_headers, aid_header));
-          GNUNET_free(aid_header);
-        }
+      char *aid_header = NULL;
+      aid_header =
+        GNUNET_STRINGS_data_to_string_alloc (&scope.scope_id,
+                                             sizeof(
+                                               struct GNUNET_AsyncScopeId));
+      GNUNET_assert (NULL != aid_header);
+      GNUNET_assert (NULL != curl_slist_append (all_headers, aid_header));
+      GNUNET_free (aid_header);
     }
+  }
 
-  if (CURLE_OK != curl_easy_setopt(eh, CURLOPT_HTTPHEADER, all_headers))
-    {
-      GNUNET_break(0);
-      curl_slist_free_all(all_headers);
-      curl_easy_cleanup(eh);
-      return NULL;
-    }
+  if (CURLE_OK != curl_easy_setopt (eh, CURLOPT_HTTPHEADER, all_headers))
+  {
+    GNUNET_break (0);
+    curl_slist_free_all (all_headers);
+    curl_easy_cleanup (eh);
+    return NULL;
+  }
 
-  job = GNUNET_new(struct GNUNET_CURL_Job);
+  job = GNUNET_new (struct GNUNET_CURL_Job);
   job->job_headers = all_headers;
 
-  if ((CURLE_OK != curl_easy_setopt(eh, CURLOPT_PRIVATE, job)) ||
+  if ((CURLE_OK != curl_easy_setopt (eh, CURLOPT_PRIVATE, job)) ||
       (CURLE_OK !=
-       curl_easy_setopt(eh, CURLOPT_WRITEFUNCTION, &download_cb)) ||
-      (CURLE_OK != curl_easy_setopt(eh, CURLOPT_WRITEDATA, &job->db)) ||
-      (CURLE_OK != curl_easy_setopt(eh, CURLOPT_SHARE, ctx->share)) ||
-      (CURLM_OK != curl_multi_add_handle(ctx->multi, eh)))
-    {
-      GNUNET_break(0);
-      GNUNET_free(job);
-      curl_easy_cleanup(eh);
-      return NULL;
-    }
+       curl_easy_setopt (eh, CURLOPT_WRITEFUNCTION, &download_cb)) ||
+      (CURLE_OK != curl_easy_setopt (eh, CURLOPT_WRITEDATA, &job->db)) ||
+      (CURLE_OK != curl_easy_setopt (eh, CURLOPT_SHARE, ctx->share)) ||
+      (CURLM_OK != curl_multi_add_handle (ctx->multi, eh)))
+  {
+    GNUNET_break (0);
+    GNUNET_free (job);
+    curl_easy_cleanup (eh);
+    return NULL;
+  }
 
   job->easy_handle = eh;
   job->ctx = ctx;
   job->jcc = jcc;
   job->jcc_cls = jcc_cls;
-  GNUNET_CONTAINER_DLL_insert(ctx->jobs_head, ctx->jobs_tail, job);
-  ctx->cb(ctx->cb_cls);
+  GNUNET_CONTAINER_DLL_insert (ctx->jobs_head, ctx->jobs_tail, job);
+  ctx->cb (ctx->cb_cls);
   return job;
 }
 
@@ -366,24 +368,24 @@ GNUNET_CURL_job_add2(struct GNUNET_CURL_Context *ctx,
  * @return NULL on error (in this case, @eh is still released!)
  */
 struct GNUNET_CURL_Job *
-GNUNET_CURL_job_add(struct GNUNET_CURL_Context *ctx,
-                    CURL *eh,
-                    int add_json,
-                    GNUNET_CURL_JobCompletionCallback jcc,
-                    void *jcc_cls)
+GNUNET_CURL_job_add (struct GNUNET_CURL_Context *ctx,
+                     CURL *eh,
+                     int add_json,
+                     GNUNET_CURL_JobCompletionCallback jcc,
+                     void *jcc_cls)
 {
   struct GNUNET_CURL_Job *job;
   struct curl_slist *job_headers = NULL;
 
   if (GNUNET_YES == add_json)
-    {
-      GNUNET_assert(
-        NULL != (job_headers =
-                   curl_slist_append(NULL, "Content-Type: application/json")));
-    }
+  {
+    GNUNET_assert (
+      NULL != (job_headers =
+                 curl_slist_append (NULL, "Content-Type: application/json")));
+  }
 
-  job = GNUNET_CURL_job_add2(ctx, eh, job_headers, jcc, jcc_cls);
-  curl_slist_free_all(job_headers);
+  job = GNUNET_CURL_job_add2 (ctx, eh, job_headers, jcc, jcc_cls);
+  curl_slist_free_all (job_headers);
   return job;
 }
 
@@ -395,17 +397,17 @@ GNUNET_CURL_job_add(struct GNUNET_CURL_Context *ctx,
  * @param job job to cancel
  */
 void
-GNUNET_CURL_job_cancel(struct GNUNET_CURL_Job *job)
+GNUNET_CURL_job_cancel (struct GNUNET_CURL_Job *job)
 {
   struct GNUNET_CURL_Context *ctx = job->ctx;
 
-  GNUNET_CONTAINER_DLL_remove(ctx->jobs_head, ctx->jobs_tail, job);
-  GNUNET_break(CURLM_OK ==
-               curl_multi_remove_handle(ctx->multi, job->easy_handle));
-  curl_easy_cleanup(job->easy_handle);
-  GNUNET_free_non_null(job->db.buf);
-  curl_slist_free_all(job->job_headers);
-  GNUNET_free(job);
+  GNUNET_CONTAINER_DLL_remove (ctx->jobs_head, ctx->jobs_tail, job);
+  GNUNET_break (CURLM_OK ==
+                curl_multi_remove_handle (ctx->multi, job->easy_handle));
+  curl_easy_cleanup (job->easy_handle);
+  GNUNET_free_non_null (job->db.buf);
+  curl_slist_free_all (job->job_headers);
+  GNUNET_free (job);
 }
 
 
@@ -428,62 +430,62 @@ GNUNET_CURL_job_cancel(struct GNUNET_CURL_Job *job)
  * @return NULL if downloading a JSON reply failed.
  */
 void *
-GNUNET_CURL_download_get_result_(struct GNUNET_CURL_DownloadBuffer *db,
-                                 CURL *eh,
-                                 long *response_code)
+GNUNET_CURL_download_get_result_ (struct GNUNET_CURL_DownloadBuffer *db,
+                                  CURL *eh,
+                                  long *response_code)
 {
   json_t *json;
   json_error_t error;
   char *ct;
 
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-             "Downloaded body: %.*s\n",
-             (int)db->buf_size,
-             (char *)db->buf);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Downloaded body: %.*s\n",
+              (int) db->buf_size,
+              (char *) db->buf);
 
-  if ((CURLE_OK != curl_easy_getinfo(eh, CURLINFO_CONTENT_TYPE, &ct)) ||
-      (NULL == ct) || (0 != strcasecmp(ct, "application/json")))
+  if ((CURLE_OK != curl_easy_getinfo (eh, CURLINFO_CONTENT_TYPE, &ct)) ||
+      (NULL == ct) || (0 != strcasecmp (ct, "application/json")))
+  {
+    /* No content type or explicitly not JSON, refuse to parse
+       (but keep response code) */
+    if (CURLE_OK !=
+        curl_easy_getinfo (eh, CURLINFO_RESPONSE_CODE, response_code))
     {
-      /* No content type or explicitly not JSON, refuse to parse
-         (but keep response code) */
-      if (CURLE_OK !=
-          curl_easy_getinfo(eh, CURLINFO_RESPONSE_CODE, response_code))
-        {
-          /* unexpected error... */
-          GNUNET_break(0);
-          *response_code = 0;
-        }
-      if (0 != db->buf_size)
-        GNUNET_log(GNUNET_ERROR_TYPE_WARNING,
-                   "Did NOT detect response as JSON\n");
-      return NULL;
+      /* unexpected error... */
+      GNUNET_break (0);
+      *response_code = 0;
     }
+    if (0 != db->buf_size)
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                  "Did NOT detect response as JSON\n");
+    return NULL;
+  }
   json = NULL;
   if (0 == db->eno)
+  {
+    json = json_loadb (db->buf,
+                       db->buf_size,
+                       JSON_REJECT_DUPLICATES | JSON_DISABLE_EOF_CHECK,
+                       &error);
+    if (NULL == json)
     {
-      json = json_loadb(db->buf,
-                        db->buf_size,
-                        JSON_REJECT_DUPLICATES | JSON_DISABLE_EOF_CHECK,
-                        &error);
-      if (NULL == json)
-        {
-          JSON_WARN(error);
-          *response_code = 0;
-        }
+      JSON_WARN (error);
+      *response_code = 0;
     }
-  GNUNET_free_non_null(db->buf);
+  }
+  GNUNET_free_non_null (db->buf);
   db->buf = NULL;
   db->buf_size = 0;
   if (NULL != json)
+  {
+    if (CURLE_OK !=
+        curl_easy_getinfo (eh, CURLINFO_RESPONSE_CODE, response_code))
     {
-      if (CURLE_OK !=
-          curl_easy_getinfo(eh, CURLINFO_RESPONSE_CODE, response_code))
-        {
-          /* unexpected error... */
-          GNUNET_break(0);
-          *response_code = 0;
-        }
+      /* unexpected error... */
+      GNUNET_break (0);
+      *response_code = 0;
     }
+  }
   return json;
 }
 
@@ -496,9 +498,9 @@ GNUNET_CURL_download_get_result_(struct GNUNET_CURL_DownloadBuffer *db,
  * @return #GNUNET_OK if no errors occurred, #GNUNET_SYSERR otherwise.
  */
 int
-GNUNET_CURL_append_header(struct GNUNET_CURL_Context *ctx, const char *header)
+GNUNET_CURL_append_header (struct GNUNET_CURL_Context *ctx, const char *header)
 {
-  ctx->common_headers = curl_slist_append(ctx->common_headers, header);
+  ctx->common_headers = curl_slist_append (ctx->common_headers, header);
   if (NULL == ctx->common_headers)
     return GNUNET_SYSERR;
 
@@ -515,98 +517,98 @@ GNUNET_CURL_append_header(struct GNUNET_CURL_Context *ctx, const char *header)
  * @param rc cleans/frees the response
  */
 void
-GNUNET_CURL_perform2(struct GNUNET_CURL_Context *ctx,
-                     GNUNET_CURL_RawParser rp,
-                     GNUNET_CURL_ResponseCleaner rc)
+GNUNET_CURL_perform2 (struct GNUNET_CURL_Context *ctx,
+                      GNUNET_CURL_RawParser rp,
+                      GNUNET_CURL_ResponseCleaner rc)
 {
   CURLMsg *cmsg;
   int n_running;
   int n_completed;
 
-  (void)curl_multi_perform(ctx->multi, &n_running);
-  while (NULL != (cmsg = curl_multi_info_read(ctx->multi, &n_completed)))
-    {
-      struct GNUNET_CURL_Job *job;
-      long response_code;
-      void *response;
+  (void) curl_multi_perform (ctx->multi, &n_running);
+  while (NULL != (cmsg = curl_multi_info_read (ctx->multi, &n_completed)))
+  {
+    struct GNUNET_CURL_Job *job;
+    long response_code;
+    void *response;
 
-      /* Only documented return value is CURLMSG_DONE */
-      GNUNET_break(CURLMSG_DONE == cmsg->msg);
-      GNUNET_assert(CURLE_OK == curl_easy_getinfo(cmsg->easy_handle,
+    /* Only documented return value is CURLMSG_DONE */
+    GNUNET_break (CURLMSG_DONE == cmsg->msg);
+    GNUNET_assert (CURLE_OK == curl_easy_getinfo (cmsg->easy_handle,
                                                   CURLINFO_PRIVATE,
-                                                  (char **)&job));
-      GNUNET_assert(job->ctx == ctx);
-      response_code = 0;
-      response = rp(&job->db, job->easy_handle, &response_code);
+                                                  (char **) &job));
+    GNUNET_assert (job->ctx == ctx);
+    response_code = 0;
+    response = rp (&job->db, job->easy_handle, &response_code);
 #if ENABLE_BENCHMARK
-      {
-        char *url = NULL;
-        double total_as_double = 0;
-        struct GNUNET_TIME_Relative total;
-        struct UrlRequestData *urd;
-        /* Some care required, as curl is using data types (long vs curl_off_t vs
-         * double) inconsistently to store byte count. */
-        curl_off_t size_curl = 0;
-        long size_long = 0;
-        uint64_t bytes_sent = 0;
-        uint64_t bytes_received = 0;
+    {
+      char *url = NULL;
+      double total_as_double = 0;
+      struct GNUNET_TIME_Relative total;
+      struct UrlRequestData *urd;
+      /* Some care required, as curl is using data types (long vs curl_off_t vs
+       * double) inconsistently to store byte count. */
+      curl_off_t size_curl = 0;
+      long size_long = 0;
+      uint64_t bytes_sent = 0;
+      uint64_t bytes_received = 0;
 
-        GNUNET_break(CURLE_OK == curl_easy_getinfo(cmsg->easy_handle,
+      GNUNET_break (CURLE_OK == curl_easy_getinfo (cmsg->easy_handle,
                                                    CURLINFO_TOTAL_TIME,
                                                    &total_as_double));
-        total.rel_value_us = total_as_double * 1000 * 1000;
+      total.rel_value_us = total_as_double * 1000 * 1000;
 
-        GNUNET_break(CURLE_OK == curl_easy_getinfo(cmsg->easy_handle,
+      GNUNET_break (CURLE_OK == curl_easy_getinfo (cmsg->easy_handle,
                                                    CURLINFO_EFFECTIVE_URL,
                                                    &url));
 
-        /* HEADER_SIZE + SIZE_DOWNLOAD_T is hopefully the total
-           number of bytes received, not clear from curl docs. */
+      /* HEADER_SIZE + SIZE_DOWNLOAD_T is hopefully the total
+         number of bytes received, not clear from curl docs. */
 
-        GNUNET_break(CURLE_OK == curl_easy_getinfo(cmsg->easy_handle,
+      GNUNET_break (CURLE_OK == curl_easy_getinfo (cmsg->easy_handle,
                                                    CURLINFO_HEADER_SIZE,
                                                    &size_long));
-        bytes_received += size_long;
+      bytes_received += size_long;
 
-        GNUNET_break(CURLE_OK == curl_easy_getinfo(cmsg->easy_handle,
+      GNUNET_break (CURLE_OK == curl_easy_getinfo (cmsg->easy_handle,
                                                    CURLINFO_SIZE_DOWNLOAD_T,
                                                    &size_curl));
-        bytes_received += size_curl;
+      bytes_received += size_curl;
 
-        /* REQUEST_SIZE + SIZE_UPLOAD_T is hopefully the total number of bytes
-           sent, again docs are not completely clear. */
+      /* REQUEST_SIZE + SIZE_UPLOAD_T is hopefully the total number of bytes
+         sent, again docs are not completely clear. */
 
-        GNUNET_break(CURLE_OK == curl_easy_getinfo(cmsg->easy_handle,
+      GNUNET_break (CURLE_OK == curl_easy_getinfo (cmsg->easy_handle,
                                                    CURLINFO_REQUEST_SIZE,
                                                    &size_long));
-        bytes_sent += size_long;
+      bytes_sent += size_long;
 
-        /* We obtain this value to check an invariant, but never use it otherwise. */
-        GNUNET_break(CURLE_OK == curl_easy_getinfo(cmsg->easy_handle,
+      /* We obtain this value to check an invariant, but never use it otherwise. */
+      GNUNET_break (CURLE_OK == curl_easy_getinfo (cmsg->easy_handle,
                                                    CURLINFO_SIZE_UPLOAD_T,
                                                    &size_curl));
 
-        /* CURLINFO_SIZE_UPLOAD_T <= CURLINFO_REQUEST_SIZE should
-           be an invariant.
-           As verified with
-           curl -w "foo%{size_request} -XPOST --data "ABC" $URL
-           the CURLINFO_REQUEST_SIZE should be the whole size of the request
-           including headers and body.
-         */
-        GNUNET_break(size_curl <= size_long);
+      /* CURLINFO_SIZE_UPLOAD_T <= CURLINFO_REQUEST_SIZE should
+         be an invariant.
+         As verified with
+         curl -w "foo%{size_request} -XPOST --data "ABC" $URL
+         the CURLINFO_REQUEST_SIZE should be the whole size of the request
+         including headers and body.
+       */
+      GNUNET_break (size_curl <= size_long);
 
-        urd = get_url_benchmark_data(url, (unsigned int)response_code);
-        urd->count++;
-        urd->time = GNUNET_TIME_relative_add(urd->time, total);
-        urd->time_max = GNUNET_TIME_relative_max(total, urd->time_max);
-        urd->bytes_sent += bytes_sent;
-        urd->bytes_received += bytes_received;
-      }
-#endif
-      job->jcc(job->jcc_cls, response_code, response);
-      rc(response);
-      GNUNET_CURL_job_cancel(job);
+      urd = get_url_benchmark_data (url, (unsigned int) response_code);
+      urd->count++;
+      urd->time = GNUNET_TIME_relative_add (urd->time, total);
+      urd->time_max = GNUNET_TIME_relative_max (total, urd->time_max);
+      urd->bytes_sent += bytes_sent;
+      urd->bytes_received += bytes_received;
     }
+#endif
+    job->jcc (job->jcc_cls, response_code, response);
+    rc (response);
+    GNUNET_CURL_job_cancel (job);
+  }
 }
 
 
@@ -616,11 +618,11 @@ GNUNET_CURL_perform2(struct GNUNET_CURL_Context *ctx,
  * @param ctx the library context
  */
 void
-GNUNET_CURL_perform(struct GNUNET_CURL_Context *ctx)
+GNUNET_CURL_perform (struct GNUNET_CURL_Context *ctx)
 {
-  GNUNET_CURL_perform2(ctx,
-                       &GNUNET_CURL_download_get_result_,
-                       (GNUNET_CURL_ResponseCleaner) & json_decref);
+  GNUNET_CURL_perform2 (ctx,
+                        &GNUNET_CURL_download_get_result_,
+                        (GNUNET_CURL_ResponseCleaner) & json_decref);
 }
 
 
@@ -653,25 +655,25 @@ GNUNET_CURL_perform(struct GNUNET_CURL_Context *ctx)
  *        proceed immediately with #GNUNET_CURL_perform().
  */
 void
-GNUNET_CURL_get_select_info(struct GNUNET_CURL_Context *ctx,
-                            fd_set *read_fd_set,
-                            fd_set *write_fd_set,
-                            fd_set *except_fd_set,
-                            int *max_fd,
-                            long *timeout)
+GNUNET_CURL_get_select_info (struct GNUNET_CURL_Context *ctx,
+                             fd_set *read_fd_set,
+                             fd_set *write_fd_set,
+                             fd_set *except_fd_set,
+                             int *max_fd,
+                             long *timeout)
 {
   long to;
   int m;
 
   m = -1;
-  GNUNET_assert(CURLM_OK == curl_multi_fdset(ctx->multi,
-                                             read_fd_set,
-                                             write_fd_set,
-                                             except_fd_set,
-                                             &m));
+  GNUNET_assert (CURLM_OK == curl_multi_fdset (ctx->multi,
+                                               read_fd_set,
+                                               write_fd_set,
+                                               except_fd_set,
+                                               &m));
   to = *timeout;
-  *max_fd = GNUNET_MAX(m, *max_fd);
-  GNUNET_assert(CURLM_OK == curl_multi_timeout(ctx->multi, &to));
+  *max_fd = GNUNET_MAX (m, *max_fd);
+  GNUNET_assert (CURLM_OK == curl_multi_timeout (ctx->multi, &to));
 
   /* Only if what we got back from curl is smaller than what we
      already had (-1 == infinity!), then update timeout */
@@ -690,14 +692,14 @@ GNUNET_CURL_get_select_info(struct GNUNET_CURL_Context *ctx,
  * @param ctx the library context
  */
 void
-GNUNET_CURL_fini(struct GNUNET_CURL_Context *ctx)
+GNUNET_CURL_fini (struct GNUNET_CURL_Context *ctx)
 {
   /* all jobs must have been cancelled at this time, assert this */
-  GNUNET_assert(NULL == ctx->jobs_head);
-  curl_share_cleanup(ctx->share);
-  curl_multi_cleanup(ctx->multi);
-  curl_slist_free_all(ctx->common_headers);
-  GNUNET_free(ctx);
+  GNUNET_assert (NULL == ctx->jobs_head);
+  curl_share_cleanup (ctx->share);
+  curl_multi_cleanup (ctx->multi);
+  curl_slist_free_all (ctx->common_headers);
+  GNUNET_free (ctx);
 }
 
 
@@ -705,15 +707,15 @@ GNUNET_CURL_fini(struct GNUNET_CURL_Context *ctx)
  * Initial global setup logic, specifically runs the Curl setup.
  */
 __attribute__ ((constructor)) void
-GNUNET_CURL_constructor__(void)
+GNUNET_CURL_constructor__ (void)
 {
   CURLcode ret;
 
-  if (CURLE_OK != (ret = curl_global_init(CURL_GLOBAL_DEFAULT)))
-    {
-      CURL_STRERROR(GNUNET_ERROR_TYPE_ERROR, "curl_global_init", ret);
-      curl_fail = 1;
-    }
+  if (CURLE_OK != (ret = curl_global_init (CURL_GLOBAL_DEFAULT)))
+  {
+    CURL_STRERROR (GNUNET_ERROR_TYPE_ERROR, "curl_global_init", ret);
+    curl_fail = 1;
+  }
 }
 
 
@@ -721,11 +723,11 @@ GNUNET_CURL_constructor__(void)
  * Cleans up after us, specifically runs the Curl cleanup.
  */
 __attribute__ ((destructor)) void
-GNUNET_CURL_destructor__(void)
+GNUNET_CURL_destructor__ (void)
 {
   if (curl_fail)
     return;
-  curl_global_cleanup();
+  curl_global_cleanup ();
 }
 
 /* end of curl.c */
