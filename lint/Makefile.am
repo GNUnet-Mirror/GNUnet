@@ -1,25 +1,10 @@
 all: check-linters
 
-do_subst = $(SED) -e 's,[@]PERL[@],$(PERL),g'
-
-SUFFIXES = pl.in .pl
-
-checkbashisms.pl: checkbashisms.pl.in Makefile
-	$(do_subst) < $(srcdir)/checkbashisms.pl.in > checkbashisms.pl
-	chmod +x checkbashisms.pl
-
-CLEANFILES=	\
-		checkbashisms.pl
-
-noinst_SCRIPTS =		\
-		$(CLEANFILES)
-
 # Check for bashisms in shell scripts
 # Very verbose, need to exclude more files.
 check-bashism:
-	printf "Run checkbashism on all .sh files.\n"
-	printf "Currently this expects checkbashism.pl at a fixed location."
-	find '..' -type f ! -path '*/.*' ! -path '*/_*' -name '*.sh' -print0 | xargs -0 $(srcdir)/checkbashisms.pl -f 2>&1 | tee $(srcdir)/bashism.log || true
+	printf "If checkbashisms.pl is in PATH, run checkbashism on all .sh files.\n"
+	find '..' -type f ! -path '*/.*' ! -path '*/_*' -name '*.sh' -print0 | xargs -0 checkbashisms.pl -f 2>&1 | tee $(srcdir)/bashism.log || true
 
 check-python:
 	printf "Running flake8 and 2to3 if detected.\n"
@@ -57,6 +42,3 @@ check-texinfo:
 	@cd $(top_srcdir)/doc/tutorial ; find . -type f ! -path '*/.*' -name '*.texi' -print0 | xargs -0 awk '/XXX/ {print FILENAME":"NR":"$$0}' >> $(srcdir)/texinfo_tutorial.log || true
 
 check-linters: check-bashism check-python check-man check-texinfo
-
-EXTRA_DIST = \
-  checkbashisms.pl.in
