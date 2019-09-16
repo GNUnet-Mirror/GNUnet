@@ -92,6 +92,7 @@ clean_result (void *response)
   json_decref (response);
 }
 
+
 /**
  * Initialize reschedule context.
  *
