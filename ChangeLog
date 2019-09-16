@@ -1,3 +1,8 @@
+Mon Sep 16 00:00:00 UTC 2019
+  Remove checks for CXX and CPP. Scans found no
+  (remaining) cxx code. ccache with clang on
+  NetBSD 9 hit no rebuilds. -ng0
+
 Mon Sep 10 00:00:00 UTC 2019
   Drop win32 and mingw support after discussion with
   Christian. It has been unmaintained in out code base
