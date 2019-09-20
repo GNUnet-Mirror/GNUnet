@@ -15,10 +15,6 @@ fi
 
 rm -rf `gnunet-config -c test_credential_lookup.conf -s PATHS -o GNUNET_HOME -f`
 
-#   (1) EPub.discount <- EOrg.preferred
-#   (2) EOrg.preferred <- StateU.student
-#   (3) StateU.student <- RegistrarB.student
-#   (4) RegistrarB.student <- Alice
 
 
 which timeout > /dev/null 2>&1 && DO_TIMEOUT="timeout 10"
@@ -34,6 +30,12 @@ DKEY=$(gnunet-identity -d -c test_credential_lookup.conf | grep d | awk '{print 
 EKEY=$(gnunet-identity -d -c test_credential_lookup.conf | grep e | awk '{print $3}')
 FKEY=$(gnunet-identity -d -c test_credential_lookup.conf | grep f | awk '{print $3}')
 GKEY=$(gnunet-identity -d -c test_credential_lookup.conf | grep g | awk '{print $3}')
+
+############################################################################################
+#   (1) EPub.discount <- EOrg.preferred
+#   (2) EOrg.preferred <- StateU.student
+#   (3) StateU.student <- RegistrarB.student
+#   (4) RegistrarB.student <- Alice
 
 gnunet-identity -C epub -c test_credential_lookup.conf
 gnunet-identity -C eorg -c test_credential_lookup.conf
@@ -54,7 +56,7 @@ STATE_STUD_ATTR="student"
 REG_STUD_ATTR="student"
 END_ATTR="end"
 
-# FORWARD, subject side stored
+# FORWARD, subject side stored (different constallations)
 SIGNED=`$DO_TIMEOUT gnunet-credential --signSubjectSide --ego=a --attribute="a" --subject="$AKEY b.c" --ttl="2019-12-12 10:00:00"`
 gnunet-credential --createSubjectSide --ego=a --import "$SIGNED"
 gnunet-namestore -D -z a
@@ -99,11 +101,13 @@ gnunet-credential --createSubjectSide --ego=alice --import "$SIGNED" --private
 # Starting to resolve
 echo "+++ Starting to Resolve +++"
 
+# FORWARD
 #DELS=`$DO_TIMEOUT gnunet-credential --collect --issuer=$AKEY --attribute="a" --ego=g --forward -c test_credential_lookup.conf | paste -d, -s`
 #echo $DELS
 #echo gnunet-credential --verify --issuer=$AKEY --attribute="a" --subject=$GKEY --delegate=\'$DELS\' --forward -c test_credential_lookup.conf
 #RES_DELS=`gnunet-credential --verify --issuer=$AKEY --attribute="a" --subject=$GKEY --delegate="$DELS" --forward -c test_credential_lookup.conf`
 
+# BACKWARD
 DELS=`$DO_TIMEOUT gnunet-credential --collect --issuer=$EPUB_KEY --attribute=$DISC_ATTR --ego=alice --backward -c test_credential_lookup.conf | paste -d, -s`
 echo $DELS
 echo gnunet-credential --verify --issuer=$EPUB_KEY --attribute=$DISC_ATTR --subject=$ALICE_KEY --delegate=\'$DELS\' --backward -c test_credential_lookup.conf
@@ -115,15 +119,16 @@ RES=$?
 gnunet-namestore -z epub -d -n $DISC_ATTR -t ATTR -c test_credential_lookup.conf
 gnunet-namestore -z eorg -d -n $PREF_ATTR -t ATTR -c test_credential_lookup.conf
 gnunet-namestore -z stateu -d -n $STATE_STUD_ATTR -t ATTR -c test_credential_lookup.conf
-#gnunet-namestore -z a -d -n $STATE_STUD_ATTR -t ATTR -c test_credential_lookup.conf
-#gnunet-namestore -z d -d -n $STATE_STUD_ATTR -t ATTR -c test_credential_lookup.conf
-#gnunet-namestore -z e -d -n $STATE_STUD_ATTR -t ATTR -c test_credential_lookup.conf
-#gnunet-namestore -z f -d -n $STATE_STUD_ATTR -t ATTR -c test_credential_lookup.conf
-#gnunet-namestore -z g -d -n $STATE_STUD_ATTR -t ATTR -c test_credential_lookup.conf
+#gnunet-namestore -z a -d -n "@" -t DEL -c test_credential_lookup.conf
+#gnunet-namestore -z d -d -n "@" -t DEL -c test_credential_lookup.conf
+#gnunet-namestore -z e -d -n "@" -t DEL -c test_credential_lookup.conf
+#gnunet-namestore -z f -d -n "@" -t DEL -c test_credential_lookup.conf
+#gnunet-namestore -z g -d -n "@" -t DEL -c test_credential_lookup.conf
+
 
 gnunet-arm -e -c test_credential_lookup.conf
 
-if [ $RES == 0 ]
+if [ "$RES" == 0 ]
 then
   exit 0
 else

@@ -17,8 +17,8 @@ rm -rf `gnunet-config -c test_credential_lookup.conf -s PATHS -o GNUNET_HOME -f`
 
 #  (1) Service.user -> GNU.project.member
 #  (2) GNU.project -> GNUnet
-#  (3) GNUnet.member -> GNUnet.developer and (4)GNUnet.user
-#  (5) GNUnet.developer -> Alice
+#  (3) GNUnet.member -> GNUnet.developer AND GNUnet.user
+#  (4) GNUnet.developer -> Alice
 
 
 which timeout > /dev/null 2>&1 && DO_TIMEOUT="timeout 30"
@@ -39,41 +39,45 @@ MEMBER_ATTR="member"
 DEVELOPER_ATTR="developer"
 DEV_ATTR="developer"
 TEST_CREDENTIAL="mygnunetcreds"
-set -x
+
 # (1) A service assigns the attribute "user" to all entities that have been assigned "member" by entities that werde assigned "project" from GNU
-gnunet-namestore -p -z service -a -n $USER_ATTR -t ATTR -V "$GNU_KEY $GNU_PROJECT_ATTR.$MEMBER_ATTR" -e 5m -c test_credential_lookup.conf
+gnunet-credential --createIssuerSide --ego=service --attribute="$USER_ATTR" --subject="$GNU_KEY $GNU_PROJECT_ATTR.$MEMBER_ATTR" --ttl="2019-12-12 10:00:00" -c test_credential_lookup.conf
+gnunet-namestore -D -z service
 
 # (2) GNU recognized GNUnet as a GNU project and delegates the "project" attribute
-gnunet-namestore -p -z gnu -a -n $GNU_PROJECT_ATTR -t ATTR -V "$GNUNET_KEY" -e 5m -c test_credential_lookup.conf
+gnunet-credential --createIssuerSide --ego=gnu --attribute="$GNU_PROJECT_ATTR" --subject="$GNUNET_KEY" --ttl="2019-12-12 10:00:00" -c test_credential_lookup.conf
+gnunet-namestore -D -z gnu
 
-# (3+4) GNUnet assigns the attribute "member" to all entities gnunet has also
-# assigned "developer" and "user"
-gnunet-namestore -p -z gnunet -a -n $MEMBER_ATTR -t ATTR -V "$GNUNET_KEY $DEVELOPER_ATTR,$GNUNET_KEY $USER_ATTR" -e 5m -c test_credential_lookup.conf
+# (3+4) GNUnet assigns the attribute "member" to all entities gnunet has also assigned "developer" or "user"
+gnunet-credential --createIssuerSide --ego=gnunet --attribute="$MEMBER_ATTR" --subject="$GNUNET_KEY $DEVELOPER_ATTR, $GNUNET_KEY $USER_ATTR" --ttl="2019-12-12 10:00:00" -c test_credential_lookup.conf
+gnunet-namestore -D -z gnunet
 
-# (5) GNUnet issues Alice the credential "developer"
-CRED1=`$DO_TIMEOUT gnunet-credential --issue --ego=gnunet --subject=$ALICE_KEY --attribute=$DEV_ATTR --ttl=5m -c test_credential_lookup.conf`
-# (5) GNUnet issues Alice the credential "user"
-CRED2=`$DO_TIMEOUT gnunet-credential --issue --ego=gnunet --subject=$ALICE_KEY --attribute=$USER_ATTR --ttl=5m -c test_credential_lookup.conf`
-# Alice stores the credential under "mygnunetcreds"
-gnunet-namestore -p -z alice -a -n $TEST_CREDENTIAL -t CRED -V "$CRED1" -e 5m -c test_credential_lookup.conf
-gnunet-namestore -p -z alice -a -n $TEST_CREDENTIAL -t CRED -V "$CRED2" -e 5m -c test_credential_lookup.conf
+# (5) GNUnet signes the delegates and Alice stores it
+SIGNED=`$DO_TIMEOUT gnunet-credential --signSubjectSide --ego=gnunet --attribute=$DEV_ATTR --subject=$ALICE_KEY --ttl="2019-12-12 10:00:00"`
+gnunet-credential --createSubjectSide --ego=alice --import "$SIGNED" --private
+SIGNED=`$DO_TIMEOUT gnunet-credential --signSubjectSide --ego=gnunet --attribute=$USER_ATTR --subject=$ALICE_KEY --ttl="2019-12-12 10:00:00"`
+gnunet-credential --createSubjectSide --ego=alice --import "$SIGNED" --private
+gnunet-namestore -D -z alice
 
-CREDS=`$DO_TIMEOUT gnunet-credential --collect --issuer=$SERVICE_KEY --attribute=$USER_ATTR --ego=alice -c test_credential_lookup.conf | paste -d, -s`
+# Starting to resolve
+echo "+++ Starting to Resolve +++"
 
-#TODO2 Add -z swich like in gnunet-gns
-RES_CRED=`gnunet-credential --verify --issuer=$SERVICE_KEY --attribute=$USER_ATTR --subject=$ALICE_KEY --credential="$CREDS" -c test_credential_lookup.conf`
+DELS=`$DO_TIMEOUT gnunet-credential --collect --issuer=$SERVICE_KEY --attribute=$USER_ATTR --ego=alice --backward -c test_credential_lookup.conf | paste -d, -s`
+echo $DELS
+echo gnunet-credential --verify --issuer=$SERVICE_KEY --attribute=$USER_ATTR --subject=$ALICE_KEY --delegate=\'$DELS\' --backward -c test_credential_lookup.conf
+gnunet-credential --verify --issuer=$SERVICE_KEY --attribute=$USER_ATTR --subject=$ALICE_KEY --delegate="$DELS" --backward -c test_credential_lookup.conf
 
+RES=$?
 
-#TODO cleanup properly
-gnunet-namestore -z alice -d -n $TEST_CREDENTIAL -t CRED -e never -c test_credential_lookup.conf
+# Cleanup properly
+gnunet-namestore -z alice -d -n "@" -t DEL -c test_credential_lookup.conf
 gnunet-namestore -z gnu -d -n $GNU_PROJECT_ATTR -t ATTR -c test_credential_lookup.conf
 gnunet-namestore -z gnunet -d -n $MEMBER_ATTR -t ATTR -c test_credential_lookup.conf
 gnunet-namestore -z service -d -n $USER_ATTR -t ATTR -c test_credential_lookup.conf
 gnunet-arm -e -c test_credential_lookup.conf
 
-if [ "$RES_CRED" != "Failed." ]
+if [ "$RES" == 0 ]
 then
-  echo -e "${RES_CRED}"
   exit 0
 else
   echo "FAIL: Failed to verify credential $RES_CRED."

@@ -249,7 +249,7 @@ handle_result (void *cls, const struct DelegationChainResultMessage *vr_msg)
   if (GNUNET_NO == ntohl (vr_msg->del_found))
   {
     proc (proc_cls, 0, NULL, 0,
-          NULL); // TODO
+          NULL);
   }
   else
   {
@@ -297,7 +297,6 @@ handle_intermediate (void *cls, const struct DelegationChainIntermediateMessage 
                                                     dd,
                                                     0,
                                                     NULL));
-  sleep(2);
   proc (proc_cls, dd, is_bw);
 }
 

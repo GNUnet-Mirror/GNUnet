@@ -429,26 +429,28 @@ cleanup_handle (struct VerifyRequestHandle *vrh)
   struct DelegateRecordEntry *del_entry;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Cleaning up...\n");
 
-  if (NULL == vrh->dsq_head)
-    return;
-
-  for (struct DelegationSetQueueEntry *ds_entry = vrh->dsq_head; NULL != vrh->dsq_head;
+  if (NULL != vrh->dsq_head)
+  {
+    for (struct DelegationSetQueueEntry *ds_entry = vrh->dsq_head; NULL != vrh->dsq_head;
        ds_entry = vrh->dsq_head)
-  {
-    GNUNET_CONTAINER_DLL_remove (vrh->dsq_head, vrh->dsq_tail, ds_entry);
-    cleanup_dsq_entry(ds_entry);
+    {
+      GNUNET_CONTAINER_DLL_remove (vrh->dsq_head, vrh->dsq_tail, ds_entry);
+      cleanup_dsq_entry(ds_entry);
+    }
   }
-
+  if (NULL != vrh->del_chain_head)
+  {
+    for (del_entry = vrh->del_chain_head; NULL != vrh->del_chain_head;
+        del_entry = vrh->del_chain_head)
+    {
+      GNUNET_CONTAINER_DLL_remove (vrh->del_chain_head,
+                                  vrh->del_chain_tail,
+                                  del_entry);
+      GNUNET_free_non_null (del_entry->delegate);
+      GNUNET_free (del_entry);
+    }
+  }
   GNUNET_free_non_null (vrh->issuer_attribute);
-  for (del_entry = vrh->del_chain_head; NULL != vrh->del_chain_head;
-       del_entry = vrh->del_chain_head)
-  {
-    GNUNET_CONTAINER_DLL_remove (vrh->del_chain_head,
-                                 vrh->del_chain_tail,
-                                 del_entry);
-    GNUNET_free_non_null (del_entry->delegate);
-    GNUNET_free (del_entry);
-  }
   GNUNET_free (vrh);
 }
 
@@ -622,7 +624,6 @@ send_lookup_response (struct VerifyRequestHandle *vrh)
   GNUNET_MQ_send (GNUNET_SERVICE_client_get_mq (vrh->client), env);
   GNUNET_CONTAINER_DLL_remove (vrh_head, vrh_tail, vrh);
   cleanup_handle (vrh);
-
   GNUNET_STATISTICS_update (statistics,
                             "Completed verifications",
                             1,
@@ -1217,7 +1218,7 @@ backward_resolution (void *cls,
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                     "%s still to go...\n",
                     ds_entry->attr_trailer);
-      // TODO remove
+
       vrh->pending_lookups++;
       ds_entry->handle = vrh;
       ds_entry->lookup_request =
@@ -1247,9 +1248,11 @@ backward_resolution (void *cls,
  *
  * @param cls the closure (our client lookup handle)
  */
-static void
+static int
 delegation_chain_bw_resolution_start (void *cls)
 {
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Start Backward Resolution...\n");
+
   struct VerifyRequestHandle *vrh = cls;
   struct DelegationSetQueueEntry *ds_entry;
   struct DelegateRecordEntry *del_entry;
@@ -1258,7 +1261,7 @@ delegation_chain_bw_resolution_start (void *cls)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "No delegates found\n");
     send_lookup_response (vrh);
-    return;
+    return 2;
   }
 
   // Pre-check with vrh->dele_chain_.. if match issuer_key
@@ -1281,7 +1284,7 @@ delegation_chain_bw_resolution_start (void *cls)
     del_entry->refcount++;
     // Found match prematurely
     send_lookup_response (vrh);
-    return;
+    return 1;
   }
 
 
@@ -1321,11 +1324,14 @@ delegation_chain_bw_resolution_start (void *cls)
                                                 GNUNET_GNS_LO_DEFAULT,
                                                 &backward_resolution,
                                                 ds_entry);
+  return 0;
 }
 
-static void
+static int
 delegation_chain_fw_resolution_start (void *cls)
 {
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Start Forward Resolution...\n");
+
   struct VerifyRequestHandle *vrh = cls;
   struct DelegationSetQueueEntry *ds_entry;
   struct DelegateRecordEntry *del_entry;
@@ -1337,7 +1343,7 @@ delegation_chain_fw_resolution_start (void *cls)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "No delegations found\n");
     send_lookup_response (vrh);
-    return;
+    return 2;
   }
 
   // Pre-check with vrh->dele_chain_.. if match issuer_key
@@ -1359,7 +1365,7 @@ delegation_chain_fw_resolution_start (void *cls)
     del_entry->refcount++;
     // Found match prematurely
     send_lookup_response (vrh);
-    return;
+    return 1;
   }
 
   // None match, therefore start for every delegation found a lookup chain
@@ -1409,6 +1415,7 @@ delegation_chain_fw_resolution_start (void *cls)
                          &forward_resolution,
                          ds_entry);
   }
+  return 0;
 }
 
 static int
@@ -1528,7 +1535,8 @@ handle_verify (void *cls, const struct VerifyMessage *v_msg)
   if (GNUNET_CREDENTIAL_FLAG_BACKWARD & vrh->resolution_algo &&
       GNUNET_CREDENTIAL_FLAG_FORWARD & vrh->resolution_algo)
   {
-    delegation_chain_fw_resolution_start (vrh);
+    if(1 == delegation_chain_fw_resolution_start (vrh))
+      return;
     delegation_chain_bw_resolution_start (vrh);
   }
   else if (GNUNET_CREDENTIAL_FLAG_BACKWARD & vrh->resolution_algo)
@@ -1561,7 +1569,9 @@ delegate_collection_finished (void *cls)
   if (GNUNET_CREDENTIAL_FLAG_BACKWARD & vrh->resolution_algo &&
       GNUNET_CREDENTIAL_FLAG_FORWARD & vrh->resolution_algo)
   {
-    delegation_chain_fw_resolution_start (vrh);
+    // if premature match found don't start bw resultion
+    if(1 == delegation_chain_fw_resolution_start (vrh))
+      return;
     delegation_chain_bw_resolution_start (vrh);
   }
   else if (GNUNET_CREDENTIAL_FLAG_BACKWARD & vrh->resolution_algo)

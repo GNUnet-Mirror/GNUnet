@@ -15,7 +15,7 @@ fi
 
 rm -rf `gnunet-config -c test_credential_lookup.conf -s PATHS -o GNUNET_HOME -f`
 
-#  (3) Isser.user -> Subject
+#  (1) Issuer.user -> Subject
 
 
 which timeout > /dev/null 2>&1 && DO_TIMEOUT="timeout 30"
@@ -26,24 +26,26 @@ gnunet-identity -C testsubject -c test_credential_lookup.conf
 TEST_ATTR="user"
 SUBJECT_KEY=$(gnunet-identity -d -c test_credential_lookup.conf | grep testsubject | awk '{print $3}')
 ISSUER_KEY=$(gnunet-identity -d -c test_credential_lookup.conf | grep testissuer | awk '{print $3}')
-CRED=`$DO_TIMEOUT gnunet-credential --issue --ego=testissuer --subject=$SUBJECT_KEY --attribute=$TEST_ATTR --ttl=5m -c test_credential_lookup.conf`
 
-TEST_CREDENTIAL="t1"
-gnunet-namestore -p -z testsubject -a -n $TEST_CREDENTIAL -t CRED -V "$CRED" -e 5m -c test_credential_lookup.conf
+# Create delegate (1)
+SIGNED=`$DO_TIMEOUT gnunet-credential --signSubjectSide --ego=testissuer --attribute=$TEST_ATTR --subject=$SUBJECT_KEY --ttl="2019-12-12 10:00:00" -c test_credential_lookup.conf`
+gnunet-credential --createSubjectSide --ego=testsubject --import "$SIGNED" --private
+gnunet-namestore -D -z testsubject
 
-CREDS=`$DO_TIMEOUT gnunet-credential --collect --issuer=$ISSUER_KEY --attribute=$TEST_ATTR --ego=testsubject -c test_credential_lookup.conf | paste -d, -s`
+# Starting to resolve
+echo "+++ Starting to Resolve +++"
 
+DELS=`$DO_TIMEOUT gnunet-credential --collect --issuer=$ISSUER_KEY --attribute=$TEST_ATTR --ego=testsubject -c test_credential_lookup.conf | paste -d, -s`
+echo $DELS
+gnunet-credential --verify --issuer=$ISSUER_KEY --attribute=$TEST_ATTR --subject=$SUBJECT_KEY --delegate="$DELS" -c test_credential_lookup.conf
 
-#TODO2 Add -z swich like in gnunet-gns
-#RES_CRED=`$DO_TIMEOUT gnunet-credential --verify --issuer=$ISSUER_KEY --attribute="$TEST_ATTR" --subject=$SUBJECT_KEY --credential=$TEST_CREDENTIAL -c test_credential_lookup.conf`
-RES_CRED=`gnunet-credential --verify --issuer=$ISSUER_KEY --attribute=$TEST_ATTR --subject=$SUBJECT_KEY --credential="$CREDS" -c test_credential_lookup.conf`
+RES=$?
 
-#TODO cleanup properly
-gnunet-namestore -z testsubject -d -n $TEST_CREDENTIAL -t CRED -e never -c test_credential_lookup.conf
-gnunet-identity -D testsubject -c test_credential_lookup.conf
+# Cleanup properly
+gnunet-namestore -z testsubject -d -n "@" -t DEL -c test_credential_lookup.conf
 gnunet-arm -e -c test_credential_lookup.conf
-#TODO3 proper test
-if [ "$RES_CRED" != "Failed." ]
+
+if [ "$RES" == 0 ]
 then
   exit 0
 else

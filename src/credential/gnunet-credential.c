@@ -274,13 +274,12 @@ handle_intermediate_result(void *cls,
   bool is_bw)
 {
   char *prefix = "";
-  // TODO change to printf
   if(is_bw)
     prefix = "Backward -";
   else
     prefix = "Forward -";
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "%s Intermediate result: %s.%s <- %s.%s\n",
+  printf ("%s Intermediate result: %s.%s <- %s.%s\n",
       prefix,
       GNUNET_CRYPTO_ecdsa_public_key_to_string (&dd->issuer_key),
       dd->issuer_attribute,
@@ -416,7 +415,7 @@ identity_cb (void *cls, const struct GNUNET_IDENTITY_Ego *ego)
 
     collect_request = GNUNET_CREDENTIAL_collect (credential,
                                                  &issuer_pkey,
-                                                 issuer_attr, //TODO argument
+                                                 issuer_attr,
                                                  privkey,
                                                  direction,
                                                  &handle_collect_result,
@@ -487,7 +486,6 @@ error_cb (void *cls)
 static void
 add_continuation (void *cls, int32_t success, const char *emsg)
 {
-  // TODO what does that do, can I somehow parse an empty callback on success or do I have to set the qe* to NULL?
   struct GNUNET_NAMESTORE_QueueEntry **qe = cls;
   *qe = NULL;
 
@@ -510,9 +508,8 @@ get_existing_record (void *cls,
   rde->data = data;
   rde->data_size = data_size;
   rde->record_type = type;
-  // Flags not required , TODO what have we said we do with that now? Look it up in my writing
-  /*if (1 == is_shadow)
-    rde->flags |= GNUNET_GNSRECORD_RF_SHADOW_RECORD;*/
+
+  // Set flags
   if (GNUNET_YES == is_private)
     rde->flags |= GNUNET_GNSRECORD_RF_PRIVATE;
   rde->expiration_time = etime;
@@ -520,6 +517,7 @@ get_existing_record (void *cls,
     rde->flags |= GNUNET_GNSRECORD_RF_RELATIVE_EXPIRATION;
   else if (GNUNET_NO != etime_is_rel)
     rde->expiration_time = GNUNET_TIME_UNIT_FOREVER_ABS.abs_value_us;
+
   GNUNET_assert (NULL != rec_name);
   add_qe = GNUNET_NAMESTORE_records_store (ns,
                                            &zone_pkey,
@@ -551,7 +549,6 @@ store_cb (void *cls, const struct GNUNET_IDENTITY_Ego *ego)
   // Key handling
   zone_pkey = *GNUNET_IDENTITY_ego_get_private_key (ego);
 
-  // TODO maybe dont have to set subject, if only used in if/else can use import here instead!!
   if (GNUNET_GNSRECORD_TYPE_DELEGATE == type)
   {
     // Parse import
@@ -922,7 +919,7 @@ run (void *cls,
 
     verify_request = GNUNET_CREDENTIAL_verify (credential,
                                                &issuer_pkey,
-                                               issuer_attr, //TODO argument
+                                               issuer_attr,
                                                &subject_pkey,
                                                count,
                                                delegates,
@@ -1053,7 +1050,7 @@ main (int argc, char *const *argv)
     return 2;
 
   GNUNET_log_setup ("gnunet-credential", "WARNING", NULL);
-  if (GNUNET_OK == GNUNET_PROGRAM_run (argc,
+  if (GNUNET_OK != GNUNET_PROGRAM_run (argc,
                                           argv,
                                           "gnunet-credential",
                                           _ ("GNUnet credential resolver tool"),

@@ -72,7 +72,7 @@ echo $DELS
 echo gnunet-credential --verify --issuer=$AKEY --attribute="a" --subject=$FKEY --delegate=\'$DELS\' -c test_credential_lookup.conf
 gnunet-credential --verify --issuer=$AKEY --attribute="a" --subject=$FKEY --delegate="$DELS" -c test_credential_lookup.conf
 
-RES = $?
+RES=$?
 
 # Cleanup properly
 gnunet-namestore -z a -d -n "a" -t ATTR -c test_credential_lookup.conf
@@ -83,7 +83,7 @@ gnunet-namestore -z f -d -n "@" -t DEL -c test_credential_lookup.conf
 
 gnunet-arm -e -c test_credential_lookup.conf
 
-if [ $RES == 0 ]
+if [ "$RES" == 0 ]
 then
   exit 0
 else

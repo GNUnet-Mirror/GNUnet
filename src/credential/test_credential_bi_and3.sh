@@ -17,7 +17,6 @@ rm -rf `gnunet-config -c test_credential_lookup.conf -s PATHS -o GNUNET_HOME -f`
 
 
 
-
 which timeout > /dev/null 2>&1 && DO_TIMEOUT="timeout 10"
 gnunet-arm -s -c test_credential_lookup.conf
 
@@ -38,6 +37,7 @@ FKEY=$(gnunet-identity -d -c test_credential_lookup.conf | grep f | awk '{print 
 GKEY=$(gnunet-identity -d -c test_credential_lookup.conf | grep g | awk '{print $3}')
 HKEY=$(gnunet-identity -d -c test_credential_lookup.conf | grep h | awk '{print $3}')
 
+gnunet-identity -d
 #   (1) (A.a) <- B.b
 #   (2) (B.b) <- C.c AND G.g
 #   (3) C.c <- (D.d)
@@ -75,7 +75,7 @@ echo $DELS
 echo gnunet-credential --verify --issuer=$AKEY --attribute="a" --subject=$FKEY --delegate=\'$DELS\' -c test_credential_lookup.conf
 gnunet-credential --verify --issuer=$AKEY --attribute="a" --subject=$FKEY --delegate="$DELS" -c test_credential_lookup.conf
 
-RES = $?
+RES=$?
 
 # Cleanup properly
 gnunet-namestore -z a -d -n "a" -t ATTR -c test_credential_lookup.conf
@@ -87,7 +87,7 @@ gnunet-namestore -z h -d -n "@" -t DEL -c test_credential_lookup.conf
 
 gnunet-arm -e -c test_credential_lookup.conf
 
-if [ $RES == 0 ]
+if [ "$RES" == 0 ]
 then
   exit 0
 else
