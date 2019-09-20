@@ -41,6 +41,8 @@ DEVELOPER_ATTR="developer"
 DEV_ATTR="developer"
 TEST_CREDENTIAL="mygnunetcreds"
 
+gnunet-identity -d
+
 # (1) A service assigns the attribute "user" to all entities that have been assigned "member" by entities that werde assigned "project" from GNU
 gnunet-credential --createIssuerSide --ego=service --attribute="$USER_ATTR" --subject="$GNU_KEY $GNU_PROJECT_ATTR.$MEMBER_ATTR" --ttl="2019-12-12 10:00:00" -c test_credential_lookup.conf
 gnunet-namestore -D -z service
@@ -56,13 +58,13 @@ gnunet-namestore -D -z gnunet
 
 # (5) GNUnet signes the delegate and Alice stores it
 SIGNED=`$DO_TIMEOUT gnunet-credential --signSubjectSide --ego=gnunet --attribute=$DEV_ATTR --subject=$ALICE_KEY --ttl="2019-12-12 10:00:00"`
-gnunet-credential --createSubjectSide --ego=alice --import "$SIGNED" --private
+gnunet-credential --createSubjectSide --ego=alice --import="$SIGNED" --private
 gnunet-namestore -D -z alice
 
 # Starting to resolve
 echo "+++ Starting to Resolve +++"
 
-DELS=`$DO_TIMEOUT gnunet-credential --collect --issuer=$SERVICE_KEY --attribute=$USER_ATTR --ego=alice --backward -c test_credential_lookup.conf | paste -d, -s`
+DELS=`$DO_TIMEOUT gnunet-credential --collect --issuer=$SERVICE_KEY --attribute=$USER_ATTR --ego=alice --backward -c test_credential_lookup.conf | paste -d, -s - -`
 echo $DELS
 echo gnunet-credential --verify --issuer=$SERVICE_KEY --attribute=$USER_ATTR --subject=$ALICE_KEY --delegate=\'$DELS\' --backward -c test_credential_lookup.conf
 gnunet-credential --verify --issuer=$SERVICE_KEY --attribute=$USER_ATTR --subject=$ALICE_KEY --delegate="$DELS" --backward -c test_credential_lookup.conf

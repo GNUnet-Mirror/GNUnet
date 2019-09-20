@@ -56,31 +56,33 @@ STATE_STUD_ATTR="student"
 REG_STUD_ATTR="student"
 END_ATTR="end"
 
+gnunet-identity -d
+
 # FORWARD, subject side stored (different constallations)
 SIGNED=`$DO_TIMEOUT gnunet-credential --signSubjectSide --ego=a --attribute="a" --subject="$AKEY b.c" --ttl="2019-12-12 10:00:00"`
-gnunet-credential --createSubjectSide --ego=a --import "$SIGNED"
+gnunet-credential --createSubjectSide --ego=a --import="$SIGNED"
 gnunet-namestore -D -z a
 
 SIGNED=`$DO_TIMEOUT gnunet-credential --signSubjectSide --ego=a --attribute="b" --subject="$DKEY d" --ttl="2019-12-12 10:00:00"`
-gnunet-credential --createSubjectSide --ego=d --import "$SIGNED"
+gnunet-credential --createSubjectSide --ego=d --import="$SIGNED"
 gnunet-namestore -D -z d
 
 SIGNED=`$DO_TIMEOUT gnunet-credential --signSubjectSide --ego=d --attribute="d" --subject="$EKEY" --ttl="2019-12-12 10:00:00"`
-gnunet-credential --createSubjectSide --ego=e --import "$SIGNED"
+gnunet-credential --createSubjectSide --ego=e --import="$SIGNED"
 gnunet-namestore -D -z e
 
 SIGNED=`$DO_TIMEOUT gnunet-credential --signSubjectSide --ego=e --attribute="c" --subject="$FKEY c" --ttl="2019-12-12 10:00:00"`
-gnunet-credential --createSubjectSide --ego=f --import "$SIGNED"
+gnunet-credential --createSubjectSide --ego=f --import="$SIGNED"
 SIGNED=`$DO_TIMEOUT gnunet-credential --signSubjectSide --ego=e --attribute="k" --subject="$FKEY c.k" --ttl="2019-12-12 10:00:00"`
-gnunet-credential --createSubjectSide --ego=f --import "$SIGNED"
+gnunet-credential --createSubjectSide --ego=f --import="$SIGNED"
 gnunet-namestore -D -z f
 
 SIGNED=`$DO_TIMEOUT gnunet-credential --signSubjectSide --ego=f --attribute="c" --subject="$GKEY" --ttl="2019-12-12 10:00:00"`
-gnunet-credential --createSubjectSide --ego=g --import "$SIGNED" --private
+gnunet-credential --createSubjectSide --ego=g --import="$SIGNED" --private
 SIGNED=`$DO_TIMEOUT gnunet-credential --signSubjectSide --ego=a --attribute="c" --subject="$GKEY" --ttl="2019-12-12 10:00:00"`
-gnunet-credential --createSubjectSide --ego=g --import "$SIGNED" --private
+gnunet-credential --createSubjectSide --ego=g --import="$SIGNED" --private
 SIGNED=`$DO_TIMEOUT gnunet-credential --signSubjectSide --ego=d --attribute="h.o" --subject="$GKEY" --ttl="2019-12-12 10:00:00"`
-gnunet-credential --createSubjectSide --ego=g --import "$SIGNED"
+gnunet-credential --createSubjectSide --ego=g --import="$SIGNED"
 gnunet-namestore -D -z g
 
 
@@ -96,19 +98,19 @@ gnunet-credential --createIssuerSide --ego=stateu --attribute=$STATE_STUD_ATTR -
 
 # (4) RegistrarB issues Alice the credential "student"
 SIGNED=`$DO_TIMEOUT gnunet-credential --signSubjectSide --ego=registrarb --attribute="$REG_STUD_ATTR" --subject="$ALICE_KEY" --ttl="2019-12-12 10:00:00"`
-gnunet-credential --createSubjectSide --ego=alice --import "$SIGNED" --private
+gnunet-credential --createSubjectSide --ego=alice --import="$SIGNED" --private
 
 # Starting to resolve
 echo "+++ Starting to Resolve +++"
 
 # FORWARD
-#DELS=`$DO_TIMEOUT gnunet-credential --collect --issuer=$AKEY --attribute="a" --ego=g --forward -c test_credential_lookup.conf | paste -d, -s`
+#DELS=`$DO_TIMEOUT gnunet-credential --collect --issuer=$AKEY --attribute="a" --ego=g --forward -c test_credential_lookup.conf | paste -d, -s - -`
 #echo $DELS
 #echo gnunet-credential --verify --issuer=$AKEY --attribute="a" --subject=$GKEY --delegate=\'$DELS\' --forward -c test_credential_lookup.conf
 #RES_DELS=`gnunet-credential --verify --issuer=$AKEY --attribute="a" --subject=$GKEY --delegate="$DELS" --forward -c test_credential_lookup.conf`
 
 # BACKWARD
-DELS=`$DO_TIMEOUT gnunet-credential --collect --issuer=$EPUB_KEY --attribute=$DISC_ATTR --ego=alice --backward -c test_credential_lookup.conf | paste -d, -s`
+DELS=`$DO_TIMEOUT gnunet-credential --collect --issuer=$EPUB_KEY --attribute=$DISC_ATTR --ego=alice --backward -c test_credential_lookup.conf | paste -d, -s - -`
 echo $DELS
 echo gnunet-credential --verify --issuer=$EPUB_KEY --attribute=$DISC_ATTR --subject=$ALICE_KEY --delegate=\'$DELS\' --backward -c test_credential_lookup.conf
 gnunet-credential --verify --issuer=$EPUB_KEY --attribute=$DISC_ATTR --subject=$ALICE_KEY --delegate="$DELS" --backward -c test_credential_lookup.conf

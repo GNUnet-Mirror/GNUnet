@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 trap "gnunet-arm -e -c test_credential_lookup.conf" SIGINT
 
 LOCATION=$(which gnunet-config)
@@ -28,8 +28,8 @@ gnunet-identity -C testissuer -c test_credential_lookup.conf
 gnunet-identity -C testsubject -c test_credential_lookup.conf
 SUBJECT_KEY=$(gnunet-identity -d -c test_credential_lookup.conf | grep testsubject | awk '{print $3}')
 ISSUER_KEY=$(gnunet-identity -d -c test_credential_lookup.conf | grep testissuer | awk '{print $3}')
+
 # Get credential and store it with subject (3)
-#CRED=`$DO_TIMEOUT gnunet-credential --issue --ego=testissuer --subject=$SUBJECT_KEY --attribute=$TEST_ATTR --ttl=5m -c test_credential_lookup.conf`
 SIGNED=`$DO_TIMEOUT gnunet-credential --signSubjectSide --ego=testissuer --attribute=$TEST_ATTR --subject=$SUBJECT_KEY --ttl="2019-12-12 10:00:00" -c test_credential_lookup.conf`
 
 STATUS=$?
@@ -40,8 +40,7 @@ then
   exit 1
 fi
 #Try import
-$DO_TIMEOUT gnunet-credential --createSubjectSide --ego=testsubject --import "$SIGNED" --private -c test_credential_lookup.conf
-#$DO_TIMEOUT gnunet-namestore -a -z testsubject -n c1 -t CRED -V "$CRED" -e 5m -c test_credential_lookup.conf
+$DO_TIMEOUT gnunet-credential --createSubjectSide --ego=testsubject --import="$SIGNED" --private -c test_credential_lookup.conf
 RES=$?
 gnunet-arm -e -c test_credential_lookup.conf
 exit $RES

@@ -27,15 +27,17 @@ TEST_ATTR="user"
 SUBJECT_KEY=$(gnunet-identity -d -c test_credential_lookup.conf | grep testsubject | awk '{print $3}')
 ISSUER_KEY=$(gnunet-identity -d -c test_credential_lookup.conf | grep testissuer | awk '{print $3}')
 
+gnunet-identity -d
+
 # Create delegate (1)
 SIGNED=`$DO_TIMEOUT gnunet-credential --signSubjectSide --ego=testissuer --attribute=$TEST_ATTR --subject=$SUBJECT_KEY --ttl="2019-12-12 10:00:00" -c test_credential_lookup.conf`
-gnunet-credential --createSubjectSide --ego=testsubject --import "$SIGNED" --private
+gnunet-credential --createSubjectSide --ego=testsubject --import="$SIGNED" --private
 gnunet-namestore -D -z testsubject
 
 # Starting to resolve
 echo "+++ Starting to Resolve +++"
 
-DELS=`$DO_TIMEOUT gnunet-credential --collect --issuer=$ISSUER_KEY --attribute=$TEST_ATTR --ego=testsubject -c test_credential_lookup.conf | paste -d, -s`
+DELS=`$DO_TIMEOUT gnunet-credential --collect --issuer=$ISSUER_KEY --attribute=$TEST_ATTR --ego=testsubject -c test_credential_lookup.conf | paste -d, -s - -`
 echo $DELS
 gnunet-credential --verify --issuer=$ISSUER_KEY --attribute=$TEST_ATTR --subject=$SUBJECT_KEY --delegate="$DELS" -c test_credential_lookup.conf
 

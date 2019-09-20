@@ -35,6 +35,7 @@ DKEY=$(gnunet-identity -d -c test_credential_lookup.conf | grep d | awk '{print 
 EKEY=$(gnunet-identity -d -c test_credential_lookup.conf | grep e | awk '{print $3}')
 FKEY=$(gnunet-identity -d -c test_credential_lookup.conf | grep f | awk '{print $3}')
 GKEY=$(gnunet-identity -d -c test_credential_lookup.conf | grep g | awk '{print $3}')
+gnunet-identity -d
 
 #   (1) (A.a) <- B.b
 #   (2) (B.b) <- C.c
@@ -49,13 +50,13 @@ gnunet-credential --createIssuerSide --ego=b --attribute="b" --subject="$CKEY c"
 gnunet-namestore -D -z b
 
 SIGNED=`$DO_TIMEOUT gnunet-credential --signSubjectSide --ego=c --attribute="c" --subject="$DKEY d" --ttl="2019-12-12 10:00:00"`
-gnunet-credential --createSubjectSide --ego=d --import "$SIGNED"
+gnunet-credential --createSubjectSide --ego=d --import="$SIGNED"
 gnunet-namestore -D -z d
 SIGNED=`$DO_TIMEOUT gnunet-credential --signSubjectSide --ego=d --attribute="d" --subject="$EKEY e" --ttl="2019-12-12 10:00:00"`
-gnunet-credential --createSubjectSide --ego=e --import "$SIGNED"
+gnunet-credential --createSubjectSide --ego=e --import="$SIGNED"
 gnunet-namestore -D -z e
 SIGNED=`$DO_TIMEOUT gnunet-credential --signSubjectSide --ego=e --attribute="e" --subject="$FKEY" --ttl="2019-12-12 10:00:00"`
-gnunet-credential --createSubjectSide --ego=f --import "$SIGNED" --private
+gnunet-credential --createSubjectSide --ego=f --import="$SIGNED" --private
 gnunet-namestore -D -z f
 
 # Starting to resolve
