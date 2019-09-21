@@ -326,7 +326,7 @@ You can avoid running 'make install' as root if you run configure
 with the "--with-sudo=yes" option and have extensive sudo rights
 (can run "chmod +s" and "chown" via 'sudo').  If you run 'make install'
 as a normal user without sudo rights (or the configure option),
-certain binaries that require additional priviledges will not be
+certain binaries that require additional privileges will not be
 installed properly (and autonomous NAT traversal, WLAN, DNS/GNS and
 the VPN will then not work).
 

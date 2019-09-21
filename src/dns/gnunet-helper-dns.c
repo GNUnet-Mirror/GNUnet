@@ -499,7 +499,7 @@ set_address4(const char *dev, const char *address, const char *mask)
 
 /**
  * Start forwarding to and from the tunnel.  This function runs with
- * "reduced" priviledges (saved UID is still 0, but effective UID is
+ * "reduced" privileges (saved UID is still 0, but effective UID is
  * the real user ID).
  *
  * @param fd_tun tunnel FD
@@ -728,7 +728,7 @@ PROCESS_BUFFER:
  *         25-39 failed to drop privs and then failed to undo some changes to routing table
  *         40 failed to regain privs
  *         41-55 failed to regain prisv and then failed to undo some changes to routing table
- *         254 insufficient priviledges
+ *         254 insufficient privileges
  *         255 failed to handle kill signal properly
  */
 int
