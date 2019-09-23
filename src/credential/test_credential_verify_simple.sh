@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 trap "gnunet-arm -e -c test_credential_lookup.conf" SIGINT
 
 LOCATION=$(which gnunet-config)
