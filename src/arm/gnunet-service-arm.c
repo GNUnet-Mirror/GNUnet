@@ -1400,6 +1400,10 @@ handle_list(void *cls, const struct GNUNET_ARM_Message *request)
           ssm->last_exit_status = htons (sl->last_exit_status);
         }
       }
+      else if ((NULL != sl->killing_client) || (GNUNET_YES == in_shutdown))
+      {
+        ssm->status = htonl (GNUNET_ARM_SERVICE_STATUS_STOPPING);
+      }
       else
       {
         ssm->status = htonl (GNUNET_ARM_SERVICE_STATUS_STARTED);

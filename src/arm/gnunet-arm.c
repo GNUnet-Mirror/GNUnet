@@ -561,20 +561,24 @@ list_callback(void *cls,
           fprintf(stdout, "%s (binary='%s', status=stopped)\n", list[i].name, list[i].binary);
         break;
       case GNUNET_ARM_SERVICE_STATUS_FAILED:
-          restart_in = GNUNET_TIME_absolute_get_remaining (list[i].restart_at);
-          fprintf(stdout, "%s (binary='%s', status=failed, exit_status=%d, restart_delay='%s')\n",
-                  list[i].name,
-                  list[i].binary,
-                  list[i].last_exit_status,
-                  GNUNET_STRINGS_relative_time_to_string (restart_in, GNUNET_YES));
-          break;
+        restart_in = GNUNET_TIME_absolute_get_remaining (list[i].restart_at);
+        fprintf(stdout, "%s (binary='%s', status=failed, exit_status=%d, restart_delay='%s')\n",
+                list[i].name,
+                list[i].binary,
+                list[i].last_exit_status,
+                GNUNET_STRINGS_relative_time_to_string (restart_in, GNUNET_YES));
+        break;
       case GNUNET_ARM_SERVICE_STATUS_FINISHED:
-          fprintf(stdout, "%s (binary='%s', status=finished)\n", list[i].name, list[i].binary);
-          break;
+        fprintf(stdout, "%s (binary='%s', status=finished)\n", list[i].name, list[i].binary);
+        break;
       case GNUNET_ARM_SERVICE_STATUS_STARTED:
-          fprintf(stdout, "%s (binary='%s', status=started)\n", list[i].name, list[i].binary);
-          break;
+        fprintf(stdout, "%s (binary='%s', status=started)\n", list[i].name, list[i].binary);
+        break;
+      case GNUNET_ARM_SERVICE_STATUS_STOPPING:
+        fprintf(stdout, "%s (binary='%s', status=stopping)\n", list[i].name, list[i].binary);
+        break;
       default:
+        GNUNET_break_op (0);
         fprintf(stdout, "%s (binary='%s', status=unknown)\n", list[i].name, list[i].binary);
         break;
 

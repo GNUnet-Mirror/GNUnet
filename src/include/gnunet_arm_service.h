@@ -174,6 +174,12 @@ enum GNUNET_ARM_ServiceStatus
    * The service was started, but then exited normally.
    */
   GNUNET_ARM_SERVICE_STATUS_FINISHED = 3,
+
+  /**
+   * The service was started, and we're currently waiting
+   * for it to be stopped.
+   */
+  GNUNET_ARM_SERVICE_STATUS_STOPPING = 4,
 };
 
 
