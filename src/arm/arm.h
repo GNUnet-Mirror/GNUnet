@@ -93,6 +93,44 @@ struct GNUNET_ARM_ResultMessage {
   uint32_t result;
 };
 
+struct GNUNET_ARM_ServiceInfoMessage {
+  /**
+   * String pool index for the service's name.
+   */
+  uint16_t name_index;
+
+  /**
+   * String pool index for the service's binary.
+   */
+  uint16_t binary_index;
+
+  /**
+   * Last process exit status.
+   */
+  int16_t last_exit_status;
+
+  /**
+   * Padding.
+   */
+  uint16_t padding;
+
+  /**
+   * Status from the 'enum GNUNET_ARM_ServiceStatus'
+   */
+  uint32_t status;
+
+  /**
+   * Time when the sevice will be restarted, if applicable
+   * to the current status.
+   */
+  struct GNUNET_TIME_AbsoluteNBO restart_at;
+
+  /**
+   * Time when the sevice was first started, if applicable.
+   */
+  struct GNUNET_TIME_AbsoluteNBO last_started_at;
+};
+
 /**
  * Reply from ARM to client for the
  * #GNUNET_MESSAGE_TYPE_ARM_LIST request followed by count
@@ -107,10 +145,13 @@ struct GNUNET_ARM_ListResultMessage {
   struct GNUNET_ARM_Message arm_msg;
 
   /**
-   * Number of '\0' terminated strings that follow
-   * this message.
+   * Number of 'struct GNUNET_ARM_ServiceInfoMessage' that
+   * are at the end of this message.
    */
   uint16_t count;
+
+  /* struct GNUNET_ARM_ServiceInfoMessage[count]; */
+  /* pool of 0-terminated strings */
 };
 
 GNUNET_NETWORK_STRUCT_END

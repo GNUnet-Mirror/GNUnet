@@ -294,7 +294,32 @@ handle_arm_result(void *cls, const struct GNUNET_ARM_ResultMessage *res)
 
 
 /**
- * Checked that list result message is well-formed.
+ * Read from a string pool.
+ *
+ * @param pool_start start of the string pool
+ * @param pool_size size of the string pool
+ * @param str_index index into the string pool
+ * @returns an index into the string pool, or
+ *          NULL if the index is out of bounds
+ */
+static const char *
+pool_get (const char *pool_start, size_t pool_size, size_t str_index)
+{
+  const char *str_start;
+  const char *end;
+
+  if (str_index >= pool_size)
+    return NULL;
+  str_start = pool_start + str_index;
+  end = memchr(str_start, 0, pool_size - str_index);
+  if (NULL == end)
+    return NULL;
+  return str_start;
+}
+
+
+/**
+ * Check that list result message is well-formed.
  *
  * @param cls our `struct GNUNET_ARM_Handle`
  * @param lres the message received from the arm service
@@ -304,23 +329,38 @@ static int
 check_arm_list_result(void *cls,
                       const struct GNUNET_ARM_ListResultMessage *lres)
 {
-  const char *pos = (const char *)&lres[1];
   uint16_t rcount = ntohs(lres->count);
   uint16_t msize = ntohs(lres->arm_msg.header.size) - sizeof(*lres);
-  uint16_t size_check;
+  struct GNUNET_ARM_ServiceInfoMessage *ssm;
+  size_t pool_size;
+  char *pool_start;
+
+  if ((rcount * sizeof (struct GNUNET_ARM_ServiceInfoMessage) > msize))
+  {
+    GNUNET_break_op (0);
+    return GNUNET_NO;
+  }
+
+  ssm = (struct GNUNET_ARM_ServiceInfoMessage *) &lres[1];
+  pool_start = (char *) (ssm + rcount);
+  pool_size = msize - (rcount * sizeof (struct GNUNET_ARM_ServiceInfoMessage));
 
   (void)cls;
-  size_check = 0;
   for (unsigned int i = 0; i < rcount; i++)
     {
-      const char *end = memchr(pos, 0, msize - size_check);
-      if (NULL == end)
-        {
-          GNUNET_break(0);
-          return GNUNET_SYSERR;
-        }
-      size_check += (end - pos) + 1;
-      pos = end + 1;
+      uint16_t name_index = ntohs (ssm->name_index);
+      uint16_t binary_index = ntohs (ssm->binary_index);
+      if (NULL == pool_get (pool_start, pool_size, name_index))
+      {
+        GNUNET_break_op (0);
+        return GNUNET_NO;
+      }
+      if (NULL == pool_get (pool_start, pool_size, binary_index))
+      {
+        GNUNET_break_op (0);
+        return GNUNET_NO;
+      }
+      ssm++;
     }
   return GNUNET_OK;
 }
@@ -338,12 +378,13 @@ handle_arm_list_result(void *cls,
 {
   struct GNUNET_ARM_Handle *h = cls;
   uint16_t rcount = ntohs(lres->count);
-  const char *list[rcount];
-  const char *pos = (const char *)&lres[1];
   uint16_t msize = ntohs(lres->arm_msg.header.size) - sizeof(*lres);
+  struct GNUNET_ARM_ServiceInfo list[rcount];
+  struct GNUNET_ARM_ServiceInfoMessage *ssm;
   struct GNUNET_ARM_Operation *op;
-  uint16_t size_check;
   uint64_t id;
+  size_t pool_size;
+  char *pool_start;
 
   id = GNUNET_ntohll(lres->arm_msg.request_id);
   op = find_op_by_id(h, id);
@@ -354,16 +395,31 @@ handle_arm_list_result(void *cls,
           (unsigned long long)id);
       return;
     }
-  size_check = 0;
+
+  GNUNET_assert ((rcount * sizeof (struct GNUNET_ARM_ServiceInfoMessage) <= msize));
+
+  ssm = (struct GNUNET_ARM_ServiceInfoMessage *) &lres[1];
+  pool_start = (char *) (ssm + rcount);
+  pool_size = msize - (rcount * sizeof (struct GNUNET_ARM_ServiceInfoMessage));
+
   for (unsigned int i = 0; i < rcount; i++)
     {
-      const char *end = memchr(pos, 0, msize - size_check);
+      uint16_t name_index = ntohs (ssm->name_index);
+      uint16_t binary_index = ntohs (ssm->binary_index);
+      const char *name;
+      const char *binary;
 
-      /* Assert, as this was already checked in #check_arm_list_result() */
-      GNUNET_assert(NULL != end);
-      list[i] = pos;
-      size_check += (end - pos) + 1;
-      pos = end + 1;
+      GNUNET_assert (NULL != (name = pool_get (pool_start, pool_size, name_index)));
+      GNUNET_assert (NULL != (binary = pool_get (pool_start, pool_size, binary_index)));
+      list[i] = (struct GNUNET_ARM_ServiceInfo) {
+        .name = name,
+        .binary = binary,
+        .status = ntohl (ssm->status),
+        .last_started_at = GNUNET_TIME_absolute_ntoh (ssm->last_started_at),
+        .restart_at = GNUNET_TIME_absolute_ntoh (ssm->restart_at),
+        .last_exit_status = ntohs (ssm->last_exit_status),
+      };
+      ssm++;
     }
   if (NULL != op->list_cont)
     op->list_cont(op->cont_cls, GNUNET_ARM_REQUEST_SENT_OK, rcount, list);

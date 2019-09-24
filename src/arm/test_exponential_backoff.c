@@ -196,7 +196,7 @@ arm_stop_cb(void *cls,
 static void
 srv_status(void *cls,
            const char *service,
-           enum GNUNET_ARM_ServiceStatus status)
+           enum GNUNET_ARM_ServiceMonitorStatus status)
 {
   if (status == GNUNET_ARM_SERVICE_MONITORING_STARTED)
     {

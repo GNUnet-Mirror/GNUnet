@@ -164,6 +164,11 @@ struct ServiceList {
   struct GNUNET_TIME_Relative backoff;
 
   /**
+   * Absolute time at which the process was (re-)started last.
+   */
+  struct GNUNET_TIME_Absolute last_started_at;
+
+  /**
    * Absolute time at which the process is scheduled to restart in case of death
    */
   struct GNUNET_TIME_Absolute restart_at;
@@ -186,6 +191,11 @@ struct ServiceList {
    * are on Windoze).
    */
   int pipe_control;
+
+  /**
+   * Last exit status of the process.
+   */
+  int last_exit_status;
 };
 
 /**
@@ -696,7 +706,7 @@ signal_result(struct GNUNET_SERVICE_Client *client,
  */
 static void
 broadcast_status(const char *name,
-                 enum GNUNET_ARM_ServiceStatus status,
+                 enum GNUNET_ARM_ServiceMonitorStatus status,
                  struct GNUNET_SERVICE_Client *unicast)
 {
   struct GNUNET_MQ_Envelope *env;
@@ -914,6 +924,7 @@ start_process(struct ServiceList *sl,
     }
   GNUNET_free(binary);
   GNUNET_free(quotedbinary);
+  sl->last_started_at = GNUNET_TIME_absolute_get ();
   if (NULL == sl->proc)
     {
       GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
@@ -1300,6 +1311,29 @@ handle_stop(void *cls, const struct GNUNET_ARM_Message *amsg)
 
 
 /**
+ * Write a string to a string pool.
+ *
+ * @param pool_start pointer to the start of the string pool
+ * @param pool_size size of the string pool
+ * @param[in,out] pool_pos current position index in the string pool,
+ *                will be updated
+ * @param str string to write to the string pool
+ * @returns GNUNET_OK if the string fits into the pool,
+ *          GNUNET_SYSERR otherwise
+ */
+static int
+pool_write(char *pool_start, size_t pool_size, size_t *pool_pos, char *str)
+{
+  size_t next_pos = (*pool_pos) + strlen (str) + 1;
+
+  if (next_pos > pool_size)
+    return GNUNET_SYSERR;
+  memcpy (pool_start + *pool_pos, str, strlen (str) + 1);
+  *pool_pos = next_pos;
+  return GNUNET_OK;
+}
+
+/**
  * Handle LIST-message.
  *
  * @param cls identification of the client
@@ -1311,42 +1345,68 @@ handle_list(void *cls, const struct GNUNET_ARM_Message *request)
   struct GNUNET_SERVICE_Client *client = cls;
   struct GNUNET_MQ_Envelope *env;
   struct GNUNET_ARM_ListResultMessage *msg;
-  size_t string_list_size;
+  size_t extra_size;
   struct ServiceList *sl;
   uint16_t count;
-  char *pos;
+  size_t pool_size;
+  size_t pool_pos;
+  char *pool_start;
+  struct GNUNET_ARM_ServiceInfoMessage *ssm;
 
-  GNUNET_break(0 == ntohl(request->reserved));
+  GNUNET_break_op(0 == ntohl(request->reserved));
   count = 0;
-  string_list_size = 0;
+  pool_size = 0;
 
-  /* first count the running processes get their name's size */
+  /* Do one pass over the list to compute the number of services
+   * and the string pool size */
   for (sl = running_head; NULL != sl; sl = sl->next)
     {
-      if (NULL != sl->proc)
-        {
-          string_list_size += strlen(sl->name);
-          string_list_size += strlen(sl->binary);
-          string_list_size += 4;
-          count++;
-        }
+        pool_size += strlen(sl->name) + 1;
+        pool_size += strlen(sl->binary) + 1;
+        count++;
     }
 
+  extra_size = pool_size + (count * sizeof (struct GNUNET_ARM_ServiceInfoMessage));
   env = GNUNET_MQ_msg_extra(msg,
-                            string_list_size,
+                            extra_size,
                             GNUNET_MESSAGE_TYPE_ARM_LIST_RESULT);
   msg->arm_msg.request_id = request->request_id;
   msg->count = htons(count);
 
-  pos = (char *)&msg[1];
+  ssm = (struct GNUNET_ARM_ServiceInfoMessage *) &msg[1];
+  pool_start = (char *) (ssm + count);
+  pool_pos = 0;
+
   for (sl = running_head; NULL != sl; sl = sl->next)
     {
-      if (NULL != sl->proc)
+      ssm->name_index = htons ((uint16_t) pool_pos);
+      GNUNET_assert (GNUNET_OK == pool_write (pool_start, pool_size, &pool_pos, sl->name));
+      ssm->binary_index = htons ((uint16_t) pool_pos);
+      GNUNET_assert (GNUNET_OK == pool_write (pool_start, pool_size, &pool_pos, sl->binary));
+      if (NULL == sl->proc)
+      {
+        if (0 == sl->last_started_at.abs_value_us)
         {
-          size_t s = strlen(sl->name) + strlen(sl->binary) + 4;
-          GNUNET_snprintf(pos, s, "%s (%s)", sl->name, sl->binary);
-          pos += s;
+          /* Process never started */
+          ssm->status = htonl (GNUNET_ARM_SERVICE_STATUS_STOPPED);
         }
+        else if (0 == sl->last_exit_status)
+        {
+          ssm->status = htonl (GNUNET_ARM_SERVICE_STATUS_FINISHED);
+        }
+        else
+        {
+          ssm->status = htonl (GNUNET_ARM_SERVICE_STATUS_FAILED);
+          ssm->last_exit_status = htons (sl->last_exit_status);
+        }
+      }
+      else
+      {
+        ssm->status = htonl (GNUNET_ARM_SERVICE_STATUS_STARTED);
+      }
+      ssm->last_started_at = GNUNET_TIME_absolute_hton (sl->last_started_at);
+      ssm->restart_at = GNUNET_TIME_absolute_hton (sl->restart_at);
+      ssm++;
     }
   GNUNET_MQ_send(GNUNET_SERVICE_client_get_mq(client), env);
   GNUNET_SERVICE_client_continue(client);
@@ -1700,6 +1760,7 @@ maint_child_death(void *cls)
         }
       if (GNUNET_YES != in_shutdown)
         {
+          pos->last_exit_status = statcode;
           if ((statusType == GNUNET_OS_PROCESS_EXITED) && (statcode == 0))
             {
               /* process terminated normally, allow restart at any time */
@@ -1722,7 +1783,7 @@ maint_child_death(void *cls)
           else
             {
               GNUNET_log(
-                GNUNET_ERROR_TYPE_INFO,
+                GNUNET_ERROR_TYPE_WARNING,
                 _("Service `%s' terminated with status %s/%d, will restart in %s\n"),
                 pos->name,
                 statstr,

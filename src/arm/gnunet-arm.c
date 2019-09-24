@@ -54,6 +54,11 @@ static int delete;
 static int quiet;
 
 /**
+ * Set if we should print all services, including stopped ones.
+ */
+static int show_all;
+
+/**
  * Monitor ARM activity.
  */
 static int monitor;
@@ -508,13 +513,13 @@ term_callback(void *cls,
  * @param cls closure (unused)
  * @param rs request status (success, failure, etc.)
  * @param count number of services in the list
- * @param list list of services that are running
+ * @param list list of services managed by arm
  */
 static void
 list_callback(void *cls,
               enum GNUNET_ARM_RequestStatus rs,
               unsigned int count,
-              const char *const *list)
+              const struct GNUNET_ARM_ServiceInfo *list)
 {
   (void)cls;
   op = NULL;
@@ -540,9 +545,41 @@ list_callback(void *cls,
       return;
     }
   if (!quiet)
-    fprintf(stdout, "%s", _("Running services:\n"));
+  {
+    if (show_all)
+      fprintf(stdout, "%s", _("All services:\n"));
+    else
+      fprintf(stdout, "%s", _("Services (excluding stopped services):\n"));
+  }
   for (unsigned int i = 0; i < count; i++)
-    fprintf(stdout, "%s\n", list[i]);
+  {
+    struct GNUNET_TIME_Relative restart_in;
+    switch (list[i].status)
+    {
+      case GNUNET_ARM_SERVICE_STATUS_STOPPED:
+        if (show_all)
+          fprintf(stdout, "%s (binary='%s', status=stopped)\n", list[i].name, list[i].binary);
+        break;
+      case GNUNET_ARM_SERVICE_STATUS_FAILED:
+          restart_in = GNUNET_TIME_absolute_get_remaining (list[i].restart_at);
+          fprintf(stdout, "%s (binary='%s', status=failed, exit_status=%d, restart_delay='%s')\n",
+                  list[i].name,
+                  list[i].binary,
+                  list[i].last_exit_status,
+                  GNUNET_STRINGS_relative_time_to_string (restart_in, GNUNET_YES));
+          break;
+      case GNUNET_ARM_SERVICE_STATUS_FINISHED:
+          fprintf(stdout, "%s (binary='%s', status=finished)\n", list[i].name, list[i].binary);
+          break;
+      case GNUNET_ARM_SERVICE_STATUS_STARTED:
+          fprintf(stdout, "%s (binary='%s', status=started)\n", list[i].name, list[i].binary);
+          break;
+      default:
+        fprintf(stdout, "%s (binary='%s', status=unknown)\n", list[i].name, list[i].binary);
+        break;
+
+    }
+  }
   al_task = GNUNET_SCHEDULER_add_now(&action_loop, NULL);
 }
 
@@ -652,7 +689,7 @@ action_loop(void *cls)
 static void
 srv_status(void *cls,
            const char *service,
-           enum GNUNET_ARM_ServiceStatus status)
+           enum GNUNET_ARM_ServiceMonitorStatus status)
 {
   const char *msg;
 
@@ -773,6 +810,10 @@ main(int argc, char *const *argv)
                                 "SERVICE",
                                 gettext_noop("stop a particular service"),
                                 &term),
+    GNUNET_GETOPT_option_flag('a',
+                              "all",
+                              gettext_noop("also show stopped services (used with -I)"),
+                              &show_all),
     GNUNET_GETOPT_option_flag('s',
                               "start",
                               gettext_noop(

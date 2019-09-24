@@ -78,7 +78,7 @@ static void
 service_list(void *cls,
              enum GNUNET_ARM_RequestStatus rs,
              unsigned int count,
-             const char *const*list)
+             const struct GNUNET_ARM_ServiceInfo *list)
 {
   unsigned int i;
 
@@ -89,13 +89,13 @@ service_list(void *cls,
     goto stop_arm;
   for (i = 0; i < count; i++)
     {
-      if (0 == strcasecmp(list[i],
-                          "resolver (gnunet-service-resolver)"))
-        {
+      if ((0 == strcasecmp(list[i].name, "resolver")) && 
+          (0 == strcasecmp(list[i].binary, "gnunet-service-resolver")))
+      {
           GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
                      "Got service list, now stopping arm\n");
           ret = 0;
-        }
+      }
     }
 
 stop_arm:

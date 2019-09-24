@@ -70,7 +70,7 @@ enum GNUNET_ARM_RequestStatus {
 /**
  * Statuses of services.
  */
-enum GNUNET_ARM_ServiceStatus {
+enum GNUNET_ARM_ServiceMonitorStatus {
   /**
    * Dummy message.
    */
@@ -150,6 +150,72 @@ enum GNUNET_ARM_Result {
 
 
 /**
+ * Status of a service managed by ARM.
+ */
+enum GNUNET_ARM_ServiceStatus
+{
+  /**
+   * Service is stopped.
+   */
+  GNUNET_ARM_SERVICE_STATUS_STOPPED = 0,
+
+  /**
+   * Service has been started and is currently running.
+   */
+  GNUNET_ARM_SERVICE_STATUS_STARTED = 1,
+
+  /**
+   * The service has previously failed, and
+   * will be restarted.
+   */
+  GNUNET_ARM_SERVICE_STATUS_FAILED = 2,
+
+  /**
+   * The service was started, but then exited normally.
+   */
+  GNUNET_ARM_SERVICE_STATUS_FINISHED = 3,
+};
+
+
+/**
+ * Information about a service managed by ARM.
+ */
+struct GNUNET_ARM_ServiceInfo
+{
+  /**
+   * The current status of the service.
+   */
+  enum GNUNET_ARM_ServiceStatus status;
+
+  /**
+   * The name of the service.
+   */
+  const char *name;
+
+  /**
+   * The binary used to execute the service.
+   */
+  const char *binary;
+
+  /**
+   * Time when the sevice will be restarted, if applicable
+   * to the current status.
+   */
+  struct GNUNET_TIME_Absolute restart_at;
+
+  /**
+   * Time when the sevice was first started, if applicable.
+   */
+  struct GNUNET_TIME_Absolute last_started_at;
+
+  /**
+   * Last process exit status.
+   */
+  int last_exit_status;
+};
+
+
+/**
  * Handle for interacting with ARM.
  */
 struct GNUNET_ARM_Handle;
@@ -197,13 +263,13 @@ typedef void
  * @param cls closure
  * @param rs status of the request
  * @param count number of strings in the list
- * @param list list of running services
+ * @param list list of services managed by arm
  */
 typedef void
 (*GNUNET_ARM_ServiceListCallback) (void *cls,
                                    enum GNUNET_ARM_RequestStatus rs,
                                    unsigned int count,
-                                   const char *const*list);
+                                   const struct GNUNET_ARM_ServiceInfo *list);
 
 
 /**
@@ -309,9 +375,9 @@ struct GNUNET_ARM_MonitorHandle;
  * @param status status of the service
  */
 typedef void
-(*GNUNET_ARM_ServiceStatusCallback) (void *cls,
+(*GNUNET_ARM_ServiceMonitorCallback) (void *cls,
                                      const char *service,
-                                     enum GNUNET_ARM_ServiceStatus status);
+                                     enum GNUNET_ARM_ServiceMonitorStatus status);
 
 
 /**
@@ -327,7 +393,7 @@ typedef void
  */
 struct GNUNET_ARM_MonitorHandle *
 GNUNET_ARM_monitor_start(const struct GNUNET_CONFIGURATION_Handle *cfg,
-                         GNUNET_ARM_ServiceStatusCallback cont,
+                         GNUNET_ARM_ServiceMonitorCallback cont,
                          void *cont_cls);
 
 
