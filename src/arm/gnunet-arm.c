@@ -521,6 +521,11 @@ list_callback(void *cls,
               unsigned int count,
               const struct GNUNET_ARM_ServiceInfo *list)
 {
+  unsigned int num_stopped = 0;
+  unsigned int num_started = 0;
+  unsigned int num_stopping = 0;
+  unsigned int num_failed = 0;
+  unsigned int num_finished = 0;
   (void)cls;
   op = NULL;
   if (GNUNET_ARM_REQUEST_SENT_OK != rs)
@@ -544,12 +549,83 @@ list_callback(void *cls,
       ret = 3;
       return;
     }
+  for (unsigned int i = 0; i < count; i++)
+  {
+    switch (list[i].status)
+    {
+      case GNUNET_ARM_SERVICE_STATUS_STOPPED:
+        num_stopped++;
+        break;
+      case GNUNET_ARM_SERVICE_STATUS_FAILED:
+        num_failed++;
+        break;
+      case GNUNET_ARM_SERVICE_STATUS_FINISHED:
+        num_finished++;
+        break;
+      case GNUNET_ARM_SERVICE_STATUS_STARTED:
+        num_started++;
+        break;
+      case GNUNET_ARM_SERVICE_STATUS_STOPPING:
+        num_stopping++;
+        fprintf(stdout, "%s (binary='%s', status=stopping)\n", list[i].name, list[i].binary);
+        break;
+      default:
+        GNUNET_break_op (0);
+        fprintf(stdout, "%s (binary='%s', status=unknown)\n", list[i].name, list[i].binary);
+        break;
+    }
+  }
   if (!quiet)
   {
     if (show_all)
       fprintf(stdout, "%s", _("All services:\n"));
     else
       fprintf(stdout, "%s", _("Services (excluding stopped services):\n"));
+    if (num_stopped || num_failed || num_finished || num_stopping || num_started)
+    {
+      int sep = 0;
+      fprintf(stdout, "(");
+      if (0 != num_started)
+      {
+        if (sep)
+          fprintf(stdout, " / ");
+        fprintf(stdout, "started: %u", num_started);
+        sep = 1;
+      }
+      if (0 != num_failed)
+      {
+        if (sep)
+          fprintf(stdout, " / ");
+        fprintf(stdout, "failed: %u", num_failed);
+        sep = 1;
+      }
+      if (0 != num_stopping)
+      {
+        if (sep)
+          fprintf(stdout, " / ");
+        fprintf(stdout, "stopping: %u", num_stopping);
+        sep = 1;
+      }
+      if (0 != num_stopped)
+      {
+        if (sep)
+          fprintf(stdout, " / ");
+        fprintf(stdout, "stopped: %u", num_stopped);
+        sep = 1;
+      }
+      if (0 != num_finished)
+      {
+        if (sep)
+          fprintf(stdout, " / ");
+        fprintf(stdout, "finished: %u", num_finished);
+        sep = 1;
+      }
+      fprintf(stdout, ")\n");
+    }
+    else
+    {
+      fprintf(stdout, "%s", _("(No services configured.)\n"));
+    }
   }
   for (unsigned int i = 0; i < count; i++)
   {
@@ -581,7 +657,6 @@ list_callback(void *cls,
         GNUNET_break_op (0);
         fprintf(stdout, "%s (binary='%s', status=unknown)\n", list[i].name, list[i].binary);
         break;
-
     }
   }
   al_task = GNUNET_SCHEDULER_add_now(&action_loop, NULL);
