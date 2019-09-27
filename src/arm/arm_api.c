@@ -85,6 +85,11 @@ struct GNUNET_ARM_Operation
   enum GNUNET_ARM_Result starting_ret;
 
   /**
+   * File descriptor to close on operation stop, if not NULL.
+   */
+  struct GNUNET_DISK_FileHandle *rfd;
+
+  /**
    * Is this an operation to stop the ARM service?
    */
   int is_arm_stop;
@@ -203,19 +208,27 @@ reconnect_arm_later (struct GNUNET_ARM_Handle *h)
   h->currently_up = GNUNET_NO;
   GNUNET_assert (NULL == h->reconnect_task);
   h->reconnect_task =
-    GNUNET_SCHEDULER_add_delayed (h->retry_backoff, &reconnect_arm_task, h);
+    GNUNET_SCHEDULER_add_delayed (h->retry_backoff,
+                                  &reconnect_arm_task,
+                                  h);
   while (NULL != (op = h->operation_pending_head))
   {
     if (NULL != op->result_cont)
-      op->result_cont (op->cont_cls, GNUNET_ARM_REQUEST_DISCONNECTED, 0);
+      op->result_cont (op->cont_cls,
+                       GNUNET_ARM_REQUEST_DISCONNECTED,
+                       0);
     if (NULL != op->list_cont)
-      op->list_cont (op->cont_cls, GNUNET_ARM_REQUEST_DISCONNECTED, 0, NULL);
+      op->list_cont (op->cont_cls,
+                     GNUNET_ARM_REQUEST_DISCONNECTED,
+                     0,
+                     NULL);
     GNUNET_ARM_operation_cancel (op);
   }
   GNUNET_assert (NULL == h->operation_pending_head);
   h->retry_backoff = GNUNET_TIME_STD_BACKOFF (h->retry_backoff);
   if (NULL != h->conn_status)
-    h->conn_status (h->conn_status_cls, GNUNET_NO);
+    h->conn_status (h->conn_status_cls,
+                    GNUNET_NO);
 }
 
 
@@ -257,7 +270,8 @@ handle_arm_result (void *cls,
   void *result_cont_cls;
 
   id = GNUNET_ntohll (res->arm_msg.request_id);
-  op = find_op_by_id (h, id);
+  op = find_op_by_id (h,
+                      id);
   if (NULL == op)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -356,7 +370,9 @@ check_arm_list_result (void *cls,
   {
     uint16_t name_index = ntohs (ssm->name_index);
     uint16_t binary_index = ntohs (ssm->binary_index);
-    if (NULL == pool_get (pool_start, pool_size, name_index))
+    if (NULL == pool_get (pool_start,
+                          pool_size,
+                          name_index))
     {
       GNUNET_break_op (0);
       return GNUNET_NO;
@@ -418,9 +434,11 @@ handle_arm_list_result (void *cls,
     const char *name;
     const char *binary;
 
-    GNUNET_assert (NULL != (name = pool_get (pool_start, pool_size,
+    GNUNET_assert (NULL != (name = pool_get (pool_start,
+                                             pool_size,
                                              name_index)));
-    GNUNET_assert (NULL != (binary = pool_get (pool_start, pool_size,
+    GNUNET_assert (NULL != (binary = pool_get (pool_start,
+                                               pool_size,
                                                binary_index)));
     list[i] = (struct GNUNET_ARM_ServiceInfo) {
       .name = name,
@@ -630,11 +648,13 @@ GNUNET_ARM_disconnect (struct GNUNET_ARM_Handle *h)
  *
  * @param h the handle with configuration details
  * @param std_inheritance inheritance of std streams
+ * @param sigfd socket to pass to ARM for signalling
  * @return operation status code
  */
 static enum GNUNET_ARM_Result
 start_arm_service (struct GNUNET_ARM_Handle *h,
-                   enum GNUNET_OS_InheritStdioFlags std_inheritance)
+                   enum GNUNET_OS_InheritStdioFlags std_inheritance,
+                   struct GNUNET_DISK_FileHandle *sigfd)
 {
   struct GNUNET_OS_Process *proc;
   char *cbinary;
@@ -643,7 +663,19 @@ start_arm_service (struct GNUNET_ARM_Handle *h,
   char *config;
   char *loprefix;
   char *lopostfix;
+  SOCKTYPE ld[2];
+  SOCKTYPE *lsocks;
 
+  if (NULL == sigfd)
+  {
+    lsocks = NULL;
+  }
+  else
+  {
+    ld[0] = sigfd->fd;
+    ld[1] = -1;
+    lsocks = ld;
+  }
   if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_string (h->cfg,
                                                           "arm",
                                                           "PREFIX",
@@ -700,7 +732,7 @@ start_arm_service (struct GNUNET_ARM_Handle *h,
     if (NULL == config)
       proc = GNUNET_OS_start_process_s (GNUNET_NO,
                                         std_inheritance,
-                                        NULL,
+                                        lsocks,
                                         loprefix,
                                         quotedbinary,
                                         /* no daemonization! */
@@ -709,7 +741,7 @@ start_arm_service (struct GNUNET_ARM_Handle *h,
     else
       proc = GNUNET_OS_start_process_s (GNUNET_NO,
                                         std_inheritance,
-                                        NULL,
+                                        lsocks,
                                         loprefix,
                                         quotedbinary,
                                         "-c",
@@ -723,7 +755,7 @@ start_arm_service (struct GNUNET_ARM_Handle *h,
     if (NULL == config)
       proc = GNUNET_OS_start_process_s (GNUNET_NO,
                                         std_inheritance,
-                                        NULL,
+                                        lsocks,
                                         loprefix,
                                         quotedbinary,
                                         "-d",  /* do daemonize */
@@ -732,7 +764,7 @@ start_arm_service (struct GNUNET_ARM_Handle *h,
     else
       proc = GNUNET_OS_start_process_s (GNUNET_NO,
                                         std_inheritance,
-                                        NULL,
+                                        lsocks,
                                         loprefix,
                                         quotedbinary,
                                         "-c",
@@ -764,6 +796,16 @@ GNUNET_ARM_operation_cancel (struct GNUNET_ARM_Operation *op)
 {
   struct GNUNET_ARM_Handle *h = op->h;
 
+  if (NULL != op->async)
+  {
+    GNUNET_SCHEDULER_cancel (op->async);
+    op->async = NULL;
+  }
+  if (NULL != op->rfd)
+  {
+    GNUNET_DISK_file_close (op->rfd);
+    op->rfd = NULL;
+  }
   if (h->thm == op)
   {
     op->result_cont = NULL;
@@ -895,6 +937,8 @@ GNUNET_ARM_request_service_start (struct GNUNET_ARM_Handle *h,
 {
   struct GNUNET_ARM_Operation *op;
   enum GNUNET_ARM_Result ret;
+  struct GNUNET_DISK_PipeHandle *sig;
+  struct GNUNET_DISK_FileHandle *wsig;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Starting service `%s'\n",
@@ -933,8 +977,22 @@ GNUNET_ARM_request_service_start (struct GNUNET_ARM_Handle *h,
      are unlikely to hammer 'gnunet-arm -s' on a busy system,
      the above check should catch 99.99% of the cases where ARM
      is already running. */
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Starting ARM service\n");
-  ret = start_arm_service (h, std_inheritance);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Starting ARM service\n");
+  if (NULL == (sig = GNUNET_DISK_pipe (GNUNET_NO,
+                                       GNUNET_NO,
+                                       GNUNET_NO,
+                                       GNUNET_YES)))
+  {
+    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING,
+                         "pipe");
+  }
+  wsig = GNUNET_DISK_pipe_detach_end (sig,
+                                      GNUNET_DISK_PIPE_END_WRITE);
+  ret = start_arm_service (h,
+                           std_inheritance,
+                           wsig);
+  GNUNET_DISK_file_close (wsig);
   if (GNUNET_ARM_RESULT_STARTING == ret)
     reconnect_arm (h);
   op = GNUNET_new (struct GNUNET_ARM_Operation);
@@ -945,8 +1003,23 @@ GNUNET_ARM_request_service_start (struct GNUNET_ARM_Handle *h,
                                     h->operation_pending_tail,
                                     op);
   op->starting_ret = ret;
-  op->async = GNUNET_SCHEDULER_add_now (&notify_starting,
-                                        op);
+  if (NULL != sig)
+  {
+    op->rfd = GNUNET_DISK_pipe_detach_end (sig,
+                                           GNUNET_DISK_PIPE_END_READ);
+    /* Wait at most a minute for gnunet-service-arm to be up, as beyond
+       that something clearly just went wrong */
+    op->async = GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_MINUTES,
+                                                op->rfd,
+                                                &notify_starting,
+                                                op);
+  }
+  else
+  {
+    op->async = GNUNET_SCHEDULER_add_now (&notify_starting,
+                                          op);
+  }
+  GNUNET_DISK_pipe_close (sig);
   return op;
 }
 

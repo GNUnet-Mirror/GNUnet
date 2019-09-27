@@ -175,6 +175,7 @@ struct GNUNET_SERVICE_Handle
    */
   void *task_cls;
 
+
   /**
    * IPv4 addresses that are not allowed to connect.
    */
@@ -408,18 +409,16 @@ service_shutdown (void *cls)
 {
   struct GNUNET_SERVICE_Handle *sh = cls;
 
-  switch (sh->options)
+  switch (sh->options & GNUNET_SERVICE_OPTION_SHUTDOWN_BITMASK)
   {
   case GNUNET_SERVICE_OPTION_NONE:
     GNUNET_SERVICE_shutdown (sh);
     break;
-
   case GNUNET_SERVICE_OPTION_MANUAL_SHUTDOWN:
     /* This task should never be run if we are using
        the manual shutdown. */
     GNUNET_assert (0);
     break;
-
   case GNUNET_SERVICE_OPTION_SOFT_SHUTDOWN:
     if (0 == (sh->suspend_state & SUSPEND_STATE_SHUTDOWN))
       do_suspend (sh, SUSPEND_STATE_SHUTDOWN);
@@ -902,7 +901,8 @@ service_main (void *cls)
 {
   struct GNUNET_SERVICE_Handle *sh = cls;
 
-  if (GNUNET_SERVICE_OPTION_MANUAL_SHUTDOWN != sh->options)
+  if (GNUNET_SERVICE_OPTION_MANUAL_SHUTDOWN !=
+      (sh->options & GNUNET_SERVICE_OPTION_SHUTDOWN_BITMASK))
     GNUNET_SCHEDULER_add_shutdown (&service_shutdown, sh);
   do_resume (sh, SUSPEND_STATE_NONE);
 
@@ -1361,15 +1361,12 @@ open_listen_socket (const struct sockaddr *server_addr,
   case AF_INET:
     port = ntohs (((const struct sockaddr_in *) server_addr)->sin_port);
     break;
-
   case AF_INET6:
     port = ntohs (((const struct sockaddr_in6 *) server_addr)->sin6_port);
     break;
-
   case AF_UNIX:
     port = 0;
     break;
-
   default:
     GNUNET_break (0);
     port = 0;
@@ -1463,13 +1460,16 @@ static int
 setup_service (struct GNUNET_SERVICE_Handle *sh)
 {
   int tolerant;
+  struct GNUNET_NETWORK_Handle **csocks = NULL;
   struct GNUNET_NETWORK_Handle **lsocks;
   const char *nfds;
   unsigned int cnt;
   int flags;
   char dummy[2];
 
-  if (GNUNET_CONFIGURATION_have_value (sh->cfg, sh->service_name, "TOLERANT"))
+  if (GNUNET_CONFIGURATION_have_value (sh->cfg,
+                                       sh->service_name,
+                                       "TOLERANT"))
   {
     if (GNUNET_SYSERR ==
         (tolerant = GNUNET_CONFIGURATION_get_value_yesno (sh->cfg,
@@ -1487,7 +1487,6 @@ setup_service (struct GNUNET_SERVICE_Handle *sh)
     tolerant = GNUNET_NO;
 
   lsocks = NULL;
-
   errno = 0;
   if ((NULL != (nfds = getenv ("LISTEN_FDS"))) &&
       (1 == sscanf (nfds, "%u%1s", &cnt, dummy)) && (cnt > 0) &&
@@ -1515,13 +1514,17 @@ setup_service (struct GNUNET_SERVICE_Handle *sh)
     }
     unsetenv ("LISTEN_FDS");
   }
+  if ( (0 != (GNUNET_SERVICE_OPTION_CLOSE_LSOCKS & sh->options)) &&
+       (NULL != lsocks) )
+  {
+    csocks = lsocks;
+    lsocks = NULL;
+  }
 
   if (NULL != lsocks)
   {
     /* listen only on inherited sockets if we have any */
-    struct GNUNET_NETWORK_Handle **ls;
-
-    for (ls = lsocks; NULL != *ls; ls++)
+    for (struct GNUNET_NETWORK_Handle **ls = lsocks; NULL != *ls; ls++)
     {
       struct ServiceListenContext *slc;
 
@@ -1567,10 +1570,17 @@ setup_service (struct GNUNET_SERVICE_Handle *sh)
         GNUNET_ERROR_TYPE_ERROR,
         _ (
           "Could not bind to any of the ports I was supposed to, refusing to run!\n"));
+      GNUNET_free_non_null (csocks);
       return GNUNET_SYSERR;
     }
   }
-
+  if (NULL != csocks)
+  {
+    /* close inherited sockets to signal parent that we are ready */
+    for (struct GNUNET_NETWORK_Handle **ls = csocks; NULL != *ls; ls++)
+      GNUNET_NETWORK_socket_close (*ls);
+    GNUNET_free (csocks);
+  }
   sh->require_found = tolerant ? GNUNET_NO : GNUNET_YES;
   sh->match_uid = GNUNET_CONFIGURATION_get_value_yesno (sh->cfg,
                                                         sh->service_name,
@@ -1981,9 +1991,8 @@ GNUNET_SERVICE_run_ (int argc,
   int ret;
   int err;
   const struct GNUNET_OS_ProjectData *pd = GNUNET_OS_project_data_get ();
-
-  struct GNUNET_GETOPT_CommandLineOption service_options[] =
-  { GNUNET_GETOPT_option_cfgfile (&opt_cfg_filename),
+  struct GNUNET_GETOPT_CommandLineOption service_options[] = {
+    GNUNET_GETOPT_option_cfgfile (&opt_cfg_filename),
     GNUNET_GETOPT_option_flag ('d',
                                "daemonize",
                                gettext_noop (
@@ -1993,7 +2002,8 @@ GNUNET_SERVICE_run_ (int argc,
     GNUNET_GETOPT_option_loglevel (&loglev),
     GNUNET_GETOPT_option_logfile (&logfile),
     GNUNET_GETOPT_option_version (pd->version),
-    GNUNET_GETOPT_OPTION_END };
+    GNUNET_GETOPT_OPTION_END
+  };
 
   err = 1;
   memset (&sh, 0, sizeof(sh));
@@ -2036,7 +2046,10 @@ GNUNET_SERVICE_run_ (int argc,
     textdomain (pd->gettext_domain);
   }
 #endif
-  ret = GNUNET_GETOPT_run (service_name, service_options, argc, argv);
+  ret = GNUNET_GETOPT_run (service_name,
+                           service_options,
+                           argc,
+                           argv);
   if (GNUNET_SYSERR == ret)
     goto shutdown;
   if (GNUNET_NO == ret)
@@ -2044,7 +2057,9 @@ GNUNET_SERVICE_run_ (int argc,
     err = 0;
     goto shutdown;
   }
-  if (GNUNET_OK != GNUNET_log_setup (service_name, loglev, logfile))
+  if (GNUNET_OK != GNUNET_log_setup (service_name,
+                                     loglev,
+                                     logfile))
   {
     GNUNET_break (0);
     goto shutdown;

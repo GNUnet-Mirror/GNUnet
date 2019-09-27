@@ -213,8 +213,8 @@ run (void *cls,
       GNUNET_CLIENT_test (cfg,
                           "arm"))
   {
-    fprintf (stderr,
-             _ ("GNUnet not running\n"));
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                _ ("Cannot resolve using GNS: GNUnet peer not running\n"));
     global_ret = 2;
     return;
   }
