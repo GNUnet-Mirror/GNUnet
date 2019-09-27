@@ -534,17 +534,6 @@ try_unixpath (const char *service_name,
     GNUNET_strlcpy (s_un.sun_path,
                     unixpath,
                     sizeof(s_un.sun_path));
-#ifdef LINUX
-    {
-      int abstract;
-
-      abstract = GNUNET_CONFIGURATION_get_value_yesno (cfg,
-                                                       "TESTING",
-                                                       "USE_ABSTRACT_SOCKETS");
-      if (GNUNET_YES == abstract)
-        s_un.sun_path[0] = '\0';
-    }
-#endif
 #if HAVE_SOCKADDR_UN_SUN_LEN
     s_un.sun_len = (u_char) sizeof(struct sockaddr_un);
 #endif
@@ -885,6 +874,172 @@ connection_client_cancel_impl (struct GNUNET_MQ_Handle *mq,
     GNUNET_SCHEDULER_cancel (cstate->send_task);
     cstate->send_task = NULL;
   }
+}
+
+
+/**
+ * Test if the port or UNIXPATH of the given @a service_name
+ * is in use and thus (most likely) the respective service is up.
+ *
+ * @param cfg our configuration
+ * @param service_name name of the service to connect to
+ * @return #GNUNET_YES if the service is (likely) up,
+ *         #GNUNET_NO if the service is (definitively) down,
+ *         #GNUNET_SYSERR if the configuration does not give us
+ *          the necessary information about the service, or if
+ *          we could not check (i.e. socket() failed)
+ */
+int
+GNUNET_CLIENT_test (const struct GNUNET_CONFIGURATION_Handle *cfg,
+                    const char *service_name)
+{
+  char *hostname = NULL;
+  unsigned long long port;
+  int ret;
+
+#if AF_UNIX
+  {
+    char *unixpath = NULL;
+
+    if (GNUNET_OK ==
+        GNUNET_CONFIGURATION_get_value_filename (cfg,
+                                                 service_name,
+                                                 "UNIXPATH",
+                                                 &unixpath))
+    {
+      if (0 == strlen (unixpath))
+      {
+        GNUNET_free (unixpath);
+        return GNUNET_SYSERR; /* empty string not OK */
+      }
+      if (0 == access (unixpath,
+                       F_OK))
+      {
+        GNUNET_free (unixpath);
+        return GNUNET_OK; /* file exists, we assume service is running */
+      }
+      GNUNET_free (unixpath);
+    }
+    else if (GNUNET_OK ==
+             GNUNET_CONFIGURATION_have_value (cfg,
+                                              service_name,
+                                              "UNIXPATH"))
+    {
+      /* UNIXPATH specified but not a valid path! */
+      GNUNET_log_config_invalid (GNUNET_ERROR_TYPE_ERROR,
+                                 service_name,
+                                 "UNIXPATH",
+                                 _ ("not a valid filename"));
+      return GNUNET_SYSERR;
+    }
+  }
+#endif
+
+  if ( (GNUNET_OK !=
+        GNUNET_CONFIGURATION_get_value_number (cfg,
+                                               service_name,
+                                               "PORT",
+                                               &port)) ||
+       (port > 65535) ||
+       (0 == port) )
+  {
+    return GNUNET_SYSERR;
+  }
+  if (GNUNET_OK ==
+      GNUNET_CONFIGURATION_get_value_string (cfg,
+                                             service_name,
+                                             "HOSTNAME",
+                                             &hostname))
+  {
+    /* We always assume remotes are up */
+    ret = GNUNET_YES;
+  }
+  else
+  {
+    /* We look for evidence the service is up */
+    ret = GNUNET_NO;
+  }
+  if ( (NULL == hostname) ||
+       (0 == strcasecmp (hostname,
+                         "localhost")) ||
+       (0 == strcasecmp (hostname,
+                         "ip6-localnet")) )
+  {
+    /* service runs on loopback */
+    struct sockaddr_in v4;
+    struct sockaddr_in6 v6;
+    int sock;
+
+    memset (&v4, 0, sizeof (v4));
+    memset (&v6, 0, sizeof (v6));
+    v4.sin_family = AF_INET;
+    v4.sin_port = htons ((uint16_t) port);
+#if HAVE_SOCKADDR_IN_SUN_LEN
+    v4.sin_len = (u_char) sizeof(struct sockaddr_in);
+#endif
+    inet_pton (AF_INET,
+               "127.0.0.1",
+               &v4.sin_addr);
+    ret = GNUNET_NO;
+    sock = socket (AF_INET,
+                   SOCK_STREAM,
+                   0);
+    if (-1 != sock)
+    {
+      if (0 != bind (sock,
+                     (struct sockaddr *) &v4,
+                     sizeof (v4)))
+      {
+        /* bind failed, so someone is listening! */
+        ret = GNUNET_YES;
+      }
+      (void) close (sock);
+    }
+    else
+    {
+      GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING,
+                           "socket");
+      if (GNUNET_NO == ret)
+        ret = GNUNET_SYSERR;
+    }
+    v6.sin6_family = AF_INET6;
+    v6.sin6_port = htons ((uint16_t) port);
+#if HAVE_SOCKADDR_IN_SUN_LEN
+    v6.sin6_len = (u_char) sizeof(struct sockaddr_in6);
+#endif
+    inet_pton (AF_INET6,
+               "::1",
+               &v6.sin6_addr);
+    sock = socket (AF_INET6,
+                   SOCK_STREAM,
+                   0);
+    if (-1 != sock)
+    {
+      if (0 != bind (sock,
+                     (struct sockaddr *) &v6,
+                     sizeof (v6)))
+      {
+        /* bind failed, so someone is listening! */
+        ret = GNUNET_YES;
+      }
+      (void) close (sock);
+    }
+    else
+    {
+      GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING,
+                           "socket");
+      /* not changing 'ret' intentionally here, as
+         v4 succeeding and v6 failing just means we
+         should use v4 */
+    }
+  }
+  else
+  {
+    /* service running remotely */
+    ret = GNUNET_OK;
+  }
+  GNUNET_free_non_null (hostname);
+  return ret;
 }
 
 
