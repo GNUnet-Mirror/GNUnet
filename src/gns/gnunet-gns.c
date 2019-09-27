@@ -90,24 +90,24 @@ static int global_ret;
  * @param cls unused
  */
 static void
-do_shutdown(void *cls)
+do_shutdown (void *cls)
 {
-  (void)cls;
+  (void) cls;
   if (NULL != to_task)
-    {
-      GNUNET_SCHEDULER_cancel(to_task);
-      to_task = NULL;
-    }
+  {
+    GNUNET_SCHEDULER_cancel (to_task);
+    to_task = NULL;
+  }
   if (NULL != lr)
-    {
-      GNUNET_GNS_lookup_with_tld_cancel(lr);
-      lr = NULL;
-    }
+  {
+    GNUNET_GNS_lookup_with_tld_cancel (lr);
+    lr = NULL;
+  }
   if (NULL != gns)
-    {
-      GNUNET_GNS_disconnect(gns);
-      gns = NULL;
-    }
+  {
+    GNUNET_GNS_disconnect (gns);
+    gns = NULL;
+  }
 }
 
 /**
@@ -116,11 +116,11 @@ do_shutdown(void *cls)
  * @param cls unused
  */
 static void
-do_timeout(void* cls)
+do_timeout (void*cls)
 {
   to_task = NULL;
-  global_ret = 3; //Timeout
-  GNUNET_SCHEDULER_shutdown();
+  global_ret = 3; // Timeout
+  GNUNET_SCHEDULER_shutdown ();
 }
 
 /**
@@ -132,10 +132,10 @@ do_timeout(void* cls)
  * @param rd array of @a rd_count records with the results
  */
 static void
-process_lookup_result(void *cls,
-                      int was_gns,
-                      uint32_t rd_count,
-                      const struct GNUNET_GNSRECORD_Data *rd)
+process_lookup_result (void *cls,
+                       int was_gns,
+                       uint32_t rd_count,
+                       const struct GNUNET_GNSRECORD_Data *rd)
 {
   const char *name = cls;
   const char *typename;
@@ -143,41 +143,41 @@ process_lookup_result(void *cls,
 
   lr = NULL;
   if (GNUNET_NO == was_gns)
-    {
-      global_ret = 4; /* not for GNS */
-      GNUNET_SCHEDULER_shutdown();
-      return;
-    }
-  if (!raw)
-    {
-      if (0 == rd_count)
-        printf("No results.\n");
-      else
-        printf("%s:\n", name);
-    }
+  {
+    global_ret = 4;   /* not for GNS */
+    GNUNET_SCHEDULER_shutdown ();
+    return;
+  }
+  if (! raw)
+  {
+    if (0 == rd_count)
+      printf ("No results.\n");
+    else
+      printf ("%s:\n", name);
+  }
   for (uint32_t i = 0; i < rd_count; i++)
+  {
+    if ((rd[i].record_type != rtype) && (GNUNET_GNSRECORD_TYPE_ANY != rtype))
+      continue;
+    typename = GNUNET_GNSRECORD_number_to_typename (rd[i].record_type);
+    string_val = GNUNET_GNSRECORD_value_to_string (rd[i].record_type,
+                                                   rd[i].data,
+                                                   rd[i].data_size);
+    if (NULL == string_val)
     {
-      if ((rd[i].record_type != rtype) && (GNUNET_GNSRECORD_TYPE_ANY != rtype))
-        continue;
-      typename = GNUNET_GNSRECORD_number_to_typename(rd[i].record_type);
-      string_val = GNUNET_GNSRECORD_value_to_string(rd[i].record_type,
-                                                    rd[i].data,
-                                                    rd[i].data_size);
-      if (NULL == string_val)
-        {
-          fprintf(stderr,
-                  "Record %u of type %d malformed, skipping\n",
-                  (unsigned int)i,
-                  (int)rd[i].record_type);
-          continue;
-        }
-      if (raw)
-        printf("%s\n", string_val);
-      else
-        printf("Got `%s' record: %s\n", typename, string_val);
-      GNUNET_free(string_val);
+      fprintf (stderr,
+               "Record %u of type %d malformed, skipping\n",
+               (unsigned int) i,
+               (int) rd[i].record_type);
+      continue;
     }
-  GNUNET_SCHEDULER_shutdown();
+    if (raw)
+      printf ("%s\n", string_val);
+    else
+      printf ("Got `%s' record: %s\n", typename, string_val);
+    GNUNET_free (string_val);
+  }
+  GNUNET_SCHEDULER_shutdown ();
 }
 
 
@@ -190,53 +190,69 @@ process_lookup_result(void *cls,
  * @param c configuration
  */
 static void
-run(void *cls,
-    char *const *args,
-    const char *cfgfile,
-    const struct GNUNET_CONFIGURATION_Handle *c)
+run (void *cls,
+     char *const *args,
+     const char *cfgfile,
+     const struct GNUNET_CONFIGURATION_Handle *c)
 {
-  (void)cls;
-  (void)args;
-  (void)cfgfile;
+  (void) cls;
+  (void) args;
+  (void) cfgfile;
 
   cfg = c;
   to_task = NULL;
-  if (GNUNET_OK != GNUNET_DNSPARSER_check_name(lookup_name))
-    {
-      fprintf(stderr, _("`%s' is not a valid domain name\n"), lookup_name);
-      global_ret = 3;
-      return;
-    }
-  to_task = GNUNET_SCHEDULER_add_delayed(timeout, &do_timeout, NULL);
-  gns = GNUNET_GNS_connect(cfg);
+  if (GNUNET_OK != GNUNET_DNSPARSER_check_name (lookup_name))
+  {
+    fprintf (stderr,
+             _ ("`%s' is not a valid domain name\n"),
+             lookup_name);
+    global_ret = 3;
+    return;
+  }
+  if (GNUNET_YES !=
+      GNUNET_CLIENT_test (cfg,
+                          "arm"))
+  {
+    fprintf (stderr,
+             _ ("GNUnet not running\n"));
+    global_ret = 2;
+    return;
+  }
+  to_task = GNUNET_SCHEDULER_add_delayed (timeout,
+                                          &do_timeout,
+                                          NULL);
+  gns = GNUNET_GNS_connect (cfg);
   if (NULL == gns)
-    {
-      fprintf(stderr, _("Failed to connect to GNS\n"));
-      global_ret = 2;
-      return;
-    }
-  GNUNET_SCHEDULER_add_shutdown(&do_shutdown, NULL);
+  {
+    fprintf (stderr,
+             _ ("Failed to connect to GNS\n"));
+    global_ret = 2;
+    return;
+  }
+  GNUNET_SCHEDULER_add_shutdown (&do_shutdown,
+                                 NULL);
   if (NULL != lookup_type)
-    rtype = GNUNET_GNSRECORD_typename_to_number(lookup_type);
+    rtype = GNUNET_GNSRECORD_typename_to_number (lookup_type);
   else
     rtype = GNUNET_DNSPARSER_TYPE_A;
   if (UINT32_MAX == rtype)
-    {
-      fprintf(stderr, _("Invalid typename specified, assuming `ANY'\n"));
-      rtype = GNUNET_GNSRECORD_TYPE_ANY;
-    }
-  lr = GNUNET_GNS_lookup_with_tld(gns,
-                                  lookup_name,
-                                  rtype,
-                                  GNUNET_GNS_LO_DEFAULT,
-                                  &process_lookup_result,
-                                  lookup_name);
+  {
+    fprintf (stderr,
+             _ ("Invalid typename specified, assuming `ANY'\n"));
+    rtype = GNUNET_GNSRECORD_TYPE_ANY;
+  }
+  lr = GNUNET_GNS_lookup_with_tld (gns,
+                                   lookup_name,
+                                   rtype,
+                                   GNUNET_GNS_LO_DEFAULT,
+                                   &process_lookup_result,
+                                   lookup_name);
   if (NULL == lr)
-    {
-      global_ret = 2;
-      GNUNET_SCHEDULER_shutdown();
-      return;
-    }
+  {
+    global_ret = 2;
+    GNUNET_SCHEDULER_shutdown ();
+    return;
+  }
 }
 
 
@@ -248,48 +264,50 @@ run(void *cls,
  * @return 0 ok, 1 on error
  */
 int
-main(int argc, char *const *argv)
+main (int argc, char *const *argv)
 {
   timeout = GNUNET_TIME_UNIT_FOREVER_REL;
   struct GNUNET_GETOPT_CommandLineOption options[] =
-  { GNUNET_GETOPT_option_mandatory(
-      GNUNET_GETOPT_option_string('u',
-                                  "lookup",
-                                  "NAME",
-                                  gettext_noop(
-                                    "Lookup a record for the given name"),
-                                  &lookup_name)),
-    GNUNET_GETOPT_option_string('t',
-                                "type",
-                                "TYPE",
-                                gettext_noop(
-                                  "Specify the type of the record to lookup"),
-                                &lookup_type),
-    GNUNET_GETOPT_option_relative_time('T',
-                                       "timeout",
-                                       "TIMEOUT",
-                                       gettext_noop(
-                                         "Specify a timeout for the lookup"),
-                                       &timeout),
-    GNUNET_GETOPT_option_flag('r',
-                              "raw",
-                              gettext_noop("No unneeded output"),
-                              &raw),
+  { GNUNET_GETOPT_option_mandatory (
+      GNUNET_GETOPT_option_string ('u',
+                                   "lookup",
+                                   "NAME",
+                                   gettext_noop (
+                                     "Lookup a record for the given name"),
+                                   &lookup_name)),
+    GNUNET_GETOPT_option_string ('t',
+                                 "type",
+                                 "TYPE",
+                                 gettext_noop (
+                                   "Specify the type of the record to lookup"),
+                                 &lookup_type),
+    GNUNET_GETOPT_option_relative_time ('T',
+                                        "timeout",
+                                        "TIMEOUT",
+                                        gettext_noop (
+                                          "Specify a timeout for the lookup"),
+                                        &timeout),
+    GNUNET_GETOPT_option_flag ('r',
+                               "raw",
+                               gettext_noop ("No unneeded output"),
+                               &raw),
     GNUNET_GETOPT_OPTION_END };
   int ret;
 
-  if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args(argc, argv, &argc, &argv))
+  if (GNUNET_OK !=
+      GNUNET_STRINGS_get_utf8_args (argc, argv,
+                                    &argc, &argv))
     return 2;
 
-  GNUNET_log_setup("gnunet-gns", "WARNING", NULL);
-  ret = GNUNET_PROGRAM_run(argc,
-                           argv,
-                           "gnunet-gns",
-                           _("GNUnet GNS resolver tool"),
-                           options,
-                           &run,
-                           NULL);
-  GNUNET_free((void *)argv);
+  GNUNET_log_setup ("gnunet-gns", "WARNING", NULL);
+  ret = GNUNET_PROGRAM_run (argc,
+                            argv,
+                            "gnunet-gns",
+                            _ ("GNUnet GNS resolver tool"),
+                            options,
+                            &run,
+                            NULL);
+  GNUNET_free ((void *) argv);
   if (GNUNET_OK != ret)
     return 1;
   return global_ret;
