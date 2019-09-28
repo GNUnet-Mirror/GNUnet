@@ -1,0 +1,33 @@
+#!/bin/sh
+
+# Stop and disable GNUnet system services.
+rc-service gnunet-system-services stop # stops user services
+rc-update del gnunet-system-services
+rc-update del gnunet-user-services
+
+# Remove proxy settings from browser.
+users=`awk -F ':' '$3>=1000 && $3<2000 {print $1}' /etc/passwd`
+for user in $users; do
+        gnunet_proxy=`grep -i "gns-proxy" /home/$user/.config/gnunet.conf`
+        if [ "$gnunet_proxy" ]; then
+                for ffprofile in /home/"$user"/.mozilla/firefox/*.*/; do
+                        # Reset proxy preferences
+                        js=$ffprofile/user.js
+                        if [ -f $js ]; then
+                                sed -i '/Preferences for using the GNU Name System/d' $js
+                                sed -i '/network.proxy.socks/d' $js
+                                sed -i '/network.proxy.socks_port/d' $js
+                                sed -i '/network.proxy.socks_remote_dns/d' $js
+                                sed -i '/network.proxy.type/d' $js
+                        fi
+                done
+
+                # Chromium
+                profile=/home/$user/.profile
+                if [ -f $profile ]; then
+                        sed -i '/CHROMIUM_USER_FLAGS/d' $profile
+                fi
+        fi
+done
+
+exit 0

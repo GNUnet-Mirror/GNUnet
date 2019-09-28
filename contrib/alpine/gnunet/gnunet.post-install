@@ -1,0 +1,44 @@
+#!/bin/sh
+
+# Enumerate users.
+users=`awk -F ':' '$3>=1000 && $3<2000 {print $1}' /etc/passwd`
+
+# Install gnunet.conf for existing users.
+for user in $users; do
+        install -m644 -o $user -g $user -D /etc/skel/.config/gnunet.conf \
+                /home/$user/.config/gnunet.conf
+done
+
+# Enable GNS proxy for users, if desired.
+echo "Use GNU Name System in Firefox/Chromium by default? [y,N]"
+read -r yn
+case $yn in
+y|Y )
+        # Enable GNS proxy for existant users.
+        for user in $users; do
+                port=$((8000+$(id -u $user)))
+                gnunet-config -c /home/$user/.config/gnunet.conf \
+                        --rewrite \
+                        --section=gns-proxy \
+                        --option=IMMEDIATE_START \
+                        --value=YES
+                gnunet-config -c /home/$user/.config/gnunet.conf \
+                        --rewrite \
+                        --section=gns-proxy \
+                        --option=OPTIONS \
+                        --value="-p $port"
+        done
+
+        # Enable GNS proxy for future users.
+        echo "[gns-proxy]" >> /etc/skel/.config/gnunet.conf
+        echo "IMMEDIATE_START = YES" >> /etc/skel/.config/gnunet.conf
+        ;;
+* )
+        ;;
+esac
+
+rc-update add gnunet-system-services
+rc-update add gnunet-user-services
+rc-service gnunet-user-services start # starts system services
+
+exit 0

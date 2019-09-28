@@ -1,0 +1,102 @@
+# Contributor: xrs <xrs@mail36.net>
+# Maintainer: xrs <xrs@mail36.net>
+pkgname="gnunet"
+pkgver="0.11.6"
+pkgrel=0
+pkgdesc="A framework for secure and privacy enhancing peer-to-peer networking"
+url="https://gnunet.org"
+arch="all"
+license="AGPL-3.0"
+depends="libgpg-error libgcrypt nettle unbound-libs gnutls gnutls-utils gnurl 
+        libgnurl libmicrohttpd openssl libunistring libidn2 nss sqlite zlib 
+        miniupnpc gmp gettext bash which iptables coreutils sudo"
+depends_dev="libgpg-error-dev libgcrypt-dev nettle-dev unbound-dev gnutls-dev 
+        gnurl-dev libmicrohttpd-dev openssl-dev libunistring-dev libidn2-dev 
+        nss-dev sqlite-dev zlib-dev miniupnpc-dev gmp-dev gettext"
+makedepends="$depends_dev autoconf automake libtool gettext-dev python3 
+        texlive texinfo"
+install="$pkgname.pre-install $pkgname.post-install $pkgname.pre-deinstall 
+        $pkgname.post-deinstall"
+pkgusers="gnunet"
+pkggroups="gnunet gnunetdns"
+subpackages="$pkgname-dev $pkgname-doc $pkgname-lang"
+builddir="$srcdir/$pkgname-$pkgver"
+options="!check suid" # No check because The GNUnet project lacks a good CI at the moment. 
+source="https://mirrors.ocf.berkeley.edu/gnu/gnunet/$pkgname-$pkgver.tar.gz
+        gnunet-system.conf
+        gnunet-user.conf
+	gnunet-system-services.initd
+        gnunet-user-services.initd
+        gnunet.xsession
+	"
+
+prepare() {
+	cd "$builddir"
+        default_prepare
+        autoreconf -if # FIXME: See https://bugs.gnunet.org/view.php?id=5902
+}
+
+build() {
+	cd "$builddir"
+	./configure \
+		--build=$CBUILD \
+		--host=$CHOST \
+		--prefix=/usr \
+		--sysconfdir=/etc \
+		--mandir=/usr/share/man \
+		--localstatedir=/var \
+                --enable-logging=verbose
+	make
+}
+
+check() {
+	make DESTDIR="$pkgdir" check
+        exit 0
+}
+
+package() {
+	make DESTDIR="$pkgdir" install
+
+        libexecdir=$pkgdir/usr/lib/gnunet/libexec/
+        # Limit access to critical gnunet-helper-dns to group "gnunetdns"
+        chgrp gnunetdns $libexecdir/gnunet-helper-dns
+        chgrp gnunetdns $libexecdir/gnunet-service-dns
+        # Limit access to certain SUID binaries by group "gnunet"
+        chgrp gnunet    $libexecdir/gnunet-helper-exit
+        chgrp gnunet    $libexecdir/gnunet-helper-vpn
+        chgrp gnunet    $libexecdir/gnunet-helper-nat-client
+        chgrp gnunet    $libexecdir/gnunet-helper-nat-server
+        chmod u+s       $libexecdir/gnunet-helper-exit
+        chmod u+s       $libexecdir/gnunet-helper-vpn
+        chmod 2750      $libexecdir/gnunet-helper-dns
+        chmod 2700      $libexecdir/gnunet-service-dns
+        chmod u+s       $libexecdir/gnunet-helper-nat-client
+        chmod u+s       $libexecdir/gnunet-helper-nat-server
+
+        install -m644 -D $srcdir/$pkgname-user.conf \
+                $pkgdir/etc/skel/.config/$pkgname.conf
+        install -m644 -D $srcdir/$pkgname-system.conf \
+                $pkgdir/etc/$pkgname.conf
+	install -m755 -D $srcdir/$pkgname-system-services.initd \
+                $pkgdir/etc/init.d/$pkgname-system-services
+	install -m755 -D $srcdir/$pkgname-user-services.initd \
+                $pkgdir/etc/init.d/$pkgname-user-services
+        install -m755 -D $srcdir/$pkgname.xsession \
+                $pkgdir/etc/X11/xinit/xinitrc.d/80-$pkgname-user-services
+}
+
+dev() {
+        default_dev
+
+        # dev() will move gnunet-config from $pkg to $pkg-dev, but it's an
+        # intended part of $pkg. 
+        install -m755 -D $builddir/src/util/.libs/gnunet-config \
+                $pkgdir/usr/bin/gnunet-config
+}
+
+sha512sums="1c6ea2ac7280d2edb30df627b79e017d199e93cd3970ce49f3f049abfb1dddfed541118e55766c422edf4a80e140c4eb2cfc681e0d4a1384e39811d024df9278  gnunet-0.11.6.tar.gz
+a0f55413ed2c6edd6746a751d92ddac95ba70f20eefb07330817870d749456448f44bba95d245911a00f6078e0c2ac626004e3b764be5e5e049c00626c4c5ac0  gnunet-system.conf
+b21112ff16aee771332aa9c33f55b0c7f46fe0266053543241e3efbe25dba56482c0e11112a192eefe59f1c74d2af5d7071b6a4e1e875cfc7e9d55b5fe8a0a33  gnunet-user.conf
+ae7be0ecb8dfb9c4741706d5fe7a0ea2f87c88ddab549c80917a637b009922dfe3ad3ae6d8706c7a82b671da4e9f56f2208050ff7945c38100ca979438946413  gnunet-system-services.initd
+5936adcca52a3e199f2cea4faf40a53a0280d453e189921db88c3f5d9b8502ac51ed2b926ade4e2fdb844bfc897ad1216ddba8060ac0d0a0d6648837509dfa35  gnunet-user-services.initd
+0fe33317f99d0193a6eab9ce9bf9a3868a7021153f0e782839c086d5032ae164c40498fe7737a2c63ec11cb245132f86bda3f79fdcdf43c7497439b3aeac2bc7  gnunet.xsession"

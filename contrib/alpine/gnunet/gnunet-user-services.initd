@@ -1,0 +1,33 @@
+#!/sbin/openrc-run
+# Contributor: xrs <xrs@mail36.net>
+# Maintainer: xrs <xrs@mail36.net>
+
+name="gnunet-user-services"
+description="GNUnet user services"
+command_background="yes"
+pidfile="/run/${SVCNAME}.pid"
+users=`awk -F ':' '$3>=1000 && $3<2000 {print $1}' /etc/passwd`
+
+depend() {
+	need gnunet-system-services
+}
+
+start() {
+        for user in $users; do
+                if test -z "`ps|grep $user|grep gnunet-service-arm`" > /dev/null 2>&1
+                then
+                        sudo -u $user gnunet-arm \
+                                -c /home/$user/.config/gnunet.conf -s
+                fi
+        done
+}
+
+stop() {
+        for user in $users; do
+                if test -n "`ps|grep $user|grep gnunet-service-arm`" > /dev/null 2>&1
+                then
+                        sudo -u $user gnunet-arm \
+                                -c /home/$user/.config/gnunet.conf -e
+                fi
+        done
+}
