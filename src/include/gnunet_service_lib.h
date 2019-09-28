@@ -50,7 +50,8 @@ extern "C"
 /**
  * Options for the service (bitmask).
  */
-enum GNUNET_SERVICE_Options {
+enum GNUNET_SERVICE_Options
+{
   /**
    * Use defaults.  Terminates all client connections and the listen
    * sockets immediately upon receiving the shutdown signal.
@@ -68,7 +69,18 @@ enum GNUNET_SERVICE_Options {
    * Trigger a SOFT server shutdown on signals, allowing active
    * non-monitor clients to complete their transactions.
    */
-  GNUNET_SERVICE_OPTION_SOFT_SHUTDOWN = 2
+  GNUNET_SERVICE_OPTION_SOFT_SHUTDOWN = 2,
+
+  /**
+   * Bitmask over the shutdown options.
+   */
+  GNUNET_SERVICE_OPTION_SHUTDOWN_BITMASK = 3,
+
+  /**
+   * Instead of listening on lsocks passed by the parent,
+   * close them *after* opening our own listen socket(s).
+   */
+  GNUNET_SERVICE_OPTION_CLOSE_LSOCKS = 4
 };
 
 
@@ -164,12 +176,12 @@ typedef void
  * @return NULL on error
  */
 struct GNUNET_SERVICE_Handle *
-GNUNET_SERVICE_start(const char *service_name,
-                     const struct GNUNET_CONFIGURATION_Handle *cfg,
-                     GNUNET_SERVICE_ConnectHandler connect_cb,
-                     GNUNET_SERVICE_DisconnectHandler disconnect_cb,
-                     void *cls,
-                     const struct GNUNET_MQ_MessageHandler *handlers);
+GNUNET_SERVICE_start (const char *service_name,
+                      const struct GNUNET_CONFIGURATION_Handle *cfg,
+                      GNUNET_SERVICE_ConnectHandler connect_cb,
+                      GNUNET_SERVICE_DisconnectHandler disconnect_cb,
+                      void *cls,
+                      const struct GNUNET_MQ_MessageHandler *handlers);
 
 
 /**
@@ -178,7 +190,7 @@ GNUNET_SERVICE_start(const char *service_name,
  * @param srv service to stop
  */
 void
-GNUNET_SERVICE_stop(struct GNUNET_SERVICE_Handle *srv);
+GNUNET_SERVICE_stop (struct GNUNET_SERVICE_Handle *srv);
 
 
 /**
@@ -223,15 +235,15 @@ GNUNET_SERVICE_stop(struct GNUNET_SERVICE_Handle *srv);
  * @return 0 on success, non-zero on error
  */
 int
-GNUNET_SERVICE_run_(int argc,
-                    char *const *argv,
-                    const char *service_name,
-                    enum GNUNET_SERVICE_Options options,
-                    GNUNET_SERVICE_InitCallback service_init_cb,
-                    GNUNET_SERVICE_ConnectHandler connect_cb,
-                    GNUNET_SERVICE_DisconnectHandler disconnect_cb,
-                    void *cls,
-                    const struct GNUNET_MQ_MessageHandler *handlers);
+GNUNET_SERVICE_run_ (int argc,
+                     char *const *argv,
+                     const char *service_name,
+                     enum GNUNET_SERVICE_Options options,
+                     GNUNET_SERVICE_InitCallback service_init_cb,
+                     GNUNET_SERVICE_ConnectHandler connect_cb,
+                     GNUNET_SERVICE_DisconnectHandler disconnect_cb,
+                     void *cls,
+                     const struct GNUNET_MQ_MessageHandler *handlers);
 
 
 /**
@@ -291,23 +303,24 @@ GNUNET_SERVICE_run_(int argc,
  *  GNUNET_MQ_handler_end ());
  * </code>
  */
-#define GNUNET_SERVICE_MAIN(service_name, service_options, init_cb, connect_cb, disconnect_cb, cls, ...) \
+#define GNUNET_SERVICE_MAIN(service_name, service_options, init_cb, connect_cb, \
+                            disconnect_cb, cls, ...) \
   int \
-  main(int argc, \
-       char *const *argv) \
+  main (int argc, \
+        char *const *argv) \
   { \
     struct GNUNET_MQ_MessageHandler mh[] = { \
       __VA_ARGS__ \
     };                        \
-    return GNUNET_SERVICE_run_(argc, \
-                               argv, \
-                               service_name, \
-                               service_options, \
-                               init_cb, \
-                               connect_cb, \
-                               disconnect_cb, \
-                               cls, \
-                               mh); \
+    return GNUNET_SERVICE_run_ (argc, \
+                                argv, \
+                                service_name, \
+                                service_options, \
+                                init_cb, \
+                                connect_cb, \
+                                disconnect_cb, \
+                                cls, \
+                                mh); \
   }
 
 
@@ -318,7 +331,7 @@ GNUNET_SERVICE_run_(int argc,
  * @param sh service to stop accepting connections.
  */
 void
-GNUNET_SERVICE_suspend(struct GNUNET_SERVICE_Handle *sh);
+GNUNET_SERVICE_suspend (struct GNUNET_SERVICE_Handle *sh);
 
 
 /**
@@ -327,7 +340,7 @@ GNUNET_SERVICE_suspend(struct GNUNET_SERVICE_Handle *sh);
  * @param sh service to resume accepting connections.
  */
 void
-GNUNET_SERVICE_resume(struct GNUNET_SERVICE_Handle *sh);
+GNUNET_SERVICE_resume (struct GNUNET_SERVICE_Handle *sh);
 
 
 /**
@@ -337,7 +350,7 @@ GNUNET_SERVICE_resume(struct GNUNET_SERVICE_Handle *sh);
  * @param c the client to continue receiving from
  */
 void
-GNUNET_SERVICE_client_continue(struct GNUNET_SERVICE_Client *c);
+GNUNET_SERVICE_client_continue (struct GNUNET_SERVICE_Client *c);
 
 
 /**
@@ -347,7 +360,7 @@ GNUNET_SERVICE_client_continue(struct GNUNET_SERVICE_Client *c);
  * @return the message queue of @a c
  */
 struct GNUNET_MQ_Handle *
-GNUNET_SERVICE_client_get_mq(struct GNUNET_SERVICE_Client *c);
+GNUNET_SERVICE_client_get_mq (struct GNUNET_SERVICE_Client *c);
 
 
 /**
@@ -359,7 +372,8 @@ GNUNET_SERVICE_client_get_mq(struct GNUNET_SERVICE_Client *c);
  * @param c client for which to disable the warning
  */
 void
-GNUNET_SERVICE_client_disable_continue_warning(struct GNUNET_SERVICE_Client *c);
+GNUNET_SERVICE_client_disable_continue_warning (struct
+                                                GNUNET_SERVICE_Client *c);
 
 
 /**
@@ -378,7 +392,7 @@ GNUNET_SERVICE_client_disable_continue_warning(struct GNUNET_SERVICE_Client *c);
  * @param c client to disconnect now
  */
 void
-GNUNET_SERVICE_client_drop(struct GNUNET_SERVICE_Client *c);
+GNUNET_SERVICE_client_drop (struct GNUNET_SERVICE_Client *c);
 
 
 /**
@@ -387,7 +401,7 @@ GNUNET_SERVICE_client_drop(struct GNUNET_SERVICE_Client *c);
  * @param sh server to shutdown
  */
 void
-GNUNET_SERVICE_shutdown(struct GNUNET_SERVICE_Handle *sh);
+GNUNET_SERVICE_shutdown (struct GNUNET_SERVICE_Handle *sh);
 
 
 /**
@@ -403,7 +417,7 @@ GNUNET_SERVICE_shutdown(struct GNUNET_SERVICE_Handle *sh);
  * @param c client to mark as a monitor
  */
 void
-GNUNET_SERVICE_client_mark_monitor(struct GNUNET_SERVICE_Client *c);
+GNUNET_SERVICE_client_mark_monitor (struct GNUNET_SERVICE_Client *c);
 
 
 /**
@@ -414,7 +428,7 @@ GNUNET_SERVICE_client_mark_monitor(struct GNUNET_SERVICE_Client *c);
  * @param c client to persist the socket (never to be closed)
  */
 void
-GNUNET_SERVICE_client_persist(struct GNUNET_SERVICE_Client *c);
+GNUNET_SERVICE_client_persist (struct GNUNET_SERVICE_Client *c);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

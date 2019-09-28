@@ -47,6 +47,23 @@ extern "C"
 
 
 /**
+ * Test if the port or UNIXPATH of the given @a service_name
+ * is in use and thus (most likely) the respective service is up.
+ *
+ * @param cfg our configuration
+ * @param service_name name of the service to connect to
+ * @return #GNUNET_YES if the service is (likely) up (or running remotely),
+ *         #GNUNET_NO if the service is (definitively) down,
+ *         #GNUNET_SYSERR if the configuration does not give us
+ *          the necessary information about the service, or if
+ *          we could not check (i.e. socket() failed)
+ */
+int
+GNUNET_CLIENT_test (const struct GNUNET_CONFIGURATION_Handle *cfg,
+                    const char *service_name);
+
+
+/**
  * Create a message queue to connect to a GNUnet service.
  * If handlers are specfied, receive messages from the connection.
  *
@@ -57,11 +74,11 @@ extern "C"
  * @return the message queue, NULL on error
  */
 struct GNUNET_MQ_Handle *
-GNUNET_CLIENT_connect(const struct GNUNET_CONFIGURATION_Handle *cfg,
-                      const char *service_name,
-                      const struct GNUNET_MQ_MessageHandler *handlers,
-                      GNUNET_MQ_ErrorHandler error_handler,
-                      void *error_handler_cls);
+GNUNET_CLIENT_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
+                       const char *service_name,
+                       const struct GNUNET_MQ_MessageHandler *handlers,
+                       GNUNET_MQ_ErrorHandler error_handler,
+                       void *error_handler_cls);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

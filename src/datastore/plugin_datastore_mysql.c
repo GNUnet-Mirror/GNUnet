@@ -77,7 +77,7 @@
  * Thats it. Note that .my.cnf file is a security risk unless its on
  * a safe partition etc. The $HOME/.my.cnf can of course be a symbolic
  * link. Even greater security risk can be achieved by setting no
- * password for $USER.  Luckily $USER has only priviledges to mess
+ * password for $USER.  Luckily $USER has only privileges to mess
  * up GNUnet's tables, nothing else (unless you give them more,
  * of course).<p>
  *
