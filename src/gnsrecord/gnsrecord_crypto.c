@@ -54,7 +54,23 @@ derive_block_aes_key(struct GNUNET_CRYPTO_SymmetricInitializationVector *iv,
 {
   static const char ctx_key[] = "gns-aes-ctx-key";
   static const char ctx_iv[] = "gns-aes-ctx-iv";
-
+/**
+ * Next time we break protocol (v12) we harmonize the KDF usage in GNS:
+ * We use the strings above as salt and the public key as IKM similar to
+ * how derive_h is done in crypto_ecc.c.
+ */
+#ifdef GNUNET_PROTOCOL_V12
+  GNUNET_CRYPTO_kdf(skey, sizeof(struct GNUNET_CRYPTO_SymmetricSessionKey),
+                    ctx_key, strlen(ctx_key),
+                    pub, sizeof(struct GNUNET_CRYPTO_EcdsaPublicKey),
+                    label, strlen(label),
+                    NULL, 0);
+  GNUNET_CRYPTO_kdf(iv, sizeof(struct GNUNET_CRYPTO_SymmetricInitializationVector),
+                    ctx_iv, strlen(ctx_iv),
+                    pub, sizeof(struct GNUNET_CRYPTO_EcdsaPublicKey),
+                    label, strlen(label),
+                    NULL, 0);
+#else
   GNUNET_CRYPTO_kdf(skey, sizeof(struct GNUNET_CRYPTO_SymmetricSessionKey),
                     pub, sizeof(struct GNUNET_CRYPTO_EcdsaPublicKey),
                     label, strlen(label),
@@ -65,6 +81,7 @@ derive_block_aes_key(struct GNUNET_CRYPTO_SymmetricInitializationVector *iv,
                     label, strlen(label),
                     ctx_iv, strlen(ctx_iv),
                     NULL, 0);
+#endif
 }
 
 
@@ -454,7 +471,6 @@ GNUNET_GNSRECORD_query_from_public_key(const struct GNUNET_CRYPTO_EcdsaPublicKey
                                        struct GNUNET_HashCode *query)
 {
   struct GNUNET_CRYPTO_EcdsaPublicKey pd;
-
   GNUNET_CRYPTO_ecdsa_public_key_derive(pub,
                                         label,
                                         "gns",
