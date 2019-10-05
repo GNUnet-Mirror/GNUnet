@@ -1166,7 +1166,6 @@ expand_dollar(const struct GNUNET_CONFIGURATION_Handle *cfg,
               char *orig,
               unsigned int depth)
 {
-  int i;
   char *prefix;
   char *result;
   char *start;
@@ -1242,6 +1241,8 @@ expand_dollar(const struct GNUNET_CONFIGURATION_Handle *cfg,
     }
   else
     {
+      int i;
+
       start = &orig[1];
       def = NULL;
       i = 0;
