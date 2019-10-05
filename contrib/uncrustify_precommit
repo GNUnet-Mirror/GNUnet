@@ -10,19 +10,19 @@ crustified=""
 
 for f in $changed;
 do
-  # compare result of uncrustify with changes
-  #
-  # only change any of the invocations here if
-  # they are portable across all cmp and shell
-  # implementations !
-  uncrustify - q - c uncrustify.cfg - f $f | cmp - s $f -
-  if test $? = 1 ;
-  then
-      if echo $f | grep \\.[c,h]\$ > /dev/null
-      then
-        crustified=" $crustified $f"
-        RET=1
-      fi
+ if echo $f | grep \\.[c,h]\$ > /dev/null
+ then
+    # compare result of uncrustify with changes
+    #
+    # only change any of the invocations here if
+    # they are portable across all cmp and shell
+    # implementations !
+    uncrustify - q - c uncrustify.cfg - f $f | cmp - s $f -
+    if test $? = 1 ;
+    then
+      crustified=" $crustified $f"
+      RET=1
+    fi
   fi
 done
 
