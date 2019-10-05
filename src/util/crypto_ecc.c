@@ -81,7 +81,6 @@ key_from_sexp(gcry_mpi_t *array,
 {
   gcry_sexp_t list;
   gcry_sexp_t l2;
-  const char *s;
   unsigned int idx;
 
   list = gcry_sexp_find_token(sexp, topname, 0);
@@ -94,7 +93,7 @@ key_from_sexp(gcry_mpi_t *array,
     return 2;
 
   idx = 0;
-  for (s = elems; *s; s++, idx++)
+  for (const char *s = elems; *s; s++, idx++)
     {
       l2 = gcry_sexp_find_token(list, s, 1);
       if (!l2)
