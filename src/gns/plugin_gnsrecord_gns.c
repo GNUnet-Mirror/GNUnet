@@ -175,7 +175,7 @@ gns_string_to_value (void *cls,
 
   case GNUNET_GNSRECORD_TYPE_NICK:
     *data = GNUNET_strdup (s);
-    *data_size = strlen (s);
+    *data_size = strlen (s) + 1; //Store 0-terminator
     return GNUNET_OK;
 
   case GNUNET_GNSRECORD_TYPE_LEHO:
