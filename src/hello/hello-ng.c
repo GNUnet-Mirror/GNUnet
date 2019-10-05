@@ -33,7 +33,8 @@
 /**
  * Binary block we sign when we sign an address.
  */
-struct SignedAddress {
+struct SignedAddress
+{
   /**
    * Purpose must be #GNUNET_SIGNATURE_PURPOSE_TRANSPORT_ADDRESS
    */
@@ -62,7 +63,7 @@ struct SignedAddress {
  * @param result_size[out] set to size of @a result
  */
 void
-GNUNET_HELLO_sign_address(
+GNUNET_HELLO_sign_address (
   const char *address,
   enum GNUNET_NetworkType nt,
   struct GNUNET_TIME_Absolute mono_time,
@@ -74,22 +75,22 @@ GNUNET_HELLO_sign_address(
   struct GNUNET_CRYPTO_EddsaSignature sig;
   char *sig_str;
 
-  sa.purpose.purpose = htonl(GNUNET_SIGNATURE_PURPOSE_TRANSPORT_ADDRESS);
-  sa.purpose.size = htonl(sizeof(sa));
-  sa.mono_time = GNUNET_TIME_absolute_hton(mono_time);
-  GNUNET_CRYPTO_hash(address, strlen(address), &sa.h_addr);
-  GNUNET_assert(GNUNET_YES ==
-                GNUNET_CRYPTO_eddsa_sign(private_key, &sa.purpose, &sig));
+  sa.purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_TRANSPORT_ADDRESS);
+  sa.purpose.size = htonl (sizeof(sa));
+  sa.mono_time = GNUNET_TIME_absolute_hton (mono_time);
+  GNUNET_CRYPTO_hash (address, strlen (address), &sa.h_addr);
+  GNUNET_assert (GNUNET_YES ==
+                 GNUNET_CRYPTO_eddsa_sign (private_key, &sa.purpose, &sig));
   sig_str = NULL;
-  (void)GNUNET_STRINGS_base64_encode(&sig, sizeof(sig), &sig_str);
+  (void) GNUNET_STRINGS_base64_encode (&sig, sizeof(sig), &sig_str);
   *result_size =
-    1 + GNUNET_asprintf((char **)result,
-                        "%s;%llu;%u;%s",
-                        sig_str,
-                        (unsigned long long)mono_time.abs_value_us,
-                        (unsigned int)nt,
-                        address);
-  GNUNET_free(sig_str);
+    1 + GNUNET_asprintf ((char **) result,
+                         "%s;%llu;%u;%s",
+                         sig_str,
+                         (unsigned long long) mono_time.abs_value_us,
+                         (unsigned int) nt,
+                         address);
+  GNUNET_free (sig_str);
 }
 
 
@@ -104,11 +105,11 @@ GNUNET_HELLO_sign_address(
  * @return NULL on error, otherwise the address
  */
 char *
-GNUNET_HELLO_extract_address(const void *raw,
-                             size_t raw_size,
-                             const struct GNUNET_PeerIdentity *pid,
-                             enum GNUNET_NetworkType *nt,
-                             struct GNUNET_TIME_Absolute *mono_time)
+GNUNET_HELLO_extract_address (const void *raw,
+                              size_t raw_size,
+                              const struct GNUNET_PeerIdentity *pid,
+                              enum GNUNET_NetworkType *nt,
+                              struct GNUNET_TIME_Absolute *mono_time)
 {
   const struct GNUNET_CRYPTO_EddsaPublicKey *public_key = &pid->public_key;
   const char *raws = raw;
@@ -123,59 +124,59 @@ GNUNET_HELLO_extract_address(const void *raw,
   struct GNUNET_CRYPTO_EddsaSignature *sig;
 
   if ('\0' != raws[raw_size])
-    {
-      GNUNET_break_op(0);
-      return NULL;
-    }
-  if (NULL == (sc = strchr(raws, ';')))
-    {
-      GNUNET_break_op(0);
-      return NULL;
-    }
-  if (NULL == (sc2 = strchr(sc + 1, ';')))
-    {
-      GNUNET_break_op(0);
-      return NULL;
-    }
-  if (NULL == (sc3 = strchr(sc2 + 1, ';')))
-    {
-      GNUNET_break_op(0);
-      return NULL;
-    }
-  if (1 != sscanf(sc + 1, "%llu;%u;", &raw_us, &raw_nt))
-    {
-      GNUNET_break_op(0);
-      return NULL;
-    }
+  {
+    GNUNET_break_op (0);
+    return NULL;
+  }
+  if (NULL == (sc = strchr (raws, ';')))
+  {
+    GNUNET_break_op (0);
+    return NULL;
+  }
+  if (NULL == (sc2 = strchr (sc + 1, ';')))
+  {
+    GNUNET_break_op (0);
+    return NULL;
+  }
+  if (NULL == (sc3 = strchr (sc2 + 1, ';')))
+  {
+    GNUNET_break_op (0);
+    return NULL;
+  }
+  if (1 != sscanf (sc + 1, "%llu;%u;", &raw_us, &raw_nt))
+  {
+    GNUNET_break_op (0);
+    return NULL;
+  }
   raw_mono_time.abs_value_us = raw_us;
   sig = NULL;
   if (sizeof(struct GNUNET_CRYPTO_EddsaSignature) !=
-      GNUNET_STRINGS_base64_decode(raws, sc - raws, (void **)&sig))
-    {
-      GNUNET_break_op(0);
-      GNUNET_free_non_null(sig);
-      return NULL;
-    }
+      GNUNET_STRINGS_base64_decode (raws, sc - raws, (void **) &sig))
+  {
+    GNUNET_break_op (0);
+    GNUNET_free_non_null (sig);
+    return NULL;
+  }
   raw_addr = sc3 + 1;
 
-  sa.purpose.purpose = htonl(GNUNET_SIGNATURE_PURPOSE_TRANSPORT_ADDRESS);
-  sa.purpose.size = htonl(sizeof(sa));
-  sa.mono_time = GNUNET_TIME_absolute_hton(raw_mono_time);
-  GNUNET_CRYPTO_hash(raw_addr, strlen(raw_addr), &sa.h_addr);
+  sa.purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_TRANSPORT_ADDRESS);
+  sa.purpose.size = htonl (sizeof(sa));
+  sa.mono_time = GNUNET_TIME_absolute_hton (raw_mono_time);
+  GNUNET_CRYPTO_hash (raw_addr, strlen (raw_addr), &sa.h_addr);
   if (GNUNET_YES !=
-      GNUNET_CRYPTO_eddsa_verify(GNUNET_SIGNATURE_PURPOSE_TRANSPORT_ADDRESS,
-                                 &sa.purpose,
-                                 sig,
-                                 public_key))
-    {
-      GNUNET_break_op(0);
-      GNUNET_free(sig);
-      return NULL;
-    }
-  GNUNET_free(sig);
+      GNUNET_CRYPTO_eddsa_verify (GNUNET_SIGNATURE_PURPOSE_TRANSPORT_ADDRESS,
+                                  &sa.purpose,
+                                  sig,
+                                  public_key))
+  {
+    GNUNET_break_op (0);
+    GNUNET_free (sig);
+    return NULL;
+  }
+  GNUNET_free (sig);
   *mono_time = raw_mono_time;
-  *nt = (enum GNUNET_NetworkType)raw_nt;
-  return GNUNET_strdup(raw_addr);
+  *nt = (enum GNUNET_NetworkType) raw_nt;
+  return GNUNET_strdup (raw_addr);
 }
 
 
@@ -187,12 +188,12 @@ GNUNET_HELLO_extract_address(const void *raw,
  * @return NULL if the address is mal-formed, otherwise the prefix
  */
 char *
-GNUNET_HELLO_address_to_prefix(const char *address)
+GNUNET_HELLO_address_to_prefix (const char *address)
 {
   const char *dash;
 
-  dash = strchr(address, '-');
+  dash = strchr (address, '-');
   if (NULL == dash)
     return NULL;
-  return GNUNET_strndup(address, dash - address);
+  return GNUNET_strndup (address, dash - address);
 }

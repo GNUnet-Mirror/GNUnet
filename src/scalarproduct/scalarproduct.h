@@ -32,14 +32,18 @@ GNUNET_NETWORK_STRUCT_BEGIN
  * a failure of the command 'cmd' with the message given
  * by gcry_strerror(rc).
  */
-#define LOG_GCRY(level, cmd, rc) do { LOG(level, _("`%s' failed at %s:%d with error: %s\n"), cmd, __FILE__, __LINE__, gcry_strerror(rc)); } while (0)
+#define LOG_GCRY(level, cmd, rc) do { LOG (level, _ ( \
+                                             "`%s' failed at %s:%d with error: %s\n"), \
+                                           cmd, __FILE__, __LINE__, \
+                                           gcry_strerror (rc)); } while (0)
 
 
 /**
  * Message type passed from client to service
  * to initiate a request or responder role
  */
-struct AliceComputationMessage {
+struct AliceComputationMessage
+{
   /**
    * GNUNET message header with type
    * #GNUNET_MESSAGE_TYPE_SCALARPRODUCT_CLIENT_TO_ALICE
@@ -81,7 +85,8 @@ struct AliceComputationMessage {
  * Message type passed from client to service
  * to initiate a request or responder role
  */
-struct BobComputationMessage {
+struct BobComputationMessage
+{
   /**
    * GNUNET message header with type
    * #GNUNET_MESSAGE_TYPE_SCALARPRODUCT_CLIENT_TO_BOB
@@ -117,7 +122,8 @@ struct BobComputationMessage {
 /**
  * multipart messages following `struct ComputationMessage`
  */
-struct ComputationBobCryptodataMultipartMessage {
+struct ComputationBobCryptodataMultipartMessage
+{
   /**
    * GNUNET message header
    */
@@ -138,7 +144,8 @@ struct ComputationBobCryptodataMultipartMessage {
  * Message type passed from service client
  * to finalize a session as requester or responder
  */
-struct ClientResponseMessage {
+struct ClientResponseMessage
+{
   /**
    * GNUNET message header
    */

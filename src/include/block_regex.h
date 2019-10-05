@@ -46,7 +46,8 @@ GNUNET_NETWORK_STRUCT_BEGIN
 /**
  * @brief Block to announce a peer accepting a state.
  */
-struct RegexAcceptBlock {
+struct RegexAcceptBlock
+{
   /**
    * Accept blocks must be signed.  Signature
    * goes over expiration time and key.

@@ -33,7 +33,8 @@ GNUNET_NETWORK_STRUCT_BEGIN
 /**
  * Query key revocation status.
  */
-struct QueryMessage {
+struct QueryMessage
+{
   /**
    * Type: #GNUNET_MESSAGE_TYPE_REVOCATION_QUERY
    */
@@ -54,7 +55,8 @@ struct QueryMessage {
 /**
  * Key revocation response.
  */
-struct QueryResponseMessage {
+struct QueryResponseMessage
+{
   /**
    * Type: #GNUNET_MESSAGE_TYPE_REVOCATION_QUERY_RESPONSE
    */
@@ -74,7 +76,8 @@ struct QueryResponseMessage {
  * #GNUNET_MESSAGE_TYPE_REVOCATION_REVOKE_RESPONSE (which is just
  * in a `struct GNUNET_MessageHeader`.
  */
-struct RevokeMessage {
+struct RevokeMessage
+{
   /**
    * Type: #GNUNET_MESSAGE_TYPE_REVOCATION_REVOKE
    */
@@ -111,7 +114,8 @@ struct RevokeMessage {
 /**
  * Key revocation response.
  */
-struct RevocationResponseMessage {
+struct RevocationResponseMessage
+{
   /**
    * Type: #GNUNET_MESSAGE_TYPE_REVOCATION_REVOKE_RESPONSE
    */

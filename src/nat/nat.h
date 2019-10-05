@@ -36,7 +36,8 @@ GNUNET_NETWORK_STRUCT_BEGIN
  * Request to test NAT traversal, sent to the gnunet-nat-server
  * (not the service!).
  */
-struct GNUNET_NAT_TestMessage {
+struct GNUNET_NAT_TestMessage
+{
   /**
    * Header with type #GNUNET_MESSAGE_TYPE_NAT_TEST
    */
@@ -68,7 +69,8 @@ struct GNUNET_NAT_TestMessage {
  * Flags specifying the events this client would be
  * interested in being told about.
  */
-enum GNUNET_NAT_RegisterFlags {
+enum GNUNET_NAT_RegisterFlags
+{
   /**
    * This client does not want any notifications.
    */
@@ -90,7 +92,8 @@ enum GNUNET_NAT_RegisterFlags {
 /**
  * Message sent by a client to register with its addresses.
  */
-struct GNUNET_NAT_RegisterMessage {
+struct GNUNET_NAT_RegisterMessage
+{
   /**
    * Header with type #GNUNET_MESSAGE_TYPE_NAT_REGISTER
    */
@@ -129,7 +132,8 @@ struct GNUNET_NAT_RegisterMessage {
 /**
  * Client telling the service to (possibly) handle a STUN message.
  */
-struct GNUNET_NAT_HandleStunMessage {
+struct GNUNET_NAT_HandleStunMessage
+{
   /**
    * Header with type #GNUNET_MESSAGE_TYPE_NAT_HANDLE_STUN
    */
@@ -154,7 +158,8 @@ struct GNUNET_NAT_HandleStunMessage {
 /**
  * Client asking the service to initiate connection reversal.
  */
-struct GNUNET_NAT_RequestConnectionReversalMessage {
+struct GNUNET_NAT_RequestConnectionReversalMessage
+{
   /**
    * Header with type #GNUNET_MESSAGE_TYPE_NAT_REQUEST_CONNECTION_REVERSAL
    */
@@ -179,7 +184,8 @@ struct GNUNET_NAT_RequestConnectionReversalMessage {
 /**
  * Service telling a client that connection reversal was requested.
  */
-struct GNUNET_NAT_ConnectionReversalRequestedMessage {
+struct GNUNET_NAT_ConnectionReversalRequestedMessage
+{
   /**
    * Header with type #GNUNET_MESSAGE_TYPE_NAT_CONNECTION_REVERSAL_REQUESTED
    */
@@ -193,7 +199,8 @@ struct GNUNET_NAT_ConnectionReversalRequestedMessage {
  * Service notifying the client about changes in the set of
  * addresses it has.
  */
-struct GNUNET_NAT_AddressChangeNotificationMessage {
+struct GNUNET_NAT_AddressChangeNotificationMessage
+{
   /**
    * Header with type #GNUNET_MESSAGE_TYPE_NAT_ADDRESS_CHANGE
    */

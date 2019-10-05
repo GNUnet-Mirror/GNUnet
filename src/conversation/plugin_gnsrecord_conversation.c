@@ -44,51 +44,51 @@
  * @return NULL on error, otherwise human-readable representation of the value
  */
 static char *
-conversation_value_to_string(void *cls,
-                             uint32_t type,
-                             const void *data,
-                             size_t data_size)
+conversation_value_to_string (void *cls,
+                              uint32_t type,
+                              const void *data,
+                              size_t data_size)
 {
   char *s;
 
-  (void)cls;
+  (void) cls;
   switch (type)
-    {
-    case GNUNET_GNSRECORD_TYPE_PHONE:
+  {
+  case GNUNET_GNSRECORD_TYPE_PHONE:
     {
       const struct GNUNET_CONVERSATION_PhoneRecord *pr;
       char *ret;
       char *pkey;
 
       if (data_size != sizeof(struct GNUNET_CONVERSATION_PhoneRecord))
-        {
-          GNUNET_break_op(0);
-          return NULL;
-        }
+      {
+        GNUNET_break_op (0);
+        return NULL;
+      }
       pr = data;
-      if (1 != ntohl(pr->version))
-        {
-          GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
-                     _("PHONE version %u not supported\n"),
-                     ntohl(pr->version));
-          return NULL;
-        }
-      pkey = GNUNET_CRYPTO_eddsa_public_key_to_string(&pr->peer.public_key);
-      s = GNUNET_STRINGS_data_to_string_alloc(&pr->line_port,
-                                              sizeof(struct GNUNET_HashCode));
+      if (1 != ntohl (pr->version))
+      {
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                    _ ("PHONE version %u not supported\n"),
+                    ntohl (pr->version));
+        return NULL;
+      }
+      pkey = GNUNET_CRYPTO_eddsa_public_key_to_string (&pr->peer.public_key);
+      s = GNUNET_STRINGS_data_to_string_alloc (&pr->line_port,
+                                               sizeof(struct GNUNET_HashCode));
 
-      GNUNET_asprintf(&ret,
-                      "%s-%s",
-                      s,
-                      pkey);
-      GNUNET_free(s);
-      GNUNET_free(pkey);
+      GNUNET_asprintf (&ret,
+                       "%s-%s",
+                       s,
+                       pkey);
+      GNUNET_free (s);
+      GNUNET_free (pkey);
       return ret;
     }
 
-    default:
-      return NULL;
-    }
+  default:
+    return NULL;
+  }
 }
 
 
@@ -104,63 +104,63 @@ conversation_value_to_string(void *cls,
  * @return #GNUNET_OK on success
  */
 static int
-conversation_string_to_value(void *cls,
-                             uint32_t type,
-                             const char *s,
-                             void **data,
-                             size_t *data_size)
+conversation_string_to_value (void *cls,
+                              uint32_t type,
+                              const char *s,
+                              void **data,
+                              size_t *data_size)
 {
-  (void)cls;
+  (void) cls;
   if (NULL == s)
-    {
-      GNUNET_break(0);
-      return GNUNET_SYSERR;
-    }
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
   switch (type)
-    {
-    case GNUNET_GNSRECORD_TYPE_PHONE:
+  {
+  case GNUNET_GNSRECORD_TYPE_PHONE:
     {
       struct GNUNET_CONVERSATION_PhoneRecord *pr;
       char line_port[103];
       const char *dash;
       struct GNUNET_PeerIdentity peer;
 
-      if ((NULL == (dash = strchr(s, '-'))) ||
-          (1 != sscanf(s, "%103s-", line_port)) ||
+      if ((NULL == (dash = strchr (s, '-'))) ||
+          (1 != sscanf (s, "%103s-", line_port)) ||
           (GNUNET_OK !=
-           GNUNET_CRYPTO_eddsa_public_key_from_string(dash + 1,
-                                                      strlen(dash + 1),
-                                                      &peer.public_key)))
-        {
-          GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
-                     _("Unable to parse PHONE record `%s'\n"),
-                     s);
-          return GNUNET_SYSERR;
-        }
-      pr = GNUNET_new(struct GNUNET_CONVERSATION_PhoneRecord);
-      pr->version = htonl(1);
-      pr->reserved = htonl(0);
+           GNUNET_CRYPTO_eddsa_public_key_from_string (dash + 1,
+                                                       strlen (dash + 1),
+                                                       &peer.public_key)))
+      {
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                    _ ("Unable to parse PHONE record `%s'\n"),
+                    s);
+        return GNUNET_SYSERR;
+      }
+      pr = GNUNET_new (struct GNUNET_CONVERSATION_PhoneRecord);
+      pr->version = htonl (1);
+      pr->reserved = htonl (0);
       if (GNUNET_OK !=
-          GNUNET_STRINGS_string_to_data(line_port,
-                                        strlen(line_port),
-                                        &pr->line_port,
-                                        sizeof(struct GNUNET_HashCode)))
-        {
-          GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
-                     _("Unable to parse PHONE record `%s'\n"),
-                     s);
-          GNUNET_free(pr);
-          return GNUNET_SYSERR;
-        }
+          GNUNET_STRINGS_string_to_data (line_port,
+                                         strlen (line_port),
+                                         &pr->line_port,
+                                         sizeof(struct GNUNET_HashCode)))
+      {
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                    _ ("Unable to parse PHONE record `%s'\n"),
+                    s);
+        GNUNET_free (pr);
+        return GNUNET_SYSERR;
+      }
       pr->peer = peer;
       *data = pr;
       *data_size = sizeof(struct GNUNET_CONVERSATION_PhoneRecord);
       return GNUNET_OK;
     }
 
-    default:
-      return GNUNET_SYSERR;
-    }
+  default:
+    return GNUNET_SYSERR;
+  }
 }
 
 
@@ -168,7 +168,8 @@ conversation_string_to_value(void *cls,
  * Mapping of record type numbers to human-readable
  * record type names.
  */
-static struct {
+static struct
+{
   const char *name;
   uint32_t number;
 } name_map[] = {
@@ -185,15 +186,15 @@ static struct {
  * @return corresponding number, UINT32_MAX on error
  */
 static uint32_t
-conversation_typename_to_number(void *cls,
-                                const char *gns_typename)
+conversation_typename_to_number (void *cls,
+                                 const char *gns_typename)
 {
   unsigned int i;
 
-  (void)cls;
+  (void) cls;
   i = 0;
   while ((name_map[i].name != NULL) &&
-         (0 != strcasecmp(gns_typename, name_map[i].name)))
+         (0 != strcasecmp (gns_typename, name_map[i].name)))
     i++;
   return name_map[i].number;
 }
@@ -207,12 +208,12 @@ conversation_typename_to_number(void *cls,
  * @return corresponding typestring, NULL on error
  */
 static const char *
-conversation_number_to_typename(void *cls,
-                                uint32_t type)
+conversation_number_to_typename (void *cls,
+                                 uint32_t type)
 {
   unsigned int i;
 
-  (void)cls;
+  (void) cls;
   i = 0;
   while ((name_map[i].name != NULL) &&
          (type != name_map[i].number))
@@ -228,12 +229,12 @@ conversation_number_to_typename(void *cls,
  * @return the exported block API
  */
 void *
-libgnunet_plugin_gnsrecord_conversation_init(void *cls)
+libgnunet_plugin_gnsrecord_conversation_init (void *cls)
 {
   struct GNUNET_GNSRECORD_PluginFunctions *api;
 
-  (void)cls;
-  api = GNUNET_new(struct GNUNET_GNSRECORD_PluginFunctions);
+  (void) cls;
+  api = GNUNET_new (struct GNUNET_GNSRECORD_PluginFunctions);
   api->value_to_string = &conversation_value_to_string;
   api->string_to_value = &conversation_string_to_value;
   api->typename_to_number = &conversation_typename_to_number;
@@ -249,11 +250,11 @@ libgnunet_plugin_gnsrecord_conversation_init(void *cls)
  * @return NULL
  */
 void *
-libgnunet_plugin_gnsrecord_conversation_done(void *cls)
+libgnunet_plugin_gnsrecord_conversation_done (void *cls)
 {
   struct GNUNET_GNSRECORD_PluginFunctions *api = cls;
 
-  GNUNET_free(api);
+  GNUNET_free (api);
   return NULL;
 }
 

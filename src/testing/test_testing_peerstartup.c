@@ -30,7 +30,7 @@
 #include "gnunet_testing_lib.h"
 
 #define LOG(kind, ...)                           \
-  GNUNET_log(kind, __VA_ARGS__)
+  GNUNET_log (kind, __VA_ARGS__)
 
 /**
  * The status of the test
@@ -40,7 +40,8 @@ int status;
 /**
  * The testing context
  */
-struct TestingContext {
+struct TestingContext
+{
   /**
    * The testing system
    */
@@ -64,21 +65,21 @@ struct TestingContext {
  * @param cls the testing context
  */
 static void
-do_shutdown(void *cls)
+do_shutdown (void *cls)
 {
   struct TestingContext *test_ctx = cls;
 
-  GNUNET_assert(NULL != test_ctx);
+  GNUNET_assert (NULL != test_ctx);
   if (NULL != test_ctx->peer)
-    {
-      (void)GNUNET_TESTING_peer_stop(test_ctx->peer);
-      GNUNET_TESTING_peer_destroy(test_ctx->peer);
-    }
+  {
+    (void) GNUNET_TESTING_peer_stop (test_ctx->peer);
+    GNUNET_TESTING_peer_destroy (test_ctx->peer);
+  }
   if (NULL != test_ctx->cfg)
-    GNUNET_CONFIGURATION_destroy(test_ctx->cfg);
+    GNUNET_CONFIGURATION_destroy (test_ctx->cfg);
   if (NULL != test_ctx->system)
-    GNUNET_TESTING_system_destroy(test_ctx->system, GNUNET_YES);
-  GNUNET_free(test_ctx);
+    GNUNET_TESTING_system_destroy (test_ctx->system, GNUNET_YES);
+  GNUNET_free (test_ctx);
 }
 
 
@@ -86,42 +87,42 @@ do_shutdown(void *cls)
  * Main point of test execution
  */
 static void
-run(void *cls, char *const *args, const char *cfgfile,
-    const struct GNUNET_CONFIGURATION_Handle *cfg)
+run (void *cls, char *const *args, const char *cfgfile,
+     const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   struct TestingContext *test_ctx;
   char *emsg;
   struct GNUNET_PeerIdentity id;
 
-  test_ctx = GNUNET_new(struct TestingContext);
+  test_ctx = GNUNET_new (struct TestingContext);
   test_ctx->system =
-    GNUNET_TESTING_system_create("test-gnunet-testing",
-                                 "127.0.0.1", NULL, NULL);
+    GNUNET_TESTING_system_create ("test-gnunet-testing",
+                                  "127.0.0.1", NULL, NULL);
   emsg = NULL;
   if (NULL == test_ctx->system)
     goto end;
-  test_ctx->cfg = GNUNET_CONFIGURATION_dup(cfg);
+  test_ctx->cfg = GNUNET_CONFIGURATION_dup (cfg);
   test_ctx->peer =
-    GNUNET_TESTING_peer_configure(test_ctx->system,
-                                  test_ctx->cfg,
-                                  0, &id, &emsg);
+    GNUNET_TESTING_peer_configure (test_ctx->system,
+                                   test_ctx->cfg,
+                                   0, &id, &emsg);
   if (NULL == test_ctx->peer)
-    {
-      if (NULL != emsg)
-        printf("Test failed upon error: %s", emsg);
-      goto end;
-    }
-  if (GNUNET_OK != GNUNET_TESTING_peer_start(test_ctx->peer))
+  {
+    if (NULL != emsg)
+      printf ("Test failed upon error: %s", emsg);
+    goto end;
+  }
+  if (GNUNET_OK != GNUNET_TESTING_peer_start (test_ctx->peer))
     goto end;
   status = GNUNET_OK;
 
 end:
-  GNUNET_SCHEDULER_add_now(&do_shutdown, test_ctx);
-  GNUNET_free_non_null(emsg);
+  GNUNET_SCHEDULER_add_now (&do_shutdown, test_ctx);
+  GNUNET_free_non_null (emsg);
 }
 
 
-int main(int argc, char *argv[])
+int main (int argc, char *argv[])
 {
   struct GNUNET_GETOPT_CommandLineOption options[] = {
     GNUNET_GETOPT_OPTION_END
@@ -129,10 +130,10 @@ int main(int argc, char *argv[])
 
   status = GNUNET_SYSERR;
   if (GNUNET_OK !=
-      GNUNET_PROGRAM_run(argc, argv,
-                         "test_testing_peerstartup",
-                         "test case for peerstartup using new testing library",
-                         options, &run, NULL))
+      GNUNET_PROGRAM_run (argc, argv,
+                          "test_testing_peerstartup",
+                          "test case for peerstartup using new testing library",
+                          options, &run, NULL))
     return 1;
   return (GNUNET_OK == status) ? 0 : 1;
 }

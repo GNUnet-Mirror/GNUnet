@@ -37,18 +37,22 @@
 
 #if ENABLE_BENCHMARK
 #define BENCHMARK_START(opname) \
-  struct GNUNET_TIME_Absolute _benchmark_ ## opname ## _start = GNUNET_TIME_absolute_get()
+  struct GNUNET_TIME_Absolute _benchmark_ ## opname ## _start = \
+    GNUNET_TIME_absolute_get ()
 #define BENCHMARK_END(opname) do { \
-      { \
-        struct GNUNET_TIME_Absolute _benchmark_ ## opname ## _end = GNUNET_TIME_absolute_get(); \
-        struct BenchmarkData *bd = get_benchmark_data(); \
-        bd->opname ## _count++; \
-        bd->opname ## _time = \
-          GNUNET_TIME_relative_add(bd->opname ## _time, \
-                                   GNUNET_TIME_absolute_get_difference(_benchmark_ ## opname ## _start, \
-                                                                       _benchmark_ ## opname ## _end)); \
-      } \
-  } while (0)
+    { \
+      struct GNUNET_TIME_Absolute _benchmark_ ## opname ## _end = \
+        GNUNET_TIME_absolute_get (); \
+      struct BenchmarkData *bd = get_benchmark_data (); \
+      bd->opname ## _count++; \
+      bd->opname ## _time = \
+        GNUNET_TIME_relative_add (bd->opname ## _time, \
+                                  GNUNET_TIME_absolute_get_difference ( \
+                                    _benchmark_ ## opname ## _start, \
+                                    _benchmark_ \
+                                    ## opname ## _end)); \
+    } \
+} while (0)
 #else
 #define BENCHMARK_START(opname) do { } while (0)
 #define BENCHMARK_END(opname) do { } while (0)
@@ -58,7 +62,8 @@
 /**
  * Struct for benchmark data for one URL.
  */
-struct UrlRequestData {
+struct UrlRequestData
+{
   /**
    * Request URL, truncated (but 0-terminated).
    */
@@ -107,32 +112,33 @@ struct UrlRequestData {
 /**
  * Thread-local struct for benchmarking data.
  */
-struct BenchmarkData {
-  GNUNET_DECLARE_BENCHMARK_OP(ecc_ecdh);
-  GNUNET_DECLARE_BENCHMARK_OP(ecdh_eddsa);
-  GNUNET_DECLARE_BENCHMARK_OP(ecdhe_key_create);
-  GNUNET_DECLARE_BENCHMARK_OP(ecdhe_key_get_public);
-  GNUNET_DECLARE_BENCHMARK_OP(ecdsa_ecdh);
-  GNUNET_DECLARE_BENCHMARK_OP(ecdsa_key_create);
-  GNUNET_DECLARE_BENCHMARK_OP(ecdsa_key_get_public);
-  GNUNET_DECLARE_BENCHMARK_OP(ecdsa_sign);
-  GNUNET_DECLARE_BENCHMARK_OP(ecdsa_verify);
-  GNUNET_DECLARE_BENCHMARK_OP(eddsa_ecdh);
-  GNUNET_DECLARE_BENCHMARK_OP(eddsa_key_create);
-  GNUNET_DECLARE_BENCHMARK_OP(eddsa_key_get_public);
-  GNUNET_DECLARE_BENCHMARK_OP(eddsa_sign);
-  GNUNET_DECLARE_BENCHMARK_OP(eddsa_verify);
-  GNUNET_DECLARE_BENCHMARK_OP(hash);
-  GNUNET_DECLARE_BENCHMARK_OP(hash_context_finish);
-  GNUNET_DECLARE_BENCHMARK_OP(hash_context_read);
-  GNUNET_DECLARE_BENCHMARK_OP(hash_context_start);
-  GNUNET_DECLARE_BENCHMARK_OP(hkdf);
-  GNUNET_DECLARE_BENCHMARK_OP(rsa_blind);
-  GNUNET_DECLARE_BENCHMARK_OP(rsa_private_key_create);
-  GNUNET_DECLARE_BENCHMARK_OP(rsa_private_key_get_public);
-  GNUNET_DECLARE_BENCHMARK_OP(rsa_sign_blinded);
-  GNUNET_DECLARE_BENCHMARK_OP(rsa_unblind);
-  GNUNET_DECLARE_BENCHMARK_OP(rsa_verify);
+struct BenchmarkData
+{
+  GNUNET_DECLARE_BENCHMARK_OP (ecc_ecdh);
+  GNUNET_DECLARE_BENCHMARK_OP (ecdh_eddsa);
+  GNUNET_DECLARE_BENCHMARK_OP (ecdhe_key_create);
+  GNUNET_DECLARE_BENCHMARK_OP (ecdhe_key_get_public);
+  GNUNET_DECLARE_BENCHMARK_OP (ecdsa_ecdh);
+  GNUNET_DECLARE_BENCHMARK_OP (ecdsa_key_create);
+  GNUNET_DECLARE_BENCHMARK_OP (ecdsa_key_get_public);
+  GNUNET_DECLARE_BENCHMARK_OP (ecdsa_sign);
+  GNUNET_DECLARE_BENCHMARK_OP (ecdsa_verify);
+  GNUNET_DECLARE_BENCHMARK_OP (eddsa_ecdh);
+  GNUNET_DECLARE_BENCHMARK_OP (eddsa_key_create);
+  GNUNET_DECLARE_BENCHMARK_OP (eddsa_key_get_public);
+  GNUNET_DECLARE_BENCHMARK_OP (eddsa_sign);
+  GNUNET_DECLARE_BENCHMARK_OP (eddsa_verify);
+  GNUNET_DECLARE_BENCHMARK_OP (hash);
+  GNUNET_DECLARE_BENCHMARK_OP (hash_context_finish);
+  GNUNET_DECLARE_BENCHMARK_OP (hash_context_read);
+  GNUNET_DECLARE_BENCHMARK_OP (hash_context_start);
+  GNUNET_DECLARE_BENCHMARK_OP (hkdf);
+  GNUNET_DECLARE_BENCHMARK_OP (rsa_blind);
+  GNUNET_DECLARE_BENCHMARK_OP (rsa_private_key_create);
+  GNUNET_DECLARE_BENCHMARK_OP (rsa_private_key_get_public);
+  GNUNET_DECLARE_BENCHMARK_OP (rsa_sign_blinded);
+  GNUNET_DECLARE_BENCHMARK_OP (rsa_unblind);
+  GNUNET_DECLARE_BENCHMARK_OP (rsa_verify);
 
   struct UrlRequestData *urd;
 
@@ -151,7 +157,7 @@ struct BenchmarkData {
  * @return benchmark data for the current thread
  */
 struct BenchmarkData *
-get_benchmark_data(void);
+get_benchmark_data (void);
 
 /**
  * Get benchmark data for a URL.  If the URL is too long, it's truncated
@@ -163,6 +169,6 @@ get_benchmark_data(void);
  * @param status http status code
  */
 struct UrlRequestData *
-get_url_benchmark_data(char *url, unsigned int status);
+get_url_benchmark_data (char *url, unsigned int status);
 
 #endif  /* BENCHMARK_H_ */

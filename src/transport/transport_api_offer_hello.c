@@ -33,7 +33,8 @@
 /**
  * Entry in linked list for all offer-HELLO requests.
  */
-struct GNUNET_TRANSPORT_OfferHelloHandle {
+struct GNUNET_TRANSPORT_OfferHelloHandle
+{
   /**
    * Transport service handle we use for transmission.
    */
@@ -57,13 +58,13 @@ struct GNUNET_TRANSPORT_OfferHelloHandle {
  * @param cls the handle for the operation
  */
 static void
-finished_hello(void *cls)
+finished_hello (void *cls)
 {
   struct GNUNET_TRANSPORT_OfferHelloHandle *ohh = cls;
 
   if (NULL != ohh->cont)
-    ohh->cont(ohh->cls);
-  GNUNET_TRANSPORT_offer_hello_cancel(ohh);
+    ohh->cont (ohh->cls);
+  GNUNET_TRANSPORT_offer_hello_cancel (ohh);
 }
 
 
@@ -83,43 +84,43 @@ finished_hello(void *cls)
  *
  */
 struct GNUNET_TRANSPORT_OfferHelloHandle *
-GNUNET_TRANSPORT_offer_hello(const struct GNUNET_CONFIGURATION_Handle *cfg,
-                             const struct GNUNET_MessageHeader *hello,
-                             GNUNET_SCHEDULER_TaskCallback cont,
-                             void *cont_cls)
+GNUNET_TRANSPORT_offer_hello (const struct GNUNET_CONFIGURATION_Handle *cfg,
+                              const struct GNUNET_MessageHeader *hello,
+                              GNUNET_SCHEDULER_TaskCallback cont,
+                              void *cont_cls)
 {
   struct GNUNET_TRANSPORT_OfferHelloHandle *ohh
-    = GNUNET_new(struct GNUNET_TRANSPORT_OfferHelloHandle);
+    = GNUNET_new (struct GNUNET_TRANSPORT_OfferHelloHandle);
   struct GNUNET_MQ_Envelope *env;
   struct GNUNET_PeerIdentity peer;
 
   if (GNUNET_OK !=
-      GNUNET_HELLO_get_id((const struct GNUNET_HELLO_Message *)hello,
-                          &peer))
-    {
-      GNUNET_break(0);
-      GNUNET_free(ohh);
-      return NULL;
-    }
-  ohh->mq = GNUNET_CLIENT_connect(cfg,
-                                  "transport",
-                                  NULL,
-                                  NULL,
-                                  ohh);
+      GNUNET_HELLO_get_id ((const struct GNUNET_HELLO_Message *) hello,
+                           &peer))
+  {
+    GNUNET_break (0);
+    GNUNET_free (ohh);
+    return NULL;
+  }
+  ohh->mq = GNUNET_CLIENT_connect (cfg,
+                                   "transport",
+                                   NULL,
+                                   NULL,
+                                   ohh);
   if (NULL == ohh->mq)
-    {
-      GNUNET_free(ohh);
-      return NULL;
-    }
+  {
+    GNUNET_free (ohh);
+    return NULL;
+  }
   ohh->cont = cont;
   ohh->cls = cont_cls;
-  GNUNET_break(ntohs(hello->type) == GNUNET_MESSAGE_TYPE_HELLO);
-  env = GNUNET_MQ_msg_copy(hello);
-  GNUNET_MQ_notify_sent(env,
-                        &finished_hello,
-                        ohh);
-  GNUNET_MQ_send(ohh->mq,
-                 env);
+  GNUNET_break (ntohs (hello->type) == GNUNET_MESSAGE_TYPE_HELLO);
+  env = GNUNET_MQ_msg_copy (hello);
+  GNUNET_MQ_notify_sent (env,
+                         &finished_hello,
+                         ohh);
+  GNUNET_MQ_send (ohh->mq,
+                  env);
   return ohh;
 }
 
@@ -130,10 +131,11 @@ GNUNET_TRANSPORT_offer_hello(const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @param ohh the handle for the operation to cancel
  */
 void
-GNUNET_TRANSPORT_offer_hello_cancel(struct GNUNET_TRANSPORT_OfferHelloHandle *ohh)
+GNUNET_TRANSPORT_offer_hello_cancel (struct
+                                     GNUNET_TRANSPORT_OfferHelloHandle *ohh)
 {
-  GNUNET_MQ_destroy(ohh->mq);
-  GNUNET_free(ohh);
+  GNUNET_MQ_destroy (ohh->mq);
+  GNUNET_free (ohh);
 }
 
 

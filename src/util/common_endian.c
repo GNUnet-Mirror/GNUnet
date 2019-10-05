@@ -28,16 +28,16 @@
 #include "platform.h"
 #include "gnunet_crypto_lib.h"
 
-#define LOG(kind, ...) GNUNET_log_from(kind, "util-common-endian", __VA_ARGS__)
+#define LOG(kind, ...) GNUNET_log_from (kind, "util-common-endian", __VA_ARGS__)
 
 
 uint64_t
-GNUNET_htonll(uint64_t n)
+GNUNET_htonll (uint64_t n)
 {
 #if __BYTE_ORDER == __BIG_ENDIAN
   return n;
 #elif __BYTE_ORDER == __LITTLE_ENDIAN
-  return (((uint64_t)htonl(n)) << 32) + htonl(n >> 32);
+  return (((uint64_t) htonl (n)) << 32) + htonl (n >> 32);
 #else
   #error byteorder undefined
 #endif
@@ -45,12 +45,12 @@ GNUNET_htonll(uint64_t n)
 
 
 uint64_t
-GNUNET_ntohll(uint64_t n)
+GNUNET_ntohll (uint64_t n)
 {
 #if __BYTE_ORDER == __BIG_ENDIAN
   return n;
 #elif __BYTE_ORDER == __LITTLE_ENDIAN
-  return (((uint64_t)ntohl(n)) << 32) + ntohl(n >> 32);
+  return (((uint64_t) ntohl (n)) << 32) + ntohl (n >> 32);
 #else
   #error byteorder undefined
 #endif
@@ -63,13 +63,13 @@ GNUNET_ntohll(uint64_t n)
  * @return the same value in host byte order
  */
 double
-GNUNET_hton_double(double d)
+GNUNET_hton_double (double d)
 {
   double res;
-  uint64_t *in = (uint64_t *)&d;
-  uint64_t *out = (uint64_t *)&res;
+  uint64_t *in = (uint64_t *) &d;
+  uint64_t *out = (uint64_t *) &res;
 
-  out[0] = GNUNET_htonll(in[0]);
+  out[0] = GNUNET_htonll (in[0]);
 
   return res;
 }
@@ -81,13 +81,13 @@ GNUNET_hton_double(double d)
  * @return the same value in host byte order
  */
 double
-GNUNET_ntoh_double(double d)
+GNUNET_ntoh_double (double d)
 {
   double res;
-  uint64_t *in = (uint64_t *)&d;
-  uint64_t *out = (uint64_t *)&res;
+  uint64_t *in = (uint64_t *) &d;
+  uint64_t *out = (uint64_t *) &res;
 
-  out[0] = GNUNET_ntohll(in[0]);
+  out[0] = GNUNET_ntohll (in[0]);
 
   return res;
 }

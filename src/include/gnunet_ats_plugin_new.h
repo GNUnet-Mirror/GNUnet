@@ -46,7 +46,8 @@
 /**
  * Preference being expressed by an application client.
  */
-struct GNUNET_ATS_Preference {
+struct GNUNET_ATS_Preference
+{
   /**
    * Peer to get address suggestions for.
    */
@@ -72,7 +73,8 @@ struct GNUNET_ATS_Session;
 /**
  * Plugin-relevant information about a session.
  */
-struct GNUNET_ATS_SessionData {
+struct GNUNET_ATS_SessionData
+{
   /**
    * Peer the session is with.
    */
@@ -113,7 +115,8 @@ struct GNUNET_ATS_SessionHandle;
  * Each solver is required to set up and return an instance
  * of this struct during initialization.
  */
-struct GNUNET_ATS_SolverFunctions {
+struct GNUNET_ATS_SolverFunctions
+{
   /**
    * Closure to pass to all solver functions in this struct.
    */
@@ -189,7 +192,8 @@ struct GNUNET_ATS_SolverFunctions {
  * of this type as to the initialization function
  * of the ATS plugins.
  */
-struct GNUNET_ATS_PluginEnvironment {
+struct GNUNET_ATS_PluginEnvironment
+{
   /**
    * Configuration handle to be used by the solver
    */

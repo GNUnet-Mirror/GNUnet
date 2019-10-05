@@ -32,7 +32,8 @@
 
 GNUNET_NETWORK_STRUCT_BEGIN
 
-struct OperationRequestMessage {
+struct OperationRequestMessage
+{
   /**
    * Type: #GNUNET_MESSAGE_TYPE_SET_P2P_OPERATION_REQUEST
    */
@@ -63,7 +64,8 @@ struct OperationRequestMessage {
  * If an IBF has too many buckets for an IBF message,
  * it is split into multiple messages.
  */
-struct IBFMessage {
+struct IBFMessage
+{
   /**
    * Type: #GNUNET_MESSAGE_TYPE_SET_UNION_P2P_IBF
    */
@@ -99,7 +101,8 @@ struct IBFMessage {
 };
 
 
-struct InquiryMessage {
+struct InquiryMessage
+{
   /**
    * Type: #GNUNET_MESSAGE_TYPE_SET_UNION_P2P_IBF
    */
@@ -124,7 +127,8 @@ struct InquiryMessage {
  * send it the number of elements in the set, to allow the peers
  * to decide who should start with the Bloom filter.
  */
-struct IntersectionElementInfoMessage {
+struct IntersectionElementInfoMessage
+{
   /**
    * Type: #GNUNET_MESSAGE_TYPE_SET_INTERSECTION_P2P_ELEMENT_INFO
    */
@@ -140,7 +144,8 @@ struct IntersectionElementInfoMessage {
 /**
  * Bloom filter messages exchanged for set intersection calculation.
  */
-struct BFMessage {
+struct BFMessage
+{
   /**
    * Type: #GNUNET_MESSAGE_TYPE_SET_INTERSECTION_P2P_BF
    */
@@ -184,7 +189,8 @@ struct BFMessage {
  * by getting the empty set, which in that case also needs to be
  * communicated.
  */
-struct IntersectionDoneMessage {
+struct IntersectionDoneMessage
+{
   /**
    * Type: #GNUNET_MESSAGE_TYPE_SET_INTERSECTION_P2P_DONE
    */
@@ -205,7 +211,8 @@ struct IntersectionDoneMessage {
 /**
  * Strata estimator together with the peer's overall set size.
  */
-struct StrataEstimatorMessage {
+struct StrataEstimatorMessage
+{
   /**
    * Type: #GNUNET_MESSAGE_TYPE_SET_UNION_P2P_SE(C)
    */

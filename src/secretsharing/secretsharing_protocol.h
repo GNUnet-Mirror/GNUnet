@@ -40,7 +40,8 @@ GNUNET_NETWORK_STRUCT_BEGIN
 /**
  * Consensus element data used in the first round of key generation.
  */
-struct GNUNET_SECRETSHARING_KeygenCommitData {
+struct GNUNET_SECRETSHARING_KeygenCommitData
+{
   /**
    * Signature over the rest of the message.
    */
@@ -65,7 +66,8 @@ struct GNUNET_SECRETSHARING_KeygenCommitData {
 };
 
 
-struct GNUNET_SECRETSHARING_KeygenRevealData {
+struct GNUNET_SECRETSHARING_KeygenRevealData
+{
   /**
    * Signature over rest of the message.
    */
@@ -87,7 +89,8 @@ struct GNUNET_SECRETSHARING_KeygenRevealData {
  * Data of then element put in consensus
  * for decrypting a value.
  */
-struct GNUNET_SECRETSHARING_DecryptData {
+struct GNUNET_SECRETSHARING_DecryptData
+{
   /*
    * Signature over rest of the message.
    */
@@ -126,7 +129,8 @@ struct GNUNET_SECRETSHARING_DecryptData {
 };
 
 
-struct GNUNET_SECRETSHARING_FairEncryption {
+struct GNUNET_SECRETSHARING_FairEncryption
+{
   struct GNUNET_CRYPTO_PaillierCiphertext c;
   /**
    * h = g^x, where x is the fairly encrypte secret.

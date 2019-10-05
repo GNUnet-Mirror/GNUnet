@@ -36,7 +36,8 @@
 /**
  * Test message structure.
  */
-struct GNUNET_CADET_TestMsg {
+struct GNUNET_CADET_TestMsg
+{
   /**
    * Type: #TEST_MESSAGE_TYPE
    *
@@ -73,46 +74,46 @@ static struct GNUNET_SCHEDULER_Task *connect_task;
  * @param cls Closue (unused).
  */
 static void
-do_connect(void *cls);
+do_connect (void *cls);
 
 
 /**
  * Shutdown nicely
  */
 static void
-do_shutdown(void *cls)
+do_shutdown (void *cls)
 {
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-             "shutdown\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "shutdown\n");
   if (NULL != abort_task)
-    {
-      GNUNET_SCHEDULER_cancel(abort_task);
-      abort_task = NULL;
-    }
+  {
+    GNUNET_SCHEDULER_cancel (abort_task);
+    abort_task = NULL;
+  }
   if (NULL != ch)
-    {
-      GNUNET_CADET_channel_destroy(ch);
-      ch = NULL;
-    }
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-             "Disconnect client 1\n");
+  {
+    GNUNET_CADET_channel_destroy (ch);
+    ch = NULL;
+  }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Disconnect client 1\n");
   if (NULL != cadet_peer_1)
-    {
-      GNUNET_CADET_disconnect(cadet_peer_1);
-      cadet_peer_1 = NULL;
-    }
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-             "Disconnect client 2\n");
+  {
+    GNUNET_CADET_disconnect (cadet_peer_1);
+    cadet_peer_1 = NULL;
+  }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Disconnect client 2\n");
   if (NULL != cadet_peer_2)
-    {
-      GNUNET_CADET_disconnect(cadet_peer_2);
-      cadet_peer_2 = NULL;
-    }
+  {
+    GNUNET_CADET_disconnect (cadet_peer_2);
+    cadet_peer_2 = NULL;
+  }
   if (NULL != connect_task)
-    {
-      GNUNET_SCHEDULER_cancel(connect_task);
-      connect_task = NULL;
-    }
+  {
+    GNUNET_SCHEDULER_cancel (connect_task);
+    connect_task = NULL;
+  }
 }
 
 
@@ -120,14 +121,14 @@ do_shutdown(void *cls)
  * Something went wrong and timed out. Kill everything and set error flag
  */
 static void
-do_abort(void *cls)
+do_abort (void *cls)
 {
-  GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
-             "ABORT from line %ld\n",
-             (long)cls);
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+              "ABORT from line %ld\n",
+              (long) cls);
   result = GNUNET_SYSERR;
   abort_task = NULL;
-  GNUNET_SCHEDULER_shutdown();
+  GNUNET_SCHEDULER_shutdown ();
 }
 
 /**
@@ -143,14 +144,14 @@ do_abort(void *cls)
  *           received on the @a channel.
  */
 static void *
-connected(void *cls,
-          struct GNUNET_CADET_Channel *channel,
-          const struct GNUNET_PeerIdentity *source)
+connected (void *cls,
+           struct GNUNET_CADET_Channel *channel,
+           const struct GNUNET_PeerIdentity *source)
 {
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-             "connected %s, cls: %p\n",
-             GNUNET_i2s(source),
-             cls);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "connected %s, cls: %p\n",
+              GNUNET_i2s (source),
+              cls);
   return channel;
 }
 
@@ -166,12 +167,12 @@ connected(void *cls,
  * @param channel Connection to the other end (henceforth invalid).
  */
 static void
-disconnected(void *cls,
-             const struct GNUNET_CADET_Channel *channel)
+disconnected (void *cls,
+              const struct GNUNET_CADET_Channel *channel)
 {
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-             "disconnected channel %p, cls: %p\n",
-             channel, cls);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "disconnected channel %p, cls: %p\n",
+              channel, cls);
   if (channel == ch)
     ch = NULL;
 }
@@ -184,19 +185,19 @@ disconnected(void *cls,
  * @param msg   A message with the details of the new incoming channel
  */
 static void
-handle_data_received(void *cls,
-                     const struct GNUNET_CADET_TestMsg *msg)
+handle_data_received (void *cls,
+                      const struct GNUNET_CADET_TestMsg *msg)
 {
   uint64_t payload;
 
-  payload = GNUNET_ntohll(msg->payload);
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-             "Data callback payload %llu with cls: %p! Shutting down.\n",
-             (unsigned long long)payload,
-             cls);
-  GNUNET_assert(42 == payload);
+  payload = GNUNET_ntohll (msg->payload);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Data callback payload %llu with cls: %p! Shutting down.\n",
+              (unsigned long long) payload,
+              cls);
+  GNUNET_assert (42 == payload);
   got_data = GNUNET_YES;
-  GNUNET_SCHEDULER_shutdown();
+  GNUNET_SCHEDULER_shutdown ();
 }
 
 
@@ -206,10 +207,10 @@ handle_data_received(void *cls,
  * @param cls Closure (unused).
  */
 static void
-message_sent(void *cls)
+message_sent (void *cls)
 {
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-             "message sent\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "message sent\n");
 }
 
 
@@ -219,7 +220,7 @@ message_sent(void *cls)
  * @param cls Closure (unused).
  */
 static void
-do_connect(void *cls)
+do_connect (void *cls)
 {
   struct GNUNET_PeerIdentity id;
   struct GNUNET_MQ_Handle *mq;
@@ -227,32 +228,32 @@ do_connect(void *cls)
   struct GNUNET_CADET_TestMsg *msg;
 
   struct GNUNET_MQ_MessageHandler handlers[] = {
-    GNUNET_MQ_hd_fixed_size(data_received,
-                            TEST_MESSAGE_TYPE,
-                            struct GNUNET_CADET_TestMsg,
-                            cadet_peer_1),
-    GNUNET_MQ_handler_end()
+    GNUNET_MQ_hd_fixed_size (data_received,
+                             TEST_MESSAGE_TYPE,
+                             struct GNUNET_CADET_TestMsg,
+                             cadet_peer_1),
+    GNUNET_MQ_handler_end ()
   };
 
   connect_task = NULL;
-  GNUNET_TESTING_peer_get_identity(me, &id);
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-             "creating channel\n");
-  ch = GNUNET_CADET_channel_create(cadet_peer_1,  /* cadet handle */
-                                   NULL,          /* channel cls */
-                                   &id,           /* destination */
-                                   GC_u2h(TEST_MESSAGE_TYPE),   /* port */
-                                   NULL,           /* window change */
-                                   &disconnected,  /* disconnect handler */
-                                   handlers        /* traffic handlers */
-                                   );
-  env = GNUNET_MQ_msg(msg, TEST_MESSAGE_TYPE);
-  msg->payload = GNUNET_htonll(42);
-  mq = GNUNET_CADET_get_mq(ch);
-  GNUNET_MQ_notify_sent(env, &message_sent, NULL);
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-             "sending message\n");
-  GNUNET_MQ_send(mq, env);
+  GNUNET_TESTING_peer_get_identity (me, &id);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "creating channel\n");
+  ch = GNUNET_CADET_channel_create (cadet_peer_1,  /* cadet handle */
+                                    NULL,         /* channel cls */
+                                    &id,          /* destination */
+                                    GC_u2h (TEST_MESSAGE_TYPE), /* port */
+                                    NULL,          /* window change */
+                                    &disconnected, /* disconnect handler */
+                                    handlers       /* traffic handlers */
+                                    );
+  env = GNUNET_MQ_msg (msg, TEST_MESSAGE_TYPE);
+  msg->payload = GNUNET_htonll (42);
+  mq = GNUNET_CADET_get_mq (ch);
+  GNUNET_MQ_notify_sent (env, &message_sent, NULL);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "sending message\n");
+  GNUNET_MQ_send (mq, env);
 }
 
 
@@ -264,53 +265,53 @@ do_connect(void *cls)
  * @param peer Testing peer handle.
  */
 static void
-run(void *cls,
-    const struct GNUNET_CONFIGURATION_Handle *cfg,
-    struct GNUNET_TESTING_Peer *peer)
+run (void *cls,
+     const struct GNUNET_CONFIGURATION_Handle *cfg,
+     struct GNUNET_TESTING_Peer *peer)
 {
   struct GNUNET_MQ_MessageHandler handlers[] = {
-    GNUNET_MQ_hd_fixed_size(data_received,
-                            TEST_MESSAGE_TYPE,
-                            struct GNUNET_CADET_TestMsg,
-                            cadet_peer_2),
-    GNUNET_MQ_handler_end()
+    GNUNET_MQ_hd_fixed_size (data_received,
+                             TEST_MESSAGE_TYPE,
+                             struct GNUNET_CADET_TestMsg,
+                             cadet_peer_2),
+    GNUNET_MQ_handler_end ()
   };
   struct GNUNET_TIME_Relative delay;
 
   me = peer;
-  GNUNET_SCHEDULER_add_shutdown(&do_shutdown,
-                                NULL);
-  delay = GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 15);
-  abort_task = GNUNET_SCHEDULER_add_delayed(delay,
-                                            &do_abort,
-                                            (void *)(long)__LINE__);
-  cadet_peer_1 = GNUNET_CADET_connect(cfg);
-  cadet_peer_2 = GNUNET_CADET_connect(cfg);
+  GNUNET_SCHEDULER_add_shutdown (&do_shutdown,
+                                 NULL);
+  delay = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 15);
+  abort_task = GNUNET_SCHEDULER_add_delayed (delay,
+                                             &do_abort,
+                                             (void *) (long) __LINE__);
+  cadet_peer_1 = GNUNET_CADET_connect (cfg);
+  cadet_peer_2 = GNUNET_CADET_connect (cfg);
 
   if ((NULL == cadet_peer_1) ||
       (NULL == cadet_peer_2))
-    {
-      GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
-                 "Couldn't connect to cadet\n");
-      result = GNUNET_SYSERR;
-      GNUNET_SCHEDULER_shutdown();
-      return;
-    }
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "CADET 1: %p\n", cadet_peer_1);
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "CADET 2: %p\n", cadet_peer_2);
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "handlers 2: %p\n", handlers);
-  GNUNET_CADET_open_port(cadet_peer_2,           /* cadet handle */
-                         GC_u2h(TEST_PORT_ID),   /* port id */
-                         &connected,             /* connect handler */
-                         (void *)2L,             /* handle for #connected */
-                         NULL,                   /* window size handler */
-                         &disconnected,          /* disconnect handler */
-                         handlers);              /* traffic handlers */
-  delay = GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 2);
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Couldn't connect to cadet\n");
+    result = GNUNET_SYSERR;
+    GNUNET_SCHEDULER_shutdown ();
+    return;
+  }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "CADET 1: %p\n", cadet_peer_1);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "CADET 2: %p\n", cadet_peer_2);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "handlers 2: %p\n", handlers);
+  GNUNET_CADET_open_port (cadet_peer_2,           /* cadet handle */
+                          GC_u2h (TEST_PORT_ID), /* port id */
+                          &connected,            /* connect handler */
+                          (void *) 2L,           /* handle for #connected */
+                          NULL,                  /* window size handler */
+                          &disconnected,         /* disconnect handler */
+                          handlers);             /* traffic handlers */
+  delay = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 2);
   if (NULL == connect_task)
-    connect_task = GNUNET_SCHEDULER_add_delayed(delay,
-                                                &do_connect,
-                                                NULL);
+    connect_task = GNUNET_SCHEDULER_add_delayed (delay,
+                                                 &do_connect,
+                                                 NULL);
 }
 
 
@@ -318,16 +319,16 @@ run(void *cls,
  * Main
  */
 int
-main(int argc, char *argv[])
+main (int argc, char *argv[])
 {
-  if (0 != GNUNET_TESTING_peer_run("test-cadet-local",
-                                   "test_cadet.conf",
-                                   &run, NULL))
-    {
-      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "run failed\n");
-      return 2;
-    }
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Final result: %d\n", result);
+  if (0 != GNUNET_TESTING_peer_run ("test-cadet-local",
+                                    "test_cadet.conf",
+                                    &run, NULL))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "run failed\n");
+    return 2;
+  }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Final result: %d\n", result);
   return (result == GNUNET_OK) ? 0 : 1;
 }
 

@@ -30,7 +30,7 @@
 
 
 static int
-test_ecdh()
+test_ecdh ()
 {
   struct GNUNET_CRYPTO_EddsaPrivateKey *priv_dsa;
   struct GNUNET_CRYPTO_EcdhePrivateKey *priv_ecdh;
@@ -39,56 +39,57 @@ test_ecdh()
   struct GNUNET_HashCode dh[2];
 
   /* Generate keys */
-  priv_dsa = GNUNET_CRYPTO_eddsa_key_create();
-  GNUNET_CRYPTO_eddsa_key_get_public(priv_dsa,
-                                     &id1);
+  priv_dsa = GNUNET_CRYPTO_eddsa_key_create ();
+  GNUNET_CRYPTO_eddsa_key_get_public (priv_dsa,
+                                      &id1);
   for (unsigned int j = 0; j < 4; j++)
-    {
-      fprintf(stderr, ",");
-      priv_ecdh = GNUNET_CRYPTO_ecdhe_key_create();
-      /* Extract public keys */
-      GNUNET_CRYPTO_ecdhe_key_get_public(priv_ecdh,
-                                         &id2);
-      /* Do ECDH */
-      GNUNET_assert(GNUNET_OK ==
-                    GNUNET_CRYPTO_eddsa_ecdh(priv_dsa,
+  {
+    fprintf (stderr, ",");
+    priv_ecdh = GNUNET_CRYPTO_ecdhe_key_create ();
+    /* Extract public keys */
+    GNUNET_CRYPTO_ecdhe_key_get_public (priv_ecdh,
+                                        &id2);
+    /* Do ECDH */
+    GNUNET_assert (GNUNET_OK ==
+                   GNUNET_CRYPTO_eddsa_ecdh (priv_dsa,
                                              &id2,
                                              &dh[0]));
-      GNUNET_assert(GNUNET_OK ==
-                    GNUNET_CRYPTO_ecdh_eddsa(priv_ecdh,
+    GNUNET_assert (GNUNET_OK ==
+                   GNUNET_CRYPTO_ecdh_eddsa (priv_ecdh,
                                              &id1,
                                              &dh[1]));
-      /* Check that both DH results are equal. */
-      GNUNET_assert(0 == memcmp(&dh[0],
+    /* Check that both DH results are equal. */
+    GNUNET_assert (0 == memcmp (&dh[0],
                                 &dh[1],
                                 sizeof(struct GNUNET_HashCode)));
-      GNUNET_free(priv_ecdh);
-    }
-  GNUNET_free(priv_dsa);
+    GNUNET_free (priv_ecdh);
+  }
+  GNUNET_free (priv_dsa);
   return 0;
 }
 
 
 int
-main(int argc, char *argv[])
+main (int argc, char *argv[])
 {
-  if (!gcry_check_version("1.6.0"))
-    {
-      fprintf(stderr,
-              _("libgcrypt has not the expected version (version %s is required).\n"),
-              "1.6.0");
-      return 0;
-    }
-  if (getenv("GNUNET_GCRYPT_DEBUG"))
-    gcry_control(GCRYCTL_SET_DEBUG_FLAGS, 1u, 0);
-  GNUNET_log_setup("test-crypto-ecdh-eddsa", "WARNING", NULL);
+  if (! gcry_check_version ("1.6.0"))
+  {
+    fprintf (stderr,
+             _ (
+               "libgcrypt has not the expected version (version %s is required).\n"),
+             "1.6.0");
+    return 0;
+  }
+  if (getenv ("GNUNET_GCRYPT_DEBUG"))
+    gcry_control (GCRYCTL_SET_DEBUG_FLAGS, 1u, 0);
+  GNUNET_log_setup ("test-crypto-ecdh-eddsa", "WARNING", NULL);
   for (unsigned int i = 0; i < 4; i++)
-    {
-      fprintf(stderr,
-              ".");
-      if (0 != test_ecdh())
-        return 1;
-    }
+  {
+    fprintf (stderr,
+             ".");
+    if (0 != test_ecdh ())
+      return 1;
+  }
   return 0;
 }
 

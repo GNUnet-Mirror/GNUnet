@@ -37,9 +37,9 @@
 
 /** macro to align idx to 32bit boundary */
 #define ALIGN(idx) do { \
-      if (idx % sizeof(void*)) \
+    if (idx % sizeof(void*)) \
       idx += (sizeof(void*) - idx % sizeof(void*)); /* Align on 32 bit boundary */ \
-  } while (0)
+} while (0)
 
 
 /**
@@ -55,13 +55,13 @@
  * @return a nss_status code
  */
 enum nss_status
-_nss_gns_gethostbyname2_r(const char *name,
-                          int af,
-                          struct hostent *result,
-                          char *buffer,
-                          size_t buflen,
-                          int *errnop,
-                          int *h_errnop)
+_nss_gns_gethostbyname2_r (const char *name,
+                           int af,
+                           struct hostent *result,
+                           char *buffer,
+                           size_t buflen,
+                           int *errnop,
+                           int *h_errnop)
 {
   struct userdata u;
   enum nss_status status = NSS_STATUS_UNAVAIL;
@@ -86,97 +86,98 @@ _nss_gns_gethostbyname2_r(const char *name,
   if ((af != AF_INET) &&
       (af != AF_INET6))
 #endif
-    {
-      *errnop = EINVAL;
-      *h_errnop = NO_RECOVERY;
+  {
+    *errnop = EINVAL;
+    *h_errnop = NO_RECOVERY;
 
-      goto finish;
-    }
+    goto finish;
+  }
 
-  address_length = (af == AF_INET) ? sizeof(ipv4_address_t) : sizeof(ipv6_address_t);
+  address_length = (af == AF_INET) ? sizeof(ipv4_address_t) :
+                   sizeof(ipv6_address_t);
   if (buflen <
-      sizeof(char*) +     /* alias names */
-      strlen(name) + 1)
-    { /* official name */
-      *errnop = ERANGE;
-      *h_errnop = NO_RECOVERY;
-      status = NSS_STATUS_TRYAGAIN;
+      sizeof(char*)       /* alias names */
+      + strlen (name) + 1)
+  {   /* official name */
+    *errnop = ERANGE;
+    *h_errnop = NO_RECOVERY;
+    status = NSS_STATUS_TRYAGAIN;
 
-      goto finish;
-    }
+    goto finish;
+  }
   u.count = 0;
   u.data_len = 0;
-  i = gns_resolve_name(af,
-                       name,
-                       &u);
+  i = gns_resolve_name (af,
+                        name,
+                        &u);
   if (-1 == i)
-    {
-      *errnop = errno;
-      status = NSS_STATUS_UNAVAIL;
-      *h_errnop = NO_RECOVERY;
-      goto finish;
-    }
+  {
+    *errnop = errno;
+    status = NSS_STATUS_UNAVAIL;
+    *h_errnop = NO_RECOVERY;
+    goto finish;
+  }
   if (-2 == i)
-    {
-      *errnop = ENOENT;
-      *h_errnop = NO_RECOVERY;
-      status = NSS_STATUS_UNAVAIL;
-      goto finish;
-    }
+  {
+    *errnop = ENOENT;
+    *h_errnop = NO_RECOVERY;
+    status = NSS_STATUS_UNAVAIL;
+    goto finish;
+  }
   if (-3 == i)
-    {
-      *errnop = ETIMEDOUT;
-      *h_errnop = HOST_NOT_FOUND;
-      status = NSS_STATUS_NOTFOUND;
-      goto finish;
-    }
+  {
+    *errnop = ETIMEDOUT;
+    *h_errnop = HOST_NOT_FOUND;
+    status = NSS_STATUS_NOTFOUND;
+    goto finish;
+  }
   if (0 == u.count)
-    {
-      *errnop = 0; /* success */
-      *h_errnop = NO_DATA; /* success */
-      status = NSS_STATUS_NOTFOUND;
-      goto finish;
-    }
+  {
+    *errnop = 0;   /* success */
+    *h_errnop = NO_DATA;   /* success */
+    status = NSS_STATUS_NOTFOUND;
+    goto finish;
+  }
   /* Alias names */
-  *((char**)buffer) = NULL;
-  result->h_aliases = (char**)buffer;
+  *((char**) buffer) = NULL;
+  result->h_aliases = (char**) buffer;
   idx = sizeof(char*);
 
   /* Official name */
-  strcpy(buffer + idx,
-         name);
+  strcpy (buffer + idx,
+          name);
   result->h_name = buffer + idx;
-  idx += strlen(name) + 1;
+  idx += strlen (name) + 1;
 
-  ALIGN(idx);
+  ALIGN (idx);
 
   result->h_addrtype = af;
   result->h_length = address_length;
 
   /* Check if there's enough space for the addresses */
   if (buflen < idx + u.data_len + sizeof(char*) * (u.count + 1))
-    {
-      *errnop = ERANGE;
-      *h_errnop = NO_RECOVERY;
-      status = NSS_STATUS_TRYAGAIN;
-      goto finish;
-    }
+  {
+    *errnop = ERANGE;
+    *h_errnop = NO_RECOVERY;
+    status = NSS_STATUS_TRYAGAIN;
+    goto finish;
+  }
   /* Addresses */
   astart = idx;
   l = u.count * address_length;
   if (0 != l)
-    memcpy(buffer + astart,
-           &u.data,
-           l);
+    memcpy (buffer + astart,
+            &u.data,
+            l);
   /* address_length is a multiple of 32bits, so idx is still aligned
    * correctly */
   idx += l;
 
   /* Address array address_length is always a multiple of 32bits */
   for (i = 0; i < u.count; i++)
-    ((char**)(buffer + idx))[i] = buffer + astart + address_length * i;
-  ((char**)(buffer + idx))[i] = NULL;
-  result->h_addr_list = (char**)(buffer + idx);
+    ((char**) (buffer + idx))[i] = buffer + astart + address_length * i;
+  ((char**) (buffer + idx))[i] = NULL;
+  result->h_addr_list = (char**) (buffer + idx);
 
   status = NSS_STATUS_SUCCESS;
 
@@ -197,20 +198,20 @@ finish:
  * @return a nss_status code
  */
 enum nss_status
-_nss_gns_gethostbyname_r(const char *name,
-                         struct hostent *result,
-                         char *buffer,
-                         size_t buflen,
-                         int *errnop,
-                         int *h_errnop)
+_nss_gns_gethostbyname_r (const char *name,
+                          struct hostent *result,
+                          char *buffer,
+                          size_t buflen,
+                          int *errnop,
+                          int *h_errnop)
 {
-  return _nss_gns_gethostbyname2_r(name,
-                                   AF_UNSPEC,
-                                   result,
-                                   buffer,
-                                   buflen,
-                                   errnop,
-                                   h_errnop);
+  return _nss_gns_gethostbyname2_r (name,
+                                    AF_UNSPEC,
+                                    result,
+                                    buffer,
+                                    buflen,
+                                    errnop,
+                                    h_errnop);
 }
 
 
@@ -229,21 +230,21 @@ _nss_gns_gethostbyname_r(const char *name,
  * @return NSS_STATUS_UNAVAIL
  */
 enum nss_status
-_nss_gns_gethostbyaddr_r(const void* addr,
-                         int len,
-                         int af,
-                         struct hostent *result,
-                         char *buffer,
-                         size_t buflen,
-                         int *errnop,
-                         int *h_errnop)
+_nss_gns_gethostbyaddr_r (const void*addr,
+                          int len,
+                          int af,
+                          struct hostent *result,
+                          char *buffer,
+                          size_t buflen,
+                          int *errnop,
+                          int *h_errnop)
 {
-  (void)addr;
-  (void)len;
-  (void)af;
-  (void)result;
-  (void)buffer;
-  (void)buflen;
+  (void) addr;
+  (void) len;
+  (void) af;
+  (void) result;
+  (void) buffer;
+  (void) buflen;
   *errnop = EINVAL;
   *h_errnop = NO_RECOVERY;
   /* NOTE we allow to leak this into DNS so no NOTFOUND */

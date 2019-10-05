@@ -1,4 +1,3 @@
-
 /*
      This file is part of GNUnet.
      Copyright (C) 2016 GNUnet e.V.
@@ -34,19 +33,20 @@
  * @param other peer that connected.
  */
 void
-GNUNET_TRANSPORT_TESTING_log_connect(void *cls,
-                                     struct GNUNET_TRANSPORT_TESTING_PeerContext *me,
-                                     const struct GNUNET_PeerIdentity *other)
+GNUNET_TRANSPORT_TESTING_log_connect (void *cls,
+                                      struct
+                                      GNUNET_TRANSPORT_TESTING_PeerContext *me,
+                                      const struct GNUNET_PeerIdentity *other)
 {
   char *ps;
 
-  ps = GNUNET_strdup(GNUNET_i2s(&me->id));
-  GNUNET_log(GNUNET_ERROR_TYPE_INFO,
-             "Peer %s connected to %u (%s)!\n",
-             GNUNET_i2s(other),
-             me->no,
-             ps);
-  GNUNET_free(ps);
+  ps = GNUNET_strdup (GNUNET_i2s (&me->id));
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "Peer %s connected to %u (%s)!\n",
+              GNUNET_i2s (other),
+              me->no,
+              ps);
+  GNUNET_free (ps);
 }
 
 
@@ -59,19 +59,22 @@ GNUNET_TRANSPORT_TESTING_log_connect(void *cls,
  * @param other peer that disconnected.
  */
 void
-GNUNET_TRANSPORT_TESTING_log_disconnect(void *cls,
-                                        struct GNUNET_TRANSPORT_TESTING_PeerContext *me,
-                                        const struct GNUNET_PeerIdentity *other)
+GNUNET_TRANSPORT_TESTING_log_disconnect (void *cls,
+                                         struct
+                                         GNUNET_TRANSPORT_TESTING_PeerContext *
+                                         me,
+                                         const struct
+                                         GNUNET_PeerIdentity *other)
 {
   char *ps;
 
-  ps = GNUNET_strdup(GNUNET_i2s(&me->id));
-  GNUNET_log(GNUNET_ERROR_TYPE_INFO,
-             "Peer `%s' disconnected from %u (%s)!\n",
-             GNUNET_i2s(other),
-             me->no,
-             ps);
-  GNUNET_free(ps);
+  ps = GNUNET_strdup (GNUNET_i2s (&me->id));
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "Peer `%s' disconnected from %u (%s)!\n",
+              GNUNET_i2s (other),
+              me->no,
+              ps);
+  GNUNET_free (ps);
 }
 
 /* end of transport-testing-loggers.c */

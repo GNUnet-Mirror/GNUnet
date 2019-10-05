@@ -65,14 +65,16 @@ static char *allow_methods;
 /**
  * @brief struct returned by the initialization function of the plugin
  */
-struct Plugin {
+struct Plugin
+{
   const struct GNUNET_CONFIGURATION_Handle *cfg;
 };
 
 /**
  * The request handle
  */
-struct RequestHandle {
+struct RequestHandle
+{
   /**
    * Connection to GNS
    */
@@ -140,36 +142,36 @@ struct RequestHandle {
  * @param handle Handle to clean up
  */
 static void
-cleanup_handle(void *cls)
+cleanup_handle (void *cls)
 {
   struct RequestHandle *handle = cls;
 
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Cleaning up\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Cleaning up\n");
 
   if (NULL != handle->gns_lookup)
-    {
-      GNUNET_GNS_lookup_with_tld_cancel(handle->gns_lookup);
-      handle->gns_lookup = NULL;
-    }
+  {
+    GNUNET_GNS_lookup_with_tld_cancel (handle->gns_lookup);
+    handle->gns_lookup = NULL;
+  }
   if (NULL != handle->gns)
-    {
-      GNUNET_GNS_disconnect(handle->gns);
-      handle->gns = NULL;
-    }
+  {
+    GNUNET_GNS_disconnect (handle->gns);
+    handle->gns = NULL;
+  }
 
   if (NULL != handle->timeout_task)
-    {
-      GNUNET_SCHEDULER_cancel(handle->timeout_task);
-      handle->timeout_task = NULL;
-    }
+  {
+    GNUNET_SCHEDULER_cancel (handle->timeout_task);
+    handle->timeout_task = NULL;
+  }
   if (NULL != handle->url)
-    GNUNET_free(handle->url);
+    GNUNET_free (handle->url);
   if (NULL != handle->name)
-    GNUNET_free(handle->name);
+    GNUNET_free (handle->name);
   if (NULL != handle->emsg)
-    GNUNET_free(handle->emsg);
+    GNUNET_free (handle->emsg);
 
-  GNUNET_free(handle);
+  GNUNET_free (handle);
 }
 
 
@@ -179,40 +181,40 @@ cleanup_handle(void *cls)
  * @param cls the `struct RequestHandle`
  */
 static void
-do_error(void *cls)
+do_error (void *cls)
 {
   struct RequestHandle *handle = cls;
   struct MHD_Response *resp;
-  json_t *json_error = json_object();
+  json_t *json_error = json_object ();
   char *response;
 
   if (NULL != handle->timeout_task)
-    GNUNET_SCHEDULER_cancel(handle->timeout_task);
+    GNUNET_SCHEDULER_cancel (handle->timeout_task);
   handle->timeout_task = NULL;
   if (NULL == handle->emsg)
-    handle->emsg = GNUNET_strdup(GNUNET_REST_GNS_ERROR_UNKNOWN);
+    handle->emsg = GNUNET_strdup (GNUNET_REST_GNS_ERROR_UNKNOWN);
 
-  json_object_set_new(json_error, "error", json_string(handle->emsg));
+  json_object_set_new (json_error, "error", json_string (handle->emsg));
 
   if (0 == handle->response_code)
     handle->response_code = MHD_HTTP_INTERNAL_SERVER_ERROR;
-  response = json_dumps(json_error, 0);
-  resp = GNUNET_REST_create_response(response);
-  handle->proc(handle->proc_cls, resp, handle->response_code);
-  json_decref(json_error);
-  GNUNET_free(response);
-  GNUNET_SCHEDULER_add_now(&cleanup_handle, handle);
+  response = json_dumps (json_error, 0);
+  resp = GNUNET_REST_create_response (response);
+  handle->proc (handle->proc_cls, resp, handle->response_code);
+  json_decref (json_error);
+  GNUNET_free (response);
+  GNUNET_SCHEDULER_add_now (&cleanup_handle, handle);
 }
 
 
 static void
-do_timeout(void *cls)
+do_timeout (void *cls)
 {
   struct RequestHandle *handle = cls;
 
   handle->timeout_task = NULL;
   handle->response_code = MHD_HTTP_REQUEST_TIMEOUT;
-  do_error(handle);
+  do_error (handle);
 }
 
 
@@ -225,10 +227,10 @@ do_timeout(void *cls)
  * @param rd the records in reply
  */
 static void
-handle_gns_response(void *cls,
-                    int was_gns,
-                    uint32_t rd_count,
-                    const struct GNUNET_GNSRECORD_Data *rd)
+handle_gns_response (void *cls,
+                     int was_gns,
+                     uint32_t rd_count,
+                     const struct GNUNET_GNSRECORD_Data *rd)
 {
   struct RequestHandle *handle = cls;
   struct MHD_Response *resp;
@@ -238,22 +240,22 @@ handle_gns_response(void *cls,
   handle->gns_lookup = NULL;
 
   if (GNUNET_NO == was_gns)
-    {
-      handle->response_code = MHD_HTTP_NOT_FOUND;
-      handle->emsg = GNUNET_strdup(GNUNET_REST_GNS_NOT_FOUND);
-      GNUNET_SCHEDULER_add_now(&do_error, handle);
-      return;
-    }
+  {
+    handle->response_code = MHD_HTTP_NOT_FOUND;
+    handle->emsg = GNUNET_strdup (GNUNET_REST_GNS_NOT_FOUND);
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
+    return;
+  }
 
-  result_obj = GNUNET_JSON_from_gnsrecord(handle->name, rd, rd_count);
+  result_obj = GNUNET_JSON_from_gnsrecord (handle->name, rd, rd_count);
 
-  result = json_dumps(result_obj, 0);
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Result %s\n", result);
-  resp = GNUNET_REST_create_response(result);
-  handle->proc(handle->proc_cls, resp, MHD_HTTP_OK);
-  GNUNET_free(result);
-  json_decref(result_obj);
-  GNUNET_SCHEDULER_add_now(&cleanup_handle, handle);
+  result = json_dumps (result_obj, 0);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Result %s\n", result);
+  resp = GNUNET_REST_create_response (result);
+  handle->proc (handle->proc_cls, resp, MHD_HTTP_OK);
+  GNUNET_free (result);
+  json_decref (result_obj);
+  GNUNET_SCHEDULER_add_now (&cleanup_handle, handle);
 }
 
 
@@ -265,9 +267,9 @@ handle_gns_response(void *cls,
  * @param cls the RequestHandle
  */
 void
-get_gns_cont(struct GNUNET_REST_RequestHandle *con_handle,
-             const char *url,
-             void *cls)
+get_gns_cont (struct GNUNET_REST_RequestHandle *con_handle,
+              const char *url,
+              void *cls)
 {
   struct RequestHandle *handle = cls;
   struct GNUNET_HashCode key;
@@ -276,50 +278,50 @@ get_gns_cont(struct GNUNET_REST_RequestHandle *con_handle,
 
   name = NULL;
   handle->name = NULL;
-  if (strlen(GNUNET_REST_API_NS_GNS) < strlen(handle->url))
-    {
-      name = &handle->url[strlen(GNUNET_REST_API_NS_GNS) + 1];
-    }
+  if (strlen (GNUNET_REST_API_NS_GNS) < strlen (handle->url))
+  {
+    name = &handle->url[strlen (GNUNET_REST_API_NS_GNS) + 1];
+  }
 
   if (NULL == name)
-    {
-      handle->response_code = MHD_HTTP_NOT_FOUND;
-      handle->emsg = GNUNET_strdup(GNUNET_REST_GNS_NOT_FOUND);
-      GNUNET_SCHEDULER_add_now(&do_error, handle);
-      return;
-    }
-  if (0 >= strlen(name))
-    {
-      handle->response_code = MHD_HTTP_NOT_FOUND;
-      handle->emsg = GNUNET_strdup(GNUNET_REST_GNS_NOT_FOUND);
-      GNUNET_SCHEDULER_add_now(&do_error, handle);
-      return;
-    }
-  handle->name = GNUNET_strdup(name);
+  {
+    handle->response_code = MHD_HTTP_NOT_FOUND;
+    handle->emsg = GNUNET_strdup (GNUNET_REST_GNS_NOT_FOUND);
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
+    return;
+  }
+  if (0 >= strlen (name))
+  {
+    handle->response_code = MHD_HTTP_NOT_FOUND;
+    handle->emsg = GNUNET_strdup (GNUNET_REST_GNS_NOT_FOUND);
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
+    return;
+  }
+  handle->name = GNUNET_strdup (name);
 
   handle->record_type = UINT32_MAX;
-  GNUNET_CRYPTO_hash(GNUNET_REST_GNS_PARAM_RECORD_TYPE,
-                     strlen(GNUNET_REST_GNS_PARAM_RECORD_TYPE),
-                     &key);
+  GNUNET_CRYPTO_hash (GNUNET_REST_GNS_PARAM_RECORD_TYPE,
+                      strlen (GNUNET_REST_GNS_PARAM_RECORD_TYPE),
+                      &key);
   if (GNUNET_YES ==
-      GNUNET_CONTAINER_multihashmap_contains(con_handle->url_param_map, &key))
-    {
-      record_type =
-        GNUNET_CONTAINER_multihashmap_get(con_handle->url_param_map, &key);
-      handle->record_type = GNUNET_GNSRECORD_typename_to_number(record_type);
-    }
+      GNUNET_CONTAINER_multihashmap_contains (con_handle->url_param_map, &key))
+  {
+    record_type =
+      GNUNET_CONTAINER_multihashmap_get (con_handle->url_param_map, &key);
+    handle->record_type = GNUNET_GNSRECORD_typename_to_number (record_type);
+  }
 
   if (UINT32_MAX == handle->record_type)
-    {
-      handle->record_type = GNUNET_GNSRECORD_TYPE_ANY;
-    }
+  {
+    handle->record_type = GNUNET_GNSRECORD_TYPE_ANY;
+  }
 
-  handle->gns_lookup = GNUNET_GNS_lookup_with_tld(handle->gns,
-                                                  handle->name,
-                                                  handle->record_type,
-                                                  GNUNET_NO,
-                                                  &handle_gns_response,
-                                                  handle);
+  handle->gns_lookup = GNUNET_GNS_lookup_with_tld (handle->gns,
+                                                   handle->name,
+                                                   handle->record_type,
+                                                   GNUNET_NO,
+                                                   &handle_gns_response,
+                                                   handle);
 }
 
 
@@ -331,18 +333,18 @@ get_gns_cont(struct GNUNET_REST_RequestHandle *con_handle,
  * @param cls the RequestHandle
  */
 static void
-options_cont(struct GNUNET_REST_RequestHandle *con_handle,
-             const char *url,
-             void *cls)
+options_cont (struct GNUNET_REST_RequestHandle *con_handle,
+              const char *url,
+              void *cls)
 {
   struct MHD_Response *resp;
   struct RequestHandle *handle = cls;
 
-  //independent of path return all options
-  resp = GNUNET_REST_create_response(NULL);
-  MHD_add_response_header(resp, "Access-Control-Allow-Methods", allow_methods);
-  handle->proc(handle->proc_cls, resp, MHD_HTTP_OK);
-  GNUNET_SCHEDULER_add_now(&cleanup_handle, handle);
+  // independent of path return all options
+  resp = GNUNET_REST_create_response (NULL);
+  MHD_add_response_header (resp, "Access-Control-Allow-Methods", allow_methods);
+  handle->proc (handle->proc_cls, resp, MHD_HTTP_OK);
+  GNUNET_SCHEDULER_add_now (&cleanup_handle, handle);
   return;
 }
 
@@ -353,7 +355,7 @@ options_cont(struct GNUNET_REST_RequestHandle *con_handle,
  * @param handle the request handle
  */
 static void
-init_cont(struct RequestHandle *handle)
+init_cont (struct RequestHandle *handle)
 {
   struct GNUNET_REST_RequestHandlerError err;
   static const struct GNUNET_REST_RequestHandler handlers[] =
@@ -362,11 +364,11 @@ init_cont(struct RequestHandle *handle)
     GNUNET_REST_HANDLER_END };
 
   if (GNUNET_NO ==
-      GNUNET_REST_handle_request(handle->rest_handle, handlers, &err, handle))
-    {
-      handle->response_code = err.error_code;
-      GNUNET_SCHEDULER_add_now(&do_error, handle);
-    }
+      GNUNET_REST_handle_request (handle->rest_handle, handlers, &err, handle))
+  {
+    handle->response_code = err.error_code;
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
+  }
 }
 
 
@@ -382,30 +384,30 @@ init_cont(struct RequestHandle *handle)
  * @return GNUNET_OK if request accepted
  */
 static void
-rest_process_request(struct GNUNET_REST_RequestHandle *rest_handle,
-                     GNUNET_REST_ResultProcessor proc,
-                     void *proc_cls)
+rest_process_request (struct GNUNET_REST_RequestHandle *rest_handle,
+                      GNUNET_REST_ResultProcessor proc,
+                      void *proc_cls)
 {
-  struct RequestHandle *handle = GNUNET_new(struct RequestHandle);
+  struct RequestHandle *handle = GNUNET_new (struct RequestHandle);
 
   handle->response_code = 0;
   handle->timeout =
-    GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 60);
+    GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 60);
   handle->proc_cls = proc_cls;
   handle->proc = proc;
   handle->rest_handle = rest_handle;
 
-  handle->url = GNUNET_strdup(rest_handle->url);
-  if (handle->url[strlen(handle->url) - 1] == '/')
-    handle->url[strlen(handle->url) - 1] = '\0';
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Connecting...\n");
-  handle->gns = GNUNET_GNS_connect(cfg);
-  init_cont(handle);
+  handle->url = GNUNET_strdup (rest_handle->url);
+  if (handle->url[strlen (handle->url) - 1] == '/')
+    handle->url[strlen (handle->url) - 1] = '\0';
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Connecting...\n");
+  handle->gns = GNUNET_GNS_connect (cfg);
+  init_cont (handle);
 
   handle->timeout_task =
-    GNUNET_SCHEDULER_add_delayed(handle->timeout, &do_timeout, handle);
+    GNUNET_SCHEDULER_add_delayed (handle->timeout, &do_timeout, handle);
 
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Connected\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Connected\n");
 }
 
 
@@ -416,7 +418,7 @@ rest_process_request(struct GNUNET_REST_RequestHandle *rest_handle,
  * @return NULL on error, otherwise the plugin context
  */
 void *
-libgnunet_plugin_rest_gns_init(void *cls)
+libgnunet_plugin_rest_gns_init (void *cls)
 {
   static struct Plugin plugin;
   struct GNUNET_REST_Plugin *api;
@@ -424,21 +426,21 @@ libgnunet_plugin_rest_gns_init(void *cls)
   cfg = cls;
   if (NULL != plugin.cfg)
     return NULL; /* can only initialize once! */
-  memset(&plugin, 0, sizeof(struct Plugin));
+  memset (&plugin, 0, sizeof(struct Plugin));
   plugin.cfg = cfg;
-  api = GNUNET_new(struct GNUNET_REST_Plugin);
+  api = GNUNET_new (struct GNUNET_REST_Plugin);
   api->cls = &plugin;
   api->name = GNUNET_REST_API_NS_GNS;
   api->process_request = &rest_process_request;
-  GNUNET_asprintf(&allow_methods,
-                  "%s, %s, %s, %s, %s",
-                  MHD_HTTP_METHOD_GET,
-                  MHD_HTTP_METHOD_POST,
-                  MHD_HTTP_METHOD_PUT,
-                  MHD_HTTP_METHOD_DELETE,
-                  MHD_HTTP_METHOD_OPTIONS);
+  GNUNET_asprintf (&allow_methods,
+                   "%s, %s, %s, %s, %s",
+                   MHD_HTTP_METHOD_GET,
+                   MHD_HTTP_METHOD_POST,
+                   MHD_HTTP_METHOD_PUT,
+                   MHD_HTTP_METHOD_DELETE,
+                   MHD_HTTP_METHOD_OPTIONS);
 
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, _("Gns REST API initialized\n"));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, _ ("Gns REST API initialized\n"));
   return api;
 }
 
@@ -450,18 +452,17 @@ libgnunet_plugin_rest_gns_init(void *cls)
  * @return always NULL
  */
 void *
-libgnunet_plugin_rest_gns_done(void *cls)
+libgnunet_plugin_rest_gns_done (void *cls)
 {
   struct GNUNET_REST_Plugin *api = cls;
   struct Plugin *plugin = api->cls;
 
   plugin->cfg = NULL;
 
-  GNUNET_free_non_null(allow_methods);
-  GNUNET_free(api);
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Gns REST plugin is finished\n");
+  GNUNET_free_non_null (allow_methods);
+  GNUNET_free (api);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Gns REST plugin is finished\n");
   return NULL;
 }
 
 /* end of plugin_rest_gns.c */
-

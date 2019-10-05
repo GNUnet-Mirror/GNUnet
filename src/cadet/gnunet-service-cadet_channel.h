@@ -53,9 +53,9 @@ struct CadetChannel;
  * @param listener peer that is listining on @a port
  */
 void
-GCCH_hash_port(struct GNUNET_HashCode *h_port,
-               const struct GNUNET_HashCode *port,
-               const struct GNUNET_PeerIdentity *listener);
+GCCH_hash_port (struct GNUNET_HashCode *h_port,
+                const struct GNUNET_HashCode *port,
+                const struct GNUNET_PeerIdentity *listener);
 
 
 /**
@@ -66,7 +66,7 @@ GCCH_hash_port(struct GNUNET_HashCode *h_port,
  * @return Static string with the channel IDs.
  */
 const char *
-GCCH_2s(const struct CadetChannel *ch);
+GCCH_2s (const struct CadetChannel *ch);
 
 
 /**
@@ -76,8 +76,8 @@ GCCH_2s(const struct CadetChannel *ch);
  * @param level Debug level to use.
  */
 void
-GCCH_debug(struct CadetChannel *ch,
-           enum GNUNET_ErrorType level);
+GCCH_debug (struct CadetChannel *ch,
+            enum GNUNET_ErrorType level);
 
 
 /**
@@ -88,7 +88,7 @@ GCCH_debug(struct CadetChannel *ch,
  * @return ID used to identify the channel with the remote peer.
  */
 struct GNUNET_CADET_ChannelTunnelNumber
-GCCH_get_id(const struct CadetChannel *ch);
+GCCH_get_id (const struct CadetChannel *ch);
 
 
 /**
@@ -102,11 +102,11 @@ GCCH_get_id(const struct CadetChannel *ch);
  * @return handle to the new channel
  */
 struct CadetChannel *
-GCCH_channel_local_new(struct CadetClient *owner,
-                       struct GNUNET_CADET_ClientChannelNumber owner_id,
-                       struct CadetPeer *destination,
-                       const struct GNUNET_HashCode *port,
-                       uint32_t options);
+GCCH_channel_local_new (struct CadetClient *owner,
+                        struct GNUNET_CADET_ClientChannelNumber owner_id,
+                        struct CadetPeer *destination,
+                        const struct GNUNET_HashCode *port,
+                        uint32_t options);
 
 
 /**
@@ -119,9 +119,9 @@ GCCH_channel_local_new(struct CadetClient *owner,
  * @param port port number @a c is listening on
  */
 void
-GCCH_bind(struct CadetChannel *ch,
-          struct CadetClient *c,
-          const struct GNUNET_HashCode *port);
+GCCH_bind (struct CadetChannel *ch,
+           struct CadetClient *c,
+           const struct GNUNET_HashCode *port);
 
 
 /**
@@ -133,9 +133,9 @@ GCCH_bind(struct CadetChannel *ch,
  * @param ccn client number of the client @a c
  */
 void
-GCCH_channel_local_destroy(struct CadetChannel *ch,
-                           struct CadetClient *c,
-                           struct GNUNET_CADET_ClientChannelNumber ccn);
+GCCH_channel_local_destroy (struct CadetChannel *ch,
+                            struct CadetClient *c,
+                            struct GNUNET_CADET_ClientChannelNumber ccn);
 
 
 /**
@@ -149,7 +149,7 @@ GCCH_channel_local_destroy(struct CadetChannel *ch,
  * @param ch the channel for which the tunnel is now ready
  */
 void
-GCCH_tunnel_up(struct CadetChannel *ch);
+GCCH_tunnel_up (struct CadetChannel *ch);
 
 
 /**
@@ -163,10 +163,10 @@ GCCH_tunnel_up(struct CadetChannel *ch);
  * @return handle to the new channel
  */
 struct CadetChannel *
-GCCH_channel_incoming_new(struct CadetTunnel *t,
-                          struct GNUNET_CADET_ChannelTunnelNumber chid,
-                          const struct GNUNET_HashCode *h_port,
-                          uint32_t options);
+GCCH_channel_incoming_new (struct CadetTunnel *t,
+                           struct GNUNET_CADET_ChannelTunnelNumber chid,
+                           const struct GNUNET_HashCode *h_port,
+                           uint32_t options);
 
 
 /**
@@ -178,8 +178,9 @@ GCCH_channel_incoming_new(struct CadetTunnel *t,
  * @param cti identifier of the connection that delivered the message
  */
 void
-GCCH_handle_duplicate_open(struct CadetChannel *ch,
-                           const struct GNUNET_CADET_ConnectionTunnelIdentifier *cti);
+GCCH_handle_duplicate_open (struct CadetChannel *ch,
+                            const struct
+                            GNUNET_CADET_ConnectionTunnelIdentifier *cti);
 
 
 
@@ -191,9 +192,11 @@ GCCH_handle_duplicate_open(struct CadetChannel *ch,
  * @param msg message that was received
  */
 void
-GCCH_handle_channel_plaintext_data(struct CadetChannel *ch,
-                                   const struct GNUNET_CADET_ConnectionTunnelIdentifier *cti,
-                                   const struct GNUNET_CADET_ChannelAppDataMessage *msg);
+GCCH_handle_channel_plaintext_data (struct CadetChannel *ch,
+                                    const struct
+                                    GNUNET_CADET_ConnectionTunnelIdentifier *cti,
+                                    const struct
+                                    GNUNET_CADET_ChannelAppDataMessage *msg);
 
 
 /**
@@ -205,9 +208,12 @@ GCCH_handle_channel_plaintext_data(struct CadetChannel *ch,
  * @param ack details about what was received
  */
 void
-GCCH_handle_channel_plaintext_data_ack(struct CadetChannel *ch,
-                                       const struct GNUNET_CADET_ConnectionTunnelIdentifier *cti,
-                                       const struct GNUNET_CADET_ChannelDataAckMessage *ack);
+GCCH_handle_channel_plaintext_data_ack (struct CadetChannel *ch,
+                                        const struct
+                                        GNUNET_CADET_ConnectionTunnelIdentifier
+                                        *cti,
+                                        const struct
+                                        GNUNET_CADET_ChannelDataAckMessage *ack);
 
 
 /**
@@ -220,9 +226,10 @@ GCCH_handle_channel_plaintext_data_ack(struct CadetChannel *ch,
  * @param port port number (needed to verify receiver knows the port)
  */
 void
-GCCH_handle_channel_open_ack(struct CadetChannel *ch,
-                             const struct GNUNET_CADET_ConnectionTunnelIdentifier *cti,
-                             const struct GNUNET_HashCode *port);
+GCCH_handle_channel_open_ack (struct CadetChannel *ch,
+                              const struct
+                              GNUNET_CADET_ConnectionTunnelIdentifier *cti,
+                              const struct GNUNET_HashCode *port);
 
 
 /**
@@ -242,8 +249,9 @@ GCCH_handle_channel_open_ack(struct CadetChannel *ch,
  *            NULL during shutdown
  */
 void
-GCCH_handle_remote_destroy(struct CadetChannel *ch,
-                           const struct GNUNET_CADET_ConnectionTunnelIdentifier *cti);
+GCCH_handle_remote_destroy (struct CadetChannel *ch,
+                            const struct
+                            GNUNET_CADET_ConnectionTunnelIdentifier *cti);
 
 
 /**
@@ -261,10 +269,10 @@ GCCH_handle_remote_destroy(struct CadetChannel *ch,
  *         #GNUNET_SYSERR in case of an error.
  */
 int
-GCCH_handle_local_data(struct CadetChannel *ch,
-                       struct GNUNET_CADET_ClientChannelNumber sender_ccn,
-                       const char *buf,
-                       size_t buf_len);
+GCCH_handle_local_data (struct CadetChannel *ch,
+                        struct GNUNET_CADET_ClientChannelNumber sender_ccn,
+                        const char *buf,
+                        size_t buf_len);
 
 
 /**
@@ -274,7 +282,7 @@ GCCH_handle_local_data(struct CadetChannel *ch,
  * @param client_ccn ccn of the client sending the ack
  */
 void
-GCCH_handle_local_ack(struct CadetChannel *ch,
-                      struct GNUNET_CADET_ClientChannelNumber client_ccn);
+GCCH_handle_local_ack (struct CadetChannel *ch,
+                       struct GNUNET_CADET_ClientChannelNumber client_ccn);
 
 #endif

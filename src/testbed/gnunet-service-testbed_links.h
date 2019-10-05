@@ -35,7 +35,8 @@ struct Neighbour;
 /**
  * Structure representing a connected(directly-linked) controller
  */
-struct Slave {
+struct Slave
+{
   /**
    * The controller process handle if we had started the controller
    */
@@ -93,7 +94,7 @@ extern unsigned int GST_slave_list_size;
  * Cleans up the neighbour list
  */
 void
-GST_neighbour_list_clean(void);
+GST_neighbour_list_clean (void);
 
 
 /**
@@ -104,14 +105,14 @@ GST_neighbour_list_clean(void);
  *           the list size or neighbour at that index is NULL)
  */
 struct Neighbour *
-GST_get_neighbour(uint32_t id);
+GST_get_neighbour (uint32_t id);
 
 
 /**
  * Function to cleanup the neighbour connect contexts
  */
 void
-GST_free_nccq(void);
+GST_free_nccq (void);
 
 
 /**
@@ -129,7 +130,8 @@ struct NeighbourConnectNotification;
  */
 typedef void
 (*GST_NeigbourConnectNotifyCallback) (void *cls,
-                                      struct GNUNET_TESTBED_Controller *controller);
+                                      struct GNUNET_TESTBED_Controller *
+                                      controller);
 
 
 /**
@@ -144,9 +146,9 @@ typedef void
  * @param cb_cls the closure for the above callback
  */
 struct NeighbourConnectNotification *
-GST_neighbour_get_connection(struct Neighbour *n,
-                             GST_NeigbourConnectNotifyCallback cb,
-                             void *cb_cls);
+GST_neighbour_get_connection (struct Neighbour *n,
+                              GST_NeigbourConnectNotifyCallback cb,
+                              void *cb_cls);
 
 
 /**
@@ -155,7 +157,7 @@ GST_neighbour_get_connection(struct Neighbour *n,
  * @param h the notification handle
  */
 void
-GST_neighbour_get_connection_cancel(struct NeighbourConnectNotification *h);
+GST_neighbour_get_connection_cancel (struct NeighbourConnectNotification *h);
 
 
 /**
@@ -166,7 +168,7 @@ GST_neighbour_get_connection_cancel(struct NeighbourConnectNotification *h);
  * @param n the neighbour whose connection can be closed
  */
 void
-GST_neighbour_release_connection(struct Neighbour *n);
+GST_neighbour_release_connection (struct Neighbour *n);
 
 
 /**
@@ -175,7 +177,7 @@ GST_neighbour_release_connection(struct Neighbour *n);
  * @param host the host of the neighbour
  */
 struct Neighbour *
-GST_create_neighbour(struct GNUNET_TESTBED_Host *host);
+GST_create_neighbour (struct GNUNET_TESTBED_Host *host);
 
 
 /**
@@ -185,8 +187,9 @@ GST_create_neighbour(struct GNUNET_TESTBED_Host *host);
  * @param msg the actual message
  */
 void
-handle_link_controllers(void *cls,
-                        const struct GNUNET_TESTBED_ControllerLinkRequest *msg);
+handle_link_controllers (void *cls,
+                         const struct
+                         GNUNET_TESTBED_ControllerLinkRequest *msg);
 
 
 /**
@@ -196,11 +199,11 @@ handle_link_controllers(void *cls,
  * @param client the client that is history
  */
 void
-GST_link_notify_disconnect(struct GNUNET_SERVICE_Client *client);
+GST_link_notify_disconnect (struct GNUNET_SERVICE_Client *client);
 
 
 /**
  * Cleans up the slave list
  */
 void
-GST_slave_list_clear(void);
+GST_slave_list_clear (void);

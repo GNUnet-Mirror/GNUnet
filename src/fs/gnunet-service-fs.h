@@ -48,7 +48,8 @@
  * automatically (since if we don't use it, clearly the
  * load must be going down).
  */
-#define DATASTORE_LOAD_AUTODECLINE GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MILLISECONDS, 250)
+#define DATASTORE_LOAD_AUTODECLINE GNUNET_TIME_relative_multiply ( \
+    GNUNET_TIME_UNIT_MILLISECONDS, 250)
 
 /**
  * Only the (mandatory) query is included.
@@ -79,7 +80,8 @@ GNUNET_NETWORK_STRUCT_BEGIN
 /**
  * Message sent between peers asking for FS-content.
  */
-struct GetMessage {
+struct GetMessage
+{
   /**
    * Message type will be #GNUNET_MESSAGE_TYPE_FS_GET.
    */
@@ -134,7 +136,8 @@ struct GetMessage {
  * Message send by a peer that wants to be excluded
  * from migration for a while.
  */
-struct MigrationStopMessage {
+struct MigrationStopMessage
+{
   /**
    * Message type will be
    * GNUNET_MESSAGE_TYPE_FS_MIGRATION_STOP.
@@ -275,9 +278,9 @@ extern unsigned int GSF_datastore_queue_size;
  * @param result final datastore lookup result
  */
 void
-GSF_consider_forwarding(void *cls,
-                        struct GSF_PendingRequest *pr,
-                        enum GNUNET_BLOCK_EvaluationResult result);
+GSF_consider_forwarding (void *cls,
+                         struct GSF_PendingRequest *pr,
+                         enum GNUNET_BLOCK_EvaluationResult result);
 
 
 /**
@@ -290,7 +293,7 @@ GSF_consider_forwarding(void *cls,
  *         #GNUNET_SYSERR to process for free (load low)
  */
 int
-GSF_test_get_load_too_high_(uint32_t priority);
+GSF_test_get_load_too_high_ (uint32_t priority);
 
 
 /**
@@ -300,7 +303,7 @@ GSF_test_get_load_too_high_(uint32_t priority);
  * @param start time when the datastore request was issued
  */
 void
-GSF_update_datastore_delay_(struct GNUNET_TIME_Absolute start);
+GSF_update_datastore_delay_ (struct GNUNET_TIME_Absolute start);
 
 
 #endif

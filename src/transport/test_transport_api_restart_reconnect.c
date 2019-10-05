@@ -32,7 +32,7 @@
 /**
  * How long until we give up on transmitting the message?
  */
-#define TIMEOUT GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 30)
+#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30)
 
 
 static struct GNUNET_TRANSPORT_TESTING_ConnectCheckContext *ccc;
@@ -47,112 +47,113 @@ static int restarted;
 
 
 static void
-custom_shutdown(void *cls)
+custom_shutdown (void *cls)
 {
   if (NULL != ats_sh)
-    {
-      GNUNET_ATS_connectivity_suggest_cancel(ats_sh);
-      ats_sh = NULL;
-    }
+  {
+    GNUNET_ATS_connectivity_suggest_cancel (ats_sh);
+    ats_sh = NULL;
+  }
 }
 
 
 static void
-restart_cb(void *cls)
+restart_cb (void *cls)
 {
   static unsigned int c;
   struct GNUNET_TRANSPORT_TESTING_PeerContext *p = cls;
 
   c++;
   if ((2 != c) &&
-      (NULL != strstr(ccc->test_name,
-                      "2peers")))
+      (NULL != strstr (ccc->test_name,
+                       "2peers")))
     return;
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-             "Restarted peer %u (`%s'), issuing reconnect\n",
-             p->no,
-             GNUNET_i2s(&p->id));
-  ats_sh = GNUNET_ATS_connectivity_suggest(p->ats,
-                                           &ccc->p[1]->id,
-                                           1);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Restarted peer %u (`%s'), issuing reconnect\n",
+              p->no,
+              GNUNET_i2s (&p->id));
+  ats_sh = GNUNET_ATS_connectivity_suggest (p->ats,
+                                            &ccc->p[1]->id,
+                                            1);
 }
 
 
 static void
-restart(struct GNUNET_TRANSPORT_TESTING_PeerContext *p)
+restart (struct GNUNET_TRANSPORT_TESTING_PeerContext *p)
 {
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-             "Restarting peer %u (`%s')\n",
-             p->no,
-             GNUNET_i2s(&p->id));
-  GNUNET_assert(GNUNET_OK ==
-                GNUNET_TRANSPORT_TESTING_restart_peer(p,
-                                                      &restart_cb,
-                                                      p));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Restarting peer %u (`%s')\n",
+              p->no,
+              GNUNET_i2s (&p->id));
+  GNUNET_assert (GNUNET_OK ==
+                 GNUNET_TRANSPORT_TESTING_restart_peer (p,
+                                                        &restart_cb,
+                                                        p));
 }
 
 
 static void
-notify_receive(void *cls,
-               struct GNUNET_TRANSPORT_TESTING_PeerContext *receiver,
-               const struct GNUNET_PeerIdentity *sender,
-               const struct GNUNET_TRANSPORT_TESTING_TestMessage *message)
+notify_receive (void *cls,
+                struct GNUNET_TRANSPORT_TESTING_PeerContext *receiver,
+                const struct GNUNET_PeerIdentity *sender,
+                const struct GNUNET_TRANSPORT_TESTING_TestMessage *message)
 {
   {
-    char *ps = GNUNET_strdup(GNUNET_i2s(&receiver->id));
+    char *ps = GNUNET_strdup (GNUNET_i2s (&receiver->id));
 
-    GNUNET_log(GNUNET_ERROR_TYPE_INFO,
-               "Peer %u (`%s') received message of type %d and size %u size from peer %s!\n",
-               receiver->no,
-               ps,
-               ntohs(message->header.type),
-               ntohs(message->header.size),
-               GNUNET_i2s(sender));
-    GNUNET_free(ps);
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                "Peer %u (`%s') received message of type %d and size %u size from peer %s!\n",
+                receiver->no,
+                ps,
+                ntohs (message->header.type),
+                ntohs (message->header.size),
+                GNUNET_i2s (sender));
+    GNUNET_free (ps);
   }
-  if ((GNUNET_TRANSPORT_TESTING_SIMPLE_MTYPE == ntohs(message->header.type)) &&
-      (sizeof(struct GNUNET_TRANSPORT_TESTING_TestMessage) == ntohs(message->header.size)))
+  if ((GNUNET_TRANSPORT_TESTING_SIMPLE_MTYPE == ntohs (message->header.type)) &&
+      (sizeof(struct GNUNET_TRANSPORT_TESTING_TestMessage) == ntohs (
+         message->header.size)))
+  {
+    if (GNUNET_NO == restarted)
     {
-      if (GNUNET_NO == restarted)
-        {
-          restarted = GNUNET_YES;
-          fprintf(stderr, "TN: %s\n", ccc->test_name);
-          restart(ccc->p[0]);
-          if (NULL != strstr(ccc->test_name,
-                             "2peers"))
-            restart(ccc->p[1]);
-          return;
-        }
-      else
-        {
-          GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-                     "Restarted peers connected and message was sent, stopping test...\n");
-          ccc->global_ret = GNUNET_OK;
-          GNUNET_SCHEDULER_shutdown();
-        }
+      restarted = GNUNET_YES;
+      fprintf (stderr, "TN: %s\n", ccc->test_name);
+      restart (ccc->p[0]);
+      if (NULL != strstr (ccc->test_name,
+                          "2peers"))
+        restart (ccc->p[1]);
+      return;
     }
+    else
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Restarted peers connected and message was sent, stopping test...\n");
+      ccc->global_ret = GNUNET_OK;
+      GNUNET_SCHEDULER_shutdown ();
+    }
+  }
   else
-    {
-      GNUNET_break(0);
-      ccc->global_ret = GNUNET_SYSERR;
-      GNUNET_SCHEDULER_shutdown();
-    }
+  {
+    GNUNET_break (0);
+    ccc->global_ret = GNUNET_SYSERR;
+    GNUNET_SCHEDULER_shutdown ();
+  }
 }
 
 
 static void
-notify_connect(void *cls,
-               struct GNUNET_TRANSPORT_TESTING_PeerContext *me,
-               const struct GNUNET_PeerIdentity *other)
+notify_connect (void *cls,
+                struct GNUNET_TRANSPORT_TESTING_PeerContext *me,
+                const struct GNUNET_PeerIdentity *other)
 {
   static struct GNUNET_TRANSPORT_TESTING_SendClosure sc = {
     .num_messages = 1
   };
 
   sc.ccc = ccc;
-  GNUNET_TRANSPORT_TESTING_log_connect(cls,
-                                       me,
-                                       other);
+  GNUNET_TRANSPORT_TESTING_log_connect (cls,
+                                        me,
+                                        other);
   if (me == ccc->p[0])
     p1_connected = GNUNET_YES;
   if (me == ccc->p[1])
@@ -161,22 +162,22 @@ notify_connect(void *cls,
   if ((GNUNET_YES == restarted) &&
       (GNUNET_YES == p1_connected) &&
       (GNUNET_YES == p2_connected))
-    {
-      /* Peer was restarted and we received 3 connect messages (2 from first connect, 1 from reconnect) */
-      GNUNET_SCHEDULER_add_now(&GNUNET_TRANSPORT_TESTING_simple_send,
-                               &sc);
-    }
+  {
+    /* Peer was restarted and we received 3 connect messages (2 from first connect, 1 from reconnect) */
+    GNUNET_SCHEDULER_add_now (&GNUNET_TRANSPORT_TESTING_simple_send,
+                              &sc);
+  }
 }
 
 
 static void
-notify_disconnect(void *cls,
-                  struct GNUNET_TRANSPORT_TESTING_PeerContext *me,
-                  const struct GNUNET_PeerIdentity *other)
+notify_disconnect (void *cls,
+                   struct GNUNET_TRANSPORT_TESTING_PeerContext *me,
+                   const struct GNUNET_PeerIdentity *other)
 {
-  GNUNET_TRANSPORT_TESTING_log_disconnect(cls,
-                                          me,
-                                          other);
+  GNUNET_TRANSPORT_TESTING_log_disconnect (cls,
+                                           me,
+                                           other);
   if (me == ccc->p[0])
     p1_connected = GNUNET_NO;
   if (me == ccc->p[1])
@@ -185,8 +186,8 @@ notify_disconnect(void *cls,
 
 
 int
-main(int argc,
-     char *argv[])
+main (int argc,
+      char *argv[])
 {
   struct GNUNET_TRANSPORT_TESTING_SendClosure sc = {
     .num_messages = 1
@@ -205,9 +206,9 @@ main(int argc,
   ccc = &my_ccc;
   sc.ccc = ccc;
   if (GNUNET_OK !=
-      GNUNET_TRANSPORT_TESTING_main(2,
-                                    &GNUNET_TRANSPORT_TESTING_connect_check,
-                                    ccc))
+      GNUNET_TRANSPORT_TESTING_main (2,
+                                     &GNUNET_TRANSPORT_TESTING_connect_check,
+                                     ccc))
     return 1;
   return 0;
 }

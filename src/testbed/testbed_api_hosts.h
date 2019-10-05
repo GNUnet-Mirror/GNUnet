@@ -27,15 +27,16 @@
 #ifndef TESTBED_API_HOSTS_H
 #define TESTBED_API_HOSTS_H
 
-//#include "gnunet_testbed_service.h"
-//#include "testbed_helper.h"
+// #include "gnunet_testbed_service.h"
+// #include "testbed_helper.h"
 #include "testbed.h"
 
 
 /**
  * handle for host registration
  */
-struct GNUNET_TESTBED_HostRegistrationHandle {
+struct GNUNET_TESTBED_HostRegistrationHandle
+{
   /**
    * The host being registered
    */
@@ -66,7 +67,7 @@ struct GNUNET_TESTBED_HostRegistrationHandle {
  * @return handle to the host, NULL on error
  */
 struct GNUNET_TESTBED_Host *
-GNUNET_TESTBED_host_lookup_by_id_(uint32_t id);
+GNUNET_TESTBED_host_lookup_by_id_ (uint32_t id);
 
 
 /**
@@ -82,9 +83,9 @@ GNUNET_TESTBED_host_lookup_by_id_(uint32_t id);
  * @return handle to the host, NULL on error
  */
 struct GNUNET_TESTBED_Host *
-GNUNET_TESTBED_host_create_by_id_(uint32_t id,
-                                  const struct GNUNET_CONFIGURATION_Handle
-                                  *cfg);
+GNUNET_TESTBED_host_create_by_id_ (uint32_t id,
+                                   const struct GNUNET_CONFIGURATION_Handle
+                                   *cfg);
 
 
 /**
@@ -95,7 +96,7 @@ GNUNET_TESTBED_host_create_by_id_(uint32_t id,
  *         'localhost', but then obviously not globally unique)
  */
 uint32_t
-GNUNET_TESTBED_host_get_id_(const struct GNUNET_TESTBED_Host *host);
+GNUNET_TESTBED_host_get_id_ (const struct GNUNET_TESTBED_Host *host);
 
 
 /**
@@ -105,7 +106,7 @@ GNUNET_TESTBED_host_get_id_(const struct GNUNET_TESTBED_Host *host);
  * @return username to login to the host
  */
 const char *
-GNUNET_TESTBED_host_get_username_(const struct GNUNET_TESTBED_Host *host);
+GNUNET_TESTBED_host_get_username_ (const struct GNUNET_TESTBED_Host *host);
 
 
 /**
@@ -115,7 +116,7 @@ GNUNET_TESTBED_host_get_username_(const struct GNUNET_TESTBED_Host *host);
  * @return username to login to the host
  */
 uint16_t
-GNUNET_TESTBED_host_get_ssh_port_(const struct GNUNET_TESTBED_Host *host);
+GNUNET_TESTBED_host_get_ssh_port_ (const struct GNUNET_TESTBED_Host *host);
 
 
 /**
@@ -125,7 +126,7 @@ GNUNET_TESTBED_host_get_ssh_port_(const struct GNUNET_TESTBED_Host *host);
  * @return the host's configuration template
  */
 const struct GNUNET_CONFIGURATION_Handle *
-GNUNET_TESTBED_host_get_cfg_(const struct GNUNET_TESTBED_Host *host);
+GNUNET_TESTBED_host_get_cfg_ (const struct GNUNET_TESTBED_Host *host);
 
 
 /**
@@ -135,8 +136,9 @@ GNUNET_TESTBED_host_get_cfg_(const struct GNUNET_TESTBED_Host *host);
  * @param new_cfg the new configuration to replace the old one
  */
 void
-GNUNET_TESTBED_host_replace_cfg_(struct GNUNET_TESTBED_Host *host,
-                                 const struct GNUNET_CONFIGURATION_Handle *new_cfg);
+GNUNET_TESTBED_host_replace_cfg_ (struct GNUNET_TESTBED_Host *host,
+                                  const struct
+                                  GNUNET_CONFIGURATION_Handle *new_cfg);
 
 
 /**
@@ -146,9 +148,9 @@ GNUNET_TESTBED_host_replace_cfg_(struct GNUNET_TESTBED_Host *host,
  * @param controller the controller at which this host is registered
  */
 void
-GNUNET_TESTBED_mark_host_registered_at_(struct GNUNET_TESTBED_Host *host,
-                                        const struct GNUNET_TESTBED_Controller
-                                        *controller);
+GNUNET_TESTBED_mark_host_registered_at_ (struct GNUNET_TESTBED_Host *host,
+                                         const struct GNUNET_TESTBED_Controller
+                                         *controller);
 
 
 /**
@@ -158,9 +160,9 @@ GNUNET_TESTBED_mark_host_registered_at_(struct GNUNET_TESTBED_Host *host,
  * @param controller the controller at which this host has to be unmarked
  */
 void
-GNUNET_TESTBED_deregister_host_at_(struct GNUNET_TESTBED_Host *host,
-                                   const struct GNUNET_TESTBED_Controller
-                                   *const controller);
+GNUNET_TESTBED_deregister_host_at_ (struct GNUNET_TESTBED_Host *host,
+                                    const struct GNUNET_TESTBED_Controller
+                                    *const controller);
 
 
 /**
@@ -171,9 +173,9 @@ GNUNET_TESTBED_deregister_host_at_(struct GNUNET_TESTBED_Host *host,
  * @return GNUNET_YES if registered; GNUNET_NO if not
  */
 int
-GNUNET_TESTBED_is_host_registered_(const struct GNUNET_TESTBED_Host *host,
-                                   const struct GNUNET_TESTBED_Controller
-                                   *controller);
+GNUNET_TESTBED_is_host_registered_ (const struct GNUNET_TESTBED_Host *host,
+                                    const struct GNUNET_TESTBED_Controller
+                                    *controller);
 
 
 /**
@@ -185,8 +187,8 @@ GNUNET_TESTBED_is_host_registered_(const struct GNUNET_TESTBED_Host *host,
  *          queue
  */
 void
-GNUNET_TESTBED_host_queue_oc_(struct GNUNET_TESTBED_Host *h,
-                              struct GNUNET_TESTBED_Operation *op);
+GNUNET_TESTBED_host_queue_oc_ (struct GNUNET_TESTBED_Host *h,
+                               struct GNUNET_TESTBED_Operation *op);
 
 
 /**
@@ -195,7 +197,7 @@ GNUNET_TESTBED_host_queue_oc_(struct GNUNET_TESTBED_Host *h,
  * @param cproc the handle to the controller's helper process
  */
 void
-GNUNET_TESTBED_controller_kill_(struct GNUNET_TESTBED_ControllerProc *cproc);
+GNUNET_TESTBED_controller_kill_ (struct GNUNET_TESTBED_ControllerProc *cproc);
 
 
 /**
@@ -204,8 +206,8 @@ GNUNET_TESTBED_controller_kill_(struct GNUNET_TESTBED_ControllerProc *cproc);
  * @param cproc the handle to the controller's helper process
  */
 void
-GNUNET_TESTBED_controller_destroy_(struct GNUNET_TESTBED_ControllerProc
-                                   *cproc);
+GNUNET_TESTBED_controller_destroy_ (struct GNUNET_TESTBED_ControllerProc
+                                    *cproc);
 
 
 /**
@@ -214,7 +216,7 @@ GNUNET_TESTBED_controller_destroy_(struct GNUNET_TESTBED_ControllerProc
  * @param host the host whose hostname is to be resolved
  */
 void
-GNUNET_TESTBED_host_resolve_(struct GNUNET_TESTBED_Host *host);
+GNUNET_TESTBED_host_resolve_ (struct GNUNET_TESTBED_Host *host);
 
 
 #endif

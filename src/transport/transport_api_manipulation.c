@@ -32,14 +32,15 @@
 #include "gnunet_transport_service.h"
 #include "transport.h"
 
-#define LOG(kind, ...) GNUNET_log_from(kind, "transport-api", __VA_ARGS__)
+#define LOG(kind, ...) GNUNET_log_from (kind, "transport-api", __VA_ARGS__)
 
 
 /**
  * Handle for the transport service (includes all of the
  * state for the transport service).
  */
-struct GNUNET_TRANSPORT_ManipulationHandle {
+struct GNUNET_TRANSPORT_ManipulationHandle
+{
   /**
    * My client connection to the transport service.
    */
@@ -74,7 +75,8 @@ struct GNUNET_TRANSPORT_ManipulationHandle {
  * @param h transport service to reconnect
  */
 static void
-disconnect_and_schedule_reconnect(struct GNUNET_TRANSPORT_ManipulationHandle *h);
+disconnect_and_schedule_reconnect (struct
+                                   GNUNET_TRANSPORT_ManipulationHandle *h);
 
 
 /**
@@ -87,15 +89,15 @@ disconnect_and_schedule_reconnect(struct GNUNET_TRANSPORT_ManipulationHandle *h)
  * @param error error code
  */
 static void
-mq_error_handler(void *cls,
-                 enum GNUNET_MQ_Error error)
+mq_error_handler (void *cls,
+                  enum GNUNET_MQ_Error error)
 {
   struct GNUNET_TRANSPORT_ManipulationHandle *h = cls;
 
-  LOG(GNUNET_ERROR_TYPE_DEBUG,
-      "Error receiving from transport service, disconnecting temporarily.\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Error receiving from transport service, disconnecting temporarily.\n");
   h->reconnecting = GNUNET_YES;
-  disconnect_and_schedule_reconnect(h);
+  disconnect_and_schedule_reconnect (h);
 }
 
 
@@ -105,31 +107,31 @@ mq_error_handler(void *cls,
  * @param cls the handle to the transport service
  */
 static void
-reconnect(void *cls)
+reconnect (void *cls)
 {
   struct GNUNET_TRANSPORT_ManipulationHandle *h = cls;
   struct GNUNET_MQ_MessageHandler handlers[] = {
-    GNUNET_MQ_handler_end()
+    GNUNET_MQ_handler_end ()
   };
   struct GNUNET_MQ_Envelope *env;
   struct StartMessage *s;
 
   h->reconnect_task = NULL;
-  LOG(GNUNET_ERROR_TYPE_DEBUG,
-      "Connecting to transport service.\n");
-  GNUNET_assert(NULL == h->mq);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Connecting to transport service.\n");
+  GNUNET_assert (NULL == h->mq);
   h->reconnecting = GNUNET_NO;
-  h->mq = GNUNET_CLIENT_connect(h->cfg,
-                                "transport",
-                                handlers,
-                                &mq_error_handler,
-                                h);
+  h->mq = GNUNET_CLIENT_connect (h->cfg,
+                                 "transport",
+                                 handlers,
+                                 &mq_error_handler,
+                                 h);
   if (NULL == h->mq)
     return;
-  env = GNUNET_MQ_msg(s,
-                      GNUNET_MESSAGE_TYPE_TRANSPORT_START);
-  GNUNET_MQ_send(h->mq,
-                 env);
+  env = GNUNET_MQ_msg (s,
+                       GNUNET_MESSAGE_TYPE_TRANSPORT_START);
+  GNUNET_MQ_send (h->mq,
+                  env);
 }
 
 
@@ -140,19 +142,20 @@ reconnect(void *cls)
  * @param h transport service to reconnect
  */
 static void
-disconnect_and_schedule_reconnect(struct GNUNET_TRANSPORT_ManipulationHandle *h)
+disconnect_and_schedule_reconnect (struct
+                                   GNUNET_TRANSPORT_ManipulationHandle *h)
 {
-  GNUNET_assert(NULL == h->reconnect_task);
+  GNUNET_assert (NULL == h->reconnect_task);
   if (NULL != h->mq)
-    {
-      GNUNET_MQ_destroy(h->mq);
-      h->mq = NULL;
-    }
+  {
+    GNUNET_MQ_destroy (h->mq);
+    h->mq = NULL;
+  }
   h->reconnect_task =
-    GNUNET_SCHEDULER_add_delayed(h->reconnect_delay,
-                                 &reconnect,
-                                 h);
-  h->reconnect_delay = GNUNET_TIME_STD_BACKOFF(h->reconnect_delay);
+    GNUNET_SCHEDULER_add_delayed (h->reconnect_delay,
+                                  &reconnect,
+                                  h);
+  h->reconnect_delay = GNUNET_TIME_STD_BACKOFF (h->reconnect_delay);
 }
 
 
@@ -169,27 +172,28 @@ disconnect_and_schedule_reconnect(struct GNUNET_TRANSPORT_ManipulationHandle *h)
  * with one message delay.
  */
 void
-GNUNET_TRANSPORT_manipulation_set(struct GNUNET_TRANSPORT_ManipulationHandle *handle,
-                                  const struct GNUNET_PeerIdentity *peer,
-                                  const struct GNUNET_ATS_Properties *prop,
-                                  struct GNUNET_TIME_Relative delay_in,
-                                  struct GNUNET_TIME_Relative delay_out)
+GNUNET_TRANSPORT_manipulation_set (struct
+                                   GNUNET_TRANSPORT_ManipulationHandle *handle,
+                                   const struct GNUNET_PeerIdentity *peer,
+                                   const struct GNUNET_ATS_Properties *prop,
+                                   struct GNUNET_TIME_Relative delay_in,
+                                   struct GNUNET_TIME_Relative delay_out)
 {
   struct GNUNET_MQ_Envelope *env;
   struct TrafficMetricMessage *msg;
 
   if (NULL == handle->mq)
     return;
-  env = GNUNET_MQ_msg(msg,
-                      GNUNET_MESSAGE_TYPE_TRANSPORT_TRAFFIC_METRIC);
-  msg->reserved = htonl(0);
+  env = GNUNET_MQ_msg (msg,
+                       GNUNET_MESSAGE_TYPE_TRANSPORT_TRAFFIC_METRIC);
+  msg->reserved = htonl (0);
   msg->peer = *peer;
-  GNUNET_ATS_properties_hton(&msg->properties,
-                             prop);
-  msg->delay_in = GNUNET_TIME_relative_hton(delay_in);
-  msg->delay_out = GNUNET_TIME_relative_hton(delay_out);
-  GNUNET_MQ_send(handle->mq,
-                 env);
+  GNUNET_ATS_properties_hton (&msg->properties,
+                              prop);
+  msg->delay_in = GNUNET_TIME_relative_hton (delay_in);
+  msg->delay_out = GNUNET_TIME_relative_hton (delay_out);
+  GNUNET_MQ_send (handle->mq,
+                  env);
 }
 
 
@@ -201,20 +205,21 @@ GNUNET_TRANSPORT_manipulation_set(struct GNUNET_TRANSPORT_ManipulationHandle *ha
  * @return NULL on error
  */
 struct GNUNET_TRANSPORT_ManipulationHandle *
-GNUNET_TRANSPORT_manipulation_connect(const struct GNUNET_CONFIGURATION_Handle *cfg)
+GNUNET_TRANSPORT_manipulation_connect (const struct
+                                       GNUNET_CONFIGURATION_Handle *cfg)
 {
   struct GNUNET_TRANSPORT_ManipulationHandle *h;
 
-  h = GNUNET_new(struct GNUNET_TRANSPORT_ManipulationHandle);
+  h = GNUNET_new (struct GNUNET_TRANSPORT_ManipulationHandle);
   h->cfg = cfg;
-  LOG(GNUNET_ERROR_TYPE_DEBUG,
-      "Connecting to transport service.\n");
-  reconnect(h);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Connecting to transport service.\n");
+  reconnect (h);
   if (NULL == h->mq)
-    {
-      GNUNET_free(h);
-      return NULL;
-    }
+  {
+    GNUNET_free (h);
+    return NULL;
+  }
   return h;
 }
 
@@ -225,17 +230,19 @@ GNUNET_TRANSPORT_manipulation_connect(const struct GNUNET_CONFIGURATION_Handle *
  * @param handle handle to the service as returned from #GNUNET_TRANSPORT_manipulation_connect()
  */
 void
-GNUNET_TRANSPORT_manipulation_disconnect(struct GNUNET_TRANSPORT_ManipulationHandle *handle)
+GNUNET_TRANSPORT_manipulation_disconnect (struct
+                                          GNUNET_TRANSPORT_ManipulationHandle *
+                                          handle)
 {
   if (NULL == handle->reconnect_task)
-    disconnect_and_schedule_reconnect(handle);
+    disconnect_and_schedule_reconnect (handle);
   /* and now we stop trying to connect again... */
   if (NULL != handle->reconnect_task)
-    {
-      GNUNET_SCHEDULER_cancel(handle->reconnect_task);
-      handle->reconnect_task = NULL;
-    }
-  GNUNET_free(handle);
+  {
+    GNUNET_SCHEDULER_cancel (handle->reconnect_task);
+    handle->reconnect_task = NULL;
+  }
+  GNUNET_free (handle);
 }
 
 

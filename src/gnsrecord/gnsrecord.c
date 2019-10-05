@@ -32,13 +32,14 @@
 #include "gnunet_gnsrecord_plugin.h"
 #include "gnunet_tun_lib.h"
 
-#define LOG(kind, ...) GNUNET_log_from(kind, "gnsrecord", __VA_ARGS__)
+#define LOG(kind, ...) GNUNET_log_from (kind, "gnsrecord", __VA_ARGS__)
 
 
 /**
  * Handle for a plugin.
  */
-struct Plugin {
+struct Plugin
+{
   /**
    * Name of the shared library.
    */
@@ -75,20 +76,20 @@ static int once;
  * @param lib_ret the plugin API
  */
 static void
-add_plugin(void *cls,
-           const char *library_name,
-           void *lib_ret)
+add_plugin (void *cls,
+            const char *library_name,
+            void *lib_ret)
 {
   struct GNUNET_GNSRECORD_PluginFunctions *api = lib_ret;
   struct Plugin *plugin;
 
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-             "Loading block plugin `%s'\n",
-             library_name);
-  plugin = GNUNET_new(struct Plugin);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Loading block plugin `%s'\n",
+              library_name);
+  plugin = GNUNET_new (struct Plugin);
   plugin->api = api;
-  plugin->library_name = GNUNET_strdup(library_name);
-  GNUNET_array_append(gns_plugins, num_plugins, plugin);
+  plugin->library_name = GNUNET_strdup (library_name);
+  GNUNET_array_append (gns_plugins, num_plugins, plugin);
 }
 
 
@@ -96,13 +97,13 @@ add_plugin(void *cls,
  * Loads all plugins (lazy initialization).
  */
 static void
-init()
+init ()
 {
   if (1 == once)
     return;
   once = 1;
-  GNUNET_PLUGIN_load_all("libgnunet_plugin_gnsrecord_", NULL,
-                         &add_plugin, NULL);
+  GNUNET_PLUGIN_load_all ("libgnunet_plugin_gnsrecord_", NULL,
+                          &add_plugin, NULL);
 }
 
 
@@ -110,20 +111,20 @@ init()
  * Dual function to #init().
  */
 void __attribute__ ((destructor))
-GNSRECORD_fini()
+GNSRECORD_fini ()
 {
   struct Plugin *plugin;
 
   for (unsigned int i = 0; i < num_plugins; i++)
-    {
-      plugin = gns_plugins[i];
-      GNUNET_break(NULL ==
-                   GNUNET_PLUGIN_unload(plugin->library_name,
+  {
+    plugin = gns_plugins[i];
+    GNUNET_break (NULL ==
+                  GNUNET_PLUGIN_unload (plugin->library_name,
                                         plugin->api));
-      GNUNET_free(plugin->library_name);
-      GNUNET_free(plugin);
-    }
-  GNUNET_free_non_null(gns_plugins);
+    GNUNET_free (plugin->library_name);
+    GNUNET_free (plugin);
+  }
+  GNUNET_free_non_null (gns_plugins);
   gns_plugins = NULL;
   once = 0;
   num_plugins = 0;
@@ -139,23 +140,23 @@ GNSRECORD_fini()
  * @return NULL on error, otherwise human-readable representation of the value
  */
 char *
-GNUNET_GNSRECORD_value_to_string(uint32_t type,
-                                 const void *data,
-                                 size_t data_size)
+GNUNET_GNSRECORD_value_to_string (uint32_t type,
+                                  const void *data,
+                                  size_t data_size)
 {
   struct Plugin *plugin;
   char *ret;
 
-  init();
+  init ();
   for (unsigned int i = 0; i < num_plugins; i++)
-    {
-      plugin = gns_plugins[i];
-      if (NULL != (ret = plugin->api->value_to_string(plugin->api->cls,
-                                                      type,
-                                                      data,
-                                                      data_size)))
-        return ret;
-    }
+  {
+    plugin = gns_plugins[i];
+    if (NULL != (ret = plugin->api->value_to_string (plugin->api->cls,
+                                                     type,
+                                                     data,
+                                                     data_size)))
+      return ret;
+  }
   return NULL;
 }
 
@@ -171,24 +172,24 @@ GNUNET_GNSRECORD_value_to_string(uint32_t type,
  * @return #GNUNET_OK on success
  */
 int
-GNUNET_GNSRECORD_string_to_value(uint32_t type,
-                                 const char *s,
-                                 void **data,
-                                 size_t *data_size)
+GNUNET_GNSRECORD_string_to_value (uint32_t type,
+                                  const char *s,
+                                  void **data,
+                                  size_t *data_size)
 {
   struct Plugin *plugin;
 
-  init();
+  init ();
   for (unsigned int i = 0; i < num_plugins; i++)
-    {
-      plugin = gns_plugins[i];
-      if (GNUNET_OK == plugin->api->string_to_value(plugin->api->cls,
-                                                    type,
-                                                    s,
-                                                    data,
-                                                    data_size))
-        return GNUNET_OK;
-    }
+  {
+    plugin = gns_plugins[i];
+    if (GNUNET_OK == plugin->api->string_to_value (plugin->api->cls,
+                                                   type,
+                                                   s,
+                                                   data,
+                                                   data_size))
+      return GNUNET_OK;
+  }
   return GNUNET_SYSERR;
 }
 
@@ -200,22 +201,22 @@ GNUNET_GNSRECORD_string_to_value(uint32_t type,
  * @return corresponding number, UINT32_MAX on error
  */
 uint32_t
-GNUNET_GNSRECORD_typename_to_number(const char *dns_typename)
+GNUNET_GNSRECORD_typename_to_number (const char *dns_typename)
 {
   struct Plugin *plugin;
   uint32_t ret;
 
-  if (0 == strcasecmp(dns_typename,
-                      "ANY"))
+  if (0 == strcasecmp (dns_typename,
+                       "ANY"))
     return GNUNET_GNSRECORD_TYPE_ANY;
-  init();
+  init ();
   for (unsigned int i = 0; i < num_plugins; i++)
-    {
-      plugin = gns_plugins[i];
-      if (UINT32_MAX != (ret = plugin->api->typename_to_number(plugin->api->cls,
-                                                               dns_typename)))
-        return ret;
-    }
+  {
+    plugin = gns_plugins[i];
+    if (UINT32_MAX != (ret = plugin->api->typename_to_number (plugin->api->cls,
+                                                              dns_typename)))
+      return ret;
+  }
   return UINT32_MAX;
 }
 
@@ -227,21 +228,21 @@ GNUNET_GNSRECORD_typename_to_number(const char *dns_typename)
  * @return corresponding typestring, NULL on error
  */
 const char *
-GNUNET_GNSRECORD_number_to_typename(uint32_t type)
+GNUNET_GNSRECORD_number_to_typename (uint32_t type)
 {
   struct Plugin *plugin;
-  const char * ret;
+  const char *ret;
 
   if (GNUNET_GNSRECORD_TYPE_ANY == type)
     return "ANY";
-  init();
+  init ();
   for (unsigned int i = 0; i < num_plugins; i++)
-    {
-      plugin = gns_plugins[i];
-      if (NULL != (ret = plugin->api->number_to_typename(plugin->api->cls,
-                                                         type)))
-        return ret;
-    }
+  {
+    plugin = gns_plugins[i];
+    if (NULL != (ret = plugin->api->number_to_typename (plugin->api->cls,
+                                                        type)))
+      return ret;
+  }
   return NULL;
 }
 

@@ -36,7 +36,8 @@ GNUNET_NETWORK_STRUCT_BEGIN
  * Message from datastore service informing client about
  * the current size of the datastore.
  */
-struct ReserveMessage {
+struct ReserveMessage
+{
   /**
    * Type is GNUNET_MESSAGE_TYPE_DATASTORE_RESERVE.
    */
@@ -60,7 +61,8 @@ struct ReserveMessage {
  * This header is optionally followed by a variable-size,
  * 0-terminated error message.
  */
-struct StatusMessage {
+struct StatusMessage
+{
   /**
    * Type is GNUNET_MESSAGE_TYPE_DATASTORE_STATUS.
    */
@@ -84,7 +86,8 @@ struct StatusMessage {
  * the remainder of the reserved bytes can now be released
  * for other requests.
  */
-struct ReleaseReserveMessage {
+struct ReleaseReserveMessage
+{
   /**
    * Type is GNUNET_MESSAGE_TYPE_DATASTORE_RELEASE_RESERVE.
    */
@@ -101,7 +104,8 @@ struct ReleaseReserveMessage {
  * Message to the datastore service asking about specific
  * content.
  */
-struct GetKeyMessage {
+struct GetKeyMessage
+{
   /**
    * Type is #GNUNET_MESSAGE_TYPE_DATASTORE_GET_KEY.
    */
@@ -133,7 +137,8 @@ struct GetKeyMessage {
  * Message to the datastore service asking about specific
  * content.
  */
-struct GetMessage {
+struct GetMessage
+{
   /**
    * Type is #GNUNET_MESSAGE_TYPE_DATASTORE_GET.
    */
@@ -160,7 +165,8 @@ struct GetMessage {
  * Message to the datastore service asking about zero
  * anonymity content.
  */
-struct GetZeroAnonymityMessage {
+struct GetZeroAnonymityMessage
+{
   /**
    * Type is GNUNET_MESSAGE_TYPE_DATASTORE_GET_ZERO_ANONYMITY.
    */
@@ -182,7 +188,8 @@ struct GetZeroAnonymityMessage {
  * Message transmitting content from or to the datastore
  * service.
  */
-struct DataMessage {
+struct DataMessage
+{
   /**
    * Type is either GNUNET_MESSAGE_TYPE_DATASTORE_PUT,
    * GNUNET_MESSAGE_TYPE_DATASTORE_REMOVE or

@@ -34,8 +34,8 @@
  * @return initialized struct
  */
 struct GNUNET_SQ_PrepareStatement
-GNUNET_SQ_make_prepare(const char *sql,
-                       sqlite3_stmt **pstmt)
+GNUNET_SQ_make_prepare (const char *sql,
+                        sqlite3_stmt **pstmt)
 {
   struct GNUNET_SQ_PrepareStatement ps = {
     .sql = sql,
@@ -56,29 +56,29 @@ GNUNET_SQ_make_prepare(const char *sql,
  * @return #GNUNET_OK on success
  */
 int
-GNUNET_SQ_prepare(sqlite3 *dbh,
-                  const struct GNUNET_SQ_PrepareStatement *ps)
+GNUNET_SQ_prepare (sqlite3 *dbh,
+                   const struct GNUNET_SQ_PrepareStatement *ps)
 {
   for (unsigned int i = 0; NULL != ps[i].sql; i++)
-    {
-      const char *epos = NULL;
-      int ret;
+  {
+    const char *epos = NULL;
+    int ret;
 
-      if (SQLITE_OK !=
-          (ret = sqlite3_prepare_v2(dbh,
-                                    ps[i].sql,
-                                    strlen(ps[i].sql),
-                                    ps[i].pstmt,
-                                    &epos)))
-        {
-          GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
-                     "Failed to prepare SQL `%s': error %d at %s\n",
-                     ps[i].sql,
-                     ret,
-                     epos);
-          return GNUNET_SYSERR;
-        }
+    if (SQLITE_OK !=
+        (ret = sqlite3_prepare_v2 (dbh,
+                                   ps[i].sql,
+                                   strlen (ps[i].sql),
+                                   ps[i].pstmt,
+                                   &epos)))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  "Failed to prepare SQL `%s': error %d at %s\n",
+                  ps[i].sql,
+                  ret,
+                  epos);
+      return GNUNET_SYSERR;
     }
+  }
   return GNUNET_OK;
 }
 

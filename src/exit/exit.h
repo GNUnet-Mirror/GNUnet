@@ -34,7 +34,8 @@ GNUNET_NETWORK_STRUCT_BEGIN
  * Message send via cadet to an exit daemon to initiate forwarding of
  * TCP data to a local service.
  */
-struct GNUNET_EXIT_TcpServiceStartMessage {
+struct GNUNET_EXIT_TcpServiceStartMessage
+{
   /**
    * Type is #GNUNET_MESSAGE_TYPE_VPN_TCP_TO_SERVICE_START
    */
@@ -59,7 +60,8 @@ struct GNUNET_EXIT_TcpServiceStartMessage {
  * Message send via cadet to an exit daemon to initiate forwarding of
  * TCP data to the Internet.
  */
-struct GNUNET_EXIT_TcpInternetStartMessage {
+struct GNUNET_EXIT_TcpInternetStartMessage
+{
   /**
    * Type is #GNUNET_MESSAGE_TYPE_VPN_TCP_TO_INTERNET_START
    */
@@ -89,7 +91,8 @@ struct GNUNET_EXIT_TcpInternetStartMessage {
  * format is used for both Internet-exits and service-exits and
  * in both directions (VPN to exit and exit to VPN).
  */
-struct GNUNET_EXIT_TcpDataMessage {
+struct GNUNET_EXIT_TcpDataMessage
+{
   /**
    * Type is #GNUNET_MESSAGE_TYPE_VPN_TCP_DATA
    */
@@ -114,7 +117,8 @@ struct GNUNET_EXIT_TcpDataMessage {
  * Message send via cadet to an exit daemon to send
  * UDP data to a local service.
  */
-struct GNUNET_EXIT_UdpServiceMessage {
+struct GNUNET_EXIT_UdpServiceMessage
+{
   /**
    * Type is #GNUNET_MESSAGE_TYPE_VPN_UDP_TO_SERVICE
    */
@@ -138,7 +142,8 @@ struct GNUNET_EXIT_UdpServiceMessage {
  * Message send via cadet to an exit daemon to forward
  * UDP data to the Internet.
  */
-struct GNUNET_EXIT_UdpInternetMessage {
+struct GNUNET_EXIT_UdpInternetMessage
+{
   /**
    * Type is #GNUNET_MESSAGE_TYPE_VPN_UDP_TO_INTERNET
    */
@@ -170,7 +175,8 @@ struct GNUNET_EXIT_UdpInternetMessage {
  * Message send from exit daemon back to the UDP entry point
  * (used for both Internet and Service exit replies).
  */
-struct GNUNET_EXIT_UdpReplyMessage {
+struct GNUNET_EXIT_UdpReplyMessage
+{
   /**
    * Type is #GNUNET_MESSAGE_TYPE_VPN_UDP_REPLY
    */
@@ -196,7 +202,8 @@ struct GNUNET_EXIT_UdpReplyMessage {
  * Message send via cadet to an exit daemon to send
  * ICMP data to a local service.
  */
-struct GNUNET_EXIT_IcmpServiceMessage {
+struct GNUNET_EXIT_IcmpServiceMessage
+{
   /**
    * Type is #GNUNET_MESSAGE_TYPE_VPN_ICMP_TO_SERVICE
    */
@@ -226,7 +233,8 @@ struct GNUNET_EXIT_IcmpServiceMessage {
  * Message send via cadet to an exit daemon to forward
  * ICMP data to the Internet.
  */
-struct GNUNET_EXIT_IcmpInternetMessage {
+struct GNUNET_EXIT_IcmpInternetMessage
+{
   /**
    * Type is #GNUNET_MESSAGE_TYPE_VPN_ICMP_TO_INTERNET
    */
@@ -260,7 +268,8 @@ struct GNUNET_EXIT_IcmpInternetMessage {
  * Message send via cadet to the vpn service to send
  * ICMP data to the VPN's TUN interface.
  */
-struct GNUNET_EXIT_IcmpToVPNMessage {
+struct GNUNET_EXIT_IcmpToVPNMessage
+{
   /**
    * Type is #GNUNET_MESSAGE_TYPE_VPN_ICMP_TO_VPN
    */

@@ -44,7 +44,8 @@ extern "C"
 /**
  * Blocks in the datastore and the datacache must have a unique type.
  */
-enum GNUNET_BLOCK_Type {
+enum GNUNET_BLOCK_Type
+{
   /**
    * Any type of block, used as a wildcard when searching.  Should
    * never be attached to a specific block.
@@ -142,7 +143,8 @@ enum GNUNET_BLOCK_Type {
 /**
  * Flags that can be set to control the evaluation.
  */
-enum GNUNET_BLOCK_EvaluationOptions {
+enum GNUNET_BLOCK_EvaluationOptions
+{
   /**
    * Default behavior.
    */
@@ -159,7 +161,8 @@ enum GNUNET_BLOCK_EvaluationOptions {
 /**
  * Possible ways for how a block may relate to a query.
  */
-enum GNUNET_BLOCK_EvaluationResult {
+enum GNUNET_BLOCK_EvaluationResult
+{
   /**
    * Valid result, and there may be more.
    */
@@ -218,9 +221,9 @@ struct GNUNET_BLOCK_Context;
  * @param hc where to store the result.
  */
 void
-GNUNET_BLOCK_mingle_hash(const struct GNUNET_HashCode *in,
-                         uint32_t mingle_number,
-                         struct GNUNET_HashCode *hc);
+GNUNET_BLOCK_mingle_hash (const struct GNUNET_HashCode *in,
+                          uint32_t mingle_number,
+                          struct GNUNET_HashCode *hc);
 
 
 /**
@@ -230,7 +233,7 @@ GNUNET_BLOCK_mingle_hash(const struct GNUNET_HashCode *in,
  * @return NULL on error
  */
 struct GNUNET_BLOCK_Context *
-GNUNET_BLOCK_context_create(const struct GNUNET_CONFIGURATION_Handle *cfg);
+GNUNET_BLOCK_context_create (const struct GNUNET_CONFIGURATION_Handle *cfg);
 
 
 /**
@@ -239,7 +242,7 @@ GNUNET_BLOCK_context_create(const struct GNUNET_CONFIGURATION_Handle *cfg);
  * @param ctx context to destroy
  */
 void
-GNUNET_BLOCK_context_destroy(struct GNUNET_BLOCK_Context *ctx);
+GNUNET_BLOCK_context_destroy (struct GNUNET_BLOCK_Context *ctx);
 
 
 /**
@@ -263,12 +266,12 @@ struct GNUNET_BLOCK_Group;
  *         by this @a type of block (this is not an error)
  */
 struct GNUNET_BLOCK_Group *
-GNUNET_BLOCK_group_create(struct GNUNET_BLOCK_Context *ctx,
-                          enum GNUNET_BLOCK_Type type,
-                          uint32_t nonce,
-                          const void *raw_data,
-                          size_t raw_data_size,
-                          ...);
+GNUNET_BLOCK_group_create (struct GNUNET_BLOCK_Context *ctx,
+                           enum GNUNET_BLOCK_Type type,
+                           uint32_t nonce,
+                           const void *raw_data,
+                           size_t raw_data_size,
+                           ...);
 
 
 /**
@@ -282,10 +285,10 @@ GNUNET_BLOCK_group_create(struct GNUNET_BLOCK_Context *ctx,
  *         supported, #GNUNET_SYSERR on error
  */
 int
-GNUNET_BLOCK_group_serialize(struct GNUNET_BLOCK_Group *bg,
-                             uint32_t *nonce,
-                             void **raw_data,
-                             size_t *raw_data_size);
+GNUNET_BLOCK_group_serialize (struct GNUNET_BLOCK_Group *bg,
+                              uint32_t *nonce,
+                              void **raw_data,
+                              size_t *raw_data_size);
 
 
 /**
@@ -294,7 +297,7 @@ GNUNET_BLOCK_group_serialize(struct GNUNET_BLOCK_Group *bg,
  * @param bg group to destroy, NULL is allowed
  */
 void
-GNUNET_BLOCK_group_destroy(struct GNUNET_BLOCK_Group *bg);
+GNUNET_BLOCK_group_destroy (struct GNUNET_BLOCK_Group *bg);
 
 
 /**
@@ -316,15 +319,15 @@ GNUNET_BLOCK_group_destroy(struct GNUNET_BLOCK_Group *bg);
  * @return characterization of result
  */
 enum GNUNET_BLOCK_EvaluationResult
-GNUNET_BLOCK_evaluate(struct GNUNET_BLOCK_Context *ctx,
-                      enum GNUNET_BLOCK_Type type,
-                      struct GNUNET_BLOCK_Group *group,
-                      enum GNUNET_BLOCK_EvaluationOptions eo,
-                      const struct GNUNET_HashCode *query,
-                      const void *xquery,
-                      size_t xquery_size,
-                      const void *reply_block,
-                      size_t reply_block_size);
+GNUNET_BLOCK_evaluate (struct GNUNET_BLOCK_Context *ctx,
+                       enum GNUNET_BLOCK_Type type,
+                       struct GNUNET_BLOCK_Group *group,
+                       enum GNUNET_BLOCK_EvaluationOptions eo,
+                       const struct GNUNET_HashCode *query,
+                       const void *xquery,
+                       size_t xquery_size,
+                       const void *reply_block,
+                       size_t reply_block_size);
 
 
 /**
@@ -341,11 +344,11 @@ GNUNET_BLOCK_evaluate(struct GNUNET_BLOCK_Context *ctx,
  *         (or if extracting a key from a block of this type does not work)
  */
 int
-GNUNET_BLOCK_get_key(struct GNUNET_BLOCK_Context *ctx,
-                     enum GNUNET_BLOCK_Type type,
-                     const void *block,
-                     size_t block_size,
-                     struct GNUNET_HashCode *key);
+GNUNET_BLOCK_get_key (struct GNUNET_BLOCK_Context *ctx,
+                      enum GNUNET_BLOCK_Type type,
+                      const void *block,
+                      size_t block_size,
+                      struct GNUNET_HashCode *key);
 
 
 /**
@@ -360,9 +363,9 @@ GNUNET_BLOCK_get_key(struct GNUNET_BLOCK_Context *ctx,
  * @return #GNUNET_SYSERR if not supported, #GNUNET_OK on success
  */
 int
-GNUNET_BLOCK_group_set_seen(struct GNUNET_BLOCK_Group *bg,
-                            const struct GNUNET_HashCode *seen_results,
-                            unsigned int seen_results_count);
+GNUNET_BLOCK_group_set_seen (struct GNUNET_BLOCK_Group *bg,
+                             const struct GNUNET_HashCode *seen_results,
+                             unsigned int seen_results_count);
 
 
 /**
@@ -378,8 +381,8 @@ GNUNET_BLOCK_group_set_seen(struct GNUNET_BLOCK_Group *bg,
  *         #GNUNET_SYSERR if merging is not supported
  */
 int
-GNUNET_BLOCK_group_merge(struct GNUNET_BLOCK_Group *bg1,
-                         struct GNUNET_BLOCK_Group *bg2);
+GNUNET_BLOCK_group_merge (struct GNUNET_BLOCK_Group *bg1,
+                          struct GNUNET_BLOCK_Group *bg2);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

@@ -80,22 +80,22 @@ static const char *val = "test_peerstore_api_store_val";
  * @return #GNUNET_YES (all good, continue)
  */
 static void
-iterate_cb(void *cls,
-           const struct GNUNET_PEERSTORE_Record *record,
-           const char *emsg)
+iterate_cb (void *cls,
+            const struct GNUNET_PEERSTORE_Record *record,
+            const char *emsg)
 {
   const char *rec_val;
 
-  GNUNET_break(NULL == emsg);
+  GNUNET_break (NULL == emsg);
   if (NULL == record)
-    {
-      GNUNET_PEERSTORE_disconnect(h,
-                                  GNUNET_NO);
-      GNUNET_SCHEDULER_shutdown();
-      return;
-    }
+  {
+    GNUNET_PEERSTORE_disconnect (h,
+                                 GNUNET_NO);
+    GNUNET_SCHEDULER_shutdown ();
+    return;
+  }
   rec_val = record->value;
-  GNUNET_break(0 == strcmp(rec_val, val));
+  GNUNET_break (0 == strcmp (rec_val, val));
   ok = 0;
 }
 
@@ -107,14 +107,14 @@ iterate_cb(void *cls,
  * @param cls NULL
  */
 static void
-test_cont(void *cls)
+test_cont (void *cls)
 {
-  h = GNUNET_PEERSTORE_connect(cfg);
-  GNUNET_PEERSTORE_iterate(h,
-                           subsystem,
-                           &pid, key,
-                           &iterate_cb,
-                           NULL);
+  h = GNUNET_PEERSTORE_connect (cfg);
+  GNUNET_PEERSTORE_iterate (h,
+                            subsystem,
+                            &pid, key,
+                            &iterate_cb,
+                            NULL);
 }
 
 
@@ -122,28 +122,28 @@ test_cont(void *cls)
  * Actually run the test.
  */
 static void
-test1()
+test1 ()
 {
-  h = GNUNET_PEERSTORE_connect(cfg);
-  GNUNET_PEERSTORE_store(h,
-                         subsystem,
-                         &pid,
-                         key,
-                         val, strlen(val) + 1,
-                         GNUNET_TIME_UNIT_FOREVER_ABS,
-                         GNUNET_PEERSTORE_STOREOPTION_REPLACE,
-                         NULL, NULL);
-  GNUNET_PEERSTORE_disconnect(h,
-                              GNUNET_YES);
+  h = GNUNET_PEERSTORE_connect (cfg);
+  GNUNET_PEERSTORE_store (h,
+                          subsystem,
+                          &pid,
+                          key,
+                          val, strlen (val) + 1,
+                          GNUNET_TIME_UNIT_FOREVER_ABS,
+                          GNUNET_PEERSTORE_STOREOPTION_REPLACE,
+                          NULL, NULL);
+  GNUNET_PEERSTORE_disconnect (h,
+                               GNUNET_YES);
   h = NULL;
   /* We need to wait a little bit to give the disconnect
      a chance to actually finish the operation; otherwise,
      the test may fail non-deterministically if the new
      connection is faster than the cleanup routine of the
      old one. */
-  GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_UNIT_SECONDS,
-                               &test_cont,
-                               NULL);
+  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
+                                &test_cont,
+                                NULL);
 }
 
 
@@ -155,29 +155,29 @@ test1()
  * @param peer handle to our peer (unused)
  */
 static void
-run(void *cls,
-    const struct GNUNET_CONFIGURATION_Handle *c,
-    struct GNUNET_TESTING_Peer *peer)
+run (void *cls,
+     const struct GNUNET_CONFIGURATION_Handle *c,
+     struct GNUNET_TESTING_Peer *peer)
 {
   cfg = c;
-  memset(&pid, 1, sizeof(pid));
-  test1();
+  memset (&pid, 1, sizeof(pid));
+  test1 ();
 }
 
 
 int
-main(int argc, char *argv[])
+main (int argc, char *argv[])
 {
   if (0 !=
-      GNUNET_TESTING_service_run("test-gnunet-peerstore-sync",
-                                 "peerstore",
-                                 "test_peerstore_api_data.conf",
-                                 &run, NULL))
+      GNUNET_TESTING_service_run ("test-gnunet-peerstore-sync",
+                                  "peerstore",
+                                  "test_peerstore_api_data.conf",
+                                  &run, NULL))
     return 1;
   if (0 != ok)
-    fprintf(stderr,
-            "Test failed: %d\n",
-            ok);
+    fprintf (stderr,
+             "Test failed: %d\n",
+             ok);
   return ok;
 }
 

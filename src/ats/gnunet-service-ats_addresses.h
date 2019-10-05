@@ -221,12 +221,14 @@
 /*
  * How long will address suggestions blocked after a suggestion
  */
-#define ATS_BLOCKING_DELTA GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MILLISECONDS, 100)
+#define ATS_BLOCKING_DELTA GNUNET_TIME_relative_multiply ( \
+    GNUNET_TIME_UNIT_MILLISECONDS, 100)
 
 /**
  * Information provided by ATS normalization
  */
-struct GAS_NormalizationInfo {
+struct GAS_NormalizationInfo
+{
   /**
    * Next index to use in averaging queue
    */
@@ -252,7 +254,8 @@ struct GAS_NormalizationInfo {
 /**
  * Address with additional information
  */
-struct ATS_Address {
+struct ATS_Address
+{
   /**
    * Peer ID this address is for.
    */
@@ -366,14 +369,14 @@ extern struct GNUNET_CONTAINER_MultiPeerMap *GSA_addresses;
  * known and current performance information.
  */
 void
-GAS_addresses_init(void);
+GAS_addresses_init (void);
 
 
 /**
  * Shutdown address subsystem.
  */
 void
-GAS_addresses_done(void);
+GAS_addresses_done (void);
 
 
 /**
@@ -388,13 +391,13 @@ GAS_addresses_done(void);
  * @param prop performance information for this address
  */
 void
-GAS_addresses_add(const struct GNUNET_PeerIdentity *peer,
-                  const char *plugin_name,
-                  const void *plugin_addr,
-                  size_t plugin_addr_len,
-                  uint32_t local_address_info,
-                  uint32_t session_id,
-                  const struct GNUNET_ATS_Properties *prop);
+GAS_addresses_add (const struct GNUNET_PeerIdentity *peer,
+                   const char *plugin_name,
+                   const void *plugin_addr,
+                   size_t plugin_addr_len,
+                   uint32_t local_address_info,
+                   uint32_t session_id,
+                   const struct GNUNET_ATS_Properties *prop);
 
 
 /**
@@ -405,9 +408,9 @@ GAS_addresses_add(const struct GNUNET_PeerIdentity *peer,
  * @param prop performance information for this address
  */
 void
-GAS_addresses_update(const struct GNUNET_PeerIdentity *peer,
-                     uint32_t session_id,
-                     const struct GNUNET_ATS_Properties *prop);
+GAS_addresses_update (const struct GNUNET_PeerIdentity *peer,
+                      uint32_t session_id,
+                      const struct GNUNET_ATS_Properties *prop);
 
 
 /**
@@ -417,15 +420,15 @@ GAS_addresses_update(const struct GNUNET_PeerIdentity *peer,
  * @param session_id session id, can never be 0
  */
 void
-GAS_addresses_destroy(const struct GNUNET_PeerIdentity *peer,
-                      uint32_t session_id);
+GAS_addresses_destroy (const struct GNUNET_PeerIdentity *peer,
+                       uint32_t session_id);
 
 
 /**
  * Remove all addresses.
  */
 void
-GAS_addresses_destroy_all(void);
+GAS_addresses_destroy_all (void);
 
 
 /**
@@ -450,9 +453,12 @@ typedef void
                                  size_t plugin_addr_len,
                                  const int address_active,
                                  const struct GNUNET_ATS_Properties *prop,
-                                 enum GNUNET_HELLO_AddressInfo local_address_info,
-                                 struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
-                                 struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in);
+                                 enum GNUNET_HELLO_AddressInfo
+                                 local_address_info,
+                                 struct GNUNET_BANDWIDTH_Value32NBO
+                                 bandwidth_out,
+                                 struct GNUNET_BANDWIDTH_Value32NBO
+                                 bandwidth_in);
 
 
 /**
@@ -463,9 +469,9 @@ typedef void
  * @param pi_it_cls the closure for @a pi_it
  */
 void
-GAS_addresses_get_peer_info(const struct GNUNET_PeerIdentity *peer,
-                            GNUNET_ATS_PeerInfo_Iterator pi_it,
-                            void *pi_it_cls);
+GAS_addresses_get_peer_info (const struct GNUNET_PeerIdentity *peer,
+                             GNUNET_ATS_PeerInfo_Iterator pi_it,
+                             void *pi_it_cls);
 
 
 /**
@@ -475,8 +481,8 @@ GAS_addresses_get_peer_info(const struct GNUNET_PeerIdentity *peer,
  * @param alrm the request message
  */
 void
-GAS_handle_request_address_list(struct GNUNET_SERVICE_Client *client,
-                                const struct AddressListRequestMessage *alrm);
+GAS_handle_request_address_list (struct GNUNET_SERVICE_Client *client,
+                                 const struct AddressListRequestMessage *alrm);
 
 
 #endif

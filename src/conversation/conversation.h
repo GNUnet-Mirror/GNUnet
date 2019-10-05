@@ -36,7 +36,8 @@ extern "C"
 #endif
 
 
-#define MAX_TRANSMIT_DELAY GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 60)
+#define MAX_TRANSMIT_DELAY GNUNET_TIME_relative_multiply ( \
+    GNUNET_TIME_UNIT_SECONDS, 60)
 
 
 /**
@@ -44,7 +45,7 @@ extern "C"
  * bit set if we are making an outgoing call,
  * bit unset for local lines.
  */
-#define HIGH_BIT ((uint32_t)(1LL << 31))
+#define HIGH_BIT ((uint32_t) (1LL << 31))
 
 GNUNET_NETWORK_STRUCT_BEGIN
 
@@ -52,7 +53,8 @@ GNUNET_NETWORK_STRUCT_BEGIN
 /**
  * Message to transmit the audio (between client and helpers).
  */
-struct AudioMessage {
+struct AudioMessage
+{
   /**
    * Type is #GNUNET_MESSAGE_TYPE_CONVERSATION_AUDIO
    */
@@ -65,7 +67,8 @@ struct AudioMessage {
 /**
  * Client -> Service message to register a phone.
  */
-struct ClientPhoneRegisterMessage {
+struct ClientPhoneRegisterMessage
+{
   /**
    * Type is: #GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_REGISTER
    */
@@ -86,7 +89,8 @@ struct ClientPhoneRegisterMessage {
 /**
  * Service -> Client message for phone is ringing.
  */
-struct ClientPhoneRingMessage {
+struct ClientPhoneRingMessage
+{
   /**
    * Type is: #GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_RING
    */
@@ -108,7 +112,8 @@ struct ClientPhoneRingMessage {
 /**
  * Service <-> Client message for phone was suspended.
  */
-struct ClientPhoneSuspendMessage {
+struct ClientPhoneSuspendMessage
+{
   /**
    * Type is: #GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_SUSPEND
    */
@@ -125,7 +130,8 @@ struct ClientPhoneSuspendMessage {
 /**
  * Service <-> Client message for phone was resumed.
  */
-struct ClientPhoneResumeMessage {
+struct ClientPhoneResumeMessage
+{
   /**
    * Type is: #GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_RESUME
    */
@@ -142,7 +148,8 @@ struct ClientPhoneResumeMessage {
 /**
  * Client -> Service pick up phone that is ringing.
  */
-struct ClientPhonePickupMessage {
+struct ClientPhonePickupMessage
+{
   /**
    * Type is: #GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_PICK_UP
    */
@@ -160,7 +167,8 @@ struct ClientPhonePickupMessage {
  * Client <-> Service hang up phone that may or may not be ringing.
  * Also sent in response to a (failed) `struct ClientCallMessage`.
  */
-struct ClientPhoneHangupMessage {
+struct ClientPhoneHangupMessage
+{
   /**
    * Type is: #GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_HANG_UP
    */
@@ -177,7 +185,8 @@ struct ClientPhoneHangupMessage {
 /**
  * Message Client <-> Service to transmit the audio.
  */
-struct ClientAudioMessage {
+struct ClientAudioMessage
+{
   /**
    * Type is #GNUNET_MESSAGE_TYPE_CONVERSATION_CS_AUDIO
    */
@@ -196,7 +205,8 @@ struct ClientAudioMessage {
 /**
  * Client -> Service message to call a phone.
  */
-struct ClientCallMessage {
+struct ClientCallMessage
+{
   /**
    * Type is: #GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_CALL
    */
@@ -228,7 +238,8 @@ struct ClientCallMessage {
  * Service -> Client: other peer has picked up the phone, we are
  * now talking.
  */
-struct ClientPhonePickedupMessage {
+struct ClientPhonePickedupMessage
+{
   /**
    * Type is: #GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_PICKED_UP
    */
@@ -246,7 +257,8 @@ struct ClientPhonePickedupMessage {
  * Information signed in a `struct CadetPhoneRingMessage`
  * whereby the caller self-identifies to the receiver.
  */
-struct CadetPhoneRingInfoPS {
+struct CadetPhoneRingInfoPS
+{
   /**
    * Purpose for the signature, must be
    * #GNUNET_SIGNATURE_PURPOSE_CONVERSATION_RING.
@@ -274,7 +286,8 @@ struct CadetPhoneRingInfoPS {
  * Cadet message to make a phone ring.  Sent to the port
  * of the respective phone.
  */
-struct CadetPhoneRingMessage {
+struct CadetPhoneRingMessage
+{
   /**
    * Type is: #GNUNET_MESSAGE_TYPE_CONVERSATION_CADET_PHONE_RING
    */
@@ -305,7 +318,8 @@ struct CadetPhoneRingMessage {
 /**
  * Cadet message for hanging up.
  */
-struct CadetPhoneHangupMessage {
+struct CadetPhoneHangupMessage
+{
   /**
    * Type is: #GNUNET_MESSAGE_TYPE_CONVERSATION_CADET_PHONE_HANG_UP
    */
@@ -316,7 +330,8 @@ struct CadetPhoneHangupMessage {
 /**
  * Cadet message for picking up.
  */
-struct CadetPhonePickupMessage {
+struct CadetPhonePickupMessage
+{
   /**
    * Type is: #GNUNET_MESSAGE_TYPE_CONVERSATION_CADET_PHONE_PICK_UP
    */
@@ -327,7 +342,8 @@ struct CadetPhonePickupMessage {
 /**
  * Cadet message for phone suspended.
  */
-struct CadetPhoneSuspendMessage {
+struct CadetPhoneSuspendMessage
+{
   /**
    * Type is: #GNUNET_MESSAGE_TYPE_CONVERSATION_CADET_PHONE_SUSPEND
    */
@@ -338,7 +354,8 @@ struct CadetPhoneSuspendMessage {
 /**
  * Cadet message for phone resumed.
  */
-struct CadetPhoneResumeMessage {
+struct CadetPhoneResumeMessage
+{
   /**
    * Type is: #GNUNET_MESSAGE_TYPE_CONVERSATION_CADET_PHONE_RESUME
    */
@@ -349,7 +366,8 @@ struct CadetPhoneResumeMessage {
 /**
  * Cadet message to transmit the audio.
  */
-struct CadetAudioMessage {
+struct CadetAudioMessage
+{
   /**
    * Type is #GNUNET_MESSAGE_TYPE_CONVERSATION_CADET_AUDIO
    */

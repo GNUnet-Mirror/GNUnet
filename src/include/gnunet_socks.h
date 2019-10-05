@@ -52,8 +52,8 @@ extern "C"
  * @return GNUNET_YES if so, GNUNET_NO if not
  */
 int
-GNUNET_SOCKS_check_service(const char *service_name,
-                           const struct GNUNET_CONFIGURATION_Handle *cfg);
+GNUNET_SOCKS_check_service (const char *service_name,
+                            const struct GNUNET_CONFIGURATION_Handle *cfg);
 
 
 /**
@@ -65,8 +65,8 @@ GNUNET_SOCKS_check_service(const char *service_name,
  *         NULL if SOCKS not configured or not configured properly
  */
 struct GNUNET_CONNECTION_Handle *
-GNUNET_SOCKS_do_connect(const char *service_name,
-                        const struct GNUNET_CONFIGURATION_Handle *cfg);
+GNUNET_SOCKS_do_connect (const char *service_name,
+                         const struct GNUNET_CONFIGURATION_Handle *cfg);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

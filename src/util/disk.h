@@ -39,7 +39,7 @@
  * @return #GNUNET_OK on success, #GNUNET_SYSERR otherwise
  */
 int
-GNUNET_DISK_internal_file_handle_(const struct GNUNET_DISK_FileHandle *fh,
-                                  void *dst, size_t dst_len);
+GNUNET_DISK_internal_file_handle_ (const struct GNUNET_DISK_FileHandle *fh,
+                                   void *dst, size_t dst_len);
 
 #endif /* GNUNET_DISK_H_ */

@@ -32,7 +32,8 @@
 /**
  * Connection to the GNS service.
  */
-struct GNUNET_GNS_Handle {
+struct GNUNET_GNS_Handle
+{
   /**
    * Configuration to use.
    */

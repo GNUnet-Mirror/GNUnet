@@ -27,23 +27,22 @@
 
 #define LEN 1234
 
-int main()
+int main ()
 {
   char data[1234];
   struct GNUNET_HashCode hc1;
   struct GNUNET_HashCode hc2;
   struct GNUNET_HashContext *hctx;
 
-  memset(data, 42, LEN);
+  memset (data, 42, LEN);
 
-  hctx = GNUNET_CRYPTO_hash_context_start();
-  GNUNET_CRYPTO_hash_context_read(hctx, data, LEN);
-  GNUNET_CRYPTO_hash_context_finish(hctx, &hc1);
+  hctx = GNUNET_CRYPTO_hash_context_start ();
+  GNUNET_CRYPTO_hash_context_read (hctx, data, LEN);
+  GNUNET_CRYPTO_hash_context_finish (hctx, &hc1);
 
-  GNUNET_CRYPTO_hash(data, LEN, &hc2);
+  GNUNET_CRYPTO_hash (data, LEN, &hc2);
 
-  if (0 == memcmp(&hc1, &hc2, sizeof(struct GNUNET_HashCode)))
+  if (0 == memcmp (&hc1, &hc2, sizeof(struct GNUNET_HashCode)))
     return 0;
   return 1;
 }
-

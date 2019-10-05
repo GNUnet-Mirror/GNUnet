@@ -126,23 +126,23 @@ static int collect;
  * @param cls unused
  */
 static void
-do_shutdown(void *cls)
+do_shutdown (void *cls)
 {
   if (NULL != verify_request)
-    {
-      GNUNET_CREDENTIAL_request_cancel(verify_request);
-      verify_request = NULL;
-    }
+  {
+    GNUNET_CREDENTIAL_request_cancel (verify_request);
+    verify_request = NULL;
+  }
   if (NULL != credential)
-    {
-      GNUNET_CREDENTIAL_disconnect(credential);
-      credential = NULL;
-    }
+  {
+    GNUNET_CREDENTIAL_disconnect (credential);
+    credential = NULL;
+  }
   if (NULL != tt)
-    {
-      GNUNET_SCHEDULER_cancel(tt);
-      tt = NULL;
-    }
+  {
+    GNUNET_SCHEDULER_cancel (tt);
+    tt = NULL;
+  }
 }
 
 
@@ -152,91 +152,91 @@ do_shutdown(void *cls)
  * @param cls unused
  */
 static void
-do_timeout(void *cls)
+do_timeout (void *cls)
 {
   tt = NULL;
-  GNUNET_SCHEDULER_shutdown();
+  GNUNET_SCHEDULER_shutdown ();
 }
 
 static void
-handle_collect_result(void *cls,
+handle_collect_result (void *cls,
+                       unsigned int d_count,
+                       struct GNUNET_CREDENTIAL_Delegation *dc,
+                       unsigned int c_count,
+                       struct GNUNET_CREDENTIAL_Credential *cred)
+{
+  int i;
+  char*line;
+
+  verify_request = NULL;
+  if (NULL != cred)
+  {
+    for (i = 0; i < c_count; i++)
+    {
+      line = GNUNET_CREDENTIAL_credential_to_string (&cred[i]);
+      printf ("%s\n",
+              line);
+      GNUNET_free (line);
+    }
+  }
+
+
+  GNUNET_SCHEDULER_shutdown ();
+}
+
+
+static void
+handle_verify_result (void *cls,
                       unsigned int d_count,
                       struct GNUNET_CREDENTIAL_Delegation *dc,
                       unsigned int c_count,
                       struct GNUNET_CREDENTIAL_Credential *cred)
 {
   int i;
-  char* line;
-
-  verify_request = NULL;
-  if (NULL != cred)
-    {
-      for (i = 0; i < c_count; i++)
-        {
-          line = GNUNET_CREDENTIAL_credential_to_string(&cred[i]);
-          printf("%s\n",
-                 line);
-          GNUNET_free(line);
-        }
-    }
-
-
-  GNUNET_SCHEDULER_shutdown();
-}
-
-
-static void
-handle_verify_result(void *cls,
-                     unsigned int d_count,
-                     struct GNUNET_CREDENTIAL_Delegation *dc,
-                     unsigned int c_count,
-                     struct GNUNET_CREDENTIAL_Credential *cred)
-{
-  int i;
-  char* iss_key;
-  char* sub_key;
+  char*iss_key;
+  char*sub_key;
 
   verify_request = NULL;
   if (NULL == cred)
-    printf("Failed.\n");
+    printf ("Failed.\n");
   else
+  {
+    printf ("Delegation Chain:\n");
+    for (i = 0; i < d_count; i++)
     {
-      printf("Delegation Chain:\n");
-      for (i = 0; i < d_count; i++)
-        {
-          iss_key = GNUNET_CRYPTO_ecdsa_public_key_to_string(&dc[i].issuer_key);
-          sub_key = GNUNET_CRYPTO_ecdsa_public_key_to_string(&dc[i].subject_key);
-          if (0 != dc[i].subject_attribute_len)
-            {
-              printf("(%d) %s.%s <- %s.%s\n", i,
-                     iss_key, dc[i].issuer_attribute,
-                     sub_key, dc[i].subject_attribute);
-            }
-          else
-            {
-              printf("(%d) %s.%s <- %s\n", i,
-                     iss_key, dc[i].issuer_attribute,
-                     sub_key);
-            }
-          GNUNET_free(iss_key);
-          GNUNET_free(sub_key);
-        }
-      printf("\nCredentials:\n");
-      for (i = 0; i < c_count; i++)
-        {
-          iss_key = GNUNET_CRYPTO_ecdsa_public_key_to_string(&cred[i].issuer_key);
-          sub_key = GNUNET_CRYPTO_ecdsa_public_key_to_string(&cred[i].subject_key);
-          printf("%s.%s <- %s\n",
-                 iss_key, cred[i].issuer_attribute,
-                 sub_key);
-          GNUNET_free(iss_key);
-          GNUNET_free(sub_key);
-        }
-      printf("Successful.\n");
+      iss_key = GNUNET_CRYPTO_ecdsa_public_key_to_string (&dc[i].issuer_key);
+      sub_key = GNUNET_CRYPTO_ecdsa_public_key_to_string (&dc[i].subject_key);
+      if (0 != dc[i].subject_attribute_len)
+      {
+        printf ("(%d) %s.%s <- %s.%s\n", i,
+                iss_key, dc[i].issuer_attribute,
+                sub_key, dc[i].subject_attribute);
+      }
+      else
+      {
+        printf ("(%d) %s.%s <- %s\n", i,
+                iss_key, dc[i].issuer_attribute,
+                sub_key);
+      }
+      GNUNET_free (iss_key);
+      GNUNET_free (sub_key);
     }
+    printf ("\nCredentials:\n");
+    for (i = 0; i < c_count; i++)
+    {
+      iss_key = GNUNET_CRYPTO_ecdsa_public_key_to_string (&cred[i].issuer_key);
+      sub_key = GNUNET_CRYPTO_ecdsa_public_key_to_string (&cred[i].subject_key);
+      printf ("%s.%s <- %s\n",
+              iss_key, cred[i].issuer_attribute,
+              sub_key);
+      GNUNET_free (iss_key);
+      GNUNET_free (sub_key);
+    }
+    printf ("Successful.\n");
+  }
 
 
-  GNUNET_SCHEDULER_shutdown();
+  GNUNET_SCHEDULER_shutdown ();
 }
 
 /**
@@ -247,8 +247,8 @@ handle_verify_result(void *cls,
  * @param ego an ego known to identity service, or NULL
  */
 static void
-identity_cb(void *cls,
-            const struct GNUNET_IDENTITY_Ego *ego)
+identity_cb (void *cls,
+             const struct GNUNET_IDENTITY_Ego *ego)
 {
   const struct GNUNET_CRYPTO_EcdsaPrivateKey *privkey;
   struct GNUNET_CREDENTIAL_Credential *crd;
@@ -258,77 +258,77 @@ identity_cb(void *cls,
 
   el = NULL;
   if (NULL == ego)
+  {
+    if (NULL != ego_name)
     {
-      if (NULL != ego_name)
-        {
-          fprintf(stderr,
-                  _("Ego `%s' not known to identity service\n"),
-                  ego_name);
-        }
-      GNUNET_SCHEDULER_shutdown();
-      return;
+      fprintf (stderr,
+               _ ("Ego `%s' not known to identity service\n"),
+               ego_name);
     }
+    GNUNET_SCHEDULER_shutdown ();
+    return;
+  }
 
   if (GNUNET_YES == collect)
+  {
+    if (GNUNET_OK !=
+        GNUNET_CRYPTO_ecdsa_public_key_from_string (issuer_key,
+                                                    strlen (issuer_key),
+                                                    &issuer_pkey))
     {
-      if (GNUNET_OK !=
-          GNUNET_CRYPTO_ecdsa_public_key_from_string(issuer_key,
-                                                     strlen(issuer_key),
-                                                     &issuer_pkey))
-        {
-          fprintf(stderr,
-                  _("Issuer public key `%s' is not well-formed\n"),
-                  issuer_key);
-          GNUNET_SCHEDULER_shutdown();
-        }
-      privkey = GNUNET_IDENTITY_ego_get_private_key(ego);
-
-      collect_request = GNUNET_CREDENTIAL_collect(credential,
-                                                  &issuer_pkey,
-                                                  issuer_attr, //TODO argument
-                                                  privkey,
-                                                  &handle_collect_result,
-                                                  NULL);
-      return;
+      fprintf (stderr,
+               _ ("Issuer public key `%s' is not well-formed\n"),
+               issuer_key);
+      GNUNET_SCHEDULER_shutdown ();
     }
+    privkey = GNUNET_IDENTITY_ego_get_private_key (ego);
 
-  //Else issue
+    collect_request = GNUNET_CREDENTIAL_collect (credential,
+                                                 &issuer_pkey,
+                                                 issuer_attr,  // TODO argument
+                                                 privkey,
+                                                 &handle_collect_result,
+                                                 NULL);
+    return;
+  }
+
+  // Else issue
 
   if (NULL == expiration)
-    {
-      fprintf(stderr,
-              "Please specify a TTL\n");
-      GNUNET_SCHEDULER_shutdown();
-      return;
-    }
-  else if (GNUNET_OK == GNUNET_STRINGS_fancy_time_to_relative(expiration,
-                                                              &etime_rel))
-    {
-      etime_abs = GNUNET_TIME_relative_to_absolute(etime_rel);
-    }
-  else if (GNUNET_OK != GNUNET_STRINGS_fancy_time_to_absolute(expiration,
-                                                              &etime_abs))
-    {
-      fprintf(stderr,
-              "%s is not a valid ttl!\n",
-              expiration);
-      GNUNET_SCHEDULER_shutdown();
-      return;
-    }
+  {
+    fprintf (stderr,
+             "Please specify a TTL\n");
+    GNUNET_SCHEDULER_shutdown ();
+    return;
+  }
+  else if (GNUNET_OK == GNUNET_STRINGS_fancy_time_to_relative (expiration,
+                                                               &etime_rel))
+  {
+    etime_abs = GNUNET_TIME_relative_to_absolute (etime_rel);
+  }
+  else if (GNUNET_OK != GNUNET_STRINGS_fancy_time_to_absolute (expiration,
+                                                               &etime_abs))
+  {
+    fprintf (stderr,
+             "%s is not a valid ttl!\n",
+             expiration);
+    GNUNET_SCHEDULER_shutdown ();
+    return;
+  }
 
 
-  privkey = GNUNET_IDENTITY_ego_get_private_key(ego);
-  GNUNET_free_non_null(ego_name);
+  privkey = GNUNET_IDENTITY_ego_get_private_key (ego);
+  GNUNET_free_non_null (ego_name);
   ego_name = NULL;
-  crd = GNUNET_CREDENTIAL_credential_issue(privkey,
-                                           &subject_pkey,
-                                           issuer_attr,
-                                           &etime_abs);
+  crd = GNUNET_CREDENTIAL_credential_issue (privkey,
+                                            &subject_pkey,
+                                            issuer_attr,
+                                            &etime_abs);
 
-  res = GNUNET_CREDENTIAL_credential_to_string(crd);
-  GNUNET_free(crd);
-  printf("%s\n", res);
-  GNUNET_SCHEDULER_shutdown();
+  res = GNUNET_CREDENTIAL_credential_to_string (crd);
+  GNUNET_free (crd);
+  printf ("%s\n", res);
+  GNUNET_SCHEDULER_shutdown ();
 }
 
 
@@ -343,180 +343,181 @@ identity_cb(void *cls,
  * @param c configuration
  */
 static void
-run(void *cls,
-    char *const *args,
-    const char *cfgfile,
-    const struct GNUNET_CONFIGURATION_Handle *c)
+run (void *cls,
+     char *const *args,
+     const char *cfgfile,
+     const struct GNUNET_CONFIGURATION_Handle *c)
 {
   cfg = c;
 
 
-  tt = GNUNET_SCHEDULER_add_delayed(timeout,
-                                    &do_timeout, NULL);
-  GNUNET_SCHEDULER_add_shutdown(&do_shutdown, NULL);
+  tt = GNUNET_SCHEDULER_add_delayed (timeout,
+                                     &do_timeout, NULL);
+  GNUNET_SCHEDULER_add_shutdown (&do_shutdown, NULL);
 
   if (GNUNET_YES == collect)
+  {
+    if (NULL == issuer_key)
     {
-      if (NULL == issuer_key)
-        {
-          fprintf(stderr,
-                  _("Issuer public key not well-formed\n"));
-          GNUNET_SCHEDULER_shutdown();
-          return;
-        }
-
-      credential = GNUNET_CREDENTIAL_connect(cfg);
-
-      if (NULL == credential)
-        {
-          fprintf(stderr,
-                  _("Failed to connect to CREDENTIAL\n"));
-          GNUNET_SCHEDULER_shutdown();
-          return;
-        }
-      if (NULL == issuer_attr)
-        {
-          fprintf(stderr,
-                  _("You must provide issuer the attribute\n"));
-          GNUNET_SCHEDULER_shutdown();
-          return;
-        }
-
-      if (NULL == ego_name)
-        {
-          fprintf(stderr,
-                  _("ego required\n"));
-          GNUNET_SCHEDULER_shutdown();
-          return;
-        }
-      el = GNUNET_IDENTITY_ego_lookup(cfg,
-                                      ego_name,
-                                      &identity_cb,
-                                      (void *)cfg);
+      fprintf (stderr,
+               _ ("Issuer public key not well-formed\n"));
+      GNUNET_SCHEDULER_shutdown ();
       return;
     }
+
+    credential = GNUNET_CREDENTIAL_connect (cfg);
+
+    if (NULL == credential)
+    {
+      fprintf (stderr,
+               _ ("Failed to connect to CREDENTIAL\n"));
+      GNUNET_SCHEDULER_shutdown ();
+      return;
+    }
+    if (NULL == issuer_attr)
+    {
+      fprintf (stderr,
+               _ ("You must provide issuer the attribute\n"));
+      GNUNET_SCHEDULER_shutdown ();
+      return;
+    }
+
+    if (NULL == ego_name)
+    {
+      fprintf (stderr,
+               _ ("ego required\n"));
+      GNUNET_SCHEDULER_shutdown ();
+      return;
+    }
+    el = GNUNET_IDENTITY_ego_lookup (cfg,
+                                     ego_name,
+                                     &identity_cb,
+                                     (void *) cfg);
+    return;
+  }
 
   if (NULL == subject_key)
-    {
-      fprintf(stderr,
-              _("Subject public key needed\n"));
-      GNUNET_SCHEDULER_shutdown();
-      return;
-    }
+  {
+    fprintf (stderr,
+             _ ("Subject public key needed\n"));
+    GNUNET_SCHEDULER_shutdown ();
+    return;
+  }
   if (GNUNET_OK !=
-      GNUNET_CRYPTO_ecdsa_public_key_from_string(subject_key,
-                                                 strlen(subject_key),
-                                                 &subject_pkey))
-    {
-      fprintf(stderr,
-              _("Subject public key `%s' is not well-formed\n"),
-              subject_key);
-      GNUNET_SCHEDULER_shutdown();
-      return;
-    }
+      GNUNET_CRYPTO_ecdsa_public_key_from_string (subject_key,
+                                                  strlen (subject_key),
+                                                  &subject_pkey))
+  {
+    fprintf (stderr,
+             _ ("Subject public key `%s' is not well-formed\n"),
+             subject_key);
+    GNUNET_SCHEDULER_shutdown ();
+    return;
+  }
   if (GNUNET_YES == verify)
+  {
+    if (NULL == issuer_key)
     {
-      if (NULL == issuer_key)
-        {
-          fprintf(stderr,
-                  _("Issuer public key not well-formed\n"));
-          GNUNET_SCHEDULER_shutdown();
-          return;
-        }
-      if (GNUNET_OK !=
-          GNUNET_CRYPTO_ecdsa_public_key_from_string(issuer_key,
-                                                     strlen(issuer_key),
-                                                     &issuer_pkey))
-        {
-          fprintf(stderr,
-                  _("Issuer public key `%s' is not well-formed\n"),
-                  issuer_key);
-          GNUNET_SCHEDULER_shutdown();
-          return;
-        }
-      credential = GNUNET_CREDENTIAL_connect(cfg);
-
-      if (NULL == credential)
-        {
-          fprintf(stderr,
-                  _("Failed to connect to CREDENTIAL\n"));
-          GNUNET_SCHEDULER_shutdown();
-          return;
-        }
-      if (NULL == issuer_attr || NULL == subject_credential)
-        {
-          fprintf(stderr,
-                  _("You must provide issuer and subject attributes\n"));
-          GNUNET_SCHEDULER_shutdown();
-          return;
-        }
-
-      //Subject credentials are comma separated
-      char *tmp = GNUNET_strdup(subject_credential);
-      char *tok = strtok(tmp, ",");
-      if (NULL == tok)
-        {
-          fprintf(stderr,
-                  "Invalid subject credentials\n");
-          GNUNET_free(tmp);
-          GNUNET_SCHEDULER_shutdown();
-          return;
-        }
-      int count = 1;
-      int i;
-      while (NULL != (tok = strtok(NULL, ",")))
-        count++;
-      struct GNUNET_CREDENTIAL_Credential credentials[count];
-      struct GNUNET_CREDENTIAL_Credential *cred;
-      GNUNET_free(tmp);
-      tmp = GNUNET_strdup(subject_credential);
-      tok = strtok(tmp, ",");
-      for (i = 0; i < count; i++)
-        {
-          cred = GNUNET_CREDENTIAL_credential_from_string(tok);
-          GNUNET_memcpy(&credentials[i],
-                        cred,
-                        sizeof(struct GNUNET_CREDENTIAL_Credential));
-          credentials[i].issuer_attribute = GNUNET_strdup(cred->issuer_attribute);
-          tok = strtok(NULL, ",");
-          GNUNET_free(cred);
-        }
-
-      verify_request = GNUNET_CREDENTIAL_verify(credential,
-                                                &issuer_pkey,
-                                                issuer_attr, //TODO argument
-                                                &subject_pkey,
-                                                count,
-                                                credentials,
-                                                &handle_verify_result,
-                                                NULL);
-      for (i = 0; i < count; i++)
-        {
-          GNUNET_free((char*)credentials[i].issuer_attribute);
-        }
-      GNUNET_free(tmp);
-    }
-  else if (GNUNET_YES == create_cred)
-    {
-      if (NULL == ego_name)
-        {
-          fprintf(stderr,
-                  _("Issuer ego required\n"));
-          GNUNET_SCHEDULER_shutdown();
-          return;
-        }
-      el = GNUNET_IDENTITY_ego_lookup(cfg,
-                                      ego_name,
-                                      &identity_cb,
-                                      (void *)cfg);
+      fprintf (stderr,
+               _ ("Issuer public key not well-formed\n"));
+      GNUNET_SCHEDULER_shutdown ();
       return;
     }
-  else
+    if (GNUNET_OK !=
+        GNUNET_CRYPTO_ecdsa_public_key_from_string (issuer_key,
+                                                    strlen (issuer_key),
+                                                    &issuer_pkey))
     {
-      fprintf(stderr,
-              _("Please specify name to lookup, subject key and issuer key!\n"));
-      GNUNET_SCHEDULER_shutdown();
+      fprintf (stderr,
+               _ ("Issuer public key `%s' is not well-formed\n"),
+               issuer_key);
+      GNUNET_SCHEDULER_shutdown ();
+      return;
     }
+    credential = GNUNET_CREDENTIAL_connect (cfg);
+
+    if (NULL == credential)
+    {
+      fprintf (stderr,
+               _ ("Failed to connect to CREDENTIAL\n"));
+      GNUNET_SCHEDULER_shutdown ();
+      return;
+    }
+    if ((NULL == issuer_attr) ||(NULL == subject_credential) )
+    {
+      fprintf (stderr,
+               _ ("You must provide issuer and subject attributes\n"));
+      GNUNET_SCHEDULER_shutdown ();
+      return;
+    }
+
+    // Subject credentials are comma separated
+    char *tmp = GNUNET_strdup (subject_credential);
+    char *tok = strtok (tmp, ",");
+    if (NULL == tok)
+    {
+      fprintf (stderr,
+               "Invalid subject credentials\n");
+      GNUNET_free (tmp);
+      GNUNET_SCHEDULER_shutdown ();
+      return;
+    }
+    int count = 1;
+    int i;
+    while (NULL != (tok = strtok (NULL, ",")))
+      count++;
+    struct GNUNET_CREDENTIAL_Credential credentials[count];
+    struct GNUNET_CREDENTIAL_Credential *cred;
+    GNUNET_free (tmp);
+    tmp = GNUNET_strdup (subject_credential);
+    tok = strtok (tmp, ",");
+    for (i = 0; i < count; i++)
+    {
+      cred = GNUNET_CREDENTIAL_credential_from_string (tok);
+      GNUNET_memcpy (&credentials[i],
+                     cred,
+                     sizeof(struct GNUNET_CREDENTIAL_Credential));
+      credentials[i].issuer_attribute = GNUNET_strdup (cred->issuer_attribute);
+      tok = strtok (NULL, ",");
+      GNUNET_free (cred);
+    }
+
+    verify_request = GNUNET_CREDENTIAL_verify (credential,
+                                               &issuer_pkey,
+                                               issuer_attr,  // TODO argument
+                                               &subject_pkey,
+                                               count,
+                                               credentials,
+                                               &handle_verify_result,
+                                               NULL);
+    for (i = 0; i < count; i++)
+    {
+      GNUNET_free ((char*) credentials[i].issuer_attribute);
+    }
+    GNUNET_free (tmp);
+  }
+  else if (GNUNET_YES == create_cred)
+  {
+    if (NULL == ego_name)
+    {
+      fprintf (stderr,
+               _ ("Issuer ego required\n"));
+      GNUNET_SCHEDULER_shutdown ();
+      return;
+    }
+    el = GNUNET_IDENTITY_ego_lookup (cfg,
+                                     ego_name,
+                                     &identity_cb,
+                                     (void *) cfg);
+    return;
+  }
+  else
+  {
+    fprintf (stderr,
+             _ (
+               "Please specify name to lookup, subject key and issuer key!\n"));
+    GNUNET_SCHEDULER_shutdown ();
+  }
   return;
 }
 
@@ -529,67 +530,73 @@ run(void *cls,
  * @return 0 ok, 1 on error
  */
 int
-main(int argc, char *const *argv)
+main (int argc, char *const *argv)
 {
   struct GNUNET_GETOPT_CommandLineOption options[] = {
-    GNUNET_GETOPT_option_flag('I',
-                              "issue",
-                              gettext_noop("create credential"),
-                              &create_cred),
-    GNUNET_GETOPT_option_flag('V',
-                              "verify",
-                              gettext_noop("verify credential against attribute"),
-                              &verify),
-    GNUNET_GETOPT_option_string('s',
-                                "subject",
-                                "PKEY",
-                                gettext_noop("The public key of the subject to lookup the credential for"),
-                                &subject_key),
-    GNUNET_GETOPT_option_string('b',
-                                "credential",
-                                "CRED",
-                                gettext_noop("The name of the credential presented by the subject"),
-                                &subject_credential),
-    GNUNET_GETOPT_option_string('i',
-                                "issuer",
-                                "PKEY",
-                                gettext_noop("The public key of the authority to verify the credential against"),
-                                &issuer_key),
-    GNUNET_GETOPT_option_string('e',
-                                "ego",
-                                "EGO",
-                                gettext_noop("The ego to use"),
-                                &ego_name),
-    GNUNET_GETOPT_option_string('a',
-                                "attribute",
-                                "ATTR",
-                                gettext_noop("The issuer attribute to verify against or to issue"),
-                                &issuer_attr),
-    GNUNET_GETOPT_option_string('T',
-                                "ttl",
-                                "EXP",
-                                gettext_noop("The time to live for the credential"),
-                                &expiration),
-    GNUNET_GETOPT_option_flag('g',
-                              "collect",
-                              gettext_noop("collect credentials"),
-                              &collect),
+    GNUNET_GETOPT_option_flag ('I',
+                               "issue",
+                               gettext_noop ("create credential"),
+                               &create_cred),
+    GNUNET_GETOPT_option_flag ('V',
+                               "verify",
+                               gettext_noop (
+                                 "verify credential against attribute"),
+                               &verify),
+    GNUNET_GETOPT_option_string ('s',
+                                 "subject",
+                                 "PKEY",
+                                 gettext_noop (
+                                   "The public key of the subject to lookup the credential for"),
+                                 &subject_key),
+    GNUNET_GETOPT_option_string ('b',
+                                 "credential",
+                                 "CRED",
+                                 gettext_noop (
+                                   "The name of the credential presented by the subject"),
+                                 &subject_credential),
+    GNUNET_GETOPT_option_string ('i',
+                                 "issuer",
+                                 "PKEY",
+                                 gettext_noop (
+                                   "The public key of the authority to verify the credential against"),
+                                 &issuer_key),
+    GNUNET_GETOPT_option_string ('e',
+                                 "ego",
+                                 "EGO",
+                                 gettext_noop ("The ego to use"),
+                                 &ego_name),
+    GNUNET_GETOPT_option_string ('a',
+                                 "attribute",
+                                 "ATTR",
+                                 gettext_noop (
+                                   "The issuer attribute to verify against or to issue"),
+                                 &issuer_attr),
+    GNUNET_GETOPT_option_string ('T',
+                                 "ttl",
+                                 "EXP",
+                                 gettext_noop (
+                                   "The time to live for the credential"),
+                                 &expiration),
+    GNUNET_GETOPT_option_flag ('g',
+                               "collect",
+                               gettext_noop ("collect credentials"),
+                               &collect),
     GNUNET_GETOPT_OPTION_END
   };
   int ret;
 
   timeout = GNUNET_TIME_UNIT_FOREVER_REL;
-  if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args(argc, argv, &argc, &argv))
+  if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv, &argc, &argv))
     return 2;
 
-  GNUNET_log_setup("gnunet-credential", "WARNING", NULL);
+  GNUNET_log_setup ("gnunet-credential", "WARNING", NULL);
   ret =
     (GNUNET_OK ==
-     GNUNET_PROGRAM_run(argc, argv, "gnunet-credential",
-                        _("GNUnet credential resolver tool"),
-                        options,
-                        &run, NULL)) ? 0 : 1;
-  GNUNET_free((void*)argv);
+     GNUNET_PROGRAM_run (argc, argv, "gnunet-credential",
+                         _ ("GNUnet credential resolver tool"),
+                         options,
+                         &run, NULL)) ? 0 : 1;
+  GNUNET_free ((void*) argv);
   return ret;
 }
 

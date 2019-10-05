@@ -80,7 +80,8 @@ GNUNET_NETWORK_STRUCT_BEGIN
  * uint16_t type values specifying which messages this
  * client is interested in.
  */
-struct InitMessage {
+struct InitMessage
+{
   /**
    * Header with type #GNUNET_MESSAGE_TYPE_CORE_INIT.
    */
@@ -97,7 +98,8 @@ struct InitMessage {
  * Message transmitted by the gnunet-service-core process
  * to its clients in response to an INIT message.
  */
-struct InitReplyMessage {
+struct InitReplyMessage
+{
   /**
    * Header with type #GNUNET_MESSAGE_TYPE_CORE_INIT_REPLY
    */
@@ -119,7 +121,8 @@ struct InitReplyMessage {
  * Message sent by the service to clients to notify them
  * about a peer connecting.
  */
-struct ConnectNotifyMessage {
+struct ConnectNotifyMessage
+{
   /**
    * Header with type #GNUNET_MESSAGE_TYPE_CORE_NOTIFY_CONNECT
    */
@@ -141,7 +144,8 @@ struct ConnectNotifyMessage {
  * Message sent by the service to clients to notify them
  * about a peer disconnecting.
  */
-struct DisconnectNotifyMessage {
+struct DisconnectNotifyMessage
+{
   /**
    * Header with type #GNUNET_MESSAGE_TYPE_CORE_NOTIFY_DISCONNECT.
    */
@@ -168,7 +172,8 @@ struct DisconnectNotifyMessage {
  * looking at the size field in the header of NotifyTrafficMessage and
  * checking it with the size field in the message that follows.
  */
-struct NotifyTrafficMessage {
+struct NotifyTrafficMessage
+{
   /**
    * Header with type #GNUNET_MESSAGE_TYPE_CORE_NOTIFY_INBOUND
    * or #GNUNET_MESSAGE_TYPE_CORE_NOTIFY_OUTBOUND.
@@ -188,7 +193,8 @@ struct NotifyTrafficMessage {
  * Client notifying core about the maximum-priority
  * message it has in the queue for a particular target.
  */
-struct SendMessageRequest {
+struct SendMessageRequest
+{
   /**
    * Header with type #GNUNET_MESSAGE_TYPE_CORE_SEND_REQUEST
    */
@@ -232,7 +238,8 @@ struct SendMessageRequest {
  * transmit a message to the given target
  * (response to #GNUNET_MESSAGE_TYPE_CORE_SEND_REQUEST).
  */
-struct SendMessageReady {
+struct SendMessageReady
+{
   /**
    * Header with type #GNUNET_MESSAGE_TYPE_CORE_SEND_READY
    */
@@ -262,7 +269,8 @@ struct SendMessageReady {
  * Client asking core to transmit a particular message to a particular
  * target (response to #GNUNET_MESSAGE_TYPE_CORE_SEND_READY).
  */
-struct SendMessage {
+struct SendMessage
+{
   /**
    * Header with type #GNUNET_MESSAGE_TYPE_CORE_SEND
    */
@@ -291,7 +299,8 @@ struct SendMessage {
  * Message sent by the service to monitor clients to notify them
  * about a peer changing status.
  */
-struct MonitorNotifyMessage {
+struct MonitorNotifyMessage
+{
   /**
    * Header with type #GNUNET_MESSAGE_TYPE_CORE_MONITOR_NOTIFY
    */

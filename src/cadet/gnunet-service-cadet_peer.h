@@ -39,7 +39,7 @@
  * @return Static string for it's ID.
  */
 const char *
-GCP_2s(const struct CadetPeer *peer);
+GCP_2s (const struct CadetPeer *peer);
 
 
 /**
@@ -54,8 +54,8 @@ GCP_2s(const struct CadetPeer *peer);
  *         NULL if unknown and not requested @a create
  */
 struct CadetPeer *
-GCP_get(const struct GNUNET_PeerIdentity *peer_id,
-        int create);
+GCP_get (const struct GNUNET_PeerIdentity *peer_id,
+         int create);
 
 
 /**
@@ -68,8 +68,8 @@ GCP_get(const struct GNUNET_PeerIdentity *peer_id,
  *         positive scores mean path is more desirable
  */
 double
-GCP_get_desirability_of_path(struct CadetPeer *cp,
-                             unsigned int off);
+GCP_get_desirability_of_path (struct CadetPeer *cp,
+                              unsigned int off);
 
 
 /**
@@ -79,7 +79,7 @@ GCP_get_desirability_of_path(struct CadetPeer *cp,
  * @return the peer identity
  */
 const struct GNUNET_PeerIdentity *
-GCP_get_id(struct CadetPeer *cp);
+GCP_get_id (struct CadetPeer *cp);
 
 
 /**
@@ -89,8 +89,8 @@ GCP_get_id(struct CadetPeer *cp);
  * @param cls Closure for @c iter.
  */
 void
-GCP_iterate_all(GNUNET_CONTAINER_PeerMapIterator iter,
-                void *cls);
+GCP_iterate_all (GNUNET_CONTAINER_PeerMapIterator iter,
+                 void *cls);
 
 
 /**
@@ -100,7 +100,7 @@ GCP_iterate_all(GNUNET_CONTAINER_PeerMapIterator iter,
  * @return Number of known paths.
  */
 unsigned int
-GCP_count_paths(const struct CadetPeer *cp);
+GCP_count_paths (const struct CadetPeer *cp);
 
 
 /**
@@ -110,7 +110,7 @@ GCP_count_paths(const struct CadetPeer *cp);
  * @param cp peer to drop paths to
  */
 void
-GCP_drop_owned_paths(struct CadetPeer *cp);
+GCP_drop_owned_paths (struct CadetPeer *cp);
 
 
 /**
@@ -137,9 +137,9 @@ typedef int
  * @return Number of iterated paths.
  */
 unsigned int
-GCP_iterate_paths(struct CadetPeer *cp,
-                  GCP_PathIterator callback,
-                  void *callback_cls);
+GCP_iterate_paths (struct CadetPeer *cp,
+                   GCP_PathIterator callback,
+                   void *callback_cls);
 
 /**
  * Iterate over the paths to a peer without direct link.
@@ -150,9 +150,9 @@ GCP_iterate_paths(struct CadetPeer *cp,
  * @return Number of iterated paths.
  */
 unsigned int
-GCP_iterate_indirect_paths(struct CadetPeer *cp,
-                           GCP_PathIterator callback,
-                           void *callback_cls);
+GCP_iterate_indirect_paths (struct CadetPeer *cp,
+                            GCP_PathIterator callback,
+                            void *callback_cls);
 
 
 /**
@@ -166,10 +166,10 @@ GCP_iterate_indirect_paths(struct CadetPeer *cp,
  * @return Number of iterated paths.
  */
 unsigned int
-GCP_iterate_paths_at(struct CadetPeer *cp,
-                     unsigned int dist,
-                     GCP_PathIterator callback,
-                     void *callback_cls);
+GCP_iterate_paths_at (struct CadetPeer *cp,
+                      unsigned int dist,
+                      GCP_PathIterator callback,
+                      void *callback_cls);
 
 
 /**
@@ -180,9 +180,9 @@ GCP_iterate_paths_at(struct CadetPeer *cp,
  * @param off offset of this peer on the path
  */
 void
-GCP_path_entry_remove(struct CadetPeer *cp,
-                      struct CadetPeerPathEntry *entry,
-                      unsigned int off);
+GCP_path_entry_remove (struct CadetPeer *cp,
+                       struct CadetPeerPathEntry *entry,
+                       unsigned int off);
 
 
 /**
@@ -193,9 +193,9 @@ GCP_path_entry_remove(struct CadetPeer *cp,
  * @param off offset of this peer on the path
  */
 void
-GCP_path_entry_add(struct CadetPeer *cp,
-                   struct CadetPeerPathEntry *entry,
-                   unsigned int off);
+GCP_path_entry_add (struct CadetPeer *cp,
+                    struct CadetPeerPathEntry *entry,
+                    unsigned int off);
 
 
 /**
@@ -206,8 +206,8 @@ GCP_path_entry_add(struct CadetPeer *cp,
  * @return Tunnel towards peer.
  */
 struct CadetTunnel *
-GCP_get_tunnel(struct CadetPeer *cp,
-               int create);
+GCP_get_tunnel (struct CadetPeer *cp,
+                int create);
 
 
 /**
@@ -218,8 +218,8 @@ GCP_get_tunnel(struct CadetPeer *cp,
  * @param t the dead tunnel
  */
 void
-GCP_drop_tunnel(struct CadetPeer *cp,
-                struct CadetTunnel *t);
+GCP_drop_tunnel (struct CadetPeer *cp,
+                 struct CadetTunnel *t);
 
 
 /**
@@ -234,10 +234,10 @@ GCP_drop_tunnel(struct CadetPeer *cp,
  *         otherwise the node in the peer's path heap for the @a path.
  */
 struct GNUNET_CONTAINER_HeapNode *
-GCP_attach_path(struct CadetPeer *cp,
-                struct CadetPeerPath *path,
-                unsigned int off,
-                int force);
+GCP_attach_path (struct CadetPeer *cp,
+                 struct CadetPeerPath *path,
+                 unsigned int off,
+                 int force);
 
 
 /**
@@ -250,9 +250,9 @@ GCP_attach_path(struct CadetPeer *cp,
  * @param hn note in @a cp's path heap that must be deleted
  */
 void
-GCP_detach_path(struct CadetPeer *cp,
-                struct CadetPeerPath *path,
-                struct GNUNET_CONTAINER_HeapNode *hn);
+GCP_detach_path (struct CadetPeer *cp,
+                 struct CadetPeerPath *path,
+                 struct GNUNET_CONTAINER_HeapNode *hn);
 
 
 /**
@@ -262,8 +262,8 @@ GCP_detach_path(struct CadetPeer *cp,
  * @param cc the connection to add
  */
 void
-GCP_add_connection(struct CadetPeer *cp,
-                   struct CadetConnection *cc);
+GCP_add_connection (struct CadetPeer *cp,
+                    struct CadetConnection *cc);
 
 
 /**
@@ -273,8 +273,8 @@ GCP_add_connection(struct CadetPeer *cp,
  * @param cc the connection to remove
  */
 void
-GCP_remove_connection(struct CadetPeer *cp,
-                      struct CadetConnection *cc);
+GCP_remove_connection (struct CadetPeer *cp,
+                       struct CadetConnection *cc);
 
 
 /**
@@ -285,8 +285,8 @@ GCP_remove_connection(struct CadetPeer *cp,
  * @param hello the HELLO to remember
  */
 void
-GCP_set_hello(struct CadetPeer *cp,
-              const struct GNUNET_HELLO_Message *hello);
+GCP_set_hello (struct CadetPeer *cp,
+               const struct GNUNET_HELLO_Message *hello);
 
 
 /**
@@ -295,7 +295,7 @@ GCP_set_hello(struct CadetPeer *cp,
  * connections are down.
  */
 void
-GCP_destroy_all_peers(void);
+GCP_destroy_all_peers (void);
 
 
 /**
@@ -334,9 +334,9 @@ typedef void
  * @return handle to cancel request
  */
 struct GCP_MessageQueueManager *
-GCP_request_mq(struct CadetPeer *cp,
-               GCP_MessageQueueNotificationCallback cb,
-               void *cb_cls);
+GCP_request_mq (struct CadetPeer *cp,
+                GCP_MessageQueueNotificationCallback cb,
+                void *cb_cls);
 
 
 /**
@@ -346,7 +346,7 @@ GCP_request_mq(struct CadetPeer *cp,
  * @return #GNUNET_YES if @a cp has a core-level connection
  */
 int
-GCP_has_core_connection(struct CadetPeer *cp);
+GCP_has_core_connection (struct CadetPeer *cp);
 
 
 /**
@@ -361,8 +361,8 @@ GCP_has_core_connection(struct CadetPeer *cp);
  *            yet have a #GNUNET_MQ_notify_sent() callback attached to it
  */
 void
-GCP_send(struct GCP_MessageQueueManager *mqm,
-         struct GNUNET_MQ_Envelope *env);
+GCP_send (struct GCP_MessageQueueManager *mqm,
+          struct GNUNET_MQ_Envelope *env);
 
 
 /**
@@ -375,8 +375,8 @@ GCP_send(struct GCP_MessageQueueManager *mqm,
  * @param env envelope with the message to send
  */
 void
-GCP_send_ooo(struct CadetPeer *cp,
-             struct GNUNET_MQ_Envelope *env);
+GCP_send_ooo (struct CadetPeer *cp,
+              struct GNUNET_MQ_Envelope *env);
 
 
 /**
@@ -388,8 +388,8 @@ GCP_send_ooo(struct CadetPeer *cp,
  * @param last_env final message to transmit, or NULL
  */
 void
-GCP_request_mq_cancel(struct GCP_MessageQueueManager *mqm,
-                      struct GNUNET_MQ_Envelope *last_env);
+GCP_request_mq_cancel (struct GCP_MessageQueueManager *mqm,
+                       struct GNUNET_MQ_Envelope *last_env);
 
 
 /**
@@ -399,8 +399,8 @@ GCP_request_mq_cancel(struct GCP_MessageQueueManager *mqm,
  * @param mq message queue to set (can be NULL)
  */
 void
-GCP_set_mq(struct CadetPeer *cp,
-           struct GNUNET_MQ_Handle *mq);
+GCP_set_mq (struct CadetPeer *cp,
+            struct GNUNET_MQ_Handle *mq);
 
 
 #endif

@@ -37,14 +37,14 @@
  * @param max_fds maximum number of fds to use
  */
 void
-GST_validation_start(unsigned int max_fds);
+GST_validation_start (unsigned int max_fds);
 
 
 /**
  * Stop the validation subsystem.
  */
 void
-GST_validation_stop(void);
+GST_validation_stop (void);
 
 
 /**
@@ -57,8 +57,8 @@ GST_validation_stop(void);
  *               #GNUNET_NO if we are no longer using the address for a connection
  */
 void
-GST_validation_set_address_use(const struct GNUNET_HELLO_Address *address,
-                               int in_use);
+GST_validation_set_address_use (const struct GNUNET_HELLO_Address *address,
+                                int in_use);
 
 
 /**
@@ -71,10 +71,10 @@ GST_validation_set_address_use(const struct GNUNET_HELLO_Address *address,
  * @return #GNUNET_OK if the message was fine, #GNUNET_SYSERR on serious error
  */
 int
-GST_validation_handle_ping(const struct GNUNET_PeerIdentity *sender,
-                           const struct GNUNET_MessageHeader *hdr,
-                           const struct GNUNET_HELLO_Address *sender_address,
-                           struct GNUNET_ATS_Session *session);
+GST_validation_handle_ping (const struct GNUNET_PeerIdentity *sender,
+                            const struct GNUNET_MessageHeader *hdr,
+                            const struct GNUNET_HELLO_Address *sender_address,
+                            struct GNUNET_ATS_Session *session);
 
 
 /**
@@ -86,8 +86,8 @@ GST_validation_handle_ping(const struct GNUNET_PeerIdentity *sender,
  * @return #GNUNET_OK if the message was fine, #GNUNET_SYSERR on serious error
  */
 int
-GST_validation_handle_pong(const struct GNUNET_PeerIdentity *sender,
-                           const struct GNUNET_MessageHeader *hdr);
+GST_validation_handle_pong (const struct GNUNET_PeerIdentity *sender,
+                            const struct GNUNET_MessageHeader *hdr);
 
 
 /**
@@ -98,7 +98,7 @@ GST_validation_handle_pong(const struct GNUNET_PeerIdentity *sender,
  * @return #GNUNET_OK if the message was fine, #GNUNET_SYSERR on serious error
  */
 int
-GST_validation_handle_hello(const struct GNUNET_MessageHeader *hello);
+GST_validation_handle_hello (const struct GNUNET_MessageHeader *hello);
 
 
 /**
@@ -107,7 +107,7 @@ GST_validation_handle_hello(const struct GNUNET_MessageHeader *hello);
  * @param address address we should try to validate
  */
 void
-GST_validation_handle_address(const struct GNUNET_HELLO_Address *address);
+GST_validation_handle_address (const struct GNUNET_HELLO_Address *address);
 
 
 /**
@@ -138,8 +138,8 @@ typedef void
  * @param cb_cls closure for @a cb
  */
 void
-GST_validation_get_addresses(const struct GNUNET_PeerIdentity *target,
-                             GST_ValidationAddressCallback cb, void *cb_cls);
+GST_validation_get_addresses (const struct GNUNET_PeerIdentity *target,
+                              GST_ValidationAddressCallback cb, void *cb_cls);
 
 
 #endif

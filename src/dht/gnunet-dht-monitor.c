@@ -83,25 +83,25 @@ static struct GNUNET_SCHEDULER_Task *tt;
  * @param cls closure (unused)
  */
 static void
-cleanup_task(void *cls)
+cleanup_task (void *cls)
 {
   if (verbose)
-    fprintf(stderr, "%s", "Cleaning up!\n");
+    fprintf (stderr, "%s", "Cleaning up!\n");
   if (NULL != monitor_handle)
-    {
-      GNUNET_DHT_monitor_stop(monitor_handle);
-      monitor_handle = NULL;
-    }
+  {
+    GNUNET_DHT_monitor_stop (monitor_handle);
+    monitor_handle = NULL;
+  }
   if (NULL != dht_handle)
-    {
-      GNUNET_DHT_disconnect(dht_handle);
-      dht_handle = NULL;
-    }
+  {
+    GNUNET_DHT_disconnect (dht_handle);
+    dht_handle = NULL;
+  }
   if (NULL != tt)
-    {
-      GNUNET_SCHEDULER_cancel(tt);
-      tt = NULL;
-    }
+  {
+    GNUNET_SCHEDULER_cancel (tt);
+    tt = NULL;
+  }
 }
 
 
@@ -111,10 +111,10 @@ cleanup_task(void *cls)
  * @param cls closure (unused)
  */
 static void
-timeout_task(void *cls)
+timeout_task (void *cls)
 {
   tt = NULL;
-  GNUNET_SCHEDULER_shutdown();
+  GNUNET_SCHEDULER_shutdown ();
 }
 
 
@@ -131,20 +131,20 @@ timeout_task(void *cls)
  * @param key Key of the requested data.
  */
 static void
-get_callback(void *cls,
-             enum GNUNET_DHT_RouteOption options,
-             enum GNUNET_BLOCK_Type type,
-             uint32_t hop_count,
-             uint32_t desired_replication_level,
-             unsigned int path_length,
-             const struct GNUNET_PeerIdentity *path,
-             const struct GNUNET_HashCode *key)
+get_callback (void *cls,
+              enum GNUNET_DHT_RouteOption options,
+              enum GNUNET_BLOCK_Type type,
+              uint32_t hop_count,
+              uint32_t desired_replication_level,
+              unsigned int path_length,
+              const struct GNUNET_PeerIdentity *path,
+              const struct GNUNET_HashCode *key)
 {
-  fprintf(stdout,
-          "GET #%u: type %d, key `%s'\n",
-          result_count,
-          (int)type,
-          GNUNET_h2s_full(key));
+  fprintf (stdout,
+           "GET #%u: type %d, key `%s'\n",
+           result_count,
+           (int) type,
+           GNUNET_h2s_full (key));
   result_count++;
 }
 
@@ -164,27 +164,27 @@ get_callback(void *cls,
  * @param size Number of bytes in data.
  */
 static void
-get_resp_callback(void *cls,
-                  enum GNUNET_BLOCK_Type type,
-                  const struct GNUNET_PeerIdentity *get_path,
-                  unsigned int get_path_length,
-                  const struct GNUNET_PeerIdentity *put_path,
-                  unsigned int put_path_length,
-                  struct GNUNET_TIME_Absolute exp,
-                  const struct GNUNET_HashCode *key,
-                  const void *data,
-                  size_t size)
+get_resp_callback (void *cls,
+                   enum GNUNET_BLOCK_Type type,
+                   const struct GNUNET_PeerIdentity *get_path,
+                   unsigned int get_path_length,
+                   const struct GNUNET_PeerIdentity *put_path,
+                   unsigned int put_path_length,
+                   struct GNUNET_TIME_Absolute exp,
+                   const struct GNUNET_HashCode *key,
+                   const void *data,
+                   size_t size)
 {
-  fprintf(stdout,
-          (GNUNET_BLOCK_TYPE_TEST == type)
-          ? "RESPONSE #%u (%s): type %d, key `%s', data `%.*s'\n"
-          : "RESPONSE #%u (%s): type %d, key `%s'\n",
-          result_count,
-          GNUNET_STRINGS_absolute_time_to_string(exp),
-          (int)type,
-          GNUNET_h2s_full(key),
-          (unsigned int)size,
-          (char *)data);
+  fprintf (stdout,
+           (GNUNET_BLOCK_TYPE_TEST == type)
+           ? "RESPONSE #%u (%s): type %d, key `%s', data `%.*s'\n"
+           : "RESPONSE #%u (%s): type %d, key `%s'\n",
+           result_count,
+           GNUNET_STRINGS_absolute_time_to_string (exp),
+           (int) type,
+           GNUNET_h2s_full (key),
+           (unsigned int) size,
+           (char *) data);
   result_count++;
 }
 
@@ -205,28 +205,28 @@ get_resp_callback(void *cls,
  * @param size Number of bytes in data.
  */
 static void
-put_callback(void *cls,
-             enum GNUNET_DHT_RouteOption options,
-             enum GNUNET_BLOCK_Type type,
-             uint32_t hop_count,
-             uint32_t desired_replication_level,
-             unsigned int path_length,
-             const struct GNUNET_PeerIdentity *path,
-             struct GNUNET_TIME_Absolute exp,
-             const struct GNUNET_HashCode *key,
-             const void *data,
-             size_t size)
+put_callback (void *cls,
+              enum GNUNET_DHT_RouteOption options,
+              enum GNUNET_BLOCK_Type type,
+              uint32_t hop_count,
+              uint32_t desired_replication_level,
+              unsigned int path_length,
+              const struct GNUNET_PeerIdentity *path,
+              struct GNUNET_TIME_Absolute exp,
+              const struct GNUNET_HashCode *key,
+              const void *data,
+              size_t size)
 {
-  fprintf(stdout,
-          (GNUNET_BLOCK_TYPE_TEST == type)
-          ? "PUT %u (%s): type %d, key `%s', data `%.*s'\n"
-          : "PUT %u (%s): type %d, key `%s'\n",
-          result_count,
-          GNUNET_STRINGS_absolute_time_to_string(exp),
-          (int)type,
-          GNUNET_h2s_full(key),
-          (unsigned int)size,
-          (char *)data);
+  fprintf (stdout,
+           (GNUNET_BLOCK_TYPE_TEST == type)
+           ? "PUT %u (%s): type %d, key `%s', data `%.*s'\n"
+           : "PUT %u (%s): type %d, key `%s'\n",
+           result_count,
+           GNUNET_STRINGS_absolute_time_to_string (exp),
+           (int) type,
+           GNUNET_h2s_full (key),
+           (unsigned int) size,
+           (char *) data);
   result_count++;
 }
 
@@ -240,48 +240,48 @@ put_callback(void *cls,
  * @param c configuration
  */
 static void
-run(void *cls,
-    char *const *args,
-    const char *cfgfile,
-    const struct GNUNET_CONFIGURATION_Handle *c)
+run (void *cls,
+     char *const *args,
+     const char *cfgfile,
+     const struct GNUNET_CONFIGURATION_Handle *c)
 {
   struct GNUNET_HashCode *key;
   struct GNUNET_HashCode hc;
 
   cfg = c;
 
-  if (NULL == (dht_handle = GNUNET_DHT_connect(cfg, 1)))
-    {
-      fprintf(stderr, "%s", _("Failed to connect to DHT service!\n"));
-      ret = 1;
-      return;
-    }
+  if (NULL == (dht_handle = GNUNET_DHT_connect (cfg, 1)))
+  {
+    fprintf (stderr, "%s", _ ("Failed to connect to DHT service!\n"));
+    ret = 1;
+    return;
+  }
   if (GNUNET_BLOCK_TYPE_ANY == block_type) /* Type of data not set */
     block_type = GNUNET_BLOCK_TYPE_TEST;
   if (NULL != query_key)
-    {
-      key = &hc;
-      if (GNUNET_OK != GNUNET_CRYPTO_hash_from_string(query_key, key))
-        GNUNET_CRYPTO_hash(query_key, strlen(query_key), key);
-    }
+  {
+    key = &hc;
+    if (GNUNET_OK != GNUNET_CRYPTO_hash_from_string (query_key, key))
+      GNUNET_CRYPTO_hash (query_key, strlen (query_key), key);
+  }
   else
-    {
-      key = NULL;
-    }
+  {
+    key = NULL;
+  }
   if (verbose)
-    fprintf(stderr,
-            "Monitoring for %s\n",
-            GNUNET_STRINGS_relative_time_to_string(timeout_request,
-                                                   GNUNET_NO));
-  tt = GNUNET_SCHEDULER_add_delayed(timeout_request, &timeout_task, NULL);
-  GNUNET_SCHEDULER_add_shutdown(&cleanup_task, NULL);
-  monitor_handle = GNUNET_DHT_monitor_start(dht_handle,
-                                            block_type,
-                                            key,
-                                            &get_callback,
-                                            &get_resp_callback,
-                                            &put_callback,
-                                            NULL);
+    fprintf (stderr,
+             "Monitoring for %s\n",
+             GNUNET_STRINGS_relative_time_to_string (timeout_request,
+                                                     GNUNET_NO));
+  tt = GNUNET_SCHEDULER_add_delayed (timeout_request, &timeout_task, NULL);
+  GNUNET_SCHEDULER_add_shutdown (&cleanup_task, NULL);
+  monitor_handle = GNUNET_DHT_monitor_start (dht_handle,
+                                             block_type,
+                                             key,
+                                             &get_callback,
+                                             &get_resp_callback,
+                                             &put_callback,
+                                             NULL);
 }
 
 /**
@@ -292,50 +292,50 @@ run(void *cls,
  * @return 0 ok, 1 on error
  */
 int
-main(int argc, char *const *argv)
+main (int argc, char *const *argv)
 {
   struct GNUNET_GETOPT_CommandLineOption options[] = {
-    GNUNET_GETOPT_option_string('k',
-                                "key",
-                                "KEY",
-                                gettext_noop("the query key"),
-                                &query_key),
+    GNUNET_GETOPT_option_string ('k',
+                                 "key",
+                                 "KEY",
+                                 gettext_noop ("the query key"),
+                                 &query_key),
 
-    GNUNET_GETOPT_option_uint('t',
-                              "type",
-                              "TYPE",
-                              gettext_noop("the type of data to look for"),
-                              &block_type),
+    GNUNET_GETOPT_option_uint ('t',
+                               "type",
+                               "TYPE",
+                               gettext_noop ("the type of data to look for"),
+                               &block_type),
 
-    GNUNET_GETOPT_option_relative_time(
+    GNUNET_GETOPT_option_relative_time (
       'T',
       "timeout",
       "TIMEOUT",
-      gettext_noop("how long should the monitor command run"),
+      gettext_noop ("how long should the monitor command run"),
       &timeout_request),
 
-    GNUNET_GETOPT_option_flag('V',
-                              "verbose",
-                              gettext_noop(
-                                "be verbose (print progress information)"),
-                              &verbose),
+    GNUNET_GETOPT_option_flag ('V',
+                               "verbose",
+                               gettext_noop (
+                                 "be verbose (print progress information)"),
+                               &verbose),
 
     GNUNET_GETOPT_OPTION_END
   };
 
 
-  if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args(argc, argv, &argc, &argv))
+  if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv, &argc, &argv))
     return 2;
 
   return (GNUNET_OK ==
-          GNUNET_PROGRAM_run(argc,
-                             argv,
-                             "gnunet-dht-monitor",
-                             gettext_noop(
-                               "Prints all packets that go through the DHT."),
-                             options,
-                             &run,
-                             NULL))
+          GNUNET_PROGRAM_run (argc,
+                              argv,
+                              "gnunet-dht-monitor",
+                              gettext_noop (
+                                "Prints all packets that go through the DHT."),
+                              options,
+                              &run,
+                              NULL))
          ? ret
          : 1;
 }

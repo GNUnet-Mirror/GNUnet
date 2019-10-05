@@ -44,26 +44,27 @@
  *
  */
 static void
-extract_pk(gcry_mpi_point_t pt,
-           gcry_ctx_t ctx,
-           struct GNUNET_PeerIdentity *pid)
+extract_pk (gcry_mpi_point_t pt,
+            gcry_ctx_t ctx,
+            struct GNUNET_PeerIdentity *pid)
 {
   gcry_mpi_t q_y;
 
-  GNUNET_assert(0 == gcry_mpi_ec_set_point("q", pt, ctx));
-  q_y = gcry_mpi_ec_get_mpi("q@eddsa", ctx, 0);
-  GNUNET_assert(q_y);
-  GNUNET_CRYPTO_mpi_print_unsigned(pid->public_key.q_y,
-                                   sizeof(pid->public_key.q_y),
-                                   q_y);
-  gcry_mpi_release(q_y);
+  GNUNET_assert (0 == gcry_mpi_ec_set_point ("q", pt, ctx));
+  q_y = gcry_mpi_ec_get_mpi ("q@eddsa", ctx, 0);
+  GNUNET_assert (q_y);
+  GNUNET_CRYPTO_mpi_print_unsigned (pid->public_key.q_y,
+                                    sizeof(pid->public_key.q_y),
+                                    q_y);
+  gcry_mpi_release (q_y);
 }
 
 
 /**
  * Internal structure used to cache pre-calculated values for DLOG calculation.
  */
-struct GNUNET_CRYPTO_EccDlogContext {
+struct GNUNET_CRYPTO_EccDlogContext
+{
   /**
    * Maximum absolute value the calculation supports.
    */
@@ -97,19 +98,19 @@ struct GNUNET_CRYPTO_EccDlogContext {
  * @param[out] bin binary point representation
  */
 void
-GNUNET_CRYPTO_ecc_point_to_bin(struct GNUNET_CRYPTO_EccDlogContext *edc,
-                               gcry_mpi_point_t point,
-                               struct GNUNET_CRYPTO_EccPoint *bin)
+GNUNET_CRYPTO_ecc_point_to_bin (struct GNUNET_CRYPTO_EccDlogContext *edc,
+                                gcry_mpi_point_t point,
+                                struct GNUNET_CRYPTO_EccPoint *bin)
 {
   gcry_mpi_t q_y;
 
-  GNUNET_assert(0 == gcry_mpi_ec_set_point("q", point, edc->ctx));
-  q_y = gcry_mpi_ec_get_mpi("q@eddsa", edc->ctx, 0);
-  GNUNET_assert(q_y);
-  GNUNET_CRYPTO_mpi_print_unsigned(bin->q_y,
-                                   sizeof(bin->q_y),
-                                   q_y);
-  gcry_mpi_release(q_y);
+  GNUNET_assert (0 == gcry_mpi_ec_set_point ("q", point, edc->ctx));
+  q_y = gcry_mpi_ec_get_mpi ("q@eddsa", edc->ctx, 0);
+  GNUNET_assert (q_y);
+  GNUNET_CRYPTO_mpi_print_unsigned (bin->q_y,
+                                    sizeof(bin->q_y),
+                                    q_y);
+  gcry_mpi_release (q_y);
 }
 
 
@@ -121,26 +122,26 @@ GNUNET_CRYPTO_ecc_point_to_bin(struct GNUNET_CRYPTO_EccDlogContext *edc,
  * @return computational representation
  */
 gcry_mpi_point_t
-GNUNET_CRYPTO_ecc_bin_to_point(struct GNUNET_CRYPTO_EccDlogContext *edc,
-                               const struct GNUNET_CRYPTO_EccPoint *bin)
+GNUNET_CRYPTO_ecc_bin_to_point (struct GNUNET_CRYPTO_EccDlogContext *edc,
+                                const struct GNUNET_CRYPTO_EccPoint *bin)
 {
   gcry_sexp_t pub_sexpr;
   gcry_ctx_t ctx;
   gcry_mpi_point_t q;
 
-  (void)edc;
-  if (0 != gcry_sexp_build(&pub_sexpr, NULL,
-                           "(public-key(ecc(curve " CURVE ")(q %b)))",
-                           (int)sizeof(bin->q_y),
-                           bin->q_y))
-    {
-      GNUNET_break(0);
-      return NULL;
-    }
-  GNUNET_assert(0 == gcry_mpi_ec_new(&ctx, pub_sexpr, NULL));
-  gcry_sexp_release(pub_sexpr);
-  q = gcry_mpi_ec_get_point("q", ctx, 0);
-  gcry_ctx_release(ctx);
+  (void) edc;
+  if (0 != gcry_sexp_build (&pub_sexpr, NULL,
+                            "(public-key(ecc(curve " CURVE ")(q %b)))",
+                            (int) sizeof(bin->q_y),
+                            bin->q_y))
+  {
+    GNUNET_break (0);
+    return NULL;
+  }
+  GNUNET_assert (0 == gcry_mpi_ec_new (&ctx, pub_sexpr, NULL));
+  gcry_sexp_release (pub_sexpr);
+  q = gcry_mpi_ec_get_point ("q", ctx, 0);
+  gcry_ctx_release (ctx);
   return q;
 }
 
@@ -153,8 +154,8 @@ GNUNET_CRYPTO_ecc_bin_to_point(struct GNUNET_CRYPTO_EccDlogContext *edc,
  * @return NULL on error
  */
 struct GNUNET_CRYPTO_EccDlogContext *
-GNUNET_CRYPTO_ecc_dlog_prepare(unsigned int max,
-                               unsigned int mem)
+GNUNET_CRYPTO_ecc_dlog_prepare (unsigned int max,
+                                unsigned int mem)
 {
   struct GNUNET_CRYPTO_EccDlogContext *edc;
   unsigned int K = ((max + (mem - 1)) / mem);
@@ -165,50 +166,50 @@ GNUNET_CRYPTO_ecc_dlog_prepare(unsigned int max,
   gcry_mpi_t n;
   unsigned int i;
 
-  GNUNET_assert(max < INT32_MAX);
-  edc = GNUNET_new(struct GNUNET_CRYPTO_EccDlogContext);
+  GNUNET_assert (max < INT32_MAX);
+  edc = GNUNET_new (struct GNUNET_CRYPTO_EccDlogContext);
   edc->max = max;
   edc->mem = mem;
 
-  edc->map = GNUNET_CONTAINER_multipeermap_create(mem * 2,
-                                                  GNUNET_NO);
+  edc->map = GNUNET_CONTAINER_multipeermap_create (mem * 2,
+                                                   GNUNET_NO);
 
-  GNUNET_assert(0 == gcry_mpi_ec_new(&edc->ctx,
-                                     NULL,
-                                     CURVE));
-  g = gcry_mpi_ec_get_point("g", edc->ctx, 0);
-  GNUNET_assert(NULL != g);
-  fact = gcry_mpi_new(0);
-  gKi = gcry_mpi_point_new(0);
+  GNUNET_assert (0 == gcry_mpi_ec_new (&edc->ctx,
+                                       NULL,
+                                       CURVE));
+  g = gcry_mpi_ec_get_point ("g", edc->ctx, 0);
+  GNUNET_assert (NULL != g);
+  fact = gcry_mpi_new (0);
+  gKi = gcry_mpi_point_new (0);
   for (i = 0; i <= mem; i++)
-    {
-      gcry_mpi_set_ui(fact, i * K);
-      gcry_mpi_ec_mul(gKi, fact, g, edc->ctx);
-      extract_pk(gKi, edc->ctx, &key);
-      GNUNET_assert(GNUNET_OK ==
-                    GNUNET_CONTAINER_multipeermap_put(edc->map,
+  {
+    gcry_mpi_set_ui (fact, i * K);
+    gcry_mpi_ec_mul (gKi, fact, g, edc->ctx);
+    extract_pk (gKi, edc->ctx, &key);
+    GNUNET_assert (GNUNET_OK ==
+                   GNUNET_CONTAINER_multipeermap_put (edc->map,
                                                       &key,
-                                                      (void*)(long)i + max,
+                                                      (void*) (long) i + max,
                                                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
-    }
+  }
   /* negative values */
-  n = gcry_mpi_ec_get_mpi("n", edc->ctx, 1);
+  n = gcry_mpi_ec_get_mpi ("n", edc->ctx, 1);
   for (i = 1; i < mem; i++)
-    {
-      gcry_mpi_set_ui(fact, i * K);
-      gcry_mpi_sub(fact, n, fact);
-      gcry_mpi_ec_mul(gKi, fact, g, edc->ctx);
-      extract_pk(gKi, edc->ctx, &key);
-      GNUNET_assert(GNUNET_OK ==
-                    GNUNET_CONTAINER_multipeermap_put(edc->map,
+  {
+    gcry_mpi_set_ui (fact, i * K);
+    gcry_mpi_sub (fact, n, fact);
+    gcry_mpi_ec_mul (gKi, fact, g, edc->ctx);
+    extract_pk (gKi, edc->ctx, &key);
+    GNUNET_assert (GNUNET_OK ==
+                   GNUNET_CONTAINER_multipeermap_put (edc->map,
                                                       &key,
-                                                      (void*)(long)max - i,
+                                                      (void*) (long) max - i,
                                                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
-    }
-  gcry_mpi_release(fact);
-  gcry_mpi_release(n);
-  gcry_mpi_point_release(gKi);
-  gcry_mpi_point_release(g);
+  }
+  gcry_mpi_release (fact);
+  gcry_mpi_release (n);
+  gcry_mpi_point_release (gKi);
+  gcry_mpi_point_release (g);
   return edc;
 }
 
@@ -221,8 +222,8 @@ GNUNET_CRYPTO_ecc_dlog_prepare(unsigned int max,
  * @return INT_MAX if dlog failed, otherwise the factor
  */
 int
-GNUNET_CRYPTO_ecc_dlog(struct GNUNET_CRYPTO_EccDlogContext *edc,
-                       gcry_mpi_point_t input)
+GNUNET_CRYPTO_ecc_dlog (struct GNUNET_CRYPTO_EccDlogContext *edc,
+                        gcry_mpi_point_t input)
 {
   unsigned int K = ((edc->max + (edc->mem - 1)) / edc->mem);
   gcry_mpi_point_t g;
@@ -232,36 +233,36 @@ GNUNET_CRYPTO_ecc_dlog(struct GNUNET_CRYPTO_EccDlogContext *edc,
   int res;
   void *retp;
 
-  g = gcry_mpi_ec_get_point("g", edc->ctx, 0);
-  GNUNET_assert(NULL != g);
-  q = gcry_mpi_point_new(0);
+  g = gcry_mpi_ec_get_point ("g", edc->ctx, 0);
+  GNUNET_assert (NULL != g);
+  q = gcry_mpi_point_new (0);
 
   res = INT_MAX;
   for (i = 0; i <= edc->max / edc->mem; i++)
+  {
+    if (0 == i)
+      extract_pk (input, edc->ctx, &key);
+    else
+      extract_pk (q, edc->ctx, &key);
+    retp = GNUNET_CONTAINER_multipeermap_get (edc->map,
+                                              &key);
+    if (NULL != retp)
     {
-      if (0 == i)
-        extract_pk(input, edc->ctx, &key);
-      else
-        extract_pk(q, edc->ctx, &key);
-      retp = GNUNET_CONTAINER_multipeermap_get(edc->map,
-                                               &key);
-      if (NULL != retp)
-        {
-          res = (((long)retp) - edc->max) * K - i;
-          /* we continue the loop here to make the implementation
-             "constant-time". If we do not care about this, we could just
-             'break' here and do fewer operations... */
-        }
-      if (i == edc->max / edc->mem)
-        break;
-      /* q = q + g */
-      if (0 == i)
-        gcry_mpi_ec_add(q, input, g, edc->ctx);
-      else
-        gcry_mpi_ec_add(q, q, g, edc->ctx);
+      res = (((long) retp) - edc->max) * K - i;
+      /* we continue the loop here to make the implementation
+         "constant-time". If we do not care about this, we could just
+         'break' here and do fewer operations... */
     }
-  gcry_mpi_point_release(g);
-  gcry_mpi_point_release(q);
+    if (i == edc->max / edc->mem)
+      break;
+    /* q = q + g */
+    if (0 == i)
+      gcry_mpi_ec_add (q, input, g, edc->ctx);
+    else
+      gcry_mpi_ec_add (q, q, g, edc->ctx);
+  }
+  gcry_mpi_point_release (g);
+  gcry_mpi_point_release (q);
 
   return res;
 }
@@ -274,30 +275,30 @@ GNUNET_CRYPTO_ecc_dlog(struct GNUNET_CRYPTO_EccDlogContext *edc,
  * @return random value mod n.
  */
 gcry_mpi_t
-GNUNET_CRYPTO_ecc_random_mod_n(struct GNUNET_CRYPTO_EccDlogContext *edc)
+GNUNET_CRYPTO_ecc_random_mod_n (struct GNUNET_CRYPTO_EccDlogContext *edc)
 {
   gcry_mpi_t n;
   unsigned int highbit;
   gcry_mpi_t r;
 
-  n = gcry_mpi_ec_get_mpi("n", edc->ctx, 1);
+  n = gcry_mpi_ec_get_mpi ("n", edc->ctx, 1);
 
   /* check public key for number of bits, bail out if key is all zeros */
   highbit = 256; /* Curve25519 */
-  while ((!gcry_mpi_test_bit(n, highbit)) &&
+  while ((! gcry_mpi_test_bit (n, highbit)) &&
          (0 != highbit))
     highbit--;
-  GNUNET_assert(0 != highbit);
+  GNUNET_assert (0 != highbit);
   /* generate fact < n (without bias) */
-  GNUNET_assert(NULL != (r = gcry_mpi_new(0)));
+  GNUNET_assert (NULL != (r = gcry_mpi_new (0)));
   do
-    {
-      gcry_mpi_randomize(r,
-                         highbit + 1,
-                         GCRY_STRONG_RANDOM);
-    }
-  while (gcry_mpi_cmp(r, n) >= 0);
-  gcry_mpi_release(n);
+  {
+    gcry_mpi_randomize (r,
+                        highbit + 1,
+                        GCRY_STRONG_RANDOM);
+  }
+  while (gcry_mpi_cmp (r, n) >= 0);
+  gcry_mpi_release (n);
   return r;
 }
 
@@ -308,11 +309,11 @@ GNUNET_CRYPTO_ecc_random_mod_n(struct GNUNET_CRYPTO_EccDlogContext *edc)
  * @param edc dlog context
  */
 void
-GNUNET_CRYPTO_ecc_dlog_release(struct GNUNET_CRYPTO_EccDlogContext *edc)
+GNUNET_CRYPTO_ecc_dlog_release (struct GNUNET_CRYPTO_EccDlogContext *edc)
 {
-  gcry_ctx_release(edc->ctx);
-  GNUNET_CONTAINER_multipeermap_destroy(edc->map);
-  GNUNET_free(edc);
+  gcry_ctx_release (edc->ctx);
+  GNUNET_CONTAINER_multipeermap_destroy (edc->map);
+  GNUNET_free (edc);
 }
 
 
@@ -330,32 +331,32 @@ GNUNET_CRYPTO_ecc_dlog_release(struct GNUNET_CRYPTO_EccDlogContext *edc)
  *         must be freed using #GNUNET_CRYPTO_ecc_free()
  */
 gcry_mpi_point_t
-GNUNET_CRYPTO_ecc_dexp(struct GNUNET_CRYPTO_EccDlogContext *edc,
-                       int val)
+GNUNET_CRYPTO_ecc_dexp (struct GNUNET_CRYPTO_EccDlogContext *edc,
+                        int val)
 {
   gcry_mpi_t fact;
   gcry_mpi_t n;
   gcry_mpi_point_t g;
   gcry_mpi_point_t r;
 
-  g = gcry_mpi_ec_get_point("g", edc->ctx, 0);
-  GNUNET_assert(NULL != g);
-  fact = gcry_mpi_new(0);
+  g = gcry_mpi_ec_get_point ("g", edc->ctx, 0);
+  GNUNET_assert (NULL != g);
+  fact = gcry_mpi_new (0);
   if (val < 0)
-    {
-      n = gcry_mpi_ec_get_mpi("n", edc->ctx, 1);
-      gcry_mpi_set_ui(fact, -val);
-      gcry_mpi_sub(fact, n, fact);
-      gcry_mpi_release(n);
-    }
+  {
+    n = gcry_mpi_ec_get_mpi ("n", edc->ctx, 1);
+    gcry_mpi_set_ui (fact, -val);
+    gcry_mpi_sub (fact, n, fact);
+    gcry_mpi_release (n);
+  }
   else
-    {
-      gcry_mpi_set_ui(fact, val);
-    }
-  r = gcry_mpi_point_new(0);
-  gcry_mpi_ec_mul(r, fact, g, edc->ctx);
-  gcry_mpi_release(fact);
-  gcry_mpi_point_release(g);
+  {
+    gcry_mpi_set_ui (fact, val);
+  }
+  r = gcry_mpi_point_new (0);
+  gcry_mpi_ec_mul (r, fact, g, edc->ctx);
+  gcry_mpi_release (fact);
+  gcry_mpi_point_release (g);
   return r;
 }
 
@@ -370,17 +371,17 @@ GNUNET_CRYPTO_ecc_dexp(struct GNUNET_CRYPTO_EccDlogContext *edc,
  *         must be freed using #GNUNET_CRYPTO_ecc_free()
  */
 gcry_mpi_point_t
-GNUNET_CRYPTO_ecc_dexp_mpi(struct GNUNET_CRYPTO_EccDlogContext *edc,
-                           gcry_mpi_t val)
+GNUNET_CRYPTO_ecc_dexp_mpi (struct GNUNET_CRYPTO_EccDlogContext *edc,
+                            gcry_mpi_t val)
 {
   gcry_mpi_point_t g;
   gcry_mpi_point_t r;
 
-  g = gcry_mpi_ec_get_point("g", edc->ctx, 0);
-  GNUNET_assert(NULL != g);
-  r = gcry_mpi_point_new(0);
-  gcry_mpi_ec_mul(r, val, g, edc->ctx);
-  gcry_mpi_point_release(g);
+  g = gcry_mpi_ec_get_point ("g", edc->ctx, 0);
+  GNUNET_assert (NULL != g);
+  r = gcry_mpi_point_new (0);
+  gcry_mpi_ec_mul (r, val, g, edc->ctx);
+  gcry_mpi_point_release (g);
   return r;
 }
 
@@ -394,14 +395,14 @@ GNUNET_CRYPTO_ecc_dexp_mpi(struct GNUNET_CRYPTO_EccDlogContext *edc,
  * @return @a a + @a b, must be freed using #GNUNET_CRYPTO_ecc_free()
  */
 gcry_mpi_point_t
-GNUNET_CRYPTO_ecc_add(struct GNUNET_CRYPTO_EccDlogContext *edc,
-                      gcry_mpi_point_t a,
-                      gcry_mpi_point_t b)
+GNUNET_CRYPTO_ecc_add (struct GNUNET_CRYPTO_EccDlogContext *edc,
+                       gcry_mpi_point_t a,
+                       gcry_mpi_point_t b)
 {
   gcry_mpi_point_t r;
 
-  r = gcry_mpi_point_new(0);
-  gcry_mpi_ec_add(r, a, b, edc->ctx);
+  r = gcry_mpi_point_new (0);
+  gcry_mpi_ec_add (r, a, b, edc->ctx);
   return r;
 }
 
@@ -416,14 +417,14 @@ GNUNET_CRYPTO_ecc_add(struct GNUNET_CRYPTO_EccDlogContext *edc,
  *         must be freed using #GNUNET_CRYPTO_ecc_free()
  */
 gcry_mpi_point_t
-GNUNET_CRYPTO_ecc_pmul_mpi(struct GNUNET_CRYPTO_EccDlogContext *edc,
-                           gcry_mpi_point_t p,
-                           gcry_mpi_t val)
+GNUNET_CRYPTO_ecc_pmul_mpi (struct GNUNET_CRYPTO_EccDlogContext *edc,
+                            gcry_mpi_point_t p,
+                            gcry_mpi_t val)
 {
   gcry_mpi_point_t r;
 
-  r = gcry_mpi_point_new(0);
-  gcry_mpi_ec_mul(r, val, p, edc->ctx);
+  r = gcry_mpi_point_new (0);
+  gcry_mpi_ec_mul (r, val, p, edc->ctx);
   return r;
 }
 
@@ -438,31 +439,31 @@ GNUNET_CRYPTO_ecc_pmul_mpi(struct GNUNET_CRYPTO_EccDlogContext *edc,
  * @param[out] r_inv set to the additive inverse of @a r
  */
 void
-GNUNET_CRYPTO_ecc_rnd(struct GNUNET_CRYPTO_EccDlogContext *edc,
-                      gcry_mpi_point_t *r,
-                      gcry_mpi_point_t *r_inv)
+GNUNET_CRYPTO_ecc_rnd (struct GNUNET_CRYPTO_EccDlogContext *edc,
+                       gcry_mpi_point_t *r,
+                       gcry_mpi_point_t *r_inv)
 {
   gcry_mpi_t fact;
   gcry_mpi_t n;
   gcry_mpi_point_t g;
 
-  fact = GNUNET_CRYPTO_ecc_random_mod_n(edc);
+  fact = GNUNET_CRYPTO_ecc_random_mod_n (edc);
 
   /* calculate 'r' */
-  g = gcry_mpi_ec_get_point("g", edc->ctx, 0);
-  GNUNET_assert(NULL != g);
-  *r = gcry_mpi_point_new(0);
-  gcry_mpi_ec_mul(*r, fact, g, edc->ctx);
+  g = gcry_mpi_ec_get_point ("g", edc->ctx, 0);
+  GNUNET_assert (NULL != g);
+  *r = gcry_mpi_point_new (0);
+  gcry_mpi_ec_mul (*r, fact, g, edc->ctx);
 
   /* calculate 'r_inv' */
-  n = gcry_mpi_ec_get_mpi("n", edc->ctx, 1);
-  gcry_mpi_sub(fact, n, fact);  /* fact = n - fact = - fact */
-  *r_inv = gcry_mpi_point_new(0);
-  gcry_mpi_ec_mul(*r_inv, fact, g, edc->ctx);
+  n = gcry_mpi_ec_get_mpi ("n", edc->ctx, 1);
+  gcry_mpi_sub (fact, n, fact);  /* fact = n - fact = - fact */
+  *r_inv = gcry_mpi_point_new (0);
+  gcry_mpi_ec_mul (*r_inv, fact, g, edc->ctx);
 
-  gcry_mpi_release(n);
-  gcry_mpi_release(fact);
-  gcry_mpi_point_release(g);
+  gcry_mpi_release (n);
+  gcry_mpi_release (fact);
+  gcry_mpi_point_release (g);
 }
 
 
@@ -475,17 +476,17 @@ GNUNET_CRYPTO_ecc_rnd(struct GNUNET_CRYPTO_EccDlogContext *edc,
  * @param[out] r_inv set to the multiplicative inverse of @a r
  */
 void
-GNUNET_CRYPTO_ecc_rnd_mpi(struct GNUNET_CRYPTO_EccDlogContext *edc,
-                          gcry_mpi_t *r,
-                          gcry_mpi_t *r_inv)
+GNUNET_CRYPTO_ecc_rnd_mpi (struct GNUNET_CRYPTO_EccDlogContext *edc,
+                           gcry_mpi_t *r,
+                           gcry_mpi_t *r_inv)
 {
   gcry_mpi_t n;
 
-  *r = GNUNET_CRYPTO_ecc_random_mod_n(edc);
+  *r = GNUNET_CRYPTO_ecc_random_mod_n (edc);
   /* r_inv = n - r = - r */
-  *r_inv = gcry_mpi_new(0);
-  n = gcry_mpi_ec_get_mpi("n", edc->ctx, 1);
-  gcry_mpi_sub(*r_inv, n, *r);
+  *r_inv = gcry_mpi_new (0);
+  n = gcry_mpi_ec_get_mpi ("n", edc->ctx, 1);
+  gcry_mpi_sub (*r_inv, n, *r);
 }
 
 
@@ -495,9 +496,9 @@ GNUNET_CRYPTO_ecc_rnd_mpi(struct GNUNET_CRYPTO_EccDlogContext *edc,
  * @param p point to free
  */
 void
-GNUNET_CRYPTO_ecc_free(gcry_mpi_point_t p)
+GNUNET_CRYPTO_ecc_free (gcry_mpi_point_t p)
 {
-  gcry_mpi_point_release(p);
+  gcry_mpi_point_release (p);
 }
 
 

@@ -61,7 +61,8 @@
  * The radio capture header precedes the 802.11 header.
  * All data in the header is little endian on all platforms.
  */
-struct ieee80211_radiotap_header {
+struct ieee80211_radiotap_header
+{
   u8 it_version;                /* Version 0. Only increases
                                  * for drastic changes,
                                  * introduction of compatible
@@ -179,7 +180,8 @@ struct ieee80211_radiotap_header {
  *     Number of unicast retries a transmitted frame used.
  *
  */
-enum ieee80211_radiotap_type {
+enum ieee80211_radiotap_type
+{
   IEEE80211_RADIOTAP_TSFT = 0,
   IEEE80211_RADIOTAP_FLAGS = 1,
   IEEE80211_RADIOTAP_RATE = 2,
@@ -255,19 +257,19 @@ enum ieee80211_radiotap_type {
 
 /* helpers */
 static inline u16
-get_unaligned_le16(const u8 *p)
+get_unaligned_le16 (const u8 *p)
 {
   return p[0] | p[1] << 8;
 }
 
 
 static inline int
-ieee80211_get_radiotap_len(unsigned char *data)
+ieee80211_get_radiotap_len (unsigned char *data)
 {
   struct ieee80211_radiotap_header *hdr =
-    (struct ieee80211_radiotap_header *)data;
+    (struct ieee80211_radiotap_header *) data;
 
-  return get_unaligned_le16((const u8 *)&hdr->it_len);
+  return get_unaligned_le16 ((const u8 *) &hdr->it_len);
 }
 
 #endif /* IEEE80211_RADIOTAP_H */

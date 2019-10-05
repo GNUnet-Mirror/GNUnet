@@ -50,9 +50,9 @@
  * @return the MQ message
  */
 #define GNUNET_MQ_msg_extra(mvar, esize, type)                \
-  GNUNET_MQ_msg_(((struct GNUNET_MessageHeader **)&(mvar)), \
-                 (esize) + sizeof *(mvar),                   \
-                 (type))
+  GNUNET_MQ_msg_ (((struct GNUNET_MessageHeader **) &(mvar)), \
+                  (esize) + sizeof *(mvar),                   \
+                  (type))
 
 /**
  * Allocate a GNUNET_MQ_Envelope.
@@ -64,7 +64,7 @@
  * @param type type of the message
  * @return the allocated envelope
  */
-#define GNUNET_MQ_msg(mvar, type) GNUNET_MQ_msg_extra(mvar, 0, type)
+#define GNUNET_MQ_msg(mvar, type) GNUNET_MQ_msg_extra (mvar, 0, type)
 
 
 /**
@@ -74,7 +74,7 @@
  * @param type type of the message
  */
 #define GNUNET_MQ_msg_header(type) \
-  GNUNET_MQ_msg_(NULL, sizeof(struct GNUNET_MessageHeader), type)
+  GNUNET_MQ_msg_ (NULL, sizeof(struct GNUNET_MessageHeader), type)
 
 
 /**
@@ -86,7 +86,7 @@
  * @param type type of the message
  */
 #define GNUNET_MQ_msg_header_extra(mh, esize, type) \
-  GNUNET_MQ_msg_(&mh, (esize) + sizeof(struct GNUNET_MessageHeader), type)
+  GNUNET_MQ_msg_ (&mh, (esize) + sizeof(struct GNUNET_MessageHeader), type)
 
 
 /**
@@ -102,11 +102,11 @@
 #define GNUNET_MQ_msg_nested_mh(mvar, type, mh)                               \
   ({                                                                          \
     struct GNUNET_MQ_Envelope *_ev;                                           \
-    _ev = GNUNET_MQ_msg_nested_mh_((struct GNUNET_MessageHeader **)&(mvar), \
-                                   sizeof(*(mvar)),                         \
-                                   (type),                                   \
-                                   (mh));                                    \
-    (void)(mvar)->header;  /* type check */                                   \
+    _ev = GNUNET_MQ_msg_nested_mh_ ((struct GNUNET_MessageHeader **) &(mvar), \
+                                    sizeof(*(mvar)),                         \
+                                    (type),                                   \
+                                    (mh));                                    \
+    (void) (mvar)->header;  /* type check */                                   \
     _ev;                                                                      \
   })
 
@@ -120,8 +120,8 @@
  *         or NULL if the given message in @a var does not have any space after the message struct
  */
 #define GNUNET_MQ_extract_nested_mh(var)                               \
-  GNUNET_MQ_extract_nested_mh_((struct GNUNET_MessageHeader *)(var), \
-                               sizeof(*(var)))
+  GNUNET_MQ_extract_nested_mh_ ((struct GNUNET_MessageHeader *) (var), \
+                                sizeof(*(var)))
 
 
 /**
@@ -133,8 +133,8 @@
  *         OR NULL in case of a malformed message.
  */
 const struct GNUNET_MessageHeader *
-GNUNET_MQ_extract_nested_mh_(const struct GNUNET_MessageHeader *mh,
-                             uint16_t base_size);
+GNUNET_MQ_extract_nested_mh_ (const struct GNUNET_MessageHeader *mh,
+                              uint16_t base_size);
 
 
 /**
@@ -150,7 +150,7 @@ struct GNUNET_MQ_Envelope;
  * @return message contained in the envelope
  */
 const struct GNUNET_MessageHeader *
-GNUNET_MQ_env_get_msg(const struct GNUNET_MQ_Envelope *env);
+GNUNET_MQ_env_get_msg (const struct GNUNET_MQ_Envelope *env);
 
 
 /**
@@ -160,7 +160,7 @@ GNUNET_MQ_env_get_msg(const struct GNUNET_MQ_Envelope *env);
  * @return next one, or NULL
  */
 const struct GNUNET_MQ_Envelope *
-GNUNET_MQ_env_next(const struct GNUNET_MQ_Envelope *env);
+GNUNET_MQ_env_next (const struct GNUNET_MQ_Envelope *env);
 
 
 /**
@@ -173,10 +173,10 @@ GNUNET_MQ_env_next(const struct GNUNET_MQ_Envelope *env);
  * @param nested_mh the message to append to the message after base_size
  */
 struct GNUNET_MQ_Envelope *
-GNUNET_MQ_msg_nested_mh_(struct GNUNET_MessageHeader **mhp,
-                         uint16_t base_size,
-                         uint16_t type,
-                         const struct GNUNET_MessageHeader *nested_mh);
+GNUNET_MQ_msg_nested_mh_ (struct GNUNET_MessageHeader **mhp,
+                          uint16_t base_size,
+                          uint16_t type,
+                          const struct GNUNET_MessageHeader *nested_mh);
 
 
 /**
@@ -188,7 +188,8 @@ struct GNUNET_MQ_Handle;
 /**
  * Error codes for the queue.
  */
-enum GNUNET_MQ_Error {
+enum GNUNET_MQ_Error
+{
   /**
    * Failed to read message from the network.
    * FIXME: Likely not properly distinguished
@@ -223,7 +224,8 @@ enum GNUNET_MQ_Error {
 /**
  * Per envelope preferences and priorities.
  */
-enum GNUNET_MQ_PriorityPreferences {
+enum GNUNET_MQ_PriorityPreferences
+{
   /**
    * Lowest priority, i.e. background traffic (i.e. NSE, FS).
    * This is the default!
@@ -382,9 +384,9 @@ typedef void (*GNUNET_MQ_ErrorHandler) (void *cls, enum GNUNET_MQ_Error error);
  * @param[in|out] env element to insert at the tail
  */
 void
-GNUNET_MQ_dll_insert_head(struct GNUNET_MQ_Envelope **env_head,
-                          struct GNUNET_MQ_Envelope **env_tail,
-                          struct GNUNET_MQ_Envelope *env);
+GNUNET_MQ_dll_insert_head (struct GNUNET_MQ_Envelope **env_head,
+                           struct GNUNET_MQ_Envelope **env_tail,
+                           struct GNUNET_MQ_Envelope *env);
 
 
 /**
@@ -400,9 +402,9 @@ GNUNET_MQ_dll_insert_head(struct GNUNET_MQ_Envelope **env_head,
  * @param[in|out] env element to insert at the tail
  */
 void
-GNUNET_MQ_dll_insert_tail(struct GNUNET_MQ_Envelope **env_head,
-                          struct GNUNET_MQ_Envelope **env_tail,
-                          struct GNUNET_MQ_Envelope *env);
+GNUNET_MQ_dll_insert_tail (struct GNUNET_MQ_Envelope **env_head,
+                           struct GNUNET_MQ_Envelope **env_tail,
+                           struct GNUNET_MQ_Envelope *env);
 
 
 /**
@@ -418,9 +420,9 @@ GNUNET_MQ_dll_insert_tail(struct GNUNET_MQ_Envelope **env_head,
  * @param[in|out] env element to remove from the DLL
  */
 void
-GNUNET_MQ_dll_remove(struct GNUNET_MQ_Envelope **env_head,
-                     struct GNUNET_MQ_Envelope **env_tail,
-                     struct GNUNET_MQ_Envelope *env);
+GNUNET_MQ_dll_remove (struct GNUNET_MQ_Envelope **env_head,
+                      struct GNUNET_MQ_Envelope **env_tail,
+                      struct GNUNET_MQ_Envelope *env);
 
 
 /**
@@ -434,7 +436,7 @@ GNUNET_MQ_dll_remove(struct GNUNET_MQ_Envelope **env_head,
  *         Needs to be freed with #GNUNET_free.
  */
 struct GNUNET_MQ_MessageHandler *
-GNUNET_MQ_copy_handlers(const struct GNUNET_MQ_MessageHandler *handlers);
+GNUNET_MQ_copy_handlers (const struct GNUNET_MQ_MessageHandler *handlers);
 
 
 /**
@@ -450,9 +452,9 @@ GNUNET_MQ_copy_handlers(const struct GNUNET_MQ_MessageHandler *handlers);
  *         Needs to be freed with #GNUNET_free.
  */
 struct GNUNET_MQ_MessageHandler *
-GNUNET_MQ_copy_handlers2(const struct GNUNET_MQ_MessageHandler *handlers,
-                         GNUNET_MQ_MessageCallback agpl_handler,
-                         void *agpl_cls);
+GNUNET_MQ_copy_handlers2 (const struct GNUNET_MQ_MessageHandler *handlers,
+                          GNUNET_MQ_MessageCallback agpl_handler,
+                          void *agpl_cls);
 
 
 /**
@@ -462,13 +464,14 @@ GNUNET_MQ_copy_handlers2(const struct GNUNET_MQ_MessageHandler *handlers,
  * @return The number of handlers in the array.
  */
 unsigned int
-GNUNET_MQ_count_handlers(const struct GNUNET_MQ_MessageHandler *handlers);
+GNUNET_MQ_count_handlers (const struct GNUNET_MQ_MessageHandler *handlers);
 
 
 /**
  * Message handler for a specific message type.
  */
-struct GNUNET_MQ_MessageHandler {
+struct GNUNET_MQ_MessageHandler
+{
   /**
    * Callback to validate a message of the specified @e type.
    * The closure given to @e mv will be this struct (not @e ctx).
@@ -546,7 +549,7 @@ struct GNUNET_MQ_MessageHandler {
   ({                                                                    \
     void (*_cb)(void *cls, const str *msg) = &handle_ ## name;           \
     ((struct GNUNET_MQ_MessageHandler){ NULL,                            \
-                                        (GNUNET_MQ_MessageCallback)_cb, \
+                                        (GNUNET_MQ_MessageCallback) _cb, \
                                         (ctx),                           \
                                         (code),                          \
                                         sizeof(str) });                  \
@@ -594,12 +597,12 @@ struct GNUNET_MQ_MessageHandler {
  * @param ctx context for the callbacks
  */
 #define GNUNET_MQ_hd_var_size(name, code, str, ctx)                          \
-  __extension__({                                                            \
+  __extension__ ({                                                            \
     int (*_mv)(void *cls, const str *msg) = &check_ ## name;                  \
     void (*_cb)(void *cls, const str *msg) = &handle_ ## name;                \
     ((struct GNUNET_MQ_MessageHandler){ (GNUNET_MQ_MessageValidationCallback) \
                                         _mv,                                \
-                                        (GNUNET_MQ_MessageCallback)_cb,      \
+                                        (GNUNET_MQ_MessageCallback) _cb,      \
                                         (ctx),                                \
                                         (code),                               \
                                         sizeof(str) });                       \
@@ -618,15 +621,15 @@ struct GNUNET_MQ_MessageHandler {
  */
 #define GNUNET_MQ_check_zero_termination(m)                       \
   {                                                               \
-    const char *str = (const char *)&m[1];                       \
+    const char *str = (const char *) &m[1];                       \
     const struct GNUNET_MessageHeader *hdr =                      \
-      (const struct GNUNET_MessageHeader *)m;                    \
-    uint16_t slen = ntohs(hdr->size) - sizeof(*m);              \
-    if ((0 == slen) || (memchr(str, 0, slen) != &str[slen - 1])) \
-      {                                                             \
-        GNUNET_break(0);                                           \
-        return GNUNET_NO;                                           \
-      }                                                             \
+      (const struct GNUNET_MessageHeader *) m;                    \
+    uint16_t slen = ntohs (hdr->size) - sizeof(*m);              \
+    if ((0 == slen) || (memchr (str, 0, slen) != &str[slen - 1])) \
+    {                                                             \
+      GNUNET_break (0);                                           \
+      return GNUNET_NO;                                           \
+    }                                                             \
   }
 
 
@@ -645,16 +648,16 @@ struct GNUNET_MQ_MessageHandler {
 #define GNUNET_MQ_check_boxed_message(m)                 \
   {                                                      \
     const struct GNUNET_MessageHeader *inbox =           \
-      (const struct GNUNET_MessageHeader *)&m[1];       \
+      (const struct GNUNET_MessageHeader *) &m[1];       \
     const struct GNUNET_MessageHeader *hdr =             \
-      (const struct GNUNET_MessageHeader *)m;           \
-    uint16_t slen = ntohs(hdr->size) - sizeof(*m);     \
+      (const struct GNUNET_MessageHeader *) m;           \
+    uint16_t slen = ntohs (hdr->size) - sizeof(*m);     \
     if ((slen < sizeof(struct GNUNET_MessageHeader)) || \
-        (slen != ntohs(inbox->size)))                   \
-      {                                                    \
-        GNUNET_break(0);                                  \
-        return GNUNET_NO;                                  \
-      }                                                    \
+        (slen != ntohs (inbox->size)))                   \
+    {                                                    \
+      GNUNET_break (0);                                  \
+      return GNUNET_NO;                                  \
+    }                                                    \
   }
 
 
@@ -671,8 +674,8 @@ struct GNUNET_MQ_MessageHandler {
  *         #GNUNET_SYSERR if message was rejected by check function
  */
 int
-GNUNET_MQ_handle_message(const struct GNUNET_MQ_MessageHandler *handlers,
-                         const struct GNUNET_MessageHeader *mh);
+GNUNET_MQ_handle_message (const struct GNUNET_MQ_MessageHandler *handlers,
+                          const struct GNUNET_MessageHeader *mh);
 
 
 /**
@@ -684,9 +687,9 @@ GNUNET_MQ_handle_message(const struct GNUNET_MQ_MessageHandler *handlers,
  * @return the allocated MQ message
  */
 struct GNUNET_MQ_Envelope *
-GNUNET_MQ_msg_(struct GNUNET_MessageHeader **mhp,
-               uint16_t size,
-               uint16_t type);
+GNUNET_MQ_msg_ (struct GNUNET_MessageHeader **mhp,
+                uint16_t size,
+                uint16_t type);
 
 
 /**
@@ -696,7 +699,7 @@ GNUNET_MQ_msg_(struct GNUNET_MessageHeader **mhp,
  * @return envelope containing @a hdr
  */
 struct GNUNET_MQ_Envelope *
-GNUNET_MQ_msg_copy(const struct GNUNET_MessageHeader *hdr);
+GNUNET_MQ_msg_copy (const struct GNUNET_MessageHeader *hdr);
 
 
 /**
@@ -707,7 +710,7 @@ GNUNET_MQ_msg_copy(const struct GNUNET_MessageHeader *hdr);
  * @param mqm the message to discard
  */
 void
-GNUNET_MQ_discard(struct GNUNET_MQ_Envelope *mqm);
+GNUNET_MQ_discard (struct GNUNET_MQ_Envelope *mqm);
 
 
 /**
@@ -718,7 +721,7 @@ GNUNET_MQ_discard(struct GNUNET_MQ_Envelope *mqm);
  * @return the current envelope
  */
 struct GNUNET_MQ_Envelope *
-GNUNET_MQ_get_current_envelope(struct GNUNET_MQ_Handle *mq);
+GNUNET_MQ_get_current_envelope (struct GNUNET_MQ_Handle *mq);
 
 
 /**
@@ -729,7 +732,7 @@ GNUNET_MQ_get_current_envelope(struct GNUNET_MQ_Handle *mq);
  * @return copy of @a env
  */
 struct GNUNET_MQ_Envelope *
-GNUNET_MQ_env_copy(struct GNUNET_MQ_Envelope *env);
+GNUNET_MQ_env_copy (struct GNUNET_MQ_Envelope *env);
 
 
 /**
@@ -739,7 +742,7 @@ GNUNET_MQ_env_copy(struct GNUNET_MQ_Envelope *env);
  * @return the last envelope in the queue
  */
 struct GNUNET_MQ_Envelope *
-GNUNET_MQ_get_last_envelope(struct GNUNET_MQ_Handle *mq);
+GNUNET_MQ_get_last_envelope (struct GNUNET_MQ_Handle *mq);
 
 
 /**
@@ -751,8 +754,8 @@ GNUNET_MQ_get_last_envelope(struct GNUNET_MQ_Handle *mq);
  * @param pp priority and preferences to set for @a env
  */
 void
-GNUNET_MQ_env_set_options(struct GNUNET_MQ_Envelope *env,
-                          enum GNUNET_MQ_PriorityPreferences pp);
+GNUNET_MQ_env_set_options (struct GNUNET_MQ_Envelope *env,
+                           enum GNUNET_MQ_PriorityPreferences pp);
 
 
 /**
@@ -762,7 +765,7 @@ GNUNET_MQ_env_set_options(struct GNUNET_MQ_Envelope *env,
  * @return priority and preferences to use
  */
 enum GNUNET_MQ_PriorityPreferences
-GNUNET_MQ_env_get_options(struct GNUNET_MQ_Envelope *env);
+GNUNET_MQ_env_get_options (struct GNUNET_MQ_Envelope *env);
 
 
 /**
@@ -774,8 +777,8 @@ GNUNET_MQ_env_get_options(struct GNUNET_MQ_Envelope *env);
  * @return combined priority and preferences to use
  */
 enum GNUNET_MQ_PriorityPreferences
-GNUNET_MQ_env_combine_options(enum GNUNET_MQ_PriorityPreferences p1,
-                              enum GNUNET_MQ_PriorityPreferences p2);
+GNUNET_MQ_env_combine_options (enum GNUNET_MQ_PriorityPreferences p1,
+                               enum GNUNET_MQ_PriorityPreferences p2);
 
 
 /**
@@ -786,7 +789,7 @@ GNUNET_MQ_env_combine_options(enum GNUNET_MQ_PriorityPreferences p1,
  * @return NULL if queue is empty (or has no envelope that is not under transmission)
  */
 struct GNUNET_MQ_Envelope *
-GNUNET_MQ_unsent_head(struct GNUNET_MQ_Handle *mq);
+GNUNET_MQ_unsent_head (struct GNUNET_MQ_Handle *mq);
 
 
 /**
@@ -796,8 +799,8 @@ GNUNET_MQ_unsent_head(struct GNUNET_MQ_Handle *mq);
  * @param pp priority and preferences to use by default
  */
 void
-GNUNET_MQ_set_options(struct GNUNET_MQ_Handle *mq,
-                      enum GNUNET_MQ_PriorityPreferences pp);
+GNUNET_MQ_set_options (struct GNUNET_MQ_Handle *mq,
+                       enum GNUNET_MQ_PriorityPreferences pp);
 
 
 /**
@@ -807,7 +810,7 @@ GNUNET_MQ_set_options(struct GNUNET_MQ_Handle *mq,
  * @return number of queued, non-transmitted messages
  */
 unsigned int
-GNUNET_MQ_get_length(struct GNUNET_MQ_Handle *mq);
+GNUNET_MQ_get_length (struct GNUNET_MQ_Handle *mq);
 
 
 /**
@@ -818,7 +821,7 @@ GNUNET_MQ_get_length(struct GNUNET_MQ_Handle *mq);
  * @param ev the envelope with the message to send.
  */
 void
-GNUNET_MQ_send(struct GNUNET_MQ_Handle *mq, struct GNUNET_MQ_Envelope *ev);
+GNUNET_MQ_send (struct GNUNET_MQ_Handle *mq, struct GNUNET_MQ_Envelope *ev);
 
 
 /**
@@ -829,8 +832,8 @@ GNUNET_MQ_send(struct GNUNET_MQ_Handle *mq, struct GNUNET_MQ_Envelope *ev);
  * @param ev the envelope with the message to send.
  */
 void
-GNUNET_MQ_send_copy(struct GNUNET_MQ_Handle *mq,
-                    const struct GNUNET_MQ_Envelope *ev);
+GNUNET_MQ_send_copy (struct GNUNET_MQ_Handle *mq,
+                     const struct GNUNET_MQ_Envelope *ev);
 
 
 /**
@@ -841,7 +844,7 @@ GNUNET_MQ_send_copy(struct GNUNET_MQ_Handle *mq,
  * @param ev queued envelope to cancel
  */
 void
-GNUNET_MQ_send_cancel(struct GNUNET_MQ_Envelope *ev);
+GNUNET_MQ_send_cancel (struct GNUNET_MQ_Envelope *ev);
 
 
 /**
@@ -851,7 +854,7 @@ GNUNET_MQ_send_cancel(struct GNUNET_MQ_Envelope *ev);
  * @param assoc_data to associate
  */
 uint32_t
-GNUNET_MQ_assoc_add(struct GNUNET_MQ_Handle *mq, void *assoc_data);
+GNUNET_MQ_assoc_add (struct GNUNET_MQ_Handle *mq, void *assoc_data);
 
 
 /**
@@ -862,7 +865,7 @@ GNUNET_MQ_assoc_add(struct GNUNET_MQ_Handle *mq, void *assoc_data);
  * @return the associated data
  */
 void *
-GNUNET_MQ_assoc_get(struct GNUNET_MQ_Handle *mq, uint32_t request_id);
+GNUNET_MQ_assoc_get (struct GNUNET_MQ_Handle *mq, uint32_t request_id);
 
 
 /**
@@ -873,7 +876,7 @@ GNUNET_MQ_assoc_get(struct GNUNET_MQ_Handle *mq, uint32_t request_id);
  * @return the associated data
  */
 void *
-GNUNET_MQ_assoc_remove(struct GNUNET_MQ_Handle *mq, uint32_t request_id);
+GNUNET_MQ_assoc_remove (struct GNUNET_MQ_Handle *mq, uint32_t request_id);
 
 
 /**
@@ -889,13 +892,13 @@ GNUNET_MQ_assoc_remove(struct GNUNET_MQ_Handle *mq, uint32_t request_id);
  * @return a new message queue
  */
 struct GNUNET_MQ_Handle *
-GNUNET_MQ_queue_for_callbacks(GNUNET_MQ_SendImpl send,
-                              GNUNET_MQ_DestroyImpl destroy,
-                              GNUNET_MQ_CancelImpl cancel,
-                              void *impl_state,
-                              const struct GNUNET_MQ_MessageHandler *handlers,
-                              GNUNET_MQ_ErrorHandler error_handler,
-                              void *cls);
+GNUNET_MQ_queue_for_callbacks (GNUNET_MQ_SendImpl send,
+                               GNUNET_MQ_DestroyImpl destroy,
+                               GNUNET_MQ_CancelImpl cancel,
+                               void *impl_state,
+                               const struct GNUNET_MQ_MessageHandler *handlers,
+                               GNUNET_MQ_ErrorHandler error_handler,
+                               void *cls);
 
 
 /**
@@ -906,8 +909,8 @@ GNUNET_MQ_queue_for_callbacks(GNUNET_MQ_SendImpl send,
  * @param handlers_cls new closure to use
  */
 void
-GNUNET_MQ_set_handlers_closure(struct GNUNET_MQ_Handle *mq,
-                               void *handlers_cls);
+GNUNET_MQ_set_handlers_closure (struct GNUNET_MQ_Handle *mq,
+                                void *handlers_cls);
 
 
 /**
@@ -920,9 +923,9 @@ GNUNET_MQ_set_handlers_closure(struct GNUNET_MQ_Handle *mq,
  * @param cb_cls closure for the callback
  */
 void
-GNUNET_MQ_notify_sent(struct GNUNET_MQ_Envelope *ev,
-                      GNUNET_SCHEDULER_TaskCallback cb,
-                      void *cb_cls);
+GNUNET_MQ_notify_sent (struct GNUNET_MQ_Envelope *ev,
+                       GNUNET_SCHEDULER_TaskCallback cb,
+                       void *cb_cls);
 
 
 /**
@@ -931,7 +934,7 @@ GNUNET_MQ_notify_sent(struct GNUNET_MQ_Envelope *ev,
  * @param mq message queue to destroy
  */
 void
-GNUNET_MQ_destroy(struct GNUNET_MQ_Handle *mq);
+GNUNET_MQ_destroy (struct GNUNET_MQ_Handle *mq);
 
 
 /**
@@ -951,9 +954,9 @@ struct GNUNET_MQ_DestroyNotificationHandle;
  * @return handle for #GNUNET_MQ_destroy_notify_cancel().
  */
 struct GNUNET_MQ_DestroyNotificationHandle *
-GNUNET_MQ_destroy_notify(struct GNUNET_MQ_Handle *mq,
-                         GNUNET_SCHEDULER_TaskCallback cb,
-                         void *cb_cls);
+GNUNET_MQ_destroy_notify (struct GNUNET_MQ_Handle *mq,
+                          GNUNET_SCHEDULER_TaskCallback cb,
+                          void *cb_cls);
 
 /**
  * Cancel registration from #GNUNET_MQ_destroy_notify().
@@ -961,7 +964,7 @@ GNUNET_MQ_destroy_notify(struct GNUNET_MQ_Handle *mq,
  * @param dnh handle for registration to cancel
  */
 void
-GNUNET_MQ_destroy_notify_cancel(
+GNUNET_MQ_destroy_notify_cancel (
   struct GNUNET_MQ_DestroyNotificationHandle *dnh);
 
 
@@ -976,8 +979,8 @@ GNUNET_MQ_destroy_notify_cancel(
  * @param mh message to dispatch
  */
 void
-GNUNET_MQ_inject_message(struct GNUNET_MQ_Handle *mq,
-                         const struct GNUNET_MessageHeader *mh);
+GNUNET_MQ_inject_message (struct GNUNET_MQ_Handle *mq,
+                          const struct GNUNET_MessageHeader *mh);
 
 
 /**
@@ -991,8 +994,8 @@ GNUNET_MQ_inject_message(struct GNUNET_MQ_Handle *mq,
  * @param error the error type
  */
 void
-GNUNET_MQ_inject_error(struct GNUNET_MQ_Handle *mq,
-                       enum GNUNET_MQ_Error error);
+GNUNET_MQ_inject_error (struct GNUNET_MQ_Handle *mq,
+                        enum GNUNET_MQ_Error error);
 
 
 /**
@@ -1006,7 +1009,7 @@ GNUNET_MQ_inject_error(struct GNUNET_MQ_Handle *mq,
  * @param mq message queue to send the next message with
  */
 void
-GNUNET_MQ_impl_send_continue(struct GNUNET_MQ_Handle *mq);
+GNUNET_MQ_impl_send_continue (struct GNUNET_MQ_Handle *mq);
 
 
 /**
@@ -1020,7 +1023,7 @@ GNUNET_MQ_impl_send_continue(struct GNUNET_MQ_Handle *mq);
  * @param mq message queue to send the next message with
  */
 void
-GNUNET_MQ_impl_send_in_flight(struct GNUNET_MQ_Handle *mq);
+GNUNET_MQ_impl_send_in_flight (struct GNUNET_MQ_Handle *mq);
 
 
 /**
@@ -1038,7 +1041,7 @@ GNUNET_MQ_impl_send_in_flight(struct GNUNET_MQ_Handle *mq);
  * @return message to send, never NULL
  */
 void *
-GNUNET_MQ_impl_state(struct GNUNET_MQ_Handle *mq);
+GNUNET_MQ_impl_state (struct GNUNET_MQ_Handle *mq);
 
 
 /**
@@ -1051,7 +1054,7 @@ GNUNET_MQ_impl_state(struct GNUNET_MQ_Handle *mq);
  * @return message to send, never NULL
  */
 const struct GNUNET_MessageHeader *
-GNUNET_MQ_impl_current(struct GNUNET_MQ_Handle *mq);
+GNUNET_MQ_impl_current (struct GNUNET_MQ_Handle *mq);
 
 
 /**
@@ -1059,7 +1062,8 @@ GNUNET_MQ_impl_current(struct GNUNET_MQ_Handle *mq);
  *
  * @deprecated will be replaced by `enum GNUNET_MQ_PriorityPreference`
  */
-enum GNUNET_MQ_PreferenceKind {
+enum GNUNET_MQ_PreferenceKind
+{
   /**
    * No preference was expressed.
    */
@@ -1099,7 +1103,7 @@ enum GNUNET_MQ_PreferenceKind {
  * @deprecated will be replaced by `enum GNUNET_MQ_PriorityPreference`
  */
 const char *
-GNUNET_MQ_preference_to_string(enum GNUNET_MQ_PreferenceKind type);
+GNUNET_MQ_preference_to_string (enum GNUNET_MQ_PreferenceKind type);
 
 
 #endif

@@ -31,13 +31,14 @@
 #include "gnunet-service-ats_normalization.h"
 #include "gnunet-service-ats_plugins.h"
 
-#define LOG(kind, ...) GNUNET_log_from(kind, "ats-normalization", __VA_ARGS__)
+#define LOG(kind, ...) GNUNET_log_from (kind, "ats-normalization", __VA_ARGS__)
 
 
 /**
  * Range information for normalization of quality properties.
  */
-struct PropertyRange {
+struct PropertyRange
+{
   /**
    * Minimum value we see for this property across all addresses.
    */
@@ -64,8 +65,8 @@ static struct PropertyRange property_range;
  * @param ni normalization information to update
  */
 static void
-update_avg(uint64_t current_val,
-           struct GAS_NormalizationInfo *ni)
+update_avg (uint64_t current_val,
+            struct GAS_NormalizationInfo *ni)
 {
   double sum;
   uint32_t count;
@@ -77,13 +78,13 @@ update_avg(uint64_t current_val,
   count = 0;
   sum = 0.0;
   for (c1 = 0; c1 < GAS_normalization_queue_length; c1++)
+  {
+    if (UINT64_MAX != ni->atsi_abs[c1])
     {
-      if (UINT64_MAX != ni->atsi_abs[c1])
-        {
-          count++;
-          sum += (double)ni->atsi_abs[c1];
-        }
+      count++;
+      sum += (double) ni->atsi_abs[c1];
     }
+  }
   if (0 == count)
     ni->avg = current_val; /* must be UINT64_MAX */
   else
@@ -102,29 +103,29 @@ update_avg(uint64_t current_val,
  * @return #GNUNET_OK (continue to iterate)
  */
 static int
-find_min_max_it(void *cls,
-                const struct GNUNET_PeerIdentity *h,
-                void *k)
+find_min_max_it (void *cls,
+                 const struct GNUNET_PeerIdentity *h,
+                 void *k)
 {
   struct PropertyRange *pr = cls;
   const struct ATS_Address *a = k;
 
-  pr->max.utilization_out = GNUNET_MAX(pr->max.utilization_out,
-                                       a->properties.utilization_out);
-  pr->max.utilization_in = GNUNET_MAX(pr->max.utilization_in,
-                                      a->properties.utilization_in);
-  pr->max.distance = GNUNET_MAX(pr->max.distance,
-                                a->properties.distance);
-  pr->max.delay = GNUNET_TIME_relative_max(pr->max.delay,
-                                           a->properties.delay);
-  pr->min.utilization_out = GNUNET_MIN(pr->min.utilization_out,
-                                       a->properties.utilization_out);
-  pr->min.utilization_in = GNUNET_MIN(pr->min.utilization_in,
-                                      a->properties.utilization_in);
-  pr->min.distance = GNUNET_MIN(pr->min.distance,
-                                a->properties.distance);
-  pr->min.delay = GNUNET_TIME_relative_min(pr->min.delay,
-                                           a->properties.delay);
+  pr->max.utilization_out = GNUNET_MAX (pr->max.utilization_out,
+                                        a->properties.utilization_out);
+  pr->max.utilization_in = GNUNET_MAX (pr->max.utilization_in,
+                                       a->properties.utilization_in);
+  pr->max.distance = GNUNET_MAX (pr->max.distance,
+                                 a->properties.distance);
+  pr->max.delay = GNUNET_TIME_relative_max (pr->max.delay,
+                                            a->properties.delay);
+  pr->min.utilization_out = GNUNET_MIN (pr->min.utilization_out,
+                                        a->properties.utilization_out);
+  pr->min.utilization_in = GNUNET_MIN (pr->min.utilization_in,
+                                       a->properties.utilization_in);
+  pr->min.distance = GNUNET_MIN (pr->min.distance,
+                                 a->properties.distance);
+  pr->min.delay = GNUNET_TIME_relative_min (pr->min.delay,
+                                            a->properties.delay);
   return GNUNET_OK;
 }
 
@@ -138,13 +139,13 @@ find_min_max_it(void *cls,
  * @param ni normalization information to update
  */
 static void
-update_norm(uint64_t min,
-            uint64_t max,
-            struct GAS_NormalizationInfo *ni)
+update_norm (uint64_t min,
+             uint64_t max,
+             struct GAS_NormalizationInfo *ni)
 {
   /* max - 2 * min + avg_value / (max - min) */
   if (min < max)
-    ni->norm = DEFAULT_REL_QUALITY + (ni->avg - min) / (double)(max - min);
+    ni->norm = DEFAULT_REL_QUALITY + (ni->avg - min) / (double) (max - min);
   else
     ni->norm = DEFAULT_REL_QUALITY;
 }
@@ -162,24 +163,24 @@ update_norm(uint64_t min,
  * @return #GNUNET_OK (continue to iterate)
  */
 static int
-normalize_address(void *cls,
-                  const struct GNUNET_PeerIdentity *key,
-                  void *value)
+normalize_address (void *cls,
+                   const struct GNUNET_PeerIdentity *key,
+                   void *value)
 {
   struct ATS_Address *address = value;
 
-  update_norm(property_range.min.delay.rel_value_us,
-              property_range.max.delay.rel_value_us,
-              &address->norm_delay);
-  update_norm(property_range.min.distance,
-              property_range.max.distance,
-              &address->norm_distance);
-  update_norm(property_range.min.utilization_in,
-              property_range.max.utilization_in,
-              &address->norm_utilization_in);
-  update_norm(property_range.min.utilization_out,
-              property_range.max.utilization_out,
-              &address->norm_utilization_out);
+  update_norm (property_range.min.delay.rel_value_us,
+               property_range.max.delay.rel_value_us,
+               &address->norm_delay);
+  update_norm (property_range.min.distance,
+               property_range.max.distance,
+               &address->norm_distance);
+  update_norm (property_range.min.utilization_in,
+               property_range.max.utilization_in,
+               &address->norm_utilization_in);
+  update_norm (property_range.min.utilization_out,
+               property_range.max.utilization_out,
+               &address->norm_utilization_out);
   return GNUNET_OK;
 }
 
@@ -193,13 +194,13 @@ normalize_address(void *cls,
  * @return #GNUNET_OK (continue to iterate)
  */
 static int
-notify_change(void *cls,
-              const struct GNUNET_PeerIdentity *key,
-              void *value)
+notify_change (void *cls,
+               const struct GNUNET_PeerIdentity *key,
+               void *value)
 {
   struct ATS_Address *address = value;
 
-  GAS_plugin_notify_property_changed(address);
+  GAS_plugin_notify_property_changed (address);
   return GNUNET_OK;
 }
 
@@ -211,9 +212,9 @@ notify_change(void *cls,
  * @param pr range to initialize
  */
 static void
-init_range(struct PropertyRange *pr)
+init_range (struct PropertyRange *pr)
 {
-  memset(pr, 0, sizeof(struct PropertyRange));
+  memset (pr, 0, sizeof(struct PropertyRange));
   pr->min.utilization_out = UINT32_MAX;
   pr->min.utilization_in = UINT32_MAX;
   pr->min.distance = UINT32_MAX;
@@ -227,51 +228,51 @@ init_range(struct PropertyRange *pr)
  * @param address the address to update
  */
 void
-GAS_normalization_update_property(struct ATS_Address *address)
+GAS_normalization_update_property (struct ATS_Address *address)
 {
   const struct GNUNET_ATS_Properties *prop = &address->properties;
   struct PropertyRange range;
 
-  LOG(GNUNET_ERROR_TYPE_DEBUG,
-      "Updating properties for peer `%s'\n",
-      GNUNET_i2s(&address->peer));
-  GAS_plugin_solver_lock();
-  update_avg(prop->delay.rel_value_us,
-             &address->norm_delay);
-  update_avg(prop->distance,
-             &address->norm_distance);
-  update_avg(prop->utilization_in,
-             &address->norm_utilization_in);
-  update_avg(prop->utilization_in,
-             &address->norm_utilization_out);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Updating properties for peer `%s'\n",
+       GNUNET_i2s (&address->peer));
+  GAS_plugin_solver_lock ();
+  update_avg (prop->delay.rel_value_us,
+              &address->norm_delay);
+  update_avg (prop->distance,
+              &address->norm_distance);
+  update_avg (prop->utilization_in,
+              &address->norm_utilization_in);
+  update_avg (prop->utilization_in,
+              &address->norm_utilization_out);
 
-  init_range(&range);
-  GNUNET_CONTAINER_multipeermap_iterate(GSA_addresses,
-                                        &find_min_max_it,
-                                        &range);
-  if (0 != GNUNET_memcmp(&range,
-                         &property_range))
-    {
-      /* limits changed, (re)normalize all addresses */
-      property_range = range;
-      GNUNET_CONTAINER_multipeermap_iterate(GSA_addresses,
-                                            &normalize_address,
-                                            NULL);
-      GNUNET_CONTAINER_multipeermap_iterate(GSA_addresses,
-                                            &notify_change,
-                                            NULL);
-    }
+  init_range (&range);
+  GNUNET_CONTAINER_multipeermap_iterate (GSA_addresses,
+                                         &find_min_max_it,
+                                         &range);
+  if (0 != GNUNET_memcmp (&range,
+                          &property_range))
+  {
+    /* limits changed, (re)normalize all addresses */
+    property_range = range;
+    GNUNET_CONTAINER_multipeermap_iterate (GSA_addresses,
+                                           &normalize_address,
+                                           NULL);
+    GNUNET_CONTAINER_multipeermap_iterate (GSA_addresses,
+                                           &notify_change,
+                                           NULL);
+  }
   else
-    {
-      /* renormalize just this one address */
-      normalize_address(NULL,
-                        &address->peer,
-                        address);
-      notify_change(NULL,
-                    &address->peer,
-                    address);
-    }
-  GAS_plugin_solver_unlock();
+  {
+    /* renormalize just this one address */
+    normalize_address (NULL,
+                       &address->peer,
+                       address);
+    notify_change (NULL,
+                   &address->peer,
+                   address);
+  }
+  GAS_plugin_solver_unlock ();
 }
 
 
@@ -279,9 +280,9 @@ GAS_normalization_update_property(struct ATS_Address *address)
  * Start the normalization component
  */
 void
-GAS_normalization_start()
+GAS_normalization_start ()
 {
-  init_range(&property_range);
+  init_range (&property_range);
 }
 
 
@@ -289,7 +290,7 @@ GAS_normalization_start()
  * Stop the normalization component and free all items
  */
 void
-GAS_normalization_stop()
+GAS_normalization_stop ()
 {
   /* nothing to do */
 }

@@ -27,16 +27,19 @@
 #include "gnunet_util_lib.h"
 #include "gnunet_datacache_plugin.h"
 
-#define LOG(kind, ...) GNUNET_log_from(kind, "datacache-heap", __VA_ARGS__)
+#define LOG(kind, ...) GNUNET_log_from (kind, "datacache-heap", __VA_ARGS__)
 
-#define LOG_STRERROR_FILE(kind, op, fn) GNUNET_log_from_strerror_file(kind, "datacache-heap", op, fn)
+#define LOG_STRERROR_FILE(kind, op, fn) GNUNET_log_from_strerror_file (kind, \
+                                                                       "datacache-heap", \
+                                                                       op, fn)
 
 #define NUM_HEAPS 24
 
 /**
  * Context for all functions in this plugin.
  */
-struct Plugin {
+struct Plugin
+{
   /**
    * Our execution environment.
    */
@@ -57,7 +60,8 @@ struct Plugin {
 /**
  * Entry in the hash map.
  */
-struct Value {
+struct Value
+{
   /**
    * Key for the entry.
    */
@@ -106,7 +110,8 @@ struct Value {
 /**
  * Closure for #put_cb().
  */
-struct PutContext {
+struct PutContext
+{
   /**
    * Expiration time for the new value.
    */
@@ -154,39 +159,39 @@ struct PutContext {
  * @return #GNUNET_YES if not found (to continue to iterate)
  */
 static int
-put_cb(void *cls,
-       const struct GNUNET_HashCode *key,
-       void *value)
+put_cb (void *cls,
+        const struct GNUNET_HashCode *key,
+        void *value)
 {
   struct PutContext *put_ctx = cls;
   struct Value *val = value;
 
   if ((val->size == put_ctx->size) &&
       (val->type == put_ctx->type) &&
-      (0 == memcmp(&val[1],
-                   put_ctx->data,
-                   put_ctx->size)))
-    {
-      put_ctx->found = GNUNET_YES;
-      val->discard_time = GNUNET_TIME_absolute_max(val->discard_time,
-                                                   put_ctx->discard_time);
-      /* replace old path with new path */
-      GNUNET_array_grow(val->path_info,
-                        val->path_info_len,
-                        put_ctx->path_info_len);
-      GNUNET_memcpy(val->path_info,
-                    put_ctx->path_info,
-                    put_ctx->path_info_len * sizeof(struct GNUNET_PeerIdentity));
-      GNUNET_CONTAINER_heap_update_cost(val->hn,
-                                        val->discard_time.abs_value_us);
-      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-                 "Got same value for key %s and type %d (size %u vs %u)\n",
-                 GNUNET_h2s(key),
-                 val->type,
-                 (unsigned int)val->size,
-                 (unsigned int)put_ctx->size);
-      return GNUNET_NO;
-    }
+      (0 == memcmp (&val[1],
+                    put_ctx->data,
+                    put_ctx->size)))
+  {
+    put_ctx->found = GNUNET_YES;
+    val->discard_time = GNUNET_TIME_absolute_max (val->discard_time,
+                                                  put_ctx->discard_time);
+    /* replace old path with new path */
+    GNUNET_array_grow (val->path_info,
+                       val->path_info_len,
+                       put_ctx->path_info_len);
+    GNUNET_memcpy (val->path_info,
+                   put_ctx->path_info,
+                   put_ctx->path_info_len * sizeof(struct GNUNET_PeerIdentity));
+    GNUNET_CONTAINER_heap_update_cost (val->hn,
+                                       val->discard_time.abs_value_us);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Got same value for key %s and type %d (size %u vs %u)\n",
+                GNUNET_h2s (key),
+                val->type,
+                (unsigned int) val->size,
+                (unsigned int) put_ctx->size);
+    return GNUNET_NO;
+  }
   return GNUNET_YES;
 }
 
@@ -206,15 +211,15 @@ put_cb(void *cls,
  * @return 0 if duplicate, -1 on error, number of bytes used otherwise
  */
 static ssize_t
-heap_plugin_put(void *cls,
-                const struct GNUNET_HashCode *key,
-                uint32_t xor_distance,
-                size_t size,
-                const char *data,
-                enum GNUNET_BLOCK_Type type,
-                struct GNUNET_TIME_Absolute discard_time,
-                unsigned int path_info_len,
-                const struct GNUNET_PeerIdentity *path_info)
+heap_plugin_put (void *cls,
+                 const struct GNUNET_HashCode *key,
+                 uint32_t xor_distance,
+                 size_t size,
+                 const char *data,
+                 enum GNUNET_BLOCK_Type type,
+                 struct GNUNET_TIME_Absolute discard_time,
+                 unsigned int path_info_len,
+                 const struct GNUNET_PeerIdentity *path_info)
 {
   struct Plugin *plugin = cls;
   struct Value *val;
@@ -227,16 +232,16 @@ heap_plugin_put(void *cls,
   put_ctx.path_info_len = path_info_len;
   put_ctx.discard_time = discard_time;
   put_ctx.type = type;
-  GNUNET_CONTAINER_multihashmap_get_multiple(plugin->map,
-                                             key,
-                                             &put_cb,
-                                             &put_ctx);
+  GNUNET_CONTAINER_multihashmap_get_multiple (plugin->map,
+                                              key,
+                                              &put_cb,
+                                              &put_ctx);
   if (GNUNET_YES == put_ctx.found)
     return 0;
-  val = GNUNET_malloc(sizeof(struct Value) + size);
-  GNUNET_memcpy(&val[1],
-                data,
-                size);
+  val = GNUNET_malloc (sizeof(struct Value) + size);
+  GNUNET_memcpy (&val[1],
+                 data,
+                 size);
   val->key = *key;
   val->type = type;
   val->discard_time = discard_time;
@@ -245,19 +250,19 @@ heap_plugin_put(void *cls,
     val->distance = NUM_HEAPS - 1;
   else
     val->distance = xor_distance;
-  GNUNET_array_grow(val->path_info,
-                    val->path_info_len,
-                    path_info_len);
-  GNUNET_memcpy(val->path_info,
-                path_info,
-                path_info_len * sizeof(struct GNUNET_PeerIdentity));
-  (void)GNUNET_CONTAINER_multihashmap_put(plugin->map,
-                                          &val->key,
+  GNUNET_array_grow (val->path_info,
+                     val->path_info_len,
+                     path_info_len);
+  GNUNET_memcpy (val->path_info,
+                 path_info,
+                 path_info_len * sizeof(struct GNUNET_PeerIdentity));
+  (void) GNUNET_CONTAINER_multihashmap_put (plugin->map,
+                                            &val->key,
+                                            val,
+                                            GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
+  val->hn = GNUNET_CONTAINER_heap_insert (plugin->heaps[val->distance],
                                           val,
-                                          GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
-  val->hn = GNUNET_CONTAINER_heap_insert(plugin->heaps[val->distance],
-                                         val,
-                                         val->discard_time.abs_value_us);
+                                          val->discard_time.abs_value_us);
   return size + OVERHEAD;
 }
 
@@ -265,7 +270,8 @@ heap_plugin_put(void *cls,
 /**
  * Closure for #get_cb().
  */
-struct GetContext {
+struct GetContext
+{
   /**
    * Function to call for each result.
    */
@@ -299,9 +305,9 @@ struct GetContext {
  * @return #GNUNET_YES to continue to iterate
  */
 static int
-get_cb(void *cls,
-       const struct GNUNET_HashCode *key,
-       void *value)
+get_cb (void *cls,
+        const struct GNUNET_HashCode *key,
+        void *value)
 {
   struct GetContext *get_ctx = cls;
   struct Value *val = value;
@@ -311,17 +317,17 @@ get_cb(void *cls,
       (GNUNET_BLOCK_TYPE_ANY != get_ctx->type))
     return GNUNET_OK;
   if (0 ==
-      GNUNET_TIME_absolute_get_remaining(val->discard_time).rel_value_us)
+      GNUNET_TIME_absolute_get_remaining (val->discard_time).rel_value_us)
     return GNUNET_OK;
   if (NULL != get_ctx->iter)
-    ret = get_ctx->iter(get_ctx->iter_cls,
-                        key,
-                        val->size,
-                        (const char *)&val[1],
-                        val->type,
-                        val->discard_time,
-                        val->path_info_len,
-                        val->path_info);
+    ret = get_ctx->iter (get_ctx->iter_cls,
+                         key,
+                         val->size,
+                         (const char *) &val[1],
+                         val->type,
+                         val->discard_time,
+                         val->path_info_len,
+                         val->path_info);
   else
     ret = GNUNET_YES;
   get_ctx->cnt++;
@@ -341,11 +347,11 @@ get_cb(void *cls,
  * @return the number of results found
  */
 static unsigned int
-heap_plugin_get(void *cls,
-                const struct GNUNET_HashCode *key,
-                enum GNUNET_BLOCK_Type type,
-                GNUNET_DATACACHE_Iterator iter,
-                void *iter_cls)
+heap_plugin_get (void *cls,
+                 const struct GNUNET_HashCode *key,
+                 enum GNUNET_BLOCK_Type type,
+                 GNUNET_DATACACHE_Iterator iter,
+                 void *iter_cls)
 {
   struct Plugin *plugin = cls;
   struct GetContext get_ctx;
@@ -354,10 +360,10 @@ heap_plugin_get(void *cls,
   get_ctx.iter = iter;
   get_ctx.iter_cls = iter_cls;
   get_ctx.cnt = 0;
-  GNUNET_CONTAINER_multihashmap_get_multiple(plugin->map,
-                                             key,
-                                             &get_cb,
-                                             &get_ctx);
+  GNUNET_CONTAINER_multihashmap_get_multiple (plugin->map,
+                                              key,
+                                              &get_cb,
+                                              &get_ctx);
   return get_ctx.cnt;
 }
 
@@ -370,28 +376,28 @@ heap_plugin_get(void *cls,
  * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
  */
 static int
-heap_plugin_del(void *cls)
+heap_plugin_del (void *cls)
 {
   struct Plugin *plugin = cls;
   struct Value *val;
 
   for (unsigned int i = 0; i < NUM_HEAPS; i++)
-    {
-      val = GNUNET_CONTAINER_heap_remove_root(plugin->heaps[i]);
-      if (NULL != val)
-        break;
-    }
+  {
+    val = GNUNET_CONTAINER_heap_remove_root (plugin->heaps[i]);
+    if (NULL != val)
+      break;
+  }
   if (NULL == val)
     return GNUNET_SYSERR;
-  GNUNET_assert(GNUNET_YES ==
-                GNUNET_CONTAINER_multihashmap_remove(plugin->map,
-                                                     &val->key,
-                                                     val));
-  plugin->env->delete_notify(plugin->env->cls,
-                             &val->key,
-                             val->size + OVERHEAD);
-  GNUNET_free_non_null(val->path_info);
-  GNUNET_free(val);
+  GNUNET_assert (GNUNET_YES ==
+                 GNUNET_CONTAINER_multihashmap_remove (plugin->map,
+                                                       &val->key,
+                                                       val));
+  plugin->env->delete_notify (plugin->env->cls,
+                              &val->key,
+                              val->size + OVERHEAD);
+  GNUNET_free_non_null (val->path_info);
+  GNUNET_free (val);
   return GNUNET_OK;
 }
 
@@ -405,9 +411,9 @@ heap_plugin_del(void *cls)
  * @return the number of results found
  */
 static unsigned int
-heap_plugin_get_random(void *cls,
-                       GNUNET_DATACACHE_Iterator iter,
-                       void *iter_cls)
+heap_plugin_get_random (void *cls,
+                        GNUNET_DATACACHE_Iterator iter,
+                        void *iter_cls)
 {
   struct Plugin *plugin = cls;
   struct GetContext get_ctx;
@@ -416,9 +422,9 @@ heap_plugin_get_random(void *cls,
   get_ctx.iter = iter;
   get_ctx.iter_cls = iter_cls;
   get_ctx.cnt = 0;
-  GNUNET_CONTAINER_multihashmap_get_random(plugin->map,
-                                           &get_cb,
-                                           &get_ctx);
+  GNUNET_CONTAINER_multihashmap_get_random (plugin->map,
+                                            &get_cb,
+                                            &get_ctx);
   return get_ctx.cnt;
 }
 
@@ -426,7 +432,8 @@ heap_plugin_get_random(void *cls,
 /**
  * Closure for #find_closest().
  */
-struct GetClosestContext {
+struct GetClosestContext
+{
   struct Value **values;
 
   unsigned int num_results;
@@ -436,32 +443,32 @@ struct GetClosestContext {
 
 
 static int
-find_closest(void *cls,
-             const struct GNUNET_HashCode *key,
-             void *value)
+find_closest (void *cls,
+              const struct GNUNET_HashCode *key,
+              void *value)
 {
   struct GetClosestContext *gcc = cls;
   struct Value *val = value;
   unsigned int j;
 
-  if (1 != GNUNET_CRYPTO_hash_cmp(key,
-                                  gcc->key))
+  if (1 != GNUNET_CRYPTO_hash_cmp (key,
+                                   gcc->key))
     return GNUNET_OK; /* useless */
   j = gcc->num_results;
   for (unsigned int i = 0; i < gcc->num_results; i++)
+  {
+    if (NULL == gcc->values[i])
     {
-      if (NULL == gcc->values[i])
-        {
-          j = i;
-          break;
-        }
-      if (1 == GNUNET_CRYPTO_hash_cmp(&gcc->values[i]->key,
-                                      key))
-        {
-          j = i;
-          break;
-        }
+      j = i;
+      break;
     }
+    if (1 == GNUNET_CRYPTO_hash_cmp (&gcc->values[i]->key,
+                                     key))
+    {
+      j = i;
+      break;
+    }
+  }
   if (j == gcc->num_results)
     return GNUNET_OK;
   gcc->values[j] = val;
@@ -483,11 +490,11 @@ find_closest(void *cls,
  * @return the number of results found
  */
 static unsigned int
-heap_plugin_get_closest(void *cls,
-                        const struct GNUNET_HashCode *key,
-                        unsigned int num_results,
-                        GNUNET_DATACACHE_Iterator iter,
-                        void *iter_cls)
+heap_plugin_get_closest (void *cls,
+                         const struct GNUNET_HashCode *key,
+                         unsigned int num_results,
+                         GNUNET_DATACACHE_Iterator iter,
+                         void *iter_cls)
 {
   struct Plugin *plugin = cls;
   struct Value *values[num_results];
@@ -497,22 +504,22 @@ heap_plugin_get_closest(void *cls,
     .key = key
   };
 
-  GNUNET_CONTAINER_multihashmap_iterate(plugin->map,
-                                        &find_closest,
-                                        &gcc);
+  GNUNET_CONTAINER_multihashmap_iterate (plugin->map,
+                                         &find_closest,
+                                         &gcc);
   for (unsigned int i = 0; i < num_results; i++)
-    {
-      if (NULL == values[i])
-        return i;
-      iter(iter_cls,
-           &values[i]->key,
-           values[i]->size,
-           (void *)&values[i][1],
-           values[i]->type,
-           values[i]->discard_time,
-           values[i]->path_info_len,
-           values[i]->path_info);
-    }
+  {
+    if (NULL == values[i])
+      return i;
+    iter (iter_cls,
+          &values[i]->key,
+          values[i]->size,
+          (void *) &values[i][1],
+          values[i]->type,
+          values[i]->discard_time,
+          values[i]->path_info_len,
+          values[i]->path_info);
+  }
   return num_results;
 }
 
@@ -524,27 +531,28 @@ heap_plugin_get_closest(void *cls,
  * @return the plugin's closure (our `struct Plugin`)
  */
 void *
-libgnunet_plugin_datacache_heap_init(void *cls)
+libgnunet_plugin_datacache_heap_init (void *cls)
 {
   struct GNUNET_DATACACHE_PluginEnvironment *env = cls;
   struct GNUNET_DATACACHE_PluginFunctions *api;
   struct Plugin *plugin;
 
-  plugin = GNUNET_new(struct Plugin);
-  plugin->map = GNUNET_CONTAINER_multihashmap_create(1024,   /* FIXME: base on quota! */
-                                                     GNUNET_YES);
+  plugin = GNUNET_new (struct Plugin);
+  plugin->map = GNUNET_CONTAINER_multihashmap_create (1024,   /* FIXME: base on quota! */
+                                                      GNUNET_YES);
   for (unsigned int i = 0; i < NUM_HEAPS; i++)
-    plugin->heaps[i] = GNUNET_CONTAINER_heap_create(GNUNET_CONTAINER_HEAP_ORDER_MIN);
+    plugin->heaps[i] = GNUNET_CONTAINER_heap_create (
+      GNUNET_CONTAINER_HEAP_ORDER_MIN);
   plugin->env = env;
-  api = GNUNET_new(struct GNUNET_DATACACHE_PluginFunctions);
+  api = GNUNET_new (struct GNUNET_DATACACHE_PluginFunctions);
   api->cls = plugin;
   api->get = &heap_plugin_get;
   api->put = &heap_plugin_put;
   api->del = &heap_plugin_del;
   api->get_random = &heap_plugin_get_random;
   api->get_closest = &heap_plugin_get_closest;
-  LOG(GNUNET_ERROR_TYPE_INFO,
-      _("Heap datacache running\n"));
+  LOG (GNUNET_ERROR_TYPE_INFO,
+       _ ("Heap datacache running\n"));
   return api;
 }
 
@@ -556,28 +564,28 @@ libgnunet_plugin_datacache_heap_init(void *cls)
  * @return NULL
  */
 void *
-libgnunet_plugin_datacache_heap_done(void *cls)
+libgnunet_plugin_datacache_heap_done (void *cls)
 {
   struct GNUNET_DATACACHE_PluginFunctions *api = cls;
   struct Plugin *plugin = api->cls;
   struct Value *val;
 
   for (unsigned int i = 0; i < NUM_HEAPS; i++)
+  {
+    while (NULL != (val = GNUNET_CONTAINER_heap_remove_root (plugin->heaps[i])))
     {
-      while (NULL != (val = GNUNET_CONTAINER_heap_remove_root(plugin->heaps[i])))
-        {
-          GNUNET_assert(GNUNET_YES ==
-                        GNUNET_CONTAINER_multihashmap_remove(plugin->map,
-                                                             &val->key,
-                                                             val));
-          GNUNET_free_non_null(val->path_info);
-          GNUNET_free(val);
-        }
-      GNUNET_CONTAINER_heap_destroy(plugin->heaps[i]);
+      GNUNET_assert (GNUNET_YES ==
+                     GNUNET_CONTAINER_multihashmap_remove (plugin->map,
+                                                           &val->key,
+                                                           val));
+      GNUNET_free_non_null (val->path_info);
+      GNUNET_free (val);
     }
-  GNUNET_CONTAINER_multihashmap_destroy(plugin->map);
-  GNUNET_free(plugin);
-  GNUNET_free(api);
+    GNUNET_CONTAINER_heap_destroy (plugin->heaps[i]);
+  }
+  GNUNET_CONTAINER_multihashmap_destroy (plugin->map);
+  GNUNET_free (plugin);
+  GNUNET_free (api);
   return NULL;
 }
 

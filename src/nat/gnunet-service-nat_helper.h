@@ -57,10 +57,10 @@ typedef void
  * @return NULL on error
  */
 struct HelperContext *
-GN_start_gnunet_nat_server_(const struct in_addr *internal_address,
-                            GN_ReversalCallback cb,
-                            void *cb_cls,
-                            const struct GNUNET_CONFIGURATION_Handle *cfg);
+GN_start_gnunet_nat_server_ (const struct in_addr *internal_address,
+                             GN_ReversalCallback cb,
+                             void *cb_cls,
+                             const struct GNUNET_CONFIGURATION_Handle *cfg);
 
 
 /**
@@ -70,7 +70,7 @@ GN_start_gnunet_nat_server_(const struct in_addr *internal_address,
  * @param h helper context to stop
  */
 void
-GN_stop_gnunet_nat_server_(struct HelperContext *h);
+GN_stop_gnunet_nat_server_ (struct HelperContext *h);
 
 
 /**
@@ -86,10 +86,10 @@ GN_stop_gnunet_nat_server_(struct HelperContext *h);
  *         #GNUNET_OK otherwise
  */
 int
-GN_request_connection_reversal(const struct in_addr *internal_address,
-                               uint16_t internal_port,
-                               const struct in_addr *remote_v4,
-                               const struct GNUNET_CONFIGURATION_Handle *cfg);
+GN_request_connection_reversal (const struct in_addr *internal_address,
+                                uint16_t internal_port,
+                                const struct in_addr *remote_v4,
+                                const struct GNUNET_CONFIGURATION_Handle *cfg);
 
 
 /* end of gnunet-service-nat_helper.h */

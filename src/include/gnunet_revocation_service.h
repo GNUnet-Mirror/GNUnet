@@ -78,9 +78,9 @@ typedef void (*GNUNET_REVOCATION_Callback) (void *cls,
  * @return handle to use in #GNUNET_REVOCATION_query_cancel to stop REVOCATION from invoking the callback
  */
 struct GNUNET_REVOCATION_Query *
-GNUNET_REVOCATION_query(const struct GNUNET_CONFIGURATION_Handle *cfg,
-                        const struct GNUNET_CRYPTO_EcdsaPublicKey *key,
-                        GNUNET_REVOCATION_Callback func, void *func_cls);
+GNUNET_REVOCATION_query (const struct GNUNET_CONFIGURATION_Handle *cfg,
+                         const struct GNUNET_CRYPTO_EcdsaPublicKey *key,
+                         GNUNET_REVOCATION_Callback func, void *func_cls);
 
 
 /**
@@ -89,7 +89,7 @@ GNUNET_REVOCATION_query(const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @param q query to cancel
  */
 void
-GNUNET_REVOCATION_query_cancel(struct GNUNET_REVOCATION_Query *q);
+GNUNET_REVOCATION_query_cancel (struct GNUNET_REVOCATION_Query *q);
 
 
 /**
@@ -114,11 +114,11 @@ struct GNUNET_REVOCATION_Handle;
  * @return handle to use in #GNUNET_REVOCATION_revoke_cancel to stop REVOCATION from invoking the callback
  */
 struct GNUNET_REVOCATION_Handle *
-GNUNET_REVOCATION_revoke(const struct GNUNET_CONFIGURATION_Handle *cfg,
-                         const struct GNUNET_CRYPTO_EcdsaPublicKey *key,
-                         const struct GNUNET_CRYPTO_EcdsaSignature *sig,
-                         uint64_t pow,
-                         GNUNET_REVOCATION_Callback func, void *func_cls);
+GNUNET_REVOCATION_revoke (const struct GNUNET_CONFIGURATION_Handle *cfg,
+                          const struct GNUNET_CRYPTO_EcdsaPublicKey *key,
+                          const struct GNUNET_CRYPTO_EcdsaSignature *sig,
+                          uint64_t pow,
+                          GNUNET_REVOCATION_Callback func, void *func_cls);
 
 
 /**
@@ -127,7 +127,7 @@ GNUNET_REVOCATION_revoke(const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @param h operation to cancel
  */
 void
-GNUNET_REVOCATION_revoke_cancel(struct GNUNET_REVOCATION_Handle *h);
+GNUNET_REVOCATION_revoke_cancel (struct GNUNET_REVOCATION_Handle *h);
 
 
 /**
@@ -140,9 +140,9 @@ GNUNET_REVOCATION_revoke_cancel(struct GNUNET_REVOCATION_Handle *h);
  * @return #GNUNET_YES if the @a pow is acceptable, #GNUNET_NO if not
  */
 int
-GNUNET_REVOCATION_check_pow(const struct GNUNET_CRYPTO_EcdsaPublicKey *key,
-                            uint64_t pow,
-                            unsigned int matching_bits);
+GNUNET_REVOCATION_check_pow (const struct GNUNET_CRYPTO_EcdsaPublicKey *key,
+                             uint64_t pow,
+                             unsigned int matching_bits);
 
 
 /**
@@ -152,8 +152,9 @@ GNUNET_REVOCATION_check_pow(const struct GNUNET_CRYPTO_EcdsaPublicKey *key,
  * @param sig where to write the revocation signature
  */
 void
-GNUNET_REVOCATION_sign_revocation(const struct GNUNET_CRYPTO_EcdsaPrivateKey *key,
-                                  struct GNUNET_CRYPTO_EcdsaSignature *sig);
+GNUNET_REVOCATION_sign_revocation (const struct
+                                   GNUNET_CRYPTO_EcdsaPrivateKey *key,
+                                   struct GNUNET_CRYPTO_EcdsaSignature *sig);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

@@ -41,7 +41,7 @@
 #define TEST_REMOVE_RECORD_DATA 'b'
 
 
-static struct GNUNET_CRYPTO_EcdsaPrivateKey * privkey;
+static struct GNUNET_CRYPTO_EcdsaPrivateKey *privkey;
 
 static struct GNUNET_GNSRECORD_Data *s_rd;
 
@@ -51,102 +51,103 @@ static int res;
 
 
 static struct GNUNET_GNSRECORD_Data *
-create_record(int count)
+create_record (int count)
 {
   struct GNUNET_GNSRECORD_Data *rd;
 
-  rd = GNUNET_new_array(count, struct GNUNET_GNSRECORD_Data);
+  rd = GNUNET_new_array (count, struct GNUNET_GNSRECORD_Data);
   for (unsigned int c = 0; c < count; c++)
-    {
-      rd[c].expiration_time = GNUNET_TIME_absolute_get().abs_value_us + 1000000000;
-      rd[c].record_type = TEST_RECORD_TYPE;
-      rd[c].data_size = TEST_RECORD_DATALEN;
-      rd[c].data = GNUNET_malloc(TEST_RECORD_DATALEN);
-      memset((char *)rd[c].data, TEST_RECORD_DATA, TEST_RECORD_DATALEN);
-    }
+  {
+    rd[c].expiration_time = GNUNET_TIME_absolute_get ().abs_value_us
+                            + 1000000000;
+    rd[c].record_type = TEST_RECORD_TYPE;
+    rd[c].data_size = TEST_RECORD_DATALEN;
+    rd[c].data = GNUNET_malloc (TEST_RECORD_DATALEN);
+    memset ((char *) rd[c].data, TEST_RECORD_DATA, TEST_RECORD_DATALEN);
+  }
   return rd;
 }
 
 
 static void
-rd_decrypt_cb(void *cls,
-              unsigned int rd_count,
-              const struct GNUNET_GNSRECORD_Data *rd)
+rd_decrypt_cb (void *cls,
+               unsigned int rd_count,
+               const struct GNUNET_GNSRECORD_Data *rd)
 {
   char rd_cmp_data[TEST_RECORD_DATALEN];
 
-  GNUNET_assert(RECORDS == rd_count);
-  GNUNET_assert(NULL != rd);
-  memset(rd_cmp_data,
-         'a',
-         TEST_RECORD_DATALEN);
+  GNUNET_assert (RECORDS == rd_count);
+  GNUNET_assert (NULL != rd);
+  memset (rd_cmp_data,
+          'a',
+          TEST_RECORD_DATALEN);
   for (unsigned int c = 0; c < rd_count; c++)
-    {
-      GNUNET_assert(TEST_RECORD_TYPE == rd[c].record_type);
-      GNUNET_assert(TEST_RECORD_DATALEN == rd[c].data_size);
-      GNUNET_assert(0 == memcmp(&rd_cmp_data,
+  {
+    GNUNET_assert (TEST_RECORD_TYPE == rd[c].record_type);
+    GNUNET_assert (TEST_RECORD_DATALEN == rd[c].data_size);
+    GNUNET_assert (0 == memcmp (&rd_cmp_data,
                                 rd[c].data,
                                 TEST_RECORD_DATALEN));
-    }
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-             "Block was decrypted successfully \n");
+  }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Block was decrypted successfully \n");
   res = 0;
 }
 
 static void
-run(void *cls,
-    char *const *args,
-    const char *cfgfile,
-    const struct GNUNET_CONFIGURATION_Handle *cfg)
+run (void *cls,
+     char *const *args,
+     const char *cfgfile,
+     const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   struct GNUNET_GNSRECORD_Block *block;
   struct GNUNET_CRYPTO_EcdsaPublicKey pubkey;
   struct GNUNET_HashCode query_pub;
   struct GNUNET_HashCode query_priv;
-  struct GNUNET_TIME_Absolute expire = GNUNET_TIME_absolute_get();
+  struct GNUNET_TIME_Absolute expire = GNUNET_TIME_absolute_get ();
 
-  privkey = GNUNET_CRYPTO_ecdsa_key_create();
-  GNUNET_assert(NULL != privkey);
+  privkey = GNUNET_CRYPTO_ecdsa_key_create ();
+  GNUNET_assert (NULL != privkey);
   /* get public key */
-  GNUNET_CRYPTO_ecdsa_key_get_public(privkey,
-                                     &pubkey);
+  GNUNET_CRYPTO_ecdsa_key_get_public (privkey,
+                                      &pubkey);
 
   /* test query derivation */
-  GNUNET_GNSRECORD_query_from_private_key(privkey,
+  GNUNET_GNSRECORD_query_from_private_key (privkey,
+                                           "testlabel",
+                                           &query_priv);
+  GNUNET_GNSRECORD_query_from_public_key (&pubkey,
                                           "testlabel",
-                                          &query_priv);
-  GNUNET_GNSRECORD_query_from_public_key(&pubkey,
-                                         "testlabel",
-                                         &query_pub);
-  GNUNET_assert(0 == memcmp(&query_priv,
-                            &query_pub,
-                            sizeof(struct GNUNET_HashCode)));
+                                          &query_pub);
+  GNUNET_assert (0 == memcmp (&query_priv,
+                              &query_pub,
+                              sizeof(struct GNUNET_HashCode)));
   /* create record */
   s_name = "DUMMY.dummy.gnunet";
-  s_rd = create_record(RECORDS);
+  s_rd = create_record (RECORDS);
 
   /* Create block */
-  GNUNET_assert(NULL != (block =
-                           GNUNET_GNSRECORD_block_create(privkey,
-                                                         expire,
-                                                         s_name,
-                                                         s_rd,
-                                                         RECORDS)));
-  GNUNET_assert(GNUNET_OK ==
-                GNUNET_GNSRECORD_block_verify(block));
-  GNUNET_assert(GNUNET_OK ==
-                GNUNET_GNSRECORD_block_decrypt(block,
-                                               &pubkey,
-                                               s_name,
-                                               &rd_decrypt_cb,
-                                               s_name));
-  GNUNET_free(block);
-  GNUNET_free(privkey);
+  GNUNET_assert (NULL != (block =
+                            GNUNET_GNSRECORD_block_create (privkey,
+                                                           expire,
+                                                           s_name,
+                                                           s_rd,
+                                                           RECORDS)));
+  GNUNET_assert (GNUNET_OK ==
+                 GNUNET_GNSRECORD_block_verify (block));
+  GNUNET_assert (GNUNET_OK ==
+                 GNUNET_GNSRECORD_block_decrypt (block,
+                                                 &pubkey,
+                                                 s_name,
+                                                 &rd_decrypt_cb,
+                                                 s_name));
+  GNUNET_free (block);
+  GNUNET_free (privkey);
 }
 
 
 int
-main(int argc, char *argv[])
+main (int argc, char *argv[])
 {
   static char *const argvx[] = {
     "test-gnsrecord-crypto",
@@ -157,11 +158,11 @@ main(int argc, char *argv[])
   };
 
   res = 1;
-  GNUNET_PROGRAM_run((sizeof(argvx) / sizeof(char *)) - 1,
-                     argvx,
-                     "test-gnsrecord-crypto",
-                     "nohelp", options,
-                     &run, &res);
+  GNUNET_PROGRAM_run ((sizeof(argvx) / sizeof(char *)) - 1,
+                      argvx,
+                      "test-gnsrecord-crypto",
+                      "nohelp", options,
+                      &run, &res);
   return res;
 }
 

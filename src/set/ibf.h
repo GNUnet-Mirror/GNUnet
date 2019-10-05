@@ -42,7 +42,8 @@ extern "C"
 /**
  * Keys that can be inserted into and removed from an IBF.
  */
-struct IBF_Key {
+struct IBF_Key
+{
   uint64_t key_val;
 };
 
@@ -50,7 +51,8 @@ struct IBF_Key {
 /**
  * Hash of an IBF key.
  */
-struct IBF_KeyHash {
+struct IBF_KeyHash
+{
   uint32_t key_hash_val;
 };
 
@@ -58,7 +60,8 @@ struct IBF_KeyHash {
 /**
  * Type of the count field of IBF buckets.
  */
-struct IBF_Count {
+struct IBF_Count
+{
   int8_t count_val;
 };
 
@@ -66,8 +69,8 @@ struct IBF_Count {
 /**
  * Size of one ibf bucket in bytes
  */
-#define IBF_BUCKET_SIZE (sizeof(struct IBF_Count) + sizeof(struct IBF_Key) + \
-                         sizeof(struct IBF_KeyHash))
+#define IBF_BUCKET_SIZE (sizeof(struct IBF_Count) + sizeof(struct IBF_Key)   \
+                         + sizeof(struct IBF_KeyHash))
 
 
 /**
@@ -76,7 +79,8 @@ struct IBF_Count {
  * An IBF is a counting bloom filter that has the ability to restore
  * the hashes of its stored elements with high probability.
  */
-struct InvertibleBloomFilter {
+struct InvertibleBloomFilter
+{
   /**
    * How many cells does this IBF have?
    */
@@ -119,10 +123,10 @@ struct InvertibleBloomFilter {
  * @param buf buffer to write the data to
  */
 void
-ibf_write_slice(const struct InvertibleBloomFilter *ibf,
-                uint32_t start,
-                uint32_t count,
-                void *buf);
+ibf_write_slice (const struct InvertibleBloomFilter *ibf,
+                 uint32_t start,
+                 uint32_t count,
+                 void *buf);
 
 
 /**
@@ -134,10 +138,10 @@ ibf_write_slice(const struct InvertibleBloomFilter *ibf,
  * @param ibf the ibf to write to
  */
 void
-ibf_read_slice(const void *buf,
-               uint32_t start,
-               uint32_t count,
-               struct InvertibleBloomFilter *ibf);
+ibf_read_slice (const void *buf,
+                uint32_t start,
+                uint32_t count,
+                struct InvertibleBloomFilter *ibf);
 
 
 /**
@@ -147,7 +151,7 @@ ibf_read_slice(const void *buf,
  * @return a key
  */
 struct IBF_Key
-ibf_key_from_hashcode(const struct GNUNET_HashCode *hash);
+ibf_key_from_hashcode (const struct GNUNET_HashCode *hash);
 
 
 /**
@@ -158,7 +162,7 @@ ibf_key_from_hashcode(const struct GNUNET_HashCode *hash);
  * @param dst hashcode to store the result in
  */
 void
-ibf_hashcode_from_key(struct IBF_Key key, struct GNUNET_HashCode *dst);
+ibf_hashcode_from_key (struct IBF_Key key, struct GNUNET_HashCode *dst);
 
 
 /**
@@ -169,7 +173,7 @@ ibf_hashcode_from_key(struct IBF_Key key, struct GNUNET_HashCode *dst);
  * @return the newly created invertible bloom filter, NULL on error
  */
 struct InvertibleBloomFilter *
-ibf_create(uint32_t size, uint8_t hash_num);
+ibf_create (uint32_t size, uint8_t hash_num);
 
 
 /**
@@ -179,7 +183,7 @@ ibf_create(uint32_t size, uint8_t hash_num);
  * @param key the element's hash code
  */
 void
-ibf_insert(struct InvertibleBloomFilter *ibf, struct IBF_Key key);
+ibf_insert (struct InvertibleBloomFilter *ibf, struct IBF_Key key);
 
 
 /**
@@ -189,7 +193,7 @@ ibf_insert(struct InvertibleBloomFilter *ibf, struct IBF_Key key);
  * @param key the element's hash code
  */
 void
-ibf_remove(struct InvertibleBloomFilter *ibf, struct IBF_Key key);
+ibf_remove (struct InvertibleBloomFilter *ibf, struct IBF_Key key);
 
 
 /**
@@ -200,8 +204,8 @@ ibf_remove(struct InvertibleBloomFilter *ibf, struct IBF_Key key);
  * @param ibf2 IBF that will be subtracted from ibf1
  */
 void
-ibf_subtract(struct InvertibleBloomFilter *ibf1,
-             const struct InvertibleBloomFilter *ibf2);
+ibf_subtract (struct InvertibleBloomFilter *ibf1,
+              const struct InvertibleBloomFilter *ibf2);
 
 
 /**
@@ -217,9 +221,9 @@ ibf_subtract(struct InvertibleBloomFilter *ibf1,
  *         #GNUNET_SYSERR if the decoding has failed
  */
 int
-ibf_decode(struct InvertibleBloomFilter *ibf,
-           int *ret_side,
-           struct IBF_Key *ret_id);
+ibf_decode (struct InvertibleBloomFilter *ibf,
+            int *ret_side,
+            struct IBF_Key *ret_id);
 
 
 /**
@@ -228,7 +232,7 @@ ibf_decode(struct InvertibleBloomFilter *ibf,
  * @param ibf the IBF to copy
  */
 struct InvertibleBloomFilter *
-ibf_dup(const struct InvertibleBloomFilter *ibf);
+ibf_dup (const struct InvertibleBloomFilter *ibf);
 
 
 /**
@@ -238,7 +242,7 @@ ibf_dup(const struct InvertibleBloomFilter *ibf);
  * @param ibf the intertible bloom filter to destroy
  */
 void
-ibf_destroy(struct InvertibleBloomFilter *ibf);
+ibf_destroy (struct InvertibleBloomFilter *ibf);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

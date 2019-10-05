@@ -81,7 +81,8 @@ typedef void (*GNUNET_SPEAKER_PlayCallback)(void *cls,
 /**
  * A speaker is a device that can play or record audio data.
  */
-struct GNUNET_SPEAKER_Handle {
+struct GNUNET_SPEAKER_Handle
+{
   /**
    * Turn on the speaker.
    */
@@ -117,7 +118,8 @@ struct GNUNET_SPEAKER_Handle {
  * @return NULL on error
  */
 struct GNUNET_SPEAKER_Handle *
-GNUNET_SPEAKER_create_from_hardware(const struct GNUNET_CONFIGURATION_Handle *cfg);
+GNUNET_SPEAKER_create_from_hardware (const struct
+                                     GNUNET_CONFIGURATION_Handle *cfg);
 
 
 /**
@@ -126,7 +128,7 @@ GNUNET_SPEAKER_create_from_hardware(const struct GNUNET_CONFIGURATION_Handle *cf
  * @param speaker speaker to destroy
  */
 void
-GNUNET_SPEAKER_destroy(struct GNUNET_SPEAKER_Handle *speaker);
+GNUNET_SPEAKER_destroy (struct GNUNET_SPEAKER_Handle *speaker);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

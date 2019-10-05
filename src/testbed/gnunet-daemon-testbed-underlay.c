@@ -38,13 +38,13 @@
  * Logging shorthand
  */
 #define LOG(type, ...)                           \
-  GNUNET_log(type, __VA_ARGS__)
+  GNUNET_log (type, __VA_ARGS__)
 
 /**
  * Debug logging shorthand
  */
 #define DEBUG(...)                              \
-  LOG(GNUNET_ERROR_TYPE_DEBUG, __VA_ARGS__)
+  LOG (GNUNET_ERROR_TYPE_DEBUG, __VA_ARGS__)
 
 /**
  * Log an error message at log-level 'level' that indicates
@@ -53,12 +53,13 @@
  */
 #define LOG_SQLITE(db, msg, level, cmd)                                 \
   do {                                                                  \
-      GNUNET_log_from(level, "sqlite", _("`%s' failed at %s:%d with error: %s\n"), \
-                      cmd, __FILE__, __LINE__, sqlite3_errmsg(db));  \
-      if (msg != NULL)                                                    \
-      GNUNET_asprintf (msg, _("`%s' failed at %s:%u with error: %s"), cmd, \
-                       __FILE__, __LINE__, sqlite3_errmsg(db));     \
-    } while (0)
+    GNUNET_log_from (level, "sqlite", _ ( \
+                       "`%s' failed at %s:%d with error: %s\n"), \
+                     cmd, __FILE__, __LINE__, sqlite3_errmsg (db));  \
+    if (msg != NULL)                                                    \
+      GNUNET_asprintf (msg, _ ("`%s' failed at %s:%u with error: %s"), cmd, \
+                       __FILE__, __LINE__, sqlite3_errmsg (db));     \
+  } while (0)
 
 
 /**
@@ -115,10 +116,10 @@ static unsigned int num_hostkeys;
  *         #GNUNET_NO if not.
  */
 static int
-iterator(void *cls, const struct GNUNET_PeerIdentity *key, void *value)
+iterator (void *cls, const struct GNUNET_PeerIdentity *key, void *value)
 {
-  GNUNET_assert(GNUNET_YES == GNUNET_CONTAINER_multipeermap_remove(map, key,
-                                                                   value));
+  GNUNET_assert (GNUNET_YES == GNUNET_CONTAINER_multipeermap_remove (map, key,
+                                                                     value));
   return GNUNET_YES;
 }
 
@@ -127,16 +128,17 @@ iterator(void *cls, const struct GNUNET_PeerIdentity *key, void *value)
  * Cleaup and destroy the map
  */
 static void
-cleanup_map()
+cleanup_map ()
 {
   if (NULL != map)
-    {
-      GNUNET_assert(GNUNET_SYSERR != GNUNET_CONTAINER_multipeermap_iterate(map,
-                                                                           &iterator,
+  {
+    GNUNET_assert (GNUNET_SYSERR != GNUNET_CONTAINER_multipeermap_iterate (map,
+                                                                           &
+                                                                           iterator,
                                                                            NULL));
-      GNUNET_CONTAINER_multipeermap_destroy(map);
-      map = NULL;
-    }
+    GNUNET_CONTAINER_multipeermap_destroy (map);
+    map = NULL;
+  }
 }
 
 
@@ -148,35 +150,35 @@ cleanup_map()
  * @return GNUNET_OK if the connection is allowed, GNUNET_SYSERR if not
  */
 static int
-check_access(void *cls, const struct GNUNET_PeerIdentity * pid)
+check_access (void *cls, const struct GNUNET_PeerIdentity *pid)
 {
   int contains;
 
-  GNUNET_assert(NULL != map);
-  contains = GNUNET_CONTAINER_multipeermap_contains(map, pid);
+  GNUNET_assert (NULL != map);
+  contains = GNUNET_CONTAINER_multipeermap_contains (map, pid);
   if (GNUNET_YES == contains)
-    {
-      DEBUG("Permitting `%s'\n", GNUNET_i2s(pid));
-      return GNUNET_OK;
-    }
-  DEBUG("Not permitting `%s'\n", GNUNET_i2s(pid));
+  {
+    DEBUG ("Permitting `%s'\n", GNUNET_i2s (pid));
+    return GNUNET_OK;
+  }
+  DEBUG ("Not permitting `%s'\n", GNUNET_i2s (pid));
   return GNUNET_SYSERR;
 }
 
 
 static int
-get_identity(unsigned int offset,
-             struct GNUNET_PeerIdentity *id)
+get_identity (unsigned int offset,
+              struct GNUNET_PeerIdentity *id)
 {
   struct GNUNET_CRYPTO_EddsaPrivateKey private_key;
 
   if (offset >= num_hostkeys)
     return GNUNET_SYSERR;
-  GNUNET_memcpy(&private_key,
-                hostkeys_data + (offset * GNUNET_TESTING_HOSTKEYFILESIZE),
-                GNUNET_TESTING_HOSTKEYFILESIZE);
-  GNUNET_CRYPTO_eddsa_key_get_public(&private_key,
-                                     &id->public_key);
+  GNUNET_memcpy (&private_key,
+                 hostkeys_data + (offset * GNUNET_TESTING_HOSTKEYFILESIZE),
+                 GNUNET_TESTING_HOSTKEYFILESIZE);
+  GNUNET_CRYPTO_eddsa_key_get_public (&private_key,
+                                      &id->public_key);
   return GNUNET_OK;
 }
 
@@ -184,7 +186,8 @@ get_identity(unsigned int offset,
 /**
  * Whilelist entry
  */
-struct WhiteListRow {
+struct WhiteListRow
+{
   /**
    * Next ptr
    */
@@ -206,7 +209,7 @@ struct WhiteListRow {
  * Function to load keys
  */
 static int
-load_keys(const struct GNUNET_CONFIGURATION_Handle *c)
+load_keys (const struct GNUNET_CONFIGURATION_Handle *c)
 {
   char *data_dir;
   char *idfile;
@@ -215,42 +218,42 @@ load_keys(const struct GNUNET_CONFIGURATION_Handle *c)
   data_dir = NULL;
   idfile = NULL;
   fsize = 0;
-  data_dir = GNUNET_OS_installation_get_path(GNUNET_OS_IPK_DATADIR);
-  GNUNET_asprintf(&idfile, "%s/testing_hostkeys.ecc", data_dir);
-  GNUNET_free(data_dir);
+  data_dir = GNUNET_OS_installation_get_path (GNUNET_OS_IPK_DATADIR);
+  GNUNET_asprintf (&idfile, "%s/testing_hostkeys.ecc", data_dir);
+  GNUNET_free (data_dir);
   data_dir = NULL;
   if (GNUNET_OK !=
-      GNUNET_DISK_file_size(idfile, &fsize, GNUNET_YES, GNUNET_YES))
-    {
-      GNUNET_free(idfile);
-      return GNUNET_SYSERR;
-    }
+      GNUNET_DISK_file_size (idfile, &fsize, GNUNET_YES, GNUNET_YES))
+  {
+    GNUNET_free (idfile);
+    return GNUNET_SYSERR;
+  }
   if (0 != (fsize % GNUNET_TESTING_HOSTKEYFILESIZE))
-    {
-      LOG(GNUNET_ERROR_TYPE_ERROR,
-          _("Incorrect hostkey file format: %s\n"), idfile);
-      GNUNET_free(idfile);
-      return GNUNET_SYSERR;
-    }
-  hostkeys_fd = GNUNET_DISK_file_open(idfile, GNUNET_DISK_OPEN_READ,
-                                      GNUNET_DISK_PERM_NONE);
+  {
+    LOG (GNUNET_ERROR_TYPE_ERROR,
+         _ ("Incorrect hostkey file format: %s\n"), idfile);
+    GNUNET_free (idfile);
+    return GNUNET_SYSERR;
+  }
+  hostkeys_fd = GNUNET_DISK_file_open (idfile, GNUNET_DISK_OPEN_READ,
+                                       GNUNET_DISK_PERM_NONE);
   if (NULL == hostkeys_fd)
-    {
-      GNUNET_log_strerror_file(GNUNET_ERROR_TYPE_ERROR, "open", idfile);
-      GNUNET_free(idfile);
-      return GNUNET_SYSERR;
-    }
-  GNUNET_free(idfile);
+  {
+    GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, "open", idfile);
+    GNUNET_free (idfile);
+    return GNUNET_SYSERR;
+  }
+  GNUNET_free (idfile);
   idfile = NULL;
-  hostkeys_data = GNUNET_DISK_file_map(hostkeys_fd,
-                                       &hostkeys_map,
-                                       GNUNET_DISK_MAP_TYPE_READ,
-                                       fsize);
+  hostkeys_data = GNUNET_DISK_file_map (hostkeys_fd,
+                                        &hostkeys_map,
+                                        GNUNET_DISK_MAP_TYPE_READ,
+                                        fsize);
   if (NULL == hostkeys_data)
-    {
-      GNUNET_log_strerror(GNUNET_ERROR_TYPE_ERROR, "mmap");
-      return GNUNET_SYSERR;
-    }
+  {
+    GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "mmap");
+    return GNUNET_SYSERR;
+  }
   num_hostkeys = fsize / GNUNET_TESTING_HOSTKEYFILESIZE;
   return GNUNET_OK;
 }
@@ -260,20 +263,20 @@ load_keys(const struct GNUNET_CONFIGURATION_Handle *c)
  * Function to unload keys
  */
 static void
-unload_keys()
+unload_keys ()
 {
   if (NULL != hostkeys_map)
-    {
-      GNUNET_assert(NULL != hostkeys_data);
-      GNUNET_DISK_file_unmap(hostkeys_map);
-      hostkeys_map = NULL;
-      hostkeys_data = NULL;
-    }
+  {
+    GNUNET_assert (NULL != hostkeys_data);
+    GNUNET_DISK_file_unmap (hostkeys_map);
+    hostkeys_map = NULL;
+    hostkeys_data = NULL;
+  }
   if (NULL != hostkeys_fd)
-    {
-      GNUNET_DISK_file_close(hostkeys_fd);
-      hostkeys_fd = NULL;
-    }
+  {
+    GNUNET_DISK_file_close (hostkeys_fd);
+    hostkeys_fd = NULL;
+  }
 }
 
 
@@ -283,17 +286,17 @@ unload_keys()
  * @param cls NULL
  */
 static void
-do_shutdown(void *cls)
+do_shutdown (void *cls)
 {
   if (NULL != transport)
-    {
-      GNUNET_TRANSPORT_manipulation_disconnect(transport);
-      transport = NULL;
-    }
-  cleanup_map();
-  unload_keys();
+  {
+    GNUNET_TRANSPORT_manipulation_disconnect (transport);
+    transport = NULL;
+  }
+  cleanup_map ();
+  unload_keys ();
   if (NULL != bh)
-    GNUNET_TRANSPORT_blacklist_cancel(bh);
+    GNUNET_TRANSPORT_blacklist_cancel (bh);
 }
 
 
@@ -306,40 +309,42 @@ do_shutdown(void *cls)
  * @return GNUNET_SYSERR upon error OR the number of rows retrieved
  */
 static int
-db_read_whitelist(struct sqlite3 *db, int pid, struct WhiteListRow **wl_rows)
+db_read_whitelist (struct sqlite3 *db, int pid, struct WhiteListRow **wl_rows)
 {
-  static const char *query_wl = "SELECT oid, latency FROM whitelist WHERE (id == ?);";
+  static const char *query_wl =
+    "SELECT oid, latency FROM whitelist WHERE (id == ?);";
   struct sqlite3_stmt *stmt_wl;
   struct WhiteListRow *lr;
   int nrows;
   int ret;
 
-  if (SQLITE_OK != (ret = sqlite3_prepare_v2(db, query_wl, -1, &stmt_wl, NULL)))
-    {
-      LOG_SQLITE(db, NULL, GNUNET_ERROR_TYPE_ERROR, "sqlite3_prepare_v2");
-      return GNUNET_SYSERR;
-    }
-  if (SQLITE_OK != (ret = sqlite3_bind_int(stmt_wl, 1, pid)))
-    {
-      LOG_SQLITE(db, NULL, GNUNET_ERROR_TYPE_ERROR, "sqlite3_bind_int");
-      sqlite3_finalize(stmt_wl);
-      return GNUNET_SYSERR;
-    }
+  if (SQLITE_OK != (ret = sqlite3_prepare_v2 (db, query_wl, -1, &stmt_wl,
+                                              NULL)))
+  {
+    LOG_SQLITE (db, NULL, GNUNET_ERROR_TYPE_ERROR, "sqlite3_prepare_v2");
+    return GNUNET_SYSERR;
+  }
+  if (SQLITE_OK != (ret = sqlite3_bind_int (stmt_wl, 1, pid)))
+  {
+    LOG_SQLITE (db, NULL, GNUNET_ERROR_TYPE_ERROR, "sqlite3_bind_int");
+    sqlite3_finalize (stmt_wl);
+    return GNUNET_SYSERR;
+  }
   nrows = 0;
   do
-    {
-      ret = sqlite3_step(stmt_wl);
-      if (SQLITE_ROW != ret)
-        break;
-      nrows++;
-      lr = GNUNET_new(struct WhiteListRow);
-      lr->id = sqlite3_column_int(stmt_wl, 0);
-      lr->latency = sqlite3_column_int(stmt_wl, 1);
-      lr->next = *wl_rows;
-      *wl_rows = lr;
-    }
+  {
+    ret = sqlite3_step (stmt_wl);
+    if (SQLITE_ROW != ret)
+      break;
+    nrows++;
+    lr = GNUNET_new (struct WhiteListRow);
+    lr->id = sqlite3_column_int (stmt_wl, 0);
+    lr->latency = sqlite3_column_int (stmt_wl, 1);
+    lr->next = *wl_rows;
+    *wl_rows = lr;
+  }
   while (1);
-  sqlite3_finalize(stmt_wl);
+  sqlite3_finalize (stmt_wl);
   return nrows;
 }
 
@@ -353,8 +358,8 @@ db_read_whitelist(struct sqlite3 *db, int pid, struct WhiteListRow **wl_rows)
  * @param c configuration
  */
 static void
-run(void *cls, char *const *args, const char *cfgfile,
-    const struct GNUNET_CONFIGURATION_Handle *c)
+run (void *cls, char *const *args, const char *cfgfile,
+     const struct GNUNET_CONFIGURATION_Handle *c)
 {
   char *dbfile;
   struct WhiteListRow *wl_head;
@@ -367,78 +372,80 @@ run(void *cls, char *const *args, const char *cfgfile,
   int ret;
 
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_number(c, "TESTBED",
-                                            "PEERID", &pid))
+      GNUNET_CONFIGURATION_get_value_number (c, "TESTBED",
+                                             "PEERID", &pid))
+  {
+    GNUNET_break (0);
+    return;
+  }
+  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_filename (c,
+                                                            "TESTBED-UNDERLAY",
+                                                            "DBFILE",
+                                                            &dbfile))
+  {
+    GNUNET_break (0);
+    return;
+  }
+  if (SQLITE_OK != (ret = sqlite3_open_v2 (dbfile, &db, SQLITE_OPEN_READONLY,
+                                           NULL)))
+  {
+    if (NULL != db)
     {
-      GNUNET_break(0);
-      return;
+      LOG_SQLITE (db, NULL, GNUNET_ERROR_TYPE_ERROR, "sqlite_open_v2");
+      GNUNET_break (SQLITE_OK == sqlite3_close (db));
     }
-  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_filename(c, "TESTBED-UNDERLAY",
-                                                           "DBFILE",
-                                                           &dbfile))
-    {
-      GNUNET_break(0);
-      return;
-    }
-  if (SQLITE_OK != (ret = sqlite3_open_v2(dbfile, &db, SQLITE_OPEN_READONLY, NULL)))
-    {
-      if (NULL != db)
-        {
-          LOG_SQLITE(db, NULL, GNUNET_ERROR_TYPE_ERROR, "sqlite_open_v2");
-          GNUNET_break(SQLITE_OK == sqlite3_close(db));
-        }
-      else
-        LOG(GNUNET_ERROR_TYPE_ERROR, "Cannot open sqlite file %s\n", dbfile);
-      GNUNET_free(dbfile);
-      return;
-    }
-  DEBUG("Opened database %s\n", dbfile);
-  GNUNET_free(dbfile);
+    else
+      LOG (GNUNET_ERROR_TYPE_ERROR, "Cannot open sqlite file %s\n", dbfile);
+    GNUNET_free (dbfile);
+    return;
+  }
+  DEBUG ("Opened database %s\n", dbfile);
+  GNUNET_free (dbfile);
   dbfile = NULL;
   wl_head = NULL;
-  if (GNUNET_OK != load_keys(c))
+  if (GNUNET_OK != load_keys (c))
     goto close_db;
 
-  transport = GNUNET_TRANSPORT_manipulation_connect(c);
+  transport = GNUNET_TRANSPORT_manipulation_connect (c);
   if (NULL == transport)
-    {
-      GNUNET_break(0);
-      return;
-    }
+  {
+    GNUNET_break (0);
+    return;
+  }
   /* read and process whitelist */
   nrows = 0;
   wl_head = NULL;
-  nrows = db_read_whitelist(db, pid, &wl_head);
+  nrows = db_read_whitelist (db, pid, &wl_head);
   if ((GNUNET_SYSERR == nrows) || (0 == nrows))
-    {
-      GNUNET_TRANSPORT_manipulation_disconnect(transport);
-      goto close_db;
-    }
-  map = GNUNET_CONTAINER_multipeermap_create(nrows, GNUNET_NO);
+  {
+    GNUNET_TRANSPORT_manipulation_disconnect (transport);
+    goto close_db;
+  }
+  map = GNUNET_CONTAINER_multipeermap_create (nrows, GNUNET_NO);
   while (NULL != (wl_entry = wl_head))
-    {
-      wl_head = wl_entry->next;
-      delay.rel_value_us = wl_entry->latency;
-      memset(&prop, 0, sizeof(prop));
-      GNUNET_assert(GNUNET_OK == get_identity(wl_entry->id, &identity));
-      GNUNET_break(GNUNET_OK ==
-                   GNUNET_CONTAINER_multipeermap_put(map, &identity, &identity,
+  {
+    wl_head = wl_entry->next;
+    delay.rel_value_us = wl_entry->latency;
+    memset (&prop, 0, sizeof(prop));
+    GNUNET_assert (GNUNET_OK == get_identity (wl_entry->id, &identity));
+    GNUNET_break (GNUNET_OK ==
+                  GNUNET_CONTAINER_multipeermap_put (map, &identity, &identity,
                                                      GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST));
-      DEBUG("Setting %u ms latency to peer `%s'\n",
-            wl_entry->latency,
-            GNUNET_i2s(&identity));
-      GNUNET_TRANSPORT_manipulation_set(transport,
-                                        &identity,
-                                        &prop,
-                                        delay,
-                                        delay);
-      GNUNET_free(wl_entry);
-    }
-  bh = GNUNET_TRANSPORT_blacklist(c, &check_access, NULL);
-  GNUNET_SCHEDULER_add_shutdown(&do_shutdown, NULL);
+    DEBUG ("Setting %u ms latency to peer `%s'\n",
+           wl_entry->latency,
+           GNUNET_i2s (&identity));
+    GNUNET_TRANSPORT_manipulation_set (transport,
+                                       &identity,
+                                       &prop,
+                                       delay,
+                                       delay);
+    GNUNET_free (wl_entry);
+  }
+  bh = GNUNET_TRANSPORT_blacklist (c, &check_access, NULL);
+  GNUNET_SCHEDULER_add_shutdown (&do_shutdown, NULL);
 
 close_db:
-  GNUNET_break(SQLITE_OK == sqlite3_close(db));
+  GNUNET_break (SQLITE_OK == sqlite3_close (db));
 }
 
 
@@ -450,24 +457,25 @@ close_db:
  * @return 0 ok, 1 on error
  */
 int
-main(int argc, char *const *argv)
+main (int argc, char *const *argv)
 {
   static const struct GNUNET_GETOPT_CommandLineOption options[] = {
     GNUNET_GETOPT_OPTION_END
   };
   int ret;
 
-  if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args(argc, argv, &argc, &argv))
+  if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv, &argc, &argv))
     return 2;
 #ifdef SQLITE_CONFIG_MMAP_SIZE
-  (void)sqlite3_config(SQLITE_CONFIG_MMAP_SIZE, 512000, 256000000);
+  (void) sqlite3_config (SQLITE_CONFIG_MMAP_SIZE, 512000, 256000000);
 #endif
   ret =
     (GNUNET_OK ==
-     GNUNET_PROGRAM_run(argc, argv, "testbed-underlay",
-                        _
-                          ("Daemon to restrict underlay network in testbed deployments"),
-                        options, &run, NULL)) ? 0 : 1;
-  GNUNET_free((void*)argv);
+     GNUNET_PROGRAM_run (argc, argv, "testbed-underlay",
+                         _
+                         (
+                           "Daemon to restrict underlay network in testbed deployments"),
+                         options, &run, NULL)) ? 0 : 1;
+  GNUNET_free ((void*) argv);
   return ret;
 }

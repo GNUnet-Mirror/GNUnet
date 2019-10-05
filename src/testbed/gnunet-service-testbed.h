@@ -42,13 +42,13 @@
  * Generic logging
  */
 #define LOG(kind, ...)                           \
-  GNUNET_log(kind, __VA_ARGS__)
+  GNUNET_log (kind, __VA_ARGS__)
 
 /**
  * Debug logging
  */
 #define LOG_DEBUG(...)                          \
-  LOG(GNUNET_ERROR_TYPE_DEBUG, __VA_ARGS__)
+  LOG (GNUNET_ERROR_TYPE_DEBUG, __VA_ARGS__)
 
 /**
  * By how much should the arrays lists grow
@@ -59,7 +59,8 @@
 /**
  * A routing entry
  */
-struct Route {
+struct Route
+{
   /**
    * destination host
    */
@@ -75,7 +76,8 @@ struct Route {
 /**
  * Context information for operations forwarded to subcontrollers
  */
-struct ForwardedOperationContext {
+struct ForwardedOperationContext
+{
   /**
    * The next pointer for DLL
    */
@@ -104,7 +106,7 @@ struct ForwardedOperationContext {
   /**
    * Task ID for the timeout task
    */
-  struct GNUNET_SCHEDULER_Task * timeout_task;
+  struct GNUNET_SCHEDULER_Task *timeout_task;
 
   /**
    * The id of the operation that has been forwarded
@@ -121,7 +123,8 @@ struct ForwardedOperationContext {
 /**
  * A DLL of host registrations to be made
  */
-struct HostRegistration {
+struct HostRegistration
+{
   /**
    * next registration in the DLL
    */
@@ -152,7 +155,8 @@ struct HostRegistration {
 /**
  * Context information used while linking controllers
  */
-struct LinkControllersContext {
+struct LinkControllersContext
+{
   /**
    * The client which initiated the link controller operation
    */
@@ -168,9 +172,12 @@ struct LinkControllersContext {
 /**
  * A peer
  */
-struct Peer {
-  union {
-    struct {
+struct Peer
+{
+  union
+  {
+    struct
+    {
       /**
        * The peer handle from testing API
        */
@@ -188,7 +195,8 @@ struct Peer {
       int is_running;
     } local;
 
-    struct {
+    struct
+    {
       /**
        * The slave this peer is started through
        */
@@ -234,7 +242,8 @@ struct Peer {
 /**
  * The main context information associated with the client which started us
  */
-struct Context {
+struct Context
+{
   /**
    * The client handle associated with this context
    */
@@ -260,7 +269,8 @@ struct Context {
 /**
  * The structure for identifying a shared service
  */
-struct SharedService {
+struct SharedService
+{
   /**
    * The name of the shared service
    */
@@ -285,7 +295,8 @@ struct RegisteredHostContext;
  * Context information to used during operations which forward the overlay
  * connect message
  */
-struct ForwardedOverlayConnectContext {
+struct ForwardedOverlayConnectContext
+{
   /**
    * next ForwardedOverlayConnectContext in the DLL
    */
@@ -337,7 +348,8 @@ struct ForwardedOverlayConnectContext {
  * This context information will be created for each host that is registered at
  * slave controllers during overlay connects.
  */
-struct RegisteredHostContext {
+struct RegisteredHostContext
+{
   /**
    * The host which is being registered
    */
@@ -361,7 +373,8 @@ struct RegisteredHostContext {
   /**
    * Enumeration of states for this context
    */
-  enum RHCState {
+  enum RHCState
+  {
     /**
      * The initial state
      */
@@ -378,7 +391,8 @@ struct RegisteredHostContext {
 /**
  * Context data for #GNUNET_MESSAGE_TYPE_TESTBED_SHUTDOWN_PEERS handler
  */
-struct HandlerContext_ShutdownPeers {
+struct HandlerContext_ShutdownPeers
+{
   /**
    * The number of slave we expect to hear from since we forwarded the
    * #GNUNET_MESSAGE_TYPE_TESTBED_SHUTDOWN_PEERS message to them
@@ -479,15 +493,15 @@ extern char *GST_stats_dir;
  */
 #define GST_array_grow_large_enough(ptr, size, accommodate_size) \
   do                                                                    \
-    {                                                                     \
-      unsigned int growth_size;                                           \
-      GNUNET_assert(size <= accommodate_size);                            \
-      growth_size = size;                                                 \
-      while (growth_size <= accommodate_size)                             \
+  {                                                                     \
+    unsigned int growth_size;                                           \
+    GNUNET_assert (size <= accommodate_size);                            \
+    growth_size = size;                                                 \
+    while (growth_size <= accommodate_size)                             \
       growth_size += LIST_GROW_STEP;                                    \
-      GNUNET_array_grow (ptr, size, growth_size);                         \
-      GNUNET_assert(size > accommodate_size);                            \
-    } while (0)
+    GNUNET_array_grow (ptr, size, growth_size);                         \
+    GNUNET_assert (size > accommodate_size);                            \
+  } while (0)
 
 
 /**
@@ -496,14 +510,14 @@ extern char *GST_stats_dir;
  * @param peer the peer structure to destroy
  */
 void
-GST_destroy_peer(struct Peer *peer);
+GST_destroy_peer (struct Peer *peer);
 
 
 /**
  * Stops and destroys all peers
  */
 void
-GST_destroy_peers(void);
+GST_destroy_peers (void);
 
 
 /**
@@ -515,7 +529,7 @@ GST_destroy_peers(void);
  *           is found
  */
 struct Route *
-GST_find_dest_route(uint32_t host_id);
+GST_find_dest_route (uint32_t host_id);
 
 
 /**
@@ -525,8 +539,8 @@ GST_find_dest_route(uint32_t host_id);
  * @param msg the actual message
  */
 void
-handle_overlay_connect(void *cls,
-                       const struct GNUNET_TESTBED_OverlayConnectMessage *msg);
+handle_overlay_connect (void *cls,
+                        const struct GNUNET_TESTBED_OverlayConnectMessage *msg);
 
 
 /**
@@ -539,9 +553,9 @@ handle_overlay_connect(void *cls,
  * @param host the host which has to be registered
  */
 void
-GST_queue_host_registration(struct Slave *slave,
-                            GNUNET_TESTBED_HostRegistrationCompletion cb,
-                            void *cb_cls, struct GNUNET_TESTBED_Host *host);
+GST_queue_host_registration (struct Slave *slave,
+                             GNUNET_TESTBED_HostRegistrationCompletion cb,
+                             void *cb_cls, struct GNUNET_TESTBED_Host *host);
 
 
 /**
@@ -551,8 +565,8 @@ GST_queue_host_registration(struct Slave *slave,
  * @param msg the message to relay
  */
 void
-GST_forwarded_operation_reply_relay(void *cls,
-                                    const struct GNUNET_MessageHeader *msg);
+GST_forwarded_operation_reply_relay (void *cls,
+                                     const struct GNUNET_MessageHeader *msg);
 
 
 /**
@@ -562,14 +576,14 @@ GST_forwarded_operation_reply_relay(void *cls,
  * @param tc the task context from scheduler
  */
 void
-GST_forwarded_operation_timeout(void *cls);
+GST_forwarded_operation_timeout (void *cls);
 
 
 /**
  * Clears the forwarded operations queue
  */
 void
-GST_clear_fopcq(void);
+GST_clear_fopcq (void);
 
 
 /**
@@ -580,9 +594,9 @@ GST_clear_fopcq(void);
  * @param emsg the error message; can be NULL
  */
 void
-GST_send_operation_fail_msg(struct GNUNET_SERVICE_Client *client,
-                            uint64_t operation_id,
-                            const char *emsg);
+GST_send_operation_fail_msg (struct GNUNET_SERVICE_Client *client,
+                             uint64_t operation_id,
+                             const char *emsg);
 
 
 /**
@@ -591,7 +605,7 @@ GST_send_operation_fail_msg(struct GNUNET_SERVICE_Client *client,
  * @param client the client that disconnected
  */
 void
-GST_notify_client_disconnect_oc(struct GNUNET_SERVICE_Client *client);
+GST_notify_client_disconnect_oc (struct GNUNET_SERVICE_Client *client);
 
 
 /**
@@ -600,7 +614,7 @@ GST_notify_client_disconnect_oc(struct GNUNET_SERVICE_Client *client);
  * @param client the client that disconnected
  */
 void
-GST_notify_client_disconnect_peers(struct GNUNET_SERVICE_Client *client);
+GST_notify_client_disconnect_peers (struct GNUNET_SERVICE_Client *client);
 
 
 /**
@@ -610,8 +624,8 @@ GST_notify_client_disconnect_peers(struct GNUNET_SERVICE_Client *client);
  * @param operation_id the id of the operation which was successful
  */
 void
-GST_send_operation_success_msg(struct GNUNET_SERVICE_Client *client,
-                               uint64_t operation_id);
+GST_send_operation_success_msg (struct GNUNET_SERVICE_Client *client,
+                                uint64_t operation_id);
 
 
 /**
@@ -622,8 +636,9 @@ GST_send_operation_success_msg(struct GNUNET_SERVICE_Client *client,
  * @return #GNUNET_OK if @a msg is well-formed
  */
 int
-check_remote_overlay_connect(void *cls,
-                             const struct GNUNET_TESTBED_RemoteOverlayConnectMessage *msg);
+check_remote_overlay_connect (void *cls,
+                              const struct
+                              GNUNET_TESTBED_RemoteOverlayConnectMessage *msg);
 
 
 /**
@@ -633,8 +648,9 @@ check_remote_overlay_connect(void *cls,
  * @param msg the actual message
  */
 void
-handle_remote_overlay_connect(void *cls,
-                              const struct GNUNET_TESTBED_RemoteOverlayConnectMessage *msg);
+handle_remote_overlay_connect (void *cls,
+                               const struct
+                               GNUNET_TESTBED_RemoteOverlayConnectMessage *msg);
 
 
 /**
@@ -645,8 +661,8 @@ handle_remote_overlay_connect(void *cls,
  * @return #GNUNET_OK if @a msg is well-formed
  */
 int
-check_peer_create(void *cls,
-                  const struct GNUNET_TESTBED_PeerCreateMessage *msg);
+check_peer_create (void *cls,
+                   const struct GNUNET_TESTBED_PeerCreateMessage *msg);
 
 
 /**
@@ -656,8 +672,8 @@ check_peer_create(void *cls,
  * @param message the actual message
  */
 void
-handle_peer_create(void *cls,
-                   const struct GNUNET_TESTBED_PeerCreateMessage *msg);
+handle_peer_create (void *cls,
+                    const struct GNUNET_TESTBED_PeerCreateMessage *msg);
 
 
 /**
@@ -667,8 +683,8 @@ handle_peer_create(void *cls,
  * @param msg the actual message
  */
 void
-handle_peer_destroy(void *cls,
-                    const struct GNUNET_TESTBED_PeerDestroyMessage *msg);
+handle_peer_destroy (void *cls,
+                     const struct GNUNET_TESTBED_PeerDestroyMessage *msg);
 
 
 /**
@@ -678,8 +694,8 @@ handle_peer_destroy(void *cls,
  * @param msg the actual message
  */
 void
-handle_peer_start(void *cls,
-                  const struct GNUNET_TESTBED_PeerStartMessage *msg);
+handle_peer_start (void *cls,
+                   const struct GNUNET_TESTBED_PeerStartMessage *msg);
 
 
 /**
@@ -689,8 +705,8 @@ handle_peer_start(void *cls,
  * @param message the actual message
  */
 void
-handle_peer_stop(void *cls,
-                 const struct GNUNET_TESTBED_PeerStopMessage *msg);
+handle_peer_stop (void *cls,
+                  const struct GNUNET_TESTBED_PeerStopMessage *msg);
 
 
 /**
@@ -700,8 +716,9 @@ handle_peer_stop(void *cls,
  * @param msg the actual message
  */
 void
-handle_peer_get_config(void *cls,
-                       const struct GNUNET_TESTBED_PeerGetConfigurationMessage *msg);
+handle_peer_get_config (void *cls,
+                        const struct
+                        GNUNET_TESTBED_PeerGetConfigurationMessage *msg);
 
 
 /**
@@ -711,8 +728,8 @@ handle_peer_get_config(void *cls,
  * @param msg the actual message
  */
 void
-handle_shutdown_peers(void *cls,
-                      const struct GNUNET_TESTBED_ShutdownPeersMessage *msg);
+handle_shutdown_peers (void *cls,
+                       const struct GNUNET_TESTBED_ShutdownPeersMessage *msg);
 
 
 /**
@@ -723,8 +740,9 @@ handle_shutdown_peers(void *cls,
  * @return #GNUNET_OK if @a msg is well-formed
  */
 int
-check_manage_peer_service(void *cls,
-                          const struct GNUNET_TESTBED_ManagePeerServiceMessage *msg);
+check_manage_peer_service (void *cls,
+                           const struct
+                           GNUNET_TESTBED_ManagePeerServiceMessage *msg);
 
 
 /**
@@ -734,8 +752,9 @@ check_manage_peer_service(void *cls,
  * @param msg the actual message
  */
 void
-handle_manage_peer_service(void *cls,
-                           const struct GNUNET_TESTBED_ManagePeerServiceMessage *msg);
+handle_manage_peer_service (void *cls,
+                            const struct
+                            GNUNET_TESTBED_ManagePeerServiceMessage *msg);
 
 
 
@@ -748,8 +767,9 @@ handle_manage_peer_service(void *cls,
  * @return #GNUNET_OK if @a msg is well-formed
  */
 int
-check_peer_reconfigure(void *cls,
-                       const struct GNUNET_TESTBED_PeerReconfigureMessage *msg);
+check_peer_reconfigure (void *cls,
+                        const struct
+                        GNUNET_TESTBED_PeerReconfigureMessage *msg);
 
 
 /**
@@ -761,29 +781,30 @@ check_peer_reconfigure(void *cls,
  * @param msg the actual message
  */
 void
-handle_peer_reconfigure(void *cls,
-                        const struct GNUNET_TESTBED_PeerReconfigureMessage *msg);
+handle_peer_reconfigure (void *cls,
+                         const struct
+                         GNUNET_TESTBED_PeerReconfigureMessage *msg);
 
 
 /**
  * Frees the ManageServiceContext queue
  */
 void
-GST_free_mctxq(void);
+GST_free_mctxq (void);
 
 
 /**
  * Cleans up the queue used for forwarding link controllers requests
  */
 void
-GST_free_lcf(void);
+GST_free_lcf (void);
 
 
 /**
  * Cleans up the route list
  */
 void
-GST_route_list_clear(void);
+GST_route_list_clear (void);
 
 
 /**
@@ -792,7 +813,7 @@ GST_route_list_clear(void);
  * @param rhc the RegisteredHostContext
  */
 void
-GST_process_next_focc(struct RegisteredHostContext *rhc);
+GST_process_next_focc (struct RegisteredHostContext *rhc);
 
 
 /**
@@ -801,28 +822,28 @@ GST_process_next_focc(struct RegisteredHostContext *rhc);
  * @param focc the ForwardedOverlayConnectContext to cleanup
  */
 void
-GST_cleanup_focc(struct ForwardedOverlayConnectContext *focc);
+GST_cleanup_focc (struct ForwardedOverlayConnectContext *focc);
 
 
 /**
  * Clears all pending overlay connect contexts in queue
  */
 void
-GST_free_occq(void);
+GST_free_occq (void);
 
 
 /**
  * Clears all pending remote overlay connect contexts in queue
  */
 void
-GST_free_roccq(void);
+GST_free_roccq (void);
 
 
 /**
  * Cleans up the Peer reconfigure context list
  */
 void
-GST_free_prcq(void);
+GST_free_prcq (void);
 
 
 /**
@@ -831,14 +852,14 @@ GST_free_prcq(void);
  * @param size the size of the cache
  */
 void
-GST_cache_init(unsigned int size);
+GST_cache_init (unsigned int size);
 
 
 /**
  * Clear cache
  */
 void
-GST_cache_clear(void);
+GST_cache_clear (void);
 
 
 /**
@@ -848,7 +869,7 @@ GST_cache_clear(void);
  * @return the HELLO message; NULL if not found
  */
 const struct GNUNET_MessageHeader *
-GST_cache_lookup_hello(const unsigned int peer_id);
+GST_cache_lookup_hello (const unsigned int peer_id);
 
 
 /**
@@ -859,8 +880,8 @@ GST_cache_lookup_hello(const unsigned int peer_id);
  * @param hello the HELLO message
  */
 void
-GST_cache_add_hello(const unsigned int peer_id,
-                    const struct GNUNET_MessageHeader *hello);
+GST_cache_add_hello (const unsigned int peer_id,
+                     const struct GNUNET_MessageHeader *hello);
 
 
 /**
@@ -869,13 +890,13 @@ GST_cache_add_hello(const unsigned int peer_id,
  * generated from the hostname and the process's PID.
  */
 void
-GST_stats_init(const struct GNUNET_CONFIGURATION_Handle *cfg);
+GST_stats_init (const struct GNUNET_CONFIGURATION_Handle *cfg);
 
 
 /**
  * Shutdown the status calls module.
  */
 void
-GST_stats_destroy(void);
+GST_stats_destroy (void);
 
 /* End of gnunet-service-testbed.h */

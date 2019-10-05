@@ -110,7 +110,8 @@ typedef const char *
  * Each plugin is required to return a pointer to a struct of this
  * type as the return value from its entry point.
  */
-struct GNUNET_GNSRECORD_PluginFunctions {
+struct GNUNET_GNSRECORD_PluginFunctions
+{
   /**
    * Closure for all of the callbacks.
    */

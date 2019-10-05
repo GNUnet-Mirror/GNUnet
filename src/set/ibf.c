@@ -30,7 +30,8 @@
  * Compute the key's hash from the key.
  * Redefine to use a different hash function.
  */
-#define IBF_KEY_HASH_VAL(k) (GNUNET_CRYPTO_crc32_n(&(k), sizeof(struct IBF_KeyHash)))
+#define IBF_KEY_HASH_VAL(k) (GNUNET_CRYPTO_crc32_n (&(k), sizeof(struct \
+                                                                 IBF_KeyHash)))
 
 /**
  * Create a key from a hashcode.
@@ -39,9 +40,9 @@
  * @return a key
  */
 struct IBF_Key
-ibf_key_from_hashcode(const struct GNUNET_HashCode *hash)
+ibf_key_from_hashcode (const struct GNUNET_HashCode *hash)
 {
-  return *(struct IBF_Key *)hash;
+  return *(struct IBF_Key *) hash;
 }
 
 /**
@@ -52,14 +53,15 @@ ibf_key_from_hashcode(const struct GNUNET_HashCode *hash)
  * @param dst hashcode to store the result in
  */
 void
-ibf_hashcode_from_key(struct IBF_Key key,
-                      struct GNUNET_HashCode *dst)
+ibf_hashcode_from_key (struct IBF_Key key,
+                       struct GNUNET_HashCode *dst)
 {
   struct IBF_Key *p;
   unsigned int i;
-  const unsigned int keys_per_hashcode = sizeof(struct GNUNET_HashCode) / sizeof(struct IBF_Key);
+  const unsigned int keys_per_hashcode = sizeof(struct GNUNET_HashCode)
+                                         / sizeof(struct IBF_Key);
 
-  p = (struct IBF_Key *)dst;
+  p = (struct IBF_Key *) dst;
   for (i = 0; i < keys_per_hashcode; i++)
     *p++ = key;
 }
@@ -73,34 +75,34 @@ ibf_hashcode_from_key(struct IBF_Key key,
  * @return the newly created invertible bloom filter, NULL on error
  */
 struct InvertibleBloomFilter *
-ibf_create(uint32_t size, uint8_t hash_num)
+ibf_create (uint32_t size, uint8_t hash_num)
 {
   struct InvertibleBloomFilter *ibf;
 
-  GNUNET_assert(0 != size);
+  GNUNET_assert (0 != size);
 
-  ibf = GNUNET_new(struct InvertibleBloomFilter);
-  ibf->count = GNUNET_malloc_large(size * sizeof(uint8_t));
+  ibf = GNUNET_new (struct InvertibleBloomFilter);
+  ibf->count = GNUNET_malloc_large (size * sizeof(uint8_t));
   if (NULL == ibf->count)
-    {
-      GNUNET_free(ibf);
-      return NULL;
-    }
-  ibf->key_sum = GNUNET_malloc_large(size * sizeof(struct IBF_Key));
+  {
+    GNUNET_free (ibf);
+    return NULL;
+  }
+  ibf->key_sum = GNUNET_malloc_large (size * sizeof(struct IBF_Key));
   if (NULL == ibf->key_sum)
-    {
-      GNUNET_free(ibf->count);
-      GNUNET_free(ibf);
-      return NULL;
-    }
-  ibf->key_hash_sum = GNUNET_malloc_large(size * sizeof(struct IBF_KeyHash));
+  {
+    GNUNET_free (ibf->count);
+    GNUNET_free (ibf);
+    return NULL;
+  }
+  ibf->key_hash_sum = GNUNET_malloc_large (size * sizeof(struct IBF_KeyHash));
   if (NULL == ibf->key_hash_sum)
-    {
-      GNUNET_free(ibf->key_sum);
-      GNUNET_free(ibf->count);
-      GNUNET_free(ibf);
-      return NULL;
-    }
+  {
+    GNUNET_free (ibf->key_sum);
+    GNUNET_free (ibf->count);
+    GNUNET_free (ibf);
+    return NULL;
+  }
   ibf->size = size;
   ibf->hash_num = hash_num;
 
@@ -112,45 +114,45 @@ ibf_create(uint32_t size, uint8_t hash_num)
  * Store unique bucket indices for the specified key in dst.
  */
 static void
-ibf_get_indices(const struct InvertibleBloomFilter *ibf,
-                struct IBF_Key key,
-                int *dst)
+ibf_get_indices (const struct InvertibleBloomFilter *ibf,
+                 struct IBF_Key key,
+                 int *dst)
 {
   uint32_t filled;
   uint32_t i;
   uint32_t bucket;
 
-  bucket = GNUNET_CRYPTO_crc32_n(&key, sizeof key);
+  bucket = GNUNET_CRYPTO_crc32_n (&key, sizeof key);
   for (i = 0, filled = 0; filled < ibf->hash_num; i++)
-    {
-      unsigned int j;
-      uint64_t x;
-      for (j = 0; j < filled; j++)
-        if (dst[j] == bucket)
-          goto try_next;
-      dst[filled++] = bucket % ibf->size;
+  {
+    unsigned int j;
+    uint64_t x;
+    for (j = 0; j < filled; j++)
+      if (dst[j] == bucket)
+        goto try_next;
+    dst[filled++] = bucket % ibf->size;
 try_next:;
-      x = ((uint64_t)bucket << 32) | i;
-      bucket = GNUNET_CRYPTO_crc32_n(&x, sizeof x);
-    }
+    x = ((uint64_t) bucket << 32) | i;
+    bucket = GNUNET_CRYPTO_crc32_n (&x, sizeof x);
+  }
 }
 
 
 static void
-ibf_insert_into(struct InvertibleBloomFilter *ibf,
-                struct IBF_Key key,
-                const int *buckets, int side)
+ibf_insert_into (struct InvertibleBloomFilter *ibf,
+                 struct IBF_Key key,
+                 const int *buckets, int side)
 {
   int i;
 
   for (i = 0; i < ibf->hash_num; i++)
-    {
-      const int bucket = buckets[i];
-      ibf->count[bucket].count_val += side;
-      ibf->key_sum[bucket].key_val ^= key.key_val;
-      ibf->key_hash_sum[bucket].key_hash_val
-        ^= IBF_KEY_HASH_VAL(key);
-    }
+  {
+    const int bucket = buckets[i];
+    ibf->count[bucket].count_val += side;
+    ibf->key_sum[bucket].key_val ^= key.key_val;
+    ibf->key_hash_sum[bucket].key_hash_val
+      ^= IBF_KEY_HASH_VAL (key);
+  }
 }
 
 
@@ -161,13 +163,13 @@ ibf_insert_into(struct InvertibleBloomFilter *ibf,
  * @param key the element's hash code
  */
 void
-ibf_insert(struct InvertibleBloomFilter *ibf, struct IBF_Key key)
+ibf_insert (struct InvertibleBloomFilter *ibf, struct IBF_Key key)
 {
   int buckets[ibf->hash_num];
 
-  GNUNET_assert(ibf->hash_num <= ibf->size);
-  ibf_get_indices(ibf, key, buckets);
-  ibf_insert_into(ibf, key, buckets, 1);
+  GNUNET_assert (ibf->hash_num <= ibf->size);
+  ibf_get_indices (ibf, key, buckets);
+  ibf_insert_into (ibf, key, buckets, 1);
 }
 
 
@@ -178,13 +180,13 @@ ibf_insert(struct InvertibleBloomFilter *ibf, struct IBF_Key key)
  * @param key the element's hash code
  */
 void
-ibf_remove(struct InvertibleBloomFilter *ibf, struct IBF_Key key)
+ibf_remove (struct InvertibleBloomFilter *ibf, struct IBF_Key key)
 {
   int buckets[ibf->hash_num];
 
-  GNUNET_assert(ibf->hash_num <= ibf->size);
-  ibf_get_indices(ibf, key, buckets);
-  ibf_insert_into(ibf, key, buckets, -1);
+  GNUNET_assert (ibf->hash_num <= ibf->size);
+  ibf_get_indices (ibf, key, buckets);
+  ibf_insert_into (ibf, key, buckets, -1);
 }
 
 
@@ -192,19 +194,19 @@ ibf_remove(struct InvertibleBloomFilter *ibf, struct IBF_Key key)
  * Test is the IBF is empty, i.e. all counts, keys and key hashes are zero.
  */
 static int
-ibf_is_empty(struct InvertibleBloomFilter *ibf)
+ibf_is_empty (struct InvertibleBloomFilter *ibf)
 {
   int i;
 
   for (i = 0; i < ibf->size; i++)
-    {
-      if (0 != ibf->count[i].count_val)
-        return GNUNET_NO;
-      if (0 != ibf->key_hash_sum[i].key_hash_val)
-        return GNUNET_NO;
-      if (0 != ibf->key_sum[i].key_val)
-        return GNUNET_NO;
-    }
+  {
+    if (0 != ibf->count[i].count_val)
+      return GNUNET_NO;
+    if (0 != ibf->key_hash_sum[i].key_hash_val)
+      return GNUNET_NO;
+    if (0 != ibf->key_sum[i].key_val)
+      return GNUNET_NO;
+  }
   return GNUNET_YES;
 }
 
@@ -222,53 +224,53 @@ ibf_is_empty(struct InvertibleBloomFilter *ibf)
  *         GNUNET_SYSERR if the decoding has failed
  */
 int
-ibf_decode(struct InvertibleBloomFilter *ibf,
-           int *ret_side, struct IBF_Key *ret_id)
+ibf_decode (struct InvertibleBloomFilter *ibf,
+            int *ret_side, struct IBF_Key *ret_id)
 {
   struct IBF_KeyHash hash;
   int i;
   int buckets[ibf->hash_num];
 
-  GNUNET_assert(NULL != ibf);
+  GNUNET_assert (NULL != ibf);
 
   for (i = 0; i < ibf->size; i++)
-    {
-      int j;
-      int hit;
+  {
+    int j;
+    int hit;
 
-      /* we can only decode from pure buckets */
-      if ((1 != ibf->count[i].count_val) && (-1 != ibf->count[i].count_val))
-        continue;
+    /* we can only decode from pure buckets */
+    if ((1 != ibf->count[i].count_val) && (-1 != ibf->count[i].count_val))
+      continue;
 
-      hash.key_hash_val = IBF_KEY_HASH_VAL(ibf->key_sum[i]);
+    hash.key_hash_val = IBF_KEY_HASH_VAL (ibf->key_sum[i]);
 
-      /* test if the hash matches the key */
-      if (hash.key_hash_val != ibf->key_hash_sum[i].key_hash_val)
-        continue;
+    /* test if the hash matches the key */
+    if (hash.key_hash_val != ibf->key_hash_sum[i].key_hash_val)
+      continue;
 
-      /* test if key in bucket hits its own location,
-       * if not, the key hash was subject to collision */
-      hit = GNUNET_NO;
-      ibf_get_indices(ibf, ibf->key_sum[i], buckets);
-      for (j = 0; j < ibf->hash_num; j++)
-        if (buckets[j] == i)
-          hit = GNUNET_YES;
+    /* test if key in bucket hits its own location,
+     * if not, the key hash was subject to collision */
+    hit = GNUNET_NO;
+    ibf_get_indices (ibf, ibf->key_sum[i], buckets);
+    for (j = 0; j < ibf->hash_num; j++)
+      if (buckets[j] == i)
+        hit = GNUNET_YES;
 
-      if (GNUNET_NO == hit)
-        continue;
+    if (GNUNET_NO == hit)
+      continue;
 
-      if (NULL != ret_side)
-        *ret_side = ibf->count[i].count_val;
-      if (NULL != ret_id)
-        *ret_id = ibf->key_sum[i];
+    if (NULL != ret_side)
+      *ret_side = ibf->count[i].count_val;
+    if (NULL != ret_id)
+      *ret_id = ibf->key_sum[i];
 
-      /* insert on the opposite side, effectively removing the element */
-      ibf_insert_into(ibf, ibf->key_sum[i], buckets, -ibf->count[i].count_val);
+    /* insert on the opposite side, effectively removing the element */
+    ibf_insert_into (ibf, ibf->key_sum[i], buckets, -ibf->count[i].count_val);
 
-      return GNUNET_YES;
-    }
+    return GNUNET_YES;
+  }
 
-  if (GNUNET_YES == ibf_is_empty(ibf))
+  if (GNUNET_YES == ibf_is_empty (ibf))
     return GNUNET_NO;
   return GNUNET_SYSERR;
 }
@@ -284,25 +286,27 @@ ibf_decode(struct InvertibleBloomFilter *ibf,
  * @param buf buffer to write the data to
  */
 void
-ibf_write_slice(const struct InvertibleBloomFilter *ibf, uint32_t start, uint32_t count, void *buf)
+ibf_write_slice (const struct InvertibleBloomFilter *ibf, uint32_t start,
+                 uint32_t count, void *buf)
 {
   struct IBF_Key *key_dst;
   struct IBF_KeyHash *key_hash_dst;
   struct IBF_Count *count_dst;
 
-  GNUNET_assert(start + count <= ibf->size);
+  GNUNET_assert (start + count <= ibf->size);
 
   /* copy keys */
-  key_dst = (struct IBF_Key *)buf;
-  GNUNET_memcpy(key_dst, ibf->key_sum + start, count * sizeof *key_dst);
+  key_dst = (struct IBF_Key *) buf;
+  GNUNET_memcpy (key_dst, ibf->key_sum + start, count * sizeof *key_dst);
   key_dst += count;
   /* copy key hashes */
-  key_hash_dst = (struct IBF_KeyHash *)key_dst;
-  GNUNET_memcpy(key_hash_dst, ibf->key_hash_sum + start, count * sizeof *key_hash_dst);
+  key_hash_dst = (struct IBF_KeyHash *) key_dst;
+  GNUNET_memcpy (key_hash_dst, ibf->key_hash_sum + start, count
+                 * sizeof *key_hash_dst);
   key_hash_dst += count;
   /* copy counts */
-  count_dst = (struct IBF_Count *)key_hash_dst;
-  GNUNET_memcpy(count_dst, ibf->count + start, count * sizeof *count_dst);
+  count_dst = (struct IBF_Count *) key_hash_dst;
+  GNUNET_memcpy (count_dst, ibf->count + start, count * sizeof *count_dst);
 }
 
 
@@ -315,26 +319,28 @@ ibf_write_slice(const struct InvertibleBloomFilter *ibf, uint32_t start, uint32_
  * @param ibf the ibf to read from
  */
 void
-ibf_read_slice(const void *buf, uint32_t start, uint32_t count, struct InvertibleBloomFilter *ibf)
+ibf_read_slice (const void *buf, uint32_t start, uint32_t count, struct
+                InvertibleBloomFilter *ibf)
 {
   struct IBF_Key *key_src;
   struct IBF_KeyHash *key_hash_src;
   struct IBF_Count *count_src;
 
-  GNUNET_assert(count > 0);
-  GNUNET_assert(start + count <= ibf->size);
+  GNUNET_assert (count > 0);
+  GNUNET_assert (start + count <= ibf->size);
 
   /* copy keys */
-  key_src = (struct IBF_Key *)buf;
-  GNUNET_memcpy(ibf->key_sum + start, key_src, count * sizeof *key_src);
+  key_src = (struct IBF_Key *) buf;
+  GNUNET_memcpy (ibf->key_sum + start, key_src, count * sizeof *key_src);
   key_src += count;
   /* copy key hashes */
-  key_hash_src = (struct IBF_KeyHash *)key_src;
-  GNUNET_memcpy(ibf->key_hash_sum + start, key_hash_src, count * sizeof *key_hash_src);
+  key_hash_src = (struct IBF_KeyHash *) key_src;
+  GNUNET_memcpy (ibf->key_hash_sum + start, key_hash_src, count
+                 * sizeof *key_hash_src);
   key_hash_src += count;
   /* copy counts */
-  count_src = (struct IBF_Count *)key_hash_src;
-  GNUNET_memcpy(ibf->count + start, count_src, count * sizeof *count_src);
+  count_src = (struct IBF_Count *) key_hash_src;
+  GNUNET_memcpy (ibf->count + start, count_src, count * sizeof *count_src);
 }
 
 
@@ -346,19 +352,20 @@ ibf_read_slice(const void *buf, uint32_t start, uint32_t count, struct Invertibl
  * @param ibf2 IBF that will be subtracted from ibf1
  */
 void
-ibf_subtract(struct InvertibleBloomFilter *ibf1, const struct InvertibleBloomFilter *ibf2)
+ibf_subtract (struct InvertibleBloomFilter *ibf1, const struct
+              InvertibleBloomFilter *ibf2)
 {
   int i;
 
-  GNUNET_assert(ibf1->size == ibf2->size);
-  GNUNET_assert(ibf1->hash_num == ibf2->hash_num);
+  GNUNET_assert (ibf1->size == ibf2->size);
+  GNUNET_assert (ibf1->hash_num == ibf2->hash_num);
 
   for (i = 0; i < ibf1->size; i++)
-    {
-      ibf1->count[i].count_val -= ibf2->count[i].count_val;
-      ibf1->key_hash_sum[i].key_hash_val ^= ibf2->key_hash_sum[i].key_hash_val;
-      ibf1->key_sum[i].key_val ^= ibf2->key_sum[i].key_val;
-    }
+  {
+    ibf1->count[i].count_val -= ibf2->count[i].count_val;
+    ibf1->key_hash_sum[i].key_hash_val ^= ibf2->key_hash_sum[i].key_hash_val;
+    ibf1->key_sum[i].key_val ^= ibf2->key_sum[i].key_val;
+  }
 }
 
 
@@ -368,16 +375,19 @@ ibf_subtract(struct InvertibleBloomFilter *ibf1, const struct InvertibleBloomFil
  * @param ibf the IBF to copy
  */
 struct InvertibleBloomFilter *
-ibf_dup(const struct InvertibleBloomFilter *ibf)
+ibf_dup (const struct InvertibleBloomFilter *ibf)
 {
   struct InvertibleBloomFilter *copy;
 
-  copy = GNUNET_malloc(sizeof *copy);
+  copy = GNUNET_malloc (sizeof *copy);
   copy->hash_num = ibf->hash_num;
   copy->size = ibf->size;
-  copy->key_hash_sum = GNUNET_memdup(ibf->key_hash_sum, ibf->size * sizeof(struct IBF_KeyHash));
-  copy->key_sum = GNUNET_memdup(ibf->key_sum, ibf->size * sizeof(struct IBF_Key));
-  copy->count = GNUNET_memdup(ibf->count, ibf->size * sizeof(struct IBF_Count));
+  copy->key_hash_sum = GNUNET_memdup (ibf->key_hash_sum, ibf->size
+                                      * sizeof(struct IBF_KeyHash));
+  copy->key_sum = GNUNET_memdup (ibf->key_sum, ibf->size * sizeof(struct
+                                                                  IBF_Key));
+  copy->count = GNUNET_memdup (ibf->count, ibf->size * sizeof(struct
+                                                              IBF_Count));
   return copy;
 }
 
@@ -389,10 +399,10 @@ ibf_dup(const struct InvertibleBloomFilter *ibf)
  * @param ibf the intertible bloom filter to destroy
  */
 void
-ibf_destroy(struct InvertibleBloomFilter *ibf)
+ibf_destroy (struct InvertibleBloomFilter *ibf)
 {
-  GNUNET_free(ibf->key_sum);
-  GNUNET_free(ibf->key_hash_sum);
-  GNUNET_free(ibf->count);
-  GNUNET_free(ibf);
+  GNUNET_free (ibf->key_sum);
+  GNUNET_free (ibf->key_hash_sum);
+  GNUNET_free (ibf->count);
+  GNUNET_free (ibf);
 }

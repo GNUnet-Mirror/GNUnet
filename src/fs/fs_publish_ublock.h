@@ -44,11 +44,11 @@
  * @param output where to write the result, has input_len bytes
  */
 void
-GNUNET_FS_ublock_decrypt_(const void *input,
-                          size_t input_len,
-                          const struct GNUNET_CRYPTO_EcdsaPublicKey *ns,
-                          const char *label,
-                          void *output);
+GNUNET_FS_ublock_decrypt_ (const void *input,
+                           size_t input_len,
+                           const struct GNUNET_CRYPTO_EcdsaPublicKey *ns,
+                           const char *label,
+                           void *output);
 
 
 /**
@@ -85,16 +85,16 @@ typedef void (*GNUNET_FS_UBlockContinuation) (void *cls,
  * @return NULL on error ('cont' will still be called)
  */
 struct GNUNET_FS_PublishUblockContext *
-GNUNET_FS_publish_ublock_(struct GNUNET_FS_Handle *h,
-                          struct GNUNET_DATASTORE_Handle *dsh,
-                          const char *label,
-                          const char *ulabel,
-                          const struct GNUNET_CRYPTO_EcdsaPrivateKey *ns,
-                          const struct GNUNET_CONTAINER_MetaData *meta,
-                          const struct GNUNET_FS_Uri *uri,
-                          const struct GNUNET_FS_BlockOptions *bo,
-                          enum GNUNET_FS_PublishOptions options,
-                          GNUNET_FS_UBlockContinuation cont, void *cont_cls);
+GNUNET_FS_publish_ublock_ (struct GNUNET_FS_Handle *h,
+                           struct GNUNET_DATASTORE_Handle *dsh,
+                           const char *label,
+                           const char *ulabel,
+                           const struct GNUNET_CRYPTO_EcdsaPrivateKey *ns,
+                           const struct GNUNET_CONTAINER_MetaData *meta,
+                           const struct GNUNET_FS_Uri *uri,
+                           const struct GNUNET_FS_BlockOptions *bo,
+                           enum GNUNET_FS_PublishOptions options,
+                           GNUNET_FS_UBlockContinuation cont, void *cont_cls);
 
 
 /**
@@ -103,6 +103,6 @@ GNUNET_FS_publish_ublock_(struct GNUNET_FS_Handle *h,
  * @param uc operation to abort.
  */
 void
-GNUNET_FS_publish_ublock_cancel_(struct GNUNET_FS_PublishUblockContext *uc);
+GNUNET_FS_publish_ublock_cancel_ (struct GNUNET_FS_PublishUblockContext *uc);
 
 #endif

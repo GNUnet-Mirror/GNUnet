@@ -88,14 +88,14 @@ typedef void
  * @return the fragmentation context
  */
 struct GNUNET_FRAGMENT_Context *
-GNUNET_FRAGMENT_context_create(struct GNUNET_STATISTICS_Handle *stats,
-                               uint16_t mtu,
-                               struct GNUNET_BANDWIDTH_Tracker *tracker,
-                               struct GNUNET_TIME_Relative msg_delay,
-                               struct GNUNET_TIME_Relative ack_delay,
-                               const struct GNUNET_MessageHeader *msg,
-                               GNUNET_FRAGMENT_MessageProcessor proc,
-                               void *proc_cls);
+GNUNET_FRAGMENT_context_create (struct GNUNET_STATISTICS_Handle *stats,
+                                uint16_t mtu,
+                                struct GNUNET_BANDWIDTH_Tracker *tracker,
+                                struct GNUNET_TIME_Relative msg_delay,
+                                struct GNUNET_TIME_Relative ack_delay,
+                                const struct GNUNET_MessageHeader *msg,
+                                GNUNET_FRAGMENT_MessageProcessor proc,
+                                void *proc_cls);
 
 
 /**
@@ -106,7 +106,7 @@ GNUNET_FRAGMENT_context_create(struct GNUNET_STATISTICS_Handle *stats,
  * @param fc fragmentation context
  */
 void
-GNUNET_FRAGMENT_context_transmission_done(struct GNUNET_FRAGMENT_Context *fc);
+GNUNET_FRAGMENT_context_transmission_done (struct GNUNET_FRAGMENT_Context *fc);
 
 
 /**
@@ -121,8 +121,8 @@ GNUNET_FRAGMENT_context_transmission_done(struct GNUNET_FRAGMENT_Context *fc);
  *         #GNUNET_SYSERR if this ack is not valid for this fc
  */
 int
-GNUNET_FRAGMENT_process_ack(struct GNUNET_FRAGMENT_Context *fc,
-                            const struct GNUNET_MessageHeader *msg);
+GNUNET_FRAGMENT_process_ack (struct GNUNET_FRAGMENT_Context *fc,
+                             const struct GNUNET_MessageHeader *msg);
 
 
 /**
@@ -136,9 +136,9 @@ GNUNET_FRAGMENT_process_ack(struct GNUNET_FRAGMENT_Context *fc,
  *         last message, set to FOREVER if the message was not fully transmitted (OUT only)
  */
 void
-GNUNET_FRAGMENT_context_destroy(struct GNUNET_FRAGMENT_Context *fc,
-                                struct GNUNET_TIME_Relative *msg_delay,
-                                struct GNUNET_TIME_Relative *ack_delay);
+GNUNET_FRAGMENT_context_destroy (struct GNUNET_FRAGMENT_Context *fc,
+                                 struct GNUNET_TIME_Relative *msg_delay,
+                                 struct GNUNET_TIME_Relative *ack_delay);
 
 
 /**
@@ -148,7 +148,7 @@ GNUNET_FRAGMENT_context_destroy(struct GNUNET_FRAGMENT_Context *fc,
  * @return ack in human-readable format
  */
 const char *
-GNUNET_FRAGMENT_print_ack(const struct GNUNET_MessageHeader *ack);
+GNUNET_FRAGMENT_print_ack (const struct GNUNET_MessageHeader *ack);
 
 
 /**
@@ -187,12 +187,12 @@ typedef void
  * @return the defragmentation context
  */
 struct GNUNET_DEFRAGMENT_Context *
-GNUNET_DEFRAGMENT_context_create(struct GNUNET_STATISTICS_Handle *stats,
-                                 uint16_t mtu,
-                                 unsigned int num_msgs,
-                                 void *cls,
-                                 GNUNET_FRAGMENT_MessageProcessor proc,
-                                 GNUNET_DEFRAGMENT_AckProcessor ackp);
+GNUNET_DEFRAGMENT_context_create (struct GNUNET_STATISTICS_Handle *stats,
+                                  uint16_t mtu,
+                                  unsigned int num_msgs,
+                                  void *cls,
+                                  GNUNET_FRAGMENT_MessageProcessor proc,
+                                  GNUNET_DEFRAGMENT_AckProcessor ackp);
 
 
 /**
@@ -201,7 +201,7 @@ GNUNET_DEFRAGMENT_context_create(struct GNUNET_STATISTICS_Handle *stats,
  * @param dc defragmentation context
  */
 void
-GNUNET_DEFRAGMENT_context_destroy(struct GNUNET_DEFRAGMENT_Context *dc);
+GNUNET_DEFRAGMENT_context_destroy (struct GNUNET_DEFRAGMENT_Context *dc);
 
 
 /**
@@ -214,8 +214,8 @@ GNUNET_DEFRAGMENT_context_destroy(struct GNUNET_DEFRAGMENT_Context *dc);
  *         #GNUNET_SYSERR on error
  */
 int
-GNUNET_DEFRAGMENT_process_fragment(struct GNUNET_DEFRAGMENT_Context *dc,
-                                   const struct GNUNET_MessageHeader *msg);
+GNUNET_DEFRAGMENT_process_fragment (struct GNUNET_DEFRAGMENT_Context *dc,
+                                    const struct GNUNET_MessageHeader *msg);
 
 
 

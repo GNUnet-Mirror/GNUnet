@@ -36,7 +36,8 @@
 
 #define GNUNET_REST_HANDLER_END { NULL, NULL, NULL }
 
-struct GNUNET_REST_RequestHandle {
+struct GNUNET_REST_RequestHandle
+{
   /**
    * Map of url parameters
    */
@@ -68,12 +69,14 @@ struct GNUNET_REST_RequestHandle {
   size_t data_size;
 };
 
-struct GNUNET_REST_RequestHandlerError {
+struct GNUNET_REST_RequestHandlerError
+{
   int error_code;
-  char* error_text;
+  char*error_text;
 };
 
-struct GNUNET_REST_RequestHandler {
+struct GNUNET_REST_RequestHandler
+{
   /**
    * Http method to handle
    */
@@ -112,7 +115,7 @@ typedef void (*GNUNET_REST_ResultProcessor) (void *cls,
  * @return GNUNET_YES if namespace matches
  */
 int
-GNUNET_REST_namespace_match(const char *url, const char *namespace);
+GNUNET_REST_namespace_match (const char *url, const char *namespace);
 
 /**
  * Create REST MHD response
@@ -121,14 +124,14 @@ GNUNET_REST_namespace_match(const char *url, const char *namespace);
  * @return MHD response
  */
 struct MHD_Response*
-GNUNET_REST_create_response(const char *data);
+GNUNET_REST_create_response (const char *data);
 
 
 int
-GNUNET_REST_handle_request(struct GNUNET_REST_RequestHandle *conn,
-                           const struct GNUNET_REST_RequestHandler *handlers,
-                           struct GNUNET_REST_RequestHandlerError *err,
-                           void *cls);
+GNUNET_REST_handle_request (struct GNUNET_REST_RequestHandle *conn,
+                            const struct GNUNET_REST_RequestHandler *handlers,
+                            struct GNUNET_REST_RequestHandlerError *err,
+                            void *cls);
 
 
 #endif

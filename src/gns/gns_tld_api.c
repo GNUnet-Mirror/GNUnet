@@ -35,13 +35,14 @@
 #include "gns_api.h"
 
 
-#define LOG(kind, ...) GNUNET_log_from(kind, "gns-tld-api", __VA_ARGS__)
+#define LOG(kind, ...) GNUNET_log_from (kind, "gns-tld-api", __VA_ARGS__)
 
 
 /**
  * Handle to a lookup request
  */
-struct GNUNET_GNS_LookupWithTldRequest {
+struct GNUNET_GNS_LookupWithTldRequest
+{
   /**
    * handle to gns
    */
@@ -103,11 +104,11 @@ struct GNUNET_GNS_LookupWithTldRequest {
  *         or @a name if @a name does not contain a "."
  */
 static const char *
-get_tld(const char *name)
+get_tld (const char *name)
 {
   const char *tld;
 
-  tld = strrchr(name, (unsigned char)'.');
+  tld = strrchr (name, (unsigned char) '.');
   if (NULL == tld)
     tld = name;
   else
@@ -123,18 +124,18 @@ get_tld(const char *name)
  * @param tld what to eat (can be more than just the tld)
  */
 static void
-eat_tld(char *name, const char *tld)
+eat_tld (char *name, const char *tld)
 {
-  GNUNET_assert(0 < strlen(name));
-  if ((NULL == tld) || (strlen(name) == strlen(tld)))
-    {
-      strcpy(name, GNUNET_GNS_EMPTY_LABEL_AT);
-    }
+  GNUNET_assert (0 < strlen (name));
+  if ((NULL == tld) || (strlen (name) == strlen (tld)))
+  {
+    strcpy (name, GNUNET_GNS_EMPTY_LABEL_AT);
+  }
   else
-    {
-      GNUNET_assert(strlen(tld) < strlen(name));
-      name[strlen(name) - strlen(tld) - 1] = '\0';
-    }
+  {
+    GNUNET_assert (strlen (tld) < strlen (name));
+    name[strlen (name) - strlen (tld) - 1] = '\0';
+  }
 }
 
 
@@ -146,15 +147,15 @@ eat_tld(char *name, const char *tld)
  * @param rd array of @a rd_count records with the results
  */
 static void
-process_lookup_result(void *cls,
-                      uint32_t rd_count,
-                      const struct GNUNET_GNSRECORD_Data *rd)
+process_lookup_result (void *cls,
+                       uint32_t rd_count,
+                       const struct GNUNET_GNSRECORD_Data *rd)
 {
   struct GNUNET_GNS_LookupWithTldRequest *ltr = cls;
 
   ltr->lr = NULL;
-  ltr->lookup_proc(ltr->lookup_proc_cls, GNUNET_YES, rd_count, rd);
-  GNUNET_GNS_lookup_with_tld_cancel(ltr);
+  ltr->lookup_proc (ltr->lookup_proc_cls, GNUNET_YES, rd_count, rd);
+  GNUNET_GNS_lookup_with_tld_cancel (ltr);
 }
 
 
@@ -165,16 +166,16 @@ process_lookup_result(void *cls,
  * @param pkey public key to use for the zone, can be NULL
  */
 static void
-lookup_with_public_key(struct GNUNET_GNS_LookupWithTldRequest *ltr,
-                       const struct GNUNET_CRYPTO_EcdsaPublicKey *pkey)
+lookup_with_public_key (struct GNUNET_GNS_LookupWithTldRequest *ltr,
+                        const struct GNUNET_CRYPTO_EcdsaPublicKey *pkey)
 {
-  ltr->lr = GNUNET_GNS_lookup(ltr->gns_handle,
-                              ltr->name,
-                              pkey,
-                              ltr->type,
-                              ltr->options,
-                              &process_lookup_result,
-                              ltr);
+  ltr->lr = GNUNET_GNS_lookup (ltr->gns_handle,
+                               ltr->name,
+                               pkey,
+                               ltr->type,
+                               ltr->options,
+                               &process_lookup_result,
+                               ltr);
 }
 
 
@@ -188,38 +189,38 @@ lookup_with_public_key(struct GNUNET_GNS_LookupWithTldRequest *ltr,
  * @param name name of the ego
  */
 static void
-identity_zone_cb(void *cls,
-                 const struct GNUNET_CRYPTO_EcdsaPrivateKey *priv,
-                 const char *ego_name)
+identity_zone_cb (void *cls,
+                  const struct GNUNET_CRYPTO_EcdsaPrivateKey *priv,
+                  const char *ego_name)
 {
   struct GNUNET_GNS_LookupWithTldRequest *ltr = cls;
   struct GNUNET_CRYPTO_EcdsaPublicKey pkey;
 
   ltr->id_co = NULL;
   if (NULL == priv)
-    {
-      /* no matching ego found */
-      ltr->lookup_proc(ltr->lookup_proc_cls, GNUNET_NO, 0, NULL);
-      return;
-    }
+  {
+    /* no matching ego found */
+    ltr->lookup_proc (ltr->lookup_proc_cls, GNUNET_NO, 0, NULL);
+    return;
+  }
   /* Final case: TLD matches one of our egos */
-  if (0 == strcmp(ltr->name, ego_name))
-    {
-      /* name matches ego name perfectly, only "@" remains */
-      strcpy(ltr->name, GNUNET_GNS_EMPTY_LABEL_AT);
-    }
+  if (0 == strcmp (ltr->name, ego_name))
+  {
+    /* name matches ego name perfectly, only "@" remains */
+    strcpy (ltr->name, GNUNET_GNS_EMPTY_LABEL_AT);
+  }
   else
-    {
-      GNUNET_assert(strlen(ego_name) < strlen(ltr->name));
-      ltr->name[strlen(ltr->name) - strlen(ego_name) - 1] = '\0';
-    }
+  {
+    GNUNET_assert (strlen (ego_name) < strlen (ltr->name));
+    ltr->name[strlen (ltr->name) - strlen (ego_name) - 1] = '\0';
+  }
   /* if the name is of the form 'label' (and not 'label.SUBDOMAIN'), never go to the DHT */
-  if (NULL == strchr(ltr->name, (unsigned char)'.'))
+  if (NULL == strchr (ltr->name, (unsigned char) '.'))
     ltr->options = GNUNET_GNS_LO_NO_DHT;
   else
     ltr->options = GNUNET_GNS_LO_LOCAL_MASTER;
-  GNUNET_CRYPTO_ecdsa_key_get_public(priv, &pkey);
-  lookup_with_public_key(ltr, &pkey);
+  GNUNET_CRYPTO_ecdsa_key_get_public (priv, &pkey);
+  lookup_with_public_key (ltr, &pkey);
 }
 
 
@@ -237,12 +238,12 @@ identity_zone_cb(void *cls,
  * @return handle to the get request, NULL on error (i.e. bad configuration)
  */
 struct GNUNET_GNS_LookupWithTldRequest *
-GNUNET_GNS_lookup_with_tld(struct GNUNET_GNS_Handle *handle,
-                           const char *name,
-                           uint32_t type,
-                           enum GNUNET_GNS_LocalOptions options,
-                           GNUNET_GNS_LookupResultProcessor2 proc,
-                           void *proc_cls)
+GNUNET_GNS_lookup_with_tld (struct GNUNET_GNS_Handle *handle,
+                            const char *name,
+                            uint32_t type,
+                            enum GNUNET_GNS_LocalOptions options,
+                            GNUNET_GNS_LookupResultProcessor2 proc,
+                            void *proc_cls)
 {
   struct GNUNET_GNS_LookupWithTldRequest *ltr;
   const char *tld;
@@ -250,70 +251,70 @@ GNUNET_GNS_lookup_with_tld(struct GNUNET_GNS_Handle *handle,
   char *zonestr;
   struct GNUNET_CRYPTO_EcdsaPublicKey pkey;
 
-  ltr = GNUNET_new(struct GNUNET_GNS_LookupWithTldRequest);
+  ltr = GNUNET_new (struct GNUNET_GNS_LookupWithTldRequest);
   ltr->gns_handle = handle;
-  ltr->name = GNUNET_strdup(name);
+  ltr->name = GNUNET_strdup (name);
   ltr->type = type;
   ltr->options = options;
   ltr->lookup_proc = proc;
   ltr->lookup_proc_cls = proc_cls;
   /* start with trivial case: TLD is zkey */
-  tld = get_tld(ltr->name);
+  tld = get_tld (ltr->name);
   if (GNUNET_OK ==
-      GNUNET_CRYPTO_ecdsa_public_key_from_string(tld, strlen(tld), &pkey))
-    {
-      eat_tld(ltr->name, tld);
-      lookup_with_public_key(ltr, &pkey);
-      return ltr;
-    }
+      GNUNET_CRYPTO_ecdsa_public_key_from_string (tld, strlen (tld), &pkey))
+  {
+    eat_tld (ltr->name, tld);
+    lookup_with_public_key (ltr, &pkey);
+    return ltr;
+  }
 
   /* second case: domain is mapped in our configuration file */
   for (const char *domain = name; NULL != domain;
-       domain = strchr(domain, (unsigned char)'.'))
+       domain = strchr (domain, (unsigned char) '.'))
+  {
+    if ('.' == domain[0])
+      domain++;
+    GNUNET_asprintf (&dot_tld, ".%s", domain);
+    if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string (handle->cfg,
+                                                            "gns",
+                                                            dot_tld,
+                                                            &zonestr))
     {
-      if ('.' == domain[0])
-        domain++;
-      GNUNET_asprintf(&dot_tld, ".%s", domain);
-      if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string(handle->cfg,
-                                                             "gns",
-                                                             dot_tld,
-                                                             &zonestr))
-        {
-          if (GNUNET_OK !=
-              GNUNET_CRYPTO_ecdsa_public_key_from_string(zonestr,
-                                                         strlen(zonestr),
-                                                         &pkey))
-            {
-              GNUNET_log_config_invalid(
-                GNUNET_ERROR_TYPE_ERROR,
-                "gns",
-                dot_tld,
-                _("Expected a base32-encoded public zone key\n"));
-              GNUNET_free(zonestr);
-              GNUNET_free(dot_tld);
-              GNUNET_free(ltr->name);
-              GNUNET_free(ltr);
-              return NULL;
-            }
-          eat_tld(ltr->name, &dot_tld[1]);
-          GNUNET_free(zonestr);
-          GNUNET_free(dot_tld);
-          lookup_with_public_key(ltr, &pkey);
-          return ltr;
-        }
-      GNUNET_free(dot_tld);
+      if (GNUNET_OK !=
+          GNUNET_CRYPTO_ecdsa_public_key_from_string (zonestr,
+                                                      strlen (zonestr),
+                                                      &pkey))
+      {
+        GNUNET_log_config_invalid (
+          GNUNET_ERROR_TYPE_ERROR,
+          "gns",
+          dot_tld,
+          _ ("Expected a base32-encoded public zone key\n"));
+        GNUNET_free (zonestr);
+        GNUNET_free (dot_tld);
+        GNUNET_free (ltr->name);
+        GNUNET_free (ltr);
+        return NULL;
+      }
+      eat_tld (ltr->name, &dot_tld[1]);
+      GNUNET_free (zonestr);
+      GNUNET_free (dot_tld);
+      lookup_with_public_key (ltr, &pkey);
+      return ltr;
     }
+    GNUNET_free (dot_tld);
+  }
   ltr->id_co =
-    GNUNET_IDENTITY_ego_lookup_by_suffix(ltr->gns_handle->cfg,
-                                         ltr->name,
-                                         &identity_zone_cb,
-                                         ltr);
+    GNUNET_IDENTITY_ego_lookup_by_suffix (ltr->gns_handle->cfg,
+                                          ltr->name,
+                                          &identity_zone_cb,
+                                          ltr);
   if (NULL == ltr->id_co)
-    {
-      GNUNET_free(ltr->name);
-      GNUNET_free(ltr);
-      return NULL;
-    }
+  {
+    GNUNET_free (ltr->name);
+    GNUNET_free (ltr);
+    return NULL;
+  }
   return ltr;
 }
 
@@ -325,23 +326,23 @@ GNUNET_GNS_lookup_with_tld(struct GNUNET_GNS_Handle *handle,
  * @return closure from the lookup result processor
  */
 void *
-GNUNET_GNS_lookup_with_tld_cancel(struct GNUNET_GNS_LookupWithTldRequest *ltr)
+GNUNET_GNS_lookup_with_tld_cancel (struct GNUNET_GNS_LookupWithTldRequest *ltr)
 {
   void *ret = ltr->lookup_proc_cls;
 
   if (NULL != ltr->id_co)
-    {
-      GNUNET_IDENTITY_ego_lookup_by_suffix_cancel(ltr->id_co);
-      ltr->id_co = NULL;
-    }
+  {
+    GNUNET_IDENTITY_ego_lookup_by_suffix_cancel (ltr->id_co);
+    ltr->id_co = NULL;
+  }
   if (NULL != ltr->lr)
-    {
-      GNUNET_GNS_lookup_cancel(ltr->lr);
-      ltr->lr = NULL;
-    }
-  GNUNET_free_non_null(ltr->longest_match);
-  GNUNET_free(ltr->name);
-  GNUNET_free(ltr);
+  {
+    GNUNET_GNS_lookup_cancel (ltr->lr);
+    ltr->lr = NULL;
+  }
+  GNUNET_free_non_null (ltr->longest_match);
+  GNUNET_free (ltr->name);
+  GNUNET_free (ltr);
   return ret;
 }
 

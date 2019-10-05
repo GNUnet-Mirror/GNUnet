@@ -58,14 +58,16 @@ GNUNET_NETWORK_STRUCT_BEGIN
 /**
  * A MAC Address.
  */
-struct GNUNET_TRANSPORT_WLAN_MacAddress {
+struct GNUNET_TRANSPORT_WLAN_MacAddress
+{
   uint8_t mac[MAC_ADDR_SIZE];
 };
 
 /**
  * Format of a WLAN Control Message.
  */
-struct GNUNET_TRANSPORT_WLAN_HelperControlMessage {
+struct GNUNET_TRANSPORT_WLAN_HelperControlMessage
+{
   /**
    * Message header.  Type is
    * GNUNET_MESSAGE_TYPE_WLAN_HELPER_CONTROL
@@ -81,7 +83,8 @@ struct GNUNET_TRANSPORT_WLAN_HelperControlMessage {
 /**
  * generic definitions for IEEE 802.3 frames
  */
-struct GNUNET_TRANSPORT_WLAN_Ieee8023Frame {
+struct GNUNET_TRANSPORT_WLAN_Ieee8023Frame
+{
   /**
    * Address 1: destination address in ad-hoc mode or AP, BSSID if station,
    */
@@ -102,7 +105,8 @@ struct GNUNET_TRANSPORT_WLAN_Ieee8023Frame {
 /**
  * generic definitions for IEEE 802.11 frames
  */
-struct GNUNET_TRANSPORT_WLAN_Ieee80211Frame {
+struct GNUNET_TRANSPORT_WLAN_Ieee80211Frame
+{
   /**
    * 802.11 Frame Control field.  A bitmask.  The overall field is a
    * 16-bit mask of the respecitve fields.  The lowest two bits should
@@ -154,7 +158,8 @@ struct GNUNET_TRANSPORT_WLAN_Ieee80211Frame {
  * Message from the plugin to the WLAN helper: send the given message with the
  * given connection parameters.
  */
-struct GNUNET_TRANSPORT_WLAN_RadiotapSendMessage {
+struct GNUNET_TRANSPORT_WLAN_RadiotapSendMessage
+{
   /**
    * Type is 'GNUNET_MESSAGE_TYPE_WLAN_DATA_TO_HELPER'.
    */
@@ -193,7 +198,8 @@ struct GNUNET_TRANSPORT_WLAN_RadiotapSendMessage {
 /**
  * struct to represent infos gathered form the radiotap fields, see RadiotapHeader for more Infos
  */
-struct GNUNET_TRANSPORT_WLAN_RadiotapReceiveMessage {
+struct GNUNET_TRANSPORT_WLAN_RadiotapReceiveMessage
+{
   /**
    * Type is 'GNUNET_MESSAGE_TYPE_WLAN_DATA_FROM_HELPER'.
    */

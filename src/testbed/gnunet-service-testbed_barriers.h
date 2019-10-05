@@ -33,14 +33,14 @@
  * @param cfg the configuration to use for initialisation
  */
 void
-GST_barriers_init(struct GNUNET_CONFIGURATION_Handle *cfg);
+GST_barriers_init (struct GNUNET_CONFIGURATION_Handle *cfg);
 
 
 /**
  * Function to stop the barrier service
  */
 void
-GST_barriers_destroy(void);
+GST_barriers_destroy (void);
 
 
 /**
@@ -51,8 +51,8 @@ GST_barriers_destroy(void);
  * @return #GNUNET_OK if @a msg is well-formed
  */
 int
-check_barrier_init(void *cls,
-                   const struct GNUNET_TESTBED_BarrierInit *msg);
+check_barrier_init (void *cls,
+                    const struct GNUNET_TESTBED_BarrierInit *msg);
 
 
 /**
@@ -67,8 +67,8 @@ check_barrier_init(void *cls,
  * @param msg the actual message
  */
 void
-handle_barrier_init(void *cls,
-                    const struct GNUNET_TESTBED_BarrierInit *msg);
+handle_barrier_init (void *cls,
+                     const struct GNUNET_TESTBED_BarrierInit *msg);
 
 
 /**
@@ -79,8 +79,8 @@ handle_barrier_init(void *cls,
  * @return #GNUNET_OK if @a msg is well-formed
  */
 int
-check_barrier_cancel(void *cls,
-                     const struct GNUNET_TESTBED_BarrierCancel *msg);
+check_barrier_cancel (void *cls,
+                      const struct GNUNET_TESTBED_BarrierCancel *msg);
 
 
 /**
@@ -95,8 +95,8 @@ check_barrier_cancel(void *cls,
  * @param msg the actual message
  */
 void
-handle_barrier_cancel(void *cls,
-                      const struct GNUNET_TESTBED_BarrierCancel *msg);
+handle_barrier_cancel (void *cls,
+                       const struct GNUNET_TESTBED_BarrierCancel *msg);
 
 
 /**
@@ -107,8 +107,8 @@ handle_barrier_cancel(void *cls,
  * @return #GNUNET_OK if @a msg is well-formed
  */
 int
-check_barrier_status(void *cls,
-                     const struct GNUNET_TESTBED_BarrierStatusMsg *msg);
+check_barrier_status (void *cls,
+                      const struct GNUNET_TESTBED_BarrierStatusMsg *msg);
 
 
 /**
@@ -120,8 +120,8 @@ check_barrier_status(void *cls,
  * @param msg the actual message
  */
 void
-handle_barrier_status(void *cls,
-                      const struct GNUNET_TESTBED_BarrierStatusMsg *msg);
+handle_barrier_status (void *cls,
+                       const struct GNUNET_TESTBED_BarrierStatusMsg *msg);
 
 #endif  /* GNUNET_SERVER_TESTBED_BARRIERS_H_ */
 

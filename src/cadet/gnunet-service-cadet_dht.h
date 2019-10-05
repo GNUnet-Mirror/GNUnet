@@ -52,14 +52,14 @@ struct GCD_search_handle;
  * @param c Configuration.
  */
 void
-GCD_init(const struct GNUNET_CONFIGURATION_Handle *c);
+GCD_init (const struct GNUNET_CONFIGURATION_Handle *c);
 
 
 /**
  * Shut down the DHT subsystem.
  */
 void
-GCD_shutdown(void);
+GCD_shutdown (void);
 
 
 /**
@@ -67,7 +67,7 @@ GCD_shutdown(void);
  * changes. Re-triggers the DHT PUT immediately.
  */
 void
-GCD_hello_update(void);
+GCD_hello_update (void);
 
 /**
  * Search DHT for paths to @a peeR_id
@@ -76,7 +76,7 @@ GCD_hello_update(void);
  * @return handle to abort search
  */
 struct GCD_search_handle *
-GCD_search(const struct GNUNET_PeerIdentity *peer_id);
+GCD_search (const struct GNUNET_PeerIdentity *peer_id);
 
 
 /**
@@ -85,7 +85,7 @@ GCD_search(const struct GNUNET_PeerIdentity *peer_id);
  * @param h handle to search to stop
  */
 void
-GCD_search_stop(struct GCD_search_handle *h);
+GCD_search_stop (struct GCD_search_handle *h);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

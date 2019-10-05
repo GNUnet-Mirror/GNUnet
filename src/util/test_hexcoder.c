@@ -32,23 +32,23 @@
 
 
 int
-main(int argc,
-     char *argv[])
+main (int argc,
+      char *argv[])
 {
-  char buf[strlen(TESTSTRING) + 1];
+  char buf[strlen (TESTSTRING) + 1];
   char *ret;
 
-  GNUNET_log_setup("test-hexcoder", "WARNING", NULL);
-  ret = GNUNET_DNSPARSER_bin_to_hex(TESTSTRING,
-                                    strlen(TESTSTRING) + 1);
-  GNUNET_assert(NULL != ret);
-  GNUNET_assert(sizeof(buf) ==
-                GNUNET_DNSPARSER_hex_to_bin(ret,
-                                            buf));
-  GNUNET_assert(0 == memcmp(TESTSTRING,
-                            buf,
-                            sizeof(buf)));
-  GNUNET_free(ret);
+  GNUNET_log_setup ("test-hexcoder", "WARNING", NULL);
+  ret = GNUNET_DNSPARSER_bin_to_hex (TESTSTRING,
+                                     strlen (TESTSTRING) + 1);
+  GNUNET_assert (NULL != ret);
+  GNUNET_assert (sizeof(buf) ==
+                 GNUNET_DNSPARSER_hex_to_bin (ret,
+                                              buf));
+  GNUNET_assert (0 == memcmp (TESTSTRING,
+                              buf,
+                              sizeof(buf)));
+  GNUNET_free (ret);
   return 0;
 }
 

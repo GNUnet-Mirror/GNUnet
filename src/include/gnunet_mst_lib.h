@@ -78,8 +78,8 @@ typedef int
  * @return handle to tokenizer
  */
 struct GNUNET_MessageStreamTokenizer *
-GNUNET_MST_create(GNUNET_MessageTokenizerCallback cb,
-                  void *cb_cls);
+GNUNET_MST_create (GNUNET_MessageTokenizerCallback cb,
+                   void *cb_cls);
 
 
 /**
@@ -97,11 +97,11 @@ GNUNET_MST_create(GNUNET_MessageTokenizerCallback cb,
  *         #GNUNET_SYSERR if the data stream is corrupt
  */
 int
-GNUNET_MST_from_buffer(struct GNUNET_MessageStreamTokenizer *mst,
-                       const char *buf,
-                       size_t size,
-                       int purge,
-                       int one_shot);
+GNUNET_MST_from_buffer (struct GNUNET_MessageStreamTokenizer *mst,
+                        const char *buf,
+                        size_t size,
+                        int purge,
+                        int one_shot);
 
 
 /**
@@ -119,10 +119,10 @@ GNUNET_MST_from_buffer(struct GNUNET_MessageStreamTokenizer *mst,
  *         #GNUNET_SYSERR if the data stream is corrupt
  */
 int
-GNUNET_MST_read(struct GNUNET_MessageStreamTokenizer *mst,
-                struct GNUNET_NETWORK_Handle *sock,
-                int purge,
-                int one_shot);
+GNUNET_MST_read (struct GNUNET_MessageStreamTokenizer *mst,
+                 struct GNUNET_NETWORK_Handle *sock,
+                 int purge,
+                 int one_shot);
 
 
 /**
@@ -137,8 +137,8 @@ GNUNET_MST_read(struct GNUNET_MessageStreamTokenizer *mst,
  *         #GNUNET_SYSERR if the data stream is corrupt
  */
 int
-GNUNET_MST_next(struct GNUNET_MessageStreamTokenizer *mst,
-                int one_shot);
+GNUNET_MST_next (struct GNUNET_MessageStreamTokenizer *mst,
+                 int one_shot);
 
 
 /**
@@ -147,7 +147,7 @@ GNUNET_MST_next(struct GNUNET_MessageStreamTokenizer *mst,
  * @param mst tokenizer to destroy
  */
 void
-GNUNET_MST_destroy(struct GNUNET_MessageStreamTokenizer *mst);
+GNUNET_MST_destroy (struct GNUNET_MessageStreamTokenizer *mst);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

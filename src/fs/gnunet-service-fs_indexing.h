@@ -56,17 +56,17 @@
  * @return #GNUNET_OK on success
  */
 int
-GNUNET_FS_handle_on_demand_block(const struct GNUNET_HashCode *key,
-                                 uint32_t size,
-                                 const void *data,
-                                 enum GNUNET_BLOCK_Type type,
-                                 uint32_t priority,
-                                 uint32_t anonymity,
-                                 uint32_t replication,
-                                 struct GNUNET_TIME_Absolute expiration,
-                                 uint64_t uid,
-                                 GNUNET_DATASTORE_DatumProcessor cont,
-                                 void *cont_cls);
+GNUNET_FS_handle_on_demand_block (const struct GNUNET_HashCode *key,
+                                  uint32_t size,
+                                  const void *data,
+                                  enum GNUNET_BLOCK_Type type,
+                                  uint32_t priority,
+                                  uint32_t anonymity,
+                                  uint32_t replication,
+                                  struct GNUNET_TIME_Absolute expiration,
+                                  uint64_t uid,
+                                  GNUNET_DATASTORE_DatumProcessor cont,
+                                  void *cont_cls);
 
 
 /**
@@ -75,7 +75,7 @@ GNUNET_FS_handle_on_demand_block(const struct GNUNET_HashCode *key,
  * @param mq message queue to send information to
  */
 void
-GNUNET_FS_indexing_send_list(struct GNUNET_MQ_Handle *mq);
+GNUNET_FS_indexing_send_list (struct GNUNET_MQ_Handle *mq);
 
 
 /**
@@ -85,7 +85,7 @@ GNUNET_FS_indexing_send_list(struct GNUNET_MQ_Handle *mq);
  * @return #GNUNET_YES if the @a fid was found
  */
 int
-GNUNET_FS_indexing_do_unindex(const struct GNUNET_HashCode *fid);
+GNUNET_FS_indexing_do_unindex (const struct GNUNET_HashCode *fid);
 
 
 /**
@@ -95,8 +95,8 @@ GNUNET_FS_indexing_do_unindex(const struct GNUNET_HashCode *fid);
  * @param file_id hash identifier for @a filename
  */
 void
-GNUNET_FS_add_to_index(const char *filename,
-                       const struct GNUNET_HashCode *file_id);
+GNUNET_FS_add_to_index (const char *filename,
+                        const struct GNUNET_HashCode *file_id);
 
 
 /**
@@ -107,15 +107,15 @@ GNUNET_FS_add_to_index(const char *filename,
  * @return GNUNET_OK on success
  */
 int
-GNUNET_FS_indexing_init(const struct GNUNET_CONFIGURATION_Handle *c,
-                        struct GNUNET_DATASTORE_Handle *d);
+GNUNET_FS_indexing_init (const struct GNUNET_CONFIGURATION_Handle *c,
+                         struct GNUNET_DATASTORE_Handle *d);
 
 
 /**
  * Shutdown the module.
  */
 void
-GNUNET_FS_indexing_done(void);
+GNUNET_FS_indexing_done (void);
 
 
 #endif

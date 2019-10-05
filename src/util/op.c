@@ -30,9 +30,10 @@
 #include "platform.h"
 #include "gnunet_util_lib.h"
 
-#define LOG(kind, ...) GNUNET_log_from(kind, "util-op", __VA_ARGS__)
+#define LOG(kind, ...) GNUNET_log_from (kind, "util-op", __VA_ARGS__)
 
-struct OperationListItem {
+struct OperationListItem
+{
   struct OperationListItem *prev;
   struct OperationListItem *next;
 
@@ -62,7 +63,8 @@ struct OperationListItem {
  * Operations handle.
  */
 
-struct GNUNET_OP_Handle {
+struct GNUNET_OP_Handle
+{
   /**
    * First operation in the linked list.
    */
@@ -84,9 +86,9 @@ struct GNUNET_OP_Handle {
  * Create new operations handle.
  */
 struct GNUNET_OP_Handle *
-GNUNET_OP_create()
+GNUNET_OP_create ()
 {
-  return GNUNET_new(struct GNUNET_OP_Handle);
+  return GNUNET_new (struct GNUNET_OP_Handle);
 }
 
 
@@ -94,9 +96,9 @@ GNUNET_OP_create()
  * Destroy operations handle.
  */
 void
-GNUNET_OP_destroy(struct GNUNET_OP_Handle *h)
+GNUNET_OP_destroy (struct GNUNET_OP_Handle *h)
 {
-  GNUNET_free(h);
+  GNUNET_free (h);
 }
 
 
@@ -109,7 +111,7 @@ GNUNET_OP_destroy(struct GNUNET_OP_Handle *h)
  * @return Operation ID to use.
  */
 uint64_t
-GNUNET_OP_get_next_id(struct GNUNET_OP_Handle *h)
+GNUNET_OP_get_next_id (struct GNUNET_OP_Handle *h)
 {
   return ++h->last_op_id;
 }
@@ -126,8 +128,8 @@ GNUNET_OP_get_next_id(struct GNUNET_OP_Handle *h)
  * @return Operation, or NULL if not found.
  */
 static struct OperationListItem *
-op_find(struct GNUNET_OP_Handle *h,
-        uint64_t op_id)
+op_find (struct GNUNET_OP_Handle *h,
+         uint64_t op_id)
 {
   struct OperationListItem *op;
 
@@ -156,24 +158,24 @@ op_find(struct GNUNET_OP_Handle *h,
  *         #GNUNET_NO  if not found.
  */
 int
-GNUNET_OP_get(struct GNUNET_OP_Handle *h,
-              uint64_t op_id,
-              GNUNET_ResultCallback *result_cb,
-              void **cls,
-              void **ctx)
+GNUNET_OP_get (struct GNUNET_OP_Handle *h,
+               uint64_t op_id,
+               GNUNET_ResultCallback *result_cb,
+               void **cls,
+               void **ctx)
 {
-  struct OperationListItem *op = op_find(h, op_id);
+  struct OperationListItem *op = op_find (h, op_id);
 
   if (NULL != op)
-    {
-      if (NULL != result_cb)
-        *result_cb = op->result_cb;
-      if (NULL != cls)
-        *cls = op->cls;
-      if (NULL != ctx)
-        *ctx = op->ctx;
-      return GNUNET_YES;
-    }
+  {
+    if (NULL != result_cb)
+      *result_cb = op->result_cb;
+    if (NULL != cls)
+      *cls = op->cls;
+    if (NULL != ctx)
+      *ctx = op->ctx;
+    return GNUNET_YES;
+  }
   return GNUNET_NO;
 }
 
@@ -193,24 +195,24 @@ GNUNET_OP_get(struct GNUNET_OP_Handle *h,
  * @return ID of the new operation.
  */
 uint64_t
-GNUNET_OP_add(struct GNUNET_OP_Handle *h,
-              GNUNET_ResultCallback result_cb,
-              void *cls,
-              void *ctx)
+GNUNET_OP_add (struct GNUNET_OP_Handle *h,
+               GNUNET_ResultCallback result_cb,
+               void *cls,
+               void *ctx)
 {
   struct OperationListItem *op;
 
-  op = GNUNET_new(struct OperationListItem);
-  op->op_id = GNUNET_OP_get_next_id(h);
+  op = GNUNET_new (struct OperationListItem);
+  op->op_id = GNUNET_OP_get_next_id (h);
   op->result_cb = result_cb;
   op->cls = cls;
   op->ctx = ctx;
-  GNUNET_CONTAINER_DLL_insert_tail(h->op_head,
-                                   h->op_tail,
-                                   op);
-  LOG(GNUNET_ERROR_TYPE_DEBUG,
-      "%p Added operation #%" PRIu64 "\n",
-      h, op->op_id);
+  GNUNET_CONTAINER_DLL_insert_tail (h->op_head,
+                                    h->op_tail,
+                                    op);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "%p Added operation #%" PRIu64 "\n",
+       h, op->op_id);
   return op->op_id;
 }
 
@@ -240,38 +242,38 @@ GNUNET_OP_add(struct GNUNET_OP_Handle *h,
  *         #GNUNET_NO  if the operation was not found.
  */
 static int
-op_result(struct GNUNET_OP_Handle *h,
-          uint64_t op_id,
-          int64_t result_code,
-          const void *data,
-          uint16_t data_size,
-          void **ctx,
-          uint8_t cancel)
+op_result (struct GNUNET_OP_Handle *h,
+           uint64_t op_id,
+           int64_t result_code,
+           const void *data,
+           uint16_t data_size,
+           void **ctx,
+           uint8_t cancel)
 {
   if (0 == op_id)
     return GNUNET_NO;
 
-  struct OperationListItem *op = op_find(h, op_id);
+  struct OperationListItem *op = op_find (h, op_id);
   if (NULL == op)
-    {
-      LOG(GNUNET_ERROR_TYPE_WARNING,
-          "Could not find operation #%" PRIu64 "\n", op_id);
-      return GNUNET_NO;
-    }
+  {
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+         "Could not find operation #%" PRIu64 "\n", op_id);
+    return GNUNET_NO;
+  }
 
   if (NULL != ctx)
     *ctx = op->ctx;
 
-  GNUNET_CONTAINER_DLL_remove(h->op_head,
-                              h->op_tail,
-                              op);
+  GNUNET_CONTAINER_DLL_remove (h->op_head,
+                               h->op_tail,
+                               op);
 
   if ((GNUNET_YES != cancel) &&
       (NULL != op->result_cb))
-    op->result_cb(op->cls,
-                  result_code, data,
-                  data_size);
-  GNUNET_free(op);
+    op->result_cb (op->cls,
+                   result_code, data,
+                   data_size);
+  GNUNET_free (op);
   return GNUNET_YES;
 }
 
@@ -296,17 +298,17 @@ op_result(struct GNUNET_OP_Handle *h,
  *         #GNUNET_NO  if the operation was not found.
  */
 int
-GNUNET_OP_result(struct GNUNET_OP_Handle *h,
-                 uint64_t op_id,
-                 int64_t result_code,
-                 const void *data,
-                 uint16_t data_size,
-                 void **ctx)
+GNUNET_OP_result (struct GNUNET_OP_Handle *h,
+                  uint64_t op_id,
+                  int64_t result_code,
+                  const void *data,
+                  uint16_t data_size,
+                  void **ctx)
 {
-  LOG(GNUNET_ERROR_TYPE_DEBUG,
-      "%p Received result for operation #%" PRIu64 ": %" PRId64 " (size: %u)\n",
-      h, op_id, result_code, data_size);
-  return op_result(h, op_id, result_code, data, data_size, ctx, GNUNET_NO);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "%p Received result for operation #%" PRIu64 ": %" PRId64 " (size: %u)\n",
+       h, op_id, result_code, data_size);
+  return op_result (h, op_id, result_code, data, data_size, ctx, GNUNET_NO);
 }
 
 
@@ -322,11 +324,11 @@ GNUNET_OP_result(struct GNUNET_OP_Handle *h,
  *         #GNUNET_NO  if the operation was not found.
  */
 int
-GNUNET_OP_remove(struct GNUNET_OP_Handle *h,
-                 uint64_t op_id)
+GNUNET_OP_remove (struct GNUNET_OP_Handle *h,
+                  uint64_t op_id)
 {
-  LOG(GNUNET_ERROR_TYPE_DEBUG,
-      "%p Cancelling operation #%" PRIu64  "\n",
-      h, op_id);
-  return op_result(h, op_id, 0, NULL, 0, NULL, GNUNET_YES);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "%p Cancelling operation #%" PRIu64  "\n",
+       h, op_id);
+  return op_result (h, op_id, 0, NULL, 0, NULL, GNUNET_YES);
 }

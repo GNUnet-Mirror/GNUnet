@@ -33,18 +33,20 @@
  * Generic logging shorthand
  */
 #define LOG(kind, ...)                          \
-  GNUNET_log_from(kind, "testbed-logger-api", __VA_ARGS__)
+  GNUNET_log_from (kind, "testbed-logger-api", __VA_ARGS__)
 
 
 /**
  * The size of the buffer we fill before sending out the message
  */
-#define BUFFER_SIZE (GNUNET_MAX_MESSAGE_SIZE - sizeof(struct GNUNET_MessageHeader))
+#define BUFFER_SIZE (GNUNET_MAX_MESSAGE_SIZE - sizeof(struct \
+                                                      GNUNET_MessageHeader))
 
 /**
  * Connection handle for the logger service
  */
-struct GNUNET_TESTBED_LOGGER_Handle {
+struct GNUNET_TESTBED_LOGGER_Handle
+{
   /**
    * Client connection
    */
@@ -98,7 +100,7 @@ struct GNUNET_TESTBED_LOGGER_Handle {
  * @param cls the logger handle
  */
 static void
-call_flush_completion(void *cls)
+call_flush_completion (void *cls)
 {
   struct GNUNET_TESTBED_LOGGER_Handle *h = cls;
   GNUNET_TESTBED_LOGGER_FlushCompletion cb;
@@ -113,7 +115,7 @@ call_flush_completion(void *cls)
   cb_cls = h->cb_cls;
   h->cb_cls = NULL;
   if (NULL != cb)
-    cb(cb_cls, bw);
+    cb (cb_cls, bw);
 }
 
 
@@ -123,13 +125,13 @@ call_flush_completion(void *cls)
  * @param h logger handle
  */
 static void
-trigger_flush_notification(struct GNUNET_TESTBED_LOGGER_Handle *h)
+trigger_flush_notification (struct GNUNET_TESTBED_LOGGER_Handle *h)
 {
   if (NULL != h->flush_completion_task)
-    GNUNET_SCHEDULER_cancel(h->flush_completion_task);
+    GNUNET_SCHEDULER_cancel (h->flush_completion_task);
   h->flush_completion_task
-    = GNUNET_SCHEDULER_add_now(&call_flush_completion,
-                               h);
+    = GNUNET_SCHEDULER_add_now (&call_flush_completion,
+                                h);
 }
 
 
@@ -139,7 +141,7 @@ trigger_flush_notification(struct GNUNET_TESTBED_LOGGER_Handle *h)
  * @param h the logger handle
  */
 static void
-dispatch_buffer(struct GNUNET_TESTBED_LOGGER_Handle *h);
+dispatch_buffer (struct GNUNET_TESTBED_LOGGER_Handle *h);
 
 
 /**
@@ -148,19 +150,19 @@ dispatch_buffer(struct GNUNET_TESTBED_LOGGER_Handle *h);
  * @param cls our handle
  */
 static void
-notify_sent(void *cls)
+notify_sent (void *cls)
 {
   struct GNUNET_TESTBED_LOGGER_Handle *h = cls;
 
   h->mq_len--;
   if ((0 == h->mq_len) &&
       (NULL != h->cb))
-    {
-      if (0 == h->buse)
-        trigger_flush_notification(h);
-      else
-        dispatch_buffer(h);
-    }
+  {
+    if (0 == h->buse)
+      trigger_flush_notification (h);
+    else
+      dispatch_buffer (h);
+  }
 }
 
 
@@ -170,25 +172,25 @@ notify_sent(void *cls)
  * @param h the logger handle
  */
 static void
-dispatch_buffer(struct GNUNET_TESTBED_LOGGER_Handle *h)
+dispatch_buffer (struct GNUNET_TESTBED_LOGGER_Handle *h)
 {
   struct GNUNET_MessageHeader *msg;
   struct GNUNET_MQ_Envelope *env;
 
-  env = GNUNET_MQ_msg_extra(msg,
-                            h->buse,
-                            GNUNET_MESSAGE_TYPE_TESTBED_LOGGER_MSG);
-  GNUNET_memcpy(&msg[1],
-                h->buf,
-                h->buse);
+  env = GNUNET_MQ_msg_extra (msg,
+                             h->buse,
+                             GNUNET_MESSAGE_TYPE_TESTBED_LOGGER_MSG);
+  GNUNET_memcpy (&msg[1],
+                 h->buf,
+                 h->buse);
   h->bwrote += h->buse;
   h->buse = 0;
   h->mq_len++;
-  GNUNET_MQ_notify_sent(env,
-                        &notify_sent,
-                        h);
-  GNUNET_MQ_send(h->mq,
-                 env);
+  GNUNET_MQ_notify_sent (env,
+                         &notify_sent,
+                         h);
+  GNUNET_MQ_send (h->mq,
+                  env);
 }
 
 
@@ -199,13 +201,13 @@ dispatch_buffer(struct GNUNET_TESTBED_LOGGER_Handle *h)
  * @param error error code
  */
 static void
-mq_error_handler(void *cls,
-                 enum GNUNET_MQ_Error error)
+mq_error_handler (void *cls,
+                  enum GNUNET_MQ_Error error)
 {
   struct GNUNET_TESTBED_LOGGER_Handle *h = cls;
 
-  GNUNET_break(0);
-  GNUNET_MQ_destroy(h->mq);
+  GNUNET_break (0);
+  GNUNET_MQ_destroy (h->mq);
   h->mq = NULL;
 }
 
@@ -218,21 +220,21 @@ mq_error_handler(void *cls,
  *           upon any error
  */
 struct GNUNET_TESTBED_LOGGER_Handle *
-GNUNET_TESTBED_LOGGER_connect(const struct GNUNET_CONFIGURATION_Handle *cfg)
+GNUNET_TESTBED_LOGGER_connect (const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   struct GNUNET_TESTBED_LOGGER_Handle *h;
 
-  h = GNUNET_new(struct GNUNET_TESTBED_LOGGER_Handle);
-  h->mq = GNUNET_CLIENT_connect(cfg,
-                                "testbed-logger",
-                                NULL,
-                                &mq_error_handler,
-                                h);
+  h = GNUNET_new (struct GNUNET_TESTBED_LOGGER_Handle);
+  h->mq = GNUNET_CLIENT_connect (cfg,
+                                 "testbed-logger",
+                                 NULL,
+                                 &mq_error_handler,
+                                 h);
   if (NULL == h->mq)
-    {
-      GNUNET_free(h);
-      return NULL;
-    }
+  {
+    GNUNET_free (h);
+    return NULL;
+  }
   return h;
 }
 
@@ -243,23 +245,23 @@ GNUNET_TESTBED_LOGGER_connect(const struct GNUNET_CONFIGURATION_Handle *cfg)
  * @param h the logger handle
  */
 void
-GNUNET_TESTBED_LOGGER_disconnect(struct GNUNET_TESTBED_LOGGER_Handle *h)
+GNUNET_TESTBED_LOGGER_disconnect (struct GNUNET_TESTBED_LOGGER_Handle *h)
 {
   if (NULL != h->flush_completion_task)
-    {
-      GNUNET_SCHEDULER_cancel(h->flush_completion_task);
-      h->flush_completion_task = NULL;
-    }
+  {
+    GNUNET_SCHEDULER_cancel (h->flush_completion_task);
+    h->flush_completion_task = NULL;
+  }
   if (0 != h->mq_len)
-    LOG(GNUNET_ERROR_TYPE_WARNING,
-        "Disconnect lost %u logger message[s]\n",
-        h->mq_len);
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+         "Disconnect lost %u logger message[s]\n",
+         h->mq_len);
   if (NULL != h->mq)
-    {
-      GNUNET_MQ_destroy(h->mq);
-      h->mq = NULL;
-    }
-  GNUNET_free(h);
+  {
+    GNUNET_MQ_destroy (h->mq);
+    h->mq = NULL;
+  }
+  GNUNET_free (h);
 }
 
 
@@ -273,25 +275,25 @@ GNUNET_TESTBED_LOGGER_disconnect(struct GNUNET_TESTBED_LOGGER_Handle *h)
  * @param size how many bytes of @a data to send
  */
 void
-GNUNET_TESTBED_LOGGER_write(struct GNUNET_TESTBED_LOGGER_Handle *h,
-                            const void *data,
-                            size_t size)
+GNUNET_TESTBED_LOGGER_write (struct GNUNET_TESTBED_LOGGER_Handle *h,
+                             const void *data,
+                             size_t size)
 {
   if (NULL == h->mq)
     return;
   while (0 != size)
-    {
-      size_t fit_size = GNUNET_MIN(size,
-                                   BUFFER_SIZE - h->buse);
-      GNUNET_memcpy(&h->buf[h->buse],
-                    data,
-                    fit_size);
-      h->buse += fit_size;
-      data += fit_size;
-      size -= fit_size;
-      if (0 != size)
-        dispatch_buffer(h);
-    }
+  {
+    size_t fit_size = GNUNET_MIN (size,
+                                  BUFFER_SIZE - h->buse);
+    GNUNET_memcpy (&h->buf[h->buse],
+                   data,
+                   fit_size);
+    h->buse += fit_size;
+    data += fit_size;
+    size -= fit_size;
+    if (0 != size)
+      dispatch_buffer (h);
+  }
 }
 
 
@@ -303,20 +305,20 @@ GNUNET_TESTBED_LOGGER_write(struct GNUNET_TESTBED_LOGGER_Handle *h,
  * @param cb_cls the closure for the above callback
  */
 void
-GNUNET_TESTBED_LOGGER_flush(struct GNUNET_TESTBED_LOGGER_Handle *h,
-                            GNUNET_TESTBED_LOGGER_FlushCompletion cb,
-                            void *cb_cls)
+GNUNET_TESTBED_LOGGER_flush (struct GNUNET_TESTBED_LOGGER_Handle *h,
+                             GNUNET_TESTBED_LOGGER_FlushCompletion cb,
+                             void *cb_cls)
 {
-  GNUNET_assert(NULL == h->cb);
+  GNUNET_assert (NULL == h->cb);
   h->cb = cb;
   h->cb_cls = cb_cls;
   if ((NULL == h->mq) ||
       (0 == h->buse))
-    {
-      trigger_flush_notification(h);
-      return;
-    }
-  dispatch_buffer(h);
+  {
+    trigger_flush_notification (h);
+    return;
+  }
+  dispatch_buffer (h);
 }
 
 
@@ -328,13 +330,13 @@ GNUNET_TESTBED_LOGGER_flush(struct GNUNET_TESTBED_LOGGER_Handle *h,
  * @param h the logger handle
  */
 void
-GNUNET_TESTBED_LOGGER_flush_cancel(struct GNUNET_TESTBED_LOGGER_Handle *h)
+GNUNET_TESTBED_LOGGER_flush_cancel (struct GNUNET_TESTBED_LOGGER_Handle *h)
 {
   if (NULL != h->flush_completion_task)
-    {
-      GNUNET_SCHEDULER_cancel(h->flush_completion_task);
-      h->flush_completion_task = NULL;
-    }
+  {
+    GNUNET_SCHEDULER_cancel (h->flush_completion_task);
+    h->flush_completion_task = NULL;
+  }
   h->cb = NULL;
   h->cb_cls = NULL;
 }

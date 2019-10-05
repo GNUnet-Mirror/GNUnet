@@ -33,13 +33,17 @@
 #include "gnunet_signatures.h"
 #include "namecache.h"
 
-#define LOG_STRERROR_FILE(kind, syscall, filename) GNUNET_log_from_strerror_file(kind, "util", syscall, filename)
+#define LOG_STRERROR_FILE(kind, syscall, \
+                          filename) GNUNET_log_from_strerror_file (kind, "util", \
+                                                                   syscall, \
+                                                                   filename)
 
 
 /**
  * A namecache client
  */
-struct NamecacheClient {
+struct NamecacheClient
+{
   /**
    * The client
    */
@@ -79,21 +83,21 @@ static char *db_lib_name;
  * @param cls unused
  */
 static void
-cleanup_task(void *cls)
+cleanup_task (void *cls)
 {
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-             "Stopping namecache service\n");
-  GNUNET_break(NULL ==
-               GNUNET_PLUGIN_unload(db_lib_name,
-                                    GSN_database));
-  GNUNET_free(db_lib_name);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Stopping namecache service\n");
+  GNUNET_break (NULL ==
+                GNUNET_PLUGIN_unload (db_lib_name,
+                                      GSN_database));
+  GNUNET_free (db_lib_name);
   db_lib_name = NULL;
   if (NULL != statistics)
-    {
-      GNUNET_STATISTICS_destroy(statistics,
-                                GNUNET_NO);
-      statistics = NULL;
-    }
+  {
+    GNUNET_STATISTICS_destroy (statistics,
+                               GNUNET_NO);
+    statistics = NULL;
+  }
 }
 
 
@@ -106,16 +110,16 @@ cleanup_task(void *cls)
  * @param app_ctx the `struct NamecacheClient` for this @a client
  */
 static void
-client_disconnect_cb(void *cls,
-                     struct GNUNET_SERVICE_Client *client,
-                     void *app_ctx)
+client_disconnect_cb (void *cls,
+                      struct GNUNET_SERVICE_Client *client,
+                      void *app_ctx)
 {
   struct NamecacheClient *nc = app_ctx;
 
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-             "Client %p disconnected\n",
-             client);
-  GNUNET_free(nc);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Client %p disconnected\n",
+              client);
+  GNUNET_free (nc);
 }
 
 
@@ -128,16 +132,16 @@ client_disconnect_cb(void *cls,
  * @return internal namecache client structure for this client
  */
 static void *
-client_connect_cb(void *cls,
-                  struct GNUNET_SERVICE_Client *client,
-                  struct GNUNET_MQ_Handle *mq)
+client_connect_cb (void *cls,
+                   struct GNUNET_SERVICE_Client *client,
+                   struct GNUNET_MQ_Handle *mq)
 {
   struct NamecacheClient *nc;
 
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-             "Client %p connected\n",
-             client);
-  nc = GNUNET_new(struct NamecacheClient);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Client %p connected\n",
+              client);
+  nc = GNUNET_new (struct NamecacheClient);
   nc->client = client;
   nc->mq = mq;
   return nc;
@@ -148,7 +152,8 @@ client_connect_cb(void *cls,
  * Context for name lookups passed from #handle_lookup_block to
  * #handle_lookup_block_it as closure
  */
-struct LookupBlockContext {
+struct LookupBlockContext
+{
   /**
    * The client to send the response to
    */
@@ -173,8 +178,8 @@ struct LookupBlockContext {
  * @param block the block
  */
 static void
-handle_lookup_block_it(void *cls,
-                       const struct GNUNET_GNSRECORD_Block *block)
+handle_lookup_block_it (void *cls,
+                        const struct GNUNET_GNSRECORD_Block *block)
 {
   struct LookupBlockContext *lnc = cls;
   struct GNUNET_MQ_Envelope *env;
@@ -182,37 +187,39 @@ handle_lookup_block_it(void *cls,
   size_t esize;
   size_t bsize;
 
-  bsize = ntohl(block->purpose.size);
+  bsize = ntohl (block->purpose.size);
   if (bsize <
-      (sizeof(struct GNUNET_CRYPTO_EccSignaturePurpose) + sizeof(struct GNUNET_TIME_AbsoluteNBO)))
-    {
-      GNUNET_log(GNUNET_ERROR_TYPE_WARNING,
-                 "Malformed block.");
-      lnc->status = GNUNET_SYSERR;
-      return;
-    }
-  esize = ntohl(block->purpose.size)
+      (sizeof(struct GNUNET_CRYPTO_EccSignaturePurpose) + sizeof(struct
+                                                                 GNUNET_TIME_AbsoluteNBO)))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                "Malformed block.");
+    lnc->status = GNUNET_SYSERR;
+    return;
+  }
+  esize = ntohl (block->purpose.size)
           - sizeof(struct GNUNET_CRYPTO_EccSignaturePurpose)
           - sizeof(struct GNUNET_TIME_AbsoluteNBO);
-  env = GNUNET_MQ_msg_extra(r,
-                            esize,
-                            GNUNET_MESSAGE_TYPE_NAMECACHE_LOOKUP_BLOCK_RESPONSE);
-  r->gns_header.r_id = htonl(lnc->request_id);
+  env = GNUNET_MQ_msg_extra (r,
+                             esize,
+                             GNUNET_MESSAGE_TYPE_NAMECACHE_LOOKUP_BLOCK_RESPONSE);
+  r->gns_header.r_id = htonl (lnc->request_id);
   r->expire = block->expiration_time;
   r->signature = block->signature;
   r->derived_key = block->derived_key;
-  GNUNET_memcpy(&r[1],
-                &block[1],
-                esize);
-  GNUNET_STATISTICS_update(statistics,
-                           "blocks found in cache",
-                           1,
-                           GNUNET_NO);
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-             "Sending NAMECACHE_LOOKUP_BLOCK_RESPONSE message with expiration time %s\n",
-             GNUNET_STRINGS_absolute_time_to_string(GNUNET_TIME_absolute_ntoh(r->expire)));
-  GNUNET_MQ_send(lnc->nc->mq,
-                 env);
+  GNUNET_memcpy (&r[1],
+                 &block[1],
+                 esize);
+  GNUNET_STATISTICS_update (statistics,
+                            "blocks found in cache",
+                            1,
+                            GNUNET_NO);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Sending NAMECACHE_LOOKUP_BLOCK_RESPONSE message with expiration time %s\n",
+              GNUNET_STRINGS_absolute_time_to_string (
+                GNUNET_TIME_absolute_ntoh (r->expire)));
+  GNUNET_MQ_send (lnc->nc->mq,
+                  env);
 }
 
 
@@ -223,8 +230,8 @@ handle_lookup_block_it(void *cls,
  * @param the inbound message
  */
 static void
-handle_lookup_block(void *cls,
-                    const struct LookupBlockMessage *ln_msg)
+handle_lookup_block (void *cls,
+                     const struct LookupBlockMessage *ln_msg)
 {
   struct NamecacheClient *nc = cls;
   struct GNUNET_MQ_Envelope *env;
@@ -232,40 +239,40 @@ handle_lookup_block(void *cls,
   struct LookupBlockResponseMessage *zir_end;
   int ret;
 
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-             "Received NAMECACHE_LOOKUP_BLOCK message\n");
-  GNUNET_STATISTICS_update(statistics,
-                           "blocks looked up",
-                           1,
-                           GNUNET_NO);
-  lnc.request_id = ntohl(ln_msg->gns_header.r_id);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Received NAMECACHE_LOOKUP_BLOCK message\n");
+  GNUNET_STATISTICS_update (statistics,
+                            "blocks looked up",
+                            1,
+                            GNUNET_NO);
+  lnc.request_id = ntohl (ln_msg->gns_header.r_id);
   lnc.nc = nc;
   lnc.status = GNUNET_OK;
   if (GNUNET_SYSERR ==
-      (ret = GSN_database->lookup_block(GSN_database->cls,
-                                        &ln_msg->query,
-                                        &handle_lookup_block_it,
-                                        &lnc)))
-    {
-      /* internal error (in database plugin); might be best to just hang up on
-         plugin rather than to signal that there are 'no' results, which
-         might also be false... */
-      GNUNET_break(0);
-      GNUNET_SERVICE_client_drop(nc->client);
-      return;
-    }
+      (ret = GSN_database->lookup_block (GSN_database->cls,
+                                         &ln_msg->query,
+                                         &handle_lookup_block_it,
+                                         &lnc)))
+  {
+    /* internal error (in database plugin); might be best to just hang up on
+       plugin rather than to signal that there are 'no' results, which
+       might also be false... */
+    GNUNET_break (0);
+    GNUNET_SERVICE_client_drop (nc->client);
+    return;
+  }
   if ((0 == ret) || (GNUNET_SYSERR == lnc.status))
-    {
-      /* no records match at all, generate empty response */
-      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-                 "Sending empty NAMECACHE_LOOKUP_BLOCK_RESPONSE message\n");
-      env = GNUNET_MQ_msg(zir_end,
-                          GNUNET_MESSAGE_TYPE_NAMECACHE_LOOKUP_BLOCK_RESPONSE);
-      zir_end->gns_header.r_id = ln_msg->gns_header.r_id;
-      GNUNET_MQ_send(nc->mq,
-                     env);
-    }
-  GNUNET_SERVICE_client_continue(nc->client);
+  {
+    /* no records match at all, generate empty response */
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Sending empty NAMECACHE_LOOKUP_BLOCK_RESPONSE message\n");
+    env = GNUNET_MQ_msg (zir_end,
+                         GNUNET_MESSAGE_TYPE_NAMECACHE_LOOKUP_BLOCK_RESPONSE);
+    zir_end->gns_header.r_id = ln_msg->gns_header.r_id;
+    GNUNET_MQ_send (nc->mq,
+                    env);
+  }
+  GNUNET_SERVICE_client_continue (nc->client);
 }
 
 
@@ -277,8 +284,8 @@ handle_lookup_block(void *cls,
  * @return #GNUNET_OK (always fine)
  */
 static int
-check_block_cache(void *cls,
-                  const struct BlockCacheMessage *rp_msg)
+check_block_cache (void *cls,
+                   const struct BlockCacheMessage *rp_msg)
 {
   return GNUNET_OK;
 }
@@ -291,8 +298,8 @@ check_block_cache(void *cls,
  * @param rp_msg message to process
  */
 static void
-handle_block_cache(void *cls,
-                   const struct BlockCacheMessage *rp_msg)
+handle_block_cache (void *cls,
+                    const struct BlockCacheMessage *rp_msg)
 {
   struct NamecacheClient *nc = cls;
   struct GNUNET_MQ_Envelope *env;
@@ -301,34 +308,36 @@ handle_block_cache(void *cls,
   size_t esize;
   int res;
 
-  GNUNET_STATISTICS_update(statistics,
-                           "blocks cached",
-                           1,
-                           GNUNET_NO);
-  esize = ntohs(rp_msg->gns_header.header.size) - sizeof(struct BlockCacheMessage);
-  block = GNUNET_malloc(sizeof(struct GNUNET_GNSRECORD_Block) + esize);
+  GNUNET_STATISTICS_update (statistics,
+                            "blocks cached",
+                            1,
+                            GNUNET_NO);
+  esize = ntohs (rp_msg->gns_header.header.size) - sizeof(struct
+                                                          BlockCacheMessage);
+  block = GNUNET_malloc (sizeof(struct GNUNET_GNSRECORD_Block) + esize);
   block->signature = rp_msg->signature;
   block->derived_key = rp_msg->derived_key;
-  block->purpose.size = htonl(sizeof(struct GNUNET_CRYPTO_EccSignaturePurpose) +
-                              sizeof(struct GNUNET_TIME_AbsoluteNBO) +
-                              esize);
+  block->purpose.size = htonl (sizeof(struct GNUNET_CRYPTO_EccSignaturePurpose)
+                               + sizeof(struct GNUNET_TIME_AbsoluteNBO)
+                               + esize);
   block->expiration_time = rp_msg->expire;
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-             "Received NAMECACHE_BLOCK_CACHE message with expiration time %s\n",
-             GNUNET_STRINGS_absolute_time_to_string(GNUNET_TIME_absolute_ntoh(block->expiration_time)));
-  GNUNET_memcpy(&block[1],
-                &rp_msg[1],
-                esize);
-  res = GSN_database->cache_block(GSN_database->cls,
-                                  block);
-  GNUNET_free(block);
-  env = GNUNET_MQ_msg(rpr_msg,
-                      GNUNET_MESSAGE_TYPE_NAMECACHE_BLOCK_CACHE_RESPONSE);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Received NAMECACHE_BLOCK_CACHE message with expiration time %s\n",
+              GNUNET_STRINGS_absolute_time_to_string (
+                GNUNET_TIME_absolute_ntoh (block->expiration_time)));
+  GNUNET_memcpy (&block[1],
+                 &rp_msg[1],
+                 esize);
+  res = GSN_database->cache_block (GSN_database->cls,
+                                   block);
+  GNUNET_free (block);
+  env = GNUNET_MQ_msg (rpr_msg,
+                       GNUNET_MESSAGE_TYPE_NAMECACHE_BLOCK_CACHE_RESPONSE);
   rpr_msg->gns_header.r_id = rp_msg->gns_header.r_id;
-  rpr_msg->op_result = htonl(res);
-  GNUNET_MQ_send(nc->mq,
-                 env);
-  GNUNET_SERVICE_client_continue(nc->client);
+  rpr_msg->op_result = htonl (res);
+  GNUNET_MQ_send (nc->mq,
+                  env);
+  GNUNET_SERVICE_client_continue (nc->client);
 }
 
 
@@ -340,46 +349,46 @@ handle_block_cache(void *cls,
  * @param service the initialized service
  */
 static void
-run(void *cls,
-    const struct GNUNET_CONFIGURATION_Handle *cfg,
-    struct GNUNET_SERVICE_Handle *service)
+run (void *cls,
+     const struct GNUNET_CONFIGURATION_Handle *cfg,
+     struct GNUNET_SERVICE_Handle *service)
 {
   char *database;
 
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-             "Starting namecache service\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Starting namecache service\n");
   GSN_cfg = cfg;
 
   /* Loading database plugin */
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_string(cfg,
-                                            "namecache",
-                                            "database",
-                                            &database))
-    GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
-               "No database backend configured\n");
+      GNUNET_CONFIGURATION_get_value_string (cfg,
+                                             "namecache",
+                                             "database",
+                                             &database))
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "No database backend configured\n");
 
-  GNUNET_asprintf(&db_lib_name,
-                  "libgnunet_plugin_namecache_%s",
-                  database);
-  GSN_database = GNUNET_PLUGIN_load(db_lib_name,
-                                    (void *)GSN_cfg);
-  GNUNET_free(database);
+  GNUNET_asprintf (&db_lib_name,
+                   "libgnunet_plugin_namecache_%s",
+                   database);
+  GSN_database = GNUNET_PLUGIN_load (db_lib_name,
+                                     (void *) GSN_cfg);
+  GNUNET_free (database);
   if (NULL == GSN_database)
-    {
-      GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
-                 "Could not load database backend `%s'\n",
-                 db_lib_name);
-      GNUNET_SCHEDULER_add_now(&cleanup_task,
-                               NULL);
-      return;
-    }
-  statistics = GNUNET_STATISTICS_create("namecache",
-                                        cfg);
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Could not load database backend `%s'\n",
+                db_lib_name);
+    GNUNET_SCHEDULER_add_now (&cleanup_task,
+                              NULL);
+    return;
+  }
+  statistics = GNUNET_STATISTICS_create ("namecache",
+                                         cfg);
 
   /* Configuring server handles */
-  GNUNET_SCHEDULER_add_shutdown(&cleanup_task,
-                                NULL);
+  GNUNET_SCHEDULER_add_shutdown (&cleanup_task,
+                                 NULL);
 }
 
 
@@ -393,15 +402,15 @@ GNUNET_SERVICE_MAIN
   &client_connect_cb,
   &client_disconnect_cb,
   NULL,
-  GNUNET_MQ_hd_fixed_size(lookup_block,
-                          GNUNET_MESSAGE_TYPE_NAMECACHE_LOOKUP_BLOCK,
-                          struct LookupBlockMessage,
-                          NULL),
-  GNUNET_MQ_hd_var_size(block_cache,
-                        GNUNET_MESSAGE_TYPE_NAMECACHE_BLOCK_CACHE,
-                        struct BlockCacheMessage,
-                        NULL),
-  GNUNET_MQ_handler_end());
+  GNUNET_MQ_hd_fixed_size (lookup_block,
+                           GNUNET_MESSAGE_TYPE_NAMECACHE_LOOKUP_BLOCK,
+                           struct LookupBlockMessage,
+                           NULL),
+  GNUNET_MQ_hd_var_size (block_cache,
+                         GNUNET_MESSAGE_TYPE_NAMECACHE_BLOCK_CACHE,
+                         struct BlockCacheMessage,
+                         NULL),
+  GNUNET_MQ_handler_end ());
 
 
 /* end of gnunet-service-namecache.c */

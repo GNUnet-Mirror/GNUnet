@@ -43,25 +43,25 @@ static int global_ret;
 
 
 static int
-check_it(void *cls, const struct GNUNET_HELLO_Address *address,
-         struct GNUNET_TIME_Absolute expiration)
+check_it (void *cls, const struct GNUNET_HELLO_Address *address,
+          struct GNUNET_TIME_Absolute expiration)
 {
   unsigned int *agc = cls;
 
   if (address != NULL)
-    {
-      GNUNET_assert(0 == strcmp("peerinfotest", address->transport_name));
-      GNUNET_assert(0 ==
-                    strncmp("Address", address->address,
+  {
+    GNUNET_assert (0 == strcmp ("peerinfotest", address->transport_name));
+    GNUNET_assert (0 ==
+                   strncmp ("Address", address->address,
                             address->address_length));
-      (*agc) -= (1 << (address->address_length - 1));
-    }
+    (*agc) -= (1 << (address->address_length - 1));
+  }
   return GNUNET_OK;
 }
 
 
 static ssize_t
-address_generator(void *cls, size_t max, void *buf)
+address_generator (void *cls, size_t max, void *buf)
 {
   size_t *agc = cls;
   ssize_t ret;
@@ -69,14 +69,14 @@ address_generator(void *cls, size_t max, void *buf)
 
   if (0 == *agc)
     return GNUNET_SYSERR; /* Done */
-  memset(&address.peer, 0, sizeof(struct GNUNET_PeerIdentity));
+  memset (&address.peer, 0, sizeof(struct GNUNET_PeerIdentity));
   address.address = "Address";
   address.transport_name = "peerinfotest";
   address.address_length = *agc;
   ret =
-    GNUNET_HELLO_add_address(&address,
-                             GNUNET_TIME_relative_to_absolute
-                               (GNUNET_TIME_UNIT_HOURS), buf, max);
+    GNUNET_HELLO_add_address (&address,
+                              GNUNET_TIME_relative_to_absolute
+                                (GNUNET_TIME_UNIT_HOURS), buf, max);
   (*agc)--;
   return ret;
 }
@@ -84,84 +84,85 @@ address_generator(void *cls, size_t max, void *buf)
 struct GNUNET_PeerIdentity pid;
 
 static void
-add_peer()
+add_peer ()
 {
   struct GNUNET_HELLO_Message *h2;
   size_t agc;
 
   agc = 2;
-  memset(&pid, 32, sizeof(pid));
-  h2 = GNUNET_HELLO_create(&pid.public_key, &address_generator, &agc, GNUNET_NO);
-  GNUNET_PEERINFO_add_peer(h, h2, NULL, NULL);
-  GNUNET_free(h2);
+  memset (&pid, 32, sizeof(pid));
+  h2 = GNUNET_HELLO_create (&pid.public_key, &address_generator, &agc,
+                            GNUNET_NO);
+  GNUNET_PEERINFO_add_peer (h, h2, NULL, NULL);
+  GNUNET_free (h2);
 }
 
 
 static void
-process(void *cls, const struct GNUNET_PeerIdentity *peer,
-        const struct GNUNET_HELLO_Message *hello, const char *err_msg)
+process (void *cls, const struct GNUNET_PeerIdentity *peer,
+         const struct GNUNET_HELLO_Message *hello, const char *err_msg)
 {
   unsigned int agc;
 
   if (err_msg != NULL)
-    {
-      GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
-                 _("Error in communication with PEERINFO service\n"));
-    }
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _ ("Error in communication with PEERINFO service\n"));
+  }
 
   if (peer == NULL)
+  {
+    ic = NULL;
+    if ((3 == global_ret) && (retries < 50))
     {
-      ic = NULL;
-      if ((3 == global_ret) && (retries < 50))
-        {
-          /* try again */
-          retries++;
-          add_peer();
-          ic = GNUNET_PEERINFO_iterate(h, GNUNET_NO, NULL,
-                                       &process,
-                                       cls);
-          return;
-        }
-      GNUNET_assert(peer == NULL);
-      GNUNET_assert(2 == global_ret);
-      GNUNET_PEERINFO_disconnect(h);
-      h = NULL;
-      global_ret = 0;
+      /* try again */
+      retries++;
+      add_peer ();
+      ic = GNUNET_PEERINFO_iterate (h, GNUNET_NO, NULL,
+                                    &process,
+                                    cls);
       return;
     }
+    GNUNET_assert (peer == NULL);
+    GNUNET_assert (2 == global_ret);
+    GNUNET_PEERINFO_disconnect (h);
+    h = NULL;
+    global_ret = 0;
+    return;
+  }
   if (hello != NULL)
-    {
-      GNUNET_assert(3 == global_ret);
-      agc = 3;
-      GNUNET_HELLO_iterate_addresses(hello, GNUNET_NO,
-                                     &check_it, &agc);
-      GNUNET_assert(agc == 0);
-      global_ret = 2;
-    }
+  {
+    GNUNET_assert (3 == global_ret);
+    agc = 3;
+    GNUNET_HELLO_iterate_addresses (hello, GNUNET_NO,
+                                    &check_it, &agc);
+    GNUNET_assert (agc == 0);
+    global_ret = 2;
+  }
 }
 
 
 static void
-run(void *cls,
-    const struct GNUNET_CONFIGURATION_Handle *cfg,
-    struct GNUNET_TESTING_Peer *peer)
+run (void *cls,
+     const struct GNUNET_CONFIGURATION_Handle *cfg,
+     struct GNUNET_TESTING_Peer *peer)
 {
-  h = GNUNET_PEERINFO_connect(cfg);
-  GNUNET_assert(NULL != h);
-  add_peer();
-  ic = GNUNET_PEERINFO_iterate(h, GNUNET_NO, &pid,
-                               &process, cls);
+  h = GNUNET_PEERINFO_connect (cfg);
+  GNUNET_assert (NULL != h);
+  add_peer ();
+  ic = GNUNET_PEERINFO_iterate (h, GNUNET_NO, &pid,
+                                &process, cls);
 }
 
 
 int
-main(int argc, char *argv[])
+main (int argc, char *argv[])
 {
   global_ret = 3;
-  if (0 != GNUNET_TESTING_service_run("test-gnunet-peerinfo",
-                                      "peerinfo",
-                                      "test_peerinfo_api_data.conf",
-                                      &run, NULL))
+  if (0 != GNUNET_TESTING_service_run ("test-gnunet-peerinfo",
+                                       "peerinfo",
+                                       "test_peerinfo_api_data.conf",
+                                       &run, NULL))
     return 1;
   return global_ret;
 }

@@ -70,7 +70,8 @@ struct GNUNET_CADET_Port;
 /**
  * Hash uniquely identifying a connection below a tunnel.
  */
-struct GNUNET_CADET_ConnectionTunnelIdentifier {
+struct GNUNET_CADET_ConnectionTunnelIdentifier
+{
   struct GNUNET_ShortHashCode connection_of_tunnel;
 };
 
@@ -78,7 +79,8 @@ struct GNUNET_CADET_ConnectionTunnelIdentifier {
 /**
  * Number identifying a CADET channel within a tunnel.
  */
-struct GNUNET_CADET_ChannelTunnelNumber {
+struct GNUNET_CADET_ChannelTunnelNumber
+{
   /**
    * Which number does this channel have that uniquely identfies
    * it within its tunnel, in network byte order.
@@ -152,7 +154,7 @@ typedef void (*GNUNET_CADET_WindowSizeEventHandler) (
  * @return Handle to the cadet service NULL on error.
  */
 struct GNUNET_CADET_Handle *
-GNUNET_CADET_connect(const struct GNUNET_CONFIGURATION_Handle *cfg);
+GNUNET_CADET_connect (const struct GNUNET_CONFIGURATION_Handle *cfg);
 
 
 /**
@@ -164,7 +166,7 @@ GNUNET_CADET_connect(const struct GNUNET_CONFIGURATION_Handle *cfg);
  * @param handle connection to cadet to disconnect
  */
 void
-GNUNET_CADET_disconnect(struct GNUNET_CADET_Handle *handle);
+GNUNET_CADET_disconnect (struct GNUNET_CADET_Handle *handle);
 
 
 /**
@@ -181,13 +183,13 @@ GNUNET_CADET_disconnect(struct GNUNET_CADET_Handle *handle);
  * @return Port handle, NULL if port is in use
  */
 struct GNUNET_CADET_Port *
-GNUNET_CADET_open_port(struct GNUNET_CADET_Handle *h,
-                       const struct GNUNET_HashCode *port,
-                       GNUNET_CADET_ConnectEventHandler connects,
-                       void *connects_cls,
-                       GNUNET_CADET_WindowSizeEventHandler window_changes,
-                       GNUNET_CADET_DisconnectEventHandler disconnects,
-                       const struct GNUNET_MQ_MessageHandler *handlers);
+GNUNET_CADET_open_port (struct GNUNET_CADET_Handle *h,
+                        const struct GNUNET_HashCode *port,
+                        GNUNET_CADET_ConnectEventHandler connects,
+                        void *connects_cls,
+                        GNUNET_CADET_WindowSizeEventHandler window_changes,
+                        GNUNET_CADET_DisconnectEventHandler disconnects,
+                        const struct GNUNET_MQ_MessageHandler *handlers);
 
 
 /**
@@ -197,7 +199,7 @@ GNUNET_CADET_open_port(struct GNUNET_CADET_Handle *h,
  * @param p Port handle.
  */
 void
-GNUNET_CADET_close_port(struct GNUNET_CADET_Port *p);
+GNUNET_CADET_close_port (struct GNUNET_CADET_Port *p);
 
 
 /**
@@ -221,13 +223,13 @@ GNUNET_CADET_close_port(struct GNUNET_CADET_Port *p);
  * @return Handle to the channel.
  */
 struct GNUNET_CADET_Channel *
-GNUNET_CADET_channel_create(struct GNUNET_CADET_Handle *h,
-                            void *channel_cls,
-                            const struct GNUNET_PeerIdentity *destination,
-                            const struct GNUNET_HashCode *port,
-                            GNUNET_CADET_WindowSizeEventHandler window_changes,
-                            GNUNET_CADET_DisconnectEventHandler disconnects,
-                            const struct GNUNET_MQ_MessageHandler *handlers);
+GNUNET_CADET_channel_create (struct GNUNET_CADET_Handle *h,
+                             void *channel_cls,
+                             const struct GNUNET_PeerIdentity *destination,
+                             const struct GNUNET_HashCode *port,
+                             GNUNET_CADET_WindowSizeEventHandler window_changes,
+                             GNUNET_CADET_DisconnectEventHandler disconnects,
+                             const struct GNUNET_MQ_MessageHandler *handlers);
 
 
 /**
@@ -240,7 +242,7 @@ GNUNET_CADET_channel_create(struct GNUNET_CADET_Handle *h,
  * @param channel Channel handle, becomes invalid after this call.
  */
 void
-GNUNET_CADET_channel_destroy(struct GNUNET_CADET_Channel *channel);
+GNUNET_CADET_channel_destroy (struct GNUNET_CADET_Channel *channel);
 
 
 /**
@@ -250,7 +252,7 @@ GNUNET_CADET_channel_destroy(struct GNUNET_CADET_Channel *channel);
  * @return The message queue of the channel.
  */
 struct GNUNET_MQ_Handle *
-GNUNET_CADET_get_mq(const struct GNUNET_CADET_Channel *channel);
+GNUNET_CADET_get_mq (const struct GNUNET_CADET_Channel *channel);
 
 
 /**
@@ -261,7 +263,7 @@ GNUNET_CADET_get_mq(const struct GNUNET_CADET_Channel *channel);
  * @param channel Channel that will be allowed to call another handler.
  */
 void
-GNUNET_CADET_receive_done(struct GNUNET_CADET_Channel *channel);
+GNUNET_CADET_receive_done (struct GNUNET_CADET_Channel *channel);
 
 
 /**
@@ -274,9 +276,10 @@ GNUNET_CADET_receive_done(struct GNUNET_CADET_Channel *channel);
  * @return A GNUNET_HashCode usable for the new CADET API.
  */
 const struct GNUNET_HashCode *
-GC_u2h(uint32_t port);
+GC_u2h (uint32_t port);
 
-enum GNUNET_CADET_ChannelInfoOption {
+enum GNUNET_CADET_ChannelInfoOption
+{
   /**
    * Who is the peer at the other end of the channel.
    * Only for use in @c GNUNET_CADET_channel_get_info
@@ -288,7 +291,8 @@ enum GNUNET_CADET_ChannelInfoOption {
 /**
  * Union to retrieve info about a channel.
  */
-union GNUNET_CADET_ChannelInfo {
+union GNUNET_CADET_ChannelInfo
+{
   /**
    * #GNUNET_YES / #GNUNET_NO, for binary flags.
    */
@@ -309,9 +313,9 @@ union GNUNET_CADET_ChannelInfo {
  * @return Union with an answer to the query.
  */
 const union GNUNET_CADET_ChannelInfo *
-GNUNET_CADET_channel_get_info(struct GNUNET_CADET_Channel *channel,
-                              enum GNUNET_CADET_ChannelInfoOption option,
-                              ...);
+GNUNET_CADET_channel_get_info (struct GNUNET_CADET_Channel *channel,
+                               enum GNUNET_CADET_ChannelInfoOption option,
+                               ...);
 
 
 /******************************************************************************/
@@ -328,7 +332,8 @@ GNUNET_CADET_channel_get_info(struct GNUNET_CADET_Channel *channel,
 /**
  * Internal details about a channel.
  */
-struct GNUNET_CADET_ChannelInternals {
+struct GNUNET_CADET_ChannelInternals
+{
   /**
    * Root of the channel
    */
@@ -370,10 +375,10 @@ struct GNUNET_CADET_ChannelMonitor;
  * @param callback_cls Closure for @c callback.
  */
 struct GNUNET_CADET_ChannelMonitor *
-GNUNET_CADET_get_channel(const struct GNUNET_CONFIGURATION_Handle *cfg,
-                         struct GNUNET_PeerIdentity *peer,
-                         GNUNET_CADET_ChannelCB callback,
-                         void *callback_cls);
+GNUNET_CADET_get_channel (const struct GNUNET_CONFIGURATION_Handle *cfg,
+                          struct GNUNET_PeerIdentity *peer,
+                          GNUNET_CADET_ChannelCB callback,
+                          void *callback_cls);
 
 
 /**
@@ -383,13 +388,14 @@ GNUNET_CADET_get_channel(const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @return Closure that was given to #GNUNET_CADET_get_channel().
  */
 void *
-GNUNET_CADET_get_channel_cancel(struct GNUNET_CADET_ChannelMonitor *cm);
+GNUNET_CADET_get_channel_cancel (struct GNUNET_CADET_ChannelMonitor *cm);
 
 
 /**
  * Information we return per peer.
  */
-struct GNUNET_CADET_PeerListEntry {
+struct GNUNET_CADET_PeerListEntry
+{
   /**
    * Which peer is the information about?
    */
@@ -443,9 +449,9 @@ struct GNUNET_CADET_PeersLister;
  * @return NULL on error
  */
 struct GNUNET_CADET_PeersLister *
-GNUNET_CADET_list_peers(const struct GNUNET_CONFIGURATION_Handle *cfg,
-                        GNUNET_CADET_PeersCB callback,
-                        void *callback_cls);
+GNUNET_CADET_list_peers (const struct GNUNET_CONFIGURATION_Handle *cfg,
+                         GNUNET_CADET_PeersCB callback,
+                         void *callback_cls);
 
 
 /**
@@ -455,13 +461,14 @@ GNUNET_CADET_list_peers(const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @return Closure that was given to #GNUNET_CADET_list_peers().
  */
 void *
-GNUNET_CADET_list_peers_cancel(struct GNUNET_CADET_PeersLister *pl);
+GNUNET_CADET_list_peers_cancel (struct GNUNET_CADET_PeersLister *pl);
 
 
 /**
  * Detailed information we return per peer.
  */
-struct GNUNET_CADET_PeerPathDetail {
+struct GNUNET_CADET_PeerPathDetail
+{
   /**
    * Peer this is about.
    */
@@ -514,10 +521,10 @@ struct GNUNET_CADET_GetPath;
  * @return NULL on error
  */
 struct GNUNET_CADET_GetPath *
-GNUNET_CADET_get_path(const struct GNUNET_CONFIGURATION_Handle *cfg,
-                      const struct GNUNET_PeerIdentity *id,
-                      GNUNET_CADET_PathCB callback,
-                      void *callback_cls);
+GNUNET_CADET_get_path (const struct GNUNET_CONFIGURATION_Handle *cfg,
+                       const struct GNUNET_PeerIdentity *id,
+                       GNUNET_CADET_PathCB callback,
+                       void *callback_cls);
 
 
 /**
@@ -527,13 +534,14 @@ GNUNET_CADET_get_path(const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @return closure from #GNUNET_CADET_get_path().
  */
 void *
-GNUNET_CADET_get_path_cancel(struct GNUNET_CADET_GetPath *gp);
+GNUNET_CADET_get_path_cancel (struct GNUNET_CADET_GetPath *gp);
 
 
 /**
  * Details about a tunnel managed by CADET.
  */
-struct GNUNET_CADET_TunnelDetails {
+struct GNUNET_CADET_TunnelDetails
+{
   /**
    * Target of the tunnel.
    */
@@ -592,9 +600,9 @@ struct GNUNET_CADET_ListTunnels;
  * @return NULL on error
  */
 struct GNUNET_CADET_ListTunnels *
-GNUNET_CADET_list_tunnels(const struct GNUNET_CONFIGURATION_Handle *cfg,
-                          GNUNET_CADET_TunnelsCB callback,
-                          void *callback_cls);
+GNUNET_CADET_list_tunnels (const struct GNUNET_CONFIGURATION_Handle *cfg,
+                           GNUNET_CADET_TunnelsCB callback,
+                           void *callback_cls);
 
 
 /**
@@ -604,7 +612,7 @@ GNUNET_CADET_list_tunnels(const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @return Closure given to #GNUNET_CADET_list_tunnels(), if any.
  */
 void *
-GNUNET_CADET_list_tunnels_cancel(struct GNUNET_CADET_ListTunnels *lt);
+GNUNET_CADET_list_tunnels_cancel (struct GNUNET_CADET_ListTunnels *lt);
 
 
 #if 0 /* keep Emacsens' auto-indent happy */

@@ -33,7 +33,8 @@
 /**
  * Commands for the interpreter.
  */
-enum CommandCode {
+enum CommandCode
+{
   /**
    * End the test (passing).
    */
@@ -128,7 +129,8 @@ enum CommandCode {
 /**
  * Details for the #CMD_ADD_ADDRESS command.
  */
-struct CommandAddAddress {
+struct CommandAddAddress
+{
   /**
    * Number of the peer (used to generate PID).
    */
@@ -169,7 +171,8 @@ struct CommandAddAddress {
 /**
  * Details for the #CMD_DEL_ADDRESS command.
  */
-struct CommandDelAddress {
+struct CommandDelAddress
+{
   /**
    * Label of the corresponding #CMD_ADD_ADDRESS that
    * we are now to remove.
@@ -181,7 +184,8 @@ struct CommandDelAddress {
 /**
  * Details for the #CMD_AWAIT_ADDRESS_SUGGESTION command.
  */
-struct CommandAwaitAddressSuggestion {
+struct CommandAwaitAddressSuggestion
+{
   /**
    * For which peer do we expect a suggestion?
    */
@@ -199,7 +203,8 @@ struct CommandAwaitAddressSuggestion {
 /**
  * Details for the #CMD_AWAIT_DISCONNECT_SUGGESTION command.
  */
-struct CommandAwaitDisconnectSuggestion {
+struct CommandAwaitDisconnectSuggestion
+{
   /**
    * For which peer do we expect the disconnect?
    */
@@ -210,7 +215,8 @@ struct CommandAwaitDisconnectSuggestion {
 /**
  * Details for the #CMD_REQUEST_CONNECTION_START command.
  */
-struct CommandRequestConnectionStart {
+struct CommandRequestConnectionStart
+{
   /**
    * Identity of the peer we would like to connect to.
    */
@@ -227,7 +233,8 @@ struct CommandRequestConnectionStart {
 /**
  * Details for the #CMD_REQUEST_CONNECTION_STOP command.
  */
-struct CommandRequestConnectionStop {
+struct CommandRequestConnectionStop
+{
   /**
    * Label of the corresponding #CMD_REQUEST_CONNECTION_START that
    * we are now stopping.
@@ -239,7 +246,8 @@ struct CommandRequestConnectionStop {
 /**
  * Details for the #CMD_AWAIT_ADDRESS_INFORMATION command.
  */
-struct CommandAwaitAddressInformation {
+struct CommandAwaitAddressInformation
+{
   /**
    * For which address do we expect information?
    * The address is identified by the respective
@@ -259,7 +267,8 @@ struct CommandAwaitAddressInformation {
 /**
  * Details for the #CMD_UPDATE_ADDRESS command.
  */
-struct CommandUpdateAddress {
+struct CommandUpdateAddress
+{
   /**
    * Label of the addresses's add operation.
    */
@@ -275,7 +284,8 @@ struct CommandUpdateAddress {
 /**
  * Details for the #CMD_ADD_SESSION command.
  */
-struct CommandAddSession {
+struct CommandAddSession
+{
   /**
    * Label of the addresses's add operation.
    */
@@ -291,7 +301,8 @@ struct CommandAddSession {
 /**
  * Details for the #CMD_DEL_SESSION command.
  */
-struct CommandDelSession {
+struct CommandDelSession
+{
   /**
    * Label of the addresses's add operation.
    */
@@ -302,7 +313,8 @@ struct CommandDelSession {
 /**
  * Details for the #CMD_CHANGE_PREFERENCE command.
  */
-struct CommandChangePreference {
+struct CommandChangePreference
+{
   /**
    * Identity of the peer we have a preference change towards.
    */
@@ -315,7 +327,8 @@ struct CommandChangePreference {
 /**
  * Details for the #CMD_PROVIDE_FEEDBACK command.
  */
-struct CommandProvideFeedback {
+struct CommandProvideFeedback
+{
   /**
    * Identity of the peer we have a feedback for.
    */
@@ -333,7 +346,8 @@ struct CommandProvideFeedback {
 /**
  * Details for the #CMD_LIST_ADDRESSES command.
  */
-struct CommandListAddresses {
+struct CommandListAddresses
+{
   /**
    * Identity of the peer we want a list for.
    */
@@ -387,7 +401,8 @@ struct CommandListAddresses {
 /**
  * Details for the #CMD_RESERVE_BANDWIDTH command.
  */
-struct CommandReserveBandwidth {
+struct CommandReserveBandwidth
+{
   /**
    * For which peer do we reserve bandwidth?
    */
@@ -417,7 +432,8 @@ struct CommandReserveBandwidth {
 /**
  * Details for the #CMD_SLEEP command.
  */
-struct CommandSleep {
+struct CommandSleep
+{
   /**
    * How long should we wait before running the next command?
    */
@@ -428,7 +444,8 @@ struct CommandSleep {
 /**
  * A command for the test case interpreter.
  */
-struct Command {
+struct Command
+{
   /**
    * Command code to run.
    */
@@ -442,7 +459,8 @@ struct Command {
   /**
    * Additional arguments to commands, if any.
    */
-  union {
+  union
+  {
     struct CommandAddAddress add_address;
 
     struct CommandDelAddress del_address;
@@ -486,9 +504,9 @@ struct Command {
  * @return 0 on success
  */
 int
-TEST_ATS_run(int argc,
-             char *argv[],
-             struct Command *cmds,
-             struct GNUNET_TIME_Relative timeout);
+TEST_ATS_run (int argc,
+              char *argv[],
+              struct Command *cmds,
+              struct GNUNET_TIME_Relative timeout);
 
 #endif

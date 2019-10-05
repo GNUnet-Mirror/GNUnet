@@ -89,13 +89,13 @@ static char *data;
 
 
 static void
-shutdown_task(void *cls)
+shutdown_task (void *cls)
 {
   if (NULL != dht_handle)
-    {
-      GNUNET_DHT_disconnect(dht_handle);
-      dht_handle = NULL;
-    }
+  {
+    GNUNET_DHT_disconnect (dht_handle);
+    dht_handle = NULL;
+  }
 }
 
 
@@ -105,9 +105,9 @@ shutdown_task(void *cls)
  * @param cls closure
  */
 static void
-message_sent_cont(void *cls)
+message_sent_cont (void *cls)
 {
-  GNUNET_SCHEDULER_add_now(&shutdown_task, NULL);
+  GNUNET_SCHEDULER_add_now (&shutdown_task, NULL);
 }
 
 
@@ -120,52 +120,52 @@ message_sent_cont(void *cls)
  * @param c configuration
  */
 static void
-run(void *cls,
-    char *const *args,
-    const char *cfgfile,
-    const struct GNUNET_CONFIGURATION_Handle *c)
+run (void *cls,
+     char *const *args,
+     const char *cfgfile,
+     const struct GNUNET_CONFIGURATION_Handle *c)
 {
   enum GNUNET_DHT_RouteOption ro;
 
   cfg = c;
   if ((NULL == query_key) || (NULL == data))
-    {
-      fprintf(stderr, "%s", _("Must provide KEY and DATA for DHT put!\n"));
-      ret = 1;
-      return;
-    }
+  {
+    fprintf (stderr, "%s", _ ("Must provide KEY and DATA for DHT put!\n"));
+    ret = 1;
+    return;
+  }
 
-  if (NULL == (dht_handle = GNUNET_DHT_connect(cfg, 1)))
-    {
-      fprintf(stderr, _("Could not connect to DHT service!\n"));
-      ret = 1;
-      return;
-    }
+  if (NULL == (dht_handle = GNUNET_DHT_connect (cfg, 1)))
+  {
+    fprintf (stderr, _ ("Could not connect to DHT service!\n"));
+    ret = 1;
+    return;
+  }
   if (GNUNET_BLOCK_TYPE_ANY == query_type) /* Type of data not set */
     query_type = GNUNET_BLOCK_TYPE_TEST;
 
-  GNUNET_CRYPTO_hash(query_key, strlen(query_key), &key);
+  GNUNET_CRYPTO_hash (query_key, strlen (query_key), &key);
 
   if (verbose)
-    fprintf(stderr,
-            _("Issuing put request for `%s' with data `%s'!\n"),
-            query_key,
-            data);
+    fprintf (stderr,
+             _ ("Issuing put request for `%s' with data `%s'!\n"),
+             query_key,
+             data);
   ro = GNUNET_DHT_RO_NONE;
   if (demultixplex_everywhere)
     ro |= GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE;
   if (record_route)
     ro |= GNUNET_DHT_RO_RECORD_ROUTE;
-  GNUNET_DHT_put(dht_handle,
-                 &key,
-                 replication,
-                 ro,
-                 query_type,
-                 strlen(data),
-                 data,
-                 GNUNET_TIME_relative_to_absolute(expiration),
-                 &message_sent_cont,
-                 NULL);
+  GNUNET_DHT_put (dht_handle,
+                  &key,
+                  replication,
+                  ro,
+                  query_type,
+                  strlen (data),
+                  data,
+                  GNUNET_TIME_relative_to_absolute (expiration),
+                  &message_sent_cont,
+                  NULL);
 }
 
 /**
@@ -176,58 +176,58 @@ run(void *cls,
  * @return 0 ok, 1 on error
  */
 int
-main(int argc, char *const *argv)
+main (int argc, char *const *argv)
 {
   struct GNUNET_GETOPT_CommandLineOption options[] =
-  { GNUNET_GETOPT_option_string('d',
-                                "data",
-                                "DATA",
-                                gettext_noop(
-                                  "the data to insert under the key"),
-                                &data),
-    GNUNET_GETOPT_option_relative_time(
+  { GNUNET_GETOPT_option_string ('d',
+                                 "data",
+                                 "DATA",
+                                 gettext_noop (
+                                   "the data to insert under the key"),
+                                 &data),
+    GNUNET_GETOPT_option_relative_time (
       'e',
       "expiration",
       "EXPIRATION",
-      gettext_noop("how long to store this entry in the dht (in seconds)"),
+      gettext_noop ("how long to store this entry in the dht (in seconds)"),
       &expiration),
-    GNUNET_GETOPT_option_string('k',
-                                "key",
-                                "KEY",
-                                gettext_noop("the query key"),
-                                &query_key),
-    GNUNET_GETOPT_option_flag('x',
-                              "demultiplex",
-                              gettext_noop(
-                                "use DHT's demultiplex everywhere option"),
-                              &demultixplex_everywhere),
-    GNUNET_GETOPT_option_uint('r',
-                              "replication",
-                              "LEVEL",
-                              gettext_noop("how many replicas to create"),
-                              &replication),
-    GNUNET_GETOPT_option_flag('R',
-                              "record",
-                              gettext_noop("use DHT's record route option"),
-                              &record_route),
-    GNUNET_GETOPT_option_uint('t',
-                              "type",
-                              "TYPE",
-                              gettext_noop("the type to insert data as"),
-                              &query_type),
-    GNUNET_GETOPT_option_verbose(&verbose),
+    GNUNET_GETOPT_option_string ('k',
+                                 "key",
+                                 "KEY",
+                                 gettext_noop ("the query key"),
+                                 &query_key),
+    GNUNET_GETOPT_option_flag ('x',
+                               "demultiplex",
+                               gettext_noop (
+                                 "use DHT's demultiplex everywhere option"),
+                               &demultixplex_everywhere),
+    GNUNET_GETOPT_option_uint ('r',
+                               "replication",
+                               "LEVEL",
+                               gettext_noop ("how many replicas to create"),
+                               &replication),
+    GNUNET_GETOPT_option_flag ('R',
+                               "record",
+                               gettext_noop ("use DHT's record route option"),
+                               &record_route),
+    GNUNET_GETOPT_option_uint ('t',
+                               "type",
+                               "TYPE",
+                               gettext_noop ("the type to insert data as"),
+                               &query_type),
+    GNUNET_GETOPT_option_verbose (&verbose),
     GNUNET_GETOPT_OPTION_END };
 
 
-  if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args(argc, argv, &argc, &argv))
+  if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv, &argc, &argv))
     return 2;
   expiration = GNUNET_TIME_UNIT_HOURS;
   return (GNUNET_OK ==
-          GNUNET_PROGRAM_run(
+          GNUNET_PROGRAM_run (
             argc,
             argv,
             "gnunet-dht-put",
-            gettext_noop(
+            gettext_noop (
               "Issue a PUT request to the GNUnet DHT insert DATA under KEY."),
             options,
             &run,

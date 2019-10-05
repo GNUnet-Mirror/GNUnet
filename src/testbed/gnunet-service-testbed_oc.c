@@ -35,13 +35,14 @@
 #undef LOG
 #endif
 #define LOG(kind, ...)                                   \
-  GNUNET_log_from(kind, "testbed-OC", __VA_ARGS__)
+  GNUNET_log_from (kind, "testbed-OC", __VA_ARGS__)
 
 
 /**
  * Context information for requesting ATS to connect to a peer
  */
-struct ConnectivitySuggestContext {
+struct ConnectivitySuggestContext
+{
   /**
    * The transport handle obtained from cache. Do NOT close/disconnect.
    */
@@ -73,7 +74,8 @@ struct ConnectivitySuggestContext {
 /**
  * Types for context information we create for overlay connect requests
  */
-enum OverlayConnectContextType {
+enum OverlayConnectContextType
+{
   /**
    * This type is used if the overlay connection is local i.e. the connection
    * has to be made between local peers
@@ -98,7 +100,8 @@ enum OverlayConnectContextType {
  * Context data for operations on second peer in local overlay connection
  * contexts
  */
-struct LocalPeer2Context {
+struct LocalPeer2Context
+{
   /**
    * The handle for offering the HELLO of the first peer to the second
    * peer.
@@ -116,7 +119,8 @@ struct LocalPeer2Context {
  * Context data for operations on second peer in remote overlay connection
  * contexts
  */
-struct RemotePeer2Context {
+struct RemotePeer2Context
+{
   /**
    * Controller of peer 2; If #OCC_TYPE_REMOTE_LATERAL is the type of overlay
    * connection then this can be NULL until the connection to the controller is
@@ -146,7 +150,8 @@ struct RemotePeer2Context {
 /**
  * Context information for connecting 2 peers in overlay.
  */
-struct OverlayConnectContext {
+struct OverlayConnectContext
+{
   /**
    * The next pointer for maintaining a DLL of all OverlayConnectContexts
    */
@@ -203,7 +208,8 @@ struct OverlayConnectContext {
   /**
    * Context information for operations on the second peer
    */
-  union {
+  union
+  {
     /**
      * Context information to be used if the second peer is local
      */
@@ -265,7 +271,8 @@ struct OverlayConnectContext {
  * peer A to make peer B connect to peer A by sending the controller of peer B
  * the HELLO of peer A.
  */
-struct RemoteOverlayConnectCtx {
+struct RemoteOverlayConnectCtx
+{
   /**
    * the next pointer for DLL
    */
@@ -346,15 +353,15 @@ static struct RemoteOverlayConnectCtx *roccq_tail;
  * @param focc the ForwardedOverlayConnectContext to cleanup
  */
 void
-GST_cleanup_focc(struct ForwardedOverlayConnectContext *focc)
+GST_cleanup_focc (struct ForwardedOverlayConnectContext *focc)
 {
   struct RegisteredHostContext *rhc = focc->rhc;
 
-  GNUNET_CONTAINER_DLL_remove(rhc->focc_dll_head,
-                              rhc->focc_dll_tail,
-                              focc);
-  GNUNET_free_non_null(focc->orig_msg);
-  GNUNET_free(focc);
+  GNUNET_CONTAINER_DLL_remove (rhc->focc_dll_head,
+                               rhc->focc_dll_tail,
+                               focc);
+  GNUNET_free_non_null (focc->orig_msg);
+  GNUNET_free (focc);
 }
 
 
@@ -364,7 +371,7 @@ GST_cleanup_focc(struct ForwardedOverlayConnectContext *focc)
  * @param cls the `struct ForwardedOperationContext`
  */
 static void
-forwarded_overlay_connect_timeout(void *cls)
+forwarded_overlay_connect_timeout (void *cls)
 {
   struct ForwardedOperationContext *fopc = cls;
   struct RegisteredHostContext *rhc;
@@ -373,13 +380,13 @@ forwarded_overlay_connect_timeout(void *cls)
   fopc->timeout_task = NULL;
   rhc = fopc->cls;
   focc = rhc->focc_dll_head;
-  LOG_DEBUG("Overlay linking between peers %u and %u failed\n",
-            focc->peer1,
-            focc->peer2);
-  GST_cleanup_focc(focc);
-  GST_forwarded_operation_timeout(fopc);
+  LOG_DEBUG ("Overlay linking between peers %u and %u failed\n",
+             focc->peer1,
+             focc->peer2);
+  GST_cleanup_focc (focc);
+  GST_forwarded_operation_timeout (fopc);
   if (NULL != rhc->focc_dll_head)
-    GST_process_next_focc(rhc);
+    GST_process_next_focc (rhc);
 }
 
 
@@ -392,19 +399,19 @@ forwarded_overlay_connect_timeout(void *cls)
  * @param msg the peer create success message
  */
 static void
-forwarded_overlay_connect_listener(void *cls,
-                                   const struct GNUNET_MessageHeader *msg)
+forwarded_overlay_connect_listener (void *cls,
+                                    const struct GNUNET_MessageHeader *msg)
 {
   struct ForwardedOperationContext *fopc = cls;
   struct RegisteredHostContext *rhc;
   struct ForwardedOverlayConnectContext *focc;
 
   rhc = fopc->cls;
-  GST_forwarded_operation_reply_relay(cls, msg);
+  GST_forwarded_operation_reply_relay (cls, msg);
   focc = rhc->focc_dll_head;
-  GST_cleanup_focc(focc);
+  GST_cleanup_focc (focc);
   if (NULL != rhc->focc_dll_head)
-    GST_process_next_focc(rhc);
+    GST_process_next_focc (rhc);
 }
 
 
@@ -414,7 +421,7 @@ forwarded_overlay_connect_listener(void *cls,
  * @param rhc the RegisteredHostContext
  */
 void
-GST_process_next_focc(struct RegisteredHostContext *rhc)
+GST_process_next_focc (struct RegisteredHostContext *rhc)
 {
   struct ForwardedOperationContext *fopc;
   struct ForwardedOverlayConnectContext *focc;
@@ -422,31 +429,32 @@ GST_process_next_focc(struct RegisteredHostContext *rhc)
   struct Slave *slave;
 
   focc = rhc->focc_dll_head;
-  GNUNET_assert(NULL != focc);
-  GNUNET_assert(RHC_DONE == rhc->state);
-  GNUNET_assert(VALID_PEER_ID(focc->peer1));
+  GNUNET_assert (NULL != focc);
+  GNUNET_assert (RHC_DONE == rhc->state);
+  GNUNET_assert (VALID_PEER_ID (focc->peer1));
   peer = GST_peer_list[focc->peer1];
-  GNUNET_assert(GNUNET_YES == peer->is_remote);
-  GNUNET_assert(NULL != (slave = peer->details.remote.slave));
-  fopc = GNUNET_new(struct ForwardedOperationContext);
+  GNUNET_assert (GNUNET_YES == peer->is_remote);
+  GNUNET_assert (NULL != (slave = peer->details.remote.slave));
+  fopc = GNUNET_new (struct ForwardedOperationContext);
   fopc->client = focc->client;
   fopc->operation_id = focc->operation_id;
   fopc->cls = rhc;
   fopc->type = OP_OVERLAY_CONNECT;
   fopc->opc =
-    GNUNET_TESTBED_forward_operation_msg_(slave->controller,
-                                          focc->operation_id,
-                                          focc->orig_msg,
-                                          &forwarded_overlay_connect_listener,
-                                          fopc);
-  GNUNET_free(focc->orig_msg);
+    GNUNET_TESTBED_forward_operation_msg_ (slave->controller,
+                                           focc->operation_id,
+                                           focc->orig_msg,
+                                           &forwarded_overlay_connect_listener,
+                                           fopc);
+  GNUNET_free (focc->orig_msg);
   focc->orig_msg = NULL;
-  fopc->timeout_task = GNUNET_SCHEDULER_add_delayed(GST_timeout,
-                                                    &forwarded_overlay_connect_timeout,
-                                                    fopc);
-  GNUNET_CONTAINER_DLL_insert_tail(fopcq_head,
-                                   fopcq_tail,
-                                   fopc);
+  fopc->timeout_task = GNUNET_SCHEDULER_add_delayed (GST_timeout,
+                                                     &
+                                                     forwarded_overlay_connect_timeout,
+                                                     fopc);
+  GNUNET_CONTAINER_DLL_insert_tail (fopcq_head,
+                                    fopcq_tail,
+                                    fopc);
 }
 
 
@@ -456,28 +464,28 @@ GST_process_next_focc(struct RegisteredHostContext *rhc)
  * @param lp2c the local peer2 context information
  */
 static void
-cleanup_occ_lp2c(struct LocalPeer2Context *lp2c)
+cleanup_occ_lp2c (struct LocalPeer2Context *lp2c)
 {
   if (NULL != lp2c->ohh)
-    {
-      GNUNET_TRANSPORT_offer_hello_cancel(lp2c->ohh);
-      lp2c->ohh = NULL;
-    }
+  {
+    GNUNET_TRANSPORT_offer_hello_cancel (lp2c->ohh);
+    lp2c->ohh = NULL;
+  }
   if (NULL != lp2c->tcc.cgh_p2_th)
-    {
-      GST_connection_pool_get_handle_done(lp2c->tcc.cgh_p2_th);
-      lp2c->tcc.cgh_p2_th = NULL;
-    }
+  {
+    GST_connection_pool_get_handle_done (lp2c->tcc.cgh_p2_th);
+    lp2c->tcc.cgh_p2_th = NULL;
+  }
   if (NULL != lp2c->tcc.cgh_p2_ats)
-    {
-      GST_connection_pool_get_handle_done(lp2c->tcc.cgh_p2_ats);
-      lp2c->tcc.cgh_p2_ats = NULL;
-    }
+  {
+    GST_connection_pool_get_handle_done (lp2c->tcc.cgh_p2_ats);
+    lp2c->tcc.cgh_p2_ats = NULL;
+  }
   if (NULL != lp2c->tcc.csh)
-    {
-      GNUNET_ATS_connectivity_suggest_cancel(lp2c->tcc.csh);
-      lp2c->tcc.csh = NULL;
-    }
+  {
+    GNUNET_ATS_connectivity_suggest_cancel (lp2c->tcc.csh);
+    lp2c->tcc.csh = NULL;
+  }
 }
 
 
@@ -488,23 +496,23 @@ cleanup_occ_lp2c(struct LocalPeer2Context *lp2c)
  * @param rp2c the remote peer2 context information
  */
 static void
-cleanup_occ_rp2c(struct RemotePeer2Context *rp2c)
+cleanup_occ_rp2c (struct RemotePeer2Context *rp2c)
 {
   if (NULL != rp2c->opc)
-    {
-      GNUNET_TESTBED_forward_operation_msg_cancel_(rp2c->opc);
-      rp2c->opc = NULL;
-    }
+  {
+    GNUNET_TESTBED_forward_operation_msg_cancel_ (rp2c->opc);
+    rp2c->opc = NULL;
+  }
   if (NULL != rp2c->ncn)
-    {
-      GST_neighbour_get_connection_cancel(rp2c->ncn);
-      rp2c->ncn = NULL;
-    }
+  {
+    GST_neighbour_get_connection_cancel (rp2c->ncn);
+    rp2c->ncn = NULL;
+  }
   if ((NULL != rp2c->p2c) && (NULL != rp2c->p2n))
-    {
-      GST_neighbour_release_connection(rp2c->p2n);
-      rp2c->p2n = NULL;
-    }
+  {
+    GST_neighbour_release_connection (rp2c->p2n);
+    rp2c->p2n = NULL;
+  }
 }
 
 /**
@@ -521,50 +529,50 @@ cleanup_occ_rp2c(struct RemotePeer2Context *rp2c)
  * @param occ the overlay connect context
  */
 static void
-cleanup_occ(struct OverlayConnectContext *occ)
+cleanup_occ (struct OverlayConnectContext *occ)
 {
   struct Peer *peer2;
 
-  LOG_DEBUG("0x%llx: Cleaning up occ\n",
-            occ->op_id);
-  GNUNET_free_non_null(occ->emsg);
-  GNUNET_free_non_null(occ->hello);
+  LOG_DEBUG ("0x%llx: Cleaning up occ\n",
+             occ->op_id);
+  GNUNET_free_non_null (occ->emsg);
+  GNUNET_free_non_null (occ->hello);
   if (NULL != occ->send_hello_task)
-    GNUNET_SCHEDULER_cancel(occ->send_hello_task);
+    GNUNET_SCHEDULER_cancel (occ->send_hello_task);
   if (NULL != occ->cleanup_task)
-    GNUNET_SCHEDULER_cancel(occ->cleanup_task);
+    GNUNET_SCHEDULER_cancel (occ->cleanup_task);
   if (NULL != occ->timeout_task)
-    GNUNET_SCHEDULER_cancel(occ->timeout_task);
+    GNUNET_SCHEDULER_cancel (occ->timeout_task);
   if (NULL != occ->cgh_ch)
-    GST_connection_pool_get_handle_done(occ->cgh_ch);
+    GST_connection_pool_get_handle_done (occ->cgh_ch);
   if (NULL != occ->ghh)
-    GNUNET_TRANSPORT_hello_get_cancel(occ->ghh);
-  GST_connection_pool_get_handle_done(occ->cgh_p1th);
-  GNUNET_assert(NULL != GST_peer_list);
-  GNUNET_assert(occ->peer->reference_cnt > 0);
+    GNUNET_TRANSPORT_hello_get_cancel (occ->ghh);
+  GST_connection_pool_get_handle_done (occ->cgh_p1th);
+  GNUNET_assert (NULL != GST_peer_list);
+  GNUNET_assert (occ->peer->reference_cnt > 0);
   occ->peer->reference_cnt--;
-  if (PEER_EXPIRED(occ->peer))
-    GST_destroy_peer(occ->peer);
+  if (PEER_EXPIRED (occ->peer))
+    GST_destroy_peer (occ->peer);
   switch (occ->type)
-    {
-    case OCC_TYPE_LOCAL:
-      peer2 = GST_peer_list[occ->other_peer_id];
-      GNUNET_assert(peer2->reference_cnt > 0);
-      peer2->reference_cnt--;
-      if (PEER_EXPIRED(peer2))
-        GST_destroy_peer(peer2);
-      cleanup_occ_lp2c(&occ->p2ctx.local);
-      break;
+  {
+  case OCC_TYPE_LOCAL:
+    peer2 = GST_peer_list[occ->other_peer_id];
+    GNUNET_assert (peer2->reference_cnt > 0);
+    peer2->reference_cnt--;
+    if (PEER_EXPIRED (peer2))
+      GST_destroy_peer (peer2);
+    cleanup_occ_lp2c (&occ->p2ctx.local);
+    break;
 
-    case OCC_TYPE_REMOTE_SLAVE:
-    case OCC_TYPE_REMOTE_LATERAL:
-      cleanup_occ_rp2c(&occ->p2ctx.remote);
-      break;
-    }
-  GNUNET_CONTAINER_DLL_remove(occq_head,
-                              occq_tail,
-                              occ);
-  GNUNET_free(occ);
+  case OCC_TYPE_REMOTE_SLAVE:
+  case OCC_TYPE_REMOTE_LATERAL:
+    cleanup_occ_rp2c (&occ->p2ctx.remote);
+    break;
+  }
+  GNUNET_CONTAINER_DLL_remove (occq_head,
+                               occq_tail,
+                               occ);
+  GNUNET_free (occ);
 }
 
 
@@ -574,12 +582,12 @@ cleanup_occ(struct OverlayConnectContext *occ)
  * @param cls the overlay connect context
  */
 static void
-do_cleanup_occ(void *cls)
+do_cleanup_occ (void *cls)
 {
   struct OverlayConnectContext *occ = cls;
 
   occ->cleanup_task = NULL;
-  cleanup_occ(occ);
+  cleanup_occ (occ);
 }
 
 
@@ -589,19 +597,19 @@ do_cleanup_occ(void *cls)
  * @param cls the OverlayConnectContext
  */
 static void
-timeout_overlay_connect(void *cls)
+timeout_overlay_connect (void *cls)
 {
   struct OverlayConnectContext *occ = cls;
 
-  GNUNET_assert(NULL != occ->timeout_task);
+  GNUNET_assert (NULL != occ->timeout_task);
   occ->timeout_task = NULL;
   /* LOG (GNUNET_ERROR_TYPE_WARNING, */
   /*      "0x%llx: Timeout while connecting peers %u and %u: %s\n", occ->op_id, */
   /*      occ->peer->id, occ->other_peer_id, occ->emsg); */
-  GST_send_operation_fail_msg(occ->client,
-                              occ->op_id,
-                              occ->emsg);
-  cleanup_occ(occ);
+  GST_send_operation_fail_msg (occ->client,
+                               occ->op_id,
+                               occ->emsg);
+  cleanup_occ (occ);
 }
 
 
@@ -611,7 +619,7 @@ timeout_overlay_connect(void *cls)
  * @param client the client that disconnected
  */
 void
-GST_notify_client_disconnect_oc(struct GNUNET_SERVICE_Client *client)
+GST_notify_client_disconnect_oc (struct GNUNET_SERVICE_Client *client)
 {
   struct ForwardedOperationContext *fopc;
   struct ForwardedOperationContext *fopcn;
@@ -619,20 +627,20 @@ GST_notify_client_disconnect_oc(struct GNUNET_SERVICE_Client *client)
   struct OverlayConnectContext *occn;
 
   for (fopc = fopcq_head; NULL != fopc; fopc = fopcn)
+  {
+    fopcn = fopc->next;
+    if (fopc->client == client)
     {
-      fopcn = fopc->next;
-      if (fopc->client == client)
-        {
-          GNUNET_SCHEDULER_cancel(fopc->timeout_task);
-          GST_forwarded_operation_timeout(fopc);
-        }
+      GNUNET_SCHEDULER_cancel (fopc->timeout_task);
+      GST_forwarded_operation_timeout (fopc);
     }
+  }
   for (occ = occq_head; NULL != occ; occ = occn)
-    {
-      occn = occ->next;
-      if (occ->client == client)
-        cleanup_occ(occ);
-    }
+  {
+    occn = occ->next;
+    if (occ->client == client)
+      cleanup_occ (occ);
+  }
   // FIXME: implement clean up for client_keep replacements!
 }
 
@@ -643,21 +651,21 @@ GST_notify_client_disconnect_oc(struct GNUNET_SERVICE_Client *client)
  * FIXME.
  */
 static void
-send_overlay_connect_success_msg(struct OverlayConnectContext *occ)
+send_overlay_connect_success_msg (struct OverlayConnectContext *occ)
 {
   struct GNUNET_MQ_Envelope *env;
   struct GNUNET_TESTBED_ConnectionEventMessage *msg;
 
-  LOG_DEBUG("0x%llx: Peers connected - Sending overlay connect success\n",
-            occ->op_id);
-  env = GNUNET_MQ_msg(msg,
-                      GNUNET_MESSAGE_TYPE_TESTBED_PEER_CONNECT_EVENT);
-  msg->event_type = htonl(GNUNET_TESTBED_ET_CONNECT);
-  msg->peer1 = htonl(occ->peer->id);
-  msg->peer2 = htonl(occ->other_peer_id);
-  msg->operation_id = GNUNET_htonll(occ->op_id);
-  GNUNET_MQ_send(GNUNET_SERVICE_client_get_mq(occ->client),
-                 env);
+  LOG_DEBUG ("0x%llx: Peers connected - Sending overlay connect success\n",
+             occ->op_id);
+  env = GNUNET_MQ_msg (msg,
+                       GNUNET_MESSAGE_TYPE_TESTBED_PEER_CONNECT_EVENT);
+  msg->event_type = htonl (GNUNET_TESTBED_ET_CONNECT);
+  msg->peer1 = htonl (occ->peer->id);
+  msg->peer2 = htonl (occ->other_peer_id);
+  msg->operation_id = GNUNET_htonll (occ->op_id);
+  GNUNET_MQ_send (GNUNET_SERVICE_client_get_mq (occ->client),
+                  env);
 }
 
 
@@ -669,62 +677,62 @@ send_overlay_connect_success_msg(struct OverlayConnectContext *occ)
  * @param new_peer the peer that connected
  */
 static void
-overlay_connect_notify(void *cls,
-                       const struct GNUNET_PeerIdentity *new_peer)
+overlay_connect_notify (void *cls,
+                        const struct GNUNET_PeerIdentity *new_peer)
 {
   struct OverlayConnectContext *occ = cls;
   char *new_peer_str;
   char *other_peer_str;
 
-  LOG_DEBUG("Overlay connect notify\n");
+  LOG_DEBUG ("Overlay connect notify\n");
   if (0 ==
-      memcmp(new_peer, &occ->peer_identity,
-             sizeof(struct GNUNET_PeerIdentity)))
+      memcmp (new_peer, &occ->peer_identity,
+              sizeof(struct GNUNET_PeerIdentity)))
     return;
-  new_peer_str = GNUNET_strdup(GNUNET_i2s(new_peer));
-  other_peer_str = GNUNET_strdup(GNUNET_i2s(&occ->other_peer_identity));
+  new_peer_str = GNUNET_strdup (GNUNET_i2s (new_peer));
+  other_peer_str = GNUNET_strdup (GNUNET_i2s (&occ->other_peer_identity));
   if (0 !=
-      memcmp(new_peer,
-             &occ->other_peer_identity,
-             sizeof(struct GNUNET_PeerIdentity)))
-    {
-      LOG_DEBUG("Unexpected peer %s connected when expecting peer %s\n",
-                new_peer_str,
-                other_peer_str);
-      GNUNET_free(new_peer_str);
-      GNUNET_free(other_peer_str);
-      return;
-    }
-  GNUNET_free(new_peer_str);
-  LOG_DEBUG("0x%llx: Peer %s connected to peer %s\n",
-            occ->op_id,
-            other_peer_str,
-            GNUNET_i2s(&occ->peer_identity));
-  GNUNET_free(other_peer_str);
+      memcmp (new_peer,
+              &occ->other_peer_identity,
+              sizeof(struct GNUNET_PeerIdentity)))
+  {
+    LOG_DEBUG ("Unexpected peer %s connected when expecting peer %s\n",
+               new_peer_str,
+               other_peer_str);
+    GNUNET_free (new_peer_str);
+    GNUNET_free (other_peer_str);
+    return;
+  }
+  GNUNET_free (new_peer_str);
+  LOG_DEBUG ("0x%llx: Peer %s connected to peer %s\n",
+             occ->op_id,
+             other_peer_str,
+             GNUNET_i2s (&occ->peer_identity));
+  GNUNET_free (other_peer_str);
   if (NULL != occ->send_hello_task)
-    {
-      GNUNET_SCHEDULER_cancel(occ->send_hello_task);
-      occ->send_hello_task = NULL;
-    }
-  GNUNET_assert(NULL != occ->timeout_task);
-  GNUNET_SCHEDULER_cancel(occ->timeout_task);
+  {
+    GNUNET_SCHEDULER_cancel (occ->send_hello_task);
+    occ->send_hello_task = NULL;
+  }
+  GNUNET_assert (NULL != occ->timeout_task);
+  GNUNET_SCHEDULER_cancel (occ->timeout_task);
   occ->timeout_task = NULL;
   switch (occ->type)
-    {
-    case OCC_TYPE_LOCAL:
-      cleanup_occ_lp2c(&occ->p2ctx.local);
-      break;
+  {
+  case OCC_TYPE_LOCAL:
+    cleanup_occ_lp2c (&occ->p2ctx.local);
+    break;
 
-    case OCC_TYPE_REMOTE_SLAVE:
-    case OCC_TYPE_REMOTE_LATERAL:
-      cleanup_occ_rp2c(&occ->p2ctx.remote);
-      break;
-    }
-  GNUNET_free_non_null(occ->emsg);
+  case OCC_TYPE_REMOTE_SLAVE:
+  case OCC_TYPE_REMOTE_LATERAL:
+    cleanup_occ_rp2c (&occ->p2ctx.remote);
+    break;
+  }
+  GNUNET_free_non_null (occ->emsg);
   occ->emsg = NULL;
-  send_overlay_connect_success_msg(occ);
-  occ->cleanup_task = GNUNET_SCHEDULER_add_now(&do_cleanup_occ,
-                                               occ);
+  send_overlay_connect_success_msg (occ);
+  occ->cleanup_task = GNUNET_SCHEDULER_add_now (&do_cleanup_occ,
+                                                occ);
 }
 
 
@@ -739,43 +747,43 @@ overlay_connect_notify(void *cls,
  * @param cfg configuration of the peer
  */
 static void
-occ_cache_get_handle_ats_occ_cb(void *cls,
-                                struct GNUNET_CORE_Handle *ch,
-                                struct GNUNET_TRANSPORT_CoreHandle *th,
-                                struct GNUNET_ATS_ConnectivityHandle *ac,
-                                const struct GNUNET_PeerIdentity *my_identity,
-                                const struct GNUNET_CONFIGURATION_Handle *cfg)
+occ_cache_get_handle_ats_occ_cb (void *cls,
+                                 struct GNUNET_CORE_Handle *ch,
+                                 struct GNUNET_TRANSPORT_CoreHandle *th,
+                                 struct GNUNET_ATS_ConnectivityHandle *ac,
+                                 const struct GNUNET_PeerIdentity *my_identity,
+                                 const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   struct OverlayConnectContext *occ = cls;
   struct LocalPeer2Context *lp2c;
 
-  GNUNET_assert(OCC_TYPE_LOCAL == occ->type);
-  GNUNET_assert(NULL != occ->timeout_task);
-  GNUNET_free_non_null(occ->emsg);
+  GNUNET_assert (OCC_TYPE_LOCAL == occ->type);
+  GNUNET_assert (NULL != occ->timeout_task);
+  GNUNET_free_non_null (occ->emsg);
   if (NULL == ac)
-    {
-      GNUNET_asprintf(&occ->emsg,
-                      "0x%llx: Failed to connect to ATS of peer with id: %u",
-                      occ->op_id,
-                      occ->peer->id);
-      GNUNET_SCHEDULER_cancel(occ->timeout_task);
-      occ->timeout_task =
-        GNUNET_SCHEDULER_add_now(&timeout_overlay_connect,
-                                 occ);
-      return;
-    }
+  {
+    GNUNET_asprintf (&occ->emsg,
+                     "0x%llx: Failed to connect to ATS of peer with id: %u",
+                     occ->op_id,
+                     occ->peer->id);
+    GNUNET_SCHEDULER_cancel (occ->timeout_task);
+    occ->timeout_task =
+      GNUNET_SCHEDULER_add_now (&timeout_overlay_connect,
+                                occ);
+    return;
+  }
   occ->emsg = NULL;
 
-  GNUNET_asprintf(&occ->emsg,
-                  "0x%llx: Timeout during GNUNET_ATS_connectivity_suggest() at peer %s",
-                  occ->op_id,
-                  GNUNET_i2s(&occ->other_peer_identity));
+  GNUNET_asprintf (&occ->emsg,
+                   "0x%llx: Timeout during GNUNET_ATS_connectivity_suggest() at peer %s",
+                   occ->op_id,
+                   GNUNET_i2s (&occ->other_peer_identity));
 
   lp2c = &occ->p2ctx.local;
   lp2c->tcc.csh =
-    GNUNET_ATS_connectivity_suggest(ac,
-                                    &occ->peer_identity,
-                                    1);
+    GNUNET_ATS_connectivity_suggest (ac,
+                                     &occ->peer_identity,
+                                     1);
 }
 
 
@@ -789,19 +797,19 @@ occ_cache_get_handle_ats_occ_cb(void *cls,
  * @param my_identity the identity of our peer
  */
 static void
-occ_cache_get_handle_ats_rocc_cb(void *cls,
-                                 struct GNUNET_CORE_Handle *ch,
-                                 struct GNUNET_TRANSPORT_CoreHandle *th,
-                                 struct GNUNET_ATS_ConnectivityHandle *ac,
-                                 const struct GNUNET_PeerIdentity *my_identity,
-                                 const struct GNUNET_CONFIGURATION_Handle *cfg)
+occ_cache_get_handle_ats_rocc_cb (void *cls,
+                                  struct GNUNET_CORE_Handle *ch,
+                                  struct GNUNET_TRANSPORT_CoreHandle *th,
+                                  struct GNUNET_ATS_ConnectivityHandle *ac,
+                                  const struct GNUNET_PeerIdentity *my_identity,
+                                  const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   struct RemoteOverlayConnectCtx *rocc = cls;
 
   rocc->tcc.csh =
-    GNUNET_ATS_connectivity_suggest(ac,
-                                    &rocc->a_id,
-                                    1);
+    GNUNET_ATS_connectivity_suggest (ac,
+                                     &rocc->a_id,
+                                     1);
 }
 
 
@@ -812,7 +820,7 @@ occ_cache_get_handle_ats_rocc_cb(void *cls,
  * @param cls the OverlayConnectContext
  */
 static void
-send_hello(void *cls);
+send_hello (void *cls);
 
 
 /**
@@ -823,31 +831,31 @@ send_hello(void *cls);
  * @param cls the overlay connect context
  */
 static void
-occ_hello_sent_cb(void *cls)
+occ_hello_sent_cb (void *cls)
 {
   struct OverlayConnectContext *occ = cls;
   struct LocalPeer2Context *lp2c;
   struct Peer *peer2;
 
-  GNUNET_assert(OCC_TYPE_LOCAL == occ->type);
-  GNUNET_assert(NULL != occ->timeout_task);
+  GNUNET_assert (OCC_TYPE_LOCAL == occ->type);
+  GNUNET_assert (NULL != occ->timeout_task);
   lp2c = &occ->p2ctx.local;
   lp2c->ohh = NULL;
 
-  GNUNET_assert(NULL == occ->send_hello_task);
-  GNUNET_free_non_null(occ->emsg);
+  GNUNET_assert (NULL == occ->send_hello_task);
+  GNUNET_free_non_null (occ->emsg);
 
-  GNUNET_asprintf(&occ->emsg,
-                  "0x%llx: Timeout while acquiring ATS of %s from cache",
-                  occ->op_id,
-                  GNUNET_i2s(&occ->other_peer_identity));
-  GNUNET_assert(NULL != (peer2 = GST_peer_list[occ->other_peer_id]));
+  GNUNET_asprintf (&occ->emsg,
+                   "0x%llx: Timeout while acquiring ATS of %s from cache",
+                   occ->op_id,
+                   GNUNET_i2s (&occ->other_peer_identity));
+  GNUNET_assert (NULL != (peer2 = GST_peer_list[occ->other_peer_id]));
   lp2c->tcc.cgh_p2_ats =
-    GST_connection_pool_get_handle(occ->other_peer_id,
-                                   peer2->details.local.cfg,
-                                   GST_CONNECTIONPOOL_SERVICE_ATS_CONNECTIVITY,
-                                   &occ_cache_get_handle_ats_occ_cb,
-                                   occ, NULL, NULL, NULL);
+    GST_connection_pool_get_handle (occ->other_peer_id,
+                                    peer2->details.local.cfg,
+                                    GST_CONNECTIONPOOL_SERVICE_ATS_CONNECTIVITY,
+                                    &occ_cache_get_handle_ats_occ_cb,
+                                    occ, NULL, NULL, NULL);
 }
 
 
@@ -859,36 +867,38 @@ occ_hello_sent_cb(void *cls)
  *          #OCC_TYPE_REMOTE_SLAVE or #OCC_TYPE_REMOTE_LATERAL
  */
 static void
-send_hello_thru_rocc(struct OverlayConnectContext *occ)
+send_hello_thru_rocc (struct OverlayConnectContext *occ)
 {
   struct GNUNET_TESTBED_RemoteOverlayConnectMessage *msg;
   char *other_peer_str;
   uint16_t msize;
   uint16_t hello_size;
 
-  GNUNET_assert(OCC_TYPE_LOCAL != occ->type);
-  GNUNET_assert(NULL != occ->hello);
-  other_peer_str = GNUNET_strdup(GNUNET_i2s(&occ->other_peer_identity));
-  LOG_DEBUG("0x%llx: Offering HELLO of %s (size: %u) to %s via Remote Overlay Request\n",
-            occ->op_id,
-            GNUNET_i2s(&occ->peer_identity),
-            ntohs(occ->hello->size),
-            other_peer_str);
-  GNUNET_free(other_peer_str);
-  hello_size = ntohs(occ->hello->size);
-  msize = sizeof(struct GNUNET_TESTBED_RemoteOverlayConnectMessage) + hello_size;
-  msg = GNUNET_malloc(msize);
+  GNUNET_assert (OCC_TYPE_LOCAL != occ->type);
+  GNUNET_assert (NULL != occ->hello);
+  other_peer_str = GNUNET_strdup (GNUNET_i2s (&occ->other_peer_identity));
+  LOG_DEBUG (
+    "0x%llx: Offering HELLO of %s (size: %u) to %s via Remote Overlay Request\n",
+    occ->op_id,
+    GNUNET_i2s (&occ->peer_identity),
+    ntohs (occ->hello->size),
+    other_peer_str);
+  GNUNET_free (other_peer_str);
+  hello_size = ntohs (occ->hello->size);
+  msize = sizeof(struct GNUNET_TESTBED_RemoteOverlayConnectMessage)
+          + hello_size;
+  msg = GNUNET_malloc (msize);
   msg->header.type =
-    htons(GNUNET_MESSAGE_TYPE_TESTBED_REMOTE_OVERLAY_CONNECT);
-  msg->header.size = htons(msize);
-  msg->peer = htonl(occ->other_peer_id);
-  msg->operation_id = GNUNET_htonll(occ->op_id);
+    htons (GNUNET_MESSAGE_TYPE_TESTBED_REMOTE_OVERLAY_CONNECT);
+  msg->header.size = htons (msize);
+  msg->peer = htonl (occ->other_peer_id);
+  msg->operation_id = GNUNET_htonll (occ->op_id);
   msg->peer_identity = occ->peer_identity;
-  GNUNET_memcpy(msg->hello,
-                occ->hello,
-                hello_size);
-  GNUNET_TESTBED_queue_message_(occ->p2ctx.remote.p2c,
-                                &msg->header);
+  GNUNET_memcpy (msg->hello,
+                 occ->hello,
+                 hello_size);
+  GNUNET_TESTBED_queue_message_ (occ->p2ctx.remote.p2c,
+                                 &msg->header);
 }
 
 
@@ -900,43 +910,43 @@ send_hello_thru_rocc(struct OverlayConnectContext *occ)
  * @param cls the OverlayConnectContext
  */
 static void
-send_hello(void *cls)
+send_hello (void *cls)
 {
   struct OverlayConnectContext *occ = cls;
   struct LocalPeer2Context *lp2c;
   char *other_peer_str;
 
   occ->send_hello_task = NULL;
-  GNUNET_assert(NULL != occ->timeout_task);
-  GNUNET_assert(NULL != occ->hello);
+  GNUNET_assert (NULL != occ->timeout_task);
+  GNUNET_assert (NULL != occ->hello);
   if (OCC_TYPE_LOCAL != occ->type)
-    {
-      send_hello_thru_rocc(occ);
-      return;
-    }
+  {
+    send_hello_thru_rocc (occ);
+    return;
+  }
   lp2c = &occ->p2ctx.local;
-  other_peer_str = GNUNET_strdup(GNUNET_i2s(&occ->other_peer_identity));
-  LOG_DEBUG("0x%llx: Offering HELLO of %s to %s\n",
-            occ->op_id,
-            GNUNET_i2s(&occ->peer_identity),
-            other_peer_str);
-  GNUNET_free(other_peer_str);
+  other_peer_str = GNUNET_strdup (GNUNET_i2s (&occ->other_peer_identity));
+  LOG_DEBUG ("0x%llx: Offering HELLO of %s to %s\n",
+             occ->op_id,
+             GNUNET_i2s (&occ->peer_identity),
+             other_peer_str);
+  GNUNET_free (other_peer_str);
   lp2c->ohh =
-    GNUNET_TRANSPORT_offer_hello(lp2c->tcc.cfg,
-                                 occ->hello,
-                                 &occ_hello_sent_cb,
-                                 occ);
+    GNUNET_TRANSPORT_offer_hello (lp2c->tcc.cfg,
+                                  occ->hello,
+                                  &occ_hello_sent_cb,
+                                  occ);
   if (NULL == lp2c->ohh)
-    {
-      GNUNET_break(0);
-      occ->send_hello_task =
-        GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_relative_multiply
-                                       (GNUNET_TIME_UNIT_MILLISECONDS,
-                                       100 +
-                                       GNUNET_CRYPTO_random_u32
-                                         (GNUNET_CRYPTO_QUALITY_WEAK, 500)),
-                                     &send_hello, occ);
-    }
+  {
+    GNUNET_break (0);
+    occ->send_hello_task =
+      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
+                                      (GNUNET_TIME_UNIT_MILLISECONDS,
+                                      100
+                                      + GNUNET_CRYPTO_random_u32
+                                        (GNUNET_CRYPTO_QUALITY_WEAK, 500)),
+                                    &send_hello, occ);
+  }
 }
 
 
@@ -951,34 +961,35 @@ send_hello(void *cls)
  * @param cfg configuration of the peer
  */
 static void
-p2_transport_connect_cache_callback(void *cls,
-                                    struct GNUNET_CORE_Handle *ch,
-                                    struct GNUNET_TRANSPORT_CoreHandle *th,
-                                    struct GNUNET_ATS_ConnectivityHandle *ac,
-                                    const struct GNUNET_PeerIdentity *ignore_,
-                                    const struct GNUNET_CONFIGURATION_Handle *cfg)
+p2_transport_connect_cache_callback (void *cls,
+                                     struct GNUNET_CORE_Handle *ch,
+                                     struct GNUNET_TRANSPORT_CoreHandle *th,
+                                     struct GNUNET_ATS_ConnectivityHandle *ac,
+                                     const struct GNUNET_PeerIdentity *ignore_,
+                                     const struct
+                                     GNUNET_CONFIGURATION_Handle *cfg)
 {
   struct OverlayConnectContext *occ = cls;
 
-  GNUNET_assert(OCC_TYPE_LOCAL == occ->type);
+  GNUNET_assert (OCC_TYPE_LOCAL == occ->type);
   if (NULL == th)
-    {
-      GNUNET_asprintf(&occ->emsg,
-                      "0x%llx: Cannot connect to TRANSPORT of %s",
-                      occ->op_id,
-                      GNUNET_i2s(&occ->other_peer_identity));
-      GNUNET_SCHEDULER_cancel(occ->timeout_task);
-      occ->timeout_task =
-        GNUNET_SCHEDULER_add_now(&timeout_overlay_connect, occ);
-      return;
-    }
+  {
+    GNUNET_asprintf (&occ->emsg,
+                     "0x%llx: Cannot connect to TRANSPORT of %s",
+                     occ->op_id,
+                     GNUNET_i2s (&occ->other_peer_identity));
+    GNUNET_SCHEDULER_cancel (occ->timeout_task);
+    occ->timeout_task =
+      GNUNET_SCHEDULER_add_now (&timeout_overlay_connect, occ);
+    return;
+  }
   occ->p2ctx.local.tcc.th_ = th;
   occ->p2ctx.local.tcc.cfg = cfg;
-  GNUNET_asprintf(&occ->emsg,
-                  "0x%llx: Timeout while offering HELLO to %s",
-                  occ->op_id,
-                  GNUNET_i2s(&occ->other_peer_identity));
-  occ->send_hello_task = GNUNET_SCHEDULER_add_now(&send_hello, occ);
+  GNUNET_asprintf (&occ->emsg,
+                   "0x%llx: Timeout while offering HELLO to %s",
+                   occ->op_id,
+                   GNUNET_i2s (&occ->other_peer_identity));
+  occ->send_hello_task = GNUNET_SCHEDULER_add_now (&send_hello, occ);
 }
 
 
@@ -989,36 +1000,36 @@ p2_transport_connect_cache_callback(void *cls,
  * @param occ the overlay connect context
  */
 static void
-p2_transport_connect(struct OverlayConnectContext *occ)
+p2_transport_connect (struct OverlayConnectContext *occ)
 {
   struct Peer *peer2;
 
   /* HUH? Why to *obtain* HELLO? Seems we use this to *SEND* the
      HELLO! */
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-             "Connecting to transport of peer %s to obtain HELLO\n",
-             GNUNET_i2s(&occ->other_peer_identity));
-  GNUNET_assert(NULL == occ->emsg);
-  GNUNET_assert(NULL != occ->hello);
-  GNUNET_assert(NULL == occ->ghh);
-  GNUNET_assert(NULL == occ->p1th_);
-  GNUNET_assert(NULL == occ->cgh_p1th);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Connecting to transport of peer %s to obtain HELLO\n",
+              GNUNET_i2s (&occ->other_peer_identity));
+  GNUNET_assert (NULL == occ->emsg);
+  GNUNET_assert (NULL != occ->hello);
+  GNUNET_assert (NULL == occ->ghh);
+  GNUNET_assert (NULL == occ->p1th_);
+  GNUNET_assert (NULL == occ->cgh_p1th);
   if (OCC_TYPE_LOCAL == occ->type)
-    {
-      GNUNET_assert(NULL != (peer2 = GST_peer_list[occ->other_peer_id]));
-      occ->p2ctx.local.tcc.cgh_p2_th =
-        GST_connection_pool_get_handle(occ->other_peer_id,
-                                       peer2->details.local.cfg,
-                                       GST_CONNECTIONPOOL_SERVICE_TRANSPORT,
-                                       &p2_transport_connect_cache_callback,
-                                       occ, NULL, NULL, NULL);
-      return;
-    }
-  GNUNET_asprintf(&occ->emsg,
-                  "0x%llx: Timeout while offering HELLO to %s",
-                  occ->op_id,
-                  GNUNET_i2s(&occ->other_peer_identity));
-  occ->send_hello_task = GNUNET_SCHEDULER_add_now(&send_hello, occ);
+  {
+    GNUNET_assert (NULL != (peer2 = GST_peer_list[occ->other_peer_id]));
+    occ->p2ctx.local.tcc.cgh_p2_th =
+      GST_connection_pool_get_handle (occ->other_peer_id,
+                                      peer2->details.local.cfg,
+                                      GST_CONNECTIONPOOL_SERVICE_TRANSPORT,
+                                      &p2_transport_connect_cache_callback,
+                                      occ, NULL, NULL, NULL);
+    return;
+  }
+  GNUNET_asprintf (&occ->emsg,
+                   "0x%llx: Timeout while offering HELLO to %s",
+                   occ->op_id,
+                   GNUNET_i2s (&occ->other_peer_identity));
+  occ->send_hello_task = GNUNET_SCHEDULER_add_now (&send_hello, occ);
 }
 
 
@@ -1031,9 +1042,9 @@ p2_transport_connect(struct OverlayConnectContext *occ)
  * @return #GNUNET_OK
  */
 static int
-test_address(void *cls,
-             const struct GNUNET_HELLO_Address *address,
-             struct GNUNET_TIME_Absolute expiration)
+test_address (void *cls,
+              const struct GNUNET_HELLO_Address *address,
+              struct GNUNET_TIME_Absolute expiration)
 {
   int *empty = cls;
 
@@ -1051,40 +1062,40 @@ test_address(void *cls,
  * @param hello our updated HELLO
  */
 static void
-hello_update_cb(void *cls,
-                const struct GNUNET_MessageHeader *hello)
+hello_update_cb (void *cls,
+                 const struct GNUNET_MessageHeader *hello)
 {
   struct OverlayConnectContext *occ = cls;
   int empty;
   uint16_t msize;
 
-  msize = ntohs(hello->size);
+  msize = ntohs (hello->size);
   empty = GNUNET_YES;
-  (void)GNUNET_HELLO_iterate_addresses((const struct GNUNET_HELLO_Message *)
-                                       hello, GNUNET_NO,
-                                       &test_address,
-                                       &empty);
+  (void) GNUNET_HELLO_iterate_addresses ((const struct GNUNET_HELLO_Message *)
+                                         hello, GNUNET_NO,
+                                         &test_address,
+                                         &empty);
   if (GNUNET_YES == empty)
-    {
-      LOG_DEBUG("0x%llx: HELLO of %s is empty\n",
-                occ->op_id,
-                GNUNET_i2s(&occ->peer_identity));
-      return;
-    }
-  LOG_DEBUG("0x%llx: Received HELLO of %s\n",
-            occ->op_id,
-            GNUNET_i2s(&occ->peer_identity));
-  occ->hello = GNUNET_malloc(msize);
-  GST_cache_add_hello(occ->peer->id, hello);
-  GNUNET_memcpy(occ->hello, hello, msize);
-  GNUNET_TRANSPORT_hello_get_cancel(occ->ghh);
+  {
+    LOG_DEBUG ("0x%llx: HELLO of %s is empty\n",
+               occ->op_id,
+               GNUNET_i2s (&occ->peer_identity));
+    return;
+  }
+  LOG_DEBUG ("0x%llx: Received HELLO of %s\n",
+             occ->op_id,
+             GNUNET_i2s (&occ->peer_identity));
+  occ->hello = GNUNET_malloc (msize);
+  GST_cache_add_hello (occ->peer->id, hello);
+  GNUNET_memcpy (occ->hello, hello, msize);
+  GNUNET_TRANSPORT_hello_get_cancel (occ->ghh);
   occ->ghh = NULL;
-  GST_connection_pool_get_handle_done(occ->cgh_p1th);
+  GST_connection_pool_get_handle_done (occ->cgh_p1th);
   occ->cgh_p1th = NULL;
   occ->p1th_ = NULL;
-  GNUNET_free_non_null(occ->emsg);
+  GNUNET_free_non_null (occ->emsg);
   occ->emsg = NULL;
-  p2_transport_connect(occ);
+  p2_transport_connect (occ);
 }
 
 
@@ -1098,39 +1109,40 @@ hello_update_cb(void *cls,
  * @param ignore_ peer identity which is ignored in this callback
  */
 static void
-p1_transport_connect_cache_callback(void *cls,
-                                    struct GNUNET_CORE_Handle *ch,
-                                    struct GNUNET_TRANSPORT_CoreHandle *th,
-                                    struct GNUNET_ATS_ConnectivityHandle *ac,
-                                    const struct GNUNET_PeerIdentity *ignore_,
-                                    const struct GNUNET_CONFIGURATION_Handle *cfg)
+p1_transport_connect_cache_callback (void *cls,
+                                     struct GNUNET_CORE_Handle *ch,
+                                     struct GNUNET_TRANSPORT_CoreHandle *th,
+                                     struct GNUNET_ATS_ConnectivityHandle *ac,
+                                     const struct GNUNET_PeerIdentity *ignore_,
+                                     const struct
+                                     GNUNET_CONFIGURATION_Handle *cfg)
 {
   struct OverlayConnectContext *occ = cls;
 
-  GNUNET_free_non_null(occ->emsg);
+  GNUNET_free_non_null (occ->emsg);
   occ->emsg = NULL;
   if (NULL == th)
-    {
-      GNUNET_asprintf(&occ->emsg,
-                      "0x%llx: Cannot connect to TRANSPORT of %s",
-                      occ->op_id,
-                      GNUNET_i2s(&occ->peer_identity));
-      GNUNET_SCHEDULER_cancel(occ->timeout_task);
-      occ->timeout_task =
-        GNUNET_SCHEDULER_add_now(&timeout_overlay_connect, occ);
-      return;
-    }
-  GNUNET_assert(NULL == occ->p1th_);
-  GNUNET_assert(NULL != occ->cgh_p1th);
+  {
+    GNUNET_asprintf (&occ->emsg,
+                     "0x%llx: Cannot connect to TRANSPORT of %s",
+                     occ->op_id,
+                     GNUNET_i2s (&occ->peer_identity));
+    GNUNET_SCHEDULER_cancel (occ->timeout_task);
+    occ->timeout_task =
+      GNUNET_SCHEDULER_add_now (&timeout_overlay_connect, occ);
+    return;
+  }
+  GNUNET_assert (NULL == occ->p1th_);
+  GNUNET_assert (NULL != occ->cgh_p1th);
   occ->p1th_ = th;
-  GNUNET_asprintf(&occ->emsg,
-                  "0x%llx: Timeout while acquiring HELLO of peer %s",
-                  occ->op_id,
-                  GNUNET_i2s(&occ->peer_identity));
-  occ->ghh = GNUNET_TRANSPORT_hello_get(cfg,
-                                        GNUNET_TRANSPORT_AC_ANY,
-                                        &hello_update_cb,
-                                        occ);
+  GNUNET_asprintf (&occ->emsg,
+                   "0x%llx: Timeout while acquiring HELLO of peer %s",
+                   occ->op_id,
+                   GNUNET_i2s (&occ->peer_identity));
+  occ->ghh = GNUNET_TRANSPORT_hello_get (cfg,
+                                         GNUNET_TRANSPORT_AC_ANY,
+                                         &hello_update_cb,
+                                         occ);
 }
 
 
@@ -1144,68 +1156,68 @@ p1_transport_connect_cache_callback(void *cls,
  * @param my_identity the identity of our peer
  */
 static void
-occ_cache_get_handle_core_cb(void *cls,
-                             struct GNUNET_CORE_Handle *ch,
-                             struct GNUNET_TRANSPORT_CoreHandle *th,
-                             struct GNUNET_ATS_ConnectivityHandle *ac,
-                             const struct GNUNET_PeerIdentity *my_identity,
-                             const struct GNUNET_CONFIGURATION_Handle *cfg)
+occ_cache_get_handle_core_cb (void *cls,
+                              struct GNUNET_CORE_Handle *ch,
+                              struct GNUNET_TRANSPORT_CoreHandle *th,
+                              struct GNUNET_ATS_ConnectivityHandle *ac,
+                              const struct GNUNET_PeerIdentity *my_identity,
+                              const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   struct OverlayConnectContext *occ = cls;
   const struct GNUNET_MessageHeader *hello;
 
-  GNUNET_assert(NULL != occ->timeout_task);
-  GNUNET_free_non_null(occ->emsg);
+  GNUNET_assert (NULL != occ->timeout_task);
+  GNUNET_free_non_null (occ->emsg);
   if ((NULL == ch) || (NULL == my_identity))
-    {
-      GNUNET_asprintf(&occ->emsg,
-                      "0x%llx: Failed to connect to CORE of peer with "
-                      "id: %u",
-                      occ->op_id,
-                      occ->peer->id);
-      GNUNET_SCHEDULER_cancel(occ->timeout_task);
-      occ->timeout_task =
-        GNUNET_SCHEDULER_add_now(&timeout_overlay_connect, occ);
-      return;
-    }
+  {
+    GNUNET_asprintf (&occ->emsg,
+                     "0x%llx: Failed to connect to CORE of peer with "
+                     "id: %u",
+                     occ->op_id,
+                     occ->peer->id);
+    GNUNET_SCHEDULER_cancel (occ->timeout_task);
+    occ->timeout_task =
+      GNUNET_SCHEDULER_add_now (&timeout_overlay_connect, occ);
+    return;
+  }
   occ->emsg = NULL;
   if (NULL !=
-      GNUNET_CORE_get_mq(ch,
-                         &occ->other_peer_identity))
-    {
-      LOG_DEBUG("0x%llx: Target peer already connected\n",
-                occ->op_id);
-      GNUNET_SCHEDULER_cancel(occ->timeout_task);
-      occ->timeout_task = NULL;
-      send_overlay_connect_success_msg(occ);
-      occ->cleanup_task = GNUNET_SCHEDULER_add_now(&do_cleanup_occ, occ);
-      return;
-    }
+      GNUNET_CORE_get_mq (ch,
+                          &occ->other_peer_identity))
+  {
+    LOG_DEBUG ("0x%llx: Target peer already connected\n",
+               occ->op_id);
+    GNUNET_SCHEDULER_cancel (occ->timeout_task);
+    occ->timeout_task = NULL;
+    send_overlay_connect_success_msg (occ);
+    occ->cleanup_task = GNUNET_SCHEDULER_add_now (&do_cleanup_occ, occ);
+    return;
+  }
   occ->peer_identity = *my_identity;
-  LOG_DEBUG("0x%llx: Acquiring HELLO of peer %s\n",
-            occ->op_id,
-            GNUNET_i2s(&occ->peer_identity));
+  LOG_DEBUG ("0x%llx: Acquiring HELLO of peer %s\n",
+             occ->op_id,
+             GNUNET_i2s (&occ->peer_identity));
   /* Lookup for HELLO in hello cache */
-  if (NULL != (hello = GST_cache_lookup_hello(occ->peer->id)))
-    {
-      LOG_DEBUG("0x%llx: HELLO of peer %s found in cache\n",
-                occ->op_id,
-                GNUNET_i2s(&occ->peer_identity));
-      occ->hello = GNUNET_copy_message(hello);
-      p2_transport_connect(occ);
-      return;
-    }
-  GNUNET_asprintf(&occ->emsg,
-                  "0x%llx: Timeout while acquiring TRANSPORT of %s from cache",
-                  occ->op_id,
-                  GNUNET_i2s(&occ->peer_identity));
+  if (NULL != (hello = GST_cache_lookup_hello (occ->peer->id)))
+  {
+    LOG_DEBUG ("0x%llx: HELLO of peer %s found in cache\n",
+               occ->op_id,
+               GNUNET_i2s (&occ->peer_identity));
+    occ->hello = GNUNET_copy_message (hello);
+    p2_transport_connect (occ);
+    return;
+  }
+  GNUNET_asprintf (&occ->emsg,
+                   "0x%llx: Timeout while acquiring TRANSPORT of %s from cache",
+                   occ->op_id,
+                   GNUNET_i2s (&occ->peer_identity));
   occ->cgh_p1th =
-    GST_connection_pool_get_handle(occ->peer->id,
-                                   occ->peer->details.local.cfg,
-                                   GST_CONNECTIONPOOL_SERVICE_TRANSPORT,
-                                   p1_transport_connect_cache_callback,
-                                   occ,
-                                   NULL, NULL, NULL);
+    GST_connection_pool_get_handle (occ->peer->id,
+                                    occ->peer->details.local.cfg,
+                                    GST_CONNECTIONPOOL_SERVICE_TRANSPORT,
+                                    p1_transport_connect_cache_callback,
+                                    occ,
+                                    NULL, NULL, NULL);
 }
 
 
@@ -1218,41 +1230,41 @@ occ_cache_get_handle_core_cb(void *cls,
  * @param msg the peer create success message
  */
 static void
-overlay_connect_get_config(void *cls,
-                           const struct GNUNET_MessageHeader *msg)
+overlay_connect_get_config (void *cls,
+                            const struct GNUNET_MessageHeader *msg)
 {
   struct OverlayConnectContext *occ = cls;
   struct RemotePeer2Context *rp2c;
   const struct GNUNET_TESTBED_PeerConfigurationInformationMessage *cmsg;
 
-  GNUNET_assert(OCC_TYPE_LOCAL != occ->type);
+  GNUNET_assert (OCC_TYPE_LOCAL != occ->type);
   rp2c = &occ->p2ctx.remote;
   rp2c->opc = NULL;
-  GNUNET_assert(NULL != occ->timeout_task);
-  if (GNUNET_MESSAGE_TYPE_TESTBED_PEER_INFORMATION != ntohs(msg->type))
-    {
-      GNUNET_SCHEDULER_cancel(occ->timeout_task);
-      occ->timeout_task =
-        GNUNET_SCHEDULER_add_now(&timeout_overlay_connect, occ);
-    }
+  GNUNET_assert (NULL != occ->timeout_task);
+  if (GNUNET_MESSAGE_TYPE_TESTBED_PEER_INFORMATION != ntohs (msg->type))
+  {
+    GNUNET_SCHEDULER_cancel (occ->timeout_task);
+    occ->timeout_task =
+      GNUNET_SCHEDULER_add_now (&timeout_overlay_connect, occ);
+  }
   cmsg =
-    (const struct GNUNET_TESTBED_PeerConfigurationInformationMessage *)msg;
+    (const struct GNUNET_TESTBED_PeerConfigurationInformationMessage *) msg;
   occ->other_peer_identity = cmsg->peer_identity;
-  GNUNET_free_non_null(occ->emsg);
-  GNUNET_asprintf(&occ->emsg,
-                  "0x%llx: Timeout while connecting to CORE of peer with "
-                  "id: %u",
-                  occ->op_id,
-                  occ->peer->id);
+  GNUNET_free_non_null (occ->emsg);
+  GNUNET_asprintf (&occ->emsg,
+                   "0x%llx: Timeout while connecting to CORE of peer with "
+                   "id: %u",
+                   occ->op_id,
+                   occ->peer->id);
   occ->cgh_ch =
-    GST_connection_pool_get_handle(occ->peer->id,
-                                   occ->peer->details.local.cfg,
-                                   GST_CONNECTIONPOOL_SERVICE_CORE,
-                                   occ_cache_get_handle_core_cb,
-                                   occ,
-                                   &occ->other_peer_identity,
-                                   &overlay_connect_notify,
-                                   occ);
+    GST_connection_pool_get_handle (occ->peer->id,
+                                    occ->peer->details.local.cfg,
+                                    GST_CONNECTIONPOOL_SERVICE_CORE,
+                                    occ_cache_get_handle_core_cb,
+                                    occ,
+                                    &occ->other_peer_identity,
+                                    &overlay_connect_notify,
+                                    occ);
   return;
 }
 
@@ -1264,12 +1276,12 @@ overlay_connect_get_config(void *cls,
  * @param emsg the error message; NULL if host registration is successful
  */
 static void
-host_registration_comp(void *cls, const char *emsg)
+host_registration_comp (void *cls, const char *emsg)
 {
   struct RegisteredHostContext *rhc = cls;
 
   rhc->state = RHC_DONE;
-  GST_process_next_focc(rhc);
+  GST_process_next_focc (rhc);
 }
 
 
@@ -1284,19 +1296,19 @@ host_registration_comp(void *cls, const char *emsg)
  *         #GNUNET_NO if not.
  */
 static int
-reghost_match_iterator(void *cls,
-                       const struct GNUNET_HashCode *key,
-                       void *value)
+reghost_match_iterator (void *cls,
+                        const struct GNUNET_HashCode *key,
+                        void *value)
 {
   struct RegisteredHostContext **rh = cls;
   struct RegisteredHostContext *rh_val = value;
 
   if ((rh_val->host == (*rh)->host) && (rh_val->reg_host == (*rh)->reg_host))
-    {
-      GNUNET_free(*rh);
-      *rh = rh_val;
-      return GNUNET_NO;
-    }
+  {
+    GNUNET_free (*rh);
+    *rh = rh_val;
+    return GNUNET_NO;
+  }
   return GNUNET_YES;
 }
 
@@ -1309,15 +1321,15 @@ reghost_match_iterator(void *cls,
  * @return the hashcode
  */
 static struct GNUNET_HashCode
-hash_hosts(struct GNUNET_TESTBED_Host *reg_host,
-           struct GNUNET_TESTBED_Host *host)
+hash_hosts (struct GNUNET_TESTBED_Host *reg_host,
+            struct GNUNET_TESTBED_Host *host)
 {
   struct GNUNET_HashCode hash;
   uint32_t host_ids[2];
 
-  host_ids[0] = GNUNET_TESTBED_host_get_id_(reg_host);
-  host_ids[1] = GNUNET_TESTBED_host_get_id_(host);
-  GNUNET_CRYPTO_hash(host_ids, sizeof(host_ids), &hash);
+  host_ids[0] = GNUNET_TESTBED_host_get_id_ (reg_host);
+  host_ids[1] = GNUNET_TESTBED_host_get_id_ (host);
+  GNUNET_CRYPTO_hash (host_ids, sizeof(host_ids), &hash);
   return hash;
 }
 
@@ -1336,48 +1348,48 @@ hash_hosts(struct GNUNET_TESTBED_Host *reg_host,
  *           already registered, NULL is returned.
  */
 static struct RegisteredHostContext *
-register_host(struct Slave *slave,
-              struct GNUNET_TESTBED_Host *host)
+register_host (struct Slave *slave,
+               struct GNUNET_TESTBED_Host *host)
 {
   struct GNUNET_HashCode hash;
   struct RegisteredHostContext *rhc;
 
-  rhc = GNUNET_new(struct RegisteredHostContext);
+  rhc = GNUNET_new (struct RegisteredHostContext);
   rhc->reg_host = host;
   rhc->host = GST_host_list[slave->host_id];
-  GNUNET_assert(NULL != rhc->reg_host);
-  GNUNET_assert(NULL != rhc->host);
+  GNUNET_assert (NULL != rhc->reg_host);
+  GNUNET_assert (NULL != rhc->host);
   rhc->state = RHC_INIT;
-  hash = hash_hosts(rhc->reg_host, rhc->host);
+  hash = hash_hosts (rhc->reg_host, rhc->host);
   if ((GNUNET_NO ==
-       GNUNET_CONTAINER_multihashmap_contains(slave->reghost_map,
-                                              &hash)) ||
+       GNUNET_CONTAINER_multihashmap_contains (slave->reghost_map,
+                                               &hash)) ||
       (GNUNET_SYSERR !=
-       GNUNET_CONTAINER_multihashmap_get_multiple(slave->reghost_map,
-                                                  &hash,
-                                                  reghost_match_iterator,
-                                                  &rhc)))
-    {
-      /* create and add a new registerd host context */
-      /* add the focc to its queue */
-      GNUNET_CONTAINER_multihashmap_put(slave->reghost_map,
-                                        &hash,
-                                        rhc,
-                                        GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
-      GST_queue_host_registration(slave,
-                                  host_registration_comp,
-                                  rhc,
-                                  rhc->reg_host);
-    }
+       GNUNET_CONTAINER_multihashmap_get_multiple (slave->reghost_map,
+                                                   &hash,
+                                                   reghost_match_iterator,
+                                                   &rhc)))
+  {
+    /* create and add a new registerd host context */
+    /* add the focc to its queue */
+    GNUNET_CONTAINER_multihashmap_put (slave->reghost_map,
+                                       &hash,
+                                       rhc,
+                                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
+    GST_queue_host_registration (slave,
+                                 host_registration_comp,
+                                 rhc,
+                                 rhc->reg_host);
+  }
   else
-    {
-      /* rhc is now set to the existing one from the hash map by
-       * reghost_match_iterator() */
-      /* if queue is empty then ignore creating focc and proceed with normal
-       * forwarding */
-      if (RHC_DONE == rhc->state)
-        return NULL;
-    }
+  {
+    /* rhc is now set to the existing one from the hash map by
+     * reghost_match_iterator() */
+    /* if queue is empty then ignore creating focc and proceed with normal
+     * forwarding */
+    if (RHC_DONE == rhc->state)
+      return NULL;
+  }
   return rhc;
 }
 
@@ -1392,8 +1404,8 @@ register_host(struct Slave *slave,
  *          be notified
  */
 static void
-forward_overlay_connect(const struct GNUNET_TESTBED_OverlayConnectMessage *msg,
-                        struct GNUNET_SERVICE_Client *client)
+forward_overlay_connect (const struct GNUNET_TESTBED_OverlayConnectMessage *msg,
+                         struct GNUNET_SERVICE_Client *client)
 {
   struct ForwardedOperationContext *fopc;
   struct Route *route_to_peer2_host;
@@ -1406,61 +1418,63 @@ forward_overlay_connect(const struct GNUNET_TESTBED_OverlayConnectMessage *msg,
   uint32_t p1;
   uint32_t p2;
 
-  p1 = ntohl(msg->peer1);
-  p2 = ntohl(msg->peer2);
-  op_id = GNUNET_ntohll(msg->operation_id);
-  peer2_host_id = ntohl(msg->peer2_host_id);
-  GNUNET_assert(VALID_PEER_ID(p1));
-  GNUNET_assert(VALID_HOST_ID(peer2_host_id));
+  p1 = ntohl (msg->peer1);
+  p2 = ntohl (msg->peer2);
+  op_id = GNUNET_ntohll (msg->operation_id);
+  peer2_host_id = ntohl (msg->peer2_host_id);
+  GNUNET_assert (VALID_PEER_ID (p1));
+  GNUNET_assert (VALID_HOST_ID (peer2_host_id));
   peer = GST_peer_list[p1];
-  GNUNET_assert(GNUNET_YES == peer->is_remote);
-  LOG_DEBUG("0x%llx: Forwarding overlay connect\n", op_id);
-  route_to_peer2_host = GST_find_dest_route(peer2_host_id);
+  GNUNET_assert (GNUNET_YES == peer->is_remote);
+  LOG_DEBUG ("0x%llx: Forwarding overlay connect\n", op_id);
+  route_to_peer2_host = GST_find_dest_route (peer2_host_id);
   route_to_peer1_host = GST_find_dest_route
                           (peer->details.remote.remote_host_id);
-  GNUNET_assert(NULL != route_to_peer1_host);
+  GNUNET_assert (NULL != route_to_peer1_host);
   if ((NULL != route_to_peer2_host) &&
       (route_to_peer1_host->dest == route_to_peer2_host->dest))
     goto forward;
   /* Peer2 is either with us OR peer1 and peer2 can be reached through
      different subtrees OR peer2 is on a subtree unknown to us */
-  if (NULL != (rhc = register_host(peer->details.remote.slave,
-                                   GST_host_list[peer2_host_id])))
-    {
-      LOG_DEBUG("Queueing forwarding FOCC for connecting peers %u and %u\n", p1, p2);
-      focc = GNUNET_new(struct ForwardedOverlayConnectContext);
-      focc->rhc = rhc;
-      focc->peer1 = p1;
-      focc->peer2 = p2;
-      focc->peer2_host_id = peer2_host_id;
-      focc->orig_msg = GNUNET_copy_message(&msg->header);
-      focc->operation_id = op_id;
-      focc->client = client;
-      GNUNET_CONTAINER_DLL_insert_tail(rhc->focc_dll_head,
-                                       rhc->focc_dll_tail,
-                                       focc);
-      return;
-    }
+  if (NULL != (rhc = register_host (peer->details.remote.slave,
+                                    GST_host_list[peer2_host_id])))
+  {
+    LOG_DEBUG ("Queueing forwarding FOCC for connecting peers %u and %u\n", p1,
+               p2);
+    focc = GNUNET_new (struct ForwardedOverlayConnectContext);
+    focc->rhc = rhc;
+    focc->peer1 = p1;
+    focc->peer2 = p2;
+    focc->peer2_host_id = peer2_host_id;
+    focc->orig_msg = GNUNET_copy_message (&msg->header);
+    focc->operation_id = op_id;
+    focc->client = client;
+    GNUNET_CONTAINER_DLL_insert_tail (rhc->focc_dll_head,
+                                      rhc->focc_dll_tail,
+                                      focc);
+    return;
+  }
 
 forward:
-  LOG_DEBUG("Forwarding without FOCC for connecting peers %u and %u\n", p1, p2);
-  fopc = GNUNET_new(struct ForwardedOperationContext);
+  LOG_DEBUG ("Forwarding without FOCC for connecting peers %u and %u\n", p1,
+             p2);
+  fopc = GNUNET_new (struct ForwardedOperationContext);
   fopc->client = client;
   fopc->operation_id = op_id;
   fopc->type = OP_OVERLAY_CONNECT;
   fopc->opc =
-    GNUNET_TESTBED_forward_operation_msg_(peer->details.remote.
-                                          slave->controller, op_id,
-                                          &msg->header,
-                                          &GST_forwarded_operation_reply_relay,
-                                          fopc);
+    GNUNET_TESTBED_forward_operation_msg_ (peer->details.remote.
+                                           slave->controller, op_id,
+                                           &msg->header,
+                                           &GST_forwarded_operation_reply_relay,
+                                           fopc);
   fopc->timeout_task =
-    GNUNET_SCHEDULER_add_delayed(GST_timeout,
-                                 &GST_forwarded_operation_timeout,
-                                 fopc);
-  GNUNET_CONTAINER_DLL_insert_tail(fopcq_head,
-                                   fopcq_tail,
-                                   fopc);
+    GNUNET_SCHEDULER_add_delayed (GST_timeout,
+                                  &GST_forwarded_operation_timeout,
+                                  fopc);
+  GNUNET_CONTAINER_DLL_insert_tail (fopcq_head,
+                                    fopcq_tail,
+                                    fopc);
 }
 
 
@@ -1472,35 +1486,35 @@ forward:
  * @param c handle to the controller connection
  */
 static void
-p2_controller_connect_cb(void *cls,
-                         struct GNUNET_TESTBED_Controller *c)
+p2_controller_connect_cb (void *cls,
+                          struct GNUNET_TESTBED_Controller *c)
 {
   struct OverlayConnectContext *occ = cls;
   struct RemotePeer2Context *rp2c;
   struct GNUNET_TESTBED_PeerGetConfigurationMessage cmsg;
 
-  GNUNET_assert(OCC_TYPE_LOCAL != occ->type);
+  GNUNET_assert (OCC_TYPE_LOCAL != occ->type);
   rp2c = &occ->p2ctx.remote;
   rp2c->ncn = NULL;
   rp2c->p2c = c;
   cmsg.header.size =
-    htons(sizeof(struct GNUNET_TESTBED_PeerGetConfigurationMessage));
+    htons (sizeof(struct GNUNET_TESTBED_PeerGetConfigurationMessage));
   cmsg.header.type =
-    htons(GNUNET_MESSAGE_TYPE_TESTBED_GET_PEER_INFORMATION);
-  cmsg.peer_id = htonl(occ->other_peer_id);
-  cmsg.operation_id = GNUNET_htonll(occ->op_id);
+    htons (GNUNET_MESSAGE_TYPE_TESTBED_GET_PEER_INFORMATION);
+  cmsg.peer_id = htonl (occ->other_peer_id);
+  cmsg.operation_id = GNUNET_htonll (occ->op_id);
   rp2c->opc =
-    GNUNET_TESTBED_forward_operation_msg_(rp2c->p2c,
-                                          occ->op_id,
-                                          &cmsg.header,
-                                          &overlay_connect_get_config,
-                                          occ);
-  GNUNET_free_non_null(occ->emsg);
-  GNUNET_asprintf(&occ->emsg,
-                  "0x%llx: Timeout while getting peer identity of peer "
-                  "with id: %u",
-                  occ->op_id,
-                  occ->other_peer_id);
+    GNUNET_TESTBED_forward_operation_msg_ (rp2c->p2c,
+                                           occ->op_id,
+                                           &cmsg.header,
+                                           &overlay_connect_get_config,
+                                           occ);
+  GNUNET_free_non_null (occ->emsg);
+  GNUNET_asprintf (&occ->emsg,
+                   "0x%llx: Timeout while getting peer identity of peer "
+                   "with id: %u",
+                   occ->op_id,
+                   occ->other_peer_id);
 }
 
 
@@ -1511,8 +1525,8 @@ p2_controller_connect_cb(void *cls,
  * @param msg the actual message
  */
 void
-handle_overlay_connect(void *cls,
-                       const struct GNUNET_TESTBED_OverlayConnectMessage *msg)
+handle_overlay_connect (void *cls,
+                        const struct GNUNET_TESTBED_OverlayConnectMessage *msg)
 {
   struct GNUNET_SERVICE_Client *client = cls;
   struct Peer *peer;
@@ -1524,114 +1538,114 @@ handle_overlay_connect(void *cls,
   uint32_t p2;
   uint32_t peer2_host_id;
 
-  p1 = ntohl(msg->peer1);
-  p2 = ntohl(msg->peer2);
-  if (!VALID_PEER_ID(p1))
-    {
-      GNUNET_break(0);
-      GNUNET_SERVICE_client_drop(client);
-      return;
-    }
+  p1 = ntohl (msg->peer1);
+  p2 = ntohl (msg->peer2);
+  if (! VALID_PEER_ID (p1))
+  {
+    GNUNET_break (0);
+    GNUNET_SERVICE_client_drop (client);
+    return;
+  }
   peer = GST_peer_list[p1];
-  operation_id = GNUNET_ntohll(msg->operation_id);
+  operation_id = GNUNET_ntohll (msg->operation_id);
   LOG_DEBUG
     ("Received overlay connect for peers %u and %u with op id: 0x%llx\n",
     p1,
     p2,
     operation_id);
-  peer2_host_id = ntohl(msg->peer2_host_id);
+  peer2_host_id = ntohl (msg->peer2_host_id);
   if (GNUNET_YES == peer->is_remote)
+  {
+    if (! VALID_HOST_ID (peer2_host_id))
     {
-      if (!VALID_HOST_ID(peer2_host_id))
-        {
-          GNUNET_break(0);
-          GNUNET_SERVICE_client_drop(client);
-          return;
-        }
-      forward_overlay_connect(msg, client);
-      GNUNET_SERVICE_client_continue(client);
+      GNUNET_break (0);
+      GNUNET_SERVICE_client_drop (client);
       return;
     }
+    forward_overlay_connect (msg, client);
+    GNUNET_SERVICE_client_continue (client);
+    return;
+  }
   p2n = NULL;
-  occ = GNUNET_new(struct OverlayConnectContext);
+  occ = GNUNET_new (struct OverlayConnectContext);
   occ->type = OCC_TYPE_LOCAL;
-  if (!VALID_PEER_ID(p2))         /* May be peer2 is on a another controller */
+  if (! VALID_PEER_ID (p2))         /* May be peer2 is on a another controller */
+  {
+    if (NULL == (p2n = GST_get_neighbour (peer2_host_id)))
     {
-      if (NULL == (p2n = GST_get_neighbour(peer2_host_id)))
-        {
-          if (!VALID_HOST_ID(peer2_host_id))
-            {
-              GNUNET_break(0);
-              LOG(GNUNET_ERROR_TYPE_WARNING,
-                  "0x%llx: Peer %u's host not in our neighbours list\n",
-                  operation_id, p2);
-              GNUNET_SERVICE_client_drop(client);
-              GNUNET_free(occ);
-              return;
-            }
-          p2n = GST_create_neighbour(GST_host_list[peer2_host_id]);
-        }
-      occ->type = OCC_TYPE_REMOTE_LATERAL;
-      occ->p2ctx.remote.p2n = p2n;
+      if (! VALID_HOST_ID (peer2_host_id))
+      {
+        GNUNET_break (0);
+        LOG (GNUNET_ERROR_TYPE_WARNING,
+             "0x%llx: Peer %u's host not in our neighbours list\n",
+             operation_id, p2);
+        GNUNET_SERVICE_client_drop (client);
+        GNUNET_free (occ);
+        return;
+      }
+      p2n = GST_create_neighbour (GST_host_list[peer2_host_id]);
     }
+    occ->type = OCC_TYPE_REMOTE_LATERAL;
+    occ->p2ctx.remote.p2n = p2n;
+  }
   else if (GNUNET_YES == GST_peer_list[p2]->is_remote)
-    {
-      occ->type = OCC_TYPE_REMOTE_SLAVE;
-      occ->p2ctx.remote.p2c = GST_peer_list[p2]->details.remote.slave->controller;
-    }
-  GNUNET_CONTAINER_DLL_insert_tail(occq_head,
-                                   occq_tail,
-                                   occ);
+  {
+    occ->type = OCC_TYPE_REMOTE_SLAVE;
+    occ->p2ctx.remote.p2c = GST_peer_list[p2]->details.remote.slave->controller;
+  }
+  GNUNET_CONTAINER_DLL_insert_tail (occq_head,
+                                    occq_tail,
+                                    occ);
   occ->client = client;
   occ->other_peer_id = p2;
   GST_peer_list[p1]->reference_cnt++;
   occ->peer = GST_peer_list[p1];
   occ->op_id = operation_id;
-  GNUNET_assert(NULL == occ->timeout_task);
+  GNUNET_assert (NULL == occ->timeout_task);
   occ->timeout_task =
-    GNUNET_SCHEDULER_add_delayed(GST_timeout,
-                                 &timeout_overlay_connect,
-                                 occ);
+    GNUNET_SCHEDULER_add_delayed (GST_timeout,
+                                  &timeout_overlay_connect,
+                                  occ);
   switch (occ->type)
-    {
-    case OCC_TYPE_REMOTE_LATERAL:
-      GNUNET_asprintf(&occ->emsg,
-                      "0x%llx: Timeout while acquiring connection to peer %u's "
-                      "host: %u\n",
-                      occ->op_id,
-                      occ->other_peer_id,
-                      peer2_host_id);
-      occ->p2ctx.remote.ncn
-        = GST_neighbour_get_connection(p2n,
-                                       &p2_controller_connect_cb,
-                                       occ);
-      break;
+  {
+  case OCC_TYPE_REMOTE_LATERAL:
+    GNUNET_asprintf (&occ->emsg,
+                     "0x%llx: Timeout while acquiring connection to peer %u's "
+                     "host: %u\n",
+                     occ->op_id,
+                     occ->other_peer_id,
+                     peer2_host_id);
+    occ->p2ctx.remote.ncn
+      = GST_neighbour_get_connection (p2n,
+                                      &p2_controller_connect_cb,
+                                      occ);
+    break;
 
-    case OCC_TYPE_REMOTE_SLAVE:
-      p2_controller_connect_cb(occ,
-                               occ->p2ctx.remote.p2c);
-      break;
+  case OCC_TYPE_REMOTE_SLAVE:
+    p2_controller_connect_cb (occ,
+                              occ->p2ctx.remote.p2c);
+    break;
 
-    case OCC_TYPE_LOCAL:
-      peer2 = GST_peer_list[occ->other_peer_id];
-      peer2->reference_cnt++;
-      GNUNET_TESTING_peer_get_identity(peer2->details.local.peer,
-                                       &occ->other_peer_identity);
-      GNUNET_asprintf(&occ->emsg,
-                      "0x%llx: Timeout while connecting to CORE of peer with "
-                      "id: %u",
-                      occ->op_id,
-                      occ->peer->id);
-      occ->cgh_ch =
-        GST_connection_pool_get_handle(occ->peer->id,
-                                       occ->peer->details.local.cfg,
-                                       GST_CONNECTIONPOOL_SERVICE_CORE,
-                                       occ_cache_get_handle_core_cb, occ,
-                                       &occ->other_peer_identity,
-                                       &overlay_connect_notify, occ);
-      break;
-    }
-  GNUNET_SERVICE_client_continue(client);
+  case OCC_TYPE_LOCAL:
+    peer2 = GST_peer_list[occ->other_peer_id];
+    peer2->reference_cnt++;
+    GNUNET_TESTING_peer_get_identity (peer2->details.local.peer,
+                                      &occ->other_peer_identity);
+    GNUNET_asprintf (&occ->emsg,
+                     "0x%llx: Timeout while connecting to CORE of peer with "
+                     "id: %u",
+                     occ->op_id,
+                     occ->peer->id);
+    occ->cgh_ch =
+      GST_connection_pool_get_handle (occ->peer->id,
+                                      occ->peer->details.local.cfg,
+                                      GST_CONNECTIONPOOL_SERVICE_CORE,
+                                      occ_cache_get_handle_core_cb, occ,
+                                      &occ->other_peer_identity,
+                                      &overlay_connect_notify, occ);
+    break;
+  }
+  GNUNET_SERVICE_client_continue (client);
 }
 
 
@@ -1642,30 +1656,30 @@ handle_overlay_connect(void *cls,
  * @param rocc the RemoteOverlayConnectCtx
  */
 static void
-cleanup_rocc(struct RemoteOverlayConnectCtx *rocc)
+cleanup_rocc (struct RemoteOverlayConnectCtx *rocc)
 {
-  LOG_DEBUG("0x%llx: Cleaning up rocc\n",
-            rocc->op_id);
+  LOG_DEBUG ("0x%llx: Cleaning up rocc\n",
+             rocc->op_id);
   if (NULL != rocc->attempt_connect_task_id)
-    GNUNET_SCHEDULER_cancel(rocc->attempt_connect_task_id);
+    GNUNET_SCHEDULER_cancel (rocc->attempt_connect_task_id);
   if (NULL != rocc->timeout_rocc_task_id)
-    GNUNET_SCHEDULER_cancel(rocc->timeout_rocc_task_id);
+    GNUNET_SCHEDULER_cancel (rocc->timeout_rocc_task_id);
   if (NULL != rocc->ohh)
-    GNUNET_TRANSPORT_offer_hello_cancel(rocc->ohh);
+    GNUNET_TRANSPORT_offer_hello_cancel (rocc->ohh);
   if (NULL != rocc->tcc.csh)
-    GNUNET_ATS_connectivity_suggest_cancel(rocc->tcc.csh);
-  GST_connection_pool_get_handle_done(rocc->tcc.cgh_p2_th);
-  GST_connection_pool_get_handle_done(rocc->tcc.cgh_p2_ats);
-  GNUNET_assert(rocc->peer->reference_cnt > 0);
+    GNUNET_ATS_connectivity_suggest_cancel (rocc->tcc.csh);
+  GST_connection_pool_get_handle_done (rocc->tcc.cgh_p2_th);
+  GST_connection_pool_get_handle_done (rocc->tcc.cgh_p2_ats);
+  GNUNET_assert (rocc->peer->reference_cnt > 0);
   rocc->peer->reference_cnt--;
   if ((GNUNET_YES == rocc->peer->destroy_flag) &&
       (0 == rocc->peer->reference_cnt))
-    GST_destroy_peer(rocc->peer);
-  GNUNET_free_non_null(rocc->hello);
-  GNUNET_CONTAINER_DLL_remove(roccq_head,
-                              roccq_tail,
-                              rocc);
-  GNUNET_free(rocc);
+    GST_destroy_peer (rocc->peer);
+  GNUNET_free_non_null (rocc->hello);
+  GNUNET_CONTAINER_DLL_remove (roccq_head,
+                               roccq_tail,
+                               rocc);
+  GNUNET_free (rocc);
 }
 
 
@@ -1675,15 +1689,15 @@ cleanup_rocc(struct RemoteOverlayConnectCtx *rocc)
  * @param cls the RemoteOverlayConnectCtx
  */
 static void
-timeout_rocc_task(void *cls)
+timeout_rocc_task (void *cls)
 {
   struct RemoteOverlayConnectCtx *rocc = cls;
 
-  GNUNET_assert(rocc->timeout_rocc_task_id != NULL);
+  GNUNET_assert (rocc->timeout_rocc_task_id != NULL);
   rocc->timeout_rocc_task_id = NULL;
-  LOG_DEBUG("0x%llx: rocc timed out\n",
-            rocc->op_id);
-  cleanup_rocc(rocc);
+  LOG_DEBUG ("0x%llx: rocc timed out\n",
+             rocc->op_id);
+  cleanup_rocc (rocc);
 }
 
 
@@ -1695,20 +1709,20 @@ timeout_rocc_task(void *cls)
  * @param new_peer the peer that connected
  */
 static void
-cache_transport_peer_connect_notify(void *cls,
-                                    const struct GNUNET_PeerIdentity *new_peer)
+cache_transport_peer_connect_notify (void *cls,
+                                     const struct GNUNET_PeerIdentity *new_peer)
 {
   struct RemoteOverlayConnectCtx *rocc = cls;
 
-  LOG_DEBUG("0x%llx: Request Overlay connect notify\n",
-            rocc->op_id);
-  GNUNET_assert(0 ==
-                memcmp(new_peer, &rocc->a_id,
-                       sizeof(struct GNUNET_PeerIdentity)));
-  LOG_DEBUG("0x%llx: Peer %s connected\n",
-            rocc->op_id,
-            GNUNET_i2s(&rocc->a_id));
-  cleanup_rocc(rocc);
+  LOG_DEBUG ("0x%llx: Request Overlay connect notify\n",
+             rocc->op_id);
+  GNUNET_assert (0 ==
+                 memcmp (new_peer, &rocc->a_id,
+                         sizeof(struct GNUNET_PeerIdentity)));
+  LOG_DEBUG ("0x%llx: Peer %s connected\n",
+             rocc->op_id,
+             GNUNET_i2s (&rocc->a_id));
+  cleanup_rocc (rocc);
 }
 
 
@@ -1719,7 +1733,7 @@ cache_transport_peer_connect_notify(void *cls,
  * @param cls the RemoteOverlayConnectCtx
  */
 static void
-attempt_connect_task(void *cls);
+attempt_connect_task (void *cls);
 
 
 /**
@@ -1730,22 +1744,22 @@ attempt_connect_task(void *cls);
  * @param cls the overlay connect context
  */
 static void
-rocc_hello_sent_cb(void *cls)
+rocc_hello_sent_cb (void *cls)
 {
   struct RemoteOverlayConnectCtx *rocc = cls;
 
   rocc->ohh = NULL;
-  GNUNET_assert(NULL == rocc->attempt_connect_task_id);
-  LOG_DEBUG("0x%llx: HELLO of peer %s delivered to local peer with id: %u\n",
-            rocc->op_id,
-            GNUNET_i2s(&rocc->a_id),
-            rocc->peer->id);
+  GNUNET_assert (NULL == rocc->attempt_connect_task_id);
+  LOG_DEBUG ("0x%llx: HELLO of peer %s delivered to local peer with id: %u\n",
+             rocc->op_id,
+             GNUNET_i2s (&rocc->a_id),
+             rocc->peer->id);
   rocc->tcc.cgh_p2_ats =
-    GST_connection_pool_get_handle(rocc->peer->id,
-                                   rocc->peer->details.local.cfg,
-                                   GST_CONNECTIONPOOL_SERVICE_ATS_CONNECTIVITY,
-                                   &occ_cache_get_handle_ats_rocc_cb,
-                                   rocc, NULL, NULL, NULL);
+    GST_connection_pool_get_handle (rocc->peer->id,
+                                    rocc->peer->details.local.cfg,
+                                    GST_CONNECTIONPOOL_SERVICE_ATS_CONNECTIVITY,
+                                    &occ_cache_get_handle_ats_rocc_cb,
+                                    rocc, NULL, NULL, NULL);
 }
 
 
@@ -1756,29 +1770,29 @@ rocc_hello_sent_cb(void *cls)
  * @param cls the RemoteOverlayConnectCtx
  */
 static void
-attempt_connect_task(void *cls)
+attempt_connect_task (void *cls)
 {
   struct RemoteOverlayConnectCtx *rocc = cls;
 
-  GNUNET_assert(NULL != rocc->attempt_connect_task_id);
+  GNUNET_assert (NULL != rocc->attempt_connect_task_id);
   rocc->attempt_connect_task_id = NULL;
-  LOG_DEBUG("0x%llx: Offering HELLO of peer %s to remote peer with id: %u\n",
-            rocc->op_id,
-            GNUNET_i2s(&rocc->a_id),
-            rocc->peer->id);
+  LOG_DEBUG ("0x%llx: Offering HELLO of peer %s to remote peer with id: %u\n",
+             rocc->op_id,
+             GNUNET_i2s (&rocc->a_id),
+             rocc->peer->id);
   rocc->ohh =
-    GNUNET_TRANSPORT_offer_hello(rocc->tcc.cfg,
-                                 rocc->hello,
-                                 &rocc_hello_sent_cb,
-                                 rocc);
+    GNUNET_TRANSPORT_offer_hello (rocc->tcc.cfg,
+                                  rocc->hello,
+                                  &rocc_hello_sent_cb,
+                                  rocc);
   if (NULL == rocc->ohh)
     rocc->attempt_connect_task_id =
-      GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_relative_multiply
-                                     (GNUNET_TIME_UNIT_MILLISECONDS,
-                                     100 +
-                                     GNUNET_CRYPTO_random_u32
-                                       (GNUNET_CRYPTO_QUALITY_WEAK, 500)),
-                                   &attempt_connect_task, rocc);
+      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
+                                      (GNUNET_TIME_UNIT_MILLISECONDS,
+                                      100
+                                      + GNUNET_CRYPTO_random_u32
+                                        (GNUNET_CRYPTO_QUALITY_WEAK, 500)),
+                                    &attempt_connect_task, rocc);
 }
 
 
@@ -1792,36 +1806,37 @@ attempt_connect_task(void *cls)
  * @param ignore_ peer identity which is ignored in this callback
  */
 static void
-rocc_cache_get_handle_transport_cb(void *cls,
-                                   struct GNUNET_CORE_Handle *ch,
-                                   struct GNUNET_TRANSPORT_CoreHandle *th,
-                                   struct GNUNET_ATS_ConnectivityHandle *ac,
-                                   const struct GNUNET_PeerIdentity *ignore_,
-                                   const struct GNUNET_CONFIGURATION_Handle *cfg)
+rocc_cache_get_handle_transport_cb (void *cls,
+                                    struct GNUNET_CORE_Handle *ch,
+                                    struct GNUNET_TRANSPORT_CoreHandle *th,
+                                    struct GNUNET_ATS_ConnectivityHandle *ac,
+                                    const struct GNUNET_PeerIdentity *ignore_,
+                                    const struct
+                                    GNUNET_CONFIGURATION_Handle *cfg)
 {
   struct RemoteOverlayConnectCtx *rocc = cls;
 
   if (NULL == th)
-    {
-      rocc->timeout_rocc_task_id =
-        GNUNET_SCHEDULER_add_now(&timeout_rocc_task, rocc);
-      return;
-    }
+  {
+    rocc->timeout_rocc_task_id =
+      GNUNET_SCHEDULER_add_now (&timeout_rocc_task, rocc);
+    return;
+  }
   rocc->tcc.th_ = th;
   rocc->tcc.cfg = cfg;
   if (NULL !=
-      GNUNET_TRANSPORT_core_get_mq(rocc->tcc.th_,
-                                   &rocc->a_id))
-    {
-      LOG_DEBUG("0x%llx: Target peer %s already connected to local peer: %u\n",
-                rocc->op_id,
-                GNUNET_i2s(&rocc->a_id),
-                rocc->peer->id);
-      cleanup_rocc(rocc);
-      return;
-    }
+      GNUNET_TRANSPORT_core_get_mq (rocc->tcc.th_,
+                                    &rocc->a_id))
+  {
+    LOG_DEBUG ("0x%llx: Target peer %s already connected to local peer: %u\n",
+               rocc->op_id,
+               GNUNET_i2s (&rocc->a_id),
+               rocc->peer->id);
+    cleanup_rocc (rocc);
+    return;
+  }
   rocc->attempt_connect_task_id =
-    GNUNET_SCHEDULER_add_now(&attempt_connect_task, rocc);
+    GNUNET_SCHEDULER_add_now (&attempt_connect_task, rocc);
 }
 
 
@@ -1833,32 +1848,34 @@ rocc_cache_get_handle_transport_cb(void *cls,
  * @return #GNUNET_OK if @a msg is well-formed
  */
 int
-check_remote_overlay_connect(void *cls,
-                             const struct GNUNET_TESTBED_RemoteOverlayConnectMessage *msg)
+check_remote_overlay_connect (void *cls,
+                              const struct
+                              GNUNET_TESTBED_RemoteOverlayConnectMessage *msg)
 {
   uint32_t peer_id;
   uint16_t msize;
   uint16_t hsize;
 
-  msize = ntohs(msg->header.size);
-  if (GNUNET_MESSAGE_TYPE_HELLO != ntohs(msg->hello->type))
-    {
-      GNUNET_break(0);
-      return GNUNET_SYSERR;
-    }
-  hsize = ntohs(msg->hello->size);
-  if ((sizeof(struct GNUNET_TESTBED_RemoteOverlayConnectMessage) + hsize) != msize)
-    {
-      GNUNET_break(0);
-      return GNUNET_SYSERR;
-    }
-  peer_id = ntohl(msg->peer);
+  msize = ntohs (msg->header.size);
+  if (GNUNET_MESSAGE_TYPE_HELLO != ntohs (msg->hello->type))
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
+  hsize = ntohs (msg->hello->size);
+  if ((sizeof(struct GNUNET_TESTBED_RemoteOverlayConnectMessage) + hsize) !=
+      msize)
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
+  peer_id = ntohl (msg->peer);
   if ((peer_id >= GST_peer_list_size) ||
       (NULL == GST_peer_list[peer_id]))
-    {
-      GNUNET_break_op(0);
-      return GNUNET_SYSERR;
-    }
+  {
+    GNUNET_break_op (0);
+    return GNUNET_SYSERR;
+  }
   return GNUNET_OK;
 }
 
@@ -1870,8 +1887,9 @@ check_remote_overlay_connect(void *cls,
  * @param msg the actual message
  */
 void
-handle_remote_overlay_connect(void *cls,
-                              const struct GNUNET_TESTBED_RemoteOverlayConnectMessage *msg)
+handle_remote_overlay_connect (void *cls,
+                               const struct
+                               GNUNET_TESTBED_RemoteOverlayConnectMessage *msg)
 {
   struct GNUNET_SERVICE_Client *client = cls;
   struct RemoteOverlayConnectCtx *rocc;
@@ -1881,55 +1899,56 @@ handle_remote_overlay_connect(void *cls,
   uint32_t peer_id;
   uint16_t hsize;
 
-  hsize = ntohs(msg->hello->size);
-  peer_id = ntohl(msg->peer);
+  hsize = ntohs (msg->hello->size);
+  peer_id = ntohl (msg->peer);
   peer = GST_peer_list[peer_id];
   if (GNUNET_YES == peer->is_remote)
-    {
-      struct GNUNET_MessageHeader *msg2;
+  {
+    struct GNUNET_MessageHeader *msg2;
 
-      msg2 = GNUNET_copy_message(&msg->header);
-      GNUNET_TESTBED_queue_message_(peer->details.remote.slave->controller,
-                                    msg2);
-      GNUNET_SERVICE_client_continue(client);
-      return;
-    }
-  rocc = GNUNET_new(struct RemoteOverlayConnectCtx);
-  rocc->op_id = GNUNET_ntohll(msg->operation_id);
-  GNUNET_CONTAINER_DLL_insert_tail(roccq_head,
-                                   roccq_tail,
-                                   rocc);
+    msg2 = GNUNET_copy_message (&msg->header);
+    GNUNET_TESTBED_queue_message_ (peer->details.remote.slave->controller,
+                                   msg2);
+    GNUNET_SERVICE_client_continue (client);
+    return;
+  }
+  rocc = GNUNET_new (struct RemoteOverlayConnectCtx);
+  rocc->op_id = GNUNET_ntohll (msg->operation_id);
+  GNUNET_CONTAINER_DLL_insert_tail (roccq_head,
+                                    roccq_tail,
+                                    rocc);
   rocc->a_id = msg->peer_identity;
-  GNUNET_TESTING_peer_get_identity(peer->details.local.peer,
-                                   &pid);
-  (void)GNUNET_strlcpy(pid_str,
-                       GNUNET_i2s(&pid),
-                       sizeof(pid_str));
-  LOG_DEBUG("0x%llx: Remote overlay connect %s to peer %s with hello size: %u\n",
-            rocc->op_id,
-            pid_str,
-            GNUNET_i2s(&rocc->a_id),
-            hsize);
+  GNUNET_TESTING_peer_get_identity (peer->details.local.peer,
+                                    &pid);
+  (void) GNUNET_strlcpy (pid_str,
+                         GNUNET_i2s (&pid),
+                         sizeof(pid_str));
+  LOG_DEBUG (
+    "0x%llx: Remote overlay connect %s to peer %s with hello size: %u\n",
+    rocc->op_id,
+    pid_str,
+    GNUNET_i2s (&rocc->a_id),
+    hsize);
   rocc->peer = peer;
   rocc->peer->reference_cnt++;
-  rocc->hello = GNUNET_malloc(hsize);
-  GNUNET_memcpy(rocc->hello,
-                msg->hello,
-                hsize);
+  rocc->hello = GNUNET_malloc (hsize);
+  GNUNET_memcpy (rocc->hello,
+                 msg->hello,
+                 hsize);
   rocc->tcc.cgh_p2_th =
-    GST_connection_pool_get_handle(peer_id,
-                                   rocc->peer->details.local.cfg,
-                                   GST_CONNECTIONPOOL_SERVICE_TRANSPORT,
-                                   &rocc_cache_get_handle_transport_cb,
-                                   rocc,
-                                   &rocc->a_id,
-                                   &cache_transport_peer_connect_notify,
-                                   rocc);
+    GST_connection_pool_get_handle (peer_id,
+                                    rocc->peer->details.local.cfg,
+                                    GST_CONNECTIONPOOL_SERVICE_TRANSPORT,
+                                    &rocc_cache_get_handle_transport_cb,
+                                    rocc,
+                                    &rocc->a_id,
+                                    &cache_transport_peer_connect_notify,
+                                    rocc);
   rocc->timeout_rocc_task_id =
-    GNUNET_SCHEDULER_add_delayed(GST_timeout,
-                                 &timeout_rocc_task,
-                                 rocc);
-  GNUNET_SERVICE_client_continue(client);
+    GNUNET_SCHEDULER_add_delayed (GST_timeout,
+                                  &timeout_rocc_task,
+                                  rocc);
+  GNUNET_SERVICE_client_continue (client);
 }
 
 
@@ -1937,12 +1956,12 @@ handle_remote_overlay_connect(void *cls,
  * Clears all pending overlay connect contexts in queue
  */
 void
-GST_free_occq()
+GST_free_occq ()
 {
   struct OverlayConnectContext *occ;
 
   while (NULL != (occ = occq_head))
-    cleanup_occ(occ);
+    cleanup_occ (occ);
 }
 
 
@@ -1950,10 +1969,10 @@ GST_free_occq()
  * Clears all pending remote overlay connect contexts in queue
  */
 void
-GST_free_roccq()
+GST_free_roccq ()
 {
   struct RemoteOverlayConnectCtx *rocc;
 
   while (NULL != (rocc = roccq_head))
-    cleanup_rocc(rocc);
+    cleanup_rocc (rocc);
 }

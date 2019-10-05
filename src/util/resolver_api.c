@@ -29,9 +29,11 @@
 #include "gnunet_resolver_service.h"
 #include "resolver.h"
 
-#define LOG(kind, ...) GNUNET_log_from(kind, "util-resolver-api", __VA_ARGS__)
+#define LOG(kind, ...) GNUNET_log_from (kind, "util-resolver-api", __VA_ARGS__)
 
-#define LOG_STRERROR(kind, syscall) GNUNET_log_from_strerror(kind, "util-resolver-api", syscall)
+#define LOG_STRERROR(kind, syscall) GNUNET_log_from_strerror (kind, \
+                                                              "util-resolver-api", \
+                                                              syscall)
 
 /**
  * Maximum supported length for a hostname
@@ -97,7 +99,8 @@ static struct GNUNET_SCHEDULER_Task *s_task;
  * the request prior to the timeout or successful execution.  Also
  * used to track our internal state for the request.
  */
-struct GNUNET_RESOLVER_RequestHandle {
+struct GNUNET_RESOLVER_RequestHandle
+{
   /**
    * Next entry in DLL of requests.
    */
@@ -184,61 +187,63 @@ struct GNUNET_RESOLVER_RequestHandle {
  *         #GNUNET_SYSERR otherwise.
  */
 static int
-check_config()
+check_config ()
 {
   char *hostname;
   struct sockaddr_in v4;
   struct sockaddr_in6 v6;
 
   if (GNUNET_OK ==
-      GNUNET_CONFIGURATION_have_value(resolver_cfg,
-                                      "resolver",
-                                      "UNIXPATH"))
+      GNUNET_CONFIGURATION_have_value (resolver_cfg,
+                                       "resolver",
+                                       "UNIXPATH"))
     return GNUNET_OK;
-  memset(&v4, 0, sizeof(v4));
-  v4.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+  memset (&v4, 0, sizeof(v4));
+  v4.sin_addr.s_addr = htonl (INADDR_LOOPBACK);
   v4.sin_family = AF_INET;
 #if HAVE_SOCKADDR_IN_SIN_LEN
   v4.sin_len = sizeof(v4);
 #endif
-  memset(&v6, 0, sizeof(v6));
+  memset (&v6, 0, sizeof(v6));
   v6.sin6_family = AF_INET6;
 #if HAVE_SOCKADDR_IN_SIN_LEN
   v6.sin6_len = sizeof(v6);
 #endif
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_string(resolver_cfg,
-                                            "resolver",
-                                            "HOSTNAME",
-                                            &hostname))
-    {
-      LOG(GNUNET_ERROR_TYPE_INFO,
-          _("Missing `%s' for `%s' in configuration, DNS resolution will be unavailable.\n"),
-          "HOSTNAME",
-          "resolver");
-      return GNUNET_SYSERR;
-    }
-  if ((1 == inet_pton(AF_INET, hostname, &v4)) ||
-      (1 == inet_pton(AF_INET6, hostname, &v6)))
-    {
-      GNUNET_free(hostname);
-      return GNUNET_OK;
-    }
+      GNUNET_CONFIGURATION_get_value_string (resolver_cfg,
+                                             "resolver",
+                                             "HOSTNAME",
+                                             &hostname))
+  {
+    LOG (GNUNET_ERROR_TYPE_INFO,
+         _ (
+           "Missing `%s' for `%s' in configuration, DNS resolution will be unavailable.\n"),
+         "HOSTNAME",
+         "resolver");
+    return GNUNET_SYSERR;
+  }
+  if ((1 == inet_pton (AF_INET, hostname, &v4)) ||
+      (1 == inet_pton (AF_INET6, hostname, &v6)))
+  {
+    GNUNET_free (hostname);
+    return GNUNET_OK;
+  }
   for (unsigned int i = 0;
        NULL != loopback[i];
        i++)
-    if (0 == strcasecmp(loopback[i],
-                        hostname))
-      {
-        GNUNET_free(hostname);
-        return GNUNET_OK;
-      }
-  LOG(GNUNET_ERROR_TYPE_INFO,
-      _("Missing `%s' or numeric IP address for `%s' of `%s' in configuration, DNS resolution will be unavailable.\n"),
-      "localhost",
-      "HOSTNAME",
-      "resolver");
-  GNUNET_free(hostname);
+    if (0 == strcasecmp (loopback[i],
+                         hostname))
+    {
+      GNUNET_free (hostname);
+      return GNUNET_OK;
+    }
+  LOG (GNUNET_ERROR_TYPE_INFO,
+       _ (
+         "Missing `%s' or numeric IP address for `%s' of `%s' in configuration, DNS resolution will be unavailable.\n"),
+       "localhost",
+       "HOSTNAME",
+       "resolver");
+  GNUNET_free (hostname);
   return GNUNET_SYSERR;
 }
 
@@ -249,9 +254,9 @@ check_config()
  * @param cfg configuration to use
  */
 void
-GNUNET_RESOLVER_connect(const struct GNUNET_CONFIGURATION_Handle *cfg)
+GNUNET_RESOLVER_connect (const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
-  GNUNET_assert(NULL != cfg);
+  GNUNET_assert (NULL != cfg);
   backoff = GNUNET_TIME_UNIT_MILLISECONDS;
   resolver_cfg = cfg;
 }
@@ -261,35 +266,35 @@ GNUNET_RESOLVER_connect(const struct GNUNET_CONFIGURATION_Handle *cfg)
  * Destroy the connection to the resolver service.
  */
 void
-GNUNET_RESOLVER_disconnect()
+GNUNET_RESOLVER_disconnect ()
 {
   struct GNUNET_RESOLVER_RequestHandle *rh;
 
   while (NULL != (rh = req_head))
-    {
-      GNUNET_assert(GNUNET_SYSERR == rh->was_transmitted);
-      GNUNET_CONTAINER_DLL_remove(req_head,
-                                  req_tail,
-                                  rh);
-      GNUNET_free(rh);
-    }
+  {
+    GNUNET_assert (GNUNET_SYSERR == rh->was_transmitted);
+    GNUNET_CONTAINER_DLL_remove (req_head,
+                                 req_tail,
+                                 rh);
+    GNUNET_free (rh);
+  }
   if (NULL != mq)
-    {
-      LOG(GNUNET_ERROR_TYPE_DEBUG,
-          "Disconnecting from DNS service\n");
-      GNUNET_MQ_destroy(mq);
-      mq = NULL;
-    }
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Disconnecting from DNS service\n");
+    GNUNET_MQ_destroy (mq);
+    mq = NULL;
+  }
   if (NULL != r_task)
-    {
-      GNUNET_SCHEDULER_cancel(r_task);
-      r_task = NULL;
-    }
+  {
+    GNUNET_SCHEDULER_cancel (r_task);
+    r_task = NULL;
+  }
   if (NULL != s_task)
-    {
-      GNUNET_SCHEDULER_cancel(s_task);
-      s_task = NULL;
-    }
+  {
+    GNUNET_SCHEDULER_cancel (s_task);
+    s_task = NULL;
+  }
 }
 
 
@@ -297,11 +302,11 @@ GNUNET_RESOLVER_disconnect()
  * Task executed on system shutdown.
  */
 static void
-shutdown_task(void *cls)
+shutdown_task (void *cls)
 {
-  (void)cls;
+  (void) cls;
   s_task = NULL;
-  GNUNET_RESOLVER_disconnect();
+  GNUNET_RESOLVER_disconnect ();
   backoff = GNUNET_TIME_UNIT_MILLISECONDS;
 }
 
@@ -310,7 +315,7 @@ shutdown_task(void *cls)
  * Consider disconnecting if we have no further requests pending.
  */
 static void
-check_disconnect()
+check_disconnect ()
 {
   for (struct GNUNET_RESOLVER_RequestHandle *rh = req_head;
        NULL != rh;
@@ -318,15 +323,15 @@ check_disconnect()
     if (GNUNET_SYSERR != rh->was_transmitted)
       return;
   if (NULL != r_task)
-    {
-      GNUNET_SCHEDULER_cancel(r_task);
-      r_task = NULL;
-    }
+  {
+    GNUNET_SCHEDULER_cancel (r_task);
+    r_task = NULL;
+  }
   if (NULL != s_task)
     return;
-  s_task = GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_UNIT_MILLISECONDS,
-                                        &shutdown_task,
-                                        NULL);
+  s_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MILLISECONDS,
+                                         &shutdown_task,
+                                         NULL);
 }
 
 
@@ -339,49 +344,49 @@ check_disconnect()
  * @return address as a string, NULL on error
  */
 static char *
-no_resolve(int af,
-           const void *ip,
-           socklen_t ip_len)
+no_resolve (int af,
+            const void *ip,
+            socklen_t ip_len)
 {
   char buf[INET6_ADDRSTRLEN];
 
   switch (af)
+  {
+  case AF_INET:
+    if (ip_len != sizeof(struct in_addr))
+      return NULL;
+    if (NULL ==
+        inet_ntop (AF_INET,
+                   ip,
+                   buf,
+                   sizeof(buf)))
     {
-    case AF_INET:
-      if (ip_len != sizeof(struct in_addr))
-        return NULL;
-      if (NULL ==
-          inet_ntop(AF_INET,
-                    ip,
-                    buf,
-                    sizeof(buf)))
-        {
-          LOG_STRERROR(GNUNET_ERROR_TYPE_WARNING,
-                       "inet_ntop");
-          return NULL;
-        }
-      break;
-
-    case AF_INET6:
-      if (ip_len != sizeof(struct in6_addr))
-        return NULL;
-      if (NULL ==
-          inet_ntop(AF_INET6,
-                    ip,
-                    buf,
-                    sizeof(buf)))
-        {
-          LOG_STRERROR(GNUNET_ERROR_TYPE_WARNING,
-                       "inet_ntop");
-          return NULL;
-        }
-      break;
-
-    default:
-      GNUNET_break(0);
+      LOG_STRERROR (GNUNET_ERROR_TYPE_WARNING,
+                    "inet_ntop");
       return NULL;
     }
-  return GNUNET_strdup(buf);
+    break;
+
+  case AF_INET6:
+    if (ip_len != sizeof(struct in6_addr))
+      return NULL;
+    if (NULL ==
+        inet_ntop (AF_INET6,
+                   ip,
+                   buf,
+                   sizeof(buf)))
+    {
+      LOG_STRERROR (GNUNET_ERROR_TYPE_WARNING,
+                    "inet_ntop");
+      return NULL;
+    }
+    break;
+
+  default:
+    GNUNET_break (0);
+    return NULL;
+  }
+  return GNUNET_strdup (buf);
 }
 
 
@@ -389,7 +394,7 @@ no_resolve(int af,
  * Adjust exponential back-off and reconnect to the service.
  */
 static void
-reconnect(void);
+reconnect (void);
 
 
 /**
@@ -401,16 +406,16 @@ reconnect(void);
  * @param error error code
  */
 static void
-mq_error_handler(void *cls,
-                 enum GNUNET_MQ_Error error)
+mq_error_handler (void *cls,
+                  enum GNUNET_MQ_Error error)
 {
-  (void)cls;
-  GNUNET_MQ_destroy(mq);
+  (void) cls;
+  GNUNET_MQ_destroy (mq);
   mq = NULL;
-  LOG(GNUNET_ERROR_TYPE_DEBUG,
-      "MQ error %d, reconnecting\n",
-      error);
-  reconnect();
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "MQ error %d, reconnecting\n",
+       error);
+  reconnect ();
 }
 
 
@@ -418,44 +423,44 @@ mq_error_handler(void *cls,
  * Process pending requests to the resolver.
  */
 static void
-process_requests()
+process_requests ()
 {
   struct GNUNET_RESOLVER_GetMessage *msg;
   struct GNUNET_MQ_Envelope *env;
   struct GNUNET_RESOLVER_RequestHandle *rh = req_head;
 
   if (NULL == mq)
-    {
-      reconnect();
-      return;
-    }
+  {
+    reconnect ();
+    return;
+  }
   if (NULL == rh)
-    {
-      /* nothing to do, release socket really soon if there is nothing
-       * else happening... */
-      if (NULL == s_task)
-        s_task =
-          GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_UNIT_MILLISECONDS,
-                                       &shutdown_task,
-                                       NULL);
-      return;
-    }
+  {
+    /* nothing to do, release socket really soon if there is nothing
+     * else happening... */
+    if (NULL == s_task)
+      s_task =
+        GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MILLISECONDS,
+                                      &shutdown_task,
+                                      NULL);
+    return;
+  }
   if (GNUNET_NO != rh->was_transmitted)
     return;                     /* waiting for reply */
-  env = GNUNET_MQ_msg_extra(msg,
-                            rh->data_len,
-                            GNUNET_MESSAGE_TYPE_RESOLVER_REQUEST);
-  msg->direction = htonl(rh->direction);
-  msg->af = htonl(rh->af);
+  env = GNUNET_MQ_msg_extra (msg,
+                             rh->data_len,
+                             GNUNET_MESSAGE_TYPE_RESOLVER_REQUEST);
+  msg->direction = htonl (rh->direction);
+  msg->af = htonl (rh->af);
   msg->client_id = rh->id;
-  GNUNET_memcpy(&msg[1],
-                &rh[1],
-                rh->data_len);
-  LOG(GNUNET_ERROR_TYPE_DEBUG,
-      "Transmitting DNS resolution request (ID %u) to DNS service\n",
-      rh->id);
-  GNUNET_MQ_send(mq,
-                 env);
+  GNUNET_memcpy (&msg[1],
+                 &rh[1],
+                 rh->data_len);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Transmitting DNS resolution request (ID %u) to DNS service\n",
+       rh->id);
+  GNUNET_MQ_send (mq,
+                  env);
   rh->was_transmitted = GNUNET_YES;
 }
 
@@ -467,11 +472,11 @@ process_requests()
  * @param msg message with the hostname
  */
 static int
-check_response(void *cls,
-               const struct GNUNET_RESOLVER_ResponseMessage *msg)
+check_response (void *cls,
+                const struct GNUNET_RESOLVER_ResponseMessage *msg)
 {
-  (void)cls;
-  (void)msg;
+  (void) cls;
+  (void) msg;
 
   /* implemented in #handle_response() for now */
   return GNUNET_OK;
@@ -487,8 +492,8 @@ check_response(void *cls,
  * @param msg message with the response
  */
 static void
-handle_response(void *cls,
-                const struct GNUNET_RESOLVER_ResponseMessage *msg)
+handle_response (void *cls,
+                 const struct GNUNET_RESOLVER_ResponseMessage *msg)
 {
   struct GNUNET_RESOLVER_RequestHandle *rh = req_head;
   uint16_t size;
@@ -496,141 +501,142 @@ handle_response(void *cls,
   uint32_t client_request_id = msg->client_id;
 
   for (; rh != NULL; rh = rh->next)
-    {
-      if (rh->id == client_request_id)
-        break;
-    }
+  {
+    if (rh->id == client_request_id)
+      break;
+  }
 
-  (void)cls;
+  (void) cls;
   if (NULL == rh)
-    {
-      /* Resolver service sent extra replies to query (after terminator)? Bad! */
-      GNUNET_break(0);
-      GNUNET_MQ_destroy(mq);
-      mq = NULL;
-      reconnect();
-      return;
-    }
-  size = ntohs(msg->header.size);
+  {
+    /* Resolver service sent extra replies to query (after terminator)? Bad! */
+    GNUNET_break (0);
+    GNUNET_MQ_destroy (mq);
+    mq = NULL;
+    reconnect ();
+    return;
+  }
+  size = ntohs (msg->header.size);
   if (size == sizeof(struct GNUNET_RESOLVER_ResponseMessage))
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Received empty response from DNS service\n");
+    /* message contains not data, just header; end of replies */
+    /* check if request was canceled */
+    if (GNUNET_SYSERR != rh->was_transmitted)
     {
-      LOG(GNUNET_ERROR_TYPE_DEBUG,
-          "Received empty response from DNS service\n");
-      /* message contains not data, just header; end of replies */
-      /* check if request was canceled */
-      if (GNUNET_SYSERR != rh->was_transmitted)
+      /* no reverse lookup was successful, return IP as string */
+      if (NULL != rh->name_callback)
+      {
+        if (GNUNET_NO == rh->received_response)
         {
-          /* no reverse lookup was successful, return IP as string */
-          if (NULL != rh->name_callback)
-            {
-              if (GNUNET_NO == rh->received_response)
-                {
-                  nret = no_resolve(rh->af,
-                                    &rh[1],
-                                    rh->data_len);
-                  rh->name_callback(rh->cls, nret);
-                  GNUNET_free(nret);
-                }
-              /* finally, make termination call */
-              if (GNUNET_SYSERR != rh->was_transmitted)
-                rh->name_callback(rh->cls,
-                                  NULL);
-            }
-          if ((NULL != rh->addr_callback) &&
-              (GNUNET_SYSERR != rh->was_transmitted))
-            rh->addr_callback(rh->cls,
-                              NULL,
-                              0);
+          nret = no_resolve (rh->af,
+                             &rh[1],
+                             rh->data_len);
+          rh->name_callback (rh->cls, nret);
+          GNUNET_free (nret);
         }
-      rh->was_transmitted = GNUNET_NO;
-      GNUNET_RESOLVER_request_cancel(rh);
-      process_requests();
-      return;
+        /* finally, make termination call */
+        if (GNUNET_SYSERR != rh->was_transmitted)
+          rh->name_callback (rh->cls,
+                             NULL);
+      }
+      if ((NULL != rh->addr_callback) &&
+          (GNUNET_SYSERR != rh->was_transmitted))
+        rh->addr_callback (rh->cls,
+                           NULL,
+                           0);
     }
+    rh->was_transmitted = GNUNET_NO;
+    GNUNET_RESOLVER_request_cancel (rh);
+    process_requests ();
+    return;
+  }
   /* return reverse lookup results to caller */
   if (NULL != rh->name_callback)
-    {
-      const char *hostname;
+  {
+    const char *hostname;
 
-      hostname = (const char *)&msg[1];
-      if (hostname[size - sizeof(struct GNUNET_RESOLVER_ResponseMessage) - 1] != '\0')
-        {
-          GNUNET_break(0);
-          if (GNUNET_SYSERR != rh->was_transmitted)
-            rh->name_callback(rh->cls,
-                              NULL);
-          rh->was_transmitted = GNUNET_NO;
-          GNUNET_RESOLVER_request_cancel(rh);
-          GNUNET_MQ_destroy(mq);
-          mq = NULL;
-          reconnect();
-          return;
-        }
-      LOG(GNUNET_ERROR_TYPE_DEBUG,
-          "Resolver returns `%s' for IP `%s'.\n",
-          hostname,
-          GNUNET_a2s((const void *)&rh[1],
-                     rh->data_len));
-      if (rh->was_transmitted != GNUNET_SYSERR)
-        rh->name_callback(rh->cls,
-                          hostname);
-      rh->received_response = GNUNET_YES;
+    hostname = (const char *) &msg[1];
+    if (hostname[size - sizeof(struct GNUNET_RESOLVER_ResponseMessage) - 1] !=
+        '\0')
+    {
+      GNUNET_break (0);
+      if (GNUNET_SYSERR != rh->was_transmitted)
+        rh->name_callback (rh->cls,
+                           NULL);
+      rh->was_transmitted = GNUNET_NO;
+      GNUNET_RESOLVER_request_cancel (rh);
+      GNUNET_MQ_destroy (mq);
+      mq = NULL;
+      reconnect ();
+      return;
     }
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Resolver returns `%s' for IP `%s'.\n",
+         hostname,
+         GNUNET_a2s ((const void *) &rh[1],
+                     rh->data_len));
+    if (rh->was_transmitted != GNUNET_SYSERR)
+      rh->name_callback (rh->cls,
+                         hostname);
+    rh->received_response = GNUNET_YES;
+  }
   /* return lookup results to caller */
   if (NULL != rh->addr_callback)
-    {
-      struct sockaddr_in v4;
-      struct sockaddr_in6 v6;
-      const struct sockaddr *sa;
-      socklen_t salen;
-      const void *ip;
-      size_t ip_len;
+  {
+    struct sockaddr_in v4;
+    struct sockaddr_in6 v6;
+    const struct sockaddr *sa;
+    socklen_t salen;
+    const void *ip;
+    size_t ip_len;
 
-      ip = &msg[1];
-      ip_len = size - sizeof(struct GNUNET_RESOLVER_ResponseMessage);
-      if (ip_len == sizeof(struct in_addr))
-        {
-          memset(&v4, 0, sizeof(v4));
-          v4.sin_family = AF_INET;
-          v4.sin_addr = *(struct in_addr*)ip;
+    ip = &msg[1];
+    ip_len = size - sizeof(struct GNUNET_RESOLVER_ResponseMessage);
+    if (ip_len == sizeof(struct in_addr))
+    {
+      memset (&v4, 0, sizeof(v4));
+      v4.sin_family = AF_INET;
+      v4.sin_addr = *(struct in_addr*) ip;
 #if HAVE_SOCKADDR_IN_SIN_LEN
-          v4.sin_len = sizeof(v4);
+      v4.sin_len = sizeof(v4);
 #endif
-          salen = sizeof(v4);
-          sa = (const struct sockaddr *)&v4;
-        }
-      else if (ip_len == sizeof(struct in6_addr))
-        {
-          memset(&v6, 0, sizeof(v6));
-          v6.sin6_family = AF_INET6;
-          v6.sin6_addr = *(struct in6_addr*)ip;
-#if HAVE_SOCKADDR_IN_SIN_LEN
-          v6.sin6_len = sizeof(v6);
-#endif
-          salen = sizeof(v6);
-          sa = (const struct sockaddr *)&v6;
-        }
-      else
-        {
-          GNUNET_break(0);
-          if (GNUNET_SYSERR != rh->was_transmitted)
-            rh->addr_callback(rh->cls,
-                              NULL,
-                              0);
-          rh->was_transmitted = GNUNET_NO;
-          GNUNET_RESOLVER_request_cancel(rh);
-          GNUNET_MQ_destroy(mq);
-          mq = NULL;
-          reconnect();
-          return;
-        }
-      LOG(GNUNET_ERROR_TYPE_DEBUG,
-          "Received IP from DNS service\n");
-      if (GNUNET_SYSERR != rh->was_transmitted)
-        rh->addr_callback(rh->cls,
-                          sa,
-                          salen);
+      salen = sizeof(v4);
+      sa = (const struct sockaddr *) &v4;
     }
+    else if (ip_len == sizeof(struct in6_addr))
+    {
+      memset (&v6, 0, sizeof(v6));
+      v6.sin6_family = AF_INET6;
+      v6.sin6_addr = *(struct in6_addr*) ip;
+#if HAVE_SOCKADDR_IN_SIN_LEN
+      v6.sin6_len = sizeof(v6);
+#endif
+      salen = sizeof(v6);
+      sa = (const struct sockaddr *) &v6;
+    }
+    else
+    {
+      GNUNET_break (0);
+      if (GNUNET_SYSERR != rh->was_transmitted)
+        rh->addr_callback (rh->cls,
+                           NULL,
+                           0);
+      rh->was_transmitted = GNUNET_NO;
+      GNUNET_RESOLVER_request_cancel (rh);
+      GNUNET_MQ_destroy (mq);
+      mq = NULL;
+      reconnect ();
+      return;
+    }
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Received IP from DNS service\n");
+    if (GNUNET_SYSERR != rh->was_transmitted)
+      rh->addr_callback (rh->cls,
+                         sa,
+                         salen);
+  }
 }
 
 
@@ -642,7 +648,7 @@ handle_response(void *cls,
  * @param cls `struct GNUNET_RESOLVER_RequestHandle` for the request
  */
 static void
-numeric_resolution(void *cls)
+numeric_resolution (void *cls)
 {
   struct GNUNET_RESOLVER_RequestHandle *rh = cls;
   struct sockaddr_in v4;
@@ -650,63 +656,63 @@ numeric_resolution(void *cls)
   const char *hostname;
 
   rh->task = NULL;
-  memset(&v4, 0, sizeof(v4));
+  memset (&v4, 0, sizeof(v4));
   v4.sin_family = AF_INET;
 #if HAVE_SOCKADDR_IN_SIN_LEN
   v4.sin_len = sizeof(v4);
 #endif
-  memset(&v6, 0, sizeof(v6));
+  memset (&v6, 0, sizeof(v6));
   v6.sin6_family = AF_INET6;
 #if HAVE_SOCKADDR_IN_SIN_LEN
   v6.sin6_len = sizeof(v6);
 #endif
-  hostname = (const char *)&rh[1];
+  hostname = (const char *) &rh[1];
   if (((rh->af == AF_UNSPEC) ||
        (rh->af == AF_INET)) &&
-      (1 == inet_pton(AF_INET,
-                      hostname,
-                      &v4.sin_addr)))
+      (1 == inet_pton (AF_INET,
+                       hostname,
+                       &v4.sin_addr)))
+  {
+    rh->addr_callback (rh->cls,
+                       (const struct sockaddr *) &v4,
+                       sizeof(v4));
+    if ((rh->af == AF_UNSPEC) &&
+        (GNUNET_SYSERR != rh->was_transmitted) &&
+        (1 == inet_pton (AF_INET6,
+                         hostname,
+                         &v6.sin6_addr)))
     {
-      rh->addr_callback(rh->cls,
-                        (const struct sockaddr *)&v4,
-                        sizeof(v4));
-      if ((rh->af == AF_UNSPEC) &&
-          (GNUNET_SYSERR != rh->was_transmitted) &&
-          (1 == inet_pton(AF_INET6,
-                          hostname,
-                          &v6.sin6_addr)))
-        {
-          /* this can happen on some systems IF "hostname" is "localhost" */
-          rh->addr_callback(rh->cls,
-                            (const struct sockaddr *)&v6,
-                            sizeof(v6));
-        }
-      if (GNUNET_SYSERR != rh->was_transmitted)
-        rh->addr_callback(rh->cls,
-                          NULL,
-                          0);
-      GNUNET_free(rh);
-      return;
+      /* this can happen on some systems IF "hostname" is "localhost" */
+      rh->addr_callback (rh->cls,
+                         (const struct sockaddr *) &v6,
+                         sizeof(v6));
     }
+    if (GNUNET_SYSERR != rh->was_transmitted)
+      rh->addr_callback (rh->cls,
+                         NULL,
+                         0);
+    GNUNET_free (rh);
+    return;
+  }
   if (((rh->af == AF_UNSPEC) ||
        (rh->af == AF_INET6)) &&
-      (1 == inet_pton(AF_INET6,
-                      hostname,
-                      &v6.sin6_addr)))
-    {
-      rh->addr_callback(rh->cls,
-                        (const struct sockaddr *)&v6,
-                        sizeof(v6));
-      if (GNUNET_SYSERR != rh->was_transmitted)
-        rh->addr_callback(rh->cls,
-                          NULL,
-                          0);
-      GNUNET_free(rh);
-      return;
-    }
+      (1 == inet_pton (AF_INET6,
+                       hostname,
+                       &v6.sin6_addr)))
+  {
+    rh->addr_callback (rh->cls,
+                       (const struct sockaddr *) &v6,
+                       sizeof(v6));
+    if (GNUNET_SYSERR != rh->was_transmitted)
+      rh->addr_callback (rh->cls,
+                         NULL,
+                         0);
+    GNUNET_free (rh);
+    return;
+  }
   /* why are we here? this task should not have been scheduled! */
-  GNUNET_assert(0);
-  GNUNET_free(rh);
+  GNUNET_assert (0);
+  GNUNET_free (rh);
 }
 
 
@@ -718,61 +724,61 @@ numeric_resolution(void *cls)
  * @param cls `struct GNUNET_RESOLVER_RequestHandle` for the request
  */
 static void
-loopback_resolution(void *cls)
+loopback_resolution (void *cls)
 {
   struct GNUNET_RESOLVER_RequestHandle *rh = cls;
   struct sockaddr_in v4;
   struct sockaddr_in6 v6;
 
   rh->task = NULL;
-  memset(&v4, 0, sizeof(v4));
-  v4.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+  memset (&v4, 0, sizeof(v4));
+  v4.sin_addr.s_addr = htonl (INADDR_LOOPBACK);
   v4.sin_family = AF_INET;
 #if HAVE_SOCKADDR_IN_SIN_LEN
   v4.sin_len = sizeof(v4);
 #endif
-  memset(&v6, 0, sizeof(v6));
+  memset (&v6, 0, sizeof(v6));
   v6.sin6_family = AF_INET6;
 #if HAVE_SOCKADDR_IN_SIN_LEN
   v6.sin6_len = sizeof(v6);
 #endif
   v6.sin6_addr = in6addr_loopback;
   switch (rh->af)
-    {
-    case AF_INET:
-      rh->addr_callback(rh->cls,
-                        (const struct sockaddr *)&v4,
-                        sizeof(v4));
-      break;
+  {
+  case AF_INET:
+    rh->addr_callback (rh->cls,
+                       (const struct sockaddr *) &v4,
+                       sizeof(v4));
+    break;
 
-    case AF_INET6:
-      rh->addr_callback(rh->cls,
-                        (const struct sockaddr *)&v6,
-                        sizeof(v6));
-      break;
+  case AF_INET6:
+    rh->addr_callback (rh->cls,
+                       (const struct sockaddr *) &v6,
+                       sizeof(v6));
+    break;
 
-    case AF_UNSPEC:
-      rh->addr_callback(rh->cls,
-                        (const struct sockaddr *)&v6,
-                        sizeof(v6));
-      rh->addr_callback(rh->cls,
-                        (const struct sockaddr *)&v4,
-                        sizeof(v4));
+  case AF_UNSPEC:
+    rh->addr_callback (rh->cls,
+                       (const struct sockaddr *) &v6,
+                       sizeof(v6));
+    rh->addr_callback (rh->cls,
+                       (const struct sockaddr *) &v4,
+                       sizeof(v4));
 
-      break;
+    break;
 
-    default:
-      GNUNET_break(0);
-      break;
-    }
+  default:
+    GNUNET_break (0);
+    break;
+  }
   if (GNUNET_SYSERR != rh->was_transmitted)
-    rh->addr_callback(rh->cls,
-                      NULL,
-                      0);
-  LOG(GNUNET_ERROR_TYPE_DEBUG,
-      "Finished resolving hostname `%s'.\n",
-      (const char *)&rh[1]);
-  GNUNET_free(rh);
+    rh->addr_callback (rh->cls,
+                       NULL,
+                       0);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Finished resolving hostname `%s'.\n",
+       (const char *) &rh[1]);
+  GNUNET_free (rh);
 }
 
 
@@ -782,35 +788,35 @@ loopback_resolution(void *cls)
  * @param cls NULL
  */
 static void
-reconnect_task(void *cls)
+reconnect_task (void *cls)
 {
   struct GNUNET_MQ_MessageHandler handlers[] = {
-    GNUNET_MQ_hd_var_size(response,
-                          GNUNET_MESSAGE_TYPE_RESOLVER_RESPONSE,
-                          struct GNUNET_RESOLVER_ResponseMessage,
-                          NULL),
-    GNUNET_MQ_handler_end()
+    GNUNET_MQ_hd_var_size (response,
+                           GNUNET_MESSAGE_TYPE_RESOLVER_RESPONSE,
+                           struct GNUNET_RESOLVER_ResponseMessage,
+                           NULL),
+    GNUNET_MQ_handler_end ()
   };
 
-  (void)cls;
+  (void) cls;
   r_task = NULL;
   if (NULL == req_head)
     return;                     /* no work pending */
-  LOG(GNUNET_ERROR_TYPE_DEBUG,
-      "Trying to connect to DNS service\n");
-  mq = GNUNET_CLIENT_connect(resolver_cfg,
-                             "resolver",
-                             handlers,
-                             &mq_error_handler,
-                             NULL);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Trying to connect to DNS service\n");
+  mq = GNUNET_CLIENT_connect (resolver_cfg,
+                              "resolver",
+                              handlers,
+                              &mq_error_handler,
+                              NULL);
   if (NULL == mq)
-    {
-      LOG(GNUNET_ERROR_TYPE_DEBUG,
-          "Failed to connect, will try again later\n");
-      reconnect();
-      return;
-    }
-  process_requests();
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Failed to connect, will try again later\n");
+    reconnect ();
+    return;
+  }
+  process_requests ();
 }
 
 
@@ -818,49 +824,49 @@ reconnect_task(void *cls)
  * Adjust exponential back-off and reconnect to the service.
  */
 static void
-reconnect()
+reconnect ()
 {
   struct GNUNET_RESOLVER_RequestHandle *rh;
 
   if (NULL != r_task)
     return;
-  GNUNET_assert(NULL == mq);
+  GNUNET_assert (NULL == mq);
   if (NULL != (rh = req_head))
+  {
+    switch (rh->was_transmitted)
     {
-      switch (rh->was_transmitted)
-        {
-        case GNUNET_NO:
-          /* nothing more to do */
-          break;
+    case GNUNET_NO:
+      /* nothing more to do */
+      break;
 
-        case GNUNET_YES:
-          /* disconnected, transmit again! */
-          rh->was_transmitted = GNUNET_NO;
-          break;
+    case GNUNET_YES:
+      /* disconnected, transmit again! */
+      rh->was_transmitted = GNUNET_NO;
+      break;
 
-        case GNUNET_SYSERR:
-          /* request was cancelled, remove entirely */
-          GNUNET_CONTAINER_DLL_remove(req_head,
-                                      req_tail,
-                                      rh);
-          GNUNET_free(rh);
-          check_disconnect();
-          break;
+    case GNUNET_SYSERR:
+      /* request was cancelled, remove entirely */
+      GNUNET_CONTAINER_DLL_remove (req_head,
+                                   req_tail,
+                                   rh);
+      GNUNET_free (rh);
+      check_disconnect ();
+      break;
 
-        default:
-          GNUNET_assert(0);
-          break;
-        }
+    default:
+      GNUNET_assert (0);
+      break;
     }
-  LOG(GNUNET_ERROR_TYPE_DEBUG,
-      "Will try to connect to DNS service in %s\n",
-      GNUNET_STRINGS_relative_time_to_string(backoff,
-                                             GNUNET_YES));
-  GNUNET_assert(NULL != resolver_cfg);
-  r_task = GNUNET_SCHEDULER_add_delayed(backoff,
-                                        &reconnect_task,
-                                        NULL);
-  backoff = GNUNET_TIME_STD_BACKOFF(backoff);
+  }
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Will try to connect to DNS service in %s\n",
+       GNUNET_STRINGS_relative_time_to_string (backoff,
+                                               GNUNET_YES));
+  GNUNET_assert (NULL != resolver_cfg);
+  r_task = GNUNET_SCHEDULER_add_delayed (backoff,
+                                         &reconnect_task,
+                                         NULL);
+  backoff = GNUNET_TIME_STD_BACKOFF (backoff);
 }
 
 
@@ -870,52 +876,52 @@ reconnect()
  * @param cls the `struct GNUNET_RESOLVER_RequestHandle *`
  */
 static void
-handle_lookup_timeout(void *cls)
+handle_lookup_timeout (void *cls)
 {
   struct GNUNET_RESOLVER_RequestHandle *rh = cls;
 
   rh->task = NULL;
   if (GNUNET_NO == rh->direction)
-    {
-      LOG(GNUNET_ERROR_TYPE_INFO,
-          _("Timeout trying to resolve hostname `%s'.\n"),
-          (const char *)&rh[1]);
-      if (NULL != rh->addr_callback)
-        rh->addr_callback(rh->cls,
-                          NULL,
-                          0);
-    }
+  {
+    LOG (GNUNET_ERROR_TYPE_INFO,
+         _ ("Timeout trying to resolve hostname `%s'.\n"),
+         (const char *) &rh[1]);
+    if (NULL != rh->addr_callback)
+      rh->addr_callback (rh->cls,
+                         NULL,
+                         0);
+  }
   else
-    {
-#if !defined(GNUNET_CULL_LOGGING)
-      char buf[INET6_ADDRSTRLEN];
+  {
+#if ! defined(GNUNET_CULL_LOGGING)
+    char buf[INET6_ADDRSTRLEN];
 
-      LOG(GNUNET_ERROR_TYPE_INFO,
-          _("Timeout trying to resolve IP address `%s'.\n"),
-          inet_ntop(rh->af,
-                    (const void *)&rh[1],
+    LOG (GNUNET_ERROR_TYPE_INFO,
+         _ ("Timeout trying to resolve IP address `%s'.\n"),
+         inet_ntop (rh->af,
+                    (const void *) &rh[1],
                     buf,
                     sizeof(buf)));
 #endif
-      if (GNUNET_NO == rh->received_response)
-        {
-          char *nret;
+    if (GNUNET_NO == rh->received_response)
+    {
+      char *nret;
 
-          nret = no_resolve(rh->af,
-                            &rh[1],
-                            rh->data_len);
-          if (NULL != rh->name_callback)
-            rh->name_callback(rh->cls, nret);
-          GNUNET_free(nret);
-        }
-      /* finally, make termination call */
+      nret = no_resolve (rh->af,
+                         &rh[1],
+                         rh->data_len);
       if (NULL != rh->name_callback)
-        rh->name_callback(rh->cls,
-                          NULL);
+        rh->name_callback (rh->cls, nret);
+      GNUNET_free (nret);
     }
+    /* finally, make termination call */
+    if (NULL != rh->name_callback)
+      rh->name_callback (rh->cls,
+                         NULL);
+  }
   rh->was_transmitted = GNUNET_NO;
-  GNUNET_RESOLVER_request_cancel(rh);
-  process_requests();
+  GNUNET_RESOLVER_request_cancel (rh);
+  process_requests ();
 }
 
 
@@ -930,83 +936,83 @@ handle_lookup_timeout(void *cls)
  * @return handle that can be used to cancel the request, NULL on error
  */
 struct GNUNET_RESOLVER_RequestHandle *
-GNUNET_RESOLVER_ip_get(const char *hostname,
-                       int af,
-                       struct GNUNET_TIME_Relative timeout,
-                       GNUNET_RESOLVER_AddressCallback callback,
-                       void *callback_cls)
+GNUNET_RESOLVER_ip_get (const char *hostname,
+                        int af,
+                        struct GNUNET_TIME_Relative timeout,
+                        GNUNET_RESOLVER_AddressCallback callback,
+                        void *callback_cls)
 {
   struct GNUNET_RESOLVER_RequestHandle *rh;
   size_t slen;
   struct in_addr v4;
   struct in6_addr v6;
 
-  slen = strlen(hostname) + 1;
+  slen = strlen (hostname) + 1;
   if (slen + sizeof(struct GNUNET_RESOLVER_GetMessage) >=
       GNUNET_MAX_MESSAGE_SIZE)
-    {
-      GNUNET_break(0);
-      return NULL;
-    }
-  LOG(GNUNET_ERROR_TYPE_DEBUG,
-      "Trying to resolve hostname `%s'.\n",
-      hostname);
-  rh = GNUNET_malloc(sizeof(struct GNUNET_RESOLVER_RequestHandle) + slen);
+  {
+    GNUNET_break (0);
+    return NULL;
+  }
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Trying to resolve hostname `%s'.\n",
+       hostname);
+  rh = GNUNET_malloc (sizeof(struct GNUNET_RESOLVER_RequestHandle) + slen);
   rh->af = af;
   rh->id = ++last_request_id;
   rh->addr_callback = callback;
   rh->cls = callback_cls;
-  GNUNET_memcpy(&rh[1],
-                hostname,
-                slen);
+  GNUNET_memcpy (&rh[1],
+                 hostname,
+                 slen);
   rh->data_len = slen;
-  rh->timeout = GNUNET_TIME_relative_to_absolute(timeout);
+  rh->timeout = GNUNET_TIME_relative_to_absolute (timeout);
   rh->direction = GNUNET_NO;
   /* first, check if this is a numeric address */
-  if (((1 == inet_pton(AF_INET,
-                       hostname,
-                       &v4)) &&
+  if (((1 == inet_pton (AF_INET,
+                        hostname,
+                        &v4)) &&
        ((af == AF_INET) ||
         (af == AF_UNSPEC))) ||
-      ((1 == inet_pton(AF_INET6,
-                       hostname,
-                       &v6)) &&
+      ((1 == inet_pton (AF_INET6,
+                        hostname,
+                        &v6)) &&
        ((af == AF_INET6) ||
         (af == AF_UNSPEC))))
-    {
-      rh->task = GNUNET_SCHEDULER_add_now(&numeric_resolution,
-                                          rh);
-      return rh;
-    }
+  {
+    rh->task = GNUNET_SCHEDULER_add_now (&numeric_resolution,
+                                         rh);
+    return rh;
+  }
   /* then, check if this is a loopback address */
   for (unsigned int i = 0;
        NULL != loopback[i];
        i++)
-    if (0 == strcasecmp(loopback[i],
-                        hostname))
-      {
-        rh->task = GNUNET_SCHEDULER_add_now(&loopback_resolution,
-                                            rh);
-        return rh;
-      }
-  if (GNUNET_OK != check_config())
+    if (0 == strcasecmp (loopback[i],
+                         hostname))
     {
-      GNUNET_free(rh);
-      return NULL;
+      rh->task = GNUNET_SCHEDULER_add_now (&loopback_resolution,
+                                           rh);
+      return rh;
     }
-  rh->task = GNUNET_SCHEDULER_add_delayed(timeout,
-                                          &handle_lookup_timeout,
-                                          rh);
-  GNUNET_CONTAINER_DLL_insert_tail(req_head,
-                                   req_tail,
-                                   rh);
+  if (GNUNET_OK != check_config ())
+  {
+    GNUNET_free (rh);
+    return NULL;
+  }
+  rh->task = GNUNET_SCHEDULER_add_delayed (timeout,
+                                           &handle_lookup_timeout,
+                                           rh);
+  GNUNET_CONTAINER_DLL_insert_tail (req_head,
+                                    req_tail,
+                                    rh);
   rh->was_queued = GNUNET_YES;
   if (NULL != s_task)
-    {
-      GNUNET_SCHEDULER_cancel(s_task);
-      s_task = NULL;
-    }
-  process_requests();
+  {
+    GNUNET_SCHEDULER_cancel (s_task);
+    s_task = NULL;
+  }
+  process_requests ();
   return rh;
 }
 
@@ -1020,32 +1026,32 @@ GNUNET_RESOLVER_ip_get(const char *hostname,
  * @param cls `struct GNUNET_RESOLVER_RequestHandle` for the request
  */
 static void
-numeric_reverse(void *cls)
+numeric_reverse (void *cls)
 {
   struct GNUNET_RESOLVER_RequestHandle *rh = cls;
   char *result;
 
   rh->task = NULL;
-  result = no_resolve(rh->af,
-                      &rh[1],
-                      rh->data_len);
-  LOG(GNUNET_ERROR_TYPE_DEBUG,
-      "Resolver returns `%s'.\n",
-      result);
+  result = no_resolve (rh->af,
+                       &rh[1],
+                       rh->data_len);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Resolver returns `%s'.\n",
+       result);
   if (NULL != result)
-    {
-      rh->name_callback(rh->cls,
-                        result);
-      GNUNET_free(result);
-    }
-  rh->name_callback(rh->cls,
-                    NULL);
+  {
+    rh->name_callback (rh->cls,
+                       result);
+    GNUNET_free (result);
+  }
+  rh->name_callback (rh->cls,
+                     NULL);
   if (NULL != rh->task)
-    {
-      GNUNET_SCHEDULER_cancel(rh->task);
-      rh->task = NULL;
-    }
-  GNUNET_free(rh);
+  {
+    GNUNET_SCHEDULER_cancel (rh->task);
+    rh->task = NULL;
+  }
+  GNUNET_free (rh);
 }
 
 
@@ -1062,73 +1068,73 @@ numeric_reverse(void *cls)
  * @return handle that can be used to cancel the request
  */
 struct GNUNET_RESOLVER_RequestHandle *
-GNUNET_RESOLVER_hostname_get(const struct sockaddr *sa,
-                             socklen_t salen,
-                             int do_resolve,
-                             struct GNUNET_TIME_Relative timeout,
-                             GNUNET_RESOLVER_HostnameCallback callback,
-                             void *cls)
+GNUNET_RESOLVER_hostname_get (const struct sockaddr *sa,
+                              socklen_t salen,
+                              int do_resolve,
+                              struct GNUNET_TIME_Relative timeout,
+                              GNUNET_RESOLVER_HostnameCallback callback,
+                              void *cls)
 {
   struct GNUNET_RESOLVER_RequestHandle *rh;
   size_t ip_len;
   const void *ip;
 
-  if (GNUNET_OK != check_config())
-    {
-      LOG(GNUNET_ERROR_TYPE_ERROR,
-          _("Resolver not configured correctly.\n"));
-      return NULL;
-    }
+  if (GNUNET_OK != check_config ())
+  {
+    LOG (GNUNET_ERROR_TYPE_ERROR,
+         _ ("Resolver not configured correctly.\n"));
+    return NULL;
+  }
 
   switch (sa->sa_family)
-    {
-    case AF_INET:
-      GNUNET_assert(salen == sizeof(struct sockaddr_in));
-      ip_len = sizeof(struct in_addr);
-      ip = &((const struct sockaddr_in*)sa)->sin_addr;
-      break;
+  {
+  case AF_INET:
+    GNUNET_assert (salen == sizeof(struct sockaddr_in));
+    ip_len = sizeof(struct in_addr);
+    ip = &((const struct sockaddr_in*) sa)->sin_addr;
+    break;
 
-    case AF_INET6:
-      GNUNET_assert(salen == sizeof(struct sockaddr_in6));
-      ip_len = sizeof(struct in6_addr);
-      ip = &((const struct sockaddr_in6*)sa)->sin6_addr;
-      break;
+  case AF_INET6:
+    GNUNET_assert (salen == sizeof(struct sockaddr_in6));
+    ip_len = sizeof(struct in6_addr);
+    ip = &((const struct sockaddr_in6*) sa)->sin6_addr;
+    break;
 
-    default:
-      GNUNET_break(0);
-      return NULL;
-    }
-  rh = GNUNET_malloc(sizeof(struct GNUNET_RESOLVER_RequestHandle) + salen);
+  default:
+    GNUNET_break (0);
+    return NULL;
+  }
+  rh = GNUNET_malloc (sizeof(struct GNUNET_RESOLVER_RequestHandle) + salen);
   rh->name_callback = callback;
   rh->cls = cls;
   rh->af = sa->sa_family;
   rh->id = ++last_request_id;
-  rh->timeout = GNUNET_TIME_relative_to_absolute(timeout);
-  GNUNET_memcpy(&rh[1],
-                ip,
-                ip_len);
+  rh->timeout = GNUNET_TIME_relative_to_absolute (timeout);
+  GNUNET_memcpy (&rh[1],
+                 ip,
+                 ip_len);
   rh->data_len = ip_len;
   rh->direction = GNUNET_YES;
   rh->received_response = GNUNET_NO;
   if (GNUNET_NO == do_resolve)
-    {
-      rh->task = GNUNET_SCHEDULER_add_now(&numeric_reverse,
-                                          rh);
-      return rh;
-    }
-  rh->task = GNUNET_SCHEDULER_add_delayed(timeout,
-                                          &handle_lookup_timeout,
-                                          rh);
-  GNUNET_CONTAINER_DLL_insert_tail(req_head,
-                                   req_tail,
-                                   rh);
+  {
+    rh->task = GNUNET_SCHEDULER_add_now (&numeric_reverse,
+                                         rh);
+    return rh;
+  }
+  rh->task = GNUNET_SCHEDULER_add_delayed (timeout,
+                                           &handle_lookup_timeout,
+                                           rh);
+  GNUNET_CONTAINER_DLL_insert_tail (req_head,
+                                    req_tail,
+                                    rh);
   rh->was_queued = GNUNET_YES;
   if (NULL != s_task)
-    {
-      GNUNET_SCHEDULER_cancel(s_task);
-      s_task = NULL;
-    }
-  process_requests();
+  {
+    GNUNET_SCHEDULER_cancel (s_task);
+    s_task = NULL;
+  }
+  process_requests ();
   return rh;
 }
 
@@ -1139,78 +1145,78 @@ GNUNET_RESOLVER_hostname_get(const struct sockaddr *sa,
  * @return fqdn
  */
 char *
-GNUNET_RESOLVER_local_fqdn_get()
+GNUNET_RESOLVER_local_fqdn_get ()
 {
-  char hostname[GNUNET_OS_get_hostname_max_length() + 1];
+  char hostname[GNUNET_OS_get_hostname_max_length () + 1];
 
-  if (0 != gethostname(hostname,
-                       sizeof(hostname) - 1))
-    {
-      LOG_STRERROR(GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
-                   "gethostname");
-      return NULL;
-    }
-  LOG(GNUNET_ERROR_TYPE_DEBUG,
-      "Resolving our FQDN `%s'\n",
-      hostname);
+  if (0 != gethostname (hostname,
+                        sizeof(hostname) - 1))
+  {
+    LOG_STRERROR (GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+                  "gethostname");
+    return NULL;
+  }
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Resolving our FQDN `%s'\n",
+       hostname);
 #if HAVE_GETADDRINFO
   {
     struct addrinfo *ai;
     int ret;
     char *rval;
 
-    if (0 != (ret = getaddrinfo(hostname,
-                                NULL,
-                                NULL,
-                                &ai)))
-      {
-        LOG(GNUNET_ERROR_TYPE_ERROR,
-            _("Could not resolve our FQDN: %s\n"),
-            gai_strerror(ret));
-        return NULL;
-      }
+    if (0 != (ret = getaddrinfo (hostname,
+                                 NULL,
+                                 NULL,
+                                 &ai)))
+    {
+      LOG (GNUNET_ERROR_TYPE_ERROR,
+           _ ("Could not resolve our FQDN: %s\n"),
+           gai_strerror (ret));
+      return NULL;
+    }
     if (NULL != ai->ai_canonname)
-      rval = GNUNET_strdup(ai->ai_canonname);
+      rval = GNUNET_strdup (ai->ai_canonname);
     else
-      rval = GNUNET_strdup(hostname);
-    freeaddrinfo(ai);
+      rval = GNUNET_strdup (hostname);
+    freeaddrinfo (ai);
     return rval;
   }
 #elif HAVE_GETHOSTBYNAME2
   {
     struct hostent *host;
 
-    host = gethostbyname2(hostname,
-                          AF_INET);
+    host = gethostbyname2 (hostname,
+                           AF_INET);
     if (NULL == host)
-      host = gethostbyname2(hostname,
-                            AF_INET6);
+      host = gethostbyname2 (hostname,
+                             AF_INET6);
     if (NULL == host)
-      {
-        LOG(GNUNET_ERROR_TYPE_ERROR,
-            _("Could not resolve our FQDN: %s\n"),
-            hstrerror(h_errno));
-        return NULL;
-      }
-    return GNUNET_strdup(host->h_name);
+    {
+      LOG (GNUNET_ERROR_TYPE_ERROR,
+           _ ("Could not resolve our FQDN: %s\n"),
+           hstrerror (h_errno));
+      return NULL;
+    }
+    return GNUNET_strdup (host->h_name);
   }
 #elif HAVE_GETHOSTBYNAME
   {
     struct hostent *host;
 
-    host = gethostbyname(hostname);
+    host = gethostbyname (hostname);
     if (NULL == host)
-      {
-        LOG(GNUNET_ERROR_TYPE_ERROR,
-            _("Could not resolve our FQDN: %s\n"),
-            hstrerror(h_errno));
-        return NULL;
-      }
-    return GNUNET_strdup(host->h_name);
+    {
+      LOG (GNUNET_ERROR_TYPE_ERROR,
+           _ ("Could not resolve our FQDN: %s\n"),
+           hstrerror (h_errno));
+      return NULL;
+    }
+    return GNUNET_strdup (host->h_name);
   }
 #else
   /* fallback: just hope name is already FQDN */
-  return GNUNET_strdup(hostname);
+  return GNUNET_strdup (hostname);
 #endif
 }
 
@@ -1225,27 +1231,27 @@ GNUNET_RESOLVER_local_fqdn_get()
  * @return handle that can be used to cancel the request, NULL on error
  */
 struct GNUNET_RESOLVER_RequestHandle *
-GNUNET_RESOLVER_hostname_resolve(int af,
-                                 struct GNUNET_TIME_Relative timeout,
-                                 GNUNET_RESOLVER_AddressCallback callback,
-                                 void *cls)
+GNUNET_RESOLVER_hostname_resolve (int af,
+                                  struct GNUNET_TIME_Relative timeout,
+                                  GNUNET_RESOLVER_AddressCallback callback,
+                                  void *cls)
 {
-  char hostname[GNUNET_OS_get_hostname_max_length() + 1];
+  char hostname[GNUNET_OS_get_hostname_max_length () + 1];
 
-  if (0 != gethostname(hostname, sizeof(hostname) - 1))
-    {
-      LOG_STRERROR(GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
-                   "gethostname");
-      return NULL;
-    }
-  LOG(GNUNET_ERROR_TYPE_DEBUG,
-      "Resolving our hostname `%s'\n",
-      hostname);
-  return GNUNET_RESOLVER_ip_get(hostname,
-                                af,
-                                timeout,
-                                callback,
-                                cls);
+  if (0 != gethostname (hostname, sizeof(hostname) - 1))
+  {
+    LOG_STRERROR (GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+                  "gethostname");
+    return NULL;
+  }
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Resolving our hostname `%s'\n",
+       hostname);
+  return GNUNET_RESOLVER_ip_get (hostname,
+                                 af,
+                                 timeout,
+                                 callback,
+                                 cls);
 }
 
 
@@ -1258,30 +1264,30 @@ GNUNET_RESOLVER_hostname_resolve(int af,
  * @param rh handle of request to cancel
  */
 void
-GNUNET_RESOLVER_request_cancel(struct GNUNET_RESOLVER_RequestHandle *rh)
+GNUNET_RESOLVER_request_cancel (struct GNUNET_RESOLVER_RequestHandle *rh)
 {
   if (GNUNET_NO == rh->direction)
-    LOG(GNUNET_ERROR_TYPE_DEBUG,
-        "Asked to cancel request to resolve hostname `%s'.\n",
-        (const char *)&rh[1]);
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Asked to cancel request to resolve hostname `%s'.\n",
+         (const char *) &rh[1]);
   if (NULL != rh->task)
-    {
-      GNUNET_SCHEDULER_cancel(rh->task);
-      rh->task = NULL;
-    }
+  {
+    GNUNET_SCHEDULER_cancel (rh->task);
+    rh->task = NULL;
+  }
   if (GNUNET_NO == rh->was_transmitted)
-    {
-      if (GNUNET_YES == rh->was_queued)
-        GNUNET_CONTAINER_DLL_remove(req_head,
-                                    req_tail,
-                                    rh);
-      GNUNET_free(rh);
-      check_disconnect();
-      return;
-    }
-  GNUNET_assert(GNUNET_YES == rh->was_transmitted);
+  {
+    if (GNUNET_YES == rh->was_queued)
+      GNUNET_CONTAINER_DLL_remove (req_head,
+                                   req_tail,
+                                   rh);
+    GNUNET_free (rh);
+    check_disconnect ();
+    return;
+  }
+  GNUNET_assert (GNUNET_YES == rh->was_transmitted);
   rh->was_transmitted = GNUNET_SYSERR;  /* mark as cancelled */
-  check_disconnect();
+  check_disconnect ();
 }
 
 

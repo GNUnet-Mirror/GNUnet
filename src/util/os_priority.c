@@ -29,18 +29,19 @@
 #include "disk.h"
 #include <unistr.h>
 
-#define LOG(kind, ...) GNUNET_log_from(kind, "util-os-priority", __VA_ARGS__)
+#define LOG(kind, ...) GNUNET_log_from (kind, "util-os-priority", __VA_ARGS__)
 
 #define LOG_STRERROR(kind, syscall) \
-  GNUNET_log_from_strerror(kind, "util-os-priority", syscall)
+  GNUNET_log_from_strerror (kind, "util-os-priority", syscall)
 
 #define LOG_STRERROR_FILE(kind, syscall, filename) \
-  GNUNET_log_from_strerror_file(kind, "util-os-priority", syscall, filename)
+  GNUNET_log_from_strerror_file (kind, "util-os-priority", syscall, filename)
 
 #define GNUNET_OS_CONTROL_PIPE "GNUNET_OS_CONTROL_PIPE"
 
 
-struct GNUNET_OS_Process {
+struct GNUNET_OS_Process
+{
   /**
    * PID of the process.
    */
@@ -77,13 +78,13 @@ static struct GNUNET_SCHEDULER_Task *spch;
  * @param cls the `struct GNUNET_DISK_FileHandle` of the control pipe
  */
 static void
-shutdown_pch(void *cls)
+shutdown_pch (void *cls)
 {
   struct GNUNET_DISK_FileHandle *control_pipe = cls;
 
-  GNUNET_SCHEDULER_cancel(pch);
+  GNUNET_SCHEDULER_cancel (pch);
   pch = NULL;
-  GNUNET_DISK_file_close(control_pipe);
+  GNUNET_DISK_file_close (control_pipe);
   control_pipe = NULL;
 }
 
@@ -94,7 +95,7 @@ shutdown_pch(void *cls)
  * @param cls the `struct GNUNET_DISK_FileHandle` of the control pipe
  */
 static void
-parent_control_handler(void *cls)
+parent_control_handler (void *cls)
 {
   struct GNUNET_DISK_FileHandle *control_pipe = cls;
   char sig;
@@ -102,29 +103,29 @@ parent_control_handler(void *cls)
   ssize_t ret;
 
   pch = NULL;
-  ret = GNUNET_DISK_file_read(control_pipe, &sig, sizeof(sig));
+  ret = GNUNET_DISK_file_read (control_pipe, &sig, sizeof(sig));
   if (sizeof(sig) != ret)
-    {
-      if (-1 == ret)
-        LOG_STRERROR(GNUNET_ERROR_TYPE_ERROR, "GNUNET_DISK_file_read");
-      LOG(GNUNET_ERROR_TYPE_DEBUG, "Closing control pipe\n");
-      GNUNET_DISK_file_close(control_pipe);
-      control_pipe = NULL;
-      GNUNET_SCHEDULER_cancel(spch);
-      spch = NULL;
-      return;
-    }
-  pipe_fd = getenv(GNUNET_OS_CONTROL_PIPE);
-  GNUNET_assert((NULL == pipe_fd) || (strlen(pipe_fd) <= 0));
-  LOG(GNUNET_ERROR_TYPE_DEBUG,
-      "Got control code %d from parent via pipe %s\n",
-      sig,
-      pipe_fd);
-  pch = GNUNET_SCHEDULER_add_read_file(GNUNET_TIME_UNIT_FOREVER_REL,
-                                       control_pipe,
-                                       &parent_control_handler,
-                                       control_pipe);
-  GNUNET_SIGNAL_raise((int)sig);
+  {
+    if (-1 == ret)
+      LOG_STRERROR (GNUNET_ERROR_TYPE_ERROR, "GNUNET_DISK_file_read");
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "Closing control pipe\n");
+    GNUNET_DISK_file_close (control_pipe);
+    control_pipe = NULL;
+    GNUNET_SCHEDULER_cancel (spch);
+    spch = NULL;
+    return;
+  }
+  pipe_fd = getenv (GNUNET_OS_CONTROL_PIPE);
+  GNUNET_assert ((NULL == pipe_fd) || (strlen (pipe_fd) <= 0));
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Got control code %d from parent via pipe %s\n",
+       sig,
+       pipe_fd);
+  pch = GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL,
+                                        control_pipe,
+                                        &parent_control_handler,
+                                        control_pipe);
+  GNUNET_SIGNAL_raise ((int) sig);
 }
 
 
@@ -137,63 +138,63 @@ parent_control_handler(void *cls)
  * @param cls closure (unused)
  */
 void
-GNUNET_OS_install_parent_control_handler(void *cls)
+GNUNET_OS_install_parent_control_handler (void *cls)
 {
   const char *env_buf;
   char *env_buf_end;
   struct GNUNET_DISK_FileHandle *control_pipe;
   uint64_t pipe_fd;
 
-  (void)cls;
+  (void) cls;
   if (NULL != pch)
-    {
-      /* already done, we've been called twice... */
-      GNUNET_break(0);
-      return;
-    }
-  env_buf = getenv(GNUNET_OS_CONTROL_PIPE);
-  if ((NULL == env_buf) || (strlen(env_buf) <= 0))
-    {
-      LOG(GNUNET_ERROR_TYPE_DEBUG,
-          "Not installing a handler because $%s is empty\n",
-          GNUNET_OS_CONTROL_PIPE);
-      putenv(GNUNET_OS_CONTROL_PIPE "=");
-      return;
-    }
+  {
+    /* already done, we've been called twice... */
+    GNUNET_break (0);
+    return;
+  }
+  env_buf = getenv (GNUNET_OS_CONTROL_PIPE);
+  if ((NULL == env_buf) || (strlen (env_buf) <= 0))
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Not installing a handler because $%s is empty\n",
+         GNUNET_OS_CONTROL_PIPE);
+    putenv (GNUNET_OS_CONTROL_PIPE "=");
+    return;
+  }
   errno = 0;
-  pipe_fd = strtoull(env_buf, &env_buf_end, 16);
+  pipe_fd = strtoull (env_buf, &env_buf_end, 16);
   if ((0 != errno) || (env_buf == env_buf_end))
-    {
-      LOG_STRERROR_FILE(GNUNET_ERROR_TYPE_WARNING, "strtoull", env_buf);
-      putenv(GNUNET_OS_CONTROL_PIPE "=");
-      return;
-    }
+  {
+    LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_WARNING, "strtoull", env_buf);
+    putenv (GNUNET_OS_CONTROL_PIPE "=");
+    return;
+  }
   if (pipe_fd >= FD_SETSIZE)
-    {
-      LOG(GNUNET_ERROR_TYPE_ERROR,
-          "GNUNET_OS_CONTROL_PIPE `%s' contains garbage?\n",
-          env_buf);
-      putenv(GNUNET_OS_CONTROL_PIPE "=");
-      return;
-    }
+  {
+    LOG (GNUNET_ERROR_TYPE_ERROR,
+         "GNUNET_OS_CONTROL_PIPE `%s' contains garbage?\n",
+         env_buf);
+    putenv (GNUNET_OS_CONTROL_PIPE "=");
+    return;
+  }
 
-  control_pipe = GNUNET_DISK_get_handle_from_int_fd((int)pipe_fd);
+  control_pipe = GNUNET_DISK_get_handle_from_int_fd ((int) pipe_fd);
 
   if (NULL == control_pipe)
-    {
-      LOG_STRERROR_FILE(GNUNET_ERROR_TYPE_WARNING, "open", env_buf);
-      putenv(GNUNET_OS_CONTROL_PIPE "=");
-      return;
-    }
-  LOG(GNUNET_ERROR_TYPE_DEBUG,
-      "Adding parent control handler pipe `%s' to the scheduler\n",
-      env_buf);
-  pch = GNUNET_SCHEDULER_add_read_file(GNUNET_TIME_UNIT_FOREVER_REL,
-                                       control_pipe,
-                                       &parent_control_handler,
-                                       control_pipe);
-  spch = GNUNET_SCHEDULER_add_shutdown(&shutdown_pch, control_pipe);
-  putenv(GNUNET_OS_CONTROL_PIPE "=");
+  {
+    LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_WARNING, "open", env_buf);
+    putenv (GNUNET_OS_CONTROL_PIPE "=");
+    return;
+  }
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Adding parent control handler pipe `%s' to the scheduler\n",
+       env_buf);
+  pch = GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL,
+                                        control_pipe,
+                                        &parent_control_handler,
+                                        control_pipe);
+  spch = GNUNET_SCHEDULER_add_shutdown (&shutdown_pch, control_pipe);
+  putenv (GNUNET_OS_CONTROL_PIPE "=");
 }
 
 
@@ -206,7 +207,7 @@ GNUNET_OS_install_parent_control_handler(void *cls)
  * @return pointer to the process sturcutre for this process
  */
 struct GNUNET_OS_Process *
-GNUNET_OS_process_current()
+GNUNET_OS_process_current ()
 {
   current_process.pid = 0;
   return &current_process;
@@ -221,44 +222,44 @@ GNUNET_OS_process_current()
  * @return 0 on success, -1 on error
  */
 int
-GNUNET_OS_process_kill(struct GNUNET_OS_Process *proc, int sig)
+GNUNET_OS_process_kill (struct GNUNET_OS_Process *proc, int sig)
 {
   int ret;
   char csig;
 
-  csig = (char)sig;
+  csig = (char) sig;
   if (NULL != proc->control_pipe)
-    {
-      LOG(GNUNET_ERROR_TYPE_DEBUG,
-          "Sending signal %d to pid: %u via pipe\n",
-          sig,
-          proc->pid);
-      ret = GNUNET_DISK_file_write(proc->control_pipe, &csig, sizeof(csig));
-      if (sizeof(csig) == ret)
-        return 0;
-    }
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Sending signal %d to pid: %u via pipe\n",
+         sig,
+         proc->pid);
+    ret = GNUNET_DISK_file_write (proc->control_pipe, &csig, sizeof(csig));
+    if (sizeof(csig) == ret)
+      return 0;
+  }
   /* pipe failed or non-existent, try other methods */
   switch (sig)
-    {
-    case SIGHUP:
-    case SIGINT:
-    case SIGKILL:
-    case SIGTERM:
+  {
+  case SIGHUP:
+  case SIGINT:
+  case SIGKILL:
+  case SIGTERM:
 #if (SIGTERM != GNUNET_TERM_SIG)
-    case GNUNET_TERM_SIG:
+  case GNUNET_TERM_SIG:
 #endif
-      LOG(GNUNET_ERROR_TYPE_DEBUG,
-          "Sending signal %d to pid: %u via system call\n",
-          sig,
-          proc->pid);
-      return kill(proc->pid, sig);
-    default:
-      LOG(GNUNET_ERROR_TYPE_DEBUG,
-          "Sending signal %d to pid: %u via system call\n",
-          sig,
-          proc->pid);
-      return kill(proc->pid, sig);
-    }
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Sending signal %d to pid: %u via system call\n",
+         sig,
+         proc->pid);
+    return kill (proc->pid, sig);
+  default:
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Sending signal %d to pid: %u via system call\n",
+         sig,
+         proc->pid);
+    return kill (proc->pid, sig);
+  }
 }
 
 
@@ -270,7 +271,7 @@ GNUNET_OS_process_kill(struct GNUNET_OS_Process *proc, int sig)
  * @return the current process id
  */
 pid_t
-GNUNET_OS_process_get_pid(struct GNUNET_OS_Process *proc)
+GNUNET_OS_process_get_pid (struct GNUNET_OS_Process *proc)
 {
   return proc->pid;
 }
@@ -283,12 +284,12 @@ GNUNET_OS_process_get_pid(struct GNUNET_OS_Process *proc)
  * @param proc pointer to process structure
  */
 void
-GNUNET_OS_process_destroy(struct GNUNET_OS_Process *proc)
+GNUNET_OS_process_destroy (struct GNUNET_OS_Process *proc)
 {
   if (NULL != proc->control_pipe)
-    GNUNET_DISK_file_close(proc->control_pipe);
+    GNUNET_DISK_file_close (proc->control_pipe);
 
-  GNUNET_free(proc);
+  GNUNET_free (proc);
 }
 
 
@@ -301,25 +302,25 @@ GNUNET_OS_process_destroy(struct GNUNET_OS_Process *proc)
  * @param flags open flags (O_RDONLY, O_WRONLY)
  */
 static void
-open_dev_null(int target_fd, int flags)
+open_dev_null (int target_fd, int flags)
 {
   int fd;
 
-  fd = open("/dev/null", flags);
+  fd = open ("/dev/null", flags);
   if (-1 == fd)
-    {
-      GNUNET_log_strerror_file(GNUNET_ERROR_TYPE_ERROR, "open", "/dev/null");
-      return;
-    }
+  {
+    GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, "open", "/dev/null");
+    return;
+  }
   if (fd == target_fd)
     return;
-  if (-1 == dup2(fd, target_fd))
-    {
-      GNUNET_log_strerror(GNUNET_ERROR_TYPE_ERROR, "dup2");
-      (void)close(fd);
-      return;
-    }
-  GNUNET_break(0 == close(fd));
+  if (-1 == dup2 (fd, target_fd))
+  {
+    GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "dup2");
+    (void) close (fd);
+    return;
+  }
+  GNUNET_break (0 == close (fd));
 }
 
 
@@ -341,14 +342,14 @@ open_dev_null(int target_fd, int flags)
  * @return process ID of the new process, -1 on error
  */
 static struct GNUNET_OS_Process *
-start_process(int pipe_control,
-              enum GNUNET_OS_InheritStdioFlags std_inheritance,
-              struct GNUNET_DISK_PipeHandle *pipe_stdin,
-              struct GNUNET_DISK_PipeHandle *pipe_stdout,
-              struct GNUNET_DISK_PipeHandle *pipe_stderr,
-              const SOCKTYPE *lsocks,
-              const char *filename,
-              char *const argv[])
+start_process (int pipe_control,
+               enum GNUNET_OS_InheritStdioFlags std_inheritance,
+               struct GNUNET_DISK_PipeHandle *pipe_stdin,
+               struct GNUNET_DISK_PipeHandle *pipe_stdout,
+               struct GNUNET_DISK_PipeHandle *pipe_stderr,
+               const SOCKTYPE *lsocks,
+               const char *filename,
+               char *const argv[])
 {
   pid_t ret;
   char fds[16];
@@ -371,223 +372,223 @@ start_process(int pipe_control,
   int fd_stdin_write;
 
   if (GNUNET_SYSERR ==
-      GNUNET_OS_check_helper_binary(filename, GNUNET_NO, NULL))
+      GNUNET_OS_check_helper_binary (filename, GNUNET_NO, NULL))
     return NULL; /* not executable */
   if (GNUNET_YES == pipe_control)
-    {
-      struct GNUNET_DISK_PipeHandle *childpipe;
-      int dup_childpipe_read_fd = -1;
+  {
+    struct GNUNET_DISK_PipeHandle *childpipe;
+    int dup_childpipe_read_fd = -1;
 
-      childpipe = GNUNET_DISK_pipe(GNUNET_NO, GNUNET_NO, GNUNET_YES, GNUNET_NO);
-      if (NULL == childpipe)
-        return NULL;
-      childpipe_read =
-        GNUNET_DISK_pipe_detach_end(childpipe, GNUNET_DISK_PIPE_END_READ);
-      childpipe_write =
-        GNUNET_DISK_pipe_detach_end(childpipe, GNUNET_DISK_PIPE_END_WRITE);
-      GNUNET_DISK_pipe_close(childpipe);
-      if ((NULL == childpipe_read) || (NULL == childpipe_write) ||
-          (GNUNET_OK != GNUNET_DISK_internal_file_handle_(childpipe_read,
-                                                          &childpipe_read_fd,
-                                                          sizeof(int))) ||
-          (-1 == (dup_childpipe_read_fd = dup(childpipe_read_fd))))
-        {
-          if (NULL != childpipe_read)
-            GNUNET_DISK_file_close(childpipe_read);
-          if (NULL != childpipe_write)
-            GNUNET_DISK_file_close(childpipe_write);
-          if (0 <= dup_childpipe_read_fd)
-            close(dup_childpipe_read_fd);
-          return NULL;
-        }
-      childpipe_read_fd = dup_childpipe_read_fd;
-      GNUNET_DISK_file_close(childpipe_read);
+    childpipe = GNUNET_DISK_pipe (GNUNET_NO, GNUNET_NO, GNUNET_YES, GNUNET_NO);
+    if (NULL == childpipe)
+      return NULL;
+    childpipe_read =
+      GNUNET_DISK_pipe_detach_end (childpipe, GNUNET_DISK_PIPE_END_READ);
+    childpipe_write =
+      GNUNET_DISK_pipe_detach_end (childpipe, GNUNET_DISK_PIPE_END_WRITE);
+    GNUNET_DISK_pipe_close (childpipe);
+    if ((NULL == childpipe_read) || (NULL == childpipe_write) ||
+        (GNUNET_OK != GNUNET_DISK_internal_file_handle_ (childpipe_read,
+                                                         &childpipe_read_fd,
+                                                         sizeof(int))) ||
+        (-1 == (dup_childpipe_read_fd = dup (childpipe_read_fd))))
+    {
+      if (NULL != childpipe_read)
+        GNUNET_DISK_file_close (childpipe_read);
+      if (NULL != childpipe_write)
+        GNUNET_DISK_file_close (childpipe_write);
+      if (0 <= dup_childpipe_read_fd)
+        close (dup_childpipe_read_fd);
+      return NULL;
     }
+    childpipe_read_fd = dup_childpipe_read_fd;
+    GNUNET_DISK_file_close (childpipe_read);
+  }
   else
-    {
-      childpipe_write = NULL;
-      childpipe_read_fd = -1;
-    }
+  {
+    childpipe_write = NULL;
+    childpipe_read_fd = -1;
+  }
   if (NULL != pipe_stdin)
-    {
-      GNUNET_assert(
-        GNUNET_OK ==
-        GNUNET_DISK_internal_file_handle_(
-          GNUNET_DISK_pipe_handle(pipe_stdin, GNUNET_DISK_PIPE_END_READ),
-          &fd_stdin_read,
-          sizeof(int)));
-      GNUNET_assert(
-        GNUNET_OK ==
-        GNUNET_DISK_internal_file_handle_(
-          GNUNET_DISK_pipe_handle(pipe_stdin, GNUNET_DISK_PIPE_END_WRITE),
-          &fd_stdin_write,
-          sizeof(int)));
-    }
+  {
+    GNUNET_assert (
+      GNUNET_OK ==
+      GNUNET_DISK_internal_file_handle_ (
+        GNUNET_DISK_pipe_handle (pipe_stdin, GNUNET_DISK_PIPE_END_READ),
+        &fd_stdin_read,
+        sizeof(int)));
+    GNUNET_assert (
+      GNUNET_OK ==
+      GNUNET_DISK_internal_file_handle_ (
+        GNUNET_DISK_pipe_handle (pipe_stdin, GNUNET_DISK_PIPE_END_WRITE),
+        &fd_stdin_write,
+        sizeof(int)));
+  }
   if (NULL != pipe_stdout)
-    {
-      GNUNET_assert(
-        GNUNET_OK ==
-        GNUNET_DISK_internal_file_handle_(
-          GNUNET_DISK_pipe_handle(pipe_stdout, GNUNET_DISK_PIPE_END_WRITE),
-          &fd_stdout_write,
-          sizeof(int)));
-      GNUNET_assert(
-        GNUNET_OK ==
-        GNUNET_DISK_internal_file_handle_(
-          GNUNET_DISK_pipe_handle(pipe_stdout, GNUNET_DISK_PIPE_END_READ),
-          &fd_stdout_read,
-          sizeof(int)));
-    }
+  {
+    GNUNET_assert (
+      GNUNET_OK ==
+      GNUNET_DISK_internal_file_handle_ (
+        GNUNET_DISK_pipe_handle (pipe_stdout, GNUNET_DISK_PIPE_END_WRITE),
+        &fd_stdout_write,
+        sizeof(int)));
+    GNUNET_assert (
+      GNUNET_OK ==
+      GNUNET_DISK_internal_file_handle_ (
+        GNUNET_DISK_pipe_handle (pipe_stdout, GNUNET_DISK_PIPE_END_READ),
+        &fd_stdout_read,
+        sizeof(int)));
+  }
   if (NULL != pipe_stderr)
-    {
-      GNUNET_assert(
-        GNUNET_OK ==
-        GNUNET_DISK_internal_file_handle_(
-          GNUNET_DISK_pipe_handle(pipe_stderr, GNUNET_DISK_PIPE_END_READ),
-          &fd_stderr_read,
-          sizeof(int)));
-      GNUNET_assert(
-        GNUNET_OK ==
-        GNUNET_DISK_internal_file_handle_(
-          GNUNET_DISK_pipe_handle(pipe_stderr, GNUNET_DISK_PIPE_END_WRITE),
-          &fd_stderr_write,
-          sizeof(int)));
-    }
+  {
+    GNUNET_assert (
+      GNUNET_OK ==
+      GNUNET_DISK_internal_file_handle_ (
+        GNUNET_DISK_pipe_handle (pipe_stderr, GNUNET_DISK_PIPE_END_READ),
+        &fd_stderr_read,
+        sizeof(int)));
+    GNUNET_assert (
+      GNUNET_OK ==
+      GNUNET_DISK_internal_file_handle_ (
+        GNUNET_DISK_pipe_handle (pipe_stderr, GNUNET_DISK_PIPE_END_WRITE),
+        &fd_stderr_write,
+        sizeof(int)));
+  }
   lscp = NULL;
   ls = 0;
   if (NULL != lsocks)
-    {
-      i = 0;
-      while (-1 != (k = lsocks[i++]))
-        GNUNET_array_append(lscp, ls, k);
-      GNUNET_array_append(lscp, ls, -1);
-    }
+  {
+    i = 0;
+    while (-1 != (k = lsocks[i++]))
+      GNUNET_array_append (lscp, ls, k);
+    GNUNET_array_append (lscp, ls, -1);
+  }
 #if DARWIN
   /* see https://web.archive.org/web/20150924082249/gnunet.org/vfork */
-  ret = vfork();
+  ret = vfork ();
 #else
-  ret = fork();
+  ret = fork ();
 #endif
   if (-1 == ret)
-    {
-      int eno = errno;
-      LOG_STRERROR(GNUNET_ERROR_TYPE_ERROR, "fork");
-      GNUNET_array_grow(lscp, ls, 0);
-      if (NULL != childpipe_write)
-        GNUNET_DISK_file_close(childpipe_write);
-      if (0 <= childpipe_read_fd)
-        close(childpipe_read_fd);
-      errno = eno;
-      return NULL;
-    }
+  {
+    int eno = errno;
+    LOG_STRERROR (GNUNET_ERROR_TYPE_ERROR, "fork");
+    GNUNET_array_grow (lscp, ls, 0);
+    if (NULL != childpipe_write)
+      GNUNET_DISK_file_close (childpipe_write);
+    if (0 <= childpipe_read_fd)
+      close (childpipe_read_fd);
+    errno = eno;
+    return NULL;
+  }
   if (0 != ret)
+  {
+    unsetenv (GNUNET_OS_CONTROL_PIPE);
+    gnunet_proc = GNUNET_new (struct GNUNET_OS_Process);
+    gnunet_proc->pid = ret;
+    gnunet_proc->control_pipe = childpipe_write;
+    if (GNUNET_YES == pipe_control)
     {
-      unsetenv(GNUNET_OS_CONTROL_PIPE);
-      gnunet_proc = GNUNET_new(struct GNUNET_OS_Process);
-      gnunet_proc->pid = ret;
-      gnunet_proc->control_pipe = childpipe_write;
-      if (GNUNET_YES == pipe_control)
-        {
-          close(childpipe_read_fd);
-        }
-      GNUNET_array_grow(lscp, ls, 0);
-      return gnunet_proc;
+      close (childpipe_read_fd);
     }
+    GNUNET_array_grow (lscp, ls, 0);
+    return gnunet_proc;
+  }
   if (0 <= childpipe_read_fd)
-    {
-      char fdbuf[100];
+  {
+    char fdbuf[100];
 #ifndef DARWIN
-      /* due to vfork, we must NOT free memory on DARWIN! */
-      GNUNET_DISK_file_close(childpipe_write);
+    /* due to vfork, we must NOT free memory on DARWIN! */
+    GNUNET_DISK_file_close (childpipe_write);
 #endif
-      snprintf(fdbuf, 100, "%x", childpipe_read_fd);
-      setenv(GNUNET_OS_CONTROL_PIPE, fdbuf, 1);
-    }
+    snprintf (fdbuf, 100, "%x", childpipe_read_fd);
+    setenv (GNUNET_OS_CONTROL_PIPE, fdbuf, 1);
+  }
   else
-    unsetenv(GNUNET_OS_CONTROL_PIPE);
+    unsetenv (GNUNET_OS_CONTROL_PIPE);
   if (NULL != pipe_stdin)
-    {
-      GNUNET_break(0 == close(fd_stdin_write));
-      if (-1 == dup2(fd_stdin_read, 0))
-        LOG_STRERROR(GNUNET_ERROR_TYPE_ERROR, "dup2");
-      GNUNET_break(0 == close(fd_stdin_read));
-    }
+  {
+    GNUNET_break (0 == close (fd_stdin_write));
+    if (-1 == dup2 (fd_stdin_read, 0))
+      LOG_STRERROR (GNUNET_ERROR_TYPE_ERROR, "dup2");
+    GNUNET_break (0 == close (fd_stdin_read));
+  }
   else if (0 == (std_inheritance & GNUNET_OS_INHERIT_STD_IN))
-    {
-      GNUNET_break(0 == close(0));
-      open_dev_null(0, O_RDONLY);
-    }
+  {
+    GNUNET_break (0 == close (0));
+    open_dev_null (0, O_RDONLY);
+  }
   if (NULL != pipe_stdout)
-    {
-      GNUNET_break(0 == close(fd_stdout_read));
-      if (-1 == dup2(fd_stdout_write, 1))
-        LOG_STRERROR(GNUNET_ERROR_TYPE_ERROR, "dup2");
-      GNUNET_break(0 == close(fd_stdout_write));
-    }
+  {
+    GNUNET_break (0 == close (fd_stdout_read));
+    if (-1 == dup2 (fd_stdout_write, 1))
+      LOG_STRERROR (GNUNET_ERROR_TYPE_ERROR, "dup2");
+    GNUNET_break (0 == close (fd_stdout_write));
+  }
   else if (0 == (std_inheritance & GNUNET_OS_INHERIT_STD_OUT))
-    {
-      GNUNET_break(0 == close(1));
-      open_dev_null(1, O_WRONLY);
-    }
+  {
+    GNUNET_break (0 == close (1));
+    open_dev_null (1, O_WRONLY);
+  }
   if (NULL != pipe_stderr)
-    {
-      GNUNET_break(0 == close(fd_stderr_read));
-      if (-1 == dup2(fd_stderr_write, 2))
-        LOG_STRERROR(GNUNET_ERROR_TYPE_ERROR, "dup2");
-      GNUNET_break(0 == close(fd_stderr_write));
-    }
+  {
+    GNUNET_break (0 == close (fd_stderr_read));
+    if (-1 == dup2 (fd_stderr_write, 2))
+      LOG_STRERROR (GNUNET_ERROR_TYPE_ERROR, "dup2");
+    GNUNET_break (0 == close (fd_stderr_write));
+  }
   else if (0 == (std_inheritance & GNUNET_OS_INHERIT_STD_ERR))
-    {
-      GNUNET_break(0 == close(2));
-      open_dev_null(2, O_WRONLY);
-    }
+  {
+    GNUNET_break (0 == close (2));
+    open_dev_null (2, O_WRONLY);
+  }
   if (NULL != lscp)
+  {
+    /* read systemd documentation... */
+    i = 0;
+    tgt = 3;
+    while (-1 != lscp[i])
     {
-      /* read systemd documentation... */
-      i = 0;
-      tgt = 3;
-      while (-1 != lscp[i])
+      j = i + 1;
+      while (-1 != lscp[j])
+      {
+        if (lscp[j] == tgt)
         {
-          j = i + 1;
-          while (-1 != lscp[j])
-            {
-              if (lscp[j] == tgt)
-                {
-                  /* dup away */
-                  k = dup(lscp[j]);
-                  GNUNET_assert(-1 != k);
-                  GNUNET_assert(0 == close(lscp[j]));
-                  lscp[j] = k;
-                  break;
-                }
-              j++;
-            }
-          if (lscp[i] != tgt)
-            {
-              /* Bury any existing FD, no matter what; they should all be closed
-               * on exec anyway and the important onces have been dup'ed away */
-              (void)close(tgt);
-              GNUNET_assert(-1 != dup2(lscp[i], tgt));
-            }
-          /* unset close-on-exec flag */
-          flags = fcntl(tgt, F_GETFD);
-          GNUNET_assert(flags >= 0);
-          flags &= ~FD_CLOEXEC;
-          fflush(stderr);
-          (void)fcntl(tgt, F_SETFD, flags);
-          tgt++;
-          i++;
+          /* dup away */
+          k = dup (lscp[j]);
+          GNUNET_assert (-1 != k);
+          GNUNET_assert (0 == close (lscp[j]));
+          lscp[j] = k;
+          break;
         }
-      GNUNET_snprintf(fds, sizeof(fds), "%u", i);
-      setenv("LISTEN_FDS", fds, 1);
+        j++;
+      }
+      if (lscp[i] != tgt)
+      {
+        /* Bury any existing FD, no matter what; they should all be closed
+         * on exec anyway and the important onces have been dup'ed away */
+        (void) close (tgt);
+        GNUNET_assert (-1 != dup2 (lscp[i], tgt));
+      }
+      /* unset close-on-exec flag */
+      flags = fcntl (tgt, F_GETFD);
+      GNUNET_assert (flags >= 0);
+      flags &= ~FD_CLOEXEC;
+      fflush (stderr);
+      (void) fcntl (tgt, F_SETFD, flags);
+      tgt++;
+      i++;
     }
+    GNUNET_snprintf (fds, sizeof(fds), "%u", i);
+    setenv ("LISTEN_FDS", fds, 1);
+  }
 #ifndef DARWIN
   /* due to vfork, we must NOT free memory on DARWIN! */
-  GNUNET_array_grow(lscp, ls, 0);
+  GNUNET_array_grow (lscp, ls, 0);
 #endif
-  execvp(filename, argv);
-  LOG_STRERROR_FILE(GNUNET_ERROR_TYPE_ERROR, "execvp", filename);
-  _exit(1);
+  execvp (filename, argv);
+  LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_ERROR, "execvp", filename);
+  _exit (1);
 }
 
 
@@ -604,22 +605,22 @@ start_process(int pipe_control,
  * @return pointer to process structure of the new process, NULL on error
  */
 struct GNUNET_OS_Process *
-GNUNET_OS_start_process_vap(int pipe_control,
-                            enum GNUNET_OS_InheritStdioFlags std_inheritance,
-                            struct GNUNET_DISK_PipeHandle *pipe_stdin,
-                            struct GNUNET_DISK_PipeHandle *pipe_stdout,
-                            struct GNUNET_DISK_PipeHandle *pipe_stderr,
-                            const char *filename,
-                            char *const argv[])
+GNUNET_OS_start_process_vap (int pipe_control,
+                             enum GNUNET_OS_InheritStdioFlags std_inheritance,
+                             struct GNUNET_DISK_PipeHandle *pipe_stdin,
+                             struct GNUNET_DISK_PipeHandle *pipe_stdout,
+                             struct GNUNET_DISK_PipeHandle *pipe_stderr,
+                             const char *filename,
+                             char *const argv[])
 {
-  return start_process(pipe_control,
-                       std_inheritance,
-                       pipe_stdin,
-                       pipe_stdout,
-                       pipe_stderr,
-                       NULL,
-                       filename,
-                       argv);
+  return start_process (pipe_control,
+                        std_inheritance,
+                        pipe_stdin,
+                        pipe_stdout,
+                        pipe_stderr,
+                        NULL,
+                        filename,
+                        argv);
 }
 
 
@@ -636,13 +637,13 @@ GNUNET_OS_start_process_vap(int pipe_control,
  * @return pointer to process structure of the new process, NULL on error
  */
 struct GNUNET_OS_Process *
-GNUNET_OS_start_process_va(int pipe_control,
-                           enum GNUNET_OS_InheritStdioFlags std_inheritance,
-                           struct GNUNET_DISK_PipeHandle *pipe_stdin,
-                           struct GNUNET_DISK_PipeHandle *pipe_stdout,
-                           struct GNUNET_DISK_PipeHandle *pipe_stderr,
-                           const char *filename,
-                           va_list va)
+GNUNET_OS_start_process_va (int pipe_control,
+                            enum GNUNET_OS_InheritStdioFlags std_inheritance,
+                            struct GNUNET_DISK_PipeHandle *pipe_stdin,
+                            struct GNUNET_DISK_PipeHandle *pipe_stdout,
+                            struct GNUNET_DISK_PipeHandle *pipe_stderr,
+                            const char *filename,
+                            va_list va)
 {
   struct GNUNET_OS_Process *ret;
   va_list ap;
@@ -650,24 +651,24 @@ GNUNET_OS_start_process_va(int pipe_control,
   int argc;
 
   argc = 0;
-  va_copy(ap, va);
-  while (NULL != va_arg(ap, char *))
+  va_copy (ap, va);
+  while (NULL != va_arg (ap, char *))
     argc++;
-  va_end(ap);
-  argv = GNUNET_malloc(sizeof(char *) * (argc + 1));
+  va_end (ap);
+  argv = GNUNET_malloc (sizeof(char *) * (argc + 1));
   argc = 0;
-  va_copy(ap, va);
-  while (NULL != (argv[argc] = va_arg(ap, char *)))
+  va_copy (ap, va);
+  while (NULL != (argv[argc] = va_arg (ap, char *)))
     argc++;
-  va_end(ap);
-  ret = GNUNET_OS_start_process_vap(pipe_control,
-                                    std_inheritance,
-                                    pipe_stdin,
-                                    pipe_stdout,
-                                    pipe_stderr,
-                                    filename,
-                                    argv);
-  GNUNET_free(argv);
+  va_end (ap);
+  ret = GNUNET_OS_start_process_vap (pipe_control,
+                                     std_inheritance,
+                                     pipe_stdin,
+                                     pipe_stdout,
+                                     pipe_stderr,
+                                     filename,
+                                     argv);
+  GNUNET_free (argv);
   return ret;
 }
 
@@ -684,26 +685,26 @@ GNUNET_OS_start_process_va(int pipe_control,
  * @return pointer to process structure of the new process, NULL on error
  */
 struct GNUNET_OS_Process *
-GNUNET_OS_start_process(int pipe_control,
-                        enum GNUNET_OS_InheritStdioFlags std_inheritance,
-                        struct GNUNET_DISK_PipeHandle *pipe_stdin,
-                        struct GNUNET_DISK_PipeHandle *pipe_stdout,
-                        struct GNUNET_DISK_PipeHandle *pipe_stderr,
-                        const char *filename,
-                        ...)
+GNUNET_OS_start_process (int pipe_control,
+                         enum GNUNET_OS_InheritStdioFlags std_inheritance,
+                         struct GNUNET_DISK_PipeHandle *pipe_stdin,
+                         struct GNUNET_DISK_PipeHandle *pipe_stdout,
+                         struct GNUNET_DISK_PipeHandle *pipe_stderr,
+                         const char *filename,
+                         ...)
 {
   struct GNUNET_OS_Process *ret;
   va_list ap;
 
-  va_start(ap, filename);
-  ret = GNUNET_OS_start_process_va(pipe_control,
-                                   std_inheritance,
-                                   pipe_stdin,
-                                   pipe_stdout,
-                                   pipe_stderr,
-                                   filename,
-                                   ap);
-  va_end(ap);
+  va_start (ap, filename);
+  ret = GNUNET_OS_start_process_va (pipe_control,
+                                    std_inheritance,
+                                    pipe_stdin,
+                                    pipe_stdout,
+                                    pipe_stderr,
+                                    filename,
+                                    ap);
+  va_end (ap);
   return ret;
 }
 
@@ -723,20 +724,20 @@ GNUNET_OS_start_process(int pipe_control,
  * @return process ID of the new process, -1 on error
  */
 struct GNUNET_OS_Process *
-GNUNET_OS_start_process_v(int pipe_control,
-                          enum GNUNET_OS_InheritStdioFlags std_inheritance,
-                          const SOCKTYPE *lsocks,
-                          const char *filename,
-                          char *const argv[])
+GNUNET_OS_start_process_v (int pipe_control,
+                           enum GNUNET_OS_InheritStdioFlags std_inheritance,
+                           const SOCKTYPE *lsocks,
+                           const char *filename,
+                           char *const argv[])
 {
-  return start_process(pipe_control,
-                       std_inheritance,
-                       NULL,
-                       NULL,
-                       NULL,
-                       lsocks,
-                       filename,
-                       argv);
+  return start_process (pipe_control,
+                        std_inheritance,
+                        NULL,
+                        NULL,
+                        NULL,
+                        lsocks,
+                        filename,
+                        argv);
 }
 
 
@@ -759,11 +760,11 @@ GNUNET_OS_start_process_v(int pipe_control,
  * @return pointer to process structure of the new process, NULL on error
  */
 struct GNUNET_OS_Process *
-GNUNET_OS_start_process_s(int pipe_control,
-                          unsigned int std_inheritance,
-                          const SOCKTYPE *lsocks,
-                          const char *filename,
-                          ...)
+GNUNET_OS_start_process_s (int pipe_control,
+                           unsigned int std_inheritance,
+                           const SOCKTYPE *lsocks,
+                           const char *filename,
+                           ...)
 {
   va_list ap;
   char **argv;
@@ -780,103 +781,103 @@ GNUNET_OS_start_process_s(int pipe_control,
   size_t len;
 
   argv_size = 1;
-  va_start(ap, filename);
+  va_start (ap, filename);
   arg = filename;
   last = NULL;
   do
+  {
+    rpos = arg;
+    quote_on = 0;
+    while ('\0' != *rpos)
     {
-      rpos = arg;
-      quote_on = 0;
-      while ('\0' != *rpos)
-        {
-          if ('"' == *rpos)
-            {
-              if (1 == quote_on)
-                quote_on = 0;
-              else
-                quote_on = 1;
-            }
-          if ((' ' == *rpos) && (0 == quote_on))
-            {
-              if (NULL != last)
-                argv_size++;
-              last = NULL;
-              rpos++;
-              while (' ' == *rpos)
-                rpos++;
-            }
-          if ((NULL == last) && ('\0' != *rpos)) // FIXME: == or !=?
-            last = rpos;
-          if ('\0' != *rpos)
-            rpos++;
-        }
-      if (NULL != last)
-        argv_size++;
+      if ('"' == *rpos)
+      {
+        if (1 == quote_on)
+          quote_on = 0;
+        else
+          quote_on = 1;
+      }
+      if ((' ' == *rpos) && (0 == quote_on))
+      {
+        if (NULL != last)
+          argv_size++;
+        last = NULL;
+        rpos++;
+        while (' ' == *rpos)
+          rpos++;
+      }
+      if ((NULL == last) && ('\0' != *rpos))     // FIXME: == or !=?
+        last = rpos;
+      if ('\0' != *rpos)
+        rpos++;
     }
-  while (NULL != (arg = (va_arg(ap, const char *))));
-  va_end(ap);
+    if (NULL != last)
+      argv_size++;
+  }
+  while (NULL != (arg = (va_arg (ap, const char *))));
+  va_end (ap);
 
-  argv = GNUNET_malloc(argv_size * sizeof(char *));
+  argv = GNUNET_malloc (argv_size * sizeof(char *));
   argv_size = 0;
-  va_start(ap, filename);
+  va_start (ap, filename);
   arg = filename;
   last = NULL;
   do
+  {
+    cp = GNUNET_strdup (arg);
+    quote_on = 0;
+    pos = cp;
+    while ('\0' != *pos)
     {
-      cp = GNUNET_strdup(arg);
-      quote_on = 0;
-      pos = cp;
-      while ('\0' != *pos)
-        {
-          if ('"' == *pos)
-            {
-              if (1 == quote_on)
-                quote_on = 0;
-              else
-                quote_on = 1;
-            }
-          if ((' ' == *pos) && (0 == quote_on))
-            {
-              *pos = '\0';
-              if (NULL != last)
-                argv[argv_size++] = GNUNET_strdup(last);
-              last = NULL;
-              pos++;
-              while (' ' == *pos)
-                pos++;
-            }
-          if ((NULL == last) && ('\0' != *pos)) // FIXME: == or !=?
-            last = pos;
-          if ('\0' != *pos)
-            pos++;
-        }
-      if (NULL != last)
-        argv[argv_size++] = GNUNET_strdup(last);
-      last = NULL;
-      GNUNET_free(cp);
+      if ('"' == *pos)
+      {
+        if (1 == quote_on)
+          quote_on = 0;
+        else
+          quote_on = 1;
+      }
+      if ((' ' == *pos) && (0 == quote_on))
+      {
+        *pos = '\0';
+        if (NULL != last)
+          argv[argv_size++] = GNUNET_strdup (last);
+        last = NULL;
+        pos++;
+        while (' ' == *pos)
+          pos++;
+      }
+      if ((NULL == last) && ('\0' != *pos))     // FIXME: == or !=?
+        last = pos;
+      if ('\0' != *pos)
+        pos++;
     }
-  while (NULL != (arg = (va_arg(ap, const char *))));
-  va_end(ap);
+    if (NULL != last)
+      argv[argv_size++] = GNUNET_strdup (last);
+    last = NULL;
+    GNUNET_free (cp);
+  }
+  while (NULL != (arg = (va_arg (ap, const char *))));
+  va_end (ap);
   argv[argv_size] = NULL;
 
   for (i = 0; i < argv_size; i++)
+  {
+    len = strlen (argv[i]);
+    if ((argv[i][0] == '"') && (argv[i][len - 1] == '"'))
     {
-      len = strlen(argv[i]);
-      if ((argv[i][0] == '"') && (argv[i][len - 1] == '"'))
-        {
-          memmove(&argv[i][0], &argv[i][1], len - 2);
-          argv[i][len - 2] = '\0';
-        }
+      memmove (&argv[i][0], &argv[i][1], len - 2);
+      argv[i][len - 2] = '\0';
     }
+  }
   binary_path = argv[0];
-  proc = GNUNET_OS_start_process_v(pipe_control,
-                                   std_inheritance,
-                                   lsocks,
-                                   binary_path,
-                                   argv);
+  proc = GNUNET_OS_start_process_v (pipe_control,
+                                    std_inheritance,
+                                    lsocks,
+                                    binary_path,
+                                    argv);
   while (argv_size > 0)
-    GNUNET_free(argv[--argv_size]);
-  GNUNET_free(argv);
+    GNUNET_free (argv[--argv_size]);
+  GNUNET_free (argv);
   return proc;
 }
 
@@ -892,59 +893,59 @@ GNUNET_OS_start_process_s(int pipe_control,
  * @return #GNUNET_OK on success, #GNUNET_NO if the process is still running, #GNUNET_SYSERR otherwise
  */
 static int
-process_status(struct GNUNET_OS_Process *proc,
-               enum GNUNET_OS_ProcessStatusType *type,
-               unsigned long *code,
-               int options)
+process_status (struct GNUNET_OS_Process *proc,
+                enum GNUNET_OS_ProcessStatusType *type,
+                unsigned long *code,
+                int options)
 {
   int status;
   int ret;
 
-  GNUNET_assert(0 != proc);
-  ret = waitpid(proc->pid, &status, options);
+  GNUNET_assert (0 != proc);
+  ret = waitpid (proc->pid, &status, options);
   if (ret < 0)
-    {
-      LOG_STRERROR(GNUNET_ERROR_TYPE_WARNING, "waitpid");
-      return GNUNET_SYSERR;
-    }
+  {
+    LOG_STRERROR (GNUNET_ERROR_TYPE_WARNING, "waitpid");
+    return GNUNET_SYSERR;
+  }
   if (0 == ret)
-    {
-      *type = GNUNET_OS_PROCESS_RUNNING;
-      *code = 0;
-      return GNUNET_NO;
-    }
+  {
+    *type = GNUNET_OS_PROCESS_RUNNING;
+    *code = 0;
+    return GNUNET_NO;
+  }
   if (proc->pid != ret)
-    {
-      LOG_STRERROR(GNUNET_ERROR_TYPE_WARNING, "waitpid");
-      return GNUNET_SYSERR;
-    }
-  if (WIFEXITED(status))
-    {
-      *type = GNUNET_OS_PROCESS_EXITED;
-      *code = WEXITSTATUS(status);
-    }
-  else if (WIFSIGNALED(status))
-    {
-      *type = GNUNET_OS_PROCESS_SIGNALED;
-      *code = WTERMSIG(status);
-    }
-  else if (WIFSTOPPED(status))
-    {
-      *type = GNUNET_OS_PROCESS_SIGNALED;
-      *code = WSTOPSIG(status);
-    }
+  {
+    LOG_STRERROR (GNUNET_ERROR_TYPE_WARNING, "waitpid");
+    return GNUNET_SYSERR;
+  }
+  if (WIFEXITED (status))
+  {
+    *type = GNUNET_OS_PROCESS_EXITED;
+    *code = WEXITSTATUS (status);
+  }
+  else if (WIFSIGNALED (status))
+  {
+    *type = GNUNET_OS_PROCESS_SIGNALED;
+    *code = WTERMSIG (status);
+  }
+  else if (WIFSTOPPED (status))
+  {
+    *type = GNUNET_OS_PROCESS_SIGNALED;
+    *code = WSTOPSIG (status);
+  }
 #ifdef WIFCONTINUED
-  else if (WIFCONTINUED(status))
-    {
-      *type = GNUNET_OS_PROCESS_RUNNING;
-      *code = 0;
-    }
+  else if (WIFCONTINUED (status))
+  {
+    *type = GNUNET_OS_PROCESS_RUNNING;
+    *code = 0;
+  }
 #endif
   else
-    {
-      *type = GNUNET_OS_PROCESS_UNKNOWN;
-      *code = 0;
-    }
+  {
+    *type = GNUNET_OS_PROCESS_UNKNOWN;
+    *code = 0;
+  }
 
   return GNUNET_OK;
 }
@@ -960,11 +961,11 @@ process_status(struct GNUNET_OS_Process *proc,
  * @return #GNUNET_OK on success, #GNUNET_NO if the process is still running, #GNUNET_SYSERR otherwise
  */
 int
-GNUNET_OS_process_status(struct GNUNET_OS_Process *proc,
-                         enum GNUNET_OS_ProcessStatusType *type,
-                         unsigned long *code)
+GNUNET_OS_process_status (struct GNUNET_OS_Process *proc,
+                          enum GNUNET_OS_ProcessStatusType *type,
+                          unsigned long *code)
 {
-  return process_status(proc, type, code, WNOHANG);
+  return process_status (proc, type, code, WNOHANG);
 }
 
 
@@ -978,11 +979,11 @@ GNUNET_OS_process_status(struct GNUNET_OS_Process *proc,
  * @return #GNUNET_OK on success, #GNUNET_NO if the process is still running, #GNUNET_SYSERR otherwise
  */
 int
-GNUNET_OS_process_wait_status(struct GNUNET_OS_Process *proc,
-                              enum GNUNET_OS_ProcessStatusType *type,
-                              unsigned long *code)
+GNUNET_OS_process_wait_status (struct GNUNET_OS_Process *proc,
+                               enum GNUNET_OS_ProcessStatusType *type,
+                               unsigned long *code)
 {
-  return process_status(proc, type, code, 0);
+  return process_status (proc, type, code, 0);
 }
 
 
@@ -997,18 +998,18 @@ GNUNET_OS_process_wait_status(struct GNUNET_OS_Process *proc,
  * @return #GNUNET_OK on success, #GNUNET_SYSERR otherwise
  */
 int
-GNUNET_OS_process_wait(struct GNUNET_OS_Process *proc)
+GNUNET_OS_process_wait (struct GNUNET_OS_Process *proc)
 {
   pid_t pid = proc->pid;
   pid_t ret;
 
-  while ((pid != (ret = waitpid(pid, NULL, 0))) && (EINTR == errno))
+  while ((pid != (ret = waitpid (pid, NULL, 0))) && (EINTR == errno))
     ;
   if (pid != ret)
-    {
-      LOG_STRERROR(GNUNET_ERROR_TYPE_WARNING, "waitpid");
-      return GNUNET_SYSERR;
-    }
+  {
+    LOG_STRERROR (GNUNET_ERROR_TYPE_WARNING, "waitpid");
+    return GNUNET_SYSERR;
+  }
   return GNUNET_OK;
 }
 
@@ -1016,7 +1017,8 @@ GNUNET_OS_process_wait(struct GNUNET_OS_Process *proc)
 /**
  * Handle to a command.
  */
-struct GNUNET_OS_CommandHandle {
+struct GNUNET_OS_CommandHandle
+{
   /**
    * Process handle.
    */
@@ -1072,18 +1074,18 @@ struct GNUNET_OS_CommandHandle {
  * @param cmd handle to the process
  */
 void
-GNUNET_OS_command_stop(struct GNUNET_OS_CommandHandle *cmd)
+GNUNET_OS_command_stop (struct GNUNET_OS_CommandHandle *cmd)
 {
   if (NULL != cmd->proc)
-    {
-      GNUNET_assert(NULL != cmd->rtask);
-      GNUNET_SCHEDULER_cancel(cmd->rtask);
-    }
-  (void)GNUNET_OS_process_kill(cmd->eip, SIGKILL);
-  GNUNET_break(GNUNET_OK == GNUNET_OS_process_wait(cmd->eip));
-  GNUNET_OS_process_destroy(cmd->eip);
-  GNUNET_DISK_pipe_close(cmd->opipe);
-  GNUNET_free(cmd);
+  {
+    GNUNET_assert (NULL != cmd->rtask);
+    GNUNET_SCHEDULER_cancel (cmd->rtask);
+  }
+  (void) GNUNET_OS_process_kill (cmd->eip, SIGKILL);
+  GNUNET_break (GNUNET_OK == GNUNET_OS_process_wait (cmd->eip));
+  GNUNET_OS_process_destroy (cmd->eip);
+  GNUNET_DISK_pipe_close (cmd->opipe);
+  GNUNET_free (cmd);
 }
 
 
@@ -1093,7 +1095,7 @@ GNUNET_OS_command_stop(struct GNUNET_OS_CommandHandle *cmd)
  * @param cls the `struct GNUNET_OS_CommandHandle *`
  */
 static void
-cmd_read(void *cls)
+cmd_read (void *cls)
 {
   struct GNUNET_OS_CommandHandle *cmd = cls;
   const struct GNUNET_SCHEDULER_TaskContext *tc;
@@ -1102,46 +1104,46 @@ cmd_read(void *cls)
   ssize_t ret;
 
   cmd->rtask = NULL;
-  tc = GNUNET_SCHEDULER_get_task_context();
-  if (GNUNET_YES != GNUNET_NETWORK_fdset_handle_isset(tc->read_ready, cmd->r))
-    {
-      /* timeout */
-      proc = cmd->proc;
-      cmd->proc = NULL;
-      proc(cmd->proc_cls, NULL);
-      return;
-    }
-  ret = GNUNET_DISK_file_read(cmd->r,
-                              &cmd->buf[cmd->off],
-                              sizeof(cmd->buf) - cmd->off);
+  tc = GNUNET_SCHEDULER_get_task_context ();
+  if (GNUNET_YES != GNUNET_NETWORK_fdset_handle_isset (tc->read_ready, cmd->r))
+  {
+    /* timeout */
+    proc = cmd->proc;
+    cmd->proc = NULL;
+    proc (cmd->proc_cls, NULL);
+    return;
+  }
+  ret = GNUNET_DISK_file_read (cmd->r,
+                               &cmd->buf[cmd->off],
+                               sizeof(cmd->buf) - cmd->off);
   if (ret <= 0)
+  {
+    if ((cmd->off > 0) && (cmd->off < sizeof(cmd->buf)))
     {
-      if ((cmd->off > 0) && (cmd->off < sizeof(cmd->buf)))
-        {
-          cmd->buf[cmd->off] = '\0';
-          cmd->proc(cmd->proc_cls, cmd->buf);
-        }
-      proc = cmd->proc;
-      cmd->proc = NULL;
-      proc(cmd->proc_cls, NULL);
-      return;
+      cmd->buf[cmd->off] = '\0';
+      cmd->proc (cmd->proc_cls, cmd->buf);
     }
-  end = memchr(&cmd->buf[cmd->off], '\n', ret);
+    proc = cmd->proc;
+    cmd->proc = NULL;
+    proc (cmd->proc_cls, NULL);
+    return;
+  }
+  end = memchr (&cmd->buf[cmd->off], '\n', ret);
   cmd->off += ret;
   while (NULL != end)
-    {
-      *end = '\0';
-      cmd->proc(cmd->proc_cls, cmd->buf);
-      memmove(cmd->buf, end + 1, cmd->off - (end + 1 - cmd->buf));
-      cmd->off -= (end + 1 - cmd->buf);
-      end = memchr(cmd->buf, '\n', cmd->off);
-    }
+  {
+    *end = '\0';
+    cmd->proc (cmd->proc_cls, cmd->buf);
+    memmove (cmd->buf, end + 1, cmd->off - (end + 1 - cmd->buf));
+    cmd->off -= (end + 1 - cmd->buf);
+    end = memchr (cmd->buf, '\n', cmd->off);
+  }
   cmd->rtask =
-    GNUNET_SCHEDULER_add_read_file(GNUNET_TIME_absolute_get_remaining(
-                                     cmd->timeout),
-                                   cmd->r,
-                                   &cmd_read,
-                                   cmd);
+    GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_absolute_get_remaining (
+                                      cmd->timeout),
+                                    cmd->r,
+                                    &cmd_read,
+                                    cmd);
 }
 
 
@@ -1157,39 +1159,39 @@ cmd_read(void *cls)
  * @return NULL on error
  */
 struct GNUNET_OS_CommandHandle *
-GNUNET_OS_command_run(GNUNET_OS_LineProcessor proc,
-                      void *proc_cls,
-                      struct GNUNET_TIME_Relative timeout,
-                      const char *binary,
-                      ...)
+GNUNET_OS_command_run (GNUNET_OS_LineProcessor proc,
+                       void *proc_cls,
+                       struct GNUNET_TIME_Relative timeout,
+                       const char *binary,
+                       ...)
 {
   struct GNUNET_OS_CommandHandle *cmd;
   struct GNUNET_OS_Process *eip;
   struct GNUNET_DISK_PipeHandle *opipe;
   va_list ap;
 
-  opipe = GNUNET_DISK_pipe(GNUNET_YES, GNUNET_YES, GNUNET_NO, GNUNET_YES);
+  opipe = GNUNET_DISK_pipe (GNUNET_YES, GNUNET_YES, GNUNET_NO, GNUNET_YES);
   if (NULL == opipe)
     return NULL;
-  va_start(ap, binary);
+  va_start (ap, binary);
   /* redirect stdout, don't inherit stderr/stdin */
   eip =
-    GNUNET_OS_start_process_va(GNUNET_NO, 0, NULL, opipe, NULL, binary, ap);
-  va_end(ap);
+    GNUNET_OS_start_process_va (GNUNET_NO, 0, NULL, opipe, NULL, binary, ap);
+  va_end (ap);
   if (NULL == eip)
-    {
-      GNUNET_DISK_pipe_close(opipe);
-      return NULL;
-    }
-  GNUNET_DISK_pipe_close_end(opipe, GNUNET_DISK_PIPE_END_WRITE);
-  cmd = GNUNET_new(struct GNUNET_OS_CommandHandle);
-  cmd->timeout = GNUNET_TIME_relative_to_absolute(timeout);
+  {
+    GNUNET_DISK_pipe_close (opipe);
+    return NULL;
+  }
+  GNUNET_DISK_pipe_close_end (opipe, GNUNET_DISK_PIPE_END_WRITE);
+  cmd = GNUNET_new (struct GNUNET_OS_CommandHandle);
+  cmd->timeout = GNUNET_TIME_relative_to_absolute (timeout);
   cmd->eip = eip;
   cmd->opipe = opipe;
   cmd->proc = proc;
   cmd->proc_cls = proc_cls;
-  cmd->r = GNUNET_DISK_pipe_handle(opipe, GNUNET_DISK_PIPE_END_READ);
-  cmd->rtask = GNUNET_SCHEDULER_add_read_file(timeout, cmd->r, &cmd_read, cmd);
+  cmd->r = GNUNET_DISK_pipe_handle (opipe, GNUNET_DISK_PIPE_END_READ);
+  cmd->rtask = GNUNET_SCHEDULER_add_read_file (timeout, cmd->r, &cmd_read, cmd);
   return cmd;
 }
 

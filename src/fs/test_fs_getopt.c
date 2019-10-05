@@ -27,11 +27,11 @@
 
 
 int
-main(int argc, char *argv[])
+main (int argc, char *argv[])
 {
-  GNUNET_log_setup("test_fs_getopt",
-                   "WARNING",
-                   NULL);
-  fprintf(stderr, "%s", "WARNING: testcase not yet written.\n");
+  GNUNET_log_setup ("test_fs_getopt",
+                    "WARNING",
+                    NULL);
+  fprintf (stderr, "%s", "WARNING: testcase not yet written.\n");
   return 0;                     /* testcase passed */
 }

@@ -63,64 +63,64 @@ static struct GNUNET_NotificationContext *nc_pic;
  * @param bandwidth_in assigned inbound bandwidth
  */
 static void
-notify_client(struct GNUNET_SERVICE_Client *client,
-              const struct GNUNET_PeerIdentity *peer,
-              const char *plugin_name,
-              const void *plugin_addr,
-              size_t plugin_addr_len,
-              int active,
-              const struct GNUNET_ATS_Properties *prop,
-              enum GNUNET_HELLO_AddressInfo local_address_info,
-              struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
-              struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in)
+notify_client (struct GNUNET_SERVICE_Client *client,
+               const struct GNUNET_PeerIdentity *peer,
+               const char *plugin_name,
+               const void *plugin_addr,
+               size_t plugin_addr_len,
+               int active,
+               const struct GNUNET_ATS_Properties *prop,
+               enum GNUNET_HELLO_AddressInfo local_address_info,
+               struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
+               struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in)
 {
   struct PeerInformationMessage *msg;
-  size_t plugin_name_length = strlen(plugin_name) + 1;
+  size_t plugin_name_length = strlen (plugin_name) + 1;
   size_t msize =
-    sizeof(struct PeerInformationMessage) +
-    plugin_addr_len +
-    plugin_name_length;
+    sizeof(struct PeerInformationMessage)
+    + plugin_addr_len
+    + plugin_name_length;
   char buf[msize] GNUNET_ALIGN;
   char *addrp;
 
   if (NULL != prop)
-    GNUNET_break(GNUNET_NT_UNSPECIFIED != prop->scope);
-  GNUNET_assert(msize < GNUNET_MAX_MESSAGE_SIZE);
-  msg = (struct PeerInformationMessage *)buf;
-  msg->header.size = htons(msize);
-  msg->header.type = htons(GNUNET_MESSAGE_TYPE_ATS_PEER_INFORMATION);
-  msg->id = htonl(0);
+    GNUNET_break (GNUNET_NT_UNSPECIFIED != prop->scope);
+  GNUNET_assert (msize < GNUNET_MAX_MESSAGE_SIZE);
+  msg = (struct PeerInformationMessage *) buf;
+  msg->header.size = htons (msize);
+  msg->header.type = htons (GNUNET_MESSAGE_TYPE_ATS_PEER_INFORMATION);
+  msg->id = htonl (0);
   msg->peer = *peer;
-  msg->address_length = htons(plugin_addr_len);
-  msg->address_active = ntohl((uint32_t)active);
-  msg->plugin_name_length = htons(plugin_name_length);
+  msg->address_length = htons (plugin_addr_len);
+  msg->address_active = ntohl ((uint32_t) active);
+  msg->plugin_name_length = htons (plugin_name_length);
   msg->bandwidth_out = bandwidth_out;
   msg->bandwidth_in = bandwidth_in;
   if (NULL != prop)
-    GNUNET_ATS_properties_hton(&msg->properties,
-                               prop);
+    GNUNET_ATS_properties_hton (&msg->properties,
+                                prop);
   else
-    memset(&msg->properties,
-           0,
-           sizeof(struct GNUNET_ATS_Properties));
-  msg->address_local_info = htonl(local_address_info);
-  addrp = (char *)&msg[1];
-  GNUNET_memcpy(addrp, plugin_addr, plugin_addr_len);
-  strcpy(&addrp[plugin_addr_len], plugin_name);
+    memset (&msg->properties,
+            0,
+            sizeof(struct GNUNET_ATS_Properties));
+  msg->address_local_info = htonl (local_address_info);
+  addrp = (char *) &msg[1];
+  GNUNET_memcpy (addrp, plugin_addr, plugin_addr_len);
+  strcpy (&addrp[plugin_addr_len], plugin_name);
   if (NULL == client)
-    {
-      GNUNET_notification_context_broadcast(nc_pic,
-                                            &msg->header,
-                                            GNUNET_YES);
-    }
+  {
+    GNUNET_notification_context_broadcast (nc_pic,
+                                           &msg->header,
+                                           GNUNET_YES);
+  }
   else
-    {
-      struct GNUNET_MQ_Envelope *env;
+  {
+    struct GNUNET_MQ_Envelope *env;
 
-      env = GNUNET_MQ_msg_copy(&msg->header);
-      GNUNET_MQ_send(GNUNET_SERVICE_client_get_mq(client),
-                     env);
-    }
+    env = GNUNET_MQ_msg_copy (&msg->header);
+    GNUNET_MQ_send (GNUNET_SERVICE_client_get_mq (client),
+                    env);
+  }
 }
 
 
@@ -142,32 +142,35 @@ notify_client(struct GNUNET_SERVICE_Client *client,
  * @param bandwidth_in assigned inbound bandwidth
  */
 void
-GAS_performance_notify_all_clients(const struct GNUNET_PeerIdentity *peer,
-                                   const char *plugin_name,
-                                   const void *plugin_addr,
-                                   size_t plugin_addr_len,
-                                   int active,
-                                   const struct GNUNET_ATS_Properties *prop,
-                                   enum GNUNET_HELLO_AddressInfo local_address_info,
-                                   struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
-                                   struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in)
+GAS_performance_notify_all_clients (const struct GNUNET_PeerIdentity *peer,
+                                    const char *plugin_name,
+                                    const void *plugin_addr,
+                                    size_t plugin_addr_len,
+                                    int active,
+                                    const struct GNUNET_ATS_Properties *prop,
+                                    enum GNUNET_HELLO_AddressInfo
+                                    local_address_info,
+                                    struct GNUNET_BANDWIDTH_Value32NBO
+                                    bandwidth_out,
+                                    struct GNUNET_BANDWIDTH_Value32NBO
+                                    bandwidth_in)
 {
-  GNUNET_break((NULL == prop) ||
-               (GNUNET_NT_UNSPECIFIED != prop->scope));
-  notify_client(NULL,
-                peer,
-                plugin_name,
-                plugin_addr,
-                plugin_addr_len,
-                active,
-                prop,
-                local_address_info,
-                bandwidth_out,
-                bandwidth_in);
-  GNUNET_STATISTICS_update(GSA_stats,
-                           "# performance updates given to clients",
-                           1,
-                           GNUNET_NO);
+  GNUNET_break ((NULL == prop) ||
+                (GNUNET_NT_UNSPECIFIED != prop->scope));
+  notify_client (NULL,
+                 peer,
+                 plugin_name,
+                 plugin_addr,
+                 plugin_addr_len,
+                 active,
+                 prop,
+                 local_address_info,
+                 bandwidth_out,
+                 bandwidth_in);
+  GNUNET_STATISTICS_update (GSA_stats,
+                            "# performance updates given to clients",
+                            1,
+                            GNUNET_NO);
 }
 
 
@@ -186,38 +189,38 @@ GAS_performance_notify_all_clients(const struct GNUNET_PeerIdentity *peer,
  * @param bandwidth_in current inbound bandwidth assigned to address
  */
 static void
-peerinfo_it(void *cls,
-            const struct GNUNET_PeerIdentity *id,
-            const char *plugin_name,
-            const void *plugin_addr,
-            size_t plugin_addr_len,
-            int active,
-            const struct GNUNET_ATS_Properties *prop,
-            enum GNUNET_HELLO_AddressInfo local_address_info,
-            struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
-            struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in)
+peerinfo_it (void *cls,
+             const struct GNUNET_PeerIdentity *id,
+             const char *plugin_name,
+             const void *plugin_addr,
+             size_t plugin_addr_len,
+             int active,
+             const struct GNUNET_ATS_Properties *prop,
+             enum GNUNET_HELLO_AddressInfo local_address_info,
+             struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
+             struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in)
 {
   struct GNUNET_SERVICE_Client *client = cls;
 
   if (NULL == id)
     return;
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-             "Callback for peer `%s' plugin `%s' BW out %u, BW in %u \n",
-             GNUNET_i2s(id),
-             plugin_name,
-             (unsigned int)ntohl(bandwidth_out.value__),
-             (unsigned int)ntohl(bandwidth_in.value__));
-  GNUNET_break(GNUNET_NT_UNSPECIFIED != prop->scope);
-  notify_client(client,
-                id,
-                plugin_name,
-                plugin_addr,
-                plugin_addr_len,
-                active,
-                prop,
-                local_address_info,
-                bandwidth_out,
-                bandwidth_in);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Callback for peer `%s' plugin `%s' BW out %u, BW in %u \n",
+              GNUNET_i2s (id),
+              plugin_name,
+              (unsigned int) ntohl (bandwidth_out.value__),
+              (unsigned int) ntohl (bandwidth_in.value__));
+  GNUNET_break (GNUNET_NT_UNSPECIFIED != prop->scope);
+  notify_client (client,
+                 id,
+                 plugin_name,
+                 plugin_addr,
+                 plugin_addr_len,
+                 active,
+                 prop,
+                 local_address_info,
+                 bandwidth_out,
+                 bandwidth_in);
 }
 
 
@@ -228,25 +231,25 @@ peerinfo_it(void *cls,
  * @param flag flag specifying the type of the client
  */
 void
-GAS_performance_add_client(struct GNUNET_SERVICE_Client *client,
-                           enum StartFlag flag)
+GAS_performance_add_client (struct GNUNET_SERVICE_Client *client,
+                            enum StartFlag flag)
 {
   struct GNUNET_MQ_Handle *mq;
 
-  mq = GNUNET_SERVICE_client_get_mq(client);
+  mq = GNUNET_SERVICE_client_get_mq (client);
   if (START_FLAG_PERFORMANCE_WITH_PIC == flag)
-    {
-      GNUNET_notification_context_add(nc_pic,
-                                      mq);
-      GAS_addresses_get_peer_info(NULL,
-                                  &peerinfo_it,
-                                  client);
-    }
+  {
+    GNUNET_notification_context_add (nc_pic,
+                                     mq);
+    GAS_addresses_get_peer_info (NULL,
+                                 &peerinfo_it,
+                                 client);
+  }
   else
-    {
-      GNUNET_notification_context_add(nc_no_pic,
-                                      mq);
-    }
+  {
+    GNUNET_notification_context_add (nc_no_pic,
+                                     mq);
+  }
 }
 
 
@@ -256,10 +259,10 @@ GAS_performance_add_client(struct GNUNET_SERVICE_Client *client,
  * @param server handle to our server
  */
 void
-GAS_performance_init()
+GAS_performance_init ()
 {
-  nc_no_pic = GNUNET_notification_context_create(32);
-  nc_pic = GNUNET_notification_context_create(32);
+  nc_no_pic = GNUNET_notification_context_create (32);
+  nc_pic = GNUNET_notification_context_create (32);
 }
 
 
@@ -267,11 +270,11 @@ GAS_performance_init()
  * Shutdown performance subsystem.
  */
 void
-GAS_performance_done()
+GAS_performance_done ()
 {
-  GNUNET_notification_context_destroy(nc_no_pic);
+  GNUNET_notification_context_destroy (nc_no_pic);
   nc_no_pic = NULL;
-  GNUNET_notification_context_destroy(nc_pic);
+  GNUNET_notification_context_destroy (nc_pic);
   nc_pic = NULL;
 }
 

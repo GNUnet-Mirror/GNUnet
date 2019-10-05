@@ -43,7 +43,7 @@
 /**
  * Time to wait before stopping NAT, in seconds
  */
-#define TIMEOUT GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 5)
+#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
 
 
 /**
@@ -51,15 +51,15 @@
  * believes to be valid for the transport.
  */
 static void
-addr_callback(void *cls, int add_remove, const struct sockaddr *addr,
-              socklen_t addrlen)
+addr_callback (void *cls, int add_remove, const struct sockaddr *addr,
+               socklen_t addrlen)
 {
-  GNUNET_log(GNUNET_ERROR_TYPE_INFO,
-             "Address changed: %s `%s' (%u bytes)\n",
-             add_remove == GNUNET_YES ? "added" : "removed",
-             GNUNET_a2s(addr,
-                        addrlen),
-             (unsigned int)addrlen);
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "Address changed: %s `%s' (%u bytes)\n",
+              add_remove == GNUNET_YES ? "added" : "removed",
+              GNUNET_a2s (addr,
+                          addrlen),
+              (unsigned int) addrlen);
 }
 
 
@@ -67,17 +67,18 @@ addr_callback(void *cls, int add_remove, const struct sockaddr *addr,
  * Function that terminates the test.
  */
 static void
-stop(void *cls)
+stop (void *cls)
 {
   struct GNUNET_NAT_Handle *nat = cls;
 
-  GNUNET_log(GNUNET_ERROR_TYPE_INFO,
-             "Stopping NAT and quitting...\n");
-  GNUNET_NAT_unregister(nat);
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "Stopping NAT and quitting...\n");
+  GNUNET_NAT_unregister (nat);
 }
 
 
-struct addr_cls {
+struct addr_cls
+{
   struct sockaddr *addr;
   socklen_t addrlen;
 };
@@ -95,21 +96,21 @@ struct addr_cls {
  * @return #GNUNET_OK to continue iterating
  */
 static int
-process_if(void *cls,
-           const char *name,
-           int isDefault,
-           const struct sockaddr *addr,
-           const struct sockaddr *broadcast_addr,
-           const struct sockaddr *netmask,
-           socklen_t addrlen)
+process_if (void *cls,
+            const char *name,
+            int isDefault,
+            const struct sockaddr *addr,
+            const struct sockaddr *broadcast_addr,
+            const struct sockaddr *netmask,
+            socklen_t addrlen)
 {
   struct addr_cls *data = cls;
 
   if (addr == NULL)
     return GNUNET_OK;
-  GNUNET_free_non_null(data->addr);
-  data->addr = GNUNET_malloc(addrlen);
-  GNUNET_memcpy(data->addr, addr, addrlen);
+  GNUNET_free_non_null (data->addr);
+  data->addr = GNUNET_malloc (addrlen);
+  GNUNET_memcpy (data->addr, addr, addrlen);
   data->addrlen = addrlen;
   if (isDefault)
     return GNUNET_SYSERR;
@@ -121,44 +122,44 @@ process_if(void *cls,
  * Main function run with scheduler.
  */
 static void
-run(void *cls,
-    char *const *args,
-    const char *cfgfile,
-    const struct GNUNET_CONFIGURATION_Handle *cfg)
+run (void *cls,
+     char *const *args,
+     const char *cfgfile,
+     const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   struct GNUNET_NAT_Handle *nat;
   struct addr_cls data;
   struct sockaddr *addr;
 
   data.addr = NULL;
-  GNUNET_OS_network_interfaces_list(process_if, &data);
+  GNUNET_OS_network_interfaces_list (process_if, &data);
   if (NULL == data.addr)
-    {
-      GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
-                 "Could not find a valid interface address!\n");
-      exit(77); /* marks test as skipped */
-    }
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Could not find a valid interface address!\n");
+    exit (77);  /* marks test as skipped */
+  }
   addr = data.addr;
-  GNUNET_assert(addr->sa_family == AF_INET || addr->sa_family == AF_INET6);
+  GNUNET_assert (addr->sa_family == AF_INET || addr->sa_family == AF_INET6);
   if (addr->sa_family == AF_INET)
-    ((struct sockaddr_in *)addr)->sin_port = htons(2086);
+    ((struct sockaddr_in *) addr)->sin_port = htons (2086);
   else
-    ((struct sockaddr_in6 *)addr)->sin6_port = htons(2086);
+    ((struct sockaddr_in6 *) addr)->sin6_port = htons (2086);
 
-  GNUNET_log(GNUNET_ERROR_TYPE_INFO,
-             "Requesting NAT redirection from address %s...\n",
-             GNUNET_a2s(addr, data.addrlen));
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "Requesting NAT redirection from address %s...\n",
+              GNUNET_a2s (addr, data.addrlen));
 
-  nat = GNUNET_NAT_register(cfg, GNUNET_YES /* tcp */,
-                            2086, 1, (const struct sockaddr **)&addr,
-                            &data.addrlen, &addr_callback, NULL, NULL, NULL);
-  GNUNET_free(addr);
-  GNUNET_SCHEDULER_add_delayed(TIMEOUT, &stop, nat);
+  nat = GNUNET_NAT_register (cfg, GNUNET_YES /* tcp */,
+                             2086, 1, (const struct sockaddr **) &addr,
+                             &data.addrlen, &addr_callback, NULL, NULL, NULL);
+  GNUNET_free (addr);
+  GNUNET_SCHEDULER_add_delayed (TIMEOUT, &stop, nat);
 }
 
 
 int
-main(int argc, char *const argv[])
+main (int argc, char *const argv[])
 {
   struct GNUNET_GETOPT_CommandLineOption options[] = {
     GNUNET_GETOPT_OPTION_END
@@ -171,19 +172,19 @@ main(int argc, char *const argv[])
     NULL
   };
 
-  GNUNET_log_setup("test-nat",
-                   "WARNING",
-                   NULL);
-  GNUNET_log(GNUNET_ERROR_TYPE_INFO,
-             "Testing NAT library, timeout set to %s\n",
-             GNUNET_STRINGS_relative_time_to_string(TIMEOUT,
-                                                    GNUNET_YES));
-  GNUNET_PROGRAM_run(3,
-                     argv_prog,
-                     "test-nat",
-                     "nohelp",
-                     options,
-                     &run, NULL);
+  GNUNET_log_setup ("test-nat",
+                    "WARNING",
+                    NULL);
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "Testing NAT library, timeout set to %s\n",
+              GNUNET_STRINGS_relative_time_to_string (TIMEOUT,
+                                                      GNUNET_YES));
+  GNUNET_PROGRAM_run (3,
+                      argv_prog,
+                      "test-nat",
+                      "nohelp",
+                      options,
+                      &run, NULL);
   return 0;
 }
 

@@ -31,13 +31,14 @@
 #include "consensus.h"
 
 
-#define LOG(kind, ...) GNUNET_log_from(kind, "consensus-api", __VA_ARGS__)
+#define LOG(kind, ...) GNUNET_log_from (kind, "consensus-api", __VA_ARGS__)
 
 
 /**
  * Handle for the service.
  */
-struct GNUNET_CONSENSUS_Handle {
+struct GNUNET_CONSENSUS_Handle
+{
   /**
    * Configuration to use.
    */
@@ -89,7 +90,8 @@ struct GNUNET_CONSENSUS_Handle {
  * FIXME: this should not bee necessary when the API
  * issue has been fixed
  */
-struct InsertDoneInfo {
+struct InsertDoneInfo
+{
   GNUNET_CONSENSUS_InsertDoneCallback idc;
   void *cls;
 };
@@ -102,8 +104,8 @@ struct InsertDoneInfo {
  * @param msg element message
  */
 static int
-check_new_element(void *cls,
-                  const struct GNUNET_CONSENSUS_ElementMessage *msg)
+check_new_element (void *cls,
+                   const struct GNUNET_CONSENSUS_ElementMessage *msg)
 {
   /* any size is fine, elements are variable-size */
   return GNUNET_OK;
@@ -117,19 +119,20 @@ check_new_element(void *cls,
  * @param msg element message
  */
 static void
-handle_new_element(void *cls,
-                   const struct GNUNET_CONSENSUS_ElementMessage *msg)
+handle_new_element (void *cls,
+                    const struct GNUNET_CONSENSUS_ElementMessage *msg)
 {
   struct GNUNET_CONSENSUS_Handle *consensus = cls;
   struct GNUNET_SET_Element element;
 
-  LOG(GNUNET_ERROR_TYPE_DEBUG,
-      "received new element\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "received new element\n");
   element.element_type = msg->element_type;
-  element.size = ntohs(msg->header.size) - sizeof(struct GNUNET_CONSENSUS_ElementMessage);
+  element.size = ntohs (msg->header.size) - sizeof(struct
+                                                   GNUNET_CONSENSUS_ElementMessage);
   element.data = &msg[1];
-  consensus->new_element_cb(consensus->new_element_cls,
-                            &element);
+  consensus->new_element_cb (consensus->new_element_cls,
+                             &element);
 }
 
 
@@ -141,17 +144,17 @@ handle_new_element(void *cls,
  * @param msg conclude done message
  */
 static void
-handle_conclude_done(void *cls,
-                     const struct GNUNET_MessageHeader *msg)
+handle_conclude_done (void *cls,
+                      const struct GNUNET_MessageHeader *msg)
 {
   struct GNUNET_CONSENSUS_Handle *consensus = cls;
   GNUNET_CONSENSUS_ConcludeCallback cc;
 
-  GNUNET_MQ_destroy(consensus->mq);
+  GNUNET_MQ_destroy (consensus->mq);
   consensus->mq = NULL;
-  GNUNET_assert(NULL != (cc = consensus->conclude_cb));
+  GNUNET_assert (NULL != (cc = consensus->conclude_cb));
   consensus->conclude_cb = NULL;
-  cc(consensus->conclude_cls);
+  cc (consensus->conclude_cls);
 }
 
 
@@ -165,11 +168,11 @@ handle_conclude_done(void *cls,
  * @param error error code
  */
 static void
-mq_error_handler(void *cls,
-                 enum GNUNET_MQ_Error error)
+mq_error_handler (void *cls,
+                  enum GNUNET_MQ_Error error)
 {
-  LOG(GNUNET_ERROR_TYPE_WARNING,
-      "consensus service disconnected us\n");
+  LOG (GNUNET_ERROR_TYPE_WARNING,
+       "consensus service disconnected us\n");
 }
 
 
@@ -191,27 +194,27 @@ mq_error_handler(void *cls,
  * @return handle to use, NULL on error
  */
 struct GNUNET_CONSENSUS_Handle *
-GNUNET_CONSENSUS_create(const struct GNUNET_CONFIGURATION_Handle *cfg,
-                        unsigned int num_peers,
-                        const struct GNUNET_PeerIdentity *peers,
-                        const struct GNUNET_HashCode *session_id,
-                        struct GNUNET_TIME_Absolute start,
-                        struct GNUNET_TIME_Absolute deadline,
-                        GNUNET_CONSENSUS_ElementCallback new_element_cb,
-                        void *new_element_cls)
+GNUNET_CONSENSUS_create (const struct GNUNET_CONFIGURATION_Handle *cfg,
+                         unsigned int num_peers,
+                         const struct GNUNET_PeerIdentity *peers,
+                         const struct GNUNET_HashCode *session_id,
+                         struct GNUNET_TIME_Absolute start,
+                         struct GNUNET_TIME_Absolute deadline,
+                         GNUNET_CONSENSUS_ElementCallback new_element_cb,
+                         void *new_element_cls)
 {
   struct GNUNET_CONSENSUS_Handle *consensus
-    = GNUNET_new(struct GNUNET_CONSENSUS_Handle);
+    = GNUNET_new (struct GNUNET_CONSENSUS_Handle);
   struct GNUNET_MQ_MessageHandler mq_handlers[] = {
-    GNUNET_MQ_hd_var_size(new_element,
-                          GNUNET_MESSAGE_TYPE_CONSENSUS_CLIENT_RECEIVED_ELEMENT,
-                          struct GNUNET_CONSENSUS_ElementMessage,
-                          consensus),
-    GNUNET_MQ_hd_fixed_size(conclude_done,
-                            GNUNET_MESSAGE_TYPE_CONSENSUS_CLIENT_CONCLUDE_DONE,
-                            struct GNUNET_MessageHeader,
-                            consensus),
-    GNUNET_MQ_handler_end()
+    GNUNET_MQ_hd_var_size (new_element,
+                           GNUNET_MESSAGE_TYPE_CONSENSUS_CLIENT_RECEIVED_ELEMENT,
+                           struct GNUNET_CONSENSUS_ElementMessage,
+                           consensus),
+    GNUNET_MQ_hd_fixed_size (conclude_done,
+                             GNUNET_MESSAGE_TYPE_CONSENSUS_CLIENT_CONCLUDE_DONE,
+                             struct GNUNET_MessageHeader,
+                             consensus),
+    GNUNET_MQ_handler_end ()
   };
   struct GNUNET_CONSENSUS_JoinMessage *join_msg;
   struct GNUNET_MQ_Envelope *ev;
@@ -220,40 +223,40 @@ GNUNET_CONSENSUS_create(const struct GNUNET_CONFIGURATION_Handle *cfg,
   consensus->new_element_cb = new_element_cb;
   consensus->new_element_cls = new_element_cls;
   consensus->session_id = *session_id;
-  consensus->mq = GNUNET_CLIENT_connect(cfg,
-                                        "consensus",
-                                        mq_handlers,
-                                        &mq_error_handler,
-                                        consensus);
+  consensus->mq = GNUNET_CLIENT_connect (cfg,
+                                         "consensus",
+                                         mq_handlers,
+                                         &mq_error_handler,
+                                         consensus);
   if (NULL == consensus->mq)
-    {
-      GNUNET_free(consensus);
-      return NULL;
-    }
-  ev = GNUNET_MQ_msg_extra(join_msg,
-                           (num_peers * sizeof(struct GNUNET_PeerIdentity)),
-                           GNUNET_MESSAGE_TYPE_CONSENSUS_CLIENT_JOIN);
+  {
+    GNUNET_free (consensus);
+    return NULL;
+  }
+  ev = GNUNET_MQ_msg_extra (join_msg,
+                            (num_peers * sizeof(struct GNUNET_PeerIdentity)),
+                            GNUNET_MESSAGE_TYPE_CONSENSUS_CLIENT_JOIN);
 
   join_msg->session_id = consensus->session_id;
-  join_msg->start = GNUNET_TIME_absolute_hton(start);
-  join_msg->deadline = GNUNET_TIME_absolute_hton(deadline);
-  join_msg->num_peers = htonl(num_peers);
-  GNUNET_memcpy(&join_msg[1],
-                peers,
-                num_peers * sizeof(struct GNUNET_PeerIdentity));
+  join_msg->start = GNUNET_TIME_absolute_hton (start);
+  join_msg->deadline = GNUNET_TIME_absolute_hton (deadline);
+  join_msg->num_peers = htonl (num_peers);
+  GNUNET_memcpy (&join_msg[1],
+                 peers,
+                 num_peers * sizeof(struct GNUNET_PeerIdentity));
 
-  GNUNET_MQ_send(consensus->mq, ev);
+  GNUNET_MQ_send (consensus->mq, ev);
   return consensus;
 }
 
 
 static void
-idc_adapter(void *cls)
+idc_adapter (void *cls)
 {
   struct InsertDoneInfo *i = cls;
 
-  i->idc(i->cls, GNUNET_OK);
-  GNUNET_free(i);
+  i->idc (i->cls, GNUNET_OK);
+  GNUNET_free (i);
 }
 
 /**
@@ -267,30 +270,30 @@ idc_adapter(void *cls)
  * @param idc_cls closure for 'idc'
  */
 void
-GNUNET_CONSENSUS_insert(struct GNUNET_CONSENSUS_Handle *consensus,
-                        const struct GNUNET_SET_Element *element,
-                        GNUNET_CONSENSUS_InsertDoneCallback idc,
-                        void *idc_cls)
+GNUNET_CONSENSUS_insert (struct GNUNET_CONSENSUS_Handle *consensus,
+                         const struct GNUNET_SET_Element *element,
+                         GNUNET_CONSENSUS_InsertDoneCallback idc,
+                         void *idc_cls)
 {
   struct GNUNET_CONSENSUS_ElementMessage *element_msg;
   struct GNUNET_MQ_Envelope *ev;
   struct InsertDoneInfo *i;
 
-  LOG(GNUNET_ERROR_TYPE_DEBUG, "inserting, size=%llu\n", element->size);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "inserting, size=%llu\n", element->size);
 
-  ev = GNUNET_MQ_msg_extra(element_msg, element->size,
-                           GNUNET_MESSAGE_TYPE_CONSENSUS_CLIENT_INSERT);
+  ev = GNUNET_MQ_msg_extra (element_msg, element->size,
+                            GNUNET_MESSAGE_TYPE_CONSENSUS_CLIENT_INSERT);
 
-  GNUNET_memcpy(&element_msg[1], element->data, element->size);
+  GNUNET_memcpy (&element_msg[1], element->data, element->size);
 
   if (NULL != idc)
-    {
-      i = GNUNET_new(struct InsertDoneInfo);
-      i->idc = idc;
-      i->cls = idc_cls;
-      GNUNET_MQ_notify_sent(ev, idc_adapter, i);
-    }
-  GNUNET_MQ_send(consensus->mq, ev);
+  {
+    i = GNUNET_new (struct InsertDoneInfo);
+    i->idc = idc;
+    i->cls = idc_cls;
+    GNUNET_MQ_notify_sent (ev, idc_adapter, i);
+  }
+  GNUNET_MQ_send (consensus->mq, ev);
 }
 
 
@@ -307,20 +310,20 @@ GNUNET_CONSENSUS_insert(struct GNUNET_CONSENSUS_Handle *consensus,
  * @param conclude_cls closure for the conclude callback
  */
 void
-GNUNET_CONSENSUS_conclude(struct GNUNET_CONSENSUS_Handle *consensus,
-                          GNUNET_CONSENSUS_ConcludeCallback conclude,
-                          void *conclude_cls)
+GNUNET_CONSENSUS_conclude (struct GNUNET_CONSENSUS_Handle *consensus,
+                           GNUNET_CONSENSUS_ConcludeCallback conclude,
+                           void *conclude_cls)
 {
   struct GNUNET_MQ_Envelope *ev;
 
-  GNUNET_assert(NULL != conclude);
-  GNUNET_assert(NULL == consensus->conclude_cb);
+  GNUNET_assert (NULL != conclude);
+  GNUNET_assert (NULL == consensus->conclude_cb);
 
   consensus->conclude_cls = conclude_cls;
   consensus->conclude_cb = conclude;
 
-  ev = GNUNET_MQ_msg_header(GNUNET_MESSAGE_TYPE_CONSENSUS_CLIENT_CONCLUDE);
-  GNUNET_MQ_send(consensus->mq, ev);
+  ev = GNUNET_MQ_msg_header (GNUNET_MESSAGE_TYPE_CONSENSUS_CLIENT_CONCLUDE);
+  GNUNET_MQ_send (consensus->mq, ev);
 }
 
 
@@ -331,14 +334,14 @@ GNUNET_CONSENSUS_conclude(struct GNUNET_CONSENSUS_Handle *consensus,
  * @param consensus handle to destroy
  */
 void
-GNUNET_CONSENSUS_destroy(struct GNUNET_CONSENSUS_Handle *consensus)
+GNUNET_CONSENSUS_destroy (struct GNUNET_CONSENSUS_Handle *consensus)
 {
   if (NULL != consensus->mq)
-    {
-      GNUNET_MQ_destroy(consensus->mq);
-      consensus->mq = NULL;
-    }
-  GNUNET_free(consensus);
+  {
+    GNUNET_MQ_destroy (consensus->mq);
+    consensus->mq = NULL;
+  }
+  GNUNET_free (consensus);
 }
 
 /* end of consensus_api.c */

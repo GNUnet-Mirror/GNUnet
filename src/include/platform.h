@@ -178,11 +178,11 @@
 /**
  * GNU gettext support macro.
  */
-#define _(String) dgettext(PACKAGE, String)
+#define _(String) dgettext (PACKAGE, String)
 #define LIBEXTRACTOR_GETTEXT_DOMAIN "libextractor"
 #else
 #include "libintlemu.h"
-#define _(String) dgettext("org.gnunet.gnunet", String)
+#define _(String) dgettext ("org.gnunet.gnunet", String)
 #define LIBEXTRACTOR_GETTEXT_DOMAIN "org.gnunet.libextractor"
 #endif
 
@@ -202,9 +202,9 @@
 #endif
 
 
-#if !HAVE_ATOLL
+#if ! HAVE_ATOLL
 long long
-atoll(const char *nptr);
+atoll (const char *nptr);
 #endif
 
 #if ENABLE_NLS
@@ -212,7 +212,7 @@ atoll(const char *nptr);
 #endif
 
 #ifndef SIZE_MAX
-#define SIZE_MAX ((size_t)(-1))
+#define SIZE_MAX ((size_t) (-1))
 #endif
 
 #ifndef O_LARGEFILE
@@ -228,7 +228,9 @@ atoll(const char *nptr);
 
 
 #if defined(__sparc__)
-#define MAKE_UNALIGNED(val) ({ __typeof__((val)) __tmp; memmove(&__tmp, &(val), sizeof((val))); __tmp; })
+#define MAKE_UNALIGNED(val) ({ __typeof__((val)) __tmp; memmove (&__tmp, &(val), \
+                                                                 sizeof((val))); \
+                               __tmp; })
 #else
 #define MAKE_UNALIGNED(val) val
 #endif
@@ -258,7 +260,7 @@ atoll(const char *nptr);
 /**
  * clang et al do not have such an attribute
  */
-#if __has_attribute(__nonstring__)
+#if __has_attribute (__nonstring__)
 # define __nonstring                    __attribute__((__nonstring__))
 #else
 # define __nonstring

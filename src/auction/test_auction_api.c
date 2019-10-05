@@ -24,17 +24,17 @@
 #include "platform.h"
 
 static int
-check()
+check ()
 {
   return 0;
 }
 
 int
-main(int argc, char *argv[])
+main (int argc, char *argv[])
 {
   int ret;
 
-  ret = check();
+  ret = check ();
 
   return ret;
 }

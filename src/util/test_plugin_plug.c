@@ -24,18 +24,18 @@
 #include "platform.h"
 
 void *
-libgnunet_plugin_test_init(void *arg)
+libgnunet_plugin_test_init (void *arg)
 {
-  if (0 == strcmp(arg, "in"))
+  if (0 == strcmp (arg, "in"))
     return "Hello";
   return NULL;
 }
 
 void *
-libgnunet_plugin_test_done(void *arg)
+libgnunet_plugin_test_done (void *arg)
 {
-  if (0 == strcmp(arg, "out"))
-    return strdup("World");
+  if (0 == strcmp (arg, "out"))
+    return strdup ("World");
   return NULL;
 }
 

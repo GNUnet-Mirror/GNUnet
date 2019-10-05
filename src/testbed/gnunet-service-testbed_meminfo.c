@@ -49,15 +49,15 @@
   "  In the meantime, run \"mount proc /proc -t proc\"\n"
 
 #define STAT_FILE    "/proc/stat"
-//static int stat_fd = -1;
+// static int stat_fd = -1;
 #define UPTIME_FILE  "/proc/uptime"
-//static int uptime_fd = -1;
+// static int uptime_fd = -1;
 #define LOADAVG_FILE "/proc/loadavg"
-//static int loadavg_fd = -1;
+// static int loadavg_fd = -1;
 #define MEMINFO_FILE "/proc/meminfo"
 static int meminfo_fd = -1;
 #define VMINFO_FILE "/proc/vmstat"
-//static int vminfo_fd = -1;
+// static int vminfo_fd = -1;
 
 // As of 2.6.24 /proc/meminfo seems to need 888 on 64-bit,
 // and would need 1258 if the obsolete fields were there.
@@ -68,20 +68,20 @@ static char buf[2048];
  * It also reads the current contents of the file into the global buf.
  */
 #define FILE_TO_BUF(filename, fd) do {                           \
-      static int local_n;                                         \
-      if (fd == -1 && (fd = open(filename, O_RDONLY)) == -1) {    \
-          fputs(BAD_OPEN_MESSAGE, stderr);                        \
-          fflush(NULL);                                           \
-          _exit(102);                                             \
-        }                                                           \
-      lseek(fd, 0L, SEEK_SET);                                    \
-      if ((local_n = read(fd, buf, sizeof buf - 1)) < 0) {        \
-          perror(filename);                                       \
-          fflush(NULL);                                           \
-          _exit(103);                                             \
-        }                                                           \
-      buf[local_n] = '\0';                                        \
-  } while (0)
+    static int local_n;                                         \
+    if (fd == -1 && (fd = open (filename, O_RDONLY)) == -1) {    \
+      fputs (BAD_OPEN_MESSAGE, stderr);                        \
+      fflush (NULL);                                           \
+      _exit (102);                                             \
+    }                                                           \
+    lseek (fd, 0L, SEEK_SET);                                    \
+    if ((local_n = read (fd, buf, sizeof buf - 1)) < 0) {        \
+      perror (filename);                                       \
+      fflush (NULL);                                           \
+      _exit (103);                                             \
+    }                                                           \
+    buf[local_n] = '\0';                                        \
+} while (0)
 
 
 /***********************************************************************/
@@ -96,14 +96,17 @@ static char buf[2048];
  * GNU Library General Public License for more details.
  */
 
-typedef struct mem_table_struct {
+typedef struct mem_table_struct
+{
   const char *name;     /* memory type name */
   unsigned long *slot; /* slot in return struct */
 } mem_table_struct;
 
-static int compare_mem_table_structs(const void *a, const void *b)
+static int compare_mem_table_structs (const void *a, const void *b)
 {
-  return strcmp(((const mem_table_struct*)a)->name, ((const mem_table_struct*)b)->name);
+  return strcmp (((const mem_table_struct*) a)->name, ((const
+                                                        mem_table_struct*) b)->
+                 name);
 }
 
 /* example data, following junk, with comments added:
@@ -183,7 +186,7 @@ static unsigned long kb_nfs_unstable;
 static unsigned long kb_swap_reclaimable;
 static unsigned long kb_swap_unreclaimable;
 
-void meminfo(void)
+void meminfo (void)
 {
   char namebuf[16]; /* big enough to hold any row name */
   mem_table_struct findme = { namebuf, NULL };
@@ -228,45 +231,45 @@ void meminfo(void)
   };
   const int mem_table_count = sizeof(mem_table) / sizeof(mem_table_struct);
 
-  FILE_TO_BUF(MEMINFO_FILE, meminfo_fd);
+  FILE_TO_BUF (MEMINFO_FILE, meminfo_fd);
 
   kb_inactive = ~0UL;
 
   head = buf;
   for (;;)
+  {
+    tail = strchr (head, ':');
+    if (! tail)
+      break;
+    *tail = '\0';
+    if (strlen (head) >= sizeof(namebuf))
     {
-      tail = strchr(head, ':');
-      if (!tail)
-        break;
-      *tail = '\0';
-      if (strlen(head) >= sizeof(namebuf))
-        {
-          head = tail + 1;
-          goto nextline;
-        }
-      strcpy(namebuf, head);
-      found = bsearch(&findme, mem_table, mem_table_count,
-                      sizeof(mem_table_struct), compare_mem_table_structs
-                      );
       head = tail + 1;
-      if (!found)
-        goto nextline;
-      *(found->slot) = (unsigned long)strtoull(head, &tail, 10);
+      goto nextline;
+    }
+    strcpy (namebuf, head);
+    found = bsearch (&findme, mem_table, mem_table_count,
+                     sizeof(mem_table_struct), compare_mem_table_structs
+                     );
+    head = tail + 1;
+    if (! found)
+      goto nextline;
+    *(found->slot) = (unsigned long) strtoull (head, &tail, 10);
 nextline:
-      tail = strchr(head, '\n');
-      if (!tail)
-        break;
-      head = tail + 1;
-    }
-  if (!kb_low_total)   /* low==main except with large-memory support */
-    {
-      kb_low_total = kb_main_total;
-      kb_low_free = kb_main_free;
-    }
+    tail = strchr (head, '\n');
+    if (! tail)
+      break;
+    head = tail + 1;
+  }
+  if (! kb_low_total)   /* low==main except with large-memory support */
+  {
+    kb_low_total = kb_main_total;
+    kb_low_free = kb_main_free;
+  }
   if (kb_inactive == ~0UL)
-    {
-      kb_inactive = kb_inact_dirty + kb_inact_clean + kb_inact_laundry;
-    }
+  {
+    kb_inactive = kb_inact_dirty + kb_inact_clean + kb_inact_laundry;
+  }
   kb_swap_used = kb_swap_total - kb_swap_free;
   kb_main_used = kb_main_total - kb_main_free;
 }

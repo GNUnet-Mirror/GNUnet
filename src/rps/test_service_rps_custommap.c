@@ -24,102 +24,103 @@
 #include <platform.h>
 #include "gnunet-service-rps_custommap.h"
 
-#define ABORT() { fprintf(stderr, "Error at %s:%d\n", __FILE__, __LINE__); if (NULL != c_m) CustomPeerMap_destroy (c_m); return 1; }
-#define CHECK(c) { if (!(c)) ABORT (); }
+#define ABORT() { fprintf (stderr, "Error at %s:%d\n", __FILE__, __LINE__); \
+                  if (NULL != c_m) CustomPeerMap_destroy (c_m); return 1; }
+#define CHECK(c) { if (! (c)) ABORT (); }
 
 
 static int
-check()
+check ()
 {
   struct CustomPeerMap *c_m;
   struct GNUNET_PeerIdentity k1;
   struct GNUNET_PeerIdentity k2;
   int j;
 
-  CHECK(NULL != (c_m = CustomPeerMap_create(4)));
-  memset(&k1, 0, sizeof(k1));
-  memset(&k2, 1, sizeof(k2));
-  CHECK(GNUNET_NO == CustomPeerMap_contains_peer(c_m, &k1));
-  CHECK(GNUNET_NO == CustomPeerMap_contains_peer(c_m, &k2));
-  CHECK(GNUNET_NO == CustomPeerMap_remove_peer(c_m, &k1));
-  CHECK(GNUNET_NO == CustomPeerMap_remove_peer(c_m, &k2));
-  CHECK(GNUNET_NO == CustomPeerMap_remove_peer_by_index(c_m, 0));
-  CHECK(GNUNET_NO == CustomPeerMap_remove_peer_by_index(c_m, 0));
-  CHECK(GNUNET_NO == CustomPeerMap_remove_peer_by_index(c_m, 1));
-  CHECK(GNUNET_NO == CustomPeerMap_remove_peer_by_index(c_m, 1));
-  CHECK(NULL == CustomPeerMap_get_peer_by_index(c_m, 0));
-  CHECK(NULL == CustomPeerMap_get_peer_by_index(c_m, 0));
-  CHECK(NULL == CustomPeerMap_get_peer_by_index(c_m, 1));
-  CHECK(NULL == CustomPeerMap_get_peer_by_index(c_m, 1));
-  CustomPeerMap_clear(c_m);  /* See if assertions trigger */
-  CHECK(0 == CustomPeerMap_size(c_m));
+  CHECK (NULL != (c_m = CustomPeerMap_create (4)));
+  memset (&k1, 0, sizeof(k1));
+  memset (&k2, 1, sizeof(k2));
+  CHECK (GNUNET_NO == CustomPeerMap_contains_peer (c_m, &k1));
+  CHECK (GNUNET_NO == CustomPeerMap_contains_peer (c_m, &k2));
+  CHECK (GNUNET_NO == CustomPeerMap_remove_peer (c_m, &k1));
+  CHECK (GNUNET_NO == CustomPeerMap_remove_peer (c_m, &k2));
+  CHECK (GNUNET_NO == CustomPeerMap_remove_peer_by_index (c_m, 0));
+  CHECK (GNUNET_NO == CustomPeerMap_remove_peer_by_index (c_m, 0));
+  CHECK (GNUNET_NO == CustomPeerMap_remove_peer_by_index (c_m, 1));
+  CHECK (GNUNET_NO == CustomPeerMap_remove_peer_by_index (c_m, 1));
+  CHECK (NULL == CustomPeerMap_get_peer_by_index (c_m, 0));
+  CHECK (NULL == CustomPeerMap_get_peer_by_index (c_m, 0));
+  CHECK (NULL == CustomPeerMap_get_peer_by_index (c_m, 1));
+  CHECK (NULL == CustomPeerMap_get_peer_by_index (c_m, 1));
+  CustomPeerMap_clear (c_m);  /* See if assertions trigger */
+  CHECK (0 == CustomPeerMap_size (c_m));
 
-  CHECK(GNUNET_OK == CustomPeerMap_put(c_m, &k1));
-  CHECK(1 == CustomPeerMap_size(c_m));
-  CHECK(GNUNET_NO == CustomPeerMap_put(c_m, &k1));
-  CHECK(1 == CustomPeerMap_size(c_m));
-  CHECK(GNUNET_YES == CustomPeerMap_contains_peer(c_m, &k1));
-  CHECK(GNUNET_OK == CustomPeerMap_remove_peer(c_m, &k1));
-  CHECK(0 == CustomPeerMap_size(c_m));
-  CHECK(GNUNET_NO == CustomPeerMap_contains_peer(c_m, &k1));
-  CHECK(GNUNET_NO == CustomPeerMap_contains_peer(c_m, &k2));
+  CHECK (GNUNET_OK == CustomPeerMap_put (c_m, &k1));
+  CHECK (1 == CustomPeerMap_size (c_m));
+  CHECK (GNUNET_NO == CustomPeerMap_put (c_m, &k1));
+  CHECK (1 == CustomPeerMap_size (c_m));
+  CHECK (GNUNET_YES == CustomPeerMap_contains_peer (c_m, &k1));
+  CHECK (GNUNET_OK == CustomPeerMap_remove_peer (c_m, &k1));
+  CHECK (0 == CustomPeerMap_size (c_m));
+  CHECK (GNUNET_NO == CustomPeerMap_contains_peer (c_m, &k1));
+  CHECK (GNUNET_NO == CustomPeerMap_contains_peer (c_m, &k2));
 
-  CHECK(GNUNET_OK == CustomPeerMap_put(c_m, &k1));
-  CHECK(1 == CustomPeerMap_size(c_m));
+  CHECK (GNUNET_OK == CustomPeerMap_put (c_m, &k1));
+  CHECK (1 == CustomPeerMap_size (c_m));
   for (j = 0; j < 16; j++)
-    {
-      CHECK(GNUNET_NO == CustomPeerMap_put(c_m, &k1));
-    }
-  CHECK(1 == CustomPeerMap_size(c_m));
-  CHECK(GNUNET_OK == CustomPeerMap_put(c_m, &k2));
-  CHECK(2 == CustomPeerMap_size(c_m));
+  {
+    CHECK (GNUNET_NO == CustomPeerMap_put (c_m, &k1));
+  }
+  CHECK (1 == CustomPeerMap_size (c_m));
+  CHECK (GNUNET_OK == CustomPeerMap_put (c_m, &k2));
+  CHECK (2 == CustomPeerMap_size (c_m));
   for (j = 0; j < 16; j++)
-    {
-      CHECK(GNUNET_NO == CustomPeerMap_put(c_m, &k2));
-    }
-  CHECK(2 == CustomPeerMap_size(c_m));
+  {
+    CHECK (GNUNET_NO == CustomPeerMap_put (c_m, &k2));
+  }
+  CHECK (2 == CustomPeerMap_size (c_m));
 
   /* iterate */
-  for (j = 0; j < CustomPeerMap_size(c_m); j++)
-    {
-      CHECK(NULL != CustomPeerMap_get_peer_by_index(c_m, j));
-    }
-  CHECK((0 == memcmp(CustomPeerMap_get_peer_by_index(c_m, 0),
-                     &k1, sizeof(k1))));
-  CHECK((0 == memcmp(CustomPeerMap_get_peer_by_index(c_m, 1),
-                     &k2, sizeof(k2))));
-  CHECK(GNUNET_OK == CustomPeerMap_remove_peer(c_m, &k1));
-  CHECK(1 == CustomPeerMap_size(c_m));
-  CHECK(GNUNET_NO == CustomPeerMap_contains_peer(c_m, &k1));
-  CHECK(GNUNET_YES == CustomPeerMap_contains_peer(c_m, &k2));
-  CHECK(NULL != CustomPeerMap_get_peer_by_index(c_m, 0));
+  for (j = 0; j < CustomPeerMap_size (c_m); j++)
+  {
+    CHECK (NULL != CustomPeerMap_get_peer_by_index (c_m, j));
+  }
+  CHECK ((0 == memcmp (CustomPeerMap_get_peer_by_index (c_m, 0),
+                       &k1, sizeof(k1))));
+  CHECK ((0 == memcmp (CustomPeerMap_get_peer_by_index (c_m, 1),
+                       &k2, sizeof(k2))));
+  CHECK (GNUNET_OK == CustomPeerMap_remove_peer (c_m, &k1));
+  CHECK (1 == CustomPeerMap_size (c_m));
+  CHECK (GNUNET_NO == CustomPeerMap_contains_peer (c_m, &k1));
+  CHECK (GNUNET_YES == CustomPeerMap_contains_peer (c_m, &k2));
+  CHECK (NULL != CustomPeerMap_get_peer_by_index (c_m, 0));
 
-  CustomPeerMap_clear(c_m);
-  CHECK(0 == CustomPeerMap_size(c_m));
+  CustomPeerMap_clear (c_m);
+  CHECK (0 == CustomPeerMap_size (c_m));
 
-  CHECK(GNUNET_OK == CustomPeerMap_put(c_m, &k1));
-  CHECK(1 == CustomPeerMap_size(c_m));
-  CHECK(GNUNET_OK == CustomPeerMap_put(c_m, &k2));
-  CHECK(2 == CustomPeerMap_size(c_m));
-  CustomPeerMap_clear(c_m);
-  CHECK(0 == CustomPeerMap_size(c_m));
+  CHECK (GNUNET_OK == CustomPeerMap_put (c_m, &k1));
+  CHECK (1 == CustomPeerMap_size (c_m));
+  CHECK (GNUNET_OK == CustomPeerMap_put (c_m, &k2));
+  CHECK (2 == CustomPeerMap_size (c_m));
+  CustomPeerMap_clear (c_m);
+  CHECK (0 == CustomPeerMap_size (c_m));
 
-  CustomPeerMap_destroy(c_m);
+  CustomPeerMap_destroy (c_m);
 
   return 0;
 }
 
 
 int
-main(int argc, char *argv[])
+main (int argc, char *argv[])
 {
-  (void)argc;
-  (void)argv;
+  (void) argc;
+  (void) argv;
 
-  GNUNET_log_setup("test_service_rps_peers",
-                   "WARNING",
-                   NULL);
-  return check();
+  GNUNET_log_setup ("test_service_rps_peers",
+                    "WARNING",
+                    NULL);
+  return check ();
 }
 
 /* end of test_service_rps_custommap.c */

@@ -32,7 +32,7 @@
  * End of a parser specification.
  */
 struct GNUNET_JSON_Specification
-GNUNET_JSON_spec_end()
+GNUNET_JSON_spec_end ()
 {
   struct GNUNET_JSON_Specification ret = {
     .parser = NULL,
@@ -53,33 +53,33 @@ GNUNET_JSON_spec_end()
  * @return #GNUNET_OK upon successful parsing; #GNUNET_SYSERR upon error
  */
 static int
-parse_fixed_data(void *cls,
-                 json_t *root,
-                 struct GNUNET_JSON_Specification *spec)
+parse_fixed_data (void *cls,
+                  json_t *root,
+                  struct GNUNET_JSON_Specification *spec)
 {
   const char *enc;
   unsigned int len;
 
-  if (NULL == (enc = json_string_value(root)))
-    {
-      GNUNET_break_op(0);
-      return GNUNET_SYSERR;
-    }
-  len = strlen(enc);
+  if (NULL == (enc = json_string_value (root)))
+  {
+    GNUNET_break_op (0);
+    return GNUNET_SYSERR;
+  }
+  len = strlen (enc);
   if (((len * 5) / 8) != spec->ptr_size)
-    {
-      GNUNET_break_op(0);
-      return GNUNET_SYSERR;
-    }
+  {
+    GNUNET_break_op (0);
+    return GNUNET_SYSERR;
+  }
   if (GNUNET_OK !=
-      GNUNET_STRINGS_string_to_data(enc,
-                                    len,
-                                    spec->ptr,
-                                    spec->ptr_size))
-    {
-      GNUNET_break_op(0);
-      return GNUNET_SYSERR;
-    }
+      GNUNET_STRINGS_string_to_data (enc,
+                                     len,
+                                     spec->ptr,
+                                     spec->ptr_size))
+  {
+    GNUNET_break_op (0);
+    return GNUNET_SYSERR;
+  }
   return GNUNET_OK;
 }
 
@@ -93,9 +93,9 @@ parse_fixed_data(void *cls,
  * @param size number of bytes expected in @a obj
  */
 struct GNUNET_JSON_Specification
-GNUNET_JSON_spec_fixed(const char *name,
-                       void *obj,
-                       size_t size)
+GNUNET_JSON_spec_fixed (const char *name,
+                        void *obj,
+                        size_t size)
 {
   struct GNUNET_JSON_Specification ret = {
     .parser = &parse_fixed_data,
@@ -120,39 +120,39 @@ GNUNET_JSON_spec_fixed(const char *name,
  * @return #GNUNET_OK upon successful parsing; #GNUNET_SYSERR upon error
  */
 static int
-parse_variable_data(void *cls,
-                    json_t *root,
-                    struct GNUNET_JSON_Specification *spec)
+parse_variable_data (void *cls,
+                     json_t *root,
+                     struct GNUNET_JSON_Specification *spec)
 {
   const char *str;
   size_t size;
   void *data;
   int res;
 
-  str = json_string_value(root);
+  str = json_string_value (root);
   if (NULL == str)
-    {
-      GNUNET_break_op(0);
-      return GNUNET_SYSERR;
-    }
-  size = (strlen(str) * 5) / 8;
+  {
+    GNUNET_break_op (0);
+    return GNUNET_SYSERR;
+  }
+  size = (strlen (str) * 5) / 8;
   if (size >= 1024)
-    {
-      GNUNET_break_op(0);
-      return GNUNET_SYSERR;
-    }
-  data = GNUNET_malloc(size);
-  res = GNUNET_STRINGS_string_to_data(str,
-                                      strlen(str),
-                                      data,
-                                      size);
+  {
+    GNUNET_break_op (0);
+    return GNUNET_SYSERR;
+  }
+  data = GNUNET_malloc (size);
+  res = GNUNET_STRINGS_string_to_data (str,
+                                       strlen (str),
+                                       data,
+                                       size);
   if (GNUNET_OK != res)
-    {
-      GNUNET_break_op(0);
-      GNUNET_free(data);
-      return GNUNET_SYSERR;
-    }
-  *(void**)spec->ptr = data;
+  {
+    GNUNET_break_op (0);
+    GNUNET_free (data);
+    return GNUNET_SYSERR;
+  }
+  *(void**) spec->ptr = data;
   *spec->size_ptr = size;
   return GNUNET_OK;
 }
@@ -165,15 +165,15 @@ parse_variable_data(void *cls,
  * @param[out] spec where to free the data
  */
 static void
-clean_variable_data(void *cls,
-                    struct GNUNET_JSON_Specification *spec)
+clean_variable_data (void *cls,
+                     struct GNUNET_JSON_Specification *spec)
 {
   if (0 != *spec->size_ptr)
-    {
-      GNUNET_free(*(void **)spec->ptr);
-      *(void**)spec->ptr = NULL;
-      *spec->size_ptr = 0;
-    }
+  {
+    GNUNET_free (*(void **) spec->ptr);
+    *(void**) spec->ptr = NULL;
+    *spec->size_ptr = 0;
+  }
 }
 
 
@@ -186,9 +186,9 @@ clean_variable_data(void *cls,
  * @param[out] size where to store the number of bytes allocated for @a obj
  */
 struct GNUNET_JSON_Specification
-GNUNET_JSON_spec_varsize(const char *name,
-                         void **obj,
-                         size_t *size)
+GNUNET_JSON_spec_varsize (const char *name,
+                          void **obj,
+                          size_t *size)
 {
   struct GNUNET_JSON_Specification ret = {
     .parser = &parse_variable_data,
@@ -215,19 +215,19 @@ GNUNET_JSON_spec_varsize(const char *name,
  * @return #GNUNET_OK upon successful parsing; #GNUNET_SYSERR upon error
  */
 static int
-parse_string(void *cls,
-             json_t *root,
-             struct GNUNET_JSON_Specification *spec)
+parse_string (void *cls,
+              json_t *root,
+              struct GNUNET_JSON_Specification *spec)
 {
   const char *str;
 
-  str = json_string_value(root);
+  str = json_string_value (root);
   if (NULL == str)
-    {
-      GNUNET_break_op(0);
-      return GNUNET_SYSERR;
-    }
-  *(const char **)spec->ptr = str;
+  {
+    GNUNET_break_op (0);
+    return GNUNET_SYSERR;
+  }
+  *(const char **) spec->ptr = str;
   return GNUNET_OK;
 }
 
@@ -239,8 +239,8 @@ parse_string(void *cls,
  * @param strptr where to store a pointer to the field
  */
 struct GNUNET_JSON_Specification
-GNUNET_JSON_spec_string(const char *name,
-                        const char **strptr)
+GNUNET_JSON_spec_string (const char *name,
+                         const char **strptr)
 {
   struct GNUNET_JSON_Specification ret = {
     .parser = &parse_string,
@@ -266,17 +266,17 @@ GNUNET_JSON_spec_string(const char *name,
  * @return #GNUNET_OK upon successful parsing; #GNUNET_SYSERR upon error
  */
 static int
-parse_object(void *cls,
-             json_t *root,
-             struct GNUNET_JSON_Specification *spec)
+parse_object (void *cls,
+              json_t *root,
+              struct GNUNET_JSON_Specification *spec)
 {
-  if (!(json_is_object(root) || json_is_array(root)))
-    {
-      GNUNET_break_op(0);
-      return GNUNET_SYSERR;
-    }
-  json_incref(root);
-  *(json_t **)spec->ptr = root;
+  if (! (json_is_object (root) || json_is_array (root)))
+  {
+    GNUNET_break_op (0);
+    return GNUNET_SYSERR;
+  }
+  json_incref (root);
+  *(json_t **) spec->ptr = root;
   return GNUNET_OK;
 }
 
@@ -288,16 +288,16 @@ parse_object(void *cls,
  * @param[out] spec where to free the data
  */
 static void
-clean_object(void *cls,
-             struct GNUNET_JSON_Specification *spec)
+clean_object (void *cls,
+              struct GNUNET_JSON_Specification *spec)
 {
-  json_t **ptr = (json_t **)spec->ptr;
+  json_t **ptr = (json_t **) spec->ptr;
 
   if (NULL != *ptr)
-    {
-      json_decref(*ptr);
-      *ptr = NULL;
-    }
+  {
+    json_decref (*ptr);
+    *ptr = NULL;
+  }
 }
 
 
@@ -308,8 +308,8 @@ clean_object(void *cls,
  * @param[out] jsonp where to store the JSON found under @a name
  */
 struct GNUNET_JSON_Specification
-GNUNET_JSON_spec_json(const char *name,
-                      json_t **jsonp)
+GNUNET_JSON_spec_json (const char *name,
+                       json_t **jsonp)
 {
   struct GNUNET_JSON_Specification ret = {
     .parser = &parse_object,
@@ -335,25 +335,25 @@ GNUNET_JSON_spec_json(const char *name,
  * @return #GNUNET_OK upon successful parsing; #GNUNET_SYSERR upon error
  */
 static int
-parse_u8(void *cls,
-         json_t *root,
-         struct GNUNET_JSON_Specification *spec)
+parse_u8 (void *cls,
+          json_t *root,
+          struct GNUNET_JSON_Specification *spec)
 {
   json_int_t val;
   uint8_t *up = spec->ptr;
 
-  if (!json_is_integer(root))
-    {
-      GNUNET_break_op(0);
-      return GNUNET_SYSERR;
-    }
-  val = json_integer_value(root);
+  if (! json_is_integer (root))
+  {
+    GNUNET_break_op (0);
+    return GNUNET_SYSERR;
+  }
+  val = json_integer_value (root);
   if ((0 > val) || (val > UINT8_MAX))
-    {
-      GNUNET_break_op(0);
-      return GNUNET_SYSERR;
-    }
-  *up = (uint8_t)val;
+  {
+    GNUNET_break_op (0);
+    return GNUNET_SYSERR;
+  }
+  *up = (uint8_t) val;
   return GNUNET_OK;
 }
 
@@ -365,8 +365,8 @@ parse_u8(void *cls,
  * @param[out] u8 where to store the integer found under @a name
  */
 struct GNUNET_JSON_Specification
-GNUNET_JSON_spec_uint8(const char *name,
-                       uint8_t *u8)
+GNUNET_JSON_spec_uint8 (const char *name,
+                        uint8_t *u8)
 {
   struct GNUNET_JSON_Specification ret = {
     .parser = &parse_u8,
@@ -391,25 +391,25 @@ GNUNET_JSON_spec_uint8(const char *name,
  * @return #GNUNET_OK upon successful parsing; #GNUNET_SYSERR upon error
  */
 static int
-parse_u16(void *cls,
-          json_t *root,
-          struct GNUNET_JSON_Specification *spec)
+parse_u16 (void *cls,
+           json_t *root,
+           struct GNUNET_JSON_Specification *spec)
 {
   json_int_t val;
   uint16_t *up = spec->ptr;
 
-  if (!json_is_integer(root))
-    {
-      GNUNET_break_op(0);
-      return GNUNET_SYSERR;
-    }
-  val = json_integer_value(root);
+  if (! json_is_integer (root))
+  {
+    GNUNET_break_op (0);
+    return GNUNET_SYSERR;
+  }
+  val = json_integer_value (root);
   if ((0 > val) || (val > UINT16_MAX))
-    {
-      GNUNET_break_op(0);
-      return GNUNET_SYSERR;
-    }
-  *up = (uint16_t)val;
+  {
+    GNUNET_break_op (0);
+    return GNUNET_SYSERR;
+  }
+  *up = (uint16_t) val;
   return GNUNET_OK;
 }
 
@@ -421,8 +421,8 @@ parse_u16(void *cls,
  * @param[out] u16 where to store the integer found under @a name
  */
 struct GNUNET_JSON_Specification
-GNUNET_JSON_spec_uint16(const char *name,
-                        uint16_t *u16)
+GNUNET_JSON_spec_uint16 (const char *name,
+                         uint16_t *u16)
 {
   struct GNUNET_JSON_Specification ret = {
     .parser = &parse_u16,
@@ -447,25 +447,25 @@ GNUNET_JSON_spec_uint16(const char *name,
  * @return #GNUNET_OK upon successful parsing; #GNUNET_SYSERR upon error
  */
 static int
-parse_u32(void *cls,
-          json_t *root,
-          struct GNUNET_JSON_Specification *spec)
+parse_u32 (void *cls,
+           json_t *root,
+           struct GNUNET_JSON_Specification *spec)
 {
   json_int_t val;
   uint32_t *up = spec->ptr;
 
-  if (!json_is_integer(root))
-    {
-      GNUNET_break_op(0);
-      return GNUNET_SYSERR;
-    }
-  val = json_integer_value(root);
+  if (! json_is_integer (root))
+  {
+    GNUNET_break_op (0);
+    return GNUNET_SYSERR;
+  }
+  val = json_integer_value (root);
   if ((0 > val) || (val > UINT32_MAX))
-    {
-      GNUNET_break_op(0);
-      return GNUNET_SYSERR;
-    }
-  *up = (uint32_t)val;
+  {
+    GNUNET_break_op (0);
+    return GNUNET_SYSERR;
+  }
+  *up = (uint32_t) val;
   return GNUNET_OK;
 }
 
@@ -477,8 +477,8 @@ parse_u32(void *cls,
  * @param[out] u32 where to store the integer found under @a name
  */
 struct GNUNET_JSON_Specification
-GNUNET_JSON_spec_uint32(const char *name,
-                        uint32_t *u32)
+GNUNET_JSON_spec_uint32 (const char *name,
+                         uint32_t *u32)
 {
   struct GNUNET_JSON_Specification ret = {
     .parser = &parse_u32,
@@ -503,20 +503,20 @@ GNUNET_JSON_spec_uint32(const char *name,
  * @return #GNUNET_OK upon successful parsing; #GNUNET_SYSERR upon error
  */
 static int
-parse_u64(void *cls,
-          json_t *root,
-          struct GNUNET_JSON_Specification *spec)
+parse_u64 (void *cls,
+           json_t *root,
+           struct GNUNET_JSON_Specification *spec)
 {
   json_int_t val;
   uint64_t *up = spec->ptr;
 
-  if (!json_is_integer(root))
-    {
-      GNUNET_break_op(0);
-      return GNUNET_SYSERR;
-    }
-  val = json_integer_value(root);
-  *up = (uint64_t)val;
+  if (! json_is_integer (root))
+  {
+    GNUNET_break_op (0);
+    return GNUNET_SYSERR;
+  }
+  val = json_integer_value (root);
+  *up = (uint64_t) val;
   return GNUNET_OK;
 }
 
@@ -528,8 +528,8 @@ parse_u64(void *cls,
  * @param[out] u64 where to store the integer found under @a name
  */
 struct GNUNET_JSON_Specification
-GNUNET_JSON_spec_uint64(const char *name,
-                        uint64_t *u64)
+GNUNET_JSON_spec_uint64 (const char *name,
+                         uint64_t *u64)
 {
   struct GNUNET_JSON_Specification ret = {
     .parser = &parse_u64,
@@ -556,45 +556,45 @@ GNUNET_JSON_spec_uint64(const char *name,
  * @return #GNUNET_OK upon successful parsing; #GNUNET_SYSERR upon error
  */
 static int
-parse_abs_time(void *cls,
-               json_t *root,
-               struct GNUNET_JSON_Specification *spec)
+parse_abs_time (void *cls,
+                json_t *root,
+                struct GNUNET_JSON_Specification *spec)
 {
   struct GNUNET_TIME_Absolute *abs = spec->ptr;
   const char *val;
   unsigned long long int tval;
 
-  val = json_string_value(root);
+  val = json_string_value (root);
   if (NULL == val)
-    {
-      GNUNET_break_op(0);
-      return GNUNET_SYSERR;
-    }
-  if ((0 == strcasecmp(val,
-                       "/forever/")) ||
-      (0 == strcasecmp(val,
-                       "/end of time/")) ||
-      (0 == strcasecmp(val,
-                       "/never/")))
-    {
-      *abs = GNUNET_TIME_UNIT_FOREVER_ABS;
-      return GNUNET_OK;
-    }
-  if (1 != sscanf(val,
-                  "/Date(%llu)/",
-                  &tval))
-    {
-      GNUNET_break_op(0);
-      return GNUNET_SYSERR;
-    }
+  {
+    GNUNET_break_op (0);
+    return GNUNET_SYSERR;
+  }
+  if ((0 == strcasecmp (val,
+                        "/forever/")) ||
+      (0 == strcasecmp (val,
+                        "/end of time/")) ||
+      (0 == strcasecmp (val,
+                        "/never/")))
+  {
+    *abs = GNUNET_TIME_UNIT_FOREVER_ABS;
+    return GNUNET_OK;
+  }
+  if (1 != sscanf (val,
+                   "/Date(%llu)/",
+                   &tval))
+  {
+    GNUNET_break_op (0);
+    return GNUNET_SYSERR;
+  }
   /* Time is in seconds in JSON, but in microseconds in GNUNET_TIME_Absolute */
   abs->abs_value_us = tval * 1000LL * 1000LL;
   if ((abs->abs_value_us) / 1000LL / 1000LL != tval)
-    {
-      /* Integer overflow */
-      GNUNET_break_op(0);
-      return GNUNET_SYSERR;
-    }
+  {
+    /* Integer overflow */
+    GNUNET_break_op (0);
+    return GNUNET_SYSERR;
+  }
   return GNUNET_OK;
 }
 
@@ -606,8 +606,8 @@ parse_abs_time(void *cls,
  * @param[out] at where to store the absolute time found under @a name
  */
 struct GNUNET_JSON_Specification
-GNUNET_JSON_spec_absolute_time(const char *name,
-                               struct GNUNET_TIME_Absolute *at)
+GNUNET_JSON_spec_absolute_time (const char *name,
+                                struct GNUNET_TIME_Absolute *at)
 {
   struct GNUNET_JSON_Specification ret = {
     .parser = &parse_abs_time,
@@ -632,47 +632,47 @@ GNUNET_JSON_spec_absolute_time(const char *name,
  * @return #GNUNET_OK upon successful parsing; #GNUNET_SYSERR upon error
  */
 static int
-parse_abs_time_nbo(void *cls,
-                   json_t *root,
-                   struct GNUNET_JSON_Specification *spec)
+parse_abs_time_nbo (void *cls,
+                    json_t *root,
+                    struct GNUNET_JSON_Specification *spec)
 {
   struct GNUNET_TIME_AbsoluteNBO *abs = spec->ptr;
   const char *val;
   unsigned long long int tval;
   struct GNUNET_TIME_Absolute a;
 
-  val = json_string_value(root);
+  val = json_string_value (root);
   if (NULL == val)
-    {
-      GNUNET_break_op(0);
-      return GNUNET_SYSERR;
-    }
-  if ((0 == strcasecmp(val,
-                       "/forever/")) ||
-      (0 == strcasecmp(val,
-                       "/end of time/")) ||
-      (0 == strcasecmp(val,
-                       "/never/")))
-    {
-      *abs = GNUNET_TIME_absolute_hton(GNUNET_TIME_UNIT_FOREVER_ABS);
-      return GNUNET_OK;
-    }
-  if (1 != sscanf(val,
-                  "/Date(%llu)/",
-                  &tval))
-    {
-      GNUNET_break_op(0);
-      return GNUNET_SYSERR;
-    }
+  {
+    GNUNET_break_op (0);
+    return GNUNET_SYSERR;
+  }
+  if ((0 == strcasecmp (val,
+                        "/forever/")) ||
+      (0 == strcasecmp (val,
+                        "/end of time/")) ||
+      (0 == strcasecmp (val,
+                        "/never/")))
+  {
+    *abs = GNUNET_TIME_absolute_hton (GNUNET_TIME_UNIT_FOREVER_ABS);
+    return GNUNET_OK;
+  }
+  if (1 != sscanf (val,
+                   "/Date(%llu)/",
+                   &tval))
+  {
+    GNUNET_break_op (0);
+    return GNUNET_SYSERR;
+  }
   /* Time is in seconds in JSON, but in microseconds in GNUNET_TIME_Absolute */
   a.abs_value_us = tval * 1000LL * 1000LL;
   if ((a.abs_value_us) / 1000LL / 1000LL != tval)
-    {
-      /* Integer overflow */
-      GNUNET_break_op(0);
-      return GNUNET_SYSERR;
-    }
-  *abs = GNUNET_TIME_absolute_hton(a);
+  {
+    /* Integer overflow */
+    GNUNET_break_op (0);
+    return GNUNET_SYSERR;
+  }
+  *abs = GNUNET_TIME_absolute_hton (a);
   return GNUNET_OK;
 }
 
@@ -684,8 +684,8 @@ parse_abs_time_nbo(void *cls,
  * @param[out] at where to store the absolute time found under @a name
  */
 struct GNUNET_JSON_Specification
-GNUNET_JSON_spec_absolute_time_nbo(const char *name,
-                                   struct GNUNET_TIME_AbsoluteNBO *at)
+GNUNET_JSON_spec_absolute_time_nbo (const char *name,
+                                    struct GNUNET_TIME_AbsoluteNBO *at)
 {
   struct GNUNET_JSON_Specification ret = {
     .parser = &parse_abs_time_nbo,
@@ -710,41 +710,41 @@ GNUNET_JSON_spec_absolute_time_nbo(const char *name,
  * @return #GNUNET_OK upon successful parsing; #GNUNET_SYSERR upon error
  */
 static int
-parse_rel_time(void *cls,
-               json_t *root,
-               struct GNUNET_JSON_Specification *spec)
+parse_rel_time (void *cls,
+                json_t *root,
+                struct GNUNET_JSON_Specification *spec)
 {
   struct GNUNET_TIME_Relative *rel = spec->ptr;
   const char *val;
   unsigned long long int tval;
 
-  val = json_string_value(root);
+  val = json_string_value (root);
   if (NULL == val)
-    {
-      GNUNET_break_op(0);
-      return GNUNET_SYSERR;
-    }
-  if ((0 == strcasecmp(val,
-                       "/forever/")))
-    {
-      *rel = GNUNET_TIME_UNIT_FOREVER_REL;
-      return GNUNET_OK;
-    }
-  if (1 != sscanf(val,
-                  "/Delay(%llu)/",
-                  &tval))
-    {
-      GNUNET_break_op(0);
-      return GNUNET_SYSERR;
-    }
+  {
+    GNUNET_break_op (0);
+    return GNUNET_SYSERR;
+  }
+  if ((0 == strcasecmp (val,
+                        "/forever/")))
+  {
+    *rel = GNUNET_TIME_UNIT_FOREVER_REL;
+    return GNUNET_OK;
+  }
+  if (1 != sscanf (val,
+                   "/Delay(%llu)/",
+                   &tval))
+  {
+    GNUNET_break_op (0);
+    return GNUNET_SYSERR;
+  }
   /* Time is in seconds in JSON, but in microseconds in GNUNET_TIME_Relative */
   rel->rel_value_us = tval * 1000LL * 1000LL;
   if ((rel->rel_value_us) / 1000LL / 1000LL != tval)
-    {
-      /* Integer overflow */
-      GNUNET_break_op(0);
-      return GNUNET_SYSERR;
-    }
+  {
+    /* Integer overflow */
+    GNUNET_break_op (0);
+    return GNUNET_SYSERR;
+  }
   return GNUNET_OK;
 }
 
@@ -756,8 +756,8 @@ parse_rel_time(void *cls,
  * @param[out] rt where to store the relative time found under @a name
  */
 struct GNUNET_JSON_Specification
-GNUNET_JSON_spec_relative_time(const char *name,
-                               struct GNUNET_TIME_Relative *rt)
+GNUNET_JSON_spec_relative_time (const char *name,
+                                struct GNUNET_TIME_Relative *rt)
 {
   struct GNUNET_JSON_Specification ret = {
     .parser = &parse_rel_time,
@@ -782,9 +782,9 @@ GNUNET_JSON_spec_relative_time(const char *name,
  * @return #GNUNET_OK upon successful parsing; #GNUNET_SYSERR upon error
  */
 static int
-parse_rsa_public_key(void *cls,
-                     json_t *root,
-                     struct GNUNET_JSON_Specification *spec)
+parse_rsa_public_key (void *cls,
+                      json_t *root,
+                      struct GNUNET_JSON_Specification *spec)
 {
   struct GNUNET_CRYPTO_RsaPublicKey **pk = spec->ptr;
   const char *enc;
@@ -792,32 +792,32 @@ parse_rsa_public_key(void *cls,
   size_t len;
   size_t buf_len;
 
-  if (NULL == (enc = json_string_value(root)))
-    {
-      GNUNET_break_op(0);
-      return GNUNET_SYSERR;
-    }
-  len = strlen(enc);
+  if (NULL == (enc = json_string_value (root)))
+  {
+    GNUNET_break_op (0);
+    return GNUNET_SYSERR;
+  }
+  len = strlen (enc);
   buf_len = (len * 5) / 8;
-  buf = GNUNET_malloc(buf_len);
+  buf = GNUNET_malloc (buf_len);
   if (GNUNET_OK !=
-      GNUNET_STRINGS_string_to_data(enc,
-                                    len,
-                                    buf,
-                                    buf_len))
-    {
-      GNUNET_break_op(0);
-      GNUNET_free(buf);
-      return GNUNET_SYSERR;
-    }
-  if (NULL == (*pk = GNUNET_CRYPTO_rsa_public_key_decode(buf,
-                                                         buf_len)))
-    {
-      GNUNET_break_op(0);
-      GNUNET_free(buf);
-      return GNUNET_SYSERR;
-    }
-  GNUNET_free(buf);
+      GNUNET_STRINGS_string_to_data (enc,
+                                     len,
+                                     buf,
+                                     buf_len))
+  {
+    GNUNET_break_op (0);
+    GNUNET_free (buf);
+    return GNUNET_SYSERR;
+  }
+  if (NULL == (*pk = GNUNET_CRYPTO_rsa_public_key_decode (buf,
+                                                          buf_len)))
+  {
+    GNUNET_break_op (0);
+    GNUNET_free (buf);
+    return GNUNET_SYSERR;
+  }
+  GNUNET_free (buf);
   return GNUNET_OK;
 }
 
@@ -829,16 +829,16 @@ parse_rsa_public_key(void *cls,
  * @param[out] spec where to free the data
  */
 static void
-clean_rsa_public_key(void *cls,
-                     struct GNUNET_JSON_Specification *spec)
+clean_rsa_public_key (void *cls,
+                      struct GNUNET_JSON_Specification *spec)
 {
   struct GNUNET_CRYPTO_RsaPublicKey **pk = spec->ptr;
 
   if (NULL != *pk)
-    {
-      GNUNET_CRYPTO_rsa_public_key_free(*pk);
-      *pk = NULL;
-    }
+  {
+    GNUNET_CRYPTO_rsa_public_key_free (*pk);
+    *pk = NULL;
+  }
 }
 
 
@@ -849,8 +849,8 @@ clean_rsa_public_key(void *cls,
  * @param pk where to store the RSA key found under @a name
  */
 struct GNUNET_JSON_Specification
-GNUNET_JSON_spec_rsa_public_key(const char *name,
-                                struct GNUNET_CRYPTO_RsaPublicKey **pk)
+GNUNET_JSON_spec_rsa_public_key (const char *name,
+                                 struct GNUNET_CRYPTO_RsaPublicKey **pk)
 {
   struct GNUNET_JSON_Specification ret = {
     .parser = &parse_rsa_public_key,
@@ -876,9 +876,9 @@ GNUNET_JSON_spec_rsa_public_key(const char *name,
  * @return #GNUNET_OK upon successful parsing; #GNUNET_SYSERR upon error
  */
 static int
-parse_rsa_signature(void *cls,
-                    json_t *root,
-                    struct GNUNET_JSON_Specification *spec)
+parse_rsa_signature (void *cls,
+                     json_t *root,
+                     struct GNUNET_JSON_Specification *spec)
 {
   struct GNUNET_CRYPTO_RsaSignature **sig = spec->ptr;
   size_t size;
@@ -886,32 +886,32 @@ parse_rsa_signature(void *cls,
   int res;
   void *buf;
 
-  str = json_string_value(root);
+  str = json_string_value (root);
   if (NULL == str)
-    {
-      GNUNET_break_op(0);
-      return GNUNET_SYSERR;
-    }
-  size = (strlen(str) * 5) / 8;
-  buf = GNUNET_malloc(size);
-  res = GNUNET_STRINGS_string_to_data(str,
-                                      strlen(str),
-                                      buf,
-                                      size);
+  {
+    GNUNET_break_op (0);
+    return GNUNET_SYSERR;
+  }
+  size = (strlen (str) * 5) / 8;
+  buf = GNUNET_malloc (size);
+  res = GNUNET_STRINGS_string_to_data (str,
+                                       strlen (str),
+                                       buf,
+                                       size);
   if (GNUNET_OK != res)
-    {
-      GNUNET_free(buf);
-      GNUNET_break_op(0);
-      return GNUNET_SYSERR;
-    }
-  if (NULL == (*sig = GNUNET_CRYPTO_rsa_signature_decode(buf,
-                                                         size)))
-    {
-      GNUNET_break_op(0);
-      GNUNET_free(buf);
-      return GNUNET_SYSERR;
-    }
-  GNUNET_free(buf);
+  {
+    GNUNET_free (buf);
+    GNUNET_break_op (0);
+    return GNUNET_SYSERR;
+  }
+  if (NULL == (*sig = GNUNET_CRYPTO_rsa_signature_decode (buf,
+                                                          size)))
+  {
+    GNUNET_break_op (0);
+    GNUNET_free (buf);
+    return GNUNET_SYSERR;
+  }
+  GNUNET_free (buf);
   return GNUNET_OK;
 }
 
@@ -923,16 +923,16 @@ parse_rsa_signature(void *cls,
  * @param[out] spec where to free the data
  */
 static void
-clean_rsa_signature(void *cls,
-                    struct GNUNET_JSON_Specification *spec)
+clean_rsa_signature (void *cls,
+                     struct GNUNET_JSON_Specification *spec)
 {
   struct GNUNET_CRYPTO_RsaSignature  **sig = spec->ptr;
 
   if (NULL != *sig)
-    {
-      GNUNET_CRYPTO_rsa_signature_free(*sig);
-      *sig = NULL;
-    }
+  {
+    GNUNET_CRYPTO_rsa_signature_free (*sig);
+    *sig = NULL;
+  }
 }
 
 
@@ -943,8 +943,8 @@ clean_rsa_signature(void *cls,
  * @param sig where to store the RSA signature found under @a name
  */
 struct GNUNET_JSON_Specification
-GNUNET_JSON_spec_rsa_signature(const char *name,
-                               struct GNUNET_CRYPTO_RsaSignature **sig)
+GNUNET_JSON_spec_rsa_signature (const char *name,
+                                struct GNUNET_CRYPTO_RsaSignature **sig)
 {
   struct GNUNET_JSON_Specification ret = {
     .parser = &parse_rsa_signature,
@@ -970,18 +970,18 @@ GNUNET_JSON_spec_rsa_signature(const char *name,
  * @return #GNUNET_OK upon successful parsing; #GNUNET_SYSERR upon error
  */
 static int
-parse_boolean(void *cls,
-              json_t *root,
-              struct GNUNET_JSON_Specification *spec)
+parse_boolean (void *cls,
+               json_t *root,
+               struct GNUNET_JSON_Specification *spec)
 {
   int *bp = spec->ptr;
 
-  if (!json_is_boolean(root))
-    {
-      GNUNET_break_op(0);
-      return GNUNET_SYSERR;
-    }
-  *bp = json_boolean_value(root) ? GNUNET_YES : GNUNET_NO;
+  if (! json_is_boolean (root))
+  {
+    GNUNET_break_op (0);
+    return GNUNET_SYSERR;
+  }
+  *bp = json_boolean_value (root) ? GNUNET_YES : GNUNET_NO;
   return GNUNET_OK;
 }
 
@@ -993,8 +993,8 @@ parse_boolean(void *cls,
  * @param[out] boolean where to store the boolean found under @a name
  */
 struct GNUNET_JSON_Specification
-GNUNET_JSON_spec_boolean(const char *name,
-                         int *boolean)
+GNUNET_JSON_spec_boolean (const char *name,
+                          int *boolean)
 {
   struct GNUNET_JSON_Specification ret = {
     .parser = &parse_boolean,

@@ -31,14 +31,14 @@
  * Initialize ATS subsystem.
  */
 void
-GST_ats_init(void);
+GST_ats_init (void);
 
 
 /**
  * Shutdown ATS subsystem.
  */
 void
-GST_ats_done(void);
+GST_ats_done (void);
 
 
 /**
@@ -51,8 +51,8 @@ GST_ats_done(void);
  * @return #GNUNET_YES if @a address is known, #GNUNET_NO if not.
  */
 int
-GST_ats_is_known(const struct GNUNET_HELLO_Address *address,
-                 struct GNUNET_ATS_Session *session);
+GST_ats_is_known (const struct GNUNET_HELLO_Address *address,
+                  struct GNUNET_ATS_Session *session);
 
 
 /**
@@ -63,7 +63,7 @@ GST_ats_is_known(const struct GNUNET_HELLO_Address *address,
  * @return #GNUNET_YES if @a address is known, #GNUNET_NO if not.
  */
 int
-GST_ats_is_known_no_session(const struct GNUNET_HELLO_Address *address);
+GST_ats_is_known_no_session (const struct GNUNET_HELLO_Address *address);
 
 
 /**
@@ -76,8 +76,8 @@ GST_ats_is_known_no_session(const struct GNUNET_HELLO_Address *address);
  * @param session the session (can be NULL)
  */
 void
-GST_ats_block_address(const struct GNUNET_HELLO_Address *address,
-                      struct GNUNET_ATS_Session *session);
+GST_ats_block_address (const struct GNUNET_HELLO_Address *address,
+                       struct GNUNET_ATS_Session *session);
 
 
 /**
@@ -89,8 +89,8 @@ GST_ats_block_address(const struct GNUNET_HELLO_Address *address,
  * @param session the session (can be NULL)
  */
 void
-GST_ats_block_reset(const struct GNUNET_HELLO_Address *address,
-                    struct GNUNET_ATS_Session *session);
+GST_ats_block_reset (const struct GNUNET_HELLO_Address *address,
+                     struct GNUNET_ATS_Session *session);
 
 
 /**
@@ -104,9 +104,9 @@ GST_ats_block_reset(const struct GNUNET_HELLO_Address *address,
  * @param prop performance information
  */
 void
-GST_ats_add_inbound_address(const struct GNUNET_HELLO_Address *address,
-                            struct GNUNET_ATS_Session *session,
-                            const struct GNUNET_ATS_Properties *prop);
+GST_ats_add_inbound_address (const struct GNUNET_HELLO_Address *address,
+                             struct GNUNET_ATS_Session *session,
+                             const struct GNUNET_ATS_Properties *prop);
 
 
 /**
@@ -117,8 +117,8 @@ GST_ats_add_inbound_address(const struct GNUNET_HELLO_Address *address,
  * @param prop performance information
  */
 void
-GST_ats_add_address(const struct GNUNET_HELLO_Address *address,
-                    const struct GNUNET_ATS_Properties *prop);
+GST_ats_add_address (const struct GNUNET_HELLO_Address *address,
+                     const struct GNUNET_ATS_Properties *prop);
 
 
 /**
@@ -131,8 +131,8 @@ GST_ats_add_address(const struct GNUNET_HELLO_Address *address,
  * @param session the session
  */
 void
-GST_ats_new_session(const struct GNUNET_HELLO_Address *address,
-                    struct GNUNET_ATS_Session *session);
+GST_ats_new_session (const struct GNUNET_HELLO_Address *address,
+                     struct GNUNET_ATS_Session *session);
 
 
 /**
@@ -144,9 +144,9 @@ GST_ats_new_session(const struct GNUNET_HELLO_Address *address,
  * @param bps_out new utilization outbound
  */
 void
-GST_ats_update_utilization(const struct GNUNET_HELLO_Address *address,
-                           uint32_t bps_in,
-                           uint32_t bps_out);
+GST_ats_update_utilization (const struct GNUNET_HELLO_Address *address,
+                            uint32_t bps_in,
+                            uint32_t bps_out);
 
 
 /**
@@ -158,8 +158,8 @@ GST_ats_update_utilization(const struct GNUNET_HELLO_Address *address,
  * @param delay new delay value
  */
 void
-GST_ats_update_delay(const struct GNUNET_HELLO_Address *address,
-                     struct GNUNET_TIME_Relative delay);
+GST_ats_update_delay (const struct GNUNET_HELLO_Address *address,
+                      struct GNUNET_TIME_Relative delay);
 
 
 /**
@@ -170,8 +170,8 @@ GST_ats_update_delay(const struct GNUNET_HELLO_Address *address,
  * @param distance new distance value
  */
 void
-GST_ats_update_distance(const struct GNUNET_HELLO_Address *address,
-                        uint32_t distance);
+GST_ats_update_distance (const struct GNUNET_HELLO_Address *address,
+                         uint32_t distance);
 
 
 /**
@@ -186,8 +186,8 @@ GST_ats_update_distance(const struct GNUNET_HELLO_Address *address,
  * @param session the session
  */
 void
-GST_ats_del_session(const struct GNUNET_HELLO_Address *address,
-                    struct GNUNET_ATS_Session *session);
+GST_ats_del_session (const struct GNUNET_HELLO_Address *address,
+                     struct GNUNET_ATS_Session *session);
 
 
 /**
@@ -198,7 +198,7 @@ GST_ats_del_session(const struct GNUNET_HELLO_Address *address,
  * @param address the address
  */
 void
-GST_ats_expire_address(const struct GNUNET_HELLO_Address *address);
+GST_ats_expire_address (const struct GNUNET_HELLO_Address *address);
 
 
 #endif

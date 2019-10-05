@@ -64,9 +64,9 @@ struct REGEX_INTERNAL_Automaton;
  * @return DFA, needs to be freed using #REGEX_INTERNAL_automaton_destroy().
  */
 struct REGEX_INTERNAL_Automaton *
-REGEX_INTERNAL_construct_dfa(const char *regex,
-                             const size_t len,
-                             unsigned int max_path_len);
+REGEX_INTERNAL_construct_dfa (const char *regex,
+                              const size_t len,
+                              unsigned int max_path_len);
 
 
 /**
@@ -76,7 +76,7 @@ REGEX_INTERNAL_construct_dfa(const char *regex,
  * @param a automaton to be destroyed.
  */
 void
-REGEX_INTERNAL_automaton_destroy(struct REGEX_INTERNAL_Automaton *a);
+REGEX_INTERNAL_automaton_destroy (struct REGEX_INTERNAL_Automaton *a);
 
 
 /**
@@ -88,8 +88,8 @@ REGEX_INTERNAL_automaton_destroy(struct REGEX_INTERNAL_Automaton *a);
  * @return 0 if string matches, non 0 otherwise.
  */
 int
-REGEX_INTERNAL_eval(struct REGEX_INTERNAL_Automaton *a,
-                    const char *string);
+REGEX_INTERNAL_eval (struct REGEX_INTERNAL_Automaton *a,
+                     const char *string);
 
 
 /**
@@ -103,9 +103,9 @@ REGEX_INTERNAL_eval(struct REGEX_INTERNAL_Automaton *a,
  *         to construct the key
  */
 size_t
-REGEX_INTERNAL_get_first_key(const char *input_string,
-                             size_t string_len,
-                             struct GNUNET_HashCode * key);
+REGEX_INTERNAL_get_first_key (const char *input_string,
+                              size_t string_len,
+                              struct GNUNET_HashCode *key);
 
 
 /**
@@ -136,9 +136,9 @@ typedef void
  * @param iterator_cls closure.
  */
 void
-REGEX_INTERNAL_iterate_all_edges(struct REGEX_INTERNAL_Automaton *a,
-                                 REGEX_INTERNAL_KeyIterator iterator,
-                                 void *iterator_cls);
+REGEX_INTERNAL_iterate_all_edges (struct REGEX_INTERNAL_Automaton *a,
+                                  REGEX_INTERNAL_KeyIterator iterator,
+                                  void *iterator_cls);
 
 
 /**
@@ -152,9 +152,9 @@ REGEX_INTERNAL_iterate_all_edges(struct REGEX_INTERNAL_Automaton *a,
  * @param iterator_cls closure.
  */
 void
-REGEX_INTERNAL_iterate_reachable_edges(struct REGEX_INTERNAL_Automaton *a,
-                                       REGEX_INTERNAL_KeyIterator iterator,
-                                       void *iterator_cls);
+REGEX_INTERNAL_iterate_reachable_edges (struct REGEX_INTERNAL_Automaton *a,
+                                        REGEX_INTERNAL_KeyIterator iterator,
+                                        void *iterator_cls);
 
 
 
@@ -182,11 +182,11 @@ struct REGEX_INTERNAL_Search;
  *         Must be freed by calling #REGEX_INTERNAL_announce_cancel().
  */
 struct REGEX_INTERNAL_Announcement *
-REGEX_INTERNAL_announce(struct GNUNET_DHT_Handle *dht,
-                        const struct GNUNET_CRYPTO_EddsaPrivateKey *priv,
-                        const char *regex,
-                        uint16_t compression,
-                        struct GNUNET_STATISTICS_Handle *stats);
+REGEX_INTERNAL_announce (struct GNUNET_DHT_Handle *dht,
+                         const struct GNUNET_CRYPTO_EddsaPrivateKey *priv,
+                         const char *regex,
+                         uint16_t compression,
+                         struct GNUNET_STATISTICS_Handle *stats);
 
 
 /**
@@ -196,7 +196,7 @@ REGEX_INTERNAL_announce(struct GNUNET_DHT_Handle *dht,
  * @param h Handle returned by a previous #REGEX_INTERNAL_announce() call.
  */
 void
-REGEX_INTERNAL_reannounce(struct REGEX_INTERNAL_Announcement *h);
+REGEX_INTERNAL_reannounce (struct REGEX_INTERNAL_Announcement *h);
 
 
 /**
@@ -206,7 +206,7 @@ REGEX_INTERNAL_reannounce(struct REGEX_INTERNAL_Announcement *h);
  * @param h Handle returned by a previous #REGEX_INTERNAL_announce() call.
  */
 void
-REGEX_INTERNAL_announce_cancel(struct REGEX_INTERNAL_Announcement *h);
+REGEX_INTERNAL_announce_cancel (struct REGEX_INTERNAL_Announcement *h);
 
 
 /**
@@ -242,11 +242,11 @@ typedef void
  *         Must be freed by calling #REGEX_INTERNAL_search_cancel().
  */
 struct REGEX_INTERNAL_Search *
-REGEX_INTERNAL_search(struct GNUNET_DHT_Handle *dht,
-                      const char *string,
-                      REGEX_INTERNAL_Found callback,
-                      void *callback_cls,
-                      struct GNUNET_STATISTICS_Handle *stats);
+REGEX_INTERNAL_search (struct GNUNET_DHT_Handle *dht,
+                       const char *string,
+                       REGEX_INTERNAL_Found callback,
+                       void *callback_cls,
+                       struct GNUNET_STATISTICS_Handle *stats);
 
 /**
  * Stop search and free all data used by a #REGEX_INTERNAL_search() call.
@@ -255,7 +255,7 @@ REGEX_INTERNAL_search(struct GNUNET_DHT_Handle *dht,
  * @param h Handle returned by a previous #REGEX_INTERNAL_search() call.
  */
 void
-REGEX_INTERNAL_search_cancel(struct REGEX_INTERNAL_Search *h);
+REGEX_INTERNAL_search_cancel (struct REGEX_INTERNAL_Search *h);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

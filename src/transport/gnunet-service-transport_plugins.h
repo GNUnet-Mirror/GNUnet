@@ -49,16 +49,16 @@
  * @param metric_update_cb function to call when address metrics change
  */
 void
-GST_plugins_load(GNUNET_TRANSPORT_PluginReceiveCallback recv_cb,
-                 GNUNET_TRANSPORT_AddressNotification address_cb,
-                 GNUNET_TRANSPORT_SessionStart session_start_cb,
-                 GNUNET_TRANSPORT_SessionEnd session_end_cb);
+GST_plugins_load (GNUNET_TRANSPORT_PluginReceiveCallback recv_cb,
+                  GNUNET_TRANSPORT_AddressNotification address_cb,
+                  GNUNET_TRANSPORT_SessionStart session_start_cb,
+                  GNUNET_TRANSPORT_SessionEnd session_end_cb);
 
 /**
  * Unload all plugins
  */
 void
-GST_plugins_unload(void);
+GST_plugins_unload (void);
 
 
 /**
@@ -68,7 +68,7 @@ GST_plugins_unload(void);
  * @return the plugin's API, NULL if the plugin is not loaded
  */
 struct GNUNET_TRANSPORT_PluginFunctions *
-GST_plugins_find(const char *name);
+GST_plugins_find (const char *name);
 
 
 /**
@@ -82,7 +82,7 @@ GST_plugins_find(const char *name);
  * @return the plugin's API, NULL if the plugin is not loaded
  */
 struct GNUNET_TRANSPORT_PluginFunctions *
-GST_plugins_printer_find(const char *name);
+GST_plugins_printer_find (const char *name);
 
 
 /**
@@ -93,7 +93,7 @@ GST_plugins_printer_find(const char *name);
  * @return statically allocated (!) human-readable address
  */
 const char *
-GST_plugins_a2s(const struct GNUNET_HELLO_Address *address);
+GST_plugins_a2s (const struct GNUNET_HELLO_Address *address);
 
 
 /**
@@ -103,8 +103,8 @@ GST_plugins_a2s(const struct GNUNET_HELLO_Address *address);
  * @param cb_cls closure for @a cb
  */
 void
-GST_plugins_monitor_subscribe(GNUNET_TRANSPORT_SessionInfoCallback cb,
-                              void *cb_cls);
+GST_plugins_monitor_subscribe (GNUNET_TRANSPORT_SessionInfoCallback cb,
+                               void *cb_cls);
 
 
 #endif

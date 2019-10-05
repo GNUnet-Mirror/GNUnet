@@ -63,7 +63,8 @@ typedef void
  * of this type as the first and only argument to the
  * entry point of each datastore plugin.
  */
-struct GNUNET_DATASTORE_PluginEnvironment {
+struct GNUNET_DATASTORE_PluginEnvironment
+{
   /**
    * Configuration to use.
    */
@@ -311,7 +312,8 @@ typedef void
  * Each plugin is required to return a pointer to a struct of this
  * type as the return value from its entry point.
  */
-struct GNUNET_DATASTORE_PluginFunctions {
+struct GNUNET_DATASTORE_PluginFunctions
+{
   /**
    * Closure to use for all of the following callbacks
    * (except "next_request").

@@ -38,7 +38,8 @@ GNUNET_NETWORK_STRUCT_BEGIN
 /**
  * Status update from ARM to client.
  */
-struct GNUNET_ARM_StatusMessage {
+struct GNUNET_ARM_StatusMessage
+{
   /**
    * Reply to client, of type is #GNUNET_MESSAGE_TYPE_ARM_STATUS.
    */
@@ -52,7 +53,8 @@ struct GNUNET_ARM_StatusMessage {
   /* followed by a 0-terminated service name */
 };
 
-struct GNUNET_ARM_Message {
+struct GNUNET_ARM_Message
+{
   /**
    * Reply to client, type is #GNUNET_MESSAGE_TYPE_ARM_RESULT or
    * #GNUNET_MESSAGE_TYPE_ARM_LIST_RESULT.
@@ -81,7 +83,8 @@ struct GNUNET_ARM_Message {
 /**
  * Reply from ARM to client.
  */
-struct GNUNET_ARM_ResultMessage {
+struct GNUNET_ARM_ResultMessage
+{
   /**
    * Reply to client, of type is #GNUNET_MESSAGE_TYPE_ARM_RESULT, with an ID.
    */
@@ -93,7 +96,8 @@ struct GNUNET_ARM_ResultMessage {
   uint32_t result;
 };
 
-struct GNUNET_ARM_ServiceInfoMessage {
+struct GNUNET_ARM_ServiceInfoMessage
+{
   /**
    * String pool index for the service's name.
    */
@@ -137,7 +141,8 @@ struct GNUNET_ARM_ServiceInfoMessage {
  * '\0' terminated strings. header->size contains the
  * total size (including all strings).
  */
-struct GNUNET_ARM_ListResultMessage {
+struct GNUNET_ARM_ListResultMessage
+{
   /**
    * Reply to client, of type is #GNUNET_MESSAGE_TYPE_ARM_LIST_RESULT,
    * with an ID.

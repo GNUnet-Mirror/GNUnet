@@ -48,35 +48,40 @@ extern "C"
  * so that at least one maximum-size message can be send roughly once
  * per minute.
  */
-#define GNUNET_CONSTANTS_DEFAULT_BW_IN_OUT GNUNET_BANDWIDTH_value_init(1024)
+#define GNUNET_CONSTANTS_DEFAULT_BW_IN_OUT GNUNET_BANDWIDTH_value_init (1024)
 
 /**
  * After how long do we consider a connection to a peer dead
  * if we don't receive messages from the peer?
  */
-#define GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MINUTES, 5)
+#define GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT GNUNET_TIME_relative_multiply ( \
+    GNUNET_TIME_UNIT_MINUTES, 5)
 
 /**
  * How long do we delay reading more from a peer after a quota violation?
  */
-#define GNUNET_CONSTANTS_QUOTA_VIOLATION_TIMEOUT GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 2)
+#define GNUNET_CONSTANTS_QUOTA_VIOLATION_TIMEOUT GNUNET_TIME_relative_multiply ( \
+    GNUNET_TIME_UNIT_SECONDS, 2)
 
 /**
  * After how long do we consider a service unresponsive
  * even if we assume that the service commonly does not
  * respond instantly (DNS, Database, etc.).
  */
-#define GNUNET_CONSTANTS_SERVICE_TIMEOUT GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MINUTES, 10)
+#define GNUNET_CONSTANTS_SERVICE_TIMEOUT GNUNET_TIME_relative_multiply ( \
+    GNUNET_TIME_UNIT_MINUTES, 10)
 
 /**
  * How long do we delay messages to get larger packet sizes (CORKing)?
  */
-#define GNUNET_CONSTANTS_MAX_CORK_DELAY GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 1)
+#define GNUNET_CONSTANTS_MAX_CORK_DELAY GNUNET_TIME_relative_multiply ( \
+    GNUNET_TIME_UNIT_SECONDS, 1)
 
 /**
  * After what amount of latency for a message do we print a warning?
  */
-#define GNUNET_CONSTANTS_LATENCY_WARN GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 3)
+#define GNUNET_CONSTANTS_LATENCY_WARN GNUNET_TIME_relative_multiply ( \
+    GNUNET_TIME_UNIT_SECONDS, 3)
 
 /**
  * Until which load do we consider the peer overly idle
@@ -100,20 +105,23 @@ extern "C"
  * validated?  This value is also used for our own addresses when we
  * create a HELLO.
  */
-#define GNUNET_CONSTANTS_HELLO_ADDRESS_EXPIRATION GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_HOURS, 12)
+#define GNUNET_CONSTANTS_HELLO_ADDRESS_EXPIRATION GNUNET_TIME_relative_multiply ( \
+    GNUNET_TIME_UNIT_HOURS, 12)
 
 
 /**
  * How long do we cache records at most in the DHT?
  */
-#define GNUNET_CONSTANTS_DHT_MAX_EXPIRATION GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_HOURS, 24)
+#define GNUNET_CONSTANTS_DHT_MAX_EXPIRATION GNUNET_TIME_relative_multiply ( \
+    GNUNET_TIME_UNIT_HOURS, 24)
 
 
 /**
  * Size of the `struct EncryptedMessage` of the core (which
  * is the per-message overhead of the core).
  */
-#define GNUNET_CONSTANTS_CORE_SIZE_ENCRYPTED_MESSAGE (24 + sizeof(struct GNUNET_HashCode))
+#define GNUNET_CONSTANTS_CORE_SIZE_ENCRYPTED_MESSAGE (24 + sizeof(struct \
+                                                                  GNUNET_HashCode))
 
 /**
  * What is the maximum size for encrypted messages?  Note that this
@@ -141,7 +149,8 @@ extern "C"
  * Maximum message size that can be sent on CADET.
  */
 #define GNUNET_CONSTANTS_MAX_CADET_MESSAGE_SIZE \
-  (GNUNET_CONSTANTS_MAX_ENCRYPTED_MESSAGE_SIZE - GNUNET_CONSTANTS_CADET_P2P_OVERHEAD)
+  (GNUNET_CONSTANTS_MAX_ENCRYPTED_MESSAGE_SIZE \
+   - GNUNET_CONSTANTS_CADET_P2P_OVERHEAD)
 
 /**
  * Largest block that can be stored in the DHT.

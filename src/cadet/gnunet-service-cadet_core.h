@@ -47,14 +47,14 @@ extern "C"
  * @param c Configuration.
  */
 void
-GCO_init(const struct GNUNET_CONFIGURATION_Handle *c);
+GCO_init (const struct GNUNET_CONFIGURATION_Handle *c);
 
 
 /**
  * Shut down the CORE subsystem.
  */
 void
-GCO_shutdown(void);
+GCO_shutdown (void);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

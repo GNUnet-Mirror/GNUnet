@@ -30,13 +30,14 @@
 #include "gnunet_regex_service.h"
 #include "regex_ipc.h"
 
-#define LOG(kind, ...) GNUNET_log_from(kind, "regex-api", __VA_ARGS__)
+#define LOG(kind, ...) GNUNET_log_from (kind, "regex-api", __VA_ARGS__)
 
 
 /**
  * Handle to store data about a regex search.
  */
-struct GNUNET_REGEX_Search {
+struct GNUNET_REGEX_Search
+{
   /**
    * Connection to the regex service.
    */
@@ -70,7 +71,7 @@ struct GNUNET_REGEX_Search {
  * @param s context for the search search for
  */
 static void
-search_reconnect(struct GNUNET_REGEX_Search *s);
+search_reconnect (struct GNUNET_REGEX_Search *s);
 
 
 /**
@@ -82,18 +83,18 @@ search_reconnect(struct GNUNET_REGEX_Search *s);
  * @return #GNUNET_SYSERR if @a rm is not well-formed.
  */
 static int
-check_search_response(void *cls,
-                      const struct ResultMessage *result)
+check_search_response (void *cls,
+                       const struct ResultMessage *result)
 {
-  uint16_t size = ntohs(result->header.size) - sizeof(*result);
-  uint16_t gpl = ntohs(result->get_path_length);
-  uint16_t ppl = ntohs(result->put_path_length);
+  uint16_t size = ntohs (result->header.size) - sizeof(*result);
+  uint16_t gpl = ntohs (result->get_path_length);
+  uint16_t ppl = ntohs (result->put_path_length);
 
   if (size != (gpl + ppl) * sizeof(struct GNUNET_PeerIdentity))
-    {
-      GNUNET_break(0);
-      return GNUNET_SYSERR;
-    }
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
   return GNUNET_OK;
 }
 
@@ -106,24 +107,24 @@ check_search_response(void *cls,
  * @param result the message
  */
 static void
-handle_search_response(void *cls,
-                       const struct ResultMessage *result)
+handle_search_response (void *cls,
+                        const struct ResultMessage *result)
 {
   struct GNUNET_REGEX_Search *s = cls;
-  uint16_t gpl = ntohs(result->get_path_length);
-  uint16_t ppl = ntohs(result->put_path_length);
+  uint16_t gpl = ntohs (result->get_path_length);
+  uint16_t ppl = ntohs (result->put_path_length);
   const struct GNUNET_PeerIdentity *pid;
 
   pid = &result->id;
-  LOG(GNUNET_ERROR_TYPE_DEBUG,
-      "Got regex result %s\n",
-      GNUNET_i2s(pid));
-  s->callback(s->callback_cls,
-              pid,
-              &pid[1],
-              gpl,
-              &pid[1 + gpl],
-              ppl);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Got regex result %s\n",
+       GNUNET_i2s (pid));
+  s->callback (s->callback_cls,
+               pid,
+               &pid[1],
+               gpl,
+               &pid[1 + gpl],
+               ppl);
 }
 
 
@@ -135,14 +136,14 @@ handle_search_response(void *cls,
  * @param error error code
  */
 static void
-mq_error_handler(void *cls,
-                 enum GNUNET_MQ_Error error)
+mq_error_handler (void *cls,
+                  enum GNUNET_MQ_Error error)
 {
   struct GNUNET_REGEX_Search *s = cls;
 
-  GNUNET_MQ_destroy(s->mq);
+  GNUNET_MQ_destroy (s->mq);
   s->mq = NULL;
-  search_reconnect(s);
+  search_reconnect (s);
 }
 
 
@@ -152,35 +153,35 @@ mq_error_handler(void *cls,
  * @param s context for the search search for
  */
 static void
-search_reconnect(struct GNUNET_REGEX_Search *s)
+search_reconnect (struct GNUNET_REGEX_Search *s)
 {
   struct GNUNET_MQ_MessageHandler handlers[] = {
-    GNUNET_MQ_hd_var_size(search_response,
-                          GNUNET_MESSAGE_TYPE_REGEX_RESULT,
-                          struct ResultMessage,
-                          s),
-    GNUNET_MQ_handler_end()
+    GNUNET_MQ_hd_var_size (search_response,
+                           GNUNET_MESSAGE_TYPE_REGEX_RESULT,
+                           struct ResultMessage,
+                           s),
+    GNUNET_MQ_handler_end ()
   };
-  size_t slen = strlen(s->string) + 1;
+  size_t slen = strlen (s->string) + 1;
   struct GNUNET_MQ_Envelope *env;
   struct RegexSearchMessage *rsm;
 
-  GNUNET_assert(NULL == s->mq);
-  s->mq = GNUNET_CLIENT_connect(s->cfg,
-                                "regex",
-                                handlers,
-                                &mq_error_handler,
-                                s);
+  GNUNET_assert (NULL == s->mq);
+  s->mq = GNUNET_CLIENT_connect (s->cfg,
+                                 "regex",
+                                 handlers,
+                                 &mq_error_handler,
+                                 s);
   if (NULL == s->mq)
     return;
-  env = GNUNET_MQ_msg_extra(rsm,
-                            slen,
-                            GNUNET_MESSAGE_TYPE_REGEX_SEARCH);
-  GNUNET_memcpy(&rsm[1],
-                s->string,
-                slen);
-  GNUNET_MQ_send(s->mq,
-                 env);
+  env = GNUNET_MQ_msg_extra (rsm,
+                             slen,
+                             GNUNET_MESSAGE_TYPE_REGEX_SEARCH);
+  GNUNET_memcpy (&rsm[1],
+                 s->string,
+                 slen);
+  GNUNET_MQ_send (s->mq,
+                  env);
 }
 
 
@@ -197,37 +198,37 @@ search_reconnect(struct GNUNET_REGEX_Search *s)
  *         Must be freed by calling #GNUNET_REGEX_search_cancel().
  */
 struct GNUNET_REGEX_Search *
-GNUNET_REGEX_search(const struct GNUNET_CONFIGURATION_Handle *cfg,
-                    const char *string,
-                    GNUNET_REGEX_Found callback,
-                    void *callback_cls)
+GNUNET_REGEX_search (const struct GNUNET_CONFIGURATION_Handle *cfg,
+                     const char *string,
+                     GNUNET_REGEX_Found callback,
+                     void *callback_cls)
 {
   struct GNUNET_REGEX_Search *s;
-  size_t slen = strlen(string) + 1;
+  size_t slen = strlen (string) + 1;
 
   if (slen + sizeof(struct RegexSearchMessage) >= GNUNET_MAX_MESSAGE_SIZE)
-    {
-      GNUNET_log(GNUNET_ERROR_TYPE_WARNING,
-                 _("Search string `%s' is too long!\n"),
-                 string);
-      GNUNET_break(0);
-      return NULL;
-    }
-  LOG(GNUNET_ERROR_TYPE_DEBUG,
-      "Starting regex search for %s\n",
-      string);
-  s = GNUNET_new(struct GNUNET_REGEX_Search);
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                _ ("Search string `%s' is too long!\n"),
+                string);
+    GNUNET_break (0);
+    return NULL;
+  }
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Starting regex search for %s\n",
+       string);
+  s = GNUNET_new (struct GNUNET_REGEX_Search);
   s->cfg = cfg;
-  s->string = GNUNET_strdup(string);
+  s->string = GNUNET_strdup (string);
   s->callback = callback;
   s->callback_cls = callback_cls;
-  search_reconnect(s);
+  search_reconnect (s);
   if (NULL == s->mq)
-    {
-      GNUNET_free(s->string);
-      GNUNET_free(s);
-      return NULL;
-    }
+  {
+    GNUNET_free (s->string);
+    GNUNET_free (s);
+    return NULL;
+  }
   return s;
 }
 
@@ -238,11 +239,11 @@ GNUNET_REGEX_search(const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @param s Handle returned by a previous #GNUNET_REGEX_search() call.
  */
 void
-GNUNET_REGEX_search_cancel(struct GNUNET_REGEX_Search *s)
+GNUNET_REGEX_search_cancel (struct GNUNET_REGEX_Search *s)
 {
-  GNUNET_MQ_destroy(s->mq);
-  GNUNET_free(s->string);
-  GNUNET_free(s);
+  GNUNET_MQ_destroy (s->mq);
+  GNUNET_free (s->string);
+  GNUNET_free (s);
 }
 
 

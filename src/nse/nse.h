@@ -39,7 +39,8 @@ GNUNET_NETWORK_STRUCT_BEGIN
  * standard deviation of known estimates.
  *
  */
-struct GNUNET_NSE_ClientMessage {
+struct GNUNET_NSE_ClientMessage
+{
   /**
    * Type: GNUNET_MESSAGE_TYPE_NSE_ESTIMATE
    */

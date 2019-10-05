@@ -39,7 +39,8 @@ extern "C"
  * char array of literals that are allowed inside a regex (apart from the
  * operators)
  */
-#define ALLOWED_LITERALS "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+#define ALLOWED_LITERALS \
+  "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
 
 
 /**
@@ -47,7 +48,8 @@ extern "C"
  * which they origin ('from_state'). Each state can have 0-n transitions.
  * If label is NULL, this is considered to be an epsilon transition.
  */
-struct REGEX_INTERNAL_Transition {
+struct REGEX_INTERNAL_Transition
+{
   /**
    * This is a linked list.
    */
@@ -89,7 +91,8 @@ struct REGEX_INTERNAL_State;
 /**
  * Set of states.
  */
-struct REGEX_INTERNAL_StateSet {
+struct REGEX_INTERNAL_StateSet
+{
   /**
    * Array of states.
    */
@@ -110,7 +113,8 @@ struct REGEX_INTERNAL_StateSet {
 /**
  * A state. Can be used in DFA and NFA automatons.
  */
-struct REGEX_INTERNAL_State {
+struct REGEX_INTERNAL_State
+{
   /**
    * This is a linked list to keep states in an automaton.
    */
@@ -242,7 +246,8 @@ struct REGEX_INTERNAL_State {
 /**
  * Type of an automaton.
  */
-enum REGEX_INTERNAL_AutomatonType {
+enum REGEX_INTERNAL_AutomatonType
+{
   NFA,
   DFA
 };
@@ -251,7 +256,8 @@ enum REGEX_INTERNAL_AutomatonType {
 /**
  * Automaton representation.
  */
-struct REGEX_INTERNAL_Automaton {
+struct REGEX_INTERNAL_Automaton
+{
   /**
    * Linked list of NFAs used for partial NFA creation.
    */
@@ -319,7 +325,7 @@ struct REGEX_INTERNAL_Automaton {
  * @return NFA, needs to be freed using REGEX_INTERNAL_automaton_destroy.
  */
 struct REGEX_INTERNAL_Automaton *
-REGEX_INTERNAL_construct_nfa(const char *regex, const size_t len);
+REGEX_INTERNAL_construct_nfa (const char *regex, const size_t len);
 
 
 /**
@@ -335,8 +341,9 @@ REGEX_INTERNAL_construct_nfa(const char *regex, const size_t len);
  * @return GNUNET_YES to proceed traversal, GNUNET_NO to stop.
  */
 typedef int (*REGEX_INTERNAL_traverse_check) (void *cls,
-                                              struct REGEX_INTERNAL_State * s,
-                                              struct REGEX_INTERNAL_Transition * t);
+                                              struct REGEX_INTERNAL_State *s,
+                                              struct REGEX_INTERNAL_Transition *
+                                              t);
 
 
 /**
@@ -348,7 +355,7 @@ typedef int (*REGEX_INTERNAL_traverse_check) (void *cls,
  */
 typedef void (*REGEX_INTERNAL_traverse_action) (void *cls,
                                                 const unsigned int count,
-                                                struct REGEX_INTERNAL_State * s);
+                                                struct REGEX_INTERNAL_State *s);
 
 
 /**
@@ -365,12 +372,12 @@ typedef void (*REGEX_INTERNAL_traverse_action) (void *cls,
  * @param action_cls closure for action
  */
 void
-REGEX_INTERNAL_automaton_traverse(const struct REGEX_INTERNAL_Automaton *a,
-                                  struct REGEX_INTERNAL_State *start,
-                                  REGEX_INTERNAL_traverse_check check,
-                                  void *check_cls,
-                                  REGEX_INTERNAL_traverse_action action,
-                                  void *action_cls);
+REGEX_INTERNAL_automaton_traverse (const struct REGEX_INTERNAL_Automaton *a,
+                                   struct REGEX_INTERNAL_State *start,
+                                   REGEX_INTERNAL_traverse_check check,
+                                   void *check_cls,
+                                   REGEX_INTERNAL_traverse_action action,
+                                   void *action_cls);
 
 /**
  * Get the canonical regex of the given automaton.
@@ -384,7 +391,7 @@ REGEX_INTERNAL_automaton_traverse(const struct REGEX_INTERNAL_Automaton *a,
  * @return canonical regex string.
  */
 const char *
-REGEX_INTERNAL_get_canonical_regex(struct REGEX_INTERNAL_Automaton *a);
+REGEX_INTERNAL_get_canonical_regex (struct REGEX_INTERNAL_Automaton *a);
 
 
 /**
@@ -395,14 +402,15 @@ REGEX_INTERNAL_get_canonical_regex(struct REGEX_INTERNAL_Automaton *a);
  * @return number of transitions in the given automaton.
  */
 unsigned int
-REGEX_INTERNAL_get_transition_count(struct REGEX_INTERNAL_Automaton *a);
+REGEX_INTERNAL_get_transition_count (struct REGEX_INTERNAL_Automaton *a);
 
 
 /**
  * Context that contains an id counter for states and transitions as well as a
  * DLL of automatons used as a stack for NFA construction.
  */
-struct REGEX_INTERNAL_Context {
+struct REGEX_INTERNAL_Context
+{
   /**
    * Unique state id.
    */
@@ -433,9 +441,9 @@ struct REGEX_INTERNAL_Context {
  * @param stride_len length of the strides.
  */
 void
-REGEX_INTERNAL_dfa_add_multi_strides(struct REGEX_INTERNAL_Context *regex_ctx,
-                                     struct REGEX_INTERNAL_Automaton *dfa,
-                                     const unsigned int stride_len);
+REGEX_INTERNAL_dfa_add_multi_strides (struct REGEX_INTERNAL_Context *regex_ctx,
+                                      struct REGEX_INTERNAL_Automaton *dfa,
+                                      const unsigned int stride_len);
 
 
 

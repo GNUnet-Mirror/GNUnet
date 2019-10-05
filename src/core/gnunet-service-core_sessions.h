@@ -37,8 +37,8 @@
  * @param kx key exchange that completed
  */
 void
-GSC_SESSIONS_create(const struct GNUNET_PeerIdentity *peer,
-                    struct GSC_KeyExchangeInfo *kx);
+GSC_SESSIONS_create (const struct GNUNET_PeerIdentity *peer,
+                     struct GSC_KeyExchangeInfo *kx);
 
 
 /**
@@ -49,7 +49,7 @@ GSC_SESSIONS_create(const struct GNUNET_PeerIdentity *peer,
  * @param peer peer that is now connected
  */
 void
-GSC_SESSIONS_reinit(const struct GNUNET_PeerIdentity *peer);
+GSC_SESSIONS_reinit (const struct GNUNET_PeerIdentity *peer);
 
 
 /**
@@ -60,8 +60,8 @@ GSC_SESSIONS_reinit(const struct GNUNET_PeerIdentity *peer);
  * @param msg confirmation message we received
  */
 void
-GSC_SESSIONS_confirm_typemap(const struct GNUNET_PeerIdentity *peer,
-                             const struct GNUNET_MessageHeader *msg);
+GSC_SESSIONS_confirm_typemap (const struct GNUNET_PeerIdentity *peer,
+                              const struct GNUNET_MessageHeader *msg);
 
 
 /**
@@ -71,7 +71,7 @@ GSC_SESSIONS_confirm_typemap(const struct GNUNET_PeerIdentity *peer,
  * @param pid identity of peer to kill session with
  */
 void
-GSC_SESSIONS_end(const struct GNUNET_PeerIdentity *pid);
+GSC_SESSIONS_end (const struct GNUNET_PeerIdentity *pid);
 
 
 /**
@@ -82,7 +82,7 @@ GSC_SESSIONS_end(const struct GNUNET_PeerIdentity *pid);
  * @param pid identity of peer ready to receive data
  */
 void
-GSC_SESSIONS_solicit(const struct GNUNET_PeerIdentity *pid);
+GSC_SESSIONS_solicit (const struct GNUNET_PeerIdentity *pid);
 
 
 /**
@@ -95,7 +95,7 @@ GSC_SESSIONS_solicit(const struct GNUNET_PeerIdentity *pid);
  *         have been invoked on it
  */
 void
-GSC_SESSIONS_queue_request(struct GSC_ClientActiveRequest *car);
+GSC_SESSIONS_queue_request (struct GSC_ClientActiveRequest *car);
 
 
 /**
@@ -105,7 +105,7 @@ GSC_SESSIONS_queue_request(struct GSC_ClientActiveRequest *car);
  *        the caller (CLIENTS sysbsystem)
  */
 void
-GSC_SESSIONS_dequeue_request(struct GSC_ClientActiveRequest *car);
+GSC_SESSIONS_dequeue_request (struct GSC_ClientActiveRequest *car);
 
 
 /**
@@ -117,9 +117,9 @@ GSC_SESSIONS_dequeue_request(struct GSC_ClientActiveRequest *car);
  * @param priority how important is this message
  */
 void
-GSC_SESSIONS_transmit(struct GSC_ClientActiveRequest *car,
-                      const struct GNUNET_MessageHeader *msg,
-                      enum GNUNET_MQ_PriorityPreferences priority);
+GSC_SESSIONS_transmit (struct GSC_ClientActiveRequest *car,
+                       const struct GNUNET_MessageHeader *msg,
+                       enum GNUNET_MQ_PriorityPreferences priority);
 
 
 /**
@@ -129,7 +129,7 @@ GSC_SESSIONS_transmit(struct GSC_ClientActiveRequest *car,
  * @param msg message to transmit
  */
 void
-GSC_SESSIONS_broadcast_typemap(const struct GNUNET_MessageHeader *msg);
+GSC_SESSIONS_broadcast_typemap (const struct GNUNET_MessageHeader *msg);
 
 
 /**
@@ -138,7 +138,7 @@ GSC_SESSIONS_broadcast_typemap(const struct GNUNET_MessageHeader *msg);
  * @param client the new client
  */
 void
-GSC_SESSIONS_notify_client_about_sessions(struct GSC_Client *client);
+GSC_SESSIONS_notify_client_about_sessions (struct GSC_Client *client);
 
 
 /**
@@ -149,8 +149,8 @@ GSC_SESSIONS_notify_client_about_sessions(struct GSC_Client *client);
  * @param msg typemap update message
  */
 void
-GSC_SESSIONS_set_typemap(const struct GNUNET_PeerIdentity *peer,
-                         const struct GNUNET_MessageHeader *msg);
+GSC_SESSIONS_set_typemap (const struct GNUNET_PeerIdentity *peer,
+                          const struct GNUNET_MessageHeader *msg);
 
 
 /**
@@ -162,22 +162,22 @@ GSC_SESSIONS_set_typemap(const struct GNUNET_PeerIdentity *peer,
  * @param type type of the message
  */
 void
-GSC_SESSIONS_add_to_typemap(const struct GNUNET_PeerIdentity *peer,
-                            uint16_t type);
+GSC_SESSIONS_add_to_typemap (const struct GNUNET_PeerIdentity *peer,
+                             uint16_t type);
 
 
 /**
  * Initialize sessions subsystem.
  */
 void
-GSC_SESSIONS_init(void);
+GSC_SESSIONS_init (void);
 
 
 /**
  * Shutdown sessions subsystem.
  */
 void
-GSC_SESSIONS_done(void);
+GSC_SESSIONS_done (void);
 
 
 #endif

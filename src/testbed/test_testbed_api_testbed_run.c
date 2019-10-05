@@ -46,7 +46,7 @@ static struct GNUNET_TESTBED_Operation *op;
 /**
  * Abort task identifier
  */
-static struct GNUNET_SCHEDULER_Task * abort_task;
+static struct GNUNET_SCHEDULER_Task *abort_task;
 
 /**
  * Current peer id
@@ -70,11 +70,11 @@ static int wait_forever;
  * @param cls NULL
  */
 static void
-do_shutdown(void *cls)
+do_shutdown (void *cls)
 {
   if (NULL != abort_task)
-    GNUNET_SCHEDULER_cancel(abort_task);
-  GNUNET_SCHEDULER_shutdown();  /* Stop scheduler to shutdown testbed run */
+    GNUNET_SCHEDULER_cancel (abort_task);
+  GNUNET_SCHEDULER_shutdown ();  /* Stop scheduler to shutdown testbed run */
 }
 
 
@@ -84,12 +84,12 @@ do_shutdown(void *cls)
  * @param cls NULL
  */
 static void
-do_abort(void *cls)
+do_abort (void *cls)
 {
   abort_task = NULL;
-  GNUNET_log(GNUNET_ERROR_TYPE_WARNING,
-             "Test timed out -- Aborting\n");
-  GNUNET_SCHEDULER_add_now(&do_shutdown, NULL);
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+              "Test timed out -- Aborting\n");
+  GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
 }
 
 
@@ -106,26 +106,26 @@ do_abort(void *cls)
  *          failed
  */
 static void
-test_master(void *cls,
-            struct GNUNET_TESTBED_RunHandle *h,
-            unsigned int num_peers,
-            struct GNUNET_TESTBED_Peer **peers_,
-            unsigned int links_succeeded,
-            unsigned int links_failed)
+test_master (void *cls,
+             struct GNUNET_TESTBED_RunHandle *h,
+             unsigned int num_peers,
+             struct GNUNET_TESTBED_Peer **peers_,
+             unsigned int links_succeeded,
+             unsigned int links_failed)
 {
   result = GNUNET_OK;
   if (GNUNET_YES == wait_forever)
-    {
-      if (NULL == abort_task)
-        return;                 /* abort already scheduled */
-      GNUNET_SCHEDULER_cancel(abort_task);
-      abort_task = NULL;
-      GNUNET_SCHEDULER_add_shutdown(&do_shutdown, NULL);
-      return;
-    }
-  GNUNET_assert(NULL != peers[0]);
-  op = GNUNET_TESTBED_peer_stop(NULL, peers[0], NULL, NULL);
-  GNUNET_assert(NULL != op);
+  {
+    if (NULL == abort_task)
+      return;                   /* abort already scheduled */
+    GNUNET_SCHEDULER_cancel (abort_task);
+    abort_task = NULL;
+    GNUNET_SCHEDULER_add_shutdown (&do_shutdown, NULL);
+    return;
+  }
+  GNUNET_assert (NULL != peers[0]);
+  op = GNUNET_TESTBED_peer_stop (NULL, peers[0], NULL, NULL);
+  GNUNET_assert (NULL != op);
 }
 
 
@@ -136,27 +136,27 @@ test_master(void *cls,
  * @param event the controller event
  */
 static void
-controller_event_cb(void *cls,
-                    const struct GNUNET_TESTBED_EventInformation *event)
+controller_event_cb (void *cls,
+                     const struct GNUNET_TESTBED_EventInformation *event)
 {
   switch (event->type)
-    {
-    case GNUNET_TESTBED_ET_PEER_START:
-      GNUNET_assert(NULL == peers[peer_id]);
-      GNUNET_assert(NULL != event->details.peer_start.peer);
-      peers[peer_id++] = event->details.peer_start.peer;
-      break;
+  {
+  case GNUNET_TESTBED_ET_PEER_START:
+    GNUNET_assert (NULL == peers[peer_id]);
+    GNUNET_assert (NULL != event->details.peer_start.peer);
+    peers[peer_id++] = event->details.peer_start.peer;
+    break;
 
-    case GNUNET_TESTBED_ET_PEER_STOP:
-      GNUNET_assert(NULL != op);
-      GNUNET_TESTBED_operation_done(op);
-      GNUNET_assert(peers[0] == event->details.peer_stop.peer);
-      GNUNET_SCHEDULER_add_now(&do_shutdown, NULL);
-      break;
+  case GNUNET_TESTBED_ET_PEER_STOP:
+    GNUNET_assert (NULL != op);
+    GNUNET_TESTBED_operation_done (op);
+    GNUNET_assert (peers[0] == event->details.peer_stop.peer);
+    GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
+    break;
 
-    default:
-      GNUNET_assert(0);
-    }
+  default:
+    GNUNET_assert (0);
+  }
 }
 
 
@@ -169,24 +169,24 @@ controller_event_cb(void *cls,
  * @param cfg the configuration file handle
  */
 static void
-run(void *cls,
-    char *const *args,
-    const char *cfgfile,
-    const struct GNUNET_CONFIGURATION_Handle *config)
+run (void *cls,
+     char *const *args,
+     const char *cfgfile,
+     const struct GNUNET_CONFIGURATION_Handle *config)
 {
   uint64_t event_mask;
 
   event_mask = 0;
   event_mask |= (1LL << GNUNET_TESTBED_ET_PEER_START);
   event_mask |= (1LL << GNUNET_TESTBED_ET_PEER_STOP);
-  GNUNET_TESTBED_run(NULL, config, NUM_PEERS, event_mask,
-                     &controller_event_cb, NULL,
-                     &test_master, NULL);
+  GNUNET_TESTBED_run (NULL, config, NUM_PEERS, event_mask,
+                      &controller_event_cb, NULL,
+                      &test_master, NULL);
   abort_task =
-    GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_relative_multiply
-                                   (GNUNET_TIME_UNIT_SECONDS, 300),
-                                 &do_abort,
-                                 NULL);
+    GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
+                                    (GNUNET_TIME_UNIT_SECONDS, 300),
+                                  &do_abort,
+                                  NULL);
 }
 
 
@@ -194,7 +194,7 @@ run(void *cls,
  * Main function
  */
 int
-main(int argc, char **argv)
+main (int argc, char **argv)
 {
   char *argv2[] = {
     "test_testbed_api_testbed_run",
@@ -208,31 +208,31 @@ main(int argc, char **argv)
   char *config_filename;
   int ret;
 
-  if (NULL == (testname = strrchr(argv[0], (int)'_')))
-    {
-      GNUNET_break(0);
-      return 1;
-    }
+  if (NULL == (testname = strrchr (argv[0], (int) '_')))
+  {
+    GNUNET_break (0);
+    return 1;
+  }
   testname++;
-  testname = GNUNET_strdup(testname);
+  testname = GNUNET_strdup (testname);
 
-  if (0 == strcmp("waitforever", testname))
+  if (0 == strcmp ("waitforever", testname))
     wait_forever = GNUNET_YES;
-  if ((GNUNET_YES != wait_forever) && (0 != strcmp("run", testname)))
-    {
-      GNUNET_asprintf(&config_filename, "test_testbed_api_testbed_run_%s.conf",
-                      testname);
-    }
+  if ((GNUNET_YES != wait_forever) && (0 != strcmp ("run", testname)))
+  {
+    GNUNET_asprintf (&config_filename, "test_testbed_api_testbed_run_%s.conf",
+                     testname);
+  }
   else
-    config_filename = GNUNET_strdup("test_testbed_api.conf");
-  GNUNET_free(testname);
+    config_filename = GNUNET_strdup ("test_testbed_api.conf");
+  GNUNET_free (testname);
   argv2[2] = config_filename;
   result = GNUNET_SYSERR;
   ret =
-    GNUNET_PROGRAM_run((sizeof(argv2) / sizeof(char *)) - 1, argv2,
-                       "test_testbed_api_testbed_run", "nohelp", options,
-                       &run, NULL);
-  GNUNET_free(config_filename);
+    GNUNET_PROGRAM_run ((sizeof(argv2) / sizeof(char *)) - 1, argv2,
+                        "test_testbed_api_testbed_run", "nohelp", options,
+                        &run, NULL);
+  GNUNET_free (config_filename);
   if ((GNUNET_OK != ret) || (GNUNET_OK != result))
     return 1;
   return 0;

@@ -30,56 +30,57 @@ static int ok = 1;
 
 
 static void
-run(void *cls,
-    char *const *args,
-    const char *cfgfile,
-    const struct GNUNET_CONFIGURATION_Handle *cfg)
+run (void *cls,
+     char *const *args,
+     const char *cfgfile,
+     const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   ok = 0;
 }
 
 
 static int
-check()
+check ()
 {
   char *const argv[] = { "test-rps-api", NULL };
   struct GNUNET_GETOPT_CommandLineOption options[] = {
     GNUNET_GETOPT_OPTION_END
   };
   struct GNUNET_OS_Process *proc;
-  char *path = GNUNET_OS_get_libexec_binary_path("gnunet-service-rps");
+  char *path = GNUNET_OS_get_libexec_binary_path ("gnunet-service-rps");
 
   if (NULL == path)
-    {
-      fprintf(stderr, "Service executable not found `%s'\n", "gnunet-service-rps");
-      return;
-    }
+  {
+    fprintf (stderr, "Service executable not found `%s'\n",
+             "gnunet-service-rps");
+    return;
+  }
 
-  proc = GNUNET_OS_start_process(GNUNET_NO, GNUNET_OS_INHERIT_STD_ALL, NULL,
-                                 NULL, NULL, path, "gnunet-service-rps", NULL);
+  proc = GNUNET_OS_start_process (GNUNET_NO, GNUNET_OS_INHERIT_STD_ALL, NULL,
+                                  NULL, NULL, path, "gnunet-service-rps", NULL);
 
-  GNUNET_free(path);
-  GNUNET_assert(NULL != proc);
-  GNUNET_PROGRAM_run(1, argv, "test-rps-api", "nohelp",
-                     options, &run, &ok);
-  if (0 != GNUNET_OS_process_kill(proc, SIGTERM))
-    {
-      GNUNET_log_strerror(GNUNET_ERROR_TYPE_WARNING, "kill");
-      ok = 1;
-    }
-  GNUNET_OS_process_wait(proc);
-  GNUNET_OS_process_destroy(proc);
+  GNUNET_free (path);
+  GNUNET_assert (NULL != proc);
+  GNUNET_PROGRAM_run (1, argv, "test-rps-api", "nohelp",
+                      options, &run, &ok);
+  if (0 != GNUNET_OS_process_kill (proc, SIGTERM))
+  {
+    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
+    ok = 1;
+  }
+  GNUNET_OS_process_wait (proc);
+  GNUNET_OS_process_destroy (proc);
   return ok;
 }
 
 
 int
-main(int argc, char *argv[])
+main (int argc, char *argv[])
 {
-  GNUNET_log_setup("test_statistics_api",
-                   "WARNING",
-                   NULL);
-  return check();
+  GNUNET_log_setup ("test_statistics_api",
+                    "WARNING",
+                    NULL);
+  return check ();
 }
 
 /* end of test_rps_api.c */

@@ -30,7 +30,8 @@
 /**
  * An underlay link
  */
-struct LinkProperty {
+struct LinkProperty
+{
   /**
    * next pointer for list
    */
@@ -61,7 +62,8 @@ struct LinkProperty {
 /**
  * Container for holding a peer in whitelist/blacklist
  */
-struct ListEntry {
+struct ListEntry
+{
   /**
    * the next pointer
    */
@@ -78,7 +80,8 @@ struct ListEntry {
  * Model for configuring underlay links of a peer
  * @ingroup underlay
  */
-struct GNUNET_TESTBED_UnderlayLinkModel {
+struct GNUNET_TESTBED_UnderlayLinkModel
+{
   /**
    * The peer associated with this model
    */
@@ -107,15 +110,15 @@ struct GNUNET_TESTBED_UnderlayLinkModel {
  * @param model the model
  */
 static void
-free_entries(struct GNUNET_TESTBED_UnderlayLinkModel *model)
+free_entries (struct GNUNET_TESTBED_UnderlayLinkModel *model)
 {
   struct ListEntry *e;
 
   while (NULL != (e = model->entries))
-    {
-      model->entries = e->next;
-      GNUNET_free(e);
-    }
+  {
+    model->entries = e->next;
+    GNUNET_free (e);
+  }
 }
 
 
@@ -125,15 +128,15 @@ free_entries(struct GNUNET_TESTBED_UnderlayLinkModel *model)
  * @param model the model
  */
 static void
-free_link_properties(struct GNUNET_TESTBED_UnderlayLinkModel *model)
+free_link_properties (struct GNUNET_TESTBED_UnderlayLinkModel *model)
 {
   struct LinkProperty *p;
 
   while (NULL != (p = model->props))
-    {
-      model->props = p->next;
-      GNUNET_free(p);
-    }
+  {
+    model->props = p->next;
+    GNUNET_free (p);
+  }
 }
 
 
@@ -147,13 +150,15 @@ free_link_properties(struct GNUNET_TESTBED_UnderlayLinkModel *model)
  * @return the model
  */
 struct GNUNET_TESTBED_UnderlayLinkModel *
-GNUNET_TESTBED_underlaylinkmodel_create(struct GNUNET_TESTBED_Peer *peer,
-                                        enum GNUNET_TESTBED_UnderlayLinkModelType type)
+GNUNET_TESTBED_underlaylinkmodel_create (struct GNUNET_TESTBED_Peer *peer,
+                                         enum
+                                         GNUNET_TESTBED_UnderlayLinkModelType
+                                         type)
 {
   struct GNUNET_TESTBED_UnderlayLinkModel *m;
 
-  GNUNET_assert(0 == peer->underlay_model_exists);
-  m = GNUNET_new(struct GNUNET_TESTBED_UnderlayLinkModel);
+  GNUNET_assert (0 == peer->underlay_model_exists);
+  m = GNUNET_new (struct GNUNET_TESTBED_UnderlayLinkModel);
   peer->underlay_model_exists = 1;
   m->type = type;
   return m;
@@ -170,12 +175,14 @@ GNUNET_TESTBED_underlaylinkmodel_create(struct GNUNET_TESTBED_Peer *peer,
  * @param peer the peer to add
  */
 void
-GNUNET_TESTBED_underlaylinkmodel_add_peer(struct GNUNET_TESTBED_UnderlayLinkModel *model,
-                                          struct GNUNET_TESTBED_Peer *peer)
+GNUNET_TESTBED_underlaylinkmodel_add_peer (struct
+                                           GNUNET_TESTBED_UnderlayLinkModel *
+                                           model,
+                                           struct GNUNET_TESTBED_Peer *peer)
 {
   struct ListEntry *entry;
 
-  entry = GNUNET_new(struct ListEntry);
+  entry = GNUNET_new (struct ListEntry);
   entry->peer = peer;
   entry->next = model->entries;
   model->entries = entry;
@@ -194,15 +201,17 @@ GNUNET_TESTBED_underlaylinkmodel_add_peer(struct GNUNET_TESTBED_UnderlayLinkMode
  * @param bandwidth bandwidth of the link in kilobytes per second [kB/s]
  */
 void
-GNUNET_TESTBED_underlaylinkmodel_set_link(struct GNUNET_TESTBED_UnderlayLinkModel *model,
-                                          struct GNUNET_TESTBED_Peer *peer,
-                                          uint32_t latency,
-                                          uint32_t loss,
-                                          uint32_t bandwidth)
+GNUNET_TESTBED_underlaylinkmodel_set_link (struct
+                                           GNUNET_TESTBED_UnderlayLinkModel *
+                                           model,
+                                           struct GNUNET_TESTBED_Peer *peer,
+                                           uint32_t latency,
+                                           uint32_t loss,
+                                           uint32_t bandwidth)
 {
   struct LinkProperty *prop;
 
-  prop = GNUNET_new(struct LinkProperty);
+  prop = GNUNET_new (struct LinkProperty);
   prop->peer = peer;
   prop->latency = latency;
   prop->loss = loss;
@@ -221,12 +230,13 @@ GNUNET_TESTBED_underlaylinkmodel_set_link(struct GNUNET_TESTBED_UnderlayLinkMode
  * @param model the model to unallocate
  */
 void
-GNUNET_TESTBED_underlaylinkmodel_free(struct GNUNET_TESTBED_UnderlayLinkModel *model)
+GNUNET_TESTBED_underlaylinkmodel_free (struct
+                                       GNUNET_TESTBED_UnderlayLinkModel *model)
 {
   model->peer->underlay_model_exists = 0;
-  free_entries(model);
-  free_link_properties(model);
-  gnunet_free(model);
+  free_entries (model);
+  free_link_properties (model);
+  gnunet_free (model);
 }
 
 
@@ -237,12 +247,13 @@ GNUNET_TESTBED_underlaylinkmodel_free(struct GNUNET_TESTBED_UnderlayLinkModel *m
  * @param model the model to commit
  */
 void
-GNUNET_TESTBED_underlaylinkmodel_commit(struct GNUNET_TESTBED_UnderlayLinkModel *model)
+GNUNET_TESTBED_underlaylinkmodel_commit (struct
+                                         GNUNET_TESTBED_UnderlayLinkModel *model)
 {
   /* FIXME: Marshal the model into a message */
-  GNUNET_break(0);
+  GNUNET_break (0);
   /* do not reset the value of model->peer->underlay_model_exists */
-  free_entries(model);
-  free_link_properties(model);
-  GNUNET_free(model);
+  free_entries (model);
+  free_link_properties (model);
+  GNUNET_free (model);
 }

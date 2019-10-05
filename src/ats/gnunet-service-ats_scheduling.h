@@ -37,7 +37,7 @@
  * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
  */
 int
-GAS_scheduling_add_client(struct GNUNET_SERVICE_Client *client);
+GAS_scheduling_add_client (struct GNUNET_SERVICE_Client *client);
 
 
 /**
@@ -47,7 +47,7 @@ GAS_scheduling_add_client(struct GNUNET_SERVICE_Client *client);
  * @param client handle of the (now dead) client
  */
 void
-GAS_scheduling_remove_client(struct GNUNET_SERVICE_Client *client);
+GAS_scheduling_remove_client (struct GNUNET_SERVICE_Client *client);
 
 
 /**
@@ -60,10 +60,13 @@ GAS_scheduling_remove_client(struct GNUNET_SERVICE_Client *client);
  * @param bandwidth_in assigned inbound bandwidth
  */
 void
-GAS_scheduling_transmit_address_suggestion(const struct GNUNET_PeerIdentity *peer,
-                                           uint32_t session_id,
-                                           struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
-                                           struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in);
+GAS_scheduling_transmit_address_suggestion (const struct
+                                            GNUNET_PeerIdentity *peer,
+                                            uint32_t session_id,
+                                            struct GNUNET_BANDWIDTH_Value32NBO
+                                            bandwidth_out,
+                                            struct GNUNET_BANDWIDTH_Value32NBO
+                                            bandwidth_in);
 
 
 /**
@@ -73,7 +76,7 @@ GAS_scheduling_transmit_address_suggestion(const struct GNUNET_PeerIdentity *pee
  * @param m the request message
  */
 void
-GAS_handle_address_add(const struct AddressAddMessage *m);
+GAS_handle_address_add (const struct AddressAddMessage *m);
 
 
 /**
@@ -82,7 +85,7 @@ GAS_handle_address_add(const struct AddressAddMessage *m);
  * @param m the request message
  */
 void
-GAS_handle_address_update(const struct AddressUpdateMessage *m);
+GAS_handle_address_update (const struct AddressUpdateMessage *m);
 
 
 /**
@@ -91,7 +94,7 @@ GAS_handle_address_update(const struct AddressUpdateMessage *m);
  * @param m the request message
  */
 void
-GAS_handle_address_destroyed(const struct AddressDestroyedMessage *m);
+GAS_handle_address_destroyed (const struct AddressDestroyedMessage *m);
 
 
 #endif

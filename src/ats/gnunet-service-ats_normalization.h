@@ -40,21 +40,21 @@
  * @param address the address to update
  */
 void
-GAS_normalization_update_property(struct ATS_Address *address);
+GAS_normalization_update_property (struct ATS_Address *address);
 
 
 /**
  * Start the normalization component
  */
 void
-GAS_normalization_start(void);
+GAS_normalization_start (void);
 
 
 /**
  * Stop the normalization component and free all items
  */
 void
-GAS_normalization_stop(void);
+GAS_normalization_stop (void);
 
 #endif
 /* end of gnunet-service-ats_normalization.h */

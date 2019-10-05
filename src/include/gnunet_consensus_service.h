@@ -64,7 +64,8 @@ extern "C"
  * @param element new element, NULL on error
  */
 typedef void (*GNUNET_CONSENSUS_ElementCallback) (void *cls,
-                                                  const struct GNUNET_SET_Element *element);
+                                                  const struct
+                                                  GNUNET_SET_Element *element);
 
 
 
@@ -93,14 +94,14 @@ struct GNUNET_CONSENSUS_Handle;
  * @return handle to use, NULL on error
  */
 struct GNUNET_CONSENSUS_Handle *
-GNUNET_CONSENSUS_create(const struct GNUNET_CONFIGURATION_Handle *cfg,
-                        unsigned int num_peers,
-                        const struct GNUNET_PeerIdentity *peers,
-                        const struct GNUNET_HashCode *session_id,
-                        struct GNUNET_TIME_Absolute start,
-                        struct GNUNET_TIME_Absolute deadline,
-                        GNUNET_CONSENSUS_ElementCallback new_element_cb,
-                        void *new_element_cls);
+GNUNET_CONSENSUS_create (const struct GNUNET_CONFIGURATION_Handle *cfg,
+                         unsigned int num_peers,
+                         const struct GNUNET_PeerIdentity *peers,
+                         const struct GNUNET_HashCode *session_id,
+                         struct GNUNET_TIME_Absolute start,
+                         struct GNUNET_TIME_Absolute deadline,
+                         GNUNET_CONSENSUS_ElementCallback new_element_cb,
+                         void *new_element_cls);
 
 
 /**
@@ -132,10 +133,10 @@ typedef void (*GNUNET_CONSENSUS_InsertDoneCallback) (void *cls,
  * @param idc_cls closure for @a idc
  */
 void
-GNUNET_CONSENSUS_insert(struct GNUNET_CONSENSUS_Handle *consensus,
-                        const struct GNUNET_SET_Element *element,
-                        GNUNET_CONSENSUS_InsertDoneCallback idc,
-                        void *idc_cls);
+GNUNET_CONSENSUS_insert (struct GNUNET_CONSENSUS_Handle *consensus,
+                         const struct GNUNET_SET_Element *element,
+                         GNUNET_CONSENSUS_InsertDoneCallback idc,
+                         void *idc_cls);
 
 
 
@@ -156,9 +157,9 @@ typedef void (*GNUNET_CONSENSUS_ConcludeCallback) (void *cls);
  * @param conclude_cls closure for the conclude callback
  */
 void
-GNUNET_CONSENSUS_conclude(struct GNUNET_CONSENSUS_Handle *consensus,
-                          GNUNET_CONSENSUS_ConcludeCallback conclude,
-                          void *conclude_cls);
+GNUNET_CONSENSUS_conclude (struct GNUNET_CONSENSUS_Handle *consensus,
+                           GNUNET_CONSENSUS_ConcludeCallback conclude,
+                           void *conclude_cls);
 
 
 /**
@@ -168,7 +169,7 @@ GNUNET_CONSENSUS_conclude(struct GNUNET_CONSENSUS_Handle *consensus,
  * @param consensus handle to destroy
  */
 void
-GNUNET_CONSENSUS_destroy(struct GNUNET_CONSENSUS_Handle *consensus);
+GNUNET_CONSENSUS_destroy (struct GNUNET_CONSENSUS_Handle *consensus);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

@@ -34,7 +34,7 @@
 #include "gnunet_arm_service.h"
 #include "gnunet_testing_lib.h"
 
-#define LOG(kind, ...) GNUNET_log_from(kind, "testing-api", __VA_ARGS__)
+#define LOG(kind, ...) GNUNET_log_from (kind, "testing-api", __VA_ARGS__)
 
 
 /**
@@ -59,7 +59,8 @@
 #define HIGH_PORT 56000
 
 
-struct SharedServiceInstance {
+struct SharedServiceInstance
+{
   struct SharedService *ss;
 
   char *cfg_fn;
@@ -73,7 +74,8 @@ struct SharedServiceInstance {
   unsigned int n_refs;
 };
 
-struct SharedService {
+struct SharedService
+{
   char *sname;
 
   struct SharedServiceInstance **instances;
@@ -92,7 +94,8 @@ struct SharedService {
  * Handle for a system on which GNUnet peers are executed;
  * a system is used for reserving unique paths and ports.
  */
-struct GNUNET_TESTING_System {
+struct GNUNET_TESTING_System
+{
   /**
    * Prefix (i.e. "/tmp/gnunet-testing/") we prepend to each
    * GNUNET_HOME.
@@ -164,7 +167,8 @@ struct GNUNET_TESTING_System {
 /**
  * Handle for a GNUnet peer controlled by testing.
  */
-struct GNUNET_TESTING_Peer {
+struct GNUNET_TESTING_Peer
+{
   /**
    * The TESTING system associated with this peer
    */
@@ -245,56 +249,56 @@ struct GNUNET_TESTING_Peer {
  * @return #GNUNET_OK on success; #GNUNET_SYSERR on error
  */
 static int
-hostkeys_load(struct GNUNET_TESTING_System *system)
+hostkeys_load (struct GNUNET_TESTING_System *system)
 {
   uint64_t fs;
   char *data_dir;
   char *filename;
   struct GNUNET_DISK_FileHandle *fd;
 
-  GNUNET_assert(NULL == system->hostkeys_data);
-  data_dir = GNUNET_OS_installation_get_path(GNUNET_OS_IPK_DATADIR);
-  GNUNET_asprintf(&filename, "%s/testing_hostkeys.ecc", data_dir);
-  GNUNET_free(data_dir);
+  GNUNET_assert (NULL == system->hostkeys_data);
+  data_dir = GNUNET_OS_installation_get_path (GNUNET_OS_IPK_DATADIR);
+  GNUNET_asprintf (&filename, "%s/testing_hostkeys.ecc", data_dir);
+  GNUNET_free (data_dir);
 
-  if (GNUNET_YES != GNUNET_DISK_file_test(filename))
-    {
-      LOG(GNUNET_ERROR_TYPE_ERROR,
-          _("Hostkeys file not found: %s\n"),
-          filename);
-      GNUNET_free(filename);
-      return GNUNET_SYSERR;
-    }
+  if (GNUNET_YES != GNUNET_DISK_file_test (filename))
+  {
+    LOG (GNUNET_ERROR_TYPE_ERROR,
+         _ ("Hostkeys file not found: %s\n"),
+         filename);
+    GNUNET_free (filename);
+    return GNUNET_SYSERR;
+  }
   /* Check hostkey file size, read entire thing into memory */
   if (GNUNET_OK !=
-      GNUNET_DISK_file_size(filename, &fs, GNUNET_YES, GNUNET_YES))
+      GNUNET_DISK_file_size (filename, &fs, GNUNET_YES, GNUNET_YES))
     fs = 0;
   if (0 == fs)
-    {
-      GNUNET_free(filename);
-      return GNUNET_SYSERR; /* File is empty */
-    }
+  {
+    GNUNET_free (filename);
+    return GNUNET_SYSERR;   /* File is empty */
+  }
   if (0 != (fs % GNUNET_TESTING_HOSTKEYFILESIZE))
-    {
-      LOG(GNUNET_ERROR_TYPE_ERROR,
-          _("Incorrect hostkey file format: %s\n"),
-          filename);
-      GNUNET_free(filename);
-      return GNUNET_SYSERR;
-    }
-  fd = GNUNET_DISK_file_open(filename,
-                             GNUNET_DISK_OPEN_READ,
-                             GNUNET_DISK_PERM_NONE);
+  {
+    LOG (GNUNET_ERROR_TYPE_ERROR,
+         _ ("Incorrect hostkey file format: %s\n"),
+         filename);
+    GNUNET_free (filename);
+    return GNUNET_SYSERR;
+  }
+  fd = GNUNET_DISK_file_open (filename,
+                              GNUNET_DISK_OPEN_READ,
+                              GNUNET_DISK_PERM_NONE);
   if (NULL == fd)
-    {
-      GNUNET_log_strerror_file(GNUNET_ERROR_TYPE_ERROR, "open", filename);
-      GNUNET_free(filename);
-      return GNUNET_SYSERR;
-    }
-  GNUNET_free(filename);
+  {
+    GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, "open", filename);
+    GNUNET_free (filename);
+    return GNUNET_SYSERR;
+  }
+  GNUNET_free (filename);
   system->hostkeys_data =
-    GNUNET_DISK_file_map(fd, &system->map, GNUNET_DISK_MAP_TYPE_READ, fs);
-  GNUNET_DISK_file_close(fd);
+    GNUNET_DISK_file_map (fd, &system->map, GNUNET_DISK_MAP_TYPE_READ, fs);
+  GNUNET_DISK_file_close (fd);
   if (NULL == system->hostkeys_data)
     return GNUNET_SYSERR;
   system->total_hostkeys = fs / GNUNET_TESTING_HOSTKEYFILESIZE;
@@ -308,11 +312,11 @@ hostkeys_load(struct GNUNET_TESTING_System *system)
  * @param system the testing system handle
  */
 static void
-hostkeys_unload(struct GNUNET_TESTING_System *system)
+hostkeys_unload (struct GNUNET_TESTING_System *system)
 {
-  GNUNET_break(NULL != system->hostkeys_data);
+  GNUNET_break (NULL != system->hostkeys_data);
   system->hostkeys_data = NULL;
-  GNUNET_DISK_file_unmap(system->map);
+  GNUNET_DISK_file_unmap (system->map);
   system->map = NULL;
   system->hostkeys_data = NULL;
   system->total_hostkeys = 0;
@@ -328,14 +332,14 @@ hostkeys_unload(struct GNUNET_TESTING_System *system)
  * @param value value of the option
  */
 static void
-cfg_copy_iterator(void *cls,
-                  const char *section,
-                  const char *option,
-                  const char *value)
+cfg_copy_iterator (void *cls,
+                   const char *section,
+                   const char *option,
+                   const char *value)
 {
   struct GNUNET_CONFIGURATION_Handle *cfg2 = cls;
 
-  GNUNET_CONFIGURATION_set_value_string(cfg2, section, option, value);
+  GNUNET_CONFIGURATION_set_value_string (cfg2, section, option, value);
 }
 
 
@@ -361,7 +365,7 @@ cfg_copy_iterator(void *cls,
  * @return handle to this system, NULL on error
  */
 struct GNUNET_TESTING_System *
-GNUNET_TESTING_system_create_with_portrange(
+GNUNET_TESTING_system_create_with_portrange (
   const char *testdir,
   const char *trusted_ip,
   const char *hostname,
@@ -374,53 +378,53 @@ GNUNET_TESTING_system_create_with_portrange(
   struct SharedService *ss;
   unsigned int cnt;
 
-  GNUNET_assert(NULL != testdir);
-  system = GNUNET_new(struct GNUNET_TESTING_System);
-  if (NULL == (system->tmppath = getenv(GNUNET_TESTING_PREFIX)))
-    system->tmppath = GNUNET_DISK_mkdtemp(testdir);
+  GNUNET_assert (NULL != testdir);
+  system = GNUNET_new (struct GNUNET_TESTING_System);
+  if (NULL == (system->tmppath = getenv (GNUNET_TESTING_PREFIX)))
+    system->tmppath = GNUNET_DISK_mkdtemp (testdir);
   else
-    system->tmppath = GNUNET_strdup(system->tmppath);
+    system->tmppath = GNUNET_strdup (system->tmppath);
   system->lowport = lowport;
   system->highport = highport;
   if (NULL == system->tmppath)
-    {
-      GNUNET_free(system);
-      return NULL;
-    }
+  {
+    GNUNET_free (system);
+    return NULL;
+  }
   if (NULL != trusted_ip)
-    system->trusted_ip = GNUNET_strdup(trusted_ip);
+    system->trusted_ip = GNUNET_strdup (trusted_ip);
   if (NULL != hostname)
-    system->hostname = GNUNET_strdup(hostname);
-  if (GNUNET_OK != hostkeys_load(system))
-    {
-      GNUNET_TESTING_system_destroy(system, GNUNET_YES);
-      return NULL;
-    }
+    system->hostname = GNUNET_strdup (hostname);
+  if (GNUNET_OK != hostkeys_load (system))
+  {
+    GNUNET_TESTING_system_destroy (system, GNUNET_YES);
+    return NULL;
+  }
   if (NULL == shared_services)
     return system;
   for (cnt = 0; NULL != shared_services[cnt].service; cnt++)
-    {
-      tss = shared_services[cnt];
-      ss = GNUNET_new(struct SharedService);
-      ss->sname = GNUNET_strdup(tss.service);
-      ss->cfg = GNUNET_CONFIGURATION_create();
-      GNUNET_CONFIGURATION_iterate_section_values(tss.cfg,
-                                                  ss->sname,
-                                                  &cfg_copy_iterator,
-                                                  ss->cfg);
-      GNUNET_CONFIGURATION_iterate_section_values(tss.cfg,
-                                                  "TESTING",
-                                                  &cfg_copy_iterator,
-                                                  ss->cfg);
-      GNUNET_CONFIGURATION_iterate_section_values(tss.cfg,
-                                                  "PATHS",
-                                                  &cfg_copy_iterator,
-                                                  ss->cfg);
-      ss->share = tss.share;
-      GNUNET_array_append(system->shared_services,
-                          system->n_shared_services,
-                          ss);
-    }
+  {
+    tss = shared_services[cnt];
+    ss = GNUNET_new (struct SharedService);
+    ss->sname = GNUNET_strdup (tss.service);
+    ss->cfg = GNUNET_CONFIGURATION_create ();
+    GNUNET_CONFIGURATION_iterate_section_values (tss.cfg,
+                                                 ss->sname,
+                                                 &cfg_copy_iterator,
+                                                 ss->cfg);
+    GNUNET_CONFIGURATION_iterate_section_values (tss.cfg,
+                                                 "TESTING",
+                                                 &cfg_copy_iterator,
+                                                 ss->cfg);
+    GNUNET_CONFIGURATION_iterate_section_values (tss.cfg,
+                                                 "PATHS",
+                                                 &cfg_copy_iterator,
+                                                 ss->cfg);
+    ss->share = tss.share;
+    GNUNET_array_append (system->shared_services,
+                         system->n_shared_services,
+                         ss);
+  }
   return system;
 }
 
@@ -446,59 +450,59 @@ GNUNET_TESTING_system_create_with_portrange(
  * @return handle to this system, NULL on error
  */
 struct GNUNET_TESTING_System *
-GNUNET_TESTING_system_create(
+GNUNET_TESTING_system_create (
   const char *testdir,
   const char *trusted_ip,
   const char *hostname,
   const struct GNUNET_TESTING_SharedService *shared_services)
 {
-  return GNUNET_TESTING_system_create_with_portrange(testdir,
-                                                     trusted_ip,
-                                                     hostname,
-                                                     shared_services,
-                                                     LOW_PORT,
-                                                     HIGH_PORT);
+  return GNUNET_TESTING_system_create_with_portrange (testdir,
+                                                      trusted_ip,
+                                                      hostname,
+                                                      shared_services,
+                                                      LOW_PORT,
+                                                      HIGH_PORT);
 }
 
 
 static void
-cleanup_shared_service_instance(struct SharedServiceInstance *i)
+cleanup_shared_service_instance (struct SharedServiceInstance *i)
 {
   if (NULL != i->cfg_fn)
-    {
-      (void)unlink(i->cfg_fn);
-      GNUNET_free(i->cfg_fn);
-    }
-  GNUNET_free_non_null(i->unix_sock);
-  GNUNET_free_non_null(i->port_str);
-  GNUNET_break(NULL == i->proc);
-  GNUNET_break(0 == i->n_refs);
-  GNUNET_free(i);
+  {
+    (void) unlink (i->cfg_fn);
+    GNUNET_free (i->cfg_fn);
+  }
+  GNUNET_free_non_null (i->unix_sock);
+  GNUNET_free_non_null (i->port_str);
+  GNUNET_break (NULL == i->proc);
+  GNUNET_break (0 == i->n_refs);
+  GNUNET_free (i);
 }
 
 
 static int
-start_shared_service_instance(struct SharedServiceInstance *i)
+start_shared_service_instance (struct SharedServiceInstance *i)
 {
   char *binary;
   char *libexec_binary;
 
-  GNUNET_assert(NULL == i->proc);
-  GNUNET_assert(NULL != i->cfg_fn);
-  (void)GNUNET_asprintf(&binary, "gnunet-service-%s", i->ss->sname);
-  libexec_binary = GNUNET_OS_get_libexec_binary_path(binary);
-  GNUNET_free(binary);
-  i->proc = GNUNET_OS_start_process(PIPE_CONTROL,
-                                    GNUNET_OS_INHERIT_STD_OUT_AND_ERR,
-                                    NULL,
-                                    NULL,
-                                    NULL,
-                                    libexec_binary,
-                                    libexec_binary,
-                                    "-c",
-                                    i->cfg_fn,
-                                    NULL);
-  GNUNET_free(libexec_binary);
+  GNUNET_assert (NULL == i->proc);
+  GNUNET_assert (NULL != i->cfg_fn);
+  (void) GNUNET_asprintf (&binary, "gnunet-service-%s", i->ss->sname);
+  libexec_binary = GNUNET_OS_get_libexec_binary_path (binary);
+  GNUNET_free (binary);
+  i->proc = GNUNET_OS_start_process (PIPE_CONTROL,
+                                     GNUNET_OS_INHERIT_STD_OUT_AND_ERR,
+                                     NULL,
+                                     NULL,
+                                     NULL,
+                                     libexec_binary,
+                                     libexec_binary,
+                                     "-c",
+                                     i->cfg_fn,
+                                     NULL);
+  GNUNET_free (libexec_binary);
   if (NULL == i->proc)
     return GNUNET_SYSERR;
   return GNUNET_OK;
@@ -506,15 +510,15 @@ start_shared_service_instance(struct SharedServiceInstance *i)
 
 
 static void
-stop_shared_service_instance(struct SharedServiceInstance *i)
+stop_shared_service_instance (struct SharedServiceInstance *i)
 {
-  GNUNET_break(0 == i->n_refs);
-  if (0 != GNUNET_OS_process_kill(i->proc, GNUNET_TERM_SIG))
-    LOG(GNUNET_ERROR_TYPE_WARNING,
-        "Killing shared service instance (%s) failed\n",
-        i->ss->sname);
-  (void)GNUNET_OS_process_wait(i->proc);
-  GNUNET_OS_process_destroy(i->proc);
+  GNUNET_break (0 == i->n_refs);
+  if (0 != GNUNET_OS_process_kill (i->proc, GNUNET_TERM_SIG))
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+         "Killing shared service instance (%s) failed\n",
+         i->ss->sname);
+  (void) GNUNET_OS_process_wait (i->proc);
+  GNUNET_OS_process_destroy (i->proc);
   i->proc = NULL;
 }
 
@@ -527,8 +531,8 @@ stop_shared_service_instance(struct SharedServiceInstance *i)
  *        be removed (clean up on shutdown)?
  */
 void
-GNUNET_TESTING_system_destroy(struct GNUNET_TESTING_System *system,
-                              int remove_paths)
+GNUNET_TESTING_system_destroy (struct GNUNET_TESTING_System *system,
+                               int remove_paths)
 {
   struct SharedService *ss;
   struct SharedServiceInstance *i;
@@ -536,29 +540,29 @@ GNUNET_TESTING_system_destroy(struct GNUNET_TESTING_System *system,
   unsigned int i_cnt;
 
   if (NULL != system->hostkeys_data)
-    hostkeys_unload(system);
+    hostkeys_unload (system);
   for (ss_cnt = 0; ss_cnt < system->n_shared_services; ss_cnt++)
+  {
+    ss = system->shared_services[ss_cnt];
+    for (i_cnt = 0; i_cnt < ss->n_instances; i_cnt++)
     {
-      ss = system->shared_services[ss_cnt];
-      for (i_cnt = 0; i_cnt < ss->n_instances; i_cnt++)
-        {
-          i = ss->instances[i_cnt];
-          if (NULL != i->proc)
-            stop_shared_service_instance(i);
-          cleanup_shared_service_instance(i);
-        }
-      GNUNET_free_non_null(ss->instances);
-      GNUNET_CONFIGURATION_destroy(ss->cfg);
-      GNUNET_free(ss->sname);
-      GNUNET_free(ss);
+      i = ss->instances[i_cnt];
+      if (NULL != i->proc)
+        stop_shared_service_instance (i);
+      cleanup_shared_service_instance (i);
     }
-  GNUNET_free_non_null(system->shared_services);
+    GNUNET_free_non_null (ss->instances);
+    GNUNET_CONFIGURATION_destroy (ss->cfg);
+    GNUNET_free (ss->sname);
+    GNUNET_free (ss);
+  }
+  GNUNET_free_non_null (system->shared_services);
   if (GNUNET_YES == remove_paths)
-    GNUNET_DISK_directory_remove(system->tmppath);
-  GNUNET_free(system->tmppath);
-  GNUNET_free_non_null(system->trusted_ip);
-  GNUNET_free_non_null(system->hostname);
-  GNUNET_free(system);
+    GNUNET_DISK_directory_remove (system->tmppath);
+  GNUNET_free (system->tmppath);
+  GNUNET_free_non_null (system->trusted_ip);
+  GNUNET_free_non_null (system->hostname);
+  GNUNET_free (system);
 }
 
 
@@ -569,7 +573,7 @@ GNUNET_TESTING_system_destroy(struct GNUNET_TESTING_System *system,
  * @return 0 if no free port was available
  */
 uint16_t
-GNUNET_TESTING_reserve_port(struct GNUNET_TESTING_System *system)
+GNUNET_TESTING_reserve_port (struct GNUNET_TESTING_System *system)
 {
   struct GNUNET_NETWORK_Handle *socket;
   struct addrinfo hint;
@@ -603,57 +607,57 @@ GNUNET_TESTING_reserve_port(struct GNUNET_TESTING_System *system)
   port_buckets = system->reserved_ports;
   for (index = (system->lowport / 32) + 1; index < (system->highport / 32);
        index++)
+  {
+    xor_image = (UINT32_MAX ^ port_buckets[index]);
+    if (0 == xor_image)   /* Ports in the bucket are full */
+      continue;
+    pos = system->lowport % 32;
+    while (pos < 32)
     {
-      xor_image = (UINT32_MAX ^ port_buckets[index]);
-      if (0 == xor_image) /* Ports in the bucket are full */
+      if (0 == ((xor_image >> pos) & 1U))
+      {
+        pos++;
         continue;
-      pos = system->lowport % 32;
-      while (pos < 32)
-        {
-          if (0 == ((xor_image >> pos) & 1U))
-            {
-              pos++;
-              continue;
-            }
-          open_port = (index * 32) + pos;
-          if (open_port >= system->highport)
-            return 0;
-          GNUNET_asprintf(&open_port_str, "%u", (unsigned int)open_port);
-          ret = NULL;
-          GNUNET_assert(0 == getaddrinfo(NULL, open_port_str, &hint, &ret));
-          GNUNET_free(open_port_str);
-          bind_status = GNUNET_NO;
-          for (ai = ret; NULL != ai; ai = ai->ai_next)
-            {
-              socket = GNUNET_NETWORK_socket_create(ai->ai_family, SOCK_STREAM, 0);
-              if (NULL == socket)
-                continue;
-              bind_status =
-                GNUNET_NETWORK_socket_bind(socket, ai->ai_addr, ai->ai_addrlen);
-              GNUNET_NETWORK_socket_close(socket);
-              if (GNUNET_OK != bind_status)
-                break;
-              socket = GNUNET_NETWORK_socket_create(ai->ai_family, SOCK_DGRAM, 0);
-              if (NULL == socket)
-                continue;
-              bind_status =
-                GNUNET_NETWORK_socket_bind(socket, ai->ai_addr, ai->ai_addrlen);
-              GNUNET_NETWORK_socket_close(socket);
-              if (GNUNET_OK != bind_status)
-                break;
-            }
-          port_buckets[index] |= (1U << pos); /* Set the port bit */
-          freeaddrinfo(ret);
-          if (GNUNET_OK == bind_status)
-            {
-              LOG(GNUNET_ERROR_TYPE_DEBUG,
-                  "Found a free port %u\n",
-                  (unsigned int)open_port);
-              return open_port;
-            }
-          pos++;
-        }
+      }
+      open_port = (index * 32) + pos;
+      if (open_port >= system->highport)
+        return 0;
+      GNUNET_asprintf (&open_port_str, "%u", (unsigned int) open_port);
+      ret = NULL;
+      GNUNET_assert (0 == getaddrinfo (NULL, open_port_str, &hint, &ret));
+      GNUNET_free (open_port_str);
+      bind_status = GNUNET_NO;
+      for (ai = ret; NULL != ai; ai = ai->ai_next)
+      {
+        socket = GNUNET_NETWORK_socket_create (ai->ai_family, SOCK_STREAM, 0);
+        if (NULL == socket)
+          continue;
+        bind_status =
+          GNUNET_NETWORK_socket_bind (socket, ai->ai_addr, ai->ai_addrlen);
+        GNUNET_NETWORK_socket_close (socket);
+        if (GNUNET_OK != bind_status)
+          break;
+        socket = GNUNET_NETWORK_socket_create (ai->ai_family, SOCK_DGRAM, 0);
+        if (NULL == socket)
+          continue;
+        bind_status =
+          GNUNET_NETWORK_socket_bind (socket, ai->ai_addr, ai->ai_addrlen);
+        GNUNET_NETWORK_socket_close (socket);
+        if (GNUNET_OK != bind_status)
+          break;
+      }
+      port_buckets[index] |= (1U << pos);     /* Set the port bit */
+      freeaddrinfo (ret);
+      if (GNUNET_OK == bind_status)
+      {
+        LOG (GNUNET_ERROR_TYPE_DEBUG,
+             "Found a free port %u\n",
+             (unsigned int) open_port);
+        return open_port;
+      }
+      pos++;
     }
+  }
   return 0;
 }
 
@@ -666,8 +670,8 @@ GNUNET_TESTING_reserve_port(struct GNUNET_TESTING_System *system)
  * @param port reserved port to release
  */
 void
-GNUNET_TESTING_release_port(struct GNUNET_TESTING_System *system,
-                            uint16_t port)
+GNUNET_TESTING_release_port (struct GNUNET_TESTING_System *system,
+                             uint16_t port)
 {
   uint32_t *port_buckets;
   uint16_t bucket;
@@ -676,12 +680,12 @@ GNUNET_TESTING_release_port(struct GNUNET_TESTING_System *system,
   port_buckets = system->reserved_ports;
   bucket = port / 32;
   pos = port % 32;
-  LOG(GNUNET_ERROR_TYPE_DEBUG, "Releasing port %u\n", port);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Releasing port %u\n", port);
   if (0 == (port_buckets[bucket] & (1U << pos)))
-    {
-      GNUNET_break(0); /* Port was not reserved by us using reserve_port() */
-      return;
-    }
+  {
+    GNUNET_break (0);  /* Port was not reserved by us using reserve_port() */
+    return;
+  }
   port_buckets[bucket] &= ~(1U << pos);
 }
 
@@ -704,27 +708,27 @@ GNUNET_TESTING_release_port(struct GNUNET_TESTING_System *system,
  * @return NULL on error (not enough keys)
  */
 struct GNUNET_CRYPTO_EddsaPrivateKey *
-GNUNET_TESTING_hostkey_get(const struct GNUNET_TESTING_System *system,
-                           uint32_t key_number,
-                           struct GNUNET_PeerIdentity *id)
+GNUNET_TESTING_hostkey_get (const struct GNUNET_TESTING_System *system,
+                            uint32_t key_number,
+                            struct GNUNET_PeerIdentity *id)
 {
   struct GNUNET_CRYPTO_EddsaPrivateKey *private_key;
 
   if ((NULL == id) || (NULL == system->hostkeys_data))
     return NULL;
   if (key_number >= system->total_hostkeys)
-    {
-      LOG(GNUNET_ERROR_TYPE_ERROR,
-          _("Key number %u does not exist\n"),
-          key_number);
-      return NULL;
-    }
-  private_key = GNUNET_new(struct GNUNET_CRYPTO_EddsaPrivateKey);
-  GNUNET_memcpy(private_key,
-                system->hostkeys_data +
-                (key_number * GNUNET_TESTING_HOSTKEYFILESIZE),
-                GNUNET_TESTING_HOSTKEYFILESIZE);
-  GNUNET_CRYPTO_eddsa_key_get_public(private_key, &id->public_key);
+  {
+    LOG (GNUNET_ERROR_TYPE_ERROR,
+         _ ("Key number %u does not exist\n"),
+         key_number);
+    return NULL;
+  }
+  private_key = GNUNET_new (struct GNUNET_CRYPTO_EddsaPrivateKey);
+  GNUNET_memcpy (private_key,
+                 system->hostkeys_data
+                 + (key_number * GNUNET_TESTING_HOSTKEYFILESIZE),
+                 GNUNET_TESTING_HOSTKEYFILESIZE);
+  GNUNET_CRYPTO_eddsa_key_get_public (private_key, &id->public_key);
   return private_key;
 }
 
@@ -733,7 +737,8 @@ GNUNET_TESTING_hostkey_get(const struct GNUNET_TESTING_System *system,
  * Structure for holding data to build new configurations from a configuration
  * template
  */
-struct UpdateContext {
+struct UpdateContext
+{
   /**
    * The system for which we are building configurations
    */
@@ -779,10 +784,10 @@ struct UpdateContext {
  * @param value value of the option
  */
 static void
-update_config(void *cls,
-              const char *section,
-              const char *option,
-              const char *value)
+update_config (void *cls,
+               const char *section,
+               const char *option,
+               const char *value)
 {
   struct UpdateContext *uc = cls;
   unsigned int ival;
@@ -795,76 +800,76 @@ update_config(void *cls,
 
   if (GNUNET_OK != uc->status)
     return;
-  if (!((0 == strcmp(option, "PORT")) || (0 == strcmp(option, "UNIXPATH")) ||
-        (0 == strcmp(option, "HOSTNAME"))))
+  if (! ((0 == strcmp (option, "PORT")) || (0 == strcmp (option, "UNIXPATH")) ||
+         (0 == strcmp (option, "HOSTNAME"))))
     return;
-  GNUNET_asprintf(&single_variable, "single_%s_per_host", section);
-  GNUNET_asprintf(&per_host_variable, "num_%s_per_host", section);
-  if ((0 == strcmp(option, "PORT")) && (1 == sscanf(value, "%u", &ival)))
+  GNUNET_asprintf (&single_variable, "single_%s_per_host", section);
+  GNUNET_asprintf (&per_host_variable, "num_%s_per_host", section);
+  if ((0 == strcmp (option, "PORT")) && (1 == sscanf (value, "%u", &ival)))
+  {
+    if ((ival != 0) &&
+        (GNUNET_YES != GNUNET_CONFIGURATION_get_value_yesno (uc->cfg,
+                                                             "testing",
+                                                             single_variable)))
     {
-      if ((ival != 0) &&
-          (GNUNET_YES != GNUNET_CONFIGURATION_get_value_yesno(uc->cfg,
-                                                              "testing",
-                                                              single_variable)))
-        {
-          new_port = GNUNET_TESTING_reserve_port(uc->system);
-          if (0 == new_port)
-            {
-              uc->status = GNUNET_SYSERR;
-              GNUNET_free(single_variable);
-              GNUNET_free(per_host_variable);
-              return;
-            }
-          GNUNET_snprintf(cval, sizeof(cval), "%u", new_port);
-          value = cval;
-          GNUNET_array_append(uc->ports, uc->nports, new_port);
-        }
-      else if ((ival != 0) &&
-               (GNUNET_YES ==
-                GNUNET_CONFIGURATION_get_value_yesno(uc->cfg,
-                                                     "testing",
-                                                     single_variable)) &&
-               GNUNET_CONFIGURATION_get_value_number(uc->cfg,
+      new_port = GNUNET_TESTING_reserve_port (uc->system);
+      if (0 == new_port)
+      {
+        uc->status = GNUNET_SYSERR;
+        GNUNET_free (single_variable);
+        GNUNET_free (per_host_variable);
+        return;
+      }
+      GNUNET_snprintf (cval, sizeof(cval), "%u", new_port);
+      value = cval;
+      GNUNET_array_append (uc->ports, uc->nports, new_port);
+    }
+    else if ((ival != 0) &&
+             (GNUNET_YES ==
+              GNUNET_CONFIGURATION_get_value_yesno (uc->cfg,
+                                                    "testing",
+                                                    single_variable)) &&
+             GNUNET_CONFIGURATION_get_value_number (uc->cfg,
+                                                    "testing",
+                                                    per_host_variable,
+                                                    &num_per_host))
+    {
+      /* GNUNET_snprintf (cval, sizeof (cval), "%u", */
+      /*                  ival + ctx->fdnum % num_per_host); */
+      /* value = cval; */
+      GNUNET_break (0);    /* FIXME */
+    }
+  }
+  if (0 == strcmp (option, "UNIXPATH"))
+  {
+    if (GNUNET_YES != GNUNET_CONFIGURATION_get_value_yesno (uc->cfg,
+                                                            "testing",
+                                                            single_variable))
+    {
+      GNUNET_snprintf (uval,
+                       sizeof(uval),
+                       "%s/%s.sock",
+                       uc->gnunet_home,
+                       section);
+      value = uval;
+    }
+    else if ((GNUNET_YES ==
+              GNUNET_CONFIGURATION_get_value_number (uc->cfg,
                                                      "testing",
                                                      per_host_variable,
-                                                     &num_per_host))
-        {
-          /* GNUNET_snprintf (cval, sizeof (cval), "%u", */
-          /*                  ival + ctx->fdnum % num_per_host); */
-          /* value = cval; */
-          GNUNET_break(0); /* FIXME */
-        }
-    }
-  if (0 == strcmp(option, "UNIXPATH"))
+                                                     &num_per_host)) &&
+             (num_per_host > 0))
     {
-      if (GNUNET_YES != GNUNET_CONFIGURATION_get_value_yesno(uc->cfg,
-                                                             "testing",
-                                                             single_variable))
-        {
-          GNUNET_snprintf(uval,
-                          sizeof(uval),
-                          "%s/%s.sock",
-                          uc->gnunet_home,
-                          section);
-          value = uval;
-        }
-      else if ((GNUNET_YES ==
-                GNUNET_CONFIGURATION_get_value_number(uc->cfg,
-                                                      "testing",
-                                                      per_host_variable,
-                                                      &num_per_host)) &&
-               (num_per_host > 0))
-        {
-          GNUNET_break(0); /* FIXME */
-        }
+      GNUNET_break (0);    /* FIXME */
     }
-  if (0 == strcmp(option, "HOSTNAME"))
-    {
-      value = (NULL == uc->system->hostname) ? "localhost" : uc->system->hostname;
-    }
-  GNUNET_free(single_variable);
-  GNUNET_free(per_host_variable);
-  GNUNET_CONFIGURATION_set_value_string(uc->cfg, section, option, value);
+  }
+  if (0 == strcmp (option, "HOSTNAME"))
+  {
+    value = (NULL == uc->system->hostname) ? "localhost" : uc->system->hostname;
+  }
+  GNUNET_free (single_variable);
+  GNUNET_free (per_host_variable);
+  GNUNET_CONFIGURATION_set_value_string (uc->cfg, section, option, value);
 }
 
 
@@ -876,7 +881,7 @@ update_config(void *cls,
  * @param section name of the section
  */
 static void
-update_config_sections(void *cls, const char *section)
+update_config_sections (void *cls, const char *section)
 {
   struct UpdateContext *uc = cls;
   char **ikeys;
@@ -893,98 +898,98 @@ update_config_sections(void *cls, const char *section)
   /* Ignore certain options from sections.  See
      https://gnunet.org/bugs/view.php?id=2476 */
   if (GNUNET_YES ==
-      GNUNET_CONFIGURATION_have_value(uc->cfg, section, "TESTING_IGNORE_KEYS"))
-    {
-      GNUNET_assert(GNUNET_YES ==
-                    GNUNET_CONFIGURATION_get_value_string(uc->cfg,
+      GNUNET_CONFIGURATION_have_value (uc->cfg, section, "TESTING_IGNORE_KEYS"))
+  {
+    GNUNET_assert (GNUNET_YES ==
+                   GNUNET_CONFIGURATION_get_value_string (uc->cfg,
                                                           section,
                                                           "TESTING_IGNORE_KEYS",
                                                           &val));
-      ptr = val;
-      for (ikeys_cnt = 0; NULL != (ptr = strstr(ptr, ";")); ikeys_cnt++)
-        ptr++;
-      if (0 == ikeys_cnt)
-        GNUNET_break(0);
-      else
-        {
-          ikeys = GNUNET_malloc((sizeof(char *)) * ikeys_cnt);
-          ptr = val;
-          for (key = 0; key < ikeys_cnt; key++)
-            {
-              ikeys[key] = ptr;
-              ptr = strstr(ptr, ";");
-              GNUNET_assert(NULL != ptr); /* worked just before... */
-              *ptr = '\0';
-              ptr++;
-            }
-        }
-    }
-  if (0 != ikeys_cnt)
+    ptr = val;
+    for (ikeys_cnt = 0; NULL != (ptr = strstr (ptr, ";")); ikeys_cnt++)
+      ptr++;
+    if (0 == ikeys_cnt)
+      GNUNET_break (0);
+    else
     {
+      ikeys = GNUNET_malloc ((sizeof(char *)) * ikeys_cnt);
+      ptr = val;
       for (key = 0; key < ikeys_cnt; key++)
-        {
-          if (NULL != strstr(ikeys[key], "ADVERTISED_PORT"))
-            break;
-        }
-      if ((key == ikeys_cnt) &&
-          (GNUNET_YES ==
-           GNUNET_CONFIGURATION_have_value(uc->cfg, section, "ADVERTISED_PORT")))
-        {
-          if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string(uc->cfg,
-                                                                 section,
-                                                                 "PORT",
-                                                                 &ptr))
-            {
-              GNUNET_CONFIGURATION_set_value_string(uc->cfg,
-                                                    section,
-                                                    "ADVERTISED_PORT",
-                                                    ptr);
-              GNUNET_free(ptr);
-            }
-        }
-      for (key = 0; key < ikeys_cnt; key++)
-        {
-          if (NULL != strstr(ikeys[key], "ACCEPT_FROM"))
-            {
-              GNUNET_free(ikeys);
-              GNUNET_free(val);
-              return;
-            }
-        }
-      GNUNET_free(ikeys);
+      {
+        ikeys[key] = ptr;
+        ptr = strstr (ptr, ";");
+        GNUNET_assert (NULL != ptr);      /* worked just before... */
+        *ptr = '\0';
+        ptr++;
+      }
     }
-  GNUNET_free_non_null(val);
+  }
+  if (0 != ikeys_cnt)
+  {
+    for (key = 0; key < ikeys_cnt; key++)
+    {
+      if (NULL != strstr (ikeys[key], "ADVERTISED_PORT"))
+        break;
+    }
+    if ((key == ikeys_cnt) &&
+        (GNUNET_YES ==
+         GNUNET_CONFIGURATION_have_value (uc->cfg, section, "ADVERTISED_PORT")))
+    {
+      if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string (uc->cfg,
+                                                              section,
+                                                              "PORT",
+                                                              &ptr))
+      {
+        GNUNET_CONFIGURATION_set_value_string (uc->cfg,
+                                               section,
+                                               "ADVERTISED_PORT",
+                                               ptr);
+        GNUNET_free (ptr);
+      }
+    }
+    for (key = 0; key < ikeys_cnt; key++)
+    {
+      if (NULL != strstr (ikeys[key], "ACCEPT_FROM"))
+      {
+        GNUNET_free (ikeys);
+        GNUNET_free (val);
+        return;
+      }
+    }
+    GNUNET_free (ikeys);
+  }
+  GNUNET_free_non_null (val);
   ACCEPT_FROM_key = "ACCEPT_FROM";
   if ((NULL != uc->system->trusted_ip) &&
-      (NULL != strstr(uc->system->trusted_ip, ":")))  /* IPv6 in use */
+      (NULL != strstr (uc->system->trusted_ip, ":"))) /* IPv6 in use */
     ACCEPT_FROM_key = "ACCEPT_FROM6";
-  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_string(uc->cfg,
-                                                         section,
-                                                         ACCEPT_FROM_key,
-                                                         &orig_allowed_hosts))
-    {
-      orig_allowed_hosts = GNUNET_strdup("127.0.0.1;");
-    }
+  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_string (uc->cfg,
+                                                          section,
+                                                          ACCEPT_FROM_key,
+                                                          &orig_allowed_hosts))
+  {
+    orig_allowed_hosts = GNUNET_strdup ("127.0.0.1;");
+  }
   if (NULL == uc->system->trusted_ip)
-    allowed_hosts = GNUNET_strdup(orig_allowed_hosts);
+    allowed_hosts = GNUNET_strdup (orig_allowed_hosts);
   else
-    GNUNET_asprintf(&allowed_hosts,
-                    "%s%s;",
-                    orig_allowed_hosts,
-                    uc->system->trusted_ip);
-  GNUNET_free(orig_allowed_hosts);
-  GNUNET_CONFIGURATION_set_value_string(uc->cfg,
-                                        section,
-                                        ACCEPT_FROM_key,
-                                        allowed_hosts);
-  GNUNET_free(allowed_hosts);
+    GNUNET_asprintf (&allowed_hosts,
+                     "%s%s;",
+                     orig_allowed_hosts,
+                     uc->system->trusted_ip);
+  GNUNET_free (orig_allowed_hosts);
+  GNUNET_CONFIGURATION_set_value_string (uc->cfg,
+                                         section,
+                                         ACCEPT_FROM_key,
+                                         allowed_hosts);
+  GNUNET_free (allowed_hosts);
 }
 
 
 static struct SharedServiceInstance *
-associate_shared_service(struct GNUNET_TESTING_System *system,
-                         struct SharedService *ss,
-                         struct GNUNET_CONFIGURATION_Handle *cfg)
+associate_shared_service (struct GNUNET_TESTING_System *system,
+                          struct SharedService *ss,
+                          struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   struct SharedServiceInstance *i;
   struct GNUNET_CONFIGURATION_Handle *temp;
@@ -995,62 +1000,62 @@ associate_shared_service(struct GNUNET_TESTING_System *system,
   if (((0 == ss->share) && (NULL == ss->instances)) ||
       ((0 != ss->share) &&
        (ss->n_instances < ((ss->n_peers + ss->share - 1) / ss->share))))
-    {
-      i = GNUNET_new(struct SharedServiceInstance);
-      i->ss = ss;
-      (void)GNUNET_asprintf(&gnunet_home,
+  {
+    i = GNUNET_new (struct SharedServiceInstance);
+    i->ss = ss;
+    (void) GNUNET_asprintf (&gnunet_home,
                             "%s/shared/%s/%u",
                             system->tmppath,
                             ss->sname,
                             ss->n_instances);
-      (void)GNUNET_asprintf(&i->unix_sock, "%s/sock", gnunet_home);
-      port = GNUNET_TESTING_reserve_port(system);
-      if (0 == port)
-        {
-          GNUNET_free(gnunet_home);
-          cleanup_shared_service_instance(i);
-          return NULL;
-        }
-      GNUNET_array_append(ss->instances, ss->n_instances, i);
-      temp = GNUNET_CONFIGURATION_dup(ss->cfg);
-      (void)GNUNET_asprintf(&i->port_str, "%u", port);
-      (void)GNUNET_asprintf(&i->cfg_fn, "%s/config", gnunet_home);
-      GNUNET_CONFIGURATION_set_value_string(temp,
-                                            "PATHS",
-                                            "GNUNET_HOME",
-                                            gnunet_home);
-      GNUNET_free(gnunet_home);
-      GNUNET_CONFIGURATION_set_value_string(temp,
-                                            ss->sname,
-                                            "UNIXPATH",
-                                            i->unix_sock);
-      GNUNET_CONFIGURATION_set_value_string(temp,
-                                            ss->sname,
-                                            "PORT",
-                                            i->port_str);
-      if (GNUNET_SYSERR == GNUNET_CONFIGURATION_write(temp, i->cfg_fn))
-        {
-          GNUNET_CONFIGURATION_destroy(temp);
-          cleanup_shared_service_instance(i);
-          return NULL;
-        }
-      GNUNET_CONFIGURATION_destroy(temp);
-    }
-  else
+    (void) GNUNET_asprintf (&i->unix_sock, "%s/sock", gnunet_home);
+    port = GNUNET_TESTING_reserve_port (system);
+    if (0 == port)
     {
-      GNUNET_assert(NULL != ss->instances);
-      GNUNET_assert(0 < ss->n_instances);
-      i = ss->instances[ss->n_instances - 1];
+      GNUNET_free (gnunet_home);
+      cleanup_shared_service_instance (i);
+      return NULL;
     }
-  GNUNET_CONFIGURATION_iterate_section_values(ss->cfg,
-                                              ss->sname,
-                                              &cfg_copy_iterator,
-                                              cfg);
-  GNUNET_CONFIGURATION_set_value_string(cfg,
-                                        ss->sname,
-                                        "UNIXPATH",
-                                        i->unix_sock);
-  GNUNET_CONFIGURATION_set_value_string(cfg, ss->sname, "PORT", i->port_str);
+    GNUNET_array_append (ss->instances, ss->n_instances, i);
+    temp = GNUNET_CONFIGURATION_dup (ss->cfg);
+    (void) GNUNET_asprintf (&i->port_str, "%u", port);
+    (void) GNUNET_asprintf (&i->cfg_fn, "%s/config", gnunet_home);
+    GNUNET_CONFIGURATION_set_value_string (temp,
+                                           "PATHS",
+                                           "GNUNET_HOME",
+                                           gnunet_home);
+    GNUNET_free (gnunet_home);
+    GNUNET_CONFIGURATION_set_value_string (temp,
+                                           ss->sname,
+                                           "UNIXPATH",
+                                           i->unix_sock);
+    GNUNET_CONFIGURATION_set_value_string (temp,
+                                           ss->sname,
+                                           "PORT",
+                                           i->port_str);
+    if (GNUNET_SYSERR == GNUNET_CONFIGURATION_write (temp, i->cfg_fn))
+    {
+      GNUNET_CONFIGURATION_destroy (temp);
+      cleanup_shared_service_instance (i);
+      return NULL;
+    }
+    GNUNET_CONFIGURATION_destroy (temp);
+  }
+  else
+  {
+    GNUNET_assert (NULL != ss->instances);
+    GNUNET_assert (0 < ss->n_instances);
+    i = ss->instances[ss->n_instances - 1];
+  }
+  GNUNET_CONFIGURATION_iterate_section_values (ss->cfg,
+                                               ss->sname,
+                                               &cfg_copy_iterator,
+                                               cfg);
+  GNUNET_CONFIGURATION_set_value_string (cfg,
+                                         ss->sname,
+                                         "UNIXPATH",
+                                         i->unix_sock);
+  GNUNET_CONFIGURATION_set_value_string (cfg, ss->sname, "PORT", i->port_str);
   return i;
 }
 
@@ -1075,10 +1080,10 @@ associate_shared_service(struct GNUNET_TESTING_System *system,
  *           be incomplete and should not be used there upon
  */
 static int
-GNUNET_TESTING_configuration_create_(struct GNUNET_TESTING_System *system,
-                                     struct GNUNET_CONFIGURATION_Handle *cfg,
-                                     uint16_t **ports,
-                                     unsigned int *nports)
+GNUNET_TESTING_configuration_create_ (struct GNUNET_TESTING_System *system,
+                                      struct GNUNET_CONFIGURATION_Handle *cfg,
+                                      uint16_t **ports,
+                                      unsigned int *nports)
 {
   struct UpdateContext uc;
   char *default_config;
@@ -1088,35 +1093,35 @@ GNUNET_TESTING_configuration_create_(struct GNUNET_TESTING_System *system,
   uc.status = GNUNET_OK;
   uc.ports = NULL;
   uc.nports = 0;
-  GNUNET_asprintf(&uc.gnunet_home,
-                  "%s/%u",
-                  system->tmppath,
-                  system->path_counter++);
-  GNUNET_asprintf(&default_config, "%s/config", uc.gnunet_home);
-  GNUNET_CONFIGURATION_set_value_string(cfg,
-                                        "PATHS",
-                                        "DEFAULTCONFIG",
-                                        default_config);
-  GNUNET_CONFIGURATION_set_value_string(cfg, "arm", "CONFIG", default_config);
-  GNUNET_free(default_config);
-  GNUNET_CONFIGURATION_set_value_string(cfg,
-                                        "PATHS",
-                                        "GNUNET_HOME",
-                                        uc.gnunet_home);
+  GNUNET_asprintf (&uc.gnunet_home,
+                   "%s/%u",
+                   system->tmppath,
+                   system->path_counter++);
+  GNUNET_asprintf (&default_config, "%s/config", uc.gnunet_home);
+  GNUNET_CONFIGURATION_set_value_string (cfg,
+                                         "PATHS",
+                                         "DEFAULTCONFIG",
+                                         default_config);
+  GNUNET_CONFIGURATION_set_value_string (cfg, "arm", "CONFIG", default_config);
+  GNUNET_free (default_config);
+  GNUNET_CONFIGURATION_set_value_string (cfg,
+                                         "PATHS",
+                                         "GNUNET_HOME",
+                                         uc.gnunet_home);
   /* make PORTs and UNIXPATHs unique */
-  GNUNET_CONFIGURATION_iterate(cfg, &update_config, &uc);
+  GNUNET_CONFIGURATION_iterate (cfg, &update_config, &uc);
   /* allow connections to services from system trusted_ip host */
-  GNUNET_CONFIGURATION_iterate_sections(cfg, &update_config_sections, &uc);
+  GNUNET_CONFIGURATION_iterate_sections (cfg, &update_config_sections, &uc);
   /* enable loopback-based connections between peers */
-  GNUNET_CONFIGURATION_set_value_string(cfg, "nat", "USE_LOCALADDR", "YES");
-  GNUNET_free(uc.gnunet_home);
+  GNUNET_CONFIGURATION_set_value_string (cfg, "nat", "USE_LOCALADDR", "YES");
+  GNUNET_free (uc.gnunet_home);
   if ((NULL != ports) && (NULL != nports))
-    {
-      *ports = uc.ports;
-      *nports = uc.nports;
-    }
+  {
+    *ports = uc.ports;
+    *nports = uc.nports;
+  }
   else
-    GNUNET_free_non_null(uc.ports);
+    GNUNET_free_non_null (uc.ports);
   return uc.status;
 }
 
@@ -1138,10 +1143,10 @@ GNUNET_TESTING_configuration_create_(struct GNUNET_TESTING_System *system,
  *           be incomplete and should not be used there upon
  */
 int
-GNUNET_TESTING_configuration_create(struct GNUNET_TESTING_System *system,
-                                    struct GNUNET_CONFIGURATION_Handle *cfg)
+GNUNET_TESTING_configuration_create (struct GNUNET_TESTING_System *system,
+                                     struct GNUNET_CONFIGURATION_Handle *cfg)
 {
-  return GNUNET_TESTING_configuration_create_(system, cfg, NULL, NULL);
+  return GNUNET_TESTING_configuration_create_ (system, cfg, NULL, NULL);
 }
 
 
@@ -1159,11 +1164,11 @@ GNUNET_TESTING_configuration_create(struct GNUNET_TESTING_System *system,
  * @return handle to the peer, NULL on error
  */
 struct GNUNET_TESTING_Peer *
-GNUNET_TESTING_peer_configure(struct GNUNET_TESTING_System *system,
-                              struct GNUNET_CONFIGURATION_Handle *cfg,
-                              uint32_t key_number,
-                              struct GNUNET_PeerIdentity *id,
-                              char **emsg)
+GNUNET_TESTING_peer_configure (struct GNUNET_TESTING_System *system,
+                               struct GNUNET_CONFIGURATION_Handle *cfg,
+                               uint32_t key_number,
+                               struct GNUNET_PeerIdentity *id,
+                               char **emsg)
 {
   struct GNUNET_TESTING_Peer *peer;
   struct GNUNET_DISK_FileHandle *fd;
@@ -1184,141 +1189,141 @@ GNUNET_TESTING_peer_configure(struct GNUNET_TESTING_System *system,
   if (NULL != emsg)
     *emsg = NULL;
   if (key_number >= system->total_hostkeys)
-    {
-      GNUNET_asprintf(
-        &emsg_,
-        _(
-          "You attempted to create a testbed with more than %u hosts.  Please precompute more hostkeys first.\n"),
-        (unsigned int)system->total_hostkeys);
-      goto err_ret;
-    }
+  {
+    GNUNET_asprintf (
+      &emsg_,
+      _ (
+        "You attempted to create a testbed with more than %u hosts.  Please precompute more hostkeys first.\n"),
+      (unsigned int) system->total_hostkeys);
+    goto err_ret;
+  }
   pk = NULL;
   if ((NULL != id) &&
-      (NULL == (pk = GNUNET_TESTING_hostkey_get(system, key_number, id))))
-    {
-      GNUNET_asprintf(&emsg_,
-                      _("Failed to initialize hostkey for peer %u\n"),
-                      (unsigned int)key_number);
-      goto err_ret;
-    }
+      (NULL == (pk = GNUNET_TESTING_hostkey_get (system, key_number, id))))
+  {
+    GNUNET_asprintf (&emsg_,
+                     _ ("Failed to initialize hostkey for peer %u\n"),
+                     (unsigned int) key_number);
+    goto err_ret;
+  }
   if (NULL != pk)
-    GNUNET_free(pk);
-  if (GNUNET_NO == GNUNET_CONFIGURATION_have_value(cfg, "PEER", "PRIVATE_KEY"))
-    {
-      GNUNET_asprintf(
-        &emsg_,
-        _("PRIVATE_KEY option in PEER section missing in configuration\n"));
-      goto err_ret;
-    }
+    GNUNET_free (pk);
+  if (GNUNET_NO == GNUNET_CONFIGURATION_have_value (cfg, "PEER", "PRIVATE_KEY"))
+  {
+    GNUNET_asprintf (
+      &emsg_,
+      _ ("PRIVATE_KEY option in PEER section missing in configuration\n"));
+    goto err_ret;
+  }
   /* Remove sections for shared services */
   for (cnt = 0; cnt < system->n_shared_services; cnt++)
-    {
-      ss = system->shared_services[cnt];
-      GNUNET_CONFIGURATION_remove_section(cfg, ss->sname);
-    }
+  {
+    ss = system->shared_services[cnt];
+    GNUNET_CONFIGURATION_remove_section (cfg, ss->sname);
+  }
   if (GNUNET_OK !=
-      GNUNET_TESTING_configuration_create_(system, cfg, &ports, &nports))
-    {
-      GNUNET_asprintf(&emsg_,
-                      _("Failed to create configuration for peer "
+      GNUNET_TESTING_configuration_create_ (system, cfg, &ports, &nports))
+  {
+    GNUNET_asprintf (&emsg_,
+                     _ ("Failed to create configuration for peer "
                         "(not enough free ports?)\n"));
-      goto err_ret;
-    }
-  GNUNET_assert(GNUNET_OK ==
-                GNUNET_CONFIGURATION_get_value_filename(cfg,
-                                                        "PEER",
-                                                        "PRIVATE_KEY",
-                                                        &hostkey_filename));
-  fd = GNUNET_DISK_file_open(hostkey_filename,
-                             GNUNET_DISK_OPEN_CREATE | GNUNET_DISK_OPEN_WRITE,
-                             GNUNET_DISK_PERM_USER_READ |
-                             GNUNET_DISK_PERM_USER_WRITE);
+    goto err_ret;
+  }
+  GNUNET_assert (GNUNET_OK ==
+                 GNUNET_CONFIGURATION_get_value_filename (cfg,
+                                                          "PEER",
+                                                          "PRIVATE_KEY",
+                                                          &hostkey_filename));
+  fd = GNUNET_DISK_file_open (hostkey_filename,
+                              GNUNET_DISK_OPEN_CREATE | GNUNET_DISK_OPEN_WRITE,
+                              GNUNET_DISK_PERM_USER_READ
+                              | GNUNET_DISK_PERM_USER_WRITE);
   if (NULL == fd)
-    {
-      GNUNET_asprintf(&emsg_,
-                      _("Cannot open hostkey file `%s': %s\n"),
-                      hostkey_filename,
-                      strerror(errno));
-      GNUNET_free(hostkey_filename);
-      goto err_ret;
-    }
-  GNUNET_free(hostkey_filename);
+  {
+    GNUNET_asprintf (&emsg_,
+                     _ ("Cannot open hostkey file `%s': %s\n"),
+                     hostkey_filename,
+                     strerror (errno));
+    GNUNET_free (hostkey_filename);
+    goto err_ret;
+  }
+  GNUNET_free (hostkey_filename);
   if (GNUNET_TESTING_HOSTKEYFILESIZE !=
-      GNUNET_DISK_file_write(fd,
-                             system->hostkeys_data +
-                             (key_number * GNUNET_TESTING_HOSTKEYFILESIZE),
-                             GNUNET_TESTING_HOSTKEYFILESIZE))
-    {
-      GNUNET_asprintf(&emsg_,
-                      _("Failed to write hostkey file for peer %u: %s\n"),
-                      (unsigned int)key_number,
-                      strerror(errno));
-      GNUNET_DISK_file_close(fd);
-      goto err_ret;
-    }
-  GNUNET_DISK_file_close(fd);
-  ss_instances = GNUNET_malloc(sizeof(struct SharedServiceInstance *) *
-                               system->n_shared_services);
+      GNUNET_DISK_file_write (fd,
+                              system->hostkeys_data
+                              + (key_number * GNUNET_TESTING_HOSTKEYFILESIZE),
+                              GNUNET_TESTING_HOSTKEYFILESIZE))
+  {
+    GNUNET_asprintf (&emsg_,
+                     _ ("Failed to write hostkey file for peer %u: %s\n"),
+                     (unsigned int) key_number,
+                     strerror (errno));
+    GNUNET_DISK_file_close (fd);
+    goto err_ret;
+  }
+  GNUNET_DISK_file_close (fd);
+  ss_instances = GNUNET_malloc (sizeof(struct SharedServiceInstance *)
+                                * system->n_shared_services);
   for (cnt = 0; cnt < system->n_shared_services; cnt++)
+  {
+    ss = system->shared_services[cnt];
+    ss_instances[cnt] = associate_shared_service (system, ss, cfg);
+    if (NULL == ss_instances[cnt])
     {
-      ss = system->shared_services[cnt];
-      ss_instances[cnt] = associate_shared_service(system, ss, cfg);
-      if (NULL == ss_instances[cnt])
-        {
-          emsg_ = GNUNET_strdup("FIXME");
-          goto err_ret;
-        }
-    }
-  GNUNET_assert(GNUNET_OK ==
-                GNUNET_CONFIGURATION_get_value_filename(cfg,
-                                                        "PATHS",
-                                                        "DEFAULTCONFIG",
-                                                        &config_filename));
-  if (GNUNET_OK != GNUNET_CONFIGURATION_write(cfg, config_filename))
-    {
-      GNUNET_asprintf(&emsg_,
-                      _(
-                        "Failed to write configuration file `%s' for peer %u: %s\n"),
-                      config_filename,
-                      (unsigned int)key_number,
-                      strerror(errno));
-      GNUNET_free(config_filename);
+      emsg_ = GNUNET_strdup ("FIXME");
       goto err_ret;
     }
-  peer = GNUNET_new(struct GNUNET_TESTING_Peer);
+  }
+  GNUNET_assert (GNUNET_OK ==
+                 GNUNET_CONFIGURATION_get_value_filename (cfg,
+                                                          "PATHS",
+                                                          "DEFAULTCONFIG",
+                                                          &config_filename));
+  if (GNUNET_OK != GNUNET_CONFIGURATION_write (cfg, config_filename))
+  {
+    GNUNET_asprintf (&emsg_,
+                     _ (
+                       "Failed to write configuration file `%s' for peer %u: %s\n"),
+                     config_filename,
+                     (unsigned int) key_number,
+                     strerror (errno));
+    GNUNET_free (config_filename);
+    goto err_ret;
+  }
+  peer = GNUNET_new (struct GNUNET_TESTING_Peer);
   peer->ss_instances = ss_instances;
   peer->cfgfile = config_filename; /* Free in peer_destroy */
-  peer->cfg = GNUNET_CONFIGURATION_dup(cfg);
-  libexec_binary = GNUNET_OS_get_libexec_binary_path("gnunet-service-arm");
+  peer->cfg = GNUNET_CONFIGURATION_dup (cfg);
+  libexec_binary = GNUNET_OS_get_libexec_binary_path ("gnunet-service-arm");
   if (GNUNET_SYSERR ==
-      GNUNET_CONFIGURATION_get_value_string(cfg,
-                                            "arm",
-                                            "PREFIX",
-                                            &peer->main_binary))
-    {
-      /* No prefix */
-      GNUNET_asprintf(&peer->main_binary, "%s", libexec_binary);
-      peer->args = GNUNET_strdup("");
-    }
+      GNUNET_CONFIGURATION_get_value_string (cfg,
+                                             "arm",
+                                             "PREFIX",
+                                             &peer->main_binary))
+  {
+    /* No prefix */
+    GNUNET_asprintf (&peer->main_binary, "%s", libexec_binary);
+    peer->args = GNUNET_strdup ("");
+  }
   else
-    {
-      peer->args = GNUNET_strdup(libexec_binary);
-    }
+  {
+    peer->args = GNUNET_strdup (libexec_binary);
+  }
   peer->system = system;
   peer->key_number = key_number;
-  GNUNET_free(libexec_binary);
+  GNUNET_free (libexec_binary);
   peer->ports = ports; /* Free in peer_destroy */
   peer->nports = nports;
   return peer;
 
 err_ret:
-  GNUNET_free_non_null(ss_instances);
-  GNUNET_free_non_null(ports);
-  GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "%s", emsg_);
+  GNUNET_free_non_null (ss_instances);
+  GNUNET_free_non_null (ports);
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "%s", emsg_);
   if (NULL != emsg)
     *emsg = emsg_;
   else
-    GNUNET_free(emsg_);
+    GNUNET_free (emsg_);
   return NULL;
 }
 
@@ -1330,18 +1335,18 @@ err_ret:
  * @param id identifier for the daemon, will be set
  */
 void
-GNUNET_TESTING_peer_get_identity(struct GNUNET_TESTING_Peer *peer,
-                                 struct GNUNET_PeerIdentity *id)
+GNUNET_TESTING_peer_get_identity (struct GNUNET_TESTING_Peer *peer,
+                                  struct GNUNET_PeerIdentity *id)
 {
   if (NULL != peer->id)
-    {
-      GNUNET_memcpy(id, peer->id, sizeof(struct GNUNET_PeerIdentity));
-      return;
-    }
-  peer->id = GNUNET_new(struct GNUNET_PeerIdentity);
-  GNUNET_free(
-    GNUNET_TESTING_hostkey_get(peer->system, peer->key_number, peer->id));
-  GNUNET_memcpy(id, peer->id, sizeof(struct GNUNET_PeerIdentity));
+  {
+    GNUNET_memcpy (id, peer->id, sizeof(struct GNUNET_PeerIdentity));
+    return;
+  }
+  peer->id = GNUNET_new (struct GNUNET_PeerIdentity);
+  GNUNET_free (
+    GNUNET_TESTING_hostkey_get (peer->system, peer->key_number, peer->id));
+  GNUNET_memcpy (id, peer->id, sizeof(struct GNUNET_PeerIdentity));
 }
 
 
@@ -1352,44 +1357,44 @@ GNUNET_TESTING_peer_get_identity(struct GNUNET_TESTING_Peer *peer,
  * @return #GNUNET_OK on success, #GNUNET_SYSERR on error (i.e. peer already running)
  */
 int
-GNUNET_TESTING_peer_start(struct GNUNET_TESTING_Peer *peer)
+GNUNET_TESTING_peer_start (struct GNUNET_TESTING_Peer *peer)
 {
   struct SharedServiceInstance *i;
   unsigned int cnt;
 
   if (NULL != peer->main_process)
-    {
-      GNUNET_break(0);
-      return GNUNET_SYSERR;
-    }
-  GNUNET_assert(NULL != peer->cfgfile);
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
+  GNUNET_assert (NULL != peer->cfgfile);
   for (cnt = 0; cnt < peer->system->n_shared_services; cnt++)
-    {
-      i = peer->ss_instances[cnt];
-      if ((0 == i->n_refs) &&
-          (GNUNET_SYSERR == start_shared_service_instance(i)))
-        return GNUNET_SYSERR;
-      i->n_refs++;
-    }
-  peer->main_binary =
-    GNUNET_CONFIGURATION_expand_dollar(peer->cfg, peer->main_binary);
-  peer->main_process =
-    GNUNET_OS_start_process_s(PIPE_CONTROL,
-                              GNUNET_OS_INHERIT_STD_OUT_AND_ERR,
-                              NULL,
-                              peer->main_binary,
-                              peer->args,
-                              "-c",
-                              peer->cfgfile,
-                              NULL);
-  if (NULL == peer->main_process)
-    {
-      GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
-                 _("Failed to start `%s': %s\n"),
-                 peer->main_binary,
-                 strerror(errno));
+  {
+    i = peer->ss_instances[cnt];
+    if ((0 == i->n_refs) &&
+        (GNUNET_SYSERR == start_shared_service_instance (i)))
       return GNUNET_SYSERR;
-    }
+    i->n_refs++;
+  }
+  peer->main_binary =
+    GNUNET_CONFIGURATION_expand_dollar (peer->cfg, peer->main_binary);
+  peer->main_process =
+    GNUNET_OS_start_process_s (PIPE_CONTROL,
+                               GNUNET_OS_INHERIT_STD_OUT_AND_ERR,
+                               NULL,
+                               peer->main_binary,
+                               peer->args,
+                               "-c",
+                               peer->cfgfile,
+                               NULL);
+  if (NULL == peer->main_process)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _ ("Failed to start `%s': %s\n"),
+                peer->main_binary,
+                strerror (errno));
+    return GNUNET_SYSERR;
+  }
   return GNUNET_OK;
 }
 
@@ -1402,26 +1407,26 @@ GNUNET_TESTING_peer_start(struct GNUNET_TESTING_Peer *peer)
  *           or upon any error while sending SIGTERM
  */
 int
-GNUNET_TESTING_peer_kill(struct GNUNET_TESTING_Peer *peer)
+GNUNET_TESTING_peer_kill (struct GNUNET_TESTING_Peer *peer)
 {
   struct SharedServiceInstance *i;
   unsigned int cnt;
 
   if (NULL == peer->main_process)
-    {
-      GNUNET_break(0);
-      return GNUNET_SYSERR;
-    }
-  if (0 != GNUNET_OS_process_kill(peer->main_process, GNUNET_TERM_SIG))
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
+  if (0 != GNUNET_OS_process_kill (peer->main_process, GNUNET_TERM_SIG))
     return GNUNET_SYSERR;
   for (cnt = 0; cnt < peer->system->n_shared_services; cnt++)
-    {
-      i = peer->ss_instances[cnt];
-      GNUNET_assert(0 != i->n_refs);
-      i->n_refs--;
-      if (0 == i->n_refs)
-        stop_shared_service_instance(i);
-    }
+  {
+    i = peer->ss_instances[cnt];
+    GNUNET_assert (0 != i->n_refs);
+    i->n_refs--;
+    if (0 == i->n_refs)
+      stop_shared_service_instance (i);
+  }
   return GNUNET_OK;
 }
 
@@ -1434,17 +1439,17 @@ GNUNET_TESTING_peer_kill(struct GNUNET_TESTING_Peer *peer)
  *           or upon any error while waiting
  */
 int
-GNUNET_TESTING_peer_wait(struct GNUNET_TESTING_Peer *peer)
+GNUNET_TESTING_peer_wait (struct GNUNET_TESTING_Peer *peer)
 {
   int ret;
 
   if (NULL == peer->main_process)
-    {
-      GNUNET_break(0);
-      return GNUNET_SYSERR;
-    }
-  ret = GNUNET_OS_process_wait(peer->main_process);
-  GNUNET_OS_process_destroy(peer->main_process);
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
+  ret = GNUNET_OS_process_wait (peer->main_process);
+  GNUNET_OS_process_destroy (peer->main_process);
   peer->main_process = NULL;
   return ret;
 }
@@ -1457,11 +1462,11 @@ GNUNET_TESTING_peer_wait(struct GNUNET_TESTING_Peer *peer)
  * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
  */
 int
-GNUNET_TESTING_peer_stop(struct GNUNET_TESTING_Peer *peer)
+GNUNET_TESTING_peer_stop (struct GNUNET_TESTING_Peer *peer)
 {
-  if (GNUNET_SYSERR == GNUNET_TESTING_peer_kill(peer))
+  if (GNUNET_SYSERR == GNUNET_TESTING_peer_kill (peer))
     return GNUNET_SYSERR;
-  if (GNUNET_SYSERR == GNUNET_TESTING_peer_wait(peer))
+  if (GNUNET_SYSERR == GNUNET_TESTING_peer_wait (peer))
     return GNUNET_SYSERR;
   return GNUNET_OK;
 }
@@ -1475,24 +1480,24 @@ GNUNET_TESTING_peer_stop(struct GNUNET_TESTING_Peer *peer)
  *                  #GNUNET_SYSERR on error.
  */
 static void
-disconn_status(void *cls, int connected)
+disconn_status (void *cls, int connected)
 {
   struct GNUNET_TESTING_Peer *peer = cls;
 
   if (GNUNET_SYSERR == connected)
-    {
-      peer->cb(peer->cb_cls, peer, connected);
-      return;
-    }
+  {
+    peer->cb (peer->cb_cls, peer, connected);
+    return;
+  }
   if (GNUNET_YES == connected)
-    {
-      GNUNET_break(GNUNET_OK == GNUNET_TESTING_peer_kill(peer));
-      return;
-    }
-  GNUNET_break(GNUNET_OK == GNUNET_TESTING_peer_wait(peer));
-  GNUNET_ARM_disconnect(peer->ah);
+  {
+    GNUNET_break (GNUNET_OK == GNUNET_TESTING_peer_kill (peer));
+    return;
+  }
+  GNUNET_break (GNUNET_OK == GNUNET_TESTING_peer_wait (peer));
+  GNUNET_ARM_disconnect (peer->ah);
   peer->ah = NULL;
-  peer->cb(peer->cb_cls, peer, GNUNET_YES);
+  peer->cb (peer->cb_cls, peer, GNUNET_YES);
 }
 
 
@@ -1508,13 +1513,13 @@ disconn_status(void *cls, int connected)
  *           upon any error.
  */
 int
-GNUNET_TESTING_peer_stop_async(struct GNUNET_TESTING_Peer *peer,
-                               GNUNET_TESTING_PeerStopCallback cb,
-                               void *cb_cls)
+GNUNET_TESTING_peer_stop_async (struct GNUNET_TESTING_Peer *peer,
+                                GNUNET_TESTING_PeerStopCallback cb,
+                                void *cb_cls)
 {
   if (NULL == peer->main_process)
     return GNUNET_SYSERR;
-  peer->ah = GNUNET_ARM_connect(peer->cfg, &disconn_status, peer);
+  peer->ah = GNUNET_ARM_connect (peer->cfg, &disconn_status, peer);
   if (NULL == peer->ah)
     return GNUNET_SYSERR;
   peer->cb = cb;
@@ -1533,10 +1538,10 @@ GNUNET_TESTING_peer_stop_async(struct GNUNET_TESTING_Peer *peer,
  *          before.
  */
 void
-GNUNET_TESTING_peer_stop_async_cancel(struct GNUNET_TESTING_Peer *peer)
+GNUNET_TESTING_peer_stop_async_cancel (struct GNUNET_TESTING_Peer *peer)
 {
-  GNUNET_assert(NULL != peer->ah);
-  GNUNET_ARM_disconnect(peer->ah);
+  GNUNET_assert (NULL != peer->ah);
+  GNUNET_ARM_disconnect (peer->ah);
   peer->ah = NULL;
 }
 
@@ -1549,28 +1554,28 @@ GNUNET_TESTING_peer_stop_async_cancel(struct GNUNET_TESTING_Peer *peer)
  * @param peer peer to destroy
  */
 void
-GNUNET_TESTING_peer_destroy(struct GNUNET_TESTING_Peer *peer)
+GNUNET_TESTING_peer_destroy (struct GNUNET_TESTING_Peer *peer)
 {
   unsigned int cnt;
 
   if (NULL != peer->main_process)
-    GNUNET_TESTING_peer_stop(peer);
+    GNUNET_TESTING_peer_stop (peer);
   if (NULL != peer->ah)
-    GNUNET_ARM_disconnect(peer->ah);
-  GNUNET_free(peer->cfgfile);
+    GNUNET_ARM_disconnect (peer->ah);
+  GNUNET_free (peer->cfgfile);
   if (NULL != peer->cfg)
-    GNUNET_CONFIGURATION_destroy(peer->cfg);
-  GNUNET_free(peer->main_binary);
-  GNUNET_free(peer->args);
-  GNUNET_free_non_null(peer->id);
-  GNUNET_free_non_null(peer->ss_instances);
+    GNUNET_CONFIGURATION_destroy (peer->cfg);
+  GNUNET_free (peer->main_binary);
+  GNUNET_free (peer->args);
+  GNUNET_free_non_null (peer->id);
+  GNUNET_free_non_null (peer->ss_instances);
   if (NULL != peer->ports)
-    {
-      for (cnt = 0; cnt < peer->nports; cnt++)
-        GNUNET_TESTING_release_port(peer->system, peer->ports[cnt]);
-      GNUNET_free(peer->ports);
-    }
-  GNUNET_free(peer);
+  {
+    for (cnt = 0; cnt < peer->nports; cnt++)
+      GNUNET_TESTING_release_port (peer->system, peer->ports[cnt]);
+    GNUNET_free (peer->ports);
+  }
+  GNUNET_free (peer);
 }
 
 
@@ -1591,19 +1596,20 @@ GNUNET_TESTING_peer_destroy(struct GNUNET_TESTING_Peer *peer)
  * @return 0 on success, 1 on error
  */
 int
-GNUNET_TESTING_peer_run(const char *testdir,
-                        const char *cfgfilename,
-                        GNUNET_TESTING_TestMain tm,
-                        void *tm_cls)
+GNUNET_TESTING_peer_run (const char *testdir,
+                         const char *cfgfilename,
+                         GNUNET_TESTING_TestMain tm,
+                         void *tm_cls)
 {
-  return GNUNET_TESTING_service_run(testdir, "arm", cfgfilename, tm, tm_cls);
+  return GNUNET_TESTING_service_run (testdir, "arm", cfgfilename, tm, tm_cls);
 }
 
 
 /**
  * Structure for holding service data
  */
-struct ServiceContext {
+struct ServiceContext
+{
   /**
    * The configuration of the peer in which the service is run
    */
@@ -1632,11 +1638,11 @@ struct ServiceContext {
  * @param cls the ServiceContext
  */
 static void
-service_run_main(void *cls)
+service_run_main (void *cls)
 {
   struct ServiceContext *sc = cls;
 
-  sc->tm(sc->tm_cls, sc->cfg, sc->peer);
+  sc->tm (sc->tm_cls, sc->cfg, sc->peer);
 }
 
 
@@ -1662,11 +1668,11 @@ service_run_main(void *cls)
  * @return 0 on success, 1 on error
  */
 int
-GNUNET_TESTING_service_run(const char *testdir,
-                           const char *service_name,
-                           const char *cfgfilename,
-                           GNUNET_TESTING_TestMain tm,
-                           void *tm_cls)
+GNUNET_TESTING_service_run (const char *testdir,
+                            const char *service_name,
+                            const char *cfgfilename,
+                            GNUNET_TESTING_TestMain tm,
+                            void *tm_cls)
 {
   struct ServiceContext sc;
   struct GNUNET_TESTING_System *system;
@@ -1675,70 +1681,70 @@ GNUNET_TESTING_service_run(const char *testdir,
   char *binary;
   char *libexec_binary;
 
-  GNUNET_log_setup(testdir, "WARNING", NULL);
-  system = GNUNET_TESTING_system_create(testdir, "127.0.0.1", NULL, NULL);
+  GNUNET_log_setup (testdir, "WARNING", NULL);
+  system = GNUNET_TESTING_system_create (testdir, "127.0.0.1", NULL, NULL);
   if (NULL == system)
     return 1;
-  cfg = GNUNET_CONFIGURATION_create();
-  if (GNUNET_OK != GNUNET_CONFIGURATION_load(cfg, cfgfilename))
-    {
-      LOG(GNUNET_ERROR_TYPE_ERROR,
-          _("Failed to load configuration from %s\n"),
-          cfgfilename);
-      GNUNET_CONFIGURATION_destroy(cfg);
-      GNUNET_TESTING_system_destroy(system, GNUNET_YES);
-      return 1;
-    }
-  peer = GNUNET_TESTING_peer_configure(system, cfg, 0, NULL, NULL);
+  cfg = GNUNET_CONFIGURATION_create ();
+  if (GNUNET_OK != GNUNET_CONFIGURATION_load (cfg, cfgfilename))
+  {
+    LOG (GNUNET_ERROR_TYPE_ERROR,
+         _ ("Failed to load configuration from %s\n"),
+         cfgfilename);
+    GNUNET_CONFIGURATION_destroy (cfg);
+    GNUNET_TESTING_system_destroy (system, GNUNET_YES);
+    return 1;
+  }
+  peer = GNUNET_TESTING_peer_configure (system, cfg, 0, NULL, NULL);
   if (NULL == peer)
-    {
-      GNUNET_CONFIGURATION_destroy(cfg);
-      hostkeys_unload(system);
-      GNUNET_TESTING_system_destroy(system, GNUNET_YES);
-      return 1;
-    }
-  GNUNET_free(peer->main_binary);
-  GNUNET_free(peer->args);
-  GNUNET_asprintf(&binary, "gnunet-service-%s", service_name);
-  libexec_binary = GNUNET_OS_get_libexec_binary_path(binary);
+  {
+    GNUNET_CONFIGURATION_destroy (cfg);
+    hostkeys_unload (system);
+    GNUNET_TESTING_system_destroy (system, GNUNET_YES);
+    return 1;
+  }
+  GNUNET_free (peer->main_binary);
+  GNUNET_free (peer->args);
+  GNUNET_asprintf (&binary, "gnunet-service-%s", service_name);
+  libexec_binary = GNUNET_OS_get_libexec_binary_path (binary);
   if (GNUNET_SYSERR ==
-      GNUNET_CONFIGURATION_get_value_string(cfg,
-                                            service_name,
-                                            "PREFIX",
-                                            &peer->main_binary))
-    {
-      /* No prefix */
-      GNUNET_asprintf(&peer->main_binary, "%s", libexec_binary);
-      peer->args = GNUNET_strdup("");
-    }
+      GNUNET_CONFIGURATION_get_value_string (cfg,
+                                             service_name,
+                                             "PREFIX",
+                                             &peer->main_binary))
+  {
+    /* No prefix */
+    GNUNET_asprintf (&peer->main_binary, "%s", libexec_binary);
+    peer->args = GNUNET_strdup ("");
+  }
   else
-    peer->args = GNUNET_strdup(libexec_binary);
+    peer->args = GNUNET_strdup (libexec_binary);
 
-  GNUNET_free(libexec_binary);
-  GNUNET_free(binary);
-  if (GNUNET_OK != GNUNET_TESTING_peer_start(peer))
-    {
-      GNUNET_TESTING_peer_destroy(peer);
-      GNUNET_CONFIGURATION_destroy(cfg);
-      GNUNET_TESTING_system_destroy(system, GNUNET_YES);
-      return 1;
-    }
+  GNUNET_free (libexec_binary);
+  GNUNET_free (binary);
+  if (GNUNET_OK != GNUNET_TESTING_peer_start (peer))
+  {
+    GNUNET_TESTING_peer_destroy (peer);
+    GNUNET_CONFIGURATION_destroy (cfg);
+    GNUNET_TESTING_system_destroy (system, GNUNET_YES);
+    return 1;
+  }
   sc.cfg = cfg;
   sc.tm = tm;
   sc.tm_cls = tm_cls;
   sc.peer = peer;
-  GNUNET_SCHEDULER_run(&service_run_main, &sc);  /* Scheduler loop */
+  GNUNET_SCHEDULER_run (&service_run_main, &sc);  /* Scheduler loop */
   if ((NULL != peer->main_process) &&
-      (GNUNET_OK != GNUNET_TESTING_peer_stop(peer)))
-    {
-      GNUNET_TESTING_peer_destroy(peer);
-      GNUNET_CONFIGURATION_destroy(cfg);
-      GNUNET_TESTING_system_destroy(system, GNUNET_YES);
-      return 1;
-    }
-  GNUNET_TESTING_peer_destroy(peer);
-  GNUNET_CONFIGURATION_destroy(cfg);
-  GNUNET_TESTING_system_destroy(system, GNUNET_YES);
+      (GNUNET_OK != GNUNET_TESTING_peer_stop (peer)))
+  {
+    GNUNET_TESTING_peer_destroy (peer);
+    GNUNET_CONFIGURATION_destroy (cfg);
+    GNUNET_TESTING_system_destroy (system, GNUNET_YES);
+    return 1;
+  }
+  GNUNET_TESTING_peer_destroy (peer);
+  GNUNET_CONFIGURATION_destroy (cfg);
+  GNUNET_TESTING_system_destroy (system, GNUNET_YES);
   return 0;
 }
 
@@ -1757,22 +1763,22 @@ GNUNET_TESTING_service_run(const char *testdir,
  *         NULL if argv0 has no '_'
  */
 char *
-GNUNET_TESTING_get_testname_from_underscore(const char *argv0)
+GNUNET_TESTING_get_testname_from_underscore (const char *argv0)
 {
-  size_t slen = strlen(argv0) + 1;
+  size_t slen = strlen (argv0) + 1;
   char sbuf[slen];
   char *ret;
   char *dot;
 
-  GNUNET_memcpy(sbuf, argv0, slen);
-  ret = strrchr(sbuf, '_');
+  GNUNET_memcpy (sbuf, argv0, slen);
+  ret = strrchr (sbuf, '_');
   if (NULL == ret)
     return NULL;
   ret++; /* skip underscore */
-  dot = strchr(ret, '.');
+  dot = strchr (ret, '.');
   if (NULL != dot)
     *dot = '\0';
-  return GNUNET_strdup(ret);
+  return GNUNET_strdup (ret);
 }
 
 

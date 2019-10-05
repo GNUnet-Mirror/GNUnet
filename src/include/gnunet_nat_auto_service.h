@@ -56,11 +56,11 @@ struct GNUNET_NAT_AUTO_Test;
  * @return handle to cancel NAT test
  */
 struct GNUNET_NAT_AUTO_Test *
-GNUNET_NAT_AUTO_test_start(const struct GNUNET_CONFIGURATION_Handle *cfg,
-                           uint8_t proto,
-                           const char *section_name,
-                           GNUNET_NAT_TestCallback report,
-                           void *report_cls);
+GNUNET_NAT_AUTO_test_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
+                            uint8_t proto,
+                            const char *section_name,
+                            GNUNET_NAT_TestCallback report,
+                            void *report_cls);
 
 
 /**
@@ -69,7 +69,7 @@ GNUNET_NAT_AUTO_test_start(const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @param tst test to stop.
  */
 void
-GNUNET_NAT_AUTO_test_stop(struct GNUNET_NAT_AUTO_Test *tst);
+GNUNET_NAT_AUTO_test_stop (struct GNUNET_NAT_AUTO_Test *tst);
 
 
 /**
@@ -85,7 +85,7 @@ struct GNUNET_NAT_AUTO_AutoHandle;
  * @return point to a static string containing the error code
  */
 const char *
-GNUNET_NAT_AUTO_status2string(enum GNUNET_NAT_StatusCode err);
+GNUNET_NAT_AUTO_status2string (enum GNUNET_NAT_StatusCode err);
 
 
 /**
@@ -99,7 +99,8 @@ GNUNET_NAT_AUTO_status2string(enum GNUNET_NAT_StatusCode err);
  */
 typedef void
 (*GNUNET_NAT_AUTO_AutoResultCallback)(void *cls,
-                                      const struct GNUNET_CONFIGURATION_Handle *diff,
+                                      const struct
+                                      GNUNET_CONFIGURATION_Handle *diff,
                                       enum GNUNET_NAT_StatusCode result,
                                       enum GNUNET_NAT_Type type);
 
@@ -114,9 +115,9 @@ typedef void
  * @return handle to cancel operation
  */
 struct GNUNET_NAT_AUTO_AutoHandle *
-GNUNET_NAT_AUTO_autoconfig_start(const struct GNUNET_CONFIGURATION_Handle *cfg,
-                                 GNUNET_NAT_AUTO_AutoResultCallback cb,
-                                 void *cb_cls);
+GNUNET_NAT_AUTO_autoconfig_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
+                                  GNUNET_NAT_AUTO_AutoResultCallback cb,
+                                  void *cb_cls);
 
 
 /**
@@ -125,7 +126,7 @@ GNUNET_NAT_AUTO_autoconfig_start(const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @param ah handle for operation to abort
  */
 void
-GNUNET_NAT_AUTO_autoconfig_cancel(struct GNUNET_NAT_AUTO_AutoHandle *ah);
+GNUNET_NAT_AUTO_autoconfig_cancel (struct GNUNET_NAT_AUTO_AutoHandle *ah);
 
 
 #endif

@@ -32,7 +32,8 @@ GNUNET_NETWORK_STRUCT_BEGIN
 /**
  * Message from client to Credential service to collect credentials.
  */
-struct CollectMessage {
+struct CollectMessage
+{
   /**
    * Header of type #GNUNET_MESSAGE_TYPE_CREDENTIAL_VERIFY
    */
@@ -65,7 +66,8 @@ struct CollectMessage {
 /**
  * Message from client to Credential service to verify attributes.
  */
-struct VerifyMessage {
+struct VerifyMessage
+{
   /**
    * Header of type #GNUNET_MESSAGE_TYPE_CREDENTIAL_VERIFY
    */
@@ -103,7 +105,8 @@ struct VerifyMessage {
 /**
  * Message from CREDENTIAL service to client: new results.
  */
-struct DelegationChainResultMessage {
+struct DelegationChainResultMessage
+{
   /**
    * Header of type #GNUNET_MESSAGE_TYPE_CREDENTIAL_VERIFY_RESULT
    */
@@ -132,7 +135,8 @@ struct DelegationChainResultMessage {
   /* followed by ad_count GNUNET_CREDENTIAL_RecordData structs*/
 };
 
-struct DelegationRecordData {
+struct DelegationRecordData
+{
   /**
    * Subject key
    */
@@ -145,7 +149,8 @@ struct DelegationRecordData {
 };
 
 
-struct ChainEntry {
+struct ChainEntry
+{
   /**
    * Issuer key
    */
@@ -168,7 +173,8 @@ struct ChainEntry {
 };
 
 
-struct CredentialEntry {
+struct CredentialEntry
+{
   /**
    * The signature for this credential by the issuer
    */
@@ -208,4 +214,3 @@ struct CredentialEntry {
 GNUNET_NETWORK_STRUCT_END
 
 #endif
-

@@ -50,7 +50,7 @@
 #define SLOW 0
 
 int
-main(int argc, char **argv)
+main (int argc, char **argv)
 {
   unsigned int round;
   unsigned int buckets[31]; // max is 2^31 as 'random' returns only between 0 and 2^31
@@ -62,77 +62,77 @@ main(int argc, char **argv)
   unsigned int want;
   double predict;
 
-  srandom(time(NULL));
+  srandom (time (NULL));
   total = 0;
-  want = atoi(argv[1]);
+  want = atoi (argv[1]);
   for (round = 0; round < ROUNDS; round++)
+  {
+    memset (buckets, 0, sizeof(buckets));
+    for (i = 0; i < want; i++)
     {
-      memset(buckets, 0, sizeof(buckets));
-      for (i = 0; i < want; i++)
-        {
-          /* FIXME: might want to use 'better' PRNG to avoid
-             PRNG-induced biases */
-          r = random();
-          if (0 == r)
-            continue;
+      /* FIXME: might want to use 'better' PRNG to avoid
+         PRNG-induced biases */
+      r = random ();
+      if (0 == r)
+        continue;
 #if SLOW
-          for (j = 0; (j < 31) && (0 == (r & (1 << j))); j++)
-            ;
+      for (j = 0; (j < 31) && (0 == (r & (1 << j))); j++)
+        ;
 #else
-          /* use assembly / gcc */
-          j = __builtin_ffs(r) - 1;
+      /* use assembly / gcc */
+      j = __builtin_ffs (r) - 1;
 #endif
-          buckets[j]++;
-        }
-      ret = 0;
-      predict = 0.0;
-      for (j = 31; j >= 0; j--)
-        {
+      buckets[j]++;
+    }
+    ret = 0;
+    predict = 0.0;
+    for (j = 31; j >= 0; j--)
+    {
 #if FIX1
-          /* improved algorithm, for 1000 elements with IBF-DECODE 8, I
-             get 990/1000 elements on average over 1 million runs; key
-             idea being to stop short of the 'last' possible IBF as
-             otherwise a "lowball" per-chance would unduely influence the
-             result */
-          if ((j > 0) &&
-              (buckets[j - 1] > MAX_IBF_DECODE))
-            {
-              ret *= (1 << (j + 1));
-              break;
-            }
+      /* improved algorithm, for 1000 elements with IBF-DECODE 8, I
+         get 990/1000 elements on average over 1 million runs; key
+         idea being to stop short of the 'last' possible IBF as
+         otherwise a "lowball" per-chance would unduely influence the
+         result */
+      if ((j > 0) &&
+          (buckets[j - 1] > MAX_IBF_DECODE))
+      {
+        ret *= (1 << (j + 1));
+        break;
+      }
 #endif
 #if FIX2
-          /* another improvement: don't just always cut off the last one,
-             but rather try to predict based on all previous values where
-             that "last" one is; additional prediction can only really
-             work if MAX_IBF_DECODE is sufficiently high */
-          if ((j > 0) &&
-              ((buckets[j - 1] > MAX_IBF_DECODE) ||
-               (predict > MAX_IBF_DECODE)))
-            {
-              ret *= (1 << (j + 1));
-              break;
-            }
+      /* another improvement: don't just always cut off the last one,
+         but rather try to predict based on all previous values where
+         that "last" one is; additional prediction can only really
+         work if MAX_IBF_DECODE is sufficiently high */
+      if ((j > 0) &&
+          ((buckets[j - 1] > MAX_IBF_DECODE) ||
+           (predict > MAX_IBF_DECODE)))
+      {
+        ret *= (1 << (j + 1));
+        break;
+      }
 #endif
 #if STRATA
-          /* original algorithm, for 1000 elements with IBF-DECODE 8,
-             I get 920/1000 elements on average over 1 million runs */
-          if (buckets[j] > MAX_IBF_DECODE)
-            {
-              ret *= (1 << (j + 1));
-              break;
-            }
+      /* original algorithm, for 1000 elements with IBF-DECODE 8,
+         I get 920/1000 elements on average over 1 million runs */
+      if (buckets[j] > MAX_IBF_DECODE)
+      {
+        ret *= (1 << (j + 1));
+        break;
+      }
 #endif
-          ret += buckets[j];
-          predict = (buckets[j] + 2.0 * predict) / 2.0;
-        }
-#if VERBOSE
-      fprintf(stderr, "%u ", ret);
-#endif
-      total += ret;
+      ret += buckets[j];
+      predict = (buckets[j] + 2.0 * predict) / 2.0;
     }
-  fprintf(stderr, "\n");
-  fprintf(stdout, "average %llu\n", total / ROUNDS);
+#if VERBOSE
+    fprintf (stderr, "%u ", ret);
+#endif
+    total += ret;
+  }
+  fprintf (stderr, "\n");
+  fprintf (stdout, "average %llu\n", total / ROUNDS);
   return 0;
 }
 

@@ -1,4 +1,3 @@
-
 /*
      This file is part of GNUnet.
      Copyright (C) 2001-2017 GNUnet e.V.
@@ -64,7 +63,8 @@ struct CadetPeerPath;
 /**
  * Entry in a peer path.
  */
-struct CadetPeerPathEntry {
+struct CadetPeerPathEntry
+{
   /**
    * DLL of paths where the same @e peer is at the same offset.
    */
@@ -103,7 +103,8 @@ struct CadetPeerPathEntry {
 /**
  * Entry in list of connections used by tunnel, with metadata.
  */
-struct CadetTConnection {
+struct CadetTConnection
+{
   /**
    * Next in DLL.
    */
@@ -144,7 +145,8 @@ struct CadetTConnection {
 /**
  * Port opened by a client.
  */
-struct OpenPort {
+struct OpenPort
+{
   /**
    * Client that opened the port.
    */
@@ -266,8 +268,8 @@ extern unsigned long long drop_percent;
  * @param env envelope with the message
  */
 void
-GSC_send_to_client(struct CadetClient *c,
-                   struct GNUNET_MQ_Envelope *env);
+GSC_send_to_client (struct CadetClient *c,
+                    struct GNUNET_MQ_Envelope *env);
 
 
 /**
@@ -278,9 +280,9 @@ GSC_send_to_client(struct CadetClient *c,
  * @param ch the channel object
  */
 void
-GSC_handle_remote_channel_destroy(struct CadetClient *c,
-                                  struct GNUNET_CADET_ClientChannelNumber ccn,
-                                  struct CadetChannel *ch);
+GSC_handle_remote_channel_destroy (struct CadetClient *c,
+                                   struct GNUNET_CADET_ClientChannelNumber ccn,
+                                   struct CadetChannel *ch);
 
 /**
  * A client that created a loose channel that was not bound to a port
@@ -290,8 +292,8 @@ GSC_handle_remote_channel_destroy(struct CadetClient *c,
  * @param ch the channel that was lost
  */
 void
-GSC_drop_loose_channel(const struct GNUNET_HashCode *h_port,
-                       struct CadetChannel *ch);
+GSC_drop_loose_channel (const struct GNUNET_HashCode *h_port,
+                        struct CadetChannel *ch);
 
 
 /**
@@ -306,11 +308,11 @@ GSC_drop_loose_channel(const struct GNUNET_HashCode *h_port,
  * @return local channel number assigned to the new client
  */
 struct GNUNET_CADET_ClientChannelNumber
-GSC_bind(struct CadetClient *c,
-         struct CadetChannel *ch,
-         struct CadetPeer *dest,
-         const struct GNUNET_HashCode *port,
-         uint32_t options);
+GSC_bind (struct CadetClient *c,
+          struct CadetChannel *ch,
+          struct CadetPeer *dest,
+          const struct GNUNET_HashCode *port,
+          uint32_t options);
 
 
 /**
@@ -320,7 +322,7 @@ GSC_bind(struct CadetClient *c,
  * @return string for debugging
  */
 const char *
-GSC_2s(struct CadetClient *c);
+GSC_2s (struct CadetClient *c);
 
 
 #endif

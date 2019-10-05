@@ -34,12 +34,12 @@
  * @return GNUNET_OK on success, GNUNET_SYSERR if the speedup was not configured
  */
 int
-GNUNET_SPEEDUP_start_(const struct GNUNET_CONFIGURATION_Handle *cfg);
+GNUNET_SPEEDUP_start_ (const struct GNUNET_CONFIGURATION_Handle *cfg);
 
 /**
  * Stop tasks that modify clock behavior.
  */
 void
-GNUNET_SPEEDUP_stop_(void);
+GNUNET_SPEEDUP_stop_ (void);
 
 #endif  /* SPEEDUP_H_ */

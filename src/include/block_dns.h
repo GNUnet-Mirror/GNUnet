@@ -37,7 +37,8 @@ GNUNET_NETWORK_STRUCT_BEGIN
 /**
  * This is the structure describing an DNS exit service.
  */
-struct GNUNET_DNS_Advertisement {
+struct GNUNET_DNS_Advertisement
+{
   /**
    * Signature of the peer affirming that it is offering the service.
    */

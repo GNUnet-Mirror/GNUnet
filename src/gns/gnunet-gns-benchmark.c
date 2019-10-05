@@ -31,12 +31,13 @@
 /**
  * How long do we wait at least between requests by default?
  */
-#define DEF_REQUEST_DELAY GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MILLISECONDS, 1)
+#define DEF_REQUEST_DELAY GNUNET_TIME_relative_multiply ( \
+    GNUNET_TIME_UNIT_MILLISECONDS, 1)
 
 /**
  * How long do we wait until we consider a request failed by default?
  */
-#define DEF_TIMEOUT GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MINUTES, 1)
+#define DEF_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 1)
 
 
 /**
@@ -45,7 +46,8 @@
  * However, this process does not change how it acts
  * based on the category.
  */
-enum RequestCategory {
+enum RequestCategory
+{
   RC_SHARED = 0,
   RC_PRIVATE = 1,
   /**
@@ -60,7 +62,8 @@ enum RequestCategory {
  * thus optimizing it is crucial for the overall memory consumption of
  * the zone importer.
  */
-struct Request {
+struct Request
+{
   /**
    * Active requests are kept in a DLL.
    */
@@ -188,11 +191,11 @@ static int g2d;
  * @param req request to free
  */
 static void
-free_request(struct Request *req)
+free_request (struct Request *req)
 {
   if (NULL != req->lr)
-    GNUNET_GNS_lookup_with_tld_cancel(req->lr);
-  GNUNET_free(req);
+    GNUNET_GNS_lookup_with_tld_cancel (req->lr);
+  GNUNET_free (req);
 }
 
 
@@ -205,32 +208,32 @@ free_request(struct Request *req)
  * @param rd the records in reply
  */
 static void
-process_result(void *cls,
-               int gns_tld,
-               uint32_t rd_count,
-               const struct GNUNET_GNSRECORD_Data *rd)
+process_result (void *cls,
+                int gns_tld,
+                uint32_t rd_count,
+                const struct GNUNET_GNSRECORD_Data *rd)
 {
   struct Request *req = cls;
 
-  (void)gns_tld;
-  (void)rd_count;
-  (void)rd;
+  (void) gns_tld;
+  (void) rd_count;
+  (void) rd;
   active_cnt--;
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-             "Got response for request `%s'\n",
-             req->hostname);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Got response for request `%s'\n",
+              req->hostname);
   req->lr = NULL;
-  req->latency = GNUNET_TIME_absolute_get_duration(req->op_start_time);
-  GNUNET_CONTAINER_DLL_remove(act_head,
-                              act_tail,
-                              req);
-  GNUNET_CONTAINER_DLL_insert(succ_head,
-                              succ_tail,
-                              req);
+  req->latency = GNUNET_TIME_absolute_get_duration (req->op_start_time);
+  GNUNET_CONTAINER_DLL_remove (act_head,
+                               act_tail,
+                               req);
+  GNUNET_CONTAINER_DLL_insert (succ_head,
+                               succ_tail,
+                               req);
   replies[req->cat]++;
   latency_sum[req->cat]
-    = GNUNET_TIME_relative_add(latency_sum[req->cat],
-                               req->latency);
+    = GNUNET_TIME_relative_add (latency_sum[req->cat],
+                                req->latency);
 }
 
 
@@ -240,69 +243,69 @@ process_result(void *cls,
  * @param cls NULL
  */
 static void
-process_queue(void *cls)
+process_queue (void *cls)
 {
   struct Request *req;
   struct GNUNET_TIME_Relative duration;
 
-  (void)cls;
+  (void) cls;
   t = NULL;
   /* check for expired requests */
   while (NULL != (req = act_head))
-    {
-      duration = GNUNET_TIME_absolute_get_duration(req->op_start_time);
-      if (duration.rel_value_us < timeout.rel_value_us)
-        break;
-      GNUNET_CONTAINER_DLL_remove(act_head,
-                                  act_tail,
-                                  req);
-      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-                 "Failing request `%s' due to timeout\n",
-                 req->hostname);
-      failures[req->cat]++;
-      active_cnt--;
-      free_request(req);
-    }
+  {
+    duration = GNUNET_TIME_absolute_get_duration (req->op_start_time);
+    if (duration.rel_value_us < timeout.rel_value_us)
+      break;
+    GNUNET_CONTAINER_DLL_remove (act_head,
+                                 act_tail,
+                                 req);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Failing request `%s' due to timeout\n",
+                req->hostname);
+    failures[req->cat]++;
+    active_cnt--;
+    free_request (req);
+  }
   if (NULL == (req = todo_head))
-    {
-      struct GNUNET_TIME_Absolute at;
+  {
+    struct GNUNET_TIME_Absolute at;
 
-      if (NULL == (req = act_head))
-        {
-          GNUNET_SCHEDULER_shutdown();
-          return;
-        }
-      at = GNUNET_TIME_absolute_add(req->op_start_time,
-                                    timeout);
-      t = GNUNET_SCHEDULER_add_at(at,
-                                  &process_queue,
-                                  NULL);
+    if (NULL == (req = act_head))
+    {
+      GNUNET_SCHEDULER_shutdown ();
       return;
     }
-  GNUNET_CONTAINER_DLL_remove(todo_head,
-                              todo_tail,
-                              req);
-  GNUNET_CONTAINER_DLL_insert_tail(act_head,
-                                   act_tail,
-                                   req);
+    at = GNUNET_TIME_absolute_add (req->op_start_time,
+                                   timeout);
+    t = GNUNET_SCHEDULER_add_at (at,
+                                 &process_queue,
+                                 NULL);
+    return;
+  }
+  GNUNET_CONTAINER_DLL_remove (todo_head,
+                               todo_tail,
+                               req);
+  GNUNET_CONTAINER_DLL_insert_tail (act_head,
+                                    act_tail,
+                                    req);
   lookups[req->cat]++;
   active_cnt++;
-  req->op_start_time = GNUNET_TIME_absolute_get();
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-             "Starting request `%s' (%u in parallel)\n",
-             req->hostname,
-             active_cnt);
-  req->lr = GNUNET_GNS_lookup_with_tld(gns,
-                                       req->hostname,
-                                       g2d
-                                       ? GNUNET_GNSRECORD_TYPE_GNS2DNS
-                                       : GNUNET_GNSRECORD_TYPE_ANY,
-                                       GNUNET_GNS_LO_DEFAULT,
-                                       &process_result,
-                                       req);
-  t = GNUNET_SCHEDULER_add_delayed(request_delay,
-                                   &process_queue,
-                                   NULL);
+  req->op_start_time = GNUNET_TIME_absolute_get ();
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Starting request `%s' (%u in parallel)\n",
+              req->hostname,
+              active_cnt);
+  req->lr = GNUNET_GNS_lookup_with_tld (gns,
+                                        req->hostname,
+                                        g2d
+                                        ? GNUNET_GNSRECORD_TYPE_GNS2DNS
+                                        : GNUNET_GNSRECORD_TYPE_ANY,
+                                        GNUNET_GNS_LO_DEFAULT,
+                                        &process_result,
+                                        req);
+  t = GNUNET_SCHEDULER_add_delayed (request_delay,
+                                    &process_queue,
+                                    NULL);
 }
 
 
@@ -314,11 +317,11 @@ process_queue(void *cls)
  * @return -1 if c1<c2, 1 if c1>c2, 0 if c1==c2.
  */
 static int
-compare_req(const void *c1,
-            const void *c2)
+compare_req (const void *c1,
+             const void *c2)
 {
-  const struct Request *r1 = *(void **)c1;
-  const struct Request *r2 = *(void **)c2;
+  const struct Request *r1 = *(void **) c1;
+  const struct Request *r2 = *(void **) c2;
 
   if (r1->latency.rel_value_us < r2->latency.rel_value_us)
     return -1;
@@ -334,101 +337,101 @@ compare_req(const void *c1,
  * @param cls NULL
  */
 static void
-do_shutdown(void *cls)
+do_shutdown (void *cls)
 {
   struct Request *req;
   struct Request **ra[RC_MAX];
   unsigned int rp[RC_MAX];
 
-  (void)cls;
+  (void) cls;
   for (enum RequestCategory rc = 0; rc < RC_MAX; rc++)
-    {
-      ra[rc] = GNUNET_new_array(replies[rc],
-                                struct Request *);
-      rp[rc] = 0;
-    }
+  {
+    ra[rc] = GNUNET_new_array (replies[rc],
+                               struct Request *);
+    rp[rc] = 0;
+  }
   for (req = succ_head; NULL != req; req = req->next)
-    {
-      GNUNET_assert(rp[req->cat] < replies[req->cat]);
-      ra[req->cat][rp[req->cat]++] = req;
-    }
+  {
+    GNUNET_assert (rp[req->cat] < replies[req->cat]);
+    ra[req->cat][rp[req->cat]++] = req;
+  }
   for (enum RequestCategory rc = 0; rc < RC_MAX; rc++)
-    {
-      unsigned int off;
+  {
+    unsigned int off;
 
-      fprintf(stdout,
-              "Category %u\n",
-              rc);
-      fprintf(stdout,
-              "\tlookups: %u replies: %u failures: %u\n",
-              lookups[rc],
-              replies[rc],
-              failures[rc]);
-      if (0 == rp[rc])
-        continue;
-      qsort(ra[rc],
-            rp[rc],
-            sizeof(struct Request *),
-            &compare_req);
-      latency_sum[rc] = GNUNET_TIME_relative_divide(latency_sum[rc],
-                                                    replies[rc]);
-      fprintf(stdout,
-              "\taverage: %s\n",
-              GNUNET_STRINGS_relative_time_to_string(latency_sum[rc],
+    fprintf (stdout,
+             "Category %u\n",
+             rc);
+    fprintf (stdout,
+             "\tlookups: %u replies: %u failures: %u\n",
+             lookups[rc],
+             replies[rc],
+             failures[rc]);
+    if (0 == rp[rc])
+      continue;
+    qsort (ra[rc],
+           rp[rc],
+           sizeof(struct Request *),
+           &compare_req);
+    latency_sum[rc] = GNUNET_TIME_relative_divide (latency_sum[rc],
+                                                   replies[rc]);
+    fprintf (stdout,
+             "\taverage: %s\n",
+             GNUNET_STRINGS_relative_time_to_string (latency_sum[rc],
                                                      GNUNET_YES));
-      off = rp[rc] * 50 / 100;
-      fprintf(stdout,
-              "\tmedian(50): %s\n",
-              GNUNET_STRINGS_relative_time_to_string(ra[rc][off]->latency,
+    off = rp[rc] * 50 / 100;
+    fprintf (stdout,
+             "\tmedian(50): %s\n",
+             GNUNET_STRINGS_relative_time_to_string (ra[rc][off]->latency,
                                                      GNUNET_YES));
-      off = rp[rc] * 75 / 100;
-      fprintf(stdout,
-              "\tquantile(75): %s\n",
-              GNUNET_STRINGS_relative_time_to_string(ra[rc][off]->latency,
+    off = rp[rc] * 75 / 100;
+    fprintf (stdout,
+             "\tquantile(75): %s\n",
+             GNUNET_STRINGS_relative_time_to_string (ra[rc][off]->latency,
                                                      GNUNET_YES));
-      off = rp[rc] * 90 / 100;
-      fprintf(stdout,
-              "\tquantile(90): %s\n",
-              GNUNET_STRINGS_relative_time_to_string(ra[rc][off]->latency,
+    off = rp[rc] * 90 / 100;
+    fprintf (stdout,
+             "\tquantile(90): %s\n",
+             GNUNET_STRINGS_relative_time_to_string (ra[rc][off]->latency,
                                                      GNUNET_YES));
-      off = rp[rc] * 99 / 100;
-      fprintf(stdout,
-              "\tquantile(99): %s\n",
-              GNUNET_STRINGS_relative_time_to_string(ra[rc][off]->latency,
+    off = rp[rc] * 99 / 100;
+    fprintf (stdout,
+             "\tquantile(99): %s\n",
+             GNUNET_STRINGS_relative_time_to_string (ra[rc][off]->latency,
                                                      GNUNET_YES));
-      GNUNET_free(ra[rc]);
-    }
+    GNUNET_free (ra[rc]);
+  }
   if (NULL != t)
-    {
-      GNUNET_SCHEDULER_cancel(t);
-      t = NULL;
-    }
+  {
+    GNUNET_SCHEDULER_cancel (t);
+    t = NULL;
+  }
   while (NULL != (req = act_head))
-    {
-      GNUNET_CONTAINER_DLL_remove(act_head,
-                                  act_tail,
-                                  req);
-      free_request(req);
-    }
+  {
+    GNUNET_CONTAINER_DLL_remove (act_head,
+                                 act_tail,
+                                 req);
+    free_request (req);
+  }
   while (NULL != (req = succ_head))
-    {
-      GNUNET_CONTAINER_DLL_remove(succ_head,
-                                  succ_tail,
-                                  req);
-      free_request(req);
-    }
+  {
+    GNUNET_CONTAINER_DLL_remove (succ_head,
+                                 succ_tail,
+                                 req);
+    free_request (req);
+  }
   while (NULL != (req = todo_head))
-    {
-      GNUNET_CONTAINER_DLL_remove(todo_head,
-                                  todo_tail,
-                                  req);
-      free_request(req);
-    }
+  {
+    GNUNET_CONTAINER_DLL_remove (todo_head,
+                                 todo_tail,
+                                 req);
+    free_request (req);
+  }
   if (NULL != gns)
-    {
-      GNUNET_GNS_disconnect(gns);
-      gns = NULL;
-    }
+  {
+    GNUNET_GNS_disconnect (gns);
+    gns = NULL;
+  }
 }
 
 
@@ -439,32 +442,32 @@ do_shutdown(void *cls)
  * @param cat category of the @a hostname
  */
 static void
-queue(const char *hostname,
-      enum RequestCategory cat)
+queue (const char *hostname,
+       enum RequestCategory cat)
 {
   struct Request *req;
   const char *dot;
   size_t hlen;
 
-  dot = strchr(hostname,
-               (unsigned char)'.');
+  dot = strchr (hostname,
+                (unsigned char) '.');
   if (NULL == dot)
-    {
-      GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
-                 "Refusing invalid hostname `%s' (lacks '.')\n",
-                 hostname);
-      return;
-    }
-  hlen = strlen(hostname) + 1;
-  req = GNUNET_malloc(sizeof(struct Request) + hlen);
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Refusing invalid hostname `%s' (lacks '.')\n",
+                hostname);
+    return;
+  }
+  hlen = strlen (hostname) + 1;
+  req = GNUNET_malloc (sizeof(struct Request) + hlen);
   req->cat = cat;
-  req->hostname = (char *)&req[1];
-  GNUNET_memcpy(&req[1],
-                hostname,
-                hlen);
-  GNUNET_CONTAINER_DLL_insert(todo_head,
-                              todo_tail,
-                              req);
+  req->hostname = (char *) &req[1];
+  GNUNET_memcpy (&req[1],
+                 hostname,
+                 hlen);
+  GNUNET_CONTAINER_DLL_insert (todo_head,
+                               todo_tail,
+                               req);
 }
 
 
@@ -474,7 +477,7 @@ queue(const char *hostname,
  * @param cls NULL
  */
 static void
-process_stdin(void *cls)
+process_stdin (void *cls)
 {
   static struct GNUNET_TIME_Absolute last;
   static uint64_t idot;
@@ -482,48 +485,48 @@ process_stdin(void *cls)
   char hn[256];
   char in[270];
 
-  (void)cls;
+  (void) cls;
   t = NULL;
   while (NULL !=
-         fgets(in,
-               sizeof(in),
-               stdin))
+         fgets (in,
+                sizeof(in),
+                stdin))
+  {
+    if (strlen (in) > 0)
+      hn[strlen (in) - 1] = '\0';  /* eat newline */
+    if ((2 != sscanf (in,
+                      "%u %255s",
+                      &cat,
+                      hn)) ||
+        (cat >= RC_MAX))
     {
-      if (strlen(in) > 0)
-        hn[strlen(in) - 1] = '\0'; /* eat newline */
-      if ((2 != sscanf(in,
-                       "%u %255s",
-                       &cat,
-                       hn)) ||
-          (cat >= RC_MAX))
-        {
-          fprintf(stderr,
-                  "Malformed input line `%s', skipping\n",
-                  in);
-          continue;
-        }
-      if (0 == idot)
-        last = GNUNET_TIME_absolute_get();
-      idot++;
-      if (0 == idot % 100000)
-        {
-          struct GNUNET_TIME_Relative delta;
-
-          delta = GNUNET_TIME_absolute_get_duration(last);
-          last = GNUNET_TIME_absolute_get();
-          fprintf(stderr,
-                  "Read 100000 domain names in %s\n",
-                  GNUNET_STRINGS_relative_time_to_string(delta,
-                                                         GNUNET_YES));
-        }
-      queue(hn,
-            (enum RequestCategory)cat);
+      fprintf (stderr,
+               "Malformed input line `%s', skipping\n",
+               in);
+      continue;
     }
-  fprintf(stderr,
-          "Done reading %llu domain names\n",
-          (unsigned long long)idot);
-  t = GNUNET_SCHEDULER_add_now(&process_queue,
-                               NULL);
+    if (0 == idot)
+      last = GNUNET_TIME_absolute_get ();
+    idot++;
+    if (0 == idot % 100000)
+    {
+      struct GNUNET_TIME_Relative delta;
+
+      delta = GNUNET_TIME_absolute_get_duration (last);
+      last = GNUNET_TIME_absolute_get ();
+      fprintf (stderr,
+               "Read 100000 domain names in %s\n",
+               GNUNET_STRINGS_relative_time_to_string (delta,
+                                                       GNUNET_YES));
+    }
+    queue (hn,
+           (enum RequestCategory) cat);
+  }
+  fprintf (stderr,
+           "Done reading %llu domain names\n",
+           (unsigned long long) idot);
+  t = GNUNET_SCHEDULER_add_now (&process_queue,
+                                NULL);
 }
 
 
@@ -537,25 +540,25 @@ process_stdin(void *cls)
  * @param cfg configuration
  */
 static void
-run(void *cls,
-    char *const *args,
-    const char *cfgfile,
-    const struct GNUNET_CONFIGURATION_Handle *cfg)
+run (void *cls,
+     char *const *args,
+     const char *cfgfile,
+     const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
-  (void)cls;
-  (void)args;
-  (void)cfgfile;
-  GNUNET_SCHEDULER_add_shutdown(&do_shutdown,
-                                NULL);
-  gns = GNUNET_GNS_connect(cfg);
+  (void) cls;
+  (void) args;
+  (void) cfgfile;
+  GNUNET_SCHEDULER_add_shutdown (&do_shutdown,
+                                 NULL);
+  gns = GNUNET_GNS_connect (cfg);
   if (NULL == gns)
-    {
-      GNUNET_break(0);
-      GNUNET_SCHEDULER_shutdown();
-      return;
-    }
-  t = GNUNET_SCHEDULER_add_now(&process_stdin,
-                               NULL);
+  {
+    GNUNET_break (0);
+    GNUNET_SCHEDULER_shutdown ();
+    return;
+  }
+  t = GNUNET_SCHEDULER_add_now (&process_stdin,
+                                NULL);
 }
 
 
@@ -567,44 +570,47 @@ run(void *cls,
  * @return 0 on success
  */
 int
-main(int argc,
-     char *const*argv)
+main (int argc,
+      char *const*argv)
 {
   int ret = 0;
   struct GNUNET_GETOPT_CommandLineOption options[] = {
-    GNUNET_GETOPT_option_relative_time('d',
-                                       "delay",
-                                       "RELATIVETIME",
-                                       gettext_noop("how long to wait between queries"),
-                                       &request_delay),
-    GNUNET_GETOPT_option_relative_time('t',
-                                       "timeout",
-                                       "RELATIVETIME",
-                                       gettext_noop("how long to wait for an answer"),
-                                       &timeout),
-    GNUNET_GETOPT_option_flag('2',
-                              "g2d",
-                              gettext_noop("look for GNS2DNS records instead of ANY"),
-                              &g2d),
+    GNUNET_GETOPT_option_relative_time ('d',
+                                        "delay",
+                                        "RELATIVETIME",
+                                        gettext_noop (
+                                          "how long to wait between queries"),
+                                        &request_delay),
+    GNUNET_GETOPT_option_relative_time ('t',
+                                        "timeout",
+                                        "RELATIVETIME",
+                                        gettext_noop (
+                                          "how long to wait for an answer"),
+                                        &timeout),
+    GNUNET_GETOPT_option_flag ('2',
+                               "g2d",
+                               gettext_noop (
+                                 "look for GNS2DNS records instead of ANY"),
+                               &g2d),
     GNUNET_GETOPT_OPTION_END
   };
 
   if (GNUNET_OK !=
-      GNUNET_STRINGS_get_utf8_args(argc, argv,
-                                   &argc, &argv))
+      GNUNET_STRINGS_get_utf8_args (argc, argv,
+                                    &argc, &argv))
     return 2;
   timeout = DEF_TIMEOUT;
   request_delay = DEF_REQUEST_DELAY;
   if (GNUNET_OK !=
-      GNUNET_PROGRAM_run(argc,
-                         argv,
-                         "gnunet-gns-benchmark",
-                         "resolve GNS names and measure performance",
-                         options,
-                         &run,
-                         NULL))
+      GNUNET_PROGRAM_run (argc,
+                          argv,
+                          "gnunet-gns-benchmark",
+                          "resolve GNS names and measure performance",
+                          options,
+                          &run,
+                          NULL))
     ret = 1;
-  GNUNET_free((void*)argv);
+  GNUNET_free ((void*) argv);
   return ret;
 }
 

@@ -28,13 +28,14 @@
 #include "platform.h"
 #include "gnunet_util_lib.h"
 
-#define LOG(kind, ...) GNUNET_log_from(kind, "util-nc", __VA_ARGS__)
+#define LOG(kind, ...) GNUNET_log_from (kind, "util-nc", __VA_ARGS__)
 
 
 /**
  * Lists of subscribers we manage for notifications.
  */
-struct SubscriberList {
+struct SubscriberList
+{
   /**
    * This is a doubly linked list.
    */
@@ -71,7 +72,8 @@ struct SubscriberList {
  * (notification) messages are queued up until the subscriber is able to
  * read them.
  */
-struct GNUNET_NotificationContext {
+struct GNUNET_NotificationContext
+{
   /**
    * Head of list of subscribers receiving notifications.
    */
@@ -95,15 +97,15 @@ struct GNUNET_NotificationContext {
  * @param cls our `struct SubscriberList *`
  */
 static void
-handle_mq_destroy(void *cls)
+handle_mq_destroy (void *cls)
 {
   struct SubscriberList *pos = cls;
   struct GNUNET_NotificationContext *nc = pos->nc;
 
-  GNUNET_CONTAINER_DLL_remove(nc->subscribers_head,
-                              nc->subscribers_tail,
-                              pos);
-  GNUNET_free(pos);
+  GNUNET_CONTAINER_DLL_remove (nc->subscribers_head,
+                               nc->subscribers_tail,
+                               pos);
+  GNUNET_free (pos);
 }
 
 
@@ -116,11 +118,11 @@ handle_mq_destroy(void *cls)
  * @return handle to the notification context
  */
 struct GNUNET_NotificationContext *
-GNUNET_notification_context_create(unsigned int queue_length)
+GNUNET_notification_context_create (unsigned int queue_length)
 {
   struct GNUNET_NotificationContext *nc;
 
-  nc = GNUNET_new(struct GNUNET_NotificationContext);
+  nc = GNUNET_new (struct GNUNET_NotificationContext);
   nc->queue_length = queue_length;
   return nc;
 }
@@ -132,19 +134,19 @@ GNUNET_notification_context_create(unsigned int queue_length)
  * @param nc context to destroy.
  */
 void
-GNUNET_notification_context_destroy(struct GNUNET_NotificationContext *nc)
+GNUNET_notification_context_destroy (struct GNUNET_NotificationContext *nc)
 {
   struct SubscriberList *pos;
 
   while (NULL != (pos = nc->subscribers_head))
-    {
-      GNUNET_CONTAINER_DLL_remove(nc->subscribers_head,
-                                  nc->subscribers_tail,
-                                  pos);
-      GNUNET_MQ_destroy_notify_cancel(pos->mq_nh);
-      GNUNET_free(pos);
-    }
-  GNUNET_free(nc);
+  {
+    GNUNET_CONTAINER_DLL_remove (nc->subscribers_head,
+                                 nc->subscribers_tail,
+                                 pos);
+    GNUNET_MQ_destroy_notify_cancel (pos->mq_nh);
+    GNUNET_free (pos);
+  }
+  GNUNET_free (nc);
 }
 
 
@@ -155,8 +157,8 @@ GNUNET_notification_context_destroy(struct GNUNET_NotificationContext *nc)
  * @param mq message queue add
  */
 void
-GNUNET_notification_context_add(struct GNUNET_NotificationContext *nc,
-                                struct GNUNET_MQ_Handle *mq)
+GNUNET_notification_context_add (struct GNUNET_NotificationContext *nc,
+                                 struct GNUNET_MQ_Handle *mq)
 {
   struct SubscriberList *cl;
 
@@ -164,15 +166,15 @@ GNUNET_notification_context_add(struct GNUNET_NotificationContext *nc,
     if (cl->mq == mq)
       return;
   /* already present */
-  cl = GNUNET_new(struct SubscriberList);
-  GNUNET_CONTAINER_DLL_insert(nc->subscribers_head,
-                              nc->subscribers_tail,
-                              cl);
+  cl = GNUNET_new (struct SubscriberList);
+  GNUNET_CONTAINER_DLL_insert (nc->subscribers_head,
+                               nc->subscribers_tail,
+                               cl);
   cl->nc = nc;
   cl->mq = mq;
-  cl->mq_nh = GNUNET_MQ_destroy_notify(cl->mq,
-                                       &handle_mq_destroy,
-                                       cl);
+  cl->mq_nh = GNUNET_MQ_destroy_notify (cl->mq,
+                                        &handle_mq_destroy,
+                                        cl);
 }
 
 
@@ -184,22 +186,22 @@ GNUNET_notification_context_add(struct GNUNET_NotificationContext *nc,
  * @param can_drop can this message be dropped due to queue length limitations
  */
 void
-GNUNET_notification_context_broadcast(struct GNUNET_NotificationContext *nc,
-                                      const struct GNUNET_MessageHeader *msg,
-                                      int can_drop)
+GNUNET_notification_context_broadcast (struct GNUNET_NotificationContext *nc,
+                                       const struct GNUNET_MessageHeader *msg,
+                                       int can_drop)
 {
   struct SubscriberList *pos;
   struct GNUNET_MQ_Envelope *env;
 
   for (pos = nc->subscribers_head; NULL != pos; pos = pos->next)
-    {
-      if ((GNUNET_YES == can_drop) &&
-          (GNUNET_MQ_get_length(pos->mq) > nc->queue_length))
-        continue;
-      env = GNUNET_MQ_msg_copy(msg);
-      GNUNET_MQ_send(pos->mq,
-                     env);
-    }
+  {
+    if ((GNUNET_YES == can_drop) &&
+        (GNUNET_MQ_get_length (pos->mq) > nc->queue_length))
+      continue;
+    env = GNUNET_MQ_msg_copy (msg);
+    GNUNET_MQ_send (pos->mq,
+                    env);
+  }
 }
 
 
@@ -210,7 +212,7 @@ GNUNET_notification_context_broadcast(struct GNUNET_NotificationContext *nc,
  * @return number of current subscribers
  */
 unsigned int
-GNUNET_notification_context_get_size(struct GNUNET_NotificationContext *nc)
+GNUNET_notification_context_get_size (struct GNUNET_NotificationContext *nc)
 {
   unsigned int num;
   struct SubscriberList *pos;

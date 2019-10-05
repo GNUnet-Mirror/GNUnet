@@ -31,13 +31,13 @@
  * Generic logging shortcut
  */
 #define LOG(kind, ...)                           \
-  GNUNET_log(kind, __VA_ARGS__)
+  GNUNET_log (kind, __VA_ARGS__)
 
 /**
  * Relative time seconds shorthand
  */
 #define TIME_REL_SECS(sec) \
-  GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, sec)
+  GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, sec)
 
 /**
  * Opaque handle for the logging service
@@ -57,24 +57,24 @@ static struct GNUNET_SCHEDULER_Task *write_task;
 static int result;
 
 #define CANCEL_TASK(task) do {                  \
-      if (NULL != task) \
-        {                                           \
-          GNUNET_SCHEDULER_cancel(task);     \
-          task = NULL;    \
-        }                                           \
-  } while (0)
+    if (NULL != task) \
+    {                                           \
+      GNUNET_SCHEDULER_cancel (task);     \
+      task = NULL;    \
+    }                                           \
+} while (0)
 
 /**
  * shortcut to exit during failure
  */
 #define FAIL_TEST(cond, ret) do {                               \
-      if (!(cond)) {                                              \
-          GNUNET_break(0);                                          \
-          CANCEL_TASK(abort_task);                                 \
-          abort_task = GNUNET_SCHEDULER_add_now(&do_abort, NULL);  \
-          ret;                                                      \
-        }                                                           \
-  } while (0)
+    if (! (cond)) {                                              \
+      GNUNET_break (0);                                          \
+      CANCEL_TASK (abort_task);                                 \
+      abort_task = GNUNET_SCHEDULER_add_now (&do_abort, NULL);  \
+      ret;                                                      \
+    }                                                           \
+} while (0)
 
 
 /**
@@ -84,24 +84,24 @@ static int result;
  * @param tc the task context
  */
 static void
-shutdown_now()
+shutdown_now ()
 {
-  CANCEL_TASK(abort_task);
-  CANCEL_TASK(write_task);
-  GNUNET_free_non_null(search_dir);
+  CANCEL_TASK (abort_task);
+  CANCEL_TASK (write_task);
+  GNUNET_free_non_null (search_dir);
   if (NULL != h)
-    GNUNET_TESTBED_LOGGER_disconnect(h);
-  GNUNET_SCHEDULER_shutdown();
+    GNUNET_TESTBED_LOGGER_disconnect (h);
+  GNUNET_SCHEDULER_shutdown ();
 }
 
 
 static void
-do_abort(void *cls)
+do_abort (void *cls)
 {
-  LOG(GNUNET_ERROR_TYPE_WARNING,
-      "Aborting\n");
+  LOG (GNUNET_ERROR_TYPE_WARNING,
+       "Aborting\n");
   abort_task = NULL;
-  shutdown_now();
+  shutdown_now ();
 }
 
 
@@ -118,40 +118,40 @@ do_abort(void *cls)
  *  #GNUNET_SYSERR to abort iteration with error!
  */
 static int
-iterator_cb(void *cls,
-            const char *filename)
+iterator_cb (void *cls,
+             const char *filename)
 {
   const char *fn;
   size_t len;
   uint64_t fs;
 
-  LOG(GNUNET_ERROR_TYPE_DEBUG,
-      "Iterator sees file %s\n",
-      filename);
-  len = strlen(filename);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Iterator sees file %s\n",
+       filename);
+  len = strlen (filename);
   fn = filename + len;
-  if (0 != strcasecmp(".dat", fn - 4))
+  if (0 != strcasecmp (".dat", fn - 4))
     return GNUNET_OK;
   if (GNUNET_OK !=
-      GNUNET_DISK_file_size(filename,
-                            &fs,
-                            GNUNET_NO,
-                            GNUNET_YES))
-    {
-      LOG(GNUNET_ERROR_TYPE_DEBUG,
-          "Failed to obtain file size for file %s\n",
-          filename);
-      return GNUNET_SYSERR;
-    }
+      GNUNET_DISK_file_size (filename,
+                             &fs,
+                             GNUNET_NO,
+                             GNUNET_YES))
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Failed to obtain file size for file %s\n",
+         filename);
+    return GNUNET_SYSERR;
+  }
   if ((BSIZE * 2) != fs)
-    {
-      LOG(GNUNET_ERROR_TYPE_DEBUG,
-          "Unexpected file size for file %s\n",
-          filename);
-      /* The file size should be equal to what we
-         have written */
-      return GNUNET_SYSERR;
-    }
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Unexpected file size for file %s\n",
+         filename);
+    /* The file size should be equal to what we
+       have written */
+    return GNUNET_SYSERR;
+  }
   result = GNUNET_OK;
   return GNUNET_OK;
 }
@@ -165,52 +165,52 @@ iterator_cb(void *cls,
  * @param size the amount of data sent
  */
 static void
-flush_comp(void *cls,
-           size_t size)
+flush_comp (void *cls,
+            size_t size)
 {
-  LOG(GNUNET_ERROR_TYPE_DEBUG,
-      "Flush running\n");
-  FAIL_TEST(&write_task == cls,
-            return );
-  FAIL_TEST((BSIZE * 2) == size,
-            return );
-  FAIL_TEST(GNUNET_OK ==
-            GNUNET_TESTING_peer_stop(peer),
-            return );
-  LOG(GNUNET_ERROR_TYPE_DEBUG,
-      "Peer stopped, scanning %s\n",
-      search_dir);
-  FAIL_TEST(GNUNET_SYSERR !=
-            GNUNET_DISK_directory_scan(search_dir,
-                                       &iterator_cb,
-                                       NULL),
-            return );
-  shutdown_now();
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Flush running\n");
+  FAIL_TEST (&write_task == cls,
+             return );
+  FAIL_TEST ((BSIZE * 2) == size,
+             return );
+  FAIL_TEST (GNUNET_OK ==
+             GNUNET_TESTING_peer_stop (peer),
+             return );
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Peer stopped, scanning %s\n",
+       search_dir);
+  FAIL_TEST (GNUNET_SYSERR !=
+             GNUNET_DISK_directory_scan (search_dir,
+                                         &iterator_cb,
+                                         NULL),
+             return );
+  shutdown_now ();
 }
 
 
 static void
-do_write(void *cls)
+do_write (void *cls)
 {
   static int i;
   char buf[BSIZE];
 
   write_task = NULL;
-  LOG(GNUNET_ERROR_TYPE_DEBUG,
-      "Write task running\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Write task running\n");
   if (0 == i)
-    write_task = GNUNET_SCHEDULER_add_delayed(TIME_REL_SECS(1),
-                                              &do_write,
-                                              NULL);
-  (void)memset(buf, i, BSIZE);
-  GNUNET_TESTBED_LOGGER_write(h,
-                              buf,
-                              BSIZE);
+    write_task = GNUNET_SCHEDULER_add_delayed (TIME_REL_SECS (1),
+                                               &do_write,
+                                               NULL);
+  (void) memset (buf, i, BSIZE);
+  GNUNET_TESTBED_LOGGER_write (h,
+                               buf,
+                               BSIZE);
   if (0 == i++)
     return;
-  GNUNET_TESTBED_LOGGER_flush(h,
-                              &flush_comp,
-                              &write_task);
+  GNUNET_TESTBED_LOGGER_flush (h,
+                               &flush_comp,
+                               &write_task);
 }
 
 
@@ -223,26 +223,26 @@ do_write(void *cls)
  * @param peer identity of the peer that was created
  */
 static void
-test_main(void *cls,
-          const struct GNUNET_CONFIGURATION_Handle *cfg,
-          struct GNUNET_TESTING_Peer *p)
+test_main (void *cls,
+           const struct GNUNET_CONFIGURATION_Handle *cfg,
+           struct GNUNET_TESTING_Peer *p)
 {
-  LOG(GNUNET_ERROR_TYPE_DEBUG,
-      "Connecting to logger\n");
-  FAIL_TEST(NULL != (h = GNUNET_TESTBED_LOGGER_connect(cfg)),
-            return );
-  FAIL_TEST(GNUNET_OK ==
-            GNUNET_CONFIGURATION_get_value_filename(cfg,
-                                                    "testbed-logger",
-                                                    "dir",
-                                                    &search_dir),
-            return );
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Connecting to logger\n");
+  FAIL_TEST (NULL != (h = GNUNET_TESTBED_LOGGER_connect (cfg)),
+             return );
+  FAIL_TEST (GNUNET_OK ==
+             GNUNET_CONFIGURATION_get_value_filename (cfg,
+                                                      "testbed-logger",
+                                                      "dir",
+                                                      &search_dir),
+             return );
   peer = p;
-  write_task = GNUNET_SCHEDULER_add_now(&do_write,
-                                        NULL);
-  abort_task = GNUNET_SCHEDULER_add_delayed(TIME_REL_SECS(10),
-                                            &do_abort,
-                                            NULL);
+  write_task = GNUNET_SCHEDULER_add_now (&do_write,
+                                         NULL);
+  abort_task = GNUNET_SCHEDULER_add_delayed (TIME_REL_SECS (10),
+                                             &do_abort,
+                                             NULL);
 }
 
 
@@ -250,23 +250,23 @@ test_main(void *cls,
  * Main function
  */
 int
-main(int argc, char **argv)
+main (int argc, char **argv)
 {
   int ret;
 
   result = GNUNET_SYSERR;
-  GNUNET_log_setup("test-testbed-logger-api",
-                   "WARNING",
-                   NULL);
-  GNUNET_break(GNUNET_OK ==
-               GNUNET_DISK_directory_remove("/tmp/test-testbed"));
-  ret = GNUNET_TESTING_service_run("test-testbed-logger",
-                                   "testbed-logger",
-                                   "test_testbed_logger_api.conf",
-                                   &test_main,
-                                   NULL);
-  GNUNET_break(GNUNET_OK ==
-               GNUNET_DISK_directory_remove("/tmp/test-testbed"));
+  GNUNET_log_setup ("test-testbed-logger-api",
+                    "WARNING",
+                    NULL);
+  GNUNET_break (GNUNET_OK ==
+                GNUNET_DISK_directory_remove ("/tmp/test-testbed"));
+  ret = GNUNET_TESTING_service_run ("test-testbed-logger",
+                                    "testbed-logger",
+                                    "test_testbed_logger_api.conf",
+                                    &test_main,
+                                    NULL);
+  GNUNET_break (GNUNET_OK ==
+                GNUNET_DISK_directory_remove ("/tmp/test-testbed"));
   if (0 != ret)
     return 1;
   if (GNUNET_OK != result)

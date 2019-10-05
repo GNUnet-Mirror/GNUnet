@@ -31,10 +31,10 @@
  *
  */
 void
-PEERSTORE_hash_key(const char *sub_system,
-                   const struct GNUNET_PeerIdentity *peer,
-                   const char *key,
-                   struct GNUNET_HashCode *ret);
+PEERSTORE_hash_key (const char *sub_system,
+                    const struct GNUNET_PeerIdentity *peer,
+                    const char *key,
+                    struct GNUNET_HashCode *ret);
 
 
 /**
@@ -51,14 +51,14 @@ PEERSTORE_hash_key(const char *sub_system,
  * @return pointer to record message struct
  */
 struct GNUNET_MQ_Envelope *
-PEERSTORE_create_record_mq_envelope(const char *sub_system,
-                                    const struct GNUNET_PeerIdentity *peer,
-                                    const char *key,
-                                    const void *value,
-                                    size_t value_size,
-                                    struct GNUNET_TIME_Absolute expiry,
-                                    enum GNUNET_PEERSTORE_StoreOption options,
-                                    uint16_t msg_type);
+PEERSTORE_create_record_mq_envelope (const char *sub_system,
+                                     const struct GNUNET_PeerIdentity *peer,
+                                     const char *key,
+                                     const void *value,
+                                     size_t value_size,
+                                     struct GNUNET_TIME_Absolute expiry,
+                                     enum GNUNET_PEERSTORE_StoreOption options,
+                                     uint16_t msg_type);
 
 
 /**
@@ -68,7 +68,7 @@ PEERSTORE_create_record_mq_envelope(const char *sub_system,
  * @return Pointer to record or NULL on error
  */
 struct GNUNET_PEERSTORE_Record *
-PEERSTORE_parse_record_message(const struct StoreRecordMessage *srm);
+PEERSTORE_parse_record_message (const struct StoreRecordMessage *srm);
 
 
 /**
@@ -77,6 +77,6 @@ PEERSTORE_parse_record_message(const struct StoreRecordMessage *srm);
  * @param record
  */
 void
-PEERSTORE_destroy_record(struct GNUNET_PEERSTORE_Record *record);
+PEERSTORE_destroy_record (struct GNUNET_PEERSTORE_Record *record);
 
 /* end of peerstore_common.h */

@@ -50,7 +50,8 @@ GNUNET_NETWORK_STRUCT_BEGIN
  * The last W32RESOLVER_RESPONSE will just be a header without any data
  * (used to indicate the end of the list).
  */
-struct GNUNET_W32RESOLVER_GetMessage {
+struct GNUNET_W32RESOLVER_GetMessage
+{
   /**
    * Type:  GNUNET_MESSAGE_TYPE_W32RESOLVER_REQUEST
    */

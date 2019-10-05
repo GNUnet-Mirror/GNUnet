@@ -35,7 +35,7 @@
  * modern system, so 30 minutes should be OK even for very, very
  * slow systems.
  */
-#define TIMEOUT GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MINUTES, 30)
+#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 30)
 
 /**
  * The runtime of the benchmark is expected to be linear
@@ -87,39 +87,39 @@ static struct GNUNET_TIME_Absolute start;
  * @param cls NULL
  */
 static void
-end(void *cls)
+end (void *cls)
 {
-  (void)cls;
+  (void) cls;
   if (NULL != qe)
-    {
-      GNUNET_NAMESTORE_cancel(qe);
-      qe = NULL;
-    }
+  {
+    GNUNET_NAMESTORE_cancel (qe);
+    qe = NULL;
+  }
   if (NULL != zi)
-    {
-      GNUNET_NAMESTORE_zone_iteration_stop(zi);
-      zi = NULL;
-    }
+  {
+    GNUNET_NAMESTORE_zone_iteration_stop (zi);
+    zi = NULL;
+  }
   if (NULL != nsh)
-    {
-      GNUNET_NAMESTORE_disconnect(nsh);
-      nsh = NULL;
-    }
+  {
+    GNUNET_NAMESTORE_disconnect (nsh);
+    nsh = NULL;
+  }
   if (NULL != t)
-    {
-      GNUNET_SCHEDULER_cancel(t);
-      t = NULL;
-    }
+  {
+    GNUNET_SCHEDULER_cancel (t);
+    t = NULL;
+  }
   if (NULL != timeout_task)
-    {
-      GNUNET_SCHEDULER_cancel(timeout_task);
-      timeout_task = NULL;
-    }
+  {
+    GNUNET_SCHEDULER_cancel (timeout_task);
+    timeout_task = NULL;
+  }
   if (NULL != privkey)
-    {
-      GNUNET_free(privkey);
-      privkey = NULL;
-    }
+  {
+    GNUNET_free (privkey);
+    privkey = NULL;
+  }
 }
 
 
@@ -128,228 +128,229 @@ end(void *cls)
  * fail hard but return "skipped".
  */
 static void
-timeout(void *cls)
+timeout (void *cls)
 {
-  (void)cls;
+  (void) cls;
   timeout_task = NULL;
-  GNUNET_SCHEDULER_shutdown();
+  GNUNET_SCHEDULER_shutdown ();
   res = 77;
 }
 
 
 static struct GNUNET_GNSRECORD_Data *
-create_record(unsigned int count)
+create_record (unsigned int count)
 {
   struct GNUNET_GNSRECORD_Data *rd;
 
-  rd = GNUNET_malloc(count + sizeof(struct GNUNET_GNSRECORD_Data));
-  rd->expiration_time = GNUNET_TIME_relative_to_absolute(GNUNET_TIME_UNIT_HOURS).abs_value_us;
+  rd = GNUNET_malloc (count + sizeof(struct GNUNET_GNSRECORD_Data));
+  rd->expiration_time = GNUNET_TIME_relative_to_absolute (
+    GNUNET_TIME_UNIT_HOURS).abs_value_us;
   rd->record_type = TEST_RECORD_TYPE;
   rd->data_size = count;
-  rd->data = (void *)&rd[1];
+  rd->data = (void *) &rd[1];
   rd->flags = 0;
-  memset(&rd[1],
-         'a',
-         count);
+  memset (&rd[1],
+          'a',
+          count);
   return rd;
 }
 
 
 static void
-zone_end(void *cls)
+zone_end (void *cls)
 {
   struct GNUNET_TIME_Relative delay;
 
   zi = NULL;
-  delay = GNUNET_TIME_absolute_get_duration(start);
-  fprintf(stdout,
-          "Iterating over %u records took %s\n",
-          off,
-          GNUNET_STRINGS_relative_time_to_string(delay,
-                                                 GNUNET_YES));
+  delay = GNUNET_TIME_absolute_get_duration (start);
+  fprintf (stdout,
+           "Iterating over %u records took %s\n",
+           off,
+           GNUNET_STRINGS_relative_time_to_string (delay,
+                                                   GNUNET_YES));
   if (BENCHMARK_SIZE == off)
-    {
-      res = 0;
-    }
+  {
+    res = 0;
+  }
   else
-    {
-      GNUNET_break(0);
-      res = 1;
-    }
-  GNUNET_SCHEDULER_shutdown();
+  {
+    GNUNET_break (0);
+    res = 1;
+  }
+  GNUNET_SCHEDULER_shutdown ();
 }
 
 
 static void
-fail_cb(void *cls)
+fail_cb (void *cls)
 {
   zi = NULL;
   res = 2;
-  GNUNET_break(0);
-  GNUNET_SCHEDULER_shutdown();
+  GNUNET_break (0);
+  GNUNET_SCHEDULER_shutdown ();
 }
 
 
 static void
-zone_proc(void *cls,
-          const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
-          const char *label,
-          unsigned int rd_count,
-          const struct GNUNET_GNSRECORD_Data *rd)
+zone_proc (void *cls,
+           const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
+           const char *label,
+           unsigned int rd_count,
+           const struct GNUNET_GNSRECORD_Data *rd)
 {
   struct GNUNET_GNSRECORD_Data *wrd;
   unsigned int xoff;
 
-  GNUNET_assert(NULL != zone);
-  if (1 != sscanf(label,
-                  "l%u",
-                  &xoff))
-    {
-      res = 3;
-      GNUNET_break(0);
-      GNUNET_SCHEDULER_shutdown();
-      return;
-    }
+  GNUNET_assert (NULL != zone);
+  if (1 != sscanf (label,
+                   "l%u",
+                   &xoff))
+  {
+    res = 3;
+    GNUNET_break (0);
+    GNUNET_SCHEDULER_shutdown ();
+    return;
+  }
   if ((xoff > BENCHMARK_SIZE) ||
       (0 != (seen[xoff / 8] & (1U << (xoff % 8)))))
-    {
-      res = 3;
-      GNUNET_break(0);
-      GNUNET_SCHEDULER_shutdown();
-      return;
-    }
+  {
+    res = 3;
+    GNUNET_break (0);
+    GNUNET_SCHEDULER_shutdown ();
+    return;
+  }
   seen[xoff / 8] |= (1U << (xoff % 8));
-  wrd = create_record(xoff % MAX_REC_SIZE);
+  wrd = create_record (xoff % MAX_REC_SIZE);
   if ((rd->record_type != wrd->record_type) ||
       (rd->data_size != wrd->data_size) ||
       (rd->flags != wrd->flags))
-    {
-      res = 4;
-      GNUNET_break(0);
-      GNUNET_SCHEDULER_shutdown();
-      GNUNET_free(wrd);
-      return;
-    }
-  if (0 != memcmp(rd->data,
-                  wrd->data,
-                  wrd->data_size))
-    {
-      res = 4;
-      GNUNET_break(0);
-      GNUNET_SCHEDULER_shutdown();
-      GNUNET_free(wrd);
-      return;
-    }
-  GNUNET_free(wrd);
-  if (0 != GNUNET_memcmp(zone,
-                         privkey))
-    {
-      res = 5;
-      GNUNET_break(0);
-      GNUNET_SCHEDULER_shutdown();
-      return;
-    }
+  {
+    res = 4;
+    GNUNET_break (0);
+    GNUNET_SCHEDULER_shutdown ();
+    GNUNET_free (wrd);
+    return;
+  }
+  if (0 != memcmp (rd->data,
+                   wrd->data,
+                   wrd->data_size))
+  {
+    res = 4;
+    GNUNET_break (0);
+    GNUNET_SCHEDULER_shutdown ();
+    GNUNET_free (wrd);
+    return;
+  }
+  GNUNET_free (wrd);
+  if (0 != GNUNET_memcmp (zone,
+                          privkey))
+  {
+    res = 5;
+    GNUNET_break (0);
+    GNUNET_SCHEDULER_shutdown ();
+    return;
+  }
   off++;
   left_until_next--;
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-             "Obtained record %u, expecting %u more until asking for mor explicitly\n",
-             off,
-             left_until_next);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Obtained record %u, expecting %u more until asking for mor explicitly\n",
+              off,
+              left_until_next);
   if (0 == left_until_next)
-    {
-      left_until_next = BLOCK_SIZE;
-      GNUNET_NAMESTORE_zone_iterator_next(zi,
-                                          left_until_next);
-    }
+  {
+    left_until_next = BLOCK_SIZE;
+    GNUNET_NAMESTORE_zone_iterator_next (zi,
+                                         left_until_next);
+  }
 }
 
 
 static void
-publish_record(void *cls);
+publish_record (void *cls);
 
 
 static void
-put_cont(void *cls,
-         int32_t success,
-         const char *emsg)
+put_cont (void *cls,
+          int32_t success,
+          const char *emsg)
 {
-  (void)cls;
+  (void) cls;
   qe = NULL;
   if (GNUNET_OK != success)
-    {
-      GNUNET_break(0);
-      GNUNET_SCHEDULER_shutdown();
-      return;
-    }
-  t = GNUNET_SCHEDULER_add_now(&publish_record,
-                               NULL);
+  {
+    GNUNET_break (0);
+    GNUNET_SCHEDULER_shutdown ();
+    return;
+  }
+  t = GNUNET_SCHEDULER_add_now (&publish_record,
+                                NULL);
 }
 
 
 static void
-publish_record(void *cls)
+publish_record (void *cls)
 {
   struct GNUNET_GNSRECORD_Data *rd;
   char *label;
 
-  (void)cls;
+  (void) cls;
   t = NULL;
   if (BENCHMARK_SIZE == off)
-    {
-      struct GNUNET_TIME_Relative delay;
+  {
+    struct GNUNET_TIME_Relative delay;
 
-      delay = GNUNET_TIME_absolute_get_duration(start);
-      fprintf(stdout,
-              "Inserting %u records took %s\n",
-              off,
-              GNUNET_STRINGS_relative_time_to_string(delay,
+    delay = GNUNET_TIME_absolute_get_duration (start);
+    fprintf (stdout,
+             "Inserting %u records took %s\n",
+             off,
+             GNUNET_STRINGS_relative_time_to_string (delay,
                                                      GNUNET_YES));
-      start = GNUNET_TIME_absolute_get();
-      off = 0;
-      left_until_next = 1;
-      zi = GNUNET_NAMESTORE_zone_iteration_start(nsh,
-                                                 NULL,
-                                                 &fail_cb,
-                                                 NULL,
-                                                 &zone_proc,
-                                                 NULL,
-                                                 &zone_end,
-                                                 NULL);
-      GNUNET_assert(NULL != zi);
-      return;
-    }
-  rd = create_record((++off) % MAX_REC_SIZE);
-  GNUNET_asprintf(&label,
-                  "l%u",
-                  off);
-  qe = GNUNET_NAMESTORE_records_store(nsh,
-                                      privkey,
-                                      label,
-                                      1, rd,
-                                      &put_cont,
-                                      NULL);
-  GNUNET_free(label);
-  GNUNET_free(rd);
+    start = GNUNET_TIME_absolute_get ();
+    off = 0;
+    left_until_next = 1;
+    zi = GNUNET_NAMESTORE_zone_iteration_start (nsh,
+                                                NULL,
+                                                &fail_cb,
+                                                NULL,
+                                                &zone_proc,
+                                                NULL,
+                                                &zone_end,
+                                                NULL);
+    GNUNET_assert (NULL != zi);
+    return;
+  }
+  rd = create_record ((++off) % MAX_REC_SIZE);
+  GNUNET_asprintf (&label,
+                   "l%u",
+                   off);
+  qe = GNUNET_NAMESTORE_records_store (nsh,
+                                       privkey,
+                                       label,
+                                       1, rd,
+                                       &put_cont,
+                                       NULL);
+  GNUNET_free (label);
+  GNUNET_free (rd);
 }
 
 
 static void
-run(void *cls,
-    const struct GNUNET_CONFIGURATION_Handle *cfg,
-    struct GNUNET_TESTING_Peer *peer)
+run (void *cls,
+     const struct GNUNET_CONFIGURATION_Handle *cfg,
+     struct GNUNET_TESTING_Peer *peer)
 {
-  GNUNET_SCHEDULER_add_shutdown(&end,
+  GNUNET_SCHEDULER_add_shutdown (&end,
+                                 NULL);
+  timeout_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT,
+                                               &timeout,
+                                               NULL);
+  nsh = GNUNET_NAMESTORE_connect (cfg);
+  GNUNET_assert (NULL != nsh);
+  privkey = GNUNET_CRYPTO_ecdsa_key_create ();
+  GNUNET_assert (NULL != privkey);
+  start = GNUNET_TIME_absolute_get ();
+  t = GNUNET_SCHEDULER_add_now (&publish_record,
                                 NULL);
-  timeout_task = GNUNET_SCHEDULER_add_delayed(TIMEOUT,
-                                              &timeout,
-                                              NULL);
-  nsh = GNUNET_NAMESTORE_connect(cfg);
-  GNUNET_assert(NULL != nsh);
-  privkey = GNUNET_CRYPTO_ecdsa_key_create();
-  GNUNET_assert(NULL != privkey);
-  start = GNUNET_TIME_absolute_get();
-  t = GNUNET_SCHEDULER_add_now(&publish_record,
-                               NULL);
 }
 
 
@@ -357,25 +358,25 @@ run(void *cls,
 
 
 int
-main(int argc,
-     char *argv[])
+main (int argc,
+      char *argv[])
 {
   const char *plugin_name;
   char *cfg_name;
 
-  SETUP_CFG(plugin_name, cfg_name);
+  SETUP_CFG (plugin_name, cfg_name);
   res = 1;
   if (0 !=
-      GNUNET_TESTING_peer_run("perf-namestore-api-zone-iteration",
-                              cfg_name,
-                              &run,
-                              NULL))
-    {
-      res = 1;
-    }
-  GNUNET_DISK_purge_cfg_dir(cfg_name,
-                            "GNUNET_TEST_HOME");
-  GNUNET_free(cfg_name);
+      GNUNET_TESTING_peer_run ("perf-namestore-api-zone-iteration",
+                               cfg_name,
+                               &run,
+                               NULL))
+  {
+    res = 1;
+  }
+  GNUNET_DISK_purge_cfg_dir (cfg_name,
+                             "GNUNET_TEST_HOME");
+  GNUNET_free (cfg_name);
   return res;
 }
 

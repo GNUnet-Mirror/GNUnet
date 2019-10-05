@@ -69,11 +69,11 @@ typedef void (*GNUNET_DHT_TEST_AppMain) (void *cls,
  * @param tmain_cls closure for 'tmain'
  */
 void
-GNUNET_DHT_TEST_run(const char *testname,
-                    const char *cfgname,
-                    unsigned int num_peers,
-                    GNUNET_DHT_TEST_AppMain tmain,
-                    void *tmain_cls);
+GNUNET_DHT_TEST_run (const char *testname,
+                     const char *cfgname,
+                     unsigned int num_peers,
+                     GNUNET_DHT_TEST_AppMain tmain,
+                     void *tmain_cls);
 
 
 /**
@@ -82,7 +82,7 @@ GNUNET_DHT_TEST_run(const char *testname,
  * @param ctx handle for the testbed
  */
 void
-GNUNET_DHT_TEST_cleanup(struct GNUNET_DHT_TEST_Context *ctx);
+GNUNET_DHT_TEST_cleanup (struct GNUNET_DHT_TEST_Context *ctx);
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {

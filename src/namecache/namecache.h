@@ -37,7 +37,8 @@ GNUNET_NETWORK_STRUCT_BEGIN
 /**
  * Generic namecache message with op id
  */
-struct GNUNET_NAMECACHE_Header {
+struct GNUNET_NAMECACHE_Header
+{
   /**
    * header.type will be GNUNET_MESSAGE_TYPE_NAMECACHE_*
    * header.size will be message size
@@ -54,7 +55,8 @@ struct GNUNET_NAMECACHE_Header {
 /**
  * Lookup a block in the namecache
  */
-struct LookupBlockMessage {
+struct LookupBlockMessage
+{
   /**
    * Type will be #GNUNET_MESSAGE_TYPE_NAMECACHE_LOOKUP_BLOCK
    */
@@ -70,7 +72,8 @@ struct LookupBlockMessage {
 /**
  * Lookup response
  */
-struct LookupBlockResponseMessage {
+struct LookupBlockResponseMessage
+{
   /**
    * Type will be #GNUNET_MESSAGE_TYPE_NAMECACHE_LOOKUP_BLOCK_RESPONSE
    */
@@ -98,7 +101,8 @@ struct LookupBlockResponseMessage {
 /**
  * Cache a record in the namecache.
  */
-struct BlockCacheMessage {
+struct BlockCacheMessage
+{
   /**
    * Type will be #GNUNET_MESSAGE_TYPE_NAMECACHE_BLOCK_CACHE
    */
@@ -126,7 +130,8 @@ struct BlockCacheMessage {
 /**
  * Response to a request to cache a block.
  */
-struct BlockCacheResponseMessage {
+struct BlockCacheResponseMessage
+{
   /**
    * Type will be #GNUNET_MESSAGE_TYPE_NAMECACHE_BLOCK_CACHE_RESPONSE
    */

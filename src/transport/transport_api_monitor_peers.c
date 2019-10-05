@@ -39,7 +39,8 @@
 /**
  * Context for iterating validation entries.
  */
-struct GNUNET_TRANSPORT_PeerMonitoringContext {
+struct GNUNET_TRANSPORT_PeerMonitoringContext
+{
   /**
    * Function to call with the binary address.
    */
@@ -89,34 +90,34 @@ struct GNUNET_TRANSPORT_PeerMonitoringContext {
  * @return #GNUNET_YES or #GNUNET_NO
  */
 int
-GNUNET_TRANSPORT_is_connected(enum GNUNET_TRANSPORT_PeerState state)
+GNUNET_TRANSPORT_is_connected (enum GNUNET_TRANSPORT_PeerState state)
 {
   switch (state)
-    {
-    case GNUNET_TRANSPORT_PS_NOT_CONNECTED:
-    case GNUNET_TRANSPORT_PS_INIT_ATS:
-    case GNUNET_TRANSPORT_PS_SYN_SENT:
-    case GNUNET_TRANSPORT_PS_SYN_RECV_ATS:
-    case GNUNET_TRANSPORT_PS_SYN_RECV_ACK:
-      return GNUNET_NO;
+  {
+  case GNUNET_TRANSPORT_PS_NOT_CONNECTED:
+  case GNUNET_TRANSPORT_PS_INIT_ATS:
+  case GNUNET_TRANSPORT_PS_SYN_SENT:
+  case GNUNET_TRANSPORT_PS_SYN_RECV_ATS:
+  case GNUNET_TRANSPORT_PS_SYN_RECV_ACK:
+    return GNUNET_NO;
 
-    case GNUNET_TRANSPORT_PS_CONNECTED:
-    case GNUNET_TRANSPORT_PS_RECONNECT_ATS:
-    case GNUNET_TRANSPORT_PS_RECONNECT_SENT:
-    case GNUNET_TRANSPORT_PS_SWITCH_SYN_SENT:
-      return GNUNET_YES;
+  case GNUNET_TRANSPORT_PS_CONNECTED:
+  case GNUNET_TRANSPORT_PS_RECONNECT_ATS:
+  case GNUNET_TRANSPORT_PS_RECONNECT_SENT:
+  case GNUNET_TRANSPORT_PS_SWITCH_SYN_SENT:
+    return GNUNET_YES;
 
-    case GNUNET_TRANSPORT_PS_DISCONNECT:
-    case GNUNET_TRANSPORT_PS_DISCONNECT_FINISHED:
-      return GNUNET_NO;
+  case GNUNET_TRANSPORT_PS_DISCONNECT:
+  case GNUNET_TRANSPORT_PS_DISCONNECT_FINISHED:
+    return GNUNET_NO;
 
-    default:
-      GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
-                 "Unhandled state `%s'\n",
-                 GNUNET_TRANSPORT_ps2s(state));
-      GNUNET_break(0);
-      break;
-    }
+  default:
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Unhandled state `%s'\n",
+                GNUNET_TRANSPORT_ps2s (state));
+    GNUNET_break (0);
+    break;
+  }
   return GNUNET_SYSERR;
 }
 
@@ -128,47 +129,47 @@ GNUNET_TRANSPORT_is_connected(enum GNUNET_TRANSPORT_PeerState state)
  * @return corresponding string
  */
 const char *
-GNUNET_TRANSPORT_ps2s(enum GNUNET_TRANSPORT_PeerState state)
+GNUNET_TRANSPORT_ps2s (enum GNUNET_TRANSPORT_PeerState state)
 {
   switch (state)
-    {
-    case GNUNET_TRANSPORT_PS_NOT_CONNECTED:
-      return "S_NOT_CONNECTED";
+  {
+  case GNUNET_TRANSPORT_PS_NOT_CONNECTED:
+    return "S_NOT_CONNECTED";
 
-    case GNUNET_TRANSPORT_PS_INIT_ATS:
-      return "S_INIT_ATS";
+  case GNUNET_TRANSPORT_PS_INIT_ATS:
+    return "S_INIT_ATS";
 
-    case GNUNET_TRANSPORT_PS_SYN_SENT:
-      return "S_SYN_SENT";
+  case GNUNET_TRANSPORT_PS_SYN_SENT:
+    return "S_SYN_SENT";
 
-    case GNUNET_TRANSPORT_PS_SYN_RECV_ATS:
-      return "S_SYN_RECV_ATS";
+  case GNUNET_TRANSPORT_PS_SYN_RECV_ATS:
+    return "S_SYN_RECV_ATS";
 
-    case GNUNET_TRANSPORT_PS_SYN_RECV_ACK:
-      return "S_SYN_RECV_ACK";
+  case GNUNET_TRANSPORT_PS_SYN_RECV_ACK:
+    return "S_SYN_RECV_ACK";
 
-    case GNUNET_TRANSPORT_PS_CONNECTED:
-      return "S_CONNECTED";
+  case GNUNET_TRANSPORT_PS_CONNECTED:
+    return "S_CONNECTED";
 
-    case GNUNET_TRANSPORT_PS_RECONNECT_ATS:
-      return "S_RECONNECT_ATS";
+  case GNUNET_TRANSPORT_PS_RECONNECT_ATS:
+    return "S_RECONNECT_ATS";
 
-    case GNUNET_TRANSPORT_PS_RECONNECT_SENT:
-      return "S_RECONNECT_SENT";
+  case GNUNET_TRANSPORT_PS_RECONNECT_SENT:
+    return "S_RECONNECT_SENT";
 
-    case GNUNET_TRANSPORT_PS_SWITCH_SYN_SENT:
-      return "S_SWITCH_SYN_SENT";
+  case GNUNET_TRANSPORT_PS_SWITCH_SYN_SENT:
+    return "S_SWITCH_SYN_SENT";
 
-    case GNUNET_TRANSPORT_PS_DISCONNECT:
-      return "S_DISCONNECT";
+  case GNUNET_TRANSPORT_PS_DISCONNECT:
+    return "S_DISCONNECT";
 
-    case GNUNET_TRANSPORT_PS_DISCONNECT_FINISHED:
-      return "S_DISCONNECT_FINISHED";
+  case GNUNET_TRANSPORT_PS_DISCONNECT_FINISHED:
+    return "S_DISCONNECT_FINISHED";
 
-    default:
-      GNUNET_break(0);
-      return "UNDEFINED";
-    }
+  default:
+    GNUNET_break (0);
+    return "UNDEFINED";
+  }
 }
 
 
@@ -178,7 +179,7 @@ GNUNET_TRANSPORT_ps2s(enum GNUNET_TRANSPORT_PeerState state)
  * @param cls our `struct GNUNET_TRANSPORT_PeerMonitoringContext *`
  */
 static void
-do_peer_connect(void *cls);
+do_peer_connect (void *cls);
 
 
 /**
@@ -187,20 +188,20 @@ do_peer_connect(void *cls);
  * @param pal_ctx our context
  */
 static void
-reconnect_peer_ctx(struct GNUNET_TRANSPORT_PeerMonitoringContext *pal_ctx)
+reconnect_peer_ctx (struct GNUNET_TRANSPORT_PeerMonitoringContext *pal_ctx)
 {
-  GNUNET_assert(GNUNET_NO == pal_ctx->one_shot);
-  GNUNET_MQ_destroy(pal_ctx->mq);
+  GNUNET_assert (GNUNET_NO == pal_ctx->one_shot);
+  GNUNET_MQ_destroy (pal_ctx->mq);
   pal_ctx->mq = NULL;
-  pal_ctx->cb(pal_ctx->cb_cls,
-              NULL,
-              NULL,
-              GNUNET_TRANSPORT_PS_NOT_CONNECTED,
-              GNUNET_TIME_UNIT_ZERO_ABS);
-  pal_ctx->backoff = GNUNET_TIME_STD_BACKOFF(pal_ctx->backoff);
-  pal_ctx->reconnect_task = GNUNET_SCHEDULER_add_delayed(pal_ctx->backoff,
-                                                         &do_peer_connect,
-                                                         pal_ctx);
+  pal_ctx->cb (pal_ctx->cb_cls,
+               NULL,
+               NULL,
+               GNUNET_TRANSPORT_PS_NOT_CONNECTED,
+               GNUNET_TIME_UNIT_ZERO_ABS);
+  pal_ctx->backoff = GNUNET_TIME_STD_BACKOFF (pal_ctx->backoff);
+  pal_ctx->reconnect_task = GNUNET_SCHEDULER_add_delayed (pal_ctx->backoff,
+                                                          &do_peer_connect,
+                                                          pal_ctx);
 }
 
 
@@ -211,25 +212,25 @@ reconnect_peer_ctx(struct GNUNET_TRANSPORT_PeerMonitoringContext *pal_ctx)
  * @param msg message from service
  */
 static void
-handle_response_end(void *cls,
-                    const struct GNUNET_MessageHeader *msg)
+handle_response_end (void *cls,
+                     const struct GNUNET_MessageHeader *msg)
 {
   struct GNUNET_TRANSPORT_PeerMonitoringContext *pal_ctx = cls;
 
   if (pal_ctx->one_shot)
-    {
-      /* iteration finished */
-      pal_ctx->cb(pal_ctx->cb_cls,
-                  NULL,
-                  NULL,
-                  GNUNET_TRANSPORT_PS_NOT_CONNECTED,
-                  GNUNET_TIME_UNIT_ZERO_ABS);
-      GNUNET_TRANSPORT_monitor_peers_cancel(pal_ctx);
-      return;
-    }
+  {
+    /* iteration finished */
+    pal_ctx->cb (pal_ctx->cb_cls,
+                 NULL,
+                 NULL,
+                 GNUNET_TRANSPORT_PS_NOT_CONNECTED,
+                 GNUNET_TIME_UNIT_ZERO_ABS);
+    GNUNET_TRANSPORT_monitor_peers_cancel (pal_ctx);
+    return;
+  }
   /* not quite what we expected, reconnect */
-  GNUNET_break(0);
-  reconnect_peer_ctx(pal_ctx);
+  GNUNET_break (0);
+  reconnect_peer_ctx (pal_ctx);
 }
 
 
@@ -241,34 +242,34 @@ handle_response_end(void *cls,
  * @return #GNUNET_OK if @a pir_msg is well-formed
  */
 static int
-check_response(void *cls,
-               const struct PeerIterateResponseMessage *pir_msg)
+check_response (void *cls,
+                const struct PeerIterateResponseMessage *pir_msg)
 {
-  uint16_t size = ntohs(pir_msg->header.size) - sizeof(*pir_msg);
-  size_t alen = ntohl(pir_msg->addrlen);
-  size_t tlen = ntohl(pir_msg->pluginlen);
+  uint16_t size = ntohs (pir_msg->header.size) - sizeof(*pir_msg);
+  size_t alen = ntohl (pir_msg->addrlen);
+  size_t tlen = ntohl (pir_msg->pluginlen);
   const char *addr;
   const char *transport_name;
 
   if (size != tlen + alen)
-    {
-      GNUNET_break(0);
-      return GNUNET_SYSERR;
-    }
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
   if ((0 == tlen) && (0 == alen))
     return GNUNET_OK;
   if (0 == tlen)
-    {
-      GNUNET_break(0); /* This must not happen: address without plugin */
-      return GNUNET_SYSERR;
-    }
-  addr = (const char *)&pir_msg[1];
+  {
+    GNUNET_break (0);  /* This must not happen: address without plugin */
+    return GNUNET_SYSERR;
+  }
+  addr = (const char *) &pir_msg[1];
   transport_name = &addr[alen];
   if (transport_name[tlen - 1] != '\0')
-    {
-      GNUNET_break(0);
-      return GNUNET_SYSERR;
-    }
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
   return GNUNET_OK;
 }
 
@@ -280,42 +281,42 @@ check_response(void *cls,
  * @param msg  message with the human-readable address
  */
 static void
-handle_response(void *cls,
-                const struct PeerIterateResponseMessage *pir_msg)
+handle_response (void *cls,
+                 const struct PeerIterateResponseMessage *pir_msg)
 {
   struct GNUNET_TRANSPORT_PeerMonitoringContext *pal_ctx = cls;
   struct GNUNET_HELLO_Address *address;
-  size_t alen = ntohl(pir_msg->addrlen);
-  size_t tlen = ntohl(pir_msg->pluginlen);
+  size_t alen = ntohl (pir_msg->addrlen);
+  size_t tlen = ntohl (pir_msg->pluginlen);
   const char *addr;
   const char *transport_name;
 
   if ((0 == tlen) &&
       (0 == alen))
-    {
-      /* No address available */
-      pal_ctx->cb(pal_ctx->cb_cls,
-                  &pir_msg->peer,
-                  NULL,
-                  ntohl(pir_msg->state),
-                  GNUNET_TIME_absolute_ntoh(pir_msg->state_timeout));
-      return;
-    }
-  addr = (const char *)&pir_msg[1];
+  {
+    /* No address available */
+    pal_ctx->cb (pal_ctx->cb_cls,
+                 &pir_msg->peer,
+                 NULL,
+                 ntohl (pir_msg->state),
+                 GNUNET_TIME_absolute_ntoh (pir_msg->state_timeout));
+    return;
+  }
+  addr = (const char *) &pir_msg[1];
   transport_name = &addr[alen];
 
   /* notify client */
-  address = GNUNET_HELLO_address_allocate(&pir_msg->peer,
-                                          transport_name,
-                                          addr,
-                                          alen,
-                                          ntohl(pir_msg->local_address_info));
-  pal_ctx->cb(pal_ctx->cb_cls,
-              &pir_msg->peer,
-              address,
-              ntohl(pir_msg->state),
-              GNUNET_TIME_absolute_ntoh(pir_msg->state_timeout));
-  GNUNET_HELLO_address_free(address);
+  address = GNUNET_HELLO_address_allocate (&pir_msg->peer,
+                                           transport_name,
+                                           addr,
+                                           alen,
+                                           ntohl (pir_msg->local_address_info));
+  pal_ctx->cb (pal_ctx->cb_cls,
+               &pir_msg->peer,
+               address,
+               ntohl (pir_msg->state),
+               GNUNET_TIME_absolute_ntoh (pir_msg->state_timeout));
+  GNUNET_HELLO_address_free (address);
 }
 
 
@@ -329,23 +330,23 @@ handle_response(void *cls,
  * @param error error code
  */
 static void
-mq_error_handler(void *cls,
-                 enum GNUNET_MQ_Error error)
+mq_error_handler (void *cls,
+                  enum GNUNET_MQ_Error error)
 {
   struct GNUNET_TRANSPORT_PeerMonitoringContext *pal_ctx = cls;
 
   if (pal_ctx->one_shot)
-    {
-      /* Disconnect */
-      pal_ctx->cb(pal_ctx->cb_cls,
-                  NULL,
-                  NULL,
-                  GNUNET_TRANSPORT_PS_NOT_CONNECTED,
-                  GNUNET_TIME_UNIT_ZERO_ABS);
-      GNUNET_TRANSPORT_monitor_peers_cancel(pal_ctx);
-      return;
-    }
-  reconnect_peer_ctx(pal_ctx);
+  {
+    /* Disconnect */
+    pal_ctx->cb (pal_ctx->cb_cls,
+                 NULL,
+                 NULL,
+                 GNUNET_TRANSPORT_PS_NOT_CONNECTED,
+                 GNUNET_TIME_UNIT_ZERO_ABS);
+    GNUNET_TRANSPORT_monitor_peers_cancel (pal_ctx);
+    return;
+  }
+  reconnect_peer_ctx (pal_ctx);
 }
 
 
@@ -355,37 +356,37 @@ mq_error_handler(void *cls,
  * @param cls our `struct GNUNET_TRANSPORT_PeerMonitoringContext *`
  */
 static void
-do_peer_connect(void *cls)
+do_peer_connect (void *cls)
 {
   struct GNUNET_TRANSPORT_PeerMonitoringContext *pal_ctx = cls;
   struct GNUNET_MQ_MessageHandler handlers[] = {
-    GNUNET_MQ_hd_var_size(response,
-                          GNUNET_MESSAGE_TYPE_TRANSPORT_MONITOR_PEER_RESPONSE,
-                          struct PeerIterateResponseMessage,
-                          pal_ctx),
-    GNUNET_MQ_hd_fixed_size(response_end,
-                            GNUNET_MESSAGE_TYPE_TRANSPORT_MONITOR_PEER_RESPONSE_END,
-                            struct GNUNET_MessageHeader,
-                            pal_ctx),
-    GNUNET_MQ_handler_end()
+    GNUNET_MQ_hd_var_size (response,
+                           GNUNET_MESSAGE_TYPE_TRANSPORT_MONITOR_PEER_RESPONSE,
+                           struct PeerIterateResponseMessage,
+                           pal_ctx),
+    GNUNET_MQ_hd_fixed_size (response_end,
+                             GNUNET_MESSAGE_TYPE_TRANSPORT_MONITOR_PEER_RESPONSE_END,
+                             struct GNUNET_MessageHeader,
+                             pal_ctx),
+    GNUNET_MQ_handler_end ()
   };
   struct PeerMonitorMessage *msg;
   struct GNUNET_MQ_Envelope *env;
 
   pal_ctx->reconnect_task = NULL;
-  pal_ctx->mq = GNUNET_CLIENT_connect(pal_ctx->cfg,
-                                      "transport",
-                                      handlers,
-                                      &mq_error_handler,
-                                      pal_ctx);
+  pal_ctx->mq = GNUNET_CLIENT_connect (pal_ctx->cfg,
+                                       "transport",
+                                       handlers,
+                                       &mq_error_handler,
+                                       pal_ctx);
   if (NULL == pal_ctx->mq)
     return;
-  env = GNUNET_MQ_msg(msg,
-                      GNUNET_MESSAGE_TYPE_TRANSPORT_MONITOR_PEER_REQUEST);
-  msg->one_shot = htonl(pal_ctx->one_shot);
+  env = GNUNET_MQ_msg (msg,
+                       GNUNET_MESSAGE_TYPE_TRANSPORT_MONITOR_PEER_REQUEST);
+  msg->one_shot = htonl (pal_ctx->one_shot);
   msg->peer = pal_ctx->peer;
-  GNUNET_MQ_send(pal_ctx->mq,
-                 env);
+  GNUNET_MQ_send (pal_ctx->mq,
+                  env);
 }
 
 
@@ -416,14 +417,15 @@ do_peer_connect(void *cls)
  * @param peer_callback_cls closure for @a peer_address_callback
  */
 struct GNUNET_TRANSPORT_PeerMonitoringContext *
-GNUNET_TRANSPORT_monitor_peers(const struct GNUNET_CONFIGURATION_Handle *cfg,
-                               const struct GNUNET_PeerIdentity *peer,
-                               int one_shot,
-                               GNUNET_TRANSPORT_PeerIterateCallback peer_callback,
-                               void *peer_callback_cls)
+GNUNET_TRANSPORT_monitor_peers (const struct GNUNET_CONFIGURATION_Handle *cfg,
+                                const struct GNUNET_PeerIdentity *peer,
+                                int one_shot,
+                                GNUNET_TRANSPORT_PeerIterateCallback
+                                peer_callback,
+                                void *peer_callback_cls)
 {
   struct GNUNET_TRANSPORT_PeerMonitoringContext *pal_ctx
-    = GNUNET_new(struct GNUNET_TRANSPORT_PeerMonitoringContext);
+    = GNUNET_new (struct GNUNET_TRANSPORT_PeerMonitoringContext);
 
   pal_ctx->cb = peer_callback;
   pal_ctx->cb_cls = peer_callback_cls;
@@ -431,12 +433,12 @@ GNUNET_TRANSPORT_monitor_peers(const struct GNUNET_CONFIGURATION_Handle *cfg,
   if (NULL != peer)
     pal_ctx->peer = *peer;
   pal_ctx->one_shot = one_shot;
-  do_peer_connect(pal_ctx);
+  do_peer_connect (pal_ctx);
   if (NULL == pal_ctx->mq)
-    {
-      GNUNET_free(pal_ctx);
-      return NULL;
-    }
+  {
+    GNUNET_free (pal_ctx);
+    return NULL;
+  }
   return pal_ctx;
 }
 
@@ -447,19 +449,21 @@ GNUNET_TRANSPORT_monitor_peers(const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @param pic handle for the request to cancel
  */
 void
-GNUNET_TRANSPORT_monitor_peers_cancel(struct GNUNET_TRANSPORT_PeerMonitoringContext *pic)
+GNUNET_TRANSPORT_monitor_peers_cancel (struct
+                                       GNUNET_TRANSPORT_PeerMonitoringContext *
+                                       pic)
 {
   if (NULL != pic->mq)
-    {
-      GNUNET_MQ_destroy(pic->mq);
-      pic->mq = NULL;
-    }
+  {
+    GNUNET_MQ_destroy (pic->mq);
+    pic->mq = NULL;
+  }
   if (NULL != pic->reconnect_task)
-    {
-      GNUNET_SCHEDULER_cancel(pic->reconnect_task);
-      pic->reconnect_task = NULL;
-    }
-  GNUNET_free(pic);
+  {
+    GNUNET_SCHEDULER_cancel (pic->reconnect_task);
+    pic->reconnect_task = NULL;
+  }
+  GNUNET_free (pic);
 }
 
 

@@ -28,20 +28,24 @@
 /* Maximum number of entries to return */
 #define MAX_ENTRIES 16
 
-typedef struct {
+typedef struct
+{
   uint32_t address;
 } ipv4_address_t;
 
 
-typedef struct {
+typedef struct
+{
   uint8_t address[16];
 } ipv6_address_t;
 
 
-struct userdata {
+struct userdata
+{
   int count;
   int data_len; /* only valid when doing reverse lookup */
-  union  {
+  union
+  {
     ipv4_address_t ipv4[MAX_ENTRIES];
     ipv6_address_t ipv6[MAX_ENTRIES];
     char *name[MAX_ENTRIES];
@@ -62,8 +66,8 @@ struct userdata {
  *          else 0
  */
 int
-gns_resolve_name(int af,
-                 const char *name,
-                 struct userdata *userdata);
+gns_resolve_name (int af,
+                  const char *name,
+                  struct userdata *userdata);
 
 #endif

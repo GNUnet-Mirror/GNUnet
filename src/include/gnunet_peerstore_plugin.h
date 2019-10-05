@@ -46,7 +46,8 @@ extern "C"
 /**
  * @brief struct returned by the initialization function of the plugin
  */
-struct GNUNET_PEERSTORE_PluginFunctions {
+struct GNUNET_PEERSTORE_PluginFunctions
+{
   /**
    * Closure to pass to all plugin functions.
    */

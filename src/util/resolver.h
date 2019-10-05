@@ -40,7 +40,8 @@ GNUNET_NETWORK_STRUCT_BEGIN
  * will just be a header without any data (used to indicate the end of
  * the list).
  */
-struct GNUNET_RESOLVER_GetMessage {
+struct GNUNET_RESOLVER_GetMessage
+{
   /**
    * Type:  #GNUNET_MESSAGE_TYPE_RESOLVER_REQUEST
    */
@@ -68,7 +69,8 @@ struct GNUNET_RESOLVER_GetMessage {
 };
 
 
-struct GNUNET_RESOLVER_ResponseMessage {
+struct GNUNET_RESOLVER_ResponseMessage
+{
   /**
    * Type: #GNUNET_MESSAGE_TYPE_RESOLVER_RESPONSE
    */

@@ -41,11 +41,11 @@
  *   #GNUNET_SYSERR if a result was invalid
  */
 static int
-pre_extract_varsize_blob(void *cls,
-                         struct GNUNET_MY_ResultSpec *rs,
-                         MYSQL_STMT *stmt,
-                         unsigned int column,
-                         MYSQL_BIND *results)
+pre_extract_varsize_blob (void *cls,
+                          struct GNUNET_MY_ResultSpec *rs,
+                          MYSQL_STMT *stmt,
+                          unsigned int column,
+                          MYSQL_BIND *results)
 {
   results[0].buffer = NULL;
   results[0].buffer_length = 0;
@@ -70,39 +70,39 @@ pre_extract_varsize_blob(void *cls,
  *   #GNUNET_SYSERR if a result was invalid
  */
 static int
-post_extract_varsize_blob(void *cls,
-                          struct GNUNET_MY_ResultSpec *rs,
-                          MYSQL_STMT *stmt,
-                          unsigned int column,
-                          MYSQL_BIND *results)
+post_extract_varsize_blob (void *cls,
+                           struct GNUNET_MY_ResultSpec *rs,
+                           MYSQL_STMT *stmt,
+                           unsigned int column,
+                           MYSQL_BIND *results)
 {
   void *buf;
   size_t size;
 
   if (*results->is_null)
     return GNUNET_SYSERR;
-  size = (size_t)rs->mysql_bind_output_length;
+  size = (size_t) rs->mysql_bind_output_length;
 
   if (rs->mysql_bind_output_length != size)
     return GNUNET_SYSERR; /* 'unsigned long' does not fit in size_t!? */
 
-  buf = GNUNET_malloc(size);
+  buf = GNUNET_malloc (size);
 
   results[0].buffer = buf;
   results[0].buffer_length = size;
   results[0].buffer_type = MYSQL_TYPE_BLOB;
 
   if (0 !=
-      mysql_stmt_fetch_column(stmt,
-                              results,
-                              column,
-                              0))
-    {
-      GNUNET_free(buf);
-      return GNUNET_SYSERR;
-    }
+      mysql_stmt_fetch_column (stmt,
+                               results,
+                               column,
+                               0))
+  {
+    GNUNET_free (buf);
+    return GNUNET_SYSERR;
+  }
 
-  *(void **)rs->dst = buf;
+  *(void **) rs->dst = buf;
   *rs->result_size = size;
 
   return GNUNET_OK;
@@ -116,16 +116,16 @@ post_extract_varsize_blob(void *cls,
  * @param[in,out] rs
  */
 static void
-cleanup_varsize_blob(void *cls,
-                     struct GNUNET_MY_ResultSpec *rs)
+cleanup_varsize_blob (void *cls,
+                      struct GNUNET_MY_ResultSpec *rs)
 {
-  void **ptr = (void **)rs->dst;
+  void **ptr = (void **) rs->dst;
 
   if (NULL != *ptr)
-    {
-      GNUNET_free(*ptr);
-      *ptr = NULL;
-    }
+  {
+    GNUNET_free (*ptr);
+    *ptr = NULL;
+  }
 }
 
 
@@ -137,15 +137,14 @@ cleanup_varsize_blob(void *cls,
  * @return array entru for the result specification to use
  */
 struct GNUNET_MY_ResultSpec
-GNUNET_MY_result_spec_variable_size(void **dst,
-                                    size_t *ptr_size)
+GNUNET_MY_result_spec_variable_size (void **dst,
+                                     size_t *ptr_size)
 {
-  struct GNUNET_MY_ResultSpec res =
-  {
+  struct GNUNET_MY_ResultSpec res = {
     .pre_conv = &pre_extract_varsize_blob,
     .post_conv = &post_extract_varsize_blob,
     .cleaner = &cleanup_varsize_blob,
-    .dst = (void *)(dst),
+    .dst = (void *) (dst),
     .result_size = ptr_size,
     .num_fields = 1
   };
@@ -167,11 +166,11 @@ GNUNET_MY_result_spec_variable_size(void **dst,
  *  #GNUNET_SYSERR if a result was invalid(non-existing field or NULL)
  */
 static int
-pre_extract_fixed_blob(void *cls,
-                       struct GNUNET_MY_ResultSpec *rs,
-                       MYSQL_STMT *stmt,
-                       unsigned int column,
-                       MYSQL_BIND *results)
+pre_extract_fixed_blob (void *cls,
+                        struct GNUNET_MY_ResultSpec *rs,
+                        MYSQL_STMT *stmt,
+                        unsigned int column,
+                        MYSQL_BIND *results)
 {
   results[0].buffer = rs->dst;
   results[0].buffer_length = rs->dst_size;
@@ -198,11 +197,11 @@ pre_extract_fixed_blob(void *cls,
  *  #GNUNET_SYSERR if a result was invalid(non-existing field or NULL)
  */
 static int
-post_extract_fixed_blob(void *cls,
-                        struct GNUNET_MY_ResultSpec *rs,
-                        MYSQL_STMT *stmt,
-                        unsigned int column,
-                        MYSQL_BIND *results)
+post_extract_fixed_blob (void *cls,
+                         struct GNUNET_MY_ResultSpec *rs,
+                         MYSQL_STMT *stmt,
+                         unsigned int column,
+                         MYSQL_BIND *results)
 {
   if (*results->is_null)
     return GNUNET_SYSERR;
@@ -221,15 +220,14 @@ post_extract_fixed_blob(void *cls,
  * @return array entry for the result specification to use
  */
 struct GNUNET_MY_ResultSpec
-GNUNET_MY_result_spec_fixed_size(void *ptr,
-                                 size_t ptr_size)
+GNUNET_MY_result_spec_fixed_size (void *ptr,
+                                  size_t ptr_size)
 {
-  struct GNUNET_MY_ResultSpec res =
-  {
+  struct GNUNET_MY_ResultSpec res = {
     .pre_conv = &pre_extract_fixed_blob,
     .post_conv = &post_extract_fixed_blob,
     .cleaner = NULL,
-    .dst = (void *)(ptr),
+    .dst = (void *) (ptr),
     .dst_size = ptr_size,
     .num_fields = 1
   };
@@ -251,11 +249,11 @@ GNUNET_MY_result_spec_fixed_size(void *ptr,
  *   #GNUNET_SYSERR if a result was invalid (non-existing field or NULL)
  */
 static int
-pre_extract_rsa_public_key(void *cls,
-                           struct GNUNET_MY_ResultSpec *rs,
-                           MYSQL_STMT *stmt,
-                           unsigned int column,
-                           MYSQL_BIND *results)
+pre_extract_rsa_public_key (void *cls,
+                            struct GNUNET_MY_ResultSpec *rs,
+                            MYSQL_STMT *stmt,
+                            unsigned int column,
+                            MYSQL_BIND *results)
 {
   results[0].buffer = NULL;
   results[0].buffer_length = 0;
@@ -282,11 +280,11 @@ pre_extract_rsa_public_key(void *cls,
  *   #GNUNET_SYSERR if a result was invalid (non-existing field or NULL)
  */
 static int
-post_extract_rsa_public_key(void *cls,
-                            struct GNUNET_MY_ResultSpec *rs,
-                            MYSQL_STMT *stmt,
-                            unsigned int column,
-                            MYSQL_BIND *results)
+post_extract_rsa_public_key (void *cls,
+                             struct GNUNET_MY_ResultSpec *rs,
+                             MYSQL_STMT *stmt,
+                             unsigned int column,
+                             MYSQL_BIND *results)
 
 {
   struct GNUNET_CRYPTO_RsaPublicKey **pk = rs->dst;
@@ -295,34 +293,34 @@ post_extract_rsa_public_key(void *cls,
 
   if (*results->is_null)
     return GNUNET_SYSERR;
-  size = (size_t)rs->mysql_bind_output_length;
+  size = (size_t) rs->mysql_bind_output_length;
 
   if (rs->mysql_bind_output_length != size)
     return GNUNET_SYSERR; /* 'unsigned long' does not fit in size_t!? */
-  buf = GNUNET_malloc(size);
+  buf = GNUNET_malloc (size);
 
   results[0].buffer = buf;
   results[0].buffer_length = size;
   results[0].buffer_type = MYSQL_TYPE_BLOB;
   if (0 !=
-      mysql_stmt_fetch_column(stmt,
-                              results,
-                              column,
-                              0))
-    {
-      GNUNET_free(buf);
-      return GNUNET_SYSERR;
-    }
+      mysql_stmt_fetch_column (stmt,
+                               results,
+                               column,
+                               0))
+  {
+    GNUNET_free (buf);
+    return GNUNET_SYSERR;
+  }
 
-  *pk = GNUNET_CRYPTO_rsa_public_key_decode(buf,
-                                            size);
-  GNUNET_free(buf);
+  *pk = GNUNET_CRYPTO_rsa_public_key_decode (buf,
+                                             size);
+  GNUNET_free (buf);
   if (NULL == *pk)
-    {
-      GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
-                 "Results contains bogus public key value (fail to decode)\n");
-      return GNUNET_SYSERR;
-    }
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Results contains bogus public key value (fail to decode)\n");
+    return GNUNET_SYSERR;
+  }
 
   return GNUNET_OK;
 }
@@ -336,16 +334,16 @@ post_extract_rsa_public_key(void *cls,
  * @param rs result data to clean up
  */
 static void
-clean_rsa_public_key(void *cls,
-                     struct GNUNET_MY_ResultSpec *rs)
+clean_rsa_public_key (void *cls,
+                      struct GNUNET_MY_ResultSpec *rs)
 {
   struct GNUNET_CRYPTO_RsaPublicKey **pk = rs->dst;
 
   if (NULL != *pk)
-    {
-      GNUNET_CRYPTO_rsa_public_key_free(*pk);
-      *pk = NULL;
-    }
+  {
+    GNUNET_CRYPTO_rsa_public_key_free (*pk);
+    *pk = NULL;
+  }
 }
 
 
@@ -357,13 +355,13 @@ clean_rsa_public_key(void *cls,
  * @return array entry for the result specification to use
  */
 struct GNUNET_MY_ResultSpec
-GNUNET_MY_result_spec_rsa_public_key(struct GNUNET_CRYPTO_RsaPublicKey **rsa)
+GNUNET_MY_result_spec_rsa_public_key (struct GNUNET_CRYPTO_RsaPublicKey **rsa)
 {
   struct GNUNET_MY_ResultSpec res = {
     .pre_conv = &pre_extract_rsa_public_key,
     .post_conv = &post_extract_rsa_public_key,
     .cleaner = &clean_rsa_public_key,
-    .dst = (void *)rsa,
+    .dst = (void *) rsa,
     .dst_size = 0,
     .num_fields = 1
   };
@@ -385,11 +383,11 @@ GNUNET_MY_result_spec_rsa_public_key(struct GNUNET_CRYPTO_RsaPublicKey **rsa)
  *    #GNUNET_SYSERR if a result was invalid (non-existing field or NULL)
  */
 static int
-pre_extract_rsa_signature(void *cls,
-                          struct GNUNET_MY_ResultSpec *rs,
-                          MYSQL_STMT *stmt,
-                          unsigned int column,
-                          MYSQL_BIND *results)
+pre_extract_rsa_signature (void *cls,
+                           struct GNUNET_MY_ResultSpec *rs,
+                           MYSQL_STMT *stmt,
+                           unsigned int column,
+                           MYSQL_BIND *results)
 {
   results[0].buffer = 0;
   results[0].buffer_length = 0;
@@ -415,11 +413,11 @@ pre_extract_rsa_signature(void *cls,
  *    #GNUNET_SYSERR if a result was invalid (non-existing field or NULL)
  */
 static int
-post_extract_rsa_signature(void *cls,
-                           struct GNUNET_MY_ResultSpec *rs,
-                           MYSQL_STMT *stmt,
-                           unsigned int column,
-                           MYSQL_BIND *results)
+post_extract_rsa_signature (void *cls,
+                            struct GNUNET_MY_ResultSpec *rs,
+                            MYSQL_STMT *stmt,
+                            unsigned int column,
+                            MYSQL_BIND *results)
 {
   struct GNUNET_CRYPTO_RsaSignature **sig = rs->dst;
   void *buf;
@@ -427,34 +425,34 @@ post_extract_rsa_signature(void *cls,
 
   if (*results->is_null)
     return GNUNET_SYSERR;
-  size = (size_t)rs->mysql_bind_output_length;
+  size = (size_t) rs->mysql_bind_output_length;
 
   if (rs->mysql_bind_output_length != size)
     return GNUNET_SYSERR; /* 'unsigned long' does not fit in size_t!? */
-  buf = GNUNET_malloc(size);
+  buf = GNUNET_malloc (size);
 
   results[0].buffer = buf;
   results[0].buffer_length = size;
   results[0].buffer_type = MYSQL_TYPE_BLOB;
   if (0 !=
-      mysql_stmt_fetch_column(stmt,
-                              results,
-                              column,
-                              0))
-    {
-      GNUNET_free(buf);
-      return GNUNET_SYSERR;
-    }
+      mysql_stmt_fetch_column (stmt,
+                               results,
+                               column,
+                               0))
+  {
+    GNUNET_free (buf);
+    return GNUNET_SYSERR;
+  }
 
-  *sig = GNUNET_CRYPTO_rsa_signature_decode(buf,
-                                            size);
-  GNUNET_free(buf);
+  *sig = GNUNET_CRYPTO_rsa_signature_decode (buf,
+                                             size);
+  GNUNET_free (buf);
   if (NULL == *sig)
-    {
-      GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
-                 "Resuls contains bogus signature value (fails to decode)\n");
-      return GNUNET_SYSERR;
-    }
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Resuls contains bogus signature value (fails to decode)\n");
+    return GNUNET_SYSERR;
+  }
   return GNUNET_OK;
 }
 
@@ -467,16 +465,16 @@ post_extract_rsa_signature(void *cls,
  * @param rd result data to clean up
  */
 static void
-clean_rsa_signature(void *cls,
-                    struct GNUNET_MY_ResultSpec *rs)
+clean_rsa_signature (void *cls,
+                     struct GNUNET_MY_ResultSpec *rs)
 {
   struct GNUNET_CRYPTO_RsaSignature **sig = rs->dst;
 
   if (NULL != *sig)
-    {
-      GNUNET_CRYPTO_rsa_signature_free(*sig);
-      *sig = NULL;
-    }
+  {
+    GNUNET_CRYPTO_rsa_signature_free (*sig);
+    *sig = NULL;
+  }
 }
 
 
@@ -487,14 +485,13 @@ clean_rsa_signature(void *cls,
  * @return array entry for the result specification to use
  */
 struct GNUNET_MY_ResultSpec
-GNUNET_MY_result_spec_rsa_signature(struct GNUNET_CRYPTO_RsaSignature **sig)
+GNUNET_MY_result_spec_rsa_signature (struct GNUNET_CRYPTO_RsaSignature **sig)
 {
-  struct GNUNET_MY_ResultSpec res =
-  {
+  struct GNUNET_MY_ResultSpec res = {
     .pre_conv = &pre_extract_rsa_signature,
     .post_conv = &post_extract_rsa_signature,
     .cleaner = &clean_rsa_signature,
-    .dst = (void *)sig,
+    .dst = (void *) sig,
     .dst_size = 0,
     .num_fields = 1
   };
@@ -516,11 +513,11 @@ GNUNET_MY_result_spec_rsa_signature(struct GNUNET_CRYPTO_RsaSignature **sig)
  *    #GNUNET_SYSERR if a result was invalid (non existing field or NULL)
  */
 static int
-pre_extract_string(void * cls,
-                   struct GNUNET_MY_ResultSpec *rs,
-                   MYSQL_STMT *stmt,
-                   unsigned int column,
-                   MYSQL_BIND *results)
+pre_extract_string (void *cls,
+                    struct GNUNET_MY_ResultSpec *rs,
+                    MYSQL_STMT *stmt,
+                    unsigned int column,
+                    MYSQL_BIND *results)
 {
   results[0].buffer = NULL;
   results[0].buffer_length = 0;
@@ -546,39 +543,39 @@ pre_extract_string(void * cls,
  *    #GNUNET_SYSERR if a result was invalid (non existing field or NULL)
  */
 static int
-post_extract_string(void * cls,
-                    struct GNUNET_MY_ResultSpec *rs,
-                    MYSQL_STMT *stmt,
-                    unsigned int column,
-                    MYSQL_BIND *results)
+post_extract_string (void *cls,
+                     struct GNUNET_MY_ResultSpec *rs,
+                     MYSQL_STMT *stmt,
+                     unsigned int column,
+                     MYSQL_BIND *results)
 {
-  size_t size = (size_t)rs->mysql_bind_output_length;
+  size_t size = (size_t) rs->mysql_bind_output_length;
   char *buf;
 
   if (rs->mysql_bind_output_length != size)
     return GNUNET_SYSERR;
   if (*results->is_null)
-    {
-      *(void **)rs->dst = NULL;
-      return GNUNET_OK;
-    }
+  {
+    *(void **) rs->dst = NULL;
+    return GNUNET_OK;
+  }
 
-  buf = GNUNET_malloc(size);
+  buf = GNUNET_malloc (size);
   results[0].buffer = buf;
   results[0].buffer_length = size;
   results[0].buffer_type = MYSQL_TYPE_BLOB;
 
   if (0 !=
-      mysql_stmt_fetch_column(stmt,
-                              results,
-                              column,
-                              0))
-    {
-      GNUNET_free(buf);
-      return GNUNET_SYSERR;
-    }
+      mysql_stmt_fetch_column (stmt,
+                               results,
+                               column,
+                               0))
+  {
+    GNUNET_free (buf);
+    return GNUNET_SYSERR;
+  }
   buf[size] = '\0';
-  *(void **)rs->dst = buf;
+  *(void **) rs->dst = buf;
   return GNUNET_OK;
 }
 
@@ -590,13 +587,13 @@ post_extract_string(void * cls,
  * @return array entry for the result specification to use
  */
 struct GNUNET_MY_ResultSpec
-GNUNET_MY_result_spec_string(char **dst)
+GNUNET_MY_result_spec_string (char **dst)
 {
   struct GNUNET_MY_ResultSpec res = {
     .pre_conv = &pre_extract_string,
     .post_conv = &post_extract_string,
     .cleaner = NULL,
-    .dst = (void *)dst,
+    .dst = (void *) dst,
     .dst_size = 0,
     .num_fields = 1
   };
@@ -613,9 +610,9 @@ GNUNET_MY_result_spec_string(char **dst)
  * @return array entry for the result specification to use
  */
 struct GNUNET_MY_ResultSpec
-GNUNET_MY_result_spec_absolute_time(struct GNUNET_TIME_Absolute *at)
+GNUNET_MY_result_spec_absolute_time (struct GNUNET_TIME_Absolute *at)
 {
-  return GNUNET_MY_result_spec_uint64(&at->abs_value_us);
+  return GNUNET_MY_result_spec_uint64 (&at->abs_value_us);
 }
 
 
@@ -626,10 +623,10 @@ GNUNET_MY_result_spec_absolute_time(struct GNUNET_TIME_Absolute *at)
  * @return array entry for the result specification to use
  */
 struct GNUNET_MY_ResultSpec
-GNUNET_MY_result_spec_absolute_time_nbo(struct GNUNET_TIME_AbsoluteNBO *at)
+GNUNET_MY_result_spec_absolute_time_nbo (struct GNUNET_TIME_AbsoluteNBO *at)
 {
   struct GNUNET_MY_ResultSpec res =
-    GNUNET_MY_result_spec_auto_from_type(&at->abs_value_us__);
+    GNUNET_MY_result_spec_auto_from_type (&at->abs_value_us__);
 
   return res;
 }
@@ -648,11 +645,11 @@ GNUNET_MY_result_spec_absolute_time_nbo(struct GNUNET_TIME_AbsoluteNBO *at)
  *   #GNUNET_SYSERR if a result was invalid (non-existing field or NULL)
  */
 static int
-pre_extract_uint16(void *cls,
-                   struct GNUNET_MY_ResultSpec *rs,
-                   MYSQL_STMT *stmt,
-                   unsigned int column,
-                   MYSQL_BIND *results)
+pre_extract_uint16 (void *cls,
+                    struct GNUNET_MY_ResultSpec *rs,
+                    MYSQL_STMT *stmt,
+                    unsigned int column,
+                    MYSQL_BIND *results)
 {
   results[0].buffer = rs->dst;
   results[0].buffer_length = rs->dst_size;
@@ -678,11 +675,11 @@ pre_extract_uint16(void *cls,
  *   #GNUNET_SYSERR if a result was invalid (non-existing field or NULL)
  */
 static int
-post_extract_uint16(void *cls,
-                    struct GNUNET_MY_ResultSpec *rs,
-                    MYSQL_STMT *stmt,
-                    unsigned int column,
-                    MYSQL_BIND *results)
+post_extract_uint16 (void *cls,
+                     struct GNUNET_MY_ResultSpec *rs,
+                     MYSQL_STMT *stmt,
+                     unsigned int column,
+                     MYSQL_BIND *results)
 {
   if (rs->dst_size != rs->mysql_bind_output_length)
     return GNUNET_SYSERR;
@@ -699,13 +696,13 @@ post_extract_uint16(void *cls,
  * @return array entry for the result specification to use
  */
 struct GNUNET_MY_ResultSpec
-GNUNET_MY_result_spec_uint16(uint16_t *u16)
+GNUNET_MY_result_spec_uint16 (uint16_t *u16)
 {
   struct GNUNET_MY_ResultSpec res = {
     .pre_conv = &pre_extract_uint16,
     .post_conv = &post_extract_uint16,
     .cleaner = NULL,
-    .dst = (void *)u16,
+    .dst = (void *) u16,
     .dst_size = sizeof(*u16),
     .num_fields = 1
   };
@@ -728,11 +725,11 @@ GNUNET_MY_result_spec_uint16(uint16_t *u16)
  *      #GNUNET_SYSERR if a result was invalid (non-existing field or NULL)
  */
 static int
-pre_extract_uint32(void *cls,
-                   struct GNUNET_MY_ResultSpec *rs,
-                   MYSQL_STMT *stmt,
-                   unsigned int column,
-                   MYSQL_BIND *results)
+pre_extract_uint32 (void *cls,
+                    struct GNUNET_MY_ResultSpec *rs,
+                    MYSQL_STMT *stmt,
+                    unsigned int column,
+                    MYSQL_BIND *results)
 {
   results[0].buffer = rs->dst;
   results[0].buffer_length = rs->dst_size;
@@ -759,11 +756,11 @@ pre_extract_uint32(void *cls,
  *      #GNUNET_SYSERR if a result was invalid (non-existing field or NULL)
  */
 static int
-post_extract_uint32(void *cls,
-                    struct GNUNET_MY_ResultSpec *rs,
-                    MYSQL_STMT * stmt,
-                    unsigned int column,
-                    MYSQL_BIND *results)
+post_extract_uint32 (void *cls,
+                     struct GNUNET_MY_ResultSpec *rs,
+                     MYSQL_STMT *stmt,
+                     unsigned int column,
+                     MYSQL_BIND *results)
 {
   if (rs->dst_size != rs->mysql_bind_output_length)
     return GNUNET_SYSERR;
@@ -780,13 +777,13 @@ post_extract_uint32(void *cls,
  * @return array entry for the result specification to use
  */
 struct GNUNET_MY_ResultSpec
-GNUNET_MY_result_spec_uint32(uint32_t *u32)
+GNUNET_MY_result_spec_uint32 (uint32_t *u32)
 {
   struct GNUNET_MY_ResultSpec res = {
     .pre_conv = &pre_extract_uint32,
     .post_conv = &post_extract_uint32,
     .cleaner = NULL,
-    .dst = (void *)u32,
+    .dst = (void *) u32,
     .dst_size = sizeof(*u32),
     .num_fields = 1
   };
@@ -808,11 +805,11 @@ GNUNET_MY_result_spec_uint32(uint32_t *u32)
  *    #GNUNET_SYSERR if a result was invalid (non-existing field or NULL)
  */
 static int
-pre_extract_uint64(void *cls,
-                   struct GNUNET_MY_ResultSpec *rs,
-                   MYSQL_STMT *stmt,
-                   unsigned int column,
-                   MYSQL_BIND *results)
+pre_extract_uint64 (void *cls,
+                    struct GNUNET_MY_ResultSpec *rs,
+                    MYSQL_STMT *stmt,
+                    unsigned int column,
+                    MYSQL_BIND *results)
 {
   if (sizeof(uint64_t) != rs->dst_size)
     return GNUNET_SYSERR;
@@ -840,11 +837,11 @@ pre_extract_uint64(void *cls,
  *    #GNUNET_SYSERR if a result was invalid (non-existing field or NULL)
  */
 static int
-post_extract_uint64(void *cls,
-                    struct GNUNET_MY_ResultSpec *rs,
-                    MYSQL_STMT *stmt,
-                    unsigned int column,
-                    MYSQL_BIND *results)
+post_extract_uint64 (void *cls,
+                     struct GNUNET_MY_ResultSpec *rs,
+                     MYSQL_STMT *stmt,
+                     unsigned int column,
+                     MYSQL_BIND *results)
 {
   if (sizeof(uint64_t) != rs->dst_size)
     return GNUNET_SYSERR;
@@ -861,13 +858,13 @@ post_extract_uint64(void *cls,
  * @return array entry for the result specification to use
  */
 struct GNUNET_MY_ResultSpec
-GNUNET_MY_result_spec_uint64(uint64_t *u64)
+GNUNET_MY_result_spec_uint64 (uint64_t *u64)
 {
   struct GNUNET_MY_ResultSpec res = {
     .pre_conv = &pre_extract_uint64,
     .post_conv = &post_extract_uint64,
     .cleaner = NULL,
-    .dst = (void *)u64,
+    .dst = (void *) u64,
     .dst_size = sizeof(*u64),
     .num_fields = 1
   };

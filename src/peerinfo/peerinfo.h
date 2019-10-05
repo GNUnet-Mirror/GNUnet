@@ -39,7 +39,8 @@ GNUNET_NETWORK_STRUCT_BEGIN
  * Message requesting a listing of peers,
  * restricted to the specified peer identity.
  */
-struct ListPeerMessage {
+struct ListPeerMessage
+{
   /**
    * Type will be GNUNET_MESSAGE_TYPE_PEERINFO_GET
    */
@@ -61,7 +62,8 @@ struct ListPeerMessage {
  * Message requesting a listing of all peers,
  * restricted to the specified peer identity.
  */
-struct ListAllPeersMessage {
+struct ListAllPeersMessage
+{
   /**
    * Type will be GNUNET_MESSAGE_TYPE_PEERINFO_GET_ALL
    */
@@ -77,7 +79,8 @@ struct ListAllPeersMessage {
 /**
  * Header for all communications.
  */
-struct NotifyMessage {
+struct NotifyMessage
+{
   /**
    * Type will be GNUNET_MESSAGE_TYPE_PEERINFO_NOTIFY
    */
@@ -97,7 +100,8 @@ struct NotifyMessage {
  * Check the header.size field to see if a HELLO is
  * present.
  */
-struct InfoMessage {
+struct InfoMessage
+{
   /**
    * Type will be GNUNET_MESSAGE_TYPE_PEERINFO_INFO
    */

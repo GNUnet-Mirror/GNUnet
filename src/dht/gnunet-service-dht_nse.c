@@ -52,14 +52,14 @@ static struct GNUNET_NSE_Handle *nse;
  *
  */
 static void
-update_network_size_estimate(void *cls, struct GNUNET_TIME_Absolute timestamp,
-                             double logestimate, double std_dev)
+update_network_size_estimate (void *cls, struct GNUNET_TIME_Absolute timestamp,
+                              double logestimate, double std_dev)
 {
-  GNUNET_STATISTICS_update(GDS_stats,
-                           gettext_noop("# Network size estimates received"),
-                           1, GNUNET_NO);
+  GNUNET_STATISTICS_update (GDS_stats,
+                            gettext_noop ("# Network size estimates received"),
+                            1, GNUNET_NO);
   /* do not allow estimates < 0.5 */
-  log_of_network_size_estimate = GNUNET_MAX(0.5, logestimate);
+  log_of_network_size_estimate = GNUNET_MAX (0.5, logestimate);
 }
 
 
@@ -69,7 +69,7 @@ update_network_size_estimate(void *cls, struct GNUNET_TIME_Absolute timestamp,
  * @return log of NSE
  */
 double
-GDS_NSE_get()
+GDS_NSE_get ()
 {
   return log_of_network_size_estimate;
 }
@@ -79,24 +79,24 @@ GDS_NSE_get()
  * Initialize NSE subsystem.
  */
 void
-GDS_NSE_init()
+GDS_NSE_init ()
 {
   unsigned long long hops;
 
   if ((GNUNET_YES ==
-       GNUNET_CONFIGURATION_have_value(GDS_cfg,
-                                       "dht",
-                                       "FORCE_NSE")) &&
+       GNUNET_CONFIGURATION_have_value (GDS_cfg,
+                                        "dht",
+                                        "FORCE_NSE")) &&
       (GNUNET_OK ==
-       GNUNET_CONFIGURATION_get_value_number(GDS_cfg,
-                                             "dht",
-                                             "FORCE_NSE",
-                                             &hops)))
-    {
-      log_of_network_size_estimate = (double)hops;
-      return;
-    }
-  nse = GNUNET_NSE_connect(GDS_cfg, &update_network_size_estimate, NULL);
+       GNUNET_CONFIGURATION_get_value_number (GDS_cfg,
+                                              "dht",
+                                              "FORCE_NSE",
+                                              &hops)))
+  {
+    log_of_network_size_estimate = (double) hops;
+    return;
+  }
+  nse = GNUNET_NSE_connect (GDS_cfg, &update_network_size_estimate, NULL);
 }
 
 
@@ -104,13 +104,13 @@ GDS_NSE_init()
  * Shutdown NSE subsystem.
  */
 void
-GDS_NSE_done()
+GDS_NSE_done ()
 {
   if (NULL != nse)
-    {
-      GNUNET_NSE_disconnect(nse);
-      nse = NULL;
-    }
+  {
+    GNUNET_NSE_disconnect (nse);
+    nse = NULL;
+  }
 }
 
 /* end of gnunet-service-dht_nse.c */

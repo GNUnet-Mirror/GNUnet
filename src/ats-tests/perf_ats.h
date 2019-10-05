@@ -30,26 +30,32 @@
 #include "gnunet_core_service.h"
 #include "ats-testing.h"
 
-#define TEST_TIMEOUT GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 120)
-#define BENCHMARK_DURATION GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 10)
-#define LOGGING_FREQUENCY GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MILLISECONDS, 500)
+#define TEST_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, \
+                                                    120)
+#define BENCHMARK_DURATION GNUNET_TIME_relative_multiply ( \
+    GNUNET_TIME_UNIT_SECONDS, 10)
+#define LOGGING_FREQUENCY GNUNET_TIME_relative_multiply ( \
+    GNUNET_TIME_UNIT_MILLISECONDS, 500)
 #define TESTNAME_PREFIX "perf_ats_"
 #define DEFAULT_SLAVES_NUM 2
 #define DEFAULT_MASTERS_NUM 1
 
-#define TEST_ATS_PREFRENCE_FREQUENCY GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 1)
+#define TEST_ATS_PREFRENCE_FREQUENCY GNUNET_TIME_relative_multiply ( \
+    GNUNET_TIME_UNIT_SECONDS, 1)
 #define TEST_ATS_PREFRENCE_START 1.0
 #define TEST_ATS_PREFRENCE_DELTA 1.0
 
 #define TEST_MESSAGE_TYPE_PING 12345
 #define TEST_MESSAGE_TYPE_PONG 12346
 #define TEST_MESSAGE_SIZE 1000
-#define TEST_MESSAGE_FREQUENCY GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 1)
+#define TEST_MESSAGE_FREQUENCY GNUNET_TIME_relative_multiply ( \
+    GNUNET_TIME_UNIT_SECONDS, 1)
 
 /**
  * Information about a benchmarking partner
  */
-struct BenchmarkPartner {
+struct BenchmarkPartner
+{
   /**
    * The peer itself this partner belongs to
    */
@@ -127,7 +133,8 @@ struct BenchmarkPartner {
 /**
  * Information we track for a peer in the testbed.
  */
-struct BenchmarkPeer {
+struct BenchmarkPeer
+{
   /**
    * Handle with testbed.
    */
@@ -194,7 +201,7 @@ struct BenchmarkPeer {
    * Masters only
    * Progress task
    */
-  struct GNUNET_SCHEDULER_Task * ats_task;
+  struct GNUNET_SCHEDULER_Task *ats_task;
 
   /**
    * Masters only

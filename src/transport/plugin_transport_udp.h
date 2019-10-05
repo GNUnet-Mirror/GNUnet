@@ -41,7 +41,7 @@
 #include "gnunet_transport_plugin.h"
 #include "transport.h"
 
-#define LOG(kind, ...) GNUNET_log_from(kind, "transport-udp", __VA_ARGS__)
+#define LOG(kind, ...) GNUNET_log_from (kind, "transport-udp", __VA_ARGS__)
 
 #define PLUGIN_NAME "udp"
 
@@ -60,7 +60,8 @@ GNUNET_NETWORK_STRUCT_BEGIN
 /**
  * Network format for IPv4 addresses.
  */
-struct IPv4UdpAddress {
+struct IPv4UdpAddress
+{
   /**
    * Optional options and flags for this address
    */
@@ -81,7 +82,8 @@ struct IPv4UdpAddress {
 /**
  * Network format for IPv6 addresses.
  */
-struct IPv6UdpAddress {
+struct IPv6UdpAddress
+{
   /**
    * Optional options and flags for this address
    */
@@ -103,7 +105,8 @@ GNUNET_NETWORK_STRUCT_END
  * Either an IPv4 or IPv6 UDP address.  Note that without a "length",
  * one cannot tell which one of the two types this address represents.
  */
-union UdpAddress {
+union UdpAddress
+{
   /**
    * IPv4 case.
    */
@@ -131,7 +134,8 @@ struct PrettyPrinterContext;
 /**
  * Encapsulation of all of the state of the plugin.
  */
-struct Plugin {
+struct Plugin
+{
   /**
    * Our environment.
    */
@@ -312,9 +316,9 @@ struct Plugin {
  * @return string representing the same address
  */
 const char *
-udp_address_to_string(void *cls,
-                      const void *addr,
-                      size_t addrlen);
+udp_address_to_string (void *cls,
+                       const void *addr,
+                       size_t addrlen);
 
 
 /**
@@ -329,22 +333,22 @@ udp_address_to_string(void *cls,
  * @param network_type network type of the sender's address
  */
 void
-udp_broadcast_receive(struct Plugin *plugin,
-                      const char *buf,
-                      ssize_t size,
-                      const union UdpAddress *udp_addr,
-                      size_t udp_addr_len,
-                      enum GNUNET_NetworkType network_type);
+udp_broadcast_receive (struct Plugin *plugin,
+                       const char *buf,
+                       ssize_t size,
+                       const union UdpAddress *udp_addr,
+                       size_t udp_addr_len,
+                       enum GNUNET_NetworkType network_type);
 
 
 void
-setup_broadcast(struct Plugin *plugin,
-                struct sockaddr_in6 *server_addrv6,
-                struct sockaddr_in *server_addrv4);
+setup_broadcast (struct Plugin *plugin,
+                 struct sockaddr_in6 *server_addrv6,
+                 struct sockaddr_in *server_addrv4);
 
 
 void
-stop_broadcast(struct Plugin *plugin);
+stop_broadcast (struct Plugin *plugin);
 
 /*#ifndef PLUGIN_TRANSPORT_UDP_H*/
 #endif

@@ -30,7 +30,8 @@
 /**
  * Element in the DLL.
  */
-struct Element {
+struct Element
+{
   /**
    * Required pointer to previous element.
    */
@@ -57,9 +58,9 @@ struct Element {
  * @return #GNUNET_YES if @e1 < @e2, otherwise #GNUNET_NO
  */
 static int
-cmp_elem(void *cls,
-         struct Element *e1,
-         struct Element *e2)
+cmp_elem (void *cls,
+          struct Element *e1,
+          struct Element *e2)
 {
   if (e1->value == e2->value)
     return 0;
@@ -68,7 +69,7 @@ cmp_elem(void *cls,
 
 
 int
-main(int argc, char **argv)
+main (int argc, char **argv)
 {
   unsigned int values[] = {
     4, 5, 8, 6, 9, 3, 7, 2, 1, 0
@@ -78,33 +79,33 @@ main(int argc, char **argv)
   struct Element *e;
   unsigned int want;
 
-  GNUNET_log_setup("test-container-dll",
-                   "WARNING",
-                   NULL);
+  GNUNET_log_setup ("test-container-dll",
+                    "WARNING",
+                    NULL);
   for (unsigned int off = 0;
        0 != values[off];
        off++)
-    {
-      e = GNUNET_new(struct Element);
-      e->value = values[off];
-      GNUNET_CONTAINER_DLL_insert_sorted(struct Element,
-                                         cmp_elem,
-                                         NULL,
-                                         head,
-                                         tail,
-                                         e);
-    }
+  {
+    e = GNUNET_new (struct Element);
+    e->value = values[off];
+    GNUNET_CONTAINER_DLL_insert_sorted (struct Element,
+                                        cmp_elem,
+                                        NULL,
+                                        head,
+                                        tail,
+                                        e);
+  }
 
   want = 1;
   while (NULL != (e = head))
-    {
-      GNUNET_assert(e->value == want);
-      GNUNET_CONTAINER_DLL_remove(head,
-                                  tail,
-                                  e);
-      GNUNET_free(e);
-      want++;
-    }
+  {
+    GNUNET_assert (e->value == want);
+    GNUNET_CONTAINER_DLL_remove (head,
+                                 tail,
+                                 e);
+    GNUNET_free (e);
+    want++;
+  }
   return 0;
 }
 

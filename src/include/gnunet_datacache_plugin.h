@@ -61,7 +61,8 @@ typedef void
  * of this type as the first and only argument to the
  * entry point of each datastore plugin.
  */
-struct GNUNET_DATACACHE_PluginEnvironment {
+struct GNUNET_DATACACHE_PluginEnvironment
+{
   /**
    * Configuration to use.
    */
@@ -93,7 +94,8 @@ struct GNUNET_DATACACHE_PluginEnvironment {
 /**
  * @brief struct returned by the initialization function of the plugin
  */
-struct GNUNET_DATACACHE_PluginFunctions {
+struct GNUNET_DATACACHE_PluginFunctions
+{
   /**
    * Closure to pass to all plugin functions.
    */

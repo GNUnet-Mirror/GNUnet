@@ -29,7 +29,7 @@
 
 
 int
-main(int argc, char *argv[])
+main (int argc, char *argv[])
 {
   struct GNUNET_TIME_Absolute start;
   struct GNUNET_CRYPTO_PaillierPublicKey public_key;
@@ -38,51 +38,54 @@ main(int argc, char *argv[])
   gcry_mpi_t m1;
   unsigned int i;
 
-  start = GNUNET_TIME_absolute_get();
+  start = GNUNET_TIME_absolute_get ();
   for (i = 0; i < 10; i++)
-    GNUNET_CRYPTO_paillier_create(&public_key,
-                                  &private_key);
-  printf("10x key generation took %s\n",
-         GNUNET_STRINGS_relative_time_to_string(GNUNET_TIME_absolute_get_duration(start),
-                                                GNUNET_YES));
-  GAUGER("UTIL", "Paillier key generation",
-         64 * 1024 / (1 +
-                      GNUNET_TIME_absolute_get_duration
-                        (start).rel_value_us / 1000LL), "keys/ms");
+    GNUNET_CRYPTO_paillier_create (&public_key,
+                                   &private_key);
+  printf ("10x key generation took %s\n",
+          GNUNET_STRINGS_relative_time_to_string (
+            GNUNET_TIME_absolute_get_duration (start),
+            GNUNET_YES));
+  GAUGER ("UTIL", "Paillier key generation",
+          64 * 1024 / (1
+                       + GNUNET_TIME_absolute_get_duration
+                         (start).rel_value_us / 1000LL), "keys/ms");
 
-  m1 = gcry_mpi_new(0);
-  m1 = gcry_mpi_set_ui(m1, 1);
+  m1 = gcry_mpi_new (0);
+  m1 = gcry_mpi_set_ui (m1, 1);
   /* m1 = m1 * 2 ^ (GCPB - 3) */
-  gcry_mpi_mul_2exp(m1,
-                    m1,
-                    GNUNET_CRYPTO_PAILLIER_BITS - 3);
-  start = GNUNET_TIME_absolute_get();
+  gcry_mpi_mul_2exp (m1,
+                     m1,
+                     GNUNET_CRYPTO_PAILLIER_BITS - 3);
+  start = GNUNET_TIME_absolute_get ();
   for (i = 0; i < 10; i++)
-    GNUNET_CRYPTO_paillier_encrypt(&public_key,
-                                   m1,
-                                   2,
-                                   &c1);
-  printf("10x encryption took %s\n",
-         GNUNET_STRINGS_relative_time_to_string(GNUNET_TIME_absolute_get_duration(start),
-                                                GNUNET_YES));
-  GAUGER("UTIL", "Paillier encryption",
-         64 * 1024 / (1 +
-                      GNUNET_TIME_absolute_get_duration
-                        (start).rel_value_us / 1000LL), "ops/ms");
+    GNUNET_CRYPTO_paillier_encrypt (&public_key,
+                                    m1,
+                                    2,
+                                    &c1);
+  printf ("10x encryption took %s\n",
+          GNUNET_STRINGS_relative_time_to_string (
+            GNUNET_TIME_absolute_get_duration (start),
+            GNUNET_YES));
+  GAUGER ("UTIL", "Paillier encryption",
+          64 * 1024 / (1
+                       + GNUNET_TIME_absolute_get_duration
+                         (start).rel_value_us / 1000LL), "ops/ms");
 
-  start = GNUNET_TIME_absolute_get();
+  start = GNUNET_TIME_absolute_get ();
   for (i = 0; i < 10; i++)
-    GNUNET_CRYPTO_paillier_decrypt(&private_key,
-                                   &public_key,
-                                   &c1,
-                                   m1);
-  printf("10x decryption took %s\n",
-         GNUNET_STRINGS_relative_time_to_string(GNUNET_TIME_absolute_get_duration(start),
-                                                GNUNET_YES));
-  GAUGER("UTIL", "Paillier decryption",
-         64 * 1024 / (1 +
-                      GNUNET_TIME_absolute_get_duration
-                        (start).rel_value_us / 1000LL), "ops/ms");
+    GNUNET_CRYPTO_paillier_decrypt (&private_key,
+                                    &public_key,
+                                    &c1,
+                                    m1);
+  printf ("10x decryption took %s\n",
+          GNUNET_STRINGS_relative_time_to_string (
+            GNUNET_TIME_absolute_get_duration (start),
+            GNUNET_YES));
+  GAUGER ("UTIL", "Paillier decryption",
+          64 * 1024 / (1
+                       + GNUNET_TIME_absolute_get_duration
+                         (start).rel_value_us / 1000LL), "ops/ms");
 
 
   return 0;

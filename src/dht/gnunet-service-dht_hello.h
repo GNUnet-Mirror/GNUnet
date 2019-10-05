@@ -36,20 +36,20 @@
  * @return HELLO for the given peer
  */
 const struct GNUNET_HELLO_Message *
-GDS_HELLO_get(const struct GNUNET_PeerIdentity *peer);
+GDS_HELLO_get (const struct GNUNET_PeerIdentity *peer);
 
 
 /**
  * Initialize HELLO subsystem.
  */
 void
-GDS_HELLO_init(void);
+GDS_HELLO_init (void);
 
 
 /**
  * Shutdown HELLO subsystem.
  */
 void
-GDS_HELLO_done(void);
+GDS_HELLO_done (void);
 
 #endif

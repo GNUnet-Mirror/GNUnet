@@ -44,21 +44,21 @@
  * @return number of bytes written to @a buf
  */
 size_t
-strata_estimator_write(const struct StrataEstimator *se,
-                       void *buf)
+strata_estimator_write (const struct StrataEstimator *se,
+                        void *buf)
 {
   char *sbuf = buf;
   unsigned int i;
   size_t osize;
 
-  GNUNET_assert(NULL != se);
+  GNUNET_assert (NULL != se);
   for (i = 0; i < se->strata_count; i++)
-    {
-      ibf_write_slice(se->strata[i],
-                      0,
-                      se->ibf_size,
-                      &sbuf[se->ibf_size * IBF_BUCKET_SIZE * i]);
-    }
+  {
+    ibf_write_slice (se->strata[i],
+                     0,
+                     se->ibf_size,
+                     &sbuf[se->ibf_size * IBF_BUCKET_SIZE * i]);
+  }
   osize = se->ibf_size * IBF_BUCKET_SIZE * se->strata_count;
 #if FAIL_10_1_COMPATIBILTIY
   {
@@ -66,15 +66,15 @@ strata_estimator_write(const struct StrataEstimator *se,
     size_t nsize;
 
     if (GNUNET_YES ==
-        GNUNET_try_compression(buf,
-                               osize,
-                               &cbuf,
-                               &nsize))
-      {
-        GNUNET_memcpy(buf, cbuf, nsize);
-        osize = nsize;
-        GNUNET_free(cbuf);
-      }
+        GNUNET_try_compression (buf,
+                                osize,
+                                &cbuf,
+                                &nsize))
+    {
+      GNUNET_memcpy (buf, cbuf, nsize);
+      osize = nsize;
+      GNUNET_free (cbuf);
+    }
   }
 #endif
   return osize;
@@ -92,10 +92,10 @@ strata_estimator_write(const struct StrataEstimator *se,
  * @return #GNUNET_OK on success
  */
 int
-strata_estimator_read(const void *buf,
-                      size_t buf_len,
-                      int is_compressed,
-                      struct StrataEstimator *se)
+strata_estimator_read (const void *buf,
+                       size_t buf_len,
+                       int is_compressed,
+                       struct StrataEstimator *se)
 {
   unsigned int i;
   size_t osize;
@@ -103,33 +103,33 @@ strata_estimator_read(const void *buf,
 
   dbuf = NULL;
   if (GNUNET_YES == is_compressed)
+  {
+    osize = se->ibf_size * IBF_BUCKET_SIZE * se->strata_count;
+    dbuf = GNUNET_decompress (buf,
+                              buf_len,
+                              osize);
+    if (NULL == dbuf)
     {
-      osize = se->ibf_size * IBF_BUCKET_SIZE * se->strata_count;
-      dbuf = GNUNET_decompress(buf,
-                               buf_len,
-                               osize);
-      if (NULL == dbuf)
-        {
-          GNUNET_break_op(0); /* bad compressed input data */
-          return GNUNET_SYSERR;
-        }
-      buf = dbuf;
-      buf_len = osize;
-    }
-
-  if (buf_len != se->strata_count * se->ibf_size * IBF_BUCKET_SIZE)
-    {
-      GNUNET_break(0); /* very odd error */
-      GNUNET_free_non_null(dbuf);
+      GNUNET_break_op (0);    /* bad compressed input data */
       return GNUNET_SYSERR;
     }
+    buf = dbuf;
+    buf_len = osize;
+  }
+
+  if (buf_len != se->strata_count * se->ibf_size * IBF_BUCKET_SIZE)
+  {
+    GNUNET_break (0);  /* very odd error */
+    GNUNET_free_non_null (dbuf);
+    return GNUNET_SYSERR;
+  }
 
   for (i = 0; i < se->strata_count; i++)
-    {
-      ibf_read_slice(buf, 0, se->ibf_size, se->strata[i]);
-      buf += se->ibf_size * IBF_BUCKET_SIZE;
-    }
-  GNUNET_free_non_null(dbuf);
+  {
+    ibf_read_slice (buf, 0, se->ibf_size, se->strata[i]);
+    buf += se->ibf_size * IBF_BUCKET_SIZE;
+  }
+  GNUNET_free_non_null (dbuf);
   return GNUNET_OK;
 }
 
@@ -141,8 +141,8 @@ strata_estimator_read(const void *buf,
  * @param key key to add
  */
 void
-strata_estimator_insert(struct StrataEstimator *se,
-                        struct IBF_Key key)
+strata_estimator_insert (struct StrataEstimator *se,
+                         struct IBF_Key key)
 {
   uint64_t v;
   unsigned int i;
@@ -151,7 +151,7 @@ strata_estimator_insert(struct StrataEstimator *se,
   /* count trailing '1'-bits of v */
   for (i = 0; v & 1; v >>= 1, i++)
     /* empty */;
-  ibf_insert(se->strata[i], key);
+  ibf_insert (se->strata[i], key);
 }
 
 
@@ -162,8 +162,8 @@ strata_estimator_insert(struct StrataEstimator *se,
  * @param key key to remove
  */
 void
-strata_estimator_remove(struct StrataEstimator *se,
-                        struct IBF_Key key)
+strata_estimator_remove (struct StrataEstimator *se,
+                         struct IBF_Key key)
 {
   uint64_t v;
   unsigned int i;
@@ -172,7 +172,7 @@ strata_estimator_remove(struct StrataEstimator *se,
   /* count trailing '1'-bits of v */
   for (i = 0; v & 1; v >>= 1, i++)
     /* empty */;
-  ibf_remove(se->strata[i], key);
+  ibf_remove (se->strata[i], key);
 }
 
 
@@ -185,32 +185,32 @@ strata_estimator_remove(struct StrataEstimator *se,
  * @return a freshly allocated, empty strata estimator, NULL on error
  */
 struct StrataEstimator *
-strata_estimator_create(unsigned int strata_count,
-                        uint32_t ibf_size,
-                        uint8_t ibf_hashnum)
+strata_estimator_create (unsigned int strata_count,
+                         uint32_t ibf_size,
+                         uint8_t ibf_hashnum)
 {
   struct StrataEstimator *se;
   unsigned int i;
   unsigned int j;
 
-  se = GNUNET_new(struct StrataEstimator);
+  se = GNUNET_new (struct StrataEstimator);
   se->strata_count = strata_count;
   se->ibf_size = ibf_size;
-  se->strata = GNUNET_new_array(strata_count,
-                                struct InvertibleBloomFilter *);
+  se->strata = GNUNET_new_array (strata_count,
+                                 struct InvertibleBloomFilter *);
   for (i = 0; i < strata_count; i++)
+  {
+    se->strata[i] = ibf_create (ibf_size, ibf_hashnum);
+    if (NULL == se->strata[i])
     {
-      se->strata[i] = ibf_create(ibf_size, ibf_hashnum);
-      if (NULL == se->strata[i])
-        {
-          GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
-                     "Failed to allocate memory for strata estimator\n");
-          for (j = 0; j < i; j++)
-            ibf_destroy(se->strata[i]);
-          GNUNET_free(se);
-          return NULL;
-        }
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  "Failed to allocate memory for strata estimator\n");
+      for (j = 0; j < i; j++)
+        ibf_destroy (se->strata[i]);
+      GNUNET_free (se);
+      return NULL;
     }
+  }
   return se;
 }
 
@@ -225,40 +225,40 @@ strata_estimator_create(unsigned int strata_count,
  * @return the estimated difference
  */
 unsigned int
-strata_estimator_difference(const struct StrataEstimator *se1,
-                            const struct StrataEstimator *se2)
+strata_estimator_difference (const struct StrataEstimator *se1,
+                             const struct StrataEstimator *se2)
 {
   unsigned int count;
 
-  GNUNET_assert(se1->strata_count == se2->strata_count);
+  GNUNET_assert (se1->strata_count == se2->strata_count);
   count = 0;
   for (int i = se1->strata_count - 1; i >= 0; i--)
+  {
+    struct InvertibleBloomFilter *diff;
+    /* number of keys decoded from the ibf */
+
+    /* FIXME: implement this without always allocating new IBFs */
+    diff = ibf_dup (se1->strata[i]);
+    ibf_subtract (diff, se2->strata[i]);
+    for (int ibf_count = 0; GNUNET_YES; ibf_count++)
     {
-      struct InvertibleBloomFilter *diff;
-      /* number of keys decoded from the ibf */
+      int more;
 
-      /* FIXME: implement this without always allocating new IBFs */
-      diff = ibf_dup(se1->strata[i]);
-      ibf_subtract(diff, se2->strata[i]);
-      for (int ibf_count = 0; GNUNET_YES; ibf_count++)
-        {
-          int more;
-
-          more = ibf_decode(diff, NULL, NULL);
-          if (GNUNET_NO == more)
-            {
-              count += ibf_count;
-              break;
-            }
-          /* Estimate if decoding fails or would not terminate */
-          if ((GNUNET_SYSERR == more) || (ibf_count > diff->size))
-            {
-              ibf_destroy(diff);
-              return count * (1 << (i + 1));
-            }
-        }
-      ibf_destroy(diff);
+      more = ibf_decode (diff, NULL, NULL);
+      if (GNUNET_NO == more)
+      {
+        count += ibf_count;
+        break;
+      }
+      /* Estimate if decoding fails or would not terminate */
+      if ((GNUNET_SYSERR == more) || (ibf_count > diff->size))
+      {
+        ibf_destroy (diff);
+        return count * (1 << (i + 1));
+      }
     }
+    ibf_destroy (diff);
+  }
   return count;
 }
 
@@ -270,18 +270,18 @@ strata_estimator_difference(const struct StrataEstimator *se1,
  * @return the copy
  */
 struct StrataEstimator *
-strata_estimator_dup(struct StrataEstimator *se)
+strata_estimator_dup (struct StrataEstimator *se)
 {
   struct StrataEstimator *c;
   unsigned int i;
 
-  c = GNUNET_new(struct StrataEstimator);
+  c = GNUNET_new (struct StrataEstimator);
   c->strata_count = se->strata_count;
   c->ibf_size = se->ibf_size;
-  c->strata = GNUNET_new_array(se->strata_count,
-                               struct InvertibleBloomFilter *);
+  c->strata = GNUNET_new_array (se->strata_count,
+                                struct InvertibleBloomFilter *);
   for (i = 0; i < se->strata_count; i++)
-    c->strata[i] = ibf_dup(se->strata[i]);
+    c->strata[i] = ibf_dup (se->strata[i]);
   return c;
 }
 
@@ -292,12 +292,12 @@ strata_estimator_dup(struct StrataEstimator *se)
  * @param se strata estimator to destroy.
  */
 void
-strata_estimator_destroy(struct StrataEstimator *se)
+strata_estimator_destroy (struct StrataEstimator *se)
 {
   unsigned int i;
 
   for (i = 0; i < se->strata_count; i++)
-    ibf_destroy(se->strata[i]);
-  GNUNET_free(se->strata);
-  GNUNET_free(se);
+    ibf_destroy (se->strata[i]);
+  GNUNET_free (se->strata);
+  GNUNET_free (se);
 }

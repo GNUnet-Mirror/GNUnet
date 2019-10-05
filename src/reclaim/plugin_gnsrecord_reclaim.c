@@ -40,25 +40,25 @@
  * @return NULL on error, otherwise human-readable representation of the value
  */
 static char *
-value_to_string(void *cls, uint32_t type, const void *data, size_t data_size)
+value_to_string (void *cls, uint32_t type, const void *data, size_t data_size)
 {
   switch (type)
-    {
-    case GNUNET_GNSRECORD_TYPE_RECLAIM_ATTR:
-      return GNUNET_STRINGS_data_to_string_alloc(data, data_size);
+  {
+  case GNUNET_GNSRECORD_TYPE_RECLAIM_ATTR:
+    return GNUNET_STRINGS_data_to_string_alloc (data, data_size);
 
-    case GNUNET_GNSRECORD_TYPE_RECLAIM_OIDC_REDIRECT:
-    case GNUNET_GNSRECORD_TYPE_RECLAIM_OIDC_CLIENT:
-      return GNUNET_strndup(data, data_size);
+  case GNUNET_GNSRECORD_TYPE_RECLAIM_OIDC_REDIRECT:
+  case GNUNET_GNSRECORD_TYPE_RECLAIM_OIDC_CLIENT:
+    return GNUNET_strndup (data, data_size);
 
-    case GNUNET_GNSRECORD_TYPE_RECLAIM_ATTR_REF:
-    case GNUNET_GNSRECORD_TYPE_RECLAIM_TICKET:
-    case GNUNET_GNSRECORD_TYPE_RECLAIM_MASTER:
-      return GNUNET_STRINGS_data_to_string_alloc(data, data_size);
+  case GNUNET_GNSRECORD_TYPE_RECLAIM_ATTR_REF:
+  case GNUNET_GNSRECORD_TYPE_RECLAIM_TICKET:
+  case GNUNET_GNSRECORD_TYPE_RECLAIM_MASTER:
+    return GNUNET_STRINGS_data_to_string_alloc (data, data_size);
 
-    default:
-      return NULL;
-    }
+  default:
+    return NULL;
+  }
 }
 
 
@@ -74,30 +74,30 @@ value_to_string(void *cls, uint32_t type, const void *data, size_t data_size)
  * @return #GNUNET_OK on success
  */
 static int
-string_to_value(void *cls, uint32_t type, const char *s, void **data,
-                size_t *data_size)
+string_to_value (void *cls, uint32_t type, const char *s, void **data,
+                 size_t *data_size)
 {
   if (NULL == s)
     return GNUNET_SYSERR;
   switch (type)
-    {
-    case GNUNET_GNSRECORD_TYPE_RECLAIM_ATTR:
-      return GNUNET_STRINGS_string_to_data(s, strlen(s), *data, *data_size);
+  {
+  case GNUNET_GNSRECORD_TYPE_RECLAIM_ATTR:
+    return GNUNET_STRINGS_string_to_data (s, strlen (s), *data, *data_size);
 
-    case GNUNET_GNSRECORD_TYPE_RECLAIM_OIDC_REDIRECT:
-    case GNUNET_GNSRECORD_TYPE_RECLAIM_OIDC_CLIENT:
-      *data = GNUNET_strdup(s);
-      *data_size = strlen(s);
-      return GNUNET_OK;
+  case GNUNET_GNSRECORD_TYPE_RECLAIM_OIDC_REDIRECT:
+  case GNUNET_GNSRECORD_TYPE_RECLAIM_OIDC_CLIENT:
+    *data = GNUNET_strdup (s);
+    *data_size = strlen (s);
+    return GNUNET_OK;
 
-    case GNUNET_GNSRECORD_TYPE_RECLAIM_ATTR_REF:
-    case GNUNET_GNSRECORD_TYPE_RECLAIM_MASTER:
-    case GNUNET_GNSRECORD_TYPE_RECLAIM_TICKET:
-      return GNUNET_STRINGS_string_to_data(s, strlen(s), *data, *data_size);
+  case GNUNET_GNSRECORD_TYPE_RECLAIM_ATTR_REF:
+  case GNUNET_GNSRECORD_TYPE_RECLAIM_MASTER:
+  case GNUNET_GNSRECORD_TYPE_RECLAIM_TICKET:
+    return GNUNET_STRINGS_string_to_data (s, strlen (s), *data, *data_size);
 
-    default:
-      return GNUNET_SYSERR;
-    }
+  default:
+    return GNUNET_SYSERR;
+  }
 }
 
 
@@ -105,7 +105,8 @@ string_to_value(void *cls, uint32_t type, const char *s, void **data,
  * Mapping of record type numbers to human-readable
  * record type names.
  */
-static struct {
+static struct
+{
   const char *name;
   uint32_t number;
 } name_map[] = {
@@ -127,13 +128,13 @@ static struct {
  * @return corresponding number, UINT32_MAX on error
  */
 static uint32_t
-typename_to_number(void *cls, const char *dns_typename)
+typename_to_number (void *cls, const char *dns_typename)
 {
   unsigned int i;
 
   i = 0;
   while ((NULL != name_map[i].name) &&
-         (0 != strcasecmp(dns_typename, name_map[i].name)))
+         (0 != strcasecmp (dns_typename, name_map[i].name)))
     i++;
   return name_map[i].number;
 }
@@ -147,7 +148,7 @@ typename_to_number(void *cls, const char *dns_typename)
  * @return corresponding typestring, NULL on error
  */
 static const char *
-number_to_typename(void *cls, uint32_t type)
+number_to_typename (void *cls, uint32_t type)
 {
   unsigned int i;
 
@@ -165,11 +166,11 @@ number_to_typename(void *cls, uint32_t type)
  * @return the exported block API
  */
 void *
-libgnunet_plugin_gnsrecord_reclaim_init(void *cls)
+libgnunet_plugin_gnsrecord_reclaim_init (void *cls)
 {
   struct GNUNET_GNSRECORD_PluginFunctions *api;
 
-  api = GNUNET_new(struct GNUNET_GNSRECORD_PluginFunctions);
+  api = GNUNET_new (struct GNUNET_GNSRECORD_PluginFunctions);
   api->value_to_string = &value_to_string;
   api->string_to_value = &string_to_value;
   api->typename_to_number = &typename_to_number;
@@ -185,11 +186,11 @@ libgnunet_plugin_gnsrecord_reclaim_init(void *cls)
  * @return NULL
  */
 void *
-libgnunet_plugin_gnsrecord_reclaim_done(void *cls)
+libgnunet_plugin_gnsrecord_reclaim_done (void *cls)
 {
   struct GNUNET_GNSRECORD_PluginFunctions *api = cls;
 
-  GNUNET_free(api);
+  GNUNET_free (api);
   return NULL;
 }
 

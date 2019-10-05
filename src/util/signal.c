@@ -27,10 +27,11 @@
 #include "platform.h"
 #include "gnunet_util_lib.h"
 
-#define LOG(kind, ...) GNUNET_log_from(kind, "util-signal", __VA_ARGS__)
+#define LOG(kind, ...) GNUNET_log_from (kind, "util-signal", __VA_ARGS__)
 
 
-struct GNUNET_SIGNAL_Context {
+struct GNUNET_SIGNAL_Context
+{
   struct GNUNET_SIGNAL_Context *next;
 
   struct GNUNET_SIGNAL_Context *prev;
@@ -47,40 +48,40 @@ static struct GNUNET_SIGNAL_Context *sc_head;
 static struct GNUNET_SIGNAL_Context *sc_tail;
 
 struct GNUNET_SIGNAL_Context *
-GNUNET_SIGNAL_handler_install(int signum, GNUNET_SIGNAL_Handler handler)
+GNUNET_SIGNAL_handler_install (int signum, GNUNET_SIGNAL_Handler handler)
 {
   struct GNUNET_SIGNAL_Context *ret;
 
   struct sigaction sig;
 
-  ret = GNUNET_new(struct GNUNET_SIGNAL_Context);
+  ret = GNUNET_new (struct GNUNET_SIGNAL_Context);
   ret->sig = signum;
   ret->method = handler;
 
-  memset(&sig, 0, sizeof(sig));
-  sig.sa_handler = (void *)handler;
-  sigemptyset(&sig.sa_mask);
+  memset (&sig, 0, sizeof(sig));
+  sig.sa_handler = (void *) handler;
+  sigemptyset (&sig.sa_mask);
 #ifdef SA_INTERRUPT
   sig.sa_flags = SA_INTERRUPT;  /* SunOS */
 #else
   sig.sa_flags = SA_RESTART;
 #endif
-  sigaction(signum, &sig, &ret->oldsig);
+  sigaction (signum, &sig, &ret->oldsig);
 
-  GNUNET_CONTAINER_DLL_insert_tail(sc_head, sc_tail, ret);
+  GNUNET_CONTAINER_DLL_insert_tail (sc_head, sc_tail, ret);
   return ret;
 }
 
 void
-GNUNET_SIGNAL_handler_uninstall(struct GNUNET_SIGNAL_Context *ctx)
+GNUNET_SIGNAL_handler_uninstall (struct GNUNET_SIGNAL_Context *ctx)
 {
   struct sigaction sig;
 
-  sigemptyset(&sig.sa_mask);
-  sigaction(ctx->sig, &ctx->oldsig, &sig);
+  sigemptyset (&sig.sa_mask);
+  sigaction (ctx->sig, &ctx->oldsig, &sig);
 
-  GNUNET_CONTAINER_DLL_remove(sc_head, sc_tail, ctx);
-  GNUNET_free(ctx);
+  GNUNET_CONTAINER_DLL_remove (sc_head, sc_tail, ctx);
+  GNUNET_free (ctx);
 }
 
 
@@ -92,16 +93,16 @@ GNUNET_SIGNAL_handler_uninstall(struct GNUNET_SIGNAL_Context *ctx)
  * @param sig the signal to raise
  */
 void
-GNUNET_SIGNAL_raise(const int sig)
+GNUNET_SIGNAL_raise (const int sig)
 {
   struct GNUNET_SIGNAL_Context *ctx;
 
   for (ctx = sc_head; NULL != ctx; ctx = ctx->next)
-    {
-      if (sig != ctx->sig)
-        continue;
-      if (NULL == ctx->method)
-        continue;
-      ctx->method();
-    }
+  {
+    if (sig != ctx->sig)
+      continue;
+    if (NULL == ctx->method)
+      continue;
+    ctx->method ();
+  }
 }

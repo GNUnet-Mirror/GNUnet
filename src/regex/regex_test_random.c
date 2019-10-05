@@ -34,13 +34,13 @@
  * @return random valid literal
  */
 static char
-get_random_literal()
+get_random_literal ()
 {
   uint32_t ridx;
 
   ridx =
-    GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_WEAK,
-                             (uint32_t)strlen(ALLOWED_LITERALS));
+    GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
+                              (uint32_t) strlen (ALLOWED_LITERALS));
 
   return ALLOWED_LITERALS[ridx];
 }
@@ -61,7 +61,7 @@ get_random_literal()
  *         needs to be freed, otherwise.
  */
 char *
-REGEX_TEST_generate_random_regex(size_t rx_length, char *matching_str)
+REGEX_TEST_generate_random_regex (size_t rx_length, char *matching_str)
 {
   char *rx;
   char *rx_p;
@@ -80,59 +80,60 @@ REGEX_TEST_generate_random_regex(size_t rx_length, char *matching_str)
   else
     matching_strp = NULL;
 
-  rx = GNUNET_malloc(rx_length + 1);
+  rx = GNUNET_malloc (rx_length + 1);
   rx_p = rx;
   current_char = 0;
   last_was_op = 1;
 
   for (i = 0; i < rx_length; i++)
+  {
+    char_op_switch = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 2);
+
+    if ((0 == char_op_switch) && ! last_was_op)
     {
-      char_op_switch = GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_WEAK, 2);
+      last_was_op = 1;
+      rx_op = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 4);
 
-      if (0 == char_op_switch && !last_was_op)
-        {
-          last_was_op = 1;
-          rx_op = GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_WEAK, 4);
+      switch (rx_op)
+      {
+      case 0:
+        current_char = '+';
+        break;
 
-          switch (rx_op)
-            {
-            case 0:
-              current_char = '+';
-              break;
+      case 1:
+        current_char = '*';
+        break;
 
-            case 1:
-              current_char = '*';
-              break;
+      case 2:
+        current_char = '?';
+        break;
 
-            case 2:
-              current_char = '?';
-              break;
-
-            case 3:
-              if (i < rx_length - 1) /* '|' cannot be at the end */
-                current_char = '|';
-              else
-                current_char = get_random_literal();
-              break;
-            }
-        }
-      else
-        {
-          current_char = get_random_literal();
-          last_was_op = 0;
-        }
-
-      if (NULL != matching_strp &&
-          (current_char != '+' && current_char != '*' && current_char != '?' &&
-           current_char != '|'))
-        {
-          *matching_strp = current_char;
-          matching_strp++;
-        }
-
-      *rx_p = current_char;
-      rx_p++;
+      case 3:
+        if (i < rx_length - 1)       /* '|' cannot be at the end */
+          current_char = '|';
+        else
+          current_char = get_random_literal ();
+        break;
+      }
     }
+    else
+    {
+      current_char = get_random_literal ();
+      last_was_op = 0;
+    }
+
+    if ((NULL != matching_strp) &&
+        ((current_char != '+') &&(current_char != '*') &&(current_char !=
+                                                          '?') &&
+         (current_char != '|') ))
+    {
+      *matching_strp = current_char;
+      matching_strp++;
+    }
+
+    *rx_p = current_char;
+    rx_p++;
+  }
   *rx_p = '\0';
   if (NULL != matching_strp)
     *matching_strp = '\0';
@@ -151,22 +152,22 @@ REGEX_TEST_generate_random_regex(size_t rx_length, char *matching_str)
  * @return random string that needs to be freed.
  */
 char *
-REGEX_TEST_generate_random_string(size_t max_len)
+REGEX_TEST_generate_random_string (size_t max_len)
 {
   unsigned int i;
   char *str;
   size_t len;
 
   if (1 > max_len)
-    return GNUNET_strdup("");
+    return GNUNET_strdup ("");
 
-  len = (size_t)GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_WEAK, max_len);
-  str = GNUNET_malloc(len + 1);
+  len = (size_t) GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, max_len);
+  str = GNUNET_malloc (len + 1);
 
   for (i = 0; i < len; i++)
-    {
-      str[i] = get_random_literal();
-    }
+  {
+    str[i] = get_random_literal ();
+  }
 
   str[i] = '\0';
 

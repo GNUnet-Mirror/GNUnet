@@ -42,132 +42,132 @@ static int count = 0;
 
 
 static void
-iter3_cb(void *cls,
-         const struct GNUNET_PEERSTORE_Record *record,
-         const char *emsg)
+iter3_cb (void *cls,
+          const struct GNUNET_PEERSTORE_Record *record,
+          const char *emsg)
 {
   if (NULL != emsg)
-    {
-      GNUNET_PEERSTORE_iterate_cancel(ic);
-      return;
-    }
+  {
+    GNUNET_PEERSTORE_iterate_cancel (ic);
+    return;
+  }
   if (NULL != record)
-    {
-      count++;
-      return;
-    }
-  GNUNET_assert(count == 3);
+  {
+    count++;
+    return;
+  }
+  GNUNET_assert (count == 3);
   ok = 0;
-  GNUNET_PEERSTORE_disconnect(h, GNUNET_NO);
-  GNUNET_SCHEDULER_shutdown();
+  GNUNET_PEERSTORE_disconnect (h, GNUNET_NO);
+  GNUNET_SCHEDULER_shutdown ();
 }
 
 
 static void
-iter2_cb(void *cls,
-         const struct GNUNET_PEERSTORE_Record *record,
-         const char *emsg)
+iter2_cb (void *cls,
+          const struct GNUNET_PEERSTORE_Record *record,
+          const char *emsg)
 {
   if (NULL != emsg)
-    {
-      GNUNET_PEERSTORE_iterate_cancel(ic);
-      return;
-    }
+  {
+    GNUNET_PEERSTORE_iterate_cancel (ic);
+    return;
+  }
   if (NULL != record)
-    {
-      count++;
-      return;
-    }
-  GNUNET_assert(count == 2);
+  {
+    count++;
+    return;
+  }
+  GNUNET_assert (count == 2);
   count = 0;
-  ic = GNUNET_PEERSTORE_iterate(h,
-                                ss,
-                                NULL,
-                                NULL,
-                                &iter3_cb,
-                                NULL);
+  ic = GNUNET_PEERSTORE_iterate (h,
+                                 ss,
+                                 NULL,
+                                 NULL,
+                                 &iter3_cb,
+                                 NULL);
 }
 
 
 static void
-iter1_cb(void *cls,
-         const struct GNUNET_PEERSTORE_Record *record,
-         const char *emsg)
+iter1_cb (void *cls,
+          const struct GNUNET_PEERSTORE_Record *record,
+          const char *emsg)
 {
   if (NULL != emsg)
-    {
-      GNUNET_PEERSTORE_iterate_cancel(ic);
-      return;
-    }
+  {
+    GNUNET_PEERSTORE_iterate_cancel (ic);
+    return;
+  }
   if (NULL != record)
-    {
-      count++;
-      return;
-    }
-  GNUNET_assert(count == 1);
+  {
+    count++;
+    return;
+  }
+  GNUNET_assert (count == 1);
   count = 0;
-  ic = GNUNET_PEERSTORE_iterate(h,
-                                ss,
-                                &p1,
-                                NULL,
-                                &iter2_cb,
-                                NULL);
+  ic = GNUNET_PEERSTORE_iterate (h,
+                                 ss,
+                                 &p1,
+                                 NULL,
+                                 &iter2_cb,
+                                 NULL);
 }
 
 
 static void
-run(void *cls,
-    const struct GNUNET_CONFIGURATION_Handle *cfg,
-    struct GNUNET_TESTING_Peer *peer)
+run (void *cls,
+     const struct GNUNET_CONFIGURATION_Handle *cfg,
+     struct GNUNET_TESTING_Peer *peer)
 {
-  h = GNUNET_PEERSTORE_connect(cfg);
-  GNUNET_assert(NULL != h);
-  memset(&p1, 1, sizeof(p1));
-  memset(&p2, 2, sizeof(p2));
-  GNUNET_PEERSTORE_store(h,
-                         ss,
-                         &p1,
-                         k1,
-                         val,
-                         strlen(val) + 1,
-                         GNUNET_TIME_UNIT_FOREVER_ABS,
-                         GNUNET_PEERSTORE_STOREOPTION_REPLACE,
-                         NULL,
-                         NULL);
-  GNUNET_PEERSTORE_store(h,
-                         ss,
-                         &p1,
-                         k2,
-                         val,
-                         strlen(val) + 1,
-                         GNUNET_TIME_UNIT_FOREVER_ABS,
-                         GNUNET_PEERSTORE_STOREOPTION_REPLACE,
-                         NULL,
-                         NULL);
-  GNUNET_PEERSTORE_store(h,
-                         ss,
-                         &p2,
-                         k3,
-                         val,
-                         strlen(val) + 1,
-                         GNUNET_TIME_UNIT_FOREVER_ABS,
-                         GNUNET_PEERSTORE_STOREOPTION_REPLACE,
-                         NULL,
-                         NULL);
-  ic = GNUNET_PEERSTORE_iterate(h,
-                                ss,
-                                &p1,
-                                k1,
-                                &iter1_cb, NULL);
+  h = GNUNET_PEERSTORE_connect (cfg);
+  GNUNET_assert (NULL != h);
+  memset (&p1, 1, sizeof(p1));
+  memset (&p2, 2, sizeof(p2));
+  GNUNET_PEERSTORE_store (h,
+                          ss,
+                          &p1,
+                          k1,
+                          val,
+                          strlen (val) + 1,
+                          GNUNET_TIME_UNIT_FOREVER_ABS,
+                          GNUNET_PEERSTORE_STOREOPTION_REPLACE,
+                          NULL,
+                          NULL);
+  GNUNET_PEERSTORE_store (h,
+                          ss,
+                          &p1,
+                          k2,
+                          val,
+                          strlen (val) + 1,
+                          GNUNET_TIME_UNIT_FOREVER_ABS,
+                          GNUNET_PEERSTORE_STOREOPTION_REPLACE,
+                          NULL,
+                          NULL);
+  GNUNET_PEERSTORE_store (h,
+                          ss,
+                          &p2,
+                          k3,
+                          val,
+                          strlen (val) + 1,
+                          GNUNET_TIME_UNIT_FOREVER_ABS,
+                          GNUNET_PEERSTORE_STOREOPTION_REPLACE,
+                          NULL,
+                          NULL);
+  ic = GNUNET_PEERSTORE_iterate (h,
+                                 ss,
+                                 &p1,
+                                 k1,
+                                 &iter1_cb, NULL);
 }
 
 
 int
-main(int argc, char *argv[])
+main (int argc, char *argv[])
 {
   if (0 !=
-      GNUNET_TESTING_service_run("test-gnunet-peerstore", "peerstore",
-                                 "test_peerstore_api_data.conf", &run, NULL))
+      GNUNET_TESTING_service_run ("test-gnunet-peerstore", "peerstore",
+                                  "test_peerstore_api_data.conf", &run, NULL))
     return 1;
   return ok;
 }

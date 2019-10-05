@@ -71,7 +71,8 @@ extern "C" {
 /**
  * Options for storing values in PEERSTORE
  */
-enum GNUNET_PEERSTORE_StoreOption {
+enum GNUNET_PEERSTORE_StoreOption
+{
   /**
    * Possibly store multiple values under given key.
    */
@@ -97,7 +98,8 @@ struct GNUNET_PEERSTORE_StoreContext;
 /**
  * Single PEERSTORE record
  */
-struct GNUNET_PEERSTORE_Record {
+struct GNUNET_PEERSTORE_Record
+{
   /**
    * Responsible sub system string
    */
@@ -164,7 +166,7 @@ typedef void (*GNUNET_PEERSTORE_Processor) (
  * @return NULL on error
  */
 struct GNUNET_PEERSTORE_Handle *
-GNUNET_PEERSTORE_connect(const struct GNUNET_CONFIGURATION_Handle *cfg);
+GNUNET_PEERSTORE_connect (const struct GNUNET_CONFIGURATION_Handle *cfg);
 
 
 /**
@@ -176,7 +178,7 @@ GNUNET_PEERSTORE_connect(const struct GNUNET_CONFIGURATION_Handle *cfg);
  * @param sync_first send any pending STORE requests before disconnecting
  */
 void
-GNUNET_PEERSTORE_disconnect(struct GNUNET_PEERSTORE_Handle *h, int sync_first);
+GNUNET_PEERSTORE_disconnect (struct GNUNET_PEERSTORE_Handle *h, int sync_first);
 
 
 /**
@@ -196,16 +198,16 @@ GNUNET_PEERSTORE_disconnect(struct GNUNET_PEERSTORE_Handle *h, int sync_first);
  * @param cont_cls Closure for @a cont
  */
 struct GNUNET_PEERSTORE_StoreContext *
-GNUNET_PEERSTORE_store(struct GNUNET_PEERSTORE_Handle *h,
-                       const char *sub_system,
-                       const struct GNUNET_PeerIdentity *peer,
-                       const char *key,
-                       const void *value,
-                       size_t size,
-                       struct GNUNET_TIME_Absolute expiry,
-                       enum GNUNET_PEERSTORE_StoreOption options,
-                       GNUNET_PEERSTORE_Continuation cont,
-                       void *cont_cls);
+GNUNET_PEERSTORE_store (struct GNUNET_PEERSTORE_Handle *h,
+                        const char *sub_system,
+                        const struct GNUNET_PeerIdentity *peer,
+                        const char *key,
+                        const void *value,
+                        size_t size,
+                        struct GNUNET_TIME_Absolute expiry,
+                        enum GNUNET_PEERSTORE_StoreOption options,
+                        GNUNET_PEERSTORE_Continuation cont,
+                        void *cont_cls);
 
 
 /**
@@ -214,7 +216,7 @@ GNUNET_PEERSTORE_store(struct GNUNET_PEERSTORE_Handle *h,
  * @param sc Store request context
  */
 void
-GNUNET_PEERSTORE_store_cancel(struct GNUNET_PEERSTORE_StoreContext *sc);
+GNUNET_PEERSTORE_store_cancel (struct GNUNET_PEERSTORE_StoreContext *sc);
 
 
 /**
@@ -228,12 +230,12 @@ GNUNET_PEERSTORE_store_cancel(struct GNUNET_PEERSTORE_StoreContext *sc);
  * @param callback_cls closure for @a callback
  */
 struct GNUNET_PEERSTORE_IterateContext *
-GNUNET_PEERSTORE_iterate(struct GNUNET_PEERSTORE_Handle *h,
-                         const char *sub_system,
-                         const struct GNUNET_PeerIdentity *peer,
-                         const char *key,
-                         GNUNET_PEERSTORE_Processor callback,
-                         void *callback_cls);
+GNUNET_PEERSTORE_iterate (struct GNUNET_PEERSTORE_Handle *h,
+                          const char *sub_system,
+                          const struct GNUNET_PeerIdentity *peer,
+                          const char *key,
+                          GNUNET_PEERSTORE_Processor callback,
+                          void *callback_cls);
 
 
 /**
@@ -243,7 +245,7 @@ GNUNET_PEERSTORE_iterate(struct GNUNET_PEERSTORE_Handle *h,
  * @param ic Iterate request context as returned by GNUNET_PEERSTORE_iterate()
  */
 void
-GNUNET_PEERSTORE_iterate_cancel(struct GNUNET_PEERSTORE_IterateContext *ic);
+GNUNET_PEERSTORE_iterate_cancel (struct GNUNET_PEERSTORE_IterateContext *ic);
 
 
 /**
@@ -259,12 +261,12 @@ GNUNET_PEERSTORE_iterate_cancel(struct GNUNET_PEERSTORE_IterateContext *ic);
  * @return Handle to watch request
  */
 struct GNUNET_PEERSTORE_WatchContext *
-GNUNET_PEERSTORE_watch(struct GNUNET_PEERSTORE_Handle *h,
-                       const char *sub_system,
-                       const struct GNUNET_PeerIdentity *peer,
-                       const char *key,
-                       GNUNET_PEERSTORE_Processor callback,
-                       void *callback_cls);
+GNUNET_PEERSTORE_watch (struct GNUNET_PEERSTORE_Handle *h,
+                        const char *sub_system,
+                        const struct GNUNET_PeerIdentity *peer,
+                        const char *key,
+                        GNUNET_PEERSTORE_Processor callback,
+                        void *callback_cls);
 
 
 /**
@@ -273,7 +275,7 @@ GNUNET_PEERSTORE_watch(struct GNUNET_PEERSTORE_Handle *h,
  * @param wc handle to the watch request
  */
 void
-GNUNET_PEERSTORE_watch_cancel(struct GNUNET_PEERSTORE_WatchContext *wc);
+GNUNET_PEERSTORE_watch_cancel (struct GNUNET_PEERSTORE_WatchContext *wc);
 
 
 #if 0 /* keep Emacsens' auto-indent happy */

@@ -31,7 +31,8 @@
 /**
  * Context information for test run
  */
-struct TestRunContext {
+struct TestRunContext
+{
   /**
    * Test master callback
    */
@@ -73,13 +74,13 @@ struct TestRunContext {
  * @param config the configuration file handle
  */
 static void
-run(void *cls, char *const *args, const char *cfgfile,
-    const struct GNUNET_CONFIGURATION_Handle *config)
+run (void *cls, char *const *args, const char *cfgfile,
+     const struct GNUNET_CONFIGURATION_Handle *config)
 {
   struct TestRunContext *rc = cls;
 
-  GNUNET_TESTBED_run(NULL, config, rc->num_peers, rc->event_mask, rc->cc,
-                     rc->cc_cls, rc->test_master, rc->test_master_cls);
+  GNUNET_TESTBED_run (NULL, config, rc->num_peers, rc->event_mask, rc->cc,
+                      rc->cc_cls, rc->test_master, rc->test_master_cls);
 }
 
 
@@ -117,14 +118,14 @@ run(void *cls, char *const *args, const char *cfgfile,
  * @return #GNUNET_SYSERR on error, #GNUNET_OK on success
  */
 int
-GNUNET_TESTBED_test_run(const char *testname,
-                        const char *cfg_filename,
-                        unsigned int num_peers,
-                        uint64_t event_mask,
-                        GNUNET_TESTBED_ControllerCallback cc,
-                        void *cc_cls,
-                        GNUNET_TESTBED_TestMaster test_master,
-                        void *test_master_cls)
+GNUNET_TESTBED_test_run (const char *testname,
+                         const char *cfg_filename,
+                         unsigned int num_peers,
+                         uint64_t event_mask,
+                         GNUNET_TESTBED_ControllerCallback cc,
+                         void *cc_cls,
+                         GNUNET_TESTBED_TestMaster test_master,
+                         void *test_master_cls)
 {
   char *argv2[] = {
     NULL,
@@ -138,23 +139,23 @@ GNUNET_TESTBED_test_run(const char *testname,
   struct TestRunContext *rc;
   int ret;
 
-  argv2[0] = GNUNET_strdup(testname);
-  argv2[2] = GNUNET_strdup(cfg_filename);
-  GNUNET_assert(NULL != test_master);
-  GNUNET_assert(num_peers > 0);
-  rc = GNUNET_malloc(sizeof(struct TestRunContext) +
-                     (num_peers * sizeof(struct GNUNET_TESTBED_Peer *)));
+  argv2[0] = GNUNET_strdup (testname);
+  argv2[2] = GNUNET_strdup (cfg_filename);
+  GNUNET_assert (NULL != test_master);
+  GNUNET_assert (num_peers > 0);
+  rc = GNUNET_malloc (sizeof(struct TestRunContext)
+                      + (num_peers * sizeof(struct GNUNET_TESTBED_Peer *)));
   rc->test_master = test_master;
   rc->test_master_cls = test_master_cls;
   rc->num_peers = num_peers;
   rc->event_mask = event_mask;
   rc->cc = cc;
   rc->cc_cls = cc_cls;
-  ret = GNUNET_PROGRAM_run((sizeof(argv2) / sizeof(char *)) - 1, argv2,
-                           testname, "nohelp", options, &run, rc);
-  GNUNET_free(rc);
-  GNUNET_free(argv2[0]);
-  GNUNET_free(argv2[2]);
+  ret = GNUNET_PROGRAM_run ((sizeof(argv2) / sizeof(char *)) - 1, argv2,
+                            testname, "nohelp", options, &run, rc);
+  GNUNET_free (rc);
+  GNUNET_free (argv2[0]);
+  GNUNET_free (argv2[2]);
   return ret;
 }
 

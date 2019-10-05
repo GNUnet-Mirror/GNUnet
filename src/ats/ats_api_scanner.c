@@ -33,14 +33,14 @@
  * @param hbo value read
  */
 void
-GNUNET_ATS_properties_hton(struct GNUNET_ATS_PropertiesNBO *nbo,
-                           const struct GNUNET_ATS_Properties *hbo)
+GNUNET_ATS_properties_hton (struct GNUNET_ATS_PropertiesNBO *nbo,
+                            const struct GNUNET_ATS_Properties *hbo)
 {
-  nbo->utilization_out = htonl(hbo->utilization_out);
-  nbo->utilization_in = htonl(hbo->utilization_in);
-  nbo->scope = htonl((uint32_t)hbo->scope);
-  nbo->distance = htonl(hbo->distance);
-  nbo->delay = GNUNET_TIME_relative_hton(hbo->delay);
+  nbo->utilization_out = htonl (hbo->utilization_out);
+  nbo->utilization_in = htonl (hbo->utilization_in);
+  nbo->scope = htonl ((uint32_t) hbo->scope);
+  nbo->distance = htonl (hbo->distance);
+  nbo->delay = GNUNET_TIME_relative_hton (hbo->delay);
 }
 
 
@@ -51,14 +51,14 @@ GNUNET_ATS_properties_hton(struct GNUNET_ATS_PropertiesNBO *nbo,
  * @param nbo value read
  */
 void
-GNUNET_ATS_properties_ntoh(struct GNUNET_ATS_Properties *hbo,
-                           const struct GNUNET_ATS_PropertiesNBO *nbo)
+GNUNET_ATS_properties_ntoh (struct GNUNET_ATS_Properties *hbo,
+                            const struct GNUNET_ATS_PropertiesNBO *nbo)
 {
-  hbo->utilization_out = ntohl(nbo->utilization_out);
-  hbo->utilization_in = ntohl(nbo->utilization_in);
-  hbo->scope = ntohl((uint32_t)nbo->scope);
-  hbo->distance = ntohl(nbo->distance);
-  hbo->delay = GNUNET_TIME_relative_ntoh(nbo->delay);
+  hbo->utilization_out = ntohl (nbo->utilization_out);
+  hbo->utilization_in = ntohl (nbo->utilization_in);
+  hbo->scope = ntohl ((uint32_t) nbo->scope);
+  hbo->distance = ntohl (nbo->distance);
+  hbo->delay = GNUNET_TIME_relative_ntoh (nbo->delay);
 }
 
 

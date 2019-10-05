@@ -87,7 +87,8 @@ struct GNUNET_TRANSPORT_CommunicatorHandle;
  * FIXME: may want to distinguish bi-directional as well,
  * should we define a bit for that? Needed in DV logic (handle_dv_learn)!
  */
-enum GNUNET_TRANSPORT_CommunicatorCharacteristics {
+enum GNUNET_TRANSPORT_CommunicatorCharacteristics
+{
   /**
    * Characteristics are unknown (i.e. DV).
    */
@@ -143,7 +144,7 @@ typedef void (*GNUNET_TRANSPORT_CommunicatorNotify) (
  * @return NULL on error
  */
 struct GNUNET_TRANSPORT_CommunicatorHandle *
-GNUNET_TRANSPORT_communicator_connect(
+GNUNET_TRANSPORT_communicator_connect (
   const struct GNUNET_CONFIGURATION_Handle *cfg,
   const char *config_section_name,
   const char *addr_prefix,
@@ -160,7 +161,7 @@ GNUNET_TRANSPORT_communicator_connect(
  * @param ch handle returned from connect
  */
 void
-GNUNET_TRANSPORT_communicator_disconnect(
+GNUNET_TRANSPORT_communicator_disconnect (
   struct GNUNET_TRANSPORT_CommunicatorHandle *ch);
 
 
@@ -200,7 +201,7 @@ typedef void (*GNUNET_TRANSPORT_MessageCompletedCallback) (void *cls,
  *         the tranport service is not yet up
  */
 int
-GNUNET_TRANSPORT_communicator_receive(
+GNUNET_TRANSPORT_communicator_receive (
   struct GNUNET_TRANSPORT_CommunicatorHandle *handle,
   const struct GNUNET_PeerIdentity *sender,
   const struct GNUNET_MessageHeader *msg,
@@ -221,7 +222,8 @@ struct GNUNET_TRANSPORT_QueueHandle;
 /**
  * Possible states of a connection.
  */
-enum GNUNET_TRANSPORT_ConnectionStatus {
+enum GNUNET_TRANSPORT_ConnectionStatus
+{
   /**
    * Connection is down.
    */
@@ -255,7 +257,7 @@ enum GNUNET_TRANSPORT_ConnectionStatus {
  * @return API handle identifying the new MQ
  */
 struct GNUNET_TRANSPORT_QueueHandle *
-GNUNET_TRANSPORT_communicator_mq_add(
+GNUNET_TRANSPORT_communicator_mq_add (
   struct GNUNET_TRANSPORT_CommunicatorHandle *ch,
   const struct GNUNET_PeerIdentity *peer,
   const char *address,
@@ -272,7 +274,7 @@ GNUNET_TRANSPORT_communicator_mq_add(
  * @param qh handle for the queue that must be invalidated
  */
 void
-GNUNET_TRANSPORT_communicator_mq_del(struct GNUNET_TRANSPORT_QueueHandle *qh);
+GNUNET_TRANSPORT_communicator_mq_del (struct GNUNET_TRANSPORT_QueueHandle *qh);
 
 
 /**
@@ -292,7 +294,7 @@ struct GNUNET_TRANSPORT_AddressIdentifier;
  * @param expiration when does the communicator forsee this address expiring?
  */
 struct GNUNET_TRANSPORT_AddressIdentifier *
-GNUNET_TRANSPORT_communicator_address_add(
+GNUNET_TRANSPORT_communicator_address_add (
   struct GNUNET_TRANSPORT_CommunicatorHandle *ch,
   const char *address,
   enum GNUNET_NetworkType nt,
@@ -306,7 +308,7 @@ GNUNET_TRANSPORT_communicator_address_add(
  * @param ai address that is no longer provided
  */
 void
-GNUNET_TRANSPORT_communicator_address_remove(
+GNUNET_TRANSPORT_communicator_address_remove (
   struct GNUNET_TRANSPORT_AddressIdentifier *ai);
 
 
@@ -329,7 +331,7 @@ GNUNET_TRANSPORT_communicator_address_remove(
  *        notify-API to @a pid's communicator @a comm
  */
 void
-GNUNET_TRANSPORT_communicator_notify(
+GNUNET_TRANSPORT_communicator_notify (
   struct GNUNET_TRANSPORT_CommunicatorHandle *ch,
   const struct GNUNET_PeerIdentity *pid,
   const char *comm,

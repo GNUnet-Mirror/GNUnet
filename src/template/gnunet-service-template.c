@@ -33,7 +33,7 @@
  * @param cls unused
  */
 static void
-cleanup_task(void *cls)
+cleanup_task (void *cls)
 {
   /* FIXME: do clean up here */
 }
@@ -48,9 +48,9 @@ cleanup_task(void *cls)
  * @return @a c
  */
 static void *
-client_connect_cb(void *cls,
-                  struct GNUNET_SERVICE_Client *c,
-                  struct GNUNET_MQ_Handle *mq)
+client_connect_cb (void *cls,
+                   struct GNUNET_SERVICE_Client *c,
+                   struct GNUNET_MQ_Handle *mq)
 {
   return c;
 }
@@ -64,11 +64,11 @@ client_connect_cb(void *cls,
  * @param internal_cls should be equal to @a c
  */
 static void
-client_disconnect_cb(void *cls,
-                     struct GNUNET_SERVICE_Client *c,
-                     void *internal_cls)
+client_disconnect_cb (void *cls,
+                      struct GNUNET_SERVICE_Client *c,
+                      void *internal_cls)
 {
-  GNUNET_assert(c == internal_cls);
+  GNUNET_assert (c == internal_cls);
 }
 
 
@@ -80,25 +80,25 @@ client_disconnect_cb(void *cls,
  * @param service the initialized service
  */
 static void
-run(void *cls,
-    const struct GNUNET_CONFIGURATION_Handle *cfg,
-    struct GNUNET_SERVICE_Handle *service)
+run (void *cls,
+     const struct GNUNET_CONFIGURATION_Handle *cfg,
+     struct GNUNET_SERVICE_Handle *service)
 {
   /* FIXME: do setup here */
-  GNUNET_SCHEDULER_add_shutdown(&cleanup_task, NULL);
+  GNUNET_SCHEDULER_add_shutdown (&cleanup_task, NULL);
 }
 
 
 /**
  * Define "main" method using service macro.
  */
-GNUNET_SERVICE_MAIN("template",
-                    GNUNET_SERVICE_OPTION_NONE,
-                    &run,
-                    &client_connect_cb,
-                    &client_disconnect_cb,
-                    NULL,
-                    GNUNET_MQ_handler_end());
+GNUNET_SERVICE_MAIN ("template",
+                     GNUNET_SERVICE_OPTION_NONE,
+                     &run,
+                     &client_connect_cb,
+                     &client_disconnect_cb,
+                     NULL,
+                     GNUNET_MQ_handler_end ());
 
 
 /* end of gnunet-service-template.c */

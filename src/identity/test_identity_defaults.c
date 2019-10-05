@@ -29,7 +29,7 @@
 #include "gnunet_testing_lib.h"
 
 
-#define TIMEOUT GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 10)
+#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10)
 
 
 /**
@@ -54,33 +54,33 @@ static struct GNUNET_SCHEDULER_Task *endbadly_task;
 
 #define CHECK(cond)     \
   do                    \
-    {                     \
-      if (!(cond))       \
-        {                   \
-          GNUNET_break(0); \
-          end();           \
-          return;           \
-        }                   \
-    } while (0)
+  {                     \
+    if (! (cond))       \
+    {                   \
+      GNUNET_break (0); \
+      end ();           \
+      return;           \
+    }                   \
+  } while (0)
 
 
 /**
  * Clean up all resources used.
  */
 static void
-cleanup(void *cls)
+cleanup (void *cls)
 {
-  (void)cls;
+  (void) cls;
   if (NULL != op)
-    {
-      GNUNET_IDENTITY_cancel(op);
-      op = NULL;
-    }
+  {
+    GNUNET_IDENTITY_cancel (op);
+    op = NULL;
+  }
   if (NULL != h)
-    {
-      GNUNET_IDENTITY_disconnect(h);
-      h = NULL;
-    }
+  {
+    GNUNET_IDENTITY_disconnect (h);
+    h = NULL;
+  }
 }
 
 
@@ -90,9 +90,9 @@ cleanup(void *cls)
  * @param cls NULL
  */
 static void
-endbadly(void *cls)
+endbadly (void *cls)
 {
-  GNUNET_SCHEDULER_shutdown();
+  GNUNET_SCHEDULER_shutdown ();
   res = 1;
 }
 
@@ -101,14 +101,14 @@ endbadly(void *cls)
  * Termiante the testcase.
  */
 static void
-end()
+end ()
 {
   if (NULL != endbadly_task)
-    {
-      GNUNET_SCHEDULER_cancel(endbadly_task);
-      endbadly_task = NULL;
-    }
-  GNUNET_SCHEDULER_shutdown();
+  {
+    GNUNET_SCHEDULER_cancel (endbadly_task);
+    endbadly_task = NULL;
+  }
+  GNUNET_SCHEDULER_shutdown ();
 }
 
 
@@ -119,12 +119,12 @@ end()
  * @param emsg (should also be NULL)
  */
 static void
-delete_cont(void *cls, const char *emsg)
+delete_cont (void *cls, const char *emsg)
 {
   op = NULL;
-  CHECK(NULL == emsg);
+  CHECK (NULL == emsg);
   res = 0;
-  end();
+  end ();
 }
 
 
@@ -135,16 +135,16 @@ delete_cont(void *cls, const char *emsg)
  * @param emsg (should also be NULL)
  */
 static void
-get_cb(void *cls,
-       struct GNUNET_IDENTITY_Ego *ego,
-       void **ctx,
-       const char *identifier)
+get_cb (void *cls,
+        struct GNUNET_IDENTITY_Ego *ego,
+        void **ctx,
+        const char *identifier)
 {
   op = NULL;
-  CHECK(NULL != ego);
-  CHECK(NULL != identifier);
-  CHECK(0 == strcmp(identifier, "test-id"));
-  op = GNUNET_IDENTITY_delete(h, "test-id", &delete_cont, NULL);
+  CHECK (NULL != ego);
+  CHECK (NULL != identifier);
+  CHECK (0 == strcmp (identifier, "test-id"));
+  op = GNUNET_IDENTITY_delete (h, "test-id", &delete_cont, NULL);
 }
 
 
@@ -160,15 +160,15 @@ get_cb(void *cls,
  *                   must thus no longer be used
  */
 static void
-dummy_cb(void *cls,
-         struct GNUNET_IDENTITY_Ego *ego,
-         void **ctx,
-         const char *identifier)
+dummy_cb (void *cls,
+          struct GNUNET_IDENTITY_Ego *ego,
+          void **ctx,
+          const char *identifier)
 {
-  (void)cls;
-  (void)ego;
-  (void)ctx;
-  (void)identifier;
+  (void) cls;
+  (void) ego;
+  (void) ctx;
+  (void) identifier;
 }
 
 
@@ -180,15 +180,15 @@ dummy_cb(void *cls,
  * @param peer handle to access more of the peer (not used)
  */
 static void
-run_get(void *cls,
-        const struct GNUNET_CONFIGURATION_Handle *cfg,
-        struct GNUNET_TESTING_Peer *peer)
+run_get (void *cls,
+         const struct GNUNET_CONFIGURATION_Handle *cfg,
+         struct GNUNET_TESTING_Peer *peer)
 {
-  endbadly_task = GNUNET_SCHEDULER_add_delayed(TIMEOUT, &endbadly, NULL);
-  GNUNET_SCHEDULER_add_shutdown(&cleanup, NULL);
-  h = GNUNET_IDENTITY_connect(cfg, &dummy_cb, NULL);
-  CHECK(NULL != h);
-  op = GNUNET_IDENTITY_get(h, "test-service", &get_cb, NULL);
+  endbadly_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT, &endbadly, NULL);
+  GNUNET_SCHEDULER_add_shutdown (&cleanup, NULL);
+  h = GNUNET_IDENTITY_connect (cfg, &dummy_cb, NULL);
+  CHECK (NULL != h);
+  op = GNUNET_IDENTITY_get (h, "test-service", &get_cb, NULL);
 }
 
 
@@ -199,11 +199,11 @@ run_get(void *cls,
  * @param emsg (should also be NULL)
  */
 static void
-success_set_cont(void *cls, const char *emsg)
+success_set_cont (void *cls, const char *emsg)
 {
   op = NULL;
-  CHECK(NULL == emsg);
-  end();
+  CHECK (NULL == emsg);
+  end ();
 }
 
 
@@ -219,16 +219,16 @@ success_set_cont(void *cls, const char *emsg)
  *                   must thus no longer be used
  */
 static void
-notification_cb(void *cls,
-                struct GNUNET_IDENTITY_Ego *ego,
-                void **ctx,
-                const char *identifier)
+notification_cb (void *cls,
+                 struct GNUNET_IDENTITY_Ego *ego,
+                 void **ctx,
+                 const char *identifier)
 {
   if (NULL == ego)
     return; /* skip first call */
   if (NULL == identifier)
     return; /* deletion / shutdown */
-  op = GNUNET_IDENTITY_set(h, "test-service", ego, &success_set_cont, NULL);
+  op = GNUNET_IDENTITY_set (h, "test-service", ego, &success_set_cont, NULL);
 }
 
 
@@ -240,12 +240,12 @@ notification_cb(void *cls,
  * @param emsg error message
  */
 static void
-create_cb(void *cls,
-          const struct GNUNET_CRYPTO_EcdsaPrivateKey *pk,
-          const char *emsg)
+create_cb (void *cls,
+           const struct GNUNET_CRYPTO_EcdsaPrivateKey *pk,
+           const char *emsg)
 {
-  CHECK(NULL == emsg);
-  CHECK(NULL != pk);
+  CHECK (NULL == emsg);
+  CHECK (NULL != pk);
   op = NULL;
 }
 
@@ -258,36 +258,36 @@ create_cb(void *cls,
  * @param peer handle to access more of the peer (not used)
  */
 static void
-run_set(void *cls,
-        const struct GNUNET_CONFIGURATION_Handle *cfg,
-        struct GNUNET_TESTING_Peer *peer)
+run_set (void *cls,
+         const struct GNUNET_CONFIGURATION_Handle *cfg,
+         struct GNUNET_TESTING_Peer *peer)
 {
-  endbadly_task = GNUNET_SCHEDULER_add_delayed(TIMEOUT, &endbadly, NULL);
-  GNUNET_SCHEDULER_add_shutdown(&cleanup, NULL);
-  h = GNUNET_IDENTITY_connect(cfg, &notification_cb, NULL);
-  CHECK(NULL != h);
-  op = GNUNET_IDENTITY_create(h, "test-id", &create_cb, NULL);
+  endbadly_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT, &endbadly, NULL);
+  GNUNET_SCHEDULER_add_shutdown (&cleanup, NULL);
+  h = GNUNET_IDENTITY_connect (cfg, &notification_cb, NULL);
+  CHECK (NULL != h);
+  op = GNUNET_IDENTITY_create (h, "test-id", &create_cb, NULL);
 }
 
 
 int
-main(int argc, char *argv[])
+main (int argc, char *argv[])
 {
-  GNUNET_DISK_directory_remove("/tmp/gnunet/test-identity-service");
+  GNUNET_DISK_directory_remove ("/tmp/gnunet/test-identity-service");
   res = 1;
-  if (0 != GNUNET_TESTING_service_run("test-identity-defaults",
-                                      "identity",
-                                      "test_identity.conf",
-                                      &run_set,
-                                      NULL))
+  if (0 != GNUNET_TESTING_service_run ("test-identity-defaults",
+                                       "identity",
+                                       "test_identity.conf",
+                                       &run_set,
+                                       NULL))
     return 1;
-  if (0 != GNUNET_TESTING_service_run("test-identity-defaults",
-                                      "identity",
-                                      "test_identity.conf",
-                                      &run_get,
-                                      NULL))
+  if (0 != GNUNET_TESTING_service_run ("test-identity-defaults",
+                                       "identity",
+                                       "test_identity.conf",
+                                       &run_get,
+                                       NULL))
     return 1;
-  GNUNET_DISK_directory_remove("/tmp/gnunet/test-identity-service");
+  GNUNET_DISK_directory_remove ("/tmp/gnunet/test-identity-service");
   return res;
 }
 

@@ -66,7 +66,7 @@ typedef void *
  * @return #GNUNET_YES if the plugin exists, #GNUNET_NO if not
  */
 int
-GNUNET_PLUGIN_test(const char *library_name);
+GNUNET_PLUGIN_test (const char *library_name);
 
 
 /**
@@ -82,8 +82,8 @@ GNUNET_PLUGIN_test(const char *library_name);
  * @return whatever the initialization function returned, NULL on error
  */
 void *
-GNUNET_PLUGIN_load(const char *library_name,
-                   void *arg);
+GNUNET_PLUGIN_load (const char *library_name,
+                    void *arg);
 
 
 /**
@@ -115,10 +115,10 @@ typedef void
  * @param cb_cls closure for @a cb
  */
 void
-GNUNET_PLUGIN_load_all(const char *basename,
-                       void *arg,
-                       GNUNET_PLUGIN_LoaderCallback cb,
-                       void *cb_cls);
+GNUNET_PLUGIN_load_all (const char *basename,
+                        void *arg,
+                        GNUNET_PLUGIN_LoaderCallback cb,
+                        void *cb_cls);
 
 
 /**
@@ -131,8 +131,8 @@ GNUNET_PLUGIN_load_all(const char *basename,
  *         or a "char *" representing the error message
  */
 void *
-GNUNET_PLUGIN_unload(const char *library_name,
-                     void *arg);
+GNUNET_PLUGIN_unload (const char *library_name,
+                      void *arg);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

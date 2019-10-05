@@ -28,7 +28,8 @@
 /**
  * Test context for a DHT Test.
  */
-struct GNUNET_DHT_TEST_Context {
+struct GNUNET_DHT_TEST_Context
+{
   /**
    * Array of running peers.
    */
@@ -72,10 +73,10 @@ struct GNUNET_DHT_TEST_Context {
  * @return service handle to return in 'op_result', NULL on error
  */
 static void *
-dht_connect_adapter(void *cls,
-                    const struct GNUNET_CONFIGURATION_Handle *cfg)
+dht_connect_adapter (void *cls,
+                     const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
-  return GNUNET_DHT_connect(cfg, 16);
+  return GNUNET_DHT_connect (cfg, 16);
 }
 
 
@@ -87,12 +88,12 @@ dht_connect_adapter(void *cls,
  * @param op_result service handle returned from the connect adapter
  */
 static void
-dht_disconnect_adapter(void *cls,
-                       void *op_result)
+dht_disconnect_adapter (void *cls,
+                        void *op_result)
 {
   struct GNUNET_DHT_Handle *dht = op_result;
 
-  GNUNET_DHT_disconnect(dht);
+  GNUNET_DHT_disconnect (dht);
 }
 
 
@@ -106,21 +107,21 @@ dht_disconnect_adapter(void *cls,
  *          operation has executed successfully.
  */
 static void
-dht_connect_cb(void *cls,
-               struct GNUNET_TESTBED_Operation *op,
-               void *ca_result,
-               const char *emsg)
+dht_connect_cb (void *cls,
+                struct GNUNET_TESTBED_Operation *op,
+                void *ca_result,
+                const char *emsg)
 {
   struct GNUNET_DHT_TEST_Context *ctx = cls;
 
   if (NULL != emsg)
-    {
-      fprintf(stderr,
-              "Failed to connect to DHT service: %s\n",
-              emsg);
-      GNUNET_SCHEDULER_shutdown();
-      return;
-    }
+  {
+    fprintf (stderr,
+             "Failed to connect to DHT service: %s\n",
+             emsg);
+    GNUNET_SCHEDULER_shutdown ();
+    return;
+  }
   for (unsigned int i = 0; i < ctx->num_peers; i++)
     if (op == ctx->ops[i])
       ctx->dhts[i] = ca_result;
@@ -129,11 +130,11 @@ dht_connect_cb(void *cls,
       return;
   /* still some DHT connections missing */
   /* all DHT connections ready! */
-  ctx->app_main(ctx->app_main_cls,
-                ctx,
-                ctx->num_peers,
-                ctx->peers,
-                ctx->dhts);
+  ctx->app_main (ctx->app_main_cls,
+                 ctx,
+                 ctx->num_peers,
+                 ctx->peers,
+                 ctx->dhts);
 }
 
 
@@ -143,38 +144,38 @@ dht_connect_cb(void *cls,
  * @param ctx handle for the testbed
  */
 void
-GNUNET_DHT_TEST_cleanup(struct GNUNET_DHT_TEST_Context *ctx)
+GNUNET_DHT_TEST_cleanup (struct GNUNET_DHT_TEST_Context *ctx)
 {
   for (unsigned int i = 0; i < ctx->num_peers; i++)
-    GNUNET_TESTBED_operation_done(ctx->ops[i]);
-  GNUNET_free(ctx->ops);
-  GNUNET_free(ctx->dhts);
-  GNUNET_free(ctx);
-  GNUNET_SCHEDULER_shutdown();
+    GNUNET_TESTBED_operation_done (ctx->ops[i]);
+  GNUNET_free (ctx->ops);
+  GNUNET_free (ctx->dhts);
+  GNUNET_free (ctx);
+  GNUNET_SCHEDULER_shutdown ();
 }
 
 
 static void
-dht_test_run(void *cls,
-             struct GNUNET_TESTBED_RunHandle *h,
-             unsigned int num_peers,
-             struct GNUNET_TESTBED_Peer **peers,
-             unsigned int links_succeeded,
-             unsigned int links_failed)
+dht_test_run (void *cls,
+              struct GNUNET_TESTBED_RunHandle *h,
+              unsigned int num_peers,
+              struct GNUNET_TESTBED_Peer **peers,
+              unsigned int links_succeeded,
+              unsigned int links_failed)
 {
   struct GNUNET_DHT_TEST_Context *ctx = cls;
 
-  GNUNET_assert(num_peers == ctx->num_peers);
+  GNUNET_assert (num_peers == ctx->num_peers);
   ctx->peers = peers;
   for (unsigned int i = 0; i < num_peers; i++)
-    ctx->ops[i] = GNUNET_TESTBED_service_connect(ctx,
-                                                 peers[i],
-                                                 "dht",
-                                                 &dht_connect_cb,
-                                                 ctx,
-                                                 &dht_connect_adapter,
-                                                 &dht_disconnect_adapter,
-                                                 ctx);
+    ctx->ops[i] = GNUNET_TESTBED_service_connect (ctx,
+                                                  peers[i],
+                                                  "dht",
+                                                  &dht_connect_cb,
+                                                  ctx,
+                                                  &dht_connect_adapter,
+                                                  &dht_disconnect_adapter,
+                                                  ctx);
 }
 
 
@@ -189,27 +190,27 @@ dht_test_run(void *cls,
  * @param tmain_cls closure for 'tmain'
  */
 void
-GNUNET_DHT_TEST_run(const char *testname,
-                    const char *cfgname,
-                    unsigned int num_peers,
-                    GNUNET_DHT_TEST_AppMain tmain,
-                    void *tmain_cls)
+GNUNET_DHT_TEST_run (const char *testname,
+                     const char *cfgname,
+                     unsigned int num_peers,
+                     GNUNET_DHT_TEST_AppMain tmain,
+                     void *tmain_cls)
 {
   struct GNUNET_DHT_TEST_Context *ctx;
 
-  ctx = GNUNET_new(struct GNUNET_DHT_TEST_Context);
+  ctx = GNUNET_new (struct GNUNET_DHT_TEST_Context);
   ctx->num_peers = num_peers;
-  ctx->ops = GNUNET_new_array(num_peers,
-                              struct GNUNET_TESTBED_Operation *);
-  ctx->dhts = GNUNET_new_array(num_peers,
-                               struct GNUNET_DHT_Handle *);
+  ctx->ops = GNUNET_new_array (num_peers,
+                               struct GNUNET_TESTBED_Operation *);
+  ctx->dhts = GNUNET_new_array (num_peers,
+                                struct GNUNET_DHT_Handle *);
   ctx->app_main = tmain;
   ctx->app_main_cls = tmain_cls;
-  (void)GNUNET_TESTBED_test_run(testname,
-                                cfgname,
-                                num_peers,
-                                0LL, NULL, NULL,
-                                &dht_test_run, ctx);
+  (void) GNUNET_TESTBED_test_run (testname,
+                                  cfgname,
+                                  num_peers,
+                                  0LL, NULL, NULL,
+                                  &dht_test_run, ctx);
 }
 
 /* end of dht_test_lib.c */

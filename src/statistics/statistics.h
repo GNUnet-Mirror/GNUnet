@@ -37,7 +37,8 @@ GNUNET_NETWORK_STRUCT_BEGIN
  * The struct is be followed by the service name and
  * name of the statistic, both 0-terminated.
  */
-struct GNUNET_STATISTICS_ReplyMessage {
+struct GNUNET_STATISTICS_ReplyMessage
+{
   /**
    * Type:  GNUNET_MESSAGE_TYPE_STATISTICS_VALUE
    */
@@ -61,7 +62,7 @@ struct GNUNET_STATISTICS_ReplyMessage {
  * Flag for the `struct GNUNET_STATISTICS_ReplyMessage` UID only.
  * Note that other messages use #GNUNET_STATISTICS_SETFLAG_PERSISTENT.
  */
-#define GNUNET_STATISTICS_PERSIST_BIT ((uint32_t)(1LLU << 31))
+#define GNUNET_STATISTICS_PERSIST_BIT ((uint32_t) (1LLU << 31))
 
 /**
  * The value being set is an absolute change.
@@ -87,7 +88,8 @@ struct GNUNET_STATISTICS_ReplyMessage {
  * by the subsystem name and the name of
  * the statistic (each 0-terminated).
  */
-struct GNUNET_STATISTICS_SetMessage {
+struct GNUNET_STATISTICS_SetMessage
+{
   /**
    * Type: #GNUNET_MESSAGE_TYPE_STATISTICS_SET
    */
@@ -110,7 +112,8 @@ struct GNUNET_STATISTICS_SetMessage {
 /**
  * Message transmitted if a watched value changes.
  */
-struct GNUNET_STATISTICS_WatchValueMessage {
+struct GNUNET_STATISTICS_WatchValueMessage
+{
   /**
    * Type: #GNUNET_MESSAGE_TYPE_STATISTICS_WATCH_VALUE
    */

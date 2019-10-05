@@ -1,4 +1,3 @@
-
 /**
  * The name to use for the barrier in the test cases
  */

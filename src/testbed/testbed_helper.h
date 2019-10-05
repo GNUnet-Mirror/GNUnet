@@ -32,7 +32,8 @@ GNUNET_NETWORK_STRUCT_BEGIN
 /**
  * Initialization message for gnunet-helper-testbed to start testbed service
  */
-struct GNUNET_TESTBED_HelperInit {
+struct GNUNET_TESTBED_HelperInit
+{
   /**
    * Type is GNUNET_MESSAGE_TYPE_TESTBED_HELPER_INIT
    */
@@ -67,7 +68,8 @@ struct GNUNET_TESTBED_HelperInit {
 /**
  * Reply message from helper process
  */
-struct GNUNET_TESTBED_HelperReply {
+struct GNUNET_TESTBED_HelperReply
+{
   /**
    * Type is GNUNET_MESSAGE_TYPE_TESTBED_HELPER_REPLY
    */

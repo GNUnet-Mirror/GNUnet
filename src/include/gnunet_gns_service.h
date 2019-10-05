@@ -76,7 +76,7 @@ struct GNUNET_GNS_LookupWithTldRequest;
  * @return handle to the GNS service, or NULL on error
  */
 struct GNUNET_GNS_Handle *
-GNUNET_GNS_connect(const struct GNUNET_CONFIGURATION_Handle *cfg);
+GNUNET_GNS_connect (const struct GNUNET_CONFIGURATION_Handle *cfg);
 
 
 /**
@@ -85,7 +85,7 @@ GNUNET_GNS_connect(const struct GNUNET_CONFIGURATION_Handle *cfg);
  * @param handle connection to shut down
  */
 void
-GNUNET_GNS_disconnect(struct GNUNET_GNS_Handle *handle);
+GNUNET_GNS_disconnect (struct GNUNET_GNS_Handle *handle);
 
 
 /**
@@ -104,7 +104,8 @@ typedef void (*GNUNET_GNS_LookupResultProcessor) (
 /**
  * Options for the GNS lookup.
  */
-enum GNUNET_GNS_LocalOptions {
+enum GNUNET_GNS_LocalOptions
+{
   /**
    * Defaults, look in cache, then in DHT.
    */
@@ -136,13 +137,13 @@ enum GNUNET_GNS_LocalOptions {
  * @return handle to the queued request
  */
 struct GNUNET_GNS_LookupRequest *
-GNUNET_GNS_lookup(struct GNUNET_GNS_Handle *handle,
-                  const char *name,
-                  const struct GNUNET_CRYPTO_EcdsaPublicKey *zone,
-                  uint32_t type,
-                  enum GNUNET_GNS_LocalOptions options,
-                  GNUNET_GNS_LookupResultProcessor proc,
-                  void *proc_cls);
+GNUNET_GNS_lookup (struct GNUNET_GNS_Handle *handle,
+                   const char *name,
+                   const struct GNUNET_CRYPTO_EcdsaPublicKey *zone,
+                   uint32_t type,
+                   enum GNUNET_GNS_LocalOptions options,
+                   GNUNET_GNS_LookupResultProcessor proc,
+                   void *proc_cls);
 
 
 /**
@@ -152,7 +153,7 @@ GNUNET_GNS_lookup(struct GNUNET_GNS_Handle *handle,
  * @return closure from the lookup result processor
  */
 void *
-GNUNET_GNS_lookup_cancel(struct GNUNET_GNS_LookupRequest *lr);
+GNUNET_GNS_lookup_cancel (struct GNUNET_GNS_LookupRequest *lr);
 
 
 /**
@@ -186,12 +187,12 @@ typedef void (*GNUNET_GNS_LookupResultProcessor2) (
  * @return handle to the get request
  */
 struct GNUNET_GNS_LookupWithTldRequest *
-GNUNET_GNS_lookup_with_tld(struct GNUNET_GNS_Handle *handle,
-                           const char *name,
-                           uint32_t type,
-                           enum GNUNET_GNS_LocalOptions options,
-                           GNUNET_GNS_LookupResultProcessor2 proc,
-                           void *proc_cls);
+GNUNET_GNS_lookup_with_tld (struct GNUNET_GNS_Handle *handle,
+                            const char *name,
+                            uint32_t type,
+                            enum GNUNET_GNS_LocalOptions options,
+                            GNUNET_GNS_LookupResultProcessor2 proc,
+                            void *proc_cls);
 
 
 /**
@@ -201,7 +202,7 @@ GNUNET_GNS_lookup_with_tld(struct GNUNET_GNS_Handle *handle,
  * @return closure from the lookup result processor
  */
 void *
-GNUNET_GNS_lookup_with_tld_cancel(struct GNUNET_GNS_LookupWithTldRequest *ltr);
+GNUNET_GNS_lookup_with_tld_cancel (struct GNUNET_GNS_LookupWithTldRequest *ltr);
 
 
 #if 0 /* keep Emacsens' auto-indent happy */

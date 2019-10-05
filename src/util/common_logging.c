@@ -77,7 +77,8 @@
 /**
  * Linked list of active loggers.
  */
-struct CustomLogger {
+struct CustomLogger
+{
   /**
    * This is a linked list.
    */
@@ -166,7 +167,8 @@ static FILE *GNUNET_stderr;
 /**
  * Represents a single logging definition
  */
-struct LogDef {
+struct LogDef
+{
   /**
    * Component name regex
    */
@@ -209,7 +211,7 @@ struct LogDef {
 };
 
 
-#if !defined(GNUNET_CULL_LOGGING)
+#if ! defined(GNUNET_CULL_LOGGING)
 /**
  * Dynamic array of logging definitions
  */
@@ -250,21 +252,21 @@ static int gnunet_force_log_present;
  * @return GNUNET_GE_INVALID if log does not parse
  */
 static enum GNUNET_ErrorType
-get_type(const char *log)
+get_type (const char *log)
 {
   if (NULL == log)
     return GNUNET_ERROR_TYPE_UNSPECIFIED;
-  if (0 == strcasecmp(log, _("DEBUG")))
+  if (0 == strcasecmp (log, _ ("DEBUG")))
     return GNUNET_ERROR_TYPE_DEBUG;
-  if (0 == strcasecmp(log, _("INFO")))
+  if (0 == strcasecmp (log, _ ("INFO")))
     return GNUNET_ERROR_TYPE_INFO;
-  if (0 == strcasecmp(log, _("MESSAGE")))
+  if (0 == strcasecmp (log, _ ("MESSAGE")))
     return GNUNET_ERROR_TYPE_MESSAGE;
-  if (0 == strcasecmp(log, _("WARNING")))
+  if (0 == strcasecmp (log, _ ("WARNING")))
     return GNUNET_ERROR_TYPE_WARNING;
-  if (0 == strcasecmp(log, _("ERROR")))
+  if (0 == strcasecmp (log, _ ("ERROR")))
     return GNUNET_ERROR_TYPE_ERROR;
-  if (0 == strcasecmp(log, _("NONE")))
+  if (0 == strcasecmp (log, _ ("NONE")))
     return GNUNET_ERROR_TYPE_NONE;
   return GNUNET_ERROR_TYPE_INVALID;
 }
@@ -274,32 +276,32 @@ get_type(const char *log)
  * Abort the process, generate a core dump if possible.
  */
 void
-GNUNET_abort_()
+GNUNET_abort_ ()
 {
-  abort();
+  abort ();
 }
 
 
-#if !defined(GNUNET_CULL_LOGGING)
+#if ! defined(GNUNET_CULL_LOGGING)
 /**
  * Utility function - reallocates logdefs array to be twice as large.
  */
 static void
-resize_logdefs()
+resize_logdefs ()
 {
   logdefs_size = (logdefs_size + 1) * 2;
-  logdefs = GNUNET_realloc(logdefs, logdefs_size * sizeof(struct LogDef));
+  logdefs = GNUNET_realloc (logdefs, logdefs_size * sizeof(struct LogDef));
 }
 
 
-#if !TALER_WALLET_ONLY
+#if ! TALER_WALLET_ONLY
 /**
  * Rotate logs, deleting the oldest log.
  *
  * @param new_name new name to add to the rotation
  */
 static void
-log_rotate(const char *new_name)
+log_rotate (const char *new_name)
 {
   static char *rotation[ROTATION_KEEP];
   static unsigned int rotation_off;
@@ -309,13 +311,13 @@ log_rotate(const char *new_name)
     return; /* not a real log file name */
   discard = rotation[rotation_off % ROTATION_KEEP];
   if (NULL != discard)
-    {
-      /* Note: can't log errors during logging (recursion!), so this
-         operation MUST silently fail... */
-      (void)unlink(discard);
-      GNUNET_free(discard);
-    }
-  rotation[rotation_off % ROTATION_KEEP] = GNUNET_strdup(new_name);
+  {
+    /* Note: can't log errors during logging (recursion!), so this
+       operation MUST silently fail... */
+    (void) unlink (discard);
+    GNUNET_free (discard);
+  }
+  rotation[rotation_off % ROTATION_KEEP] = GNUNET_strdup (new_name);
   rotation_off++;
 }
 
@@ -327,7 +329,7 @@ log_rotate(const char *new_name)
  * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
  */
 static int
-setup_log_file(const struct tm *tm)
+setup_log_file (const struct tm *tm)
 {
   static char last_fn[PATH_MAX + 1];
   char fn[PATH_MAX + 1];
@@ -338,64 +340,64 @@ setup_log_file(const struct tm *tm)
 
   if (NULL == log_file_name)
     return GNUNET_SYSERR;
-  if (0 == strftime(fn, sizeof(fn), log_file_name, tm))
+  if (0 == strftime (fn, sizeof(fn), log_file_name, tm))
     return GNUNET_SYSERR;
-  leftsquare = strrchr(fn, '[');
+  leftsquare = strrchr (fn, '[');
   if ((NULL != leftsquare) && (']' == leftsquare[1]))
-    {
-      char *logfile_copy = GNUNET_strdup(fn);
+  {
+    char *logfile_copy = GNUNET_strdup (fn);
 
-      logfile_copy[leftsquare - fn] = '\0';
-      logfile_copy[leftsquare - fn + 1] = '\0';
-      snprintf(fn,
-               PATH_MAX,
-               "%s%d%s",
-               logfile_copy,
-               getpid(),
-               &logfile_copy[leftsquare - fn + 2]);
-      GNUNET_free(logfile_copy);
-    }
-  if (0 == strcmp(fn, last_fn))
+    logfile_copy[leftsquare - fn] = '\0';
+    logfile_copy[leftsquare - fn + 1] = '\0';
+    snprintf (fn,
+              PATH_MAX,
+              "%s%d%s",
+              logfile_copy,
+              getpid (),
+              &logfile_copy[leftsquare - fn + 2]);
+    GNUNET_free (logfile_copy);
+  }
+  if (0 == strcmp (fn, last_fn))
     return GNUNET_OK; /* no change */
-  log_rotate(last_fn);
-  strcpy(last_fn, fn);
-  if (GNUNET_SYSERR == GNUNET_DISK_directory_create_for_file(fn))
-    {
-      fprintf(stderr,
-              "Failed to create directory for `%s': %s\n",
-              fn,
-              strerror(errno));
-      return GNUNET_SYSERR;
-    }
-  altlog_fd = open(fn,
-                   O_APPEND | O_WRONLY | O_CREAT,
-                   S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
+  log_rotate (last_fn);
+  strcpy (last_fn, fn);
+  if (GNUNET_SYSERR == GNUNET_DISK_directory_create_for_file (fn))
+  {
+    fprintf (stderr,
+             "Failed to create directory for `%s': %s\n",
+             fn,
+             strerror (errno));
+    return GNUNET_SYSERR;
+  }
+  altlog_fd = open (fn,
+                    O_APPEND | O_WRONLY | O_CREAT,
+                    S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
 
   if (-1 != altlog_fd)
+  {
+    if (NULL != GNUNET_stderr)
+      fclose (GNUNET_stderr);
+    dup_return = dup2 (altlog_fd, 2);
+    (void) close (altlog_fd);
+    if (-1 != dup_return)
     {
-      if (NULL != GNUNET_stderr)
-        fclose(GNUNET_stderr);
-      dup_return = dup2(altlog_fd, 2);
-      (void)close(altlog_fd);
-      if (-1 != dup_return)
-        {
-          altlog = fdopen(2, "ab");
-          if (NULL == altlog)
-            {
-              (void)close(2);
-              altlog_fd = -1;
-            }
-        }
-      else
-        {
-          altlog_fd = -1;
-        }
+      altlog = fdopen (2, "ab");
+      if (NULL == altlog)
+      {
+        (void) close (2);
+        altlog_fd = -1;
+      }
     }
+    else
+    {
+      altlog_fd = -1;
+    }
+  }
   if (-1 == altlog_fd)
-    {
-      GNUNET_log_strerror_file(GNUNET_ERROR_TYPE_ERROR, "open", fn);
-      return GNUNET_SYSERR;
-    }
+  {
+    GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, "open", fn);
+    return GNUNET_SYSERR;
+  }
   GNUNET_stderr = altlog;
   return GNUNET_OK;
 }
@@ -415,44 +417,44 @@ setup_log_file(const struct tm *tm)
  * @return 0 on success, regex-specific error otherwise
  */
 static int
-add_definition(const char *component,
-               const char *file,
-               const char *function,
-               int from_line,
-               int to_line,
-               int level,
-               int force)
+add_definition (const char *component,
+                const char *file,
+                const char *function,
+                int from_line,
+                int to_line,
+                int level,
+                int force)
 {
   struct LogDef n;
   int r;
 
   if (logdefs_size == logdefs_len)
-    resize_logdefs();
-  memset(&n, 0, sizeof(n));
-  if (0 == strlen(component))
-    component = (char *)".*";
-  r = regcomp(&n.component_regex, (const char *)component, REG_NOSUB);
+    resize_logdefs ();
+  memset (&n, 0, sizeof(n));
+  if (0 == strlen (component))
+    component = (char *) ".*";
+  r = regcomp (&n.component_regex, (const char *) component, REG_NOSUB);
   if (0 != r)
-    {
-      return r;
-    }
-  if (0 == strlen(file))
-    file = (char *)".*";
-  r = regcomp(&n.file_regex, (const char *)file, REG_NOSUB);
+  {
+    return r;
+  }
+  if (0 == strlen (file))
+    file = (char *) ".*";
+  r = regcomp (&n.file_regex, (const char *) file, REG_NOSUB);
   if (0 != r)
-    {
-      regfree(&n.component_regex);
-      return r;
-    }
-  if ((NULL == function) || (0 == strlen(function)))
-    function = (char *)".*";
-  r = regcomp(&n.function_regex, (const char *)function, REG_NOSUB);
+  {
+    regfree (&n.component_regex);
+    return r;
+  }
+  if ((NULL == function) || (0 == strlen (function)))
+    function = (char *) ".*";
+  r = regcomp (&n.function_regex, (const char *) function, REG_NOSUB);
   if (0 != r)
-    {
-      regfree(&n.component_regex);
-      regfree(&n.file_regex);
-      return r;
-    }
+  {
+    regfree (&n.component_regex);
+    regfree (&n.file_regex);
+    return r;
+  }
   n.from_line = from_line;
   n.to_line = to_line;
   n.level = level;
@@ -476,11 +478,11 @@ add_definition(const char *component,
  * @return 0 to disallow the call, 1 to allow it
  */
 int
-GNUNET_get_log_call_status(int caller_level,
-                           const char *comp,
-                           const char *file,
-                           const char *function,
-                           int line)
+GNUNET_get_log_call_status (int caller_level,
+                            const char *comp,
+                            const char *file,
+                            const char *function,
+                            int line)
 {
   struct LogDef *ld;
   int i;
@@ -499,18 +501,18 @@ GNUNET_get_log_call_status(int caller_level,
   /* Only look for forced definitions? */
   force_only = min_level >= 0;
   for (i = 0; i < logdefs_len; i++)
+  {
+    ld = &logdefs[i];
+    if (((! force_only) || ld->force) &&
+        ((line >= ld->from_line) &&(line <= ld->to_line) ) &&
+        (0 == regexec (&ld->component_regex, comp, 0, NULL, 0)) &&
+        (0 == regexec (&ld->file_regex, file, 0, NULL, 0)) &&
+        (0 == regexec (&ld->function_regex, function, 0, NULL, 0)))
     {
-      ld = &logdefs[i];
-      if (((!force_only) || ld->force) &&
-          (line >= ld->from_line && line <= ld->to_line) &&
-          (0 == regexec(&ld->component_regex, comp, 0, NULL, 0)) &&
-          (0 == regexec(&ld->file_regex, file, 0, NULL, 0)) &&
-          (0 == regexec(&ld->function_regex, function, 0, NULL, 0)))
-        {
-          /* We're finished */
-          return caller_level <= ld->level;
-        }
+      /* We're finished */
+      return caller_level <= ld->level;
     }
+  }
   /* No matches - use global level, if defined */
   if (min_level >= 0)
     return caller_level <= min_level;
@@ -546,7 +548,7 @@ GNUNET_get_log_call_status(int caller_level,
  * @return number of added definitions
  */
 static int
-parse_definitions(const char *constname, int force)
+parse_definitions (const char *constname, int force)
 {
   char *def;
   const char *tmp;
@@ -562,116 +564,116 @@ parse_definitions(const char *constname, int force)
   int counter = 0;
   int keep_looking = 1;
 
-  tmp = getenv(constname);
+  tmp = getenv (constname);
   if (NULL == tmp)
     return 0;
-  def = GNUNET_strdup(tmp);
+  def = GNUNET_strdup (tmp);
   from_line = 0;
   to_line = INT_MAX;
   for (p = def, state = 0, start = def; keep_looking; p++)
+  {
+    switch (p[0])
     {
-      switch (p[0])
+    case ';':     /* found a field separator */
+      p[0] = '\0';
+      switch (state)
+      {
+      case 0:       /* within a component name */
+        comp = start;
+        break;
+
+      case 1:       /* within a file name */
+        file = start;
+        break;
+
+      case 2:       /* within a function name */
+        /* after a file name there must be a function name */
+        function = start;
+        break;
+
+      case 3:       /* within a from-to line range */
+        if (strlen (start) > 0)
         {
-        case ';': /* found a field separator */
-          p[0] = '\0';
-          switch (state)
+          errno = 0;
+          from_line = strtol (start, &t, 10);
+          if ((0 != errno) || (from_line < 0))
+          {
+            GNUNET_free (def);
+            return counter;
+          }
+          if ((t < p) && ('-' == t[0]))
+          {
+            errno = 0;
+            start = t + 1;
+            to_line = strtol (start, &t, 10);
+            if ((0 != errno) || (to_line < 0) || (t != p))
             {
-            case 0: /* within a component name */
-              comp = start;
-              break;
-
-            case 1: /* within a file name */
-              file = start;
-              break;
-
-            case 2: /* within a function name */
-              /* after a file name there must be a function name */
-              function = start;
-              break;
-
-            case 3: /* within a from-to line range */
-              if (strlen(start) > 0)
-                {
-                  errno = 0;
-                  from_line = strtol(start, &t, 10);
-                  if ((0 != errno) || (from_line < 0))
-                    {
-                      GNUNET_free(def);
-                      return counter;
-                    }
-                  if ((t < p) && ('-' == t[0]))
-                    {
-                      errno = 0;
-                      start = t + 1;
-                      to_line = strtol(start, &t, 10);
-                      if ((0 != errno) || (to_line < 0) || (t != p))
-                        {
-                          GNUNET_free(def);
-                          return counter;
-                        }
-                    }
-                  else /* one number means "match this line only" */
-                    to_line = from_line;
-                }
-              else /* default to 0-max */
-                {
-                  from_line = 0;
-                  to_line = INT_MAX;
-                }
-              break;
-
-            default:
-              fprintf(
-                stderr,
-                _("ERROR: Unable to parse log definition: Syntax error at `%s'.\n"),
-                p);
-              break;
+              GNUNET_free (def);
+              return counter;
             }
-          start = p + 1;
-          state++;
-          break;
-
-        case '\0': /* found EOL */
-          keep_looking = 0;
-
-        /* fall through to '/' */
-        case '/': /* found a definition separator */
-          switch (state)
-            {
-            case 4: /* within a log level */
-              p[0] = '\0';
-              state = 0;
-              level = get_type((const char *)start);
-              if ((GNUNET_ERROR_TYPE_INVALID == level) ||
-                  (GNUNET_ERROR_TYPE_UNSPECIFIED == level) ||
-                  (0 != add_definition(comp,
-                                       file,
-                                       function,
-                                       from_line,
-                                       to_line,
-                                       level,
-                                       force)))
-                {
-                  GNUNET_free(def);
-                  return counter;
-                }
-              counter++;
-              start = p + 1;
-              break;
-
-            default:
-              fprintf(
-                stderr,
-                _("ERROR: Unable to parse log definition: Syntax error at `%s'.\n"),
-                p);
-              break;
-            }
-
-        default:
-          break;
+          }
+          else         /* one number means "match this line only" */
+            to_line = from_line;
         }
+        else       /* default to 0-max */
+        {
+          from_line = 0;
+          to_line = INT_MAX;
+        }
+        break;
+
+      default:
+        fprintf (
+          stderr,
+          _ ("ERROR: Unable to parse log definition: Syntax error at `%s'.\n"),
+          p);
+        break;
+      }
+      start = p + 1;
+      state++;
+      break;
+
+    case '\0':     /* found EOL */
+      keep_looking = 0;
+
+    /* fall through to '/' */
+    case '/':     /* found a definition separator */
+      switch (state)
+      {
+      case 4:       /* within a log level */
+        p[0] = '\0';
+        state = 0;
+        level = get_type ((const char *) start);
+        if ((GNUNET_ERROR_TYPE_INVALID == level) ||
+            (GNUNET_ERROR_TYPE_UNSPECIFIED == level) ||
+            (0 != add_definition (comp,
+                                  file,
+                                  function,
+                                  from_line,
+                                  to_line,
+                                  level,
+                                  force)))
+        {
+          GNUNET_free (def);
+          return counter;
+        }
+        counter++;
+        start = p + 1;
+        break;
+
+      default:
+        fprintf (
+          stderr,
+          _ ("ERROR: Unable to parse log definition: Syntax error at `%s'.\n"),
+          p);
+        break;
+      }
+
+    default:
+      break;
     }
-  GNUNET_free(def);
+  }
+  GNUNET_free (def);
   return counter;
 }
 
@@ -680,15 +682,15 @@ parse_definitions(const char *constname, int force)
  * Utility function - parses GNUNET_LOG and GNUNET_FORCE_LOG.
  */
 static void
-parse_all_definitions()
+parse_all_definitions ()
 {
   if (GNUNET_NO == gnunet_force_log_parsed)
     gnunet_force_log_present =
-      parse_definitions("GNUNET_FORCE_LOG", 1) > 0 ? GNUNET_YES : GNUNET_NO;
+      parse_definitions ("GNUNET_FORCE_LOG", 1) > 0 ? GNUNET_YES : GNUNET_NO;
   gnunet_force_log_parsed = GNUNET_YES;
 
   if (GNUNET_NO == gnunet_log_parsed)
-    parse_definitions("GNUNET_LOG", 0);
+    parse_definitions ("GNUNET_LOG", 0);
   gnunet_log_parsed = GNUNET_YES;
 }
 #endif
@@ -703,40 +705,40 @@ parse_all_definitions()
  * @return #GNUNET_OK on success
  */
 int
-GNUNET_log_setup(const char *comp, const char *loglevel, const char *logfile)
+GNUNET_log_setup (const char *comp, const char *loglevel, const char *logfile)
 {
   const char *env_logfile;
 
-  min_level = get_type(loglevel);
-#if !defined(GNUNET_CULL_LOGGING)
-  parse_all_definitions();
+  min_level = get_type (loglevel);
+#if ! defined(GNUNET_CULL_LOGGING)
+  parse_all_definitions ();
 #endif
-  GNUNET_free_non_null(component);
-  GNUNET_asprintf(&component, "%s-%d", comp, getpid());
-  GNUNET_free_non_null(component_nopid);
-  component_nopid = GNUNET_strdup(comp);
+  GNUNET_free_non_null (component);
+  GNUNET_asprintf (&component, "%s-%d", comp, getpid ());
+  GNUNET_free_non_null (component_nopid);
+  component_nopid = GNUNET_strdup (comp);
 
-  env_logfile = getenv("GNUNET_FORCE_LOGFILE");
-  if ((NULL != env_logfile) && (strlen(env_logfile) > 0))
+  env_logfile = getenv ("GNUNET_FORCE_LOGFILE");
+  if ((NULL != env_logfile) && (strlen (env_logfile) > 0))
     logfile = env_logfile;
   if (NULL == logfile)
     return GNUNET_OK;
-  GNUNET_free_non_null(log_file_name);
-  log_file_name = GNUNET_STRINGS_filename_expand(logfile);
+  GNUNET_free_non_null (log_file_name);
+  log_file_name = GNUNET_STRINGS_filename_expand (logfile);
   if (NULL == log_file_name)
     return GNUNET_SYSERR;
 #if TALER_WALLET_ONLY || defined(GNUNET_CULL_LOGGING)
   /* log file option not allowed for wallet logic */
-  GNUNET_assert(NULL == logfile);
+  GNUNET_assert (NULL == logfile);
   return GNUNET_OK;
 #else
   {
     time_t t;
     const struct tm *tm;
 
-    t = time(NULL);
-    tm = gmtime(&t);
-    return setup_log_file(tm);
+    t = time (NULL);
+    tm = gmtime (&t);
+    return setup_log_file (tm);
   }
 #endif
 }
@@ -752,11 +754,11 @@ GNUNET_log_setup(const char *comp, const char *loglevel, const char *logfile)
  * @param logger_cls closure for @a logger
  */
 void
-GNUNET_logger_add(GNUNET_Logger logger, void *logger_cls)
+GNUNET_logger_add (GNUNET_Logger logger, void *logger_cls)
 {
   struct CustomLogger *entry;
 
-  entry = GNUNET_new(struct CustomLogger);
+  entry = GNUNET_new (struct CustomLogger);
   entry->logger = logger;
   entry->logger_cls = logger_cls;
   entry->next = loggers;
@@ -771,7 +773,7 @@ GNUNET_logger_add(GNUNET_Logger logger, void *logger_cls)
  * @param logger_cls closure for @a logger
  */
 void
-GNUNET_logger_remove(GNUNET_Logger logger, void *logger_cls)
+GNUNET_logger_remove (GNUNET_Logger logger, void *logger_cls)
 {
   struct CustomLogger *pos;
   struct CustomLogger *prev;
@@ -780,16 +782,16 @@ GNUNET_logger_remove(GNUNET_Logger logger, void *logger_cls)
   pos = loggers;
   while ((NULL != pos) &&
          ((pos->logger != logger) || (pos->logger_cls != logger_cls)))
-    {
-      prev = pos;
-      pos = pos->next;
-    }
-  GNUNET_assert(NULL != pos);
+  {
+    prev = pos;
+    pos = pos->next;
+  }
+  GNUNET_assert (NULL != pos);
   if (NULL == prev)
     loggers = pos->next;
   else
     prev->next = pos->next;
-  GNUNET_free(pos);
+  GNUNET_free (pos);
 }
 
 
@@ -802,67 +804,67 @@ GNUNET_logger_remove(GNUNET_Logger logger, void *logger_cls)
  * @param msg the actual message
  */
 static void
-output_message(enum GNUNET_ErrorType kind,
-               const char *comp,
-               const char *datestr,
-               const char *msg)
+output_message (enum GNUNET_ErrorType kind,
+                const char *comp,
+                const char *datestr,
+                const char *msg)
 {
   struct CustomLogger *pos;
 
   /* only use the standard logger if no custom loggers are present */
   if ((NULL != GNUNET_stderr) && (NULL == loggers))
+  {
+    if (kind == GNUNET_ERROR_TYPE_MESSAGE)
     {
-      if (kind == GNUNET_ERROR_TYPE_MESSAGE)
-        {
-          /* The idea here is to produce "normal" output messages
-           * for end users while still having the power of the
-           * logging engine for developer needs. So ideally this
-           * is what it should look like when CLI tools are used
-           * interactively, yet the same message shouldn't look
-           * this way if the output is going to logfiles or robots
-           * instead.
-           */
-          fprintf(GNUNET_stderr, "* %s", msg);
-        }
-      else if (GNUNET_YES == current_async_scope.have_scope)
-        {
-          static GNUNET_THREAD_LOCAL char id_buf[27];
-          char *end;
-
-          /* We're logging, so skip_log must be currently 0. */
-          skip_log = 100;
-          end = GNUNET_STRINGS_data_to_string(&current_async_scope.scope_id,
-                                              sizeof(struct GNUNET_AsyncScopeId),
-                                              id_buf,
-                                              sizeof(id_buf) - 1);
-          GNUNET_assert(NULL != end);
-          *end = '\0';
-          skip_log = 0;
-          fprintf(GNUNET_stderr,
-                  "%s %s(%s) %s %s",
-                  datestr,
-                  comp,
-                  id_buf,
-                  GNUNET_error_type_to_string(kind),
-                  msg);
-        }
-      else
-        {
-          fprintf(GNUNET_stderr,
-                  "%s %s %s %s",
-                  datestr,
-                  comp,
-                  GNUNET_error_type_to_string(kind),
-                  msg);
-        }
-      fflush(GNUNET_stderr);
+      /* The idea here is to produce "normal" output messages
+       * for end users while still having the power of the
+       * logging engine for developer needs. So ideally this
+       * is what it should look like when CLI tools are used
+       * interactively, yet the same message shouldn't look
+       * this way if the output is going to logfiles or robots
+       * instead.
+       */
+      fprintf (GNUNET_stderr, "* %s", msg);
     }
+    else if (GNUNET_YES == current_async_scope.have_scope)
+    {
+      static GNUNET_THREAD_LOCAL char id_buf[27];
+      char *end;
+
+      /* We're logging, so skip_log must be currently 0. */
+      skip_log = 100;
+      end = GNUNET_STRINGS_data_to_string (&current_async_scope.scope_id,
+                                           sizeof(struct GNUNET_AsyncScopeId),
+                                           id_buf,
+                                           sizeof(id_buf) - 1);
+      GNUNET_assert (NULL != end);
+      *end = '\0';
+      skip_log = 0;
+      fprintf (GNUNET_stderr,
+               "%s %s(%s) %s %s",
+               datestr,
+               comp,
+               id_buf,
+               GNUNET_error_type_to_string (kind),
+               msg);
+    }
+    else
+    {
+      fprintf (GNUNET_stderr,
+               "%s %s %s %s",
+               datestr,
+               comp,
+               GNUNET_error_type_to_string (kind),
+               msg);
+    }
+    fflush (GNUNET_stderr);
+  }
   pos = loggers;
   while (NULL != pos)
-    {
-      pos->logger(pos->logger_cls, kind, comp, datestr, msg);
-      pos = pos->next;
-    }
+  {
+    pos->logger (pos->logger_cls, kind, comp, datestr, msg);
+    pos = pos->next;
+  }
 }
 
 
@@ -872,7 +874,7 @@ output_message(enum GNUNET_ErrorType kind,
  * @param datestr our current timestamp
  */
 static void
-flush_bulk(const char *datestr)
+flush_bulk (const char *datestr)
 {
   char msg[DATE_STR_SIZE + BULK_TRACK_SIZE + 256];
   int rev;
@@ -882,31 +884,31 @@ flush_bulk(const char *datestr)
   if ((0 == last_bulk_time.abs_value_us) || (0 == last_bulk_repeat))
     return;
   rev = 0;
-  last = memchr(last_bulk, '\0', BULK_TRACK_SIZE);
+  last = memchr (last_bulk, '\0', BULK_TRACK_SIZE);
   if (last == NULL)
     last = &last_bulk[BULK_TRACK_SIZE - 1];
   else if (last != last_bulk)
     last--;
   if (last[0] == '\n')
-    {
-      rev = 1;
-      last[0] = '\0';
-    }
+  {
+    rev = 1;
+    last[0] = '\0';
+  }
   ft =
-    GNUNET_STRINGS_relative_time_to_string(GNUNET_TIME_absolute_get_duration(
-                                             last_bulk_time),
-                                           GNUNET_YES);
-  snprintf(msg,
-           sizeof(msg),
-           _("Message `%.*s' repeated %u times in the last %s\n"),
-           BULK_TRACK_SIZE,
-           last_bulk,
-           last_bulk_repeat,
-           ft);
+    GNUNET_STRINGS_relative_time_to_string (GNUNET_TIME_absolute_get_duration (
+                                              last_bulk_time),
+                                            GNUNET_YES);
+  snprintf (msg,
+            sizeof(msg),
+            _ ("Message `%.*s' repeated %u times in the last %s\n"),
+            BULK_TRACK_SIZE,
+            last_bulk,
+            last_bulk_repeat,
+            ft);
   if (rev == 1)
     last[0] = '\n';
-  output_message(last_bulk_kind, last_bulk_comp, datestr, msg);
-  last_bulk_time = GNUNET_TIME_absolute_get();
+  output_message (last_bulk_kind, last_bulk_comp, datestr, msg);
+  last_bulk_time = GNUNET_TIME_absolute_get ();
   last_bulk_repeat = 0;
 }
 
@@ -918,21 +920,21 @@ flush_bulk(const char *datestr)
  * @param check_reset #GNUNET_YES to assert that the log skip counter is currently zero
  */
 void
-GNUNET_log_skip(int n, int check_reset)
+GNUNET_log_skip (int n, int check_reset)
 {
   int ok;
 
   if (0 == n)
-    {
-      ok = (0 == skip_log);
-      skip_log = 0;
-      if (check_reset)
-        GNUNET_break(ok);
-    }
+  {
+    ok = (0 == skip_log);
+    skip_log = 0;
+    if (check_reset)
+      GNUNET_break (ok);
+  }
   else
-    {
-      skip_log += n;
-    }
+  {
+    skip_log += n;
+  }
 }
 
 
@@ -942,7 +944,7 @@ GNUNET_log_skip(int n, int check_reset)
  * @return number of log calls to be ignored
  */
 int
-GNUNET_get_log_skip()
+GNUNET_get_log_skip ()
 {
   return skip_log;
 }
@@ -957,10 +959,10 @@ GNUNET_get_log_skip()
  * @param va arguments to the format string "message"
  */
 static void
-mylog(enum GNUNET_ErrorType kind,
-      const char *comp,
-      const char *message,
-      va_list va)
+mylog (enum GNUNET_ErrorType kind,
+       const char *comp,
+       const char *message,
+       va_list va)
 {
   char date[DATE_STR_SIZE];
   char date2[DATE_STR_SIZE];
@@ -968,78 +970,78 @@ mylog(enum GNUNET_ErrorType kind,
   size_t size;
   va_list vacp;
 
-  va_copy(vacp, va);
-  size = vsnprintf(NULL, 0, message, vacp) + 1;
-  GNUNET_assert(0 != size);
-  va_end(vacp);
-  memset(date, 0, DATE_STR_SIZE);
+  va_copy (vacp, va);
+  size = vsnprintf (NULL, 0, message, vacp) + 1;
+  GNUNET_assert (0 != size);
+  va_end (vacp);
+  memset (date, 0, DATE_STR_SIZE);
   {
     char buf[size];
     long long offset;
 
     struct timeval timeofday;
 
-    gettimeofday(&timeofday, NULL);
-    offset = GNUNET_TIME_get_offset();
+    gettimeofday (&timeofday, NULL);
+    offset = GNUNET_TIME_get_offset ();
     if (offset > 0)
+    {
+      timeofday.tv_sec += offset / 1000LL;
+      timeofday.tv_usec += (offset % 1000LL) * 1000LL;
+      if (timeofday.tv_usec > 1000000LL)
       {
-        timeofday.tv_sec += offset / 1000LL;
+        timeofday.tv_usec -= 1000000LL;
+        timeofday.tv_sec++;
+      }
+    }
+    else
+    {
+      timeofday.tv_sec += offset / 1000LL;
+      if (timeofday.tv_usec > -(offset % 1000LL) * 1000LL)
+      {
         timeofday.tv_usec += (offset % 1000LL) * 1000LL;
-        if (timeofday.tv_usec > 1000000LL)
-          {
-            timeofday.tv_usec -= 1000000LL;
-            timeofday.tv_sec++;
-          }
       }
-    else
+      else
       {
-        timeofday.tv_sec += offset / 1000LL;
-        if (timeofday.tv_usec > -(offset % 1000LL) * 1000LL)
-          {
-            timeofday.tv_usec += (offset % 1000LL) * 1000LL;
-          }
-        else
-          {
-            timeofday.tv_usec += 1000000LL + (offset % 1000LL) * 1000LL;
-            timeofday.tv_sec--;
-          }
+        timeofday.tv_usec += 1000000LL + (offset % 1000LL) * 1000LL;
+        timeofday.tv_sec--;
       }
-    tmptr = localtime(&timeofday.tv_sec);
+    }
+    tmptr = localtime (&timeofday.tv_sec);
     if (NULL == tmptr)
-      {
-        strcpy(date, "localtime error");
-      }
+    {
+      strcpy (date, "localtime error");
+    }
     else
-      {
-        if (0 == strftime(date2, DATE_STR_SIZE, "%b %d %H:%M:%S-%%06u", tmptr))
-          abort();
-        if (0 > snprintf(date, sizeof(date), date2, timeofday.tv_usec))
-          abort();
-      }
+    {
+      if (0 == strftime (date2, DATE_STR_SIZE, "%b %d %H:%M:%S-%%06u", tmptr))
+        abort ();
+      if (0 > snprintf (date, sizeof(date), date2, timeofday.tv_usec))
+        abort ();
+    }
 
-    vsnprintf(buf, size, message, va);
-#if !(defined(GNUNET_CULL_LOGGING) || TALER_WALLET_ONLY)
+    vsnprintf (buf, size, message, va);
+#if ! (defined(GNUNET_CULL_LOGGING) || TALER_WALLET_ONLY)
     if (NULL != tmptr)
-      (void)setup_log_file(tmptr);
+      (void) setup_log_file (tmptr);
 #endif
     if ((0 != (kind & GNUNET_ERROR_TYPE_BULK)) &&
         (0 != last_bulk_time.abs_value_us) &&
-        (0 == strncmp(buf, last_bulk, sizeof(last_bulk))))
-      {
-        last_bulk_repeat++;
-        if ((GNUNET_TIME_absolute_get_duration(last_bulk_time).rel_value_us >
-             BULK_DELAY_THRESHOLD) ||
-            (last_bulk_repeat > BULK_REPEAT_THRESHOLD))
-          flush_bulk(date);
-        return;
-      }
-    flush_bulk(date);
-    GNUNET_strlcpy(last_bulk, buf, sizeof(last_bulk));
+        (0 == strncmp (buf, last_bulk, sizeof(last_bulk))))
+    {
+      last_bulk_repeat++;
+      if ((GNUNET_TIME_absolute_get_duration (last_bulk_time).rel_value_us >
+           BULK_DELAY_THRESHOLD) ||
+          (last_bulk_repeat > BULK_REPEAT_THRESHOLD))
+        flush_bulk (date);
+      return;
+    }
+    flush_bulk (date);
+    GNUNET_strlcpy (last_bulk, buf, sizeof(last_bulk));
     last_bulk_repeat = 0;
     last_bulk_kind = kind;
-    last_bulk_time = GNUNET_TIME_absolute_get();
-    GNUNET_strlcpy(last_bulk_comp, comp, sizeof(last_bulk_comp));
-    output_message(kind, comp, date, buf);
+    last_bulk_time = GNUNET_TIME_absolute_get ();
+    GNUNET_strlcpy (last_bulk_comp, comp, sizeof(last_bulk_comp));
+    output_message (kind, comp, date, buf);
   }
 }
 
@@ -1052,13 +1054,13 @@ mylog(enum GNUNET_ErrorType kind,
  * @param ... arguments for format string
  */
 void
-GNUNET_log_nocheck(enum GNUNET_ErrorType kind, const char *message, ...)
+GNUNET_log_nocheck (enum GNUNET_ErrorType kind, const char *message, ...)
 {
   va_list va;
 
-  va_start(va, message);
-  mylog(kind, component, message, va);
-  va_end(va);
+  va_start (va, message);
+  mylog (kind, component, message, va);
+  va_end (va);
 }
 
 
@@ -1072,10 +1074,10 @@ GNUNET_log_nocheck(enum GNUNET_ErrorType kind, const char *message, ...)
  * @param ... arguments for format string
  */
 void
-GNUNET_log_from_nocheck(enum GNUNET_ErrorType kind,
-                        const char *comp,
-                        const char *message,
-                        ...)
+GNUNET_log_from_nocheck (enum GNUNET_ErrorType kind,
+                         const char *comp,
+                         const char *message,
+                         ...)
 {
   va_list va;
   char comp_w_pid[128];
@@ -1083,10 +1085,10 @@ GNUNET_log_from_nocheck(enum GNUNET_ErrorType kind,
   if (comp == NULL)
     comp = component_nopid;
 
-  va_start(va, message);
-  GNUNET_snprintf(comp_w_pid, sizeof(comp_w_pid), "%s-%d", comp, getpid());
-  mylog(kind, comp_w_pid, message, va);
-  va_end(va);
+  va_start (va, message);
+  GNUNET_snprintf (comp_w_pid, sizeof(comp_w_pid), "%s-%d", comp, getpid ());
+  mylog (kind, comp_w_pid, message, va);
+  va_end (va);
 }
 
 
@@ -1097,21 +1099,21 @@ GNUNET_log_from_nocheck(enum GNUNET_ErrorType kind,
  * @return string corresponding to the type
  */
 const char *
-GNUNET_error_type_to_string(enum GNUNET_ErrorType kind)
+GNUNET_error_type_to_string (enum GNUNET_ErrorType kind)
 {
   if ((kind & GNUNET_ERROR_TYPE_ERROR) > 0)
-    return _("ERROR");
+    return _ ("ERROR");
   if ((kind & GNUNET_ERROR_TYPE_WARNING) > 0)
-    return _("WARNING");
+    return _ ("WARNING");
   if ((kind & GNUNET_ERROR_TYPE_MESSAGE) > 0)
-    return _("MESSAGE");
+    return _ ("MESSAGE");
   if ((kind & GNUNET_ERROR_TYPE_INFO) > 0)
-    return _("INFO");
+    return _ ("INFO");
   if ((kind & GNUNET_ERROR_TYPE_DEBUG) > 0)
-    return _("DEBUG");
+    return _ ("DEBUG");
   if ((kind & ~GNUNET_ERROR_TYPE_BULK) == 0)
-    return _("NONE");
-  return _("INVALID");
+    return _ ("NONE");
+  return _ ("INVALID");
 }
 
 
@@ -1122,13 +1124,13 @@ GNUNET_error_type_to_string(enum GNUNET_ErrorType kind)
  * @return string form; will be overwritten by next call to GNUNET_h2s.
  */
 const char *
-GNUNET_h2s(const struct GNUNET_HashCode *hc)
+GNUNET_h2s (const struct GNUNET_HashCode *hc)
 {
   static GNUNET_THREAD_LOCAL struct GNUNET_CRYPTO_HashAsciiEncoded ret;
 
-  GNUNET_CRYPTO_hash_to_enc(hc, &ret);
+  GNUNET_CRYPTO_hash_to_enc (hc, &ret);
   ret.encoding[8] = '\0';
-  return (const char *)ret.encoding;
+  return (const char *) ret.encoding;
 }
 
 
@@ -1143,13 +1145,13 @@ GNUNET_h2s(const struct GNUNET_HashCode *hc)
  * @return string form; will be overwritten by next call to GNUNET_h2s.
  */
 const char *
-GNUNET_h2s2(const struct GNUNET_HashCode *hc)
+GNUNET_h2s2 (const struct GNUNET_HashCode *hc)
 {
   static struct GNUNET_CRYPTO_HashAsciiEncoded ret;
 
-  GNUNET_CRYPTO_hash_to_enc(hc, &ret);
+  GNUNET_CRYPTO_hash_to_enc (hc, &ret);
   ret.encoding[8] = '\0';
-  return (const char *)ret.encoding;
+  return (const char *) ret.encoding;
 }
 
 
@@ -1163,15 +1165,15 @@ GNUNET_h2s2(const struct GNUNET_HashCode *hc)
  * @return string
  */
 const char *
-GNUNET_p2s(const struct GNUNET_CRYPTO_EddsaPublicKey *p)
+GNUNET_p2s (const struct GNUNET_CRYPTO_EddsaPublicKey *p)
 {
   static struct GNUNET_CRYPTO_HashAsciiEncoded ret;
   struct GNUNET_HashCode hc;
 
-  GNUNET_CRYPTO_hash(p, sizeof(*p), &hc);
-  GNUNET_CRYPTO_hash_to_enc(&hc, &ret);
+  GNUNET_CRYPTO_hash (p, sizeof(*p), &hc);
+  GNUNET_CRYPTO_hash_to_enc (&hc, &ret);
   ret.encoding[6] = '\0';
-  return (const char *)ret.encoding;
+  return (const char *) ret.encoding;
 }
 
 
@@ -1185,15 +1187,15 @@ GNUNET_p2s(const struct GNUNET_CRYPTO_EddsaPublicKey *p)
  * @return string
  */
 const char *
-GNUNET_p2s2(const struct GNUNET_CRYPTO_EddsaPublicKey *p)
+GNUNET_p2s2 (const struct GNUNET_CRYPTO_EddsaPublicKey *p)
 {
   static struct GNUNET_CRYPTO_HashAsciiEncoded ret;
   struct GNUNET_HashCode hc;
 
-  GNUNET_CRYPTO_hash(p, sizeof(*p), &hc);
-  GNUNET_CRYPTO_hash_to_enc(&hc, &ret);
+  GNUNET_CRYPTO_hash (p, sizeof(*p), &hc);
+  GNUNET_CRYPTO_hash_to_enc (&hc, &ret);
   ret.encoding[6] = '\0';
-  return (const char *)ret.encoding;
+  return (const char *) ret.encoding;
 }
 
 
@@ -1207,15 +1209,15 @@ GNUNET_p2s2(const struct GNUNET_CRYPTO_EddsaPublicKey *p)
  * @return string
  */
 const char *
-GNUNET_e2s(const struct GNUNET_CRYPTO_EcdhePublicKey *p)
+GNUNET_e2s (const struct GNUNET_CRYPTO_EcdhePublicKey *p)
 {
   static struct GNUNET_CRYPTO_HashAsciiEncoded ret;
   struct GNUNET_HashCode hc;
 
-  GNUNET_CRYPTO_hash(p, sizeof(*p), &hc);
-  GNUNET_CRYPTO_hash_to_enc(&hc, &ret);
+  GNUNET_CRYPTO_hash (p, sizeof(*p), &hc);
+  GNUNET_CRYPTO_hash_to_enc (&hc, &ret);
   ret.encoding[6] = '\0';
-  return (const char *)ret.encoding;
+  return (const char *) ret.encoding;
 }
 
 
@@ -1229,15 +1231,15 @@ GNUNET_e2s(const struct GNUNET_CRYPTO_EcdhePublicKey *p)
  * @return string
  */
 const char *
-GNUNET_e2s2(const struct GNUNET_CRYPTO_EcdhePublicKey *p)
+GNUNET_e2s2 (const struct GNUNET_CRYPTO_EcdhePublicKey *p)
 {
   static struct GNUNET_CRYPTO_HashAsciiEncoded ret;
   struct GNUNET_HashCode hc;
 
-  GNUNET_CRYPTO_hash(p, sizeof(*p), &hc);
-  GNUNET_CRYPTO_hash_to_enc(&hc, &ret);
+  GNUNET_CRYPTO_hash (p, sizeof(*p), &hc);
+  GNUNET_CRYPTO_hash_to_enc (&hc, &ret);
   ret.encoding[6] = '\0';
-  return (const char *)ret.encoding;
+  return (const char *) ret.encoding;
 }
 
 
@@ -1251,13 +1253,13 @@ GNUNET_e2s2(const struct GNUNET_CRYPTO_EcdhePublicKey *p)
  * @return string
  */
 const char *
-GNUNET_sh2s(const struct GNUNET_ShortHashCode *shc)
+GNUNET_sh2s (const struct GNUNET_ShortHashCode *shc)
 {
   static char buf[64];
 
-  GNUNET_STRINGS_data_to_string(shc, sizeof(*shc), buf, sizeof(buf));
+  GNUNET_STRINGS_data_to_string (shc, sizeof(*shc), buf, sizeof(buf));
   buf[6] = '\0';
-  return (const char *)buf;
+  return (const char *) buf;
 }
 
 
@@ -1271,13 +1273,13 @@ GNUNET_sh2s(const struct GNUNET_ShortHashCode *shc)
  * @return string
  */
 const char *
-GNUNET_uuid2s(const struct GNUNET_Uuid *uuid)
+GNUNET_uuid2s (const struct GNUNET_Uuid *uuid)
 {
   static char buf[32];
 
-  GNUNET_STRINGS_data_to_string(uuid, sizeof(*uuid), buf, sizeof(buf));
+  GNUNET_STRINGS_data_to_string (uuid, sizeof(*uuid), buf, sizeof(buf));
   buf[6] = '\0';
-  return (const char *)buf;
+  return (const char *) buf;
 }
 
 
@@ -1290,13 +1292,13 @@ GNUNET_uuid2s(const struct GNUNET_Uuid *uuid)
  * @return string form; will be overwritten by next call to GNUNET_h2s_full.
  */
 const char *
-GNUNET_h2s_full(const struct GNUNET_HashCode *hc)
+GNUNET_h2s_full (const struct GNUNET_HashCode *hc)
 {
   static struct GNUNET_CRYPTO_HashAsciiEncoded ret;
 
-  GNUNET_CRYPTO_hash_to_enc(hc, &ret);
+  GNUNET_CRYPTO_hash_to_enc (hc, &ret);
   ret.encoding[sizeof(ret) - 1] = '\0';
-  return (const char *)ret.encoding;
+  return (const char *) ret.encoding;
 }
 
 
@@ -1308,16 +1310,16 @@ GNUNET_h2s_full(const struct GNUNET_HashCode *hc)
  *         call to #GNUNET_i2s.
  */
 const char *
-GNUNET_i2s(const struct GNUNET_PeerIdentity *pid)
+GNUNET_i2s (const struct GNUNET_PeerIdentity *pid)
 {
   static GNUNET_THREAD_LOCAL char buf[5];
   char *ret;
 
   if (NULL == pid)
     return "NULL";
-  ret = GNUNET_CRYPTO_eddsa_public_key_to_string(&pid->public_key);
-  GNUNET_strlcpy(buf, ret, sizeof(buf));
-  GNUNET_free(ret);
+  ret = GNUNET_CRYPTO_eddsa_public_key_to_string (&pid->public_key);
+  GNUNET_strlcpy (buf, ret, sizeof(buf));
+  GNUNET_free (ret);
   return buf;
 }
 
@@ -1333,16 +1335,16 @@ GNUNET_i2s(const struct GNUNET_PeerIdentity *pid)
  *         call to #GNUNET_i2s.
  */
 const char *
-GNUNET_i2s2(const struct GNUNET_PeerIdentity *pid)
+GNUNET_i2s2 (const struct GNUNET_PeerIdentity *pid)
 {
   static GNUNET_THREAD_LOCAL char buf[5];
   char *ret;
 
   if (NULL == pid)
     return "NULL";
-  ret = GNUNET_CRYPTO_eddsa_public_key_to_string(&pid->public_key);
-  GNUNET_strlcpy(buf, ret, sizeof(buf));
-  GNUNET_free(ret);
+  ret = GNUNET_CRYPTO_eddsa_public_key_to_string (&pid->public_key);
+  GNUNET_strlcpy (buf, ret, sizeof(buf));
+  GNUNET_free (ret);
   return buf;
 }
 
@@ -1355,14 +1357,14 @@ GNUNET_i2s2(const struct GNUNET_PeerIdentity *pid)
  *         call to #GNUNET_i2s_full.
  */
 const char *
-GNUNET_i2s_full(const struct GNUNET_PeerIdentity *pid)
+GNUNET_i2s_full (const struct GNUNET_PeerIdentity *pid)
 {
   static GNUNET_THREAD_LOCAL char buf[256];
   char *ret;
 
-  ret = GNUNET_CRYPTO_eddsa_public_key_to_string(&pid->public_key);
-  strcpy(buf, ret);
-  GNUNET_free(ret);
+  ret = GNUNET_CRYPTO_eddsa_public_key_to_string (&pid->public_key);
+  strcpy (buf, ret);
+  GNUNET_free (ret);
   return buf;
 }
 
@@ -1378,11 +1380,11 @@ GNUNET_i2s_full(const struct GNUNET_PeerIdentity *pid)
  *  will be overwritten by next call to #GNUNET_a2s.
  */
 const char *
-GNUNET_a2s(const struct sockaddr *addr, socklen_t addrlen)
+GNUNET_a2s (const struct sockaddr *addr, socklen_t addrlen)
 {
 #define LEN                           \
-  GNUNET_MAX((INET6_ADDRSTRLEN + 8), \
-             (1 + sizeof(struct sockaddr_un) - sizeof(sa_family_t)))
+  GNUNET_MAX ((INET6_ADDRSTRLEN + 8), \
+              (1 + sizeof(struct sockaddr_un) - sizeof(sa_family_t)))
   static char buf[LEN];
 #undef LEN
   static char b2[6];
@@ -1392,53 +1394,53 @@ GNUNET_a2s(const struct sockaddr *addr, socklen_t addrlen)
   unsigned int off;
 
   if (addr == NULL)
-    return _("unknown address");
+    return _ ("unknown address");
   switch (addr->sa_family)
-    {
-    case AF_INET:
-      if (addrlen != sizeof(struct sockaddr_in))
-        return "<invalid v4 address>";
-      v4 = (const struct sockaddr_in *)addr;
-      inet_ntop(AF_INET, &v4->sin_addr, buf, INET_ADDRSTRLEN);
-      if (0 == ntohs(v4->sin_port))
-        return buf;
-      strcat(buf, ":");
-      GNUNET_snprintf(b2, sizeof(b2), "%u", ntohs(v4->sin_port));
-      strcat(buf, b2);
+  {
+  case AF_INET:
+    if (addrlen != sizeof(struct sockaddr_in))
+      return "<invalid v4 address>";
+    v4 = (const struct sockaddr_in *) addr;
+    inet_ntop (AF_INET, &v4->sin_addr, buf, INET_ADDRSTRLEN);
+    if (0 == ntohs (v4->sin_port))
       return buf;
+    strcat (buf, ":");
+    GNUNET_snprintf (b2, sizeof(b2), "%u", ntohs (v4->sin_port));
+    strcat (buf, b2);
+    return buf;
 
-    case AF_INET6:
-      if (addrlen != sizeof(struct sockaddr_in6))
-        return "<invalid v4 address>";
-      v6 = (const struct sockaddr_in6 *)addr;
-      buf[0] = '[';
-      inet_ntop(AF_INET6, &v6->sin6_addr, &buf[1], INET6_ADDRSTRLEN);
-      if (0 == ntohs(v6->sin6_port))
-        return &buf[1];
-      strcat(buf, "]:");
-      GNUNET_snprintf(b2, sizeof(b2), "%u", ntohs(v6->sin6_port));
-      strcat(buf, b2);
-      return buf;
+  case AF_INET6:
+    if (addrlen != sizeof(struct sockaddr_in6))
+      return "<invalid v4 address>";
+    v6 = (const struct sockaddr_in6 *) addr;
+    buf[0] = '[';
+    inet_ntop (AF_INET6, &v6->sin6_addr, &buf[1], INET6_ADDRSTRLEN);
+    if (0 == ntohs (v6->sin6_port))
+      return &buf[1];
+    strcat (buf, "]:");
+    GNUNET_snprintf (b2, sizeof(b2), "%u", ntohs (v6->sin6_port));
+    strcat (buf, b2);
+    return buf;
 
-    case AF_UNIX:
-      if (addrlen <= sizeof(sa_family_t))
-        return "<unbound UNIX client>";
-      un = (const struct sockaddr_un *)addr;
-      off = 0;
-      if ('\0' == un->sun_path[0])
-        off++;
-      memset(buf, 0, sizeof(buf));
-      GNUNET_snprintf(buf,
-                      sizeof(buf),
-                      "%s%.*s",
-                      (1 == off) ? "@" : "",
-                      (int)(addrlen - sizeof(sa_family_t) - off),
-                      &un->sun_path[off]);
-      return buf;
+  case AF_UNIX:
+    if (addrlen <= sizeof(sa_family_t))
+      return "<unbound UNIX client>";
+    un = (const struct sockaddr_un *) addr;
+    off = 0;
+    if ('\0' == un->sun_path[0])
+      off++;
+    memset (buf, 0, sizeof(buf));
+    GNUNET_snprintf (buf,
+                     sizeof(buf),
+                     "%s%.*s",
+                     (1 == off) ? "@" : "",
+                     (int) (addrlen - sizeof(sa_family_t) - off),
+                     &un->sun_path[off]);
+    return buf;
 
-    default:
-      return _("invalid address");
-    }
+  default:
+    return _ ("invalid address");
+  }
 }
 
 
@@ -1450,15 +1452,15 @@ GNUNET_a2s(const struct sockaddr *addr, socklen_t addrlen)
  * @param option name of missing option
  */
 void
-GNUNET_log_config_missing(enum GNUNET_ErrorType kind,
-                          const char *section,
-                          const char *option)
+GNUNET_log_config_missing (enum GNUNET_ErrorType kind,
+                           const char *section,
+                           const char *option)
 {
-  GNUNET_log(kind,
-             _(
-               "Configuration fails to specify option `%s' in section `%s'!\n"),
-             option,
-             section);
+  GNUNET_log (kind,
+              _ (
+                "Configuration fails to specify option `%s' in section `%s'!\n"),
+              option,
+              section);
 }
 
 
@@ -1471,14 +1473,14 @@ GNUNET_log_config_missing(enum GNUNET_ErrorType kind,
  * @param required what is required that is invalid about the option
  */
 void
-GNUNET_log_config_invalid(enum GNUNET_ErrorType kind,
-                          const char *section,
-                          const char *option,
-                          const char *required)
+GNUNET_log_config_invalid (enum GNUNET_ErrorType kind,
+                           const char *section,
+                           const char *option,
+                           const char *required)
 {
-  GNUNET_log(
+  GNUNET_log (
     kind,
-    _(
+    _ (
       "Configuration specifies invalid value for option `%s' in section `%s': %s\n"),
     option,
     section,
@@ -1493,8 +1495,8 @@ GNUNET_log_config_invalid(enum GNUNET_ErrorType kind,
  * @param old_scope[out] location to save the old scope
  */
 void
-GNUNET_async_scope_enter(const struct GNUNET_AsyncScopeId *aid,
-                         struct GNUNET_AsyncScopeSave *old_scope)
+GNUNET_async_scope_enter (const struct GNUNET_AsyncScopeId *aid,
+                          struct GNUNET_AsyncScopeSave *old_scope)
 {
   *old_scope = current_async_scope;
   current_async_scope.have_scope = GNUNET_YES;
@@ -1508,7 +1510,7 @@ GNUNET_async_scope_enter(const struct GNUNET_AsyncScopeId *aid,
  * @param old_scope scope to restore
  */
 void
-GNUNET_async_scope_restore(struct GNUNET_AsyncScopeSave *old_scope)
+GNUNET_async_scope_restore (struct GNUNET_AsyncScopeSave *old_scope)
 {
   current_async_scope = *old_scope;
 }
@@ -1520,11 +1522,11 @@ GNUNET_async_scope_restore(struct GNUNET_AsyncScopeSave *old_scope)
  * @param[out] aid_ret pointer to where the result is stored
  */
 void
-GNUNET_async_scope_fresh(struct GNUNET_AsyncScopeId *aid_ret)
+GNUNET_async_scope_fresh (struct GNUNET_AsyncScopeId *aid_ret)
 {
-  GNUNET_CRYPTO_random_block(GNUNET_CRYPTO_QUALITY_WEAK,
-                             aid_ret,
-                             sizeof(struct GNUNET_AsyncScopeId));
+  GNUNET_CRYPTO_random_block (GNUNET_CRYPTO_QUALITY_WEAK,
+                              aid_ret,
+                              sizeof(struct GNUNET_AsyncScopeId));
 }
 
 
@@ -1534,7 +1536,7 @@ GNUNET_async_scope_fresh(struct GNUNET_AsyncScopeId *aid_ret)
  * @param[out] scope_ret pointer to where the result is stored
  */
 void
-GNUNET_async_scope_get(struct GNUNET_AsyncScopeSave *scope_ret)
+GNUNET_async_scope_get (struct GNUNET_AsyncScopeSave *scope_ret)
 {
   *scope_ret = current_async_scope;
 }
@@ -1543,7 +1545,7 @@ GNUNET_async_scope_get(struct GNUNET_AsyncScopeSave *scope_ret)
 /**
  * Initializer
  */
-void __attribute__ ((constructor)) GNUNET_util_cl_init()
+void __attribute__ ((constructor)) GNUNET_util_cl_init ()
 {
   GNUNET_stderr = stderr;
 }
@@ -1552,7 +1554,7 @@ void __attribute__ ((constructor)) GNUNET_util_cl_init()
 /**
  * Destructor
  */
-void __attribute__ ((destructor)) GNUNET_util_cl_fini()
+void __attribute__ ((destructor)) GNUNET_util_cl_fini ()
 {
 
 }

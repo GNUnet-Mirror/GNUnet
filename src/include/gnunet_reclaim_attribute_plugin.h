@@ -108,7 +108,8 @@ typedef const char *(*GNUNET_RECLAIM_ATTRIBUTE_NumberToTypenameFunction) (
  * Each plugin is required to return a pointer to a struct of this
  * type as the return value from its entry point.
  */
-struct GNUNET_RECLAIM_ATTRIBUTE_PluginFunctions {
+struct GNUNET_RECLAIM_ATTRIBUTE_PluginFunctions
+{
   /**
    * Closure for all of the callbacks.
    */

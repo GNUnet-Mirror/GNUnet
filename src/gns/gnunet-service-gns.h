@@ -35,8 +35,8 @@
  * @return #GNUNET_YES if @a tld was found #GNUNET_NO if not
  */
 int
-GNS_find_tld(const char *tld_str,
-             struct GNUNET_CRYPTO_EcdsaPublicKey *pkey);
+GNS_find_tld (const char *tld_str,
+              struct GNUNET_CRYPTO_EcdsaPublicKey *pkey);
 
 
 /**
@@ -47,7 +47,7 @@ GNS_find_tld(const char *tld_str,
  *         or @a name if @a name does not contain a "."
  */
 const char *
-GNS_get_tld(const char *name);
+GNS_get_tld (const char *name);
 
 
 #endif

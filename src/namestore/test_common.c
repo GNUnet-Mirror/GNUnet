@@ -26,36 +26,36 @@
  * test if we can load the plugin @a name.
  */
 static int
-TNC_test_plugin(const char *cfg_name)
+TNC_test_plugin (const char *cfg_name)
 {
   char *database;
   char *db_lib_name;
   struct GNUNET_NAMESTORE_PluginFunctions *db;
   struct GNUNET_CONFIGURATION_Handle *cfg;
 
-  cfg = GNUNET_CONFIGURATION_create();
-  if (GNUNET_OK != GNUNET_CONFIGURATION_load(cfg, cfg_name))
-    {
-      GNUNET_break(0);
-      GNUNET_CONFIGURATION_destroy(cfg);
-      return GNUNET_SYSERR;
-    }
-  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_string(cfg,
-                                                         "namestore",
-                                                         "database",
-                                                         &database))
-    {
-      GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "No database backend configured\n");
-      GNUNET_CONFIGURATION_destroy(cfg);
-      return GNUNET_SYSERR;
-    }
-  GNUNET_asprintf(&db_lib_name, "libgnunet_plugin_namestore_%s", database);
-  GNUNET_free(database);
-  db = GNUNET_PLUGIN_load(db_lib_name, (void *)cfg);
+  cfg = GNUNET_CONFIGURATION_create ();
+  if (GNUNET_OK != GNUNET_CONFIGURATION_load (cfg, cfg_name))
+  {
+    GNUNET_break (0);
+    GNUNET_CONFIGURATION_destroy (cfg);
+    return GNUNET_SYSERR;
+  }
+  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_string (cfg,
+                                                          "namestore",
+                                                          "database",
+                                                          &database))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "No database backend configured\n");
+    GNUNET_CONFIGURATION_destroy (cfg);
+    return GNUNET_SYSERR;
+  }
+  GNUNET_asprintf (&db_lib_name, "libgnunet_plugin_namestore_%s", database);
+  GNUNET_free (database);
+  db = GNUNET_PLUGIN_load (db_lib_name, (void *) cfg);
   if (NULL != db)
-    GNUNET_break(NULL == GNUNET_PLUGIN_unload(db_lib_name, db));
-  GNUNET_free(db_lib_name);
-  GNUNET_CONFIGURATION_destroy(cfg);
+    GNUNET_break (NULL == GNUNET_PLUGIN_unload (db_lib_name, db));
+  GNUNET_free (db_lib_name);
+  GNUNET_CONFIGURATION_destroy (cfg);
   if (NULL == db)
     return GNUNET_NO;
   return GNUNET_YES;
@@ -68,13 +68,13 @@ TNC_test_plugin(const char *cfg_name)
  */
 #define SETUP_CFG(plugin_name, cfg_name)                                    \
   do                                                                        \
-    {                                                                         \
-      plugin_name = GNUNET_TESTING_get_testname_from_underscore(argv[0]);    \
-      GNUNET_asprintf(&cfg_name, "test_namestore_api_%s.conf", plugin_name); \
-      if (!TNC_test_plugin(cfg_name))                                       \
-        {                                                                       \
-          GNUNET_free(cfg_name);                                               \
-          return 77;                                                            \
-        }                                                                       \
-      GNUNET_DISK_purge_cfg_dir(cfg_name, "GNUNET_TEST_HOME");               \
-    } while (0)
+  {                                                                         \
+    plugin_name = GNUNET_TESTING_get_testname_from_underscore (argv[0]);    \
+    GNUNET_asprintf (&cfg_name, "test_namestore_api_%s.conf", plugin_name); \
+    if (! TNC_test_plugin (cfg_name))                                       \
+    {                                                                       \
+      GNUNET_free (cfg_name);                                               \
+      return 77;                                                            \
+    }                                                                       \
+    GNUNET_DISK_purge_cfg_dir (cfg_name, "GNUNET_TEST_HOME");               \
+  } while (0)

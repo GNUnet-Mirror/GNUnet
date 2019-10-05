@@ -74,7 +74,7 @@ struct GNUNET_NAMESTORE_ZoneIterator;
  * @return handle to use to access the service
  */
 struct GNUNET_NAMESTORE_Handle *
-GNUNET_NAMESTORE_connect(const struct GNUNET_CONFIGURATION_Handle *cfg);
+GNUNET_NAMESTORE_connect (const struct GNUNET_CONFIGURATION_Handle *cfg);
 
 
 /**
@@ -85,7 +85,7 @@ GNUNET_NAMESTORE_connect(const struct GNUNET_CONFIGURATION_Handle *cfg);
  * @param h handle to the namestore
  */
 void
-GNUNET_NAMESTORE_disconnect(struct GNUNET_NAMESTORE_Handle *h);
+GNUNET_NAMESTORE_disconnect (struct GNUNET_NAMESTORE_Handle *h);
 
 
 /**
@@ -125,13 +125,14 @@ typedef void
  * @return handle to abort the request
  */
 struct GNUNET_NAMESTORE_QueueEntry *
-GNUNET_NAMESTORE_records_store(struct GNUNET_NAMESTORE_Handle *h,
-                               const struct GNUNET_CRYPTO_EcdsaPrivateKey *pkey,
-                               const char *label,
-                               unsigned int rd_count,
-                               const struct GNUNET_GNSRECORD_Data *rd,
-                               GNUNET_NAMESTORE_ContinuationWithStatus cont,
-                               void *cont_cls);
+GNUNET_NAMESTORE_records_store (struct GNUNET_NAMESTORE_Handle *h,
+                                const struct
+                                GNUNET_CRYPTO_EcdsaPrivateKey *pkey,
+                                const char *label,
+                                unsigned int rd_count,
+                                const struct GNUNET_GNSRECORD_Data *rd,
+                                GNUNET_NAMESTORE_ContinuationWithStatus cont,
+                                void *cont_cls);
 
 
 /**
@@ -145,7 +146,8 @@ GNUNET_NAMESTORE_records_store(struct GNUNET_NAMESTORE_Handle *h,
  */
 typedef void
 (*GNUNET_NAMESTORE_RecordMonitor) (void *cls,
-                                   const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
+                                   const struct
+                                   GNUNET_CRYPTO_EcdsaPrivateKey *zone,
                                    const char *label,
                                    unsigned int rd_count,
                                    const struct GNUNET_GNSRECORD_Data *rd);
@@ -162,11 +164,11 @@ typedef void
  * @return handle to abort the request
  */
 struct GNUNET_NAMESTORE_QueueEntry *
-GNUNET_NAMESTORE_set_nick(struct GNUNET_NAMESTORE_Handle *h,
-                          const struct GNUNET_CRYPTO_EcdsaPrivateKey *pkey,
-                          const char *nick,
-                          GNUNET_NAMESTORE_ContinuationWithStatus cont,
-                          void *cont_cls);
+GNUNET_NAMESTORE_set_nick (struct GNUNET_NAMESTORE_Handle *h,
+                           const struct GNUNET_CRYPTO_EcdsaPrivateKey *pkey,
+                           const char *nick,
+                           GNUNET_NAMESTORE_ContinuationWithStatus cont,
+                           void *cont_cls);
 
 
 /**
@@ -184,13 +186,14 @@ GNUNET_NAMESTORE_set_nick(struct GNUNET_NAMESTORE_Handle *h,
  * @return handle to abort the request
  */
 struct GNUNET_NAMESTORE_QueueEntry *
-GNUNET_NAMESTORE_records_lookup(struct GNUNET_NAMESTORE_Handle *h,
-                                const struct GNUNET_CRYPTO_EcdsaPrivateKey *pkey,
-                                const char *label,
-                                GNUNET_SCHEDULER_TaskCallback error_cb,
-                                void *error_cb_cls,
-                                GNUNET_NAMESTORE_RecordMonitor rm,
-                                void *rm_cls);
+GNUNET_NAMESTORE_records_lookup (struct GNUNET_NAMESTORE_Handle *h,
+                                 const struct
+                                 GNUNET_CRYPTO_EcdsaPrivateKey *pkey,
+                                 const char *label,
+                                 GNUNET_SCHEDULER_TaskCallback error_cb,
+                                 void *error_cb_cls,
+                                 GNUNET_NAMESTORE_RecordMonitor rm,
+                                 void *rm_cls);
 
 
 /**
@@ -211,13 +214,14 @@ GNUNET_NAMESTORE_records_lookup(struct GNUNET_NAMESTORE_Handle *h,
  *         cancel
  */
 struct GNUNET_NAMESTORE_QueueEntry *
-GNUNET_NAMESTORE_zone_to_name(struct GNUNET_NAMESTORE_Handle *h,
-                              const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
-                              const struct GNUNET_CRYPTO_EcdsaPublicKey *value_zone,
-                              GNUNET_SCHEDULER_TaskCallback error_cb,
-                              void *error_cb_cls,
-                              GNUNET_NAMESTORE_RecordMonitor proc,
-                              void *proc_cls);
+GNUNET_NAMESTORE_zone_to_name (struct GNUNET_NAMESTORE_Handle *h,
+                               const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
+                               const struct
+                               GNUNET_CRYPTO_EcdsaPublicKey *value_zone,
+                               GNUNET_SCHEDULER_TaskCallback error_cb,
+                               void *error_cb_cls,
+                               GNUNET_NAMESTORE_RecordMonitor proc,
+                               void *proc_cls);
 
 
 /**
@@ -229,7 +233,7 @@ GNUNET_NAMESTORE_zone_to_name(struct GNUNET_NAMESTORE_Handle *h,
  * @param qe operation to cancel
  */
 void
-GNUNET_NAMESTORE_cancel(struct GNUNET_NAMESTORE_QueueEntry *qe);
+GNUNET_NAMESTORE_cancel (struct GNUNET_NAMESTORE_QueueEntry *qe);
 
 
 /**
@@ -258,14 +262,15 @@ GNUNET_NAMESTORE_cancel(struct GNUNET_NAMESTORE_QueueEntry *qe);
  * @return an iterator handle to use for iteration
  */
 struct GNUNET_NAMESTORE_ZoneIterator *
-GNUNET_NAMESTORE_zone_iteration_start(struct GNUNET_NAMESTORE_Handle *h,
-                                      const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
-                                      GNUNET_SCHEDULER_TaskCallback error_cb,
-                                      void *error_cb_cls,
-                                      GNUNET_NAMESTORE_RecordMonitor proc,
-                                      void *proc_cls,
-                                      GNUNET_SCHEDULER_TaskCallback finish_cb,
-                                      void *finish_cb_cls);
+GNUNET_NAMESTORE_zone_iteration_start (struct GNUNET_NAMESTORE_Handle *h,
+                                       const struct
+                                       GNUNET_CRYPTO_EcdsaPrivateKey *zone,
+                                       GNUNET_SCHEDULER_TaskCallback error_cb,
+                                       void *error_cb_cls,
+                                       GNUNET_NAMESTORE_RecordMonitor proc,
+                                       void *proc_cls,
+                                       GNUNET_SCHEDULER_TaskCallback finish_cb,
+                                       void *finish_cb_cls);
 
 
 /**
@@ -277,8 +282,8 @@ GNUNET_NAMESTORE_zone_iteration_start(struct GNUNET_NAMESTORE_Handle *h,
  *         (before #GNUNET_NAMESTORE_zone_iterator_next is to be called again)
  */
 void
-GNUNET_NAMESTORE_zone_iterator_next(struct GNUNET_NAMESTORE_ZoneIterator *it,
-                                    uint64_t limit);
+GNUNET_NAMESTORE_zone_iterator_next (struct GNUNET_NAMESTORE_ZoneIterator *it,
+                                     uint64_t limit);
 
 
 /**
@@ -289,7 +294,7 @@ GNUNET_NAMESTORE_zone_iterator_next(struct GNUNET_NAMESTORE_ZoneIterator *it,
  * @param it the iterator
  */
 void
-GNUNET_NAMESTORE_zone_iteration_stop(struct GNUNET_NAMESTORE_ZoneIterator *it);
+GNUNET_NAMESTORE_zone_iteration_stop (struct GNUNET_NAMESTORE_ZoneIterator *it);
 
 
 /**
@@ -326,15 +331,17 @@ struct GNUNET_NAMESTORE_ZoneMonitor;
  * @return handle to stop monitoring
  */
 struct GNUNET_NAMESTORE_ZoneMonitor *
-GNUNET_NAMESTORE_zone_monitor_start(const struct GNUNET_CONFIGURATION_Handle *cfg,
-                                    const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
-                                    int iterate_first,
-                                    GNUNET_SCHEDULER_TaskCallback error_cb,
-                                    void *error_cb_cls,
-                                    GNUNET_NAMESTORE_RecordMonitor monitor,
-                                    void *monitor_cls,
-                                    GNUNET_SCHEDULER_TaskCallback sync_cb,
-                                    void *sync_cb_cls);
+GNUNET_NAMESTORE_zone_monitor_start (const struct
+                                     GNUNET_CONFIGURATION_Handle *cfg,
+                                     const struct
+                                     GNUNET_CRYPTO_EcdsaPrivateKey *zone,
+                                     int iterate_first,
+                                     GNUNET_SCHEDULER_TaskCallback error_cb,
+                                     void *error_cb_cls,
+                                     GNUNET_NAMESTORE_RecordMonitor monitor,
+                                     void *monitor_cls,
+                                     GNUNET_SCHEDULER_TaskCallback sync_cb,
+                                     void *sync_cb_cls);
 
 
 /**
@@ -359,8 +366,8 @@ GNUNET_NAMESTORE_zone_monitor_start(const struct GNUNET_CONFIGURATION_Handle *cf
  *        (before #GNUNET_NAMESTORE_zone_monitor_next is to be called again)
  */
 void
-GNUNET_NAMESTORE_zone_monitor_next(struct GNUNET_NAMESTORE_ZoneMonitor *zm,
-                                   uint64_t limit);
+GNUNET_NAMESTORE_zone_monitor_next (struct GNUNET_NAMESTORE_ZoneMonitor *zm,
+                                    uint64_t limit);
 
 
 /**
@@ -369,7 +376,7 @@ GNUNET_NAMESTORE_zone_monitor_next(struct GNUNET_NAMESTORE_ZoneMonitor *zm,
  * @param zm handle to the monitor activity to stop
  */
 void
-GNUNET_NAMESTORE_zone_monitor_stop(struct GNUNET_NAMESTORE_ZoneMonitor *zm);
+GNUNET_NAMESTORE_zone_monitor_stop (struct GNUNET_NAMESTORE_ZoneMonitor *zm);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

@@ -31,7 +31,8 @@
 /**
  * Request for regex service to announce capability.
  */
-struct AnnounceMessage {
+struct AnnounceMessage
+{
   /**
    * Type is GNUNET_MESSAGE_TYPE_REGEX_ANNOUNCE
    */
@@ -59,7 +60,8 @@ struct AnnounceMessage {
 /**
  * Message to initiate regex search.
  */
-struct RegexSearchMessage {
+struct RegexSearchMessage
+{
   /**
    * Type is GNUNET_MESSAGE_TYPE_REGEX_SEARCH
    */
@@ -72,7 +74,8 @@ struct RegexSearchMessage {
 /**
  * Result from regex search.
  */
-struct ResultMessage {
+struct ResultMessage
+{
   /**
    * Type is GNUNET_MESSAGE_TYPE_REGEX_RESULT
    */

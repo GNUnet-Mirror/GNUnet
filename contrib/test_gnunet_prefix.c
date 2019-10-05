@@ -41,7 +41,7 @@ main (int argc, char **argv)
     return 1;
   }
   dirname = DIR_SEPARATOR_STR ".." DIR_SEPARATOR_STR "share" DIR_SEPARATOR_STR
-                              "gnunet" DIR_SEPARATOR_STR "config.d";
+            "gnunet" DIR_SEPARATOR_STR "config.d";
   {
     char tmp[strlen (basename) + strlen (dirname) + 1];
     sprintf (tmp, "%s%s", basename, dirname);

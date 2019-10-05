@@ -36,31 +36,31 @@
  * on a slow machine for a non-skipped one.
  */
 #define OUTPUT_DELAY \
-  GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MICROSECONDS, 1000)
+  GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MICROSECONDS, 1000)
 
 static void
-my_log(void *ctx,
-       enum GNUNET_ErrorType kind,
-       const char *component,
-       const char *date,
-       const char *msg)
+my_log (void *ctx,
+        enum GNUNET_ErrorType kind,
+        const char *component,
+        const char *date,
+        const char *msg)
 {
-  (void)ctx;
-  (void)kind;
-  (void)component;
-  (void)date;
-  if (strncmp("test-common-logging-dummy", component, 25) != 0)
+  (void) ctx;
+  (void) kind;
+  (void) component;
+  (void) date;
+  if (strncmp ("test-common-logging-dummy", component, 25) != 0)
     return;
-  fprintf(stdout, "%s", msg);
-  fflush(stdout);
+  fprintf (stdout, "%s", msg);
+  fflush (stdout);
 }
 
 
-#if !defined(GNUNET_CULL_LOGGING)
+#if ! defined(GNUNET_CULL_LOGGING)
 static int
-expensive_func()
+expensive_func ()
 {
-  return GNUNET_NETWORK_socket_select(NULL, NULL, NULL, OUTPUT_DELAY);
+  return GNUNET_NETWORK_socket_select (NULL, NULL, NULL, OUTPUT_DELAY);
 }
 #endif
 
@@ -68,51 +68,51 @@ expensive_func()
 #define pr(kind, lvl)                                                         \
   {                                                                           \
     struct GNUNET_TIME_Absolute t1, t2;                                       \
-    t1 = GNUNET_TIME_absolute_get();                                         \
-    GNUNET_log(kind, "L%s %d\n", lvl, expensive_func());                    \
-    t2 = GNUNET_TIME_absolute_get();                                         \
-    printf("1%s %llu\n",                                                     \
-           lvl,                                                              \
-           (unsigned long long)GNUNET_TIME_absolute_get_difference(t1, t2) \
-           .rel_value_us);                                                 \
+    t1 = GNUNET_TIME_absolute_get ();                                         \
+    GNUNET_log (kind, "L%s %d\n", lvl, expensive_func ());                    \
+    t2 = GNUNET_TIME_absolute_get ();                                         \
+    printf ("1%s %llu\n",                                                     \
+            lvl,                                                              \
+            (unsigned long long) GNUNET_TIME_absolute_get_difference (t1, t2) \
+            .rel_value_us);                                                 \
   }
 
 #define pr2(kind, lvl)                                                        \
   {                                                                           \
     struct GNUNET_TIME_Absolute t1, t2;                                       \
-    t1 = GNUNET_TIME_absolute_get();                                         \
-    GNUNET_log(kind, "L%s %d\n", lvl, expensive_func());                    \
-    t2 = GNUNET_TIME_absolute_get();                                         \
-    printf("2%s %llu\n",                                                     \
-           lvl,                                                              \
-           (unsigned long long)GNUNET_TIME_absolute_get_difference(t1, t2) \
-           .rel_value_us);                                                 \
+    t1 = GNUNET_TIME_absolute_get ();                                         \
+    GNUNET_log (kind, "L%s %d\n", lvl, expensive_func ());                    \
+    t2 = GNUNET_TIME_absolute_get ();                                         \
+    printf ("2%s %llu\n",                                                     \
+            lvl,                                                              \
+            (unsigned long long) GNUNET_TIME_absolute_get_difference (t1, t2) \
+            .rel_value_us);                                                 \
   }
 
 
 int
-main(int argc, char *argv[])
+main (int argc, char *argv[])
 {
-  (void)argc;
-  (void)argv;
+  (void) argc;
+  (void) argv;
   /* We set up logging with NULL level - will be overrided by
    * GNUNET_LOG or GNUNET_FORCE_LOG at runtime.
    */
-  GNUNET_log_setup("test-common-logging-dummy", NULL, "/dev/null");
-  GNUNET_logger_add(&my_log, NULL);
-  pr(GNUNET_ERROR_TYPE_ERROR, "ERROR");
-  pr(GNUNET_ERROR_TYPE_WARNING, "WARNING");
-  pr(GNUNET_ERROR_TYPE_INFO, "INFO");
-  pr(GNUNET_ERROR_TYPE_DEBUG, "DEBUG");
+  GNUNET_log_setup ("test-common-logging-dummy", NULL, "/dev/null");
+  GNUNET_logger_add (&my_log, NULL);
+  pr (GNUNET_ERROR_TYPE_ERROR, "ERROR");
+  pr (GNUNET_ERROR_TYPE_WARNING, "WARNING");
+  pr (GNUNET_ERROR_TYPE_INFO, "INFO");
+  pr (GNUNET_ERROR_TYPE_DEBUG, "DEBUG");
 
   /* We set up logging with WARNING level - will onle be overrided by
    * GNUNET_FORCE_LOG at runtime.
    */
-  GNUNET_log_setup("test-common-logging-dummy", "WARNING", "/dev/null");
-  pr2(GNUNET_ERROR_TYPE_ERROR, "ERROR");
-  pr2(GNUNET_ERROR_TYPE_WARNING, "WARNING");
-  pr2(GNUNET_ERROR_TYPE_INFO, "INFO");
-  pr2(GNUNET_ERROR_TYPE_DEBUG, "DEBUG");
+  GNUNET_log_setup ("test-common-logging-dummy", "WARNING", "/dev/null");
+  pr2 (GNUNET_ERROR_TYPE_ERROR, "ERROR");
+  pr2 (GNUNET_ERROR_TYPE_WARNING, "WARNING");
+  pr2 (GNUNET_ERROR_TYPE_INFO, "INFO");
+  pr2 (GNUNET_ERROR_TYPE_DEBUG, "DEBUG");
   return 0;
 } /* end of main */
 

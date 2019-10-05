@@ -37,7 +37,8 @@ GNUNET_NETWORK_STRUCT_BEGIN
  * send a `struct AliceCryptodataMessage *`.  Bob is not expected
  * to respond via CADET in the meantime.
  */
-struct EccServiceRequestMessage {
+struct EccServiceRequestMessage
+{
   /**
    * Type is #GNUNET_MESSAGE_TYPE_SCALARPRODUCT_ECC_SESSION_INITIALIZATION
    */
@@ -60,7 +61,8 @@ struct EccServiceRequestMessage {
  * (after set intersection).  Alice may send messages of this
  * type repeatedly to transmit all values.
  */
-struct EccAliceCryptodataMessage {
+struct EccAliceCryptodataMessage
+{
   /**
    * Type is #GNUNET_MESSAGE_TYPE_SCALARPRODUCT_ECC_ALICE_CRYPTODATA
    */
@@ -84,7 +86,8 @@ struct EccAliceCryptodataMessage {
  * conversation may be continued with `struct BobCryptodataMultipartMessage`
  * messages afterwards.
  */
-struct EccBobCryptodataMessage {
+struct EccBobCryptodataMessage
+{
   /**
    * GNUNET message header with type
    * #GNUNET_MESSAGE_TYPE_SCALARPRODUCT_ECC_BOB_CRYPTODATA.

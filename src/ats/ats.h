@@ -34,7 +34,8 @@
  * Flag used to indicate which type of client is connecting
  * to the ATS service.
  */
-enum StartFlag {
+enum StartFlag
+{
   /**
    * This is a scheduling client (aka transport service)
    */
@@ -65,7 +66,8 @@ GNUNET_NETWORK_STRUCT_BEGIN
  * First message any client sends to ATS, used to self-identify
  * (what type of client this is).
  */
-struct ClientStartMessage {
+struct ClientStartMessage
+{
   /**
    * Type is #GNUNET_MESSAGE_TYPE_ATS_START.
    */
@@ -82,7 +84,8 @@ struct ClientStartMessage {
  * Connectivity client to ATS service: we would like to have
  * address suggestions for this peer.
  */
-struct RequestAddressMessage {
+struct RequestAddressMessage
+{
   /**
    * Type is #GNUNET_MESSAGE_TYPE_ATS_REQUEST_ADDRESS or
    * #GNUNET_MESSAGE_TYPE_ATS_REQUEST_ADDRESS_CANCEL to stop
@@ -105,7 +108,8 @@ struct RequestAddressMessage {
 /**
  * Scheduling client to ATS service: here is another address you can use.
  */
-struct AddressAddMessage {
+struct AddressAddMessage
+{
   /**
    * Type is #GNUNET_MESSAGE_TYPE_ATS_ADDRESS_ADD.
    */
@@ -154,7 +158,8 @@ struct AddressAddMessage {
  * Message used to notify ATS that the performance
  * characteristics for an address have changed.
  */
-struct AddressUpdateMessage {
+struct AddressUpdateMessage
+{
   /**
    * Message of type #GNUNET_MESSAGE_TYPE_ATS_ADDRESS_UPDATE.
    */
@@ -184,7 +189,8 @@ struct AddressUpdateMessage {
  * was destroyed and must thus henceforth no longer be considered
  * for scheduling.
  */
-struct AddressDestroyedMessage {
+struct AddressDestroyedMessage
+{
   /**
    * Type is #GNUNET_MESSAGE_TYPE_ATS_ADDRESS_DESTROYED.
    */
@@ -208,7 +214,8 @@ struct AddressDestroyedMessage {
  * Message sent by ATS service to client to confirm that it is done
  * using the given session ID.
  */
-struct GNUNET_ATS_SessionReleaseMessage {
+struct GNUNET_ATS_SessionReleaseMessage
+{
   /**
    * Type is #GNUNET_MESSAGE_TYPE_ATS_SESSION_RELEASE.
    */
@@ -234,7 +241,8 @@ struct GNUNET_ATS_SessionReleaseMessage {
  * identified by the given @e session_id for the given @e peer with
  * the given @e bandwidth_in and @e bandwidth_out limits from now on.
  */
-struct AddressSuggestionMessage {
+struct AddressSuggestionMessage
+{
   /**
    * A message of type #GNUNET_MESSAGE_TYPE_ATS_ADDRESS_SUGGESTION.
    */
@@ -268,7 +276,8 @@ struct AddressSuggestionMessage {
 /**
  *
  */
-struct PeerInformationMessage {
+struct PeerInformationMessage
+{
   /**
    * Type is #GNUNET_MESSAGE_TYPE_ATS_PEER_INFORMATION
    */
@@ -330,7 +339,8 @@ struct PeerInformationMessage {
 /**
  * Client to service: please give us an overview of the addresses.
  */
-struct AddressListRequestMessage {
+struct AddressListRequestMessage
+{
   /**
    * Type is #GNUNET_MESSAGE_TYPE_ATS_ADDRESSLIST_REQUEST
    */
@@ -357,7 +367,8 @@ struct AddressListRequestMessage {
 /**
  *
  */
-struct ReservationRequestMessage {
+struct ReservationRequestMessage
+{
   /**
    * Type is #GNUNET_MESSAGE_TYPE_ATS_RESERVATION_REQUEST
    */
@@ -378,7 +389,8 @@ struct ReservationRequestMessage {
 /**
  *
  */
-struct ReservationResultMessage {
+struct ReservationResultMessage
+{
   /**
    * Type is #GNUNET_MESSAGE_TYPE_ATS_RESERVATION_RESULT
    */
@@ -405,7 +417,8 @@ struct ReservationResultMessage {
  * Variable-size entry in a `struct ChangePreferenceMessage` or
  * `struct FeedbackPreferenceMessage`.
  */
-struct PreferenceInformation {
+struct PreferenceInformation
+{
   /**
    * An `enum GNUNET_ATS_PreferenceKind` in NBO.
    */
@@ -422,7 +435,8 @@ struct PreferenceInformation {
 /**
  * Client to ATS: I have a performance preference for a peer.
  */
-struct ChangePreferenceMessage {
+struct ChangePreferenceMessage
+{
   /**
    * Type is #GNUNET_MESSAGE_TYPE_ATS_PREFERENCE_CHANGE.
    */
@@ -447,7 +461,8 @@ struct ChangePreferenceMessage {
 /**
  * Message containing application feedback for a peer
  */
-struct FeedbackPreferenceMessage {
+struct FeedbackPreferenceMessage
+{
   /**
    * Type is #GNUNET_MESSAGE_TYPE_ATS_PREFERENCE_FEEDBACK.
    */

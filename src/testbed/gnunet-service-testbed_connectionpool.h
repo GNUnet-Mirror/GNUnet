@@ -36,7 +36,8 @@ struct GST_ConnectionPool_GetHandle;
 /**
  * The type of service
  */
-enum GST_ConnectionPool_Service {
+enum GST_ConnectionPool_Service
+{
   /**
    * Transport service
    */
@@ -62,14 +63,14 @@ enum GST_ConnectionPool_Service {
  *   #GST_ConnectionPool_Service
  */
 void
-GST_connection_pool_init(unsigned int size);
+GST_connection_pool_init (unsigned int size);
 
 
 /**
  * Cleanup the connection pool
  */
 void
-GST_connection_pool_destroy(void);
+GST_connection_pool_destroy (void);
 
 /**
  * Functions of this type are called when the needed handle is available for
@@ -141,7 +142,7 @@ typedef void (*GST_connection_pool_peer_connect_notify) (
  *           longer being used
  */
 struct GST_ConnectionPool_GetHandle *
-GST_connection_pool_get_handle(
+GST_connection_pool_get_handle (
   unsigned int peer_id,
   const struct GNUNET_CONFIGURATION_Handle *cfg,
   enum GST_ConnectionPool_Service service,
@@ -165,7 +166,7 @@ GST_connection_pool_get_handle(
  * @param gh the handle
  */
 void
-GST_connection_pool_get_handle_done(struct GST_ConnectionPool_GetHandle *gh);
+GST_connection_pool_get_handle_done (struct GST_ConnectionPool_GetHandle *gh);
 
 
 /* End of gnunet-service-testbed_connectionpool.h */

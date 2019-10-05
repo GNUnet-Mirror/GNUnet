@@ -33,7 +33,8 @@
 /**
  * Possible states of a caller.
  */
-enum CallerState {
+enum CallerState
+{
   /**
    * The phone is ringing (user knows about incoming call).
    */
@@ -65,7 +66,8 @@ enum CallerState {
 /**
  * A caller is the handle we have for an incoming call.
  */
-struct GNUNET_CONVERSATION_Caller {
+struct GNUNET_CONVERSATION_Caller
+{
   /**
    * We keep all callers in a DLL.
    */
@@ -121,7 +123,8 @@ struct GNUNET_CONVERSATION_Caller {
 /**
  * Possible states of a phone.
  */
-enum PhoneState {
+enum PhoneState
+{
   /**
    * We still need to register the phone.
    */
@@ -145,7 +148,8 @@ enum PhoneState {
  * something rather internal to a phone and not obvious from it).
  * You can only have one conversation per phone at any time.
  */
-struct GNUNET_CONVERSATION_Phone {
+struct GNUNET_CONVERSATION_Phone
+{
   /**
    * Our configuration.
    */
@@ -204,7 +208,7 @@ struct GNUNET_CONVERSATION_Phone {
  * @param phone phone to reconnect
  */
 static void
-reconnect_phone(struct GNUNET_CONVERSATION_Phone *phone);
+reconnect_phone (struct GNUNET_CONVERSATION_Phone *phone);
 
 
 /**
@@ -215,24 +219,24 @@ reconnect_phone(struct GNUNET_CONVERSATION_Phone *phone);
  * @param data audio data to play
  */
 static void
-transmit_phone_audio(void *cls,
-                     size_t data_size,
-                     const void *data)
+transmit_phone_audio (void *cls,
+                      size_t data_size,
+                      const void *data)
 {
   struct GNUNET_CONVERSATION_Caller *caller = cls;
   struct GNUNET_CONVERSATION_Phone *phone = caller->phone;
   struct GNUNET_MQ_Envelope *e;
   struct ClientAudioMessage *am;
 
-  e = GNUNET_MQ_msg_extra(am,
-                          data_size,
-                          GNUNET_MESSAGE_TYPE_CONVERSATION_CS_AUDIO);
+  e = GNUNET_MQ_msg_extra (am,
+                           data_size,
+                           GNUNET_MESSAGE_TYPE_CONVERSATION_CS_AUDIO);
   am->cid = caller->cid;
-  GNUNET_memcpy(&am[1],
-                data,
-                data_size);
-  GNUNET_MQ_send(phone->mq,
-                 e);
+  GNUNET_memcpy (&am[1],
+                 data,
+                 data_size);
+  GNUNET_MQ_send (phone->mq,
+                  e);
 }
 
 
@@ -243,33 +247,33 @@ transmit_phone_audio(void *cls,
  * @param ring the message
  */
 static void
-handle_phone_ring(void *cls,
-                  const struct ClientPhoneRingMessage *ring)
+handle_phone_ring (void *cls,
+                   const struct ClientPhoneRingMessage *ring)
 {
   struct GNUNET_CONVERSATION_Phone *phone = cls;
   struct GNUNET_CONVERSATION_Caller *caller;
 
   switch (phone->state)
-    {
-    case PS_REGISTER:
-      GNUNET_assert(0);
-      break;
+  {
+  case PS_REGISTER:
+    GNUNET_assert (0);
+    break;
 
-    case PS_READY:
-      caller = GNUNET_new(struct GNUNET_CONVERSATION_Caller);
-      caller->phone = phone;
-      GNUNET_CONTAINER_DLL_insert(phone->caller_head,
-                                  phone->caller_tail,
-                                  caller);
-      caller->caller_id = ring->caller_id;
-      caller->cid = ring->cid;
-      caller->state = CS_RINGING;
-      phone->event_handler(phone->event_handler_cls,
-                           GNUNET_CONVERSATION_EC_PHONE_RING,
-                           caller,
-                           &caller->caller_id);
-      break;
-    }
+  case PS_READY:
+    caller = GNUNET_new (struct GNUNET_CONVERSATION_Caller);
+    caller->phone = phone;
+    GNUNET_CONTAINER_DLL_insert (phone->caller_head,
+                                 phone->caller_tail,
+                                 caller);
+    caller->caller_id = ring->caller_id;
+    caller->cid = ring->cid;
+    caller->state = CS_RINGING;
+    phone->event_handler (phone->event_handler_cls,
+                          GNUNET_CONVERSATION_EC_PHONE_RING,
+                          caller,
+                          &caller->caller_id);
+    break;
+  }
 }
 
 
@@ -281,8 +285,8 @@ handle_phone_ring(void *cls,
  * @return NULL if @a cid was not found
  */
 static struct GNUNET_CONVERSATION_Caller *
-find_caller(struct GNUNET_CONVERSATION_Phone *phone,
-            uint32_t cid)
+find_caller (struct GNUNET_CONVERSATION_Phone *phone,
+             uint32_t cid)
 {
   struct GNUNET_CONVERSATION_Caller *caller;
 
@@ -300,56 +304,56 @@ find_caller(struct GNUNET_CONVERSATION_Phone *phone,
  * @param msg the message
  */
 static void
-handle_phone_hangup(void *cls,
-                    const struct ClientPhoneHangupMessage *hang)
+handle_phone_hangup (void *cls,
+                     const struct ClientPhoneHangupMessage *hang)
 {
   struct GNUNET_CONVERSATION_Phone *phone = cls;
   struct GNUNET_CONVERSATION_Caller *caller;
 
-  caller = find_caller(phone,
-                       hang->cid);
+  caller = find_caller (phone,
+                        hang->cid);
   if (NULL == caller)
-    {
-      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-                 "Received HANG_UP message for unknown caller ID %u\n",
-                 (unsigned int)hang->cid);
-      return;
-    }
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Received HANG_UP message for unknown caller ID %u\n",
+                (unsigned int) hang->cid);
+    return;
+  }
 
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-             "Received HANG_UP message, terminating call with `%s'\n",
-             GNUNET_GNSRECORD_pkey_to_zkey(&caller->caller_id));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Received HANG_UP message, terminating call with `%s'\n",
+              GNUNET_GNSRECORD_pkey_to_zkey (&caller->caller_id));
   switch (caller->state)
-    {
-    case CS_RINGING:
-      phone->event_handler(phone->event_handler_cls,
-                           GNUNET_CONVERSATION_EC_PHONE_HUNG_UP,
-                           caller,
-                           &caller->caller_id);
-      break;
+  {
+  case CS_RINGING:
+    phone->event_handler (phone->event_handler_cls,
+                          GNUNET_CONVERSATION_EC_PHONE_HUNG_UP,
+                          caller,
+                          &caller->caller_id);
+    break;
 
-    case CS_ACTIVE:
-      caller->speaker->disable_speaker(caller->speaker->cls);
-      caller->mic->disable_microphone(caller->mic->cls);
-      phone->event_handler(phone->event_handler_cls,
-                           GNUNET_CONVERSATION_EC_PHONE_HUNG_UP,
-                           caller,
-                           &caller->caller_id);
-      break;
+  case CS_ACTIVE:
+    caller->speaker->disable_speaker (caller->speaker->cls);
+    caller->mic->disable_microphone (caller->mic->cls);
+    phone->event_handler (phone->event_handler_cls,
+                          GNUNET_CONVERSATION_EC_PHONE_HUNG_UP,
+                          caller,
+                          &caller->caller_id);
+    break;
 
-    case CS_CALLEE_SUSPENDED:
-    case CS_CALLER_SUSPENDED:
-    case CS_BOTH_SUSPENDED:
-      phone->event_handler(phone->event_handler_cls,
-                           GNUNET_CONVERSATION_EC_PHONE_HUNG_UP,
-                           caller,
-                           &caller->caller_id);
-      break;
-    }
-  GNUNET_CONTAINER_DLL_remove(phone->caller_head,
-                              phone->caller_tail,
-                              caller);
-  GNUNET_free(caller);
+  case CS_CALLEE_SUSPENDED:
+  case CS_CALLER_SUSPENDED:
+  case CS_BOTH_SUSPENDED:
+    phone->event_handler (phone->event_handler_cls,
+                          GNUNET_CONVERSATION_EC_PHONE_HUNG_UP,
+                          caller,
+                          &caller->caller_id);
+    break;
+  }
+  GNUNET_CONTAINER_DLL_remove (phone->caller_head,
+                               phone->caller_tail,
+                               caller);
+  GNUNET_free (caller);
 }
 
 
@@ -360,41 +364,41 @@ handle_phone_hangup(void *cls,
  * @param suspend the message
  */
 static void
-handle_phone_suspend(void *cls,
-                     const struct ClientPhoneSuspendMessage *suspend)
+handle_phone_suspend (void *cls,
+                      const struct ClientPhoneSuspendMessage *suspend)
 {
   struct GNUNET_CONVERSATION_Phone *phone = cls;
   struct GNUNET_CONVERSATION_Caller *caller;
 
-  caller = find_caller(phone,
-                       suspend->cid);
+  caller = find_caller (phone,
+                        suspend->cid);
   if (NULL == caller)
     return;
   switch (caller->state)
-    {
-    case CS_RINGING:
-      GNUNET_break_op(0);
-      break;
+  {
+  case CS_RINGING:
+    GNUNET_break_op (0);
+    break;
 
-    case CS_ACTIVE:
-      caller->state = CS_CALLER_SUSPENDED;
-      caller->speaker->disable_speaker(caller->speaker->cls);
-      caller->mic->disable_microphone(caller->mic->cls);
-      caller->event_handler(caller->event_handler_cls,
-                            GNUNET_CONVERSATION_EC_CALLER_SUSPEND);
-      break;
+  case CS_ACTIVE:
+    caller->state = CS_CALLER_SUSPENDED;
+    caller->speaker->disable_speaker (caller->speaker->cls);
+    caller->mic->disable_microphone (caller->mic->cls);
+    caller->event_handler (caller->event_handler_cls,
+                           GNUNET_CONVERSATION_EC_CALLER_SUSPEND);
+    break;
 
-    case CS_CALLEE_SUSPENDED:
-      caller->state = CS_BOTH_SUSPENDED;
-      caller->event_handler(caller->event_handler_cls,
-                            GNUNET_CONVERSATION_EC_CALLER_SUSPEND);
-      break;
+  case CS_CALLEE_SUSPENDED:
+    caller->state = CS_BOTH_SUSPENDED;
+    caller->event_handler (caller->event_handler_cls,
+                           GNUNET_CONVERSATION_EC_CALLER_SUSPEND);
+    break;
 
-    case CS_CALLER_SUSPENDED:
-    case CS_BOTH_SUSPENDED:
-      GNUNET_break_op(0);
-      break;
-    }
+  case CS_CALLER_SUSPENDED:
+  case CS_BOTH_SUSPENDED:
+    GNUNET_break_op (0);
+    break;
+  }
 }
 
 
@@ -405,43 +409,43 @@ handle_phone_suspend(void *cls,
  * @param resume the message
  */
 static void
-handle_phone_resume(void *cls,
-                    const struct ClientPhoneResumeMessage *resume)
+handle_phone_resume (void *cls,
+                     const struct ClientPhoneResumeMessage *resume)
 {
   struct GNUNET_CONVERSATION_Phone *phone = cls;
   struct GNUNET_CONVERSATION_Caller *caller;
 
-  caller = find_caller(phone,
-                       resume->cid);
+  caller = find_caller (phone,
+                        resume->cid);
   if (NULL == caller)
     return;
   switch (caller->state)
-    {
-    case CS_RINGING:
-      GNUNET_break_op(0);
-      break;
+  {
+  case CS_RINGING:
+    GNUNET_break_op (0);
+    break;
 
-    case CS_ACTIVE:
-    case CS_CALLEE_SUSPENDED:
-      GNUNET_break_op(0);
-      break;
+  case CS_ACTIVE:
+  case CS_CALLEE_SUSPENDED:
+    GNUNET_break_op (0);
+    break;
 
-    case CS_CALLER_SUSPENDED:
-      caller->state = CS_ACTIVE;
-      caller->speaker->enable_speaker(caller->speaker->cls);
-      caller->mic->enable_microphone(caller->mic->cls,
-                                     &transmit_phone_audio,
-                                     caller);
-      caller->event_handler(caller->event_handler_cls,
-                            GNUNET_CONVERSATION_EC_CALLER_RESUME);
-      break;
+  case CS_CALLER_SUSPENDED:
+    caller->state = CS_ACTIVE;
+    caller->speaker->enable_speaker (caller->speaker->cls);
+    caller->mic->enable_microphone (caller->mic->cls,
+                                    &transmit_phone_audio,
+                                    caller);
+    caller->event_handler (caller->event_handler_cls,
+                           GNUNET_CONVERSATION_EC_CALLER_RESUME);
+    break;
 
-    case CS_BOTH_SUSPENDED:
-      caller->state = CS_CALLEE_SUSPENDED;
-      caller->event_handler(caller->event_handler_cls,
-                            GNUNET_CONVERSATION_EC_CALLER_RESUME);
-      break;
-    }
+  case CS_BOTH_SUSPENDED:
+    caller->state = CS_CALLEE_SUSPENDED;
+    caller->event_handler (caller->event_handler_cls,
+                           GNUNET_CONVERSATION_EC_CALLER_RESUME);
+    break;
+  }
 }
 
 
@@ -453,11 +457,11 @@ handle_phone_resume(void *cls,
  * @return #GNUNET_OK if @a am is well-formed
  */
 static int
-check_phone_audio(void *cls,
-                  const struct ClientAudioMessage *am)
+check_phone_audio (void *cls,
+                   const struct ClientAudioMessage *am)
 {
-  (void)cls;
-  (void)am;
+  (void) cls;
+  (void) am;
 
   /* any variable-size payload is OK */
   return GNUNET_OK;
@@ -471,33 +475,34 @@ check_phone_audio(void *cls,
  * @param am the message
  */
 static void
-handle_phone_audio(void *cls,
-                   const struct ClientAudioMessage *am)
+handle_phone_audio (void *cls,
+                    const struct ClientAudioMessage *am)
 {
   struct GNUNET_CONVERSATION_Phone *phone = cls;
   struct GNUNET_CONVERSATION_Caller *caller;
 
-  caller = find_caller(phone,
-                       am->cid);
+  caller = find_caller (phone,
+                        am->cid);
   if (NULL == caller)
     return;
   switch (caller->state)
-    {
-    case CS_RINGING:
-      GNUNET_break_op(0);
-      break;
+  {
+  case CS_RINGING:
+    GNUNET_break_op (0);
+    break;
 
-    case CS_ACTIVE:
-      caller->speaker->play(caller->speaker->cls,
-                            ntohs(am->header.size) - sizeof(struct ClientAudioMessage),
-                            &am[1]);
-      break;
+  case CS_ACTIVE:
+    caller->speaker->play (caller->speaker->cls,
+                           ntohs (am->header.size) - sizeof(struct
+                                                            ClientAudioMessage),
+                           &am[1]);
+    break;
 
-    case CS_CALLEE_SUSPENDED:
-    case CS_CALLER_SUSPENDED:
-    case CS_BOTH_SUSPENDED:
-      break;
-    }
+  case CS_CALLEE_SUSPENDED:
+  case CS_CALLER_SUSPENDED:
+  case CS_BOTH_SUSPENDED:
+    break;
+  }
 }
 
 
@@ -508,15 +513,16 @@ handle_phone_audio(void *cls,
  * @param error details about the error
  */
 static void
-phone_error_handler(void *cls,
-                    enum GNUNET_MQ_Error error)
+phone_error_handler (void *cls,
+                     enum GNUNET_MQ_Error error)
 {
   struct GNUNET_CONVERSATION_Phone *phone = cls;
 
-  (void)error;
-  GNUNET_log(GNUNET_ERROR_TYPE_WARNING,
-             _("Connection to conversation service lost, trying to reconnect\n"));
-  reconnect_phone(phone);
+  (void) error;
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+              _ (
+                "Connection to conversation service lost, trying to reconnect\n"));
+  reconnect_phone (phone);
 }
 
 
@@ -526,25 +532,25 @@ phone_error_handler(void *cls,
  * @param phone phone to clean up callers for
  */
 static void
-clean_up_callers(struct GNUNET_CONVERSATION_Phone *phone)
+clean_up_callers (struct GNUNET_CONVERSATION_Phone *phone)
 {
   struct GNUNET_CONVERSATION_Caller *caller;
 
   while (NULL != (caller = phone->caller_head))
+  {
+    /* make sure mic/speaker are disabled *before* callback */
+    if (CS_ACTIVE == caller->state)
     {
-      /* make sure mic/speaker are disabled *before* callback */
-      if (CS_ACTIVE == caller->state)
-        {
-          caller->speaker->disable_speaker(caller->speaker->cls);
-          caller->mic->disable_microphone(caller->mic->cls);
-          caller->state = CS_CALLER_SUSPENDED;
-        }
-      phone->event_handler(phone->event_handler_cls,
-                           GNUNET_CONVERSATION_EC_PHONE_HUNG_UP,
-                           caller,
-                           &caller->caller_id);
-      GNUNET_CONVERSATION_caller_hang_up(caller);
+      caller->speaker->disable_speaker (caller->speaker->cls);
+      caller->mic->disable_microphone (caller->mic->cls);
+      caller->state = CS_CALLER_SUSPENDED;
     }
+    phone->event_handler (phone->event_handler_cls,
+                          GNUNET_CONVERSATION_EC_PHONE_HUNG_UP,
+                          caller,
+                          &caller->caller_id);
+    GNUNET_CONVERSATION_caller_hang_up (caller);
+  }
 }
 
 
@@ -554,53 +560,53 @@ clean_up_callers(struct GNUNET_CONVERSATION_Phone *phone)
  * @param phone phone to reconnect
  */
 static void
-reconnect_phone(struct GNUNET_CONVERSATION_Phone *phone)
+reconnect_phone (struct GNUNET_CONVERSATION_Phone *phone)
 {
   struct GNUNET_MQ_MessageHandler handlers[] = {
-    GNUNET_MQ_hd_fixed_size(phone_ring,
-                            GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_RING,
-                            struct ClientPhoneRingMessage,
-                            phone),
-    GNUNET_MQ_hd_fixed_size(phone_hangup,
-                            GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_HANG_UP,
-                            struct ClientPhoneHangupMessage,
-                            phone),
-    GNUNET_MQ_hd_fixed_size(phone_suspend,
-                            GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_SUSPEND,
-                            struct ClientPhoneSuspendMessage,
-                            phone),
-    GNUNET_MQ_hd_fixed_size(phone_resume,
-                            GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_RESUME,
-                            struct ClientPhoneResumeMessage,
-                            phone),
-    GNUNET_MQ_hd_var_size(phone_audio,
-                          GNUNET_MESSAGE_TYPE_CONVERSATION_CS_AUDIO,
-                          struct ClientAudioMessage,
-                          phone),
-    GNUNET_MQ_handler_end()
+    GNUNET_MQ_hd_fixed_size (phone_ring,
+                             GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_RING,
+                             struct ClientPhoneRingMessage,
+                             phone),
+    GNUNET_MQ_hd_fixed_size (phone_hangup,
+                             GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_HANG_UP,
+                             struct ClientPhoneHangupMessage,
+                             phone),
+    GNUNET_MQ_hd_fixed_size (phone_suspend,
+                             GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_SUSPEND,
+                             struct ClientPhoneSuspendMessage,
+                             phone),
+    GNUNET_MQ_hd_fixed_size (phone_resume,
+                             GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_RESUME,
+                             struct ClientPhoneResumeMessage,
+                             phone),
+    GNUNET_MQ_hd_var_size (phone_audio,
+                           GNUNET_MESSAGE_TYPE_CONVERSATION_CS_AUDIO,
+                           struct ClientAudioMessage,
+                           phone),
+    GNUNET_MQ_handler_end ()
   };
   struct GNUNET_MQ_Envelope *e;
   struct ClientPhoneRegisterMessage *reg;
 
-  clean_up_callers(phone);
+  clean_up_callers (phone);
   if (NULL != phone->mq)
-    {
-      GNUNET_MQ_destroy(phone->mq);
-      phone->mq = NULL;
-    }
+  {
+    GNUNET_MQ_destroy (phone->mq);
+    phone->mq = NULL;
+  }
   phone->state = PS_REGISTER;
-  phone->mq = GNUNET_CLIENT_connect(phone->cfg,
-                                    "conversation",
-                                    handlers,
-                                    &phone_error_handler,
-                                    phone);
+  phone->mq = GNUNET_CLIENT_connect (phone->cfg,
+                                     "conversation",
+                                     handlers,
+                                     &phone_error_handler,
+                                     phone);
   if (NULL == phone->mq)
     return;
-  e = GNUNET_MQ_msg(reg,
-                    GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_REGISTER);
+  e = GNUNET_MQ_msg (reg,
+                     GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_REGISTER);
   reg->line_port = phone->my_record.line_port;
-  GNUNET_MQ_send(phone->mq,
-                 e);
+  GNUNET_MQ_send (phone->mq,
+                  e);
   phone->state = PS_READY;
 }
 
@@ -616,54 +622,55 @@ reconnect_phone(struct GNUNET_CONVERSATION_Phone *phone)
  * @return NULL on error (no valid line configured)
  */
 struct GNUNET_CONVERSATION_Phone *
-GNUNET_CONVERSATION_phone_create(const struct GNUNET_CONFIGURATION_Handle *cfg,
-                                 const struct GNUNET_IDENTITY_Ego *ego,
-                                 GNUNET_CONVERSATION_PhoneEventHandler event_handler,
-                                 void *event_handler_cls)
+GNUNET_CONVERSATION_phone_create (const struct GNUNET_CONFIGURATION_Handle *cfg,
+                                  const struct GNUNET_IDENTITY_Ego *ego,
+                                  GNUNET_CONVERSATION_PhoneEventHandler
+                                  event_handler,
+                                  void *event_handler_cls)
 {
   struct GNUNET_CONVERSATION_Phone *phone;
   char *line;
   struct GNUNET_HashCode line_port;
 
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_string(cfg,
-                                            "CONVERSATION",
-                                            "LINE",
-                                            &line))
-    {
-      GNUNET_log_config_missing(GNUNET_ERROR_TYPE_ERROR,
-                                "CONVERSATION",
-                                "LINE");
-      return NULL;
-    }
-  GNUNET_CRYPTO_hash(line,
-                     strlen(line),
-                     &line_port);
-  phone = GNUNET_new(struct GNUNET_CONVERSATION_Phone);
+      GNUNET_CONFIGURATION_get_value_string (cfg,
+                                             "CONVERSATION",
+                                             "LINE",
+                                             &line))
+  {
+    GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR,
+                               "CONVERSATION",
+                               "LINE");
+    return NULL;
+  }
+  GNUNET_CRYPTO_hash (line,
+                      strlen (line),
+                      &line_port);
+  phone = GNUNET_new (struct GNUNET_CONVERSATION_Phone);
   if (GNUNET_OK !=
-      GNUNET_CRYPTO_get_peer_identity(cfg,
-                                      &phone->my_record.peer))
-    {
-      GNUNET_break(0);
-      GNUNET_free(phone);
-      return NULL;
-    }
+      GNUNET_CRYPTO_get_peer_identity (cfg,
+                                       &phone->my_record.peer))
+  {
+    GNUNET_break (0);
+    GNUNET_free (phone);
+    return NULL;
+  }
   phone->cfg = cfg;
-  phone->my_zone = *GNUNET_IDENTITY_ego_get_private_key(ego);
+  phone->my_zone = *GNUNET_IDENTITY_ego_get_private_key (ego);
   phone->event_handler = event_handler;
   phone->event_handler_cls = event_handler_cls;
-  phone->ns = GNUNET_NAMESTORE_connect(cfg);
-  phone->my_record.version = htonl(1);
-  phone->my_record.reserved = htonl(0);
+  phone->ns = GNUNET_NAMESTORE_connect (cfg);
+  phone->my_record.version = htonl (1);
+  phone->my_record.reserved = htonl (0);
   phone->my_record.line_port = line_port;
-  reconnect_phone(phone);
+  reconnect_phone (phone);
   if ((NULL == phone->mq) ||
       (NULL == phone->ns))
-    {
-      GNUNET_break(0);
-      GNUNET_CONVERSATION_phone_destroy(phone);
-      return NULL;
-    }
+  {
+    GNUNET_break (0);
+    GNUNET_CONVERSATION_phone_destroy (phone);
+    return NULL;
+  }
   return phone;
 }
 
@@ -677,8 +684,8 @@ GNUNET_CONVERSATION_phone_create(const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @param rd namestore record to fill in
  */
 void
-GNUNET_CONVERSATION_phone_get_record(struct GNUNET_CONVERSATION_Phone *phone,
-                                     struct GNUNET_GNSRECORD_Data *rd)
+GNUNET_CONVERSATION_phone_get_record (struct GNUNET_CONVERSATION_Phone *phone,
+                                      struct GNUNET_GNSRECORD_Data *rd)
 {
   rd->data = &phone->my_record;
   rd->expiration_time = 0;
@@ -699,31 +706,32 @@ GNUNET_CONVERSATION_phone_get_record(struct GNUNET_CONVERSATION_Phone *phone,
  * @param mic microphone to use
  */
 void
-GNUNET_CONVERSATION_caller_pick_up(struct GNUNET_CONVERSATION_Caller *caller,
-                                   GNUNET_CONVERSATION_CallerEventHandler event_handler,
-                                   void *event_handler_cls,
-                                   struct GNUNET_SPEAKER_Handle *speaker,
-                                   struct GNUNET_MICROPHONE_Handle *mic)
+GNUNET_CONVERSATION_caller_pick_up (struct GNUNET_CONVERSATION_Caller *caller,
+                                    GNUNET_CONVERSATION_CallerEventHandler
+                                    event_handler,
+                                    void *event_handler_cls,
+                                    struct GNUNET_SPEAKER_Handle *speaker,
+                                    struct GNUNET_MICROPHONE_Handle *mic)
 {
   struct GNUNET_CONVERSATION_Phone *phone = caller->phone;
   struct GNUNET_MQ_Envelope *e;
   struct ClientPhonePickupMessage *pick;
 
-  GNUNET_assert(CS_RINGING == caller->state);
+  GNUNET_assert (CS_RINGING == caller->state);
   caller->speaker = speaker;
   caller->mic = mic;
-  e = GNUNET_MQ_msg(pick,
-                    GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_PICK_UP);
+  e = GNUNET_MQ_msg (pick,
+                     GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_PICK_UP);
   pick->cid = caller->cid;
-  GNUNET_MQ_send(phone->mq,
-                 e);
+  GNUNET_MQ_send (phone->mq,
+                  e);
   caller->state = CS_ACTIVE;
   caller->event_handler = event_handler;
   caller->event_handler_cls = event_handler_cls;
-  caller->speaker->enable_speaker(caller->speaker->cls);
-  caller->mic->enable_microphone(caller->mic->cls,
-                                 &transmit_phone_audio,
-                                 caller);
+  caller->speaker->enable_speaker (caller->speaker->cls);
+  caller->mic->enable_microphone (caller->mic->cls,
+                                  &transmit_phone_audio,
+                                  caller);
 }
 
 
@@ -734,31 +742,31 @@ GNUNET_CONVERSATION_caller_pick_up(struct GNUNET_CONVERSATION_Caller *caller,
  * @param caller conversation to hang up on
  */
 void
-GNUNET_CONVERSATION_caller_hang_up(struct GNUNET_CONVERSATION_Caller *caller)
+GNUNET_CONVERSATION_caller_hang_up (struct GNUNET_CONVERSATION_Caller *caller)
 {
   struct GNUNET_CONVERSATION_Phone *phone = caller->phone;
   struct GNUNET_MQ_Envelope *e;
   struct ClientPhoneHangupMessage *hang;
 
   switch (caller->state)
-    {
-    case CS_ACTIVE:
-      caller->speaker->disable_speaker(caller->speaker->cls);
-      caller->mic->disable_microphone(caller->mic->cls);
-      break;
+  {
+  case CS_ACTIVE:
+    caller->speaker->disable_speaker (caller->speaker->cls);
+    caller->mic->disable_microphone (caller->mic->cls);
+    break;
 
-    default:
-      break;
-    }
-  GNUNET_CONTAINER_DLL_remove(phone->caller_head,
-                              phone->caller_tail,
-                              caller);
-  e = GNUNET_MQ_msg(hang,
-                    GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_HANG_UP);
+  default:
+    break;
+  }
+  GNUNET_CONTAINER_DLL_remove (phone->caller_head,
+                               phone->caller_tail,
+                               caller);
+  e = GNUNET_MQ_msg (hang,
+                     GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_HANG_UP);
   hang->cid = caller->cid;
-  GNUNET_MQ_send(phone->mq,
-                 e);
-  GNUNET_free(caller);
+  GNUNET_MQ_send (phone->mq,
+                  e);
+  GNUNET_free (caller);
 }
 
 
@@ -768,20 +776,20 @@ GNUNET_CONVERSATION_caller_hang_up(struct GNUNET_CONVERSATION_Caller *caller)
  * @param phone phone to destroy
  */
 void
-GNUNET_CONVERSATION_phone_destroy(struct GNUNET_CONVERSATION_Phone *phone)
+GNUNET_CONVERSATION_phone_destroy (struct GNUNET_CONVERSATION_Phone *phone)
 {
-  clean_up_callers(phone);
+  clean_up_callers (phone);
   if (NULL != phone->ns)
-    {
-      GNUNET_NAMESTORE_disconnect(phone->ns);
-      phone->ns = NULL;
-    }
+  {
+    GNUNET_NAMESTORE_disconnect (phone->ns);
+    phone->ns = NULL;
+  }
   if (NULL != phone->mq)
-    {
-      GNUNET_MQ_destroy(phone->mq);
-      phone->mq = NULL;
-    }
-  GNUNET_free(phone);
+  {
+    GNUNET_MQ_destroy (phone->mq);
+    phone->mq = NULL;
+  }
+  GNUNET_free (phone);
 }
 
 
@@ -793,26 +801,26 @@ GNUNET_CONVERSATION_phone_destroy(struct GNUNET_CONVERSATION_Phone *phone)
  * @param caller call to suspend
  */
 void
-GNUNET_CONVERSATION_caller_suspend(struct GNUNET_CONVERSATION_Caller *caller)
+GNUNET_CONVERSATION_caller_suspend (struct GNUNET_CONVERSATION_Caller *caller)
 {
   struct GNUNET_CONVERSATION_Phone *phone = caller->phone;
   struct GNUNET_MQ_Envelope *e;
   struct ClientPhoneSuspendMessage *suspend;
 
-  GNUNET_assert((CS_ACTIVE == caller->state) ||
-                (CS_CALLER_SUSPENDED == caller->state));
+  GNUNET_assert ((CS_ACTIVE == caller->state) ||
+                 (CS_CALLER_SUSPENDED == caller->state));
   if (CS_ACTIVE == caller->state)
-    {
-      caller->speaker->disable_speaker(caller->speaker->cls);
-      caller->mic->disable_microphone(caller->mic->cls);
-    }
+  {
+    caller->speaker->disable_speaker (caller->speaker->cls);
+    caller->mic->disable_microphone (caller->mic->cls);
+  }
   caller->speaker = NULL;
   caller->mic = NULL;
-  e = GNUNET_MQ_msg(suspend,
-                    GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_SUSPEND);
+  e = GNUNET_MQ_msg (suspend,
+                     GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_SUSPEND);
   suspend->cid = caller->cid;
-  GNUNET_MQ_send(phone->mq,
-                 e);
+  GNUNET_MQ_send (phone->mq,
+                  e);
   if (CS_ACTIVE == caller->state)
     caller->state = CS_CALLEE_SUSPENDED;
   else
@@ -828,35 +836,35 @@ GNUNET_CONVERSATION_caller_suspend(struct GNUNET_CONVERSATION_Caller *caller)
  * @param mic microphone to use
  */
 void
-GNUNET_CONVERSATION_caller_resume(struct GNUNET_CONVERSATION_Caller *caller,
-                                  struct GNUNET_SPEAKER_Handle *speaker,
-                                  struct GNUNET_MICROPHONE_Handle *mic)
+GNUNET_CONVERSATION_caller_resume (struct GNUNET_CONVERSATION_Caller *caller,
+                                   struct GNUNET_SPEAKER_Handle *speaker,
+                                   struct GNUNET_MICROPHONE_Handle *mic)
 {
   struct GNUNET_CONVERSATION_Phone *phone = caller->phone;
   struct GNUNET_MQ_Envelope *e;
   struct ClientPhoneResumeMessage *resume;
 
-  GNUNET_assert((CS_CALLEE_SUSPENDED == caller->state) ||
-                (CS_BOTH_SUSPENDED == caller->state));
+  GNUNET_assert ((CS_CALLEE_SUSPENDED == caller->state) ||
+                 (CS_BOTH_SUSPENDED == caller->state));
   caller->speaker = speaker;
   caller->mic = mic;
-  e = GNUNET_MQ_msg(resume,
-                    GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_RESUME);
+  e = GNUNET_MQ_msg (resume,
+                     GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_RESUME);
   resume->cid = caller->cid;
-  GNUNET_MQ_send(phone->mq,
-                 e);
+  GNUNET_MQ_send (phone->mq,
+                  e);
   if (CS_CALLEE_SUSPENDED == caller->state)
-    {
-      caller->state = CS_ACTIVE;
-      caller->speaker->enable_speaker(caller->speaker->cls);
-      caller->mic->enable_microphone(caller->mic->cls,
-                                     &transmit_phone_audio,
-                                     caller);
-    }
+  {
+    caller->state = CS_ACTIVE;
+    caller->speaker->enable_speaker (caller->speaker->cls);
+    caller->mic->enable_microphone (caller->mic->cls,
+                                    &transmit_phone_audio,
+                                    caller);
+  }
   else
-    {
-      caller->state = CS_CALLER_SUSPENDED;
-    }
+  {
+    caller->state = CS_CALLER_SUSPENDED;
+  }
 }
 
 /* end of conversation_api.c */

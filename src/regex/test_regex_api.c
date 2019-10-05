@@ -31,12 +31,13 @@
 /**
  * How long until we really give up on a particular testcase portion?
  */
-#define TOTAL_TIMEOUT GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 600)
+#define TOTAL_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, \
+                                                     600)
 
 /**
  * How long until we give up on any particular operation (and retry)?
  */
-#define BASE_TIMEOUT GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 3)
+#define BASE_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 3)
 
 
 static struct GNUNET_REGEX_Announcement *a;
@@ -49,25 +50,25 @@ static struct GNUNET_SCHEDULER_Task *die_task;
 
 
 static void
-end(void *cls)
+end (void *cls)
 {
   die_task = NULL;
-  GNUNET_REGEX_announce_cancel(a);
+  GNUNET_REGEX_announce_cancel (a);
   a = NULL;
-  GNUNET_REGEX_search_cancel(s);
+  GNUNET_REGEX_search_cancel (s);
   s = NULL;
   ok = 0;
 }
 
 
 static void
-end_badly()
+end_badly ()
 {
   die_task = NULL;
-  fprintf(stderr, "%s", "Testcase failed (timeout).\n");
-  GNUNET_REGEX_announce_cancel(a);
+  fprintf (stderr, "%s", "Testcase failed (timeout).\n");
+  GNUNET_REGEX_announce_cancel (a);
   a = NULL;
-  GNUNET_REGEX_search_cancel(s);
+  GNUNET_REGEX_search_cancel (s);
   s = NULL;
   ok = 1;
 }
@@ -84,44 +85,45 @@ end_badly()
  * @param put_path_length Length of the put_path.
  */
 static void
-found_cb(void *cls,
-         const struct GNUNET_PeerIdentity *id,
-         const struct GNUNET_PeerIdentity *get_path,
-         unsigned int get_path_length,
-         const struct GNUNET_PeerIdentity *put_path,
-         unsigned int put_path_length)
+found_cb (void *cls,
+          const struct GNUNET_PeerIdentity *id,
+          const struct GNUNET_PeerIdentity *get_path,
+          unsigned int get_path_length,
+          const struct GNUNET_PeerIdentity *put_path,
+          unsigned int put_path_length)
 {
-  GNUNET_SCHEDULER_cancel(die_task);
+  GNUNET_SCHEDULER_cancel (die_task);
   die_task =
-    GNUNET_SCHEDULER_add_now(&end, NULL);
+    GNUNET_SCHEDULER_add_now (&end, NULL);
 }
 
 
 static void
-run(void *cls,
-    const struct GNUNET_CONFIGURATION_Handle *cfg,
-    struct GNUNET_TESTING_Peer *peer)
+run (void *cls,
+     const struct GNUNET_CONFIGURATION_Handle *cfg,
+     struct GNUNET_TESTING_Peer *peer)
 {
   die_task =
-    GNUNET_SCHEDULER_add_delayed(TOTAL_TIMEOUT,
-                                 &end_badly, NULL);
-  a = GNUNET_REGEX_announce(cfg,
-                            "my long prefix - hello world(0|1)*",
-                            GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS,
-                                                          5),
-                            1);
-  s = GNUNET_REGEX_search(cfg,
-                          "my long prefix - hello world0101",
-                          &found_cb, NULL);
+    GNUNET_SCHEDULER_add_delayed (TOTAL_TIMEOUT,
+                                  &end_badly, NULL);
+  a = GNUNET_REGEX_announce (cfg,
+                             "my long prefix - hello world(0|1)*",
+                             GNUNET_TIME_relative_multiply (
+                               GNUNET_TIME_UNIT_SECONDS,
+                               5),
+                             1);
+  s = GNUNET_REGEX_search (cfg,
+                           "my long prefix - hello world0101",
+                           &found_cb, NULL);
 }
 
 
 int
-main(int argc, char *argv[])
+main (int argc, char *argv[])
 {
-  if (0 != GNUNET_TESTING_peer_run("test-regex-api",
-                                   "test_regex_api_data.conf",
-                                   &run, NULL))
+  if (0 != GNUNET_TESTING_peer_run ("test-regex-api",
+                                    "test_regex_api_data.conf",
+                                    &run, NULL))
     return 1;
   return ok;
 }

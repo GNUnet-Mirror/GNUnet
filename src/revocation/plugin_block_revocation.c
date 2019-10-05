@@ -49,7 +49,8 @@
 /**
  * Context used inside the plugin.
  */
-struct InternalContext {
+struct InternalContext
+{
   unsigned int matching_bits;
 };
 
@@ -67,37 +68,38 @@ struct InternalContext {
  *         by this @a type of block (this is not an error)
  */
 static struct GNUNET_BLOCK_Group *
-block_plugin_revocation_create_group(void *cls,
-                                     enum GNUNET_BLOCK_Type type,
-                                     uint32_t nonce,
-                                     const void *raw_data,
-                                     size_t raw_data_size,
-                                     va_list va)
+block_plugin_revocation_create_group (void *cls,
+                                      enum GNUNET_BLOCK_Type type,
+                                      uint32_t nonce,
+                                      const void *raw_data,
+                                      size_t raw_data_size,
+                                      va_list va)
 {
   unsigned int bf_size;
   const char *guard;
 
-  guard = va_arg(va, const char *);
-  if (0 == strcmp(guard,
-                  "seen-set-size"))
-    bf_size = GNUNET_BLOCK_GROUP_compute_bloomfilter_size(va_arg(va, unsigned int),
-                                                          BLOOMFILTER_K);
-  else if (0 == strcmp(guard,
-                       "filter-size"))
-    bf_size = va_arg(va, unsigned int);
+  guard = va_arg (va, const char *);
+  if (0 == strcmp (guard,
+                   "seen-set-size"))
+    bf_size = GNUNET_BLOCK_GROUP_compute_bloomfilter_size (va_arg (va, unsigned
+                                                                   int),
+                                                           BLOOMFILTER_K);
+  else if (0 == strcmp (guard,
+                        "filter-size"))
+    bf_size = va_arg (va, unsigned int);
   else
-    {
-      GNUNET_break(0);
-      bf_size = REVOCATION_BF_SIZE;
-    }
-  GNUNET_break(NULL == va_arg(va, const char *));
-  return GNUNET_BLOCK_GROUP_bf_create(cls,
-                                      bf_size,
-                                      BLOOMFILTER_K,
-                                      type,
-                                      nonce,
-                                      raw_data,
-                                      raw_data_size);
+  {
+    GNUNET_break (0);
+    bf_size = REVOCATION_BF_SIZE;
+  }
+  GNUNET_break (NULL == va_arg (va, const char *));
+  return GNUNET_BLOCK_GROUP_bf_create (cls,
+                                       bf_size,
+                                       BLOOMFILTER_K,
+                                       type,
+                                       nonce,
+                                       raw_data,
+                                       raw_data_size);
 }
 
 
@@ -118,16 +120,16 @@ block_plugin_revocation_create_group(void *cls,
  * @return characterization of result
  */
 static enum GNUNET_BLOCK_EvaluationResult
-block_plugin_revocation_evaluate(void *cls,
-                                 struct GNUNET_BLOCK_Context *ctx,
-                                 enum GNUNET_BLOCK_Type type,
-                                 struct GNUNET_BLOCK_Group *group,
-                                 enum GNUNET_BLOCK_EvaluationOptions eo,
-                                 const struct GNUNET_HashCode *query,
-                                 const void *xquery,
-                                 size_t xquery_size,
-                                 const void *reply_block,
-                                 size_t reply_block_size)
+block_plugin_revocation_evaluate (void *cls,
+                                  struct GNUNET_BLOCK_Context *ctx,
+                                  enum GNUNET_BLOCK_Type type,
+                                  struct GNUNET_BLOCK_Group *group,
+                                  enum GNUNET_BLOCK_EvaluationOptions eo,
+                                  const struct GNUNET_HashCode *query,
+                                  const void *xquery,
+                                  size_t xquery_size,
+                                  const void *reply_block,
+                                  size_t reply_block_size)
 {
   struct InternalContext *ic = cls;
   struct GNUNET_HashCode chash;
@@ -136,33 +138,33 @@ block_plugin_revocation_evaluate(void *cls,
   if (NULL == reply_block)
     return GNUNET_BLOCK_EVALUATION_REQUEST_VALID;
   if (reply_block_size != sizeof(*rm))
-    {
-      GNUNET_break_op(0);
-      return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;
-    }
+  {
+    GNUNET_break_op (0);
+    return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;
+  }
   if (GNUNET_YES !=
-      GNUNET_REVOCATION_check_pow(&rm->public_key,
-                                  rm->proof_of_work,
-                                  ic->matching_bits))
-    {
-      GNUNET_break_op(0);
-      return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;
-    }
+      GNUNET_REVOCATION_check_pow (&rm->public_key,
+                                   rm->proof_of_work,
+                                   ic->matching_bits))
+  {
+    GNUNET_break_op (0);
+    return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;
+  }
   if (GNUNET_OK !=
-      GNUNET_CRYPTO_ecdsa_verify(GNUNET_SIGNATURE_PURPOSE_REVOCATION,
-                                 &rm->purpose,
-                                 &rm->signature,
-                                 &rm->public_key))
-    {
-      GNUNET_break_op(0);
-      return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;
-    }
-  GNUNET_CRYPTO_hash(&rm->public_key,
-                     sizeof(struct GNUNET_CRYPTO_EcdsaPublicKey),
-                     &chash);
+      GNUNET_CRYPTO_ecdsa_verify (GNUNET_SIGNATURE_PURPOSE_REVOCATION,
+                                  &rm->purpose,
+                                  &rm->signature,
+                                  &rm->public_key))
+  {
+    GNUNET_break_op (0);
+    return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;
+  }
+  GNUNET_CRYPTO_hash (&rm->public_key,
+                      sizeof(struct GNUNET_CRYPTO_EcdsaPublicKey),
+                      &chash);
   if (GNUNET_YES ==
-      GNUNET_BLOCK_GROUP_bf_test_and_set(group,
-                                         &chash))
+      GNUNET_BLOCK_GROUP_bf_test_and_set (group,
+                                          &chash))
     return GNUNET_BLOCK_EVALUATION_OK_DUPLICATE;
   return GNUNET_BLOCK_EVALUATION_TYPE_NOT_SUPPORTED;
 }
@@ -180,22 +182,22 @@ block_plugin_revocation_evaluate(void *cls,
  *         (or if extracting a key from a block of this type does not work)
  */
 static int
-block_plugin_revocation_get_key(void *cls,
-                                enum GNUNET_BLOCK_Type type,
-                                const void *block,
-                                size_t block_size,
-                                struct GNUNET_HashCode *key)
+block_plugin_revocation_get_key (void *cls,
+                                 enum GNUNET_BLOCK_Type type,
+                                 const void *block,
+                                 size_t block_size,
+                                 struct GNUNET_HashCode *key)
 {
   const struct RevokeMessage *rm = block;
 
   if (block_size != sizeof(*rm))
-    {
-      GNUNET_break_op(0);
-      return GNUNET_SYSERR;
-    }
-  GNUNET_CRYPTO_hash(&rm->public_key,
-                     sizeof(struct GNUNET_CRYPTO_EcdsaPublicKey),
-                     key);
+  {
+    GNUNET_break_op (0);
+    return GNUNET_SYSERR;
+  }
+  GNUNET_CRYPTO_hash (&rm->public_key,
+                      sizeof(struct GNUNET_CRYPTO_EcdsaPublicKey),
+                      key);
   return GNUNET_OK;
 }
 
@@ -206,10 +208,9 @@ block_plugin_revocation_get_key(void *cls,
  * @param cls the configuration to use
  */
 void *
-libgnunet_plugin_block_revocation_init(void *cls)
+libgnunet_plugin_block_revocation_init (void *cls)
 {
-  static enum GNUNET_BLOCK_Type types[] =
-  {
+  static enum GNUNET_BLOCK_Type types[] = {
     GNUNET_BLOCK_TYPE_REVOCATION,
     GNUNET_BLOCK_TYPE_ANY       /* end of list */
   };
@@ -219,19 +220,19 @@ libgnunet_plugin_block_revocation_init(void *cls)
   unsigned long long matching_bits;
 
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_number(cfg,
-                                            "REVOCATION",
-                                            "WORKBITS",
-                                            &matching_bits))
+      GNUNET_CONFIGURATION_get_value_number (cfg,
+                                             "REVOCATION",
+                                             "WORKBITS",
+                                             &matching_bits))
     return NULL;
 
-  api = GNUNET_new(struct GNUNET_BLOCK_PluginFunctions);
+  api = GNUNET_new (struct GNUNET_BLOCK_PluginFunctions);
   api->evaluate = &block_plugin_revocation_evaluate;
   api->get_key = &block_plugin_revocation_get_key;
   api->create_group = &block_plugin_revocation_create_group;
   api->types = types;
-  ic = GNUNET_new(struct InternalContext);
-  ic->matching_bits = (unsigned int)matching_bits;
+  ic = GNUNET_new (struct InternalContext);
+  ic->matching_bits = (unsigned int) matching_bits;
   api->cls = ic;
   return api;
 }
@@ -241,13 +242,13 @@ libgnunet_plugin_block_revocation_init(void *cls)
  * Exit point from the plugin.
  */
 void *
-libgnunet_plugin_block_revocation_done(void *cls)
+libgnunet_plugin_block_revocation_done (void *cls)
 {
   struct GNUNET_BLOCK_PluginFunctions *api = cls;
   struct InternalContext *ic = api->cls;
 
-  GNUNET_free(ic);
-  GNUNET_free(api);
+  GNUNET_free (ic);
+  GNUNET_free (api);
   return NULL;
 }
 

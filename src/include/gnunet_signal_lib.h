@@ -68,8 +68,8 @@ typedef void
  * @return context that can be used to restore, NULL on error
  */
 struct GNUNET_SIGNAL_Context *
-GNUNET_SIGNAL_handler_install(int signal,
-                              GNUNET_SIGNAL_Handler handler);
+GNUNET_SIGNAL_handler_install (int signal,
+                               GNUNET_SIGNAL_Handler handler);
 
 
 /**
@@ -79,7 +79,7 @@ GNUNET_SIGNAL_handler_install(int signal,
  *            signal handler was installed
  */
 void
-GNUNET_SIGNAL_handler_uninstall(struct GNUNET_SIGNAL_Context *ctx);
+GNUNET_SIGNAL_handler_uninstall (struct GNUNET_SIGNAL_Context *ctx);
 
 
 /**
@@ -90,7 +90,7 @@ GNUNET_SIGNAL_handler_uninstall(struct GNUNET_SIGNAL_Context *ctx);
  * @param sig the signal to raise
  */
 void
-GNUNET_SIGNAL_raise(const int sig);
+GNUNET_SIGNAL_raise (const int sig);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

@@ -43,47 +43,47 @@ static int ret;
  * @param cfg the configuration file handle
  */
 static void
-run(void *cls, char *const *args, const char *cfgfile,
-    const struct GNUNET_CONFIGURATION_Handle *config)
+run (void *cls, char *const *args, const char *cfgfile,
+     const struct GNUNET_CONFIGURATION_Handle *config)
 {
-  struct SDHandle *h = GNUNET_TESTBED_SD_init_(20);
+  struct SDHandle *h = GNUNET_TESTBED_SD_init_ (20);
   int sd;
 
   ret = 0;
-  GNUNET_TESTBED_SD_add_data_(h, 40);
-  if (GNUNET_SYSERR != GNUNET_TESTBED_SD_deviation_factor_(h, 10, &sd))
-    {
-      GNUNET_break(0);
-      ret = 1;
-      goto err;
-    }
-  GNUNET_TESTBED_SD_add_data_(h, 30);
-  if (GNUNET_SYSERR == GNUNET_TESTBED_SD_deviation_factor_(h, 80, &sd))
-    {
-      GNUNET_break(0);
-      ret = 1;
-      goto err;
-    }
-  GNUNET_TESTBED_SD_add_data_(h, 40);
-  if ((GNUNET_SYSERR == GNUNET_TESTBED_SD_deviation_factor_(h, 30, &sd))
+  GNUNET_TESTBED_SD_add_data_ (h, 40);
+  if (GNUNET_SYSERR != GNUNET_TESTBED_SD_deviation_factor_ (h, 10, &sd))
+  {
+    GNUNET_break (0);
+    ret = 1;
+    goto err;
+  }
+  GNUNET_TESTBED_SD_add_data_ (h, 30);
+  if (GNUNET_SYSERR == GNUNET_TESTBED_SD_deviation_factor_ (h, 80, &sd))
+  {
+    GNUNET_break (0);
+    ret = 1;
+    goto err;
+  }
+  GNUNET_TESTBED_SD_add_data_ (h, 40);
+  if ((GNUNET_SYSERR == GNUNET_TESTBED_SD_deviation_factor_ (h, 30, &sd))
       || (-2 != sd))
-    {
-      GNUNET_break(0);
-      ret = 1;
-      goto err;
-    }
-  GNUNET_TESTBED_SD_add_data_(h, 10);
-  GNUNET_TESTBED_SD_add_data_(h, 30);
-  if ((GNUNET_SYSERR == GNUNET_TESTBED_SD_deviation_factor_(h, 60, &sd))
+  {
+    GNUNET_break (0);
+    ret = 1;
+    goto err;
+  }
+  GNUNET_TESTBED_SD_add_data_ (h, 10);
+  GNUNET_TESTBED_SD_add_data_ (h, 30);
+  if ((GNUNET_SYSERR == GNUNET_TESTBED_SD_deviation_factor_ (h, 60, &sd))
       || (3 != sd))
-    {
-      GNUNET_break(0);
-      ret = 1;
-      goto err;
-    }
+  {
+    GNUNET_break (0);
+    ret = 1;
+    goto err;
+  }
 
 err:
-  GNUNET_TESTBED_SD_destroy_(h);
+  GNUNET_TESTBED_SD_destroy_ (h);
 }
 
 
@@ -91,7 +91,7 @@ err:
  * Main function
  */
 int
-main(int argc, char **argv)
+main (int argc, char **argv)
 {
   struct GNUNET_GETOPT_CommandLineOption options[] = {
     GNUNET_GETOPT_OPTION_END
@@ -100,8 +100,8 @@ main(int argc, char **argv)
 
   result = GNUNET_SYSERR;
   result =
-    GNUNET_PROGRAM_run(argc, argv,
-                       "test_testbed_api_sd", "nohelp", options, &run, NULL);
+    GNUNET_PROGRAM_run (argc, argv,
+                        "test_testbed_api_sd", "nohelp", options, &run, NULL);
   if ((GNUNET_OK != result))
     return 1;
   return ret;

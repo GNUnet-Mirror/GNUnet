@@ -49,7 +49,8 @@ struct RegexBlock;
 /**
  * Edge representation.
  */
-struct REGEX_BLOCK_Edge {
+struct REGEX_BLOCK_Edge
+{
   /**
    * Label of the edge.  FIXME: might want to not consume exactly
    * multiples of 8 bits, need length!
@@ -72,9 +73,9 @@ struct REGEX_BLOCK_Edge {
  * @return #GNUNET_OK if the proof is valid for the given key.
  */
 int
-REGEX_BLOCK_check_proof(const char *proof,
-                        size_t proof_len,
-                        const struct GNUNET_HashCode *key);
+REGEX_BLOCK_check_proof (const char *proof,
+                         size_t proof_len,
+                         const struct GNUNET_HashCode *key);
 
 
 /**
@@ -90,10 +91,10 @@ REGEX_BLOCK_check_proof(const char *proof,
  *         #GNUNET_SYSERR if the block is invalid.
  */
 int
-REGEX_BLOCK_check(const struct RegexBlock *block,
-                  size_t size,
-                  const struct GNUNET_HashCode *query,
-                  const char *xquery);
+REGEX_BLOCK_check (const struct RegexBlock *block,
+                   size_t size,
+                   const struct GNUNET_HashCode *query,
+                   const char *xquery);
 
 
 /* FIXME: might want to use 'struct REGEX_BLOCK_Edge' here instead of 3 arguments! */
@@ -130,10 +131,10 @@ typedef int
  *         be errors in further edges.
  */
 int
-REGEX_BLOCK_iterate(const struct RegexBlock *block,
-                    size_t size,
-                    REGEX_INTERNAL_EgdeIterator iterator,
-                    void *iter_cls);
+REGEX_BLOCK_iterate (const struct RegexBlock *block,
+                     size_t size,
+                     REGEX_INTERNAL_EgdeIterator iterator,
+                     void *iter_cls);
 
 
 /**
@@ -145,9 +146,9 @@ REGEX_BLOCK_iterate(const struct RegexBlock *block,
  * @return #GNUNET_OK on success, #GNUNET_SYSERR if the block is malformed
  */
 int
-REGEX_BLOCK_get_key(const struct RegexBlock *block,
-                    size_t block_len,
-                    struct GNUNET_HashCode *key);
+REGEX_BLOCK_get_key (const struct RegexBlock *block,
+                     size_t block_len,
+                     struct GNUNET_HashCode *key);
 
 
 /**
@@ -158,8 +159,8 @@ REGEX_BLOCK_get_key(const struct RegexBlock *block,
  * @return #GNUNET_YES if the block is accepting, #GNUNET_NO if not
  */
 int
-GNUNET_BLOCK_is_accepting(const struct RegexBlock *block,
-                          size_t block_len);
+GNUNET_BLOCK_is_accepting (const struct RegexBlock *block,
+                           size_t block_len);
 
 
 /**
@@ -173,11 +174,11 @@ GNUNET_BLOCK_is_accepting(const struct RegexBlock *block,
  * @return the regex block, NULL on error
  */
 struct RegexBlock *
-REGEX_BLOCK_create(const char *proof,
-                   unsigned int num_edges,
-                   const struct REGEX_BLOCK_Edge *edges,
-                   int accepting,
-                   size_t *rsize);
+REGEX_BLOCK_create (const char *proof,
+                    unsigned int num_edges,
+                    const struct REGEX_BLOCK_Edge *edges,
+                    int accepting,
+                    size_t *rsize);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

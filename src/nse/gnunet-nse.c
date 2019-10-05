@@ -44,14 +44,14 @@ static int status;
  * @param cls NULL
  */
 static void
-do_shutdown(void *cls)
+do_shutdown (void *cls)
 {
-  (void)cls;
+  (void) cls;
   if (NULL != nse)
-    {
-      GNUNET_NSE_disconnect(nse);
-      nse = NULL;
-    }
+  {
+    GNUNET_NSE_disconnect (nse);
+    nse = NULL;
+  }
 }
 
 
@@ -65,19 +65,19 @@ do_shutdown(void *cls)
  *                of the size estimation values seen
  */
 static void
-handle_estimate(void *cls,
-                struct GNUNET_TIME_Absolute timestamp,
-                double estimate,
-                double std_dev)
+handle_estimate (void *cls,
+                 struct GNUNET_TIME_Absolute timestamp,
+                 double estimate,
+                 double std_dev)
 {
-  (void)cls;
+  (void) cls;
   status = 0;
-  fprintf(stdout,
-          "%llu %f %f %f\n",
-          (unsigned long long)timestamp.abs_value_us,
-          GNUNET_NSE_log_estimate_to_n(estimate),
-          estimate,
-          std_dev);
+  fprintf (stdout,
+           "%llu %f %f %f\n",
+           (unsigned long long) timestamp.abs_value_us,
+           GNUNET_NSE_log_estimate_to_n (estimate),
+           estimate,
+           std_dev);
 }
 
 
@@ -90,16 +90,16 @@ handle_estimate(void *cls,
  * @param cfg configuration handle
  */
 static void
-run(void *cls,
-    char *const *args,
-    const char *cfgfile,
-    const struct GNUNET_CONFIGURATION_Handle *cfg)
+run (void *cls,
+     char *const *args,
+     const char *cfgfile,
+     const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
-  (void)cls;
-  (void)args;
-  (void)cfgfile;
-  nse = GNUNET_NSE_connect(cfg, &handle_estimate, NULL);
-  GNUNET_SCHEDULER_add_shutdown(&do_shutdown, NULL);
+  (void) cls;
+  (void) args;
+  (void) cfgfile;
+  nse = GNUNET_NSE_connect (cfg, &handle_estimate, NULL);
+  GNUNET_SCHEDULER_add_shutdown (&do_shutdown, NULL);
 }
 
 
@@ -109,7 +109,7 @@ run(void *cls,
  * @return 0 on success
  */
 int
-main(int argc, char *const *argv)
+main (int argc, char *const *argv)
 {
   static struct GNUNET_GETOPT_CommandLineOption options[] = {
     GNUNET_GETOPT_OPTION_END
@@ -117,14 +117,14 @@ main(int argc, char *const *argv)
 
   status = 1;
   if (GNUNET_OK !=
-      GNUNET_PROGRAM_run(argc,
-                         argv,
-                         "gnunet-nse",
-                         gettext_noop(
-                           "Show network size estimates from NSE service."),
-                         options,
-                         &run,
-                         NULL))
+      GNUNET_PROGRAM_run (argc,
+                          argv,
+                          "gnunet-nse",
+                          gettext_noop (
+                            "Show network size estimates from NSE service."),
+                          options,
+                          &run,
+                          NULL))
     return 2;
   return status;
 }

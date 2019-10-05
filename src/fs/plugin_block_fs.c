@@ -51,61 +51,62 @@
  *         by this @a type of block (this is not an error)
  */
 static struct GNUNET_BLOCK_Group *
-block_plugin_fs_create_group(void *cls,
-                             enum GNUNET_BLOCK_Type type,
-                             uint32_t nonce,
-                             const void *raw_data,
-                             size_t raw_data_size,
-                             va_list va)
+block_plugin_fs_create_group (void *cls,
+                              enum GNUNET_BLOCK_Type type,
+                              uint32_t nonce,
+                              const void *raw_data,
+                              size_t raw_data_size,
+                              va_list va)
 {
   unsigned int size;
   const char *guard;
 
   switch (type)
+  {
+  case GNUNET_BLOCK_TYPE_FS_DBLOCK:
+    GNUNET_break (NULL == va_arg (va, const char *));
+    return NULL;
+
+  case GNUNET_BLOCK_TYPE_FS_IBLOCK:
+    GNUNET_break (NULL == va_arg (va, const char *));
+    return NULL;
+
+  case GNUNET_BLOCK_TYPE_FS_UBLOCK:
+    guard = va_arg (va, const char *);
+    if (0 == strcmp (guard,
+                     "seen-set-size"))
     {
-    case GNUNET_BLOCK_TYPE_FS_DBLOCK:
-      GNUNET_break(NULL == va_arg(va, const char *));
-      return NULL;
-
-    case GNUNET_BLOCK_TYPE_FS_IBLOCK:
-      GNUNET_break(NULL == va_arg(va, const char *));
-      return NULL;
-
-    case GNUNET_BLOCK_TYPE_FS_UBLOCK:
-      guard = va_arg(va, const char *);
-      if (0 == strcmp(guard,
-                      "seen-set-size"))
-        {
-          size = GNUNET_BLOCK_GROUP_compute_bloomfilter_size(va_arg(va, unsigned int),
-                                                             BLOOMFILTER_K);
-        }
-      else if (0 == strcmp(guard,
-                           "filter-size"))
-        {
-          size = va_arg(va, unsigned int);
-        }
-      else
-        {
-          /* va-args invalid! bad bug, complain! */
-          GNUNET_break(0);
-          size = 8;
-        }
-      if (0 == size)
-        size = raw_data_size; /* not for us to determine, use what we got! */
-      GNUNET_break(NULL == va_arg(va, const char *));
-      return GNUNET_BLOCK_GROUP_bf_create(cls,
-                                          size,
-                                          BLOOMFILTER_K,
-                                          type,
-                                          nonce,
-                                          raw_data,
-                                          raw_data_size);
-
-    default:
-      GNUNET_break(NULL == va_arg(va, const char *));
-      GNUNET_break(0);
-      return NULL;
+      size = GNUNET_BLOCK_GROUP_compute_bloomfilter_size (va_arg (va, unsigned
+                                                                  int),
+                                                          BLOOMFILTER_K);
     }
+    else if (0 == strcmp (guard,
+                          "filter-size"))
+    {
+      size = va_arg (va, unsigned int);
+    }
+    else
+    {
+      /* va-args invalid! bad bug, complain! */
+      GNUNET_break (0);
+      size = 8;
+    }
+    if (0 == size)
+      size = raw_data_size;   /* not for us to determine, use what we got! */
+    GNUNET_break (NULL == va_arg (va, const char *));
+    return GNUNET_BLOCK_GROUP_bf_create (cls,
+                                         size,
+                                         BLOOMFILTER_K,
+                                         type,
+                                         nonce,
+                                         raw_data,
+                                         raw_data_size);
+
+  default:
+    GNUNET_break (NULL == va_arg (va, const char *));
+    GNUNET_break (0);
+    return NULL;
+  }
 }
 
 
@@ -129,86 +130,87 @@ block_plugin_fs_create_group(void *cls,
  * @return characterization of result
  */
 static enum GNUNET_BLOCK_EvaluationResult
-block_plugin_fs_evaluate(void *cls,
-                         struct GNUNET_BLOCK_Context *ctx,
-                         enum GNUNET_BLOCK_Type type,
-                         struct GNUNET_BLOCK_Group *bg,
-                         enum GNUNET_BLOCK_EvaluationOptions eo,
-                         const struct GNUNET_HashCode *query,
-                         const void *xquery,
-                         size_t xquery_size,
-                         const void *reply_block,
-                         size_t reply_block_size)
+block_plugin_fs_evaluate (void *cls,
+                          struct GNUNET_BLOCK_Context *ctx,
+                          enum GNUNET_BLOCK_Type type,
+                          struct GNUNET_BLOCK_Group *bg,
+                          enum GNUNET_BLOCK_EvaluationOptions eo,
+                          const struct GNUNET_HashCode *query,
+                          const void *xquery,
+                          size_t xquery_size,
+                          const void *reply_block,
+                          size_t reply_block_size)
 {
   const struct UBlock *ub;
   struct GNUNET_HashCode hc;
   struct GNUNET_HashCode chash;
 
   switch (type)
+  {
+  case GNUNET_BLOCK_TYPE_FS_DBLOCK:
+  case GNUNET_BLOCK_TYPE_FS_IBLOCK:
+    if (0 != xquery_size)
     {
-    case GNUNET_BLOCK_TYPE_FS_DBLOCK:
-    case GNUNET_BLOCK_TYPE_FS_IBLOCK:
-      if (0 != xquery_size)
-        {
-          GNUNET_break_op(0);
-          return GNUNET_BLOCK_EVALUATION_REQUEST_INVALID;
-        }
-      if (NULL == reply_block)
-        return GNUNET_BLOCK_EVALUATION_REQUEST_VALID;
-      return GNUNET_BLOCK_EVALUATION_OK_LAST;
-
-    case GNUNET_BLOCK_TYPE_FS_UBLOCK:
-      if (0 != xquery_size)
-        {
-          GNUNET_break_op(0);
-          return GNUNET_BLOCK_EVALUATION_REQUEST_INVALID;
-        }
-      if (NULL == reply_block)
-        return GNUNET_BLOCK_EVALUATION_REQUEST_VALID;
-
-      if (reply_block_size < sizeof(struct UBlock))
-        {
-          GNUNET_break_op(0);
-          return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;
-        }
-      ub = reply_block;
-      GNUNET_CRYPTO_hash(&ub->verification_key,
-                         sizeof(ub->verification_key),
-                         &hc);
-      if (0 != memcmp(&hc,
-                      query,
-                      sizeof(struct GNUNET_HashCode)))
-        {
-          GNUNET_break_op(0);
-          return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;
-        }
-      if (reply_block_size != ntohl(ub->purpose.size) + sizeof(struct GNUNET_CRYPTO_EcdsaSignature))
-        {
-          GNUNET_break_op(0);
-          return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;
-        }
-      if ((0 == (eo & GNUNET_BLOCK_EO_LOCAL_SKIP_CRYPTO)) &&
-          (GNUNET_OK !=
-           GNUNET_CRYPTO_ecdsa_verify(GNUNET_SIGNATURE_PURPOSE_FS_UBLOCK,
-                                      &ub->purpose,
-                                      &ub->signature,
-                                      &ub->verification_key)))
-        {
-          GNUNET_break_op(0);
-          return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;
-        }
-      GNUNET_CRYPTO_hash(reply_block,
-                         reply_block_size,
-                         &chash);
-      if (GNUNET_YES ==
-          GNUNET_BLOCK_GROUP_bf_test_and_set(bg,
-                                             &chash))
-        return GNUNET_BLOCK_EVALUATION_OK_DUPLICATE;
-      return GNUNET_BLOCK_EVALUATION_OK_MORE;
-
-    default:
-      return GNUNET_BLOCK_EVALUATION_TYPE_NOT_SUPPORTED;
+      GNUNET_break_op (0);
+      return GNUNET_BLOCK_EVALUATION_REQUEST_INVALID;
     }
+    if (NULL == reply_block)
+      return GNUNET_BLOCK_EVALUATION_REQUEST_VALID;
+    return GNUNET_BLOCK_EVALUATION_OK_LAST;
+
+  case GNUNET_BLOCK_TYPE_FS_UBLOCK:
+    if (0 != xquery_size)
+    {
+      GNUNET_break_op (0);
+      return GNUNET_BLOCK_EVALUATION_REQUEST_INVALID;
+    }
+    if (NULL == reply_block)
+      return GNUNET_BLOCK_EVALUATION_REQUEST_VALID;
+
+    if (reply_block_size < sizeof(struct UBlock))
+    {
+      GNUNET_break_op (0);
+      return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;
+    }
+    ub = reply_block;
+    GNUNET_CRYPTO_hash (&ub->verification_key,
+                        sizeof(ub->verification_key),
+                        &hc);
+    if (0 != memcmp (&hc,
+                     query,
+                     sizeof(struct GNUNET_HashCode)))
+    {
+      GNUNET_break_op (0);
+      return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;
+    }
+    if (reply_block_size != ntohl (ub->purpose.size) + sizeof(struct
+                                                              GNUNET_CRYPTO_EcdsaSignature))
+    {
+      GNUNET_break_op (0);
+      return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;
+    }
+    if ((0 == (eo & GNUNET_BLOCK_EO_LOCAL_SKIP_CRYPTO)) &&
+        (GNUNET_OK !=
+         GNUNET_CRYPTO_ecdsa_verify (GNUNET_SIGNATURE_PURPOSE_FS_UBLOCK,
+                                     &ub->purpose,
+                                     &ub->signature,
+                                     &ub->verification_key)))
+    {
+      GNUNET_break_op (0);
+      return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;
+    }
+    GNUNET_CRYPTO_hash (reply_block,
+                        reply_block_size,
+                        &chash);
+    if (GNUNET_YES ==
+        GNUNET_BLOCK_GROUP_bf_test_and_set (bg,
+                                            &chash))
+      return GNUNET_BLOCK_EVALUATION_OK_DUPLICATE;
+    return GNUNET_BLOCK_EVALUATION_OK_MORE;
+
+  default:
+    return GNUNET_BLOCK_EVALUATION_TYPE_NOT_SUPPORTED;
+  }
 }
 
 
@@ -224,37 +226,37 @@ block_plugin_fs_evaluate(void *cls,
  *         (or if extracting a key from a block of this type does not work)
  */
 static int
-block_plugin_fs_get_key(void *cls,
-                        enum GNUNET_BLOCK_Type type,
-                        const void *block,
-                        size_t block_size,
-                        struct GNUNET_HashCode *key)
+block_plugin_fs_get_key (void *cls,
+                         enum GNUNET_BLOCK_Type type,
+                         const void *block,
+                         size_t block_size,
+                         struct GNUNET_HashCode *key)
 {
   const struct UBlock *ub;
 
   switch (type)
+  {
+  case GNUNET_BLOCK_TYPE_FS_DBLOCK:
+  case GNUNET_BLOCK_TYPE_FS_IBLOCK:
+    GNUNET_CRYPTO_hash (block, block_size, key);
+    return GNUNET_OK;
+
+  case GNUNET_BLOCK_TYPE_FS_UBLOCK:
+    if (block_size < sizeof(struct UBlock))
     {
-    case GNUNET_BLOCK_TYPE_FS_DBLOCK:
-    case GNUNET_BLOCK_TYPE_FS_IBLOCK:
-      GNUNET_CRYPTO_hash(block, block_size, key);
-      return GNUNET_OK;
-
-    case GNUNET_BLOCK_TYPE_FS_UBLOCK:
-      if (block_size < sizeof(struct UBlock))
-        {
-          GNUNET_break(0);
-          return GNUNET_SYSERR;
-        }
-      ub = block;
-      GNUNET_CRYPTO_hash(&ub->verification_key,
-                         sizeof(ub->verification_key),
-                         key);
-      return GNUNET_OK;
-
-    default:
-      GNUNET_break(0);
+      GNUNET_break (0);
       return GNUNET_SYSERR;
     }
+    ub = block;
+    GNUNET_CRYPTO_hash (&ub->verification_key,
+                        sizeof(ub->verification_key),
+                        key);
+    return GNUNET_OK;
+
+  default:
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
 }
 
 
@@ -262,10 +264,9 @@ block_plugin_fs_get_key(void *cls,
  * Entry point for the plugin.
  */
 void *
-libgnunet_plugin_block_fs_init(void *cls)
+libgnunet_plugin_block_fs_init (void *cls)
 {
-  static enum GNUNET_BLOCK_Type types[] =
-  {
+  static enum GNUNET_BLOCK_Type types[] = {
     GNUNET_BLOCK_TYPE_FS_DBLOCK,
     GNUNET_BLOCK_TYPE_FS_IBLOCK,
     GNUNET_BLOCK_TYPE_FS_UBLOCK,
@@ -273,7 +274,7 @@ libgnunet_plugin_block_fs_init(void *cls)
   };
   struct GNUNET_BLOCK_PluginFunctions *api;
 
-  api = GNUNET_new(struct GNUNET_BLOCK_PluginFunctions);
+  api = GNUNET_new (struct GNUNET_BLOCK_PluginFunctions);
   api->evaluate = &block_plugin_fs_evaluate;
   api->get_key = &block_plugin_fs_get_key;
   api->create_group = &block_plugin_fs_create_group;
@@ -286,11 +287,11 @@ libgnunet_plugin_block_fs_init(void *cls)
  * Exit point from the plugin.
  */
 void *
-libgnunet_plugin_block_fs_done(void *cls)
+libgnunet_plugin_block_fs_done (void *cls)
 {
   struct GNUNET_BLOCK_PluginFunctions *api = cls;
 
-  GNUNET_free(api);
+  GNUNET_free (api);
   return NULL;
 }
 

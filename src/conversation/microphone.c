@@ -34,7 +34,8 @@
 /**
  * Internal data structures for the microphone.
  */
-struct Microphone {
+struct Microphone
+{
   /**
    * Our configuration.
    */
@@ -67,21 +68,21 @@ struct Microphone {
  *    #GNUNET_SYSERR to stop further processing with error
  */
 static int
-process_record_messages(void *cls,
-                        const struct GNUNET_MessageHeader *msg)
+process_record_messages (void *cls,
+                         const struct GNUNET_MessageHeader *msg)
 {
   struct Microphone *mic = cls;
   const struct AudioMessage *am;
 
-  if (ntohs(msg->type) != GNUNET_MESSAGE_TYPE_CONVERSATION_AUDIO)
-    {
-      GNUNET_break(0);
-      return GNUNET_SYSERR;
-    }
-  am = (const struct AudioMessage *)msg;
-  mic->rdc(mic->rdc_cls,
-           ntohs(msg->size) - sizeof(struct AudioMessage),
-           &am[1]);
+  if (ntohs (msg->type) != GNUNET_MESSAGE_TYPE_CONVERSATION_AUDIO)
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
+  am = (const struct AudioMessage *) msg;
+  mic->rdc (mic->rdc_cls,
+            ntohs (msg->size) - sizeof(struct AudioMessage),
+            &am[1]);
   return GNUNET_OK;
 }
 
@@ -94,30 +95,29 @@ process_record_messages(void *cls,
  * @param rdc_cls closure for @a dc
  */
 static int
-enable(void *cls,
-       GNUNET_MICROPHONE_RecordedDataCallback rdc,
-       void *rdc_cls)
+enable (void *cls,
+        GNUNET_MICROPHONE_RecordedDataCallback rdc,
+        void *rdc_cls)
 {
   struct Microphone *mic = cls;
-  static char * const record_helper_argv[] =
-  {
+  static char *const record_helper_argv[] = {
     "gnunet-helper-audio-record",
     NULL
   };
 
   mic->rdc = rdc;
   mic->rdc_cls = rdc_cls;
-  mic->record_helper = GNUNET_HELPER_start(GNUNET_NO,
-                                           "gnunet-helper-audio-record",
-                                           record_helper_argv,
-                                           &process_record_messages,
-                                           NULL, mic);
+  mic->record_helper = GNUNET_HELPER_start (GNUNET_NO,
+                                            "gnunet-helper-audio-record",
+                                            record_helper_argv,
+                                            &process_record_messages,
+                                            NULL, mic);
   if (NULL == mic->record_helper)
-    {
-      GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
-                 _("Could not start record audio helper\n"));
-      return GNUNET_SYSERR;
-    }
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _ ("Could not start record audio helper\n"));
+    return GNUNET_SYSERR;
+  }
   return GNUNET_OK;
 }
 
@@ -128,18 +128,18 @@ enable(void *cls,
  * @param cls clsoure
  */
 static void
-disable(void *cls)
+disable (void *cls)
 {
   struct Microphone *mic = cls;
 
   if (NULL == mic->record_helper)
-    {
-      GNUNET_break(0);
-      return;
-    }
-  GNUNET_break(GNUNET_OK ==
-               GNUNET_HELPER_kill(mic->record_helper, GNUNET_NO));
-  GNUNET_HELPER_destroy(mic->record_helper);
+  {
+    GNUNET_break (0);
+    return;
+  }
+  GNUNET_break (GNUNET_OK ==
+                GNUNET_HELPER_kill (mic->record_helper, GNUNET_NO));
+  GNUNET_HELPER_destroy (mic->record_helper);
   mic->record_helper = NULL;
 }
 
@@ -150,12 +150,12 @@ disable(void *cls)
  * @param cls clsoure
  */
 static void
-destroy(void *cls)
+destroy (void *cls)
 {
   struct Microphone *mic = cls;
 
   if (NULL != mic->record_helper)
-    disable(mic);
+    disable (mic);
 }
 
 
@@ -167,14 +167,15 @@ destroy(void *cls)
  * @return NULL on error
  */
 struct GNUNET_MICROPHONE_Handle *
-GNUNET_MICROPHONE_create_from_hardware(const struct GNUNET_CONFIGURATION_Handle *cfg)
+GNUNET_MICROPHONE_create_from_hardware (const struct
+                                        GNUNET_CONFIGURATION_Handle *cfg)
 {
   struct GNUNET_MICROPHONE_Handle *microphone;
   struct Microphone *mic;
 
-  mic = GNUNET_new(struct Microphone);
+  mic = GNUNET_new (struct Microphone);
   mic->cfg = cfg;
-  microphone = GNUNET_new(struct GNUNET_MICROPHONE_Handle);
+  microphone = GNUNET_new (struct GNUNET_MICROPHONE_Handle);
   microphone->cls = mic;
   microphone->enable_microphone = &enable;
   microphone->disable_microphone = &disable;
@@ -189,10 +190,10 @@ GNUNET_MICROPHONE_create_from_hardware(const struct GNUNET_CONFIGURATION_Handle 
  * @param microphone microphone to destroy
  */
 void
-GNUNET_MICROPHONE_destroy(struct GNUNET_MICROPHONE_Handle *microphone)
+GNUNET_MICROPHONE_destroy (struct GNUNET_MICROPHONE_Handle *microphone)
 {
-  microphone->destroy_microphone(microphone->cls);
-  GNUNET_free(microphone);
+  microphone->destroy_microphone (microphone->cls);
+  GNUNET_free (microphone);
 }
 
 /* end of microphone.c */

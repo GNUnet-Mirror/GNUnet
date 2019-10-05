@@ -57,76 +57,76 @@
  * @deprecated (low level, let's see if we can do with just the high-level functions)
  */
 enum GNUNET_DB_QueryStatus
-GNUNET_PQ_eval_result(PGconn *connection,
-                      const char *statement_name,
-                      PGresult *result)
+GNUNET_PQ_eval_result (PGconn *connection,
+                       const char *statement_name,
+                       PGresult *result)
 {
   ExecStatusType est;
 
-  est = PQresultStatus(result);
+  est = PQresultStatus (result);
   if ((PGRES_COMMAND_OK != est) &&
       (PGRES_TUPLES_OK != est))
-    {
-      const char *sqlstate;
+  {
+    const char *sqlstate;
 
-      sqlstate = PQresultErrorField(result,
-                                    PG_DIAG_SQLSTATE);
-      if (NULL == sqlstate)
-        {
-          /* very unexpected... */
-          GNUNET_break(0);
-          return GNUNET_DB_STATUS_HARD_ERROR;
-        }
-      if ((0 == strcmp(sqlstate,
-                       PQ_DIAG_SQLSTATE_DEADLOCK)) ||
-          (0 == strcmp(sqlstate,
-                       PQ_DIAG_SQLSTATE_SERIALIZATION_FAILURE)))
-        {
-          /* These two can be retried and have a fair chance of working
-             the next time */
-          GNUNET_log_from(GNUNET_ERROR_TYPE_INFO,
-                          "pq",
-                          "Query `%s' failed with result: %s/%s/%s/%s/%s\n",
-                          statement_name,
-                          PQresultErrorField(result,
-                                             PG_DIAG_MESSAGE_PRIMARY),
-                          PQresultErrorField(result,
-                                             PG_DIAG_MESSAGE_DETAIL),
-                          PQresultErrorMessage(result),
-                          PQresStatus(PQresultStatus(result)),
-                          PQerrorMessage(connection));
-          return GNUNET_DB_STATUS_SOFT_ERROR;
-        }
-      if (0 == strcmp(sqlstate,
-                      PQ_DIAG_SQLSTATE_UNIQUE_VIOLATION))
-        {
-          /* Likely no need to retry, INSERT of "same" data. */
-          GNUNET_log_from(GNUNET_ERROR_TYPE_DEBUG,
-                          "pq",
-                          "Query `%s' failed with unique violation: %s/%s/%s/%s/%s\n",
-                          statement_name,
-                          PQresultErrorField(result,
-                                             PG_DIAG_MESSAGE_PRIMARY),
-                          PQresultErrorField(result,
-                                             PG_DIAG_MESSAGE_DETAIL),
-                          PQresultErrorMessage(result),
-                          PQresStatus(PQresultStatus(result)),
-                          PQerrorMessage(connection));
-          return GNUNET_DB_STATUS_SUCCESS_NO_RESULTS;
-        }
-      GNUNET_log_from(GNUNET_ERROR_TYPE_ERROR,
-                      "pq",
-                      "Query `%s' failed with result: %s/%s/%s/%s/%s\n",
-                      statement_name,
-                      PQresultErrorField(result,
-                                         PG_DIAG_MESSAGE_PRIMARY),
-                      PQresultErrorField(result,
-                                         PG_DIAG_MESSAGE_DETAIL),
-                      PQresultErrorMessage(result),
-                      PQresStatus(PQresultStatus(result)),
-                      PQerrorMessage(connection));
+    sqlstate = PQresultErrorField (result,
+                                   PG_DIAG_SQLSTATE);
+    if (NULL == sqlstate)
+    {
+      /* very unexpected... */
+      GNUNET_break (0);
       return GNUNET_DB_STATUS_HARD_ERROR;
     }
+    if ((0 == strcmp (sqlstate,
+                      PQ_DIAG_SQLSTATE_DEADLOCK)) ||
+        (0 == strcmp (sqlstate,
+                      PQ_DIAG_SQLSTATE_SERIALIZATION_FAILURE)))
+    {
+      /* These two can be retried and have a fair chance of working
+         the next time */
+      GNUNET_log_from (GNUNET_ERROR_TYPE_INFO,
+                       "pq",
+                       "Query `%s' failed with result: %s/%s/%s/%s/%s\n",
+                       statement_name,
+                       PQresultErrorField (result,
+                                           PG_DIAG_MESSAGE_PRIMARY),
+                       PQresultErrorField (result,
+                                           PG_DIAG_MESSAGE_DETAIL),
+                       PQresultErrorMessage (result),
+                       PQresStatus (PQresultStatus (result)),
+                       PQerrorMessage (connection));
+      return GNUNET_DB_STATUS_SOFT_ERROR;
+    }
+    if (0 == strcmp (sqlstate,
+                     PQ_DIAG_SQLSTATE_UNIQUE_VIOLATION))
+    {
+      /* Likely no need to retry, INSERT of "same" data. */
+      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
+                       "pq",
+                       "Query `%s' failed with unique violation: %s/%s/%s/%s/%s\n",
+                       statement_name,
+                       PQresultErrorField (result,
+                                           PG_DIAG_MESSAGE_PRIMARY),
+                       PQresultErrorField (result,
+                                           PG_DIAG_MESSAGE_DETAIL),
+                       PQresultErrorMessage (result),
+                       PQresStatus (PQresultStatus (result)),
+                       PQerrorMessage (connection));
+      return GNUNET_DB_STATUS_SUCCESS_NO_RESULTS;
+    }
+    GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
+                     "pq",
+                     "Query `%s' failed with result: %s/%s/%s/%s/%s\n",
+                     statement_name,
+                     PQresultErrorField (result,
+                                         PG_DIAG_MESSAGE_PRIMARY),
+                     PQresultErrorField (result,
+                                         PG_DIAG_MESSAGE_DETAIL),
+                     PQresultErrorMessage (result),
+                     PQresStatus (PQresultStatus (result)),
+                     PQerrorMessage (connection));
+    return GNUNET_DB_STATUS_HARD_ERROR;
+  }
   return GNUNET_DB_STATUS_SUCCESS_NO_RESULTS;
 }
 
@@ -148,29 +148,29 @@ GNUNET_PQ_eval_result(PGconn *connection,
  *         zero; if INSERT was successful, we return one.
  */
 enum GNUNET_DB_QueryStatus
-GNUNET_PQ_eval_prepared_non_select(PGconn *connection,
-                                   const char *statement_name,
-                                   const struct GNUNET_PQ_QueryParam *params)
+GNUNET_PQ_eval_prepared_non_select (PGconn *connection,
+                                    const char *statement_name,
+                                    const struct GNUNET_PQ_QueryParam *params)
 {
   PGresult *result;
   enum GNUNET_DB_QueryStatus qs;
 
-  result = GNUNET_PQ_exec_prepared(connection,
-                                   statement_name,
-                                   params);
-  qs = GNUNET_PQ_eval_result(connection,
-                             statement_name,
-                             result);
+  result = GNUNET_PQ_exec_prepared (connection,
+                                    statement_name,
+                                    params);
+  qs = GNUNET_PQ_eval_result (connection,
+                              statement_name,
+                              result);
   if (GNUNET_DB_STATUS_SUCCESS_NO_RESULTS == qs)
-    {
-      const char *tuples;
+  {
+    const char *tuples;
 
-      /* What an awful API, this function really does return a string */
-      tuples = PQcmdTuples(result);
-      if (NULL != tuples)
-        qs = strtol(tuples, NULL, 10);
-    }
-  PQclear(result);
+    /* What an awful API, this function really does return a string */
+    tuples = PQcmdTuples (result);
+    if (NULL != tuples)
+      qs = strtol (tuples, NULL, 10);
+  }
+  PQclear (result);
   return qs;
 }
 
@@ -191,33 +191,33 @@ GNUNET_PQ_eval_prepared_non_select(PGconn *connection,
  *         codes to `enum GNUNET_DB_QueryStatus`.
  */
 enum GNUNET_DB_QueryStatus
-GNUNET_PQ_eval_prepared_multi_select(PGconn *connection,
-                                     const char *statement_name,
-                                     const struct GNUNET_PQ_QueryParam *params,
-                                     GNUNET_PQ_PostgresResultHandler rh,
-                                     void *rh_cls)
+GNUNET_PQ_eval_prepared_multi_select (PGconn *connection,
+                                      const char *statement_name,
+                                      const struct GNUNET_PQ_QueryParam *params,
+                                      GNUNET_PQ_PostgresResultHandler rh,
+                                      void *rh_cls)
 {
   PGresult *result;
   enum GNUNET_DB_QueryStatus qs;
   unsigned int ret;
 
-  result = GNUNET_PQ_exec_prepared(connection,
-                                   statement_name,
-                                   params);
-  qs = GNUNET_PQ_eval_result(connection,
-                             statement_name,
-                             result);
+  result = GNUNET_PQ_exec_prepared (connection,
+                                    statement_name,
+                                    params);
+  qs = GNUNET_PQ_eval_result (connection,
+                              statement_name,
+                              result);
   if (qs < 0)
-    {
-      PQclear(result);
-      return qs;
-    }
-  ret = PQntuples(result);
+  {
+    PQclear (result);
+    return qs;
+  }
+  ret = PQntuples (result);
   if (NULL != rh)
-    rh(rh_cls,
-       result,
-       ret);
-  PQclear(result);
+    rh (rh_cls,
+        result,
+        ret);
+  PQclear (result);
   return ret;
 }
 
@@ -238,46 +238,47 @@ GNUNET_PQ_eval_prepared_multi_select(PGconn *connection,
  *         codes to `enum GNUNET_DB_QueryStatus`.
  */
 enum GNUNET_DB_QueryStatus
-GNUNET_PQ_eval_prepared_singleton_select(PGconn *connection,
-                                         const char *statement_name,
-                                         const struct GNUNET_PQ_QueryParam *params,
-                                         struct GNUNET_PQ_ResultSpec *rs)
+GNUNET_PQ_eval_prepared_singleton_select (PGconn *connection,
+                                          const char *statement_name,
+                                          const struct
+                                          GNUNET_PQ_QueryParam *params,
+                                          struct GNUNET_PQ_ResultSpec *rs)
 {
   PGresult *result;
   enum GNUNET_DB_QueryStatus qs;
 
-  result = GNUNET_PQ_exec_prepared(connection,
-                                   statement_name,
-                                   params);
-  qs = GNUNET_PQ_eval_result(connection,
-                             statement_name,
-                             result);
+  result = GNUNET_PQ_exec_prepared (connection,
+                                    statement_name,
+                                    params);
+  qs = GNUNET_PQ_eval_result (connection,
+                              statement_name,
+                              result);
   if (qs < 0)
-    {
-      PQclear(result);
-      return qs;
-    }
-  if (0 == PQntuples(result))
-    {
-      PQclear(result);
-      return GNUNET_DB_STATUS_SUCCESS_NO_RESULTS;
-    }
-  if (1 != PQntuples(result))
-    {
-      /* more than one result, but there must be at most one */
-      GNUNET_break(0);
-      PQclear(result);
-      return GNUNET_DB_STATUS_HARD_ERROR;
-    }
+  {
+    PQclear (result);
+    return qs;
+  }
+  if (0 == PQntuples (result))
+  {
+    PQclear (result);
+    return GNUNET_DB_STATUS_SUCCESS_NO_RESULTS;
+  }
+  if (1 != PQntuples (result))
+  {
+    /* more than one result, but there must be at most one */
+    GNUNET_break (0);
+    PQclear (result);
+    return GNUNET_DB_STATUS_HARD_ERROR;
+  }
   if (GNUNET_OK !=
-      GNUNET_PQ_extract_result(result,
-                               rs,
-                               0))
-    {
-      PQclear(result);
-      return GNUNET_DB_STATUS_HARD_ERROR;
-    }
-  PQclear(result);
+      GNUNET_PQ_extract_result (result,
+                                rs,
+                                0))
+  {
+    PQclear (result);
+    return GNUNET_DB_STATUS_HARD_ERROR;
+  }
+  PQclear (result);
   return GNUNET_DB_STATUS_SUCCESS_ONE_RESULT;
 }
 

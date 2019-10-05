@@ -35,7 +35,7 @@
 /**
  * How long until we time out during address lookup?
  */
-#define TIMEOUT GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 5)
+#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
 
 /**
  * Structure we use to collect printable address information.
@@ -45,7 +45,8 @@ struct PrintContext;
 /**
  * Record we keep for each printable address.
  */
-struct AddressRecord {
+struct AddressRecord
+{
   /**
    * Current address-to-string context (if active, otherwise NULL).
    */
@@ -71,7 +72,8 @@ struct AddressRecord {
 /**
  * Structure we use to collect printable address information.
  */
-struct PrintContext {
+struct PrintContext
+{
   /**
    * Kept in DLL.
    */
@@ -217,7 +219,7 @@ static struct GNUNET_HELLO_Message *my_hello;
  * @param cls unused
  */
 static void
-state_machine(void *cls);
+state_machine (void *cls);
 
 
 /* ********************* 'get_info' ******************* */
@@ -228,30 +230,30 @@ state_machine(void *cls);
  * @param pc printing context
  */
 static void
-dump_pc(struct PrintContext *pc)
+dump_pc (struct PrintContext *pc)
 {
   unsigned int i;
 
-  printf(_("%sPeer `%s'\n"),
-         (GNUNET_YES == pc->friend_only) ? "F2F: " : "",
-         GNUNET_i2s_full(&pc->peer));
+  printf (_ ("%sPeer `%s'\n"),
+          (GNUNET_YES == pc->friend_only) ? "F2F: " : "",
+          GNUNET_i2s_full (&pc->peer));
   for (i = 0; i < pc->num_addresses; i++)
+  {
+    if (NULL != pc->address_list[i].result)
     {
-      if (NULL != pc->address_list[i].result)
-        {
-          printf(_("\tExpires: %s \t %s\n"),
-                 GNUNET_STRINGS_absolute_time_to_string(
-                   pc->address_list[i].expiration),
-                 pc->address_list[i].result);
-          GNUNET_free(pc->address_list[i].result);
-        }
+      printf (_ ("\tExpires: %s \t %s\n"),
+              GNUNET_STRINGS_absolute_time_to_string (
+                pc->address_list[i].expiration),
+              pc->address_list[i].result);
+      GNUNET_free (pc->address_list[i].result);
     }
-  printf("\n");
-  GNUNET_free_non_null(pc->address_list);
-  GNUNET_CONTAINER_DLL_remove(pc_head, pc_tail, pc);
-  GNUNET_free(pc);
+  }
+  printf ("\n");
+  GNUNET_free_non_null (pc->address_list);
+  GNUNET_CONTAINER_DLL_remove (pc_head, pc_tail, pc);
+  GNUNET_free (pc);
   if ((NULL == pc_head) && (NULL == pic))
-    tt = GNUNET_SCHEDULER_add_now(&state_machine, NULL);
+    tt = GNUNET_SCHEDULER_add_now (&state_machine, NULL);
 }
 
 
@@ -269,29 +271,29 @@ dump_pc(struct PrintContext *pc)
  *        if #GNUNET_SYSERR: address is invalid
  */
 static void
-process_resolved_address(void *cls, const char *address, int res)
+process_resolved_address (void *cls, const char *address, int res)
 {
   struct AddressRecord *ar = cls;
   struct PrintContext *pc = ar->pc;
 
   if (NULL != address)
+  {
+    if (0 != strlen (address))
     {
-      if (0 != strlen(address))
-        {
-          if (NULL != ar->result)
-            GNUNET_free(ar->result);
-          ar->result = GNUNET_strdup(address);
-        }
-      return;
+      if (NULL != ar->result)
+        GNUNET_free (ar->result);
+      ar->result = GNUNET_strdup (address);
     }
+    return;
+  }
   ar->atsc = NULL;
   if (GNUNET_SYSERR == res)
-    GNUNET_log(GNUNET_ERROR_TYPE_INFO,
-               _("Failure: Cannot convert address to string for peer `%s'\n"),
-               GNUNET_i2s(&ar->pc->peer));
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                _ ("Failure: Cannot convert address to string for peer `%s'\n"),
+                GNUNET_i2s (&ar->pc->peer));
   pc->num_addresses++;
   if (pc->num_addresses == pc->address_list_size)
-    dump_pc(pc);
+    dump_pc (pc);
 }
 
 
@@ -304,9 +306,9 @@ process_resolved_address(void *cls, const char *address, int res)
  * @return #GNUNET_OK to keep the address and continue
  */
 static int
-count_address(void *cls,
-              const struct GNUNET_HELLO_Address *address,
-              struct GNUNET_TIME_Absolute expiration)
+count_address (void *cls,
+               const struct GNUNET_HELLO_Address *address,
+               struct GNUNET_TIME_Absolute expiration)
 {
   struct PrintContext *pc = cls;
 
@@ -324,28 +326,28 @@ count_address(void *cls,
  * @return #GNUNET_OK to keep the address and continue
  */
 static int
-print_address(void *cls,
-              const struct GNUNET_HELLO_Address *address,
-              struct GNUNET_TIME_Absolute expiration)
+print_address (void *cls,
+               const struct GNUNET_HELLO_Address *address,
+               struct GNUNET_TIME_Absolute expiration)
 {
   struct PrintContext *pc = cls;
   struct AddressRecord *ar;
 
-  GNUNET_assert(0 < pc->off);
+  GNUNET_assert (0 < pc->off);
   ar = &pc->address_list[--pc->off];
   ar->pc = pc;
   ar->expiration = expiration;
-  GNUNET_asprintf(&ar->result,
-                  "%s:%u:%u",
-                  address->transport_name,
-                  address->address_length,
-                  address->local_info);
-  ar->atsc = GNUNET_TRANSPORT_address_to_string(cfg,
-                                                address,
-                                                no_resolve,
-                                                TIMEOUT,
-                                                &process_resolved_address,
-                                                ar);
+  GNUNET_asprintf (&ar->result,
+                   "%s:%u:%u",
+                   address->transport_name,
+                   address->address_length,
+                   address->local_info);
+  ar->atsc = GNUNET_TRANSPORT_address_to_string (cfg,
+                                                 address,
+                                                 no_resolve,
+                                                 TIMEOUT,
+                                                 &process_resolved_address,
+                                                 ar);
   return GNUNET_OK;
 }
 
@@ -360,50 +362,50 @@ print_address(void *cls,
  * @param err_msg error message
  */
 static void
-print_peer_info(void *cls,
-                const struct GNUNET_PeerIdentity *peer,
-                const struct GNUNET_HELLO_Message *hello,
-                const char *err_msg)
+print_peer_info (void *cls,
+                 const struct GNUNET_PeerIdentity *peer,
+                 const struct GNUNET_HELLO_Message *hello,
+                 const char *err_msg)
 {
   struct PrintContext *pc;
   int friend_only;
 
   if (NULL == peer)
+  {
+    pic = NULL;   /* end of iteration */
+    if (NULL != err_msg)
     {
-      pic = NULL; /* end of iteration */
-      if (NULL != err_msg)
-        {
-          fprintf(stderr,
-                  _("Error in communication with PEERINFO service: %s\n"),
-                  err_msg);
-        }
-      if (NULL == pc_head)
-        tt = GNUNET_SCHEDULER_add_now(&state_machine, NULL);
-      return;
+      fprintf (stderr,
+               _ ("Error in communication with PEERINFO service: %s\n"),
+               err_msg);
     }
+    if (NULL == pc_head)
+      tt = GNUNET_SCHEDULER_add_now (&state_machine, NULL);
+    return;
+  }
   friend_only = GNUNET_NO;
   if (NULL != hello)
-    friend_only = GNUNET_HELLO_is_friend_only(hello);
+    friend_only = GNUNET_HELLO_is_friend_only (hello);
   if ((GNUNET_YES == be_quiet) || (NULL == hello))
-    {
-      printf("%s%s\n",
-             (GNUNET_YES == friend_only) ? "F2F: " : "",
-             GNUNET_i2s_full(peer));
-      return;
-    }
-  pc = GNUNET_new(struct PrintContext);
-  GNUNET_CONTAINER_DLL_insert(pc_head, pc_tail, pc);
+  {
+    printf ("%s%s\n",
+            (GNUNET_YES == friend_only) ? "F2F: " : "",
+            GNUNET_i2s_full (peer));
+    return;
+  }
+  pc = GNUNET_new (struct PrintContext);
+  GNUNET_CONTAINER_DLL_insert (pc_head, pc_tail, pc);
   pc->peer = *peer;
   pc->friend_only = friend_only;
-  GNUNET_HELLO_iterate_addresses(hello, GNUNET_NO, &count_address, pc);
+  GNUNET_HELLO_iterate_addresses (hello, GNUNET_NO, &count_address, pc);
   if (0 == pc->off)
-    {
-      dump_pc(pc);
-      return;
-    }
+  {
+    dump_pc (pc);
+    return;
+  }
   pc->address_list_size = pc->off;
-  pc->address_list = GNUNET_malloc(sizeof(struct AddressRecord) * pc->off);
-  GNUNET_HELLO_iterate_addresses(hello, GNUNET_NO, &print_address, pc);
+  pc->address_list = GNUNET_malloc (sizeof(struct AddressRecord) * pc->off);
+  GNUNET_HELLO_iterate_addresses (hello, GNUNET_NO, &print_address, pc);
 }
 
 /* ************************* DUMP Hello  ************************** */
@@ -417,9 +419,9 @@ print_peer_info(void *cls,
  * @return #GNUNET_OK
  */
 static int
-count_addr(void *cls,
-           const struct GNUNET_HELLO_Address *address,
-           struct GNUNET_TIME_Absolute expiration)
+count_addr (void *cls,
+            const struct GNUNET_HELLO_Address *address,
+            struct GNUNET_TIME_Absolute expiration)
 {
   int *c = cls;
 
@@ -437,50 +439,50 @@ count_addr(void *cls,
  * @param err_msg error message
  */
 static void
-dump_my_hello()
+dump_my_hello ()
 {
   unsigned int size;
   unsigned int c_addr;
 
-  size = GNUNET_HELLO_size(my_hello);
+  size = GNUNET_HELLO_size (my_hello);
   if (0 == size)
-    {
-      fprintf(stderr, _("Failure: Received invalid %s\n"), "HELLO");
-      return;
-    }
-  if (GNUNET_SYSERR == GNUNET_DISK_fn_write(dump_hello,
-                                            my_hello,
-                                            size,
-                                            GNUNET_DISK_PERM_USER_READ |
-                                            GNUNET_DISK_PERM_USER_WRITE |
-                                            GNUNET_DISK_PERM_GROUP_READ |
-                                            GNUNET_DISK_PERM_OTHER_READ))
-    {
-      fprintf(stderr,
-              _("Failed to write HELLO with %u bytes to file `%s'\n"),
-              size,
-              dump_hello);
-      if (0 != unlink(dump_hello))
-        GNUNET_log_strerror_file(GNUNET_ERROR_TYPE_WARNING |
-                                 GNUNET_ERROR_TYPE_BULK,
-                                 "unlink",
-                                 dump_hello);
-    }
+  {
+    fprintf (stderr, _ ("Failure: Received invalid %s\n"), "HELLO");
+    return;
+  }
+  if (GNUNET_SYSERR == GNUNET_DISK_fn_write (dump_hello,
+                                             my_hello,
+                                             size,
+                                             GNUNET_DISK_PERM_USER_READ
+                                             | GNUNET_DISK_PERM_USER_WRITE
+                                             | GNUNET_DISK_PERM_GROUP_READ
+                                             | GNUNET_DISK_PERM_OTHER_READ))
+  {
+    fprintf (stderr,
+             _ ("Failed to write HELLO with %u bytes to file `%s'\n"),
+             size,
+             dump_hello);
+    if (0 != unlink (dump_hello))
+      GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING
+                                | GNUNET_ERROR_TYPE_BULK,
+                                "unlink",
+                                dump_hello);
+  }
   c_addr = 0;
-  GNUNET_HELLO_iterate_addresses(my_hello, GNUNET_NO, count_addr, &c_addr);
+  GNUNET_HELLO_iterate_addresses (my_hello, GNUNET_NO, count_addr, &c_addr);
 
-  if (!be_quiet)
-    {
-      fprintf(
-        stderr,
-        _("Wrote %s HELLO containing %u addresses with %u bytes to file `%s'\n"),
-        (GNUNET_YES == GNUNET_HELLO_is_friend_only(my_hello)) ? "friend-only"
-        : "public",
-        c_addr,
-        size,
-        dump_hello);
-    }
-  GNUNET_free(dump_hello);
+  if (! be_quiet)
+  {
+    fprintf (
+      stderr,
+      _ ("Wrote %s HELLO containing %u addresses with %u bytes to file `%s'\n"),
+      (GNUNET_YES == GNUNET_HELLO_is_friend_only (my_hello)) ? "friend-only"
+      : "public",
+      c_addr,
+      size,
+      dump_hello);
+  }
+  GNUNET_free (dump_hello);
   dump_hello = NULL;
 }
 
@@ -497,32 +499,32 @@ dump_my_hello()
  * @param err_msg error message
  */
 static void
-print_my_uri(void *cls,
-             const struct GNUNET_PeerIdentity *peer,
-             const struct GNUNET_HELLO_Message *hello,
-             const char *err_msg)
+print_my_uri (void *cls,
+              const struct GNUNET_PeerIdentity *peer,
+              const struct GNUNET_HELLO_Message *hello,
+              const char *err_msg)
 {
   char *uri;
 
   if (NULL == peer)
-    {
-      pic = NULL;
-      if (NULL != err_msg)
-        fprintf(stderr,
-                _("Error in communication with PEERINFO service: %s\n"),
-                err_msg);
-      tt = GNUNET_SCHEDULER_add_now(&state_machine, NULL);
-      return;
-    }
+  {
+    pic = NULL;
+    if (NULL != err_msg)
+      fprintf (stderr,
+               _ ("Error in communication with PEERINFO service: %s\n"),
+               err_msg);
+    tt = GNUNET_SCHEDULER_add_now (&state_machine, NULL);
+    return;
+  }
 
   if (NULL == hello)
     return;
-  uri = GNUNET_HELLO_compose_uri(hello, &GPI_plugins_find);
+  uri = GNUNET_HELLO_compose_uri (hello, &GPI_plugins_find);
   if (NULL != uri)
-    {
-      printf("%s\n", (const char *)uri);
-      GNUNET_free(uri);
-    }
+  {
+    printf ("%s\n", (const char *) uri);
+    GNUNET_free (uri);
+  }
 }
 
 
@@ -535,10 +537,10 @@ print_my_uri(void *cls,
  * @param cls closure, NULL
  */
 static void
-add_continuation(void *cls)
+add_continuation (void *cls)
 {
   ac = NULL;
-  tt = GNUNET_SCHEDULER_add_now(&state_machine, NULL);
+  tt = GNUNET_SCHEDULER_add_now (&state_machine, NULL);
 }
 
 
@@ -552,24 +554,24 @@ add_continuation(void *cls)
  *         #GNUNET_NO on other errors
  */
 static int
-parse_hello_uri(const char *put_uri)
+parse_hello_uri (const char *put_uri)
 {
   struct GNUNET_HELLO_Message *hello = NULL;
 
-  int ret = GNUNET_HELLO_parse_uri(put_uri,
-                                   &my_peer_identity.public_key,
-                                   &hello,
-                                   &GPI_plugins_find);
+  int ret = GNUNET_HELLO_parse_uri (put_uri,
+                                    &my_peer_identity.public_key,
+                                    &hello,
+                                    &GPI_plugins_find);
 
   if (NULL != hello)
-    {
-      /* WARNING: this adds the address from URI WITHOUT verification! */
-      if (GNUNET_OK == ret)
-        ac = GNUNET_PEERINFO_add_peer(peerinfo, hello, &add_continuation, NULL);
-      else
-        tt = GNUNET_SCHEDULER_add_now(&state_machine, NULL);
-      GNUNET_free(hello);
-    }
+  {
+    /* WARNING: this adds the address from URI WITHOUT verification! */
+    if (GNUNET_OK == ret)
+      ac = GNUNET_PEERINFO_add_peer (peerinfo, hello, &add_continuation, NULL);
+    else
+      tt = GNUNET_SCHEDULER_add_now (&state_machine, NULL);
+    GNUNET_free (hello);
+  }
   return ret;
 }
 
@@ -584,59 +586,59 @@ parse_hello_uri(const char *put_uri)
  * @param cls unused
  */
 static void
-shutdown_task(void *cls)
+shutdown_task (void *cls)
 {
   struct PrintContext *pc;
   struct AddressRecord *ar;
   unsigned int i;
 
   if (NULL != ac)
-    {
-      GNUNET_MQ_send_cancel(ac);
-      ac = NULL;
-    }
+  {
+    GNUNET_MQ_send_cancel (ac);
+    ac = NULL;
+  }
   if (NULL != tt)
-    {
-      GNUNET_SCHEDULER_cancel(tt);
-      tt = NULL;
-    }
+  {
+    GNUNET_SCHEDULER_cancel (tt);
+    tt = NULL;
+  }
   if (NULL != pic)
-    {
-      GNUNET_PEERINFO_iterate_cancel(pic);
-      pic = NULL;
-    }
+  {
+    GNUNET_PEERINFO_iterate_cancel (pic);
+    pic = NULL;
+  }
   if (NULL != gh)
-    {
-      GNUNET_TRANSPORT_hello_get_cancel(gh);
-      gh = NULL;
-    }
+  {
+    GNUNET_TRANSPORT_hello_get_cancel (gh);
+    gh = NULL;
+  }
   while (NULL != (pc = pc_head))
+  {
+    GNUNET_CONTAINER_DLL_remove (pc_head, pc_tail, pc);
+    for (i = 0; i < pc->address_list_size; i++)
     {
-      GNUNET_CONTAINER_DLL_remove(pc_head, pc_tail, pc);
-      for (i = 0; i < pc->address_list_size; i++)
-        {
-          ar = &pc->address_list[i];
-          GNUNET_free_non_null(ar->result);
-          if (NULL != ar->atsc)
-            {
-              GNUNET_TRANSPORT_address_to_string_cancel(ar->atsc);
-              ar->atsc = NULL;
-            }
-        }
-      GNUNET_free_non_null(pc->address_list);
-      GNUNET_free(pc);
+      ar = &pc->address_list[i];
+      GNUNET_free_non_null (ar->result);
+      if (NULL != ar->atsc)
+      {
+        GNUNET_TRANSPORT_address_to_string_cancel (ar->atsc);
+        ar->atsc = NULL;
+      }
     }
-  GPI_plugins_unload();
+    GNUNET_free_non_null (pc->address_list);
+    GNUNET_free (pc);
+  }
+  GPI_plugins_unload ();
   if (NULL != peerinfo)
-    {
-      GNUNET_PEERINFO_disconnect(peerinfo);
-      peerinfo = NULL;
-    }
+  {
+    GNUNET_PEERINFO_disconnect (peerinfo);
+    peerinfo = NULL;
+  }
   if (NULL != my_hello)
-    {
-      GNUNET_free(my_hello);
-      my_hello = NULL;
-    }
+  {
+    GNUNET_free (my_hello);
+    my_hello = NULL;
+  }
 }
 
 
@@ -648,22 +650,22 @@ shutdown_task(void *cls)
  * @param hello the HELLO message
  */
 static void
-hello_callback(void *cls, const struct GNUNET_MessageHeader *hello)
+hello_callback (void *cls, const struct GNUNET_MessageHeader *hello)
 {
   if (NULL == hello)
-    {
-      fprintf(stderr, "Failed to get my own HELLO from this peer!\n");
-      GNUNET_SCHEDULER_shutdown();
-      return;
-    }
-  my_hello = (struct GNUNET_HELLO_Message *)GNUNET_copy_message(hello);
-  GNUNET_assert(GNUNET_OK ==
-                GNUNET_HELLO_get_id(my_hello, &my_peer_identity));
-  GNUNET_TRANSPORT_hello_get_cancel(gh);
+  {
+    fprintf (stderr, "Failed to get my own HELLO from this peer!\n");
+    GNUNET_SCHEDULER_shutdown ();
+    return;
+  }
+  my_hello = (struct GNUNET_HELLO_Message *) GNUNET_copy_message (hello);
+  GNUNET_assert (GNUNET_OK ==
+                 GNUNET_HELLO_get_id (my_hello, &my_peer_identity));
+  GNUNET_TRANSPORT_hello_get_cancel (gh);
   gh = NULL;
   if (NULL != dump_hello)
-    dump_my_hello();
-  tt = GNUNET_SCHEDULER_add_now(&state_machine, NULL);
+    dump_my_hello ();
+  tt = GNUNET_SCHEDULER_add_now (&state_machine, NULL);
 }
 
 
@@ -676,41 +678,41 @@ hello_callback(void *cls, const struct GNUNET_MessageHeader *hello)
  * @param c configuration
  */
 static void
-run(void *cls,
-    char *const *args,
-    const char *cfgfile,
-    const struct GNUNET_CONFIGURATION_Handle *c)
+run (void *cls,
+     char *const *args,
+     const char *cfgfile,
+     const struct GNUNET_CONFIGURATION_Handle *c)
 {
   cfg = c;
   if ((NULL != args[0]) && (NULL == put_uri) &&
-      (args[0] == strcasestr(args[0], "gnunet://hello/")))
-    {
-      put_uri = GNUNET_strdup(args[0]);
-      args++;
-    }
+      (args[0] == strcasestr (args[0], "gnunet://hello/")))
+  {
+    put_uri = GNUNET_strdup (args[0]);
+    args++;
+  }
   if (NULL != args[0])
-    {
-      fprintf(stderr, _("Invalid command line argument `%s'\n"), args[0]);
-      return;
-    }
-  if (NULL == (peerinfo = GNUNET_PEERINFO_connect(cfg)))
-    {
-      fprintf(stderr, "%s", "Could not access PEERINFO service.  Exiting.\n");
-      return;
-    }
+  {
+    fprintf (stderr, _ ("Invalid command line argument `%s'\n"), args[0]);
+    return;
+  }
+  if (NULL == (peerinfo = GNUNET_PEERINFO_connect (cfg)))
+  {
+    fprintf (stderr, "%s", "Could not access PEERINFO service.  Exiting.\n");
+    return;
+  }
   if ((GNUNET_YES == get_self) || (GNUNET_YES == get_uri) ||
       (NULL != dump_hello))
-    {
-      gh = GNUNET_TRANSPORT_hello_get(cfg,
-                                      GNUNET_TRANSPORT_AC_ANY,
-                                      &hello_callback,
-                                      NULL);
-    }
+  {
+    gh = GNUNET_TRANSPORT_hello_get (cfg,
+                                     GNUNET_TRANSPORT_AC_ANY,
+                                     &hello_callback,
+                                     NULL);
+  }
   else
-    {
-      tt = GNUNET_SCHEDULER_add_now(&state_machine, NULL);
-    }
-  GNUNET_SCHEDULER_add_shutdown(&shutdown_task, NULL);
+  {
+    tt = GNUNET_SCHEDULER_add_now (&state_machine, NULL);
+  }
+  GNUNET_SCHEDULER_add_shutdown (&shutdown_task, NULL);
 }
 
 
@@ -721,61 +723,61 @@ run(void *cls,
  * @param cls unused
  */
 static void
-state_machine(void *cls)
+state_machine (void *cls)
 {
   tt = NULL;
 
   if (NULL != put_uri)
+  {
+    GPI_plugins_load (cfg);
+    if (GNUNET_SYSERR == parse_hello_uri (put_uri))
     {
-      GPI_plugins_load(cfg);
-      if (GNUNET_SYSERR == parse_hello_uri(put_uri))
-        {
-          fprintf(stderr, _("Invalid URI `%s'\n"), put_uri);
-          GNUNET_SCHEDULER_shutdown();
-        }
-      GNUNET_free(put_uri);
-      put_uri = NULL;
+      fprintf (stderr, _ ("Invalid URI `%s'\n"), put_uri);
+      GNUNET_SCHEDULER_shutdown ();
     }
+    GNUNET_free (put_uri);
+    put_uri = NULL;
+  }
   else if (GNUNET_YES == get_info)
-    {
-      get_info = GNUNET_NO;
-      GPI_plugins_load(cfg);
-      pic = GNUNET_PEERINFO_iterate(peerinfo,
-                                    include_friend_only,
-                                    NULL,
-                                    &print_peer_info,
-                                    NULL);
-    }
+  {
+    get_info = GNUNET_NO;
+    GPI_plugins_load (cfg);
+    pic = GNUNET_PEERINFO_iterate (peerinfo,
+                                   include_friend_only,
+                                   NULL,
+                                   &print_peer_info,
+                                   NULL);
+  }
   else if (GNUNET_YES == get_self)
-    {
-      get_self = GNUNET_NO;
-      if (be_quiet)
-        printf("%s\n", GNUNET_i2s_full(&my_peer_identity));
-      else
-        printf(_("I am peer `%s'.\n"), GNUNET_i2s_full(&my_peer_identity));
-      tt = GNUNET_SCHEDULER_add_now(&state_machine, NULL);
-    }
+  {
+    get_self = GNUNET_NO;
+    if (be_quiet)
+      printf ("%s\n", GNUNET_i2s_full (&my_peer_identity));
+    else
+      printf (_ ("I am peer `%s'.\n"), GNUNET_i2s_full (&my_peer_identity));
+    tt = GNUNET_SCHEDULER_add_now (&state_machine, NULL);
+  }
   else if (GNUNET_YES == get_uri)
-    {
-      GPI_plugins_load(cfg);
-      pic = GNUNET_PEERINFO_iterate(peerinfo,
-                                    include_friend_only,
-                                    &my_peer_identity,
-                                    &print_my_uri,
-                                    NULL);
-      get_uri = GNUNET_NO;
-    }
+  {
+    GPI_plugins_load (cfg);
+    pic = GNUNET_PEERINFO_iterate (peerinfo,
+                                   include_friend_only,
+                                   &my_peer_identity,
+                                   &print_my_uri,
+                                   NULL);
+    get_uri = GNUNET_NO;
+  }
   else if (GNUNET_YES == default_operation)
-    {
-      /* default operation list all */
-      default_operation = GNUNET_NO;
-      get_info = GNUNET_YES;
-      tt = GNUNET_SCHEDULER_add_now(&state_machine, NULL);
-    }
+  {
+    /* default operation list all */
+    default_operation = GNUNET_NO;
+    get_info = GNUNET_YES;
+    tt = GNUNET_SCHEDULER_add_now (&state_machine, NULL);
+  }
   else
-    {
-      GNUNET_SCHEDULER_shutdown();
-    }
+  {
+    GNUNET_SCHEDULER_shutdown ();
+  }
   default_operation = GNUNET_NO;
 }
 
@@ -788,71 +790,71 @@ state_machine(void *cls)
  * @return 0 ok, 1 on error
  */
 int
-main(int argc, char *const *argv)
+main (int argc, char *const *argv)
 {
   struct GNUNET_GETOPT_CommandLineOption options[] =
-  { GNUNET_GETOPT_option_flag('n',
-                              "numeric",
-                              gettext_noop("don't resolve host names"),
-                              &no_resolve),
+  { GNUNET_GETOPT_option_flag ('n',
+                               "numeric",
+                               gettext_noop ("don't resolve host names"),
+                               &no_resolve),
 
-    GNUNET_GETOPT_option_flag('q',
-                              "quiet",
-                              gettext_noop(
-                                "output only the identity strings"),
-                              &be_quiet),
-    GNUNET_GETOPT_option_flag('f',
-                              "friends",
-                              gettext_noop(
-                                "include friend-only information"),
-                              &include_friend_only),
+    GNUNET_GETOPT_option_flag ('q',
+                               "quiet",
+                               gettext_noop (
+                                 "output only the identity strings"),
+                               &be_quiet),
+    GNUNET_GETOPT_option_flag ('f',
+                               "friends",
+                               gettext_noop (
+                                 "include friend-only information"),
+                               &include_friend_only),
 
-    GNUNET_GETOPT_option_flag('s',
-                              "self",
-                              gettext_noop("output our own identity only"),
-                              &get_self),
+    GNUNET_GETOPT_option_flag ('s',
+                               "self",
+                               gettext_noop ("output our own identity only"),
+                               &get_self),
 
-    GNUNET_GETOPT_option_flag('i',
-                              "info",
-                              gettext_noop("list all known peers"),
-                              &get_info),
+    GNUNET_GETOPT_option_flag ('i',
+                               "info",
+                               gettext_noop ("list all known peers"),
+                               &get_info),
 
-    GNUNET_GETOPT_option_string('d',
-                                "dump-hello",
-                                NULL,
-                                gettext_noop("dump hello to file"),
-                                &dump_hello),
+    GNUNET_GETOPT_option_string ('d',
+                                 "dump-hello",
+                                 NULL,
+                                 gettext_noop ("dump hello to file"),
+                                 &dump_hello),
 
-    GNUNET_GETOPT_option_flag('g',
-                              "get-hello",
-                              gettext_noop("also output HELLO uri(s)"),
-                              &get_uri),
+    GNUNET_GETOPT_option_flag ('g',
+                               "get-hello",
+                               gettext_noop ("also output HELLO uri(s)"),
+                               &get_uri),
 
-    GNUNET_GETOPT_option_string('p',
-                                "put-hello",
-                                "HELLO",
-                                gettext_noop(
-                                  "add given HELLO uri to the database"),
-                                &put_uri),
+    GNUNET_GETOPT_option_string ('p',
+                                 "put-hello",
+                                 "HELLO",
+                                 gettext_noop (
+                                   "add given HELLO uri to the database"),
+                                 &put_uri),
 
     GNUNET_GETOPT_OPTION_END };
   int ret;
 
   default_operation = GNUNET_YES;
-  if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args(argc, argv, &argc, &argv))
+  if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv, &argc, &argv))
     return 2;
 
   ret = (GNUNET_OK ==
-         GNUNET_PROGRAM_run(argc,
-                            argv,
-                            "gnunet-peerinfo",
-                            gettext_noop("Print information about peers."),
-                            options,
-                            &run,
-                            NULL))
+         GNUNET_PROGRAM_run (argc,
+                             argv,
+                             "gnunet-peerinfo",
+                             gettext_noop ("Print information about peers."),
+                             options,
+                             &run,
+                             NULL))
         ? 0
         : 1;
-  GNUNET_free((void *)argv);
+  GNUNET_free ((void *) argv);
   return ret;
 }
 

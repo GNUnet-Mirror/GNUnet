@@ -43,7 +43,8 @@
 /**
  * ATS performance characteristics for a session.
  */
-struct GNUNET_ATS_Properties {
+struct GNUNET_ATS_Properties
+{
   /**
    * Delay.  Time between when the time packet is sent and the packet
    * arrives.  FOREVER if we did not (successfully) measure yet.
@@ -134,8 +135,10 @@ struct GNUNET_ATS_Session;
 typedef void
 (*GNUNET_ATS_AllocationCallback) (void *cls,
                                   struct GNUNET_ATS_Session *session,
-                                  struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
-                                  struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in);
+                                  struct GNUNET_BANDWIDTH_Value32NBO
+                                  bandwidth_out,
+                                  struct GNUNET_BANDWIDTH_Value32NBO
+                                  bandwidth_in);
 
 
 /**
@@ -163,11 +166,11 @@ typedef void
  * @return ats context
  */
 struct GNUNET_ATS_TransportHandle *
-GNUNET_ATS_transport_init(const struct GNUNET_CONFIGURATION_Handle *cfg,
-                          GNUNET_ATS_AllocationCallback alloc_cb,
-                          void *alloc_cb_cls,
-                          GNUNET_ATS_SuggestionCallback suggest_cb,
-                          void *suggest_cb_cls);
+GNUNET_ATS_transport_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
+                           GNUNET_ATS_AllocationCallback alloc_cb,
+                           void *alloc_cb_cls,
+                           GNUNET_ATS_SuggestionCallback suggest_cb,
+                           void *suggest_cb_cls);
 
 
 /**
@@ -176,7 +179,7 @@ GNUNET_ATS_transport_init(const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @param ath handle to release
  */
 void
-GNUNET_ATS_transport_done(struct GNUNET_ATS_TransportHandle *ath);
+GNUNET_ATS_transport_done (struct GNUNET_ATS_TransportHandle *ath);
 
 
 /**
@@ -200,11 +203,11 @@ struct GNUNET_ATS_SessionRecord;
  *         session is invalid)
  */
 struct GNUNET_ATS_SessionRecord *
-GNUNET_ATS_session_add(struct GNUNET_ATS_TransportHandle *ath,
-                       const struct GNUNET_PeerIdentity *pid,
-                       const char *address,
-                       struct GNUNET_ATS_Session *session,
-                       const struct GNUNET_ATS_Properties *prop);
+GNUNET_ATS_session_add (struct GNUNET_ATS_TransportHandle *ath,
+                        const struct GNUNET_PeerIdentity *pid,
+                        const char *address,
+                        struct GNUNET_ATS_Session *session,
+                        const struct GNUNET_ATS_Properties *prop);
 
 
 /**
@@ -215,8 +218,8 @@ GNUNET_ATS_session_add(struct GNUNET_ATS_TransportHandle *ath,
  * @param prop performance data for the session
  */
 void
-GNUNET_ATS_session_update(struct GNUNET_ATS_SessionRecord *ar,
-                          const struct GNUNET_ATS_Properties *prop);
+GNUNET_ATS_session_update (struct GNUNET_ATS_SessionRecord *ar,
+                           const struct GNUNET_ATS_Properties *prop);
 
 
 /**
@@ -227,7 +230,7 @@ GNUNET_ATS_session_update(struct GNUNET_ATS_SessionRecord *ar,
  * @param ar session record to drop
  */
 void
-GNUNET_ATS_session_del(struct GNUNET_ATS_SessionRecord *ar);
+GNUNET_ATS_session_del (struct GNUNET_ATS_SessionRecord *ar);
 
 
 #endif

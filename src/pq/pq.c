@@ -38,17 +38,17 @@
  * @return postgres result
  */
 PGresult *
-GNUNET_PQ_exec_prepared(PGconn *db_conn,
-                        const char *name,
-                        const struct GNUNET_PQ_QueryParam *params)
+GNUNET_PQ_exec_prepared (PGconn *db_conn,
+                         const char *name,
+                         const struct GNUNET_PQ_QueryParam *params)
 {
   unsigned int len;
   unsigned int i;
 
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-             "Running prepared statement `%s' on %p\n",
-             name,
-             db_conn);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Running prepared statement `%s' on %p\n",
+              name,
+              db_conn);
   /* count the number of parameters */
   len = 0;
   for (i = 0; 0 != params[i].num_params; i++)
@@ -71,41 +71,41 @@ GNUNET_PQ_exec_prepared(PGconn *db_conn,
     off = 0;
     soff = 0;
     for (i = 0; 0 != params[i].num_params; i++)
-      {
-        const struct GNUNET_PQ_QueryParam *x = &params[i];
+    {
+      const struct GNUNET_PQ_QueryParam *x = &params[i];
 
-        ret = x->conv(x->conv_cls,
-                      x->data,
-                      x->size,
-                      &param_values[off],
-                      &param_lengths[off],
-                      &param_formats[off],
-                      x->num_params,
-                      &scratch[soff],
-                      len - soff);
-        if (ret < 0)
-          {
-            for (off = 0; off < soff; off++)
-              GNUNET_free(scratch[off]);
-            return NULL;
-          }
-        soff += ret;
-        off += x->num_params;
+      ret = x->conv (x->conv_cls,
+                     x->data,
+                     x->size,
+                     &param_values[off],
+                     &param_lengths[off],
+                     &param_formats[off],
+                     x->num_params,
+                     &scratch[soff],
+                     len - soff);
+      if (ret < 0)
+      {
+        for (off = 0; off < soff; off++)
+          GNUNET_free (scratch[off]);
+        return NULL;
       }
-    GNUNET_assert(off == len);
-    GNUNET_log_from(GNUNET_ERROR_TYPE_DEBUG,
-                    "pq",
-                    "Executing prepared SQL statement `%s'\n",
-                    name);
-    res = PQexecPrepared(db_conn,
-                         name,
-                         len,
-                         (const char **)param_values,
-                         param_lengths,
-                         param_formats,
-                         1);
+      soff += ret;
+      off += x->num_params;
+    }
+    GNUNET_assert (off == len);
+    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
+                     "pq",
+                     "Executing prepared SQL statement `%s'\n",
+                     name);
+    res = PQexecPrepared (db_conn,
+                          name,
+                          len,
+                          (const char **) param_values,
+                          param_lengths,
+                          param_formats,
+                          1);
     for (off = 0; off < soff; off++)
-      GNUNET_free(scratch[off]);
+      GNUNET_free (scratch[off]);
     return res;
   }
 }
@@ -118,14 +118,14 @@ GNUNET_PQ_exec_prepared(PGconn *db_conn,
  * @param rs reult specification to clean up
  */
 void
-GNUNET_PQ_cleanup_result(struct GNUNET_PQ_ResultSpec *rs)
+GNUNET_PQ_cleanup_result (struct GNUNET_PQ_ResultSpec *rs)
 {
   unsigned int i;
 
   for (i = 0; NULL != rs[i].conv; i++)
     if (NULL != rs[i].cleaner)
-      rs[i].cleaner(rs[i].cls,
-                    rs[i].dst);
+      rs[i].cleaner (rs[i].cls,
+                     rs[i].dst);
 }
 
 
@@ -141,32 +141,32 @@ GNUNET_PQ_cleanup_result(struct GNUNET_PQ_ResultSpec *rs)
  *   #GNUNET_SYSERR if a result was invalid (non-existing field)
  */
 int
-GNUNET_PQ_extract_result(PGresult *result,
-                         struct GNUNET_PQ_ResultSpec *rs,
-                         int row)
+GNUNET_PQ_extract_result (PGresult *result,
+                          struct GNUNET_PQ_ResultSpec *rs,
+                          int row)
 {
   unsigned int i;
   int ret;
 
   for (i = 0; NULL != rs[i].conv; i++)
-    {
-      struct GNUNET_PQ_ResultSpec *spec;
+  {
+    struct GNUNET_PQ_ResultSpec *spec;
 
-      spec = &rs[i];
-      ret = spec->conv(spec->cls,
-                       result,
-                       row,
-                       spec->fname,
-                       &spec->dst_size,
-                       spec->dst);
-      if (GNUNET_OK != ret)
-        {
-          GNUNET_PQ_cleanup_result(rs);
-          return GNUNET_SYSERR;
-        }
-      if (NULL != spec->result_size)
-        *spec->result_size = spec->dst_size;
+    spec = &rs[i];
+    ret = spec->conv (spec->cls,
+                      result,
+                      row,
+                      spec->fname,
+                      &spec->dst_size,
+                      spec->dst);
+    if (GNUNET_OK != ret)
+    {
+      GNUNET_PQ_cleanup_result (rs);
+      return GNUNET_SYSERR;
     }
+    if (NULL != spec->result_size)
+      *spec->result_size = spec->dst_size;
+  }
   return GNUNET_OK;
 }
 

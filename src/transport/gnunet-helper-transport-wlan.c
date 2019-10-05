@@ -234,7 +234,8 @@
 /**
  * Values in the 'struct PrismHeader'.  All in host byte order (!).
  */
-struct PrismValue {
+struct PrismValue
+{
   /**
    * This has a different ID for each parameter, see
    * PRISM_DID_* constants.
@@ -263,7 +264,8 @@ struct PrismValue {
 /**
  * Prism header format ('struct p80211msg' in Linux).  All in host byte order (!).
  */
-struct PrismHeader {
+struct PrismHeader
+{
   /**
    * We expect this to be a PRISM_MSGCODE_*.
    */
@@ -301,7 +303,8 @@ struct PrismHeader {
  * reliable indicator of alignment requirement.  See also
  * 'man 9 ieee80211_radiotap'.
  */
-enum RadiotapType {
+enum RadiotapType
+{
   /**
    * IEEE80211_RADIOTAP_TSFT              __le64       microseconds
    *
@@ -576,7 +579,8 @@ enum RadiotapType {
  * The radio capture header precedes the 802.11 header.
  * All data in the header is little endian on all platforms.
  */
-struct Ieee80211RadiotapHeader {
+struct Ieee80211RadiotapHeader
+{
   /**
    * Version 0. Only increases for drastic changes, introduction of
    * compatible new fields does not count.
@@ -607,7 +611,8 @@ struct Ieee80211RadiotapHeader {
  * Format of the header we need to prepend to messages to be sent to the
  * Kernel.
  */
-struct RadiotapTransmissionHeader {
+struct RadiotapTransmissionHeader
+{
   /**
    * First we begin with the 'generic' header we also get when receiving
    * messages.
@@ -638,7 +643,12 @@ struct RadiotapTransmissionHeader {
  * following value for 'header.it_present' based on the presence of
  * the 'rate' and 'txflags' in the overall struct.
  */
-#define IEEE80211_RADIOTAP_OUR_TRANSMISSION_HEADER_MASK ((1 << IEEE80211_RADIOTAP_RATE) | (1 << IEEE80211_RADIOTAP_TX_FLAGS))
+#define IEEE80211_RADIOTAP_OUR_TRANSMISSION_HEADER_MASK ((1 \
+                                                          << \
+                                                          IEEE80211_RADIOTAP_RATE) \
+                                                         | (1 \
+                                                            << \
+                                                            IEEE80211_RADIOTAP_TX_FLAGS))
 
 
 
@@ -646,7 +656,8 @@ struct RadiotapTransmissionHeader {
  * struct Ieee80211RadiotapHeaderIterator - tracks walk through present radiotap arguments
  * in the radiotap header.  Used when we parse radiotap packets received from the kernel.
  */
-struct Ieee80211RadiotapHeaderIterator {
+struct Ieee80211RadiotapHeaderIterator
+{
   /**
    * pointer to the radiotap header we are walking through
    */
@@ -698,7 +709,8 @@ struct Ieee80211RadiotapHeaderIterator {
  * struct for storing the information of the hardware.  There is only
  * one of these.
  */
-struct HardwareInfos {
+struct HardwareInfos
+{
   /**
    * file descriptor for the raw socket
    */
@@ -725,7 +737,8 @@ struct HardwareInfos {
 /**
  * IO buffer used for buffering data in transit (to wireless or to stdout).
  */
-struct SendBuffer {
+struct SendBuffer
+{
   /**
    * How many bytes of data are stored in 'buf' for transmission right now?
    * Data always starts at offset 0 and extends to 'size'.
@@ -787,7 +800,8 @@ typedef void (*MessageTokenizerCallback) (void *cls,
 /**
  * Handle to a message stream tokenizer.
  */
-struct MessageStreamTokenizer {
+struct MessageStreamTokenizer
+{
   /**
    * Function to call on completed messages.
    */
@@ -828,23 +842,23 @@ struct MessageStreamTokenizer {
  * @return handle to tokenizer
  */
 static struct MessageStreamTokenizer *
-mst_create(MessageTokenizerCallback cb,
-           void *cb_cls)
+mst_create (MessageTokenizerCallback cb,
+            void *cb_cls)
 {
   struct MessageStreamTokenizer *ret;
 
-  ret = malloc(sizeof(struct MessageStreamTokenizer));
+  ret = malloc (sizeof(struct MessageStreamTokenizer));
   if (NULL == ret)
-    {
-      fprintf(stderr, "Failed to allocate buffer for tokenizer\n");
-      exit(1);
-    }
-  ret->hdr = malloc(MIN_BUFFER_SIZE);
+  {
+    fprintf (stderr, "Failed to allocate buffer for tokenizer\n");
+    exit (1);
+  }
+  ret->hdr = malloc (MIN_BUFFER_SIZE);
   if (NULL == ret->hdr)
-    {
-      fprintf(stderr, "Failed to allocate buffer for alignment\n");
-      exit(1);
-    }
+  {
+    fprintf (stderr, "Failed to allocate buffer for alignment\n");
+    exit (1);
+  }
   ret->curr_buf = MIN_BUFFER_SIZE;
   ret->cb = cb;
   ret->cb_cls = cb_cls;
@@ -863,8 +877,8 @@ mst_create(MessageTokenizerCallback cb,
  *         GNUNET_SYSERR if the data stream is corrupt
  */
 static int
-mst_receive(struct MessageStreamTokenizer *mst,
-            const char *buf, size_t size)
+mst_receive (struct MessageStreamTokenizer *mst,
+             const char *buf, size_t size)
 {
   const struct GNUNET_MessageHeader *hdr;
   size_t delta;
@@ -875,132 +889,132 @@ mst_receive(struct MessageStreamTokenizer *mst,
   int ret;
 
   ret = GNUNET_OK;
-  ibuf = (char *)mst->hdr;
+  ibuf = (char *) mst->hdr;
   while (mst->pos > 0)
-    {
+  {
 do_align:
-      if ((mst->curr_buf - mst->off < sizeof(struct GNUNET_MessageHeader)) ||
-          (0 != (mst->off % ALIGN_FACTOR)))
-        {
-          /* need to align or need more space */
-          mst->pos -= mst->off;
-          memmove(ibuf, &ibuf[mst->off], mst->pos);
-          mst->off = 0;
-        }
-      if (mst->pos - mst->off < sizeof(struct GNUNET_MessageHeader))
-        {
-          delta =
-            GNUNET_MIN(sizeof(struct GNUNET_MessageHeader) -
-                       (mst->pos - mst->off), size);
-          GNUNET_memcpy(&ibuf[mst->pos], buf, delta);
-          mst->pos += delta;
-          buf += delta;
-          size -= delta;
-        }
-      if (mst->pos - mst->off < sizeof(struct GNUNET_MessageHeader))
-        {
-          return GNUNET_OK;
-        }
-      hdr = (const struct GNUNET_MessageHeader *)&ibuf[mst->off];
-      want = ntohs(hdr->size);
-      if (want < sizeof(struct GNUNET_MessageHeader))
-        {
-          fprintf(stderr,
-                  "Received invalid message from stdin\n");
-          exit(1);
-        }
-      if (mst->curr_buf - mst->off < want)
-        {
-          /* need more space */
-          mst->pos -= mst->off;
-          memmove(ibuf, &ibuf[mst->off], mst->pos);
-          mst->off = 0;
-        }
-      if (want > mst->curr_buf)
-        {
-          mst->hdr = realloc(mst->hdr, want);
-          if (NULL == mst->hdr)
-            {
-              fprintf(stderr, "Failed to allocate buffer for alignment\n");
-              exit(1);
-            }
-          ibuf = (char *)mst->hdr;
-          mst->curr_buf = want;
-        }
-      hdr = (const struct GNUNET_MessageHeader *)&ibuf[mst->off];
-      if (mst->pos - mst->off < want)
-        {
-          delta = GNUNET_MIN(want - (mst->pos - mst->off), size);
-          GNUNET_memcpy(&ibuf[mst->pos], buf, delta);
-          mst->pos += delta;
-          buf += delta;
-          size -= delta;
-        }
-      if (mst->pos - mst->off < want)
-        {
-          return GNUNET_OK;
-        }
-      mst->cb(mst->cb_cls, hdr);
-      mst->off += want;
-      if (mst->off == mst->pos)
-        {
-          /* reset to beginning of buffer, it's free right now! */
-          mst->off = 0;
-          mst->pos = 0;
-        }
+    if ((mst->curr_buf - mst->off < sizeof(struct GNUNET_MessageHeader)) ||
+        (0 != (mst->off % ALIGN_FACTOR)))
+    {
+      /* need to align or need more space */
+      mst->pos -= mst->off;
+      memmove (ibuf, &ibuf[mst->off], mst->pos);
+      mst->off = 0;
     }
+    if (mst->pos - mst->off < sizeof(struct GNUNET_MessageHeader))
+    {
+      delta =
+        GNUNET_MIN (sizeof(struct GNUNET_MessageHeader)
+                    - (mst->pos - mst->off), size);
+      GNUNET_memcpy (&ibuf[mst->pos], buf, delta);
+      mst->pos += delta;
+      buf += delta;
+      size -= delta;
+    }
+    if (mst->pos - mst->off < sizeof(struct GNUNET_MessageHeader))
+    {
+      return GNUNET_OK;
+    }
+    hdr = (const struct GNUNET_MessageHeader *) &ibuf[mst->off];
+    want = ntohs (hdr->size);
+    if (want < sizeof(struct GNUNET_MessageHeader))
+    {
+      fprintf (stderr,
+               "Received invalid message from stdin\n");
+      exit (1);
+    }
+    if (mst->curr_buf - mst->off < want)
+    {
+      /* need more space */
+      mst->pos -= mst->off;
+      memmove (ibuf, &ibuf[mst->off], mst->pos);
+      mst->off = 0;
+    }
+    if (want > mst->curr_buf)
+    {
+      mst->hdr = realloc (mst->hdr, want);
+      if (NULL == mst->hdr)
+      {
+        fprintf (stderr, "Failed to allocate buffer for alignment\n");
+        exit (1);
+      }
+      ibuf = (char *) mst->hdr;
+      mst->curr_buf = want;
+    }
+    hdr = (const struct GNUNET_MessageHeader *) &ibuf[mst->off];
+    if (mst->pos - mst->off < want)
+    {
+      delta = GNUNET_MIN (want - (mst->pos - mst->off), size);
+      GNUNET_memcpy (&ibuf[mst->pos], buf, delta);
+      mst->pos += delta;
+      buf += delta;
+      size -= delta;
+    }
+    if (mst->pos - mst->off < want)
+    {
+      return GNUNET_OK;
+    }
+    mst->cb (mst->cb_cls, hdr);
+    mst->off += want;
+    if (mst->off == mst->pos)
+    {
+      /* reset to beginning of buffer, it's free right now! */
+      mst->off = 0;
+      mst->pos = 0;
+    }
+  }
   while (size > 0)
+  {
+    if (size < sizeof(struct GNUNET_MessageHeader))
+      break;
+    offset = (unsigned long) buf;
+    need_align = (0 != offset % ALIGN_FACTOR) ? GNUNET_YES : GNUNET_NO;
+    if (GNUNET_NO == need_align)
     {
-      if (size < sizeof(struct GNUNET_MessageHeader))
-        break;
-      offset = (unsigned long)buf;
-      need_align = (0 != offset % ALIGN_FACTOR) ? GNUNET_YES : GNUNET_NO;
-      if (GNUNET_NO == need_align)
-        {
-          /* can try to do zero-copy and process directly from original buffer */
-          hdr = (const struct GNUNET_MessageHeader *)buf;
-          want = ntohs(hdr->size);
-          if (want < sizeof(struct GNUNET_MessageHeader))
-            {
-              fprintf(stderr,
-                      "Received invalid message from stdin\n");
-              exit(1);
-            }
-          if (size < want)
-            break;              /* or not, buffer incomplete, so copy to private buffer... */
-          mst->cb(mst->cb_cls, hdr);
-          buf += want;
-          size -= want;
-        }
-      else
-        {
-          /* need to copy to private buffer to align;
-           * yes, we go a bit more spagetti than usual here */
-          goto do_align;
-        }
+      /* can try to do zero-copy and process directly from original buffer */
+      hdr = (const struct GNUNET_MessageHeader *) buf;
+      want = ntohs (hdr->size);
+      if (want < sizeof(struct GNUNET_MessageHeader))
+      {
+        fprintf (stderr,
+                 "Received invalid message from stdin\n");
+        exit (1);
+      }
+      if (size < want)
+        break;                  /* or not, buffer incomplete, so copy to private buffer... */
+      mst->cb (mst->cb_cls, hdr);
+      buf += want;
+      size -= want;
     }
+    else
+    {
+      /* need to copy to private buffer to align;
+       * yes, we go a bit more spagetti than usual here */
+      goto do_align;
+    }
+  }
   if (size > 0)
+  {
+    if (size + mst->pos > mst->curr_buf)
     {
-      if (size + mst->pos > mst->curr_buf)
-        {
-          mst->hdr = realloc(mst->hdr, size + mst->pos);
-          if (NULL == mst->hdr)
-            {
-              fprintf(stderr, "Failed to allocate buffer for alignment\n");
-              exit(1);
-            }
-          ibuf = (char *)mst->hdr;
-          mst->curr_buf = size + mst->pos;
-        }
-      if (mst->pos + size > mst->curr_buf)
-        {
-          fprintf(stderr,
-                  "Assertion failed\n");
-          exit(1);
-        }
-      GNUNET_memcpy(&ibuf[mst->pos], buf, size);
-      mst->pos += size;
+      mst->hdr = realloc (mst->hdr, size + mst->pos);
+      if (NULL == mst->hdr)
+      {
+        fprintf (stderr, "Failed to allocate buffer for alignment\n");
+        exit (1);
+      }
+      ibuf = (char *) mst->hdr;
+      mst->curr_buf = size + mst->pos;
     }
+    if (mst->pos + size > mst->curr_buf)
+    {
+      fprintf (stderr,
+               "Assertion failed\n");
+      exit (1);
+    }
+    GNUNET_memcpy (&ibuf[mst->pos], buf, size);
+    mst->pos += size;
+  }
   return ret;
 }
 
@@ -1011,10 +1025,10 @@ do_align:
  * @param mst tokenizer to destroy
  */
 static void
-mst_destroy(struct MessageStreamTokenizer *mst)
+mst_destroy (struct MessageStreamTokenizer *mst)
 {
-  free(mst->hdr);
-  free(mst);
+  free (mst->hdr);
+  free (mst);
 }
 
 /* *****************  end of server_mst.c clone ***************** **/
@@ -1040,9 +1054,11 @@ mst_destroy(struct MessageStreamTokenizer *mst)
  * @return 0 on success, -1 on error
  */
 static int
-ieee80211_radiotap_iterator_init(struct Ieee80211RadiotapHeaderIterator *iterator,
-                                 const struct Ieee80211RadiotapHeader *radiotap_header,
-                                 size_t max_length)
+ieee80211_radiotap_iterator_init (struct
+                                  Ieee80211RadiotapHeaderIterator *iterator,
+                                  const struct
+                                  Ieee80211RadiotapHeader *radiotap_header,
+                                  size_t max_length)
 {
   if ((iterator == NULL) ||
       (radiotap_header == NULL))
@@ -1054,36 +1070,39 @@ ieee80211_radiotap_iterator_init(struct Ieee80211RadiotapHeaderIterator *iterato
 
   /* sanity check for allowed length and radiotap length field */
   if ((max_length < sizeof(struct Ieee80211RadiotapHeader)) ||
-      (max_length < (GNUNET_le16toh(radiotap_header->it_len))))
+      (max_length < (GNUNET_le16toh (radiotap_header->it_len))))
     return -1;
 
-  memset(iterator, 0, sizeof(struct Ieee80211RadiotapHeaderIterator));
+  memset (iterator, 0, sizeof(struct Ieee80211RadiotapHeaderIterator));
   iterator->rtheader = radiotap_header;
-  iterator->max_length = GNUNET_le16toh(radiotap_header->it_len);
-  iterator->bitmap_shifter = GNUNET_le32toh(radiotap_header->it_present);
-  iterator->arg = ((uint8_t *)radiotap_header) + sizeof(struct Ieee80211RadiotapHeader);
+  iterator->max_length = GNUNET_le16toh (radiotap_header->it_len);
+  iterator->bitmap_shifter = GNUNET_le32toh (radiotap_header->it_present);
+  iterator->arg = ((uint8_t *) radiotap_header) + sizeof(struct
+                                                         Ieee80211RadiotapHeader);
 
   /* find payload start allowing for extended bitmap(s) */
   if (0 != (iterator->bitmap_shifter & IEEE80211_RADIOTAP_PRESENT_EXTEND_MASK))
+  {
+    while (GNUNET_le32toh (*((uint32_t *) iterator->arg))
+           & IEEE80211_RADIOTAP_PRESENT_EXTEND_MASK)
     {
-      while (GNUNET_le32toh(*((uint32_t *)iterator->arg)) & IEEE80211_RADIOTAP_PRESENT_EXTEND_MASK)
-        {
-          iterator->arg += sizeof(uint32_t);
-          /*
-           * check for insanity where the present bitmaps
-           * keep claiming to extend up to or even beyond the
-           * stated radiotap header length
-           */
-          if (iterator->arg - ((uint8_t*)iterator->rtheader) > iterator->max_length)
-            return -1;
-        }
       iterator->arg += sizeof(uint32_t);
       /*
-       * no need to check again for blowing past stated radiotap
-       * header length, becuase ieee80211_radiotap_iterator_next
-       * checks it before it is dereferenced
+       * check for insanity where the present bitmaps
+       * keep claiming to extend up to or even beyond the
+       * stated radiotap header length
        */
+      if (iterator->arg - ((uint8_t*) iterator->rtheader) >
+          iterator->max_length)
+        return -1;
     }
+    iterator->arg += sizeof(uint32_t);
+    /*
+     * no need to check again for blowing past stated radiotap
+     * header length, becuase ieee80211_radiotap_iterator_next
+     * checks it before it is dereferenced
+     */
+  }
   /* we are all initialized happily */
   return 0;
 }
@@ -1102,7 +1121,8 @@ ieee80211_radiotap_iterator_init(struct Ieee80211RadiotapHeaderIterator *iterato
  * @return next present arg index on success or -1 if no more or error
  */
 static int
-ieee80211_radiotap_iterator_next(struct Ieee80211RadiotapHeaderIterator *iterator)
+ieee80211_radiotap_iterator_next (struct
+                                  Ieee80211RadiotapHeaderIterator *iterator)
 {
   /*
    * small length lookup table for all radiotap types we heard of
@@ -1149,93 +1169,95 @@ ieee80211_radiotap_iterator_next(struct Ieee80211RadiotapHeaderIterator *iterato
    * least skip (by knowing the length)...
    */
   while (iterator->arg_index < sizeof(rt_sizes))
+  {
+    int hit = (0 != (iterator->bitmap_shifter & 1));
+
+    if (hit)
     {
-      int hit = (0 != (iterator->bitmap_shifter & 1));
+      unsigned int wanted_alignment;
+      unsigned int unalignment;
+      /*
+       * arg is present, account for alignment padding
+       *  8-bit args can be at any alignment
+       * 16-bit args must start on 16-bit boundary
+       * 32-bit args must start on 32-bit boundary
+       * 64-bit args must start on 64-bit boundary
+       *
+       * note that total arg size can differ from alignment of
+       * elements inside arg, so we use upper nybble of length table
+       * to base alignment on.  First, 'wanted_alignment' is set to be
+       * 1 for 8-bit, 2 for 16-bit, 4 for 32-bit and 8 for 64-bit
+       * arguments.  Then, we calculate the 'unalignment' (how many
+       * bytes we are over by taking the difference of 'arg' and the
+       * overall starting point modulo the desired alignment.  As
+       * desired alignments are powers of two, we can do modulo with
+       * binary "&" (and also avoid the possibility of a division by
+       * zero if the 'rt_sizes' table contains bogus entries).
+       *
+       * also note: these alignments are relative to the start of the
+       * radiotap header.  There is no guarantee that the radiotap
+       * header itself is aligned on any kind of boundary, thus we
+       * need to really look at the delta here.
+       */
+      wanted_alignment = rt_sizes[iterator->arg_index] >> 4;
+      unalignment = (((void *) iterator->arg) - ((void *) iterator->rtheader))
+                    & (wanted_alignment - 1);
+      if (0 != unalignment)
+      {
+        /* need padding (by 'wanted_alignment - unalignment') */
+        iterator->arg_index += wanted_alignment - unalignment;
+      }
 
-      if (hit)
-        {
-          unsigned int wanted_alignment;
-          unsigned int unalignment;
-          /*
-           * arg is present, account for alignment padding
-           *  8-bit args can be at any alignment
-           * 16-bit args must start on 16-bit boundary
-           * 32-bit args must start on 32-bit boundary
-           * 64-bit args must start on 64-bit boundary
-           *
-           * note that total arg size can differ from alignment of
-           * elements inside arg, so we use upper nybble of length table
-           * to base alignment on.  First, 'wanted_alignment' is set to be
-           * 1 for 8-bit, 2 for 16-bit, 4 for 32-bit and 8 for 64-bit
-           * arguments.  Then, we calculate the 'unalignment' (how many
-           * bytes we are over by taking the difference of 'arg' and the
-           * overall starting point modulo the desired alignment.  As
-           * desired alignments are powers of two, we can do modulo with
-           * binary "&" (and also avoid the possibility of a division by
-           * zero if the 'rt_sizes' table contains bogus entries).
-           *
-           * also note: these alignments are relative to the start of the
-           * radiotap header.  There is no guarantee that the radiotap
-           * header itself is aligned on any kind of boundary, thus we
-           * need to really look at the delta here.
-           */
-          wanted_alignment = rt_sizes[iterator->arg_index] >> 4;
-          unalignment = (((void *)iterator->arg) - ((void *)iterator->rtheader)) & (wanted_alignment - 1);
-          if (0 != unalignment)
-            {
-              /* need padding (by 'wanted_alignment - unalignment') */
-              iterator->arg_index += wanted_alignment - unalignment;
-            }
+      /*
+       * this is what we will return to user, but we need to
+       * move on first so next call has something fresh to test
+       */
+      iterator->this_arg_index = iterator->arg_index;
+      iterator->this_arg = iterator->arg;
 
-          /*
-           * this is what we will return to user, but we need to
-           * move on first so next call has something fresh to test
-           */
-          iterator->this_arg_index = iterator->arg_index;
-          iterator->this_arg = iterator->arg;
+      /* internally move on the size of this arg (using lower nybble from
+         the table) */
+      iterator->arg += rt_sizes[iterator->arg_index] & 0x0f;
 
-          /* internally move on the size of this arg (using lower nybble from
-             the table) */
-          iterator->arg += rt_sizes[iterator->arg_index] & 0x0f;
-
-          /*
-           * check for insanity where we are given a bitmap that
-           * claims to have more arg content than the length of the
-           * radiotap section.  We will normally end up equalling this
-           * max_length on the last arg, never exceeding it.
-           */
-          if ((((void *)iterator->arg) - ((void *)iterator->rtheader)) > iterator->max_length)
-            return -1;
-        }
-
-      /* Now, move on to next bit / next entry */
-      iterator->arg_index++;
-
-      if (0 == (iterator->arg_index % 32))
-        {
-          /* completed current uint32_t bitmap */
-          if (0 != (iterator->bitmap_shifter & 1))
-            {
-              /* bit 31 was set, there is more; move to next uint32_t bitmap */
-              iterator->bitmap_shifter = GNUNET_le32toh(*iterator->next_bitmap);
-              iterator->next_bitmap++;
-            }
-          else
-            {
-              /* no more bitmaps: end (by setting arg_index to high, unsupported value) */
-              iterator->arg_index = sizeof(rt_sizes);
-            }
-        }
-      else
-        {
-          /* just try the next bit (while loop will move on) */
-          iterator->bitmap_shifter >>= 1;
-        }
-
-      /* if we found a valid arg earlier, return it now */
-      if (hit)
-        return iterator->this_arg_index;
+      /*
+       * check for insanity where we are given a bitmap that
+       * claims to have more arg content than the length of the
+       * radiotap section.  We will normally end up equalling this
+       * max_length on the last arg, never exceeding it.
+       */
+      if ((((void *) iterator->arg) - ((void *) iterator->rtheader)) >
+          iterator->max_length)
+        return -1;
     }
+
+    /* Now, move on to next bit / next entry */
+    iterator->arg_index++;
+
+    if (0 == (iterator->arg_index % 32))
+    {
+      /* completed current uint32_t bitmap */
+      if (0 != (iterator->bitmap_shifter & 1))
+      {
+        /* bit 31 was set, there is more; move to next uint32_t bitmap */
+        iterator->bitmap_shifter = GNUNET_le32toh (*iterator->next_bitmap);
+        iterator->next_bitmap++;
+      }
+      else
+      {
+        /* no more bitmaps: end (by setting arg_index to high, unsupported value) */
+        iterator->arg_index = sizeof(rt_sizes);
+      }
+    }
+    else
+    {
+      /* just try the next bit (while loop will move on) */
+      iterator->bitmap_shifter >>= 1;
+    }
+
+    /* if we found a valid arg earlier, return it now */
+    if (hit)
+      return iterator->this_arg_index;
+  }
 
   /* we don't know how to handle any more args (or there are no more),
      so we're done (this is not an error) */
@@ -1251,7 +1273,7 @@ ieee80211_radiotap_iterator_next(struct Ieee80211RadiotapHeaderIterator *iterato
  * @return crc sum
  */
 static unsigned long
-calc_crc_osdep(const unsigned char *buf, size_t len)
+calc_crc_osdep (const unsigned char *buf, size_t len)
 {
   static const unsigned long int crc_tbl_osdep[256] = {
     0x00000000, 0x77073096, 0xEE0E612C, 0x990951BA, 0x076DC419, 0x706AF48F,
@@ -1337,14 +1359,14 @@ calc_crc_osdep(const unsigned char *buf, size_t len)
  * @return 0 on success (checksum matches), 1 on error
  */
 static int
-check_crc_buf_osdep(const unsigned char *buf, size_t len)
+check_crc_buf_osdep (const unsigned char *buf, size_t len)
 {
   unsigned long crc;
 
-  crc = calc_crc_osdep(buf, len);
+  crc = calc_crc_osdep (buf, len);
   buf += len;
-  if (((crc) & 0xFF) == buf[0] && ((crc >> 8) & 0xFF) == buf[1] &&
-      ((crc >> 16) & 0xFF) == buf[2] && ((crc >> 24) & 0xFF) == buf[3])
+  if ((((crc) & 0xFF) == buf[0])&&(((crc >> 8) & 0xFF) == buf[1])&&
+      ( ((crc >> 16) & 0xFF) == buf[2]) &&( ((crc >> 24) & 0xFF) == buf[3]) )
     return 0;
   return 1;
 }
@@ -1362,13 +1384,13 @@ check_crc_buf_osdep(const unsigned char *buf, size_t len)
  * @return number of the channel
  */
 static int
-get_channel_from_frequency(int32_t frequency)
+get_channel_from_frequency (int32_t frequency)
 {
-  if (frequency >= 2412 && frequency <= 2472)
+  if ((frequency >= 2412)&&(frequency <= 2472))
     return (frequency - 2407) / 5;
   if (frequency == 2484)
     return 14;
-  if (frequency >= 5000 && frequency <= 6100)
+  if ((frequency >= 5000)&&(frequency <= 6100))
     return (frequency - 5000) / 5;
   return -1;
 }
@@ -1381,14 +1403,14 @@ get_channel_from_frequency(int32_t frequency)
  * @return channel number, -1 on error
  */
 static int
-linux_get_channel(const struct HardwareInfos *dev)
+linux_get_channel (const struct HardwareInfos *dev)
 {
   struct iwreq wrq;
   int32_t frequency;
 
-  memset(&wrq, 0, sizeof(struct iwreq));
-  strncpy(wrq.ifr_name, dev->iface, IFNAMSIZ);
-  if (0 > ioctl(dev->fd_raw, SIOCGIWFREQ, &wrq))
+  memset (&wrq, 0, sizeof(struct iwreq));
+  strncpy (wrq.ifr_name, dev->iface, IFNAMSIZ);
+  if (0 > ioctl (dev->fd_raw, SIOCGIWFREQ, &wrq))
     return -1;
   frequency = wrq.u.freq.m; /* 'iw_freq' defines 'm' as '__s32', so we keep it signed */
   if (100000000 < frequency)
@@ -1396,7 +1418,7 @@ linux_get_channel(const struct HardwareInfos *dev)
   else if (1000000 < frequency)
     frequency /= 1000;
   if (1000 < frequency)
-    return get_channel_from_frequency(frequency);
+    return get_channel_from_frequency (frequency);
   return frequency;
 }
 
@@ -1413,9 +1435,9 @@ linux_get_channel(const struct HardwareInfos *dev)
  * @return number of bytes written to 'buf'
  */
 static ssize_t
-linux_read(struct HardwareInfos *dev,
-           unsigned char *buf, size_t buf_size,
-           struct GNUNET_TRANSPORT_WLAN_RadiotapReceiveMessage *ri)
+linux_read (struct HardwareInfos *dev,
+            unsigned char *buf, size_t buf_size,
+            struct GNUNET_TRANSPORT_WLAN_RadiotapReceiveMessage *ri)
 {
   unsigned char tmpbuf[buf_size];
   ssize_t caplen;
@@ -1425,207 +1447,210 @@ linux_read(struct HardwareInfos *dev,
   int got_channel = 0;
   int fcs_removed = 0;
 
-  caplen = read(dev->fd_raw, tmpbuf, buf_size);
+  caplen = read (dev->fd_raw, tmpbuf, buf_size);
   if (0 > caplen)
-    {
-      if (EAGAIN == errno)
-        return 0;
-      fprintf(stderr, "Failed to read from RAW socket: %s\n", strerror(errno));
-      return -1;
-    }
+  {
+    if (EAGAIN == errno)
+      return 0;
+    fprintf (stderr, "Failed to read from RAW socket: %s\n", strerror (errno));
+    return -1;
+  }
 
-  memset(ri, 0, sizeof(*ri));
+  memset (ri, 0, sizeof(*ri));
   switch (dev->arptype_in)
-    {
-    case ARPHRD_IEEE80211_PRISM:
+  {
+  case ARPHRD_IEEE80211_PRISM:
     {
       const struct PrismHeader *ph;
 
-      ph = (const struct PrismHeader*)tmpbuf;
+      ph = (const struct PrismHeader*) tmpbuf;
       n = ph->msglen;
       if ((n < 8) || (n >= caplen))
         return 0; /* invalid format */
       if ((PRISM_MSGCODE_MONITOR == ph->msgcode) &&
           (n >= sizeof(struct PrismHeader)))
+      {
+        const char *pos;
+        size_t left;
+        struct PrismValue pv;
+
+        left = n - sizeof(struct PrismHeader);
+        pos = (const char *) &ph[1];
+        while (left > sizeof(struct PrismValue))
         {
-          const char *pos;
-          size_t left;
-          struct PrismValue pv;
+          left -= sizeof(struct PrismValue);
+          GNUNET_memcpy (&pv, pos, sizeof(struct PrismValue));
+          pos += sizeof(struct PrismValue);
 
-          left = n - sizeof(struct PrismHeader);
-          pos = (const char *)&ph[1];
-          while (left > sizeof(struct PrismValue))
+          switch (pv.did)
+          {
+          case PRISM_DID_NOISE:
+            if (PRISM_STATUS_OK == pv.status)
             {
-              left -= sizeof(struct PrismValue);
-              GNUNET_memcpy(&pv, pos, sizeof(struct PrismValue));
-              pos += sizeof(struct PrismValue);
-
-              switch (pv.did)
-                {
-                case PRISM_DID_NOISE:
-                  if (PRISM_STATUS_OK == pv.status)
-                    {
-                      ri->ri_noise = pv.data;
-                      /* got_noise = 1; */
-                    }
-                  break;
-
-                case PRISM_DID_RATE:
-                  if (PRISM_STATUS_OK == pv.status)
-                    ri->ri_rate = pv.data * 500000;
-                  break;
-
-                case PRISM_DID_CHANNEL:
-                  if (PRISM_STATUS_OK == pv.status)
-                    {
-                      ri->ri_channel = pv.data;
-                      got_channel = 1;
-                    }
-                  break;
-
-                case PRISM_DID_MACTIME:
-                  if (PRISM_STATUS_OK == pv.status)
-                    ri->ri_mactime = pv.data;
-                  break;
-
-                case PRISM_DID_SIGNAL:
-                  if (PRISM_STATUS_OK == pv.status)
-                    {
-                      ri->ri_power = pv.data;
-                      /* got_signal = 1; */
-                    }
-                  break;
-                }
+              ri->ri_noise = pv.data;
+              /* got_noise = 1; */
             }
+            break;
+
+          case PRISM_DID_RATE:
+            if (PRISM_STATUS_OK == pv.status)
+              ri->ri_rate = pv.data * 500000;
+            break;
+
+          case PRISM_DID_CHANNEL:
+            if (PRISM_STATUS_OK == pv.status)
+            {
+              ri->ri_channel = pv.data;
+              got_channel = 1;
+            }
+            break;
+
+          case PRISM_DID_MACTIME:
+            if (PRISM_STATUS_OK == pv.status)
+              ri->ri_mactime = pv.data;
+            break;
+
+          case PRISM_DID_SIGNAL:
+            if (PRISM_STATUS_OK == pv.status)
+            {
+              ri->ri_power = pv.data;
+              /* got_signal = 1; */
+            }
+            break;
+          }
         }
+      }
       if ((n < 8) || (n >= caplen))
         return 0; /* invalid format */
     }
     break;
 
-    case ARPHRD_IEEE80211_FULL:
+  case ARPHRD_IEEE80211_FULL:
     {
       struct Ieee80211RadiotapHeaderIterator iterator;
       struct Ieee80211RadiotapHeader *rthdr;
 
-      memset(&iterator, 0, sizeof(iterator));
-      rthdr = (struct Ieee80211RadiotapHeader *)tmpbuf;
-      n = GNUNET_le16toh(rthdr->it_len);
+      memset (&iterator, 0, sizeof(iterator));
+      rthdr = (struct Ieee80211RadiotapHeader *) tmpbuf;
+      n = GNUNET_le16toh (rthdr->it_len);
       if ((n < sizeof(struct Ieee80211RadiotapHeader)) || (n >= caplen))
         return 0; /* invalid 'it_len' */
-      if (0 != ieee80211_radiotap_iterator_init(&iterator, rthdr, caplen))
+      if (0 != ieee80211_radiotap_iterator_init (&iterator, rthdr, caplen))
         return 0;
       /* go through the radiotap arguments we have been given by the driver */
-      while (0 <= ieee80211_radiotap_iterator_next(&iterator))
+      while (0 <= ieee80211_radiotap_iterator_next (&iterator))
+      {
+        switch (iterator.this_arg_index)
         {
-          switch (iterator.this_arg_index)
+        case IEEE80211_RADIOTAP_TSFT:
+          ri->ri_mactime = GNUNET_le64toh (*((uint64_t *) iterator.this_arg));
+          break;
+
+        case IEEE80211_RADIOTAP_DBM_ANTSIGNAL:
+          if (! got_signal)
+          {
+            ri->ri_power = *((int8_t*) iterator.this_arg);
+            got_signal = 1;
+          }
+          break;
+
+        case IEEE80211_RADIOTAP_DB_ANTSIGNAL:
+          if (! got_signal)
+          {
+            ri->ri_power = *((int8_t*) iterator.this_arg);
+            got_signal = 1;
+          }
+          break;
+
+        case IEEE80211_RADIOTAP_DBM_ANTNOISE:
+          if (! got_noise)
+          {
+            ri->ri_noise = *((int8_t*) iterator.this_arg);
+            got_noise = 1;
+          }
+          break;
+
+        case IEEE80211_RADIOTAP_DB_ANTNOISE:
+          if (! got_noise)
+          {
+            ri->ri_noise = *((int8_t*) iterator.this_arg);
+            got_noise = 1;
+          }
+          break;
+
+        case IEEE80211_RADIOTAP_ANTENNA:
+          ri->ri_antenna = *iterator.this_arg;
+          break;
+
+        case IEEE80211_RADIOTAP_CHANNEL:
+          ri->ri_channel = *iterator.this_arg;
+          got_channel = 1;
+          break;
+
+        case IEEE80211_RADIOTAP_RATE:
+          ri->ri_rate = (*iterator.this_arg) * 500000;
+          break;
+
+        case IEEE80211_RADIOTAP_FLAGS:
+          {
+            uint8_t flags = *iterator.this_arg;
+            /* is the CRC visible at the end? if so, remove */
+            if (0 != (flags & IEEE80211_RADIOTAP_F_FCS))
             {
-            case IEEE80211_RADIOTAP_TSFT:
-              ri->ri_mactime = GNUNET_le64toh(*((uint64_t *)iterator.this_arg));
-              break;
-
-            case IEEE80211_RADIOTAP_DBM_ANTSIGNAL:
-              if (!got_signal)
-                {
-                  ri->ri_power = *((int8_t*)iterator.this_arg);
-                  got_signal = 1;
-                }
-              break;
-
-            case IEEE80211_RADIOTAP_DB_ANTSIGNAL:
-              if (!got_signal)
-                {
-                  ri->ri_power = *((int8_t*)iterator.this_arg);
-                  got_signal = 1;
-                }
-              break;
-
-            case IEEE80211_RADIOTAP_DBM_ANTNOISE:
-              if (!got_noise)
-                {
-                  ri->ri_noise = *((int8_t*)iterator.this_arg);
-                  got_noise = 1;
-                }
-              break;
-
-            case IEEE80211_RADIOTAP_DB_ANTNOISE:
-              if (!got_noise)
-                {
-                  ri->ri_noise = *((int8_t*)iterator.this_arg);
-                  got_noise = 1;
-                }
-              break;
-
-            case IEEE80211_RADIOTAP_ANTENNA:
-              ri->ri_antenna = *iterator.this_arg;
-              break;
-
-            case IEEE80211_RADIOTAP_CHANNEL:
-              ri->ri_channel = *iterator.this_arg;
-              got_channel = 1;
-              break;
-
-            case IEEE80211_RADIOTAP_RATE:
-              ri->ri_rate = (*iterator.this_arg) * 500000;
-              break;
-
-            case IEEE80211_RADIOTAP_FLAGS:
-            {
-              uint8_t flags = *iterator.this_arg;
-              /* is the CRC visible at the end? if so, remove */
-              if (0 != (flags & IEEE80211_RADIOTAP_F_FCS))
-                {
-                  fcs_removed = 1;
-                  caplen -= sizeof(uint32_t);
-                }
-              break;
-            }
-
-            case IEEE80211_RADIOTAP_RX_FLAGS:
-            {
-              uint16_t flags = ntohs(*((uint16_t *)iterator.this_arg));
-              if (0 != (flags & IEEE80211_RADIOTAP_F_RX_BADFCS))
-                return 0;
+              fcs_removed = 1;
+              caplen -= sizeof(uint32_t);
             }
             break;
-            } /* end of 'switch' */
-        } /* end of the 'while' loop */
+          }
+
+        case IEEE80211_RADIOTAP_RX_FLAGS:
+          {
+            uint16_t flags = ntohs (*((uint16_t *) iterator.this_arg));
+            if (0 != (flags & IEEE80211_RADIOTAP_F_RX_BADFCS))
+              return 0;
+          }
+          break;
+        }     /* end of 'switch' */
+      }   /* end of the 'while' loop */
     }
     break;
 
-    case ARPHRD_IEEE80211:
-      n = 0; /* no header */
-      break;
+  case ARPHRD_IEEE80211:
+    n = 0;   /* no header */
+    break;
 
-    case ARPHRD_ETHER:
+  case ARPHRD_ETHER:
     {
       if (sizeof(struct GNUNET_TRANSPORT_WLAN_Ieee8023Frame) > caplen)
         return 0; /* invalid */
-      GNUNET_memcpy(&buf[sizeof(struct GNUNET_TRANSPORT_WLAN_Ieee80211Frame)],
-                    tmpbuf + sizeof(struct GNUNET_TRANSPORT_WLAN_Ieee8023Frame),
-                    caplen - sizeof(struct GNUNET_TRANSPORT_WLAN_Ieee8023Frame) - 4 /* 4 byte FCS */);
+      GNUNET_memcpy (&buf[sizeof(struct GNUNET_TRANSPORT_WLAN_Ieee80211Frame)],
+                     tmpbuf + sizeof(struct
+                                     GNUNET_TRANSPORT_WLAN_Ieee8023Frame),
+                     caplen - sizeof(struct
+                                     GNUNET_TRANSPORT_WLAN_Ieee8023Frame)
+                     - 4 /* 4 byte FCS */);
       return caplen - sizeof(struct GNUNET_TRANSPORT_WLAN_Ieee8023Frame) - 4;
     }
 
-    default:
-      errno = ENOTSUP; /* unsupported format */
-      return -1;
-    }
+  default:
+    errno = ENOTSUP;   /* unsupported format */
+    return -1;
+  }
   caplen -= n;
-  if (!got_channel)
-    ri->ri_channel = linux_get_channel(dev);
+  if (! got_channel)
+    ri->ri_channel = linux_get_channel (dev);
 
   /* detect CRC32 at the end, even if the flag wasn't set and remove it */
   if ((0 == fcs_removed) &&
-      (0 == check_crc_buf_osdep(tmpbuf + n, caplen - sizeof(uint32_t))))
-    {
-      /* NOTE: this heuristic can of course fail if there happens to
-         be a matching checksum at the end. Would be good to have
-         some data to see how often this heuristic actually works. */
-      caplen -= sizeof(uint32_t);
-    }
+      (0 == check_crc_buf_osdep (tmpbuf + n, caplen - sizeof(uint32_t))))
+  {
+    /* NOTE: this heuristic can of course fail if there happens to
+       be a matching checksum at the end. Would be good to have
+       some data to see how often this heuristic actually works. */
+    caplen -= sizeof(uint32_t);
+  }
   /* copy payload to target buffer */
-  GNUNET_memcpy(buf, tmpbuf + n, caplen);
+  GNUNET_memcpy (buf, tmpbuf + n, caplen);
   return caplen;
 }
 
@@ -1642,7 +1667,7 @@ linux_read(struct HardwareInfos *dev,
  * @return 0 on success
  */
 static int
-open_device_raw(struct HardwareInfos *dev)
+open_device_raw (struct HardwareInfos *dev)
 {
   struct ifreq ifr;
   struct iwreq wrq;
@@ -1650,112 +1675,114 @@ open_device_raw(struct HardwareInfos *dev)
   struct sockaddr_ll sll;
 
   /* find the interface index */
-  memset(&ifr, 0, sizeof(ifr));
-  strncpy(ifr.ifr_name, dev->iface, IFNAMSIZ);
-  if (-1 == ioctl(dev->fd_raw, SIOCGIFINDEX, &ifr))
-    {
-      fprintf(stderr, "ioctl(SIOCGIFINDEX) on interface `%.*s' failed: %s\n",
-              IFNAMSIZ, dev->iface, strerror(errno));
-      return 1;
-    }
+  memset (&ifr, 0, sizeof(ifr));
+  strncpy (ifr.ifr_name, dev->iface, IFNAMSIZ);
+  if (-1 == ioctl (dev->fd_raw, SIOCGIFINDEX, &ifr))
+  {
+    fprintf (stderr, "ioctl(SIOCGIFINDEX) on interface `%.*s' failed: %s\n",
+             IFNAMSIZ, dev->iface, strerror (errno));
+    return 1;
+  }
 
   /* lookup the hardware type */
-  memset(&sll, 0, sizeof(sll));
+  memset (&sll, 0, sizeof(sll));
   sll.sll_family = AF_PACKET;
   sll.sll_ifindex = ifr.ifr_ifindex;
-  sll.sll_protocol = htons(ETH_P_ALL);
-  if (-1 == ioctl(dev->fd_raw, SIOCGIFHWADDR, &ifr))
-    {
-      fprintf(stderr, "ioctl(SIOCGIFHWADDR) on interface `%.*s' failed: %s\n",
-              IFNAMSIZ, dev->iface, strerror(errno));
-      return 1;
-    }
+  sll.sll_protocol = htons (ETH_P_ALL);
+  if (-1 == ioctl (dev->fd_raw, SIOCGIFHWADDR, &ifr))
+  {
+    fprintf (stderr, "ioctl(SIOCGIFHWADDR) on interface `%.*s' failed: %s\n",
+             IFNAMSIZ, dev->iface, strerror (errno));
+    return 1;
+  }
   if (((ifr.ifr_hwaddr.sa_family != ARPHRD_IEEE80211) &&
        (ifr.ifr_hwaddr.sa_family != ARPHRD_ETHER) &&
        (ifr.ifr_hwaddr.sa_family != ARPHRD_IEEE80211_PRISM) &&
        (ifr.ifr_hwaddr.sa_family != ARPHRD_IEEE80211_FULL)))
-    {
-      fprintf(stderr, "Error: interface `%.*s' is not using a supported hardware address family (got %d)\n",
-              IFNAMSIZ, dev->iface,
-              ifr.ifr_hwaddr.sa_family);
-      return 1;
-    }
+  {
+    fprintf (stderr,
+             "Error: interface `%.*s' is not using a supported hardware address family (got %d)\n",
+             IFNAMSIZ, dev->iface,
+             ifr.ifr_hwaddr.sa_family);
+    return 1;
+  }
 
   /* lookup iw mode */
-  memset(&wrq, 0, sizeof(struct iwreq));
-  strncpy(wrq.ifr_name, dev->iface, IFNAMSIZ);
-  if (-1 == ioctl(dev->fd_raw, SIOCGIWMODE, &wrq))
-    {
-      /* most probably not supported (ie for rtap ipw interface) *
-      * so just assume its correctly set...                     */
-      wrq.u.mode = IW_MODE_MONITOR;
-    }
+  memset (&wrq, 0, sizeof(struct iwreq));
+  strncpy (wrq.ifr_name, dev->iface, IFNAMSIZ);
+  if (-1 == ioctl (dev->fd_raw, SIOCGIWMODE, &wrq))
+  {
+    /* most probably not supported (ie for rtap ipw interface) *
+    * so just assume its correctly set...                     */
+    wrq.u.mode = IW_MODE_MONITOR;
+  }
 
   if ((wrq.u.mode != IW_MODE_MONITOR) &&
       (wrq.u.mode != IW_MODE_ADHOC))
-    {
-      fprintf(stderr, "Error: interface `%.*s' is not in monitor or ad-hoc mode (got %d)\n",
-              IFNAMSIZ, dev->iface,
-              wrq.u.mode);
-      return 1;
-    }
+  {
+    fprintf (stderr,
+             "Error: interface `%.*s' is not in monitor or ad-hoc mode (got %d)\n",
+             IFNAMSIZ, dev->iface,
+             wrq.u.mode);
+    return 1;
+  }
 
   /* Is interface st to up, broadcast & running ? */
   if ((ifr.ifr_flags | IFF_UP | IFF_BROADCAST | IFF_RUNNING) != ifr.ifr_flags)
-    {
-      /* Bring interface up */
-      ifr.ifr_flags |= IFF_UP | IFF_BROADCAST | IFF_RUNNING;
+  {
+    /* Bring interface up */
+    ifr.ifr_flags |= IFF_UP | IFF_BROADCAST | IFF_RUNNING;
 
-      if (-1 == ioctl(dev->fd_raw, SIOCSIFFLAGS, &ifr))
-        {
-          fprintf(stderr, "ioctl(SIOCSIFFLAGS) on interface `%.*s' failed: %s\n",
-                  IFNAMSIZ, dev->iface, strerror(errno));
-          return 1;
-        }
+    if (-1 == ioctl (dev->fd_raw, SIOCSIFFLAGS, &ifr))
+    {
+      fprintf (stderr, "ioctl(SIOCSIFFLAGS) on interface `%.*s' failed: %s\n",
+               IFNAMSIZ, dev->iface, strerror (errno));
+      return 1;
     }
+  }
 
   /* bind the raw socket to the interface */
-  if (-1 == bind(dev->fd_raw, (struct sockaddr *)&sll, sizeof(sll)))
-    {
-      fprintf(stderr, "Failed to bind interface `%.*s': %s\n", IFNAMSIZ,
-              dev->iface, strerror(errno));
-      return 1;
-    }
+  if (-1 == bind (dev->fd_raw, (struct sockaddr *) &sll, sizeof(sll)))
+  {
+    fprintf (stderr, "Failed to bind interface `%.*s': %s\n", IFNAMSIZ,
+             dev->iface, strerror (errno));
+    return 1;
+  }
 
   /* lookup the hardware type */
-  if (-1 == ioctl(dev->fd_raw, SIOCGIFHWADDR, &ifr))
-    {
-      fprintf(stderr, "ioctl(SIOCGIFHWADDR) on interface `%.*s' failed: %s\n",
-              IFNAMSIZ, dev->iface, strerror(errno));
-      return 1;
-    }
+  if (-1 == ioctl (dev->fd_raw, SIOCGIFHWADDR, &ifr))
+  {
+    fprintf (stderr, "ioctl(SIOCGIFHWADDR) on interface `%.*s' failed: %s\n",
+             IFNAMSIZ, dev->iface, strerror (errno));
+    return 1;
+  }
 
-  GNUNET_memcpy(&dev->pl_mac, ifr.ifr_hwaddr.sa_data, MAC_ADDR_SIZE);
+  GNUNET_memcpy (&dev->pl_mac, ifr.ifr_hwaddr.sa_data, MAC_ADDR_SIZE);
   dev->arptype_in = ifr.ifr_hwaddr.sa_family;
   if ((ifr.ifr_hwaddr.sa_family != ARPHRD_ETHER) &&
       (ifr.ifr_hwaddr.sa_family != ARPHRD_IEEE80211) &&
       (ifr.ifr_hwaddr.sa_family != ARPHRD_IEEE80211_PRISM) &&
       (ifr.ifr_hwaddr.sa_family != ARPHRD_IEEE80211_FULL))
-    {
-      fprintf(stderr, "Unsupported hardware link type %d on interface `%.*s'\n",
-              ifr.ifr_hwaddr.sa_family, IFNAMSIZ, dev->iface);
-      return 1;
-    }
+  {
+    fprintf (stderr, "Unsupported hardware link type %d on interface `%.*s'\n",
+             ifr.ifr_hwaddr.sa_family, IFNAMSIZ, dev->iface);
+    return 1;
+  }
 
   /* enable promiscuous mode */
-  memset(&mr, 0, sizeof(mr));
+  memset (&mr, 0, sizeof(mr));
   mr.mr_ifindex = sll.sll_ifindex;
   mr.mr_type = PACKET_MR_PROMISC;
   if (0 !=
-      setsockopt(dev->fd_raw, SOL_PACKET, PACKET_ADD_MEMBERSHIP, &mr,
-                 sizeof(mr)))
-    {
-      fprintf(stderr,
-              "Failed to enable promiscuous mode on interface `%.*s'\n",
-              IFNAMSIZ,
-              dev->iface);
-      return 1;
-    }
+      setsockopt (dev->fd_raw, SOL_PACKET, PACKET_ADD_MEMBERSHIP, &mr,
+                  sizeof(mr)))
+  {
+    fprintf (stderr,
+             "Failed to enable promiscuous mode on interface `%.*s'\n",
+             IFNAMSIZ,
+             dev->iface);
+    return 1;
+  }
   return 0;
 }
 
@@ -1768,22 +1795,22 @@ open_device_raw(struct HardwareInfos *dev)
  * @return 0 on success, 1 on error
  */
 static int
-test_wlan_interface(const char *iface)
+test_wlan_interface (const char *iface)
 {
   char strbuf[512];
   struct stat sbuf;
   int ret;
 
-  ret = snprintf(strbuf, sizeof(strbuf),
-                 "/sys/class/net/%s/phy80211/subsystem",
-                 iface);
-  if ((ret < 0) || (ret >= sizeof(strbuf)) || (0 != stat(strbuf, &sbuf)))
-    {
-      fprintf(stderr,
-              "Did not find 802.11 interface `%s'. Exiting.\n",
-              iface);
-      exit(1);
-    }
+  ret = snprintf (strbuf, sizeof(strbuf),
+                  "/sys/class/net/%s/phy80211/subsystem",
+                  iface);
+  if ((ret < 0) || (ret >= sizeof(strbuf)) || (0 != stat (strbuf, &sbuf)))
+  {
+    fprintf (stderr,
+             "Did not find 802.11 interface `%s'. Exiting.\n",
+             iface);
+    exit (1);
+  }
   return 0;
 }
 
@@ -1796,19 +1823,19 @@ test_wlan_interface(const char *iface)
  * @return 0 if mac belongs to us, 1 if mac is for another target
  */
 static int
-mac_test(const struct GNUNET_TRANSPORT_WLAN_Ieee80211Frame *taIeeeHeader,
-         const struct HardwareInfos *dev)
+mac_test (const struct GNUNET_TRANSPORT_WLAN_Ieee80211Frame *taIeeeHeader,
+          const struct HardwareInfos *dev)
 {
   static struct GNUNET_TRANSPORT_WLAN_MacAddress all_zeros;
 
-  if ((0 == memcmp(&taIeeeHeader->addr3, &all_zeros, MAC_ADDR_SIZE)) ||
-      (0 == memcmp(&taIeeeHeader->addr1, &all_zeros, MAC_ADDR_SIZE)))
+  if ((0 == memcmp (&taIeeeHeader->addr3, &all_zeros, MAC_ADDR_SIZE)) ||
+      (0 == memcmp (&taIeeeHeader->addr1, &all_zeros, MAC_ADDR_SIZE)))
     return 0; /* some drivers set no Macs, then assume it is all for us! */
 
-  if (0 != memcmp(&taIeeeHeader->addr3, &mac_bssid_gnunet, MAC_ADDR_SIZE))
+  if (0 != memcmp (&taIeeeHeader->addr3, &mac_bssid_gnunet, MAC_ADDR_SIZE))
     return 1; /* not a GNUnet ad-hoc package */
-  if ((0 == memcmp(&taIeeeHeader->addr1, &dev->pl_mac, MAC_ADDR_SIZE)) ||
-      (0 == memcmp(&taIeeeHeader->addr1, &bc_all_mac, MAC_ADDR_SIZE)))
+  if ((0 == memcmp (&taIeeeHeader->addr1, &dev->pl_mac, MAC_ADDR_SIZE)) ||
+      (0 == memcmp (&taIeeeHeader->addr1, &bc_all_mac, MAC_ADDR_SIZE)))
     return 0; /* for us, or broadcast */
   return 1; /* not for us */
 }
@@ -1821,10 +1848,10 @@ mac_test(const struct GNUNET_TRANSPORT_WLAN_Ieee80211Frame *taIeeeHeader,
  * @param dev pointer to the Hardware_Infos struct
  */
 static void
-mac_set(struct GNUNET_TRANSPORT_WLAN_Ieee80211Frame *taIeeeHeader,
-        const struct HardwareInfos *dev)
+mac_set (struct GNUNET_TRANSPORT_WLAN_Ieee80211Frame *taIeeeHeader,
+         const struct HardwareInfos *dev)
 {
-  taIeeeHeader->frame_control = htons(IEEE80211_FC0_TYPE_DATA);
+  taIeeeHeader->frame_control = htons (IEEE80211_FC0_TYPE_DATA);
   taIeeeHeader->addr2 = dev->pl_mac;
   taIeeeHeader->addr3 = mac_bssid_gnunet;
 }
@@ -1839,7 +1866,7 @@ mac_set(struct GNUNET_TRANSPORT_WLAN_Ieee80211Frame *taIeeeHeader,
  * @param hdr pointer to the start of the packet
  */
 static void
-stdin_send_hw(void *cls, const struct GNUNET_MessageHeader *hdr)
+stdin_send_hw (void *cls, const struct GNUNET_MessageHeader *hdr)
 {
   struct HardwareInfos *dev = cls;
   const struct GNUNET_TRANSPORT_WLAN_RadiotapSendMessage *header;
@@ -1848,58 +1875,67 @@ stdin_send_hw(void *cls, const struct GNUNET_MessageHeader *hdr)
   struct RadiotapTransmissionHeader rtheader;
   struct GNUNET_TRANSPORT_WLAN_Ieee8023Frame etheader;
 
-  sendsize = ntohs(hdr->size);
+  sendsize = ntohs (hdr->size);
   if ((sendsize <
        sizeof(struct GNUNET_TRANSPORT_WLAN_RadiotapSendMessage)) ||
-      (GNUNET_MESSAGE_TYPE_WLAN_DATA_TO_HELPER != ntohs(hdr->type)))
-    {
-      fprintf(stderr, "Received malformed message\n");
-      exit(1);
-    }
-  sendsize -= (sizeof(struct GNUNET_TRANSPORT_WLAN_RadiotapSendMessage) - sizeof(struct GNUNET_TRANSPORT_WLAN_Ieee80211Frame));
+      (GNUNET_MESSAGE_TYPE_WLAN_DATA_TO_HELPER != ntohs (hdr->type)))
+  {
+    fprintf (stderr, "Received malformed message\n");
+    exit (1);
+  }
+  sendsize -= (sizeof(struct GNUNET_TRANSPORT_WLAN_RadiotapSendMessage)
+               - sizeof(struct GNUNET_TRANSPORT_WLAN_Ieee80211Frame));
   if (MAXLINE < sendsize)
-    {
-      fprintf(stderr, "Packet too big for buffer\n");
-      exit(1);
-    }
-  header = (const struct GNUNET_TRANSPORT_WLAN_RadiotapSendMessage *)hdr;
+  {
+    fprintf (stderr, "Packet too big for buffer\n");
+    exit (1);
+  }
+  header = (const struct GNUNET_TRANSPORT_WLAN_RadiotapSendMessage *) hdr;
   switch (dev->arptype_in)
-    {
-    case ARPHRD_IEEE80211_PRISM:
-    case ARPHRD_IEEE80211_FULL:
-    case ARPHRD_IEEE80211:
-      rtheader.header.it_version = 0;
-      rtheader.header.it_pad = 0;
-      rtheader.header.it_len = GNUNET_htole16(sizeof(rtheader));
-      rtheader.header.it_present = GNUNET_htole16(IEEE80211_RADIOTAP_OUR_TRANSMISSION_HEADER_MASK);
-      rtheader.rate = header->rate;
-      rtheader.pad1 = 0;
-      rtheader.txflags = GNUNET_htole16(IEEE80211_RADIOTAP_F_TX_NOACK | IEEE80211_RADIOTAP_F_TX_NOSEQ);
-      GNUNET_memcpy(write_pout.buf, &rtheader, sizeof(rtheader));
-      GNUNET_memcpy(&write_pout.buf[sizeof(rtheader)], &header->frame, sendsize);
-      wlanheader = (struct GNUNET_TRANSPORT_WLAN_Ieee80211Frame *)&write_pout.buf[sizeof(rtheader)];
+  {
+  case ARPHRD_IEEE80211_PRISM:
+  case ARPHRD_IEEE80211_FULL:
+  case ARPHRD_IEEE80211:
+    rtheader.header.it_version = 0;
+    rtheader.header.it_pad = 0;
+    rtheader.header.it_len = GNUNET_htole16 (sizeof(rtheader));
+    rtheader.header.it_present = GNUNET_htole16 (
+      IEEE80211_RADIOTAP_OUR_TRANSMISSION_HEADER_MASK);
+    rtheader.rate = header->rate;
+    rtheader.pad1 = 0;
+    rtheader.txflags = GNUNET_htole16 (IEEE80211_RADIOTAP_F_TX_NOACK
+                                       | IEEE80211_RADIOTAP_F_TX_NOSEQ);
+    GNUNET_memcpy (write_pout.buf, &rtheader, sizeof(rtheader));
+    GNUNET_memcpy (&write_pout.buf[sizeof(rtheader)], &header->frame, sendsize);
+    wlanheader = (struct
+                  GNUNET_TRANSPORT_WLAN_Ieee80211Frame *) &write_pout.buf[sizeof(
+                                                                            rtheader)
+                 ];
 
-      /* payload contains MAC address, but we don't trust it, so we'll
-       * overwrite it with OUR MAC address to prevent mischief */
-      mac_set(wlanheader, dev);
-      write_pout.size = sendsize + sizeof(rtheader);
-      break;
+    /* payload contains MAC address, but we don't trust it, so we'll
+     * overwrite it with OUR MAC address to prevent mischief */
+    mac_set (wlanheader, dev);
+    write_pout.size = sendsize + sizeof(rtheader);
+    break;
 
-    case ARPHRD_ETHER:
-      etheader.dst = header->frame.addr1;
-      /* etheader.src = header->frame.addr2; --- untrusted input */
-      etheader.src = dev->pl_mac;
-      etheader.type = htons(ETH_P_IP);
-      GNUNET_memcpy(write_pout.buf, &etheader, sizeof(etheader));
-      GNUNET_memcpy(&write_pout.buf[sizeof(etheader)], &header[1], sendsize - sizeof(struct GNUNET_TRANSPORT_WLAN_Ieee80211Frame));
-      write_pout.size = sendsize - sizeof(struct GNUNET_TRANSPORT_WLAN_Ieee80211Frame) + sizeof(etheader);
-      break;
+  case ARPHRD_ETHER:
+    etheader.dst = header->frame.addr1;
+    /* etheader.src = header->frame.addr2; --- untrusted input */
+    etheader.src = dev->pl_mac;
+    etheader.type = htons (ETH_P_IP);
+    GNUNET_memcpy (write_pout.buf, &etheader, sizeof(etheader));
+    GNUNET_memcpy (&write_pout.buf[sizeof(etheader)], &header[1], sendsize
+                   - sizeof(struct GNUNET_TRANSPORT_WLAN_Ieee80211Frame));
+    write_pout.size = sendsize - sizeof(struct
+                                        GNUNET_TRANSPORT_WLAN_Ieee80211Frame)
+                      + sizeof(etheader);
+    break;
 
-    default:
-      fprintf(stderr,
-              "Unsupported ARPTYPE!\n");
-      break;
-    }
+  default:
+    fprintf (stderr,
+             "Unsupported ARPTYPE!\n");
+    break;
+  }
 }
 
 
@@ -1914,7 +1950,7 @@ stdin_send_hw(void *cls, const struct GNUNET_MessageHeader *hdr)
  * @return 0 on success (never happens, as we don't return unless aborted), 1 on error
  */
 int
-main(int argc, char *argv[])
+main (int argc, char *argv[])
 {
   struct HardwareInfos dev;
   char readbuf[MAXLINE];
@@ -1928,83 +1964,83 @@ main(int argc, char *argv[])
   /* assert privs so we can modify the firewall rules! */
   {
 #ifdef HAVE_SETRESUID
-    uid_t uid = getuid();
+    uid_t uid = getuid ();
 
-    if (0 != setresuid(uid, 0, 0))
-      {
-        fprintf(stderr,
-                "Failed to setresuid to root: %s\n",
-                strerror(errno));
-        return 254;
-      }
+    if (0 != setresuid (uid, 0, 0))
+    {
+      fprintf (stderr,
+               "Failed to setresuid to root: %s\n",
+               strerror (errno));
+      return 254;
+    }
 #else
-    if (0 != seteuid(0))
-      {
-        fprintf(stderr,
-                "Failed to seteuid back to root: %s\n", strerror(errno));
-        return 254;
-      }
+    if (0 != seteuid (0))
+    {
+      fprintf (stderr,
+               "Failed to seteuid back to root: %s\n", strerror (errno));
+      return 254;
+    }
 #endif
   }
 
   /* make use of SGID capabilities on POSIX */
-  memset(&dev, 0, sizeof(dev));
-  dev.fd_raw = socket(PF_PACKET, SOCK_RAW, htons(ETH_P_ALL));
+  memset (&dev, 0, sizeof(dev));
+  dev.fd_raw = socket (PF_PACKET, SOCK_RAW, htons (ETH_P_ALL));
   raw_eno = errno; /* remember for later */
 
   /* now that we've dropped root rights, we can do error checking */
   if (2 != argc)
-    {
-      fprintf(stderr,
-              "You must specify the name of the interface as the first and only argument to this program.\n");
-      if (-1 != dev.fd_raw)
-        (void)close(dev.fd_raw);
-      return 1;
-    }
+  {
+    fprintf (stderr,
+             "You must specify the name of the interface as the first and only argument to this program.\n");
+    if (-1 != dev.fd_raw)
+      (void) close (dev.fd_raw);
+    return 1;
+  }
 
   if (-1 == dev.fd_raw)
-    {
-      fprintf(stderr, "Failed to create raw socket: %s\n", strerror(raw_eno));
-      return 1;
-    }
+  {
+    fprintf (stderr, "Failed to create raw socket: %s\n", strerror (raw_eno));
+    return 1;
+  }
   if (dev.fd_raw >= FD_SETSIZE)
-    {
-      fprintf(stderr, "File descriptor too large for select (%d > %d)\n",
-              dev.fd_raw, FD_SETSIZE);
-      (void)close(dev.fd_raw);
-      return 1;
-    }
-  if (0 != test_wlan_interface(argv[1]))
-    {
-      (void)close(dev.fd_raw);
-      return 1;
-    }
-  strncpy(dev.iface, argv[1], IFNAMSIZ);
-  if (0 != open_device_raw(&dev))
-    {
-      (void)close(dev.fd_raw);
-      return 1;
-    }
+  {
+    fprintf (stderr, "File descriptor too large for select (%d > %d)\n",
+             dev.fd_raw, FD_SETSIZE);
+    (void) close (dev.fd_raw);
+    return 1;
+  }
+  if (0 != test_wlan_interface (argv[1]))
+  {
+    (void) close (dev.fd_raw);
+    return 1;
+  }
+  strncpy (dev.iface, argv[1], IFNAMSIZ);
+  if (0 != open_device_raw (&dev))
+  {
+    (void) close (dev.fd_raw);
+    return 1;
+  }
 
   /* drop privs */
   {
-    uid_t uid = getuid();
+    uid_t uid = getuid ();
 #ifdef HAVE_SETRESUID
-    if (0 != setresuid(uid, uid, uid))
-      {
-        fprintf(stderr, "Failed to setresuid: %s\n", strerror(errno));
-        if (-1 != dev.fd_raw)
-          (void)close(dev.fd_raw);
-        return 1;
-      }
+    if (0 != setresuid (uid, uid, uid))
+    {
+      fprintf (stderr, "Failed to setresuid: %s\n", strerror (errno));
+      if (-1 != dev.fd_raw)
+        (void) close (dev.fd_raw);
+      return 1;
+    }
 #else
-    if (0 != (setuid(uid) | seteuid(uid)))
-      {
-        fprintf(stderr, "Failed to setuid: %s\n", strerror(errno));
-        if (-1 != dev.fd_raw)
-          (void)close(dev.fd_raw);
-        return 1;
-      }
+    if (0 != (setuid (uid) | seteuid (uid)))
+    {
+      fprintf (stderr, "Failed to setuid: %s\n", strerror (errno));
+      if (-1 != dev.fd_raw)
+        (void) close (dev.fd_raw);
+      return 1;
+    }
 #endif
   }
 
@@ -2013,141 +2049,145 @@ main(int argc, char *argv[])
   {
     struct GNUNET_TRANSPORT_WLAN_HelperControlMessage macmsg;
 
-    macmsg.hdr.size = htons(sizeof(macmsg));
-    macmsg.hdr.type = htons(GNUNET_MESSAGE_TYPE_WLAN_HELPER_CONTROL);
-    GNUNET_memcpy(&macmsg.mac, &dev.pl_mac, sizeof(struct GNUNET_TRANSPORT_WLAN_MacAddress));
-    GNUNET_memcpy(write_std.buf, &macmsg, sizeof(macmsg));
+    macmsg.hdr.size = htons (sizeof(macmsg));
+    macmsg.hdr.type = htons (GNUNET_MESSAGE_TYPE_WLAN_HELPER_CONTROL);
+    GNUNET_memcpy (&macmsg.mac, &dev.pl_mac, sizeof(struct
+                                                    GNUNET_TRANSPORT_WLAN_MacAddress));
+    GNUNET_memcpy (write_std.buf, &macmsg, sizeof(macmsg));
     write_std.size = sizeof(macmsg);
   }
 
-  stdin_mst = mst_create(&stdin_send_hw, &dev);
+  stdin_mst = mst_create (&stdin_send_hw, &dev);
   stdin_open = 1;
   while (1)
+  {
+    maxfd = -1;
+    FD_ZERO (&rfds);
+    if ((0 == write_pout.size) && (1 == stdin_open))
     {
-      maxfd = -1;
-      FD_ZERO(&rfds);
-      if ((0 == write_pout.size) && (1 == stdin_open))
-        {
-          FD_SET(STDIN_FILENO, &rfds);
-          maxfd = MAX(maxfd, STDIN_FILENO);
-        }
-      if (0 == write_std.size)
-        {
-          FD_SET(dev.fd_raw, &rfds);
-          maxfd = MAX(maxfd, dev.fd_raw);
-        }
-      FD_ZERO(&wfds);
-      if (0 < write_std.size)
-        {
-          FD_SET(STDOUT_FILENO, &wfds);
-          maxfd = MAX(maxfd, STDOUT_FILENO);
-        }
-      if (0 < write_pout.size)
-        {
-          FD_SET(dev.fd_raw, &wfds);
-          maxfd = MAX(maxfd, dev.fd_raw);
-        }
-      {
-        int retval = select(maxfd + 1, &rfds, &wfds, NULL, NULL);
-        if ((-1 == retval) && (EINTR == errno))
-          continue;
-        if (0 > retval)
-          {
-            fprintf(stderr, "select failed: %s\n", strerror(errno));
-            break;
-          }
-      }
-      if (FD_ISSET(STDOUT_FILENO, &wfds))
-        {
-          ssize_t ret =
-            write(STDOUT_FILENO, write_std.buf + write_std.pos,
-                  write_std.size - write_std.pos);
-          if (0 > ret)
-            {
-              fprintf(stderr, "Failed to write to STDOUT: %s\n", strerror(errno));
-              break;
-            }
-          write_std.pos += ret;
-          if (write_std.pos == write_std.size)
-            {
-              write_std.pos = 0;
-              write_std.size = 0;
-            }
-        }
-      if (FD_ISSET(dev.fd_raw, &wfds))
-        {
-          ssize_t ret =
-            write(dev.fd_raw, write_pout.buf + write_pout.pos,
-                  write_pout.size - write_pout.pos);
-          if (0 > ret)
-            {
-              fprintf(stderr, "Failed to write to WLAN device: %s\n",
-                      strerror(errno));
-              break;
-            }
-          write_pout.pos += ret;
-          if ((write_pout.pos != write_pout.size) && (0 != ret))
-            {
-              /* we should not get partial sends with packet-oriented devices... */
-              fprintf(stderr, "Write error, partial send: %u/%u\n",
-                      (unsigned int)write_pout.pos,
-                      (unsigned int)write_pout.size);
-              break;
-            }
-          if (write_pout.pos == write_pout.size)
-            {
-              write_pout.pos = 0;
-              write_pout.size = 0;
-            }
-        }
-
-      if (FD_ISSET(STDIN_FILENO, &rfds))
-        {
-          ssize_t ret =
-            read(STDIN_FILENO, readbuf, sizeof(readbuf));
-          if (0 > ret)
-            {
-              fprintf(stderr, "Read error from STDIN: %s\n", strerror(errno));
-              break;
-            }
-          if (0 == ret)
-            {
-              /* stop reading... */
-              stdin_open = 0;
-            }
-          mst_receive(stdin_mst, readbuf, ret);
-        }
-
-      if (FD_ISSET(dev.fd_raw, &rfds))
-        {
-          struct GNUNET_TRANSPORT_WLAN_RadiotapReceiveMessage *rrm;
-          ssize_t ret;
-
-          rrm = (struct GNUNET_TRANSPORT_WLAN_RadiotapReceiveMessage *)write_std.buf;
-          ret =
-            linux_read(&dev, (unsigned char *)&rrm->frame,
-                       sizeof(write_std.buf)
-                       - sizeof(struct GNUNET_TRANSPORT_WLAN_RadiotapReceiveMessage)
-                       + sizeof(struct GNUNET_TRANSPORT_WLAN_Ieee80211Frame),
-                       rrm);
-          if (0 > ret)
-            {
-              fprintf(stderr, "Read error from raw socket: %s\n", strerror(errno));
-              break;
-            }
-          if ((0 < ret) && (0 == mac_test(&rrm->frame, &dev)))
-            {
-              write_std.size = ret
-                               + sizeof(struct GNUNET_TRANSPORT_WLAN_RadiotapReceiveMessage)
-                               - sizeof(struct GNUNET_TRANSPORT_WLAN_Ieee80211Frame);
-              rrm->header.size = htons(write_std.size);
-              rrm->header.type = htons(GNUNET_MESSAGE_TYPE_WLAN_DATA_FROM_HELPER);
-            }
-        }
+      FD_SET (STDIN_FILENO, &rfds);
+      maxfd = MAX (maxfd, STDIN_FILENO);
     }
+    if (0 == write_std.size)
+    {
+      FD_SET (dev.fd_raw, &rfds);
+      maxfd = MAX (maxfd, dev.fd_raw);
+    }
+    FD_ZERO (&wfds);
+    if (0 < write_std.size)
+    {
+      FD_SET (STDOUT_FILENO, &wfds);
+      maxfd = MAX (maxfd, STDOUT_FILENO);
+    }
+    if (0 < write_pout.size)
+    {
+      FD_SET (dev.fd_raw, &wfds);
+      maxfd = MAX (maxfd, dev.fd_raw);
+    }
+    {
+      int retval = select (maxfd + 1, &rfds, &wfds, NULL, NULL);
+      if ((-1 == retval) && (EINTR == errno))
+        continue;
+      if (0 > retval)
+      {
+        fprintf (stderr, "select failed: %s\n", strerror (errno));
+        break;
+      }
+    }
+    if (FD_ISSET (STDOUT_FILENO, &wfds))
+    {
+      ssize_t ret =
+        write (STDOUT_FILENO, write_std.buf + write_std.pos,
+               write_std.size - write_std.pos);
+      if (0 > ret)
+      {
+        fprintf (stderr, "Failed to write to STDOUT: %s\n", strerror (errno));
+        break;
+      }
+      write_std.pos += ret;
+      if (write_std.pos == write_std.size)
+      {
+        write_std.pos = 0;
+        write_std.size = 0;
+      }
+    }
+    if (FD_ISSET (dev.fd_raw, &wfds))
+    {
+      ssize_t ret =
+        write (dev.fd_raw, write_pout.buf + write_pout.pos,
+               write_pout.size - write_pout.pos);
+      if (0 > ret)
+      {
+        fprintf (stderr, "Failed to write to WLAN device: %s\n",
+                 strerror (errno));
+        break;
+      }
+      write_pout.pos += ret;
+      if ((write_pout.pos != write_pout.size) && (0 != ret))
+      {
+        /* we should not get partial sends with packet-oriented devices... */
+        fprintf (stderr, "Write error, partial send: %u/%u\n",
+                 (unsigned int) write_pout.pos,
+                 (unsigned int) write_pout.size);
+        break;
+      }
+      if (write_pout.pos == write_pout.size)
+      {
+        write_pout.pos = 0;
+        write_pout.size = 0;
+      }
+    }
+
+    if (FD_ISSET (STDIN_FILENO, &rfds))
+    {
+      ssize_t ret =
+        read (STDIN_FILENO, readbuf, sizeof(readbuf));
+      if (0 > ret)
+      {
+        fprintf (stderr, "Read error from STDIN: %s\n", strerror (errno));
+        break;
+      }
+      if (0 == ret)
+      {
+        /* stop reading... */
+        stdin_open = 0;
+      }
+      mst_receive (stdin_mst, readbuf, ret);
+    }
+
+    if (FD_ISSET (dev.fd_raw, &rfds))
+    {
+      struct GNUNET_TRANSPORT_WLAN_RadiotapReceiveMessage *rrm;
+      ssize_t ret;
+
+      rrm = (struct
+             GNUNET_TRANSPORT_WLAN_RadiotapReceiveMessage *) write_std.buf;
+      ret =
+        linux_read (&dev, (unsigned char *) &rrm->frame,
+                    sizeof(write_std.buf)
+                    - sizeof(struct
+                             GNUNET_TRANSPORT_WLAN_RadiotapReceiveMessage)
+                    + sizeof(struct GNUNET_TRANSPORT_WLAN_Ieee80211Frame),
+                    rrm);
+      if (0 > ret)
+      {
+        fprintf (stderr, "Read error from raw socket: %s\n", strerror (errno));
+        break;
+      }
+      if ((0 < ret) && (0 == mac_test (&rrm->frame, &dev)))
+      {
+        write_std.size = ret
+                         + sizeof(struct
+                                  GNUNET_TRANSPORT_WLAN_RadiotapReceiveMessage)
+                         - sizeof(struct GNUNET_TRANSPORT_WLAN_Ieee80211Frame);
+        rrm->header.size = htons (write_std.size);
+        rrm->header.type = htons (GNUNET_MESSAGE_TYPE_WLAN_DATA_FROM_HELPER);
+      }
+    }
+  }
   /* Error handling, try to clean up a bit at least */
-  mst_destroy(stdin_mst);
-  (void)close(dev.fd_raw);
+  mst_destroy (stdin_mst);
+  (void) close (dev.fd_raw);
   return 1;                     /* we never exit 'normally' */
 }
 

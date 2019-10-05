@@ -28,7 +28,7 @@
 /**
  * Global timeout for the testcase.
  */
-#define TIMEOUT GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 15)
+#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 15)
 
 /**
  * Definition of the test as a sequence of commands.
@@ -146,13 +146,13 @@ static struct Command test_commands[] = {
 
 
 int
-main(int argc,
-     char *argv[])
+main (int argc,
+      char *argv[])
 {
-  return TEST_ATS_run(argc,
-                      argv,
-                      test_commands,
-                      TIMEOUT);
+  return TEST_ATS_run (argc,
+                       argv,
+                       test_commands,
+                       TIMEOUT);
 }
 
 

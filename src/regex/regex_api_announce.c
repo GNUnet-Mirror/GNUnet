@@ -29,12 +29,13 @@
 #include "gnunet_regex_service.h"
 #include "regex_ipc.h"
 
-#define LOG(kind, ...) GNUNET_log_from(kind, "regex-api", __VA_ARGS__)
+#define LOG(kind, ...) GNUNET_log_from (kind, "regex-api", __VA_ARGS__)
 
 /**
  * Handle to store cached data about a regex announce.
  */
-struct GNUNET_REGEX_Announcement {
+struct GNUNET_REGEX_Announcement
+{
   /**
    * Connection to the regex service.
    */
@@ -69,7 +70,7 @@ struct GNUNET_REGEX_Announcement {
  * @param a REGEX to announce.
  */
 static void
-announce_reconnect(struct GNUNET_REGEX_Announcement *a);
+announce_reconnect (struct GNUNET_REGEX_Announcement *a);
 
 
 /**
@@ -80,14 +81,14 @@ announce_reconnect(struct GNUNET_REGEX_Announcement *a);
  * @param error error code
  */
 static void
-announce_mq_error_handler(void *cls,
-                          enum GNUNET_MQ_Error error)
+announce_mq_error_handler (void *cls,
+                           enum GNUNET_MQ_Error error)
 {
   struct GNUNET_REGEX_Announcement *a = cls;
 
-  GNUNET_MQ_destroy(a->mq);
+  GNUNET_MQ_destroy (a->mq);
   a->mq = NULL;
-  announce_reconnect(a);
+  announce_reconnect (a);
 }
 
 
@@ -97,31 +98,31 @@ announce_mq_error_handler(void *cls,
  * @param a REGEX to announce.
  */
 static void
-announce_reconnect(struct GNUNET_REGEX_Announcement *a)
+announce_reconnect (struct GNUNET_REGEX_Announcement *a)
 {
   struct GNUNET_MQ_Envelope *env;
   struct AnnounceMessage *am;
   size_t slen;
 
-  a->mq = GNUNET_CLIENT_connect(a->cfg,
-                                "regex",
-                                NULL,
-                                &announce_mq_error_handler,
-                                a);
+  a->mq = GNUNET_CLIENT_connect (a->cfg,
+                                 "regex",
+                                 NULL,
+                                 &announce_mq_error_handler,
+                                 a);
   if (NULL == a->mq)
     return;
-  slen = strlen(a->regex) + 1;
-  env = GNUNET_MQ_msg_extra(am,
-                            slen,
-                            GNUNET_MESSAGE_TYPE_REGEX_ANNOUNCE);
-  am->compression = htons(a->compression);
-  am->reserved = htons(0);
-  am->refresh_delay = GNUNET_TIME_relative_hton(a->refresh_delay);
-  GNUNET_memcpy(&am[1],
-                a->regex,
-                slen);
-  GNUNET_MQ_send(a->mq,
-                 env);
+  slen = strlen (a->regex) + 1;
+  env = GNUNET_MQ_msg_extra (am,
+                             slen,
+                             GNUNET_MESSAGE_TYPE_REGEX_ANNOUNCE);
+  am->compression = htons (a->compression);
+  am->reserved = htons (0);
+  am->refresh_delay = GNUNET_TIME_relative_hton (a->refresh_delay);
+  GNUNET_memcpy (&am[1],
+                 a->regex,
+                 slen);
+  GNUNET_MQ_send (a->mq,
+                  env);
 }
 
 
@@ -136,35 +137,35 @@ announce_reconnect(struct GNUNET_REGEX_Announcement *a)
  *         Must be freed by calling #GNUNET_REGEX_announce_cancel().
  */
 struct GNUNET_REGEX_Announcement *
-GNUNET_REGEX_announce(const struct GNUNET_CONFIGURATION_Handle *cfg,
-                      const char *regex,
-                      struct GNUNET_TIME_Relative refresh_delay,
-                      uint16_t compression)
+GNUNET_REGEX_announce (const struct GNUNET_CONFIGURATION_Handle *cfg,
+                       const char *regex,
+                       struct GNUNET_TIME_Relative refresh_delay,
+                       uint16_t compression)
 {
   struct GNUNET_REGEX_Announcement *a;
   size_t slen;
 
-  slen = strlen(regex) + 1;
+  slen = strlen (regex) + 1;
   if (slen + sizeof(struct AnnounceMessage) >= GNUNET_MAX_MESSAGE_SIZE)
-    {
-      GNUNET_log(GNUNET_ERROR_TYPE_WARNING,
-                 _("Regex `%s' is too long!\n"),
-                 regex);
-      GNUNET_break(0);
-      return NULL;
-    }
-  a = GNUNET_new(struct GNUNET_REGEX_Announcement);
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                _ ("Regex `%s' is too long!\n"),
+                regex);
+    GNUNET_break (0);
+    return NULL;
+  }
+  a = GNUNET_new (struct GNUNET_REGEX_Announcement);
   a->cfg = cfg;
   a->refresh_delay = refresh_delay;
   a->compression = compression;
-  a->regex = GNUNET_strdup(regex);
-  announce_reconnect(a);
+  a->regex = GNUNET_strdup (regex);
+  announce_reconnect (a);
   if (NULL == a->mq)
-    {
-      GNUNET_free(a->regex);
-      GNUNET_free(a);
-      return NULL;
-    }
+  {
+    GNUNET_free (a->regex);
+    GNUNET_free (a);
+    return NULL;
+  }
   return a;
 }
 
@@ -175,11 +176,11 @@ GNUNET_REGEX_announce(const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @param a handle returned by a previous #GNUNET_REGEX_announce() call.
  */
 void
-GNUNET_REGEX_announce_cancel(struct GNUNET_REGEX_Announcement *a)
+GNUNET_REGEX_announce_cancel (struct GNUNET_REGEX_Announcement *a)
 {
-  GNUNET_MQ_destroy(a->mq);
-  GNUNET_free(a->regex);
-  GNUNET_free(a);
+  GNUNET_MQ_destroy (a->mq);
+  GNUNET_free (a->regex);
+  GNUNET_free (a);
 }
 
 /* end of regex_api_announce.c */

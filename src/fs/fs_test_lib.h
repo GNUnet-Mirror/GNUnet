@@ -64,15 +64,15 @@ typedef void
  * @param cont_cls closure for @a cont
  */
 void
-GNUNET_FS_TEST_publish(struct GNUNET_TESTBED_Peer *peer,
-                       struct GNUNET_TIME_Relative timeout,
-                       uint32_t anonymity,
-                       int do_index,
-                       uint64_t size,
-                       uint32_t seed,
-                       unsigned int verbose,
-                       GNUNET_FS_TEST_UriContinuation cont,
-                       void *cont_cls);
+GNUNET_FS_TEST_publish (struct GNUNET_TESTBED_Peer *peer,
+                        struct GNUNET_TIME_Relative timeout,
+                        uint32_t anonymity,
+                        int do_index,
+                        uint64_t size,
+                        uint32_t seed,
+                        unsigned int verbose,
+                        GNUNET_FS_TEST_UriContinuation cont,
+                        void *cont_cls);
 
 
 /**
@@ -89,14 +89,14 @@ GNUNET_FS_TEST_publish(struct GNUNET_TESTBED_Peer *peer,
  * @param cont_cls closure for @a cont
  */
 void
-GNUNET_FS_TEST_download(struct GNUNET_TESTBED_Peer *peer,
-                        struct GNUNET_TIME_Relative timeout,
-                        uint32_t anonymity,
-                        uint32_t seed,
-                        const struct GNUNET_FS_Uri *uri,
-                        unsigned int verbose,
-                        GNUNET_SCHEDULER_TaskCallback cont,
-                        void *cont_cls);
+GNUNET_FS_TEST_download (struct GNUNET_TESTBED_Peer *peer,
+                         struct GNUNET_TIME_Relative timeout,
+                         uint32_t anonymity,
+                         uint32_t seed,
+                         const struct GNUNET_FS_Uri *uri,
+                         unsigned int verbose,
+                         GNUNET_SCHEDULER_TaskCallback cont,
+                         void *cont_cls);
 
 
 

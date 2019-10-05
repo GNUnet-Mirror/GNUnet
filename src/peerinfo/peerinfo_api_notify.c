@@ -29,12 +29,13 @@
 #include "gnunet_protocols.h"
 #include "peerinfo.h"
 
-#define LOG(kind, ...) GNUNET_log_from(kind, "peerinfo-api", __VA_ARGS__)
+#define LOG(kind, ...) GNUNET_log_from (kind, "peerinfo-api", __VA_ARGS__)
 
 /**
  * Context for the info handler.
  */
-struct GNUNET_PEERINFO_NotifyContext {
+struct GNUNET_PEERINFO_NotifyContext
+{
   /**
    * Our connection to the PEERINFO service.
    */
@@ -73,7 +74,7 @@ struct GNUNET_PEERINFO_NotifyContext {
  * @param cls the `struct GNUNET_PEERINFO_NotifyContext *`
  */
 static void
-reconnect(void *cls);
+reconnect (void *cls);
 
 
 /**
@@ -82,12 +83,12 @@ reconnect(void *cls);
  * @param nc context to reconnect
  */
 static void
-do_reconnect(struct GNUNET_PEERINFO_NotifyContext *nc)
+do_reconnect (struct GNUNET_PEERINFO_NotifyContext *nc)
 {
-  GNUNET_MQ_destroy(nc->mq);
+  GNUNET_MQ_destroy (nc->mq);
   nc->mq = NULL;
-  nc->task = GNUNET_SCHEDULER_add_now(&reconnect,
-                                      nc);
+  nc->task = GNUNET_SCHEDULER_add_now (&reconnect,
+                                       nc);
 }
 
 
@@ -99,12 +100,12 @@ do_reconnect(struct GNUNET_PEERINFO_NotifyContext *nc)
  * @param error error code
  */
 static void
-mq_error_handler(void *cls,
-                 enum GNUNET_MQ_Error error)
+mq_error_handler (void *cls,
+                  enum GNUNET_MQ_Error error)
 {
   struct GNUNET_PEERINFO_NotifyContext *nc = cls;
 
-  do_reconnect(nc);
+  do_reconnect (nc);
 }
 
 
@@ -116,28 +117,28 @@ mq_error_handler(void *cls,
  * @return #GNUNET_OK if the message is well-formed
  */
 static int
-check_notification(void *cls,
-                   const struct InfoMessage *im)
+check_notification (void *cls,
+                    const struct InfoMessage *im)
 {
-  uint16_t ms = ntohs(im->header.size) - sizeof(*im);
+  uint16_t ms = ntohs (im->header.size) - sizeof(*im);
 
   if (ms >= sizeof(struct GNUNET_MessageHeader))
-    {
-      const struct GNUNET_HELLO_Message *hello;
+  {
+    const struct GNUNET_HELLO_Message *hello;
 
-      hello = (const struct GNUNET_HELLO_Message *)&im[1];
-      if (ms != GNUNET_HELLO_size(hello))
-        {
-          GNUNET_break(0);
-          return GNUNET_SYSERR;
-        }
-      return GNUNET_OK;
-    }
-  if (0 != ms)
+    hello = (const struct GNUNET_HELLO_Message *) &im[1];
+    if (ms != GNUNET_HELLO_size (hello))
     {
-      GNUNET_break(0);
+      GNUNET_break (0);
       return GNUNET_SYSERR;
     }
+    return GNUNET_OK;
+  }
+  if (0 != ms)
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
   return GNUNET_OK;  /* odd... */
 }
 
@@ -149,23 +150,23 @@ check_notification(void *cls,
  * @param im message received
  */
 static void
-handle_notification(void *cls,
-                    const struct InfoMessage *im)
+handle_notification (void *cls,
+                     const struct InfoMessage *im)
 {
   struct GNUNET_PEERINFO_NotifyContext *nc = cls;
   const struct GNUNET_HELLO_Message *hello;
-  uint16_t ms = ntohs(im->header.size) - sizeof(struct InfoMessage);
+  uint16_t ms = ntohs (im->header.size) - sizeof(struct InfoMessage);
 
   if (0 == ms)
     return;
-  hello = (const struct GNUNET_HELLO_Message *)&im[1];
-  LOG(GNUNET_ERROR_TYPE_DEBUG,
-      "Received information about peer `%s' from peerinfo database\n",
-      GNUNET_i2s(&im->peer));
-  nc->callback(nc->callback_cls,
-               &im->peer,
-               hello,
-               NULL);
+  hello = (const struct GNUNET_HELLO_Message *) &im[1];
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Received information about peer `%s' from peerinfo database\n",
+       GNUNET_i2s (&im->peer));
+  nc->callback (nc->callback_cls,
+                &im->peer,
+                hello,
+                NULL);
 }
 
 
@@ -179,8 +180,8 @@ handle_notification(void *cls,
  * @param msg message received, NULL on timeout or fatal error
  */
 static void
-handle_end_iteration(void *cls,
-                     const struct GNUNET_MessageHeader *msg)
+handle_end_iteration (void *cls,
+                      const struct GNUNET_MessageHeader *msg)
 {
   /* these are ignored by the notify API */
 }
@@ -192,36 +193,36 @@ handle_end_iteration(void *cls,
  * @param cls the `struct GNUNET_PEERINFO_NotifyContext *`
  */
 static void
-reconnect(void *cls)
+reconnect (void *cls)
 {
   struct GNUNET_PEERINFO_NotifyContext *nc = cls;
   struct GNUNET_MQ_MessageHandler handlers[] = {
-    GNUNET_MQ_hd_var_size(notification,
-                          GNUNET_MESSAGE_TYPE_PEERINFO_INFO,
-                          struct InfoMessage,
-                          nc),
-    GNUNET_MQ_hd_fixed_size(end_iteration,
-                            GNUNET_MESSAGE_TYPE_PEERINFO_INFO_END,
-                            struct GNUNET_MessageHeader,
-                            nc),
-    GNUNET_MQ_handler_end()
+    GNUNET_MQ_hd_var_size (notification,
+                           GNUNET_MESSAGE_TYPE_PEERINFO_INFO,
+                           struct InfoMessage,
+                           nc),
+    GNUNET_MQ_hd_fixed_size (end_iteration,
+                             GNUNET_MESSAGE_TYPE_PEERINFO_INFO_END,
+                             struct GNUNET_MessageHeader,
+                             nc),
+    GNUNET_MQ_handler_end ()
   };
   struct GNUNET_MQ_Envelope *env;
   struct NotifyMessage *nm;
 
   nc->task = NULL;
-  nc->mq = GNUNET_CLIENT_connect(nc->cfg,
-                                 "peerinfo",
-                                 handlers,
-                                 &mq_error_handler,
-                                 nc);
+  nc->mq = GNUNET_CLIENT_connect (nc->cfg,
+                                  "peerinfo",
+                                  handlers,
+                                  &mq_error_handler,
+                                  nc);
   if (NULL == nc->mq)
     return;
-  env = GNUNET_MQ_msg(nm,
-                      GNUNET_MESSAGE_TYPE_PEERINFO_NOTIFY);
-  nm->include_friend_only = htonl(nc->include_friend_only);
-  GNUNET_MQ_send(nc->mq,
-                 env);
+  env = GNUNET_MQ_msg (nm,
+                       GNUNET_MESSAGE_TYPE_PEERINFO_NOTIFY);
+  nm->include_friend_only = htonl (nc->include_friend_only);
+  GNUNET_MQ_send (nc->mq,
+                  env);
 }
 
 
@@ -241,26 +242,26 @@ reconnect(void *cls)
  * @return NULL on error
  */
 struct GNUNET_PEERINFO_NotifyContext *
-GNUNET_PEERINFO_notify(const struct GNUNET_CONFIGURATION_Handle *cfg,
-                       int include_friend_only,
-                       GNUNET_PEERINFO_Processor callback,
-                       void *callback_cls)
+GNUNET_PEERINFO_notify (const struct GNUNET_CONFIGURATION_Handle *cfg,
+                        int include_friend_only,
+                        GNUNET_PEERINFO_Processor callback,
+                        void *callback_cls)
 {
   struct GNUNET_PEERINFO_NotifyContext *nc;
 
-  nc = GNUNET_new(struct GNUNET_PEERINFO_NotifyContext);
+  nc = GNUNET_new (struct GNUNET_PEERINFO_NotifyContext);
   nc->cfg = cfg;
   nc->callback = callback;
   nc->callback_cls = callback_cls;
   nc->include_friend_only = include_friend_only;
-  reconnect(nc);
+  reconnect (nc);
   if (NULL == nc->mq)
-    {
-      LOG(GNUNET_ERROR_TYPE_WARNING,
-          "Could not connect to PEERINFO service.\n");
-      GNUNET_free(nc);
-      return NULL;
-    }
+  {
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+         "Could not connect to PEERINFO service.\n");
+    GNUNET_free (nc);
+    return NULL;
+  }
   return nc;
 }
 
@@ -271,19 +272,19 @@ GNUNET_PEERINFO_notify(const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @param nc context to stop notifying
  */
 void
-GNUNET_PEERINFO_notify_cancel(struct GNUNET_PEERINFO_NotifyContext *nc)
+GNUNET_PEERINFO_notify_cancel (struct GNUNET_PEERINFO_NotifyContext *nc)
 {
   if (NULL != nc->mq)
-    {
-      GNUNET_MQ_destroy(nc->mq);
-      nc->mq = NULL;
-    }
+  {
+    GNUNET_MQ_destroy (nc->mq);
+    nc->mq = NULL;
+  }
   if (NULL != nc->task)
-    {
-      GNUNET_SCHEDULER_cancel(nc->task);
-      nc->task = NULL;
-    }
-  GNUNET_free(nc);
+  {
+    GNUNET_SCHEDULER_cancel (nc->task);
+    nc->task = NULL;
+  }
+  GNUNET_free (nc);
 }
 
 /* end of peerinfo_api_notify.c */

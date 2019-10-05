@@ -49,7 +49,8 @@
  */
 typedef void
 (*GNUNET_BLOCK_GroupMarkSeenFunction)(struct GNUNET_BLOCK_Group *bg,
-                                      const struct GNUNET_HashCode *seen_results,
+                                      const struct
+                                      GNUNET_HashCode *seen_results,
                                       unsigned int seen_results_count);
 
 
@@ -97,7 +98,8 @@ typedef void
  * Block group data.  The plugin must initialize the callbacks
  * and can use the @e internal_cls as it likes.
  */
-struct GNUNET_BLOCK_Group {
+struct GNUNET_BLOCK_Group
+{
   /**
    * Context owning the block group. Set by the main block library.
    */
@@ -218,7 +220,8 @@ typedef int
  * Each plugin is required to return a pointer to a struct of this
  * type as the return value from its entry point.
  */
-struct GNUNET_BLOCK_PluginFunctions {
+struct GNUNET_BLOCK_PluginFunctions
+{
   /**
    * Closure for all of the callbacks.
    */

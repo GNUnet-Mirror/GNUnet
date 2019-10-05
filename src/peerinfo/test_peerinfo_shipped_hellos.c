@@ -40,9 +40,9 @@ static int global_ret;
 
 
 static int
-addr_cb(void *cls,
-        const struct GNUNET_HELLO_Address *address,
-        struct GNUNET_TIME_Absolute expiration)
+addr_cb (void *cls,
+         const struct GNUNET_HELLO_Address *address,
+         struct GNUNET_TIME_Absolute expiration)
 {
   unsigned int *addr = cls;
 
@@ -52,90 +52,90 @@ addr_cb(void *cls,
 
 
 static void
-process(void *cls,
-        const struct GNUNET_PeerIdentity *peer,
-        const struct GNUNET_HELLO_Message *hello,
-        const char *err_msg)
+process (void *cls,
+         const struct GNUNET_PeerIdentity *peer,
+         const struct GNUNET_HELLO_Message *hello,
+         const char *err_msg)
 {
   static unsigned int calls = 0;
   unsigned int addr;
 
   if (NULL != err_msg)
-    {
-      GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
-                 "Error in communication with PEERINFO service: %s\n",
-                 err_msg);
-    }
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Error in communication with PEERINFO service: %s\n",
+                err_msg);
+  }
   if (NULL != peer)
+  {
+    addr = 0;
+    if (NULL != hello)
     {
-      addr = 0;
-      if (NULL != hello)
-        {
-          GNUNET_HELLO_iterate_addresses(hello,
-                                         GNUNET_NO,
-                                         &addr_cb,
-                                         &addr);
-          GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-                     "Got information about peer %s with %u addresses\n",
-                     GNUNET_i2s(peer),
-                     addr);
-          calls++;
-        }
-      else
-        {
-          GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-                     "Got no HELLP for peer %s\n",
-                     GNUNET_i2s(peer));
-        }
+      GNUNET_HELLO_iterate_addresses (hello,
+                                      GNUNET_NO,
+                                      &addr_cb,
+                                      &addr);
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Got information about peer %s with %u addresses\n",
+                  GNUNET_i2s (peer),
+                  addr);
+      calls++;
     }
+    else
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Got no HELLP for peer %s\n",
+                  GNUNET_i2s (peer));
+    }
+  }
   else
+  {
+    if (0 == calls)
     {
-      if (0 == calls)
-        {
-          fprintf(stderr,
-                  "Failed: got no callbacks!\n");
-          global_ret = 1;
-          GNUNET_PEERINFO_disconnect(h);
-          h = NULL;
-        }
-      else
-        {
-          GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-                     "Got %u HELLOs in total\n",
-                     calls);
-          global_ret = 0;
-          GNUNET_PEERINFO_disconnect(h);
-          h = NULL;
-        }
+      fprintf (stderr,
+               "Failed: got no callbacks!\n");
+      global_ret = 1;
+      GNUNET_PEERINFO_disconnect (h);
+      h = NULL;
     }
+    else
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Got %u HELLOs in total\n",
+                  calls);
+      global_ret = 0;
+      GNUNET_PEERINFO_disconnect (h);
+      h = NULL;
+    }
+  }
 }
 
 
 static void
-run(void *cls,
-    const struct GNUNET_CONFIGURATION_Handle *cfg,
-    struct GNUNET_TESTING_Peer *peer)
+run (void *cls,
+     const struct GNUNET_CONFIGURATION_Handle *cfg,
+     struct GNUNET_TESTING_Peer *peer)
 {
-  h = GNUNET_PEERINFO_connect(cfg);
-  GNUNET_assert(NULL != h);
-  ic = GNUNET_PEERINFO_iterate(h,
-                               GNUNET_YES,
-                               NULL,
-                               &process,
-                               cls);
-  GNUNET_assert(NULL != ic);
+  h = GNUNET_PEERINFO_connect (cfg);
+  GNUNET_assert (NULL != h);
+  ic = GNUNET_PEERINFO_iterate (h,
+                                GNUNET_YES,
+                                NULL,
+                                &process,
+                                cls);
+  GNUNET_assert (NULL != ic);
 }
 
 
 int
-main(int argc,
-     char *argv[])
+main (int argc,
+      char *argv[])
 {
   global_ret = 3;
-  if (0 != GNUNET_TESTING_service_run("test_peerinfo_shipped_hellos",
-                                      "peerinfo",
-                                      "test_peerinfo_api_data.conf",
-                                      &run, NULL))
+  if (0 != GNUNET_TESTING_service_run ("test_peerinfo_shipped_hellos",
+                                       "peerinfo",
+                                       "test_peerinfo_api_data.conf",
+                                       &run, NULL))
     return 1;
   return global_ret;
 }

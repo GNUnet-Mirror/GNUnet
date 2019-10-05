@@ -39,7 +39,7 @@
  * time out?
  */
 #define GNUNET_ADV_TIMEOUT \
-  GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MINUTES, 5)
+  GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 5)
 
 
 /**
@@ -106,7 +106,8 @@ static char *hostlist_uri;
 /**
  * Context for #host_processor().
  */
-struct HostSet {
+struct HostSet
+{
   /**
    * Iterator used to build @e data (NULL when done).
    */
@@ -137,13 +138,13 @@ static struct HostSet *builder;
  * @param response response to add headers to
  */
 static void
-add_cors_headers(struct MHD_Response *response)
+add_cors_headers (struct MHD_Response *response)
 {
-  MHD_add_response_header(response, "Access-Control-Allow-Origin", "*");
-  MHD_add_response_header(response,
-                          "Access-Control-Allow-Methods",
-                          "GET, OPTIONS");
-  MHD_add_response_header(response, "Access-Control-Max-Age", "86400");
+  MHD_add_response_header (response, "Access-Control-Allow-Origin", "*");
+  MHD_add_response_header (response,
+                           "Access-Control-Allow-Methods",
+                           "GET, OPTIONS");
+  MHD_add_response_header (response, "Access-Control-Max-Age", "86400");
 }
 
 
@@ -151,27 +152,27 @@ add_cors_headers(struct MHD_Response *response)
  * Function that assembles our response.
  */
 static void
-finish_response()
+finish_response ()
 {
   if (NULL != response)
-    MHD_destroy_response(response);
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-             "Creating hostlist response with %u bytes\n",
-             (unsigned int)builder->size);
-  response = MHD_create_response_from_buffer(builder->size,
-                                             builder->data,
-                                             MHD_RESPMEM_MUST_FREE);
-  add_cors_headers(response);
+    MHD_destroy_response (response);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Creating hostlist response with %u bytes\n",
+              (unsigned int) builder->size);
+  response = MHD_create_response_from_buffer (builder->size,
+                                              builder->data,
+                                              MHD_RESPMEM_MUST_FREE);
+  add_cors_headers (response);
   if ((NULL == daemon_handle_v4) && (NULL == daemon_handle_v6))
-    {
-      MHD_destroy_response(response);
-      response = NULL;
-    }
-  GNUNET_STATISTICS_set(stats,
-                        gettext_noop("bytes in hostlist"),
-                        builder->size,
-                        GNUNET_YES);
-  GNUNET_free(builder);
+  {
+    MHD_destroy_response (response);
+    response = NULL;
+  }
+  GNUNET_STATISTICS_set (stats,
+                         gettext_noop ("bytes in hostlist"),
+                         builder->size,
+                         GNUNET_YES);
+  GNUNET_free (builder);
   builder = NULL;
 }
 
@@ -185,20 +186,20 @@ finish_response()
  * @return  #GNUNET_SYSERR to stop iterating (unless expiration has occured)
  */
 static int
-check_has_addr(void *cls,
-               const struct GNUNET_HELLO_Address *address,
-               struct GNUNET_TIME_Absolute expiration)
+check_has_addr (void *cls,
+                const struct GNUNET_HELLO_Address *address,
+                struct GNUNET_TIME_Absolute expiration)
 {
   int *arg = cls;
 
-  if (0 == GNUNET_TIME_absolute_get_remaining(expiration).rel_value_us)
-    {
-      GNUNET_STATISTICS_update(stats,
-                               gettext_noop("expired addresses encountered"),
-                               1,
-                               GNUNET_YES);
-      return GNUNET_YES; /* ignore this address */
-    }
+  if (0 == GNUNET_TIME_absolute_get_remaining (expiration).rel_value_us)
+  {
+    GNUNET_STATISTICS_update (stats,
+                              gettext_noop ("expired addresses encountered"),
+                              1,
+                              GNUNET_YES);
+    return GNUNET_YES;   /* ignore this address */
+  }
   *arg = GNUNET_YES;
   return GNUNET_SYSERR;
 }
@@ -214,73 +215,73 @@ check_has_addr(void *cls,
  * @param err_msg message
  */
 static void
-host_processor(void *cls,
-               const struct GNUNET_PeerIdentity *peer,
-               const struct GNUNET_HELLO_Message *hello,
-               const char *err_msg)
+host_processor (void *cls,
+                const struct GNUNET_PeerIdentity *peer,
+                const struct GNUNET_HELLO_Message *hello,
+                const char *err_msg)
 {
   size_t old;
   size_t s;
   int has_addr;
 
   if (NULL != err_msg)
-    {
-      GNUNET_assert(NULL == peer);
-      builder->pitr = NULL;
-      GNUNET_free_non_null(builder->data);
-      GNUNET_free(builder);
-      builder = NULL;
-      GNUNET_log(GNUNET_ERROR_TYPE_INFO,
-                 _("Error in communication with PEERINFO service: %s\n"),
-                 err_msg);
-      return;
-    }
+  {
+    GNUNET_assert (NULL == peer);
+    builder->pitr = NULL;
+    GNUNET_free_non_null (builder->data);
+    GNUNET_free (builder);
+    builder = NULL;
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                _ ("Error in communication with PEERINFO service: %s\n"),
+                err_msg);
+    return;
+  }
   if (NULL == peer)
-    {
-      builder->pitr = NULL;
-      finish_response();
-      return;
-    }
+  {
+    builder->pitr = NULL;
+    finish_response ();
+    return;
+  }
   if (NULL == hello)
     return;
   has_addr = GNUNET_NO;
-  GNUNET_HELLO_iterate_addresses(hello, GNUNET_NO, &check_has_addr, &has_addr);
+  GNUNET_HELLO_iterate_addresses (hello, GNUNET_NO, &check_has_addr, &has_addr);
   if (GNUNET_NO == has_addr)
-    {
-      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-                 "HELLO for peer `%4s' has no address, not suitable for hostlist!\n",
-                 GNUNET_i2s(peer));
-      GNUNET_STATISTICS_update(stats,
-                               gettext_noop(
-                                 "HELLOs without addresses encountered (ignored)"),
-                               1,
-                               GNUNET_NO);
-      return;
-    }
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "HELLO for peer `%4s' has no address, not suitable for hostlist!\n",
+                GNUNET_i2s (peer));
+    GNUNET_STATISTICS_update (stats,
+                              gettext_noop (
+                                "HELLOs without addresses encountered (ignored)"),
+                              1,
+                              GNUNET_NO);
+    return;
+  }
   old = builder->size;
-  s = GNUNET_HELLO_size(hello);
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-             "Received %u bytes of `%s' from peer `%s' for hostlist.\n",
-             (unsigned int)s,
-             "HELLO",
-             GNUNET_i2s(peer));
+  s = GNUNET_HELLO_size (hello);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Received %u bytes of `%s' from peer `%s' for hostlist.\n",
+              (unsigned int) s,
+              "HELLO",
+              GNUNET_i2s (peer));
   if ((old + s >= GNUNET_MAX_MALLOC_CHECKED) ||
       (old + s >= MAX_BYTES_PER_HOSTLISTS))
-    {
-      /* too large, skip! */
-      GNUNET_STATISTICS_update(stats,
-                               gettext_noop(
-                                 "bytes not included in hostlist (size limit)"),
-                               s,
-                               GNUNET_NO);
-      return;
-    }
-  GNUNET_log(GNUNET_ERROR_TYPE_INFO,
-             "Adding peer `%s' to hostlist (%u bytes)\n",
-             GNUNET_i2s(peer),
-             (unsigned int)s);
-  GNUNET_array_grow(builder->data, builder->size, old + s);
-  GNUNET_memcpy(&builder->data[old], hello, s);
+  {
+    /* too large, skip! */
+    GNUNET_STATISTICS_update (stats,
+                              gettext_noop (
+                                "bytes not included in hostlist (size limit)"),
+                              s,
+                              GNUNET_NO);
+    return;
+  }
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "Adding peer `%s' to hostlist (%u bytes)\n",
+              GNUNET_i2s (peer),
+              (unsigned int) s);
+  GNUNET_array_grow (builder->data, builder->size, old + s);
+  GNUNET_memcpy (&builder->data[old], hello, s);
 }
 
 
@@ -294,17 +295,17 @@ host_processor(void *cls,
  * @return #MHD_YES if connection is allowed, #MHD_NO if not (we are not ready)
  */
 static int
-accept_policy_callback(void *cls,
-                       const struct sockaddr *addr,
-                       socklen_t addrlen)
+accept_policy_callback (void *cls,
+                        const struct sockaddr *addr,
+                        socklen_t addrlen)
 {
   if (NULL == response)
-    {
-      GNUNET_log(
-        GNUNET_ERROR_TYPE_DEBUG,
-        "Received request for hostlist, but I am not yet ready; rejecting!\n");
-      return MHD_NO;
-    }
+  {
+    GNUNET_log (
+      GNUNET_ERROR_TYPE_DEBUG,
+      "Received request for hostlist, but I am not yet ready; rejecting!\n");
+    return MHD_NO;
+  }
   return MHD_YES; /* accept all */
 }
 
@@ -345,80 +346,80 @@ accept_policy_callback(void *cls,
  *         error while handling the request
  */
 static int
-access_handler_callback(void *cls,
-                        struct MHD_Connection *connection,
-                        const char *url,
-                        const char *method,
-                        const char *version,
-                        const char *upload_data,
-                        size_t *upload_data_size,
-                        void **con_cls)
+access_handler_callback (void *cls,
+                         struct MHD_Connection *connection,
+                         const char *url,
+                         const char *method,
+                         const char *version,
+                         const char *upload_data,
+                         size_t *upload_data_size,
+                         void **con_cls)
 {
   static int dummy;
 
   /* CORS pre-flight request */
-  if (0 == strcmp(MHD_HTTP_METHOD_OPTIONS, method))
-    {
-      struct MHD_Response *options_response;
-      int rc;
+  if (0 == strcmp (MHD_HTTP_METHOD_OPTIONS, method))
+  {
+    struct MHD_Response *options_response;
+    int rc;
 
-      options_response =
-        MHD_create_response_from_buffer(0, NULL, MHD_RESPMEM_PERSISTENT);
-      add_cors_headers(options_response);
-      rc = MHD_queue_response(connection, MHD_HTTP_OK, options_response);
-      MHD_destroy_response(options_response);
-      return rc;
-    }
-  if (0 != strcmp(method, MHD_HTTP_METHOD_GET))
-    {
-      GNUNET_log(GNUNET_ERROR_TYPE_WARNING,
-                 _("Refusing `%s' request to hostlist server\n"),
-                 method);
-      GNUNET_STATISTICS_update(stats,
-                               gettext_noop(
-                                 "hostlist requests refused (not HTTP GET)"),
-                               1,
-                               GNUNET_YES);
-      return MHD_NO;
-    }
+    options_response =
+      MHD_create_response_from_buffer (0, NULL, MHD_RESPMEM_PERSISTENT);
+    add_cors_headers (options_response);
+    rc = MHD_queue_response (connection, MHD_HTTP_OK, options_response);
+    MHD_destroy_response (options_response);
+    return rc;
+  }
+  if (0 != strcmp (method, MHD_HTTP_METHOD_GET))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                _ ("Refusing `%s' request to hostlist server\n"),
+                method);
+    GNUNET_STATISTICS_update (stats,
+                              gettext_noop (
+                                "hostlist requests refused (not HTTP GET)"),
+                              1,
+                              GNUNET_YES);
+    return MHD_NO;
+  }
   if (NULL == *con_cls)
-    {
-      (*con_cls) = &dummy;
-      return MHD_YES;
-    }
+  {
+    (*con_cls) = &dummy;
+    return MHD_YES;
+  }
   if (0 != *upload_data_size)
-    {
-      GNUNET_log(GNUNET_ERROR_TYPE_WARNING,
-                 _("Refusing `%s' request with %llu bytes of upload data\n"),
-                 method,
-                 (unsigned long long)*upload_data_size);
-      GNUNET_STATISTICS_update(stats,
-                               gettext_noop(
-                                 "hostlist requests refused (upload data)"),
-                               1,
-                               GNUNET_YES);
-      return MHD_NO; /* do not support upload data */
-    }
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                _ ("Refusing `%s' request with %llu bytes of upload data\n"),
+                method,
+                (unsigned long long) *upload_data_size);
+    GNUNET_STATISTICS_update (stats,
+                              gettext_noop (
+                                "hostlist requests refused (upload data)"),
+                              1,
+                              GNUNET_YES);
+    return MHD_NO;   /* do not support upload data */
+  }
   if (NULL == response)
-    {
-      GNUNET_log(
-        GNUNET_ERROR_TYPE_WARNING,
-        _(
-          "Could not handle hostlist request since I do not have a response yet\n"));
-      GNUNET_STATISTICS_update(stats,
-                               gettext_noop(
-                                 "hostlist requests refused (not ready)"),
-                               1,
-                               GNUNET_YES);
-      return MHD_NO; /* internal error, no response yet */
-    }
-  GNUNET_log(GNUNET_ERROR_TYPE_INFO,
-             _("Received request for our hostlist\n"));
-  GNUNET_STATISTICS_update(stats,
-                           gettext_noop("hostlist requests processed"),
-                           1,
-                           GNUNET_YES);
-  return MHD_queue_response(connection, MHD_HTTP_OK, response);
+  {
+    GNUNET_log (
+      GNUNET_ERROR_TYPE_WARNING,
+      _ (
+        "Could not handle hostlist request since I do not have a response yet\n"));
+    GNUNET_STATISTICS_update (stats,
+                              gettext_noop (
+                                "hostlist requests refused (not ready)"),
+                              1,
+                              GNUNET_YES);
+    return MHD_NO;   /* internal error, no response yet */
+  }
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              _ ("Received request for our hostlist\n"));
+  GNUNET_STATISTICS_update (stats,
+                            gettext_noop ("hostlist requests processed"),
+                            1,
+                            GNUNET_YES);
+  return MHD_queue_response (connection, MHD_HTTP_OK, response);
 }
 
 
@@ -432,33 +433,33 @@ access_handler_callback(void *cls,
  * @return number of bytes copied to @a buf
  */
 static void
-adv_transmit(struct GNUNET_MQ_Handle *mq)
+adv_transmit (struct GNUNET_MQ_Handle *mq)
 {
   static uint64_t hostlist_adv_count;
   size_t uri_size; /* Including \0 termination! */
   struct GNUNET_MessageHeader *header;
   struct GNUNET_MQ_Envelope *env;
 
-  uri_size = strlen(hostlist_uri) + 1;
-  env = GNUNET_MQ_msg_extra(header,
-                            uri_size,
-                            GNUNET_MESSAGE_TYPE_HOSTLIST_ADVERTISEMENT);
-  GNUNET_memcpy(&header[1], hostlist_uri, uri_size);
-  GNUNET_MQ_env_set_options(env,
-                            GNUNET_MQ_PREF_CORK_ALLOWED |
-                            GNUNET_MQ_PREF_UNRELIABLE);
-  GNUNET_MQ_send(mq, env);
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-             "Sent advertisement message: Copied %u bytes into buffer!\n",
-             (unsigned int)uri_size);
+  uri_size = strlen (hostlist_uri) + 1;
+  env = GNUNET_MQ_msg_extra (header,
+                             uri_size,
+                             GNUNET_MESSAGE_TYPE_HOSTLIST_ADVERTISEMENT);
+  GNUNET_memcpy (&header[1], hostlist_uri, uri_size);
+  GNUNET_MQ_env_set_options (env,
+                             GNUNET_MQ_PREF_CORK_ALLOWED
+                             | GNUNET_MQ_PREF_UNRELIABLE);
+  GNUNET_MQ_send (mq, env);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Sent advertisement message: Copied %u bytes into buffer!\n",
+              (unsigned int) uri_size);
   hostlist_adv_count++;
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-             " # Sent advertisement message: %llu\n",
-             (unsigned long long)hostlist_adv_count);
-  GNUNET_STATISTICS_update(stats,
-                           gettext_noop("# hostlist advertisements send"),
-                           1,
-                           GNUNET_NO);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              " # Sent advertisement message: %llu\n",
+              (unsigned long long) hostlist_adv_count);
+  GNUNET_STATISTICS_update (stats,
+                            gettext_noop ("# hostlist advertisements send"),
+                            1,
+                            GNUNET_NO);
 }
 
 
@@ -471,34 +472,34 @@ adv_transmit(struct GNUNET_MQ_Handle *mq)
  * @return NULL (must!)
  */
 static void *
-connect_handler(void *cls,
-                const struct GNUNET_PeerIdentity *peer,
-                struct GNUNET_MQ_Handle *mq)
+connect_handler (void *cls,
+                 const struct GNUNET_PeerIdentity *peer,
+                 struct GNUNET_MQ_Handle *mq)
 {
   size_t size;
 
-  if (!advertising)
+  if (! advertising)
     return NULL;
   if (NULL == hostlist_uri)
     return NULL;
-  size = strlen(hostlist_uri) + 1;
+  size = strlen (hostlist_uri) + 1;
   if (size + sizeof(struct GNUNET_MessageHeader) >= GNUNET_MAX_MESSAGE_SIZE)
-    {
-      GNUNET_break(0);
-      return NULL;
-    }
+  {
+    GNUNET_break (0);
+    return NULL;
+  }
   size += sizeof(struct GNUNET_MessageHeader);
   if (NULL == core)
-    {
-      GNUNET_break(0);
-      return NULL;
-    }
-  GNUNET_log(
+  {
+    GNUNET_break (0);
+    return NULL;
+  }
+  GNUNET_log (
     GNUNET_ERROR_TYPE_DEBUG,
     "Asked CORE to transmit advertisement message with a size of %u bytes to peer `%s'\n",
-    (unsigned int)size,
-    GNUNET_i2s(peer));
-  adv_transmit(mq);
+    (unsigned int) size,
+    GNUNET_i2s (peer));
+  adv_transmit (mq);
   return NULL;
 }
 
@@ -513,36 +514,36 @@ connect_handler(void *cls,
  * @param err_msg NULL if successful, otherwise contains error message
  */
 static void
-process_notify(void *cls,
-               const struct GNUNET_PeerIdentity *peer,
-               const struct GNUNET_HELLO_Message *hello,
-               const char *err_msg)
+process_notify (void *cls,
+                const struct GNUNET_PeerIdentity *peer,
+                const struct GNUNET_HELLO_Message *hello,
+                const char *err_msg)
 {
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-             "Peerinfo is notifying us to rebuild our hostlist\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Peerinfo is notifying us to rebuild our hostlist\n");
   if (NULL != err_msg)
-    GNUNET_log(GNUNET_ERROR_TYPE_INFO,
-               _("Error in communication with PEERINFO service: %s\n"),
-               err_msg);
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                _ ("Error in communication with PEERINFO service: %s\n"),
+                err_msg);
   if (NULL != builder)
+  {
+    /* restart re-build already in progress ... */
+    if (NULL != builder->pitr)
     {
-      /* restart re-build already in progress ... */
-      if (NULL != builder->pitr)
-        {
-          GNUNET_PEERINFO_iterate_cancel(builder->pitr);
-          builder->pitr = NULL;
-        }
-      GNUNET_free_non_null(builder->data);
-      builder->size = 0;
-      builder->data = NULL;
+      GNUNET_PEERINFO_iterate_cancel (builder->pitr);
+      builder->pitr = NULL;
     }
+    GNUNET_free_non_null (builder->data);
+    builder->size = 0;
+    builder->data = NULL;
+  }
   else
-    {
-      builder = GNUNET_new(struct HostSet);
-    }
-  GNUNET_assert(NULL != peerinfo);
+  {
+    builder = GNUNET_new (struct HostSet);
+  }
+  GNUNET_assert (NULL != peerinfo);
   builder->pitr =
-    GNUNET_PEERINFO_iterate(peerinfo, GNUNET_NO, NULL, &host_processor, NULL);
+    GNUNET_PEERINFO_iterate (peerinfo, GNUNET_NO, NULL, &host_processor, NULL);
 }
 
 
@@ -551,7 +552,7 @@ process_notify(void *cls,
  * starts the task waiting for them.
  */
 static struct GNUNET_SCHEDULER_Task *
-prepare_daemon(struct MHD_Daemon *daemon_handle);
+prepare_daemon (struct MHD_Daemon *daemon_handle);
 
 
 /**
@@ -561,7 +562,7 @@ prepare_daemon(struct MHD_Daemon *daemon_handle);
  * @param cls the `struct MHD_Daemon` of the HTTP server to run
  */
 static void
-run_daemon(void *cls)
+run_daemon (void *cls)
 {
   struct MHD_Daemon *daemon_handle = cls;
 
@@ -569,11 +570,11 @@ run_daemon(void *cls)
     hostlist_task_v4 = NULL;
   else
     hostlist_task_v6 = NULL;
-  GNUNET_assert(MHD_YES == MHD_run(daemon_handle));
+  GNUNET_assert (MHD_YES == MHD_run (daemon_handle));
   if (daemon_handle == daemon_handle_v4)
-    hostlist_task_v4 = prepare_daemon(daemon_handle);
+    hostlist_task_v4 = prepare_daemon (daemon_handle);
   else
-    hostlist_task_v6 = prepare_daemon(daemon_handle);
+    hostlist_task_v6 = prepare_daemon (daemon_handle);
 }
 
 
@@ -584,7 +585,7 @@ run_daemon(void *cls)
  * @param daemon_handle HTTP server to prepare to run
  */
 static struct GNUNET_SCHEDULER_Task *
-prepare_daemon(struct MHD_Daemon *daemon_handle)
+prepare_daemon (struct MHD_Daemon *daemon_handle)
 {
   struct GNUNET_SCHEDULER_Task *ret;
   fd_set rs;
@@ -597,28 +598,28 @@ prepare_daemon(struct MHD_Daemon *daemon_handle)
   int haveto;
   struct GNUNET_TIME_Relative tv;
 
-  FD_ZERO(&rs);
-  FD_ZERO(&ws);
-  FD_ZERO(&es);
-  wrs = GNUNET_NETWORK_fdset_create();
-  wws = GNUNET_NETWORK_fdset_create();
+  FD_ZERO (&rs);
+  FD_ZERO (&ws);
+  FD_ZERO (&es);
+  wrs = GNUNET_NETWORK_fdset_create ();
+  wws = GNUNET_NETWORK_fdset_create ();
   max = -1;
-  GNUNET_assert(MHD_YES == MHD_get_fdset(daemon_handle, &rs, &ws, &es, &max));
-  haveto = MHD_get_timeout(daemon_handle, &timeout);
+  GNUNET_assert (MHD_YES == MHD_get_fdset (daemon_handle, &rs, &ws, &es, &max));
+  haveto = MHD_get_timeout (daemon_handle, &timeout);
   if (haveto == MHD_YES)
-    tv.rel_value_us = (uint64_t)timeout * 1000LL;
+    tv.rel_value_us = (uint64_t) timeout * 1000LL;
   else
     tv = GNUNET_TIME_UNIT_FOREVER_REL;
-  GNUNET_NETWORK_fdset_copy_native(wrs, &rs, max + 1);
-  GNUNET_NETWORK_fdset_copy_native(wws, &ws, max + 1);
-  ret = GNUNET_SCHEDULER_add_select(GNUNET_SCHEDULER_PRIORITY_HIGH,
-                                    tv,
-                                    wrs,
-                                    wws,
-                                    &run_daemon,
-                                    daemon_handle);
-  GNUNET_NETWORK_fdset_destroy(wrs);
-  GNUNET_NETWORK_fdset_destroy(wws);
+  GNUNET_NETWORK_fdset_copy_native (wrs, &rs, max + 1);
+  GNUNET_NETWORK_fdset_copy_native (wws, &ws, max + 1);
+  ret = GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_HIGH,
+                                     tv,
+                                     wrs,
+                                     wws,
+                                     &run_daemon,
+                                     daemon_handle);
+  GNUNET_NETWORK_fdset_destroy (wrs);
+  GNUNET_NETWORK_fdset_destroy (wws);
   return ret;
 }
 
@@ -634,11 +635,11 @@ prepare_daemon(struct MHD_Daemon *daemon_handle)
  * @return #GNUNET_OK on success
  */
 int
-GNUNET_HOSTLIST_server_start(const struct GNUNET_CONFIGURATION_Handle *c,
-                             struct GNUNET_STATISTICS_Handle *st,
-                             struct GNUNET_CORE_Handle *co,
-                             GNUNET_CORE_ConnectEventHandler *server_ch,
-                             int advertise)
+GNUNET_HOSTLIST_server_start (const struct GNUNET_CONFIGURATION_Handle *c,
+                              struct GNUNET_STATISTICS_Handle *st,
+                              struct GNUNET_CORE_Handle *co,
+                              GNUNET_CORE_ConnectEventHandler *server_ch,
+                              int advertise)
 {
   unsigned long long port;
   char *hostname;
@@ -653,189 +654,189 @@ GNUNET_HOSTLIST_server_start(const struct GNUNET_CONFIGURATION_Handle *c,
   const struct sockaddr *sa6;
 
   advertising = advertise;
-  if (!advertising)
-    {
-      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-                 "Advertising not enabled on this hostlist server\n");
-    }
+  if (! advertising)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Advertising not enabled on this hostlist server\n");
+  }
   else
-    {
-      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-                 "Advertising enabled on this hostlist server\n");
-    }
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Advertising enabled on this hostlist server\n");
+  }
   cfg = c;
   stats = st;
-  peerinfo = GNUNET_PEERINFO_connect(cfg);
+  peerinfo = GNUNET_PEERINFO_connect (cfg);
   if (NULL == peerinfo)
-    {
-      GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
-                 _("Could not access PEERINFO service.  Exiting.\n"));
-      return GNUNET_SYSERR;
-    }
-  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_number(cfg,
-                                                         "HOSTLIST",
-                                                         "HTTPPORT",
-                                                         &port))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _ ("Could not access PEERINFO service.  Exiting.\n"));
+    return GNUNET_SYSERR;
+  }
+  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_number (cfg,
+                                                          "HOSTLIST",
+                                                          "HTTPPORT",
+                                                          &port))
     return GNUNET_SYSERR;
   if ((0 == port) || (port > UINT16_MAX))
-    {
-      GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
-                 _("Invalid port number %llu.  Exiting.\n"),
-                 port);
-      return GNUNET_SYSERR;
-    }
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _ ("Invalid port number %llu.  Exiting.\n"),
+                port);
+    return GNUNET_SYSERR;
+  }
 
   if (GNUNET_SYSERR ==
-      GNUNET_CONFIGURATION_get_value_string(cfg,
-                                            "HOSTLIST",
-                                            "EXTERNAL_DNS_NAME",
-                                            &hostname))
-    hostname = GNUNET_RESOLVER_local_fqdn_get();
-  GNUNET_log(GNUNET_ERROR_TYPE_INFO,
-             _("Hostlist service starts on %s:%llu\n"),
-             hostname,
-             port);
+      GNUNET_CONFIGURATION_get_value_string (cfg,
+                                             "HOSTLIST",
+                                             "EXTERNAL_DNS_NAME",
+                                             &hostname))
+    hostname = GNUNET_RESOLVER_local_fqdn_get ();
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              _ ("Hostlist service starts on %s:%llu\n"),
+              hostname,
+              port);
   if (NULL != hostname)
+  {
+    size = strlen (hostname);
+    if (size + 15 > MAX_URL_LEN)
     {
-      size = strlen(hostname);
-      if (size + 15 > MAX_URL_LEN)
-        {
-          GNUNET_break(0);
-        }
-      else
-        {
-          GNUNET_asprintf(&hostlist_uri,
-                          "http://%s:%u/",
-                          hostname,
-                          (unsigned int)port);
-          GNUNET_log(GNUNET_ERROR_TYPE_INFO,
-                     _("Address to obtain hostlist: `%s'\n"),
-                     hostlist_uri);
-        }
-      GNUNET_free(hostname);
+      GNUNET_break (0);
     }
+    else
+    {
+      GNUNET_asprintf (&hostlist_uri,
+                       "http://%s:%u/",
+                       hostname,
+                       (unsigned int) port);
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                  _ ("Address to obtain hostlist: `%s'\n"),
+                  hostlist_uri);
+    }
+    GNUNET_free (hostname);
+  }
 
-  if (GNUNET_CONFIGURATION_have_value(cfg, "HOSTLIST", "BINDTOIPV4"))
+  if (GNUNET_CONFIGURATION_have_value (cfg, "HOSTLIST", "BINDTOIPV4"))
+  {
+    if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_string (cfg,
+                                                            "HOSTLIST",
+                                                            "BINDTOIP",
+                                                            &ipv4))
     {
-      if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_string(cfg,
-                                                             "HOSTLIST",
-                                                             "BINDTOIP",
-                                                             &ipv4))
-        {
-          GNUNET_log(
-            GNUNET_ERROR_TYPE_WARNING,
-            _("BINDTOIP does not a valid IPv4 address! Ignoring BINDTOIPV4.\n"));
-        }
+      GNUNET_log (
+        GNUNET_ERROR_TYPE_WARNING,
+        _ ("BINDTOIP does not a valid IPv4 address! Ignoring BINDTOIPV4.\n"));
     }
+  }
   else
     ipv4 = NULL;
-  if (GNUNET_CONFIGURATION_have_value(cfg, "HOSTLIST", "BINDTOIPV6"))
+  if (GNUNET_CONFIGURATION_have_value (cfg, "HOSTLIST", "BINDTOIPV6"))
+  {
+    if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_string (cfg,
+                                                            "HOSTLIST",
+                                                            "BINDTOIP",
+                                                            &ipv6))
     {
-      if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_string(cfg,
-                                                             "HOSTLIST",
-                                                             "BINDTOIP",
-                                                             &ipv6))
-        {
-          GNUNET_log(
-            GNUNET_ERROR_TYPE_WARNING,
-            _("BINDTOIP does not a valid IPv4 address! Ignoring BINDTOIPV6.\n"));
-        }
+      GNUNET_log (
+        GNUNET_ERROR_TYPE_WARNING,
+        _ ("BINDTOIP does not a valid IPv4 address! Ignoring BINDTOIPV6.\n"));
     }
+  }
   else
     ipv6 = NULL;
   sa4 = NULL;
   if (NULL != ipv4)
+  {
+    if (1 == inet_pton (AF_INET, ipv4, &i4))
     {
-      if (1 == inet_pton(AF_INET, ipv4, &i4))
-        {
-          memset(&v4, 0, sizeof(v4));
-          v4.sin_family = AF_INET;
-          v4.sin_addr = i4;
-          v4.sin_port = htons(port);
+      memset (&v4, 0, sizeof(v4));
+      v4.sin_family = AF_INET;
+      v4.sin_addr = i4;
+      v4.sin_port = htons (port);
 #if HAVE_SOCKADDR_IN_SIN_LEN
-          v4.sin_len = sizeof(v4);
+      v4.sin_len = sizeof(v4);
 #endif
-          sa4 = (const struct sockaddr *)&v4;
-        }
-      else
-        GNUNET_log(GNUNET_ERROR_TYPE_WARNING,
-                   _(
-                     "`%s' is not a valid IPv4 address! Ignoring BINDTOIPV4.\n"),
-                   ipv4);
-      GNUNET_free(ipv4);
+      sa4 = (const struct sockaddr *) &v4;
     }
+    else
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                  _ (
+                    "`%s' is not a valid IPv4 address! Ignoring BINDTOIPV4.\n"),
+                  ipv4);
+    GNUNET_free (ipv4);
+  }
   sa6 = NULL;
   if (NULL != ipv6)
+  {
+    if (1 == inet_pton (AF_INET6, ipv6, &i6))
     {
-      if (1 == inet_pton(AF_INET6, ipv6, &i6))
-        {
-          memset(&v6, 0, sizeof(v6));
-          v6.sin6_family = AF_INET6;
-          v6.sin6_addr = i6;
-          v6.sin6_port = htons(port);
+      memset (&v6, 0, sizeof(v6));
+      v6.sin6_family = AF_INET6;
+      v6.sin6_addr = i6;
+      v6.sin6_port = htons (port);
 #if HAVE_SOCKADDR_IN_SIN_LEN
-          v6.sin6_len = sizeof(v6);
+      v6.sin6_len = sizeof(v6);
 #endif
-          sa6 = (const struct sockaddr *)&v6;
-        }
-      else
-        GNUNET_log(GNUNET_ERROR_TYPE_WARNING,
-                   _(
-                     "`%s' is not a valid IPv6 address! Ignoring BINDTOIPV6.\n"),
-                   ipv6);
-      GNUNET_free(ipv6);
+      sa6 = (const struct sockaddr *) &v6;
     }
+    else
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                  _ (
+                    "`%s' is not a valid IPv6 address! Ignoring BINDTOIPV6.\n"),
+                  ipv6);
+    GNUNET_free (ipv6);
+  }
 
-  daemon_handle_v6 = MHD_start_daemon(MHD_USE_IPv6 | MHD_USE_DEBUG,
-                                      (uint16_t)port,
-                                      &accept_policy_callback,
-                                      NULL,
-                                      &access_handler_callback,
-                                      NULL,
-                                      MHD_OPTION_CONNECTION_LIMIT,
-                                      (unsigned int)128,
-                                      MHD_OPTION_PER_IP_CONNECTION_LIMIT,
-                                      (unsigned int)32,
-                                      MHD_OPTION_CONNECTION_TIMEOUT,
-                                      (unsigned int)16,
-                                      MHD_OPTION_CONNECTION_MEMORY_LIMIT,
-                                      (size_t)(16 * 1024),
-                                      MHD_OPTION_SOCK_ADDR,
-                                      sa6,
-                                      MHD_OPTION_END);
-  daemon_handle_v4 = MHD_start_daemon(MHD_NO_FLAG | MHD_USE_DEBUG,
-                                      (uint16_t)port,
-                                      &accept_policy_callback,
-                                      NULL,
-                                      &access_handler_callback,
-                                      NULL,
-                                      MHD_OPTION_CONNECTION_LIMIT,
-                                      (unsigned int)128,
-                                      MHD_OPTION_PER_IP_CONNECTION_LIMIT,
-                                      (unsigned int)32,
-                                      MHD_OPTION_CONNECTION_TIMEOUT,
-                                      (unsigned int)16,
-                                      MHD_OPTION_CONNECTION_MEMORY_LIMIT,
-                                      (size_t)(16 * 1024),
-                                      MHD_OPTION_SOCK_ADDR,
-                                      sa4,
-                                      MHD_OPTION_END);
+  daemon_handle_v6 = MHD_start_daemon (MHD_USE_IPv6 | MHD_USE_DEBUG,
+                                       (uint16_t) port,
+                                       &accept_policy_callback,
+                                       NULL,
+                                       &access_handler_callback,
+                                       NULL,
+                                       MHD_OPTION_CONNECTION_LIMIT,
+                                       (unsigned int) 128,
+                                       MHD_OPTION_PER_IP_CONNECTION_LIMIT,
+                                       (unsigned int) 32,
+                                       MHD_OPTION_CONNECTION_TIMEOUT,
+                                       (unsigned int) 16,
+                                       MHD_OPTION_CONNECTION_MEMORY_LIMIT,
+                                       (size_t) (16 * 1024),
+                                       MHD_OPTION_SOCK_ADDR,
+                                       sa6,
+                                       MHD_OPTION_END);
+  daemon_handle_v4 = MHD_start_daemon (MHD_NO_FLAG | MHD_USE_DEBUG,
+                                       (uint16_t) port,
+                                       &accept_policy_callback,
+                                       NULL,
+                                       &access_handler_callback,
+                                       NULL,
+                                       MHD_OPTION_CONNECTION_LIMIT,
+                                       (unsigned int) 128,
+                                       MHD_OPTION_PER_IP_CONNECTION_LIMIT,
+                                       (unsigned int) 32,
+                                       MHD_OPTION_CONNECTION_TIMEOUT,
+                                       (unsigned int) 16,
+                                       MHD_OPTION_CONNECTION_MEMORY_LIMIT,
+                                       (size_t) (16 * 1024),
+                                       MHD_OPTION_SOCK_ADDR,
+                                       sa4,
+                                       MHD_OPTION_END);
 
   if ((NULL == daemon_handle_v6) && (NULL == daemon_handle_v4))
-    {
-      GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
-                 _("Could not start hostlist HTTP server on port %u\n"),
-                 (unsigned short)port);
-      return GNUNET_SYSERR;
-    }
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _ ("Could not start hostlist HTTP server on port %u\n"),
+                (unsigned short) port);
+    return GNUNET_SYSERR;
+  }
 
   core = co;
   *server_ch = &connect_handler;
   if (NULL != daemon_handle_v4)
-    hostlist_task_v4 = prepare_daemon(daemon_handle_v4);
+    hostlist_task_v4 = prepare_daemon (daemon_handle_v4);
   if (NULL != daemon_handle_v6)
-    hostlist_task_v6 = prepare_daemon(daemon_handle_v6);
-  notify = GNUNET_PEERINFO_notify(cfg, GNUNET_NO, &process_notify, NULL);
+    hostlist_task_v6 = prepare_daemon (daemon_handle_v6);
+  notify = GNUNET_PEERINFO_notify (cfg, GNUNET_NO, &process_notify, NULL);
   return GNUNET_OK;
 }
 
@@ -844,55 +845,55 @@ GNUNET_HOSTLIST_server_start(const struct GNUNET_CONFIGURATION_Handle *c,
  * Stop server offering our hostlist.
  */
 void
-GNUNET_HOSTLIST_server_stop()
+GNUNET_HOSTLIST_server_stop ()
 {
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Hostlist server shutdown\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Hostlist server shutdown\n");
   if (NULL != hostlist_task_v6)
-    {
-      GNUNET_SCHEDULER_cancel(hostlist_task_v6);
-      hostlist_task_v6 = NULL;
-    }
+  {
+    GNUNET_SCHEDULER_cancel (hostlist_task_v6);
+    hostlist_task_v6 = NULL;
+  }
   if (NULL != hostlist_task_v4)
-    {
-      GNUNET_SCHEDULER_cancel(hostlist_task_v4);
-      hostlist_task_v4 = NULL;
-    }
+  {
+    GNUNET_SCHEDULER_cancel (hostlist_task_v4);
+    hostlist_task_v4 = NULL;
+  }
   if (NULL != daemon_handle_v4)
-    {
-      MHD_stop_daemon(daemon_handle_v4);
-      daemon_handle_v4 = NULL;
-    }
+  {
+    MHD_stop_daemon (daemon_handle_v4);
+    daemon_handle_v4 = NULL;
+  }
   if (NULL != daemon_handle_v6)
-    {
-      MHD_stop_daemon(daemon_handle_v6);
-      daemon_handle_v6 = NULL;
-    }
+  {
+    MHD_stop_daemon (daemon_handle_v6);
+    daemon_handle_v6 = NULL;
+  }
   if (NULL != response)
-    {
-      MHD_destroy_response(response);
-      response = NULL;
-    }
+  {
+    MHD_destroy_response (response);
+    response = NULL;
+  }
   if (NULL != notify)
-    {
-      GNUNET_PEERINFO_notify_cancel(notify);
-      notify = NULL;
-    }
+  {
+    GNUNET_PEERINFO_notify_cancel (notify);
+    notify = NULL;
+  }
   if (NULL != builder)
+  {
+    if (NULL != builder->pitr)
     {
-      if (NULL != builder->pitr)
-        {
-          GNUNET_PEERINFO_iterate_cancel(builder->pitr);
-          builder->pitr = NULL;
-        }
-      GNUNET_free_non_null(builder->data);
-      GNUNET_free(builder);
-      builder = NULL;
+      GNUNET_PEERINFO_iterate_cancel (builder->pitr);
+      builder->pitr = NULL;
     }
+    GNUNET_free_non_null (builder->data);
+    GNUNET_free (builder);
+    builder = NULL;
+  }
   if (NULL != peerinfo)
-    {
-      GNUNET_PEERINFO_disconnect(peerinfo);
-      peerinfo = NULL;
-    }
+  {
+    GNUNET_PEERINFO_disconnect (peerinfo);
+    peerinfo = NULL;
+  }
   cfg = NULL;
   stats = NULL;
   core = NULL;

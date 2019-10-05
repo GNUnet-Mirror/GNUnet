@@ -58,7 +58,7 @@ typedef unsigned int GNUNET_PEER_Id;
  * @return the interned identity or 0.
  */
 GNUNET_PEER_Id
-GNUNET_PEER_search(const struct GNUNET_PeerIdentity *pid);
+GNUNET_PEER_search (const struct GNUNET_PeerIdentity *pid);
 
 
 /**
@@ -69,7 +69,7 @@ GNUNET_PEER_search(const struct GNUNET_PeerIdentity *pid);
  * @return the interned identity.
  */
 GNUNET_PEER_Id
-GNUNET_PEER_intern(const struct GNUNET_PeerIdentity *pid);
+GNUNET_PEER_intern (const struct GNUNET_PeerIdentity *pid);
 
 
 /**
@@ -79,7 +79,7 @@ GNUNET_PEER_intern(const struct GNUNET_PeerIdentity *pid);
  * @param delta how much to change the RC
  */
 void
-GNUNET_PEER_change_rc(GNUNET_PEER_Id id, int delta);
+GNUNET_PEER_change_rc (GNUNET_PEER_Id id, int delta);
 
 
 /**
@@ -89,8 +89,8 @@ GNUNET_PEER_change_rc(GNUNET_PEER_Id id, int delta);
  * @param count size of the @a ids array
  */
 void
-GNUNET_PEER_decrement_rcs(const GNUNET_PEER_Id *ids,
-                          unsigned int count);
+GNUNET_PEER_decrement_rcs (const GNUNET_PEER_Id *ids,
+                           unsigned int count);
 
 
 /**
@@ -100,8 +100,8 @@ GNUNET_PEER_decrement_rcs(const GNUNET_PEER_Id *ids,
  * @param pid where to write the normal peer identity
  */
 void
-GNUNET_PEER_resolve(GNUNET_PEER_Id id,
-                    struct GNUNET_PeerIdentity *pid);
+GNUNET_PEER_resolve (GNUNET_PEER_Id id,
+                     struct GNUNET_PeerIdentity *pid);
 
 
 /**
@@ -111,7 +111,7 @@ GNUNET_PEER_resolve(GNUNET_PEER_Id id,
  * @return pointer to peer identity, valid as long @a id is valid
  */
 const struct GNUNET_PeerIdentity *
-GNUNET_PEER_resolve2(GNUNET_PEER_Id id);
+GNUNET_PEER_resolve2 (GNUNET_PEER_Id id);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

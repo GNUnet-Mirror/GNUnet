@@ -89,10 +89,10 @@ struct GNUNET_TESTBED_Controller;
  * @return handle to the host, NULL on error
  */
 struct GNUNET_TESTBED_Host *
-GNUNET_TESTBED_host_create(const char *hostname,
-                           const char *username,
-                           const struct GNUNET_CONFIGURATION_Handle *cfg,
-                           uint16_t port);
+GNUNET_TESTBED_host_create (const char *hostname,
+                            const char *username,
+                            const struct GNUNET_CONFIGURATION_Handle *cfg,
+                            uint16_t port);
 
 
 
@@ -112,12 +112,12 @@ GNUNET_TESTBED_host_create(const char *hostname,
  * @return handle to the host, NULL on error
  */
 struct GNUNET_TESTBED_Host *
-GNUNET_TESTBED_host_create_with_id(uint32_t id,
-                                   const char *hostname,
-                                   const char *username,
-                                   const struct GNUNET_CONFIGURATION_Handle
-                                   *cfg,
-                                   uint16_t port);
+GNUNET_TESTBED_host_create_with_id (uint32_t id,
+                                    const char *hostname,
+                                    const char *username,
+                                    const struct GNUNET_CONFIGURATION_Handle
+                                    *cfg,
+                                    uint16_t port);
 
 
 /**
@@ -133,10 +133,10 @@ GNUNET_TESTBED_host_create_with_id(uint32_t id,
  * @return number of hosts returned in 'hosts', 0 on error
  */
 unsigned int
-GNUNET_TESTBED_hosts_load_from_file(const char *filename,
-                                    const struct GNUNET_CONFIGURATION_Handle
-                                    *cfg,
-                                    struct GNUNET_TESTBED_Host ***hosts);
+GNUNET_TESTBED_hosts_load_from_file (const char *filename,
+                                     const struct GNUNET_CONFIGURATION_Handle
+                                     *cfg,
+                                     struct GNUNET_TESTBED_Host ***hosts);
 
 
 /**
@@ -152,10 +152,10 @@ GNUNET_TESTBED_hosts_load_from_file(const char *filename,
  * @return number of hosts returned in 'hosts', 0 on error
  */
 unsigned int
-GNUNET_TESTBED_hosts_load_from_loadleveler(const struct
-                                           GNUNET_CONFIGURATION_Handle *cfg,
-                                           struct GNUNET_TESTBED_Host
-                                           ***hosts);
+GNUNET_TESTBED_hosts_load_from_loadleveler (const struct
+                                            GNUNET_CONFIGURATION_Handle *cfg,
+                                            struct GNUNET_TESTBED_Host
+                                            ***hosts);
 
 /**
  * Destroy a host handle.  Must only be called once everything
@@ -164,7 +164,7 @@ GNUNET_TESTBED_hosts_load_from_loadleveler(const struct
  * @param host handle to destroy
  */
 void
-GNUNET_TESTBED_host_destroy(struct GNUNET_TESTBED_Host *host);
+GNUNET_TESTBED_host_destroy (struct GNUNET_TESTBED_Host *host);
 
 
 /**
@@ -201,11 +201,11 @@ typedef void
  *           GNUNET_TESTBED_is_host_habitable_cancel()
  */
 struct GNUNET_TESTBED_HostHabitableCheckHandle *
-GNUNET_TESTBED_is_host_habitable(const struct GNUNET_TESTBED_Host *host,
-                                 const struct GNUNET_CONFIGURATION_Handle
-                                 *config,
-                                 GNUNET_TESTBED_HostHabitableCallback cb,
-                                 void *cb_cls);
+GNUNET_TESTBED_is_host_habitable (const struct GNUNET_TESTBED_Host *host,
+                                  const struct GNUNET_CONFIGURATION_Handle
+                                  *config,
+                                  GNUNET_TESTBED_HostHabitableCallback cb,
+                                  void *cb_cls);
 
 
 /**
@@ -214,9 +214,9 @@ GNUNET_TESTBED_is_host_habitable(const struct GNUNET_TESTBED_Host *host,
  * @param handle the habitability check handle
  */
 void
-GNUNET_TESTBED_is_host_habitable_cancel(struct
-                                        GNUNET_TESTBED_HostHabitableCheckHandle
-                                        *handle);
+GNUNET_TESTBED_is_host_habitable_cancel (struct
+                                         GNUNET_TESTBED_HostHabitableCheckHandle
+                                         *handle);
 
 /**
  * Obtain the host's hostname.
@@ -225,14 +225,15 @@ GNUNET_TESTBED_is_host_habitable_cancel(struct
  * @return hostname of the host
  */
 const char *
-GNUNET_TESTBED_host_get_hostname(const struct GNUNET_TESTBED_Host *host);
+GNUNET_TESTBED_host_get_hostname (const struct GNUNET_TESTBED_Host *host);
 
 
 /**
  * Enumeration with (at most 64) possible event types that
  * can be monitored using the testbed framework.
  */
-enum GNUNET_TESTBED_EventType {
+enum GNUNET_TESTBED_EventType
+{
   /**
    * A peer has been started.
    */
@@ -263,7 +264,8 @@ enum GNUNET_TESTBED_EventType {
 /**
  * Types of information that can be requested about a peer.
  */
-enum GNUNET_TESTBED_PeerInformationType {
+enum GNUNET_TESTBED_PeerInformationType
+{
   /**
    * Special value (not valid for requesting information)
    * that is used in the event struct if a 'generic' pointer
@@ -294,7 +296,8 @@ enum GNUNET_TESTBED_PeerInformationType {
  * Argument to GNUNET_TESTBED_ControllerCallback with details about
  * the event.
  */
-struct GNUNET_TESTBED_EventInformation {
+struct GNUNET_TESTBED_EventInformation
+{
   /**
    * Type of the event.
    */
@@ -313,11 +316,13 @@ struct GNUNET_TESTBED_EventInformation {
   /**
    * Details about the event.
    */
-  union {
+  union
+  {
     /**
      * Details about peer start event.
      */
-    struct {
+    struct
+    {
       /**
        * Handle for the host where the peer
        * was started.
@@ -333,7 +338,8 @@ struct GNUNET_TESTBED_EventInformation {
     /**
      * Details about peer stop event.
      */
-    struct {
+    struct
+    {
       /**
        * Handle for the peer that was started.
        */
@@ -343,7 +349,8 @@ struct GNUNET_TESTBED_EventInformation {
     /**
      * Details about connect event.
      */
-    struct {
+    struct
+    {
       /**
        * Handle for one of the connected peers.
        */
@@ -358,7 +365,8 @@ struct GNUNET_TESTBED_EventInformation {
     /**
      * Details about disconnect event.
      */
-    struct {
+    struct
+    {
       /**
        * Handle for one of the disconnected peers.
        */
@@ -373,7 +381,8 @@ struct GNUNET_TESTBED_EventInformation {
     /**
      * Details about an operation finished event.
      */
-    struct {
+    struct
+    {
       /**
        * Error message for the operation, NULL on success.
        */
@@ -398,7 +407,8 @@ struct GNUNET_TESTBED_EventInformation {
  */
 typedef void
 (*GNUNET_TESTBED_ControllerCallback)(void *cls,
-                                     const struct GNUNET_TESTBED_EventInformation *event);
+                                     const struct
+                                     GNUNET_TESTBED_EventInformation *event);
 
 
 /**
@@ -418,7 +428,8 @@ struct GNUNET_TESTBED_ControllerProc;
  */
 typedef void
 (*GNUNET_TESTBED_ControllerStatusCallback) (void *cls,
-                                            const struct GNUNET_CONFIGURATION_Handle *cfg,
+                                            const struct
+                                            GNUNET_CONFIGURATION_Handle *cfg,
                                             int status);
 
 
@@ -446,10 +457,10 @@ typedef void
  * @return the controller process handle, NULL on errors
  */
 struct GNUNET_TESTBED_ControllerProc *
-GNUNET_TESTBED_controller_start(const char *trusted_ip,
-                                struct GNUNET_TESTBED_Host *host,
-                                GNUNET_TESTBED_ControllerStatusCallback cb,
-                                void *cls);
+GNUNET_TESTBED_controller_start (const char *trusted_ip,
+                                 struct GNUNET_TESTBED_Host *host,
+                                 GNUNET_TESTBED_ControllerStatusCallback cb,
+                                 void *cls);
 
 
 /**
@@ -461,7 +472,7 @@ GNUNET_TESTBED_controller_start(const char *trusted_ip,
  * @param cproc the controller process handle
  */
 void
-GNUNET_TESTBED_controller_stop(struct GNUNET_TESTBED_ControllerProc *cproc);
+GNUNET_TESTBED_controller_stop (struct GNUNET_TESTBED_ControllerProc *cproc);
 
 
 /**
@@ -481,10 +492,10 @@ GNUNET_TESTBED_controller_stop(struct GNUNET_TESTBED_ControllerProc *cproc);
  * @return handle to the controller
  */
 struct GNUNET_TESTBED_Controller *
-GNUNET_TESTBED_controller_connect(struct GNUNET_TESTBED_Host *host,
-                                  uint64_t event_mask,
-                                  GNUNET_TESTBED_ControllerCallback cc,
-                                  void *cc_cls);
+GNUNET_TESTBED_controller_connect (struct GNUNET_TESTBED_Host *host,
+                                   uint64_t event_mask,
+                                   GNUNET_TESTBED_ControllerCallback cc,
+                                   void *cc_cls);
 
 
 /**
@@ -495,7 +506,7 @@ GNUNET_TESTBED_controller_connect(struct GNUNET_TESTBED_Host *host,
  * @param c handle to controller to stop
  */
 void
-GNUNET_TESTBED_controller_disconnect(struct GNUNET_TESTBED_Controller *c);
+GNUNET_TESTBED_controller_disconnect (struct GNUNET_TESTBED_Controller *c);
 
 
 /**
@@ -511,8 +522,8 @@ struct GNUNET_TESTBED_HostRegistrationHandle;
  * @param emsg the error message; NULL if host registration is successful
  */
 typedef void
-(* GNUNET_TESTBED_HostRegistrationCompletion) (void *cls,
-                                               const char *emsg);
+(*GNUNET_TESTBED_HostRegistrationCompletion) (void *cls,
+                                              const char *emsg);
 
 
 /**
@@ -531,10 +542,10 @@ typedef void
  *           is not cancelled
  */
 struct GNUNET_TESTBED_HostRegistrationHandle *
-GNUNET_TESTBED_register_host(struct GNUNET_TESTBED_Controller *controller,
-                             struct GNUNET_TESTBED_Host *host,
-                             GNUNET_TESTBED_HostRegistrationCompletion cc,
-                             void *cc_cls);
+GNUNET_TESTBED_register_host (struct GNUNET_TESTBED_Controller *controller,
+                              struct GNUNET_TESTBED_Host *host,
+                              GNUNET_TESTBED_HostRegistrationCompletion cc,
+                              void *cc_cls);
 
 
 /**
@@ -547,8 +558,8 @@ GNUNET_TESTBED_register_host(struct GNUNET_TESTBED_Controller *controller,
  * @param handle the registration handle to cancel
  */
 void
-GNUNET_TESTBED_cancel_registration(struct GNUNET_TESTBED_HostRegistrationHandle
-                                   *handle);
+GNUNET_TESTBED_cancel_registration (struct GNUNET_TESTBED_HostRegistrationHandle
+                                    *handle);
 
 
 /**
@@ -561,7 +572,8 @@ GNUNET_TESTBED_cancel_registration(struct GNUNET_TESTBED_HostRegistrationHandle
  */
 typedef void
 (*GNUNET_TESTBED_OperationCompletionCallback) (void *cls,
-                                               struct GNUNET_TESTBED_Operation *op,
+                                               struct GNUNET_TESTBED_Operation *
+                                               op,
                                                const char *emsg);
 
 
@@ -594,11 +606,11 @@ typedef void
  * @return the operation handle
  */
 struct GNUNET_TESTBED_Operation *
-GNUNET_TESTBED_controller_link(void *op_cls,
-                               struct GNUNET_TESTBED_Controller *master,
-                               struct GNUNET_TESTBED_Host *delegated_host,
-                               struct GNUNET_TESTBED_Host *slave_host,
-                               int is_subordinate);
+GNUNET_TESTBED_controller_link (void *op_cls,
+                                struct GNUNET_TESTBED_Controller *master,
+                                struct GNUNET_TESTBED_Host *delegated_host,
+                                struct GNUNET_TESTBED_Host *slave_host,
+                                int is_subordinate);
 
 
 /**
@@ -617,9 +629,9 @@ GNUNET_TESTBED_controller_link(void *op_cls,
  *           master
  */
 struct GNUNET_TESTBED_Operation *
-GNUNET_TESTBED_get_slave_config(void *op_cls,
-                                struct GNUNET_TESTBED_Controller *master,
-                                struct GNUNET_TESTBED_Host *slave_host);
+GNUNET_TESTBED_get_slave_config (void *op_cls,
+                                 struct GNUNET_TESTBED_Controller *master,
+                                 struct GNUNET_TESTBED_Host *slave_host);
 
 
 /**
@@ -667,11 +679,11 @@ typedef void
  * @return the operation handle
  */
 struct GNUNET_TESTBED_Operation *
-GNUNET_TESTBED_peer_create(struct GNUNET_TESTBED_Controller *controller,
-                           struct GNUNET_TESTBED_Host *host,
-                           const struct GNUNET_CONFIGURATION_Handle *cfg,
-                           GNUNET_TESTBED_PeerCreateCallback cb,
-                           void *cls);
+GNUNET_TESTBED_peer_create (struct GNUNET_TESTBED_Controller *controller,
+                            struct GNUNET_TESTBED_Host *host,
+                            const struct GNUNET_CONFIGURATION_Handle *cfg,
+                            GNUNET_TESTBED_PeerCreateCallback cb,
+                            void *cls);
 
 
 /**
@@ -697,10 +709,10 @@ typedef void
  * @return handle to the operation
  */
 struct GNUNET_TESTBED_Operation *
-GNUNET_TESTBED_peer_start(void *op_cls,
-                          struct GNUNET_TESTBED_Peer *peer,
-                          GNUNET_TESTBED_PeerChurnCallback pcc,
-                          void *pcc_cls);
+GNUNET_TESTBED_peer_start (void *op_cls,
+                           struct GNUNET_TESTBED_Peer *peer,
+                           GNUNET_TESTBED_PeerChurnCallback pcc,
+                           void *pcc_cls);
 
 
 /**
@@ -716,16 +728,17 @@ GNUNET_TESTBED_peer_start(void *op_cls,
  * @return handle to the operation
  */
 struct GNUNET_TESTBED_Operation *
-GNUNET_TESTBED_peer_stop(void *op_cls,
-                         struct GNUNET_TESTBED_Peer *peer,
-                         GNUNET_TESTBED_PeerChurnCallback pcc,
-                         void *pcc_cls);
+GNUNET_TESTBED_peer_stop (void *op_cls,
+                          struct GNUNET_TESTBED_Peer *peer,
+                          GNUNET_TESTBED_PeerChurnCallback pcc,
+                          void *pcc_cls);
 
 
 /**
  * Data returned from GNUNET_TESTBED_peer_get_information
  */
-struct GNUNET_TESTBED_PeerInformation {
+struct GNUNET_TESTBED_PeerInformation
+{
   /**
    * Peer information type; captures which of the types
    * in the 'op_result' is actually in use.
@@ -735,7 +748,8 @@ struct GNUNET_TESTBED_PeerInformation {
   /**
    * The result of the get information operation; Choose according to the pit
    */
-  union {
+  union
+  {
     /**
      * The configuration of the peer
      */
@@ -762,7 +776,8 @@ struct GNUNET_TESTBED_PeerInformation {
 typedef void
 (*GNUNET_TESTBED_PeerInfoCallback) (void *cb_cls,
                                     struct GNUNET_TESTBED_Operation *op,
-                                    const struct GNUNET_TESTBED_PeerInformation *pinfo,
+                                    const struct
+                                    GNUNET_TESTBED_PeerInformation *pinfo,
                                     const char *emsg);
 
 
@@ -781,11 +796,11 @@ typedef void
  * @return handle to the operation
  */
 struct GNUNET_TESTBED_Operation *
-GNUNET_TESTBED_peer_get_information(struct GNUNET_TESTBED_Peer *peer,
-                                    enum GNUNET_TESTBED_PeerInformationType
-                                    pit,
-                                    GNUNET_TESTBED_PeerInfoCallback cb,
-                                    void *cb_cls);
+GNUNET_TESTBED_peer_get_information (struct GNUNET_TESTBED_Peer *peer,
+                                     enum GNUNET_TESTBED_PeerInformationType
+                                     pit,
+                                     GNUNET_TESTBED_PeerInfoCallback cb,
+                                     void *cb_cls);
 
 
 /**
@@ -797,8 +812,9 @@ GNUNET_TESTBED_peer_get_information(struct GNUNET_TESTBED_Peer *peer,
  * @return handle to the operation
  */
 struct GNUNET_TESTBED_Operation *
-GNUNET_TESTBED_peer_update_configuration(struct GNUNET_TESTBED_Peer *peer,
-                                         const struct GNUNET_CONFIGURATION_Handle *cfg);
+GNUNET_TESTBED_peer_update_configuration (struct GNUNET_TESTBED_Peer *peer,
+                                          const struct
+                                          GNUNET_CONFIGURATION_Handle *cfg);
 
 
 /**
@@ -809,7 +825,7 @@ GNUNET_TESTBED_peer_update_configuration(struct GNUNET_TESTBED_Peer *peer,
  * @return handle to the operation
  */
 struct GNUNET_TESTBED_Operation *
-GNUNET_TESTBED_peer_destroy(struct GNUNET_TESTBED_Peer *peer);
+GNUNET_TESTBED_peer_destroy (struct GNUNET_TESTBED_Peer *peer);
 
 
 /**
@@ -828,12 +844,13 @@ GNUNET_TESTBED_peer_destroy(struct GNUNET_TESTBED_Peer *peer);
  * @return an operation handle; NULL upon error (peer not running)
  */
 struct GNUNET_TESTBED_Operation *
-GNUNET_TESTBED_peer_manage_service(void *op_cls,
-                                   struct GNUNET_TESTBED_Peer *peer,
-                                   const char *service_name,
-                                   GNUNET_TESTBED_OperationCompletionCallback cb,
-                                   void *cb_cls,
-                                   unsigned int start);
+GNUNET_TESTBED_peer_manage_service (void *op_cls,
+                                    struct GNUNET_TESTBED_Peer *peer,
+                                    const char *service_name,
+                                    GNUNET_TESTBED_OperationCompletionCallback
+                                    cb,
+                                    void *cb_cls,
+                                    unsigned int start);
 
 
 /**
@@ -852,17 +869,18 @@ GNUNET_TESTBED_peer_manage_service(void *op_cls,
  *           present
  */
 struct GNUNET_TESTBED_Operation *
-GNUNET_TESTBED_shutdown_peers(struct GNUNET_TESTBED_Controller *c,
-                              void *op_cls,
-                              GNUNET_TESTBED_OperationCompletionCallback cb,
-                              void *cb_cls);
+GNUNET_TESTBED_shutdown_peers (struct GNUNET_TESTBED_Controller *c,
+                               void *op_cls,
+                               GNUNET_TESTBED_OperationCompletionCallback cb,
+                               void *cb_cls);
 
 
 
 /**
  * Options for peer connections.
  */
-enum GNUNET_TESTBED_ConnectOption {
+enum GNUNET_TESTBED_ConnectOption
+{
   /**
    * No option (not valid as an argument).
    */
@@ -898,11 +916,11 @@ enum GNUNET_TESTBED_ConnectOption {
  *         time is not allowed
  */
 struct GNUNET_TESTBED_Operation *
-GNUNET_TESTBED_underlay_configure_link_va(void *op_cls,
-                                          struct GNUNET_TESTBED_Peer *p1,
-                                          struct GNUNET_TESTBED_Peer *p2,
-                                          enum GNUNET_TESTBED_ConnectOption co,
-                                          va_list ap);
+GNUNET_TESTBED_underlay_configure_link_va (void *op_cls,
+                                           struct GNUNET_TESTBED_Peer *p1,
+                                           struct GNUNET_TESTBED_Peer *p2,
+                                           enum GNUNET_TESTBED_ConnectOption co,
+                                           va_list ap);
 
 
 /**
@@ -918,10 +936,11 @@ GNUNET_TESTBED_underlay_configure_link_va(void *op_cls,
  *         time is not allowed
  */
 struct GNUNET_TESTBED_Operation *
-GNUNET_TESTBED_underlay_configure_link(void *op_cls,
-                                       struct GNUNET_TESTBED_Peer *p1,
-                                       struct GNUNET_TESTBED_Peer *p2,
-                                       enum GNUNET_TESTBED_ConnectOption co, ...);
+GNUNET_TESTBED_underlay_configure_link (void *op_cls,
+                                        struct GNUNET_TESTBED_Peer *p1,
+                                        struct GNUNET_TESTBED_Peer *p2,
+                                        enum GNUNET_TESTBED_ConnectOption co,
+                                        ...);
 
 
 
@@ -929,7 +948,8 @@ GNUNET_TESTBED_underlay_configure_link(void *op_cls,
  * Topologies and topology options supported for testbeds. Options should always
  * end with #GNUNET_TESTBED_TOPOLOGY_OPTION_END
  */
-enum GNUNET_TESTBED_TopologyOption {
+enum GNUNET_TESTBED_TopologyOption
+{
   /**
    * A clique (everyone connected to everyone else).  No options. If there are N
    * peers this topology results in (N * (N -1)) connections.
@@ -1036,11 +1056,14 @@ enum GNUNET_TESTBED_TopologyOption {
  *         is not allowed at this time
  */
 struct GNUNET_TESTBED_Operation *
-GNUNET_TESTBED_underlay_configure_topology_va(void *op_cls,
-                                              unsigned int num_peers,
-                                              struct GNUNET_TESTBED_Peer **peers,
-                                              enum GNUNET_TESTBED_TopologyOption topo,
-                                              va_list ap);
+GNUNET_TESTBED_underlay_configure_topology_va (void *op_cls,
+                                               unsigned int num_peers,
+                                               struct GNUNET_TESTBED_Peer **
+                                               peers,
+                                               enum
+                                               GNUNET_TESTBED_TopologyOption
+                                               topo,
+                                               va_list ap);
 
 
 /**
@@ -1055,11 +1078,12 @@ GNUNET_TESTBED_underlay_configure_topology_va(void *op_cls,
  *         is not allowed at this time
  */
 struct GNUNET_TESTBED_Operation *
-GNUNET_TESTBED_underlay_configure_topology(void *op_cls,
-                                           unsigned int num_peers,
-                                           struct GNUNET_TESTBED_Peer **peers,
-                                           enum GNUNET_TESTBED_TopologyOption topo,
-                                           ...);
+GNUNET_TESTBED_underlay_configure_topology (void *op_cls,
+                                            unsigned int num_peers,
+                                            struct GNUNET_TESTBED_Peer **peers,
+                                            enum GNUNET_TESTBED_TopologyOption
+                                            topo,
+                                            ...);
 
 
 /**
@@ -1077,11 +1101,11 @@ GNUNET_TESTBED_underlay_configure_topology(void *op_cls,
  *         not running or underlay disallows)
  */
 struct GNUNET_TESTBED_Operation *
-GNUNET_TESTBED_overlay_connect(void *op_cls,
-                               GNUNET_TESTBED_OperationCompletionCallback cb,
-                               void *cb_cls,
-                               struct GNUNET_TESTBED_Peer *p1,
-                               struct GNUNET_TESTBED_Peer *p2);
+GNUNET_TESTBED_overlay_connect (void *op_cls,
+                                GNUNET_TESTBED_OperationCompletionCallback cb,
+                                void *cb_cls,
+                                struct GNUNET_TESTBED_Peer *p1,
+                                struct GNUNET_TESTBED_Peer *p2);
 
 
 /**
@@ -1094,8 +1118,10 @@ GNUNET_TESTBED_overlay_connect(void *op_cls,
  * @param nfailures the number of overlay connects which failed
  */
 typedef void (*GNUNET_TESTBED_TopologyCompletionCallback) (void *cls,
-                                                           unsigned int nsuccess,
-                                                           unsigned int nfailures);
+                                                           unsigned int
+                                                           nsuccess,
+                                                           unsigned int
+                                                           nfailures);
 
 
 /**
@@ -1119,15 +1145,16 @@ typedef void (*GNUNET_TESTBED_TopologyCompletionCallback) (void *cls,
  *         not running or underlay disallows) or if num_peers is less than 2
  */
 struct GNUNET_TESTBED_Operation *
-GNUNET_TESTBED_overlay_configure_topology_va(void *op_cls,
-                                             unsigned int num_peers,
-                                             struct GNUNET_TESTBED_Peer **peers,
-                                             unsigned int *max_connections,
-                                             GNUNET_TESTBED_TopologyCompletionCallback
-                                             comp_cb,
-                                             void *comp_cb_cls,
-                                             enum GNUNET_TESTBED_TopologyOption topo,
-                                             va_list va);
+GNUNET_TESTBED_overlay_configure_topology_va (void *op_cls,
+                                              unsigned int num_peers,
+                                              struct GNUNET_TESTBED_Peer **peers,
+                                              unsigned int *max_connections,
+                                              GNUNET_TESTBED_TopologyCompletionCallback
+                                              comp_cb,
+                                              void *comp_cb_cls,
+                                              enum GNUNET_TESTBED_TopologyOption
+                                              topo,
+                                              va_list va);
 
 
 /**
@@ -1151,15 +1178,16 @@ GNUNET_TESTBED_overlay_configure_topology_va(void *op_cls,
  *         not running or underlay disallows) or if num_peers is less than 2
  */
 struct GNUNET_TESTBED_Operation *
-GNUNET_TESTBED_overlay_configure_topology(void *op_cls,
-                                          unsigned int num_peers,
-                                          struct GNUNET_TESTBED_Peer **peers,
-                                          unsigned int *max_connections,
-                                          GNUNET_TESTBED_TopologyCompletionCallback
-                                          comp_cb,
-                                          void *comp_cb_cls,
-                                          enum GNUNET_TESTBED_TopologyOption topo,
-                                          ...);
+GNUNET_TESTBED_overlay_configure_topology (void *op_cls,
+                                           unsigned int num_peers,
+                                           struct GNUNET_TESTBED_Peer **peers,
+                                           unsigned int *max_connections,
+                                           GNUNET_TESTBED_TopologyCompletionCallback
+                                           comp_cb,
+                                           void *comp_cb_cls,
+                                           enum GNUNET_TESTBED_TopologyOption
+                                           topo,
+                                           ...);
 
 
 /**
@@ -1173,8 +1201,10 @@ GNUNET_TESTBED_overlay_configure_topology(void *op_cls,
  *        be written to.
  */
 void
-GNUNET_TESTBED_overlay_write_topology_to_file(struct GNUNET_TESTBED_Controller *controller,
-                                              const char *filename);
+GNUNET_TESTBED_overlay_write_topology_to_file (struct
+                                               GNUNET_TESTBED_Controller *
+                                               controller,
+                                               const char *filename);
 
 
 /**
@@ -1215,7 +1245,8 @@ typedef void
  */
 typedef void
 (*GNUNET_TESTBED_ServiceConnectCompletionCallback) (void *cls,
-                                                    struct GNUNET_TESTBED_Operation *op,
+                                                    struct
+                                                    GNUNET_TESTBED_Operation *op,
                                                     void *ca_result,
                                                     const char *emsg);
 
@@ -1243,14 +1274,15 @@ typedef void
  * @return handle for the operation
  */
 struct GNUNET_TESTBED_Operation *
-GNUNET_TESTBED_service_connect(void *op_cls,
-                               struct GNUNET_TESTBED_Peer *peer,
-                               const char *service_name,
-                               GNUNET_TESTBED_ServiceConnectCompletionCallback cb,
-                               void *cb_cls,
-                               GNUNET_TESTBED_ConnectAdapter ca,
-                               GNUNET_TESTBED_DisconnectAdapter da,
-                               void *cada_cls);
+GNUNET_TESTBED_service_connect (void *op_cls,
+                                struct GNUNET_TESTBED_Peer *peer,
+                                const char *service_name,
+                                GNUNET_TESTBED_ServiceConnectCompletionCallback
+                                cb,
+                                void *cb_cls,
+                                GNUNET_TESTBED_ConnectAdapter ca,
+                                GNUNET_TESTBED_DisconnectAdapter da,
+                                void *cada_cls);
 
 
 /**
@@ -1275,7 +1307,7 @@ GNUNET_TESTBED_service_connect(void *op_cls,
  * @param operation operation to signal completion or cancellation
  */
 void
-GNUNET_TESTBED_operation_done(struct GNUNET_TESTBED_Operation *operation);
+GNUNET_TESTBED_operation_done (struct GNUNET_TESTBED_Operation *operation);
 
 
 /**
@@ -1314,12 +1346,12 @@ typedef int
  * @return operation handle to cancel the operation
  */
 struct GNUNET_TESTBED_Operation *
-GNUNET_TESTBED_get_statistics(unsigned int num_peers,
-                              struct GNUNET_TESTBED_Peer **peers,
-                              const char *subsystem, const char *name,
-                              GNUNET_TESTBED_StatisticsIterator proc,
-                              GNUNET_TESTBED_OperationCompletionCallback cont,
-                              void *cls);
+GNUNET_TESTBED_get_statistics (unsigned int num_peers,
+                               struct GNUNET_TESTBED_Peer **peers,
+                               const char *subsystem, const char *name,
+                               GNUNET_TESTBED_StatisticsIterator proc,
+                               GNUNET_TESTBED_OperationCompletionCallback cont,
+                               void *cls);
 
 
 /**
@@ -1331,7 +1363,7 @@ GNUNET_TESTBED_get_statistics(unsigned int num_peers,
  * @return The peer's unique ID.
  */
 uint32_t
-GNUNET_TESTBED_get_index(const struct GNUNET_TESTBED_Peer *peer);
+GNUNET_TESTBED_get_index (const struct GNUNET_TESTBED_Peer *peer);
 
 
 /**
@@ -1397,14 +1429,14 @@ typedef void
  * @param test_master_cls closure for 'test_master'.
  */
 void
-GNUNET_TESTBED_run(const char *host_filename,
-                   const struct GNUNET_CONFIGURATION_Handle *cfg,
-                   unsigned int num_peers,
-                   uint64_t event_mask,
-                   GNUNET_TESTBED_ControllerCallback cc,
-                   void *cc_cls,
-                   GNUNET_TESTBED_TestMaster test_master,
-                   void *test_master_cls);
+GNUNET_TESTBED_run (const char *host_filename,
+                    const struct GNUNET_CONFIGURATION_Handle *cfg,
+                    unsigned int num_peers,
+                    uint64_t event_mask,
+                    GNUNET_TESTBED_ControllerCallback cc,
+                    void *cc_cls,
+                    GNUNET_TESTBED_TestMaster test_master,
+                    void *test_master_cls);
 
 
 /**
@@ -1446,14 +1478,14 @@ GNUNET_TESTBED_run(const char *host_filename,
  * @return #GNUNET_SYSERR on error, #GNUNET_OK on success
  */
 int
-GNUNET_TESTBED_test_run(const char *testname,
-                        const char *cfg_filename,
-                        unsigned int num_peers,
-                        uint64_t event_mask,
-                        GNUNET_TESTBED_ControllerCallback cc,
-                        void *cc_cls,
-                        GNUNET_TESTBED_TestMaster test_master,
-                        void *test_master_cls);
+GNUNET_TESTBED_test_run (const char *testname,
+                         const char *cfg_filename,
+                         unsigned int num_peers,
+                         uint64_t event_mask,
+                         GNUNET_TESTBED_ControllerCallback cc,
+                         void *cc_cls,
+                         GNUNET_TESTBED_TestMaster test_master,
+                         void *test_master_cls);
 
 
 /**
@@ -1464,7 +1496,7 @@ GNUNET_TESTBED_test_run(const char *testname,
  * @return handle to the master controller
  */
 struct GNUNET_TESTBED_Controller *
-GNUNET_TESTBED_run_get_controller_handle(struct GNUNET_TESTBED_RunHandle *h);
+GNUNET_TESTBED_run_get_controller_handle (struct GNUNET_TESTBED_RunHandle *h);
 
 
 /**
@@ -1476,7 +1508,8 @@ struct GNUNET_TESTBED_Barrier;
 /**
  * Status of a barrier
  */
-enum GNUNET_TESTBED_BarrierStatus {
+enum GNUNET_TESTBED_BarrierStatus
+{
   /**
    * Barrier initialised successfully
    */
@@ -1532,11 +1565,11 @@ typedef void
  * @return barrier handle
  */
 struct GNUNET_TESTBED_Barrier *
-GNUNET_TESTBED_barrier_init(struct GNUNET_TESTBED_Controller *controller,
-                            const char *name,
-                            unsigned int quorum,
-                            GNUNET_TESTBED_barrier_status_cb cb,
-                            void *cb_cls);
+GNUNET_TESTBED_barrier_init (struct GNUNET_TESTBED_Controller *controller,
+                             const char *name,
+                             unsigned int quorum,
+                             GNUNET_TESTBED_barrier_status_cb cb,
+                             void *cb_cls);
 
 
 /**
@@ -1545,7 +1578,7 @@ GNUNET_TESTBED_barrier_init(struct GNUNET_TESTBED_Controller *controller,
  * @param barrier the barrier handle
  */
 void
-GNUNET_TESTBED_barrier_cancel(struct GNUNET_TESTBED_Barrier *barrier);
+GNUNET_TESTBED_barrier_cancel (struct GNUNET_TESTBED_Barrier *barrier);
 
 
 /**
@@ -1582,9 +1615,9 @@ typedef void
  *   anytime before the callback is called.  NULL upon error.
  */
 struct GNUNET_TESTBED_BarrierWaitHandle *
-GNUNET_TESTBED_barrier_wait(const char *name,
-                            GNUNET_TESTBED_barrier_wait_cb cb,
-                            void *cls);
+GNUNET_TESTBED_barrier_wait (const char *name,
+                             GNUNET_TESTBED_barrier_wait_cb cb,
+                             void *cls);
 
 
 /**
@@ -1594,7 +1627,7 @@ GNUNET_TESTBED_barrier_wait(const char *name,
  * @param h the barrier wait handle
  */
 void
-GNUNET_TESTBED_barrier_wait_cancel(struct GNUNET_TESTBED_BarrierWaitHandle *h);
+GNUNET_TESTBED_barrier_wait_cancel (struct GNUNET_TESTBED_BarrierWaitHandle *h);
 
 
 /**
@@ -1608,7 +1641,8 @@ struct GNUNET_TESTBED_UnderlayLinkModel;
  * The type of GNUNET_TESTBED_UnderlayLinkModel
  * @ingroup underlay
  */
-enum GNUNET_TESTBED_UnderlayLinkModelType {
+enum GNUNET_TESTBED_UnderlayLinkModelType
+{
   /**
    * The model is based on white listing of peers to which underlay connections
    * are permitted.  Underlay connections to all other peers will not be
@@ -1635,8 +1669,10 @@ enum GNUNET_TESTBED_UnderlayLinkModelType {
  * @return the model
  */
 struct GNUNET_TESTBED_UnderlayLinkModel *
-GNUNET_TESTBED_underlaylinkmodel_create(struct GNUNET_TESTBED_Peer *peer,
-                                        enum GNUNET_TESTBED_UnderlayLinkModelType type);
+GNUNET_TESTBED_underlaylinkmodel_create (struct GNUNET_TESTBED_Peer *peer,
+                                         enum
+                                         GNUNET_TESTBED_UnderlayLinkModelType
+                                         type);
 
 
 /**
@@ -1649,8 +1685,10 @@ GNUNET_TESTBED_underlaylinkmodel_create(struct GNUNET_TESTBED_Peer *peer,
  * @param peer the peer to add
  */
 void
-GNUNET_TESTBED_underlaylinkmodel_add_peer(struct GNUNET_TESTBED_UnderlayLinkModel *model,
-                                          struct GNUNET_TESTBED_Peer *peer);
+GNUNET_TESTBED_underlaylinkmodel_add_peer (struct
+                                           GNUNET_TESTBED_UnderlayLinkModel *
+                                           model,
+                                           struct GNUNET_TESTBED_Peer *peer);
 
 
 /**
@@ -1665,11 +1703,13 @@ GNUNET_TESTBED_underlaylinkmodel_add_peer(struct GNUNET_TESTBED_UnderlayLinkMode
  * @param bandwidth bandwidth of the link in kilobytes per second [kB/s]
  */
 void
-GNUNET_TESTBED_underlaylinkmodel_set_link(struct GNUNET_TESTBED_UnderlayLinkModel *model,
-                                          struct GNUNET_TESTBED_Peer *peer,
-                                          uint32_t latency,
-                                          uint32_t loss,
-                                          uint32_t bandwidth);
+GNUNET_TESTBED_underlaylinkmodel_set_link (struct
+                                           GNUNET_TESTBED_UnderlayLinkModel *
+                                           model,
+                                           struct GNUNET_TESTBED_Peer *peer,
+                                           uint32_t latency,
+                                           uint32_t loss,
+                                           uint32_t bandwidth);
 
 
 /**
@@ -1679,7 +1719,8 @@ GNUNET_TESTBED_underlaylinkmodel_set_link(struct GNUNET_TESTBED_UnderlayLinkMode
  * @param model the model to commit
  */
 void
-GNUNET_TESTBED_underlaylinkmodel_commit(struct GNUNET_TESTBED_UnderlayLinkModel *model);
+GNUNET_TESTBED_underlaylinkmodel_commit (struct
+                                         GNUNET_TESTBED_UnderlayLinkModel *model);
 
 
 /**
@@ -1691,7 +1732,8 @@ GNUNET_TESTBED_underlaylinkmodel_commit(struct GNUNET_TESTBED_UnderlayLinkModel 
  * @param model the model to unallocate
  */
 void
-GNUNET_TESTBED_underlaylinkmodel_free(struct GNUNET_TESTBED_UnderlayLinkModel *model);
+GNUNET_TESTBED_underlaylinkmodel_free (struct
+                                       GNUNET_TESTBED_UnderlayLinkModel *model);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

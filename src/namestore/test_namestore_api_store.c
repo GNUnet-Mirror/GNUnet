@@ -32,12 +32,12 @@
 
 #define TEST_RECORD_DATA 'a'
 
-#define TIMEOUT GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 100)
+#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 100)
 
 
 static struct GNUNET_NAMESTORE_Handle *nsh;
 
-static struct GNUNET_SCHEDULER_Task * endbadly_task;
+static struct GNUNET_SCHEDULER_Task *endbadly_task;
 
 static struct GNUNET_CRYPTO_EcdsaPrivateKey *privkey;
 
@@ -49,19 +49,19 @@ static struct GNUNET_NAMESTORE_QueueEntry *nsqe;
 
 
 static void
-cleanup()
+cleanup ()
 {
   if (NULL != nsh)
-    {
-      GNUNET_NAMESTORE_disconnect(nsh);
-      nsh = NULL;
-    }
+  {
+    GNUNET_NAMESTORE_disconnect (nsh);
+    nsh = NULL;
+  }
   if (NULL != privkey)
-    {
-      GNUNET_free(privkey);
-      privkey = NULL;
-    }
-  GNUNET_SCHEDULER_shutdown();
+  {
+    GNUNET_free (privkey);
+    privkey = NULL;
+  }
+  GNUNET_SCHEDULER_shutdown ();
 }
 
 
@@ -71,80 +71,80 @@ cleanup()
  * @param cls handle to use to re-connect.
  */
 static void
-endbadly(void *cls)
+endbadly (void *cls)
 {
   if (NULL != nsqe)
-    {
-      GNUNET_NAMESTORE_cancel(nsqe);
-      nsqe = NULL;
-    }
-  cleanup();
+  {
+    GNUNET_NAMESTORE_cancel (nsqe);
+    nsqe = NULL;
+  }
+  cleanup ();
   res = 1;
 }
 
 
 static void
-end(void *cls)
+end (void *cls)
 {
-  cleanup();
+  cleanup ();
   res = 0;
 }
 
 
 static void
-put_cont(void *cls, int32_t success, const char *emsg)
+put_cont (void *cls, int32_t success, const char *emsg)
 {
   const char *name = cls;
 
   nsqe = NULL;
-  GNUNET_assert(NULL != cls);
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-             "Name store added record for `%s': %s\n",
-             name,
-             (success == GNUNET_OK) ? "SUCCESS" : "FAIL");
-  GNUNET_SCHEDULER_cancel(endbadly_task);
+  GNUNET_assert (NULL != cls);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Name store added record for `%s': %s\n",
+              name,
+              (success == GNUNET_OK) ? "SUCCESS" : "FAIL");
+  GNUNET_SCHEDULER_cancel (endbadly_task);
   endbadly_task = NULL;
-  GNUNET_SCHEDULER_add_now(&end, NULL);
+  GNUNET_SCHEDULER_add_now (&end, NULL);
 }
 
 
 static void
-run(void *cls,
-    const struct GNUNET_CONFIGURATION_Handle *cfg,
-    struct GNUNET_TESTING_Peer *peer)
+run (void *cls,
+     const struct GNUNET_CONFIGURATION_Handle *cfg,
+     struct GNUNET_TESTING_Peer *peer)
 {
   struct GNUNET_GNSRECORD_Data rd;
-  const char * name = "dummy.dummy.gnunet";
+  const char *name = "dummy.dummy.gnunet";
 
-  endbadly_task = GNUNET_SCHEDULER_add_delayed(TIMEOUT,
-                                               &endbadly, NULL);
-  privkey = GNUNET_CRYPTO_ecdsa_key_create();
-  GNUNET_assert(privkey != NULL);
-  GNUNET_CRYPTO_ecdsa_key_get_public(privkey, &pubkey);
+  endbadly_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT,
+                                                &endbadly, NULL);
+  privkey = GNUNET_CRYPTO_ecdsa_key_create ();
+  GNUNET_assert (privkey != NULL);
+  GNUNET_CRYPTO_ecdsa_key_get_public (privkey, &pubkey);
 
 
-  rd.expiration_time = GNUNET_TIME_absolute_get().abs_value_us;
+  rd.expiration_time = GNUNET_TIME_absolute_get ().abs_value_us;
   rd.record_type = TEST_RECORD_TYPE;
   rd.data_size = TEST_RECORD_DATALEN;
-  rd.data = GNUNET_malloc(TEST_RECORD_DATALEN);
+  rd.data = GNUNET_malloc (TEST_RECORD_DATALEN);
   rd.flags = 0;
-  memset((char *)rd.data, 'a', TEST_RECORD_DATALEN);
+  memset ((char *) rd.data, 'a', TEST_RECORD_DATALEN);
 
-  nsh = GNUNET_NAMESTORE_connect(cfg);
-  GNUNET_break(NULL != nsh);
-  nsqe = GNUNET_NAMESTORE_records_store(nsh,
-                                        privkey,
-                                        name,
-                                        1,
-                                        &rd,
-                                        &put_cont,
-                                        (void *)name);
+  nsh = GNUNET_NAMESTORE_connect (cfg);
+  GNUNET_break (NULL != nsh);
+  nsqe = GNUNET_NAMESTORE_records_store (nsh,
+                                         privkey,
+                                         name,
+                                         1,
+                                         &rd,
+                                         &put_cont,
+                                         (void *) name);
   if (NULL == nsqe)
-    {
-      GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
-                 _("Namestore cannot store no block\n"));
-    }
-  GNUNET_free((void *)rd.data);
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _ ("Namestore cannot store no block\n"));
+  }
+  GNUNET_free ((void *) rd.data);
 }
 
 
@@ -152,24 +152,24 @@ run(void *cls,
 
 
 int
-main(int argc, char *argv[])
+main (int argc, char *argv[])
 {
   const char *plugin_name;
   char *cfg_name;
 
-  SETUP_CFG(plugin_name, cfg_name);
+  SETUP_CFG (plugin_name, cfg_name);
   res = 1;
   if (0 !=
-      GNUNET_TESTING_peer_run("test-namestore-api",
-                              cfg_name,
-                              &run,
-                              NULL))
-    {
-      res = 1;
-    }
-  GNUNET_DISK_purge_cfg_dir(cfg_name,
-                            "GNUNET_TEST_HOME");
-  GNUNET_free(cfg_name);
+      GNUNET_TESTING_peer_run ("test-namestore-api",
+                               cfg_name,
+                               &run,
+                               NULL))
+  {
+    res = 1;
+  }
+  GNUNET_DISK_purge_cfg_dir (cfg_name,
+                             "GNUNET_TEST_HOME");
+  GNUNET_free (cfg_name);
   return res;
 }
 

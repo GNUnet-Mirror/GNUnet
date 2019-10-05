@@ -32,7 +32,8 @@
 /**
  * Internal data structure for a block group.
  */
-struct BfGroupInternals {
+struct BfGroupInternals
+{
   /**
    * A Bloom filter to weed out duplicate replies probabilistically.
    */
@@ -61,24 +62,24 @@ struct BfGroupInternals {
  *         supported, #GNUNET_SYSERR on error
  */
 static int
-bf_group_serialize_cb(struct GNUNET_BLOCK_Group *bg,
-                      uint32_t *nonce,
-                      void **raw_data,
-                      size_t *raw_data_size)
+bf_group_serialize_cb (struct GNUNET_BLOCK_Group *bg,
+                       uint32_t *nonce,
+                       void **raw_data,
+                       size_t *raw_data_size)
 {
   struct BfGroupInternals *gi = bg->internal_cls;
   char *raw;
 
-  raw = GNUNET_malloc(gi->bf_size);
+  raw = GNUNET_malloc (gi->bf_size);
   if (GNUNET_OK !=
-      GNUNET_CONTAINER_bloomfilter_get_raw_data(gi->bf,
-                                                raw,
-                                                gi->bf_size))
-    {
-      GNUNET_free(raw);
-      GNUNET_break(0);
-      return GNUNET_SYSERR;
-    }
+      GNUNET_CONTAINER_bloomfilter_get_raw_data (gi->bf,
+                                                 raw,
+                                                 gi->bf_size))
+  {
+    GNUNET_free (raw);
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
   *nonce = gi->bf_mutator;
   *raw_data = raw;
   *raw_data_size = gi->bf_size;
@@ -95,22 +96,22 @@ bf_group_serialize_cb(struct GNUNET_BLOCK_Group *bg,
  * @param seen_results_count number of entries in @a seen_results
  */
 static void
-bf_group_mark_seen_cb(struct GNUNET_BLOCK_Group *bg,
-                      const struct GNUNET_HashCode *seen_results,
-                      unsigned int seen_results_count)
+bf_group_mark_seen_cb (struct GNUNET_BLOCK_Group *bg,
+                       const struct GNUNET_HashCode *seen_results,
+                       unsigned int seen_results_count)
 {
   struct BfGroupInternals *gi = bg->internal_cls;
 
   for (unsigned int i = 0; i < seen_results_count; i++)
-    {
-      struct GNUNET_HashCode mhash;
+  {
+    struct GNUNET_HashCode mhash;
 
-      GNUNET_BLOCK_mingle_hash(&seen_results[i],
-                               gi->bf_mutator,
-                               &mhash);
-      GNUNET_CONTAINER_bloomfilter_add(gi->bf,
-                                       &mhash);
-    }
+    GNUNET_BLOCK_mingle_hash (&seen_results[i],
+                              gi->bf_mutator,
+                              &mhash);
+    GNUNET_CONTAINER_bloomfilter_add (gi->bf,
+                                      &mhash);
+  }
 }
 
 
@@ -124,8 +125,8 @@ bf_group_mark_seen_cb(struct GNUNET_BLOCK_Group *bg,
  *         we failed.
  */
 static int
-bf_group_merge_cb(struct GNUNET_BLOCK_Group *bg1,
-                  const struct GNUNET_BLOCK_Group *bg2)
+bf_group_merge_cb (struct GNUNET_BLOCK_Group *bg1,
+                   const struct GNUNET_BLOCK_Group *bg2)
 {
   struct BfGroupInternals *gi1 = bg1->internal_cls;
   struct BfGroupInternals *gi2 = bg2->internal_cls;
@@ -134,8 +135,8 @@ bf_group_merge_cb(struct GNUNET_BLOCK_Group *bg1,
     return GNUNET_NO;
   if (gi1->bf_size != gi2->bf_size)
     return GNUNET_NO;
-  GNUNET_CONTAINER_bloomfilter_or2(gi1->bf,
-                                   gi2->bf);
+  GNUNET_CONTAINER_bloomfilter_or2 (gi1->bf,
+                                    gi2->bf);
   return GNUNET_OK;
 }
 
@@ -146,13 +147,13 @@ bf_group_merge_cb(struct GNUNET_BLOCK_Group *bg1,
  * @param bg group to destroy, NULL is allowed
  */
 static void
-bf_group_destroy_cb(struct GNUNET_BLOCK_Group *bg)
+bf_group_destroy_cb (struct GNUNET_BLOCK_Group *bg)
 {
   struct BfGroupInternals *gi = bg->internal_cls;
 
-  GNUNET_CONTAINER_bloomfilter_free(gi->bf);
-  GNUNET_free(gi);
-  GNUNET_free(bg);
+  GNUNET_CONTAINER_bloomfilter_free (gi->bf);
+  GNUNET_free (gi);
+  GNUNET_free (bg);
 }
 
 
@@ -170,24 +171,25 @@ bf_group_destroy_cb(struct GNUNET_BLOCK_Group *bg)
  *         by this @a type of block (this is not an error)
  */
 struct GNUNET_BLOCK_Group *
-GNUNET_BLOCK_GROUP_bf_create(void *cls,
-                             size_t bf_size,
-                             unsigned int bf_k,
-                             enum GNUNET_BLOCK_Type type,
-                             uint32_t nonce,
-                             const void *raw_data,
-                             size_t raw_data_size)
+GNUNET_BLOCK_GROUP_bf_create (void *cls,
+                              size_t bf_size,
+                              unsigned int bf_k,
+                              enum GNUNET_BLOCK_Type type,
+                              uint32_t nonce,
+                              const void *raw_data,
+                              size_t raw_data_size)
 {
   struct BfGroupInternals *gi;
   struct GNUNET_BLOCK_Group *bg;
 
-  gi = GNUNET_new(struct BfGroupInternals);
-  gi->bf = GNUNET_CONTAINER_bloomfilter_init((bf_size != raw_data_size) ? NULL : raw_data,
-                                             bf_size,
-                                             bf_k);
+  gi = GNUNET_new (struct BfGroupInternals);
+  gi->bf = GNUNET_CONTAINER_bloomfilter_init ((bf_size != raw_data_size) ?
+                                              NULL : raw_data,
+                                              bf_size,
+                                              bf_k);
   gi->bf_mutator = nonce;
   gi->bf_size = bf_size;
-  bg = GNUNET_new(struct GNUNET_BLOCK_Group);
+  bg = GNUNET_new (struct GNUNET_BLOCK_Group);
   bg->type = type;
   bg->serialize_cb = &bf_group_serialize_cb;
   bg->mark_seen_cb = &bf_group_mark_seen_cb;
@@ -209,8 +211,8 @@ GNUNET_BLOCK_GROUP_bf_create(void *cls,
  *         #GNUNET_NO if @a hc was definitively not in @bg (but now is)
  */
 int
-GNUNET_BLOCK_GROUP_bf_test_and_set(struct GNUNET_BLOCK_Group *bg,
-                                   const struct GNUNET_HashCode *hc)
+GNUNET_BLOCK_GROUP_bf_test_and_set (struct GNUNET_BLOCK_Group *bg,
+                                    const struct GNUNET_HashCode *hc)
 {
   struct BfGroupInternals *gi;
   struct GNUNET_HashCode mhash;
@@ -218,15 +220,15 @@ GNUNET_BLOCK_GROUP_bf_test_and_set(struct GNUNET_BLOCK_Group *bg,
   if (NULL == bg)
     return GNUNET_NO;
   gi = bg->internal_cls;
-  GNUNET_BLOCK_mingle_hash(hc,
-                           gi->bf_mutator,
-                           &mhash);
+  GNUNET_BLOCK_mingle_hash (hc,
+                            gi->bf_mutator,
+                            &mhash);
   if (GNUNET_YES ==
-      GNUNET_CONTAINER_bloomfilter_test(gi->bf,
-                                        &mhash))
+      GNUNET_CONTAINER_bloomfilter_test (gi->bf,
+                                         &mhash))
     return GNUNET_YES;
-  GNUNET_CONTAINER_bloomfilter_add(gi->bf,
-                                   &mhash);
+  GNUNET_CONTAINER_bloomfilter_add (gi->bf,
+                                    &mhash);
   return GNUNET_NO;
 }
 
@@ -245,8 +247,8 @@ GNUNET_BLOCK_GROUP_bf_test_and_set(struct GNUNET_BLOCK_Group *bg,
  * @return must be a power of two and smaller or equal to 2^15.
  */
 size_t
-GNUNET_BLOCK_GROUP_compute_bloomfilter_size(unsigned int entry_count,
-                                            unsigned int k)
+GNUNET_BLOCK_GROUP_compute_bloomfilter_size (unsigned int entry_count,
+                                             unsigned int k)
 {
   size_t size;
   unsigned int ideal = (entry_count * k) / 4;

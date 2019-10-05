@@ -45,7 +45,8 @@ extern "C"
 /**
  * @brief struct returned by the initialization function of the plugin
  */
-struct GNUNET_REST_Plugin {
+struct GNUNET_REST_Plugin
+{
   /**
    *
    * The closure of the plugin

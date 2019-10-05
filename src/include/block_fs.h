@@ -47,7 +47,8 @@ GNUNET_NETWORK_STRUCT_BEGIN
 /**
  * @brief universal block for keyword and namespace search results
  */
-struct UBlock {
+struct UBlock
+{
   /**
    * Signature using pseudonym and search keyword / identifier.
    */
@@ -78,7 +79,8 @@ struct UBlock {
  *        can be obtained directly from reading
  *        the plaintext file)
  */
-struct OnDemandBlock {
+struct OnDemandBlock
+{
   /**
    * Hash code of the entire content of the
    * file that was indexed (used to uniquely

@@ -36,7 +36,8 @@ GNUNET_NETWORK_STRUCT_BEGIN
 /**
  * ATS performance characteristics for an address.
  */
-struct PropertiesNBO {
+struct PropertiesNBO
+{
   /**
    * Delay.  Time between when the time packet is sent and the packet
    * arrives.  FOREVER if we did not (successfully) measure yet.
@@ -106,7 +107,8 @@ struct PropertiesNBO {
  * Application client to ATS service: we would like to have
  * address suggestions for this peer.
  */
-struct ExpressPreferenceMessage {
+struct ExpressPreferenceMessage
+{
   /**
    * Type is #GNUNET_MESSAGE_TYPE_ATS_SUGGEST or
    * #GNUNET_MESSAGE_TYPE_ATS_SUGGEST_CANCEL to stop
@@ -135,7 +137,8 @@ struct ExpressPreferenceMessage {
 /**
  * Transport client to ATS service: here is another session you can use.
  */
-struct SessionAddMessage {
+struct SessionAddMessage
+{
   /**
    * Type is #GNUNET_MESSAGE_TYPE_ATS_SESSION_ADD or
    * #GNUNET_MESSAGE_TYPE_ATS_SESSION_ADD_INBOUND_ONLY
@@ -168,7 +171,8 @@ struct SessionAddMessage {
  * Message used to notify ATS that the performance
  * characteristics for an session have changed.
  */
-struct SessionUpdateMessage {
+struct SessionUpdateMessage
+{
   /**
    * Message of type #GNUNET_MESSAGE_TYPE_ATS_SESSION_UPDATE.
    */
@@ -198,7 +202,8 @@ struct SessionUpdateMessage {
  * was destroyed and must thus henceforth no longer be considered
  * for scheduling.
  */
-struct SessionDelMessage {
+struct SessionDelMessage
+{
   /**
    * Type is #GNUNET_MESSAGE_TYPE_ATS_SESSION_DEL.
    */
@@ -223,7 +228,8 @@ struct SessionDelMessage {
  * identified by the given @e session_id for the given @e peer with
  * the given @e bandwidth_in and @e bandwidth_out limits from now on.
  */
-struct SessionAllocationMessage {
+struct SessionAllocationMessage
+{
   /**
    * A message of type #GNUNET_MESSAGE_TYPE_ATS_SESSION_ALLOCATION.
    */
@@ -258,7 +264,8 @@ struct SessionAllocationMessage {
  * ATS Service suggests to the transport service to try the address
  * for the given @e peer.
  */
-struct AddressSuggestionMessage {
+struct AddressSuggestionMessage
+{
   /**
    * A message of type #GNUNET_MESSAGE_TYPE_ATS_ADDRESS_SUGGESTION.
    */

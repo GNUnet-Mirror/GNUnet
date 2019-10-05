@@ -41,7 +41,8 @@ GNUNET_NETWORK_STRUCT_BEGIN
  * just the recommended "generic" style, communicators are always free
  * to implement original designs that better fit their requirements.
  */
-struct GNUNET_TRANSPORT_CommunicatorGenericKXConfirmation {
+struct GNUNET_TRANSPORT_CommunicatorGenericKXConfirmation
+{
   /**
    * Type is #GNUNET_MESSAGE_TYPE_TRANSPORT_COMMUNICATOR_KX_CONFIRMATION
    */
@@ -88,7 +89,8 @@ struct GNUNET_TRANSPORT_CommunicatorGenericKXConfirmation {
  * free to implement original designs that better fit their
  * requirements.
  */
-struct GNUNET_TRANSPORT_CommunicatorGenericFCLimits {
+struct GNUNET_TRANSPORT_CommunicatorGenericFCLimits
+{
   /**
    * Type is #GNUNET_MESSAGE_TYPE_TRANSPORT_COMMUNICATOR_FC_LIMITS
    */

@@ -34,7 +34,8 @@
 /**
  * Context for #GNUNET_FS_get_indexed_files().
  */
-struct GNUNET_FS_GetIndexedContext {
+struct GNUNET_FS_GetIndexedContext
+{
   /**
    * Connection to the FS service.
    */
@@ -70,15 +71,15 @@ struct GNUNET_FS_GetIndexedContext {
  * @param msg message with indexing information
  */
 static void
-handle_index_info_end(void *cls,
-                      const struct GNUNET_MessageHeader *msg)
+handle_index_info_end (void *cls,
+                       const struct GNUNET_MessageHeader *msg)
 {
   struct GNUNET_FS_GetIndexedContext *gic = cls;
 
-  (void)gic->iterator(gic->iterator_cls,
-                      NULL,
-                      NULL);
-  GNUNET_FS_get_indexed_files_cancel(gic);
+  (void) gic->iterator (gic->iterator_cls,
+                        NULL,
+                        NULL);
+  GNUNET_FS_get_indexed_files_cancel (gic);
 }
 
 
@@ -90,18 +91,18 @@ handle_index_info_end(void *cls,
  * @param iim message with indexing information
  */
 static int
-check_index_info(void *cls,
-                 const struct IndexInfoMessage *iim)
+check_index_info (void *cls,
+                  const struct IndexInfoMessage *iim)
 {
-  uint16_t msize = ntohs(iim->header.size) - sizeof(*iim);
+  uint16_t msize = ntohs (iim->header.size) - sizeof(*iim);
   const char *filename;
 
-  filename = (const char *)&iim[1];
+  filename = (const char *) &iim[1];
   if (filename[msize - 1] != '\0')
-    {
-      GNUNET_break(0);
-      return GNUNET_SYSERR;
-    }
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
   return GNUNET_OK;
 }
 
@@ -114,21 +115,21 @@ check_index_info(void *cls,
  * @param iim message with indexing information
  */
 static void
-handle_index_info(void *cls,
-                  const struct IndexInfoMessage *iim)
+handle_index_info (void *cls,
+                   const struct IndexInfoMessage *iim)
 {
   struct GNUNET_FS_GetIndexedContext *gic = cls;
   const char *filename;
 
-  filename = (const char *)&iim[1];
+  filename = (const char *) &iim[1];
   if (GNUNET_OK !=
-      gic->iterator(gic->iterator_cls,
-                    filename,
-                    &iim->file_id))
-    {
-      GNUNET_FS_get_indexed_files_cancel(gic);
-      return;
-    }
+      gic->iterator (gic->iterator_cls,
+                     filename,
+                     &iim->file_id))
+  {
+    GNUNET_FS_get_indexed_files_cancel (gic);
+    return;
+  }
 }
 
 
@@ -141,16 +142,16 @@ handle_index_info(void *cls,
  * @param error error code
  */
 static void
-mq_error_handler(void *cls,
-                 enum GNUNET_MQ_Error error)
+mq_error_handler (void *cls,
+                  enum GNUNET_MQ_Error error)
 {
   struct GNUNET_FS_GetIndexedContext *gic = cls;
 
-  GNUNET_log(GNUNET_ERROR_TYPE_WARNING,
-             _("Failed to receive response from `%s' service.\n"),
-             "fs");
-  (void)gic->iterator(gic->iterator_cls, NULL, NULL);
-  GNUNET_FS_get_indexed_files_cancel(gic);
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+              _ ("Failed to receive response from `%s' service.\n"),
+              "fs");
+  (void) gic->iterator (gic->iterator_cls, NULL, NULL);
+  GNUNET_FS_get_indexed_files_cancel (gic);
 }
 
 
@@ -163,45 +164,45 @@ mq_error_handler(void *cls,
  * @return NULL on error ('iter' is not called)
  */
 struct GNUNET_FS_GetIndexedContext *
-GNUNET_FS_get_indexed_files(struct GNUNET_FS_Handle *h,
-                            GNUNET_FS_IndexedFileProcessor iterator,
-                            void *iterator_cls)
+GNUNET_FS_get_indexed_files (struct GNUNET_FS_Handle *h,
+                             GNUNET_FS_IndexedFileProcessor iterator,
+                             void *iterator_cls)
 {
   struct GNUNET_FS_GetIndexedContext *gic
-    = GNUNET_new(struct GNUNET_FS_GetIndexedContext);
+    = GNUNET_new (struct GNUNET_FS_GetIndexedContext);
   struct GNUNET_MQ_MessageHandler handlers[] = {
-    GNUNET_MQ_hd_fixed_size(index_info_end,
-                            GNUNET_MESSAGE_TYPE_FS_INDEX_LIST_END,
-                            struct GNUNET_MessageHeader,
-                            gic),
-    GNUNET_MQ_hd_var_size(index_info,
-                          GNUNET_MESSAGE_TYPE_FS_INDEX_LIST_ENTRY,
-                          struct IndexInfoMessage,
-                          gic),
-    GNUNET_MQ_handler_end()
+    GNUNET_MQ_hd_fixed_size (index_info_end,
+                             GNUNET_MESSAGE_TYPE_FS_INDEX_LIST_END,
+                             struct GNUNET_MessageHeader,
+                             gic),
+    GNUNET_MQ_hd_var_size (index_info,
+                           GNUNET_MESSAGE_TYPE_FS_INDEX_LIST_ENTRY,
+                           struct IndexInfoMessage,
+                           gic),
+    GNUNET_MQ_handler_end ()
   };
   struct GNUNET_MQ_Envelope *env;
   struct GNUNET_MessageHeader *msg;
 
-  gic->mq = GNUNET_CLIENT_connect(h->cfg,
-                                  "fs",
-                                  handlers,
-                                  &mq_error_handler,
-                                  h);
+  gic->mq = GNUNET_CLIENT_connect (h->cfg,
+                                   "fs",
+                                   handlers,
+                                   &mq_error_handler,
+                                   h);
   if (NULL == gic->mq)
-    {
-      GNUNET_log(GNUNET_ERROR_TYPE_WARNING,
-                 _("Failed to not connect to `%s' service.\n"),
-                 "fs");
-      GNUNET_free(gic);
-      return NULL;
-    }
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                _ ("Failed to not connect to `%s' service.\n"),
+                "fs");
+    GNUNET_free (gic);
+    return NULL;
+  }
   gic->iterator = iterator;
   gic->iterator_cls = iterator_cls;
-  env = GNUNET_MQ_msg(msg,
-                      GNUNET_MESSAGE_TYPE_FS_INDEX_LIST_GET);
-  GNUNET_MQ_send(gic->mq,
-                 env);
+  env = GNUNET_MQ_msg (msg,
+                       GNUNET_MESSAGE_TYPE_FS_INDEX_LIST_GET);
+  GNUNET_MQ_send (gic->mq,
+                  env);
   return gic;
 }
 
@@ -212,10 +213,10 @@ GNUNET_FS_get_indexed_files(struct GNUNET_FS_Handle *h,
  * @param gic operation to cancel
  */
 void
-GNUNET_FS_get_indexed_files_cancel(struct GNUNET_FS_GetIndexedContext *gic)
+GNUNET_FS_get_indexed_files_cancel (struct GNUNET_FS_GetIndexedContext *gic)
 {
-  GNUNET_MQ_destroy(gic->mq);
-  GNUNET_free(gic);
+  GNUNET_MQ_destroy (gic->mq);
+  GNUNET_free (gic);
 }
 
 

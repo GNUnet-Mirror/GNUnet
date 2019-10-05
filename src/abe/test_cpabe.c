@@ -30,7 +30,7 @@
 #define TESTSTRING "Hello World!"
 
 static int
-testAbecipher()
+testAbecipher ()
 {
   struct GNUNET_ABE_AbeMasterKey *msk;
   struct GNUNET_ABE_AbeKey *key;
@@ -39,49 +39,49 @@ testAbecipher()
   int size;
   char *res;
 
-  msk = GNUNET_ABE_cpabe_create_master_key();
-  size = GNUNET_ABE_cpabe_encrypt(TESTSTRING, strlen(TESTSTRING) + 1,
-                                  "testattr",     //Policy
-                                  msk,
-                                  (void*)&result);
-  GNUNET_assert(-1 != size);
-  attrs = GNUNET_malloc(2 * sizeof(char*));
+  msk = GNUNET_ABE_cpabe_create_master_key ();
+  size = GNUNET_ABE_cpabe_encrypt (TESTSTRING, strlen (TESTSTRING) + 1,
+                                   "testattr",    // Policy
+                                   msk,
+                                   (void*) &result);
+  GNUNET_assert (-1 != size);
+  attrs = GNUNET_malloc (2 * sizeof(char*));
   attrs[0] = "testattr";
   attrs[1] = NULL;
-  key = GNUNET_ABE_cpabe_create_key(msk,
-                                    attrs);
+  key = GNUNET_ABE_cpabe_create_key (msk,
+                                     attrs);
 
-  size = GNUNET_ABE_cpabe_decrypt(result, size,
-                                  key,
-                                  (void*)&res);
-  if (strlen(TESTSTRING) + 1 != size)
-    {
-      printf("abeciphertest failed: decryptBlock returned %d\n", size);
-      return 1;
-    }
-  if (0 != strcmp(res, TESTSTRING))
-    {
-      printf("abeciphertest failed: %s != %s\n", res, TESTSTRING);
-      return 1;
-    }
+  size = GNUNET_ABE_cpabe_decrypt (result, size,
+                                   key,
+                                   (void*) &res);
+  if (strlen (TESTSTRING) + 1 != size)
+  {
+    printf ("abeciphertest failed: decryptBlock returned %d\n", size);
+    return 1;
+  }
+  if (0 != strcmp (res, TESTSTRING))
+  {
+    printf ("abeciphertest failed: %s != %s\n", res, TESTSTRING);
+    return 1;
+  }
   else
     return 0;
 }
 
 
 int
-main(int argc, char *argv[])
+main (int argc, char *argv[])
 {
   int failureCount = 0;
 
-  GNUNET_log_setup("test-crypto-abe", "WARNING", NULL);
-  failureCount += testAbecipher();
+  GNUNET_log_setup ("test-crypto-abe", "WARNING", NULL);
+  failureCount += testAbecipher ();
 
   if (failureCount != 0)
-    {
-      printf("%d TESTS FAILED!\n", failureCount);
-      return -1;
-    }
+  {
+    printf ("%d TESTS FAILED!\n", failureCount);
+    return -1;
+  }
   return 0;
 }
 

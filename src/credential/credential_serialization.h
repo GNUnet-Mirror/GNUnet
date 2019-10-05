@@ -42,8 +42,9 @@
  * @return the required size to serialize
  */
 size_t
-GNUNET_CREDENTIAL_delegation_set_get_size(unsigned int ds_count,
-                                          const struct GNUNET_CREDENTIAL_DelegationSet *dsr);
+GNUNET_CREDENTIAL_delegation_set_get_size (unsigned int ds_count,
+                                           const struct
+                                           GNUNET_CREDENTIAL_DelegationSet *dsr);
 
 /**
  * Serizalize the given delegation record entries
@@ -55,10 +56,11 @@ GNUNET_CREDENTIAL_delegation_set_get_size(unsigned int ds_count,
  * @return the size of the data, -1 on failure
  */
 ssize_t
-GNUNET_CREDENTIAL_delegation_set_serialize(unsigned int d_count,
-                                           const struct GNUNET_CREDENTIAL_DelegationSet *dsr,
-                                           size_t dest_size,
-                                           char *dest);
+GNUNET_CREDENTIAL_delegation_set_serialize (unsigned int d_count,
+                                            const struct
+                                            GNUNET_CREDENTIAL_DelegationSet *dsr,
+                                            size_t dest_size,
+                                            char *dest);
 
 
 /**
@@ -71,10 +73,12 @@ GNUNET_CREDENTIAL_delegation_set_serialize(unsigned int d_count,
  * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
  */
 int
-GNUNET_CREDENTIAL_delegation_set_deserialize(size_t len,
-                                             const char *src,
-                                             unsigned int d_count,
-                                             struct GNUNET_CREDENTIAL_DelegationSet *dsr);
+GNUNET_CREDENTIAL_delegation_set_deserialize (size_t len,
+                                              const char *src,
+                                              unsigned int d_count,
+                                              struct
+                                              GNUNET_CREDENTIAL_DelegationSet *
+                                              dsr);
 
 /**
  * Calculate how many bytes we will need to serialize
@@ -87,10 +91,12 @@ GNUNET_CREDENTIAL_delegation_set_deserialize(size_t len,
  * @return the required size to serialize
  */
 size_t
-GNUNET_CREDENTIAL_delegation_chain_get_size(unsigned int d_count,
-                                            const struct GNUNET_CREDENTIAL_Delegation *dd,
-                                            unsigned int c_count,
-                                            const struct GNUNET_CREDENTIAL_Credential *cd);
+GNUNET_CREDENTIAL_delegation_chain_get_size (unsigned int d_count,
+                                             const struct
+                                             GNUNET_CREDENTIAL_Delegation *dd,
+                                             unsigned int c_count,
+                                             const struct
+                                             GNUNET_CREDENTIAL_Credential *cd);
 
 /**
  * Serizalize the given delegation chain entries and credential
@@ -104,12 +110,14 @@ GNUNET_CREDENTIAL_delegation_chain_get_size(unsigned int d_count,
  * @return the size of the data, -1 on failure
  */
 ssize_t
-GNUNET_CREDENTIAL_delegation_chain_serialize(unsigned int d_count,
-                                             const struct GNUNET_CREDENTIAL_Delegation *dd,
-                                             unsigned int c_count,
-                                             const struct GNUNET_CREDENTIAL_Credential *cd,
-                                             size_t dest_size,
-                                             char *dest);
+GNUNET_CREDENTIAL_delegation_chain_serialize (unsigned int d_count,
+                                              const struct
+                                              GNUNET_CREDENTIAL_Delegation *dd,
+                                              unsigned int c_count,
+                                              const struct
+                                              GNUNET_CREDENTIAL_Credential *cd,
+                                              size_t dest_size,
+                                              char *dest);
 
 
 /**
@@ -124,36 +132,42 @@ GNUNET_CREDENTIAL_delegation_chain_serialize(unsigned int d_count,
  * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
  */
 int
-GNUNET_CREDENTIAL_delegation_chain_deserialize(size_t len,
-                                               const char *src,
-                                               unsigned int d_count,
-                                               struct GNUNET_CREDENTIAL_Delegation *dd,
-                                               unsigned int c_count,
-                                               struct GNUNET_CREDENTIAL_Credential *cd);
+GNUNET_CREDENTIAL_delegation_chain_deserialize (size_t len,
+                                                const char *src,
+                                                unsigned int d_count,
+                                                struct
+                                                GNUNET_CREDENTIAL_Delegation *dd,
+                                                unsigned int c_count,
+                                                struct
+                                                GNUNET_CREDENTIAL_Credential *cd);
 size_t
-GNUNET_CREDENTIAL_credentials_get_size(unsigned int c_count,
-                                       const struct GNUNET_CREDENTIAL_Credential *cd);
+GNUNET_CREDENTIAL_credentials_get_size (unsigned int c_count,
+                                        const struct
+                                        GNUNET_CREDENTIAL_Credential *cd);
 
 ssize_t
-GNUNET_CREDENTIAL_credentials_serialize(unsigned int c_count,
-                                        const struct GNUNET_CREDENTIAL_Credential *cd,
-                                        size_t dest_size,
-                                        char *dest);
+GNUNET_CREDENTIAL_credentials_serialize (unsigned int c_count,
+                                         const struct
+                                         GNUNET_CREDENTIAL_Credential *cd,
+                                         size_t dest_size,
+                                         char *dest);
 
 
 int
-GNUNET_CREDENTIAL_credentials_deserialize(size_t len,
-                                          const char *src,
-                                          unsigned int c_count,
-                                          struct GNUNET_CREDENTIAL_Credential *cd);
+GNUNET_CREDENTIAL_credentials_deserialize (size_t len,
+                                           const char *src,
+                                           unsigned int c_count,
+                                           struct GNUNET_CREDENTIAL_Credential *
+                                           cd);
 
 
 int
-GNUNET_CREDENTIAL_credential_serialize(struct GNUNET_CREDENTIAL_Credential *cred,
-                                       char **data);
+GNUNET_CREDENTIAL_credential_serialize (struct
+                                        GNUNET_CREDENTIAL_Credential *cred,
+                                        char **data);
 
 struct GNUNET_CREDENTIAL_Credential*
-GNUNET_CREDENTIAL_credential_deserialize(const char* data,
-                                         size_t data_size);
+GNUNET_CREDENTIAL_credential_deserialize (const char*data,
+                                          size_t data_size);
 #endif
 /* end of credential_serialization.h */

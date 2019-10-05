@@ -82,12 +82,12 @@ static double agedIOLoad = -1;
  */
 struct GNUNET_BIO_WriteHandle *bw;
 
-struct GNUNET_SCHEDULER_Task * sample_load_task_id;
+struct GNUNET_SCHEDULER_Task *sample_load_task_id;
 
 
 #ifdef OSX
 static int
-initMachCpuStats()
+initMachCpuStats ()
 {
   unsigned int cpu_count;
   processor_cpu_load_info_t cpu_load;
@@ -95,27 +95,27 @@ initMachCpuStats()
   kern_return_t kret;
   int i, j;
 
-  kret = host_processor_info(mach_host_self(),
-                             PROCESSOR_CPU_LOAD_INFO,
-                             &cpu_count,
-                             (processor_info_array_t *)&cpu_load,
-                             &cpu_msg_count);
+  kret = host_processor_info (mach_host_self (),
+                              PROCESSOR_CPU_LOAD_INFO,
+                              &cpu_count,
+                              (processor_info_array_t *) &cpu_load,
+                              &cpu_msg_count);
   if (kret != KERN_SUCCESS)
-    {
-      GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "host_processor_info failed.");
-      return GNUNET_SYSERR;
-    }
-  prev_cpu_load = GNUNET_malloc(cpu_count * sizeof(*prev_cpu_load));
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "host_processor_info failed.");
+    return GNUNET_SYSERR;
+  }
+  prev_cpu_load = GNUNET_malloc (cpu_count * sizeof(*prev_cpu_load));
   for (i = 0; i < cpu_count; i++)
+  {
+    for (j = 0; j < CPU_STATE_MAX; j++)
     {
-      for (j = 0; j < CPU_STATE_MAX; j++)
-        {
-          prev_cpu_load[i].cpu_ticks[j] = cpu_load[i].cpu_ticks[j];
-        }
+      prev_cpu_load[i].cpu_ticks[j] = cpu_load[i].cpu_ticks[j];
     }
-  vm_deallocate(mach_task_self(),
-                (vm_address_t)cpu_load,
-                (vm_size_t)(cpu_msg_count * sizeof(*cpu_load)));
+  }
+  vm_deallocate (mach_task_self (),
+                 (vm_address_t) cpu_load,
+                 (vm_size_t) (cpu_msg_count * sizeof(*cpu_load)));
   return GNUNET_OK;
 }
 #endif
@@ -127,7 +127,7 @@ initMachCpuStats()
  * If there is an error the method returns -1.
  */
 static int
-updateUsage()
+updateUsage ()
 {
   currentIOLoad = -1;
   currentCPULoad = -1;
@@ -136,69 +136,69 @@ updateUsage()
      if that does not work, disable /proc/stat for the future
      by closing the file and use the next-best method. */
   if (proc_stat != NULL)
-    {
-      static unsigned long long last_cpu_results[5] = { 0, 0, 0, 0, 0 };
-      static int have_last_cpu = GNUNET_NO;
-      int ret;
-      char line[256];
-      unsigned long long user_read, system_read, nice_read, idle_read,
-                         iowait_read;
-      unsigned long long user, system, nice, idle, iowait;
-      unsigned long long usage_time = 0, total_time = 1;
+  {
+    static unsigned long long last_cpu_results[5] = { 0, 0, 0, 0, 0 };
+    static int have_last_cpu = GNUNET_NO;
+    int ret;
+    char line[256];
+    unsigned long long user_read, system_read, nice_read, idle_read,
+                       iowait_read;
+    unsigned long long user, system, nice, idle, iowait;
+    unsigned long long usage_time = 0, total_time = 1;
 
-      /* Get the first line with the data */
-      rewind(proc_stat);
-      fflush(proc_stat);
-      if (NULL == fgets(line, 256, proc_stat))
-        {
-          GNUNET_log_strerror_file(GNUNET_ERROR_TYPE_WARNING,
-                                   "fgets", "/proc/stat");
-          proc_stat = NULL;     /* don't try again */
-        }
-      else
-        {
-          iowait_read = 0;
-          ret = sscanf(line, "%*s %llu %llu %llu %llu %llu",
-                       &user_read,
-                       &system_read, &nice_read, &idle_read, &iowait_read);
-          if (ret < 4)
-            {
-              GNUNET_log_strerror_file(GNUNET_ERROR_TYPE_WARNING,
-                                       "fgets-sscanf", "/proc/stat");
-              fclose(proc_stat);
-              proc_stat = NULL; /* don't try again */
-              have_last_cpu = GNUNET_NO;
-            }
-          else
-            {
-              /* Store the current usage */
-              user = user_read - last_cpu_results[0];
-              system = system_read - last_cpu_results[1];
-              nice = nice_read - last_cpu_results[2];
-              idle = idle_read - last_cpu_results[3];
-              iowait = iowait_read - last_cpu_results[4];
-              /* Calculate the % usage */
-              usage_time = user + system + nice;
-              total_time = usage_time + idle + iowait;
-              if ((total_time > 0) && (have_last_cpu == GNUNET_YES))
-                {
-                  currentCPULoad = (int)(100L * usage_time / total_time);
-                  if (ret > 4)
-                    currentIOLoad = (int)(100L * iowait / total_time);
-                  else
-                    currentIOLoad = -1; /* 2.4 kernel */
-                }
-              /* Store the values for the next calculation */
-              last_cpu_results[0] = user_read;
-              last_cpu_results[1] = system_read;
-              last_cpu_results[2] = nice_read;
-              last_cpu_results[3] = idle_read;
-              last_cpu_results[4] = iowait_read;
-              have_last_cpu = GNUNET_YES;
-              return GNUNET_OK;
-            }
-        }
+    /* Get the first line with the data */
+    rewind (proc_stat);
+    fflush (proc_stat);
+    if (NULL == fgets (line, 256, proc_stat))
+    {
+      GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING,
+                                "fgets", "/proc/stat");
+      proc_stat = NULL;         /* don't try again */
     }
+    else
+    {
+      iowait_read = 0;
+      ret = sscanf (line, "%*s %llu %llu %llu %llu %llu",
+                    &user_read,
+                    &system_read, &nice_read, &idle_read, &iowait_read);
+      if (ret < 4)
+      {
+        GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING,
+                                  "fgets-sscanf", "/proc/stat");
+        fclose (proc_stat);
+        proc_stat = NULL;       /* don't try again */
+        have_last_cpu = GNUNET_NO;
+      }
+      else
+      {
+        /* Store the current usage */
+        user = user_read - last_cpu_results[0];
+        system = system_read - last_cpu_results[1];
+        nice = nice_read - last_cpu_results[2];
+        idle = idle_read - last_cpu_results[3];
+        iowait = iowait_read - last_cpu_results[4];
+        /* Calculate the % usage */
+        usage_time = user + system + nice;
+        total_time = usage_time + idle + iowait;
+        if ((total_time > 0) && (have_last_cpu == GNUNET_YES))
+        {
+          currentCPULoad = (int) (100L * usage_time / total_time);
+          if (ret > 4)
+            currentIOLoad = (int) (100L * iowait / total_time);
+          else
+            currentIOLoad = -1;         /* 2.4 kernel */
+        }
+        /* Store the values for the next calculation */
+        last_cpu_results[0] = user_read;
+        last_cpu_results[1] = system_read;
+        last_cpu_results[2] = nice_read;
+        last_cpu_results[3] = idle_read;
+        last_cpu_results[4] = iowait_read;
+        have_last_cpu = GNUNET_YES;
+        return GNUNET_OK;
+      }
+    }
+  }
 #endif
 
 #ifdef OSX
@@ -212,91 +212,91 @@ updateUsage()
     int i, j;
 
     t_idle_all = t_total_all = 0;
-    kret = host_processor_info(mach_host_self(), PROCESSOR_CPU_LOAD_INFO,
-                               &cpu_count,
-                               (processor_info_array_t *)&cpu_load,
-                               &cpu_msg_count);
+    kret = host_processor_info (mach_host_self (), PROCESSOR_CPU_LOAD_INFO,
+                                &cpu_count,
+                                (processor_info_array_t *) &cpu_load,
+                                &cpu_msg_count);
     if (kret == KERN_SUCCESS)
+    {
+      for (i = 0; i < cpu_count; i++)
       {
-        for (i = 0; i < cpu_count; i++)
-          {
-            if (cpu_load[i].cpu_ticks[CPU_STATE_SYSTEM] >=
-                prev_cpu_load[i].cpu_ticks[CPU_STATE_SYSTEM])
-              {
-                t_sys = cpu_load[i].cpu_ticks[CPU_STATE_SYSTEM] -
-                        prev_cpu_load[i].cpu_ticks[CPU_STATE_SYSTEM];
-              }
-            else
-              {
-                t_sys = cpu_load[i].cpu_ticks[CPU_STATE_SYSTEM] +
-                        (ULONG_MAX - prev_cpu_load[i].cpu_ticks[CPU_STATE_SYSTEM] +
-                         1);
-              }
-
-            if (cpu_load[i].cpu_ticks[CPU_STATE_USER] >=
-                prev_cpu_load[i].cpu_ticks[CPU_STATE_USER])
-              {
-                t_user = cpu_load[i].cpu_ticks[CPU_STATE_USER] -
-                         prev_cpu_load[i].cpu_ticks[CPU_STATE_USER];
-              }
-            else
-              {
-                t_user = cpu_load[i].cpu_ticks[CPU_STATE_USER] +
-                         (ULONG_MAX - prev_cpu_load[i].cpu_ticks[CPU_STATE_USER] +
-                          1);
-              }
-
-            if (cpu_load[i].cpu_ticks[CPU_STATE_NICE] >=
-                prev_cpu_load[i].cpu_ticks[CPU_STATE_NICE])
-              {
-                t_nice = cpu_load[i].cpu_ticks[CPU_STATE_NICE] -
-                         prev_cpu_load[i].cpu_ticks[CPU_STATE_NICE];
-              }
-            else
-              {
-                t_nice = cpu_load[i].cpu_ticks[CPU_STATE_NICE] +
-                         (ULONG_MAX - prev_cpu_load[i].cpu_ticks[CPU_STATE_NICE] +
-                          1);
-              }
-
-            if (cpu_load[i].cpu_ticks[CPU_STATE_IDLE] >=
-                prev_cpu_load[i].cpu_ticks[CPU_STATE_IDLE])
-              {
-                t_idle = cpu_load[i].cpu_ticks[CPU_STATE_IDLE] -
-                         prev_cpu_load[i].cpu_ticks[CPU_STATE_IDLE];
-              }
-            else
-              {
-                t_idle = cpu_load[i].cpu_ticks[CPU_STATE_IDLE] +
-                         (ULONG_MAX - prev_cpu_load[i].cpu_ticks[CPU_STATE_IDLE] +
-                          1);
-              }
-            t_total = t_sys + t_user + t_nice + t_idle;
-            t_idle_all += t_idle;
-            t_total_all += t_total;
-          }
-        for (i = 0; i < cpu_count; i++)
-          {
-            for (j = 0; j < CPU_STATE_MAX; j++)
-              {
-                prev_cpu_load[i].cpu_ticks[j] = cpu_load[i].cpu_ticks[j];
-              }
-          }
-        if (t_total_all > 0)
-          currentCPULoad = 100 - (100 * t_idle_all) / t_total_all;
+        if (cpu_load[i].cpu_ticks[CPU_STATE_SYSTEM] >=
+            prev_cpu_load[i].cpu_ticks[CPU_STATE_SYSTEM])
+        {
+          t_sys = cpu_load[i].cpu_ticks[CPU_STATE_SYSTEM]
+                  - prev_cpu_load[i].cpu_ticks[CPU_STATE_SYSTEM];
+        }
         else
-          currentCPULoad = -1;
-        vm_deallocate(mach_task_self(),
-                      (vm_address_t)cpu_load,
-                      (vm_size_t)(cpu_msg_count * sizeof(*cpu_load)));
-        currentIOLoad = -1;     /* FIXME-OSX! */
-        return GNUNET_OK;
+        {
+          t_sys = cpu_load[i].cpu_ticks[CPU_STATE_SYSTEM]
+                  + (ULONG_MAX - prev_cpu_load[i].cpu_ticks[CPU_STATE_SYSTEM]
+                     + 1);
+        }
+
+        if (cpu_load[i].cpu_ticks[CPU_STATE_USER] >=
+            prev_cpu_load[i].cpu_ticks[CPU_STATE_USER])
+        {
+          t_user = cpu_load[i].cpu_ticks[CPU_STATE_USER]
+                   - prev_cpu_load[i].cpu_ticks[CPU_STATE_USER];
+        }
+        else
+        {
+          t_user = cpu_load[i].cpu_ticks[CPU_STATE_USER]
+                   + (ULONG_MAX - prev_cpu_load[i].cpu_ticks[CPU_STATE_USER]
+                      + 1);
+        }
+
+        if (cpu_load[i].cpu_ticks[CPU_STATE_NICE] >=
+            prev_cpu_load[i].cpu_ticks[CPU_STATE_NICE])
+        {
+          t_nice = cpu_load[i].cpu_ticks[CPU_STATE_NICE]
+                   - prev_cpu_load[i].cpu_ticks[CPU_STATE_NICE];
+        }
+        else
+        {
+          t_nice = cpu_load[i].cpu_ticks[CPU_STATE_NICE]
+                   + (ULONG_MAX - prev_cpu_load[i].cpu_ticks[CPU_STATE_NICE]
+                      + 1);
+        }
+
+        if (cpu_load[i].cpu_ticks[CPU_STATE_IDLE] >=
+            prev_cpu_load[i].cpu_ticks[CPU_STATE_IDLE])
+        {
+          t_idle = cpu_load[i].cpu_ticks[CPU_STATE_IDLE]
+                   - prev_cpu_load[i].cpu_ticks[CPU_STATE_IDLE];
+        }
+        else
+        {
+          t_idle = cpu_load[i].cpu_ticks[CPU_STATE_IDLE]
+                   + (ULONG_MAX - prev_cpu_load[i].cpu_ticks[CPU_STATE_IDLE]
+                      + 1);
+        }
+        t_total = t_sys + t_user + t_nice + t_idle;
+        t_idle_all += t_idle;
+        t_total_all += t_total;
       }
-    else
+      for (i = 0; i < cpu_count; i++)
       {
-        GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "host_processor_info failed.");
-        return GNUNET_SYSERR;
+        for (j = 0; j < CPU_STATE_MAX; j++)
+        {
+          prev_cpu_load[i].cpu_ticks[j] = cpu_load[i].cpu_ticks[j];
+        }
       }
+      if (t_total_all > 0)
+        currentCPULoad = 100 - (100 * t_idle_all) / t_total_all;
+      else
+        currentCPULoad = -1;
+      vm_deallocate (mach_task_self (),
+                     (vm_address_t) cpu_load,
+                     (vm_size_t) (cpu_msg_count * sizeof(*cpu_load)));
+      currentIOLoad = -1;       /* FIXME-OSX! */
+      return GNUNET_OK;
+    }
+    else
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "host_processor_info failed.");
+      return GNUNET_SYSERR;
+    }
   }
 #endif
   /* try kstat (Solaris only) */
@@ -315,48 +315,48 @@ updateUsage()
 
     if (kstat_once == 1)
       goto ABORT_KSTAT;
-    kc = kstat_open();
+    kc = kstat_open ();
     if (kc == NULL)
-      {
-        GNUNET_log_strerror(GNUNET_ERROR_TYPE_WARNING, "kstat_close");
-        goto ABORT_KSTAT;
-      }
+    {
+      GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kstat_close");
+      goto ABORT_KSTAT;
+    }
 
     idlecount = 0;
     totalcount = 0;
     for (khelper = kc->kc_chain; khelper != NULL; khelper = khelper->ks_next)
-      {
-        cpu_stat_t stats;
+    {
+      cpu_stat_t stats;
 
-        if (0 != strncmp(khelper->ks_name, "cpu_stat", strlen("cpu_stat")))
-          continue;
-        if (khelper->ks_data_size > sizeof(cpu_stat_t))
-          continue;             /* better save then sorry! */
-        if (-1 != kstat_read(kc, khelper, &stats))
-          {
-            idlecount += stats.cpu_sysinfo.cpu[CPU_IDLE];
-            totalcount
-              += stats.cpu_sysinfo.cpu[CPU_IDLE] +
-                 stats.cpu_sysinfo.cpu[CPU_USER] +
-                 stats.cpu_sysinfo.cpu[CPU_KERNEL] +
-                 stats.cpu_sysinfo.cpu[CPU_WAIT];
-          }
+      if (0 != strncmp (khelper->ks_name, "cpu_stat", strlen ("cpu_stat")))
+        continue;
+      if (khelper->ks_data_size > sizeof(cpu_stat_t))
+        continue;               /* better save then sorry! */
+      if (-1 != kstat_read (kc, khelper, &stats))
+      {
+        idlecount += stats.cpu_sysinfo.cpu[CPU_IDLE];
+        totalcount
+          += stats.cpu_sysinfo.cpu[CPU_IDLE]
+             + stats.cpu_sysinfo.cpu[CPU_USER]
+             + stats.cpu_sysinfo.cpu[CPU_KERNEL]
+             + stats.cpu_sysinfo.cpu[CPU_WAIT];
       }
-    if (0 != kstat_close(kc))
-      GNUNET_log_strerror(GNUNET_ERROR_TYPE_WARNING, "kstat_close");
+    }
+    if (0 != kstat_close (kc))
+      GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kstat_close");
     if ((idlecount == 0) && (totalcount == 0))
       goto ABORT_KSTAT;         /* no stats found => abort */
     deltaidle = idlecount - last_idlecount;
     deltatotal = totalcount - last_totalcount;
     if ((deltatotal > 0) && (last_totalcount > 0))
-      {
-        currentCPULoad = (unsigned int)(100.0 * deltaidle / deltatotal);
-        if (currentCPULoad > 100)
-          currentCPULoad = 100; /* odd */
-        if (currentCPULoad < 0)
-          currentCPULoad = 0;   /* odd */
-        currentCPULoad = 100 - currentCPULoad;  /* computed idle-load before! */
-      }
+    {
+      currentCPULoad = (unsigned int) (100.0 * deltaidle / deltatotal);
+      if (currentCPULoad > 100)
+        currentCPULoad = 100;   /* odd */
+      if (currentCPULoad < 0)
+        currentCPULoad = 0;     /* odd */
+      currentCPULoad = 100 - currentCPULoad;    /* computed idle-load before! */
+    }
     else
       currentCPULoad = -1;
     currentIOLoad = -1;         /* FIXME-SOLARIS! */
@@ -377,24 +377,24 @@ ABORT_KSTAT:
   {
     static int warnOnce = 0;
     double loadavg;
-    if (1 != getloadavg(&loadavg, 1))
+    if (1 != getloadavg (&loadavg, 1))
+    {
+      /* only warn once, if there is a problem with
+         getloadavg, we're going to hit it frequently... */
+      if (warnOnce == 0)
       {
-        /* only warn once, if there is a problem with
-           getloadavg, we're going to hit it frequently... */
-        if (warnOnce == 0)
-          {
-            warnOnce = 1;
-            GNUNET_log_strerror(GNUNET_ERROR_TYPE_WARNING, "getloadavg");
-          }
-        return GNUNET_SYSERR;
+        warnOnce = 1;
+        GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "getloadavg");
       }
+      return GNUNET_SYSERR;
+    }
     else
-      {
-        /* success with getloadavg */
-        currentCPULoad = (int)(100 * loadavg);
-        currentIOLoad = -1;     /* FIXME */
-        return GNUNET_OK;
-      }
+    {
+      /* success with getloadavg */
+      currentCPULoad = (int) (100 * loadavg);
+      currentIOLoad = -1;       /* FIXME */
+      return GNUNET_OK;
+    }
   }
 #endif
 
@@ -412,56 +412,56 @@ ABORT_KSTAT:
  * that lock has already been obtained.
  */
 static void
-updateAgedLoad()
+updateAgedLoad ()
 {
   static struct GNUNET_TIME_Absolute lastCall;
   struct GNUNET_TIME_Relative age;
 
-  age = GNUNET_TIME_absolute_get_duration(lastCall);
+  age = GNUNET_TIME_absolute_get_duration (lastCall);
   if ((agedCPULoad == -1)
       || (age.rel_value_us > 500000))
+  {
+    /* use smoothing, but do NOT update lastRet at frequencies higher
+       than 500ms; this makes the smoothing (mostly) independent from
+       the frequency at which getCPULoad is called (and we don't spend
+       more time measuring CPU than actually computing something). */
+    lastCall = GNUNET_TIME_absolute_get ();
+    updateUsage ();
+    if (currentCPULoad == -1)
     {
-      /* use smoothing, but do NOT update lastRet at frequencies higher
-         than 500ms; this makes the smoothing (mostly) independent from
-         the frequency at which getCPULoad is called (and we don't spend
-         more time measuring CPU than actually computing something). */
-      lastCall = GNUNET_TIME_absolute_get();
-      updateUsage();
-      if (currentCPULoad == -1)
-        {
-          agedCPULoad = -1;
-        }
-      else
-        {
-          if (agedCPULoad == -1)
-            {
-              agedCPULoad = currentCPULoad;
-            }
-          else
-            {
-              /* for CPU, we don't do the 'fast increase' since CPU is much
-                 more jitterish to begin with */
-              agedCPULoad = (agedCPULoad * 31 + currentCPULoad) / 32;
-            }
-        }
-      if (currentIOLoad == -1)
-        {
-          agedIOLoad = -1;
-        }
-      else
-        {
-          if (agedIOLoad == -1)
-            {
-              agedIOLoad = currentIOLoad;
-            }
-          else
-            {
-              /* for IO, we don't do the 'fast increase' since IO is much
-                 more jitterish to begin with */
-              agedIOLoad = (agedIOLoad * 31 + currentIOLoad) / 32;
-            }
-        }
+      agedCPULoad = -1;
     }
+    else
+    {
+      if (agedCPULoad == -1)
+      {
+        agedCPULoad = currentCPULoad;
+      }
+      else
+      {
+        /* for CPU, we don't do the 'fast increase' since CPU is much
+           more jitterish to begin with */
+        agedCPULoad = (agedCPULoad * 31 + currentCPULoad) / 32;
+      }
+    }
+    if (currentIOLoad == -1)
+    {
+      agedIOLoad = -1;
+    }
+    else
+    {
+      if (agedIOLoad == -1)
+      {
+        agedIOLoad = currentIOLoad;
+      }
+      else
+      {
+        /* for IO, we don't do the 'fast increase' since IO is much
+           more jitterish to begin with */
+        agedIOLoad = (agedIOLoad * 31 + currentIOLoad) / 32;
+      }
+    }
+  }
 }
 
 /**
@@ -470,10 +470,10 @@ updateAgedLoad()
  *        (100 is equivalent to full load)
  */
 static int
-cpu_get_load()
+cpu_get_load ()
 {
-  updateAgedLoad();
-  return (int)agedCPULoad;
+  updateAgedLoad ();
+  return (int) agedCPULoad;
 }
 
 
@@ -483,10 +483,10 @@ cpu_get_load()
  *        (100 is equivalent to full load)
  */
 static int
-disk_get_load()
+disk_get_load ()
 {
-  updateAgedLoad();
-  return (int)agedIOLoad;
+  updateAgedLoad ();
+  return (int) agedIOLoad;
 }
 
 /**
@@ -495,13 +495,13 @@ disk_get_load()
  * @return the percentage of memory used
  */
 static unsigned int
-mem_get_usage()
+mem_get_usage ()
 {
   double percentage;
 
-  meminfo();
-  percentage = (((double)kb_main_used) / ((double)kb_main_total) * 100.0);
-  return (unsigned int)percentage;
+  meminfo ();
+  percentage = (((double) kb_main_used) / ((double) kb_main_total) * 100.0);
+  return (unsigned int) percentage;
 }
 
 
@@ -513,29 +513,29 @@ mem_get_usage()
  * @return the number of processes
  */
 static unsigned int
-get_nproc()
+get_nproc ()
 {
   DIR *dir;
   struct dirent *ent;
   unsigned int nproc;
 
-  dir = opendir("/proc");
+  dir = opendir ("/proc");
   if (NULL == dir)
     return 0;
   nproc = 0;
-  while (NULL != (ent = readdir(dir)))
-    {
-      if ((*ent->d_name > '0') && (*ent->d_name <= '9'))
-        nproc++;
-    }
-  closedir(dir);
+  while (NULL != (ent = readdir (dir)))
+  {
+    if ((*ent->d_name > '0') && (*ent->d_name <= '9'))
+      nproc++;
+  }
+  closedir (dir);
   return nproc;
 }
 #endif
 
 
 static void
-sample_load_task(void *cls)
+sample_load_task (void *cls)
 {
   struct GNUNET_TIME_Absolute now;
   char *str;
@@ -546,31 +546,32 @@ sample_load_task(void *cls)
   unsigned int nproc;
 
   sample_load_task_id = NULL;
-  ld_cpu = cpu_get_load();
-  ld_disk = disk_get_load();
+  ld_cpu = cpu_get_load ();
+  ld_disk = disk_get_load ();
   if ((-1 == ld_cpu) || (-1 == ld_disk))
     goto reschedule;
-  mem_usage = mem_get_usage();
+  mem_usage = mem_get_usage ();
 #ifdef LINUX
-  nproc = get_nproc();
+  nproc = get_nproc ();
 #else
   nproc = 0;
 #endif
-  now = GNUNET_TIME_absolute_get();
-  nbs = GNUNET_asprintf(&str, "%llu %d %d %u %u\n", now.abs_value_us / 1000LL / 1000LL,
-                        ld_cpu, ld_disk, mem_usage, nproc);
+  now = GNUNET_TIME_absolute_get ();
+  nbs = GNUNET_asprintf (&str, "%llu %d %d %u %u\n", now.abs_value_us / 1000LL
+                         / 1000LL,
+                         ld_cpu, ld_disk, mem_usage, nproc);
   if (0 < nbs)
-    {
-      GNUNET_BIO_write(bw, str, nbs);
-    }
+  {
+    GNUNET_BIO_write (bw, str, nbs);
+  }
   else
-    GNUNET_break(0);
-  GNUNET_free(str);
+    GNUNET_break (0);
+  GNUNET_free (str);
 
 reschedule:
   sample_load_task_id =
-    GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_UNIT_SECONDS,
-                                 &sample_load_task, NULL);
+    GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
+                                  &sample_load_task, NULL);
 }
 
 
@@ -580,7 +581,7 @@ reschedule:
  * generated from the hostname and the process's PID.
  */
 void
-GST_stats_init(const struct GNUNET_CONFIGURATION_Handle *cfg)
+GST_stats_init (const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   char *hostname;
   char *stats_dir;
@@ -588,42 +589,42 @@ GST_stats_init(const struct GNUNET_CONFIGURATION_Handle *cfg)
   size_t len;
 
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_filename(cfg, "testbed",
-                                              "STATS_DIR", &stats_dir))
+      GNUNET_CONFIGURATION_get_value_filename (cfg, "testbed",
+                                               "STATS_DIR", &stats_dir))
     return;
-  len = GNUNET_OS_get_hostname_max_length();
-  hostname = GNUNET_malloc(len);
-  if (0 != gethostname(hostname, len))
-    {
-      GNUNET_log_strerror(GNUNET_ERROR_TYPE_WARNING, "gethostname");
-      GNUNET_free(stats_dir);
-      GNUNET_free(hostname);
-      return;
-    }
+  len = GNUNET_OS_get_hostname_max_length ();
+  hostname = GNUNET_malloc (len);
+  if (0 != gethostname (hostname, len))
+  {
+    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "gethostname");
+    GNUNET_free (stats_dir);
+    GNUNET_free (hostname);
+    return;
+  }
   fn = NULL;
-  (void)GNUNET_asprintf(&fn, "%s/%.*s-%jd.dat", stats_dir, len,
-                        hostname, (intmax_t)getpid());
-  GNUNET_free(stats_dir);
-  GNUNET_free(hostname);
-  if (NULL == (bw = GNUNET_BIO_write_open(fn)))
-    {
-      GNUNET_log(GNUNET_ERROR_TYPE_WARNING,
-                 _("Cannot open %s for writing load statistics.  "
+  (void) GNUNET_asprintf (&fn, "%s/%.*s-%jd.dat", stats_dir, len,
+                          hostname, (intmax_t) getpid ());
+  GNUNET_free (stats_dir);
+  GNUNET_free (hostname);
+  if (NULL == (bw = GNUNET_BIO_write_open (fn)))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                _ ("Cannot open %s for writing load statistics.  "
                    "Not logging load statistics\n"), fn);
-      GNUNET_free(fn);
-      return;
-    }
-  GNUNET_free(fn);
-  sample_load_task_id = GNUNET_SCHEDULER_add_now(&sample_load_task, NULL);
+    GNUNET_free (fn);
+    return;
+  }
+  GNUNET_free (fn);
+  sample_load_task_id = GNUNET_SCHEDULER_add_now (&sample_load_task, NULL);
 #ifdef LINUX
-  proc_stat = fopen("/proc/stat", "r");
+  proc_stat = fopen ("/proc/stat", "r");
   if (NULL == proc_stat)
-    GNUNET_log_strerror_file(GNUNET_ERROR_TYPE_WARNING,
-                             "fopen", "/proc/stat");
+    GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING,
+                              "fopen", "/proc/stat");
 #elif OSX
-  initMachCpuStats();
+  initMachCpuStats ();
 #endif
-  updateUsage();                /* initialize */
+  updateUsage ();                /* initialize */
 }
 
 
@@ -631,25 +632,25 @@ GST_stats_init(const struct GNUNET_CONFIGURATION_Handle *cfg)
  * Shutdown the status calls module.
  */
 void
-GST_stats_destroy()
+GST_stats_destroy ()
 {
   if (NULL == bw)
     return;
 #ifdef LINUX
   if (proc_stat != NULL)
-    {
-      fclose(proc_stat);
-      proc_stat = NULL;
-    }
+  {
+    fclose (proc_stat);
+    proc_stat = NULL;
+  }
 #elif OSX
-  GNUNET_free_non_null(prev_cpu_load);
+  GNUNET_free_non_null (prev_cpu_load);
 #endif
   if (NULL != sample_load_task_id)
-    {
-      GNUNET_SCHEDULER_cancel(sample_load_task_id);
-      sample_load_task_id = NULL;
-    }
-  GNUNET_break(GNUNET_OK == GNUNET_BIO_write_close(bw));
+  {
+    GNUNET_SCHEDULER_cancel (sample_load_task_id);
+    sample_load_task_id = NULL;
+  }
+  GNUNET_break (GNUNET_OK == GNUNET_BIO_write_close (bw));
   bw = NULL;
 }
 

@@ -41,7 +41,8 @@
 /**
  * Enumeration of operations
  */
-enum OperationType {
+enum OperationType
+{
   /**
    * Peer create operation
    */
@@ -108,7 +109,8 @@ enum OperationType {
 /**
  * Enumeration of states of OperationContext
  */
-enum OperationContextState {
+enum OperationContextState
+{
   /**
    * The initial state where the associated operation has just been created
    * and is waiting in the operation queues to be started
@@ -132,7 +134,8 @@ enum OperationContextState {
 /**
  * Context information for GNUNET_TESTBED_Operation
  */
-struct OperationContext {
+struct OperationContext
+{
   /**
    * The controller to which this operation context belongs to
    */
@@ -188,7 +191,8 @@ typedef void
  * controllers can interact with each other (in a P2P fashion); those
  * links are established via TCP/IP on the controller's service port.
  */
-struct GNUNET_TESTBED_Controller {
+struct GNUNET_TESTBED_Controller
+{
   /**
    * The host where the controller is running
    */
@@ -271,7 +275,8 @@ struct GNUNET_TESTBED_Controller {
 /**
  * Handle for barrier
  */
-struct GNUNET_TESTBED_Barrier {
+struct GNUNET_TESTBED_Barrier
+{
   /**
    * hashcode identifying this barrier in the hashmap
    */
@@ -313,8 +318,8 @@ struct GNUNET_TESTBED_Barrier {
  * @deprecated
  */
 void
-GNUNET_TESTBED_queue_message_(struct GNUNET_TESTBED_Controller *controller,
-                              struct GNUNET_MessageHeader *msg);
+GNUNET_TESTBED_queue_message_ (struct GNUNET_TESTBED_Controller *controller,
+                               struct GNUNET_MessageHeader *msg);
 
 
 /**
@@ -326,8 +331,8 @@ GNUNET_TESTBED_queue_message_(struct GNUNET_TESTBED_Controller *controller,
  * @param opc the operation context to be inserted
  */
 void
-GNUNET_TESTBED_insert_opc_(struct GNUNET_TESTBED_Controller *c,
-                           struct OperationContext *opc);
+GNUNET_TESTBED_insert_opc_ (struct GNUNET_TESTBED_Controller *c,
+                            struct OperationContext *opc);
 
 
 /**
@@ -338,8 +343,8 @@ GNUNET_TESTBED_insert_opc_(struct GNUNET_TESTBED_Controller *c,
  * @param opc the operation context to remove
  */
 void
-GNUNET_TESTBED_remove_opc_(const struct GNUNET_TESTBED_Controller *c,
-                           struct OperationContext *opc);
+GNUNET_TESTBED_remove_opc_ (const struct GNUNET_TESTBED_Controller *c,
+                            struct OperationContext *opc);
 
 
 /**
@@ -352,9 +357,9 @@ GNUNET_TESTBED_remove_opc_(const struct GNUNET_TESTBED_Controller *c,
  * @return the size of the xconfig
  */
 size_t
-GNUNET_TESTBED_compress_config_(const char *config,
-                                size_t size,
-                                char **xconfig);
+GNUNET_TESTBED_compress_config_ (const char *config,
+                                 size_t size,
+                                 char **xconfig);
 
 
 /**
@@ -367,9 +372,9 @@ GNUNET_TESTBED_compress_config_(const char *config,
  * @return the serialized and compressed configuration
  */
 char *
-GNUNET_TESTBED_compress_cfg_(const struct GNUNET_CONFIGURATION_Handle *cfg,
-                             size_t *size,
-                             size_t *xsize);
+GNUNET_TESTBED_compress_cfg_ (const struct GNUNET_CONFIGURATION_Handle *cfg,
+                              size_t *size,
+                              size_t *xsize);
 
 
 /**
@@ -386,9 +391,10 @@ GNUNET_TESTBED_compress_cfg_(const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @return the initialization message
  */
 struct GNUNET_TESTBED_HelperInit *
-GNUNET_TESTBED_create_helper_init_msg_(const char *cname,
-                                       const char *hostname,
-                                       const struct GNUNET_CONFIGURATION_Handle *cfg);
+GNUNET_TESTBED_create_helper_init_msg_ (const char *cname,
+                                        const char *hostname,
+                                        const struct
+                                        GNUNET_CONFIGURATION_Handle *cfg);
 
 
 /**
@@ -406,11 +412,12 @@ GNUNET_TESTBED_create_helper_init_msg_(const char *cname,
  *           operation
  */
 struct OperationContext *
-GNUNET_TESTBED_forward_operation_msg_(struct GNUNET_TESTBED_Controller *controller,
-                                      uint64_t operation_id,
-                                      const struct GNUNET_MessageHeader *msg,
-                                      GNUNET_MQ_MessageCallback cc,
-                                      void *cc_cls);
+GNUNET_TESTBED_forward_operation_msg_ (struct
+                                       GNUNET_TESTBED_Controller *controller,
+                                       uint64_t operation_id,
+                                       const struct GNUNET_MessageHeader *msg,
+                                       GNUNET_MQ_MessageCallback cc,
+                                       void *cc_cls);
 
 /**
  * Function to cancel an operation created by simply forwarding an operation
@@ -419,7 +426,7 @@ GNUNET_TESTBED_forward_operation_msg_(struct GNUNET_TESTBED_Controller *controll
  * @param opc the operation context from GNUNET_TESTBED_forward_operation_msg_()
  */
 void
-GNUNET_TESTBED_forward_operation_msg_cancel_(struct OperationContext *opc);
+GNUNET_TESTBED_forward_operation_msg_cancel_ (struct OperationContext *opc);
 
 
 /**
@@ -432,7 +439,7 @@ GNUNET_TESTBED_forward_operation_msg_cancel_(struct OperationContext *opc);
  * @return handle to the parsed configuration
  */
 struct GNUNET_CONFIGURATION_Handle *
-GNUNET_TESTBED_extract_config_(const struct GNUNET_MessageHeader *msg);
+GNUNET_TESTBED_extract_config_ (const struct GNUNET_MessageHeader *msg);
 
 
 /**
@@ -443,7 +450,9 @@ GNUNET_TESTBED_extract_config_(const struct GNUNET_MessageHeader *msg);
  * @return the error message
  */
 const char *
-GNUNET_TESTBED_parse_error_string_(const struct GNUNET_TESTBED_OperationFailureEventMessage *msg);
+GNUNET_TESTBED_parse_error_string_ (const struct
+                                    GNUNET_TESTBED_OperationFailureEventMessage
+                                    *msg);
 
 
 /**
@@ -454,7 +463,7 @@ GNUNET_TESTBED_parse_error_string_(const struct GNUNET_TESTBED_OperationFailureE
  * @return the incremented operation id.
  */
 uint64_t
-GNUNET_TESTBED_get_next_op_id(struct GNUNET_TESTBED_Controller *controller);
+GNUNET_TESTBED_get_next_op_id (struct GNUNET_TESTBED_Controller *controller);
 
 
 /**
@@ -470,9 +479,9 @@ GNUNET_TESTBED_get_next_op_id(struct GNUNET_TESTBED_Controller *controller);
  * @return the operation handle;
  */
 struct GNUNET_TESTBED_Operation *
-GNUNET_TESTBED_get_slave_config_(void *op_cls,
-                                 struct GNUNET_TESTBED_Controller *master,
-                                 uint32_t slave_host_id);
+GNUNET_TESTBED_get_slave_config_ (void *op_cls,
+                                  struct GNUNET_TESTBED_Controller *master,
+                                  uint32_t slave_host_id);
 
 
 
@@ -493,12 +502,12 @@ GNUNET_TESTBED_get_slave_config_(void *op_cls,
  * @return barrier handle; NULL upon error
  */
 struct GNUNET_TESTBED_Barrier *
-GNUNET_TESTBED_barrier_init_(struct GNUNET_TESTBED_Controller *controller,
-                             const char *name,
-                             unsigned int quorum,
-                             GNUNET_TESTBED_barrier_status_cb cb,
-                             void *cls,
-                             int echo);
+GNUNET_TESTBED_barrier_init_ (struct GNUNET_TESTBED_Controller *controller,
+                              const char *name,
+                              unsigned int quorum,
+                              GNUNET_TESTBED_barrier_status_cb cb,
+                              void *cls,
+                              int echo);
 
 
 /**
@@ -508,7 +517,7 @@ GNUNET_TESTBED_barrier_init_(struct GNUNET_TESTBED_Controller *controller,
  * @param barrier the barrier to remove
  */
 void
-GNUNET_TESTBED_barrier_remove_(struct GNUNET_TESTBED_Barrier *barrier);
+GNUNET_TESTBED_barrier_remove_ (struct GNUNET_TESTBED_Barrier *barrier);
 
 
 

@@ -28,7 +28,7 @@
 #include "plugin_transport_wlan.h"
 
 int
-main(int argc, char *argv[])
+main (int argc, char *argv[])
 {
   char msg_buf[65536];
   unsigned long long count;
@@ -40,75 +40,75 @@ main(int argc, char *argv[])
   int commpipe[2]; /* This holds the fd for the input & output of the pipe */
 
   if (2 != argc)
-    {
-      fprintf(stderr,
-              "This program must be started with the interface name as argument.\n");
-      fprintf(stderr,
-              "Usage: %s interface-name\n"
-              "e.g. %s mon0\n",
-              argv[0],
-              argv[0]);
-      return 1;
-    }
+  {
+    fprintf (stderr,
+             "This program must be started with the interface name as argument.\n");
+    fprintf (stderr,
+             "Usage: %s interface-name\n"
+             "e.g. %s mon0\n",
+             argv[0],
+             argv[0]);
+    return 1;
+  }
 
   /* Setup communication pipeline first */
-  if (pipe(commpipe))
-    {
-      fprintf(stderr, "Failed to create pipe: %s\n", strerror(errno));
-      exit(1);
-    }
+  if (pipe (commpipe))
+  {
+    fprintf (stderr, "Failed to create pipe: %s\n", strerror (errno));
+    exit (1);
+  }
 
   /* Attempt to fork and check for errors */
-  if ((pid = fork()) == -1)
-    {
-      fprintf(stderr, "Failed to fork: %s\n", strerror(errno));
-      exit(1);
-    }
+  if ((pid = fork ()) == -1)
+  {
+    fprintf (stderr, "Failed to fork: %s\n", strerror (errno));
+    exit (1);
+  }
 
   if (pid)
+  {
+    /* A positive (non-negative) PID indicates the parent process */
+    if (0 != close (commpipe[1]))  /* Close unused side of pipe (in side) */
+      fprintf (stderr, "Failed to close fd: %s\n", strerror (errno));
+    start = time (NULL);
+    count = 0;
+    while (1)
     {
-      /* A positive (non-negative) PID indicates the parent process */
-      if (0 != close(commpipe[1])) /* Close unused side of pipe (in side) */
-        fprintf(stderr, "Failed to close fd: %s\n", strerror(errno));
-      start = time(NULL);
-      count = 0;
-      while (1)
-        {
-          ret = read(commpipe[0], msg_buf, sizeof(msg_buf));
-          if (0 > ret)
-            {
-              fprintf(stderr, "read failed: %s\n", strerror(errno));
-              break;
-            }
-          count += ret;
-          akt = time(NULL);
-          if (akt - start > 30)
-            {
-              bytes_per_s = count / (akt - start);
-              bytes_per_s /= 1024;
-              printf("recv %f kb/s\n", bytes_per_s);
-              start = akt;
-              count = 0;
-            }
-        }
+      ret = read (commpipe[0], msg_buf, sizeof(msg_buf));
+      if (0 > ret)
+      {
+        fprintf (stderr, "read failed: %s\n", strerror (errno));
+        break;
+      }
+      count += ret;
+      akt = time (NULL);
+      if (akt - start > 30)
+      {
+        bytes_per_s = count / (akt - start);
+        bytes_per_s /= 1024;
+        printf ("recv %f kb/s\n", bytes_per_s);
+        start = akt;
+        count = 0;
+      }
     }
+  }
   else
+  {
+    /* A zero PID indicates that this is the child process */
+    (void) close (1);
+    if (-1 ==
+        dup2 (commpipe[1], 1))  /* Replace stdin with the in side of the pipe */
+      fprintf (stderr, "dup2 failed: %s\n", strerror (errno));
+    (void) close (commpipe[0]); /* Close unused side of pipe (in side) */
+    /* Replace the child fork with a new process */
+    if (execlp ("gnunet-helper-transport-wlan",
+                "gnunet-helper-transport-wlan",
+                argv[1],
+                NULL) == -1)
     {
-      /* A zero PID indicates that this is the child process */
-      (void)close(1);
-      if (-1 ==
-          dup2(commpipe[1], 1)) /* Replace stdin with the in side of the pipe */
-        fprintf(stderr, "dup2 failed: %s\n", strerror(errno));
-      (void)close(commpipe[0]); /* Close unused side of pipe (in side) */
-      /* Replace the child fork with a new process */
-      if (execlp("gnunet-helper-transport-wlan",
-                 "gnunet-helper-transport-wlan",
-                 argv[1],
-                 NULL) == -1)
-        {
-          fprintf(stderr, "Could not start gnunet-helper-transport-wlan!");
-          _exit(1);
-        }
+      fprintf (stderr, "Could not start gnunet-helper-transport-wlan!");
+      _exit (1);
     }
+  }
   return 0;
 }

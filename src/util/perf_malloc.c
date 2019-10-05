@@ -28,36 +28,37 @@
 #include <gauger.h>
 
 static uint64_t
-perfMalloc()
+perfMalloc ()
 {
   size_t i;
   uint64_t ret;
 
   ret = 0;
   for (i = 1; i < 1024 * 1024; i += 1024)
-    {
-      ret += i;
-      GNUNET_free(GNUNET_malloc(i));
-    }
+  {
+    ret += i;
+    GNUNET_free (GNUNET_malloc (i));
+  }
   return ret;
 }
 
 
 int
-main(int argc, char *argv[])
+main (int argc, char *argv[])
 {
   struct GNUNET_TIME_Absolute start;
   uint64_t kb;
 
-  start = GNUNET_TIME_absolute_get();
-  kb = perfMalloc();
-  printf("Malloc perf took %s\n",
-         GNUNET_STRINGS_relative_time_to_string(GNUNET_TIME_absolute_get_duration(start),
-                                                GNUNET_YES));
-  GAUGER("UTIL", "Allocation",
-         kb / 1024 / (1 +
-                      GNUNET_TIME_absolute_get_duration
-                        (start).rel_value_us / 1000LL), "kb/ms");
+  start = GNUNET_TIME_absolute_get ();
+  kb = perfMalloc ();
+  printf ("Malloc perf took %s\n",
+          GNUNET_STRINGS_relative_time_to_string (
+            GNUNET_TIME_absolute_get_duration (start),
+            GNUNET_YES));
+  GAUGER ("UTIL", "Allocation",
+          kb / 1024 / (1
+                       + GNUNET_TIME_absolute_get_duration
+                         (start).rel_value_us / 1000LL), "kb/ms");
   return 0;
 }
 

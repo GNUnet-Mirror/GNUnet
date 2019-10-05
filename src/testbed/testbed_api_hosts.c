@@ -42,24 +42,24 @@
 /**
  * Generic logging shorthand
  */
-#define LOG(kind, ...) GNUNET_log_from(kind, "testbed-api-hosts", __VA_ARGS__);
+#define LOG(kind, ...) GNUNET_log_from (kind, "testbed-api-hosts", __VA_ARGS__);
 
 /**
  * Debug logging shorthand
  */
-#define LOG_DEBUG(...) LOG(GNUNET_ERROR_TYPE_DEBUG, __VA_ARGS__);
+#define LOG_DEBUG(...) LOG (GNUNET_ERROR_TYPE_DEBUG, __VA_ARGS__);
 
 /**
  * Prints API violation message
  */
 #define API_VIOLATION(cond, errstr)                                        \
   do                                                                       \
-    {                                                                        \
-      if (cond)                                                              \
+  {                                                                        \
+    if (cond)                                                              \
       break;                                                               \
-      LOG (GNUNET_ERROR_TYPE_ERROR, "API violation detected: %s\n", errstr); \
-      GNUNET_assert(0);                                                     \
-    } while (0)
+    LOG (GNUNET_ERROR_TYPE_ERROR, "API violation detected: %s\n", errstr); \
+    GNUNET_assert (0);                                                     \
+  } while (0)
 
 /**
  * Log an error message at log-level 'level' that indicates a failure of the
@@ -67,14 +67,14 @@
  */
 #define LOG_GAI(level, cmd, rc)                       \
   do                                                  \
-    {                                                   \
-      LOG(level,                                       \
-          _("`%s' failed at %s:%d with error: %s\n"), \
-          cmd,                                         \
-          __FILE__,                                    \
-          __LINE__,                                    \
-          gai_strerror(rc));                          \
-    } while (0)
+  {                                                   \
+    LOG (level,                                       \
+         _ ("`%s' failed at %s:%d with error: %s\n"), \
+         cmd,                                         \
+         __FILE__,                                    \
+         __LINE__,                                    \
+         gai_strerror (rc));                          \
+  } while (0)
 
 /**
  * Number of extra elements we create space for when we grow host list
@@ -85,7 +85,8 @@
 /**
  * A list entry for registered controllers list
  */
-struct RegisteredController {
+struct RegisteredController
+{
   /**
    * The controller at which this host is registered
    */
@@ -108,7 +109,8 @@ struct RegisteredController {
  * The master process must be able to SSH to this host without password (via
  * ssh-agent).
  */
-struct GNUNET_TESTBED_Host {
+struct GNUNET_TESTBED_Host
+{
   /**
    * The hostname of the host; NULL for localhost
    */
@@ -184,7 +186,7 @@ static unsigned int host_list_size;
  * @return handle to the host, NULL if host not found
  */
 struct GNUNET_TESTBED_Host *
-GNUNET_TESTBED_host_lookup_by_id_(uint32_t id)
+GNUNET_TESTBED_host_lookup_by_id_ (uint32_t id)
 {
   if (host_list_size <= id)
     return NULL;
@@ -205,11 +207,11 @@ GNUNET_TESTBED_host_lookup_by_id_(uint32_t id)
  * @return handle to the host, NULL on error
  */
 struct GNUNET_TESTBED_Host *
-GNUNET_TESTBED_host_create_by_id_(
+GNUNET_TESTBED_host_create_by_id_ (
   uint32_t id,
   const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
-  return GNUNET_TESTBED_host_create_with_id(id, NULL, NULL, cfg, 0);
+  return GNUNET_TESTBED_host_create_with_id (id, NULL, NULL, cfg, 0);
 }
 
 
@@ -221,7 +223,7 @@ GNUNET_TESTBED_host_create_by_id_(
  *         'localhost', but then obviously not globally unique)
  */
 uint32_t
-GNUNET_TESTBED_host_get_id_(const struct GNUNET_TESTBED_Host *host)
+GNUNET_TESTBED_host_get_id_ (const struct GNUNET_TESTBED_Host *host)
 {
   return host->id;
 }
@@ -234,7 +236,7 @@ GNUNET_TESTBED_host_get_id_(const struct GNUNET_TESTBED_Host *host)
  * @return hostname of the host
  */
 const char *
-GNUNET_TESTBED_host_get_hostname(const struct GNUNET_TESTBED_Host *host)
+GNUNET_TESTBED_host_get_hostname (const struct GNUNET_TESTBED_Host *host)
 {
   return host->hostname;
 }
@@ -247,7 +249,7 @@ GNUNET_TESTBED_host_get_hostname(const struct GNUNET_TESTBED_Host *host)
  * @return username to login to the host
  */
 const char *
-GNUNET_TESTBED_host_get_username_(const struct GNUNET_TESTBED_Host *host)
+GNUNET_TESTBED_host_get_username_ (const struct GNUNET_TESTBED_Host *host)
 {
   return host->username;
 }
@@ -260,7 +262,7 @@ GNUNET_TESTBED_host_get_username_(const struct GNUNET_TESTBED_Host *host)
  * @return username to login to the host
  */
 uint16_t
-GNUNET_TESTBED_host_get_ssh_port_(const struct GNUNET_TESTBED_Host *host)
+GNUNET_TESTBED_host_get_ssh_port_ (const struct GNUNET_TESTBED_Host *host)
 {
   return host->port;
 }
@@ -273,7 +275,7 @@ GNUNET_TESTBED_host_get_ssh_port_(const struct GNUNET_TESTBED_Host *host)
  * @return GNUNET_YES if the controller is already started; GNUNET_NO if not
  */
 int
-GNUNET_TESTBED_host_controller_started(const struct GNUNET_TESTBED_Host *host)
+GNUNET_TESTBED_host_controller_started (const struct GNUNET_TESTBED_Host *host)
 {
   return host->controller_started;
 }
@@ -286,7 +288,7 @@ GNUNET_TESTBED_host_controller_started(const struct GNUNET_TESTBED_Host *host)
  * @return the host's configuration template
  */
 const struct GNUNET_CONFIGURATION_Handle *
-GNUNET_TESTBED_host_get_cfg_(const struct GNUNET_TESTBED_Host *host)
+GNUNET_TESTBED_host_get_cfg_ (const struct GNUNET_TESTBED_Host *host)
 {
   return host->cfg;
 }
@@ -299,12 +301,12 @@ GNUNET_TESTBED_host_get_cfg_(const struct GNUNET_TESTBED_Host *host)
  * @param new_cfg the new configuration to replace the old one
  */
 void
-GNUNET_TESTBED_host_replace_cfg_(
+GNUNET_TESTBED_host_replace_cfg_ (
   struct GNUNET_TESTBED_Host *host,
   const struct GNUNET_CONFIGURATION_Handle *new_cfg)
 {
-  GNUNET_CONFIGURATION_destroy(host->cfg);
-  host->cfg = GNUNET_CONFIGURATION_dup(new_cfg);
+  GNUNET_CONFIGURATION_destroy (host->cfg);
+  host->cfg = GNUNET_CONFIGURATION_dup (new_cfg);
 }
 
 
@@ -322,7 +324,7 @@ GNUNET_TESTBED_host_replace_cfg_(
  * @return handle to the host, NULL on error
  */
 struct GNUNET_TESTBED_Host *
-GNUNET_TESTBED_host_create_with_id(
+GNUNET_TESTBED_host_create_with_id (
   uint32_t id,
   const char *hostname,
   const char *username,
@@ -333,26 +335,26 @@ GNUNET_TESTBED_host_create_with_id(
   unsigned int new_size;
 
   if ((id < host_list_size) && (NULL != host_list[id]))
-    {
-      LOG(GNUNET_ERROR_TYPE_WARNING, "Host with id: %u already created\n", id);
-      return NULL;
-    }
-  host = GNUNET_new(struct GNUNET_TESTBED_Host);
-  host->hostname = (NULL != hostname) ? GNUNET_strdup(hostname) : NULL;
-  host->username = (NULL != username) ? GNUNET_strdup(username) : NULL;
+  {
+    LOG (GNUNET_ERROR_TYPE_WARNING, "Host with id: %u already created\n", id);
+    return NULL;
+  }
+  host = GNUNET_new (struct GNUNET_TESTBED_Host);
+  host->hostname = (NULL != hostname) ? GNUNET_strdup (hostname) : NULL;
+  host->username = (NULL != username) ? GNUNET_strdup (username) : NULL;
   host->id = id;
   host->port = (0 == port) ? 22 : port;
-  host->cfg = GNUNET_CONFIGURATION_dup(cfg);
+  host->cfg = GNUNET_CONFIGURATION_dup (cfg);
   host->opq_parallel_overlay_connect_operations =
-    GNUNET_TESTBED_operation_queue_create_(OPERATION_QUEUE_TYPE_ADAPTIVE,
-                                           UINT_MAX);
+    GNUNET_TESTBED_operation_queue_create_ (OPERATION_QUEUE_TYPE_ADAPTIVE,
+                                            UINT_MAX);
   new_size = host_list_size;
   while (id >= new_size)
     new_size += HOST_LIST_GROW_STEP;
   if (new_size != host_list_size)
-    GNUNET_array_grow(host_list, host_list_size, new_size);
-  GNUNET_assert(id < host_list_size);
-  LOG(GNUNET_ERROR_TYPE_DEBUG, "Adding host with id: %u\n", host->id);
+    GNUNET_array_grow (host_list, host_list_size, new_size);
+  GNUNET_assert (id < host_list_size);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Adding host with id: %u\n", host->id);
   host_list[id] = host;
   return host;
 }
@@ -370,24 +372,24 @@ GNUNET_TESTBED_host_create_with_id(
  * @return handle to the host, NULL on error
  */
 struct GNUNET_TESTBED_Host *
-GNUNET_TESTBED_host_create(const char *hostname,
-                           const char *username,
-                           const struct GNUNET_CONFIGURATION_Handle *cfg,
-                           uint16_t port)
+GNUNET_TESTBED_host_create (const char *hostname,
+                            const char *username,
+                            const struct GNUNET_CONFIGURATION_Handle *cfg,
+                            uint16_t port)
 {
   static uint32_t uid_generator;
 
   if (NULL == hostname)
-    return GNUNET_TESTBED_host_create_with_id(0,
-                                              hostname,
-                                              username,
-                                              cfg,
-                                              port);
-  return GNUNET_TESTBED_host_create_with_id(++uid_generator,
-                                            hostname,
-                                            username,
-                                            cfg,
-                                            port);
+    return GNUNET_TESTBED_host_create_with_id (0,
+                                               hostname,
+                                               username,
+                                               cfg,
+                                               port);
+  return GNUNET_TESTBED_host_create_with_id (++uid_generator,
+                                             hostname,
+                                             username,
+                                             cfg,
+                                             port);
 }
 
 
@@ -403,7 +405,7 @@ GNUNET_TESTBED_host_create(const char *hostname,
  * @return number of hosts returned in 'hosts', 0 on error
  */
 unsigned int
-GNUNET_TESTBED_hosts_load_from_file(
+GNUNET_TESTBED_hosts_load_from_file (
   const char *filename,
   const struct GNUNET_CONFIGURATION_Handle *cfg,
   struct GNUNET_TESTBED_Host ***hosts)
@@ -421,104 +423,104 @@ GNUNET_TESTBED_hosts_load_from_file(
   unsigned int count;
 
 
-  GNUNET_assert(NULL != filename);
-  if (GNUNET_YES != GNUNET_DISK_file_test(filename))
-    {
-      LOG(GNUNET_ERROR_TYPE_WARNING, _("Hosts file %s not found\n"), filename);
-      return 0;
-    }
+  GNUNET_assert (NULL != filename);
+  if (GNUNET_YES != GNUNET_DISK_file_test (filename))
+  {
+    LOG (GNUNET_ERROR_TYPE_WARNING, _ ("Hosts file %s not found\n"), filename);
+    return 0;
+  }
   if (GNUNET_OK !=
-      GNUNET_DISK_file_size(filename, &fs, GNUNET_YES, GNUNET_YES))
+      GNUNET_DISK_file_size (filename, &fs, GNUNET_YES, GNUNET_YES))
     fs = 0;
   if (0 == fs)
-    {
-      LOG(GNUNET_ERROR_TYPE_WARNING,
-          _("Hosts file %s has no data\n"),
-          filename);
-      return 0;
-    }
-  data = GNUNET_malloc(fs);
-  if (fs != GNUNET_DISK_fn_read(filename, data, fs))
-    {
-      GNUNET_free(data);
-      LOG(GNUNET_ERROR_TYPE_WARNING,
-          _("Hosts file %s cannot be read\n"),
-          filename);
-      return 0;
-    }
+  {
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+         _ ("Hosts file %s has no data\n"),
+         filename);
+    return 0;
+  }
+  data = GNUNET_malloc (fs);
+  if (fs != GNUNET_DISK_fn_read (filename, data, fs))
+  {
+    GNUNET_free (data);
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+         _ ("Hosts file %s cannot be read\n"),
+         filename);
+    return 0;
+  }
   buf = data;
   offset = 0;
   starting_host = NULL;
   count = 0;
   /* refer RFC 952 and RFC 1123 for valid hostnames */
-  GNUNET_assert(0 == regcomp(&rex,
-                             "^(([[:alnum:]]+)@)?"   /* username */
-                             "([[:alnum:]]+[-[:alnum:]_\\.]+)"   /* hostname */
-                             "(:([[:digit:]]{1,5}))?",   /* port */
-                             REG_EXTENDED | REG_ICASE));
+  GNUNET_assert (0 == regcomp (&rex,
+                               "^(([[:alnum:]]+)@)?" /* username */
+                               "([[:alnum:]]+[-[:alnum:]_\\.]+)" /* hostname */
+                               "(:([[:digit:]]{1,5}))?", /* port */
+                               REG_EXTENDED | REG_ICASE));
   while (offset < (fs - 1))
+  {
+    offset++;
+    if (((data[offset] == '\n')) && (buf != &data[offset]))
     {
-      offset++;
-      if (((data[offset] == '\n')) && (buf != &data[offset]))
-        {
-          unsigned int size;
+      unsigned int size;
 
-          data[offset] = '\0';
-          username = NULL;
-          hostname = NULL;
-          port = 0;
-          if ((REG_NOMATCH == regexec(&rex, buf, 6, pmatch, 0)) ||
-              (-1 == pmatch[3].rm_so))
-            {
-              GNUNET_log(GNUNET_ERROR_TYPE_WARNING,
-                         "Error reading line `%s' in hostfile\n",
-                         buf);
-              buf = &data[offset + 1];
-              continue;
-            }
-          if (-1 != pmatch[2].rm_so)
-            {
-              size = pmatch[2].rm_eo - pmatch[2].rm_so;
-              username = GNUNET_malloc(size + 1);
-              GNUNET_assert(
-                0 != GNUNET_strlcpy(username, buf + pmatch[2].rm_so, size + 1));
-            }
-          if (-1 != pmatch[5].rm_so)
-            {
-              (void)sscanf(buf + pmatch[5].rm_so, "%5hd", &port);
-            }
-          size = pmatch[3].rm_eo - pmatch[3].rm_so;
-          hostname = GNUNET_malloc(size + 1);
-          GNUNET_assert(
-            0 != GNUNET_strlcpy(hostname, buf + pmatch[3].rm_so, size + 1));
-          LOG(GNUNET_ERROR_TYPE_DEBUG,
-              "Successfully read host %s, port %d and user %s from file\n",
-              (NULL == hostname) ? "NULL" : hostname,
-              port,
-              (NULL == username) ? "NULL" : username);
-          /* We store hosts in a static list; hence we only require the starting
-           * host pointer in that list to access the newly created list of hosts */
-          if (NULL == starting_host)
-            starting_host =
-              GNUNET_TESTBED_host_create(hostname, username, cfg, port);
-          else
-            (void)GNUNET_TESTBED_host_create(hostname, username, cfg, port);
-          count++;
-          GNUNET_free_non_null(username);
-          GNUNET_free(hostname);
-          buf = &data[offset + 1];
-        }
-      else if ((data[offset] == '\n') || (data[offset] == '\0'))
+      data[offset] = '\0';
+      username = NULL;
+      hostname = NULL;
+      port = 0;
+      if ((REG_NOMATCH == regexec (&rex, buf, 6, pmatch, 0)) ||
+          (-1 == pmatch[3].rm_so))
+      {
+        GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                    "Error reading line `%s' in hostfile\n",
+                    buf);
         buf = &data[offset + 1];
+        continue;
+      }
+      if (-1 != pmatch[2].rm_so)
+      {
+        size = pmatch[2].rm_eo - pmatch[2].rm_so;
+        username = GNUNET_malloc (size + 1);
+        GNUNET_assert (
+          0 != GNUNET_strlcpy (username, buf + pmatch[2].rm_so, size + 1));
+      }
+      if (-1 != pmatch[5].rm_so)
+      {
+        (void) sscanf (buf + pmatch[5].rm_so, "%5hd", &port);
+      }
+      size = pmatch[3].rm_eo - pmatch[3].rm_so;
+      hostname = GNUNET_malloc (size + 1);
+      GNUNET_assert (
+        0 != GNUNET_strlcpy (hostname, buf + pmatch[3].rm_so, size + 1));
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
+           "Successfully read host %s, port %d and user %s from file\n",
+           (NULL == hostname) ? "NULL" : hostname,
+           port,
+           (NULL == username) ? "NULL" : username);
+      /* We store hosts in a static list; hence we only require the starting
+       * host pointer in that list to access the newly created list of hosts */
+      if (NULL == starting_host)
+        starting_host =
+          GNUNET_TESTBED_host_create (hostname, username, cfg, port);
+      else
+        (void) GNUNET_TESTBED_host_create (hostname, username, cfg, port);
+      count++;
+      GNUNET_free_non_null (username);
+      GNUNET_free (hostname);
+      buf = &data[offset + 1];
     }
-  regfree(&rex);
-  GNUNET_free(data);
+    else if ((data[offset] == '\n') || (data[offset] == '\0'))
+      buf = &data[offset + 1];
+  }
+  regfree (&rex);
+  GNUNET_free (data);
   if (NULL == starting_host)
     return 0;
-  *hosts = GNUNET_malloc(sizeof(struct GNUNET_TESTBED_Host *) * count);
-  GNUNET_memcpy(*hosts,
-                &host_list[GNUNET_TESTBED_host_get_id_(starting_host)],
-                sizeof(struct GNUNET_TESTBED_Host *) * count);
+  *hosts = GNUNET_malloc (sizeof(struct GNUNET_TESTBED_Host *) * count);
+  GNUNET_memcpy (*hosts,
+                 &host_list[GNUNET_TESTBED_host_get_id_ (starting_host)],
+                 sizeof(struct GNUNET_TESTBED_Host *) * count);
   return count;
 }
 
@@ -530,7 +532,7 @@ GNUNET_TESTBED_hosts_load_from_file(
  * @return the string representing the IPv4 address of the given host; NULL upon error
  */
 const char *
-simple_resolve(const char *host)
+simple_resolve (const char *host)
 {
   struct addrinfo *res;
   const struct sockaddr_in *in_addr;
@@ -547,20 +549,20 @@ simple_resolve(const char *host)
   hint.ai_next = NULL;
   hint.ai_flags = AI_NUMERICSERV;
   res = NULL;
-  LOG_DEBUG("Resolving [%s]\n", host);
-  if (0 != (rc = getaddrinfo(host, "22", &hint, &res)))
-    {
-      LOG_GAI(GNUNET_ERROR_TYPE_ERROR, "getaddrinfo", rc);
-      return NULL;
-    }
-  GNUNET_assert(NULL != res);
-  GNUNET_assert(NULL != res->ai_addr);
-  GNUNET_assert(sizeof(struct sockaddr_in) == res->ai_addrlen);
-  in_addr = (const struct sockaddr_in *)res->ai_addr;
-  hostip = inet_ntoa(in_addr->sin_addr);
-  GNUNET_assert(NULL != hostip);
-  freeaddrinfo(res);
-  LOG_DEBUG("Resolved [%s] to [%s]\n", host, hostip);
+  LOG_DEBUG ("Resolving [%s]\n", host);
+  if (0 != (rc = getaddrinfo (host, "22", &hint, &res)))
+  {
+    LOG_GAI (GNUNET_ERROR_TYPE_ERROR, "getaddrinfo", rc);
+    return NULL;
+  }
+  GNUNET_assert (NULL != res);
+  GNUNET_assert (NULL != res->ai_addr);
+  GNUNET_assert (sizeof(struct sockaddr_in) == res->ai_addrlen);
+  in_addr = (const struct sockaddr_in *) res->ai_addr;
+  hostip = inet_ntoa (in_addr->sin_addr);
+  GNUNET_assert (NULL != hostip);
+  freeaddrinfo (res);
+  LOG_DEBUG ("Resolved [%s] to [%s]\n", host, hostip);
   return hostip;
 }
 
@@ -578,24 +580,24 @@ simple_resolve(const char *host)
  * @return number of hosts returned in 'hosts', 0 on error
  */
 unsigned int
-GNUNET_TESTBED_hosts_load_from_loadleveler(
+GNUNET_TESTBED_hosts_load_from_loadleveler (
   const struct GNUNET_CONFIGURATION_Handle *cfg,
   struct GNUNET_TESTBED_Host ***hosts)
 {
-#if !ENABLE_SUPERMUC
-  LOG(GNUNET_ERROR_TYPE_ERROR,
-      _("The function %s is only available when compiled with (--with-ll)\n"),
-      __func__);
-  GNUNET_assert(0);
+#if ! ENABLE_SUPERMUC
+  LOG (GNUNET_ERROR_TYPE_ERROR,
+       _ ("The function %s is only available when compiled with (--with-ll)\n"),
+       __func__);
+  GNUNET_assert (0);
 #else
   const char *hostfile;
 
-  if (NULL == (hostfile = getenv("MP_SAVEHOSTFILE")))
-    {
-      GNUNET_break(0);
-      return 0;
-    }
-  return GNUNET_TESTBED_hosts_load_from_file(hostfile, cfg, hosts);
+  if (NULL == (hostfile = getenv ("MP_SAVEHOSTFILE")))
+  {
+    GNUNET_break (0);
+    return 0;
+  }
+  return GNUNET_TESTBED_hosts_load_from_file (hostfile, cfg, hosts);
 #endif
 }
 
@@ -607,41 +609,41 @@ GNUNET_TESTBED_hosts_load_from_loadleveler(
  * @param host handle to destroy
  */
 void
-GNUNET_TESTBED_host_destroy(struct GNUNET_TESTBED_Host *host)
+GNUNET_TESTBED_host_destroy (struct GNUNET_TESTBED_Host *host)
 {
   struct RegisteredController *rc;
   uint32_t id;
 
-  GNUNET_assert(host->id < host_list_size);
-  GNUNET_assert(host_list[host->id] == host);
+  GNUNET_assert (host->id < host_list_size);
+  GNUNET_assert (host_list[host->id] == host);
   host_list[host->id] = NULL;
   /* clear registered controllers list */
   for (rc = host->rc_head; NULL != rc; rc = host->rc_head)
-    {
-      GNUNET_CONTAINER_DLL_remove(host->rc_head, host->rc_tail, rc);
-      GNUNET_free(rc);
-    }
-  GNUNET_free_non_null((char *)host->username);
-  GNUNET_free_non_null((char *)host->hostname);
-  GNUNET_TESTBED_operation_queue_destroy_(
+  {
+    GNUNET_CONTAINER_DLL_remove (host->rc_head, host->rc_tail, rc);
+    GNUNET_free (rc);
+  }
+  GNUNET_free_non_null ((char *) host->username);
+  GNUNET_free_non_null ((char *) host->hostname);
+  GNUNET_TESTBED_operation_queue_destroy_ (
     host->opq_parallel_overlay_connect_operations);
-  GNUNET_CONFIGURATION_destroy(host->cfg);
-  GNUNET_free(host);
+  GNUNET_CONFIGURATION_destroy (host->cfg);
+  GNUNET_free (host);
   while (host_list_size >= HOST_LIST_GROW_STEP)
-    {
-      for (id = host_list_size - 1; id > host_list_size - HOST_LIST_GROW_STEP;
-           id--)
-        if (NULL != host_list[id])
-          break;
-      if (id != host_list_size - HOST_LIST_GROW_STEP)
-        break;
+  {
+    for (id = host_list_size - 1; id > host_list_size - HOST_LIST_GROW_STEP;
+         id--)
       if (NULL != host_list[id])
         break;
-      host_list_size -= HOST_LIST_GROW_STEP;
-    }
+    if (id != host_list_size - HOST_LIST_GROW_STEP)
+      break;
+    if (NULL != host_list[id])
+      break;
+    host_list_size -= HOST_LIST_GROW_STEP;
+  }
   host_list =
-    GNUNET_realloc(host_list,
-                   sizeof(struct GNUNET_TESTBED_Host *) * host_list_size);
+    GNUNET_realloc (host_list,
+                    sizeof(struct GNUNET_TESTBED_Host *) * host_list_size);
 }
 
 
@@ -652,23 +654,23 @@ GNUNET_TESTBED_host_destroy(struct GNUNET_TESTBED_Host *host)
  * @param controller the controller at which this host is registered
  */
 void
-GNUNET_TESTBED_mark_host_registered_at_(
+GNUNET_TESTBED_mark_host_registered_at_ (
   struct GNUNET_TESTBED_Host *host,
   const struct GNUNET_TESTBED_Controller *const controller)
 {
   struct RegisteredController *rc;
 
   for (rc = host->rc_head; NULL != rc; rc = rc->next)
+  {
+    if (controller == rc->controller)   /* already registered at controller */
     {
-      if (controller == rc->controller) /* already registered at controller */
-        {
-          GNUNET_break(0);
-          return;
-        }
+      GNUNET_break (0);
+      return;
     }
-  rc = GNUNET_new(struct RegisteredController);
+  }
+  rc = GNUNET_new (struct RegisteredController);
   rc->controller = controller;
-  GNUNET_CONTAINER_DLL_insert_tail(host->rc_head, host->rc_tail, rc);
+  GNUNET_CONTAINER_DLL_insert_tail (host->rc_head, host->rc_tail, rc);
 }
 
 
@@ -679,7 +681,7 @@ GNUNET_TESTBED_mark_host_registered_at_(
  * @param controller the controller at which this host has to be unmarked
  */
 void
-GNUNET_TESTBED_deregister_host_at_(
+GNUNET_TESTBED_deregister_host_at_ (
   struct GNUNET_TESTBED_Host *host,
   const struct GNUNET_TESTBED_Controller *const controller)
 {
@@ -689,12 +691,12 @@ GNUNET_TESTBED_deregister_host_at_(
     if (controller == rc->controller)
       break;
   if (NULL == rc)
-    {
-      GNUNET_break(0);
-      return;
-    }
-  GNUNET_CONTAINER_DLL_remove(host->rc_head, host->rc_tail, rc);
-  GNUNET_free(rc);
+  {
+    GNUNET_break (0);
+    return;
+  }
+  GNUNET_CONTAINER_DLL_remove (host->rc_head, host->rc_tail, rc);
+  GNUNET_free (rc);
 }
 
 
@@ -706,19 +708,19 @@ GNUNET_TESTBED_deregister_host_at_(
  * @return GNUNET_YES if registered; GNUNET_NO if not
  */
 int
-GNUNET_TESTBED_is_host_registered_(
+GNUNET_TESTBED_is_host_registered_ (
   const struct GNUNET_TESTBED_Host *host,
   const struct GNUNET_TESTBED_Controller *const controller)
 {
   struct RegisteredController *rc;
 
   for (rc = host->rc_head; NULL != rc; rc = rc->next)
+  {
+    if (controller == rc->controller)   /* already registered at controller */
     {
-      if (controller == rc->controller) /* already registered at controller */
-        {
-          return GNUNET_YES;
-        }
+      return GNUNET_YES;
     }
+  }
   return GNUNET_NO;
 }
 
@@ -726,7 +728,8 @@ GNUNET_TESTBED_is_host_registered_(
 /**
  * Handle for controller process
  */
-struct GNUNET_TESTBED_ControllerProc {
+struct GNUNET_TESTBED_ControllerProc
+{
   /**
    * The process handle
    */
@@ -771,17 +774,17 @@ struct GNUNET_TESTBED_ControllerProc {
  * @return the copied NULL terminated arguments
  */
 static char **
-copy_argv(const char *const *argv)
+copy_argv (const char *const *argv)
 {
   char **argv_dup;
   unsigned int argp;
 
-  GNUNET_assert(NULL != argv);
+  GNUNET_assert (NULL != argv);
   for (argp = 0; NULL != argv[argp]; argp++)
     ;
-  argv_dup = GNUNET_malloc(sizeof(char *) * (argp + 1));
+  argv_dup = GNUNET_malloc (sizeof(char *) * (argp + 1));
   for (argp = 0; NULL != argv[argp]; argp++)
-    argv_dup[argp] = GNUNET_strdup(argv[argp]);
+    argv_dup[argp] = GNUNET_strdup (argv[argp]);
   return argv_dup;
 }
 
@@ -794,7 +797,7 @@ copy_argv(const char *const *argv)
  * @return the joined NULL terminated arguments
  */
 static char **
-join_argv(const char *const *argv1, const char *const *argv2)
+join_argv (const char *const *argv1, const char *const *argv2)
 {
   char **argvj;
   char *argv;
@@ -804,16 +807,16 @@ join_argv(const char *const *argv1, const char *const *argv2)
   carg = 0;
   argvj = NULL;
   for (cnt = 0; NULL != argv1[cnt]; cnt++)
-    {
-      argv = GNUNET_strdup(argv1[cnt]);
-      GNUNET_array_append(argvj, carg, argv);
-    }
+  {
+    argv = GNUNET_strdup (argv1[cnt]);
+    GNUNET_array_append (argvj, carg, argv);
+  }
   for (cnt = 0; NULL != argv2[cnt]; cnt++)
-    {
-      argv = GNUNET_strdup(argv2[cnt]);
-      GNUNET_array_append(argvj, carg, argv);
-    }
-  GNUNET_array_append(argvj, carg, NULL);
+  {
+    argv = GNUNET_strdup (argv2[cnt]);
+    GNUNET_array_append (argvj, carg, argv);
+  }
+  GNUNET_array_append (argvj, carg, NULL);
   return argvj;
 }
 
@@ -824,13 +827,13 @@ join_argv(const char *const *argv1, const char *const *argv2)
  * @param argv the NULL terminated list of arguments
  */
 static void
-free_argv(char **argv)
+free_argv (char **argv)
 {
   unsigned int argp;
 
   for (argp = 0; NULL != argv[argp]; argp++)
-    GNUNET_free(argv[argp]);
-  GNUNET_free(argv);
+    GNUNET_free (argv[argp]);
+  GNUNET_free (argv);
 }
 
 
@@ -849,7 +852,7 @@ free_argv(char **argv)
  * @return NULL terminated list of arguments
  */
 static char **
-gen_rsh_args(const char *port, const char *hostname, const char *username)
+gen_rsh_args (const char *port, const char *hostname, const char *username)
 {
   static const char *default_ssh_args[] =
   { "ssh",
@@ -872,48 +875,48 @@ gen_rsh_args(const char *port, const char *hostname, const char *username)
   unsigned int cnt;
 
   ssh_args = NULL;
-  if (NULL != (ssh_cmd = getenv("GNUNET_TESTBED_RSH_CMD")))
-    {
-      ssh_cmd = GNUNET_strdup(ssh_cmd);
-      ssh_cmd_cp = ssh_cmd;
-      for (size = 0; NULL != (arg = strtok(ssh_cmd, " ")); ssh_cmd = NULL)
-        GNUNET_array_append(ssh_args, size, GNUNET_strdup(arg));
-      GNUNET_free(ssh_cmd_cp);
-    }
+  if (NULL != (ssh_cmd = getenv ("GNUNET_TESTBED_RSH_CMD")))
+  {
+    ssh_cmd = GNUNET_strdup (ssh_cmd);
+    ssh_cmd_cp = ssh_cmd;
+    for (size = 0; NULL != (arg = strtok (ssh_cmd, " ")); ssh_cmd = NULL)
+      GNUNET_array_append (ssh_args, size, GNUNET_strdup (arg));
+    GNUNET_free (ssh_cmd_cp);
+  }
   else
-    {
-      ssh_args = copy_argv(default_ssh_args);
-      size = (sizeof(default_ssh_args)) / (sizeof(const char *));
-      GNUNET_array_grow(ssh_args, size, size - 1);
-    }
+  {
+    ssh_args = copy_argv (default_ssh_args);
+    size = (sizeof(default_ssh_args)) / (sizeof(const char *));
+    GNUNET_array_grow (ssh_args, size, size - 1);
+  }
   for (cnt = 0; cnt < size; cnt++)
+  {
+    arg = ssh_args[cnt];
+    if ('%' != arg[0])
+      continue;
+    switch (arg[1])
     {
-      arg = ssh_args[cnt];
-      if ('%' != arg[0])
-        continue;
-      switch (arg[1])
-        {
-        case 'p':
-          new_arg = port;
-          break;
+    case 'p':
+      new_arg = port;
+      break;
 
-        case 'u':
-          new_arg = username;
-          break;
+    case 'u':
+      new_arg = username;
+      break;
 
-        case 'h':
-          new_arg = hostname;
-          break;
+    case 'h':
+      new_arg = hostname;
+      break;
 
-        default:
-          continue;
-        }
-      if (NULL == new_arg)
-        continue;
-      GNUNET_free(arg);
-      ssh_args[cnt] = GNUNET_strdup(new_arg);
+    default:
+      continue;
     }
-  GNUNET_array_append(ssh_args, size, NULL);
+    if (NULL == new_arg)
+      continue;
+    GNUNET_free (arg);
+    ssh_args[cnt] = GNUNET_strdup (new_arg);
+  }
+  GNUNET_array_append (ssh_args, size, NULL);
   return ssh_args;
 }
 
@@ -929,7 +932,7 @@ gen_rsh_args(const char *port, const char *hostname, const char *username)
  * @return NULL-terminated args
  */
 static char **
-gen_rsh_suffix_args(const char *const *append_args)
+gen_rsh_suffix_args (const char *const *append_args)
 {
   char **rshell_args;
   char *rshell_cmd;
@@ -940,22 +943,22 @@ gen_rsh_suffix_args(const char *const *append_args)
 
   rshell_args = NULL;
   cnt = 0;
-  if (NULL != (rshell_cmd = getenv("GNUNET_TESTBED_RSH_CMD_SUFFIX")))
-    {
-      rshell_cmd = GNUNET_strdup(rshell_cmd);
-      rshell_cmd_cp = rshell_cmd;
-      for (; NULL != (arg = strtok(rshell_cmd, " ")); rshell_cmd = NULL)
-        GNUNET_array_append(rshell_args, cnt, GNUNET_strdup(arg));
-      GNUNET_free(rshell_cmd_cp);
-    }
+  if (NULL != (rshell_cmd = getenv ("GNUNET_TESTBED_RSH_CMD_SUFFIX")))
+  {
+    rshell_cmd = GNUNET_strdup (rshell_cmd);
+    rshell_cmd_cp = rshell_cmd;
+    for (; NULL != (arg = strtok (rshell_cmd, " ")); rshell_cmd = NULL)
+      GNUNET_array_append (rshell_args, cnt, GNUNET_strdup (arg));
+    GNUNET_free (rshell_cmd_cp);
+  }
   if (NULL != append_args)
-    {
-      for (append_cnt = 0; NULL != append_args[append_cnt]; append_cnt++)
-        GNUNET_array_append(rshell_args,
-                            cnt,
-                            GNUNET_strdup(append_args[append_cnt]));
-    }
-  GNUNET_array_append(rshell_args, cnt, NULL);
+  {
+    for (append_cnt = 0; NULL != append_args[append_cnt]; append_cnt++)
+      GNUNET_array_append (rshell_args,
+                           cnt,
+                           GNUNET_strdup (append_args[append_cnt]));
+  }
+  GNUNET_array_append (rshell_args, cnt, NULL);
   return rshell_args;
 }
 
@@ -973,7 +976,7 @@ gen_rsh_suffix_args(const char *const *append_args)
  * @return #GNUNET_OK on success, #GNUNET_SYSERR to stop further processing
  */
 static int
-helper_mst(void *cls, const struct GNUNET_MessageHeader *message)
+helper_mst (void *cls, const struct GNUNET_MessageHeader *message)
 {
   struct GNUNET_TESTBED_ControllerProc *cp = cls;
   const struct GNUNET_TESTBED_HelperReply *msg;
@@ -982,38 +985,38 @@ helper_mst(void *cls, const struct GNUNET_MessageHeader *message)
   uLongf config_size;
   uLongf xconfig_size;
 
-  msg = (const struct GNUNET_TESTBED_HelperReply *)message;
-  GNUNET_assert(sizeof(struct GNUNET_TESTBED_HelperReply) <
-                ntohs(msg->header.size));
-  GNUNET_assert(GNUNET_MESSAGE_TYPE_TESTBED_HELPER_REPLY ==
-                ntohs(msg->header.type));
-  config_size = (uLongf)ntohs(msg->config_size);
-  xconfig_size = (uLongf)(ntohs(msg->header.size) -
-                          sizeof(struct GNUNET_TESTBED_HelperReply));
-  config = GNUNET_malloc(config_size);
-  GNUNET_assert(Z_OK == uncompress((Bytef *)config,
-                                   &config_size,
-                                   (const Bytef *)&msg[1],
-                                   xconfig_size));
+  msg = (const struct GNUNET_TESTBED_HelperReply *) message;
+  GNUNET_assert (sizeof(struct GNUNET_TESTBED_HelperReply) <
+                 ntohs (msg->header.size));
+  GNUNET_assert (GNUNET_MESSAGE_TYPE_TESTBED_HELPER_REPLY ==
+                 ntohs (msg->header.type));
+  config_size = (uLongf) ntohs (msg->config_size);
+  xconfig_size = (uLongf) (ntohs (msg->header.size)
+                           - sizeof(struct GNUNET_TESTBED_HelperReply));
+  config = GNUNET_malloc (config_size);
+  GNUNET_assert (Z_OK == uncompress ((Bytef *) config,
+                                     &config_size,
+                                     (const Bytef *) &msg[1],
+                                     xconfig_size));
   /* Replace the configuration template present in the host with the
      controller's running configuration */
-  GNUNET_CONFIGURATION_destroy(cp->host->cfg);
-  cp->host->cfg = GNUNET_CONFIGURATION_create();
-  GNUNET_assert(GNUNET_CONFIGURATION_deserialize(cp->host->cfg,
-                                                 config,
-                                                 config_size,
-                                                 NULL));
-  GNUNET_free(config);
-  if (NULL == (hostname = GNUNET_TESTBED_host_get_hostname(cp->host)))
+  GNUNET_CONFIGURATION_destroy (cp->host->cfg);
+  cp->host->cfg = GNUNET_CONFIGURATION_create ();
+  GNUNET_assert (GNUNET_CONFIGURATION_deserialize (cp->host->cfg,
+                                                   config,
+                                                   config_size,
+                                                   NULL));
+  GNUNET_free (config);
+  if (NULL == (hostname = GNUNET_TESTBED_host_get_hostname (cp->host)))
     hostname = "localhost";
   /* Change the hostname so that we can connect to it */
-  GNUNET_CONFIGURATION_set_value_string(cp->host->cfg,
-                                        "testbed",
-                                        "hostname",
-                                        hostname);
+  GNUNET_CONFIGURATION_set_value_string (cp->host->cfg,
+                                         "testbed",
+                                         "hostname",
+                                         hostname);
   cp->host->locked = GNUNET_NO;
   cp->host->controller_started = GNUNET_YES;
-  cp->cb(cp->cls, cp->host->cfg, GNUNET_OK);
+  cp->cb (cp->cls, cp->host->cfg, GNUNET_OK);
   return GNUNET_OK;
 }
 
@@ -1027,13 +1030,13 @@ helper_mst(void *cls, const struct GNUNET_MessageHeader *message)
  *               GNUNET_SYSERR during GNUNET_HELPER_stop
  */
 static void
-clear_msg(void *cls, int result)
+clear_msg (void *cls, int result)
 {
   struct GNUNET_TESTBED_ControllerProc *cp = cls;
 
-  GNUNET_assert(NULL != cp->shandle);
+  GNUNET_assert (NULL != cp->shandle);
   cp->shandle = NULL;
-  GNUNET_free(cp->msg);
+  GNUNET_free (cp->msg);
   cp->msg = NULL;
 }
 
@@ -1045,7 +1048,7 @@ clear_msg(void *cls, int result)
  * @param cls the closure from GNUNET_HELPER_start()
  */
 static void
-helper_exp_cb(void *cls)
+helper_exp_cb (void *cls)
 {
   struct GNUNET_TESTBED_ControllerProc *cp = cls;
   GNUNET_TESTBED_ControllerStatusCallback cb;
@@ -1054,9 +1057,9 @@ helper_exp_cb(void *cls)
   cb = cp->cb;
   cb_cls = cp->cls;
   cp->helper = NULL;
-  GNUNET_TESTBED_controller_stop(cp);
+  GNUNET_TESTBED_controller_stop (cp);
   if (NULL != cb)
-    cb(cb_cls, NULL, GNUNET_SYSERR);
+    cb (cb_cls, NULL, GNUNET_SYSERR);
 }
 
 
@@ -1084,10 +1087,10 @@ helper_exp_cb(void *cls)
  * @return the controller process handle, NULL on errors
  */
 struct GNUNET_TESTBED_ControllerProc *
-GNUNET_TESTBED_controller_start(const char *trusted_ip,
-                                struct GNUNET_TESTBED_Host *host,
-                                GNUNET_TESTBED_ControllerStatusCallback cb,
-                                void *cls)
+GNUNET_TESTBED_controller_start (const char *trusted_ip,
+                                 struct GNUNET_TESTBED_Host *host,
+                                 GNUNET_TESTBED_ControllerStatusCallback cb,
+                                 void *cls)
 {
   struct GNUNET_TESTBED_ControllerProc *cp;
   struct GNUNET_TESTBED_HelperInit *msg;
@@ -1095,95 +1098,95 @@ GNUNET_TESTBED_controller_start(const char *trusted_ip,
   const char *hostname;
   static char *const binary_argv[] = { HELPER_TESTBED_BINARY, NULL };
 
-  GNUNET_assert(NULL != host);
-  GNUNET_assert(NULL != (cfg = GNUNET_TESTBED_host_get_cfg_(host)));
+  GNUNET_assert (NULL != host);
+  GNUNET_assert (NULL != (cfg = GNUNET_TESTBED_host_get_cfg_ (host)));
   hostname = NULL;
-  API_VIOLATION(
+  API_VIOLATION (
     GNUNET_NO == host->locked,
     "Host is already locked by a previous call to GNUNET_TESTBED_controller_start()");
   host->locked = GNUNET_YES;
-  API_VIOLATION(
+  API_VIOLATION (
     GNUNET_NO == host->controller_started,
     "Attempting to start a controller on a host which is already started a controller");
-  cp = GNUNET_new(struct GNUNET_TESTBED_ControllerProc);
-  if (0 == GNUNET_TESTBED_host_get_id_(host))
-    {
-      cp->helper = GNUNET_HELPER_start(GNUNET_YES,
-                                       HELPER_TESTBED_BINARY,
-                                       binary_argv,
-                                       &helper_mst,
-                                       &helper_exp_cb,
-                                       cp);
-    }
+  cp = GNUNET_new (struct GNUNET_TESTBED_ControllerProc);
+  if (0 == GNUNET_TESTBED_host_get_id_ (host))
+  {
+    cp->helper = GNUNET_HELPER_start (GNUNET_YES,
+                                      HELPER_TESTBED_BINARY,
+                                      binary_argv,
+                                      &helper_mst,
+                                      &helper_exp_cb,
+                                      cp);
+  }
   else
-    {
-      char *helper_binary_path_args[2];
-      char **rsh_args;
-      char **rsh_suffix_args;
-      const char *username;
-      char *port;
-      char *argstr;
-      char *aux;
-      unsigned int cnt;
+  {
+    char *helper_binary_path_args[2];
+    char **rsh_args;
+    char **rsh_suffix_args;
+    const char *username;
+    char *port;
+    char *argstr;
+    char *aux;
+    unsigned int cnt;
 
-      username = host->username;
-      hostname = host->hostname;
-      GNUNET_asprintf(&port, "%u", host->port);
-      LOG_DEBUG("Starting remote connection to destination %s\n", hostname);
-      if (GNUNET_OK !=
-          GNUNET_CONFIGURATION_get_value_filename(cfg,
-                                                  "testbed",
-                                                  "HELPER_BINARY_PATH",
-                                                  &helper_binary_path_args[0]))
-        helper_binary_path_args[0] =
-          GNUNET_OS_get_libexec_binary_path(HELPER_TESTBED_BINARY);
-      helper_binary_path_args[1] = NULL;
-      rsh_args = gen_rsh_args(port, hostname, username);
-      rsh_suffix_args =
-        gen_rsh_suffix_args((const char **)helper_binary_path_args);
-      cp->helper_argv =
-        join_argv((const char **)rsh_args, (const char **)rsh_suffix_args);
-      free_argv(rsh_args);
-      free_argv(rsh_suffix_args);
-      GNUNET_free(port);
-      argstr = GNUNET_strdup("");
-      for (cnt = 0; NULL != cp->helper_argv[cnt]; cnt++)
-        {
-          aux = argstr;
-          GNUNET_assert(
-            0 < GNUNET_asprintf(&argstr, "%s %s", aux, cp->helper_argv[cnt]));
-          GNUNET_free(aux);
-        }
-      LOG_DEBUG("Helper cmd str: %s\n", argstr);
-      GNUNET_free(argstr);
-      cp->helper = GNUNET_HELPER_start(GNUNET_NO,
-                                       cp->helper_argv[0],
-                                       cp->helper_argv,
-                                       &helper_mst,
-                                       &helper_exp_cb,
-                                       cp);
-      GNUNET_free(helper_binary_path_args[0]);
-    }
-  if (NULL == cp->helper)
+    username = host->username;
+    hostname = host->hostname;
+    GNUNET_asprintf (&port, "%u", host->port);
+    LOG_DEBUG ("Starting remote connection to destination %s\n", hostname);
+    if (GNUNET_OK !=
+        GNUNET_CONFIGURATION_get_value_filename (cfg,
+                                                 "testbed",
+                                                 "HELPER_BINARY_PATH",
+                                                 &helper_binary_path_args[0]))
+      helper_binary_path_args[0] =
+        GNUNET_OS_get_libexec_binary_path (HELPER_TESTBED_BINARY);
+    helper_binary_path_args[1] = NULL;
+    rsh_args = gen_rsh_args (port, hostname, username);
+    rsh_suffix_args =
+      gen_rsh_suffix_args ((const char **) helper_binary_path_args);
+    cp->helper_argv =
+      join_argv ((const char **) rsh_args, (const char **) rsh_suffix_args);
+    free_argv (rsh_args);
+    free_argv (rsh_suffix_args);
+    GNUNET_free (port);
+    argstr = GNUNET_strdup ("");
+    for (cnt = 0; NULL != cp->helper_argv[cnt]; cnt++)
     {
-      if (NULL != cp->helper_argv)
-        free_argv(cp->helper_argv);
-      GNUNET_free(cp);
-      return NULL;
+      aux = argstr;
+      GNUNET_assert (
+        0 < GNUNET_asprintf (&argstr, "%s %s", aux, cp->helper_argv[cnt]));
+      GNUNET_free (aux);
     }
+    LOG_DEBUG ("Helper cmd str: %s\n", argstr);
+    GNUNET_free (argstr);
+    cp->helper = GNUNET_HELPER_start (GNUNET_NO,
+                                      cp->helper_argv[0],
+                                      cp->helper_argv,
+                                      &helper_mst,
+                                      &helper_exp_cb,
+                                      cp);
+    GNUNET_free (helper_binary_path_args[0]);
+  }
+  if (NULL == cp->helper)
+  {
+    if (NULL != cp->helper_argv)
+      free_argv (cp->helper_argv);
+    GNUNET_free (cp);
+    return NULL;
+  }
   cp->host = host;
   cp->cb = cb;
   cp->cls = cls;
-  msg = GNUNET_TESTBED_create_helper_init_msg_(trusted_ip, hostname, cfg);
+  msg = GNUNET_TESTBED_create_helper_init_msg_ (trusted_ip, hostname, cfg);
   cp->msg = &msg->header;
   cp->shandle =
-    GNUNET_HELPER_send(cp->helper, &msg->header, GNUNET_NO, &clear_msg, cp);
+    GNUNET_HELPER_send (cp->helper, &msg->header, GNUNET_NO, &clear_msg, cp);
   if (NULL == cp->shandle)
-    {
-      GNUNET_free(msg);
-      GNUNET_TESTBED_controller_stop(cp);
-      return NULL;
-    }
+  {
+    GNUNET_free (msg);
+    GNUNET_TESTBED_controller_stop (cp);
+    return NULL;
+  }
   return cp;
 }
 
@@ -1194,12 +1197,12 @@ GNUNET_TESTBED_controller_start(const char *trusted_ip,
  * @param cproc the handle to the controller's helper process
  */
 void
-GNUNET_TESTBED_controller_kill_(struct GNUNET_TESTBED_ControllerProc *cproc)
+GNUNET_TESTBED_controller_kill_ (struct GNUNET_TESTBED_ControllerProc *cproc)
 {
   if (NULL != cproc->shandle)
-    GNUNET_HELPER_send_cancel(cproc->shandle);
+    GNUNET_HELPER_send_cancel (cproc->shandle);
   if (NULL != cproc->helper)
-    GNUNET_HELPER_kill(cproc->helper, GNUNET_YES);
+    GNUNET_HELPER_kill (cproc->helper, GNUNET_YES);
 }
 
 
@@ -1209,19 +1212,19 @@ GNUNET_TESTBED_controller_kill_(struct GNUNET_TESTBED_ControllerProc *cproc)
  * @param cproc the handle to the controller's helper process
  */
 void
-GNUNET_TESTBED_controller_destroy_(struct GNUNET_TESTBED_ControllerProc *cproc)
+GNUNET_TESTBED_controller_destroy_ (struct GNUNET_TESTBED_ControllerProc *cproc)
 {
   if (NULL != cproc->helper)
-    {
-      GNUNET_break(GNUNET_OK == GNUNET_HELPER_wait(cproc->helper));
-      GNUNET_HELPER_destroy(cproc->helper);
-    }
+  {
+    GNUNET_break (GNUNET_OK == GNUNET_HELPER_wait (cproc->helper));
+    GNUNET_HELPER_destroy (cproc->helper);
+  }
   if (NULL != cproc->helper_argv)
-    free_argv(cproc->helper_argv);
+    free_argv (cproc->helper_argv);
   cproc->host->controller_started = GNUNET_NO;
   cproc->host->locked = GNUNET_NO;
-  GNUNET_free_non_null(cproc->msg);
-  GNUNET_free(cproc);
+  GNUNET_free_non_null (cproc->msg);
+  GNUNET_free (cproc);
 }
 
 
@@ -1234,17 +1237,18 @@ GNUNET_TESTBED_controller_destroy_(struct GNUNET_TESTBED_ControllerProc *cproc)
  * @param cproc the controller process handle
  */
 void
-GNUNET_TESTBED_controller_stop(struct GNUNET_TESTBED_ControllerProc *cproc)
+GNUNET_TESTBED_controller_stop (struct GNUNET_TESTBED_ControllerProc *cproc)
 {
-  GNUNET_TESTBED_controller_kill_(cproc);
-  GNUNET_TESTBED_controller_destroy_(cproc);
+  GNUNET_TESTBED_controller_kill_ (cproc);
+  GNUNET_TESTBED_controller_destroy_ (cproc);
 }
 
 
 /**
  * The handle for whether a host is habitable or not
  */
-struct GNUNET_TESTBED_HostHabitableCheckHandle {
+struct GNUNET_TESTBED_HostHabitableCheckHandle
+{
   /**
    * The host to check
    */
@@ -1289,7 +1293,7 @@ struct GNUNET_TESTBED_HostHabitableCheckHandle {
  * @param cls GNUNET_TESTBED_HostHabitableCheckHandle
  */
 static void
-habitability_check(void *cls)
+habitability_check (void *cls)
 {
   struct GNUNET_TESTBED_HostHabitableCheckHandle *h = cls;
   void *cb_cls;
@@ -1300,34 +1304,34 @@ habitability_check(void *cls)
   int ret;
 
   h->habitability_check_task = NULL;
-  ret = GNUNET_OS_process_status(h->auxp, &type, &code);
+  ret = GNUNET_OS_process_status (h->auxp, &type, &code);
   if (GNUNET_SYSERR == ret)
-    {
-      GNUNET_break(0);
-      ret = GNUNET_NO;
-      goto call_cb;
-    }
+  {
+    GNUNET_break (0);
+    ret = GNUNET_NO;
+    goto call_cb;
+  }
   if (GNUNET_NO == ret)
-    {
-      h->wait_time = GNUNET_TIME_STD_BACKOFF(h->wait_time);
-      h->habitability_check_task =
-        GNUNET_SCHEDULER_add_delayed(h->wait_time, &habitability_check, h);
-      return;
-    }
-  GNUNET_OS_process_destroy(h->auxp);
+  {
+    h->wait_time = GNUNET_TIME_STD_BACKOFF (h->wait_time);
+    h->habitability_check_task =
+      GNUNET_SCHEDULER_add_delayed (h->wait_time, &habitability_check, h);
+    return;
+  }
+  GNUNET_OS_process_destroy (h->auxp);
   h->auxp = NULL;
   ret = (0 != code) ? GNUNET_NO : GNUNET_YES;
 
 call_cb:
   if (NULL != h->auxp)
-    GNUNET_OS_process_destroy(h->auxp);
+    GNUNET_OS_process_destroy (h->auxp);
   cb = h->cb;
   cb_cls = h->cb_cls;
   host = h->host;
-  free_argv(h->helper_argv);
-  GNUNET_free(h);
+  free_argv (h->helper_argv);
+  GNUNET_free (h);
   if (NULL != cb)
-    cb(cb_cls, host, ret);
+    cb (cb_cls, host, ret);
 }
 
 
@@ -1343,7 +1347,7 @@ call_cb:
  *           GNUNET_TESTBED_is_host_habitable_cancel()
  */
 struct GNUNET_TESTBED_HostHabitableCheckHandle *
-GNUNET_TESTBED_is_host_habitable(
+GNUNET_TESTBED_is_host_habitable (
   const struct GNUNET_TESTBED_Host *host,
   const struct GNUNET_CONFIGURATION_Handle *config,
   GNUNET_TESTBED_HostHabitableCallback cb,
@@ -1356,45 +1360,45 @@ GNUNET_TESTBED_is_host_habitable(
   const char *hostname;
   char *port;
 
-  h = GNUNET_new(struct GNUNET_TESTBED_HostHabitableCheckHandle);
+  h = GNUNET_new (struct GNUNET_TESTBED_HostHabitableCheckHandle);
   h->cb = cb;
   h->cb_cls = cb_cls;
   h->host = host;
   hostname = (NULL == host->hostname) ? "127.0.0.1" : host->hostname;
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_filename(config,
-                                              "testbed",
-                                              "HELPER_BINARY_PATH",
-                                              &stat_args[1]))
-    stat_args[1] = GNUNET_OS_get_libexec_binary_path(HELPER_TESTBED_BINARY);
-  GNUNET_asprintf(&port, "%u", host->port);
-  rsh_args = gen_rsh_args(port, hostname, host->username);
-  GNUNET_free(port);
+      GNUNET_CONFIGURATION_get_value_filename (config,
+                                               "testbed",
+                                               "HELPER_BINARY_PATH",
+                                               &stat_args[1]))
+    stat_args[1] = GNUNET_OS_get_libexec_binary_path (HELPER_TESTBED_BINARY);
+  GNUNET_asprintf (&port, "%u", host->port);
+  rsh_args = gen_rsh_args (port, hostname, host->username);
+  GNUNET_free (port);
   port = NULL;
   stat_args[0] = "stat";
   stat_args[2] = NULL;
-  rsh_suffix_args = gen_rsh_suffix_args((const char **)stat_args);
-  GNUNET_free(stat_args[1]);
+  rsh_suffix_args = gen_rsh_suffix_args ((const char **) stat_args);
+  GNUNET_free (stat_args[1]);
   h->helper_argv =
-    join_argv((const char **)rsh_args, (const char **)rsh_suffix_args);
-  free_argv(rsh_suffix_args);
-  free_argv(rsh_args);
-  h->auxp = GNUNET_OS_start_process_vap(GNUNET_NO,
-                                        GNUNET_OS_INHERIT_STD_ERR,
-                                        NULL,
-                                        NULL,
-                                        NULL,
-                                        h->helper_argv[0],
-                                        h->helper_argv);
+    join_argv ((const char **) rsh_args, (const char **) rsh_suffix_args);
+  free_argv (rsh_suffix_args);
+  free_argv (rsh_args);
+  h->auxp = GNUNET_OS_start_process_vap (GNUNET_NO,
+                                         GNUNET_OS_INHERIT_STD_ERR,
+                                         NULL,
+                                         NULL,
+                                         NULL,
+                                         h->helper_argv[0],
+                                         h->helper_argv);
   if (NULL == h->auxp)
-    {
-      GNUNET_break(0); /* Cannot exec SSH? */
-      GNUNET_free(h);
-      return NULL;
-    }
-  h->wait_time = GNUNET_TIME_STD_BACKOFF(h->wait_time);
+  {
+    GNUNET_break (0);  /* Cannot exec SSH? */
+    GNUNET_free (h);
+    return NULL;
+  }
+  h->wait_time = GNUNET_TIME_STD_BACKOFF (h->wait_time);
   h->habitability_check_task =
-    GNUNET_SCHEDULER_add_delayed(h->wait_time, &habitability_check, h);
+    GNUNET_SCHEDULER_add_delayed (h->wait_time, &habitability_check, h);
   return h;
 }
 
@@ -1405,15 +1409,15 @@ GNUNET_TESTBED_is_host_habitable(
  * @param handle the habitability check handle
  */
 void
-GNUNET_TESTBED_is_host_habitable_cancel(
+GNUNET_TESTBED_is_host_habitable_cancel (
   struct GNUNET_TESTBED_HostHabitableCheckHandle *handle)
 {
-  GNUNET_SCHEDULER_cancel(handle->habitability_check_task);
-  (void)GNUNET_OS_process_kill(handle->auxp, GNUNET_TERM_SIG);
-  (void)GNUNET_OS_process_wait(handle->auxp);
-  GNUNET_OS_process_destroy(handle->auxp);
-  free_argv(handle->helper_argv);
-  GNUNET_free(handle);
+  GNUNET_SCHEDULER_cancel (handle->habitability_check_task);
+  (void) GNUNET_OS_process_kill (handle->auxp, GNUNET_TERM_SIG);
+  (void) GNUNET_OS_process_wait (handle->auxp);
+  GNUNET_OS_process_destroy (handle->auxp);
+  free_argv (handle->helper_argv);
+  GNUNET_free (handle);
 }
 
 
@@ -1430,10 +1434,10 @@ GNUNET_TESTBED_is_host_habitable_cancel(
  *           registration
  */
 struct GNUNET_TESTBED_HostRegistrationHandle *
-GNUNET_TESTBED_register_host(struct GNUNET_TESTBED_Controller *controller,
-                             struct GNUNET_TESTBED_Host *host,
-                             GNUNET_TESTBED_HostRegistrationCompletion cc,
-                             void *cc_cls)
+GNUNET_TESTBED_register_host (struct GNUNET_TESTBED_Controller *controller,
+                              struct GNUNET_TESTBED_Host *host,
+                              GNUNET_TESTBED_HostRegistrationCompletion cc,
+                              void *cc_cls)
 {
   struct GNUNET_TESTBED_HostRegistrationHandle *rh;
   struct GNUNET_TESTBED_AddHostMessage *msg;
@@ -1450,57 +1454,57 @@ GNUNET_TESTBED_register_host(struct GNUNET_TESTBED_Controller *controller,
 
   if (NULL != controller->rh)
     return NULL;
-  hostname = GNUNET_TESTBED_host_get_hostname(host);
-  if (GNUNET_YES == GNUNET_TESTBED_is_host_registered_(host, controller))
-    {
-      LOG(GNUNET_ERROR_TYPE_WARNING,
-          "Host hostname: %s already registered\n",
-          (NULL == hostname) ? "localhost" : hostname);
-      return NULL;
-    }
-  rh = GNUNET_new(struct GNUNET_TESTBED_HostRegistrationHandle);
+  hostname = GNUNET_TESTBED_host_get_hostname (host);
+  if (GNUNET_YES == GNUNET_TESTBED_is_host_registered_ (host, controller))
+  {
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+         "Host hostname: %s already registered\n",
+         (NULL == hostname) ? "localhost" : hostname);
+    return NULL;
+  }
+  rh = GNUNET_new (struct GNUNET_TESTBED_HostRegistrationHandle);
   rh->host = host;
   rh->c = controller;
-  GNUNET_assert(NULL != cc);
+  GNUNET_assert (NULL != cc);
   rh->cc = cc;
   rh->cc_cls = cc_cls;
   controller->rh = rh;
-  username = GNUNET_TESTBED_host_get_username_(host);
+  username = GNUNET_TESTBED_host_get_username_ (host);
   username_length = 0;
   if (NULL != username)
-    username_length = strlen(username);
-  GNUNET_assert(NULL != hostname);  /* Hostname must be present */
-  hostname_length = strlen(hostname);
-  GNUNET_assert(NULL != host->cfg);
-  config = GNUNET_CONFIGURATION_serialize(host->cfg, &config_size);
-  cc_size = GNUNET_TESTBED_compress_config_(config, config_size, &cconfig);
-  GNUNET_free(config);
+    username_length = strlen (username);
+  GNUNET_assert (NULL != hostname);  /* Hostname must be present */
+  hostname_length = strlen (hostname);
+  GNUNET_assert (NULL != host->cfg);
+  config = GNUNET_CONFIGURATION_serialize (host->cfg, &config_size);
+  cc_size = GNUNET_TESTBED_compress_config_ (config, config_size, &cconfig);
+  GNUNET_free (config);
   msg_size = (sizeof(struct GNUNET_TESTBED_AddHostMessage));
   msg_size += username_length;
   msg_size += hostname_length;
   msg_size += cc_size;
-  msg = GNUNET_malloc(msg_size);
-  msg->header.size = htons(msg_size);
-  msg->header.type = htons(GNUNET_MESSAGE_TYPE_TESTBED_ADD_HOST);
-  msg->host_id = htonl(GNUNET_TESTBED_host_get_id_(host));
-  msg->ssh_port = htons(GNUNET_TESTBED_host_get_ssh_port_(host));
+  msg = GNUNET_malloc (msg_size);
+  msg->header.size = htons (msg_size);
+  msg->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_ADD_HOST);
+  msg->host_id = htonl (GNUNET_TESTBED_host_get_id_ (host));
+  msg->ssh_port = htons (GNUNET_TESTBED_host_get_ssh_port_ (host));
   ptr = &msg[1];
   if (NULL != username)
-    {
-      msg->username_length = htons(username_length);
-      GNUNET_memcpy(ptr, username, username_length);
-      ptr += username_length;
-    }
-  msg->hostname_length = htons(hostname_length);
-  GNUNET_memcpy(ptr, hostname, hostname_length);
+  {
+    msg->username_length = htons (username_length);
+    GNUNET_memcpy (ptr, username, username_length);
+    ptr += username_length;
+  }
+  msg->hostname_length = htons (hostname_length);
+  GNUNET_memcpy (ptr, hostname, hostname_length);
   ptr += hostname_length;
-  msg->config_size = htons(config_size);
-  GNUNET_memcpy(ptr, cconfig, cc_size);
+  msg->config_size = htons (config_size);
+  GNUNET_memcpy (ptr, cconfig, cc_size);
   ptr += cc_size;
-  GNUNET_assert((ptr - (void *)msg) == msg_size);
-  GNUNET_free(cconfig);
-  GNUNET_TESTBED_queue_message_(controller,
-                                (struct GNUNET_MessageHeader *)msg);
+  GNUNET_assert ((ptr - (void *) msg) == msg_size);
+  GNUNET_free (cconfig);
+  GNUNET_TESTBED_queue_message_ (controller,
+                                 (struct GNUNET_MessageHeader *) msg);
   return rh;
 }
 
@@ -1513,16 +1517,16 @@ GNUNET_TESTBED_register_host(struct GNUNET_TESTBED_Controller *controller,
  * @param handle the registration handle to cancel
  */
 void
-GNUNET_TESTBED_cancel_registration(
+GNUNET_TESTBED_cancel_registration (
   struct GNUNET_TESTBED_HostRegistrationHandle *handle)
 {
   if (handle != handle->c->rh)
-    {
-      GNUNET_break(0);
-      return;
-    }
+  {
+    GNUNET_break (0);
+    return;
+  }
   handle->c->rh = NULL;
-  GNUNET_free(handle);
+  GNUNET_free (handle);
 }
 
 
@@ -1535,11 +1539,12 @@ GNUNET_TESTBED_cancel_registration(
  *          queue
  */
 void
-GNUNET_TESTBED_host_queue_oc_(struct GNUNET_TESTBED_Host *h,
-                              struct GNUNET_TESTBED_Operation *op)
+GNUNET_TESTBED_host_queue_oc_ (struct GNUNET_TESTBED_Host *h,
+                               struct GNUNET_TESTBED_Operation *op)
 {
-  GNUNET_TESTBED_operation_queue_insert_(h->opq_parallel_overlay_connect_operations,
-                                         op);
+  GNUNET_TESTBED_operation_queue_insert_ (
+    h->opq_parallel_overlay_connect_operations,
+    op);
 }
 
 
@@ -1549,20 +1554,20 @@ GNUNET_TESTBED_host_queue_oc_(struct GNUNET_TESTBED_Host *h,
  * @param host the host whose hostname is to be resolved
  */
 void
-GNUNET_TESTBED_host_resolve_(struct GNUNET_TESTBED_Host *host)
+GNUNET_TESTBED_host_resolve_ (struct GNUNET_TESTBED_Host *host)
 {
   char *hostname;
 
-  hostname = (char *)host->hostname;
-  host->hostname = simple_resolve(hostname);
+  hostname = (char *) host->hostname;
+  host->hostname = simple_resolve (hostname);
   if (NULL == host->hostname)
-    {
-      GNUNET_break(0);
-      host->hostname = hostname;
-      return;
-    }
-  GNUNET_free(hostname);
-  host->hostname = GNUNET_strdup(host->hostname);
+  {
+    GNUNET_break (0);
+    host->hostname = hostname;
+    return;
+  }
+  GNUNET_free (hostname);
+  host->hostname = GNUNET_strdup (host->hostname);
 }
 
 /* end of testbed_api_hosts.c */

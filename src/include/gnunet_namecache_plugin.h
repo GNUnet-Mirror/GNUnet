@@ -54,13 +54,15 @@ extern "C"
  * @param block lookup result
  */
 typedef void (*GNUNET_NAMECACHE_BlockCallback) (void *cls,
-                                                const struct GNUNET_GNSRECORD_Block *block);
+                                                const struct
+                                                GNUNET_GNSRECORD_Block *block);
 
 
 /**
  * @brief struct returned by the initialization function of the plugin
  */
-struct GNUNET_NAMECACHE_PluginFunctions {
+struct GNUNET_NAMECACHE_PluginFunctions
+{
   /**
    * Closure to pass to all plugin functions.
    */

@@ -76,13 +76,13 @@ static struct GNUNET_ATS_SessionRecord *sr;
  * @return
  */
 static void
-allocation_cb(void *cls,
-              struct GNUNET_ATS_Session *session,
-              struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
-              struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in)
+allocation_cb (void *cls,
+               struct GNUNET_ATS_Session *session,
+               struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
+               struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in)
 {
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-             "allocation_cb() called\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "allocation_cb() called\n");
 }
 
 
@@ -96,12 +96,12 @@ allocation_cb(void *cls,
  * @param address
  */
 static void
-suggestion_cb(void *cls,
-              const struct GNUNET_PeerIdentity *pid,
-              const char *address)
+suggestion_cb (void *cls,
+               const struct GNUNET_PeerIdentity *pid,
+               const char *address)
 {
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-             "suggestion_cb() called\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "suggestion_cb() called\n");
   ret = 0;
 }
 
@@ -112,16 +112,16 @@ suggestion_cb(void *cls,
  * Initialises the application and transportation side of ATS.
  */
 static void
-init_both(const struct GNUNET_CONFIGURATION_Handle *cfg)
+init_both (const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
-  ah = GNUNET_ATS_application_init(cfg);
-  GNUNET_assert(NULL != ah);
-  th = GNUNET_ATS_transport_init(cfg,
-                                 &allocation_cb,
-                                 NULL,
-                                 &suggestion_cb,
-                                 NULL);
-  GNUNET_assert(NULL != ah);
+  ah = GNUNET_ATS_application_init (cfg);
+  GNUNET_assert (NULL != ah);
+  th = GNUNET_ATS_transport_init (cfg,
+                                  &allocation_cb,
+                                  NULL,
+                                  &suggestion_cb,
+                                  NULL);
+  GNUNET_assert (NULL != ah);
 }
 
 
@@ -129,11 +129,11 @@ init_both(const struct GNUNET_CONFIGURATION_Handle *cfg)
  * @brief Disconnect both 'sides' of ATS
  */
 static void
-finish_both(void)
+finish_both (void)
 {
-  GNUNET_ATS_application_done(ah);
+  GNUNET_ATS_application_done (ah);
   ah = NULL;
-  GNUNET_ATS_transport_done(th);
+  GNUNET_ATS_transport_done (th);
   th = NULL;
 }
 
@@ -142,10 +142,9 @@ finish_both(void)
  * @brief Provide information about the start of an imaginary connection
  */
 static void
-provide_info_start(void)
+provide_info_start (void)
 {
-  struct GNUNET_ATS_Properties prop =
-  {
+  struct GNUNET_ATS_Properties prop = {
     .delay = GNUNET_TIME_UNIT_FOREVER_REL,
     .goodput_out = 1048576,
     .goodput_in = 1048576,
@@ -157,12 +156,12 @@ provide_info_start(void)
     .cc = GNUNET_TRANSPORT_CC_UNKNOWN,
   };
 
-  sr = GNUNET_ATS_session_add(th,
-                              &other_peer,
-                              "test-address",
-                              NULL,
-                              &prop);
-  GNUNET_assert(NULL != sr);
+  sr = GNUNET_ATS_session_add (th,
+                               &other_peer,
+                               "test-address",
+                               NULL,
+                               &prop);
+  GNUNET_assert (NULL != sr);
 }
 
 
@@ -170,9 +169,9 @@ provide_info_start(void)
  * @brief Provide information about the end of an imaginary connection
  */
 static void
-provide_info_end(void)
+provide_info_end (void)
 {
-  GNUNET_ATS_session_del(sr);
+  GNUNET_ATS_session_del (sr);
 }
 
 
@@ -180,24 +179,24 @@ provide_info_end(void)
  * @brief Inform ATS about the need of a connection towards a peer
  */
 static void
-get_suggestion(void)
+get_suggestion (void)
 {
   struct GNUNET_ATS_ApplicationSuggestHandle *ash;
 
-  ash = GNUNET_ATS_application_suggest(ah,
-                                       &other_peer,
-                                       GNUNET_MQ_PREFERENCE_NONE,
-                                       GNUNET_BANDWIDTH_VALUE_MAX);
-  GNUNET_assert(NULL != ash);
+  ash = GNUNET_ATS_application_suggest (ah,
+                                        &other_peer,
+                                        GNUNET_MQ_PREFERENCE_NONE,
+                                        GNUNET_BANDWIDTH_VALUE_MAX);
+  GNUNET_assert (NULL != ash);
 }
 
 
 static void
-on_shutdown(void *cls)
+on_shutdown (void *cls)
 {
-  provide_info_end();
-  finish_both();
-  GNUNET_SCHEDULER_shutdown();
+  provide_info_end ();
+  finish_both ();
+  GNUNET_SCHEDULER_shutdown ();
 }
 
 
@@ -209,16 +208,16 @@ on_shutdown(void *cls)
  * @param peer handle to the peer
  */
 static void
-run(void *cls,
-    const struct GNUNET_CONFIGURATION_Handle *cfg,
-    struct GNUNET_TESTING_Peer *peer)
+run (void *cls,
+     const struct GNUNET_CONFIGURATION_Handle *cfg,
+     struct GNUNET_TESTING_Peer *peer)
 {
-  init_both(cfg);
-  provide_info_start();
-  get_suggestion();
-  (void)GNUNET_SCHEDULER_add_delayed(timeout,
-                                     &on_shutdown,
-                                     NULL);
+  init_both (cfg);
+  provide_info_start ();
+  get_suggestion ();
+  (void) GNUNET_SCHEDULER_add_delayed (timeout,
+                                       &on_shutdown,
+                                       NULL);
 }
 
 
@@ -231,27 +230,27 @@ run(void *cls,
  * @return
  */
 int
-main(int argc,
-     char *argv[])
+main (int argc,
+      char *argv[])
 {
   ret = 1;
-  memset(&other_peer, 0, sizeof(struct GNUNET_PeerIdentity));
-  timeout = GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS,
-                                          2);
-  if (0 != GNUNET_TESTING_peer_run("test-ats2-lib",
-                                   "test_ats2_lib.conf",
-                                   &run, NULL))
-    {
-      GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
-                 "Running the testing peer failed.\n");
-      return 1;
-    }
+  memset (&other_peer, 0, sizeof(struct GNUNET_PeerIdentity));
+  timeout = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS,
+                                           2);
+  if (0 != GNUNET_TESTING_peer_run ("test-ats2-lib",
+                                    "test_ats2_lib.conf",
+                                    &run, NULL))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Running the testing peer failed.\n");
+    return 1;
+  }
   if (0 != ret)
-    {
-      GNUNET_log(GNUNET_ERROR_TYPE_WARNING,
-                 "Global status indicates unsuccessful testrun - probably allocation_cb was not called.\n");
-      ret = 77; // SKIP test, test not yet right!
-    }
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                "Global status indicates unsuccessful testrun - probably allocation_cb was not called.\n");
+    ret = 77;   // SKIP test, test not yet right!
+  }
   return ret;
 }
 

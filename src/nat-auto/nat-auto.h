@@ -36,7 +36,8 @@ GNUNET_NETWORK_STRUCT_BEGIN
  * Request to test NAT traversal, sent to the gnunet-nat-server
  * (not the service!).
  */
-struct GNUNET_NAT_AUTO_TestMessage {
+struct GNUNET_NAT_AUTO_TestMessage
+{
   /**
    * Header with type #GNUNET_MESSAGE_TYPE_NAT_TEST
    */
@@ -67,7 +68,8 @@ struct GNUNET_NAT_AUTO_TestMessage {
 /**
  * Client requesting automatic configuration.
  */
-struct GNUNET_NAT_AUTO_AutoconfigRequestMessage {
+struct GNUNET_NAT_AUTO_AutoconfigRequestMessage
+{
   /**
    * Header with type #GNUNET_MESSAGE_TYPE_NAT_REQUEST_AUTO_CFG
    */
@@ -80,7 +82,8 @@ struct GNUNET_NAT_AUTO_AutoconfigRequestMessage {
 /**
  * Service responding with proposed configuration.
  */
-struct GNUNET_NAT_AUTO_AutoconfigResultMessage {
+struct GNUNET_NAT_AUTO_AutoconfigResultMessage
+{
   /**
    * Header with type #GNUNET_MESSAGE_TYPE_NAT_AUTO_CFG_RESULT
    */

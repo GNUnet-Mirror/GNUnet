@@ -57,7 +57,7 @@ typedef void
  * @param cc connection to destroy
  */
 void
-GCC_destroy_without_core(struct CadetConnection *cc);
+GCC_destroy_without_core (struct CadetConnection *cc);
 
 
 /**
@@ -68,7 +68,7 @@ GCC_destroy_without_core(struct CadetConnection *cc);
  * @param cc connection to destroy
  */
 void
-GCC_destroy_without_tunnel(struct CadetConnection *cc);
+GCC_destroy_without_tunnel (struct CadetConnection *cc);
 
 
 /**
@@ -78,7 +78,7 @@ GCC_destroy_without_tunnel(struct CadetConnection *cc);
  * @return NULL if connection was not found
  */
 struct CadetConnection *
-GCC_lookup(const struct GNUNET_CADET_ConnectionTunnelIdentifier *cid);
+GCC_lookup (const struct GNUNET_CADET_ConnectionTunnelIdentifier *cid);
 
 
 /**
@@ -94,12 +94,12 @@ GCC_lookup(const struct GNUNET_CADET_ConnectionTunnelIdentifier *cid);
  * @return handle to the connection
  */
 struct CadetConnection *
-GCC_create(struct CadetPeer *destination,
-           struct CadetPeerPath *path,
-           unsigned int off,
-           struct CadetTConnection *ct,
-           GCC_ReadyCallback ready_cb,
-           void *ready_cb_cls);
+GCC_create (struct CadetPeer *destination,
+            struct CadetPeerPath *path,
+            unsigned int off,
+            struct CadetTConnection *ct,
+            GCC_ReadyCallback ready_cb,
+            void *ready_cb_cls);
 
 
 /**
@@ -116,12 +116,12 @@ GCC_create(struct CadetPeer *destination,
  *         a connection that takes precedence on @a path
  */
 struct CadetConnection *
-GCC_create_inbound(struct CadetPeer *destination,
-                   struct CadetPeerPath *path,
-                   struct CadetTConnection *ct,
-                   const struct GNUNET_CADET_ConnectionTunnelIdentifier *cid,
-                   GCC_ReadyCallback ready_cb,
-                   void *ready_cb_cls);
+GCC_create_inbound (struct CadetPeer *destination,
+                    struct CadetPeerPath *path,
+                    struct CadetTConnection *ct,
+                    const struct GNUNET_CADET_ConnectionTunnelIdentifier *cid,
+                    GCC_ReadyCallback ready_cb,
+                    void *ready_cb_cls);
 
 
 /**
@@ -137,8 +137,8 @@ GCC_create_inbound(struct CadetPeer *destination,
  *            connection identifier of this connection...
  */
 void
-GCC_transmit(struct CadetConnection *cc,
-             struct GNUNET_MQ_Envelope *env);
+GCC_transmit (struct CadetConnection *cc,
+              struct GNUNET_MQ_Envelope *env);
 
 
 /**
@@ -147,7 +147,7 @@ GCC_transmit(struct CadetConnection *cc,
  * @param cc the connection that got the ACK.
  */
 void
-GCC_handle_connection_create_ack(struct CadetConnection *cc);
+GCC_handle_connection_create_ack (struct CadetConnection *cc);
 
 
 /**
@@ -158,7 +158,7 @@ GCC_handle_connection_create_ack(struct CadetConnection *cc);
  * @param cc connection that got the duplicate CREATE
  */
 void
-GCC_handle_duplicate_create(struct CadetConnection *cc);
+GCC_handle_duplicate_create (struct CadetConnection *cc);
 
 
 /**
@@ -168,8 +168,8 @@ GCC_handle_duplicate_create(struct CadetConnection *cc);
  * @param msg the key exchange message
  */
 void
-GCC_handle_kx(struct CadetConnection *cc,
-              const struct GNUNET_CADET_TunnelKeyExchangeMessage *msg);
+GCC_handle_kx (struct CadetConnection *cc,
+               const struct GNUNET_CADET_TunnelKeyExchangeMessage *msg);
 
 
 /**
@@ -179,14 +179,16 @@ GCC_handle_kx(struct CadetConnection *cc,
  * @param msg the key exchange message
  */
 void
-GCC_handle_kx_auth(struct CadetConnection *cc,
-                   const struct GNUNET_CADET_TunnelKeyExchangeAuthMessage *msg);
+GCC_handle_kx_auth (struct CadetConnection *cc,
+                    const struct
+                    GNUNET_CADET_TunnelKeyExchangeAuthMessage *msg);
 
 
 /**
  * Performance metrics for a connection.
  */
-struct CadetConnectionMetrics {
+struct CadetConnectionMetrics
+{
   /**
    * Our current best estimate of the latency, based on a weighted
    * average of at least @a latency_datapoints values.
@@ -229,7 +231,7 @@ struct CadetConnectionMetrics {
  * @return the metrics
  */
 const struct CadetConnectionMetrics *
-GCC_get_metrics(struct CadetConnection *cc);
+GCC_get_metrics (struct CadetConnection *cc);
 
 
 /**
@@ -239,8 +241,8 @@ GCC_get_metrics(struct CadetConnection *cc);
  * @param msg the encrypted message to decrypt
  */
 void
-GCC_handle_encrypted(struct CadetConnection *cc,
-                     const struct GNUNET_CADET_TunnelEncryptedMessage *msg);
+GCC_handle_encrypted (struct CadetConnection *cc,
+                      const struct GNUNET_CADET_TunnelEncryptedMessage *msg);
 
 
 /**
@@ -250,7 +252,7 @@ GCC_handle_encrypted(struct CadetConnection *cc,
  * @param cid connection identifier where we expect an ACK
  */
 void
-GCC_ack_expected(const struct GNUNET_CADET_ConnectionTunnelIdentifier *cid);
+GCC_ack_expected (const struct GNUNET_CADET_ConnectionTunnelIdentifier *cid);
 
 
 /**
@@ -262,7 +264,7 @@ GCC_ack_expected(const struct GNUNET_CADET_ConnectionTunnelIdentifier *cid);
  *            may have gotten back to us via a different connection).
  */
 void
-GCC_ack_observed(const struct GNUNET_CADET_ConnectionTunnelIdentifier *cid);
+GCC_ack_observed (const struct GNUNET_CADET_ConnectionTunnelIdentifier *cid);
 
 
 /**
@@ -274,8 +276,8 @@ GCC_ack_observed(const struct GNUNET_CADET_ConnectionTunnelIdentifier *cid);
  * @param latency the observed latency
  */
 void
-GCC_latency_observed(const struct GNUNET_CADET_ConnectionTunnelIdentifier *cti,
-                     struct GNUNET_TIME_Relative latency);
+GCC_latency_observed (const struct GNUNET_CADET_ConnectionTunnelIdentifier *cti,
+                      struct GNUNET_TIME_Relative latency);
 
 
 /**
@@ -285,7 +287,7 @@ GCC_latency_observed(const struct GNUNET_CADET_ConnectionTunnelIdentifier *cti,
  * @return corresponding entry in the tunnel's connection list
  */
 struct CadetTConnection *
-GCC_get_ct(struct CadetConnection *cc);
+GCC_get_ct (struct CadetConnection *cc);
 
 
 /**
@@ -296,8 +298,8 @@ GCC_get_ct(struct CadetConnection *cc);
  * @return path to @a cc
  */
 struct CadetPeerPath *
-GCC_get_path(struct CadetConnection *cc,
-             unsigned int *off);
+GCC_get_path (struct CadetConnection *cc,
+              unsigned int *off);
 
 
 /**
@@ -307,7 +309,7 @@ GCC_get_path(struct CadetConnection *cc,
  * @return unique number of the connection
  */
 const struct GNUNET_CADET_ConnectionTunnelIdentifier *
-GCC_get_id(struct CadetConnection *cc);
+GCC_get_id (struct CadetConnection *cc);
 
 
 /**
@@ -316,7 +318,7 @@ GCC_get_id(struct CadetConnection *cc);
  * @param cc Connection.
  */
 const char *
-GCC_2s(const struct CadetConnection *cc);
+GCC_2s (const struct CadetConnection *cc);
 
 
 /**
@@ -326,8 +328,8 @@ GCC_2s(const struct CadetConnection *cc);
  * @param level Debug level to use.
  */
 void
-GCC_debug(struct CadetConnection *cc,
-          enum GNUNET_ErrorType level);
+GCC_debug (struct CadetConnection *cc,
+           enum GNUNET_ErrorType level);
 
 
 #endif

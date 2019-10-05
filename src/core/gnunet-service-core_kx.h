@@ -44,9 +44,9 @@ struct GSC_KeyExchangeInfo;
  * @param payload_size number of bytes in 'payload'
  */
 void
-GSC_KX_encrypt_and_transmit(struct GSC_KeyExchangeInfo *kx,
-                            const void *payload,
-                            size_t payload_size);
+GSC_KX_encrypt_and_transmit (struct GSC_KeyExchangeInfo *kx,
+                             const void *payload,
+                             size_t payload_size);
 
 
 /**
@@ -56,14 +56,14 @@ GSC_KX_encrypt_and_transmit(struct GSC_KeyExchangeInfo *kx,
  * @return #GNUNET_OK on success, #GNUNET_SYSERR on failure
  */
 int
-GSC_KX_init(struct GNUNET_CRYPTO_EddsaPrivateKey *pk);
+GSC_KX_init (struct GNUNET_CRYPTO_EddsaPrivateKey *pk);
 
 
 /**
  * Shutdown KX subsystem.
  */
 void
-GSC_KX_done(void);
+GSC_KX_done (void);
 
 
 /**
@@ -73,7 +73,8 @@ GSC_KX_done(void);
  * @return #GNUNET_YES if excess bandwidth is available, #GNUNET_NO if not
  */
 int
-GSC_NEIGHBOURS_check_excess_bandwidth(const struct GSC_KeyExchangeInfo *target);
+GSC_NEIGHBOURS_check_excess_bandwidth (const struct
+                                       GSC_KeyExchangeInfo *target);
 
 
 /**
@@ -83,7 +84,7 @@ GSC_NEIGHBOURS_check_excess_bandwidth(const struct GSC_KeyExchangeInfo *target);
  * @return number of items in the message queue
  */
 unsigned int
-GSC_NEIGHBOURS_get_queue_length(const struct GSC_KeyExchangeInfo *target);
+GSC_NEIGHBOURS_get_queue_length (const struct GSC_KeyExchangeInfo *target);
 
 
 /**
@@ -95,7 +96,7 @@ GSC_NEIGHBOURS_get_queue_length(const struct GSC_KeyExchangeInfo *target);
  * @param mq message queue to add for monitoring
  */
 void
-GSC_KX_handle_client_monitor_peers(struct GNUNET_MQ_Handle *mq);
+GSC_KX_handle_client_monitor_peers (struct GNUNET_MQ_Handle *mq);
 
 
 #endif

@@ -51,7 +51,8 @@ typedef int
 /**
  * @brief Description of a DB query parameter.
  */
-struct GNUNET_SQ_QueryParam {
+struct GNUNET_SQ_QueryParam
+{
   /**
    * Function for how to handle this type of entry.
    */
@@ -93,8 +94,8 @@ struct GNUNET_SQ_QueryParam {
  * @oaran ptr_size number of bytes in @a ptr
  */
 struct GNUNET_SQ_QueryParam
-GNUNET_SQ_query_param_fixed_size(const void *ptr,
-                                 size_t ptr_size);
+GNUNET_SQ_query_param_fixed_size (const void *ptr,
+                                  size_t ptr_size);
 
 
 
@@ -104,7 +105,7 @@ GNUNET_SQ_query_param_fixed_size(const void *ptr,
  * @param ptr pointer to the string query parameter to pass
  */
 struct GNUNET_SQ_QueryParam
-GNUNET_SQ_query_param_string(const char *ptr);
+GNUNET_SQ_query_param_string (const char *ptr);
 
 
 /**
@@ -113,7 +114,8 @@ GNUNET_SQ_query_param_string(const char *ptr);
  *
  * @param x pointer to the query parameter to pass.
  */
-#define GNUNET_SQ_query_param_auto_from_type(x) GNUNET_SQ_query_param_fixed_size((x), sizeof(*(x)))
+#define GNUNET_SQ_query_param_auto_from_type( \
+    x) GNUNET_SQ_query_param_fixed_size ((x), sizeof(*(x)))
 
 
 /**
@@ -123,7 +125,8 @@ GNUNET_SQ_query_param_string(const char *ptr);
  * @param x the query parameter to pass.
  */
 struct GNUNET_SQ_QueryParam
-GNUNET_SQ_query_param_rsa_public_key(const struct GNUNET_CRYPTO_RsaPublicKey *x);
+GNUNET_SQ_query_param_rsa_public_key (const struct
+                                      GNUNET_CRYPTO_RsaPublicKey *x);
 
 
 /**
@@ -133,7 +136,8 @@ GNUNET_SQ_query_param_rsa_public_key(const struct GNUNET_CRYPTO_RsaPublicKey *x)
  * @param x the query parameter to pass
  */
 struct GNUNET_SQ_QueryParam
-GNUNET_SQ_query_param_rsa_signature(const struct GNUNET_CRYPTO_RsaSignature *x);
+GNUNET_SQ_query_param_rsa_signature (const struct
+                                     GNUNET_CRYPTO_RsaSignature *x);
 
 
 /**
@@ -143,7 +147,7 @@ GNUNET_SQ_query_param_rsa_signature(const struct GNUNET_CRYPTO_RsaSignature *x);
  * @param x pointer to the query parameter to pass
  */
 struct GNUNET_SQ_QueryParam
-GNUNET_SQ_query_param_absolute_time(const struct GNUNET_TIME_Absolute *x);
+GNUNET_SQ_query_param_absolute_time (const struct GNUNET_TIME_Absolute *x);
 
 
 /**
@@ -153,7 +157,8 @@ GNUNET_SQ_query_param_absolute_time(const struct GNUNET_TIME_Absolute *x);
  * @param x pointer to the query parameter to pass
  */
 struct GNUNET_SQ_QueryParam
-GNUNET_SQ_query_param_absolute_time_nbo(const struct GNUNET_TIME_AbsoluteNBO *x);
+GNUNET_SQ_query_param_absolute_time_nbo (const struct
+                                         GNUNET_TIME_AbsoluteNBO *x);
 
 
 /**
@@ -162,7 +167,7 @@ GNUNET_SQ_query_param_absolute_time_nbo(const struct GNUNET_TIME_AbsoluteNBO *x)
  * @param x pointer to the query parameter to pass
  */
 struct GNUNET_SQ_QueryParam
-GNUNET_SQ_query_param_uint16(const uint16_t *x);
+GNUNET_SQ_query_param_uint16 (const uint16_t *x);
 
 
 /**
@@ -171,7 +176,7 @@ GNUNET_SQ_query_param_uint16(const uint16_t *x);
  * @param x pointer to the query parameter to pass
  */
 struct GNUNET_SQ_QueryParam
-GNUNET_SQ_query_param_uint32(const uint32_t *x);
+GNUNET_SQ_query_param_uint32 (const uint32_t *x);
 
 
 /**
@@ -180,7 +185,7 @@ GNUNET_SQ_query_param_uint32(const uint32_t *x);
  * @param x pointer to the query parameter to pass
  */
 struct GNUNET_SQ_QueryParam
-GNUNET_SQ_query_param_uint64(const uint64_t *x);
+GNUNET_SQ_query_param_uint64 (const uint64_t *x);
 
 
 /**
@@ -191,8 +196,8 @@ GNUNET_SQ_query_param_uint64(const uint64_t *x);
  * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
  */
 int
-GNUNET_SQ_bind(sqlite3_stmt *stmt,
-               const struct GNUNET_SQ_QueryParam *params);
+GNUNET_SQ_bind (sqlite3_stmt *stmt,
+                const struct GNUNET_SQ_QueryParam *params);
 
 
 /**
@@ -202,8 +207,8 @@ GNUNET_SQ_bind(sqlite3_stmt *stmt,
  * @param stmt statement to reset
  */
 void
-GNUNET_SQ_reset(sqlite3 *dbh,
-                sqlite3_stmt *stmt);
+GNUNET_SQ_reset (sqlite3 *dbh,
+                 sqlite3_stmt *stmt);
 
 
 /**
@@ -245,7 +250,8 @@ typedef void
 /**
  * @brief Description of a DB result cell.
  */
-struct GNUNET_SQ_ResultSpec {
+struct GNUNET_SQ_ResultSpec
+{
   /**
    * What is the format of the result?
    */
@@ -304,8 +310,8 @@ struct GNUNET_SQ_ResultSpec {
  * @return array entry for the result specification to use
  */
 struct GNUNET_SQ_ResultSpec
-GNUNET_SQ_result_spec_variable_size(void **dst,
-                                    size_t *sptr);
+GNUNET_SQ_result_spec_variable_size (void **dst,
+                                     size_t *sptr);
 
 
 /**
@@ -316,8 +322,8 @@ GNUNET_SQ_result_spec_variable_size(void **dst,
  * @return array entry for the result specification to use
  */
 struct GNUNET_SQ_ResultSpec
-GNUNET_SQ_result_spec_fixed_size(void *dst,
-                                 size_t dst_size);
+GNUNET_SQ_result_spec_fixed_size (void *dst,
+                                  size_t dst_size);
 
 
 /**
@@ -326,7 +332,8 @@ GNUNET_SQ_result_spec_fixed_size(void *dst,
  * @param dst point to where to store the result, type fits expected result size
  * @return array entry for the result specification to use
  */
-#define GNUNET_SQ_result_spec_auto_from_type(dst) GNUNET_SQ_result_spec_fixed_size((dst), sizeof(*(dst)))
+#define GNUNET_SQ_result_spec_auto_from_type( \
+    dst) GNUNET_SQ_result_spec_fixed_size ((dst), sizeof(*(dst)))
 
 
 /**
@@ -337,8 +344,8 @@ GNUNET_SQ_result_spec_fixed_size(void *dst,
  * @return array entry for the result specification to use
  */
 struct GNUNET_SQ_ResultSpec
-GNUNET_SQ_result_spec_variable_size(void **dst,
-                                    size_t *sptr);
+GNUNET_SQ_result_spec_variable_size (void **dst,
+                                     size_t *sptr);
 
 
 /**
@@ -348,7 +355,7 @@ GNUNET_SQ_result_spec_variable_size(void **dst,
  * @return array entry for the result specification to use
  */
 struct GNUNET_SQ_ResultSpec
-GNUNET_SQ_result_spec_string(char **dst);
+GNUNET_SQ_result_spec_string (char **dst);
 
 
 /**
@@ -358,7 +365,7 @@ GNUNET_SQ_result_spec_string(char **dst);
  * @return array entry for the result specification to use
  */
 struct GNUNET_SQ_ResultSpec
-GNUNET_SQ_result_spec_rsa_public_key(struct GNUNET_CRYPTO_RsaPublicKey **rsa);
+GNUNET_SQ_result_spec_rsa_public_key (struct GNUNET_CRYPTO_RsaPublicKey **rsa);
 
 
 /**
@@ -368,7 +375,7 @@ GNUNET_SQ_result_spec_rsa_public_key(struct GNUNET_CRYPTO_RsaPublicKey **rsa);
  * @return array entry for the result specification to use
  */
 struct GNUNET_SQ_ResultSpec
-GNUNET_SQ_result_spec_rsa_signature(struct GNUNET_CRYPTO_RsaSignature **sig);
+GNUNET_SQ_result_spec_rsa_signature (struct GNUNET_CRYPTO_RsaSignature **sig);
 
 
 /**
@@ -378,7 +385,7 @@ GNUNET_SQ_result_spec_rsa_signature(struct GNUNET_CRYPTO_RsaSignature **sig);
  * @return array entry for the result specification to use
  */
 struct GNUNET_SQ_ResultSpec
-GNUNET_SQ_result_spec_absolute_time(struct GNUNET_TIME_Absolute *at);
+GNUNET_SQ_result_spec_absolute_time (struct GNUNET_TIME_Absolute *at);
 
 
 /**
@@ -388,7 +395,7 @@ GNUNET_SQ_result_spec_absolute_time(struct GNUNET_TIME_Absolute *at);
  * @return array entry for the result specification to use
  */
 struct GNUNET_SQ_ResultSpec
-GNUNET_SQ_result_spec_absolute_time_nbo(struct GNUNET_TIME_AbsoluteNBO *at);
+GNUNET_SQ_result_spec_absolute_time_nbo (struct GNUNET_TIME_AbsoluteNBO *at);
 
 
 /**
@@ -398,7 +405,7 @@ GNUNET_SQ_result_spec_absolute_time_nbo(struct GNUNET_TIME_AbsoluteNBO *at);
  * @return array entry for the result specification to use
  */
 struct GNUNET_SQ_ResultSpec
-GNUNET_SQ_result_spec_uint16(uint16_t *u16);
+GNUNET_SQ_result_spec_uint16 (uint16_t *u16);
 
 
 /**
@@ -408,7 +415,7 @@ GNUNET_SQ_result_spec_uint16(uint16_t *u16);
  * @return array entry for the result specification to use
  */
 struct GNUNET_SQ_ResultSpec
-GNUNET_SQ_result_spec_uint32(uint32_t *u32);
+GNUNET_SQ_result_spec_uint32 (uint32_t *u32);
 
 
 /**
@@ -418,7 +425,7 @@ GNUNET_SQ_result_spec_uint32(uint32_t *u32);
  * @return array entry for the result specification to use
  */
 struct GNUNET_SQ_ResultSpec
-GNUNET_SQ_result_spec_uint64(uint64_t *u64);
+GNUNET_SQ_result_spec_uint64 (uint64_t *u64);
 
 
 /**
@@ -431,8 +438,8 @@ GNUNET_SQ_result_spec_uint64(uint64_t *u64);
  *   #GNUNET_SYSERR if a result was invalid (non-existing field)
  */
 int
-GNUNET_SQ_extract_result(sqlite3_stmt *result,
-                         struct GNUNET_SQ_ResultSpec *rs);
+GNUNET_SQ_extract_result (sqlite3_stmt *result,
+                          struct GNUNET_SQ_ResultSpec *rs);
 
 
 /**
@@ -442,7 +449,7 @@ GNUNET_SQ_extract_result(sqlite3_stmt *result,
  * @param rs reult specification to clean up
  */
 void
-GNUNET_SQ_cleanup_result(struct GNUNET_SQ_ResultSpec *rs);
+GNUNET_SQ_cleanup_result (struct GNUNET_SQ_ResultSpec *rs);
 
 
 
@@ -453,7 +460,8 @@ GNUNET_SQ_cleanup_result(struct GNUNET_SQ_ResultSpec *rs);
  * Information needed to run a list of SQL statements using
  * #GNUNET_SQ_exec_statements().
  */
-struct GNUNET_SQ_PrepareStatement {
+struct GNUNET_SQ_PrepareStatement
+{
   /**
    * Actual SQL statement.
    */
@@ -480,8 +488,8 @@ struct GNUNET_SQ_PrepareStatement {
  * @return initialized struct
  */
 struct GNUNET_SQ_PrepareStatement
-GNUNET_SQ_make_prepare(const char *sql,
-                       sqlite3_stmt **pstmt);
+GNUNET_SQ_make_prepare (const char *sql,
+                        sqlite3_stmt **pstmt);
 
 
 
@@ -494,8 +502,8 @@ GNUNET_SQ_make_prepare(const char *sql,
  * @return #GNUNET_OK on success
  */
 int
-GNUNET_SQ_prepare(sqlite3 *dbh,
-                  const struct GNUNET_SQ_PrepareStatement *ps);
+GNUNET_SQ_prepare (sqlite3 *dbh,
+                   const struct GNUNET_SQ_PrepareStatement *ps);
 
 
 /* ******************** sq_exec.c functions ************** */
@@ -505,7 +513,8 @@ GNUNET_SQ_prepare(sqlite3 *dbh,
  * Information needed to run a list of SQL statements using
  * #GNUNET_SQ_exec_statements().
  */
-struct GNUNET_SQ_ExecuteStatement {
+struct GNUNET_SQ_ExecuteStatement
+{
   /**
    * Actual SQL statement.
    */
@@ -531,7 +540,7 @@ struct GNUNET_SQ_ExecuteStatement {
  * @return initialized struct
  */
 struct GNUNET_SQ_ExecuteStatement
-GNUNET_SQ_make_execute(const char *sql);
+GNUNET_SQ_make_execute (const char *sql);
 
 
 /**
@@ -542,7 +551,7 @@ GNUNET_SQ_make_execute(const char *sql);
  * @return initialized struct
  */
 struct GNUNET_SQ_ExecuteStatement
-GNUNET_SQ_make_try_execute(const char *sql);
+GNUNET_SQ_make_try_execute (const char *sql);
 
 
 /**
@@ -555,8 +564,8 @@ GNUNET_SQ_make_try_execute(const char *sql);
  *         #GNUNET_SYSERR on error
  */
 int
-GNUNET_SQ_exec_statements(sqlite3 *dbh,
-                          const struct GNUNET_SQ_ExecuteStatement *es);
+GNUNET_SQ_exec_statements (sqlite3 *dbh,
+                           const struct GNUNET_SQ_ExecuteStatement *es);
 
 
 

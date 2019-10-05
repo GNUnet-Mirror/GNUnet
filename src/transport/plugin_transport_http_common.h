@@ -33,10 +33,14 @@
 #define TESTING GNUNET_NO
 
 #if TESTING
-#define HTTP_SERVER_NOT_VALIDATED_TIMEOUT GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 3)
-#define HTTP_CLIENT_NOT_VALIDATED_TIMEOUT GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 3)
-#define HTTP_CLIENT_SESSION_TIMEOUT GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 7)
-#define SERVER_SESSION_TIMEOUT GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 7)
+#define HTTP_SERVER_NOT_VALIDATED_TIMEOUT GNUNET_TIME_relative_multiply ( \
+    GNUNET_TIME_UNIT_SECONDS, 3)
+#define HTTP_CLIENT_NOT_VALIDATED_TIMEOUT GNUNET_TIME_relative_multiply ( \
+    GNUNET_TIME_UNIT_SECONDS, 3)
+#define HTTP_CLIENT_SESSION_TIMEOUT GNUNET_TIME_relative_multiply ( \
+    GNUNET_TIME_UNIT_SECONDS, 7)
+#define SERVER_SESSION_TIMEOUT GNUNET_TIME_relative_multiply ( \
+    GNUNET_TIME_UNIT_SECONDS, 7)
 #define TIMEOUT_LOG GNUNET_ERROR_TYPE_DEBUG
 
 #else
@@ -47,8 +51,10 @@
 #define PROTOCOL "http"
 #endif
 
-#define HTTP_SERVER_NOT_VALIDATED_TIMEOUT GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 15)
-#define HTTP_CLIENT_NOT_VALIDATED_TIMEOUT GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 15)
+#define HTTP_SERVER_NOT_VALIDATED_TIMEOUT GNUNET_TIME_relative_multiply ( \
+    GNUNET_TIME_UNIT_SECONDS, 15)
+#define HTTP_CLIENT_NOT_VALIDATED_TIMEOUT GNUNET_TIME_relative_multiply ( \
+    GNUNET_TIME_UNIT_SECONDS, 15)
 #define HTTP_CLIENT_SESSION_TIMEOUT GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT
 #define HTTP_SERVER_SESSION_TIMEOUT GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT
 #define TIMEOUT_LOG GNUNET_ERROR_TYPE_DEBUG
@@ -61,7 +67,8 @@
 /**
  * Bits in the `options` field of HTTP addresses.
  */
-enum HttpAddressOptions {
+enum HttpAddressOptions
+{
   /**
    * No bits set.
    */
@@ -86,7 +93,8 @@ GNUNET_NETWORK_STRUCT_BEGIN
 /**
  * HttpAddress
  */
-struct HttpAddress {
+struct HttpAddress
+{
   /**
    * Address options
    * see `enum HttpAddressOptions`
@@ -104,7 +112,8 @@ GNUNET_NETWORK_STRUCT_END
 /**
  * Representation of HTTP URL split into its components.
  */
-struct SplittedHTTPAddress {
+struct SplittedHTTPAddress
+{
   char *protocol;
   char *host;
   char *path;
@@ -117,7 +126,7 @@ struct SplittedHTTPAddress {
  * and path components.
  */
 struct SplittedHTTPAddress *
-http_split_address(const char *addr);
+http_split_address (const char *addr);
 
 
 /**
@@ -135,14 +144,15 @@ http_split_address(const char *addr);
  * @param asc_cls closure for @a asc
  */
 void
-http_common_plugin_address_pretty_printer(void *cls,
-                                          const char *type,
-                                          const void *addr,
-                                          size_t addrlen,
-                                          int numeric,
-                                          struct GNUNET_TIME_Relative timeout,
-                                          GNUNET_TRANSPORT_AddressStringCallback asc,
-                                          void *asc_cls);
+http_common_plugin_address_pretty_printer (void *cls,
+                                           const char *type,
+                                           const void *addr,
+                                           size_t addrlen,
+                                           int numeric,
+                                           struct GNUNET_TIME_Relative timeout,
+                                           GNUNET_TRANSPORT_AddressStringCallback
+                                           asc,
+                                           void *asc_cls);
 
 
 /**
@@ -157,9 +167,9 @@ http_common_plugin_address_pretty_printer(void *cls,
  * @return string representing the same address
  */
 const char *
-http_common_plugin_address_to_string(const char *plugin,
-                                     const void *addr,
-                                     size_t addrlen);
+http_common_plugin_address_to_string (const char *plugin,
+                                      const void *addr,
+                                      size_t addrlen);
 
 
 /**
@@ -175,11 +185,11 @@ http_common_plugin_address_to_string(const char *plugin,
  * @return #GNUNET_OK on success, #GNUNET_SYSERR on failure
  */
 int
-http_common_plugin_string_to_address(void *cls,
-                                     const char *addr,
-                                     uint16_t addrlen,
-                                     void **buf,
-                                     size_t *added);
+http_common_plugin_string_to_address (void *cls,
+                                      const char *addr,
+                                      uint16_t addrlen,
+                                      void **buf,
+                                      size_t *added);
 
 
 /**
@@ -191,9 +201,9 @@ http_common_plugin_string_to_address(void *cls,
  * @return the string
  */
 struct HttpAddress *
-http_common_address_from_socket(const char *protocol,
-                                const struct sockaddr *addr,
-                                socklen_t addrlen);
+http_common_address_from_socket (const char *protocol,
+                                 const struct sockaddr *addr,
+                                 socklen_t addrlen);
 
 
 /**
@@ -208,15 +218,15 @@ http_common_address_from_socket(const char *protocol,
  * @return the string
  */
 struct sockaddr *
-http_common_socket_from_address(const void *addr,
-                                size_t addrlen,
-                                int *res);
+http_common_socket_from_address (const void *addr,
+                                 size_t addrlen,
+                                 int *res);
 
 
 const char *
-http_common_plugin_address_to_url(void *cls,
-                                  const void *addr,
-                                  size_t addrlen);
+http_common_plugin_address_to_url (void *cls,
+                                   const void *addr,
+                                   size_t addrlen);
 
 
 /**
@@ -226,7 +236,7 @@ http_common_plugin_address_to_url(void *cls,
  * @return the size
  */
 size_t
-http_common_address_get_size(const struct HttpAddress * addr);
+http_common_address_get_size (const struct HttpAddress *addr);
 
 
 /**
@@ -239,10 +249,10 @@ http_common_address_get_size(const struct HttpAddress * addr);
  * @return #GNUNET_YES if equal, #GNUNET_NO else
  */
 size_t
-http_common_cmp_addresses(const void *addr1,
-                          size_t addrlen1,
-                          const void *addr2,
-                          size_t addrlen2);
+http_common_cmp_addresses (const void *addr1,
+                           size_t addrlen1,
+                           const void *addr2,
+                           size_t addrlen2);
 
 
 /**
@@ -253,8 +263,10 @@ http_common_cmp_addresses(const void *addr1,
  * @return the network type
  */
 enum GNUNET_NetworkType
-http_common_get_network_for_address(struct GNUNET_TRANSPORT_PluginEnvironment *env,
-                                    const struct GNUNET_HELLO_Address *address);
+http_common_get_network_for_address (struct
+                                     GNUNET_TRANSPORT_PluginEnvironment *env,
+                                     const struct
+                                     GNUNET_HELLO_Address *address);
 
 
 /* end of plugin_transport_http_common.h */

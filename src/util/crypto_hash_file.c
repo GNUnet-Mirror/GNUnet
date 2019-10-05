@@ -27,15 +27,21 @@
 #include "gnunet_util_lib.h"
 #include <gcrypt.h>
 
-#define LOG(kind, ...) GNUNET_log_from(kind, "util-crypto-hash-file", __VA_ARGS__)
+#define LOG(kind, ...) GNUNET_log_from (kind, "util-crypto-hash-file", \
+                                        __VA_ARGS__)
 
-#define LOG_STRERROR_FILE(kind, syscall, filename) GNUNET_log_from_strerror_file(kind, "util-crypto-hash-file", syscall, filename)
+#define LOG_STRERROR_FILE(kind, syscall, \
+                          filename) GNUNET_log_from_strerror_file (kind, \
+                                                                   "util-crypto-hash-file", \
+                                                                   syscall, \
+                                                                   filename)
 
 
 /**
  * Context used when hashing a file.
  */
-struct GNUNET_CRYPTO_FileHashContext {
+struct GNUNET_CRYPTO_FileHashContext
+{
   /**
    * Function to call upon completion.
    */
@@ -79,7 +85,7 @@ struct GNUNET_CRYPTO_FileHashContext {
   /**
    * Current task for hashing.
    */
-  struct GNUNET_SCHEDULER_Task * task;
+  struct GNUNET_SCHEDULER_Task *task;
 
   /**
    * Priority we use.
@@ -98,15 +104,15 @@ struct GNUNET_CRYPTO_FileHashContext {
  * and free associated resources.
  */
 static void
-file_hash_finish(struct GNUNET_CRYPTO_FileHashContext *fhc,
-                 const struct GNUNET_HashCode * res)
+file_hash_finish (struct GNUNET_CRYPTO_FileHashContext *fhc,
+                  const struct GNUNET_HashCode *res)
 {
-  fhc->callback(fhc->callback_cls, res);
-  GNUNET_free(fhc->filename);
-  if (!GNUNET_DISK_handle_invalid(fhc->fh))
-    GNUNET_break(GNUNET_OK == GNUNET_DISK_file_close(fhc->fh));
-  gcry_md_close(fhc->md);
-  GNUNET_free(fhc);             /* also frees fhc->buffer */
+  fhc->callback (fhc->callback_cls, res);
+  GNUNET_free (fhc->filename);
+  if (! GNUNET_DISK_handle_invalid (fhc->fh))
+    GNUNET_break (GNUNET_OK == GNUNET_DISK_file_close (fhc->fh));
+  gcry_md_close (fhc->md);
+  GNUNET_free (fhc);             /* also frees fhc->buffer */
 }
 
 
@@ -116,7 +122,7 @@ file_hash_finish(struct GNUNET_CRYPTO_FileHashContext *fhc,
  * @param cls closure
  */
 static void
-file_hash_task(void *cls)
+file_hash_task (void *cls)
 {
   struct GNUNET_CRYPTO_FileHashContext *fhc = cls;
   struct GNUNET_HashCode *res;
@@ -124,37 +130,37 @@ file_hash_task(void *cls)
   ssize_t sret;
 
   fhc->task = NULL;
-  GNUNET_assert(fhc->offset <= fhc->fsize);
+  GNUNET_assert (fhc->offset <= fhc->fsize);
   delta = fhc->bsize;
   if (fhc->fsize - fhc->offset < delta)
     delta = fhc->fsize - fhc->offset;
-  sret = GNUNET_DISK_file_read(fhc->fh,
-                               fhc->buffer,
-                               delta);
+  sret = GNUNET_DISK_file_read (fhc->fh,
+                                fhc->buffer,
+                                delta);
   if ((sret < 0) ||
-      (delta != (size_t)sret))
-    {
-      LOG_STRERROR_FILE(GNUNET_ERROR_TYPE_WARNING,
-                        "read",
-                        fhc->filename);
-      file_hash_finish(fhc,
-                       NULL);
-      return;
-    }
-  gcry_md_write(fhc->md,
-                fhc->buffer,
-                delta);
+      (delta != (size_t) sret))
+  {
+    LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_WARNING,
+                       "read",
+                       fhc->filename);
+    file_hash_finish (fhc,
+                      NULL);
+    return;
+  }
+  gcry_md_write (fhc->md,
+                 fhc->buffer,
+                 delta);
   fhc->offset += delta;
   if (fhc->offset == fhc->fsize)
-    {
-      res = (struct GNUNET_HashCode *)gcry_md_read(fhc->md,
+  {
+    res = (struct GNUNET_HashCode *) gcry_md_read (fhc->md,
                                                    GCRY_MD_SHA512);
-      file_hash_finish(fhc, res);
-      return;
-    }
-  fhc->task = GNUNET_SCHEDULER_add_with_priority(fhc->priority,
-                                                 &file_hash_task,
-                                                 fhc);
+    file_hash_finish (fhc, res);
+    return;
+  }
+  fhc->task = GNUNET_SCHEDULER_add_with_priority (fhc->priority,
+                                                  &file_hash_task,
+                                                  fhc);
 }
 
 
@@ -169,51 +175,51 @@ file_hash_task(void *cls)
  * @return NULL on (immediate) errror
  */
 struct GNUNET_CRYPTO_FileHashContext *
-GNUNET_CRYPTO_hash_file(enum GNUNET_SCHEDULER_Priority priority,
-                        const char *filename,
-                        size_t blocksize,
-                        GNUNET_CRYPTO_HashCompletedCallback callback,
-                        void *callback_cls)
+GNUNET_CRYPTO_hash_file (enum GNUNET_SCHEDULER_Priority priority,
+                         const char *filename,
+                         size_t blocksize,
+                         GNUNET_CRYPTO_HashCompletedCallback callback,
+                         void *callback_cls)
 {
   struct GNUNET_CRYPTO_FileHashContext *fhc;
 
-  GNUNET_assert(blocksize > 0);
+  GNUNET_assert (blocksize > 0);
   fhc =
-    GNUNET_malloc(sizeof(struct GNUNET_CRYPTO_FileHashContext) + blocksize);
+    GNUNET_malloc (sizeof(struct GNUNET_CRYPTO_FileHashContext) + blocksize);
   fhc->callback = callback;
   fhc->callback_cls = callback_cls;
-  fhc->buffer = (unsigned char *)&fhc[1];
-  fhc->filename = GNUNET_strdup(filename);
-  if (GPG_ERR_NO_ERROR != gcry_md_open(&fhc->md, GCRY_MD_SHA512, 0))
-    {
-      GNUNET_break(0);
-      GNUNET_free(fhc);
-      return NULL;
-    }
+  fhc->buffer = (unsigned char *) &fhc[1];
+  fhc->filename = GNUNET_strdup (filename);
+  if (GPG_ERR_NO_ERROR != gcry_md_open (&fhc->md, GCRY_MD_SHA512, 0))
+  {
+    GNUNET_break (0);
+    GNUNET_free (fhc);
+    return NULL;
+  }
   fhc->bsize = blocksize;
   if (GNUNET_OK !=
-      GNUNET_DISK_file_size(filename,
-                            &fhc->fsize,
-                            GNUNET_NO,
-                            GNUNET_YES))
-    {
-      GNUNET_free(fhc->filename);
-      GNUNET_free(fhc);
-      return NULL;
-    }
-  fhc->fh = GNUNET_DISK_file_open(filename,
-                                  GNUNET_DISK_OPEN_READ,
-                                  GNUNET_DISK_PERM_NONE);
-  if (!fhc->fh)
-    {
-      GNUNET_free(fhc->filename);
-      GNUNET_free(fhc);
-      return NULL;
-    }
+      GNUNET_DISK_file_size (filename,
+                             &fhc->fsize,
+                             GNUNET_NO,
+                             GNUNET_YES))
+  {
+    GNUNET_free (fhc->filename);
+    GNUNET_free (fhc);
+    return NULL;
+  }
+  fhc->fh = GNUNET_DISK_file_open (filename,
+                                   GNUNET_DISK_OPEN_READ,
+                                   GNUNET_DISK_PERM_NONE);
+  if (! fhc->fh)
+  {
+    GNUNET_free (fhc->filename);
+    GNUNET_free (fhc);
+    return NULL;
+  }
   fhc->priority = priority;
-  fhc->task = GNUNET_SCHEDULER_add_with_priority(priority,
-                                                 &file_hash_task,
-                                                 fhc);
+  fhc->task = GNUNET_SCHEDULER_add_with_priority (priority,
+                                                  &file_hash_task,
+                                                  fhc);
   return fhc;
 }
 
@@ -224,13 +230,13 @@ GNUNET_CRYPTO_hash_file(enum GNUNET_SCHEDULER_Priority priority,
  * @param fhc operation to cancel (callback must not yet have been invoked)
  */
 void
-GNUNET_CRYPTO_hash_file_cancel(struct GNUNET_CRYPTO_FileHashContext *fhc)
+GNUNET_CRYPTO_hash_file_cancel (struct GNUNET_CRYPTO_FileHashContext *fhc)
 {
-  GNUNET_SCHEDULER_cancel(fhc->task);
-  GNUNET_free(fhc->filename);
-  GNUNET_break(GNUNET_OK ==
-               GNUNET_DISK_file_close(fhc->fh));
-  GNUNET_free(fhc);
+  GNUNET_SCHEDULER_cancel (fhc->task);
+  GNUNET_free (fhc->filename);
+  GNUNET_break (GNUNET_OK ==
+                GNUNET_DISK_file_close (fhc->fh));
+  GNUNET_free (fhc);
 }
 
 /* end of crypto_hash_file.c */

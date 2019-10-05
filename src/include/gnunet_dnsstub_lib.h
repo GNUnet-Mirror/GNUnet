@@ -52,7 +52,7 @@ struct GNUNET_DNSSTUB_RequestSocket;
  * @return NULL on error
  */
 struct GNUNET_DNSSTUB_Context *
-GNUNET_DNSSTUB_start(unsigned int num_sockets);
+GNUNET_DNSSTUB_start (unsigned int num_sockets);
 
 
 /**
@@ -64,8 +64,8 @@ GNUNET_DNSSTUB_start(unsigned int num_sockets);
  * @return #GNUNET_OK on success
  */
 int
-GNUNET_DNSSTUB_add_dns_ip(struct GNUNET_DNSSTUB_Context *ctx,
-                          const char *dns_ip);
+GNUNET_DNSSTUB_add_dns_ip (struct GNUNET_DNSSTUB_Context *ctx,
+                           const char *dns_ip);
 
 
 /**
@@ -77,8 +77,8 @@ GNUNET_DNSSTUB_add_dns_ip(struct GNUNET_DNSSTUB_Context *ctx,
  * @return #GNUNET_OK on success
  */
 int
-GNUNET_DNSSTUB_add_dns_sa(struct GNUNET_DNSSTUB_Context *ctx,
-                          const struct sockaddr *sa);
+GNUNET_DNSSTUB_add_dns_sa (struct GNUNET_DNSSTUB_Context *ctx,
+                           const struct sockaddr *sa);
 
 
 /**
@@ -89,8 +89,8 @@ GNUNET_DNSSTUB_add_dns_sa(struct GNUNET_DNSSTUB_Context *ctx,
  * @param retry_frequ how long to wait between retries
  */
 void
-GNUNET_DNSSTUB_set_retry(struct GNUNET_DNSSTUB_Context *ctx,
-                         struct GNUNET_TIME_Relative retry_freq);
+GNUNET_DNSSTUB_set_retry (struct GNUNET_DNSSTUB_Context *ctx,
+                          struct GNUNET_TIME_Relative retry_freq);
 
 /**
  * Cleanup DNSSTUB resolver.
@@ -98,7 +98,7 @@ GNUNET_DNSSTUB_set_retry(struct GNUNET_DNSSTUB_Context *ctx,
  * @param ctx stub resolver to clean up
  */
 void
-GNUNET_DNSSTUB_stop(struct GNUNET_DNSSTUB_Context *ctx);
+GNUNET_DNSSTUB_stop (struct GNUNET_DNSSTUB_Context *ctx);
 
 
 /**
@@ -128,11 +128,11 @@ typedef void
  * @return socket used for the request, NULL on error
  */
 struct GNUNET_DNSSTUB_RequestSocket *
-GNUNET_DNSSTUB_resolve(struct GNUNET_DNSSTUB_Context *ctx,
-                       const void *request,
-                       size_t request_len,
-                       GNUNET_DNSSTUB_ResultCallback rc,
-                       void *rc_cls);
+GNUNET_DNSSTUB_resolve (struct GNUNET_DNSSTUB_Context *ctx,
+                        const void *request,
+                        size_t request_len,
+                        GNUNET_DNSSTUB_ResultCallback rc,
+                        void *rc_cls);
 
 
 /**
@@ -141,7 +141,7 @@ GNUNET_DNSSTUB_resolve(struct GNUNET_DNSSTUB_Context *ctx,
  * @param rs resolution to cancel
  */
 void
-GNUNET_DNSSTUB_resolve_cancel(struct GNUNET_DNSSTUB_RequestSocket *rs);
+GNUNET_DNSSTUB_resolve_cancel (struct GNUNET_DNSSTUB_RequestSocket *rs);
 
 
 #endif

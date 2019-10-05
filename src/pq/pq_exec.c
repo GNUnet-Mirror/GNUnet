@@ -34,7 +34,7 @@
  * @return initialized struct
  */
 struct GNUNET_PQ_ExecuteStatement
-GNUNET_PQ_make_execute(const char *sql)
+GNUNET_PQ_make_execute (const char *sql)
 {
   struct GNUNET_PQ_ExecuteStatement es = {
     .sql = sql,
@@ -53,7 +53,7 @@ GNUNET_PQ_make_execute(const char *sql)
  * @return initialized struct
  */
 struct GNUNET_PQ_ExecuteStatement
-GNUNET_PQ_make_try_execute(const char *sql)
+GNUNET_PQ_make_try_execute (const char *sql)
 {
   struct GNUNET_PQ_ExecuteStatement es = {
     .sql = sql,
@@ -74,38 +74,38 @@ GNUNET_PQ_make_try_execute(const char *sql)
  *         #GNUNET_SYSERR on error
  */
 int
-GNUNET_PQ_exec_statements(PGconn *connection,
-                          const struct GNUNET_PQ_ExecuteStatement *es)
+GNUNET_PQ_exec_statements (PGconn *connection,
+                           const struct GNUNET_PQ_ExecuteStatement *es)
 {
   for (unsigned int i = 0; NULL != es[i].sql; i++)
-    {
-      PGresult *result;
+  {
+    PGresult *result;
 
-      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-                 "Running statement `%s' on %p\n",
-                 es[i].sql,
-                 connection);
-      result = PQexec(connection,
-                      es[i].sql);
-      if ((GNUNET_NO == es[i].ignore_errors) &&
-          (PGRES_COMMAND_OK != PQresultStatus(result)))
-        {
-          GNUNET_log_from(GNUNET_ERROR_TYPE_ERROR,
-                          "pq",
-                          "Failed to execute `%s': %s/%s/%s/%s/%s",
-                          es[i].sql,
-                          PQresultErrorField(result,
-                                             PG_DIAG_MESSAGE_PRIMARY),
-                          PQresultErrorField(result,
-                                             PG_DIAG_MESSAGE_DETAIL),
-                          PQresultErrorMessage(result),
-                          PQresStatus(PQresultStatus(result)),
-                          PQerrorMessage(connection));
-          PQclear(result);
-          return GNUNET_SYSERR;
-        }
-      PQclear(result);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Running statement `%s' on %p\n",
+                es[i].sql,
+                connection);
+    result = PQexec (connection,
+                     es[i].sql);
+    if ((GNUNET_NO == es[i].ignore_errors) &&
+        (PGRES_COMMAND_OK != PQresultStatus (result)))
+    {
+      GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
+                       "pq",
+                       "Failed to execute `%s': %s/%s/%s/%s/%s",
+                       es[i].sql,
+                       PQresultErrorField (result,
+                                           PG_DIAG_MESSAGE_PRIMARY),
+                       PQresultErrorField (result,
+                                           PG_DIAG_MESSAGE_DETAIL),
+                       PQresultErrorMessage (result),
+                       PQresStatus (PQresultStatus (result)),
+                       PQerrorMessage (connection));
+      PQclear (result);
+      return GNUNET_SYSERR;
     }
+    PQclear (result);
+  }
   return GNUNET_OK;
 }
 

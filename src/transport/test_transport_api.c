@@ -34,42 +34,43 @@
 /**
  * How long until we give up on transmitting the message?
  */
-#define TIMEOUT GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 30)
+#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30)
 
 static struct GNUNET_TRANSPORT_TESTING_ConnectCheckContext *ccc;
 
 
 static void
-notify_receive(void *cls,
-               struct GNUNET_TRANSPORT_TESTING_PeerContext *receiver,
-               const struct GNUNET_PeerIdentity *sender,
-               const struct GNUNET_TRANSPORT_TESTING_TestMessage *message)
+notify_receive (void *cls,
+                struct GNUNET_TRANSPORT_TESTING_PeerContext *receiver,
+                const struct GNUNET_PeerIdentity *sender,
+                const struct GNUNET_TRANSPORT_TESTING_TestMessage *message)
 {
   {
-    char *ps = GNUNET_strdup(GNUNET_i2s(&receiver->id));
+    char *ps = GNUNET_strdup (GNUNET_i2s (&receiver->id));
 
-    GNUNET_log(GNUNET_ERROR_TYPE_INFO,
-               "Peer %u (`%s') received message of type %d and size %u size from peer %s!\n",
-               receiver->no,
-               ps,
-               ntohs(message->header.type),
-               ntohs(message->header.size),
-               GNUNET_i2s(sender));
-    GNUNET_free(ps);
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                "Peer %u (`%s') received message of type %d and size %u size from peer %s!\n",
+                receiver->no,
+                ps,
+                ntohs (message->header.type),
+                ntohs (message->header.size),
+                GNUNET_i2s (sender));
+    GNUNET_free (ps);
   }
 
-  if ((GNUNET_TRANSPORT_TESTING_SIMPLE_MTYPE == ntohs(message->header.type)) &&
-      (GNUNET_TRANSPORT_TESTING_LARGE_MESSAGE_SIZE == ntohs(message->header.size)))
-    {
-      ccc->global_ret = GNUNET_OK;
-      GNUNET_SCHEDULER_shutdown();
-    }
+  if ((GNUNET_TRANSPORT_TESTING_SIMPLE_MTYPE == ntohs (message->header.type)) &&
+      (GNUNET_TRANSPORT_TESTING_LARGE_MESSAGE_SIZE == ntohs (
+         message->header.size)))
+  {
+    ccc->global_ret = GNUNET_OK;
+    GNUNET_SCHEDULER_shutdown ();
+  }
   else
-    {
-      GNUNET_break(0);
-      ccc->global_ret = GNUNET_SYSERR;
-      GNUNET_SCHEDULER_shutdown();
-    }
+  {
+    GNUNET_break (0);
+    ccc->global_ret = GNUNET_SYSERR;
+    GNUNET_SCHEDULER_shutdown ();
+  }
 }
 
 
@@ -81,8 +82,8 @@ notify_receive(void *cls,
  *        in both directions simultaneously?
  */
 static int
-test(char *argv[],
-     int bi_directional)
+test (char *argv[],
+      int bi_directional)
 {
   struct GNUNET_TRANSPORT_TESTING_SendClosure sc = {
     .num_messages = 1
@@ -101,22 +102,22 @@ test(char *argv[],
   ccc = &my_ccc;
   sc.ccc = ccc;
   if (GNUNET_OK !=
-      GNUNET_TRANSPORT_TESTING_main(2,
-                                    &GNUNET_TRANSPORT_TESTING_connect_check,
-                                    ccc))
+      GNUNET_TRANSPORT_TESTING_main (2,
+                                     &GNUNET_TRANSPORT_TESTING_connect_check,
+                                     ccc))
     return 1;
   return 0;
 }
 
 
 int
-main(int argc,
-     char *argv[])
+main (int argc,
+      char *argv[])
 {
-  if ((0 != test(argv,
-                 GNUNET_NO)) ||
-      (0 != test(argv,
-                 GNUNET_YES)))
+  if ((0 != test (argv,
+                  GNUNET_NO)) ||
+      (0 != test (argv,
+                  GNUNET_YES)))
     return 1;
   return 0;
 }

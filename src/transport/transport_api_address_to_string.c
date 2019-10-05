@@ -33,7 +33,8 @@
 /**
  * Context for the address lookup.
  */
-struct GNUNET_TRANSPORT_AddressToStringContext {
+struct GNUNET_TRANSPORT_AddressToStringContext
+{
   /**
    * Function to call with the human-readable address.
    */
@@ -59,35 +60,35 @@ struct GNUNET_TRANSPORT_AddressToStringContext {
  * @return #GNUNET_OK if message is well-formed
  */
 static int
-check_reply(void *cls,
-            const struct AddressToStringResultMessage *atsm)
+check_reply (void *cls,
+             const struct AddressToStringResultMessage *atsm)
 {
-  uint16_t size = ntohs(atsm->header.size) - sizeof(*atsm);
+  uint16_t size = ntohs (atsm->header.size) - sizeof(*atsm);
   const char *address;
   int result;
   uint32_t addr_len;
 
-  result = (int)ntohl(atsm->res);
-  addr_len = ntohl(atsm->addr_len);
+  result = (int) ntohl (atsm->res);
+  addr_len = ntohl (atsm->addr_len);
   if (GNUNET_SYSERR == result)
     return GNUNET_OK;
   if (0 == size)
+  {
+    if (GNUNET_OK != result)
     {
-      if (GNUNET_OK != result)
-        {
-          GNUNET_break(0);
-          return GNUNET_SYSERR;
-        }
-      return GNUNET_OK;
-    }
-  address = (const char *)&atsm[1];
-  if ((addr_len > size) ||
-      (address[addr_len - 1] != '\0'))
-    {
-      /* invalid reply */
-      GNUNET_break(0);
+      GNUNET_break (0);
       return GNUNET_SYSERR;
     }
+    return GNUNET_OK;
+  }
+  address = (const char *) &atsm[1];
+  if ((addr_len > size) ||
+      (address[addr_len - 1] != '\0'))
+  {
+    /* invalid reply */
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
   return GNUNET_OK;
 }
 
@@ -99,40 +100,40 @@ check_reply(void *cls,
  * @param msg message with the human-readable address
  */
 static void
-handle_reply(void *cls,
-             const struct AddressToStringResultMessage *atsm)
+handle_reply (void *cls,
+              const struct AddressToStringResultMessage *atsm)
 {
   struct GNUNET_TRANSPORT_AddressToStringContext *alucb = cls;
-  uint16_t size = ntohs(atsm->header.size) - sizeof(*atsm);
+  uint16_t size = ntohs (atsm->header.size) - sizeof(*atsm);
   const char *address;
   int result;
 
-  result = (int)ntohl(atsm->res);
+  result = (int) ntohl (atsm->res);
   if (GNUNET_SYSERR == result)
-    {
-      /* expect more replies; as this is not the last
-         call, we must pass the empty string for the address */
-      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-                 "Address resolution failed\n");
-      alucb->cb(alucb->cb_cls,
-                "",
-                GNUNET_NO);
-      return;
-    }
+  {
+    /* expect more replies; as this is not the last
+       call, we must pass the empty string for the address */
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Address resolution failed\n");
+    alucb->cb (alucb->cb_cls,
+               "",
+               GNUNET_NO);
+    return;
+  }
   if (0 == size)
-    {
-      /* we are done (successfully, without communication errors) */
-      alucb->cb(alucb->cb_cls,
-                NULL,
-                GNUNET_OK);
-      GNUNET_TRANSPORT_address_to_string_cancel(alucb);
-      return;
-    }
-  address = (const char *)&atsm[1];
+  {
+    /* we are done (successfully, without communication errors) */
+    alucb->cb (alucb->cb_cls,
+               NULL,
+               GNUNET_OK);
+    GNUNET_TRANSPORT_address_to_string_cancel (alucb);
+    return;
+  }
+  address = (const char *) &atsm[1];
   /* return normal reply to caller, also expect more replies */
-  alucb->cb(alucb->cb_cls,
-            address,
-            GNUNET_OK);
+  alucb->cb (alucb->cb_cls,
+             address,
+             GNUNET_OK);
 }
 
 
@@ -146,17 +147,17 @@ handle_reply(void *cls,
  * @param error error code
  */
 static void
-mq_error_handler(void *cls,
-                 enum GNUNET_MQ_Error error)
+mq_error_handler (void *cls,
+                  enum GNUNET_MQ_Error error)
 {
   struct GNUNET_TRANSPORT_AddressToStringContext *alucb = cls;
 
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-             "Disconnected from transport, address resolution failed\n");
-  alucb->cb(alucb->cb_cls,
-            NULL,
-            GNUNET_SYSERR);
-  GNUNET_TRANSPORT_address_to_string_cancel(alucb);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Disconnected from transport, address resolution failed\n");
+  alucb->cb (alucb->cb_cls,
+             NULL,
+             GNUNET_SYSERR);
+  GNUNET_TRANSPORT_address_to_string_cancel (alucb);
 }
 
 
@@ -173,21 +174,23 @@ mq_error_handler(void *cls,
  * @return handle to cancel the operation, NULL on error
  */
 struct GNUNET_TRANSPORT_AddressToStringContext *
-GNUNET_TRANSPORT_address_to_string(const struct GNUNET_CONFIGURATION_Handle *cfg,
-                                   const struct GNUNET_HELLO_Address *address,
-                                   int numeric,
-                                   struct GNUNET_TIME_Relative timeout,
-                                   GNUNET_TRANSPORT_AddressToStringCallback aluc,
-                                   void *aluc_cls)
+GNUNET_TRANSPORT_address_to_string (const struct
+                                    GNUNET_CONFIGURATION_Handle *cfg,
+                                    const struct GNUNET_HELLO_Address *address,
+                                    int numeric,
+                                    struct GNUNET_TIME_Relative timeout,
+                                    GNUNET_TRANSPORT_AddressToStringCallback
+                                    aluc,
+                                    void *aluc_cls)
 {
   struct GNUNET_TRANSPORT_AddressToStringContext *alc
-    = GNUNET_new(struct GNUNET_TRANSPORT_AddressToStringContext);
+    = GNUNET_new (struct GNUNET_TRANSPORT_AddressToStringContext);
   struct GNUNET_MQ_MessageHandler handlers[] = {
-    GNUNET_MQ_hd_var_size(reply,
-                          GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_TO_STRING_REPLY,
-                          struct AddressToStringResultMessage,
-                          alc),
-    GNUNET_MQ_handler_end()
+    GNUNET_MQ_hd_var_size (reply,
+                           GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_TO_STRING_REPLY,
+                           struct AddressToStringResultMessage,
+                           alc),
+    GNUNET_MQ_handler_end ()
   };
   size_t alen;
   size_t slen;
@@ -196,49 +199,49 @@ GNUNET_TRANSPORT_address_to_string(const struct GNUNET_CONFIGURATION_Handle *cfg
   char *addrbuf;
 
   alen = address->address_length;
-  slen = strlen(address->transport_name) + 1;
+  slen = strlen (address->transport_name) + 1;
   if ((alen + slen >= GNUNET_MAX_MESSAGE_SIZE
        - sizeof(struct AddressLookupMessage)) ||
       (alen >= GNUNET_MAX_MESSAGE_SIZE) ||
       (slen >= GNUNET_MAX_MESSAGE_SIZE))
-    {
-      GNUNET_break(0);
-      GNUNET_free(alc);
-      return NULL;
-    }
+  {
+    GNUNET_break (0);
+    GNUNET_free (alc);
+    return NULL;
+  }
   alc->cb = aluc;
   alc->cb_cls = aluc_cls;
-  alc->mq = GNUNET_CLIENT_connect(cfg,
-                                  "transport",
-                                  handlers,
-                                  &mq_error_handler,
-                                  alc);
+  alc->mq = GNUNET_CLIENT_connect (cfg,
+                                   "transport",
+                                   handlers,
+                                   &mq_error_handler,
+                                   alc);
   if (NULL == alc->mq)
-    {
-      GNUNET_break(0);
-      GNUNET_free(alc);
-      return NULL;
-    }
-  GNUNET_log(GNUNET_ERROR_TYPE_INFO,
-             "Client tries to resolve for peer `%s' address plugin %s len %u\n",
-             GNUNET_i2s(&address->peer),
-             address->transport_name,
-             (unsigned int)address->address_length);
-  env = GNUNET_MQ_msg_extra(msg,
-                            alen + slen,
-                            GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_TO_STRING);
-  msg->numeric_only = htons((int16_t)numeric);
-  msg->addrlen = htons((uint16_t)alen);
-  msg->timeout = GNUNET_TIME_relative_hton(timeout);
-  addrbuf = (char *)&msg[1];
-  GNUNET_memcpy(addrbuf,
-                address->address,
-                alen);
-  GNUNET_memcpy(&addrbuf[alen],
-                address->transport_name,
-                slen);
-  GNUNET_MQ_send(alc->mq,
-                 env);
+  {
+    GNUNET_break (0);
+    GNUNET_free (alc);
+    return NULL;
+  }
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "Client tries to resolve for peer `%s' address plugin %s len %u\n",
+              GNUNET_i2s (&address->peer),
+              address->transport_name,
+              (unsigned int) address->address_length);
+  env = GNUNET_MQ_msg_extra (msg,
+                             alen + slen,
+                             GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_TO_STRING);
+  msg->numeric_only = htons ((int16_t) numeric);
+  msg->addrlen = htons ((uint16_t) alen);
+  msg->timeout = GNUNET_TIME_relative_hton (timeout);
+  addrbuf = (char *) &msg[1];
+  GNUNET_memcpy (addrbuf,
+                 address->address,
+                 alen);
+  GNUNET_memcpy (&addrbuf[alen],
+                 address->transport_name,
+                 slen);
+  GNUNET_MQ_send (alc->mq,
+                  env);
   return alc;
 }
 
@@ -249,10 +252,12 @@ GNUNET_TRANSPORT_address_to_string(const struct GNUNET_CONFIGURATION_Handle *cfg
  * @param alc the context handle
  */
 void
-GNUNET_TRANSPORT_address_to_string_cancel(struct GNUNET_TRANSPORT_AddressToStringContext *alc)
+GNUNET_TRANSPORT_address_to_string_cancel (struct
+                                           GNUNET_TRANSPORT_AddressToStringContext
+                                           *alc)
 {
-  GNUNET_MQ_destroy(alc->mq);
-  GNUNET_free(alc);
+  GNUNET_MQ_destroy (alc->mq);
+  GNUNET_free (alc);
 }
 
 

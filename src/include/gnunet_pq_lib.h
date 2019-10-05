@@ -60,7 +60,8 @@ typedef int (*GNUNET_PQ_QueryConverter) (void *cls,
 /**
  * @brief Description of a DB query parameter.
  */
-struct GNUNET_PQ_QueryParam {
+struct GNUNET_PQ_QueryParam
+{
   /**
    * Function for how to handle this type of entry.
    */
@@ -105,7 +106,7 @@ struct GNUNET_PQ_QueryParam {
  * @oaran ptr_size number of bytes in @a ptr
  */
 struct GNUNET_PQ_QueryParam
-GNUNET_PQ_query_param_fixed_size(const void *ptr, size_t ptr_size);
+GNUNET_PQ_query_param_fixed_size (const void *ptr, size_t ptr_size);
 
 
 /**
@@ -114,7 +115,7 @@ GNUNET_PQ_query_param_fixed_size(const void *ptr, size_t ptr_size);
  * @param ptr pointer to the string query parameter to pass
  */
 struct GNUNET_PQ_QueryParam
-GNUNET_PQ_query_param_string(const char *ptr);
+GNUNET_PQ_query_param_string (const char *ptr);
 
 
 /**
@@ -124,7 +125,7 @@ GNUNET_PQ_query_param_string(const char *ptr);
  * @param x pointer to the query parameter to pass.
  */
 #define GNUNET_PQ_query_param_auto_from_type(x) \
-  GNUNET_PQ_query_param_fixed_size((x), sizeof(*(x)))
+  GNUNET_PQ_query_param_fixed_size ((x), sizeof(*(x)))
 
 
 /**
@@ -134,7 +135,7 @@ GNUNET_PQ_query_param_string(const char *ptr);
  * @param x the query parameter to pass.
  */
 struct GNUNET_PQ_QueryParam
-GNUNET_PQ_query_param_rsa_public_key(
+GNUNET_PQ_query_param_rsa_public_key (
   const struct GNUNET_CRYPTO_RsaPublicKey *x);
 
 
@@ -145,7 +146,7 @@ GNUNET_PQ_query_param_rsa_public_key(
  * @param x the query parameter to pass
  */
 struct GNUNET_PQ_QueryParam
-GNUNET_PQ_query_param_rsa_signature(
+GNUNET_PQ_query_param_rsa_signature (
   const struct GNUNET_CRYPTO_RsaSignature *x);
 
 
@@ -156,7 +157,7 @@ GNUNET_PQ_query_param_rsa_signature(
  * @param x pointer to the query parameter to pass
  */
 struct GNUNET_PQ_QueryParam
-GNUNET_PQ_query_param_absolute_time(const struct GNUNET_TIME_Absolute *x);
+GNUNET_PQ_query_param_absolute_time (const struct GNUNET_TIME_Absolute *x);
 
 
 /**
@@ -166,7 +167,7 @@ GNUNET_PQ_query_param_absolute_time(const struct GNUNET_TIME_Absolute *x);
  * @param x pointer to the query parameter to pass
  */
 struct GNUNET_PQ_QueryParam
-GNUNET_PQ_query_param_absolute_time_nbo(
+GNUNET_PQ_query_param_absolute_time_nbo (
   const struct GNUNET_TIME_AbsoluteNBO *x);
 
 
@@ -176,7 +177,7 @@ GNUNET_PQ_query_param_absolute_time_nbo(
  * @param x pointer to the query parameter to pass
  */
 struct GNUNET_PQ_QueryParam
-GNUNET_PQ_query_param_uint16(const uint16_t *x);
+GNUNET_PQ_query_param_uint16 (const uint16_t *x);
 
 
 /**
@@ -185,7 +186,7 @@ GNUNET_PQ_query_param_uint16(const uint16_t *x);
  * @param x pointer to the query parameter to pass
  */
 struct GNUNET_PQ_QueryParam
-GNUNET_PQ_query_param_uint32(const uint32_t *x);
+GNUNET_PQ_query_param_uint32 (const uint32_t *x);
 
 
 /**
@@ -194,7 +195,7 @@ GNUNET_PQ_query_param_uint32(const uint32_t *x);
  * @param x pointer to the query parameter to pass
  */
 struct GNUNET_PQ_QueryParam
-GNUNET_PQ_query_param_uint64(const uint64_t *x);
+GNUNET_PQ_query_param_uint64 (const uint64_t *x);
 
 
 /* ************************* pq_result_helper.c functions ************************ */
@@ -234,7 +235,8 @@ typedef void (*GNUNET_PQ_ResultCleanup) (void *cls, void *rd);
 /**
  * @brief Description of a DB result cell.
  */
-struct GNUNET_PQ_ResultSpec {
+struct GNUNET_PQ_ResultSpec
+{
   /**
    * What is the format of the result?
    */
@@ -295,9 +297,9 @@ struct GNUNET_PQ_ResultSpec {
  * @return array entry for the result specification to use
  */
 struct GNUNET_PQ_ResultSpec
-GNUNET_PQ_result_spec_variable_size(const char *name,
-                                    void **dst,
-                                    size_t *sptr);
+GNUNET_PQ_result_spec_variable_size (const char *name,
+                                     void **dst,
+                                     size_t *sptr);
 
 
 /**
@@ -309,7 +311,7 @@ GNUNET_PQ_result_spec_variable_size(const char *name,
  * @return array entry for the result specification to use
  */
 struct GNUNET_PQ_ResultSpec
-GNUNET_PQ_result_spec_fixed_size(const char *name, void *dst, size_t dst_size);
+GNUNET_PQ_result_spec_fixed_size (const char *name, void *dst, size_t dst_size);
 
 
 /**
@@ -320,7 +322,7 @@ GNUNET_PQ_result_spec_fixed_size(const char *name, void *dst, size_t dst_size);
  * @return array entry for the result specification to use
  */
 #define GNUNET_PQ_result_spec_auto_from_type(name, dst) \
-  GNUNET_PQ_result_spec_fixed_size(name, (dst), sizeof(*(dst)))
+  GNUNET_PQ_result_spec_fixed_size (name, (dst), sizeof(*(dst)))
 
 
 /**
@@ -331,7 +333,7 @@ GNUNET_PQ_result_spec_fixed_size(const char *name, void *dst, size_t dst_size);
  * @return array entry for the result specification to use
  */
 struct GNUNET_PQ_ResultSpec
-GNUNET_PQ_result_spec_string(const char *name, char **dst);
+GNUNET_PQ_result_spec_string (const char *name, char **dst);
 
 
 /**
@@ -342,8 +344,8 @@ GNUNET_PQ_result_spec_string(const char *name, char **dst);
  * @return array entry for the result specification to use
  */
 struct GNUNET_PQ_ResultSpec
-GNUNET_PQ_result_spec_rsa_public_key(const char *name,
-                                     struct GNUNET_CRYPTO_RsaPublicKey **rsa);
+GNUNET_PQ_result_spec_rsa_public_key (const char *name,
+                                      struct GNUNET_CRYPTO_RsaPublicKey **rsa);
 
 
 /**
@@ -354,8 +356,8 @@ GNUNET_PQ_result_spec_rsa_public_key(const char *name,
  * @return array entry for the result specification to use
  */
 struct GNUNET_PQ_ResultSpec
-GNUNET_PQ_result_spec_rsa_signature(const char *name,
-                                    struct GNUNET_CRYPTO_RsaSignature **sig);
+GNUNET_PQ_result_spec_rsa_signature (const char *name,
+                                     struct GNUNET_CRYPTO_RsaSignature **sig);
 
 
 /**
@@ -366,8 +368,8 @@ GNUNET_PQ_result_spec_rsa_signature(const char *name,
  * @return array entry for the result specification to use
  */
 struct GNUNET_PQ_ResultSpec
-GNUNET_PQ_result_spec_absolute_time(const char *name,
-                                    struct GNUNET_TIME_Absolute *at);
+GNUNET_PQ_result_spec_absolute_time (const char *name,
+                                     struct GNUNET_TIME_Absolute *at);
 
 
 /**
@@ -378,8 +380,8 @@ GNUNET_PQ_result_spec_absolute_time(const char *name,
  * @return array entry for the result specification to use
  */
 struct GNUNET_PQ_ResultSpec
-GNUNET_PQ_result_spec_absolute_time_nbo(const char *name,
-                                        struct GNUNET_TIME_AbsoluteNBO *at);
+GNUNET_PQ_result_spec_absolute_time_nbo (const char *name,
+                                         struct GNUNET_TIME_AbsoluteNBO *at);
 
 
 /**
@@ -390,7 +392,7 @@ GNUNET_PQ_result_spec_absolute_time_nbo(const char *name,
  * @return array entry for the result specification to use
  */
 struct GNUNET_PQ_ResultSpec
-GNUNET_PQ_result_spec_uint16(const char *name, uint16_t *u16);
+GNUNET_PQ_result_spec_uint16 (const char *name, uint16_t *u16);
 
 
 /**
@@ -401,7 +403,7 @@ GNUNET_PQ_result_spec_uint16(const char *name, uint16_t *u16);
  * @return array entry for the result specification to use
  */
 struct GNUNET_PQ_ResultSpec
-GNUNET_PQ_result_spec_uint32(const char *name, uint32_t *u32);
+GNUNET_PQ_result_spec_uint32 (const char *name, uint32_t *u32);
 
 
 /**
@@ -412,7 +414,7 @@ GNUNET_PQ_result_spec_uint32(const char *name, uint32_t *u32);
  * @return array entry for the result specification to use
  */
 struct GNUNET_PQ_ResultSpec
-GNUNET_PQ_result_spec_uint64(const char *name, uint64_t *u64);
+GNUNET_PQ_result_spec_uint64 (const char *name, uint64_t *u64);
 
 
 /* ************************* pq.c functions ************************ */
@@ -427,9 +429,9 @@ GNUNET_PQ_result_spec_uint64(const char *name, uint64_t *u64);
  * @deprecated (should become an internal API)
  */
 PGresult *
-GNUNET_PQ_exec_prepared(PGconn *db_conn,
-                        const char *name,
-                        const struct GNUNET_PQ_QueryParam *params);
+GNUNET_PQ_exec_prepared (PGconn *db_conn,
+                         const char *name,
+                         const struct GNUNET_PQ_QueryParam *params);
 
 
 /**
@@ -444,9 +446,9 @@ GNUNET_PQ_exec_prepared(PGconn *db_conn,
  * @deprecated (should become an internal API)
  */
 int
-GNUNET_PQ_extract_result(PGresult *result,
-                         struct GNUNET_PQ_ResultSpec *rs,
-                         int row);
+GNUNET_PQ_extract_result (PGresult *result,
+                          struct GNUNET_PQ_ResultSpec *rs,
+                          int row);
 
 
 /**
@@ -456,7 +458,7 @@ GNUNET_PQ_extract_result(PGresult *result,
  * @param rs reult specification to clean up
  */
 void
-GNUNET_PQ_cleanup_result(struct GNUNET_PQ_ResultSpec *rs);
+GNUNET_PQ_cleanup_result (struct GNUNET_PQ_ResultSpec *rs);
 
 
 /* ******************** pq_eval.c functions ************** */
@@ -476,9 +478,9 @@ GNUNET_PQ_cleanup_result(struct GNUNET_PQ_ResultSpec *rs);
  * @deprecated (low level, let's see if we can do with just the high-level functions)
  */
 enum GNUNET_DB_QueryStatus
-GNUNET_PQ_eval_result(PGconn *connection,
-                      const char *statement_name,
-                      PGresult *result);
+GNUNET_PQ_eval_result (PGconn *connection,
+                       const char *statement_name,
+                       PGresult *result);
 
 
 /**
@@ -498,9 +500,9 @@ GNUNET_PQ_eval_result(PGconn *connection,
  *         zero; if INSERT was successful, we return one.
  */
 enum GNUNET_DB_QueryStatus
-GNUNET_PQ_eval_prepared_non_select(PGconn *connection,
-                                   const char *statement_name,
-                                   const struct GNUNET_PQ_QueryParam *params);
+GNUNET_PQ_eval_prepared_non_select (PGconn *connection,
+                                    const char *statement_name,
+                                    const struct GNUNET_PQ_QueryParam *params);
 
 
 /**
@@ -532,11 +534,11 @@ typedef void (*GNUNET_PQ_PostgresResultHandler) (void *cls,
  *         codes to `enum GNUNET_DB_QueryStatus`.
  */
 enum GNUNET_DB_QueryStatus
-GNUNET_PQ_eval_prepared_multi_select(PGconn *connection,
-                                     const char *statement_name,
-                                     const struct GNUNET_PQ_QueryParam *params,
-                                     GNUNET_PQ_PostgresResultHandler rh,
-                                     void *rh_cls);
+GNUNET_PQ_eval_prepared_multi_select (PGconn *connection,
+                                      const char *statement_name,
+                                      const struct GNUNET_PQ_QueryParam *params,
+                                      GNUNET_PQ_PostgresResultHandler rh,
+                                      void *rh_cls);
 
 
 /**
@@ -555,7 +557,7 @@ GNUNET_PQ_eval_prepared_multi_select(PGconn *connection,
  *         codes to `enum GNUNET_DB_QueryStatus`.
  */
 enum GNUNET_DB_QueryStatus
-GNUNET_PQ_eval_prepared_singleton_select(
+GNUNET_PQ_eval_prepared_singleton_select (
   PGconn *connection,
   const char *statement_name,
   const struct GNUNET_PQ_QueryParam *params,
@@ -569,7 +571,8 @@ GNUNET_PQ_eval_prepared_singleton_select(
  * Information needed to prepare a list of SQL statements using
  * #GNUNET_PQ_prepare_statements().
  */
-struct GNUNET_PQ_PreparedStatement {
+struct GNUNET_PQ_PreparedStatement
+{
   /**
    * Name of the statement.
    */
@@ -605,9 +608,9 @@ struct GNUNET_PQ_PreparedStatement {
  * @return initialized struct
  */
 struct GNUNET_PQ_PreparedStatement
-GNUNET_PQ_make_prepare(const char *name,
-                       const char *sql,
-                       unsigned int num_args);
+GNUNET_PQ_make_prepare (const char *name,
+                        const char *sql,
+                        unsigned int num_args);
 
 
 /**
@@ -620,8 +623,8 @@ GNUNET_PQ_make_prepare(const char *name,
  *         #GNUNET_SYSERR on error
  */
 int
-GNUNET_PQ_prepare_statements(PGconn *connection,
-                             const struct GNUNET_PQ_PreparedStatement *ps);
+GNUNET_PQ_prepare_statements (PGconn *connection,
+                              const struct GNUNET_PQ_PreparedStatement *ps);
 
 
 /* ******************** pq_exec.c functions ************** */
@@ -631,7 +634,8 @@ GNUNET_PQ_prepare_statements(PGconn *connection,
  * Information needed to run a list of SQL statements using
  * #GNUNET_PQ_exec_statements().
  */
-struct GNUNET_PQ_ExecuteStatement {
+struct GNUNET_PQ_ExecuteStatement
+{
   /**
    * Actual SQL statement.
    */
@@ -660,7 +664,7 @@ struct GNUNET_PQ_ExecuteStatement {
  * @return initialized struct
  */
 struct GNUNET_PQ_ExecuteStatement
-GNUNET_PQ_make_execute(const char *sql);
+GNUNET_PQ_make_execute (const char *sql);
 
 
 /**
@@ -671,7 +675,7 @@ GNUNET_PQ_make_execute(const char *sql);
  * @return initialized struct
  */
 struct GNUNET_PQ_ExecuteStatement
-GNUNET_PQ_make_try_execute(const char *sql);
+GNUNET_PQ_make_try_execute (const char *sql);
 
 
 /**
@@ -684,8 +688,8 @@ GNUNET_PQ_make_try_execute(const char *sql);
  *         #GNUNET_SYSERR on error
  */
 int
-GNUNET_PQ_exec_statements(PGconn *connection,
-                          const struct GNUNET_PQ_ExecuteStatement *es);
+GNUNET_PQ_exec_statements (PGconn *connection,
+                           const struct GNUNET_PQ_ExecuteStatement *es);
 
 
 /* ******************** pq_connect.c functions ************** */
@@ -700,7 +704,7 @@ GNUNET_PQ_exec_statements(PGconn *connection,
  * @return NULL on error
  */
 PGconn *
-GNUNET_PQ_connect(const char *config_str);
+GNUNET_PQ_connect (const char *config_str);
 
 
 /**
@@ -712,8 +716,8 @@ GNUNET_PQ_connect(const char *config_str);
  * @return the postgres handle, NULL on error
  */
 PGconn *
-GNUNET_PQ_connect_with_cfg(const struct GNUNET_CONFIGURATION_Handle *cfg,
-                           const char *section);
+GNUNET_PQ_connect_with_cfg (const struct GNUNET_CONFIGURATION_Handle *cfg,
+                            const char *section);
 
 
 #endif /* GNUNET_PQ_LIB_H_ */

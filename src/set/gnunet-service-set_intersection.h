@@ -1,4 +1,3 @@
-
 /*
       This file is part of GNUnet
       Copyright (C) 2013-2017 GNUnet e.V.
@@ -38,8 +37,8 @@
  * @return #GNUNET_OK if @a msg is well-formed
  */
 int
-check_intersection_p2p_bf(void *cls,
-                          const struct BFMessage *msg);
+check_intersection_p2p_bf (void *cls,
+                           const struct BFMessage *msg);
 
 
 /**
@@ -49,8 +48,8 @@ check_intersection_p2p_bf(void *cls,
  * @param msg the header of the message
  */
 void
-handle_intersection_p2p_bf(void *cls,
-                           const struct BFMessage *msg);
+handle_intersection_p2p_bf (void *cls,
+                            const struct BFMessage *msg);
 
 
 /**
@@ -61,8 +60,9 @@ handle_intersection_p2p_bf(void *cls,
  * @param mh the header of the message
  */
 void
-handle_intersection_p2p_element_info(void *cls,
-                                     const struct IntersectionElementInfoMessage *msg);
+handle_intersection_p2p_element_info (void *cls,
+                                      const struct
+                                      IntersectionElementInfoMessage *msg);
 
 
 /**
@@ -72,8 +72,8 @@ handle_intersection_p2p_element_info(void *cls,
  * @param mh the message
  */
 void
-handle_intersection_p2p_done(void *cls,
-                             const struct IntersectionDoneMessage *idm);
+handle_intersection_p2p_done (void *cls,
+                              const struct IntersectionDoneMessage *idm);
 
 
 #endif

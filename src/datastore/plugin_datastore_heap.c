@@ -34,7 +34,8 @@
 /**
  * A value that we are storing.
  */
-struct Value {
+struct Value
+{
   /**
    * Key for the value.
    */
@@ -96,7 +97,8 @@ struct Value {
 /**
  * We organize 0-anonymity values in arrays "by type".
  */
-struct ZeroAnonByType {
+struct ZeroAnonByType
+{
   /**
    * We keep these in a DLL.
    */
@@ -132,7 +134,8 @@ struct ZeroAnonByType {
 /**
  * Context for all functions in this plugin.
  */
-struct Plugin {
+struct Plugin
+{
   /**
    * Our execution environment.
    */
@@ -178,7 +181,7 @@ struct Plugin {
  * @return number of bytes used on disk
  */
 static void
-heap_plugin_estimate_size(void *cls, unsigned long long *estimate)
+heap_plugin_estimate_size (void *cls, unsigned long long *estimate)
 {
   struct Plugin *plugin = cls;
 
@@ -190,7 +193,8 @@ heap_plugin_estimate_size(void *cls, unsigned long long *estimate)
 /**
  * Closure for iterator for updating.
  */
-struct UpdateContext {
+struct UpdateContext
+{
   /**
    * Number of bytes in 'data'.
    */
@@ -232,25 +236,25 @@ struct UpdateContext {
  * @return GNUNET_YES (continue iteration), GNUNET_NO if value was found
  */
 static int
-update_iterator(void *cls,
-                const struct GNUNET_HashCode *key,
-                void *val)
+update_iterator (void *cls,
+                 const struct GNUNET_HashCode *key,
+                 void *val)
 {
   struct UpdateContext *uc = cls;
   struct Value *value = val;
 
   if (value->size != uc->size)
     return GNUNET_YES;
-  if (0 != memcmp(value->data, uc->data, uc->size))
+  if (0 != memcmp (value->data, uc->data, uc->size))
     return GNUNET_YES;
-  uc->expiration = GNUNET_TIME_absolute_max(value->expiration,
-                                            uc->expiration);
+  uc->expiration = GNUNET_TIME_absolute_max (value->expiration,
+                                             uc->expiration);
   if (value->expiration.abs_value_us != uc->expiration.abs_value_us)
-    {
-      value->expiration = uc->expiration;
-      GNUNET_CONTAINER_heap_update_cost(value->expire_heap,
-                                        value->expiration.abs_value_us);
-    }
+  {
+    value->expiration = uc->expiration;
+    GNUNET_CONTAINER_heap_update_cost (value->expire_heap,
+                                       value->expiration.abs_value_us);
+  }
   /* Saturating adds, don't overflow */
   if (value->priority > UINT32_MAX - uc->priority)
     value->priority = UINT32_MAX;
@@ -281,88 +285,89 @@ update_iterator(void *cls,
  * @param cont_cls continuation closure
  */
 static void
-heap_plugin_put(void *cls,
-                const struct GNUNET_HashCode *key,
-                bool absent,
-                uint32_t size,
-                const void *data,
-                enum GNUNET_BLOCK_Type type,
-                uint32_t priority,
-                uint32_t anonymity,
-                uint32_t replication,
-                struct GNUNET_TIME_Absolute expiration,
-                PluginPutCont cont,
-                void *cont_cls)
+heap_plugin_put (void *cls,
+                 const struct GNUNET_HashCode *key,
+                 bool absent,
+                 uint32_t size,
+                 const void *data,
+                 enum GNUNET_BLOCK_Type type,
+                 uint32_t priority,
+                 uint32_t anonymity,
+                 uint32_t replication,
+                 struct GNUNET_TIME_Absolute expiration,
+                 PluginPutCont cont,
+                 void *cont_cls)
 {
   struct Plugin *plugin = cls;
   struct Value *value;
 
-  if (!absent)
-    {
-      struct UpdateContext uc;
+  if (! absent)
+  {
+    struct UpdateContext uc;
 
-      uc.size = size;
-      uc.data = data;
-      uc.priority = priority;
-      uc.replication = replication;
-      uc.expiration = expiration;
-      uc.updated = false;
-      GNUNET_CONTAINER_multihashmap_get_multiple(plugin->keyvalue,
-                                                 key,
-                                                 &update_iterator,
-                                                 &uc);
-      if (uc.updated)
-        {
-          cont(cont_cls, key, size, GNUNET_NO, NULL);
-          return;
-        }
+    uc.size = size;
+    uc.data = data;
+    uc.priority = priority;
+    uc.replication = replication;
+    uc.expiration = expiration;
+    uc.updated = false;
+    GNUNET_CONTAINER_multihashmap_get_multiple (plugin->keyvalue,
+                                                key,
+                                                &update_iterator,
+                                                &uc);
+    if (uc.updated)
+    {
+      cont (cont_cls, key, size, GNUNET_NO, NULL);
+      return;
     }
-  value = GNUNET_malloc(sizeof(struct Value) + size);
+  }
+  value = GNUNET_malloc (sizeof(struct Value) + size);
   value->key = *key;
   value->data = &value[1];
-  value->expire_heap = GNUNET_CONTAINER_heap_insert(plugin->by_expiration,
-                                                    value,
-                                                    expiration.abs_value_us);
-  value->replication_heap = GNUNET_CONTAINER_heap_insert(plugin->by_replication,
-                                                         value,
-                                                         replication);
+  value->expire_heap = GNUNET_CONTAINER_heap_insert (plugin->by_expiration,
+                                                     value,
+                                                     expiration.abs_value_us);
+  value->replication_heap = GNUNET_CONTAINER_heap_insert (
+    plugin->by_replication,
+    value,
+    replication);
   value->expiration = expiration;
   if (0 == anonymity)
-    {
-      struct ZeroAnonByType *zabt;
+  {
+    struct ZeroAnonByType *zabt;
 
-      for (zabt = plugin->zero_head; NULL != zabt; zabt = zabt->next)
-        if (zabt->type == type)
-          break;
-      if (NULL == zabt)
-        {
-          zabt = GNUNET_new(struct ZeroAnonByType);
-          zabt->type = type;
-          GNUNET_CONTAINER_DLL_insert(plugin->zero_head,
-                                      plugin->zero_tail,
-                                      zabt);
-        }
-      if (zabt->array_size == zabt->array_pos)
-        {
-          GNUNET_array_grow(zabt->array,
-                            zabt->array_size,
-                            zabt->array_size * 2 + 4);
-        }
-      value->zero_anon_offset = zabt->array_pos;
-      zabt->array[zabt->array_pos++] = value;
+    for (zabt = plugin->zero_head; NULL != zabt; zabt = zabt->next)
+      if (zabt->type == type)
+        break;
+    if (NULL == zabt)
+    {
+      zabt = GNUNET_new (struct ZeroAnonByType);
+      zabt->type = type;
+      GNUNET_CONTAINER_DLL_insert (plugin->zero_head,
+                                   plugin->zero_tail,
+                                   zabt);
     }
+    if (zabt->array_size == zabt->array_pos)
+    {
+      GNUNET_array_grow (zabt->array,
+                         zabt->array_size,
+                         zabt->array_size * 2 + 4);
+    }
+    value->zero_anon_offset = zabt->array_pos;
+    zabt->array[zabt->array_pos++] = value;
+  }
   value->size = size;
   value->priority = priority;
   value->anonymity = anonymity;
   value->replication = replication;
   value->type = type;
-  GNUNET_memcpy(&value[1], data, size);
-  GNUNET_CONTAINER_multihashmap_put(plugin->keyvalue,
-                                    &value->key,
-                                    value,
-                                    GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
+  GNUNET_memcpy (&value[1], data, size);
+  GNUNET_CONTAINER_multihashmap_put (plugin->keyvalue,
+                                     &value->key,
+                                     value,
+                                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
   plugin->size += size;
-  cont(cont_cls, key, size, GNUNET_OK, NULL);
+  cont (cont_cls, key, size, GNUNET_OK, NULL);
 }
 
 
@@ -374,45 +379,49 @@ heap_plugin_put(void *cls,
  * @param value value to delete
  */
 static void
-delete_value(struct Plugin *plugin,
-             struct Value *value)
+delete_value (struct Plugin *plugin,
+              struct Value *value)
 {
-  GNUNET_assert(GNUNET_YES ==
-                GNUNET_CONTAINER_multihashmap_remove(plugin->keyvalue,
-                                                     &value->key,
-                                                     value));
-  GNUNET_assert(value == GNUNET_CONTAINER_heap_remove_node(value->expire_heap));
-  GNUNET_assert(value == GNUNET_CONTAINER_heap_remove_node(value->replication_heap));
+  GNUNET_assert (GNUNET_YES ==
+                 GNUNET_CONTAINER_multihashmap_remove (plugin->keyvalue,
+                                                       &value->key,
+                                                       value));
+  GNUNET_assert (value == GNUNET_CONTAINER_heap_remove_node (
+                   value->expire_heap));
+  GNUNET_assert (value == GNUNET_CONTAINER_heap_remove_node (
+                   value->replication_heap));
   if (0 == value->anonymity)
-    {
-      struct ZeroAnonByType *zabt;
+  {
+    struct ZeroAnonByType *zabt;
 
-      for (zabt = plugin->zero_head; NULL != zabt; zabt = zabt->next)
-        if (zabt->type == value->type)
-          break;
-      GNUNET_assert(NULL != zabt);
-      zabt->array[value->zero_anon_offset] = zabt->array[--zabt->array_pos];
-      zabt->array[value->zero_anon_offset]->zero_anon_offset = value->zero_anon_offset;
-      if (0 == zabt->array_pos)
-        {
-          GNUNET_array_grow(zabt->array,
-                            zabt->array_size,
-                            0);
-          GNUNET_CONTAINER_DLL_remove(plugin->zero_head,
-                                      plugin->zero_tail,
-                                      zabt);
-          GNUNET_free(zabt);
-        }
+    for (zabt = plugin->zero_head; NULL != zabt; zabt = zabt->next)
+      if (zabt->type == value->type)
+        break;
+    GNUNET_assert (NULL != zabt);
+    zabt->array[value->zero_anon_offset] = zabt->array[--zabt->array_pos];
+    zabt->array[value->zero_anon_offset]->zero_anon_offset =
+      value->zero_anon_offset;
+    if (0 == zabt->array_pos)
+    {
+      GNUNET_array_grow (zabt->array,
+                         zabt->array_size,
+                         0);
+      GNUNET_CONTAINER_DLL_remove (plugin->zero_head,
+                                   plugin->zero_tail,
+                                   zabt);
+      GNUNET_free (zabt);
     }
+  }
   plugin->size -= value->size;
-  GNUNET_free(value);
+  GNUNET_free (value);
 }
 
 
 /**
  * Closure for iterator called during 'get_key'.
  */
-struct GetContext {
+struct GetContext
+{
   /**
    * Lowest uid to consider.
    */
@@ -444,9 +453,9 @@ struct GetContext {
  * @return GNUNET_YES (continue iteration), GNUNET_NO if result was found
  */
 static int
-get_iterator(void *cls,
-             const struct GNUNET_HashCode *key,
-             void *val)
+get_iterator (void *cls,
+              const struct GNUNET_HashCode *key,
+              void *val)
 {
   struct GetContext *gc = cls;
   struct Value *value = val;
@@ -455,11 +464,11 @@ get_iterator(void *cls,
       (gc->type != value->type))
     return GNUNET_OK;
   if (gc->random)
-    {
-      gc->value = value;
-      return GNUNET_NO;
-    }
-  if ((uint64_t)(intptr_t)value < gc->next_uid)
+  {
+    gc->value = value;
+    return GNUNET_NO;
+  }
+  if ((uint64_t) (intptr_t) value < gc->next_uid)
     return GNUNET_OK;
   if ((NULL != gc->value) &&
       (value > gc->value))
@@ -483,13 +492,13 @@ get_iterator(void *cls,
  * @param proc_cls closure for @a proc
  */
 static void
-heap_plugin_get_key(void *cls,
-                    uint64_t next_uid,
-                    bool random,
-                    const struct GNUNET_HashCode *key,
-                    enum GNUNET_BLOCK_Type type,
-                    PluginDatumProcessor proc,
-                    void *proc_cls)
+heap_plugin_get_key (void *cls,
+                     uint64_t next_uid,
+                     bool random,
+                     const struct GNUNET_HashCode *key,
+                     enum GNUNET_BLOCK_Type type,
+                     PluginDatumProcessor proc,
+                     void *proc_cls)
 {
   struct Plugin *plugin = cls;
   struct GetContext gc;
@@ -499,34 +508,34 @@ heap_plugin_get_key(void *cls,
   gc.random = random;
   gc.type = type;
   if (NULL == key)
-    {
-      GNUNET_CONTAINER_multihashmap_iterate(plugin->keyvalue,
-                                            &get_iterator,
-                                            &gc);
-    }
+  {
+    GNUNET_CONTAINER_multihashmap_iterate (plugin->keyvalue,
+                                           &get_iterator,
+                                           &gc);
+  }
   else
-    {
-      GNUNET_CONTAINER_multihashmap_get_multiple(plugin->keyvalue,
-                                                 key,
-                                                 &get_iterator,
-                                                 &gc);
-    }
+  {
+    GNUNET_CONTAINER_multihashmap_get_multiple (plugin->keyvalue,
+                                                key,
+                                                &get_iterator,
+                                                &gc);
+  }
   if (NULL == gc.value)
-    {
-      proc(proc_cls, NULL, 0, NULL, 0, 0, 0, 0, GNUNET_TIME_UNIT_ZERO_ABS, 0);
-      return;
-    }
-  GNUNET_assert(GNUNET_OK ==
-                proc(proc_cls,
-                     &gc.value->key,
-                     gc.value->size,
-                     &gc.value[1],
-                     gc.value->type,
-                     gc.value->priority,
-                     gc.value->anonymity,
-                     gc.value->replication,
-                     gc.value->expiration,
-                     (uint64_t)(intptr_t)gc.value));
+  {
+    proc (proc_cls, NULL, 0, NULL, 0, 0, 0, 0, GNUNET_TIME_UNIT_ZERO_ABS, 0);
+    return;
+  }
+  GNUNET_assert (GNUNET_OK ==
+                 proc (proc_cls,
+                       &gc.value->key,
+                       gc.value->size,
+                       &gc.value[1],
+                       gc.value->type,
+                       gc.value->priority,
+                       gc.value->anonymity,
+                       gc.value->replication,
+                       gc.value->expiration,
+                       (uint64_t) (intptr_t) gc.value));
 }
 
 
@@ -542,45 +551,47 @@ heap_plugin_get_key(void *cls,
  * @param proc_cls closure for proc
  */
 static void
-heap_plugin_get_replication(void *cls,
-                            PluginDatumProcessor proc,
-                            void *proc_cls)
+heap_plugin_get_replication (void *cls,
+                             PluginDatumProcessor proc,
+                             void *proc_cls)
 {
   struct Plugin *plugin = cls;
   struct Value *value;
 
-  value = GNUNET_CONTAINER_heap_remove_root(plugin->by_replication);
+  value = GNUNET_CONTAINER_heap_remove_root (plugin->by_replication);
   if (NULL == value)
-    {
-      proc(proc_cls, NULL, 0, NULL, 0, 0, 0, 0, GNUNET_TIME_UNIT_ZERO_ABS, 0);
-      return;
-    }
+  {
+    proc (proc_cls, NULL, 0, NULL, 0, 0, 0, 0, GNUNET_TIME_UNIT_ZERO_ABS, 0);
+    return;
+  }
   if (value->replication > 0)
-    {
-      value->replication--;
-      value->replication_heap = GNUNET_CONTAINER_heap_insert(plugin->by_replication,
-                                                             value,
-                                                             value->replication);
-    }
+  {
+    value->replication--;
+    value->replication_heap = GNUNET_CONTAINER_heap_insert (
+      plugin->by_replication,
+      value,
+      value->replication);
+  }
   else
-    {
-      /* need a better way to pick a random item, replication level is always 0 */
-      value->replication_heap = GNUNET_CONTAINER_heap_insert(plugin->by_replication,
-                                                             value,
-                                                             value->replication);
-      value = GNUNET_CONTAINER_heap_walk_get_next(plugin->by_replication);
-    }
-  GNUNET_assert(GNUNET_OK ==
-                proc(proc_cls,
-                     &value->key,
-                     value->size,
-                     &value[1],
-                     value->type,
-                     value->priority,
-                     value->anonymity,
-                     value->replication,
-                     value->expiration,
-                     (uint64_t)(intptr_t)value));
+  {
+    /* need a better way to pick a random item, replication level is always 0 */
+    value->replication_heap = GNUNET_CONTAINER_heap_insert (
+      plugin->by_replication,
+      value,
+      value->replication);
+    value = GNUNET_CONTAINER_heap_walk_get_next (plugin->by_replication);
+  }
+  GNUNET_assert (GNUNET_OK ==
+                 proc (proc_cls,
+                       &value->key,
+                       value->size,
+                       &value[1],
+                       value->type,
+                       value->priority,
+                       value->anonymity,
+                       value->replication,
+                       value->expiration,
+                       (uint64_t) (intptr_t) value));
 }
 
 
@@ -593,30 +604,30 @@ heap_plugin_get_replication(void *cls,
  * @param proc_cls closure for proc
  */
 static void
-heap_plugin_get_expiration(void *cls, PluginDatumProcessor proc,
-                           void *proc_cls)
+heap_plugin_get_expiration (void *cls, PluginDatumProcessor proc,
+                            void *proc_cls)
 {
   struct Plugin *plugin = cls;
   struct Value *value;
 
-  value = GNUNET_CONTAINER_heap_peek(plugin->by_expiration);
+  value = GNUNET_CONTAINER_heap_peek (plugin->by_expiration);
   if (NULL == value)
-    {
-      proc(proc_cls, NULL, 0, NULL, 0, 0, 0, 0, GNUNET_TIME_UNIT_ZERO_ABS, 0);
-      return;
-    }
+  {
+    proc (proc_cls, NULL, 0, NULL, 0, 0, 0, 0, GNUNET_TIME_UNIT_ZERO_ABS, 0);
+    return;
+  }
   if (GNUNET_NO ==
-      proc(proc_cls,
-           &value->key,
-           value->size,
-           &value[1],
-           value->type,
-           value->priority,
-           value->anonymity,
-           value->replication,
-           value->expiration,
-           (uint64_t)(intptr_t)value))
-    delete_value(plugin, value);
+      proc (proc_cls,
+            &value->key,
+            value->size,
+            &value[1],
+            value->type,
+            value->priority,
+            value->anonymity,
+            value->replication,
+            value->expiration,
+            (uint64_t) (intptr_t) value))
+    delete_value (plugin, value);
 }
 
 
@@ -632,45 +643,45 @@ heap_plugin_get_expiration(void *cls, PluginDatumProcessor proc,
  * @param proc_cls closure for proc
  */
 static void
-heap_plugin_get_zero_anonymity(void *cls, uint64_t next_uid,
-                               enum GNUNET_BLOCK_Type type,
-                               PluginDatumProcessor proc, void *proc_cls)
+heap_plugin_get_zero_anonymity (void *cls, uint64_t next_uid,
+                                enum GNUNET_BLOCK_Type type,
+                                PluginDatumProcessor proc, void *proc_cls)
 {
   struct Plugin *plugin = cls;
   struct ZeroAnonByType *zabt;
   struct Value *value = NULL;
 
   for (zabt = plugin->zero_head; NULL != zabt; zabt = zabt->next)
+  {
+    if ((type != GNUNET_BLOCK_TYPE_ANY) &&
+        (type != zabt->type))
+      continue;
+    for (int i = 0; i < zabt->array_pos; ++i)
     {
-      if ((type != GNUNET_BLOCK_TYPE_ANY) &&
-          (type != zabt->type))
+      if ((uint64_t) (intptr_t) zabt->array[i] < next_uid)
         continue;
-      for (int i = 0; i < zabt->array_pos; ++i)
-        {
-          if ((uint64_t)(intptr_t)zabt->array[i] < next_uid)
-            continue;
-          if ((NULL != value) &&
-              (zabt->array[i] > value))
-            continue;
-          value = zabt->array[i];
-        }
+      if ((NULL != value) &&
+          (zabt->array[i] > value))
+        continue;
+      value = zabt->array[i];
     }
+  }
   if (NULL == value)
-    {
-      proc(proc_cls, NULL, 0, NULL, 0, 0, 0, 0, GNUNET_TIME_UNIT_ZERO_ABS, 0);
-      return;
-    }
-  GNUNET_assert(GNUNET_OK ==
-                proc(proc_cls,
-                     &value->key,
-                     value->size,
-                     &value[1],
-                     value->type,
-                     value->priority,
-                     value->anonymity,
-                     value->replication,
-                     value->expiration,
-                     (uint64_t)(intptr_t)value));
+  {
+    proc (proc_cls, NULL, 0, NULL, 0, 0, 0, 0, GNUNET_TIME_UNIT_ZERO_ABS, 0);
+    return;
+  }
+  GNUNET_assert (GNUNET_OK ==
+                 proc (proc_cls,
+                       &value->key,
+                       value->size,
+                       &value[1],
+                       value->type,
+                       value->priority,
+                       value->anonymity,
+                       value->replication,
+                       value->expiration,
+                       (uint64_t) (intptr_t) value));
 }
 
 
@@ -678,7 +689,7 @@ heap_plugin_get_zero_anonymity(void *cls, uint64_t next_uid,
  * Drop database.
  */
 static void
-heap_plugin_drop(void *cls)
+heap_plugin_drop (void *cls)
 {
   /* nothing needs to be done */
 }
@@ -687,7 +698,8 @@ heap_plugin_drop(void *cls)
 /**
  * Closure for the 'return_value' function.
  */
-struct GetAllContext {
+struct GetAllContext
+{
   /**
    * Function to call.
    */
@@ -709,15 +721,15 @@ struct GetAllContext {
  * @return GNUNET_OK (continue to iterate)
  */
 static int
-return_value(void *cls,
-             const struct GNUNET_HashCode *key,
-             void *val)
+return_value (void *cls,
+              const struct GNUNET_HashCode *key,
+              void *val)
 {
   struct GetAllContext *gac = cls;
 
-  gac->proc(gac->proc_cls,
-            key,
-            1);
+  gac->proc (gac->proc_cls,
+             key,
+             1);
   return GNUNET_OK;
 }
 
@@ -730,26 +742,27 @@ return_value(void *cls,
  * @param proc_cls closure for proc
  */
 static void
-heap_get_keys(void *cls,
-              PluginKeyProcessor proc,
-              void *proc_cls)
+heap_get_keys (void *cls,
+               PluginKeyProcessor proc,
+               void *proc_cls)
 {
   struct Plugin *plugin = cls;
   struct GetAllContext gac;
 
   gac.proc = proc;
   gac.proc_cls = proc_cls;
-  GNUNET_CONTAINER_multihashmap_iterate(plugin->keyvalue,
-                                        &return_value,
-                                        &gac);
-  proc(proc_cls, NULL, 0);
+  GNUNET_CONTAINER_multihashmap_iterate (plugin->keyvalue,
+                                         &return_value,
+                                         &gac);
+  proc (proc_cls, NULL, 0);
 }
 
 
 /**
  * Closure for iterator called during 'remove_key'.
  */
-struct RemoveContext {
+struct RemoveContext
+{
   /**
    * Value found.
    */
@@ -776,16 +789,16 @@ struct RemoveContext {
  * @return GNUNET_YES (continue iteration), GNUNET_NO if result was found
  */
 static int
-remove_iterator(void *cls,
-                const struct GNUNET_HashCode *key,
-                void *val)
+remove_iterator (void *cls,
+                 const struct GNUNET_HashCode *key,
+                 void *val)
 {
   struct RemoveContext *rc = cls;
   struct Value *value = val;
 
   if (value->size != rc->size)
     return GNUNET_YES;
-  if (0 != memcmp(value->data, rc->data, rc->size))
+  if (0 != memcmp (value->data, rc->data, rc->size))
     return GNUNET_YES;
   rc->value = value;
   return GNUNET_NO;
@@ -803,12 +816,12 @@ remove_iterator(void *cls,
  * @param cont_cls continuation closure for @a cont
  */
 static void
-heap_plugin_remove_key(void *cls,
-                       const struct GNUNET_HashCode *key,
-                       uint32_t size,
-                       const void *data,
-                       PluginRemoveCont cont,
-                       void *cont_cls)
+heap_plugin_remove_key (void *cls,
+                        const struct GNUNET_HashCode *key,
+                        uint32_t size,
+                        const void *data,
+                        PluginRemoveCont cont,
+                        void *cont_cls)
 {
   struct Plugin *plugin = cls;
   struct RemoveContext rc;
@@ -816,26 +829,26 @@ heap_plugin_remove_key(void *cls,
   rc.value = NULL;
   rc.size = size;
   rc.data = data;
-  GNUNET_CONTAINER_multihashmap_get_multiple(plugin->keyvalue,
-                                             key,
-                                             &remove_iterator,
-                                             &rc);
+  GNUNET_CONTAINER_multihashmap_get_multiple (plugin->keyvalue,
+                                              key,
+                                              &remove_iterator,
+                                              &rc);
   if (NULL == rc.value)
-    {
-      cont(cont_cls,
-           key,
-           size,
-           GNUNET_NO,
-           NULL);
-      return;
-    }
-  delete_value(plugin,
-               rc.value);
-  cont(cont_cls,
-       key,
-       size,
-       GNUNET_OK,
-       NULL);
+  {
+    cont (cont_cls,
+          key,
+          size,
+          GNUNET_NO,
+          NULL);
+    return;
+  }
+  delete_value (plugin,
+                rc.value);
+  cont (cont_cls,
+        key,
+        size,
+        GNUNET_OK,
+        NULL);
 }
 
 
@@ -846,7 +859,7 @@ heap_plugin_remove_key(void *cls,
  * @return our "struct Plugin*"
  */
 void *
-libgnunet_plugin_datastore_heap_init(void *cls)
+libgnunet_plugin_datastore_heap_init (void *cls)
 {
   struct GNUNET_DATASTORE_PluginEnvironment *env = cls;
   struct GNUNET_DATASTORE_PluginFunctions *api;
@@ -854,17 +867,19 @@ libgnunet_plugin_datastore_heap_init(void *cls)
   unsigned long long esize;
 
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_number(env->cfg,
-                                            "datastore-heap",
-                                            "HASHMAPSIZE",
-                                            &esize))
+      GNUNET_CONFIGURATION_get_value_number (env->cfg,
+                                             "datastore-heap",
+                                             "HASHMAPSIZE",
+                                             &esize))
     esize = 128 * 1024;
-  plugin = GNUNET_new(struct Plugin);
+  plugin = GNUNET_new (struct Plugin);
   plugin->env = env;
-  plugin->keyvalue = GNUNET_CONTAINER_multihashmap_create(esize, GNUNET_YES);
-  plugin->by_expiration = GNUNET_CONTAINER_heap_create(GNUNET_CONTAINER_HEAP_ORDER_MIN);
-  plugin->by_replication = GNUNET_CONTAINER_heap_create(GNUNET_CONTAINER_HEAP_ORDER_MAX);
-  api = GNUNET_new(struct GNUNET_DATASTORE_PluginFunctions);
+  plugin->keyvalue = GNUNET_CONTAINER_multihashmap_create (esize, GNUNET_YES);
+  plugin->by_expiration = GNUNET_CONTAINER_heap_create (
+    GNUNET_CONTAINER_HEAP_ORDER_MIN);
+  plugin->by_replication = GNUNET_CONTAINER_heap_create (
+    GNUNET_CONTAINER_HEAP_ORDER_MAX);
+  api = GNUNET_new (struct GNUNET_DATASTORE_PluginFunctions);
   api->cls = plugin;
   api->estimate_size = &heap_plugin_estimate_size;
   api->put = &heap_plugin_put;
@@ -875,8 +890,8 @@ libgnunet_plugin_datastore_heap_init(void *cls)
   api->drop = &heap_plugin_drop;
   api->get_keys = &heap_get_keys;
   api->remove_key = &heap_plugin_remove_key;
-  GNUNET_log_from(GNUNET_ERROR_TYPE_INFO, "heap",
-                  _("Heap database running\n"));
+  GNUNET_log_from (GNUNET_ERROR_TYPE_INFO, "heap",
+                   _ ("Heap database running\n"));
   return api;
 }
 
@@ -890,14 +905,14 @@ libgnunet_plugin_datastore_heap_init(void *cls)
  * @return GNUNET_OK (continue to iterate)
  */
 static int
-free_value(void *cls,
-           const struct GNUNET_HashCode *key,
-           void *val)
+free_value (void *cls,
+            const struct GNUNET_HashCode *key,
+            void *val)
 {
   struct Plugin *plugin = cls;
   struct Value *value = val;
 
-  delete_value(plugin, value);
+  delete_value (plugin, value);
   return GNUNET_OK;
 }
 
@@ -908,19 +923,19 @@ free_value(void *cls,
  * @return always NULL
  */
 void *
-libgnunet_plugin_datastore_heap_done(void *cls)
+libgnunet_plugin_datastore_heap_done (void *cls)
 {
   struct GNUNET_DATASTORE_PluginFunctions *api = cls;
   struct Plugin *plugin = api->cls;
 
-  GNUNET_CONTAINER_multihashmap_iterate(plugin->keyvalue,
-                                        &free_value,
-                                        plugin);
-  GNUNET_CONTAINER_multihashmap_destroy(plugin->keyvalue);
-  GNUNET_CONTAINER_heap_destroy(plugin->by_expiration);
-  GNUNET_CONTAINER_heap_destroy(plugin->by_replication);
-  GNUNET_free(plugin);
-  GNUNET_free(api);
+  GNUNET_CONTAINER_multihashmap_iterate (plugin->keyvalue,
+                                         &free_value,
+                                         plugin);
+  GNUNET_CONTAINER_multihashmap_destroy (plugin->keyvalue);
+  GNUNET_CONTAINER_heap_destroy (plugin->by_expiration);
+  GNUNET_CONTAINER_heap_destroy (plugin->by_replication);
+  GNUNET_free (plugin);
+  GNUNET_free (api);
   return NULL;
 }
 

@@ -49,15 +49,15 @@
  * @param data_size number of bytes in @a data
  */
 void
-GDS_ROUTING_process(enum GNUNET_BLOCK_Type type,
-                    struct GNUNET_TIME_Absolute expiration_time,
-                    const struct GNUNET_HashCode *key,
-                    unsigned int put_path_length,
-                    const struct GNUNET_PeerIdentity *put_path,
-                    unsigned int get_path_length,
-                    const struct GNUNET_PeerIdentity *get_path,
-                    const void *data,
-                    size_t data_size);
+GDS_ROUTING_process (enum GNUNET_BLOCK_Type type,
+                     struct GNUNET_TIME_Absolute expiration_time,
+                     const struct GNUNET_HashCode *key,
+                     unsigned int put_path_length,
+                     const struct GNUNET_PeerIdentity *put_path,
+                     unsigned int get_path_length,
+                     const struct GNUNET_PeerIdentity *get_path,
+                     const void *data,
+                     size_t data_size);
 
 
 /**
@@ -72,26 +72,26 @@ GDS_ROUTING_process(enum GNUNET_BLOCK_Type type,
  * @param xquery_size number of bytes in @a xquery
  */
 void
-GDS_ROUTING_add(const struct GNUNET_PeerIdentity *sender,
-                enum GNUNET_BLOCK_Type type,
-                struct GNUNET_BLOCK_Group *bg,
-                enum GNUNET_DHT_RouteOption options,
-                const struct GNUNET_HashCode * key,
-                const void *xquery,
-                size_t xquery_size);
+GDS_ROUTING_add (const struct GNUNET_PeerIdentity *sender,
+                 enum GNUNET_BLOCK_Type type,
+                 struct GNUNET_BLOCK_Group *bg,
+                 enum GNUNET_DHT_RouteOption options,
+                 const struct GNUNET_HashCode *key,
+                 const void *xquery,
+                 size_t xquery_size);
 
 
 /**
  * Initialize routing subsystem.
  */
 void
-GDS_ROUTING_init(void);
+GDS_ROUTING_init (void);
 
 
 /**
  * Shutdown routing subsystem.
  */
 void
-GDS_ROUTING_done(void);
+GDS_ROUTING_done (void);
 
 #endif

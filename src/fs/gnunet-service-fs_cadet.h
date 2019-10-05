@@ -60,11 +60,11 @@ typedef void
  * @return handle to cancel the operation
  */
 struct GSF_CadetRequest *
-GSF_cadet_query(const struct GNUNET_PeerIdentity *target,
-                const struct GNUNET_HashCode *query,
-                enum GNUNET_BLOCK_Type type,
-                GSF_CadetReplyProcessor proc,
-                void *proc_cls);
+GSF_cadet_query (const struct GNUNET_PeerIdentity *target,
+                 const struct GNUNET_HashCode *query,
+                 enum GNUNET_BLOCK_Type type,
+                 GSF_CadetReplyProcessor proc,
+                 void *proc_cls);
 
 /**
  * Function called on each active cadets to shut them down.
@@ -75,9 +75,9 @@ GSF_cadet_query(const struct GNUNET_PeerIdentity *target,
  * @return #GNUNET_YES (continue to iterate)
  */
 int
-GSF_cadet_release_clients(void *cls,
-                          const struct GNUNET_PeerIdentity *key,
-                          void *value);
+GSF_cadet_release_clients (void *cls,
+                           const struct GNUNET_PeerIdentity *key,
+                           void *value);
 
 
 /**
@@ -87,21 +87,21 @@ GSF_cadet_release_clients(void *cls,
  * @param sr request to cancel
  */
 void
-GSF_cadet_query_cancel(struct GSF_CadetRequest *sr);
+GSF_cadet_query_cancel (struct GSF_CadetRequest *sr);
 
 
 /**
  * Initialize subsystem for non-anonymous file-sharing.
  */
 void
-GSF_cadet_start_server(void);
+GSF_cadet_start_server (void);
 
 
 /**
  * Shutdown subsystem for non-anonymous file-sharing.
  */
 void
-GSF_cadet_stop_server(void);
+GSF_cadet_stop_server (void);
 
 /**
  * Cadet channel for creating outbound channels.
@@ -120,7 +120,8 @@ GNUNET_NETWORK_STRUCT_BEGIN
 /**
  * Query from one peer, asking the other for CHK-data.
  */
-struct CadetQueryMessage {
+struct CadetQueryMessage
+{
   /**
    * Type is GNUNET_MESSAGE_TYPE_FS_CADET_QUERY.
    */
@@ -141,7 +142,8 @@ struct CadetQueryMessage {
 /**
  * Reply to a CadetQueryMessage.
  */
-struct CadetReplyMessage {
+struct CadetReplyMessage
+{
   /**
    * Type is GNUNET_MESSAGE_TYPE_FS_CADET_REPLY.
    */

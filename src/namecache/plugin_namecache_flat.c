@@ -33,7 +33,8 @@
 /**
  * Context for all functions in this plugin.
  */
-struct Plugin {
+struct Plugin
+{
   const struct GNUNET_CONFIGURATION_Handle *cfg;
 
   /**
@@ -47,7 +48,8 @@ struct Plugin {
   struct GNUNET_CONTAINER_MultiHashMap *hm;
 };
 
-struct FlatFileEntry {
+struct FlatFileEntry
+{
   /**
    * Block
    */
@@ -68,121 +70,121 @@ struct FlatFileEntry {
  * @return #GNUNET_OK on success
  */
 static int
-database_setup(struct Plugin *plugin)
+database_setup (struct Plugin *plugin)
 {
   char *afsdir;
-  char* block_buffer;
-  char* buffer;
-  char* line;
-  char* query;
-  char* block;
+  char*block_buffer;
+  char*buffer;
+  char*line;
+  char*query;
+  char*block;
   size_t size;
   struct FlatFileEntry *entry;
   struct GNUNET_DISK_FileHandle *fh;
 
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_filename(plugin->cfg,
-                                              "namecache-flat",
-                                              "FILENAME",
-                                              &afsdir))
+      GNUNET_CONFIGURATION_get_value_filename (plugin->cfg,
+                                               "namecache-flat",
+                                               "FILENAME",
+                                               &afsdir))
+  {
+    GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR,
+                               "namecache-flat", "FILENAME");
+    return GNUNET_SYSERR;
+  }
+  if (GNUNET_OK != GNUNET_DISK_file_test (afsdir))
+  {
+    if (GNUNET_OK != GNUNET_DISK_directory_create_for_file (afsdir))
     {
-      GNUNET_log_config_missing(GNUNET_ERROR_TYPE_ERROR,
-                                "namecache-flat", "FILENAME");
+      GNUNET_break (0);
+      GNUNET_free (afsdir);
       return GNUNET_SYSERR;
     }
-  if (GNUNET_OK != GNUNET_DISK_file_test(afsdir))
-    {
-      if (GNUNET_OK != GNUNET_DISK_directory_create_for_file(afsdir))
-        {
-          GNUNET_break(0);
-          GNUNET_free(afsdir);
-          return GNUNET_SYSERR;
-        }
-    }
+  }
   /* afsdir should be UTF-8-encoded. If it isn't, it's a bug */
   plugin->fn = afsdir;
 
   /* Load data from file into hashmap */
-  plugin->hm = GNUNET_CONTAINER_multihashmap_create(10,
-                                                    GNUNET_NO);
-  fh = GNUNET_DISK_file_open(afsdir,
-                             GNUNET_DISK_OPEN_CREATE |
-                             GNUNET_DISK_OPEN_READWRITE,
-                             GNUNET_DISK_PERM_USER_WRITE |
-                             GNUNET_DISK_PERM_USER_READ);
+  plugin->hm = GNUNET_CONTAINER_multihashmap_create (10,
+                                                     GNUNET_NO);
+  fh = GNUNET_DISK_file_open (afsdir,
+                              GNUNET_DISK_OPEN_CREATE
+                              | GNUNET_DISK_OPEN_READWRITE,
+                              GNUNET_DISK_PERM_USER_WRITE
+                              | GNUNET_DISK_PERM_USER_READ);
   if (NULL == fh)
-    {
-      GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
-                 _("Unable to initialize file: %s.\n"),
-                 afsdir);
-      return GNUNET_SYSERR;
-    }
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _ ("Unable to initialize file: %s.\n"),
+                afsdir);
+    return GNUNET_SYSERR;
+  }
 
-  if (GNUNET_SYSERR == GNUNET_DISK_file_size(afsdir,
-                                             &size,
-                                             GNUNET_YES,
-                                             GNUNET_YES))
-    {
-      GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
-                 _("Unable to get filesize: %s.\n"),
-                 afsdir);
-      GNUNET_DISK_file_close(fh);
-      return GNUNET_SYSERR;
-    }
+  if (GNUNET_SYSERR == GNUNET_DISK_file_size (afsdir,
+                                              &size,
+                                              GNUNET_YES,
+                                              GNUNET_YES))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _ ("Unable to get filesize: %s.\n"),
+                afsdir);
+    GNUNET_DISK_file_close (fh);
+    return GNUNET_SYSERR;
+  }
 
   if (0 == size)
-    {
-      GNUNET_DISK_file_close(fh);
-      return GNUNET_OK;
-    }
+  {
+    GNUNET_DISK_file_close (fh);
+    return GNUNET_OK;
+  }
 
-  buffer = GNUNET_malloc(size + 1);
+  buffer = GNUNET_malloc (size + 1);
 
-  if (GNUNET_SYSERR == GNUNET_DISK_file_read(fh,
-                                             buffer,
-                                             size))
-    {
-      GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
-                 _("Unable to read file: %s.\n"),
-                 afsdir);
-      GNUNET_free(buffer);
-      GNUNET_DISK_file_close(fh);
-      return GNUNET_SYSERR;
-    }
+  if (GNUNET_SYSERR == GNUNET_DISK_file_read (fh,
+                                              buffer,
+                                              size))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _ ("Unable to read file: %s.\n"),
+                afsdir);
+    GNUNET_free (buffer);
+    GNUNET_DISK_file_close (fh);
+    return GNUNET_SYSERR;
+  }
   buffer[size] = '\0';
 
-  GNUNET_DISK_file_close(fh);
+  GNUNET_DISK_file_close (fh);
   if (0 < size)
+  {
+    line = strtok (buffer, "\n");
+    while (line != NULL)
     {
-      line = strtok(buffer, "\n");
-      while (line != NULL)
-        {
-          query = strtok(line, ",");
-          if (NULL == query)
-            break;
-          block = strtok(NULL, ",");
-          if (NULL == block)
-            break;
-          line = strtok(NULL, "\n");
-          entry = GNUNET_malloc(sizeof(struct FlatFileEntry));
-          GNUNET_assert(GNUNET_OK == GNUNET_CRYPTO_hash_from_string(query,
-                                                                    &entry->query));
-          GNUNET_STRINGS_base64_decode(block,
-                                       strlen(block),
-                                       (void**)&block_buffer);
-          entry->block = (struct GNUNET_GNSRECORD_Block *)block_buffer;
-          if (GNUNET_OK !=
-              GNUNET_CONTAINER_multihashmap_put(plugin->hm,
-                                                &entry->query,
-                                                entry,
-                                                GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY))
-            {
-              GNUNET_free(entry);
-              GNUNET_break(0);
-            }
-        }
+      query = strtok (line, ",");
+      if (NULL == query)
+        break;
+      block = strtok (NULL, ",");
+      if (NULL == block)
+        break;
+      line = strtok (NULL, "\n");
+      entry = GNUNET_malloc (sizeof(struct FlatFileEntry));
+      GNUNET_assert (GNUNET_OK == GNUNET_CRYPTO_hash_from_string (query,
+                                                                  &entry->query));
+      GNUNET_STRINGS_base64_decode (block,
+                                    strlen (block),
+                                    (void**) &block_buffer);
+      entry->block = (struct GNUNET_GNSRECORD_Block *) block_buffer;
+      if (GNUNET_OK !=
+          GNUNET_CONTAINER_multihashmap_put (plugin->hm,
+                                             &entry->query,
+                                             entry,
+                                             GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY))
+      {
+        GNUNET_free (entry);
+        GNUNET_break (0);
+      }
     }
-  GNUNET_free(buffer);
+  }
+  GNUNET_free (buffer);
   return GNUNET_OK;
 }
 
@@ -192,9 +194,9 @@ database_setup(struct Plugin *plugin)
  * @param plugin the plugin context
  */
 static int
-store_and_free_entries(void *cls,
-                       const struct GNUNET_HashCode *key,
-                       void *value)
+store_and_free_entries (void *cls,
+                        const struct GNUNET_HashCode *key,
+                        void *value)
 {
   struct GNUNET_DISK_FileHandle *fh = cls;
   struct FlatFileEntry *entry = value;
@@ -204,29 +206,29 @@ store_and_free_entries(void *cls,
   struct GNUNET_CRYPTO_HashAsciiEncoded query;
   size_t block_size;
 
-  block_size = ntohl(entry->block->purpose.size) +
-               sizeof(struct GNUNET_CRYPTO_EcdsaPublicKey) +
-               sizeof(struct GNUNET_CRYPTO_EcdsaSignature);
+  block_size = ntohl (entry->block->purpose.size)
+               + sizeof(struct GNUNET_CRYPTO_EcdsaPublicKey)
+               + sizeof(struct GNUNET_CRYPTO_EcdsaSignature);
 
-  GNUNET_STRINGS_base64_encode((char*)entry->block,
-                               block_size,
-                               &block_b64);
-  GNUNET_CRYPTO_hash_to_enc(&entry->query,
-                            &query);
-  GNUNET_asprintf(&line,
-                  "%s,%s\n",
-                  (char*)&query,
-                  block_b64);
+  GNUNET_STRINGS_base64_encode ((char*) entry->block,
+                                block_size,
+                                &block_b64);
+  GNUNET_CRYPTO_hash_to_enc (&entry->query,
+                             &query);
+  GNUNET_asprintf (&line,
+                   "%s,%s\n",
+                   (char*) &query,
+                   block_b64);
 
-  GNUNET_free(block_b64);
+  GNUNET_free (block_b64);
 
-  GNUNET_DISK_file_write(fh,
-                         line,
-                         strlen(line));
+  GNUNET_DISK_file_write (fh,
+                          line,
+                          strlen (line));
 
-  GNUNET_free(entry->block);
-  GNUNET_free(entry);
-  GNUNET_free(line);
+  GNUNET_free (entry->block);
+  GNUNET_free (entry);
+  GNUNET_free (line);
   return GNUNET_YES;
 }
 
@@ -236,49 +238,49 @@ store_and_free_entries(void *cls,
  * @param plugin the plugin context (state for this module)
  */
 static void
-database_shutdown(struct Plugin *plugin)
+database_shutdown (struct Plugin *plugin)
 {
   struct GNUNET_DISK_FileHandle *fh;
 
-  fh = GNUNET_DISK_file_open(plugin->fn,
-                             GNUNET_DISK_OPEN_CREATE |
-                             GNUNET_DISK_OPEN_TRUNCATE |
-                             GNUNET_DISK_OPEN_READWRITE,
-                             GNUNET_DISK_PERM_USER_WRITE |
-                             GNUNET_DISK_PERM_USER_READ);
+  fh = GNUNET_DISK_file_open (plugin->fn,
+                              GNUNET_DISK_OPEN_CREATE
+                              | GNUNET_DISK_OPEN_TRUNCATE
+                              | GNUNET_DISK_OPEN_READWRITE,
+                              GNUNET_DISK_PERM_USER_WRITE
+                              | GNUNET_DISK_PERM_USER_READ);
   if (NULL == fh)
-    {
-      GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
-                 _("Unable to initialize file: %s.\n"),
-                 plugin->fn);
-      return;
-    }
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _ ("Unable to initialize file: %s.\n"),
+                plugin->fn);
+    return;
+  }
 
-  GNUNET_CONTAINER_multihashmap_iterate(plugin->hm,
-                                        &store_and_free_entries,
-                                        fh);
-  GNUNET_CONTAINER_multihashmap_destroy(plugin->hm);
-  GNUNET_DISK_file_close(fh);
+  GNUNET_CONTAINER_multihashmap_iterate (plugin->hm,
+                                         &store_and_free_entries,
+                                         fh);
+  GNUNET_CONTAINER_multihashmap_destroy (plugin->hm);
+  GNUNET_DISK_file_close (fh);
 }
 
 static int
-expire_blocks(void *cls,
-              const struct GNUNET_HashCode *key,
-              void *value)
+expire_blocks (void *cls,
+               const struct GNUNET_HashCode *key,
+               void *value)
 {
   struct Plugin *plugin = cls;
   struct FlatFileEntry *entry = value;
   struct GNUNET_TIME_Absolute now;
   struct GNUNET_TIME_Absolute expiration;
 
-  now = GNUNET_TIME_absolute_get();
-  expiration = GNUNET_TIME_absolute_ntoh(entry->block->expiration_time);
+  now = GNUNET_TIME_absolute_get ();
+  expiration = GNUNET_TIME_absolute_ntoh (entry->block->expiration_time);
 
-  if (0 == GNUNET_TIME_absolute_get_difference(now,
-                                               expiration).rel_value_us)
-    {
-      GNUNET_CONTAINER_multihashmap_remove_all(plugin->hm, key);
-    }
+  if (0 == GNUNET_TIME_absolute_get_difference (now,
+                                                expiration).rel_value_us)
+  {
+    GNUNET_CONTAINER_multihashmap_remove_all (plugin->hm, key);
+  }
   return GNUNET_YES;
 }
 
@@ -290,11 +292,11 @@ expire_blocks(void *cls,
  * @param plugin the plugin
  */
 static void
-namecache_expire_blocks(struct Plugin *plugin)
+namecache_expire_blocks (struct Plugin *plugin)
 {
-  GNUNET_CONTAINER_multihashmap_iterate(plugin->hm,
-                                        &expire_blocks,
-                                        plugin);
+  GNUNET_CONTAINER_multihashmap_iterate (plugin->hm,
+                                         &expire_blocks,
+                                         plugin);
 }
 
 
@@ -306,43 +308,43 @@ namecache_expire_blocks(struct Plugin *plugin)
  * @return #GNUNET_OK on success, else #GNUNET_SYSERR
  */
 static int
-namecache_cache_block(void *cls,
-                      const struct GNUNET_GNSRECORD_Block *block)
+namecache_cache_block (void *cls,
+                       const struct GNUNET_GNSRECORD_Block *block)
 {
   struct Plugin *plugin = cls;
   struct GNUNET_HashCode query;
   struct FlatFileEntry *entry;
   size_t block_size;
 
-  namecache_expire_blocks(plugin);
-  GNUNET_CRYPTO_hash(&block->derived_key,
-                     sizeof(struct GNUNET_CRYPTO_EcdsaPublicKey),
-                     &query);
-  block_size = ntohl(block->purpose.size) +
-               sizeof(struct GNUNET_CRYPTO_EcdsaPublicKey) +
-               sizeof(struct GNUNET_CRYPTO_EcdsaSignature);
+  namecache_expire_blocks (plugin);
+  GNUNET_CRYPTO_hash (&block->derived_key,
+                      sizeof(struct GNUNET_CRYPTO_EcdsaPublicKey),
+                      &query);
+  block_size = ntohl (block->purpose.size)
+               + sizeof(struct GNUNET_CRYPTO_EcdsaPublicKey)
+               + sizeof(struct GNUNET_CRYPTO_EcdsaSignature);
   if (block_size > 64 * 65536)
-    {
-      GNUNET_break(0);
-      return GNUNET_SYSERR;
-    }
-  entry = GNUNET_malloc(sizeof(struct FlatFileEntry));
-  entry->block = GNUNET_malloc(block_size);
-  GNUNET_memcpy(entry->block, block, block_size);
-  GNUNET_CONTAINER_multihashmap_remove_all(plugin->hm, &query);
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
+  entry = GNUNET_malloc (sizeof(struct FlatFileEntry));
+  entry->block = GNUNET_malloc (block_size);
+  GNUNET_memcpy (entry->block, block, block_size);
+  GNUNET_CONTAINER_multihashmap_remove_all (plugin->hm, &query);
   if (GNUNET_OK !=
-      GNUNET_CONTAINER_multihashmap_put(plugin->hm,
-                                        &query,
-                                        entry,
-                                        GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY))
-    {
-      GNUNET_free(entry);
-      GNUNET_break(0);
-      return GNUNET_SYSERR;
-    }
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-             "Caching block under derived key `%s'\n",
-             GNUNET_h2s_full(&query));
+      GNUNET_CONTAINER_multihashmap_put (plugin->hm,
+                                         &query,
+                                         entry,
+                                         GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY))
+  {
+    GNUNET_free (entry);
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Caching block under derived key `%s'\n",
+              GNUNET_h2s_full (&query));
   return GNUNET_OK;
 }
 
@@ -358,20 +360,20 @@ namecache_cache_block(void *cls,
  * @return #GNUNET_OK on success, #GNUNET_NO if there were no results, #GNUNET_SYSERR on error
  */
 static int
-namecache_lookup_block(void *cls,
-                       const struct GNUNET_HashCode *query,
-                       GNUNET_NAMECACHE_BlockCallback iter, void *iter_cls)
+namecache_lookup_block (void *cls,
+                        const struct GNUNET_HashCode *query,
+                        GNUNET_NAMECACHE_BlockCallback iter, void *iter_cls)
 {
   struct Plugin *plugin = cls;
   const struct GNUNET_GNSRECORD_Block *block;
 
-  block = GNUNET_CONTAINER_multihashmap_get(plugin->hm, query);
+  block = GNUNET_CONTAINER_multihashmap_get (plugin->hm, query);
   if (NULL == block)
     return GNUNET_NO;
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-             "Found block under derived key `%s'\n",
-             GNUNET_h2s_full(query));
-  iter(iter_cls, block);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Found block under derived key `%s'\n",
+              GNUNET_h2s_full (query));
+  iter (iter_cls, block);
   return GNUNET_YES;
 }
 
@@ -383,7 +385,7 @@ namecache_lookup_block(void *cls,
  * @return NULL on error, otherwise the plugin context
  */
 void *
-libgnunet_plugin_namecache_flat_init(void *cls)
+libgnunet_plugin_namecache_flat_init (void *cls)
 {
   static struct Plugin plugin;
   const struct GNUNET_CONFIGURATION_Handle *cfg = cls;
@@ -391,19 +393,19 @@ libgnunet_plugin_namecache_flat_init(void *cls)
 
   if (NULL != plugin.cfg)
     return NULL;                /* can only initialize once! */
-  memset(&plugin, 0, sizeof(struct Plugin));
+  memset (&plugin, 0, sizeof(struct Plugin));
   plugin.cfg = cfg;
-  if (GNUNET_OK != database_setup(&plugin))
-    {
-      database_shutdown(&plugin);
-      return NULL;
-    }
-  api = GNUNET_new(struct GNUNET_NAMECACHE_PluginFunctions);
+  if (GNUNET_OK != database_setup (&plugin))
+  {
+    database_shutdown (&plugin);
+    return NULL;
+  }
+  api = GNUNET_new (struct GNUNET_NAMECACHE_PluginFunctions);
   api->cls = &plugin;
   api->cache_block = &namecache_cache_block;
   api->lookup_block = &namecache_lookup_block;
-  GNUNET_log(GNUNET_ERROR_TYPE_INFO,
-             _("flat plugin running\n"));
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              _ ("flat plugin running\n"));
   return api;
 }
 
@@ -415,16 +417,16 @@ libgnunet_plugin_namecache_flat_init(void *cls)
  * @return always NULL
  */
 void *
-libgnunet_plugin_namecache_flat_done(void *cls)
+libgnunet_plugin_namecache_flat_done (void *cls)
 {
   struct GNUNET_NAMECACHE_PluginFunctions *api = cls;
   struct Plugin *plugin = api->cls;
 
-  database_shutdown(plugin);
+  database_shutdown (plugin);
   plugin->cfg = NULL;
-  GNUNET_free(api);
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-             "flat plugin is finished\n");
+  GNUNET_free (api);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "flat plugin is finished\n");
   return NULL;
 }
 

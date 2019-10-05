@@ -37,7 +37,8 @@ GNUNET_NETWORK_STRUCT_BEGIN
 /**
  * Generic namestore message with op id
  */
-struct GNUNET_NAMESTORE_Header {
+struct GNUNET_NAMESTORE_Header
+{
   /**
    * header.type will be GNUNET_MESSAGE_TYPE_NAMESTORE_*
    * header.size will be message size
@@ -54,7 +55,8 @@ struct GNUNET_NAMESTORE_Header {
 /**
  * Store a record to the namestore (as authority).
  */
-struct RecordStoreMessage {
+struct RecordStoreMessage
+{
   /**
    * Type will be #GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_STORE
    */
@@ -100,7 +102,8 @@ struct RecordStoreMessage {
 /**
  * Response to a record storage request.
  */
-struct RecordStoreResponseMessage {
+struct RecordStoreResponseMessage
+{
   /**
    * Type will be #GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_STORE_RESPONSE
    */
@@ -116,7 +119,8 @@ struct RecordStoreResponseMessage {
 /**
  * Lookup a label
  */
-struct LabelLookupMessage {
+struct LabelLookupMessage
+{
   /**
    * Type will be #GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_LOOKUP
    */
@@ -141,7 +145,8 @@ struct LabelLookupMessage {
 /**
  * Lookup a label
  */
-struct LabelLookupResponseMessage {
+struct LabelLookupResponseMessage
+{
   /**
    * Type will be #GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_LOOKUP_RESPONSE
    */
@@ -184,7 +189,8 @@ struct LabelLookupResponseMessage {
 /**
  * Lookup a name for a zone hash
  */
-struct ZoneToNameMessage {
+struct ZoneToNameMessage
+{
   /**
    * Type will be #GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_TO_NAME
    */
@@ -205,7 +211,8 @@ struct ZoneToNameMessage {
 /**
  * Respone for zone to name lookup
  */
-struct ZoneToNameResponseMessage {
+struct ZoneToNameResponseMessage
+{
   /**
    * Type will be #GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_TO_NAME_RESPONSE
    */
@@ -247,7 +254,8 @@ struct ZoneToNameResponseMessage {
 /**
  * Record is returned from the namestore (as authority).
  */
-struct RecordResultMessage {
+struct RecordResultMessage
+{
   /**
    * Type will be #GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_RESULT
    */
@@ -288,7 +296,8 @@ struct RecordResultMessage {
 /**
  * Start monitoring a zone.
  */
-struct ZoneMonitorStartMessage {
+struct ZoneMonitorStartMessage
+{
   /**
    * Type will be #GNUNET_MESSAGE_TYPE_NAMESTORE_MONITOR_START
    */
@@ -310,7 +319,8 @@ struct ZoneMonitorStartMessage {
 /**
  * Ask for next result of zone iteration for the given operation
  */
-struct ZoneMonitorNextMessage {
+struct ZoneMonitorNextMessage
+{
   /**
    * Type will be #GNUNET_MESSAGE_TYPE_NAMESTORE_MONITOR_NEXT
    */
@@ -334,7 +344,8 @@ struct ZoneMonitorNextMessage {
 /**
  * Start a zone iteration for the given zone
  */
-struct ZoneIterationStartMessage {
+struct ZoneIterationStartMessage
+{
   /**
    * Type will be #GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_ITERATION_START
    */
@@ -350,7 +361,8 @@ struct ZoneIterationStartMessage {
 /**
  * Ask for next result of zone iteration for the given operation
  */
-struct ZoneIterationNextMessage {
+struct ZoneIterationNextMessage
+{
   /**
    * Type will be #GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_ITERATION_NEXT
    */
@@ -368,7 +380,8 @@ struct ZoneIterationNextMessage {
 /**
  * Stop zone iteration for the given operation
  */
-struct ZoneIterationStopMessage {
+struct ZoneIterationStopMessage
+{
   /**
    * Type will be #GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_ITERATION_STOP
    */

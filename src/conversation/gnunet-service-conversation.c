@@ -52,7 +52,8 @@ struct Line;
 /**
  * The possible connection status
  */
-enum ChannelStatus {
+enum ChannelStatus
+{
   /**
    * We just got the connection, but no introduction yet.
    */
@@ -96,7 +97,8 @@ enum ChannelStatus {
  * be attached the the same `struct Line`, which represents a local
  * client.  We keep them in a linked list.
  */
-struct Channel {
+struct Channel
+{
   /**
    * This is a DLL.
    */
@@ -152,7 +154,8 @@ struct Channel {
 /**
  * A `struct Line` connects a local client with cadet channels.
  */
-struct Line {
+struct Line
+{
   /**
    * This is a DLL.
    */
@@ -216,7 +219,7 @@ static struct GNUNET_PeerIdentity my_identity;
  * @return NULL for not found
  */
 static struct Channel *
-find_channel_by_line(struct Line *line, uint32_t cid)
+find_channel_by_line (struct Line *line, uint32_t cid)
 {
   for (struct Channel *ch = line->channel_head; NULL != ch; ch = ch->next)
     if (cid == ch->cid)
@@ -232,8 +235,8 @@ find_channel_by_line(struct Line *line, uint32_t cid)
  * @param msg the message from the client
  */
 static void
-handle_client_pickup_message(void *cls,
-                             const struct ClientPhonePickupMessage *msg)
+handle_client_pickup_message (void *cls,
+                              const struct ClientPhonePickupMessage *msg)
 {
   struct Line *line = cls;
   struct CadetPhonePickupMessage *mppm;
@@ -241,56 +244,56 @@ handle_client_pickup_message(void *cls,
   struct Channel *ch;
 
   if (NULL == line->port)
-    {
-      /* we never opened the port, bad client! */
-      GNUNET_break_op(0);
-      GNUNET_SERVICE_client_drop(line->client);
-      return;
-    }
+  {
+    /* we never opened the port, bad client! */
+    GNUNET_break_op (0);
+    GNUNET_SERVICE_client_drop (line->client);
+    return;
+  }
   for (ch = line->channel_head; NULL != ch; ch = ch->next)
     if (msg->cid == ch->cid)
       break;
   if (NULL == ch)
-    {
-      /* could have been destroyed asynchronously, ignore message */
-      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Channel %u not found\n", msg->cid);
-      GNUNET_SERVICE_client_continue(line->client);
-      return;
-    }
+  {
+    /* could have been destroyed asynchronously, ignore message */
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Channel %u not found\n", msg->cid);
+    GNUNET_SERVICE_client_continue (line->client);
+    return;
+  }
   switch (ch->status)
-    {
-    case CS_CALLEE_INIT:
-      GNUNET_break(0);
-      GNUNET_SERVICE_client_drop(line->client);
-      return;
+  {
+  case CS_CALLEE_INIT:
+    GNUNET_break (0);
+    GNUNET_SERVICE_client_drop (line->client);
+    return;
 
-    case CS_CALLEE_RINGING:
-      ch->status = CS_CALLEE_CONNECTED;
-      break;
+  case CS_CALLEE_RINGING:
+    ch->status = CS_CALLEE_CONNECTED;
+    break;
 
-    case CS_CALLEE_CONNECTED:
-      GNUNET_break(0);
-      GNUNET_SERVICE_client_drop(line->client);
-      return;
+  case CS_CALLEE_CONNECTED:
+    GNUNET_break (0);
+    GNUNET_SERVICE_client_drop (line->client);
+    return;
 
-    case CS_CALLEE_SHUTDOWN:
-      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-                 "Ignoring client's PICKUP message, line is in SHUTDOWN\n");
-      break;
+  case CS_CALLEE_SHUTDOWN:
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Ignoring client's PICKUP message, line is in SHUTDOWN\n");
+    break;
 
-    case CS_CALLER_CALLING:
-    case CS_CALLER_CONNECTED:
-    case CS_CALLER_SHUTDOWN:
-      GNUNET_break(0);
-      GNUNET_SERVICE_client_drop(line->client);
-      return;
-    }
-  GNUNET_break(CS_CALLEE_CONNECTED == ch->status);
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Sending PICK_UP message to cadet\n");
+  case CS_CALLER_CALLING:
+  case CS_CALLER_CONNECTED:
+  case CS_CALLER_SHUTDOWN:
+    GNUNET_break (0);
+    GNUNET_SERVICE_client_drop (line->client);
+    return;
+  }
+  GNUNET_break (CS_CALLEE_CONNECTED == ch->status);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending PICK_UP message to cadet\n");
   env =
-    GNUNET_MQ_msg(mppm, GNUNET_MESSAGE_TYPE_CONVERSATION_CADET_PHONE_PICK_UP);
-  GNUNET_MQ_send(ch->mq, env);
-  GNUNET_SERVICE_client_continue(line->client);
+    GNUNET_MQ_msg (mppm, GNUNET_MESSAGE_TYPE_CONVERSATION_CADET_PHONE_PICK_UP);
+  GNUNET_MQ_send (ch->mq, env);
+  GNUNET_SERVICE_client_continue (line->client);
 }
 
 
@@ -301,35 +304,35 @@ handle_client_pickup_message(void *cls,
  * @param ch channel that went down
  */
 static void
-clean_up_channel(struct Channel *ch)
+clean_up_channel (struct Channel *ch)
 {
   struct Line *line = ch->line;
   struct GNUNET_MQ_Envelope *env;
   struct ClientPhoneHangupMessage *hup;
 
   switch (ch->status)
-    {
-    case CS_CALLEE_INIT:
-    case CS_CALLEE_SHUTDOWN:
-    case CS_CALLER_SHUTDOWN:
-      break;
+  {
+  case CS_CALLEE_INIT:
+  case CS_CALLEE_SHUTDOWN:
+  case CS_CALLER_SHUTDOWN:
+    break;
 
-    case CS_CALLEE_RINGING:
-    case CS_CALLEE_CONNECTED:
-    case CS_CALLER_CALLING:
-    case CS_CALLER_CONNECTED:
-      if (NULL != line)
-        {
-          env =
-            GNUNET_MQ_msg(hup, GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_HANG_UP);
-          hup->cid = ch->cid;
-          GNUNET_MQ_send(line->mq, env);
-        }
-      break;
+  case CS_CALLEE_RINGING:
+  case CS_CALLEE_CONNECTED:
+  case CS_CALLER_CALLING:
+  case CS_CALLER_CONNECTED:
+    if (NULL != line)
+    {
+      env =
+        GNUNET_MQ_msg (hup, GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_HANG_UP);
+      hup->cid = ch->cid;
+      GNUNET_MQ_send (line->mq, env);
     }
+    break;
+  }
   if (NULL != line)
-    GNUNET_CONTAINER_DLL_remove(line->channel_head, line->channel_tail, ch);
-  GNUNET_free(ch);
+    GNUNET_CONTAINER_DLL_remove (line->channel_head, line->channel_tail, ch);
+  GNUNET_free (ch);
 }
 
 
@@ -339,15 +342,15 @@ clean_up_channel(struct Channel *ch)
  * @param ch channel to destroy.
  */
 static void
-destroy_line_cadet_channels(struct Channel *ch)
+destroy_line_cadet_channels (struct Channel *ch)
 {
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Destroying cadet channels\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Destroying cadet channels\n");
   if (NULL != ch->channel)
-    {
-      GNUNET_CADET_channel_destroy(ch->channel);
-      ch->channel = NULL;
-    }
-  clean_up_channel(ch);
+  {
+    GNUNET_CADET_channel_destroy (ch->channel);
+    ch->channel = NULL;
+  }
+  clean_up_channel (ch);
 }
 
 
@@ -358,40 +361,40 @@ destroy_line_cadet_channels(struct Channel *ch)
  * @param cls the `struct Channel` to reset/terminate
  */
 static void
-mq_done_finish_caller_shutdown(void *cls)
+mq_done_finish_caller_shutdown (void *cls)
 {
   struct Channel *ch = cls;
 
   switch (ch->status)
-    {
-    case CS_CALLEE_INIT:
-      GNUNET_break(0);
-      break;
+  {
+  case CS_CALLEE_INIT:
+    GNUNET_break (0);
+    break;
 
-    case CS_CALLEE_RINGING:
-      GNUNET_break(0);
-      break;
+  case CS_CALLEE_RINGING:
+    GNUNET_break (0);
+    break;
 
-    case CS_CALLEE_CONNECTED:
-      GNUNET_break(0);
-      break;
+  case CS_CALLEE_CONNECTED:
+    GNUNET_break (0);
+    break;
 
-    case CS_CALLEE_SHUTDOWN:
-      destroy_line_cadet_channels(ch);
-      break;
+  case CS_CALLEE_SHUTDOWN:
+    destroy_line_cadet_channels (ch);
+    break;
 
-    case CS_CALLER_CALLING:
-      GNUNET_break(0);
-      break;
+  case CS_CALLER_CALLING:
+    GNUNET_break (0);
+    break;
 
-    case CS_CALLER_CONNECTED:
-      GNUNET_break(0);
-      break;
+  case CS_CALLER_CONNECTED:
+    GNUNET_break (0);
+    break;
 
-    case CS_CALLER_SHUTDOWN:
-      destroy_line_cadet_channels(ch);
-      break;
-    }
+  case CS_CALLER_SHUTDOWN:
+    destroy_line_cadet_channels (ch);
+    break;
+  }
 }
 
 
@@ -402,8 +405,8 @@ mq_done_finish_caller_shutdown(void *cls)
  * @param msg the message from the client
  */
 static void
-handle_client_hangup_message(void *cls,
-                             const struct ClientPhoneHangupMessage *msg)
+handle_client_hangup_message (void *cls,
+                              const struct ClientPhoneHangupMessage *msg)
 {
   struct Line *line = cls;
   struct GNUNET_MQ_Envelope *e;
@@ -414,55 +417,55 @@ handle_client_hangup_message(void *cls,
     if (msg->cid == ch->cid)
       break;
   if (NULL == ch)
-    {
-      /* could have been destroyed asynchronously, ignore message */
-      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Channel %u not found\n", msg->cid);
-      GNUNET_SERVICE_client_continue(line->client);
-      return;
-    }
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-             "Received HANGUP for channel %u which is in state %d\n",
-             msg->cid,
-             ch->status);
+  {
+    /* could have been destroyed asynchronously, ignore message */
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Channel %u not found\n", msg->cid);
+    GNUNET_SERVICE_client_continue (line->client);
+    return;
+  }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Received HANGUP for channel %u which is in state %d\n",
+              msg->cid,
+              ch->status);
   switch (ch->status)
-    {
-    case CS_CALLEE_INIT:
-      GNUNET_break(0);
-      GNUNET_SERVICE_client_drop(line->client);
-      return;
+  {
+  case CS_CALLEE_INIT:
+    GNUNET_break (0);
+    GNUNET_SERVICE_client_drop (line->client);
+    return;
 
-    case CS_CALLEE_RINGING:
-      ch->status = CS_CALLEE_SHUTDOWN;
-      break;
+  case CS_CALLEE_RINGING:
+    ch->status = CS_CALLEE_SHUTDOWN;
+    break;
 
-    case CS_CALLEE_CONNECTED:
-      ch->status = CS_CALLEE_SHUTDOWN;
-      break;
+  case CS_CALLEE_CONNECTED:
+    ch->status = CS_CALLEE_SHUTDOWN;
+    break;
 
-    case CS_CALLEE_SHUTDOWN:
-      /* maybe the other peer closed asynchronously... */
-      GNUNET_SERVICE_client_continue(line->client);
-      return;
+  case CS_CALLEE_SHUTDOWN:
+    /* maybe the other peer closed asynchronously... */
+    GNUNET_SERVICE_client_continue (line->client);
+    return;
 
-    case CS_CALLER_CALLING:
-      ch->status = CS_CALLER_SHUTDOWN;
-      break;
+  case CS_CALLER_CALLING:
+    ch->status = CS_CALLER_SHUTDOWN;
+    break;
 
-    case CS_CALLER_CONNECTED:
-      ch->status = CS_CALLER_SHUTDOWN;
-      break;
+  case CS_CALLER_CONNECTED:
+    ch->status = CS_CALLER_SHUTDOWN;
+    break;
 
-    case CS_CALLER_SHUTDOWN:
-      /* maybe the other peer closed asynchronously... */
-      GNUNET_SERVICE_client_continue(line->client);
-      return;
-    }
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Sending HANG_UP message via cadet\n");
+  case CS_CALLER_SHUTDOWN:
+    /* maybe the other peer closed asynchronously... */
+    GNUNET_SERVICE_client_continue (line->client);
+    return;
+  }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending HANG_UP message via cadet\n");
   e =
-    GNUNET_MQ_msg(mhum, GNUNET_MESSAGE_TYPE_CONVERSATION_CADET_PHONE_HANG_UP);
-  GNUNET_MQ_notify_sent(e, &mq_done_finish_caller_shutdown, ch);
-  GNUNET_MQ_send(ch->mq, e);
-  GNUNET_SERVICE_client_continue(line->client);
+    GNUNET_MQ_msg (mhum, GNUNET_MESSAGE_TYPE_CONVERSATION_CADET_PHONE_HANG_UP);
+  GNUNET_MQ_notify_sent (e, &mq_done_finish_caller_shutdown, ch);
+  GNUNET_MQ_send (ch->mq, e);
+  GNUNET_SERVICE_client_continue (line->client);
 }
 
 
@@ -473,8 +476,8 @@ handle_client_hangup_message(void *cls,
  * @param msg the message from the client
  */
 static void
-handle_client_suspend_message(void *cls,
-                              const struct ClientPhoneSuspendMessage *msg)
+handle_client_suspend_message (void *cls,
+                               const struct ClientPhoneSuspendMessage *msg)
 {
   struct Line *line = cls;
   struct GNUNET_MQ_Envelope *e;
@@ -485,62 +488,62 @@ handle_client_suspend_message(void *cls,
     if (msg->cid == ch->cid)
       break;
   if (NULL == ch)
-    {
-      /* could have been destroyed asynchronously, ignore message */
-      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Channel %u not found\n", msg->cid);
-      GNUNET_SERVICE_client_continue(line->client);
-      return;
-    }
+  {
+    /* could have been destroyed asynchronously, ignore message */
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Channel %u not found\n", msg->cid);
+    GNUNET_SERVICE_client_continue (line->client);
+    return;
+  }
   if (GNUNET_YES == ch->suspended_local)
-    {
-      GNUNET_break(0);
-      GNUNET_SERVICE_client_drop(line->client);
-      return;
-    }
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-             "Received SUSPEND for channel %u which is in state %d\n",
-             msg->cid,
-             ch->status);
+  {
+    GNUNET_break (0);
+    GNUNET_SERVICE_client_drop (line->client);
+    return;
+  }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Received SUSPEND for channel %u which is in state %d\n",
+              msg->cid,
+              ch->status);
   switch (ch->status)
-    {
-    case CS_CALLEE_INIT:
-      GNUNET_break(0);
-      GNUNET_SERVICE_client_drop(line->client);
-      return;
+  {
+  case CS_CALLEE_INIT:
+    GNUNET_break (0);
+    GNUNET_SERVICE_client_drop (line->client);
+    return;
 
-    case CS_CALLEE_RINGING:
-      GNUNET_break(0);
-      GNUNET_SERVICE_client_drop(line->client);
-      return;
+  case CS_CALLEE_RINGING:
+    GNUNET_break (0);
+    GNUNET_SERVICE_client_drop (line->client);
+    return;
 
-    case CS_CALLEE_CONNECTED:
-      ch->suspended_local = GNUNET_YES;
-      break;
+  case CS_CALLEE_CONNECTED:
+    ch->suspended_local = GNUNET_YES;
+    break;
 
-    case CS_CALLEE_SHUTDOWN:
-      /* maybe the other peer closed asynchronously... */
-      GNUNET_SERVICE_client_continue(line->client);
-      return;
+  case CS_CALLEE_SHUTDOWN:
+    /* maybe the other peer closed asynchronously... */
+    GNUNET_SERVICE_client_continue (line->client);
+    return;
 
-    case CS_CALLER_CALLING:
-      GNUNET_break(0);
-      GNUNET_SERVICE_client_drop(line->client);
-      return;
+  case CS_CALLER_CALLING:
+    GNUNET_break (0);
+    GNUNET_SERVICE_client_drop (line->client);
+    return;
 
-    case CS_CALLER_CONNECTED:
-      ch->suspended_local = GNUNET_YES;
-      break;
+  case CS_CALLER_CONNECTED:
+    ch->suspended_local = GNUNET_YES;
+    break;
 
-    case CS_CALLER_SHUTDOWN:
-      /* maybe the other peer closed asynchronously... */
-      GNUNET_SERVICE_client_continue(line->client);
-      return;
-    }
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Sending SUSPEND message via cadet\n");
+  case CS_CALLER_SHUTDOWN:
+    /* maybe the other peer closed asynchronously... */
+    GNUNET_SERVICE_client_continue (line->client);
+    return;
+  }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending SUSPEND message via cadet\n");
   e =
-    GNUNET_MQ_msg(mhum, GNUNET_MESSAGE_TYPE_CONVERSATION_CADET_PHONE_SUSPEND);
-  GNUNET_MQ_send(ch->mq, e);
-  GNUNET_SERVICE_client_continue(line->client);
+    GNUNET_MQ_msg (mhum, GNUNET_MESSAGE_TYPE_CONVERSATION_CADET_PHONE_SUSPEND);
+  GNUNET_MQ_send (ch->mq, e);
+  GNUNET_SERVICE_client_continue (line->client);
 }
 
 
@@ -551,8 +554,8 @@ handle_client_suspend_message(void *cls,
  * @param msg the message from the client
  */
 static void
-handle_client_resume_message(void *cls,
-                             const struct ClientPhoneResumeMessage *msg)
+handle_client_resume_message (void *cls,
+                              const struct ClientPhoneResumeMessage *msg)
 {
   struct Line *line = cls;
   struct GNUNET_MQ_Envelope *e;
@@ -563,61 +566,61 @@ handle_client_resume_message(void *cls,
     if (msg->cid == ch->cid)
       break;
   if (NULL == ch)
-    {
-      /* could have been destroyed asynchronously, ignore message */
-      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Channel %u not found\n", msg->cid);
-      GNUNET_SERVICE_client_continue(line->client);
-      return;
-    }
+  {
+    /* could have been destroyed asynchronously, ignore message */
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Channel %u not found\n", msg->cid);
+    GNUNET_SERVICE_client_continue (line->client);
+    return;
+  }
   if (GNUNET_YES != ch->suspended_local)
-    {
-      GNUNET_break(0);
-      GNUNET_SERVICE_client_drop(line->client);
-      return;
-    }
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-             "Received RESUME for channel %u which is in state %d\n",
-             msg->cid,
-             ch->status);
+  {
+    GNUNET_break (0);
+    GNUNET_SERVICE_client_drop (line->client);
+    return;
+  }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Received RESUME for channel %u which is in state %d\n",
+              msg->cid,
+              ch->status);
   switch (ch->status)
-    {
-    case CS_CALLEE_INIT:
-      GNUNET_break(0);
-      GNUNET_SERVICE_client_drop(line->client);
-      return;
+  {
+  case CS_CALLEE_INIT:
+    GNUNET_break (0);
+    GNUNET_SERVICE_client_drop (line->client);
+    return;
 
-    case CS_CALLEE_RINGING:
-      GNUNET_break(0);
-      GNUNET_SERVICE_client_drop(line->client);
-      return;
+  case CS_CALLEE_RINGING:
+    GNUNET_break (0);
+    GNUNET_SERVICE_client_drop (line->client);
+    return;
 
-    case CS_CALLEE_CONNECTED:
-      ch->suspended_local = GNUNET_NO;
-      break;
+  case CS_CALLEE_CONNECTED:
+    ch->suspended_local = GNUNET_NO;
+    break;
 
-    case CS_CALLEE_SHUTDOWN:
-      /* maybe the other peer closed asynchronously... */
-      GNUNET_SERVICE_client_continue(line->client);
-      return;
+  case CS_CALLEE_SHUTDOWN:
+    /* maybe the other peer closed asynchronously... */
+    GNUNET_SERVICE_client_continue (line->client);
+    return;
 
-    case CS_CALLER_CALLING:
-      GNUNET_break(0);
-      GNUNET_SERVICE_client_drop(line->client);
-      return;
+  case CS_CALLER_CALLING:
+    GNUNET_break (0);
+    GNUNET_SERVICE_client_drop (line->client);
+    return;
 
-    case CS_CALLER_CONNECTED:
-      ch->suspended_local = GNUNET_NO;
-      break;
+  case CS_CALLER_CONNECTED:
+    ch->suspended_local = GNUNET_NO;
+    break;
 
-    case CS_CALLER_SHUTDOWN:
-      /* maybe the other peer closed asynchronously... */
-      GNUNET_SERVICE_client_drop(line->client);
-      return;
-    }
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Sending RESUME message via cadet\n");
-  e = GNUNET_MQ_msg(mhum, GNUNET_MESSAGE_TYPE_CONVERSATION_CADET_PHONE_RESUME);
-  GNUNET_MQ_send(ch->mq, e);
-  GNUNET_SERVICE_client_continue(line->client);
+  case CS_CALLER_SHUTDOWN:
+    /* maybe the other peer closed asynchronously... */
+    GNUNET_SERVICE_client_drop (line->client);
+    return;
+  }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending RESUME message via cadet\n");
+  e = GNUNET_MQ_msg (mhum, GNUNET_MESSAGE_TYPE_CONVERSATION_CADET_PHONE_RESUME);
+  GNUNET_MQ_send (ch->mq, e);
+  GNUNET_SERVICE_client_continue (line->client);
 }
 
 
@@ -627,7 +630,7 @@ handle_client_resume_message(void *cls,
  * @param cls the `struct Channel` we are transmitting for
  */
 static void
-channel_audio_sent_notify(void *cls)
+channel_audio_sent_notify (void *cls)
 {
   struct Channel *ch = cls;
 
@@ -643,10 +646,10 @@ channel_audio_sent_notify(void *cls)
  * @return #GNUNET_OK (any data is ok)
  */
 static int
-check_client_audio_message(void *cls, const struct ClientAudioMessage *msg)
+check_client_audio_message (void *cls, const struct ClientAudioMessage *msg)
 {
-  (void)cls;
-  (void)msg;
+  (void) cls;
+  (void) msg;
   return GNUNET_OK;
 }
 
@@ -658,72 +661,72 @@ check_client_audio_message(void *cls, const struct ClientAudioMessage *msg)
  * @param msg the message from the client
  */
 static void
-handle_client_audio_message(void *cls, const struct ClientAudioMessage *msg)
+handle_client_audio_message (void *cls, const struct ClientAudioMessage *msg)
 {
   struct Line *line = cls;
   struct CadetAudioMessage *mam;
   struct Channel *ch;
   size_t size;
 
-  size = ntohs(msg->header.size) - sizeof(struct ClientAudioMessage);
-  ch = find_channel_by_line(line, msg->cid);
+  size = ntohs (msg->header.size) - sizeof(struct ClientAudioMessage);
+  ch = find_channel_by_line (line, msg->cid);
   if (NULL == ch)
-    {
-      /* could have been destroyed asynchronously, ignore message */
-      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Channel %u not found\n", msg->cid);
-      GNUNET_SERVICE_client_continue(line->client);
-      return;
-    }
+  {
+    /* could have been destroyed asynchronously, ignore message */
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Channel %u not found\n", msg->cid);
+    GNUNET_SERVICE_client_continue (line->client);
+    return;
+  }
 
   switch (ch->status)
-    {
-    case CS_CALLEE_INIT:
-    case CS_CALLEE_RINGING:
-    case CS_CALLER_CALLING:
-      GNUNET_break(0);
-      GNUNET_SERVICE_client_drop(line->client);
-      return;
+  {
+  case CS_CALLEE_INIT:
+  case CS_CALLEE_RINGING:
+  case CS_CALLER_CALLING:
+    GNUNET_break (0);
+    GNUNET_SERVICE_client_drop (line->client);
+    return;
 
-    case CS_CALLEE_CONNECTED:
-    case CS_CALLER_CONNECTED:
-      /* common case, handled below */
-      break;
+  case CS_CALLEE_CONNECTED:
+  case CS_CALLER_CONNECTED:
+    /* common case, handled below */
+    break;
 
-    case CS_CALLEE_SHUTDOWN:
-    case CS_CALLER_SHUTDOWN:
-      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG | GNUNET_ERROR_TYPE_BULK,
-                 "Cadet audio channel in shutdown; audio data dropped\n");
-      GNUNET_SERVICE_client_continue(line->client);
-      return;
-    }
+  case CS_CALLEE_SHUTDOWN:
+  case CS_CALLER_SHUTDOWN:
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG | GNUNET_ERROR_TYPE_BULK,
+                "Cadet audio channel in shutdown; audio data dropped\n");
+    GNUNET_SERVICE_client_continue (line->client);
+    return;
+  }
   if (GNUNET_YES == ch->suspended_local)
-    {
-      GNUNET_log(GNUNET_ERROR_TYPE_WARNING,
-                 "This channel is suspended locally\n");
-      GNUNET_SERVICE_client_drop(line->client);
-      return;
-    }
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                "This channel is suspended locally\n");
+    GNUNET_SERVICE_client_drop (line->client);
+    return;
+  }
   if (NULL != ch->env)
-    {
-      /* NOTE: we may want to not do this and instead combine the data */
-      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-                 "Bandwidth insufficient; dropping previous audio data segment\n");
-      GNUNET_MQ_send_cancel(ch->env);
-      ch->env = NULL;
-    }
+  {
+    /* NOTE: we may want to not do this and instead combine the data */
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Bandwidth insufficient; dropping previous audio data segment\n");
+    GNUNET_MQ_send_cancel (ch->env);
+    ch->env = NULL;
+  }
 
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-             "Received %u bytes of AUDIO data from client CID %u\n",
-             (unsigned int)size,
-             msg->cid);
-  ch->env = GNUNET_MQ_msg_extra(mam,
-                                size,
-                                GNUNET_MESSAGE_TYPE_CONVERSATION_CADET_AUDIO);
-  GNUNET_memcpy(&mam[1], &msg[1], size);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Received %u bytes of AUDIO data from client CID %u\n",
+              (unsigned int) size,
+              msg->cid);
+  ch->env = GNUNET_MQ_msg_extra (mam,
+                                 size,
+                                 GNUNET_MESSAGE_TYPE_CONVERSATION_CADET_AUDIO);
+  GNUNET_memcpy (&mam[1], &msg[1], size);
   /* FIXME: set options for unreliable transmission */
-  GNUNET_MQ_notify_sent(ch->env, &channel_audio_sent_notify, ch);
-  GNUNET_MQ_send(ch->mq, ch->env);
-  GNUNET_SERVICE_client_continue(line->client);
+  GNUNET_MQ_notify_sent (ch->env, &channel_audio_sent_notify, ch);
+  GNUNET_MQ_send (ch->mq, ch->env);
+  GNUNET_SERVICE_client_continue (line->client);
 }
 
 
@@ -734,7 +737,7 @@ handle_client_audio_message(void *cls, const struct ClientAudioMessage *msg)
  * @param msg the incoming message
  */
 static void
-handle_cadet_ring_message(void *cls, const struct CadetPhoneRingMessage *msg)
+handle_cadet_ring_message (void *cls, const struct CadetPhoneRingMessage *msg)
 {
   struct Channel *ch = cls;
   struct Line *line = ch->line;
@@ -742,49 +745,49 @@ handle_cadet_ring_message(void *cls, const struct CadetPhoneRingMessage *msg)
   struct ClientPhoneRingMessage *cring;
   struct CadetPhoneRingInfoPS rs;
 
-  rs.purpose.purpose = htonl(GNUNET_SIGNATURE_PURPOSE_CONVERSATION_RING);
-  rs.purpose.size = htonl(sizeof(struct CadetPhoneRingInfoPS));
+  rs.purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_CONVERSATION_RING);
+  rs.purpose.size = htonl (sizeof(struct CadetPhoneRingInfoPS));
   rs.line_port = line->line_port;
   rs.target_peer = my_identity;
   rs.expiration_time = msg->expiration_time;
 
   if (GNUNET_OK !=
-      GNUNET_CRYPTO_ecdsa_verify(GNUNET_SIGNATURE_PURPOSE_CONVERSATION_RING,
-                                 &rs.purpose,
-                                 &msg->signature,
-                                 &msg->caller_id))
-    {
-      GNUNET_break_op(0);
-      destroy_line_cadet_channels(ch);
-      return;
-    }
-  if (0 == GNUNET_TIME_absolute_get_remaining(
-        GNUNET_TIME_absolute_ntoh(msg->expiration_time))
+      GNUNET_CRYPTO_ecdsa_verify (GNUNET_SIGNATURE_PURPOSE_CONVERSATION_RING,
+                                  &rs.purpose,
+                                  &msg->signature,
+                                  &msg->caller_id))
+  {
+    GNUNET_break_op (0);
+    destroy_line_cadet_channels (ch);
+    return;
+  }
+  if (0 == GNUNET_TIME_absolute_get_remaining (
+        GNUNET_TIME_absolute_ntoh (msg->expiration_time))
       .rel_value_us)
-    {
-      /* ancient call, replay? */
-      GNUNET_break_op(0);
-      /* Note that our reliance on time here is awkward; better would be
-         to use a more complex challenge-response protocol against
-         replay attacks.  Left for future work ;-). */
-      destroy_line_cadet_channels(ch);
-      return;
-    }
+  {
+    /* ancient call, replay? */
+    GNUNET_break_op (0);
+    /* Note that our reliance on time here is awkward; better would be
+       to use a more complex challenge-response protocol against
+       replay attacks.  Left for future work ;-). */
+    destroy_line_cadet_channels (ch);
+    return;
+  }
   if (CS_CALLEE_INIT != ch->status)
-    {
-      GNUNET_break_op(0);
-      destroy_line_cadet_channels(ch);
-      return;
-    }
-  GNUNET_CADET_receive_done(ch->channel);
+  {
+    GNUNET_break_op (0);
+    destroy_line_cadet_channels (ch);
+    return;
+  }
+  GNUNET_CADET_receive_done (ch->channel);
   ch->status = CS_CALLEE_RINGING;
-  env = GNUNET_MQ_msg(cring, GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_RING);
+  env = GNUNET_MQ_msg (cring, GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_RING);
   cring->cid = ch->cid;
   cring->caller_id = msg->caller_id;
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-             "Sending RING message to client. CID is %u\n",
-             (unsigned int)ch->cid);
-  GNUNET_MQ_send(line->mq, env);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Sending RING message to client. CID is %u\n",
+              (unsigned int) ch->cid);
+  GNUNET_MQ_send (line->mq, env);
 }
 
 
@@ -795,8 +798,8 @@ handle_cadet_ring_message(void *cls, const struct CadetPhoneRingMessage *msg)
  * @param message the incoming message
  */
 static void
-handle_cadet_hangup_message(void *cls,
-                            const struct CadetPhoneHangupMessage *message)
+handle_cadet_hangup_message (void *cls,
+                             const struct CadetPhoneHangupMessage *message)
 {
   struct Channel *ch = cls;
   struct Line *line = ch->line;
@@ -805,35 +808,35 @@ handle_cadet_hangup_message(void *cls,
   enum ChannelStatus status;
   uint32_t cid;
 
-  (void)message;
-  GNUNET_CADET_receive_done(ch->channel);
+  (void) message;
+  GNUNET_CADET_receive_done (ch->channel);
   cid = ch->cid;
   status = ch->status;
-  destroy_line_cadet_channels(ch);
+  destroy_line_cadet_channels (ch);
   switch (status)
-    {
-    case CS_CALLEE_INIT:
-      GNUNET_break_op(0);
-      return;
+  {
+  case CS_CALLEE_INIT:
+    GNUNET_break_op (0);
+    return;
 
-    case CS_CALLEE_RINGING:
-    case CS_CALLEE_CONNECTED:
-      break;
+  case CS_CALLEE_RINGING:
+  case CS_CALLEE_CONNECTED:
+    break;
 
-    case CS_CALLEE_SHUTDOWN:
-      return;
+  case CS_CALLEE_SHUTDOWN:
+    return;
 
-    case CS_CALLER_CALLING:
-    case CS_CALLER_CONNECTED:
-      break;
+  case CS_CALLER_CALLING:
+  case CS_CALLER_CONNECTED:
+    break;
 
-    case CS_CALLER_SHUTDOWN:
-      return;
-    }
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Sending HANG UP message to client\n");
-  env = GNUNET_MQ_msg(hup, GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_HANG_UP);
+  case CS_CALLER_SHUTDOWN:
+    return;
+  }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending HANG UP message to client\n");
+  env = GNUNET_MQ_msg (hup, GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_HANG_UP);
   hup->cid = cid;
-  GNUNET_MQ_send(line->mq, env);
+  GNUNET_MQ_send (line->mq, env);
 }
 
 
@@ -844,48 +847,48 @@ handle_cadet_hangup_message(void *cls,
  * @param message the incoming message
  */
 static void
-handle_cadet_pickup_message(void *cls,
-                            const struct CadetPhonePickupMessage *message)
+handle_cadet_pickup_message (void *cls,
+                             const struct CadetPhonePickupMessage *message)
 {
   struct Channel *ch = cls;
   struct Line *line = ch->line;
   struct GNUNET_MQ_Envelope *env;
   struct ClientPhonePickedupMessage *pick;
 
-  (void)message;
-  GNUNET_CADET_receive_done(ch->channel);
+  (void) message;
+  GNUNET_CADET_receive_done (ch->channel);
   switch (ch->status)
-    {
-    case CS_CALLEE_INIT:
-    case CS_CALLEE_RINGING:
-    case CS_CALLEE_CONNECTED:
-      GNUNET_break_op(0);
-      destroy_line_cadet_channels(ch);
-      return;
+  {
+  case CS_CALLEE_INIT:
+  case CS_CALLEE_RINGING:
+  case CS_CALLEE_CONNECTED:
+    GNUNET_break_op (0);
+    destroy_line_cadet_channels (ch);
+    return;
 
-    case CS_CALLEE_SHUTDOWN:
-      GNUNET_break_op(0);
-      destroy_line_cadet_channels(ch);
-      return;
+  case CS_CALLEE_SHUTDOWN:
+    GNUNET_break_op (0);
+    destroy_line_cadet_channels (ch);
+    return;
 
-    case CS_CALLER_CALLING:
-      ch->status = CS_CALLER_CONNECTED;
-      break;
+  case CS_CALLER_CALLING:
+    ch->status = CS_CALLER_CONNECTED;
+    break;
 
-    case CS_CALLER_CONNECTED:
-      GNUNET_break_op(0);
-      return;
+  case CS_CALLER_CONNECTED:
+    GNUNET_break_op (0);
+    return;
 
-    case CS_CALLER_SHUTDOWN:
-      GNUNET_break_op(0);
-      mq_done_finish_caller_shutdown(ch);
-      return;
-    }
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Sending PICKED UP message to client\n");
+  case CS_CALLER_SHUTDOWN:
+    GNUNET_break_op (0);
+    mq_done_finish_caller_shutdown (ch);
+    return;
+  }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending PICKED UP message to client\n");
   env =
-    GNUNET_MQ_msg(pick, GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_PICKED_UP);
+    GNUNET_MQ_msg (pick, GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_PICKED_UP);
   pick->cid = ch->cid;
-  GNUNET_MQ_send(line->mq, env);
+  GNUNET_MQ_send (line->mq, env);
 }
 
 
@@ -896,49 +899,49 @@ handle_cadet_pickup_message(void *cls,
  * @param message the incoming message
  */
 static void
-handle_cadet_suspend_message(void *cls,
-                             const struct CadetPhoneSuspendMessage *message)
+handle_cadet_suspend_message (void *cls,
+                              const struct CadetPhoneSuspendMessage *message)
 {
   struct Channel *ch = cls;
   struct Line *line = ch->line;
   struct GNUNET_MQ_Envelope *env;
   struct ClientPhoneSuspendMessage *suspend;
 
-  (void)message;
-  GNUNET_CADET_receive_done(ch->channel);
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Suspending channel CID: %u\n", ch->cid);
+  (void) message;
+  GNUNET_CADET_receive_done (ch->channel);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Suspending channel CID: %u\n", ch->cid);
   switch (ch->status)
-    {
-    case CS_CALLEE_INIT:
-      GNUNET_break_op(0);
-      break;
+  {
+  case CS_CALLEE_INIT:
+    GNUNET_break_op (0);
+    break;
 
-    case CS_CALLEE_RINGING:
-      GNUNET_break_op(0);
-      break;
+  case CS_CALLEE_RINGING:
+    GNUNET_break_op (0);
+    break;
 
-    case CS_CALLEE_CONNECTED:
-      ch->suspended_remote = GNUNET_YES;
-      break;
+  case CS_CALLEE_CONNECTED:
+    ch->suspended_remote = GNUNET_YES;
+    break;
 
-    case CS_CALLEE_SHUTDOWN:
-      return;
+  case CS_CALLEE_SHUTDOWN:
+    return;
 
-    case CS_CALLER_CALLING:
-      GNUNET_break_op(0);
-      break;
+  case CS_CALLER_CALLING:
+    GNUNET_break_op (0);
+    break;
 
-    case CS_CALLER_CONNECTED:
-      ch->suspended_remote = GNUNET_YES;
-      break;
+  case CS_CALLER_CONNECTED:
+    ch->suspended_remote = GNUNET_YES;
+    break;
 
-    case CS_CALLER_SHUTDOWN:
-      return;
-    }
+  case CS_CALLER_SHUTDOWN:
+    return;
+  }
   env =
-    GNUNET_MQ_msg(suspend, GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_SUSPEND);
+    GNUNET_MQ_msg (suspend, GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_SUSPEND);
   suspend->cid = ch->cid;
-  GNUNET_MQ_send(line->mq, env);
+  GNUNET_MQ_send (line->mq, env);
 }
 
 
@@ -949,57 +952,57 @@ handle_cadet_suspend_message(void *cls,
  * @param msg the incoming message
  */
 static void
-handle_cadet_resume_message(void *cls,
-                            const struct CadetPhoneResumeMessage *msg)
+handle_cadet_resume_message (void *cls,
+                             const struct CadetPhoneResumeMessage *msg)
 {
   struct Channel *ch = cls;
   struct Line *line;
   struct GNUNET_MQ_Envelope *env;
   struct ClientPhoneResumeMessage *resume;
 
-  (void)msg;
+  (void) msg;
   line = ch->line;
-  GNUNET_CADET_receive_done(ch->channel);
+  GNUNET_CADET_receive_done (ch->channel);
   if (GNUNET_YES != ch->suspended_remote)
-    {
-      GNUNET_log(
-        GNUNET_ERROR_TYPE_DEBUG,
-        "RESUME message received for non-suspended channel, dropping channel.\n");
-      destroy_line_cadet_channels(ch);
-      return;
-    }
+  {
+    GNUNET_log (
+      GNUNET_ERROR_TYPE_DEBUG,
+      "RESUME message received for non-suspended channel, dropping channel.\n");
+    destroy_line_cadet_channels (ch);
+    return;
+  }
   switch (ch->status)
-    {
-    case CS_CALLEE_INIT:
-      GNUNET_break(0);
-      break;
+  {
+  case CS_CALLEE_INIT:
+    GNUNET_break (0);
+    break;
 
-    case CS_CALLEE_RINGING:
-      GNUNET_break(0);
-      break;
+  case CS_CALLEE_RINGING:
+    GNUNET_break (0);
+    break;
 
-    case CS_CALLEE_CONNECTED:
-      ch->suspended_remote = GNUNET_NO;
-      break;
+  case CS_CALLEE_CONNECTED:
+    ch->suspended_remote = GNUNET_NO;
+    break;
 
-    case CS_CALLEE_SHUTDOWN:
-      return;
+  case CS_CALLEE_SHUTDOWN:
+    return;
 
-    case CS_CALLER_CALLING:
-      GNUNET_break(0);
-      break;
+  case CS_CALLER_CALLING:
+    GNUNET_break (0);
+    break;
 
-    case CS_CALLER_CONNECTED:
-      ch->suspended_remote = GNUNET_NO;
-      break;
+  case CS_CALLER_CONNECTED:
+    ch->suspended_remote = GNUNET_NO;
+    break;
 
-    case CS_CALLER_SHUTDOWN:
-      return;
-    }
+  case CS_CALLER_SHUTDOWN:
+    return;
+  }
   env =
-    GNUNET_MQ_msg(resume, GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_RESUME);
+    GNUNET_MQ_msg (resume, GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_RESUME);
   resume->cid = ch->cid;
-  GNUNET_MQ_send(line->mq, env);
+  GNUNET_MQ_send (line->mq, env);
 }
 
 
@@ -1011,10 +1014,10 @@ handle_cadet_resume_message(void *cls,
  * @return #GNUNET_OK (always)
  */
 static int
-check_cadet_audio_message(void *cls, const struct CadetAudioMessage *msg)
+check_cadet_audio_message (void *cls, const struct CadetAudioMessage *msg)
 {
-  (void)cls;
-  (void)msg;
+  (void) cls;
+  (void) msg;
   return GNUNET_OK; /* any payload is fine */
 }
 
@@ -1026,33 +1029,33 @@ check_cadet_audio_message(void *cls, const struct CadetAudioMessage *msg)
  * @param msg the incoming message
  */
 static void
-handle_cadet_audio_message(void *cls, const struct CadetAudioMessage *msg)
+handle_cadet_audio_message (void *cls, const struct CadetAudioMessage *msg)
 {
   struct Channel *ch = cls;
-  size_t msize = ntohs(msg->header.size) - sizeof(struct CadetAudioMessage);
+  size_t msize = ntohs (msg->header.size) - sizeof(struct CadetAudioMessage);
   struct GNUNET_MQ_Envelope *env;
   struct ClientAudioMessage *cam;
 
-  GNUNET_CADET_receive_done(ch->channel);
+  GNUNET_CADET_receive_done (ch->channel);
   if ((GNUNET_YES == ch->suspended_local) ||
       (GNUNET_YES == ch->suspended_remote))
-    {
-      GNUNET_log(
-        GNUNET_ERROR_TYPE_DEBUG,
-        "Received %u bytes of AUDIO data on suspended channel CID %u; dropping\n",
-        (unsigned int)msize,
-        ch->cid);
-      return;
-    }
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-             "Forwarding %u bytes of AUDIO data to client CID %u\n",
-             (unsigned int)msize,
-             ch->cid);
+  {
+    GNUNET_log (
+      GNUNET_ERROR_TYPE_DEBUG,
+      "Received %u bytes of AUDIO data on suspended channel CID %u; dropping\n",
+      (unsigned int) msize,
+      ch->cid);
+    return;
+  }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Forwarding %u bytes of AUDIO data to client CID %u\n",
+              (unsigned int) msize,
+              ch->cid);
   env =
-    GNUNET_MQ_msg_extra(cam, msize, GNUNET_MESSAGE_TYPE_CONVERSATION_CS_AUDIO);
+    GNUNET_MQ_msg_extra (cam, msize, GNUNET_MESSAGE_TYPE_CONVERSATION_CS_AUDIO);
   cam->cid = ch->cid;
-  GNUNET_memcpy(&cam[1], &msg[1], msize);
-  GNUNET_MQ_send(ch->line->mq, env);
+  GNUNET_memcpy (&cam[1], &msg[1], msize);
+  GNUNET_MQ_send (ch->line->mq, env);
 }
 
 
@@ -1064,16 +1067,16 @@ handle_cadet_audio_message(void *cls, const struct CadetAudioMessage *msg)
  * @param channel connection to the other end (henceforth invalid)
  */
 static void
-inbound_end(void *cls, const struct GNUNET_CADET_Channel *channel)
+inbound_end (void *cls, const struct GNUNET_CADET_Channel *channel)
 {
   struct Channel *ch = cls;
 
-  GNUNET_assert(channel == ch->channel);
+  GNUNET_assert (channel == ch->channel);
   ch->channel = NULL;
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-             "Channel destroyed by CADET in state %d\n",
-             ch->status);
-  clean_up_channel(ch);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Channel destroyed by CADET in state %d\n",
+              ch->status);
+  clean_up_channel (ch);
 }
 
 
@@ -1084,63 +1087,63 @@ inbound_end(void *cls, const struct GNUNET_CADET_Channel *channel)
  * @param msg the message from the client
  */
 static void
-handle_client_call_message(void *cls, const struct ClientCallMessage *msg)
+handle_client_call_message (void *cls, const struct ClientCallMessage *msg)
 {
   struct Line *line = cls;
-  struct Channel *ch = GNUNET_new(struct Channel);
+  struct Channel *ch = GNUNET_new (struct Channel);
   struct GNUNET_MQ_MessageHandler cadet_handlers[] =
-  { GNUNET_MQ_hd_fixed_size(cadet_hangup_message,
-                            GNUNET_MESSAGE_TYPE_CONVERSATION_CADET_PHONE_HANG_UP,
-                            struct CadetPhoneHangupMessage,
-                            ch),
-    GNUNET_MQ_hd_fixed_size(cadet_pickup_message,
-                            GNUNET_MESSAGE_TYPE_CONVERSATION_CADET_PHONE_PICK_UP,
-                            struct CadetPhonePickupMessage,
-                            ch),
-    GNUNET_MQ_hd_fixed_size(cadet_suspend_message,
-                            GNUNET_MESSAGE_TYPE_CONVERSATION_CADET_PHONE_SUSPEND,
-                            struct CadetPhoneSuspendMessage,
-                            ch),
-    GNUNET_MQ_hd_fixed_size(cadet_resume_message,
-                            GNUNET_MESSAGE_TYPE_CONVERSATION_CADET_PHONE_RESUME,
-                            struct CadetPhoneResumeMessage,
-                            ch),
-    GNUNET_MQ_hd_var_size(cadet_audio_message,
-                          GNUNET_MESSAGE_TYPE_CONVERSATION_CADET_AUDIO,
-                          struct CadetAudioMessage,
-                          ch),
-    GNUNET_MQ_handler_end() };
+  { GNUNET_MQ_hd_fixed_size (cadet_hangup_message,
+                             GNUNET_MESSAGE_TYPE_CONVERSATION_CADET_PHONE_HANG_UP,
+                             struct CadetPhoneHangupMessage,
+                             ch),
+    GNUNET_MQ_hd_fixed_size (cadet_pickup_message,
+                             GNUNET_MESSAGE_TYPE_CONVERSATION_CADET_PHONE_PICK_UP,
+                             struct CadetPhonePickupMessage,
+                             ch),
+    GNUNET_MQ_hd_fixed_size (cadet_suspend_message,
+                             GNUNET_MESSAGE_TYPE_CONVERSATION_CADET_PHONE_SUSPEND,
+                             struct CadetPhoneSuspendMessage,
+                             ch),
+    GNUNET_MQ_hd_fixed_size (cadet_resume_message,
+                             GNUNET_MESSAGE_TYPE_CONVERSATION_CADET_PHONE_RESUME,
+                             struct CadetPhoneResumeMessage,
+                             ch),
+    GNUNET_MQ_hd_var_size (cadet_audio_message,
+                           GNUNET_MESSAGE_TYPE_CONVERSATION_CADET_AUDIO,
+                           struct CadetAudioMessage,
+                           ch),
+    GNUNET_MQ_handler_end () };
   struct GNUNET_MQ_Envelope *e;
   struct CadetPhoneRingMessage *ring;
   struct CadetPhoneRingInfoPS rs;
 
   line->line_port = msg->line_port;
-  rs.purpose.purpose = htonl(GNUNET_SIGNATURE_PURPOSE_CONVERSATION_RING);
-  rs.purpose.size = htonl(sizeof(struct CadetPhoneRingInfoPS));
+  rs.purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_CONVERSATION_RING);
+  rs.purpose.size = htonl (sizeof(struct CadetPhoneRingInfoPS));
   rs.line_port = line->line_port;
   rs.target_peer = msg->target;
   rs.expiration_time =
-    GNUNET_TIME_absolute_hton(GNUNET_TIME_relative_to_absolute(RING_TIMEOUT));
+    GNUNET_TIME_absolute_hton (GNUNET_TIME_relative_to_absolute (RING_TIMEOUT));
   ch->line = line;
-  GNUNET_CONTAINER_DLL_insert(line->channel_head, line->channel_tail, ch);
+  GNUNET_CONTAINER_DLL_insert (line->channel_head, line->channel_tail, ch);
   ch->status = CS_CALLER_CALLING;
-  ch->channel = GNUNET_CADET_channel_create(cadet,
-                                            ch,
-                                            &msg->target,
-                                            &msg->line_port,
-                                            NULL,
-                                            &inbound_end,
-                                            cadet_handlers);
-  ch->mq = GNUNET_CADET_get_mq(ch->channel);
-  e = GNUNET_MQ_msg(ring, GNUNET_MESSAGE_TYPE_CONVERSATION_CADET_PHONE_RING);
-  GNUNET_CRYPTO_ecdsa_key_get_public(&msg->caller_id, &ring->caller_id);
+  ch->channel = GNUNET_CADET_channel_create (cadet,
+                                             ch,
+                                             &msg->target,
+                                             &msg->line_port,
+                                             NULL,
+                                             &inbound_end,
+                                             cadet_handlers);
+  ch->mq = GNUNET_CADET_get_mq (ch->channel);
+  e = GNUNET_MQ_msg (ring, GNUNET_MESSAGE_TYPE_CONVERSATION_CADET_PHONE_RING);
+  GNUNET_CRYPTO_ecdsa_key_get_public (&msg->caller_id, &ring->caller_id);
   ring->expiration_time = rs.expiration_time;
-  GNUNET_assert(GNUNET_OK == GNUNET_CRYPTO_ecdsa_sign(&msg->caller_id,
-                                                      &rs.purpose,
-                                                      &ring->signature));
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Sending RING message via CADET\n");
-  GNUNET_MQ_send(ch->mq, e);
-  GNUNET_SERVICE_client_continue(line->client);
+  GNUNET_assert (GNUNET_OK == GNUNET_CRYPTO_ecdsa_sign (&msg->caller_id,
+                                                        &rs.purpose,
+                                                        &ring->signature));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending RING message via CADET\n");
+  GNUNET_MQ_send (ch->mq, e);
+  GNUNET_SERVICE_client_continue (line->client);
 }
 
 
@@ -1154,24 +1157,24 @@ handle_client_call_message(void *cls, const struct ClientCallMessage *msg)
  * @return initial channel context for the channel
  */
 static void *
-inbound_channel(void *cls,
-                struct GNUNET_CADET_Channel *channel,
-                const struct GNUNET_PeerIdentity *initiator)
+inbound_channel (void *cls,
+                 struct GNUNET_CADET_Channel *channel,
+                 const struct GNUNET_PeerIdentity *initiator)
 {
   struct Line *line = cls;
   struct Channel *ch;
 
-  (void)initiator;
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-             "Received incoming cadet channel on line %p\n",
-             line);
-  ch = GNUNET_new(struct Channel);
+  (void) initiator;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Received incoming cadet channel on line %p\n",
+              line);
+  ch = GNUNET_new (struct Channel);
   ch->status = CS_CALLEE_INIT;
   ch->line = line;
   ch->channel = channel;
-  ch->mq = GNUNET_CADET_get_mq(ch->channel);
+  ch->mq = GNUNET_CADET_get_mq (ch->channel);
   ch->cid = line->cid_gen++;
-  GNUNET_CONTAINER_DLL_insert(line->channel_head, line->channel_tail, ch);
+  GNUNET_CONTAINER_DLL_insert (line->channel_head, line->channel_tail, ch);
   return ch;
 }
 
@@ -1185,14 +1188,14 @@ inbound_channel(void *cls,
  * @return the `struct Line` for the client
  */
 static void *
-client_connect_cb(void *cls,
-                  struct GNUNET_SERVICE_Client *client,
-                  struct GNUNET_MQ_Handle *mq)
+client_connect_cb (void *cls,
+                   struct GNUNET_SERVICE_Client *client,
+                   struct GNUNET_MQ_Handle *mq)
 {
   struct Line *line;
 
-  (void)cls;
-  line = GNUNET_new(struct Line);
+  (void) cls;
+  line = GNUNET_new (struct Line);
   line->client = client;
   line->mq = mq;
   return line;
@@ -1207,28 +1210,28 @@ client_connect_cb(void *cls,
  * @param app_ctx our `struct Line *` for @a client
  */
 static void
-client_disconnect_cb(void *cls,
-                     struct GNUNET_SERVICE_Client *client,
-                     void *app_ctx)
+client_disconnect_cb (void *cls,
+                      struct GNUNET_SERVICE_Client *client,
+                      void *app_ctx)
 {
   struct Line *line = app_ctx;
   struct Channel *chn;
 
-  (void)cls;
-  (void)client;
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Client disconnected, closing line\n");
+  (void) cls;
+  (void) client;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Client disconnected, closing line\n");
   if (NULL != line->port)
-    {
-      GNUNET_CADET_close_port(line->port);
-      line->port = NULL;
-    }
+  {
+    GNUNET_CADET_close_port (line->port);
+    line->port = NULL;
+  }
   for (struct Channel *ch = line->channel_head; NULL != ch; ch = chn)
-    {
-      chn = ch->next;
-      ch->line = NULL;
-      destroy_line_cadet_channels(ch);
-    }
-  GNUNET_free(line);
+  {
+    chn = ch->next;
+    ch->line = NULL;
+    destroy_line_cadet_channels (ch);
+  }
+  GNUNET_free (line);
 }
 
 
@@ -1239,54 +1242,54 @@ client_disconnect_cb(void *cls,
  * @param msg the message from the client
  */
 static void
-handle_client_register_message(void *cls,
-                               const struct ClientPhoneRegisterMessage *msg)
+handle_client_register_message (void *cls,
+                                const struct ClientPhoneRegisterMessage *msg)
 {
   struct Line *line = cls;
   struct GNUNET_MQ_MessageHandler cadet_handlers[] =
-  { GNUNET_MQ_hd_fixed_size(cadet_ring_message,
-                            GNUNET_MESSAGE_TYPE_CONVERSATION_CADET_PHONE_RING,
-                            struct CadetPhoneRingMessage,
-                            NULL),
-    GNUNET_MQ_hd_fixed_size(cadet_hangup_message,
-                            GNUNET_MESSAGE_TYPE_CONVERSATION_CADET_PHONE_HANG_UP,
-                            struct CadetPhoneHangupMessage,
-                            NULL),
-    GNUNET_MQ_hd_fixed_size(cadet_pickup_message,
-                            GNUNET_MESSAGE_TYPE_CONVERSATION_CADET_PHONE_PICK_UP,
-                            struct CadetPhonePickupMessage,
-                            NULL),
-    GNUNET_MQ_hd_fixed_size(cadet_suspend_message,
-                            GNUNET_MESSAGE_TYPE_CONVERSATION_CADET_PHONE_SUSPEND,
-                            struct CadetPhoneSuspendMessage,
-                            NULL),
-    GNUNET_MQ_hd_fixed_size(cadet_resume_message,
-                            GNUNET_MESSAGE_TYPE_CONVERSATION_CADET_PHONE_RESUME,
-                            struct CadetPhoneResumeMessage,
-                            NULL),
-    GNUNET_MQ_hd_var_size(cadet_audio_message,
-                          GNUNET_MESSAGE_TYPE_CONVERSATION_CADET_AUDIO,
-                          struct CadetAudioMessage,
-                          NULL),
-    GNUNET_MQ_handler_end() };
+  { GNUNET_MQ_hd_fixed_size (cadet_ring_message,
+                             GNUNET_MESSAGE_TYPE_CONVERSATION_CADET_PHONE_RING,
+                             struct CadetPhoneRingMessage,
+                             NULL),
+    GNUNET_MQ_hd_fixed_size (cadet_hangup_message,
+                             GNUNET_MESSAGE_TYPE_CONVERSATION_CADET_PHONE_HANG_UP,
+                             struct CadetPhoneHangupMessage,
+                             NULL),
+    GNUNET_MQ_hd_fixed_size (cadet_pickup_message,
+                             GNUNET_MESSAGE_TYPE_CONVERSATION_CADET_PHONE_PICK_UP,
+                             struct CadetPhonePickupMessage,
+                             NULL),
+    GNUNET_MQ_hd_fixed_size (cadet_suspend_message,
+                             GNUNET_MESSAGE_TYPE_CONVERSATION_CADET_PHONE_SUSPEND,
+                             struct CadetPhoneSuspendMessage,
+                             NULL),
+    GNUNET_MQ_hd_fixed_size (cadet_resume_message,
+                             GNUNET_MESSAGE_TYPE_CONVERSATION_CADET_PHONE_RESUME,
+                             struct CadetPhoneResumeMessage,
+                             NULL),
+    GNUNET_MQ_hd_var_size (cadet_audio_message,
+                           GNUNET_MESSAGE_TYPE_CONVERSATION_CADET_AUDIO,
+                           struct CadetAudioMessage,
+                           NULL),
+    GNUNET_MQ_handler_end () };
 
   line->line_port = msg->line_port;
-  line->port = GNUNET_CADET_open_port(cadet,
-                                      &msg->line_port,
-                                      &inbound_channel,
-                                      line,
-                                      NULL,
-                                      &inbound_end,
-                                      cadet_handlers);
+  line->port = GNUNET_CADET_open_port (cadet,
+                                       &msg->line_port,
+                                       &inbound_channel,
+                                       line,
+                                       NULL,
+                                       &inbound_end,
+                                       cadet_handlers);
   if (NULL == line->port)
-    {
-      GNUNET_log(GNUNET_ERROR_TYPE_WARNING,
-                 _("Could not open line, port %s already in use!\n"),
-                 GNUNET_h2s(&msg->line_port));
-      GNUNET_SERVICE_client_drop(line->client);
-      return;
-    }
-  GNUNET_SERVICE_client_continue(line->client);
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                _ ("Could not open line, port %s already in use!\n"),
+                GNUNET_h2s (&msg->line_port));
+    GNUNET_SERVICE_client_drop (line->client);
+    return;
+  }
+  GNUNET_SERVICE_client_continue (line->client);
 }
 
 
@@ -1296,14 +1299,14 @@ handle_client_register_message(void *cls,
  * @param cls closure, NULL
  */
 static void
-do_shutdown(void *cls)
+do_shutdown (void *cls)
 {
-  (void)cls;
+  (void) cls;
   if (NULL != cadet)
-    {
-      GNUNET_CADET_disconnect(cadet);
-      cadet = NULL;
-    }
+  {
+    GNUNET_CADET_disconnect (cadet);
+    cadet = NULL;
+  }
 }
 
 
@@ -1315,65 +1318,65 @@ do_shutdown(void *cls)
  * @param service service handle
  */
 static void
-run(void *cls,
-    const struct GNUNET_CONFIGURATION_Handle *c,
-    struct GNUNET_SERVICE_Handle *service)
+run (void *cls,
+     const struct GNUNET_CONFIGURATION_Handle *c,
+     struct GNUNET_SERVICE_Handle *service)
 {
-  (void)cls;
-  (void)service;
+  (void) cls;
+  (void) service;
   cfg = c;
-  GNUNET_assert(GNUNET_OK ==
-                GNUNET_CRYPTO_get_peer_identity(cfg, &my_identity));
-  cadet = GNUNET_CADET_connect(cfg);
+  GNUNET_assert (GNUNET_OK ==
+                 GNUNET_CRYPTO_get_peer_identity (cfg, &my_identity));
+  cadet = GNUNET_CADET_connect (cfg);
   if (NULL == cadet)
-    {
-      GNUNET_break(0);
-      GNUNET_SCHEDULER_shutdown();
-      return;
-    }
-  GNUNET_SCHEDULER_add_shutdown(&do_shutdown, NULL);
+  {
+    GNUNET_break (0);
+    GNUNET_SCHEDULER_shutdown ();
+    return;
+  }
+  GNUNET_SCHEDULER_add_shutdown (&do_shutdown, NULL);
 }
 
 
 /**
  * Define "main" method using service macro.
  */
-GNUNET_SERVICE_MAIN(
+GNUNET_SERVICE_MAIN (
   "conversation",
   GNUNET_SERVICE_OPTION_NONE,
   &run,
   &client_connect_cb,
   &client_disconnect_cb,
   NULL,
-  GNUNET_MQ_hd_fixed_size(client_register_message,
-                          GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_REGISTER,
-                          struct ClientPhoneRegisterMessage,
-                          NULL),
-  GNUNET_MQ_hd_fixed_size(client_pickup_message,
-                          GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_PICK_UP,
-                          struct ClientPhonePickupMessage,
-                          NULL),
-  GNUNET_MQ_hd_fixed_size(client_suspend_message,
-                          GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_SUSPEND,
-                          struct ClientPhoneSuspendMessage,
-                          NULL),
-  GNUNET_MQ_hd_fixed_size(client_resume_message,
-                          GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_RESUME,
-                          struct ClientPhoneResumeMessage,
-                          NULL),
-  GNUNET_MQ_hd_fixed_size(client_hangup_message,
-                          GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_HANG_UP,
-                          struct ClientPhoneHangupMessage,
-                          NULL),
-  GNUNET_MQ_hd_fixed_size(client_call_message,
-                          GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_CALL,
-                          struct ClientCallMessage,
-                          NULL),
-  GNUNET_MQ_hd_var_size(client_audio_message,
-                        GNUNET_MESSAGE_TYPE_CONVERSATION_CS_AUDIO,
-                        struct ClientAudioMessage,
-                        NULL),
-  GNUNET_MQ_handler_end());
+  GNUNET_MQ_hd_fixed_size (client_register_message,
+                           GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_REGISTER,
+                           struct ClientPhoneRegisterMessage,
+                           NULL),
+  GNUNET_MQ_hd_fixed_size (client_pickup_message,
+                           GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_PICK_UP,
+                           struct ClientPhonePickupMessage,
+                           NULL),
+  GNUNET_MQ_hd_fixed_size (client_suspend_message,
+                           GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_SUSPEND,
+                           struct ClientPhoneSuspendMessage,
+                           NULL),
+  GNUNET_MQ_hd_fixed_size (client_resume_message,
+                           GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_RESUME,
+                           struct ClientPhoneResumeMessage,
+                           NULL),
+  GNUNET_MQ_hd_fixed_size (client_hangup_message,
+                           GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_HANG_UP,
+                           struct ClientPhoneHangupMessage,
+                           NULL),
+  GNUNET_MQ_hd_fixed_size (client_call_message,
+                           GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_CALL,
+                           struct ClientCallMessage,
+                           NULL),
+  GNUNET_MQ_hd_var_size (client_audio_message,
+                         GNUNET_MESSAGE_TYPE_CONVERSATION_CS_AUDIO,
+                         struct ClientAudioMessage,
+                         NULL),
+  GNUNET_MQ_handler_end ());
 
 
 /* end of gnunet-service-conversation.c */

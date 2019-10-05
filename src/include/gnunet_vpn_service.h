@@ -69,7 +69,7 @@ typedef void (*GNUNET_VPN_AllocationCallback)(void *cls,
  * @param rr request to cancel
  */
 void
-GNUNET_VPN_cancel_request(struct GNUNET_VPN_RedirectionRequest *rr);
+GNUNET_VPN_cancel_request (struct GNUNET_VPN_RedirectionRequest *rr);
 
 
 /**
@@ -95,14 +95,14 @@ GNUNET_VPN_cancel_request(struct GNUNET_VPN_RedirectionRequest *rr);
  *         anyway)
  */
 struct GNUNET_VPN_RedirectionRequest *
-GNUNET_VPN_redirect_to_peer(struct GNUNET_VPN_Handle *vh,
-                            int result_af,
-                            uint8_t protocol,
-                            const struct GNUNET_PeerIdentity *peer,
-                            const struct GNUNET_HashCode *serv,
-                            struct GNUNET_TIME_Absolute expiration_time,
-                            GNUNET_VPN_AllocationCallback cb,
-                            void *cb_cls);
+GNUNET_VPN_redirect_to_peer (struct GNUNET_VPN_Handle *vh,
+                             int result_af,
+                             uint8_t protocol,
+                             const struct GNUNET_PeerIdentity *peer,
+                             const struct GNUNET_HashCode *serv,
+                             struct GNUNET_TIME_Absolute expiration_time,
+                             GNUNET_VPN_AllocationCallback cb,
+                             void *cb_cls);
 
 
 /**
@@ -129,13 +129,13 @@ GNUNET_VPN_redirect_to_peer(struct GNUNET_VPN_Handle *vh,
  *         anyway)
  */
 struct GNUNET_VPN_RedirectionRequest *
-GNUNET_VPN_redirect_to_ip(struct GNUNET_VPN_Handle *vh,
-                          int result_af,
-                          int addr_af,
-                          const void *addr,
-                          struct GNUNET_TIME_Absolute expiration_time,
-                          GNUNET_VPN_AllocationCallback cb,
-                          void *cb_cls);
+GNUNET_VPN_redirect_to_ip (struct GNUNET_VPN_Handle *vh,
+                           int result_af,
+                           int addr_af,
+                           const void *addr,
+                           struct GNUNET_TIME_Absolute expiration_time,
+                           GNUNET_VPN_AllocationCallback cb,
+                           void *cb_cls);
 
 
 /**
@@ -145,7 +145,7 @@ GNUNET_VPN_redirect_to_ip(struct GNUNET_VPN_Handle *vh,
  * @return VPN handle
  */
 struct GNUNET_VPN_Handle *
-GNUNET_VPN_connect(const struct GNUNET_CONFIGURATION_Handle *cfg);
+GNUNET_VPN_connect (const struct GNUNET_CONFIGURATION_Handle *cfg);
 
 
 /**
@@ -154,7 +154,7 @@ GNUNET_VPN_connect(const struct GNUNET_CONFIGURATION_Handle *cfg);
  * @param vh VPN handle
  */
 void
-GNUNET_VPN_disconnect(struct GNUNET_VPN_Handle *vh);
+GNUNET_VPN_disconnect (struct GNUNET_VPN_Handle *vh);
 
 #endif
 

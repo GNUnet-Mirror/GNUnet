@@ -35,7 +35,8 @@ GNUNET_NETWORK_STRUCT_BEGIN
  * the setup of a redirection from some IP via an exit node to
  * some global Internet address.
  */
-struct RedirectToIpRequestMessage {
+struct RedirectToIpRequestMessage
+{
   /**
    * Type is #GNUNET_MESSAGE_TYPE_VPN_CLIENT_REDIRECT_TO_IP
    */
@@ -76,7 +77,8 @@ struct RedirectToIpRequestMessage {
  * the setup of a redirection from some IP to a service running
  * at a particular peer.
  */
-struct RedirectToServiceRequestMessage {
+struct RedirectToServiceRequestMessage
+{
   /**
    * Type is #GNUNET_MESSAGE_TYPE_VPN_CLIENT_REDIRECT_TO_SERVICE
    */
@@ -124,7 +126,8 @@ struct RedirectToServiceRequestMessage {
  * Response from the VPN service to a VPN client informing about
  * the IP that was assigned for the requested redirection.
  */
-struct RedirectToIpResponseMessage {
+struct RedirectToIpResponseMessage
+{
   /**
    * Type is #GNUNET_MESSAGE_TYPE_VPN_CLIENT_USE_IP
    */

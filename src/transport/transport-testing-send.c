@@ -27,15 +27,16 @@
 /**
  * Acceptable transmission delay.
  */
-#define TIMEOUT_TRANSMIT GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 30)
+#define TIMEOUT_TRANSMIT GNUNET_TIME_relative_multiply ( \
+    GNUNET_TIME_UNIT_SECONDS, 30)
 
 
 /**
  * Return @a cx in @a cls.
  */
 static void
-find_cr(void *cls,
-        struct GNUNET_TRANSPORT_TESTING_ConnectRequest *cx)
+find_cr (void *cls,
+         struct GNUNET_TRANSPORT_TESTING_ConnectRequest *cx)
 {
   struct GNUNET_TRANSPORT_TESTING_ConnectRequest **cr = cls;
 
@@ -62,66 +63,68 @@ find_cr(void *cls,
  *         #GNUNET_SYSERR if @a msize is illegal
  */
 int
-GNUNET_TRANSPORT_TESTING_send(struct GNUNET_TRANSPORT_TESTING_PeerContext *sender,
-                              struct GNUNET_TRANSPORT_TESTING_PeerContext *receiver,
-                              uint16_t mtype,
-                              uint16_t msize,
-                              uint32_t num,
-                              GNUNET_SCHEDULER_TaskCallback cont,
-                              void *cont_cls)
+GNUNET_TRANSPORT_TESTING_send (struct
+                               GNUNET_TRANSPORT_TESTING_PeerContext *sender,
+                               struct GNUNET_TRANSPORT_TESTING_PeerContext *
+                               receiver,
+                               uint16_t mtype,
+                               uint16_t msize,
+                               uint32_t num,
+                               GNUNET_SCHEDULER_TaskCallback cont,
+                               void *cont_cls)
 {
   struct GNUNET_TRANSPORT_TESTING_ConnectRequest *cr;
   struct GNUNET_MQ_Envelope *env;
   struct GNUNET_TRANSPORT_TESTING_TestMessage *test;
 
   if (msize < sizeof(struct GNUNET_TRANSPORT_TESTING_TestMessage))
-    {
-      GNUNET_break(0);
-      return GNUNET_SYSERR;
-    }
-  cr = NULL;
-  GNUNET_TRANSPORT_TESTING_find_connecting_context(sender,
-                                                   receiver,
-                                                   &find_cr,
-                                                   &cr);
-  if (NULL == cr)
-    GNUNET_TRANSPORT_TESTING_find_connecting_context(receiver,
-                                                     sender,
-                                                     &find_cr,
-                                                     &cr);
-  if (NULL == cr)
-    {
-      GNUNET_break(0);
-      return GNUNET_NO;
-    }
-  if (NULL == cr->mq)
-    {
-      GNUNET_break(0);
-      return GNUNET_NO;
-    }
   {
-    char *receiver_s = GNUNET_strdup(GNUNET_i2s(&receiver->id));
-
-    GNUNET_log(GNUNET_ERROR_TYPE_INFO,
-               "Sending message from peer %u (`%s') -> peer %u (`%s') !\n",
-               sender->no,
-               GNUNET_i2s(&sender->id),
-               receiver->no,
-               receiver_s);
-    GNUNET_free(receiver_s);
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
   }
-  env = GNUNET_MQ_msg_extra(test,
-                            msize - sizeof(*test),
-                            mtype);
-  test->num = htonl(num);
-  memset(&test[1],
-         num,
-         msize - sizeof(*test));
-  GNUNET_MQ_notify_sent(env,
-                        cont,
-                        cont_cls);
-  GNUNET_MQ_send(cr->mq,
-                 env);
+  cr = NULL;
+  GNUNET_TRANSPORT_TESTING_find_connecting_context (sender,
+                                                    receiver,
+                                                    &find_cr,
+                                                    &cr);
+  if (NULL == cr)
+    GNUNET_TRANSPORT_TESTING_find_connecting_context (receiver,
+                                                      sender,
+                                                      &find_cr,
+                                                      &cr);
+  if (NULL == cr)
+  {
+    GNUNET_break (0);
+    return GNUNET_NO;
+  }
+  if (NULL == cr->mq)
+  {
+    GNUNET_break (0);
+    return GNUNET_NO;
+  }
+  {
+    char *receiver_s = GNUNET_strdup (GNUNET_i2s (&receiver->id));
+
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                "Sending message from peer %u (`%s') -> peer %u (`%s') !\n",
+                sender->no,
+                GNUNET_i2s (&sender->id),
+                receiver->no,
+                receiver_s);
+    GNUNET_free (receiver_s);
+  }
+  env = GNUNET_MQ_msg_extra (test,
+                             msize - sizeof(*test),
+                             mtype);
+  test->num = htonl (num);
+  memset (&test[1],
+          num,
+          msize - sizeof(*test));
+  GNUNET_MQ_notify_sent (env,
+                         cont,
+                         cont_cls);
+  GNUNET_MQ_send (cr->mq,
+                  env);
   return GNUNET_OK;
 }
 
@@ -137,28 +140,28 @@ GNUNET_TRANSPORT_TESTING_send(struct GNUNET_TRANSPORT_TESTING_PeerContext *sende
  * @param cont_cls closure for @a cont
  */
 static void
-do_send(struct GNUNET_TRANSPORT_TESTING_ConnectCheckContext *ccc,
-        uint16_t size,
-        GNUNET_SCHEDULER_TaskCallback cont,
-        void *cont_cls)
+do_send (struct GNUNET_TRANSPORT_TESTING_ConnectCheckContext *ccc,
+         uint16_t size,
+         GNUNET_SCHEDULER_TaskCallback cont,
+         void *cont_cls)
 {
   int ret;
 
   ccc->global_ret = GNUNET_SYSERR;
-  ret = GNUNET_TRANSPORT_TESTING_send(ccc->p[0],
-                                      ccc->p[1],
-                                      GNUNET_TRANSPORT_TESTING_SIMPLE_MTYPE,
-                                      size,
-                                      ccc->send_num_gen++,
-                                      cont,
-                                      cont_cls);
-  GNUNET_assert(GNUNET_SYSERR != ret);
+  ret = GNUNET_TRANSPORT_TESTING_send (ccc->p[0],
+                                       ccc->p[1],
+                                       GNUNET_TRANSPORT_TESTING_SIMPLE_MTYPE,
+                                       size,
+                                       ccc->send_num_gen++,
+                                       cont,
+                                       cont_cls);
+  GNUNET_assert (GNUNET_SYSERR != ret);
   if (GNUNET_NO == ret)
-    {
-      GNUNET_break(0);
-      ccc->global_ret = GNUNET_SYSERR;
-      GNUNET_SCHEDULER_shutdown();
-    }
+  {
+    GNUNET_break (0);
+    ccc->global_ret = GNUNET_SYSERR;
+    GNUNET_SCHEDULER_shutdown ();
+  }
 }
 
 
@@ -171,30 +174,30 @@ do_send(struct GNUNET_TRANSPORT_TESTING_ConnectCheckContext *ccc,
  *        of which should be currently connected
  */
 void
-GNUNET_TRANSPORT_TESTING_simple_send(void *cls)
+GNUNET_TRANSPORT_TESTING_simple_send (void *cls)
 {
   struct GNUNET_TRANSPORT_TESTING_SendClosure *sc = cls;
   int done;
   size_t msize;
 
   if (0 < sc->num_messages)
-    {
-      sc->num_messages--;
-      done = (0 == sc->num_messages);
-    }
+  {
+    sc->num_messages--;
+    done = (0 == sc->num_messages);
+  }
   else
-    {
-      done = 0; /* infinite loop */
-    }
+  {
+    done = 0;   /* infinite loop */
+  }
   msize = sizeof(struct GNUNET_TRANSPORT_TESTING_TestMessage);
   if (NULL != sc->get_size_cb)
-    msize = sc->get_size_cb(sc->num_messages);
+    msize = sc->get_size_cb (sc->num_messages);
   /* if this was the last message, call the continuation,
      otherwise call this function again */
-  do_send(sc->ccc,
-          msize,
-          done ? sc->cont : &GNUNET_TRANSPORT_TESTING_simple_send,
-          done ? sc->cont_cls : sc);
+  do_send (sc->ccc,
+           msize,
+           done ? sc->cont : &GNUNET_TRANSPORT_TESTING_simple_send,
+           done ? sc->cont_cls : sc);
 }
 
 
@@ -207,30 +210,30 @@ GNUNET_TRANSPORT_TESTING_simple_send(void *cls)
  *        of which should be currently connected
  */
 void
-GNUNET_TRANSPORT_TESTING_large_send(void *cls)
+GNUNET_TRANSPORT_TESTING_large_send (void *cls)
 {
   struct GNUNET_TRANSPORT_TESTING_SendClosure *sc = cls;
   int done;
   size_t msize;
 
   if (0 < sc->num_messages)
-    {
-      sc->num_messages--;
-      done = (0 == sc->num_messages);
-    }
+  {
+    sc->num_messages--;
+    done = (0 == sc->num_messages);
+  }
   else
-    {
-      done = 0; /* infinite loop */
-    }
+  {
+    done = 0;   /* infinite loop */
+  }
   msize = 2600;
   if (NULL != sc->get_size_cb)
-    msize = sc->get_size_cb(sc->num_messages);
+    msize = sc->get_size_cb (sc->num_messages);
   /* if this was the last message, call the continuation,
      otherwise call this function again */
-  do_send(sc->ccc,
-          msize,
-          done ? sc->cont : &GNUNET_TRANSPORT_TESTING_large_send,
-          done ? sc->cont_cls : sc);
+  do_send (sc->ccc,
+           msize,
+           done ? sc->cont : &GNUNET_TRANSPORT_TESTING_large_send,
+           done ? sc->cont_cls : sc);
 }
 
 /* end of transport-testing-send.c */

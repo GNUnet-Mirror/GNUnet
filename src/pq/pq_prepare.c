@@ -36,9 +36,9 @@
  * @return initialized struct
  */
 struct GNUNET_PQ_PreparedStatement
-GNUNET_PQ_make_prepare(const char *name,
-                       const char *sql,
-                       unsigned int num_args)
+GNUNET_PQ_make_prepare (const char *name,
+                        const char *sql,
+                        unsigned int num_args)
 {
   struct GNUNET_PQ_PreparedStatement ps = {
     .name = name,
@@ -60,36 +60,36 @@ GNUNET_PQ_make_prepare(const char *name,
  *         #GNUNET_SYSERR on error
  */
 int
-GNUNET_PQ_prepare_statements(PGconn *connection,
-                             const struct GNUNET_PQ_PreparedStatement *ps)
+GNUNET_PQ_prepare_statements (PGconn *connection,
+                              const struct GNUNET_PQ_PreparedStatement *ps)
 {
   for (unsigned int i = 0; NULL != ps[i].name; i++)
-    {
-      PGresult *ret;
+  {
+    PGresult *ret;
 
-      GNUNET_log_from(GNUNET_ERROR_TYPE_DEBUG,
-                      "pq",
-                      "Preparing SQL statement `%s' as `%s'\n",
-                      ps[i].sql,
-                      ps[i].name);
-      ret = PQprepare(connection,
-                      ps[i].name,
-                      ps[i].sql,
-                      ps[i].num_arguments,
-                      NULL);
-      if (PGRES_COMMAND_OK != PQresultStatus(ret))
-        {
-          GNUNET_log_from(GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
-                          "pq",
-                          _("PQprepare (`%s' as `%s') failed with error: %s\n"),
-                          ps[i].sql,
-                          ps[i].name,
-                          PQerrorMessage(connection));
-          PQclear(ret);
-          return GNUNET_SYSERR;
-        }
-      PQclear(ret);
+    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
+                     "pq",
+                     "Preparing SQL statement `%s' as `%s'\n",
+                     ps[i].sql,
+                     ps[i].name);
+    ret = PQprepare (connection,
+                     ps[i].name,
+                     ps[i].sql,
+                     ps[i].num_arguments,
+                     NULL);
+    if (PGRES_COMMAND_OK != PQresultStatus (ret))
+    {
+      GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+                       "pq",
+                       _ ("PQprepare (`%s' as `%s') failed with error: %s\n"),
+                       ps[i].sql,
+                       ps[i].name,
+                       PQerrorMessage (connection));
+      PQclear (ret);
+      return GNUNET_SYSERR;
     }
+    PQclear (ret);
+  }
   return GNUNET_OK;
 }
 

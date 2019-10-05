@@ -54,8 +54,8 @@
  *         #GNUNET_NO if the packet is invalid (not a stun packet)
  */
 int
-GNUNET_NAT_stun_handle_packet_(const void *data,
-                               size_t len,
-                               struct sockaddr_in *arg);
+GNUNET_NAT_stun_handle_packet_ (const void *data,
+                                size_t len,
+                                struct sockaddr_in *arg);
 
 #endif

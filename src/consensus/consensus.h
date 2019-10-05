@@ -34,7 +34,8 @@ GNUNET_NETWORK_STRUCT_BEGIN
  * Sent by the client to the service,
  * when the client wants the service to join a consensus session.
  */
-struct GNUNET_CONSENSUS_JoinMessage {
+struct GNUNET_CONSENSUS_JoinMessage
+{
   /**
    * Type: GNUNET_MESSAGE_TYPE_CONSENSUS_CLIENT_JOIN
    */
@@ -68,7 +69,8 @@ struct GNUNET_CONSENSUS_JoinMessage {
 /**
  * Message with an element
  */
-struct GNUNET_CONSENSUS_ElementMessage {
+struct GNUNET_CONSENSUS_ElementMessage
+{
   /**
    * Type:
    * Either GNUNET_MESSAGE_TYPE_CONSENSUS_CLIENT_RECEIVED_ELEMENT

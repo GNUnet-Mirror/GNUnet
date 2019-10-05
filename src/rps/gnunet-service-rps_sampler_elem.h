@@ -37,7 +37,8 @@
 /**
  * Used to indicate whether a sampler element is empty.
  */
-enum RPS_SamplerEmpty {
+enum RPS_SamplerEmpty
+{
   NOT_EMPTY = 0x0,
   EMPTY = 0x1
 };
@@ -45,7 +46,8 @@ enum RPS_SamplerEmpty {
 /**
  * A sampler element sampling one PeerID at a time.
  */
-struct RPS_SamplerElement {
+struct RPS_SamplerElement
+{
   /**
    * Min-wise linear permutation used by this sampler.
    *
@@ -102,7 +104,7 @@ struct RPS_SamplerElement {
  * @param sampler_el The sampler element to (re-) initialise
  */
 void
-RPS_sampler_elem_reinit(struct RPS_SamplerElement *sampler_elem);
+RPS_sampler_elem_reinit (struct RPS_SamplerElement *sampler_elem);
 
 
 /**
@@ -114,7 +116,7 @@ RPS_sampler_elem_reinit(struct RPS_SamplerElement *sampler_elem);
  * @return a newly created RPS_SamplerElement which currently holds no id.
  */
 struct RPS_SamplerElement *
-RPS_sampler_elem_create(void);
+RPS_sampler_elem_create (void);
 
 
 /**
@@ -123,7 +125,7 @@ RPS_sampler_elem_create(void);
  * @param sampler_elem the element to destroy
  */
 void
-RPS_sampler_elem_destroy(struct RPS_SamplerElement *sampler_elem);
+RPS_sampler_elem_destroy (struct RPS_SamplerElement *sampler_elem);
 
 
 /**
@@ -133,8 +135,8 @@ RPS_sampler_elem_destroy(struct RPS_SamplerElement *sampler_elem);
  * @param new_ID The PeerID to update with
  */
 void
-RPS_sampler_elem_next(struct RPS_SamplerElement *sampler_elem,
-                      const struct GNUNET_PeerIdentity *new_ID);
+RPS_sampler_elem_next (struct RPS_SamplerElement *sampler_elem,
+                       const struct GNUNET_PeerIdentity *new_ID);
 
 /**
  * Set the min-wise independent function of the given sampler element.
@@ -143,8 +145,8 @@ RPS_sampler_elem_next(struct RPS_SamplerElement *sampler_elem,
  * @param auth_key the key to use
  */
 void
-RPS_sampler_elem_set(struct RPS_SamplerElement *sampler_elem,
-                     struct GNUNET_CRYPTO_AuthKey auth_key);
+RPS_sampler_elem_set (struct RPS_SamplerElement *sampler_elem,
+                      struct GNUNET_CRYPTO_AuthKey auth_key);
 
 
 #endif /* RPS_SAMPLER_ELEM_H */

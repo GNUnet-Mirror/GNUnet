@@ -67,7 +67,8 @@ static char *private_zone_pkey;
 /**
  * String version of PKEY for pin-zone.
  */
-static char *pin_zone_pkey = "72QC35CO20UJN1E91KPJFNT9TG4CLKAPB4VK9S3Q758S9MLBRKOG";
+static char *pin_zone_pkey =
+  "72QC35CO20UJN1E91KPJFNT9TG4CLKAPB4VK9S3Q758S9MLBRKOG";
 
 /**
  * Set to GNUNET_YES if private record was found;
@@ -86,13 +87,13 @@ static int ret;
 
 
 static int
-run_process_and_wait(int pipe_control,
-                     enum GNUNET_OS_InheritStdioFlags std_inheritance,
-                     struct GNUNET_DISK_PipeHandle *pipe_stdin,
-                     struct GNUNET_DISK_PipeHandle *pipe_stdout,
-                     enum GNUNET_OS_ProcessStatusType *st,
-                     unsigned long *code,
-                     const char *filename, ...)
+run_process_and_wait (int pipe_control,
+                      enum GNUNET_OS_InheritStdioFlags std_inheritance,
+                      struct GNUNET_DISK_PipeHandle *pipe_stdin,
+                      struct GNUNET_DISK_PipeHandle *pipe_stdout,
+                      enum GNUNET_OS_ProcessStatusType *st,
+                      unsigned long *code,
+                      const char *filename, ...)
 {
   static struct GNUNET_OS_Process *p;
   int arglen;
@@ -101,88 +102,88 @@ run_process_and_wait(int pipe_control,
   char *argp;
   va_list ap, apc1, apc2;
 
-  va_start(ap, filename);
-  va_copy(apc1, ap);
-  va_copy(apc2, ap);
+  va_start (ap, filename);
+  va_copy (apc1, ap);
+  va_copy (apc2, ap);
   arglen = 0;
-  while (NULL != (arg = va_arg(apc1, char *)))
-    arglen += strlen(arg) + 1;
-  va_end(apc1);
-  args = argp = GNUNET_malloc(arglen);
-  while (NULL != (arg = va_arg(apc2, char *)))
-    {
-      strcpy(argp, arg);
-      argp += strlen(arg);
-      *argp = ' ';
-      argp += 1;
-    }
-  va_end(apc2);
+  while (NULL != (arg = va_arg (apc1, char *)))
+    arglen += strlen (arg) + 1;
+  va_end (apc1);
+  args = argp = GNUNET_malloc (arglen);
+  while (NULL != (arg = va_arg (apc2, char *)))
+  {
+    strcpy (argp, arg);
+    argp += strlen (arg);
+    *argp = ' ';
+    argp += 1;
+  }
+  va_end (apc2);
   if (arglen > 0)
     argp[-1] = '\0';
-  p = GNUNET_OS_start_process_va(pipe_control, std_inheritance,
-                                 pipe_stdin,
-                                 pipe_stdout,
-                                 NULL,
-                                 filename, ap);
-  va_end(ap);
+  p = GNUNET_OS_start_process_va (pipe_control, std_inheritance,
+                                  pipe_stdin,
+                                  pipe_stdout,
+                                  NULL,
+                                  filename, ap);
+  va_end (ap);
   if (NULL == p)
-    {
-      ret = 3;
-      fprintf(stderr, "Failed to run `%s'\n", args);
-      GNUNET_free(args);
-      return 1;
-    }
+  {
+    ret = 3;
+    fprintf (stderr, "Failed to run `%s'\n", args);
+    GNUNET_free (args);
+    return 1;
+  }
 
-  if (GNUNET_OK != GNUNET_OS_process_wait(p))
-    {
-      ret = 4;
-      fprintf(stderr, "Failed to wait for `%s'\n", args);
-      GNUNET_free(args);
-      return 1;
-    }
+  if (GNUNET_OK != GNUNET_OS_process_wait (p))
+  {
+    ret = 4;
+    fprintf (stderr, "Failed to wait for `%s'\n", args);
+    GNUNET_free (args);
+    return 1;
+  }
 
-  switch (GNUNET_OS_process_status(p, st, code))
-    {
-    case GNUNET_OK:
-      break;
+  switch (GNUNET_OS_process_status (p, st, code))
+  {
+  case GNUNET_OK:
+    break;
 
-    case GNUNET_NO:
-      ret = 5;
-      fprintf(stderr, "`%s' is still running\n", args);
-      GNUNET_free(args);
-      return 1;
+  case GNUNET_NO:
+    ret = 5;
+    fprintf (stderr, "`%s' is still running\n", args);
+    GNUNET_free (args);
+    return 1;
 
-    default:
-    case GNUNET_SYSERR:
-      ret = 6;
-      fprintf(stderr, "Failed to check the status of `%s'\n", args);
-      GNUNET_free(args);
-      return 1;
-    }
+  default:
+  case GNUNET_SYSERR:
+    ret = 6;
+    fprintf (stderr, "Failed to check the status of `%s'\n", args);
+    GNUNET_free (args);
+    return 1;
+  }
   return 0;
 }
 
 static void
-check_pkey(unsigned int rd_len, const struct GNUNET_GNSRECORD_Data *rd,
-           char *pk, int *found_rec)
+check_pkey (unsigned int rd_len, const struct GNUNET_GNSRECORD_Data *rd,
+            char *pk, int *found_rec)
 {
   int i;
 
   for (i = 0; i < rd_len; i++)
-    {
-      char *s;
-      if (GNUNET_GNSRECORD_TYPE_PKEY != rd[i].record_type ||
-          rd[i].data_size != sizeof(struct GNUNET_CRYPTO_EcdsaPublicKey))
-        continue;
-      s = GNUNET_GNSRECORD_value_to_string(rd[i].record_type,
-                                           rd[i].data,
-                                           rd[i].data_size);
-      if (NULL == s)
-        continue;
-      if (0 == strcmp(s, pk))
-        *found_rec = GNUNET_YES;
-      GNUNET_free(s);
-    }
+  {
+    char *s;
+    if ((GNUNET_GNSRECORD_TYPE_PKEY != rd[i].record_type) ||
+        (rd[i].data_size != sizeof(struct GNUNET_CRYPTO_EcdsaPublicKey)) )
+      continue;
+    s = GNUNET_GNSRECORD_value_to_string (rd[i].record_type,
+                                          rd[i].data,
+                                          rd[i].data_size);
+    if (NULL == s)
+      continue;
+    if (0 == strcmp (s, pk))
+      *found_rec = GNUNET_YES;
+    GNUNET_free (s);
+  }
 }
 
 /**
@@ -195,54 +196,62 @@ check_pkey(unsigned int rd_len, const struct GNUNET_GNSRECORD_Data *rd,
  * @param rd array of records with data to store
  */
 static void
-zone_iterator(void *cls,
-              const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone_key,
-              const char *rname, unsigned int rd_len,
-              const struct GNUNET_GNSRECORD_Data *rd)
+zone_iterator (void *cls,
+               const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone_key,
+               const char *rname, unsigned int rd_len,
+               const struct GNUNET_GNSRECORD_Data *rd)
 {
   if (NULL != rname)
-    {
-      if (0 == strcmp(rname, "private"))
-        check_pkey(rd_len, rd, private_zone_pkey, &found_private_rec);
-      else if (0 == strcmp(rname, "pin"))
-        check_pkey(rd_len, rd, pin_zone_pkey, &found_pin_rec);
-    }
-  GNUNET_NAMESTORE_zone_iterator_next(list_it);
+  {
+    if (0 == strcmp (rname, "private"))
+      check_pkey (rd_len, rd, private_zone_pkey, &found_private_rec);
+    else if (0 == strcmp (rname, "pin"))
+      check_pkey (rd_len, rd, pin_zone_pkey, &found_pin_rec);
+  }
+  GNUNET_NAMESTORE_zone_iterator_next (list_it);
 }
 
 static void
-zone_iteration_error(void *cls)
+zone_iteration_error (void *cls)
 {
   enum GNUNET_OS_ProcessStatusType st;
   unsigned long code;
 
-  if (!found_private_rec)
+  if (! found_private_rec)
+  {
+    if (0 != run_process_and_wait (GNUNET_NO, GNUNET_OS_INHERIT_STD_OUT_AND_ERR,
+                                   NULL, NULL, &st, &code,
+                                   "gnunet-namestore",
+                                   "gnunet-namestore", "-z", "master-zone",
+                                   "-a", "-e", "never", "-n", "private", "-p",
+                                   "-t", "PKEY", "-V",
+                                   private_zone_pkey, NULL))
     {
-      if (0 != run_process_and_wait(GNUNET_NO, GNUNET_OS_INHERIT_STD_OUT_AND_ERR, NULL, NULL, &st, &code,
-                                    "gnunet-namestore",
-                                    "gnunet-namestore", "-z", "master-zone", "-a", "-e", "never", "-n", "private", "-p", "-t", "PKEY", "-V", private_zone_pkey, NULL))
-        {
-          ret = 8;
-          return;
-        }
+      ret = 8;
+      return;
     }
-  if (!found_pin_rec)
+  }
+  if (! found_pin_rec)
+  {
+    if (0 != run_process_and_wait (GNUNET_NO, GNUNET_OS_INHERIT_STD_OUT_AND_ERR,
+                                   NULL, NULL, &st, &code,
+                                   "gnunet-namestore",
+                                   "gnunet-namestore", "-z", "master-zone",
+                                   "-a", "-e", "never", "-n", "pin", "-p", "-t",
+                                   "PKEY", "-V", pin_zone_pkey,
+                                   NULL))
     {
-      if (0 != run_process_and_wait(GNUNET_NO, GNUNET_OS_INHERIT_STD_OUT_AND_ERR, NULL, NULL, &st, &code,
-                                    "gnunet-namestore",
-                                    "gnunet-namestore", "-z", "master-zone", "-a", "-e", "never", "-n", "pin", "-p", "-t", "PKEY", "-V", pin_zone_pkey, NULL))
-        {
-          ret = 10;
-          return;
-        }
+      ret = 10;
+      return;
     }
+  }
   list_it = NULL;
-  GNUNET_SCHEDULER_shutdown();
+  GNUNET_SCHEDULER_shutdown ();
 }
 
 
 static void
-zone_iteration_finished(void *cls)
+zone_iteration_finished (void *cls)
 {
 }
 
@@ -281,42 +290,47 @@ zone_iteration_finished(void *cls)
  *                   must thus no longer be used
  */
 static void
-get_ego(void *cls,
-        struct GNUNET_IDENTITY_Ego *ego,
-        void **ctx,
-        const char *identifier)
+get_ego (void *cls,
+         struct GNUNET_IDENTITY_Ego *ego,
+         void **ctx,
+         const char *identifier)
 {
   static struct GNUNET_CRYPTO_EcdsaPublicKey pk;
 
   if (NULL == ego)
+  {
+    if ((NULL == master_zone_pkey) ||
+        (NULL == private_zone_pkey) )
     {
-      if (NULL == master_zone_pkey ||
-          NULL == private_zone_pkey)
-        {
-          ret = 11;
-          GNUNET_SCHEDULER_shutdown();
-          return;
-        }
-      list_it = GNUNET_NAMESTORE_zone_iteration_start(ns,
-                                                      &master_pk, &zone_iteration_error, NULL, &zone_iterator, NULL, &zone_iteration_finished, NULL);
-      if (NULL == list_it)
-        {
-          ret = 12;
-          GNUNET_SCHEDULER_shutdown();
-        }
+      ret = 11;
+      GNUNET_SCHEDULER_shutdown ();
       return;
     }
-  GNUNET_IDENTITY_ego_get_public_key(ego, &pk);
-  if (NULL != identifier)
+    list_it = GNUNET_NAMESTORE_zone_iteration_start (ns,
+                                                     &master_pk,
+                                                     &zone_iteration_error,
+                                                     NULL, &zone_iterator, NULL,
+                                                     &zone_iteration_finished,
+                                                     NULL);
+    if (NULL == list_it)
     {
-      if (NULL == master_zone_pkey && 0 == strcmp("master-zone", identifier))
-        {
-          master_zone_pkey = GNUNET_CRYPTO_ecdsa_public_key_to_string(&pk);
-          master_pk = *GNUNET_IDENTITY_ego_get_private_key(ego);
-        }
-      else if (NULL == private_zone_pkey && 0 == strcmp("private-zone", identifier))
-        private_zone_pkey = GNUNET_CRYPTO_ecdsa_public_key_to_string(&pk);
+      ret = 12;
+      GNUNET_SCHEDULER_shutdown ();
     }
+    return;
+  }
+  GNUNET_IDENTITY_ego_get_public_key (ego, &pk);
+  if (NULL != identifier)
+  {
+    if ((NULL == master_zone_pkey) &&(0 == strcmp ("master-zone", identifier)) )
+    {
+      master_zone_pkey = GNUNET_CRYPTO_ecdsa_public_key_to_string (&pk);
+      master_pk = *GNUNET_IDENTITY_ego_get_private_key (ego);
+    }
+    else if ((NULL == private_zone_pkey) &&(0 == strcmp ("private-zone",
+                                                         identifier)) )
+      private_zone_pkey = GNUNET_CRYPTO_ecdsa_public_key_to_string (&pk);
+  }
 }
 
 /**
@@ -325,27 +339,27 @@ get_ego(void *cls,
  * @param cls NULL
  */
 static void
-shutdown_task(void *cls)
+shutdown_task (void *cls)
 {
-  GNUNET_free_non_null(master_zone_pkey);
+  GNUNET_free_non_null (master_zone_pkey);
   master_zone_pkey = NULL;
-  GNUNET_free_non_null(private_zone_pkey);
+  GNUNET_free_non_null (private_zone_pkey);
   private_zone_pkey = NULL;
   if (NULL != list_it)
-    {
-      GNUNET_NAMESTORE_zone_iteration_stop(list_it);
-      list_it = NULL;
-    }
+  {
+    GNUNET_NAMESTORE_zone_iteration_stop (list_it);
+    list_it = NULL;
+  }
   if (NULL != ns)
-    {
-      GNUNET_NAMESTORE_disconnect(ns);
-      ns = NULL;
-    }
+  {
+    GNUNET_NAMESTORE_disconnect (ns);
+    ns = NULL;
+  }
   if (NULL != sh)
-    {
-      GNUNET_IDENTITY_disconnect(sh);
-      sh = NULL;
-    }
+  {
+    GNUNET_IDENTITY_disconnect (sh);
+    sh = NULL;
+  }
 }
 
 /**
@@ -357,71 +371,87 @@ shutdown_task(void *cls)
  * @param c configuration
  */
 static void
-run(void *cls, char *const *args, const char *cfgfile,
-    const struct GNUNET_CONFIGURATION_Handle *c)
+run (void *cls, char *const *args, const char *cfgfile,
+     const struct GNUNET_CONFIGURATION_Handle *c)
 {
   enum GNUNET_OS_ProcessStatusType st;
   unsigned long code;
 
   cfg = c;
 
-  if (0 != run_process_and_wait(GNUNET_NO, 0, NULL, NULL, &st, &code,
-                                "gnunet-arm",
-                                "gnunet-arm", "-I", NULL))
-    {
-      if (7 == ret)
-        fprintf(stderr, "GNUnet is not running, please start GNUnet before running import\n");
-      return;
-    }
+  if (0 != run_process_and_wait (GNUNET_NO, 0, NULL, NULL, &st, &code,
+                                 "gnunet-arm",
+                                 "gnunet-arm", "-I", NULL))
+  {
+    if (7 == ret)
+      fprintf (stderr,
+               "GNUnet is not running, please start GNUnet before running import\n");
+    return;
+  }
 
-  if (0 != run_process_and_wait(GNUNET_NO, GNUNET_OS_INHERIT_STD_OUT_AND_ERR, NULL, NULL, &st, &code,
-                                "gnunet-identity",
-                                "gnunet-identity", "-C", "master-zone", NULL))
+  if (0 != run_process_and_wait (GNUNET_NO, GNUNET_OS_INHERIT_STD_OUT_AND_ERR,
+                                 NULL, NULL, &st, &code,
+                                 "gnunet-identity",
+                                 "gnunet-identity", "-C", "master-zone", NULL))
     return;
 
-  if (0 != run_process_and_wait(GNUNET_NO, GNUNET_OS_INHERIT_STD_OUT_AND_ERR, NULL, NULL, &st, &code,
-                                "gnunet-identity",
-                                "gnunet-identity", "-C", "private-zone", NULL))
+  if (0 != run_process_and_wait (GNUNET_NO, GNUNET_OS_INHERIT_STD_OUT_AND_ERR,
+                                 NULL, NULL, &st, &code,
+                                 "gnunet-identity",
+                                 "gnunet-identity", "-C", "private-zone", NULL))
     return;
 
-  if (0 != run_process_and_wait(GNUNET_NO, GNUNET_OS_INHERIT_STD_OUT_AND_ERR, NULL, NULL, &st, &code,
-                                "gnunet-identity",
-                                "gnunet-identity", "-C", "sks-zone", NULL))
+  if (0 != run_process_and_wait (GNUNET_NO, GNUNET_OS_INHERIT_STD_OUT_AND_ERR,
+                                 NULL, NULL, &st, &code,
+                                 "gnunet-identity",
+                                 "gnunet-identity", "-C", "sks-zone", NULL))
     return;
 
-  if (0 != run_process_and_wait(GNUNET_NO, GNUNET_OS_INHERIT_STD_OUT_AND_ERR, NULL, NULL, &st, &code,
-                                "gnunet-identity",
-                                "gnunet-identity", "-e", "master-zone", "-s", "gns-master", NULL))
+  if (0 != run_process_and_wait (GNUNET_NO, GNUNET_OS_INHERIT_STD_OUT_AND_ERR,
+                                 NULL, NULL, &st, &code,
+                                 "gnunet-identity",
+                                 "gnunet-identity", "-e", "master-zone", "-s",
+                                 "gns-master", NULL))
     return;
 
-  if (0 != run_process_and_wait(GNUNET_NO, GNUNET_OS_INHERIT_STD_OUT_AND_ERR, NULL, NULL, &st, &code,
-                                "gnunet-identity",
-                                "gnunet-identity", "-e", "master-zone", "-s", "namestore", NULL))
+  if (0 != run_process_and_wait (GNUNET_NO, GNUNET_OS_INHERIT_STD_OUT_AND_ERR,
+                                 NULL, NULL, &st, &code,
+                                 "gnunet-identity",
+                                 "gnunet-identity", "-e", "master-zone", "-s",
+                                 "namestore", NULL))
     return;
 
-  if (0 != run_process_and_wait(GNUNET_NO, GNUNET_OS_INHERIT_STD_OUT_AND_ERR, NULL, NULL, &st, &code,
-                                "gnunet-identity",
-                                "gnunet-identity", "-e", "master-zone", "-s", "gns-proxy", NULL))
+  if (0 != run_process_and_wait (GNUNET_NO, GNUNET_OS_INHERIT_STD_OUT_AND_ERR,
+                                 NULL, NULL, &st, &code,
+                                 "gnunet-identity",
+                                 "gnunet-identity", "-e", "master-zone", "-s",
+                                 "gns-proxy", NULL))
     return;
 
-  if (0 != run_process_and_wait(GNUNET_NO, GNUNET_OS_INHERIT_STD_OUT_AND_ERR, NULL, NULL, &st, &code,
-                                "gnunet-identity",
-                                "gnunet-identity", "-e", "master-zone", "-s", "gns-intercept", NULL))
+  if (0 != run_process_and_wait (GNUNET_NO, GNUNET_OS_INHERIT_STD_OUT_AND_ERR,
+                                 NULL, NULL, &st, &code,
+                                 "gnunet-identity",
+                                 "gnunet-identity", "-e", "master-zone", "-s",
+                                 "gns-intercept", NULL))
     return;
 
-  if (0 != run_process_and_wait(GNUNET_NO, GNUNET_OS_INHERIT_STD_OUT_AND_ERR, NULL, NULL, &st, &code,
-                                "gnunet-identity",
-                                "gnunet-identity", "-e", "private-zone", "-s", "gns-private", NULL))
+  if (0 != run_process_and_wait (GNUNET_NO, GNUNET_OS_INHERIT_STD_OUT_AND_ERR,
+                                 NULL, NULL, &st, &code,
+                                 "gnunet-identity",
+                                 "gnunet-identity", "-e", "private-zone", "-s",
+                                 "gns-private", NULL))
     return;
 
-  if (0 != run_process_and_wait(GNUNET_NO, GNUNET_OS_INHERIT_STD_OUT_AND_ERR, NULL, NULL, &st, &code,
-                                "gnunet-identity",
-                                "gnunet-identity", "-e", "sks-zone", "-s", "fs-sks", NULL))
+  if (0 != run_process_and_wait (GNUNET_NO, GNUNET_OS_INHERIT_STD_OUT_AND_ERR,
+                                 NULL, NULL, &st, &code,
+                                 "gnunet-identity",
+                                 "gnunet-identity", "-e", "sks-zone", "-s",
+                                 "fs-sks", NULL))
     return;
 
-  ns = GNUNET_NAMESTORE_connect(cfg);
-  sh = GNUNET_IDENTITY_connect(cfg, &get_ego, NULL);
-  GNUNET_SCHEDULER_add_shutdown(&shutdown_task, NULL);
+  ns = GNUNET_NAMESTORE_connect (cfg);
+  sh = GNUNET_IDENTITY_connect (cfg, &get_ego, NULL);
+  GNUNET_SCHEDULER_add_shutdown (&shutdown_task, NULL);
 }
 
 
@@ -433,23 +463,24 @@ run(void *cls, char *const *args, const char *cfgfile,
  * @return 0 ok, 1 on error
  */
 int
-main(int argc, char *const *argv)
+main (int argc, char *const *argv)
 {
   static const struct GNUNET_GETOPT_CommandLineOption options[] = {
     GNUNET_GETOPT_OPTION_END
   };
   int r;
 
-  if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args(argc, argv, &argc, &argv))
+  if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv, &argc, &argv))
     return 2;
 
-  GNUNET_log_setup("gnunet-gns-import", "WARNING", NULL);
+  GNUNET_log_setup ("gnunet-gns-import", "WARNING", NULL);
   ret = 0;
-  r = GNUNET_PROGRAM_run(argc, argv, "gnunet-gns-import",
-                         _("This program will import some GNS authorities into your GNS namestore."),
-                         options,
-                         &run, NULL);
-  GNUNET_free((void*)argv);
+  r = GNUNET_PROGRAM_run (argc, argv, "gnunet-gns-import",
+                          _ (
+                            "This program will import some GNS authorities into your GNS namestore."),
+                          options,
+                          &run, NULL);
+  GNUNET_free ((void*) argv);
   return GNUNET_OK == r ? ret : 1;
 }
 

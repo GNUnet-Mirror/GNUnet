@@ -68,13 +68,13 @@ static uint64_t num_view_updates;
  * @param cls NULL
  */
 static void
-do_shutdown(void *cls)
+do_shutdown (void *cls)
 {
-  (void)cls;
+  (void) cls;
 
   if (NULL != req_handle)
-    GNUNET_RPS_request_cancel(req_handle);
-  GNUNET_RPS_disconnect(rps_handle);
+    GNUNET_RPS_request_cancel (req_handle);
+  GNUNET_RPS_disconnect (rps_handle);
 }
 
 
@@ -87,23 +87,23 @@ do_shutdown(void *cls)
  * @param recv_peers the received peers
  */
 static void
-reply_handle(void *cls,
-             uint64_t n,
-             const struct GNUNET_PeerIdentity *recv_peers)
+reply_handle (void *cls,
+              uint64_t n,
+              const struct GNUNET_PeerIdentity *recv_peers)
 {
   uint64_t i;
 
-  (void)cls;
+  (void) cls;
 
   req_handle = NULL;
   for (i = 0; i < n; i++)
-    {
-      fprintf(stdout, "%s\n",
-              GNUNET_i2s_full(&recv_peers[i]));
-    }
+  {
+    fprintf (stdout, "%s\n",
+             GNUNET_i2s_full (&recv_peers[i]));
+  }
   ret = 0;
 
-  GNUNET_SCHEDULER_shutdown();
+  GNUNET_SCHEDULER_shutdown ();
 }
 
 /**
@@ -114,34 +114,34 @@ reply_handle(void *cls,
  * @param recv_peers the received peers
  */
 static void
-view_update_handle(void *cls,
-                   uint64_t n,
-                   const struct GNUNET_PeerIdentity *recv_peers)
+view_update_handle (void *cls,
+                    uint64_t n,
+                    const struct GNUNET_PeerIdentity *recv_peers)
 {
   uint64_t i;
 
-  (void)cls;
+  (void) cls;
 
   if (0 == n)
-    {
-      fprintf(stdout, "Empty view\n");
-    }
+  {
+    fprintf (stdout, "Empty view\n");
+  }
   req_handle = NULL;
   for (i = 0; i < n; i++)
-    {
-      fprintf(stdout, "%s\n",
-              GNUNET_i2s_full(&recv_peers[i]));
-    }
+  {
+    fprintf (stdout, "%s\n",
+             GNUNET_i2s_full (&recv_peers[i]));
+  }
 
   if (1 == num_view_updates)
-    {
-      ret = 0;
-      GNUNET_SCHEDULER_shutdown();
-    }
+  {
+    ret = 0;
+    GNUNET_SCHEDULER_shutdown ();
+  }
   else if (1 < num_view_updates)
-    {
-      num_view_updates--;
-    }
+  {
+    num_view_updates--;
+  }
 }
 
 
@@ -152,24 +152,24 @@ view_update_handle(void *cls,
  * @param recv_peers the received peers
  */
 static void
-stream_input_handle(void *cls,
-                    uint64_t num_peers,
-                    const struct GNUNET_PeerIdentity *recv_peers)
+stream_input_handle (void *cls,
+                     uint64_t num_peers,
+                     const struct GNUNET_PeerIdentity *recv_peers)
 {
   uint64_t i;
 
-  (void)cls;
+  (void) cls;
 
   if (0 == num_peers)
-    {
-      fprintf(stdout, "No peer was returned\n");
-    }
+  {
+    fprintf (stdout, "No peer was returned\n");
+  }
   req_handle = NULL;
   for (i = 0; i < num_peers; i++)
-    {
-      fprintf(stdout, "%s\n",
-              GNUNET_i2s_full(&recv_peers[i]));
-    }
+  {
+    fprintf (stdout, "%s\n",
+             GNUNET_i2s_full (&recv_peers[i]));
+  }
 }
 
 
@@ -182,69 +182,71 @@ stream_input_handle(void *cls,
  * @param cfg configuration
  */
 static void
-run(void *cls,
-    char *const *args,
-    const char *cfgfile,
-    const struct GNUNET_CONFIGURATION_Handle *cfg)
+run (void *cls,
+     char *const *args,
+     const char *cfgfile,
+     const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   static uint64_t num_peers;
   static struct GNUNET_PeerIdentity zero_pid;
 
-  (void)cls;
-  (void)cfgfile;
+  (void) cls;
+  (void) cfgfile;
 
-  rps_handle = GNUNET_RPS_connect(cfg);
+  rps_handle = GNUNET_RPS_connect (cfg);
   if (NULL == rps_handle)
-    {
-      fprintf(stderr, "Failed to connect to the rps service\n");
-      return;
-    }
+  {
+    fprintf (stderr, "Failed to connect to the rps service\n");
+    return;
+  }
 
-  if ((0 == memcmp(&zero_pid, &peer_id, sizeof(peer_id))) &&
-      (!view_update) &&
-      (!stream_input))
-    { /* Request n PeerIDs */
+  if ((0 == memcmp (&zero_pid, &peer_id, sizeof(peer_id))) &&
+      (! view_update) &&
+      (! stream_input))
+  {   /* Request n PeerIDs */
       /* If number was specified use it, else request single peer. */
-      if (NULL == args[0] ||
-          0 == sscanf(args[0], "%lu", &num_peers))
-        {
-          num_peers = 1;
-        }
-      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-                 "Requesting %" PRIu64 " PeerIDs\n", num_peers);
-      req_handle = GNUNET_RPS_request_peers(rps_handle, num_peers, reply_handle, NULL);
-      GNUNET_SCHEDULER_add_shutdown(&do_shutdown, NULL);
+    if ((NULL == args[0]) ||
+        (0 == sscanf (args[0], "%lu", &num_peers)) )
+    {
+      num_peers = 1;
     }
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Requesting %" PRIu64 " PeerIDs\n", num_peers);
+    req_handle = GNUNET_RPS_request_peers (rps_handle, num_peers, reply_handle,
+                                           NULL);
+    GNUNET_SCHEDULER_add_shutdown (&do_shutdown, NULL);
+  }
   else if (view_update)
+  {
+    /* Get updates of view */
+    if ((NULL == args[0]) ||
+        (0 == sscanf (args[0], "%lu", &num_view_updates)) )
     {
-      /* Get updates of view */
-      if (NULL == args[0] ||
-          0 == sscanf(args[0], "%lu", &num_view_updates))
-        {
-          num_view_updates = 0;
-        }
-      GNUNET_RPS_view_request(rps_handle, num_view_updates, view_update_handle, NULL);
-      if (0 != num_view_updates)
-        GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-                   "Requesting %" PRIu64 " view updates\n", num_view_updates);
-      else
-        GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-                   "Requesting continuous view updates\n");
-      GNUNET_SCHEDULER_add_shutdown(&do_shutdown, NULL);
+      num_view_updates = 0;
     }
+    GNUNET_RPS_view_request (rps_handle, num_view_updates, view_update_handle,
+                             NULL);
+    if (0 != num_view_updates)
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Requesting %" PRIu64 " view updates\n", num_view_updates);
+    else
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Requesting continuous view updates\n");
+    GNUNET_SCHEDULER_add_shutdown (&do_shutdown, NULL);
+  }
   else if (stream_input)
-    {
-      /* Get updates of view */
-      GNUNET_RPS_stream_request(rps_handle, stream_input_handle, NULL);
-      GNUNET_SCHEDULER_add_shutdown(&do_shutdown, NULL);
-    }
+  {
+    /* Get updates of view */
+    GNUNET_RPS_stream_request (rps_handle, stream_input_handle, NULL);
+    GNUNET_SCHEDULER_add_shutdown (&do_shutdown, NULL);
+  }
   else
-    { /* Seed PeerID */
-      GNUNET_RPS_seed_ids(rps_handle, 1, &peer_id);
-      fprintf(stdout, "Seeded PeerID %s\n", GNUNET_i2s_full(&peer_id));
-      ret = 0;
-      GNUNET_SCHEDULER_add_now(&do_shutdown, NULL);
-    }
+  {   /* Seed PeerID */
+    GNUNET_RPS_seed_ids (rps_handle, 1, &peer_id);
+    fprintf (stdout, "Seeded PeerID %s\n", GNUNET_i2s_full (&peer_id));
+    ret = 0;
+    GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
+  }
 }
 
 /**
@@ -255,34 +257,35 @@ run(void *cls,
  * @return 0 ok, 1 on error
  */
 int
-main(int argc, char *const *argv)
+main (int argc, char *const *argv)
 {
   const char helpstr[] =
     "Get random GNUnet peers. If none is specified a single is requested.";
   struct GNUNET_GETOPT_CommandLineOption options[] = {
-    GNUNET_GETOPT_option_base32_auto('s',
-                                     "seed",
-                                     "PEER_ID",
-                                     gettext_noop("Seed a PeerID"),
-                                     &peer_id),
-    GNUNET_GETOPT_option_flag('V',
-                              "view",
-                              gettext_noop("Get updates of view (0 for infinite updates)"),
-                              &view_update),
-    GNUNET_GETOPT_option_flag('S',
-                              "stream",
-                              gettext_noop("Get peers from biased stream"),
-                              &stream_input),
+    GNUNET_GETOPT_option_base32_auto ('s',
+                                      "seed",
+                                      "PEER_ID",
+                                      gettext_noop ("Seed a PeerID"),
+                                      &peer_id),
+    GNUNET_GETOPT_option_flag ('V',
+                               "view",
+                               gettext_noop (
+                                 "Get updates of view (0 for infinite updates)"),
+                               &view_update),
+    GNUNET_GETOPT_option_flag ('S',
+                               "stream",
+                               gettext_noop ("Get peers from biased stream"),
+                               &stream_input),
     GNUNET_GETOPT_OPTION_END
   };
 
   return (GNUNET_OK ==
-          GNUNET_PROGRAM_run(argc,
-                             argv,
-                             "gnunet-rps [NUMBER_OF_PEERS]",
-                             gettext_noop
-                               (helpstr),
-                             options, &run, NULL)) ? ret : 1;
+          GNUNET_PROGRAM_run (argc,
+                              argv,
+                              "gnunet-rps [NUMBER_OF_PEERS]",
+                              gettext_noop
+                                (helpstr),
+                              options, &run, NULL)) ? ret : 1;
 }
 
 /* end of gnunet-rps.c */

@@ -50,22 +50,22 @@
  * @param msg the request message
  */
 void
-GAS_handle_preference_change(struct GNUNET_SERVICE_Client *client,
-                             const struct ChangePreferenceMessage *msg);
+GAS_handle_preference_change (struct GNUNET_SERVICE_Client *client,
+                              const struct ChangePreferenceMessage *msg);
 
 
 /**
  * Initialize preferences subsystem.
  */
 void
-GAS_preference_init(void);
+GAS_preference_init (void);
 
 
 /**
  * Shutdown preferences subsystem.
  */
 void
-GAS_preference_done(void);
+GAS_preference_done (void);
 
 
 /**
@@ -77,8 +77,8 @@ GAS_preference_done(void);
  *  with `enum GNUNET_ATS_PreferenceKind`, never NULL
  */
 const double *
-GAS_preference_get_by_peer(void *cls,
-                           const struct GNUNET_PeerIdentity *id);
+GAS_preference_get_by_peer (void *cls,
+                            const struct GNUNET_PeerIdentity *id);
 
 
 /**
@@ -87,7 +87,7 @@ GAS_preference_get_by_peer(void *cls,
  * @param client the disconnecting client
  */
 void
-GAS_preference_client_disconnect(struct GNUNET_SERVICE_Client *client);
+GAS_preference_client_disconnect (struct GNUNET_SERVICE_Client *client);
 
 
 #endif

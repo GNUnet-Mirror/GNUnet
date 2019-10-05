@@ -32,10 +32,10 @@
 
 
 char *
-auth_key_to_string(struct GNUNET_CRYPTO_AuthKey auth_key);
+auth_key_to_string (struct GNUNET_CRYPTO_AuthKey auth_key);
 
 struct GNUNET_CRYPTO_AuthKey
-string_to_auth_key(const char *str);
+string_to_auth_key (const char *str);
 
 
 /**
@@ -48,7 +48,7 @@ string_to_auth_key(const char *str);
  * @return File handle
  */
 struct GNUNET_DISK_FileHandle *
-get_file_handle(const char *name);
+get_file_handle (const char *name);
 
 /**
  * @brief Close all files that were opened with #get_file_handle
@@ -56,62 +56,69 @@ get_file_handle(const char *name);
  * @return Success of iterating over files
  */
 int
-close_all_files();
+close_all_files ();
 
 /**
  * This function is used to facilitate writing important information to disk
  */
 #ifdef TO_FILE
 #define to_file(file_name, ...) do { \
-      char tmp_buf[512] = ""; \
-      int size; \
-      if (NULL == file_name) break; \
-      size = GNUNET_snprintf (tmp_buf, sizeof(tmp_buf), __VA_ARGS__); \
-      if (0 > size) \
-        { \
-          GNUNET_log(GNUNET_ERROR_TYPE_WARNING, \
-                     "Failed to create tmp_buf\n"); \
-          break; \
-        } \
-      (void)strncat(tmp_buf, "\n", 512); \
-      GNUNET_DISK_file_write(get_file_handle(file_name), \
-                             tmp_buf, \
-                             strnlen(tmp_buf, 512)); \
-  } while (0);
+    char tmp_buf[512] = ""; \
+    int size; \
+    if (NULL == file_name) break; \
+    size = GNUNET_snprintf (tmp_buf, sizeof(tmp_buf), __VA_ARGS__); \
+    if (0 > size) \
+    { \
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, \
+                  "Failed to create tmp_buf\n"); \
+      break; \
+    } \
+    (void) strncat (tmp_buf, "\n", 512); \
+    GNUNET_DISK_file_write (get_file_handle (file_name), \
+                            tmp_buf, \
+                            strnlen (tmp_buf, 512)); \
+} while (0);
 
 
 #define to_file_w_len(file_name, len, ...) do { char tmp_buf [len]; \
                                                 int size; \
-                                                memset(tmp_buf, 0, len); \
-                                                size = GNUNET_snprintf(tmp_buf, sizeof(tmp_buf), __VA_ARGS__); \
+                                                memset (tmp_buf, 0, len); \
+                                                size = GNUNET_snprintf (tmp_buf, \
+                                                                        sizeof( \
+                                                                          tmp_buf), \
+                                                                        __VA_ARGS__); \
                                                 if (0 > size) \
-                                                  { \
-                                                    GNUNET_log(GNUNET_ERROR_TYPE_WARNING, \
-                                                               "Failed to create tmp_buf\n"); \
-                                                    break; \
-                                                  } \
-                                                (void)strncat(tmp_buf, "\n", len); \
-                                                GNUNET_DISK_file_write(get_file_handle(file_name), \
-                                                                       tmp_buf, \
-                                                                       strnlen(tmp_buf, len)); \
-  } while (0);
+                                                { \
+                                                  GNUNET_log ( \
+                                                    GNUNET_ERROR_TYPE_WARNING, \
+                                                    "Failed to create tmp_buf\n"); \
+                                                  break; \
+                                                } \
+                                                (void) strncat (tmp_buf, "\n", \
+                                                                len); \
+                                                GNUNET_DISK_file_write ( \
+                                                  get_file_handle (file_name), \
+                                                  tmp_buf, \
+                                                  strnlen ( \
+                                                    tmp_buf, len)); \
+} while (0);
 #else /* TO_FILE */
 #  define to_file(file_name, ...)
 #  define to_file_w_len(file_name, len, ...)
 #endif /* TO_FILE */
 
 char *
-store_prefix_file_name(const unsigned int index,
-                       const char *prefix);
+store_prefix_file_name (const unsigned int index,
+                        const char *prefix);
 
 void
-to_file_raw(const char *file_name, const char *buf, size_t size_buf);
+to_file_raw (const char *file_name, const char *buf, size_t size_buf);
 
 void
-to_file_raw_unaligned(const char *file_name,
-                      const char *buf,
-                      size_t size_buf,
-                      unsigned bits_needed);
+to_file_raw_unaligned (const char *file_name,
+                       const char *buf,
+                       size_t size_buf,
+                       unsigned bits_needed);
 
 
 /**
@@ -121,7 +128,7 @@ to_file_raw_unaligned(const char *file_name,
  *
  * @return Factorial of @a x
  */
-uint32_t fac(uint32_t x);
+uint32_t fac (uint32_t x);
 
 
 /**
@@ -132,7 +139,7 @@ uint32_t fac(uint32_t x);
  *
  * @return Binomial coefficient of @a n and @a k
  */
-uint32_t binom(uint32_t n, uint32_t k);
+uint32_t binom (uint32_t n, uint32_t k);
 
 #endif /* RPS_TEST_UTIL_H */
 /* end of gnunet-service-rps.c */

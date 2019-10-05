@@ -74,7 +74,7 @@ struct GNUNET_NAMECACHE_Handle;
  * @return handle to use to access the service
  */
 struct GNUNET_NAMECACHE_Handle *
-GNUNET_NAMECACHE_connect(const struct GNUNET_CONFIGURATION_Handle *cfg);
+GNUNET_NAMECACHE_connect (const struct GNUNET_CONFIGURATION_Handle *cfg);
 
 
 /**
@@ -85,7 +85,7 @@ GNUNET_NAMECACHE_connect(const struct GNUNET_CONFIGURATION_Handle *cfg);
  * @param h handle to the namecache
  */
 void
-GNUNET_NAMECACHE_disconnect(struct GNUNET_NAMECACHE_Handle *h);
+GNUNET_NAMECACHE_disconnect (struct GNUNET_NAMECACHE_Handle *h);
 
 
 /**
@@ -116,10 +116,10 @@ typedef void
  * @return handle to abort the request, NULL on error
  */
 struct GNUNET_NAMECACHE_QueueEntry *
-GNUNET_NAMECACHE_block_cache(struct GNUNET_NAMECACHE_Handle *h,
-                             const struct GNUNET_GNSRECORD_Block *block,
-                             GNUNET_NAMECACHE_ContinuationWithStatus cont,
-                             void *cont_cls);
+GNUNET_NAMECACHE_block_cache (struct GNUNET_NAMECACHE_Handle *h,
+                              const struct GNUNET_GNSRECORD_Block *block,
+                              GNUNET_NAMECACHE_ContinuationWithStatus cont,
+                              void *cont_cls);
 
 
 /**
@@ -146,10 +146,10 @@ typedef void
  * @return a handle that can be used to cancel, NULL on error
  */
 struct GNUNET_NAMECACHE_QueueEntry *
-GNUNET_NAMECACHE_lookup_block(struct GNUNET_NAMECACHE_Handle *h,
-                              const struct GNUNET_HashCode *derived_hash,
-                              GNUNET_NAMECACHE_BlockProcessor proc,
-                              void *proc_cls);
+GNUNET_NAMECACHE_lookup_block (struct GNUNET_NAMECACHE_Handle *h,
+                               const struct GNUNET_HashCode *derived_hash,
+                               GNUNET_NAMECACHE_BlockProcessor proc,
+                               void *proc_cls);
 
 
 /**
@@ -161,7 +161,7 @@ GNUNET_NAMECACHE_lookup_block(struct GNUNET_NAMECACHE_Handle *h,
  * @param qe operation to cancel
  */
 void
-GNUNET_NAMECACHE_cancel(struct GNUNET_NAMECACHE_QueueEntry *qe);
+GNUNET_NAMECACHE_cancel (struct GNUNET_NAMECACHE_QueueEntry *qe);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

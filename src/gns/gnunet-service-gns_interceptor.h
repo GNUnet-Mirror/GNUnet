@@ -35,12 +35,12 @@
  * @return #GNUNET_YES on success #GNUNET_SYSERR on error
  */
 int
-GNS_interceptor_init(const struct GNUNET_CONFIGURATION_Handle *c);
+GNS_interceptor_init (const struct GNUNET_CONFIGURATION_Handle *c);
 
 /**
  * Stops the interceptor
  */
 void
-GNS_interceptor_done(void);
+GNS_interceptor_done (void);
 
 #endif

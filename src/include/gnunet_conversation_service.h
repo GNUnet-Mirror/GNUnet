@@ -86,7 +86,8 @@ GNUNET_NETWORK_STRUCT_BEGIN
  * may also specify the phone line that is used (typically zero).
  * The version is also right now always zero.
  */
-struct GNUNET_CONVERSATION_PhoneRecord {
+struct GNUNET_CONVERSATION_PhoneRecord
+{
   /**
    * Version of the phone record, for now always one.  We may
    * use other versions for anonymously hosted phone lines in
@@ -115,7 +116,8 @@ GNUNET_NETWORK_STRUCT_END
 /**
  * Information about active callers to a phone.
  */
-enum GNUNET_CONVERSATION_PhoneEventCode {
+enum GNUNET_CONVERSATION_PhoneEventCode
+{
   /**
    * We are the callee and the phone is ringing.
    * We should accept the call or hang up.
@@ -140,9 +142,12 @@ enum GNUNET_CONVERSATION_PhoneEventCode {
  */
 typedef void
 (*GNUNET_CONVERSATION_PhoneEventHandler)(void *cls,
-                                         enum GNUNET_CONVERSATION_PhoneEventCode code,
-                                         struct GNUNET_CONVERSATION_Caller *caller,
-                                         const struct GNUNET_CRYPTO_EcdsaPublicKey *caller_id);
+                                         enum GNUNET_CONVERSATION_PhoneEventCode
+                                         code,
+                                         struct GNUNET_CONVERSATION_Caller *
+                                         caller,
+                                         const struct
+                                         GNUNET_CRYPTO_EcdsaPublicKey *caller_id);
 
 
 /**
@@ -150,7 +155,8 @@ typedef void
  * progresses from ring over ready to terminated.  Steps may
  * be skipped.
  */
-enum GNUNET_CONVERSATION_CallerEventCode {
+enum GNUNET_CONVERSATION_CallerEventCode
+{
   /**
    * We are the callee and the caller suspended the call.  Note that
    * both sides can independently suspend and resume calls; a call is
@@ -177,7 +183,9 @@ enum GNUNET_CONVERSATION_CallerEventCode {
  */
 typedef void
 (*GNUNET_CONVERSATION_CallerEventHandler)(void *cls,
-                                          enum GNUNET_CONVERSATION_CallerEventCode code);
+                                          enum
+                                          GNUNET_CONVERSATION_CallerEventCode
+                                          code);
 
 
 /**
@@ -204,10 +212,11 @@ struct GNUNET_CONVERSATION_Phone;
  * @param event_handler_cls closure for @a event_handler
  */
 struct GNUNET_CONVERSATION_Phone *
-GNUNET_CONVERSATION_phone_create(const struct GNUNET_CONFIGURATION_Handle *cfg,
-                                 const struct GNUNET_IDENTITY_Ego *ego,
-                                 GNUNET_CONVERSATION_PhoneEventHandler event_handler,
-                                 void *event_handler_cls);
+GNUNET_CONVERSATION_phone_create (const struct GNUNET_CONFIGURATION_Handle *cfg,
+                                  const struct GNUNET_IDENTITY_Ego *ego,
+                                  GNUNET_CONVERSATION_PhoneEventHandler
+                                  event_handler,
+                                  void *event_handler_cls);
 
 
 /**
@@ -219,8 +228,8 @@ GNUNET_CONVERSATION_phone_create(const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @param rd namestore record to fill in
  */
 void
-GNUNET_CONVERSATION_phone_get_record(struct GNUNET_CONVERSATION_Phone *phone,
-                                     struct GNUNET_GNSRECORD_Data *rd);
+GNUNET_CONVERSATION_phone_get_record (struct GNUNET_CONVERSATION_Phone *phone,
+                                      struct GNUNET_GNSRECORD_Data *rd);
 
 
 /**
@@ -234,11 +243,12 @@ GNUNET_CONVERSATION_phone_get_record(struct GNUNET_CONVERSATION_Phone *phone,
  * @param mic microphone to use
  */
 void
-GNUNET_CONVERSATION_caller_pick_up(struct GNUNET_CONVERSATION_Caller *caller,
-                                   GNUNET_CONVERSATION_CallerEventHandler event_handler,
-                                   void *event_handler_cls,
-                                   struct GNUNET_SPEAKER_Handle *speaker,
-                                   struct GNUNET_MICROPHONE_Handle *mic);
+GNUNET_CONVERSATION_caller_pick_up (struct GNUNET_CONVERSATION_Caller *caller,
+                                    GNUNET_CONVERSATION_CallerEventHandler
+                                    event_handler,
+                                    void *event_handler_cls,
+                                    struct GNUNET_SPEAKER_Handle *speaker,
+                                    struct GNUNET_MICROPHONE_Handle *mic);
 
 
 /**
@@ -249,7 +259,7 @@ GNUNET_CONVERSATION_caller_pick_up(struct GNUNET_CONVERSATION_Caller *caller,
  * @param caller call to suspend
  */
 void
-GNUNET_CONVERSATION_caller_suspend(struct GNUNET_CONVERSATION_Caller *caller);
+GNUNET_CONVERSATION_caller_suspend (struct GNUNET_CONVERSATION_Caller *caller);
 
 
 /**
@@ -260,9 +270,9 @@ GNUNET_CONVERSATION_caller_suspend(struct GNUNET_CONVERSATION_Caller *caller);
  * @param mic microphone to use
  */
 void
-GNUNET_CONVERSATION_caller_resume(struct GNUNET_CONVERSATION_Caller *caller,
-                                  struct GNUNET_SPEAKER_Handle *speaker,
-                                  struct GNUNET_MICROPHONE_Handle *mic);
+GNUNET_CONVERSATION_caller_resume (struct GNUNET_CONVERSATION_Caller *caller,
+                                   struct GNUNET_SPEAKER_Handle *speaker,
+                                   struct GNUNET_MICROPHONE_Handle *mic);
 
 
 /**
@@ -272,7 +282,7 @@ GNUNET_CONVERSATION_caller_resume(struct GNUNET_CONVERSATION_Caller *caller,
  * @param caller who should we hang up on
  */
 void
-GNUNET_CONVERSATION_caller_hang_up(struct GNUNET_CONVERSATION_Caller *caller);
+GNUNET_CONVERSATION_caller_hang_up (struct GNUNET_CONVERSATION_Caller *caller);
 
 
 /**
@@ -281,7 +291,7 @@ GNUNET_CONVERSATION_caller_hang_up(struct GNUNET_CONVERSATION_Caller *caller);
  * @param phone phone to destroy
  */
 void
-GNUNET_CONVERSATION_phone_destroy(struct GNUNET_CONVERSATION_Phone *phone);
+GNUNET_CONVERSATION_phone_destroy (struct GNUNET_CONVERSATION_Phone *phone);
 
 
 /* *********************** CALL API ************************ */
@@ -295,7 +305,8 @@ struct GNUNET_CONVERSATION_Call;
 /**
  * Information about the current status of a call.
  */
-enum GNUNET_CONVERSATION_CallEventCode {
+enum GNUNET_CONVERSATION_CallEventCode
+{
   /**
    * We are the caller and are now ringing the other party (GNS lookup
    * succeeded).
@@ -355,7 +366,8 @@ enum GNUNET_CONVERSATION_CallEventCode {
  */
 typedef void
 (*GNUNET_CONVERSATION_CallEventHandler)(void *cls,
-                                        enum GNUNET_CONVERSATION_CallEventCode code);
+                                        enum GNUNET_CONVERSATION_CallEventCode
+                                        code);
 
 
 /**
@@ -374,13 +386,14 @@ typedef void
  * @return handle for the call
  */
 struct GNUNET_CONVERSATION_Call *
-GNUNET_CONVERSATION_call_start(const struct GNUNET_CONFIGURATION_Handle *cfg,
-                               struct GNUNET_IDENTITY_Ego *caller_id,
-                               const char *callee,
-                               struct GNUNET_SPEAKER_Handle *speaker,
-                               struct GNUNET_MICROPHONE_Handle *mic,
-                               GNUNET_CONVERSATION_CallEventHandler event_handler,
-                               void *event_handler_cls);
+GNUNET_CONVERSATION_call_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
+                                struct GNUNET_IDENTITY_Ego *caller_id,
+                                const char *callee,
+                                struct GNUNET_SPEAKER_Handle *speaker,
+                                struct GNUNET_MICROPHONE_Handle *mic,
+                                GNUNET_CONVERSATION_CallEventHandler
+                                event_handler,
+                                void *event_handler_cls);
 
 
 /**
@@ -390,7 +403,7 @@ GNUNET_CONVERSATION_call_start(const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @param call call to pause
  */
 void
-GNUNET_CONVERSATION_call_suspend(struct GNUNET_CONVERSATION_Call *call);
+GNUNET_CONVERSATION_call_suspend (struct GNUNET_CONVERSATION_Call *call);
 
 
 /**
@@ -401,9 +414,9 @@ GNUNET_CONVERSATION_call_suspend(struct GNUNET_CONVERSATION_Call *call);
  * @param mic microphone to use
  */
 void
-GNUNET_CONVERSATION_call_resume(struct GNUNET_CONVERSATION_Call *call,
-                                struct GNUNET_SPEAKER_Handle *speaker,
-                                struct GNUNET_MICROPHONE_Handle *mic);
+GNUNET_CONVERSATION_call_resume (struct GNUNET_CONVERSATION_Call *call,
+                                 struct GNUNET_SPEAKER_Handle *speaker,
+                                 struct GNUNET_MICROPHONE_Handle *mic);
 
 
 /**
@@ -412,7 +425,7 @@ GNUNET_CONVERSATION_call_resume(struct GNUNET_CONVERSATION_Call *call,
  * @param call call to terminate
  */
 void
-GNUNET_CONVERSATION_call_stop(struct GNUNET_CONVERSATION_Call *call);
+GNUNET_CONVERSATION_call_stop (struct GNUNET_CONVERSATION_Call *call);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

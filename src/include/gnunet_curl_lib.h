@@ -54,7 +54,8 @@ typedef void
  * @brief Buffer data structure we use to buffer the HTTP download
  * before giving it to the JSON parser.
  */
-struct GNUNET_CURL_DownloadBuffer {
+struct GNUNET_CURL_DownloadBuffer
+{
   /**
    * Download buffer
    */
@@ -103,8 +104,8 @@ typedef void
  * @return library context
  */
 struct GNUNET_CURL_Context *
-GNUNET_CURL_init(GNUNET_CURL_RescheduleCallback cb,
-                 void *cb_cls);
+GNUNET_CURL_init (GNUNET_CURL_RescheduleCallback cb,
+                  void *cb_cls);
 
 
 /**
@@ -134,12 +135,12 @@ GNUNET_CURL_init(GNUNET_CURL_RescheduleCallback cb,
  *        proceed immediately with #GNUNET_CURL_perform().
  */
 void
-GNUNET_CURL_get_select_info(struct GNUNET_CURL_Context *ctx,
-                            fd_set *read_fd_set,
-                            fd_set *write_fd_set,
-                            fd_set *except_fd_set,
-                            int *max_fd,
-                            long *timeout);
+GNUNET_CURL_get_select_info (struct GNUNET_CURL_Context *ctx,
+                             fd_set *read_fd_set,
+                             fd_set *write_fd_set,
+                             fd_set *except_fd_set,
+                             int *max_fd,
+                             long *timeout);
 
 
 /**
@@ -150,8 +151,8 @@ GNUNET_CURL_get_select_info(struct GNUNET_CURL_Context *ctx,
  * @return #GNUNET_OK if no errors occurred, #GNUNET_SYSERR otherwise.
  */
 int
-GNUNET_CURL_append_header(struct GNUNET_CURL_Context *ctx,
-                          const char *header);
+GNUNET_CURL_append_header (struct GNUNET_CURL_Context *ctx,
+                           const char *header);
 
 /**
  * Run the main event loop for the CURL interaction.
@@ -159,7 +160,7 @@ GNUNET_CURL_append_header(struct GNUNET_CURL_Context *ctx,
  * @param ctx the library context
  */
 void
-GNUNET_CURL_perform(struct GNUNET_CURL_Context *ctx);
+GNUNET_CURL_perform (struct GNUNET_CURL_Context *ctx);
 
 
 /**
@@ -171,9 +172,9 @@ GNUNET_CURL_perform(struct GNUNET_CURL_Context *ctx);
  * @param rc cleans/frees the response
  */
 void
-GNUNET_CURL_perform2(struct GNUNET_CURL_Context *ctx,
-                     GNUNET_CURL_RawParser rp,
-                     GNUNET_CURL_ResponseCleaner rc);
+GNUNET_CURL_perform2 (struct GNUNET_CURL_Context *ctx,
+                      GNUNET_CURL_RawParser rp,
+                      GNUNET_CURL_ResponseCleaner rc);
 
 /**
  * Cleanup library initialisation resources.  This function should be called
@@ -183,7 +184,7 @@ GNUNET_CURL_perform2(struct GNUNET_CURL_Context *ctx,
  * @param ctx the library context
  */
 void
-GNUNET_CURL_fini(struct GNUNET_CURL_Context *ctx);
+GNUNET_CURL_fini (struct GNUNET_CURL_Context *ctx);
 
 
 /**
@@ -221,11 +222,11 @@ typedef void
  * @return NULL on error (in this case, @eh is still released!)
  */
 struct GNUNET_CURL_Job *
-GNUNET_CURL_job_add(struct GNUNET_CURL_Context *ctx,
-                    CURL *eh,
-                    int add_json,
-                    GNUNET_CURL_JobCompletionCallback jcc,
-                    void *jcc_cls);
+GNUNET_CURL_job_add (struct GNUNET_CURL_Context *ctx,
+                     CURL *eh,
+                     int add_json,
+                     GNUNET_CURL_JobCompletionCallback jcc,
+                     void *jcc_cls);
 
 
 /**
@@ -245,11 +246,11 @@ GNUNET_CURL_job_add(struct GNUNET_CURL_Context *ctx,
  * @return NULL on error (in this case, @eh is still released!)
  */
 struct GNUNET_CURL_Job *
-GNUNET_CURL_job_add2(struct GNUNET_CURL_Context *ctx,
-                     CURL *eh,
-                     const struct curl_slist *job_headers,
-                     GNUNET_CURL_JobCompletionCallback jcc,
-                     void *jcc_cls);
+GNUNET_CURL_job_add2 (struct GNUNET_CURL_Context *ctx,
+                      CURL *eh,
+                      const struct curl_slist *job_headers,
+                      GNUNET_CURL_JobCompletionCallback jcc,
+                      void *jcc_cls);
 
 
 /**
@@ -259,7 +260,7 @@ GNUNET_CURL_job_add2(struct GNUNET_CURL_Context *ctx,
  * @param job job to cancel
  */
 void
-GNUNET_CURL_job_cancel(struct GNUNET_CURL_Job *job);
+GNUNET_CURL_job_cancel (struct GNUNET_CURL_Job *job);
 
 
 /* ******* GNUnet SCHEDULER integration ************ */
@@ -278,7 +279,7 @@ struct GNUNET_CURL_RescheduleContext;
  * @return closure for #GNUNET_CURL_gnunet_scheduler_reschedule().
  */
 struct GNUNET_CURL_RescheduleContext *
-GNUNET_CURL_gnunet_rc_create(struct GNUNET_CURL_Context *ctx);
+GNUNET_CURL_gnunet_rc_create (struct GNUNET_CURL_Context *ctx);
 
 /**
  * Initialize reschedule context; with custom response parser
@@ -287,9 +288,9 @@ GNUNET_CURL_gnunet_rc_create(struct GNUNET_CURL_Context *ctx);
  * @return closure for #GNUNET_CURL_gnunet_scheduler_reschedule().
  */
 struct GNUNET_CURL_RescheduleContext *
-GNUNET_CURL_gnunet_rc_create_with_parser(struct GNUNET_CURL_Context *ctx,
-                                         GNUNET_CURL_RawParser rp,
-                                         GNUNET_CURL_ResponseCleaner rc);
+GNUNET_CURL_gnunet_rc_create_with_parser (struct GNUNET_CURL_Context *ctx,
+                                          GNUNET_CURL_RawParser rp,
+                                          GNUNET_CURL_ResponseCleaner rc);
 
 
 /**
@@ -298,7 +299,7 @@ GNUNET_CURL_gnunet_rc_create_with_parser(struct GNUNET_CURL_Context *ctx,
  * @param rc context to destroy
  */
 void
-GNUNET_CURL_gnunet_rc_destroy(struct GNUNET_CURL_RescheduleContext *rc);
+GNUNET_CURL_gnunet_rc_destroy (struct GNUNET_CURL_RescheduleContext *rc);
 
 
 /**
@@ -311,7 +312,7 @@ GNUNET_CURL_gnunet_rc_destroy(struct GNUNET_CURL_RescheduleContext *rc);
  *           (pointer to a pointer!)
  */
 void
-GNUNET_CURL_gnunet_scheduler_reschedule(void *cls);
+GNUNET_CURL_gnunet_scheduler_reschedule (void *cls);
 
 
 /**
@@ -321,7 +322,8 @@ GNUNET_CURL_gnunet_scheduler_reschedule(void *cls);
  * @param header_name name of the header to send.
  */
 void
-GNUNET_CURL_enable_async_scope_header(struct GNUNET_CURL_Context *ctx, const char *header_name);
+GNUNET_CURL_enable_async_scope_header (struct GNUNET_CURL_Context *ctx, const
+                                       char *header_name);
 
 
 #endif

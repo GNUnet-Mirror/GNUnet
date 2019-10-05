@@ -40,14 +40,14 @@
  * @param max_fds maximum number of fds to use
  */
 void
-GST_neighbours_start(unsigned int max_fds);
+GST_neighbours_start (unsigned int max_fds);
 
 
 /**
  * Cleanup the neighbours subsystem.
  */
 void
-GST_neighbours_stop(void);
+GST_neighbours_stop (void);
 
 
 /**
@@ -57,7 +57,7 @@ GST_neighbours_stop(void);
  * @return #GNUNET_YES if we are connected, #GNUNET_NO if not
  */
 int
-GST_neighbours_test_connected(const struct GNUNET_PeerIdentity *target);
+GST_neighbours_test_connected (const struct GNUNET_PeerIdentity *target);
 
 
 /**
@@ -86,11 +86,11 @@ typedef void
  * @param cont_cls closure for @a cont
  */
 void
-GST_neighbours_send(const struct GNUNET_PeerIdentity *target,
-                    const void *msg,
-                    size_t msg_size,
-                    struct GNUNET_TIME_Relative timeout,
-                    GST_NeighbourSendContinuation cont, void *cont_cls);
+GST_neighbours_send (const struct GNUNET_PeerIdentity *target,
+                     const void *msg,
+                     size_t msg_size,
+                     struct GNUNET_TIME_Relative timeout,
+                     GST_NeighbourSendContinuation cont, void *cont_cls);
 
 
 /**
@@ -105,9 +105,10 @@ GST_neighbours_send(const struct GNUNET_PeerIdentity *target,
  * @return how long to wait before reading more from this sender
  */
 struct GNUNET_TIME_Relative
-GST_neighbours_calculate_receive_delay(const struct GNUNET_PeerIdentity *sender,
-                                       ssize_t size,
-                                       int *do_forward);
+GST_neighbours_calculate_receive_delay (const struct
+                                        GNUNET_PeerIdentity *sender,
+                                        ssize_t size,
+                                        int *do_forward);
 
 
 /**
@@ -118,8 +119,8 @@ GST_neighbours_calculate_receive_delay(const struct GNUNET_PeerIdentity *sender,
  * @param m the keep alive message containing the nonce to respond to
  */
 void
-GST_neighbours_keepalive(const struct GNUNET_PeerIdentity *neighbour,
-                         const struct GNUNET_MessageHeader *m);
+GST_neighbours_keepalive (const struct GNUNET_PeerIdentity *neighbour,
+                          const struct GNUNET_MessageHeader *m);
 
 
 /**
@@ -131,8 +132,8 @@ GST_neighbours_keepalive(const struct GNUNET_PeerIdentity *neighbour,
  * @param m the message containing the keep alive response
  */
 void
-GST_neighbours_keepalive_response(const struct GNUNET_PeerIdentity *neighbour,
-                                  const struct GNUNET_MessageHeader *m);
+GST_neighbours_keepalive_response (const struct GNUNET_PeerIdentity *neighbour,
+                                   const struct GNUNET_MessageHeader *m);
 
 
 /**
@@ -141,7 +142,7 @@ GST_neighbours_keepalive_response(const struct GNUNET_PeerIdentity *neighbour,
  * @param target peer to disconnect from
  */
 void
-GST_neighbours_force_disconnect(const struct GNUNET_PeerIdentity *target);
+GST_neighbours_force_disconnect (const struct GNUNET_PeerIdentity *target);
 
 
 /**
@@ -172,7 +173,7 @@ typedef void
  * @param cb_cls closure for @a cb
  */
 void
-GST_neighbours_iterate(GST_NeighbourIterator cb, void *cb_cls);
+GST_neighbours_iterate (GST_NeighbourIterator cb, void *cb_cls);
 
 
 /**
@@ -184,8 +185,8 @@ GST_neighbours_iterate(GST_NeighbourIterator cb, void *cb_cls);
  *        this session was not in use
  */
 int
-GST_neighbours_session_terminated(const struct GNUNET_PeerIdentity *peer,
-                                  struct GNUNET_ATS_Session *session);
+GST_neighbours_session_terminated (const struct GNUNET_PeerIdentity *peer,
+                                   struct GNUNET_ATS_Session *session);
 
 
 /**
@@ -197,8 +198,8 @@ GST_neighbours_session_terminated(const struct GNUNET_PeerIdentity *peer,
  * @param message the message we received (really only the size is used)
  */
 void
-GST_neighbours_notify_data_recv(const struct GNUNET_HELLO_Address *address,
-                                const struct GNUNET_MessageHeader *message);
+GST_neighbours_notify_data_recv (const struct GNUNET_HELLO_Address *address,
+                                 const struct GNUNET_MessageHeader *message);
 
 
 /**
@@ -211,9 +212,9 @@ GST_neighbours_notify_data_recv(const struct GNUNET_HELLO_Address *address,
  * @param message the message we sent (really only the size is used)
  */
 void
-GST_neighbours_notify_data_sent(const struct GNUNET_HELLO_Address *address,
-                                struct GNUNET_ATS_Session *session,
-                                size_t size);
+GST_neighbours_notify_data_sent (const struct GNUNET_HELLO_Address *address,
+                                 struct GNUNET_ATS_Session *session,
+                                 size_t size);
 
 
 /**
@@ -226,10 +227,12 @@ GST_neighbours_notify_data_sent(const struct GNUNET_HELLO_Address *address,
  * @param bandwidth_out outbound quota to be used when connection is up
  */
 void
-GST_neighbours_switch_to_address(const struct GNUNET_HELLO_Address *address,
-                                 struct GNUNET_ATS_Session *session,
-                                 struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
-                                 struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out);
+GST_neighbours_switch_to_address (const struct GNUNET_HELLO_Address *address,
+                                  struct GNUNET_ATS_Session *session,
+                                  struct GNUNET_BANDWIDTH_Value32NBO
+                                  bandwidth_in,
+                                  struct GNUNET_BANDWIDTH_Value32NBO
+                                  bandwidth_out);
 
 
 /**
@@ -241,8 +244,8 @@ GST_neighbours_switch_to_address(const struct GNUNET_HELLO_Address *address,
  * @return #GNUNET_OK if the message was fine, #GNUNET_SYSERR on serious error
  */
 int
-GST_neighbours_handle_session_syn(const struct GNUNET_MessageHeader *message,
-                                  const struct GNUNET_PeerIdentity *peer);
+GST_neighbours_handle_session_syn (const struct GNUNET_MessageHeader *message,
+                                   const struct GNUNET_PeerIdentity *peer);
 
 
 /**
@@ -255,9 +258,11 @@ GST_neighbours_handle_session_syn(const struct GNUNET_MessageHeader *message,
  * @return #GNUNET_OK if the message was fine, #GNUNET_SYSERR on serious error
  */
 int
-GST_neighbours_handle_session_syn_ack(const struct GNUNET_MessageHeader *message,
-                                      const struct GNUNET_HELLO_Address *address,
-                                      struct GNUNET_ATS_Session *session);
+GST_neighbours_handle_session_syn_ack (const struct
+                                       GNUNET_MessageHeader *message,
+                                       const struct
+                                       GNUNET_HELLO_Address *address,
+                                       struct GNUNET_ATS_Session *session);
 
 
 /**
@@ -271,9 +276,9 @@ GST_neighbours_handle_session_syn_ack(const struct GNUNET_MessageHeader *message
  * @return #GNUNET_OK if the message was fine, #GNUNET_SYSERR on serious error
  */
 int
-GST_neighbours_handle_session_ack(const struct GNUNET_MessageHeader *message,
-                                  const struct GNUNET_HELLO_Address *address,
-                                  struct GNUNET_ATS_Session *session);
+GST_neighbours_handle_session_ack (const struct GNUNET_MessageHeader *message,
+                                   const struct GNUNET_HELLO_Address *address,
+                                   struct GNUNET_ATS_Session *session);
 
 
 /**
@@ -283,7 +288,7 @@ GST_neighbours_handle_session_ack(const struct GNUNET_MessageHeader *message,
  * @return address currently used
  */
 const struct GNUNET_HELLO_Address *
-GST_neighbour_get_current_address(const struct GNUNET_PeerIdentity *peer);
+GST_neighbour_get_current_address (const struct GNUNET_PeerIdentity *peer);
 
 
 /**
@@ -294,8 +299,8 @@ GST_neighbour_get_current_address(const struct GNUNET_PeerIdentity *peer);
  * @param msg the quota message
  */
 void
-GST_neighbours_handle_quota_message(const struct GNUNET_PeerIdentity *peer,
-                                    const struct GNUNET_MessageHeader *msg);
+GST_neighbours_handle_quota_message (const struct GNUNET_PeerIdentity *peer,
+                                     const struct GNUNET_MessageHeader *msg);
 
 
 /**
@@ -306,8 +311,10 @@ GST_neighbours_handle_quota_message(const struct GNUNET_PeerIdentity *peer,
  * @param msg the disconnect message
  */
 void
-GST_neighbours_handle_disconnect_message(const struct GNUNET_PeerIdentity *peer,
-                                         const struct GNUNET_MessageHeader *msg);
+GST_neighbours_handle_disconnect_message (const struct
+                                          GNUNET_PeerIdentity *peer,
+                                          const struct
+                                          GNUNET_MessageHeader *msg);
 
 
 #endif

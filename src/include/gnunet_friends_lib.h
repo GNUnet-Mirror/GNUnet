@@ -49,7 +49,8 @@ extern "C"
  * @param friend_id peer identity of the friend
  */
 typedef void (*GNUNET_FRIENDS_Callback)(void *cls,
-                                        const struct GNUNET_PeerIdentity *friend_id);
+                                        const struct
+                                        GNUNET_PeerIdentity *friend_id);
 
 
 /**
@@ -61,9 +62,9 @@ typedef void (*GNUNET_FRIENDS_Callback)(void *cls,
  * @return #GNUNET_OK on success, #GNUNET_SYSERR on parsing errors
  */
 int
-GNUNET_FRIENDS_parse(const struct GNUNET_CONFIGURATION_Handle *cfg,
-                     GNUNET_FRIENDS_Callback cb,
-                     void *cb_cls);
+GNUNET_FRIENDS_parse (const struct GNUNET_CONFIGURATION_Handle *cfg,
+                      GNUNET_FRIENDS_Callback cb,
+                      void *cb_cls);
 
 
 /**
@@ -80,7 +81,7 @@ struct GNUNET_FRIENDS_Writer;
  * @return NULL on error
  */
 struct GNUNET_FRIENDS_Writer *
-GNUNET_FRIENDS_write_start(const struct GNUNET_CONFIGURATION_Handle *cfg);
+GNUNET_FRIENDS_write_start (const struct GNUNET_CONFIGURATION_Handle *cfg);
 
 
 /**
@@ -90,7 +91,7 @@ GNUNET_FRIENDS_write_start(const struct GNUNET_CONFIGURATION_Handle *cfg);
  * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
  */
 int
-GNUNET_FRIENDS_write_stop(struct GNUNET_FRIENDS_Writer *w);
+GNUNET_FRIENDS_write_stop (struct GNUNET_FRIENDS_Writer *w);
 
 
 /**
@@ -101,8 +102,8 @@ GNUNET_FRIENDS_write_stop(struct GNUNET_FRIENDS_Writer *w);
  * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
  */
 int
-GNUNET_FRIENDS_write(struct GNUNET_FRIENDS_Writer *w,
-                     const struct GNUNET_PeerIdentity *friend_id);
+GNUNET_FRIENDS_write (struct GNUNET_FRIENDS_Writer *w,
+                      const struct GNUNET_PeerIdentity *friend_id);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

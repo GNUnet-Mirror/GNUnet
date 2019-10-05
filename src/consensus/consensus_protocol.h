@@ -42,7 +42,8 @@ GNUNET_NETWORK_STRUCT_BEGIN
  * Essentially contains all the fields
  * from 'struct TaskKey', but in NBO.
  */
-struct GNUNET_CONSENSUS_RoundContextMessage {
+struct GNUNET_CONSENSUS_RoundContextMessage
+{
   /**
    * Type: #GNUNET_MESSAGE_TYPE_CONSENSUS_P2P_ROUND_CONTEXT
    */
@@ -88,7 +89,8 @@ struct GNUNET_CONSENSUS_RoundContextMessage {
 };
 
 
-enum {
+enum
+{
   CONSENSUS_MARKER_CONTESTED = 1,
   CONSENSUS_MARKER_SIZE = 2,
 };
@@ -97,7 +99,8 @@ enum {
 /**
  * Consensus element, either marker or payload.
  */
-struct ConsensusElement {
+struct ConsensusElement
+{
   /**
    * Payload element_type, only valid
    * if this is not a marker element.
@@ -113,14 +116,16 @@ struct ConsensusElement {
 };
 
 
-struct ConsensusSizeElement {
+struct ConsensusSizeElement
+{
   struct ConsensusElement ce;
 
   uint64_t size GNUNET_PACKED;
   uint8_t sender_index;
 };
 
-struct ConsensusStuffedElement {
+struct ConsensusStuffedElement
+{
   struct ConsensusElement ce;
   struct GNUNET_HashCode rand GNUNET_PACKED;
 };

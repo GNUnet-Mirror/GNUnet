@@ -80,36 +80,36 @@ static int rewrite;
  * @param value value of the option
  */
 static void
-print_option(void *cls,
-             const char *section,
-             const char *option,
-             const char *value)
+print_option (void *cls,
+              const char *section,
+              const char *option,
+              const char *value)
 {
   const struct GNUNET_CONFIGURATION_Handle *cfg = cls;
 
-  (void)section;
+  (void) section;
   if (is_filename)
-    {
-      char *value_fn;
-      char *fn;
+  {
+    char *value_fn;
+    char *fn;
 
-      GNUNET_assert(GNUNET_OK ==
-                    GNUNET_CONFIGURATION_get_value_filename(cfg,
+    GNUNET_assert (GNUNET_OK ==
+                   GNUNET_CONFIGURATION_get_value_filename (cfg,
                                                             section,
                                                             option,
                                                             &value_fn));
-      fn = GNUNET_STRINGS_filename_expand(value_fn);
-      if (NULL == fn)
-        fn = value_fn;
-      else
-        GNUNET_free(value_fn);
-      fprintf(stdout, "%s = %s\n", option, fn);
-      GNUNET_free(fn);
-    }
+    fn = GNUNET_STRINGS_filename_expand (value_fn);
+    if (NULL == fn)
+      fn = value_fn;
+    else
+      GNUNET_free (value_fn);
+    fprintf (stdout, "%s = %s\n", option, fn);
+    GNUNET_free (fn);
+  }
   else
-    {
-      fprintf(stdout, "%s = %s\n", option, value);
-    }
+  {
+    fprintf (stdout, "%s = %s\n", option, value);
+  }
 }
 
 
@@ -120,10 +120,10 @@ print_option(void *cls,
  * @param section a section in the configuration file
  */
 static void
-print_section_name(void *cls, const char *section)
+print_section_name (void *cls, const char *section)
 {
-  (void)cls;
-  fprintf(stdout, "%s\n", section);
+  (void) cls;
+  fprintf (stdout, "%s\n", section);
 }
 
 
@@ -137,133 +137,133 @@ print_section_name(void *cls, const char *section)
  * @param cfg configuration
  */
 static void
-run(void *cls,
-    char *const *args,
-    const char *cfgfile,
-    const struct GNUNET_CONFIGURATION_Handle *cfg)
+run (void *cls,
+     char *const *args,
+     const char *cfgfile,
+     const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   struct GNUNET_CONFIGURATION_Handle *out = NULL;
   struct GNUNET_CONFIGURATION_Handle *diff = NULL;
   char *cfg_fn;
 
-  (void)cls;
-  (void)args;
+  (void) cls;
+  (void) args;
   if (NULL != backend_check)
-    {
-      char *name;
+  {
+    char *name;
 
-      GNUNET_asprintf(&name, "libgnunet_plugin_%s", backend_check);
-      global_ret = (GNUNET_OK == GNUNET_PLUGIN_test(name)) ? 0 : 77;
-      GNUNET_free(name);
+    GNUNET_asprintf (&name, "libgnunet_plugin_%s", backend_check);
+    global_ret = (GNUNET_OK == GNUNET_PLUGIN_test (name)) ? 0 : 77;
+    GNUNET_free (name);
+    return;
+  }
+  if (rewrite)
+  {
+    struct GNUNET_CONFIGURATION_Handle *def;
+
+    def = GNUNET_CONFIGURATION_create ();
+    if (GNUNET_OK != GNUNET_CONFIGURATION_load (def, NULL))
+    {
+      fprintf (stderr, _ ("failed to load configuration defaults"));
+      global_ret = 1;
       return;
     }
-  if (rewrite)
+    diff = GNUNET_CONFIGURATION_get_diff (def, cfg);
+    cfg = diff;
+  }
+  if (((! rewrite) && (NULL == section)) || list_sections)
+  {
+    if (! list_sections)
     {
-      struct GNUNET_CONFIGURATION_Handle *def;
-
-      def = GNUNET_CONFIGURATION_create();
-      if (GNUNET_OK != GNUNET_CONFIGURATION_load(def, NULL))
-        {
-          fprintf(stderr, _("failed to load configuration defaults"));
-          global_ret = 1;
-          return;
-        }
-      diff = GNUNET_CONFIGURATION_get_diff(def, cfg);
-      cfg = diff;
+      fprintf (stderr,
+               _ ("%s or %s argument is required\n"),
+               "--section",
+               "--list-sections");
+      global_ret = 1;
     }
-  if (((!rewrite) && (NULL == section)) || list_sections)
+    else
     {
-      if (!list_sections)
-        {
-          fprintf(stderr,
-                  _("%s or %s argument is required\n"),
-                  "--section",
-                  "--list-sections");
-          global_ret = 1;
-        }
-      else
-        {
-          fprintf(stderr, _("The following sections are available:\n"));
-          GNUNET_CONFIGURATION_iterate_sections(cfg, &print_section_name, NULL);
-        }
-      goto cleanup;
+      fprintf (stderr, _ ("The following sections are available:\n"));
+      GNUNET_CONFIGURATION_iterate_sections (cfg, &print_section_name, NULL);
     }
+    goto cleanup;
+  }
 
   if ((NULL != section) && (NULL == value))
+  {
+    if (NULL == option)
     {
-      if (NULL == option)
-        {
-          GNUNET_CONFIGURATION_iterate_section_values(cfg,
-                                                      section,
-                                                      &print_option,
-                                                      (void *)cfg);
-        }
-      else
-        {
-          if (is_filename)
-            {
-              if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_filename(cfg,
-                                                                       section,
-                                                                       option,
-                                                                       &value))
-                {
-                  GNUNET_log_config_missing(GNUNET_ERROR_TYPE_ERROR, section, option);
-                  global_ret = 3;
-                  goto cleanup;
-                }
-            }
-          else
-            {
-              if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_string(cfg,
-                                                                     section,
-                                                                     option,
-                                                                     &value))
-                {
-                  GNUNET_log_config_missing(GNUNET_ERROR_TYPE_ERROR, section, option);
-                  global_ret = 3;
-                  goto cleanup;
-                }
-            }
-          fprintf(stdout, "%s\n", value);
-        }
+      GNUNET_CONFIGURATION_iterate_section_values (cfg,
+                                                   section,
+                                                   &print_option,
+                                                   (void *) cfg);
     }
-  else if (NULL != section)
+    else
     {
-      if (NULL == option)
+      if (is_filename)
+      {
+        if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_filename (cfg,
+                                                                  section,
+                                                                  option,
+                                                                  &value))
         {
-          fprintf(stderr, _("--option argument required to set value\n"));
-          global_ret = 1;
+          GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR, section, option);
+          global_ret = 3;
           goto cleanup;
         }
-      out = GNUNET_CONFIGURATION_dup(cfg);
-      GNUNET_CONFIGURATION_set_value_string(out, section, option, value);
+      }
+      else
+      {
+        if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_string (cfg,
+                                                                section,
+                                                                option,
+                                                                &value))
+        {
+          GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR, section, option);
+          global_ret = 3;
+          goto cleanup;
+        }
+      }
+      fprintf (stdout, "%s\n", value);
     }
+  }
+  else if (NULL != section)
+  {
+    if (NULL == option)
+    {
+      fprintf (stderr, _ ("--option argument required to set value\n"));
+      global_ret = 1;
+      goto cleanup;
+    }
+    out = GNUNET_CONFIGURATION_dup (cfg);
+    GNUNET_CONFIGURATION_set_value_string (out, section, option, value);
+  }
   cfg_fn = NULL;
   if (NULL == cfgfile)
-    {
-      const char *xdg = getenv("XDG_CONFIG_HOME");
-      if (NULL != xdg)
-        GNUNET_asprintf(&cfg_fn,
-                        "%s%s%s",
-                        xdg,
-                        DIR_SEPARATOR_STR,
-                        GNUNET_OS_project_data_get()->config_file);
-      else
-        cfg_fn = GNUNET_strdup(GNUNET_OS_project_data_get()->user_config_file);
-      cfgfile = cfg_fn;
-    }
+  {
+    const char *xdg = getenv ("XDG_CONFIG_HOME");
+    if (NULL != xdg)
+      GNUNET_asprintf (&cfg_fn,
+                       "%s%s%s",
+                       xdg,
+                       DIR_SEPARATOR_STR,
+                       GNUNET_OS_project_data_get ()->config_file);
+    else
+      cfg_fn = GNUNET_strdup (GNUNET_OS_project_data_get ()->user_config_file);
+    cfgfile = cfg_fn;
+  }
   if ((NULL != diff) || (NULL != out))
-    {
-      if (GNUNET_OK !=
-          GNUNET_CONFIGURATION_write((NULL == out) ? diff : out, cfgfile))
-        global_ret = 2;
-    }
-  GNUNET_free_non_null(cfg_fn);
+  {
+    if (GNUNET_OK !=
+        GNUNET_CONFIGURATION_write ((NULL == out) ? diff : out, cfgfile))
+      global_ret = 2;
+  }
+  GNUNET_free_non_null (cfg_fn);
   if (NULL != out)
-    GNUNET_CONFIGURATION_destroy(out);
+    GNUNET_CONFIGURATION_destroy (out);
 cleanup:
   if (NULL != diff)
-    GNUNET_CONFIGURATION_destroy(diff);
+    GNUNET_CONFIGURATION_destroy (diff);
 }
 
 
@@ -275,63 +275,63 @@ cleanup:
  * @return 0 ok, 1 on error
  */
 int
-main(int argc, char *const *argv)
+main (int argc, char *const *argv)
 {
   struct GNUNET_GETOPT_CommandLineOption options[] =
-  { GNUNET_GETOPT_option_flag(
+  { GNUNET_GETOPT_option_flag (
       'f',
       "filename",
-      gettext_noop("interpret option value as a filename (with $-expansion)"),
+      gettext_noop ("interpret option value as a filename (with $-expansion)"),
       &is_filename),
-    GNUNET_GETOPT_option_exclusive(GNUNET_GETOPT_option_string(
-                                     'b',
-                                     "supported-backend",
-                                     "BACKEND",
-                                     gettext_noop(
-                                       "test if the current installation supports the specified BACKEND"),
-                                     &backend_check)),
-    GNUNET_GETOPT_option_string('s',
-                                "section",
-                                "SECTION",
-                                gettext_noop(
-                                  "name of the section to access"),
-                                &section),
-    GNUNET_GETOPT_option_string('o',
-                                "option",
-                                "OPTION",
-                                gettext_noop("name of the option to access"),
-                                &option),
-    GNUNET_GETOPT_option_string('V',
-                                "value",
-                                "VALUE",
-                                gettext_noop("value to set"),
-                                &value),
-    GNUNET_GETOPT_option_flag('S',
-                              "list-sections",
-                              gettext_noop(
-                                "print available configuration sections"),
-                              &list_sections),
-    GNUNET_GETOPT_option_flag(
+    GNUNET_GETOPT_option_exclusive (GNUNET_GETOPT_option_string (
+                                      'b',
+                                      "supported-backend",
+                                      "BACKEND",
+                                      gettext_noop (
+                                        "test if the current installation supports the specified BACKEND"),
+                                      &backend_check)),
+    GNUNET_GETOPT_option_string ('s',
+                                 "section",
+                                 "SECTION",
+                                 gettext_noop (
+                                   "name of the section to access"),
+                                 &section),
+    GNUNET_GETOPT_option_string ('o',
+                                 "option",
+                                 "OPTION",
+                                 gettext_noop ("name of the option to access"),
+                                 &option),
+    GNUNET_GETOPT_option_string ('V',
+                                 "value",
+                                 "VALUE",
+                                 gettext_noop ("value to set"),
+                                 &value),
+    GNUNET_GETOPT_option_flag ('S',
+                               "list-sections",
+                               gettext_noop (
+                                 "print available configuration sections"),
+                               &list_sections),
+    GNUNET_GETOPT_option_flag (
       'w',
       "rewrite",
-      gettext_noop(
+      gettext_noop (
         "write configuration file that only contains delta to defaults"),
       &rewrite),
     GNUNET_GETOPT_OPTION_END };
   int ret;
 
-  if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args(argc, argv, &argc, &argv))
+  if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv, &argc, &argv))
     return 2;
 
   ret =
-    GNUNET_PROGRAM_run(argc,
-                       argv,
-                       "gnunet-config [OPTIONS]",
-                       gettext_noop("Manipulate GNUnet configuration files"),
-                       options,
-                       &run,
-                       NULL);
-  GNUNET_free((void *)argv);
+    GNUNET_PROGRAM_run (argc,
+                        argv,
+                        "gnunet-config [OPTIONS]",
+                        gettext_noop ("Manipulate GNUnet configuration files"),
+                        options,
+                        &run,
+                        NULL);
+  GNUNET_free ((void *) argv);
   if (GNUNET_OK == ret)
     return global_ret;
   return ret;

@@ -41,15 +41,14 @@
  * @return A GNUNET_HashCode usable for the new CADET API.
  */
 const struct GNUNET_HashCode *
-GC_u2h(uint32_t port)
+GC_u2h (uint32_t port)
 {
   static struct GNUNET_HashCode hash;
 
-  GNUNET_log(GNUNET_ERROR_TYPE_WARNING,
-             "This is a transitional function, use proper crypto hashes as CADET ports\n");
-  GNUNET_CRYPTO_hash(&port,
-                     sizeof(port),
-                     &hash);
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+              "This is a transitional function, use proper crypto hashes as CADET ports\n");
+  GNUNET_CRYPTO_hash (&port,
+                      sizeof(port),
+                      &hash);
   return &hash;
 }
-

@@ -34,7 +34,8 @@ GNUNET_NETWORK_STRUCT_BEGIN
 /**
  * Auction creation request sent from the client to the service
  */
-struct GNUNET_AUCTION_ClientCreateMessage {
+struct GNUNET_AUCTION_ClientCreateMessage
+{
   /**
    * Type: GNUNET_MESSAGE_TYPE_AUCTION_CLIENT_CREATE
    */

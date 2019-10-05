@@ -36,7 +36,7 @@
 #include "platform.h"
 #include "gnunet_util_lib.h"
 #include "gnunet_protocols.h"
-//#include "gnunet/conversation.h" doesn't get installed
+// #include "gnunet/conversation.h" doesn't get installed
 #include "conversation.h"
 #include "gnunet_constants.h"
 #include "gnunet_core_service.h"
@@ -76,18 +76,19 @@
 #include <fcntl.h>
 
 
-//glib stuff
-//#include <glib.h>
+// glib stuff
+// #include <glib.h>
 #include <glib-2.0/glib/gprintf.h>
-//#include <glib-unix.h>
+// #include <glib-unix.h>
 
 // static struct AudioMessage *audio_message;
 
 
 
 typedef struct GNUNET_gstData GNUNET_gstData;
-struct GNUNET_gstData {
-  //general
+struct GNUNET_gstData
+{
+  // general
   GstPipeline *pipeline;
 
   // things
@@ -95,7 +96,7 @@ struct GNUNET_gstData {
   struct GNUNET_MessageStreamTokenizer *stdin_mst;
   GstElement *appsrc;
   GstElement *appsink;
-  //settings
+  // settings
   int audiobackend;
   int dropsilence;
   int usertp;
@@ -187,7 +188,8 @@ struct GNUNET_gstData {
 
 #define SAMPLING_RATE 48000
 
-enum {
+enum
+{
   AUTO,
   JACK,
   ALSA,
@@ -195,22 +197,26 @@ enum {
   TEST
 };
 
-enum {
+enum
+{
   SOURCE,
   SINK
 };
 
-enum {
+enum
+{
   ENCODER,
   DECODER
 };
 
-enum {
+enum
+{
   FAIL,
   OK
 };
 
-enum {
+enum
+{
   SPEAKER,
   MICROPHONE
 };

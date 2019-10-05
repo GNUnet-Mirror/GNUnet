@@ -28,13 +28,15 @@
 #include "ats2.h"
 
 
-#define LOG(kind, ...) GNUNET_log_from(kind, "ats-application-api", __VA_ARGS__)
+#define LOG(kind, ...) GNUNET_log_from (kind, "ats-application-api", \
+                                        __VA_ARGS__)
 
 
 /**
  * Handle for ATS address suggestion requests.
  */
-struct GNUNET_ATS_ApplicationSuggestHandle {
+struct GNUNET_ATS_ApplicationSuggestHandle
+{
   /**
    * ID of the peer for which address suggestion was requested.
    */
@@ -60,7 +62,8 @@ struct GNUNET_ATS_ApplicationSuggestHandle {
 /**
  * Handle to the ATS subsystem for application management.
  */
-struct GNUNET_ATS_ApplicationHandle {
+struct GNUNET_ATS_ApplicationHandle
+{
   /**
    * Our configuration.
    */
@@ -96,7 +99,7 @@ struct GNUNET_ATS_ApplicationHandle {
  * @param ch handle to use to re-connect.
  */
 static void
-reconnect(struct GNUNET_ATS_ApplicationHandle *ch);
+reconnect (struct GNUNET_ATS_ApplicationHandle *ch);
 
 
 /**
@@ -105,12 +108,12 @@ reconnect(struct GNUNET_ATS_ApplicationHandle *ch);
  * @param cls handle to use to re-connect.
  */
 static void
-reconnect_task(void *cls)
+reconnect_task (void *cls)
 {
   struct GNUNET_ATS_ApplicationHandle *ch = cls;
 
   ch->task = NULL;
-  reconnect(ch);
+  reconnect (ch);
 }
 
 
@@ -120,17 +123,17 @@ reconnect_task(void *cls)
  * @param ch our handle
  */
 static void
-force_reconnect(struct GNUNET_ATS_ApplicationHandle *ch)
+force_reconnect (struct GNUNET_ATS_ApplicationHandle *ch)
 {
   if (NULL != ch->mq)
-    {
-      GNUNET_MQ_destroy(ch->mq);
-      ch->mq = NULL;
-    }
-  ch->backoff = GNUNET_TIME_STD_BACKOFF(ch->backoff);
-  ch->task = GNUNET_SCHEDULER_add_delayed(ch->backoff,
-                                          &reconnect_task,
-                                          ch);
+  {
+    GNUNET_MQ_destroy (ch->mq);
+    ch->mq = NULL;
+  }
+  ch->backoff = GNUNET_TIME_STD_BACKOFF (ch->backoff);
+  ch->task = GNUNET_SCHEDULER_add_delayed (ch->backoff,
+                                           &reconnect_task,
+                                           ch);
 }
 
 
@@ -142,15 +145,15 @@ force_reconnect(struct GNUNET_ATS_ApplicationHandle *ch)
  * @param error details about the error
  */
 static void
-error_handler(void *cls,
-              enum GNUNET_MQ_Error error)
+error_handler (void *cls,
+               enum GNUNET_MQ_Error error)
 {
   struct GNUNET_ATS_ApplicationHandle *ch = cls;
 
-  LOG(GNUNET_ERROR_TYPE_DEBUG,
-      "ATS connection died (code %d), reconnecting\n",
-      (int)error);
-  force_reconnect(ch);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "ATS connection died (code %d), reconnecting\n",
+       (int) error);
+  force_reconnect (ch);
 }
 
 
@@ -164,9 +167,9 @@ error_handler(void *cls,
  *         failure (message queue no longer exists)
  */
 static int
-transmit_suggestion(void *cls,
-                    const struct GNUNET_PeerIdentity *peer,
-                    void *value)
+transmit_suggestion (void *cls,
+                     const struct GNUNET_PeerIdentity *peer,
+                     void *value)
 {
   struct GNUNET_ATS_ApplicationHandle *ch = cls;
   struct GNUNET_ATS_ApplicationSuggestHandle *sh = value;
@@ -175,12 +178,12 @@ transmit_suggestion(void *cls,
 
   if (NULL == ch->mq)
     return GNUNET_SYSERR;
-  ev = GNUNET_MQ_msg(m,
-                     GNUNET_MESSAGE_TYPE_ATS_SUGGEST);
-  m->pk = htonl((uint32_t)sh->pk);
+  ev = GNUNET_MQ_msg (m,
+                      GNUNET_MESSAGE_TYPE_ATS_SUGGEST);
+  m->pk = htonl ((uint32_t) sh->pk);
   m->bw = sh->bw;
   m->peer = *peer;
-  GNUNET_MQ_send(ch->mq, ev);
+  GNUNET_MQ_send (ch->mq, ev);
   return GNUNET_OK;
 }
 
@@ -191,26 +194,26 @@ transmit_suggestion(void *cls,
  * @param ch handle to use to re-connect.
  */
 static void
-reconnect(struct GNUNET_ATS_ApplicationHandle *ch)
+reconnect (struct GNUNET_ATS_ApplicationHandle *ch)
 {
   static const struct GNUNET_MQ_MessageHandler handlers[] = {
     { NULL, 0, 0 }
   };
 
-  GNUNET_assert(NULL == ch->mq);
-  ch->mq = GNUNET_CLIENT_connect(ch->cfg,
-                                 "ats",
-                                 handlers,
-                                 &error_handler,
-                                 ch);
+  GNUNET_assert (NULL == ch->mq);
+  ch->mq = GNUNET_CLIENT_connect (ch->cfg,
+                                  "ats",
+                                  handlers,
+                                  &error_handler,
+                                  ch);
   if (NULL == ch->mq)
-    {
-      force_reconnect(ch);
-      return;
-    }
-  GNUNET_CONTAINER_multipeermap_iterate(ch->sug_requests,
-                                        &transmit_suggestion,
-                                        ch);
+  {
+    force_reconnect (ch);
+    return;
+  }
+  GNUNET_CONTAINER_multipeermap_iterate (ch->sug_requests,
+                                         &transmit_suggestion,
+                                         ch);
 }
 
 
@@ -221,15 +224,15 @@ reconnect(struct GNUNET_ATS_ApplicationHandle *ch)
  * @return ats application handle, NULL on error
  */
 struct GNUNET_ATS_ApplicationHandle *
-GNUNET_ATS_application_init(const struct GNUNET_CONFIGURATION_Handle *cfg)
+GNUNET_ATS_application_init (const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   struct GNUNET_ATS_ApplicationHandle *ch;
 
-  ch = GNUNET_new(struct GNUNET_ATS_ApplicationHandle);
+  ch = GNUNET_new (struct GNUNET_ATS_ApplicationHandle);
   ch->cfg = cfg;
-  ch->sug_requests = GNUNET_CONTAINER_multipeermap_create(32,
-                                                          GNUNET_YES);
-  reconnect(ch);
+  ch->sug_requests = GNUNET_CONTAINER_multipeermap_create (32,
+                                                           GNUNET_YES);
+  reconnect (ch);
   return ch;
 }
 
@@ -244,13 +247,13 @@ GNUNET_ATS_application_init(const struct GNUNET_CONFIGURATION_Handle *cfg)
  * @return #GNUNET_OK (continue to iterate)
  */
 static int
-free_sug_handle(void *cls,
-                const struct GNUNET_PeerIdentity *key,
-                void *value)
+free_sug_handle (void *cls,
+                 const struct GNUNET_PeerIdentity *key,
+                 void *value)
 {
   struct GNUNET_ATS_ApplicationSuggestHandle *cur = value;
 
-  GNUNET_free(cur);
+  GNUNET_free (cur);
   return GNUNET_OK;
 }
 
@@ -261,23 +264,23 @@ free_sug_handle(void *cls,
  * @param ch handle to release
  */
 void
-GNUNET_ATS_application_done(struct GNUNET_ATS_ApplicationHandle *ch)
+GNUNET_ATS_application_done (struct GNUNET_ATS_ApplicationHandle *ch)
 {
   if (NULL != ch->mq)
-    {
-      GNUNET_MQ_destroy(ch->mq);
-      ch->mq = NULL;
-    }
+  {
+    GNUNET_MQ_destroy (ch->mq);
+    ch->mq = NULL;
+  }
   if (NULL != ch->task)
-    {
-      GNUNET_SCHEDULER_cancel(ch->task);
-      ch->task = NULL;
-    }
-  GNUNET_CONTAINER_multipeermap_iterate(ch->sug_requests,
-                                        &free_sug_handle,
-                                        NULL);
-  GNUNET_CONTAINER_multipeermap_destroy(ch->sug_requests);
-  GNUNET_free(ch);
+  {
+    GNUNET_SCHEDULER_cancel (ch->task);
+    ch->task = NULL;
+  }
+  GNUNET_CONTAINER_multipeermap_iterate (ch->sug_requests,
+                                         &free_sug_handle,
+                                         NULL);
+  GNUNET_CONTAINER_multipeermap_destroy (ch->sug_requests);
+  GNUNET_free (ch);
 }
 
 
@@ -295,31 +298,31 @@ GNUNET_ATS_application_done(struct GNUNET_ATS_ApplicationHandle *ch)
  * @return suggest handle, NULL if a request is already pending
  */
 struct GNUNET_ATS_ApplicationSuggestHandle *
-GNUNET_ATS_application_suggest(struct GNUNET_ATS_ApplicationHandle *ch,
-                               const struct GNUNET_PeerIdentity *peer,
-                               enum GNUNET_MQ_PreferenceKind pk,
-                               struct GNUNET_BANDWIDTH_Value32NBO bw)
+GNUNET_ATS_application_suggest (struct GNUNET_ATS_ApplicationHandle *ch,
+                                const struct GNUNET_PeerIdentity *peer,
+                                enum GNUNET_MQ_PreferenceKind pk,
+                                struct GNUNET_BANDWIDTH_Value32NBO bw)
 {
   struct GNUNET_ATS_ApplicationSuggestHandle *s;
 
-  s = GNUNET_new(struct GNUNET_ATS_ApplicationSuggestHandle);
+  s = GNUNET_new (struct GNUNET_ATS_ApplicationSuggestHandle);
   s->ch = ch;
   s->id = *peer;
   s->pk = pk;
   s->bw = bw;
-  (void)GNUNET_CONTAINER_multipeermap_put(ch->sug_requests,
-                                          &s->id,
-                                          s,
-                                          GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
-  LOG(GNUNET_ERROR_TYPE_DEBUG,
-      "Requesting ATS to suggest address for `%s'\n",
-      GNUNET_i2s(peer));
+  (void) GNUNET_CONTAINER_multipeermap_put (ch->sug_requests,
+                                            &s->id,
+                                            s,
+                                            GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Requesting ATS to suggest address for `%s'\n",
+       GNUNET_i2s (peer));
   if (NULL == ch->mq)
     return s;
-  GNUNET_assert(GNUNET_OK ==
-                transmit_suggestion(ch,
-                                    &s->id,
-                                    s));
+  GNUNET_assert (GNUNET_OK ==
+                 transmit_suggestion (ch,
+                                      &s->id,
+                                      s));
   return s;
 }
 
@@ -330,32 +333,33 @@ GNUNET_ATS_application_suggest(struct GNUNET_ATS_ApplicationHandle *ch,
  * @param sh handle to stop
  */
 void
-GNUNET_ATS_application_suggest_cancel(struct GNUNET_ATS_ApplicationSuggestHandle *sh)
+GNUNET_ATS_application_suggest_cancel (struct
+                                       GNUNET_ATS_ApplicationSuggestHandle *sh)
 {
   struct GNUNET_ATS_ApplicationHandle *ch = sh->ch;
   struct GNUNET_MQ_Envelope *ev;
   struct ExpressPreferenceMessage *m;
 
-  LOG(GNUNET_ERROR_TYPE_DEBUG,
-      "Telling ATS we no longer care for an address for `%s'\n",
-      GNUNET_i2s(&sh->id));
-  GNUNET_assert(GNUNET_OK ==
-                GNUNET_CONTAINER_multipeermap_remove(ch->sug_requests,
-                                                     &sh->id,
-                                                     sh));
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Telling ATS we no longer care for an address for `%s'\n",
+       GNUNET_i2s (&sh->id));
+  GNUNET_assert (GNUNET_OK ==
+                 GNUNET_CONTAINER_multipeermap_remove (ch->sug_requests,
+                                                       &sh->id,
+                                                       sh));
   if (NULL == ch->mq)
-    {
-      GNUNET_free(sh);
-      return;
-    }
-  ev = GNUNET_MQ_msg(m,
-                     GNUNET_MESSAGE_TYPE_ATS_SUGGEST_CANCEL);
-  m->pk = htonl((uint32_t)sh->pk);
+  {
+    GNUNET_free (sh);
+    return;
+  }
+  ev = GNUNET_MQ_msg (m,
+                      GNUNET_MESSAGE_TYPE_ATS_SUGGEST_CANCEL);
+  m->pk = htonl ((uint32_t) sh->pk);
   m->bw = sh->bw;
   m->peer = sh->id;
-  GNUNET_MQ_send(ch->mq,
-                 ev);
-  GNUNET_free(sh);
+  GNUNET_MQ_send (ch->mq,
+                  ev);
+  GNUNET_free (sh);
 }
 
 

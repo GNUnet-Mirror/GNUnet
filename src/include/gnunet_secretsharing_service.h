@@ -119,7 +119,8 @@ struct GNUNET_SECRETSHARING_DecryptionHandle;
 /**
  * Public key of a group sharing a secret.
  */
-struct GNUNET_SECRETSHARING_PublicKey {
+struct GNUNET_SECRETSHARING_PublicKey
+{
   uint32_t bits[GNUNET_SECRETSHARING_ELGAMAL_BITS / 8 / sizeof(uint32_t)];
 };
 
@@ -127,7 +128,8 @@ struct GNUNET_SECRETSHARING_PublicKey {
 /**
  * Encrypted field element.
  */
-struct GNUNET_SECRETSHARING_Ciphertext {
+struct GNUNET_SECRETSHARING_Ciphertext
+{
   uint32_t c1_bits[GNUNET_SECRETSHARING_ELGAMAL_BITS / 8 / sizeof(uint32_t)];
   uint32_t c2_bits[GNUNET_SECRETSHARING_ELGAMAL_BITS / 8 / sizeof(uint32_t)];
 };
@@ -139,7 +141,8 @@ struct GNUNET_SECRETSHARING_Ciphertext {
  * Note that we are not operating in GF(2^n), thus not every
  * bit pattern is a valid plain text.
  */
-struct GNUNET_SECRETSHARING_Plaintext {
+struct GNUNET_SECRETSHARING_Plaintext
+{
   /**
    * Value of the message.
    */
@@ -167,10 +170,14 @@ struct GNUNET_SECRETSHARING_Plaintext {
  */
 typedef void
 (*GNUNET_SECRETSHARING_SecretReadyCallback) (void *cls,
-                                             struct GNUNET_SECRETSHARING_Share *my_share,
-                                             struct GNUNET_SECRETSHARING_PublicKey *public_key,
+                                             struct GNUNET_SECRETSHARING_Share *
+                                             my_share,
+                                             struct
+                                             GNUNET_SECRETSHARING_PublicKey *
+                                             public_key,
                                              unsigned int num_ready_peers,
-                                             const struct GNUNET_PeerIdentity *ready_peers);
+                                             const struct
+                                             GNUNET_PeerIdentity *ready_peers);
 
 
 /**
@@ -182,7 +189,9 @@ typedef void
  */
 typedef void
 (*GNUNET_SECRETSHARING_DecryptCallback) (void *cls,
-                                         const struct GNUNET_SECRETSHARING_Plaintext *plaintext);
+                                         const struct
+                                         GNUNET_SECRETSHARING_Plaintext *
+                                         plaintext);
 
 
 /**
@@ -202,15 +211,16 @@ typedef void
  * @param cls closure for @a cb
  */
 struct GNUNET_SECRETSHARING_Session *
-GNUNET_SECRETSHARING_create_session(const struct GNUNET_CONFIGURATION_Handle *cfg,
-                                    unsigned int num_peers,
-                                    const struct GNUNET_PeerIdentity *peers,
-                                    const struct GNUNET_HashCode *session_id,
-                                    struct GNUNET_TIME_Absolute start,
-                                    struct GNUNET_TIME_Absolute deadline,
-                                    unsigned int threshold,
-                                    GNUNET_SECRETSHARING_SecretReadyCallback cb,
-                                    void *cls);
+GNUNET_SECRETSHARING_create_session (const struct
+                                     GNUNET_CONFIGURATION_Handle *cfg,
+                                     unsigned int num_peers,
+                                     const struct GNUNET_PeerIdentity *peers,
+                                     const struct GNUNET_HashCode *session_id,
+                                     struct GNUNET_TIME_Absolute start,
+                                     struct GNUNET_TIME_Absolute deadline,
+                                     unsigned int threshold,
+                                     GNUNET_SECRETSHARING_SecretReadyCallback cb,
+                                     void *cls);
 
 
 /**
@@ -220,7 +230,7 @@ GNUNET_SECRETSHARING_create_session(const struct GNUNET_CONFIGURATION_Handle *cf
  * @param s session to destroy
  */
 void
-GNUNET_SECRETSHARING_session_destroy(struct GNUNET_SECRETSHARING_Session *s);
+GNUNET_SECRETSHARING_session_destroy (struct GNUNET_SECRETSHARING_Session *s);
 
 
 /**
@@ -237,9 +247,12 @@ GNUNET_SECRETSHARING_session_destroy(struct GNUNET_SECRETSHARING_Session *s);
  * @return #GNUNET_YES on succes, #GNUNET_SYSERR if the message is invalid (invalid range)
  */
 int
-GNUNET_SECRETSHARING_encrypt(const struct GNUNET_SECRETSHARING_PublicKey *public_key,
-                             const struct GNUNET_SECRETSHARING_Plaintext *plaintext,
-                             struct GNUNET_SECRETSHARING_Ciphertext *result_ciphertext);
+GNUNET_SECRETSHARING_encrypt (const struct
+                              GNUNET_SECRETSHARING_PublicKey *public_key,
+                              const struct
+                              GNUNET_SECRETSHARING_Plaintext *plaintext,
+                              struct GNUNET_SECRETSHARING_Ciphertext *
+                              result_ciphertext);
 
 
 /**
@@ -259,13 +272,14 @@ GNUNET_SECRETSHARING_encrypt(const struct GNUNET_SECRETSHARING_PublicKey *public
  * @return handle to cancel the operation
  */
 struct GNUNET_SECRETSHARING_DecryptionHandle *
-GNUNET_SECRETSHARING_decrypt(const struct GNUNET_CONFIGURATION_Handle *cfg,
-                             struct GNUNET_SECRETSHARING_Share *share,
-                             const struct GNUNET_SECRETSHARING_Ciphertext *ciphertext,
-                             struct GNUNET_TIME_Absolute start,
-                             struct GNUNET_TIME_Absolute deadline,
-                             GNUNET_SECRETSHARING_DecryptCallback decrypt_cb,
-                             void *decrypt_cb_cls);
+GNUNET_SECRETSHARING_decrypt (const struct GNUNET_CONFIGURATION_Handle *cfg,
+                              struct GNUNET_SECRETSHARING_Share *share,
+                              const struct
+                              GNUNET_SECRETSHARING_Ciphertext *ciphertext,
+                              struct GNUNET_TIME_Absolute start,
+                              struct GNUNET_TIME_Absolute deadline,
+                              GNUNET_SECRETSHARING_DecryptCallback decrypt_cb,
+                              void *decrypt_cb_cls);
 
 
 /**
@@ -277,7 +291,8 @@ GNUNET_SECRETSHARING_decrypt(const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @param dh to cancel
  */
 void
-GNUNET_SECRETSHARING_decrypt_cancel(struct GNUNET_SECRETSHARING_DecryptionHandle *dh);
+GNUNET_SECRETSHARING_decrypt_cancel (struct
+                                     GNUNET_SECRETSHARING_DecryptionHandle *dh);
 
 
 /**
@@ -290,7 +305,7 @@ GNUNET_SECRETSHARING_decrypt_cancel(struct GNUNET_SECRETSHARING_DecryptionHandle
  * @return The share, or NULL on error.
  */
 struct GNUNET_SECRETSHARING_Share *
-GNUNET_SECRETSHARING_share_read(const void *data, size_t len, size_t *readlen);
+GNUNET_SECRETSHARING_share_read (const void *data, size_t len, size_t *readlen);
 
 
 /**
@@ -305,21 +320,26 @@ GNUNET_SECRETSHARING_share_read(const void *data, size_t len, size_t *readlen);
  * @return #GNUNET_OK on success, #GNUNET_SYSERR on failure.
  */
 int
-GNUNET_SECRETSHARING_share_write(const struct GNUNET_SECRETSHARING_Share *share,
-                                 void *buf, size_t buflen, size_t *writelen);
+GNUNET_SECRETSHARING_share_write (const struct
+                                  GNUNET_SECRETSHARING_Share *share,
+                                  void *buf, size_t buflen, size_t *writelen);
 
 
 void
-GNUNET_SECRETSHARING_share_destroy(struct GNUNET_SECRETSHARING_Share *share);
+GNUNET_SECRETSHARING_share_destroy (struct GNUNET_SECRETSHARING_Share *share);
 
 
 int
-GNUNET_SECRETSHARING_plaintext_generate(struct GNUNET_SECRETSHARING_Plaintext *plaintext,
-                                        gcry_mpi_t exponent);
+GNUNET_SECRETSHARING_plaintext_generate (struct
+                                         GNUNET_SECRETSHARING_Plaintext *
+                                         plaintext,
+                                         gcry_mpi_t exponent);
 
 int
-GNUNET_SECRETSHARING_plaintext_generate_i(struct GNUNET_SECRETSHARING_Plaintext *plaintext,
-                                          int64_t exponent);
+GNUNET_SECRETSHARING_plaintext_generate_i (struct
+                                           GNUNET_SECRETSHARING_Plaintext *
+                                           plaintext,
+                                           int64_t exponent);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

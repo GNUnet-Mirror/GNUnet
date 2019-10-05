@@ -33,20 +33,20 @@
  * @return log of NSE
  */
 double
-GDS_NSE_get(void);
+GDS_NSE_get (void);
 
 
 /**
  * Initialize NSE subsystem.
  */
 void
-GDS_NSE_init(void);
+GDS_NSE_init (void);
 
 
 /**
  * Shutdown NSE subsystem.
  */
 void
-GDS_NSE_done(void);
+GDS_NSE_done (void);
 
 #endif

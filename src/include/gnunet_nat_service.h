@@ -49,7 +49,8 @@
  * an equivalent enum in gnunet_transport_hello_service.h;
  * might ultimately belong with the new HELLO definition.
  */
-enum GNUNET_NAT_AddressClass {
+enum GNUNET_NAT_AddressClass
+{
   /**
    * No address.
    */
@@ -136,7 +137,8 @@ enum GNUNET_NAT_AddressClass {
 /**
  * Error Types for the NAT subsystem (which can then later be converted/resolved to a string)
  */
-enum GNUNET_NAT_StatusCode {
+enum GNUNET_NAT_StatusCode
+{
   /**
    * Just the default
    */
@@ -238,7 +240,8 @@ enum GNUNET_NAT_StatusCode {
 /**
  * What the situation of the NAT connectivity
  */
-enum GNUNET_NAT_Type {
+enum GNUNET_NAT_Type
+{
   /**
    * We have a direct connection
    */
@@ -331,15 +334,15 @@ struct GNUNET_NAT_Handle;
  * @return NULL on error, otherwise handle that can be used to unregister
  */
 struct GNUNET_NAT_Handle *
-GNUNET_NAT_register(const struct GNUNET_CONFIGURATION_Handle *cfg,
-                    const char *config_section,
-                    uint8_t proto,
-                    unsigned int num_addrs,
-                    const struct sockaddr **addrs,
-                    const socklen_t *addrlens,
-                    GNUNET_NAT_AddressCallback address_callback,
-                    GNUNET_NAT_ReversalCallback reversal_callback,
-                    void *callback_cls);
+GNUNET_NAT_register (const struct GNUNET_CONFIGURATION_Handle *cfg,
+                     const char *config_section,
+                     uint8_t proto,
+                     unsigned int num_addrs,
+                     const struct sockaddr **addrs,
+                     const socklen_t *addrlens,
+                     GNUNET_NAT_AddressCallback address_callback,
+                     GNUNET_NAT_ReversalCallback reversal_callback,
+                     void *callback_cls);
 
 
 /**
@@ -356,9 +359,9 @@ GNUNET_NAT_register(const struct GNUNET_CONFIGURATION_Handle *cfg,
  *         #GNUNET_SYSERR if the address is malformed
  */
 int
-GNUNET_NAT_test_address(struct GNUNET_NAT_Handle *nh,
-                        const void *addr,
-                        socklen_t addrlen);
+GNUNET_NAT_test_address (struct GNUNET_NAT_Handle *nh,
+                         const void *addr,
+                         socklen_t addrlen);
 
 
 /**
@@ -374,9 +377,9 @@ GNUNET_NAT_test_address(struct GNUNET_NAT_Handle *nh,
  *         #GNUNET_OK otherwise (presumably in progress)
  */
 int
-GNUNET_NAT_request_reversal(struct GNUNET_NAT_Handle *nh,
-                            const struct sockaddr_in *local_sa,
-                            const struct sockaddr_in *remote_sa);
+GNUNET_NAT_request_reversal (struct GNUNET_NAT_Handle *nh,
+                             const struct sockaddr_in *local_sa,
+                             const struct sockaddr_in *remote_sa);
 
 
 /**
@@ -387,7 +390,7 @@ GNUNET_NAT_request_reversal(struct GNUNET_NAT_Handle *nh,
  * @param nh the handle to unregister
  */
 void
-GNUNET_NAT_unregister(struct GNUNET_NAT_Handle *nh);
+GNUNET_NAT_unregister (struct GNUNET_NAT_Handle *nh);
 
 
 /**
@@ -414,11 +417,11 @@ GNUNET_NAT_unregister(struct GNUNET_NAT_Handle *nh);
  *         #GNUNET_SYSERR on internal error handling the packet
  */
 int
-GNUNET_NAT_stun_handle_packet(struct GNUNET_NAT_Handle *nh,
-                              const struct sockaddr *sender_addr,
-                              size_t sender_addr_len,
-                              const void *data,
-                              size_t data_size);
+GNUNET_NAT_stun_handle_packet (struct GNUNET_NAT_Handle *nh,
+                               const struct sockaddr *sender_addr,
+                               size_t sender_addr_len,
+                               const void *data,
+                               size_t data_size);
 
 
 /**
@@ -456,11 +459,11 @@ typedef void
  * @return NULL on error
  */
 struct GNUNET_NAT_STUN_Handle *
-GNUNET_NAT_stun_make_request(const char *server,
-                             uint16_t port,
-                             struct GNUNET_NETWORK_Handle *sock,
-                             GNUNET_NAT_TestCallback cb,
-                             void *cb_cls);
+GNUNET_NAT_stun_make_request (const char *server,
+                              uint16_t port,
+                              struct GNUNET_NETWORK_Handle *sock,
+                              GNUNET_NAT_TestCallback cb,
+                              void *cb_cls);
 
 
 /**
@@ -470,7 +473,7 @@ GNUNET_NAT_stun_make_request(const char *server,
  * @param rh request to cancel
  */
 void
-GNUNET_NAT_stun_make_request_cancel(struct GNUNET_NAT_STUN_Handle *rh);
+GNUNET_NAT_stun_make_request_cancel (struct GNUNET_NAT_STUN_Handle *rh);
 
 
 #endif

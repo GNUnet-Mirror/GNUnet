@@ -27,7 +27,7 @@
 #include "platform.h"
 #include "gnunet_util_lib.h"
 
-#define LOG(kind, ...) GNUNET_log_from(kind, "util-configuration", __VA_ARGS__)
+#define LOG(kind, ...) GNUNET_log_from (kind, "util-configuration", __VA_ARGS__)
 
 
 /**
@@ -39,48 +39,48 @@
  * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
  */
 int
-GNUNET_CONFIGURATION_load(struct GNUNET_CONFIGURATION_Handle *cfg,
-                          const char *filename)
+GNUNET_CONFIGURATION_load (struct GNUNET_CONFIGURATION_Handle *cfg,
+                           const char *filename)
 {
   char *baseconfig;
   const char *base_config_varname;
 
-  base_config_varname = GNUNET_OS_project_data_get()->base_config_varname;
+  base_config_varname = GNUNET_OS_project_data_get ()->base_config_varname;
 
-  if (NULL != (baseconfig = getenv(base_config_varname)))
-    {
-      baseconfig = GNUNET_strdup(baseconfig);
-    }
+  if (NULL != (baseconfig = getenv (base_config_varname)))
+  {
+    baseconfig = GNUNET_strdup (baseconfig);
+  }
   else
-    {
-      char *ipath;
+  {
+    char *ipath;
 
-      ipath = GNUNET_OS_installation_get_path(GNUNET_OS_IPK_DATADIR);
-      if (NULL == ipath)
-        return GNUNET_SYSERR;
-      GNUNET_asprintf(&baseconfig, "%s%s", ipath, "config.d");
-      GNUNET_free(ipath);
-    }
+    ipath = GNUNET_OS_installation_get_path (GNUNET_OS_IPK_DATADIR);
+    if (NULL == ipath)
+      return GNUNET_SYSERR;
+    GNUNET_asprintf (&baseconfig, "%s%s", ipath, "config.d");
+    GNUNET_free (ipath);
+  }
 
   if (GNUNET_SYSERR ==
-      GNUNET_CONFIGURATION_load_from(cfg,
-                                     baseconfig))
-    {
-      GNUNET_free(baseconfig);
-      return GNUNET_SYSERR;     /* no configuration at all found */
-    }
-  GNUNET_free(baseconfig);
+      GNUNET_CONFIGURATION_load_from (cfg,
+                                      baseconfig))
+  {
+    GNUNET_free (baseconfig);
+    return GNUNET_SYSERR;       /* no configuration at all found */
+  }
+  GNUNET_free (baseconfig);
   if ((NULL != filename) &&
-      (GNUNET_OK != GNUNET_CONFIGURATION_parse(cfg, filename)))
-    {
-      /* specified configuration not found */
-      return GNUNET_SYSERR;
-    }
+      (GNUNET_OK != GNUNET_CONFIGURATION_parse (cfg, filename)))
+  {
+    /* specified configuration not found */
+    return GNUNET_SYSERR;
+  }
   if (((GNUNET_YES !=
-        GNUNET_CONFIGURATION_have_value(cfg, "PATHS", "DEFAULTCONFIG"))) &&
+        GNUNET_CONFIGURATION_have_value (cfg, "PATHS", "DEFAULTCONFIG"))) &&
       (filename != NULL))
-    GNUNET_CONFIGURATION_set_value_string(cfg, "PATHS", "DEFAULTCONFIG",
-                                          filename);
+    GNUNET_CONFIGURATION_set_value_string (cfg, "PATHS", "DEFAULTCONFIG",
+                                           filename);
   return GNUNET_OK;
 }
 

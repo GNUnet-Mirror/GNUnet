@@ -29,7 +29,7 @@
 
 
 #define LOG(kind, ...)                           \
-  GNUNET_log(kind, __VA_ARGS__)
+  GNUNET_log (kind, __VA_ARGS__)
 
 
 /**
@@ -45,30 +45,29 @@ static int test_success;
  * @param cfg the configuration with which the current testing service is run
  */
 static void
-test_run(void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg,
-         struct GNUNET_TESTING_Peer *peer)
+test_run (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg,
+          struct GNUNET_TESTING_Peer *peer)
 {
-  GNUNET_assert(NULL == cls);
-  GNUNET_assert(NULL != cfg);
-  LOG(GNUNET_ERROR_TYPE_DEBUG, "Service arm started successfully\n");
+  GNUNET_assert (NULL == cls);
+  GNUNET_assert (NULL != cfg);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Service arm started successfully\n");
   test_success = GNUNET_YES;
-  GNUNET_SCHEDULER_shutdown();
+  GNUNET_SCHEDULER_shutdown ();
 }
 
 
 /**
  * The main point of execution
  */
-int main(int argc, char *argv[])
+int main (int argc, char *argv[])
 {
   test_success = GNUNET_NO;
-  GNUNET_assert(0 == GNUNET_TESTING_service_run("test-testing-servicestartup",
-                                                "arm",
-                                                "test_testing_defaults.conf",
-                                                &test_run,
-                                                NULL));
+  GNUNET_assert (0 == GNUNET_TESTING_service_run ("test-testing-servicestartup",
+                                                  "arm",
+                                                  "test_testing_defaults.conf",
+                                                  &test_run,
+                                                  NULL));
   return (GNUNET_YES == test_success) ? 0 : 1;
 }
 
 /* end of test_testing_servicestartup.c */
-

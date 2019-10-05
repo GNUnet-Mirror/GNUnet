@@ -27,7 +27,7 @@
 #include "gnunet_util_lib.h"
 
 #define LOG(kind, ...) \
-  GNUNET_log_from(kind, "util-container-multishortmap", __VA_ARGS__)
+  GNUNET_log_from (kind, "util-container-multishortmap", __VA_ARGS__)
 
 /**
  * Maximum recursion depth for callbacks of
@@ -41,7 +41,8 @@
 /**
  * An entry in the hash map with the full key.
  */
-struct BigMapEntry {
+struct BigMapEntry
+{
   /**
    * Value of the entry.
    */
@@ -62,7 +63,8 @@ struct BigMapEntry {
 /**
  * An entry in the hash map with just a pointer to the key.
  */
-struct SmallMapEntry {
+struct SmallMapEntry
+{
   /**
    * Value of the entry.
    */
@@ -83,7 +85,8 @@ struct SmallMapEntry {
 /**
  * Entry in the map.
  */
-union MapEntry {
+union MapEntry
+{
   /**
    * Variant used if map entries only contain a pointer to the key.
    */
@@ -99,7 +102,8 @@ union MapEntry {
 /**
  * Internal representation of the hash map.
  */
-struct GNUNET_CONTAINER_MultiShortmap {
+struct GNUNET_CONTAINER_MultiShortmap
+{
   /**
    * All of our buckets.
    */
@@ -146,7 +150,8 @@ struct GNUNET_CONTAINER_MultiShortmap {
  * Cursor into a multishortmap.
  * Allows to enumerate elements asynchronously.
  */
-struct GNUNET_CONTAINER_MultiShortmapIterator {
+struct GNUNET_CONTAINER_MultiShortmapIterator
+{
   /**
    * Position in the bucket 'idx'
    */
@@ -186,18 +191,18 @@ struct GNUNET_CONTAINER_MultiShortmapIterator {
  * @return NULL on error
  */
 struct GNUNET_CONTAINER_MultiShortmap *
-GNUNET_CONTAINER_multishortmap_create(unsigned int len, int do_not_copy_keys)
+GNUNET_CONTAINER_multishortmap_create (unsigned int len, int do_not_copy_keys)
 {
   struct GNUNET_CONTAINER_MultiShortmap *map;
 
-  GNUNET_assert(len > 0);
-  map = GNUNET_new(struct GNUNET_CONTAINER_MultiShortmap);
-  map->map = GNUNET_malloc_large(len * sizeof(union MapEntry));
+  GNUNET_assert (len > 0);
+  map = GNUNET_new (struct GNUNET_CONTAINER_MultiShortmap);
+  map->map = GNUNET_malloc_large (len * sizeof(union MapEntry));
   if (NULL == map->map)
-    {
-      GNUNET_free(map);
-      return NULL;
-    }
+  {
+    GNUNET_free (map);
+    return NULL;
+  }
   map->map_length = len;
   map->use_small_entries = do_not_copy_keys;
   return map;
@@ -211,44 +216,44 @@ GNUNET_CONTAINER_multishortmap_create(unsigned int len, int do_not_copy_keys)
  * @param map the map
  */
 void
-GNUNET_CONTAINER_multishortmap_destroy(
+GNUNET_CONTAINER_multishortmap_destroy (
   struct GNUNET_CONTAINER_MultiShortmap *map)
 {
-  GNUNET_assert(0 == map->next_cache_off);
+  GNUNET_assert (0 == map->next_cache_off);
   for (unsigned int i = 0; i < map->map_length; i++)
+  {
+    union MapEntry me;
+
+    me = map->map[i];
+    if (map->use_small_entries)
     {
-      union MapEntry me;
+      struct SmallMapEntry *sme;
+      struct SmallMapEntry *nxt;
 
-      me = map->map[i];
-      if (map->use_small_entries)
-        {
-          struct SmallMapEntry *sme;
-          struct SmallMapEntry *nxt;
-
-          nxt = me.sme;
-          while (NULL != (sme = nxt))
-            {
-              nxt = sme->next;
-              GNUNET_free(sme);
-            }
-          me.sme = NULL;
-        }
-      else
-        {
-          struct BigMapEntry *bme;
-          struct BigMapEntry *nxt;
-
-          nxt = me.bme;
-          while (NULL != (bme = nxt))
-            {
-              nxt = bme->next;
-              GNUNET_free(bme);
-            }
-          me.bme = NULL;
-        }
+      nxt = me.sme;
+      while (NULL != (sme = nxt))
+      {
+        nxt = sme->next;
+        GNUNET_free (sme);
+      }
+      me.sme = NULL;
     }
-  GNUNET_free(map->map);
-  GNUNET_free(map);
+    else
+    {
+      struct BigMapEntry *bme;
+      struct BigMapEntry *nxt;
+
+      nxt = me.bme;
+      while (NULL != (bme = nxt))
+      {
+        nxt = bme->next;
+        GNUNET_free (bme);
+      }
+      me.bme = NULL;
+    }
+  }
+  GNUNET_free (map->map);
+  GNUNET_free (map);
 }
 
 
@@ -260,13 +265,13 @@ GNUNET_CONTAINER_multishortmap_destroy(
  * @return offset into the "map" array of "map"
  */
 static unsigned int
-idx_of(const struct GNUNET_CONTAINER_MultiShortmap *map,
-       const struct GNUNET_ShortHashCode *key)
+idx_of (const struct GNUNET_CONTAINER_MultiShortmap *map,
+        const struct GNUNET_ShortHashCode *key)
 {
   unsigned int kx;
 
-  GNUNET_assert(NULL != map);
-  GNUNET_memcpy(&kx, key, sizeof(kx));
+  GNUNET_assert (NULL != map);
+  GNUNET_memcpy (&kx, key, sizeof(kx));
   return kx % map->map_length;
 }
 
@@ -278,7 +283,7 @@ idx_of(const struct GNUNET_CONTAINER_MultiShortmap *map,
  * @return the number of key value pairs
  */
 unsigned int
-GNUNET_CONTAINER_multishortmap_size(
+GNUNET_CONTAINER_multishortmap_size (
   const struct GNUNET_CONTAINER_MultiShortmap *map)
 {
   return map->size;
@@ -296,25 +301,25 @@ GNUNET_CONTAINER_multishortmap_size(
  *   key-value pairs with value NULL
  */
 void *
-GNUNET_CONTAINER_multishortmap_get(
+GNUNET_CONTAINER_multishortmap_get (
   const struct GNUNET_CONTAINER_MultiShortmap *map,
   const struct GNUNET_ShortHashCode *key)
 {
   union MapEntry me;
 
-  me = map->map[idx_of(map, key)];
+  me = map->map[idx_of (map, key)];
   if (map->use_small_entries)
-    {
-      for (struct SmallMapEntry *sme = me.sme; NULL != sme; sme = sme->next)
-        if (0 == GNUNET_memcmp(key, sme->key))
-          return sme->value;
-    }
+  {
+    for (struct SmallMapEntry *sme = me.sme; NULL != sme; sme = sme->next)
+      if (0 == GNUNET_memcmp (key, sme->key))
+        return sme->value;
+  }
   else
-    {
-      for (struct BigMapEntry *bme = me.bme; NULL != bme; bme = bme->next)
-        if (0 == GNUNET_memcmp(key, &bme->key))
-          return bme->value;
-    }
+  {
+    for (struct BigMapEntry *bme = me.bme; NULL != bme; bme = bme->next)
+      if (0 == GNUNET_memcmp (key, &bme->key))
+        return bme->value;
+  }
   return NULL;
 }
 
@@ -329,7 +334,7 @@ GNUNET_CONTAINER_multishortmap_get(
  *         #GNUNET_SYSERR if it aborted iteration
  */
 int
-GNUNET_CONTAINER_multishortmap_iterate(
+GNUNET_CONTAINER_multishortmap_iterate (
   struct GNUNET_CONTAINER_MultiShortmap *map,
   GNUNET_CONTAINER_ShortmapIterator it,
   void *it_cls)
@@ -340,50 +345,50 @@ GNUNET_CONTAINER_multishortmap_iterate(
   struct GNUNET_ShortHashCode kc;
 
   count = 0;
-  GNUNET_assert(NULL != map);
+  GNUNET_assert (NULL != map);
   ce = &map->next_cache[map->next_cache_off];
-  GNUNET_assert(++map->next_cache_off < NEXT_CACHE_SIZE);
+  GNUNET_assert (++map->next_cache_off < NEXT_CACHE_SIZE);
   for (unsigned int i = 0; i < map->map_length; i++)
+  {
+    me = map->map[i];
+    if (map->use_small_entries)
     {
-      me = map->map[i];
-      if (map->use_small_entries)
-        {
-          struct SmallMapEntry *sme;
+      struct SmallMapEntry *sme;
 
-          ce->sme = me.sme;
-          while (NULL != (sme = ce->sme))
-            {
-              ce->sme = sme->next;
-              if ((NULL != it) && (GNUNET_OK != it(it_cls, sme->key, sme->value)))
-                {
-                  GNUNET_assert(--map->next_cache_off < NEXT_CACHE_SIZE);
-                  return GNUNET_SYSERR;
-                }
-              count++;
-            }
-        }
-      else
+      ce->sme = me.sme;
+      while (NULL != (sme = ce->sme))
+      {
+        ce->sme = sme->next;
+        if ((NULL != it) && (GNUNET_OK != it (it_cls, sme->key, sme->value)))
         {
-          struct BigMapEntry *bme;
-
-          ce->bme = me.bme;
-          while (NULL != (bme = ce->bme))
-            {
-              ce->bme = bme->next;
-              if (NULL != it)
-                {
-                  kc = bme->key;
-                  if (GNUNET_OK != it(it_cls, &kc, bme->value))
-                    {
-                      GNUNET_assert(--map->next_cache_off < NEXT_CACHE_SIZE);
-                      return GNUNET_SYSERR;
-                    }
-                }
-              count++;
-            }
+          GNUNET_assert (--map->next_cache_off < NEXT_CACHE_SIZE);
+          return GNUNET_SYSERR;
         }
+        count++;
+      }
     }
-  GNUNET_assert(--map->next_cache_off < NEXT_CACHE_SIZE);
+    else
+    {
+      struct BigMapEntry *bme;
+
+      ce->bme = me.bme;
+      while (NULL != (bme = ce->bme))
+      {
+        ce->bme = bme->next;
+        if (NULL != it)
+        {
+          kc = bme->key;
+          if (GNUNET_OK != it (it_cls, &kc, bme->value))
+          {
+            GNUNET_assert (--map->next_cache_off < NEXT_CACHE_SIZE);
+            return GNUNET_SYSERR;
+          }
+        }
+        count++;
+      }
+    }
+  }
+  GNUNET_assert (--map->next_cache_off < NEXT_CACHE_SIZE);
   return count;
 }
 
@@ -396,8 +401,8 @@ GNUNET_CONTAINER_multishortmap_iterate(
  * @param bme the entry that is about to be free'd
  */
 static void
-update_next_cache_bme(struct GNUNET_CONTAINER_MultiShortmap *map,
-                      const struct BigMapEntry *bme)
+update_next_cache_bme (struct GNUNET_CONTAINER_MultiShortmap *map,
+                       const struct BigMapEntry *bme)
 {
   for (unsigned int i = 0; i < map->next_cache_off; i++)
     if (map->next_cache[i].bme == bme)
@@ -413,8 +418,8 @@ update_next_cache_bme(struct GNUNET_CONTAINER_MultiShortmap *map,
  * @param sme the entry that is about to be free'd
  */
 static void
-update_next_cache_sme(struct GNUNET_CONTAINER_MultiShortmap *map,
-                      const struct SmallMapEntry *sme)
+update_next_cache_sme (struct GNUNET_CONTAINER_MultiShortmap *map,
+                       const struct SmallMapEntry *sme)
 {
   for (unsigned int i = 0; i < map->next_cache_off; i++)
     if (map->next_cache[i].sme == sme)
@@ -434,7 +439,7 @@ update_next_cache_sme(struct GNUNET_CONTAINER_MultiShortmap *map,
  *  is not in the map
  */
 int
-GNUNET_CONTAINER_multishortmap_remove(
+GNUNET_CONTAINER_multishortmap_remove (
   struct GNUNET_CONTAINER_MultiShortmap *map,
   const struct GNUNET_ShortHashCode *key,
   const void *value)
@@ -443,48 +448,48 @@ GNUNET_CONTAINER_multishortmap_remove(
   unsigned int i;
 
   map->modification_counter++;
-  i = idx_of(map, key);
+  i = idx_of (map, key);
   me = map->map[i];
   if (map->use_small_entries)
-    {
-      struct SmallMapEntry *p = NULL;
+  {
+    struct SmallMapEntry *p = NULL;
 
-      for (struct SmallMapEntry *sme = me.sme; NULL != sme; sme = sme->next)
-        {
-          if ((0 == GNUNET_memcmp(key, sme->key)) && (value == sme->value))
-            {
-              if (NULL == p)
-                map->map[i].sme = sme->next;
-              else
-                p->next = sme->next;
-              update_next_cache_sme(map, sme);
-              GNUNET_free(sme);
-              map->size--;
-              return GNUNET_YES;
-            }
-          p = sme;
-        }
+    for (struct SmallMapEntry *sme = me.sme; NULL != sme; sme = sme->next)
+    {
+      if ((0 == GNUNET_memcmp (key, sme->key)) && (value == sme->value))
+      {
+        if (NULL == p)
+          map->map[i].sme = sme->next;
+        else
+          p->next = sme->next;
+        update_next_cache_sme (map, sme);
+        GNUNET_free (sme);
+        map->size--;
+        return GNUNET_YES;
+      }
+      p = sme;
     }
+  }
   else
-    {
-      struct BigMapEntry *p = NULL;
+  {
+    struct BigMapEntry *p = NULL;
 
-      for (struct BigMapEntry *bme = me.bme; NULL != bme; bme = bme->next)
-        {
-          if ((0 == GNUNET_memcmp(key, &bme->key)) && (value == bme->value))
-            {
-              if (NULL == p)
-                map->map[i].bme = bme->next;
-              else
-                p->next = bme->next;
-              update_next_cache_bme(map, bme);
-              GNUNET_free(bme);
-              map->size--;
-              return GNUNET_YES;
-            }
-          p = bme;
-        }
+    for (struct BigMapEntry *bme = me.bme; NULL != bme; bme = bme->next)
+    {
+      if ((0 == GNUNET_memcmp (key, &bme->key)) && (value == bme->value))
+      {
+        if (NULL == p)
+          map->map[i].bme = bme->next;
+        else
+          p->next = bme->next;
+        update_next_cache_bme (map, bme);
+        GNUNET_free (bme);
+        map->size--;
+        return GNUNET_YES;
+      }
+      p = bme;
     }
+  }
   return GNUNET_NO;
 }
 
@@ -498,7 +503,7 @@ GNUNET_CONTAINER_multishortmap_remove(
  * @return number of values removed
  */
 int
-GNUNET_CONTAINER_multishortmap_remove_all(
+GNUNET_CONTAINER_multishortmap_remove_all (
   struct GNUNET_CONTAINER_MultiShortmap *map,
   const struct GNUNET_ShortHashCode *key)
 {
@@ -509,70 +514,70 @@ GNUNET_CONTAINER_multishortmap_remove_all(
   map->modification_counter++;
 
   ret = 0;
-  i = idx_of(map, key);
+  i = idx_of (map, key);
   me = map->map[i];
   if (map->use_small_entries)
-    {
-      struct SmallMapEntry *sme;
-      struct SmallMapEntry *p;
+  {
+    struct SmallMapEntry *sme;
+    struct SmallMapEntry *p;
 
-      p = NULL;
-      sme = me.sme;
-      while (NULL != sme)
-        {
-          if (0 == GNUNET_memcmp(key, sme->key))
-            {
-              if (NULL == p)
-                map->map[i].sme = sme->next;
-              else
-                p->next = sme->next;
-              update_next_cache_sme(map, sme);
-              GNUNET_free(sme);
-              map->size--;
-              if (NULL == p)
-                sme = map->map[i].sme;
-              else
-                sme = p->next;
-              ret++;
-            }
-          else
-            {
-              p = sme;
-              sme = sme->next;
-            }
-        }
+    p = NULL;
+    sme = me.sme;
+    while (NULL != sme)
+    {
+      if (0 == GNUNET_memcmp (key, sme->key))
+      {
+        if (NULL == p)
+          map->map[i].sme = sme->next;
+        else
+          p->next = sme->next;
+        update_next_cache_sme (map, sme);
+        GNUNET_free (sme);
+        map->size--;
+        if (NULL == p)
+          sme = map->map[i].sme;
+        else
+          sme = p->next;
+        ret++;
+      }
+      else
+      {
+        p = sme;
+        sme = sme->next;
+      }
     }
+  }
   else
-    {
-      struct BigMapEntry *bme;
-      struct BigMapEntry *p;
+  {
+    struct BigMapEntry *bme;
+    struct BigMapEntry *p;
 
-      p = NULL;
-      bme = me.bme;
-      while (NULL != bme)
-        {
-          if (0 == GNUNET_memcmp(key, &bme->key))
-            {
-              if (NULL == p)
-                map->map[i].bme = bme->next;
-              else
-                p->next = bme->next;
-              update_next_cache_bme(map, bme);
-              GNUNET_free(bme);
-              map->size--;
-              if (NULL == p)
-                bme = map->map[i].bme;
-              else
-                bme = p->next;
-              ret++;
-            }
-          else
-            {
-              p = bme;
-              bme = bme->next;
-            }
-        }
+    p = NULL;
+    bme = me.bme;
+    while (NULL != bme)
+    {
+      if (0 == GNUNET_memcmp (key, &bme->key))
+      {
+        if (NULL == p)
+          map->map[i].bme = bme->next;
+        else
+          p->next = bme->next;
+        update_next_cache_bme (map, bme);
+        GNUNET_free (bme);
+        map->size--;
+        if (NULL == p)
+          bme = map->map[i].bme;
+        else
+          bme = p->next;
+        ret++;
+      }
+      else
+      {
+        p = bme;
+        bme = bme->next;
+      }
     }
+  }
   return ret;
 }
 
@@ -587,25 +592,25 @@ GNUNET_CONTAINER_multishortmap_remove_all(
  *         #GNUNET_NO if not
  */
 int
-GNUNET_CONTAINER_multishortmap_contains(
+GNUNET_CONTAINER_multishortmap_contains (
   const struct GNUNET_CONTAINER_MultiShortmap *map,
   const struct GNUNET_ShortHashCode *key)
 {
   union MapEntry me;
 
-  me = map->map[idx_of(map, key)];
+  me = map->map[idx_of (map, key)];
   if (map->use_small_entries)
-    {
-      for (struct SmallMapEntry *sme = me.sme; NULL != sme; sme = sme->next)
-        if (0 == GNUNET_memcmp(key, sme->key))
-          return GNUNET_YES;
-    }
+  {
+    for (struct SmallMapEntry *sme = me.sme; NULL != sme; sme = sme->next)
+      if (0 == GNUNET_memcmp (key, sme->key))
+        return GNUNET_YES;
+  }
   else
-    {
-      for (struct BigMapEntry *bme = me.bme; NULL != bme; bme = bme->next)
-        if (0 == GNUNET_memcmp(key, &bme->key))
-          return GNUNET_YES;
-    }
+  {
+    for (struct BigMapEntry *bme = me.bme; NULL != bme; bme = bme->next)
+      if (0 == GNUNET_memcmp (key, &bme->key))
+        return GNUNET_YES;
+  }
   return GNUNET_NO;
 }
 
@@ -621,26 +626,26 @@ GNUNET_CONTAINER_multishortmap_contains(
  *         #GNUNET_NO if not
  */
 int
-GNUNET_CONTAINER_multishortmap_contains_value(
+GNUNET_CONTAINER_multishortmap_contains_value (
   const struct GNUNET_CONTAINER_MultiShortmap *map,
   const struct GNUNET_ShortHashCode *key,
   const void *value)
 {
   union MapEntry me;
 
-  me = map->map[idx_of(map, key)];
+  me = map->map[idx_of (map, key)];
   if (map->use_small_entries)
-    {
-      for (struct SmallMapEntry *sme = me.sme; NULL != sme; sme = sme->next)
-        if ((0 == GNUNET_memcmp(key, sme->key)) && (sme->value == value))
-          return GNUNET_YES;
-    }
+  {
+    for (struct SmallMapEntry *sme = me.sme; NULL != sme; sme = sme->next)
+      if ((0 == GNUNET_memcmp (key, sme->key)) && (sme->value == value))
+        return GNUNET_YES;
+  }
   else
-    {
-      for (struct BigMapEntry *bme = me.bme; NULL != bme; bme = bme->next)
-        if ((0 == GNUNET_memcmp(key, &bme->key)) && (bme->value == value))
-          return GNUNET_YES;
-    }
+  {
+    for (struct BigMapEntry *bme = me.bme; NULL != bme; bme = bme->next)
+      if ((0 == GNUNET_memcmp (key, &bme->key)) && (bme->value == value))
+        return GNUNET_YES;
+  }
   return GNUNET_NO;
 }
 
@@ -651,7 +656,7 @@ GNUNET_CONTAINER_multishortmap_contains_value(
  * @param map the hash map to grow
  */
 static void
-grow(struct GNUNET_CONTAINER_MultiShortmap *map)
+grow (struct GNUNET_CONTAINER_MultiShortmap *map)
 {
   union MapEntry *old_map;
   union MapEntry *new_map;
@@ -666,40 +671,40 @@ grow(struct GNUNET_CONTAINER_MultiShortmap *map)
     new_len = old_len; /* never use 0 */
   if (new_len == old_len)
     return; /* nothing changed */
-  new_map = GNUNET_malloc_large(new_len * sizeof(union MapEntry));
+  new_map = GNUNET_malloc_large (new_len * sizeof(union MapEntry));
   if (NULL == new_map)
     return; /* grow not possible */
   map->modification_counter++;
   map->map_length = new_len;
   map->map = new_map;
   for (unsigned int i = 0; i < old_len; i++)
+  {
+    if (map->use_small_entries)
     {
-      if (map->use_small_entries)
-        {
-          struct SmallMapEntry *sme;
+      struct SmallMapEntry *sme;
 
-          while (NULL != (sme = old_map[i].sme))
-            {
-              old_map[i].sme = sme->next;
-              idx = idx_of(map, sme->key);
-              sme->next = new_map[idx].sme;
-              new_map[idx].sme = sme;
-            }
-        }
-      else
-        {
-          struct BigMapEntry *bme;
-
-          while (NULL != (bme = old_map[i].bme))
-            {
-              old_map[i].bme = bme->next;
-              idx = idx_of(map, &bme->key);
-              bme->next = new_map[idx].bme;
-              new_map[idx].bme = bme;
-            }
-        }
+      while (NULL != (sme = old_map[i].sme))
+      {
+        old_map[i].sme = sme->next;
+        idx = idx_of (map, sme->key);
+        sme->next = new_map[idx].sme;
+        new_map[idx].sme = sme;
+      }
     }
-  GNUNET_free(old_map);
+    else
+    {
+      struct BigMapEntry *bme;
+
+      while (NULL != (bme = old_map[i].bme))
+      {
+        old_map[i].bme = bme->next;
+        idx = idx_of (map, &bme->key);
+        bme->next = new_map[idx].bme;
+        new_map[idx].bme = bme;
+      }
+    }
+  }
+  GNUNET_free (old_map);
 }
 
 
@@ -716,7 +721,7 @@ grow(struct GNUNET_CONTAINER_MultiShortmap *map)
  *                       value already exists
  */
 int
-GNUNET_CONTAINER_multishortmap_put(
+GNUNET_CONTAINER_multishortmap_put (
   struct GNUNET_CONTAINER_MultiShortmap *map,
   const struct GNUNET_ShortHashCode *key,
   void *value,
@@ -725,59 +730,59 @@ GNUNET_CONTAINER_multishortmap_put(
   union MapEntry me;
   unsigned int i;
 
-  i = idx_of(map, key);
+  i = idx_of (map, key);
   if ((opt != GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE) &&
       (opt != GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST))
+  {
+    me = map->map[i];
+    if (map->use_small_entries)
     {
-      me = map->map[i];
-      if (map->use_small_entries)
+      for (struct SmallMapEntry *sme = me.sme; NULL != sme; sme = sme->next)
+        if (0 == GNUNET_memcmp (key, sme->key))
         {
-          for (struct SmallMapEntry *sme = me.sme; NULL != sme; sme = sme->next)
-            if (0 == GNUNET_memcmp(key, sme->key))
-              {
-                if (opt == GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY)
-                  return GNUNET_SYSERR;
-                sme->value = value;
-                return GNUNET_NO;
-              }
-        }
-      else
-        {
-          for (struct BigMapEntry *bme = me.bme; NULL != bme; bme = bme->next)
-            if (0 == GNUNET_memcmp(key, &bme->key))
-              {
-                if (opt == GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY)
-                  return GNUNET_SYSERR;
-                bme->value = value;
-                return GNUNET_NO;
-              }
+          if (opt == GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY)
+            return GNUNET_SYSERR;
+          sme->value = value;
+          return GNUNET_NO;
         }
     }
+    else
+    {
+      for (struct BigMapEntry *bme = me.bme; NULL != bme; bme = bme->next)
+        if (0 == GNUNET_memcmp (key, &bme->key))
+        {
+          if (opt == GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY)
+            return GNUNET_SYSERR;
+          bme->value = value;
+          return GNUNET_NO;
+        }
+    }
+  }
   if (map->size / 3 >= map->map_length / 4)
-    {
-      grow(map);
-      i = idx_of(map, key);
-    }
+  {
+    grow (map);
+    i = idx_of (map, key);
+  }
   if (map->use_small_entries)
-    {
-      struct SmallMapEntry *sme;
+  {
+    struct SmallMapEntry *sme;
 
-      sme = GNUNET_new(struct SmallMapEntry);
-      sme->key = key;
-      sme->value = value;
-      sme->next = map->map[i].sme;
-      map->map[i].sme = sme;
-    }
+    sme = GNUNET_new (struct SmallMapEntry);
+    sme->key = key;
+    sme->value = value;
+    sme->next = map->map[i].sme;
+    map->map[i].sme = sme;
+  }
   else
-    {
-      struct BigMapEntry *bme;
+  {
+    struct BigMapEntry *bme;
 
-      bme = GNUNET_new(struct BigMapEntry);
-      bme->key = *key;
-      bme->value = value;
-      bme->next = map->map[i].bme;
-      map->map[i].bme = bme;
-    }
+    bme = GNUNET_new (struct BigMapEntry);
+    bme->key = *key;
+    bme->value = value;
+    bme->next = map->map[i].bme;
+    map->map[i].bme = bme;
+  }
   map->size++;
   return GNUNET_OK;
 }
@@ -794,7 +799,7 @@ GNUNET_CONTAINER_multishortmap_put(
  *         #GNUNET_SYSERR if it aborted iteration
  */
 int
-GNUNET_CONTAINER_multishortmap_get_multiple(
+GNUNET_CONTAINER_multishortmap_get_multiple (
   struct GNUNET_CONTAINER_MultiShortmap *map,
   const struct GNUNET_ShortHashCode *key,
   GNUNET_CONTAINER_ShortmapIterator it,
@@ -805,46 +810,46 @@ GNUNET_CONTAINER_multishortmap_get_multiple(
   union MapEntry *ce;
 
   ce = &map->next_cache[map->next_cache_off];
-  GNUNET_assert(++map->next_cache_off < NEXT_CACHE_SIZE);
+  GNUNET_assert (++map->next_cache_off < NEXT_CACHE_SIZE);
   count = 0;
-  me = map->map[idx_of(map, key)];
+  me = map->map[idx_of (map, key)];
   if (map->use_small_entries)
-    {
-      struct SmallMapEntry *sme;
+  {
+    struct SmallMapEntry *sme;
 
-      ce->sme = me.sme;
-      while (NULL != (sme = ce->sme))
-        {
-          ce->sme = sme->next;
-          if (0 != GNUNET_memcmp(key, sme->key))
-            continue;
-          if ((NULL != it) && (GNUNET_OK != it(it_cls, key, sme->value)))
-            {
-              GNUNET_assert(--map->next_cache_off < NEXT_CACHE_SIZE);
-              return GNUNET_SYSERR;
-            }
-          count++;
-        }
+    ce->sme = me.sme;
+    while (NULL != (sme = ce->sme))
+    {
+      ce->sme = sme->next;
+      if (0 != GNUNET_memcmp (key, sme->key))
+        continue;
+      if ((NULL != it) && (GNUNET_OK != it (it_cls, key, sme->value)))
+      {
+        GNUNET_assert (--map->next_cache_off < NEXT_CACHE_SIZE);
+        return GNUNET_SYSERR;
+      }
+      count++;
     }
+  }
   else
-    {
-      struct BigMapEntry *bme;
+  {
+    struct BigMapEntry *bme;
 
-      ce->bme = me.bme;
-      while (NULL != (bme = ce->bme))
-        {
-          ce->bme = bme->next;
-          if (0 != GNUNET_memcmp(key, &bme->key))
-            continue;
-          if ((NULL != it) && (GNUNET_OK != it(it_cls, key, bme->value)))
-            {
-              GNUNET_assert(--map->next_cache_off < NEXT_CACHE_SIZE);
-              return GNUNET_SYSERR;
-            }
-          count++;
-        }
+    ce->bme = me.bme;
+    while (NULL != (bme = ce->bme))
+    {
+      ce->bme = bme->next;
+      if (0 != GNUNET_memcmp (key, &bme->key))
+        continue;
+      if ((NULL != it) && (GNUNET_OK != it (it_cls, key, bme->value)))
+      {
+        GNUNET_assert (--map->next_cache_off < NEXT_CACHE_SIZE);
+        return GNUNET_SYSERR;
+      }
+      count++;
     }
-  GNUNET_assert(--map->next_cache_off < NEXT_CACHE_SIZE);
+  }
+  GNUNET_assert (--map->next_cache_off < NEXT_CACHE_SIZE);
   return count;
 }
 
@@ -861,7 +866,7 @@ GNUNET_CONTAINER_multishortmap_get_multiple(
  * @return the number of key value pairs processed, zero or one.
  */
 unsigned int
-GNUNET_CONTAINER_multishortmap_get_random(
+GNUNET_CONTAINER_multishortmap_get_random (
   const struct GNUNET_CONTAINER_MultiShortmap *map,
   GNUNET_CONTAINER_ShortmapIterator it,
   void *it_cls)
@@ -873,38 +878,38 @@ GNUNET_CONTAINER_multishortmap_get_random(
     return 0;
   if (NULL == it)
     return 1;
-  off = GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_NONCE, map->size);
+  off = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_NONCE, map->size);
   for (unsigned int idx = 0; idx < map->map_length; idx++)
+  {
+    me = map->map[idx];
+    if (map->use_small_entries)
     {
-      me = map->map[idx];
-      if (map->use_small_entries)
+      for (struct SmallMapEntry *sme = me.sme; NULL != sme; sme = sme->next)
+      {
+        if (0 == off)
         {
-          for (struct SmallMapEntry *sme = me.sme; NULL != sme; sme = sme->next)
-            {
-              if (0 == off)
-                {
-                  if (GNUNET_OK != it(it_cls, sme->key, sme->value))
-                    return GNUNET_SYSERR;
-                  return 1;
-                }
-              off--;
-            }
+          if (GNUNET_OK != it (it_cls, sme->key, sme->value))
+            return GNUNET_SYSERR;
+          return 1;
         }
-      else
-        {
-          for (struct BigMapEntry *bme = me.bme; NULL != bme; bme = bme->next)
-            {
-              if (0 == off)
-                {
-                  if (GNUNET_OK != it(it_cls, &bme->key, bme->value))
-                    return GNUNET_SYSERR;
-                  return 1;
-                }
-              off--;
-            }
-        }
+        off--;
+      }
     }
-  GNUNET_break(0);
+    else
+    {
+      for (struct BigMapEntry *bme = me.bme; NULL != bme; bme = bme->next)
+      {
+        if (0 == off)
+        {
+          if (GNUNET_OK != it (it_cls, &bme->key, bme->value))
+            return GNUNET_SYSERR;
+          return 1;
+        }
+        off--;
+      }
+    }
+  }
+  GNUNET_break (0);
   return GNUNET_SYSERR;
 }
 
@@ -922,12 +927,12 @@ GNUNET_CONTAINER_multishortmap_get_random(
  * @return an iterator over the given multishortmap 'map'
  */
 struct GNUNET_CONTAINER_MultiShortmapIterator *
-GNUNET_CONTAINER_multishortmap_iterator_create(
+GNUNET_CONTAINER_multishortmap_iterator_create (
   const struct GNUNET_CONTAINER_MultiShortmap *map)
 {
   struct GNUNET_CONTAINER_MultiShortmapIterator *iter;
 
-  iter = GNUNET_new(struct GNUNET_CONTAINER_MultiShortmapIterator);
+  iter = GNUNET_new (struct GNUNET_CONTAINER_MultiShortmapIterator);
   iter->map = map;
   iter->modification_counter = map->modification_counter;
   iter->me = map->map[0];
@@ -950,47 +955,47 @@ GNUNET_CONTAINER_multishortmap_iterator_create(
  *         #GNUNET_NO if we are out of elements
  */
 int
-GNUNET_CONTAINER_multishortmap_iterator_next(
+GNUNET_CONTAINER_multishortmap_iterator_next (
   struct GNUNET_CONTAINER_MultiShortmapIterator *iter,
   struct GNUNET_ShortHashCode *key,
   const void **value)
 {
   /* make sure the map has not been modified */
-  GNUNET_assert(iter->modification_counter == iter->map->modification_counter);
+  GNUNET_assert (iter->modification_counter == iter->map->modification_counter);
 
   /* look for the next entry, skipping empty buckets */
   while (1)
+  {
+    if (iter->idx >= iter->map->map_length)
+      return GNUNET_NO;
+    if (GNUNET_YES == iter->map->use_small_entries)
     {
-      if (iter->idx >= iter->map->map_length)
-        return GNUNET_NO;
-      if (GNUNET_YES == iter->map->use_small_entries)
-        {
-          if (NULL != iter->me.sme)
-            {
-              if (NULL != key)
-                *key = *iter->me.sme->key;
-              if (NULL != value)
-                *value = iter->me.sme->value;
-              iter->me.sme = iter->me.sme->next;
-              return GNUNET_YES;
-            }
-        }
-      else
-        {
-          if (NULL != iter->me.bme)
-            {
-              if (NULL != key)
-                *key = iter->me.bme->key;
-              if (NULL != value)
-                *value = iter->me.bme->value;
-              iter->me.bme = iter->me.bme->next;
-              return GNUNET_YES;
-            }
-        }
-      iter->idx += 1;
-      if (iter->idx < iter->map->map_length)
-        iter->me = iter->map->map[iter->idx];
+      if (NULL != iter->me.sme)
+      {
+        if (NULL != key)
+          *key = *iter->me.sme->key;
+        if (NULL != value)
+          *value = iter->me.sme->value;
+        iter->me.sme = iter->me.sme->next;
+        return GNUNET_YES;
+      }
     }
+    else
+    {
+      if (NULL != iter->me.bme)
+      {
+        if (NULL != key)
+          *key = iter->me.bme->key;
+        if (NULL != value)
+          *value = iter->me.bme->value;
+        iter->me.bme = iter->me.bme->next;
+        return GNUNET_YES;
+      }
+    }
+    iter->idx += 1;
+    if (iter->idx < iter->map->map_length)
+      iter->me = iter->map->map[iter->idx];
+  }
 }
 
 
@@ -1000,10 +1005,10 @@ GNUNET_CONTAINER_multishortmap_iterator_next(
  * @param iter the iterator to destroy
  */
 void
-GNUNET_CONTAINER_multishortmap_iterator_destroy(
+GNUNET_CONTAINER_multishortmap_iterator_destroy (
   struct GNUNET_CONTAINER_MultiShortmapIterator *iter)
 {
-  GNUNET_free(iter);
+  GNUNET_free (iter);
 }
 
 

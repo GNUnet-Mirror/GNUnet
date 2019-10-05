@@ -33,7 +33,8 @@ GNUNET_NETWORK_STRUCT_BEGIN
 /**
  * Message carrying a PEERSTORE record message
  */
-struct StoreRecordMessage {
+struct StoreRecordMessage
+{
   /**
    * GNUnet message header
    */
@@ -85,7 +86,8 @@ struct StoreRecordMessage {
 /**
  * Message carrying record key hash
  */
-struct StoreKeyHashMessage {
+struct StoreKeyHashMessage
+{
   /**
    * GNUnet message header
    */

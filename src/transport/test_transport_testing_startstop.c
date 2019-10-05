@@ -26,7 +26,7 @@
 #include "gnunet_transport_service.h"
 #include "transport-testing.h"
 
-#define TIMEOUT GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 30)
+#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30)
 
 
 static struct GNUNET_SCHEDULER_Task *timeout_task;
@@ -39,79 +39,79 @@ static int ret;
 
 
 static void
-end()
+end ()
 {
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-             "Stopping peers\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Stopping peers\n");
   if (NULL != timeout_task)
-    GNUNET_SCHEDULER_cancel(timeout_task);
+    GNUNET_SCHEDULER_cancel (timeout_task);
   if (NULL != p)
-    GNUNET_TRANSPORT_TESTING_stop_peer(p);
+    GNUNET_TRANSPORT_TESTING_stop_peer (p);
   if (NULL != tth)
-    GNUNET_TRANSPORT_TESTING_done(tth);
+    GNUNET_TRANSPORT_TESTING_done (tth);
 }
 
 
 static void
-end_badly()
+end_badly ()
 {
   timeout_task = NULL;
-  GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
-             "Timeout!\n");
-  end();
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+              "Timeout!\n");
+  end ();
   ret = GNUNET_SYSERR;
 }
 
 
 static void
-start_cb(void *cls)
+start_cb (void *cls)
 {
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-             "Peer %u (`%s') successfully started\n",
-             p->no,
-             GNUNET_i2s(&p->id));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Peer %u (`%s') successfully started\n",
+              p->no,
+              GNUNET_i2s (&p->id));
   ret = 0;
-  GNUNET_SCHEDULER_add_now(&end,
-                           NULL);
+  GNUNET_SCHEDULER_add_now (&end,
+                            NULL);
 }
 
 
 static void
-run(void *cls,
-    char *const *args,
-    const char *cfgfile,
-    const struct GNUNET_CONFIGURATION_Handle *cfg)
+run (void *cls,
+     char *const *args,
+     const char *cfgfile,
+     const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   ret = 1;
-  tth = GNUNET_TRANSPORT_TESTING_init();
-  GNUNET_assert(NULL != tth);
+  tth = GNUNET_TRANSPORT_TESTING_init ();
+  GNUNET_assert (NULL != tth);
 
   timeout_task =
-    GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_UNIT_MINUTES,
-                                 &end_badly,
-                                 NULL);
+    GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MINUTES,
+                                  &end_badly,
+                                  NULL);
 
-  p = GNUNET_TRANSPORT_TESTING_start_peer(tth,
-                                          cfgfile,
-                                          1,
-                                          NULL,  /* receive cb */
-                                          NULL,  /* connect cb */
-                                          NULL,  /* disconnect cb */
-                                          NULL,  /* nc/nd closure */
-                                          &start_cb,  /* startup cb */
-                                          NULL);  /* closure */
+  p = GNUNET_TRANSPORT_TESTING_start_peer (tth,
+                                           cfgfile,
+                                           1,
+                                           NULL, /* receive cb */
+                                           NULL, /* connect cb */
+                                           NULL, /* disconnect cb */
+                                           NULL, /* nc/nd closure */
+                                           &start_cb, /* startup cb */
+                                           NULL); /* closure */
   if (NULL == p)
-    {
-      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Failed to start peer\n");
-      if (timeout_task != NULL)
-        GNUNET_SCHEDULER_cancel(timeout_task);
-      timeout_task = GNUNET_SCHEDULER_add_now(&end_badly, NULL);
-    }
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Failed to start peer\n");
+    if (timeout_task != NULL)
+      GNUNET_SCHEDULER_cancel (timeout_task);
+    timeout_task = GNUNET_SCHEDULER_add_now (&end_badly, NULL);
+  }
 }
 
 
 int
-main(int argc, char *argv[])
+main (int argc, char *argv[])
 {
   char *const argv_1[] = { "test_transport_testing",
                            "-c",
@@ -121,15 +121,15 @@ main(int argc, char *argv[])
     GNUNET_GETOPT_OPTION_END
   };
 
-  GNUNET_log_setup("test_transport_testing_startstop",
-                   "WARNING",
-                   NULL);
-  GNUNET_PROGRAM_run((sizeof(argv_1) / sizeof(char *)) - 1,
-                     argv_1,
-                     "test_transport_testing_startstop", "nohelp",
-                     options,
-                     &run,
-                     &ret);
+  GNUNET_log_setup ("test_transport_testing_startstop",
+                    "WARNING",
+                    NULL);
+  GNUNET_PROGRAM_run ((sizeof(argv_1) / sizeof(char *)) - 1,
+                      argv_1,
+                      "test_transport_testing_startstop", "nohelp",
+                      options,
+                      &run,
+                      &ret);
 
   return ret;
 }

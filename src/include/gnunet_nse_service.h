@@ -80,7 +80,7 @@ typedef void (*GNUNET_NSE_Callback) (void *cls,
  * @param loge logarithmic estimate
  * @return absolute number of peers in the network (estimated)
  */
-#define GNUNET_NSE_log_estimate_to_n(loge) pow(2.0, (loge))
+#define GNUNET_NSE_log_estimate_to_n(loge) pow (2.0, (loge))
 
 
 /**
@@ -92,8 +92,8 @@ typedef void (*GNUNET_NSE_Callback) (void *cls,
  * @return handle to use in #GNUNET_NSE_disconnect to stop NSE from invoking the callbacks
  */
 struct GNUNET_NSE_Handle *
-GNUNET_NSE_connect(const struct GNUNET_CONFIGURATION_Handle *cfg,
-                   GNUNET_NSE_Callback func, void *func_cls);
+GNUNET_NSE_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
+                    GNUNET_NSE_Callback func, void *func_cls);
 
 
 /**
@@ -102,7 +102,7 @@ GNUNET_NSE_connect(const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @param h handle to destroy
  */
 void
-GNUNET_NSE_disconnect(struct GNUNET_NSE_Handle *h);
+GNUNET_NSE_disconnect (struct GNUNET_NSE_Handle *h);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

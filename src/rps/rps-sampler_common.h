@@ -103,7 +103,8 @@ typedef void
 /**
  * Closure for #sampler_mod_get_rand_peer() and #sampler_get_rand_peer
  */
-struct GetPeerCls {
+struct GetPeerCls
+{
   /**
    * DLL
    */
@@ -150,12 +151,13 @@ struct GetPeerCls {
 /**
  * Sampler with its own array of SamplerElements
  */
-struct RPS_Sampler {
+struct RPS_Sampler
+{
   /**
    * Number of sampler elements we hold.
    */
   unsigned int sampler_size;
-  //size_t size;
+  // size_t size;
 
   /**
    * All sampler elements in one array.
@@ -220,8 +222,8 @@ struct RPS_Sampler {
  * @param num_peers The estimated value
  */
 void
-RPS_sampler_update_with_nw_size(struct RPS_Sampler *sampler,
-                                uint32_t num_peers);
+RPS_sampler_update_with_nw_size (struct RPS_Sampler *sampler,
+                                 uint32_t num_peers);
 
 
 /**
@@ -235,8 +237,8 @@ RPS_sampler_update_with_nw_size(struct RPS_Sampler *sampler,
  * @param desired_probability
  */
 void
-RPS_sampler_set_desired_probability(struct RPS_Sampler *sampler,
-                                    double desired_probability);
+RPS_sampler_set_desired_probability (struct RPS_Sampler *sampler,
+                                     double desired_probability);
 
 
 /**
@@ -249,8 +251,8 @@ RPS_sampler_set_desired_probability(struct RPS_Sampler *sampler,
  * @param desired_probability
  */
 void
-RPS_sampler_set_deficiency_factor(struct RPS_Sampler *sampler,
-                                  double deficiency_factor);
+RPS_sampler_set_deficiency_factor (struct RPS_Sampler *sampler,
+                                   double deficiency_factor);
 
 
 /**
@@ -264,9 +266,9 @@ RPS_sampler_set_deficiency_factor(struct RPS_Sampler *sampler,
  * @return The context containing callback and closure
  */
 struct SamplerNotifyUpdateCTX *
-sampler_notify_on_update(struct RPS_Sampler *sampler,
-                         SamplerNotifyUpdateCB notify_cb,
-                         void *cls);
+sampler_notify_on_update (struct RPS_Sampler *sampler,
+                          SamplerNotifyUpdateCB notify_cb,
+                          void *cls);
 
 
 /**
@@ -276,8 +278,8 @@ sampler_notify_on_update(struct RPS_Sampler *sampler,
  * @param id the PeerID that is put in the sampler
  */
 void
-RPS_sampler_update(struct RPS_Sampler *sampler,
-                   const struct GNUNET_PeerIdentity *id);
+RPS_sampler_update (struct RPS_Sampler *sampler,
+                    const struct GNUNET_PeerIdentity *id);
 
 
 /**
@@ -289,8 +291,8 @@ RPS_sampler_update(struct RPS_Sampler *sampler,
  * @param id the id of the sampler elements to update.
  */
 void
-RPS_sampler_reinitialise_by_value(struct RPS_Sampler *sampler,
-                                  const struct GNUNET_PeerIdentity *id);
+RPS_sampler_reinitialise_by_value (struct RPS_Sampler *sampler,
+                                   const struct GNUNET_PeerIdentity *id);
 
 
 /**
@@ -300,7 +302,7 @@ RPS_sampler_reinitialise_by_value(struct RPS_Sampler *sampler,
  * @return the size of the sampler
  */
 unsigned int
-RPS_sampler_get_size(struct RPS_Sampler *sampler);
+RPS_sampler_get_size (struct RPS_Sampler *sampler);
 
 
 /**
@@ -310,7 +312,7 @@ RPS_sampler_get_size(struct RPS_Sampler *sampler);
  * @param new_size the new size of the sampler
  */
 void
-RPS_sampler_resize(struct RPS_Sampler *sampler, unsigned int new_size);
+RPS_sampler_resize (struct RPS_Sampler *sampler, unsigned int new_size);
 
 
 /**
@@ -328,10 +330,10 @@ RPS_sampler_resize(struct RPS_Sampler *sampler, unsigned int new_size);
  * @param num_peers the number of peers requested
  */
 struct RPS_SamplerRequestHandle *
-RPS_sampler_get_n_rand_peers(struct RPS_Sampler *sampler,
-                             uint32_t num_peers,
-                             RPS_sampler_n_rand_peers_ready_cb cb,
-                             void *cls);
+RPS_sampler_get_n_rand_peers (struct RPS_Sampler *sampler,
+                              uint32_t num_peers,
+                              RPS_sampler_n_rand_peers_ready_cb cb,
+                              void *cls);
 
 
 /**
@@ -342,9 +344,9 @@ RPS_sampler_get_n_rand_peers(struct RPS_Sampler *sampler,
  * @param cls closure given to @a cb
  */
 struct RPS_SamplerRequestHandleSingleInfo *
-RPS_sampler_get_rand_peer_info(struct RPS_Sampler *sampler,
-                               RPS_sampler_sinlge_info_ready_cb cb,
-                               void *cls);
+RPS_sampler_get_rand_peer_info (struct RPS_Sampler *sampler,
+                                RPS_sampler_sinlge_info_ready_cb cb,
+                                void *cls);
 
 
 /**
@@ -356,8 +358,8 @@ RPS_sampler_get_rand_peer_info(struct RPS_Sampler *sampler,
  * @return the number of occurrences of id.
  */
 uint32_t
-RPS_sampler_count_id(struct RPS_Sampler *sampler,
-                     const struct GNUNET_PeerIdentity *id);
+RPS_sampler_count_id (struct RPS_Sampler *sampler,
+                      const struct GNUNET_PeerIdentity *id);
 
 
 /**
@@ -366,7 +368,7 @@ RPS_sampler_count_id(struct RPS_Sampler *sampler,
  * @param req_handle the handle to the request
  */
 void
-RPS_sampler_request_cancel(struct RPS_SamplerRequestHandle *req_handle);
+RPS_sampler_request_cancel (struct RPS_SamplerRequestHandle *req_handle);
 
 
 /**
@@ -375,7 +377,7 @@ RPS_sampler_request_cancel(struct RPS_SamplerRequestHandle *req_handle);
  * @param req_handle the handle to the request
  */
 void
-RPS_sampler_request_single_info_cancel(
+RPS_sampler_request_single_info_cancel (
   struct RPS_SamplerRequestHandleSingleInfo *req_single_info_handle);
 
 
@@ -383,7 +385,7 @@ RPS_sampler_request_single_info_cancel(
  * Cleans the sampler.
  */
 void
-RPS_sampler_destroy(struct RPS_Sampler *sampler);
+RPS_sampler_destroy (struct RPS_Sampler *sampler);
 
 #endif /* RPS_SAMPLER_COMMON_H */
 /* end of rps-sampler_common.h */

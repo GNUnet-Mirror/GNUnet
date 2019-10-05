@@ -36,7 +36,8 @@
 /**
  * Functions to call with this peer's HELLO.
  */
-struct GNUNET_TRANSPORT_HelloGetHandle {
+struct GNUNET_TRANSPORT_HelloGetHandle
+{
   /**
    * Our configuration.
    */
@@ -87,22 +88,22 @@ struct GNUNET_TRANSPORT_HelloGetHandle {
  * @return #GNUNET_OK if message is well-formed
  */
 static int
-check_hello(void *cls,
-            const struct GNUNET_MessageHeader *msg)
+check_hello (void *cls,
+             const struct GNUNET_MessageHeader *msg)
 {
   struct GNUNET_PeerIdentity me;
 
   if (GNUNET_OK !=
-      GNUNET_HELLO_get_id((const struct GNUNET_HELLO_Message *)msg,
-                          &me))
-    {
-      GNUNET_break(0);
-      return GNUNET_SYSERR;
-    }
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-             "Receiving (my own) HELLO message (%u bytes), I am `%s'.\n",
-             (unsigned int)ntohs(msg->size),
-             GNUNET_i2s(&me));
+      GNUNET_HELLO_get_id ((const struct GNUNET_HELLO_Message *) msg,
+                           &me))
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Receiving (my own) HELLO message (%u bytes), I am `%s'.\n",
+              (unsigned int) ntohs (msg->size),
+              GNUNET_i2s (&me));
   return GNUNET_OK;
 }
 
@@ -114,13 +115,13 @@ check_hello(void *cls,
  * @param msg message received
  */
 static void
-handle_hello(void *cls,
-             const struct GNUNET_MessageHeader *msg)
+handle_hello (void *cls,
+              const struct GNUNET_MessageHeader *msg)
 {
   struct GNUNET_TRANSPORT_HelloGetHandle *ghh = cls;
 
-  ghh->rec(ghh->rec_cls,
-           msg);
+  ghh->rec (ghh->rec_cls,
+            msg);
 }
 
 
@@ -131,7 +132,7 @@ handle_hello(void *cls,
  * @param ghh transport service to reconnect
  */
 static void
-schedule_reconnect(struct GNUNET_TRANSPORT_HelloGetHandle *ghh);
+schedule_reconnect (struct GNUNET_TRANSPORT_HelloGetHandle *ghh);
 
 
 /**
@@ -144,16 +145,16 @@ schedule_reconnect(struct GNUNET_TRANSPORT_HelloGetHandle *ghh);
  * @param error error code
  */
 static void
-mq_error_handler(void *cls,
-                 enum GNUNET_MQ_Error error)
+mq_error_handler (void *cls,
+                  enum GNUNET_MQ_Error error)
 {
   struct GNUNET_TRANSPORT_HelloGetHandle *ghh = cls;
 
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-             "Error receiving from transport service, disconnecting temporarily.\n");
-  GNUNET_MQ_destroy(ghh->mq);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Error receiving from transport service, disconnecting temporarily.\n");
+  GNUNET_MQ_destroy (ghh->mq);
   ghh->mq = NULL;
-  schedule_reconnect(ghh);
+  schedule_reconnect (ghh);
 }
 
 
@@ -163,35 +164,35 @@ mq_error_handler(void *cls,
  * @param cls the handle to the transport service
  */
 static void
-reconnect(void *cls)
+reconnect (void *cls)
 {
   struct GNUNET_TRANSPORT_HelloGetHandle *ghh = cls;
   struct GNUNET_MQ_MessageHandler handlers[] = {
-    GNUNET_MQ_hd_var_size(hello,
-                          GNUNET_MESSAGE_TYPE_HELLO,
-                          struct GNUNET_MessageHeader,
-                          ghh),
-    GNUNET_MQ_handler_end()
+    GNUNET_MQ_hd_var_size (hello,
+                           GNUNET_MESSAGE_TYPE_HELLO,
+                           struct GNUNET_MessageHeader,
+                           ghh),
+    GNUNET_MQ_handler_end ()
   };
   struct GNUNET_MQ_Envelope *env;
   struct StartMessage *s;
 
   ghh->reconnect_task = NULL;
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-             "Connecting to transport service.\n");
-  GNUNET_assert(NULL == ghh->mq);
-  ghh->mq = GNUNET_CLIENT_connect(ghh->cfg,
-                                  "transport",
-                                  handlers,
-                                  &mq_error_handler,
-                                  ghh);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Connecting to transport service.\n");
+  GNUNET_assert (NULL == ghh->mq);
+  ghh->mq = GNUNET_CLIENT_connect (ghh->cfg,
+                                   "transport",
+                                   handlers,
+                                   &mq_error_handler,
+                                   ghh);
   if (NULL == ghh->mq)
     return;
-  env = GNUNET_MQ_msg(s,
-                      GNUNET_MESSAGE_TYPE_TRANSPORT_START);
-  s->options = htonl(0);
-  GNUNET_MQ_send(ghh->mq,
-                 env);
+  env = GNUNET_MQ_msg (s,
+                       GNUNET_MESSAGE_TYPE_TRANSPORT_START);
+  s->options = htonl (0);
+  GNUNET_MQ_send (ghh->mq,
+                  env);
 }
 
 
@@ -202,13 +203,13 @@ reconnect(void *cls)
  * @param ghh transport service to reconnect
  */
 static void
-schedule_reconnect(struct GNUNET_TRANSPORT_HelloGetHandle *ghh)
+schedule_reconnect (struct GNUNET_TRANSPORT_HelloGetHandle *ghh)
 {
   ghh->reconnect_task =
-    GNUNET_SCHEDULER_add_delayed(ghh->reconnect_delay,
-                                 &reconnect,
-                                 ghh);
-  ghh->reconnect_delay = GNUNET_TIME_STD_BACKOFF(ghh->reconnect_delay);
+    GNUNET_SCHEDULER_add_delayed (ghh->reconnect_delay,
+                                  &reconnect,
+                                  ghh);
+  ghh->reconnect_delay = GNUNET_TIME_STD_BACKOFF (ghh->reconnect_delay);
 }
 
 
@@ -226,24 +227,24 @@ schedule_reconnect(struct GNUNET_TRANSPORT_HelloGetHandle *ghh)
  * @return handle to cancel the operation
  */
 struct GNUNET_TRANSPORT_HelloGetHandle *
-GNUNET_TRANSPORT_hello_get(const struct GNUNET_CONFIGURATION_Handle *cfg,
-                           enum GNUNET_TRANSPORT_AddressClass ac,
-                           GNUNET_TRANSPORT_HelloUpdateCallback rec,
-                           void *rec_cls)
+GNUNET_TRANSPORT_hello_get (const struct GNUNET_CONFIGURATION_Handle *cfg,
+                            enum GNUNET_TRANSPORT_AddressClass ac,
+                            GNUNET_TRANSPORT_HelloUpdateCallback rec,
+                            void *rec_cls)
 {
   struct GNUNET_TRANSPORT_HelloGetHandle *ghh;
 
-  ghh = GNUNET_new(struct GNUNET_TRANSPORT_HelloGetHandle);
+  ghh = GNUNET_new (struct GNUNET_TRANSPORT_HelloGetHandle);
   ghh->rec = rec;
   ghh->rec_cls = rec_cls;
   ghh->cfg = cfg;
   ghh->ac = ac;
-  reconnect(ghh);
+  reconnect (ghh);
   if (NULL == ghh->mq)
-    {
-      GNUNET_free(ghh);
-      return NULL;
-    }
+  {
+    GNUNET_free (ghh);
+    return NULL;
+  }
   return ghh;
 }
 
@@ -254,19 +255,19 @@ GNUNET_TRANSPORT_hello_get(const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @param ghh handle to cancel
  */
 void
-GNUNET_TRANSPORT_hello_get_cancel(struct GNUNET_TRANSPORT_HelloGetHandle *ghh)
+GNUNET_TRANSPORT_hello_get_cancel (struct GNUNET_TRANSPORT_HelloGetHandle *ghh)
 {
   if (NULL != ghh->reconnect_task)
-    {
-      GNUNET_SCHEDULER_cancel(ghh->reconnect_task);
-      ghh->reconnect_task = NULL;
-    }
+  {
+    GNUNET_SCHEDULER_cancel (ghh->reconnect_task);
+    ghh->reconnect_task = NULL;
+  }
   if (NULL != ghh->mq)
-    {
-      GNUNET_MQ_destroy(ghh->mq);
-      ghh->mq = NULL;
-    }
-  GNUNET_free(ghh);
+  {
+    GNUNET_MQ_destroy (ghh->mq);
+    ghh->mq = NULL;
+  }
+  GNUNET_free (ghh);
 }
 
 

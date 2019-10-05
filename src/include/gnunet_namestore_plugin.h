@@ -57,7 +57,8 @@ extern "C"
 typedef void
 (*GNUNET_NAMESTORE_RecordIterator) (void *cls,
                                     uint64_t serial,
-                                    const struct GNUNET_CRYPTO_EcdsaPrivateKey *private_key,
+                                    const struct
+                                    GNUNET_CRYPTO_EcdsaPrivateKey *private_key,
                                     const char *label,
                                     unsigned int rd_count,
                                     const struct GNUNET_GNSRECORD_Data *rd);
@@ -66,7 +67,8 @@ typedef void
 /**
  * @brief struct returned by the initialization function of the plugin
  */
-struct GNUNET_NAMESTORE_PluginFunctions {
+struct GNUNET_NAMESTORE_PluginFunctions
+{
   /**
    * Closure to pass to all plugin functions.
    */

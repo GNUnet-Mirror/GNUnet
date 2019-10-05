@@ -205,16 +205,16 @@ static int expected[] = {
 };
 
 int
-main(int argc, char *argv[])
+main (int argc, char *argv[])
 {
   char buf[1024];
   int i;
 
-  GNUNET_log_setup("test-crypto-crc", "WARNING", NULL);
+  GNUNET_log_setup ("test-crypto-crc", "WARNING", NULL);
   for (i = 0; i < 1024; i++)
-    buf[i] = (char)i;
+    buf[i] = (char) i;
   for (i = 0; i < 1024; i++)
-    if (expected[i] != GNUNET_CRYPTO_crc32_n(&buf[i], 1024 - i))
+    if (expected[i] != GNUNET_CRYPTO_crc32_n (&buf[i], 1024 - i))
       return 1;
   return 0;
 }

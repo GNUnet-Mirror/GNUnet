@@ -66,7 +66,8 @@ struct GNUNET_TRANSPORT_ManipulationHandle;
  * @return NULL on error
  */
 struct GNUNET_TRANSPORT_ManipulationHandle *
-GNUNET_TRANSPORT_manipulation_connect(const struct GNUNET_CONFIGURATION_Handle *cfg);
+GNUNET_TRANSPORT_manipulation_connect (const struct
+                                       GNUNET_CONFIGURATION_Handle *cfg);
 
 
 /**
@@ -75,7 +76,9 @@ GNUNET_TRANSPORT_manipulation_connect(const struct GNUNET_CONFIGURATION_Handle *
  * @param handle handle returned from connect
  */
 void
-GNUNET_TRANSPORT_manipulation_disconnect(struct GNUNET_TRANSPORT_ManipulationHandle *handle);
+GNUNET_TRANSPORT_manipulation_disconnect (struct
+                                          GNUNET_TRANSPORT_ManipulationHandle *
+                                          handle);
 
 
 /**
@@ -91,11 +94,12 @@ GNUNET_TRANSPORT_manipulation_disconnect(struct GNUNET_TRANSPORT_ManipulationHan
  * with one message delay.
  */
 void
-GNUNET_TRANSPORT_manipulation_set(struct GNUNET_TRANSPORT_ManipulationHandle *handle,
-                                  const struct GNUNET_PeerIdentity *peer,
-                                  const struct GNUNET_ATS_Properties *prop,
-                                  struct GNUNET_TIME_Relative delay_in,
-                                  struct GNUNET_TIME_Relative delay_out);
+GNUNET_TRANSPORT_manipulation_set (struct
+                                   GNUNET_TRANSPORT_ManipulationHandle *handle,
+                                   const struct GNUNET_PeerIdentity *peer,
+                                   const struct GNUNET_ATS_Properties *prop,
+                                   struct GNUNET_TIME_Relative delay_in,
+                                   struct GNUNET_TIME_Relative delay_out);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

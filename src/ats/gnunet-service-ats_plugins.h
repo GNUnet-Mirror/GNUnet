@@ -41,14 +41,14 @@
  *         solver plugin)
  */
 int
-GAS_plugin_init(const struct GNUNET_CONFIGURATION_Handle *cfg);
+GAS_plugin_init (const struct GNUNET_CONFIGURATION_Handle *cfg);
 
 
 /**
  * Shutdown address subsystem.
  */
 void
-GAS_plugin_done(void);
+GAS_plugin_done (void);
 
 
 /**
@@ -59,9 +59,9 @@ GAS_plugin_done(void);
  * @param pref_rel the new relative preference value
  */
 void
-GAS_plugin_notify_preference_changed(const struct GNUNET_PeerIdentity *peer,
-                                     enum GNUNET_ATS_PreferenceKind kind,
-                                     double pref_rel);
+GAS_plugin_notify_preference_changed (const struct GNUNET_PeerIdentity *peer,
+                                      enum GNUNET_ATS_PreferenceKind kind,
+                                      double pref_rel);
 
 
 /**
@@ -70,7 +70,7 @@ GAS_plugin_notify_preference_changed(const struct GNUNET_PeerIdentity *peer,
  * @param address the peer
  */
 void
-GAS_plugin_notify_property_changed(struct ATS_Address *address);
+GAS_plugin_notify_property_changed (struct ATS_Address *address);
 
 
 /**
@@ -81,7 +81,7 @@ GAS_plugin_notify_property_changed(struct ATS_Address *address);
  * @param addr_net network scope the address is in
  */
 void
-GAS_plugin_new_address(struct ATS_Address *new_address);
+GAS_plugin_new_address (struct ATS_Address *new_address);
 
 
 /**
@@ -91,7 +91,7 @@ GAS_plugin_new_address(struct ATS_Address *new_address);
  * @param address address that was deleted
  */
 void
-GAS_plugin_delete_address(struct ATS_Address *address);
+GAS_plugin_delete_address (struct ATS_Address *address);
 
 
 /**
@@ -105,11 +105,11 @@ GAS_plugin_delete_address(struct ATS_Address *address);
  * @param score_abs degree of the appreciation
  */
 void
-GAS_plugin_notify_feedback(struct GNUNET_SERVICE_Client *application,
-                           const struct GNUNET_PeerIdentity *peer,
-                           const struct GNUNET_TIME_Relative scope,
-                           enum GNUNET_ATS_PreferenceKind kind,
-                           float score_abs);
+GAS_plugin_notify_feedback (struct GNUNET_SERVICE_Client *application,
+                            const struct GNUNET_PeerIdentity *peer,
+                            const struct GNUNET_TIME_Relative scope,
+                            enum GNUNET_ATS_PreferenceKind kind,
+                            float score_abs);
 
 
 /**
@@ -117,14 +117,14 @@ GAS_plugin_notify_feedback(struct GNUNET_SERVICE_Client *application,
  * happening in bulk right now.
  */
 void
-GAS_plugin_solver_lock(void);
+GAS_plugin_solver_lock (void);
 
 
 /**
  * Resume instant solving, we are done with the bulk state updates.
  */
 void
-GAS_plugin_solver_unlock(void);
+GAS_plugin_solver_unlock (void);
 
 
 /**
@@ -134,7 +134,7 @@ GAS_plugin_solver_unlock(void);
  * @param pid identity of peer we now care about
  */
 void
-GAS_plugin_request_connect_start(const struct GNUNET_PeerIdentity *pid);
+GAS_plugin_request_connect_start (const struct GNUNET_PeerIdentity *pid);
 
 
 /**
@@ -144,7 +144,7 @@ GAS_plugin_request_connect_start(const struct GNUNET_PeerIdentity *pid);
  * @param pid identity of peer we care now less about
  */
 void
-GAS_plugin_request_connect_stop(const struct GNUNET_PeerIdentity *pid);
+GAS_plugin_request_connect_stop (const struct GNUNET_PeerIdentity *pid);
 
 
 #endif

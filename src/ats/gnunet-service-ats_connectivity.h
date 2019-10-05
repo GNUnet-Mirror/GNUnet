@@ -38,8 +38,8 @@
  * @return #GNUNET_YES if so, #GNUNET_NO if not
  */
 unsigned int
-GAS_connectivity_has_peer(void *cls,
-                          const struct GNUNET_PeerIdentity *peer);
+GAS_connectivity_has_peer (void *cls,
+                           const struct GNUNET_PeerIdentity *peer);
 
 
 /**
@@ -49,8 +49,8 @@ GAS_connectivity_has_peer(void *cls,
  * @param msg the request message
  */
 void
-GAS_handle_request_address(struct GNUNET_SERVICE_Client *client,
-                           const struct RequestAddressMessage *msg);
+GAS_handle_request_address (struct GNUNET_SERVICE_Client *client,
+                            const struct RequestAddressMessage *msg);
 
 
 /**
@@ -60,8 +60,8 @@ GAS_handle_request_address(struct GNUNET_SERVICE_Client *client,
  * @param msg the request message
  */
 void
-GAS_handle_request_address_cancel(struct GNUNET_SERVICE_Client *client,
-                                  const struct RequestAddressMessage *msg);
+GAS_handle_request_address_cancel (struct GNUNET_SERVICE_Client *client,
+                                   const struct RequestAddressMessage *msg);
 
 
 /**
@@ -71,21 +71,21 @@ GAS_handle_request_address_cancel(struct GNUNET_SERVICE_Client *client,
  * @param client handle of the (now dead) client
  */
 void
-GAS_connectivity_remove_client(struct GNUNET_SERVICE_Client *client);
+GAS_connectivity_remove_client (struct GNUNET_SERVICE_Client *client);
 
 
 /**
  * Initialize connectivity subsystem.
  */
 void
-GAS_connectivity_init(void);
+GAS_connectivity_init (void);
 
 
 /**
  * Shutdown connectivity subsystem.
  */
 void
-GAS_connectivity_done(void);
+GAS_connectivity_done (void);
 
 
 #endif

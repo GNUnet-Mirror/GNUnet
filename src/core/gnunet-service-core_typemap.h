@@ -42,8 +42,8 @@ struct GSC_TypeMap;
  * @param tlen number of entries in @a types
  */
 void
-GSC_TYPEMAP_add(const uint16_t *types,
-                unsigned int tlen);
+GSC_TYPEMAP_add (const uint16_t *types,
+                 unsigned int tlen);
 
 
 /**
@@ -53,8 +53,8 @@ GSC_TYPEMAP_add(const uint16_t *types,
  * @param tlen number of entries in @a types
  */
 void
-GSC_TYPEMAP_remove(const uint16_t *types,
-                   unsigned int tlen);
+GSC_TYPEMAP_remove (const uint16_t *types,
+                    unsigned int tlen);
 
 
 /**
@@ -63,7 +63,7 @@ GSC_TYPEMAP_remove(const uint16_t *types,
  * @return this peers current type map message.
  */
 struct GNUNET_MessageHeader *
-GSC_TYPEMAP_compute_type_map_message(void);
+GSC_TYPEMAP_compute_type_map_message (void);
 
 
 /**
@@ -73,7 +73,7 @@ GSC_TYPEMAP_compute_type_map_message(void);
  * @return #GNUNET_YES if the hash matches, #GNUNET_NO if not
  */
 int
-GSC_TYPEMAP_check_hash(const struct GNUNET_HashCode *hc);
+GSC_TYPEMAP_check_hash (const struct GNUNET_HashCode *hc);
 
 
 /**
@@ -83,8 +83,8 @@ GSC_TYPEMAP_check_hash(const struct GNUNET_HashCode *hc);
  * @param hc where to store the hash code
  */
 void
-GSC_TYPEMAP_hash(const struct GSC_TypeMap *tm,
-                 struct GNUNET_HashCode *hc);
+GSC_TYPEMAP_hash (const struct GSC_TypeMap *tm,
+                  struct GNUNET_HashCode *hc);
 
 
 /**
@@ -96,7 +96,7 @@ GSC_TYPEMAP_hash(const struct GSC_TypeMap *tm,
  * @return NULL on error
  */
 struct GSC_TypeMap *
-GSC_TYPEMAP_get_from_message(const struct GNUNET_MessageHeader *msg);
+GSC_TYPEMAP_get_from_message (const struct GNUNET_MessageHeader *msg);
 
 
 /**
@@ -109,9 +109,9 @@ GSC_TYPEMAP_get_from_message(const struct GNUNET_MessageHeader *msg);
  * @return #GNUNET_YES if a type is in the map, #GNUNET_NO if not
  */
 int
-GSC_TYPEMAP_test_match(const struct GSC_TypeMap *tmap,
-                       const uint16_t *types,
-                       unsigned int tcnt);
+GSC_TYPEMAP_test_match (const struct GSC_TypeMap *tmap,
+                        const uint16_t *types,
+                        unsigned int tcnt);
 
 
 /**
@@ -123,9 +123,9 @@ GSC_TYPEMAP_test_match(const struct GSC_TypeMap *tmap,
  * @return updated type map (fresh copy)
  */
 struct GSC_TypeMap *
-GSC_TYPEMAP_extend(const struct GSC_TypeMap *tmap,
-                   const uint16_t *types,
-                   unsigned int tcnt);
+GSC_TYPEMAP_extend (const struct GSC_TypeMap *tmap,
+                    const uint16_t *types,
+                    unsigned int tcnt);
 
 
 /**
@@ -134,7 +134,7 @@ GSC_TYPEMAP_extend(const struct GSC_TypeMap *tmap,
  * @return an empty type map
  */
 struct GSC_TypeMap *
-GSC_TYPEMAP_create(void);
+GSC_TYPEMAP_create (void);
 
 
 /**
@@ -143,21 +143,21 @@ GSC_TYPEMAP_create(void);
  * @param tmap a type map
  */
 void
-GSC_TYPEMAP_destroy(struct GSC_TypeMap *tmap);
+GSC_TYPEMAP_destroy (struct GSC_TypeMap *tmap);
 
 
 /**
  * Initialize typemap subsystem.
  */
 void
-GSC_TYPEMAP_init(void);
+GSC_TYPEMAP_init (void);
 
 
 /**
  * Shutdown typemap subsystem.
  */
 void
-GSC_TYPEMAP_done(void);
+GSC_TYPEMAP_done (void);
 
 #endif
 /* end of gnunet-service-core_typemap.h */

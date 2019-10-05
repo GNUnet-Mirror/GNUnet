@@ -15,10 +15,10 @@ static int result;
  * @param cfg the configuration file handle
  */
 static void
-run(void *cls,
-    char *const *args,
-    const char *cfgfile,
-    const struct GNUNET_CONFIGURATION_Handle *config)
+run (void *cls,
+     char *const *args,
+     const char *cfgfile,
+     const struct GNUNET_CONFIGURATION_Handle *config)
 {
   char *idfile;
   struct GNUNET_DISK_FileHandle *f;
@@ -31,79 +31,79 @@ run(void *cls,
   unsigned int nmax;
 
   if ((NULL == args) || (NULL == args[0]))
-    {
-      fprintf(stderr, "Need the hostkey file\n");
-      return;
-    }
+  {
+    fprintf (stderr, "Need the hostkey file\n");
+    return;
+  }
   idfile = args[0];
   if (GNUNET_OK !=
-      GNUNET_DISK_file_size(idfile, &fsize, GNUNET_YES, GNUNET_YES))
-    {
-      GNUNET_break(0);
-      return;
-    }
+      GNUNET_DISK_file_size (idfile, &fsize, GNUNET_YES, GNUNET_YES))
+  {
+    GNUNET_break (0);
+    return;
+  }
   if (0 != (fsize % GNUNET_TESTING_HOSTKEYFILESIZE))
-    {
-      fprintf(stderr, _("Incorrect hostkey file format: %s\n"), idfile);
-      return;
-    }
-  f = GNUNET_DISK_file_open(idfile,
-                            GNUNET_DISK_OPEN_READ,
-                            GNUNET_DISK_PERM_NONE);
+  {
+    fprintf (stderr, _ ("Incorrect hostkey file format: %s\n"), idfile);
+    return;
+  }
+  f = GNUNET_DISK_file_open (idfile,
+                             GNUNET_DISK_OPEN_READ,
+                             GNUNET_DISK_PERM_NONE);
   if (NULL == f)
-    {
-      GNUNET_break(0);
-      return;
-    }
-  data = GNUNET_DISK_file_map(f, &map, GNUNET_DISK_MAP_TYPE_READ, fsize);
+  {
+    GNUNET_break (0);
+    return;
+  }
+  data = GNUNET_DISK_file_map (f, &map, GNUNET_DISK_MAP_TYPE_READ, fsize);
   if (NULL == data)
-    {
-      GNUNET_break(0);
-      GNUNET_DISK_file_close(f);
-      return;
-    }
+  {
+    GNUNET_break (0);
+    GNUNET_DISK_file_close (f);
+    return;
+  }
   nmax = fsize / GNUNET_TESTING_HOSTKEYFILESIZE;
   for (cnt = nskip; cnt < (nskip + nkeys); cnt++)
+  {
+    if (nskip + cnt >= nmax)
     {
-      if (nskip + cnt >= nmax)
-        {
-          printf("Max keys %u reached\n", nmax);
-          break;
-        }
-      GNUNET_memcpy(&pkey,
-                    data + (cnt * GNUNET_TESTING_HOSTKEYFILESIZE),
-                    GNUNET_TESTING_HOSTKEYFILESIZE);
-      GNUNET_CRYPTO_eddsa_key_get_public(&pkey, &id.public_key);
-      printf("Key %u: %s\n", cnt, GNUNET_i2s_full(&id));
+      printf ("Max keys %u reached\n", nmax);
+      break;
     }
+    GNUNET_memcpy (&pkey,
+                   data + (cnt * GNUNET_TESTING_HOSTKEYFILESIZE),
+                   GNUNET_TESTING_HOSTKEYFILESIZE);
+    GNUNET_CRYPTO_eddsa_key_get_public (&pkey, &id.public_key);
+    printf ("Key %u: %s\n", cnt, GNUNET_i2s_full (&id));
+  }
   result = GNUNET_OK;
-  GNUNET_DISK_file_unmap(map);
-  GNUNET_DISK_file_close(f);
+  GNUNET_DISK_file_unmap (map);
+  GNUNET_DISK_file_close (f);
 }
 
 
 int
-main(int argc, char *argv[])
+main (int argc, char *argv[])
 {
   struct GNUNET_GETOPT_CommandLineOption option[] =
-  { GNUNET_GETOPT_option_uint('n',
-                              "num-keys",
-                              "COUNT",
-                              gettext_noop("list COUNT number of keys"),
-                              &nkeys),
+  { GNUNET_GETOPT_option_uint ('n',
+                               "num-keys",
+                               "COUNT",
+                               gettext_noop ("list COUNT number of keys"),
+                               &nkeys),
     GNUNET_GETOPT_OPTION_END };
   int ret;
 
   result = GNUNET_SYSERR;
   nkeys = 10;
   ret =
-    GNUNET_PROGRAM_run(argc,
-                       argv,
-                       "list-keys",
-                       "Lists the peer IDs corresponding to the given keys file\n",
-                       option,
-                       &run,
-                       NULL);
+    GNUNET_PROGRAM_run (argc,
+                        argv,
+                        "list-keys",
+                        "Lists the peer IDs corresponding to the given keys file\n",
+                        option,
+                        &run,
+                        NULL);
   if (GNUNET_OK != ret)
     return 1;
   if (GNUNET_SYSERR == result)

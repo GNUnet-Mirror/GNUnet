@@ -48,7 +48,8 @@
 #define TEST_MESSAGE_SIZE 100
 
 
-struct TestMessage {
+struct TestMessage
+{
   struct GNUNET_MessageHeader header;
 
   uint8_t padding[TEST_MESSAGE_SIZE - sizeof(struct GNUNET_MessageHeader)];
@@ -65,7 +66,8 @@ struct TrafficGenerator;
 
 struct LoggingHandle;
 
-enum GeneratorType {
+enum GeneratorType
+{
   GNUNET_ATS_TEST_TG_LINEAR,
   GNUNET_ATS_TEST_TG_CONSTANT,
   GNUNET_ATS_TEST_TG_RANDOM,
@@ -106,7 +108,8 @@ typedef void (*GNUNET_ATS_TEST_LogRequest) (
 /**
  * Information we track for a peer in the testbed.
  */
-struct BenchmarkPeer {
+struct BenchmarkPeer
+{
   /**
    * Handle with testbed.
    */
@@ -224,7 +227,8 @@ struct BenchmarkPeer {
   unsigned int total_bytes_received;
 };
 
-struct TrafficGenerator {
+struct TrafficGenerator
+{
   struct TrafficGenerator *prev;
   struct TrafficGenerator *next;
 
@@ -243,7 +247,8 @@ struct TrafficGenerator {
 };
 
 
-struct PreferenceGenerator {
+struct PreferenceGenerator
+{
   struct PreferenceGenerator *prev;
   struct PreferenceGenerator *next;
 
@@ -267,7 +272,8 @@ struct PreferenceGenerator {
 /**
  * Information about a benchmarking partner
  */
-struct BenchmarkPartner {
+struct BenchmarkPartner
+{
   /**
    * The peer itself this partner belongs to
    */
@@ -353,7 +359,8 @@ struct BenchmarkPartner {
 /**
  * Overall state of the performance benchmark
  */
-struct BenchmarkState {
+struct BenchmarkState
+{
   /**
    * Are we connected to ATS service of all peers: GNUNET_YES/NO
    */
@@ -381,7 +388,8 @@ struct BenchmarkState {
 };
 
 
-struct GNUNET_ATS_TEST_Topology {
+struct GNUNET_ATS_TEST_Topology
+{
   /**
    * Progress task
    */
@@ -459,7 +467,8 @@ struct GNUNET_ATS_TEST_Topology {
   void *done_cb_cls;
 };
 
-enum OperationType {
+enum OperationType
+{
   START_SEND,
   STOP_SEND,
   START_PREFERENCE,
@@ -480,7 +489,8 @@ typedef void (*GNUNET_ATS_TESTING_ExperimentDoneCallback) (
 /**
  * An operation in an experiment
  */
-struct GNUNET_ATS_TEST_Operation {
+struct GNUNET_ATS_TEST_Operation
+{
   struct GNUNET_ATS_TEST_Operation *next;
   struct GNUNET_ATS_TEST_Operation *prev;
 
@@ -497,7 +507,8 @@ struct GNUNET_ATS_TEST_Operation {
   enum GNUNET_ATS_PreferenceKind pref_type;
 };
 
-struct Episode {
+struct Episode
+{
   int id;
   struct Episode *next;
   struct GNUNET_TIME_Relative duration;
@@ -507,7 +518,8 @@ struct Episode {
 };
 
 
-struct Experiment {
+struct Experiment
+{
   char *name;
   char *cfg_file;
   unsigned long long int num_masters;
@@ -538,7 +550,7 @@ extern struct GNUNET_CONFIGURATION_Handle *cfg;
  * @param e_done_cb the experiment is completed
  */
 void
-GNUNET_ATS_TEST_experimentation_run(
+GNUNET_ATS_TEST_experimentation_run (
   struct Experiment *e,
   GNUNET_ATS_TESTING_EpisodeDoneCallback ep_done_cb,
   GNUNET_ATS_TESTING_ExperimentDoneCallback e_done_cb);
@@ -551,7 +563,7 @@ GNUNET_ATS_TEST_experimentation_run(
  * @return the Experiment or NULL on failure
  */
 struct Experiment *
-GNUNET_ATS_TEST_experimentation_load(const char *filename);
+GNUNET_ATS_TEST_experimentation_load (const char *filename);
 
 
 /**
@@ -560,15 +572,15 @@ GNUNET_ATS_TEST_experimentation_load(const char *filename);
  * @param e the experiment
  */
 void
-GNUNET_ATS_TEST_experimentation_stop(struct Experiment *e);
+GNUNET_ATS_TEST_experimentation_stop (struct Experiment *e);
 
 
 void
-GNUNET_ATS_TEST_traffic_handle_ping(struct BenchmarkPartner *p);
+GNUNET_ATS_TEST_traffic_handle_ping (struct BenchmarkPartner *p);
 
 
 void
-GNUNET_ATS_TEST_traffic_handle_pong(struct BenchmarkPartner *p);
+GNUNET_ATS_TEST_traffic_handle_pong (struct BenchmarkPartner *p);
 
 
 /**
@@ -585,24 +597,24 @@ GNUNET_ATS_TEST_traffic_handle_pong(struct BenchmarkPartner *p);
  * @return the traffic generator
  */
 struct TrafficGenerator *
-GNUNET_ATS_TEST_generate_traffic_start(struct BenchmarkPeer *src,
-                                       struct BenchmarkPartner *dest,
-                                       enum GeneratorType type,
-                                       unsigned int base_rate,
-                                       unsigned int max_rate,
-                                       struct GNUNET_TIME_Relative period,
-                                       struct GNUNET_TIME_Relative duration);
+GNUNET_ATS_TEST_generate_traffic_start (struct BenchmarkPeer *src,
+                                        struct BenchmarkPartner *dest,
+                                        enum GeneratorType type,
+                                        unsigned int base_rate,
+                                        unsigned int max_rate,
+                                        struct GNUNET_TIME_Relative period,
+                                        struct GNUNET_TIME_Relative duration);
 
 
 void
-GNUNET_ATS_TEST_generate_traffic_stop(struct TrafficGenerator *tg);
+GNUNET_ATS_TEST_generate_traffic_stop (struct TrafficGenerator *tg);
 
 
 /**
  * Stop all traffic generators
  */
 void
-GNUNET_ATS_TEST_generate_traffic_stop_all(void);
+GNUNET_ATS_TEST_generate_traffic_stop_all (void);
 
 
 /**
@@ -620,7 +632,7 @@ GNUNET_ATS_TEST_generate_traffic_stop_all(void);
  * @return the traffic generator
  */
 struct PreferenceGenerator *
-GNUNET_ATS_TEST_generate_preferences_start(
+GNUNET_ATS_TEST_generate_preferences_start (
   struct BenchmarkPeer *src,
   struct BenchmarkPartner *dest,
   enum GeneratorType type,
@@ -632,11 +644,11 @@ GNUNET_ATS_TEST_generate_preferences_start(
 
 
 void
-GNUNET_ATS_TEST_generate_preferences_stop(struct PreferenceGenerator *pg);
+GNUNET_ATS_TEST_generate_preferences_stop (struct PreferenceGenerator *pg);
 
 
 void
-GNUNET_ATS_TEST_generate_preferences_stop_all(void);
+GNUNET_ATS_TEST_generate_preferences_stop_all (void);
 
 
 /**
@@ -651,12 +663,12 @@ GNUNET_ATS_TEST_generate_preferences_stop_all(void);
  * @return the logging handle or NULL on error
  */
 struct LoggingHandle *
-GNUNET_ATS_TEST_logging_start(struct GNUNET_TIME_Relative log_frequency,
-                              const char *testname,
-                              struct BenchmarkPeer *masters,
-                              int num_masters,
-                              int num_slaves,
-                              int verbose);
+GNUNET_ATS_TEST_logging_start (struct GNUNET_TIME_Relative log_frequency,
+                               const char *testname,
+                               struct BenchmarkPeer *masters,
+                               int num_masters,
+                               int num_slaves,
+                               int verbose);
 
 
 /**
@@ -665,7 +677,7 @@ GNUNET_ATS_TEST_logging_start(struct GNUNET_TIME_Relative log_frequency,
  * @param l the logging handle
  */
 void
-GNUNET_ATS_TEST_logging_clean_up(struct LoggingHandle *l);
+GNUNET_ATS_TEST_logging_clean_up (struct LoggingHandle *l);
 
 
 /**
@@ -674,7 +686,7 @@ GNUNET_ATS_TEST_logging_clean_up(struct LoggingHandle *l);
  * @param l the logging handle
  */
 void
-GNUNET_ATS_TEST_logging_stop(struct LoggingHandle *l);
+GNUNET_ATS_TEST_logging_stop (struct LoggingHandle *l);
 
 
 /**
@@ -683,7 +695,7 @@ GNUNET_ATS_TEST_logging_stop(struct LoggingHandle *l);
  * @param l logging handle to use
  */
 void
-GNUNET_ATS_TEST_logging_now(struct LoggingHandle *l);
+GNUNET_ATS_TEST_logging_now (struct LoggingHandle *l);
 
 
 /**
@@ -694,20 +706,20 @@ GNUNET_ATS_TEST_logging_now(struct LoggingHandle *l);
  * @param plots create gnuplots: #GNUNET_YES or #GNUNET_NO
  */
 void
-GNUNET_ATS_TEST_logging_write_to_file(struct LoggingHandle *l,
-                                      const char *test_name,
-                                      int plots);
+GNUNET_ATS_TEST_logging_write_to_file (struct LoggingHandle *l,
+                                       const char *test_name,
+                                       int plots);
 
 
 /**
  * Topology related functions
  */
 struct BenchmarkPeer *
-GNUNET_ATS_TEST_get_peer(int src);
+GNUNET_ATS_TEST_get_peer (int src);
 
 
 struct BenchmarkPartner *
-GNUNET_ATS_TEST_get_partner(int src, int dest);
+GNUNET_ATS_TEST_get_partner (int src, int dest);
 
 
 /**
@@ -724,7 +736,7 @@ GNUNET_ATS_TEST_get_partner(int src, int dest);
  * @param log_request_cb callback to call when logging is required
  */
 void
-GNUNET_ATS_TEST_create_topology(
+GNUNET_ATS_TEST_create_topology (
   char *name,
   char *cfg_file,
   unsigned int num_slaves,
@@ -739,7 +751,7 @@ GNUNET_ATS_TEST_create_topology(
  * Shutdown topology
  */
 void
-GNUNET_ATS_TEST_shutdown_topology(void);
+GNUNET_ATS_TEST_shutdown_topology (void);
 
 
 /* end of file ats-testing.h */

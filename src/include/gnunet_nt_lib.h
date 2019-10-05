@@ -32,7 +32,8 @@
 /**
  * Types of networks (with separate quotas) we support.
  */
-enum GNUNET_NetworkType {
+enum GNUNET_NetworkType
+{
   /**
    * Category of last resort.
    */
@@ -77,7 +78,7 @@ enum GNUNET_NetworkType {
  * @return a string or NULL if invalid
  */
 const char *
-GNUNET_NT_to_string(enum GNUNET_NetworkType net);
+GNUNET_NT_to_string (enum GNUNET_NetworkType net);
 
 
 /**
@@ -95,9 +96,9 @@ struct GNUNET_NT_InterfaceScanner;
  * @return type of the network the address belongs to
  */
 enum GNUNET_NetworkType
-GNUNET_NT_scanner_get_type(struct GNUNET_NT_InterfaceScanner *is,
-                           const struct sockaddr *addr,
-                           socklen_t addrlen);
+GNUNET_NT_scanner_get_type (struct GNUNET_NT_InterfaceScanner *is,
+                            const struct sockaddr *addr,
+                            socklen_t addrlen);
 
 
 /**
@@ -106,7 +107,7 @@ GNUNET_NT_scanner_get_type(struct GNUNET_NT_InterfaceScanner *is,
  * @return scanner handle, NULL on error
  */
 struct GNUNET_NT_InterfaceScanner *
-GNUNET_NT_scanner_init(void);
+GNUNET_NT_scanner_init (void);
 
 
 /**
@@ -115,7 +116,7 @@ GNUNET_NT_scanner_init(void);
  * @param is scanner we are done with
  */
 void
-GNUNET_NT_scanner_done(struct GNUNET_NT_InterfaceScanner *is);
+GNUNET_NT_scanner_done (struct GNUNET_NT_InterfaceScanner *is);
 
 
 #endif

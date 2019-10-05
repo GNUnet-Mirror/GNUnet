@@ -34,7 +34,8 @@
 #include "gnunet-service-ats_normalization.h"
 #include "test_ats_api_common.h"
 
-enum GeneratorType {
+enum GeneratorType
+{
   GNUNET_ATS_TEST_TG_LINEAR,
   GNUNET_ATS_TEST_TG_CONSTANT,
   GNUNET_ATS_TEST_TG_RANDOM,
@@ -42,7 +43,8 @@ enum GeneratorType {
 };
 
 
-enum OperationType {
+enum OperationType
+{
   SOLVER_OP_ADD_ADDRESS,
   SOLVER_OP_DEL_ADDRESS,
   SOLVER_OP_START_SET_PROPERTY,
@@ -53,7 +55,8 @@ enum OperationType {
   SOLVER_OP_STOP_REQUEST,
 };
 
-struct SolverHandle {
+struct SolverHandle
+{
   /**
    * Solver plugin name
    */
@@ -75,13 +78,15 @@ struct SolverHandle {
   struct GNUNET_CONTAINER_MultiPeerMap *addresses;
 };
 
-enum GNUNET_ATS_Solvers {
+enum GNUNET_ATS_Solvers
+{
   GNUNET_ATS_SOLVER_PROPORTIONAL,
   GNUNET_ATS_SOLVER_MLP,
   GNUNET_ATS_SOLVER_RIL,
 };
 
-struct LoggingFileHandle {
+struct LoggingFileHandle
+{
   /* DLL list for logging time steps */
   struct LoggingFileHandle *next;
   struct LoggingFileHandle *prev;
@@ -95,7 +100,8 @@ struct LoggingFileHandle {
   struct GNUNET_DISK_FileHandle *f_hd;
 };
 
-struct LoggingTimeStep {
+struct LoggingTimeStep
+{
   struct LoggingTimeStep *prev;
   struct LoggingTimeStep *next;
 
@@ -106,7 +112,8 @@ struct LoggingTimeStep {
   struct GNUNET_TIME_Relative delta;
 };
 
-struct LoggingPeer {
+struct LoggingPeer
+{
   struct LoggingPeer *prev;
   struct LoggingPeer *next;
 
@@ -120,7 +127,8 @@ struct LoggingPeer {
   struct LoggingAddress *addr_tail;
 };
 
-struct LoggingAddress {
+struct LoggingAddress
+{
   struct LoggingAddress *next;
   struct LoggingAddress *prev;
 
@@ -135,7 +143,8 @@ struct LoggingAddress {
 };
 
 
-struct TestPeer {
+struct TestPeer
+{
   struct TestPeer *prev;
   struct TestPeer *next;
 
@@ -155,7 +164,8 @@ struct TestPeer {
 };
 
 
-struct TestAddress {
+struct TestAddress
+{
   struct TestAddress *next;
   struct TestAddress *prev;
 
@@ -175,12 +185,16 @@ typedef void (*GNUNET_ATS_TESTING_EpisodeDoneCallback) (
   struct Episode *e);
 
 typedef void (*GNUNET_ATS_TESTING_ExperimentDoneCallback) (struct Experiment *e,
-                                                           struct GNUNET_TIME_Relative duration, int success);
+                                                           struct
+                                                           GNUNET_TIME_Relative
+                                                           duration, int
+                                                           success);
 
 /**
  * An operation in an experiment
  */
-struct GNUNET_ATS_TEST_Operation {
+struct GNUNET_ATS_TEST_Operation
+{
   struct GNUNET_ATS_TEST_Operation *next;
   struct GNUNET_ATS_TEST_Operation *prev;
 
@@ -206,7 +220,8 @@ struct GNUNET_ATS_TEST_Operation {
   // enum GNUNET_ATS_Property prop_type;
 };
 
-struct Episode {
+struct Episode
+{
   int id;
   struct Episode *next;
   struct GNUNET_TIME_Relative duration;
@@ -215,8 +230,9 @@ struct Episode {
   struct GNUNET_ATS_TEST_Operation *tail;
 };
 
-struct LoggingHandle {
-  struct GNUNET_SCHEDULER_Task * logging_task;
+struct LoggingHandle
+{
+  struct GNUNET_SCHEDULER_Task *logging_task;
   struct GNUNET_TIME_Relative log_freq;
 
   /* DLL list for logging time steps */
@@ -224,7 +240,8 @@ struct LoggingHandle {
   struct LoggingTimeStep *tail;
 };
 
-struct Experiment {
+struct Experiment
+{
   char *name;
   char *log_prefix;
   char *cfg_file;
@@ -240,15 +257,16 @@ struct Experiment {
 
   struct GNUNET_CONFIGURATION_Handle *cfg;
 
-  struct GNUNET_SCHEDULER_Task * experiment_timeout_task;
-  struct GNUNET_SCHEDULER_Task * episode_timeout_task;
+  struct GNUNET_SCHEDULER_Task *experiment_timeout_task;
+  struct GNUNET_SCHEDULER_Task *episode_timeout_task;
   struct Episode *cur;
 
   GNUNET_ATS_TESTING_EpisodeDoneCallback ep_done_cb;
   GNUNET_ATS_TESTING_ExperimentDoneCallback e_done_cb;
 };
 
-struct PreferenceGenerator {
+struct PreferenceGenerator
+{
   struct PreferenceGenerator *prev;
   struct PreferenceGenerator *next;
 
@@ -265,8 +283,8 @@ struct PreferenceGenerator {
   struct GNUNET_TIME_Relative frequency;
   struct GNUNET_TIME_Relative feedback_frequency;
 
-  struct GNUNET_SCHEDULER_Task * set_task;
-  struct GNUNET_SCHEDULER_Task * feedback_task;
+  struct GNUNET_SCHEDULER_Task *set_task;
+  struct GNUNET_SCHEDULER_Task *feedback_task;
   struct GNUNET_TIME_Absolute next_ping_transmission;
   struct GNUNET_TIME_Absolute time_start;
 
@@ -289,7 +307,8 @@ struct PreferenceGenerator {
 };
 
 
-struct PropertyGenerator {
+struct PropertyGenerator
+{
   struct PropertyGenerator *prev;
   struct PropertyGenerator *next;
 
@@ -307,7 +326,7 @@ struct PropertyGenerator {
   struct GNUNET_TIME_Relative duration_period;
   struct GNUNET_TIME_Relative frequency;
 
-  struct GNUNET_SCHEDULER_Task * set_task;
+  struct GNUNET_SCHEDULER_Task *set_task;
   struct GNUNET_TIME_Absolute next_ping_transmission;
   struct GNUNET_TIME_Absolute time_start;
 };

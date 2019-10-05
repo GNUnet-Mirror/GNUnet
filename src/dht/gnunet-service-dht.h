@@ -76,15 +76,15 @@ extern struct GNUNET_MessageHeader *GDS_my_hello;
  * @param data application payload data
  */
 void
-GDS_CLIENTS_handle_reply(struct GNUNET_TIME_Absolute expiration,
-                         const struct GNUNET_HashCode *key,
-                         unsigned int get_path_length,
-                         const struct GNUNET_PeerIdentity *get_path,
-                         unsigned int put_path_length,
-                         const struct GNUNET_PeerIdentity *put_path,
-                         enum GNUNET_BLOCK_Type type,
-                         size_t data_size,
-                         const void *data);
+GDS_CLIENTS_handle_reply (struct GNUNET_TIME_Absolute expiration,
+                          const struct GNUNET_HashCode *key,
+                          unsigned int get_path_length,
+                          const struct GNUNET_PeerIdentity *get_path,
+                          unsigned int put_path_length,
+                          const struct GNUNET_PeerIdentity *put_path,
+                          enum GNUNET_BLOCK_Type type,
+                          size_t data_size,
+                          const void *data);
 
 
 /**
@@ -100,13 +100,13 @@ GDS_CLIENTS_handle_reply(struct GNUNET_TIME_Absolute expiration,
  * @param key Key of the requested data.
  */
 void
-GDS_CLIENTS_process_get(uint32_t options,
-                        enum GNUNET_BLOCK_Type type,
-                        uint32_t hop_count,
-                        uint32_t desired_replication_level,
-                        unsigned int path_length,
-                        const struct GNUNET_PeerIdentity *path,
-                        const struct GNUNET_HashCode *key);
+GDS_CLIENTS_process_get (uint32_t options,
+                         enum GNUNET_BLOCK_Type type,
+                         uint32_t hop_count,
+                         uint32_t desired_replication_level,
+                         unsigned int path_length,
+                         const struct GNUNET_PeerIdentity *path,
+                         const struct GNUNET_HashCode *key);
 
 
 /**
@@ -124,15 +124,15 @@ GDS_CLIENTS_process_get(uint32_t options,
  * @param size Number of bytes in @a data.
  */
 void
-GDS_CLIENTS_process_get_resp(enum GNUNET_BLOCK_Type type,
-                             const struct GNUNET_PeerIdentity *get_path,
-                             unsigned int get_path_length,
-                             const struct GNUNET_PeerIdentity *put_path,
-                             unsigned int put_path_length,
-                             struct GNUNET_TIME_Absolute exp,
-                             const struct GNUNET_HashCode * key,
-                             const void *data,
-                             size_t size);
+GDS_CLIENTS_process_get_resp (enum GNUNET_BLOCK_Type type,
+                              const struct GNUNET_PeerIdentity *get_path,
+                              unsigned int get_path_length,
+                              const struct GNUNET_PeerIdentity *put_path,
+                              unsigned int put_path_length,
+                              struct GNUNET_TIME_Absolute exp,
+                              const struct GNUNET_HashCode *key,
+                              const void *data,
+                              size_t size);
 
 
 /**
@@ -151,15 +151,15 @@ GDS_CLIENTS_process_get_resp(enum GNUNET_BLOCK_Type type,
  * @param size Number of bytes in data.
  */
 void
-GDS_CLIENTS_process_put(uint32_t options,
-                        enum GNUNET_BLOCK_Type type,
-                        uint32_t hop_count,
-                        uint32_t desired_replication_level,
-                        unsigned int path_length,
-                        const struct GNUNET_PeerIdentity *path,
-                        struct GNUNET_TIME_Absolute exp,
-                        const struct GNUNET_HashCode *key,
-                        const void *data,
-                        size_t size);
+GDS_CLIENTS_process_put (uint32_t options,
+                         enum GNUNET_BLOCK_Type type,
+                         uint32_t hop_count,
+                         uint32_t desired_replication_level,
+                         unsigned int path_length,
+                         const struct GNUNET_PeerIdentity *path,
+                         struct GNUNET_TIME_Absolute exp,
+                         const struct GNUNET_HashCode *key,
+                         const void *data,
+                         size_t size);
 
 #endif

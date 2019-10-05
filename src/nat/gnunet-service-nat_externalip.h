@@ -46,7 +46,7 @@
  * @param have_nat #GNUNET_YES if we believe we are behind NAT
  */
 void
-GN_nat_status_changed(int have_nat);
+GN_nat_status_changed (int have_nat);
 
 
 /**
@@ -76,8 +76,8 @@ struct GN_ExternalIPMonitor;
  * @return handle to cancel
  */
 struct GN_ExternalIPMonitor *
-GN_external_ipv4_monitor_start(GN_NotifyExternalIPv4Change cb,
-                               void *cb_cls);
+GN_external_ipv4_monitor_start (GN_NotifyExternalIPv4Change cb,
+                                void *cb_cls);
 
 
 /**
@@ -86,7 +86,7 @@ GN_external_ipv4_monitor_start(GN_NotifyExternalIPv4Change cb,
  * @param mon monitor to call
  */
 void
-GN_external_ipv4_monitor_stop(struct GN_ExternalIPMonitor *mon);
+GN_external_ipv4_monitor_stop (struct GN_ExternalIPMonitor *mon);
 
 
 #endif

@@ -30,14 +30,15 @@
 #include "gnunet_protocols.h"
 #include "arm.h"
 
-#define INIT_TIMEOUT GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 5)
+#define INIT_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
 
-#define LOG(kind, ...) GNUNET_log_from(kind, "arm-monitor-api", __VA_ARGS__)
+#define LOG(kind, ...) GNUNET_log_from (kind, "arm-monitor-api", __VA_ARGS__)
 
 /**
  * Handle for interacting with ARM.
  */
-struct GNUNET_ARM_MonitorHandle {
+struct GNUNET_ARM_MonitorHandle
+{
   /**
    * Our control connection to the ARM service.
    */
@@ -77,7 +78,7 @@ struct GNUNET_ARM_MonitorHandle {
  * @return #GNUNET_OK on success
  */
 static int
-reconnect_arm_monitor(struct GNUNET_ARM_MonitorHandle *h);
+reconnect_arm_monitor (struct GNUNET_ARM_MonitorHandle *h);
 
 
 /**
@@ -86,14 +87,14 @@ reconnect_arm_monitor(struct GNUNET_ARM_MonitorHandle *h);
  * @param cls the `struct GNUNET_ARM_MonitorHandle`
  */
 static void
-reconnect_arm_monitor_task(void *cls)
+reconnect_arm_monitor_task (void *cls)
 {
   struct GNUNET_ARM_MonitorHandle *h = cls;
 
   h->reconnect_task = NULL;
-  LOG(GNUNET_ERROR_TYPE_DEBUG,
-      "Connecting to ARM service for monitoring after delay\n");
-  GNUNET_break(GNUNET_OK == reconnect_arm_monitor(h));
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Connecting to ARM service for monitoring after delay\n");
+  GNUNET_break (GNUNET_OK == reconnect_arm_monitor (h));
 }
 
 
@@ -104,18 +105,18 @@ reconnect_arm_monitor_task(void *cls)
  * @param h our handle
  */
 static void
-reconnect_arm_monitor_later(struct GNUNET_ARM_MonitorHandle *h)
+reconnect_arm_monitor_later (struct GNUNET_ARM_MonitorHandle *h)
 {
   if (NULL != h->mq)
-    {
-      GNUNET_MQ_destroy(h->mq);
-      h->mq = NULL;
-    }
-  GNUNET_assert(NULL == h->reconnect_task);
-  h->reconnect_task = GNUNET_SCHEDULER_add_delayed(h->retry_backoff,
-                                                   &reconnect_arm_monitor_task,
-                                                   h);
-  h->retry_backoff = GNUNET_TIME_STD_BACKOFF(h->retry_backoff);
+  {
+    GNUNET_MQ_destroy (h->mq);
+    h->mq = NULL;
+  }
+  GNUNET_assert (NULL == h->reconnect_task);
+  h->reconnect_task = GNUNET_SCHEDULER_add_delayed (h->retry_backoff,
+                                                    &reconnect_arm_monitor_task,
+                                                    h);
+  h->retry_backoff = GNUNET_TIME_STD_BACKOFF (h->retry_backoff);
 }
 
 
@@ -127,18 +128,18 @@ reconnect_arm_monitor_later(struct GNUNET_ARM_MonitorHandle *h)
  * @return #GNUNET_OK if the message is well-formed
  */
 static int
-check_monitor_notify(void *cls, const struct GNUNET_ARM_StatusMessage *msg)
+check_monitor_notify (void *cls, const struct GNUNET_ARM_StatusMessage *msg)
 {
   size_t sl =
-    ntohs(msg->header.size) - sizeof(struct GNUNET_ARM_StatusMessage);
-  const char *name = (const char *)&msg[1];
+    ntohs (msg->header.size) - sizeof(struct GNUNET_ARM_StatusMessage);
+  const char *name = (const char *) &msg[1];
 
-  (void)cls;
+  (void) cls;
   if ((0 == sl) || ('\0' != name[sl - 1]))
-    {
-      GNUNET_break(0);
-      return GNUNET_SYSERR;
-    }
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
   return GNUNET_OK;
 }
 
@@ -150,18 +151,18 @@ check_monitor_notify(void *cls, const struct GNUNET_ARM_StatusMessage *msg)
  * @param res the message received from the arm service
  */
 static void
-handle_monitor_notify(void *cls, const struct GNUNET_ARM_StatusMessage *res)
+handle_monitor_notify (void *cls, const struct GNUNET_ARM_StatusMessage *res)
 {
   struct GNUNET_ARM_MonitorHandle *h = cls;
   enum GNUNET_ARM_ServiceMonitorStatus status;
 
-  status = (enum GNUNET_ARM_ServiceMonitorStatus)ntohl(res->status);
-  LOG(GNUNET_ERROR_TYPE_DEBUG,
-      "Received notification from ARM for service `%s' with status %d\n",
-      (const char *)&res[1],
-      (int)status);
+  status = (enum GNUNET_ARM_ServiceMonitorStatus) ntohl (res->status);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Received notification from ARM for service `%s' with status %d\n",
+       (const char *) &res[1],
+       (int) status);
   if (NULL != h->service_status)
-    h->service_status(h->service_status_cls, (const char *)&res[1], status);
+    h->service_status (h->service_status_cls, (const char *) &res[1], status);
 }
 
 
@@ -174,12 +175,12 @@ handle_monitor_notify(void *cls, const struct GNUNET_ARM_StatusMessage *res)
  * @param error error code
  */
 static void
-mq_error_handler(void *cls, enum GNUNET_MQ_Error error)
+mq_error_handler (void *cls, enum GNUNET_MQ_Error error)
 {
   struct GNUNET_ARM_MonitorHandle *h = cls;
 
-  (void)error;
-  reconnect_arm_monitor_later(h);
+  (void) error;
+  reconnect_arm_monitor_later (h);
 }
 
 
@@ -190,29 +191,29 @@ mq_error_handler(void *cls, enum GNUNET_MQ_Error error)
  * @return #GNUNET_OK on success
  */
 static int
-reconnect_arm_monitor(struct GNUNET_ARM_MonitorHandle *h)
+reconnect_arm_monitor (struct GNUNET_ARM_MonitorHandle *h)
 {
   struct GNUNET_MQ_MessageHandler handlers[] =
-  { GNUNET_MQ_hd_var_size(monitor_notify,
-                          GNUNET_MESSAGE_TYPE_ARM_STATUS,
-                          struct GNUNET_ARM_StatusMessage,
-                          h),
-    GNUNET_MQ_handler_end() };
+  { GNUNET_MQ_hd_var_size (monitor_notify,
+                           GNUNET_MESSAGE_TYPE_ARM_STATUS,
+                           struct GNUNET_ARM_StatusMessage,
+                           h),
+    GNUNET_MQ_handler_end () };
   struct GNUNET_MessageHeader *msg;
   struct GNUNET_MQ_Envelope *env;
 
-  GNUNET_assert(NULL == h->mq);
-  h->mq = GNUNET_CLIENT_connect(h->cfg, "arm", handlers, &mq_error_handler, h);
+  GNUNET_assert (NULL == h->mq);
+  h->mq = GNUNET_CLIENT_connect (h->cfg, "arm", handlers, &mq_error_handler, h);
   if (NULL == h->mq)
-    {
-      if (NULL != h->service_status)
-        h->service_status(h->service_status_cls,
-                          NULL,
-                          GNUNET_ARM_SERVICE_STOPPED);
-      return GNUNET_SYSERR;
-    }
-  env = GNUNET_MQ_msg(msg, GNUNET_MESSAGE_TYPE_ARM_MONITOR);
-  GNUNET_MQ_send(h->mq, env);
+  {
+    if (NULL != h->service_status)
+      h->service_status (h->service_status_cls,
+                         NULL,
+                         GNUNET_ARM_SERVICE_STOPPED);
+    return GNUNET_SYSERR;
+  }
+  env = GNUNET_MQ_msg (msg, GNUNET_MESSAGE_TYPE_ARM_MONITOR);
+  GNUNET_MQ_send (h->mq, env);
   return GNUNET_OK;
 }
 
@@ -229,21 +230,21 @@ reconnect_arm_monitor(struct GNUNET_ARM_MonitorHandle *h)
  * @return context to use for further ARM monitor operations, NULL on error.
  */
 struct GNUNET_ARM_MonitorHandle *
-GNUNET_ARM_monitor_start(const struct GNUNET_CONFIGURATION_Handle *cfg,
-                         GNUNET_ARM_ServiceMonitorCallback cont,
-                         void *cont_cls)
+GNUNET_ARM_monitor_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
+                          GNUNET_ARM_ServiceMonitorCallback cont,
+                          void *cont_cls)
 {
   struct GNUNET_ARM_MonitorHandle *h;
 
-  h = GNUNET_new(struct GNUNET_ARM_MonitorHandle);
+  h = GNUNET_new (struct GNUNET_ARM_MonitorHandle);
   h->cfg = cfg;
   h->service_status = cont;
   h->service_status_cls = cont_cls;
-  if (GNUNET_OK != reconnect_arm_monitor(h))
-    {
-      GNUNET_free(h);
-      return NULL;
-    }
+  if (GNUNET_OK != reconnect_arm_monitor (h))
+  {
+    GNUNET_free (h);
+    return NULL;
+  }
   return h;
 }
 
@@ -254,19 +255,19 @@ GNUNET_ARM_monitor_start(const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @param h the handle that was being used
  */
 void
-GNUNET_ARM_monitor_stop(struct GNUNET_ARM_MonitorHandle *h)
+GNUNET_ARM_monitor_stop (struct GNUNET_ARM_MonitorHandle *h)
 {
   if (NULL != h->mq)
-    {
-      GNUNET_MQ_destroy(h->mq);
-      h->mq = NULL;
-    }
+  {
+    GNUNET_MQ_destroy (h->mq);
+    h->mq = NULL;
+  }
   if (NULL != h->reconnect_task)
-    {
-      GNUNET_SCHEDULER_cancel(h->reconnect_task);
-      h->reconnect_task = NULL;
-    }
-  GNUNET_free(h);
+  {
+    GNUNET_SCHEDULER_cancel (h->reconnect_task);
+    h->reconnect_task = NULL;
+  }
+  GNUNET_free (h);
 }
 
 

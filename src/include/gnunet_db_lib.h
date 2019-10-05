@@ -31,7 +31,8 @@
  * Can be combined with a function that returns the number
  * of results, so all non-negative values indicate success.
  */
-enum GNUNET_DB_QueryStatus {
+enum GNUNET_DB_QueryStatus
+{
   /**
    * A hard error occurred, retrying will not help.
    */

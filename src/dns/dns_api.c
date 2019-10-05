@@ -31,7 +31,8 @@
 /**
  * Handle to identify an individual DNS request.
  */
-struct GNUNET_DNS_RequestHandle {
+struct GNUNET_DNS_RequestHandle
+{
   /**
    * Handle to DNS API.
    */
@@ -52,7 +53,8 @@ struct GNUNET_DNS_RequestHandle {
 /**
  * DNS handle
  */
-struct GNUNET_DNS_Handle {
+struct GNUNET_DNS_Handle
+{
   /**
    * Connection to DNS service, or NULL.
    */
@@ -103,7 +105,7 @@ struct GNUNET_DNS_Handle {
  * @param tc scheduler context (unused)
  */
 static void
-reconnect(void *cls);
+reconnect (void *cls);
 
 
 /**
@@ -112,17 +114,17 @@ reconnect(void *cls);
  * @param dh handle with the connection
  */
 static void
-force_reconnect(struct GNUNET_DNS_Handle *dh)
+force_reconnect (struct GNUNET_DNS_Handle *dh)
 {
   if (NULL != dh->mq)
-    {
-      GNUNET_MQ_destroy(dh->mq);
-      dh->mq = NULL;
-    }
+  {
+    GNUNET_MQ_destroy (dh->mq);
+    dh->mq = NULL;
+  }
   dh->reconnect_task =
-    GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_UNIT_SECONDS,
-                                 &reconnect,
-                                 dh);
+    GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
+                                  &reconnect,
+                                  dh);
 }
 
 
@@ -135,12 +137,12 @@ force_reconnect(struct GNUNET_DNS_Handle *dh)
  * @param error error code
  */
 static void
-mq_error_handler(void *cls,
-                 enum GNUNET_MQ_Error error)
+mq_error_handler (void *cls,
+                  enum GNUNET_MQ_Error error)
 {
   struct GNUNET_DNS_Handle *dh = cls;
 
-  force_reconnect(dh);
+  force_reconnect (dh);
 }
 
 
@@ -153,14 +155,14 @@ mq_error_handler(void *cls,
  * @param req message from the service (request)
  */
 static int
-check_request(void *cls,
-              const struct GNUNET_DNS_Request *req)
+check_request (void *cls,
+               const struct GNUNET_DNS_Request *req)
 {
-  if (0 != ntohl(req->reserved))
-    {
-      GNUNET_break(0);
-      return GNUNET_SYSERR;
-    }
+  if (0 != ntohl (req->reserved))
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
   return GNUNET_OK;
 }
 
@@ -173,22 +175,22 @@ check_request(void *cls,
  * @param msg message from the service (request)
  */
 static void
-handle_request(void *cls,
-               const struct GNUNET_DNS_Request *req)
+handle_request (void *cls,
+                const struct GNUNET_DNS_Request *req)
 {
   struct GNUNET_DNS_Handle *dh = cls;
-  size_t payload_length = ntohs(req->header.size) - sizeof(*req);
+  size_t payload_length = ntohs (req->header.size) - sizeof(*req);
   struct GNUNET_DNS_RequestHandle *rh;
 
-  rh = GNUNET_new(struct GNUNET_DNS_RequestHandle);
+  rh = GNUNET_new (struct GNUNET_DNS_RequestHandle);
   rh->dh = dh;
   rh->request_id = req->request_id;
   rh->generation = dh->generation;
   dh->pending_requests++;
-  dh->rh(dh->rh_cls,
-         rh,
-         payload_length,
-         (const char*)&req[1]);
+  dh->rh (dh->rh_cls,
+          rh,
+          payload_length,
+          (const char*) &req[1]);
 }
 
 
@@ -198,33 +200,33 @@ handle_request(void *cls,
  * @param cls handle with the connection to connect
  */
 static void
-reconnect(void *cls)
+reconnect (void *cls)
 {
   struct GNUNET_DNS_Handle *dh = cls;
   struct GNUNET_MQ_MessageHandler handlers[] = {
-    GNUNET_MQ_hd_var_size(request,
-                          GNUNET_MESSAGE_TYPE_DNS_CLIENT_REQUEST,
-                          struct GNUNET_DNS_Request,
-                          dh),
-    GNUNET_MQ_handler_end()
+    GNUNET_MQ_hd_var_size (request,
+                           GNUNET_MESSAGE_TYPE_DNS_CLIENT_REQUEST,
+                           struct GNUNET_DNS_Request,
+                           dh),
+    GNUNET_MQ_handler_end ()
   };
   struct GNUNET_MQ_Envelope *env;
   struct GNUNET_DNS_Register *msg;
 
   dh->reconnect_task = NULL;
-  dh->mq = GNUNET_CLIENT_connect(dh->cfg,
-                                 "dns",
-                                 handlers,
-                                 &mq_error_handler,
-                                 dh);
+  dh->mq = GNUNET_CLIENT_connect (dh->cfg,
+                                  "dns",
+                                  handlers,
+                                  &mq_error_handler,
+                                  dh);
   if (NULL == dh->mq)
     return;
   dh->generation++;
-  env = GNUNET_MQ_msg(msg,
-                      GNUNET_MESSAGE_TYPE_DNS_CLIENT_INIT);
-  msg->flags = htonl(dh->flags);
-  GNUNET_MQ_send(dh->mq,
-                 env);
+  env = GNUNET_MQ_msg (msg,
+                       GNUNET_MESSAGE_TYPE_DNS_CLIENT_INIT);
+  msg->flags = htonl (dh->flags);
+  GNUNET_MQ_send (dh->mq,
+                  env);
 }
 
 
@@ -239,24 +241,24 @@ reconnect(void *cls)
  * @param rh request that should now be forwarded
  */
 void
-GNUNET_DNS_request_forward(struct GNUNET_DNS_RequestHandle *rh)
+GNUNET_DNS_request_forward (struct GNUNET_DNS_RequestHandle *rh)
 {
   struct GNUNET_MQ_Envelope *env;
   struct GNUNET_DNS_Response *resp;
 
-  GNUNET_assert(0 < rh->dh->pending_requests--);
+  GNUNET_assert (0 < rh->dh->pending_requests--);
   if (rh->generation != rh->dh->generation)
-    {
-      GNUNET_free(rh);
-      return;
-    }
-  env = GNUNET_MQ_msg(resp,
-                      GNUNET_MESSAGE_TYPE_DNS_CLIENT_RESPONSE);
-  resp->drop_flag = htonl(1);
+  {
+    GNUNET_free (rh);
+    return;
+  }
+  env = GNUNET_MQ_msg (resp,
+                       GNUNET_MESSAGE_TYPE_DNS_CLIENT_RESPONSE);
+  resp->drop_flag = htonl (1);
   resp->request_id = rh->request_id;
-  GNUNET_MQ_send(rh->dh->mq,
-                 env);
-  GNUNET_free(rh);
+  GNUNET_MQ_send (rh->dh->mq,
+                  env);
+  GNUNET_free (rh);
 }
 
 
@@ -267,24 +269,24 @@ GNUNET_DNS_request_forward(struct GNUNET_DNS_RequestHandle *rh)
  * @param rh request that should now be dropped
  */
 void
-GNUNET_DNS_request_drop(struct GNUNET_DNS_RequestHandle *rh)
+GNUNET_DNS_request_drop (struct GNUNET_DNS_RequestHandle *rh)
 {
   struct GNUNET_MQ_Envelope *env;
   struct GNUNET_DNS_Response *resp;
 
-  GNUNET_assert(0 < rh->dh->pending_requests--);
+  GNUNET_assert (0 < rh->dh->pending_requests--);
   if (rh->generation != rh->dh->generation)
-    {
-      GNUNET_free(rh);
-      return;
-    }
-  env = GNUNET_MQ_msg(resp,
-                      GNUNET_MESSAGE_TYPE_DNS_CLIENT_RESPONSE);
+  {
+    GNUNET_free (rh);
+    return;
+  }
+  env = GNUNET_MQ_msg (resp,
+                       GNUNET_MESSAGE_TYPE_DNS_CLIENT_RESPONSE);
   resp->request_id = rh->request_id;
-  resp->drop_flag = htonl(0);
-  GNUNET_MQ_send(rh->dh->mq,
-                 env);
-  GNUNET_free(rh);
+  resp->drop_flag = htonl (0);
+  GNUNET_MQ_send (rh->dh->mq,
+                  env);
+  GNUNET_free (rh);
 }
 
 
@@ -298,37 +300,37 @@ GNUNET_DNS_request_drop(struct GNUNET_DNS_RequestHandle *rh)
  * @param reply reply data
  */
 void
-GNUNET_DNS_request_answer(struct GNUNET_DNS_RequestHandle *rh,
-                          uint16_t reply_length,
-                          const char *reply)
+GNUNET_DNS_request_answer (struct GNUNET_DNS_RequestHandle *rh,
+                           uint16_t reply_length,
+                           const char *reply)
 {
   struct GNUNET_MQ_Envelope *env;
   struct GNUNET_DNS_Response *resp;
 
-  GNUNET_assert(0 < rh->dh->pending_requests--);
+  GNUNET_assert (0 < rh->dh->pending_requests--);
   if (rh->generation != rh->dh->generation)
-    {
-      GNUNET_free(rh);
-      return;
-    }
+  {
+    GNUNET_free (rh);
+    return;
+  }
   if (reply_length + sizeof(struct GNUNET_DNS_Response)
       >= GNUNET_MAX_MESSAGE_SIZE)
-    {
-      GNUNET_break(0);
-      GNUNET_free(rh);
-      return;
-    }
-  env = GNUNET_MQ_msg_extra(resp,
-                            reply_length,
-                            GNUNET_MESSAGE_TYPE_DNS_CLIENT_RESPONSE);
-  resp->drop_flag = htonl(2);
+  {
+    GNUNET_break (0);
+    GNUNET_free (rh);
+    return;
+  }
+  env = GNUNET_MQ_msg_extra (resp,
+                             reply_length,
+                             GNUNET_MESSAGE_TYPE_DNS_CLIENT_RESPONSE);
+  resp->drop_flag = htonl (2);
   resp->request_id = rh->request_id;
-  GNUNET_memcpy(&resp[1],
-                reply,
-                reply_length);
-  GNUNET_MQ_send(rh->dh->mq,
-                 env);
-  GNUNET_free(rh);
+  GNUNET_memcpy (&resp[1],
+                 reply,
+                 reply_length);
+  GNUNET_MQ_send (rh->dh->mq,
+                  env);
+  GNUNET_free (rh);
 }
 
 
@@ -342,19 +344,19 @@ GNUNET_DNS_request_answer(struct GNUNET_DNS_RequestHandle *rh,
  * @return DNS handle
  */
 struct GNUNET_DNS_Handle *
-GNUNET_DNS_connect(const struct GNUNET_CONFIGURATION_Handle *cfg,
-                   enum GNUNET_DNS_Flags flags,
-                   GNUNET_DNS_RequestHandler rh,
-                   void *rh_cls)
+GNUNET_DNS_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
+                    enum GNUNET_DNS_Flags flags,
+                    GNUNET_DNS_RequestHandler rh,
+                    void *rh_cls)
 {
   struct GNUNET_DNS_Handle *dh;
 
-  dh = GNUNET_new(struct GNUNET_DNS_Handle);
+  dh = GNUNET_new (struct GNUNET_DNS_Handle);
   dh->cfg = cfg;
   dh->flags = flags;
   dh->rh = rh;
   dh->rh_cls = rh_cls;
-  dh->reconnect_task = GNUNET_SCHEDULER_add_now(&reconnect, dh);
+  dh->reconnect_task = GNUNET_SCHEDULER_add_now (&reconnect, dh);
   return dh;
 }
 
@@ -365,21 +367,21 @@ GNUNET_DNS_connect(const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @param dh DNS handle
  */
 void
-GNUNET_DNS_disconnect(struct GNUNET_DNS_Handle *dh)
+GNUNET_DNS_disconnect (struct GNUNET_DNS_Handle *dh)
 {
   if (NULL != dh->mq)
-    {
-      GNUNET_MQ_destroy(dh->mq);
-      dh->mq = NULL;
-    }
+  {
+    GNUNET_MQ_destroy (dh->mq);
+    dh->mq = NULL;
+  }
   if (NULL != dh->reconnect_task)
-    {
-      GNUNET_SCHEDULER_cancel(dh->reconnect_task);
-      dh->reconnect_task = NULL;
-    }
+  {
+    GNUNET_SCHEDULER_cancel (dh->reconnect_task);
+    dh->reconnect_task = NULL;
+  }
   /* make sure client has no pending requests left over! */
-  GNUNET_break(0 == dh->pending_requests);
-  GNUNET_free(dh);
+  GNUNET_break (0 == dh->pending_requests);
+  GNUNET_free (dh);
 }
 
 /* end of dns_api.c */

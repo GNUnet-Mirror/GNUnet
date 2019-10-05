@@ -33,7 +33,7 @@
  * @return initialized struct
  */
 struct GNUNET_SQ_ExecuteStatement
-GNUNET_SQ_make_execute(const char *sql)
+GNUNET_SQ_make_execute (const char *sql)
 {
   struct GNUNET_SQ_ExecuteStatement es = {
     .sql = sql,
@@ -53,7 +53,7 @@ GNUNET_SQ_make_execute(const char *sql)
  * @return initialized struct
  */
 struct GNUNET_SQ_ExecuteStatement
-GNUNET_SQ_make_try_execute(const char *sql)
+GNUNET_SQ_make_try_execute (const char *sql)
 {
   struct GNUNET_SQ_ExecuteStatement es = {
     .sql = sql,
@@ -74,39 +74,39 @@ GNUNET_SQ_make_try_execute(const char *sql)
  *         #GNUNET_SYSERR on error
  */
 int
-GNUNET_SQ_exec_statements(sqlite3 *dbh,
-                          const struct GNUNET_SQ_ExecuteStatement *es)
+GNUNET_SQ_exec_statements (sqlite3 *dbh,
+                           const struct GNUNET_SQ_ExecuteStatement *es)
 {
   for (unsigned int i = 0; NULL != es[i].sql; i++)
-    {
-      char *emsg = NULL;
+  {
+    char *emsg = NULL;
 
-      if (SQLITE_OK !=
-          sqlite3_exec(dbh,
-                       es[i].sql,
-                       NULL,
-                       NULL,
-                       &emsg))
-        {
-          if (es[i].ignore_errors)
-            {
-              GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-                         "Failed to run SQL `%s': %s\n",
-                         es[i].sql,
-                         emsg);
-            }
-          else
-            {
-              GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
-                         "Failed to run SQL `%s': %s\n",
-                         es[i].sql,
-                         emsg);
-              sqlite3_free(emsg);
-              return GNUNET_SYSERR;
-            }
-          sqlite3_free(emsg);
-        }
+    if (SQLITE_OK !=
+        sqlite3_exec (dbh,
+                      es[i].sql,
+                      NULL,
+                      NULL,
+                      &emsg))
+    {
+      if (es[i].ignore_errors)
+      {
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                    "Failed to run SQL `%s': %s\n",
+                    es[i].sql,
+                    emsg);
+      }
+      else
+      {
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                    "Failed to run SQL `%s': %s\n",
+                    es[i].sql,
+                    emsg);
+        sqlite3_free (emsg);
+        return GNUNET_SYSERR;
+      }
+      sqlite3_free (emsg);
     }
+  }
   return GNUNET_OK;
 }
 

@@ -43,7 +43,8 @@ extern "C"
 /**
  * A handle to a strata estimator.
  */
-struct StrataEstimator {
+struct StrataEstimator
+{
   /**
    * The IBFs of this strata estimator.
    */
@@ -69,8 +70,8 @@ struct StrataEstimator {
  * @return number of bytes written to @a buf
  */
 size_t
-strata_estimator_write(const struct StrataEstimator *se,
-                       void *buf);
+strata_estimator_write (const struct StrataEstimator *se,
+                        void *buf);
 
 
 /**
@@ -84,10 +85,10 @@ strata_estimator_write(const struct StrataEstimator *se,
  * @return #GNUNET_OK on success
  */
 int
-strata_estimator_read(const void *buf,
-                      size_t buf_len,
-                      int is_compressed,
-                      struct StrataEstimator *se);
+strata_estimator_read (const void *buf,
+                       size_t buf_len,
+                       int is_compressed,
+                       struct StrataEstimator *se);
 
 
 /**
@@ -99,9 +100,9 @@ strata_estimator_read(const void *buf,
  * @return a freshly allocated, empty strata estimator, NULL on error
  */
 struct StrataEstimator *
-strata_estimator_create(unsigned int strata_count,
-                        uint32_t ibf_size,
-                        uint8_t ibf_hashnum);
+strata_estimator_create (unsigned int strata_count,
+                         uint32_t ibf_size,
+                         uint8_t ibf_hashnum);
 
 
 /**
@@ -113,8 +114,8 @@ strata_estimator_create(unsigned int strata_count,
  * @return abs(|se1| - |se2|)
  */
 unsigned int
-strata_estimator_difference(const struct StrataEstimator *se1,
-                            const struct StrataEstimator *se2);
+strata_estimator_difference (const struct StrataEstimator *se1,
+                             const struct StrataEstimator *se2);
 
 
 /**
@@ -124,8 +125,8 @@ strata_estimator_difference(const struct StrataEstimator *se1,
  * @param key key to add
  */
 void
-strata_estimator_insert(struct StrataEstimator *se,
-                        struct IBF_Key key);
+strata_estimator_insert (struct StrataEstimator *se,
+                         struct IBF_Key key);
 
 
 /**
@@ -135,8 +136,8 @@ strata_estimator_insert(struct StrataEstimator *se,
  * @param key key to remove
  */
 void
-strata_estimator_remove(struct StrataEstimator *se,
-                        struct IBF_Key key);
+strata_estimator_remove (struct StrataEstimator *se,
+                         struct IBF_Key key);
 
 
 /**
@@ -145,7 +146,7 @@ strata_estimator_remove(struct StrataEstimator *se,
  * @param se strata estimator to destroy.
  */
 void
-strata_estimator_destroy(struct StrataEstimator *se);
+strata_estimator_destroy (struct StrataEstimator *se);
 
 
 /**
@@ -155,7 +156,7 @@ strata_estimator_destroy(struct StrataEstimator *se);
  * @return the copy
  */
 struct StrataEstimator *
-strata_estimator_dup(struct StrataEstimator *se);
+strata_estimator_dup (struct StrataEstimator *se);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

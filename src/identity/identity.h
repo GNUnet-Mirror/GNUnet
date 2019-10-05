@@ -39,7 +39,8 @@ GNUNET_NETWORK_STRUCT_BEGIN
  * GET_DEFAULT maybe answered with this message on failure;
  * CREATE and RENAME will always be answered with this message.
  */
-struct ResultCodeMessage {
+struct ResultCodeMessage
+{
   /**
    * Type: #GNUNET_MESSAGE_TYPE_IDENTITY_RESULT_CODE
    */
@@ -58,7 +59,8 @@ struct ResultCodeMessage {
 /**
  * Client informs service about desire to lookup a (single) pseudonym.
  */
-struct LookupMessage {
+struct LookupMessage
+{
   /**
    * Type: #GNUNET_MESSAGE_TYPE_IDENTITY_LOOKUP or
    * #GNUNET_MESSAGE_TYPE_IDENTITY_LOOKUP_BY_SUFFIX
@@ -72,7 +74,8 @@ struct LookupMessage {
 /**
  * Service informs client about status of a pseudonym.
  */
-struct UpdateMessage {
+struct UpdateMessage
+{
   /**
    * Type: #GNUNET_MESSAGE_TYPE_IDENTITY_UPDATE
    */
@@ -102,7 +105,8 @@ struct UpdateMessage {
  * Client requests knowledge about default identity for
  * a subsystem from identity service.
  */
-struct GetDefaultMessage {
+struct GetDefaultMessage
+{
   /**
    * Type: #GNUNET_MESSAGE_TYPE_IDENTITY_GET_DEFAULT
    */
@@ -127,7 +131,8 @@ struct GetDefaultMessage {
  * Used from service to client as a result to the GET_DEFAULT
  * message, used from client to service to SET_DEFAULT.
  */
-struct SetDefaultMessage {
+struct SetDefaultMessage
+{
   /**
    * Type: #GNUNET_MESSAGE_TYPE_IDENTITY_SET_DEFAULT
    */
@@ -156,7 +161,8 @@ struct SetDefaultMessage {
  * Client requests creation of an identity.  Service
  * will respond with a result code.
  */
-struct CreateRequestMessage {
+struct CreateRequestMessage
+{
   /**
    * Type: #GNUNET_MESSAGE_TYPE_IDENTITY_CREATE
    */
@@ -185,7 +191,8 @@ struct CreateRequestMessage {
  * Client requests renaming of an identity.  Service
  * will respond with a result code.
  */
-struct RenameMessage {
+struct RenameMessage
+{
   /**
    * Type: #GNUNET_MESSAGE_TYPE_IDENTITY_RENAME
    */
@@ -210,7 +217,8 @@ struct RenameMessage {
  * Client requests deletion of an identity.  Service
  * will respond with a result code.
  */
-struct DeleteMessage {
+struct DeleteMessage
+{
   /**
    * Type: #GNUNET_MESSAGE_TYPE_IDENTITY_DELETE
    */
@@ -234,7 +242,8 @@ GNUNET_NETWORK_STRUCT_END
 /**
  * Handle for an ego.
  */
-struct GNUNET_IDENTITY_Ego {
+struct GNUNET_IDENTITY_Ego
+{
   /**
    * Private key associated with this ego.
    */

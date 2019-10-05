@@ -74,9 +74,12 @@ typedef void
  */
 typedef void
 (*GAS_solver_address_feedback_preference) (void *solver,
-                                           struct GNUNET_SERVICE_Client *application,
-                                           const struct GNUNET_PeerIdentity *peer,
-                                           const struct GNUNET_TIME_Relative scope,
+                                           struct GNUNET_SERVICE_Client *
+                                           application,
+                                           const struct
+                                           GNUNET_PeerIdentity *peer,
+                                           const struct GNUNET_TIME_Relative
+                                           scope,
                                            enum GNUNET_ATS_PreferenceKind kind,
                                            double score);
 
@@ -154,7 +157,8 @@ typedef void
  */
 typedef void
 (*GAS_solver_stop_get_preferred_address) (void *solver,
-                                          const struct GNUNET_PeerIdentity *peer);
+                                          const struct
+                                          GNUNET_PeerIdentity *peer);
 
 
 /**
@@ -163,7 +167,8 @@ typedef void
  * Each solver is required to set up and return an instance
  * of this struct during initialization.
  */
-struct GNUNET_ATS_SolverFunctions {
+struct GNUNET_ATS_SolverFunctions
+{
   /**
    * Closure to pass to all solver functions in this struct.
    */
@@ -246,7 +251,8 @@ struct GNUNET_ATS_SolverFunctions {
  * #GAS_OP_SOLVE_UPDATE_NOTIFICATION_STOP
  *
  */
-enum GAS_Solver_Operation {
+enum GAS_Solver_Operation
+{
   /**
    * A solution iteration has been started
    */
@@ -308,7 +314,8 @@ enum GAS_Solver_Operation {
 /**
  * Status of a GAS_Solver_Operation operation
  */
-enum GAS_Solver_Status {
+enum GAS_Solver_Status
+{
   /**
    * Success
    */
@@ -324,7 +331,8 @@ enum GAS_Solver_Status {
 /**
  * Status of the operation
  */
-enum GAS_Solver_Additional_Information {
+enum GAS_Solver_Additional_Information
+{
   /**
    * No more specific information
    */
@@ -411,7 +419,8 @@ typedef unsigned int
  * of this type as to the initialization function
  * of the ATS plugins.
  */
-struct GNUNET_ATS_PluginEnvironment {
+struct GNUNET_ATS_PluginEnvironment
+{
   /**
    * Configuration handle to be used by the solver
    */

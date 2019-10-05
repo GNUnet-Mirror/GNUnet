@@ -54,37 +54,38 @@
  *         by this @a type of block (this is not an error)
  */
 static struct GNUNET_BLOCK_Group *
-block_plugin_dns_create_group(void *cls,
-                              enum GNUNET_BLOCK_Type type,
-                              uint32_t nonce,
-                              const void *raw_data,
-                              size_t raw_data_size,
-                              va_list va)
+block_plugin_dns_create_group (void *cls,
+                               enum GNUNET_BLOCK_Type type,
+                               uint32_t nonce,
+                               const void *raw_data,
+                               size_t raw_data_size,
+                               va_list va)
 {
   unsigned int bf_size;
   const char *guard;
 
-  guard = va_arg(va, const char *);
-  if (0 == strcmp(guard,
-                  "seen-set-size"))
-    bf_size = GNUNET_BLOCK_GROUP_compute_bloomfilter_size(va_arg(va, unsigned int),
-                                                          BLOOMFILTER_K);
-  else if (0 == strcmp(guard,
-                       "filter-size"))
-    bf_size = va_arg(va, unsigned int);
+  guard = va_arg (va, const char *);
+  if (0 == strcmp (guard,
+                   "seen-set-size"))
+    bf_size = GNUNET_BLOCK_GROUP_compute_bloomfilter_size (va_arg (va, unsigned
+                                                                   int),
+                                                           BLOOMFILTER_K);
+  else if (0 == strcmp (guard,
+                        "filter-size"))
+    bf_size = va_arg (va, unsigned int);
   else
-    {
-      GNUNET_break(0);
-      bf_size = 8;
-    }
-  GNUNET_break(NULL == va_arg(va, const char *));
-  return GNUNET_BLOCK_GROUP_bf_create(cls,
-                                      bf_size,
-                                      BLOOMFILTER_K,
-                                      type,
-                                      nonce,
-                                      raw_data,
-                                      raw_data_size);
+  {
+    GNUNET_break (0);
+    bf_size = 8;
+  }
+  GNUNET_break (NULL == va_arg (va, const char *));
+  return GNUNET_BLOCK_GROUP_bf_create (cls,
+                                       bf_size,
+                                       BLOOMFILTER_K,
+                                       type,
+                                       nonce,
+                                       raw_data,
+                                       raw_data_size);
 }
 
 
@@ -105,72 +106,73 @@ block_plugin_dns_create_group(void *cls,
  * @return characterization of result
  */
 static enum GNUNET_BLOCK_EvaluationResult
-block_plugin_dns_evaluate(void *cls,
-                          struct GNUNET_BLOCK_Context *ctx,
-                          enum GNUNET_BLOCK_Type type,
-                          struct GNUNET_BLOCK_Group *bg,
-                          enum GNUNET_BLOCK_EvaluationOptions eo,
-                          const struct GNUNET_HashCode * query,
-                          const void *xquery,
-                          size_t xquery_size,
-                          const void *reply_block,
-                          size_t reply_block_size)
+block_plugin_dns_evaluate (void *cls,
+                           struct GNUNET_BLOCK_Context *ctx,
+                           enum GNUNET_BLOCK_Type type,
+                           struct GNUNET_BLOCK_Group *bg,
+                           enum GNUNET_BLOCK_EvaluationOptions eo,
+                           const struct GNUNET_HashCode *query,
+                           const void *xquery,
+                           size_t xquery_size,
+                           const void *reply_block,
+                           size_t reply_block_size)
 {
   const struct GNUNET_DNS_Advertisement *ad;
   struct GNUNET_HashCode phash;
 
   switch (type)
+  {
+  case GNUNET_BLOCK_TYPE_DNS:
+    if (0 != xquery_size)
+      return GNUNET_BLOCK_EVALUATION_REQUEST_INVALID;
+
+    if (NULL == reply_block)
+      return GNUNET_BLOCK_EVALUATION_REQUEST_VALID;
+
+    if (sizeof(struct GNUNET_DNS_Advertisement) != reply_block_size)
     {
-    case GNUNET_BLOCK_TYPE_DNS:
-      if (0 != xquery_size)
-        return GNUNET_BLOCK_EVALUATION_REQUEST_INVALID;
-
-      if (NULL == reply_block)
-        return GNUNET_BLOCK_EVALUATION_REQUEST_VALID;
-
-      if (sizeof(struct GNUNET_DNS_Advertisement) != reply_block_size)
-        {
-          GNUNET_break_op(0);
-          return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;
-        }
-      ad = reply_block;
-
-      if (ntohl(ad->purpose.size) !=
-          sizeof(struct GNUNET_DNS_Advertisement) -
-          sizeof(struct GNUNET_CRYPTO_EddsaSignature))
-        {
-          GNUNET_break_op(0);
-          return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;
-        }
-      if (0 ==
-          GNUNET_TIME_absolute_get_remaining(GNUNET_TIME_absolute_ntoh
-                                               (ad->expiration_time)).rel_value_us)
-        {
-          GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-                     "DNS advertisement has expired\n");
-          return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;
-        }
-      if (GNUNET_OK !=
-          GNUNET_CRYPTO_eddsa_verify(GNUNET_SIGNATURE_PURPOSE_DNS_RECORD,
-                                     &ad->purpose,
-                                     &ad->signature,
-                                     &ad->peer.public_key))
-        {
-          GNUNET_break_op(0);
-          return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;
-        }
-      GNUNET_CRYPTO_hash(reply_block,
-                         reply_block_size,
-                         &phash);
-      if (GNUNET_YES ==
-          GNUNET_BLOCK_GROUP_bf_test_and_set(bg,
-                                             &phash))
-        return GNUNET_BLOCK_EVALUATION_OK_DUPLICATE;
-      return GNUNET_BLOCK_EVALUATION_OK_MORE;
-
-    default:
-      return GNUNET_BLOCK_EVALUATION_TYPE_NOT_SUPPORTED;
+      GNUNET_break_op (0);
+      return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;
     }
+    ad = reply_block;
+
+    if (ntohl (ad->purpose.size) !=
+        sizeof(struct GNUNET_DNS_Advertisement)
+        - sizeof(struct GNUNET_CRYPTO_EddsaSignature))
+    {
+      GNUNET_break_op (0);
+      return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;
+    }
+    if (0 ==
+        GNUNET_TIME_absolute_get_remaining (GNUNET_TIME_absolute_ntoh
+                                              (ad->expiration_time)).
+        rel_value_us)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "DNS advertisement has expired\n");
+      return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;
+    }
+    if (GNUNET_OK !=
+        GNUNET_CRYPTO_eddsa_verify (GNUNET_SIGNATURE_PURPOSE_DNS_RECORD,
+                                    &ad->purpose,
+                                    &ad->signature,
+                                    &ad->peer.public_key))
+    {
+      GNUNET_break_op (0);
+      return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;
+    }
+    GNUNET_CRYPTO_hash (reply_block,
+                        reply_block_size,
+                        &phash);
+    if (GNUNET_YES ==
+        GNUNET_BLOCK_GROUP_bf_test_and_set (bg,
+                                            &phash))
+      return GNUNET_BLOCK_EVALUATION_OK_DUPLICATE;
+    return GNUNET_BLOCK_EVALUATION_OK_MORE;
+
+  default:
+    return GNUNET_BLOCK_EVALUATION_TYPE_NOT_SUPPORTED;
+  }
 }
 
 
@@ -186,11 +188,11 @@ block_plugin_dns_evaluate(void *cls,
  *         (or if extracting a key from a block of this type does not work)
  */
 static int
-block_plugin_dns_get_key(void *cls,
-                         enum GNUNET_BLOCK_Type type,
-                         const void *block,
-                         size_t block_size,
-                         struct GNUNET_HashCode *key)
+block_plugin_dns_get_key (void *cls,
+                          enum GNUNET_BLOCK_Type type,
+                          const void *block,
+                          size_t block_size,
+                          struct GNUNET_HashCode *key)
 {
   /* we cannot extract a key from a block of this type */
   return GNUNET_SYSERR;
@@ -201,16 +203,15 @@ block_plugin_dns_get_key(void *cls,
  * Entry point for the plugin.
  */
 void *
-libgnunet_plugin_block_dns_init(void *cls)
+libgnunet_plugin_block_dns_init (void *cls)
 {
-  static enum GNUNET_BLOCK_Type types[] =
-  {
+  static enum GNUNET_BLOCK_Type types[] = {
     GNUNET_BLOCK_TYPE_DNS,
     GNUNET_BLOCK_TYPE_ANY       /* end of list */
   };
   struct GNUNET_BLOCK_PluginFunctions *api;
 
-  api = GNUNET_new(struct GNUNET_BLOCK_PluginFunctions);
+  api = GNUNET_new (struct GNUNET_BLOCK_PluginFunctions);
   api->evaluate = &block_plugin_dns_evaluate;
   api->get_key = &block_plugin_dns_get_key;
   api->create_group = &block_plugin_dns_create_group;
@@ -223,11 +224,11 @@ libgnunet_plugin_block_dns_init(void *cls)
  * Exit point from the plugin.
  */
 void *
-libgnunet_plugin_block_dns_done(void *cls)
+libgnunet_plugin_block_dns_done (void *cls)
 {
   struct GNUNET_BLOCK_PluginFunctions *api = cls;
 
-  GNUNET_free(api);
+  GNUNET_free (api);
   return NULL;
 }
 

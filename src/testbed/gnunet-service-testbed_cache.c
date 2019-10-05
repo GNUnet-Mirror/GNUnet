@@ -32,13 +32,14 @@
 #undef LOG
 #endif
 #define LOG(kind, ...)                                   \
-  GNUNET_log_from(kind, "testbed-cache", __VA_ARGS__)
+  GNUNET_log_from (kind, "testbed-cache", __VA_ARGS__)
 
 
 /**
  * Cache entry
  */
-struct CacheEntry {
+struct CacheEntry
+{
   /**
    * DLL next ptr for least recently used cache entries
    */
@@ -96,16 +97,16 @@ static unsigned int cache_size;
  * @return the HELLO message; NULL if not found
  */
 static struct CacheEntry *
-cache_lookup(unsigned int peer_id)
+cache_lookup (unsigned int peer_id)
 {
   struct CacheEntry *entry;
 
-  GNUNET_assert(NULL != cache);
-  entry = GNUNET_CONTAINER_multihashmap32_get(cache, peer_id);
+  GNUNET_assert (NULL != cache);
+  entry = GNUNET_CONTAINER_multihashmap32_get (cache, peer_id);
   if (NULL == entry)
     return NULL;
-  GNUNET_CONTAINER_DLL_remove(cache_head, cache_tail, entry);
-  GNUNET_CONTAINER_DLL_insert_tail(cache_head, cache_tail, entry);
+  GNUNET_CONTAINER_DLL_remove (cache_head, cache_tail, entry);
+  GNUNET_CONTAINER_DLL_insert_tail (cache_head, cache_tail, entry);
   return entry;
 }
 
@@ -116,11 +117,11 @@ cache_lookup(unsigned int peer_id)
  * @param entry the cache entry to free
  */
 static void
-free_entry(struct CacheEntry *entry)
+free_entry (struct CacheEntry *entry)
 {
-  GNUNET_CONTAINER_DLL_remove(cache_head, cache_tail, entry);
-  GNUNET_free_non_null(entry->hello);
-  GNUNET_free(entry);
+  GNUNET_CONTAINER_DLL_remove (cache_head, cache_tail, entry);
+  GNUNET_free_non_null (entry->hello);
+  GNUNET_free (entry);
 }
 
 
@@ -131,29 +132,29 @@ free_entry(struct CacheEntry *entry)
  * @return the newly created entry
  */
 static struct CacheEntry *
-add_entry(unsigned int peer_id)
+add_entry (unsigned int peer_id)
 {
   struct CacheEntry *entry;
 
-  GNUNET_assert(NULL != cache);
-  if (cache_size == GNUNET_CONTAINER_multihashmap32_size(cache))
-    {
-      /* remove the LRU head */
-      entry = cache_head;
-      GNUNET_assert(GNUNET_OK ==
-                    GNUNET_CONTAINER_multihashmap32_remove(cache, (uint32_t)
+  GNUNET_assert (NULL != cache);
+  if (cache_size == GNUNET_CONTAINER_multihashmap32_size (cache))
+  {
+    /* remove the LRU head */
+    entry = cache_head;
+    GNUNET_assert (GNUNET_OK ==
+                   GNUNET_CONTAINER_multihashmap32_remove (cache, (uint32_t)
                                                            entry->peer_id,
                                                            entry));
-      free_entry(entry);
-    }
-  entry = GNUNET_new(struct CacheEntry);
+    free_entry (entry);
+  }
+  entry = GNUNET_new (struct CacheEntry);
   entry->peer_id = peer_id;
-  GNUNET_assert(GNUNET_OK ==
-                GNUNET_CONTAINER_multihashmap32_put(cache,
-                                                    (uint32_t)peer_id,
-                                                    entry,
-                                                    GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST));
-  GNUNET_CONTAINER_DLL_insert_tail(cache_head, cache_tail, entry);
+  GNUNET_assert (GNUNET_OK ==
+                 GNUNET_CONTAINER_multihashmap32_put (cache,
+                                                      (uint32_t) peer_id,
+                                                      entry,
+                                                      GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST));
+  GNUNET_CONTAINER_DLL_insert_tail (cache_head, cache_tail, entry);
   return entry;
 }
 
@@ -169,14 +170,14 @@ add_entry(unsigned int peer_id)
  *         GNUNET_NO if not.
  */
 static int
-cache_clear_iterator(void *cls, uint32_t key, void *value)
+cache_clear_iterator (void *cls, uint32_t key, void *value)
 {
   struct CacheEntry *entry = value;
 
-  GNUNET_assert(NULL != entry);
-  GNUNET_assert(GNUNET_YES ==
-                GNUNET_CONTAINER_multihashmap32_remove(cache, key, value));
-  free_entry(entry);
+  GNUNET_assert (NULL != entry);
+  GNUNET_assert (GNUNET_YES ==
+                 GNUNET_CONTAINER_multihashmap32_remove (cache, key, value));
+  free_entry (entry);
   return GNUNET_YES;
 }
 
@@ -185,15 +186,16 @@ cache_clear_iterator(void *cls, uint32_t key, void *value)
  * Clear cache
  */
 void
-GST_cache_clear()
+GST_cache_clear ()
 {
   if (NULL != cache)
-    {
-      GNUNET_CONTAINER_multihashmap32_iterate(cache, &cache_clear_iterator, NULL);
-      GNUNET_assert(0 == GNUNET_CONTAINER_multihashmap32_size(cache));
-      GNUNET_CONTAINER_multihashmap32_destroy(cache);
-      cache = NULL;
-    }
+  {
+    GNUNET_CONTAINER_multihashmap32_iterate (cache, &cache_clear_iterator,
+                                             NULL);
+    GNUNET_assert (0 == GNUNET_CONTAINER_multihashmap32_size (cache));
+    GNUNET_CONTAINER_multihashmap32_destroy (cache);
+    cache = NULL;
+  }
   cache_size = 0;
   cache_head = NULL;
   cache_tail = NULL;
@@ -206,12 +208,12 @@ GST_cache_clear()
  * @param size the size of the cache
  */
 void
-GST_cache_init(unsigned int size)
+GST_cache_init (unsigned int size)
 {
   if (0 == size)
     return;
   cache_size = size;
-  cache = GNUNET_CONTAINER_multihashmap32_create(cache_size);
+  cache = GNUNET_CONTAINER_multihashmap32_create (cache_size);
 }
 
 
@@ -222,21 +224,21 @@ GST_cache_init(unsigned int size)
  * @return the HELLO message; NULL if not found
  */
 const struct GNUNET_MessageHeader *
-GST_cache_lookup_hello(const unsigned int peer_id)
+GST_cache_lookup_hello (const unsigned int peer_id)
 {
   struct CacheEntry *entry;
 
-  LOG_DEBUG("Looking up HELLO for peer %u\n", peer_id);
+  LOG_DEBUG ("Looking up HELLO for peer %u\n", peer_id);
   if (NULL == cache)
-    {
-      LOG_DEBUG("Caching disabled\n");
-      return NULL;
-    }
-  entry = cache_lookup(peer_id);
+  {
+    LOG_DEBUG ("Caching disabled\n");
+    return NULL;
+  }
+  entry = cache_lookup (peer_id);
   if (NULL == entry)
     return NULL;
   if (NULL != entry->hello)
-    LOG_DEBUG("HELLO found for peer %u\n", peer_id);
+    LOG_DEBUG ("HELLO found for peer %u\n", peer_id);
   return entry->hello;
 }
 
@@ -249,18 +251,18 @@ GST_cache_lookup_hello(const unsigned int peer_id)
  * @param hello the HELLO message
  */
 void
-GST_cache_add_hello(const unsigned int peer_id,
-                    const struct GNUNET_MessageHeader *hello)
+GST_cache_add_hello (const unsigned int peer_id,
+                     const struct GNUNET_MessageHeader *hello)
 {
   struct CacheEntry *entry;
 
   if (NULL == cache)
     return;
-  entry = cache_lookup(peer_id);
+  entry = cache_lookup (peer_id);
   if (NULL == entry)
-    entry = add_entry(peer_id);
-  GNUNET_free_non_null(entry->hello);
-  entry->hello = GNUNET_copy_message(hello);
+    entry = add_entry (peer_id);
+  GNUNET_free_non_null (entry->hello);
+  entry->hello = GNUNET_copy_message (hello);
 }
 
 /* end of gnunet-service-testbed_hc.c */

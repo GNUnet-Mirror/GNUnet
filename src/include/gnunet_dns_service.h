@@ -49,7 +49,8 @@ struct GNUNET_DNS_RequestHandle;
 /**
  * Flags that specify when to call the client's handler.
  */
-enum GNUNET_DNS_Flags {
+enum GNUNET_DNS_Flags
+{
   /**
    * Useless option: never call the client.
    */
@@ -134,7 +135,7 @@ typedef void
  * @param rh request that should now be forwarded
  */
 void
-GNUNET_DNS_request_forward(struct GNUNET_DNS_RequestHandle *rh);
+GNUNET_DNS_request_forward (struct GNUNET_DNS_RequestHandle *rh);
 
 
 /**
@@ -144,7 +145,7 @@ GNUNET_DNS_request_forward(struct GNUNET_DNS_RequestHandle *rh);
  * @param rh request that should now be dropped
  */
 void
-GNUNET_DNS_request_drop(struct GNUNET_DNS_RequestHandle *rh);
+GNUNET_DNS_request_drop (struct GNUNET_DNS_RequestHandle *rh);
 
 
 /**
@@ -158,9 +159,9 @@ GNUNET_DNS_request_drop(struct GNUNET_DNS_RequestHandle *rh);
  * @param reply reply data
  */
 void
-GNUNET_DNS_request_answer(struct GNUNET_DNS_RequestHandle *rh,
-                          uint16_t reply_length,
-                          const char *reply);
+GNUNET_DNS_request_answer (struct GNUNET_DNS_RequestHandle *rh,
+                           uint16_t reply_length,
+                           const char *reply);
 
 
 /**
@@ -173,10 +174,10 @@ GNUNET_DNS_request_answer(struct GNUNET_DNS_RequestHandle *rh,
  * @return DNS handle
  */
 struct GNUNET_DNS_Handle *
-GNUNET_DNS_connect(const struct GNUNET_CONFIGURATION_Handle *cfg,
-                   enum GNUNET_DNS_Flags flags,
-                   GNUNET_DNS_RequestHandler rh,
-                   void *rh_cls);
+GNUNET_DNS_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
+                    enum GNUNET_DNS_Flags flags,
+                    GNUNET_DNS_RequestHandler rh,
+                    void *rh_cls);
 
 
 /**
@@ -185,7 +186,7 @@ GNUNET_DNS_connect(const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @param dh DNS handle
  */
 void
-GNUNET_DNS_disconnect(struct GNUNET_DNS_Handle *dh);
+GNUNET_DNS_disconnect (struct GNUNET_DNS_Handle *dh);
 
 
 #endif

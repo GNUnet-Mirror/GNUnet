@@ -36,8 +36,8 @@
  * @param res information about some libpq event
  */
 static void
-pq_notice_receiver_cb(void *arg,
-                      const PGresult *res)
+pq_notice_receiver_cb (void *arg,
+                       const PGresult *res)
 {
   /* do nothing, intentionally */
 }
@@ -51,13 +51,13 @@ pq_notice_receiver_cb(void *arg,
  * @param message information about some libpq event
  */
 static void
-pq_notice_processor_cb(void *arg,
-                       const char *message)
+pq_notice_processor_cb (void *arg,
+                        const char *message)
 {
-  GNUNET_log_from(GNUNET_ERROR_TYPE_INFO,
-                  "pq",
-                  "%s",
-                  message);
+  GNUNET_log_from (GNUNET_ERROR_TYPE_INFO,
+                   "pq",
+                   "%s",
+                   message);
 }
 
 
@@ -70,32 +70,32 @@ pq_notice_processor_cb(void *arg,
  * @return NULL on error
  */
 PGconn *
-GNUNET_PQ_connect(const char *config_str)
+GNUNET_PQ_connect (const char *config_str)
 {
   PGconn *conn;
 
-  conn = PQconnectdb(config_str);
+  conn = PQconnectdb (config_str);
   if ((NULL == conn) ||
       (CONNECTION_OK !=
-       PQstatus(conn)))
-    {
-      GNUNET_log_from(GNUNET_ERROR_TYPE_ERROR,
-                      "pq",
-                      "Database connection to '%s' failed: %s\n",
-                      config_str,
-                      (NULL != conn) ?
-                      PQerrorMessage(conn)
-                      : "PQconnectdb returned NULL");
-      if (NULL != conn)
-        PQfinish(conn);
-      return NULL;
-    }
-  PQsetNoticeReceiver(conn,
-                      &pq_notice_receiver_cb,
-                      conn);
-  PQsetNoticeProcessor(conn,
-                       &pq_notice_processor_cb,
+       PQstatus (conn)))
+  {
+    GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
+                     "pq",
+                     "Database connection to '%s' failed: %s\n",
+                     config_str,
+                     (NULL != conn) ?
+                     PQerrorMessage (conn)
+                     : "PQconnectdb returned NULL");
+    if (NULL != conn)
+      PQfinish (conn);
+    return NULL;
+  }
+  PQsetNoticeReceiver (conn,
+                       &pq_notice_receiver_cb,
                        conn);
+  PQsetNoticeProcessor (conn,
+                        &pq_notice_processor_cb,
+                        conn);
   return conn;
 }
 
@@ -109,21 +109,21 @@ GNUNET_PQ_connect(const char *config_str)
  * @return the postgres handle, NULL on error
  */
 PGconn *
-GNUNET_PQ_connect_with_cfg(const struct GNUNET_CONFIGURATION_Handle * cfg,
-                           const char *section)
+GNUNET_PQ_connect_with_cfg (const struct GNUNET_CONFIGURATION_Handle *cfg,
+                            const char *section)
 {
   PGconn *dbh;
   char *conninfo;
 
   /* Open database and precompile statements */
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_string(cfg,
-                                            section,
-                                            "CONFIG",
-                                            &conninfo))
+      GNUNET_CONFIGURATION_get_value_string (cfg,
+                                             section,
+                                             "CONFIG",
+                                             &conninfo))
     conninfo = NULL;
-  dbh = GNUNET_PQ_connect(conninfo == NULL ? "" : conninfo);
-  GNUNET_free_non_null(conninfo);
+  dbh = GNUNET_PQ_connect (conninfo == NULL ? "" : conninfo);
+  GNUNET_free_non_null (conninfo);
   return dbh;
 }
 

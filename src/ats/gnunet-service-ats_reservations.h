@@ -39,9 +39,9 @@
  *        this peer (estimate)
  */
 void
-GAS_reservations_set_bandwidth(const struct GNUNET_PeerIdentity *peer,
-                               struct GNUNET_BANDWIDTH_Value32NBO
-                               bandwidth_in);
+GAS_reservations_set_bandwidth (const struct GNUNET_PeerIdentity *peer,
+                                struct GNUNET_BANDWIDTH_Value32NBO
+                                bandwidth_in);
 
 
 /**
@@ -51,8 +51,9 @@ GAS_reservations_set_bandwidth(const struct GNUNET_PeerIdentity *peer,
  * @param message the request message
  */
 void
-GAS_handle_reservation_request(struct GNUNET_SERVICE_Client *client,
-                               const struct ReservationRequestMessage *message);
+GAS_handle_reservation_request (struct GNUNET_SERVICE_Client *client,
+                                const struct
+                                ReservationRequestMessage *message);
 
 
 /**
@@ -61,13 +62,13 @@ GAS_handle_reservation_request(struct GNUNET_SERVICE_Client *client,
  * @param server handle to our server
  */
 void
-GAS_reservations_init(void);
+GAS_reservations_init (void);
 
 
 /**
  * Shutdown reservations subsystem.
  */
 void
-GAS_reservations_done(void);
+GAS_reservations_done (void);
 
 #endif

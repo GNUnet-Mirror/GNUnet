@@ -42,7 +42,8 @@
 /**
  * Information we track per packet to enable flow control.
  */
-struct FlowControl {
+struct FlowControl
+{
   /**
    * Kept in a DLL.
    */
@@ -79,7 +80,8 @@ struct FlowControl {
  * Information we track per message to tell the transport about
  * success or failures.
  */
-struct AckPending {
+struct AckPending
+{
   /**
    * Kept in a DLL.
    */
@@ -110,7 +112,8 @@ struct AckPending {
 /**
  * Opaque handle to the transport service for communicators.
  */
-struct GNUNET_TRANSPORT_CommunicatorHandle {
+struct GNUNET_TRANSPORT_CommunicatorHandle
+{
   /**
    * Head of DLL of addresses this communicator offers to the transport service.
    */
@@ -226,7 +229,8 @@ struct GNUNET_TRANSPORT_CommunicatorHandle {
  * Handle returned to identify the internal data structure the transport
  * API has created to manage a message queue to a particular peer.
  */
-struct GNUNET_TRANSPORT_QueueHandle {
+struct GNUNET_TRANSPORT_QueueHandle
+{
   /**
    * Kept in a DLL.
    */
@@ -283,7 +287,8 @@ struct GNUNET_TRANSPORT_QueueHandle {
  * Internal representation of an address a communicator is
  * currently providing for the transport service.
  */
-struct GNUNET_TRANSPORT_AddressIdentifier {
+struct GNUNET_TRANSPORT_AddressIdentifier
+{
   /**
    * Kept in a DLL.
    */
@@ -329,7 +334,7 @@ struct GNUNET_TRANSPORT_AddressIdentifier {
  * @param ch handle to reconnect
  */
 static void
-reconnect(struct GNUNET_TRANSPORT_CommunicatorHandle *ch);
+reconnect (struct GNUNET_TRANSPORT_CommunicatorHandle *ch);
 
 
 /**
@@ -339,20 +344,20 @@ reconnect(struct GNUNET_TRANSPORT_CommunicatorHandle *ch);
  * @param ai address to add
  */
 static void
-send_add_address(struct GNUNET_TRANSPORT_AddressIdentifier *ai)
+send_add_address (struct GNUNET_TRANSPORT_AddressIdentifier *ai)
 {
   struct GNUNET_MQ_Envelope *env;
   struct GNUNET_TRANSPORT_AddAddressMessage *aam;
 
   if (NULL == ai->ch->mq)
     return;
-  env = GNUNET_MQ_msg_extra(aam,
-                            strlen(ai->address) + 1,
-                            GNUNET_MESSAGE_TYPE_TRANSPORT_ADD_ADDRESS);
-  aam->expiration = GNUNET_TIME_relative_hton(ai->expiration);
-  aam->nt = htonl((uint32_t)ai->nt);
-  memcpy(&aam[1], ai->address, strlen(ai->address) + 1);
-  GNUNET_MQ_send(ai->ch->mq, env);
+  env = GNUNET_MQ_msg_extra (aam,
+                             strlen (ai->address) + 1,
+                             GNUNET_MESSAGE_TYPE_TRANSPORT_ADD_ADDRESS);
+  aam->expiration = GNUNET_TIME_relative_hton (ai->expiration);
+  aam->nt = htonl ((uint32_t) ai->nt);
+  memcpy (&aam[1], ai->address, strlen (ai->address) + 1);
+  GNUNET_MQ_send (ai->ch->mq, env);
 }
 
 
@@ -363,16 +368,16 @@ send_add_address(struct GNUNET_TRANSPORT_AddressIdentifier *ai)
  * @param ai address to delete
  */
 static void
-send_del_address(struct GNUNET_TRANSPORT_AddressIdentifier *ai)
+send_del_address (struct GNUNET_TRANSPORT_AddressIdentifier *ai)
 {
   struct GNUNET_MQ_Envelope *env;
   struct GNUNET_TRANSPORT_DelAddressMessage *dam;
 
   if (NULL == ai->ch->mq)
     return;
-  env = GNUNET_MQ_msg(dam, GNUNET_MESSAGE_TYPE_TRANSPORT_DEL_ADDRESS);
-  dam->aid = htonl(ai->aid);
-  GNUNET_MQ_send(ai->ch->mq, env);
+  env = GNUNET_MQ_msg (dam, GNUNET_MESSAGE_TYPE_TRANSPORT_DEL_ADDRESS);
+  dam->aid = htonl (ai->aid);
+  GNUNET_MQ_send (ai->ch->mq, env);
 }
 
 
@@ -383,23 +388,23 @@ send_del_address(struct GNUNET_TRANSPORT_AddressIdentifier *ai)
  * @param qh queue to add
  */
 static void
-send_add_queue(struct GNUNET_TRANSPORT_QueueHandle *qh)
+send_add_queue (struct GNUNET_TRANSPORT_QueueHandle *qh)
 {
   struct GNUNET_MQ_Envelope *env;
   struct GNUNET_TRANSPORT_AddQueueMessage *aqm;
 
   if (NULL == qh->ch->mq)
     return;
-  env = GNUNET_MQ_msg_extra(aqm,
-                            strlen(qh->address) + 1,
-                            GNUNET_MESSAGE_TYPE_TRANSPORT_QUEUE_SETUP);
-  aqm->qid = htonl(qh->queue_id);
+  env = GNUNET_MQ_msg_extra (aqm,
+                             strlen (qh->address) + 1,
+                             GNUNET_MESSAGE_TYPE_TRANSPORT_QUEUE_SETUP);
+  aqm->qid = htonl (qh->queue_id);
   aqm->receiver = qh->peer;
-  aqm->nt = htonl((uint32_t)qh->nt);
-  aqm->mtu = htonl(qh->mtu);
-  aqm->cs = htonl((uint32_t)qh->cs);
-  memcpy(&aqm[1], qh->address, strlen(qh->address) + 1);
-  GNUNET_MQ_send(qh->ch->mq, env);
+  aqm->nt = htonl ((uint32_t) qh->nt);
+  aqm->mtu = htonl (qh->mtu);
+  aqm->cs = htonl ((uint32_t) qh->cs);
+  memcpy (&aqm[1], qh->address, strlen (qh->address) + 1);
+  GNUNET_MQ_send (qh->ch->mq, env);
 }
 
 
@@ -410,17 +415,17 @@ send_add_queue(struct GNUNET_TRANSPORT_QueueHandle *qh)
  * @param qh queue to delete
  */
 static void
-send_del_queue(struct GNUNET_TRANSPORT_QueueHandle *qh)
+send_del_queue (struct GNUNET_TRANSPORT_QueueHandle *qh)
 {
   struct GNUNET_MQ_Envelope *env;
   struct GNUNET_TRANSPORT_DelQueueMessage *dqm;
 
   if (NULL == qh->ch->mq)
     return;
-  env = GNUNET_MQ_msg(dqm, GNUNET_MESSAGE_TYPE_TRANSPORT_QUEUE_TEARDOWN);
-  dqm->qid = htonl(qh->queue_id);
+  env = GNUNET_MQ_msg (dqm, GNUNET_MESSAGE_TYPE_TRANSPORT_QUEUE_TEARDOWN);
+  dqm->qid = htonl (qh->queue_id);
   dqm->receiver = qh->peer;
-  GNUNET_MQ_send(qh->ch->mq, env);
+  GNUNET_MQ_send (qh->ch->mq, env);
 }
 
 
@@ -433,27 +438,27 @@ send_del_queue(struct GNUNET_TRANSPORT_QueueHandle *qh)
  * @param ch service to disconnect from
  */
 static void
-disconnect(struct GNUNET_TRANSPORT_CommunicatorHandle *ch)
+disconnect (struct GNUNET_TRANSPORT_CommunicatorHandle *ch)
 {
   struct FlowControl *fcn;
   struct AckPending *apn;
 
   for (struct FlowControl *fc = ch->fc_head; NULL != fc; fc = fcn)
-    {
-      fcn = fc->next;
-      GNUNET_CONTAINER_DLL_remove(ch->fc_head, ch->fc_tail, fc);
-      fc->cb(fc->cb_cls, GNUNET_SYSERR);
-      GNUNET_free(fc);
-    }
+  {
+    fcn = fc->next;
+    GNUNET_CONTAINER_DLL_remove (ch->fc_head, ch->fc_tail, fc);
+    fc->cb (fc->cb_cls, GNUNET_SYSERR);
+    GNUNET_free (fc);
+  }
   for (struct AckPending *ap = ch->ap_head; NULL != ap; ap = apn)
-    {
-      apn = ap->next;
-      GNUNET_CONTAINER_DLL_remove(ch->ap_head, ch->ap_tail, ap);
-      GNUNET_free(ap);
-    }
+  {
+    apn = ap->next;
+    GNUNET_CONTAINER_DLL_remove (ch->ap_head, ch->ap_tail, ap);
+    GNUNET_free (ap);
+  }
   if (NULL == ch->mq)
     return;
-  GNUNET_MQ_destroy(ch->mq);
+  GNUNET_MQ_destroy (ch->mq);
   ch->mq = NULL;
 }
 
@@ -462,16 +467,16 @@ disconnect(struct GNUNET_TRANSPORT_CommunicatorHandle *ch)
  * Function called on MQ errors.
  */
 static void
-error_handler(void *cls, enum GNUNET_MQ_Error error)
+error_handler (void *cls, enum GNUNET_MQ_Error error)
 {
   struct GNUNET_TRANSPORT_CommunicatorHandle *ch = cls;
 
-  GNUNET_log(GNUNET_ERROR_TYPE_INFO,
-             "MQ failure %d, reconnecting to transport service.\n",
-             error);
-  disconnect(ch);
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "MQ failure %d, reconnecting to transport service.\n",
+              error);
+  disconnect (ch);
   /* TODO: maybe do this with exponential backoff/delay */
-  reconnect(ch);
+  reconnect (ch);
 }
 
 
@@ -483,29 +488,29 @@ error_handler(void *cls, enum GNUNET_MQ_Error error)
  * @param incoming_ack the ack
  */
 static void
-handle_incoming_ack(
+handle_incoming_ack (
   void *cls,
   const struct GNUNET_TRANSPORT_IncomingMessageAck *incoming_ack)
 {
   struct GNUNET_TRANSPORT_CommunicatorHandle *ch = cls;
 
   for (struct FlowControl *fc = ch->fc_head; NULL != fc; fc = fc->next)
+  {
+    if ((fc->id == incoming_ack->fc_id) &&
+        (0 == memcmp (&fc->sender,
+                      &incoming_ack->sender,
+                      sizeof(struct GNUNET_PeerIdentity))))
     {
-      if ((fc->id == incoming_ack->fc_id) &&
-          (0 == memcmp(&fc->sender,
-                       &incoming_ack->sender,
-                       sizeof(struct GNUNET_PeerIdentity))))
-        {
-          GNUNET_CONTAINER_DLL_remove(ch->fc_head, ch->fc_tail, fc);
-          fc->cb(fc->cb_cls, GNUNET_OK);
-          GNUNET_free(fc);
-          return;
-        }
+      GNUNET_CONTAINER_DLL_remove (ch->fc_head, ch->fc_tail, fc);
+      fc->cb (fc->cb_cls, GNUNET_OK);
+      GNUNET_free (fc);
+      return;
     }
-  GNUNET_break(0);
-  disconnect(ch);
+  }
+  GNUNET_break (0);
+  disconnect (ch);
   /* TODO: maybe do this with exponential backoff/delay */
-  reconnect(ch);
+  reconnect (ch);
 }
 
 
@@ -518,10 +523,10 @@ handle_incoming_ack(
  * @return #GNUNET_OK if @a smt is well-formed
  */
 static int
-check_create_queue(void *cls, const struct GNUNET_TRANSPORT_CreateQueue *cq)
+check_create_queue (void *cls, const struct GNUNET_TRANSPORT_CreateQueue *cq)
 {
-  (void)cls;
-  GNUNET_MQ_check_zero_termination(cq);
+  (void) cls;
+  GNUNET_MQ_check_zero_termination (cq);
   return GNUNET_OK;
 }
 
@@ -533,26 +538,26 @@ check_create_queue(void *cls, const struct GNUNET_TRANSPORT_CreateQueue *cq)
  * @param cq the queue creation request
  */
 static void
-handle_create_queue(void *cls, const struct GNUNET_TRANSPORT_CreateQueue *cq)
+handle_create_queue (void *cls, const struct GNUNET_TRANSPORT_CreateQueue *cq)
 {
   struct GNUNET_TRANSPORT_CommunicatorHandle *ch = cls;
-  const char *addr = (const char *)&cq[1];
+  const char *addr = (const char *) &cq[1];
   struct GNUNET_TRANSPORT_CreateQueueResponse *cqr;
   struct GNUNET_MQ_Envelope *env;
 
-  if (GNUNET_OK != ch->mq_init(ch->mq_init_cls, &cq->receiver, addr))
-    {
-      GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
-                 "Address `%s' invalid for this communicator\n",
-                 addr);
-      env = GNUNET_MQ_msg(cqr, GNUNET_MESSAGE_TYPE_TRANSPORT_QUEUE_CREATE_FAIL);
-    }
+  if (GNUNET_OK != ch->mq_init (ch->mq_init_cls, &cq->receiver, addr))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Address `%s' invalid for this communicator\n",
+                addr);
+    env = GNUNET_MQ_msg (cqr, GNUNET_MESSAGE_TYPE_TRANSPORT_QUEUE_CREATE_FAIL);
+  }
   else
-    {
-      env = GNUNET_MQ_msg(cqr, GNUNET_MESSAGE_TYPE_TRANSPORT_QUEUE_CREATE_OK);
-    }
+  {
+    env = GNUNET_MQ_msg (cqr, GNUNET_MESSAGE_TYPE_TRANSPORT_QUEUE_CREATE_OK);
+  }
   cqr->request_id = cq->request_id;
-  GNUNET_MQ_send(ch->mq, env);
+  GNUNET_MQ_send (ch->mq, env);
 }
 
 
@@ -565,10 +570,10 @@ handle_create_queue(void *cls, const struct GNUNET_TRANSPORT_CreateQueue *cq)
  * @return #GNUNET_OK if @a smt is well-formed
  */
 static int
-check_send_msg(void *cls, const struct GNUNET_TRANSPORT_SendMessageTo *smt)
+check_send_msg (void *cls, const struct GNUNET_TRANSPORT_SendMessageTo *smt)
 {
-  (void)cls;
-  GNUNET_MQ_check_boxed_message(smt);
+  (void) cls;
+  GNUNET_MQ_check_boxed_message (smt);
   return GNUNET_OK;
 }
 
@@ -583,19 +588,19 @@ check_send_msg(void *cls, const struct GNUNET_TRANSPORT_SendMessageTo *smt)
  * @param mid message that the ack is about
  */
 static void
-send_ack(struct GNUNET_TRANSPORT_CommunicatorHandle *ch,
-         int status,
-         const struct GNUNET_PeerIdentity *receiver,
-         uint64_t mid)
+send_ack (struct GNUNET_TRANSPORT_CommunicatorHandle *ch,
+          int status,
+          const struct GNUNET_PeerIdentity *receiver,
+          uint64_t mid)
 {
   struct GNUNET_MQ_Envelope *env;
   struct GNUNET_TRANSPORT_SendMessageToAck *ack;
 
-  env = GNUNET_MQ_msg(ack, GNUNET_MESSAGE_TYPE_TRANSPORT_SEND_MSG_ACK);
-  ack->status = htonl(status);
+  env = GNUNET_MQ_msg (ack, GNUNET_MESSAGE_TYPE_TRANSPORT_SEND_MSG_ACK);
+  ack->status = htonl (status);
   ack->mid = mid;
   ack->receiver = *receiver;
-  GNUNET_MQ_send(ch->mq, env);
+  GNUNET_MQ_send (ch->mq, env);
 }
 
 
@@ -606,14 +611,14 @@ send_ack(struct GNUNET_TRANSPORT_CommunicatorHandle *ch,
  * @param cls an `struct AckPending *`
  */
 static void
-send_ack_cb(void *cls)
+send_ack_cb (void *cls)
 {
   struct AckPending *ap = cls;
   struct GNUNET_TRANSPORT_CommunicatorHandle *ch = ap->ch;
 
-  GNUNET_CONTAINER_DLL_remove(ch->ap_head, ch->ap_tail, ap);
-  send_ack(ch, GNUNET_OK, &ap->receiver, ap->mid);
-  GNUNET_free(ap);
+  GNUNET_CONTAINER_DLL_remove (ch->ap_head, ch->ap_tail, ap);
+  send_ack (ch, GNUNET_OK, &ap->receiver, ap->mid);
+  GNUNET_free (ap);
 }
 
 
@@ -624,7 +629,7 @@ send_ack_cb(void *cls)
  * @param smt the transmission request
  */
 static void
-handle_send_msg(void *cls, const struct GNUNET_TRANSPORT_SendMessageTo *smt)
+handle_send_msg (void *cls, const struct GNUNET_TRANSPORT_SendMessageTo *smt)
 {
   struct GNUNET_TRANSPORT_CommunicatorHandle *ch = cls;
   const struct GNUNET_MessageHeader *mh;
@@ -634,27 +639,27 @@ handle_send_msg(void *cls, const struct GNUNET_TRANSPORT_SendMessageTo *smt)
 
   for (qh = ch->queue_head; NULL != qh; qh = qh->next)
     if ((qh->queue_id == smt->qid) &&
-        (0 == memcmp(&qh->peer,
-                     &smt->receiver,
-                     sizeof(struct GNUNET_PeerIdentity))))
+        (0 == memcmp (&qh->peer,
+                      &smt->receiver,
+                      sizeof(struct GNUNET_PeerIdentity))))
       break;
   if (NULL == qh)
-    {
-      /* queue is already gone, tell transport this one failed */
-      GNUNET_log(GNUNET_ERROR_TYPE_INFO,
-                 "Transmission failed, queue no longer exists.\n");
-      send_ack(ch, GNUNET_NO, &smt->receiver, smt->mid);
-      return;
-    }
-  ap = GNUNET_new(struct AckPending);
+  {
+    /* queue is already gone, tell transport this one failed */
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                "Transmission failed, queue no longer exists.\n");
+    send_ack (ch, GNUNET_NO, &smt->receiver, smt->mid);
+    return;
+  }
+  ap = GNUNET_new (struct AckPending);
   ap->ch = ch;
   ap->receiver = smt->receiver;
   ap->mid = smt->mid;
-  GNUNET_CONTAINER_DLL_insert(ch->ap_head, ch->ap_tail, ap);
-  mh = (const struct GNUNET_MessageHeader *)&smt[1];
-  env = GNUNET_MQ_msg_copy(mh);
-  GNUNET_MQ_notify_sent(env, &send_ack_cb, ap);
-  GNUNET_MQ_send(qh->mq, env);
+  GNUNET_CONTAINER_DLL_insert (ch->ap_head, ch->ap_tail, ap);
+  mh = (const struct GNUNET_MessageHeader *) &smt[1];
+  env = GNUNET_MQ_msg_copy (mh);
+  GNUNET_MQ_notify_sent (env, &send_ack_cb, ap);
+  GNUNET_MQ_send (qh->mq, env);
 }
 
 
@@ -667,12 +672,12 @@ handle_send_msg(void *cls, const struct GNUNET_TRANSPORT_SendMessageTo *smt)
  * @return #GNUNET_OK if @a smt is well-formed
  */
 static int
-check_backchannel_incoming(
+check_backchannel_incoming (
   void *cls,
   const struct GNUNET_TRANSPORT_CommunicatorBackchannelIncoming *bi)
 {
-  (void)cls;
-  GNUNET_MQ_check_boxed_message(bi);
+  (void) cls;
+  GNUNET_MQ_check_boxed_message (bi);
   return GNUNET_OK;
 }
 
@@ -684,20 +689,20 @@ check_backchannel_incoming(
  * @param bi the backchannel message
  */
 static void
-handle_backchannel_incoming(
+handle_backchannel_incoming (
   void *cls,
   const struct GNUNET_TRANSPORT_CommunicatorBackchannelIncoming *bi)
 {
   struct GNUNET_TRANSPORT_CommunicatorHandle *ch = cls;
 
   if (NULL != ch->notify_cb)
-    ch->notify_cb(ch->notify_cb_cls,
-                  &bi->pid,
-                  (const struct GNUNET_MessageHeader *)&bi[1]);
+    ch->notify_cb (ch->notify_cb_cls,
+                   &bi->pid,
+                   (const struct GNUNET_MessageHeader *) &bi[1]);
   else
-    GNUNET_log(
+    GNUNET_log (
       GNUNET_ERROR_TYPE_INFO,
-      _("Dropped backchanel message: handler not provided by communicator\n"));
+      _ ("Dropped backchanel message: handler not provided by communicator\n"));
 }
 
 
@@ -707,46 +712,46 @@ handle_backchannel_incoming(
  * @param ch handle to reconnect
  */
 static void
-reconnect(struct GNUNET_TRANSPORT_CommunicatorHandle *ch)
+reconnect (struct GNUNET_TRANSPORT_CommunicatorHandle *ch)
 {
   struct GNUNET_MQ_MessageHandler handlers[] =
-  { GNUNET_MQ_hd_fixed_size(incoming_ack,
-                            GNUNET_MESSAGE_TYPE_TRANSPORT_INCOMING_MSG_ACK,
-                            struct GNUNET_TRANSPORT_IncomingMessageAck,
-                            ch),
-    GNUNET_MQ_hd_var_size(create_queue,
-                          GNUNET_MESSAGE_TYPE_TRANSPORT_QUEUE_CREATE,
-                          struct GNUNET_TRANSPORT_CreateQueue,
-                          ch),
-    GNUNET_MQ_hd_var_size(send_msg,
-                          GNUNET_MESSAGE_TYPE_TRANSPORT_SEND_MSG,
-                          struct GNUNET_TRANSPORT_SendMessageTo,
-                          ch),
-    GNUNET_MQ_hd_var_size(
+  { GNUNET_MQ_hd_fixed_size (incoming_ack,
+                             GNUNET_MESSAGE_TYPE_TRANSPORT_INCOMING_MSG_ACK,
+                             struct GNUNET_TRANSPORT_IncomingMessageAck,
+                             ch),
+    GNUNET_MQ_hd_var_size (create_queue,
+                           GNUNET_MESSAGE_TYPE_TRANSPORT_QUEUE_CREATE,
+                           struct GNUNET_TRANSPORT_CreateQueue,
+                           ch),
+    GNUNET_MQ_hd_var_size (send_msg,
+                           GNUNET_MESSAGE_TYPE_TRANSPORT_SEND_MSG,
+                           struct GNUNET_TRANSPORT_SendMessageTo,
+                           ch),
+    GNUNET_MQ_hd_var_size (
       backchannel_incoming,
       GNUNET_MESSAGE_TYPE_TRANSPORT_COMMUNICATOR_BACKCHANNEL_INCOMING,
       struct GNUNET_TRANSPORT_CommunicatorBackchannelIncoming,
       ch),
-    GNUNET_MQ_handler_end() };
+    GNUNET_MQ_handler_end () };
   struct GNUNET_TRANSPORT_CommunicatorAvailableMessage *cam;
   struct GNUNET_MQ_Envelope *env;
 
   ch->mq =
-    GNUNET_CLIENT_connect(ch->cfg, "transport", handlers, &error_handler, ch);
+    GNUNET_CLIENT_connect (ch->cfg, "transport", handlers, &error_handler, ch);
   if (NULL == ch->mq)
     return;
-  env = GNUNET_MQ_msg_extra(cam,
-                            strlen(ch->addr_prefix) + 1,
-                            GNUNET_MESSAGE_TYPE_TRANSPORT_NEW_COMMUNICATOR);
-  cam->cc = htonl((uint32_t)ch->cc);
-  memcpy(&cam[1], ch->addr_prefix, strlen(ch->addr_prefix) + 1);
-  GNUNET_MQ_send(ch->mq, env);
+  env = GNUNET_MQ_msg_extra (cam,
+                             strlen (ch->addr_prefix) + 1,
+                             GNUNET_MESSAGE_TYPE_TRANSPORT_NEW_COMMUNICATOR);
+  cam->cc = htonl ((uint32_t) ch->cc);
+  memcpy (&cam[1], ch->addr_prefix, strlen (ch->addr_prefix) + 1);
+  GNUNET_MQ_send (ch->mq, env);
   for (struct GNUNET_TRANSPORT_AddressIdentifier *ai = ch->ai_head; NULL != ai;
        ai = ai->next)
-    send_add_address(ai);
+    send_add_address (ai);
   for (struct GNUNET_TRANSPORT_QueueHandle *qh = ch->queue_head; NULL != qh;
        qh = qh->next)
-    send_add_queue(qh);
+    send_add_queue (qh);
 }
 
 
@@ -769,7 +774,7 @@ reconnect(struct GNUNET_TRANSPORT_CommunicatorHandle *ch)
  * @return NULL on error
  */
 struct GNUNET_TRANSPORT_CommunicatorHandle *
-GNUNET_TRANSPORT_communicator_connect(
+GNUNET_TRANSPORT_communicator_connect (
   const struct GNUNET_CONFIGURATION_Handle *cfg,
   const char *config_section,
   const char *addr_prefix,
@@ -781,7 +786,7 @@ GNUNET_TRANSPORT_communicator_connect(
 {
   struct GNUNET_TRANSPORT_CommunicatorHandle *ch;
 
-  ch = GNUNET_new(struct GNUNET_TRANSPORT_CommunicatorHandle);
+  ch = GNUNET_new (struct GNUNET_TRANSPORT_CommunicatorHandle);
   ch->cfg = cfg;
   ch->config_section = config_section;
   ch->addr_prefix = addr_prefix;
@@ -790,18 +795,18 @@ GNUNET_TRANSPORT_communicator_connect(
   ch->notify_cb = notify_cb;
   ch->notify_cb_cls = notify_cb_cls;
   ch->cc = cc;
-  reconnect(ch);
+  reconnect (ch);
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_number(cfg,
-                                            config_section,
-                                            "MAX_QUEUE_LENGTH",
-                                            &ch->max_queue_length))
+      GNUNET_CONFIGURATION_get_value_number (cfg,
+                                             config_section,
+                                             "MAX_QUEUE_LENGTH",
+                                             &ch->max_queue_length))
     ch->max_queue_length = DEFAULT_MAX_QUEUE_LENGTH;
   if (NULL == ch->mq)
-    {
-      GNUNET_free(ch);
-      return NULL;
-    }
+  {
+    GNUNET_free (ch);
+    return NULL;
+  }
   return ch;
 }
 
@@ -812,16 +817,16 @@ GNUNET_TRANSPORT_communicator_connect(
  * @param ch handle returned from connect
  */
 void
-GNUNET_TRANSPORT_communicator_disconnect(
+GNUNET_TRANSPORT_communicator_disconnect (
   struct GNUNET_TRANSPORT_CommunicatorHandle *ch)
 {
-  disconnect(ch);
+  disconnect (ch);
   while (NULL != ch->ai_head)
-    {
-      GNUNET_break(0); /* communicator forgot to remove address, warn! */
-      GNUNET_TRANSPORT_communicator_address_remove(ch->ai_head);
-    }
-  GNUNET_free(ch);
+  {
+    GNUNET_break (0);  /* communicator forgot to remove address, warn! */
+    GNUNET_TRANSPORT_communicator_address_remove (ch->ai_head);
+  }
+  GNUNET_free (ch);
 }
 
 
@@ -849,7 +854,7 @@ GNUNET_TRANSPORT_communicator_disconnect(
  *         the tranport service is not yet up
  */
 int
-GNUNET_TRANSPORT_communicator_receive(
+GNUNET_TRANSPORT_communicator_receive (
   struct GNUNET_TRANSPORT_CommunicatorHandle *ch,
   const struct GNUNET_PeerIdentity *sender,
   const struct GNUNET_MessageHeader *msg,
@@ -863,41 +868,41 @@ GNUNET_TRANSPORT_communicator_receive(
 
   if (NULL == ch->mq)
     return GNUNET_SYSERR;
-  if ((NULL == cb) && (GNUNET_MQ_get_length(ch->mq) >= ch->max_queue_length))
-    {
-      GNUNET_log(
-        GNUNET_ERROR_TYPE_WARNING,
-        "Dropping message: transprot is too slow, queue length %llu exceeded\n",
-        ch->max_queue_length);
-      return GNUNET_NO;
-    }
+  if ((NULL == cb) && (GNUNET_MQ_get_length (ch->mq) >= ch->max_queue_length))
+  {
+    GNUNET_log (
+      GNUNET_ERROR_TYPE_WARNING,
+      "Dropping message: transprot is too slow, queue length %llu exceeded\n",
+      ch->max_queue_length);
+    return GNUNET_NO;
+  }
 
-  msize = ntohs(msg->size);
+  msize = ntohs (msg->size);
   env =
-    GNUNET_MQ_msg_extra(im, msize, GNUNET_MESSAGE_TYPE_TRANSPORT_INCOMING_MSG);
+    GNUNET_MQ_msg_extra (im, msize, GNUNET_MESSAGE_TYPE_TRANSPORT_INCOMING_MSG);
   if (NULL == env)
-    {
-      GNUNET_break(0);
-      return GNUNET_SYSERR;
-    }
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
   im->expected_address_validity =
-    GNUNET_TIME_relative_hton(expected_addr_validity);
+    GNUNET_TIME_relative_hton (expected_addr_validity);
   im->sender = *sender;
-  memcpy(&im[1], msg, msize);
+  memcpy (&im[1], msg, msize);
   if (NULL != cb)
-    {
-      struct FlowControl *fc;
+  {
+    struct FlowControl *fc;
 
-      im->fc_on = htonl(GNUNET_YES);
-      im->fc_id = ch->fc_gen++;
-      fc = GNUNET_new(struct FlowControl);
-      fc->sender = *sender;
-      fc->id = im->fc_id;
-      fc->cb = cb;
-      fc->cb_cls = cb_cls;
-      GNUNET_CONTAINER_DLL_insert(ch->fc_head, ch->fc_tail, fc);
-    }
-  GNUNET_MQ_send(ch->mq, env);
+    im->fc_on = htonl (GNUNET_YES);
+    im->fc_id = ch->fc_gen++;
+    fc = GNUNET_new (struct FlowControl);
+    fc->sender = *sender;
+    fc->id = im->fc_id;
+    fc->cb = cb;
+    fc->cb_cls = cb_cls;
+    GNUNET_CONTAINER_DLL_insert (ch->fc_head, ch->fc_tail, fc);
+  }
+  GNUNET_MQ_send (ch->mq, env);
   return GNUNET_OK;
 }
 
@@ -922,7 +927,7 @@ GNUNET_TRANSPORT_communicator_receive(
  * @return API handle identifying the new MQ
  */
 struct GNUNET_TRANSPORT_QueueHandle *
-GNUNET_TRANSPORT_communicator_mq_add(
+GNUNET_TRANSPORT_communicator_mq_add (
   struct GNUNET_TRANSPORT_CommunicatorHandle *ch,
   const struct GNUNET_PeerIdentity *peer,
   const char *address,
@@ -933,17 +938,17 @@ GNUNET_TRANSPORT_communicator_mq_add(
 {
   struct GNUNET_TRANSPORT_QueueHandle *qh;
 
-  qh = GNUNET_new(struct GNUNET_TRANSPORT_QueueHandle);
+  qh = GNUNET_new (struct GNUNET_TRANSPORT_QueueHandle);
   qh->ch = ch;
   qh->peer = *peer;
-  qh->address = GNUNET_strdup(address);
+  qh->address = GNUNET_strdup (address);
   qh->nt = nt;
   qh->mtu = mtu;
   qh->cs = cs;
   qh->mq = mq;
   qh->queue_id = ch->queue_gen++;
-  GNUNET_CONTAINER_DLL_insert(ch->queue_head, ch->queue_tail, qh);
-  send_add_queue(qh);
+  GNUNET_CONTAINER_DLL_insert (ch->queue_head, ch->queue_tail, qh);
+  send_add_queue (qh);
   return qh;
 }
 
@@ -955,15 +960,15 @@ GNUNET_TRANSPORT_communicator_mq_add(
  * @param qh handle for the queue that must be invalidated
  */
 void
-GNUNET_TRANSPORT_communicator_mq_del(struct GNUNET_TRANSPORT_QueueHandle *qh)
+GNUNET_TRANSPORT_communicator_mq_del (struct GNUNET_TRANSPORT_QueueHandle *qh)
 {
   struct GNUNET_TRANSPORT_CommunicatorHandle *ch = qh->ch;
 
-  send_del_queue(qh);
-  GNUNET_CONTAINER_DLL_remove(ch->queue_head, ch->queue_tail, qh);
-  GNUNET_MQ_destroy(qh->mq);
-  GNUNET_free(qh->address);
-  GNUNET_free(qh);
+  send_del_queue (qh);
+  GNUNET_CONTAINER_DLL_remove (ch->queue_head, ch->queue_tail, qh);
+  GNUNET_MQ_destroy (qh->mq);
+  GNUNET_free (qh->address);
+  GNUNET_free (qh);
 }
 
 
@@ -977,7 +982,7 @@ GNUNET_TRANSPORT_communicator_mq_del(struct GNUNET_TRANSPORT_QueueHandle *qh)
  * @param expiration when does the communicator forsee this address expiring?
  */
 struct GNUNET_TRANSPORT_AddressIdentifier *
-GNUNET_TRANSPORT_communicator_address_add(
+GNUNET_TRANSPORT_communicator_address_add (
   struct GNUNET_TRANSPORT_CommunicatorHandle *ch,
   const char *address,
   enum GNUNET_NetworkType nt,
@@ -985,14 +990,14 @@ GNUNET_TRANSPORT_communicator_address_add(
 {
   struct GNUNET_TRANSPORT_AddressIdentifier *ai;
 
-  ai = GNUNET_new(struct GNUNET_TRANSPORT_AddressIdentifier);
+  ai = GNUNET_new (struct GNUNET_TRANSPORT_AddressIdentifier);
   ai->ch = ch;
-  ai->address = GNUNET_strdup(address);
+  ai->address = GNUNET_strdup (address);
   ai->nt = nt;
   ai->expiration = expiration;
   ai->aid = ch->aid_gen++;
-  GNUNET_CONTAINER_DLL_insert(ch->ai_head, ch->ai_tail, ai);
-  send_add_address(ai);
+  GNUNET_CONTAINER_DLL_insert (ch->ai_head, ch->ai_tail, ai);
+  send_add_address (ai);
   return ai;
 }
 
@@ -1004,15 +1009,15 @@ GNUNET_TRANSPORT_communicator_address_add(
  * @param ai address that is no longer provided
  */
 void
-GNUNET_TRANSPORT_communicator_address_remove(
+GNUNET_TRANSPORT_communicator_address_remove (
   struct GNUNET_TRANSPORT_AddressIdentifier *ai)
 {
   struct GNUNET_TRANSPORT_CommunicatorHandle *ch = ai->ch;
 
-  send_del_address(ai);
-  GNUNET_CONTAINER_DLL_remove(ch->ai_head, ch->ai_tail, ai);
-  GNUNET_free(ai->address);
-  GNUNET_free(ai);
+  send_del_address (ai);
+  GNUNET_CONTAINER_DLL_remove (ch->ai_head, ch->ai_tail, ai);
+  GNUNET_free (ai->address);
+  GNUNET_free (ai);
 }
 
 
@@ -1034,7 +1039,7 @@ GNUNET_TRANSPORT_communicator_address_remove(
  *        notify-API to @a pid's communicator @a comm
  */
 void
-GNUNET_TRANSPORT_communicator_notify(
+GNUNET_TRANSPORT_communicator_notify (
   struct GNUNET_TRANSPORT_CommunicatorHandle *ch,
   const struct GNUNET_PeerIdentity *pid,
   const char *comm,
@@ -1042,18 +1047,18 @@ GNUNET_TRANSPORT_communicator_notify(
 {
   struct GNUNET_MQ_Envelope *env;
   struct GNUNET_TRANSPORT_CommunicatorBackchannel *cb;
-  size_t slen = strlen(comm) + 1;
-  uint16_t mlen = ntohs(header->size);
+  size_t slen = strlen (comm) + 1;
+  uint16_t mlen = ntohs (header->size);
 
-  GNUNET_assert(mlen + slen + sizeof(*cb) < UINT16_MAX);
+  GNUNET_assert (mlen + slen + sizeof(*cb) < UINT16_MAX);
   env =
-    GNUNET_MQ_msg_extra(cb,
-                        slen + mlen,
-                        GNUNET_MESSAGE_TYPE_TRANSPORT_COMMUNICATOR_BACKCHANNEL);
+    GNUNET_MQ_msg_extra (cb,
+                         slen + mlen,
+                         GNUNET_MESSAGE_TYPE_TRANSPORT_COMMUNICATOR_BACKCHANNEL);
   cb->pid = *pid;
-  memcpy(&cb[1], header, mlen);
-  memcpy(((char *)&cb[1]) + mlen, comm, slen);
-  GNUNET_MQ_send(ch->mq, env);
+  memcpy (&cb[1], header, mlen);
+  memcpy (((char *) &cb[1]) + mlen, comm, slen);
+  GNUNET_MQ_send (ch->mq, env);
 }
 
 

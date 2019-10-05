@@ -34,7 +34,7 @@
 /**
  * How long until we give up on transmitting the message?
  */
-#define TIMEOUT GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 30)
+#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30)
 
 static struct GNUNET_TRANSPORT_TESTING_ConnectCheckContext *ccc;
 
@@ -50,130 +50,131 @@ static struct GNUNET_TIME_Relative dur_delayed;
 
 
 static void
-do_free(void *cls)
+do_free (void *cls)
 {
   struct GNUNET_TRANSPORT_TESTING_SendClosure *sc = cls;
 
-  GNUNET_free(sc);
+  GNUNET_free (sc);
 }
 
 
 static void
-delayed_transmit(void *cls)
+delayed_transmit (void *cls)
 {
   struct GNUNET_TRANSPORT_TESTING_SendClosure *sc = cls;
 
-  start_delayed = GNUNET_TIME_absolute_get();
-  GNUNET_TRANSPORT_TESTING_large_send(sc);
+  start_delayed = GNUNET_TIME_absolute_get ();
+  GNUNET_TRANSPORT_TESTING_large_send (sc);
 }
 
 
 static void
-sendtask(void *cls)
+sendtask (void *cls)
 {
   struct GNUNET_TRANSPORT_TESTING_SendClosure *sc;
   struct GNUNET_TIME_Relative delay;
   struct GNUNET_ATS_Properties prop;
 
-  sc = GNUNET_new(struct GNUNET_TRANSPORT_TESTING_SendClosure);
+  sc = GNUNET_new (struct GNUNET_TRANSPORT_TESTING_SendClosure);
   sc->num_messages = 1;
   sc->ccc = ccc;
   sc->cont = &do_free;
   sc->cont_cls = sc;
   if (0 == messages_recv)
-    {
-      start_normal = GNUNET_TIME_absolute_get();
-    }
+  {
+    start_normal = GNUNET_TIME_absolute_get ();
+  }
   if (1 == messages_recv)
-    {
-      memset(&prop,
-             0,
-             sizeof(prop));
-      delay = GNUNET_TIME_UNIT_SECONDS;
-      GNUNET_TRANSPORT_manipulation_set(ccc->p[0]->tmh,
-                                        &ccc->p[1]->id,
-                                        &prop,
-                                        GNUNET_TIME_UNIT_ZERO,
-                                        delay);
-      /* wait 1s to allow manipulation to go into effect */
-      GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_UNIT_SECONDS,
-                                   &delayed_transmit,
-                                   sc);
-      return;
-    }
-  GNUNET_TRANSPORT_TESTING_large_send(sc);
+  {
+    memset (&prop,
+            0,
+            sizeof(prop));
+    delay = GNUNET_TIME_UNIT_SECONDS;
+    GNUNET_TRANSPORT_manipulation_set (ccc->p[0]->tmh,
+                                       &ccc->p[1]->id,
+                                       &prop,
+                                       GNUNET_TIME_UNIT_ZERO,
+                                       delay);
+    /* wait 1s to allow manipulation to go into effect */
+    GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
+                                  &delayed_transmit,
+                                  sc);
+    return;
+  }
+  GNUNET_TRANSPORT_TESTING_large_send (sc);
 }
 
 
 static void
-notify_receive(void *cls,
-               struct GNUNET_TRANSPORT_TESTING_PeerContext *receiver,
-               const struct GNUNET_PeerIdentity *sender,
-               const struct GNUNET_TRANSPORT_TESTING_TestMessage *message)
+notify_receive (void *cls,
+                struct GNUNET_TRANSPORT_TESTING_PeerContext *receiver,
+                const struct GNUNET_PeerIdentity *sender,
+                const struct GNUNET_TRANSPORT_TESTING_TestMessage *message)
 {
   {
-    char *ps = GNUNET_strdup(GNUNET_i2s(&receiver->id));
+    char *ps = GNUNET_strdup (GNUNET_i2s (&receiver->id));
 
-    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-               "Peer %u (`%s') received message of type %d and size %u size from peer %s)!\n",
-               receiver->no,
-               ps,
-               ntohs(message->header.type),
-               ntohs(message->header.size),
-               GNUNET_i2s(sender));
-    GNUNET_free(ps);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Peer %u (`%s') received message of type %d and size %u size from peer %s)!\n",
+                receiver->no,
+                ps,
+                ntohs (message->header.type),
+                ntohs (message->header.size),
+                GNUNET_i2s (sender));
+    GNUNET_free (ps);
   }
 
-  if ((GNUNET_TRANSPORT_TESTING_SIMPLE_MTYPE != ntohs(message->header.type)) ||
-      (GNUNET_TRANSPORT_TESTING_LARGE_MESSAGE_SIZE != ntohs(message->header.size)))
-    {
-      GNUNET_break(0);
-      ccc->global_ret = GNUNET_SYSERR;
-      GNUNET_SCHEDULER_shutdown();
-      return;
-    }
+  if ((GNUNET_TRANSPORT_TESTING_SIMPLE_MTYPE != ntohs (message->header.type)) ||
+      (GNUNET_TRANSPORT_TESTING_LARGE_MESSAGE_SIZE != ntohs (
+         message->header.size)))
+  {
+    GNUNET_break (0);
+    ccc->global_ret = GNUNET_SYSERR;
+    GNUNET_SCHEDULER_shutdown ();
+    return;
+  }
 
   if (0 == messages_recv)
-    {
-      /* Received non-delayed message */
-      dur_normal = GNUNET_TIME_absolute_get_duration(start_normal);
-      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-                 "Received non-delayed message %u after %s\n",
-                 messages_recv,
-                 GNUNET_STRINGS_relative_time_to_string(dur_normal,
+  {
+    /* Received non-delayed message */
+    dur_normal = GNUNET_TIME_absolute_get_duration (start_normal);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Received non-delayed message %u after %s\n",
+                messages_recv,
+                GNUNET_STRINGS_relative_time_to_string (dur_normal,
                                                         GNUNET_YES));
-      GNUNET_SCHEDULER_add_now(&sendtask,
-                               NULL);
-      messages_recv++;
-      return;
-    }
+    GNUNET_SCHEDULER_add_now (&sendtask,
+                              NULL);
+    messages_recv++;
+    return;
+  }
   /* Received manipulated message */
-  dur_delayed = GNUNET_TIME_absolute_get_duration(start_delayed);
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-             "Received delayed message %u after %s\n",
-             messages_recv,
-             GNUNET_STRINGS_relative_time_to_string(dur_delayed,
-                                                    GNUNET_YES));
+  dur_delayed = GNUNET_TIME_absolute_get_duration (start_delayed);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Received delayed message %u after %s\n",
+              messages_recv,
+              GNUNET_STRINGS_relative_time_to_string (dur_delayed,
+                                                      GNUNET_YES));
   if (dur_delayed.rel_value_us < GNUNET_TIME_UNIT_SECONDS.rel_value_us)
-    {
-      GNUNET_break(0);
-      ccc->global_ret = GNUNET_SYSERR;
-      GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
-                 "Delayed message was not delayed correctly: took only %s\n",
-                 GNUNET_STRINGS_relative_time_to_string(dur_delayed,
+  {
+    GNUNET_break (0);
+    ccc->global_ret = GNUNET_SYSERR;
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Delayed message was not delayed correctly: took only %s\n",
+                GNUNET_STRINGS_relative_time_to_string (dur_delayed,
                                                         GNUNET_YES));
-    }
+  }
   else
-    {
-      ccc->global_ret = GNUNET_OK;
-    }
-  GNUNET_SCHEDULER_shutdown();
+  {
+    ccc->global_ret = GNUNET_OK;
+  }
+  GNUNET_SCHEDULER_shutdown ();
 }
 
 
 int
-main(int argc,
-     char *argv[])
+main (int argc,
+      char *argv[])
 {
   struct GNUNET_TRANSPORT_TESTING_ConnectCheckContext my_ccc = {
     .connect_continuation = &sendtask,
@@ -187,9 +188,9 @@ main(int argc,
 
   ccc = &my_ccc;
   if (GNUNET_OK !=
-      GNUNET_TRANSPORT_TESTING_main(2,
-                                    &GNUNET_TRANSPORT_TESTING_connect_check,
-                                    ccc))
+      GNUNET_TRANSPORT_TESTING_main (2,
+                                     &GNUNET_TRANSPORT_TESTING_connect_check,
+                                     ccc))
     return 1;
   return 0;
 }

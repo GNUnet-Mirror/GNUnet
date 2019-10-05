@@ -74,16 +74,16 @@ typedef void (*GNUNET_CADET_TEST_AppMain) (void *cls,
  * @param ports Ports the peers offer, NULL-terminated.
  */
 void
-GNUNET_CADET_TEST_ruN(const char *testname,
-                      const char *cfgfile,
-                      unsigned int num_peers,
-                      GNUNET_CADET_TEST_AppMain tmain,
-                      void *tmain_cls,
-                      GNUNET_CADET_ConnectEventHandler connects,
-                      GNUNET_CADET_WindowSizeEventHandler window_changes,
-                      GNUNET_CADET_DisconnectEventHandler disconnects,
-                      struct GNUNET_MQ_MessageHandler *handlers,
-                      const struct GNUNET_HashCode **ports);
+GNUNET_CADET_TEST_ruN (const char *testname,
+                       const char *cfgfile,
+                       unsigned int num_peers,
+                       GNUNET_CADET_TEST_AppMain tmain,
+                       void *tmain_cls,
+                       GNUNET_CADET_ConnectEventHandler connects,
+                       GNUNET_CADET_WindowSizeEventHandler window_changes,
+                       GNUNET_CADET_DisconnectEventHandler disconnects,
+                       struct GNUNET_MQ_MessageHandler *handlers,
+                       const struct GNUNET_HashCode **ports);
 
 /**
  * Clean up the testbed.
@@ -91,7 +91,7 @@ GNUNET_CADET_TEST_ruN(const char *testname,
  * @param ctx handle for the testbed
  */
 void
-GNUNET_CADET_TEST_cleanup(struct GNUNET_CADET_TEST_Context *ctx);
+GNUNET_CADET_TEST_cleanup (struct GNUNET_CADET_TEST_Context *ctx);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

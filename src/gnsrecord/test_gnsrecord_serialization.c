@@ -26,16 +26,16 @@
 #include "gnunet_gnsrecord_lib.h"
 #include "gnunet_dnsparser_lib.h"
 
-#define TIMEOUT GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 100)
+#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 100)
 
 static int res;
 
 
 static void
-run(void *cls,
-    char *const *args,
-    const char *cfgfile,
-    const struct GNUNET_CONFIGURATION_Handle *cfg)
+run (void *cls,
+     char *const *args,
+     const char *cfgfile,
+     const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   size_t len;
   int c;
@@ -44,101 +44,101 @@ run(void *cls,
   size_t data_len;
   struct GNUNET_GNSRECORD_Data src[rd_count];
 
-  memset(src, '\0', rd_count * sizeof(struct GNUNET_GNSRECORD_Data));
+  memset (src, '\0', rd_count * sizeof(struct GNUNET_GNSRECORD_Data));
 
   data_len = 0;
   for (c = 0; c < rd_count; c++)
-    {
-      src[c].record_type = GNUNET_DNSPARSER_TYPE_TXT;
-      src[c].data_size = data_len;
-      src[c].data = GNUNET_malloc(data_len);
+  {
+    src[c].record_type = GNUNET_DNSPARSER_TYPE_TXT;
+    src[c].data_size = data_len;
+    src[c].data = GNUNET_malloc (data_len);
 
-      /* Setting data to data_len * record_type */
-      memset((char *)src[c].data, 'a', data_len);
-      data_len += 10;
-    }
+    /* Setting data to data_len * record_type */
+    memset ((char *) src[c].data, 'a', data_len);
+    data_len += 10;
+  }
   res = 0;
 
-  len = GNUNET_GNSRECORD_records_get_size(rd_count, src);
+  len = GNUNET_GNSRECORD_records_get_size (rd_count, src);
   char rd_ser[len];
-  GNUNET_assert(len ==
-                GNUNET_GNSRECORD_records_serialize(rd_count,
-                                                   src,
-                                                   len,
-                                                   rd_ser));
+  GNUNET_assert (len ==
+                 GNUNET_GNSRECORD_records_serialize (rd_count,
+                                                     src,
+                                                     len,
+                                                     rd_ser));
 
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-             "Serialized data len: %u\n",
-             (unsigned int)len);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Serialized data len: %u\n",
+              (unsigned int) len);
 
-  GNUNET_assert(rd_ser != NULL);
+  GNUNET_assert (rd_ser != NULL);
   {
     struct GNUNET_GNSRECORD_Data dst[rd_count];
-    GNUNET_assert(GNUNET_OK ==
-                  GNUNET_GNSRECORD_records_deserialize(len,
-                                                       rd_ser,
-                                                       rd_count,
-                                                       dst));
+    GNUNET_assert (GNUNET_OK ==
+                   GNUNET_GNSRECORD_records_deserialize (len,
+                                                         rd_ser,
+                                                         rd_count,
+                                                         dst));
 
-    GNUNET_assert(dst != NULL);
+    GNUNET_assert (dst != NULL);
 
     for (c = 0; c < rd_count; c++)
+    {
+      if (src[c].data_size != dst[c].data_size)
       {
-        if (src[c].data_size != dst[c].data_size)
-          {
-            GNUNET_break(0);
-            res = 1;
-          }
-        if (src[c].expiration_time != dst[c].expiration_time)
-          {
-            GNUNET_break(0);
-            res = 1;
-          }
-        if (src[c].flags != dst[c].flags)
-          {
-            GNUNET_break(0);
-            res = 1;
-          }
-        if (src[c].record_type != dst[c].record_type)
-          {
-            GNUNET_break(0);
-            res = 1;
-          }
+        GNUNET_break (0);
+        res = 1;
+      }
+      if (src[c].expiration_time != dst[c].expiration_time)
+      {
+        GNUNET_break (0);
+        res = 1;
+      }
+      if (src[c].flags != dst[c].flags)
+      {
+        GNUNET_break (0);
+        res = 1;
+      }
+      if (src[c].record_type != dst[c].record_type)
+      {
+        GNUNET_break (0);
+        res = 1;
+      }
 
+      {
+        size_t data_size = src[c].data_size;
+        char data[data_size];
+
+        memset (data, 'a', data_size);
+        if (0 != memcmp (data, dst[c].data, data_size))
         {
-          size_t data_size = src[c].data_size;
-          char data[data_size];
-
-          memset(data, 'a', data_size);
-          if (0 != memcmp(data, dst[c].data, data_size))
-            {
-              GNUNET_break(0);
-              res = 1;
-            }
-          if (0 != memcmp(data, src[c].data, data_size))
-            {
-              GNUNET_break(0);
-              res = 1;
-            }
-          if (0 != memcmp(src[c].data, dst[c].data, src[c].data_size))
-            {
-              GNUNET_break(0);
-              res = 1;
-            }
+          GNUNET_break (0);
+          res = 1;
+        }
+        if (0 != memcmp (data, src[c].data, data_size))
+        {
+          GNUNET_break (0);
+          res = 1;
+        }
+        if (0 != memcmp (src[c].data, dst[c].data, src[c].data_size))
+        {
+          GNUNET_break (0);
+          res = 1;
         }
       }
-    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Element [%i]: EQUAL\n", c);
+    }
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Element [%i]: EQUAL\n", c);
   }
 
   for (c = 0; c < rd_count; c++)
-    {
-      GNUNET_free((void *)src[c].data);
-    }
+  {
+    GNUNET_free ((void *) src[c].data);
+  }
 }
 
 
 int
-main(int argcx, char *argvx[])
+main (int argcx, char *argvx[])
 {
   static char *const argv[] = { "test_gnsrecord_serialization",
                                 NULL };
@@ -147,8 +147,9 @@ main(int argcx, char *argvx[])
   };
 
   res = 1;
-  GNUNET_PROGRAM_run((sizeof(argv) / sizeof(char *)) - 1, argv, "test_namestore_record_serialization",
-                     "nohelp", options, &run, &res);
+  GNUNET_PROGRAM_run ((sizeof(argv) / sizeof(char *)) - 1, argv,
+                      "test_namestore_record_serialization",
+                      "nohelp", options, &run, &res);
   return res;
 }
 

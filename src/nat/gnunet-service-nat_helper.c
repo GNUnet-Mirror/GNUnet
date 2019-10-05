@@ -32,7 +32,8 @@
 /**
  * Information we keep per NAT helper process.
  */
-struct HelperContext {
+struct HelperContext
+{
   /**
    * IP address we pass to the NAT helper.
    */
@@ -87,7 +88,7 @@ struct HelperContext {
  * @param cls a `struct HelperContext`
  */
 static void
-restart_nat_server(void *cls);
+restart_nat_server (void *cls);
 
 
 /**
@@ -96,13 +97,13 @@ restart_nat_server(void *cls);
  * @param h context of the helper
  */
 static void
-try_again(struct HelperContext *h)
+try_again (struct HelperContext *h)
 {
-  GNUNET_assert(NULL == h->server_read_task);
-  h->server_retry_delay = GNUNET_TIME_STD_BACKOFF(h->server_retry_delay);
-  h->server_read_task = GNUNET_SCHEDULER_add_delayed(h->server_retry_delay,
-                                                     &restart_nat_server,
-                                                     h);
+  GNUNET_assert (NULL == h->server_read_task);
+  h->server_retry_delay = GNUNET_TIME_STD_BACKOFF (h->server_retry_delay);
+  h->server_read_task = GNUNET_SCHEDULER_add_delayed (h->server_retry_delay,
+                                                      &restart_nat_server,
+                                                      h);
 }
 
 
@@ -114,7 +115,7 @@ try_again(struct HelperContext *h)
  * @param cls the `struct HelperContext`
  */
 static void
-nat_server_read(void *cls)
+nat_server_read (void *cls)
 {
   struct HelperContext *h = cls;
   char mybuf[40];
@@ -124,73 +125,73 @@ nat_server_read(void *cls)
   struct sockaddr_in sin_addr;
 
   h->server_read_task = NULL;
-  memset(mybuf, 0, sizeof(mybuf));
+  memset (mybuf, 0, sizeof(mybuf));
   bytes =
-    GNUNET_DISK_file_read(h->server_stdout_handle, mybuf, sizeof(mybuf));
+    GNUNET_DISK_file_read (h->server_stdout_handle, mybuf, sizeof(mybuf));
   if (bytes < 1)
-    {
-      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-                 "Finished reading from server stdout with code: %d\n",
-                 (int)bytes);
-      if (0 != GNUNET_OS_process_kill(h->server_proc, GNUNET_TERM_SIG))
-        GNUNET_log_from_strerror(GNUNET_ERROR_TYPE_WARNING, "nat", "kill");
-      GNUNET_OS_process_wait(h->server_proc);
-      GNUNET_OS_process_destroy(h->server_proc);
-      h->server_proc = NULL;
-      GNUNET_DISK_pipe_close(h->server_stdout);
-      h->server_stdout = NULL;
-      h->server_stdout_handle = NULL;
-      try_again(h);
-      return;
-    }
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Finished reading from server stdout with code: %d\n",
+                (int) bytes);
+    if (0 != GNUNET_OS_process_kill (h->server_proc, GNUNET_TERM_SIG))
+      GNUNET_log_from_strerror (GNUNET_ERROR_TYPE_WARNING, "nat", "kill");
+    GNUNET_OS_process_wait (h->server_proc);
+    GNUNET_OS_process_destroy (h->server_proc);
+    h->server_proc = NULL;
+    GNUNET_DISK_pipe_close (h->server_stdout);
+    h->server_stdout = NULL;
+    h->server_stdout_handle = NULL;
+    try_again (h);
+    return;
+  }
 
   port_start = NULL;
   for (size_t i = 0; i < sizeof(mybuf); i++)
+  {
+    if (mybuf[i] == '\n')
     {
-      if (mybuf[i] == '\n')
-        {
-          mybuf[i] = '\0';
-          break;
-        }
-      if ((mybuf[i] == ':') && (i + 1 < sizeof(mybuf)))
-        {
-          mybuf[i] = '\0';
-          port_start = &mybuf[i + 1];
-        }
+      mybuf[i] = '\0';
+      break;
     }
+    if ((mybuf[i] == ':') && (i + 1 < sizeof(mybuf)))
+    {
+      mybuf[i] = '\0';
+      port_start = &mybuf[i + 1];
+    }
+  }
 
   /* construct socket address of sender */
-  memset(&sin_addr, 0, sizeof(sin_addr));
+  memset (&sin_addr, 0, sizeof(sin_addr));
   sin_addr.sin_family = AF_INET;
 #if HAVE_SOCKADDR_IN_SIN_LEN
   sin_addr.sin_len = sizeof(sin_addr);
 #endif
-  if ((NULL == port_start) || (1 != sscanf(port_start, "%d", &port)) ||
-      (-1 == inet_pton(AF_INET, mybuf, &sin_addr.sin_addr)))
-    {
-      /* should we restart gnunet-helper-nat-server? */
-      GNUNET_log(GNUNET_ERROR_TYPE_WARNING,
-                 _(
-                   "gnunet-helper-nat-server generated malformed address `%s'\n"),
-                 mybuf);
-      h->server_read_task =
-        GNUNET_SCHEDULER_add_read_file(GNUNET_TIME_UNIT_FOREVER_REL,
-                                       h->server_stdout_handle,
-                                       &nat_server_read,
-                                       h);
-      return;
-    }
-  sin_addr.sin_port = htons((uint16_t)port);
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-             "gnunet-helper-nat-server read: %s:%d\n",
-             mybuf,
-             port);
-  h->cb(h->cb_cls, &sin_addr);
+  if ((NULL == port_start) || (1 != sscanf (port_start, "%d", &port)) ||
+      (-1 == inet_pton (AF_INET, mybuf, &sin_addr.sin_addr)))
+  {
+    /* should we restart gnunet-helper-nat-server? */
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                _ (
+                  "gnunet-helper-nat-server generated malformed address `%s'\n"),
+                mybuf);
+    h->server_read_task =
+      GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL,
+                                      h->server_stdout_handle,
+                                      &nat_server_read,
+                                      h);
+    return;
+  }
+  sin_addr.sin_port = htons ((uint16_t) port);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "gnunet-helper-nat-server read: %s:%d\n",
+              mybuf,
+              port);
+  h->cb (h->cb_cls, &sin_addr);
   h->server_read_task =
-    GNUNET_SCHEDULER_add_read_file(GNUNET_TIME_UNIT_FOREVER_REL,
-                                   h->server_stdout_handle,
-                                   &nat_server_read,
-                                   h);
+    GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL,
+                                    h->server_stdout_handle,
+                                    &nat_server_read,
+                                    h);
 }
 
 
@@ -201,67 +202,67 @@ nat_server_read(void *cls)
  * @param cls a `struct HelperContext`
  */
 static void
-restart_nat_server(void *cls)
+restart_nat_server (void *cls)
 {
   struct HelperContext *h = cls;
   char *binary;
   char ia[INET_ADDRSTRLEN];
 
   h->server_read_task = NULL;
-  GNUNET_assert(NULL !=
-                inet_ntop(AF_INET, &h->internal_address, ia, sizeof(ia)));
+  GNUNET_assert (NULL !=
+                 inet_ntop (AF_INET, &h->internal_address, ia, sizeof(ia)));
   /* Start the server process */
-  binary = GNUNET_OS_get_suid_binary_path(h->cfg, "gnunet-helper-nat-server");
-  if (GNUNET_YES != GNUNET_OS_check_helper_binary(binary, GNUNET_YES, ia))
-    {
-      /* move instantly to max delay, as this is unlikely to be fixed */
-      h->server_retry_delay = GNUNET_TIME_STD_EXPONENTIAL_BACKOFF_THRESHOLD;
-      GNUNET_free(binary);
-      try_again(h);
-      return;
-    }
+  binary = GNUNET_OS_get_suid_binary_path (h->cfg, "gnunet-helper-nat-server");
+  if (GNUNET_YES != GNUNET_OS_check_helper_binary (binary, GNUNET_YES, ia))
+  {
+    /* move instantly to max delay, as this is unlikely to be fixed */
+    h->server_retry_delay = GNUNET_TIME_STD_EXPONENTIAL_BACKOFF_THRESHOLD;
+    GNUNET_free (binary);
+    try_again (h);
+    return;
+  }
   h->server_stdout =
-    GNUNET_DISK_pipe(GNUNET_YES, GNUNET_YES, GNUNET_NO, GNUNET_YES);
+    GNUNET_DISK_pipe (GNUNET_YES, GNUNET_YES, GNUNET_NO, GNUNET_YES);
   if (NULL == h->server_stdout)
-    {
-      GNUNET_log_strerror(GNUNET_ERROR_TYPE_ERROR, "pipe");
-      GNUNET_free(binary);
-      try_again(h);
-      return;
-    }
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-             "Starting `%s' at `%s'\n",
-             "gnunet-helper-nat-server",
-             ia);
-  h->server_proc = GNUNET_OS_start_process(GNUNET_NO,
-                                           0,
-                                           NULL,
-                                           h->server_stdout,
-                                           NULL,
-                                           binary,
-                                           "gnunet-helper-nat-server",
-                                           ia,
-                                           NULL);
-  GNUNET_free(binary);
+  {
+    GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "pipe");
+    GNUNET_free (binary);
+    try_again (h);
+    return;
+  }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Starting `%s' at `%s'\n",
+              "gnunet-helper-nat-server",
+              ia);
+  h->server_proc = GNUNET_OS_start_process (GNUNET_NO,
+                                            0,
+                                            NULL,
+                                            h->server_stdout,
+                                            NULL,
+                                            binary,
+                                            "gnunet-helper-nat-server",
+                                            ia,
+                                            NULL);
+  GNUNET_free (binary);
   if (NULL == h->server_proc)
-    {
-      GNUNET_log(GNUNET_ERROR_TYPE_WARNING,
-                 _("Failed to start %s\n"),
-                 "gnunet-helper-nat-server");
-      GNUNET_DISK_pipe_close(h->server_stdout);
-      h->server_stdout = NULL;
-      try_again(h);
-      return;
-    }
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                _ ("Failed to start %s\n"),
+                "gnunet-helper-nat-server");
+    GNUNET_DISK_pipe_close (h->server_stdout);
+    h->server_stdout = NULL;
+    try_again (h);
+    return;
+  }
   /* Close the write end of the read pipe */
-  GNUNET_DISK_pipe_close_end(h->server_stdout, GNUNET_DISK_PIPE_END_WRITE);
+  GNUNET_DISK_pipe_close_end (h->server_stdout, GNUNET_DISK_PIPE_END_WRITE);
   h->server_stdout_handle =
-    GNUNET_DISK_pipe_handle(h->server_stdout, GNUNET_DISK_PIPE_END_READ);
+    GNUNET_DISK_pipe_handle (h->server_stdout, GNUNET_DISK_PIPE_END_READ);
   h->server_read_task =
-    GNUNET_SCHEDULER_add_read_file(GNUNET_TIME_UNIT_FOREVER_REL,
-                                   h->server_stdout_handle,
-                                   &nat_server_read,
-                                   h);
+    GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL,
+                                    h->server_stdout_handle,
+                                    &nat_server_read,
+                                    h);
 }
 
 
@@ -276,24 +277,24 @@ restart_nat_server(void *cls)
  * @return NULL on error
  */
 struct HelperContext *
-GN_start_gnunet_nat_server_(const struct in_addr *internal_address,
-                            GN_ReversalCallback cb,
-                            void *cb_cls,
-                            const struct GNUNET_CONFIGURATION_Handle *cfg)
+GN_start_gnunet_nat_server_ (const struct in_addr *internal_address,
+                             GN_ReversalCallback cb,
+                             void *cb_cls,
+                             const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   struct HelperContext *h;
 
-  h = GNUNET_new(struct HelperContext);
+  h = GNUNET_new (struct HelperContext);
   h->cb = cb;
   h->cb_cls = cb_cls;
   h->internal_address = *internal_address;
   h->cfg = cfg;
-  restart_nat_server(h);
+  restart_nat_server (h);
   if (NULL == h->server_stdout)
-    {
-      GN_stop_gnunet_nat_server_(h);
-      return NULL;
-    }
+  {
+    GN_stop_gnunet_nat_server_ (h);
+    return NULL;
+  }
   return h;
 }
 
@@ -305,31 +306,31 @@ GN_start_gnunet_nat_server_(const struct in_addr *internal_address,
  * @param h helper context to stop
  */
 void
-GN_stop_gnunet_nat_server_(struct HelperContext *h)
+GN_stop_gnunet_nat_server_ (struct HelperContext *h)
 {
   if (NULL != h->server_read_task)
-    {
-      GNUNET_SCHEDULER_cancel(h->server_read_task);
-      h->server_read_task = NULL;
-    }
+  {
+    GNUNET_SCHEDULER_cancel (h->server_read_task);
+    h->server_read_task = NULL;
+  }
   if (NULL != h->server_proc)
-    {
-      if (0 != GNUNET_OS_process_kill(h->server_proc, GNUNET_TERM_SIG))
-        GNUNET_log_strerror(GNUNET_ERROR_TYPE_WARNING, "kill");
-      GNUNET_OS_process_wait(h->server_proc);
-      GNUNET_OS_process_destroy(h->server_proc);
-      h->server_proc = NULL;
-      GNUNET_DISK_pipe_close(h->server_stdout);
-      h->server_stdout = NULL;
-      h->server_stdout_handle = NULL;
-    }
+  {
+    if (0 != GNUNET_OS_process_kill (h->server_proc, GNUNET_TERM_SIG))
+      GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
+    GNUNET_OS_process_wait (h->server_proc);
+    GNUNET_OS_process_destroy (h->server_proc);
+    h->server_proc = NULL;
+    GNUNET_DISK_pipe_close (h->server_stdout);
+    h->server_stdout = NULL;
+    h->server_stdout_handle = NULL;
+  }
   if (NULL != h->server_stdout)
-    {
-      GNUNET_DISK_pipe_close(h->server_stdout);
-      h->server_stdout = NULL;
-      h->server_stdout_handle = NULL;
-    }
-  GNUNET_free(h);
+  {
+    GNUNET_DISK_pipe_close (h->server_stdout);
+    h->server_stdout = NULL;
+    h->server_stdout_handle = NULL;
+  }
+  GNUNET_free (h);
 }
 
 
@@ -346,10 +347,10 @@ GN_stop_gnunet_nat_server_(struct HelperContext *h)
  *         #GNUNET_OK otherwise
  */
 int
-GN_request_connection_reversal(const struct in_addr *internal_address,
-                               uint16_t internal_port,
-                               const struct in_addr *remote_v4,
-                               const struct GNUNET_CONFIGURATION_Handle *cfg)
+GN_request_connection_reversal (const struct in_addr *internal_address,
+                                uint16_t internal_port,
+                                const struct in_addr *remote_v4,
+                                const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   char intv4[INET_ADDRSTRLEN];
   char remv4[INET_ADDRSTRLEN];
@@ -357,44 +358,44 @@ GN_request_connection_reversal(const struct in_addr *internal_address,
   struct GNUNET_OS_Process *proc;
   char *binary;
 
-  if (NULL == inet_ntop(AF_INET, internal_address, intv4, INET_ADDRSTRLEN))
-    {
-      GNUNET_log_strerror(GNUNET_ERROR_TYPE_WARNING, "inet_ntop");
-      return GNUNET_SYSERR;
-    }
-  if (NULL == inet_ntop(AF_INET, remote_v4, remv4, INET_ADDRSTRLEN))
-    {
-      GNUNET_log_strerror(GNUNET_ERROR_TYPE_WARNING, "inet_ntop");
-      return GNUNET_SYSERR;
-    }
-  GNUNET_snprintf(port_as_string,
-                  sizeof(port_as_string),
-                  "%d",
-                  internal_port);
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-             "Running gnunet-helper-nat-client %s %s %u\n",
-             intv4,
-             remv4,
-             internal_port);
-  binary = GNUNET_OS_get_suid_binary_path(cfg, "gnunet-helper-nat-client");
-  proc = GNUNET_OS_start_process(GNUNET_NO,
-                                 0,
-                                 NULL,
-                                 NULL,
-                                 NULL,
-                                 binary,
-                                 "gnunet-helper-nat-client",
-                                 intv4,
-                                 remv4,
-                                 port_as_string,
-                                 NULL);
-  GNUNET_free(binary);
+  if (NULL == inet_ntop (AF_INET, internal_address, intv4, INET_ADDRSTRLEN))
+  {
+    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "inet_ntop");
+    return GNUNET_SYSERR;
+  }
+  if (NULL == inet_ntop (AF_INET, remote_v4, remv4, INET_ADDRSTRLEN))
+  {
+    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "inet_ntop");
+    return GNUNET_SYSERR;
+  }
+  GNUNET_snprintf (port_as_string,
+                   sizeof(port_as_string),
+                   "%d",
+                   internal_port);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Running gnunet-helper-nat-client %s %s %u\n",
+              intv4,
+              remv4,
+              internal_port);
+  binary = GNUNET_OS_get_suid_binary_path (cfg, "gnunet-helper-nat-client");
+  proc = GNUNET_OS_start_process (GNUNET_NO,
+                                  0,
+                                  NULL,
+                                  NULL,
+                                  NULL,
+                                  binary,
+                                  "gnunet-helper-nat-client",
+                                  intv4,
+                                  remv4,
+                                  port_as_string,
+                                  NULL);
+  GNUNET_free (binary);
   if (NULL == proc)
     return GNUNET_SYSERR;
   /* we know that the gnunet-helper-nat-client will terminate virtually
    * instantly */
-  GNUNET_OS_process_wait(proc);
-  GNUNET_OS_process_destroy(proc);
+  GNUNET_OS_process_wait (proc);
+  GNUNET_OS_process_destroy (proc);
   return GNUNET_OK;
 }
 

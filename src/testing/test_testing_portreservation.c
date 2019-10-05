@@ -30,7 +30,7 @@
 #include "gnunet_testing_lib.h"
 
 #define LOG(kind, ...) \
-  GNUNET_log(kind, __VA_ARGS__)
+  GNUNET_log (kind, __VA_ARGS__)
 
 /**
  * The status of the test
@@ -41,46 +41,46 @@ int status;
  * Main point of test execution
  */
 static void
-run(void *cls, char *const *args, const char *cfgfile,
-    const struct GNUNET_CONFIGURATION_Handle *cfg)
+run (void *cls, char *const *args, const char *cfgfile,
+     const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   struct GNUNET_TESTING_System *system;
   uint16_t new_port1;
   uint16_t new_port2;
   uint16_t old_port1;
 
-  system = GNUNET_TESTING_system_create("/tmp/gnunet-testing-new",
-                                        "localhost", NULL, NULL);
-  GNUNET_assert(NULL != system);
-  new_port1 = GNUNET_TESTING_reserve_port(system);
-  LOG(GNUNET_ERROR_TYPE_DEBUG,
-      "Reserved TCP port %u\n", new_port1);
+  system = GNUNET_TESTING_system_create ("/tmp/gnunet-testing-new",
+                                         "localhost", NULL, NULL);
+  GNUNET_assert (NULL != system);
+  new_port1 = GNUNET_TESTING_reserve_port (system);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Reserved TCP port %u\n", new_port1);
   if (0 == new_port1)
     goto end;
-  new_port2 = GNUNET_TESTING_reserve_port(system);
-  LOG(GNUNET_ERROR_TYPE_DEBUG,
-      "Reserved TCP port %u\n", new_port2);
+  new_port2 = GNUNET_TESTING_reserve_port (system);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Reserved TCP port %u\n", new_port2);
   if (0 == new_port2)
     goto end;
-  GNUNET_assert(new_port1 != new_port2);
-  GNUNET_TESTING_release_port(system, new_port1);
+  GNUNET_assert (new_port1 != new_port2);
+  GNUNET_TESTING_release_port (system, new_port1);
   old_port1 = new_port1;
   new_port1 = 0;
-  new_port1 = GNUNET_TESTING_reserve_port(system);
-  LOG(GNUNET_ERROR_TYPE_DEBUG,
-      "Reserved TCP port %u\n", new_port1);
-  GNUNET_assert(0 != new_port1);
-  GNUNET_assert(old_port1 == new_port1);
-  GNUNET_TESTING_release_port(system, new_port1);
-  GNUNET_TESTING_release_port(system, new_port2);
+  new_port1 = GNUNET_TESTING_reserve_port (system);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Reserved TCP port %u\n", new_port1);
+  GNUNET_assert (0 != new_port1);
+  GNUNET_assert (old_port1 == new_port1);
+  GNUNET_TESTING_release_port (system, new_port1);
+  GNUNET_TESTING_release_port (system, new_port2);
   status = GNUNET_OK;
 
 end:
-  GNUNET_TESTING_system_destroy(system, GNUNET_YES);
+  GNUNET_TESTING_system_destroy (system, GNUNET_YES);
 }
 
 
-int main(int argc, char *argv[])
+int main (int argc, char *argv[])
 {
   struct GNUNET_GETOPT_CommandLineOption options[] = {
     GNUNET_GETOPT_OPTION_END
@@ -88,14 +88,14 @@ int main(int argc, char *argv[])
 
   status = GNUNET_SYSERR;
   if (GNUNET_OK !=
-      GNUNET_PROGRAM_run(argc,
-                         argv,
-                         "test_testing_new_portreservation",
-                         "test case for testing port reservation routines"
-                         " from the new testing library API",
-                         options,
-                         &run,
-                         NULL))
+      GNUNET_PROGRAM_run (argc,
+                          argv,
+                          "test_testing_new_portreservation",
+                          "test case for testing port reservation routines"
+                          " from the new testing library API",
+                          options,
+                          &run,
+                          NULL))
     return 1;
   return (GNUNET_OK == status) ? 0 : 1;
 }

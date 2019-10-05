@@ -50,62 +50,62 @@ static struct InvertibleBloomFilter *ibf_b;
 
 
 static void
-register_hashcode(struct GNUNET_HashCode *hash)
+register_hashcode (struct GNUNET_HashCode *hash)
 {
   struct GNUNET_HashCode replicated;
   struct IBF_Key key;
 
-  key = ibf_key_from_hashcode(hash);
-  ibf_hashcode_from_key(key, &replicated);
-  (void)GNUNET_CONTAINER_multihashmap_put(
+  key = ibf_key_from_hashcode (hash);
+  ibf_hashcode_from_key (key, &replicated);
+  (void) GNUNET_CONTAINER_multihashmap_put (
     key_to_hashcode,
     &replicated,
-    GNUNET_memdup(hash, sizeof *hash),
+    GNUNET_memdup (hash, sizeof *hash),
     GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
 }
 
 
 static void
-iter_hashcodes(struct IBF_Key key,
-               GNUNET_CONTAINER_MulitHashMapIteratorCallback iter,
-               void *cls)
+iter_hashcodes (struct IBF_Key key,
+                GNUNET_CONTAINER_MulitHashMapIteratorCallback iter,
+                void *cls)
 {
   struct GNUNET_HashCode replicated;
 
-  ibf_hashcode_from_key(key, &replicated);
-  GNUNET_CONTAINER_multihashmap_get_multiple(key_to_hashcode,
-                                             &replicated,
-                                             iter,
-                                             cls);
+  ibf_hashcode_from_key (key, &replicated);
+  GNUNET_CONTAINER_multihashmap_get_multiple (key_to_hashcode,
+                                              &replicated,
+                                              iter,
+                                              cls);
 }
 
 
 static int
-insert_iterator(void *cls, const struct GNUNET_HashCode *key, void *value)
+insert_iterator (void *cls, const struct GNUNET_HashCode *key, void *value)
 {
   struct InvertibleBloomFilter *ibf = cls;
 
-  ibf_insert(ibf, ibf_key_from_hashcode(key));
+  ibf_insert (ibf, ibf_key_from_hashcode (key));
   return GNUNET_YES;
 }
 
 
 static int
-remove_iterator(void *cls, const struct GNUNET_HashCode *key, void *value)
+remove_iterator (void *cls, const struct GNUNET_HashCode *key, void *value)
 {
   struct GNUNET_CONTAINER_MultiHashMap *hashmap = cls;
 
   /* if remove fails, there just was a collision with another key */
-  (void)GNUNET_CONTAINER_multihashmap_remove(hashmap, value, NULL);
+  (void) GNUNET_CONTAINER_multihashmap_remove (hashmap, value, NULL);
   return GNUNET_YES;
 }
 
 
 static void
-run(void *cls,
-    char *const *args,
-    const char *cfgfile,
-    const struct GNUNET_CONFIGURATION_Handle *cfg)
+run (void *cls,
+     char *const *args,
+     const char *cfgfile,
+     const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   struct GNUNET_HashCode id;
   struct IBF_Key ibf_key;
@@ -116,193 +116,193 @@ run(void *cls,
   struct GNUNET_TIME_Relative delta_time;
 
   set_a =
-    GNUNET_CONTAINER_multihashmap_create(((asize == 0) ? 1 : (asize + csize)),
-                                         GNUNET_NO);
+    GNUNET_CONTAINER_multihashmap_create (((asize == 0) ? 1 : (asize + csize)),
+                                          GNUNET_NO);
   set_b =
-    GNUNET_CONTAINER_multihashmap_create(((bsize == 0) ? 1 : (bsize + csize)),
-                                         GNUNET_NO);
-  set_c = GNUNET_CONTAINER_multihashmap_create(((csize == 0) ? 1 : csize),
-                                               GNUNET_NO);
+    GNUNET_CONTAINER_multihashmap_create (((bsize == 0) ? 1 : (bsize + csize)),
+                                          GNUNET_NO);
+  set_c = GNUNET_CONTAINER_multihashmap_create (((csize == 0) ? 1 : csize),
+                                                GNUNET_NO);
 
   key_to_hashcode =
-    GNUNET_CONTAINER_multihashmap_create(((asize + bsize + csize == 0)
-                                          ? 1
-                                          : (asize + bsize + csize)),
-                                         GNUNET_NO);
+    GNUNET_CONTAINER_multihashmap_create (((asize + bsize + csize == 0)
+                                           ? 1
+                                           : (asize + bsize + csize)),
+                                          GNUNET_NO);
 
-  printf("hash-num=%u, size=%u, #(A-B)=%u, #(B-A)=%u, #(A&B)=%u\n",
-         hash_num,
-         ibf_size,
-         asize,
-         bsize,
-         csize);
+  printf ("hash-num=%u, size=%u, #(A-B)=%u, #(B-A)=%u, #(A&B)=%u\n",
+          hash_num,
+          ibf_size,
+          asize,
+          bsize,
+          csize);
 
   i = 0;
   while (i < asize)
-    {
-      GNUNET_CRYPTO_hash_create_random(random_quality, &id);
-      if (GNUNET_YES == GNUNET_CONTAINER_multihashmap_contains(set_a, &id))
-        continue;
-      GNUNET_break(GNUNET_OK ==
-                   GNUNET_CONTAINER_multihashmap_put(
-                     set_a,
-                     &id,
-                     NULL,
-                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
-      register_hashcode(&id);
-      i++;
-    }
+  {
+    GNUNET_CRYPTO_hash_create_random (random_quality, &id);
+    if (GNUNET_YES == GNUNET_CONTAINER_multihashmap_contains (set_a, &id))
+      continue;
+    GNUNET_break (GNUNET_OK ==
+                  GNUNET_CONTAINER_multihashmap_put (
+                    set_a,
+                    &id,
+                    NULL,
+                    GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
+    register_hashcode (&id);
+    i++;
+  }
   i = 0;
   while (i < bsize)
-    {
-      GNUNET_CRYPTO_hash_create_random(random_quality, &id);
-      if (GNUNET_YES == GNUNET_CONTAINER_multihashmap_contains(set_a, &id))
-        continue;
-      if (GNUNET_YES == GNUNET_CONTAINER_multihashmap_contains(set_b, &id))
-        continue;
-      GNUNET_break(GNUNET_OK ==
-                   GNUNET_CONTAINER_multihashmap_put(
-                     set_b,
-                     &id,
-                     NULL,
-                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
-      register_hashcode(&id);
-      i++;
-    }
+  {
+    GNUNET_CRYPTO_hash_create_random (random_quality, &id);
+    if (GNUNET_YES == GNUNET_CONTAINER_multihashmap_contains (set_a, &id))
+      continue;
+    if (GNUNET_YES == GNUNET_CONTAINER_multihashmap_contains (set_b, &id))
+      continue;
+    GNUNET_break (GNUNET_OK ==
+                  GNUNET_CONTAINER_multihashmap_put (
+                    set_b,
+                    &id,
+                    NULL,
+                    GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
+    register_hashcode (&id);
+    i++;
+  }
   i = 0;
   while (i < csize)
-    {
-      GNUNET_CRYPTO_hash_create_random(random_quality, &id);
-      if (GNUNET_YES == GNUNET_CONTAINER_multihashmap_contains(set_a, &id))
-        continue;
-      if (GNUNET_YES == GNUNET_CONTAINER_multihashmap_contains(set_b, &id))
-        continue;
-      if (GNUNET_YES == GNUNET_CONTAINER_multihashmap_contains(set_c, &id))
-        continue;
-      GNUNET_break(GNUNET_OK ==
-                   GNUNET_CONTAINER_multihashmap_put(
-                     set_c,
-                     &id,
-                     NULL,
-                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
-      register_hashcode(&id);
-      i++;
-    }
+  {
+    GNUNET_CRYPTO_hash_create_random (random_quality, &id);
+    if (GNUNET_YES == GNUNET_CONTAINER_multihashmap_contains (set_a, &id))
+      continue;
+    if (GNUNET_YES == GNUNET_CONTAINER_multihashmap_contains (set_b, &id))
+      continue;
+    if (GNUNET_YES == GNUNET_CONTAINER_multihashmap_contains (set_c, &id))
+      continue;
+    GNUNET_break (GNUNET_OK ==
+                  GNUNET_CONTAINER_multihashmap_put (
+                    set_c,
+                    &id,
+                    NULL,
+                    GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
+    register_hashcode (&id);
+    i++;
+  }
 
-  ibf_a = ibf_create(ibf_size, hash_num);
-  ibf_b = ibf_create(ibf_size, hash_num);
+  ibf_a = ibf_create (ibf_size, hash_num);
+  ibf_b = ibf_create (ibf_size, hash_num);
   if ((NULL == ibf_a) || (NULL == ibf_b))
+  {
+    /* insufficient memory */
+    GNUNET_break (0);
+    GNUNET_SCHEDULER_shutdown ();
+    return;
+  }
+
+
+  printf ("generated sets\n");
+
+  start_time = GNUNET_TIME_absolute_get ();
+
+  GNUNET_CONTAINER_multihashmap_iterate (set_a, &insert_iterator, ibf_a);
+  GNUNET_CONTAINER_multihashmap_iterate (set_b, &insert_iterator, ibf_b);
+  GNUNET_CONTAINER_multihashmap_iterate (set_c, &insert_iterator, ibf_a);
+  GNUNET_CONTAINER_multihashmap_iterate (set_c, &insert_iterator, ibf_b);
+
+  delta_time = GNUNET_TIME_absolute_get_duration (start_time);
+
+  printf ("encoded in: %s\n",
+          GNUNET_STRINGS_relative_time_to_string (delta_time, GNUNET_NO));
+
+  ibf_subtract (ibf_a, ibf_b);
+
+
+  start_time = GNUNET_TIME_absolute_get ();
+
+  for (i = 0; i <= asize + bsize; i++)
+  {
+    res = ibf_decode (ibf_a, &side, &ibf_key);
+    if (GNUNET_SYSERR == res)
     {
-      /* insufficient memory */
-      GNUNET_break(0);
-      GNUNET_SCHEDULER_shutdown();
+      printf ("decode failed, %u/%u elements left\n",
+              GNUNET_CONTAINER_multihashmap_size (set_a)
+              + GNUNET_CONTAINER_multihashmap_size (set_b),
+              asize + bsize);
+      return;
+    }
+    if (GNUNET_NO == res)
+    {
+      if ((0 == GNUNET_CONTAINER_multihashmap_size (set_b)) &&
+          (0 == GNUNET_CONTAINER_multihashmap_size (set_a)))
+      {
+        delta_time = GNUNET_TIME_absolute_get_duration (start_time);
+        printf ("decoded successfully in: %s\n",
+                GNUNET_STRINGS_relative_time_to_string (delta_time, GNUNET_NO));
+      }
+      else
+      {
+        printf ("decode missed elements (should never happen)\n");
+      }
       return;
     }
 
-
-  printf("generated sets\n");
-
-  start_time = GNUNET_TIME_absolute_get();
-
-  GNUNET_CONTAINER_multihashmap_iterate(set_a, &insert_iterator, ibf_a);
-  GNUNET_CONTAINER_multihashmap_iterate(set_b, &insert_iterator, ibf_b);
-  GNUNET_CONTAINER_multihashmap_iterate(set_c, &insert_iterator, ibf_a);
-  GNUNET_CONTAINER_multihashmap_iterate(set_c, &insert_iterator, ibf_b);
-
-  delta_time = GNUNET_TIME_absolute_get_duration(start_time);
-
-  printf("encoded in: %s\n",
-         GNUNET_STRINGS_relative_time_to_string(delta_time, GNUNET_NO));
-
-  ibf_subtract(ibf_a, ibf_b);
-
-
-  start_time = GNUNET_TIME_absolute_get();
-
-  for (i = 0; i <= asize + bsize; i++)
-    {
-      res = ibf_decode(ibf_a, &side, &ibf_key);
-      if (GNUNET_SYSERR == res)
-        {
-          printf("decode failed, %u/%u elements left\n",
-                 GNUNET_CONTAINER_multihashmap_size(set_a) +
-                 GNUNET_CONTAINER_multihashmap_size(set_b),
-                 asize + bsize);
-          return;
-        }
-      if (GNUNET_NO == res)
-        {
-          if ((0 == GNUNET_CONTAINER_multihashmap_size(set_b)) &&
-              (0 == GNUNET_CONTAINER_multihashmap_size(set_a)))
-            {
-              delta_time = GNUNET_TIME_absolute_get_duration(start_time);
-              printf("decoded successfully in: %s\n",
-                     GNUNET_STRINGS_relative_time_to_string(delta_time, GNUNET_NO));
-            }
-          else
-            {
-              printf("decode missed elements (should never happen)\n");
-            }
-          return;
-        }
-
-      if (side == 1)
-        iter_hashcodes(ibf_key, remove_iterator, set_a);
-      if (side == -1)
-        iter_hashcodes(ibf_key, remove_iterator, set_b);
-    }
-  printf("cyclic IBF, %u/%u elements left\n",
-         GNUNET_CONTAINER_multihashmap_size(set_a) +
-         GNUNET_CONTAINER_multihashmap_size(set_b),
-         asize + bsize);
+    if (side == 1)
+      iter_hashcodes (ibf_key, remove_iterator, set_a);
+    if (side == -1)
+      iter_hashcodes (ibf_key, remove_iterator, set_b);
+  }
+  printf ("cyclic IBF, %u/%u elements left\n",
+          GNUNET_CONTAINER_multihashmap_size (set_a)
+          + GNUNET_CONTAINER_multihashmap_size (set_b),
+          asize + bsize);
 }
 
 
 int
-main(int argc, char **argv)
+main (int argc, char **argv)
 {
   struct GNUNET_GETOPT_CommandLineOption options[] = {
-    GNUNET_GETOPT_option_uint('A',
-                              "asize",
-                              NULL,
-                              gettext_noop("number of element in set A-B"),
-                              &asize),
+    GNUNET_GETOPT_option_uint ('A',
+                               "asize",
+                               NULL,
+                               gettext_noop ("number of element in set A-B"),
+                               &asize),
 
-    GNUNET_GETOPT_option_uint('B',
-                              "bsize",
-                              NULL,
-                              gettext_noop("number of element in set B-A"),
-                              &bsize),
+    GNUNET_GETOPT_option_uint ('B',
+                               "bsize",
+                               NULL,
+                               gettext_noop ("number of element in set B-A"),
+                               &bsize),
 
-    GNUNET_GETOPT_option_uint('C',
-                              "csize",
-                              NULL,
-                              gettext_noop(
-                                "number of common elements in A and B"),
-                              &csize),
+    GNUNET_GETOPT_option_uint ('C',
+                               "csize",
+                               NULL,
+                               gettext_noop (
+                                 "number of common elements in A and B"),
+                               &csize),
 
-    GNUNET_GETOPT_option_uint('k',
-                              "hash-num",
-                              NULL,
-                              gettext_noop("hash num"),
-                              &hash_num),
+    GNUNET_GETOPT_option_uint ('k',
+                               "hash-num",
+                               NULL,
+                               gettext_noop ("hash num"),
+                               &hash_num),
 
-    GNUNET_GETOPT_option_uint('s',
-                              "ibf-size",
-                              NULL,
-                              gettext_noop("ibf size"),
-                              &ibf_size),
+    GNUNET_GETOPT_option_uint ('s',
+                               "ibf-size",
+                               NULL,
+                               gettext_noop ("ibf size"),
+                               &ibf_size),
 
     GNUNET_GETOPT_OPTION_END
   };
 
-  GNUNET_PROGRAM_run2(argc,
-                      argv,
-                      "gnunet-consensus-ibf",
-                      "help",
-                      options,
-                      &run,
-                      NULL,
-                      GNUNET_YES);
+  GNUNET_PROGRAM_run2 (argc,
+                       argv,
+                       "gnunet-consensus-ibf",
+                       "help",
+                       options,
+                       &run,
+                       NULL,
+                       GNUNET_YES);
   return 0;
 }

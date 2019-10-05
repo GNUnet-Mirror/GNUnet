@@ -35,17 +35,15 @@
  * @param n search character limit
  */
 void*
-GN_memrchr_(const void *s,
-            int c,
-            size_t n)
+GN_memrchr_ (const void *s,
+             int c,
+             size_t n)
 {
   const unsigned char *ucs = s;
   ssize_t i;
 
   for (i = n - 1; i >= 0; i--)
-    if (c == (int)ucs[i])
-      return (void *)&ucs[i];
+    if (c == (int) ucs[i])
+      return (void *) &ucs[i];
   return NULL;
 }
-
-

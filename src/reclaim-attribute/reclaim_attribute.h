@@ -31,7 +31,8 @@
 /**
  * Serialized claim
  */
-struct Attribute {
+struct Attribute
+{
   /**
    * Attribute type
    */
@@ -57,7 +58,7 @@ struct Attribute {
    */
   uint32_t data_size;
 
-  //followed by data_size Attribute value data
+  // followed by data_size Attribute value data
 };
 
 #endif

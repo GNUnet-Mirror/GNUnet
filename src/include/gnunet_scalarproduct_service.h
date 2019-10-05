@@ -49,7 +49,8 @@ extern "C" {
 /**
  * Result status values for the computation.
  */
-enum GNUNET_SCALARPRODUCT_ResponseStatus {
+enum GNUNET_SCALARPRODUCT_ResponseStatus
+{
   /**
    * Operation is still active (never returned, used internally).
    */
@@ -93,7 +94,8 @@ GNUNET_NETWORK_STRUCT_BEGIN
 /**
  * An element key-value pair for scalarproduct
  */
-struct GNUNET_SCALARPRODUCT_Element {
+struct GNUNET_SCALARPRODUCT_Element
+{
   /**
    * Key used to identify matching pairs of values to multiply.
    */
@@ -117,7 +119,9 @@ GNUNET_NETWORK_STRUCT_END
  */
 typedef void
 (*GNUNET_SCALARPRODUCT_ContinuationWithStatus) (void *cls,
-                                                enum GNUNET_SCALARPRODUCT_ResponseStatus status);
+                                                enum
+                                                GNUNET_SCALARPRODUCT_ResponseStatus
+                                                status);
 
 
 /**
@@ -129,7 +133,8 @@ typedef void
  */
 typedef void
 (*GNUNET_SCALARPRODUCT_DatumProcessor) (void *cls,
-                                        enum GNUNET_SCALARPRODUCT_ResponseStatus status,
+                                        enum GNUNET_SCALARPRODUCT_ResponseStatus
+                                        status,
                                         gcry_mpi_t result);
 
 
@@ -152,13 +157,16 @@ struct GNUNET_SCALARPRODUCT_ComputationHandle;
  * @return a new handle for this computation
  */
 struct GNUNET_SCALARPRODUCT_ComputationHandle *
-GNUNET_SCALARPRODUCT_start_computation(const struct GNUNET_CONFIGURATION_Handle *cfg,
-                                       const struct GNUNET_HashCode *session_key,
-                                       const struct GNUNET_PeerIdentity *peer,
-                                       const struct GNUNET_SCALARPRODUCT_Element *elements,
-                                       uint32_t element_count,
-                                       GNUNET_SCALARPRODUCT_DatumProcessor cont,
-                                       void *cont_cls);
+GNUNET_SCALARPRODUCT_start_computation (const struct
+                                        GNUNET_CONFIGURATION_Handle *cfg,
+                                        const struct
+                                        GNUNET_HashCode *session_key,
+                                        const struct GNUNET_PeerIdentity *peer,
+                                        const struct
+                                        GNUNET_SCALARPRODUCT_Element *elements,
+                                        uint32_t element_count,
+                                        GNUNET_SCALARPRODUCT_DatumProcessor cont,
+                                        void *cont_cls);
 
 
 /**
@@ -173,12 +181,15 @@ GNUNET_SCALARPRODUCT_start_computation(const struct GNUNET_CONFIGURATION_Handle 
  * @return a new handle for this computation
  */
 struct GNUNET_SCALARPRODUCT_ComputationHandle *
-GNUNET_SCALARPRODUCT_accept_computation(const struct GNUNET_CONFIGURATION_Handle *cfg,
-                                        const struct GNUNET_HashCode *key,
-                                        const struct GNUNET_SCALARPRODUCT_Element *elements,
-                                        uint32_t element_count,
-                                        GNUNET_SCALARPRODUCT_ContinuationWithStatus cont,
-                                        void *cont_cls);
+GNUNET_SCALARPRODUCT_accept_computation (const struct
+                                         GNUNET_CONFIGURATION_Handle *cfg,
+                                         const struct GNUNET_HashCode *key,
+                                         const struct
+                                         GNUNET_SCALARPRODUCT_Element *elements,
+                                         uint32_t element_count,
+                                         GNUNET_SCALARPRODUCT_ContinuationWithStatus
+                                         cont,
+                                         void *cont_cls);
 
 
 /**
@@ -188,7 +199,7 @@ GNUNET_SCALARPRODUCT_accept_computation(const struct GNUNET_CONFIGURATION_Handle
  * @param h computation handle to terminate
  */
 void
-GNUNET_SCALARPRODUCT_cancel(struct GNUNET_SCALARPRODUCT_ComputationHandle *h);
+GNUNET_SCALARPRODUCT_cancel (struct GNUNET_SCALARPRODUCT_ComputationHandle *h);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

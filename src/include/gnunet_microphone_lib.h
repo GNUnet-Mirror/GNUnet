@@ -63,7 +63,8 @@ typedef void (*GNUNET_MICROPHONE_RecordedDataCallback)(void *cls,
  * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
  */
 typedef int (*GNUNET_MICROPHONE_EnableCallback)(void *cls,
-                                                GNUNET_MICROPHONE_RecordedDataCallback rdc,
+                                                GNUNET_MICROPHONE_RecordedDataCallback
+                                                rdc,
                                                 void *rdc_cls);
 
 /**
@@ -84,7 +85,8 @@ typedef void (*GNUNET_MICROPHONE_DestroyCallback)(void *cls);
 /**
  * A microphone is a device that can capture or otherwise produce audio data.
  */
-struct GNUNET_MICROPHONE_Handle {
+struct GNUNET_MICROPHONE_Handle
+{
   /**
    * Turn on the microphone.
    */
@@ -115,7 +117,8 @@ struct GNUNET_MICROPHONE_Handle {
  * @return NULL on error
  */
 struct GNUNET_MICROPHONE_Handle *
-GNUNET_MICROPHONE_create_from_hardware(const struct GNUNET_CONFIGURATION_Handle *cfg);
+GNUNET_MICROPHONE_create_from_hardware (const struct
+                                        GNUNET_CONFIGURATION_Handle *cfg);
 
 
 /**
@@ -124,7 +127,7 @@ GNUNET_MICROPHONE_create_from_hardware(const struct GNUNET_CONFIGURATION_Handle 
  * @param microphone microphone to destroy
  */
 void
-GNUNET_MICROPHONE_destroy(struct GNUNET_MICROPHONE_Handle *microphone);
+GNUNET_MICROPHONE_destroy (struct GNUNET_MICROPHONE_Handle *microphone);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

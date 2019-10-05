@@ -33,7 +33,8 @@ GNUNET_NETWORK_STRUCT_BEGIN
  * Header for a message fragment.  Followed by the
  * original message.
  */
-struct FragmentHeader {
+struct FragmentHeader
+{
   /**
    * Message header.
    */
@@ -60,7 +61,8 @@ struct FragmentHeader {
 /**
  * Message fragment acknowledgement.
  */
-struct FragmentAcknowledgement {
+struct FragmentAcknowledgement
+{
   /**
    * Message header.
    */

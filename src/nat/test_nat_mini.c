@@ -35,31 +35,31 @@
 #include "gnunet_nat_lib.h"
 
 /* Time to wait before stopping NAT, in seconds */
-#define TIMEOUT GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 5)
+#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
 
 /**
  * Function called on each address that the NAT service
  * believes to be valid for the transport.
  */
 static void
-addr_callback(void *cls, int add_remove,
-              const struct sockaddr *addr,
-              socklen_t addrlen,
-              enum GNUNET_NAT_StatusCode ret)
+addr_callback (void *cls, int add_remove,
+               const struct sockaddr *addr,
+               socklen_t addrlen,
+               enum GNUNET_NAT_StatusCode ret)
 {
   if (GNUNET_NAT_ERROR_SUCCESS == ret)
-    {
-      fprintf(stderr,
-              "Address changed: %s `%s' (%u bytes)\n",
-              add_remove == GNUNET_YES
-              ? "added" : "removed",
-              GNUNET_a2s(addr,
+  {
+    fprintf (stderr,
+             "Address changed: %s `%s' (%u bytes)\n",
+             add_remove == GNUNET_YES
+             ? "added" : "removed",
+             GNUNET_a2s (addr,
                          addrlen),
-              (unsigned int)addrlen);
-    }
+             (unsigned int) addrlen);
+  }
   else
     ;
-  //TODO: proper error handling!
+  // TODO: proper error handling!
 }
 
 
@@ -67,12 +67,12 @@ addr_callback(void *cls, int add_remove,
  * Function that terminates the test.
  */
 static void
-stop(void *cls)
+stop (void *cls)
 {
   struct GNUNET_NAT_MiniHandle *mini = cls;
 
-  GNUNET_log(GNUNET_ERROR_TYPE_INFO, "Stopping NAT and quitting...\n");
-  GNUNET_NAT_mini_map_stop(mini);
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Stopping NAT and quitting...\n");
+  GNUNET_NAT_mini_map_stop (mini);
 }
 
 #define PORT 10000
@@ -81,27 +81,27 @@ stop(void *cls)
  * Main function run with scheduler.
  */
 static void
-run(void *cls, char *const *args, const char *cfgfile,
-    const struct GNUNET_CONFIGURATION_Handle *cfg)
+run (void *cls, char *const *args, const char *cfgfile,
+     const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   struct GNUNET_NAT_MiniHandle *mini;
 
-  GNUNET_log(GNUNET_ERROR_TYPE_INFO,
-             "Requesting NAT redirection for port %u...\n",
-             PORT);
-  mini = GNUNET_NAT_mini_map_start(PORT, GNUNET_YES /* tcp */,
-                                   &addr_callback, NULL);
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "Requesting NAT redirection for port %u...\n",
+              PORT);
+  mini = GNUNET_NAT_mini_map_start (PORT, GNUNET_YES /* tcp */,
+                                    &addr_callback, NULL);
   if (NULL == mini)
-    {
-      GNUNET_log(GNUNET_ERROR_TYPE_INFO, "Could not start UPnP interaction\n");
-      return;
-    }
-  GNUNET_SCHEDULER_add_delayed(TIMEOUT, &stop, mini);
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Could not start UPnP interaction\n");
+    return;
+  }
+  GNUNET_SCHEDULER_add_delayed (TIMEOUT, &stop, mini);
 }
 
 
 int
-main(int argc, char *const argv[])
+main (int argc, char *const argv[])
 {
   struct GNUNET_GETOPT_CommandLineOption options[] = {
     GNUNET_GETOPT_OPTION_END
@@ -116,16 +116,16 @@ main(int argc, char *const argv[])
     NULL
   };
 
-  GNUNET_log_setup("test-nat-mini",
-                   "WARNING",
-                   NULL);
+  GNUNET_log_setup ("test-nat-mini",
+                    "WARNING",
+                    NULL);
 
-  GNUNET_log(GNUNET_ERROR_TYPE_INFO,
-             "UPnP test for NAT library, timeout set to %s\n",
-             GNUNET_STRINGS_relative_time_to_string(TIMEOUT,
-                                                    GNUNET_YES));
-  GNUNET_PROGRAM_run(5, argv_prog, "test-nat-mini", "nohelp", options, &run,
-                     NULL);
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "UPnP test for NAT library, timeout set to %s\n",
+              GNUNET_STRINGS_relative_time_to_string (TIMEOUT,
+                                                      GNUNET_YES));
+  GNUNET_PROGRAM_run (5, argv_prog, "test-nat-mini", "nohelp", options, &run,
+                      NULL);
   return 0;
 }
 

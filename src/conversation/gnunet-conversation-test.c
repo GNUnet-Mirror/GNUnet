@@ -31,13 +31,14 @@
 /**
  * How long do we record before we replay?
  */
-#define TIMEOUT GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 5)
+#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
 
 
 /**
  * A recording we made.
  */
-struct Recording {
+struct Recording
+{
   /**
    * Kept in a DLL.
    */
@@ -73,12 +74,12 @@ static struct GNUNET_SPEAKER_Handle *speaker;
 /**
  * Task scheduled to switch from recording to playback.
  */
-static struct GNUNET_SCHEDULER_Task * switch_task;
+static struct GNUNET_SCHEDULER_Task *switch_task;
 
 /**
  * The shutdown task.
  */
-static struct GNUNET_SCHEDULER_Task * st;
+static struct GNUNET_SCHEDULER_Task *st;
 
 /**
  * Head of DLL with recorded frames.
@@ -97,26 +98,26 @@ static struct Recording *rec_tail;
  * @param cls NULL
  */
 static void
-do_shutdown(void *cls)
+do_shutdown (void *cls)
 {
   struct Recording *rec;
 
-  (void)cls;
+  (void) cls;
   if (NULL != switch_task)
-    GNUNET_SCHEDULER_cancel(switch_task);
+    GNUNET_SCHEDULER_cancel (switch_task);
   if (NULL != microphone)
-    GNUNET_MICROPHONE_destroy(microphone);
+    GNUNET_MICROPHONE_destroy (microphone);
   if (NULL != speaker)
-    GNUNET_SPEAKER_destroy(speaker);
+    GNUNET_SPEAKER_destroy (speaker);
   while (NULL != (rec = rec_head))
-    {
-      GNUNET_CONTAINER_DLL_remove(rec_head,
-                                  rec_tail,
-                                  rec);
-      GNUNET_free(rec);
-    }
-  fprintf(stderr,
-          _("\nEnd of transmission.  Have a GNU day.\n"));
+  {
+    GNUNET_CONTAINER_DLL_remove (rec_head,
+                                 rec_tail,
+                                 rec);
+    GNUNET_free (rec);
+  }
+  fprintf (stderr,
+           _ ("\nEnd of transmission.  Have a GNU day.\n"));
 }
 
 
@@ -126,35 +127,36 @@ do_shutdown(void *cls)
  * @param cls NULL
  */
 static void
-switch_to_speaker(void *cls)
+switch_to_speaker (void *cls)
 {
-  (void)cls;
+  (void) cls;
   switch_task = NULL;
-  microphone->disable_microphone(microphone->cls);
+  microphone->disable_microphone (microphone->cls);
   if (GNUNET_OK !=
-      speaker->enable_speaker(speaker->cls))
-    {
-      fprintf(stderr,
-              "Failed to enable microphone\n");
-      ret = 1;
-      GNUNET_SCHEDULER_shutdown();
-      return;
-    }
-  fprintf(stderr,
-          _("\nWe are now playing your recording back.  If you can hear it, your audio settings are working..."));
+      speaker->enable_speaker (speaker->cls))
+  {
+    fprintf (stderr,
+             "Failed to enable microphone\n");
+    ret = 1;
+    GNUNET_SCHEDULER_shutdown ();
+    return;
+  }
+  fprintf (stderr,
+           _ (
+             "\nWe are now playing your recording back.  If you can hear it, your audio settings are working..."));
   for (struct Recording *rec = rec_head; NULL != rec; rec = rec->next)
-    {
-      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-                 "Replaying %u bytes\n",
-                 (unsigned int)rec->size);
-      speaker->play(speaker->cls,
-                    rec->size,
-                    &rec[1]);
-    }
-  GNUNET_SCHEDULER_cancel(st);
-  st = GNUNET_SCHEDULER_add_delayed(TIMEOUT,
-                                    &do_shutdown,
-                                    NULL);
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Replaying %u bytes\n",
+                (unsigned int) rec->size);
+    speaker->play (speaker->cls,
+                   rec->size,
+                   &rec[1]);
+  }
+  GNUNET_SCHEDULER_cancel (st);
+  st = GNUNET_SCHEDULER_add_delayed (TIMEOUT,
+                                     &do_shutdown,
+                                     NULL);
 }
 
 
@@ -166,22 +168,22 @@ switch_to_speaker(void *cls)
  * @param data audio data to play
  */
 static void
-record(void *cls,
-       size_t data_size,
-       const void *data)
+record (void *cls,
+        size_t data_size,
+        const void *data)
 {
   struct Recording *rec;
 
-  (void)cls;
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-             "Recorded %u bytes\n",
-             (unsigned int)data_size);
-  rec = GNUNET_malloc(sizeof(struct Recording) + data_size);
+  (void) cls;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Recorded %u bytes\n",
+              (unsigned int) data_size);
+  rec = GNUNET_malloc (sizeof(struct Recording) + data_size);
   rec->size = data_size;
-  GNUNET_memcpy(&rec[1], data, data_size);
-  GNUNET_CONTAINER_DLL_insert_tail(rec_head,
-                                   rec_tail,
-                                   rec);
+  GNUNET_memcpy (&rec[1], data, data_size);
+  GNUNET_CONTAINER_DLL_insert_tail (rec_head,
+                                    rec_tail,
+                                    rec);
 }
 
 
@@ -194,36 +196,37 @@ record(void *cls,
  * @param cfg configuration
  */
 static void
-run(void *cls,
-    char *const *args,
-    const char *cfgfile,
-    const struct GNUNET_CONFIGURATION_Handle *cfg)
+run (void *cls,
+     char *const *args,
+     const char *cfgfile,
+     const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
-  (void)cls;
-  (void)args;
-  (void)cfgfile;
-  microphone = GNUNET_MICROPHONE_create_from_hardware(cfg);
-  GNUNET_assert(NULL != microphone);
-  speaker = GNUNET_SPEAKER_create_from_hardware(cfg);
-  GNUNET_assert(NULL != speaker);
-  switch_task = GNUNET_SCHEDULER_add_delayed(TIMEOUT,
-                                             &switch_to_speaker,
-                                             NULL);
-  st = GNUNET_SCHEDULER_add_shutdown(&do_shutdown,
-                                     NULL);
-  fprintf(stderr,
-          _("We will now be recording you for %s. After that time, the recording will be played back to you..."),
-          GNUNET_STRINGS_relative_time_to_string(TIMEOUT, GNUNET_YES));
+  (void) cls;
+  (void) args;
+  (void) cfgfile;
+  microphone = GNUNET_MICROPHONE_create_from_hardware (cfg);
+  GNUNET_assert (NULL != microphone);
+  speaker = GNUNET_SPEAKER_create_from_hardware (cfg);
+  GNUNET_assert (NULL != speaker);
+  switch_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT,
+                                              &switch_to_speaker,
+                                              NULL);
+  st = GNUNET_SCHEDULER_add_shutdown (&do_shutdown,
+                                      NULL);
+  fprintf (stderr,
+           _ (
+             "We will now be recording you for %s. After that time, the recording will be played back to you..."),
+           GNUNET_STRINGS_relative_time_to_string (TIMEOUT, GNUNET_YES));
   if (GNUNET_OK !=
-      microphone->enable_microphone(microphone->cls,
-                                    &record, NULL))
-    {
-      fprintf(stderr,
-              "Failed to enable microphone\n");
-      ret = 1;
-      GNUNET_SCHEDULER_shutdown();
-      return;
-    }
+      microphone->enable_microphone (microphone->cls,
+                                     &record, NULL))
+  {
+    fprintf (stderr,
+             "Failed to enable microphone\n");
+    ret = 1;
+    GNUNET_SCHEDULER_shutdown ();
+    return;
+  }
 }
 
 
@@ -235,26 +238,26 @@ run(void *cls,
  * @return 0 ok, 1 on error
  */
 int
-main(int argc,
-     char *const *argv)
+main (int argc,
+      char *const *argv)
 {
   static const struct GNUNET_GETOPT_CommandLineOption options[] = {
     GNUNET_GETOPT_OPTION_END
   };
 
   if (GNUNET_OK !=
-      GNUNET_STRINGS_get_utf8_args(argc, argv,
-                                   &argc, &argv))
+      GNUNET_STRINGS_get_utf8_args (argc, argv,
+                                    &argc, &argv))
     return 2;
 
   ret = (GNUNET_OK ==
-         GNUNET_PROGRAM_run(argc, argv,
-                            "gnunet-conversation-test",
-                            gettext_noop("help text"),
-                            options,
-                            &run,
-                            NULL)) ? ret : 1;
-  GNUNET_free((void*)argv);
+         GNUNET_PROGRAM_run (argc, argv,
+                             "gnunet-conversation-test",
+                             gettext_noop ("help text"),
+                             options,
+                             &run,
+                             NULL)) ? ret : 1;
+  GNUNET_free ((void*) argv);
   return ret;
 }
 

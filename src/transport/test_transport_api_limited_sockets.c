@@ -33,7 +33,7 @@
 /**
  * How long until we give up on transmitting the message?
  */
-#define TIMEOUT GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 300)
+#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 300)
 
 #define MAX_FILES 50
 
@@ -44,32 +44,32 @@ static struct GNUNET_TRANSPORT_TESTING_ConnectCheckContext *ccc;
 
 
 static void
-notify_receive(void *cls,
-               struct GNUNET_TRANSPORT_TESTING_PeerContext *receiver,
-               const struct GNUNET_PeerIdentity *sender,
-               const struct GNUNET_TRANSPORT_TESTING_TestMessage *message)
+notify_receive (void *cls,
+                struct GNUNET_TRANSPORT_TESTING_PeerContext *receiver,
+                const struct GNUNET_PeerIdentity *sender,
+                const struct GNUNET_TRANSPORT_TESTING_TestMessage *message)
 {
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-             "Received message of type %d from peer %s!\n",
-             ntohs(message->header.type),
-             GNUNET_i2s(sender));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Received message of type %d from peer %s!\n",
+              ntohs (message->header.type),
+              GNUNET_i2s (sender));
   if ((GNUNET_TRANSPORT_TESTING_SIMPLE_MTYPE ==
-       ntohs(message->header.type)) &&
+       ntohs (message->header.type)) &&
       (sizeof(struct GNUNET_TRANSPORT_TESTING_TestMessage) ==
-       ntohs(message->header.size)))
-    {
-      ccc->global_ret = GNUNET_OK;
-    }
+       ntohs (message->header.size)))
+  {
+    ccc->global_ret = GNUNET_OK;
+  }
   else
-    {
-      GNUNET_break(0);
-    }
-  GNUNET_SCHEDULER_shutdown();
+  {
+    GNUNET_break (0);
+  }
+  GNUNET_SCHEDULER_shutdown ();
 }
 
 
 int
-main(int argc, char *argv[])
+main (int argc, char *argv[])
 {
   struct GNUNET_TRANSPORT_TESTING_SendClosure sc = {
     .num_messages = 1
@@ -89,26 +89,26 @@ main(int argc, char *argv[])
   int res;
 
   sc.ccc = &my_ccc;
-  res = getrlimit(RLIMIT_NOFILE,
-                  &r_file_old);
+  res = getrlimit (RLIMIT_NOFILE,
+                   &r_file_old);
   r_file_new.rlim_cur = MAX_FILES;
   r_file_new.rlim_max = r_file_old.rlim_max;
-  res = setrlimit(RLIMIT_NOFILE,
-                  &r_file_new);
+  res = setrlimit (RLIMIT_NOFILE,
+                   &r_file_new);
   if (0 != res)
-    {
-      fprintf(stderr,
-              "Setting limit failed: %s\n",
-              strerror(errno));
-      return 77;
-    }
+  {
+    fprintf (stderr,
+             "Setting limit failed: %s\n",
+             strerror (errno));
+    return 77;
+  }
 
   ccc = &my_ccc;
   ccc->global_ret = GNUNET_SYSERR;
   if (GNUNET_OK !=
-      GNUNET_TRANSPORT_TESTING_main(2,
-                                    &GNUNET_TRANSPORT_TESTING_connect_check,
-                                    ccc))
+      GNUNET_TRANSPORT_TESTING_main (2,
+                                     &GNUNET_TRANSPORT_TESTING_connect_check,
+                                     ccc))
     return 1;
   return 0;
 }
@@ -118,10 +118,10 @@ main(int argc, char *argv[])
 
 
 int
-main(int argc, char *argv[])
+main (int argc, char *argv[])
 {
-  fprintf(stderr,
-          "Cannot run test on this system\n");
+  fprintf (stderr,
+           "Cannot run test on this system\n");
   return 77;
 }
 
