@@ -427,7 +427,6 @@ GNUNET_CONFIGURATION_serialize(const struct GNUNET_CONFIGURATION_Handle *cfg,
   char *cbuf;
   char *val;
   char *pos;
-  int len;
   size_t m_size;
   size_t c_size;
 
@@ -464,6 +463,8 @@ GNUNET_CONFIGURATION_serialize(const struct GNUNET_CONFIGURATION_Handle *cfg,
   *size = c_size;
   while (NULL != sec)
     {
+      int len;
+
       len = GNUNET_asprintf(&cbuf, "[%s]\n", sec->name);
       GNUNET_assert(0 < len);
       GNUNET_memcpy(mem + c_size, cbuf, len);
