@@ -82,7 +82,6 @@ key_from_sexp(gcry_mpi_t *array,
   gcry_sexp_t list;
   gcry_sexp_t l2;
   const char *s;
-  unsigned int i;
   unsigned int idx;
 
   list = gcry_sexp_find_token(sexp, topname, 0);
@@ -100,7 +99,7 @@ key_from_sexp(gcry_mpi_t *array,
       l2 = gcry_sexp_find_token(list, s, 1);
       if (!l2)
         {
-          for (i = 0; i < idx; i++)
+          for (unsigned int i = 0; i < idx; i++)
             {
               gcry_free(array[i]);
               array[i] = NULL;
@@ -112,7 +111,7 @@ key_from_sexp(gcry_mpi_t *array,
       gcry_sexp_release(l2);
       if (!array[idx])
         {
-          for (i = 0; i < idx; i++)
+          for (unsigned int i = 0; i < idx; i++)
             {
               gcry_free(array[i]);
               array[i] = NULL;
