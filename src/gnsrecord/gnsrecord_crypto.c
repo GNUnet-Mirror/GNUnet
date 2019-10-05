@@ -59,7 +59,7 @@ derive_block_aes_key (struct GNUNET_CRYPTO_SymmetricInitializationVector *iv,
  * We use the strings above as salt and the public key as IKM similar to
  * how derive_h is done in crypto_ecc.c.
  */
-#ifdef GNUNET_PROTOCOL_V12
+#ifdef LSD001
   GNUNET_CRYPTO_kdf (skey, sizeof(struct GNUNET_CRYPTO_SymmetricSessionKey),
                      ctx_key, strlen (ctx_key),
                      pub, sizeof(struct GNUNET_CRYPTO_EcdsaPublicKey),
