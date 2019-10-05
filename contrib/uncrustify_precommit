@@ -17,7 +17,7 @@ do
     # only change any of the invocations here if
     # they are portable across all cmp and shell
     # implementations !
-    uncrustify - q - c uncrustify.cfg - f $f | cmp - s $f -
+    uncrustify -q -c uncrustify.cfg -f $f | cmp - s $f -
     if test $? = 1 ;
     then
       crustified=" $crustified $f"
