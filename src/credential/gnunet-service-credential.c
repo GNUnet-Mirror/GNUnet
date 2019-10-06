@@ -1261,7 +1261,7 @@ delegation_chain_bw_resolution_start (void *cls)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "No delegates found\n");
     send_lookup_response (vrh);
-    return 2;
+    return 1;
   }
 
   // Pre-check with vrh->dele_chain_.. if match issuer_key
@@ -1343,7 +1343,7 @@ delegation_chain_fw_resolution_start (void *cls)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "No delegations found\n");
     send_lookup_response (vrh);
-    return 2;
+    return 1;
   }
 
   // Pre-check with vrh->dele_chain_.. if match issuer_key
