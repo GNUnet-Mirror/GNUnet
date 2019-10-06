@@ -2165,12 +2165,6 @@ handle_gns_resolution_result (void *cls,
           const char *nick;
 
           nick = rd[i].data;
-          if ((rd[i].data_size > 0) &&
-              (nick[rd[i].data_size - 1] != '\0'))
-          {
-            GNUNET_break_op (0);
-            break;
-          }
           break;
         }
 
