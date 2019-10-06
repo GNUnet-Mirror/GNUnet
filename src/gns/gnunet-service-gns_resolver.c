@@ -2161,12 +2161,8 @@ handle_gns_resolution_result (void *cls,
         break;
 
       case GNUNET_GNSRECORD_TYPE_NICK:
-        {
-          const char *nick;
-
-          nick = rd[i].data;
-          break;
-        }
+        /* ignore */
+        break;
 
       case GNUNET_GNSRECORD_TYPE_PKEY:
         {
