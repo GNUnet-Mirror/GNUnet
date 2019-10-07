@@ -107,9 +107,8 @@ extern "C" {
  */
 
 /**
- * Record type for credential
+ * 65547 deleted, free to use
  */
-#define GNUNET_GNSRECORD_TYPE_CREDENTIAL 65547
 
 /**
  * Record type for policies

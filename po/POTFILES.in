@@ -1,3 +1,11 @@
+src/abd/abd_api.c
+src/abd/abd_serialization.c
+src/abd/delegate_misc.c
+src/abd/gnunet-abd.c
+src/abd/gnunet-service-abd.c
+src/abd/plugin_gnsrecord_abd.c
+src/abd/plugin_rest_abd.c
+src/abd/plugin_rest_credential.c
 src/abe/abe.c
 src/arm/arm_api.c
 src/arm/arm_monitor_api.c
@@ -86,13 +94,6 @@ src/core/gnunet-service-core.c
 src/core/gnunet-service-core_kx.c
 src/core/gnunet-service-core_sessions.c
 src/core/gnunet-service-core_typemap.c
-src/credential/credential_api.c
-src/credential/credential_serialization.c
-src/credential/delegate_misc.c
-src/credential/gnunet-credential.c
-src/credential/gnunet-service-credential.c
-src/credential/plugin_gnsrecord_credential.c
-src/credential/plugin_rest_credential.c
 src/curl/curl.c
 src/curl/curl_reschedule.c
 src/datacache/datacache.c

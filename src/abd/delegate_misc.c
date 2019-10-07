@@ -20,7 +20,7 @@
 
 
 /**
- * @file credential/delegate_misc.c
+ * @file abd/delegate_misc.c
  * @brief Misc API for delegate
  *
  * @author Martin Schanzenbach
@@ -28,14 +28,14 @@
 #include "platform.h"
 #include "gnunet_util_lib.h"
 #include "gnunet_constants.h"
-#include "gnunet_credential_service.h"
+#include "gnunet_abd_service.h"
 #include "gnunet_signatures.h"
-#include "credential.h"
+#include "abd.h"
 #include <inttypes.h>
 
 char *
-GNUNET_CREDENTIAL_delegate_to_string (
-  const struct GNUNET_CREDENTIAL_Delegate *cred)
+GNUNET_ABD_delegate_to_string (
+  const struct GNUNET_ABD_Delegate *cred)
 {
   char *cred_str;
   char *subject_pkey;
@@ -75,10 +75,10 @@ GNUNET_CREDENTIAL_delegate_to_string (
   return cred_str;
 }
 
-struct GNUNET_CREDENTIAL_Delegate *
-GNUNET_CREDENTIAL_delegate_from_string (const char *s)
+struct GNUNET_ABD_Delegate *
+GNUNET_ABD_delegate_from_string (const char *s)
 {
-  struct GNUNET_CREDENTIAL_Delegate *dele;
+  struct GNUNET_ABD_Delegate *dele;
   size_t enclen = (sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey)) * 8;
   if (enclen % 5 > 0)
     enclen += 5 - enclen % 5;
@@ -129,7 +129,7 @@ GNUNET_CREDENTIAL_delegate_from_string (const char *s)
   {
     attr_len = strlen (iss_attr) + strlen (sub_attr) + 2;
   }
-  dele = GNUNET_malloc (sizeof (struct GNUNET_CREDENTIAL_Delegate) + attr_len);
+  dele = GNUNET_malloc (sizeof (struct GNUNET_ABD_Delegate) + attr_len);
 
   char tmp_str[attr_len];
   GNUNET_memcpy (tmp_str, iss_attr, strlen (iss_attr));
@@ -183,8 +183,8 @@ GNUNET_CREDENTIAL_delegate_from_string (const char *s)
  * @return handle to the queued request
  */
 
-struct GNUNET_CREDENTIAL_Delegate *
-GNUNET_CREDENTIAL_delegate_issue (
+struct GNUNET_ABD_Delegate *
+GNUNET_ABD_delegate_issue (
   const struct GNUNET_CRYPTO_EcdsaPrivateKey *issuer,
   struct GNUNET_CRYPTO_EcdsaPublicKey *subject,
   const char *iss_attr,
@@ -192,7 +192,7 @@ GNUNET_CREDENTIAL_delegate_issue (
   struct GNUNET_TIME_Absolute *expiration)
 {
   struct DelegateEntry *del;
-  struct GNUNET_CREDENTIAL_Delegate *dele;
+  struct GNUNET_ABD_Delegate *dele;
   size_t size;
   int attr_len;
 
@@ -246,7 +246,7 @@ GNUNET_CREDENTIAL_delegate_issue (
     return NULL;
   }
 
-  dele = GNUNET_malloc (sizeof (struct GNUNET_CREDENTIAL_Delegate) + attr_len);
+  dele = GNUNET_malloc (sizeof (struct GNUNET_ABD_Delegate) + attr_len);
   dele->signature = del->signature;
   dele->expiration = *expiration;
   GNUNET_CRYPTO_ecdsa_key_get_public (issuer, &dele->issuer_key);

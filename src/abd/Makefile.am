@@ -2,8 +2,8 @@
 AM_CPPFLAGS = -I$(top_srcdir)/src/include
 
 EXTRA_DIST = \
-  test_credential_defaults.conf \
-  test_credential_lookup.conf
+  test_abd_defaults.conf \
+  test_abd_lookup.conf
 
 
 if USE_COVERAGE
@@ -17,28 +17,28 @@ libexecdir= $(pkglibdir)/libexec/
 plugindir = $(libdir)/gnunet
 
 pkgcfg_DATA = \
-  credential.conf
+  abd.conf
 
 
 # /usr/lib - compiles a layer which can be used to be communicagte with the service
 lib_LTLIBRARIES = \
-  libgnunetcredential.la
+  libgnunetabd.la
 
 # /usr/lib/gnunet/libexec - Business logic . Separate process
 libexec_PROGRAMS = \
-  gnunet-service-credential
+  gnunet-service-abd
 
 bin_PROGRAMS = \
-  gnunet-credential
+  gnunet-abd
 
 plugin_LTLIBRARIES = \
-  libgnunet_plugin_gnsrecord_credential.la
+  libgnunet_plugin_gnsrecord_abd.la
 
 
-gnunet_credential_SOURCES = \
- gnunet-credential.c
-gnunet_credential_LDADD = \
-  libgnunetcredential.la \
+gnunet_abd_SOURCES = \
+ gnunet-abd.c
+gnunet_abd_LDADD = \
+  libgnunetabd.la \
   $(top_builddir)/src/util/libgnunetutil.la \
 	$(top_builddir)/src/gnsrecord/libgnunetgnsrecord.la \
   $(top_builddir)/src/identity/libgnunetidentity.la \
@@ -46,21 +46,21 @@ gnunet_credential_LDADD = \
   $(GN_LIBINTL)
 
 
-libgnunet_plugin_gnsrecord_credential_la_SOURCES = \
-  plugin_gnsrecord_credential.c
-libgnunet_plugin_gnsrecord_credential_la_LIBADD = \
-	libgnunetcredential.la \
+libgnunet_plugin_gnsrecord_abd_la_SOURCES = \
+  plugin_gnsrecord_abd.c
+libgnunet_plugin_gnsrecord_abd_la_LIBADD = \
+	libgnunetabd.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(LTLIBINTL)
-libgnunet_plugin_gnsrecord_credential_la_LDFLAGS = \
+libgnunet_plugin_gnsrecord_abd_la_LDFLAGS = \
  $(GN_PLUGIN_LDFLAGS)
 
 
 
-gnunet_service_credential_SOURCES = \
- gnunet-service-credential.c
-gnunet_service_credential_LDADD = \
-	libgnunetcredential.la \
+gnunet_service_abd_SOURCES = \
+ gnunet-service-abd.c
+gnunet_service_abd_LDADD = \
+	libgnunetabd.la \
   $(top_builddir)/src/util/libgnunetutil.la \
 	$(top_builddir)/src/gns/libgnunetgns.la \
 	$(top_builddir)/src/namestore/libgnunetnamestore.la \
@@ -68,24 +68,24 @@ gnunet_service_credential_LDADD = \
   $(GN_LIBINTL)
 
 
-libgnunetcredential_la_SOURCES = \
- credential_api.c credential.h\
- credential_serialization.c \
- credential_serialization.h \
+libgnunetabd_la_SOURCES = \
+ abd_api.c abd.h\
+ abd_serialization.c \
+ abd_serialization.h \
  delegate_misc.c \
  delegate_misc.h
-libgnunetcredential_la_LIBADD = \
+libgnunetabd_la_LIBADD = \
  $(top_builddir)/src/util/libgnunetutil.la $(XLIB)
-libgnunetcredential_la_LDFLAGS = \
+libgnunetabd_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS)
 
 
 
 check_SCRIPTS = \
-  test_credential_issue.sh \
-	test_credential_verify_simple.sh \
-	test_credential_verify.sh \
-	test_credential_verify_and.sh
+  test_abd_issue.sh \
+	test_abd_verify_simple.sh \
+	test_abd_verify.sh \
+	test_abd_verify_and.sh
 
 if ENABLE_TEST_RUN
 if HAVE_SQLITE
@@ -94,17 +94,16 @@ if HAVE_SQLITE
 endif
 endif
 
-#libgnunet_plugin_rest_credential_la_SOURCES = \
-#  plugin_rest_credential.c
-#libgnunet_plugin_rest_credential_la_LIBADD = \
-#  $(top_builddir)/src/credential/libgnunetcredential.la \
+#libgnunet_plugin_rest_abd_la_SOURCES = \
+#  plugin_rest_abd.c
+#libgnunet_plugin_rest_abd_la_LIBADD = \
+#  $(top_builddir)/src/abd/libgnunetabd.la \
 #	$(top_builddir)/src/rest/libgnunetrest.la \
 #	$(top_builddir)/src/identity/libgnunetidentity.la \
 #  $(top_builddir)/src/util/libgnunetutil.la $(XLIBS) \
-#  $(LTLIBINTL) -ljansson $(MHD_LIBS)
-#libgnunet_plugin_rest_credential_la_LDFLAGS = \
+#  $(LTLIBINTL) -ljansson -lmicrohttpd
+#libgnunet_plugin_rest_abd_la_LDFLAGS = \
 # $(GN_PLUGIN_LDFLAGS)
-#libgnunet_plugin_rest_credential_la_CFLAGS = $(MHD_CFLAGS) $(AM_CFLAGS)
 
 
 

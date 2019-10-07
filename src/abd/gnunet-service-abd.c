@@ -18,7 +18,7 @@
      SPDX-License-Identifier: AGPL3.0-or-later
 */
 /**
- * @file credential/gnunet-service-credential.c
+ * @file abd/gnunet-service-abd.c
  * @brief GNUnet Credential Service (main service)
  * @author Martin Schanzenbach
  */
@@ -26,9 +26,9 @@
 
 #include "gnunet_util_lib.h"
 
-#include "credential.h"
-#include "credential_serialization.h"
-#include "gnunet_credential_service.h"
+#include "abd.h"
+#include "abd_serialization.h"
+#include "gnunet_abd_service.h"
 #include "gnunet_protocols.h"
 #include "gnunet_signatures.h"
 #include "gnunet_statistics_service.h"
@@ -39,7 +39,7 @@
 #include <gnunet_namestore_service.h>
 
 
-#define GNUNET_CREDENTIAL_MAX_LENGTH 255
+#define GNUNET_ABD_MAX_LENGTH 255
 
 struct VerifyRequestHandle;
 
@@ -82,32 +82,6 @@ struct DelegationChainEntry
 /**
  * DLL for record
  */
-struct CredentialRecordEntry
-{
-  /**
-   * DLL
-   */
-  struct CredentialRecordEntry *next;
-
-  /**
-   * DLL
-   */
-  struct CredentialRecordEntry *prev;
-
-  /**
-   * Number of references in delegation chains
-   */
-  uint32_t refcount;
-
-  /**
-   * Payload
-   */
-  struct GNUNET_CREDENTIAL_Credential *credential;
-};
-
-/**
- * DLL for record
- */
 struct DelegateRecordEntry
 {
   /**
@@ -128,7 +102,7 @@ struct DelegateRecordEntry
   /**
    * Payload
    */
-  struct GNUNET_CREDENTIAL_Delegate *delegate;
+  struct GNUNET_ABD_Delegate *delegate;
 };
 
 /**
@@ -338,7 +312,7 @@ struct VerifyRequestHandle
   /**
    * Direction of the resolution algo
    */
-  enum GNUNET_CREDENTIAL_AlgoDirectionFlags resolution_algo;
+  enum GNUNET_ABD_AlgoDirectionFlags resolution_algo;
 
   /**
    * Delegate iterator for lookup
@@ -463,7 +437,7 @@ shutdown_task (void *cls)
 
   while (NULL != (vrh = vrh_head))
   {
-    // CREDENTIAL_resolver_lookup_cancel (clh->lookup);
+    // ABD_resolver_lookup_cancel (clh->lookup);
     GNUNET_CONTAINER_DLL_remove (vrh_head, vrh_tail, vrh);
     cleanup_handle (vrh);
   }
@@ -489,14 +463,14 @@ static void
 send_intermediate_response(struct VerifyRequestHandle *vrh, struct DelegationChainEntry *ch_entry, bool is_bw){
   struct DelegationChainIntermediateMessage *rmsg;
   struct GNUNET_MQ_Envelope *env;
-  struct GNUNET_CREDENTIAL_Delegation *dd;
+  struct GNUNET_ABD_Delegation *dd;
   size_t size;
 
   // Don't report immediate results during collect
   if(vrh->is_collect)
     return;
 
-  dd = GNUNET_new (struct GNUNET_CREDENTIAL_Delegation);
+  dd = GNUNET_new (struct GNUNET_ABD_Delegation);
   dd->issuer_key = ch_entry->issuer_key;
   dd->subject_key = ch_entry->subject_key;
   dd->issuer_attribute = ch_entry->issuer_attribute;
@@ -510,21 +484,21 @@ send_intermediate_response(struct VerifyRequestHandle *vrh, struct DelegationCha
   }
   
 
-  size = GNUNET_CREDENTIAL_delegation_chain_get_size (1,
+  size = GNUNET_ABD_delegation_chain_get_size (1,
                                                  dd,
                                                  0,
                                                  NULL);
 
   env = GNUNET_MQ_msg_extra (rmsg,
                              size,
-                             GNUNET_MESSAGE_TYPE_CREDENTIAL_INTERMEDIATE_RESULT);
+                             GNUNET_MESSAGE_TYPE_ABD_INTERMEDIATE_RESULT);
   // Assign id so that client can find associated request
   rmsg->id = vrh->request_id;
   rmsg->is_bw = htons(is_bw);
   rmsg->size = htonl(size);
 
   GNUNET_assert (
-    -1 != GNUNET_CREDENTIAL_delegation_chain_serialize (1,
+    -1 != GNUNET_ABD_delegation_chain_serialize (1,
                                                   dd,
                                                   0,
                                                   NULL,
@@ -539,8 +513,8 @@ send_lookup_response (struct VerifyRequestHandle *vrh)
   struct GNUNET_MQ_Envelope *env;
   struct DelegationChainResultMessage *rmsg;
   struct DelegationChainEntry *dce;
-  struct GNUNET_CREDENTIAL_Delegation dd[vrh->delegation_chain_size];
-  struct GNUNET_CREDENTIAL_Delegate dele[vrh->del_chain_size];
+  struct GNUNET_ABD_Delegation dd[vrh->delegation_chain_size];
+  struct GNUNET_ABD_Delegate dele[vrh->del_chain_size];
   struct DelegateRecordEntry *del;
   struct DelegateRecordEntry *tmp;
   size_t size;
@@ -595,13 +569,13 @@ send_lookup_response (struct VerifyRequestHandle *vrh)
     del = del->next;
   }
   size =
-    GNUNET_CREDENTIAL_delegation_chain_get_size (vrh->delegation_chain_size,
+    GNUNET_ABD_delegation_chain_get_size (vrh->delegation_chain_size,
                                                  dd,
                                                  vrh->del_chain_size,
                                                  dele);
   env = GNUNET_MQ_msg_extra (rmsg,
                              size,
-                             GNUNET_MESSAGE_TYPE_CREDENTIAL_VERIFY_RESULT);
+                             GNUNET_MESSAGE_TYPE_ABD_VERIFY_RESULT);
   // Assign id so that client can find associated request
   rmsg->id = vrh->request_id;
   rmsg->d_count = htonl (vrh->delegation_chain_size);
@@ -614,7 +588,7 @@ send_lookup_response (struct VerifyRequestHandle *vrh)
 
   GNUNET_assert (
     -1 !=
-    GNUNET_CREDENTIAL_delegation_chain_serialize (vrh->delegation_chain_size,
+    GNUNET_ABD_delegation_chain_serialize (vrh->delegation_chain_size,
                                                   dd,
                                                   vrh->del_chain_size,
                                                   dele,
@@ -775,8 +749,8 @@ forward_resolution (void *cls,
       continue;
 
     // Start deserialize into Delegate
-    struct GNUNET_CREDENTIAL_Delegate *del;
-    del = GNUNET_CREDENTIAL_delegate_deserialize (rd[i].data, rd[i].data_size);
+    struct GNUNET_ABD_Delegate *del;
+    del = GNUNET_ABD_delegate_deserialize (rd[i].data, rd[i].data_size);
 
     // Start: Create DQ Entry
     dq_entry = GNUNET_new (struct DelegationQueueEntry);
@@ -996,7 +970,7 @@ backward_resolution (void *cls,
                      const struct GNUNET_GNSRECORD_Data *rd)
 {
   struct VerifyRequestHandle *vrh;
-  const struct GNUNET_CREDENTIAL_DelegationRecord *sets;
+  const struct GNUNET_ABD_DelegationRecord *sets;
   struct DelegateRecordEntry *del_pointer;
   struct DelegationSetQueueEntry *current_set;
   struct DelegationSetQueueEntry *ds_entry;
@@ -1017,13 +991,13 @@ backward_resolution (void *cls,
       continue;
 
     sets = rd[i].data;
-    struct GNUNET_CREDENTIAL_DelegationSet set[ntohl (sets->set_count)];
+    struct GNUNET_ABD_DelegationSet set[ntohl (sets->set_count)];
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Found new attribute delegation with %d sets. Creating new Job...\n",
                 ntohl (sets->set_count));
 
     if (GNUNET_OK !=
-        GNUNET_CREDENTIAL_delegation_set_deserialize (GNUNET_ntohll (
+        GNUNET_ABD_delegation_set_deserialize (GNUNET_ntohll (
                                                         sets->data_size),
                                                       (const char *) &sets[1],
                                                       ntohl (sets->set_count),
@@ -1430,14 +1404,14 @@ check_verify (void *cls, const struct VerifyMessage *v_msg)
     GNUNET_break (0);
     return GNUNET_SYSERR;
   }
-  if (ntohs (v_msg->issuer_attribute_len) > GNUNET_CREDENTIAL_MAX_LENGTH)
+  if (ntohs (v_msg->issuer_attribute_len) > GNUNET_ABD_MAX_LENGTH)
   {
     GNUNET_break (0);
     return GNUNET_SYSERR;
   }
   attr = (const char *) &v_msg[1];
 
-  if (strlen (attr) > GNUNET_CREDENTIAL_MAX_LENGTH)
+  if (strlen (attr) > GNUNET_ABD_MAX_LENGTH)
   {
     GNUNET_break (0);
     return GNUNET_SYSERR;
@@ -1453,8 +1427,8 @@ handle_verify (void *cls, const struct VerifyMessage *v_msg)
   struct DelegateRecordEntry *del_entry;
   uint32_t delegate_count;
   uint32_t delegate_data_size;
-  char attr[GNUNET_CREDENTIAL_MAX_LENGTH + 1];
-  char issuer_attribute[GNUNET_CREDENTIAL_MAX_LENGTH + 1];
+  char attr[GNUNET_ABD_MAX_LENGTH + 1];
+  char issuer_attribute[GNUNET_ABD_MAX_LENGTH + 1];
   char *attrptr = attr;
   char *delegate_data;
   const char *utf_in;
@@ -1494,12 +1468,12 @@ handle_verify (void *cls, const struct VerifyMessage *v_msg)
   delegate_data_size = ntohs (v_msg->header.size) -
                        sizeof (struct VerifyMessage) -
                        ntohs (v_msg->issuer_attribute_len) - 1;
-  struct GNUNET_CREDENTIAL_Delegate delegates[delegate_count];
+  struct GNUNET_ABD_Delegate delegates[delegate_count];
   memset (delegates,
           0,
-          sizeof (struct GNUNET_CREDENTIAL_Delegate) * delegate_count);
+          sizeof (struct GNUNET_ABD_Delegate) * delegate_count);
   delegate_data = (char *) &v_msg[1] + ntohs (v_msg->issuer_attribute_len) + 1;
-  if (GNUNET_OK != GNUNET_CREDENTIAL_delegates_deserialize (delegate_data_size,
+  if (GNUNET_OK != GNUNET_ABD_delegates_deserialize (delegate_data_size,
                                                             delegate_data,
                                                             delegate_count,
                                                             delegates))
@@ -1514,11 +1488,11 @@ handle_verify (void *cls, const struct VerifyMessage *v_msg)
   {
     del_entry = GNUNET_new (struct DelegateRecordEntry);
     del_entry->delegate =
-      GNUNET_malloc (sizeof (struct GNUNET_CREDENTIAL_Delegate) +
+      GNUNET_malloc (sizeof (struct GNUNET_ABD_Delegate) +
                      delegates[i].issuer_attribute_len + 1);
     GNUNET_memcpy (del_entry->delegate,
                    &delegates[i],
-                   sizeof (struct GNUNET_CREDENTIAL_Delegate));
+                   sizeof (struct GNUNET_ABD_Delegate));
     GNUNET_memcpy (&del_entry->delegate[1],
                    delegates[i].issuer_attribute,
                    delegates[i].issuer_attribute_len);
@@ -1532,18 +1506,18 @@ handle_verify (void *cls, const struct VerifyMessage *v_msg)
   }
 
   // Switch resolution algo
-  if (GNUNET_CREDENTIAL_FLAG_BACKWARD & vrh->resolution_algo &&
-      GNUNET_CREDENTIAL_FLAG_FORWARD & vrh->resolution_algo)
+  if (GNUNET_ABD_FLAG_BACKWARD & vrh->resolution_algo &&
+      GNUNET_ABD_FLAG_FORWARD & vrh->resolution_algo)
   {
     if(1 == delegation_chain_fw_resolution_start (vrh))
       return;
     delegation_chain_bw_resolution_start (vrh);
   }
-  else if (GNUNET_CREDENTIAL_FLAG_BACKWARD & vrh->resolution_algo)
+  else if (GNUNET_ABD_FLAG_BACKWARD & vrh->resolution_algo)
   {
     delegation_chain_bw_resolution_start (vrh);
   }
-  else if (GNUNET_CREDENTIAL_FLAG_FORWARD & vrh->resolution_algo)
+  else if (GNUNET_ABD_FLAG_FORWARD & vrh->resolution_algo)
   {
     delegation_chain_fw_resolution_start (vrh);
   }
@@ -1566,19 +1540,19 @@ delegate_collection_finished (void *cls)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Done collecting delegates.\n");
 
   // if both are set: bidirectional search, meaning start both chain resolutions
-  if (GNUNET_CREDENTIAL_FLAG_BACKWARD & vrh->resolution_algo &&
-      GNUNET_CREDENTIAL_FLAG_FORWARD & vrh->resolution_algo)
+  if (GNUNET_ABD_FLAG_BACKWARD & vrh->resolution_algo &&
+      GNUNET_ABD_FLAG_FORWARD & vrh->resolution_algo)
   {
     // if premature match found don't start bw resultion
     if(1 == delegation_chain_fw_resolution_start (vrh))
       return;
     delegation_chain_bw_resolution_start (vrh);
   }
-  else if (GNUNET_CREDENTIAL_FLAG_BACKWARD & vrh->resolution_algo)
+  else if (GNUNET_ABD_FLAG_BACKWARD & vrh->resolution_algo)
   {
     delegation_chain_bw_resolution_start (vrh);
   }
-  else if (GNUNET_CREDENTIAL_FLAG_FORWARD & vrh->resolution_algo)
+  else if (GNUNET_ABD_FLAG_FORWARD & vrh->resolution_algo)
   {
     delegation_chain_fw_resolution_start (vrh);
   }
@@ -1592,7 +1566,7 @@ handle_delegate_collection_cb (void *cls,
                                const struct GNUNET_GNSRECORD_Data *rd)
 {
   struct VerifyRequestHandle *vrh = cls;
-  struct GNUNET_CREDENTIAL_Delegate *del;
+  struct GNUNET_ABD_Delegate *del;
   struct DelegateRecordEntry *del_entry;
   int cred_record_count;
   cred_record_count = 0;
@@ -1603,7 +1577,7 @@ handle_delegate_collection_cb (void *cls,
     if (GNUNET_GNSRECORD_TYPE_DELEGATE != rd[i].record_type)
       continue;
     cred_record_count++;
-    del = GNUNET_CREDENTIAL_delegate_deserialize (rd[i].data, rd[i].data_size);
+    del = GNUNET_ABD_delegate_deserialize (rd[i].data, rd[i].data_size);
     if (NULL == del)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Invalid delegate found\n");
@@ -1628,8 +1602,8 @@ handle_delegate_collection_cb (void *cls,
 static void
 handle_collect (void *cls, const struct CollectMessage *c_msg)
 {
-  char attr[GNUNET_CREDENTIAL_MAX_LENGTH + 1];
-  char issuer_attribute[GNUNET_CREDENTIAL_MAX_LENGTH + 1];
+  char attr[GNUNET_ABD_MAX_LENGTH + 1];
+  char issuer_attribute[GNUNET_ABD_MAX_LENGTH + 1];
   struct VerifyRequestHandle *vrh;
   struct GNUNET_SERVICE_Client *client = cls;
   char *attrptr = attr;
@@ -1692,7 +1666,7 @@ check_collect (void *cls, const struct CollectMessage *c_msg)
     GNUNET_break (0);
     return GNUNET_SYSERR;
   }
-  if (ntohs (c_msg->issuer_attribute_len) > GNUNET_CREDENTIAL_MAX_LENGTH)
+  if (ntohs (c_msg->issuer_attribute_len) > GNUNET_ABD_MAX_LENGTH)
   {
     GNUNET_break (0);
     return GNUNET_SYSERR;
@@ -1700,7 +1674,7 @@ check_collect (void *cls, const struct CollectMessage *c_msg)
   attr = (const char *) &c_msg[1];
 
   if (('\0' != attr[msg_size - sizeof (struct CollectMessage) - 1]) ||
-      (strlen (attr) > GNUNET_CREDENTIAL_MAX_LENGTH))
+      (strlen (attr) > GNUNET_ABD_MAX_LENGTH))
   {
     GNUNET_break (0);
     return GNUNET_SYSERR;
@@ -1749,7 +1723,7 @@ run (void *cls,
     fprintf (stderr, _ ("Failed to connect to namestore\n"));
   }
 
-  statistics = GNUNET_STATISTICS_create ("credential", c);
+  statistics = GNUNET_STATISTICS_create ("abd", c);
   GNUNET_SCHEDULER_add_shutdown (&shutdown_task, NULL);
 }
 
@@ -1758,20 +1732,20 @@ run (void *cls,
  * Define "main" method using service macro
  */
 GNUNET_SERVICE_MAIN (
-  "credential",
+  "abd",
   GNUNET_SERVICE_OPTION_NONE,
   &run,
   &client_connect_cb,
   &client_disconnect_cb,
   NULL,
   GNUNET_MQ_hd_var_size (verify,
-                         GNUNET_MESSAGE_TYPE_CREDENTIAL_VERIFY,
+                         GNUNET_MESSAGE_TYPE_ABD_VERIFY,
                          struct VerifyMessage,
                          NULL),
   GNUNET_MQ_hd_var_size (collect,
-                         GNUNET_MESSAGE_TYPE_CREDENTIAL_COLLECT,
+                         GNUNET_MESSAGE_TYPE_ABD_COLLECT,
                          struct CollectMessage,
                          NULL),
   GNUNET_MQ_handler_end ());
 
-/* end of gnunet-service-credential.c */
+/* end of gnunet-service-abd.c */

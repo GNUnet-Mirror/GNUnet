@@ -23,6 +23,7 @@ else
 gnunetinclude_HEADERS = \
   platform.h gettext.h \
   compat.h \
+  gnunet_abd_service.h \
   gnunet_applications.h \
   gnunet_arm_service.h \
   gnunet_ats_service.h \
@@ -42,7 +43,6 @@ gnunetinclude_HEADERS = \
   gnunet_container_lib.h \
   gnunet_conversation_service.h \
   gnunet_core_service.h \
-  gnunet_credential_service.h \
   gnunet_crypto_lib.h \
   gnunet_curl_lib.h \
   gnunet_datacache_lib.h \

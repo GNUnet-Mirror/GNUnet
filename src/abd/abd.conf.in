@@ -1,0 +1,5 @@
+[abd]
+BINARY = gnunet-service-abd
+UNIXPATH = $GNUNET_USER_RUNTIME_DIR/gnunet-service-abd.sock
+RUN_PER_USER = YES
+OPTIONS = -L DEBUG

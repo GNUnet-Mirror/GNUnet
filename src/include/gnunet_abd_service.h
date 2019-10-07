@@ -24,13 +24,13 @@
  * @file
  * API to the Credential service
  *
- * @defgroup credential  Credential service
+ * @defgroup abd  Credential service
  * Credentials
  *
  * @{
  */
-#ifndef GNUNET_CREDENTIAL_SERVICE_H
-#define GNUNET_CREDENTIAL_SERVICE_H
+#ifndef GNUNET_ABD_SERVICE_H
+#define GNUNET_ABD_SERVICE_H
 
 #include "gnunet_util_lib.h"
 #include "gnunet_gns_service.h"
@@ -48,26 +48,26 @@ extern "C"
 /**
  * Connection to the Credential service.
  */
-struct GNUNET_CREDENTIAL_Handle;
+struct GNUNET_ABD_Handle;
 
 /**
  * Handle to control a lookup operation.
  */
-struct GNUNET_CREDENTIAL_Request;
+struct GNUNET_ABD_Request;
 
 /*
 * Enum used for checking whether the issuer has the authority to issue credentials or is just a subject
 */
-enum GNUNET_CREDENTIAL_CredentialFlags {
+enum GNUNET_ABD_CredentialFlags {
 
   //Subject had credentials before, but have been revoked now
-  GNUNET_CREDENTIAL_FLAG_REVOKED=0,
+  GNUNET_ABD_FLAG_REVOKED=0,
 
   //Subject flag indicates that the subject is a holder of this credential and may present it as such
-  GNUNET_CREDENTIAL_FLAG_SUBJECT=1,
+  GNUNET_ABD_FLAG_SUBJECT=1,
 
   //Issuer flag is used to signify that the subject is allowed to issue this credential and delegate issuance
-  GNUNET_CREDENTIAL_FLAG_ISSUER=2
+  GNUNET_ABD_FLAG_ISSUER=2
 
 };
 
@@ -75,7 +75,7 @@ GNUNET_NETWORK_STRUCT_BEGIN
 /**
  * The attribute delegation record
  */
-struct GNUNET_CREDENTIAL_DelegationRecord {
+struct GNUNET_ABD_DelegationRecord {
 
   /**
    * Number of delegation sets in this record
@@ -95,7 +95,7 @@ struct GNUNET_CREDENTIAL_DelegationRecord {
 /**
  * The attribute delegation record
  */
-struct GNUNET_CREDENTIAL_DelegationRecordSet {
+struct GNUNET_ABD_DelegationRecordSet {
 
   /**
    * Public key of the subject this attribute was delegated to
@@ -114,7 +114,7 @@ GNUNET_NETWORK_STRUCT_END
 /**
  * The attribute delegation record
  */
-struct GNUNET_CREDENTIAL_DelegationSet {
+struct GNUNET_ABD_DelegationSet {
 
   /**
    * Public key of the subject this attribute was delegated to
@@ -133,7 +133,7 @@ struct GNUNET_CREDENTIAL_DelegationSet {
 /**
  * A delegation
  */
-struct GNUNET_CREDENTIAL_Delegation {
+struct GNUNET_ABD_Delegation {
 
   /**
    * The issuer of the delegation
@@ -170,7 +170,7 @@ struct GNUNET_CREDENTIAL_Delegation {
 /**
  * A delegate
  */
-struct GNUNET_CREDENTIAL_Delegate {
+struct GNUNET_ABD_Delegate {
 
   /**
    * The issuer of the credential
@@ -217,13 +217,13 @@ struct GNUNET_CREDENTIAL_Delegate {
 /*
 * Enum used for checking whether the issuer has the authority to issue credentials or is just a subject
 */
-enum GNUNET_CREDENTIAL_AlgoDirectionFlags {
+enum GNUNET_ABD_AlgoDirectionFlags {
 
   //Subject had credentials before, but have been revoked now
-  GNUNET_CREDENTIAL_FLAG_FORWARD=1 << 0,
+  GNUNET_ABD_FLAG_FORWARD=1 << 0,
 
   //Subject flag indicates that the subject is a holder of this credential and may present it as such
-  GNUNET_CREDENTIAL_FLAG_BACKWARD=1 << 1
+  GNUNET_ABD_FLAG_BACKWARD=1 << 1
 
 };
 
@@ -233,8 +233,8 @@ enum GNUNET_CREDENTIAL_AlgoDirectionFlags {
  * @param cfg configuration to use
  * @return handle to the Credential service, or NULL on error
  */
-struct GNUNET_CREDENTIAL_Handle *
-GNUNET_CREDENTIAL_connect (const struct GNUNET_CONFIGURATION_Handle *cfg);
+struct GNUNET_ABD_Handle *
+GNUNET_ABD_connect (const struct GNUNET_CONFIGURATION_Handle *cfg);
 
 
 /**
@@ -243,7 +243,7 @@ GNUNET_CREDENTIAL_connect (const struct GNUNET_CONFIGURATION_Handle *cfg);
  * @param handle connection to shut down
  */
 void
-GNUNET_CREDENTIAL_disconnect (struct GNUNET_CREDENTIAL_Handle *handle);
+GNUNET_ABD_disconnect (struct GNUNET_ABD_Handle *handle);
 
 
 /**
@@ -252,17 +252,17 @@ GNUNET_CREDENTIAL_disconnect (struct GNUNET_CREDENTIAL_Handle *handle);
  * @param cls closure
  * @param d_count the number of delegations processed
  * @param delegation_chain the delegations processed
- * @param c_count the number of credentials found
- * @param credential the credentials
+ * @param c_count the number of delegates found
+ * @param delegate the delegates
  */
-typedef void (*GNUNET_CREDENTIAL_CredentialResultProcessor) (void *cls,
+typedef void (*GNUNET_ABD_CredentialResultProcessor) (void *cls,
                                                          unsigned int d_count,
-                                                         struct GNUNET_CREDENTIAL_Delegation *delegation_chain,
+                                                         struct GNUNET_ABD_Delegation *delegation_chain,
                                                          unsigned int c_count,
-                                                         struct GNUNET_CREDENTIAL_Delegate *delegte);
+                                                         struct GNUNET_ABD_Delegate *delegte);
                                                         
-typedef void (*GNUNET_CREDENTIAL_IntermediateResultProcessor) (void *cls,
-                                                         struct GNUNET_CREDENTIAL_Delegation *delegation,
+typedef void (*GNUNET_ABD_IntermediateResultProcessor) (void *cls,
+                                                         struct GNUNET_ABD_Delegation *delegation,
                                                          bool is_bw);
 
 /**
@@ -272,7 +272,7 @@ typedef void (*GNUNET_CREDENTIAL_IntermediateResultProcessor) (void *cls,
  * @param success GNUNET_YES if successful
  * @param result the record data that can be handed to the subject
  */
-typedef void (*GNUNET_CREDENTIAL_DelegateResultProcessor) (void *cls,
+typedef void (*GNUNET_ABD_DelegateResultProcessor) (void *cls,
                                                            uint32_t success);
 
 /**
@@ -282,7 +282,7 @@ typedef void (*GNUNET_CREDENTIAL_DelegateResultProcessor) (void *cls,
  * @param success GNUNET_YES if successful
  * @param result the record data that can be handed to the subject
  */
-typedef void (*GNUNET_CREDENTIAL_RemoveDelegateResultProcessor) (void *cls,
+typedef void (*GNUNET_ABD_RemoveDelegateResultProcessor) (void *cls,
                                                                  uint32_t success);
 
 
@@ -298,34 +298,34 @@ typedef void (*GNUNET_CREDENTIAL_RemoveDelegateResultProcessor) (void *cls,
  * @param issuer_key the issuer public key
  * @param issuer_attribute the issuer attribute
  * @param subject_key the subject public key
- * @param credential_count number of credentials
- * @param credentials the subject credentials
+ * @param delegate_count number of delegates
+ * @param delegates the subject delegates
  * @param proc function to call on result
  * @param proc_cls closure for processor
  * @return handle to the queued request
  */
-struct GNUNET_CREDENTIAL_Request*
-GNUNET_CREDENTIAL_verify (struct GNUNET_CREDENTIAL_Handle *handle,
+struct GNUNET_ABD_Request*
+GNUNET_ABD_verify (struct GNUNET_ABD_Handle *handle,
                           const struct GNUNET_CRYPTO_EcdsaPublicKey *issuer_key,
                           const char *issuer_attribute,
                           const struct GNUNET_CRYPTO_EcdsaPublicKey *subject_key,
-                          uint32_t credential_count,
-                          const struct GNUNET_CREDENTIAL_Delegate *delegates,
-                          enum GNUNET_CREDENTIAL_AlgoDirectionFlags direction,
-                          GNUNET_CREDENTIAL_CredentialResultProcessor proc,
+                          uint32_t delegate_count,
+                          const struct GNUNET_ABD_Delegate *delegates,
+                          enum GNUNET_ABD_AlgoDirectionFlags direction,
+                          GNUNET_ABD_CredentialResultProcessor proc,
                           void *proc_cls,
-                          GNUNET_CREDENTIAL_IntermediateResultProcessor,
+                          GNUNET_ABD_IntermediateResultProcessor,
                           void *proc2_cls);
 
-struct GNUNET_CREDENTIAL_Request*
-GNUNET_CREDENTIAL_collect (struct GNUNET_CREDENTIAL_Handle *handle,
+struct GNUNET_ABD_Request*
+GNUNET_ABD_collect (struct GNUNET_ABD_Handle *handle,
                            const struct GNUNET_CRYPTO_EcdsaPublicKey *issuer_key,
                            const char *issuer_attribute,
                            const struct GNUNET_CRYPTO_EcdsaPrivateKey *subject_key,
-                           enum GNUNET_CREDENTIAL_AlgoDirectionFlags direction,
-                           GNUNET_CREDENTIAL_CredentialResultProcessor proc,
+                           enum GNUNET_ABD_AlgoDirectionFlags direction,
+                           GNUNET_ABD_CredentialResultProcessor proc,
                            void *proc_cls,
-                           GNUNET_CREDENTIAL_IntermediateResultProcessor,
+                           GNUNET_ABD_IntermediateResultProcessor,
                            void *proc2_cls);
 
 /**
@@ -340,13 +340,13 @@ GNUNET_CREDENTIAL_collect (struct GNUNET_CREDENTIAL_Handle *handle,
  * @param proc_cls the result closure context
  * @return handle to the queued request
  */
-struct GNUNET_CREDENTIAL_Request *
-GNUNET_CREDENTIAL_add_delegation (struct GNUNET_CREDENTIAL_Handle *handle,
+struct GNUNET_ABD_Request *
+GNUNET_ABD_add_delegation (struct GNUNET_ABD_Handle *handle,
                                   struct GNUNET_IDENTITY_Ego *issuer,
                                   const char *attribute,
                                   struct GNUNET_CRYPTO_EcdsaPublicKey *subject,
                                   const char *delegated_attribute,
-                                  GNUNET_CREDENTIAL_DelegateResultProcessor proc,
+                                  GNUNET_ABD_DelegateResultProcessor proc,
                                   void *proc_cls);
 
 /**
@@ -359,11 +359,11 @@ GNUNET_CREDENTIAL_add_delegation (struct GNUNET_CREDENTIAL_Handle *handle,
  * @param proc_cls callback closure
  * @return handle to the queued request
  */
-struct GNUNET_CREDENTIAL_Request *
-GNUNET_CREDENTIAL_remove_delegation (struct GNUNET_CREDENTIAL_Handle *handle,
+struct GNUNET_ABD_Request *
+GNUNET_ABD_remove_delegation (struct GNUNET_ABD_Handle *handle,
                                      struct GNUNET_IDENTITY_Ego *issuer,
                                      const char *attribute,
-                                     GNUNET_CREDENTIAL_RemoveDelegateResultProcessor proc,
+                                     GNUNET_ABD_RemoveDelegateResultProcessor proc,
                                      void *proc_cls);
 
 
@@ -377,8 +377,8 @@ GNUNET_CREDENTIAL_remove_delegation (struct GNUNET_CREDENTIAL_Handle *handle,
  * @param expiration the TTL of the credential
  * @return handle to the queued request
  */
-struct GNUNET_CREDENTIAL_Delegate*
-GNUNET_CREDENTIAL_delegate_issue (const struct GNUNET_CRYPTO_EcdsaPrivateKey *issuer,
+struct GNUNET_ABD_Delegate*
+GNUNET_ABD_delegate_issue (const struct GNUNET_CRYPTO_EcdsaPrivateKey *issuer,
                                     struct GNUNET_CRYPTO_EcdsaPublicKey *subject,
                                     const char *iss_attr,
                                     const char *sub_attr,
@@ -391,7 +391,7 @@ GNUNET_CREDENTIAL_delegate_issue (const struct GNUNET_CRYPTO_EcdsaPrivateKey *is
  * @param lr the lookup request to cancel
  */
 void
-GNUNET_CREDENTIAL_request_cancel (struct GNUNET_CREDENTIAL_Request *lr);
+GNUNET_ABD_request_cancel (struct GNUNET_ABD_Request *lr);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

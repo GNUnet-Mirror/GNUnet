@@ -1675,8 +1675,8 @@ src/gnsrecord/Makefile
 src/hello/Makefile
 src/identity/Makefile
 src/identity/identity.conf
-src/credential/Makefile
-src/credential/credential.conf
+src/abd/Makefile
+src/abd/abd.conf
 src/include/Makefile
 src/integration-tests/Makefile
 src/json/Makefile

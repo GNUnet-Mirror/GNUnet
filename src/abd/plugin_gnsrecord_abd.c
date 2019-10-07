@@ -19,8 +19,8 @@
 */
 
 /**
- * @file credential/plugin_gnsrecord_credential.c
- * @brief gnsrecord plugin to provide the API for CREDENTIAL records
+ * @file abd/plugin_gnsrecord_abd.c
+ * @brief gnsrecord plugin to provide the API for ABD records
  * @author Martin Schanzenbach
  */
 #include "platform.h"
@@ -28,8 +28,8 @@
 #include "gnunet_util_lib.h"
 
 #include "delegate_misc.h"
-#include "credential_serialization.h"
-#include "gnunet_credential_service.h"
+#include "abd_serialization.h"
+#include "gnunet_abd_service.h"
 #include "gnunet_gnsrecord_lib.h"
 #include "gnunet_gnsrecord_plugin.h"
 #include "gnunet_signatures.h"
@@ -43,7 +43,7 @@
  * @return NULL on error, otherwise human-readable representation of the value
  */
 static char *
-credential_value_to_string (void *cls,
+abd_value_to_string (void *cls,
                             uint32_t type,
                             const void *data,
                             size_t data_size)
@@ -54,20 +54,20 @@ credential_value_to_string (void *cls,
   {
   case GNUNET_GNSRECORD_TYPE_ATTRIBUTE:
   {
-    struct GNUNET_CREDENTIAL_DelegationRecord sets;
+    struct GNUNET_ABD_DelegationRecord sets;
     char *attr_str;
     char *subject_pkey;
     char *tmp_str;
     int i;
-    if (data_size < sizeof (struct GNUNET_CREDENTIAL_DelegationRecord))
+    if (data_size < sizeof (struct GNUNET_ABD_DelegationRecord))
       return NULL; /* malformed */
 
     GNUNET_memcpy (&sets, data, sizeof (sets));
     cdata = data;
 
-    struct GNUNET_CREDENTIAL_DelegationSet set[ntohl (sets.set_count)];
+    struct GNUNET_ABD_DelegationSet set[ntohl (sets.set_count)];
     if (GNUNET_OK !=
-        GNUNET_CREDENTIAL_delegation_set_deserialize (GNUNET_ntohll (
+        GNUNET_ABD_delegation_set_deserialize (GNUNET_ntohll (
                                                         sets.data_size),
                                                       &cdata[sizeof (sets)],
                                                       ntohl (sets.set_count),
@@ -118,11 +118,11 @@ credential_value_to_string (void *cls,
   }
   case GNUNET_GNSRECORD_TYPE_DELEGATE:
   {
-    struct GNUNET_CREDENTIAL_Delegate *cred;
+    struct GNUNET_ABD_Delegate *cred;
     char *cred_str;
 
-    cred = GNUNET_CREDENTIAL_delegate_deserialize (data, data_size);
-    cred_str = GNUNET_CREDENTIAL_delegate_to_string (cred);
+    cred = GNUNET_ABD_delegate_deserialize (data, data_size);
+    cred_str = GNUNET_ABD_delegate_to_string (cred);
     GNUNET_free (cred);
     return cred_str;
   }
@@ -144,7 +144,7 @@ credential_value_to_string (void *cls,
  * @return #GNUNET_OK on success
  */
 static int
-credential_string_to_value (void *cls,
+abd_string_to_value (void *cls,
                             uint32_t type,
                             const char *s,
                             void **data,
@@ -156,7 +156,7 @@ credential_string_to_value (void *cls,
   {
   case GNUNET_GNSRECORD_TYPE_ATTRIBUTE:
   {
-    struct GNUNET_CREDENTIAL_DelegationRecord *sets;
+    struct GNUNET_ABD_DelegationRecord *sets;
     char attr_str[253 + 1];
     char subject_pkey[52 + 1];
     char *token;
@@ -170,7 +170,7 @@ credential_string_to_value (void *cls,
     token = strtok (tmp_str, ",");
     entries = 0;
     tmp_data_size = 0;
-    *data_size = sizeof (struct GNUNET_CREDENTIAL_DelegationRecord);
+    *data_size = sizeof (struct GNUNET_ABD_DelegationRecord);
     while (NULL != token)
     {
       // also fills the variables subject_pley and attr_str if "regex"-like match
@@ -199,9 +199,9 @@ credential_string_to_value (void *cls,
       return GNUNET_SYSERR;
     }
 
-    struct GNUNET_CREDENTIAL_DelegationSet set[entries];
+    struct GNUNET_ABD_DelegationSet set[entries];
     // sets memory to be 0, starting at *set for the size of struct * entries
-    memset (set, 0, sizeof (struct GNUNET_CREDENTIAL_DelegationSet) * entries);
+    memset (set, 0, sizeof (struct GNUNET_ABD_DelegationSet) * entries);
     for (i = 0; i < entries; i++)
     {
       matches = SSCANF (token, "%s %s", subject_pkey, attr_str);
@@ -220,7 +220,7 @@ credential_string_to_value (void *cls,
       // If more entries, then token string can take the next entry (separated by ',') by calling strtok again
       token = strtok (NULL, ",");
     }
-    tmp_data_size = GNUNET_CREDENTIAL_delegation_set_get_size (entries, set);
+    tmp_data_size = GNUNET_ABD_delegation_set_get_size (entries, set);
 
     if (-1 == tmp_data_size)
     {
@@ -229,7 +229,7 @@ credential_string_to_value (void *cls,
     }
     *data_size += tmp_data_size;
     *data = sets = GNUNET_malloc (*data_size);
-    GNUNET_CREDENTIAL_delegation_set_serialize (entries,
+    GNUNET_ABD_delegation_set_serialize (entries,
                                                 set,
                                                 tmp_data_size,
                                                 (char *) &sets[1]);
@@ -246,10 +246,10 @@ credential_string_to_value (void *cls,
   }
   case GNUNET_GNSRECORD_TYPE_DELEGATE:
   {
-    struct GNUNET_CREDENTIAL_Delegate *cred;
-    cred = GNUNET_CREDENTIAL_delegate_from_string (s);
+    struct GNUNET_ABD_Delegate *cred;
+    cred = GNUNET_ABD_delegate_from_string (s);
 
-    *data_size = GNUNET_CREDENTIAL_delegate_serialize (cred, (char **) data);
+    *data_size = GNUNET_ABD_delegate_serialize (cred, (char **) data);
 
     return GNUNET_OK;
   }
@@ -267,8 +267,7 @@ static struct
 {
   const char *name;
   uint32_t number;
-} name_map[] = {{"CRED", GNUNET_GNSRECORD_TYPE_CREDENTIAL},
-                {"ATTR", GNUNET_GNSRECORD_TYPE_ATTRIBUTE},
+} name_map[] = {{"ATTR", GNUNET_GNSRECORD_TYPE_ATTRIBUTE},
                 {"DEL", GNUNET_GNSRECORD_TYPE_DELEGATE},
                 {NULL, UINT32_MAX}};
 
@@ -281,7 +280,7 @@ static struct
  * @return corresponding number, UINT32_MAX on error
  */
 static uint32_t
-credential_typename_to_number (void *cls, const char *gns_typename)
+abd_typename_to_number (void *cls, const char *gns_typename)
 {
   unsigned int i;
 
@@ -301,7 +300,7 @@ credential_typename_to_number (void *cls, const char *gns_typename)
  * @return corresponding typestring, NULL on error
  */
 static const char *
-credential_number_to_typename (void *cls, uint32_t type)
+abd_number_to_typename (void *cls, uint32_t type)
 {
   unsigned int i;
 
@@ -319,15 +318,15 @@ credential_number_to_typename (void *cls, uint32_t type)
  * @return the exported block API
  */
 void *
-libgnunet_plugin_gnsrecord_credential_init (void *cls)
+libgnunet_plugin_gnsrecord_abd_init (void *cls)
 {
   struct GNUNET_GNSRECORD_PluginFunctions *api;
 
   api = GNUNET_new (struct GNUNET_GNSRECORD_PluginFunctions);
-  api->value_to_string = &credential_value_to_string;
-  api->string_to_value = &credential_string_to_value;
-  api->typename_to_number = &credential_typename_to_number;
-  api->number_to_typename = &credential_number_to_typename;
+  api->value_to_string = &abd_value_to_string;
+  api->string_to_value = &abd_string_to_value;
+  api->typename_to_number = &abd_typename_to_number;
+  api->number_to_typename = &abd_number_to_typename;
   return api;
 }
 
@@ -339,7 +338,7 @@ libgnunet_plugin_gnsrecord_credential_init (void *cls)
  * @return NULL
  */
 void *
-libgnunet_plugin_gnsrecord_credential_done (void *cls)
+libgnunet_plugin_gnsrecord_abd_done (void *cls)
 {
   struct GNUNET_GNSRECORD_PluginFunctions *api = cls;
 
@@ -347,4 +346,4 @@ libgnunet_plugin_gnsrecord_credential_done (void *cls)
   return NULL;
 }
 
-/* end of plugin_gnsrecord_credential.c */
+/* end of plugin_gnsrecord_abd.c */

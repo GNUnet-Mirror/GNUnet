@@ -18,19 +18,19 @@
      SPDX-License-Identifier: AGPL3.0-or-later
  */
 /**
- * @file credential/delegate_misc.h
+ * @file abd/delegate_misc.h
  * @brief Delegate helper functions
  */
 #ifndef DELEGATE_MISC_H
 #define DELEGATE_MISC_H
 
-#include "gnunet_credential_service.h"
+#include "gnunet_abd_service.h"
 
 char *
-GNUNET_CREDENTIAL_delegate_to_string (
-    const struct GNUNET_CREDENTIAL_Delegate *cred);
+GNUNET_ABD_delegate_to_string (
+    const struct GNUNET_ABD_Delegate *cred);
 
-struct GNUNET_CREDENTIAL_Delegate *
-GNUNET_CREDENTIAL_delegate_from_string (const char *str);
+struct GNUNET_ABD_Delegate *
+GNUNET_ABD_delegate_from_string (const char *str);
 
 #endif

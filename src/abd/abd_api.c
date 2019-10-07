@@ -18,8 +18,8 @@
      SPDX-License-Identifier: AGPL3.0-or-later
 */
 /**
- * @file credential/credential_api.c
- * @brief library to access the CREDENTIAL service
+ * @file abd/abd_api.c
+ * @brief library to access the ABD service
  * @author Martin Schanzenbach
  */
 #include "platform.h"
@@ -29,39 +29,39 @@
 #include "gnunet_hello_lib.h"
 #include "gnunet_protocols.h"
 #include "gnunet_signatures.h"
-#include "credential.h"
-#include "credential_serialization.h"
-#include "gnunet_credential_service.h"
+#include "abd.h"
+#include "abd_serialization.h"
+#include "gnunet_abd_service.h"
 #include "gnunet_identity_service.h"
 
 
-#define LOG(kind, ...) GNUNET_log_from (kind, "credential-api", __VA_ARGS__)
+#define LOG(kind, ...) GNUNET_log_from (kind, "abd-api", __VA_ARGS__)
 
 /**
  * Handle to a verify request
  */
-struct GNUNET_CREDENTIAL_Request
+struct GNUNET_ABD_Request
 {
 
   /**
    * DLL
    */
-  struct GNUNET_CREDENTIAL_Request *next;
+  struct GNUNET_ABD_Request *next;
 
   /**
    * DLL
    */
-  struct GNUNET_CREDENTIAL_Request *prev;
+  struct GNUNET_ABD_Request *prev;
 
   /**
-   * handle to credential service
+   * handle to abd service
    */
-  struct GNUNET_CREDENTIAL_Handle *credential_handle;
+  struct GNUNET_ABD_Handle *abd_handle;
 
   /**
    * processor to call on verify result
    */
-  GNUNET_CREDENTIAL_CredentialResultProcessor verify_proc;
+  GNUNET_ABD_CredentialResultProcessor verify_proc;
 
   /**
    * @e verify_proc closure
@@ -71,7 +71,7 @@ struct GNUNET_CREDENTIAL_Request
   /**
    * processor to call on intermediate result
    */
-  GNUNET_CREDENTIAL_IntermediateResultProcessor int_proc;
+  GNUNET_ABD_IntermediateResultProcessor int_proc;
 
   /**
    * @e verify_proc2 closure
@@ -91,9 +91,9 @@ struct GNUNET_CREDENTIAL_Request
 
 
 /**
- * Connection to the CREDENTIAL service.
+ * Connection to the ABD service.
  */
-struct GNUNET_CREDENTIAL_Handle
+struct GNUNET_ABD_Handle
 {
 
   /**
@@ -109,12 +109,12 @@ struct GNUNET_CREDENTIAL_Handle
   /**
    * Head of linked list of active verify requests.
    */
-  struct GNUNET_CREDENTIAL_Request *request_head;
+  struct GNUNET_ABD_Request *request_head;
 
   /**
    * Tail of linked list of active verify requests.
    */
-  struct GNUNET_CREDENTIAL_Request *request_tail;
+  struct GNUNET_ABD_Request *request_tail;
 
   /**
    * Reconnect task
@@ -134,23 +134,23 @@ struct GNUNET_CREDENTIAL_Handle
 
 
 /**
- * Reconnect to CREDENTIAL service.
+ * Reconnect to ABD service.
  *
- * @param handle the handle to the CREDENTIAL service
+ * @param handle the handle to the ABD service
  */
 static void
-reconnect (struct GNUNET_CREDENTIAL_Handle *handle);
+reconnect (struct GNUNET_ABD_Handle *handle);
 
 
 /**
- * Reconnect to CREDENTIAL
+ * Reconnect to ABD
  *
  * @param cls the handle
  */
 static void
 reconnect_task (void *cls)
 {
-  struct GNUNET_CREDENTIAL_Handle *handle = cls;
+  struct GNUNET_ABD_Handle *handle = cls;
 
   handle->reconnect_task = NULL;
   reconnect (handle);
@@ -163,7 +163,7 @@ reconnect_task (void *cls)
  * @param handle our handle
  */
 static void
-force_reconnect (struct GNUNET_CREDENTIAL_Handle *handle)
+force_reconnect (struct GNUNET_ABD_Handle *handle)
 {
   GNUNET_MQ_destroy (handle->mq);
   handle->mq = NULL;
@@ -181,21 +181,21 @@ force_reconnect (struct GNUNET_CREDENTIAL_Handle *handle)
  * the same closure specified at the creation of the message queue.
  * Not every message queue implementation supports an error handler.
  *
- * @param cls closure with the `struct GNUNET_CREDENTIAL_Handle *`
+ * @param cls closure with the `struct GNUNET_ABD_Handle *`
  * @param error error code
  */
 static void
 mq_error_handler (void *cls, enum GNUNET_MQ_Error error)
 {
-  struct GNUNET_CREDENTIAL_Handle *handle = cls;
+  struct GNUNET_ABD_Handle *handle = cls;
 
   force_reconnect (handle);
 }
 
 /**
- * Check validity of message received from the CREDENTIAL service
+ * Check validity of message received from the ABD service
  *
- * @param cls the `struct GNUNET_CREDENTIAL_Handle *`
+ * @param cls the `struct GNUNET_ABD_Handle *`
  * @param vr_msg the incoming message
  */
 static int
@@ -207,27 +207,27 @@ check_result (void *cls, const struct DelegationChainResultMessage *vr_msg)
 
 
 /**
- * Handler for messages received from the CREDENTIAL service
+ * Handler for messages received from the ABD service
  *
- * @param cls the `struct GNUNET_CREDENTIAL_Handle *`
+ * @param cls the `struct GNUNET_ABD_Handle *`
  * @param vr_msg the incoming message
  */
 static void
 handle_result (void *cls, const struct DelegationChainResultMessage *vr_msg)
 {
-  struct GNUNET_CREDENTIAL_Handle *handle = cls;
+  struct GNUNET_ABD_Handle *handle = cls;
   uint32_t r_id = ntohl (vr_msg->id);
-  struct GNUNET_CREDENTIAL_Request *vr;
+  struct GNUNET_ABD_Request *vr;
   size_t mlen = ntohs (vr_msg->header.size) - sizeof (*vr_msg);
   uint32_t d_count = ntohl (vr_msg->d_count);
   uint32_t c_count = ntohl (vr_msg->c_count);
-  struct GNUNET_CREDENTIAL_Delegation d_chain[d_count];
-  struct GNUNET_CREDENTIAL_Delegate dels[c_count];
-  GNUNET_CREDENTIAL_CredentialResultProcessor proc;
+  struct GNUNET_ABD_Delegation d_chain[d_count];
+  struct GNUNET_ABD_Delegate dels[c_count];
+  GNUNET_ABD_CredentialResultProcessor proc;
   void *proc_cls;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Received verify reply from CREDENTIAL service\n");
+       "Received verify reply from ABD service\n");
   for (vr = handle->request_head; NULL != vr; vr = vr->next)
     if (vr->r_id == r_id)
       break;
@@ -240,7 +240,7 @@ handle_result (void *cls, const struct DelegationChainResultMessage *vr_msg)
   GNUNET_free (vr);
   GNUNET_assert (
     GNUNET_OK ==
-    GNUNET_CREDENTIAL_delegation_chain_deserialize (mlen,
+    GNUNET_ABD_delegation_chain_deserialize (mlen,
                                                     (const char *) &vr_msg[1],
                                                     d_count,
                                                     d_chain,
@@ -267,17 +267,17 @@ check_intermediate (void *cls, const struct DelegationChainIntermediateMessage *
 static void
 handle_intermediate (void *cls, const struct DelegationChainIntermediateMessage *vr_msg)
 {
-  struct GNUNET_CREDENTIAL_Handle *handle = cls;
+  struct GNUNET_ABD_Handle *handle = cls;
   uint32_t r_id = ntohl (vr_msg->id);
   uint32_t size = ntohl (vr_msg->size);
   bool is_bw = ntohs(vr_msg->is_bw);
-  struct GNUNET_CREDENTIAL_Request *vr;
-  GNUNET_CREDENTIAL_IntermediateResultProcessor proc;
+  struct GNUNET_ABD_Request *vr;
+  GNUNET_ABD_IntermediateResultProcessor proc;
   void *proc_cls;
-  struct GNUNET_CREDENTIAL_Delegation *dd;
+  struct GNUNET_ABD_Delegation *dd;
 
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Received intermediate reply from CREDENTIAL service\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Received intermediate reply from ABD service\n");
 
   for (vr = handle->request_head; NULL != vr; vr = vr->next)
     if (vr->r_id == r_id)
@@ -288,10 +288,10 @@ handle_intermediate (void *cls, const struct DelegationChainIntermediateMessage 
   proc = vr->int_proc;
   proc_cls = vr->proc2_cls;
   
-  dd = GNUNET_new (struct GNUNET_CREDENTIAL_Delegation);
+  dd = GNUNET_new (struct GNUNET_ABD_Delegation);
   GNUNET_assert (
     GNUNET_OK ==
-    GNUNET_CREDENTIAL_delegation_chain_deserialize (size,
+    GNUNET_ABD_delegation_chain_deserialize (size,
                                                     (const char *) &vr_msg[1],
                                                     1,
                                                     dd,
@@ -303,33 +303,33 @@ handle_intermediate (void *cls, const struct DelegationChainIntermediateMessage 
 
 
 /**
- * Reconnect to CREDENTIAL service.
+ * Reconnect to ABD service.
  *
- * @param handle the handle to the CREDENTIAL service
+ * @param handle the handle to the ABD service
  */
 static void
-reconnect (struct GNUNET_CREDENTIAL_Handle *handle)
+reconnect (struct GNUNET_ABD_Handle *handle)
 {
   struct GNUNET_MQ_MessageHandler handlers[] =
     {GNUNET_MQ_hd_var_size (result,
-                            GNUNET_MESSAGE_TYPE_CREDENTIAL_VERIFY_RESULT,
+                            GNUNET_MESSAGE_TYPE_ABD_VERIFY_RESULT,
                             struct DelegationChainResultMessage,
                             handle),
      GNUNET_MQ_hd_var_size (result,
-                            GNUNET_MESSAGE_TYPE_CREDENTIAL_COLLECT_RESULT,
+                            GNUNET_MESSAGE_TYPE_ABD_COLLECT_RESULT,
                             struct DelegationChainResultMessage,
                             handle),
      GNUNET_MQ_hd_var_size (intermediate,
-                            GNUNET_MESSAGE_TYPE_CREDENTIAL_INTERMEDIATE_RESULT,
+                            GNUNET_MESSAGE_TYPE_ABD_INTERMEDIATE_RESULT,
                             struct DelegationChainIntermediateMessage,
                             handle),
      GNUNET_MQ_handler_end ()};
-  struct GNUNET_CREDENTIAL_Request *vr;
+  struct GNUNET_ABD_Request *vr;
 
   GNUNET_assert (NULL == handle->mq);
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Trying to connect to CREDENTIAL\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Trying to connect to ABD\n");
   handle->mq = GNUNET_CLIENT_connect (handle->cfg,
-                                      "credential",
+                                      "abd",
                                       handlers,
                                       &mq_error_handler,
                                       handle);
@@ -341,17 +341,17 @@ reconnect (struct GNUNET_CREDENTIAL_Handle *handle)
 
 
 /**
- * Initialize the connection with the CREDENTIAL service.
+ * Initialize the connection with the ABD service.
  *
  * @param cfg configuration to use
- * @return handle to the CREDENTIAL service, or NULL on error
+ * @return handle to the ABD service, or NULL on error
  */
-struct GNUNET_CREDENTIAL_Handle *
-GNUNET_CREDENTIAL_connect (const struct GNUNET_CONFIGURATION_Handle *cfg)
+struct GNUNET_ABD_Handle *
+GNUNET_ABD_connect (const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
-  struct GNUNET_CREDENTIAL_Handle *handle;
+  struct GNUNET_ABD_Handle *handle;
 
-  handle = GNUNET_new (struct GNUNET_CREDENTIAL_Handle);
+  handle = GNUNET_new (struct GNUNET_ABD_Handle);
   handle->cfg = cfg;
   reconnect (handle);
   if (NULL == handle->mq)
@@ -364,12 +364,12 @@ GNUNET_CREDENTIAL_connect (const struct GNUNET_CONFIGURATION_Handle *cfg)
 
 
 /**
- * Shutdown connection with the CREDENTIAL service.
+ * Shutdown connection with the ABD service.
  *
- * @param handle handle of the CREDENTIAL connection to stop
+ * @param handle handle of the ABD connection to stop
  */
 void
-GNUNET_CREDENTIAL_disconnect (struct GNUNET_CREDENTIAL_Handle *handle)
+GNUNET_ABD_disconnect (struct GNUNET_ABD_Handle *handle)
 {
   if (NULL != handle->mq)
   {
@@ -392,9 +392,9 @@ GNUNET_CREDENTIAL_disconnect (struct GNUNET_CREDENTIAL_Handle *handle)
  * @param lr the verify request to cancel
  */
 void
-GNUNET_CREDENTIAL_request_cancel (struct GNUNET_CREDENTIAL_Request *lr)
+GNUNET_ABD_request_cancel (struct GNUNET_ABD_Request *lr)
 {
-  struct GNUNET_CREDENTIAL_Handle *handle = lr->credential_handle;
+  struct GNUNET_ABD_Handle *handle = lr->abd_handle;
 
   GNUNET_CONTAINER_DLL_remove (handle->request_head, handle->request_tail, lr);
   GNUNET_MQ_discard (lr->env);
@@ -404,7 +404,7 @@ GNUNET_CREDENTIAL_request_cancel (struct GNUNET_CREDENTIAL_Request *lr)
 
 /**
  * Performs attribute collection.
- * Collects all credentials of subject to fulfill the 
+ * Collects all abds of subject to fulfill the 
  * attribute, if possible
  *
  * @param handle handle to the Credential service
@@ -415,21 +415,21 @@ GNUNET_CREDENTIAL_request_cancel (struct GNUNET_CREDENTIAL_Request *lr)
  * @param proc_cls closure for processor
  * @return handle to the queued request
  */
-struct GNUNET_CREDENTIAL_Request *
-GNUNET_CREDENTIAL_collect (
-  struct GNUNET_CREDENTIAL_Handle *handle,
+struct GNUNET_ABD_Request *
+GNUNET_ABD_collect (
+  struct GNUNET_ABD_Handle *handle,
   const struct GNUNET_CRYPTO_EcdsaPublicKey *issuer_key,
   const char *issuer_attribute,
   const struct GNUNET_CRYPTO_EcdsaPrivateKey *subject_key,
-  enum GNUNET_CREDENTIAL_AlgoDirectionFlags direction,
-  GNUNET_CREDENTIAL_CredentialResultProcessor proc,
+  enum GNUNET_ABD_AlgoDirectionFlags direction,
+  GNUNET_ABD_CredentialResultProcessor proc,
   void *proc_cls,
-  GNUNET_CREDENTIAL_IntermediateResultProcessor proc2,
+  GNUNET_ABD_IntermediateResultProcessor proc2,
   void *proc2_cls)
 {
-  /* IPC to shorten credential names, return shorten_handle */
+  /* IPC to shorten abd names, return shorten_handle */
   struct CollectMessage *c_msg;
-  struct GNUNET_CREDENTIAL_Request *vr;
+  struct GNUNET_ABD_Request *vr;
   size_t nlen;
 
   if (NULL == issuer_attribute)
@@ -440,7 +440,7 @@ GNUNET_CREDENTIAL_collect (
 
   //DEBUG LOG
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Trying to collect `%s' in CREDENTIAL\n",
+       "Trying to collect `%s' in ABD\n",
        issuer_attribute);
   nlen = strlen (issuer_attribute) + 1;
   if (nlen >= GNUNET_MAX_MESSAGE_SIZE - sizeof (*vr))
@@ -448,15 +448,15 @@ GNUNET_CREDENTIAL_collect (
     GNUNET_break (0);
     return NULL;
   }
-  vr = GNUNET_new (struct GNUNET_CREDENTIAL_Request);
-  vr->credential_handle = handle;
+  vr = GNUNET_new (struct GNUNET_ABD_Request);
+  vr->abd_handle = handle;
   vr->verify_proc = proc;
   vr->proc_cls = proc_cls;
   vr->int_proc =  proc2;
   vr->proc2_cls = proc2_cls;
   vr->r_id = handle->r_id_gen++;
   vr->env =
-    GNUNET_MQ_msg_extra (c_msg, nlen, GNUNET_MESSAGE_TYPE_CREDENTIAL_COLLECT);
+    GNUNET_MQ_msg_extra (c_msg, nlen, GNUNET_MESSAGE_TYPE_ABD_COLLECT);
   c_msg->id = htonl (vr->r_id);
   c_msg->subject_key = *subject_key;
   c_msg->issuer_key = *issuer_key;
@@ -487,23 +487,23 @@ GNUNET_CREDENTIAL_collect (
  * @param proc_cls closure for processor
  * @return handle to the queued request
  */
-struct GNUNET_CREDENTIAL_Request *
-GNUNET_CREDENTIAL_verify (
-  struct GNUNET_CREDENTIAL_Handle *handle,
+struct GNUNET_ABD_Request *
+GNUNET_ABD_verify (
+  struct GNUNET_ABD_Handle *handle,
   const struct GNUNET_CRYPTO_EcdsaPublicKey *issuer_key,
   const char *issuer_attribute,
   const struct GNUNET_CRYPTO_EcdsaPublicKey *subject_key,
   uint32_t delegate_count,
-  const struct GNUNET_CREDENTIAL_Delegate *delegates,
-  enum GNUNET_CREDENTIAL_AlgoDirectionFlags direction,
-  GNUNET_CREDENTIAL_CredentialResultProcessor proc,
+  const struct GNUNET_ABD_Delegate *delegates,
+  enum GNUNET_ABD_AlgoDirectionFlags direction,
+  GNUNET_ABD_CredentialResultProcessor proc,
   void *proc_cls,
-  GNUNET_CREDENTIAL_IntermediateResultProcessor proc2,
+  GNUNET_ABD_IntermediateResultProcessor proc2,
   void *proc2_cls)
 {
-  /* IPC to shorten credential names, return shorten_handle */
+  /* IPC to shorten abd names, return shorten_handle */
   struct VerifyMessage *v_msg;
-  struct GNUNET_CREDENTIAL_Request *vr;
+  struct GNUNET_ABD_Request *vr;
   size_t nlen;
   size_t clen;
 
@@ -513,11 +513,11 @@ GNUNET_CREDENTIAL_verify (
     return NULL;
   }
 
-  clen = GNUNET_CREDENTIAL_delegates_get_size (delegate_count, delegates);
+  clen = GNUNET_ABD_delegates_get_size (delegate_count, delegates);
 
   //DEBUG LOG
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Trying to verify `%s' in CREDENTIAL\n",
+       "Trying to verify `%s' in ABD\n",
        issuer_attribute);
   nlen = strlen (issuer_attribute) + 1 + clen;
   if (nlen >= GNUNET_MAX_MESSAGE_SIZE - sizeof (*vr))
@@ -525,15 +525,15 @@ GNUNET_CREDENTIAL_verify (
     GNUNET_break (0);
     return NULL;
   }
-  vr = GNUNET_new (struct GNUNET_CREDENTIAL_Request);
-  vr->credential_handle = handle;
+  vr = GNUNET_new (struct GNUNET_ABD_Request);
+  vr->abd_handle = handle;
   vr->verify_proc = proc;
   vr->proc_cls = proc_cls;
   vr->int_proc =  proc2;
   vr->proc2_cls = proc2_cls;
   vr->r_id = handle->r_id_gen++;
   vr->env =
-    GNUNET_MQ_msg_extra (v_msg, nlen, GNUNET_MESSAGE_TYPE_CREDENTIAL_VERIFY);
+    GNUNET_MQ_msg_extra (v_msg, nlen, GNUNET_MESSAGE_TYPE_ABD_VERIFY);
   v_msg->id = htonl (vr->r_id);
   v_msg->subject_key = *subject_key;
   v_msg->d_count = htonl (delegate_count);
@@ -542,7 +542,7 @@ GNUNET_CREDENTIAL_verify (
   v_msg->resolution_algo = htons (direction);
 
   GNUNET_memcpy (&v_msg[1], issuer_attribute, strlen (issuer_attribute));
-  GNUNET_CREDENTIAL_delegates_serialize (delegate_count,
+  GNUNET_ABD_delegates_serialize (delegate_count,
                                          delegates,
                                          clen,
                                          ((char *) &v_msg[1]) +
@@ -553,4 +553,4 @@ GNUNET_CREDENTIAL_verify (
   return vr;
 }
 
-/* end of credential_api.c */
+/* end of abd_api.c */

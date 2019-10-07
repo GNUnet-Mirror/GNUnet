@@ -18,17 +18,17 @@
      SPDX-License-Identifier: AGPL3.0-or-later
 */
 /**
- * @file gnunet-credential.c
+ * @file gnunet-abd.c
  * @brief command line tool to access command line Credential service
  * @author Martin Schanzenbach
  */
 #include "platform.h"
 #include <gnunet_util_lib.h>
-#include <gnunet_credential_service.h>
+#include <gnunet_abd_service.h>
 #include <gnunet_gnsrecord_lib.h>
 #include <gnunet_namestore_service.h>
 #include "delegate_misc.h"
-#include "credential_serialization.h"
+#include "abd_serialization.h"
 
 /**
  * Configuration we are using.
@@ -53,7 +53,7 @@ static struct GNUNET_IDENTITY_EgoLookup *el;
 /**
  * Handle to Credential service.
  */
-static struct GNUNET_CREDENTIAL_Handle *credential;
+static struct GNUNET_ABD_Handle *abd;
 
 /**
  * Desired timeout for the lookup (default is no timeout).
@@ -63,12 +63,12 @@ static struct GNUNET_TIME_Relative timeout;
 /**
  * Handle to verify request
  */
-static struct GNUNET_CREDENTIAL_Request *verify_request;
+static struct GNUNET_ABD_Request *verify_request;
 
 /**
  * Handle to collect request
  */
-static struct GNUNET_CREDENTIAL_Request *collect_request;
+static struct GNUNET_ABD_Request *collect_request;
 
 /**
  * Task scheduled to handle timeout.
@@ -169,7 +169,7 @@ static int backward;
 /**
  * API enum, filled and passed for collect/verify
  */
-enum GNUNET_CREDENTIAL_AlgoDirectionFlags direction = 0;
+enum GNUNET_ABD_AlgoDirectionFlags direction = 0;
 
 /**
  * Queue entry for the 'add' operation.
@@ -225,13 +225,13 @@ do_shutdown (void *cls)
 {
   if (NULL != verify_request)
   {
-    GNUNET_CREDENTIAL_request_cancel (verify_request);
+    GNUNET_ABD_request_cancel (verify_request);
     verify_request = NULL;
   }
-  if (NULL != credential)
+  if (NULL != abd)
   {
-    GNUNET_CREDENTIAL_disconnect (credential);
-    credential = NULL;
+    GNUNET_ABD_disconnect (abd);
+    abd = NULL;
   }
   if (NULL != tt)
   {
@@ -270,7 +270,7 @@ do_timeout (void *cls)
 
 static void
 handle_intermediate_result(void *cls,
-  struct GNUNET_CREDENTIAL_Delegation *dd,
+  struct GNUNET_ABD_Delegation *dd,
   bool is_bw)
 {
   char *prefix = "";
@@ -290,9 +290,9 @@ handle_intermediate_result(void *cls,
 static void
 handle_collect_result (void *cls,
                        unsigned int d_count,
-                       struct GNUNET_CREDENTIAL_Delegation *dc,
+                       struct GNUNET_ABD_Delegation *dc,
                        unsigned int c_count,
-                       struct GNUNET_CREDENTIAL_Delegate *dele)
+                       struct GNUNET_ABD_Delegate *dele)
 {
   int i;
   char *line;
@@ -302,7 +302,7 @@ handle_collect_result (void *cls,
   {
     for (i = 0; i < c_count; i++)
     {
-      line = GNUNET_CREDENTIAL_delegate_to_string (&dele[i]);
+      line = GNUNET_ABD_delegate_to_string (&dele[i]);
       printf ("%s\n", line);
       GNUNET_free (line);
     }
@@ -319,9 +319,9 @@ handle_collect_result (void *cls,
 static void
 handle_verify_result (void *cls,
                       unsigned int d_count,
-                      struct GNUNET_CREDENTIAL_Delegation *dc,
+                      struct GNUNET_ABD_Delegation *dc,
                       unsigned int c_count,
-                      struct GNUNET_CREDENTIAL_Delegate *dele)
+                      struct GNUNET_ABD_Delegate *dele)
 {
   int i;
   char *iss_key;
@@ -413,7 +413,7 @@ identity_cb (void *cls, const struct GNUNET_IDENTITY_Ego *ego)
     }
     privkey = GNUNET_IDENTITY_ego_get_private_key (ego);
 
-    collect_request = GNUNET_CREDENTIAL_collect (credential,
+    collect_request = GNUNET_ABD_collect (abd,
                                                  &issuer_pkey,
                                                  issuer_attr,
                                                  privkey,
@@ -557,8 +557,8 @@ store_cb (void *cls, const struct GNUNET_IDENTITY_Ego *ego)
   if (GNUNET_GNSRECORD_TYPE_DELEGATE == type)
   {
     // Parse import
-    struct GNUNET_CREDENTIAL_Delegate *cred;
-    cred = GNUNET_CREDENTIAL_delegate_from_string (import);
+    struct GNUNET_ABD_Delegate *cred;
+    cred = GNUNET_ABD_delegate_from_string (import);
 
     // Get import subject public key string
     char *subject_pubkey_str =
@@ -584,7 +584,7 @@ store_cb (void *cls, const struct GNUNET_IDENTITY_Ego *ego)
     etime_is_rel = GNUNET_NO;
 
     // Prepare the data to be store in the record
-    data_size = GNUNET_CREDENTIAL_delegate_serialize (cred, (char **) &data);
+    data_size = GNUNET_ABD_delegate_serialize (cred, (char **) &data);
     GNUNET_free (cred);
   }
   else
@@ -631,7 +631,7 @@ static void
 sign_cb (void *cls, const struct GNUNET_IDENTITY_Ego *ego)
 {
   const struct GNUNET_CRYPTO_EcdsaPrivateKey *privkey;
-  struct GNUNET_CREDENTIAL_Delegate *dele;
+  struct GNUNET_ABD_Delegate *dele;
   struct GNUNET_TIME_Absolute etime_abs;
   char *res;
 
@@ -694,12 +694,12 @@ sign_cb (void *cls, const struct GNUNET_IDENTITY_Ego *ego)
   }
 
   // Sign delegate
-  dele = GNUNET_CREDENTIAL_delegate_issue (privkey,
+  dele = GNUNET_ABD_delegate_issue (privkey,
                                            &subject_pkey,
                                            issuer_attr,
                                            subject_attr,
                                            &etime_abs);
-  res = GNUNET_CREDENTIAL_delegate_to_string (dele);
+  res = GNUNET_ABD_delegate_to_string (dele);
   GNUNET_free (dele);
   printf ("%s\n", res);
 
@@ -803,9 +803,9 @@ run (void *cls,
     backward = GNUNET_YES;
   }
   if (GNUNET_YES == forward)
-    direction |= GNUNET_CREDENTIAL_FLAG_FORWARD;
+    direction |= GNUNET_ABD_FLAG_FORWARD;
   if (GNUNET_YES == backward)
-    direction |= GNUNET_CREDENTIAL_FLAG_BACKWARD;
+    direction |= GNUNET_ABD_FLAG_BACKWARD;
 
   if (GNUNET_YES == collect)
   {
@@ -816,11 +816,11 @@ run (void *cls,
       return;
     }
 
-    credential = GNUNET_CREDENTIAL_connect (cfg);
+    abd = GNUNET_ABD_connect (cfg);
 
-    if (NULL == credential)
+    if (NULL == abd)
     {
-      fprintf (stderr, _ ("Failed to connect to CREDENTIAL\n"));
+      fprintf (stderr, _ ("Failed to connect to ABD\n"));
       GNUNET_SCHEDULER_shutdown ();
       return;
     }
@@ -877,11 +877,11 @@ run (void *cls,
       GNUNET_SCHEDULER_shutdown ();
       return;
     }
-    credential = GNUNET_CREDENTIAL_connect (cfg);
+    abd = GNUNET_ABD_connect (cfg);
 
-    if (NULL == credential)
+    if (NULL == abd)
     {
-      fprintf (stderr, _ ("Failed to connect to CREDENTIAL\n"));
+      fprintf (stderr, _ ("Failed to connect to ABD\n"));
       GNUNET_SCHEDULER_shutdown ();
       return;
     }
@@ -906,23 +906,23 @@ run (void *cls,
     int i;
     while (NULL != (tok = strtok (NULL, ",")))
       count++;
-    struct GNUNET_CREDENTIAL_Delegate delegates[count];
-    struct GNUNET_CREDENTIAL_Delegate *dele;
+    struct GNUNET_ABD_Delegate delegates[count];
+    struct GNUNET_ABD_Delegate *dele;
     GNUNET_free (tmp);
     tmp = GNUNET_strdup (subject_delegate);
     tok = strtok (tmp, ",");
     for (i = 0; i < count; i++)
     {
-      dele = GNUNET_CREDENTIAL_delegate_from_string (tok);
+      dele = GNUNET_ABD_delegate_from_string (tok);
       GNUNET_memcpy (&delegates[i],
                      dele,
-                     sizeof (struct GNUNET_CREDENTIAL_Delegate));
+                     sizeof (struct GNUNET_ABD_Delegate));
       delegates[i].issuer_attribute = GNUNET_strdup (dele->issuer_attribute);
       tok = strtok (NULL, ",");
       GNUNET_free (dele);
     }
 
-    verify_request = GNUNET_CREDENTIAL_verify (credential,
+    verify_request = GNUNET_ABD_verify (abd,
                                                &issuer_pkey,
                                                issuer_attr,
                                                &subject_pkey,
@@ -1054,11 +1054,11 @@ main (int argc, char *const *argv)
   if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv, &argc, &argv))
     return 2;
 
-  GNUNET_log_setup ("gnunet-credential", "WARNING", NULL);
+  GNUNET_log_setup ("gnunet-abd", "WARNING", NULL);
   if (GNUNET_OK != GNUNET_PROGRAM_run (argc,
                                           argv,
-                                          "gnunet-credential",
-                                          _ ("GNUnet credential resolver tool"),
+                                          "gnunet-abd",
+                                          _ ("GNUnet abd resolver tool"),
                                           options,
                                           &run,
                                           NULL))
@@ -1067,4 +1067,4 @@ main (int argc, char *const *argv)
   return ret;
 }
 
-/* end of gnunet-credential.c */
+/* end of gnunet-abd.c */

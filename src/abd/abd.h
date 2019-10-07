@@ -11,21 +11,21 @@
       WITHOUT ANY WARRANTY; without even the implied warranty of
       MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
       Affero General Public License for more details.
-
+     
       You should have received a copy of the GNU Affero General Public License
       along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
      SPDX-License-Identifier: AGPL3.0-or-later
  */
 /**
- * @file credential/credential.h
- * @brief IPC messages between CREDENTIAL API and CREDENTIAL service
+ * @file abd/abd.h
+ * @brief IPC messages between ABD API and ABD service
  * @author Martin Schanzenbach
  */
-#ifndef CREDENTIAL_H
-#define CREDENTIAL_H
+#ifndef ABD_H
+#define ABD_H
 
-#include "gnunet_credential_service.h"
+#include "gnunet_abd_service.h"
 
 GNUNET_NETWORK_STRUCT_BEGIN
 
@@ -35,7 +35,7 @@ GNUNET_NETWORK_STRUCT_BEGIN
 struct CollectMessage
 {
   /**
-   * Header of type #GNUNET_MESSAGE_TYPE_CREDENTIAL_VERIFY
+   * Header of type #GNUNET_MESSAGE_TYPE_ABD_VERIFY
    */
   struct GNUNET_MessageHeader header;
 
@@ -74,7 +74,7 @@ struct CollectMessage
 struct VerifyMessage
 {
   /**
-   * Header of type #GNUNET_MESSAGE_TYPE_CREDENTIAL_VERIFY
+   * Header of type #GNUNET_MESSAGE_TYPE_ABD_VERIFY
    */
   struct GNUNET_MessageHeader header;
 
@@ -113,12 +113,12 @@ struct VerifyMessage
 
 
 /**
- * Message from CREDENTIAL service to client: new results.
+ * Message from ABD service to client: new results.
  */
 struct DelegationChainResultMessage
 {
   /**
-   * Header of type #GNUNET_MESSAGE_TYPE_CREDENTIAL_VERIFY_RESULT
+    * Header of type #GNUNET_MESSAGE_TYPE_ABD_VERIFY_RESULT
    */
   struct GNUNET_MessageHeader header;
 
@@ -142,16 +142,16 @@ struct DelegationChainResultMessage
    */
   uint32_t c_count GNUNET_PACKED;
 
-  /* followed by ad_count GNUNET_CREDENTIAL_RecordData structs*/
+  /* followed by ad_count GNUNET_ABD_RecordData structs*/
 };
 
 /**
- * Message from CREDENTIAL service to client: new results.
+ * Message from ABD service to client: new results.
  */
 struct DelegationChainIntermediateMessage
 {
   /**
-    * Header of type #GNUNET_MESSAGE_TYPE_CREDENTIAL_INTERMEDIATE_RESULT
+    * Header of type #GNUNET_MESSAGE_TYPE_ABD_INTERMEDIATE_RESULT
    */
   struct GNUNET_MessageHeader header;
 
@@ -205,6 +205,7 @@ struct ChainEntry
 
 struct CredentialEntry
 {
+
   /**
    * The signature for this credential by the issuer
    */

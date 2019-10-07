@@ -12,7 +12,9 @@ endif
 if HAVE_EXPERIMENTAL
  EXP_DIR = \
   rps \
-  credential
+  abd \
+  reclaim-attribute \
+  reclaim
 if HAVE_ABE
  EXP_DIR += \
   abe
@@ -23,7 +25,6 @@ if HAVE_JSON
 endif
 endif
 
-if HAVE_MHD
 if HAVE_JSON
   JSON_DIR = json
 if HAVE_LIBGNURL
@@ -33,6 +34,13 @@ if HAVE_LIBCURL
   JSON_DIR += curl
 endif
 endif
+endif
+
+if BUILD_PULSE_HELPERS
+CONVERSATION_DIR = conversation
+else
+if BUILD_GST_HELPERS
+CONVERSATION_DIR = conversation
 endif
 endif
 
@@ -51,7 +59,6 @@ endif
 if HAVE_MHD
 if HAVE_JSON
  REST_DIR = rest
- RECLAIM_DIR = reclaim-attribute reclaim
 endif
 endif
 
@@ -109,12 +116,11 @@ SUBDIRS = \
   vpn \
   gns \
   zonemaster \
-  conversation \
+  $(CONVERSATION_DIR) \
   fs \
   exit \
   pt \
   secretsharing \
-  $(RECLAIM_DIR) \
   $(EXP_DIR) \
   integration-tests
 

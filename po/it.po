@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gnunet 0.10.1\n"
 "Report-Msgid-Bugs-To: gnunet-developers@mail.gnu.org\n"
-"POT-Creation-Date: 2019-09-04 12:56+0200\n"
+"POT-Creation-Date: 2019-10-07 11:45+0200\n"
 "PO-Revision-Date: 2018-08-29 13:48+0200\n"
 "Last-Translator: Sebastiano Pistore <SebastianoPistore.info@protonmail.ch>\n"
 "Language-Team: Italian <tp@lists.linux.it>\n"
@@ -19,6 +19,141 @@ msgstr ""
 "\n"
 "X-Generator: Poedit 2.0.7\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: src/abd/gnunet-abd.c:394 src/namestore/gnunet-namestore.c:994
+#, c-format
+msgid "Ego `%s' not known to identity service\n"
+msgstr ""
+
+#: src/abd/gnunet-abd.c:410 src/abd/gnunet-abd.c:875
+#, c-format
+msgid "Issuer public key `%s' is not well-formed\n"
+msgstr ""
+
+#: src/abd/gnunet-abd.c:549 src/abd/gnunet-service-abd.c:1723
+#: src/namestore/gnunet-namestore.c:1019
+#: src/namestore/gnunet-namestore-fcfsd.c:1138
+#, c-format
+msgid "Failed to connect to namestore\n"
+msgstr ""
+
+#: src/abd/gnunet-abd.c:814 src/abd/gnunet-abd.c:865
+#, c-format
+msgid "Issuer public key not well-formed\n"
+msgstr ""
+
+#: src/abd/gnunet-abd.c:823 src/abd/gnunet-abd.c:884
+#, fuzzy, c-format
+msgid "Failed to connect to ABD\n"
+msgstr "# connessioni attive"
+
+#: src/abd/gnunet-abd.c:829
+#, c-format
+msgid "You must provide issuer the attribute\n"
+msgstr ""
+
+#: src/abd/gnunet-abd.c:836
+#, c-format
+msgid "ego required\n"
+msgstr ""
+
+#: src/abd/gnunet-abd.c:846
+#, c-format
+msgid "Subject public key needed\n"
+msgstr ""
+
+#: src/abd/gnunet-abd.c:855
+#, c-format
+msgid "Subject public key `%s' is not well-formed\n"
+msgstr ""
+
+#: src/abd/gnunet-abd.c:890
+#, c-format
+msgid "You must provide issuer and subject attributes\n"
+msgstr ""
+
+#: src/abd/gnunet-abd.c:946
+#, c-format
+msgid "Please specify name to lookup, subject key and issuer key!\n"
+msgstr ""
+
+#: src/abd/gnunet-abd.c:967
+msgid "verify credential against attribute"
+msgstr ""
+
+#: src/abd/gnunet-abd.c:974
+msgid ""
+"The public key of the subject to lookup thecredential for, or for issuer "
+"side storage: subject and its attributes"
+msgstr ""
+
+#: src/abd/gnunet-abd.c:981
+msgid "The private, signed delegate presented by the subject"
+msgstr ""
+
+#: src/abd/gnunet-abd.c:988
+msgid "The public key of the authority to verify the credential against"
+msgstr ""
+
+#: src/abd/gnunet-abd.c:993
+msgid "The ego/zone name to use"
+msgstr ""
+
+#: src/abd/gnunet-abd.c:999
+msgid "The issuer attribute to verify against or to issue"
+msgstr ""
+
+#: src/abd/gnunet-abd.c:1005
+msgid ""
+"The time to live for the credential.e.g. 5m, 6h, \"1990-12-30 12:00:00\""
+msgstr ""
+
+#: src/abd/gnunet-abd.c:1010
+msgid "collect credentials"
+msgstr ""
+
+#: src/abd/gnunet-abd.c:1015
+msgid "Create and issue a credential issuer side."
+msgstr ""
+
+#: src/abd/gnunet-abd.c:1020
+msgid "Issue a credential subject side."
+msgstr ""
+
+#: src/abd/gnunet-abd.c:1025
+msgid "Create, sign and return a credential subject side."
+msgstr ""
+
+#: src/abd/gnunet-abd.c:1032
+msgid "Import signed credentials that should be issued to a zone/ego"
+msgstr ""
+
+#: src/abd/gnunet-abd.c:1036
+msgid "Create private record entry."
+msgstr ""
+
+#: src/abd/gnunet-abd.c:1042 src/abd/gnunet-abd.c:1048
+msgid "Indicates that the collect/verify process is done via forward search."
+msgstr ""
+
+#: src/abd/gnunet-abd.c:1061
+msgid "GNUnet abd resolver tool"
+msgstr ""
+
+#: src/abd/gnunet-service-abd.c:1718 src/gns/gnunet-gns.c:185
+#: src/gns/gnunet-gns-helper-service-w32.c:727
+#, c-format
+msgid "Failed to connect to GNS\n"
+msgstr ""
+
+#: src/abd/plugin_gnsrecord_abd.c:182
+#, c-format
+msgid "Unable to parse ATTR record string `%s'\n"
+msgstr ""
+
+#: src/abd/plugin_rest_abd.c:1128 src/abd/plugin_rest_credential.c:1128
+msgid "GNS REST API initialized\n"
+msgstr ""
 
 #: src/arm/gnunet-arm.c:156
 #, c-format
@@ -1420,146 +1555,6 @@ msgstr ""
 
 #: src/core/gnunet-service-core_typemap.c:212
 msgid "# updates to my type map"
-msgstr ""
-
-#: src/credential/gnunet-credential.c:381 src/namestore/gnunet-namestore.c:994
-#, c-format
-msgid "Ego `%s' not known to identity service\n"
-msgstr ""
-
-#: src/credential/gnunet-credential.c:397
-#: src/credential/gnunet-credential.c:859
-#, c-format
-msgid "Issuer public key `%s' is not well-formed\n"
-msgstr ""
-
-#: src/credential/gnunet-credential.c:532
-#: src/credential/gnunet-service-credential.c:1728
-#: src/namestore/gnunet-namestore.c:1019
-#: src/namestore/gnunet-namestore-fcfsd.c:1138
-#, c-format
-msgid "Failed to connect to namestore\n"
-msgstr ""
-
-#: src/credential/gnunet-credential.c:798
-#: src/credential/gnunet-credential.c:849
-#, c-format
-msgid "Issuer public key not well-formed\n"
-msgstr ""
-
-#: src/credential/gnunet-credential.c:807
-#: src/credential/gnunet-credential.c:868
-#, c-format
-msgid "Failed to connect to CREDENTIAL\n"
-msgstr ""
-
-#: src/credential/gnunet-credential.c:813
-#, c-format
-msgid "You must provide issuer the attribute\n"
-msgstr ""
-
-#: src/credential/gnunet-credential.c:820
-#, c-format
-msgid "ego required\n"
-msgstr ""
-
-#: src/credential/gnunet-credential.c:830
-#, c-format
-msgid "Subject public key needed\n"
-msgstr ""
-
-#: src/credential/gnunet-credential.c:839
-#, c-format
-msgid "Subject public key `%s' is not well-formed\n"
-msgstr ""
-
-#: src/credential/gnunet-credential.c:874
-#, c-format
-msgid "You must provide issuer and subject attributes\n"
-msgstr ""
-
-#: src/credential/gnunet-credential.c:930
-#, c-format
-msgid "Please specify name to lookup, subject key and issuer key!\n"
-msgstr ""
-
-#: src/credential/gnunet-credential.c:951
-msgid "verify credential against attribute"
-msgstr ""
-
-#: src/credential/gnunet-credential.c:958
-msgid ""
-"The public key of the subject to lookup thecredential for, or for issuer "
-"side storage: subject and its attributes"
-msgstr ""
-
-#: src/credential/gnunet-credential.c:965
-msgid "The private, signed delegate presented by the subject"
-msgstr ""
-
-#: src/credential/gnunet-credential.c:972
-msgid "The public key of the authority to verify the credential against"
-msgstr ""
-
-#: src/credential/gnunet-credential.c:977
-msgid "The ego/zone name to use"
-msgstr ""
-
-#: src/credential/gnunet-credential.c:983
-msgid "The issuer attribute to verify against or to issue"
-msgstr ""
-
-#: src/credential/gnunet-credential.c:989
-msgid ""
-"The time to live for the credential.e.g. 5m, 6h, \"1990-12-30 12:00:00\""
-msgstr ""
-
-#: src/credential/gnunet-credential.c:994
-msgid "collect credentials"
-msgstr ""
-
-#: src/credential/gnunet-credential.c:999
-msgid "Create and issue a credential issuer side."
-msgstr ""
-
-#: src/credential/gnunet-credential.c:1004
-msgid "Issue a credential subject side."
-msgstr ""
-
-#: src/credential/gnunet-credential.c:1009
-msgid "Create, sign and return a credential subject side."
-msgstr ""
-
-#: src/credential/gnunet-credential.c:1016
-msgid "Import signed credentials that should be issued to a zone/ego"
-msgstr ""
-
-#: src/credential/gnunet-credential.c:1020
-msgid "Create private record entry."
-msgstr ""
-
-#: src/credential/gnunet-credential.c:1026
-#: src/credential/gnunet-credential.c:1032
-msgid "Indicates that the collect/verify process is done via forward search."
-msgstr ""
-
-#: src/credential/gnunet-credential.c:1045
-msgid "GNUnet credential resolver tool"
-msgstr ""
-
-#: src/credential/gnunet-service-credential.c:1723 src/gns/gnunet-gns.c:185
-#: src/gns/gnunet-gns-helper-service-w32.c:727
-#, c-format
-msgid "Failed to connect to GNS\n"
-msgstr ""
-
-#: src/credential/plugin_gnsrecord_credential.c:182
-#, c-format
-msgid "Unable to parse ATTR record string `%s'\n"
-msgstr ""
-
-#: src/credential/plugin_rest_credential.c:1128
-msgid "GNS REST API initialized\n"
 msgstr ""
 
 #: src/datacache/datacache.c:119 src/datacache/datacache.c:311
