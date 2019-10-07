@@ -94,17 +94,6 @@ if HAVE_SQLITE
 endif
 endif
 
-#libgnunet_plugin_rest_abd_la_SOURCES = \
-#  plugin_rest_abd.c
-#libgnunet_plugin_rest_abd_la_LIBADD = \
-#  $(top_builddir)/src/abd/libgnunetabd.la \
-#	$(top_builddir)/src/rest/libgnunetrest.la \
-#	$(top_builddir)/src/identity/libgnunetidentity.la \
-#  $(top_builddir)/src/util/libgnunetutil.la $(XLIBS) \
-#  $(LTLIBINTL) -ljansson -lmicrohttpd
-#libgnunet_plugin_rest_abd_la_LDFLAGS = \
-# $(GN_PLUGIN_LDFLAGS)
-
 
 
 
