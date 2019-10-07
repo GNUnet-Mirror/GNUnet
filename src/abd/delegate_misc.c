@@ -11,7 +11,7 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -88,13 +88,13 @@ GNUNET_ABD_delegate_from_string (const char *s)
   char iss_attr[253 + 1];
   // Needs to be initialized, in case of Type 1 credential (A.a <- B)
   char sub_attr[253 + 1] = "";
-  char signature[256]; //TODO max payload size
+  char signature[256]; // TODO max payload size
 
   struct GNUNET_CRYPTO_EcdsaSignature *sig;
   struct GNUNET_TIME_Absolute etime_abs;
 
   // If it's A.a <- B.b...
-  if (6 != SSCANF (s,
+  if (6 != sscanf (s,
                    "%52s.%253s -> %52s.%253s | %s | %" SCNu64,
                    issuer_pkey,
                    iss_attr,
@@ -104,7 +104,7 @@ GNUNET_ABD_delegate_from_string (const char *s)
                    &etime_abs.abs_value_us))
   {
     // Try if it's A.a <- B
-    if (5 != SSCANF (s,
+    if (5 != sscanf (s,
                      "%52s.%253s -> %52s | %s | %" SCNu64,
                      issuer_pkey,
                      iss_attr,

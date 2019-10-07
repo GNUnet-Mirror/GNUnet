@@ -44,88 +44,88 @@
  */
 static char *
 abd_value_to_string (void *cls,
-                            uint32_t type,
-                            const void *data,
-                            size_t data_size)
+                     uint32_t type,
+                     const void *data,
+                     size_t data_size)
 {
   const char *cdata;
 
   switch (type)
   {
   case GNUNET_GNSRECORD_TYPE_ATTRIBUTE:
-  {
-    struct GNUNET_ABD_DelegationRecord sets;
-    char *attr_str;
-    char *subject_pkey;
-    char *tmp_str;
-    int i;
-    if (data_size < sizeof (struct GNUNET_ABD_DelegationRecord))
-      return NULL; /* malformed */
-
-    GNUNET_memcpy (&sets, data, sizeof (sets));
-    cdata = data;
-
-    struct GNUNET_ABD_DelegationSet set[ntohl (sets.set_count)];
-    if (GNUNET_OK !=
-        GNUNET_ABD_delegation_set_deserialize (GNUNET_ntohll (
-                                                        sets.data_size),
-                                                      &cdata[sizeof (sets)],
-                                                      ntohl (sets.set_count),
-                                                      set))
-      return NULL;
-
-    for (i = 0; i < ntohl (sets.set_count); i++)
     {
-      subject_pkey =
-        GNUNET_CRYPTO_ecdsa_public_key_to_string (&set[i].subject_key);
+      struct GNUNET_ABD_DelegationRecord sets;
+      char *attr_str;
+      char *subject_pkey;
+      char *tmp_str;
+      int i;
+      if (data_size < sizeof (struct GNUNET_ABD_DelegationRecord))
+        return NULL; /* malformed */
 
-      if (0 == set[i].subject_attribute_len)
+      GNUNET_memcpy (&sets, data, sizeof (sets));
+      cdata = data;
+
+      struct GNUNET_ABD_DelegationSet set[ntohl (sets.set_count)];
+      if (GNUNET_OK !=
+          GNUNET_ABD_delegation_set_deserialize (GNUNET_ntohll (
+                                                   sets.data_size),
+                                                 &cdata[sizeof (sets)],
+                                                 ntohl (sets.set_count),
+                                                 set))
+        return NULL;
+
+      for (i = 0; i < ntohl (sets.set_count); i++)
       {
-        if (0 == i)
+        subject_pkey =
+          GNUNET_CRYPTO_ecdsa_public_key_to_string (&set[i].subject_key);
+
+        if (0 == set[i].subject_attribute_len)
         {
-          GNUNET_asprintf (&attr_str, "%s", subject_pkey);
+          if (0 == i)
+          {
+            GNUNET_asprintf (&attr_str, "%s", subject_pkey);
+          }
+          else
+          {
+            GNUNET_asprintf (&tmp_str, "%s,%s", attr_str, subject_pkey);
+            GNUNET_free (attr_str);
+            attr_str = tmp_str;
+          }
         }
         else
         {
-          GNUNET_asprintf (&tmp_str, "%s,%s", attr_str, subject_pkey);
-          GNUNET_free (attr_str);
-          attr_str = tmp_str;
+          if (0 == i)
+          {
+            GNUNET_asprintf (&attr_str,
+                             "%s %s",
+                             subject_pkey,
+                             set[i].subject_attribute);
+          }
+          else
+          {
+            GNUNET_asprintf (&tmp_str,
+                             "%s,%s %s",
+                             attr_str,
+                             subject_pkey,
+                             set[i].subject_attribute);
+            GNUNET_free (attr_str);
+            attr_str = tmp_str;
+          }
         }
+        GNUNET_free (subject_pkey);
       }
-      else
-      {
-        if (0 == i)
-        {
-          GNUNET_asprintf (&attr_str,
-                           "%s %s",
-                           subject_pkey,
-                           set[i].subject_attribute);
-        }
-        else
-        {
-          GNUNET_asprintf (&tmp_str,
-                           "%s,%s %s",
-                           attr_str,
-                           subject_pkey,
-                           set[i].subject_attribute);
-          GNUNET_free (attr_str);
-          attr_str = tmp_str;
-        }
-      }
-      GNUNET_free (subject_pkey);
+      return attr_str;
     }
-    return attr_str;
-  }
   case GNUNET_GNSRECORD_TYPE_DELEGATE:
-  {
-    struct GNUNET_ABD_Delegate *cred;
-    char *cred_str;
+    {
+      struct GNUNET_ABD_Delegate *cred;
+      char *cred_str;
 
-    cred = GNUNET_ABD_delegate_deserialize (data, data_size);
-    cred_str = GNUNET_ABD_delegate_to_string (cred);
-    GNUNET_free (cred);
-    return cred_str;
-  }
+      cred = GNUNET_ABD_delegate_deserialize (data, data_size);
+      cred_str = GNUNET_ABD_delegate_to_string (cred);
+      GNUNET_free (cred);
+      return cred_str;
+    }
   default:
     return NULL;
   }
@@ -145,114 +145,114 @@ abd_value_to_string (void *cls,
  */
 static int
 abd_string_to_value (void *cls,
-                            uint32_t type,
-                            const char *s,
-                            void **data,
-                            size_t *data_size)
+                     uint32_t type,
+                     const char *s,
+                     void **data,
+                     size_t *data_size)
 {
   if (NULL == s)
     return GNUNET_SYSERR;
   switch (type)
   {
   case GNUNET_GNSRECORD_TYPE_ATTRIBUTE:
-  {
-    struct GNUNET_ABD_DelegationRecord *sets;
-    char attr_str[253 + 1];
-    char subject_pkey[52 + 1];
-    char *token;
-    char *tmp_str;
-    int matches = 0;
-    int entries;
-    size_t tmp_data_size;
-    int i;
-
-    tmp_str = GNUNET_strdup (s);
-    token = strtok (tmp_str, ",");
-    entries = 0;
-    tmp_data_size = 0;
-    *data_size = sizeof (struct GNUNET_ABD_DelegationRecord);
-    while (NULL != token)
     {
-      // also fills the variables subject_pley and attr_str if "regex"-like match
-      matches = SSCANF (token, "%s %s", subject_pkey, attr_str);
+      struct GNUNET_ABD_DelegationRecord *sets;
+      char attr_str[253 + 1];
+      char subject_pkey[52 + 1];
+      char *token;
+      char *tmp_str;
+      int matches = 0;
+      int entries;
+      size_t tmp_data_size;
+      int i;
 
-      if (0 == matches)
+      tmp_str = GNUNET_strdup (s);
+      token = strtok (tmp_str, ",");
+      entries = 0;
+      tmp_data_size = 0;
+      *data_size = sizeof (struct GNUNET_ABD_DelegationRecord);
+      while (NULL != token)
       {
-        GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                    _ ("Unable to parse ATTR record string `%s'\n"),
-                    s);
+        // also fills the variables subject_pley and attr_str if "regex"-like match
+        matches = sscanf (token, "%s %s", subject_pkey, attr_str);
+
+        if (0 == matches)
+        {
+          GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                      _ ("Unable to parse ATTR record string `%s'\n"),
+                      s);
+          GNUNET_free (tmp_str);
+          return GNUNET_SYSERR;
+        }
+
+        entries++;
+        token = strtok (NULL, ",");
+      }
+      GNUNET_free (tmp_str);
+
+      tmp_str = GNUNET_strdup (s);
+      token = strtok (tmp_str, ",");
+      if (NULL == token)
+      {
         GNUNET_free (tmp_str);
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Malformed string %s\n", s);
         return GNUNET_SYSERR;
       }
 
-      entries++;
-      token = strtok (NULL, ",");
-    }
-    GNUNET_free (tmp_str);
-
-    tmp_str = GNUNET_strdup (s);
-    token = strtok (tmp_str, ",");
-    if (NULL == token)
-    {
-      GNUNET_free (tmp_str);
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Malformed string %s\n", s);
-      return GNUNET_SYSERR;
-    }
-
-    struct GNUNET_ABD_DelegationSet set[entries];
-    // sets memory to be 0, starting at *set for the size of struct * entries
-    memset (set, 0, sizeof (struct GNUNET_ABD_DelegationSet) * entries);
-    for (i = 0; i < entries; i++)
-    {
-      matches = SSCANF (token, "%s %s", subject_pkey, attr_str);
-
-      // sets the public key for the set entry
-      GNUNET_CRYPTO_ecdsa_public_key_from_string (subject_pkey,
-                                                  strlen (subject_pkey),
-                                                  &set[i].subject_key);
-
-      // If not just key, also set subject attribute (Not A.a <- B but A.a <- B.b)
-      if (2 == matches)
+      struct GNUNET_ABD_DelegationSet set[entries];
+      // sets memory to be 0, starting at *set for the size of struct * entries
+      memset (set, 0, sizeof (struct GNUNET_ABD_DelegationSet) * entries);
+      for (i = 0; i < entries; i++)
       {
-        set[i].subject_attribute_len = strlen (attr_str) + 1;
-        set[i].subject_attribute = GNUNET_strdup (attr_str);
+        matches = sscanf (token, "%s %s", subject_pkey, attr_str);
+
+        // sets the public key for the set entry
+        GNUNET_CRYPTO_ecdsa_public_key_from_string (subject_pkey,
+                                                    strlen (subject_pkey),
+                                                    &set[i].subject_key);
+
+        // If not just key, also set subject attribute (Not A.a <- B but A.a <- B.b)
+        if (2 == matches)
+        {
+          set[i].subject_attribute_len = strlen (attr_str) + 1;
+          set[i].subject_attribute = GNUNET_strdup (attr_str);
+        }
+        // If more entries, then token string can take the next entry (separated by ',') by calling strtok again
+        token = strtok (NULL, ",");
       }
-      // If more entries, then token string can take the next entry (separated by ',') by calling strtok again
-      token = strtok (NULL, ",");
-    }
-    tmp_data_size = GNUNET_ABD_delegation_set_get_size (entries, set);
+      tmp_data_size = GNUNET_ABD_delegation_set_get_size (entries, set);
 
-    if (-1 == tmp_data_size)
-    {
+      if (-1 == tmp_data_size)
+      {
+        GNUNET_free (tmp_str);
+        return GNUNET_SYSERR;
+      }
+      *data_size += tmp_data_size;
+      *data = sets = GNUNET_malloc (*data_size);
+      GNUNET_ABD_delegation_set_serialize (entries,
+                                           set,
+                                           tmp_data_size,
+                                           (char *) &sets[1]);
+      for (i = 0; i < entries; i++)
+      {
+        if (0 != set[i].subject_attribute_len)
+          GNUNET_free ((char *) set[i].subject_attribute);
+      }
+      sets->set_count = htonl (entries);
+      sets->data_size = GNUNET_htonll (tmp_data_size);
+
       GNUNET_free (tmp_str);
-      return GNUNET_SYSERR;
+      return GNUNET_OK;
     }
-    *data_size += tmp_data_size;
-    *data = sets = GNUNET_malloc (*data_size);
-    GNUNET_ABD_delegation_set_serialize (entries,
-                                                set,
-                                                tmp_data_size,
-                                                (char *) &sets[1]);
-    for (i = 0; i < entries; i++)
-    {
-      if (0 != set[i].subject_attribute_len)
-        GNUNET_free ((char *) set[i].subject_attribute);
-    }
-    sets->set_count = htonl (entries);
-    sets->data_size = GNUNET_htonll (tmp_data_size);
-
-    GNUNET_free (tmp_str);
-    return GNUNET_OK;
-  }
   case GNUNET_GNSRECORD_TYPE_DELEGATE:
-  {
-    struct GNUNET_ABD_Delegate *cred;
-    cred = GNUNET_ABD_delegate_from_string (s);
+    {
+      struct GNUNET_ABD_Delegate *cred;
+      cred = GNUNET_ABD_delegate_from_string (s);
 
-    *data_size = GNUNET_ABD_delegate_serialize (cred, (char **) data);
+      *data_size = GNUNET_ABD_delegate_serialize (cred, (char **) data);
 
-    return GNUNET_OK;
-  }
+      return GNUNET_OK;
+    }
   default:
     return GNUNET_SYSERR;
   }
