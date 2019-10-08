@@ -2856,7 +2856,7 @@ server_start_report_addresses (struct HTTP_Server_Plugin *plugin)
 
   plugin->nat
     = GNUNET_NAT_register (plugin->env->cfg,
-                           "transport-http_server",
+                           plugin->name,
                            IPPROTO_TCP,
                            (unsigned int) res,
                            (const struct sockaddr **) addrs,
