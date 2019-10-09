@@ -217,6 +217,117 @@ GNUNET_RECLAIM_ATTRIBUTE_value_to_string (uint32_t type,
   return NULL;
 }
 
+/**
+   * Convert an attestation type name to the corresponding number
+   *
+   * @param typename name to convert
+   * @return corresponding number, UINT32_MAX on error
+   */
+uint32_t
+GNUNET_RECLAIM_ATTESTATION_typename_to_number (const char *typename)
+{
+  unsigned int i;
+  struct Plugin *plugin;
+  uint32_t ret;
+
+  init ();
+  for (i = 0; i < num_plugins; i++)
+  {
+    plugin = attr_plugins[i];
+    if (UINT32_MAX !=
+        (ret = plugin->api->typename_to_number_attest (plugin->api->cls,
+                                                       typename)))
+      return ret;
+  }
+  return UINT32_MAX;
+}
+
+/**
+ * Convert an attestation type number to the corresponding attestation type string
+ *
+ * @param type number of a type
+ * @return corresponding typestring, NULL on error
+ */
+const char *
+GNUNET_RECLAIM_ATTESTATION_number_to_typename (uint32_t type)
+{
+  unsigned int i;
+  struct Plugin *plugin;
+  const char *ret;
+
+  init ();
+  for (i = 0; i < num_plugins; i++)
+  {
+    plugin = attr_plugins[i];
+    if (NULL !=
+        (ret = plugin->api->number_to_typename_attest (plugin->api->cls, type)))
+      return ret;
+  }
+  return NULL;
+}
+/**
+ * Convert human-readable version of a 'claim' of an attestation to the binary
+ * representation
+ *
+ * @param type type of the claim
+ * @param s human-readable string
+ * @param data set to value in binary encoding (will be allocated)
+ * @param data_size set to number of bytes in @a data
+ * @return #GNUNET_OK on success
+ */
+int
+GNUNET_RECLAIM_ATTESTATION_string_to_value (uint32_t type,
+                                            const char *s,
+                                            void **data,
+                                            size_t *data_size)
+{
+  unsigned int i;
+  struct Plugin *plugin;
+
+  init ();
+  for (i = 0; i < num_plugins; i++)
+  {
+    plugin = attr_plugins[i];
+    if (GNUNET_OK == plugin->api->string_to_value_attest (plugin->api->cls,
+                                                          type,
+                                                          s,
+                                                          data,
+                                                          data_size))
+      return GNUNET_OK;
+  }
+  return GNUNET_SYSERR;
+}
+
+
+/**
+ * Convert the 'claim' of an attestation to a string
+ *
+ * @param type the type of attestation
+ * @param data claim in binary encoding
+ * @param data_size number of bytes in @a data
+ * @return NULL on error, otherwise human-readable representation of the claim
+ */
+char *
+GNUNET_RECLAIM_ATTESTATION_value_to_string (uint32_t type,
+                                            const void *data,
+                                            size_t data_size)
+{
+  unsigned int i;
+  struct Plugin *plugin;
+  char *ret;
+
+  init ();
+  for (i = 0; i < num_plugins; i++)
+  {
+    plugin = attr_plugins[i];
+    if (NULL != (ret = plugin->api->value_to_string_attest (plugin->api->cls,
+                                                            type,
+                                                            data,
+                                                            data_size)))
+      return ret;
+  }
+  return NULL;
+}
 
 /**
  * Create a new attribute.
@@ -254,6 +365,41 @@ GNUNET_RECLAIM_ATTRIBUTE_claim_new (const char *attr_name,
   return attr;
 }
 
+/**
+   * Create a new attestation.
+   *
+   * @param attr_name the attestation name
+   * @param type the attestation type
+   * @param data the attestation value
+   * @param data_size the attestation value size
+   * @return the new attestation
+   */
+struct GNUNET_RECLAIM_ATTESTATION_Claim *
+GNUNET_RECLAIM_ATTESTATION_claim_new (const char *attr_name,
+                                      uint32_t type,
+                                      const void *data,
+                                      size_t data_size)
+{
+  struct GNUNET_RECLAIM_ATTESTATION_Claim *attr;
+  char *write_ptr;
+  char *attr_name_tmp = GNUNET_strdup (attr_name);
+
+  GNUNET_STRINGS_utf8_tolower (attr_name, attr_name_tmp);
+
+  attr = GNUNET_malloc (sizeof(struct GNUNET_RECLAIM_ATTESTATION_Claim)
+                        + strlen (attr_name_tmp) + 1 + data_size);
+  attr->type = type;
+  attr->data_size = data_size;
+  attr->version = 0;
+  write_ptr = (char *) &attr[1];
+  GNUNET_memcpy (write_ptr, attr_name_tmp, strlen (attr_name_tmp) + 1);
+  attr->name = write_ptr;
+  write_ptr += strlen (attr->name) + 1;
+  GNUNET_memcpy (write_ptr, data, data_size);
+  attr->data = write_ptr;
+  GNUNET_free (attr_name_tmp);
+  return attr;
+}
 
 /**
  * Add a new attribute to a claim list
@@ -520,5 +666,101 @@ GNUNET_RECLAIM_ATTRIBUTE_deserialize (const char *data, size_t data_size)
   return attr;
 }
 
+
+/**
+ * Get required size for serialization buffer
+ *
+ * @param attr the attestation to serialize
+ * @return the required buffer size
+ */
+size_t
+GNUNET_RECLAIM_ATTESTATION_serialize_get_size (
+  const struct GNUNET_RECLAIM_ATTESTATION_Claim *attr)
+{
+  return sizeof(struct Attestation) + strlen (attr->name) + attr->data_size;
+}
+
+/**
+ * Serialize an attestation
+ *
+ * @param attr the attestation to serialize
+ * @param result the serialized attestation
+ * @return length of serialized data
+ */
+size_t
+GNUNET_RECLAIM_ATTESTATION_serialize (
+  const struct GNUNET_RECLAIM_ATTESTATION_Claim *attr,
+  char *result)
+{
+  size_t data_len_ser;
+  size_t name_len;
+  struct Attestation *attr_ser;
+  char *write_ptr;
+
+  attr_ser = (struct Attestation *) result;
+  attr_ser->attestation_type = htons (attr->type);
+  attr_ser->attestation_type = htonl (attr->version);
+  attr_ser->attestation_type = GNUNET_htonll (attr->id);
+  name_len = strlen (attr->name);
+  attr_ser->name_len = htons (name_len);
+  write_ptr = (char *) &attr_ser[1];
+  GNUNET_memcpy (write_ptr, attr->name, name_len);
+  write_ptr += name_len;
+  // TODO plugin-ize
+  // data_len_ser = plugin->serialize_attribute_value (attr,
+  //                                                  &attr_ser[1]);
+  data_len_ser = attr->data_size;
+  GNUNET_memcpy (write_ptr, attr->data, attr->data_size);
+  attr_ser->data_size = htons (data_len_ser);
+
+  return sizeof(struct Attestation) + strlen (attr->name) + attr->data_size;
+}
+
+/**
+ * Deserialize an attestation
+ *
+ * @param data the serialized attestation
+ * @param data_size the length of the serialized data
+ *
+ * @return a GNUNET_IDENTITY_PROVIDER_Attribute, must be free'd by caller
+ */
+struct GNUNET_RECLAIM_ATTESTATION_Claim *
+GNUNET_RECLAIM_ATTESTATION_deserialize (const char *data, size_t data_size)
+{
+  struct GNUNET_RECLAIM_ATTESTATION_Claim *attr;
+  struct Attestation *attr_ser;
+  size_t data_len;
+  size_t name_len;
+  char *write_ptr;
+
+  if (data_size < sizeof(struct Attestation))
+    return NULL;
+
+  attr_ser = (struct Attestation *) data;
+  data_len = ntohs (attr_ser->data_size);
+  name_len = ntohs (attr_ser->name_len);
+  if (data_size < sizeof(struct Attestation) + data_len + name_len)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Buffer too small to deserialize\n");
+    return NULL;
+  }
+  attr = GNUNET_malloc (sizeof(struct GNUNET_RECLAIM_ATTESTATION_Claim)
+                        + data_len + name_len + 1);
+  attr->type = ntohs (attr_ser->attestation_type);
+  attr->version = ntohl (attr_ser->attestation_version);
+  attr->id = GNUNET_ntohll (attr_ser->attestation_id);
+  attr->data_size = data_len;
+
+  write_ptr = (char *) &attr[1];
+  GNUNET_memcpy (write_ptr, &attr_ser[1], name_len);
+  write_ptr[name_len] = '\0';
+  attr->name = write_ptr;
+
+  write_ptr += name_len + 1;
+  GNUNET_memcpy (write_ptr, (char *) &attr_ser[1] + name_len, attr->data_size);
+  attr->data = write_ptr;
+  return attr;
+}
 
 /* end of reclaim_attribute.c */

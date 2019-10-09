@@ -134,6 +134,27 @@ struct GNUNET_RECLAIM_ATTRIBUTE_PluginFunctions
    * Number to typename.
    */
   GNUNET_RECLAIM_ATTRIBUTE_NumberToTypenameFunction number_to_typename;
+
+  /**
+* Attestation Conversion to string.
+*/
+  GNUNET_RECLAIM_ATTRIBUTE_ValueToStringFunction value_to_string_attest;
+
+  /**
+  * Attestation Conversion to binary.
+  */
+  GNUNET_RECLAIM_ATTRIBUTE_StringToValueFunction string_to_value_attest;
+
+  /**
+  * Attestation Typename to number.
+  */
+  GNUNET_RECLAIM_ATTRIBUTE_TypenameToNumberFunction typename_to_number_attest;
+
+  /**
+  * Attestation Number to typename.
+  */
+  GNUNET_RECLAIM_ATTRIBUTE_NumberToTypenameFunction number_to_typename_attest;
+
 };
 
 
