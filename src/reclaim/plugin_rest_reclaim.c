@@ -49,6 +49,11 @@
 #define GNUNET_REST_API_NS_RECLAIM_ATTRIBUTES "/reclaim/attributes"
 
 /**
+   * Attestation namespace
+   */
+#define GNUNET_REST_API_NS_RECLAIM_ATTESTATION_REFERENCE "/reclaim/attestation"
+
+/**
  * Ticket namespace
  */
 #define GNUNET_REST_API_NS_IDENTITY_TICKETS "/reclaim/tickets"
@@ -432,7 +437,36 @@ ticket_collect (void *cls, const struct GNUNET_RECLAIM_Ticket *ticket)
   GNUNET_free (tmp);
   GNUNET_RECLAIM_ticket_iteration_next (handle->ticket_it);
 }
+static void
+add_attestation_cont (struct GNUNET_REST_RequestHandle *con_handle,
+                      const char *url,
+                      void *cls)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Adding Attestations not supported\n");
+  GNUNET_SCHEDULER_add_now (&do_error, handle);
+  return;
+}
+/*Placeholder*/
+static void
+list_attestation_cont (struct GNUNET_REST_RequestHandle *con_handle,
+                       const char *url,
+                       void *cls)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Listing Attestations not supported\n");
+  GNUNET_SCHEDULER_add_now (&do_error, handle);
+  return;
+}
 
+/*Placeholder*/
+static void
+delete_attestation_cont (struct GNUNET_REST_RequestHandle *con_handle,
+                         const char *url,
+                         void *cls)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Deleting Attestations not supported\n");
+  GNUNET_SCHEDULER_add_now (&do_error, handle);
+  return;
+}
 
 /**
  * List tickets for identity request
@@ -968,6 +1002,15 @@ init_cont (struct RequestHandle *handle)
     { MHD_HTTP_METHOD_DELETE,
       GNUNET_REST_API_NS_RECLAIM_ATTRIBUTES,
       &delete_attribute_cont },
+    { MHD_HTTP_METHOD_GET,
+      GNUNET_REST_API_NS_RECLAIM_ATTESTATION_REFERENCE,
+      &list_attestation_cont },
+    { MHD_HTTP_METHOD_POST,
+      GNUNET_REST_API_NS_RECLAIM_ATTESTATION_REFERENCE,
+      &add_attestation_cont },
+    { MHD_HTTP_METHOD_DELETE,
+      GNUNET_REST_API_NS_RECLAIM_ATTESTATION_REFERENCE,
+      &delete_attestation_cont },
     { MHD_HTTP_METHOD_GET,
       GNUNET_REST_API_NS_IDENTITY_TICKETS,
       &list_tickets_cont },

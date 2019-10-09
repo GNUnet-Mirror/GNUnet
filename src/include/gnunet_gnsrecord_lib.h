@@ -141,6 +141,11 @@ extern "C" {
 #define GNUNET_GNSRECORD_TYPE_RECLAIM_OIDC_REDIRECT 65553
 
 /**
+ * Record type for reclaim attestation records
+ */
+#define GNUNET_GNSRECORD_TYPE_RECLAIM_ATTEST_ATTR 65554
+
+/**
  * Flags that can be set for a record.
  */
 enum GNUNET_GNSRECORD_Flags
