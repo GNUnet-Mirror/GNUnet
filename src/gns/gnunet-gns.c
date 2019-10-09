@@ -201,6 +201,12 @@ run (void *cls,
 
   cfg = c;
   to_task = NULL;
+  {
+    char *colon;
+
+    if (NULL != (colon = strchr (lookup_name, ':')))
+      *colon = '\0';
+  }
   if (GNUNET_OK != GNUNET_DNSPARSER_check_name (lookup_name))
   {
     fprintf (stderr,
