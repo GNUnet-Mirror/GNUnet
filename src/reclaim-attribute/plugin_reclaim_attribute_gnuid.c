@@ -236,7 +236,7 @@ gnuid_typename_to_number_attest (void *cls, const char *gnuid_typename)
  * @return corresponding typestring, NULL on error
  */
 static const char *
-gnuid_number_to_typename (void *cls, uint32_t type)
+gnuid_number_to_typename_attest (void *cls, uint32_t type)
 {
   unsigned int i;
 

@@ -443,7 +443,7 @@ add_attestation_cont (struct GNUNET_REST_RequestHandle *con_handle,
                       void *cls)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Adding Attestations not supported\n");
-  GNUNET_SCHEDULER_add_now (&do_error, handle);
+  GNUNET_SCHEDULER_add_now (&do_error, cls);
   return;
 }
 /*Placeholder*/
@@ -453,7 +453,7 @@ list_attestation_cont (struct GNUNET_REST_RequestHandle *con_handle,
                        void *cls)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Listing Attestations not supported\n");
-  GNUNET_SCHEDULER_add_now (&do_error, handle);
+  GNUNET_SCHEDULER_add_now (&do_error, cls);
   return;
 }
 
@@ -464,7 +464,7 @@ delete_attestation_cont (struct GNUNET_REST_RequestHandle *con_handle,
                          void *cls)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Deleting Attestations not supported\n");
-  GNUNET_SCHEDULER_add_now (&do_error, handle);
+  GNUNET_SCHEDULER_add_now (&do_error, cls);
   return;
 }
 
