@@ -109,11 +109,22 @@ iterate_cb (void *cls,
 static void
 test_cont (void *cls)
 {
+  h = GNUNET_PEERSTORE_connect (cfg);
   GNUNET_PEERSTORE_iterate (h,
                             subsystem,
                             &pid, key,
                             &iterate_cb,
                             NULL);
+}
+
+static void
+disc_cont (void *cls)
+{
+  GNUNET_PEERSTORE_disconnect (h, GNUNET_YES);
+  h = NULL;
+  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
+                                &test_cont,
+                                NULL);
 }
 
 static void
@@ -125,9 +136,8 @@ store_cont (void *cls, int success)
      the test may fail non-deterministically if the new
      connection is faster than the cleanup routine of the
      old one. */
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
-                                &test_cont,
-                                NULL);
+  GNUNET_SCHEDULER_add_now (&disc_cont,
+                            NULL);
 }
 
 /**
