@@ -167,8 +167,9 @@ run (void *cls,
   }
   put_record (nsp, 1);
   get_record (nsp, 1);
-
+#ifndef DARWIN
   unload_plugin (nsp);
+#endif
 }
 
 
