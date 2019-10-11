@@ -268,6 +268,10 @@ check_SCRIPTS += \
   test_proxy.sh
 endif
 endif
+if HAVE_JSON
+check_SCRIPTS += \
+  test_plugin_rest_gns.sh
+endif
 endif
 
 

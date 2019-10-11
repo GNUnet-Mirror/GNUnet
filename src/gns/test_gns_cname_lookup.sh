@@ -45,7 +45,7 @@ gnunet-namestore -p -z $MY_EGO -a -n $TEST_RECORD_NAME_PLUS -t CNAME -V $TEST_RE
 gnunet-namestore -p -z $MY_EGO -a -n $TEST_RECORD_CNAME_SERVER -t A -V $TEST_IP_PLUS -e never -c test_gns_lookup.conf
 RES_CNAME=`$DO_TIMEOUT gnunet-gns --raw -u $TEST_DOMAIN_PLUS -t A -c test_gns_lookup.conf`
 RES_CNAME_RAW=`$DO_TIMEOUT gnunet-gns --raw -u $TEST_DOMAIN_PLUS -t CNAME -c test_gns_lookup.conf`
-RES_CNAME_DNS=`$DO_TIMEOUT gnunet-gns --raw -u $TEST_DOMAIN_DNS -t A -c test_gns_lookup.conf`
+RES_CNAME_DNS=`$DO_TIMEOUT gnunet-gns --raw -u $TEST_DOMAIN_DNS -t A -c test_gns_lookup.conf | grep $TEST_IP_DNS`
 echo NOW
 gnunet-gns --raw -u $TEST_DOMAIN_DNS -t A -c test_gns_lookup.conf
 echo WON
@@ -76,7 +76,7 @@ else
   exit 1
 fi
 
-if [ "$RES_CNAME_DNS" = "$TEST_IP_DNS" ]
+if echo "$RES_CNAME_DNS" | grep "$TEST_IP_DNS" > /dev/null
 then
   echo "PASS: IP resolution from DNS"
   exit 0

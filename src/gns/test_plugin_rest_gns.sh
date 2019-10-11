@@ -1,7 +1,20 @@
-#!/usr/bin/bash
+#!/bin/sh
+# This file is in the public domain.
+trap "gnunet-arm -e -c test_gns_lookup.conf" SIGINT
 
-#First, start gnunet-arm and the rest-service.
-#Exit 0 means success, exit 1 means failed test
+LOCATION=$(which gnunet-config)
+if [ -z $LOCATION ]
+then
+  LOCATION="gnunet-config"
+fi
+$LOCATION --version 1> /dev/null
+if test $? != 0
+then
+	echo "GNUnet command line tools cannot be found, check environmental variables PATH and GNUNET_PREFIX"
+	exit 77
+fi
+
+rm -rf `gnunet-config -c test_gns_lookup.conf -f -s paths -o GNUNET_TEST_HOME`
 
 gns_link="http://localhost:7776/gns"
 wrong_link="http://localhost:7776/gnsandmore"
@@ -9,42 +22,50 @@ wrong_link="http://localhost:7776/gnsandmore"
 curl_get () {
     #$1 is link
     #$2 is grep
-    cache="$(curl -v "$1" 2>&1 | grep "$2")"
-    #echo $cache
+    cache="$(gnurl -v "$1" 2>&1 | grep "$2")"
+    echo "$cache"
     if [ "" == "$cache" ]
     then
+        gnunet-identity -D "$TEST_TLD" -c test_gns_lookup.conf > /dev/null 2>&1
+        gnunet-arm -e -c test_gns_lookup.conf
         exit 1
     fi
 }
+TEST_TLD="testtld"
 
-gnunet-identity -D "test_plugin_rest_gns" > /dev/null 2>&1
+gnunet-arm -s -c test_gns_lookup.conf
+gnunet-arm -I
+gnunet-identity -D "$TEST_TLD" -c test_gns_lookup.conf > /dev/null 2>&1
 
-curl_get "$gns_link/www.test_plugin_rest_gns" "error"
+curl_get "$gns_link/www.$TEST_TLD" "error"
 
-gnunet-identity -C "test_plugin_rest_gns"
+gnunet-identity -C "$TEST_TLD"  -c test_gns_lookup.conf
+sleep 0.5
+curl_get "$gns_link/www.$TEST_TLD" "\[\]"
 
-curl_get "$gns_link/www.test_plugin_rest_gns" "\[\]"
+gnunet-namestore -z "$TEST_TLD" -p -a -n www -e 1d -V 1.1.1.1 -t A -c test_gns_lookup.conf
 
-gnunet-namestore -z "test_plugin_rest_gns" -p -a -n www -e 1d -V 1.1.1.1 -t A
+curl_get "$gns_link/www.$TEST_TLD" "1.1.1.1"
 
-curl_get "$gns_link/www.test_plugin_rest_gns" "1.1.1.1"
+gnunet-namestore -z "$TEST_TLD" -p -a -n www -e 1d -V 1::1 -t AAAA -c test_gns_lookup.conf
 
-gnunet-namestore -z "test_plugin_rest_gns" -p -a -n www -e 1d -V 1::1 -t AAAA
+curl_get "$gns_link/www.$TEST_TLD" "1::1.*1.1.1.1"
 
-curl_get "$gns_link/www.test_plugin_rest_gns" "1::1.*1.1.1.1"
+gnunet-namestore -z "$TEST_TLD" -p -a -n www -e 1d -V 1.1.1.2 -t A -c test_gns_lookup.conf
 
-gnunet-namestore -z "test_plugin_rest_gns" -p -a -n www -e 1d -V 1.1.1.2 -t A
+curl_get "$gns_link/www.$TEST_TLD" "1.1.1.2.*1::1.*1.1.1.1"
+curl_get "$gns_link/www.$TEST_TLD?record_type=A" "1.1.1.2.*1.1.1.1"
+curl_get "$gns_link/www.$TEST_TLD?record_type=AAAA" "1::1"
+curl_get "$gns_link/www.$TEST_TLD?record_type=WRONG_TYPE" "1.1.1.2.*1::1.*1.1.1.1"
 
-curl_get "$gns_link/www.test_plugin_rest_gns" "1.1.1.2.*1::1.*1.1.1.1"
-curl_get "$gns_link/www.test_plugin_rest_gns?record_type=A" "1.1.1.2.*1.1.1.1"
-curl_get "$gns_link/www.test_plugin_rest_gns?record_type=AAAA" "1::1"
-curl_get "$gns_link/www.test_plugin_rest_gns?record_type=WRONG_TYPE" "1.1.1.2.*1::1.*1.1.1.1"
+gnunet-namestore -z "$TEST_TLD" -p -a -n www1 -e 1d -V 1.1.1.1 -t A -c test_gns_lookup.conf
+curl_get "$gns_link/www1.$TEST_TLD" "1.1.1.1"
 
-gnunet-namestore -z "test_plugin_rest_gns" -p -a -n www1 -e 1d -V 1.1.1.1 -t A
-curl_get "$gns_link/www1.test_plugin_rest_gns" "1.1.1.1"
+gnunet-namestore -z "$TEST_TLD" -d -n www1 -c test_gns_lookup.conf
+gnunet-namestore -z "$TEST_TLD" -d -n www -c test_gns_lookup.conf
 
-gnunet-identity -D "test_plugin_rest_gns" > /dev/null 2>&1
+gnunet-identity -D "$TEST_TLD" -c test_gns_lookup.conf > /dev/null 2>&1
 
-curl_get "$gns_link/www1.test_plugin_rest_gns" "error"
+curl_get "$gns_link/www1.$TEST_TLD" "error"
 
 exit 0
