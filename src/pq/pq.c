@@ -1,6 +1,6 @@
 /*
    This file is part of GNUnet
-   Copyright (C) 2014, 2015, 2016 GNUnet e.V.
+   Copyright (C) 2014, 2015, 2016, 2017, 2019 GNUnet e.V.
 
    GNUnet is free software: you can redistribute it and/or modify it
    under the terms of the GNU Affero General Public License as published
@@ -25,33 +25,30 @@
  * @author Christian Grothoff
  */
 #include "platform.h"
-#include "gnunet_util_lib.h"
-#include "gnunet_pq_lib.h"
-
+#include "pq.h"
 
 /**
  * Execute a prepared statement.
  *
- * @param db_conn database connection
+ * @param db database handle
  * @param name name of the prepared statement
  * @param params parameters to the statement
  * @return postgres result
  */
 PGresult *
-GNUNET_PQ_exec_prepared (PGconn *db_conn,
+GNUNET_PQ_exec_prepared (struct GNUNET_PQ_Context *db,
                          const char *name,
                          const struct GNUNET_PQ_QueryParam *params)
 {
   unsigned int len;
-  unsigned int i;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Running prepared statement `%s' on %p\n",
               name,
-              db_conn);
+              db);
   /* count the number of parameters */
   len = 0;
-  for (i = 0; 0 != params[i].num_params; i++)
+  for (unsigned int i = 0; 0 != params[i].num_params; i++)
     len += params[i].num_params;
 
   /* new scope to allow stack allocation without alloca */
@@ -67,10 +64,11 @@ GNUNET_PQ_exec_prepared (PGconn *db_conn,
     unsigned int soff;
     PGresult *res;
     int ret;
+    ConnStatusType status;
 
     off = 0;
     soff = 0;
-    for (i = 0; 0 != params[i].num_params; i++)
+    for (unsigned int i = 0; 0 != params[i].num_params; i++)
     {
       const struct GNUNET_PQ_QueryParam *x = &params[i];
 
@@ -97,13 +95,24 @@ GNUNET_PQ_exec_prepared (PGconn *db_conn,
                      "pq",
                      "Executing prepared SQL statement `%s'\n",
                      name);
-    res = PQexecPrepared (db_conn,
+    res = PQexecPrepared (db->conn,
                           name,
                           len,
                           (const char **) param_values,
                           param_lengths,
                           param_formats,
                           1);
+    if ( (PGRES_COMMAND_OK != PQresultStatus (res)) &&
+         (CONNECTION_OK != (status = PQstatus (db->conn))) )
+    {
+      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
+                       "pq",
+                       "Database disconnected on SQL statement `%s' (reconnecting)\n",
+                       name);
+      GNUNET_PQ_reconnect (db);
+      res = NULL;
+    }
+
     for (off = 0; off < soff; off++)
       GNUNET_free (scratch[off]);
     return res;
@@ -120,9 +129,7 @@ GNUNET_PQ_exec_prepared (PGconn *db_conn,
 void
 GNUNET_PQ_cleanup_result (struct GNUNET_PQ_ResultSpec *rs)
 {
-  unsigned int i;
-
-  for (i = 0; NULL != rs[i].conv; i++)
+  for (unsigned int i = 0; NULL != rs[i].conv; i++)
     if (NULL != rs[i].cleaner)
       rs[i].cleaner (rs[i].cls,
                      rs[i].dst);
@@ -145,12 +152,12 @@ GNUNET_PQ_extract_result (PGresult *result,
                           struct GNUNET_PQ_ResultSpec *rs,
                           int row)
 {
-  unsigned int i;
-  int ret;
-
-  for (i = 0; NULL != rs[i].conv; i++)
+  if (NULL == result)
+    return GNUNET_SYSERR;
+  for (unsigned int i = 0; NULL != rs[i].conv; i++)
   {
     struct GNUNET_PQ_ResultSpec *spec;
+    int ret;
 
     spec = &rs[i];
     ret = spec->conv (spec->cls,

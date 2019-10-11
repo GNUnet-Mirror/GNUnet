@@ -1,6 +1,6 @@
 /*
    This file is part of GNUnet
-   Copyright (C) 2017 GNUnet e.V.
+   Copyright (C) 2017, 2019 GNUnet e.V.
 
    GNUnet is free software: you can redistribute it and/or modify it
    under the terms of the GNU Affero General Public License as published
@@ -23,8 +23,7 @@
  * @author Christian Grothoff
  */
 #include "platform.h"
-#include "gnunet_util_lib.h"
-#include "gnunet_pq_lib.h"
+#include "pq.h"
 
 
 /**
@@ -47,7 +46,7 @@
  * Check the @a result's error code to see what happened.
  * Also logs errors.
  *
- * @param connection connection to execute the statement in
+ * @param db database to execute the statement with
  * @param statement_name name of the statement that created @a result
  * @param result result to check
  * @return status code from the result, mapping PQ status
@@ -57,17 +56,31 @@
  * @deprecated (low level, let's see if we can do with just the high-level functions)
  */
 enum GNUNET_DB_QueryStatus
-GNUNET_PQ_eval_result (PGconn *connection,
+GNUNET_PQ_eval_result (struct GNUNET_PQ_Context *db,
                        const char *statement_name,
                        PGresult *result)
 {
   ExecStatusType est;
 
+  if (NULL == result)
+    return GNUNET_DB_STATUS_SOFT_ERROR;
   est = PQresultStatus (result);
   if ((PGRES_COMMAND_OK != est) &&
       (PGRES_TUPLES_OK != est))
   {
     const char *sqlstate;
+    ConnStatusType status;
+
+    if (CONNECTION_OK != (status = PQstatus (db->conn)))
+    {
+      GNUNET_log_from (GNUNET_ERROR_TYPE_INFO,
+                       "pq",
+                       "Database connection failed during query `%s': %d (reconnecting)\n",
+                       statement_name,
+                       status);
+      GNUNET_PQ_reconnect (db);
+      return GNUNET_DB_STATUS_SOFT_ERROR;
+    }
 
     sqlstate = PQresultErrorField (result,
                                    PG_DIAG_SQLSTATE);
@@ -94,7 +107,7 @@ GNUNET_PQ_eval_result (PGconn *connection,
                                            PG_DIAG_MESSAGE_DETAIL),
                        PQresultErrorMessage (result),
                        PQresStatus (PQresultStatus (result)),
-                       PQerrorMessage (connection));
+                       PQerrorMessage (db->conn));
       return GNUNET_DB_STATUS_SOFT_ERROR;
     }
     if (0 == strcmp (sqlstate,
@@ -111,7 +124,7 @@ GNUNET_PQ_eval_result (PGconn *connection,
                                            PG_DIAG_MESSAGE_DETAIL),
                        PQresultErrorMessage (result),
                        PQresStatus (PQresultStatus (result)),
-                       PQerrorMessage (connection));
+                       PQerrorMessage (db->conn));
       return GNUNET_DB_STATUS_SUCCESS_NO_RESULTS;
     }
     GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
@@ -124,7 +137,7 @@ GNUNET_PQ_eval_result (PGconn *connection,
                                          PG_DIAG_MESSAGE_DETAIL),
                      PQresultErrorMessage (result),
                      PQresStatus (PQresultStatus (result)),
-                     PQerrorMessage (connection));
+                     PQerrorMessage (db->conn));
     return GNUNET_DB_STATUS_HARD_ERROR;
   }
   return GNUNET_DB_STATUS_SUCCESS_NO_RESULTS;
@@ -136,7 +149,7 @@ GNUNET_PQ_eval_result (PGconn *connection,
  * statement in @a connnection using the given @a params.  Returns the
  * resulting session state.
  *
- * @param connection connection to execute the statement in
+ * @param db database to execute the statement with
  * @param statement_name name of the statement
  * @param params parameters to give to the statement (#GNUNET_PQ_query_param_end-terminated)
  * @return status code from the result, mapping PQ status
@@ -148,17 +161,19 @@ GNUNET_PQ_eval_result (PGconn *connection,
  *         zero; if INSERT was successful, we return one.
  */
 enum GNUNET_DB_QueryStatus
-GNUNET_PQ_eval_prepared_non_select (PGconn *connection,
+GNUNET_PQ_eval_prepared_non_select (struct GNUNET_PQ_Context *db,
                                     const char *statement_name,
                                     const struct GNUNET_PQ_QueryParam *params)
 {
   PGresult *result;
   enum GNUNET_DB_QueryStatus qs;
 
-  result = GNUNET_PQ_exec_prepared (connection,
+  result = GNUNET_PQ_exec_prepared (db,
                                     statement_name,
                                     params);
-  qs = GNUNET_PQ_eval_result (connection,
+  if (NULL == result)
+    return GNUNET_DB_STATUS_SOFT_ERROR;
+  qs = GNUNET_PQ_eval_result (db,
                               statement_name,
                               result);
   if (GNUNET_DB_STATUS_SUCCESS_NO_RESULTS == qs)
@@ -182,7 +197,7 @@ GNUNET_PQ_eval_prepared_non_select (PGconn *connection,
  * status including the number of results given to @a rh (possibly zero).
  * @a rh will not have been called if the return value is negative.
  *
- * @param connection connection to execute the statement in
+ * @param db database to execute the statement with
  * @param statement_name name of the statement
  * @param params parameters to give to the statement (#GNUNET_PQ_query_param_end-terminated)
  * @param rh function to call with the result set, NULL to ignore
@@ -191,7 +206,7 @@ GNUNET_PQ_eval_prepared_non_select (PGconn *connection,
  *         codes to `enum GNUNET_DB_QueryStatus`.
  */
 enum GNUNET_DB_QueryStatus
-GNUNET_PQ_eval_prepared_multi_select (PGconn *connection,
+GNUNET_PQ_eval_prepared_multi_select (struct GNUNET_PQ_Context *db,
                                       const char *statement_name,
                                       const struct GNUNET_PQ_QueryParam *params,
                                       GNUNET_PQ_PostgresResultHandler rh,
@@ -201,10 +216,12 @@ GNUNET_PQ_eval_prepared_multi_select (PGconn *connection,
   enum GNUNET_DB_QueryStatus qs;
   unsigned int ret;
 
-  result = GNUNET_PQ_exec_prepared (connection,
+  result = GNUNET_PQ_exec_prepared (db,
                                     statement_name,
                                     params);
-  qs = GNUNET_PQ_eval_result (connection,
+  if (NULL == result)
+    return GNUNET_DB_STATUS_SOFT_ERROR;
+  qs = GNUNET_PQ_eval_result (db,
                               statement_name,
                               result);
   if (qs < 0)
@@ -230,7 +247,7 @@ GNUNET_PQ_eval_prepared_multi_select (PGconn *connection,
  * value was #GNUNET_DB_STATUS_SUCCESS_ONE_RESULT.  Returns the
  * resulting session status.
  *
- * @param connection connection to execute the statement in
+ * @param db database to execute the statement with
  * @param statement_name name of the statement
  * @param params parameters to give to the statement (#GNUNET_PQ_query_param_end-terminated)
  * @param[in,out] rs result specification to use for storing the result of the query
@@ -238,7 +255,7 @@ GNUNET_PQ_eval_prepared_multi_select (PGconn *connection,
  *         codes to `enum GNUNET_DB_QueryStatus`.
  */
 enum GNUNET_DB_QueryStatus
-GNUNET_PQ_eval_prepared_singleton_select (PGconn *connection,
+GNUNET_PQ_eval_prepared_singleton_select (struct GNUNET_PQ_Context *db,
                                           const char *statement_name,
                                           const struct
                                           GNUNET_PQ_QueryParam *params,
@@ -247,10 +264,12 @@ GNUNET_PQ_eval_prepared_singleton_select (PGconn *connection,
   PGresult *result;
   enum GNUNET_DB_QueryStatus qs;
 
-  result = GNUNET_PQ_exec_prepared (connection,
+  result = GNUNET_PQ_exec_prepared (db,
                                     statement_name,
                                     params);
-  qs = GNUNET_PQ_eval_result (connection,
+  if (NULL == result)
+    return GNUNET_DB_STATUS_SOFT_ERROR;
+  qs = GNUNET_PQ_eval_result (db,
                               statement_name,
                               result);
   if (qs < 0)

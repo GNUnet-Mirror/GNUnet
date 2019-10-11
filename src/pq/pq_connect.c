@@ -1,6 +1,6 @@
 /*
    This file is part of GNUnet
-   Copyright (C) 2017 GNUnet e.V.
+   Copyright (C) 2017, 2019 GNUnet e.V.
 
    GNUnet is free software: you can redistribute it and/or modify it
    under the terms of the GNU Affero General Public License as published
@@ -23,8 +23,7 @@
  * @author Christian Grothoff
  */
 #include "platform.h"
-#include "gnunet_util_lib.h"
-#include "gnunet_pq_lib.h"
+#include "pq.h"
 
 
 /**
@@ -40,12 +39,14 @@ pq_notice_receiver_cb (void *arg,
                        const PGresult *res)
 {
   /* do nothing, intentionally */
+  (void) arg;
+  (void) res;
 }
 
 
 /**
  * Function called by libpq whenever it wants to log something.
- * We log those using the Taler logger.
+ * We log those using the GNUnet logger.
  *
  * @param arg the SQL connection that was used
  * @param message information about some libpq event
@@ -54,6 +55,7 @@ static void
 pq_notice_processor_cb (void *arg,
                         const char *message)
 {
+  (void) arg;
   GNUNET_log_from (GNUNET_ERROR_TYPE_INFO,
                    "pq",
                    "%s",
@@ -64,68 +66,175 @@ pq_notice_processor_cb (void *arg,
 /**
  * Create a connection to the Postgres database using @a config_str
  * for the configuration.  Initialize logging via GNUnet's log
- * routines and disable Postgres's logger.
+ * routines and disable Postgres's logger.  Also ensures that the
+ * statements in @a es are executed whenever we (re)connect to the
+ * database, and that the prepared statements in @a ps are "ready".
+ * If statements in @es fail that were created with
+ * #GNUNET_PQ_make_execute(), then the entire operation fails.
+ *
+ * The caller MUST ensure that @a es and @a ps remain allocated and
+ * initialized in memory until #GNUNET_PQ_disconnect() is called,
+ * as they may be needed repeatedly and no copy will be made.
  *
  * @param config_str configuration to use
+ * @param es #GNUNET_PQ_PREPARED_STATEMENT_END-terminated
+ *            array of statements to execute upon EACH connection, can be NULL
+ * @param ps array of prepared statements to prepare, can be NULL
  * @return NULL on error
  */
-PGconn *
-GNUNET_PQ_connect (const char *config_str)
+struct GNUNET_PQ_Context *
+GNUNET_PQ_connect (const char *config_str,
+                   const struct GNUNET_PQ_ExecuteStatement *es,
+                   const struct GNUNET_PQ_PreparedStatement *ps)
 {
-  PGconn *conn;
+  struct GNUNET_PQ_Context *db;
+  unsigned int elen = 0;
+  unsigned int plen = 0;
 
-  conn = PQconnectdb (config_str);
-  if ((NULL == conn) ||
-      (CONNECTION_OK !=
-       PQstatus (conn)))
+  if (NULL != es)
+    while (NULL != es[elen].sql)
+      elen++;
+  if (NULL != ps)
+    while (NULL != ps[plen].name)
+      plen++;
+
+  db = GNUNET_new (struct GNUNET_PQ_Context);
+  db->config_str = GNUNET_strdup (config_str);
+  if (0 != elen)
+  {
+    db->es = GNUNET_new_array (elen + 1,
+                               struct GNUNET_PQ_ExecuteStatement);
+    memcpy (db->es,
+            es,
+            elen * sizeof (struct GNUNET_PQ_ExecuteStatement));
+  }
+  if (0 != plen)
+  {
+    db->ps = GNUNET_new_array (plen + 1,
+                               struct GNUNET_PQ_PreparedStatement);
+    memcpy (db->ps,
+            ps,
+            plen * sizeof (struct GNUNET_PQ_PreparedStatement));
+  }
+  GNUNET_PQ_reconnect (db);
+  if (NULL == db->conn)
+  {
+    GNUNET_free (db->config_str);
+    GNUNET_free (db);
+    return NULL;
+  }
+  return db;
+}
+
+
+/**
+ * Reinitialize the database @a db.
+ *
+ * @param db database connection to reinitialize
+ */
+void
+GNUNET_PQ_reconnect (struct GNUNET_PQ_Context *db)
+{
+  if (NULL != db->conn)
+    PQfinish (db->conn);
+  db->conn = PQconnectdb (db->config_str);
+  if ((NULL == db->conn) ||
+      (CONNECTION_OK != PQstatus (db->conn)))
   {
     GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
                      "pq",
                      "Database connection to '%s' failed: %s\n",
-                     config_str,
-                     (NULL != conn) ?
-                     PQerrorMessage (conn)
+                     db->config_str,
+                     (NULL != db->conn) ?
+                     PQerrorMessage (db->conn)
                      : "PQconnectdb returned NULL");
-    if (NULL != conn)
-      PQfinish (conn);
-    return NULL;
+    if (NULL != db->conn)
+    {
+      PQfinish (db->conn);
+      db->conn = NULL;
+    }
+    return;
   }
-  PQsetNoticeReceiver (conn,
+  PQsetNoticeReceiver (db->conn,
                        &pq_notice_receiver_cb,
-                       conn);
-  PQsetNoticeProcessor (conn,
+                       db);
+  PQsetNoticeProcessor (db->conn,
                         &pq_notice_processor_cb,
-                        conn);
-  return conn;
+                        db);
+  if ( (NULL != db->es) &&
+       (GNUNET_OK !=
+        GNUNET_PQ_exec_statements (db,
+                                   db->es)) )
+  {
+    PQfinish (db->conn);
+    db->conn = NULL;
+    return;
+  }
+  if ( (NULL != db->ps) &&
+       (GNUNET_OK !=
+        GNUNET_PQ_prepare_statements (db,
+                                      db->ps)) )
+  {
+    PQfinish (db->conn);
+    db->conn = NULL;
+    return;
+  }
 }
 
 
 /**
  * Connect to a postgres database using the configuration
- * option "CONFIG" in @a section.
+ * option "CONFIG" in @a section.  Also ensures that the
+ * statements in @a es are executed whenever we (re)connect to the
+ * database, and that the prepared statements in @a ps are "ready".
+ *
+ * The caller MUST ensure that @a es and @a ps remain allocated and
+ * initialized in memory until #GNUNET_PQ_disconnect() is called,
+ * as they may be needed repeatedly and no copy will be made.
  *
  * @param cfg configuration
  * @param section configuration section to use to get Postgres configuration options
+ * @param es #GNUNET_PQ_PREPARED_STATEMENT_END-terminated
+ *            array of statements to execute upon EACH connection, can be NULL
+ * @param ps array of prepared statements to prepare, can be NULL
  * @return the postgres handle, NULL on error
  */
-PGconn *
+struct GNUNET_PQ_Context *
 GNUNET_PQ_connect_with_cfg (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                            const char *section)
+                            const char *section,
+                            const struct GNUNET_PQ_ExecuteStatement *es,
+                            const struct GNUNET_PQ_PreparedStatement *ps)
 {
-  PGconn *dbh;
+  struct GNUNET_PQ_Context *db;
   char *conninfo;
 
-  /* Open database and precompile statements */
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_string (cfg,
                                              section,
                                              "CONFIG",
                                              &conninfo))
     conninfo = NULL;
-  dbh = GNUNET_PQ_connect (conninfo == NULL ? "" : conninfo);
+  db = GNUNET_PQ_connect (conninfo == NULL ? "" : conninfo,
+                          es,
+                          ps);
   GNUNET_free_non_null (conninfo);
-  return dbh;
+  return db;
 }
 
+
+/**
+ * Disconnect from the database, destroying the prepared statements
+ * and releasing other associated resources.
+ *
+ * @param db database handle to disconnect (will be free'd)
+ */
+void
+GNUNET_PQ_disconnect (struct GNUNET_PQ_Context *db)
+{
+  GNUNET_free_non_null (db->es);
+  GNUNET_free_non_null (db->ps);
+  PQfinish (db->conn);
+  GNUNET_free (db);
+}
 
 /* end of pq/pq_connect.c */
