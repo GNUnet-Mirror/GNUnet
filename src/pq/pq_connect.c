@@ -128,6 +128,20 @@ GNUNET_PQ_connect (const char *config_str,
 
 
 /**
+ * Reinitialize the database @a db if the connection is down.
+ *
+ * @param db database connection to reinitialize
+ */
+void
+GNUNET_PQ_reconnect_if_down (struct GNUNET_PQ_Context *db)
+{
+  if (CONNECTION_BAD != PQstatus (db->conn))
+    return;
+  GNUNET_PQ_reconnect (db);
+}
+
+
+/**
  * Reinitialize the database @a db.
  *
  * @param db database connection to reinitialize

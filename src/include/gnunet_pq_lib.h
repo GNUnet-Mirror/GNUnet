@@ -749,6 +749,15 @@ GNUNET_PQ_connect_with_cfg (const struct GNUNET_CONFIGURATION_Handle *cfg,
 
 
 /**
+ * Reinitialize the database @a db if the connection is down.
+ *
+ * @param db database connection to reinitialize
+ */
+void
+GNUNET_PQ_reconnect_if_down (struct GNUNET_PQ_Context *db);
+
+
+/**
  * Reinitialize the database @a db.
  *
  * @param db database connection to reinitialize
