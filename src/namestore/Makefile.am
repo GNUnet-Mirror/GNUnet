@@ -681,6 +681,13 @@ check_SCRIPTS = \
   test_namestore_lookup.sh \
   test_namestore_delete.sh
 
+if HAVE_MHD
+if HAVE_JSON
+check_SCRIPTS += \
+  test_plugin_rest_namestore.sh
+endif
+endif
+
 EXTRA_DIST = \
   test_common.c \
   test_namestore_api.conf \

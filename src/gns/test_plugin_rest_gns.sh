@@ -23,7 +23,7 @@ curl_get () {
     #$1 is link
     #$2 is grep
     cache="$(gnurl -v "$1" 2>&1 | grep "$2")"
-    echo "$cache"
+    #echo "$cache"
     if [ "" == "$cache" ]
     then
         gnunet-identity -D "$TEST_TLD" -c test_gns_lookup.conf > /dev/null 2>&1
@@ -34,9 +34,6 @@ curl_get () {
 TEST_TLD="testtld"
 
 gnunet-arm -s -c test_gns_lookup.conf
-gnunet-arm -I
-gnunet-identity -D "$TEST_TLD" -c test_gns_lookup.conf > /dev/null 2>&1
-
 curl_get "$gns_link/www.$TEST_TLD" "error"
 
 gnunet-identity -C "$TEST_TLD"  -c test_gns_lookup.conf
@@ -67,5 +64,5 @@ gnunet-namestore -z "$TEST_TLD" -d -n www -c test_gns_lookup.conf
 gnunet-identity -D "$TEST_TLD" -c test_gns_lookup.conf > /dev/null 2>&1
 
 curl_get "$gns_link/www1.$TEST_TLD" "error"
-
+gnunet-arm -e -c -c test_gns_lookup.conf
 exit 0
