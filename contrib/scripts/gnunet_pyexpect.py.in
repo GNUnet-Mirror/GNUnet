@@ -11,7 +11,7 @@
 #    WITHOUT ANY WARRANTY; without even the implied warranty of
 #    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
 #    Affero General Public License for more details.
-#   
+#
 #    You should have received a copy of the GNU Affero General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
@@ -27,7 +27,7 @@ import shutil
 import time
 
 
-class pexpect (object):
+class pexpect(object):
     def __init__(self):
         super(pexpect, self).__init__()
 
@@ -54,12 +54,22 @@ class pexpect (object):
                 if len(stream) == 0:
                     return True
                 else:
-                    print("Failed to find `{1}' in {0}, which is `{2}' ({3})".format(s, r, stream, len(stream)))
+                    print(
+                        "Failed to find `{1}' in {0}, which is `{2}' ({3})".
+                        format(s, r, stream, len(stream))
+                    )
                     sys.exit(2)
-            raise ValueError("Argument `r' should be an instance of re.RegexObject or a special string, but is `{0}'".format(r))
+            raise ValueError(
+                "Argument `r' should be an instance of re.RegexObject or a special string, but is `{0}'"
+                .format(r)
+            )
         m = r.search(stream.decode(), flags)
         if not m:
-            print("Failed to find `{1}' in {0}, which is is `{2}'".format(s, r.pattern, stream))
+            print(
+                "Failed to find `{1}' in {0}, which is is `{2}'".format(
+                    s, r.pattern, stream
+                )
+            )
             sys.exit(2)
         stream = stream[m.end():]
         if s == 'stdout':

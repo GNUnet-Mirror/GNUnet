@@ -29,9 +29,8 @@ import sys
 from Crypto.Cipher import AES
 from functools import reduce
 
-
 # Defaults
-DBLOCK_SIZE = (32 * 1024)   # Data block size
+DBLOCK_SIZE = (32 * 1024)  # Data block size
 
 # Pick a multiple of 2 here to achive 8-byte alignment!  We also
 # probably want DBlocks to have (roughly) the same size as IBlocks.
@@ -39,7 +38,7 @@ DBLOCK_SIZE = (32 * 1024)   # Data block size
 # byte = 2 * 512 bits).  DO NOT CHANGE!
 CHK_PER_INODE = 256
 
-CHK_HASH_SIZE = 64              # SHA-512 hash = 512 bits = 64 bytes
+CHK_HASH_SIZE = 64  # SHA-512 hash = 512 bits = 64 bytes
 
 CHK_QUERY_SIZE = CHK_HASH_SIZE  # Again a SHA-512 hash
 
@@ -94,11 +93,11 @@ class AESKey(object):
     """Class for AES Keys. Contains the main key and the initialization
     vector. """
 
-    key = None                  # The actual AES key
-    iv = None                   # The initialization vector
-    cipher = None               # The cipher object
-    KEY_SIZE = 32               # AES 256-bit key = 32 bytes
-    IV_SIZE = AES.block_size    # Initialization vector size (= AES block size)
+    key = None  # The actual AES key
+    iv = None  # The initialization vector
+    cipher = None  # The cipher object
+    KEY_SIZE = 32  # AES 256-bit key = 32 bytes
+    IV_SIZE = AES.block_size  # Initialization vector size (= AES block size)
 
     def __init__(self, passphrase):
         """Creates a new AES key.
@@ -355,13 +354,15 @@ def chkuri_from_path(path):
 
 def usage():
     """Prints help about using this script."""
-    print("""
+    print(
+        """
 Usage: gnunet-chk.py [options] file
 Prints the Content Hash Key of given file in GNUNET-style URI.
 
 Options:
     -h, --help                : prints this message
-""")
+"""
+    )
 
 
 if '__main__' == __name__:
@@ -373,7 +374,7 @@ if '__main__' == __name__:
         usage()
         sys.exit(2)
     for option, value in opts:
-        if option in("-h", "--help"):
+        if option in ("-h", "--help"):
             usage()
             sys.exit(0)
     if len(args) != 1:

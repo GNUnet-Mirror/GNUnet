@@ -32,7 +32,6 @@ from gnunet_testing import Check
 from gnunet_testing import Condition
 from gnunet_testing import *
 
-
 #
 # This test tests if a fresh peer bootstraps from a hostlist server and then
 # successfully connects to the server
@@ -123,6 +122,7 @@ def check():
     check.add(StatisticsCondition(server, 'fs', '# peers connected', 1))
 
     check.run_blocking(check_timeout, success_cont, fail_cont)
+
 
 #
 # Test execution

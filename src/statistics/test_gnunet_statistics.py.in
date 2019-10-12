@@ -122,7 +122,9 @@ if len([x for x in stdo.splitlines() if re.search(b'42', x)]) != 1:
 print("PASS")
 
 print("TEST: Set persistent value...", end='')
-rc, stdo, stde = r_st(['-n', 'lasting', '-s', 'subsystem', '40', '-p'], nofail=True, want_stdo=False)
+rc, stdo, stde = r_st(['-n', 'lasting', '-s', 'subsystem', '40', '-p'],
+                      nofail=True,
+                      want_stdo=False)
 rc, stdo, stde = r_st([], nofail=True, want_stdo=True)
 if len([x for x in stdo.splitlines() if re.search(b'40', x)]) != 1:
     fail("FAIL: unexpected output:\n{}".format(stdo))
@@ -137,7 +139,9 @@ if len([x for x in stdo.splitlines() if re.search(b'40', x)]) != 1:
 print("PASS")
 
 print("TEST: Removing persistence...", end='')
-rc, stdo, stde = r_st(['-n', 'lasting', '-s', 'subsystem', '40'], nofail=True, want_stdo=False)
+rc, stdo, stde = r_st(['-n', 'lasting', '-s', 'subsystem', '40'],
+                      nofail=True,
+                      want_stdo=False)
 rc, stdo, stde = r_st([], nofail=True, want_stdo=True)
 if len([x for x in stdo.splitlines() if re.search(b'!', x)]) != 0:
     fail("FAIL: unexpected output:\n{}".format(stdo))

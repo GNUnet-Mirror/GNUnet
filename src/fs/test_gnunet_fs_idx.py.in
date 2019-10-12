@@ -11,7 +11,7 @@
 #    WITHOUT ANY WARRANTY; without even the implied warranty of
 #    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
 #    Affero General Public License for more details.
-#   
+#
 #    You should have received a copy of the GNU Affero General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
@@ -43,7 +43,9 @@ elif os.name == 'nt':
     unindex = './gnunet-unindex.exe'
 
 if os.name == "nt":
-    shutil.rmtree(os.path.join(os.getenv("TEMP"), "gnunet-test-fs-py-idx"), True)
+    shutil.rmtree(
+        os.path.join(os.getenv("TEMP"), "gnunet-test-fs-py-idx"), True
+    )
 else:
     shutil.rmtree("/tmp/gnunet-test-fs-py-idx", True)
 
@@ -53,22 +55,59 @@ arm.communicate()
 try:
     pub = pexpect()
 
-    pub.spawn(None, [publish, '-c', 'test_gnunet_fs_idx_data.conf', '-m', "description:Test archive", '-k', 'tst', 'test_gnunet_fs_rec_data.tgz'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-    pub.expect("stdout", re.compile(r"URI is `gnunet://fs/chk/2ZMHKPV74CB6GB1GFKQRR95BXJQA2SER25FN48GAW7WSBPA0GDEM5Y74V1ZJHM0NA6919TVW376BHTFDRE3RYS0KRY92M1QJVKPHFCR\.49BT3V5C10KA1695JF71FCT8ZZG4JMJSH04BD9CT22R6KEM915A7CEST17RD0QYTHXV5M4HHEGJMEZSFRDB7JAYC0EMJAN2V781E9DG\.17822'\.\r?\n"))
+    pub.spawn(
+        None, [
+            publish, '-c', 'test_gnunet_fs_idx_data.conf', '-m',
+            "description:Test archive", '-k', 'tst',
+            'test_gnunet_fs_rec_data.tgz'
+        ],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT
+    )
+    pub.expect(
+        "stdout",
+        re.compile(
+            r"URI is `gnunet://fs/chk/2ZMHKPV74CB6GB1GFKQRR95BXJQA2SER25FN48GAW7WSBPA0GDEM5Y74V1ZJHM0NA6919TVW376BHTFDRE3RYS0KRY92M1QJVKPHFCR\.49BT3V5C10KA1695JF71FCT8ZZG4JMJSH04BD9CT22R6KEM915A7CEST17RD0QYTHXV5M4HHEGJMEZSFRDB7JAYC0EMJAN2V781E9DG\.17822'\.\r?\n"
+        )
+    )
 
     down = pexpect()
-    down.spawn(None, [download, '-c', 'test_gnunet_fs_idx_data.conf', '-o', 'test_gnunet_fs_rec_data.tar.gz', 'gnunet://fs/chk/2ZMHKPV74CB6GB1GFKQRR95BXJQA2SER25FN48GAW7WSBPA0GDEM5Y74V1ZJHM0NA6919TVW376BHTFDRE3RYS0KRY92M1QJVKPHFCR.49BT3V5C10KA1695JF71FCT8ZZG4JMJSH04BD9CT22R6KEM915A7CEST17RD0QYTHXV5M4HHEGJMEZSFRDB7JAYC0EMJAN2V781E9DG.17822'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-    down.expect("stdout", re.compile(r"Downloading `test_gnunet_fs_rec_data.tar.gz' done (.*).\r?\n"))
+    down.spawn(
+        None, [
+            download, '-c', 'test_gnunet_fs_idx_data.conf', '-o',
+            'test_gnunet_fs_rec_data.tar.gz',
+            'gnunet://fs/chk/2ZMHKPV74CB6GB1GFKQRR95BXJQA2SER25FN48GAW7WSBPA0GDEM5Y74V1ZJHM0NA6919TVW376BHTFDRE3RYS0KRY92M1QJVKPHFCR.49BT3V5C10KA1695JF71FCT8ZZG4JMJSH04BD9CT22R6KEM915A7CEST17RD0QYTHXV5M4HHEGJMEZSFRDB7JAYC0EMJAN2V781E9DG.17822'
+        ],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT
+    )
+    down.expect(
+        "stdout",
+        re.compile(
+            r"Downloading `test_gnunet_fs_rec_data.tar.gz' done (.*).\r?\n"
+        )
+    )
     os.remove("test_gnunet_fs_rec_data.tar.gz")
 
     un = pexpect()
-    un.spawn(None, [unindex, '-c', 'test_gnunet_fs_idx_data.conf', 'test_gnunet_fs_rec_data.tgz'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    un.spawn(
+        None, [
+            unindex, '-c', 'test_gnunet_fs_idx_data.conf',
+            'test_gnunet_fs_rec_data.tgz'
+        ],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT
+    )
     un.expect("stdout", re.compile(r'Unindexing done\.\r?\n'))
 
 finally:
-    arm = subprocess.Popen([gnunetarm, '-eq', '-c', 'test_gnunet_fs_idx_data.conf'])
+    arm = subprocess.Popen([
+        gnunetarm, '-eq', '-c', 'test_gnunet_fs_idx_data.conf'
+    ])
     arm.communicate()
     if os.name == "nt":
-        shutil.rmtree(os.path.join(os.getenv("TEMP"), "gnunet-test-fs-py-idx"), True)
+        shutil.rmtree(
+            os.path.join(os.getenv("TEMP"), "gnunet-test-fs-py-idx"), True
+        )
     else:
         shutil.rmtree("/tmp/gnunet-test-fs-py-idx", True)

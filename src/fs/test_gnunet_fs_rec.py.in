@@ -50,7 +50,9 @@ elif os.name == 'nt':
     directory = './gnunet-directory.exe'
 
 if os.name == "nt":
-    shutil.rmtree(os.path.join(os.getenv("TEMP"), "gnunet-test-fs-py-rec"), True)
+    shutil.rmtree(
+        os.path.join(os.getenv("TEMP"), "gnunet-test-fs-py-rec"), True
+    )
 else:
     shutil.rmtree("/tmp/gnunet-test-fs-py-rec", True)
 
@@ -65,33 +67,83 @@ tar.extractall()
 # first, basic publish-search-download run
 try:
     pub = pexpect()
-    pub.spawn(None, [publish, '-c', 'test_gnunet_fs_rec_data.conf', '-k', 'testdir', 'dir/'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    pub.spawn(
+        None, [
+            publish, '-c', 'test_gnunet_fs_rec_data.conf', '-k', 'testdir',
+            'dir/'
+        ],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT
+    )
     # Can't say much for publishing, except that the last one is the toplevel directory
     pub.expect("stdout", re.compile(r"Publishing `.+' done\.\r?\n"))
-    pub.expect("stdout", re.compile(r"URI is `gnunet://fs/chk/[A-Z0-9]{103}\.[A-Z0-9]{103}\.\d+'\.\r?\n"))
+    pub.expect(
+        "stdout",
+        re.compile(
+            r"URI is `gnunet://fs/chk/[A-Z0-9]{103}\.[A-Z0-9]{103}\.\d+'\.\r?\n"
+        )
+    )
     pub.expect("stdout", re.compile(r"Publishing `.+' done\.\r?\n"))
-    pub.expect("stdout", re.compile(r"URI is `gnunet://fs/chk/[A-Z0-9]{103}\.[A-Z0-9]{103}\.\d+'\.\r?\n"))
+    pub.expect(
+        "stdout",
+        re.compile(
+            r"URI is `gnunet://fs/chk/[A-Z0-9]{103}\.[A-Z0-9]{103}\.\d+'\.\r?\n"
+        )
+    )
     pub.expect("stdout", re.compile(r"Publishing `.+' done\.\r?\n"))
-    pub.expect("stdout", re.compile(r"URI is `gnunet://fs/chk/[A-Z0-9]{103}\.[A-Z0-9]{103}\.\d+'\.\r?\n"))
+    pub.expect(
+        "stdout",
+        re.compile(
+            r"URI is `gnunet://fs/chk/[A-Z0-9]{103}\.[A-Z0-9]{103}\.\d+'\.\r?\n"
+        )
+    )
     pub.expect("stdout", re.compile(r"Publishing `.+' done\.\r?\n"))
-    pub.expect("stdout", re.compile(r"URI is `gnunet://fs/chk/[A-Z0-9]{103}\.[A-Z0-9]{103}\.\d+'\.\r?\n"))
+    pub.expect(
+        "stdout",
+        re.compile(
+            r"URI is `gnunet://fs/chk/[A-Z0-9]{103}\.[A-Z0-9]{103}\.\d+'\.\r?\n"
+        )
+    )
     pub.expect("stdout", re.compile(r"Publishing `.+' done\.\r?\n"))
-    pub.expect("stdout", re.compile(r"URI is `gnunet://fs/chk/[A-Z0-9]{103}\.[A-Z0-9]{103}\.\d+'\.\r?\n"))
+    pub.expect(
+        "stdout",
+        re.compile(
+            r"URI is `gnunet://fs/chk/[A-Z0-9]{103}\.[A-Z0-9]{103}\.\d+'\.\r?\n"
+        )
+    )
     pub.expect("stdout", re.compile(r"Publishing `.+' done\.\r?\n"))
-    pub.expect("stdout", re.compile(r"URI is `gnunet://fs/chk/[A-Z0-9]{103}\.[A-Z0-9]{103}\.\d+'\.\r?\n"))
-    pub.expect("stdout", re.compile(r"Publishing `.+[\\/]dir[\\/]' done\.\r?\n"))
+    pub.expect(
+        "stdout",
+        re.compile(
+            r"URI is `gnunet://fs/chk/[A-Z0-9]{103}\.[A-Z0-9]{103}\.\d+'\.\r?\n"
+        )
+    )
+    pub.expect(
+        "stdout", re.compile(r"Publishing `.+[\\/]dir[\\/]' done\.\r?\n")
+    )
     m = pub.expect("stdout", re.compile(r".+\r?\n"))
     if not m:
         sys.exit(3)
     output = m.string
-    url = output[output.find("`")+1:output.find("'")]
+    url = output[output.find("`") + 1:output.find("'")]
 
     down = pexpect()
-    down.spawn(None, [download, '-c', 'test_gnunet_fs_rec_data.conf', '-R', '-o', 'rdir.gnd', url], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    down.spawn(
+        None, [
+            download, '-c', 'test_gnunet_fs_rec_data.conf', '-R', '-o',
+            'rdir.gnd', url
+        ],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT
+    )
     down.expect("stdout", re.compile(r"Downloading `rdir.gnd' done (.*).\r?\n"))
 
     d = pexpect()
-    d.spawn(None, [directory, '-c', 'test_gnunet_fs_rec_data.conf', 'rdir/a.gnd'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    d.spawn(
+        None, [directory, '-c', 'test_gnunet_fs_rec_data.conf', 'rdir/a.gnd'],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT
+    )
     d.expect("stdout", re.compile(r"Directory `a/' meta data:\r?\n"))
     d.expect("stdout", re.compile(r"Directory `a/' contents:\r?\n"))
     d.expect("stdout", re.compile(r"COPYING (.*)\r?\n"))
@@ -101,14 +153,20 @@ try:
     os.remove("rdir/a.gnd")
     diff = dcdiff('dir', 'rdir')
     if len(diff) != 0:
-        raise Exception("Unexpected difference between source directory and downloaded result:\n{}".format(diff))
-
+        raise Exception(
+            "Unexpected difference between source directory and downloaded result:\n{}"
+            .format(diff)
+        )
 
 finally:
-    arm = subprocess.Popen([gnunetarm, '-eq', '-c', 'test_gnunet_fs_rec_data.conf'])
+    arm = subprocess.Popen([
+        gnunetarm, '-eq', '-c', 'test_gnunet_fs_rec_data.conf'
+    ])
     arm.communicate()
     if os.name == "nt":
-        shutil.rmtree(os.path.join(os.getenv("TEMP"), "gnunet-test-fs-py-rec"), True)
+        shutil.rmtree(
+            os.path.join(os.getenv("TEMP"), "gnunet-test-fs-py-rec"), True
+        )
     else:
         shutil.rmtree("/tmp/gnunet-test-fs-py-rec", True)
     shutil.rmtree("dir", True)

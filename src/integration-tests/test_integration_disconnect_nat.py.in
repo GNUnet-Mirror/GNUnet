@@ -32,7 +32,6 @@ from gnunet_testing import Check
 from gnunet_testing import Condition
 from gnunet_testing import *
 
-
 #
 # This test tests if a fresh peer bootstraps from a hostlist server and then
 # successfully connects to the server. When both peers are connected
@@ -68,7 +67,9 @@ def cleanup_onerror(function, path, excinfo):
 
 
 def cleanup():
-    shutil.rmtree(os.path.join(tmp, "c_bootstrap_server"), False, cleanup_onerror)
+    shutil.rmtree(
+        os.path.join(tmp, "c_bootstrap_server"), False, cleanup_onerror
+    )
     shutil.rmtree(os.path.join(tmp, "c_nat_client"), False, cleanup_onerror)
 
 
@@ -80,7 +81,7 @@ def success_disconnect_cont(check):
 
 def fail_disconnect_cont(check):
     global success
-    success = False;
+    success = False
     print('Peers failed to disconnect')
     check.evaluate(True)
 
@@ -96,7 +97,9 @@ def check_disconnect():
     check.add(StatisticsCondition(server, 'topology', '# peers connected', 0))
     check.add(StatisticsCondition(server, 'dht', '# peers connected', 0))
     check.add(StatisticsCondition(server, 'fs', '# peers connected', 0))
-    check.run_blocking(check_timeout, success_disconnect_cont, fail_disconnect_cont)
+    check.run_blocking(
+        check_timeout, success_disconnect_cont, fail_disconnect_cont
+    )
 
 
 def success_connect_cont(check):
@@ -115,9 +118,13 @@ def check_connect():
     global server
     global nat_client
     check = Check(test)
-    check.add(StatisticsCondition(nat_client, 'transport', '# peers connected', 1))
+    check.add(
+        StatisticsCondition(nat_client, 'transport', '# peers connected', 1)
+    )
     check.add(StatisticsCondition(nat_client, 'core', '# peers connected', 1))
-    check.add(StatisticsCondition(nat_client, 'topology', '# peers connected', 1))
+    check.add(
+        StatisticsCondition(nat_client, 'topology', '# peers connected', 1)
+    )
     check.add(StatisticsCondition(nat_client, 'dht', '# peers connected', 1))
     check.add(StatisticsCondition(nat_client, 'fs', '# peers connected', 1))
 
@@ -133,6 +140,7 @@ def check_connect():
 #
 # Test execution
 #
+
 
 def SigHandler(signum=None, frame=None):
     global success
@@ -204,7 +212,7 @@ def run():
 
 try:
     run()
-except(KeyboardInterrupt, SystemExit):
+except (KeyboardInterrupt, SystemExit):
     print('Test interrupted')
     server.stop()
     nat_client.stop()

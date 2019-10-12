@@ -11,7 +11,7 @@
 #    WITHOUT ANY WARRANTY; without even the implied warranty of
 #    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
 #    Affero General Public License for more details.
-#   
+#
 #    You should have received a copy of the GNU Affero General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
@@ -39,7 +39,10 @@ elif os.name == 'nt':
 TEST_CONFIGURATION = "test_revocation.conf"
 TEST_REVOCATION_EGO = "revoc_test"
 
-get_clean = subprocess.Popen([config, '-c', TEST_CONFIGURATION, '-s', 'PATHS', '-o', 'GNUNET_HOME', '-f'], stdout=subprocess.PIPE)
+get_clean = subprocess.Popen([
+    config, '-c', TEST_CONFIGURATION, '-s', 'PATHS', '-o', 'GNUNET_HOME', '-f'
+],
+                             stdout=subprocess.PIPE)
 cleandir, x = get_clean.communicate()
 cleandir = cleandir.decode("utf-8")
 cleandir = cleandir.rstrip('\n').rstrip('\r')
@@ -55,10 +58,15 @@ try:
     print("Creating an ego " + TEST_REVOCATION_EGO)
     sys.stdout.flush()
     sys.stderr.flush()
-    idc = subprocess.Popen([ident, '-C', TEST_REVOCATION_EGO, '-c', TEST_CONFIGURATION])
+    idc = subprocess.Popen([
+        ident, '-C', TEST_REVOCATION_EGO, '-c', TEST_CONFIGURATION
+    ])
     idc.communicate()
     if idc.returncode != 0:
-        raise Exception("gnunet-identity failed to create an ego `" + TEST_REVOCATION_EGO + "'")
+        raise Exception(
+            "gnunet-identity failed to create an ego `" + TEST_REVOCATION_EGO +
+            "'"
+        )
 
     sys.stdout.flush()
     sys.stderr.flush()
@@ -72,11 +80,15 @@ try:
     print("Testing key " + rev_key)
     sys.stdout.flush()
     sys.stderr.flush()
-    tst = subprocess.Popen([revoc, '-t', rev_key, '-c', TEST_CONFIGURATION], stdout=subprocess.PIPE)
+    tst = subprocess.Popen([revoc, '-t', rev_key, '-c', TEST_CONFIGURATION],
+                           stdout=subprocess.PIPE)
     output_not_revoked, x = tst.communicate()
     output_not_revoked = output_not_revoked.decode("utf-8")
     if tst.returncode != 0:
-        raise Exception("gnunet-revocation failed to test a key - " + str(tst.returncode) + ": " + output_not_revoked)
+        raise Exception(
+            "gnunet-revocation failed to test a key - " + str(tst.returncode) +
+            ": " + output_not_revoked
+        )
     if 'valid' not in output_not_revoked:
         res = 1
         print("Key was not valid")
@@ -86,7 +98,9 @@ try:
     print("Revoking key " + rev_key)
     sys.stdout.flush()
     sys.stderr.flush()
-    rev = subprocess.Popen([revoc, '-R', TEST_REVOCATION_EGO, '-p', '-c', TEST_CONFIGURATION])
+    rev = subprocess.Popen([
+        revoc, '-R', TEST_REVOCATION_EGO, '-p', '-c', TEST_CONFIGURATION
+    ])
     rev.communicate()
     if rev.returncode != 0:
         raise Exception("gnunet-revocation failed to revoke a key")
@@ -94,7 +108,8 @@ try:
     print("Testing revoked key " + rev_key)
     sys.stdout.flush()
     sys.stderr.flush()
-    tst = subprocess.Popen([revoc, '-t', rev_key, '-c', TEST_CONFIGURATION], stdout=subprocess.PIPE)
+    tst = subprocess.Popen([revoc, '-t', rev_key, '-c', TEST_CONFIGURATION],
+                           stdout=subprocess.PIPE)
     output_revoked, x = tst.communicate()
     output_revoked = output_revoked.decode("utf-8")
     if tst.returncode != 0:
