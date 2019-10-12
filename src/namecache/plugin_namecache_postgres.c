@@ -42,9 +42,9 @@ struct Plugin
   const struct GNUNET_CONFIGURATION_Handle *cfg;
 
   /**
-   * Native Postgres database handle.
+   * Postgres database handle.
    */
-  PGconn *dbh;
+  struct GNUNET_PQ_Context *dbh;
 };
 
 
@@ -75,10 +75,6 @@ database_setup (struct Plugin *plugin)
                             "WITH OIDS");
   const struct GNUNET_PQ_ExecuteStatement *cr;
 
-  plugin->dbh = GNUNET_PQ_connect_with_cfg (plugin->cfg,
-                                            "namecache-postgres");
-  if (NULL == plugin->dbh)
-    return GNUNET_SYSERR;
   if (GNUNET_YES ==
       GNUNET_CONFIGURATION_get_value_yesno (plugin->cfg,
                                             "namecache-postgres",
@@ -90,7 +86,6 @@ database_setup (struct Plugin *plugin)
   {
     cr = &es_default;
   }
-
   {
     struct GNUNET_PQ_ExecuteStatement es[] = {
       *cr,
@@ -100,18 +95,6 @@ database_setup (struct Plugin *plugin)
         "CREATE INDEX ir_block_expiration ON ns096blocks (expiration_time)"),
       GNUNET_PQ_EXECUTE_STATEMENT_END
     };
-
-    if (GNUNET_OK !=
-        GNUNET_PQ_exec_statements (plugin->dbh,
-                                   es))
-    {
-      PQfinish (plugin->dbh);
-      plugin->dbh = NULL;
-      return GNUNET_SYSERR;
-    }
-  }
-
-  {
     struct GNUNET_PQ_PreparedStatement ps[] = {
       GNUNET_PQ_make_prepare ("cache_block",
                               "INSERT INTO ns096blocks (query, block, expiration_time) VALUES "
@@ -128,16 +111,13 @@ database_setup (struct Plugin *plugin)
       GNUNET_PQ_PREPARED_STATEMENT_END
     };
 
-    if (GNUNET_OK !=
-        GNUNET_PQ_prepare_statements (plugin->dbh,
-                                      ps))
-    {
-      PQfinish (plugin->dbh);
-      plugin->dbh = NULL;
-      return GNUNET_SYSERR;
-    }
+    plugin->dbh = GNUNET_PQ_connect_with_cfg (plugin->cfg,
+                                              "namecache-postgres",
+                                              es,
+                                              ps);
   }
-
+  if (NULL == plugin->dbh)
+    return GNUNET_SYSERR;
   return GNUNET_OK;
 }
 
@@ -311,7 +291,7 @@ namecache_postgres_lookup_block (void *cls,
 static void
 database_shutdown (struct Plugin *plugin)
 {
-  PQfinish (plugin->dbh);
+  GNUNET_PQ_disconnect (plugin->dbh);
   plugin->dbh = NULL;
 }
 

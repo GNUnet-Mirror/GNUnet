@@ -1,6 +1,6 @@
 /*
    This file is part of GNUnet
-   Copyright (C) 2017 GNUnet e.V.
+   Copyright (C) 2017, 2019 GNUnet e.V.
 
    GNUnet is free software: you can redistribute it and/or modify it
    under the terms of the GNU Affero General Public License as published
@@ -23,8 +23,7 @@
  * @author Christian Grothoff
  */
 #include "platform.h"
-#include "gnunet_util_lib.h"
-#include "gnunet_pq_lib.h"
+#include "pq.h"
 
 
 /**
@@ -67,14 +66,14 @@ GNUNET_PQ_make_try_execute (const char *sql)
 /**
  * Request execution of an array of statements @a es from Postgres.
  *
- * @param connection connection to execute the statements over
+ * @param db database to execute the statements with
  * @param es #GNUNET_PQ_PREPARED_STATEMENT_END-terminated array of prepared
  *            statements.
  * @return #GNUNET_OK on success (modulo statements where errors can be ignored)
  *         #GNUNET_SYSERR on error
  */
 int
-GNUNET_PQ_exec_statements (PGconn *connection,
+GNUNET_PQ_exec_statements (struct GNUNET_PQ_Context *db,
                            const struct GNUNET_PQ_ExecuteStatement *es)
 {
   for (unsigned int i = 0; NULL != es[i].sql; i++)
@@ -84,8 +83,8 @@ GNUNET_PQ_exec_statements (PGconn *connection,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Running statement `%s' on %p\n",
                 es[i].sql,
-                connection);
-    result = PQexec (connection,
+                db);
+    result = PQexec (db->conn,
                      es[i].sql);
     if ((GNUNET_NO == es[i].ignore_errors) &&
         (PGRES_COMMAND_OK != PQresultStatus (result)))
@@ -100,7 +99,7 @@ GNUNET_PQ_exec_statements (PGconn *connection,
                                            PG_DIAG_MESSAGE_DETAIL),
                        PQresultErrorMessage (result),
                        PQresStatus (PQresultStatus (result)),
-                       PQerrorMessage (connection));
+                       PQerrorMessage (db->conn));
       PQclear (result);
       return GNUNET_SYSERR;
     }

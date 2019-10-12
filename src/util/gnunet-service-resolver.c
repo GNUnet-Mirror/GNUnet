@@ -642,9 +642,9 @@ try_cache (const char *hostname,
     const struct GNUNET_DNSPARSER_Record *record = rle->record;
 
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Found cache entry for '%s', record type '%u'\n",
+                "Checking cache entry for '%s', record is for '%s'\n",
                 hostname,
-                record_type);
+                record->name);
     if ((GNUNET_DNSPARSER_TYPE_CNAME == record->type) &&
         (GNUNET_DNSPARSER_TYPE_CNAME != record_type) && (GNUNET_NO == found))
     {
@@ -653,7 +653,8 @@ try_cache (const char *hostname,
       process_get (hostname, record_type, client_request_id, client);
       return GNUNET_YES;     /* counts as a cache "hit" */
     }
-    found |= send_reply (rle->record, record_type, client_request_id, client);
+    if (0 == strcmp (record->name, hostname))
+      found |= send_reply (rle->record, record_type, client_request_id, client);
   }
   if (GNUNET_NO == found)
     return GNUNET_NO; /* had records, but none matched! */
@@ -723,6 +724,9 @@ cache_answers (const char *name,
     {
       rc = GNUNET_new (struct ResolveCache);
       rc->hostname = GNUNET_strdup (name);
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Caching record for name %s under %s\n",
+                  record->name, name);
       GNUNET_CONTAINER_DLL_insert (cache_head, cache_tail, rc);
       cache_size++;
     }

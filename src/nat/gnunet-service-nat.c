@@ -335,6 +335,11 @@ static struct StunExternalIP *se_tail;
  */
 int enable_upnp;
 
+/**
+ * Is IP Scanning enabled? #GNUNET_YES if enabled, #GNUNET_NO if disabled,
+ * without, only explicitly specified IPs will be handled (HOLE_EXTERNAL)
+ */
+int enable_ipscan;
 
 /**
  * Remove and free an entry from the #lal_head DLL.
@@ -1939,12 +1944,18 @@ run (void *cls,
                                            &dyndns_frequency))
     dyndns_frequency = DYNDNS_FREQUENCY;
 
+  enable_ipscan
+    = GNUNET_CONFIGURATION_get_value_yesno (cfg,
+                                            "NAT",
+                                            "ENABLE_IPSCAN");
+
   GNUNET_SCHEDULER_add_shutdown (&shutdown_task,
                                  NULL);
   stats = GNUNET_STATISTICS_create ("nat",
                                     cfg);
-  scan_task = GNUNET_SCHEDULER_add_now (&run_scan,
-                                        NULL);
+  if (GNUNET_YES == enable_ipscan)
+    scan_task = GNUNET_SCHEDULER_add_now (&run_scan,
+                                          NULL);
 }
 
 

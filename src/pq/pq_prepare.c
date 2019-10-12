@@ -1,6 +1,6 @@
 /*
    This file is part of GNUnet
-   Copyright (C) 2017 GNUnet e.V.
+   Copyright (C) 2017, 2019 GNUnet e.V.
 
    GNUnet is free software: you can redistribute it and/or modify it
    under the terms of the GNU Affero General Public License as published
@@ -23,8 +23,7 @@
  * @author Christian Grothoff
  */
 #include "platform.h"
-#include "gnunet_util_lib.h"
-#include "gnunet_pq_lib.h"
+#include "pq.h"
 
 
 /**
@@ -53,16 +52,42 @@ GNUNET_PQ_make_prepare (const char *name,
 /**
  * Request creation of prepared statements @a ps from Postgres.
  *
- * @param connection connection to prepare the statements for
+ * @param db database to prepare the statements for
  * @param ps #GNUNET_PQ_PREPARED_STATEMENT_END-terminated array of prepared
  *            statements.
  * @return #GNUNET_OK on success,
  *         #GNUNET_SYSERR on error
  */
 int
-GNUNET_PQ_prepare_statements (PGconn *connection,
+GNUNET_PQ_prepare_statements (struct GNUNET_PQ_Context *db,
                               const struct GNUNET_PQ_PreparedStatement *ps)
 {
+  if (db->ps != ps)
+  {
+    /* add 'ps' to list db->ps of prepared statements to run on reconnect! */
+    unsigned int olen = 0; /* length of existing 'db->ps' array */
+    unsigned int nlen = 0; /* length of 'ps' array */
+    struct GNUNET_PQ_PreparedStatement *rps; /* combined array */
+
+    if (NULL != db->ps)
+      while (NULL != db->ps[olen].name)
+        olen++;
+    while (NULL != ps[nlen].name)
+      nlen++;
+    rps = GNUNET_new_array (olen + nlen + 1,
+                            struct GNUNET_PQ_PreparedStatement);
+    if (NULL != db->ps)
+      memcpy (rps,
+              db->ps,
+              olen * sizeof (struct GNUNET_PQ_PreparedStatement));
+    memcpy (&rps[olen],
+            ps,
+            nlen * sizeof (struct GNUNET_PQ_PreparedStatement));
+    GNUNET_free_non_null (db->ps);
+    db->ps = rps;
+  }
+
+  /* actually prepare statements */
   for (unsigned int i = 0; NULL != ps[i].name; i++)
   {
     PGresult *ret;
@@ -72,7 +97,7 @@ GNUNET_PQ_prepare_statements (PGconn *connection,
                      "Preparing SQL statement `%s' as `%s'\n",
                      ps[i].sql,
                      ps[i].name);
-    ret = PQprepare (connection,
+    ret = PQprepare (db->conn,
                      ps[i].name,
                      ps[i].sql,
                      ps[i].num_arguments,
@@ -84,7 +109,7 @@ GNUNET_PQ_prepare_statements (PGconn *connection,
                        _ ("PQprepare (`%s' as `%s') failed with error: %s\n"),
                        ps[i].sql,
                        ps[i].name,
-                       PQerrorMessage (connection));
+                       PQerrorMessage (db->conn));
       PQclear (ret);
       return GNUNET_SYSERR;
     }

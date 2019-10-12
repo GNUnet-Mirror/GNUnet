@@ -587,7 +587,7 @@ extract_abs_time (void *cls,
   res = (int64_t *) PQgetvalue (result,
                                 row,
                                 fnum);
-  if (INT64_MAX == *res)
+  if (INT64_MAX == GNUNET_ntohll ((uint64_t) *res))
     *udst = GNUNET_TIME_UNIT_FOREVER_ABS;
   else
     udst->abs_value_us = GNUNET_ntohll ((uint64_t) *res);

@@ -12,6 +12,9 @@ UNIX_MATCH_GID = YES
 # Enable UPNP by default?
 ENABLE_UPNP = YES
 
+# Enable scanning for all system IP addresses?
+ENABLE_IPSCAN = YES
+
 # Disable IPv6 support
 # FIXME: move entirely to transport plugins!
 DISABLEV6 = NO

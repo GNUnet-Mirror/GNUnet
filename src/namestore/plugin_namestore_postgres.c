@@ -45,9 +45,9 @@ struct Plugin
   const struct GNUNET_CONFIGURATION_Handle *cfg;
 
   /**
-   * Native Postgres database handle.
+   * Postgres database handle.
    */
-  PGconn *dbh;
+  struct GNUNET_PQ_Context *dbh;
 };
 
 
@@ -88,30 +88,8 @@ database_setup (struct Plugin *plugin)
                             ")"
                             "WITH OIDS");
   const struct GNUNET_PQ_ExecuteStatement *cr;
+  struct GNUNET_PQ_ExecuteStatement sc = GNUNET_PQ_EXECUTE_STATEMENT_END;
 
-  plugin->dbh = GNUNET_PQ_connect_with_cfg (plugin->cfg,
-                                            "namestore-postgres");
-  if (NULL == plugin->dbh)
-    return GNUNET_SYSERR;
-  if (GNUNET_YES ==
-      GNUNET_CONFIGURATION_get_value_yesno (plugin->cfg,
-                                            "namestore-postgres",
-                                            "ASYNC_COMMIT"))
-  {
-    struct GNUNET_PQ_ExecuteStatement es[] = {
-      GNUNET_PQ_make_try_execute ("SET synchronous_commit TO off"),
-      GNUNET_PQ_EXECUTE_STATEMENT_END
-    };
-
-    if (GNUNET_OK !=
-        GNUNET_PQ_exec_statements (plugin->dbh,
-                                   es))
-    {
-      PQfinish (plugin->dbh);
-      plugin->dbh = NULL;
-      return GNUNET_SYSERR;
-    }
-  }
   if (GNUNET_YES ==
       GNUNET_CONFIGURATION_get_value_yesno (plugin->cfg,
                                             "namestore-postgres",
@@ -124,6 +102,12 @@ database_setup (struct Plugin *plugin)
     cr = &es_default;
   }
 
+  if (GNUNET_YES ==
+      GNUNET_CONFIGURATION_get_value_yesno (plugin->cfg,
+                                            "namestore-postgres",
+                                            "ASYNC_COMMIT"))
+    sc = GNUNET_PQ_make_try_execute ("SET synchronous_commit TO off");
+
   {
     struct GNUNET_PQ_ExecuteStatement es[] = {
       *cr,
@@ -135,20 +119,9 @@ database_setup (struct Plugin *plugin)
                                   "ON ns098records (label)"),
       GNUNET_PQ_make_try_execute ("CREATE INDEX IF NOT EXISTS zone_label "
                                   "ON ns098records (zone_private_key,label)"),
+      sc,
       GNUNET_PQ_EXECUTE_STATEMENT_END
     };
-
-    if (GNUNET_OK !=
-        GNUNET_PQ_exec_statements (plugin->dbh,
-                                   es))
-    {
-      PQfinish (plugin->dbh);
-      plugin->dbh = NULL;
-      return GNUNET_SYSERR;
-    }
-  }
-
-  {
     struct GNUNET_PQ_PreparedStatement ps[] = {
       GNUNET_PQ_make_prepare ("store_records",
                               "INSERT INTO ns098records"
@@ -183,16 +156,13 @@ database_setup (struct Plugin *plugin)
       GNUNET_PQ_PREPARED_STATEMENT_END
     };
 
-    if (GNUNET_OK !=
-        GNUNET_PQ_prepare_statements (plugin->dbh,
-                                      ps))
-    {
-      PQfinish (plugin->dbh);
-      plugin->dbh = NULL;
-      return GNUNET_SYSERR;
-    }
+    plugin->dbh = GNUNET_PQ_connect_with_cfg (plugin->cfg,
+                                              "namestore-postgres",
+                                              es,
+                                              ps);
   }
-
+  if (NULL == plugin->dbh)
+    return GNUNET_SYSERR;
   return GNUNET_OK;
 }
 
@@ -593,7 +563,7 @@ namestore_postgres_zone_to_name (void *cls,
 static void
 database_shutdown (struct Plugin *plugin)
 {
-  PQfinish (plugin->dbh);
+  GNUNET_PQ_disconnect (plugin->dbh);
   plugin->dbh = NULL;
 }
 

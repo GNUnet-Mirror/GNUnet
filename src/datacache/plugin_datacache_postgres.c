@@ -48,7 +48,7 @@ struct Plugin
   /**
    * Native Postgres database handle.
    */
-  PGconn *dbh;
+  struct GNUNET_PQ_Context *dbh;
 
   /**
    * Number of key-value pairs in the database.
@@ -122,26 +122,11 @@ init_connection (struct Plugin *plugin)
   };
 
   plugin->dbh = GNUNET_PQ_connect_with_cfg (plugin->env->cfg,
-                                            "datacache-postgres");
+                                            "datacache-postgres",
+                                            es,
+                                            ps);
   if (NULL == plugin->dbh)
     return GNUNET_SYSERR;
-  if (GNUNET_OK !=
-      GNUNET_PQ_exec_statements (plugin->dbh,
-                                 es))
-  {
-    PQfinish (plugin->dbh);
-    plugin->dbh = NULL;
-    return GNUNET_SYSERR;
-  }
-
-  if (GNUNET_OK !=
-      GNUNET_PQ_prepare_statements (plugin->dbh,
-                                    ps))
-  {
-    PQfinish (plugin->dbh);
-    plugin->dbh = NULL;
-    return GNUNET_SYSERR;
-  }
   return GNUNET_OK;
 }
 
@@ -710,7 +695,7 @@ libgnunet_plugin_datacache_postgres_done (void *cls)
   struct GNUNET_DATACACHE_PluginFunctions *api = cls;
   struct Plugin *plugin = api->cls;
 
-  PQfinish (plugin->dbh);
+  GNUNET_PQ_disconnect (plugin->dbh);
   GNUNET_free (plugin);
   GNUNET_free (api);
   return NULL;

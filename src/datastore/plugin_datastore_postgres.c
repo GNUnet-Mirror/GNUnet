@@ -54,7 +54,7 @@ struct Plugin
   /**
    * Native Postgres database handle.
    */
-  PGconn *dbh;
+  struct GNUNET_PQ_Context *dbh;
 };
 
 
@@ -172,21 +172,11 @@ init_connection (struct Plugin *plugin)
 #undef RESULT_COLUMNS
 
   plugin->dbh = GNUNET_PQ_connect_with_cfg (plugin->env->cfg,
-                                            "datastore-postgres");
+                                            "datastore-postgres",
+                                            es,
+                                            ps);
   if (NULL == plugin->dbh)
     return GNUNET_SYSERR;
-
-  if ((GNUNET_OK !=
-       GNUNET_PQ_exec_statements (plugin->dbh,
-                                  es)) ||
-      (GNUNET_OK !=
-       GNUNET_PQ_prepare_statements (plugin->dbh,
-                                     ps)))
-  {
-    PQfinish (plugin->dbh);
-    plugin->dbh = NULL;
-    return GNUNET_SYSERR;
-  }
   return GNUNET_OK;
 }
 
@@ -974,7 +964,7 @@ libgnunet_plugin_datastore_postgres_done (void *cls)
   struct GNUNET_DATASTORE_PluginFunctions *api = cls;
   struct Plugin *plugin = api->cls;
 
-  PQfinish (plugin->dbh);
+  GNUNET_PQ_disconnect (plugin->dbh);
   GNUNET_free (plugin);
   GNUNET_free (api);
   return NULL;

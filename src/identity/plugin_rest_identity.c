@@ -1234,11 +1234,46 @@ init_egos (void *cls,
     GNUNET_IDENTITY_ego_get_public_key (ego, &pk);
     ego_entry->keystring = GNUNET_CRYPTO_ecdsa_public_key_to_string (&pk);
     ego_entry->ego = ego;
-    GNUNET_asprintf (&ego_entry->identifier, "%s", identifier);
+    ego_entry->identifier = GNUNET_strdup (identifier);
     GNUNET_CONTAINER_DLL_insert_tail (handle->ego_head,
                                       handle->ego_tail,
                                       ego_entry);
+    return;
   }
+  // Check if ego exists
+  for (ego_entry = handle->ego_head; NULL != ego_entry;)
+  {
+    struct EgoEntry *tmp = ego_entry;
+    ego_entry = ego_entry->next;
+    if (ego != tmp->ego)
+      continue;
+    // Deleted
+    if (NULL == identifier)
+    {
+      GNUNET_CONTAINER_DLL_remove (handle->ego_head,
+                                   handle->ego_tail,
+                                   tmp);
+      GNUNET_free (tmp->keystring);
+      GNUNET_free (tmp->identifier);
+      GNUNET_free (tmp);
+    }
+    else {
+      // Renamed
+      GNUNET_free (tmp->identifier);
+      tmp->identifier = GNUNET_strdup (identifier);
+    }
+    return;
+  }
+  // New ego
+  ego_entry = GNUNET_new (struct EgoEntry);
+  GNUNET_IDENTITY_ego_get_public_key (ego, &pk);
+  ego_entry->keystring = GNUNET_CRYPTO_ecdsa_public_key_to_string (&pk);
+  ego_entry->ego = ego;
+  GNUNET_asprintf (&ego_entry->identifier, "%s", identifier);
+  GNUNET_CONTAINER_DLL_insert_tail (handle->ego_head,
+                                    handle->ego_tail,
+                                    ego_entry);
+
 }
 
 /**
