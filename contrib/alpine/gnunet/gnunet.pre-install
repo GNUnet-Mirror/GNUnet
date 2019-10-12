@@ -6,12 +6,12 @@ addgroup -S gnunet 2>/dev/null
 
 # Add system user/group gnunet for system services
 adduser -S -h "/var/lib/gnunet" -s /bin/sh \
-        -G gnunet -g gnunet gnunet 2>/dev/null
+	-G gnunet -g gnunet gnunet 2>/dev/null
 
 # add users on host system to group "gnunet"
 users=`awk -F ':' '$3>=1000 && $3<2000 {print $1}' /etc/passwd`
 for user in $users; do
-        adduser $user gnunet 2>/dev/null
+	adduser $user gnunet 2>/dev/null
 done
 
 exit 0

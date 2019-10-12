@@ -5,72 +5,65 @@ pkgver=7.65.3
 pkgrel=0
 pkgdesc="curl with only HTTP/HTTPS support and GnuTLS"
 url="https://gnunet.org/en/gnurl.html"
-giturl="git://git.taler.net/gnurl.git"
 arch="all"
 license="MIT"
 depends="ca-certificates gnutls libidn2 zlib"
 depends_dev="gnutls-dev libidn2-dev zlib-dev"
 makedepends="$depends_dev autoconf automake libtool perl pkgconf python3"
 subpackages="$pkgname-dbg $pkgname-dev $pkgname-doc libgnurl"
-source="https://ftp.gnu.org/gnu/gnunet/$pkgname-$pkgver.tar.gz"
-builddir="$srcdir/$pkgname-$pkgver"
+source="https://ftp.gnu.org/gnu/gnunet/gnurl-$pkgver.tar.gz"
 
 prepare() {
 	default_prepare
-	cd "$builddir"
 	autoreconf -vfi
 }
 
 build() {
-	cd "$builddir"
-		
-  	./configure \
+	./configure \
 		--build=$CBUILD \
 		--host=$CHOST \
-                --with-ca-bundle=/etc/ssl/certs/ca-certificates.crt \
+		--with-ca-bundle=/etc/ssl/certs/ca-certificates.crt \
 		--prefix=/usr \
+		--disable-static \
 		--enable-ipv6 \
 		--with-gnutls \
-                --with-libidn2 \
+		--with-libidn2 \
 		--without-libpsl \
 		--without-libssh2 \
 		--without-libmetalink \
-                --without-winidn \
-                --without-librtmp \
-                --without-nghttp2 \
-                --without-nss \
-                --without-cyassl \
-                --without-polarssl \
-                --without-ssl \
-                --without-winssl \
-                --without-darwinssl \
-                --disable-sspi \
-                --disable-ntlm-wb \
-                --disable-ldap \
-                --disable-rtsp \
-                --disable-dict \
-                --disable-telnet \
-                --disable-tftp \
-                --disable-pop3 \
-                --disable-imap \
-                --disable-smtp \
-                --disable-gopher \
-                --disable-file \
-                --disable-ftp \
-                --disable-smb \
-                --disable-ares
-        make
+		--without-winidn \
+		--without-librtmp \
+		--without-nghttp2 \
+		--without-nss \
+		--without-cyassl \
+		--without-polarssl \
+		--without-ssl \
+		--without-winssl \
+		--without-darwinssl \
+		--disable-sspi \
+		--disable-ntlm-wb \
+		--disable-ldap \
+		--disable-rtsp \
+		--disable-dict \
+		--disable-telnet \
+		--disable-tftp \
+		--disable-pop3 \
+		--disable-imap \
+		--disable-smtp \
+		--disable-gopher \
+		--disable-file \
+		--disable-ftp \
+		--disable-smb \
+		--disable-ares
+	make
 }
 
 check() {
-	cd "$builddir"
 	make -C tests nonflaky-test
 }
 
 package() {
-	cd "$builddir"
-	make DESTDIR="$pkgdir" install 
-        #install -Dm644 COPYING "$pkgdir"/usr/share/licenses/$pkgname/COPYING
+	make DESTDIR="$pkgdir" install
 }
 
 libgnurl() {

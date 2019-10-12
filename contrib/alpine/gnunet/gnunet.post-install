@@ -37,8 +37,4 @@ y|Y )
         ;;
 esac
 
-rc-update add gnunet-system-services
-rc-update add gnunet-user-services
-rc-service gnunet-user-services start # starts system services
-
 exit 0

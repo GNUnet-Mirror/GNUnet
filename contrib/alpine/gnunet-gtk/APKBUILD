@@ -1,7 +1,7 @@
 # Contributor: xrs <xrs@mail36.net>
 # Maintainer: xrs <xrs@mail36.net>
-pkgname="gnunet-gtk"
-pkgver="0.11.5"
+pkgname=gnunet-gtk
+pkgver=0.11.5
 pkgrel=0
 pkgdesc="Graphical user interface for GNUnet"
 url="https://gnunet.org"
@@ -9,14 +9,11 @@ arch="all"
 license="GPL-3.0"
 depends="gnunet gtk+3.0 glade"
 makedepends="gnunet-dev gtk+3.0-dev glade-dev"
-install=""
 subpackages="$pkgname-dev $pkgname-doc"
-source="https://mirrors.ocf.berkeley.edu/gnu/gnunet/$pkgname-$pkgver.tar.gz"
-builddir="$srcdir/$pkgname-$pkgver"
-options="!check" # The GNUnet project lacks a good CI at the moment. 
+source="https://mirrors.ocf.berkeley.edu/gnu/gnunet/gnunet-gtk-$pkgver.tar.gz"
+options="!check" # The GNUnet project lacks a good CI at the moment.
 
 build() {
-	cd "$builddir"
 	./configure \
 		--build=$CBUILD \
 		--host=$CHOST \
@@ -24,14 +21,14 @@ build() {
 		--sysconfdir=/etc \
 		--mandir=/usr/share/man \
 		--localstatedir=/var \
-                --disable-fs-app \
-                --disable-conversation-app
+		--disable-fs-app \
+		--disable-conversation-app
 	make
 }
 
 check() {
 	make DESTDIR="$pkgdir" check
-        exit 0
+	exit 0
 }
 
 package() {

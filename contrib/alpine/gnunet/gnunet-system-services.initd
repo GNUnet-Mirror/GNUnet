@@ -12,5 +12,5 @@ pidfile="/run/${SVCNAME}.pid"
 
 depend() {
 	need net
-        before gnunet-user-services
+	before gnunet-user-services
 }
