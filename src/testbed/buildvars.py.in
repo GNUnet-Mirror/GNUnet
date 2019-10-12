@@ -16,7 +16,6 @@
 #
 # SPDX-License-Identifier: AGPL3.0-or-later
 
-
 # file:     testbed/buildvars.py
 # brief:    file for importing variables from build system into python
 # author:   Sree Harsha Totakura
