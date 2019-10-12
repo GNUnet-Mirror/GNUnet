@@ -160,15 +160,14 @@ static struct
                        { NULL, UINT32_MAX } };
 
 /**
-   * Mapping of attribute type numbers to human-readable
-   * attribute type names.
-   */
+ * Mapping of attestation type numbers to human-readable
+ * attestation type names.
+ */
 static struct
 {
   const char *name;
   uint32_t number;
-} gnuid_attest_name_map[] = { { "STRING",
-                                GNUNET_RECLAIM_ATTRIBUTE_TYPE_STRING },
+} gnuid_attest_name_map[] = { { "JWT", GNUNET_RECLAIM_ATTESTATION_TYPE_JWT },
                               { NULL, UINT32_MAX } };
 
 /**
