@@ -19,6 +19,7 @@ INITD_FILES = \
 
 EXTRA_DIST = \
  conf/colorit/colorit.conf \
+ conf/.style.yapf \
  conf/editors/eclipse/gnunet_codingstyle.xml \
  conf/gnunet/no_forcestart.conf \
  conf/gnunet/no_autostart_above_core.conf \
