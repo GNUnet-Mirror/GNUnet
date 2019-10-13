@@ -328,6 +328,11 @@ struct AttributeStoreHandle
   struct GNUNET_RECLAIM_ATTRIBUTE_Claim *claim;
 
   /**
+  * The attestation to store
+  */
+  struct GNUNET_RECLAIM_ATTESTATION_Claim *attest;
+
+  /**
    * The attribute expiration interval
    */
   struct GNUNET_TIME_Relative exp;
@@ -486,6 +491,8 @@ cleanup_as_handle (struct AttributeStoreHandle *ash)
     GNUNET_NAMESTORE_cancel (ash->ns_qe);
   if (NULL != ash->claim)
     GNUNET_free (ash->claim);
+  if (NULL != ash->attest)
+    GNUNET_free (ash->attest);
   GNUNET_free (ash);
 }
 
@@ -1021,6 +1028,139 @@ handle_attribute_store_message (void *cls,
   GNUNET_SCHEDULER_add_now (&attr_store_task, ash);
 }
 
+
+/**
+ * Attestation store result handler
+ *
+ * @param cls our attribute store handle
+ * @param success GNUNET_OK if successful
+ * @param emsg error message (NULL if success=GNUNET_OK)
+ */
+static void
+attest_store_cont (void *cls, int32_t success, const char *emsg)
+{
+  struct AttributeStoreHandle *ash = cls;
+  struct GNUNET_MQ_Envelope *env;
+  struct SuccessResultMessage *acr_msg;
+
+  ash->ns_qe = NULL;
+  GNUNET_CONTAINER_DLL_remove (ash->client->store_op_head,
+                               ash->client->store_op_tail,
+                               ash);
+
+  if (GNUNET_SYSERR == success)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Failed to store attestation %s\n",
+                emsg);
+    cleanup_as_handle (ash);
+    GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
+    return;
+  }
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending SUCCESS_RESPONSE message\n");
+  env = GNUNET_MQ_msg (acr_msg, GNUNET_MESSAGE_TYPE_RECLAIM_SUCCESS_RESPONSE);
+  acr_msg->id = htonl (ash->r_id);
+  acr_msg->op_result = htonl (GNUNET_OK);
+  GNUNET_MQ_send (ash->client->mq, env);
+  cleanup_as_handle (ash);
+}
+
+/**
+ * Add a new attestation
+ *
+ * @param cls the AttributeStoreHandle
+ */
+static void
+attest_store_task (void *cls)
+{
+  struct AttributeStoreHandle *ash = cls;
+  struct GNUNET_GNSRECORD_Data rd[1];
+  char *buf;
+  char *label;
+  size_t buf_size;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Storing attestation\n");
+  buf_size = GNUNET_RECLAIM_ATTESTATION_serialize_get_size (ash->attest);
+  buf = GNUNET_malloc (buf_size);
+  // Give the ash a new id if unset
+  if (0 == ash->attest->id)
+    ash->attest->id
+      = GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_STRONG, UINT64_MAX);
+  GNUNET_RECLAIM_ATTESTATION_serialize (ash->attest, buf);
+  label = GNUNET_STRINGS_data_to_string_alloc (&ash->attest->id,
+                                               sizeof(uint64_t));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Encrypting with label %s\n", label);
+
+  rd[0].data_size = buf_size;
+  rd[0].data = buf;
+  rd[0].record_type = GNUNET_GNSRECORD_TYPE_RECLAIM_ATTEST_ATTR;
+  rd[0].flags = GNUNET_GNSRECORD_RF_RELATIVE_EXPIRATION;
+  rd[0].expiration_time = ash->exp.rel_value_us;
+  ash->ns_qe = GNUNET_NAMESTORE_records_store (nsh,
+                                               &ash->identity,
+                                               label,
+                                               1,
+                                               rd,
+                                               &attest_store_cont,
+                                               ash);
+  GNUNET_free (buf);
+  GNUNET_free (label);
+}
+
+/**
+ * Check an attestation store message
+ *
+ * @param cls unused
+ * @param sam the message to check
+ */
+static int
+check_attestation_store_message (void *cls,
+                                 const struct AttributeStoreMessage *sam)
+{
+  uint16_t size;
+
+  size = ntohs (sam->header.size);
+  if (size <= sizeof(struct AttributeStoreMessage))
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
+  return GNUNET_OK;
+}
+
+/**
+* Handle an attestation store message
+*
+* @param cls our client
+* @param sam the message to handle
+*/
+static void
+handle_attestation_store_message (void *cls,
+                                  const struct AttributeStoreMessage *sam)
+{
+  struct AttributeStoreHandle *ash;
+  struct IdpClient *idp = cls;
+  size_t data_len;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received ATTESTATION_STORE message\n");
+
+  data_len = ntohs (sam->attr_len);
+
+  ash = GNUNET_new (struct AttributeStoreHandle);
+  ash->attest = GNUNET_RECLAIM_ATTESTATION_deserialize ((char *) &sam[1],
+                                                        data_len);
+
+  ash->r_id = ntohl (sam->id);
+  ash->identity = sam->identity;
+  ash->exp.rel_value_us = GNUNET_ntohll (sam->exp);
+  GNUNET_CRYPTO_ecdsa_key_get_public (&sam->identity, &ash->identity_pkey);
+
+  GNUNET_SERVICE_client_continue (idp->client);
+  ash->client = idp;
+  GNUNET_CONTAINER_DLL_insert (idp->store_op_head, idp->store_op_tail, ash);
+  GNUNET_SCHEDULER_add_now (&attest_store_task, ash);
+}
 
 /**
  * Send a deletion success response
@@ -1740,6 +1880,10 @@ GNUNET_SERVICE_MAIN (
   NULL,
   GNUNET_MQ_hd_var_size (attribute_store_message,
                          GNUNET_MESSAGE_TYPE_RECLAIM_ATTRIBUTE_STORE,
+                         struct AttributeStoreMessage,
+                         NULL),
+  GNUNET_MQ_hd_var_size (attestation_store_message,
+                         GNUNET_MESSAGE_TYPE_RECLAIM_ATTESTATION_STORE,
                          struct AttributeStoreMessage,
                          NULL),
   GNUNET_MQ_hd_var_size (attribute_delete_message,

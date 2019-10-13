@@ -152,6 +152,28 @@ GNUNET_RECLAIM_attribute_store (
 
 
 /**
+   * Store an attestation.  If the attestation is already present,
+   * it is replaced with the new attestation.
+   *
+   * @param h handle to the re:claimID service
+   * @param pkey private key of the identity
+   * @param attr the attestation value
+   * @param exp_interval the relative expiration interval for the attestation
+   * @param cont continuation to call when done
+   * @param cont_cls closure for @a cont
+   * @return handle to abort the request
+   */
+struct GNUNET_RECLAIM_Operation *
+GNUNET_RECLAIM_attestation_store (
+  struct GNUNET_RECLAIM_Handle *h,
+  const struct GNUNET_CRYPTO_EcdsaPrivateKey *pkey,
+  const struct GNUNET_RECLAIM_ATTESTATION_Claim *attr,
+  const struct GNUNET_TIME_Relative *exp_interval,
+  GNUNET_RECLAIM_ContinuationWithStatus cont,
+  void *cont_cls);
+
+
+/**
  * Delete an attribute. Tickets used to share this attribute are updated
  * accordingly.
  *

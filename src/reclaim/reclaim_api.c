@@ -925,6 +925,52 @@ GNUNET_RECLAIM_attribute_delete (
   return op;
 }
 
+/**
+   * Store an attestation.  If the attestation is already present,
+   * it is replaced with the new attestation.
+   *
+   * @param h handle to the re:claimID service
+   * @param pkey private key of the identity
+   * @param attr the attestation value
+   * @param exp_interval the relative expiration interval for the attestation
+   * @param cont continuation to call when done
+   * @param cont_cls closure for @a cont
+   * @return handle to abort the request
+   */
+struct GNUNET_RECLAIM_Operation *
+GNUNET_RECLAIM_attestation_store (
+  struct GNUNET_RECLAIM_Handle *h,
+  const struct GNUNET_CRYPTO_EcdsaPrivateKey *pkey,
+  const struct GNUNET_RECLAIM_ATTESTATION_Claim *attr,
+  const struct GNUNET_TIME_Relative *exp_interval,
+  GNUNET_RECLAIM_ContinuationWithStatus cont,
+  void *cont_cls)
+{
+  struct GNUNET_RECLAIM_Operation *op;
+  struct AttributeStoreMessage *sam;
+  size_t attr_len;
+
+  op = GNUNET_new (struct GNUNET_RECLAIM_Operation);
+  op->h = h;
+  op->as_cb = cont;
+  op->cls = cont_cls;
+  op->r_id = h->r_id_gen++;
+  GNUNET_CONTAINER_DLL_insert_tail (h->op_head, h->op_tail, op);
+  attr_len = GNUNET_RECLAIM_ATTESTATION_serialize_get_size (attr);
+  op->env = GNUNET_MQ_msg_extra (sam,
+                                 attr_len,
+                                 GNUNET_MESSAGE_TYPE_RECLAIM_ATTESTATION_STORE);
+  sam->identity = *pkey;
+  sam->id = htonl (op->r_id);
+  sam->exp = GNUNET_htonll (exp_interval->rel_value_us);
+
+  GNUNET_RECLAIM_ATTESTATION_serialize (attr, (char *) &sam[1]);
+
+  sam->attr_len = htons (attr_len);
+  if (NULL != h->mq)
+    GNUNET_MQ_send_copy (h->mq, op->env);
+  return op;
+}
 
 /**
  * List all attributes for a local identity.

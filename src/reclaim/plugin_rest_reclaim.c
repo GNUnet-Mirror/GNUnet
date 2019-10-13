@@ -242,210 +242,6 @@ struct RequestHandle
 };
 
 /**
- * Handle for attribute store request
- */
-struct AttributeStoreHandle
-{
-  /**
-   * DLL
-   */
-  struct AttributeStoreHandle *next;
-
-  /**
-   * DLL
-   */
-  struct AttributeStoreHandle *prev;
-
-  /**
-   * Client connection
-   */
-  struct IdpClient *client;
-
-  /**
-   * Identity
-   */
-  struct GNUNET_CRYPTO_EcdsaPrivateKey identity;
-
-  /**
-   * Identity pubkey
-   */
-  struct GNUNET_CRYPTO_EcdsaPublicKey identity_pkey;
-
-  /**
-   * QueueEntry
-   */
-  struct GNUNET_NAMESTORE_QueueEntry *ns_qe;
-
-  /**
-   * The attribute to store
-   */
-  struct GNUNET_RECLAIM_ATTRIBUTE_Claim *claim;
-
-  /**
-   * The attestation to store
-   */
-  struct GNUNET_RECLAIM_ATTESTATION_Claim *attest;
-
-  /**
-   * The attribute expiration interval
-   */
-  struct GNUNET_TIME_Relative exp;
-
-  /**
-   * request id
-   */
-  uint32_t r_id;
-};
-
-/**
- * Handle for attribute deletion request
- */
-struct AttributeDeleteHandle
-{
-  /**
-   * DLL
-   */
-  struct AttributeDeleteHandle *next;
-
-  /**
-   * DLL
-   */
-  struct AttributeDeleteHandle *prev;
-
-  /**
-   * Client connection
-   */
-  struct IdpClient *client;
-
-  /**
-   * Identity
-   */
-  struct GNUNET_CRYPTO_EcdsaPrivateKey identity;
-
-
-  /**
-   * QueueEntry
-   */
-  struct GNUNET_NAMESTORE_QueueEntry *ns_qe;
-
-  /**
-   * Iterator
-   */
-  struct GNUNET_NAMESTORE_ZoneIterator *ns_it;
-
-  /**
-   * The attribute to delete
-   */
-  struct GNUNET_RECLAIM_ATTRIBUTE_Claim *claim;
-
-  /**
-   * The attestation to store
-   */
-  struct GNUNET_RECLAIM_ATTESTATION_Claim *attest;
-
-  /**
-   * Tickets to update
-   */
-  struct TicketRecordsEntry *tickets_to_update_head;
-
-  /**
-   * Tickets to update
-   */
-  struct TicketRecordsEntry *tickets_to_update_tail;
-
-  /**
-   * Attribute label
-   */
-  char *label;
-
-  /**
-   * request id
-   */
-  uint32_t r_id;
-};
-
-/**
- * Handle to the service.
- */
-struct GNUNET_RECLAIM_Handle
-{
-  /**
-   * Configuration to use.
-   */
-  const struct GNUNET_CONFIGURATION_Handle *cfg;
-
-  /**
-   * Socket (if available).
-   */
-  struct GNUNET_CLIENT_Connection *client;
-
-  /**
-   * Closure for 'cb'.
-   */
-  void *cb_cls;
-
-  /**
-   * Head of active operations.
-   */
-  struct GNUNET_RECLAIM_Operation *op_head;
-
-  /**
-   * Tail of active operations.
-   */
-  struct GNUNET_RECLAIM_Operation *op_tail;
-
-  /**
-   * Head of active iterations
-   */
-  struct GNUNET_RECLAIM_AttributeIterator *it_head;
-
-  /**
-   * Tail of active iterations
-   */
-  struct GNUNET_RECLAIM_AttributeIterator *it_tail;
-
-  /**
-   * Head of active iterations
-   */
-  struct GNUNET_RECLAIM_TicketIterator *ticket_it_head;
-
-  /**
-   * Tail of active iterations
-   */
-  struct GNUNET_RECLAIM_TicketIterator *ticket_it_tail;
-
-  /**
-   * Currently pending transmission request, or NULL for none.
-   */
-  struct GNUNET_CLIENT_TransmitHandle *th;
-
-  /**
-   * Task doing exponential back-off trying to reconnect.
-   */
-  struct GNUNET_SCHEDULER_Task *reconnect_task;
-
-  /**
-   * Time for next connect retry.
-   */
-  struct GNUNET_TIME_Relative reconnect_backoff;
-
-  /**
-   * Connection to service (if available).
-   */
-  struct GNUNET_MQ_Handle *mq;
-
-  /**
-   * Request Id generator.  Incremented by one for each request.
-   */
-  uint32_t r_id_gen;
-
-  /**
-   * Are we polling for incoming messages right now?
-   */
-  int in_receive;
-};
-
-/**
  * Cleanup lookup handle
  * @param handle Handle to clean up
  */
@@ -656,6 +452,8 @@ ticket_collect (void *cls, const struct GNUNET_RECLAIM_Ticket *ticket)
   GNUNET_free (tmp);
   GNUNET_RECLAIM_ticket_iteration_next (handle->ticket_it);
 }
+
+
 static void
 add_attestation_cont (struct GNUNET_REST_RequestHandle *con_handle,
                       const char *url,
@@ -729,58 +527,12 @@ add_attestation_cont (struct GNUNET_REST_RequestHandle *con_handle,
       GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_STRONG, UINT64_MAX);
   handle->idp = GNUNET_RECLAIM_connect (cfg);
   exp = GNUNET_TIME_UNIT_HOURS;
-  /*New  */
-  struct GNUNET_RECLAIM_Handle *h = handle->idp;
-  struct GNUNET_CRYPTO_EcdsaPrivateKey *pkey = identity_priv;
-  /*struct GNUNET_RECLAIM_ATTESTATION_Claim *attr = attribute;*/
-  struct GNUNET_TIME_Relative *exp_interval = &exp;
-  /*GNUNET_RECLAIM_ContinuationWithStatus cont = &finished_cont;*/
-  void *cont_cls = handle;
-
-  struct AttributeStoreHandle *ash;
-  struct GNUNET_GNSRECORD_Data rd[1];
-  char *buf;
-  char *label;
-  size_t buf_size;
-  struct IdpClient *idp = cont_cls;
-  struct GNUNET_NAMESTORE_Handle *nsh;
-  nsh = GNUNET_NAMESTORE_connect (cfg);
-  if (NULL == nsh)
-  {
-    GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR,
-                         "error connecting to namestore");
-  }
-  ash = GNUNET_new (struct AttributeStoreHandle);
-  ash->identity = *pkey;
-  ash->r_id = h->r_id_gen++;
-  ash->exp.rel_value_us = exp_interval->rel_value_us;
-  ash->attest = attribute;
-  ash->client = idp;
-  buf_size = GNUNET_RECLAIM_ATTESTATION_serialize_get_size (ash->attest);
-  buf = GNUNET_malloc (buf_size);
-  // Give the ash a new id if unset
-  if (0 == ash->attest->id)
-    ash->attest->id
-      = GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_STRONG, UINT64_MAX);
-  GNUNET_RECLAIM_ATTESTATION_serialize (ash->attest, buf);
-  label = GNUNET_STRINGS_data_to_string_alloc (&ash->attest->id,
-                                               sizeof(uint64_t));
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Encrypting with label %s\n", label);
-
-  rd[0].data_size = buf_size;
-  rd[0].data = buf;
-  rd[0].record_type = GNUNET_GNSRECORD_TYPE_RECLAIM_ATTEST_ATTR;
-  rd[0].flags = GNUNET_GNSRECORD_RF_RELATIVE_EXPIRATION;
-  rd[0].expiration_time = ash->exp.rel_value_us;
-  ash->ns_qe = GNUNET_NAMESTORE_records_store (nsh,
-                                               &ash->identity,
-                                               label,
-                                               1,
-                                               rd,
-                                               &finished_cont,
-                                               ash);
-  GNUNET_free (buf);
-  GNUNET_free (label);
+  handle->idp_op = GNUNET_RECLAIM_attestation_store (handle->idp,
+                                                     identity_priv,
+                                                     attribute,
+                                                     &exp,
+                                                     &finished_cont,
+                                                     handle);
   GNUNET_JSON_parse_free (attrspec);
 }
 /*Placeholder*/
@@ -800,81 +552,9 @@ delete_attestation_cont (struct GNUNET_REST_RequestHandle *con_handle,
                          const char *url,
                          void *cls)
 {
-  const struct GNUNET_CRYPTO_EcdsaPrivateKey *priv_key;
-  struct RequestHandle *handle = cls;
-  struct GNUNET_RECLAIM_ATTESTATION_Claim attr;
-  struct EgoEntry *ego_entry;
-  char *identity_id_str;
-  char *identity;
-  char *id;
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Deleting attestation.\n");
-  if (strlen (GNUNET_REST_API_NS_RECLAIM_ATTESTATION_REFERENCE) >= strlen (
-        handle->url))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "No identity given.\n");
-    GNUNET_SCHEDULER_add_now (&do_error, handle);
-    return;
-  }
-  identity_id_str =
-    strdup (handle->url + strlen (
-              GNUNET_REST_API_NS_RECLAIM_ATTESTATION_REFERENCE) + 1);
-  identity = strtok (identity_id_str, "/");
-  id = strtok (NULL, "/");
-  if ((NULL == identity) || (NULL == id))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Malformed request.\n");
-    GNUNET_free (identity_id_str);
-    GNUNET_SCHEDULER_add_now (&do_error, handle);
-    return;
-  }
-
-  for (ego_entry = handle->ego_head; NULL != ego_entry;
-       ego_entry = ego_entry->next)
-    if (0 == strcmp (identity, ego_entry->identifier))
-      break;
-  handle->resp_object = json_array ();
-  if (NULL == ego_entry)
-  {
-    // Done
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Ego %s not found.\n", identity);
-    GNUNET_free (identity_id_str);
-    GNUNET_SCHEDULER_add_now (&return_response, handle);
-    return;
-  }
-  priv_key = GNUNET_IDENTITY_ego_get_private_key (ego_entry->ego);
-  handle->idp = GNUNET_RECLAIM_connect (cfg);
-  memset (&attr, 0, sizeof(struct GNUNET_RECLAIM_ATTESTATION_Claim));
-  GNUNET_STRINGS_string_to_data (id, strlen (id), &attr.id, sizeof(uint64_t));
-  attr.name = "";
-
-  struct GNUNET_RECLAIM_Handle *h = handle->idp;
-  struct GNUNET_CRYPTO_EcdsaPrivateKey *pkey = priv_key;
-
-  struct AttributeDeleteHandle *adh;
-  struct IdpClient *idp = handle;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received ATTRIBUTE_DELETE message\n");
-  struct GNUNET_NAMESTORE_Handle *nsh;
-  nsh = GNUNET_NAMESTORE_connect (cfg);
-  adh = GNUNET_new (struct AttributeDeleteHandle);
-  adh->attest = &attr;
-  adh->r_id = h->r_id_gen++;
-  adh->identity = *pkey;
-  adh->label = GNUNET_STRINGS_data_to_string_alloc (&adh->attest->id,
-                                                    sizeof(uint64_t));
-  /*GNUNET_SERVICE_client_continue (idp->client);*/
-  adh->client = idp;
-  /*GNUNET_CONTAINER_DLL_insert (idp->delete_op_head, idp->delete_op_tail, adh);*/
-  adh->ns_qe = GNUNET_NAMESTORE_records_store (nsh,
-                                               &adh->identity,
-                                               adh->label,
-                                               0,
-                                               NULL,
-                                               &delete_finished_cb,
-                                               adh);
-
-
-  GNUNET_free (identity_id_str);
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Deleting Attestations not supported\n");
+  GNUNET_SCHEDULER_add_now (&do_error, cls);
+  return;
 }
 
 /**
