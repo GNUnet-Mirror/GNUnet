@@ -12,9 +12,7 @@ endif
 if HAVE_EXPERIMENTAL
  EXP_DIR = \
   rps \
-  abd \
-  reclaim-attribute \
-  reclaim
+  abd
 if HAVE_ABE
  EXP_DIR += \
   abe
@@ -59,6 +57,9 @@ endif
 if HAVE_MHD
 if HAVE_JSON
  REST_DIR = rest
+ RECLAIM_DIR = \
+  reclaim-attribute \
+  reclaim
 endif
 endif
 
@@ -121,6 +122,7 @@ SUBDIRS = \
   exit \
   pt \
   secretsharing \
+  $(RECLAIM_DIR) \
   $(EXP_DIR) \
   integration-tests
 
