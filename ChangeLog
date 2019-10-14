@@ -5,7 +5,7 @@ Mon Sep 16 00:00:00 UTC 2019
 
 Mon Sep 10 00:00:00 UTC 2019
   Drop win32 and mingw support after discussion with
-  Christian. It has been unmaintained in out code base
+  Christian. It has been unmaintained in our code base
   for years and there are no known users.
   Future implementors for Windows 10 support can
   refer to this commit as reference. -ng0
