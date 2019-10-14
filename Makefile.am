@@ -38,3 +38,8 @@ docdir = $(datadir)/doc/gnunet/
 doc_DATA = COPYING README
 
 ACLOCAL_AMFLAGS = -I m4
+
+if HAVE_UNCRUSTIFY
+pretty:
+	find $(top_srcdir) -type f ! -path '*/.*' ! -path '*/_*' -name '*.c' -name '*.h' -print0 | xargs -0 uncrustify -c $(top_srcdir) --replace --no-backup 2>&1 || true
+endif

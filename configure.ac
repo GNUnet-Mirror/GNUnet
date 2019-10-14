@@ -313,6 +313,15 @@ AS_IF([test x"$VAR_UPNPC_BINARY" != x"false"],
   [AC_DEFINE_UNQUOTED([UPNPC], "$VAR_UPNPC_BINARY", [Path to upnpc binary])],
   [AC_MSG_WARN([warning: 'upnpc' binary not found.])])
 
+
+# uncrustify
+AC_PATH_TARGET_TOOL(VAR_UNCRUSTIFY_BINARY, uncrustify, false)
+
+AS_IF([test x"$VAR_UNCRUSTIFY_BINARY" != x"false"],
+  [AC_DEFINE_UNQUOTED([HAVE_UNCRUSTIFY], "$VAR_UNCRUSTIFY_BINARY", [Path to uncrustify binary])],
+  [AC_MSG_WARN([warning: 'uncrustify' binary not found.])])
+
+
 AC_CHECK_MEMBER(struct tm.tm_gmtoff,
   [AC_DEFINE(HAVE_TM_GMTOFF, 1,
      [Define if struct tm has the tm_gmtoff member.])],
