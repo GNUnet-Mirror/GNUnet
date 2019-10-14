@@ -206,9 +206,9 @@ binary packages
 We recommend to use binary packages provided by your Operating System's
 package manager. GNUnet is reportedly available for at least:
 
-GNU Guix, Nix, Debian, ALT Linux, Archlinux, Deepin, Devuan, Hyperbola,
-Kali Linux, LEDE/OpenWRT, Manjaro, Parabola, Pardus, Parrot, PureOS,
-Raspbian, Rosa, Trisquel, and Ubuntu.
+ALT Linux, Archlinux, Debian, Deepin, Devuan, GNU Guix, Hyperbola,
+Kali Linux, LEDE/OpenWRT, Manjaro, Nix, Parabola, Pardus, Parrot,
+PureOS, Raspbian, Rosa, Trisquel, and Ubuntu.
 
 If GNUnet is available for your Operating System and it is missing,
 send us feedback so that we can add it to this list. Furthermore, if
