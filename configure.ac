@@ -315,11 +315,9 @@ AS_IF([test x"$VAR_UPNPC_BINARY" != x"false"],
 
 
 # uncrustify
-AC_PATH_TARGET_TOOL(VAR_UNCRUSTIFY_BINARY, uncrustify, false)
-
-AS_IF([test x"$VAR_UNCRUSTIFY_BINARY" != x"false"],
-  [AC_DEFINE_UNQUOTED([HAVE_UNCRUSTIFY], "$VAR_UNCRUSTIFY_BINARY", [Path to uncrustify binary])],
-  [AC_MSG_WARN([warning: 'uncrustify' binary not found.])])
+# TODO: maybe add flag to pass location
+AC_CHECK_PROG(UNCRUSTIFY_BINARY, uncrustify, true)
+AM_CONDITIONAL(HAVE_UNCRUSTIFY_BINARY, $UNCRUSTIFY_BINARY)
 
 
 AC_CHECK_MEMBER(struct tm.tm_gmtoff,

@@ -39,7 +39,7 @@ doc_DATA = COPYING README
 
 ACLOCAL_AMFLAGS = -I m4
 
-if HAVE_UNCRUSTIFY
+if HAVE_UNCRUSTIFY_BINARY
 pretty:
-	find $(top_srcdir) -type f ! -path '*/.*' ! -path '*/_*' -name '*.c' -name '*.h' -print0 | xargs -0 uncrustify -c $(top_srcdir) --replace --no-backup 2>&1 || true
+	find $(top_srcdir) -type f -name '*.c' -or -name '*.h' -print0 | xargs -0 uncrustify -c $(top_srcdir)/contrib/uncrustify.cfg --replace --no-backup 2>&1 || true
 endif
