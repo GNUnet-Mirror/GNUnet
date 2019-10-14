@@ -319,6 +319,11 @@ AS_IF([test x"$VAR_UPNPC_BINARY" != x"false"],
 AC_CHECK_PROG(UNCRUSTIFY_BINARY, uncrustify, true)
 AM_CONDITIONAL(HAVE_UNCRUSTIFY_BINARY, $UNCRUSTIFY_BINARY)
 
+# yapf
+# TODO: less repetition, add flag to pass name
+AC_CHECK_PROGS(YAPF_BINARY, [yapf yapf3.0 yapf3.1 yapf3.2 yapf3.3 yapf3.4 yapf3.5 yapf3.6 yapf3.7 yapf3.8 yapf3.9 yapf4.0], false)
+AM_CONDITIONAL(HAVE_YAPF_BINARY, test x$YAPF_BINARY != xfalse)
+
 
 AC_CHECK_MEMBER(struct tm.tm_gmtoff,
   [AC_DEFINE(HAVE_TM_GMTOFF, 1,
