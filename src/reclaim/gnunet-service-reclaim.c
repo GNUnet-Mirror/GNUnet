@@ -266,6 +266,11 @@ struct AttributeDeleteHandle
   struct GNUNET_RECLAIM_ATTRIBUTE_Claim *claim;
 
   /**
+   * The attestation to delete
+   */
+  struct GNUNET_RECLAIM_ATTESTATION_Claim *attest;
+
+  /**
    * Tickets to update
    */
   struct TicketRecordsEntry *tickets_to_update_head;
@@ -464,6 +469,8 @@ cleanup_adh (struct AttributeDeleteHandle *adh)
     GNUNET_free (adh->label);
   if (NULL != adh->claim)
     GNUNET_free (adh->claim);
+  if (NULL != adh->attest)
+    GNUNET_free (adh->attest);
   while (NULL != (le = adh->tickets_to_update_head))
   {
     GNUNET_CONTAINER_DLL_remove (adh->tickets_to_update_head,
@@ -1209,12 +1216,15 @@ ticket_iter (void *cls,
 
   for (int i = 0; i < rd_count; i++)
   {
-    if (GNUNET_GNSRECORD_TYPE_RECLAIM_ATTR_REF != rd[i].record_type)
+    if ((GNUNET_GNSRECORD_TYPE_RECLAIM_ATTR_REF != rd[i].record_type) &&
+        (GNUNET_GNSRECORD_TYPE_RECLAIM_ATTEST_ATTR != rd[i].record_type))
       continue;
     if (0 != memcmp (rd[i].data, &adh->claim->id, sizeof(uint64_t)))
       continue;
+    if (0 != memcmp (rd[i].data, (&adh->attest->id), sizeof(uint64_t)))
+      continue;
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Attribute to delete found (%s)\n",
+                "Attribute or Attestation to delete found (%s)\n",
                 adh->label);
     has_changed = GNUNET_YES;
     break;
@@ -1276,7 +1286,7 @@ update_tickets (void *cls)
   if (NULL == adh->tickets_to_update_head)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Finished updatding tickets, success\n");
+                "Finished updating tickets, success\n");
     send_delete_response (adh, GNUNET_OK);
     cleanup_adh (adh);
     return;
@@ -1306,6 +1316,9 @@ update_tickets (void *cls)
   {
     if ((GNUNET_GNSRECORD_TYPE_RECLAIM_ATTR_REF == rd[i].record_type)
         && (0 == memcmp (rd[i].data, &adh->claim->id, sizeof(uint64_t))))
+      continue;
+    if ((GNUNET_GNSRECORD_TYPE_RECLAIM_ATTEST_ATTR == rd[i].record_type)
+        && (0 == memcmp (rd[i].data, &adh->attest->id, sizeof(uint64_t))))
       continue;
     rd_new[j] = rd[i];
     j++;
@@ -1465,6 +1478,97 @@ handle_attribute_delete_message (void *cls,
                                                &attr_delete_cont,
                                                adh);
 }
+
+/**
+   * Attestation deleted callback
+   *
+   * @param cls our handle
+   * @param success success status
+   * @param emsg error message (NULL if success=GNUNET_OK)
+   */
+static void
+attest_delete_cont (void *cls, int32_t success, const char *emsg)
+{
+  struct AttributeDeleteHandle *adh = cls;
+
+  adh->ns_qe = NULL;
+  if (GNUNET_SYSERR == success)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Error deleting attestation %s\n",
+                adh->label);
+    send_delete_response (adh, GNUNET_SYSERR);
+    cleanup_adh (adh);
+    return;
+  }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Updating tickets...\n");
+  GNUNET_SCHEDULER_add_now (&start_ticket_update, adh);
+}
+
+/**
+ * Check attestation delete message format
+ *
+ * @cls unused
+ * @dam message to check
+ */
+static int
+check_attestation_delete_message (void *cls,
+                                  const struct AttributeDeleteMessage *dam)
+{
+  uint16_t size;
+
+  size = ntohs (dam->header.size);
+  if (size <= sizeof(struct AttributeDeleteMessage))
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
+  return GNUNET_OK;
+}
+
+
+/**
+ * Handle attestation deletion
+ *
+ * @param cls our client
+ * @param dam deletion message
+ */
+static void
+handle_attestation_delete_message (void *cls,
+                                   const struct AttributeDeleteMessage *dam)
+{
+  struct AttributeDeleteHandle *adh;
+  struct IdpClient *idp = cls;
+  size_t data_len;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received ATTESTATION_DELETE message\n");
+
+  data_len = ntohs (dam->attr_len);
+
+  adh = GNUNET_new (struct AttributeDeleteHandle);
+  adh->attest = GNUNET_RECLAIM_ATTESTATION_deserialize ((char *) &dam[1],
+                                                        data_len);
+
+  adh->r_id = ntohl (dam->id);
+  adh->identity = dam->identity;
+  adh->label
+    = GNUNET_STRINGS_data_to_string_alloc (&adh->attest->id, sizeof(uint64_t));
+  GNUNET_SERVICE_client_continue (idp->client);
+  adh->client = idp;
+  GNUNET_CONTAINER_DLL_insert (idp->delete_op_head, idp->delete_op_tail, adh);
+  adh->ns_qe = GNUNET_NAMESTORE_records_store (nsh,
+                                               &adh->identity,
+                                               adh->label,
+                                               0,
+                                               NULL,
+                                               &attest_delete_cont,
+                                               adh);
+}
+
+
+
+
+
 
 
 /*************************************************
@@ -1888,6 +1992,10 @@ GNUNET_SERVICE_MAIN (
                          NULL),
   GNUNET_MQ_hd_var_size (attribute_delete_message,
                          GNUNET_MESSAGE_TYPE_RECLAIM_ATTRIBUTE_DELETE,
+                         struct AttributeDeleteMessage,
+                         NULL),
+  GNUNET_MQ_hd_var_size (attestation_delete_message,
+                         GNUNET_MESSAGE_TYPE_RECLAIM_ATTESTATION_DELETE,
                          struct AttributeDeleteMessage,
                          NULL),
   GNUNET_MQ_hd_fixed_size (

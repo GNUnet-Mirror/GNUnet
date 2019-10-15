@@ -973,6 +973,49 @@ GNUNET_RECLAIM_attestation_store (
 }
 
 /**
+   * Delete an attestation. Tickets used to share this attestation are updated
+   * accordingly.
+   *
+   * @param h handle to the re:claimID service
+   * @param pkey Private key of the identity to add an attribute to
+   * @param attr The attestation
+   * @param cont Continuation to call when done
+   * @param cont_cls Closure for @a cont
+   * @return handle Used to to abort the request
+   */
+struct GNUNET_RECLAIM_Operation *
+GNUNET_RECLAIM_attestation_delete (
+  struct GNUNET_RECLAIM_Handle *h,
+  const struct GNUNET_CRYPTO_EcdsaPrivateKey *pkey,
+  const struct GNUNET_RECLAIM_ATTESTATION_Claim *attr,
+  GNUNET_RECLAIM_ContinuationWithStatus cont,
+  void *cont_cls)
+{
+  struct GNUNET_RECLAIM_Operation *op;
+  struct AttributeDeleteMessage *dam;
+  size_t attr_len;
+
+  op = GNUNET_new (struct GNUNET_RECLAIM_Operation);
+  op->h = h;
+  op->as_cb = cont;
+  op->cls = cont_cls;
+  op->r_id = h->r_id_gen++;
+  GNUNET_CONTAINER_DLL_insert_tail (h->op_head, h->op_tail, op);
+  attr_len = GNUNET_RECLAIM_ATTESTATION_serialize_get_size (attr);
+  op->env = GNUNET_MQ_msg_extra (dam,
+                                 attr_len,
+                                 GNUNET_MESSAGE_TYPE_RECLAIM_ATTESTATION_DELETE);
+  dam->identity = *pkey;
+  dam->id = htonl (op->r_id);
+  GNUNET_RECLAIM_ATTESTATION_serialize (attr, (char *) &dam[1]);
+
+  dam->attr_len = htons (attr_len);
+  if (NULL != h->mq)
+    GNUNET_MQ_send_copy (h->mq, op->env);
+  return op;
+}
+
+/**
  * List all attributes for a local identity.
  * This MUST lock the `struct GNUNET_RECLAIM_Handle`
  * for any other calls than #GNUNET_RECLAIM_get_attributes_next() and

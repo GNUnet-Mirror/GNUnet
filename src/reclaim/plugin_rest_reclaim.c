@@ -546,15 +546,71 @@ list_attestation_cont (struct GNUNET_REST_RequestHandle *con_handle,
   return;
 }
 
-/*WIP*/
+/**
+ * Deletes attestation from an identity
+ *
+ * @param con_handle the connection handle
+ * @param url the url
+ * @param cls the RequestHandle
+ */
 static void
 delete_attestation_cont (struct GNUNET_REST_RequestHandle *con_handle,
                          const char *url,
                          void *cls)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Deleting Attestations not supported\n");
-  GNUNET_SCHEDULER_add_now (&do_error, cls);
-  return;
+  const struct GNUNET_CRYPTO_EcdsaPrivateKey *priv_key;
+  struct RequestHandle *handle = cls;
+  struct GNUNET_RECLAIM_ATTESTATION_Claim attr;
+  struct EgoEntry *ego_entry;
+  char *identity_id_str;
+  char *identity;
+  char *id;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Deleting attestation.\n");
+  if (strlen (GNUNET_REST_API_NS_RECLAIM_ATTESTATION_REFERENCE) >= strlen (
+        handle->url))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "No identity given.\n");
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
+    return;
+  }
+  identity_id_str =
+    strdup (handle->url + strlen (
+              GNUNET_REST_API_NS_RECLAIM_ATTESTATION_REFERENCE) + 1);
+  identity = strtok (identity_id_str, "/");
+  id = strtok (NULL, "/");
+  if ((NULL == identity) || (NULL == id))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Malformed request.\n");
+    GNUNET_free (identity_id_str);
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
+    return;
+  }
+
+  for (ego_entry = handle->ego_head; NULL != ego_entry;
+       ego_entry = ego_entry->next)
+    if (0 == strcmp (identity, ego_entry->identifier))
+      break;
+  handle->resp_object = json_array ();
+  if (NULL == ego_entry)
+  {
+    // Done
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Ego %s not found.\n", identity);
+    GNUNET_free (identity_id_str);
+    GNUNET_SCHEDULER_add_now (&return_response, handle);
+    return;
+  }
+  priv_key = GNUNET_IDENTITY_ego_get_private_key (ego_entry->ego);
+  handle->idp = GNUNET_RECLAIM_connect (cfg);
+  memset (&attr, 0, sizeof(struct GNUNET_RECLAIM_ATTESTATION_Claim));
+  GNUNET_STRINGS_string_to_data (id, strlen (id), &attr.id, sizeof(uint64_t));
+  attr.name = "";
+  handle->idp_op = GNUNET_RECLAIM_attestation_delete (handle->idp,
+                                                      priv_key,
+                                                      &attr,
+                                                      &delete_finished_cb,
+                                                      handle);
+  GNUNET_free (identity_id_str);
 }
 
 /**
