@@ -1348,8 +1348,8 @@ That's it, you now know the basics for file-sharing with GNUnet!
 
 
 The GNU Name System (GNS) is secure and decentralized naming system.
-It allows its users to resolve and register names within the @code{.gnu}
-@dfn{top-level domain} (TLD).
+It allows its users to register names as @dfn{top-level domains} (TLDs) and
+resolve other namespaces within their TLDs.
 
 GNS is designed to provide:
 @itemize @bullet
