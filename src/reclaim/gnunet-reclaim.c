@@ -226,7 +226,8 @@ store_attr_cont (void *cls, int32_t success, const char *emsg)
 static void
 process_attrs (void *cls,
                const struct GNUNET_CRYPTO_EcdsaPublicKey *identity,
-               const struct GNUNET_RECLAIM_ATTRIBUTE_Claim *attr)
+               const struct GNUNET_RECLAIM_ATTRIBUTE_Claim *attr,
+               const struct GNUNET_RECLAIM_ATTESTATION_Claim *attest)
 {
   char *value_str;
   char *id;
@@ -445,7 +446,8 @@ iter_finished (void *cls)
 static void
 iter_cb (void *cls,
          const struct GNUNET_CRYPTO_EcdsaPublicKey *identity,
-         const struct GNUNET_RECLAIM_ATTRIBUTE_Claim *attr)
+         const struct GNUNET_RECLAIM_ATTRIBUTE_Claim *attr,
+         const struct GNUNET_RECLAIM_ATTESTATION_Claim *attest)
 {
   struct GNUNET_RECLAIM_ATTRIBUTE_ClaimListEntry *le;
   char *attrs_tmp;

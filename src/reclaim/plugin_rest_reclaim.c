@@ -755,7 +755,8 @@ add_attribute_cont (struct GNUNET_REST_RequestHandle *con_handle,
 static void
 attr_collect (void *cls,
               const struct GNUNET_CRYPTO_EcdsaPublicKey *identity,
-              const struct GNUNET_RECLAIM_ATTRIBUTE_Claim *attr)
+              const struct GNUNET_RECLAIM_ATTRIBUTE_Claim *attr,
+              const struct GNUNET_RECLAIM_ATTESTATION_Claim *attest)
 {
   struct RequestHandle *handle = cls;
   json_t *attr_obj;
@@ -987,7 +988,8 @@ revoke_ticket_cont (struct GNUNET_REST_RequestHandle *con_handle,
 static void
 consume_cont (void *cls,
               const struct GNUNET_CRYPTO_EcdsaPublicKey *identity,
-              const struct GNUNET_RECLAIM_ATTRIBUTE_Claim *attr)
+              const struct GNUNET_RECLAIM_ATTRIBUTE_Claim *attr, 
+              const struct GNUNET_RECLAIM_ATTESTATION_Claim *attest)
 {
   struct RequestHandle *handle = cls;
   char *val_str;

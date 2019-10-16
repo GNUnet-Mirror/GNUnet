@@ -504,16 +504,16 @@ handle_consume_ticket_result (void *cls,
     {
       if (NULL == attrs)
       {
-        op->ar_cb (op->cls, &msg->identity, NULL);
+        op->ar_cb (op->cls, &msg->identity, NULL, NULL);
       }
       else
       {
         for (le = attrs->list_head; NULL != le; le = le->next)
-          op->ar_cb (op->cls, &msg->identity, le->claim);
+          op->ar_cb (op->cls, &msg->identity, le->claim, NULL);
         GNUNET_RECLAIM_ATTRIBUTE_list_destroy (attrs);
         attrs = NULL;
       }
-      op->ar_cb (op->cls, NULL, NULL);
+      op->ar_cb (op->cls, NULL, NULL, NULL);
     }
     GNUNET_CONTAINER_DLL_remove (h->op_head, h->op_tail, op);
     free_op (op);
@@ -597,7 +597,7 @@ handle_attribute_result (void *cls, const struct AttributeResultMessage *msg)
     if (NULL != op)
     {
       if (NULL != op->ar_cb)
-        op->ar_cb (op->cls, NULL, NULL);
+        op->ar_cb (op->cls, NULL, NULL, NULL);
       GNUNET_CONTAINER_DLL_remove (h->op_head, h->op_tail, op);
       free_op (op);
     }
@@ -610,12 +610,12 @@ handle_attribute_result (void *cls, const struct AttributeResultMessage *msg)
     if (NULL != it)
     {
       if (NULL != it->proc)
-        it->proc (it->proc_cls, &msg->identity, attr);
+        it->proc (it->proc_cls, &msg->identity, attr, NULL);
     }
     else if (NULL != op)
     {
       if (NULL != op->ar_cb)
-        op->ar_cb (op->cls, &msg->identity, attr);
+        op->ar_cb (op->cls, &msg->identity, attr, NULL);
     }
     GNUNET_free (attr);
     return;

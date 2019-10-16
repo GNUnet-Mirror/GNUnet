@@ -978,7 +978,8 @@ oidc_collect_finished_cb (void *cls)
 static void
 oidc_attr_collect (void *cls,
                    const struct GNUNET_CRYPTO_EcdsaPublicKey *identity,
-                   const struct GNUNET_RECLAIM_ATTRIBUTE_Claim *attr)
+                   const struct GNUNET_RECLAIM_ATTRIBUTE_Claim *attr,
+                   const struct GNUNET_RECLAIM_ATTESTATION_Claim *attest)
 {
   struct RequestHandle *handle = cls;
   struct GNUNET_RECLAIM_ATTRIBUTE_ClaimListEntry *le;
@@ -1862,7 +1863,8 @@ token_endpoint (struct GNUNET_REST_RequestHandle *con_handle,
 static void
 consume_ticket (void *cls,
                 const struct GNUNET_CRYPTO_EcdsaPublicKey *identity,
-                const struct GNUNET_RECLAIM_ATTRIBUTE_Claim *attr)
+                const struct GNUNET_RECLAIM_ATTRIBUTE_Claim *attr,
+                const struct GNUNET_RECLAIM_ATTESTATION_Claim *attest)
 {
   struct RequestHandle *handle = cls;
   char *tmp_value;
