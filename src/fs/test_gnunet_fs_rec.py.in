@@ -59,9 +59,6 @@ else:
 arm = subprocess.Popen([gnunetarm, '-sq', '-c', 'test_gnunet_fs_rec_data.conf'])
 arm.communicate()
 
-# pray that `tar' is in PATH.
-# FIXME: Actually we should check for that and output
-#        a message if it isn't found.
 tar = tarfile.open('test_gnunet_fs_rec_data.tgz')
 tar.extractall()
 # first, basic publish-search-download run
