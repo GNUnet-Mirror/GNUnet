@@ -29,12 +29,12 @@
 .Nd measure and control the FS subsystem
 .Sh SYNOPSIS
 .Nm
-.Op Fl c Ar FILENAME | Fl \-config= Ns Ar FILENAME
-.Op Fl h | \-help
-.Op Fl i | \-list-indexed
-.Op Fl L Ar LOGLEVEL | Fl \-loglevel= Ns Ar LOGLEVEL
-.Op Fl v | \-version
-.Op Fl V | \-verbose
+.Op Fl c Ar FILENAME | Fl -config= Ns Ar FILENAME
+.Op Fl h | -help
+.Op Fl i | -list-indexed
+.Op Fl L Ar LOGLEVEL | Fl -loglevel= Ns Ar LOGLEVEL
+.Op Fl v | -version
+.Op Fl V | -verbose
 .Sh DESCRIPTION
 .Nm
 is a tool to access various functions of GNUnet's FS subsystem
@@ -43,18 +43,18 @@ Most of these are not expected to be useful for end-users.
 gnunet-fs can currently only be used to obtain a list of indexed files.
 Other functions should be added in the near future.
 .Bl -tag -width indent
-.It Fl c Ar FILENAME | Fl \-config= Ns Ar FILENAME
+.It Fl c Ar FILENAME | Fl -config= Ns Ar FILENAME
 Configuration file to use.
-.It Fl h | \-help
+.It Fl h | -help
 Print the help page.
-.It Fl i | \-list-indexed
+.It Fl i | -list-indexed
 Print information about files that are currently indexed by file-sharing.
-.It Fl L Ar LOGLEVEL | Fl \-loglevel= Ns Ar LOGLEVEL
+.It Fl L Ar LOGLEVEL | Fl -loglevel= Ns Ar LOGLEVEL
 Change the loglevel.
 Possible values for LOGLEVEL are ERROR, WARNING, INFO and DEBUG.
-.It Fl v | \-version
+.It Fl v | -version
 Print the version number.
-.It Fl V | \-verbose
+.It Fl V | -verbose
 Be verbose.
 .El
 .Sh SEE ALSO
