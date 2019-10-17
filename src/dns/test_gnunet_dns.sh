@@ -42,6 +42,12 @@ then
   exit 77
 fi
 
+if test ! `id nobody`;
+then
+    echo "This tests requires a user account 'nobody'. Skipping."
+    exit 77
+fi
+
 export PATH=".:$PATH"
 gnunet-service-dns -c dns.conf &
 gnunet-dns-redirector -c dns.conf -4 127.0.0.1 &
