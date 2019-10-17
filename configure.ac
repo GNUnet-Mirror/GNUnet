@@ -1358,17 +1358,19 @@ AC_SUBST(DATAROOTDIR)
 
 # test for sudo
 AC_MSG_CHECKING(for sudo)
-AC_ARG_WITH(sudo,
-            [  --with-sudo=PATH       path to sudo binary (or just yes)],
-            [AC_MSG_RESULT("$with_sudo")
-             AS_CASE([$with_sudo],
-                     [no],[SUDO_BINARY=],
-                     [yes],[SUDO_BINARY=sudo],
-                     [SUDO_BINARY=$with_sudo])],
-            [AC_MSG_RESULT([no])])
-AC_SUBST(SUDO_BINARY)
-AM_CONDITIONAL([HAVE_SUDO],
-               [test "x$SUDO_BINARY" != "x" -o -w /])
+AC_CHECK_PROGS(SUDO_BINARY, [sudo], false)
+AM_CONDITIONAL(HAVE_SUDO, test x$SUDO_BINARY != xfalse)
+#AC_ARG_WITH(sudo,
+#            [  --with-sudo=PATH       path to sudo binary (or just yes)],
+#            [AC_MSG_RESULT("$with_sudo")
+#             AS_CASE([$with_sudo],
+#                     [no],[SUDO_BINARY=],
+#                     [yes],[SUDO_BINARY=sudo],
+#                     [SUDO_BINARY=$with_sudo])],
+#            [AC_MSG_RESULT([no])])
+#AC_SUBST(SUDO_BINARY)
+#AM_CONDITIONAL([HAVE_SUDO],
+#               [test "x$SUDO_BINARY" != "x" -o -w /])
 
 # test for doas
 AC_MSG_CHECKING(for doas)
