@@ -136,8 +136,14 @@ struct GNUNET_RECLAIM_ATTRIBUTE_PluginFunctions
   GNUNET_RECLAIM_ATTRIBUTE_NumberToTypenameFunction number_to_typename;
 
   /**
-* Attestation Conversion to string.
-*/
+   * FIXME: It is odd that attestation functions are withing the attribute
+   * plugin. An attribute type may be backed by an attestation, but not
+   * necessarily.
+   * Maybe it would make more sense to refactor this into an attestation
+   * plugin?
+   *
+   * Attestation Conversion to string.
+   */
   GNUNET_RECLAIM_ATTRIBUTE_ValueToStringFunction value_to_string_attest;
 
   /**

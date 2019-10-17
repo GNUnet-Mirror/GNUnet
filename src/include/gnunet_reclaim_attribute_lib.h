@@ -348,6 +348,12 @@ GNUNET_RECLAIM_ATTRIBUTE_number_to_typename (uint32_t type);
 
 /**
    * Get required size for serialization buffer
+   * FIXME:
+   * 1. The naming convention is violated here.
+   * It should GNUNET_RECLAIM_ATTRIBUTE_<lowercase from here>.
+   * It might make sense to refactor attestations into a separate folder.
+   * 2. The struct should be called GNUNET_RECLAIM_ATTESTATION_Data or
+   * GNUNET_RECLAIM_ATTRIBUTE_Attestation depending on location in source.
    *
    * @param attr the attestation to serialize
    * @return the required buffer size
