@@ -158,10 +158,18 @@ gnunet_dns2gns_LDADD = \
   $(top_builddir)/src/identity/libgnunetidentity.la \
   $(GN_LIBINTL)
 
+if HAVE_SUDO
+SUDO_OR_DOAS_BINARY= $(SUDO_BINARY)
+else
+if HAVE_DOAS_BINARY
+SUDO_OR_DOAS_BINARY= $(DOAS_BINARY)
+endif
+endif
+
 if LINUX
 HIJACKBIN = gnunet-dns2gns
 install-exec-hook:
-	$(SUDO_BINARY) setcap 'cap_net_bind_service=+ep' $(DESTDIR)$(libexecdir)/gnunet-dns2gns || true
+	$(SUDO_OR_DOAS_BINARY) setcap 'cap_net_bind_service=+ep' $(DESTDIR)$(libexecdir)/gnunet-dns2gns || true
 else
 install-exec-hook:
 endif

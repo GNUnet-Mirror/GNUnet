@@ -93,11 +93,19 @@ if LINUX
 		test_quota_compliance_wlan_asymmetric
 endif
 
+if HAVE_SUDO
+SUDO_OR_DOAS_BINARY= $(SUDO_BINARY)
+else
+if HAVE_DOAS_BINARY
+SUDO_OR_DOAS_BINARY= $(DOAS_BINARY)
+endif
+endif
+
 if LINUX
 install-exec-hook:
-	$(top_srcdir)/src/transport/install-wlan-helper.sh $(DESTDIR)$(libexecdir) $(SUDO_BINARY) || true
+	$(top_srcdir)/src/transport/install-wlan-helper.sh $(DESTDIR)$(libexecdir) $(SUDO_OR_DOAS_BINARY) || true
 if HAVE_LIBBLUETOOTH
-	$(top_srcdir)/src/transport/install-bluetooth-helper.sh $(DESTDIR)$(libexecdir) $(SUDO_BINARY) || true
+	$(top_srcdir)/src/transport/install-bluetooth-helper.sh $(DESTDIR)$(libexecdir) $(SUDO_OR_DOAS_BINARY) || true
 endif
 else
 install-exec-hook:

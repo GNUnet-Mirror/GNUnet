@@ -14,10 +14,18 @@ plugindir = $(libdir)/gnunet
 dist_pkgcfg_DATA = \
   exit.conf
 
+if HAVE_SUDO
+SUDO_OR_DOAS_BINARY= $(SUDO_BINARY)
+else
+if HAVE_DOAS_BINARY
+SUDO_OR_DOAS_BINARY= $(DOAS_BINARY)
+endif
+endif
+
 if LINUX
 EXITBIN = gnunet-helper-exit
 install-exec-hook:
-	$(top_srcdir)/src/exit/install-exit-helper.sh $(DESTDIR)$(libexecdir) $(SUDO_BINARY) || true
+	$(top_srcdir)/src/exit/install-exit-helper.sh $(DESTDIR)$(libexecdir) $(SUDO_OR_DOAS_BINARY) || true
 else
 install-exec-hook:
 endif

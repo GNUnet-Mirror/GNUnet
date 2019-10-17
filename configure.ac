@@ -1357,7 +1357,6 @@ DATAROOTDIR=$datarootdir
 AC_SUBST(DATAROOTDIR)
 
 # test for sudo
-# TODO: do we need to change anything for "doas" on openbsd?
 AC_MSG_CHECKING(for sudo)
 AC_ARG_WITH(sudo,
             [  --with-sudo=PATH       path to sudo binary (or just yes)],
@@ -1371,6 +1370,10 @@ AC_SUBST(SUDO_BINARY)
 AM_CONDITIONAL([HAVE_SUDO],
                [test "x$SUDO_BINARY" != "x" -o -w /])
 
+# test for doas
+AC_MSG_CHECKING(for doas)
+AC_CHECK_PROGS(DOAS_BINARY, [doas], false)
+AM_CONDITIONAL(HAVE_DOAS_BINARY, test x$DOAS_BINARY != xfalse)
 
 # test for gnunetdns group name
 GNUNETDNS_GROUP=gnunetdns

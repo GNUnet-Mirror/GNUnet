@@ -14,10 +14,18 @@ plugindir = $(libdir)/gnunet
 pkgcfg_DATA = \
   dns.conf
 
+if HAVE_SUDO
+SUDO_OR_DOAS_BINARY= $(SUDO_BINARY)
+else
+if HAVE_DOAS_BINARY
+SUDO_OR_DOAS_BINARY= $(DOAS_BINARY)
+endif
+endif
+
 if LINUX
 HIJACKBIN = gnunet-helper-dns
 install-exec-hook:
-	$(top_srcdir)/src/dns/install-dns-helper.sh $(DESTDIR)$(libexecdir) $(GNUNETDNS_GROUP) $(SUDO_BINARY) || true
+	$(top_srcdir)/src/dns/install-dns-helper.sh $(DESTDIR)$(libexecdir) $(GNUNETDNS_GROUP) $(SUDO_OR_DOAS_BINARY) || true
 else
 install-exec-hook:
 endif

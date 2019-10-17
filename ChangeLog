@@ -1,5 +1,9 @@
+Thu Oct 17 00:00:00 UTC 2019
+  Added support for doas, use it in some places conditionally
+  if sudo is not present. -ng0
+
 Mon Oct 14 00:00:00 UTC 2019
-  Add 'pretty' make rule to run uncrustify over the source tree.
+  Added 'pretty' make rule to run uncrustify over the source tree.
   -ng0
 
 Mon Sep 16 00:00:00 UTC 2019
