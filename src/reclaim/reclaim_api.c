@@ -623,6 +623,104 @@ handle_attribute_result (void *cls, const struct AttributeResultMessage *msg)
   GNUNET_assert (0);
 }
 
+/**
+   * Handle an incoming message of type
+   * #GNUNET_MESSAGE_TYPE_RECLAIM_ATTESTATION_RESULT
+   *
+   * @param cls
+   * @param msg the message we received
+   * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
+   */
+static int
+check_attestation_result (void *cls, const struct AttributeResultMessage *msg)
+{
+  size_t msg_len;
+  size_t attr_len;
+
+  msg_len = ntohs (msg->header.size);
+  attr_len = ntohs (msg->attr_len);
+  if (msg_len != sizeof(struct AttributeResultMessage) + attr_len)
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
+  return GNUNET_OK;
+}
+
+
+/**
+ * Handle an incoming message of type
+ * #GNUNET_MESSAGE_TYPE_RECLAIM_ATTESTATION_RESULT
+ *
+ * @param cls
+ * @param msg the message we received
+ */
+static void
+handle_attestation_result (void *cls, const struct AttributeResultMessage *msg)
+{
+  static struct GNUNET_CRYPTO_EcdsaPrivateKey identity_dummy;
+  struct GNUNET_RECLAIM_Handle *h = cls;
+  struct GNUNET_RECLAIM_AttributeIterator *it;
+  struct GNUNET_RECLAIM_Operation *op;
+  size_t attr_len;
+  uint32_t r_id = ntohl (msg->id);
+
+  attr_len = ntohs (msg->attr_len);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Processing attestation result.\n");
+
+
+  for (it = h->it_head; NULL != it; it = it->next)
+    if (it->r_id == r_id)
+      break;
+  for (op = h->op_head; NULL != op; op = op->next)
+    if (op->r_id == r_id)
+      break;
+  if ((NULL == it) && (NULL == op))
+    return;
+
+  if ((0 ==
+       (memcmp (&msg->identity, &identity_dummy, sizeof(identity_dummy)))))
+  {
+    if ((NULL == it) && (NULL == op))
+    {
+      GNUNET_break (0);
+      force_reconnect (h);
+      return;
+    }
+    if (NULL != it)
+    {
+      if (NULL != it->finish_cb)
+        it->finish_cb (it->finish_cb_cls);
+      free_it (it);
+    }
+    if (NULL != op)
+    {
+      if (NULL != op->ar_cb)
+        op->ar_cb (op->cls, NULL, NULL, NULL);
+      GNUNET_CONTAINER_DLL_remove (h->op_head, h->op_tail, op);
+      free_op (op);
+    }
+    return;
+  }
+
+  {
+    struct GNUNET_RECLAIM_ATTESTATION_Claim *attr;
+    attr = GNUNET_RECLAIM_ATTESTATION_deserialize ((char *) &msg[1], attr_len);
+    if (NULL != it)
+    {
+      if (NULL != it->proc)
+        it->proc (it->proc_cls, &msg->identity, NULL, attr);
+    }
+    else if (NULL != op)
+    {
+      if (NULL != op->ar_cb)
+        op->ar_cb (op->cls, &msg->identity, NULL, attr);
+    }
+    GNUNET_free (attr);
+    return;
+  }
+  GNUNET_assert (0);
+}
 
 /**
  * Handle an incoming message of type
@@ -740,6 +838,10 @@ reconnect (struct GNUNET_RECLAIM_Handle *h)
                              h),
     GNUNET_MQ_hd_var_size (attribute_result,
                            GNUNET_MESSAGE_TYPE_RECLAIM_ATTRIBUTE_RESULT,
+                           struct AttributeResultMessage,
+                           h),
+    GNUNET_MQ_hd_var_size (attestation_result,
+                           GNUNET_MESSAGE_TYPE_RECLAIM_ATTESTATION_RESULT,
                            struct AttributeResultMessage,
                            h),
     GNUNET_MQ_hd_fixed_size (ticket_result,

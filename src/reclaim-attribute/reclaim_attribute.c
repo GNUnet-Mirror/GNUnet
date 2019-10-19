@@ -229,7 +229,6 @@ GNUNET_RECLAIM_ATTESTATION_typename_to_number (const char *typename)
   unsigned int i;
   struct Plugin *plugin;
   uint32_t ret;
-
   init ();
   for (i = 0; i < num_plugins; i++)
   {
@@ -699,8 +698,8 @@ GNUNET_RECLAIM_ATTESTATION_serialize (
 
   attr_ser = (struct Attestation *) result;
   attr_ser->attestation_type = htons (attr->type);
-  attr_ser->attestation_type = htonl (attr->version);
-  attr_ser->attestation_type = GNUNET_htonll (attr->id);
+  attr_ser->attestation_version = htonl (attr->version);
+  attr_ser->attestation_id = GNUNET_htonll (attr->id);
   name_len = strlen (attr->name);
   attr_ser->name_len = htons (name_len);
   write_ptr = (char *) &attr_ser[1];

@@ -2718,6 +2718,8 @@ extern "C" {
 
 #define GNUNET_MESSAGE_TYPE_RECLAIM_ATTESTATION_DELETE 978
 
+#define GNUNET_MESSAGE_TYPE_RECLAIM_ATTESTATION_RESULT 979
+
 /**************************************************
  *
  * ABD MESSAGE TYPES

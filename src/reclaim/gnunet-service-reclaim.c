@@ -1616,7 +1616,7 @@ attr_iter_error (void *cls)
 
 
 /**
- * Got record. Return if it is an attribute.
+ * Got record. Return if it is an attribute or attestation.
  *
  * @param cls our attribute iterator
  * @param zone zone we are iterating
@@ -1642,22 +1642,43 @@ attr_iter_cb (void *cls,
     return;
   }
 
-  if (GNUNET_GNSRECORD_TYPE_RECLAIM_ATTR != rd->record_type)
+  if ((GNUNET_GNSRECORD_TYPE_RECLAIM_ATTR != rd->record_type) &&
+      (GNUNET_GNSRECORD_TYPE_RECLAIM_ATTEST_ATTR != rd->record_type) )
   {
     GNUNET_NAMESTORE_zone_iterator_next (ai->ns_it, 1);
     return;
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Found attribute under: %s\n", label);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending ATTRIBUTE_RESULT message\n");
-  env = GNUNET_MQ_msg_extra (arm,
-                             rd->data_size,
-                             GNUNET_MESSAGE_TYPE_RECLAIM_ATTRIBUTE_RESULT);
-  arm->id = htonl (ai->request_id);
-  arm->attr_len = htons (rd->data_size);
-  GNUNET_CRYPTO_ecdsa_key_get_public (zone, &arm->identity);
-  data_tmp = (char *) &arm[1];
-  GNUNET_memcpy (data_tmp, rd->data, rd->data_size);
-  GNUNET_MQ_send (ai->client->mq, env);
+
+  if (GNUNET_GNSRECORD_TYPE_RECLAIM_ATTEST_ATTR == rd->record_type )
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Found attestation under: %s\n",
+                label);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Sending ATTESTATION_RESULT message\n");
+    env = GNUNET_MQ_msg_extra (arm,
+                               rd->data_size,
+                               GNUNET_MESSAGE_TYPE_RECLAIM_ATTESTATION_RESULT);
+    arm->id = htonl (ai->request_id);
+    arm->attr_len = htons (rd->data_size);
+    GNUNET_CRYPTO_ecdsa_key_get_public (zone, &arm->identity);
+    data_tmp = (char *) &arm[1];
+    GNUNET_memcpy (data_tmp, rd->data, rd->data_size);
+    GNUNET_MQ_send (ai->client->mq, env);
+  }
+  else
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Found attribute under: %s\n", label);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending ATTRIBUTE_RESULT message\n");
+    env = GNUNET_MQ_msg_extra (arm,
+                               rd->data_size,
+                               GNUNET_MESSAGE_TYPE_RECLAIM_ATTRIBUTE_RESULT);
+    arm->id = htonl (ai->request_id);
+    arm->attr_len = htons (rd->data_size);
+    GNUNET_CRYPTO_ecdsa_key_get_public (zone, &arm->identity);
+    data_tmp = (char *) &arm[1];
+    GNUNET_memcpy (data_tmp, rd->data, rd->data_size);
+    GNUNET_MQ_send (ai->client->mq, env);
+  }
 }
 
 

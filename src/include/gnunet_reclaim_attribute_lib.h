@@ -53,12 +53,12 @@ extern "C" {
 /**
 * No value attestation.
 */
-#define GNUNET_RECLAIM_ATTESTATION_TYPE_NONE 0
+#define GNUNET_RECLAIM_ATTESTATION_TYPE_NONE 10
 
 /**
 * A JSON Web Token attestation.
 */
-#define GNUNET_RECLAIM_ATTESTATION_TYPE_JWT 1
+#define GNUNET_RECLAIM_ATTESTATION_TYPE_JWT 11
 
 /**
  * An attribute.
