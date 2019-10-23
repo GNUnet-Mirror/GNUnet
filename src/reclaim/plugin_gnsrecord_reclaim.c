@@ -55,6 +55,7 @@ value_to_string (void *cls, uint32_t type, const void *data, size_t data_size)
   case GNUNET_GNSRECORD_TYPE_RECLAIM_TICKET:
   case GNUNET_GNSRECORD_TYPE_RECLAIM_MASTER:
   case GNUNET_GNSRECORD_TYPE_RECLAIM_ATTEST_ATTR:
+  case GNUNET_GNSRECORD_TYPE_RECLAIM_ATTEST_REF:
     return GNUNET_STRINGS_data_to_string_alloc (data, data_size);
 
   default:
@@ -95,6 +96,7 @@ string_to_value (void *cls, uint32_t type, const char *s, void **data,
   case GNUNET_GNSRECORD_TYPE_RECLAIM_MASTER:
   case GNUNET_GNSRECORD_TYPE_RECLAIM_TICKET:
   case GNUNET_GNSRECORD_TYPE_RECLAIM_ATTEST_ATTR:
+  case GNUNET_GNSRECORD_TYPE_RECLAIM_ATTEST_REF:
     return GNUNET_STRINGS_string_to_data (s, strlen (s), *data, *data_size);
 
   default:
@@ -119,6 +121,7 @@ static struct
   { "RECLAIM_OIDC_CLIENT", GNUNET_GNSRECORD_TYPE_RECLAIM_OIDC_CLIENT },
   { "RECLAIM_OIDC_REDIRECT", GNUNET_GNSRECORD_TYPE_RECLAIM_OIDC_REDIRECT },
   { "RECLAIM_TICKET", GNUNET_GNSRECORD_TYPE_RECLAIM_TICKET },
+  { "RECLAIM_ATTEST_REF", GNUNET_GNSRECORD_TYPE_RECLAIM_ATTEST_REF },
   { NULL, UINT32_MAX }
 };
 

@@ -455,13 +455,105 @@ ticket_collect (void *cls, const struct GNUNET_RECLAIM_Ticket *ticket)
 
 
 static void
+add_attestation_ref_cont (struct GNUNET_REST_RequestHandle *con_handle,
+                          const char *url,
+                          void *cls)
+{
+  struct RequestHandle *handle = cls;
+  const struct GNUNET_CRYPTO_EcdsaPrivateKey *identity_priv;
+  const char *identity;
+  struct EgoEntry *ego_entry;
+  struct GNUNET_RECLAIM_ATTESTATION_REFERENCE *attribute;
+  struct GNUNET_TIME_Relative exp;
+  char term_data[handle->rest_handle->data_size + 1];
+  json_t *data_json;
+  json_error_t err;
+  struct GNUNET_JSON_Specification attrspec[] =
+  { GNUNET_RECLAIM_JSON_spec_claim_attest_ref (&attribute),
+    GNUNET_JSON_spec_end () };
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Adding an attestation reference for %s.\n",
+              handle->url);
+  if (strlen (GNUNET_REST_API_NS_RECLAIM_ATTESTATION_REFERENCE) + strlen (
+        "reference/") + 1 >= strlen (
+        handle->url))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "No identity given.\n");
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
+    return;
+  }
+  identity = handle->url + strlen (
+    GNUNET_REST_API_NS_RECLAIM_ATTESTATION_REFERENCE) + strlen ("reference/") + 1;
+  for (ego_entry = handle->ego_head; NULL != ego_entry;
+       ego_entry = ego_entry->next)
+    if (0 == strcmp (identity, ego_entry->identifier))
+      break;
+  if (NULL == ego_entry)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Identity unknown (%s)\n", identity);
+    return;
+  }
+  identity_priv = GNUNET_IDENTITY_ego_get_private_key (ego_entry->ego);
+  if (0 >= handle->rest_handle->data_size)
+  {
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
+    return;
+  }
+
+  term_data[handle->rest_handle->data_size] = '\0';
+  GNUNET_memcpy (term_data,
+                 handle->rest_handle->data,
+                 handle->rest_handle->data_size);
+  data_json = json_loads (term_data, JSON_DECODE_ANY, &err);
+  GNUNET_assert (GNUNET_OK ==
+                 GNUNET_JSON_parse (data_json, attrspec, NULL, NULL));
+  json_decref (data_json);
+  if (NULL == attribute)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Unable to parse attestation reference from %s\n",
+                term_data);
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
+    return;
+  }
+  /**
+   * New ID for attribute
+   */
+  if (0 == attribute->id)
+    attribute->id = attribute->id_attest;
+  handle->idp = GNUNET_RECLAIM_connect (cfg);
+  exp = GNUNET_TIME_UNIT_HOURS;
+  handle->idp_op = GNUNET_RECLAIM_attestation_reference_store (handle->idp,
+                                                               identity_priv,
+                                                               attribute,
+                                                               &exp,
+                                                               &finished_cont,
+                                                               handle);
+  GNUNET_JSON_parse_free (attrspec);
+}
+
+
+static void
 add_attestation_cont (struct GNUNET_REST_RequestHandle *con_handle,
                       const char *url,
                       void *cls)
 {
+  struct RequestHandle *handle = cls;
+  /* Check for substring "reference" */
+  if (strlen (GNUNET_REST_API_NS_RECLAIM_ATTESTATION_REFERENCE) < strlen (
+        handle->url))
+  {
+    if ( strncmp ("reference/", (handle->url + strlen (
+                                   GNUNET_REST_API_NS_RECLAIM_ATTESTATION_REFERENCE)
+                                 + 1), strlen (
+                    "reference/")) == 0)
+    {
+      add_attestation_ref_cont (con_handle,url,cls);
+      return;
+    }
+  }
   const struct GNUNET_CRYPTO_EcdsaPrivateKey *identity_priv;
   const char *identity;
-  struct RequestHandle *handle = cls;
   struct EgoEntry *ego_entry;
   struct GNUNET_RECLAIM_ATTESTATION_Claim *attribute;
   struct GNUNET_TIME_Relative exp;

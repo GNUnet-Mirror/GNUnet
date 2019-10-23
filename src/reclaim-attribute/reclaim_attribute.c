@@ -401,6 +401,41 @@ GNUNET_RECLAIM_ATTESTATION_claim_new (const char *attr_name,
 }
 
 /**
+ * Create a new attestation reference.
+ *
+ * @param attr_name the referenced claim name
+ * @param ref_value the claim name in the attestation
+ * @return the new reference
+ */
+struct GNUNET_RECLAIM_ATTESTATION_REFERENCE *
+GNUNET_RECLAIM_ATTESTATION_reference_new (const char *attr_name,
+                                          const char *ref_value)
+{
+  struct GNUNET_RECLAIM_ATTESTATION_REFERENCE *attr;
+  char *write_ptr;
+  char *attr_name_tmp = GNUNET_strdup (attr_name);
+  char *ref_value_tmp = GNUNET_strdup (ref_value);
+
+  GNUNET_STRINGS_utf8_tolower (attr_name, attr_name_tmp);
+  GNUNET_STRINGS_utf8_tolower (ref_value, ref_value_tmp);
+
+  attr = GNUNET_malloc (sizeof(struct GNUNET_RECLAIM_ATTESTATION_REFERENCE)
+                        + strlen (attr_name_tmp) + strlen (ref_value_tmp) + 2);
+
+  write_ptr = (char *) &attr[1];
+  GNUNET_memcpy (write_ptr, attr_name_tmp, strlen (attr_name_tmp) + 1);
+  attr->name = write_ptr;
+
+  write_ptr = (char *) &attr[1];
+  GNUNET_memcpy (write_ptr, ref_value_tmp, strlen (ref_value_tmp) + 1);
+  attr->reference_value = write_ptr;
+
+  GNUNET_free (attr_name_tmp);
+  GNUNET_free (ref_value_tmp);
+  return attr;
+}
+
+/**
  * Add a new attribute to a claim list
  *
  * @param attr_name the name of the new attribute claim
@@ -762,4 +797,97 @@ GNUNET_RECLAIM_ATTESTATION_deserialize (const char *data, size_t data_size)
   return attr;
 }
 
+/**
+ * Get required size for serialization buffer
+ *
+ * @param attr the reference to serialize
+ * @return the required buffer size
+ */
+size_t
+GNUNET_RECLAIM_ATTESTATION_REF_serialize_get_size (
+  const struct GNUNET_RECLAIM_ATTESTATION_REFERENCE *attr)
+{
+  return sizeof(struct Attestation_Reference) + strlen (attr->name) + strlen (
+    attr->reference_value);
+}
+
+
+/**
+ * Serialize a reference
+ *
+ * @param attr the reference to serialize
+ * @param result the serialized reference
+ * @return length of serialized data
+ */
+size_t
+GNUNET_RECLAIM_ATTESTATION_REF_serialize (
+  const struct GNUNET_RECLAIM_ATTESTATION_REFERENCE *attr,
+  char *result)
+{
+  size_t name_len;
+  size_t refval_len;
+  struct Attestation_Reference *attr_ser;
+  char *write_ptr;
+  attr_ser = (struct Attestation_Reference *) result;
+  attr_ser->reference_id = GNUNET_htonll (attr->id);
+  attr_ser->attestation_id = GNUNET_htonll (attr->id_attest);
+  name_len = strlen (attr->name);
+  refval_len = strlen (attr->reference_value);
+  attr_ser->name_len = htons (name_len);
+  attr_ser->ref_value_len = htons (refval_len);
+  write_ptr = (char *) &attr_ser[1];
+  GNUNET_memcpy (write_ptr, attr->name, name_len);
+  write_ptr += name_len;
+  GNUNET_memcpy (write_ptr, attr->reference_value, refval_len);
+
+  return sizeof(struct Attestation_Reference) + strlen (attr->name) + strlen (
+    attr->reference_value);
+}
+
+
+/**
+ * Deserialize a reference
+ *
+ * @param data the serialized reference
+ * @param data_size the length of the serialized data
+ *
+ * @return a GNUNET_IDENTITY_PROVIDER_Attribute, must be free'd by caller
+ */
+struct GNUNET_RECLAIM_ATTESTATION_REFERENCE *
+GNUNET_RECLAIM_ATTESTATION_REF_deserialize (const char *data, size_t data_size)
+{
+  struct GNUNET_RECLAIM_ATTESTATION_REFERENCE *attr;
+  struct Attestation_Reference *attr_ser;
+  size_t name_len;
+  size_t refval_len;
+  char *write_ptr;
+
+  if (data_size < sizeof(struct Attestation_Reference))
+    return NULL;
+  attr_ser = (struct Attestation_Reference *) data;
+  name_len = ntohs (attr_ser->name_len);
+  refval_len = ntohs (attr_ser->ref_value_len);
+  if (data_size < sizeof(struct Attestation_Reference) + refval_len + name_len)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Buffer too small to deserialize\n");
+    return NULL;
+  }
+  attr = GNUNET_malloc (sizeof(struct GNUNET_RECLAIM_ATTESTATION_REFERENCE)
+                        + refval_len + name_len + 2);
+
+  attr->id = GNUNET_ntohll (attr_ser->reference_id);
+  attr->id_attest = GNUNET_ntohll (attr_ser->attestation_id);
+
+  write_ptr = (char *) &attr[1];
+  GNUNET_memcpy (write_ptr, &attr_ser[1], name_len);
+  write_ptr[name_len] = '\0';
+  attr->name = write_ptr;
+
+  write_ptr += name_len + 1;
+  GNUNET_memcpy (write_ptr, (char *) &attr_ser[1] + name_len, refval_len);
+  write_ptr[refval_len] = '\0';
+  attr->reference_value = write_ptr;
+  return attr;
+}
 /* end of reclaim_attribute.c */

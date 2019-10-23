@@ -2720,6 +2720,8 @@ extern "C" {
 
 #define GNUNET_MESSAGE_TYPE_RECLAIM_ATTESTATION_RESULT 979
 
+#define GNUNET_MESSAGE_TYPE_RECLAIM_REFERENCE_STORE 980
+
 /**************************************************
  *
  * ABD MESSAGE TYPES

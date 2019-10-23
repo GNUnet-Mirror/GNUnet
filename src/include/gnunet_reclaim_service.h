@@ -117,7 +117,7 @@ typedef void (*GNUNET_RECLAIM_ContinuationWithStatus) (void *cls,
  */
 typedef void (*GNUNET_RECLAIM_AttributeResult) (
   void *cls, const struct GNUNET_CRYPTO_EcdsaPublicKey *identity,
-  const struct GNUNET_RECLAIM_ATTRIBUTE_Claim *attr, 
+  const struct GNUNET_RECLAIM_ATTRIBUTE_Claim *attr,
   const struct GNUNET_RECLAIM_ATTESTATION_Claim *attest);
 
 
@@ -242,6 +242,26 @@ GNUNET_RECLAIM_get_attributes_start (
   GNUNET_RECLAIM_AttributeResult proc, void *proc_cls,
   GNUNET_SCHEDULER_TaskCallback finish_cb, void *finish_cb_cls);
 
+/**
+   * Store an attestation reference.  If the reference is already present,
+   * it is replaced with the new reference.
+   *
+   * @param h handle to the re:claimID service
+   * @param pkey private key of the identity
+   * @param attr the reference value
+   * @param exp_interval the relative expiration interval for the reference
+   * @param cont continuation to call when done
+   * @param cont_cls closure for @a cont
+   * @return handle to abort the request
+   */
+struct GNUNET_RECLAIM_Operation *
+GNUNET_RECLAIM_attestation_reference_store (
+  struct GNUNET_RECLAIM_Handle *h,
+  const struct GNUNET_CRYPTO_EcdsaPrivateKey *pkey,
+  const struct GNUNET_RECLAIM_ATTESTATION_REFERENCE *attr,
+  const struct GNUNET_TIME_Relative *exp_interval,
+  GNUNET_RECLAIM_ContinuationWithStatus cont,
+  void *cont_cls);
 
 /**
  * Calls the record processor specified in #GNUNET_RECLAIM_get_attributes_start

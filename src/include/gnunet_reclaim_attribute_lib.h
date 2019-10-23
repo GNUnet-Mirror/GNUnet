@@ -138,6 +138,34 @@ struct GNUNET_RECLAIM_ATTESTATION_Claim
 };
 
 /**
+ * A reference to an Attestatiom.
+ */
+struct GNUNET_RECLAIM_ATTESTATION_REFERENCE
+{
+  /**
+   * ID
+   */
+  uint64_t id;
+
+  /**
+   * Referenced ID of Attestation
+   */
+  uint64_t id_attest;
+
+  /**
+   * The name of the attribute/attestation reference value. Note "name" must never be individually
+   * free'd
+   */
+  const char *name;
+
+  /**
+   * The name of the attribute/attestation reference value. Note "name" must never be individually
+   * free'd
+   */
+  const char *reference_value;
+};
+
+/**
  * A list of GNUNET_RECLAIM_ATTRIBUTE_Claim structures.
  */
 struct GNUNET_RECLAIM_ATTRIBUTE_ClaimList
@@ -449,6 +477,51 @@ GNUNET_RECLAIM_ATTESTATION_number_to_typename (uint32_t type);
  */
 uint32_t
 GNUNET_RECLAIM_ATTESTATION_typename_to_number (const char *typename);
+
+/**
+ * Create a new attestation reference.
+ *
+ * @param attr_name the referenced claim name
+ * @param ref_value the claim name in the attestation
+ * @return the new reference
+ */
+struct GNUNET_RECLAIM_ATTESTATION_REFERENCE *
+GNUNET_RECLAIM_ATTESTATION_reference_new (const char *attr_name,
+                                          const char *ref_value);
+
+
+/**
+ * Get required size for serialization buffer
+ *
+ * @param attr the reference to serialize
+ * @return the required buffer size
+ */
+size_t
+GNUNET_RECLAIM_ATTESTATION_REF_serialize_get_size (
+  const struct GNUNET_RECLAIM_ATTESTATION_REFERENCE *attr);
+
+/**
+ * Serialize a reference
+ *
+ * @param attr the reference to serialize
+ * @param result the serialized reference
+ * @return length of serialized data
+ */
+size_t
+GNUNET_RECLAIM_ATTESTATION_REF_serialize (
+  const struct GNUNET_RECLAIM_ATTESTATION_REFERENCE *attr,
+  char *result);
+
+/**
+ * Deserialize a reference
+ *
+ * @param data the serialized reference
+ * @param data_size the length of the serialized data
+ *
+ * @return a GNUNET_IDENTITY_PROVIDER_Attribute, must be free'd by caller
+ */
+struct GNUNET_RECLAIM_ATTESTATION_REFERENCE *
+GNUNET_RECLAIM_ATTESTATION_REF_deserialize (const char *data, size_t data_size);
 
 #if 0 /* keep Emacsens' auto-indent happy */
 {
