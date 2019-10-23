@@ -103,9 +103,11 @@ endif
 
 if LINUX
 install-exec-hook:
-	$(top_srcdir)/src/transport/install-wlan-helper.sh $(DESTDIR)$(libexecdir) $(SUDO_OR_DOAS_BINARY) || true
+	chown root:root $(DESTDIR)$(libexecdir)/gnunet-helper-transport-wlan
+	chmod u+s $(DESTDIR)$(libexecdir)/gnunet-helper-transport-wlan
 if HAVE_LIBBLUETOOTH
-	$(top_srcdir)/src/transport/install-bluetooth-helper.sh $(DESTDIR)$(libexecdir) $(SUDO_OR_DOAS_BINARY) || true
+	chown root:root $(DESTDIR)$(libexecdir)/gnunet-helper-transport-bluetooth
+	chmod u+s $(DESTDIR)$(libexecdir)/gnunet-helper-transport-bluetooth
 endif
 else
 install-exec-hook:

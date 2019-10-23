@@ -25,7 +25,8 @@ endif
 if LINUX
 EXITBIN = gnunet-helper-exit
 install-exec-hook:
-	$(top_srcdir)/src/exit/install-exit-helper.sh $(DESTDIR)$(libexecdir) $(SUDO_OR_DOAS_BINARY) || true
+	chown root:root $(DESTDIR)$(libexecdir)/gnunet-helper-exit
+	chmod u+s $(DESTDIR)$(libexecdir)/gnunet-helper-exit
 else
 install-exec-hook:
 endif

@@ -25,7 +25,8 @@ endif
 if LINUX
 VPNBIN = gnunet-helper-vpn
 install-exec-hook:
-	$(top_srcdir)/src/vpn/install-vpn-helper.sh $(DESTDIR)$(libexecdir) $(SUDO_OR_DOAS_BINARY) || true
+	chown root:root $(DESTDIR)$(libexecdir)/gnunet-helper-vpn
+	chmod u+s $(DESTDIR)$(libexecdir)/gnunet-helper-vpn
 else
 install-exec-hook:
 endif

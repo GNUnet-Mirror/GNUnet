@@ -21,14 +21,20 @@ if LINUX
   NATSERVER = gnunet-helper-nat-server.c
   NATCLIENT = gnunet-helper-nat-client.c
 install-exec-hook:
-	$(top_srcdir)/src/nat/install-nat-helper.sh $(DESTDIR)$(libexecdir) $(SUDO_OR_DOAS_BINARY) || true
+	chown root:root $(DESTDIR)$(libexecdir)/gnunet-helper-nat-server
+	chown root:root $(DESTDIR)$(libexecdir)/gnunet-helper-nat-client
+	chmod u+s $(DESTDIR)$(libexecdir)/gnunet-helper-nat-server
+	chmod u+s $(DESTDIR)$(libexecdir)/gnunet-helper-nat-client
 else
 if XFREEBSD
   NATBIN = gnunet-helper-nat-server gnunet-helper-nat-client
   NATSERVER = gnunet-helper-nat-server.c
   NATCLIENT = gnunet-helper-nat-client.c
 install-exec-hook:
-	$(top_srcdir)/src/nat/install-nat-helper.sh $(DESTDIR)$(libexecdir) $(SUDO_OR_DOAS_BINARY) || true
+	chown root:root $(DESTDIR)$(libexecdir)/gnunet-helper-nat-server
+	chown root:root $(DESTDIR)$(libexecdir)/gnunet-helper-nat-client
+	chmod u+s $(DESTDIR)$(libexecdir)/gnunet-helper-nat-server
+	chmod u+s $(DESTDIR)$(libexecdir)/gnunet-helper-nat-client
 endif
 else
 install-exec-hook:
@@ -61,7 +67,7 @@ if USE_COVERAGE
 endif
 
 lib_LTLIBRARIES = \
-  libgnunetnatnew.la 
+  libgnunetnatnew.la
 
 libgnunetnatnew_la_SOURCES = \
   nat_api.c \
