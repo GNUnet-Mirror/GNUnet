@@ -14,25 +14,8 @@ plugindir = $(libdir)/gnunet
 pkgcfg_DATA = \
   dns.conf
 
-if HAVE_SUDO
-SUDO_OR_DOAS_BINARY= $(SUDO_BINARY)
-else
-if HAVE_DOAS_BINARY
-SUDO_OR_DOAS_BINARY= $(DOAS_BINARY)
-endif
-endif
-
 if LINUX
 HIJACKBIN = gnunet-helper-dns
-install-exec-hook:
-	chown root $(DESTDIR)$(libexecdir)/gnunet-helper-dns
-	chgrp $(GNUNETDNS_GROUP) $(DESTDIR)$(libexecdir)/gnunet-helper-dns
-	chmod 4750 $(DESTDIR)$(libexecdir)/gnunet-helper-dns
-	chgrp $(GNUNETDNS_GROUP) $(DESTDIR)$(libexecdir)/gnunet-helper-dns
-	chown gnunet:$(GNUNETDNS_GROUP) $(DESTDIR)$(libexecdir)/gnunet-helper-dns
-	chmod 2750 $(DESTDIR)$(libexecdir)/gnunet-helper-dns
-else
-install-exec-hook:
 endif
 
 lib_LTLIBRARIES = \

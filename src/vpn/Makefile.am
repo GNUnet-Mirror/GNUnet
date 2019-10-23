@@ -14,21 +14,8 @@ plugindir = $(libdir)/gnunet
 pkgcfg_DATA = \
   vpn.conf
 
-if HAVE_SUDO
-SUDO_OR_DOAS_BINARY= $(SUDO_BINARY)
-else
-if HAVE_DOAS_BINARY
-SUDO_OR_DOAS_BINARY= $(DOAS_BINARY)
-endif
-endif
-
 if LINUX
 VPNBIN = gnunet-helper-vpn
-install-exec-hook:
-	chown root:root $(DESTDIR)$(libexecdir)/gnunet-helper-vpn
-	chmod u+s $(DESTDIR)$(libexecdir)/gnunet-helper-vpn
-else
-install-exec-hook:
 endif
 
 

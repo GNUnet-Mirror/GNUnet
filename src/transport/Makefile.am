@@ -93,26 +93,6 @@ if LINUX
 		test_quota_compliance_wlan_asymmetric
 endif
 
-if HAVE_SUDO
-SUDO_OR_DOAS_BINARY= $(SUDO_BINARY)
-else
-if HAVE_DOAS_BINARY
-SUDO_OR_DOAS_BINARY= $(DOAS_BINARY)
-endif
-endif
-
-if LINUX
-install-exec-hook:
-	chown root:root $(DESTDIR)$(libexecdir)/gnunet-helper-transport-wlan
-	chmod u+s $(DESTDIR)$(libexecdir)/gnunet-helper-transport-wlan
-if HAVE_LIBBLUETOOTH
-	chown root:root $(DESTDIR)$(libexecdir)/gnunet-helper-transport-bluetooth
-	chmod u+s $(DESTDIR)$(libexecdir)/gnunet-helper-transport-bluetooth
-endif
-else
-install-exec-hook:
-endif
-
 if LINUX
 if HAVE_LIBBLUETOOTH
  BT_BIN = gnunet-helper-transport-bluetooth

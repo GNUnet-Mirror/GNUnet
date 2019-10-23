@@ -1,3 +1,14 @@
+Wed Oct 23 00:00:00 UTC 2019
+  Remove setuid helpers. They never worked as intended. The
+  fixed version is not portable and the defacto good way to
+  handle this which is most portable is to let package managers
+  handle this (as they do right now, the good ones), and let
+  people handle this who read the documentation.
+  This commit removes what would be patched out by the majority
+  of package managers, which is setuid handling in Makefiles.
+  It is very likely that no one will notice this code is gone.
+  -ng0
+
 Thu Oct 17 00:00:00 UTC 2019
   Added support for doas, use it in some places conditionally
   if sudo is not present. Fixed sudo detection. -ng0

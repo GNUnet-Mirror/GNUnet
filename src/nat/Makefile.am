@@ -8,33 +8,15 @@ pkgcfgdir= $(pkgdatadir)/config.d/
 pkgcfg_DATA = \
   nat.conf
 
-if HAVE_SUDO
-SUDO_OR_DOAS_BINARY= $(SUDO_BINARY)
-else
-if HAVE_DOAS_BINARY
-SUDO_OR_DOAS_BINARY= $(DOAS_BINARY)
-endif
-endif
-
 if LINUX
   NATBIN = gnunet-helper-nat-server gnunet-helper-nat-client
   NATSERVER = gnunet-helper-nat-server.c
   NATCLIENT = gnunet-helper-nat-client.c
-install-exec-hook:
-	chown root:root $(DESTDIR)$(libexecdir)/gnunet-helper-nat-server
-	chown root:root $(DESTDIR)$(libexecdir)/gnunet-helper-nat-client
-	chmod u+s $(DESTDIR)$(libexecdir)/gnunet-helper-nat-server
-	chmod u+s $(DESTDIR)$(libexecdir)/gnunet-helper-nat-client
 else
 if XFREEBSD
   NATBIN = gnunet-helper-nat-server gnunet-helper-nat-client
   NATSERVER = gnunet-helper-nat-server.c
   NATCLIENT = gnunet-helper-nat-client.c
-install-exec-hook:
-	chown root:root $(DESTDIR)$(libexecdir)/gnunet-helper-nat-server
-	chown root:root $(DESTDIR)$(libexecdir)/gnunet-helper-nat-client
-	chmod u+s $(DESTDIR)$(libexecdir)/gnunet-helper-nat-server
-	chmod u+s $(DESTDIR)$(libexecdir)/gnunet-helper-nat-client
 endif
 else
 install-exec-hook:

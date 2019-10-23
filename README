@@ -189,6 +189,32 @@ Recommended autotools for compiling the Git version are:
      more details.
      However, this leak is just a minor concern.
 
+Notes on setuid
+===============
+
+For a correct functionality depending on the host OS, you need
+to run the equivalent of these steps after installation:
+
+chown root:root $(DESTDIR)$(libexecdir)/gnunet-helper-vpn
+chmod u+s $(DESTDIR)$(libexecdir)/gnunet-helper-vpn
+chown root:root $(DESTDIR)$(libexecdir)/gnunet-helper-transport-wlan
+chmod u+s $(DESTDIR)$(libexecdir)/gnunet-helper-transport-wlan
+chown root:root $(DESTDIR)$(libexecdir)/gnunet-helper-transport-bluetooth
+chmod u+s $(DESTDIR)$(libexecdir)/gnunet-helper-transport-bluetooth
+chown root $(DESTDIR)$(libexecdir)/gnunet-helper-dns
+chgrp $(GNUNETDNS_GROUP) $(DESTDIR)$(libexecdir)/gnunet-helper-dns
+chmod 4750 $(DESTDIR)$(libexecdir)/gnunet-helper-dns
+chgrp $(GNUNETDNS_GROUP) $(DESTDIR)$(libexecdir)/gnunet-helper-dns
+chown gnunet:$(GNUNETDNS_GROUP) $(DESTDIR)$(libexecdir)/gnunet-helper-dns
+chmod 2750 $(DESTDIR)$(libexecdir)/gnunet-helper-dns
+chown root:root $(DESTDIR)$(libexecdir)/gnunet-helper-exit
+chmod u+s $(DESTDIR)$(libexecdir)/gnunet-helper-exit
+chown root:root $(DESTDIR)$(libexecdir)/gnunet-helper-nat-server
+chown root:root $(DESTDIR)$(libexecdir)/gnunet-helper-nat-client
+chmod u+s $(DESTDIR)$(libexecdir)/gnunet-helper-nat-server
+chmod u+s $(DESTDIR)$(libexecdir)/gnunet-helper-nat-client
+
+
 Requirements
 ============
 
