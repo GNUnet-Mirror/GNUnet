@@ -25,12 +25,12 @@ endif
 if LINUX
 HIJACKBIN = gnunet-helper-dns
 install-exec-hook:
-	chown root $(DESTDIR)$(libexecdir)/gnunt-helper-dns
-	chgrp $(GNUNETDNS_GROUP) $(DESTDIR)$(libexecdir)/gnunt-helper-dns
-	chmod 4750 $(DESTDIR)$(libexecdir)/gnunt-helper-dns
-	chgrp $(GNUNETDNS_GROUP) $(DESTDIR)$(libexecdir)/gnunt-helper-dns
-	chown gnunet:$(GNUNETDNS_GROUP) $(DESTDIR)$(libexecdir)/gnunt-helper-dns
-	chmod 2750 $(DESTDIR)$(libexecdir)/gnunt-helper-dns
+	chown root $(DESTDIR)$(libexecdir)/gnunet-helper-dns
+	chgrp $(GNUNETDNS_GROUP) $(DESTDIR)$(libexecdir)/gnunet-helper-dns
+	chmod 4750 $(DESTDIR)$(libexecdir)/gnunet-helper-dns
+	chgrp $(GNUNETDNS_GROUP) $(DESTDIR)$(libexecdir)/gnunet-helper-dns
+	chown gnunet:$(GNUNETDNS_GROUP) $(DESTDIR)$(libexecdir)/gnunet-helper-dns
+	chmod 2750 $(DESTDIR)$(libexecdir)/gnunet-helper-dns
 else
 install-exec-hook:
 endif
