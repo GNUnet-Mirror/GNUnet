@@ -228,8 +228,10 @@ AM_CONDITIONAL(HAVE_SSH_KEY,  ssh -D 12345 -o "BatchMode yes" -o "UserKnownHosts
 rm -f /tmp/gnunet_test_cosks_ssh_garbage
 
 # autotools' m4 for python has no maximum version!
-# python3.4 - python3.7 for tests
-m4_define_default([_AM_PYTHON_INTERPRETER_LIST],[python3 python3.4 python3.5 python3.6 python3.7 python])
+# python3.4 - python3.8 for tests (3.8 unchecked)
+# TODO: document how to override the lowest version
+# TODO: found by this.
+m4_define_default([_AM_PYTHON_INTERPRETER_LIST],[python3 python3.4 python3.5 python3.6 python3.7 python3.8 python])
 AM_PATH_PYTHON([3.4],, [:])
 AC_SUBST([PYTHON])
 AM_CONDITIONAL([HAVE_PYTHON], [test "$PYTHON" != :])
@@ -359,10 +361,10 @@ AS_IF([test $gcrypt = 0],
   AC_MSG_ERROR([[
 ***
 *** You need libgcrypt to build this program.
-**  This library is for example available at
-***   ftp://ftp.gnupg.org/gcrypt/libgcrypt/
-*** (at least version $NEED_LIBGCRYPT_VERSION (API $NEED_LIBGCRYPT_API)
-***  is required.)
+*** This library is for example available at
+*** ftp://ftp.gnupg.org/gcrypt/libgcrypt/.
+*** At least version $NEED_LIBGCRYPT_VERSION (API $NEED_LIBGCRYPT_API)
+***  is required.
 ***]])
 ])
 AC_DEFINE_UNQUOTED([NEED_LIBGCRYPT_VERSION], "$NEED_LIBGCRYPT_VERSION", [required libgcrypt version])
@@ -411,8 +413,9 @@ AC_MSG_RESULT($texi2mdoc_generation)
 AS_IF([test "x$texi2mdoc_generation" = "xyes"],
       [AS_IF([test "$texi2mdoc" = 0],
              [AC_MSG_WARN([ERROR: transpiled mdoc output requires texi2mdoc.])
-              AC_MSG_WARN([ERROR: texi2mdoc can be obtained via your Operating System])
-              AC_MSG_WARN([ERROR: package manager or from https://mandoc.bsd.lv/texi2mdoc/])],
+              AC_MSG_WARN([ERROR: texi2mdoc can be obtained via your])
+              AC_MSG_WARN([ERROR: Operating System package manager or from])
+              AC_MSG_WARN([ERROR: https://mandoc.bsd.lv/texi2mdoc/])],
              [AM_CONDITIONAL([TEXI2MDOC_GENERATION],true)
               AC_DEFINE([TEXI2MDOC_GENERATION],
                         [1],
@@ -426,7 +429,8 @@ AS_IF([test "x$texi2mdoc_generation" = "xyes"],
 # should the build process be building only the documentation?
 AC_MSG_CHECKING(whether to build only documentation)
 AC_ARG_ENABLE([documentation-only],
-   [AS_HELP_STRING([--enable-documentation-only], [build only the documentation])],
+   [AS_HELP_STRING([--enable-documentation-only],
+                   [build only the documentation])],
    [documentation_only=${enableval}],
    [documentation_only=no])
 AC_MSG_RESULT($documentation_only)
@@ -436,15 +440,14 @@ AS_IF([test "x$documentation_only" = "xyes"],
   AC_DEFINE([DOCUMENTATION_ONLY],[1],[Building only the documentation])
  ],[
   AM_CONDITIONAL([DOCUMENTATION_ONLY],false)
-  # TODO: Double negation might be a bit hard to parse for some
-  # TODO: people reading the output.
-  AC_DEFINE([DOCUMENTATION_ONLY],[0],[Not building only the documentation])
+  AC_DEFINE([DOCUMENTATION_ONLY],[0],[Doing a normal build, more than only documentation])
  ])
 
 # should the build process be including the manpages? (default: yes)
 AC_MSG_CHECKING(whether to include man pages)
 AC_ARG_ENABLE([include-manpages],
-   [AS_HELP_STRING([--disable-include-manpages], [Do not include the man pages in build and installation])],
+   [AS_HELP_STRING([--disable-include-manpages],
+                   [Do not include the man pages in build and installation])],
    [include_manpages=${enableval}],
    [include_manpages=yes])
 AC_MSG_RESULT($include_manpages)
