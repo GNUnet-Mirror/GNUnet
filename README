@@ -10,11 +10,12 @@ ToC
   o test suite dependencies
   o optional dependencies
   o autotools
-* Requirements
+* Notes on setuid
+* Scope of Operating System support
 * How to install
   o binary packages
-  o Scope of Operating System support
   o Building GNUnet from source
+  o Notes on compiling from Git
 * Configuration
 * Usage
 * Hacking GNUnet
@@ -50,6 +51,10 @@ Online documentation is provided at
 
 Dependencies:
 =============
+
+The dependencies for building GNUnet will require around 0.74 GiB
+diskspace. GNUnet itself will require 8 - 9.2 MiB depending on
+configuration.
 
 These are the direct dependencies for running GNUnet:
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -166,12 +171,12 @@ Recommended autotools for compiling the Git version are:
      fix in.
 
 [*4] We are commited  to portable tools and solutions
-     where possible. New scripts should be Posix SH
+     where possible. New scripts should be Posix sh
      compatible, current and older scripts are
      in the process of being rewritten to comply
      with this requirement.
 
-[*5] While libextractor is optional, it is recommended to
+[*5] While libextractor ("LE") is optional, it is recommended to
      build gnunet against it. If you install it later,
      you won't benefit from libextractor.
      If you are a distributor, we recommend to split
@@ -193,7 +198,10 @@ Notes on setuid
 ===============
 
 For a correct functionality depending on the host OS, you need
-to run the equivalent of these steps after installation:
+to run the equivalent of these steps after installation.
+Replace $(DESTDIR)$(libexecdir) with the appropriate paths,
+for example /usr/local/lib/gnunet/libexec/. Note that this
+obviously must be run as priviledged user.
 
 chown root:root $(DESTDIR)$(libexecdir)/gnunet-helper-vpn
 chmod u+s $(DESTDIR)$(libexecdir)/gnunet-helper-vpn
@@ -215,22 +223,36 @@ chmod u+s $(DESTDIR)$(libexecdir)/gnunet-helper-nat-server
 chmod u+s $(DESTDIR)$(libexecdir)/gnunet-helper-nat-client
 
 
-Requirements
-============
+Scope of Operating System support
+=================================
 
-GNUnet's directed acyclic graph (DAG) will require around 0.74 GiB
-Diskspace, with GNUnet itself taking around 8 - 9.2 MiB reported by
-the build on GNU Guix.
+We actively support GNUnet on a broad range of Free Software Operating
+Systems.
+
+For proprietary Operating Systems, like for example Microsoft Windows
+or Apple OS X, we accept patches if they don't break anything for
+other Operating Systems.
+If you are implementing support for a proprietary Operating System,
+you should be aware that progress in our codebase could break
+functionality on your OS and cause unpredicted behavior we can
+not test. However, we do not break support on Operating Systems
+with malicious intent.
+Regressions which do occur on these Operating Systems are 3rd
+class issues and we expect users and developers of these
+Operating Systems to send proposed patches to fix regressions.
+
+For more information about our stand on some of the motivating
+points here, read the 'Philosophy' Chapter of our handbook.
+
 
 How to install?
 ===============
 
-
 binary packages
 ~~~~~~~~~~~~~~~
 
-We recommend to use binary packages provided by your Operating System's
-package manager. GNUnet is reportedly available for at least:
+We recommend to use binary packages provided by the package manager integrated
+within your Operating System. GNUnet is reportedly available for at least:
 
 ALT Linux, Archlinux, Debian, Deepin, Devuan, GNU Guix, Hyperbola,
 Kali Linux, LEDE/OpenWRT, Manjaro, Nix, Parabola, Pardus, Parrot,
@@ -249,26 +271,6 @@ $ apt-get install gnunet
 
 Generic installation instructions are in the INSTALL file in this
 directory.
-
-Scope of Operating System support
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-We actively support GNUnet on a broad range of Free Software Operating
-Systems.
-
-For proprietary Operating Systems, like for example Microsoft Windows
-or Apple OS X, we accept patches if they don't break anything for
-other Operating Systems.
-If you are implementing support for a proprietary Operating System,
-you should be aware that progress in our codebase could break
-functionality on your OS and cause unpredicted behavior we can
-not test. However, we do not break support on Operating Systems
-with malicious intent.
-Regressions which do occur on these Operating Systems are 3rd
-class issues and we expect users and developers of these
-Operating Systems to send proposed patches to fix regressions.
-
-For more information about our stand on some of the motivating
-points here, read the 'Philosophy' Chapter of our handbook.
 
 Building GNUnet from source
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -323,11 +325,10 @@ in 'contrib/services' or by running:
 # sudo -u gnunet gnunet-arm -s
 
 
-Note that you must read paragraph "Notes on setuid", which documents
-steps you have to follow after the installation, as a priviledged
-user. We require some binaries to be setuid. The most portable
-approach across all supported platforms and targets is to let this be handled
-manually.
+Note that you must read paragraph "Notes on setuid", which documents steps you
+have to follow after the installation, as a priviledged user. We require some
+binaries to be setuid. The most portable approach across all supported
+platforms and targets is to let this be handled manually.
 The installation will work if you do not run these steps as root, but some
 components may not be installed in the perfect place or with the right
 permissions and thus won't work.
@@ -350,25 +351,25 @@ this case (instead of ~gnunet/.config/gnunet.conf").  In this case,
 you need to start GNUnet using "gnunet-arm -s -c /etc/gnunet.conf" or
 set "XDG_CONFIG_HOME=/etc/".
 
-You can avoid running 'make install' as root if you run configure
-with the "--with-sudo=yes" option and have extensive sudo rights
-(can run "chmod +s" and "chown" via 'sudo').  If you run 'make install'
-as a normal user without sudo rights (or the configure option),
-certain binaries that require additional privileges will not be
-installed properly (and autonomous NAT traversal, WLAN, DNS/GNS and
-the VPN will then not work).
+You can avoid running 'make install' as root if you have extensive sudo rights
+(can run "chmod +s" and "chown" via 'sudo').  If you run 'make install' as a
+normal user without sudo rights (or the configure option), certain binaries
+that require additional privileges will not be installed properly (and
+autonomous NAT traversal, WLAN, DNS/GNS and the VPN will then not work).
 
-If you run 'configure' and 'make install' as root or use the '--with-sudo'
-option, GNUnet's build system will install "libnss_gns*" libraries to
-"/lib/" regardless (!) of the $GNUNET_PREFIX you might have specified,
-as those libraries must be in "/lib/".  If you are packaging GNUnet
-for binary distribution, this may cause your packaging script to miss
-those plugins, so you might need to do some additional manual work to
-include those libraries in your binary package(s).  Similarly, if you
-want to use the GNUnet naming system and did NOT run GNUnet's 'make
-install' process with sudo rights, the libraries will be installed to
-"$GNUNET_PREFIX" and you will have to move them to "/lib/"
+If you run 'configure' and 'make install' as root, GNUnet's build system will
+install "libnss_gns*" libraries to "/lib/" regardless (!) of the
+$GNUNET_PREFIX you might have specified, as those libraries must be in
+"/lib/".  If you are packaging GNUnet for binary distribution, this may cause
+your packaging script to miss those plugins, so you might need to do some
+additional manual work to include those libraries in your binary package(s).
+Similarly, if you want to use the GNUnet Name System and did NOT run
+GNUnet's 'make install' process with priviledged rights, the libraries will be
+installed to "$GNUNET_PREFIX" and you will have to move them to "/lib/"
 manually.
+
+Notes on compiling from Git
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Finally, if you are compiling the code from git, you have to
 run "sh ./bootstrap" before running "./configure".  If you receive an error during
