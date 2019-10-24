@@ -17,6 +17,25 @@ INITD_FILES = \
  services/openrc/gnunet.initd \
  services/systemd/gnunet.service
 
+PACKAGES_FILES = \
+    guix/guix-env-py2.scm \
+    guix/guix-env-gillmann.scm \
+    guix/notest-guix-env.scm \
+    nix/gnunet-dev.nix \
+    nix/default.nix \
+    alpine/gnunet-gtk/APKBUILD \
+    alpine/gnunet/APKBUILD \
+    alpine/gnunet/gnunet-system-services.initd \
+    alpine/gnunet/gnunet-system.conf \
+    alpine/gnunet/gnunet-user-services.initd \
+    alpine/gnunet/gnunet-user.conf \
+    alpine/gnunet/gnunet.post-deinstall \
+    alpine/gnunet/gnunet.post-install \
+    alpine/gnunet/gnunet.pre-deinstall \
+    alpine/gnunet/gnunet.pre-install \
+    alpine/gnunet/gnunet.xsession \
+    alpine/gnurl/APKBUILD
+
 EXTRA_DIST = \
  conf/colorit/colorit.conf \
  conf/.style.yapf \
@@ -27,8 +46,7 @@ EXTRA_DIST = \
  conf/gnunet/gnunet-user.conf \
  conf/nss/nssswitch.conf \
  conf/wireshark/wireshark.lua \
- packages/nix/default.nix \
- packages/nix/gnunet-dev.nix \
+ $(PACKAGES_FILES) \
  $(INITD_FILES)
 
 check_PROGRAMS = \
