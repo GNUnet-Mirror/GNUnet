@@ -116,8 +116,8 @@ gnunet_helper_audio_record_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   -lpulse  -lopus -logg \
   $(INTLLIBS)
-gnunet_helper_audio_record_LDFLAGS = \
-  
+#gnunet_helper_audio_record_LDFLAGS = \
+#  
 
 gnunet_helper_audio_playback_SOURCES = \
   gnunet-helper-audio-playback.c
@@ -125,8 +125,8 @@ gnunet_helper_audio_playback_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   -lpulse -lopus -logg \
   $(INTLLIBS)
-gnunet_helper_audio_playback_LDFLAGS = \
-  
+#gnunet_helper_audio_playback_LDFLAGS = \
+#  
 else
 if BUILD_GST_HELPERS
 gnunet_helper_audio_record_SOURCES = \
@@ -186,8 +186,8 @@ gnunet_service_conversation_LDADD = \
   $(top_builddir)/src/cadet/libgnunetcadet.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(INTLLIBS)
-gnunet_service_conversation_LDFLAGS = \
-  
+#gnunet_service_conversation_LDFLAGS = \
+#  
 
 gnunet_conversation_SOURCES = \
   gnunet-conversation.c
@@ -201,8 +201,8 @@ gnunet_conversation_LDADD = \
   $(top_builddir)/src/identity/libgnunetidentity.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(INTLLIBS)
-gnunet_conversation_LDFLAGS = \
- 
+#gnunet_conversation_LDFLAGS = \
+# 
 
 gnunet_conversation_test_SOURCES = \
   gnunet-conversation-test.c
@@ -211,8 +211,8 @@ gnunet_conversation_test_LDADD = \
   libgnunetspeaker.la \
   $(top_builddir)/src/util/libgnunetutil.la  \
   $(INTLLIBS)
-gnunet_conversation_test_LDFLAGS = \
- 
+#gnunet_conversation_test_LDFLAGS = \
+# 
 
 
 test_conversation_api_SOURCES = \
