@@ -55,7 +55,7 @@ libgnunetfs_la_LIBADD += \
 endif
 
 libgnunetfs_la_LDFLAGS = \
-  $(GN_LIB_LDFLAGS)  $(WINFLAGS) \
+  $(GN_LIB_LDFLAGS)   \
   -version-info 3:1:1
 
 

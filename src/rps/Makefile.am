@@ -36,7 +36,7 @@ libgnunetrps_la_LIBADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_LIBINTL) $(XLIB)
 libgnunetrps_la_LDFLAGS = \
-  $(GN_LIB_LDFLAGS)  $(WINFLAGS) \
+  $(GN_LIB_LDFLAGS)   \
   -version-info 0:0:0
 # Fix 'created both with libtool and without' error:
 libgnunetrps_la_CFLAGS = $(AM_CFLAGS)

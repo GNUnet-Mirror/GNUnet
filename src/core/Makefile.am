@@ -24,7 +24,7 @@ libgnunetcore_la_LIBADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_LIBINTL) $(XLIB)
 libgnunetcore_la_LDFLAGS = \
-  $(GN_LIB_LDFLAGS) $(WINFLAGS) \
+  $(GN_LIB_LDFLAGS)  \
   -version-info 0:1:0
 
 

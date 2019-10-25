@@ -27,7 +27,7 @@ libgnunetpeerinfo_la_LIBADD = \
   $(XLIB) \
   $(LTLIBINTL)
 libgnunetpeerinfo_la_LDFLAGS = \
-  $(GN_LIB_LDFLAGS) $(WINFLAGS) \
+  $(GN_LIB_LDFLAGS)  \
   -version-info 0:0:0
 
 

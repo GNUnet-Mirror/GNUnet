@@ -21,7 +21,7 @@ libgnunetstatistics_la_LIBADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_LIBINTL) $(XLIB)
 libgnunetstatistics_la_LDFLAGS = \
-  $(GN_LIB_LDFLAGS)  $(WINFLAGS) \
+  $(GN_LIB_LDFLAGS)   \
   -version-info 2:0:0
 
 libexec_PROGRAMS = \

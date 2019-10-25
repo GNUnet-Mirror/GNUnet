@@ -25,7 +25,7 @@ libgnunetdht_la_LIBADD = \
   $(XLIB) \
   $(LTLIBINTL)
 libgnunetdht_la_LDFLAGS = \
-  $(GN_LIB_LDFLAGS) $(WINFLAGS) \
+  $(GN_LIB_LDFLAGS)  \
   -version-info 3:0:0
 
 

@@ -185,7 +185,7 @@ libgnunettransport_la_LIBADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_LIBINTL)
 libgnunettransport_la_LDFLAGS = \
-  $(GN_LIB_LDFLAGS) $(WINFLAGS) \
+  $(GN_LIB_LDFLAGS)  \
   -version-info 4:0:2
 
 libgnunettransportapplication_la_SOURCES = \
@@ -194,7 +194,7 @@ libgnunettransportapplication_la_LIBADD = \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(LTLIBINTL)
 libgnunettransportapplication_la_LDFLAGS = \
-  $(GN_LIB_LDFLAGS) $(WINFLAGS) \
+  $(GN_LIB_LDFLAGS)  \
   -version-info 0:0:0
 
 
@@ -204,7 +204,7 @@ libgnunettransportcore_la_LIBADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_LIBINTL)
 libgnunettransportcore_la_LDFLAGS = \
-  $(GN_LIB_LDFLAGS) $(WINFLAGS) \
+  $(GN_LIB_LDFLAGS)  \
   -version-info 0:0:0
 
 libgnunettransportcommunicator_la_SOURCES = \
@@ -213,7 +213,7 @@ libgnunettransportcommunicator_la_LIBADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_LIBINTL)
 libgnunettransportcommunicator_la_LDFLAGS = \
-  $(GN_LIB_LDFLAGS) $(WINFLAGS) \
+  $(GN_LIB_LDFLAGS)  \
   -version-info 0:0:0
 
 
@@ -223,7 +223,7 @@ libgnunettransportmonitor_la_LIBADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_LIBINTL)
 libgnunettransportmonitor_la_LDFLAGS = \
-  $(GN_LIB_LDFLAGS) $(WINFLAGS) \
+  $(GN_LIB_LDFLAGS)  \
   -version-info 0:0:0
 
 

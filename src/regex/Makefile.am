@@ -45,7 +45,7 @@ libgnunetregexblock_la_LIBADD = \
   $(XLIB) \
   $(LTLIBINTL)
 libgnunetregexblock_la_LDFLAGS = \
-  $(GN_LIB_LDFLAGS) $(WINFLAGS) \
+  $(GN_LIB_LDFLAGS)  \
   -version-info 1:0:0
 
 

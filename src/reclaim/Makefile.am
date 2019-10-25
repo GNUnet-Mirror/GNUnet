@@ -111,7 +111,7 @@ libgnunetreclaim_la_LIBADD = \
   $(top_builddir)/src/reclaim-attribute/libgnunetreclaimattribute.la \
   $(GN_LIBINTL) $(XLIB)
 libgnunetreclaim_la_LDFLAGS = \
-  $(GN_LIB_LDFLAGS)  $(WINFLAGS) \
+  $(GN_LIB_LDFLAGS)   \
   -version-info 0:0:0
 
 gnunet_reclaim_SOURCES = \
