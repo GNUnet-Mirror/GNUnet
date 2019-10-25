@@ -791,20 +791,6 @@ AM_CONDITIONAL(HAVE_LIBATOMIC, [test "$have_libatomic" = 1])
 LIBS=$SAVE_LIBS
 CPPFLAGS=$SAVE_CPPFLAGS
 
-AC_CHECK_HEADERS([glpk.h],[glpk=true],[glpk=false])
-# GLPK must support glpk_init_env, version >= 4.43
-AC_CHECK_LIB([glpk],[glp_init_env],,[glpk=false])
-# GLPK must support atm MLP presolving, version >= 4.32
-AC_CHECK_MEMBERS(glp_iocp.presolve,,[glpk=false],[[#include <glpk.h>]])
-AS_IF([test "x$glpk" = xfalse],
-[
-	AM_CONDITIONAL(HAVE_LIBGLPK, false)
-	AC_MSG_WARN([ERROR: GNUnet requires GLPK  >= 4.32])
-],[
-	AM_CONDITIONAL(HAVE_LIBGLPK, true)
-	AC_DEFINE([HAVE_LIBGLPK],[1],[Have GLPK])
-])
-
 
 AC_CHECK_HEADERS([nss.h],[nss=true],[nss=false])
 AS_IF([test x$nss = xfalse],

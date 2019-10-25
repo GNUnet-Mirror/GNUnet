@@ -122,7 +122,6 @@ These are the optional dependencies:
 - grof                              (for linting of man pages)
 - libextractor       >= 0.6.1       (highly recommended[*5])
 - libjansson
-- libglpk            >= 4.45        (for experimental code)
 - libopus            >= 1.0.1       (for experimental conversation tool)
 - libpulse           >= 2.0         (for experimental conversation tool)
 - libogg             >= 1.3.0       (for experimental conversation tool)
