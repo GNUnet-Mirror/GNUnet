@@ -122,9 +122,9 @@ These are the optional dependencies:
 - grof                              (for linting of man pages)
 - libextractor       >= 0.6.1       (highly recommended[*5])
 - libjansson
-- libopus            >= 1.0.1       (for experimental conversation tool)
-- libpulse           >= 2.0         (for experimental conversation tool)
-- libogg             >= 1.3.0       (for experimental conversation tool)
+- libopus            >= 1.0.1       (for conversation tool)
+- libpulse           >= 2.0         (for conversation tool)
+- libogg             >= 1.3.0       (for conversation tool)
 - libnss                            (certtool binary (for convenient
                                      installation of GNS proxy))
 - libzbar            >= 0.10        (for gnunet-qr)
