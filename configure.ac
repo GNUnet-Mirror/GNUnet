@@ -605,11 +605,38 @@ AC_LANG_POP(C)
 
 # check for bluetooth library
 bluetooth=0
-CHECK_LIBHEADER(BLUETOOTH, bluetooth, ba2str, bluetooth/bluetooth.h,bluetooth=1,)
+AC_MSG_CHECKING(for libbluetooth)
+AC_ARG_WITH(libbluetooth,
+    [  --with-libbluetooth=PREFIX (base of libbluetooth installation)],
+    [AC_MSG_RESULT([$with_libbluetooth])
+     AS_CASE([$with_libbluetooth],
+        [no],[],
+        [yes],[
+            CHECK_LIBHEADER(BLUETOOTH,
+                            bluetooth,
+                            ba2str,
+                            bluetooth/bluetooth.h,
+                            bluetooth=1,)
+        ],[
+            LDFLAGS="-L$with_libbluetooth/lib $LDFLAGS"
+            CPPFLAGS="-I$with_libbluetooth/include $CPPFLAGS"
+            AC_CHECK_HEADERS(bluetooth/bluetooth.h,
+                             AC_CHECK_LIB([bluetooth],
+                                          [ba2str],
+                                          EXT_LIB_PATH="-L$with_libbluetooth/lib $EXT_LIB_PATH"
+                                          bluetooth=1))
+        ])
+    ],
+    [AC_MSG_RESULT([--with-libbluetooth not specified])
+     CHECK_LIBHEADER(BLUETOOTH,
+                     bluetooth,
+                     ba2str,
+                     bluetooth/bluetooth.h,
+                     bluetooth=1,)])
 AM_CONDITIONAL(HAVE_LIBBLUETOOTH, [test "$bluetooth" = 1])
 AS_IF([test "$bluetooth" = 1],
- [AC_DEFINE([HAVE_LIBBLUETOOTH],[1],[Have bluetooth library])],
- [AC_DEFINE([HAVE_LIBBLUETOOTH],[0],[Lacking bluetooth library])])
+      [AC_DEFINE([HAVE_LIBBLUETOOTH],[1],[Have bluetooth library])],
+      [AC_DEFINE([HAVE_LIBBLUETOOTH],[0],[Lacking bluetooth library])])
 
 # check for zbar library
 zbar=0
