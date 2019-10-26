@@ -1033,6 +1033,9 @@ LIBS=$SAVE_LIBS
 # if none exist, fail and message that libidn or libidn2
 # is required with a preference for libidn2.
 # TODO: What we have right here can probably be improved.
+AC_MSG_CHECKING(for idn or idn2)
+
+AC_MSG_CHECKING(for idn)
 my_with_libidn=1
 AC_ARG_WITH(libidn,
             AS_HELP_STRING([--with-libidn=pathname],
@@ -1041,19 +1044,20 @@ AC_ARG_WITH(libidn,
             [withval="yes"])
 AS_IF([test x_$withval = x_yes],
       [AC_CHECK_HEADERS([idna.h],
-          AC_MSG_NOTICE([Found idna.h]),
-          AC_CHECK_HEADERS([idn/idna.h],
-               AC_MSG_NOTICE([Found idn/idna.h]),
-               my_with_libidn=0))],
+                        AC_MSG_NOTICE([Found idna.h]),
+                        AC_CHECK_HEADERS([idn/idna.h],
+                                         AC_MSG_NOTICE([Found idn/idna.h]),
+                                         my_with_libidn=0))],
       [AS_IF([test x_$withval != x_no],
              [CFLAGS="$CFLAGS -I$withval/include"
               LDFLAGS="$LDFLAGS -L$withval/lib"
               AC_CHECK_HEADERS([idna.h],
-                AC_MSG_NOTICE([Found idna.h]),
-	        [AC_MSG_NOTICE([Failed to find idna.h])
-                 my_with_libidn=0])],
+                               AC_MSG_NOTICE([Found idna.h]),
+	                           [AC_MSG_NOTICE([Failed to find idna.h])
+                               my_with_libidn=0])],
              [my_with_libidn=0])])
 
+AC_MSG_CHECKING(for idn2)
 my_with_libidn2=1
 AC_ARG_WITH(libidn2,
             AS_HELP_STRING([--with-libidn2=pathname],
@@ -1062,15 +1066,15 @@ AC_ARG_WITH(libidn2,
             [withval="yes"])
 AS_IF([test x_$withval = x_yes],
       [AC_CHECK_HEADERS([idn2.h],
-       AC_MSG_NOTICE([Found idn2.h]),
-       AC_CHECK_HEADERS([idn2/idn2.h],
-          AC_MSG_NOTICE([Found idn2/idn2.h]),
-          [AC_MSG_NOTICE([Failed to find idn2.h])
-           my_with_libidn2=0]))],
+                        AC_MSG_NOTICE([Found idn2.h]),
+                        AC_CHECK_HEADERS([idn2/idn2.h],
+                                         AC_MSG_NOTICE([Found idn2/idn2.h]),
+                                         [AC_MSG_NOTICE([Failed to find idn2.h])
+                                         my_with_libidn2=0]))],
       [AS_IF([test x_$withval != x_no],
              [CFLAGS="$CFLAGS -I$withval/include"
               LDFLAGS="$LDFLAGS -L$withval/lib"],
-	     [my_with_libidn2=0])])
+	          [my_with_libidn2=0])])
 
 AC_MSG_CHECKING([if libidn can be used])
 # Check for LIBIDNs
