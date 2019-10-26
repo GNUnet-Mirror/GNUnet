@@ -833,8 +833,10 @@ PKG_CHECK_MODULES([GLIB],
    AM_CONDITIONAL(HAVE_ABE, [false])
    AC_DEFINE([HAVE_PBC],[0],[Lacking glib library])])
 
+
 gst=0
 gstreamer_msg="no"
+AC_MSG_CHECKING(for gstreamer)
 PKG_CHECK_MODULES(
   [GST],
   [glib-2.0 gobject-2.0 gstreamer-1.0 gstreamer-app-1.0 gstreamer-audio-1.0],
@@ -842,7 +844,8 @@ PKG_CHECK_MODULES(
    gstreamer_msg="yes"],
   [gst=0])
 
-# Pulse Audio
+# conversation
+AC_MSG_CHECKING(conversation feature set to build)
 AS_IF([test "x$pulse" != "x1" -o "x$opus" != "x1" -o "x$ogg" != "x1"],[
  AS_IF([test "x$gst" != "x1"],[
   conversation_backend=none
