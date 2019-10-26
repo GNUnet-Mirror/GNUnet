@@ -694,10 +694,42 @@ AS_IF([test "x$jansson" = x1],
 # check for libpulse(audio) library
 pulse=0
 libpulse_msg="no"
-CHECK_LIBHEADER(LIBPULSE, pulse, pa_stream_peek, pulse/simple.h,pulse=1,)
-AS_IF([test "$pulse" = 1],
+AC_MSG_CHECKING(for libpulse)
+# TODO: --with-libpulse or --with-pulseaudio? What is more established
+# TODO: in this context?
+AC_ARG_WITH(libpulse,
+    [  --with-libpulse=PREFIX (base of libpulse installation)],
+    [AC_MSG_RESULT([$with_libpulse])
+     AS_CASE([$with_libpulse],
+        [no],[],
+        [yes],[
+            CHECK_LIBHEADER(LIBPULSE,
+                            pulse,
+                            pa_stream_peek,
+                            pulse/simple.h,
+                            pulse=1,)
+        ],[
+            LDFLAGS="-L$with_libpulse/lib $LDFLAGS"
+            CPPFLAGS="-I$with_libpulse/include $CPPFLAGS"
+            AC_CHECK_HEADERS(pulse/simple.h,
+                             AC_CHECK_LIB([pulse],
+                                          [pa_stream_peek],
+                                          EXT_LIB_PATH="-L$with_pulse/lib $EXT_LIB_PATH"
+                                          pulse=1))
+        ])
+    ],
+    [AC_MSG_RESULT([--with-libpulse not specified])
+     CHECK_LIBHEADER(LIBPULSE,
+                     pulse,
+                     pa_stream_peek,
+                     pulse/simple.h,
+                     pulse=1,)])
+AM_CONDITIONAL(HAVE_PULSE, [test "$pulse" = 1])
+AS_IF([test x"$pulse" = x1],
       [AC_DEFINE([HAVE_PULSE],[1],[Have libpulse(audio) library])
-       libpulse_msg="yes"])
+       libpulse_msg="yes"],
+      [AC_DEFINE([HAVE_PULSE],[0],[Lacking libpulse(audio) library])
+       libpulse_msg="no"])
 
 # check for libopus(audio) library
 opus=0
