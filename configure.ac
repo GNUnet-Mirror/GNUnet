@@ -734,14 +734,50 @@ AS_IF([test x"$pulse" = x1],
 # check for libopus(audio) library
 opus=0
 libopus_msg="no"
-CHECK_LIBHEADER(LIBOPUS,
-                opus,
-                opus_decode_float,
-                opus/opus.h,
-                AC_CHECK_DECL([OPUS_SET_GAIN],[opus=1],[],[[#include <opus/opus.h>]]))
+AC_MSG_CHECKING(for libopus)
+AC_ARG_WITH(libopus,
+    [  --with-libopus=PREFIX (base of libopus installation)],
+    [AC_MSG_RESULT([$with_libopus])
+     AS_CASE([$with_libopus],
+        [no],[],
+        [yes],[
+            CHECK_LIBHEADER(LIBOPUS,
+                            opus,
+                            opus_decode_float,
+                            opus/opus.h,
+                            AC_CHECK_DECL([OPUS_SET_GAIN],
+                                          [opus=1],
+                                          [],
+                                          [[
+                                          #include <opus/opus.h>
+                                          ]]))
+    ],[
+        LDFLAGS="-L$with_libopus/lib $LDFLAGS"
+        CPPFLAGS="-I$with_libopus/include $CPPFLAGS"
+        AC_CHECK_HEADERS(opus/opus.h,
+                         AC_CHECK_LIB([opus],
+                                      [OPUS_SET_GAIN],
+                                      EXT_LIB_PATH="-L$with_libopus/lib $EXT_LIB_PATH"
+                                      opus=1))
+      ])
+    ],
+    [AC_MSG_RESULT([--with-libopus not specified])
+     CHECK_LIBHEADER(LIBOPUS,
+                            opus,
+                            opus_decode_float,
+                            opus/opus.h,
+                            AC_CHECK_DECL([OPUS_SET_GAIN],
+                                          [opus=1],
+                                          [],
+                                          [[
+                                          #include <opus/opus.h>
+                                          ]]))])
+AM_CONDITIONAL(HAVE_OPUS, [test "$opus" = 1])
 AS_IF([test "x$opus" = x1],
       [AC_DEFINE([HAVE_OPUS],[1],[Have libopus library])
-       libopus_msg="yes"])
+       libopus_msg="yes"],
+      [AC_DEFINE([HAVE_OPUS],[0],[Lacking libopus library])
+       libopus_msg="no"])
 
 # libogg
 AC_CHECK_LIB(ogg, ogg_stream_flush_fill,
