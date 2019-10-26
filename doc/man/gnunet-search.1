@@ -26,21 +26,20 @@
 .Os
 .Sh NAME
 .Nm gnunet-search
-.Nd
-a command line interface to search for content on GNUnet
+.Nd a command line interface to search for content on GNUnet
 .Sh SYNOPSIS
 .Nm
-.Op Fl a Ar LEVEL | Fl \-anonymity= Ns Ar LEVEL
-.Op Fl c Ar FILENAME | Fl \-config= Ns Ar FILENAME
-.Op Fl h | \-help
-.Op Fl L Ar LOGLEVEL | Fl \-loglevel= Ns Ar LOGLEVEL
-.Op Fl l Ar FILENAME | Fl \-logfile= Ns Ar FILENAME
-.Op Fl o Ar FILENAME | Fl \-output= Ns Ar FILENAME
-.Op Fl n | \-no-network
-.Op Fl N Ar VALUE | Fl \-results= Ns Ar VALUE
-.Op Fl t Ar DELAY | Fl \-timeout= Ns Ar DELAY
-.Op Fl v | \-version
-.Op Fl V | \-verbose
+.Op Fl a Ar LEVEL | Fl -anonymity= Ns Ar LEVEL
+.Op Fl c Ar FILENAME | Fl -config= Ns Ar FILENAME
+.Op Fl h | -help
+.Op Fl L Ar LOGLEVEL | Fl -loglevel= Ns Ar LOGLEVEL
+.Op Fl l Ar FILENAME | Fl -logfile= Ns Ar FILENAME
+.Op Fl o Ar FILENAME | Fl -output= Ns Ar FILENAME
+.Op Fl n | -no-network
+.Op Fl N Ar VALUE | Fl -results= Ns Ar VALUE
+.Op Fl t Ar DELAY | Fl -timeout= Ns Ar DELAY
+.Op Fl v | -version
+.Op Fl V | -verbose
 .Ao KEYWORD Ac Ao +KEYWORD Ac | Ao Ar URI Ac Ao Ar +URI Ac
 .Sh DESCRIPTION
 Search for content on GNUnet.
@@ -49,7 +48,7 @@ The keywords are case-sensitive.
 can be used both for a search in the global namespace as well as for searching a private subspace.
 The options are as follows:
 .Bl -tag -width indent
-.It Fl a Ar LEVEL | Fl \-anonymity= Ns Ar LEVEL
+.It Fl a Ar LEVEL | Fl -anonymity= Ns Ar LEVEL
 This option can be used to specify additional anonymity constraints.
 The default is 1.
 If set to 0, GNUnet will publish the file non-anonymously and in fact sign the advertisement for the file using your peer's private key.
@@ -64,37 +63,37 @@ The specific numeric value (for anonymity levels above 1) is simple:
 Given an anonymity level L (above 1), each request FS makes on your behalf must be hidden in L-1 equivalent requests of cover traffic (traffic your peer routes for others) in the same time-period.
 The time-period is twice the average delay by which GNUnet artificially delays traffic.
 Note that regardless of the anonymity level you choose, peers that cache content in the network always use anonymity level 1.
-.It Fl c Ar FILENAME | Fl \-config= Ns Ar FILENAME
+.It Fl c Ar FILENAME | Fl -config= Ns Ar FILENAME
 Use the configuration file
 .Ar FILENAME
 (default:
 .Pa ~/.config/gnunet.conf )
-.It Fl h | \-help
+.It Fl h | -help
 Print the help page.
-.It Fl L Ar LOGLEVEL | Fl \-loglevel= Ns Ar LOGLEVEL
+.It Fl L Ar LOGLEVEL | Fl -loglevel= Ns Ar LOGLEVEL
 Change the loglevel.
 Possible values for LOGLEVEL are ERROR, WARNING, INFO and DEBUG.
-.It Fl l Ar FILENAME | Fl \-logfile= Ns Ar FILENAME
+.It Fl l Ar FILENAME | Fl -logfile= Ns Ar FILENAME
 Write logs to
 .Ar FILENAME .
-.It Fl o Ar FILENAME | Fl \-output= Ns Ar FILENAME
+.It Fl o Ar FILENAME | Fl -output= Ns Ar FILENAME
 Writes a GNUnet directory containing all of the search results to
 .Ar FILENAME .
-.It Fl n | \-no-network
+.It Fl n | -no-network
 Only search locally, do not forward requests to other peers.
-.It Fl N Ar VALUE | Fl \-results= Ns Ar VALUE
+.It Fl N Ar VALUE | Fl -results= Ns Ar VALUE
 Automatically terminate the search after receiving
 .Ar VALUE
 results.
-.It Fl t Ar DELAY | Fl \-timeout= Ns Ar DELAY
+.It Fl t Ar DELAY | Fl -timeout= Ns Ar DELAY
 Automatically timeout search after
 .Ar DELAY .
 The value given must be a number followed by a space and a time unit, for example "500 ms".
 Note that the quotes are required on the shell.
-Otherwise the search runs until gnunet-search is aborted with CTRL\-C.
-.It Fl v | \-version
+Otherwise the search runs until gnunet-search is aborted with CTRL-C.
+.It Fl v | -version
 print the version number
-.It Fl V | \-verbose
+.It Fl V | -verbose
 print meta data from search results as well
 .El
 You can run gnunet-search with an URI instead of a keyword.

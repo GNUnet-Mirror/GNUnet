@@ -26,47 +26,46 @@
 .Os
 .Sh NAME
 .Nm gnunet-gns
-.Nd
-access to GNU Name System
+.Nd access to GNU Name System
 .Sh SYNOPSIS
 .Nm
-.Op Fl c Ar FILENAME | Fl \-config= Ns Ar FILENAME
-.Op Fl h | \-help
-.Op Fl L Ar LOGLEVEL | Fl \-loglevel= Ns Ar LOGLEVEL
-.Op Fl l Ar FILENAME | Fl \-logfile= Ns Ar FILENAME
-.Op Fl r | \-raw
-.Op Fl t Ar TYPE | Fl \-type= Ns Ar TYPE
-.Op Fl u Ar NAME | Fl \-lookup= Ns Ar NAME
-.Op Fl v | \-version
+.Op Fl c Ar FILENAME | Fl -config= Ns Ar FILENAME
+.Op Fl h | -help
+.Op Fl L Ar LOGLEVEL | Fl -loglevel= Ns Ar LOGLEVEL
+.Op Fl l Ar FILENAME | Fl -logfile= Ns Ar FILENAME
+.Op Fl r | -raw
+.Op Fl t Ar TYPE | Fl -type= Ns Ar TYPE
+.Op Fl u Ar NAME | Fl -lookup= Ns Ar NAME
+.Op Fl v | -version
 .Sh DESCRIPTION
 .Nm
 can be used to lookup and process GNU Name Service names.
 .Bl -tag -width indent
-.It Fl c Ar FILENAME | Fl \-config= Ns Ar FILENAME
+.It Fl c Ar FILENAME | Fl -config= Ns Ar FILENAME
 Use the configuration file FILENAME.
-.It Fl h | \-help
+.It Fl h | -help
 Print short help on options.
-.It Fl L Ar LOGLEVEL | Fl \-loglevel= Ns Ar LOGLEVEL
+.It Fl L Ar LOGLEVEL | Fl -loglevel= Ns Ar LOGLEVEL
 Use LOGLEVEL for logging.
 Valid values are DEBUG, INFO, WARNING and ERROR.
-.It Fl l Ar FILENAME | Fl \-logfile= Ns Ar FILENAME
+.It Fl l Ar FILENAME | Fl -logfile= Ns Ar FILENAME
 Write logs to FILENAME.
-.It Fl r | \-raw
+.It Fl r | -raw
 No unneeded output.
 This is a quiet mode where only important information is displayed.
 For example a lookup for an IP address will only yield the IP address, no descriptive text.
-.It Fl t Ar TYPE | Fl \-type= Ns Ar TYPE
+.It Fl t Ar TYPE | Fl -type= Ns Ar TYPE
 Resource Record Type (TYPE) to look for.
 Supported TYPE's are: A, AAAA, CNAME, NS, PKEY, PSEU, TLSA, SRV, SOA, MX, LEHO, VPN, REV, PTR, TXT.
 Defaults to "A".
-.It Fl u Ar NAME | Fl \-lookup= Ns Ar NAME
+.It Fl u Ar NAME | Fl -lookup= Ns Ar NAME
 Name to lookup.
 Resolve the specified name using the GNU Name System.
-.It Fl T Ar TIMEOUT | Fl \-timeout= Ns Ar TIMEOUT
+.It Fl T Ar TIMEOUT | Fl -timeout= Ns Ar TIMEOUT
 How much time to wait for a resolution to finish.
 Example: "5s" for 5 seconds or "3m" for 3 minutes.
 Defaults to "forver" (No timeout).
-.It Fl v | \-version
+.It Fl v | -version
 Print GNUnet version number.
 .El
 .Sh DIAGNOSTICS

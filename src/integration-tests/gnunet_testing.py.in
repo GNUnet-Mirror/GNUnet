@@ -30,10 +30,12 @@ import logging
 logger = logging.getLogger()
 handler = logging.StreamHandler()
 formatter = logging.Formatter(
-        '%(asctime)s %(name)-12s %(levelname)-8s %(message)s')
+    '%(asctime)s %(name)-12s %(levelname)-8s %(message)s'
+)
 handler.setFormatter(formatter)
 logger.addHandler(handler)
 logger.setLevel(logging.DEBUG)
+
 
 class Check(object):
     def __init__(self, test):
@@ -92,7 +94,9 @@ class Check(object):
                 neg += 1
             else:
                 pos += 1
-        logger.debug('%s out of %s conditions fulfilled', str(pos), str(pos+neg))
+        logger.debug(
+            '%s out of %s conditions fulfilled', str(pos), str(pos + neg)
+        )
         return self.fulfilled
 
     def reset(self):
@@ -115,9 +119,13 @@ class Condition(object):
 
     def evaluate(self, failed_only):
         if ((self.fulfilled == False) and (failed_only == True)):
-            logger.debug('%s condition for was %s', str(self.type), str(self.fulfilled))
+            logger.debug(
+                '%s condition for was %s', str(self.type), str(self.fulfilled)
+            )
         elif (failed_only == False):
-            logger.debug('%s condition for was %s', str(self.type), str(self.fulfilled))
+            logger.debug(
+                '%s condition for was %s', str(self.type), str(self.fulfilled)
+            )
         return self.fulfilled
 
 
@@ -140,9 +148,15 @@ class FileExistCondition(Condition):
 
     def evaluate(self, failed_only):
         if ((self.fulfilled == False) and (failed_only == True)):
-            logger.debug('%s confition for file %s was %s', str(self.type), self.file, str(self.fulfilled))
+            logger.debug(
+                '%s confition for file %s was %s', str(self.type), self.file,
+                str(self.fulfilled)
+            )
         elif (failed_only == False):
-            logger.debug('%s confition for file %s was %s', str(self.type), self.file, str(self.fulfilled))
+            logger.debug(
+                '%s confition for file %s was %s', str(self.type), self.file,
+                str(self.fulfilled)
+            )
         return self.fulfilled
 
 
@@ -158,7 +172,9 @@ class StatisticsCondition(Condition):
 
     def check(self):
         if (self.fulfilled == False):
-            self.result = self.peer.get_statistics_value(self.subsystem, self.name)
+            self.result = self.peer.get_statistics_value(
+                self.subsystem, self.name
+            )
             if (self.result == self.value):
                 self.fulfilled = True
                 return True
@@ -174,8 +190,14 @@ class StatisticsCondition(Condition):
         else:
             fail = ""
             op = " == "
-        if (((self.fulfilled == False) and (failed_only == True)) or (failed_only == False)):
-            logger.debug('%s %s condition in subsystem %s: %s: (expected/real value) %s %s %s %s', self.peer.id[:4].decode("utf-8"), self.peer.cfg, self.subsystem.ljust(12), self.name.ljust(30), self.value, op, self.result, fail)
+        if (((self.fulfilled == False) and (failed_only == True))
+            or (failed_only == False)):
+            logger.debug(
+                '%s %s condition in subsystem %s: %s: (expected/real value) %s %s %s %s',
+                self.peer.id[:4].decode("utf-8"), self.peer.cfg,
+                self.subsystem.ljust(12), self.name.ljust(30), self.value, op,
+                self.result, fail
+            )
         return self.fulfilled
 
 
@@ -195,8 +217,12 @@ class EqualStatisticsCondition(Condition):
 
     def check(self):
         if (self.fulfilled == False):
-            self.result = self.peer.get_statistics_value(self.subsystem, self.name)
-            self.result2 = self.peer2.get_statistics_value(self.subsystem2, self.name2)
+            self.result = self.peer.get_statistics_value(
+                self.subsystem, self.name
+            )
+            self.result2 = self.peer2.get_statistics_value(
+                self.subsystem2, self.name2
+            )
             if (self.result == self.result2):
                 self.fulfilled = True
                 return True
@@ -206,8 +232,14 @@ class EqualStatisticsCondition(Condition):
             return True
 
     def evaluate(self, failed_only):
-        if (((self.fulfilled == False) and (failed_only == True)) or (failed_only == False)):
-            logger.debug('%s %s %s == %s %s %s %s %s', self.peer.id[:4], self.subsystem.ljust(12), self.name.ljust(30), self.result, self.peer2.id[:4], self.subsystem2.ljust(12), self.name2.ljust(30), self.result2)
+        if (((self.fulfilled == False) and (failed_only == True))
+            or (failed_only == False)):
+            logger.debug(
+                '%s %s %s == %s %s %s %s %s', self.peer.id[:4],
+                self.subsystem.ljust(12), self.name.ljust(30), self.result,
+                self.peer2.id[:4], self.subsystem2.ljust(12),
+                self.name2.ljust(30), self.result2
+            )
         return self.fulfilled
 
 
@@ -262,19 +294,23 @@ class Peer(object):
                 # print('ERROR! Peer using cfg ' +
                 #       self.cfg +
                 #       ' could not be stopped')
-                logger.debug('ERROR! Peer using cfg %s could not be stopped', self.cfg)
+                logger.debug(
+                    'ERROR! Peer using cfg %s could not be stopped', self.cfg
+                )
                 self.started = False
             return ret
         else:
             return False
 
     def start(self):
-        os.unsetenv ("XDG_CONFIG_HOME")
-        os.unsetenv ("XDG_DATA_HOME")
-        os.unsetenv ("XDG_CACHE_HOME")
+        os.unsetenv("XDG_CONFIG_HOME")
+        os.unsetenv("XDG_DATA_HOME")
+        os.unsetenv("XDG_CACHE_HOME")
         self.test.p("Starting peer using cfg " + self.cfg)
         try:
-            server = subprocess.Popen([self.test.gnunetarm, '-sq', '-c', self.cfg])
+            server = subprocess.Popen([
+                self.test.gnunetarm, '-sq', '-c', self.cfg
+            ])
             server.communicate()
         except OSError:
             # print("Can not start peer")
@@ -285,7 +321,11 @@ class Peer(object):
         test = ''
         try:
             server = pexpect()
-            server.spawn(None, [self.test.gnunetpeerinfo, '-c', self.cfg, '-s'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+            server.spawn(
+                None, [self.test.gnunetpeerinfo, '-c', self.cfg, '-s'],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT
+            )
             test = server.read("stdout", 1024)
         except OSError:
             # print("Can not get peer identity")
@@ -299,7 +339,9 @@ class Peer(object):
             return False
         self.test.p("Stopping peer using cfg " + self.cfg)
         try:
-            server = subprocess.Popen([self.test.gnunetarm, '-eq', '-c', self.cfg])
+            server = subprocess.Popen([
+                self.test.gnunetarm, '-eq', '-c', self.cfg
+            ])
             server.communicate()
         except OSError:
             # print("Can not stop peer")
@@ -310,7 +352,14 @@ class Peer(object):
 
     def get_statistics_value(self, subsystem, name):
         server = pexpect()
-        server.spawn(None, [self.test.gnunetstatistics, '-c', self.cfg, '-q', '-n', name, '-s', subsystem], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        server.spawn(
+            None, [
+                self.test.gnunetstatistics, '-c', self.cfg, '-q', '-n', name,
+                '-s', subsystem
+            ],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT
+        )
         # server.expect ("stdout", re.compile (r""))
         test = server.read("stdout", 10240)
         tests = test.partition(b'\n')
@@ -319,9 +368,14 @@ class Peer(object):
             tests = (tests[0][:-1], tests[1], tests[2])
         tests = tests[0]
         result = tests.decode("utf-8").strip()
-        logger.debug('running gnunet-statistics %s for %s "/" %s yields %s', self.cfg, name, subsystem, result)
+        logger.debug(
+            'running gnunet-statistics %s for %s "/" %s yields %s', self.cfg,
+            name, subsystem, result
+        )
         if (result.isdigit() == True):
             return result
         else:
-            logger.debug('Invalid statistics value: %s is not a number!', result)
+            logger.debug(
+                'Invalid statistics value: %s is not a number!', result
+            )
             return -1

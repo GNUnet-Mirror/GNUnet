@@ -26,47 +26,46 @@
 .Os
 .Sh NAME
 .Nm gnunet-testing
-.Nd
-command line tool to access the testing library
+.Nd command line tool to access the testing library
 .Sh SYNOPSIS
 .Nm
-.Op Fl C | \-cfg
-.Op Fl c Ar FILENAME | Fl \-config= Ns Ar FILENAME
-.Op Fl H | \-hostkeys
-.Op Fl h | \-help
-.Op Fl k | \-key
-.Op Fl L Ar LOGLEVEL | Fl \-loglevel= Ns Ar LOGLEVEL
-.Op Fl l Ar LOGFILE | Fl \-logfile= Ns Ar LOFILE
-.Op Fl n | \-number
-.Op Fl t | \-template
-.Op Fl v | \-version
+.Op Fl C | -cfg
+.Op Fl c Ar FILENAME | Fl -config= Ns Ar FILENAME
+.Op Fl H | -hostkeys
+.Op Fl h | -help
+.Op Fl k | -key
+.Op Fl L Ar LOGLEVEL | Fl -loglevel= Ns Ar LOGLEVEL
+.Op Fl l Ar LOGFILE | Fl -logfile= Ns Ar LOFILE
+.Op Fl n | -number
+.Op Fl t | -template
+.Op Fl v | -version
 .Sh DESCRIPTION
 .Nm
 is a command line tool to access the testing library.
 .Sh OPTIONS
 .Bl -tag -width indent
-.It Fl C | \-cfg
+.It Fl C | -cfg
 Create unique configuration files.
-.It Fl c Ar FILENAME | Fl \-config= Ns Ar FILENAME
+.It Fl c Ar FILENAME | Fl -config= Ns Ar FILENAME
 Use the configuration file
 .Ar FILENAME .
-.It Fl H | \-hostkeys
+.It Fl H | -hostkeys
 Host key file.
-.It Fl h | \-help
+.It Fl h | -help
 Print short help on options.
-.It Fl k | \-key
+.It Fl k | -key
 Create hostkey files from pre-computed hostkey list.
-.It Fl L Ar LOGLEVEL | Fl \-loglevel= Ns Ar LOGLEVEL
+.It Fl L Ar LOGLEVEL | Fl -loglevel= Ns Ar LOGLEVEL
 Use LOGLEVEL for logging.
 Valid values are DEBUG, INFO, WARNING and ERROR.
-.It Fl l Ar LOGFILE | Fl \-logfile= Ns Ar LOFILE
+.It Fl l Ar LOGFILE | Fl -logfile= Ns Ar LOFILE
 Configure logging to write logs to
 .Ar LOGFILE .
-.It Fl n | \-number
+.It Fl n | -number
 Number of unique configuration files or hostkeys to create.
-.It Fl t | \-template
+.It Fl t | -template
 Configuration template.
-.It Fl v | \-version
+.It Fl v | -version
 Print GNUnet version number.
 .El
 .Sh SEE ALSO

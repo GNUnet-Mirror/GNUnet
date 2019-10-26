@@ -26,66 +26,65 @@
 .Os
 .Sh NAME
 .Nm gnunet-reclaim
-.Nd
-Command-line tools for re:claimID subsystem
+.Nd Command-line tools for re:claimID subsystem
 .Sh SYNOPSIS
 .Nm
-.Op Fl c Ar FILENAME | Fl \-config= Ns Ar FILENAME
-.Op Fl h | \-help
-.Op Fl L Ar LOGLEVEL | Fl \-loglevel= Ns Ar LOGLEVEL
-.Op Fl l Ar LOGFILE | Fl \-logfile= Ns Ar LOGFILE
-.Op Fl e Ar EGO | Fl \-ego= Ns Ar EGO
-.Op Fl a Ar NAME | Fl \-add= Ns Ar NAME
-.Op Fl V Ar VALUE | Fl \-value= Ns Ar VALUE
-.Op Fl d Ar ID | Fl \-delete= Ns Ar ID
-.Op Fl r Ar RP | Fl \-rp= Ns Ar RP
-.Op Fl D | \-dump
-.Op Fl i Ar A1,A2,... | Fl \-issue= Ns Ar A1,A2,...
-.Op Fl C Ar TICKET | Fl \-consume= Ns Ar TICKET
-.Op Fl R Ar TICKET | Fl \-revoke= Ns Ar TICKET
-.Op Fl t Ar TYPE | Fl \-type= Ns Ar TYPE
-.Op Fl T | \-tickets
-.Op Fl E Ar INTERVAL | Fl \-expiration= Ns Ar INTERVAL
-.Op Fl v | \-version
+.Op Fl c Ar FILENAME | Fl -config= Ns Ar FILENAME
+.Op Fl h | -help
+.Op Fl L Ar LOGLEVEL | Fl -loglevel= Ns Ar LOGLEVEL
+.Op Fl l Ar LOGFILE | Fl -logfile= Ns Ar LOGFILE
+.Op Fl e Ar EGO | Fl -ego= Ns Ar EGO
+.Op Fl a Ar NAME | Fl -add= Ns Ar NAME
+.Op Fl V Ar VALUE | Fl -value= Ns Ar VALUE
+.Op Fl d Ar ID | Fl -delete= Ns Ar ID
+.Op Fl r Ar RP | Fl -rp= Ns Ar RP
+.Op Fl D | -dump
+.Op Fl i Ar A1,A2,... | Fl -issue= Ns Ar A1,A2,...
+.Op Fl C Ar TICKET | Fl -consume= Ns Ar TICKET
+.Op Fl R Ar TICKET | Fl -revoke= Ns Ar TICKET
+.Op Fl t Ar TYPE | Fl -type= Ns Ar TYPE
+.Op Fl T | -tickets
+.Op Fl E Ar INTERVAL | Fl -expiration= Ns Ar INTERVAL
+.Op Fl v | -version
 .Sh DESCRIPTION
 .Nm
 allows you to manage identity attributes and manage authorizations.
 .Bl -tag -width indent
-.It Fl c Ar FILENAME | Fl \-config= Ns Ar FILENAME
+.It Fl c Ar FILENAME | Fl -config= Ns Ar FILENAME
 Use the configuration file FILENAME.
-.It Fl h | \-help
+.It Fl h | -help
 Print short help on options.
-.It Fl L Ar LOGLEVEL | Fl \-loglevel= Ns Ar LOGLEVEL
+.It Fl L Ar LOGLEVEL | Fl -loglevel= Ns Ar LOGLEVEL
 Use LOGLEVEL for logging.
 Valid values are DEBUG, INFO, WARNING and ERROR.
-.It Fl l Ar LOGFILE | Fl \-logfile= Ns Ar LOGFILE
+.It Fl l Ar LOGFILE | Fl -logfile= Ns Ar LOGFILE
 Configure logging to write logs to LOGFILE.
-.It Fl e Ar EGO | Fl \-ego= Ns Ar EGO
+.It Fl e Ar EGO | Fl -ego= Ns Ar EGO
 Specify identity to use. Always required.
-.It Fl a Ar NAME | Fl \-add= Ns Ar NAME
+.It Fl a Ar NAME | Fl -add= Ns Ar NAME
 Add an attribute with NAME. Must be used in conjunction with -V
-.It Fl V Ar VALUE | Fl \-value= Ns Ar VALUE
+.It Fl V Ar VALUE | Fl -value= Ns Ar VALUE
 Specify value of attribute to add.
-.It Fl t Ar TYPE | Fl \-type= Ns Ar TYPE
+.It Fl t Ar TYPE | Fl -type= Ns Ar TYPE
 Specify type of attribute to add (Default: STRING)
-.It Fl d Ar ID | Fl \-delete= Ns Ar ID
+.It Fl d Ar ID | Fl -delete= Ns Ar ID
 Delete an attribute with ID.
-.It Fl E Ar INTERVAL | Fl \-expiration= Ns Ar INTERVAL
+.It Fl E Ar INTERVAL | Fl -expiration= Ns Ar INTERVAL
 Specify relative expiration interval (freshness) of attribute.
-.It Fl D | \-dump
+.It Fl D | -dump
 List all attributes for given identity.
-.It Fl i Ar A1,A2,... | Fl \-issue= Ns Ar A1,A2,...
+.It Fl i Ar A1,A2,... | Fl -issue= Ns Ar A1,A2,...
 Authorize a relying party to access a set of attributes. Must be
 used in conjunction with -r. Returns a TICKET.
-.It Fl r Ar RP | Fl \-rp= Ns Ar RP
+.It Fl r Ar RP | Fl -rp= Ns Ar RP
 The relying party to authorize (see -i). RP is a PKEY of the entity.
-.It Fl C Ar TICKET | Fl \-consume= Ns Ar TICKET
+.It Fl C Ar TICKET | Fl -consume= Ns Ar TICKET
 Consume TICKET and retrieve shared attributes. To be used by RP.
-.It Fl R Ar TICKET | Fl \-revoke= Ns Ar TICKET
+.It Fl R Ar TICKET | Fl -revoke= Ns Ar TICKET
 Revoke TICKET. To be used by identity which issued TICKET.
-.It Fl T | \-tickets
+.It Fl T | -tickets
 List issued tickets.
-.It Fl v | \-version
+.It Fl v | -version
 Print GNUnet version number.
 .El
 .\".Sh EXAMPLES

@@ -26,29 +26,28 @@
 .Os
 .Sh NAME
 .Nm gnunet-publish
-.Nd
-a command line interface for publishing new content into GNUnet
+.Nd a command line interface for publishing new content into GNUnet
 .Sh SYNOPSIS
 .Nm
-.Op Fl a Ar LEVEL | Fl \-anonymity= Ns Ar LEVEL
-.Op Fl c Ar FILENAME | Fl \-config= Ns Ar FILENAME
-.Op Fl D | \-disable\-extractor
-.Op Fl E | \-enable\-creation\-time
-.Op Fl e | \-extract
-.Op Fl h | \-help
-.Op Fl k Ar KEYWORD | Fl \-key= Ns Ar KEYWORD
-.Op Fl L Ar LOGLEVEL | Fl \-loglevel= Ns Ar LOGLEVEL
-.Op Fl m Ar TYPE:VALUE | Fl \-meta= Ns Ar TYPE:VALUE
-.Op Fl n | \-noindex
-.Op Fl N Ar ID | Fl \-next= Ns Ar ID
-.Op Fl p Ar PRIORITY | Fl \-prio= Ns Ar PRIORITY
-.Op Fl P Ar NAME | Fl \-pseudonym= Ns Ar NAME
-.Op Fl r Ar LEVEL | Fl \-replication= Ns Ar LEVEL
-.Op Fl s | \-simulate-only
-.Op Fl t Ar ID | Fl \-this= Ns Ar ID
-.Op Fl u Ar URI | Fl \-uri= Ns Ar URI
-.Op Fl v | \-version
-.Op Fl V | \-verbose
+.Op Fl a Ar LEVEL | Fl -anonymity= Ns Ar LEVEL
+.Op Fl c Ar FILENAME | Fl -config= Ns Ar FILENAME
+.Op Fl D | -disable-extractor
+.Op Fl E | -enable-creation-time
+.Op Fl e | -extract
+.Op Fl h | -help
+.Op Fl k Ar KEYWORD | Fl -key= Ns Ar KEYWORD
+.Op Fl L Ar LOGLEVEL | Fl -loglevel= Ns Ar LOGLEVEL
+.Op Fl m Ar TYPE:VALUE | Fl -meta= Ns Ar TYPE:VALUE
+.Op Fl n | -noindex
+.Op Fl N Ar ID | Fl -next= Ns Ar ID
+.Op Fl p Ar PRIORITY | Fl -prio= Ns Ar PRIORITY
+.Op Fl P Ar NAME | Fl -pseudonym= Ns Ar NAME
+.Op Fl r Ar LEVEL | Fl -replication= Ns Ar LEVEL
+.Op Fl s | -simulate-only
+.Op Fl t Ar ID | Fl -this= Ns Ar ID
+.Op Fl u Ar URI | Fl -uri= Ns Ar URI
+.Op Fl v | -version
+.Op Fl V | -verbose
 .Ao Ar FILENAME Ac
 .Sh DESCRIPTION
 In order to share files with other GNUnet users, the files must first be made available to GNUnet.
@@ -109,10 +108,10 @@ to specify meta-data.
 For the
 .Fl m
 option you need to use the form keyword-type:value.
-For example, use "\-m os:Linux" to specify that the operating system is Linux.
+For example, use "-m os:Linux" to specify that the operating system is Linux.
 Common meta-data types are "author", "title", "mimetype", "filename", "language", "subject" and "keywords".
 A full list can be obtained from the extract tool using the option
-.Fl \-list .
+.Fl -list .
 The meta-data is used to help users in searching for files on the network.
 The keywords are case-sensitive.
 .Pp
@@ -128,7 +127,7 @@ If you publish or index a file and then leave the network, it will almost always
 .Pp
 The options are as follows:
 .Bl -tag -width indent
-.It Fl a Ar LEVEL | Fl \-anonymity= Ns Ar LEVEL
+.It Fl a Ar LEVEL | Fl -anonymity= Ns Ar LEVEL
 This option can be used to specify additional anonymity constraints.
 The default is 1.
 If set to 0, GNUnet will publish the file non-anonymously and in fact sign the advertisement for the file using your peer's private key.
@@ -143,38 +142,38 @@ The specific numeric value (for anonymity levels above 1) is simple:
 Given an anonymity level L (above 1), each request FS makes on your behalf must be hidden in L-1 equivalent requests of cover traffic (traffic your peer routes for others) in the same time-period.
 The time-period is twice the average delay by which GNUnet artificially delays traffic.
 Note that regardless of the anonymity level you choose, peers that cache content in the network always use anonymity level 1.
-.It Fl c Ar FILENAME | Fl \-config= Ns Ar FILENAME
+.It Fl c Ar FILENAME | Fl -config= Ns Ar FILENAME
 Use alternate config file FILENAME.
 If this option is not specified, the default is
 .Pa ~/.config/gnunet.conf .
-.It Fl D | \-disable\-extractor
+.It Fl D | -disable-extractor
 Disable use of GNU libextractor for finding additional keywords and metadata.
-.It Fl E | \-enable\-creation\-time
+.It Fl E | -enable-creation-time
 Enable use of creation time timestamp in metadata.
 Setting this information will leak information about the time at which a file was made available.
-.It Fl e | \-extract
+.It Fl e | -extract
 Print the list of keywords that will be used for each file given the current options.
 Do not perform any indexing or publishing.
-.It Fl h | \-help
+.It Fl h | -help
 Print the help page.
-.It Fl k Ar KEYWORD | Fl \-key= Ns Ar KEYWORD
+.It Fl k Ar KEYWORD | Fl -key= Ns Ar KEYWORD
 Additional key to index the content with (to add multiple keys, specify multiple times).
-Each additional key is case\-sensitive.
+Each additional key is case-sensitive.
 Can be specified multiple times.
-The keyword is only applied to the top\-level file or directory.
-.It Fl L Ar LOGLEVEL | Fl \-loglevel= Ns Ar LOGLEVEL
+The keyword is only applied to the top-level file or directory.
+.It Fl L Ar LOGLEVEL | Fl -loglevel= Ns Ar LOGLEVEL
 Change the loglevel.
 Possible values for LOGLEVEL are ERROR, WARNING, INFO and DEBUG.
-.It Fl m Ar TYPE:VALUE | Fl \-meta= Ns Ar TYPE:VALUE
+.It Fl m Ar TYPE:VALUE | Fl -meta= Ns Ar TYPE:VALUE
 For the main file (or directory), set the metadata of the given TYPE to the given VALUE.
 Note that this will not add the respective VALUE to the set of keywords under which the file can be found.
-.It Fl n | \-noindex
+.It Fl n | -noindex
 Executive summary: You probably don't need it.
 Do not index, full publishing.
 Note that directories, information for keyword search, namespace search and indexing data are always published (even without this option).
 With this option, every block of the actual files is stored in encrypted form in the block database of the local peer.
 While this adds security if the local node is compromised (the adversary snags your machine), it is significantly less efficient compared to on-demand encryption and is definitely not recommended for large files.
-.It Fl N Ar ID | Fl \-next= Ns Ar ID
+.It Fl N Ar ID | Fl -next= Ns Ar ID
 Specifies the next identifier of a future version of the file to be published under the same pseudonym.
 This option is only valid together with the
 .Fl P
@@ -187,36 +186,36 @@ and
 without
 .Fl t
 is not allowed.
-.It Fl p Ar PRIORITY | Fl \-prio= Ns Ar PRIORITY
+.It Fl p Ar PRIORITY | Fl -prio= Ns Ar PRIORITY
 Executive summary: You probably don't need it.
 Set the priority of the published content (default: 365).
 If the local database is full, GNUnet will discard the content with the lowest ranking.
 Note that ranks change over time depending on popularity.
 The default should be high enough to preserve the locally published content in favor of content that migrates from other peers.
-.It Fl P Ar NAME | Fl \-pseudonym= Ns Ar NAME
+.It Fl P Ar NAME | Fl -pseudonym= Ns Ar NAME
 For the top-level directory or file, places the file into the namespace identified by the pseudonym NAME.
 NAME must be a valid pseudonym managed by
 .Xr gnunet-identity 1 .
-.It Fl r Ar LEVEL | Fl \-replication= Ns Ar LEVEL
+.It Fl r Ar LEVEL | Fl -replication= Ns Ar LEVEL
 Set the desired replication level.
 If CONTENT_PUSHING is set to YES, GNUnet will push each block (for the file) LEVEL times to other peers before doing normal "random" replication of all content.
 This option can be used to push some content out into the network harder.
 Note that pushing content LEVEL times into the network does not guarantee that there will actually be LEVEL replicas.
-.It Fl s | \-simulate-only
-When this option is used, gnunet\-publish will not actually publish the file but just simulate what would be done.
+.It Fl s | -simulate-only
+When this option is used, gnunet-publish will not actually publish the file but just simulate what would be done.
 This can be used to compute the GNUnet URI for a file without actually sharing it.
-.It Fl t Ar ID | Fl \-this= Ns Ar ID
+.It Fl t Ar ID | Fl -this= Ns Ar ID
 Specifies the identifier under which the file is to be published under a pseudonym.
 This option is only valid together with the
 .Fl P
 option.
-.It Fl u Ar URI | Fl \-uri= Ns Ar URI
+.It Fl u Ar URI | Fl -uri= Ns Ar URI
 This option can be used to specify the URI of a file instead of a filename (this is the only case where the otherwise mandatory filename argument must be omitted).
 Instead of publishing a file or directory and using the corresponding URI, gnunet-publish will use this URI and perform the selected namespace or keyword operations.
 This can be used to add additional keywords to a file that has already been shared or to add files to a namespace for which the URI is known but the content is not locally available.
-.It Fl v | \-version
+.It Fl v | -version
 Print the version number.
-.It Fl V | \-verbose
+.It Fl V | -verbose
 Be verbose.
 Using this option causes gnunet-publish to print progress information and at the end the file identification that can be used to download the file from GNUnet.
 .El

@@ -32,7 +32,6 @@ from gnunet_testing import Check
 from gnunet_testing import Condition
 from gnunet_testing import *
 
-
 #
 # This test tests if a fresh peer bootstraps from a hostlist server and then
 # successfully connects to the server. When both peers are connected
@@ -42,7 +41,6 @@ from gnunet_testing import *
 # Both peers have 1 connected peer in transport, core, topology, fs after restart
 
 # definitions
-
 
 testname = "test_integration_restart"
 verbose = True
@@ -82,7 +80,7 @@ def cleanup():
     retries = 10
     path = os.path.join(tmp, "c_nat_client")
     test.p("Removing " + path)
-    while((os.path.exists(path)) and(retries > 0)):
+    while ((os.path.exists(path)) and (retries > 0)):
         shutil.rmtree((path), False, cleanup_onerror)
         time.sleep(1)
         retries -= 1
@@ -91,18 +89,18 @@ def cleanup():
 
 
 def success_restart_cont(check):
-        global success
-        print('Peers connected successfully after restart')
-        server.stop()
-        client.stop()
-        success = True
+    global success
+    print('Peers connected successfully after restart')
+    server.stop()
+    client.stop()
+    success = True
 
 
 def fail_restart_cont(check):
-        global success
-        success = False
-        print('Peers failed to connect after restart')
-        check.evaluate(True)
+    global success
+    success = False
+    print('Peers failed to connect after restart')
+    check.evaluate(True)
 
 
 def success_connect_cont(check):
@@ -150,6 +148,7 @@ def check_connect():
     check.add(StatisticsCondition(server, 'fs', '# peers connected', 1))
 
     check.run_blocking(check_timeout, success_connect_cont, fail_connect_cont)
+
 
 #
 # Test execution
@@ -227,7 +226,7 @@ def run():
 
 try:
     run()
-except(KeyboardInterrupt, SystemExit):
+except (KeyboardInterrupt, SystemExit):
     print('Test interrupted')
     server.stop()
     client.stop()

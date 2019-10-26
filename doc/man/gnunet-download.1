@@ -26,28 +26,27 @@
 .Os
 .Sh NAME
 .Nm gnunet-download
-.Nd
-a command line interface for downloading files from GNUnet
+.Nd a command line interface for downloading files from GNUnet
 .Sh SYNOPSIS
 .Nm
-.Op Fl a Ar LEVEL | Fl \-anonymity= Ns Ar LEVEL
-.Op Fl c Ar FILENAME | Fl \-config= Ns Ar FILENAME
-.Op Fl D | \-delete\-incomplete
-.Op Fl h | \-help
-.Op Fl L Ar LOGLEVEL | Fl \-loglevel= Ns Ar LOGLEVEL
-.Op Fl n | \-no-network
-.Op Fl o Ar FILENAME | Fl \-output= Ns Ar FILENAME
-.Op Fl p Ar DOWNLOADS | Fl \-parallelism= Ns Ar DOWNLOADS
-.Op Fl r Ar REQUESTS | Fl \-request-parallelism= Ns Ar REQUESTS
-.Op Fl R | \-recursive
-.Op Fl v | \-version
-.Op Fl V | \-verbose
+.Op Fl a Ar LEVEL | Fl -anonymity= Ns Ar LEVEL
+.Op Fl c Ar FILENAME | Fl -config= Ns Ar FILENAME
+.Op Fl D | -delete-incomplete
+.Op Fl h | -help
+.Op Fl L Ar LOGLEVEL | Fl -loglevel= Ns Ar LOGLEVEL
+.Op Fl n | -no-network
+.Op Fl o Ar FILENAME | Fl -output= Ns Ar FILENAME
+.Op Fl p Ar DOWNLOADS | Fl -parallelism= Ns Ar DOWNLOADS
+.Op Fl r Ar REQUESTS | Fl -request-parallelism= Ns Ar REQUESTS
+.Op Fl R | -recursive
+.Op Fl v | -version
+.Op Fl V | -verbose
 .Ao Ar GNUNET_URI Ac
 .Sh DESCRIPTION
 Download files from GNUnet.
 The options are as follows:
 .Bl -tag -width indent
-.It Fl a Ar LEVEL | Fl \-anonymity= Ns Ar LEVEL
+.It Fl a Ar LEVEL | Fl -anonymity= Ns Ar LEVEL
 This option can be used to specify additional anonymity constraints.
 The default is 1.
 If set to 0, GNUnet will publish the file non-anonymously and in fact sign the advertisement for the file using your peer's private key.
@@ -62,22 +61,22 @@ The specific numeric value (for anonymity levels above 1) is simple:
 Given an anonymity level L (above 1), each request FS makes on your behalf must be hidden in L-1 equivalent requests of cover traffic (traffic your peer routes for others) in the same time-period.
 The time-period is twice the average delay by which GNUnet artificially delays traffic.
 Note that regardless of the anonymity level you choose, peers that cache content in the network always use anonymity level 1.
-.It Fl c Ar FILENAME | Fl \-config= Ns Ar FILENAME
+.It Fl c Ar FILENAME | Fl -config= Ns Ar FILENAME
 Use config file (default:
 .Pa ~/.config/gnunet.conf Ns )
-.It Fl D | \-delete\-incomplete
+.It Fl D | -delete-incomplete
 Causes gnunet-download to delete incomplete downloads when aborted with CTRL-C.
 Note that complete files that are part of an incomplete recursive download will not be deleted even with this option.
 Without this option, terminating gnunet-download with a signal will cause incomplete downloads to stay on disk.
 If gnunet-download runs to (normal) completion finishing the download, this option has no effect.
-.It Fl h | \-help
+.It Fl h | -help
 Print the help page.
-.It Fl L Ar LOGLEVEL | Fl \-loglevel= Ns Ar LOGLEVEL
+.It Fl L Ar LOGLEVEL | Fl -loglevel= Ns Ar LOGLEVEL
 Change the loglevel.
 Possible values for LOGLEVEL are ERROR, WARNING, INFO and DEBUG.
-.It Fl n | \-no-network
+.It Fl n | -no-network
 Only search locally, do not forward requests to other peers.
-.It Fl o Ar FILENAME | Fl \-output= Ns Ar FILENAME
+.It Fl o Ar FILENAME | Fl -output= Ns Ar FILENAME
 Write the file to
 .Ar FILENAME .
 Hint: when recursively downloading a directory, append a '/' to the end of the FILENAME to create a directory of that name.
@@ -85,7 +84,7 @@ If no FILENAME is specified, gnunet-download constructs a temporary ID from the 
 The final filename is constructed based on meta-data extracted using
 .Xr libextractor 1
 (if available).
-.It Fl p Ar DOWNLOADS | Fl \-parallelism= Ns Ar DOWNLOADS
+.It Fl p Ar DOWNLOADS | Fl -parallelism= Ns Ar DOWNLOADS
 Set the maximum number of allowed parallel downloads to
 .Ar DOWNLOADS .
 More parallel downloads can, to some extent, improve the overall time to download content.
@@ -97,7 +96,7 @@ This option is used to limit the number of files that are downloaded in parallel
 can be used to limit the number of blocks that are concurrently requested.
 As a result, the value only matters for recursive downloads.
 The default value is 32.
-.It Fl r Ar REQUESTS | Fl \-request-parallelism= Ns Ar REQUESTS
+.It Fl r Ar REQUESTS | Fl -request-parallelism= Ns Ar REQUESTS
 Set the maximum number of parallel requests that is allowed.
 If multiple files are downloaded, gnunet-download will not run them in parallel if this would cause the number of pending requests to possibly exceed the given value.
 This is useful since, for example, downloading dozens of multi-gigabyte files in parallel could exhaust memory resources and would hardly improve performance.
@@ -107,16 +106,16 @@ Consider raising this limit for large recursive downloads with many large files 
 is not reached.
 This option also only matters for recursive downloads.
 The default value is 4092.
-.It Fl R | \-recursive
+.It Fl R | -recursive
 Download directories recursively (and in parallel).
 Note that the URI must belong to a GNUnet directory and that the filename given to
 .Fl o
 must end in '.gnd' \(em otherwise, you will receive an error.
 You may want to use "DIRNAME/.gnd" for the filename, this way a directory "DIRNAME/" will be created, and GNUnet's internal directory information will be stored in "DIRNAME/.gnd".
 However, it is also possible to specify "DIRNAME.gnd", in which case the files from the directory will end up in "DIRNAME/", while GNUnet's directory meta data will be in "DIRNAME.gnd".
-.It Fl v | \-version
+.It Fl v | -version
 Print the version number.
-.It Fl V | \-verbose
+.It Fl V | -verbose
 Print progress information.
 .El
 .Ss NOTES

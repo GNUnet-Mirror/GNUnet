@@ -2130,7 +2130,7 @@ the "Enable connecting to NATed peers using ICMP method" box.
 @node Peer configuration for distributors (e.g. Operating Systems)
 @subsection Peer configuration for distributors (e.g. Operating Systems)
 
-The "GNUNET_DATA_HOME" in "[path]" in @file{/etc/gnunet.conf} should be
+The "GNUNET_DATA_HOME" in "[PATHS]" in @file{/etc/gnunet.conf} should be
 manually set to "/var/lib/gnunet/data/" as the default
 "~/.local/share/gnunet/" is probably not that appropriate in this case.
 Similarly, distributors may consider pointing "GNUNET_RUNTIME_DIR" to

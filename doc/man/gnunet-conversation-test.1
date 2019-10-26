@@ -26,30 +26,29 @@
 .Os
 .Sh NAME
 .Nm gnunet-conversation-test
-.Nd
-check your speaker and microphone settings
+.Nd check your speaker and microphone settings
 .Sh SYNOPSIS
 .Nm
-.Op Fl c Ar FILENAME | Fl \-config= Ns Ar FILENAME
-.Op Fl h | \-help
-.Op Fl L Ar LOGLEVEL | Fl \-loglevel= Ns Ar LOGLEVEL
-.Op Fl v | \-version
+.Op Fl c Ar FILENAME | Fl -config= Ns Ar FILENAME
+.Op Fl h | -help
+.Op Fl L Ar LOGLEVEL | Fl -loglevel= Ns Ar LOGLEVEL
+.Op Fl v | -version
 .Ao Ar URI Ac
 .Sh DESCRIPTION
 .Nm
 can be used to check your speaker and microphone settings.
 It will record you for five seconds and then play the recording back to you.
 If this fails, you might want to use the \fBpavucontrol\fP tool to check which microphone or speaker were assigned to GNUnet by PulseAudio (you may have more than one set of microphones or speakers known to your computer).
-You can use gnunet\-conversation\-test without having a peer running on your computer.
+You can use gnunet-conversation-test without having a peer running on your computer.
 .Bl -tag -width indent
-.It Fl c Ar FILENAME | Fl \-config= Ns Ar FILENAME
+.It Fl c Ar FILENAME | Fl -config= Ns Ar FILENAME
 Use the configuration file FILENAME.
-.It Fl h | \-help
+.It Fl h | -help
 Print short help on options.
-.It Fl L Ar LOGLEVEL | Fl \-loglevel= Ns Ar LOGLEVEL
+.It Fl L Ar LOGLEVEL | Fl -loglevel= Ns Ar LOGLEVEL
 Use LOGLEVEL for logging.
 Valid values are DEBUG, INFO, WARNING and ERROR.
-.It Fl v | \-version
+.It Fl v | -version
 Print GNUnet version number.
 .El
 .\".Sh EXAMPLES

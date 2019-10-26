@@ -26,18 +26,17 @@
 .Os
 .Sh NAME
 .Nm gnunet-ecc
-.Nd
-manipulate GNUnet ECC key files
+.Nd manipulate GNUnet ECC key files
 .Sh SYNOPSIS
 .Nm
-.Op Fl g Ar COUNT | Fl \-generate-keys= Ns Ar COUNT
-.Op Fl p | \-print-public-key
-.Op Fl P | \-print-private-key
-.Op Fl x | \-print-hex
-.Op Fl c Ar FILENAME | Fl \-config= Ns Ar FILENAME
-.Op Fl h | \-help
-.Op Fl L Ar LOGLEVEL | Fl \-loglevel= Ns Ar LOGLEVEL
-.Op Fl v | \-version
+.Op Fl g Ar COUNT | Fl -generate-keys= Ns Ar COUNT
+.Op Fl p | -print-public-key
+.Op Fl P | -print-private-key
+.Op Fl x | -print-hex
+.Op Fl c Ar FILENAME | Fl -config= Ns Ar FILENAME
+.Op Fl h | -help
+.Op Fl L Ar LOGLEVEL | Fl -loglevel= Ns Ar LOGLEVEL
+.Op Fl v | -version
 .Ao Ar FILENAME Ac
 .sp
 .Sh DESCRIPTION
@@ -50,26 +49,26 @@ If the option
 .Fl p
 is given, the corresponding public key will be printed to the console.
 .Bl -tag -width indent
-.It Fl g Ar COUNT | Fl \-generate-keys= Ns Ar COUNT
+.It Fl g Ar COUNT | Fl -generate-keys= Ns Ar COUNT
 Create COUNT public-private key pairs and write them to FILENAME.
 Used for creating a file for testing.
-.It Fl p | \-print-public-key
+.It Fl p | -print-public-key
 Print the corresponding public key to stdout.
 This is the value used for PKEY records in GNS.
-.It Fl P | \-print-private-key
+.It Fl P | -print-private-key
 Print the corresponding private key to stdout.
 This is the value used for PKEY records in GNS.
-.It Fl x | \-print-hex
+.It Fl x | -print-hex
 Print the corresponding public key to stdout in HEX format.
 Useful for comparing to Ed25519 keys in X.509 tools.
-.It Fl c Ar FILENAME | Fl \-config= Ns Ar FILENAME
+.It Fl c Ar FILENAME | Fl -config= Ns Ar FILENAME
 Use the configuration file FILENAME.
-.It Fl h | \-help
+.It Fl h | -help
 Print short help on options.
-.It Fl L Ar LOGLEVEL | Fl \-loglevel= Ns Ar LOGLEVEL
+.It Fl L Ar LOGLEVEL | Fl -loglevel= Ns Ar LOGLEVEL
 Use LOGLEVEL for logging.
 Valid values are DEBUG, INFO, WARNING and ERROR.
-.It Fl v | \-version
+.It Fl v | -version
 Print GNUnet version number.
 .El
 .Sh SEE ALSO

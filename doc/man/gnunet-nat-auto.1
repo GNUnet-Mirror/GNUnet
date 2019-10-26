@@ -26,34 +26,33 @@
 .Os
 .Sh NAME
 .Nm gnunet-nat-auto
-.Nd
-autoconfigure and test NAT traversal
+.Nd autoconfigure and test NAT traversal
 .Sh SYNOPSIS
 .Nm
-.Op Fl a | \-auto
-.Op Fl c Ar FILENAME | Fl \-config= Ns Ar FILENAME
-.Op Fl S Ar NAME | Fl \-section= Ns Ar NAME
-.Op Fl t | \-tcp
-.Op Fl u | \-udp
-.Op Fl w | \-write
+.Op Fl a | -auto
+.Op Fl c Ar FILENAME | Fl -config= Ns Ar FILENAME
+.Op Fl S Ar NAME | Fl -section= Ns Ar NAME
+.Op Fl t | -tcp
+.Op Fl u | -udp
+.Op Fl w | -write
 .Sh DESCRIPTION
 .Nm
 allows testing various NAT traversal functions, as well as attempting auto-configuration.
 The options are as follows:
 .Bl -tag -width indent
-.It Fl a | \-auto
+.It Fl a | -auto
 Attempt auto-configuration for NAT traversal.
-.It Fl c Ar FILENAME | Fl \-config= Ns Ar FILENAME
+.It Fl c Ar FILENAME | Fl -config= Ns Ar FILENAME
 Use the configuration file
 .Ar FILENAME .
-.It Fl S Ar NAME | Fl \-section= Ns Ar NAME
+.It Fl S Ar NAME | Fl -section= Ns Ar NAME
 Name of the configuration section with details about the configuration to test.
 For example "transport-tcp".
-.It Fl t | \-tcp
+.It Fl t | -tcp
 Use TCP.
-.It Fl u | \-udp
+.It Fl u | -udp
 Use UDP.
-.It Fl w | \-write
+.It Fl w | -write
 Write configuration to configuration file, useful in combination with auto-configuration
 .Pq Fl a .
 .El

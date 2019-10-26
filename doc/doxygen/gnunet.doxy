@@ -5,7 +5,7 @@
 #---------------------------------------------------------------------------
 DOXYFILE_ENCODING      = UTF-8
 PROJECT_NAME           = GNUnet
-PROJECT_NUMBER         = 0.10.x
+PROJECT_NUMBER         = 0.11.x
 PROJECT_LOGO           = logo.png
 OUTPUT_DIRECTORY       = .
 CREATE_SUBDIRS         = YES

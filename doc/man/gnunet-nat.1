@@ -26,45 +26,44 @@
 .Os
 .Sh NAME
 .Nm gnunet-nat
-.Nd
-interact with the NAT service
+.Nd interact with the NAT service
 .Sh SYNOPSIS
 .Nm
-.Op Fl b Ar ADDRESS | Fl \-bind= Ns Ar ADDRESS
-.Op Fl c Ar FILENAME | Fl \-config= Ns Ar FILENAME
-.Op Fl e Ar ADDRESS | Fl \-external= Ns Ar ADDRESS
-.Op Fl i Ar ADDRESS | Fl \-in= Ns Ar ADDRESS
-.Op Fl r Ar ADDRESS | Fl \-remote= Ns Ar ADDRESS
-.Op Fl S Ar NAME | Fl \-section= Ns Ar NAME
-.Op Fl s | \-stun
-.Op Fl t | \-tcp
-.Op Fl u | \-udp
-.Op Fl W | \-watch
+.Op Fl b Ar ADDRESS | Fl -bind= Ns Ar ADDRESS
+.Op Fl c Ar FILENAME | Fl -config= Ns Ar FILENAME
+.Op Fl e Ar ADDRESS | Fl -external= Ns Ar ADDRESS
+.Op Fl i Ar ADDRESS | Fl -in= Ns Ar ADDRESS
+.Op Fl r Ar ADDRESS | Fl -remote= Ns Ar ADDRESS
+.Op Fl S Ar NAME | Fl -section= Ns Ar NAME
+.Op Fl s | -stun
+.Op Fl t | -tcp
+.Op Fl u | -udp
+.Op Fl W | -watch
 .Sh DESCRIPTION
 This tool allows testing various NAT traversal functions, as well as attempting auto-configuration.
 .Sh OPTIONS
 .Bl -tag -width indent
-.It Fl b Ar ADDRESS | Fl \-bind= Ns Ar ADDRESS
+.It Fl b Ar ADDRESS | Fl -bind= Ns Ar ADDRESS
 Assume that the service is (locally) bound to ADDRESS.
-.It Fl c Ar FILENAME | Fl \-config= Ns Ar FILENAME
+.It Fl c Ar FILENAME | Fl -config= Ns Ar FILENAME
 Use the configuration file FILENAME.
-.It Fl e Ar ADDRESS | Fl \-external= Ns Ar ADDRESS
+.It Fl e Ar ADDRESS | Fl -external= Ns Ar ADDRESS
 Assume that ADDRESS is the globally visible address of the peer.
-.It Fl i Ar ADDRESS | Fl \-in= Ns Ar ADDRESS
+.It Fl i Ar ADDRESS | Fl -in= Ns Ar ADDRESS
 Assuming we are listening at ADDRESS for connection reversal requests.
-.It Fl r Ar ADDRESS | Fl \-remote= Ns Ar ADDRESS
+.It Fl r Ar ADDRESS | Fl -remote= Ns Ar ADDRESS
 Ask the peer at ADDRESS for connection reversal, using the local address for the target address of the reversal.
-.It Fl S Ar NAME | Fl \-section= Ns Ar NAME
+.It Fl S Ar NAME | Fl -section= Ns Ar NAME
 Name of section in configuration file to use for additional options.
-.It Fl s | \-stun
+.It Fl s | -stun
 Enable processing of STUN requests.
 Will try to read UDP packets from the bind address and handle the packets if they are STUN packets.
 Will only work with UDP.
-.It Fl t | \-tcp
+.It Fl t | -tcp
 Use TCP.
-.It Fl u | \-udp
+.It Fl u | -udp
 Use UDP.
-.It Fl W | \-watch
+.It Fl W | -watch
 Watch for connection reversal requests.
 .El
 .Sh EXAMPLES

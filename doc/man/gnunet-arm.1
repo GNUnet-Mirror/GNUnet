@@ -55,39 +55,47 @@ ARM starts services on-demand or as configured and restarts them
 if they crash.
 .Bl -tag -width indent
 .It Fl c Ar FILENAME | Fl -config= Ns Ar FILENAME
-Use the configuration file FILENAME.
+Use the configuration file
+.Pa FILENAME Ns .
 .It Fl d | -delete
-Delete config file and directory on exit.
+Delete configuration file and directory on exit.
 .It Fl e | -end
 Shutdown all GNUnet services (including ARM itself).
 Running "gnunet-arm -e" is the usual way to shutdown a GNUnet peer.
 .It Fl E | -no-stderr
-Don't let gnunet-arm inherit standard error.
+Don't let gnunet-arm inherit stderr (standard error).
 .It Fl h | -help
 Print short help on options.
 .It Fl i Ar SERVICE | Fl -init= Ns Ar SERVICE
-Starts the specified SERVICE if it is not already running.
+Starts the specified
+.Ar SERVICE
+if it is not already running.
 More specifically, this makes the service behave as if it were in
 the default services list.
 .It Fl I | -info
 List all running services.
 .It Fl k Ar SERVICE | Fl -kill= Ns Ar SERVICE
-Stop the specified SERVICE if it is running.
+Stop
+.Ar SERVICE
+if it is running.
 While this will kill the service right now, the service may be
-restarted immediately if other services depend on it (service is
+restarted immediately if other services depend on it (the service is
 then started 'on-demand').
 If the service used to be a 'default' service, its default-service
 status will be revoked.
 If the service was not a default service, it will just
 be (temporarily) stopped, but could be re-started on-demand at any time.
 .It Fl l Ar FILENAME | Fl -logfile= Ns Ar FILENAME
-Write logs to FILENAME.
+Write logs to
+.Pa FILENAME Ns .
 .It Fl L Ar LOGLEVEL |  Fl -loglevel= Ns Ar LOGLEVEL
-Use LOGLEVEL for logging.
+Use
+.Ar LOGLEVEL
+for logging.
 Valid values are DEBUG, INFO, WARNING and ERROR.
 .It Fl m | -monitor
 Monitor service activity of ARM.
-In this mode, the command will not terminate until the user presses CTRL-C.
+In this mode, the command will not terminate until the user presses CTRL-C (thus sending SIGTERM or SIGINT).
 .It Fl O | -no-stdout
 Don't let gnunet-arm inherit standard output
 .It Fl q | -quiet
@@ -100,7 +108,9 @@ Naturally, if a service is demanded by a default service, it will
 then also be started.
 Running "gnunet-arm -s" is the usual way to start a GNUnet peer.
 .It Fl T DELAY | -timeout= Ns Ar DELAY
-Exit with error status if operation does not finish after DELAY
+Exit with error status if operation does not finish after
+.Ar DELAY Ns ,
+provided in number of microseconds.
 .It Fl v | -version
 Print GNUnet version number.
 .El

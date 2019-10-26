@@ -50,7 +50,7 @@ libgnunetrevocation_la_LIBADD = \
   $(LIBGCRYPT_LIBS) \
   $(GN_LIBINTL) $(XLIB) -lgcrypt
 libgnunetrevocation_la_LDFLAGS = \
-  $(GN_LIB_LDFLAGS)  $(WINFLAGS) \
+  $(GN_LIB_LDFLAGS)   \
   -version-info 0:0:0
 
 libexec_PROGRAMS = \

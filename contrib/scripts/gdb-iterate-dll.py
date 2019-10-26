@@ -23,7 +23,8 @@ def search_dll(head, field, match, pfield):
         if field_val.type.code == gdb.TYPE_CODE_INT:
             val = int(field_val)
             res = (match == val)
-        elif (field_val.type.code == gdb.TYPE_CODE_STRING) or (field_val.type.code == gdb.TYPE_CODE_ARRAY):
+        elif (field_val.type.code == gdb.TYPE_CODE_STRING
+              ) or (field_val.type.code == gdb.TYPE_CODE_ARRAY):
             val = str(field_val)
             res = (match == val)
         elif (field_val.type.code == gdb.TYPE_CODE_TYPEDEF):

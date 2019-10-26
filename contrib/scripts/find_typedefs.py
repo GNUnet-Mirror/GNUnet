@@ -4,7 +4,6 @@ import os
 import re
 import sys
 
-
 debug = False
 
 
@@ -14,7 +13,8 @@ def get_td_from_function_signature(line, file, num):
         left_paren += 1
         li = line[left_paren:]
         right_paren = line.find(')')
-        if right_paren > 0 and right_paren > left_paren and line[right_paren:].find('(') >= 0:
+        if right_paren > 0 and right_paren > left_paren and line[
+            right_paren:].find('(') >= 0:
             fname = line[:right_paren]
             fname = fname.lstrip(' ').lstrip('*').lstrip(' ').rstrip(' ')
             if len(fname) > 0:
@@ -70,7 +70,7 @@ def find_typedefs(file):
                         td_line.append(l[rightcbrace + 1:])
             else:
                 td_line.append(l)
-            if len(l) > 0 and l[-1] == ';' and(not td_struct or td_level == 0):
+            if len(l) > 0 and l[-1] == ';' and (not td_struct or td_level == 0):
                 td_line = ' '.join(td_line)
                 td_line = td_line[:-1]
                 if len(td_line) > 0:

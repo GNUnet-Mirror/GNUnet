@@ -12,15 +12,11 @@ if LINUX
   NATBIN = gnunet-helper-nat-server gnunet-helper-nat-client
   NATSERVER = gnunet-helper-nat-server.c
   NATCLIENT = gnunet-helper-nat-client.c
-install-exec-hook:
-	$(top_srcdir)/src/nat/install-nat-helper.sh $(DESTDIR)$(libexecdir) $(SUDO_BINARY) || true
 else
 if XFREEBSD
   NATBIN = gnunet-helper-nat-server gnunet-helper-nat-client
   NATSERVER = gnunet-helper-nat-server.c
   NATCLIENT = gnunet-helper-nat-client.c
-install-exec-hook:
-	$(top_srcdir)/src/nat/install-nat-helper.sh $(DESTDIR)$(libexecdir) $(SUDO_BINARY) || true
 endif
 else
 install-exec-hook:
@@ -53,7 +49,7 @@ if USE_COVERAGE
 endif
 
 lib_LTLIBRARIES = \
-  libgnunetnatnew.la 
+  libgnunetnatnew.la
 
 libgnunetnatnew_la_SOURCES = \
   nat_api.c \
@@ -61,9 +57,9 @@ libgnunetnatnew_la_SOURCES = \
   nat.h
 libgnunetnatnew_la_LIBADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
-  $(GN_LIBINTL) @EXT_LIBS@ 
+  $(GN_LIBINTL) @EXT_LIBS@
 libgnunetnatnew_la_LDFLAGS = \
-  $(GN_LIB_LDFLAGS) $(WINFLAGS) \
+  $(GN_LIB_LDFLAGS)  \
   -version-info 2:0:0
 
 gnunet_service_nat_SOURCES = \
@@ -94,25 +90,25 @@ endif
 #  test_nat.c
 #test_nat_LDADD = \
 # libgnunetnat.la \
-# $(top_builddir)/src/util/libgnunetutil.la 
+# $(top_builddir)/src/util/libgnunetutil.la
 
 #test_nat_mini_SOURCES = \
 #  test_nat_mini.c
 #test_nat_mini_LDADD = \
 # libgnunetnat.la \
-# $(top_builddir)/src/util/libgnunetutil.la 
+# $(top_builddir)/src/util/libgnunetutil.la
 
 #test_nat_test_SOURCES = \
 #  test_nat_test.c
 #test_nat_test_LDADD = \
 # libgnunetnat.la \
-# $(top_builddir)/src/util/libgnunetutil.la 
+# $(top_builddir)/src/util/libgnunetutil.la
 
 #test_stun_SOURCES = \
 #  test_stun.c
 #test_stun_LDADD = \
 # libgnunetnat.la \
-# $(top_builddir)/src/util/libgnunetutil.la 
+# $(top_builddir)/src/util/libgnunetutil.la
 
 EXTRA_DIST = \
  test_nat_data.conf \

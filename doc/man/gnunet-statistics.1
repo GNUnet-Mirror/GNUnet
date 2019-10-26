@@ -29,61 +29,61 @@
 .Nd display statistics about your GNUnet system
 .Sh SYNOPSIS
 .Nm
-.Op Fl c Ar FILENAME | Fl \-config= Ns Ar FILENAME
-.Op Fl h | \-help
-.Op Fl L Ar LOGLEVEL | Fl \-loglevel= Ns Ar LOGLEVEL
-.Op Fl l Ar FILENAME | Fl \-logfile= Ns Ar FILENAME
-.Op Fl n Ar NAME | Fl \-name= Ns Ar NAME
-.Op Fl o Ar PORT | Fl \-port= Ns Ar PORT
-.Op Fl p | \-persistent
-.Op Fl q | \-quiet
-.Op Fl r Ar REMOTE | Fl \-remote= Ns Ar REMOTE
-.Op Fl S Ar SEPARATOR | Fl \-csv-separator= Ns Ar SEPARATOR
-.Op Fl s Ar SUBSYSTEM | Fl \-subsystem= Ns Ar SUBSYSTEM
-.Op Fl t Ar PATH | Fl \-testbed= Ns Ar PATH
-.Op Fl v | \-version
-.Op Fl w | \-watch
+.Op Fl c Ar FILENAME | Fl -config= Ns Ar FILENAME
+.Op Fl h | -help
+.Op Fl L Ar LOGLEVEL | Fl -loglevel= Ns Ar LOGLEVEL
+.Op Fl l Ar FILENAME | Fl -logfile= Ns Ar FILENAME
+.Op Fl n Ar NAME | Fl -name= Ns Ar NAME
+.Op Fl o Ar PORT | Fl -port= Ns Ar PORT
+.Op Fl p | -persistent
+.Op Fl q | -quiet
+.Op Fl r Ar REMOTE | Fl -remote= Ns Ar REMOTE
+.Op Fl S Ar SEPARATOR | Fl -csv-separator= Ns Ar SEPARATOR
+.Op Fl s Ar SUBSYSTEM | Fl -subsystem= Ns Ar SUBSYSTEM
+.Op Fl t Ar PATH | Fl -testbed= Ns Ar PATH
+.Op Fl v | -version
+.Op Fl w | -watch
 .Ao Ar VALUE Ac
 .Sh DESCRIPTION
 .Nm
 is used to display detailed information about various aspect of GNUnet's operation.
 This tool only works if the "statistics" service is available.
-gnunet-statistics can be used to set a value by giving the options \-n, \-s and also a VALUE.
+gnunet-statistics can be used to set a value by giving the options -n, -s and also a VALUE.
 .Bl -tag -width indent
-.It Fl c Ar FILENAME | Fl \-config= Ns Ar FILENAME
+.It Fl c Ar FILENAME | Fl -config= Ns Ar FILENAME
 Use the configuration file FILENAME.
-.It Fl h | \-help
+.It Fl h | -help
 Print short help on options.
-.It Fl L Ar LOGLEVEL | Fl \-loglevel= Ns Ar LOGLEVEL
+.It Fl L Ar LOGLEVEL | Fl -loglevel= Ns Ar LOGLEVEL
 Use LOGLEVEL for logging.  Valid values are DEBUG, INFO, WARNING and ERROR.
-.It Fl l Ar FILENAME | Fl \-logfile= Ns Ar FILENAME
+.It Fl l Ar FILENAME | Fl -logfile= Ns Ar FILENAME
 Configure logging to write logs to FILENAME
-.It Fl n Ar NAME | Fl \-name= Ns Ar NAME
+.It Fl n Ar NAME | Fl -name= Ns Ar NAME
 Each statistic has a NAME that is unique with in its subsystem.
 With this option, the output can be restricted to statistics that have a particular NAME.
-.It Fl o Ar PORT | Fl \-port= Ns Ar PORT
+.It Fl o Ar PORT | Fl -port= Ns Ar PORT
 PORT for remote host
-.It Fl p | \-persistent
+.It Fl p | -persistent
 When setting a value, make the value persistent.
 If the value used to be persistent and this flag is not given, it will be marked as non-persistent.
-.It Fl q | \-quiet
+.It Fl q | -quiet
 Just print the statistics value
-.It Fl r Ar REMOTE | Fl \-remote= Ns Ar REMOTE
+.It Fl r Ar REMOTE | Fl -remote= Ns Ar REMOTE
 Connect to a remote host given as REMOTE.
-.It Fl S Ar SEPARATOR | Fl \-csv-separator= Ns Ar SEPARATOR
+.It Fl S Ar SEPARATOR | Fl -csv-separator= Ns Ar SEPARATOR
 Specify a separator for generating csv-output.
-.It Fl s Ar SUBSYSTEM | Fl \-subsystem= Ns Ar SUBSYSTEM
+.It Fl s Ar SUBSYSTEM | Fl -subsystem= Ns Ar SUBSYSTEM
 Statistics are kept for various subsystems.
 With this option, the output can be restricted to a particular subsystem only.
-.It Fl t Ar PATH | Fl \-testbed= Ns Ar PATH
+.It Fl t Ar PATH | Fl -testbed= Ns Ar PATH
 When running testbed, you can get statistics of all peers with specefying the
 folder containing the data of all testbed nodes like
 .Pp
 .Dl $ gnunet-statistics -t /tmp/testbedARtmQv
 .Pp
-.It Fl v | \-version
+.It Fl v | -version
 Print GNUnet version number.
-.It Fl w | \-watch
+.It Fl w | -watch
 Watch value continuously.
 .El
 .Sh SEE ALSO

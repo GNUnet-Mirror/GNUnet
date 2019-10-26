@@ -11,7 +11,7 @@
 #    WITHOUT ANY WARRANTY; without even the implied warranty of
 #    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
 #    Affero General Public License for more details.
-#   
+#
 #    You should have received a copy of the GNU Affero General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
@@ -113,9 +113,13 @@ def check_connect():
     check.add(StatisticsCondition(client, 'dht', '# peers connected', 2))
     check.add(StatisticsCondition(client, 'fs', '# peers connected', 2))
 
-    check.add(StatisticsCondition(client_nat, 'transport', '# peers connected', 2))
+    check.add(
+        StatisticsCondition(client_nat, 'transport', '# peers connected', 2)
+    )
     check.add(StatisticsCondition(client_nat, 'core', '# peers connected', 2))
-    check.add(StatisticsCondition(client_nat, 'topology', '# peers connected', 2))
+    check.add(
+        StatisticsCondition(client_nat, 'topology', '# peers connected', 2)
+    )
     check.add(StatisticsCondition(client_nat, 'dht', '# peers connected', 2))
     check.add(StatisticsCondition(client_nat, 'fs', '# peers connected', 2))
 
@@ -126,6 +130,7 @@ def check_connect():
     check.add(StatisticsCondition(server, 'fs', '# peers connected', 2))
 
     check.run_blocking(check_timeout, success_cont, fail_cont)
+
 
 #
 # Test execution
@@ -199,7 +204,8 @@ def run():
         cleanup()
         sys.exit(success)
 
-    if ((client.started == True) and (client_nat.started == True) and (server.started == True)):
+    if ((client.started == True) and (client_nat.started == True)
+        and (server.started == True)):
         test.p('Peers started, running check')
         check_connect()
 

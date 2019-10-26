@@ -94,16 +94,6 @@ if LINUX
 endif
 
 if LINUX
-install-exec-hook:
-	$(top_srcdir)/src/transport/install-wlan-helper.sh $(DESTDIR)$(libexecdir) $(SUDO_BINARY) || true
-if HAVE_LIBBLUETOOTH
-	$(top_srcdir)/src/transport/install-bluetooth-helper.sh $(DESTDIR)$(libexecdir) $(SUDO_BINARY) || true
-endif
-else
-install-exec-hook:
-endif
-
-if LINUX
 if HAVE_LIBBLUETOOTH
  BT_BIN = gnunet-helper-transport-bluetooth
  BT_PLUGIN_LA = libgnunet_plugin_transport_bluetooth.la
@@ -195,7 +185,7 @@ libgnunettransport_la_LIBADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_LIBINTL)
 libgnunettransport_la_LDFLAGS = \
-  $(GN_LIB_LDFLAGS) $(WINFLAGS) \
+  $(GN_LIB_LDFLAGS)  \
   -version-info 4:0:2
 
 libgnunettransportapplication_la_SOURCES = \
@@ -204,7 +194,7 @@ libgnunettransportapplication_la_LIBADD = \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(LTLIBINTL)
 libgnunettransportapplication_la_LDFLAGS = \
-  $(GN_LIB_LDFLAGS) $(WINFLAGS) \
+  $(GN_LIB_LDFLAGS)  \
   -version-info 0:0:0
 
 
@@ -214,7 +204,7 @@ libgnunettransportcore_la_LIBADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_LIBINTL)
 libgnunettransportcore_la_LDFLAGS = \
-  $(GN_LIB_LDFLAGS) $(WINFLAGS) \
+  $(GN_LIB_LDFLAGS)  \
   -version-info 0:0:0
 
 libgnunettransportcommunicator_la_SOURCES = \
@@ -223,7 +213,7 @@ libgnunettransportcommunicator_la_LIBADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_LIBINTL)
 libgnunettransportcommunicator_la_LDFLAGS = \
-  $(GN_LIB_LDFLAGS) $(WINFLAGS) \
+  $(GN_LIB_LDFLAGS)  \
   -version-info 0:0:0
 
 
@@ -233,7 +223,7 @@ libgnunettransportmonitor_la_LIBADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_LIBINTL)
 libgnunettransportmonitor_la_LDFLAGS = \
-  $(GN_LIB_LDFLAGS) $(WINFLAGS) \
+  $(GN_LIB_LDFLAGS)  \
   -version-info 0:0:0
 
 

@@ -26,22 +26,21 @@
 .Os
 .Sh NAME
 .Nm gnunet-cadet
-.Nd
-create or obtain information about CADET tunnels and peers
+.Nd create or obtain information about CADET tunnels and peers
 .Sh SYNOPSIS
 .Nm
-.Op Fl C Ar CONNECTION_ID | Fl \-connection= Ns Ar CONNECTION_ID
-.Op Fl d | \-dump
-.Op Fl e | \-echo
-.Op Fl o Ar SHARED_SECRET | Fl \-open-port= Ns Ar SHARED_SECRET
-.Op Fl p Ar PEER_ID | Fl \-peer= Ns Ar PEER_ID
-.Op Fl P | \-peers
-.Op Fl T | \-tunnels
-.Op Fl c Ar FILENAME | Fl \-config= Ns Ar FILENAME
-.Op Fl h | \-help
-.Op Fl l Ar FILENAME | Fl \-logfile= Ns Ar FILENAME
-.Op Fl L Ar LOGLEVEL | Fl \-loglevel= Ns Ar LOGLEVEL
-.Op Fl v | \-version
+.Op Fl C Ar CONNECTION_ID | Fl -connection= Ns Ar CONNECTION_ID
+.Op Fl d | -dump
+.Op Fl e | -echo
+.Op Fl o Ar SHARED_SECRET | Fl -open-port= Ns Ar SHARED_SECRET
+.Op Fl p Ar PEER_ID | Fl -peer= Ns Ar PEER_ID
+.Op Fl P | -peers
+.Op Fl T | -tunnels
+.Op Fl c Ar FILENAME | Fl -config= Ns Ar FILENAME
+.Op Fl h | -help
+.Op Fl l Ar FILENAME | Fl -logfile= Ns Ar FILENAME
+.Op Fl L Ar LOGLEVEL | Fl -loglevel= Ns Ar LOGLEVEL
+.Op Fl v | -version
 .Ao Ar PEER_ID Ac
 .Ao Ar SHARED_SECRET Ac
 .Sh DESCRIPTION
@@ -63,36 +62,36 @@ For one-to-many communication
 .Xr gnunet-social 1
 may be better suited, however.
 .Bl -tag -width indent
-.It Fl C Ar CONNECTION_ID | Fl \-connection= Ns Ar CONNECTION_ID
+.It Fl C Ar CONNECTION_ID | Fl -connection= Ns Ar CONNECTION_ID
 Provide information about the connection
 .Ar CONNECTION_ID .
-.It Fl d | \-dump
+.It Fl d | -dump
 Dump debug information to stderr.
-.It Fl e | \-echo
+.It Fl e | -echo
 Activate echo mode.
-.It Fl o Ar SHARED_SECRET | Fl \-open-port= Ns Ar SHARED_SECRET
+.It Fl o Ar SHARED_SECRET | Fl -open-port= Ns Ar SHARED_SECRET
 Listen for connections using a shared secret, provided as
 .Ar SHARED_SECRET ,
 among sender and recipient.
-.It Fl p Ar PEER_ID | Fl \-peer= Ns Ar PEER_ID
+.It Fl p Ar PEER_ID | Fl -peer= Ns Ar PEER_ID
 Provide information about the peer
 .Ar PEER_ID .
-.It Fl P | \-peers
+.It Fl P | -peers
 Provide information about all (known) peers.
-.It Fl T | \-tunnels
+.It Fl T | -tunnels
 Provide information about all tunnels.
-.It Fl c Ar FILENAME | Fl \-config= Ns Ar FILENAME
+.It Fl c Ar FILENAME | Fl -config= Ns Ar FILENAME
 Use the configuration file
 .Ar FILENAME .
-.It Fl h | \-help
+.It Fl h | -help
 Print the help page.
-.It Fl l Ar FILENAME | Fl \-logfile= Ns Ar FILENAME
+.It Fl l Ar FILENAME | Fl -logfile= Ns Ar FILENAME
 Configure logging to write logs to
 .Ar FILENAME .
-.It Fl L Ar LOGLEVEL | Fl \-loglevel= Ns Ar LOGLEVEL
+.It Fl L Ar LOGLEVEL | Fl -loglevel= Ns Ar LOGLEVEL
 Use LOGLEVEL for logging.
 Valid values are DEBUG, INFO, WARNING and ERROR.
-.It Fl v | \-version
+.It Fl v | -version
 Print the GNUnet version number.
 .El
 .Sh SEE ALSO

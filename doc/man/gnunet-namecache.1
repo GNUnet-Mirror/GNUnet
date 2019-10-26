@@ -26,33 +26,32 @@
 .Os
 .Sh NAME
 .Nm gnunet-namecache
-.Nd
-inspect namecache
+.Nd inspect namecache
 .Sh SYNOPSIS
 .Nm
-.Op Fl c Ar FILENAME | Fl \-config= Ns Ar FILENAME
-.Op Fl h | \-help
-.Op Fl L Ar LOGLEVEL | Fl \-loglevel= Ns Ar LOGLEVEL
-.Op Fl n Ar NAME | Fl \-name= Ns Ar NAME
-.Op Fl v | \-version
-.Op Fl z Ar PKEY | Fl \-zone= Ns Ar PKEY
+.Op Fl c Ar FILENAME | Fl -config= Ns Ar FILENAME
+.Op Fl h | -help
+.Op Fl L Ar LOGLEVEL | Fl -loglevel= Ns Ar LOGLEVEL
+.Op Fl n Ar NAME | Fl -name= Ns Ar NAME
+.Op Fl v | -version
+.Op Fl z Ar PKEY | Fl -zone= Ns Ar PKEY
 .Sh DESCRIPTION
 .Nm
 can be used to inspect values in the namecache.
 It is passed the mandatory option 'z' ('--zone=') with the argument PKEY, and the mandatory option 'n' ('--name=') with the argument NAME.
 .Bl -tag -width indent
-.It Fl c Ar FILENAME | Fl \-config= Ns Ar FILENAME
+.It Fl c Ar FILENAME | Fl -config= Ns Ar FILENAME
 Use the configuration file FILENAME.
-.It Fl h | \-help
+.It Fl h | -help
 Print short help on options.
-.It Fl L Ar LOGLEVEL | Fl \-loglevel= Ns Ar LOGLEVEL
+.It Fl L Ar LOGLEVEL | Fl -loglevel= Ns Ar LOGLEVEL
 Use LOGLEVEL for logging.
 Valid values are DEBUG, INFO, WARNING and ERROR.
-.It Fl n Ar NAME | Fl \-name= Ns Ar NAME
+.It Fl n Ar NAME | Fl -name= Ns Ar NAME
 Name (label) of the record to display (mandatory option).
-.It Fl v | \-version
+.It Fl v | -version
 Print GNUnet version number.
-.It Fl z Ar PKEY | Fl \-zone= Ns Ar PKEY
+.It Fl z Ar PKEY | Fl -zone= Ns Ar PKEY
 Specifies the public key of the zone to inspect (mandatory option)
 .El
 .\".Sh EXAMPLES

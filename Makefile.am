@@ -38,3 +38,12 @@ docdir = $(datadir)/doc/gnunet/
 doc_DATA = COPYING README
 
 ACLOCAL_AMFLAGS = -I m4
+
+# TODO: better nesting.
+if HAVE_UNCRUSTIFY_BINARY
+pretty:
+	find $(top_srcdir) -type f -name '*.c' -or -name '*.h' -print0 | xargs -0 uncrustify -c $(top_srcdir)/contrib/uncrustify.cfg --replace --no-backup 2>&1 || true
+if HAVE_YAPF_BINARY
+	find $(top_srcdir) -type f -name '*.py' -or -name '*.py.in' -print0 | xargs -0 $(YAPF_BINARY) -i 2>&1 || true
+endif
+endif

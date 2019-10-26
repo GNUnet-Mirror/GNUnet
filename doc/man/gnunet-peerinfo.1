@@ -26,50 +26,49 @@
 .Os
 .Sh NAME
 .Nm gnunet-peerinfo
-.Nd
-display information about other peers
+.Nd display information about other peers
 .Sh SYNOPSIS
 .Nm
-.Op Fl c Ar FILENAME | Fl \-config= Ns Ar FILENAME
-.Op Fl g | \-get\-hello
-.Op Fl h | \-help
-.Op Fl i | \-info
-.Op Fl L Ar LOGLEVEL | Fl \-loglevel= Ns Ar LOGLEVEL
-.Op Fl l Ar LOGFILE | Fl \-logfile= ns Ar LOGFILE
-.Op Fl n | \-numeric
-.Op Fl p Ar HELLO | Fl \-put\-hello= Ns Ar HELLO
-.Op Fl q | \-quiet
-.Op Fl s | \-self
-.Op Fl v | \-version
+.Op Fl c Ar FILENAME | Fl -config= Ns Ar FILENAME
+.Op Fl g | -get-hello
+.Op Fl h | -help
+.Op Fl i | -info
+.Op Fl L Ar LOGLEVEL | Fl -loglevel= Ns Ar LOGLEVEL
+.Op Fl l Ar LOGFILE | Fl -logfile= ns Ar LOGFILE
+.Op Fl n | -numeric
+.Op Fl p Ar HELLO | Fl -put-hello= Ns Ar HELLO
+.Op Fl q | -quiet
+.Op Fl s | -self
+.Op Fl v | -version
 .Sh DESCRIPTION
 .Nm
 displays the known addresses and trust of known peers.
 .Bl -tag -width indent
-.It Fl c Ar FILENAME | Fl \-config= Ns Ar FILENAME
+.It Fl c Ar FILENAME | Fl -config= Ns Ar FILENAME
 Load config file, default FILENAME of the config is 
 .Pa ~/.config/gnunet.conf .
-.It Fl g | \-get\-hello
+.It Fl g | -get-hello
 Output HELLO uri(s)
-.It Fl h | \-help
+.It Fl h | -help
 Print the help page.
-.It Fl i | \-info
+.It Fl i | -info
 List all known peers (and their addresses).
-.It Fl L Ar LOGLEVEL | Fl \-loglevel= Ns Ar LOGLEVEL
+.It Fl L Ar LOGLEVEL | Fl -loglevel= Ns Ar LOGLEVEL
 Set the loglevel
-.It Fl l Ar LOGFILE | Fl \-logfile= ns Ar LOGFILE
+.It Fl l Ar LOGFILE | Fl -logfile= ns Ar LOGFILE
 Log messages to LOGFILE
-.It Fl n | \-numeric
+.It Fl n | -numeric
 Disable resolution of IPs to hostnames
-.It Fl p Ar HELLO | Fl \-put\-hello= Ns Ar HELLO
+.It Fl p Ar HELLO | Fl -put-hello= Ns Ar HELLO
 Add given HELLO uri to the database
-.It Fl q | \-quiet
+.It Fl q | -quiet
 Do not print anything but the peer identities
-.It Fl s | \-self
+.It Fl s | -self
 Print only our own identity.
 Together with
 .Fl q ,
 this is the exact line that other peers would have to put in to their friends file in order to consider this peer one of their friends in F2F mode.
-.It Fl v | \-version
+.It Fl v | -version
 Print the version number
 .El
 .Sh SEE ALSO

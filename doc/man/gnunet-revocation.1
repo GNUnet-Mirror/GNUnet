@@ -26,18 +26,17 @@
 .Os
 .Sh NAME
 .Nm gnunet-revocation
-.Nd
-revoke private keys (of egos) in GNUnet
+.Nd revoke private keys (of egos) in GNUnet
 .Sh SYNOPSIS
 .Nm
-.Op Fl t Ar KEY | Fl \-test= Ns Ar KEY
-.Op Fl R Ar NAME | Fl \-revoke= Ns Ar NAME
-.Op Fl p | \-perform
-.Op Fl f Ar NAME | Fl \-filename= Ns Ar NAME
-.Op Fl c Ar FILENAME, Fl \-config= Ns Ar FILENAME
-.Op Fl h | \-help
-.Op Fl L Ar LOGLEVEL | Fl \-loglevel= Ns Ar LOGLEVEL
-.Op Fl v | \-version
+.Op Fl t Ar KEY | Fl -test= Ns Ar KEY
+.Op Fl R Ar NAME | Fl -revoke= Ns Ar NAME
+.Op Fl p | -perform
+.Op Fl f Ar NAME | Fl -filename= Ns Ar NAME
+.Op Fl c Ar FILENAME, Fl -config= Ns Ar FILENAME
+.Op Fl h | -help
+.Op Fl L Ar LOGLEVEL | Fl -loglevel= Ns Ar LOGLEVEL
+.Op Fl v | -version
 .Sh DESCRIPTION
 .Nm
 can be used to verify if a key has been revoked, to create a revocation certificate for later revocation, to instantly revoke a key and to use a pre-generated revocation certificate to revoke a key.
@@ -49,26 +48,26 @@ gnunet-revocation also makes is possible to resume the pre-calculation of a revo
 Note that performing a revocation proof-of-work is deliberately VERY expensive.
 Depending on your CPU, the calculation can take days or weeks.
 .Bl -tag -width indent
-.It Fl t Ar KEY | Fl \-test= Ns Ar KEY
-Check if the given KEY (ASCII\-encoded public key required) has been revoked.
-.It Fl R Ar NAME | Fl \-revoke= Ns Ar NAME
+.It Fl t Ar KEY | Fl -test= Ns Ar KEY
+Check if the given KEY (ASCII-encoded public key required) has been revoked.
+.It Fl R Ar NAME | Fl -revoke= Ns Ar NAME
 Calculate or perform revocation for the ego with the given NAME.
-.It Fl p | \-perform
+.It Fl p | -perform
 Actually perform the revocation as soon as possible (do not just generate a revocation certificate, use it).
 Must be supplied to actually perform the revocation.
-.It Fl f Ar NAME | Fl \-filename= Ns Ar NAME
+.It Fl f Ar NAME | Fl -filename= Ns Ar NAME
 Use NAME as the name of the file that is to contain the revocation certificate.
 Intermediate computation results will be stored here, as well as the final revocation certificate.
-When used together with \-p, this file will be inspected to see if it contains a valid certificate for instant revocation, in which case the revocation can be performed instantly.
-If the given file contains anything (a valid certificate, with or without the completed proof-of-work) there is no need to supply the "\-R" option or to still have the private key of the ego to perform the revocation.
-.It Fl c Ar FILENAME, Fl \-config= Ns Ar FILENAME
+When used together with -p, this file will be inspected to see if it contains a valid certificate for instant revocation, in which case the revocation can be performed instantly.
+If the given file contains anything (a valid certificate, with or without the completed proof-of-work) there is no need to supply the "-R" option or to still have the private key of the ego to perform the revocation.
+.It Fl c Ar FILENAME, Fl -config= Ns Ar FILENAME
 Use the configuration file FILENAME.
-.It Fl h | \-help
+.It Fl h | -help
 Print short help on options.
-.It Fl L Ar LOGLEVEL | Fl \-loglevel= Ns Ar LOGLEVEL
+.It Fl L Ar LOGLEVEL | Fl -loglevel= Ns Ar LOGLEVEL
 Use LOGLEVEL for logging.
 Valid values are DEBUG, INFO, WARNING and ERROR.
-.It Fl v | \-version
+.It Fl v | -version
 Print GNUnet version number.
 .El
 .Sh SEE ALSO

@@ -26,15 +26,14 @@
 .Os
 .Sh NAME
 .Nm gnunet-namestore-fcfsd
-.Nd
-HTTP server for GNU Name System First-Come-First-Served name registration
+.Nd HTTP server for GNU Name System First-Come-First-Served name registration
 .Sh SYNOPSIS
 .Nm
-.Op Fl c Ar FILENAME | Fl \-config= Ns Ar FILENAME
-.Op Fl h | \-help
-.Op Fl L Ar LOGLEVEL | Fl \-loglevel= Ns Ar LOGLEVEL
-.Op Fl v | \-version
-.Op Fl z Ar EGO | \-zone= Ns Ar EGO
+.Op Fl c Ar FILENAME | Fl -config= Ns Ar FILENAME
+.Op Fl h | -help
+.Op Fl L Ar LOGLEVEL | Fl -loglevel= Ns Ar LOGLEVEL
+.Op Fl v | -version
+.Op Fl z Ar EGO | -zone= Ns Ar EGO
 .Sh DESCRIPTION
 Most users will not want to run an FCFS-zone and thus will not need this program.
 .Pp
@@ -58,16 +57,16 @@ After that, you can start the FCFSD service (possibly using
 .Pp
 The options are as follows:
 .Bl -tag -width indent
-.It Fl c Ar FILENAME | Fl \-config= Ns Ar FILENAME
+.It Fl c Ar FILENAME | Fl -config= Ns Ar FILENAME
 Use the configuration file FILENAME.
-.It Fl h | \-help
+.It Fl h | -help
 Print short help on options.
-.It Fl L Ar LOGLEVEL | Fl \-loglevel= Ns Ar LOGLEVEL
+.It Fl L Ar LOGLEVEL | Fl -loglevel= Ns Ar LOGLEVEL
 Use LOGLEVEL for logging.
 Valid values are DEBUG, INFO, WARNING and ERROR.
-.It Fl v | \-version
+.It Fl v | -version
 Print GNUnet version number.
-.It Fl z Ar EGO | \-zone= Ns Ar EGO
+.It Fl z Ar EGO | -zone= Ns Ar EGO
 Specifies for which
 .Ar EGO
 FCFSD should manage the zone.

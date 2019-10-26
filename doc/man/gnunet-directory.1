@@ -26,14 +26,13 @@
 .Os
 .Sh NAME
 .Nm gnunet-directory
-.Nd
-display directories
+.Nd display directories
 .Sh SYNOPSIS
 .Nm
-.Op Fl c Ar FILENAME | Fl \-config= Ns Ar FILENAME
-.Op Fl h | \-help
-.Op Fl L Ar LOGLEVEL | Fl \-loglevel= Ns Ar LOGLEVEL
-.Op Fl v | \-version
+.Op Fl c Ar FILENAME | Fl -config= Ns Ar FILENAME
+.Op Fl h | -help
+.Op Fl L Ar LOGLEVEL | Fl -loglevel= Ns Ar LOGLEVEL
+.Op Fl v | -version
 .Ao Ar FILENAME Ac
 .Sh DESCRIPTION
 .Nm
@@ -42,15 +41,15 @@ A GNUnet directory is a binary file that contains a list of GNUnet file-sharing 
 The names of the directory files must be passed as command-line arguments to gnunet-directory.
 The options are as follows:
 .Bl -tag -width indent
-.It Fl c Ar FILENAME | Fl \-config= Ns Ar FILENAME
+.It Fl c Ar FILENAME | Fl -config= Ns Ar FILENAME
 Configuration file to use.
 This option is useless, since gnunet-directory does not really depend on any configuration options.
-.It Fl h | \-help
+.It Fl h | -help
 Print the help page.
-.It Fl L Ar LOGLEVEL | Fl \-loglevel= Ns Ar LOGLEVEL
+.It Fl L Ar LOGLEVEL | Fl -loglevel= Ns Ar LOGLEVEL
 Change the loglevel.
 Possible values for LOGLEVEL are ERROR, WARNING, INFO and DEBUG.
-.It Fl v | \-version
+.It Fl v | -version
 Print the version number.
 .El
 .Ss NOTES

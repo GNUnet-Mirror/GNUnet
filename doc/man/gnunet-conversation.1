@@ -26,38 +26,37 @@
 .Os
 .Sh NAME
 .Nm gnunet-conversation
-.Nd
-have a conversation with your peers
+.Nd have a conversation with your peers
 .Sh SYNOPSIS
 .Nm
-.Op Fl c Ar FILENAME | Fl \-config= Ns Ar FILENAME
-.Op Fl e Ar NAME | Fl \-ego= Ns Ar NAME
-.Op Fl h | \-help
-.Op Fl L Ar LOGLEVEL | Fl \-loglevel= Ns Ar LOGLEVEL
-.Op Fl p Ar LINE | Fl \-phone= Ns Ar LINE
-.Op Fl v | \-version
+.Op Fl c Ar FILENAME | Fl -config= Ns Ar FILENAME
+.Op Fl e Ar NAME | Fl -ego= Ns Ar NAME
+.Op Fl h | -help
+.Op Fl L Ar LOGLEVEL | Fl -loglevel= Ns Ar LOGLEVEL
+.Op Fl p Ar LINE | Fl -phone= Ns Ar LINE
+.Op Fl v | -version
 .Ao Ar URI Ac
 .Sh DESCRIPTION
 .Nm
 can be used to have a conversation with other GNUnet users.
 You can make calls and receive incoming calls.
-You need to setup an ego using gnunet\-identity first.
-For others to be able to call you, you must add a PHONE record to your zone in the GNU Name System (using gnunet\-namestore).
-gnunet\-conversation has an interactive help system via the /help command.
+You need to setup an ego using gnunet-identity first.
+For others to be able to call you, you must add a PHONE record to your zone in the GNU Name System (using gnunet-namestore).
+gnunet-conversation has an interactive help system via the /help command.
 .Bl -tag -width indent
-.It Fl c Ar FILENAME | Fl \-config= Ns Ar FILENAME
+.It Fl c Ar FILENAME | Fl -config= Ns Ar FILENAME
 Use the configuration file FILENAME.
-.It Fl e Ar NAME | Fl \-ego= Ns Ar NAME
+.It Fl e Ar NAME | Fl -ego= Ns Ar NAME
 Specifies the NAME of the ego to use (for caller ID).
-.It Fl h | \-help
+.It Fl h | -help
 Print short help on options.
-.It Fl L Ar LOGLEVEL | Fl \-loglevel= Ns Ar LOGLEVEL
+.It Fl L Ar LOGLEVEL | Fl -loglevel= Ns Ar LOGLEVEL
 Use LOGLEVEL for logging.
 Valid values are DEBUG, INFO, WARNING and ERROR.
-.It Fl p Ar LINE | Fl \-phone= Ns Ar LINE
+.It Fl p Ar LINE | Fl -phone= Ns Ar LINE
 Optional argument that can be used to specify the phone LINE to be used with the conversation service.
 The default LINE is zero, which should be fine for most users.
-.It Fl v | \-version
+.It Fl v | -version
 Print GNUnet version number.
 .El
 .\".Sh EXAMPLES

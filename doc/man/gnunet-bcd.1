@@ -26,15 +26,14 @@
 .Os
 .Sh NAME
 .Nm gnunet-bcd
-.Nd
-run HTTP server to create GNS business cards
+.Nd run HTTP server to create GNS business cards
 .Sh SYNOPSIS
 .Nm
-.Op Fl p Ar PORT | Fl \-port= Ns Ar PORT
-.Op Fl c Ar FILENAME | Fl \-config= Ns Ar FILENAME
-.Op Fl h | \-help
-.Op Fl L Ar LOGLEVEL | Fl \-loglevel= Ns Ar LOGLEVEL
-.Op Fl v | \-version
+.Op Fl p Ar PORT | Fl -port= Ns Ar PORT
+.Op Fl c Ar FILENAME | Fl -config= Ns Ar FILENAME
+.Op Fl h | -help
+.Op Fl L Ar LOGLEVEL | Fl -loglevel= Ns Ar LOGLEVEL
+.Op Fl v | -version
 .Sh DESCRIPTION
 .Nm
 can be used to create an business card with a QR code containing the public key of a zone from the GNU Name System.
@@ -45,16 +44,16 @@ If it does not work for you, try installing the full TeXLive distribution first,
 .Xr apt 1
 execute "apt-get install texlive-full".
 .Bl -tag -width indent
-.It Fl p Ar PORT | Fl \-port= Ns Ar PORT
+.It Fl p Ar PORT | Fl -port= Ns Ar PORT
 Run the HTTP server on port PORT.
-.It Fl c Ar FILENAME | Fl \-config= Ns Ar FILENAME
+.It Fl c Ar FILENAME | Fl -config= Ns Ar FILENAME
 Use the configuration file FILENAME.
-.It Fl h | \-help
+.It Fl h | -help
 Print short help on options.
-.It Fl L Ar LOGLEVEL | Fl \-loglevel= Ns Ar LOGLEVEL
+.It Fl L Ar LOGLEVEL | Fl -loglevel= Ns Ar LOGLEVEL
 Use LOGLEVEL for logging.
 Valid values are DEBUG, INFO, WARNING and ERROR.
-.It Fl v | \-version
+.It Fl v | -version
 Print GNUnet version number.
 .El
 .Sh SEE ALSO

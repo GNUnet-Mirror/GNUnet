@@ -26,13 +26,12 @@
 .Os
 .Sh NAME
 .Nm gnunet-testing-run-service
-.Nd
-command line tool to start a service for testing
+.Nd command line tool to start a service for testing
 .Sh SYNOPSIS
 .Nm
-.Op Fl c Ar FILENAME | Fl \-config= Ns Ar FILENAME
-.Op Fl h | \-help
-.Op Fl s Ar SERVICE | Fl \-service= Ns Ar SERVICE
+.Op Fl c Ar FILENAME | Fl -config= Ns Ar FILENAME
+.Op Fl h | -help
+.Op Fl s Ar SERVICE | Fl -service= Ns Ar SERVICE
 .Sh DESCRIPTION
 .Nm
 is a command line tool to start a service for testing.
@@ -43,11 +42,11 @@ When reading the character 'r' from stdin, the running service is restarted with
 .Pp
 This executable is intended to be used by gnunet-java, in order to reliably start and stop services for test cases.
 .Bl -tag -width indent
-.It Fl c Ar FILENAME | Fl \-config= Ns Ar FILENAME
+.It Fl c Ar FILENAME | Fl -config= Ns Ar FILENAME
 Name of the template configuration file to use (optional).
-.It Fl h | \-help
+.It Fl h | -help
 Print short help on options.
-.It Fl s Ar SERVICE | Fl \-service= Ns Ar SERVICE
+.It Fl s Ar SERVICE | Fl -service= Ns Ar SERVICE
 Name of the service to run.
 .El
 .Sh SEE ALSO

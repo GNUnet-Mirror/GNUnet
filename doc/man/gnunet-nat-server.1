@@ -26,15 +26,14 @@
 .Os
 .Sh NAME
 .Nm gnunet-nat-server
-.Nd
-help GNUnet setup test network setup with NAT
+.Nd help GNUnet setup test network setup with NAT
 .Sh SYNOPSIS
 .Nm
-.Op Fl c Ar FILENAME | Fl \-config= Ns Ar FILENAME
-.Op Fl d | \-daemonize
-.Op Fl h | \-help
-.Op Fl L Ar FILENAME | Fl \-logfile= Ns Ar FILENAME
-.Op Fl v | \-version
+.Op Fl c Ar FILENAME | Fl -config= Ns Ar FILENAME
+.Op Fl d | -daemonize
+.Op Fl h | -help
+.Op Fl L Ar FILENAME | Fl -logfile= Ns Ar FILENAME
+.Op Fl v | -version
 .Ao Ar PORT Ac
 .Sh DESCRIPTION
 Running a gnunet-nat-server is similar to running a hostlist server: it is a special service to the community with special requirements and no benefit to those running the service.
@@ -60,20 +59,20 @@ In fact, distributions are encouraged to consider not shipping it at all.
 .Pp
 The options are as follows:
 .Bl -tag -width indent
-.It Fl c Ar FILENAME | Fl \-config= Ns Ar FILENAME
+.It Fl c Ar FILENAME | Fl -config= Ns Ar FILENAME
 Use the configuration file
 .Ar FILENAME .
-.It Fl d | \-daemonize
+.It Fl d | -daemonize
 Daemonize gnunet-nat-server (detach from terminal).
-.It Fl h | \-help
+.It Fl h | -help
 Print the help page.
-.It Fl L Ar LOGLEVEL | Fl \-log= Ns Ar LOGLEVEL
+.It Fl L Ar LOGLEVEL | Fl -log= Ns Ar LOGLEVEL
 Configure logging to use
 .Ar LOGLEVEL .
-.It Fl l Ar FILENAME | Fl \-logfile= Ns Ar FILENAME
+.It Fl l Ar FILENAME | Fl -logfile= Ns Ar FILENAME
 Configure logging to write logs to
 .Ar FILENAME .
-.It Fl v | \-version
+.It Fl v | -version
 Print the GNUnet version.
 .El
 .\".Sh EXAMPLES

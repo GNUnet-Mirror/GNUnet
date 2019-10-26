@@ -26,8 +26,7 @@
 .Os
 .Sh NAME
 .Nm gnunet-namestore
-.Nd
-manipulate GNU Name System (GNS) zone data
+.Nd manipulate GNU Name System (GNS) zone data
 .Sh SYNOPSIS
 .Nm
 .Op Fl a | -add
@@ -61,11 +60,11 @@ Desired operation is adding a record.
 Use the configuration file FILENAME.
 .It Fl d | -delete
 Desired operation is deleting records under the given name that match
-the specified type (\-t) and value (\-V).
+the specified type (-t) and value (-V).
 If type or value are not specified, it means that all types (or
 values) should be assumed to match (and possibly multiple or all
 values under the given label will be deleted).
-Specifying a label (\-n) is mandatory.
+Specifying a label (-n) is mandatory.
 Note that matching by expiration time or flags is (currently) not
 supported.
 .It Fl D | -display
@@ -85,7 +84,7 @@ suggested name for this zone.
 Use LOGLEVEL for logging.
 Valid values are DEBUG, INFO, WARNING and ERROR.
 .It Fl m | -monitor
-Monitor changes to the zone on an ongoing basis (in contrast to \-D,
+Monitor changes to the zone on an ongoing basis (in contrast to -D,
 which merely displays the current records).
 .It Fl n Ar NAME | Fl -name= Ns Ar NAME
 Label or name of the record to add/delete/display.

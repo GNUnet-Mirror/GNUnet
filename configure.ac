@@ -228,8 +228,10 @@ AM_CONDITIONAL(HAVE_SSH_KEY,  ssh -D 12345 -o "BatchMode yes" -o "UserKnownHosts
 rm -f /tmp/gnunet_test_cosks_ssh_garbage
 
 # autotools' m4 for python has no maximum version!
-# python3.4 - python3.7 for tests
-m4_define_default([_AM_PYTHON_INTERPRETER_LIST],[python3 python3.4 python3.5 python3.6 python3.7 python])
+# python3.4 - python3.8 for tests (3.8 unchecked)
+# TODO: document how to override the lowest version
+# TODO: found by this.
+m4_define_default([_AM_PYTHON_INTERPRETER_LIST],[python3 python3.4 python3.5 python3.6 python3.7 python3.8 python])
 AM_PATH_PYTHON([3.4],, [:])
 AC_SUBST([PYTHON])
 AM_CONDITIONAL([HAVE_PYTHON], [test "$PYTHON" != :])
@@ -313,6 +315,18 @@ AS_IF([test x"$VAR_UPNPC_BINARY" != x"false"],
   [AC_DEFINE_UNQUOTED([UPNPC], "$VAR_UPNPC_BINARY", [Path to upnpc binary])],
   [AC_MSG_WARN([warning: 'upnpc' binary not found.])])
 
+
+# uncrustify
+# TODO: maybe add flag to pass location
+AC_CHECK_PROG(UNCRUSTIFY_BINARY, uncrustify, true)
+AM_CONDITIONAL(HAVE_UNCRUSTIFY_BINARY, $UNCRUSTIFY_BINARY)
+
+# yapf
+# TODO: less repetition, add flag to pass name
+AC_CHECK_PROGS(YAPF_BINARY, [yapf yapf3.0 yapf3.1 yapf3.2 yapf3.3 yapf3.4 yapf3.5 yapf3.6 yapf3.7 yapf3.8 yapf3.9 yapf4.0], false)
+AM_CONDITIONAL(HAVE_YAPF_BINARY, test x$YAPF_BINARY != xfalse)
+
+
 AC_CHECK_MEMBER(struct tm.tm_gmtoff,
   [AC_DEFINE(HAVE_TM_GMTOFF, 1,
      [Define if struct tm has the tm_gmtoff member.])],
@@ -347,10 +361,10 @@ AS_IF([test $gcrypt = 0],
   AC_MSG_ERROR([[
 ***
 *** You need libgcrypt to build this program.
-**  This library is for example available at
-***   ftp://ftp.gnupg.org/gcrypt/libgcrypt/
-*** (at least version $NEED_LIBGCRYPT_VERSION (API $NEED_LIBGCRYPT_API)
-***  is required.)
+*** This library is for example available at
+*** ftp://ftp.gnupg.org/gcrypt/libgcrypt/.
+*** At least version $NEED_LIBGCRYPT_VERSION (API $NEED_LIBGCRYPT_API)
+***  is required.
 ***]])
 ])
 AC_DEFINE_UNQUOTED([NEED_LIBGCRYPT_VERSION], "$NEED_LIBGCRYPT_VERSION", [required libgcrypt version])
@@ -399,8 +413,9 @@ AC_MSG_RESULT($texi2mdoc_generation)
 AS_IF([test "x$texi2mdoc_generation" = "xyes"],
       [AS_IF([test "$texi2mdoc" = 0],
              [AC_MSG_WARN([ERROR: transpiled mdoc output requires texi2mdoc.])
-              AC_MSG_WARN([ERROR: texi2mdoc can be obtained via your Operating System])
-              AC_MSG_WARN([ERROR: package manager or from https://mandoc.bsd.lv/texi2mdoc/])],
+              AC_MSG_WARN([ERROR: texi2mdoc can be obtained via your])
+              AC_MSG_WARN([ERROR: Operating System package manager or from])
+              AC_MSG_WARN([ERROR: https://mandoc.bsd.lv/texi2mdoc/])],
              [AM_CONDITIONAL([TEXI2MDOC_GENERATION],true)
               AC_DEFINE([TEXI2MDOC_GENERATION],
                         [1],
@@ -414,7 +429,8 @@ AS_IF([test "x$texi2mdoc_generation" = "xyes"],
 # should the build process be building only the documentation?
 AC_MSG_CHECKING(whether to build only documentation)
 AC_ARG_ENABLE([documentation-only],
-   [AS_HELP_STRING([--enable-documentation-only], [build only the documentation])],
+   [AS_HELP_STRING([--enable-documentation-only],
+                   [build only the documentation])],
    [documentation_only=${enableval}],
    [documentation_only=no])
 AC_MSG_RESULT($documentation_only)
@@ -424,15 +440,14 @@ AS_IF([test "x$documentation_only" = "xyes"],
   AC_DEFINE([DOCUMENTATION_ONLY],[1],[Building only the documentation])
  ],[
   AM_CONDITIONAL([DOCUMENTATION_ONLY],false)
-  # TODO: Double negation might be a bit hard to parse for some
-  # TODO: people reading the output.
-  AC_DEFINE([DOCUMENTATION_ONLY],[0],[Not building only the documentation])
+  AC_DEFINE([DOCUMENTATION_ONLY],[0],[Doing a normal build, more than only documentation])
  ])
 
 # should the build process be including the manpages? (default: yes)
 AC_MSG_CHECKING(whether to include man pages)
 AC_ARG_ENABLE([include-manpages],
-   [AS_HELP_STRING([--disable-include-manpages], [Do not include the man pages in build and installation])],
+   [AS_HELP_STRING([--disable-include-manpages],
+                   [Do not include the man pages in build and installation])],
    [include_manpages=${enableval}],
    [include_manpages=yes])
 AC_MSG_RESULT($include_manpages)
@@ -590,11 +605,38 @@ AC_LANG_POP(C)
 
 # check for bluetooth library
 bluetooth=0
-CHECK_LIBHEADER(BLUETOOTH, bluetooth, ba2str, bluetooth/bluetooth.h,bluetooth=1,)
+AC_MSG_CHECKING(for libbluetooth)
+AC_ARG_WITH(libbluetooth,
+    [  --with-libbluetooth=PREFIX (base of libbluetooth installation)],
+    [AC_MSG_RESULT([$with_libbluetooth])
+     AS_CASE([$with_libbluetooth],
+        [no],[],
+        [yes],[
+            CHECK_LIBHEADER(BLUETOOTH,
+                            bluetooth,
+                            ba2str,
+                            bluetooth/bluetooth.h,
+                            bluetooth=1,)
+        ],[
+            LDFLAGS="-L$with_libbluetooth/lib $LDFLAGS"
+            CPPFLAGS="-I$with_libbluetooth/include $CPPFLAGS"
+            AC_CHECK_HEADERS(bluetooth/bluetooth.h,
+                             AC_CHECK_LIB([bluetooth],
+                                          [ba2str],
+                                          EXT_LIB_PATH="-L$with_libbluetooth/lib $EXT_LIB_PATH"
+                                          bluetooth=1))
+        ])
+    ],
+    [AC_MSG_RESULT([--with-libbluetooth not specified])
+     CHECK_LIBHEADER(BLUETOOTH,
+                     bluetooth,
+                     ba2str,
+                     bluetooth/bluetooth.h,
+                     bluetooth=1,)])
 AM_CONDITIONAL(HAVE_LIBBLUETOOTH, [test "$bluetooth" = 1])
 AS_IF([test "$bluetooth" = 1],
- [AC_DEFINE([HAVE_LIBBLUETOOTH],[1],[Have bluetooth library])],
- [AC_DEFINE([HAVE_LIBBLUETOOTH],[0],[Lacking bluetooth library])])
+      [AC_DEFINE([HAVE_LIBBLUETOOTH],[1],[Have bluetooth library])],
+      [AC_DEFINE([HAVE_LIBBLUETOOTH],[0],[Lacking bluetooth library])])
 
 # check for zbar library
 zbar=0
@@ -652,34 +694,124 @@ AS_IF([test "x$jansson" = x1],
 # check for libpulse(audio) library
 pulse=0
 libpulse_msg="no"
-CHECK_LIBHEADER(LIBPULSE, pulse, pa_stream_peek, pulse/simple.h,pulse=1,)
-AS_IF([test "$pulse" = 1],
+AC_MSG_CHECKING(for libpulse)
+# TODO: --with-libpulse or --with-pulseaudio? What is more established
+# TODO: in this context?
+AC_ARG_WITH(libpulse,
+    [  --with-libpulse=PREFIX (base of libpulse installation)],
+    [AC_MSG_RESULT([$with_libpulse])
+     AS_CASE([$with_libpulse],
+        [no],[],
+        [yes],[
+            CHECK_LIBHEADER(LIBPULSE,
+                            pulse,
+                            pa_stream_peek,
+                            pulse/simple.h,
+                            pulse=1,)
+        ],[
+            LDFLAGS="-L$with_libpulse/lib $LDFLAGS"
+            CPPFLAGS="-I$with_libpulse/include $CPPFLAGS"
+            AC_CHECK_HEADERS(pulse/simple.h,
+                             AC_CHECK_LIB([pulse],
+                                          [pa_stream_peek],
+                                          EXT_LIB_PATH="-L$with_libpulse/lib $EXT_LIB_PATH"
+                                          pulse=1))
+        ])
+    ],
+    [AC_MSG_RESULT([--with-libpulse not specified])
+     CHECK_LIBHEADER(LIBPULSE,
+                     pulse,
+                     pa_stream_peek,
+                     pulse/simple.h,
+                     pulse=1,)])
+AM_CONDITIONAL(HAVE_PULSE, [test "$pulse" = 1])
+AS_IF([test x"$pulse" = x1],
       [AC_DEFINE([HAVE_PULSE],[1],[Have libpulse(audio) library])
-       libpulse_msg="yes"])
+       libpulse_msg="yes"],
+      [AC_DEFINE([HAVE_PULSE],[0],[Lacking libpulse(audio) library])
+       libpulse_msg="no"])
 
 # check for libopus(audio) library
 opus=0
 libopus_msg="no"
-CHECK_LIBHEADER(LIBOPUS,
-                opus,
-                opus_decode_float,
-                opus/opus.h,
-                AC_CHECK_DECL([OPUS_SET_GAIN],[opus=1],[],[[#include <opus/opus.h>]]))
+AC_MSG_CHECKING(for libopus)
+AC_ARG_WITH(libopus,
+    [  --with-libopus=PREFIX (base of libopus installation)],
+    [AC_MSG_RESULT([$with_libopus])
+     AS_CASE([$with_libopus],
+        [no],[],
+        [yes],[
+            CHECK_LIBHEADER(LIBOPUS,
+                            opus,
+                            opus_decode_float,
+                            opus/opus.h,
+                            AC_CHECK_DECL([OPUS_SET_GAIN],
+                                          [opus=1],
+                                          [],
+                                          [[
+                                          #include <opus/opus.h>
+                                          ]]))
+    ],[
+        LDFLAGS="-L$with_libopus/lib $LDFLAGS"
+        CPPFLAGS="-I$with_libopus/include $CPPFLAGS"
+        AC_CHECK_HEADERS(opus/opus.h,
+                         AC_CHECK_LIB([opus],
+                                      [OPUS_SET_GAIN],
+                                      EXT_LIB_PATH="-L$with_libopus/lib $EXT_LIB_PATH"
+                                      opus=1))
+      ])
+    ],
+    [AC_MSG_RESULT([--with-libopus not specified])
+     CHECK_LIBHEADER(LIBOPUS,
+                     opus,
+                     opus_decode_float,
+                     opus/opus.h,
+                     AC_CHECK_DECL([OPUS_SET_GAIN],
+                                   [opus=1],
+                                   [],
+                                   [[
+                                     #include <opus/opus.h>
+                                   ]]))])
+AM_CONDITIONAL(HAVE_OPUS, [test "$opus" = 1])
 AS_IF([test "x$opus" = x1],
       [AC_DEFINE([HAVE_OPUS],[1],[Have libopus library])
-       libopus_msg="yes"])
+       libopus_msg="yes"],
+      [AC_DEFINE([HAVE_OPUS],[0],[Lacking libopus library])
+       libopus_msg="no"])
 
 # libogg
-AC_CHECK_LIB(ogg, ogg_stream_flush_fill,
-        [AC_CHECK_HEADERS([ogg/ogg.h],
-          AM_CONDITIONAL(HAVE_OGG, true)
-          ogg=1
-          AC_DEFINE(HAVE_OGG,1,[Have ogg]),
-          AM_CONDITIONAL(HAVE_OGG, false)
-          ogg=0
-          AC_DEFINE(HAVE_OGG,0,[lacking ogg]))],
-        AM_CONDITIONAL(HAVE_OGG, false)
-        ogg=0)
+AC_MSG_CHECKING(for libogg)
+AC_ARG_WITH(libogg,
+    [  --with-libogg=PREFIX (base of libogg installation)],
+    [AC_MSG_RESULT([$with_libogg])
+     AS_CASE([$with_libogg],
+        [no],[],
+        [yes],[
+            CHECK_LIBHEADER(LIBOGG,
+                            ogg,
+                            ogg_stream_flush_fill,
+                            ogg/ogg.h,
+                            ogg=1,)
+        ],[
+            LDFLAGS="-L$with_libogg/lib $LDFLAGS"
+            CPPFLAGS="-I$with_libogg/include $CPPFLAGS"
+            AC_CHECK_HEADERS(ogg/ogg.h,
+                             AC_CHECK_LIB([ogg],
+                                          [ogg_stream_flush_fill],
+                                          EXT_LIB_PATH="-L$with_libogg/lib $EXT_LIB_PATH"
+                                          ogg=1))
+        ])
+     ],
+     [AC_MSG_RESULT([--with-libogg not specified])
+      CHECK_LIBHEADER(LIBOGG,
+                      ogg,
+                      ogg_stream_flush_fill,
+                      ogg/ogg.h,
+                      ogg=1,)])
+AM_CONDITIONAL(HAVE_OGG, [test "$ogg" = 1])
+AS_IF([test x"$ogg" = x1],
+      [AC_DEFINE([HAVE_OGG],[1],[Have ogg])]
+      [AC_DEFINE([HAVE_OGG],[0],[Lacking ogg])])
 
 
 PKG_CHECK_MODULES([GLIB],
@@ -775,20 +907,6 @@ AM_CONDITIONAL(HAVE_LIBATOMIC, [test "$have_libatomic" = 1])
 # restore LIBS & CPPFLAGS
 LIBS=$SAVE_LIBS
 CPPFLAGS=$SAVE_CPPFLAGS
-
-AC_CHECK_HEADERS([glpk.h],[glpk=true],[glpk=false])
-# GLPK must support glpk_init_env, version >= 4.43
-AC_CHECK_LIB([glpk],[glp_init_env],,[glpk=false])
-# GLPK must support atm MLP presolving, version >= 4.32
-AC_CHECK_MEMBERS(glp_iocp.presolve,,[glpk=false],[[#include <glpk.h>]])
-AS_IF([test "x$glpk" = xfalse],
-[
-	AM_CONDITIONAL(HAVE_LIBGLPK, false)
-	AC_MSG_WARN([ERROR: GNUnet requires GLPK  >= 4.32])
-],[
-	AM_CONDITIONAL(HAVE_LIBGLPK, true)
-	AC_DEFINE([HAVE_LIBGLPK],[1],[Have GLPK])
-])
 
 
 AC_CHECK_HEADERS([nss.h],[nss=true],[nss=false])
@@ -1345,20 +1463,25 @@ DATAROOTDIR=$datarootdir
 AC_SUBST(DATAROOTDIR)
 
 # test for sudo
-# TODO: do we need to change anything for "doas" on openbsd?
 AC_MSG_CHECKING(for sudo)
+#AC_CHECK_PROGS(SUDO_BINARY, [sudo], false)
+#AM_CONDITIONAL(HAVE_SUDO, test x$SUDO_BINARY != xfalse)
 AC_ARG_WITH(sudo,
-            [  --with-sudo=PATH       path to sudo binary (or just yes)],
-            [AC_MSG_RESULT("$with_sudo")
-             AS_CASE([$with_sudo],
-                     [no],[SUDO_BINARY=],
-                     [yes],[SUDO_BINARY=sudo],
-                     [SUDO_BINARY=$with_sudo])],
-            [AC_MSG_RESULT([no])])
+           [  --with-sudo=PATH       path to sudo binary (or just yes)],
+           [AC_MSG_RESULT("$with_sudo")
+            AS_CASE([$with_sudo],
+                    [no],[SUDO_BINARY=],
+                    [yes],[SUDO_BINARY=sudo],
+                    [SUDO_BINARY=$with_sudo])],
+           [AC_MSG_RESULT([no])])
 AC_SUBST(SUDO_BINARY)
 AM_CONDITIONAL([HAVE_SUDO],
-               [test "x$SUDO_BINARY" != "x" -o -w /])
+              [test "x$SUDO_BINARY" != "x" -o -w /])
 
+# test for doas
+AC_MSG_CHECKING(for doas)
+AC_CHECK_PROGS(DOAS_BINARY, [doas], false)
+AM_CONDITIONAL(HAVE_DOAS_BINARY, test x$DOAS_BINARY != xfalse)
 
 # test for gnunetdns group name
 GNUNETDNS_GROUP=gnunetdns

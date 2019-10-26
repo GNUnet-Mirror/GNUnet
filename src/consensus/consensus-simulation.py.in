@@ -46,9 +46,10 @@ def simulate(k, n, verbose):
 
     def done_p():
         for x in range(k, n):
-            if bsc(info[x]) < n-k:
+            if bsc(info[x]) < n - k:
                 return False
         return True
+
     rounds = 0
     while not done_p():
         if verbose:
@@ -65,7 +66,10 @@ def simulate(k, n, verbose):
                 partner_physical = peers.index(partner_logical)
                 if peer_physical < k or partner_physical < k:
                     if verbose:
-                        print("bad peer in connection", peer_physical, "--", partner_physical)
+                        print(
+                            "bad peer in connection", peer_physical, "--",
+                            partner_physical
+                        )
                     continue
                 if peer_logical & arc == 0:
                     # we are outgoing
@@ -78,8 +82,11 @@ def simulate(k, n, verbose):
                         ghost_partner_logical = (peer_logical - arc) % n
                         if ghost_partner_logical & arc == 0:
                             peer_type = peer_type + ", ghost incoming"
-                    new_info[peer_physical] = new_info[peer_physical] | info[peer_physical] | info[partner_physical]
-                    new_info[partner_physical] = new_info[partner_physical] | info[peer_physical] | info[partner_physical]
+                    new_info[peer_physical] = new_info[peer_physical] | info[
+                        peer_physical] | info[partner_physical]
+                    new_info[partner_physical
+                             ] = new_info[partner_physical] | info[
+                                 peer_physical] | info[partner_physical]
                 else:
                     peer_type = "incoming"
                 if verbose > 1:

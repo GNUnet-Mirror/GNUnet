@@ -26,15 +26,14 @@
 .Os
 .Sh NAME
 .Nm gnunet-zoneimport
-.Nd
-import DNS zone into GNS zone
+.Nd import DNS zone into GNS zone
 .Sh SYNOPSIS
 .Nm
-.Op Fl c Ar FILENAME | \-config= Ns Ar FILENAME
-.Op Fl h | \-help
-.Op Fl m Ar RELATIVETIME | Fl \-minimum-expiration= Ns Ar RELATIVETIME
-.Op Fl s Ar MAPSIZE | Fl \-size= Ns Ar MAPSIZE
-.Op Ar \IP
+.Op Fl c Ar FILENAME | Fl -config= Ns Ar FILENAME
+.Op Fl h | -help
+.Op Fl m Ar RELATIVETIME | Fl -minimum-expiration= Ns Ar RELATIVETIME
+.Op Fl s Ar MAPSIZE | Fl -size= Ns Ar MAPSIZE
+.Ao Ar IP Ac
 .Sh DESCRIPTION
 .Nm
 reads a list of domain names (FQDN) from stdin and issues DNS queries for each of the domain names given.
@@ -56,27 +55,27 @@ Thus, it is fine to restart gnunet-zoneimport whenever the list of domain names 
 Finally, gnunet-zoneimport keeps information for each domain name in memory.
 This consumes about 200 bytes per domain name, or 1 GB for 5 million labels.
 .Bl -tag -width indent
-.It Fl c Ar FILENAME | \-config= Ns Ar FILENAME
+.It Fl c Ar FILENAME | Fl -config= Ns Ar FILENAME
 Use the configuration file FILENAME.
-.It Fl h | \-help
+.It Fl h | -help
 Print short help on options.
-.It Fl m Ar RELATIVETIME | Fl \-minimum-expiration= Ns Ar RELATIVETIME
+.It Fl m Ar RELATIVETIME | Fl -minimum-expiration= Ns Ar RELATIVETIME
 Ensure that imported DNS records never have an expiration time that is less than RELATIVETIME into the future.
 RELATIVETIME is a time given like "1 week" or "1 h".
-If DNS returns records with a shorter lifetime, gnunet\-zoneimport will simply bump the lifetime to the specified value (relative to the time of the import).
+If DNS returns records with a shorter lifetime, gnunet-zoneimport will simply bump the lifetime to the specified value (relative to the time of the import).
 Default is zero.
-.It Fl s Ar MAPSIZE | Fl \-size= Ns Ar MAPSIZE
+.It Fl s Ar MAPSIZE | Fl -size= Ns Ar MAPSIZE
 Specifies the size (in number of entries) to use for the main hash map.
 The value provided should be at least twice the number of domain names that will be given to the tool.
 This option is required for very large zones where the number of records encountered is too large for the automatic growth mechanism to work (that one is limited to at most 16 MB allocations for security reasons).
 Do not worry about this unless you are importing millions of domain names from a zone.
-.It Ar \IP
+.It Ao Ar IP Ac
 IP Is the list of IPs given.
 .El
 .Sh EXAMPLES
-Typical invocaton would be:
+Typical invocation would be:
 .Pp
-.Dl $ gnunet\-zoneimport 1.2.3.4 < names.txt
+.Dl $ gnunet-zoneimport 1.2.3.4 < names.txt
 .Sh SEE ALSO
 .Xr gnunet-gns 1 ,
 .Xr gnunet-namestore 1

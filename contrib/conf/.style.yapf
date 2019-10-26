@@ -1,0 +1,5 @@
+[style]
+based_on_style = pep8
+coalesce_brackets=True
+column_limit=80
+dedent_closing_brackets=True
