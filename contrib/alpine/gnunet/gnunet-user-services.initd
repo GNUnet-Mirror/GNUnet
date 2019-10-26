@@ -16,8 +16,8 @@ start() {
 	for user in $users; do
 		if test -z "`ps|grep $user|grep gnunet-service-arm`" > /dev/null 2>&1
 		then
-			sudo -u $user gnunet-arm \
-				-c /home/$user/.config/gnunet.conf -s
+			su $user -c "gnunet-arm \
+				-c /home/$user/.config/gnunet.conf -s"
 		fi
 	done
 }
@@ -26,8 +26,8 @@ stop() {
 	for user in $users; do
 		if test -n "`ps|grep $user|grep gnunet-service-arm`" > /dev/null 2>&1
 		then
-			sudo -u $user gnunet-arm \
-				-c /home/$user/.config/gnunet.conf -e
+			su $user -c "gnunet-arm \
+				-c /home/$user/.config/gnunet.conf -e"
 		fi
 	done
 }

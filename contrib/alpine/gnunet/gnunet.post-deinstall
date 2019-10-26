@@ -1,6 +1,0 @@
-#!/bin/sh
-
-deluser --remove-home gnunet # implicitly removes group gnunet
-delgroup gnunetdns
-
-exit 0

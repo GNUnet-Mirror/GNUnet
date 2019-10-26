@@ -2,7 +2,8 @@
 user=$(whoami)
 gnunet_proxy=$(gnunet-config -c /etc/skel/.config/gnunet.conf -s gns-proxy|grep 'IMMEDIATE_START = YES')
 
-# Enable GNS proxy for new users informed by /etc/skel.
+# Enable GNS proxy for new users informed by /etc/skel (system wide 
+# installation decision).
 if [ "$gnunet_proxy" ]; then
 
 	# Calculate user specific port
@@ -45,10 +46,3 @@ fi
 
 # Create/Renew GNS certificate authority (CA) per user.
 gnunet-gns-proxy-setup-ca
-
-# In case a new user was added and gnunet-user-services has not been 
-# restarted afterwards, start user services after login.
-if test -z "`ps|grep -v grep|grep $user|grep gnunet-service-arm`" > /dev/null 2>&1
-then
-	gnunet-arm -c /home/$user/.config/gnunet.conf -s
-fi
