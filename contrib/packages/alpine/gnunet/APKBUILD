@@ -6,10 +6,8 @@ pkgrel=0
 pkgdesc="A framework for secure and privacy enhancing peer-to-peer networking"
 url="https://gnunet.org"
 arch="all"
-license="AGPL-3.0"
-depends="libgpg-error libgcrypt nettle unbound-libs gnutls gnutls-utils gnurl
-	libgnurl libmicrohttpd openssl libunistring libidn2 nss sqlite zlib
-	miniupnpc gmp gettext bash which iptables coreutils sudo"
+license="AGPL-3.0-only"
+depends="gnutls-utils bash which iptables coreutils"
 depends_dev="libgpg-error-dev libgcrypt-dev nettle-dev unbound-dev gnutls-dev
 	gnurl-dev libmicrohttpd-dev openssl-dev libunistring-dev libidn2-dev
 	nss-dev sqlite-dev zlib-dev miniupnpc-dev gmp-dev gettext"
@@ -42,12 +40,11 @@ build() {
 		--mandir=/usr/share/man \
 		--localstatedir=/var \
 		--enable-logging=verbose
-	make
+	make -j 1
 }
 
 check() {
 	make DESTDIR="$pkgdir" check
-	exit 0
 }
 
 package() {
@@ -94,5 +91,5 @@ sha512sums="1c6ea2ac7280d2edb30df627b79e017d199e93cd3970ce49f3f049abfb1dddfed541
 a0f55413ed2c6edd6746a751d92ddac95ba70f20eefb07330817870d749456448f44bba95d245911a00f6078e0c2ac626004e3b764be5e5e049c00626c4c5ac0  gnunet-system.conf
 b21112ff16aee771332aa9c33f55b0c7f46fe0266053543241e3efbe25dba56482c0e11112a192eefe59f1c74d2af5d7071b6a4e1e875cfc7e9d55b5fe8a0a33  gnunet-user.conf
 96ab78bb48d5fb10f0b34336ad05e73b543c4362c73436ef20b3bb83dff214e997acf38a2ea493b1901bdc37c8877d83cdaebd73a0e50831e2f23413c8edda76  gnunet-system-services.initd
-f67252e18c5fd701338653efe4cc14caae9213c1955f690cddec9fd7ad31a22680e931fbe908a1c5a78dc05094e547b2279f9a488f2ed80cc169590ad5ffa064  gnunet-user-services.initd
-839a081aca19b863f378db980e6447ad30c6c0ee72fac6e11c65e57e86886d675ebc61069e17f696b6ca868e8ce259cabf80feb90b04b23f3da3c628f7beb915  gnunet.xsession"
+3dc88aaedc3886c0795bdb4c8e259125232ba10f2bc762216c341bb3240ef0855cba968799ba121304463a65e73ed0f62dec03759a2be478ec4ac086361b49ba  gnunet-user-services.initd
+4fe1ed80cbaa4c140805bde2629fdb32b97f3273281ae7277c8988b4e490605652cdb9975fc1178169426f2279597c55f6e6b75b52315a426d78a1fedbb08401  gnunet.xsession"

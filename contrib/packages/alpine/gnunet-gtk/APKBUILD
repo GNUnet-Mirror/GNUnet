@@ -6,8 +6,7 @@ pkgrel=0
 pkgdesc="Graphical user interface for GNUnet"
 url="https://gnunet.org"
 arch="all"
-license="GPL-3.0"
-depends="gnunet gtk+3.0 glade"
+license="GPL-3.0-only"
 makedepends="gnunet-dev gtk+3.0-dev glade-dev"
 subpackages="$pkgname-dev $pkgname-doc"
 source="https://mirrors.ocf.berkeley.edu/gnu/gnunet/gnunet-gtk-$pkgver.tar.gz"
@@ -28,7 +27,6 @@ build() {
 
 check() {
 	make DESTDIR="$pkgdir" check
-	exit 0
 }
 
 package() {
