@@ -714,7 +714,7 @@ AC_ARG_WITH(libpulse,
             AC_CHECK_HEADERS(pulse/simple.h,
                              AC_CHECK_LIB([pulse],
                                           [pa_stream_peek],
-                                          EXT_LIB_PATH="-L$with_pulse/lib $EXT_LIB_PATH"
+                                          EXT_LIB_PATH="-L$with_libpulse/lib $EXT_LIB_PATH"
                                           pulse=1))
         ])
     ],
@@ -763,15 +763,15 @@ AC_ARG_WITH(libopus,
     ],
     [AC_MSG_RESULT([--with-libopus not specified])
      CHECK_LIBHEADER(LIBOPUS,
-                            opus,
-                            opus_decode_float,
-                            opus/opus.h,
-                            AC_CHECK_DECL([OPUS_SET_GAIN],
-                                          [opus=1],
-                                          [],
-                                          [[
-                                          #include <opus/opus.h>
-                                          ]]))])
+                     opus,
+                     opus_decode_float,
+                     opus/opus.h,
+                     AC_CHECK_DECL([OPUS_SET_GAIN],
+                                   [opus=1],
+                                   [],
+                                   [[
+                                     #include <opus/opus.h>
+                                   ]]))])
 AM_CONDITIONAL(HAVE_OPUS, [test "$opus" = 1])
 AS_IF([test "x$opus" = x1],
       [AC_DEFINE([HAVE_OPUS],[1],[Have libopus library])
@@ -780,16 +780,38 @@ AS_IF([test "x$opus" = x1],
        libopus_msg="no"])
 
 # libogg
-AC_CHECK_LIB(ogg, ogg_stream_flush_fill,
-        [AC_CHECK_HEADERS([ogg/ogg.h],
-          AM_CONDITIONAL(HAVE_OGG, true)
-          ogg=1
-          AC_DEFINE(HAVE_OGG,1,[Have ogg]),
-          AM_CONDITIONAL(HAVE_OGG, false)
-          ogg=0
-          AC_DEFINE(HAVE_OGG,0,[lacking ogg]))],
-        AM_CONDITIONAL(HAVE_OGG, false)
-        ogg=0)
+AC_MSG_CHECKING(for libogg)
+AC_ARG_WITH(libogg,
+    [  --with-libogg=PREFIX (base of libogg installation)],
+    [AC_MSG_RESULT([$with_libogg])
+     AS_CASE([$with_libogg],
+        [no],[],
+        [yes],[
+            CHECK_LIBHEADER(LIBOGG,
+                            ogg,
+                            ogg_stream_flush_fill,
+                            ogg/ogg.h,
+                            ogg=1,)
+        ],[
+            LDFLAGS="-L$with_libogg/lib $LDFLAGS"
+            CPPFLAGS="-I$with_libogg/include $CPPFLAGS"
+            AC_CHECK_HEADERS(ogg/ogg.h,
+                             AC_CHECK_LIB([ogg],
+                                          [ogg_stream_flush_fill],
+                                          EXT_LIB_PATH="-L$with_libogg/lib $EXT_LIB_PATH"
+                                          ogg=1))
+        ])
+     ],
+     [AC_MSG_RESULT([--with-libogg not specified])
+      CHECK_LIBHEADER(LIBOGG,
+                      ogg,
+                      ogg_stream_flush_fill,
+                      ogg/ogg.h,
+                      ogg=1,)])
+AM_CONDITIONAL(HAVE_OGG, [test "$ogg" = 1])
+AS_IF([test x"$ogg" = x1],
+      [AC_DEFINE([HAVE_OGG],[1],[Have ogg])]
+      [AC_DEFINE([HAVE_OGG],[0],[Lacking ogg])])
 
 
 PKG_CHECK_MODULES([GLIB],
