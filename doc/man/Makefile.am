@@ -5,20 +5,18 @@ do_subst = $(SED) -e 's,[@]SYSCONFDIR[@],$(sysconfdir),g'
 gnunet.conf.5: gnunet.conf.5.in Makefile
 	$(do_subst) < $(srcdir)/gnunet.conf.5.in > gnunet.conf.5
 
-if TEXI2MDOC_GENERATION
-gnunet-c-tutorial.7: Makefile gnunet-tutorial.7
-	@echo generated texi2mdoc output || true
-
-gnunet-tutorial.7: Makefile
-	$(SH) $(srcdir)/texi2mdoc-generation.sh || true
-
-endif
-
 CLEANFILES = gnunet.conf.5 *.html
 
 if TEXI2MDOC_GENERATION
+gnunet-c-tutorial.7: Makefile
+	@texi2mdoc -I../tutorial:../tutorial/chapters ../tutorial/gnunet-tutorial.texi > gnunet-c-tutorial.7
+
+gnunet-documentation.7: Makefile
+	@texi2mdoc -I../handbook:../handbook/chapters ../handbook/gnunet.texi > gnunet-documentation.7
+
 CLEANFILES += gnunet-documentation.7 gnunet-c-tutorial.7
 endif
+
 
 html:
 	$(SH) $(srcdir)/produce_html.sh
@@ -77,5 +75,4 @@ endif
 
 EXTRA_DIST = ${man_MANS} \
  gnunet.conf.5.in \
- texi2mdoc-generation.sh \
  README
