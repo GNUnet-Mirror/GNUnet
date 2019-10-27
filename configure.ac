@@ -1344,9 +1344,11 @@ LIBS=$SAVE_LIBS
 LDFLAGS=$SAVE_LDFLAGS
 CPPFLAGS=$SAVE_CPPFLAGS
 
+# TODO: should this test for "or" not "and"?
+# TODO: Add postgres?
 AS_IF([test "$sqlite" = 0 -a "$mysql" = 0],
 [
- AC_MSG_ERROR([GNUnet requires SQLite or MySQL])
+ AC_MSG_ERROR([GNUnet requires SQLite or MySQL / MariaDB.])
 ])
 
 # libmicrohttpd
@@ -2013,7 +2015,9 @@ AS_IF([test x$gnutls != xtrue],
               gnutls_msg="yes (without DANE support)"],
              [gnutls_msg="yes (with DANE support)"])])
 # -- databases
-AS_IF([test $mysqlfail = true]
+# TODO: this always returns true, the check might
+# TODO: not be working as intended (for msqlfail).
+AS_IF([test x$mysqlfail = "true"]
       [AC_MSG_NOTICE([WARNING: optional MySQL not found (or too old)])])
 AS_IF([test "$mysql" = true],
       [features_msg="$features_msg mysql"
