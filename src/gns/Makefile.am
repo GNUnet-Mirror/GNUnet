@@ -15,7 +15,6 @@ EXTRA_DIST = \
   test_gns_lookup.conf \
   test_gns_proxy.conf \
   test_gns_simple_lookup.conf \
-  w32nsp.def \
   openssl.cnf \
   gnunet-gns-proxy-setup-ca.in \
   zonefiles/J7POEUT41A8PBFS7KVVDRF88GBOU4HK8PSU5QKVLVE3R9T91E99G.zkey \

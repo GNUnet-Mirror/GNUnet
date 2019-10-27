@@ -18,23 +18,22 @@ INITD_FILES = \
  services/systemd/gnunet.service
 
 PACKAGES_FILES = \
-    guix/guix-env-py2.scm \
-    guix/guix-env-gillmann.scm \
-    guix/notest-guix-env.scm \
-    nix/gnunet-dev.nix \
-    nix/default.nix \
-    alpine/gnunet-gtk/APKBUILD \
-    alpine/gnunet/APKBUILD \
-    alpine/gnunet/gnunet-system-services.initd \
-    alpine/gnunet/gnunet-system.conf \
-    alpine/gnunet/gnunet-user-services.initd \
-    alpine/gnunet/gnunet-user.conf \
-    alpine/gnunet/gnunet.post-deinstall \
-    alpine/gnunet/gnunet.post-install \
-    alpine/gnunet/gnunet.pre-deinstall \
-    alpine/gnunet/gnunet.pre-install \
-    alpine/gnunet/gnunet.xsession \
-    alpine/gnurl/APKBUILD
+    packages/guix/guix-env-py2.scm \
+    packages/guix/guix-env-gillmann.scm \
+    packages/guix/notest-guix-env.scm \
+    packages/nix/gnunet-dev.nix \
+    packages/nix/default.nix \
+    packages/alpine/gnunet-gtk/APKBUILD \
+    packages/alpine/gnunet/APKBUILD \
+    packages/alpine/gnunet/gnunet-system-services.initd \
+    packages/alpine/gnunet/gnunet-system.conf \
+    packages/alpine/gnunet/gnunet-user-services.initd \
+    packages/alpine/gnunet/gnunet-user.conf \
+    packages/alpine/gnunet/gnunet.post-install \
+    packages/alpine/gnunet/gnunet.pre-deinstall \
+    packages/alpine/gnunet/gnunet.pre-install \
+    packages/alpine/gnunet/gnunet.xsession \
+    packages/alpine/gnurl/APKBUILD
 
 EXTRA_DIST = \
  conf/colorit/colorit.conf \
