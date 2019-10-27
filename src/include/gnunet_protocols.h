@@ -3309,6 +3309,7 @@ extern "C" {
 /**
  * Next available: 1500
  */
+#define GNUNET_MESSAGE_TYPE_RECLAIM_REFERENCE_DELETE 1500
 
 
 /**

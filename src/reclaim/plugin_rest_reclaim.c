@@ -483,7 +483,8 @@ add_attestation_ref_cont (struct GNUNET_REST_RequestHandle *con_handle,
     return;
   }
   identity = handle->url + strlen (
-    GNUNET_REST_API_NS_RECLAIM_ATTESTATION_REFERENCE) + strlen ("reference/") + 1;
+    GNUNET_REST_API_NS_RECLAIM_ATTESTATION_REFERENCE) + strlen ("reference/")
+             + 1;
   for (ego_entry = handle->ego_head; NULL != ego_entry;
        ego_entry = ego_entry->next)
     if (0 == strcmp (identity, ego_entry->identifier))
@@ -734,6 +735,102 @@ list_attestation_cont (struct GNUNET_REST_RequestHandle *con_handle,
 }
 
 /**
+ * Deletes reference from an identity
+ *
+ * @param con_handle the connection handle
+ * @param url the url
+ * @param cls the RequestHandle
+ */
+static void
+delete_attestation_ref_cont (struct GNUNET_REST_RequestHandle *con_handle,
+                             const char *url,
+                             void *cls)
+{
+  struct RequestHandle *handle = cls;
+  const struct GNUNET_CRYPTO_EcdsaPrivateKey *priv_key;
+  struct GNUNET_RECLAIM_ATTESTATION_REFERENCE *attr;
+  struct EgoEntry *ego_entry;
+  char *identity;
+  char *identity_id_str;
+  char *id;
+  char term_data[handle->rest_handle->data_size + 1];
+  json_t *data_json;
+  json_error_t err;
+
+  struct GNUNET_JSON_Specification attrspec[] =
+  { GNUNET_RECLAIM_JSON_spec_claim_attest_ref (&attr),
+    GNUNET_JSON_spec_end () };
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Deleting attestation reference.\n");
+  if (strlen (GNUNET_REST_API_NS_RECLAIM_ATTESTATION_REFERENCE) + strlen (
+        "reference/") + 1 >= strlen (
+        handle->url))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "No identity given.\n");
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
+    return;
+  }
+  identity_id_str = strdup (handle->url + strlen (
+                              GNUNET_REST_API_NS_RECLAIM_ATTESTATION_REFERENCE)
+                            + strlen ("reference/")
+                            + 1);
+  identity = strtok (identity_id_str, "/");
+  id = strtok (NULL, "/");
+
+  if ((NULL == identity) || (NULL == id))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Malformed request.\n");
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
+    return;
+  }
+  for (ego_entry = handle->ego_head; NULL != ego_entry;
+       ego_entry = ego_entry->next)
+    if (0 == strcmp (identity, ego_entry->identifier))
+      break;
+  handle->resp_object = json_array ();
+  if (NULL == ego_entry)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Ego %s not found.\n", identity);
+    GNUNET_SCHEDULER_add_now (&return_response, handle);
+    return;
+  }
+  priv_key = GNUNET_IDENTITY_ego_get_private_key (ego_entry->ego);
+  if (0 >= handle->rest_handle->data_size)
+  {
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
+    return;
+  }
+
+  term_data[handle->rest_handle->data_size] = '\0';
+  GNUNET_memcpy (term_data,
+                 handle->rest_handle->data,
+                 handle->rest_handle->data_size);
+  data_json = json_loads (term_data, JSON_DECODE_ANY, &err);
+  GNUNET_assert (GNUNET_OK ==
+                 GNUNET_JSON_parse (data_json, attrspec, NULL, NULL));
+  json_decref (data_json);
+  if (NULL == attr)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Unable to parse attestation reference from %s\n",
+                term_data);
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
+    return;
+  }
+  GNUNET_STRINGS_string_to_data (id, strlen (id), &attr->id, sizeof(uint64_t));
+
+  handle->idp = GNUNET_RECLAIM_connect (cfg);
+  handle->idp_op = GNUNET_RECLAIM_attestation_reference_delete (handle->idp,
+                                                                priv_key,
+                                                                attr,
+                                                                &
+                                                                delete_finished_cb,
+                                                                handle);
+  GNUNET_JSON_parse_free (attrspec);
+}
+
+
+/**
  * Deletes attestation from an identity
  *
  * @param con_handle the connection handle
@@ -745,8 +842,21 @@ delete_attestation_cont (struct GNUNET_REST_RequestHandle *con_handle,
                          const char *url,
                          void *cls)
 {
-  const struct GNUNET_CRYPTO_EcdsaPrivateKey *priv_key;
   struct RequestHandle *handle = cls;
+  /* Check for substring "reference" */
+  if (strlen (GNUNET_REST_API_NS_RECLAIM_ATTESTATION_REFERENCE) < strlen (
+        handle->url))
+  {
+    if ( strncmp ("reference", (handle->url + strlen (
+                                  GNUNET_REST_API_NS_RECLAIM_ATTESTATION_REFERENCE)
+                                + 1), strlen (
+                    "reference")) == 0)
+    {
+      delete_attestation_ref_cont (con_handle,url,cls);
+      return;
+    }
+  }
+  const struct GNUNET_CRYPTO_EcdsaPrivateKey *priv_key;
   struct GNUNET_RECLAIM_ATTESTATION_Claim attr;
   struct EgoEntry *ego_entry;
   char *identity_id_str;
