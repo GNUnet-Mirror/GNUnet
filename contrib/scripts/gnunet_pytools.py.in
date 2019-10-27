@@ -1,0 +1,78 @@
+#!@PYTHON@
+# This file is part of GNUnet
+# (C) 2019 GNUnet e.V.
+#
+# Authors:
+# Author: ng0 <ng0@taler.net>
+#
+# Permission to use, copy, modify, and/or distribute this software for any
+# purpose with or without fee is hereby granted.
+#
+# THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+# WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+# MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE
+# LIABLE FOR ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES
+# OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS,
+# WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION,
+# ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF
+# THIS SOFTWARE.
+#
+# SPDX-License-Identifier: 0BSD
+
+import os
+from distutils.spawn import find_executable
+
+
+def existence(name):
+    return find_executable(name) is not None
+
+
+# GNUNET_TMP which we suggest to use in place of the absolute definition of
+# /tmp.  So instead of /tmp/foo you would write $GNUNET_TMP/foo.  The usage
+# of $GNUNET_TMP/foo, will result in $TMPDIR/gnunet/foo, or $TMP/gnunet/foo
+# and finally, if TMPDIR is undefined, /tmp/gnunet/foo.
+# 'TEMP' is not (yet) covered by GNUNET_TMP.
+# TODO: merge these two functions?
+def gnunet_tmp_path():
+    if os.environ.get('GNUNET_TMP'):
+        return os.environ.get('GNUNET_TMP')
+    elif os.environ.get('TMPDIR'):
+        return os.environ.get('TMPDIR') + '/gnunet'
+    elif os.environ.get('TMP'):
+        return os.environ.get('TMP') + '/gnunet'
+    elif os.environ.get('TEMP'):
+        return os.environ.get('TEMP') + '/gnunet'
+    else:
+        return '/tmp/gnunet'
+
+
+def tmp_path():
+    if os.environ.get('TMPDIR'):
+        return os.environ.get('TMPDIR')
+    elif os.environ.get('TMP'):
+        return os.environ.get('TMP')
+    elif os.environ.get('TEMP'):
+        return os.environ.get('TEMP')
+    else:
+        return '/tmp'
+
+
+def get_path(name):
+    dpath = {
+        'exec_prefix': '@exec_prefix@',
+        'libexecdir': '@libexecdir@',
+        'gnunet_prefix': os.environ.get('GNUNET_PREFIX', None),
+        'tmp': tmp_path(),
+        'gnunet_tmp': gnunet_tmp_path()
+    }
+    try:
+        return dpath[name]
+    except KeyError:
+        return []
+
+
+def suffix_executable(name):
+    if os.name == 'posix':
+        return string(name)
+    if os.name == 'nt':
+        return string(name + '.exe')

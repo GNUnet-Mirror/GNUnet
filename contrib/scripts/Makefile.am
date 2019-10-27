@@ -9,7 +9,8 @@ noinst_SCRIPTS = \
  removetrailingwhitespace.py \
  gnunet_pyexpect.py \
  gnunet_janitor.py \
- gnunet-chk.py
+ gnunet-chk.py \
+ gnunet_pytools.py
 
 bin_SCRIPTS = \
  gnunet-bugreport
@@ -20,6 +21,7 @@ EXTRA_DIST = \
  gnunet_pyexpect.py.in \
  gnunet_janitor.py.in \
  gnunet-chk.py.in \
+ gnunet_pytools.py.in \
  $(SCRIPTS) \
  removetrailingwhitespace.py.in \
  pydiffer.py.in
