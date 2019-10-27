@@ -18,9 +18,7 @@ INITD_FILES = \
  services/systemd/gnunet.service
 
 PACKAGES_FILES = \
-    guix/guix-env-py2.scm \
-    guix/guix-env-gillmann.scm \
-    guix/notest-guix-env.scm \
+    guix/gnu/packages/gnunet.scm \
     nix/gnunet-dev.nix \
     nix/default.nix \
     alpine/gnunet-gtk/APKBUILD \
