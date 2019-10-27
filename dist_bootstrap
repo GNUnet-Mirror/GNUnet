@@ -1,0 +1,36 @@
+#!/bin/sh
+# This file is in the public domain.
+# SPDX-License-Identifier: 0BSD
+
+dir=$(dirname "$(readlink -f -- "$0")")
+. $dir/bootstrap
+
+if existence texi2mdoc; then
+    echo "texi2mdoc: exists, pass --enable-texi2mdoc-generation to configure"
+else
+    dir=$(dirname "$(readlink -f -- "$0")")
+    mkdir -p $dir/contrib/vendored
+    cd contrib/vendored
+    if existence ftp; then
+        ftp https://mandoc.bsd.lv/texi2mdoc/snapshots/texi2mdoc-0.1.2.tgz
+    elif existence curl; then
+        curl --output texi2mdoc-0.1.2.tgz https://mandoc.bsd.lv/texi2mdoc/snapshots/texi2mdoc-0.1.2.tgz
+    elif existence wget; then
+        wget https://mandoc.bsd.lv/texi2mdoc/snapshots/texi2mdoc-0.1.2.tgz
+    elif existence fetch; then
+        fetch https://mandoc.bsd.lv/texi2mdoc/snapshots/texi2mdoc-0.1.2.tgz
+    else
+        echo "skipping texi2mdoc build, no ftp or curl or wget or fetch found"
+    fi
+    if test -e texi2mdoc-0.1.2.tgz; then
+        tar xzf texi2mdoc-0.1.2.tgz
+        cd texi2mdoc-0.1.2
+        dir=$(dirname "$(readlink -f -- "$0")")
+        #make PREFIX=$dir/../../../contrib/vendored/texi2mdoc
+        #make install PREFIX=$dir/../../../contrib/vendored/texi2mdoc
+        make
+        echo "please prepend or append $dir/contrib/vendored/texi2mdoc/ to your PATH before running configure"
+    else
+        echo "no texi2mdoc, skipping"
+    fi
+fi
