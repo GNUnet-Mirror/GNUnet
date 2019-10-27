@@ -24,7 +24,7 @@ curl_get () {
     #$2 is grep
     cache="$(gnurl -v "$1" 2>&1 | grep "$2")"
     #echo "$cache"
-    if [ "" == "$cache" ]
+    if [ "" = "$cache" ]
     then
         gnunet-identity -D "$TEST_TLD" -c test_gns_lookup.conf > /dev/null 2>&1
         gnunet-arm -e -c test_gns_lookup.conf
