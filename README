@@ -157,9 +157,10 @@ Recommended autotools for compiling the Git version are:
      '--disable-documentation' to the configure script to change this.
 
 [*2] If you still prefer to have documentation, you can pass
-     '--with-section7' to build mdoc documentation (experimental
-     stages in gnunet). If this proves to be reliable, we will
-     include the mdoc output in the release tarballs.
+     '--enable-texi2mdoc-generation' to build the mdocml ("mandoc")
+     documentation (experimental stages in gnunet).
+     If this proves to be reliable, we will
+     include the mdocml output in the release tarballs.
      Contrary to the name, texi2mdoc does not require texinfo,
      It is a standalone ISO C utility.
 
