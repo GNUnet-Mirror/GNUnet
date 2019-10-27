@@ -1,6 +1,10 @@
 Fri Oct 25 00:00:00 UTC 2019
   Dropped glpk dependency(-check). -ng0
 
+Wed Oct 23 20:55:12 2019 +0200
+  Make REST service start per user in a multiuser setup.
+  -schanzen
+
 Wed Oct 23 00:00:00 UTC 2019
   Remove setuid helpers. They never worked as intended. The
   fixed version is not portable and the defacto good way to
