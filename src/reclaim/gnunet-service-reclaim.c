@@ -1296,7 +1296,7 @@ ref_add_cb (void *cls,
   }
   rd_new[rd_count].data_size = buf_size;
   rd_new[rd_count].data = buf;
-  rd_new[rd_count].record_type = GNUNET_GNSRECORD_TYPE_RECLAIM_ATTEST_REF;
+  rd_new[rd_count].record_type = GNUNET_GNSRECORD_TYPE_RECLAIM_REFERENCE;
   rd_new[rd_count].flags = GNUNET_GNSRECORD_RF_RELATIVE_EXPIRATION;
   rd_new[rd_count].expiration_time = ash->exp.rel_value_us;
   ash->ns_qe = GNUNET_NAMESTORE_records_store (nsh,
@@ -1450,19 +1450,27 @@ ticket_iter (void *cls,
   struct AttributeDeleteHandle *adh = cls;
   struct TicketRecordsEntry *le;
   int has_changed = GNUNET_NO;
-
   for (int i = 0; i < rd_count; i++)
   {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Next Zone Iteration %u and record type is %u\n", rd_count,
+                rd[i].record_type);
     if ((GNUNET_GNSRECORD_TYPE_RECLAIM_ATTR_REF != rd[i].record_type) &&
-        (GNUNET_GNSRECORD_TYPE_RECLAIM_ATTEST_ATTR != rd[i].record_type) &&
+        (GNUNET_GNSRECORD_TYPE_RECLAIM_REFERENCE_REF != rd[i].record_type) &&
         (GNUNET_GNSRECORD_TYPE_RECLAIM_ATTEST_REF != rd[i].record_type))
       continue;
-    if (0 != memcmp (rd[i].data, &adh->claim->id, sizeof(uint64_t)))
-      continue;
-    if (0 != memcmp (rd[i].data, (&adh->attest->id), sizeof(uint64_t)))
-      continue;
-    if (0 != memcmp (rd[i].data, &adh->reference->id, sizeof(uint64_t)))
-      continue;
+    if (&adh->claim != NULL)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Claim is existend: %u \n", adh->claim->id);
+      if (0 != memcmp (rd[i].data, &adh->claim->id, sizeof(uint64_t)))
+        continue;
+    }
+    if (&adh->attest != NULL)
+      if (0 != memcmp (rd[i].data, &adh->attest->id, sizeof(uint64_t)))
+        continue;
+    if (&adh->reference != NULL)
+      if (0 != memcmp (rd[i].data, &adh->reference->id, sizeof(uint64_t)))
+        continue;
 
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Attribute or Attestation/Reference to delete found (%s)\n",
@@ -1482,6 +1490,7 @@ ticket_iter (void *cls,
                                  adh->tickets_to_update_tail,
                                  le);
   }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Next Zone Iteration \n");
   GNUNET_NAMESTORE_zone_iterator_next (adh->ns_it, 1);
 }
 
@@ -1558,7 +1567,7 @@ update_tickets (void *cls)
     if ((GNUNET_GNSRECORD_TYPE_RECLAIM_ATTR_REF == rd[i].record_type)
         && (0 == memcmp (rd[i].data, &adh->claim->id, sizeof(uint64_t))))
       continue;
-    if ((GNUNET_GNSRECORD_TYPE_RECLAIM_ATTEST_ATTR == rd[i].record_type)
+    if ((GNUNET_GNSRECORD_TYPE_RECLAIM_REFERENCE_REF == rd[i].record_type)
         && (0 == memcmp (rd[i].data, &adh->attest->id, sizeof(uint64_t))))
       continue;
     if ((GNUNET_GNSRECORD_TYPE_RECLAIM_ATTEST_REF == rd[i].record_type)
@@ -1706,6 +1715,8 @@ handle_attribute_delete_message (void *cls,
   adh = GNUNET_new (struct AttributeDeleteHandle);
   adh->claim = GNUNET_RECLAIM_ATTRIBUTE_deserialize ((char *) &dam[1],
                                                      data_len);
+  adh->reference = NULL;
+  adh->attest = NULL;
 
   adh->r_id = ntohl (dam->id);
   adh->identity = dam->identity;
@@ -1792,6 +1803,8 @@ handle_attestation_delete_message (void *cls,
   adh = GNUNET_new (struct AttributeDeleteHandle);
   adh->attest = GNUNET_RECLAIM_ATTESTATION_deserialize ((char *) &dam[1],
                                                         data_len);
+  adh->reference = NULL;
+  adh->claim = NULL;
 
   adh->r_id = ntohl (dam->id);
   adh->identity = dam->identity;
@@ -1947,6 +1960,9 @@ handle_reference_delete_message (void *cls,
   adh = GNUNET_new (struct AttributeDeleteHandle);
   adh->reference = GNUNET_RECLAIM_ATTESTATION_REF_deserialize ((char *) &dam[1],
                                                                data_len);
+  adh->attest = NULL;
+  adh->claim = NULL;
+
   adh->r_id = ntohl (dam->id);
   adh->identity = dam->identity;
   adh->label
