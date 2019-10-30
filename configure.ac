@@ -639,6 +639,8 @@ AS_IF([test "$bluetooth" = 1],
       [AC_DEFINE([HAVE_LIBBLUETOOTH],[0],[Lacking bluetooth library])])
 
 # check for zbar library
+# TODO: Add checks for: -lSM, -lICE, -lX11, -lXv and -ljpeg
+# TODO: if zbar exists.
 zbar=0
 AC_MSG_CHECKING(for libzbar)
 AC_ARG_WITH(zbar,
