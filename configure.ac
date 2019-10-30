@@ -426,6 +426,17 @@ AS_IF([test "x$texi2mdoc_generation" = "xyes"],
                  [0],
                  [Not building section 7 mdoc output])])
 
+# test for texi2mdoc
+# TODO: refactor this and the check above.
+AC_MSG_CHECKING(for texi2mdoc)
+AC_CHECK_PROGS(TEXI2MDOC_BINARY, [texi2mdoc], false)
+AM_CONDITIONAL(HAVE_TEXI2MDOC, test x$TEXI2MDOC_BINARY != xfalse)
+
+# test for mandoc
+AC_MSG_CHECKING(for mandoc)
+AC_CHECK_PROGS(MANDOC_BINARY, [mandoc], false)
+AM_CONDITIONAL(HAVE_MANDOC, test x$MANDOC_BINARY != xfalse)
+
 # should the build process be building only the documentation?
 AC_MSG_CHECKING(whether to build only documentation)
 AC_ARG_ENABLE([documentation-only],
@@ -1923,6 +1934,10 @@ AS_IF([test "x$enable_java_ports" = "xyes"],
 #### but for now let's keep it here.
 ####
 
+# TODO: We use "WARNING" too often, we need to clarify what
+# TODO: constitutes a WARNING, an ERROR, and a NOTICE, and
+# TODO: other message levels.
+
 # -- print message regarding enabled experimental features
 AS_IF([test "x$enable_experimental" = "xyes"],
       [experimental_msg="experimental features enabled"])
@@ -1936,10 +1951,24 @@ AS_IF([test "x$working_libidn2" = x1],
 # -- libidn 1
 AS_IF([test "x$working_libidn1" = x1],
       [libidn1_msg="libidn1"])
-# -- texi2mdoc
+# -- texi2mdoc-generation
 AS_IF([test "x$texi2mdoc_generation" = x1],
-      [mdoc_msg="yes"],
-      [mdoc_msg="no"])
+      [mdocml_msg="yes"],
+      [mdocml_msg="no"])
+AS_IF([test "$VAR_UPNPC_BINARY" = "false"],
+      [AC_MSG_NOTICE([WARNING: optional upnpc binary not found])
+       upnpc_msg="no (optional)"],
+      [upnpc_msg="yes"])
+# -- texi2mdoc
+AS_IF([test "x$TEXI2MDOC_BINARY" = "false"],
+      [AC_MSG_NOTICE([WARNING: optional texi2mdoc binary not found])
+       texi2mdoc_msg="no (optional)"],
+      [texi2mdoc_msg="yes"])
+# -- mandoc
+AS_IF([test "x$MANDOC_BINARY" = "false"],
+      [AC_MSG_NOTICE([WARNING: optional mandoc binary not found])
+       mandoc_msg="no"],
+      [mandoc_msg="yes"])
 # -- texinfo
 AS_IF([test "x$makeinfo" != "x1"],
       [texinfo_msg="no"],
@@ -1947,15 +1976,15 @@ AS_IF([test "x$makeinfo" != "x1"],
 # -- conversation
 AS_IF([test "x$conversation_backend" = "xnone"],
       [AS_IF([test "x$pulse" != "x1"],
-             [AC_MSG_NOTICE([WARNING: libpulse(audio) not found, conversation will not be built.])
+             [AC_MSG_NOTICE([WARNING: libpulse(audio) not found (required to build conversation against it).])
               libpulse_msg="no"],
              [libpulse_msg="yes"])
        AS_IF([test "x$opus" != "x1"],
-             [AC_MSG_NOTICE([WARNING: libopus not found, conversation will not be built.])
+             [AC_MSG_NOTICE([WARNING: libopus not found (conversation)])
               libopus_msg="no"],
              [libopus_msg="yes"])
        AS_IF([test "x$gst" != "x1"],
-             [AC_MSG_NOTICE([WARNING: GStreamer not found, conversation will not be built.])
+             [AC_MSG_NOTICE([WARNING: GStreamer not found (required to build conversation against it).])
               gstreamer_msg="no"],
              [gstreamer_msg="yes"])],
       [features_msg="$features_msg conversation"])
@@ -1971,7 +2000,7 @@ AS_IF([test "x$jansson" = "x0"],
       [jansson_msg="yes"])
 # -- libextractor
 AS_IF([test "$extractor" != 1],
-      [AC_MSG_WARN([ERROR: libextractor not found, but various file-sharing functions require it])],
+      [AC_MSG_WARN([WARNING: libextractor not found, but various file-sharing functions require it])],
       [libextractor_msg="yes"])
 # -- libzbar
 AS_IF([test "x$zbar" = "x1"],
@@ -2043,7 +2072,7 @@ AC_SUBST(features_msg)
 
 
 # The summary
-# TODO: reduce the length of the last message block ("the message")
+# TODO: reduce the length of the last message block, following "IMPORTANT".
 
 AC_MSG_NOTICE([
 GNUnet Configuration
@@ -2081,9 +2110,11 @@ libopus:                        ${libopus_msg}
 gstreamer:                      ${gstreamer_msg}
 libpulse:                       ${libpulse_msg}
 libextractor:                   ${libextractor_msg}
+texi2mdoc:                      ${texi2mdoc_msg}
+mandoc:                         ${mandoc_msg}
 
 texinfo manual:                 ${texinfo_msg}
-transpiled mdoc manual:         ${mdoc_msg}
+transpiled mdocml manual:       ${mdocml_msg}
 
 features:                       ${features_msg}
 experimental:                   ${experimental_msg}

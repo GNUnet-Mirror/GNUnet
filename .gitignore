@@ -65,6 +65,8 @@ doc/tutorial/gversion.texi
 uncrustify.cfg
 .style.yapf
 
+diffoscope_reports/
+
 # this exists outside of the main repository
 cmake/
 build

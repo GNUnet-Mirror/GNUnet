@@ -5,7 +5,7 @@ do_subst = $(SED) -e 's,[@]SYSCONFDIR[@],$(sysconfdir),g'
 gnunet.conf.5: gnunet.conf.5.in Makefile
 	$(do_subst) < $(srcdir)/gnunet.conf.5.in > gnunet.conf.5
 
-CLEANFILES = gnunet.conf.5 *.html
+CLEANFILES = gnunet.conf.5
 
 if TEXI2MDOC_GENERATION
 gnunet-c-tutorial.7: Makefile
@@ -17,9 +17,25 @@ gnunet-documentation.7: Makefile
 CLEANFILES += gnunet-documentation.7 gnunet-c-tutorial.7
 endif
 
-
-html:
+if HAVE_MANDOC
+# After I went through the alternatives with the focus
+# on staying as portable as possible to other make
+# implementations, I have to face the fact after hours
+# that this is the most portable way to achieve what
+# I want and that the alternatives are depressing and
+# nonfunctional.
+.PHONY: man-html
+man-html:
 	$(SH) $(srcdir)/produce_html.sh
+
+htmldocdir = $(datadir)/doc/gnunet/manhtml/
+.PHONY: man-html-install
+man-html-install:
+	@mkdir -p $(htmldocdir)
+	@mv $(srcdir)/*.html $(htmldocdir)
+
+CLEANFILES += *.html
+endif
 
 man_MANS = \
   gnunet.conf.5 \
