@@ -54,6 +54,12 @@ gnunet_tutorial_examples =					\
 info_TEXINFOS = \
 	gnunet-tutorial.texi
 
+gnunet_TEXINFOS = \
+	fdl-1.3.texi 						\
+	gpl-3.0.texi						\
+	agpl-3.0.texi						\
+	version.texi
+
 EXTRA_DIST = \
 	$(gnunet_tutorial_examples)	\
 	htmlxref.cnf \
@@ -66,7 +72,10 @@ EXTRA_DIST = \
 
 DISTCLEANFILES = \
 	gnunet-tutorial.cps \
-	fdl-1.3.cps
+	fdl-1.3.cps \
+	agpl-3.0.cps \
+	gpl-3.0.cps
+
 
 CLEANFILES= \
     stamp-vti \
