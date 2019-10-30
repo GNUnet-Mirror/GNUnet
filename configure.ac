@@ -1952,13 +1952,9 @@ AS_IF([test "x$working_libidn2" = x1],
 AS_IF([test "x$working_libidn1" = x1],
       [libidn1_msg="libidn1"])
 # -- texi2mdoc-generation
-AS_IF([test "x$texi2mdoc_generation" = x1],
+AS_IF([test "x$texi2mdoc_generation" = "xyes"],
       [mdocml_msg="yes"],
       [mdocml_msg="no"])
-AS_IF([test "$VAR_UPNPC_BINARY" = "false"],
-      [AC_MSG_NOTICE([WARNING: optional upnpc binary not found])
-       upnpc_msg="no (optional)"],
-      [upnpc_msg="yes"])
 # -- texi2mdoc
 AS_IF([test "x$TEXI2MDOC_BINARY" = "false"],
       [AC_MSG_NOTICE([WARNING: optional texi2mdoc binary not found])
