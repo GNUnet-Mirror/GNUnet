@@ -11,6 +11,7 @@ endif
 
 libgnunetpq_la_SOURCES = \
   pq.c \
+  pq.h \
   pq_connect.c \
   pq_eval.c \
   pq_exec.c \
