@@ -33,6 +33,8 @@ htmldocdir = $(datadir)/doc/gnunet/manhtml/
 man-html-install:
 	@mkdir -p $(htmldocdir)
 	@mv $(srcdir)/*.html $(htmldocdir)
+man-html-uninstall:
+	@rm $(htmldocdir)/*.html
 
 CLEANFILES += *.html
 endif

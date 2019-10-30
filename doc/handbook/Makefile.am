@@ -3,12 +3,6 @@ docdir = $(datadir)/doc/gnunet/
 
 infoimagedir = $(infodir)/images
 
-#DOT_FILES = images/$(wildcard *.dot)
-
-#DOT_VECTOR_GRAPHICS =								\
-#	$(DOT_FILES:%.dot=%.eps)						\
-#	$(DOT_FILES:%.dot=%.pdf)
-
 if ACTIVATE_TEXINFO4
 # NOTE: While GNU makeinfo 6.5 supports --css-ref=URL,
 # makeinfo 4.8 (in NetBSD 8.0, macOS, and maybe other
@@ -65,36 +59,6 @@ dist_infoimage_DATA =                           		\
 	images/gns.dot	\
 	images/gns.jpg
 
-#	images/$(wildcard *.png)						\
-#	images/$(wildcard *.svg)
-#	$(DOT_FILES:%.dot=%.png)
-
-#DOT_OPTIONS =									\
-#	-Gratio=.9 -Gnodesep=.005 -Granksep=.00005				\
-#	-Nfontsite=9 -Nheight=.1 -Nwidth=.1
-
-# .dot.png:
-# 	$(AM_V_DOT)$(DOT) -Tpng $(DOT_OPTIONS) < "$<" > "$(srcdir)/$@.tmp"; \
-# 	mv "$(srcdir)/$@.tmp" "$(srcdir)/$@"
-
-# .dot.pdf:
-# 	$(AM_V_DOT)$(DOT) -Tpdf $(DOT_OPTIONS) < "$<" > "$(srcdir)/$@.tmp"; \
-# 	mv "$(srcdir)/$@.tmp" "$(srcdir)/$@"
-
-# .dot.eps:
-# 	$(AM_V_DOT)$(DOT) -Teps $(DOT_OPTIONS) < "$<" > "$(srcdir)/$@.tmp"; \
-# 	mv "$(srcdir)/$@.tmp" "$(srcdir)/$@"
-
-# .png.eps:
-# 	$(AM_V_GEN)convert "$<" "$@-tmp.eps"; \
-# 	mv "$@-tmp.eps" "$@"
-
-# pdf-local: $(DOT_FILES=%.dot=$(top_srcdir)/%.pdf)
-# info-local: $(DOT_FILES=%.dot=$(top_srcdir)/%.png)
-# ps-local: $(DOT_FILES=%.dot=$(top_srcdir)/%.eps)                \
-# 	$(top_srcdir)/%D%/images/coreutils-size-map.eps
-# dvi-local: ps-local
-
 
 info_TEXINFOS = 						\
 	gnunet.texi
@@ -125,9 +89,6 @@ EXTRA_DIST =							\
         style.css
 
 
-#	$(DOT_FILES)								\
-#	$(DOT_VECTOR_GRAPHICS)
-
 DISTCLEANFILES = 						\
 	gnunet.cps						\
 	chapters/developer.cps					\
@@ -140,6 +101,19 @@ DISTCLEANFILES = 						\
 	fdl-1.3.cps						\
 	agpl-3.0.cps						\
 	gpl-3.0.cps
+
+CLEANFILES= \
+    stamp-vti \
+    version.texi \
+    $(DISTCLEANFILES)
+
+clean-local: clean-local-check
+.PHONY: clean-local-check
+clean-local-check:
+	rm -fr manual
+	rm -fr gnunet.html
+	rm -fr gnunet.t2p
+	rm -fr gnunet-c-tutorial.t2p
 
 # if HAVE_EXTENDED_DOCUMENTATION_BUILDING
 daemon_lego_block.png: images/daemon_lego_block.svg
@@ -154,66 +128,14 @@ lego_stack.png: images/lego_stack.svg
 	convert images/lego_stack.svg images/lego_stack.png &&
 	pngcrush images/lego_stack.png images/lego_stack.png
 
-# XXX: is this sed invocation portable enough? otherwise try tr(1).
-version.texi/replacement: version.texi/replacement/revert
-	@sed "s/GPACKAGE_VERSION/$(PACKAGE_VERSION)/g" gversion.texi > gversion.texi.tmp
-	@mv gversion.texi.tmp gversion.texi
+# doc-all-install:
+# 	@mkdir -p $(DESTDIR)/$(docdir)
+# 	@mkdir -p $(DESTDIR)/$(infoimagedir)
+# 	@mkdir -p $(DESTDIR)/$(infodir)
+# 	@install -m 0755 gnunet.pdf $(DESTDIR)/$(docdir)
+# 	@install -m 0755 gnunet.info $(DESTDIR)/$(infodir)
+# 	@install gnunet.html $(DESTDIR)/$(docdir)
 
-version.texi/replacement/revert:
-	@echo "@set VERSION GPACKAGE_VERSION" > gversion.texi
-	@echo "@set EDITION GPACKAGE_VERSION" >> gversion.texi
-
-
-# FIXME: rm *.html and *.pdf
-#doc-clean:
-#	@rm *.aux *.log *.toc *.cp *.cps
-
-all: version.texi/replacement
-
-doc-all-install:
-	@mkdir -p $(DESTDIR)/$(docdir)
-	@mkdir -p $(DESTDIR)/$(infoimagedir)
-	@mkdir -p $(DESTDIR)/$(infodir)
-	@install -m 0755 gnunet.pdf $(DESTDIR)/$(docdir)
-	@install -m 0755 gnunet.info $(DESTDIR)/$(infodir)
-	@install gnunet.html $(DESTDIR)/$(docdir)
-
-doc-gendoc-install:
-	@mkdir -p $(DESTDIR)/$(docdir)
-	@cp -r manual $(DESTDIR)/$(docdir)
-
-#	@cp -r images $(DESTDIR)/$(infoimagedir)
-
-dev-build: version.texi/replacement
-	@makeinfo --pdf gnunet.texi
-	@makeinfo --html gnunet.texi
-	@makeinfo --no-split gnunet.texi
-
-# TODO: Add more to clean.
-clean: version.texi/replacement/revert
-	@rm -f gnunet.pdf
-	@rm -rf gnunet.html
-	@rm -f gnunet.info
-	@rm -f gnunet.info-1
-	@rm -f gnunet.info-2
-	@rm -f gnunet.info-3
-	@rm -fr gnunet.t2p
-	@rm -fr gnunet-c-tutorial.t2p
-	@rm -fr manual
-
-# CLEANFILES =						\
-# 	gnunet.log					\
-# 	gnunet-c-tutorial.log				\
-# 	$(wildcard *.aux)				\
-# 	$(wildcard *.toc)				\
-# 	$(wildcard *.cp)				\
-# 	$(wildcard *.cps)
-
-#.PHONY: version.texi
-# if HAVE_EXTENDED_DOCUMENTATION_BUILDING_PDF
-
-# if HAVE_EXTENDED_DOCUMENTATION_BUILDING_HTML
-
-# endif
-# endif
-# endif
+# doc-gendoc-install:
+# 	@mkdir -p $(DESTDIR)/$(docdir)
+# 	@cp -r manual $(DESTDIR)/$(docdir)
