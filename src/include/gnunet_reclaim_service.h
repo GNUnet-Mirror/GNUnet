@@ -118,7 +118,8 @@ typedef void (*GNUNET_RECLAIM_ContinuationWithStatus) (void *cls,
 typedef void (*GNUNET_RECLAIM_AttributeResult) (
   void *cls, const struct GNUNET_CRYPTO_EcdsaPublicKey *identity,
   const struct GNUNET_RECLAIM_ATTRIBUTE_Claim *attr,
-  const struct GNUNET_RECLAIM_ATTESTATION_Claim *attest);
+  const struct GNUNET_RECLAIM_ATTESTATION_Claim *attest,
+  const struct GNUNET_RECLAIM_ATTESTATION_REFERENCE *reference);
 
 
 /**

@@ -353,7 +353,7 @@ GNUNET_RECLAIM_ATTRIBUTE_claim_new (const char *attr_name,
                         + strlen (attr_name_tmp) + 1 + data_size);
   attr->type = type;
   attr->data_size = data_size;
-  attr->version = 0;
+  attr->flag = 0;
   write_ptr = (char *) &attr[1];
   GNUNET_memcpy (write_ptr, attr_name_tmp, strlen (attr_name_tmp) + 1);
   attr->name = write_ptr;
@@ -569,8 +569,8 @@ GNUNET_RECLAIM_ATTRIBUTE_list_dup (
                                           le->claim->type,
                                           le->claim->data,
                                           le->claim->data_size);
-    result_le->claim->version = le->claim->version;
     result_le->claim->id = le->claim->id;
+    result_le->claim->flag = le->claim->flag;
     GNUNET_CONTAINER_DLL_insert (result->list_head,
                                  result->list_tail,
                                  result_le);
@@ -635,7 +635,7 @@ GNUNET_RECLAIM_ATTRIBUTE_serialize (
 
   attr_ser = (struct Attribute *) result;
   attr_ser->attribute_type = htons (attr->type);
-  attr_ser->attribute_version = htonl (attr->version);
+  attr_ser->attribute_version = htonl (attr->flag);
   attr_ser->attribute_id = GNUNET_htonll (attr->id);
   name_len = strlen (attr->name);
   attr_ser->name_len = htons (name_len);
@@ -685,7 +685,7 @@ GNUNET_RECLAIM_ATTRIBUTE_deserialize (const char *data, size_t data_size)
   attr = GNUNET_malloc (sizeof(struct GNUNET_RECLAIM_ATTRIBUTE_Claim)
                         + data_len + name_len + 1);
   attr->type = ntohs (attr_ser->attribute_type);
-  attr->version = ntohl (attr_ser->attribute_version);
+  attr->flag = ntohl (attr_ser->attribute_version);
   attr->id = GNUNET_ntohll (attr_ser->attribute_id);
   attr->data_size = data_len;
 

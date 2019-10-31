@@ -979,7 +979,8 @@ static void
 oidc_attr_collect (void *cls,
                    const struct GNUNET_CRYPTO_EcdsaPublicKey *identity,
                    const struct GNUNET_RECLAIM_ATTRIBUTE_Claim *attr,
-                   const struct GNUNET_RECLAIM_ATTESTATION_Claim *attest)
+                   const struct GNUNET_RECLAIM_ATTESTATION_Claim *attest,
+                   const struct GNUNET_RECLAIM_ATTESTATION_REFERENCE *reference)
 {
   struct RequestHandle *handle = cls;
   struct GNUNET_RECLAIM_ATTRIBUTE_ClaimListEntry *le;
@@ -1015,7 +1016,7 @@ oidc_attr_collect (void *cls,
                                                   attr->data,
                                                   attr->data_size);
   le->claim->id = attr->id;
-  le->claim->version = attr->version;
+  le->claim->flag = attr->flag;
   GNUNET_CONTAINER_DLL_insert (handle->attr_list->list_head,
                                handle->attr_list->list_tail,
                                le);
@@ -1864,7 +1865,8 @@ static void
 consume_ticket (void *cls,
                 const struct GNUNET_CRYPTO_EcdsaPublicKey *identity,
                 const struct GNUNET_RECLAIM_ATTRIBUTE_Claim *attr,
-                const struct GNUNET_RECLAIM_ATTESTATION_Claim *attest)
+                const struct GNUNET_RECLAIM_ATTESTATION_Claim *attest,
+                const struct GNUNET_RECLAIM_ATTESTATION_REFERENCE *reference)
 {
   struct RequestHandle *handle = cls;
   char *tmp_value;

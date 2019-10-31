@@ -3311,6 +3311,8 @@ extern "C" {
  */
 #define GNUNET_MESSAGE_TYPE_RECLAIM_REFERENCE_DELETE 1500
 
+#define GNUNET_MESSAGE_TYPE_RECLAIM_REFERENCE_RESULT 1501
+
 
 /**
  * Type used to match 'all' message types.

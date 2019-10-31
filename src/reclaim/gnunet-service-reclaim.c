@@ -1452,26 +1452,19 @@ ticket_iter (void *cls,
   int has_changed = GNUNET_NO;
   for (int i = 0; i < rd_count; i++)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Next Zone Iteration %u and record type is %u\n", rd_count,
-                rd[i].record_type);
     if ((GNUNET_GNSRECORD_TYPE_RECLAIM_ATTR_REF != rd[i].record_type) &&
         (GNUNET_GNSRECORD_TYPE_RECLAIM_REFERENCE_REF != rd[i].record_type) &&
         (GNUNET_GNSRECORD_TYPE_RECLAIM_ATTEST_REF != rd[i].record_type))
       continue;
     if (&adh->claim != NULL)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Claim is existend: %u \n", adh->claim->id);
       if (0 != memcmp (rd[i].data, &adh->claim->id, sizeof(uint64_t)))
         continue;
-    }
     if (&adh->attest != NULL)
       if (0 != memcmp (rd[i].data, &adh->attest->id, sizeof(uint64_t)))
         continue;
     if (&adh->reference != NULL)
       if (0 != memcmp (rd[i].data, &adh->reference->id, sizeof(uint64_t)))
         continue;
-
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Attribute or Attestation/Reference to delete found (%s)\n",
                 adh->label);
@@ -1490,7 +1483,6 @@ ticket_iter (void *cls,
                                  adh->tickets_to_update_tail,
                                  le);
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Next Zone Iteration \n");
   GNUNET_NAMESTORE_zone_iterator_next (adh->ns_it, 1);
 }
 
@@ -2027,7 +2019,7 @@ attr_iter_error (void *cls)
 
 
 /**
- * Got record. Return if it is an attribute or attestation.
+ * Got record. Return if it is an attribute or attestation/reference.
  *
  * @param cls our attribute iterator
  * @param zone zone we are iterating
@@ -2047,48 +2039,83 @@ attr_iter_cb (void *cls,
   struct GNUNET_MQ_Envelope *env;
   char *data_tmp;
 
-  if (rd_count != 1)
+  if (rd_count == 0)
   {
     GNUNET_NAMESTORE_zone_iterator_next (ai->ns_it, 1);
     return;
   }
-
-  if ((GNUNET_GNSRECORD_TYPE_RECLAIM_ATTR != rd->record_type) &&
-      (GNUNET_GNSRECORD_TYPE_RECLAIM_ATTEST_ATTR != rd->record_type) )
+  if (rd_count > 1)
   {
-    GNUNET_NAMESTORE_zone_iterator_next (ai->ns_it, 1);
-    return;
+    if (GNUNET_GNSRECORD_TYPE_RECLAIM_ATTEST_ATTR != rd[0].record_type)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  "Non-Attestation record with multiple entries found\n");
+      GNUNET_NAMESTORE_zone_iterator_next (ai->ns_it, 1);
+      return;
+    }
   }
 
-  if (GNUNET_GNSRECORD_TYPE_RECLAIM_ATTEST_ATTR == rd->record_type )
+  for (int i = 0; i<rd_count; i++)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Found attestation under: %s\n",
-                label);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Sending ATTESTATION_RESULT message\n");
-    env = GNUNET_MQ_msg_extra (arm,
-                               rd->data_size,
-                               GNUNET_MESSAGE_TYPE_RECLAIM_ATTESTATION_RESULT);
-    arm->id = htonl (ai->request_id);
-    arm->attr_len = htons (rd->data_size);
-    GNUNET_CRYPTO_ecdsa_key_get_public (zone, &arm->identity);
-    data_tmp = (char *) &arm[1];
-    GNUNET_memcpy (data_tmp, rd->data, rd->data_size);
-    GNUNET_MQ_send (ai->client->mq, env);
-  }
-  else
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Found attribute under: %s\n", label);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending ATTRIBUTE_RESULT message\n");
-    env = GNUNET_MQ_msg_extra (arm,
-                               rd->data_size,
-                               GNUNET_MESSAGE_TYPE_RECLAIM_ATTRIBUTE_RESULT);
-    arm->id = htonl (ai->request_id);
-    arm->attr_len = htons (rd->data_size);
-    GNUNET_CRYPTO_ecdsa_key_get_public (zone, &arm->identity);
-    data_tmp = (char *) &arm[1];
-    GNUNET_memcpy (data_tmp, rd->data, rd->data_size);
-    GNUNET_MQ_send (ai->client->mq, env);
+    if ((GNUNET_GNSRECORD_TYPE_RECLAIM_ATTR != rd[i].record_type) &&
+        (GNUNET_GNSRECORD_TYPE_RECLAIM_ATTEST_ATTR != rd[i].record_type) &&
+        (GNUNET_GNSRECORD_TYPE_RECLAIM_REFERENCE != rd[i].record_type))
+    {
+      GNUNET_NAMESTORE_zone_iterator_next (ai->ns_it, 1);
+      return;
+    }
+
+    if (GNUNET_GNSRECORD_TYPE_RECLAIM_ATTR == rd[i].record_type )
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Found attribute under: %s\n",
+                  label);
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Sending ATTRIBUTE_RESULT message\n");
+      env = GNUNET_MQ_msg_extra (arm,
+                                 rd[i].data_size,
+                                 GNUNET_MESSAGE_TYPE_RECLAIM_ATTRIBUTE_RESULT);
+      arm->id = htonl (ai->request_id);
+      arm->attr_len = htons (rd[i].data_size);
+      GNUNET_CRYPTO_ecdsa_key_get_public (zone, &arm->identity);
+      data_tmp = (char *) &arm[1];
+      GNUNET_memcpy (data_tmp, rd[i].data, rd[i].data_size);
+      GNUNET_MQ_send (ai->client->mq, env);
+    }
+    else
+    {
+      if (GNUNET_GNSRECORD_TYPE_RECLAIM_ATTEST_ATTR == rd[i].record_type )
+      {
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Found attestation under: %s\n",
+                    label);
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                    "Sending ATTESTATION_RESULT message\n");
+        env = GNUNET_MQ_msg_extra (arm,
+                                   rd[i].data_size,
+                                   GNUNET_MESSAGE_TYPE_RECLAIM_ATTESTATION_RESULT);
+        arm->id = htonl (ai->request_id);
+        arm->attr_len = htons (rd[i].data_size);
+        GNUNET_CRYPTO_ecdsa_key_get_public (zone, &arm->identity);
+        data_tmp = (char *) &arm[1];
+        GNUNET_memcpy (data_tmp, rd[i].data, rd[i].data_size);
+        GNUNET_MQ_send (ai->client->mq, env);
+      }
+      else
+      {
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Found reference under: %s\n",
+                    label);
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                    "Sending REFERENCE_RESULT message\n");
+        env = GNUNET_MQ_msg_extra (arm,
+                                   rd[i].data_size,
+                                   GNUNET_MESSAGE_TYPE_RECLAIM_REFERENCE_RESULT);
+        arm->id = htonl (ai->request_id);
+        arm->attr_len = htons (rd[i].data_size);
+        GNUNET_CRYPTO_ecdsa_key_get_public (zone, &arm->identity);
+        data_tmp = (char *) &arm[1];
+        GNUNET_memcpy (data_tmp, rd[i].data, rd[i].data_size);
+        GNUNET_MQ_send (ai->client->mq, env);
+      }
+    }
   }
 }
 

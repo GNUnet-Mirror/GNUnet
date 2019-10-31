@@ -638,7 +638,8 @@ static void
 attest_collect (void *cls,
                 const struct GNUNET_CRYPTO_EcdsaPublicKey *identity,
                 const struct GNUNET_RECLAIM_ATTRIBUTE_Claim *attr,
-                const struct GNUNET_RECLAIM_ATTESTATION_Claim *attest)
+                const struct GNUNET_RECLAIM_ATTESTATION_Claim *attest, 
+                const struct GNUNET_RECLAIM_ATTESTATION_REFERENCE *reference)
 {
   struct RequestHandle *handle = cls;
   json_t *attr_obj;
@@ -1053,7 +1054,8 @@ static void
 attr_collect (void *cls,
               const struct GNUNET_CRYPTO_EcdsaPublicKey *identity,
               const struct GNUNET_RECLAIM_ATTRIBUTE_Claim *attr,
-              const struct GNUNET_RECLAIM_ATTESTATION_Claim *attest)
+              const struct GNUNET_RECLAIM_ATTESTATION_Claim *attest, 
+              const struct GNUNET_RECLAIM_ATTESTATION_REFERENCE *reference)
 {
   struct RequestHandle *handle = cls;
   json_t *attr_obj;
@@ -1292,7 +1294,8 @@ static void
 consume_cont (void *cls,
               const struct GNUNET_CRYPTO_EcdsaPublicKey *identity,
               const struct GNUNET_RECLAIM_ATTRIBUTE_Claim *attr,
-              const struct GNUNET_RECLAIM_ATTESTATION_Claim *attest)
+              const struct GNUNET_RECLAIM_ATTESTATION_Claim *attest,
+              const struct GNUNET_RECLAIM_ATTESTATION_REFERENCE *reference)
 {
   struct RequestHandle *handle = cls;
   char *val_str;

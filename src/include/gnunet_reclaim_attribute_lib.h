@@ -76,9 +76,9 @@ struct GNUNET_RECLAIM_ATTRIBUTE_Claim
   uint32_t type;
 
   /**
-   * Version
+   * Flags
    */
-  uint32_t version;
+  uint32_t flag;
   /**
    * The name of the attribute. Note "name" must never be individually
    * free'd
