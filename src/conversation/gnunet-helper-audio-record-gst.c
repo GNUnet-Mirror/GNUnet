@@ -108,6 +108,7 @@ quit ()
     gst_element_set_state (pipeline, GST_STATE_NULL);
 }
 
+
 static gboolean
 bus_call (GstBus *bus, GstMessage *msg, gpointer data)
 {
@@ -141,6 +142,7 @@ bus_call (GstBus *bus, GstMessage *msg, gpointer data)
   return TRUE;
 }
 
+
 void
 source_child_added (GstChildProxy *child_proxy, GObject *object, gchar *name,
                     gpointer user_data)
@@ -149,6 +151,7 @@ source_child_added (GstChildProxy *child_proxy, GObject *object, gchar *name,
     g_object_set (object, "buffer-time", (gint64) BUFFER_TIME, "latency-time",
                   (gint64) LATENCY_TIME, NULL);
 }
+
 
 static void
 signalhandler (int s)

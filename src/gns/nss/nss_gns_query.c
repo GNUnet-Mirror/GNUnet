@@ -146,4 +146,5 @@ gns_resolve_name (int af, const char *name, struct userdata *u)
   return 0;
 }
 
+
 /* end of nss_gns_query.c */

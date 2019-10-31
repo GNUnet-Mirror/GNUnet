@@ -143,7 +143,6 @@ static unsigned int sc_count;
 static unsigned long long sc_count_max;
 
 
-
 /**
  * Task run to asynchronously terminate the cadet due to timeout.
  *
@@ -248,8 +247,7 @@ handle_datastore_reply (void *cls,
        answers should be queried; OTOH, this is not a
        hard error as we might have had the answer in the
        past and the user might have unindexed it. Hence
-       we log at level "INFO" for now. */
-    if (NULL == key)
+       we log at level "INFO" for now. */if (NULL == key)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                   "Have no answer and the query was NULL\n");
@@ -543,5 +541,6 @@ GSF_cadet_stop_server ()
   GNUNET_assert (NULL == sc_head);
   GNUNET_assert (0 == sc_count);
 }
+
 
 /* end of gnunet-service-fs_cadet.c */

@@ -72,11 +72,11 @@ c2i (char c, int size)
     break;
 
   case 16:
-    if ((c >= '0') &&(c <= '9') )
+    if ((c >= '0') && (c <= '9') )
       return c - '0';
-    else if ((c >= 'A') &&(c <= 'F') )
+    else if ((c >= 'A') && (c <= 'F') )
       return c - 'A' + 10;
-    else if ((c >= 'a') &&(c <= 'f') )
+    else if ((c >= 'a') && (c <= 'f') )
       return c - 'a' + 10;
     else
     {
@@ -324,6 +324,7 @@ get_longest_prefix (struct RegexCombineCtx *ctx, const char *regex)
   return best;
 }
 
+
 static void
 regex_add_multiple (struct RegexCombineCtx *ctx,
                     const char *regex,
@@ -347,7 +348,7 @@ regex_add_multiple (struct RegexCombineCtx *ctx,
   count = 0;
   for (i = 1UL; i < l; i++)
   {
-    if ((regex[i] != '|') &&(regex[i] != ')') )
+    if ((regex[i] != '|') && (regex[i] != ')') )
     {
       count++;
     }
@@ -361,7 +362,7 @@ regex_add_multiple (struct RegexCombineCtx *ctx,
   tmp[1] = '\0';
   for (i = 1UL; i < l; i++)
   {
-    if ((regex[i] != '|') &&(regex[i] != ')') )
+    if ((regex[i] != '|') && (regex[i] != ')') )
     {
       tmp[0] = regex[i];
       newctx = new_regex_ctx (ctx->size);
@@ -374,6 +375,7 @@ regex_add_multiple (struct RegexCombineCtx *ctx,
     }
   }
 }
+
 
 /**
  * Add a single regex to a context, splitting the exisiting state.
@@ -482,7 +484,7 @@ regex_add (struct RegexCombineCtx *ctx, const char *regex)
 
   /* There is no prefix match, add new */
   idx = c2i (regex[0], ctx->size);
-  if ((NULL == ctx->children[idx])&&(NULL != ctx->s))
+  if ((NULL == ctx->children[idx]) && (NULL != ctx->s))
   {
     /* this was the end before, add empty string */
     newctx = new_regex_ctx (ctx->size);
@@ -651,5 +653,6 @@ REGEX_TEST_free_from_file (char **regexes)
     GNUNET_free (regexes[i]);
   GNUNET_free (regexes);
 }
+
 
 /* end of regex_test_lib.c */

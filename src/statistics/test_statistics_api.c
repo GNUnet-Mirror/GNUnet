@@ -249,4 +249,5 @@ main (int argc, char *argv_ign[])
   return ok;
 }
 
+
 /* end of test_statistics_api.c */

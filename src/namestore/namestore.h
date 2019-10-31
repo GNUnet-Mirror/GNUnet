@@ -185,7 +185,6 @@ struct LabelLookupResponseMessage
 };
 
 
-
 /**
  * Lookup a name for a zone hash
  */
@@ -338,7 +337,6 @@ struct ZoneMonitorNextMessage
    */
   uint64_t limit;
 };
-
 
 
 /**

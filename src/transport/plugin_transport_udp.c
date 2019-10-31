@@ -2016,8 +2016,7 @@ udp_plugin_send (void *cls,
    * For UDP we update session timeout only on receive, this will
    * cover keep alives, since remote peer will reply with keep alive
    * responses!
-   */
-  if (udpmlen <= UDP_MTU)
+   */if (udpmlen <= UDP_MTU)
   {
     /* unfragmented message */
     udpw = GNUNET_malloc (sizeof(struct UDP_MessageWrapper) + udpmlen);
@@ -3178,8 +3177,7 @@ analyze_send_error (struct Plugin *plugin,
        * This indicates that this system is IPv6 enabled, but does not
        * have a valid global IPv6 address assigned or we do not have
        * connectivity
-       */
-      LOG (GNUNET_ERROR_TYPE_WARNING | GNUNET_ERROR_TYPE_BULK,
+       */LOG (GNUNET_ERROR_TYPE_WARNING | GNUNET_ERROR_TYPE_BULK,
            _ (
              "UDP could not transmit IPv6 message! "
              "Please check your network configuration and disable IPv6 if your "
@@ -3893,5 +3891,6 @@ libgnunet_plugin_transport_udp_done (void *cls)
   GNUNET_free (api);
   return NULL;
 }
+
 
 /* end of plugin_transport_udp.c */

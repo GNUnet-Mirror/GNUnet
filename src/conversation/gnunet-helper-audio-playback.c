@@ -262,6 +262,7 @@ write_wav_header ()
   return ! ret ? -1 : 16;
 }
 
+
 #endif
 
 
@@ -397,7 +398,7 @@ ogg_demux_and_decode ()
     {
       /*OggOpus streams are identified by a magic string in the initial
          stream header.*/
-      if (op.b_o_s &&(op.bytes >= 8) && ! memcmp (op.packet, "OpusHead", 8))
+      if (op.b_o_s && (op.bytes >= 8) && ! memcmp (op.packet, "OpusHead", 8))
       {
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                     "Got Opus Header\n");
@@ -418,7 +419,7 @@ ogg_demux_and_decode ()
         }
         if (! has_opus_stream)
         {
-          if ((packet_count > 0) &&(opus_serialno == os.serialno) )
+          if ((packet_count > 0) && (opus_serialno == os.serialno) )
           {
             fprintf (stderr,
                      "\nError: Apparent chaining without changing serial number (%"
@@ -443,7 +444,7 @@ ogg_demux_and_decode ()
                    (int64_t) os.serialno);
         }
       }
-      if (! has_opus_stream ||(os.serialno != opus_serialno) )
+      if (! has_opus_stream || (os.serialno != opus_serialno) )
       {
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                     "breaking out\n");
@@ -458,9 +459,9 @@ ogg_demux_and_decode ()
         if (! dec)
           quit (1);
 
-        if ((0 != ogg_stream_packetout (&os, &op)) ||(255 ==
-                                                      og.header[og.header_len
-                                                                - 1]) )
+        if ((0 != ogg_stream_packetout (&os, &op)) || (255 ==
+                                                       og.header[og.header_len
+                                                                 - 1]) )
         {
           /*The format specifies that the initial header and tags packets are on their
              own pages. To aid implementors in discovering that their files are wrong
@@ -490,9 +491,9 @@ ogg_demux_and_decode ()
       else if (1 == packet_count)
       {
         has_tags_packet = 1;
-        if ((0 != ogg_stream_packetout (&os, &op)) ||(255 ==
-                                                      og.header[og.header_len
-                                                                - 1]) )
+        if ((0 != ogg_stream_packetout (&os, &op)) || (255 ==
+                                                       og.header[og.header_len
+                                                                 - 1]) )
         {
           fprintf (stderr,
                    "Extra packets on initial tags page. Invalid stream.\n");
@@ -506,7 +507,7 @@ ogg_demux_and_decode ()
         int64_t outsamp;
 
         /*End of stream condition*/
-        if (op.e_o_s &&(os.serialno == opus_serialno) )
+        if (op.e_o_s && (os.serialno == opus_serialno) )
         {
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                       "Got EOS\n");

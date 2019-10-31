@@ -1257,4 +1257,5 @@ GNUNET_SET_element_hash (const struct GNUNET_SET_Element *element,
   GNUNET_CRYPTO_hash_context_finish (ctx, ret_hash);
 }
 
+
 /* end of set_api.c */

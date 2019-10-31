@@ -117,6 +117,7 @@ test_cont (void *cls)
                             NULL);
 }
 
+
 static void
 disc_cont (void *cls)
 {
@@ -127,6 +128,7 @@ disc_cont (void *cls)
                                 NULL);
 }
 
+
 static void
 store_cont (void *cls, int success)
 {
@@ -135,10 +137,10 @@ store_cont (void *cls, int success)
      a chance to actually finish the operation; otherwise,
      the test may fail non-deterministically if the new
      connection is faster than the cleanup routine of the
-     old one. */
-  GNUNET_SCHEDULER_add_now (&disc_cont,
+     old one. */GNUNET_SCHEDULER_add_now (&disc_cont,
                             NULL);
 }
+
 
 /**
  * Actually run the test.
@@ -191,5 +193,6 @@ main (int argc, char *argv[])
              ok);
   return ok;
 }
+
 
 /* end of test_peerstore_api_sync.c */

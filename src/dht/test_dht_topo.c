@@ -528,4 +528,5 @@ main (int xargc, char *xargv[])
   return ok;
 }
 
+
 /* end of test_dht_topo.c */

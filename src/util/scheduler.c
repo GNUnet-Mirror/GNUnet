@@ -1380,6 +1380,8 @@ check_fd (struct GNUNET_SCHEDULER_Task *t, int raw_fd)
     }
   }
 }
+
+
 #endif
 
 
@@ -1563,6 +1565,7 @@ GNUNET_SCHEDULER_add_write_net (struct GNUNET_TIME_Relative delay,
                                                  GNUNET_NO, GNUNET_YES,
                                                  task, task_cls);
 }
+
 
 /**
  * Schedule a new task to be run with a specified delay or when the
@@ -1857,8 +1860,7 @@ GNUNET_SCHEDULER_add_select (enum GNUNET_SCHEDULER_Priority prio,
    * this case gracefully because some libraries such as libmicrohttpd
    * only provide a hint what the maximum FD number in an FD set might be
    * and not the exact FD number (see e.g. gnunet-rest-service.c)
-   */
-  int no_fds_extracted = (0 == read_nhandles_len) &&
+   */int no_fds_extracted = (0 == read_nhandles_len) &&
                          (0 == read_fhandles_len) &&
                          (0 == write_nhandles_len) &&
                          (0 == write_fhandles_len);
@@ -2024,8 +2026,7 @@ GNUNET_SCHEDULER_do_work (struct GNUNET_SCHEDULER_Handle *sh)
        *
        * It might also mean we are busy-waiting because of a programming
        * error in the external event loop.
-       */
-      LOG (GNUNET_ERROR_TYPE_DEBUG,
+       */LOG (GNUNET_ERROR_TYPE_DEBUG,
            "GNUNET_SCHEDULER_do_work did not find any ready "
            "tasks and timeout has not been reached yet.\n");
     }

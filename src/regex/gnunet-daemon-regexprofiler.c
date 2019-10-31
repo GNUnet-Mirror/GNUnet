@@ -101,7 +101,6 @@ static unsigned int rounds = 3;
 static struct GNUNET_CRYPTO_EddsaPrivateKey *my_private_key;
 
 
-
 /**
  * Task run during shutdown.
  *
@@ -157,7 +156,7 @@ reannounce_regex (void *cls)
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Announcing regex: %s\n", regex);
   GNUNET_STATISTICS_update (stats_handle, "# regexes announced", 1, GNUNET_NO);
-  if ((NULL == announce_handle)&&(NULL != regex))
+  if ((NULL == announce_handle) && (NULL != regex))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "First time, creating regex: %s\n",
@@ -196,7 +195,7 @@ announce_regex (const char *regex)
 {
   char *copy;
 
-  if ((NULL == regex)||(0 == strlen (regex)))
+  if ((NULL == regex) || (0 == strlen (regex)))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Cannot announce empty regex\n");
     return;
@@ -393,12 +392,15 @@ main (int argc, char *const *argv)
 /**
  * MINIMIZE heap size (way below 128k) since this process doesn't need much.
  */
-void __attribute__ ((constructor)) GNUNET_ARM_memory_init ()
+void __attribute__ ((constructor))
+GNUNET_ARM_memory_init ()
 {
   mallopt (M_TRIM_THRESHOLD, 4 * 1024);
   mallopt (M_TOP_PAD, 1 * 1024);
   malloc_trim (0);
 }
+
+
 #endif
 
 

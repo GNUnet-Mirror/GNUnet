@@ -121,7 +121,6 @@ add_plugin (void *cls,
 }
 
 
-
 /**
  * Create a block context.  Loads the block plugins.
  *

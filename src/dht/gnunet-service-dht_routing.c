@@ -484,4 +484,5 @@ GDS_ROUTING_done ()
   recent_map = NULL;
 }
 
+
 /* end of gnunet-service-dht_routing.c */

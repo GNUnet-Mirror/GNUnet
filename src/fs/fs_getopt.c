@@ -240,6 +240,7 @@ getopt_set_metadata (struct GNUNET_GETOPT_CommandLineProcessorContext *ctx,
   return GNUNET_OK;
 }
 
+
 /**
  * Allow user to specify metadata.
  *
@@ -268,8 +269,6 @@ GNUNET_FS_GETOPT_METADATA (char shortName,
 
   return clo;
 }
-
-
 
 
 /* end of fs_getopt.c */

@@ -429,7 +429,6 @@ mhd_main ()
 }
 
 
-
 /**
  * Open '/dev/null' and make the result the given
  * file descriptor.
@@ -518,7 +517,6 @@ fork_and_exec (const char *file,
   /* child process completed and returned success, we're happy */
   return 0;
 }
-
 
 
 /**
@@ -862,5 +860,6 @@ main (int argc,
   GNUNET_DISK_directory_remove ("/tmp/gnunet-test-vpn");
   return global_ret;
 }
+
 
 /* end of test_gns_vpn.c */

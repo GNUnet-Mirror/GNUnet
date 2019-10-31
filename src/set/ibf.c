@@ -45,6 +45,7 @@ ibf_key_from_hashcode (const struct GNUNET_HashCode *hash)
   return *(struct IBF_Key *) hash;
 }
 
+
 /**
  * Create a hashcode from a key, by replicating the key
  * until the hascode is filled

@@ -2390,9 +2390,7 @@ test_blacklisted (void *cls, const struct GNUNET_PeerIdentity *key, void *value)
    * If (NULL != transport_name) we look for a transport specific entry:
    *  if (transport_name == be) forbidden
    *
-   */
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+   */GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Comparing BL request for peer `%4s':`%s' with BL entry: `%s'\n",
               GNUNET_i2s (key),
               (NULL == transport_name) ? "unspecified" : transport_name,

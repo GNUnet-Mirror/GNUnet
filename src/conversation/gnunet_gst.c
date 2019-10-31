@@ -62,6 +62,7 @@ BREAKOUT:
   return;
 }
 
+
 /***
  * load gnunet configuration
  */
@@ -142,6 +143,7 @@ gg_load_configuration (GNUNET_gstData *d)
 //  GNUNET_CONFIGURATION_write(cfg, "mediahelper.conf");
 }
 
+
 static void
 write_data (const char *ptr, size_t msg_size)
 {
@@ -163,7 +165,6 @@ write_data (const char *ptr, size_t msg_size)
 }
 
 
-
 extern GstFlowReturn
 on_appsink_new_sample (GstElement *element, GNUNET_gstData *d)
 {
@@ -179,9 +180,7 @@ on_appsink_new_sample (GstElement *element, GNUNET_gstData *d)
    char *si_str;
    GstCaps *s_caps;
    char *caps_str;
- */
-
-  if (gst_app_sink_is_eos (GST_APP_SINK (element)))
+ */if (gst_app_sink_is_eos (GST_APP_SINK (element)))
     return GST_FLOW_OK;
 
   // pull sample from appsink
@@ -196,7 +195,6 @@ on_appsink_new_sample (GstElement *element, GNUNET_gstData *d)
   b = gst_sample_get_buffer (s);
 
   GST_WARNING ("caps are %" GST_PTR_FORMAT, gst_sample_get_caps (s));
-
 
 
   gst_buffer_map (b, &map, GST_MAP_READ);
@@ -226,6 +224,7 @@ on_appsink_new_sample (GstElement *element, GNUNET_gstData *d)
   return GST_FLOW_OK;
 }
 
+
 /***
  * Dump a pipeline graph
  */
@@ -246,7 +245,6 @@ pl_graph (GstElement *pipeline)
 
   //  load_configuration();
 }
-
 
 
 extern gboolean
@@ -285,6 +283,7 @@ gnunet_gst_bus_call (GstBus *bus, GstMessage *msg, gpointer data)
 
   return TRUE;
 }
+
 
 /* called when pipeline changes state */
 extern void
@@ -326,12 +325,14 @@ state_changed_cb (GstBus *bus, GstMessage *msg, GNUNET_gstData *d)
   }
 }
 
+
 static void
 application_cb (GstBus *bus, GstMessage *msg, GNUNET_gstData *data)
 {
   // printf("application cb");
   return;
 }
+
 
 static void
 error_cb (GstBus *bus, GstMessage *msg, GNUNET_gstData *data)
@@ -340,12 +341,14 @@ error_cb (GstBus *bus, GstMessage *msg, GNUNET_gstData *data)
   return;
 }
 
+
 static void
 eos_cb (GstBus *bus, GstMessage *msg, GNUNET_gstData *data)
 {
   // printf("eos cb");
   return;
 }
+
 
 extern void
 gg_setup_gst_bus (GNUNET_gstData *d)
@@ -366,6 +369,7 @@ gg_setup_gst_bus (GNUNET_gstData *d)
                     (GCallback) application_cb, d);
   gst_object_unref (bus);
 }
+
 
 /*
  * take buffer from gstreamer and feed it to gnunet
@@ -543,7 +547,6 @@ feed_buffer_to_gst (const char *audio, size_t b_len, GNUNET_gstData *d)
 }
 
 
-
 /**
  * debug making elements
  */
@@ -567,6 +570,7 @@ gst_element_factory_make_debug (gchar *factoryname, gchar *name)
   }
 }
 
+
 /*
    static gboolean
    gst_element_link_many_debug(...)
@@ -585,6 +589,7 @@ lf (char *msg)
   exit (10);
 }
 
+
 /***
  * used to set properties on autoaudiosink's chosen sink
  */
@@ -600,6 +605,7 @@ autoaudiosink_child_added (GstChildProxy *child_proxy,
                   "latency-time", (gint64) LATENCY_TIME,
                   NULL);
 }
+
 
 /***
  * used to set properties on autoaudiosource's chosen sink
@@ -623,6 +629,7 @@ get_pipeline (GstElement *element)
 
   return GST_ELEMENT (p);
 }
+
 
 static void
 decoder_ogg_pad_added (GstElement *element,
@@ -681,6 +688,7 @@ gnunet_read (GNUNET_gstData *d)
   }
   return 0;
 }
+
 
 /**
  * Message callback
@@ -802,6 +810,7 @@ get_app (GNUNET_gstData *d, int type)
   return bin;
 }
 
+
 extern GstBin *
 get_coder (GNUNET_gstData *d, int type)
 {
@@ -824,8 +833,7 @@ get_coder (GNUNET_gstData *d, int type)
           "sprop-stereo", G_TYPE_STRING, "0",
           "encoding-params", G_TYPE_STRING, "2",
           NULL);
- */
-    rtpcaps = gst_caps_new_simple ("application/x-rtp",
+ */ rtpcaps = gst_caps_new_simple ("application/x-rtp",
                                    "media", G_TYPE_STRING, "audio",
                                    "clock-rate", G_TYPE_INT, SAMPLING_RATE,
                                    "encoding-name", G_TYPE_STRING, "OPUS",
@@ -1013,8 +1021,7 @@ get_audiobin (GNUNET_gstData *d, int type)
          "enough-data",
          G_CALLBACK(appsrc_enough_data),
          NULL);
-       */
-/*
+       *//*
       g_signal_connect (queue,
           "notify::current-level-bytes",
           G_CALLBACK(queue_current_level),
@@ -1039,11 +1046,7 @@ get_audiobin (GNUNET_gstData *d, int type)
           "pushing",
           G_CALLBACK(queue_pushing),
           NULL);
- */
-    }
-
-
-
+ */ }
 
 
     gst_bin_add_many (bin, conv, resampler, sink, NULL);

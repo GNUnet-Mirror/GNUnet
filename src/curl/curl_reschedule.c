@@ -197,4 +197,5 @@ GNUNET_CURL_gnunet_scheduler_reschedule (void *cls)
   rc->task = GNUNET_SCHEDULER_add_now (&context_task, rc);
 }
 
+
 /* end of curl_reschedule.c */

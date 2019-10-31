@@ -203,6 +203,7 @@ my_index (const char *str, int chr)
   return 0;
 }
 
+
 /* If using GCC, we can safely declare strlen this way.
    If not using GCC, it is ok not to declare it.  */
 #ifdef __GNUC__
@@ -213,6 +214,7 @@ my_index (const char *str, int chr)
    and has done so at least since version 2.4.5. -- rms.  */
 extern int
 strlen (const char *);
+
 #endif /* not __STDC__ */
 #endif /* __GNUC__ */
 
@@ -241,6 +243,7 @@ static int last_nonopt;
 #if defined(__STDC__) && __STDC__
 static void
 exchange (char **);
+
 #endif
 
 static void
@@ -300,11 +303,13 @@ exchange (char **argv)
   last_nonopt = GNoptind;
 }
 
+
 /* Initialize the internal data when the first call is made.  */
 
 #if defined(__STDC__) && __STDC__
 static const char *
 _getopt_initialize (int, char *const *, const char *);
+
 #endif
 static const char *
 _getopt_initialize (int argc, char *const *argv, const char *optstring)
@@ -338,6 +343,7 @@ _getopt_initialize (int argc, char *const *argv, const char *optstring)
 
   return optstring;
 }
+
 
 /* Scan elements of ARGV (whose length is ARGC) for option characters
    given in OPTSTRING.
@@ -408,7 +414,7 @@ GN_getopt_internal (int argc,
 
   GNoptarg = NULL;
 
-  if ((GNoptind == 0)|| ! __getopt_initialized)
+  if ((GNoptind == 0) || ! __getopt_initialized)
   {
     if (GNoptind == 0)
       GNoptind = 1;   /* Don't scan ARGV[0], the program name.  */
@@ -422,7 +428,7 @@ GN_getopt_internal (int argc,
    * is only used when the used in the GNU libc.  */
 #define NONOPTION_P (argv[GNoptind][0] != '-' || argv[GNoptind][1] == '\0')
 
-  if ((nextchar == NULL)||(*nextchar == '\0'))
+  if ((nextchar == NULL) || (*nextchar == '\0'))
   {
     /* Advance to the next ARGV-element.  */
 
@@ -438,7 +444,7 @@ GN_getopt_internal (int argc,
       /* If we have just processed some options following some non-options,
        * exchange them so that the options come first.  */
 
-      if ((first_nonopt != last_nonopt) &&(last_nonopt != GNoptind) )
+      if ((first_nonopt != last_nonopt) && (last_nonopt != GNoptind) )
         exchange ((char **) argv);
       else if (last_nonopt != GNoptind)
         first_nonopt = GNoptind;
@@ -459,7 +465,7 @@ GN_getopt_internal (int argc,
     {
       GNoptind++;
 
-      if ((first_nonopt != last_nonopt) &&(last_nonopt != GNoptind) )
+      if ((first_nonopt != last_nonopt) && (last_nonopt != GNoptind) )
         exchange ((char **) argv);
       else if (first_nonopt == last_nonopt)
         first_nonopt = GNoptind;
@@ -511,10 +517,8 @@ GN_getopt_internal (int argc,
    * the ARGV-element is "-fu", do consider that an abbreviation of
    * the long option, just like "--fu", and not "-f" with arg "u".
    *
-   * This distinction seems to be the most useful approach.  */
-
-  if ((longopts != NULL)&&
-      ((argv[GNoptind][1] == '-')||
+   * This distinction seems to be the most useful approach.  */if ((longopts != NULL) &&
+      ((argv[GNoptind][1] == '-') ||
        (long_only &&
         (argv[GNoptind][2] || ! my_index (optstring, argv[GNoptind][1])))))
   {
@@ -632,7 +636,7 @@ GN_getopt_internal (int argc,
      * or the option starts with '--' or is not a valid short
      * option, then it's an error.
      * Otherwise interpret it as a short option.  */
-    if (! long_only ||(argv[GNoptind][1] == '-') ||
+    if (! long_only || (argv[GNoptind][1] == '-') ||
         (my_index (optstring, *nextchar) == NULL) )
     {
       if (GNopterr)
@@ -667,7 +671,7 @@ GN_getopt_internal (int argc,
     if (*nextchar == '\0')
       ++GNoptind;
 
-    if ((temp == NULL)||(c == ':'))
+    if ((temp == NULL) || (c == ':'))
     {
       if (GNopterr)
       {
@@ -680,7 +684,7 @@ GN_getopt_internal (int argc,
       return '?';
     }
     /* Convenience. Treat POSIX -W foo same as long option --foo */
-    if ((temp[0] == 'W')&&(temp[1] == ';'))
+    if ((temp[0] == 'W') && (temp[1] == ';'))
     {
       char *nameend;
       const struct GNoption *p;
@@ -871,6 +875,7 @@ GNgetopt_long (int argc,
   return GN_getopt_internal (argc, argv, options, long_options, opt_index, 0);
 }
 
+
 /* ******************** now the GNUnet specific modifications... ********************* */
 
 /**
@@ -1007,5 +1012,6 @@ GNUNET_GETOPT_run (const char *binaryOptions,
     return cont;
   return GNoptind;
 }
+
 
 /* end of getopt.c */

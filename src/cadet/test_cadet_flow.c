@@ -333,10 +333,10 @@ stats_iterator (void *cls,
   i = GNUNET_TESTBED_get_index (peer);
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "STATS PEER %u - %s [%s]: %llu\n", i,
               subsystem, name, (unsigned long long) value);
-  if ((0 == strncmp (s_sent, name, strlen (s_sent)))&&(0 == i))
+  if ((0 == strncmp (s_sent, name, strlen (s_sent))) && (0 == i))
     ka_sent = value;
-  if ((0 == strncmp (s_recv, name, strlen (s_recv)))&&(peers_requested - 1 ==
-                                                       i) )
+  if ((0 == strncmp (s_recv, name, strlen (s_recv))) && (peers_requested - 1 ==
+                                                         i) )
     ka_received = value;
   if (0 == strncmp (rdrops, name, strlen (rdrops)))
     msg_dropped += value;
@@ -425,7 +425,7 @@ send_test_message (struct GNUNET_CADET_Channel *channel)
     if (SPEED_ACK == test)   // FIXME unify SPEED_ACK with an initializer
       data_sent++;
   }
-  else if ((SPEED == test)||(SPEED_ACK == test))
+  else if ((SPEED == test) || (SPEED_ACK == test))
   {
     if (get_target_channel () == channel)
     {
@@ -577,14 +577,14 @@ handle_data (void *cls,
   }
   else /* Got "ack" */
   {
-    if ((SPEED_ACK == test) ||(SPEED == test) )
+    if ((SPEED_ACK == test) || (SPEED == test) )
     {
       GNUNET_log (GNUNET_ERROR_TYPE_INFO, " received ack %u\n", ack_received);
       /* Send more data */
       send_test_message (channel);
-      if ((ack_received < total_packets) &&(SPEED != test) )
+      if ((ack_received < total_packets) && (SPEED != test) )
         return;
-      if ((ok == 2) &&(SPEED == test) )
+      if ((ok == 2) && (SPEED == test) )
         return;
       show_end_data ();
     }
@@ -886,5 +886,6 @@ main (int argc,
                          ports);
   return 0;
 }
+
 
 /* end of test_cadet_flow.c */

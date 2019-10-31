@@ -102,12 +102,14 @@ typedef struct mem_table_struct
   unsigned long *slot; /* slot in return struct */
 } mem_table_struct;
 
-static int compare_mem_table_structs (const void *a, const void *b)
+static int
+compare_mem_table_structs (const void *a, const void *b)
 {
   return strcmp (((const mem_table_struct*) a)->name, ((const
                                                         mem_table_struct*) b)->
                  name);
 }
+
 
 /* example data, following junk, with comments added:
  *
@@ -186,7 +188,8 @@ static unsigned long kb_nfs_unstable;
 static unsigned long kb_swap_reclaimable;
 static unsigned long kb_swap_unreclaimable;
 
-void meminfo (void)
+void
+meminfo (void)
 {
   char namebuf[16]; /* big enough to hold any row name */
   mem_table_struct findme = { namebuf, NULL };

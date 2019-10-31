@@ -110,6 +110,7 @@ do_shutdown (void *cls)
   }
 }
 
+
 /**
  * Task to run on timeout
  *
@@ -122,6 +123,7 @@ do_timeout (void*cls)
   global_ret = 3; // Timeout
   GNUNET_SCHEDULER_shutdown ();
 }
+
 
 /**
  * Function called with the result of a GNS lookup.
@@ -318,5 +320,6 @@ main (int argc, char *const *argv)
     return 1;
   return global_ret;
 }
+
 
 /* end of gnunet-gns.c */

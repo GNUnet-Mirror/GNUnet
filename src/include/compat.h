@@ -44,6 +44,7 @@ void*
 GN_memrchr_ (const void *s,
              int c,
              size_t n);
+
 #ifndef HAVE_MEMRCHR
 #define memrchr(s, c, n) GN_memrchr_ (s, c, n)
 #endif

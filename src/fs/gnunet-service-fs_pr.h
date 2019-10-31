@@ -404,7 +404,6 @@ GSF_pending_request_test_target_ (struct GSF_PendingRequest *pr,
                                   const struct GNUNET_PeerIdentity *target);
 
 
-
 /**
  * Setup the subsystem.
  */

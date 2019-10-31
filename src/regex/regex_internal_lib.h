@@ -157,7 +157,6 @@ REGEX_INTERNAL_iterate_reachable_edges (struct REGEX_INTERNAL_Automaton *a,
                                         void *iterator_cls);
 
 
-
 /**
  * Handle to store cached data about a regex announce.
  */

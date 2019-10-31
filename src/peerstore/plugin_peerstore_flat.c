@@ -146,6 +146,7 @@ peerstore_flat_delete_records (void *cls, const char *sub_system,
   return plugin->deleted_entries;
 }
 
+
 static int
 expire_entries (void *cls,
                 const struct GNUNET_HashCode *key,
@@ -161,7 +162,6 @@ expire_entries (void *cls,
   }
   return GNUNET_YES;
 }
-
 
 
 /**
@@ -221,6 +221,7 @@ iterate_entries (void *cls,
   plugin->iter_result_found = GNUNET_YES;
   return GNUNET_YES;
 }
+
 
 /**
  * Iterate over the records given an optional peer id
@@ -478,6 +479,7 @@ database_setup (struct Plugin *plugin)
   return GNUNET_OK;
 }
 
+
 static int
 store_and_free_entries (void *cls,
                         const struct GNUNET_HashCode *key,
@@ -516,6 +518,7 @@ store_and_free_entries (void *cls,
   GNUNET_free (line);
   return GNUNET_YES;
 }
+
 
 /**
  * Shutdown database connection and associate data
@@ -598,5 +601,6 @@ libgnunet_plugin_peerstore_flat_done (void *cls)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Flat plugin is finished\n");
   return NULL;
 }
+
 
 /* end of plugin_peerstore_sqlite.c */

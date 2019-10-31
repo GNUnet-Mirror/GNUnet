@@ -739,8 +739,7 @@ reconnect_later (struct GNUNET_STATISTICS_Handle *h)
      * Chances are that it's down for good and we are not going to connect to
      * it anymore.
      * Give up and don't sync the rest of the data.
-     */
-    loss = GNUNET_NO;
+     */loss = GNUNET_NO;
     for (gh = h->action_head; NULL != gh; gh = gh->next)
       if ((gh->make_persistent) &&
           (ACTION_SET == gh->type))
@@ -760,7 +759,6 @@ reconnect_later (struct GNUNET_STATISTICS_Handle *h)
                                     h);
   h->backoff = GNUNET_TIME_STD_BACKOFF (h->backoff);
 }
-
 
 
 /**

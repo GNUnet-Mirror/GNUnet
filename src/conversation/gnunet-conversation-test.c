@@ -261,4 +261,5 @@ main (int argc,
   return ret;
 }
 
+
 /* end of gnunet-conversation-test.c */

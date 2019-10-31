@@ -388,8 +388,7 @@ setup_filter (struct Peer *peer)
    * of the data structure and would only really become
    * "useless" once a HELLO has been passed on to ~100
    * other peers, which is likely more than enough in
-   * any case; hence 64, 5 as bloomfilter parameters. */
-  peer->filter = GNUNET_CONTAINER_bloomfilter_init (NULL, 64, 5);
+   * any case; hence 64, 5 as bloomfilter parameters. */peer->filter = GNUNET_CONTAINER_bloomfilter_init (NULL, 64, 5);
   peer->filter_expiration =
     GNUNET_TIME_relative_to_absolute (HELLO_ADVERTISEMENT_MIN_REPEAT_FREQUENCY);
   /* never send a peer its own HELLO */
@@ -1142,12 +1141,15 @@ main (int argc, char *const *argv)
 /**
  * MINIMIZE heap size (way below 128k) since this process doesn't need much.
  */
-void __attribute__ ((constructor)) GNUNET_ARM_memory_init ()
+void __attribute__ ((constructor))
+GNUNET_ARM_memory_init ()
 {
   mallopt (M_TRIM_THRESHOLD, 4 * 1024);
   mallopt (M_TOP_PAD, 1 * 1024);
   malloc_trim (0);
 }
+
+
 #endif
 
 /* end of gnunet-daemon-topology.c */

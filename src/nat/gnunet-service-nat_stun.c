@@ -211,4 +211,5 @@ GNUNET_NAT_stun_handle_packet_ (const void *data,
   return ret;
 }
 
+
 /* end of gnunet-service-nat_stun.c */

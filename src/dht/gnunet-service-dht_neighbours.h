@@ -143,7 +143,6 @@ GDS_am_closest_peer (const struct GNUNET_HashCode *key,
                      const struct GNUNET_CONTAINER_BloomFilter *bloom);
 
 
-
 /**
  * Initialize neighbours subsystem.
  *

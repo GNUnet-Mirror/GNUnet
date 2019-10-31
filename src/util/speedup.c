@@ -115,4 +115,5 @@ GNUNET_SPEEDUP_stop_ ()
          "Stopped execution speed up\n");
 }
 
+
 /* end of speedup.c */

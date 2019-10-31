@@ -40,6 +40,7 @@ nextHC (struct GNUNET_HashCode *hc)
   GNUNET_CRYPTO_hash_create_random (GNUNET_CRYPTO_QUALITY_WEAK, hc);
 }
 
+
 static int
 add_iterator (void *cls, struct GNUNET_HashCode *next)
 {
@@ -52,6 +53,7 @@ add_iterator (void *cls, struct GNUNET_HashCode *next)
   *next = pos;
   return GNUNET_YES;
 }
+
 
 int
 main (int argc, char *argv[])

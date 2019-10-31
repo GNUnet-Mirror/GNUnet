@@ -177,4 +177,5 @@ libgnunet_plugin_reclaim_attribute_gnuid_done (void *cls)
   return NULL;
 }
 
+
 /* end of plugin_reclaim_attribute_type_gnuid.c */

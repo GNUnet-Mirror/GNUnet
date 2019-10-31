@@ -247,4 +247,5 @@ libgnunet_plugin_block_dht_done (void *cls)
   return NULL;
 }
 
+
 /* end of plugin_block_dht.c */

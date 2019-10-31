@@ -254,5 +254,4 @@ struct DataMessage
 GNUNET_NETWORK_STRUCT_END
 
 
-
 #endif

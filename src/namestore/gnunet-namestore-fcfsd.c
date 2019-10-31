@@ -698,6 +698,7 @@ lookup_it_processor (void *cls,
   GNUNET_NAMESTORE_zone_iterator_next (request->lookup_it, 1);
 }
 
+
 static void
 lookup_it_finished (void *cls)
 {
@@ -728,6 +729,7 @@ lookup_it_finished (void *cls)
                                                &zone_to_name_cb,
                                                request);
 }
+
 
 /**
  * Main MHD callback for handling requests.
@@ -1211,5 +1213,6 @@ main (int argc,
   GNUNET_CRYPTO_ecdsa_key_clear (&fcfs_zone_pkey);
   return ret;
 }
+
 
 /* end of gnunet-namestore-fcfsd.c */

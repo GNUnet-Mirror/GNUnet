@@ -1039,4 +1039,5 @@ GSC_SESSIONS_done ()
   }
 }
 
+
 /* end of gnunet-service-core_sessions.c */

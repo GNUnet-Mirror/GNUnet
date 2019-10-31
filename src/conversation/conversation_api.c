@@ -62,7 +62,6 @@ enum CallerState
 };
 
 
-
 /**
  * A caller is the handle we have for an incoming call.
  */
@@ -866,5 +865,6 @@ GNUNET_CONVERSATION_caller_resume (struct GNUNET_CONVERSATION_Caller *caller,
     caller->state = CS_CALLER_SUSPENDED;
   }
 }
+
 
 /* end of conversation_api.c */

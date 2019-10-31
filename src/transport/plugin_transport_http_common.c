@@ -173,6 +173,7 @@ http_split_address (const char *addr)
   return sp;
 }
 
+
 /**
  * Closure for #append_port().
  */
@@ -640,6 +641,7 @@ http_common_plugin_address_to_string (const char *plugin,
   return NULL;
 }
 
+
 /**
  * Function called to convert a string address to
  * a binary address.
@@ -941,7 +943,6 @@ http_common_get_network_for_address (struct
   }
   return net_type;
 }
-
 
 
 /* end of plugin_transport_http_common.c */

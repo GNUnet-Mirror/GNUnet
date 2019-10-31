@@ -109,6 +109,7 @@ OIDC_build_token_response (const char *access_token,
                            const char *id_token,
                            const struct GNUNET_TIME_Relative *expiration_time,
                            char **token_response);
+
 /**
  * Generate a new access token
  */

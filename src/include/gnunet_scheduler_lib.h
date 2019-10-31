@@ -209,8 +209,6 @@ struct GNUNET_SCHEDULER_TaskContext
 };
 
 
-
-
 /**
  * Function used by event-loop implementations to signal the scheduler
  * that a particular @a task is ready due to an event specified in the
@@ -907,7 +905,6 @@ GNUNET_SCHEDULER_set_select (GNUNET_SCHEDULER_select new_select,
                              void *new_select_cls);
 
 
-
 /**
  * Change the async scope for the currently executing task and (transitively)
  * for all tasks scheduled by the current task after calling this function.
@@ -922,7 +919,6 @@ GNUNET_SCHEDULER_set_select (GNUNET_SCHEDULER_select new_select,
  */
 void
 GNUNET_SCHEDULER_begin_async_scope (struct GNUNET_AsyncScopeId *aid);
-
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

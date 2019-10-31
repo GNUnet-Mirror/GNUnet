@@ -728,4 +728,5 @@ main (int argc,
   return ok;
 }
 
+
 /* end of test_datastore_api.c */

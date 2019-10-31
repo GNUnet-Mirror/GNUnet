@@ -1570,4 +1570,5 @@ GNUNET_TESTBED_host_resolve_ (struct GNUNET_TESTBED_Host *host)
   host->hostname = GNUNET_strdup (host->hostname);
 }
 
+
 /* end of testbed_api_hosts.c */

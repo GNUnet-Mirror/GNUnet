@@ -341,4 +341,5 @@ GNUNET_TESTBED_LOGGER_flush_cancel (struct GNUNET_TESTBED_LOGGER_Handle *h)
   h->cb_cls = NULL;
 }
 
+
 /* End of testbed_logger_api.c */

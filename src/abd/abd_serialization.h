@@ -11,7 +11,7 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -21,7 +21,7 @@
 
 /**
  * @file abd/abd_serialization.h
- * @brief API to serialize and deserialize delegation chains 
+ * @brief API to serialize and deserialize delegation chains
  * and abds
  * @author Martin Schanzenbach
  */
@@ -136,6 +136,7 @@ GNUNET_ABD_delegation_chain_deserialize (
   struct GNUNET_ABD_Delegation *dd,
   unsigned int c_count,
   struct GNUNET_ABD_Delegate *cd);
+
 size_t
 GNUNET_ABD_delegates_get_size (
   unsigned int c_count,
@@ -151,15 +152,16 @@ GNUNET_ABD_delegates_serialize (
 
 int
 GNUNET_ABD_delegates_deserialize (size_t len,
-                                         const char *src,
-                                         unsigned int c_count,
-                                         struct GNUNET_ABD_Delegate *cd);
+                                  const char *src,
+                                  unsigned int c_count,
+                                  struct GNUNET_ABD_Delegate *cd);
 
 int
 GNUNET_ABD_delegate_serialize (struct GNUNET_ABD_Delegate *cred,
-                                      char **data);
+                               char **data);
 
 struct GNUNET_ABD_Delegate *
 GNUNET_ABD_delegate_deserialize (const char *data, size_t data_size);
+
 #endif
 /* end of abd_serialization.h */

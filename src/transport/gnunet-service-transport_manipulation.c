@@ -582,4 +582,5 @@ GST_manipulation_stop ()
   }
 }
 
+
 /* end of file gnunet-service-transport_manipulation.c */

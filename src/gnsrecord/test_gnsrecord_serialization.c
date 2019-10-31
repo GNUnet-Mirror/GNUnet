@@ -153,4 +153,5 @@ main (int argcx, char *argvx[])
   return res;
 }
 
+
 /* end of test_gnsrecord_serialization.c */

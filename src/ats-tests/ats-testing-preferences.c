@@ -261,4 +261,5 @@ GNUNET_ATS_TEST_generate_preferences_stop_all ()
   }
 }
 
+
 /* end of file ats-testing-preferences.c */

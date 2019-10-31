@@ -1241,7 +1241,6 @@ GNUNET_DATASTORE_remove (struct GNUNET_DATASTORE_Handle *h,
 }
 
 
-
 /**
  * Get a random value from the datastore for content replication.
  * Returns a single, random value among those with the highest

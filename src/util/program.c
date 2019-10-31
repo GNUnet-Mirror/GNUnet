@@ -318,8 +318,7 @@ GNUNET_PROGRAM_run2 (int argc,
      specified in the configuration, remember the command-line option
      in "cfg".  This is typically really only having an effect if we
      are running code in src/arm/, as obviously the rest of the code
-     has little business with ARM-specific options. */
-  if (GNUNET_YES != GNUNET_CONFIGURATION_have_value (cfg, "arm", "CONFIG"))
+     has little business with ARM-specific options. */if (GNUNET_YES != GNUNET_CONFIGURATION_have_value (cfg, "arm", "CONFIG"))
   {
     if (NULL != cc.cfgfile)
       GNUNET_CONFIGURATION_set_value_string (cfg, "arm", "CONFIG", cc.cfgfile);

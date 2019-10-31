@@ -246,4 +246,5 @@ GNUNET_GNSRECORD_number_to_typename (uint32_t type)
   return NULL;
 }
 
+
 /* end of gnsrecord.c */

@@ -252,22 +252,19 @@ topology_setup_done (void *cls,
       GNUNET_ATS_TEST_TG_CONSTANT, 1, 1, GNUNET_TIME_UNIT_SECONDS,
       GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MILLISECONDS, 250),
       GNUNET_ATS_PREFERENCE_BANDWIDTH);
- */
-/*
+ *//*
    GNUNET_ATS_TEST_generate_preferences_start(&masters[0],&masters[0].partners[0],
       GNUNET_ATS_TEST_TG_LINEAR, 1, 50,
       GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 2),
       GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MILLISECONDS, 250),
       GNUNET_ATS_PREFERENCE_BANDWIDTH);
- */
-/*
+ *//*
    GNUNET_ATS_TEST_generate_preferences_start(&masters[0],&masters[0].partners[0],
         GNUNET_ATS_TEST_TG_RANDOM, 1, 50,
         GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 2),
         GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MILLISECONDS, 250),
         GNUNET_ATS_PREFERENCE_BANDWIDTH);
- */
-/*
+ *//*
    GNUNET_ATS_TEST_generate_preferences_start(&masters[0],&masters[0].partners[0],
       GNUNET_ATS_TEST_TG_SINUS, 10, 5,
       GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 5),
@@ -397,4 +394,6 @@ main (int argc, char *argv[])
   GNUNET_free (opt_exp_file);
   return 0;
 }
+
+
 /* end of file gnunet-ats-sim.c */

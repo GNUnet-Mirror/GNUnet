@@ -84,7 +84,6 @@ enum GNUNET_SERVICE_Options
 };
 
 
-
 /* **************** NEW SERVICE API ********************** */
 
 /**

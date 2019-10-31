@@ -218,7 +218,6 @@ GNUNET_STATISTICS_update (struct GNUNET_STATISTICS_Handle *handle,
                           int make_persistent);
 
 
-
 #if 0                           /* keep Emacsens' auto-indent happy */
 {
 #endif

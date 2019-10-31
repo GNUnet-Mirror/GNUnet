@@ -930,4 +930,5 @@ GNUNET_PEERSTORE_watch (struct GNUNET_PEERSTORE_Handle *h,
   return wc;
 }
 
+
 /* end of peerstore_api.c */

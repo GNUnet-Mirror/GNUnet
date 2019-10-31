@@ -11,7 +11,7 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -21,7 +21,7 @@
 
 /**
  * @file abd/abd_serialization.c
- * @brief API to serialize and deserialize delegation chains 
+ * @brief API to serialize and deserialize delegation chains
  * and abds
  * @author Martin Schanzenbach
  */
@@ -57,6 +57,7 @@ GNUNET_ABD_delegation_set_get_size (
   }
   return ret;
 }
+
 
 /**
  * Serizalize the given delegation chain entries and abd
@@ -158,12 +159,15 @@ GNUNET_ABD_delegates_get_size (
 
   for (i = 0; i < c_count; i++)
   {
-    GNUNET_assert ((ret + cd[i].issuer_attribute_len + cd[i].subject_attribute_len) >= ret);
+    GNUNET_assert ((ret + cd[i].issuer_attribute_len
+                    + cd[i].subject_attribute_len) >= ret);
     // subject_attribute_len should be 0
     ret += cd[i].issuer_attribute_len + cd[i].subject_attribute_len;
   }
   return ret;
 }
+
+
 /**
  * Serizalize the given abds
  *
@@ -187,15 +191,15 @@ GNUNET_ABD_delegates_serialize (
   off = 0;
   for (i = 0; i < c_count; i++)
   {
-    //c_rec.subject_attribute_len = htonl ((uint32_t) cd[i].subject_attribute_len);
+    // c_rec.subject_attribute_len = htonl ((uint32_t) cd[i].subject_attribute_len);
     c_rec.issuer_attribute_len = htonl ((uint32_t) cd[i].issuer_attribute_len);
     c_rec.issuer_key = cd[i].issuer_key;
     c_rec.subject_key = cd[i].subject_key;
     c_rec.signature = cd[i].signature;
     c_rec.purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_DELEGATE);
     c_rec.purpose.size =
-      htonl ((sizeof (struct DelegateEntry) + cd[i].issuer_attribute_len) -
-             sizeof (struct GNUNET_CRYPTO_EcdsaSignature));
+      htonl ((sizeof (struct DelegateEntry) + cd[i].issuer_attribute_len)
+             - sizeof (struct GNUNET_CRYPTO_EcdsaSignature));
     c_rec.expiration = GNUNET_htonll (cd[i].expiration.abs_value_us);
     if (off + sizeof (c_rec) > dest_size)
       return -1;
@@ -224,9 +228,9 @@ GNUNET_ABD_delegates_serialize (
  */
 int
 GNUNET_ABD_delegates_deserialize (size_t len,
-                                         const char *src,
-                                         unsigned int c_count,
-                                         struct GNUNET_ABD_Delegate *cd)
+                                  const char *src,
+                                  unsigned int c_count,
+                                  struct GNUNET_ABD_Delegate *cd)
 {
   struct DelegateEntry c_rec;
   unsigned int i;
@@ -285,6 +289,7 @@ GNUNET_ABD_delegation_chain_get_size (
   return ret + GNUNET_ABD_delegates_get_size (c_count, cd);
 }
 
+
 /**
  * Serizalize the given delegation chain entries and abd
  *
@@ -336,9 +341,9 @@ GNUNET_ABD_delegation_chain_serialize (
     off += dd[i].subject_attribute_len;
   }
   return off + GNUNET_ABD_delegates_serialize (c_count,
-                                                      cd,
-                                                      dest_size - off,
-                                                      &dest[off]);
+                                               cd,
+                                               dest_size - off,
+                                               &dest[off]);
 }
 
 
@@ -387,14 +392,15 @@ GNUNET_ABD_delegation_chain_deserialize (
     off += dd[i].subject_attribute_len;
   }
   return GNUNET_ABD_delegates_deserialize (len - off,
-                                                  &src[off],
-                                                  c_count,
-                                                  cd);
+                                           &src[off],
+                                           c_count,
+                                           cd);
 }
+
 
 int
 GNUNET_ABD_delegate_serialize (struct GNUNET_ABD_Delegate *dele,
-                                      char **data)
+                               char **data)
 {
   size_t size;
   struct DelegateEntry *cdata;
@@ -455,6 +461,7 @@ GNUNET_ABD_delegate_serialize (struct GNUNET_ABD_Delegate *dele,
   return size;
 }
 
+
 struct GNUNET_ABD_Delegate *
 GNUNET_ABD_delegate_deserialize (const char *data, size_t data_size)
 {
@@ -504,5 +511,6 @@ GNUNET_ABD_delegate_deserialize (const char *data, size_t data_size)
 
   return dele;
 }
+
 
 /* end of abd_serialization.c */

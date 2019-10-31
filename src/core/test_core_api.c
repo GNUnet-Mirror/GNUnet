@@ -340,4 +340,5 @@ main (int argc, char *argv1[])
   return ok;
 }
 
+
 /* end of test_core_api.c */

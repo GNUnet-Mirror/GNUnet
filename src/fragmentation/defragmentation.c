@@ -586,4 +586,5 @@ GNUNET_DEFRAGMENT_process_fragment (struct GNUNET_DEFRAGMENT_Context *dc,
   return GNUNET_YES;
 }
 
+
 /* end of defragmentation.c */

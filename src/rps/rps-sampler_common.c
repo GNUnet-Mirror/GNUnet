@@ -354,7 +354,7 @@ RPS_sampler_count_id (struct RPS_Sampler *sampler,
   for (i = 0; i < sampler->sampler_size; i++)
   {
     if ((0 == GNUNET_memcmp (&sampler->sampler_elements[i]->peer_id, id))
-        &&(EMPTY != sampler->sampler_elements[i]->is_empty) )
+        && (EMPTY != sampler->sampler_elements[i]->is_empty) )
       count++;
   }
   return count;

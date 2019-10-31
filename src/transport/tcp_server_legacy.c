@@ -337,7 +337,6 @@ struct GNUNET_SERVER_Client
 };
 
 
-
 /**
  * Return user context associated with the given client.
  * Note: you should probably use the macro (call without the underscore).

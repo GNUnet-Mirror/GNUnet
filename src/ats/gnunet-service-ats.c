@@ -94,7 +94,6 @@ handle_ats_start (void *cls,
 }
 
 
-
 /**
  * Handle 'reservation request' messages from clients.
  *

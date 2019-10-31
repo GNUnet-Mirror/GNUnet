@@ -688,9 +688,7 @@ check_local_data (void *cls,
      ONE payload item or multiple? Seems current cadet_api
      at least in theory allows more than one. Next-gen
      cadet_api will likely no more, so we could then
-     simplify this mess again. */
-  /* Sanity check for message size */
-  payload_size = ntohs (msg->header.size) - sizeof(*msg);
+     simplify this mess again. *//* Sanity check for message size */payload_size = ntohs (msg->header.size) - sizeof(*msg);
   buf = (const char *) &msg[1];
   while (payload_size >= sizeof(struct GNUNET_MessageHeader))
   {

@@ -106,6 +106,7 @@ reply_handle (void *cls,
   GNUNET_SCHEDULER_shutdown ();
 }
 
+
 /**
  * Callback called on receipt view update.
  * Prints view.
@@ -249,6 +250,7 @@ run (void *cls,
   }
 }
 
+
 /**
  * The main function to rps.
  *
@@ -287,5 +289,6 @@ main (int argc, char *const *argv)
                                 (helpstr),
                               options, &run, NULL)) ? ret : 1;
 }
+
 
 /* end of gnunet-rps.c */

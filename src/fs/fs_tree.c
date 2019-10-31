@@ -459,4 +459,5 @@ GNUNET_FS_tree_encoder_finish (struct GNUNET_FS_TreeEncoder *te,
   GNUNET_free (te);
 }
 
+
 /* end of fs_tree.c */

@@ -536,6 +536,7 @@ is_canonical (const char *name)
   return GNUNET_YES;
 }
 
+
 /* ************************** Resolution **************************** */
 
 /**

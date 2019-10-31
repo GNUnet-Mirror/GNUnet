@@ -196,4 +196,5 @@ GNUNET_MICROPHONE_destroy (struct GNUNET_MICROPHONE_Handle *microphone)
   GNUNET_free (microphone);
 }
 
+
 /* end of microphone.c */

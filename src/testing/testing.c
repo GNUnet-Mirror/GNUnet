@@ -595,8 +595,7 @@ GNUNET_TESTING_reserve_port (struct GNUNET_TESTING_System *system)
          address families are considered open.
          On system with either IPv4 or IPv6. A port is considered open if it's
          open in the respective address family
-   */
-  hint.ai_family = AF_UNSPEC; /* IPv4 and IPv6 */
+   */hint.ai_family = AF_UNSPEC; /* IPv4 and IPv6 */
   hint.ai_socktype = 0;
   hint.ai_protocol = 0;
   hint.ai_addrlen = 0;

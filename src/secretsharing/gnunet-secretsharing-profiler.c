@@ -207,8 +207,9 @@ decrypt_connect_complete (void *cls,
  * @param cls Plaintext
  * @param plaintext Plaintext
  */
-static void decrypt_cb (void *cls,
-                        const struct GNUNET_SECRETSHARING_Plaintext *plaintext)
+static void
+decrypt_cb (void *cls,
+            const struct GNUNET_SECRETSHARING_Plaintext *plaintext)
 {
   struct GNUNET_SECRETSHARING_DecryptionHandle **dhp = cls;
   unsigned int n = dhp - decrypt_handles;
@@ -242,7 +243,6 @@ static void decrypt_cb (void *cls,
 
   *dhp = NULL;
 }
-
 
 
 /**
@@ -381,7 +381,6 @@ session_connect_adapter (void *cls,
                                              &secret_ready_cb, sp);
   return *sp;
 }
-
 
 
 /**

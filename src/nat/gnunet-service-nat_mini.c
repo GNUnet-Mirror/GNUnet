@@ -443,8 +443,7 @@ process_refresh_output (void *cls, const char *line)
    *
    * "%s TCP  PORT->STRING:OURPORT *" or
    * "%s UDP  PORT->STRING:OURPORT *"
-   */
-  GNUNET_snprintf (pstr, sizeof(pstr), ":%u ", mini->port);
+   */GNUNET_snprintf (pstr, sizeof(pstr), ":%u ", mini->port);
   if (NULL == (s = strstr (line, "->")))
     return; /* skip */
   if (NULL == strstr (s, pstr))
@@ -554,8 +553,7 @@ process_map_output (void *cls, const char *line)
    * The upnpc output we're after looks like this:
    *
    * "external 87.123.42.204:3000 TCP is redirected to internal 192.168.2.150:3000"
-   */
-  if ((NULL == (ipaddr = strstr (line, " "))) ||
+   */if ((NULL == (ipaddr = strstr (line, " "))) ||
       (NULL == (pstr = strstr (ipaddr, ":"))) ||
       (1 != sscanf (pstr + 1, "%u", &port)))
   {

@@ -3568,9 +3568,7 @@ GST_neighbours_handle_session_ack (const struct GNUNET_MessageHeader *message,
      We expect a ACK:
      - If a remote peer has sent a SYN, we responded with a SYN_ACK and
      now wait for the ACK to finally be connected
-     - If we sent a SYN_ACK to this peer before */
-
-  if (((GNUNET_TRANSPORT_PS_SYN_RECV_ACK != n->state) &&
+     - If we sent a SYN_ACK to this peer before */if (((GNUNET_TRANSPORT_PS_SYN_RECV_ACK != n->state) &&
        (ACK_SEND_ACK != n->ack_state)) ||
       (NULL == n->primary_address.address))
   {
@@ -3606,8 +3604,7 @@ GST_neighbours_handle_session_ack (const struct GNUNET_MessageHeader *message,
      * an ACK.
      * That suggests that the primary_address used to be non-NULL, but maybe it
      * got reset to NULL without the state being changed appropriately?
-     */
-    GNUNET_break (0);
+     */GNUNET_break (0);
     return GNUNET_OK;
   }
 

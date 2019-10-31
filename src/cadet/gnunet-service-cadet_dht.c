@@ -349,4 +349,5 @@ GCD_search_stop (struct GCD_search_handle *h)
   GNUNET_free (h);
 }
 
+
 /* end of gnunet-service-cadet_dht.c */

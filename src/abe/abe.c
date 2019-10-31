@@ -77,6 +77,7 @@ init_aes (element_t k, int enc,
   return rc;
 }
 
+
 static int
 aes_128_cbc_encrypt (char*pt,
                      int size,
@@ -115,6 +116,7 @@ aes_128_cbc_encrypt (char*pt,
   return buf_size;
 }
 
+
 static int
 aes_128_cbc_decrypt (char*ct,
                      int size,
@@ -148,6 +150,7 @@ aes_128_cbc_decrypt (char*ct,
   return len;
 }
 
+
 /**
  * @ingroup abe
  * Create a new CP-ABE master key. Caller must free return value.
@@ -166,6 +169,7 @@ GNUNET_ABE_cpabe_create_master_key (void)
   return key;
 }
 
+
 /**
  * @ingroup abe
  * Delete a CP-ABE master key.
@@ -182,6 +186,7 @@ GNUNET_ABE_cpabe_delete_master_key (struct GNUNET_ABE_AbeMasterKey *key)
   // gabe_msk_free (key->msk); //For some reason free of pub implicit?
   GNUNET_free (key);
 }
+
 
 /**
  * @ingroup abe
@@ -208,6 +213,7 @@ GNUNET_ABE_cpabe_create_key (struct GNUNET_ABE_AbeMasterKey *key,
   return prv_key;
 }
 
+
 /**
  * @ingroup abe
  * Delete a CP-ABE key.
@@ -226,6 +232,7 @@ GNUNET_ABE_cpabe_delete_key (struct GNUNET_ABE_AbeKey *key,
     gabe_pub_free (key->pub);
   GNUNET_free (key);
 }
+
 
 static ssize_t
 write_cpabe (void **result,
@@ -254,6 +261,7 @@ write_cpabe (void **result,
   GNUNET_memcpy (ptr, cph_buf, cph_buf_len);
   return 12 + cph_buf_len + aes_buf_len;
 }
+
 
 static ssize_t
 read_cpabe (const void *data,
@@ -284,6 +292,7 @@ read_cpabe (const void *data,
 
   return buf_len;
 }
+
 
 /**
  * @ingroup abe
@@ -328,6 +337,7 @@ GNUNET_ABE_cpabe_encrypt (const void *block,
   GNUNET_free (aes_buf);
   return result_len;
 }
+
 
 /**
  * @ingroup abe
@@ -378,6 +388,7 @@ GNUNET_ABE_cpabe_decrypt (const void *block,
   return plt_len;
 }
 
+
 /**
  * @ingroup abe
  * Serialize an ABE key.
@@ -407,6 +418,7 @@ GNUNET_ABE_cpabe_serialize_key (const struct GNUNET_ABE_AbeKey *key,
 
   return len;
 }
+
 
 /**
  * @ingroup abe
@@ -440,6 +452,7 @@ GNUNET_ABE_cpabe_deserialize_key (const void *data,
   return key;
 }
 
+
 /**
  * @ingroup abe
  * Serialize an ABE master key.
@@ -470,6 +483,7 @@ GNUNET_ABE_cpabe_serialize_master_key (const struct
 
   return len;
 }
+
 
 /**
  * @ingroup abe

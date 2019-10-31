@@ -1775,8 +1775,7 @@ handle_client_cancel (void *cls, const struct GNUNET_SET_CancelMessage *msg)
      * the other peer disconnecting.  The client may not know about this
      * yet and try to cancel the (just barely non-existent) operation.
      * So this is not a hard error.
-     */
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+     */GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                 "Client canceled non-existent op %u\n",
                 (uint32_t) ntohl (msg->request_id));
   }

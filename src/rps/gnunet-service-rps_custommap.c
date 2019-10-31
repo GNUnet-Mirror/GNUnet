@@ -87,6 +87,7 @@ CustomPeerMap_create (unsigned int len)
   return c_peer_map;
 }
 
+
 /**
  * Get the size of the custom peer map
  *
@@ -101,6 +102,7 @@ CustomPeerMap_size (const struct CustomPeerMap *c_peer_map)
                  GNUNET_CONTAINER_multipeermap_size (c_peer_map->peer_map));
   return GNUNET_CONTAINER_multipeermap_size (c_peer_map->peer_map);
 }
+
 
 /**
  * Insert peer into the custom peer map
@@ -149,6 +151,7 @@ CustomPeerMap_put (const struct CustomPeerMap *c_peer_map,
   return GNUNET_NO;
 }
 
+
 /**
  * Check whether custom peer map contains a peer
  *
@@ -164,6 +167,7 @@ CustomPeerMap_contains_peer (const struct CustomPeerMap *c_peer_map,
 {
   return GNUNET_CONTAINER_multipeermap_contains (c_peer_map->peer_map, peer);
 }
+
 
 /**
  * Get index of peer in custom peer map
@@ -183,6 +187,7 @@ CustomPeerMap_get_index_pointer (const struct CustomPeerMap *c_peer_map,
   index = GNUNET_CONTAINER_multipeermap_get (c_peer_map->peer_map, peer);
   return index;
 }
+
 
 /**
  * Remove peer from custom peer map
@@ -243,6 +248,7 @@ CustomPeerMap_remove_peer (const struct CustomPeerMap *c_peer_map,
   return GNUNET_OK;
 }
 
+
 /**
  * Get a peer by index
  *
@@ -263,6 +269,7 @@ CustomPeerMap_get_peer_by_index (const struct CustomPeerMap *c_peer_map,
   }
   return NULL;
 }
+
 
 /**
  * Remove peer from custom peer map by index
@@ -301,6 +308,7 @@ CustomPeerMap_remove_peer_by_index (const struct CustomPeerMap *c_peer_map,
   return GNUNET_OK;
 }
 
+
 /**
  * Clear the custom peer map
  *
@@ -326,6 +334,7 @@ CustomPeerMap_clear (const struct CustomPeerMap *c_peer_map)
   GNUNET_assert (0 == CustomPeerMap_size (c_peer_map));
 }
 
+
 /**
  * Destroy peermap.
  *
@@ -339,5 +348,6 @@ CustomPeerMap_destroy (struct CustomPeerMap *c_peer_map)
   GNUNET_CONTAINER_multipeermap_destroy (c_peer_map->peer_map);
   GNUNET_free (c_peer_map);
 }
+
 
 /* end of gnunet-service-rps_custommap.c */

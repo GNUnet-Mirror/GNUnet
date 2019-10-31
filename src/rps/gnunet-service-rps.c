@@ -85,7 +85,6 @@
 #define unset_channel_flag(channel_flags, mask) ((*channel_flags) &= ~(mask))
 
 
-
 /**
  * Pending operation on peer consisting of callback and closure
  *
@@ -623,6 +622,7 @@ get_peer_ctx (const struct GNUNET_CONTAINER_MultiPeerMap *peer_map,
   return ctx;
 }
 
+
 /**
  * @brief Check whether we have information about the given peer.
  *
@@ -856,6 +856,7 @@ add_valid_peer (const struct GNUNET_PeerIdentity *peer,
   return ret;
 }
 
+
 static void
 remove_pending_message (struct PendingMessage *pending_msg, int cancel);
 
@@ -899,6 +900,7 @@ set_peer_online (struct PeerContext *peer_ctx)
   }
   GNUNET_array_grow (peer_ctx->pending_ops, peer_ctx->num_pending_ops, 0);
 }
+
 
 static void
 cleanup_destroyed_channel (void *cls,
@@ -1048,6 +1050,7 @@ get_mq (struct PeerContext *peer_ctx)
   return peer_ctx->mq;
 }
 
+
 /**
  * @brief Add an envelope to a message passed to mq to list of pending messages
  *
@@ -1123,6 +1126,7 @@ mq_online_check_successful (void *cls)
     (void) add_valid_peer (&peer_ctx->peer_id, peer_ctx->sub->valid_peers);
   }
 }
+
 
 /**
  * Issue a check whether peer is online
@@ -1758,6 +1762,7 @@ check_peer_flag (const struct GNUNET_CONTAINER_MultiPeerMap *peer_map,
   return check_peer_flag_set (peer_ctx, flags);
 }
 
+
 /**
  * @brief Try connecting to a peer to see whether it is online
  *
@@ -1969,6 +1974,7 @@ destroy_sending_channel (struct PeerContext *peer_ctx)
   return GNUNET_NO;
 }
 
+
 /**
  * @brief Send a message to another peer.
  *
@@ -1998,6 +2004,7 @@ send_message (struct PeerContext *peer_ctx,
                          pending_msg);
   GNUNET_MQ_send (mq, ev);
 }
+
 
 /**
  * @brief Schedule a operation on given peer
@@ -2034,6 +2041,7 @@ schedule_operation (struct PeerContext *peer_ctx,
   }
   return GNUNET_NO;
 }
+
 
 /***********************************************************************
 * /Old gnunet-service-rps_peers.c
@@ -2120,9 +2128,6 @@ struct ClientContext *cli_ctx_tail;
 /***********************************************************************
 * /Housekeeping with clients
 ***********************************************************************/
-
-
-
 
 
 /***********************************************************************
@@ -2383,7 +2388,7 @@ clients_notify_stream_peer (const struct Sub *sub,
        cli_ctx_iter = cli_ctx_iter->next)
   {
     if ((GNUNET_YES == cli_ctx_iter->stream_update) &&
-        ((sub == cli_ctx_iter->sub) ||(sub == msub) ))
+        ((sub == cli_ctx_iter->sub) || (sub == msub) ))
     {
       send_stream_peers (cli_ctx_iter, num_peers, peers);
     }
@@ -2828,7 +2833,7 @@ cleanup_destroyed_channel (void *cls,
 
   channel_ctx->channel = NULL;
   remove_channel_ctx (channel_ctx);
-  if ((NULL != peer_ctx)&&
+  if ((NULL != peer_ctx) &&
       (peer_ctx->send_channel_ctx == channel_ctx) &&
       (GNUNET_YES == check_sending_channel_needed (channel_ctx->peer_ctx)) )
   {
@@ -2836,10 +2841,10 @@ cleanup_destroyed_channel (void *cls,
   }
 }
 
+
 /***********************************************************************
 * /Util functions
 ***********************************************************************/
-
 
 
 /***********************************************************************
@@ -3016,6 +3021,8 @@ write_histogram_to_file (const uint32_t hist_array[],
                  collect_str);
   GNUNET_free (file_name_full);
 }
+
+
 #endif /* TO_FILE */
 
 
@@ -3147,6 +3154,7 @@ core_disconnects (void *cls,
 
   GNUNET_CONTAINER_multipeermap_remove_all (map_single_hop, peer);
 }
+
 
 /***********************************************************************
 * /Core handlers
@@ -3442,7 +3450,7 @@ handle_client_start_sub (void *cls,
   struct ClientContext *cli_ctx = cls;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Client requested start of a new sub.\n");
-  if ((NULL != cli_ctx->sub)&&
+  if ((NULL != cli_ctx->sub) &&
       (0 != memcmp (&cli_ctx->sub->hash,
                     &msg->hash,
                     sizeof(struct GNUNET_HashCode))) )
@@ -3633,7 +3641,7 @@ handle_peer_pull_request (void *cls,
 
   #if ENABLE_MALICIOUS
   if ((1 == mal_type)
-      ||(3 == mal_type))
+      || (3 == mal_type))
   {   /* Try to maximise representation */
     send_pull_reply (peer_ctx, mal_peers, num_mal_peers);
   }
@@ -3774,13 +3782,13 @@ handle_peer_pull_reply (void *cls,
 
     #if ENABLE_MALICIOUS
     if ((NULL != att_peer_set) &&
-        ((1 == mal_type) ||(3 == mal_type) ))
+        ((1 == mal_type) || (3 == mal_type) ))
     {     /* Add attacked peer to local list */
           // TODO check if we sent a request and this was the first reply
       if ((GNUNET_NO == GNUNET_CONTAINER_multipeermap_contains (att_peer_set,
                                                                 &peers[i]))
-          &&(GNUNET_NO == GNUNET_CONTAINER_multipeermap_contains (mal_peer_set,
-                                                                  &peers[i])) )
+          && (GNUNET_NO == GNUNET_CONTAINER_multipeermap_contains (mal_peer_set,
+                                                                   &peers[i])) )
       {
         tmp_att_peer = GNUNET_new (struct AttackedPeer);
         tmp_att_peer->peer_id = peers[i];
@@ -3987,6 +3995,7 @@ check_client_act_malicious (void *cls,
   }
   return GNUNET_OK;
 }
+
 
 /**
  * Turn RPS service to act malicious.
@@ -4236,6 +4245,8 @@ do_mal_round (void *cls)
                                                      &do_mal_round, sub);
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Finished round\n");
 }
+
+
 #endif /* ENABLE_MALICIOUS */
 
 
@@ -4784,6 +4795,7 @@ client_connect_cb (void *cls,
                                cli_ctx);
   return cli_ctx;
 }
+
 
 /**
  * Callback called when a client disconnected from the service

@@ -402,6 +402,7 @@ void
 GNUNET_SERVER_client_set_user_context_ (struct GNUNET_SERVER_Client *client,
                                         void *ptr,
                                         size_t size);
+
 /**
  * Return user context associated with the given client.
  *
@@ -1376,6 +1377,8 @@ get_server_addresses (const char *service_name,
   *addr_lens = saddrlens;
   return resi;
 }
+
+
 /* end ancient copy-and-paste */
 
 
@@ -2447,8 +2450,7 @@ tcp_plugin_get_session (void *cls, const struct GNUNET_HELLO_Address *address)
        one TCP connection to any given peer at the same time.
        Without this, peers sometimes disagree about which of the TCP
        connections they should use, causing one side to believe that
-       they transmit successfully, while the other receives nothing. */
-    return NULL;   /* Refuse to have more than one TCP connection per
+       they transmit successfully, while the other receives nothing. */return NULL; /* Refuse to have more than one TCP connection per
                       peer pair at the same time. */
   }
 
@@ -2956,8 +2958,7 @@ handle_tcp_nat_probe (void *cls,
    * received the punch message and now wants us to use the new connection
    * as the default for that peer.  Do so and then send a WELCOME message
    * so we can really be connected!
-   */
-  if (ntohs (message->size) != sizeof(struct TCP_NAT_ProbeMessage))
+   */if (ntohs (message->size) != sizeof(struct TCP_NAT_ProbeMessage))
   {
     GNUNET_break_op (0);
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
@@ -3961,5 +3962,6 @@ libgnunet_plugin_transport_tcp_done (void *cls)
   GNUNET_free (api);
   return NULL;
 }
+
 
 /* end of plugin_transport_tcp.c */

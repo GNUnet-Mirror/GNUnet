@@ -487,7 +487,6 @@ status_cb (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg_, int
 }
 
 
-
 /**
  * Main run function.
  *
@@ -536,5 +535,6 @@ main (int argc, char **argv)
     return 1;
   return 0;
 }
+
 
 /* end of test_testbed_api_2peers_1controller.c */

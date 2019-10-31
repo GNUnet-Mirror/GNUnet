@@ -576,6 +576,7 @@ cleanup_handle (struct RequestHandle *handle)
   GNUNET_free (handle);
 }
 
+
 static void
 cleanup_handle_delayed (void *cls)
 {
@@ -667,6 +668,7 @@ do_redirect_error (void *cls)
   GNUNET_free (redirect);
 }
 
+
 /**
  * Task run on timeout, sends error message.  Cleans up everything.
  *
@@ -680,6 +682,7 @@ do_timeout (void *cls)
   handle->timeout_task = NULL;
   do_error (handle);
 }
+
 
 /**
  * Return attributes for claim
@@ -817,6 +820,7 @@ cookie_identity_interpretation (struct RequestHandle *handle)
   GNUNET_free (cookies);
 }
 
+
 /**
  * Redirects to login page stored in configuration file
  */
@@ -867,6 +871,7 @@ login_redirect (void *cls)
   GNUNET_free (new_redirect);
   GNUNET_SCHEDULER_add_now (&cleanup_handle_delayed, handle);
 }
+
 
 /**
  * Does internal server error when iteration failed.
@@ -942,6 +947,7 @@ oidc_ticket_issue_cb (void *cls, const struct GNUNET_RECLAIM_Ticket *ticket)
   GNUNET_free (ticket_str);
   GNUNET_free (code_string);
 }
+
 
 static void
 oidc_collect_finished_cb (void *cls)
@@ -1226,6 +1232,7 @@ client_redirect (void *cls)
                        handle);
 }
 
+
 static char *
 get_url_parameter_copy (const struct RequestHandle *handle, const char *key)
 {
@@ -1358,6 +1365,7 @@ build_authz_response (void *cls)
     GNUNET_SCHEDULER_add_now (&client_redirect, handle);
 }
 
+
 /**
  * Iterate over tlds in config
  */
@@ -1376,6 +1384,7 @@ tld_iter (void *cls, const char *section, const char *option, const char *value)
   if (0 == GNUNET_memcmp (&pkey, &handle->oidc->client_pkey))
     handle->tld = GNUNET_strdup (option + 1);
 }
+
 
 /**
  * Responds to authorization GET and url-encoded POST request
@@ -1452,6 +1461,7 @@ authorize_endpoint (struct GNUNET_REST_RequestHandle *con_handle,
   GNUNET_SCHEDULER_add_now (&build_authz_response, handle);
 }
 
+
 /**
  * Combines an identity with a login time and responds OK to login request
  *
@@ -1521,6 +1531,7 @@ login_cont (struct GNUNET_REST_RequestHandle *con_handle,
   json_decref (root);
   GNUNET_SCHEDULER_add_now (&cleanup_handle_delayed, handle);
 }
+
 
 static int
 check_authorization (struct RequestHandle *handle,
@@ -1640,6 +1651,7 @@ check_authorization (struct RequestHandle *handle,
   return GNUNET_OK;
 }
 
+
 const struct EgoEntry *
 find_ego (struct RequestHandle *handle,
           struct GNUNET_CRYPTO_EcdsaPublicKey *test_key)
@@ -1656,6 +1668,7 @@ find_ego (struct RequestHandle *handle,
   }
   return NULL;
 }
+
 
 static void
 persist_access_token (const struct RequestHandle *handle,
@@ -1675,6 +1688,7 @@ persist_access_token (const struct RequestHandle *handle,
                    ticketbuf,
                    GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
 }
+
 
 /**
  * Responds to token url-encoded POST request
@@ -1841,6 +1855,7 @@ token_endpoint (struct GNUNET_REST_RequestHandle *con_handle,
   GNUNET_SCHEDULER_add_now (&cleanup_handle_delayed, handle);
 }
 
+
 /**
  * Collects claims and stores them in handle
  */
@@ -1865,6 +1880,7 @@ consume_ticket (void *cls,
   json_object_set_new (handle->oidc->response, attr->name, value);
   GNUNET_free (tmp_value);
 }
+
 
 /**
  * Responds to userinfo GET and url-encoded POST request
@@ -2002,6 +2018,7 @@ init_cont (struct RequestHandle *handle)
   }
 }
 
+
 /**
  * If listing is enabled, prints information about the egos.
  *
@@ -2108,6 +2125,7 @@ list_ego (void *cls,
   }
 }
 
+
 static void
 rest_identity_process_request (struct GNUNET_REST_RequestHandle *rest_handle,
                                GNUNET_REST_ResultProcessor proc,
@@ -2139,6 +2157,7 @@ rest_identity_process_request (struct GNUNET_REST_RequestHandle *rest_handle,
     GNUNET_SCHEDULER_add_delayed (handle->timeout, &do_timeout, handle);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Connected\n");
 }
+
 
 /**
  * Entry point for the plugin.
@@ -2212,5 +2231,6 @@ libgnunet_plugin_rest_openid_connect_done (void *cls)
               "OpenID Connect REST plugin is finished\n");
   return NULL;
 }
+
 
 /* end of plugin_rest_openid_connect.c */

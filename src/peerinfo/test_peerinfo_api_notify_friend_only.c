@@ -108,6 +108,7 @@ done (void *cls)
     GNUNET_break (0);
 }
 
+
 static ssize_t
 address_generator (void *cls, size_t max, void *buf)
 {
@@ -170,6 +171,7 @@ process_w_fo (void *cls,
     return;
   }
 }
+
 
 static void
 process_wo_fo (void *cls, const struct GNUNET_PeerIdentity *peer,
@@ -254,5 +256,6 @@ main (int argc, char *argv[])
     return 1;
   return global_ret;
 }
+
 
 /* end of test_peerinfo_api_notify_friend_only.c */

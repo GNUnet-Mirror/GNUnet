@@ -1238,8 +1238,7 @@ GCCH_handle_channel_plaintext_data (
      * - The channel is out-of-order
      * - The channel is reliable and MID matches next expected MID
      * - The channel is unreliable and MID is before lowest seen MID
-     */
-    if ((GNUNET_YES == ch->out_of_order) ||
+     */if ((GNUNET_YES == ch->out_of_order) ||
         ((msg->mid.mid == ch->mid_recv.mid) && (GNUNET_YES == ch->reliable)) ||
         ((GNUNET_NO == ch->reliable) &&
          (ntohl (msg->mid.mid) >= ntohl (ch->mid_recv.mid)) &&
@@ -1415,8 +1414,7 @@ GCCH_handle_channel_plaintext_data (
        the case above if "delta" >= 64, which could be the case if
        max_pending_messages is also >= 64 or if our client is unready
        and we are seeing retransmissions of the message our client is
-       blocked on. */
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
+       blocked on. */LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Duplicate payload of %u bytes on %s (mid %u) dropped\n",
          (unsigned int) payload_size,
          GCCH_2s (ch),

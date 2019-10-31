@@ -616,7 +616,6 @@ fwd_tout_barrier_init (void *cls)
 }
 
 
-
 /**
  * Check #GNUNET_MESSAGE_TYPE_TESTBED_BARRIER_INIT messages.
  *
@@ -922,5 +921,6 @@ handle_barrier_status (void *cls,
                                    GNUNET_copy_message (&msg->header));
   }
 }
+
 
 /* end of gnunet-service-testbed_barriers.c */

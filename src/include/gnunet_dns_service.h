@@ -96,7 +96,6 @@ enum GNUNET_DNS_Flags
 };
 
 
-
 /**
  * Signature of a function that is called whenever the DNS service
  * encounters a DNS request and needs to do something with it.  The

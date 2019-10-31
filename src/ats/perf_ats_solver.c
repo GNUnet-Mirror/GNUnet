@@ -530,6 +530,7 @@ perf_update_all_addresses (unsigned int cp, unsigned int ca, unsigned int
   }
 }
 
+
 /**
  * Create an address for a peer
  *
@@ -818,6 +819,7 @@ solver_info_cb (void *cls,
   }
 }
 
+
 /**
  * Evaluate results for a specific iteration
  *
@@ -1014,7 +1016,6 @@ write_all_iterations (void)
     {
       struct Result *cur_full_res;
       struct Result *cur_upd_res;
-
 
 
       // fprintf (stderr, "P: %u I: %u  == %p \n", c_peer, c_iteration, cur_res);
@@ -1504,5 +1505,6 @@ main (int argc, char *argv[])
   GNUNET_PROGRAM_run (argc, argv, argv[0], NULL, options, &run, argv[0]);
   return ret;
 }
+
 
 /* end of file perf_ats_solver.c */

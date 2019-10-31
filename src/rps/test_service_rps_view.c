@@ -141,4 +141,5 @@ main ()
   return check ();
 }
 
+
 /* end of test_service_rps_view.c */

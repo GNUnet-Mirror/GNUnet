@@ -84,7 +84,6 @@
 // static struct AudioMessage *audio_message;
 
 
-
 typedef struct GNUNET_gstData GNUNET_gstData;
 struct GNUNET_gstData
 {
@@ -104,8 +103,6 @@ struct GNUNET_gstData
   char *jack_pp_in;
   char *jack_pp_out;
 };
-
-
 
 
 #define DEBUG_READ_PURE_OGG 1

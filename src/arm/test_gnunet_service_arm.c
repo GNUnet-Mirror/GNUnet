@@ -263,4 +263,5 @@ main (int argc, char *av[])
   return ret;
 }
 
+
 /* end of test_gnunet_service_arm.c */

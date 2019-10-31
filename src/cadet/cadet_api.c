@@ -1121,4 +1121,5 @@ GNUNET_CADET_get_mq (const struct GNUNET_CADET_Channel *channel)
   return channel->mq;
 }
 
+
 /* end of cadet_api.c */

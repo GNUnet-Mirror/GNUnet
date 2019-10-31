@@ -179,7 +179,6 @@ struct CadetExit
 };
 
 
-
 /**
  * State we keep for a request that is going out via CADET.
  */
@@ -738,8 +737,7 @@ timeout_request (void *cls)
        avoid a prohibitively negative score (see
      #get_channel_weight(), which checks for a certain
        minimum number of transmissions before making
-       up an opinion) */
-    exit->num_transmitted = 5;
+       up an opinion) */exit->num_transmitted = 5;
     exit->num_answered = 0;
     dns_exit_available--;
     /* now try to open an alternative exit */

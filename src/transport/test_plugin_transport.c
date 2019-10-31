@@ -255,6 +255,7 @@ end_badly (void *cls)
   ok = 1;
 }
 
+
 static void
 wait_end (void *cls)
 {
@@ -292,6 +293,7 @@ env_receive (void *cls,
   /* do nothing */
   return GNUNET_TIME_relative_get_zero_ ();
 }
+
 
 static int got_reply;
 
@@ -377,8 +379,7 @@ test_addr_string (void *cls)
      int c1;
      for (c1 = 0; c1 < s2a_len; c1++ )
      fprintf (stderr, "%u == %u\n", ((char *) s2a)[c1], ((char *) w->addr)[c1]);
-   */
-  if (s2a_len != w->address->address_length)
+   */if (s2a_len != w->address->address_length)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Plugin creates different address length when converting address->string->address: %u != %u\n",
@@ -787,5 +788,6 @@ main (int argc,
                              "GNUNET_TEST_HOME");
   return ret;
 }
+
 
 /* end of test_plugin_transport.c */

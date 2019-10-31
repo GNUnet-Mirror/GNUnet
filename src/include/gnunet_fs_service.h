@@ -103,7 +103,6 @@ typedef int
                               int is_mandatory);
 
 
-
 /**
  * Get a unique key from a URI.  This is for putting URIs
  * into HashMaps.  The key may change between FS implementations.
@@ -489,7 +488,6 @@ GNUNET_FS_getopt_set_metadata (struct
                                void *scls,
                                const char *option,
                                const char *value);
-
 
 
 /* ************************* sharing API ***************** */
@@ -2343,7 +2341,6 @@ enum GNUNET_FS_DownloadOptions
 };
 
 
-
 /**
  * Download parts of a file.  Note that this will store
  * the blocks at the respective offset in the given file.  Also, the
@@ -2454,7 +2451,6 @@ GNUNET_FS_download_suspend (struct GNUNET_FS_DownloadContext *dc);
  */
 void
 GNUNET_FS_download_resume (struct GNUNET_FS_DownloadContext *dc);
-
 
 
 /* ******************** Directory API *********************** */

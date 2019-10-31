@@ -1181,8 +1181,7 @@ GNUNET_CRYPTO_rsa_verify (const struct GNUNET_HashCode *hash,
      * so the exchange is being malicious in an unfamilair way, maybe
      * just trying to crash us.  Arguably, we've only an internal error
      * though because we should've detected this in our previous call
-     * to GNUNET_CRYPTO_rsa_unblind. */
-    return GNUNET_NO;
+     * to GNUNET_CRYPTO_rsa_unblind. */return GNUNET_NO;
   }
 
   data = mpi_to_sexp (r);

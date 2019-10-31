@@ -72,6 +72,7 @@ crc_init ()
   }
 }
 
+
 /*
  * This computes the standard preset and inverted CRC, as used
  * by most networking standards.  Start by passing in an initial

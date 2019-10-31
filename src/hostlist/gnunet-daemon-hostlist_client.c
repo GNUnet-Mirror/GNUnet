@@ -1789,4 +1789,5 @@ GNUNET_HOSTLIST_client_stop ()
   cfg = NULL;
 }
 
+
 /* end of gnunet-daemon-hostlist_client.c */

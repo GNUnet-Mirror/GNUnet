@@ -251,4 +251,5 @@ GNUNET_PQ_disconnect (struct GNUNET_PQ_Context *db)
   GNUNET_free (db);
 }
 
+
 /* end of pq/pq_connect.c */

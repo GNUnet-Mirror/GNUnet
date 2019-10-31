@@ -773,8 +773,7 @@ update_active_address (struct GAS_PROPORTIONAL_Handle *s,
        * suggest one.  Therefore we have to disconnect the peer.
        * The above call to "distribute_bandwidth_in_network()
        * does not see 'current_address' so we need to trigger
-       * the update here. */
-      LOG (GNUNET_ERROR_TYPE_DEBUG,
+       * the update here. */LOG (GNUNET_ERROR_TYPE_DEBUG,
            "Disconnecting peer `%s'.\n",
            GNUNET_i2s (peer));
       s->env->bandwidth_changed_cb (s->env->cls,

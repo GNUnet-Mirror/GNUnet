@@ -11,7 +11,7 @@
       WITHOUT ANY WARRANTY; without even the implied warranty of
       MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
       Affero General Public License for more details.
-     
+
       You should have received a copy of the GNU Affero General Public License
       along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -58,15 +58,16 @@ struct GNUNET_ABD_Request;
 /*
 * Enum used for checking whether the issuer has the authority to issue credentials or is just a subject
 */
-enum GNUNET_ABD_CredentialFlags {
+enum GNUNET_ABD_CredentialFlags
+{
 
-  //Subject had credentials before, but have been revoked now
+  // Subject had credentials before, but have been revoked now
   GNUNET_ABD_FLAG_REVOKED=0,
 
-  //Subject flag indicates that the subject is a holder of this credential and may present it as such
+  // Subject flag indicates that the subject is a holder of this credential and may present it as such
   GNUNET_ABD_FLAG_SUBJECT=1,
 
-  //Issuer flag is used to signify that the subject is allowed to issue this credential and delegate issuance
+  // Issuer flag is used to signify that the subject is allowed to issue this credential and delegate issuance
   GNUNET_ABD_FLAG_ISSUER=2
 
 };
@@ -75,7 +76,8 @@ GNUNET_NETWORK_STRUCT_BEGIN
 /**
  * The attribute delegation record
  */
-struct GNUNET_ABD_DelegationRecord {
+struct GNUNET_ABD_DelegationRecord
+{
 
   /**
    * Number of delegation sets in this record
@@ -95,7 +97,8 @@ struct GNUNET_ABD_DelegationRecord {
 /**
  * The attribute delegation record
  */
-struct GNUNET_ABD_DelegationRecordSet {
+struct GNUNET_ABD_DelegationRecordSet
+{
 
   /**
    * Public key of the subject this attribute was delegated to
@@ -114,7 +117,8 @@ GNUNET_NETWORK_STRUCT_END
 /**
  * The attribute delegation record
  */
-struct GNUNET_ABD_DelegationSet {
+struct GNUNET_ABD_DelegationSet
+{
 
   /**
    * Public key of the subject this attribute was delegated to
@@ -133,7 +137,8 @@ struct GNUNET_ABD_DelegationSet {
 /**
  * A delegation
  */
-struct GNUNET_ABD_Delegation {
+struct GNUNET_ABD_Delegation
+{
 
   /**
    * The issuer of the delegation
@@ -170,7 +175,8 @@ struct GNUNET_ABD_Delegation {
 /**
  * A delegate
  */
-struct GNUNET_ABD_Delegate {
+struct GNUNET_ABD_Delegate
+{
 
   /**
    * The issuer of the credential
@@ -217,12 +223,13 @@ struct GNUNET_ABD_Delegate {
 /*
 * Enum used for checking whether the issuer has the authority to issue credentials or is just a subject
 */
-enum GNUNET_ABD_AlgoDirectionFlags {
+enum GNUNET_ABD_AlgoDirectionFlags
+{
 
-  //Subject had credentials before, but have been revoked now
+  // Subject had credentials before, but have been revoked now
   GNUNET_ABD_FLAG_FORWARD=1 << 0,
 
-  //Subject flag indicates that the subject is a holder of this credential and may present it as such
+  // Subject flag indicates that the subject is a holder of this credential and may present it as such
   GNUNET_ABD_FLAG_BACKWARD=1 << 1
 
 };
@@ -256,14 +263,19 @@ GNUNET_ABD_disconnect (struct GNUNET_ABD_Handle *handle);
  * @param delegate the delegates
  */
 typedef void (*GNUNET_ABD_CredentialResultProcessor) (void *cls,
-                                                         unsigned int d_count,
-                                                         struct GNUNET_ABD_Delegation *delegation_chain,
-                                                         unsigned int c_count,
-                                                         struct GNUNET_ABD_Delegate *delegte);
-                                                        
+                                                      unsigned int d_count,
+                                                      struct
+                                                      GNUNET_ABD_Delegation *
+                                                      delegation_chain,
+                                                      unsigned int c_count,
+                                                      struct GNUNET_ABD_Delegate
+                                                      *delegte);
+
 typedef void (*GNUNET_ABD_IntermediateResultProcessor) (void *cls,
-                                                         struct GNUNET_ABD_Delegation *delegation,
-                                                         bool is_bw);
+                                                        struct
+                                                        GNUNET_ABD_Delegation *
+                                                        delegation,
+                                                        bool is_bw);
 
 /**
  * Iterator called on obtained result for an attribute delegation.
@@ -273,7 +285,7 @@ typedef void (*GNUNET_ABD_IntermediateResultProcessor) (void *cls,
  * @param result the record data that can be handed to the subject
  */
 typedef void (*GNUNET_ABD_DelegateResultProcessor) (void *cls,
-                                                           uint32_t success);
+                                                    uint32_t success);
 
 /**
  * Iterator called on obtained result for an attribute delegation removal.
@@ -283,7 +295,7 @@ typedef void (*GNUNET_ABD_DelegateResultProcessor) (void *cls,
  * @param result the record data that can be handed to the subject
  */
 typedef void (*GNUNET_ABD_RemoveDelegateResultProcessor) (void *cls,
-                                                                 uint32_t success);
+                                                          uint32_t success);
 
 
 /**
@@ -305,28 +317,28 @@ typedef void (*GNUNET_ABD_RemoveDelegateResultProcessor) (void *cls,
  * @return handle to the queued request
  */
 struct GNUNET_ABD_Request*
-GNUNET_ABD_verify (struct GNUNET_ABD_Handle *handle,
-                          const struct GNUNET_CRYPTO_EcdsaPublicKey *issuer_key,
-                          const char *issuer_attribute,
-                          const struct GNUNET_CRYPTO_EcdsaPublicKey *subject_key,
-                          uint32_t delegate_count,
-                          const struct GNUNET_ABD_Delegate *delegates,
-                          enum GNUNET_ABD_AlgoDirectionFlags direction,
-                          GNUNET_ABD_CredentialResultProcessor proc,
-                          void *proc_cls,
-                          GNUNET_ABD_IntermediateResultProcessor,
-                          void *proc2_cls);
+  GNUNET_ABD_verify (struct GNUNET_ABD_Handle *handle,
+                     const struct GNUNET_CRYPTO_EcdsaPublicKey *issuer_key,
+                     const char *issuer_attribute,
+                     const struct GNUNET_CRYPTO_EcdsaPublicKey *subject_key,
+                     uint32_t delegate_count,
+                     const struct GNUNET_ABD_Delegate *delegates,
+                     enum GNUNET_ABD_AlgoDirectionFlags direction,
+                     GNUNET_ABD_CredentialResultProcessor proc,
+                     void *proc_cls,
+                     GNUNET_ABD_IntermediateResultProcessor,
+                     void *proc2_cls);
 
 struct GNUNET_ABD_Request*
-GNUNET_ABD_collect (struct GNUNET_ABD_Handle *handle,
-                           const struct GNUNET_CRYPTO_EcdsaPublicKey *issuer_key,
-                           const char *issuer_attribute,
-                           const struct GNUNET_CRYPTO_EcdsaPrivateKey *subject_key,
-                           enum GNUNET_ABD_AlgoDirectionFlags direction,
-                           GNUNET_ABD_CredentialResultProcessor proc,
-                           void *proc_cls,
-                           GNUNET_ABD_IntermediateResultProcessor,
-                           void *proc2_cls);
+  GNUNET_ABD_collect (struct GNUNET_ABD_Handle *handle,
+                      const struct GNUNET_CRYPTO_EcdsaPublicKey *issuer_key,
+                      const char *issuer_attribute,
+                      const struct GNUNET_CRYPTO_EcdsaPrivateKey *subject_key,
+                      enum GNUNET_ABD_AlgoDirectionFlags direction,
+                      GNUNET_ABD_CredentialResultProcessor proc,
+                      void *proc_cls,
+                      GNUNET_ABD_IntermediateResultProcessor,
+                      void *proc2_cls);
 
 /**
  * Delegate an attribute
@@ -342,12 +354,12 @@ GNUNET_ABD_collect (struct GNUNET_ABD_Handle *handle,
  */
 struct GNUNET_ABD_Request *
 GNUNET_ABD_add_delegation (struct GNUNET_ABD_Handle *handle,
-                                  struct GNUNET_IDENTITY_Ego *issuer,
-                                  const char *attribute,
-                                  struct GNUNET_CRYPTO_EcdsaPublicKey *subject,
-                                  const char *delegated_attribute,
-                                  GNUNET_ABD_DelegateResultProcessor proc,
-                                  void *proc_cls);
+                           struct GNUNET_IDENTITY_Ego *issuer,
+                           const char *attribute,
+                           struct GNUNET_CRYPTO_EcdsaPublicKey *subject,
+                           const char *delegated_attribute,
+                           GNUNET_ABD_DelegateResultProcessor proc,
+                           void *proc_cls);
 
 /**
  * Remove a delegation
@@ -361,11 +373,10 @@ GNUNET_ABD_add_delegation (struct GNUNET_ABD_Handle *handle,
  */
 struct GNUNET_ABD_Request *
 GNUNET_ABD_remove_delegation (struct GNUNET_ABD_Handle *handle,
-                                     struct GNUNET_IDENTITY_Ego *issuer,
-                                     const char *attribute,
-                                     GNUNET_ABD_RemoveDelegateResultProcessor proc,
-                                     void *proc_cls);
-
+                              struct GNUNET_IDENTITY_Ego *issuer,
+                              const char *attribute,
+                              GNUNET_ABD_RemoveDelegateResultProcessor proc,
+                              void *proc_cls);
 
 
 /**
@@ -379,10 +390,10 @@ GNUNET_ABD_remove_delegation (struct GNUNET_ABD_Handle *handle,
  */
 struct GNUNET_ABD_Delegate*
 GNUNET_ABD_delegate_issue (const struct GNUNET_CRYPTO_EcdsaPrivateKey *issuer,
-                                    struct GNUNET_CRYPTO_EcdsaPublicKey *subject,
-                                    const char *iss_attr,
-                                    const char *sub_attr,
-                                    struct GNUNET_TIME_Absolute *expiration);
+                           struct GNUNET_CRYPTO_EcdsaPublicKey *subject,
+                           const char *iss_attr,
+                           const char *sub_attr,
+                           struct GNUNET_TIME_Absolute *expiration);
 
 
 /**

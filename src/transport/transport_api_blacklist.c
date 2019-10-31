@@ -92,6 +92,7 @@ handle_query (void *cls,
                   env);
 }
 
+
 /**
  * Generic error handler, called with the appropriate error code and
  * the same closure specified at the creation of the message queue.

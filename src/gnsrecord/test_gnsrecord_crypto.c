@@ -94,6 +94,7 @@ rd_decrypt_cb (void *cls,
   res = 0;
 }
 
+
 static void
 run (void *cls,
      char *const *args,
@@ -165,5 +166,6 @@ main (int argc, char *argv[])
                       &run, &res);
   return res;
 }
+
 
 /* end of test_gnsrecord_crypto.c */

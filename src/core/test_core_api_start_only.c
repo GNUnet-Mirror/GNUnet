@@ -246,4 +246,5 @@ main (int argc,
   return ret;
 }
 
+
 /* end of test_core_api_start_only.c */

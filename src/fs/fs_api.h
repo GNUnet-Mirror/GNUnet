@@ -676,7 +676,6 @@ void *
 GNUNET_FS_make_file_reader_context_ (const char *filename);
 
 
-
 /**
  * Function that provides data by copying from a buffer.
  *
@@ -797,7 +796,6 @@ GNUNET_FS_download_make_status_ (struct GNUNET_FS_ProgressInfo *pi,
  */
 void
 GNUNET_FS_download_start_task_ (void *cls);
-
 
 
 /**
@@ -1062,7 +1060,6 @@ GNUNET_FS_make_top (struct GNUNET_FS_Handle *h,
 void
 GNUNET_FS_end_top (struct GNUNET_FS_Handle *h,
                    struct TopLevelActivity *top);
-
 
 
 /**

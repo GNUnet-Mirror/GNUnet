@@ -960,6 +960,7 @@ GNUNET_REVOCATION_memory_init ()
   malloc_trim (0);
 }
 
+
 #endif
 
 

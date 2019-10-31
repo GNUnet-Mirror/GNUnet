@@ -515,4 +515,5 @@ GNUNET_FS_indexing_init (const struct GNUNET_CONFIGURATION_Handle *c,
   return GNUNET_OK;
 }
 
+
 /* end of gnunet-service-fs_indexing.c */

@@ -373,4 +373,5 @@ GSC_TYPEMAP_done ()
   /* nothing to do */
 }
 
+
 /* end of gnunet-service-core_typemap.c */

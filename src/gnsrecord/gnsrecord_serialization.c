@@ -130,8 +130,7 @@ GNUNET_GNSRECORD_records_get_size (unsigned int rd_count,
    * Efficiently round up to the next
    * power of 2 for padding
    * https://graphics.stanford.edu/~seander/bithacks.html#RoundUpPowerOf2
-   */
-  ret--;
+   */ret--;
   ret |= ret >> 1;
   ret |= ret >> 2;
   ret |= ret >> 4;

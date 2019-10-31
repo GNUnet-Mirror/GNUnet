@@ -598,4 +598,5 @@ GNUNET_NAT_AUTO_test_stop (struct GNUNET_NAT_AUTO_Test *tst)
   GNUNET_free (tst);
 }
 
+
 /* end of nat_auto_api_test.c */

@@ -712,5 +712,4 @@ GAS_handle_request_address_list (struct GNUNET_SERVICE_Client *client,
 }
 
 
-
 /* end of gnunet-service-ats_addresses.c */

@@ -31,6 +31,7 @@ libgnunet_plugin_test_init (void *arg)
   return NULL;
 }
 
+
 void *
 libgnunet_plugin_test_done (void *arg)
 {
@@ -38,5 +39,6 @@ libgnunet_plugin_test_done (void *arg)
     return strdup ("World");
   return NULL;
 }
+
 
 /* end of test_plugin_plug.c */

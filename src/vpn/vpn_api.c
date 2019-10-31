@@ -547,4 +547,5 @@ GNUNET_VPN_disconnect (struct GNUNET_VPN_Handle *vh)
   GNUNET_free (vh);
 }
 
+
 /* end of vpn_api.c */

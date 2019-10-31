@@ -44,7 +44,6 @@ GNUNET_SQ_make_execute (const char *sql)
 }
 
 
-
 /**
  * Create a `struct GNUNET_SQ_ExecuteStatement` where errors should
  * be tolerated.
@@ -109,5 +108,6 @@ GNUNET_SQ_exec_statements (sqlite3 *dbh,
   }
   return GNUNET_OK;
 }
+
 
 /* end of sq_exec */

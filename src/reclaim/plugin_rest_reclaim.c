@@ -287,6 +287,7 @@ cleanup_handle (struct RequestHandle *handle)
   GNUNET_free (handle);
 }
 
+
 static void
 cleanup_handle_delayed (void *cls)
 {
@@ -342,6 +343,7 @@ collect_error_cb (void *cls)
   do_error (handle);
 }
 
+
 static void
 finished_cont (void *cls, int32_t success, const char *emsg)
 {
@@ -378,6 +380,7 @@ return_response (void *cls)
   GNUNET_free (result_str);
   cleanup_handle (handle);
 }
+
 
 static void
 collect_finished_cb (void *cls)
@@ -818,6 +821,7 @@ revoke_ticket_cont (struct GNUNET_REST_RequestHandle *con_handle,
   GNUNET_JSON_parse_free (tktspec);
 }
 
+
 static void
 consume_cont (void *cls,
               const struct GNUNET_CRYPTO_EcdsaPublicKey *identity,
@@ -849,6 +853,7 @@ consume_cont (void *cls,
   json_decref (value);
   GNUNET_free (val_str);
 }
+
 
 static void
 consume_ticket_cont (struct GNUNET_REST_RequestHandle *con_handle,
@@ -943,6 +948,7 @@ options_cont (struct GNUNET_REST_RequestHandle *con_handle,
   return;
 }
 
+
 /**
  * Handle rest request
  *
@@ -981,6 +987,7 @@ init_cont (struct RequestHandle *handle)
     GNUNET_SCHEDULER_add_now (&do_error, handle);
   }
 }
+
 
 /**
  * If listing is enabled, prints information about the egos.
@@ -1044,6 +1051,7 @@ list_ego (void *cls,
   }
 }
 
+
 static void
 rest_identity_process_request (struct GNUNET_REST_RequestHandle *rest_handle,
                                GNUNET_REST_ResultProcessor proc,
@@ -1067,6 +1075,7 @@ rest_identity_process_request (struct GNUNET_REST_RequestHandle *rest_handle,
     GNUNET_SCHEDULER_add_delayed (handle->timeout, &do_timeout, handle);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Connected\n");
 }
+
 
 /**
  * Entry point for the plugin.
@@ -1123,5 +1132,6 @@ libgnunet_plugin_rest_reclaim_done (void *cls)
               "Identity Provider REST plugin is finished\n");
   return NULL;
 }
+
 
 /* end of plugin_rest_reclaim.c */

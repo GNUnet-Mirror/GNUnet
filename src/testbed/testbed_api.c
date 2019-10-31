@@ -1320,8 +1320,7 @@ cleanup:
    * required at the chained testbed controller setup to ensure the only the
    * test-driver echos the status and the controller hierarchy properly
    * propagates the status.
-   */
-  if ((NULL != barrier) && (GNUNET_YES == barrier->echo))
+   */if ((NULL != barrier) && (GNUNET_YES == barrier->echo))
     GNUNET_TESTBED_barrier_remove_ (barrier);
 }
 

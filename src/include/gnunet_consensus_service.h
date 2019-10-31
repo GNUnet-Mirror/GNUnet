@@ -68,7 +68,6 @@ typedef void (*GNUNET_CONSENSUS_ElementCallback) (void *cls,
                                                   GNUNET_SET_Element *element);
 
 
-
 /**
  * Opaque handle for the consensus service.
  */
@@ -137,7 +136,6 @@ GNUNET_CONSENSUS_insert (struct GNUNET_CONSENSUS_Handle *consensus,
                          const struct GNUNET_SET_Element *element,
                          GNUNET_CONSENSUS_InsertDoneCallback idc,
                          void *idc_cls);
-
 
 
 /**

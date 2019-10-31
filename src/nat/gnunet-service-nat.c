@@ -1732,8 +1732,7 @@ handle_stun (void *cls,
        removed again.  The timeout frequency should be configurable
        (with a sane default), so that the UDP plugin can tell how
        often to re-request STUN.
-     */
-    struct StunExternalIP *se;
+     */struct StunExternalIP *se;
 
     /* Check if we had a prior response from this STUN server */
     for (se = se_head; NULL != se; se = se->next)
@@ -2077,6 +2076,8 @@ GNUNET_ARM_memory_init ()
   mallopt (M_TOP_PAD, 1 * 1024);
   malloc_trim (0);
 }
+
+
 #endif
 
 /* end of gnunet-service-nat.c */

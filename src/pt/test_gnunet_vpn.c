@@ -514,4 +514,5 @@ main (int argc, char *const *argv)
   return global_ret;
 }
 
+
 /* end of test_gnunet_vpn.c */

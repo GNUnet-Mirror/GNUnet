@@ -72,7 +72,6 @@ struct GNUNET_TESTBED_BarrierWaitHandle
 };
 
 
-
 /**
  * Check if barrier status message is well-formed.
  *
@@ -260,5 +259,6 @@ GNUNET_TESTBED_barrier_wait_cancel (struct GNUNET_TESTBED_BarrierWaitHandle *h)
   GNUNET_CONFIGURATION_destroy (h->cfg);
   GNUNET_free (h);
 }
+
 
 /* end of testbed_api_barriers.c */

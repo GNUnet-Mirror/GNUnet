@@ -1267,6 +1267,8 @@ GNUNET_DNS_init ()
                strerror (errno));
   }
 }
+
+
 #endif
 
 

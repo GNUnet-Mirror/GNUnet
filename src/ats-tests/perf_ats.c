@@ -420,7 +420,7 @@ main (int argc, char *argv[])
   /* Determine solver name */
   solver = GNUNET_strdup (tmp);
   /* Remove .exe prefix */
-  if ((NULL != (dotexe = strstr (solver, ".exe")))&&(dotexe[4] == '\0'))
+  if ((NULL != (dotexe = strstr (solver, ".exe"))) && (dotexe[4] == '\0'))
     dotexe[0] = '\0';
 
   /* Determine first '_' after solver */
@@ -596,5 +596,6 @@ main (int argc, char *argv[])
 
   return result;
 }
+
 
 /* end of file perf_ats.c */

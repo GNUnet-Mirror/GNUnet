@@ -65,6 +65,7 @@ getRadiotapHeader (struct GNUNET_TRANSPORT_WLAN_RadiotapSendMessage *header,
   return GNUNET_YES;
 }
 
+
 /**
  * function to generate the wlan hardware header for one packet
  * @param Header address to write the header to

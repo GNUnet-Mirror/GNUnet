@@ -1250,6 +1250,7 @@ GCP_iterate_paths (struct CadetPeer *cp,
   return ret;
 }
 
+
 /**
  * Iterate over the paths to a peer without direct link.
  *
@@ -1550,8 +1551,6 @@ GCP_send_ooo (struct CadetPeer *cp,
   GNUNET_MQ_send (cp->core_mq,
                   env);
 }
-
-
 
 
 /* end of gnunet-service-cadet-new_peer.c */

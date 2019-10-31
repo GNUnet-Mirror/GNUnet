@@ -118,7 +118,6 @@ template_plugin_get_key (void *cls,
 }
 
 
-
 /**
  * Get a random item for replication.  Returns a single, not expired,
  * random item from those with the highest replication counters.  The
@@ -270,5 +269,6 @@ libgnunet_plugin_datastore_template_done (void *cls)
   GNUNET_free (api);
   return NULL;
 }
+
 
 /* end of plugin_datastore_template.c */

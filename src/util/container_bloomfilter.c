@@ -149,6 +149,7 @@ setBit (char *bitArray, unsigned int bitIdx)
   bitArray[arraySlot] |= targetBit;
 }
 
+
 /**
  * Clears a bit from bitArray. Bit is cleared from the array
  * only if the respective usage counter on the disk hits/is zero.
@@ -166,6 +167,7 @@ clearBit (char *bitArray, unsigned int bitIdx)
   targetBit = (1L << (bitIdx % 8));
   bitArray[slot] = bitArray[slot] & (~targetBit);
 }
+
 
 /**
  * Checks if a bit is active in the bitArray
@@ -187,6 +189,7 @@ testBit (char *bitArray, unsigned int bitIdx)
   else
     return GNUNET_NO;
 }
+
 
 /**
  * Sets a bit active in the bitArray and increments
@@ -237,6 +240,7 @@ incrementBit (char *bitArray,
                  GNUNET_DISK_file_seek (fh, fileSlot, GNUNET_DISK_SEEK_SET));
   GNUNET_assert (1 == GNUNET_DISK_file_write (fh, &value, 1));
 }
+
 
 /**
  * Clears a bit from bitArray if the respective usage
@@ -302,6 +306,7 @@ decrementBit (char *bitArray,
   GNUNET_assert (1 == GNUNET_DISK_file_write (fh, &value, 1));
 }
 
+
 #define BUFFSIZE 65536
 
 /**
@@ -341,6 +346,7 @@ make_empty_file (const struct GNUNET_DISK_FileHandle *fh, size_t size)
   }
   return GNUNET_OK;
 }
+
 
 /* ************** GNUNET_CONTAINER_BloomFilter iterator ********* */
 
@@ -473,6 +479,7 @@ testBitCallback (void *cls,
   }
   return GNUNET_YES;
 }
+
 
 /* *********************** INTERFACE **************** */
 
@@ -796,6 +803,7 @@ GNUNET_CONTAINER_bloomfilter_or (struct GNUNET_CONTAINER_BloomFilter *bf,
   return GNUNET_OK;
 }
 
+
 /**
  * Or the entries of the given raw data array with the
  * data of the given bloom filter.  Assumes that
@@ -854,6 +862,7 @@ GNUNET_CONTAINER_bloomfilter_remove (struct GNUNET_CONTAINER_BloomFilter *bf,
   iterateBits (bf, &decrementBitCallback, bf, e);
 }
 
+
 /**
  * Resize a bloom filter.  Note that this operation
  * is pretty costly.  Essentially, the bloom filter
@@ -888,5 +897,6 @@ GNUNET_CONTAINER_bloomfilter_resize (struct GNUNET_CONTAINER_BloomFilter *bf,
   while (GNUNET_YES == iterator (iterator_cls, &hc))
     GNUNET_CONTAINER_bloomfilter_add (bf, &hc);
 }
+
 
 /* end of container_bloomfilter.c */

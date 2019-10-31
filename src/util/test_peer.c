@@ -104,8 +104,7 @@ check ()
    * Attempt to convert pid = 0 (which is reserved)
    * into a peer identity object, the peer identity memory
    * is expected to be set to zero
-   */
-  GNUNET_log_skip (1, GNUNET_YES);
+   */GNUNET_log_skip (1, GNUNET_YES);
   GNUNET_PEER_resolve (0, &res);
   GNUNET_assert (0 ==
                  GNUNET_is_zero (&res));
@@ -136,5 +135,6 @@ main ()
   }
   return 0;
 }
+
 
 /* end of test_peer.c */

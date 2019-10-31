@@ -82,4 +82,5 @@ main (int argc, char *const *argv)
   return ret;
 }
 
+
 /* end of gnunet-auction.c */

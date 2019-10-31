@@ -215,7 +215,6 @@ typedef int
                                 struct GNUNET_HashCode *key);
 
 
-
 /**
  * Each plugin is required to return a pointer to a struct of this
  * type as the return value from its entry point.

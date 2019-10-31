@@ -287,4 +287,5 @@ GNUNET_PEERINFO_notify_cancel (struct GNUNET_PEERINFO_NotifyContext *nc)
   GNUNET_free (nc);
 }
 
+
 /* end of peerinfo_api_notify.c */

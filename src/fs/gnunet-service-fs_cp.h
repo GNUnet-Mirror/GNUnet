@@ -387,7 +387,6 @@ const struct GNUNET_PeerIdentity *
 GSF_connected_peer_get_identity2_ (const struct GSF_ConnectedPeer *cp);
 
 
-
 /**
  * Iterate over all connected peers.
  *

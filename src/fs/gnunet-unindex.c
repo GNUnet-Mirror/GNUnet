@@ -60,6 +60,7 @@ shutdown_task (void *cls)
   }
 }
 
+
 /**
  * Called by FS client to give information about the progress of an
  * operation.
@@ -199,5 +200,6 @@ main (int argc, char *const *argv)
   GNUNET_free ((void *) argv);
   return ret;
 }
+
 
 /* end of gnunet-unindex.c */

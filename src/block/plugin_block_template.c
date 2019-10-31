@@ -191,4 +191,5 @@ libgnunet_plugin_block_template_done (void *cls)
   return NULL;
 }
 
+
 /* end of plugin_block_template.c */

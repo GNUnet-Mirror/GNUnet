@@ -72,7 +72,6 @@ struct GNUNET_SERVER_MessageStreamTokenizer
 };
 
 
-
 /**
  * Create a message stream tokenizer.
  *
@@ -303,7 +302,6 @@ GNUNET_SERVER_mst_destroy (struct GNUNET_SERVER_MessageStreamTokenizer *mst)
   GNUNET_free (mst->hdr);
   GNUNET_free (mst);
 }
-
 
 
 /* end of server_mst.c */

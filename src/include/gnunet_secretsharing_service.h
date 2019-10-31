@@ -95,7 +95,6 @@ extern "C"
   "1d7024c3650f60d0da"
 
 
-
 /**
  * Session that will eventually establish a shared secred between
  * the involved peers and allow encryption and cooperative decryption.

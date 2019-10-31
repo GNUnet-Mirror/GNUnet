@@ -47,6 +47,7 @@ end_test (void *cls)
   }
 }
 
+
 /**
  * Callback to call when network size estimate is updated.
  *
@@ -101,5 +102,6 @@ main (int argc, char *argv[])
     return 1;
   return ok;
 }
+
 
 /* end of test_nse_api.c */

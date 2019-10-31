@@ -161,6 +161,4 @@ run (void *cls,
 GDS_DHT_SERVICE_INIT ("dht", &run);
 
 
-
-
 /* end of gnunet-service-dht.c */

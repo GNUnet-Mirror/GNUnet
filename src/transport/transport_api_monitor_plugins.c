@@ -93,7 +93,6 @@ struct GNUNET_TRANSPORT_PluginSession
 };
 
 
-
 /**
  * Task run to re-establish the connection.
  *

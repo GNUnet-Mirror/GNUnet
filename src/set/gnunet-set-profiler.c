@@ -138,7 +138,7 @@ statistics_done (void *cls,
 static void
 check_all_done (void)
 {
-  if ((info1.done == GNUNET_NO)||(info2.done == GNUNET_NO))
+  if ((info1.done == GNUNET_NO) || (info2.done == GNUNET_NO))
     return;
 
   GNUNET_CONTAINER_multihashmap_iterate (info1.received, map_remove_iterator,

@@ -408,6 +408,7 @@ print_peer_info (void *cls,
   GNUNET_HELLO_iterate_addresses (hello, GNUNET_NO, &print_address, pc);
 }
 
+
 /* ************************* DUMP Hello  ************************** */
 
 /**
@@ -857,5 +858,6 @@ main (int argc, char *const *argv)
   GNUNET_free ((void *) argv);
   return ret;
 }
+
 
 /* end of gnunet-peerinfo.c */

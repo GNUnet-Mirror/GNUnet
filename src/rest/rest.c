@@ -46,6 +46,7 @@ GNUNET_REST_namespace_match (const char *url, const char *namespace)
   return 0 == strncmp (namespace, url, strlen (namespace));
 }
 
+
 /**
  * Create MHD response
  *
@@ -70,6 +71,7 @@ GNUNET_REST_create_response (const char *data)
                                           MHD_RESPMEM_MUST_COPY);
   return resp;
 }
+
 
 int
 GNUNET_REST_handle_request (struct GNUNET_REST_RequestHandle *conn,
@@ -105,5 +107,6 @@ GNUNET_REST_handle_request (struct GNUNET_REST_RequestHandle *conn,
   err->error_code = MHD_HTTP_BAD_REQUEST;
   return GNUNET_NO;
 }
+
 
 /* end of rest.c */

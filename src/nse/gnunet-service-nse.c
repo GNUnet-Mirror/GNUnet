@@ -1046,7 +1046,7 @@ handle_p2p_estimate (void *cls,
 
 #if ENABLE_NSE_HISTOGRAM
   peer_entry->received_messages++;
-  if ((peer_entry->transmitted_messages > 0)&&
+  if ((peer_entry->transmitted_messages > 0) &&
       (peer_entry->last_transmitted_size >= matching_bits) )
     GNUNET_STATISTICS_update (stats, "# cross messages", 1, GNUNET_NO);
 #endif
@@ -1253,6 +1253,8 @@ flush_comp_cb (void *cls, size_t size)
   GNUNET_TESTBED_LOGGER_disconnect (lh);
   lh = NULL;
 }
+
+
 #endif
 
 
@@ -1388,6 +1390,8 @@ status_cb (void *cls, int status)
     GNUNET_SCHEDULER_shutdown ();
   }
 }
+
+
 #endif
 
 
@@ -1581,12 +1585,15 @@ GNUNET_SERVICE_MAIN ("nse",
 /**
  * MINIMIZE heap size (way below 128k) since this process doesn't need much.
  */
-void __attribute__ ((constructor)) GNUNET_ARM_memory_init ()
+void __attribute__ ((constructor))
+GNUNET_ARM_memory_init ()
 {
   mallopt (M_TRIM_THRESHOLD, 4 * 1024);
   mallopt (M_TOP_PAD, 1 * 1024);
   malloc_trim (0);
 }
+
+
 #endif
 
 

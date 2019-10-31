@@ -312,4 +312,5 @@ GN_external_ipv4_monitor_stop (struct GN_ExternalIPMonitor *mon)
   GNUNET_free (mon);
 }
 
+
 /* end of gnunet-service-nat_externalip.c */

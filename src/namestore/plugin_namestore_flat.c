@@ -811,4 +811,5 @@ libgnunet_plugin_namestore_flat_done (void *cls)
   return NULL;
 }
 
+
 /* end of plugin_namestore_flat.c */

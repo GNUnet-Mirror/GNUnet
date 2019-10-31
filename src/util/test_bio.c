@@ -76,6 +76,7 @@ test_normal_rw ()
   return 0;
 }
 
+
 static int
 test_nullstring_rw ()
 {
@@ -103,6 +104,7 @@ test_nullstring_rw ()
   return 0;
 }
 
+
 static int
 test_emptystring_rw ()
 {
@@ -129,6 +131,7 @@ test_emptystring_rw ()
   GNUNET_free (fileName);
   return 0;
 }
+
 
 static int
 test_bigstring_rw ()
@@ -158,6 +161,7 @@ test_bigstring_rw ()
   GNUNET_free (fileName);
   return 0;
 }
+
 
 static int
 test_bigmeta_rw ()
@@ -192,6 +196,7 @@ test_bigmeta_rw ()
   return 0;
 }
 
+
 static int
 test_directory_r ()
 {
@@ -211,6 +216,7 @@ test_directory_r ()
 #endif
   return 0;
 }
+
 
 static int
 test_nullfile_rw ()
@@ -287,6 +293,7 @@ test_fullfile_rw ()
   return 0;
 }
 
+
 static int
 test_fakestring_rw ()
 {
@@ -314,6 +321,7 @@ test_fakestring_rw ()
   GNUNET_free (fileName);
   return 0;
 }
+
 
 static int
 test_fakemeta_rw ()
@@ -345,6 +353,7 @@ test_fakemeta_rw ()
   return 0;
 }
 
+
 static int
 test_fakebigmeta_rw ()
 {
@@ -375,6 +384,7 @@ test_fakebigmeta_rw ()
   return 0;
 }
 
+
 static int
 check_string_rw ()
 {
@@ -385,6 +395,7 @@ check_string_rw ()
   return 0;
 }
 
+
 static int
 check_metadata_rw ()
 {
@@ -393,6 +404,7 @@ check_metadata_rw ()
   GNUNET_assert (0 == test_bigmeta_rw ());
   return 0;
 }
+
 
 static int
 check_file_rw ()
@@ -404,6 +416,7 @@ check_file_rw ()
   return 0;
 }
 
+
 int
 main (int argc, char *argv[])
 {
@@ -413,5 +426,6 @@ main (int argc, char *argv[])
   GNUNET_assert (0 == check_string_rw ());
   return 0;
 }
+
 
 /* end of test_bio.c */

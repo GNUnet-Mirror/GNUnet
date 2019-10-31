@@ -45,7 +45,11 @@ static struct Command test_commands[] = {
       .properties = {
         .scope = GNUNET_NT_LAN
       }
+
+
     }
+
+
   },
   /* 1: adding same address again should fail */
   {
@@ -61,6 +65,8 @@ static struct Command test_commands[] = {
       },
       .expect_fail = 1
     }
+
+
   },
   /* 2: some solver still require explicit start */
   {
@@ -69,6 +75,8 @@ static struct Command test_commands[] = {
     .details.request_connection_start = {
       .pid = 0
     }
+
+
   },
   /* 3: check we got an address */
   {
@@ -76,6 +84,8 @@ static struct Command test_commands[] = {
     .details.await_address_suggestion = {
       .add_label = "add-address-0-0"
     }
+
+
   },
   /* 4: check monitor also got the address */
   {
@@ -83,6 +93,8 @@ static struct Command test_commands[] = {
     .details.await_address_information = {
       .add_label = "add-address-0-0"
     }
+
+
   },
   /* 5: test session API */
   {
@@ -92,12 +104,16 @@ static struct Command test_commands[] = {
       .add_label = "add-address-0-0",
       .session = 1
     }
+
+
   },
   {
     .code = CMD_DEL_SESSION,
     .details.del_session = {
       .add_session_label = "add-session-0-0-1",
     }
+
+
   },
   /* 7: test preference API */
   {
@@ -106,6 +122,8 @@ static struct Command test_commands[] = {
       .pid = 0
              /* FIXME: preference details */
     }
+
+
   },
   {
     .code = CMD_PROVIDE_FEEDBACK,
@@ -114,6 +132,8 @@ static struct Command test_commands[] = {
       .scope = { 50LL }
       /* FIXME: preference details */
     }
+
+
   },
   /* 9: test sanity check address listing */
   {
@@ -126,6 +146,8 @@ static struct Command test_commands[] = {
       .min_active_calls = 1,
       .max_active_calls = 1
     }
+
+
   },
   /* 10: remove address testing */
   {
@@ -133,6 +155,8 @@ static struct Command test_commands[] = {
     .details.del_address = {
       .add_label = "add-address-0-0"
     }
+
+
   },
   /* 11: check we got disconnected */
   {
@@ -140,6 +164,8 @@ static struct Command test_commands[] = {
     .details.await_disconnect_suggestion = {
       .pid = 0
     }
+
+
   },
   /* 12: just for symmetry, also stop asking for the connection */
   {
@@ -147,6 +173,8 @@ static struct Command test_commands[] = {
     .details.request_connection_stop = {
       .connect_label = "request-0",
     }
+
+
   },
   /* 13: add address again */
   {
@@ -159,7 +187,11 @@ static struct Command test_commands[] = {
       .properties = {
         .scope = GNUNET_NT_LAN
       }
+
+
     }
+
+
   },
   /* 14: some solver still require explicit start */
   {
@@ -168,6 +200,8 @@ static struct Command test_commands[] = {
     .details.request_connection_start = {
       .pid = 0
     }
+
+
   },
   /* 15: check we got an address */
   {
@@ -175,6 +209,8 @@ static struct Command test_commands[] = {
     .details.await_address_suggestion = {
       .add_label = "add-address-0-0:1"
     }
+
+
   },
   /* 16: add alternative address */
   {
@@ -188,7 +224,11 @@ static struct Command test_commands[] = {
       .properties = {
         .scope = GNUNET_NT_LAN
       }
+
+
     }
+
+
   },
   /* 17: remove original address */
   {
@@ -196,6 +236,8 @@ static struct Command test_commands[] = {
     .details.del_address = {
       .add_label = "add-address-0-0:1"
     }
+
+
   },
   /* 18: check we switched to alternative address */
   {
@@ -203,6 +245,8 @@ static struct Command test_commands[] = {
     .details.await_address_suggestion = {
       .add_label = "add-address-0-1"
     }
+
+
   },
   /* 19: remove alternative address */
   {
@@ -210,6 +254,8 @@ static struct Command test_commands[] = {
     .details.del_address = {
       .add_label = "add-address-0-1"
     }
+
+
   },
   /* 20: check we got disconnected */
   {
@@ -217,6 +263,8 @@ static struct Command test_commands[] = {
     .details.await_disconnect_suggestion = {
       .pid = 0
     }
+
+
   },
   /* 21: just for symmetry, also stop asking for the connection */
   {
@@ -224,6 +272,8 @@ static struct Command test_commands[] = {
     .details.request_connection_stop = {
       .connect_label = "request-0",
     }
+
+
   },
   /* Test ends successfully */
   {

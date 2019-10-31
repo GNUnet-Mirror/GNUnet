@@ -349,8 +349,7 @@ database_setup (const struct GNUNET_CONFIGURATION_Handle *cfg,
    * we only test equality on it and can cast it to/from uint32_t. For repl, prio, and anonLevel
    * we do math or inequality tests, so we can't handle the entire range of uint32_t.
    * This will also cause problems for expiration times after 294247-01-10-04:00:54 UTC.
-   */
-  if ((SQLITE_DONE == sqlite3_step (stmt)) &&
+   */if ((SQLITE_DONE == sqlite3_step (stmt)) &&
       (SQLITE_OK != sqlite3_exec (plugin->dbh,
                                   "CREATE TABLE gn091 ("
                                   "  repl INT4 NOT NULL DEFAULT 0,"
@@ -1349,5 +1348,6 @@ libgnunet_plugin_datastore_sqlite_done (void *cls)
   }
   return NULL;
 }
+
 
 /* end of plugin_datastore_sqlite.c */

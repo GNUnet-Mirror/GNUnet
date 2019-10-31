@@ -446,6 +446,7 @@ do_align:
   return ret;
 }
 
+
 /**
  * Destroys a tokenizer.
  *
@@ -457,6 +458,7 @@ mst_destroy (struct MessageStreamTokenizer *mst)
   free (mst->hdr);
   free (mst);
 }
+
 
 /**
  * Calculate crc32, the start of the calculation
@@ -558,12 +560,11 @@ check_crc_buf_osdep (const unsigned char *buf, size_t len)
 
   crc = calc_crc_osdep (buf, len);
   buf += len;
-  if ((((crc) & 0xFF) == buf[0])&&(((crc >> 8) & 0xFF) == buf[1])&&
-      ( ((crc >> 16) & 0xFF) == buf[2]) &&( ((crc >> 24) & 0xFF) == buf[3]) )
+  if ((((crc) & 0xFF) == buf[0]) && (((crc >> 8) & 0xFF) == buf[1]) &&
+      ( ((crc >> 16) & 0xFF) == buf[2]) && ( ((crc >> 24) & 0xFF) == buf[3]) )
     return 0;
   return 1;
 }
-
 
 
 /* ************** end of clone  ***************** */
@@ -593,6 +594,8 @@ bind_socket (int socket, struct sockaddr_rc *addr)
 
   return -1;
 }
+
+
 #endif
 
 /**
@@ -613,8 +616,7 @@ register_service (struct HardwareInfos *dev, int rc_channel)
    * 5. set the name, provider and description
    * 6. register the service record to the local SDP server
    * 7. cleanup
-   */
-  uint8_t svc_uuid_int[] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+   */uint8_t svc_uuid_int[] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
                              dev->pl_mac.mac[5], dev->pl_mac.mac[4],
                              dev->pl_mac.mac[3],
                              dev->pl_mac.mac[2], dev->pl_mac.mac[1],
@@ -688,6 +690,7 @@ register_service (struct HardwareInfos *dev, int rc_channel)
   return 0;
 }
 
+
 /**
  * Function used for searching and browsing for a service. This will return the
  * port number on which the service is running.
@@ -706,8 +709,7 @@ get_channel (struct HardwareInfos *dev, bdaddr_t dest)
    * 2.2. get a list of service records with the specific UUID
    * 2.3. for each service record get a list of the protocol sequences and get
    *       the port number
-   */
-  uint8_t svc_uuid_int[] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+   */uint8_t svc_uuid_int[] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
                              dest.b[5], dest.b[4], dest.b[3],
                              dest.b[2], dest.b[1], dest.b[0] };
   sdp_session_t *session = 0;
@@ -762,6 +764,7 @@ get_channel (struct HardwareInfos *dev, bdaddr_t dest)
 
   return channel;
 }
+
 
 /**
  * Read from the socket and put the result into the buffer for transmission to 'stdout'.
@@ -954,7 +957,6 @@ open_device (struct HardwareInfos *dev)
   (void) close (fd_hci);
 
 
-
   /* Bind the rfcomm socket to the interface */
   memset (&rc_addr, 0, sizeof(rc_addr));
   rc_addr.rc_family = AF_BLUETOOTH;
@@ -1010,6 +1012,7 @@ mac_set (struct GNUNET_TRANSPORT_WLAN_Ieee80211Frame *taIeeeHeader,
   taIeeeHeader->addr2 = dev->pl_mac;
 }
 
+
 #ifdef LINUX
 /**
  * Test if the given interface name really corresponds to a bluetooth
@@ -1038,6 +1041,8 @@ test_bluetooth_interface (const char *iface)
   }
   return 0;
 }
+
+
 #endif
 
 /**
@@ -1112,6 +1117,7 @@ stdin_send_hw (void *cls, const struct GNUNET_MessageHeader *hdr)
   write_pout.size = sendsize;
 }
 
+
 #ifdef LINUX
 /**
  * Broadcast a HELLO message for peer discovery
@@ -1127,7 +1133,7 @@ send_broadcast (struct HardwareInfos *dev, int *sendsocket)
   int loops = 0;
 
 search_for_devices:
-  if (((neighbours.size == neighbours.pos)&&(new_device == 1)) ||
+  if (((neighbours.size == neighbours.pos) && (new_device == 1)) ||
       (neighbours.size == 0) )
   {
 inquiry_devices:      // skip the conditions and force a inquiry for new devices
@@ -1359,6 +1365,8 @@ inquiry_devices:      // skip the conditions and force a inquiry for new devices
 
   return 0;
 }
+
+
 #endif
 
 /**
@@ -1606,9 +1614,9 @@ main (int argc, char *argv[])
 connect_retry:
           status = connect (sendsocket, (struct sockaddr *) &addr,
                             sizeof(addr));
-          if ((0 != status) &&(errno != EAGAIN) )
+          if ((0 != status) && (errno != EAGAIN) )
           {
-            if ((errno == ECONNREFUSED) &&(tries < 2) )
+            if ((errno == ECONNREFUSED) && (tries < 2) )
             {
               fprintf (stderr, "LOG : %.*s failed to connect. Trying again!\n",
                        IFNAMSIZ, dev.iface);
@@ -1668,7 +1676,7 @@ connect_retry:
         int retval = select (maxfd + 1, &rfds, &wfds, NULL, NULL);
         if ((-1 == retval) && (EINTR == errno))
           continue;
-        if ((0 > retval) &&(errno != EBADF) ) // we handle BADF errors later
+        if ((0 > retval) && (errno != EBADF) ) // we handle BADF errors later
         {
           fprintf (stderr, "select failed: %s\n", strerror (errno));
           break;

@@ -725,6 +725,7 @@ registration_cont (void *cls, const char *emsg)
   }
 }
 
+
 /**
  * Callback to signal successfull startup of the controller process
  *
@@ -875,5 +876,6 @@ main (int argc, char **argv)
     return 1;
   }
 }
+
 
 /* end of test_testbed_api_controllerlink.c */

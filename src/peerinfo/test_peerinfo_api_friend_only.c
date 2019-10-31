@@ -168,4 +168,5 @@ main (int argc,
   return global_ret;
 }
 
+
 /* end of test_peerinfo_api_friend_only */

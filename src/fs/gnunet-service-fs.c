@@ -68,7 +68,6 @@
 #define INSANE_STATISTICS GNUNET_NO
 
 
-
 /**
  * Doubly-linked list of requests we are performing
  * on behalf of the same client.
@@ -502,9 +501,6 @@ client_disconnect_cb (void *cls,
   }
   GNUNET_free (lc);
 }
-
-
-
 
 
 /**

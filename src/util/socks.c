@@ -387,8 +387,7 @@ transmit_ready (void *cls, size_t size, void *buf)
    * connection.c tells us nothing itself, but mostly its timouts.
    * Initially, we'll simply ignore this and leave massive timeouts, but
    * maybe that should change for error handling pruposes.  It appears that
-   * successful operations, including DNS resolution, do not use this.  */
-  if (NULL == buf)
+   * successful operations, including DNS resolution, do not use this.  */if (NULL == buf)
   {
     if (0 == ih->step)
     {
@@ -629,7 +628,7 @@ GNUNET_SOCKS_do_connect (const char *service_name,
     port0 = 9050;
   /* A typical Tor client should usually try port 9150 for the TBB too, but
    * GNUnet can probably assume a system Tor installation. */
-  if ((port0 > 65535)||(port0 <= 0))
+  if ((port0 > 65535) || (port0 <= 0))
   {
     LOG (GNUNET_ERROR_TYPE_WARNING,
          _ (
@@ -685,5 +684,6 @@ GNUNET_SOCKS_do_connect (const char *service_name,
   GNUNET_free (host1);
   return GNUNET_SOCKS_run_handshake (ih, socks5);
 }
+
 
 /* socks.c */

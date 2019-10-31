@@ -699,7 +699,6 @@ get_redirect_state (int af,
 }
 
 
-
 /**
  * Check a request via cadet to send a request to a TCP service
  * offered by this system.
@@ -3800,7 +3799,7 @@ setup_exit_helper_args ()
           GNUNET_CONFIGURATION_get_value_string (cfg,
                                                  "exit",
                                                  "IPV6ADDR",
-                                                 &ipv6addr))||
+                                                 &ipv6addr)) ||
          (1 != inet_pton (AF_INET6,
                           ipv6addr,
                           &exit_ipv6addr))))
@@ -3851,7 +3850,7 @@ setup_exit_helper_args ()
           GNUNET_CONFIGURATION_get_value_string (cfg,
                                                  "exit",
                                                  "IPV4ADDR",
-                                                 &ipv4addr))||
+                                                 &ipv4addr)) ||
          (1 != inet_pton (AF_INET,
                           ipv4addr,
                           &exit_ipv4addr))))
@@ -3868,7 +3867,7 @@ setup_exit_helper_args ()
           GNUNET_CONFIGURATION_get_value_string (cfg,
                                                  "exit",
                                                  "IPV4MASK",
-                                                 &ipv4mask))||
+                                                 &ipv4mask)) ||
          (1 != inet_pton (AF_INET,
                           ipv4mask,
                           &exit_ipv4mask))))

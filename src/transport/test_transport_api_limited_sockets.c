@@ -113,6 +113,7 @@ main (int argc, char *argv[])
   return 0;
 }
 
+
 #else
 /* cannot setrlimit */
 
@@ -124,6 +125,7 @@ main (int argc, char *argv[])
            "Cannot run test on this system\n");
   return 77;
 }
+
 
 #endif
 

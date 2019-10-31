@@ -625,4 +625,5 @@ main (int argc,
   return ok;
 }
 
+
 /* end of perf_datastore_api.c */

@@ -131,6 +131,7 @@ do_abort (void *cls)
   GNUNET_SCHEDULER_shutdown ();
 }
 
+
 /**
  * Method called whenever a peer connects to a port in MQ-based CADET.
  *
@@ -154,6 +155,7 @@ connected (void *cls,
               cls);
   return channel;
 }
+
 
 /**
  * Function called whenever an MQ-channel is destroyed, even if the destruction
@@ -331,5 +333,6 @@ main (int argc, char *argv[])
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Final result: %d\n", result);
   return (result == GNUNET_OK) ? 0 : 1;
 }
+
 
 /* end of test_cadet_local_1.c */

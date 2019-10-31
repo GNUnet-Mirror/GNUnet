@@ -263,7 +263,7 @@ static unsigned int msg_dropped;
 static struct GNUNET_CADET_Channel *
 get_target_channel ()
 {
-  if ((SPEED == test)&&(GNUNET_YES == test_backwards))
+  if ((SPEED == test) && (GNUNET_YES == test_backwards))
     return outgoing_ch;
   else
     return incoming_ch;
@@ -383,7 +383,7 @@ stats_cont (void *cls,
               "KA sent: %u, KA received: %u\n",
               ka_sent,
               ka_received);
-  if (((KEEPALIVE == test)||(REOPEN == test)) &&
+  if (((KEEPALIVE == test) || (REOPEN == test)) &&
       ((ka_sent < 2) || (ka_sent > ka_received + 1)))
   {
     GNUNET_break (0);
@@ -426,10 +426,10 @@ stats_iterator (void *cls,
   i = GNUNET_TESTBED_get_index (peer);
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "STATS PEER %u - %s [%s]: %llu\n", i,
               subsystem, name, (unsigned long long) value);
-  if ((0 == strncmp (s_sent, name, strlen (s_sent)))&&(0 == i))
+  if ((0 == strncmp (s_sent, name, strlen (s_sent))) && (0 == i))
     ka_sent = value;
-  if ((0 == strncmp (s_recv, name, strlen (s_recv)))&&(peers_requested - 1 ==
-                                                       i) )
+  if ((0 == strncmp (s_recv, name, strlen (s_recv))) && (peers_requested - 1 ==
+                                                         i) )
     ka_received = value;
   if (0 == strncmp (rdrops, name, strlen (rdrops)))
     msg_dropped += value;
@@ -556,6 +556,7 @@ reconnect_op (void *cls)
   send_test_message (outgoing_ch);
 }
 
+
 /**
  * Function called whenever an MQ-channel is destroyed, unless the destruction
  * was requested by #GNUNET_CADET_channel_destroy.
@@ -594,14 +595,14 @@ disconnect_handler (void *cls,
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                 "Unknown channel! %p\n",
                 channel);
-  if ((NULL != disconnect_task)&&(REOPEN != test))
+  if ((NULL != disconnect_task) && (REOPEN != test))
   {
     GNUNET_SCHEDULER_cancel (disconnect_task);
     disconnect_task =
       GNUNET_SCHEDULER_add_now (&gather_stats_and_exit,
                                 (void *) __LINE__);
   }
-  else if ((NULL != reconnect_task)&&(REOPEN == test))
+  else if ((NULL != reconnect_task) && (REOPEN == test))
   {
     GNUNET_SCHEDULER_cancel (reconnect_task);
     reconnect_task =
@@ -661,7 +662,7 @@ send_test_message (struct GNUNET_CADET_Channel *channel)
     if (SPEED_ACK == test)   // FIXME unify SPEED_ACK with an initializer
       data_sent++;
   }
-  else if ((SPEED == test)||(SPEED_ACK == test))
+  else if ((SPEED == test) || (SPEED_ACK == test))
   {
     if (get_target_channel () == channel)
     {
@@ -860,7 +861,7 @@ handle_data (void *cls,
   if (get_target_channel () == channel)  /* Got "data" */
   {
     GNUNET_log (GNUNET_ERROR_TYPE_INFO, " received data %u\n", data_received);
-    if ((SPEED != test) ||( (ok_goal - 2) == ok) )
+    if ((SPEED != test) || ( (ok_goal - 2) == ok) )
     {
       /* Send ACK */
       send_test_message (channel);
@@ -874,14 +875,14 @@ handle_data (void *cls,
   }
   else /* Got "ack" */
   {
-    if ((SPEED_ACK == test) ||(SPEED == test) )
+    if ((SPEED_ACK == test) || (SPEED == test) )
     {
       GNUNET_log (GNUNET_ERROR_TYPE_INFO, " received ack %u\n", ack_received);
       /* Send more data */
       send_test_message (channel);
-      if ((ack_received < total_packets) &&(SPEED != test) )
+      if ((ack_received < total_packets) && (SPEED != test) )
         return;
-      if ((ok == 2) &&(SPEED == test) )
+      if ((ok == 2) && (SPEED == test) )
         return;
       show_end_data ();
     }
@@ -946,7 +947,7 @@ connect_handler (void *cls,
                 (long) cls);
     GNUNET_assert (0);
   }
-  if ((NULL != disconnect_task)&&(REOPEN != test))
+  if ((NULL != disconnect_task) && (REOPEN != test))
   {
     GNUNET_SCHEDULER_cancel (disconnect_task);
     disconnect_task = GNUNET_SCHEDULER_add_delayed (short_time,
@@ -1223,8 +1224,7 @@ main (int argc, char *argv[])
      * total_packets received data packet (@dest)
      * total_packets received data packet (@orig)
      * 1 received channel destroy (@dest) FIXME #5818
-     */
-    ok_goal = total_packets * 2 + 2;
+     */ok_goal = total_packets * 2 + 2;
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "SPEED_ACK\n");
     test = SPEED_ACK;
     test_name = "speed ack";
@@ -1237,8 +1237,7 @@ main (int argc, char *argv[])
      * total_packets received data packet (@dest)
      * 1 received data packet (@orig)
      * 1 received channel destroy (@dest)  FIXME #5818
-     */
-    ok_goal = total_packets + 4;
+     */ok_goal = total_packets + 4;
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "SPEED\n");
     if (strstr (argv[0], "_reliable") != NULL)
     {
@@ -1260,8 +1259,7 @@ main (int argc, char *argv[])
      * 1 incoming channel (@dest)
      * [wait]
      * 1 received channel destroy (@dest)  FIXME #5818
-     */
-    ok_goal = 1;
+     */ok_goal = 1;
   }
   else if (strstr (argv[0], "_reopen") != NULL)
   {
@@ -1312,5 +1310,6 @@ main (int argc, char *argv[])
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "success\n");
   return 0;
 }
+
 
 /* end of test_cadet.c */

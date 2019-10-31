@@ -2526,8 +2526,7 @@ iface_proc (void *cls,
      * group in the normal IPv6 routing table and using the resulting
      * interface; we do this for each interface, so no need to use
      * zero (anymore...).
-     */
-    bi->mcreq.ipv6mr_interface = s6->sin6_scope_id;
+     */bi->mcreq.ipv6mr_interface = s6->sin6_scope_id;
 
     /* Join the multicast group */
     if (GNUNET_OK != GNUNET_NETWORK_socket_setsockopt (udp_sock,

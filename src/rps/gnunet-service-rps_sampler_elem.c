@@ -152,6 +152,7 @@ RPS_sampler_elem_next (struct RPS_SamplerElement *sampler_elem,
   sampler_elem->is_empty = NOT_EMPTY;
 }
 
+
 /**
  * Set the min-wise independent function of the given sampler element.
  *
@@ -164,5 +165,6 @@ RPS_sampler_elem_set (struct RPS_SamplerElement *sampler_elem,
 {
   sampler_elem->auth_key = auth_key;
 }
+
 
 /* end of gnunet-service-rps.c */

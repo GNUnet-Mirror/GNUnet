@@ -236,7 +236,6 @@ enum GNUNET_NAT_StatusCode
 };
 
 
-
 /**
  * What the situation of the NAT connectivity
  */
@@ -267,7 +266,6 @@ enum GNUNET_NAT_Type
    */
   GNUNET_NAT_TYPE_UNKNOWN
 };
-
 
 
 /**

@@ -446,4 +446,5 @@ main (int argc, char *const *argv)
   return global_ret;
 }
 
+
 /* end of gnunet-identity.c */

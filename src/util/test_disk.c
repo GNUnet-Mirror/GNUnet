@@ -105,6 +105,7 @@ testOpenClose ()
   return 0;
 }
 
+
 static int ok;
 
 

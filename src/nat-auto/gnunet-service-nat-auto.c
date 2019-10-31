@@ -481,6 +481,8 @@ GNUNET_ARM_memory_init ()
   mallopt (M_TOP_PAD, 1 * 1024);
   malloc_trim (0);
 }
+
+
 #endif
 
 /* end of gnunet-service-nat.c */

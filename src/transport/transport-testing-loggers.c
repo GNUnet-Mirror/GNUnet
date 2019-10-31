@@ -50,7 +50,6 @@ GNUNET_TRANSPORT_TESTING_log_connect (void *cls,
 }
 
 
-
 /**
  * Log a disconnect event.
  *
@@ -76,5 +75,6 @@ GNUNET_TRANSPORT_TESTING_log_disconnect (void *cls,
               ps);
   GNUNET_free (ps);
 }
+
 
 /* end of transport-testing-loggers.c */

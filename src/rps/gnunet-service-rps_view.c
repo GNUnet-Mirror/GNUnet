@@ -290,4 +290,5 @@ View_destroy (struct View *view)
   GNUNET_free (view);
 }
 
+
 /* end of gnunet-service-rps_view.c */

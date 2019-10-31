@@ -300,8 +300,7 @@ plan (struct PeerPlan *pp,
    * which satisfies all of the rules above.
    *
    * Note: M_PI_4 = PI/4 = arctan(1)
-   */
-  rp->priority =
+   */rp->priority =
     round ((GSF_current_priorities
             + 1.0) * atan (delay.rel_value_us / avg_delay)) / M_PI_4;
   /* Note: usage of 'round' and 'atan' requires -lm */
@@ -810,7 +809,6 @@ GSF_plan_done ()
   GNUNET_assert (0 == GNUNET_CONTAINER_multipeermap_size (plans));
   GNUNET_CONTAINER_multipeermap_destroy (plans);
 }
-
 
 
 /* end of gnunet-service-fs_pe.h */

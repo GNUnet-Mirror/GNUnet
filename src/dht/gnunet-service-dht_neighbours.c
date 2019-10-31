@@ -907,11 +907,8 @@ get_distance (const struct GNUNET_HashCode *target,
    * use the highest 2^9 bits of the result to signify the
    * number of (mis)matching LSB bits; if we have 0 matching
    * and hence 512 mismatching LSB bits we return -1 (since
-   * 512 itself cannot be represented with 9 bits) */
-
-  /* first, calculate the most significant 9 bits of our
-   * result, aka the number of LSBs */
-  bucket = GNUNET_CRYPTO_hash_matching_bits (target,
+   * 512 itself cannot be represented with 9 bits) *//* first, calculate the most significant 9 bits of our
+   * result, aka the number of LSBs */bucket = GNUNET_CRYPTO_hash_matching_bits (target,
                                              have);
   /* bucket is now a value between 0 and 512 */
   if (bucket == 512)

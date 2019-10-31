@@ -32,7 +32,6 @@
 #include "gnunet_peerinfo_service.h"
 
 
-
 GNUNET_NETWORK_STRUCT_BEGIN
 
 /**

@@ -614,6 +614,7 @@ peerinfo_list_iteration (void *cls,
                                   pc);
 }
 
+
 /**
  * Handle peerinfo GET request
  *
@@ -667,7 +668,6 @@ peerinfo_get (struct GNUNET_REST_RequestHandle *con_handle,
                                              &peerinfo_list_iteration,
                                              handle);
 }
-
 
 
 /**
@@ -817,5 +817,6 @@ libgnunet_plugin_rest_peerinfo_done (void *cls)
               "Peerinfo REST plugin is finished\n");
   return NULL;
 }
+
 
 /* end of plugin_rest_peerinfo.c */

@@ -246,4 +246,5 @@ libgnunet_plugin_block_gns_done (void *cls)
   return NULL;
 }
 
+
 /* end of plugin_block_gns.c */

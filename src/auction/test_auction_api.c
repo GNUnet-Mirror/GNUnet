@@ -29,6 +29,7 @@ check ()
   return 0;
 }
 
+
 int
 main (int argc, char *argv[])
 {
@@ -38,5 +39,6 @@ main (int argc, char *argv[])
 
   return ret;
 }
+
 
 /* end of test_auction_api.c */

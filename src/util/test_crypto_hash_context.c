@@ -27,7 +27,8 @@
 
 #define LEN 1234
 
-int main ()
+int
+main ()
 {
   char data[1234];
   struct GNUNET_HashCode hc1;

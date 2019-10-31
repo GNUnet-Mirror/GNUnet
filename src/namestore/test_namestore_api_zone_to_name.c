@@ -266,4 +266,5 @@ main (int argc,
   return res;
 }
 
+
 /* end of test_namestore_api_zone_to_name.c */

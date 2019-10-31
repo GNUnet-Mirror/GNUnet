@@ -599,8 +599,7 @@ handle_reserve (void *cls, const struct ReserveMessage *msg)
        * message happens, the insertion request could be blocked
        * by less-important content from migration because it is
        * larger than 1/8th of the overall available space, and
-       * we only reserve 1/8th for "fresh" insertions */
-      GNUNET_log (
+       * we only reserve 1/8th for "fresh" insertions */GNUNET_log (
         GNUNET_ERROR_TYPE_WARNING,
         _ (
           "The requested amount (%llu bytes) is larger than the cache size (%llu bytes)\n"),

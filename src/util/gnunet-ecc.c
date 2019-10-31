@@ -115,8 +115,7 @@ create_keys (const char *fn, const char *prefix)
        * n = 5/8 = 0 (bytes)
        * rest = 5%8 = 5 (bits)
        * mask = ~(2**(8 - 5) - 1) = ~(2**3 - 1) = ~(8 - 1) = ~b111 = b11111000
-       */
-      mask = ~((int) pow (2, 8 - rest) - 1);
+       */mask = ~((int) pow (2, 8 - rest) - 1);
       target_byte = ((unsigned char *) &target_pub)[n] & mask;
     }
     else
@@ -479,5 +478,6 @@ main (int argc, char *const *argv)
   GNUNET_free ((void *) argv);
   return ret;
 }
+
 
 /* end of gnunet-ecc.c */

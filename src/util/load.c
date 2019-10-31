@@ -169,8 +169,7 @@ calculate_load (struct GNUNET_LOAD_Value *load)
    * stddev = (sum (val_i - avg)^2) / (n-1)
    * = (sum (val_i^2 - 2 avg val_i + avg^2) / (n-1)
    * = (sum (val_i^2) - 2 avg sum (val_i) + n * avg^2) / (n-1)
-   */
-  sum_val_i = (double) load->cummulative_delay;
+   */sum_val_i = (double) load->cummulative_delay;
   n = ((double) load->cummulative_request_count);
   nm1 = n - 1.0;
   avgdel = sum_val_i / n;
@@ -252,7 +251,6 @@ GNUNET_LOAD_update (struct GNUNET_LOAD_Value *load, uint64_t data)
   load->cummulative_request_count++;
   load->runavg_delay = ((load->runavg_delay * 7.0) + dv) / 8.0;
 }
-
 
 
 /* end of load.c */

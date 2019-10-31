@@ -446,7 +446,6 @@ REGEX_INTERNAL_dfa_add_multi_strides (struct REGEX_INTERNAL_Context *regex_ctx,
                                       const unsigned int stride_len);
 
 
-
 #if 0                           /* keep Emacsens' auto-indent happy */
 {
 #endif

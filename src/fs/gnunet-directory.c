@@ -174,6 +174,7 @@ run (void *cls,
   }
 }
 
+
 /**
  * The main function to inspect GNUnet directories.
  *
@@ -205,5 +206,6 @@ main (int argc, char *const *argv)
   GNUNET_free ((void *) argv);
   return ret;
 }
+
 
 /* end of gnunet-directory.c */

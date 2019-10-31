@@ -46,7 +46,11 @@ static struct Command test_commands[] = {
         /* use network with 65k quota! */
         .scope = GNUNET_NT_WAN
       }
+
+
     }
+
+
   },
   /* 1: some solver still require explicit start */
   {
@@ -55,6 +59,8 @@ static struct Command test_commands[] = {
     .details.request_connection_start = {
       .pid = 0
     }
+
+
   },
   /* 2: check we got an address */
   {
@@ -62,6 +68,8 @@ static struct Command test_commands[] = {
     .details.await_address_suggestion = {
       .add_label = "add-address-0-0"
     }
+
+
   },
   /* 3: sleep 7s, should give us 5s * 64k/s = 320k buffer;
      Note that this depends on MAX_BANDWIDTH_CARRY_S.  We
@@ -79,6 +87,8 @@ static struct Command test_commands[] = {
       .amount = 128 * 1024,
       .expected_result = GNUNET_YES
     }
+
+
   },
   /* 5: reserve another 192k -- should just work (now exactly pushing the limit) */
   {
@@ -89,6 +99,8 @@ static struct Command test_commands[] = {
       .amount = 192 * 1024,
       .expected_result = GNUNET_YES
     }
+
+
   },
   /* 6: reserve another 32k -- should now fail (if MAX_BANDWIDTH_CARRY_S
      is precisely observed) */
@@ -100,6 +112,8 @@ static struct Command test_commands[] = {
       .amount = 32 * 1024,
       .expected_result = GNUNET_SYSERR
     }
+
+
   },
   /* 7: sleep 3s, should give us 3s * 64k/s - 32k = 160k buffer */
   {
@@ -116,6 +130,8 @@ static struct Command test_commands[] = {
       .amount = 160 * 1024,
       .expected_result = GNUNET_YES
     }
+
+
   },
   /* 9: remove address */
   {
@@ -123,6 +139,8 @@ static struct Command test_commands[] = {
     .details.del_address = {
       .add_label = "add-address-0-0"
     }
+
+
   },
   /* 10: check we got disconnected */
   {
@@ -130,6 +148,8 @@ static struct Command test_commands[] = {
     .details.await_disconnect_suggestion = {
       .pid = 0
     }
+
+
   },
   /* 11: just for symmetry, also stop asking for the connection */
   {
@@ -137,6 +157,8 @@ static struct Command test_commands[] = {
     .details.request_connection_stop = {
       .connect_label = "request-0",
     }
+
+
   },
   /* Test ends successfully */
   {

@@ -161,6 +161,7 @@ GNUNET_JSON_from_rsa_signature (const struct GNUNET_CRYPTO_RsaSignature *sig)
   return ret;
 }
 
+
 /**
  * Convert GNS record to JSON.
  *

@@ -133,7 +133,6 @@ GST_blacklist_add_peer (const struct GNUNET_PeerIdentity *peer,
 struct GST_BlacklistCheck;
 
 
-
 /**
  * Test if a peer/transport combination is blacklisted.
  *
@@ -229,8 +228,6 @@ GST_clients_broadcast_peer_notification (const struct GNUNET_PeerIdentity *peer,
  */
 void
 GST_clients_broadcast_disconnect (const struct GNUNET_PeerIdentity *peer);
-
-
 
 
 #endif

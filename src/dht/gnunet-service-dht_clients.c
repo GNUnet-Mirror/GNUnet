@@ -1318,7 +1318,7 @@ GDS_CLIENTS_process_get_resp (enum GNUNET_BLOCK_Type type,
   cl_size = 0;
   for (m = monitor_head; NULL != m; m = m->next)
   {
-    if (((GNUNET_BLOCK_TYPE_ANY == m->type) ||(m->type == type) ) &&
+    if (((GNUNET_BLOCK_TYPE_ANY == m->type) || (m->type == type) ) &&
         ((NULL == m->key) ||
          (memcmp (key, m->key, sizeof(struct GNUNET_HashCode)) == 0) ))
     {
@@ -1402,7 +1402,7 @@ GDS_CLIENTS_process_put (uint32_t options,
   cl_size = 0;
   for (m = monitor_head; NULL != m; m = m->next)
   {
-    if (((GNUNET_BLOCK_TYPE_ANY == m->type) ||(m->type == type) ) &&
+    if (((GNUNET_BLOCK_TYPE_ANY == m->type) || (m->type == type) ) &&
         ((NULL == m->key) ||
          (memcmp (key, m->key, sizeof(struct GNUNET_HashCode)) == 0) ))
     {
@@ -1539,5 +1539,6 @@ GDS_CLIENTS_done ()
     forward_map = NULL;
   }
 }
+
 
 /* end of gnunet-service-dht_clients.c */

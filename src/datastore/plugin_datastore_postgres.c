@@ -73,8 +73,7 @@ init_connection (struct Plugin *plugin)
      * we do math or inequality tests, so we can't handle the entire range of uint32_t.
      * This will also cause problems for expiration times after 294247-01-10-04:00:54 UTC.
      * PostgreSQL also recommends against using WITH OIDS.
-     */
-    GNUNET_PQ_make_execute ("CREATE TABLE IF NOT EXISTS gn090 ("
+     */GNUNET_PQ_make_execute ("CREATE TABLE IF NOT EXISTS gn090 ("
                             "  repl INTEGER NOT NULL DEFAULT 0,"
                             "  type INTEGER NOT NULL DEFAULT 0,"
                             "  prio INTEGER NOT NULL DEFAULT 0,"
@@ -969,5 +968,6 @@ libgnunet_plugin_datastore_postgres_done (void *cls)
   GNUNET_free (api);
   return NULL;
 }
+
 
 /* end of plugin_datastore_postgres.c */

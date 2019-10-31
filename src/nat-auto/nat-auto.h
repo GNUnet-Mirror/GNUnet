@@ -29,7 +29,6 @@
 #include "gnunet_util_lib.h"
 
 
-
 GNUNET_NETWORK_STRUCT_BEGIN
 
 /**

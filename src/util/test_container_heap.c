@@ -35,6 +35,7 @@ iterator_callback (void *cls,
   return GNUNET_OK;
 }
 
+
 static int
 nstrcmp (const char *a, const char *b)
 {
@@ -42,6 +43,7 @@ nstrcmp (const char *a, const char *b)
   GNUNET_assert (b != NULL);
   return strcmp (a, b);
 }
+
 
 static int
 check ()
@@ -286,5 +288,6 @@ main (int argc, char **argv)
   GNUNET_log_setup ("test-container-heap", "WARNING", NULL);
   return check ();
 }
+
 
 /* end of test_container_heap.c */

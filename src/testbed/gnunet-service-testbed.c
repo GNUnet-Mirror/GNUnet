@@ -836,8 +836,7 @@ client_disconnect_cb (void *cls,
      * from stdin, but if stdin fails for some reason, this shouldn't
      * hurt for now --- might need to revise this later if we ever
      * decide that master connections might be temporarily down
-     * for some reason */
-    // GNUNET_SCHEDULER_shutdown ();
+     * for some reason */// GNUNET_SCHEDULER_shutdown ();
   }
 }
 

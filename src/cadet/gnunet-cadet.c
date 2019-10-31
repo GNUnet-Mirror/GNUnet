@@ -265,6 +265,7 @@ shutdown_task (void *cls)
   }
 }
 
+
 void
 mq_cb (void *cls)
 {
@@ -676,7 +677,7 @@ run (void *cls,
   if (target_id && args[1])
     target_port = args[1];
 
-  if (((0 != (request_peers | request_tunnels))||(NULL != conn_id)||
+  if (((0 != (request_peers | request_tunnels)) || (NULL != conn_id) ||
        (NULL != channel_id) ) &&
       (target_id != NULL) )
   {
@@ -845,5 +846,6 @@ main (int argc, char *const *argv)
     return 0;
   return 1;
 }
+
 
 /* end of gnunet-cadet.c */

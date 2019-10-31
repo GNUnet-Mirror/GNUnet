@@ -1333,4 +1333,5 @@ GCO_shutdown ()
   }
 }
 
+
 /* end of gnunet-cadet-service_core.c */

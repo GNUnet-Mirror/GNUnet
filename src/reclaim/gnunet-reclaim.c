@@ -191,6 +191,7 @@ do_cleanup (void *cls)
     GNUNET_free (attr_to_delete);
 }
 
+
 static void
 ticket_issue_cb (void *cls, const struct GNUNET_RECLAIM_Ticket *ticket)
 {
@@ -209,6 +210,7 @@ ticket_issue_cb (void *cls, const struct GNUNET_RECLAIM_Ticket *ticket)
   cleanup_task = GNUNET_SCHEDULER_add_now (&do_cleanup, NULL);
 }
 
+
 static void
 store_attr_cont (void *cls, int32_t success, const char *emsg)
 {
@@ -219,6 +221,7 @@ store_attr_cont (void *cls, int32_t success, const char *emsg)
   }
   cleanup_task = GNUNET_SCHEDULER_add_now (&do_cleanup, NULL);
 }
+
 
 static void
 process_attrs (void *cls,
@@ -255,6 +258,7 @@ process_attrs (void *cls,
   GNUNET_free (id);
 }
 
+
 static void
 ticket_iter_err (void *cls)
 {
@@ -263,12 +267,14 @@ ticket_iter_err (void *cls)
   cleanup_task = GNUNET_SCHEDULER_add_now (&do_cleanup, NULL);
 }
 
+
 static void
 ticket_iter_fin (void *cls)
 {
   ticket_iterator = NULL;
   cleanup_task = GNUNET_SCHEDULER_add_now (&do_cleanup, NULL);
 }
+
 
 static void
 ticket_iter (void *cls, const struct GNUNET_RECLAIM_Ticket *ticket)
@@ -292,6 +298,7 @@ ticket_iter (void *cls, const struct GNUNET_RECLAIM_Ticket *ticket)
   GNUNET_RECLAIM_ticket_iteration_next (ticket_iterator);
 }
 
+
 static void
 iter_error (void *cls)
 {
@@ -299,6 +306,7 @@ iter_error (void *cls)
   fprintf (stderr, "Failed to iterate over attributes\n");
   cleanup_task = GNUNET_SCHEDULER_add_now (&do_cleanup, NULL);
 }
+
 
 static void
 timeout_task (void *cls)
@@ -309,6 +317,7 @@ timeout_task (void *cls)
   if (NULL == cleanup_task)
     cleanup_task = GNUNET_SCHEDULER_add_now (&do_cleanup, NULL);
 }
+
 
 static void
 process_rvk (void *cls, int success, const char *msg)
@@ -432,6 +441,7 @@ iter_finished (void *cls)
   cleanup_task = GNUNET_SCHEDULER_add_now (&do_cleanup, NULL);
 }
 
+
 static void
 iter_cb (void *cls,
          const struct GNUNET_CRYPTO_EcdsaPublicKey *identity,
@@ -511,6 +521,7 @@ iter_cb (void *cls,
   GNUNET_RECLAIM_get_attributes_next (attr_iterator);
 }
 
+
 static void
 start_process ()
 {
@@ -564,6 +575,7 @@ start_process ()
                                                        &iter_finished,
                                                        NULL);
 }
+
 
 static int init = GNUNET_YES;
 

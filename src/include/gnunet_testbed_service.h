@@ -95,7 +95,6 @@ GNUNET_TESTBED_host_create (const char *hostname,
                             uint16_t port);
 
 
-
 /**
  * Create a host to run peers and controllers on.  This function is used
  * if a peer learns about a host via IPC between controllers (and thus
@@ -875,7 +874,6 @@ GNUNET_TESTBED_shutdown_peers (struct GNUNET_TESTBED_Controller *c,
                                void *cb_cls);
 
 
-
 /**
  * Options for peer connections.
  */
@@ -941,7 +939,6 @@ GNUNET_TESTBED_underlay_configure_link (void *op_cls,
                                         struct GNUNET_TESTBED_Peer *p2,
                                         enum GNUNET_TESTBED_ConnectOption co,
                                         ...);
-
 
 
 /**

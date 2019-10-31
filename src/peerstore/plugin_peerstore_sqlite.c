@@ -698,4 +698,5 @@ libgnunet_plugin_peerstore_sqlite_done (void *cls)
   return NULL;
 }
 
+
 /* end of plugin_peerstore_sqlite.c */

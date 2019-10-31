@@ -320,7 +320,6 @@ handle_response (void *cls,
 }
 
 
-
 /**
  * Generic error handler, called with the appropriate error code and
  * the same closure specified at the creation of the message queue.

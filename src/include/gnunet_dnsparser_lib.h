@@ -407,7 +407,6 @@ struct GNUNET_DNSPARSER_CaaRecord
 };
 
 
-
 /**
  * Binary record information (unparsed).
  */

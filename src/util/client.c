@@ -45,7 +45,6 @@
     GNUNET_TIME_UNIT_SECONDS, 5)
 
 
-
 /**
  * Internal state for a client connected to a GNUnet service.
  */
@@ -1108,5 +1107,6 @@ GNUNET_CLIENT_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
                                               error_handler_cls);
   return cstate->mq;
 }
+
 
 /* end of client.c */

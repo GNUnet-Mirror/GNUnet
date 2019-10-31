@@ -779,4 +779,5 @@ main (int argc, char *const *argv)
   return ok;
 }
 
+
 /* end of gnunet-auto-share.c */

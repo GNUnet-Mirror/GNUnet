@@ -81,6 +81,7 @@ address_generator (void *cls, size_t max, void *buf)
   return ret;
 }
 
+
 struct GNUNET_PeerIdentity pid;
 
 static void
@@ -166,5 +167,6 @@ main (int argc, char *argv[])
     return 1;
   return global_ret;
 }
+
 
 /* end of test_peerinfo_api.c */

@@ -77,7 +77,6 @@ static struct TransportPlugin *plugins_head;
 static struct TransportPlugin *plugins_tail;
 
 
-
 /**
  * Load and initialize all plugins.  The respective functions will be
  * invoked by the plugins when the respective events happen.  The

@@ -407,6 +407,7 @@ abort_test (long line)
   }
 }
 
+
 /**
  * Stats callback. Finish the stats testbed operation and when all stats have
  * been iterated, shutdown the test.
@@ -615,7 +616,7 @@ tmt_rdy_pong (void *cls, size_t size, void *buf)
   struct CadetPingMessage *ping = cls;
   struct CadetPingMessage *pong;
 
-  if ((0 == size)||(NULL == buf))
+  if ((0 == size) || (NULL == buf))
   {
     GNUNET_free (ping);
     return 0;
@@ -654,6 +655,7 @@ ping (void *cls)
                                                        &tmt_rdy_ping, peer);
 }
 
+
 /**
  * @brief Reply with a pong to origin.
  *
@@ -691,7 +693,7 @@ tmt_rdy_ping (void *cls, size_t size, void *buf)
   peer->ping_ntr = NULL;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "tmt_rdy called, filling buffer\n");
-  if ((size < sizeof(struct CadetPingMessage))||(NULL == buf))
+  if ((size < sizeof(struct CadetPingMessage)) || (NULL == buf))
   {
     GNUNET_break (GNUNET_YES == test_finished);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -857,6 +859,7 @@ incoming_channel (void *cls, struct GNUNET_CADET_Channel *channel,
   return NULL;
 }
 
+
 /**
  * Function called whenever an inbound channel is destroyed.  Should clean up
  * any associated state.
@@ -902,6 +905,7 @@ select_random_peer (struct CadetPeer *peer)
 
   return &peers[r];
 }
+
 
 /**
  * START THE TEST ITSELF, AS WE ARE CONNECTED TO THE CADET SERVICES.
@@ -999,7 +1003,7 @@ peer_id_cb (void *cls,
 {
   long n = (long) cls;
 
-  if ((NULL == pinfo)||(NULL != emsg))
+  if ((NULL == pinfo) || (NULL != emsg))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "pi_cb: %s\n", emsg);
     abort_test (__LINE__);
@@ -1150,5 +1154,6 @@ main (int argc, char *argv[])
 
   return 0;
 }
+
 
 /* end of gnunet-cadet-profiler.c */

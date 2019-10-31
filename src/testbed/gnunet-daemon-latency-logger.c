@@ -150,6 +150,7 @@ do_shutdown (void *cls)
   }
 }
 
+
 /**
  * Signature of a function that is called with QoS information about an address.
  *

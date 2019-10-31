@@ -85,7 +85,6 @@ GNUNET_TESTBED_cleanup_peers_ (void)
 }
 
 
-
 /**
  * Function to call to start a peer_create type operation once all
  * queues the operation is part of declare that the
@@ -1012,7 +1011,6 @@ GNUNET_TESTBED_peer_manage_service (void *op_cls,
   GNUNET_TESTBED_operation_begin_wait_ (opc->op);
   return opc->op;
 }
-
 
 
 /* end of testbed_api_peers.c */

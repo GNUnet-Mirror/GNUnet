@@ -235,7 +235,6 @@ GNUNET_STRINGS_buffer_tokenize (const char *buffer,
                                 unsigned int count, ...);
 
 
-
 /**
  * @ingroup time
  * Like `asctime`, except for GNUnet time.  Converts a GNUnet internal

@@ -294,7 +294,6 @@ struct GetContext
 };
 
 
-
 /**
  * Function called during GET to find matching blocks.
  * Only matches by type.
@@ -588,7 +587,6 @@ libgnunet_plugin_datacache_heap_done (void *cls)
   GNUNET_free (api);
   return NULL;
 }
-
 
 
 /* end of plugin_datacache_heap.c */

@@ -520,4 +520,5 @@ GNUNET_RECLAIM_ATTRIBUTE_deserialize (const char *data, size_t data_size)
   return attr;
 }
 
+
 /* end of reclaim_attribute.c */

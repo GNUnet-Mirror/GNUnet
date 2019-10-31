@@ -127,6 +127,7 @@ get_ego_filename (struct Ego *ego)
   return filename;
 }
 
+
 /**
  * Called whenever a client is disconnected.
  *
@@ -158,6 +159,7 @@ client_connect_cb (void *cls,
 {
   return client;
 }
+
 
 /**
  * Task run during shutdown.
@@ -521,6 +523,7 @@ key_cmp (const struct GNUNET_CRYPTO_EcdsaPrivateKey *pk1,
   return GNUNET_memcmp (pk1, pk2);
 }
 
+
 /**
  * Checks a #GNUNET_MESSAGE_TYPE_IDENTITY_SET_DEFAULT message
  *
@@ -556,6 +559,7 @@ check_set_default_message (void *cls, const struct SetDefaultMessage *msg)
   }
   return GNUNET_OK;
 }
+
 
 /**
  * Handler for SET_DEFAULT message from client, updates
@@ -629,6 +633,7 @@ notify_listeners (struct Ego *ego)
   GNUNET_free (um);
 }
 
+
 /**
  * Checks a #GNUNET_MESSAGE_TYPE_IDENTITY_CREATE message
  *
@@ -664,6 +669,7 @@ check_create_message (void *cls, const struct CreateRequestMessage *msg)
   }
   return GNUNET_OK;
 }
+
 
 /**
  * Handler for CREATE message from client, creates
@@ -764,6 +770,7 @@ handle_ego_rename (void *cls, const char *section)
                                          rc->new_name);
   GNUNET_free (id);
 }
+
 
 /**
  * Checks a #GNUNET_MESSAGE_TYPE_IDENTITY_RENAME message
@@ -915,6 +922,7 @@ handle_ego_delete (void *cls, const char *section)
                                          NULL);
   GNUNET_free (id);
 }
+
 
 /**
  * Checks a #GNUNET_MESSAGE_TYPE_IDENTITY_DELETE message

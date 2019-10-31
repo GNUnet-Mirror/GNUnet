@@ -412,7 +412,7 @@ start_insert ()
   ssize_t len;
 
   len = GNUNET_DISK_file_read (file_handle, buf, MAGIC_LEN);
-  if ((len != MAGIC_LEN)||(0 != memcmp (buf, MAGIC_BYTES, MAGIC_LEN)))
+  if ((len != MAGIC_LEN) || (0 != memcmp (buf, MAGIC_BYTES, MAGIC_LEN)))
   {
     fprintf (stderr, _ ("Input file is not of a supported format\n"));
     return;
@@ -503,5 +503,6 @@ main (int argc, char *const *argv)
   GNUNET_free ((void *) argv);
   return ret;
 }
+
 
 /* end of gnunet-datastore.c */

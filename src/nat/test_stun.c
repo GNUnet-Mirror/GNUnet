@@ -35,7 +35,6 @@
 #include "gnunet_nat_lib.h"
 
 
-
 #define LOG(kind, ...) GNUNET_log_from (kind, "test-stun", __VA_ARGS__)
 
 /**
@@ -309,5 +308,6 @@ main (int argc, char *const argv[])
 
   return ret;
 }
+
 
 /* end of test_stun.c */

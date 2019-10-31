@@ -149,6 +149,8 @@ add_to_md (void *cls,
   }
   return 0;
 }
+
+
 #endif
 
 
@@ -571,5 +573,6 @@ main (int argc, char *const *argv)
 #endif
   return 0;
 }
+
 
 /* end of gnunet-helper-fs-publish.c */

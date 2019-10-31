@@ -179,4 +179,5 @@ main (int argc, char *argv[])
   return res;
 }
 
+
 /* end of test_namestore_api_remove_not_existing_record.c */

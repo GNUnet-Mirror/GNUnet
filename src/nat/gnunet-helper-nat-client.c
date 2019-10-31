@@ -541,4 +541,5 @@ cleanup:
   return global_ret;
 }
 
+
 /* end of gnunet-helper-nat-client.c */

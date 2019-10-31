@@ -65,6 +65,7 @@ create_experiment ()
   return e;
 }
 
+
 static void
 free_experiment (struct Experiment *e)
 {
@@ -509,6 +510,7 @@ enforce_start_send (struct GNUNET_ATS_TEST_Operation *op)
                                                         GNUNET_TIME_UNIT_FOREVER_REL);
 }
 
+
 static void
 enforce_stop_send (struct GNUNET_ATS_TEST_Operation *op)
 {
@@ -572,6 +574,7 @@ enforce_start_preference (struct GNUNET_ATS_TEST_Operation *op)
                                                             op->pref_type);
 }
 
+
 static void
 enforce_stop_preference (struct GNUNET_ATS_TEST_Operation *op)
 {
@@ -595,7 +598,9 @@ enforce_stop_preference (struct GNUNET_ATS_TEST_Operation *op)
   }
 }
 
-static void enforce_episode (struct Episode *ep)
+
+static void
+enforce_episode (struct Episode *ep)
 {
   struct GNUNET_ATS_TEST_Operation *cur;
 
@@ -794,6 +799,7 @@ GNUNET_ATS_TEST_experimentation_load (const char *filename)
   return e;
 }
 
+
 void
 GNUNET_ATS_TEST_experimentation_stop (struct Experiment *e)
 {
@@ -809,5 +815,6 @@ GNUNET_ATS_TEST_experimentation_stop (struct Experiment *e)
   }
   free_experiment (e);
 }
+
 
 /* end of file ats-testing-experiment.c*/

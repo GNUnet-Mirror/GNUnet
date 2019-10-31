@@ -88,8 +88,7 @@ eval (unsigned int len)
           64 * 1024 / (1 +
                        GNUNET_TIME_absolute_get_duration
                        (start).rel_value_us / 1000LL), "keys/ms");
-   */
-  start = GNUNET_TIME_absolute_get ();
+   */start = GNUNET_TIME_absolute_get ();
   GNUNET_CRYPTO_hash ("test", 4, &hc);
   for (i = 0; i < 10; i++)
   {

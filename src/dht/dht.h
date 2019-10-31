@@ -137,7 +137,6 @@ struct GNUNET_DHT_ClientGetResultSeenMessage
 };
 
 
-
 /**
  * Reply to a GET send from the service to a client.
  */

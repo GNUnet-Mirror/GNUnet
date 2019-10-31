@@ -148,7 +148,6 @@ static struct PeerReconfigureContext *prc_head;
 static struct PeerReconfigureContext *prc_tail;
 
 
-
 /**
  * DLL head for queue of manage service requests
  */

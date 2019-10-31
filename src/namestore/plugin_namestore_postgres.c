@@ -622,4 +622,5 @@ libgnunet_plugin_namestore_postgres_done (void *cls)
   return NULL;
 }
 
+
 /* end of plugin_namestore_postgres.c */

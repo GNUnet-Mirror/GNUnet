@@ -104,7 +104,6 @@ typedef void
                                             const char *emsg);
 
 
-
 /**
  * Store an item in the namecache.  If the item is already present,
  * it is replaced with the new record.

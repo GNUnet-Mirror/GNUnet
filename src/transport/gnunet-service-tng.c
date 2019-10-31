@@ -4734,8 +4734,7 @@ consider_sending_fc (void *cls)
      then. See vl->last_fc_rtt! NOTE: to do this properly, we also
      need an estimate for the bandwidth-delay-product for the entire
      VL, as that determines "significantly". We have the delay, but
-     the bandwidth statistics need to be added for the VL!*/
-  (void) duration;
+     the bandwidth statistics need to be added for the VL!*/(void) duration;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Sending FC seq %u to %s with new window %llu\n",
@@ -5218,8 +5217,7 @@ handle_raw_message (void *cls, const struct GNUNET_MessageHeader *mh)
        we pass this on, CORE would be confused (link down, messages
        arrive).  We should investigate more if this happens often,
        or in a persistent manner, and possibly do "something" about
-       it. Thus logging as error for now. */
-    GNUNET_break_op (0);
+       it. Thus logging as error for now. */GNUNET_break_op (0);
     GNUNET_STATISTICS_update (GST_stats,
                               "# CORE messages droped (virtual link still down)",
                               1,
@@ -8643,8 +8641,7 @@ select_best_pending_from_link (struct PendingMessageScoreContext *sc,
          given message fits _this_ queue, and do not consider how well other
          queues might suit the message. Taking other queues into consideration
          may further improve the result, but could also be expensive
-         in terms of CPU time.  */
-      long long sc_score = sc->frag * 40 + sc->relb * 20 + sc->real_overhead;
+         in terms of CPU time.  */long long sc_score = sc->frag * 40 + sc->relb * 20 + sc->real_overhead;
       long long pm_score = frag * 40 + relb * 20 + real_overhead;
       long long time_delta =
         (sc->best->next_attempt.abs_value_us - pos->next_attempt.abs_value_us)
@@ -8848,8 +8845,7 @@ transmit_on_queue (void *cls)
      via DV (and thus the ultimate target of the pending message is for
      a different virtual link than the one of the queue), then we need
      to use up not only the window of the direct link but also the
-     flow control window for the DV link! */
-  pm->vl->outbound_fc_window_size_used += pm->bytes_msg;
+     flow control window for the DV link! */pm->vl->outbound_fc_window_size_used += pm->bytes_msg;
 
   if (pm->vl != queue->neighbour->vl)
   {
@@ -8888,8 +8884,7 @@ transmit_on_queue (void *cls)
 
        OPTIMIZE: Note that in the future this heuristic should likely
        be improved further (measure RTT stability, consider message
-       urgency and size when delaying ACKs, etc.) */
-    update_pm_next_attempt (pm,
+       urgency and size when delaying ACKs, etc.) */update_pm_next_attempt (pm,
                             GNUNET_TIME_relative_to_absolute (
                               GNUNET_TIME_relative_multiply (queue->pd.aged_rtt,
                                                              4)));

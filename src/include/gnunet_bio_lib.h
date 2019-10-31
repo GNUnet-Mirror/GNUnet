@@ -137,7 +137,6 @@ GNUNET_BIO_read_meta_data (struct GNUNET_BIO_ReadHandle *h, const char *what,
                                                          f, sizeof(float)))
 
 
-
 /**
  * Read a double.
  *
@@ -270,7 +269,6 @@ GNUNET_BIO_write_meta_data (struct GNUNET_BIO_WriteHandle *h,
                             const struct GNUNET_CONTAINER_MetaData *m);
 
 
-
 /**
  * Write a float.
  *
@@ -278,7 +276,6 @@ GNUNET_BIO_write_meta_data (struct GNUNET_BIO_WriteHandle *h,
  * @param f float to write (must be a variable)
  */
 #define GNUNET_BIO_write_float(h, f) GNUNET_BIO_write (h, &f, sizeof(float))
-
 
 
 /**

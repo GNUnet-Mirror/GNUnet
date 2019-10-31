@@ -662,7 +662,6 @@ cleanup_task (void *cls)
 }
 
 
-
 /**
  * Generate the random coefficients of our pre-secret polynomial
  *
@@ -882,7 +881,6 @@ keygen_round2_conclude (void *cls)
   GNUNET_MQ_send (ks->cs->mq,
                   ev);
 }
-
 
 
 static void

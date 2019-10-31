@@ -268,6 +268,7 @@ update_iterator (void *cls,
   return GNUNET_NO;
 }
 
+
 /**
  * Store an item in the datastore.
  *
@@ -938,5 +939,6 @@ libgnunet_plugin_datastore_heap_done (void *cls)
   GNUNET_free (api);
   return NULL;
 }
+
 
 /* end of plugin_datastore_heap.c */

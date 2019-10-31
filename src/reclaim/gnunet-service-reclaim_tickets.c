@@ -330,7 +330,6 @@ static struct GNUNET_GNS_Handle *gns;
 static struct GNUNET_STATISTICS_Handle *stats;
 
 
-
 /**
  * Cleanup revoke handle
  *
@@ -1265,6 +1264,7 @@ issue_ticket (struct TicketIssueHandle *ih)
   GNUNET_free (label);
 }
 
+
 /*************************************************
 * Ticket iteration (finding a specific ticket)
 *************************************************/
@@ -1359,7 +1359,7 @@ filter_tickets_cb (void *cls,
    * If we found a matching ticket, return that to the caller and
    * we are done.
    */
-  if ((attr_cnt == found_attrs_cnt)&&(NULL != ticket))
+  if ((attr_cnt == found_attrs_cnt) && (NULL != ticket))
   {
     GNUNET_NAMESTORE_zone_iteration_stop (tih->ns_it);
     tih->cb (tih->cb_cls, &tih->ticket, GNUNET_OK, NULL);

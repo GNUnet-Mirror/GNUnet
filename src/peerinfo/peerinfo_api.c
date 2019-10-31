@@ -239,7 +239,6 @@ mq_error_handler (void *cls,
 }
 
 
-
 /**
  * Function called when we receive an info message. Check it is
  * well-formed.

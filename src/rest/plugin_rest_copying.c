@@ -120,7 +120,6 @@ get_cont (struct GNUNET_REST_RequestHandle *con_handle,
 }
 
 
-
 /**
  * Handle rest request
  *
@@ -230,5 +229,6 @@ libgnunet_plugin_rest_copying_done (void *cls)
               "COPYING REST plugin is finished\n");
   return NULL;
 }
+
 
 /* end of plugin_rest_copying.c */

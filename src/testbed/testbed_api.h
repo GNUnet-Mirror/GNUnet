@@ -105,7 +105,6 @@ enum OperationType
 };
 
 
-
 /**
  * Enumeration of states of OperationContext
  */
@@ -309,7 +308,6 @@ struct GNUNET_TESTBED_Barrier
 };
 
 
-
 /**
  * Queues a message in send queue for sending to the service
  *
@@ -484,7 +482,6 @@ GNUNET_TESTBED_get_slave_config_ (void *op_cls,
                                   uint32_t slave_host_id);
 
 
-
 /**
  * Initialise a barrier and call the given callback when the required percentage
  * of peers (quorum) reach the barrier OR upon error.
@@ -518,7 +515,6 @@ GNUNET_TESTBED_barrier_init_ (struct GNUNET_TESTBED_Controller *controller,
  */
 void
 GNUNET_TESTBED_barrier_remove_ (struct GNUNET_TESTBED_Barrier *barrier);
-
 
 
 #endif

@@ -452,4 +452,5 @@ GNUNET_FS_share_tree_free (struct GNUNET_FS_ShareTreeItem *toplevel)
   GNUNET_free (toplevel);
 }
 
+
 /* end fs_sharetree.c */

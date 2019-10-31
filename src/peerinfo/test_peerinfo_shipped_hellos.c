@@ -140,4 +140,5 @@ main (int argc,
   return global_ret;
 }
 
+
 /* end of test_peerinfo_shipped_hellos.c */

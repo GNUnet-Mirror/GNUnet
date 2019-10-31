@@ -1922,6 +1922,7 @@ test_crypto_bug (const struct GNUNET_CRYPTO_EcdhePrivateKey *e1,
   check_ed (e2, d1);
 }
 
+
 #endif
 
 
@@ -2062,7 +2063,6 @@ GCT_handle_kx_auth (struct CadetTConnection *ct,
                   GNUNET_NO);
   }
 }
-
 
 
 /* ************************************** end core crypto ***************************** */
@@ -2828,8 +2828,7 @@ maintain_connections_cb (void *cls)
      restarted after that happens).
      Furthermore, if the paths we do know are in a reasonably narrow
      quality band and are plentyful, we might also consider us stabilized
-     and then reduce the frequency accordingly.  */
-  delay = GNUNET_TIME_UNIT_MINUTES;
+     and then reduce the frequency accordingly.  */delay = GNUNET_TIME_UNIT_MINUTES;
   t->maintain_connections_task
     = GNUNET_SCHEDULER_add_delayed (delay,
                                     &maintain_connections_cb,
@@ -3398,8 +3397,7 @@ GCT_handle_encrypted (struct CadetTConnection *ct,
        this increment if we successfully decrypted with the old KX
        material and thus didn't even both with the new one.  This is
        the ideal case, as a malicious injection of bogus KX data
-       basically only causes us to increment a counter a few times. */
-    t->unverified_attempts++;
+       basically only causes us to increment a counter a few times. */t->unverified_attempts++;
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Failed to decrypt message with unverified KX data %u times\n",
          t->unverified_attempts);

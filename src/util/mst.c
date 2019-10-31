@@ -415,5 +415,4 @@ GNUNET_MST_destroy (struct GNUNET_MessageStreamTokenizer *mst)
 }
 
 
-
 /* end of server_mst.c */

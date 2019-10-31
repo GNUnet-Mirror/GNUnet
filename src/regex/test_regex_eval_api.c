@@ -119,8 +119,8 @@ test_random (unsigned int rx_length, unsigned int max_str_len,
     /* We only want to match the whole string, because that's what our DFA does,
      * too. */
     if ((eval_check == 0) &&
-        ((matchptr[0].rm_so != 0) ||(matchptr[0].rm_eo != strlen (
-                                       matching_str)) ))
+        ((matchptr[0].rm_so != 0) || (matchptr[0].rm_eo != strlen (
+                                        matching_str)) ))
       eval_check = 1;
 
     /* Match canonical regex */
@@ -150,12 +150,12 @@ test_random (unsigned int rx_length, unsigned int max_str_len,
     /* We only want to match the whole string, because that's what our DFA does,
      * too. */
     if ((eval_canonical_check == 0) &&
-        ((matchptr[0].rm_so != 0) ||(matchptr[0].rm_eo != strlen (
-                                       matching_str)) ))
+        ((matchptr[0].rm_so != 0) || (matchptr[0].rm_eo != strlen (
+                                        matching_str)) ))
       eval_canonical_check = 1;
 
     /* compare results */
-    if ((eval_check != eval) ||(eval_canonical != eval_canonical_check) )
+    if ((eval_check != eval) || (eval_canonical != eval_canonical_check) )
     {
       regerror (eval_check, &rx, error, sizeof error);
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -183,6 +183,7 @@ error:
   GNUNET_free_non_null (canonical_regex);
   return -1;
 }
+
 
 /**
  * Automaton test that compares the result of matching regular expression 'rx'
@@ -227,10 +228,10 @@ test_automaton (struct REGEX_INTERNAL_Automaton *a, regex_t *rx,
          (matchptr[0].rm_eo != strlen (rxstr->strings[i])) ))
       eval_check = 1;
 
-    if (((rxstr->expected_results[i] == match) && ((0 != eval) ||(0 !=
-                                                                  eval_check) ))
+    if (((rxstr->expected_results[i] == match) && ((0 != eval) || (0 !=
+                                                                   eval_check) ))
         || ((rxstr->expected_results[i] == nomatch) &&
-            ((0 == eval) ||(0 == eval_check) )))
+            ((0 == eval) || (0 == eval_check) )))
     {
       result = 1;
       regerror (eval_check, rx, error, sizeof error);
@@ -246,6 +247,7 @@ test_automaton (struct REGEX_INTERNAL_Automaton *a, regex_t *rx,
   }
   return result;
 }
+
 
 int
 main (int argc, char *argv[])

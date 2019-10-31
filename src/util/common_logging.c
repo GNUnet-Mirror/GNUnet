@@ -401,6 +401,8 @@ setup_log_file (const struct tm *tm)
   GNUNET_stderr = altlog;
   return GNUNET_OK;
 }
+
+
 #endif
 
 
@@ -504,7 +506,7 @@ GNUNET_get_log_call_status (int caller_level,
   {
     ld = &logdefs[i];
     if (((! force_only) || ld->force) &&
-        ((line >= ld->from_line) &&(line <= ld->to_line) ) &&
+        ((line >= ld->from_line) && (line <= ld->to_line) ) &&
         (0 == regexec (&ld->component_regex, comp, 0, NULL, 0)) &&
         (0 == regexec (&ld->file_regex, file, 0, NULL, 0)) &&
         (0 == regexec (&ld->function_regex, function, 0, NULL, 0)))
@@ -693,6 +695,8 @@ parse_all_definitions ()
     parse_definitions ("GNUNET_LOG", 0);
   gnunet_log_parsed = GNUNET_YES;
 }
+
+
 #endif
 
 
@@ -823,8 +827,7 @@ output_message (enum GNUNET_ErrorType kind,
        * interactively, yet the same message shouldn't look
        * this way if the output is going to logfiles or robots
        * instead.
-       */
-      fprintf (GNUNET_stderr, "* %s", msg);
+       */fprintf (GNUNET_stderr, "* %s", msg);
     }
     else if (GNUNET_YES == current_async_scope.have_scope)
     {
@@ -1545,7 +1548,8 @@ GNUNET_async_scope_get (struct GNUNET_AsyncScopeSave *scope_ret)
 /**
  * Initializer
  */
-void __attribute__ ((constructor)) GNUNET_util_cl_init ()
+void __attribute__ ((constructor))
+GNUNET_util_cl_init ()
 {
   GNUNET_stderr = stderr;
 }
@@ -1554,9 +1558,11 @@ void __attribute__ ((constructor)) GNUNET_util_cl_init ()
 /**
  * Destructor
  */
-void __attribute__ ((destructor)) GNUNET_util_cl_fini ()
+void __attribute__ ((destructor))
+GNUNET_util_cl_fini ()
 {
 
 }
+
 
 /* end of common_logging.c */

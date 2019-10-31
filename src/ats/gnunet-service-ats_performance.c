@@ -278,4 +278,5 @@ GAS_performance_done ()
   nc_pic = NULL;
 }
 
+
 /* end of gnunet-service-ats_performance.c */

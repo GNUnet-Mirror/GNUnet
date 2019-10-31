@@ -146,7 +146,6 @@ mq_error_handler (void *cls,
 }
 
 
-
 /**
  * This receives packets from the DNS service and calls the application to
  * check that the request is well-formed
@@ -383,5 +382,6 @@ GNUNET_DNS_disconnect (struct GNUNET_DNS_Handle *dh)
   GNUNET_break (0 == dh->pending_requests);
   GNUNET_free (dh);
 }
+
 
 /* end of dns_api.c */

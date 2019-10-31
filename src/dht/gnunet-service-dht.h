@@ -59,7 +59,6 @@ extern struct GNUNET_STATISTICS_Handle *GDS_stats;
 extern struct GNUNET_MessageHeader *GDS_my_hello;
 
 
-
 /**
  * Handle a reply we've received from another peer.  If the reply
  * matches any of our pending queries, forward it to the respective

@@ -305,6 +305,7 @@ do_abort (void *cls)
   GNUNET_SCHEDULER_shutdown ();
 }
 
+
 /**
  * Iterator over all states that inserts each state into the MySQL db.
  *
@@ -369,7 +370,7 @@ regex_iterator (void *cls,
       return;
     }
 
-    if ((-1 != total) &&(total > 0) )
+    if ((-1 != total) && (total > 0) )
     {
       GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Total: %llu (%s, %s)\n",
                   (unsigned long long) total,
@@ -409,7 +410,7 @@ regex_iterator (void *cls,
       num_merged_states++;
     }
 
-    if ((GNUNET_SYSERR == result) || ((1 != result) &&(0 != result) ))
+    if ((GNUNET_SYSERR == result) || ((1 != result) && (0 != result) ))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                   "Error executing prepared mysql statement for edge: Affected rows: %i, expected 0 or 1!\n",
@@ -433,7 +434,7 @@ regex_iterator (void *cls,
                                stmt_handle,
                                params_stmt);
 
-    if ((1 != result) &&(0 != result) )
+    if ((1 != result) && (0 != result) )
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                   "Error executing prepared mysql statement for edge: Affected rows: %i, expected 0 or 1!\n",

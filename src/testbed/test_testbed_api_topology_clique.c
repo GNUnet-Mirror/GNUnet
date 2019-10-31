@@ -76,6 +76,7 @@ do_shutdown (void *cls)
   GNUNET_SCHEDULER_shutdown ();
 }
 
+
 /**
  * Controller event callback
  *
@@ -179,5 +180,6 @@ main (int argc, char **argv)
     return 1;
   return 0;
 }
+
 
 /* end of test_testbed_api_topology.c */

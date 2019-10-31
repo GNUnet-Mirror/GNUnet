@@ -223,7 +223,7 @@ prepare_beacon (struct Plugin *plugin,
   hello_size = GNUNET_HELLO_size ((struct GNUNET_HELLO_Message *) hello);
   msg_size = hello_size + sizeof(struct UDP_Beacon_Message);
 
-  if ((hello_size < (sizeof(struct GNUNET_MessageHeader)))||
+  if ((hello_size < (sizeof(struct GNUNET_MessageHeader))) ||
       (msg_size > (UDP_MTU)))
     return 0;
 
@@ -331,8 +331,7 @@ udp_ipv6_broadcast_send (void *cls)
      if the scope ID is ignored, the kernel should just multicast
      on ALL interfaces, which is merely slightly less efficient;
      in that case, we might want to revert to only doing this
-     once, and not per interface (hard to test...) */
-  plugin->ipv6_multicast_address.sin6_scope_id = s6->sin6_scope_id;
+     once, and not per interface (hard to test...) */plugin->ipv6_multicast_address.sin6_scope_id = s6->sin6_scope_id;
   sent = GNUNET_NETWORK_socket_sendto (plugin->sockv6, &buf, msg_size,
                                        (const struct sockaddr *)
                                        &plugin->ipv6_multicast_address,
@@ -346,8 +345,7 @@ udp_ipv6_broadcast_send (void *cls)
        *
        * This indicates that this system is IPv6 enabled, but does not
        * have a valid global IPv6 address assigned
-       */
-      GNUNET_log (GNUNET_ERROR_TYPE_BULK | GNUNET_ERROR_TYPE_WARNING,
+       */GNUNET_log (GNUNET_ERROR_TYPE_BULK | GNUNET_ERROR_TYPE_WARNING,
                   "Network connectivity is down, cannot send beacon!\n");
     }
     else
@@ -492,8 +490,7 @@ iface_proc (void *cls,
      * group in the normal IPv6 routing table and using the resulting
      * interface; we do this for each interface, so no need to use
      * zero (anymore...).
-     */
-    multicastRequest.ipv6mr_interface = s6->sin6_scope_id;
+     */multicastRequest.ipv6mr_interface = s6->sin6_scope_id;
 
     /* Join the multicast group */
     if (GNUNET_OK !=
@@ -645,5 +642,6 @@ stop_broadcast (struct Plugin *plugin)
     }
   }
 }
+
 
 /* end of plugin_transport_udp_broadcasting.c */

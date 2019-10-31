@@ -49,7 +49,6 @@
 #define DEBUG_HKDF 0
 
 
-
 #if GNUNET_BUILD
 #include "platform.h"
 #include "gnunet_crypto_lib.h"
@@ -83,6 +82,7 @@ doHMAC (gcry_md_hd_t mac, const void *key, size_t key_len, const void *buf,
 
   return (const void *) gcry_md_read (mac, 0);
 }
+
 
 /**
  * @brief Generate pseudo-random key
@@ -122,6 +122,8 @@ dump (const char *src, const void *p, unsigned int l)
   }
   printf ("\n");
 }
+
+
 #endif
 
 
@@ -301,5 +303,6 @@ GNUNET_CRYPTO_hkdf (void *result, size_t out_len, int xtr_algo, int prf_algo,
 
   return ret;
 }
+
 
 /* end of crypto_hkdf.c */

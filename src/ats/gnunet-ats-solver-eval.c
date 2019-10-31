@@ -123,6 +123,7 @@ find_peer_by_id (int id)
   return NULL;
 }
 
+
 static struct TestPeer *
 find_peer_by_pid (const struct GNUNET_PeerIdentity *pid)
 {
@@ -133,6 +134,7 @@ find_peer_by_pid (const struct GNUNET_PeerIdentity *pid)
       return cur;
   return NULL;
 }
+
 
 static struct TestAddress *
 find_address_by_id (struct TestPeer *peer, int aid)
@@ -238,6 +240,7 @@ logging_task (void *cls)
                                                   l);
 }
 
+
 struct LoggingHandle *
 GNUNET_ATS_solver_logging_start (struct GNUNET_TIME_Relative freq)
 {
@@ -252,6 +255,7 @@ GNUNET_ATS_solver_logging_start (struct GNUNET_TIME_Relative freq)
   return l;
 }
 
+
 void
 GNUNET_ATS_solver_logging_stop (struct LoggingHandle *l)
 {
@@ -262,6 +266,7 @@ GNUNET_ATS_solver_logging_stop (struct LoggingHandle *l)
 
   l->logging_task = NULL;
 }
+
 
 static struct LoggingFileHandle *
 find_logging_file_handle (struct LoggingFileHandle *lf_head,
@@ -275,6 +280,7 @@ find_logging_file_handle (struct LoggingFileHandle *lf_head,
       return res;
   return NULL;
 }
+
 
 void
 GNUNET_ATS_solver_logging_write_to_disk (struct LoggingHandle *l, int
@@ -391,8 +397,7 @@ GNUNET_ATS_solver_logging_write_to_disk (struct LoggingHandle *l, int
              fprintf(stderr,"\t %s = %.2f %.2f [abs/rel]\n",
               GNUNET_ATS_print_preference_type(c),
               log_p->pref_abs[c], log_p->pref_norm[c]);
-           */
-          GNUNET_asprintf (&prefstring_tmp, "%s;%.3f;%.3f",
+           */GNUNET_asprintf (&prefstring_tmp, "%s;%.3f;%.3f",
                            prefstring, log_p->pref_abs[c], log_p->pref_norm[c]);
 
 
@@ -449,6 +454,7 @@ cleanup:
   }
 }
 
+
 void
 GNUNET_ATS_solver_logging_eval (struct LoggingHandle *l)
 {
@@ -492,6 +498,7 @@ GNUNET_ATS_solver_logging_eval (struct LoggingHandle *l)
     }
   }
 }
+
 
 void
 GNUNET_ATS_solver_logging_free (struct LoggingHandle *l)
@@ -537,6 +544,7 @@ GNUNET_ATS_solver_logging_free (struct LoggingHandle *l)
 
   GNUNET_free (l);
 }
+
 
 /**
  * Property Generators
@@ -700,6 +708,7 @@ find_prop_gen (unsigned int peer, unsigned int address,
     }
   return NULL;
 }
+
 
 void
 GNUNET_ATS_solver_generate_property_stop (struct PropertyGenerator *pg)
@@ -1056,6 +1065,7 @@ find_pref_gen (unsigned int peer, enum GNUNET_ATS_PreferenceKind kind)
   return NULL;
 }
 
+
 void
 GNUNET_ATS_solver_generate_preferences_stop (struct PreferenceGenerator *pg)
 {
@@ -1210,7 +1220,6 @@ GNUNET_ATS_solver_generate_preferences_start (unsigned int peer,
 }
 
 
-
 /**
  * Stop all preferences generators
  */
@@ -1227,7 +1236,6 @@ GNUNET_ATS_solver_generate_preferences_stop_all ()
     GNUNET_ATS_solver_generate_preferences_stop (cur);
   }
 }
-
 
 
 /**
@@ -1983,6 +1991,7 @@ load_op_start_set_property (struct GNUNET_ATS_TEST_Operation *o,
   return GNUNET_OK;
 }
 
+
 static int
 load_op_stop_set_property (struct GNUNET_ATS_TEST_Operation *o,
                            struct Episode *e,
@@ -2077,6 +2086,7 @@ load_op_start_request (struct GNUNET_ATS_TEST_Operation *o,
   GNUNET_free (op_name);
   return GNUNET_OK;
 }
+
 
 static int
 load_op_stop_request (struct GNUNET_ATS_TEST_Operation *o,
@@ -2205,6 +2215,7 @@ load_episode (struct Experiment *e, struct Episode *cur,
   return GNUNET_OK;
 }
 
+
 static int
 load_episodes (struct Experiment *e, struct GNUNET_CONFIGURATION_Handle *cfg)
 {
@@ -2280,6 +2291,7 @@ timeout_experiment (void *cls)
                 GNUNET_SYSERR);
 }
 
+
 struct ATS_Address *
 create_ats_address (const struct GNUNET_PeerIdentity *peer,
                     const char *plugin_name,
@@ -2307,7 +2319,6 @@ create_ats_address (const struct GNUNET_PeerIdentity *peer,
 
   return aa;
 }
-
 
 
 static void
@@ -2413,6 +2424,7 @@ enforce_del_address (struct GNUNET_ATS_TEST_Operation *op)
   GNUNET_free (a);
 }
 
+
 static void
 enforce_start_property (struct GNUNET_ATS_TEST_Operation *op)
 {
@@ -2454,6 +2466,7 @@ enforce_start_property (struct GNUNET_ATS_TEST_Operation *op)
                                              op->prop_type);
 }
 
+
 static void
 enforce_stop_property (struct GNUNET_ATS_TEST_Operation *op)
 {
@@ -2476,6 +2489,7 @@ enforce_stop_property (struct GNUNET_ATS_TEST_Operation *op)
     GNUNET_break (0);
   }
 }
+
 
 static void
 enforce_start_preference (struct GNUNET_ATS_TEST_Operation *op)
@@ -2508,6 +2522,7 @@ enforce_start_preference (struct GNUNET_ATS_TEST_Operation *op)
                                                 op->pref_type,
                                                 op->frequency);
 }
+
 
 static void
 enforce_stop_preference (struct GNUNET_ATS_TEST_Operation *op)
@@ -2581,7 +2596,9 @@ enforce_stop_request (struct GNUNET_ATS_TEST_Operation *op)
   }
 }
 
-static void enforce_episode (struct Episode *ep)
+
+static void
+enforce_episode (struct Episode *ep)
 {
   struct GNUNET_ATS_TEST_Operation *cur;
 
@@ -2718,6 +2735,7 @@ GNUNET_ATS_solvers_experimentation_run (struct Experiment *e,
                                                           &timeout_episode, e);
   enforce_episode (e->cur);
 }
+
 
 void
 GNUNET_ATS_solvers_experimentation_stop (struct Experiment *e)
@@ -2872,7 +2890,6 @@ GNUNET_ATS_solvers_experimentation_load (char *filename)
 }
 
 
-
 /**
  * Solver
  */
@@ -2891,6 +2908,7 @@ free_all_it (void *cls,
 
   return GNUNET_OK;
 }
+
 
 void
 GNUNET_ATS_solvers_solver_stop (struct SolverHandle *sh)
@@ -3178,6 +3196,7 @@ solver_info_cb (void *cls,
   }
 }
 
+
 static void
 solver_bandwidth_changed_cb (void *cls, struct ATS_Address *address)
 {
@@ -3228,6 +3247,7 @@ solver_bandwidth_changed_cb (void *cls, struct ATS_Address *address)
 
   return;
 }
+
 
 const double *
 get_preferences_cb (void *cls, const struct GNUNET_PeerIdentity *id)
@@ -3385,6 +3405,7 @@ done ()
   end_now ();
 }
 
+
 static void
 experiment_done_cb (struct Experiment *e, struct GNUNET_TIME_Relative duration,
                     int success)
@@ -3398,12 +3419,12 @@ experiment_done_cb (struct Experiment *e, struct GNUNET_TIME_Relative duration,
   GNUNET_SCHEDULER_add_now (&done, NULL);
 }
 
+
 static void
 episode_done_cb (struct Episode *ep)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Episode %u done\n", ep->id);
 }
-
 
 
 /**
@@ -3423,6 +3444,7 @@ end_now ()
     sh = NULL;
   }
 }
+
 
 static void
 run (void *cls, char *const *args, const char *cfgfile,
@@ -3560,4 +3582,6 @@ main (int argc, char *argv[])
 
   return res;
 }
+
+
 /* end of file ats-testing-experiment.c*/

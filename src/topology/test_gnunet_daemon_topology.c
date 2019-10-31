@@ -98,6 +98,7 @@ shutdown_task (void *cls)
     GNUNET_SCHEDULER_cancel (timeout_tid);
 }
 
+
 static void
 timeout_task (void *cls)
 {
@@ -108,6 +109,7 @@ timeout_task (void *cls)
   result = GNUNET_SYSERR;
   GNUNET_SCHEDULER_shutdown ();
 }
+
 
 /*
  * The function is called every time the topology of connected
@@ -131,7 +133,7 @@ statistics_iterator (void *cls,
   if (p_ctx->connections < value)
     p_ctx->connections = value;
 
-  if ((THRESHOLD <= value)&&(GNUNET_NO == p_ctx->reported))
+  if ((THRESHOLD <= value) && (GNUNET_NO == p_ctx->reported))
   {
     p_ctx->reported = GNUNET_YES;
     checked_peers++;
@@ -152,6 +154,7 @@ statistics_iterator (void *cls,
 
   return GNUNET_YES;
 }
+
 
 static void *
 ca_statistics (void *cls,
@@ -203,6 +206,7 @@ service_connect_complete (void *cls,
                 "call to GNUNET_STATISTICS_watch() failed\n");
 }
 
+
 static void
 notify_connect_complete (void *cls,
                          struct GNUNET_TESTBED_Operation *op,
@@ -218,6 +222,7 @@ notify_connect_complete (void *cls,
   }
   connect_left--;
 }
+
 
 static void
 do_connect (void *cls,
@@ -285,5 +290,6 @@ main (int argc, char *argv[])
 
   return (GNUNET_OK != result) ? 1 : 0;
 }
+
 
 /* end of test_gnunet_daemon_topology.c */

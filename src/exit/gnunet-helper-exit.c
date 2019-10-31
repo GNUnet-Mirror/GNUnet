@@ -813,4 +813,5 @@ cleanup:
   return global_ret;
 }
 
+
 /* end of gnunet-helper-exit.c */

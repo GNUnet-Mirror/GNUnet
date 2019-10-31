@@ -2999,7 +2999,7 @@ run (void *cls,
     if (((GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_string (cfg,
                                                                   "VPN",
                                                                   "IPV6ADDR",
-                                                                  &ipv6addr))||
+                                                                  &ipv6addr)) ||
          (1 != inet_pton (AF_INET6, ipv6addr, &v6))))
     {
       GNUNET_log_config_invalid (GNUNET_ERROR_TYPE_ERROR,
@@ -3051,7 +3051,7 @@ run (void *cls,
     if (((GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_string (cfg,
                                                                   "vpn",
                                                                   "IPV4ADDR",
-                                                                  &ipv4addr))||
+                                                                  &ipv4addr)) ||
          (1 != inet_pton (AF_INET, ipv4addr, &v4))))
     {
       GNUNET_log_config_invalid (GNUNET_ERROR_TYPE_ERROR,
@@ -3067,7 +3067,7 @@ run (void *cls,
     if (((GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_string (cfg,
                                                                   "vpn",
                                                                   "IPV4MASK",
-                                                                  &ipv4mask))||
+                                                                  &ipv4mask)) ||
          (1 != inet_pton (AF_INET, ipv4mask, &v4))))
     {
       GNUNET_log_config_invalid (GNUNET_ERROR_TYPE_ERROR,

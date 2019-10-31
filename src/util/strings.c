@@ -754,9 +754,7 @@ GNUNET_STRINGS_absolute_time_to_string (struct GNUNET_TIME_Absolute t)
    * As for msvcrt, use the wide variant, which always returns utf16
    * (otherwise we'd have to detect current codepage or use W32API character
    * set conversion routines to convert to UTF8).
-   */
-
-  strftime (buf, sizeof(buf), "%a %b %d %H:%M:%S %Y", tp);
+   */strftime (buf, sizeof(buf), "%a %b %d %H:%M:%S %Y", tp);
 
   return buf;
 }
@@ -1052,9 +1050,9 @@ GNUNET_STRINGS_parse_uri (const char *path,
         pp_state += 1;
         continue;
       }
-      if (! (((path[i] >= 'A') &&(path[i] <= 'Z') ) ||
-             ((path[i] >= 'a') &&(path[i] <= 'z') ) ||
-             ((path[i] >= '0') &&(path[i] <= '9') ) ||(path[i] == '+') ||
+      if (! (((path[i] >= 'A') && (path[i] <= 'Z') ) ||
+             ((path[i] >= 'a') && (path[i] <= 'z') ) ||
+             ((path[i] >= '0') && (path[i] <= '9') ) || (path[i] == '+') ||
              (path[i] == '-') || (path[i] == '.')))
         end = 1;
       break;
@@ -1897,6 +1895,7 @@ GNUNET_STRINGS_base64_encode (const void *in, size_t len, char **output)
   *output = opt;
   return ret;
 }
+
 
 #define cvtfind(a)                        \
   ((((a) >= 'A') && ((a) <= 'Z'))         \

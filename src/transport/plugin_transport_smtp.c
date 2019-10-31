@@ -257,6 +257,7 @@ END:
   return NULL;
 }
 
+
 /* *************** API implementation *************** */
 
 /**
@@ -286,6 +287,7 @@ api_verify_hello (const GNUNET_MessageHello *hello)
     return GNUNET_SYSERR;
   return GNUNET_OK;
 }
+
 
 /**
  * Create a hello-Message for the current node. The hello is created
@@ -336,6 +338,7 @@ api_create_hello ()
   return msg;
 }
 
+
 struct GetMessageClosure
 {
   unsigned int esize;
@@ -360,6 +363,7 @@ get_message (void **buf, int *len, void *cls)
   gmc->pos = gmc->esize;
   return gmc->ebody;
 }
+
 
 /**
  * Send a message to the specified remote node.
@@ -529,6 +533,7 @@ api_send (GNUNET_TSession *tsession, const void *msg, const unsigned int size,
   return GNUNET_OK;
 }
 
+
 /**
  * Establish a connection to a remote node.
  * @param hello the hello-Message for the target node
@@ -551,6 +556,7 @@ api_connect (const GNUNET_MessageHello *hello, GNUNET_TSession **tsessionPtr,
   return GNUNET_OK;
 }
 
+
 /**
  * Disconnect from a remote node.
  *
@@ -568,6 +574,7 @@ api_disconnect (GNUNET_TSession *tsession)
   }
   return GNUNET_OK;
 }
+
 
 /**
  * Start the server process to receive inbound traffic.
@@ -589,6 +596,7 @@ api_start_transport_server ()
   return GNUNET_OK;
 }
 
+
 /**
  * Shutdown the server process (stop receiving inbound traffic). Maybe
  * restarted later!
@@ -604,6 +612,7 @@ api_stop_transport_server ()
   return GNUNET_OK;
 }
 
+
 /**
  * Convert SMTP hello to an IP address (always fails).
  */
@@ -614,6 +623,7 @@ api_hello_to_address (const GNUNET_MessageHello *hello, void **sa,
   return GNUNET_SYSERR;
 }
 
+
 /**
  * Always fails.
  */
@@ -622,6 +632,7 @@ api_associate (GNUNET_TSession *tsession)
 {
   return GNUNET_SYSERR;         /* SMTP connections can never be associated */
 }
+
 
 /**
  * Always succeeds (for now; we should look at adding
@@ -633,6 +644,7 @@ api_test_would_try (GNUNET_TSession *tsession, unsigned int size,
 {
   return GNUNET_OK;             /* we always try... */
 }
+
 
 /**
  * The exported method. Makes the core api available via a global and
@@ -714,6 +726,7 @@ inittransport_smtp (struct GNUNET_CoreAPIForTransport *core)
   return &smtpAPI;
 }
 
+
 void
 donetransport_smtp ()
 {
@@ -732,5 +745,6 @@ donetransport_smtp ()
   GNUNET_free (email);
   email = NULL;
 }
+
 
 /* end of smtp.c */

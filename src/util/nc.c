@@ -223,4 +223,5 @@ GNUNET_notification_context_get_size (struct GNUNET_NotificationContext *nc)
   return num;
 }
 
+
 /* end of nc.c */

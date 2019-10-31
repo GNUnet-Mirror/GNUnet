@@ -163,7 +163,6 @@ GNUNET_NETWORK_STRUCT_END
 #define GNUNET_TIME_UNIT_FOREVER_ABS GNUNET_TIME_absolute_get_forever_ ()
 
 
-
 /**
  * Threshold after which exponential backoff should not increase (15 m).
  */
@@ -324,7 +323,6 @@ GNUNET_TIME_round_rel (struct GNUNET_TIME_Relative *rt);
 struct GNUNET_TIME_Relative
 GNUNET_TIME_relative_min (struct GNUNET_TIME_Relative t1,
                           struct GNUNET_TIME_Relative t2);
-
 
 
 /**

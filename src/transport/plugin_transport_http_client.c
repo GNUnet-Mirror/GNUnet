@@ -703,6 +703,8 @@ client_log (CURL *curl,
        text);
   return 0;
 }
+
+
 #endif
 
 /**
@@ -1504,6 +1506,8 @@ open_tcp_stealth_socket_cb (void *clientp,
     return CURL_SOCKET_BAD;
   }
 }
+
+
 #endif
 
 
@@ -2527,5 +2531,6 @@ LIBGNUNET_PLUGIN_TRANSPORT_INIT (void *cls)
   }
   return api;
 }
+
 
 /* end of plugin_transport_http_client.c */

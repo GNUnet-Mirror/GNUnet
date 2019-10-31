@@ -623,9 +623,7 @@ tofile_ (const char *file_name, const char *line)
                 "Failed to write string to buffer (size: %i)\n",
                 size);
      return;
-     } */
-
-  size = strlen (line) * sizeof(char);
+     } */size = strlen (line) * sizeof(char);
 
   size2 = GNUNET_DISK_file_write (f, line, size);
   if (size != size2)
@@ -648,6 +646,7 @@ tofile_ (const char *file_name, const char *line)
                 "Unable to close file\n");
   }
 }
+
 
 /**
  * This function is used to facilitate writing important information to disk
@@ -740,7 +739,8 @@ make_oplist_entry ()
  * @return #GNUNET_YES if so
  *         #GNUNET_NO otherwise
  */
-static int check_statistics_collect_completed_single_peer (
+static int
+check_statistics_collect_completed_single_peer (
   const struct RPSPeer *rps_peer)
 {
   if (cur_test_run.stat_collect_flags !=
@@ -760,7 +760,8 @@ static int check_statistics_collect_completed_single_peer (
  * @return #GNUNET_YES if so
  *         #GNUNET_NO otherwise
  */
-static int check_statistics_collect_completed ()
+static int
+check_statistics_collect_completed ()
 {
   uint32_t i;
 
@@ -853,7 +854,7 @@ post_test_op (void *cls)
     }
   }
   /* If we do not collect statistics, shut down directly */
-  if ((NO_COLLECT_STATISTICS == cur_test_run.have_collect_statistics)||
+  if ((NO_COLLECT_STATISTICS == cur_test_run.have_collect_statistics) ||
       (GNUNET_YES == check_statistics_collect_completed ()) )
   {
     GNUNET_SCHEDULER_shutdown ();
@@ -871,7 +872,7 @@ seed_peers (void *cls)
   unsigned int amount;
   unsigned int i;
 
-  if ((GNUNET_YES == in_shutdown)||(GNUNET_YES == post_test))
+  if ((GNUNET_YES == in_shutdown) || (GNUNET_YES == post_test))
   {
     return;
   }
@@ -925,6 +926,7 @@ seed_peers_big (void *cls)
   GNUNET_RPS_seed_ids (peer->rps_handle, amount, ids_to_seed);
 }
 
+
 /**
  * Get the id of peer i.
  */
@@ -938,12 +940,12 @@ info_cb (void *cb_cls,
 
   (void) op;
 
-  if ((GNUNET_YES == in_shutdown)||(GNUNET_YES == post_test))
+  if ((GNUNET_YES == in_shutdown) || (GNUNET_YES == post_test))
   {
     return;
   }
 
-  if ((NULL == pinfo)||(NULL != emsg))
+  if ((NULL == pinfo) || (NULL != emsg))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Got Error: %s\n", emsg);
     GNUNET_TESTBED_operation_done (entry->op);
@@ -994,7 +996,7 @@ rps_connect_complete_cb (void *cls,
 
   GNUNET_assert (NULL != ca_result);
 
-  if ((GNUNET_YES == in_shutdown)||(GNUNET_YES == post_test))
+  if ((GNUNET_YES == in_shutdown) || (GNUNET_YES == post_test))
   {
     return;
   }
@@ -1046,6 +1048,7 @@ rps_connect_adapter (void *cls,
   return h;
 }
 
+
 /**
  * Called to open a connection to the peer's statistics
  *
@@ -1064,6 +1067,7 @@ stat_connect_adapter (void *cls,
   peer->stats_h = GNUNET_STATISTICS_create ("rps-profiler", cfg);
   return peer->stats_h;
 }
+
 
 /**
  * Called to disconnect from peer's statistics service
@@ -1085,6 +1089,7 @@ stat_disconnect_adapter (void *cls, void *op_result)
   GNUNET_STATISTICS_destroy (op_result, GNUNET_NO);
   peer->stats_h = NULL;
 }
+
 
 /**
  * Called after successfully opening a connection to a peer's statistics
@@ -1156,19 +1161,23 @@ default_eval_cb (void)
   return evaluate ();
 }
 
+
 static int
 no_eval (void)
 {
   return 0;
 }
 
+
 /**
  * Initialise given RPSPeer
  */
-static void default_init_peer (struct RPSPeer *rps_peer)
+static void
+default_init_peer (struct RPSPeer *rps_peer)
 {
   rps_peer->num_ids_to_request = 1;
 }
+
 
 /**
  * Callback to call on receipt of a reply
@@ -1206,7 +1215,7 @@ default_reply_handle (void *cls,
     rps_peer->num_recv_ids++;
   }
 
-  if ((0 == evaluate ())&&(HAVE_QUICK_QUIT == cur_test_run.have_quick_quit))
+  if ((0 == evaluate ()) && (HAVE_QUICK_QUIT == cur_test_run.have_quick_quit))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Test succeeded before timeout\n");
     GNUNET_assert (NULL != post_test_task);
@@ -1215,6 +1224,7 @@ default_reply_handle (void *cls,
     GNUNET_assert (NULL != post_test_task);
   }
 }
+
 
 /**
  * Request random peers.
@@ -1226,7 +1236,7 @@ request_peers (void *cls)
   struct RPSPeer *rps_peer;
   struct PendingReply *pending_rep;
 
-  if ((GNUNET_YES == in_shutdown)||(GNUNET_YES == post_test))
+  if ((GNUNET_YES == in_shutdown) || (GNUNET_YES == post_test))
     return;
   rps_peer = pending_req->rps_peer;
   GNUNET_assert (1 <= rps_peer->num_pending_reqs);
@@ -1248,6 +1258,7 @@ request_peers (void *cls)
   rps_peer->num_pending_reqs--;
 }
 
+
 static void
 cancel_pending_req (struct PendingRequest *pending_req)
 {
@@ -1263,6 +1274,7 @@ cancel_pending_req (struct PendingRequest *pending_req)
   GNUNET_SCHEDULER_cancel (pending_req->request_task);
   GNUNET_free (pending_req);
 }
+
 
 static void
 cancel_request (struct PendingReply *pending_rep)
@@ -1280,6 +1292,7 @@ cancel_request (struct PendingReply *pending_rep)
   GNUNET_free (pending_rep);
 }
 
+
 /**
  * Cancel a request.
  */
@@ -1289,7 +1302,7 @@ cancel_request_cb (void *cls)
   struct RPSPeer *rps_peer = cls;
   struct PendingReply *pending_rep;
 
-  if ((GNUNET_YES == in_shutdown)||(GNUNET_YES == post_test))
+  if ((GNUNET_YES == in_shutdown) || (GNUNET_YES == post_test))
     return;
   pending_rep = rps_peer->pending_rep_head;
   GNUNET_assert (1 <= rps_peer->num_pending_reps);
@@ -1330,6 +1343,7 @@ schedule_missing_requests (struct RPSPeer *rps_peer)
   }
 }
 
+
 void
 cancel_pending_req_rep (struct RPSPeer *rps_peer)
 {
@@ -1343,6 +1357,7 @@ cancel_pending_req_rep (struct RPSPeer *rps_peer)
   GNUNET_assert (0 == rps_peer->num_pending_reps);
 }
 
+
 /***********************************
 * MALICIOUS
 ***********************************/
@@ -1350,7 +1365,8 @@ cancel_pending_req_rep (struct RPSPeer *rps_peer)
 /**
  * Initialise only non-mal RPSPeers
  */
-static void mal_init_peer (struct RPSPeer *rps_peer)
+static void
+mal_init_peer (struct RPSPeer *rps_peer)
 {
   if (rps_peer->index >= round (portion * num_peers))
     rps_peer->num_ids_to_request = 1;
@@ -1390,12 +1406,13 @@ mal_pre (struct RPSPeer *rps_peer, struct GNUNET_RPS_Handle *h)
   #endif /* ENABLE_MALICIOUS */
 }
 
+
 static void
 mal_cb (struct RPSPeer *rps_peer)
 {
   uint32_t num_mal_peers;
 
-  if ((GNUNET_YES == in_shutdown)||(GNUNET_YES == post_test))
+  if ((GNUNET_YES == in_shutdown) || (GNUNET_YES == post_test))
   {
     return;
   }
@@ -1423,13 +1440,14 @@ mal_cb (struct RPSPeer *rps_peer)
 static void
 single_req_cb (struct RPSPeer *rps_peer)
 {
-  if ((GNUNET_YES == in_shutdown)||(GNUNET_YES == post_test))
+  if ((GNUNET_YES == in_shutdown) || (GNUNET_YES == post_test))
   {
     return;
   }
 
   schedule_missing_requests (rps_peer);
 }
+
 
 /***********************************
 * DELAYED_REQUESTS
@@ -1437,7 +1455,7 @@ single_req_cb (struct RPSPeer *rps_peer)
 static void
 delay_req_cb (struct RPSPeer *rps_peer)
 {
-  if ((GNUNET_YES == in_shutdown)||(GNUNET_YES == post_test))
+  if ((GNUNET_YES == in_shutdown) || (GNUNET_YES == post_test))
   {
     return;
   }
@@ -1445,13 +1463,14 @@ delay_req_cb (struct RPSPeer *rps_peer)
   schedule_missing_requests (rps_peer);
 }
 
+
 /***********************************
 * SEED
 ***********************************/
 static void
 seed_cb (struct RPSPeer *rps_peer)
 {
-  if ((GNUNET_YES == in_shutdown)||(GNUNET_YES == post_test))
+  if ((GNUNET_YES == in_shutdown) || (GNUNET_YES == post_test))
   {
     return;
   }
@@ -1461,13 +1480,14 @@ seed_cb (struct RPSPeer *rps_peer)
     seed_peers, rps_peer);
 }
 
+
 /***********************************
 * SEED_BIG
 ***********************************/
 static void
 seed_big_cb (struct RPSPeer *rps_peer)
 {
-  if ((GNUNET_YES == in_shutdown)||(GNUNET_YES == post_test))
+  if ((GNUNET_YES == in_shutdown) || (GNUNET_YES == post_test))
   {
     return;
   }
@@ -1477,6 +1497,7 @@ seed_big_cb (struct RPSPeer *rps_peer)
     GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 2),
     seed_peers_big, rps_peer);
 }
+
 
 /***********************************
 * SINGLE_PEER_SEED
@@ -1488,13 +1509,14 @@ single_peer_seed_cb (struct RPSPeer *rps_peer)
   // TODO
 }
 
+
 /***********************************
 * SEED_REQUEST
 ***********************************/
 static void
 seed_req_cb (struct RPSPeer *rps_peer)
 {
-  if ((GNUNET_YES == in_shutdown)||(GNUNET_YES == post_test))
+  if ((GNUNET_YES == in_shutdown) || (GNUNET_YES == post_test))
   {
     return;
   }
@@ -1505,6 +1527,7 @@ seed_req_cb (struct RPSPeer *rps_peer)
   schedule_missing_requests (rps_peer);
 }
 
+
 // TODO start big mal
 
 /***********************************
@@ -1513,7 +1536,7 @@ seed_req_cb (struct RPSPeer *rps_peer)
 static void
 req_cancel_cb (struct RPSPeer *rps_peer)
 {
-  if ((GNUNET_YES == in_shutdown)||(GNUNET_YES == post_test))
+  if ((GNUNET_YES == in_shutdown) || (GNUNET_YES == post_test))
   {
     return;
   }
@@ -1524,6 +1547,7 @@ req_cancel_cb (struct RPSPeer *rps_peer)
                                    (cur_test_run.request_interval + 1)),
     cancel_request_cb, rps_peer);
 }
+
 
 /***********************************
 * CHURN
@@ -1546,13 +1570,13 @@ churn (void *cls);
 static void
 churn_test_cb (struct RPSPeer *rps_peer)
 {
-  if ((GNUNET_YES == in_shutdown)||(GNUNET_YES == post_test))
+  if ((GNUNET_YES == in_shutdown) || (GNUNET_YES == post_test))
   {
     return;
   }
 
   /* Start churn */
-  if ((HAVE_CHURN == cur_test_run.have_churn)&&(NULL == churn_task))
+  if ((HAVE_CHURN == cur_test_run.have_churn) && (NULL == churn_task))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Starting churn task\n");
@@ -1569,6 +1593,7 @@ churn_test_cb (struct RPSPeer *rps_peer)
 
   schedule_missing_requests (rps_peer);
 }
+
 
 /***********************************
 * SUB
@@ -1633,6 +1658,7 @@ sub_pre (struct RPSPeer *rps_peer, struct GNUNET_RPS_Handle *h)
                                                  rps_peer);
 }
 
+
 /***********************************
 * PROFILER
 ***********************************/
@@ -1653,7 +1679,7 @@ churn_cb (void *cls,
   // FIXME
   struct OpListEntry *entry = cls;
 
-  if ((GNUNET_YES == in_shutdown)||(GNUNET_YES == post_test))
+  if ((GNUNET_YES == in_shutdown) || (GNUNET_YES == post_test))
   {
     return;
   }
@@ -1725,6 +1751,7 @@ churn_cb (void *cls,
   //  run_round ();
 }
 
+
 /**
  * @brief Set the rps-service up or down for a specific peer
  *
@@ -1791,7 +1818,7 @@ churn (void *cls)
   double portion_go_online;
   double portion_go_offline;
 
-  if ((GNUNET_YES == in_shutdown)||(GNUNET_YES == post_test))
+  if ((GNUNET_YES == in_shutdown) || (GNUNET_YES == post_test))
   {
     return;
   }
@@ -1852,7 +1879,8 @@ churn (void *cls)
 /**
  * Initialise given RPSPeer
  */
-static void profiler_init_peer (struct RPSPeer *rps_peer)
+static void
+profiler_init_peer (struct RPSPeer *rps_peer)
 {
   if (num_peers - 1 == rps_peer->index)
     rps_peer->num_ids_to_request = cur_test_run.num_requests;
@@ -1907,13 +1935,13 @@ profiler_reply_handle (void *cls,
 static void
 profiler_cb (struct RPSPeer *rps_peer)
 {
-  if ((GNUNET_YES == in_shutdown)||(GNUNET_YES == post_test))
+  if ((GNUNET_YES == in_shutdown) || (GNUNET_YES == post_test))
   {
     return;
   }
 
   /* Start churn */
-  if ((HAVE_CHURN == cur_test_run.have_churn)&&(NULL == churn_task))
+  if ((HAVE_CHURN == cur_test_run.have_churn) && (NULL == churn_task))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Starting churn task\n");
@@ -1934,6 +1962,7 @@ profiler_cb (struct RPSPeer *rps_peer)
   if (eval_peer == rps_peer)
     schedule_missing_requests (rps_peer);
 }
+
 
 /**
  * Function called from #profiler_eval with a filename.
@@ -1972,6 +2001,7 @@ file_name_cb (void *cls, const char *filename)
   return GNUNET_OK;
 }
 
+
 /**
  * This is run after the test finished.
  *
@@ -1998,7 +2028,8 @@ profiler_eval (void)
  *
  * @return
  */
-static int is_in_view (uint32_t a, uint32_t b)
+static int
+is_in_view (uint32_t a, uint32_t b)
 {
   uint32_t i;
 
@@ -2014,7 +2045,9 @@ static int is_in_view (uint32_t a, uint32_t b)
   return GNUNET_NO;
 }
 
-static uint32_t get_idx_of_pid (const struct GNUNET_PeerIdentity *pid)
+
+static uint32_t
+get_idx_of_pid (const struct GNUNET_PeerIdentity *pid)
 {
   uint32_t i;
 
@@ -2034,6 +2067,7 @@ static uint32_t get_idx_of_pid (const struct GNUNET_PeerIdentity *pid)
   GNUNET_assert (0);
 }
 
+
 /**
  * @brief Counts number of peers in view of a that have b in their view
  *
@@ -2042,7 +2076,8 @@ static uint32_t get_idx_of_pid (const struct GNUNET_PeerIdentity *pid)
  *
  * @return
  */
-static uint32_t count_containing_views (uint32_t a, uint32_t b)
+static uint32_t
+count_containing_views (uint32_t a, uint32_t b)
 {
   uint32_t i;
   uint32_t peer_idx;
@@ -2059,13 +2094,15 @@ static uint32_t count_containing_views (uint32_t a, uint32_t b)
   return count;
 }
 
+
 /**
  * @brief Computes the probability for each other peer to be selected by the
  * sampling process based on the views of all peers
  *
  * @param peer_idx index of the peer that is about to sample
  */
-static void compute_probabilities (uint32_t peer_idx)
+static void
+compute_probabilities (uint32_t peer_idx)
 {
   // double probs[num_peers] = { 0 };
   double probs[num_peers];
@@ -2197,6 +2234,7 @@ static void compute_probabilities (uint32_t peer_idx)
   GNUNET_free (probs_as_str);
 }
 
+
 /**
  * @brief This counts the number of peers in which views a given peer occurs.
  *
@@ -2206,7 +2244,8 @@ static void compute_probabilities (uint32_t peer_idx)
  *
  * @return the number of occurrences
  */
-static uint32_t count_peer_in_views_2 (uint32_t peer_idx)
+static uint32_t
+count_peer_in_views_2 (uint32_t peer_idx)
 {
   uint32_t i, j;
   uint32_t count = 0;
@@ -2228,7 +2267,9 @@ static uint32_t count_peer_in_views_2 (uint32_t peer_idx)
   return count;
 }
 
-static uint32_t cumulated_view_sizes ()
+
+static uint32_t
+cumulated_view_sizes ()
 {
   uint32_t i;
 
@@ -2240,7 +2281,9 @@ static uint32_t cumulated_view_sizes ()
   return view_sizes;
 }
 
-static void count_peer_in_views (uint32_t *count_peers)
+
+static void
+count_peer_in_views (uint32_t *count_peers)
 {
   uint32_t i, j;
 
@@ -2258,7 +2301,9 @@ static void count_peer_in_views (uint32_t *count_peers)
   }
 }
 
-void compute_diversity ()
+
+void
+compute_diversity ()
 {
   uint32_t i;
   /* ith entry represents the numer of occurrences in other peer's views */
@@ -2301,7 +2346,9 @@ void compute_diversity ()
   GNUNET_free (deviation);
 }
 
-void print_view_sizes ()
+
+void
+print_view_sizes ()
 {
   uint32_t i;
 
@@ -2315,15 +2362,19 @@ void print_view_sizes ()
   }
 }
 
-void all_views_updated_cb ()
+
+void
+all_views_updated_cb ()
 {
   compute_diversity ();
   print_view_sizes ();
 }
 
-void view_update_cb (void *cls,
-                     uint64_t view_size,
-                     const struct GNUNET_PeerIdentity *peers)
+
+void
+view_update_cb (void *cls,
+                uint64_t view_size,
+                const struct GNUNET_PeerIdentity *peers)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "View was updated (%" PRIu64 ")\n", view_size);
@@ -2372,6 +2423,7 @@ void view_update_cb (void *cls,
   all_views_updated_cb ();
 }
 
+
 static void
 pre_profiler (struct RPSPeer *rps_peer, struct GNUNET_RPS_Handle *h)
 {
@@ -2380,7 +2432,9 @@ pre_profiler (struct RPSPeer *rps_peer, struct GNUNET_RPS_Handle *h)
   GNUNET_RPS_view_request (h, 0, view_update_cb, rps_peer);
 }
 
-void write_final_stats (void)
+
+void
+write_final_stats (void)
 {
   uint32_t i;
 
@@ -2416,6 +2470,7 @@ void write_final_stats (void)
   }
 }
 
+
 /**
  * Continuation called by #GNUNET_STATISTICS_get() functions.
  *
@@ -2448,7 +2503,7 @@ post_test_shutdown_ready_cb (void *cls,
     GNUNET_break (0);
   }
 
-  if ((NULL != rps_peer->stat_op)&&
+  if ((NULL != rps_peer->stat_op) &&
       (GNUNET_YES == check_statistics_collect_completed_single_peer (
          rps_peer)) )
   {
@@ -2470,6 +2525,7 @@ post_test_shutdown_ready_cb (void *cls,
   }
 }
 
+
 /**
  * @brief Converts string representation to the corresponding #STAT_TYPE enum.
  *
@@ -2477,7 +2533,8 @@ post_test_shutdown_ready_cb (void *cls,
  *
  * @return corresponding enum
  */
-enum STAT_TYPE stat_str_2_type (const char *stat_str)
+enum STAT_TYPE
+stat_str_2_type (const char *stat_str)
 {
   if (0 == strncmp ("# rounds blocked - no pull replies", stat_str, strlen (
                       "# rounds blocked - no pull replies")))
@@ -2571,7 +2628,8 @@ enum STAT_TYPE stat_str_2_type (const char *stat_str)
  *
  * @return string representation that matches statistics value
  */
-char*stat_type_2_str (enum STAT_TYPE stat_type)
+char*
+stat_type_2_str (enum STAT_TYPE stat_type)
 {
   switch (stat_type)
   {
@@ -2629,6 +2687,7 @@ char*stat_type_2_str (enum STAT_TYPE stat_type)
     ;
   }
 }
+
 
 /**
  * Callback function to process statistic values.
@@ -2735,7 +2794,9 @@ stat_iterator (void *cls,
   return GNUNET_OK;
 }
 
-void post_profiler (struct RPSPeer *rps_peer)
+
+void
+post_profiler (struct RPSPeer *rps_peer)
 {
   if (COLLECT_STATISTICS != cur_test_run.have_collect_statistics)
   {
@@ -2808,7 +2869,7 @@ run (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "RUN was called\n");
 
   /* Check whether we timed out */
-  if ((n_peers != num_peers)||
+  if ((n_peers != num_peers) ||
       (NULL == peers) ||
       (0 == links_succeeded) )
   {

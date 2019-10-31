@@ -168,6 +168,7 @@ run (void *cls,
                   NULL);
 }
 
+
 /**
  * Entry point for gnunet-dht-put
  *
@@ -235,5 +236,6 @@ main (int argc, char *const *argv)
          ? ret
          : 1;
 }
+
 
 /* end of gnunet-dht-put.c */

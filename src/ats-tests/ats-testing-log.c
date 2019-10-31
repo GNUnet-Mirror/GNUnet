@@ -246,7 +246,6 @@ struct LoggingHandle
 };
 
 
-
 static void
 write_throughput_gnuplot_script (char *fn, struct LoggingPeer *lp, char **fs,
                                  int slaves)
@@ -379,6 +378,7 @@ write_rtt_gnuplot_script (char *fn, struct LoggingPeer *lp, char **fs, int
                 "Data successfully written to plot file `%s'\n", gfn);
   GNUNET_free (gfn);
 }
+
 
 static void
 write_bw_gnuplot_script (char *fn, struct LoggingPeer *lp, char **fs, int
@@ -664,6 +664,7 @@ GNUNET_ATS_TEST_logging_write_to_file (struct LoggingHandle *l,
   GNUNET_free (filename_master);
 }
 
+
 /**
  * Log all data now
  *
@@ -895,6 +896,7 @@ GNUNET_ATS_TEST_logging_stop (struct LoggingHandle *l)
               _ ("Stop logging\n"));
 }
 
+
 /**
  * Clean up logging data
  *
@@ -969,4 +971,6 @@ GNUNET_ATS_TEST_logging_start (struct GNUNET_TIME_Relative log_frequency,
 
   return l;
 }
+
+
 /* end of file ats-testing-log.c */

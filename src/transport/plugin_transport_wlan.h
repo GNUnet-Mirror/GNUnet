@@ -153,7 +153,6 @@ struct GNUNET_TRANSPORT_WLAN_Ieee80211Frame
 } GNUNET_PACKED;
 
 
-
 /**
  * Message from the plugin to the WLAN helper: send the given message with the
  * given connection parameters.

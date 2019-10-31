@@ -202,7 +202,6 @@ struct BobServiceSession
 };
 
 
-
 /**
  * GNUnet configuration handle
  */
@@ -524,6 +523,8 @@ transmit_bobs_cryptodata_message (struct BobServiceSession *s)
                   e);
   transmit_bobs_cryptodata_message_multipart (s);
 }
+
+
 #undef ELEMENT_CAPACITY
 
 

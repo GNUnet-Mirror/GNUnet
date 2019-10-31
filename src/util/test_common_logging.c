@@ -36,7 +36,6 @@ my_log (void *ctx, enum GNUNET_ErrorType kind, const char *component,
 }
 
 
-
 int
 main (int argc, char *argv[])
 {
@@ -95,5 +94,6 @@ main (int argc, char *argv[])
   }
   return 0;
 }                               /* end of main */
+
 
 /* end of test_common_logging.c */

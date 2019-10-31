@@ -361,6 +361,8 @@ strnlen (const char *s, size_t n)
     return n;
   return e - s;
 }
+
+
 #endif
 
 

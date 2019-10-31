@@ -62,6 +62,8 @@ expensive_func ()
 {
   return GNUNET_NETWORK_socket_select (NULL, NULL, NULL, OUTPUT_DELAY);
 }
+
+
 #endif
 
 
@@ -115,5 +117,6 @@ main (int argc, char *argv[])
   pr2 (GNUNET_ERROR_TYPE_DEBUG, "DEBUG");
   return 0;
 } /* end of main */
+
 
 /* end of test_common_logging_dummy.c */

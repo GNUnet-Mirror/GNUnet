@@ -81,7 +81,6 @@ struct GNUNET_SECRETSHARING_CreateMessage
 };
 
 
-
 struct GNUNET_SECRETSHARING_ShareHeaderNBO
 {
   /**

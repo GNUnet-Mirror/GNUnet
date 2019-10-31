@@ -865,4 +865,5 @@ GNUNET_IDENTITY_disconnect (struct GNUNET_IDENTITY_Handle *h)
   GNUNET_free (h);
 }
 
+
 /* end of identity_api.c */

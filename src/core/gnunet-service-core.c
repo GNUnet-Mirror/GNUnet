@@ -501,8 +501,7 @@ handle_client_send (void *cls, const struct SendMessage *sm)
      * (which triggered removal of the 'car') and now the client gives us a message
      * just *before* the client learns about the disconnect.  Theoretically, we
      * might also now be *again* connected.  So this can happen (but should be
-     * rare).  If it does happen, the message is discarded. */
-    GNUNET_STATISTICS_update (GSC_stats,
+     * rare).  If it does happen, the message is discarded. */GNUNET_STATISTICS_update (GSC_stats,
                               gettext_noop (
                                 "# messages discarded (session disconnected)"),
                               1,
@@ -806,8 +805,7 @@ GSC_CLIENTS_deliver_message (const struct GNUNET_PeerIdentity *sender,
           and a 99% chance of being kept if we are at the soft max.
        The reason is to make it more likely to drop control traffic
        (ACK, queries) which may be cummulative or highly redundant,
-       and cheap to drop than data traffic.  */
-    qlen = GNUNET_MQ_get_length (c->mq);
+       and cheap to drop than data traffic.  */qlen = GNUNET_MQ_get_length (c->mq);
     if ((qlen >= HARD_MAX_QUEUE) ||
         ((qlen > SOFT_MAX_QUEUE) &&
          ((GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,

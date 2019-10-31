@@ -188,4 +188,5 @@ main (int argc, char *const *argv)
   return ((GNUNET_OK == ret) && (0 == exit_code)) ? 0 : 1;
 }
 
+
 /* end of gnunet-uri.c */

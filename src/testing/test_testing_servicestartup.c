@@ -59,7 +59,8 @@ test_run (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg,
 /**
  * The main point of execution
  */
-int main (int argc, char *argv[])
+int
+main (int argc, char *argv[])
 {
   test_success = GNUNET_NO;
   GNUNET_assert (0 == GNUNET_TESTING_service_run ("test-testing-servicestartup",
@@ -69,5 +70,6 @@ int main (int argc, char *argv[])
                                                   NULL));
   return (GNUNET_YES == test_success) ? 0 : 1;
 }
+
 
 /* end of test_testing_servicestartup.c */

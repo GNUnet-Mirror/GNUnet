@@ -514,4 +514,5 @@ GNUNET_SECRETSHARING_decrypt_cancel (struct
   GNUNET_free (dh);
 }
 
+
 /* end of secretsharing_api.c */

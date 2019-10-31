@@ -418,6 +418,7 @@ GNUNET_get_log_call_status (int caller_level,
                             const char *file,
                             const char *function,
                             int line);
+
 #endif
 
 

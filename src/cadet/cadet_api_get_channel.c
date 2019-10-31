@@ -256,4 +256,5 @@ GNUNET_CADET_get_channel_cancel (struct GNUNET_CADET_ChannelMonitor *cm)
   return ret;
 }
 
+
 /* end of cadet_api_get_channel.c */

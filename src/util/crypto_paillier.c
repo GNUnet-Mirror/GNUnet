@@ -246,8 +246,7 @@ GNUNET_CRYPTO_paillier_encrypt (const struct
      number has the same length (or is smaller), by counting the
      number of possible operations.  We essentially divide max_num by
      2 until the result is no longer larger than 'm', incrementing the
-     maximum number of operations in each round, starting at -2 */
-  for (possible_opts = -2; gcry_mpi_cmp (max_num, m) > 0; possible_opts++)
+     maximum number of operations in each round, starting at -2 */for (possible_opts = -2; gcry_mpi_cmp (max_num, m) > 0; possible_opts++)
     gcry_mpi_div (max_num,
                   NULL,
                   max_num,
@@ -480,5 +479,6 @@ GNUNET_CRYPTO_paillier_hom_get_remaining (const struct
   GNUNET_assert (NULL != c);
   return ntohl (c->remaining_ops);
 }
+
 
 /* end of crypto_paillier.c */

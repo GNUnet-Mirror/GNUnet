@@ -11,7 +11,7 @@
      WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Affero General Public License for more details.
-    
+
      You should have received a copy of the GNU Affero General Public License
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -192,6 +192,7 @@ mq_error_handler (void *cls, enum GNUNET_MQ_Error error)
   force_reconnect (handle);
 }
 
+
 /**
  * Check validity of message received from the ABD service
  *
@@ -201,7 +202,7 @@ mq_error_handler (void *cls, enum GNUNET_MQ_Error error)
 static int
 check_result (void *cls, const struct DelegationChainResultMessage *vr_msg)
 {
-  //TODO
+  // TODO
   return GNUNET_OK;
 }
 
@@ -241,11 +242,11 @@ handle_result (void *cls, const struct DelegationChainResultMessage *vr_msg)
   GNUNET_assert (
     GNUNET_OK ==
     GNUNET_ABD_delegation_chain_deserialize (mlen,
-                                                    (const char *) &vr_msg[1],
-                                                    d_count,
-                                                    d_chain,
-                                                    c_count,
-                                                    dels));
+                                             (const char *) &vr_msg[1],
+                                             d_count,
+                                             d_chain,
+                                             c_count,
+                                             dels));
   if (GNUNET_NO == ntohl (vr_msg->del_found))
   {
     proc (proc_cls, 0, NULL, 0,
@@ -257,49 +258,53 @@ handle_result (void *cls, const struct DelegationChainResultMessage *vr_msg)
   }
 }
 
+
 static int
-check_intermediate (void *cls, const struct DelegationChainIntermediateMessage *vr_msg)
+check_intermediate (void *cls, const struct
+                    DelegationChainIntermediateMessage *vr_msg)
 {
-  //TODO
+  // TODO
   return GNUNET_OK;
 }
 
+
 static void
-handle_intermediate (void *cls, const struct DelegationChainIntermediateMessage *vr_msg)
+handle_intermediate (void *cls, const struct
+                     DelegationChainIntermediateMessage *vr_msg)
 {
   struct GNUNET_ABD_Handle *handle = cls;
   uint32_t r_id = ntohl (vr_msg->id);
   uint32_t size = ntohl (vr_msg->size);
-  bool is_bw = ntohs(vr_msg->is_bw);
+  bool is_bw = ntohs (vr_msg->is_bw);
   struct GNUNET_ABD_Request *vr;
   GNUNET_ABD_IntermediateResultProcessor proc;
   void *proc_cls;
   struct GNUNET_ABD_Delegation *dd;
 
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Received intermediate reply from ABD service\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Received intermediate reply from ABD service\n");
 
   for (vr = handle->request_head; NULL != vr; vr = vr->next)
     if (vr->r_id == r_id)
       break;
   if (NULL == vr)
     return;
-  
+
   proc = vr->int_proc;
   proc_cls = vr->proc2_cls;
-  
+
   dd = GNUNET_new (struct GNUNET_ABD_Delegation);
   GNUNET_assert (
     GNUNET_OK ==
     GNUNET_ABD_delegation_chain_deserialize (size,
-                                                    (const char *) &vr_msg[1],
-                                                    1,
-                                                    dd,
-                                                    0,
-                                                    NULL));
+                                             (const char *) &vr_msg[1],
+                                             1,
+                                             dd,
+                                             0,
+                                             NULL));
   proc (proc_cls, dd, is_bw);
 }
-
 
 
 /**
@@ -311,19 +316,19 @@ static void
 reconnect (struct GNUNET_ABD_Handle *handle)
 {
   struct GNUNET_MQ_MessageHandler handlers[] =
-    {GNUNET_MQ_hd_var_size (result,
-                            GNUNET_MESSAGE_TYPE_ABD_VERIFY_RESULT,
-                            struct DelegationChainResultMessage,
-                            handle),
-     GNUNET_MQ_hd_var_size (result,
-                            GNUNET_MESSAGE_TYPE_ABD_COLLECT_RESULT,
-                            struct DelegationChainResultMessage,
-                            handle),
-     GNUNET_MQ_hd_var_size (intermediate,
-                            GNUNET_MESSAGE_TYPE_ABD_INTERMEDIATE_RESULT,
-                            struct DelegationChainIntermediateMessage,
-                            handle),
-     GNUNET_MQ_handler_end ()};
+  {GNUNET_MQ_hd_var_size (result,
+                          GNUNET_MESSAGE_TYPE_ABD_VERIFY_RESULT,
+                          struct DelegationChainResultMessage,
+                          handle),
+   GNUNET_MQ_hd_var_size (result,
+                          GNUNET_MESSAGE_TYPE_ABD_COLLECT_RESULT,
+                          struct DelegationChainResultMessage,
+                          handle),
+   GNUNET_MQ_hd_var_size (intermediate,
+                          GNUNET_MESSAGE_TYPE_ABD_INTERMEDIATE_RESULT,
+                          struct DelegationChainIntermediateMessage,
+                          handle),
+   GNUNET_MQ_handler_end ()};
   struct GNUNET_ABD_Request *vr;
 
   GNUNET_assert (NULL == handle->mq);
@@ -404,7 +409,7 @@ GNUNET_ABD_request_cancel (struct GNUNET_ABD_Request *lr)
 
 /**
  * Performs attribute collection.
- * Collects all abds of subject to fulfill the 
+ * Collects all abds of subject to fulfill the
  * attribute, if possible
  *
  * @param handle handle to the Credential service
@@ -438,7 +443,7 @@ GNUNET_ABD_collect (
     return NULL;
   }
 
-  //DEBUG LOG
+  // DEBUG LOG
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Trying to collect `%s' in ABD\n",
        issuer_attribute);
@@ -469,6 +474,8 @@ GNUNET_ABD_collect (
     GNUNET_MQ_send_copy (handle->mq, vr->env);
   return vr;
 }
+
+
 /**
  * Performs attribute verification.
  * Checks if there is a delegation chain from
@@ -507,7 +514,7 @@ GNUNET_ABD_verify (
   size_t nlen;
   size_t clen;
 
-  if (NULL == issuer_attribute || NULL == delegates)
+  if ((NULL == issuer_attribute) || (NULL == delegates))
   {
     GNUNET_break (0);
     return NULL;
@@ -515,7 +522,7 @@ GNUNET_ABD_verify (
 
   clen = GNUNET_ABD_delegates_get_size (delegate_count, delegates);
 
-  //DEBUG LOG
+  // DEBUG LOG
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Trying to verify `%s' in ABD\n",
        issuer_attribute);
@@ -543,14 +550,15 @@ GNUNET_ABD_verify (
 
   GNUNET_memcpy (&v_msg[1], issuer_attribute, strlen (issuer_attribute));
   GNUNET_ABD_delegates_serialize (delegate_count,
-                                         delegates,
-                                         clen,
-                                         ((char *) &v_msg[1]) +
-                                           strlen (issuer_attribute) + 1);
+                                  delegates,
+                                  clen,
+                                  ((char *) &v_msg[1])
+                                  + strlen (issuer_attribute) + 1);
   GNUNET_CONTAINER_DLL_insert (handle->request_head, handle->request_tail, vr);
   if (NULL != handle->mq)
     GNUNET_MQ_send_copy (handle->mq, vr->env);
   return vr;
 }
+
 
 /* end of abd_api.c */

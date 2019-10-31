@@ -434,7 +434,6 @@ disconnect_notify (void *cls,
 }
 
 
-
 static void
 handle_test (void *cls,
              const struct TestMessage *hdr)

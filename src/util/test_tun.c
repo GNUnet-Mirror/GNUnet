@@ -63,8 +63,10 @@ test_udp (size_t pll,
   }
 }
 
-int main (int argc,
-          char **argv)
+
+int
+main (int argc,
+      char **argv)
 {
   test_udp (4, 3, 22439);
   test_udp (4, 1, 23467);

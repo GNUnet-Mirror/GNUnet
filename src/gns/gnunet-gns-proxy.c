@@ -45,7 +45,6 @@
 #include "gns.h"
 
 
-
 /**
  * Default Socks5 listen port.
  */
@@ -298,7 +297,6 @@ struct Socks5ServerResponseMessage
 };
 
 
-
 /* *********************** Datastructures for HTTP handling ****************** */
 
 /**
@@ -333,7 +331,6 @@ struct ProxyGNSCertificate
    */
   char key[MAX_PEM_SIZE];
 };
-
 
 
 /**
@@ -650,7 +647,6 @@ struct Socks5Request
    */
   int curl_paused;
 };
-
 
 
 /* *********************** Globals **************************** */
@@ -1953,8 +1949,7 @@ create_response (void *cls,
      * Pre-populate cache to resolve Hostname.
      * This is necessary as the DNS name in the CURLOPT_URL is used
      * for SNI http://de.wikipedia.org/wiki/Server_Name_Indication
-     */
-    if (NULL != s5r->leho)
+     */if (NULL != s5r->leho)
     {
       char *curl_hosts;
 
@@ -2392,6 +2387,7 @@ mhd_connection_cb (void *cls,
     GNUNET_break (0);
   }
 }
+
 
 /**
  * Function called when MHD first processes an incoming connection.
@@ -3904,5 +3900,6 @@ main (int argc,
   GNUNET_free_non_null ((char *) argv);
   return ret;
 }
+
 
 /* end of gnunet-gns-proxy.c */

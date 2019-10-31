@@ -293,7 +293,6 @@ GNUNET_OS_process_destroy (struct GNUNET_OS_Process *proc)
 }
 
 
-
 /**
  * Open '/dev/null' and make the result the given
  * file descriptor.

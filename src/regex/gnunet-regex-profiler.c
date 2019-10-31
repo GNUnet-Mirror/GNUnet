@@ -417,7 +417,7 @@ do_shutdown (void *cls)
   {
     peer = &peers[peer_cnt];
 
-    if ((GNUNET_YES != peer->search_str_matched) &&(NULL != data_file) )
+    if ((GNUNET_YES != peer->search_str_matched) && (NULL != data_file) )
     {
       prof_time = GNUNET_TIME_absolute_get_duration (peer->prof_start_time);
       size =
@@ -650,7 +650,7 @@ stats_connect_cb (void *cls,
 {
   struct RegexPeer *peer = cls;
 
-  if ((NULL == ca_result)||(NULL != emsg))
+  if ((NULL == ca_result) || (NULL != emsg))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Failed to connect to statistics service on peer %u: %s\n",
@@ -1043,7 +1043,7 @@ dht_connect_cb (void *cls,
 {
   struct RegexPeer *peer = (struct RegexPeer *) cls;
 
-  if ((NULL != emsg)||(NULL == op)||(NULL == ca_result))
+  if ((NULL != emsg) || (NULL == op) || (NULL == ca_result))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "DHT connect failed: %s\n", emsg);
     GNUNET_assert (0);
@@ -1169,6 +1169,7 @@ test_master (void *cls,
   search_timeout_task =
     GNUNET_SCHEDULER_add_delayed (search_timeout_time, &search_timed_out, NULL);
 }
+
 
 /**
  * Function that will be called whenever something in the testbed changes.

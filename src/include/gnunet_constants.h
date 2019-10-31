@@ -41,7 +41,6 @@ extern "C"
 #endif
 
 
-
 /**
  * Bandwidth (in/out) to assume initially (before either peer has
  * communicated any particular preference).  Should be rather low; set
@@ -163,8 +162,6 @@ extern "C"
  * queries.
  */
 #define GNUNET_CONSTANTS_BLOOMFILTER_K 16
-
-
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

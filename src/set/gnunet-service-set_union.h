@@ -151,7 +151,6 @@ handle_union_p2p_inquiry (void *cls,
                           const struct InquiryMessage *msg);
 
 
-
 /**
  * Handle a request for full set transmission.
  *
@@ -161,7 +160,6 @@ handle_union_p2p_inquiry (void *cls,
 void
 handle_union_p2p_request_full (void *cls,
                                const struct GNUNET_MessageHeader *mh);
-
 
 
 /**

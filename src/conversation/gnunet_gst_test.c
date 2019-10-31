@@ -34,7 +34,6 @@ main (int argc, char *argv[])
   GstElement *gnunetsrc, *gnunetsink, *source, *sink, *encoder, *decoder;
 
 
-
   // audio_message = GNUNET_malloc (UINT16_MAX);
   // audio_message->header.type = htons (GNUNET_MESSAGE_TYPE_CONVERSATION_AUDIO);
 
@@ -51,9 +50,7 @@ main (int argc, char *argv[])
    gst->audiobackend = JACK;
    gst->dropsilence = TRUE;
    gst->usertp = FALSE;
- */
-  /* Initialize GStreamer */
-  gst_init (&argc, &argv);
+ *//* Initialize GStreamer */gst_init (&argc, &argv);
 
   gst->pipeline = GST_PIPELINE (gst_pipeline_new ("gnunet-media-helper"));
 
@@ -118,8 +115,7 @@ main (int argc, char *argv[])
          GstFlowReturn flow;
          flow = on_appsink_new_sample (gst->appsink, gst);
     }
- */
-  }
+ */}
   if (type == SPEAKER)
   {
     while (1)

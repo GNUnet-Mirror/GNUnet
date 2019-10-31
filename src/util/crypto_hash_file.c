@@ -239,4 +239,5 @@ GNUNET_CRYPTO_hash_file_cancel (struct GNUNET_CRYPTO_FileHashContext *fhc)
   GNUNET_free (fhc);
 }
 
+
 /* end of crypto_hash_file.c */

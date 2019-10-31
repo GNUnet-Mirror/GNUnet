@@ -594,8 +594,7 @@ GNUNET_CURL_perform2 (struct GNUNET_CURL_Context *ctx,
          curl -w "foo%{size_request} -XPOST --data "ABC" $URL
          the CURLINFO_REQUEST_SIZE should be the whole size of the request
          including headers and body.
-       */
-      GNUNET_break (size_curl <= size_long);
+       */GNUNET_break (size_curl <= size_long);
 
       urd = get_url_benchmark_data (url, (unsigned int) response_code);
       urd->count++;
@@ -729,5 +728,6 @@ GNUNET_CURL_destructor__ (void)
     return;
   curl_global_cleanup ();
 }
+
 
 /* end of curl.c */

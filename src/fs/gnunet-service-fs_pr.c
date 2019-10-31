@@ -424,6 +424,7 @@ GSF_pending_request_create_ (enum GSF_PendingRequestOptions options,
   return pr;
 }
 
+
 /**
  * Obtain the public data associated with a pending request
  *

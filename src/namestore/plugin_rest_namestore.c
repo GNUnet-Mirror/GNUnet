@@ -947,4 +947,5 @@ libgnunet_plugin_rest_namestore_done (void *cls)
   return NULL;
 }
 
+
 /* end of plugin_rest_namestore.c */

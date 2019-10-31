@@ -438,6 +438,7 @@ bind_u32 (void *cls,
   return GNUNET_OK;
 }
 
+
 /**
  * Generate query parameter for an uint32_t in host byte order.
  *
@@ -504,5 +505,6 @@ GNUNET_SQ_query_param_uint64 (const uint64_t *x)
 
   return qp;
 }
+
 
 /* end of sq_query_helper.c */

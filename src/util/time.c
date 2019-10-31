@@ -342,6 +342,7 @@ GNUNET_TIME_absolute_get_remaining (struct GNUNET_TIME_Absolute future)
   return ret;
 }
 
+
 /**
  * Compute the time difference between the given start and end times.
  * Use this function instead of actual subtraction to ensure that
@@ -362,6 +363,7 @@ GNUNET_TIME_absolute_get_difference (struct GNUNET_TIME_Absolute start,
   ret.rel_value_us = end.abs_value_us - start.abs_value_us;
   return ret;
 }
+
 
 /**
  * Get the duration of an operation as the
@@ -926,9 +928,11 @@ GNUNET_TIME_absolute_get_monotonic (
 /**
  * Destructor
  */
-void __attribute__ ((destructor)) GNUNET_util_time_fini ()
+void __attribute__ ((destructor))
+GNUNET_util_time_fini ()
 {
   (void) GNUNET_TIME_absolute_get_monotonic (NULL);
 }
+
 
 /* end of time.c */

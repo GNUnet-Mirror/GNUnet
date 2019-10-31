@@ -146,7 +146,6 @@ static unsigned int off;
 static struct Command *test_commands;
 
 
-
 /**
  * Free `struct AddressSuggestData` entry.
  *
@@ -1103,5 +1102,6 @@ TEST_ATS_run (int argc,
   GNUNET_free (config_file);
   return ret;
 }
+
 
 /* end of test_ats_lib.c */

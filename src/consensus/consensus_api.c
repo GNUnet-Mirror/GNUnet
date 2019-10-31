@@ -259,6 +259,7 @@ idc_adapter (void *cls)
   GNUNET_free (i);
 }
 
+
 /**
  * Insert an element in the set being reconsiled.  Must not be called after
  * "GNUNET_CONSENSUS_conclude".
@@ -343,5 +344,6 @@ GNUNET_CONSENSUS_destroy (struct GNUNET_CONSENSUS_Handle *consensus)
   }
   GNUNET_free (consensus);
 }
+
 
 /* end of consensus_api.c */

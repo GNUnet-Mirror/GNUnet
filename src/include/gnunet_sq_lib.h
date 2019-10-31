@@ -98,7 +98,6 @@ GNUNET_SQ_query_param_fixed_size (const void *ptr,
                                   size_t ptr_size);
 
 
-
 /**
  * Generate query parameter for a string.
  *
@@ -452,7 +451,6 @@ void
 GNUNET_SQ_cleanup_result (struct GNUNET_SQ_ResultSpec *rs);
 
 
-
 /* ******************** sq_prepare.c functions ************** */
 
 
@@ -490,7 +488,6 @@ struct GNUNET_SQ_PrepareStatement
 struct GNUNET_SQ_PrepareStatement
 GNUNET_SQ_make_prepare (const char *sql,
                         sqlite3_stmt **pstmt);
-
 
 
 /**
@@ -566,7 +563,6 @@ GNUNET_SQ_make_try_execute (const char *sql);
 int
 GNUNET_SQ_exec_statements (sqlite3 *dbh,
                            const struct GNUNET_SQ_ExecuteStatement *es);
-
 
 
 #endif  /* GNUNET_SQ_LIB_H_ */

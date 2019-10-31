@@ -370,6 +370,7 @@ free_it (struct GNUNET_RECLAIM_AttributeIterator *it)
   GNUNET_free (it);
 }
 
+
 /**
  * Free @a op
  *
@@ -831,6 +832,7 @@ GNUNET_RECLAIM_disconnect (struct GNUNET_RECLAIM_Handle *h)
   GNUNET_assert (NULL == h->op_head);
   GNUNET_free (h);
 }
+
 
 /**
  * Store an attribute.  If the attribute is already present,

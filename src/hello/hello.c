@@ -945,7 +945,6 @@ GNUNET_HELLO_get_last_expiration (const struct GNUNET_HELLO_Message *msg)
  */
 
 
-
 /**
  * Function that is called on each address of this peer.
  * Expands the corresponding URI string.

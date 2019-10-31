@@ -164,6 +164,7 @@ end_badly (void *cls)
   ok = GNUNET_SYSERR;
 }
 
+
 static void
 testing_connect_cb (void *cls)
 {
@@ -540,6 +541,7 @@ run_stage (void *cls)
   GNUNET_SCHEDULER_add_now (&end, NULL);
 }
 
+
 static void
 run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
@@ -549,6 +551,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Running test `%s'!\n", test_name);
   stage_task = GNUNET_SCHEDULER_add_now (&run_stage, NULL);
 }
+
 
 int
 main (int argc, char *argv0[])
@@ -574,5 +577,6 @@ main (int argc, char *argv0[])
 
   return ok;
 }
+
 
 /* end of transport_api_blacklisting.c */

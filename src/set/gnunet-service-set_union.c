@@ -2168,8 +2168,7 @@ handle_union_p2p_done (void *cls,
      * We should notify the active peer once
      * all our demands are satisfied, so that the active
      * peer can quit if we gave it everything.
-     */
-    GNUNET_CADET_receive_done (op->channel);
+     */GNUNET_CADET_receive_done (op->channel);
     maybe_finish (op);
     return;
 
@@ -2182,8 +2181,7 @@ handle_union_p2p_done (void *cls,
      *
      * We'll close the channel
      * to the other peer once our demands are met.
-     */
-    op->state->phase = PHASE_FINISH_CLOSING;
+     */op->state->phase = PHASE_FINISH_CLOSING;
     GNUNET_CADET_receive_done (op->channel);
     maybe_finish (op);
     return;
@@ -2194,6 +2192,7 @@ handle_union_p2p_done (void *cls,
     return;
   }
 }
+
 
 /**
  * Handle a over message from a remote peer

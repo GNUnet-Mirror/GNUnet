@@ -148,7 +148,6 @@ struct GNUNET_ATS_PropertiesNBO
 };
 
 
-
 /* ********************* LAN Characterization library ************************ */
 /* Note: these functions do not really communicate with the ATS service */
 
@@ -173,7 +172,6 @@ GNUNET_ATS_properties_hton (struct GNUNET_ATS_PropertiesNBO *nbo,
 void
 GNUNET_ATS_properties_ntoh (struct GNUNET_ATS_Properties *hbo,
                             const struct GNUNET_ATS_PropertiesNBO *nbo);
-
 
 
 /* ********************Connection Suggestion API ***************************** */
@@ -377,7 +375,6 @@ GNUNET_ATS_address_update (struct GNUNET_ATS_AddressRecord *ar,
  */
 void
 GNUNET_ATS_address_destroy (struct GNUNET_ATS_AddressRecord *ar);
-
 
 
 /* ******************************** Performance API ***************************** */

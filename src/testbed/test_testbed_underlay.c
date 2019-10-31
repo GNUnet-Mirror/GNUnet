@@ -86,7 +86,6 @@ overlay_connect_status (void *cls,
 }
 
 
-
 /**
  * Signature of a main function for a testcase.
  *

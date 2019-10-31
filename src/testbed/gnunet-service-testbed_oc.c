@@ -515,6 +515,7 @@ cleanup_occ_rp2c (struct RemotePeer2Context *rp2c)
   }
 }
 
+
 /**
  * Condition for checking if given peer is ready to be destroyed
  *
@@ -643,8 +644,6 @@ GST_notify_client_disconnect_oc (struct GNUNET_SERVICE_Client *client)
   }
   // FIXME: implement clean up for client_keep replacements!
 }
-
-
 
 
 /**

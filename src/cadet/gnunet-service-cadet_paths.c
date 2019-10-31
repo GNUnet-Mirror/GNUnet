@@ -156,7 +156,6 @@ GCPP_add_connection (struct CadetPeerPath *path,
 }
 
 
-
 /**
  * Notify @a path that it is no longer used for connection @a cc which
  * ended at the path's offset @a off.

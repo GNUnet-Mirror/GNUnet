@@ -408,6 +408,7 @@ load_episode (struct Experiment *e,
   return GNUNET_OK;
 }
 
+
 static int
 load_episodes (struct Experiment *e, struct GNUNET_CONFIGURATION_Handle *cfg)
 {
@@ -517,8 +518,8 @@ enforce_start_send (struct GNUNET_ATS_TEST_Operation *op)
      partner->tg = GNUNET_ATS_TEST_generate_traffic_start(peer, partner,
       op->tg_type, op->base_rate, op->max_rate, op->period,
       GNUNET_TIME_UNIT_FOREVER_REL);
-   */
-}
+   */}
+
 
 static void
 enforce_stop_send (struct GNUNET_ATS_TEST_Operation *op)
@@ -541,8 +542,7 @@ enforce_stop_send (struct GNUNET_ATS_TEST_Operation *op)
      GNUNET_ATS_TEST_generate_traffic_stop(p->tg);
      p->tg = NULL;
      }
-   */
-}
+   */}
 
 
 static void
@@ -579,8 +579,8 @@ enforce_start_preference (struct GNUNET_ATS_TEST_Operation *op)
      partner->pg = GNUNET_ATS_TEST_generate_preferences_start(peer, partner,
       op->tg_type, op->base_rate, op->max_rate, op->period, op->frequency,
       op->pref_type);
-   */
-}
+   */}
+
 
 static void
 enforce_stop_preference (struct GNUNET_ATS_TEST_Operation *op)
@@ -603,10 +603,11 @@ enforce_stop_preference (struct GNUNET_ATS_TEST_Operation *op)
      GNUNET_ATS_TEST_generate_preferences_stop (p->pg);
      p->pg = NULL;
      }
-   */
-}
+   */}
 
-static void enforce_episode (struct Episode *ep)
+
+static void
+enforce_episode (struct Episode *ep)
 {
   struct GNUNET_ATS_TEST_Operation *cur;
 
@@ -805,6 +806,7 @@ GNUNET_ATS_solvers_experimentation_load (char *filename)
   return e;
 }
 
+
 void
 GNUNET_ATS_solvers_experimentation_stop (struct Experiment *e)
 {
@@ -820,6 +822,7 @@ GNUNET_ATS_solvers_experimentation_stop (struct Experiment *e)
   }
   free_experiment (e);
 }
+
 
 /**
  * Solver
@@ -846,6 +849,7 @@ GNUNET_ATS_solvers_solver_stop (struct GNUNET_ATS_TESTING_SolverHandle *sh)
   GNUNET_free (sh->plugin);
   GNUNET_free (sh);
 }
+
 
 struct GNUNET_ATS_TESTING_SolverHandle *
 GNUNET_ATS_solvers_solver_start (enum GNUNET_ATS_Solvers type)
@@ -884,6 +888,7 @@ GNUNET_ATS_solvers_solver_start (enum GNUNET_ATS_Solvers type)
 
   return sh;
 }
+
 
 static struct Experiment *e;
 
@@ -1015,4 +1020,6 @@ main (int argc, char *argv[])
 
   return 0;
 }
+
+
 /* end of file gnunet-solver-eval.c*/

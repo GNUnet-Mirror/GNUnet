@@ -176,7 +176,6 @@
 #define MAXLINE 4096
 
 
-
 /* ********* structure of messages of type ARPHRD_IEEE80211_PRISM *********** */
 
 /**
@@ -465,7 +464,6 @@ enum RadiotapType
 #define IEEE80211_RADIOTAP_PRESENT_EXTEND_MASK (1 << IEEE80211_RADIOTAP_EXT)
 
 
-
 /**
  * Bit in IEEE80211_RADIOTAP_FLAGS (which we might get
  * as part of a 'struct Ieee80211RadiotapHeader' extension
@@ -651,7 +649,6 @@ struct RadiotapTransmissionHeader
                                                             IEEE80211_RADIOTAP_TX_FLAGS))
 
 
-
 /**
  * struct Ieee80211RadiotapHeaderIterator - tracks walk through present radiotap arguments
  * in the radiotap header.  Used when we parse radiotap packets received from the kernel.
@@ -768,7 +765,6 @@ static struct SendBuffer write_pout;
  * Buffer for data read from the wireless card to be transmitted to stdout.
  */
 static struct SendBuffer write_std;
-
 
 
 /* *********** specialized version of server_mst.c begins here ********** */
@@ -1031,6 +1027,7 @@ mst_destroy (struct MessageStreamTokenizer *mst)
   free (mst);
 }
 
+
 /* *****************  end of server_mst.c clone ***************** **/
 
 
@@ -1091,8 +1088,7 @@ ieee80211_radiotap_iterator_init (struct
        * check for insanity where the present bitmaps
        * keep claiming to extend up to or even beyond the
        * stated radiotap header length
-       */
-      if (iterator->arg - ((uint8_t*) iterator->rtheader) >
+       */if (iterator->arg - ((uint8_t*) iterator->rtheader) >
           iterator->max_length)
         return -1;
     }
@@ -1101,8 +1097,7 @@ ieee80211_radiotap_iterator_init (struct
      * no need to check again for blowing past stated radiotap
      * header length, becuase ieee80211_radiotap_iterator_next
      * checks it before it is dereferenced
-     */
-  }
+     */}
   /* we are all initialized happily */
   return 0;
 }
@@ -1137,9 +1132,7 @@ ieee80211_radiotap_iterator_next (struct
    *
    * upper nybble: content alignment for arg
    * lower nybble: content length for arg
-   */
-
-  static const uint8_t rt_sizes[] = {
+   */static const uint8_t rt_sizes[] = {
     [IEEE80211_RADIOTAP_TSFT] = 0x88,
     [IEEE80211_RADIOTAP_FLAGS] = 0x11,
     [IEEE80211_RADIOTAP_RATE] = 0x11,
@@ -1198,8 +1191,7 @@ ieee80211_radiotap_iterator_next (struct
        * radiotap header.  There is no guarantee that the radiotap
        * header itself is aligned on any kind of boundary, thus we
        * need to really look at the delta here.
-       */
-      wanted_alignment = rt_sizes[iterator->arg_index] >> 4;
+       */wanted_alignment = rt_sizes[iterator->arg_index] >> 4;
       unalignment = (((void *) iterator->arg) - ((void *) iterator->rtheader))
                     & (wanted_alignment - 1);
       if (0 != unalignment)
@@ -1224,8 +1216,7 @@ ieee80211_radiotap_iterator_next (struct
        * claims to have more arg content than the length of the
        * radiotap section.  We will normally end up equalling this
        * max_length on the last arg, never exceeding it.
-       */
-      if ((((void *) iterator->arg) - ((void *) iterator->rtheader)) >
+       */if ((((void *) iterator->arg) - ((void *) iterator->rtheader)) >
           iterator->max_length)
         return -1;
     }
@@ -1365,8 +1356,8 @@ check_crc_buf_osdep (const unsigned char *buf, size_t len)
 
   crc = calc_crc_osdep (buf, len);
   buf += len;
-  if ((((crc) & 0xFF) == buf[0])&&(((crc >> 8) & 0xFF) == buf[1])&&
-      ( ((crc >> 16) & 0xFF) == buf[2]) &&( ((crc >> 24) & 0xFF) == buf[3]) )
+  if ((((crc) & 0xFF) == buf[0]) && (((crc >> 8) & 0xFF) == buf[1]) &&
+      ( ((crc >> 16) & 0xFF) == buf[2]) && ( ((crc >> 24) & 0xFF) == buf[3]) )
     return 0;
   return 1;
 }
@@ -1386,11 +1377,11 @@ check_crc_buf_osdep (const unsigned char *buf, size_t len)
 static int
 get_channel_from_frequency (int32_t frequency)
 {
-  if ((frequency >= 2412)&&(frequency <= 2472))
+  if ((frequency >= 2412) && (frequency <= 2472))
     return (frequency - 2407) / 5;
   if (frequency == 2484)
     return 14;
-  if ((frequency >= 5000)&&(frequency <= 6100))
+  if ((frequency >= 5000) && (frequency <= 6100))
     return (frequency - 5000) / 5;
   return -1;
 }
@@ -2190,5 +2181,6 @@ main (int argc, char *argv[])
   (void) close (dev.fd_raw);
   return 1;                     /* we never exit 'normally' */
 }
+
 
 /* end of gnunet-helper-transport-wlan.c */

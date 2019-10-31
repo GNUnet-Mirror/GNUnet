@@ -217,4 +217,5 @@ main (int argc,
   return ok;
 }
 
+
 /* end of test_gnunet_service_fs_migration.c */

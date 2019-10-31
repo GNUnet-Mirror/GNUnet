@@ -348,4 +348,5 @@ libgnunet_plugin_namecache_postgres_done (void *cls)
   return NULL;
 }
 
+
 /* end of plugin_namecache_postgres.c */

@@ -192,6 +192,7 @@ new_value_set (const char *subsystem,
   return value_set;
 }
 
+
 /**
  * @brief Print the (collected) values.
  *
@@ -258,6 +259,7 @@ printer (void *cls, const struct GNUNET_HashCode *key, void *value)
   return GNUNET_YES;
 }
 
+
 /**
  * Callback function to process statistic values.
  *
@@ -318,6 +320,7 @@ printer_watch (void *cls,
   return GNUNET_OK;
 }
 
+
 /**
  * @brief Clean all data structures related to given node.
  *
@@ -372,6 +375,7 @@ clean_node (void *cls)
   }
 }
 
+
 /**
  * @brief Print and shutdown
  *
@@ -383,6 +387,7 @@ print_finish (void *cls)
   GNUNET_CONTAINER_multihashmap_iterate (values, printer, NULL);
   GNUNET_SCHEDULER_shutdown ();
 }
+
 
 /**
  * @brief Called once all statistic values are available.
@@ -422,6 +427,7 @@ continuation_print (void *cls, int success)
   }
 }
 
+
 /**
  * Function called last by the statistics code.
  *
@@ -449,6 +455,7 @@ cleanup (void *cls, int success)
   }
   GNUNET_SCHEDULER_shutdown ();
 }
+
 
 /**
  * @brief Iterate over statistics values and store them in #values.
@@ -499,6 +506,7 @@ collector (void *cls,
                    GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
   return GNUNET_OK;
 }
+
 
 /**
  * Main task that does the actual work.
@@ -582,6 +590,7 @@ main_task (void *cls)
     GNUNET_SCHEDULER_add_shutdown (&clean_node, &nodes[index_node].index_node);
 }
 
+
 /**
  * @brief Iter over content of a node's directory to check for existence of a
  * config file.
@@ -617,6 +626,7 @@ iter_check_config (void *cls, const char *filename)
   }
 }
 
+
 /**
  * @brief Iterates over filenames in testbed directory.
  *
@@ -649,6 +659,7 @@ iter_testbed_path (void *cls, const char *filename)
   return GNUNET_OK;
 }
 
+
 /**
  * @brief Count the number of nodes running in the testbed
  *
@@ -670,6 +681,7 @@ discover_testbed_nodes (const char *path_testbed)
   }
   return 0;
 }
+
 
 /**
  * Main function that will be run by the scheduler.
@@ -856,5 +868,6 @@ main (int argc, char *const *argv)
   GNUNET_free ((void *) argv);
   return ret;
 }
+
 
 /* end of gnunet-statistics.c */

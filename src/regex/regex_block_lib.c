@@ -218,7 +218,7 @@ REGEX_BLOCK_check (const struct RegexBlock *block,
     GNUNET_break_op (0);
     return GNUNET_SYSERR;
   }
-  if ((NULL != query)&&
+  if ((NULL != query) &&
       (0 != GNUNET_memcmp (&key,
                            query)) )
   {

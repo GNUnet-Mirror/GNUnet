@@ -29,7 +29,6 @@
 #include <gauger.h>
 
 
-
 /**
  * Calculate the 'proof-of-work' hash (an expensive hash).
  *
@@ -83,5 +82,6 @@ main (int argc, char *argv[])
                       (start).rel_value_us / 1000.0), "hashes/ms");
   return 0;
 }
+
 
 /* end of perf_kdf.c */

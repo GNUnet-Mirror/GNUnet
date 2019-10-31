@@ -103,7 +103,6 @@ static in_addr_t address;
 static struct in6_addr address6;
 
 
-
 /**
  * Handle to GNS resolver.
  */
@@ -779,5 +778,6 @@ main (int argc,
   GNUNET_free ((void*) argv);
   return ret;
 }
+
 
 /* end of gnunet-dns2gns.c */

@@ -384,4 +384,5 @@ GNUNET_NAMESTORE_zone_monitor_stop (struct GNUNET_NAMESTORE_ZoneMonitor *zm)
   GNUNET_free (zm);
 }
 
+
 /* end of namestore_api_monitor.c */

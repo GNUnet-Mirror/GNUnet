@@ -84,4 +84,5 @@ GNUNET_CONFIGURATION_load (struct GNUNET_CONFIGURATION_Handle *cfg,
   return GNUNET_OK;
 }
 
+
 /* end of configuration_loader.c */

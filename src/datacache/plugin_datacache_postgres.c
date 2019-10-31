@@ -702,5 +702,4 @@ libgnunet_plugin_datacache_postgres_done (void *cls)
 }
 
 
-
 /* end of plugin_datacache_postgres.c */

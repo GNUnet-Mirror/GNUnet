@@ -746,7 +746,6 @@ merge_ops (struct GNUNET_TESTBED_Operation ***old,
 }
 
 
-
 /**
  * Checks for the readiness of an operation and schedules a operation start task
  *
@@ -1383,4 +1382,6 @@ GNUNET_TESTBED_operations_fini ()
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                 "Be disciplined.  Some operations were not marked as done.\n");
 }
+
+
 /* end of testbed_api_operations.c */

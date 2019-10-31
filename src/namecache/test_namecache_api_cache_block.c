@@ -148,6 +148,7 @@ name_lookup_proc (void *cls,
                                                               (void *) name));
 }
 
+
 static void
 cache_cont (void *cls, int32_t success, const char *emsg)
 {

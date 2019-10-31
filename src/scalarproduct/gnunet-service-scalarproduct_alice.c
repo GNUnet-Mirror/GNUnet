@@ -623,6 +623,7 @@ check_bobs_cryptodata_multipart (
   return GNUNET_OK;
 }
 
+
 /**
  * Handle a multipart chunk of a response we got from another service
  * we wanted to calculate a scalarproduct with.

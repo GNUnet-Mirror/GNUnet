@@ -341,7 +341,6 @@ GNUNET_CONFIGURATION_get_value_time (const struct
                                      struct GNUNET_TIME_Relative *time);
 
 
-
 /**
  * Get a configuration value that should be a size in bytes.
  *

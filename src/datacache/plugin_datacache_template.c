@@ -126,7 +126,6 @@ template_plugin_get_random (void *cls,
 }
 
 
-
 /**
  * Iterate over the results that are "close" to a particular key in
  * the datacache.  "close" is defined as numerically larger than @a

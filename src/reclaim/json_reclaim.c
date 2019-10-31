@@ -102,6 +102,7 @@ parse_attr (void *cls, json_t *root, struct GNUNET_JSON_Specification *spec)
   return GNUNET_OK;
 }
 
+
 /**
  * Cleanup data left from parsing RSA public key.
  *
@@ -120,6 +121,7 @@ clean_attr (void *cls, struct GNUNET_JSON_Specification *spec)
     *attr = NULL;
   }
 }
+
 
 /**
  * JSON Specification for Reclaim claims.
@@ -141,6 +143,8 @@ GNUNET_RECLAIM_JSON_spec_claim (struct GNUNET_RECLAIM_ATTRIBUTE_Claim **attr)
   *attr = NULL;
   return ret;
 }
+
+
 /**
  * Parse given JSON object to a ticket
  *
@@ -219,6 +223,7 @@ parse_ticket (void *cls, json_t *root, struct GNUNET_JSON_Specification *spec)
   return GNUNET_OK;
 }
 
+
 /**
  * Cleanup data left from parsing RSA public key.
  *
@@ -237,6 +242,7 @@ clean_ticket (void *cls, struct GNUNET_JSON_Specification *spec)
     *ticket = NULL;
   }
 }
+
 
 /**
  * JSON Specification for Reclaim tickets.

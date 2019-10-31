@@ -183,7 +183,6 @@ GCCH_handle_duplicate_open (struct CadetChannel *ch,
                             GNUNET_CADET_ConnectionTunnelIdentifier *cti);
 
 
-
 /**
  * We got payload data for a channel.  Pass it on to the client.
  *

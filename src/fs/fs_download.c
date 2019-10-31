@@ -463,8 +463,7 @@ try_match_block (struct GNUNET_FS_DownloadContext *dc,
          thus, reconstruction of (some) inner blocks will fail.
          FIXME: we might eventually want to write a tighter test to
          maximize the circumstances under which we do succeed with
-         IBlock reconstruction. (need good tests though). */
-      return;
+         IBlock reconstruction. (need good tests though). */return;
     }
     complete = GNUNET_YES;
     for (i = 0; i < dr->num_children; i++)
@@ -2285,6 +2284,7 @@ GNUNET_FS_download_start_downloading_ (struct GNUNET_FS_DownloadContext *dc)
               dc->job_queue);
 }
 
+
 /**
  * Suspend a download.
  *
@@ -2413,5 +2413,6 @@ GNUNET_FS_download_stop (struct GNUNET_FS_DownloadContext *dc, int do_delete)
   GNUNET_assert (NULL == dc->job_queue);
   GNUNET_free (dc);
 }
+
 
 /* end of fs_download.c */

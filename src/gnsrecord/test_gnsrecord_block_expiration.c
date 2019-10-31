@@ -42,7 +42,6 @@
 static int res;
 
 
-
 static void
 run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
@@ -104,5 +103,6 @@ main (int argc, char *argv[])
                       "nohelp", options, &run, &res);
   return res;
 }
+
 
 /* end of test_gnsrecord_crypto.c */

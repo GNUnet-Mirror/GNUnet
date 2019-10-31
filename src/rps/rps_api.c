@@ -857,7 +857,7 @@ GNUNET_RPS_connect (const struct GNUNET_CONFIGURATION_Handle *cfg)
     GNUNET_free (h);
     return NULL;
   }
-  if ((0 > h->desired_probability)||
+  if ((0 > h->desired_probability) ||
       (1 < h->desired_probability) )
   {
     LOG (GNUNET_ERROR_TYPE_ERROR,
@@ -876,7 +876,7 @@ GNUNET_RPS_connect (const struct GNUNET_CONFIGURATION_Handle *cfg)
     GNUNET_free (h);
     return NULL;
   }
-  if ((0 > h->desired_probability)||
+  if ((0 > h->desired_probability) ||
       (1 < h->desired_probability) )
   {
     LOG (GNUNET_ERROR_TYPE_ERROR,
@@ -1186,6 +1186,8 @@ GNUNET_RPS_act_malicious (struct GNUNET_RPS_Handle *h,
 
   GNUNET_MQ_send (h->mq, ev);
 }
+
+
 #endif /* ENABLE_MALICIOUS */
 
 

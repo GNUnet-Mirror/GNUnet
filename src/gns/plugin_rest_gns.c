@@ -465,4 +465,5 @@ libgnunet_plugin_rest_gns_done (void *cls)
   return NULL;
 }
 
+
 /* end of plugin_rest_gns.c */

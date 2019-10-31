@@ -925,4 +925,5 @@ GNUNET_TRANSPORT_TESTING_init ()
   return tth;
 }
 
+
 /* end of transport-testing.c */

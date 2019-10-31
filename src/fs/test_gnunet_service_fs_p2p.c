@@ -162,4 +162,5 @@ main (int argc, char *argv[])
   return ok;
 }
 
+
 /* end of test_gnunet_service_fs_p2p.c */

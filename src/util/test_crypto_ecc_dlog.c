@@ -164,7 +164,6 @@ test_math (struct GNUNET_CRYPTO_EccDlogContext *edc)
 }
 
 
-
 int
 main (int argc, char *argv[])
 {
@@ -191,5 +190,6 @@ main (int argc, char *argv[])
   GNUNET_CRYPTO_ecc_dlog_release (edc);
   return 0;
 }
+
 
 /* end of test_crypto_ecc_dlog.c */

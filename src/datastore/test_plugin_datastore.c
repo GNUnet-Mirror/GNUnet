@@ -154,8 +154,8 @@ do_put (struct CpsRunContext *crc)
   /* most content is 32k */
   size = 32 * 1024;
 
-  if ((0 != i)&&(GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 16) ==
-                 0) )                                                             /* but some of it is less! */
+  if ((0 != i) && (GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 16) ==
+                   0) )                                                           /* but some of it is less! */
     size = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 32 * 1024);
   size = size - (size & 7);     /* always multiple of 8 */
 
@@ -272,7 +272,6 @@ unload_plugin (struct GNUNET_DATASTORE_PluginFunctions *api,
   GNUNET_free (libname);
   GNUNET_free (name);
 }
-
 
 
 /**
@@ -474,5 +473,6 @@ main (int argc, char *argv[])
   GNUNET_DISK_directory_remove (dir_name);
   return ok;
 }
+
 
 /* end of test_plugin_datastore.c */

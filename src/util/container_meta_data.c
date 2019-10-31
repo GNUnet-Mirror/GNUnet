@@ -35,7 +35,6 @@
                                         __VA_ARGS__)
 
 
-
 /**
  * Try to compress the given block of data using libz.  Only returns
  * the compressed block if compression worked and the new block is

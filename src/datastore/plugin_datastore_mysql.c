@@ -920,7 +920,6 @@ struct ExpiCtx
 };
 
 
-
 /**
  * Wrapper for the processor for #mysql_plugin_get_expiration().
  * If no expired value was found, we do a second query for
@@ -1199,5 +1198,6 @@ libgnunet_plugin_datastore_mysql_done (void *cls)
   GNUNET_free (api);
   return NULL;
 }
+
 
 /* end of plugin_datastore_mysql.c */

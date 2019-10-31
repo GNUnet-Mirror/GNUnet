@@ -446,6 +446,7 @@ remove_rcop (struct GNUNET_TESTBED_RunHandle *rc, struct
                                                          rcop));
 }
 
+
 /**
  * Assuming all peers have been destroyed cleanup run handle
  *

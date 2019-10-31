@@ -79,6 +79,7 @@ create_jwt_header (void)
   return json_str;
 }
 
+
 static void
 replace_char (char *str, char find, char replace)
 {
@@ -91,6 +92,7 @@ replace_char (char *str, char find, char replace)
   }
 }
 
+
 // RFC4648
 static void
 fix_base64 (char *str)
@@ -101,6 +103,7 @@ fix_base64 (char *str)
   // Replace / with _
   replace_char (str, '/', '_');
 }
+
 
 /**
  * Create a JWT from attributes
@@ -229,12 +232,14 @@ OIDC_id_token_new (const struct GNUNET_CRYPTO_EcdsaPublicKey *aud_key,
   return result;
 }
 
+
 /* Converts a hex character to its integer value */
 static char
 from_hex (char ch)
 {
   return isdigit (ch) ? ch - '0' : tolower (ch) - 'a' + 10;
 }
+
 
 /* Converts an integer value to its hex character*/
 static char
@@ -244,6 +249,7 @@ to_hex (char code)
 
   return hex[code & 15];
 }
+
 
 /* Returns a url-encoded version of str */
 /* IMPORTANT: be sure to free() the returned string after use */
@@ -306,6 +312,7 @@ url_decode (const char *str)
   *pbuf = '\0';
   return buf;
 }
+
 
 /**
  * Returns base64 encoded string urlencoded
@@ -440,6 +447,7 @@ encrypt_payload (const struct GNUNET_CRYPTO_EcdsaPublicKey *ecdsa_pub,
     GNUNET_CRYPTO_symmetric_encrypt (payload, payload_len, &key, &iv, buf));
 }
 
+
 /**
  * Builds an OIDC authorization code including
  * a reclaim ticket and nonce
@@ -481,7 +489,7 @@ OIDC_build_authz_code (const struct GNUNET_CRYPTO_EcdsaPrivateKey *issuer,
   // Assign nonce
   nonce = 0;
   payload_len = sizeof(struct OIDC_Parameters);
-  if ((NULL != nonce_str)&& (strcmp ("", nonce_str) != 0))
+  if ((NULL != nonce_str) && (strcmp ("", nonce_str) != 0))
   {
     if ((1 != sscanf (nonce_str, "%u", &nonce)) || (nonce > UINT32_MAX))
     {
@@ -752,6 +760,7 @@ OIDC_build_token_response (const char *access_token,
   *token_response = json_dumps (root_json, JSON_INDENT (0) | JSON_COMPACT);
   json_decref (root_json);
 }
+
 
 /**
  * Generate a new access token

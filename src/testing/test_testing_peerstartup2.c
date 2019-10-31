@@ -201,7 +201,8 @@ end:
 }
 
 
-int main (int argc, char *argv[])
+int
+main (int argc, char *argv[])
 {
   struct GNUNET_GETOPT_CommandLineOption options[] = {
     GNUNET_GETOPT_OPTION_END
@@ -216,5 +217,6 @@ int main (int argc, char *argv[])
     return 1;
   return (GNUNET_OK == status) ? 0 : 1;
 }
+
 
 /* end of test_testing_peerstartup.c */

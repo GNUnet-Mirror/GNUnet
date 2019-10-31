@@ -683,6 +683,7 @@ GNUNET_HELPER_send (struct GNUNET_HELPER_Handle *h,
   return sh;
 }
 
+
 /**
  * Cancel a #GNUNET_HELPER_send operation.  If possible, transmitting the
  * message is also aborted, but at least 'cont' won't be

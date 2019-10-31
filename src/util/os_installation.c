@@ -207,6 +207,8 @@ get_path_from_proc_exe ()
   lnk[size] = '\0';
   return GNUNET_strdup (lnk);
 }
+
+
 #endif
 
 
@@ -292,6 +294,8 @@ get_path_from_dyld_image ()
   }
   return NULL;
 }
+
+
 #endif
 
 

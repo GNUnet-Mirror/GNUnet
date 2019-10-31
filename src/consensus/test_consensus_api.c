@@ -44,12 +44,14 @@ conclude_done (void *cls)
   GNUNET_SCHEDULER_shutdown ();
 }
 
+
 static void
 on_new_element (void *cls,
                 const struct GNUNET_SET_Element *element)
 {
   elements_received++;
 }
+
 
 static void
 insert_done (void *cls, int success)

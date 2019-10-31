@@ -63,6 +63,7 @@ processor (void *cls, const char *filename, const struct GNUNET_FS_Uri *uri,
   fprintf (stderr, "Error at %s:%d\n", __FILE__, __LINE__);
 }
 
+
 static int
 testDirectory (unsigned int i)
 {
@@ -180,5 +181,6 @@ main (int argc, char *argv[])
     return 1;
   return 0;
 }
+
 
 /* end of test_fs_directory.c */

@@ -757,8 +757,6 @@ handle_manage_peer_service (void *cls,
                             GNUNET_TESTBED_ManagePeerServiceMessage *msg);
 
 
-
-
 /**
  * Check #GNUNET_MESSAGE_TYPDE_TESTBED_RECONFIGURE_PEER type messages.
  *

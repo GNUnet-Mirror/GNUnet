@@ -163,6 +163,7 @@ run_process_and_wait (int pipe_control,
   return 0;
 }
 
+
 static void
 check_pkey (unsigned int rd_len, const struct GNUNET_GNSRECORD_Data *rd,
             char *pk, int *found_rec)
@@ -185,6 +186,7 @@ check_pkey (unsigned int rd_len, const struct GNUNET_GNSRECORD_Data *rd,
     GNUNET_free (s);
   }
 }
+
 
 /**
  * Process a record that was stored in the namestore.
@@ -210,6 +212,7 @@ zone_iterator (void *cls,
   }
   GNUNET_NAMESTORE_zone_iterator_next (list_it);
 }
+
 
 static void
 zone_iteration_error (void *cls)
@@ -322,16 +325,18 @@ get_ego (void *cls,
   GNUNET_IDENTITY_ego_get_public_key (ego, &pk);
   if (NULL != identifier)
   {
-    if ((NULL == master_zone_pkey) &&(0 == strcmp ("master-zone", identifier)) )
+    if ((NULL == master_zone_pkey) && (0 == strcmp ("master-zone",
+                                                    identifier)) )
     {
       master_zone_pkey = GNUNET_CRYPTO_ecdsa_public_key_to_string (&pk);
       master_pk = *GNUNET_IDENTITY_ego_get_private_key (ego);
     }
-    else if ((NULL == private_zone_pkey) &&(0 == strcmp ("private-zone",
-                                                         identifier)) )
+    else if ((NULL == private_zone_pkey) && (0 == strcmp ("private-zone",
+                                                          identifier)) )
       private_zone_pkey = GNUNET_CRYPTO_ecdsa_public_key_to_string (&pk);
   }
 }
+
 
 /**
  * Task run on shutdown.
@@ -361,6 +366,7 @@ shutdown_task (void *cls)
     sh = NULL;
   }
 }
+
 
 /**
  * Main function that will be run.
@@ -483,5 +489,6 @@ main (int argc, char *const *argv)
   GNUNET_free ((void*) argv);
   return GNUNET_OK == r ? ret : 1;
 }
+
 
 /* end of gnunet-gns-import.c */

@@ -116,7 +116,8 @@ GNUNET_SERVICE_MAIN ("do-nothing",
 /**
  * MINIMIZE heap size (way below 128k) since this process doesn't need much.
  */
-void __attribute__ ((destructor)) GNUNET_mockup_done ()
+void __attribute__ ((destructor))
+GNUNET_mockup_done ()
 {
   _exit (special_ret);
 }

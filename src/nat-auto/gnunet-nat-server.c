@@ -320,7 +320,6 @@ force_timeout (void *cls)
 }
 
 
-
 /**
  * Callback called when a client connects to the service.
  *
@@ -395,9 +394,9 @@ GNUNET_ARM_memory_init ()
   mallopt (M_TOP_PAD, 1 * 1024);
   malloc_trim (0);
 }
+
+
 #endif
-
-
 
 
 /* end of gnunet-nat-server.c */

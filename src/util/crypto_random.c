@@ -70,6 +70,8 @@ glibc_weak_rand32 ()
   glibc_weak_rand32_state = val;
   return val;
 }
+
+
 #endif
 
 /**
@@ -331,7 +333,8 @@ w_check (const void *p)
 /**
  * Initialize libgcrypt.
  */
-void __attribute__ ((constructor)) GNUNET_CRYPTO_random_init ()
+void __attribute__ ((constructor))
+GNUNET_CRYPTO_random_init ()
 {
   gcry_error_t rc;
 
@@ -369,7 +372,8 @@ void __attribute__ ((constructor)) GNUNET_CRYPTO_random_init ()
 /**
  * Nicely shut down libgcrypt.
  */
-void __attribute__ ((destructor)) GNUNET_CRYPTO_random_fini ()
+void __attribute__ ((destructor))
+GNUNET_CRYPTO_random_fini ()
 {
   gcry_set_progress_handler (NULL, NULL);
 #ifdef GCRYCTL_CLOSE_RANDOM_DEVICE

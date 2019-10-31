@@ -138,4 +138,5 @@ main (int argc, char *const argv[])
   return ret;
 }
 
+
 /* end of test_nat_test.c */

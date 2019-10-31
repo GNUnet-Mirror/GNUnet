@@ -110,6 +110,7 @@ run (void *cls,
   }
 }
 
+
 /**
  * The main function to access special file-sharing functions.
  *
@@ -146,5 +147,6 @@ main (int argc, char *const *argv)
   GNUNET_free ((void *) argv);
   return ret;
 }
+
 
 /* end of gnunet-fs.c */

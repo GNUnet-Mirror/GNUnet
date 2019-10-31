@@ -49,6 +49,7 @@ test (int number)
   return 0;
 }
 
+
 static int
 testEncoding ()
 {
@@ -59,6 +60,7 @@ testEncoding ()
       return 1;
   return 0;
 }
+
 
 static int
 testArithmetic ()
@@ -98,6 +100,7 @@ testArithmetic ()
   GNUNET_CRYPTO_hash_to_aes_key (&d, &skey, &iv);
   return 0;
 }
+
 
 static void
 finished_task (void *cls, const struct GNUNET_HashCode *res)
@@ -155,5 +158,6 @@ main (int argc, char *argv[])
     return 1;
   return 0;
 }
+
 
 /* end of hashingtest.c */

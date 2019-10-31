@@ -102,7 +102,6 @@
 #endif
 
 
-
 /**
  * Functions with this signature are called whenever a
  * complete message is received by the tokenizer.
@@ -874,7 +873,6 @@ session_timeout (void *cls)
   wlan_plugin_disconnect_session (session->mac->plugin,
                                   session);
 }
-
 
 
 /**
@@ -2201,7 +2199,6 @@ wlan_plugin_setup_monitor (void *cls,
     sic (sic_cls, NULL, NULL);
   }
 }
-
 
 
 /**

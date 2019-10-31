@@ -262,7 +262,6 @@ service_connect_comp_cb (void *cls,
 }
 
 
-
 /**
  * Callback to be called when the requested peer information is available
  *
@@ -460,7 +459,6 @@ status_cb (void *cls,
 }
 
 
-
 /**
  * Main run function.
  *
@@ -512,5 +510,6 @@ main (int argc, char **argv)
     return 1;
   return 0;
 }
+
 
 /* end of test_testbed_api.c */

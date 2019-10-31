@@ -497,4 +497,5 @@ GNUNET_CRYPTO_eddsa_setup_key (const char *cfg_name)
   GNUNET_CONFIGURATION_destroy (cfg);
 }
 
+
 /* end of crypto_ecc_setup.c */

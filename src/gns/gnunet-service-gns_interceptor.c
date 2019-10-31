@@ -409,4 +409,5 @@ GNS_interceptor_done ()
   }
 }
 
+
 /* end of gnunet-service-gns_interceptor.c */

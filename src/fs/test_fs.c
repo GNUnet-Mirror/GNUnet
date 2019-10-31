@@ -47,6 +47,7 @@ makeName (unsigned int i)
   return fn;
 }
 
+
 static enum GNUNET_FSUI_EventType lastEvent;
 
 static struct GNUNET_MetaData *search_meta;
@@ -100,6 +101,7 @@ eventCallback (void *cls, const GNUNET_FSUI_Event *event)
   lastEvent = event->type;
   return NULL;
 }
+
 
 #define START_DAEMON 1
 
@@ -255,5 +257,6 @@ FAILURE:
 
   return (ok == GNUNET_YES) ? 0 : 1;
 }
+
 
 /* end of test_fs.c */

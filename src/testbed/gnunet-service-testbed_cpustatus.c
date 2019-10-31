@@ -118,6 +118,8 @@ initMachCpuStats ()
                  (vm_size_t) (cpu_msg_count * sizeof(*cpu_load)));
   return GNUNET_OK;
 }
+
+
 #endif
 
 /**
@@ -464,6 +466,7 @@ updateAgedLoad ()
   }
 }
 
+
 /**
  * Get the load of the CPU relative to what is allowed.
  * @return the CPU load as a percentage of allowed
@@ -488,6 +491,7 @@ disk_get_load ()
   updateAgedLoad ();
   return (int) agedIOLoad;
 }
+
 
 /**
  * Get the percentage of memory used
@@ -531,6 +535,8 @@ get_nproc ()
   closedir (dir);
   return nproc;
 }
+
+
 #endif
 
 
@@ -653,5 +659,6 @@ GST_stats_destroy ()
   GNUNET_break (GNUNET_OK == GNUNET_BIO_write_close (bw));
   bw = NULL;
 }
+
 
 /* end of cpustatus.c */

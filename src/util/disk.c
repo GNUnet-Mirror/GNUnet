@@ -194,6 +194,7 @@ GNUNET_DISK_handle_invalid (const struct GNUNET_DISK_FileHandle *h)
   return ((! h) || (h->fd == -1)) ? GNUNET_YES : GNUNET_NO;
 }
 
+
 /**
  * Get the size of an open file.
  *
@@ -1145,10 +1146,11 @@ GNUNET_DISK_filename_canonicalize (char *fn)
   {
     c = *idx;
 
-    if ((c == '/') ||(c == '\\') ||(c == ':') ||(c == '*') ||(c == '?') ||(c ==
-                                                                           '"')
+    if ((c == '/') || (c == '\\') || (c == ':') || (c == '*') || (c == '?') ||
+        (c ==
+         '"')
         ||
-        (c == '<') ||(c == '>') ||(c == '|') )
+        (c == '<') || (c == '>') || (c == '|') )
     {
       *idx = '_';
     }
@@ -1465,6 +1467,7 @@ GNUNET_DISK_file_map (const struct GNUNET_DISK_FileHandle *h,
   return (*m)->addr;
 }
 
+
 /**
  * Unmap a file
  * @param h mapping handle
@@ -1661,6 +1664,7 @@ GNUNET_DISK_pipe_close_end (struct GNUNET_DISK_PipeHandle *p,
 
   return ret;
 }
+
 
 /**
  * Detaches one of the ends from the pipe.

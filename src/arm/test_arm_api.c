@@ -184,8 +184,7 @@ arm_start_cb (void *cls,
    * ("sent", because it isn't going anywhere, ARM API starts ARM service
    * by itself).
    * ARM API should report that ARM service is starting.
-   */
-  GNUNET_break (status == GNUNET_ARM_REQUEST_SENT_OK);
+   */GNUNET_break (status == GNUNET_ARM_REQUEST_SENT_OK);
   GNUNET_break (phase == 0);
   LOG ("Sent 'START' request for arm to ARM %s\n",
        (status == GNUNET_ARM_REQUEST_SENT_OK) ? "successfully" :
@@ -254,5 +253,6 @@ main (int argc, char *argvx[])
                                      &task, NULL));
   return ok;
 }
+
 
 /* end of test_arm_api.c */

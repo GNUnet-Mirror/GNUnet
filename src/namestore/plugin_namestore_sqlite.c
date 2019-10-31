@@ -787,4 +787,5 @@ libgnunet_plugin_namestore_sqlite_done (void *cls)
   return NULL;
 }
 
+
 /* end of plugin_namestore_sqlite.c */

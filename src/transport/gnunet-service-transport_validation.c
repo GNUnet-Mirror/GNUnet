@@ -81,8 +81,6 @@ enum GNUNET_TRANSPORT_ValidationState
 };
 
 
-
-
 /**
  * How long is a PONG signature valid?  We'll recycle a signature until
  * 1/4 of this time is remaining.  PONGs should expire so that if our
@@ -993,9 +991,7 @@ GST_validation_start (unsigned int max_fds)
    * - "fast start": run validation immediately
    * - have delay of (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT.rel_value_us) / (max_fds / 2)
    *   (300 sec / ~150 == ~2 sec.) between two validations
-   */
-
-  validation_next = GNUNET_TIME_absolute_get ();
+   */validation_next = GNUNET_TIME_absolute_get ();
   validation_delay.rel_value_us =
     (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT.rel_value_us) / (max_fds / 2);
   validations_fast_start_threshold = (max_fds / 2);

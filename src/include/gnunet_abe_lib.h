@@ -52,7 +52,6 @@ struct GNUNET_CRYPTO_AbeMasterKey;
 struct GNUNET_CRYPTO_AbeKey;
 
 
-
 /**
  * @ingroup abe
  * Create a new CP-ABE master key. Caller must free return value.

@@ -288,7 +288,6 @@ GNUNET_GNSRECORD_block_create2 (const struct GNUNET_CRYPTO_EcdsaPrivateKey *key,
 }
 
 
-
 /**
  * Check if a signature is valid.  This API is used by the GNS Block
  * to validate signatures received from the network.

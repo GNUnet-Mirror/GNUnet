@@ -282,7 +282,7 @@ REGEX_TEST_automaton_save_graph (struct REGEX_INTERNAL_Automaton *a,
     return;
   }
 
-  if ((NULL == filename)||(strlen (filename) < 1))
+  if ((NULL == filename) || (strlen (filename) < 1))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "No Filename given!");
     return;

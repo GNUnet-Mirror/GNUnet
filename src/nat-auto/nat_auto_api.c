@@ -31,7 +31,6 @@
 #include "nat-auto.h"
 
 
-
 /**
  * Handle to auto-configuration in progress.
  */
@@ -288,5 +287,6 @@ GNUNET_NAT_AUTO_autoconfig_cancel (struct GNUNET_NAT_AUTO_AutoHandle *ah)
   GNUNET_MQ_destroy (ah->mq);
   GNUNET_free (ah);
 }
+
 
 /* end of nat_api_auto.c */

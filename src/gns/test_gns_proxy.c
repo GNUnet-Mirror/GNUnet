@@ -112,6 +112,7 @@ load_file (const char*filename,
   return buffer;
 }
 
+
 /**
  * Load PEM key from file
  *
@@ -141,6 +142,7 @@ load_key_from_file (gnutls_x509_privkey_t key,
   GNUNET_free_non_null (key_data.data);
   return (GNUTLS_E_SUCCESS != ret) ? GNUNET_SYSERR : GNUNET_OK;
 }
+
 
 /**
  * Load cert from file
@@ -172,6 +174,7 @@ load_cert_from_file (gnutls_x509_crt_t crt,
   GNUNET_free_non_null (cert_data.data);
   return (GNUTLS_E_SUCCESS != ret) ? GNUNET_SYSERR : GNUNET_OK;
 }
+
 
 static size_t
 copy_buffer (void *ptr, size_t size, size_t nmemb, void *ctx)
@@ -521,6 +524,7 @@ run (void *cls,
                             NULL);
 }
 
+
 int
 main (int argc, char *const *argv)
 {
@@ -567,5 +571,6 @@ main (int argc, char *const *argv)
   GNUNET_free_non_null ((char *) argv);
   return global_ret;
 }
+
 
 /* end of test_gns_proxy.c */

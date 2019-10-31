@@ -146,4 +146,5 @@ GCH_get_mine (void)
   return mine;
 }
 
+
 /* end of gnunet-service-cadet-new_hello.c */

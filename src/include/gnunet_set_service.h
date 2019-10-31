@@ -153,7 +153,6 @@ enum GNUNET_SET_Status
 };
 
 
-
 /**
  * The way results are given to the client.
  */
@@ -322,7 +321,6 @@ typedef void
                               const struct GNUNET_PeerIdentity *other_peer,
                               const struct GNUNET_MessageHeader *context_msg,
                               struct GNUNET_SET_Request *request);
-
 
 
 typedef void

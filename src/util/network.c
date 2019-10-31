@@ -323,6 +323,8 @@ socket_set_nosigpipe (const struct GNUNET_NETWORK_Handle *h)
     return GNUNET_SYSERR;
   return GNUNET_OK;
 }
+
+
 #endif
 
 
@@ -1384,5 +1386,6 @@ GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
                  (timeout.rel_value_us ==
                   GNUNET_TIME_UNIT_FOREVER_REL.rel_value_us) ? NULL : &tv);
 }
+
 
 /* end of network.c */

@@ -75,6 +75,7 @@ GNUNET_ABD_delegate_to_string (
   return cred_str;
 }
 
+
 struct GNUNET_ABD_Delegate *
 GNUNET_ABD_delegate_from_string (const char *s)
 {
@@ -173,6 +174,7 @@ GNUNET_ABD_delegate_from_string (const char *s)
 
   return dele;
 }
+
 
 /**
  * Issue an attribute to a subject

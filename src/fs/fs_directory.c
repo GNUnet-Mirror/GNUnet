@@ -317,6 +317,7 @@ GNUNET_FS_directory_list_contents (size_t size,
   return GNUNET_OK;
 }
 
+
 /**
  * Entries in the directory (builder).
  */

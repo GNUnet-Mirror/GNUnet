@@ -640,8 +640,7 @@ GNUNET_CRYPTO_ecdhe_key_create2 (struct GNUNET_CRYPTO_EcdhePrivateKey *pk)
      but should also be harmless. For libgcrypt < 1.7, using 'eddsa'
      disables an expensive key testing routine. We do not want to run
      the expensive check for ECDHE, as we generate TONS of keys to
-     use for a very short time. */
-  if (0 != (rc = gcry_sexp_build (&s_keyparam,
+     use for a very short time. */if (0 != (rc = gcry_sexp_build (&s_keyparam,
                                   NULL,
                                   "(genkey(ecc(curve \"" CURVE "\")"
                                   "(flags eddsa no-keytest)))")))
@@ -734,6 +733,7 @@ GNUNET_CRYPTO_ecdsa_key_create ()
 
   return priv;
 }
+
 
 /**
  * Create a new private key. Caller must free return value.
@@ -1651,6 +1651,7 @@ GNUNET_CRYPTO_ecdh_eddsa (const struct GNUNET_CRYPTO_EcdhePrivateKey *priv,
   return ret;
 }
 
+
 /**
  * @ingroup crypto
  * Derive key material from a ECDSA public key and a private ECDH key.
@@ -1671,5 +1672,6 @@ GNUNET_CRYPTO_ecdh_ecdsa (const struct GNUNET_CRYPTO_EcdhePrivateKey *priv,
                                    pub,
                                    key_material);
 }
+
 
 /* end of crypto_ecc.c */

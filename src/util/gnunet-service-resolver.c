@@ -704,6 +704,7 @@ pack (const char *hostname,
   return GNUNET_OK;
 }
 
+
 static void
 cache_answers (const char *name,
                struct GNUNET_DNSPARSER_Record *records,
@@ -737,6 +738,7 @@ cache_answers (const char *name,
     GNUNET_CONTAINER_DLL_insert (rc->records_head, rc->records_tail, rle);
   }
 }
+
 
 /**
  * We got a result from DNS. Add it to the cache and
@@ -1366,12 +1368,15 @@ GNUNET_SERVICE_MAIN (
 /**
  * MINIMIZE heap size (way below 128k) since this process doesn't need much.
  */
-void __attribute__ ((constructor)) GNUNET_RESOLVER_memory_init ()
+void __attribute__ ((constructor))
+GNUNET_RESOLVER_memory_init ()
 {
   mallopt (M_TRIM_THRESHOLD, 4 * 1024);
   mallopt (M_TOP_PAD, 1 * 1024);
   malloc_trim (0);
 }
+
+
 #endif
 
 

@@ -134,4 +134,5 @@ libgnunet_plugin_block_consensus_done (void *cls)
   return NULL;
 }
 
+
 /* end of plugin_block_consensus.c */

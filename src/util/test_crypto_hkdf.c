@@ -60,6 +60,7 @@ tc1 ()
   GNUNET_assert (memcmp (result + l, "\0", 2) == 0);
 }
 
+
 void
 tc2 ()
 {
@@ -107,6 +108,7 @@ tc2 ()
   GNUNET_assert (memcmp (result + l, "\0", 2) == 0);
 }
 
+
 void
 tc3 ()
 {
@@ -128,6 +130,7 @@ tc3 ()
   GNUNET_assert (memcmp (result, okm, l) == 0);
   GNUNET_assert (memcmp (result + l, "\0", 2) == 0);
 }
+
 
 void
 tc4 ()
@@ -155,6 +158,7 @@ tc4 ()
   GNUNET_assert (memcmp (result, okm, l) == 0);
   GNUNET_assert (memcmp (result + l, "\0", 2) == 0);
 }
+
 
 void
 tc5 ()
@@ -202,6 +206,7 @@ tc5 ()
   GNUNET_assert (memcmp (result + l, "\0", 2) == 0);
 }
 
+
 void
 tc6 ()
 {
@@ -223,6 +228,7 @@ tc6 ()
   GNUNET_assert (memcmp (result, okm, l) == 0);
   GNUNET_assert (memcmp (result + l, "\0", 2) == 0);
 }
+
 
 void
 tc7 ()
@@ -277,6 +283,7 @@ tc7 ()
   GNUNET_assert (memcmp (result + l, "\0", 2) == 0);
 }
 
+
 void
 tc8 ()
 {
@@ -308,6 +315,7 @@ tc8 ()
   GNUNET_assert (memcmp (result, okm, l) == 0);
   GNUNET_assert (memcmp (result + l, "\0", 2) == 0);
 }
+
 
 int
 main ()

@@ -188,6 +188,7 @@ database_setup (struct Plugin *plugin)
   return GNUNET_OK;
 }
 
+
 /**
  * Store values in hashmap in file and free data
  *
@@ -232,6 +233,7 @@ store_and_free_entries (void *cls,
   return GNUNET_YES;
 }
 
+
 /**
  * Shutdown database connection and associate data
  * structures.
@@ -263,6 +265,7 @@ database_shutdown (struct Plugin *plugin)
   GNUNET_DISK_file_close (fh);
 }
 
+
 static int
 expire_blocks (void *cls,
                const struct GNUNET_HashCode *key,
@@ -283,7 +286,6 @@ expire_blocks (void *cls,
   }
   return GNUNET_YES;
 }
-
 
 
 /**
@@ -429,5 +431,6 @@ libgnunet_plugin_namecache_flat_done (void *cls)
               "flat plugin is finished\n");
   return NULL;
 }
+
 
 /* end of plugin_namecache_sqlite.c */

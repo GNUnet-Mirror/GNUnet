@@ -113,8 +113,8 @@ read_output_line (int phase_from1, int phase_to1, int phase_from2,
   j = 0;
   int stage = 0;
 
-  if (! ((phase >= phase_from1)&&(phase <= phase_to1)) &&
-      ! ((phase >= phase_from2)&&(phase <= phase_to2)))
+  if (! ((phase >= phase_from1) && (phase <= phase_to1)) &&
+      ! ((phase >= phase_from2) && (phase <= phase_to2)))
     return p;
 #if 0
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -196,6 +196,7 @@ read_output_line (int phase_from1, int phase_to1, int phase_from2,
   return &r[i];
 }
 
+
 /**
  * Up to 8 non-skipped GNUNET_log() calls
  * + extra line with delay for each one
@@ -259,10 +260,9 @@ read_call (void *cls)
    * | 7D * * * *  * * * *
    * | 8  * *      * *
    * | 9  * *      * *
-   */
-  char *p = buf;
+   */char *p = buf;
 
-  if ((bytes == LOG_BUFFER_SIZE)||
+  if ((bytes == LOG_BUFFER_SIZE) ||
       ! (p =
            read_output_line (0, 3, 4, 9, 'L', "ERROR", -1,
                              1, phase, p,
@@ -452,5 +452,6 @@ main (int argc, char *argv[])
   GNUNET_SCHEDULER_run (&task, &ok);
   return ok;
 }
+
 
 /* end of test_common_logging_runtime_loglevels.c */

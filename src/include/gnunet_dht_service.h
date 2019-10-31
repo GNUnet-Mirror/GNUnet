@@ -55,7 +55,6 @@ extern "C"
     GNUNET_TIME_UNIT_MINUTES, 60)
 
 
-
 /**
  * Connection to the DHT service.
  */
@@ -354,7 +353,6 @@ typedef void
                             const struct GNUNET_HashCode *key,
                             const void *data,
                             size_t size);
-
 
 
 /**

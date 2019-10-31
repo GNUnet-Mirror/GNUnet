@@ -381,6 +381,8 @@ try_ip (GNUNET_OS_NetworkInterfaceProcessor proc,
   pclose (f);
   return GNUNET_OK;
 }
+
+
 #endif
 
 
@@ -403,7 +405,7 @@ GNUNET_OS_network_interfaces_list (GNUNET_OS_NetworkInterfaceProcessor proc,
   {
     for (ifa_ptr = ifa_first; ifa_ptr != NULL; ifa_ptr = ifa_ptr->ifa_next)
     {
-      if ((ifa_ptr->ifa_name != NULL) &&(ifa_ptr->ifa_addr != NULL) &&
+      if ((ifa_ptr->ifa_name != NULL) && (ifa_ptr->ifa_addr != NULL) &&
           ( (ifa_ptr->ifa_flags & IFF_UP) != 0) )
       {
         if ((ifa_ptr->ifa_addr->sa_family != AF_INET) &&

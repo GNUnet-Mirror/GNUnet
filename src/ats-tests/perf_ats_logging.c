@@ -372,6 +372,7 @@ write_rtt_gnuplot_script (char *fn, struct LoggingPeer *lp)
   GNUNET_free (gfn);
 }
 
+
 static void
 write_bw_gnuplot_script (char *fn, struct LoggingPeer *lp)
 {
@@ -512,7 +513,6 @@ write_to_file ()
         slave_string = slave_string_tmp;
       }
       /* Assembling master string */
-
 
 
       GNUNET_asprintf (&data, "%llu;%llu;%u;%u;%u;%u;%u;%u;;;;;;;;;;;%s\n",
@@ -703,6 +703,7 @@ collect_log_now (void)
   }
 }
 
+
 static void
 collect_log_task (void *cls)
 {
@@ -774,4 +775,6 @@ perf_logging_start (struct GNUNET_TIME_Relative log_frequency,
   log_task = GNUNET_SCHEDULER_add_now (&collect_log_task, NULL);
   running = GNUNET_YES;
 }
+
+
 /* end of file perf_ats_logging.c */

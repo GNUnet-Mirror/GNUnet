@@ -56,6 +56,7 @@ test (enum GNUNET_CRYPTO_Quality mode)
   return 0;
 }
 
+
 int
 main (int argc, char *argv[])
 {

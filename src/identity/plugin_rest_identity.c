@@ -291,6 +291,7 @@ cleanup_handle (void *cls)
   GNUNET_free (handle);
 }
 
+
 /**
  * Task run on errors.  Reports an error and cleans up everything.
  *
@@ -409,6 +410,7 @@ ego_get_for_subsystem (void *cls,
   GNUNET_free (public_key_string);
   GNUNET_SCHEDULER_add_now (&cleanup_handle, handle);
 }
+
 
 /**
  * Handle identity GET request for subsystem
@@ -566,6 +568,7 @@ ego_get_pubkey (struct GNUNET_REST_RequestHandle *con_handle,
 
   ego_get_response (handle, ego_entry);
 }
+
 
 /**
  * Handle identity GET request with a name
@@ -789,6 +792,7 @@ ego_edit_pubkey (struct GNUNET_REST_RequestHandle *con_handle,
   ego_edit (handle, ego_entry);
 }
 
+
 /**
  * Handle identity PUT request with name
  *
@@ -827,6 +831,7 @@ ego_edit_name (struct GNUNET_REST_RequestHandle *con_handle,
 
   ego_edit (handle, ego_entry);
 }
+
 
 /**
  * Handle identity subsystem PUT request with name
@@ -936,6 +941,7 @@ ego_edit_subsystem (struct GNUNET_REST_RequestHandle *con_handle,
   return;
 }
 
+
 /**
  * Handle identity POST request
  *
@@ -1025,6 +1031,7 @@ ego_create (struct GNUNET_REST_RequestHandle *con_handle,
                                        &do_finished_create,
                                        handle);
 }
+
 
 /**
  * Handle identity DELETE request with public key
@@ -1137,6 +1144,7 @@ options_cont (struct GNUNET_REST_RequestHandle *con_handle,
   return;
 }
 
+
 /**
  * Handle rest request
  *
@@ -1178,6 +1186,7 @@ init_cont (struct RequestHandle *handle)
     GNUNET_SCHEDULER_add_now (&do_error, handle);
   }
 }
+
 
 /**
  * If listing is enabled, prints information about the egos.
@@ -1257,7 +1266,8 @@ init_egos (void *cls,
       GNUNET_free (tmp->identifier);
       GNUNET_free (tmp);
     }
-    else {
+    else
+    {
       // Renamed
       GNUNET_free (tmp->identifier);
       tmp->identifier = GNUNET_strdup (identifier);
@@ -1275,6 +1285,7 @@ init_egos (void *cls,
                                     ego_entry);
 
 }
+
 
 /**
  * Function processing the REST call
@@ -1315,6 +1326,7 @@ rest_process_request (struct GNUNET_REST_RequestHandle *rest_handle,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Connected\n");
 }
 
+
 /**
  * Entry point for the plugin.
  *
@@ -1348,6 +1360,7 @@ libgnunet_plugin_rest_identity_init (void *cls)
   return api;
 }
 
+
 /**
  * Exit point from the plugin.
  *
@@ -1367,5 +1380,6 @@ libgnunet_plugin_rest_identity_done (void *cls)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Identity REST plugin is finished\n");
   return NULL;
 }
+
 
 /* end of plugin_rest_identity.c */

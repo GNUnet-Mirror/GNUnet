@@ -123,8 +123,8 @@ REGEX_TEST_generate_random_regex (size_t rx_length, char *matching_str)
     }
 
     if ((NULL != matching_strp) &&
-        ((current_char != '+') &&(current_char != '*') &&(current_char !=
-                                                          '?') &&
+        ((current_char != '+') && (current_char != '*') && (current_char !=
+                                                            '?') &&
          (current_char != '|') ))
     {
       *matching_strp = current_char;

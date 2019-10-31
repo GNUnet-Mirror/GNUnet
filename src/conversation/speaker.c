@@ -185,4 +185,5 @@ GNUNET_SPEAKER_destroy (struct GNUNET_SPEAKER_Handle *speaker)
   GNUNET_free (speaker);
 }
 
+
 /* end of speaker.c */

@@ -407,7 +407,6 @@ overlay_link_completed (void *cls,
 }
 
 
-
 /**
  * Function called when a overlay connect operation is ready
  *
@@ -1657,5 +1656,6 @@ GNUNET_TESTBED_underlay_construct_ (int num_peers,
   GNUNET_free_non_null (underlay->link_array);
   return ret;
 }
+
 
 /* end of testbed_api_topology.c */

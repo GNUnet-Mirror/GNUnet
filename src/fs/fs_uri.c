@@ -265,6 +265,7 @@ percent_decode_keyword (const char *in, char **emsg)
   return ret;
 }
 
+
 #define GNUNET_FS_URI_KSK_PREFIX GNUNET_FS_URI_PREFIX GNUNET_FS_URI_KSK_INFIX
 
 /**
@@ -396,6 +397,7 @@ uri_sks_parse (const char *s, char **emsg)
   ret->data.sks.identifier = GNUNET_strdup (end);
   return ret;
 }
+
 
 #define GNUNET_FS_URI_CHK_PREFIX GNUNET_FS_URI_PREFIX GNUNET_FS_URI_CHK_INFIX
 
@@ -1679,6 +1681,8 @@ get_keywords_from_tokens (const char *s, char **array, int index)
   GNUNET_free (ss);
   return seps;
 }
+
+
 #undef TOKENS
 
 
@@ -1719,8 +1723,7 @@ gather_uri_data (void *cls,
    * If given non-utf8 string it will, most likely, find it to be invalid,
    * and will return the length of its valid part, skipping the keyword.
    * If it does - fix the extractor, not this check!
-   */
-  if (u8_strcount ((const uint8_t *) data) <= 2)
+   */if (u8_strcount ((const uint8_t *) data) <= 2)
     return 0;
   if ((EXTRACTOR_METATYPE_MIMETYPE == type) &&
       (NULL != (sep = memchr (data, '/', data_len))) && (sep != data))
@@ -2048,5 +2051,6 @@ GNUNET_FS_uri_to_string (const struct GNUNET_FS_Uri *uri)
     return NULL;
   }
 }
+
 
 /* end of fs_uri.c */

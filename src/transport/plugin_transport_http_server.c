@@ -35,7 +35,6 @@
 #include <regex.h>
 
 
-
 #if BUILD_HTTPS
 #define PLUGIN_NAME "https_server"
 #define LIBGNUNET_PLUGIN_TRANSPORT_INIT \
@@ -2115,6 +2114,8 @@ server_load_file (const char *file)
   GNUNET_DISK_file_close (gn_file);
   return text;
 }
+
+
 #endif
 
 
@@ -2242,6 +2243,8 @@ server_load_certificate (struct HTTP_Server_Plugin *plugin)
               "TLS certificate loaded\n");
   return res;
 }
+
+
 #endif
 
 
@@ -2356,7 +2359,6 @@ server_start (struct HTTP_Server_Plugin *plugin)
     return GNUNET_SYSERR;
   }
 #endif
-
 
 
   plugin->server_v4 = NULL;
@@ -2555,7 +2557,6 @@ server_remove_address (void *cls,
   GNUNET_free (w->address);
   GNUNET_free (w);
 }
-
 
 
 /**
@@ -3597,5 +3598,6 @@ LIBGNUNET_PLUGIN_TRANSPORT_INIT (void *cls)
   }
   return api;
 }
+
 
 /* end of plugin_transport_http_server.c */

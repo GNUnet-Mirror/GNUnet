@@ -180,6 +180,8 @@ notify_session_monitor (struct Plugin *plugin,
                session,
                &info);
 }
+
+
 #endif
 
 
@@ -337,7 +339,6 @@ template_plugin_address_pretty_printer (void *cls, const char *type,
 }
 
 
-
 /**
  * Another peer has suggested an address for this
  * peer and transport plugin.  Check that this could be a valid
@@ -463,6 +464,8 @@ send_session_info_iter (void *cls,
                           GNUNET_TRANSPORT_SS_UP);
   return GNUNET_OK;
 }
+
+
 #endif
 
 
@@ -557,5 +560,6 @@ libgnunet_plugin_transport_template_done (void *cls)
   GNUNET_free (api);
   return NULL;
 }
+
 
 /* end of plugin_transport_template.c */

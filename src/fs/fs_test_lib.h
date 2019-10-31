@@ -99,5 +99,4 @@ GNUNET_FS_TEST_download (struct GNUNET_TESTBED_Peer *peer,
                          void *cont_cls);
 
 
-
 #endif

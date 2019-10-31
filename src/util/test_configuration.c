@@ -123,7 +123,7 @@ diffsCallBack (void *cls, const char *section, const char *option,
                                                option, &diffValue);
       if (NULL != diffValue)
       {
-        if ((ret == GNUNET_SYSERR) ||(strcmp (diffValue, value) != 0) )
+        if ((ret == GNUNET_SYSERR) || (strcmp (diffValue, value) != 0) )
           cbData->status = 1;
       }
       else
@@ -203,6 +203,7 @@ editConfiguration (struct GNUNET_CONFIGURATION_Handle *cfg, int option)
 
   return diffsCB.cfgDiffs;
 }
+
 
 /**
  * Checking configuration diffs
@@ -349,6 +350,7 @@ testConfig ()
   return 0;
 }
 
+
 static const char *want[] = {
   "/Hello",
   "/File Name",
@@ -370,6 +372,7 @@ check (void *data, const char *fn)
   GNUNET_break (0);
   return GNUNET_SYSERR;
 }
+
 
 static int
 testConfigFilenames ()

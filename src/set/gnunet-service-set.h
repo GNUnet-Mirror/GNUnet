@@ -154,7 +154,6 @@ typedef void
 (*OpChannelDeathImpl) (struct Operation *op);
 
 
-
 /**
  * Dispatch table for a specific set operation.  Every set operation
  * has to implement the callback in this struct.

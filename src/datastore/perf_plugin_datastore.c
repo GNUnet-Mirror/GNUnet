@@ -408,7 +408,6 @@ unload_plugin (struct GNUNET_DATASTORE_PluginFunctions *api,
 }
 
 
-
 /**
  * Last task run during shutdown.  Disconnects us from
  * the transport and core.
@@ -569,5 +568,6 @@ main (int argc, char *argv[])
 
   return ok;
 }
+
 
 /* end of perf_plugin_datastore.c */

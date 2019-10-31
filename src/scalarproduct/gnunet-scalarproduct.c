@@ -398,4 +398,5 @@ main (int argc, char *const *argv)
                               options, &run, NULL)) ? ret : 1;
 }
 
+
 /* end of gnunet-scalarproduct.c */

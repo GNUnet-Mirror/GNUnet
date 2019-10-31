@@ -93,8 +93,7 @@ main (int argc, char **argv)
          get 990/1000 elements on average over 1 million runs; key
          idea being to stop short of the 'last' possible IBF as
          otherwise a "lowball" per-chance would unduely influence the
-         result */
-      if ((j > 0) &&
+         result */if ((j > 0) &&
           (buckets[j - 1] > MAX_IBF_DECODE))
       {
         ret *= (1 << (j + 1));
@@ -135,6 +134,7 @@ main (int argc, char **argv)
   fprintf (stdout, "average %llu\n", total / ROUNDS);
   return 0;
 }
+
 
 /* TODO: should calculate stddev of the results to also be able to
    say something about the stability of the results, outside of

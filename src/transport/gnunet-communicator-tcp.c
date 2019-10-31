@@ -1052,8 +1052,7 @@ queue_read (void *cls)
        wrong key for everything after the rekey; in that case, we have
        to re-do the decryption at 'total' instead of at 'max'. If there
        is no rekey and the last message is incomplete (max > total),
-       it is safe to keep the decryption so we shift by 'max' */
-    if (GNUNET_YES == queue->rekeyed)
+       it is safe to keep the decryption so we shift by 'max' */if (GNUNET_YES == queue->rekeyed)
     {
       max = total;
       queue->rekeyed = GNUNET_NO;

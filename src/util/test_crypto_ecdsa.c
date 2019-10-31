@@ -174,6 +174,8 @@ testSignPerformance ()
             GNUNET_YES));
   return ok;
 }
+
+
 #endif
 
 
@@ -244,5 +246,6 @@ main (int argc, char *argv[])
   }
   return 0;
 }
+
 
 /* end of test_crypto_ecdsa.c */

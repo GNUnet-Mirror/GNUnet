@@ -124,6 +124,7 @@ add_sections (void *cls,
   json_object_set_new (sections_obj, section, sec_obj);
 }
 
+
 static void
 add_section_contents (void *cls,
                       const char *section,
@@ -134,6 +135,7 @@ add_section_contents (void *cls,
 
   json_object_set_new (section_obj, option, json_string (value));
 }
+
 
 /**
  * Handle rest request
@@ -179,6 +181,7 @@ get_cont (struct GNUNET_REST_RequestHandle *con_handle,
   json_decref (result);
 }
 
+
 struct GNUNET_CONFIGURATION_Handle *
 set_value (struct GNUNET_CONFIGURATION_Handle *config,
            const char *section,
@@ -201,6 +204,7 @@ set_value (struct GNUNET_CONFIGURATION_Handle *config,
     return NULL;
   return config; // for error handling (0 -> success, 1 -> error)
 }
+
 
 /**
  * Handle REST POST request
@@ -307,6 +311,7 @@ set_cont (struct GNUNET_REST_RequestHandle *con_handle,
                 MHD_HTTP_OK);
   cleanup_handle (handle);
 }
+
 
 /**
  * Handle rest request
@@ -415,5 +420,6 @@ libgnunet_plugin_rest_config_done (void *cls)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "CONFIG REST plugin is finished\n");
   return NULL;
 }
+
 
 /* end of plugin_rest_config.c */

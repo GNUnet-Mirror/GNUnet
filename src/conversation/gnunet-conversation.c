@@ -258,8 +258,7 @@ phone_event_handler (void *cls,
        ring_my_bell();
      *
      * see https://gstreamer.freedesktop.org/documentation/application-development/highlevel/playback-components.html on how to play a wav using the gst framework being used here
-     */
-    fprintf (
+     */fprintf (
       stdout,
       _ (
         "Incoming call from `%s'. Please /accept %u or /cancel %u the call.\n"),
@@ -1228,5 +1227,6 @@ main (int argc, char *const *argv)
   }
   return (GNUNET_OK == ret) ? 0 : 1;
 }
+
 
 /* end of gnunet-conversation.c */

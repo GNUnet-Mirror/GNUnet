@@ -330,8 +330,7 @@ calculate_put_interval ()
      * If no records are known (startup) or none present
      * we can safely set the interval to the value for a single
      * record
-     */
-    target_iteration_velocity_per_record = zone_publish_time_window;
+     */target_iteration_velocity_per_record = zone_publish_time_window;
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG | GNUNET_ERROR_TYPE_BULK,
                 "No records in namestore database.\n");
   }

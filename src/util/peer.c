@@ -250,5 +250,4 @@ GNUNET_PEER_resolve2 (GNUNET_PEER_Id id)
 }
 
 
-
 /* end of peer.c */

@@ -72,6 +72,7 @@ GNUNET_SIGNAL_handler_install (int signum, GNUNET_SIGNAL_Handler handler)
   return ret;
 }
 
+
 void
 GNUNET_SIGNAL_handler_uninstall (struct GNUNET_SIGNAL_Context *ctx)
 {

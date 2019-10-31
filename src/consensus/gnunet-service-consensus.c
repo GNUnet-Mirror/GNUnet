@@ -100,7 +100,6 @@ struct TaskKey
 };
 
 
-
 struct SetKey
 {
   int set_kind GNUNET_PACKED;
@@ -403,7 +402,6 @@ struct SetHandle
 };
 
 
-
 /**
  * A consensus session consists of one local client and the remote authorities.
  */
@@ -590,6 +588,7 @@ setname (uint16_t kind)
   }
 }
 
+
 static const char *
 rfnname (uint16_t kind)
 {
@@ -604,6 +603,7 @@ rfnname (uint16_t kind)
   default: return "(unknown)";
   }
 }
+
 
 static const char *
 diffname (uint16_t kind)
@@ -622,6 +622,7 @@ diffname (uint16_t kind)
   }
 }
 
+
 #ifdef GNUNET_EXTRA_LOGGING
 
 
@@ -634,6 +635,7 @@ debug_str_element (const struct GNUNET_SET_Element *el)
 
   return GNUNET_h2s (&hash);
 }
+
 
 static const char *
 debug_str_task_key (struct TaskKey *tk)
@@ -648,6 +650,7 @@ debug_str_task_key (struct TaskKey *tk)
   return buf;
 }
 
+
 static const char *
 debug_str_diff_key (struct DiffKey *dk)
 {
@@ -659,6 +662,7 @@ debug_str_diff_key (struct DiffKey *dk)
 
   return buf;
 }
+
 
 static const char *
 debug_str_set_key (const struct SetKey *sk)
@@ -684,6 +688,7 @@ debug_str_rfn_key (const struct RfnKey *rk)
 
   return buf;
 }
+
 
 #endif /* GNUNET_EXTRA_LOGGING */
 
@@ -1192,6 +1197,7 @@ set_result_cb (void *cls,
   }
 }
 
+
 #ifdef EVIL
 
 enum EvilnessType
@@ -1348,6 +1354,7 @@ cleanup:
   if (NULL != evil_subtype_str)
     free (evil_subtype_str);
 }
+
 
 #endif
 
@@ -1538,6 +1545,7 @@ put_diff (struct ConsensusSession *session,
                                                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
 }
 
+
 static void
 put_set (struct ConsensusSession *session,
          struct SetEntry *set)
@@ -1568,7 +1576,6 @@ put_rfn (struct ConsensusSession *session,
                  GNUNET_CONTAINER_multihashmap_put (session->rfnmap, &hash, rfn,
                                                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
 }
-
 
 
 static void
@@ -1676,6 +1683,8 @@ diff_destroy (struct DiffEntry *diff)
   GNUNET_CONTAINER_multihashmap_destroy (diff->changes);
   GNUNET_free (diff);
 }
+
+
 #endif
 
 
@@ -1880,7 +1889,6 @@ finish_step (struct Step *step)
   // XXX: maybe schedule as task to avoid recursion?
   run_ready_steps (step->session);
 }
-
 
 
 /**
@@ -2326,8 +2334,7 @@ task_start_eval_echo (struct TaskEntry *task)
          can't simply send "nothing" for the value.  Thus we mark our 'confirm'
          reconciliation as contested.  Other peers might not know that the
          leader is faulty, thus we still re-distribute in the confirmation
-         round. */
-      output_set->is_contested = GNUNET_YES;
+         round. */output_set->is_contested = GNUNET_YES;
     }
 
     switch (majority_vote)
@@ -2387,6 +2394,7 @@ task_start_finish (struct TaskEntry *task)
                       task);
 }
 
+
 static void
 start_task (struct ConsensusSession *session, struct TaskEntry *task)
 {
@@ -2401,8 +2409,6 @@ start_task (struct ConsensusSession *session, struct TaskEntry *task)
 
   task->is_started = GNUNET_YES;
 }
-
-
 
 
 /*
@@ -2450,7 +2456,6 @@ run_ready_steps (struct ConsensusSession *session)
 
   return;
 }
-
 
 
 static void
@@ -2703,7 +2708,6 @@ set_listen_cb (void *cls,
 }
 
 
-
 static void
 put_task (struct GNUNET_CONTAINER_MultiHashMap *taskmap,
           struct TaskEntry *t)
@@ -2752,7 +2756,6 @@ install_step_timeouts (struct ConsensusSession *session)
 
   /* XXX: implement! */
 }
-
 
 
 /*
@@ -3134,7 +3137,6 @@ construct_task_graph (struct ConsensusSession *session)
   step = NULL;
 
 
-
   /* Byzantine union */
 
   /* sequential repetitions of the gradecasts */
@@ -3191,7 +3193,6 @@ construct_task_graph (struct ConsensusSession *session)
 
   put_task (session->taskmap, &task);
 }
-
 
 
 /**

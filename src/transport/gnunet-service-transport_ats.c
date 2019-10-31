@@ -333,7 +333,7 @@ GST_ats_block_address (const struct GNUNET_HELLO_Address *address,
     return; /* our own, ignore! */
   ai = find_ai (address,
                 session);
-  if ((NULL == ai)||(NULL == ai->ar))
+  if ((NULL == ai) || (NULL == ai->ar))
   {
     /* The address is already gone/blocked, this can happen during a blacklist
      * callback. */
@@ -366,8 +366,7 @@ GST_ats_block_address (const struct GNUNET_HELLO_Address *address,
      above played out: it was either freed in
    #GNUNET_ATS_address_del_session() because it was
      incoming, or explicitly in
-   #GNUNET_ATS_address_del_session(). */
-  ai->ar = NULL;
+   #GNUNET_ATS_address_del_session(). */ai->ar = NULL;
 
   /* determine when the address should come back to life */
   ai->blocked = GNUNET_TIME_relative_to_absolute (ai->back_off);
@@ -559,8 +558,7 @@ GST_ats_new_session (const struct GNUNET_HELLO_Address *address,
        other part of the code could not tell if it just created a new
        session or just got one recycled from the plugin; hence, we may
        be called with "new" session even for an "old" session; in that
-       case, check that this is the case, but just ignore it. */
-    GNUNET_assert (NULL != (find_ai (address, session)));
+       case, check that this is the case, but just ignore it. */GNUNET_assert (NULL != (find_ai (address, session)));
     return;
   }
   GNUNET_assert (NULL == ai->session);
@@ -679,8 +677,7 @@ GST_ats_del_session (const struct GNUNET_HELLO_Address *address,
          above played out: it was either freed in
        #GNUNET_ATS_address_del_session() because it was
          incoming, or explicitly in
-       #GNUNET_ATS_address_del_session(). */
-      ai->ar = NULL;
+       #GNUNET_ATS_address_del_session(). */ai->ar = NULL;
     }
     destroy_ai (ai);
     return;
@@ -918,5 +915,6 @@ GST_ats_done ()
   GNUNET_CONTAINER_multipeermap_destroy (p2a);
   p2a = NULL;
 }
+
 
 /* end of gnunet-service-transport_ats.c */

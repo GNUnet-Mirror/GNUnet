@@ -61,7 +61,6 @@ static unsigned num_bits_buf_unaligned;
 static struct GNUNET_CONTAINER_MultiHashMap *open_files;
 
 
-
 /**
  * @brief Get file handle
  *
@@ -162,7 +161,6 @@ close_all_files ()
 }
 
 
-
 void
 to_file_raw (const char *file_name, const char *buf, size_t size_buf)
 {
@@ -205,6 +203,7 @@ to_file_raw (const char *file_name, const char *buf, size_t size_buf)
     LOG (GNUNET_ERROR_TYPE_WARNING,
          "Unable to close file\n");
 }
+
 
 void
 to_file_raw_unaligned (const char *file_name,
@@ -372,6 +371,7 @@ to_file_raw_unaligned (const char *file_name,
   LOG (GNUNET_ERROR_TYPE_DEBUG, "\n");
 }
 
+
 char *
 auth_key_to_string (struct GNUNET_CRYPTO_AuthKey auth_key)
 {
@@ -413,6 +413,7 @@ auth_key_to_string (struct GNUNET_CRYPTO_AuthKey auth_key)
 
   return name_buf;
 }
+
 
 #endif /* TO_FILE */
 
@@ -470,7 +471,7 @@ store_prefix_file_name (const unsigned int index,
                               64,
                               "%u",
                               index);
-  if ((64 < out_size)||
+  if ((64 < out_size) ||
       (0 > out_size) )
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
@@ -488,7 +489,7 @@ store_prefix_file_name (const unsigned int index,
                               "/tmp/rps/%s-%s",
                               prefix,
                               index_str);
-  if ((len_file_name < out_size)||
+  if ((len_file_name < out_size) ||
       (0 > out_size) )
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
@@ -507,7 +508,8 @@ store_prefix_file_name (const unsigned int index,
  *
  * @return Factorial of @a x
  */
-uint32_t fac (uint32_t x)
+uint32_t
+fac (uint32_t x)
 {
   if (1 >= x)
   {
@@ -515,6 +517,7 @@ uint32_t fac (uint32_t x)
   }
   return x * fac (x - 1);
 }
+
 
 /**
  * @brief Binomial coefficient (n choose k)
@@ -524,7 +527,8 @@ uint32_t fac (uint32_t x)
  *
  * @return Binomial coefficient of @a n and @a k
  */
-uint32_t binom (uint32_t n, uint32_t k)
+uint32_t
+binom (uint32_t n, uint32_t k)
 {
   // GNUNET_assert (n >= k);
   if (k > n)

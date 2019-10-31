@@ -593,4 +593,5 @@ GNUNET_NAT_test_stop (struct GNUNET_NAT_Test *tst)
   GNUNET_free (tst);
 }
 
+
 /* end of nat_test.c */

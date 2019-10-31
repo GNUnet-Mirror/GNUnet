@@ -185,6 +185,7 @@ run_mhd_now ()
   httpd_task = GNUNET_SCHEDULER_add_now (&do_httpd, NULL);
 }
 
+
 /**
  * Plugin result callback
  *
@@ -241,6 +242,7 @@ cleanup_handle (struct MhdConnectionHandle *handle)
   }
   GNUNET_free (handle);
 }
+
 
 static int
 header_iterator (void *cls,
@@ -299,6 +301,7 @@ url_iterator (void *cls,
   return MHD_YES;
 }
 
+
 static int
 post_data_iter (void *cls,
                 enum MHD_ValueKind kind,
@@ -333,6 +336,7 @@ post_data_iter (void *cls,
   }
   return MHD_YES;
 }
+
 
 /* ********************************* MHD response generation ******************* */
 
@@ -640,6 +644,7 @@ schedule_httpd ()
   if (NULL != wws)
     GNUNET_NETWORK_fdset_destroy (wws);
 }
+
 
 /**
  * Task run whenever HTTP server operations are pending.
@@ -1049,5 +1054,6 @@ main (int argc, char *const *argv)
   GNUNET_free_non_null ((char *) argv);
   return ret;
 }
+
 
 /* end of gnunet-rest-server.c */

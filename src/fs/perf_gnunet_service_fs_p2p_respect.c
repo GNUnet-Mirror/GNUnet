@@ -198,7 +198,6 @@ get_done (void *cls, int success)
 }
 
 
-
 /**
  * Adapter function called to establish a connection to
  * statistics service.
@@ -475,5 +474,6 @@ main (int argc, char *argv[])
   GNUNET_DISK_directory_remove ("/tmp/gnunet-test-fs-lib/");
   return ok;
 }
+
 
 /* end of perf_gnunet_service_fs_p2p_respect.c */

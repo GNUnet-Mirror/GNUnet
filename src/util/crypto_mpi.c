@@ -145,4 +145,5 @@ GNUNET_CRYPTO_mpi_scan_unsigned (gcry_mpi_t *result,
   }
 }
 
+
 /* end of crypto_mpi.c */

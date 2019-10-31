@@ -738,7 +738,6 @@ do_connect_ats (void *cls)
 }
 
 
-
 static void
 peerinformation_cb (void *cb_cls,
                     struct GNUNET_TESTBED_Operation *op,

@@ -49,6 +49,7 @@ GNUNET_FS_file_information_get_id (struct GNUNET_FS_FileInformation *s)
   return s->serialization;
 }
 
+
 /**
  * Obtain the filename from the file information structure.
  *

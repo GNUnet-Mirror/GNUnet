@@ -136,7 +136,6 @@ struct BobCryptodataMultipartMessage
 };
 
 
-
 GNUNET_NETWORK_STRUCT_END
 
 

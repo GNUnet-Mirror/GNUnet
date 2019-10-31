@@ -235,7 +235,6 @@ struct GNUNET_ATS_SessionReleaseMessage
 };
 
 
-
 /**
  * ATS Service suggests to the transport service to use the address
  * identified by the given @e session_id for the given @e peer with
@@ -488,7 +487,6 @@ struct FeedbackPreferenceMessage
 };
 
 GNUNET_NETWORK_STRUCT_END
-
 
 
 #endif

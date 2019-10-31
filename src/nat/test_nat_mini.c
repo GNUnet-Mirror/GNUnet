@@ -75,6 +75,7 @@ stop (void *cls)
   GNUNET_NAT_mini_map_stop (mini);
 }
 
+
 #define PORT 10000
 
 /**
@@ -128,5 +129,6 @@ main (int argc, char *const argv[])
                       NULL);
   return 0;
 }
+
 
 /* end of test_nat_mini.c */

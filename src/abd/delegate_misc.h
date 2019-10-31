@@ -28,7 +28,7 @@
 
 char *
 GNUNET_ABD_delegate_to_string (
-    const struct GNUNET_ABD_Delegate *cred);
+  const struct GNUNET_ABD_Delegate *cred);
 
 struct GNUNET_ABD_Delegate *
 GNUNET_ABD_delegate_from_string (const char *str);

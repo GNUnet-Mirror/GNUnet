@@ -46,7 +46,6 @@ GNUNET_SQ_make_prepare (const char *sql,
 }
 
 
-
 /**
  * Prepare all statements given in the (NULL,NULL)-terminated
  * array at @a ps
@@ -81,5 +80,6 @@ GNUNET_SQ_prepare (sqlite3 *dbh,
   }
   return GNUNET_OK;
 }
+
 
 /* end of sq_prepare.c */

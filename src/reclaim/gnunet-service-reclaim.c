@@ -712,7 +712,6 @@ handle_issue_ticket_message (void *cls, const struct IssueTicketMessage *im)
 }
 
 
-
 /**********************************************************
 * Revocation
 **********************************************************/
@@ -879,6 +878,7 @@ handle_consume_ticket_message (void *cls, const struct ConsumeTicketMessage *cm)
   GNUNET_CONTAINER_DLL_insert (idp->consume_op_head, idp->consume_op_tail, cop);
   GNUNET_SERVICE_client_continue (idp->client);
 }
+
 
 /*****************************************
 * Attribute store
@@ -1355,6 +1355,7 @@ attr_iter_finished (void *cls)
   GNUNET_free (ai);
 }
 
+
 /**
  * Error iterating over attributes. Abort.
  *
@@ -1511,6 +1512,7 @@ handle_iteration_next (void *cls,
   GNUNET_NAMESTORE_zone_iterator_next (ai->ns_it, 1);
   GNUNET_SERVICE_client_continue (idp->client);
 }
+
 
 /******************************************************
 * Ticket iteration

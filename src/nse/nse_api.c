@@ -205,4 +205,5 @@ GNUNET_NSE_disconnect (struct GNUNET_NSE_Handle *h)
   GNUNET_free (h);
 }
 
+
 /* end of nse_api.c */

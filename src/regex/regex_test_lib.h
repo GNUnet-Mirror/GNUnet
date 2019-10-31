@@ -147,7 +147,6 @@ REGEX_TEST_automaton_save_graph (struct REGEX_INTERNAL_Automaton *a,
                                  enum REGEX_TEST_GraphSavingOptions options);
 
 
-
 #if 0                           /* keep Emacsens' auto-indent happy */
 {
   #endif

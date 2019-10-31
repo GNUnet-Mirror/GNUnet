@@ -63,7 +63,6 @@ struct GNUNET_REGEX_Announcement
 };
 
 
-
 /**
  * (Re)connect to the REGEX service with the given announcement @a a.
  *
@@ -182,5 +181,6 @@ GNUNET_REGEX_announce_cancel (struct GNUNET_REGEX_Announcement *a)
   GNUNET_free (a->regex);
   GNUNET_free (a);
 }
+
 
 /* end of regex_api_announce.c */

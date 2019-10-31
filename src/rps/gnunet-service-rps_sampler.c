@@ -216,6 +216,7 @@ RPS_sampler_init (size_t init_size,
   return sampler;
 }
 
+
 /**
  * Get one random peer out of the sampled peers.
  *

@@ -288,8 +288,7 @@ handle_arm_result (void *cls,
        wait for the result message, but also wait for the service to close
        the connection (and then we have to close our client handle as well);
        this is done by installing a different receive handler, waiting for
-       the connection to go down */
-    if (NULL != h->thm)
+       the connection to go down */if (NULL != h->thm)
     {
       GNUNET_break (0);
       op->result_cont (h->thm->cont_cls,
@@ -956,8 +955,7 @@ GNUNET_ARM_request_service_start (struct GNUNET_ARM_Handle *h,
    * 2) We're not connected to ARM.
    *    Cancel any reconnection attempts temporarily, then perform
    *    a service test.
-   */
-  if (GNUNET_YES == h->currently_up)
+   */if (GNUNET_YES == h->currently_up)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "ARM is already running\n");
@@ -976,8 +974,7 @@ GNUNET_ARM_request_service_start (struct GNUNET_ARM_Handle *h,
      yet complete the MQ handshake.  However, given that users
      are unlikely to hammer 'gnunet-arm -s' on a busy system,
      the above check should catch 99.99% of the cases where ARM
-     is already running. */
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
+     is already running. */LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Starting ARM service\n");
   if (NULL == (sig = GNUNET_DISK_pipe (GNUNET_NO,
                                        GNUNET_NO,
