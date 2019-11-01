@@ -638,7 +638,7 @@ static void
 attest_collect (void *cls,
                 const struct GNUNET_CRYPTO_EcdsaPublicKey *identity,
                 const struct GNUNET_RECLAIM_ATTRIBUTE_Claim *attr,
-                const struct GNUNET_RECLAIM_ATTESTATION_Claim *attest, 
+                const struct GNUNET_RECLAIM_ATTESTATION_Claim *attest,
                 const struct GNUNET_RECLAIM_ATTESTATION_REFERENCE *reference)
 {
   struct RequestHandle *handle = cls;
@@ -1045,7 +1045,6 @@ add_attribute_cont (struct GNUNET_REST_RequestHandle *con_handle,
   GNUNET_JSON_parse_free (attrspec);
 }
 
-
 /**
  * Collect all attributes for an ego
  *
@@ -1054,46 +1053,76 @@ static void
 attr_collect (void *cls,
               const struct GNUNET_CRYPTO_EcdsaPublicKey *identity,
               const struct GNUNET_RECLAIM_ATTRIBUTE_Claim *attr,
-              const struct GNUNET_RECLAIM_ATTESTATION_Claim *attest, 
+              const struct GNUNET_RECLAIM_ATTESTATION_Claim *attest,
               const struct GNUNET_RECLAIM_ATTESTATION_REFERENCE *reference)
 {
   struct RequestHandle *handle = cls;
   json_t *attr_obj;
   const char *type;
-  char *tmp_value;
   char *id_str;
+
+  if ((NULL == attr)&& (NULL == reference))
+  {
+    GNUNET_RECLAIM_get_attributes_next (handle->attr_it);
+    return;
+  }
 
   if (NULL == attr)
   {
-    GNUNET_RECLAIM_get_attributes_next (handle->attr_it);
-    return;
-  }
 
-  if ((NULL == attr->name) || (NULL == attr->data))
+    if ((NULL == reference->name) || (NULL == reference->reference_value))
+    {
+      GNUNET_RECLAIM_get_attributes_next (handle->attr_it);
+      return;
+    }
+
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Adding reference as attribute: %s\n",
+                reference->name);
+
+
+    attr_obj = json_object ();
+    json_object_set_new (attr_obj, "name", json_string (reference->name));
+    json_object_set_new (attr_obj, "value", json_string (
+                           reference->reference_value));
+    id_str = GNUNET_STRINGS_data_to_string_alloc (&reference->id, sizeof(uint64_t));
+    json_object_set_new (attr_obj, "id", json_string (id_str));
+    char *flag;
+    flag = "1";
+    json_object_set_new (attr_obj, "flag", json_string (flag));
+    type = "String";
+    json_object_set_new (attr_obj, "type", json_string (type));
+    json_array_append (handle->resp_object, attr_obj);
+    json_decref (attr_obj);
+    GNUNET_RECLAIM_get_attributes_next (handle->attr_it);
+
+  }
+  else
   {
+    if ((NULL == attr->name) || (NULL == attr->data))
+    {
+      GNUNET_RECLAIM_get_attributes_next (handle->attr_it);
+      return;
+    }
+    char *tmp_value;
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Adding attribute: %s\n", attr->name);
+
+    tmp_value = GNUNET_RECLAIM_ATTRIBUTE_value_to_string (attr->type,
+                                                          attr->data,
+                                                          attr->data_size);
+
+    attr_obj = json_object ();
+    json_object_set_new (attr_obj, "value", json_string (tmp_value));
+    json_object_set_new (attr_obj, "name", json_string (attr->name));
+    type = GNUNET_RECLAIM_ATTRIBUTE_number_to_typename (attr->type);
+    json_object_set_new (attr_obj, "type", json_string (type));
+    id_str = GNUNET_STRINGS_data_to_string_alloc (&attr->id, sizeof(uint64_t));
+    json_object_set_new (attr_obj, "id", json_string (id_str));
+    json_array_append (handle->resp_object, attr_obj);
+    json_decref (attr_obj);
+    GNUNET_free (tmp_value);
     GNUNET_RECLAIM_get_attributes_next (handle->attr_it);
-    return;
   }
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Adding attribute: %s\n", attr->name);
-
-  tmp_value = GNUNET_RECLAIM_ATTRIBUTE_value_to_string (attr->type,
-                                                        attr->data,
-                                                        attr->data_size);
-
-  attr_obj = json_object ();
-  json_object_set_new (attr_obj, "value", json_string (tmp_value));
-  json_object_set_new (attr_obj, "name", json_string (attr->name));
-  type = GNUNET_RECLAIM_ATTRIBUTE_number_to_typename (attr->type);
-  json_object_set_new (attr_obj, "type", json_string (type));
-  id_str = GNUNET_STRINGS_data_to_string_alloc (&attr->id, sizeof(uint64_t));
-  json_object_set_new (attr_obj, "id", json_string (id_str));
-  json_array_append (handle->resp_object, attr_obj);
-  json_decref (attr_obj);
-  GNUNET_free (tmp_value);
-  GNUNET_RECLAIM_get_attributes_next (handle->attr_it);
 }
-
 
 /**
  * List attributes for identity request
