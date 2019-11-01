@@ -629,6 +629,106 @@ add_attestation_cont (struct GNUNET_REST_RequestHandle *con_handle,
   GNUNET_JSON_parse_free (attrspec);
 }
 
+/**
+ * Collect all references for an ego
+ *
+ */
+static void
+ref_collect (void *cls,
+             const struct GNUNET_CRYPTO_EcdsaPublicKey *identity,
+             const struct GNUNET_RECLAIM_ATTRIBUTE_Claim *attr,
+             const struct GNUNET_RECLAIM_ATTESTATION_Claim *attest,
+             const struct GNUNET_RECLAIM_ATTESTATION_REFERENCE *reference)
+{
+  struct RequestHandle *handle = cls;
+  json_t *attr_obj;
+  char *id_str;
+  char *id_attest_str;
+
+  if (NULL == reference)
+  {
+    GNUNET_RECLAIM_get_attributes_next (handle->attr_it);
+    return;
+  }
+
+  if ((NULL == reference->name) || (NULL == reference->reference_value))
+  {
+    GNUNET_RECLAIM_get_attributes_next (handle->attr_it);
+    return;
+  }
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Adding reference: %s\n",
+              reference->name);
+  attr_obj = json_object ();
+  json_object_set_new (attr_obj, "name", json_string (reference->name));
+  json_object_set_new (attr_obj, "ref_value", json_string (
+                         reference->reference_value));
+  id_str = GNUNET_STRINGS_data_to_string_alloc (&reference->id,
+                                                sizeof(uint64_t));
+  id_attest_str = GNUNET_STRINGS_data_to_string_alloc (&reference->id_attest,
+                                                       sizeof(uint64_t));
+  json_object_set_new (attr_obj, "id", json_string (id_str));
+  json_object_set_new (attr_obj, "ref_id", json_string (id_attest_str));
+  json_array_append (handle->resp_object, attr_obj);
+  json_decref (attr_obj);
+  GNUNET_RECLAIM_get_attributes_next (handle->attr_it);
+}
+
+/**
+ * Lists references for identity request
+ *
+ * @param con_handle the connection handle
+ * @param url the url
+ * @param cls the RequestHandle
+ */
+static void
+list_reference_cont (struct GNUNET_REST_RequestHandle *con_handle,
+                     const char *url,
+                     void *cls)
+{
+  const struct GNUNET_CRYPTO_EcdsaPrivateKey *priv_key;
+  struct RequestHandle *handle = cls;
+  struct EgoEntry *ego_entry;
+  char *identity;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Getting references for %s.\n",
+              handle->url);
+  if (strlen (GNUNET_REST_API_NS_RECLAIM_ATTESTATION_REFERENCE) + strlen (
+        "reference/") + 1 >= strlen (
+        handle->url))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "No identity given.\n");
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
+    return;
+  }
+  identity = handle->url + strlen (
+    GNUNET_REST_API_NS_RECLAIM_ATTESTATION_REFERENCE) + strlen ("reference/")
+             + 1;
+  for (ego_entry = handle->ego_head; NULL != ego_entry;
+       ego_entry = ego_entry->next)
+    if (0 == strcmp (identity, ego_entry->identifier))
+      break;
+  handle->resp_object = json_array ();
+
+  if (NULL == ego_entry)
+  {
+    // Done
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Ego %s not found.\n", identity);
+    GNUNET_SCHEDULER_add_now (&return_response, handle);
+    return;
+  }
+  priv_key = GNUNET_IDENTITY_ego_get_private_key (ego_entry->ego);
+  handle->idp = GNUNET_RECLAIM_connect (cfg);
+  handle->attr_it = GNUNET_RECLAIM_get_attributes_start (handle->idp,
+                                                         priv_key,
+                                                         &collect_error_cb,
+                                                         handle,
+                                                         &ref_collect,
+                                                         handle,
+                                                         &collect_finished_cb,
+                                                         handle);
+}
 
 /**
  * Collect all attestations for an ego
@@ -691,8 +791,21 @@ list_attestation_cont (struct GNUNET_REST_RequestHandle *con_handle,
                        const char *url,
                        void *cls)
 {
-  const struct GNUNET_CRYPTO_EcdsaPrivateKey *priv_key;
   struct RequestHandle *handle = cls;
+  /* Check for substring "reference" */
+  if (strlen (GNUNET_REST_API_NS_RECLAIM_ATTESTATION_REFERENCE) < strlen (
+        handle->url))
+  {
+    if ( strncmp ("reference/", (handle->url + strlen (
+                                   GNUNET_REST_API_NS_RECLAIM_ATTESTATION_REFERENCE)
+                                 + 1), strlen (
+                    "reference/")) == 0)
+    {
+      list_reference_cont (con_handle,url,cls);
+      return;
+    }
+  }
+  const struct GNUNET_CRYPTO_EcdsaPrivateKey *priv_key;
   struct EgoEntry *ego_entry;
   char *identity;
 
@@ -1063,6 +1176,7 @@ attr_collect (void *cls,
 
   if ((NULL == attr)&& (NULL == reference))
   {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Attribute Collection with empty Attribute/Reference\n");
     GNUNET_RECLAIM_get_attributes_next (handle->attr_it);
     return;
   }
@@ -1072,19 +1186,19 @@ attr_collect (void *cls,
 
     if ((NULL == reference->name) || (NULL == reference->reference_value))
     {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Attribute Collection with empty Reference Name/Value\n");
       GNUNET_RECLAIM_get_attributes_next (handle->attr_it);
       return;
     }
 
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Adding reference as attribute: %s\n",
                 reference->name);
-
-
     attr_obj = json_object ();
     json_object_set_new (attr_obj, "name", json_string (reference->name));
     json_object_set_new (attr_obj, "value", json_string (
                            reference->reference_value));
-    id_str = GNUNET_STRINGS_data_to_string_alloc (&reference->id, sizeof(uint64_t));
+    id_str = GNUNET_STRINGS_data_to_string_alloc (&reference->id,
+                                                  sizeof(uint64_t));
     json_object_set_new (attr_obj, "id", json_string (id_str));
     char *flag;
     flag = "1";
@@ -1100,6 +1214,7 @@ attr_collect (void *cls,
   {
     if ((NULL == attr->name) || (NULL == attr->data))
     {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Attribute Collection with empty Attribute Name/Value\n");
       GNUNET_RECLAIM_get_attributes_next (handle->attr_it);
       return;
     }
