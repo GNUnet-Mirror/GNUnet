@@ -2035,7 +2035,6 @@ attr_iter_cb (void *cls,
               const struct GNUNET_GNSRECORD_Data *rd)
 {
   struct AttributeIterator *ai = cls;
-  struct AttributeResultMessage *arm;
   struct GNUNET_MQ_Envelope *env;
   char *data_tmp;
 
@@ -2067,6 +2066,7 @@ attr_iter_cb (void *cls,
 
     if (GNUNET_GNSRECORD_TYPE_RECLAIM_ATTR == rd[i].record_type )
     {
+      struct AttributeResultMessage *arm;
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Found attribute under: %s\n",
                   label);
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -2085,6 +2085,7 @@ attr_iter_cb (void *cls,
     {
       if (GNUNET_GNSRECORD_TYPE_RECLAIM_ATTEST_ATTR == rd[i].record_type )
       {
+        struct AttributeResultMessage *arm;
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Found attestation under: %s\n",
                     label);
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -2101,24 +2102,29 @@ attr_iter_cb (void *cls,
       }
       else
       {
+        struct ReferenceResultMessage *rrm;
+        char *data_tmp2;
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Found reference under: %s\n",
                     label);
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                     "Sending REFERENCE_RESULT message\n");
-        env = GNUNET_MQ_msg_extra (arm,
-                                   rd[i].data_size,
+        env = GNUNET_MQ_msg_extra (rrm,
+                                   rd[i].data_size + rd[0].data_size,
                                    GNUNET_MESSAGE_TYPE_RECLAIM_REFERENCE_RESULT);
-        arm->id = htonl (ai->request_id);
-        arm->attr_len = htons (rd[i].data_size);
-        GNUNET_CRYPTO_ecdsa_key_get_public (zone, &arm->identity);
-        data_tmp = (char *) &arm[1];
-        GNUNET_memcpy (data_tmp, rd[i].data, rd[i].data_size);
+        rrm->id = htonl (ai->request_id);
+        rrm->attest_len = htons (rd[0].data_size);
+        rrm->ref_len = htons (rd[i].data_size);
+        GNUNET_CRYPTO_ecdsa_key_get_public (zone, &rrm->identity);
+        data_tmp = (char *) &rrm[1];
+        GNUNET_memcpy (data_tmp, rd[0].data, rd[0].data_size);
+        data_tmp2 = (char *) &rrm[2];
+        GNUNET_memcpy (data_tmp2, rd[i].data, rd[i].data_size);
+
         GNUNET_MQ_send (ai->client->mq, env);
       }
     }
   }
 }
-
 
 /**
  * Iterate over zone to get attributes

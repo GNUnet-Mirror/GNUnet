@@ -653,7 +653,6 @@ ref_collect (void *cls,
 
   if ((NULL == reference->name) || (NULL == reference->reference_value))
   {
-    GNUNET_RECLAIM_get_attributes_next (handle->attr_it);
     return;
   }
 
@@ -671,7 +670,6 @@ ref_collect (void *cls,
   json_object_set_new (attr_obj, "ref_id", json_string (id_attest_str));
   json_array_append (handle->resp_object, attr_obj);
   json_decref (attr_obj);
-  GNUNET_RECLAIM_get_attributes_next (handle->attr_it);
 }
 
 /**
@@ -747,14 +745,25 @@ attest_collect (void *cls,
   char *tmp_value;
   char *id_str;
 
+
+  if (NULL != reference)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Attestation Collection with Reference\n");
+    return;
+  }
   if (NULL == attest)
   {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Attestation Collection with empty Attestation\n");
     GNUNET_RECLAIM_get_attributes_next (handle->attr_it);
     return;
   }
 
   if ((NULL == attest->name) || (NULL == attest->data))
   {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Attestation Collection with empty Name/Value\n");
     GNUNET_RECLAIM_get_attributes_next (handle->attr_it);
     return;
   }
@@ -1174,9 +1183,10 @@ attr_collect (void *cls,
   const char *type;
   char *id_str;
 
-  if ((NULL == attr)&& (NULL == reference))
+  if ((NULL == attr) && (NULL == reference))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Attribute Collection with empty Attribute/Reference\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Attribute Collection with empty Attribute/Reference\n");
     GNUNET_RECLAIM_get_attributes_next (handle->attr_it);
     return;
   }
@@ -1186,8 +1196,8 @@ attr_collect (void *cls,
 
     if ((NULL == reference->name) || (NULL == reference->reference_value))
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Attribute Collection with empty Reference Name/Value\n");
-      GNUNET_RECLAIM_get_attributes_next (handle->attr_it);
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Attribute Collection with empty Reference Name/Value\n");
       return;
     }
 
@@ -1207,14 +1217,14 @@ attr_collect (void *cls,
     json_object_set_new (attr_obj, "type", json_string (type));
     json_array_append (handle->resp_object, attr_obj);
     json_decref (attr_obj);
-    GNUNET_RECLAIM_get_attributes_next (handle->attr_it);
 
   }
   else
   {
     if ((NULL == attr->name) || (NULL == attr->data))
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Attribute Collection with empty Attribute Name/Value\n");
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Attribute Collection with empty Attribute Name/Value\n");
       GNUNET_RECLAIM_get_attributes_next (handle->attr_it);
       return;
     }

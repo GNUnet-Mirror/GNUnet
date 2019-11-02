@@ -731,14 +731,16 @@ handle_attestation_result (void *cls, const struct AttributeResultMessage *msg)
    * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
    */
 static int
-check_reference_result (void *cls, const struct AttributeResultMessage *msg)
+check_reference_result (void *cls, const struct ReferenceResultMessage *msg)
 {
   size_t msg_len;
   size_t attr_len;
+  size_t ref_len;
 
   msg_len = ntohs (msg->header.size);
-  attr_len = ntohs (msg->attr_len);
-  if (msg_len != sizeof(struct AttributeResultMessage) + attr_len)
+  attr_len = ntohs (msg->attest_len);
+  ref_len = ntohs (msg->ref_len);
+  if (msg_len != sizeof(struct ReferenceResultMessage) + attr_len + ref_len)
   {
     GNUNET_break (0);
     return GNUNET_SYSERR;
@@ -754,19 +756,18 @@ check_reference_result (void *cls, const struct AttributeResultMessage *msg)
 * @param msg the message we received
 */
 static void
-handle_reference_result (void *cls, const struct AttributeResultMessage *msg)
+handle_reference_result (void *cls, const struct ReferenceResultMessage *msg)
 {
   static struct GNUNET_CRYPTO_EcdsaPrivateKey identity_dummy;
   struct GNUNET_RECLAIM_Handle *h = cls;
   struct GNUNET_RECLAIM_AttributeIterator *it;
   struct GNUNET_RECLAIM_Operation *op;
-  size_t attr_len;
+  size_t attest_len;
+  size_t ref_len;
   uint32_t r_id = ntohl (msg->id);
-
-  attr_len = ntohs (msg->attr_len);
+  attest_len = ntohs (msg->attest_len);
+  ref_len = ntohs (msg->ref_len);
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Processing reference result.\n");
-
-
   for (it = h->it_head; NULL != it; it = it->next)
     if (it->r_id == r_id)
       break;
@@ -802,20 +803,24 @@ handle_reference_result (void *cls, const struct AttributeResultMessage *msg)
   }
 
   {
-    struct GNUNET_RECLAIM_ATTESTATION_REFERENCE *attr;
-    attr = GNUNET_RECLAIM_ATTESTATION_REF_deserialize ((char *) &msg[1],
-                                                       attr_len);
+    struct GNUNET_RECLAIM_ATTESTATION_REFERENCE *ref;
+    struct GNUNET_RECLAIM_ATTESTATION_Claim *attest;
+    attest = GNUNET_RECLAIM_ATTESTATION_deserialize ((char *) &msg[1],
+                                                     attest_len);
+    ref = GNUNET_RECLAIM_ATTESTATION_REF_deserialize ((char *) &msg[2],
+                                                      ref_len);
     if (NULL != it)
     {
       if (NULL != it->proc)
-        it->proc (it->proc_cls, &msg->identity, NULL, NULL, attr);
+        it->proc (it->proc_cls, &msg->identity, NULL, attest, ref);
     }
     else if (NULL != op)
     {
       if (NULL != op->ar_cb)
-        op->ar_cb (op->cls, &msg->identity, NULL, NULL, attr);
+        op->ar_cb (op->cls, &msg->identity, NULL, attest, ref);
     }
-    GNUNET_free (attr);
+    GNUNET_free (ref);
+    GNUNET_free (attest);
     return;
   }
   GNUNET_assert (0);
@@ -945,7 +950,7 @@ reconnect (struct GNUNET_RECLAIM_Handle *h)
                            h),
     GNUNET_MQ_hd_var_size (reference_result,
                            GNUNET_MESSAGE_TYPE_RECLAIM_REFERENCE_RESULT,
-                           struct AttributeResultMessage,
+                           struct ReferenceResultMessage,
                            h),
     GNUNET_MQ_hd_fixed_size (ticket_result,
                              GNUNET_MESSAGE_TYPE_RECLAIM_TICKET_RESULT,

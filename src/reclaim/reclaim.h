@@ -153,6 +153,45 @@ struct AttributeResultMessage
    */
 };
 
+/**
+ * Reference plus Attestation is returned from the idp.
+ */
+struct ReferenceResultMessage
+{
+  /**
+   * Message header
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Unique identifier for this request (for key collisions).
+   */
+  uint32_t id GNUNET_PACKED;
+
+  /**
+   * Length of serialized attestation data
+   */
+  uint16_t attest_len GNUNET_PACKED;
+
+  /**
+   * Length of serialized reference data
+   */
+  uint16_t ref_len GNUNET_PACKED;
+
+  /**
+   * always zero (for alignment)
+   */
+  uint16_t reserved GNUNET_PACKED;
+
+  /**
+   * The public key of the identity.
+   */
+  struct GNUNET_CRYPTO_EcdsaPublicKey identity;
+
+  /* followed by:
+   * serialized reference data + attestation data
+   */
+};
 
 /**
  * Start a attribute iteration for the given identity
