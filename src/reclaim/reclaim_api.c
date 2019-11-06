@@ -807,7 +807,8 @@ handle_reference_result (void *cls, const struct ReferenceResultMessage *msg)
     struct GNUNET_RECLAIM_ATTESTATION_Claim *attest;
     attest = GNUNET_RECLAIM_ATTESTATION_deserialize ((char *) &msg[1],
                                                      attest_len);
-    ref = GNUNET_RECLAIM_ATTESTATION_REF_deserialize ((char *) &msg[2],
+    ref = GNUNET_RECLAIM_ATTESTATION_REF_deserialize ((char *) &msg[1]
+                                                      + attest_len,
                                                       ref_len);
     if (NULL != it)
     {

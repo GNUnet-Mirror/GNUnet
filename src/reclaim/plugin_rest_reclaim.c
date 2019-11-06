@@ -37,6 +37,8 @@
 #include "gnunet_rest_plugin.h"
 #include "gnunet_signatures.h"
 #include "json_reclaim.h"
+#include <openssl/bio.h>
+#include <openssl/evp.h>
 
 /**
  * REST root namespace
@@ -1168,6 +1170,76 @@ add_attribute_cont (struct GNUNET_REST_RequestHandle *con_handle,
 }
 
 /**
+ * Parse a JWT and return the respective claim value as Attribute
+ *
+ * @param attest the jwt attestation
+ * @param claim the name of the claim in the JWT
+ *
+ * @return a GNUNET_RECLAIM_ATTRIBUTE_Claim, containing the new value
+ */
+struct GNUNET_RECLAIM_ATTRIBUTE_Claim *
+parse_jwt (const struct GNUNET_RECLAIM_ATTESTATION_Claim *attest,
+           const char *claim)
+{
+  char *jwt_string;
+  struct GNUNET_RECLAIM_ATTRIBUTE_Claim *attr;
+  char delim[] = ".";
+  const char *type_str = NULL;
+  const char *val_str = NULL;
+  char *data;
+  size_t data_size;
+  uint32_t type;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Parsing JWT attributes.\n");
+  char *decoded_jwt;
+
+  jwt_string = GNUNET_RECLAIM_ATTESTATION_value_to_string (attest->type,
+                                                           attest->data,
+                                                           attest->data_size);
+  char *jwt_body = strtok (jwt_string, delim);
+  jwt_body = strtok (NULL, delim);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "JWT Body: %s\n",
+              jwt_body);
+  /*const char* jwt_base64 = jwt_body;
+  //No padding assumed
+  int jwt_len = (strlen(jwt_base64)*3)/4;
+  BIO *bio, *b64;
+  decoded_jwt = (char *) malloc(jwt_len + 1);
+
+  decoded_jwt[jwt_len] = '\0';
+
+  bio = BIO_new_mem_buf(jwt_base64, -1);
+  b64 = BIO_new(BIO_f_base64());
+  bio = BIO_push(b64, bio);
+  BIO_set_flags(bio, BIO_FLAGS_BASE64_NO_NL);
+  /**length = BIO_read(bio, *buffer, strlen(jwt_base64));
+  assert(*length == jwt_len); //length should equal jwt_len, else something went horribly wrong
+
+  BIO_free_all(bio);
+   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Parsed JWT Body: %s\n",
+              decoded_jwt);
+*/
+
+
+  val_str = "String from JWT, which is stored under claim";
+  type_str = "String";
+
+  type = GNUNET_RECLAIM_ATTRIBUTE_typename_to_number (type_str);
+  if (GNUNET_SYSERR ==(GNUNET_RECLAIM_ATTRIBUTE_string_to_value (type,val_str,
+                                                                 (void **) &data,
+                                                                 &data_size)))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Attribute value from JWT Parser invalid!\n");
+    return NULL;
+  }
+  attr = GNUNET_RECLAIM_ATTRIBUTE_claim_new (claim, type, data, data_size);
+  attr->id = attest->id;
+  attr->flag = 1;
+  return attr;
+}
+
+
+/**
  * Collect all attributes for an ego
  *
  */
@@ -1200,24 +1272,32 @@ attr_collect (void *cls,
                   "Attribute Collection with empty Reference Name/Value\n");
       return;
     }
-
+    struct GNUNET_RECLAIM_ATTRIBUTE_Claim *attr2;
+    attr2 = parse_jwt (attest, reference->name);
+    if (NULL == attr2)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Attribute Collection with unparsed Attestation\n");
+      return;
+    }
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Adding reference as attribute: %s\n",
                 reference->name);
+    char *tmp_value;
+    tmp_value = GNUNET_RECLAIM_ATTRIBUTE_value_to_string (attr2->type,
+                                                          attr2->data,
+                                                          attr2->data_size);
     attr_obj = json_object ();
-    json_object_set_new (attr_obj, "name", json_string (reference->name));
-    json_object_set_new (attr_obj, "value", json_string (
-                           reference->reference_value));
-    id_str = GNUNET_STRINGS_data_to_string_alloc (&reference->id,
-                                                  sizeof(uint64_t));
-    json_object_set_new (attr_obj, "id", json_string (id_str));
-    char *flag;
-    flag = "1";
-    json_object_set_new (attr_obj, "flag", json_string (flag));
-    type = "String";
+
+    json_object_set_new (attr_obj, "value", json_string (tmp_value));
+    json_object_set_new (attr_obj, "name", json_string (attr2->name));
+    json_object_set_new (attr_obj, "flag", json_string ("1"));
+    type = GNUNET_RECLAIM_ATTRIBUTE_number_to_typename (attr2->type);
     json_object_set_new (attr_obj, "type", json_string (type));
+    id_str = GNUNET_STRINGS_data_to_string_alloc (&attr2->id, sizeof(uint64_t));
+    json_object_set_new (attr_obj, "id", json_string (id_str));
     json_array_append (handle->resp_object, attr_obj);
     json_decref (attr_obj);
-
+    GNUNET_free (tmp_value);
   }
   else
   {

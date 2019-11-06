@@ -2103,7 +2103,6 @@ attr_iter_cb (void *cls,
       else
       {
         struct ReferenceResultMessage *rrm;
-        char *data_tmp2;
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Found reference under: %s\n",
                     label);
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -2117,9 +2116,8 @@ attr_iter_cb (void *cls,
         GNUNET_CRYPTO_ecdsa_key_get_public (zone, &rrm->identity);
         data_tmp = (char *) &rrm[1];
         GNUNET_memcpy (data_tmp, rd[0].data, rd[0].data_size);
-        data_tmp2 = (char *) &rrm[2];
-        GNUNET_memcpy (data_tmp2, rd[i].data, rd[i].data_size);
-
+        data_tmp += rd[0].data_size;
+        GNUNET_memcpy (data_tmp, rd[i].data, rd[i].data_size);
         GNUNET_MQ_send (ai->client->mq, env);
       }
     }
