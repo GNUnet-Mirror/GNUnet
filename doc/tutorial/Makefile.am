@@ -54,14 +54,14 @@ gnunet_tutorial_examples =					\
 info_TEXINFOS = \
 	gnunet-tutorial.texi
 
-gnunet_TEXINFOS = \
+gnunet_tutorial_TEXINFOS = \
 	fdl-1.3.texi 						\
 	gpl-3.0.texi						\
 	agpl-3.0.texi						\
 	version.texi
 
 EXTRA_DIST = \
-	$(gnunet-tutorial_TEXINFOS)	\
+	$(gnunet_tutorial_TEXINFOS)	\
 	$(gnunet_tutorial_examples)	\
 	htmlxref.cnf \
 	run-gendocs.sh \
