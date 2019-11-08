@@ -48,4 +48,5 @@ gnunet_hello_SOURCES = \
 gnunet_hello_LDADD = \
  libgnunethello.la \
  $(top_builddir)/src/util/libgnunetutil.la  
-
+gnunet_hello_LDFLAGS = \
+  $(GN_LIBINTL)

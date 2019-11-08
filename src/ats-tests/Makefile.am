@@ -64,6 +64,8 @@ gnunet_ats_sim_LDADD = \
 gnunet_ats_sim_DEPENDENCIES = \
  libgnunetatstesting.la \
  $(top_builddir)/src/util/libgnunetutil.la
+gnunet_ats_sim_LDFLAGS = \
+ $(GN_LIBINTL)
 
 
 gnunet_solver_eval_SOURCES = \
@@ -75,6 +77,8 @@ gnunet_solver_eval_LDADD = \
  $(top_builddir)/src/transport/libgnunettransport.la
 gnunet_solver_eval_DEPENDENCIES = \
  $(top_builddir)/src/util/libgnunetutil.la
+gnunet_solver_eval_LDFLAGS = \
+ $(GN_LIBINTL)
 
 perf_ats_proportional_core_none_SOURCES = \
   perf_ats.c

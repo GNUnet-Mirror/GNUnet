@@ -51,6 +51,8 @@ mockup_service_SOURCES = \
   mockup-service.c
  mockup_service_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la
+mockup_service_LDFLAGS = \
+ $(GN_LIBINTL)
 
 
 check_PROGRAMS = \

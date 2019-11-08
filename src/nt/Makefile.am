@@ -14,6 +14,7 @@ libgnunetnt_la_LIBADD = \
  $(top_builddir)/src/util/libgnunetutil.la
 libgnunetnt_la_LDFLAGS = \
  $(GN_LIB_LDFLAGS) \
+ $(GN_LIBINTL) \
   -version-info 0:0:0
 
 #if ENABLE_TEST_RUN

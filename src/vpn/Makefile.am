@@ -56,4 +56,5 @@ libgnunetvpn_la_SOURCES = \
 libgnunetvpn_la_LIBADD = \
  $(top_builddir)/src/util/libgnunetutil.la $(XLIB)
 libgnunetvpn_la_LDFLAGS = \
+  $(GN_LIBINTL) \
   $(GN_LIB_LDFLAGS)

@@ -228,6 +228,7 @@ libgnunetgns_la_LIBADD = \
  $(top_builddir)/src/identity/libgnunetidentity.la \
  $(top_builddir)/src/gnsrecord/libgnunetgnsrecord.la
 libgnunetgns_la_LDFLAGS = \
+  $(GN_LIBINTL) \
   $(GN_LIB_LDFLAGS)
 
 
@@ -239,6 +240,7 @@ libgnunet_plugin_block_gns_la_LIBADD = \
   $(top_builddir)/src/block/libgnunetblockgroup.la \
   $(top_builddir)/src/gnsrecord/libgnunetgnsrecord.la
 libgnunet_plugin_block_gns_la_LDFLAGS = \
+  $(GN_LIBINTL) \
   $(GN_PLUGIN_LDFLAGS)
 
 if HAVE_MHD

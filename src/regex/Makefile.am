@@ -64,6 +64,7 @@ libgnunetregex_la_SOURCES = \
 libgnunetregex_la_LIBADD = \
   $(top_builddir)/src/util/libgnunetutil.la
 libgnunetregex_la_LDFLAGS = \
+  $(GN_LIBINTL) \
   $(GN_LIB_LDFLAGS) \
    -version-info 3:1:0
 
@@ -79,6 +80,7 @@ libgnunet_plugin_block_regex_la_LIBADD = \
  $(top_builddir)/src/block/libgnunetblockgroup.la \
  $(top_builddir)/src/util/libgnunetutil.la
 libgnunet_plugin_block_regex_la_LDFLAGS = \
+ $(GN_LIBINTL) \
  $(GN_PLUGIN_LDFLAGS)
 
 if HAVE_MYSQL
@@ -117,6 +119,8 @@ perf_regex_LDADD = -lm \
   libgnunetregexblock.la \
   libgnunetregextest.a \
   $(top_builddir)/src/util/libgnunetutil.la
+perf_regex_LDFLAGS = \
+  $(GN_LIBINTL)
 
 gnunet_regex_profiler_SOURCES = \
   gnunet-regex-profiler.c
@@ -129,6 +133,8 @@ gnunet_regex_profiler_LDADD = -lm \
   libgnunetregextest.a \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/util/libgnunetutil.la
+gnunet_regex_profiler_LDFLAGS = \
+  $(GN_LIBINTL)
 
 gnunet_daemon_regexprofiler_SOURCES = \
   gnunet-daemon-regexprofiler.c
@@ -139,6 +145,8 @@ gnunet_daemon_regexprofiler_LDADD = -lm \
   libgnunetregextest.a \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/util/libgnunetutil.la
+gnunet_daemon_regexprofiler_LDFLAGS = \
+  $(GN_LIBINTL)
 
 check_PROGRAMS = \
   test_regex_integration \

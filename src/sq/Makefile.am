@@ -18,6 +18,7 @@ libgnunetsq_la_SOURCES = \
 libgnunetsq_la_LIBADD = -lsqlite3 \
  $(top_builddir)/src/util/libgnunetutil.la
 libgnunetsq_la_LDFLAGS = \
+ $(GN_LIBINTL) \
  $(GN_LIB_LDFLAGS) \
   -version-info 0:0:0
 
