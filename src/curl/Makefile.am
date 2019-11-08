@@ -20,6 +20,7 @@ lib_LTLIBRARIES = \
   libgnunetcurl.la
 
 libgnunetcurl_la_LDFLAGS = \
+  $(GN_LIBINTL) \
   -version-info 0:0:0 \
   -no-undefined
 libgnunetcurl_la_SOURCES = \

@@ -48,6 +48,8 @@ gnunet_cadet_SOURCES = \
 gnunet_cadet_LDADD = \
   libgnunetcadet.la \
   $(top_builddir)/src/util/libgnunetutil.la
+gnunet_cadet_LDFLAGS = \
+  $(GN_LIBINTL)
 
 gnunet_service_cadet_SOURCES = \
  gnunet-service-cadet.c gnunet-service-cadet.h \
@@ -70,7 +72,8 @@ gnunet_service_cadet_LDADD = \
   $(top_builddir)/src/hello/libgnunethello.la \
   $(top_builddir)/src/block/libgnunetblock.la
 if LINUX
-  gnunet_service_cadet_LDFLAGS = -lrt
+  gnunet_service_cadet_LDFLAGS = -lrt \
+    $(GN_LIBINTL)
 endif
 
 

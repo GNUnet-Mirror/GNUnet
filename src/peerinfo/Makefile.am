@@ -40,6 +40,8 @@ gnunet_service_peerinfo_LDADD = \
   $(top_builddir)/src/hello/libgnunethello.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/util/libgnunetutil.la
+gnunet_service_peerinfo_LDFLAGS = \
+  $(GN_LIBINTL)
 
 if HAVE_BENCHMARKS
  PEERINFO_BENCHMARKS = \

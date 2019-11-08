@@ -42,6 +42,8 @@ gnunet_nat_SOURCES = \
 gnunet_nat_LDADD = \
   libgnunetnatnew.la \
   $(top_builddir)/src/util/libgnunetutil.la
+gnunet_nat_LDFLAGS = \
+  $(GN_LIBINTL)
 
 
 if USE_COVERAGE

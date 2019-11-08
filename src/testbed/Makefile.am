@@ -59,6 +59,8 @@ gnunet_testbed_profiler_SOURCES = \
 gnunet_testbed_profiler_LDADD = $(XLIB) \
  $(top_builddir)/src/util/libgnunetutil.la \
  libgnunettestbed.la
+gnunet_testbed_profiler_LDFLAGS = \
+ $(GN_LIBINTL)
 
 gnunet_helper_testbed_SOURCES = \
   gnunet-helper-testbed.c

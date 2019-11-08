@@ -37,13 +37,14 @@ libgnunet_plugin_rest_peerinfo_la_CFLAGS = $(MHD_CFLAGS) $(AM_CFLAGS)
 gnunet_peerinfo_SOURCES = \
  gnunet-peerinfo.c \
  gnunet-peerinfo_plugins.c gnunet-peerinfo_plugins.h
-
 gnunet_peerinfo_LDADD = \
   $(top_builddir)/src/peerinfo/libgnunetpeerinfo.la \
   $(top_builddir)/src/transport/libgnunettransport.la \
   $(top_builddir)/src/hello/libgnunethello.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/util/libgnunetutil.la
+gnunet_peerinfo_LDFLAGS = \
+  $(GN_LIBINTL)
 
 if HAVE_PYTHON
 check_SCRIPTS = \

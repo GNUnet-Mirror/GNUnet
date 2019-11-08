@@ -20,6 +20,8 @@ gnunet_service_testbed_logger_SOURCES = \
   gnunet-service-testbed-logger.c
 gnunet_service_testbed_logger_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la
+gnunet_service_testbed_logger_LDFLAGS = \
+ $(GN_LIBINTL)
 
 lib_LTLIBRARIES = \
   libgnunettestbedlogger.la

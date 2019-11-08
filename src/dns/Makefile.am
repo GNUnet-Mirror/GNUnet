@@ -73,6 +73,7 @@ libgnunetdns_la_SOURCES = \
 libgnunetdns_la_LIBADD = \
  $(top_builddir)/src/util/libgnunetutil.la $(XLIB)
 libgnunetdns_la_LDFLAGS = \
+  $(GN_LIBINTL) \
   $(GN_LIB_LDFLAGS) \
   -version-info 0:0:0
 
@@ -82,6 +83,7 @@ libgnunet_plugin_block_dns_la_LIBADD = \
   $(top_builddir)/src/block/libgnunetblockgroup.la \
   $(top_builddir)/src/util/libgnunetutil.la
 libgnunet_plugin_block_dns_la_LDFLAGS = \
+  $(GN_LIBINTL) \
   $(top_builddir)/src/block/$(GN_PLUGIN_LDFLAGS)
 
 

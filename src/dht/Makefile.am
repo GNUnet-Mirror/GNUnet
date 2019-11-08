@@ -76,6 +76,8 @@ gnunet_service_dht_LDADD = \
   $(top_builddir)/src/datacache/libgnunetdatacache.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   -lm
+gnunet_service_dht_LDFLAGS = \
+  $(GN_LIBINTL)
 
 gnunet_dht_get_SOURCES = \
  gnunet-dht-get.c
@@ -83,6 +85,8 @@ gnunet_dht_get_LDADD = \
   libgnunetdht.la \
   $(top_builddir)/src/core/libgnunetcore.la \
   $(top_builddir)/src/util/libgnunetutil.la
+gnunet_dht_get_LDFLAGS = \
+  $(GN_LIBINTL)
 
 gnunet_dht_put_SOURCES = \
  gnunet-dht-put.c
@@ -90,6 +94,8 @@ gnunet_dht_put_LDADD = \
   libgnunetdht.la \
   $(top_builddir)/src/core/libgnunetcore.la \
   $(top_builddir)/src/util/libgnunetutil.la
+gnunet_dht_put_LDFLAGS = \
+  $(GN_LIBINTL)
 
 gnunet_dht_monitor_SOURCES = \
  gnunet-dht-monitor.c
@@ -97,6 +103,8 @@ gnunet_dht_monitor_LDADD = \
   libgnunetdht.la \
   $(top_builddir)/src/core/libgnunetcore.la \
   $(top_builddir)/src/util/libgnunetutil.la
+gnunet_dht_monitor_LDFLAGS = \
+  $(GN_LIBINTL)
 
 gnunet_dht_profiler_SOURCES = \
   gnunet_dht_profiler.c
@@ -105,6 +113,8 @@ gnunet_dht_profiler_LDADD = \
   $(top_builddir)/src/core/libgnunetcore.la \
   $(top_builddir)/src/util/libgnunetutil.la \
  $(top_builddir)/src/testbed/libgnunettestbed.la
+gnunet_dht_profiler_LDFLAGS = \
+  $(GN_LIBINTL)
 
 if HAVE_TESTING
 noinst_LIBRARIES = libgnunetdhttest.a

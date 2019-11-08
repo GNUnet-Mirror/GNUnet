@@ -46,6 +46,7 @@ libgnunetblock_la_DEPENDENCIES = \
  $(top_builddir)/src/util/libgnunetutil.la
 libgnunetblock_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS) \
+  $(GN_LIBINTL) \
   -version-info 0:0:0
 
 
@@ -59,4 +60,5 @@ libgnunetblockgroup_la_DEPENDENCIES = \
  $(top_builddir)/src/util/libgnunetutil.la
 libgnunetblockgroup_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS) \
+  $(GN_LIBINTL) \
   -version-info 0:0:0

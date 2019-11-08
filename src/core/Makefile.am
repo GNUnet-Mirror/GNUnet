@@ -51,6 +51,8 @@ gnunet_core_SOURCES = \
 gnunet_core_LDADD = \
   libgnunetcore.la \
   $(top_builddir)/src/util/libgnunetutil.la
+gnunet_core_LDFLAGS = \
+  $(GN_LIBINTL)
 
 if HAVE_TESTING
   TESTING_TESTS = \

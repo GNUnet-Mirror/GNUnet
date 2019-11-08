@@ -20,13 +20,16 @@ gnunet_nat_server_SOURCES = \
 gnunet_nat_server_LDADD = \
   $(top_builddir)/src/nat/libgnunetnatnew.la \
   $(top_builddir)/src/util/libgnunetutil.la
+gnunet_nat_server_LDFLAGS = \
+  $(GN_LIBINTL)
 
 gnunet_nat_auto_SOURCES = \
   gnunet-nat-auto.c nat-auto.h
 gnunet_nat_auto_LDADD = \
   libgnunetnatauto.la \
   $(top_builddir)/src/util/libgnunetutil.la
-
+gnunet_nat_auto_LDFLAGS = \
+  $(GN_LIBINTL)
 
 if USE_COVERAGE
   AM_CFLAGS = -fprofile-arcs -ftest-coverage

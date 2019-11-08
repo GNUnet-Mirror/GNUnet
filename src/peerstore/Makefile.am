@@ -45,6 +45,7 @@ libgnunetpeerstore_la_SOURCES = \
 libgnunetpeerstore_la_LIBADD = \
   $(top_builddir)/src/util/libgnunetutil.la
 libgnunetpeerstore_la_LDFLAGS = \
+  $(GN_LIBINTL) \
   $(GN_LIB_LDFLAGS)
 
 if HAVE_EXPERIMENTAL

@@ -166,7 +166,8 @@ libgnunettransporttesting2_la_LIBADD = \
   $(top_builddir)/src/hello/libgnunethello.la \
   $(top_builddir)/src/util/libgnunetutil.la
 libgnunettransporttesting2_la_LDFLAGS = \
- $(GN_LIB_LDFLAGS)
+  $(GN_LIBINTL) \
+  $(GN_LIB_LDFLAGS)
 
 libgnunettransport_la_SOURCES = \
   transport.h \
@@ -459,7 +460,8 @@ libgnunet_plugin_transport_http_client_la_LIBADD = \
   $(LIB_GNURL) \
   $(top_builddir)/src/util/libgnunetutil.la
 libgnunet_plugin_transport_http_client_la_LDFLAGS = \
- $(GN_PLUGIN_LDFLAGS)
+  $(GN_LIBINTL) \
+  $(GN_PLUGIN_LDFLAGS)
 libgnunet_plugin_transport_http_client_la_CFLAGS = \
  $(CPP_GNURL) $(AM_CFLAGS)
 
@@ -474,6 +476,7 @@ libgnunet_plugin_transport_http_server_la_LIBADD = \
   $(top_builddir)/src/nat/libgnunetnatnew.la \
   $(top_builddir)/src/util/libgnunetutil.la
 libgnunet_plugin_transport_http_server_la_LDFLAGS = \
+  $(GN_LIBINTL) \
  $(GN_PLUGIN_LDFLAGS)
 libgnunet_plugin_transport_http_server_la_CFLAGS = \
  $(MHD_CFLAGS) $(AM_CFLAGS)
@@ -487,7 +490,8 @@ libgnunet_plugin_transport_https_client_la_LIBADD = \
   $(LIB_GNURL) \
   $(top_builddir)/src/util/libgnunetutil.la
 libgnunet_plugin_transport_https_client_la_LDFLAGS = \
- $(GN_PLUGIN_LDFLAGS)
+  $(GN_LIBINTL) \
+  $(GN_PLUGIN_LDFLAGS)
 libgnunet_plugin_transport_https_client_la_CFLAGS = \
  $(CPP_GNURL) $(AM_CFLAGS) -DBUILD_HTTPS
 
@@ -502,6 +506,7 @@ libgnunet_plugin_transport_https_server_la_LIBADD = \
   $(top_builddir)/src/nat/libgnunetnatnew.la \
   $(top_builddir)/src/util/libgnunetutil.la
 libgnunet_plugin_transport_https_server_la_LDFLAGS = \
+  $(GN_LIBINTL) \
  $(GN_PLUGIN_LDFLAGS)
 libgnunet_plugin_transport_https_server_la_CFLAGS = \
  $(MHD_CFLAGS) $(AM_CFLAGS) -DBUILD_HTTPS
