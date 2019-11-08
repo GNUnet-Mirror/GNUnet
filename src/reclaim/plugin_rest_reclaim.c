@@ -37,9 +37,6 @@
 #include "gnunet_rest_plugin.h"
 #include "gnunet_signatures.h"
 #include "json_reclaim.h"
-#include <openssl/bio.h>
-#include <openssl/evp.h>
-
 /**
  * REST root namespace
  */
@@ -1199,26 +1196,6 @@ parse_jwt (const struct GNUNET_RECLAIM_ATTESTATION_Claim *attest,
   jwt_body = strtok (NULL, delim);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "JWT Body: %s\n",
               jwt_body);
-  /*const char* jwt_base64 = jwt_body;
-  //No padding assumed
-  int jwt_len = (strlen(jwt_base64)*3)/4;
-  BIO *bio, *b64;
-  decoded_jwt = (char *) malloc(jwt_len + 1);
-
-  decoded_jwt[jwt_len] = '\0';
-
-  bio = BIO_new_mem_buf(jwt_base64, -1);
-  b64 = BIO_new(BIO_f_base64());
-  bio = BIO_push(b64, bio);
-  BIO_set_flags(bio, BIO_FLAGS_BASE64_NO_NL);
-  /**length = BIO_read(bio, *buffer, strlen(jwt_base64));
-  assert(*length == jwt_len); //length should equal jwt_len, else something went horribly wrong
-
-  BIO_free_all(bio);
-   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Parsed JWT Body: %s\n",
-              decoded_jwt);
-*/
-
 
   val_str = "String from JWT, which is stored under claim";
   type_str = "String";

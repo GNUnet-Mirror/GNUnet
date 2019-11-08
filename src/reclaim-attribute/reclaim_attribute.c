@@ -426,7 +426,7 @@ GNUNET_RECLAIM_ATTESTATION_reference_new (const char *attr_name,
   GNUNET_memcpy (write_ptr, attr_name_tmp, strlen (attr_name_tmp) + 1);
   attr->name = write_ptr;
 
-  write_ptr += strlen (attr_name) +1;
+  write_ptr += strlen (attr_name) + 1;
   GNUNET_memcpy (write_ptr, ref_value_tmp, strlen (ref_value_tmp) + 1);
   attr->reference_value = write_ptr;
 

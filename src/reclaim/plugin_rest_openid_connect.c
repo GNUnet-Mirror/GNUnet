@@ -973,7 +973,7 @@ oidc_collect_finished_cb (void *cls)
 
 
 /**
- * Collects all attributes for an ego if in scope parameter
+ * Collects all attributes/references for an ego if in scope parameter
  */
 static void
 oidc_attr_collect (void *cls,
@@ -988,39 +988,95 @@ oidc_attr_collect (void *cls,
   char *scope_variable;
   char delimiter[] = " ";
 
-  if ((NULL == attr->name) || (NULL == attr->data))
+  if ((NULL == attr) && (NULL == reference))
   {
     GNUNET_RECLAIM_get_attributes_next (handle->attr_it);
     return;
   }
-
-  scope_variables = GNUNET_strdup (handle->oidc->scope);
-  scope_variable = strtok (scope_variables, delimiter);
-  while (NULL != scope_variable)
+  if (NULL == attr)
   {
-    if (0 == strcmp (attr->name, scope_variable))
-      break;
-    scope_variable = strtok (NULL, delimiter);
-  }
-  if (NULL == scope_variable)
-  {
-    GNUNET_RECLAIM_get_attributes_next (handle->attr_it);
+    if ((NULL == reference->name) || (NULL == reference->reference_value))
+    {
+      return;
+    }
+    scope_variables = GNUNET_strdup (handle->oidc->scope);
+    scope_variable = strtok (scope_variables, delimiter);
+    while (NULL != scope_variable)
+    {
+      if (0 == strcmp (reference->name, scope_variable))
+        break;
+      scope_variable = strtok (NULL, delimiter);
+    }
+    if (NULL == scope_variable)
+    {
+      GNUNET_free (scope_variables);
+      return;
+    }
     GNUNET_free (scope_variables);
-    return;
-  }
-  GNUNET_free (scope_variables);
+    // Store references as attributes as they only use the ID later
+    const char *type_str = NULL;
+    char *data;
+    size_t data_size;
+    uint32_t type;
+    le = GNUNET_new (struct GNUNET_RECLAIM_ATTRIBUTE_ClaimListEntry);
+    type_str = "String";
+    type = GNUNET_RECLAIM_ATTRIBUTE_typename_to_number (type_str);
+    if (GNUNET_SYSERR ==(GNUNET_RECLAIM_ATTRIBUTE_string_to_value (type,
+                                                                   reference->
+                                                                   reference_value,
+                                                                   (void **) &
+                                                                   data,
+                                                                   &data_size)))
+    {
+      return;
+    }
+    le->claim = GNUNET_RECLAIM_ATTRIBUTE_claim_new (reference->name,
+                                                    type,
+                                                    data,
+                                                    data_size);
+    le->claim->id = reference->id;
+    le->claim->flag = 1;
 
-  le = GNUNET_new (struct GNUNET_RECLAIM_ATTRIBUTE_ClaimListEntry);
-  le->claim = GNUNET_RECLAIM_ATTRIBUTE_claim_new (attr->name,
-                                                  attr->type,
-                                                  attr->data,
-                                                  attr->data_size);
-  le->claim->id = attr->id;
-  le->claim->flag = attr->flag;
-  GNUNET_CONTAINER_DLL_insert (handle->attr_list->list_head,
-                               handle->attr_list->list_tail,
-                               le);
-  GNUNET_RECLAIM_get_attributes_next (handle->attr_it);
+    GNUNET_CONTAINER_DLL_insert (handle->attr_list->list_head,
+                                 handle->attr_list->list_tail,
+                                 le);
+  }
+  else
+  {
+    if ((NULL == attr->name) || (NULL == attr->data))
+    {
+      GNUNET_RECLAIM_get_attributes_next (handle->attr_it);
+      return;
+    }
+    scope_variables = GNUNET_strdup (handle->oidc->scope);
+    scope_variable = strtok (scope_variables, delimiter);
+    while (NULL != scope_variable)
+    {
+      if (0 == strcmp (attr->name, scope_variable))
+        break;
+      scope_variable = strtok (NULL, delimiter);
+    }
+    if (NULL == scope_variable)
+    {
+      GNUNET_RECLAIM_get_attributes_next (handle->attr_it);
+      GNUNET_free (scope_variables);
+      return;
+    }
+    GNUNET_free (scope_variables);
+
+    le = GNUNET_new (struct GNUNET_RECLAIM_ATTRIBUTE_ClaimListEntry);
+    le->claim = GNUNET_RECLAIM_ATTRIBUTE_claim_new (attr->name,
+                                                    attr->type,
+                                                    attr->data,
+                                                    attr->data_size);
+    le->claim->id = attr->id;
+    le->claim->flag = attr->flag;
+
+    GNUNET_CONTAINER_DLL_insert (handle->attr_list->list_head,
+                                 handle->attr_list->list_tail,
+                                 le);
+    GNUNET_RECLAIM_get_attributes_next (handle->attr_it);
+  }
 }
 
 
@@ -1456,6 +1512,9 @@ authorize_endpoint (struct GNUNET_REST_RequestHandle *con_handle,
       handle->ego_entry = handle->ego_tail;
     }
   }
+  handle->oidc->scope = get_url_parameter_copy (handle, OIDC_SCOPE_KEY);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Scope: %s\n",GNUNET_strdup (
+                handle->oidc->scope));
   if (NULL == handle->tld)
     GNUNET_CONFIGURATION_iterate_section_values (cfg, "gns", tld_iter, handle);
   if (NULL == handle->tld)
