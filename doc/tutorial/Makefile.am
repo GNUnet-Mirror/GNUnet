@@ -54,7 +54,7 @@ gnunet_tutorial_examples =					\
 info_TEXINFOS = \
 	gnunet-tutorial.texi
 
-gnunet-tutorial_TEXINFOS = \
+gnunet_TEXINFOS = \
 	fdl-1.3.texi 						\
 	gpl-3.0.texi						\
 	agpl-3.0.texi						\
