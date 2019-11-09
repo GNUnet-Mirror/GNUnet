@@ -32,7 +32,7 @@ Foundation Web site at @url{http://www.gnu.org/licenses/gpl.html}.
 
 @dircategory Tutorial
 @direntry
-* GNUnet-C-Tutorial: (gnunet-c-tutorial).       C Tutorial for GNunet
+* GNUnet-Tutorial: (gnunet-tutorial).       C Tutorial for GNunet
 @end direntry
 
 
