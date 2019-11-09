@@ -51,17 +51,16 @@ gnunet_tutorial_examples =					\
 	examples/026.c                          \
 	examples/testbed_test.c
 
-info_TEXINFOS = \
-	gnunet_tutorial.texi
+info_TEXINFOS = tutorial.texi
 
-gnunet_tutorial_TEXINFOS = \
+tutorial_TEXINFOS = \
 	fdl-1.3.texi 						\
 	gpl-3.0.texi						\
 	agpl-3.0.texi						\
 	version.texi
 
 EXTRA_DIST = \
-	$(gnunet_tutorial_TEXINFOS)	\
+	$(tutorial_TEXINFOS)	\
 	$(gnunet_tutorial_examples)	\
 	htmlxref.cnf \
 	run-gendocs.sh \
@@ -72,7 +71,7 @@ EXTRA_DIST = \
 
 
 DISTCLEANFILES = \
-	gnunet-tutorial.cps \
+    tutorial.cps \
 	fdl-1.3.cps \
 	agpl-3.0.cps \
 	gpl-3.0.cps
@@ -81,7 +80,7 @@ DISTCLEANFILES = \
 CLEANFILES= \
     stamp-vti \
     version.texi \
-    gnunet-tutorial.t2p \
+    tutorial.t2p \
     $(DISTCLEANFILES)
 
 doc-all-install:
