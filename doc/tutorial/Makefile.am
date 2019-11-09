@@ -52,7 +52,7 @@ gnunet_tutorial_examples =					\
 	examples/testbed_test.c
 
 info_TEXINFOS = \
-	gnunet-tutorial.texi
+	gnunet_tutorial.texi
 
 gnunet_tutorial_TEXINFOS = \
 	fdl-1.3.texi 						\
