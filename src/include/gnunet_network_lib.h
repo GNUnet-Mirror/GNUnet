@@ -125,7 +125,7 @@ GNUNET_NETWORK_socket_accept (const struct GNUNET_NETWORK_Handle *desc,
  * @return NULL on error (including not supported on target platform)
  */
 struct GNUNET_NETWORK_Handle *
-GNUNET_NETWORK_socket_box_native (SOCKTYPE fd);
+GNUNET_NETWORK_socket_box_native (int fd);
 
 
 /**
