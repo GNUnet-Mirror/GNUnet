@@ -236,9 +236,6 @@ atoll (const char *nptr);
 #define MAKE_UNALIGNED(val) val
 #endif
 
-#define FDTYPE int
-#define SOCKTYPE int
-
 /**
  * The termination signal
  */

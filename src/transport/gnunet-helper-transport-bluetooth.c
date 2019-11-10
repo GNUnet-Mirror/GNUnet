@@ -21,7 +21,6 @@
  */
 #include "gnunet_config.h"
 
-#define SOCKTYPE int
 #include <bluetooth/bluetooth.h>
 #include <bluetooth/hci.h>
 #include <bluetooth/hci_lib.h>

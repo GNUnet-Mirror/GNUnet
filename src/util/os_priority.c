@@ -346,7 +346,7 @@ start_process (int pipe_control,
                struct GNUNET_DISK_PipeHandle *pipe_stdin,
                struct GNUNET_DISK_PipeHandle *pipe_stdout,
                struct GNUNET_DISK_PipeHandle *pipe_stderr,
-               const SOCKTYPE *lsocks,
+               const int *lsocks,
                const char *filename,
                char *const argv[])
 {
@@ -725,7 +725,7 @@ GNUNET_OS_start_process (int pipe_control,
 struct GNUNET_OS_Process *
 GNUNET_OS_start_process_v (int pipe_control,
                            enum GNUNET_OS_InheritStdioFlags std_inheritance,
-                           const SOCKTYPE *lsocks,
+                           const int *lsocks,
                            const char *filename,
                            char *const argv[])
 {
@@ -761,7 +761,7 @@ GNUNET_OS_start_process_v (int pipe_control,
 struct GNUNET_OS_Process *
 GNUNET_OS_start_process_s (int pipe_control,
                            unsigned int std_inheritance,
-                           const SOCKTYPE *lsocks,
+                           const int *lsocks,
                            const char *filename,
                            ...)
 {

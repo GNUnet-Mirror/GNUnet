@@ -756,7 +756,7 @@ start_process (struct ServiceList *sl,
   int use_debug;
   int is_simple_service;
   struct ServiceListeningInfo *sli;
-  SOCKTYPE *lsocks;
+  int *lsocks;
   unsigned int ls;
   char *binary;
   char *quotedbinary;

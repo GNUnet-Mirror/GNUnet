@@ -662,8 +662,8 @@ start_arm_service (struct GNUNET_ARM_Handle *h,
   char *config;
   char *loprefix;
   char *lopostfix;
-  SOCKTYPE ld[2];
-  SOCKTYPE *lsocks;
+  int ld[2];
+  int *lsocks;
 
   if (NULL == sigfd)
   {

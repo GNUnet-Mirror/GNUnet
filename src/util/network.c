@@ -633,7 +633,7 @@ GNUNET_NETWORK_socket_free_memory_only_ (struct GNUNET_NETWORK_Handle *desc)
  * @return NULL on error (including not supported on target platform)
  */
 struct GNUNET_NETWORK_Handle *
-GNUNET_NETWORK_socket_box_native (SOCKTYPE fd)
+GNUNET_NETWORK_socket_box_native (int fd)
 {
   struct GNUNET_NETWORK_Handle *ret;
 
