@@ -857,7 +857,6 @@ data_to_eddsa_value (const struct GNUNET_CRYPTO_EccSignaturePurpose *purpose)
     return NULL;
   }
 #else
-  GNUNET_CRYPTO_hash (purpose, ntohl (purpose->size), &hc);
   if (0 != (rc = gcry_sexp_build (&data,
                                   NULL,
                                   "(data(flags eddsa)(hash-algo %s)(value %b))",
