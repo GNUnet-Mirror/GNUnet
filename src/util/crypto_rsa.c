@@ -309,6 +309,32 @@ GNUNET_CRYPTO_rsa_public_key_free (struct GNUNET_CRYPTO_RsaPublicKey *key)
 }
 
 
+GNUNET_NETWORK_STRUCT_BEGIN
+
+/**
+ * Format of the header of a serialized RSA public key.
+ */
+struct GNUNET_CRYPTO_RsaPublicKeyHeaderP
+{
+  /**
+   * length of modulus 'n' in bytes, in NBO
+   */
+  uint16_t modulus_length GNUNET_PACKED;
+
+  /**
+   * length of exponent in bytes, in NBO
+   */
+  uint16_t public_exponent_length GNUNET_PACKED;
+
+  /* followed by variable-size modulus and
+     public exponent follows as big-endian encoded
+     integers */
+};
+
+GNUNET_NETWORK_STRUCT_END
+
+#define NEW_CRYPTO 0
+
 /**
  * Encode the public key in a format suitable for
  * storing it into a file.
@@ -322,6 +348,69 @@ GNUNET_CRYPTO_rsa_public_key_encode (const struct
                                      GNUNET_CRYPTO_RsaPublicKey *key,
                                      char **buffer)
 {
+#if NEW_CRYPTO
+  gcry_mpi_t ne[2];
+  size_t n_size;
+  size_t e_size;
+  size_t rsize;
+  size_t buf_size;
+  char *buf;
+  struct GNUNET_CRYPTO_RsaPublicKeyHeaderP hdr;
+  int ret;
+
+/* SEE #5398 / #5968 */
+  ret = key_from_sexp (ne, key->sexp, "public-key", "ne");
+  if (0 != ret)
+    ret = key_from_sexp (ne, key->sexp, "rsa", "ne");
+  if (0 != ret)
+  {
+    GNUNET_break (0);
+    *buffer = NULL;
+    return 0;
+  }
+
+  gcry_mpi_print (GCRYMPI_FMT_USG,
+                  NULL,
+                  0,
+                  &n_size,
+                  ne[0]);
+  gcry_mpi_print (GCRYMPI_FMT_USG,
+                  NULL,
+                  0,
+                  &e_size,
+                  ne[1]);
+  if ( (e_size > UINT16_MAX) ||
+       (n_size > UINT16_MAX) )
+  {
+    GNUNET_break (0);
+    *buffer = NULL;
+    gcry_mpi_release (ne[0]);
+    gcry_mpi_release (ne[1]);
+    return 0;
+  }
+  buf_size = n_size + e_size + sizeof (hdr);
+  buf = GNUNET_malloc (buf_size);
+  hdr.modulus_length = htons ((uint16_t) n_size);
+  hdr.public_exponent_length = htons ((uint16_t) e_size);
+  memcpy (buf, &hdr, sizeof (hdr));
+  GNUNET_assert (0 ==
+                 gcry_mpi_print (GCRYMPI_FMT_USG,
+                                 (unsigned char *) &buf[sizeof (hdr)],
+                                 n_size,
+                                 &rsize,
+                                 ne[0]));
+
+  GNUNET_assert (0 ==
+                 gcry_mpi_print (GCRYMPI_FMT_USG,
+                                 (unsigned char *) &buf[sizeof (hdr) + n_size],
+                                 e_size,
+                                 &rsize,
+                                 ne[1]));
+  *buffer = buf;
+  gcry_mpi_release (ne[0]);
+  gcry_mpi_release (ne[1]);
+  return buf_size;
+#else
   size_t n;
   char *b;
 
@@ -337,6 +426,7 @@ GNUNET_CRYPTO_rsa_public_key_encode (const struct
                                    n));
   *buffer = b;
   return n;
+#endif
 }
 
 
@@ -375,8 +465,70 @@ GNUNET_CRYPTO_rsa_public_key_decode (const char *buf,
                                      size_t len)
 {
   struct GNUNET_CRYPTO_RsaPublicKey *key;
+#if NEW_CRYPTO
+  struct GNUNET_CRYPTO_RsaPublicKeyHeaderP hdr;
+  size_t e_size;
+  size_t n_size;
+  gcry_mpi_t n;
+  gcry_mpi_t e;
+  gcry_sexp_t data;
+
+  if (len < sizeof (hdr))
+  {
+    GNUNET_break_op (0);
+    return NULL;
+  }
+  memcpy (&hdr, buf, sizeof (hdr));
+  n_size = ntohs (hdr.modulus_length);
+  e_size = ntohs (hdr.public_exponent_length);
+  if (len != sizeof (hdr) + e_size + n_size)
+  {
+    GNUNET_break_op (0);
+    return NULL;
+  }
+  if (0 !=
+      gcry_mpi_scan (&n,
+                     GCRYMPI_FMT_USG,
+                     &buf[sizeof (hdr)],
+                     n_size,
+                     NULL))
+  {
+    GNUNET_break_op (0);
+    return NULL;
+  }
+  if (0 !=
+      gcry_mpi_scan (&e,
+                     GCRYMPI_FMT_USG,
+                     &buf[sizeof (hdr) + n_size],
+                     e_size,
+                     NULL))
+  {
+    GNUNET_break_op (0);
+    gcry_mpi_release (n);
+    return NULL;
+  }
+
+  if (0 !=
+      gcry_sexp_build (&data,
+                       NULL,
+                       "(public-key(rsa(n %m)(e %m)))",
+                       n,
+                       e))
+  {
+    GNUNET_break (0);
+    gcry_mpi_release (n);
+    gcry_mpi_release (e);
+    return NULL;
+  }
+  gcry_mpi_release (n);
+  gcry_mpi_release (e);
+  key = GNUNET_new (struct GNUNET_CRYPTO_RsaPublicKey);
+  key->sexp = data;
+  return key;
+#else
   gcry_mpi_t n;
   int ret;
+
 
   key = GNUNET_new (struct GNUNET_CRYPTO_RsaPublicKey);
   if (0 !=
@@ -403,6 +555,7 @@ GNUNET_CRYPTO_rsa_public_key_decode (const char *buf,
   }
   gcry_mpi_release (n);
   return key;
+#endif
 }
 
 

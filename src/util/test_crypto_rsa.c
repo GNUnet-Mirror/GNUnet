@@ -89,6 +89,20 @@ main (int argc,
   GNUNET_assert (NULL != pub_copy);
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_CRYPTO_rsa_verify (&hash, sig, pub_copy));
+  {
+    char *buf;
+    size_t buf_size;
+    struct GNUNET_CRYPTO_RsaPublicKey *pub2;
+
+    buf_size = GNUNET_CRYPTO_rsa_public_key_encode (pub,
+                                                    &buf);
+    pub2 = GNUNET_CRYPTO_rsa_public_key_decode (buf,
+                                                buf_size);
+    GNUNET_free (buf);
+    GNUNET_assert (GNUNET_OK ==
+                   GNUNET_CRYPTO_rsa_verify (&hash, sig, pub2));
+    GNUNET_CRYPTO_rsa_public_key_free (pub2);
+  }
   /* corrupt our hash and see if the signature is still valid */
   GNUNET_CRYPTO_random_block (GNUNET_CRYPTO_QUALITY_WEAK, &hash,
                               sizeof(struct GNUNET_HashCode));
