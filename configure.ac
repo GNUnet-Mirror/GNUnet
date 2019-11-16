@@ -222,10 +222,17 @@ AC_CHECK_LIB(c, getloadavg, AC_DEFINE(HAVE_GETLOADAVG,1,[getloadavg supported]))
 AC_CHECK_PROG(VAR_GETOPT_BINARY, getopt, true, false)
 AM_CONDITIONAL(HAVE_GETOPT_BINARY, $VAR_GETOPT_BINARY)
 
+AC_CHECK_PROGS(PKG_CONFIG, [pkgconf, pkg-config], false)
+AM_CONDITIONAL(HAVE_PKG_CONFIG, test x$PKG_CONFIG != xfalse)
+
 AC_CHECK_PROG(VAR_SSH_BINARY, ssh, true, false)
 AM_CONDITIONAL(HAVE_SSH_BINARY, $VAR_SSH_BINARY)
-AM_CONDITIONAL(HAVE_SSH_KEY,  ssh -D 12345 -o "BatchMode yes" -o "UserKnownHostsFile /tmp/gnunet_test_cosks_ssh_garbage" -o "StrictHostKeyChecking no" 127.0.0.1 echo -n)
-rm -f /tmp/gnunet_test_cosks_ssh_garbage
+AC_MSG_CHECKING(for SSH key)
+  AM_CONDITIONAL(HAVE_SSH_KEY,  ssh -D 12345 -o "BatchMode yes" -o "UserKnownHostsFile /tmp/gnunet_test_cosks_ssh_garbage" -o "StrictHostKeyChecking no" 127.0.0.1 echo -n)
+  if test -f /tmp/gnunet_test_cosks_ssh_garbage; then
+     rm -f /tmp/gnunet_test_cosks_ssh_garbage
+  fi
+
 
 # autotools' m4 for python has no maximum version!
 # python3.4 - python3.8 for tests (3.8 unchecked)
@@ -315,6 +322,10 @@ AS_IF([test x"$VAR_UPNPC_BINARY" != x"false"],
   [AC_DEFINE_UNQUOTED([UPNPC], "$VAR_UPNPC_BINARY", [Path to upnpc binary])],
   [AC_MSG_WARN([warning: 'upnpc' binary not found.])])
 
+
+# checkbashisms
+AC_CHECK_PROGS(CHECKBASHISMS_BINARY, [checkbashisms checkbashisms.pl], false)
+AM_CONDITIONAL(HAVE_CHECKBASHISMS, test x$CHECKBASHISMS_BINARY != xfalse)
 
 # uncrustify
 # TODO: maybe add flag to pass location
@@ -1035,7 +1046,7 @@ AS_IF([test x$ltdl = x1],
 [
  AC_MSG_RESULT([libltdl found])
 ],[
- AC_MSG_ERROR([GNUnet requires libltdl (from GNU libtool), try installing libltdl-dev])
+ AC_MSG_ERROR([GNUnet requires libltdl (from GNU libtool).])
 ])
 # restore LIBS
 LIBS=$SAVE_LIBS
@@ -1106,8 +1117,7 @@ AS_IF([test x$my_with_libidn2 = x1],
                                        [Define to 1 if you have 'libidn2' (-lidn2).])],
                     [MISSING_DEPS="${MISSING_DEPS}${MISSING_SEP}libidn2"
                      MISSING_SEP=", "])])
-AM_CONDITIONAL(HAVE_LIBIDN2,
-               test x$working_libidn2 = x1)
+AM_CONDITIONAL(HAVE_LIBIDN2, test x$working_libidn2 = x1)
 AS_IF([test x$working_libidn2 = x0],
       [AS_IF([test x$my_with_libidn = x1],
              [AC_MSG_NOTICE([Checking for libidn])
@@ -1261,9 +1271,9 @@ AC_SUBST(SQLITE_LDFLAGS)
 LDFLAGS=$SAVE_LDFLAGS
 CPPFLAGS=$SAVE_CPPFLAGS
 
-# test for postgres
+# test for postgres:
 postgres=false
-# even running the check for postgres breaks emscripten ...
+# even running the check for postgres breaks emscripten
 AS_IF([test "$taler_only" != yes],
       [AX_LIB_POSTGRESQL([9.5],
         [CPPFLAGS="$CPPFLAGS $POSTGRESQL_CPPFLAGS"
@@ -1271,8 +1281,11 @@ AS_IF([test "$taler_only" != yes],
          postgres=true)
         ],
         [AC_MSG_RESULT([no postgres])])])
-AM_CONDITIONAL(HAVE_POSTGRESQL, test x$postgres = xtrue)
 
+AM_CONDITIONAL(HAVE_POSTGRESQL, test x$postgres = xtrue)
+AS_IF([test "x$postgres" = xtrue],
+      [AC_DEFINE([HAVE_POSTGRESQL],[1],[Have PostgreSQL])],
+      [AC_DEFINE([HAVE_POSTGRESQL],[0],[Lacking PostgreSQL])])
 
 LDFLAGS=$SAVE_LDFLAGS
 CPPFLAGS=$SAVE_CPPFLAGS
@@ -1781,7 +1794,6 @@ doc/man/Makefile
 doc/doxygen/Makefile
 doc/handbook/Makefile
 doc/tutorial/Makefile
-lint/Makefile
 m4/Makefile
 po/Makefile.in
 src/Makefile
