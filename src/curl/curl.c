@@ -407,6 +407,7 @@ GNUNET_CURL_job_cancel (struct GNUNET_CURL_Job *job)
   curl_easy_cleanup (job->easy_handle);
   GNUNET_free_non_null (job->db.buf);
   curl_slist_free_all (job->job_headers);
+  ctx->cb (ctx->cb_cls);
   GNUNET_free (job);
 }
 
