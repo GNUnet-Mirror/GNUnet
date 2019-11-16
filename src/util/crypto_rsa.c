@@ -1,6 +1,6 @@
 /*
    This file is part of GNUnet
-   Copyright (C) 2014,2016 GNUnet e.V.
+   Copyright (C) 2014,2016,2019 GNUnet e.V.
 
    GNUnet is free software: you can redistribute it and/or modify it
    under the terms of the GNU Affero General Public License as published
@@ -32,6 +32,8 @@
 
 #define LOG(kind, ...) GNUNET_log_from (kind, "util-crypto-rsa", __VA_ARGS__)
 
+/* Flip for #5968 */
+#define NEW_CRYPTO 0
 
 /**
  * The private information of an RSA key pair.
@@ -333,7 +335,6 @@ struct GNUNET_CRYPTO_RsaPublicKeyHeaderP
 
 GNUNET_NETWORK_STRUCT_END
 
-#define NEW_CRYPTO 0
 
 /**
  * Encode the public key in a format suitable for
@@ -1127,6 +1128,39 @@ GNUNET_CRYPTO_rsa_signature_encode (const struct
                                     GNUNET_CRYPTO_RsaSignature *sig,
                                     char **buffer)
 {
+#if NEW_CRYPTO
+  gcry_mpi_t s;
+  size_t buf_size;
+  size_t rsize;
+  unsigned char *buf;
+  int ret;
+
+  ret = key_from_sexp (&s,
+                       sig->sexp,
+                       "sig-val",
+                       "s");
+  if (0 != ret)
+    ret = key_from_sexp (&s,
+                         sig->sexp,
+                         "rsa",
+                         "s");
+  GNUNET_assert (0 == ret);
+  gcry_mpi_print (GCRYMPI_FMT_USG,
+                  NULL,
+                  0,
+                  &buf_size,
+                  s);
+  buf = GNUNET_malloc (buf_size);
+  GNUNET_assert (0 ==
+                 gcry_mpi_print (GCRYMPI_FMT_USG,
+                                 buf,
+                                 buf_size,
+                                 &rsize,
+                                 s));
+  GNUNET_assert (rsize == buf_size);
+  *buffer = (char *) buf;
+  return buf_size;
+#else
   size_t n;
   char *b;
 
@@ -1142,6 +1176,7 @@ GNUNET_CRYPTO_rsa_signature_encode (const struct
                                    n));
   *buffer = b;
   return n;
+#endif
 }
 
 
@@ -1158,6 +1193,36 @@ GNUNET_CRYPTO_rsa_signature_decode (const char *buf,
                                     size_t len)
 {
   struct GNUNET_CRYPTO_RsaSignature *sig;
+#if NEW_CRYPTO
+  gcry_mpi_t s;
+  gcry_sexp_t data;
+
+  if (0 !=
+      gcry_mpi_scan (&s,
+                     GCRYMPI_FMT_USG,
+                     buf,
+                     len,
+                     NULL))
+  {
+    GNUNET_break_op (0);
+    return NULL;
+  }
+
+  if (0 !=
+      gcry_sexp_build (&data,
+                       NULL,
+                       "(sig-val(rsa(s %M)))",
+                       s))
+  {
+    GNUNET_break (0);
+    gcry_mpi_release (s);
+    return NULL;
+  }
+  gcry_mpi_release (s);
+  sig = GNUNET_new (struct GNUNET_CRYPTO_RsaSignature);
+  sig->sexp = data;
+  return sig;
+#else
   int ret;
   gcry_mpi_t s;
 
@@ -1185,6 +1250,7 @@ GNUNET_CRYPTO_rsa_signature_decode (const char *buf,
     return NULL;
   }
   gcry_mpi_release (s);
+#endif
   return sig;
 }
 

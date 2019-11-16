@@ -93,15 +93,22 @@ main (int argc,
     char *buf;
     size_t buf_size;
     struct GNUNET_CRYPTO_RsaPublicKey *pub2;
+    struct GNUNET_CRYPTO_RsaSignature *sig2;
 
     buf_size = GNUNET_CRYPTO_rsa_public_key_encode (pub,
                                                     &buf);
     pub2 = GNUNET_CRYPTO_rsa_public_key_decode (buf,
                                                 buf_size);
     GNUNET_free (buf);
+    buf_size = GNUNET_CRYPTO_rsa_signature_encode (sig,
+                                                   &buf);
+    sig2 = GNUNET_CRYPTO_rsa_signature_decode (buf,
+                                               buf_size);
+    GNUNET_free (buf);
     GNUNET_assert (GNUNET_OK ==
-                   GNUNET_CRYPTO_rsa_verify (&hash, sig, pub2));
+                   GNUNET_CRYPTO_rsa_verify (&hash, sig2, pub2));
     GNUNET_CRYPTO_rsa_public_key_free (pub2);
+    GNUNET_CRYPTO_rsa_signature_free (sig2);
   }
   /* corrupt our hash and see if the signature is still valid */
   GNUNET_CRYPTO_random_block (GNUNET_CRYPTO_QUALITY_WEAK, &hash,
