@@ -38,12 +38,12 @@ if test $1 = "-d"; then
         dir=$(dirname "$(readlink -f -- "$0")")
         mkdir -p $dir/contrib/vendored
         cd contrib/vendored
-        if existence ftp; then
-            ftp https://mandoc.bsd.lv/texi2mdoc/snapshots/texi2mdoc-0.1.2.tgz
-        elif existence curl; then
+        if existence curl; then
             curl --output texi2mdoc-0.1.2.tgz https://mandoc.bsd.lv/texi2mdoc/snapshots/texi2mdoc-0.1.2.tgz
         elif existence wget; then
             wget https://mandoc.bsd.lv/texi2mdoc/snapshots/texi2mdoc-0.1.2.tgz
+        elif existence ftp; then
+            ftp https://mandoc.bsd.lv/texi2mdoc/snapshots/texi2mdoc-0.1.2.tgz
         elif existence fetch; then
             fetch https://mandoc.bsd.lv/texi2mdoc/snapshots/texi2mdoc-0.1.2.tgz
         else
@@ -55,6 +55,7 @@ if test $1 = "-d"; then
             dir=$(dirname "$(readlink -f -- "$0")")
             make
             echo "please prepend or append $dir/contrib/vendored/texi2mdoc/ to your PATH before running configure"
+            echo "and pass --enable-texi2mdoc-generation to configure"
         else
             echo "no texi2mdoc, skipping"
         fi
