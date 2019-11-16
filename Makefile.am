@@ -59,7 +59,7 @@ if HAVE_CHECKBASHISMS
 	printf "If checkbashisms.pl is in PATH, run checkbashism on all .sh files.\n"
 	find '.' -type f ! -path '*/.*' ! -path '*/_*' -name '*.sh' -print0 | xargs -0 checkbashisms.pl -f 2>&1 | tee $(srcdir)/bashism.log || true
 else
-    printf "No checkbashisms in PATH, skipped"
+	printf "No checkbashisms in PATH, skipped"
 endif
 
 check-man:
