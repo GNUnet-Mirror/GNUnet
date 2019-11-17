@@ -248,7 +248,7 @@ switch) which allows using GNS (the GNU name system) in the normal DNS
 resolution process. Unfortunately NSS expects it in a specific
 location (probably @code{/lib}) which may differ from the installation
 prefix (see @code{--prefix} option in the previous section). This is
-why the pugin has to be installed manually.
+why the plugin has to be installed manually.
 
 Find the directory where nss plugins are installed on your system, e.g.
 
@@ -814,7 +814,7 @@ We are generally testing the code against MySQL 5.1 at this point.
 
 @itemize @bullet
 
-@item On up-to-date hardware wher
+@item On up-to-date hardware where
 mysql can be used comfortably, this module
 will have better performance than the other database choices (according
 to our tests).
