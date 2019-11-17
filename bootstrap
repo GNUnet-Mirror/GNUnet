@@ -23,8 +23,8 @@ check_uncrustify()
 {
     if existence uncrustify; then
         echo "Installing uncrustify hook and configuration"
-        ln -s contrib/uncrustify.cfg uncrustify.cfg 2> /dev/null
-        ln -s ../../contrib/uncrustify_precommit .git/hooks/pre-commit 2> /dev/null
+        ln -fs contrib/build-common/conf/uncrustify.cfg uncrustify.cfg 2> /dev/null
+        ln -fs contrib/build-common/conf/uncrustify_precommit .git/hooks/pre-commit 2> /dev/null
     else
         echo "Uncrustify not detected, hook not installed."
         echo "Please install uncrustify if you plan on doing development"
@@ -48,7 +48,7 @@ check_yapf()
        existence yapf3.9 || \
        existence yapf4.0; then
         echo "Installing yapf symlink"
-        ln -s contrib/conf/.style.yapf 2> /dev/null
+        ln -fs contrib/build-common/conf/.style.yapf .style.yapf 2> /dev/null
     else
         echo "yapf not detected, please install yapf if you plan on contributing python code"
     fi
@@ -70,9 +70,26 @@ check_libtool()
     fi
 }
 
+submodules()
+{
+    # Try to update the submodule. Since bootstrap
+    # is also invoked by distributors, we must
+    # ignore any failing of this function as we
+    # could have no outgoing network connection
+    # in a restricted environment.
+    if ! git --version >/dev/null; then
+        echo "git not installed, skipping submodule update"
+    else
+        git submodule update --init || true
+        git submodule update --recursive --remote || true
+        git submodule sync || true
+    fi
+}
+
 main()
 {
     cleanup
+    submodules
     check_uncrustify
     check_yapf
     check_libtool
