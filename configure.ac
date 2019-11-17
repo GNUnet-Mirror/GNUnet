@@ -437,14 +437,15 @@ AS_IF([test "x$texi2mdoc_generation" = "xyes"],
                  [0],
                  [Not building section 7 mdoc output])])
 
-# test for texi2mdoc
+# test for texi2mdoc (the binary, not the script distributed
+# with autogen)
 # TODO: refactor this and the check above.
-AC_MSG_CHECKING(for texi2mdoc)
+AC_MSG_CHECKING(for texi2mdoc binary)
 AC_CHECK_PROGS(TEXI2MDOC_BINARY, [texi2mdoc], false)
 AM_CONDITIONAL(HAVE_TEXI2MDOC, test x$TEXI2MDOC_BINARY != xfalse)
 
 # test for mandoc
-AC_MSG_CHECKING(for mandoc)
+AC_MSG_CHECKING(for mandoc binary)
 AC_CHECK_PROGS(MANDOC_BINARY, [mandoc], false)
 AM_CONDITIONAL(HAVE_MANDOC, test x$MANDOC_BINARY != xfalse)
 

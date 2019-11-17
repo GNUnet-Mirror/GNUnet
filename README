@@ -139,7 +139,9 @@ These are the optional dependencies:
 - miniupnpc
 - perl5                             (for some utilities)
 - TeX Live           >= 2012        (for gnunet-bcd[*])
-- texi2mdoc                         (for automatic mdoc generation [*2])
+- texi2mdoc                         (for automatic mdoc generation [*2], not
+                                     the texi2mdoc script distributed with
+                                     autogen but the texi2mdoc C application)
 
 Recommended autotools for compiling the Git version are:
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -161,7 +163,7 @@ Recommended autotools for compiling the Git version are:
      documentation (experimental stages in gnunet).
      If this proves to be reliable, we will
      include the mdocml output in the release tarballs.
-     Contrary to the name, texi2mdoc does not require texinfo,
+     Contrary to the name, texi2mdoc does not require Texinfo,
      It is a standalone ISO C utility.
 
 [*3] GNU make introduced the != operator in version 4.0.
