@@ -103,7 +103,7 @@ involve flooding the network with traffic, particularly
 with queries that are, in the worst case, multiplied by the network.
 
 In order to ensure that freeloaders or attackers have a minimal impact
-on the network, GNUnet's file-sharing implementation (@code{FS} tries
+on the network, GNUnet's file-sharing implementation (@code{FS}) tries
 to distinguish good (contributing) nodes from malicious (freeloading)
 nodes. In GNUnet, every file-sharing node keeps track of the behavior
 of every other node it has been in contact with. Many requests
