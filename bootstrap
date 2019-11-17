@@ -23,9 +23,7 @@ check_uncrustify()
 {
     if existence uncrustify; then
         echo "Installing uncrustify hook and configuration"
-        # Install uncrustify format symlink (if possible)
         ln -s contrib/uncrustify.cfg uncrustify.cfg 2> /dev/null
-        # Install pre-commit hook (if possible)
         ln -s ../../contrib/uncrustify_precommit .git/hooks/pre-commit 2> /dev/null
     else
         echo "Uncrustify not detected, hook not installed."
@@ -38,17 +36,17 @@ check_uncrustify()
 check_yapf()
 {
     if existence yapf || \
-            existence yapf3.0 || \
-            existence yapf3.1 || \
-            existence yapf3.2 || \
-            existence yapf3.3 || \
-            existence yapf3.4 || \
-            existence yapf3.5 || \
-            existence yapf3.6 || \
-            existence yapf3.7 || \
-            existence yapf3.8 || \
-            existence yapf3.9 || \
-            existence yapf4.0; then
+       existence yapf3.0 || \
+       existence yapf3.1 || \
+       existence yapf3.2 || \
+       existence yapf3.3 || \
+       existence yapf3.4 || \
+       existence yapf3.5 || \
+       existence yapf3.6 || \
+       existence yapf3.7 || \
+       existence yapf3.8 || \
+       existence yapf3.9 || \
+       existence yapf4.0; then
         echo "Installing yapf symlink"
         ln -s contrib/conf/.style.yapf 2> /dev/null
     else
@@ -61,9 +59,9 @@ check_libtool()
     echo "checking for libtoolize / libtool... "
 
     if existence libtool || \
-            existence libtoolize || \
-            existence glibtoolize || \
-            existence slibtool; then
+       existence libtoolize || \
+       existence glibtoolize || \
+       existence slibtool; then
         autoreconf -if
         . "bin/pogen.sh"
     else
@@ -75,11 +73,8 @@ check_libtool()
 main()
 {
     cleanup
-    sleep 1
     check_uncrustify
-    sleep 1
     check_yapf
-    sleep 1
     check_libtool
 }
 
