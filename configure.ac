@@ -444,6 +444,15 @@ AC_MSG_CHECKING(for texi2mdoc binary)
 AC_CHECK_PROGS(TEXI2MDOC_BINARY, [texi2mdoc], false)
 AM_CONDITIONAL(HAVE_TEXI2MDOC, test x$TEXI2MDOC_BINARY != xfalse)
 
+# texi2man is a tool which needs to be investigated and
+# is probably incompatible to texi2mdoc in invocation.
+# Detection at this point only serves as a reminder that
+# I will work this into the build-system.
+AC_MSG_CHECKING(for texi2man perl script)
+AC_CHECK_PROGS(TEXI2MAN_SCRIPT, [texi2man], false)
+AM_CONDITIONAL(HAVE_TEXI2MAN, test x$TEXI2MAN_SCRIPT != xfalse)
+
+
 # test for mandoc
 AC_MSG_CHECKING(for mandoc binary)
 AC_CHECK_PROGS(MANDOC_BINARY, [mandoc], false)
