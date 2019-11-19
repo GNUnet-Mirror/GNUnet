@@ -132,8 +132,6 @@ AS_CASE(["$host_os"],
      AC_PATH_XTRA
   ],
   [*freebsd*],[
-     AC_DEFINE_UNQUOTED(SOMEBSD,1,[This is a BSD system])
-     AC_DEFINE_UNQUOTED(FREEBSD,1,[This is a FreeBSD system])
      CFLAGS="-D_THREAD_SAFE $CFLAGS"
      build_target="freebsd"
      LIBPREFIX=
@@ -141,8 +139,6 @@ AS_CASE(["$host_os"],
      UNIXONLY="#"
   ],
   [*openbsd*],[
-     AC_DEFINE_UNQUOTED(SOMEBSD,1,[This is a BSD system])
-     AC_DEFINE_UNQUOTED(OPENBSD,1,[This is an OpenBSD system])
      LIBS=`echo $LIBS | sed -e "s/-ldl//"`
      build_target="openbsd"
      LIBPREFIX=
@@ -150,8 +146,6 @@ AS_CASE(["$host_os"],
      UNIXONLY="#"
   ],
   [*netbsd*],[
-     AC_DEFINE_UNQUOTED(SOMEBSD,1,[This is a BSD system])
-     AC_DEFINE_UNQUOTED(NETBSD,1,[This is a NetBSD system])
      build_target="netbsd"
      LIBPREFIX=
      DLLDIR=lib

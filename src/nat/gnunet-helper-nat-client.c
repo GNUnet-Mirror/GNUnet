@@ -249,7 +249,8 @@ send_icmp_udp (const struct in_addr *my_ip, const struct in_addr *other)
   off = 0;
   ip_pkt.vers_ihl = 0x45;
   ip_pkt.tos = 0;
-#ifdef FREEBSD
+  /* should this be BSD only? */
+#if defined(BSD) && defined(__FreeBSD__) && defined(__FreeBSD_kernel__)
   ip_pkt.pkt_len = sizeof(packet);  /* Workaround PR kern/21737 */
 #else
   ip_pkt.pkt_len = htons (sizeof(packet));
@@ -360,7 +361,7 @@ send_icmp (const struct in_addr *my_ip, const struct in_addr *other)
   off = 0;
   ip_pkt.vers_ihl = 0x45;
   ip_pkt.tos = 0;
-#ifdef FREEBSD
+#if defined(BSD) && defined(__FreeBSD__) && defined(__FreeBSD_kernel__)
   ip_pkt.pkt_len = sizeof(packet);  /* Workaround PR kern/21737 */
 #else
   ip_pkt.pkt_len = htons (sizeof(packet));

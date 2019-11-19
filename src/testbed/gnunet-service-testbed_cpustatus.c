@@ -43,7 +43,7 @@
 #include <kvm.h>
 #endif
 #endif
-#if SOMEBSD
+#if BSD
 #if HAVE_KVM_H
 #include <kvm.h>
 #endif

@@ -115,11 +115,10 @@
 #include <time.h>
 #endif
 #endif
-
-#ifdef SOMEBSD
+#ifdef BSD
 #include <net/if.h>
 #endif
-#ifdef FREEBSD
+#if defined(BSD) && defined(__FreeBSD__) && defined(__FreeBSD_kernel__)
 #include <semaphore.h>
 #endif
 #ifdef DARWIN
@@ -188,7 +187,8 @@
 
 #include <sys/mman.h>
 
-#ifdef FREEBSD
+/* FreeBSD_kernel is not defined on the now discontinued kFreeBSD  */
+#if defined(BSD) && defined(__FreeBSD__) && defined(__FreeBSD_kernel__)
 #define __BYTE_ORDER BYTE_ORDER
 #define __BIG_ENDIAN BIG_ENDIAN
 #endif
