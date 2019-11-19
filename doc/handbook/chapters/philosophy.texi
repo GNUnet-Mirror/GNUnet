@@ -31,7 +31,7 @@ These are the GNUnet design principles, in order of importance:
 @itemize
 @item GNUnet must be implemented as
 @uref{https://www.gnu.org/philosophy/free-sw.html, Free Software} ---
-This means that you you have the four essential freedoms: to run
+This means that you have the four essential freedoms: to run
 the program, to study and change the program in source code form,
 to redistribute exact copies, and to distribute modified versions.
 (@uref{https://www.gnu.org/philosophy/free-sw.html}).
