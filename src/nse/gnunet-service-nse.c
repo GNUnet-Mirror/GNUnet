@@ -75,7 +75,7 @@
   (GNUNET_MQ_PRIO_BACKGROUND | GNUNET_MQ_PREF_UNRELIABLE   \
    | GNUNET_MQ_PREF_CORK_ALLOWED)
 
-#if BSD
+#ifdef BSD
 #define log2(a) (log (a) / log (2))
 #endif
 
