@@ -1135,7 +1135,7 @@ main (int argc, char *const *argv)
 }
 
 
-#if defined(LINUX) && defined(__GLIBC__)
+#if defined(__linux__) && defined(__GLIBC__)
 #include <malloc.h>
 
 /**

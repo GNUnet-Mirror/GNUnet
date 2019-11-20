@@ -962,7 +962,7 @@ GNUNET_NETWORK_socket_disable_corking (struct GNUNET_NETWORK_Handle *desc)
 {
   int ret = 0;
 
-#if LINUX
+#if __linux__
   int value = 0;
 
   if (0 !=

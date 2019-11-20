@@ -115,7 +115,7 @@ struct SendBuffer
   char buf[MAXLINE * 2];
 };
 
-#ifdef LINUX
+#ifdef __linux__
 /**
  * Devices buffer used to keep a list with all the discoverable devices in
  * order to send them HELLO messages one by one when it receive a broadcast message.
@@ -567,7 +567,7 @@ check_crc_buf_osdep (const unsigned char *buf, size_t len)
 
 
 /* ************** end of clone  ***************** */
-#ifdef LINUX
+#ifdef __linux__
 /**
  * Function for assigning a port number
  *
@@ -795,7 +795,7 @@ read_from_the_socket (void *sock,
     return -1;
   }
 
-  #ifdef LINUX
+  #ifdef __linux__
   /* Get the channel used */
   int len;
   struct sockaddr_rc rc_addr = { 0 };
@@ -1012,7 +1012,7 @@ mac_set (struct GNUNET_TRANSPORT_WLAN_Ieee80211Frame *taIeeeHeader,
 }
 
 
-#ifdef LINUX
+#ifdef __linux__
 /**
  * Test if the given interface name really corresponds to a bluetooth
  * device.
@@ -1117,7 +1117,7 @@ stdin_send_hw (void *cls, const struct GNUNET_MessageHeader *hdr)
 }
 
 
-#ifdef LINUX
+#ifdef __linux__
 /**
  * Broadcast a HELLO message for peer discovery
  *
@@ -1382,7 +1382,7 @@ inquiry_devices:      // skip the conditions and force a inquiry for new devices
 int
 main (int argc, char *argv[])
 {
-#ifdef LINUX
+#ifdef __linux__
   struct HardwareInfos dev;
   char readbuf[MAXLINE];
   int maxfd;

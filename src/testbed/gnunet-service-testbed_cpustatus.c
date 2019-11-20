@@ -57,7 +57,7 @@ static processor_cpu_load_info_t prev_cpu_load;
 
 #define DEBUG_STATUSCALLS GNUNET_NO
 
-#ifdef LINUX
+#ifdef __linux__
 static FILE *proc_stat;
 #endif
 
@@ -133,7 +133,7 @@ updateUsage ()
 {
   currentIOLoad = -1;
   currentCPULoad = -1;
-#ifdef LINUX
+#ifdef __linux__
   /* under linux, first try %idle/usage using /proc/stat;
      if that does not work, disable /proc/stat for the future
      by closing the file and use the next-best method. */
@@ -509,7 +509,7 @@ mem_get_usage ()
 }
 
 
-#ifdef LINUX
+#ifdef __linux__
 #include <dirent.h>
 /**
  * Returns the number of processes
@@ -557,7 +557,7 @@ sample_load_task (void *cls)
   if ((-1 == ld_cpu) || (-1 == ld_disk))
     goto reschedule;
   mem_usage = mem_get_usage ();
-#ifdef LINUX
+#ifdef __linux__
   nproc = get_nproc ();
 #else
   nproc = 0;
@@ -622,7 +622,7 @@ GST_stats_init (const struct GNUNET_CONFIGURATION_Handle *cfg)
   }
   GNUNET_free (fn);
   sample_load_task_id = GNUNET_SCHEDULER_add_now (&sample_load_task, NULL);
-#ifdef LINUX
+#ifdef __linux__
   proc_stat = fopen ("/proc/stat", "r");
   if (NULL == proc_stat)
     GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING,
@@ -642,7 +642,7 @@ GST_stats_destroy ()
 {
   if (NULL == bw)
     return;
-#ifdef LINUX
+#ifdef __linux__
   if (proc_stat != NULL)
   {
     fclose (proc_stat);

@@ -134,7 +134,7 @@ GNUNET_OS_init (const struct GNUNET_OS_ProjectData *pd)
 }
 
 
-#if LINUX
+#if __linux__
 /**
  * Try to determine path by reading /proc/PID/exe
  *
@@ -383,7 +383,7 @@ os_get_gnunet_path ()
 
   if (NULL != (ret = get_path_from_GNUNET_PREFIX ()))
     return ret;
-#if LINUX
+#if __linux__
   if (NULL != (ret = get_path_from_proc_maps ()))
     return ret;
   /* try path *first*, before /proc/exe, as /proc/exe can be wrong */
@@ -421,7 +421,7 @@ os_get_exec_path ()
 {
   char *ret = NULL;
 
-#if LINUX
+#if __linux__
   if (NULL != (ret = get_path_from_proc_exe ()))
     return ret;
 #endif

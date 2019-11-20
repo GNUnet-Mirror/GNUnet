@@ -89,7 +89,7 @@ get_size (unsigned int iter)
   size_t ret;
 
   ret = (iter * iter * iter);
-#ifndef LINUX
+#ifndef __linux__
   /* FreeBSD/OSX etc. Unix DGRAMs do not work
    * with large messages */
   if (0 == strcmp ("unix", ccc->test_plugin))

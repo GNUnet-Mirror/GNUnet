@@ -1505,7 +1505,7 @@ GNUNET_DISK_file_sync (const struct GNUNET_DISK_FileHandle *h)
     return GNUNET_SYSERR;
   }
 
-#if ! defined(LINUX) || ! defined(GNU)
+#if ! defined(__linux__) || ! defined(GNU)
   return fsync (h->fd) == -1 ? GNUNET_SYSERR : GNUNET_OK;
 #else
   return fdatasync (h->fd) == -1 ? GNUNET_SYSERR : GNUNET_OK;

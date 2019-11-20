@@ -1755,7 +1755,7 @@ libgnunet_plugin_transport_unix_init (void *cls)
   plugin->env = env;
 
   /* Initialize my flags */
-#ifdef LINUX
+#ifdef __linux__
   plugin->is_abstract =
     GNUNET_CONFIGURATION_get_value_yesno (plugin->env->cfg,
                                           "testing",

@@ -200,7 +200,7 @@ test_bigmeta_rw ()
 static int
 test_directory_r ()
 {
-#if LINUX
+#if __linux__
   char *msg;
   char readResult[200];
   struct GNUNET_BIO_ReadHandle *fileR;
@@ -244,7 +244,7 @@ test_nullfile_rw ()
 static int
 test_fullfile_rw ()
 {
-#ifdef LINUX
+#ifdef __linux__
   /* /dev/full only seems to exist on Linux */
   char *msg;
   int64_t testNum;

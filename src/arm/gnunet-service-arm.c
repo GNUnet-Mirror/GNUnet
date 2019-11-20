@@ -301,7 +301,7 @@ add_unixpath (struct sockaddr **saddrs,
   un = GNUNET_new (struct sockaddr_un);
   un->sun_family = AF_UNIX;
   GNUNET_strlcpy (un->sun_path, unixpath, sizeof(un->sun_path));
-#ifdef LINUX
+#ifdef __linux__
   if (GNUNET_YES == abstract)
     un->sun_path[0] = '\0';
 #endif
@@ -455,7 +455,7 @@ get_server_addresses (const char *service_name,
       unixpath = GNUNET_NETWORK_shorten_unixpath (unixpath);
       LOG (GNUNET_ERROR_TYPE_INFO, _ ("Using `%s' instead\n"), unixpath);
     }
-#ifdef LINUX
+#ifdef __linux__
     abstract = GNUNET_CONFIGURATION_get_value_yesno (cfg,
                                                      "TESTING",
                                                      "USE_ABSTRACT_SOCKETS");
@@ -1081,7 +1081,7 @@ create_listen_socket (struct sockaddr *sa,
     return;
   }
   if ((AF_UNIX == sa->sa_family)
-#ifdef LINUX
+#ifdef __linux__
       /* Permission settings are not required when abstract sockets are used */
       && ('\0' != ((const struct sockaddr_un *) sa)->sun_path[0])
 #endif
@@ -2188,7 +2188,7 @@ main (int argc, char *const *argv)
 }
 
 
-#if defined(LINUX) && defined(__GLIBC__)
+#if defined(__linux__) && defined(__GLIBC__)
 #include <malloc.h>
 
 /**

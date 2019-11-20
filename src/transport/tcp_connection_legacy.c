@@ -876,7 +876,7 @@ GNUNET_CONNECTION_create_from_connect_to_unixpath (
   un = GNUNET_new (struct sockaddr_un);
   un->sun_family = AF_UNIX;
   GNUNET_strlcpy (un->sun_path, unixpath, sizeof(un->sun_path));
-#ifdef LINUX
+#ifdef __linux__
   {
     int abstract;
 

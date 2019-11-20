@@ -1166,7 +1166,7 @@ get_server_addresses (const char *service_name,
       unixpath = GNUNET_NETWORK_shorten_unixpath (unixpath);
       LOG (GNUNET_ERROR_TYPE_INFO, _ ("Using `%s' instead\n"), unixpath);
     }
-#ifdef LINUX
+#ifdef __linux__
     abstract = GNUNET_CONFIGURATION_get_value_yesno (cfg,
                                                      "TESTING",
                                                      "USE_ABSTRACT_SOCKETS");

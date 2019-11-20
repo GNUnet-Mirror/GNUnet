@@ -1362,7 +1362,7 @@ GNUNET_SERVICE_MAIN (
   GNUNET_MQ_handler_end ());
 
 
-#if defined(LINUX) && defined(__GLIBC__)
+#if defined(__linux__) && defined(__GLIBC__)
 #include <malloc.h>
 
 /**

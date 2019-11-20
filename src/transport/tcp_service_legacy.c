@@ -482,7 +482,7 @@ add_unixpath (struct sockaddr **saddrs,
   un = GNUNET_new (struct sockaddr_un);
   un->sun_family = AF_UNIX;
   GNUNET_strlcpy (un->sun_path, unixpath, sizeof(un->sun_path));
-#ifdef LINUX
+#ifdef __linux__
   if (GNUNET_YES == abstract)
     un->sun_path[0] = '\0';
 #endif
@@ -637,7 +637,7 @@ LEGACY_SERVICE_get_server_addresses (
       unixpath = GNUNET_NETWORK_shorten_unixpath (unixpath);
       LOG (GNUNET_ERROR_TYPE_INFO, _ ("Using `%s' instead\n"), unixpath);
     }
-#ifdef LINUX
+#ifdef __linux__
     abstract = GNUNET_CONFIGURATION_get_value_yesno (cfg,
                                                      "TESTING",
                                                      "USE_ABSTRACT_SOCKETS");

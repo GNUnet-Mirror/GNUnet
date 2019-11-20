@@ -41,7 +41,7 @@
 #define LOG(kind, ...) GNUNET_log_from (kind, "transport-udp", __VA_ARGS__)
 
 /* *********** Cryogenic ********** */
-#if LINUX
+#if __linux__
 #include <sys/stat.h>
 #include <fcntl.h>
 
@@ -92,7 +92,7 @@ struct BroadcastAddress
 
   socklen_t addrlen;
 
-#if LINUX
+#if __linux__
   /**
    * Cryogenic handle.
    */
@@ -277,7 +277,7 @@ udp_ipv4_broadcast_send (void *cls)
     }
   }
 
-#if LINUX
+#if __linux__
   /*
    * Cryogenic
    */
@@ -359,7 +359,7 @@ udp_ipv6_broadcast_send (void *cls)
          GNUNET_a2s ((const struct sockaddr *) &plugin->ipv6_multicast_address,
                      sizeof(struct sockaddr_in6)));
   }
-#if LINUX
+#if __linux__
   /*
    * Cryogenic
    */
@@ -448,7 +448,7 @@ iface_proc (void *cls,
       (NULL != plugin->sockv4) &&
       (addrlen == sizeof(struct sockaddr_in)))
   {
-#if LINUX
+#if __linux__
     /*
      * setup Cryogenic FD for ipv4 broadcasting
      */
@@ -503,7 +503,7 @@ iface_proc (void *cls,
     }
     else
     {
-#if LINUX
+#if __linux__
       /*
        * setup Cryogenic FD for ipv6 broadcasting
        */
@@ -632,7 +632,7 @@ stop_broadcast (struct Plugin *plugin)
         }
       }
 
-#if LINUX
+#if __linux__
       GNUNET_DISK_file_close (p->cryogenic_fd);
 #endif
       GNUNET_CONTAINER_DLL_remove (plugin->broadcast_head,
