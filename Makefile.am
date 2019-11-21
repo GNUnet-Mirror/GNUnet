@@ -96,3 +96,5 @@ check-texinfo:
 	printf "...lines telling us what is left TODO or to fix?\n" 2>&1 | tee -a $(top_srcdir)/doc/tutorial/texinfo_tutorial.log || true
 	@cd $(top_srcdir)/doc/tutorial ; find . -type f ! -path '*/.*' -name '*.texi' -print0 | xargs -0 awk '/TODO/ {print FILENAME":"NR":"$$0}' >> $(srcdir)/texinfo_tutorial.log || true
 	@cd $(top_srcdir)/doc/tutorial ; find . -type f ! -path '*/.*' -name '*.texi' -print0 | xargs -0 awk '/XXX/ {print FILENAME":"NR":"$$0}' >> $(srcdir)/texinfo_tutorial.log || true
+	printf "...lines containing a popular typo\n" 2>&1 | tee -a $(top_srcdir)/lint.log || true
+	@cd $(top_srcdir) ; find . -type f ! -path '*/.*' -name '*' -print0 | xargs -0 awk '/wether/ {print FILENAME":"NR":"$$0}' >> $(srcdir)/lint.log || true
