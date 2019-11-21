@@ -249,7 +249,8 @@ gnunet_qr_SOURCES = \
 gnunet_qr_LDADD = \
   libgnunetutil.la \
   $(GN_LIBINTL)
-gnunet_qr_LDFLAGS= -lzbar -ljpeg -lICE -lSM -lX11 -lXv
+gnunet_qr_LDFLAGS= -lzbar -ljpeg
+# -lICE -lSM -lX11 -lXv
 
 plugin_LTLIBRARIES = \
   libgnunet_plugin_test.la
