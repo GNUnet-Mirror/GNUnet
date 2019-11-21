@@ -548,7 +548,7 @@ EOF
 
 main()
 {
-    if test -n "$1" -a "$1" = "-h"; then
+    if test -n "$1" -a "$1" = "-h" -o "$1" = "--help"; then
         echo "Usage: ${progname} [-h]"
         echo "If CPPFLAGS and LDFLAGS are unset, try:"
         echo "CPPFLAGS='-I/usr/pkg/include' LDFLAGS='-L/usr/pkg/lib' ${progname}"
