@@ -230,7 +230,7 @@ gnunet010x_check()
     TEST=`$WHICH gnunet-arm | grep -v "not found" 2>/dev/null`
     if test -n "$TEST"; then
         VER=`gnunet-arm -v | sed -e "s/v//" 2>/dev/null | awk '{print $2}'`
-        VER9=`echo $VER | grep ^0\.10\.`
+        VER10=`echo $VER | grep ^0\.10\.`
         if test -n "$VER10"; then
             warningmsg "GNUnet 0.10    : $VER"
         else
@@ -470,8 +470,9 @@ gnurl_check()
 
 libmicrohttpd_check()
 {
-    TMPFILE=`mktemp /tmp/mhd-version-testXXXXXX`
-    cat - >$TMPFILE.c <<EOF
+    # TMPFILE=`mktemp /tmp/mhd-version-testXXXXXX`
+    TMPFILE="bugreport-test_lmhd.c"
+    cat - >$TMPFILE <<EOF
 #include <microhttpd.h>
 #include <stdio.h>
 int main()
@@ -480,17 +481,24 @@ int main()
   return 0;
 }
 EOF
-    VER="Not found"
-    gcc -o $TMPFILE $TMPFILE.c 2> /dev/null && VER=`$TMPFILE`
-    cc -o $TMPFILE $TMPFILE.c 2> /dev/null && VER=`$TMPFILE`
-    rm -f $TMPFILE $TMPFILE.bin
+    if test -x `$WHICH gcc | awk '{print $NF}'`; then
+        gcc $CPPFLAGS $CFLAGS -o "$TMPFILE".bin "$TMPFILE"
+        VER=`./"$TMPFILE".bin`
+    elif test -x `$WHICH cc | awk '{print $NF}'`; then
+        cc $CPPFLAGS $CFLAGS -o $TMPFILE.bin $TMPFILE
+        VER=`./$TMPFILE.bin`
+    else
+        VER="Not found"
+    fi
     infomsg "libmicrohttpd  : $VER"
+    rm -f $TMPFILE.c $TMPFILE $TMPFILE.bin
 }
 
 glpk_check()
 {
-    TMPFILE=`mktemp /tmp/glpk-version-testXXXXXX`
-    cat - >$TMPFILE.c <<EOF
+    # TMPFILE=`mktemp /tmp/glpk-version-testXXXXXX`
+    TMPFILE="bugreport-glpk_check.c"
+    cat - >$TMPFILE <<EOF
 #include <glpk.h>
 #include <stdio.h>
 int main()
@@ -499,17 +507,24 @@ int main()
   return 0;
 }
 EOF
-    VER="Not found"
-    gcc -o $TMPFILE $TMPFILE.c 2> /dev/null && VER=`$TMPFILE`
-    cc -o $TMPFILE $TMPFILE.c 2> /dev/null && VER=`$TMPFILE`
-    rm -f $TMPFILE $TMPFILE.bin
+    if test -x `$WHICH gcc | awk '{print $NF}'`; then
+        gcc $CPPFLAGS $CFLAGS -o "$TMPFILE".bin $TMPFILE
+        VER=`./$TMPFILE.bin`
+    elif test -x `$WHICH cc | awk '{print $NF}'`; then
+        cc $CPPFLAGS $CFLAGS -o "$TMPFILE".bin $TMPFILE
+        VER=`./"$TMPFILE".bin`
+    else
+        VER="Not found"
+    fi
     infomsg "GNU GLPK       : $VER"
+    rm -f $TMPFILE.c $TMPFILE $TMPFILE.bin
 }
 
 gnutls_check()
 {
-    TMPFILE=`mktemp /tmp/gnutls-version-testXXXXXX`
-    cat - >$TMPFILE.c <<EOF
+    # TMPFILE=`mktemp /tmp/gnutls-version-testXXXXXX`
+    TMPFILE="bugreport-gnutls_check.c"
+    cat - >$TMPFILE <<EOF
 #include <gnutls/gnutls.h>
 #include <stdio.h>
 int main()
@@ -518,15 +533,29 @@ int main()
   return 0;
 }
 EOF
-    VER="Not found"
-    gcc -o $TMPFILE $TMPFILE.c 2> /dev/null && VER=`$TMPFILE`
-    cc -o $TMPFILE $TMPFILE.c 2> /dev/null && VER=`$TMPFILE`
-    rm -f $TMPFILE $TMPFILE.bin
+    if test -x `$WHICH gcc | awk '{print $NF}'`; then
+        gcc $CPPFLAGS $CFLAGS -o "$TMPFILE".bin $TMPFILE
+        VER=`./"$TMPFILE".bin`
+    elif test -x `$WHICH cc | awk '{print $NF}'`; then
+        cc $CPPFLAGS $CFLAGS -o "$TMPFILE".bin $TMPFILE
+        VER=`./"$TMPFILE".bin`
+    else
+        VER="Not found"
+    fi
     infomsg "GnuTLS         : $VER"
+    rm -f $TMPFILE.c $TMPFILE $TMPFILE.bin
 }
 
 main()
 {
+    if test -n "$1" -a "$1" = "-h"; then
+        echo "Usage: ${progname} [-h]"
+        echo "If CPPFLAGS and LDFLAGS are unset, try:"
+        echo "CPPFLAGS='-I/usr/pkg/include' LDFLAGS='-L/usr/pkg/lib' ${progname}"
+        return 0
+    fi
+    echo $LDFLAGS
+    echo $CPPFLAGS
     infomsg "${progname} 0.11.0"
     infomsg
     infomsg "Please submit the following"
