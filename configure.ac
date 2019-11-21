@@ -665,8 +665,9 @@ AS_IF([test "$bluetooth" = 1],
       [AC_DEFINE([HAVE_LIBBLUETOOTH],[0],[Lacking bluetooth library])])
 
 # check for zbar library
-# TODO: Add checks for: -lSM, -lICE, -lX11, -lXv and -ljpeg
-# TODO: if zbar exists.
+# NOTE: Do not add checks for: -lSM, -lICE, -lX11, -lXv and -ljpeg
+# NOTE: they must be provided by the build environment, not the
+# NOTE: build-system of gnunet, as they are 2nd or 3rd level dependencies.
 zbar=0
 AC_MSG_CHECKING(for libzbar)
 AC_ARG_WITH(zbar,
@@ -690,132 +691,6 @@ AM_CONDITIONAL(HAVE_ZBAR, [test "$zbar" = 1])
 AS_IF([test "x$zbar" = x1],
       [AC_DEFINE([HAVE_ZBAR],[1],[Have zbar library])],
       [AC_DEFINE([HAVE_ZBAR],[0],[Lacking zbar library])])
-
-# libjpeg - pulled in by zbar which is required by gnunet-qr.
-# At least IJG's jpeg works. If you need more, extend this.
-jpeg=0
-AC_MSG_CHECKING(for jpeg)
-AC_ARG_WITH(zbar,
-   [  --with-jpeg=PREFIX (base of jpeg installation)],
-   [AC_MSG_RESULT([$with_jpeg])
-    AS_CASE([$with_jpeg],
-      [no],[],
-      [yes],[CHECK_LIBHEADER(JPEG, jpeg, jpeg_std_error, jpeglib.h,jpeg=1,,)],
-      [
-        LDFLAGS="-L$with_jpeg/lib $LDFLAGS"
-        CPPFLAGS="-I$with_jpeg/include $CPPFLAGS"
-        AC_CHECK_HEADERS(jpeglib.h,
-          AC_CHECK_LIB([jpeg], [jpeg_std_error],
-            EXT_LIB_PATH="-L$with_jpeg/lib $EXT_LIB_PATH"
-            jpeg=1))
-       ])
-   ],
-   [AC_MSG_RESULT([--with-jpeg not specified])
-    CHECK_LIBHEADER(JPEG, jpeg, jpeg_std_error, jpeglib.h,jpeg=1,,)])
-AM_CONDITIONAL(HAVE_JPEG, [test "$jpeg" = 1])
-AS_IF([test "x$jpeg" = x1],
-      [AC_DEFINE([HAVE_JPEG],[1],[Have jpeg library])],
-      [AC_DEFINE([HAVE_JPEG],[0],[Lacking jpeg library])])
-
-# libSM
-sm=0
-AC_MSG_CHECKING(for SM)
-AC_ARG_WITH(sm,
-   [  --with-sm=PREFIX (base of SM installation)],
-   [AC_MSG_RESULT([$with_sm])
-    AS_CASE([$with_sm],
-      [no],[],
-      [yes],[CHECK_LIBHEADER(SM, sm, SM_Error, X11/SM/SM.h,sm=1,,)],
-      [
-        LDFLAGS="-L$with_sm/lib $LDFLAGS"
-        CPPFLAGS="-I$with_sm/include $CPPFLAGS"
-        AC_CHECK_HEADERS(X11/SM/SM.h,
-          AC_CHECK_LIB([SM], [SM_Error],
-            EXT_LIB_PATH="-L$with_sm/lib $EXT_LIB_PATH"
-            sm=1))
-       ])
-   ],
-   [AC_MSG_RESULT([--with-sm not specified])
-    CHECK_LIBHEADER(SM, sm, SM_Error, X11/SM/SM.h,sm=1,,)])
-AM_CONDITIONAL(HAVE_SM, [test "$sm" = 1])
-AS_IF([test "x$sm" = x1],
-      [AC_DEFINE([HAVE_SM],[1],[Have sm library])],
-      [AC_DEFINE([HAVE_SM],[0],[Lacking sm library])])
-
-# libICE
-ice=0
-AC_MSG_CHECKING(for ICE)
-AC_ARG_WITH(ice,
-   [  --with-ice=PREFIX (base of ICE installation)],
-   [AC_MSG_RESULT([$with_ice])
-    AS_CASE([$with_ice],
-      [no],[],
-      [yes],[CHECK_LIBHEADER(ICE, ice, ICE_Error, X11/ICE/ICE.h,ice=1,,)],
-      [
-        LDFLAGS="-L$with_ice/lib $LDFLAGS"
-        CPPFLAGS="-I$with_ice/include $CPPFLAGS"
-        AC_CHECK_HEADERS(X11/ICE/ICE.h,
-          AC_CHECK_LIB([ICE], [ICE_Error],
-            EXT_LIB_PATH="-L$with_ice/lib $EXT_LIB_PATH"
-            ice=1))
-       ])
-   ],
-   [AC_MSG_RESULT([--with-ice not specified])
-    CHECK_LIBHEADER(ICE, ice, ICE_Error, X11/ICE/ICE.h,ice=1,,)])
-AM_CONDITIONAL(HAVE_ICE, [test "$ice" = 1])
-AS_IF([test "x$ice" = x1],
-      [AC_DEFINE([HAVE_ICE],[1],[Have ICE library])],
-      [AC_DEFINE([HAVE_ICE],[0],[Lacking ICE library])])
-
-# libX11
-x11=0
-AC_MSG_CHECKING(for X11)
-AC_ARG_WITH(x11,
-   [  --with-x11=PREFIX (base of X11 installation)],
-   [AC_MSG_RESULT([$with_x11])
-    AS_CASE([$with_x11],
-      [no],[],
-      [yes],[CHECK_LIBHEADER(X11, x11, X_PROTOCOL, X11/X.h,x11=1,,)],
-      [
-        LDFLAGS="-L$with_x11/lib $LDFLAGS"
-        CPPFLAGS="-I$with_x11/include $CPPFLAGS"
-        AC_CHECK_HEADERS(X11/X.h,
-          AC_CHECK_LIB([X11], [X_PROTOCOL],
-            EXT_LIB_PATH="-L$with_x11/lib $EXT_LIB_PATH"
-            x11=1))
-       ])
-   ],
-   [AC_MSG_RESULT([--with-x11 not specified])
-    CHECK_LIBHEADER(X11, x11, X_PROTOCOL, X11/X.h,x11=1,,)])
-AM_CONDITIONAL(HAVE_X11, [test "$x11" = 1])
-AS_IF([test "x$x11" = x1],
-      [AC_DEFINE([HAVE_X11],[1],[Have x11 library])],
-      [AC_DEFINE([HAVE_X11],[0],[Lacking x11 library])])
-
-# libXv
-xv=0
-AC_MSG_CHECKING(for Xv)
-AC_ARG_WITH(xv,
-   [  --with-xv=PREFIX (base of Xv installation)],
-   [AC_MSG_RESULT([$with_xv])
-    AS_CASE([$with_xv],
-      [no],[],
-      [yes],[CHECK_LIBHEADER(XV, xv, XvName, X11/extensions/Xv.h,xv=1,,)],
-      [
-        LDFLAGS="-L$with_xv/lib $LDFLAGS"
-        CPPFLAGS="-I$with_xv/include $CPPFLAGS"
-        AC_CHECK_HEADERS(X11/extensions/Xv.h,
-          AC_CHECK_LIB([Xv], [XvName],
-            EXT_LIB_PATH="-L$with_xv/lib $EXT_LIB_PATH"
-            xv=1))
-       ])
-   ],
-   [AC_MSG_RESULT([--with-xv not specified])
-    CHECK_LIBHEADER(XV, xv, XvName, X11/extensions/Xv.h,xv=1,,)])
-AM_CONDITIONAL(HAVE_XV, [test "$xv" = 1])
-AS_IF([test "x$xv" = x1],
-      [AC_DEFINE([HAVE_XV],[1],[Have Xv library])],
-      [AC_DEFINE([HAVE_XV],[0],[Lacking Xv library])])
 
 # check for jansson library
 jansson=0
@@ -2107,31 +1982,6 @@ AS_IF([test "x$MANDOC_BINARY" = "false"],
       [AC_MSG_NOTICE([WARNING: optional mandoc binary not found])
        mandoc_msg="no"],
       [mandoc_msg="yes"])
-# -- jpeg
-AS_IF([test "x$jpeg" != "x1"],
-      [jpeg_msg="no"],
-      [jpeg_msg="yes"
-       zbar_msg="$zbar_msg jpeg"])
-# -- X11
-AS_IF([test "x$x11" != "x1"],
-      [X11_msg="no"],
-      [X11_msg="yes"
-       zbar_msg="$zbar_msg X11"])
-# -- SM
-AS_IF([test "x$sm" != "x1"],
-      [sm_msg="no"],
-      [sm_msg="yes"
-       zbar_msg="$zbar_msg sm"])
-# -- ICE
-AS_IF([test "x$ice" != "x1"],
-      [ICE_msg="no"],
-      [ICE_msg="yes"
-       zbar_msg="$zbar_msg ICE"])
-# -- XV
-AS_IF([test "x$xv" != "x1"],
-      [XV_msg="no"],
-      [XV_msg="yes"
-       zbar_msg="$zbar_msg XV"])
 # -- texinfo
 AS_IF([test "x$makeinfo" != "x1"],
       [texinfo_msg="no"],
@@ -2231,8 +2081,6 @@ AS_IF([test "$postgres" = true],
 # ---- 2. sort the lines,
 # ---- 3. replace the newlines with spaces.
 features_msg=`echo $features_msg | tr ' ' '\012' | sort | tr '\012' ' '`
-zbar_msg=`echo $zbar_msg | tr ' ' '\012' | sort | tr '\012' ' '`
-AC_SUBST(zbar_msg)
 AC_SUBST(features_msg)
 
 
@@ -2268,7 +2116,6 @@ ifconfig:                       ${ifconfig_msg}
 upnpc:                          ${upnpc_msg}
 gnutls:                         ${gnutls_msg}
 libzbar:                        ${libzbar_msg}
-libzbar dependencies found:     ${zbar_msg}
 java:                           ${java_msg}
 libmicrohttpd:                  ${libmicrohttpd_msg}
 libidn:                         ${libidn1_msg}${libidn2_msg}
