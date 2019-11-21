@@ -12,7 +12,8 @@ noinst_SCRIPTS = \
  gnunet-chk.py
 
 bin_SCRIPTS = \
- gnunet-bugreport
+ gnunet-bugreport \
+ gnunet-suidfix
 
 EXTRA_DIST = \
  coverage.sh \
@@ -22,7 +23,8 @@ EXTRA_DIST = \
  gnunet-chk.py.in \
  $(SCRIPTS) \
  removetrailingwhitespace.py.in \
- pydiffer.py.in
+ pydiffer.py.in \
+ gnunet-suidfix
 
 CLEANFILES = \
   $(noinst_SCRIPTS)
