@@ -398,7 +398,7 @@ AS_IF([test "x$documentation" = "xyes"],
                  [0],
                  [Not building the documentation])])
 
-# COMMENT: Check wether to transpile texinfo to mdoc.
+# COMMENT: Check whether to transpile texinfo to mdoc.
 # COMMENT: This is TRUE when --enable-texi2mdoc-generation
 # COMMENT: but ERRORS when texi2mdoc binary is missing in your $PATH
 # COMMENT: and makes the configure fail if it is missing.
@@ -408,7 +408,7 @@ AS_IF([test "x$documentation" = "xyes"],
 # COMMENT: There are 2 nested AS_IFs because we need to catch the
 # COMMENT: potential non-existence of the texi2mdoc binary.
 # COMMENT: Default return value / setting: no
-AC_MSG_CHECKING(wether to include generated texi2mdoc output in installation)
+AC_MSG_CHECKING(whether to include generated texi2mdoc output in installation)
 AC_ARG_ENABLE([texi2mdoc-generation],
               [AS_HELP_STRING([--enable-texi2mdoc-generation],
                               [include generated texi2mdoc output in installation])],
@@ -1667,7 +1667,7 @@ AC_MSG_RESULT($enable_benchmarks)
 AM_CONDITIONAL([HAVE_BENCHMARKS], [test "x$enable_benchmarks" = "xyes"])
 
 # should gnunet-testing be compiled
-AC_MSG_CHECKING(wether to compile gnunet-testing)
+AC_MSG_CHECKING(whether to compile gnunet-testing)
 AC_ARG_ENABLE([testing],
    [AS_HELP_STRING([--disable-testing], [do not build gnunet-testing])],
    [enable_testing=${enableval}],

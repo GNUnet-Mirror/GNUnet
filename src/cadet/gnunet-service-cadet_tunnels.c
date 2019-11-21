@@ -1508,7 +1508,7 @@ cleanup_ax (struct CadetTunnelAxolotl *ax)
 /**
  * Update our Axolotl key state based on the KX data we received.
  * Computes the new chain keys, and root keys, etc, and also checks
- * wether this is a replay of the current chain.
+ * whether this is a replay of the current chain.
  *
  * @param[in|out] axolotl chain key state to recompute
  * @param pid peer identity of the other peer
