@@ -48,7 +48,7 @@ AC_PROG_INSTALL
 AC_PROG_LN_S
 AC_PROG_MAKE_SET
 AM_PROG_CC_C_O
-LT_INIT([disable-static dlopen win32-dll])
+LT_INIT([disable-static dlopen])
 AC_SUBST(MKDIR_P)
 
 # allow for different autotools
