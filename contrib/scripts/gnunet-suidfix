@@ -1,8 +1,11 @@
 #!/bin/sh
 #
-# "suidfix" is german and it means something like immediate suicide.
+# "suidfix" - fix permissions and sticky bits for the binaries
+# installed by GNUnet.
+# Takes GNUNET_PREFIX from the environment.
+#
+# Taken from dangole's LEDE/OpenWRT config.. thx!
 
-# taken from dangole's lede config.. thx!
 suid_root_helpers="exit nat-server nat-client transport-bluetooth transport-wlan vpn"
 libexec="${GNUNET_PREFIX}/lib/gnunet/libexec"
 
