@@ -94,23 +94,47 @@ cplusplus_check()
     fi
 }
 
+clang_check()
+{
+    TEST=`$WHICH clang | grep -v "not found" 2>/dev/null`
+    if test -n "$TEST"; then
+        VERS=`clang --version 2>/dev/null | head -n 1`
+        infomsg "clang          : $VERS"
+    elif test -n "`clang 2>&1 | tail -1 | awk '{print $1}'`"; then
+        VERS=`clang --version 2>/dev/null | head -n 1`
+        infomsg "clang          : $VERS"
+    else
+        warningmsg "clang          : Not Found";
+    fi
+}
+
+clangplusplus_check()
+{
+    TEST=`$WHICH clang++ | grep -v "not found" 2>/dev/null`
+    if test -n "$TEST"; then
+        VERS=`clang++ --version 2>/dev/null | head -n 1`
+        infomsg "clang++        : $VERS"
+    elif test -n "`clang++ 2>&1 | tail -1 | awk '{print $1}'`"; then
+        VERS=`clang++ --version 2>/dev/null | head -n 1`
+        infomsg "clang++        : $VERS"
+    else
+        warningmsg "clang++        : Not Found";
+    fi
+}
+
 gmake_check()
 {
     TEST=`$WHICH gmake | grep -v "not found"  2>/dev/null`
     if test -n "$TEST" ; then
-        VER=`gmake --version 2>/dev/null |\
-	    awk -F, '{print $1}' |\
-	    awk '/GNU Make/{,$NF}'`
-        infomsg "gmake            : $VER"
+        VER=$(gmake --version 2>/dev/null | awk '/GNU Make/ {print $3}')
+        infomsg "gmake          : $VER"
     else
         TEST=`make --version 2>/dev/null`
         if test -n "$TEST"; then
-	    VER=`make --version 2>/dev/null |\
-	        awk -F, '{print $1}' |\
-	        awk '/GNU Make/{print $NF}'`
-            infomsg "gmake          : $VER"
+	    VER=$(make --version 2>/dev/null | awk '/GNU Make/ {print $3}')
+            infomsg "gmake        : $VER"
         else
-	    warningmsg "gmake           : Not Found"
+	    warningmsg "gmake         : Not Found"
         fi
     fi
 }
@@ -255,7 +279,7 @@ pkgconf_check()
 {
     TEST=`$WHICH pkgconf | grep -v "not found" 2> /dev/null`
     if test -n "$TEST"; then
-        pkgconf --version 2> /dev/null | awk '{print "pkgconf     : "$1}'
+        pkgconf --version 2> /dev/null | awk '{print "    INFO:    pkgconf        : "$1}'
     else
         infomsg "pkgconf        : Not Found"
     fi
@@ -346,7 +370,14 @@ gmp_check()
             rpm -q gmp | sed -e "s/gmp-//" 2> /dev/null | \
                 infomsg "GMP            : $1.rpm"
         else
-            warningmsg "GMP            : Test not available"
+            infomsg "GMP            : Test not available"
+        fi
+        TEST=$($WHICH pkg_info | grep -v "not found" 2> /dev/null)
+        if test -n "$TEST"; then
+            VER=$(pkg_info -e gmp)
+            infomsg "GMP            : $VER"
+        else
+            infomsg "GMP            : Test not available"
         fi
     fi
 }
@@ -371,30 +402,35 @@ libunistring_check()
         else
             infomsg "libunistring   : Test not available"
         fi
+        TEST=$($WHICH pkg_info | grep -v "not found" 2> /dev/null)
+        if test -n "$TEST"; then
+            VER=$(pkg_info -e libunistring)
+            infomsg "libunistring   : $VER"
+        else
+            infomsg "libunistring   : Test not available"
+        fi
     fi
 }
 
-pkgadd_check()
+gnugettext_check()
 {
-    TEST=`$WHICH pkg_add | grep -v "not found" 2> /dev/null`
+    TEST=`$WHICH gettext | grep -v "not found" 2> /dev/null`
     if test -n "$TEST"; then
-        VERSION_UNISTRING=`pkg_info -Nb libunistring`
-        VERSION_GMP=`pkg_info -Nb gmp`
-        echo "libunistring     :"
-        echo "$VERSION_UNISTRING"
-        echo "GMP              :"
-        echo "$VERSION_GMP"
+        if test -n "$(gettext --version 2>&1 | awk '/unknown option/')"; then
+            infomsg "GNU gettext    : Not found"
+        else
+            VER=`gettext --version | awk '/GNU gettext/ {print $4}'`
+            infomsg "GNU gettext    : $VER"
+        fi
     fi
 }
 
 gettext_check()
 {
-    TEST=`$WHICH gettext | grep -v "not found" 2> /dev/null`
-    if test -n "$TEST"; then
-        VER=`gettext --version | head -n1 2> /dev/null |  awk '{print $4}'`
-        infomsg "GNU gettext    : $VER"
+    if test -n "`$WHICH getext 2>/dev/null`"; then
+        infomsg "gettext        : Found"
     else
-        errormsg "GNU gettext    : Not found"
+        infomsg "gettext        : Not Found"
     fi
 }
 
@@ -491,6 +527,8 @@ main()
     gcc_check
     cc_check
     cplusplus_check
+    clang_check
+    clangplusplus_check
     gmake_check
     make_check
     autoconf_check
@@ -511,7 +549,7 @@ main()
     gtk4_check
     gmp_check
     libunistring_check
-    pkgadd_check
+    gnugettext_check
     gettext_check
     curl_check
     gnurl_check
