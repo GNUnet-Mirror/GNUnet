@@ -63,7 +63,6 @@ gcc_check()
     if test -n "$TEST"; then
         VERS=`gcc --version 2>/dev/null | head -n 1`
         infomsg "gcc            : $VERS"
-        # The elif will work in bourne shells, no other shells tested.
     elif test -n "`gcc 2>&1 | tail -1 | awk '{print $1}'`"; then
         VERS=`gcc --version 2>/dev/null | head -n 1`
         infomsg "gcc             : $VERS"
@@ -250,6 +249,17 @@ gnunet011x_check()
         infomsg "GNUnet 0.11    : $VER"
     else
         warningmsg "GNUnet 0.11.x     : Not Found"
+    fi
+}
+
+gitcommit_check()
+{
+    TEST=$(git | grep -v "not found" 2> /dev/null)
+    if test -n "$TEST"; then
+        VER=$(git rev-parse HEAD)
+        infomsg "git commit     : $VER"
+    else
+        warningmsg "git commit      : Not a git checkout"
     fi
 }
 
@@ -539,6 +549,7 @@ main()
     gnunet09x_check
     gnunet010x_check
     gnunet011x_check
+    gitcommit_check
     gcrypt_check
     mysql_check
     pkgconf_check
