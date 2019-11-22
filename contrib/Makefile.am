@@ -21,6 +21,7 @@ PACKAGES_FILES = \
     packages/guix/guix-env-py2.scm \
     packages/guix/guix-env-gillmann.scm \
     packages/guix/notest-guix-env.scm \
+    packages/homebrew/gnunet.rb \
     packages/nix/gnunet-dev.nix \
     packages/nix/default.nix \
     packages/alpine/gnunet-gtk/APKBUILD \
