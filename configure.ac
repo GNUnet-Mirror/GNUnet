@@ -193,6 +193,10 @@ AM_CONDITIONAL(SOLARIS, test "$build_target" = "solaris")
 AM_CONDITIONAL(XNETBSD, test "$build_target" = "netbsd")
 AM_CONDITIONAL(XFREEBSD, test "$build_target" = "freebsd")
 AM_CONDITIONAL(OPENBSD, test "$build_target" = "openbsd")
+# FIXME: We need a define BSD for some binaries like we
+# need define LINUX for some. This does not scale, how
+# can we solve this better?
+AM_CONDITIONAL(XBSD, test "$build_target" = "netbsd" -o "$build_target" = "freebsd" -o "$build_target" = "openbsd")
 AM_CONDITIONAL(LINUX, test "$build_target" = "linux")
 AM_CONDITIONAL(GNU, test "$build_target" = "gnu")
 
@@ -376,6 +380,14 @@ AC_DEFINE_UNQUOTED([NEED_LIBGCRYPT_VERSION], "$NEED_LIBGCRYPT_VERSION", [require
 
 AC_CHECK_DECLS([struct in6_ifreq], [], [], [[#include <linux/if_tun.h>]])
 
+AC_CHECK_HEADER([if_tun.h],
+    [AC_DEFINE([IF_TUN_HDR], ["if_tun.h"], [if_tun.h include path])],
+    [AC_CHECK_HEADER([linux/if_tun.h],
+        [AC_DEFINE([IF_TUN_HDR], ["linux/if_tun.h"])],
+        [AC_CHECK_HEADER([net/if_tun.h],
+            [AC_DEFINE([IF_TUN_HDR], ["net/if_tun.h"])],
+            [AC_CHECK_HEADER([net/tun/if_tun.h],
+                [AC_DEFINE([IF_TUN_HDR], ["net/tun/if_tun.h"])])])])])
 
 
 # should the build process be building the documentation?
