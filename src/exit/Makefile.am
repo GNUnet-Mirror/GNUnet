@@ -17,6 +17,12 @@ dist_pkgcfg_DATA = \
 if LINUX
 EXITBIN = gnunet-helper-exit
 endif
+# For testing purposes:
+if HAVE_EXPERIMENTAL
+if XBSD
+EXITBIN = gnunet-helper-exit
+endif
+endif
 
 
 libexec_PROGRAMS = \

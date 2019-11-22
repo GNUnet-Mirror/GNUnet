@@ -42,7 +42,15 @@
  * - Philipp Tölke
  */
 #include "platform.h"
-#include <linux/if_tun.h>
+
+#ifdef IF_TUN_HDR
+#include IF_TUN_HDR
+#endif
+
+#if defined(BSD) || defined(SOLARIS)
+#define ifr_netmask ifr_ifru.ifru_addr
+#define SIOGIFINDEX SIOCGIFINDEX
+#endif
 
 /**
  * Need 'struct GNUNET_MessageHeader'.
@@ -182,6 +190,7 @@ fork_and_exec (const char *file,
  *        if *dev == '\\0', uses the name supplied by the kernel;
  * @return the fd to the tun or -1 on error
  */
+#ifdef IFF_TUN /* LINUX */
 static int
 init_tun (char *dev)
 {
@@ -225,7 +234,34 @@ init_tun (char *dev)
   strcpy (dev, ifr.ifr_name);
   return fd;
 }
+#else /* BSD et al, including DARWIN */
 
+#ifdef SIOCIFCREATE
+static int
+init_tun(char *dev)
+{
+  int fd;
+  int s;
+  struct ifreq ifr;
+
+  fd = open(dev, O_RDWR);
+  if(fd == -1)
+  {
+    s = socket(AF_INET, SOCK_DGRAM, 0);
+    if (s < 0)
+      return -1;
+    memset(&ifr, 0, sizeof(ifr));
+    strncpy(ifr.ifr_name, dev + 5, sizeof(ifr.ifr_name) - 1);
+    if (!ioctl(s, SIOCIFCREATE, &ifr))
+      fd = open(dev, O_RDWR);
+    close(s);
+  }
+  return fd;
+}
+#else
+#define init_tun(dev) open(dev, O_RDWR)
+#endif
+#endif /* !IFF_TUN (BSD) */
 
 /**
  * @brief Sets the IPv6-Address given in address on the interface dev
