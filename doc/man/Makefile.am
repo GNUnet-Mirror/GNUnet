@@ -47,6 +47,7 @@ man_MANS = \
   gnunet-ats.1 \
   gnunet-auto-share.1 \
   gnunet-bcd.1 \
+  gnunet-bugreport.1 \
   gnunet-config.1 \
   gnunet-core.1 \
   gnunet-conversation.1 \
