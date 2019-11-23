@@ -141,6 +141,7 @@ AS_CASE(["$host_os"],
   [*openbsd*],[
      LIBS=`echo $LIBS | sed -e "s/-ldl//"`
      build_target="openbsd"
+     use_openbsd_libtool=true
      LIBPREFIX=
      DLLDIR=lib
      UNIXONLY="#"
