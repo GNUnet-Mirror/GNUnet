@@ -85,9 +85,9 @@ static const char *sbin_sysctl;
 static const char *sbin_iptables;
 
 
-#ifndef _LINUX_IN6_H
+#if !defined(_LINUX_IN6_H) && defined(__linux__)
 /**
- * This is in linux/include/net/ipv6.h, but not always exported...
+ * This is in linux/include/net/ipv6.h, but not always exported.
  */
 struct in6_ifreq
 {
