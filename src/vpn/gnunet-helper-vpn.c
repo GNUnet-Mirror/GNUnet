@@ -33,7 +33,9 @@
  * - Philipp Tölke
  */
 #include "platform.h"
-#include <linux/if_tun.h>
+#ifdef IF_TUN_HDR
+#include IF_TUN_HDR
+#endif
 
 /**
  * Need 'struct GNUNET_MessageHeader'.
