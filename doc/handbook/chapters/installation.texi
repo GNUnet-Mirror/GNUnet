@@ -14,9 +14,10 @@ there are two different ways of running GNUnet:
 @item the @emph{multi-user setup}
 @end itemize
 
-The latter variant has a better security model and requires extra preparation
-before running @code{make install} and a different configuration. Beginners who want to
-quickly try out GNUnet can use the @emph{single-user setup}.
+The latter variant has a better security model and requires extra
+preparation before running @code{make install} and a different
+configuration. Beginners who want to quickly try out GNUnet can
+use the @emph{single-user setup}.
 
 @menu
 * Installing dependencies::
@@ -33,23 +34,23 @@ quickly try out GNUnet can use the @emph{single-user setup}.
 @c -----------------------------------------------------------------------
 @node Installing dependencies
 @section Installing dependencies
+
 GNUnet needs few libraries and applications for being able to run and
 another few optional ones for using certain features. Preferably they
-should be installed with a package manager. Just in case we include a
-link to the project websites.
+should be installed with a package manager.
 
 The mandatory libraries and applications are
 @itemize @bullet
 @item autoconf 2.59 or above
 @item automake 1.11.1 or above
 @item gettext
-@item glibc (read below, other libcs should work)
-@item gnutls 3.2.12 or above, recommended to be linked against libunbound
+@item glibc (read below, other libcs work)
+@item GnuTLS 3.2.12 or above, recommended to be linked against libunbound
+@item GNU make 4.0 or higher (other make implementations do work)
 @item iptables (on Linux systems)
 @item libtool 2.2 or above
 @item libltdl (part of libtool)
 @item libgcrypt 1.6 or above
-@item libextractor
 @item libidn2 or libidn
 @item libmicrohttpd 0.9.63 or above
 @item libunistring
@@ -58,6 +59,7 @@ The mandatory libraries and applications are
 @item Texinfo 5.2 or above (for building the documentation)
 @item Texlive 2012 or above (for building the documentation, and for gnunet-bcd)
 @item makeinfo 4.8 or above
+@item pkgconf (or pkg-config)
 @item zlib
 @end itemize
 
@@ -67,7 +69,7 @@ Glibc is required for certain NSS features:
 One mechanism of integrating GNS with legacy applications via NSS is
 not available if this is disabled. But applications that don't use the
 glibc for NS resolution won't work anyway with this, so little is lost
-on BSD systems.
+on *BSD systems.
 GNS via direct use or via the HTTP or DNS proxies is unaffected.
 @end example
 
@@ -75,7 +77,8 @@ Other libcs should work, the resulting builds just don't include the
 glibc NSS specific code. One example is the build against NetBSD's libc
 as detailed in @uref{https://bugs.gnunet.org/view.php?id=5605}.
 
-In addition GNUnet needs one of of these three databases
+In addition GNUnet needs at least one of these three databases
+(at the minimum sqlite3)
 @itemize @bullet
 @item sqlite + libsqlite 3.8 or above (the default, requires no further configuration)
 @item postgres + libpq
@@ -84,36 +87,50 @@ In addition GNUnet needs one of of these three databases
 
 These are the dependencies only required for certain features
 @itemize @bullet
-@item guile 1.6.4 for gnunet-download-manager
 @item miniupnpc (for traversing NAT boxes more reliably)
 @item libnss
 @item libglpk 4.45 or above for experimental code
 @item libopus (for running the GNUnet conversation telephony application)
-@item libpulse (for running the GNUnet conversation telephony application)
 @item libogg (for running the GNUnet conversation telephony application)
+@item gstreamer OR libpulse (for running the GNUnet conversation telephony application)
 @item bluez (for bluetooth support)
+@item libextractor (optional but highly recommended, read below)
 @item libpbc
 (for attribute-based encryption and the identity provider subsystem)
 @item libgabe
 (for attribute-based encryption and the identity provider subsystem)
 @item texi2mdoc (for automatic mdoc generation)
-@item perl5 for some utilities
+@item perl5 for some utilities (which are not installed)
+@item libjanson
 @end itemize
 
-These are the test suite requirements:
+About libextractor being optional:
+@example
+While libextractor ("LE") is optional, it is recommended to build gnunet
+against it. If you install it later, you won't benefit from libextractor.
+If you are a distributor, we recommend to split LE into basis + plugins
+rather than making LE an option as an afterthought by the user.  LE
+itself is very small, but its dependency chain on first, second, third
+etc level can be big.  There is a small effect on privacy if your LE
+build differs from one which includes all plugins (plugins are build as
+shared objects): if users publish a directory with a mixture of file
+types (for example mpeg, jpeg, png, gif) the configuration of LE could
+leak which plugins are installed for which filetypes are not providing
+more details.  However, this leak is just a minor concern.
+@end example
+
+These are the test-suite requirements:
 @itemize @bullet
-@item python3.7
+@item python3.6 or higher
 @item gnunet (installation first)
-@item which(1)
-@item a shell (possibly Bash, maybe just POSIX sh)
+@item some core-utils: which(1), bc(1), curl(1), sed(1), awk(1), etc.
+@item a shell (very few Bash scripts, the majority are POSIX sh scripts)
 @end itemize
 
 These are runtime requirements:
 @itemize @bullet
 @item nss (the certutil binary, for gnunet-gns-proxy-setup-ca)
 @item openssl (openssl binary, for gnunet-gns-proxy-setup-ca)
-@item python2.7 for gnunet-qr (at the moment only python2.7 supported)
-@item python-zbar 0.10 or above for gnunet-qr
 @end itemize
 
 @c -----------------------------------------------------------------------
@@ -193,7 +210,6 @@ customize the compilation and installation process:
 @item @code{--with-microhttpd=[PATH]} - the path to libmicrohttpd
 @item @code{--with-sqlite=[PATH]} - the path to libsqlite
 @item @code{--with-zlib=[PATH]} - the path to zlib
-@item @code{--with-sudo=[PATH]} - path to the sudo binary (no need to run @code{make install} as root if specified)
 @end itemize
 
 Note that the list above is not always up to date and you
