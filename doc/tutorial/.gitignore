@@ -1,0 +1,11 @@
+stamp-1
+version2.texi
+tutorial
+*.fn
+*.fns
+*.ky
+*.pg
+*.tp
+*.vr
+tutorial
+tutorial.html
