@@ -193,7 +193,7 @@ main (int argc, char *argv[])
             "-o", "BatchMode yes",
             "-o", "UserKnownHostsFile /tmp/gnunet_test_socks_ssh_garbage",
             "-o", "StrictHostKeyChecking no",
-            "127.0.0.1", "-N", (char*) NULL);
+            "127.0.0.1", "-N", (char *) NULL);
     perror (
       "execlp (\"ssh\",\"ssh\",...,\"-D\",\"1081\",\"127.0.0.1\",\"-N\") ");
     printf (""

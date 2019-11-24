@@ -56,7 +56,7 @@ init_aes (element_t k, int enc,
   unsigned char*key_buf;
 
   key_len = element_length_in_bytes (k) < 33 ? 3 : element_length_in_bytes (k);
-  key_buf = (unsigned char*) malloc (key_len);
+  key_buf = (unsigned char *) malloc (key_len);
   element_to_bytes (key_buf, k);
 
   GNUNET_memcpy (key->aes_key, key_buf, GNUNET_CRYPTO_AES_KEY_LENGTH);
@@ -247,15 +247,15 @@ write_cpabe (void **result,
 
   *result = GNUNET_malloc (12 + cph_buf_len + aes_buf_len);
   ptr = *result;
-  len = (uint32_t*) ptr;
+  len = (uint32_t *) ptr;
   *len = htonl (file_len);
   ptr += 4;
-  len = (uint32_t*) ptr;
+  len = (uint32_t *) ptr;
   *len = htonl (aes_buf_len);
   ptr += 4;
   GNUNET_memcpy (ptr, aes_buf, aes_buf_len);
   ptr += aes_buf_len;
-  len = (uint32_t*) ptr;
+  len = (uint32_t *) ptr;
   *len = htonl (cph_buf_len);
   ptr += 4;
   GNUNET_memcpy (ptr, cph_buf, cph_buf_len);
@@ -274,17 +274,17 @@ read_cpabe (const void *data,
   char *ptr;
   uint32_t *len;
 
-  ptr = (char*) data;
-  len = (uint32_t*) ptr;
+  ptr = (char *) data;
+  len = (uint32_t *) ptr;
   buf_len = ntohl (*len);
   ptr += 4;
-  len = (uint32_t*) ptr;
+  len = (uint32_t *) ptr;
   *aes_buf_len = ntohl (*len);
   ptr += 4;
   *aes_buf = GNUNET_malloc (*aes_buf_len);
   GNUNET_memcpy (*aes_buf, ptr, *aes_buf_len);
   ptr += *aes_buf_len;
-  len = (uint32_t*) ptr;
+  len = (uint32_t *) ptr;
   *cph_buf_len = ntohl (*len);
   ptr += 4;
   *cph_buf = GNUNET_malloc (*cph_buf_len);
@@ -321,7 +321,7 @@ GNUNET_ABE_cpabe_encrypt (const void *block,
   int aes_buf_len;
   ssize_t result_len;
 
-  if (! (cph = gabe_enc (key->pub, m, (char*) policy)))
+  if (! (cph = gabe_enc (key->pub, m, (char *) policy)))
     return GNUNET_SYSERR;
   cph_buf_len = gabe_cph_serialize (cph,
                                     &cph_buf);
@@ -378,7 +378,7 @@ GNUNET_ABE_cpabe_decrypt (const void *block,
   }
   gabe_cph_free (cph);
   GNUNET_free (cph);
-  plt_len = aes_128_cbc_decrypt (aes_buf, aes_buf_size, m, (char**) result);
+  plt_len = aes_128_cbc_decrypt (aes_buf, aes_buf_size, m, (char **) result);
   GNUNET_free (cph_buf);
   GNUNET_free (aes_buf);
   element_clear (m);

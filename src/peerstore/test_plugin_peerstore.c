@@ -81,7 +81,7 @@ load_plugin (const struct GNUNET_CONFIGURATION_Handle *cfg)
                    "libgnunet_plugin_peerstore_%s",
                    plugin_name);
   if (NULL == (ret = GNUNET_PLUGIN_load (libname,
-                                         (void*) cfg)))
+                                         (void *) cfg)))
   {
     fprintf (stderr,
              "Failed to load plugin `%s'!\n",
@@ -131,7 +131,7 @@ get_record (struct GNUNET_PEERSTORE_PluginFunctions *psp,
                                        identity,
                                        "key",
                                        &test_record,
-                                       (void*) identity));
+                                       (void *) identity));
 }
 
 

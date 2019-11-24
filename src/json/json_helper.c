@@ -152,7 +152,7 @@ parse_variable_data (void *cls,
     GNUNET_free (data);
     return GNUNET_SYSERR;
   }
-  *(void**) spec->ptr = data;
+  *(void **) spec->ptr = data;
   *spec->size_ptr = size;
   return GNUNET_OK;
 }
@@ -171,7 +171,7 @@ clean_variable_data (void *cls,
   if (0 != *spec->size_ptr)
   {
     GNUNET_free (*(void **) spec->ptr);
-    *(void**) spec->ptr = NULL;
+    *(void **) spec->ptr = NULL;
     *spec->size_ptr = 0;
   }
 }

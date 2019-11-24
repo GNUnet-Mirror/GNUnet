@@ -67,7 +67,7 @@ GNUNET_REST_create_response (const char *data)
   else
     len = strlen (data);
   resp = MHD_create_response_from_buffer (len,
-                                          (void*) data,
+                                          (void *) data,
                                           MHD_RESPMEM_MUST_COPY);
   return resp;
 }
@@ -99,7 +99,7 @@ GNUNET_REST_handle_request (struct GNUNET_REST_RequestHandle *conn,
     if (GNUNET_NO == GNUNET_REST_namespace_match (url, handlers[i].namespace))
       continue;
     // Match
-    handlers[i].proc (conn, (const char*) url, cls);
+    handlers[i].proc (conn, (const char *) url, cls);
     GNUNET_free (url);
     return GNUNET_YES;
   }

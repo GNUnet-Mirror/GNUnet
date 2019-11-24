@@ -610,7 +610,7 @@ main (int argc,
                           &run,
                           NULL))
     ret = 1;
-  GNUNET_free ((void*) argv);
+  GNUNET_free ((void *) argv);
   return ret;
 }
 

@@ -317,6 +317,6 @@ main (int argc, char *const *argv)
                          _ (
                            "Daemon to log latency values of connections to neighbours"),
                          options, &run, NULL)) ? 0 : 1;
-  GNUNET_free ((void*) argv);
+  GNUNET_free ((void *) argv);
   return ret;
 }

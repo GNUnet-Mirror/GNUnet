@@ -159,7 +159,7 @@ check_result (void *cls,
   (void) cls;
   if (GNUNET_SYSERR ==
       GNUNET_GNSRECORD_records_deserialize (mlen,
-                                            (const char*) &lookup_msg[1],
+                                            (const char *) &lookup_msg[1],
                                             rd_count,
                                             rd))
   {
@@ -203,7 +203,7 @@ handle_result (void *cls,
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_GNSRECORD_records_deserialize (mlen,
                                                        (const
-                                                        char*) &lookup_msg[1],
+                                                        char *) &lookup_msg[1],
                                                        rd_count,
                                                        rd));
   proc (proc_cls,

@@ -189,7 +189,7 @@ handle_request (void *cls,
   dh->rh (dh->rh_cls,
           rh,
           payload_length,
-          (const char*) &req[1]);
+          (const char *) &req[1]);
 }
 
 

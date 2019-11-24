@@ -169,7 +169,7 @@ GNUNET_BIO_read_int32__ (struct GNUNET_BIO_ReadHandle *h, const char *file,
  */
 #define GNUNET_BIO_read_int32(h, i) GNUNET_BIO_read_int32__ (h, __FILE__, \
                                                              __LINE__, \
-                                                             (int32_t*) i)
+                                                             (int32_t *) i)
 
 
 /**
@@ -194,7 +194,7 @@ GNUNET_BIO_read_int64__ (struct GNUNET_BIO_ReadHandle *h, const char *file,
  */
 #define GNUNET_BIO_read_int64(h, i) GNUNET_BIO_read_int64__ (h, __FILE__, \
                                                              __LINE__, \
-                                                             (int64_t*) i)
+                                                             (int64_t *) i)
 
 
 /**

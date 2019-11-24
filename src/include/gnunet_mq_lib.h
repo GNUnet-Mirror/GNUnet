@@ -547,7 +547,7 @@ struct GNUNET_MQ_MessageHandler
  */
 #define GNUNET_MQ_hd_fixed_size(name, code, str, ctx)                   \
   ({                                                                    \
-    void (*_cb)(void *cls, const str *msg) = &handle_ ## name;           \
+    void (*_cb)(void *cls, const str * msg) = &handle_ ## name;           \
     ((struct GNUNET_MQ_MessageHandler){ NULL,                            \
                                         (GNUNET_MQ_MessageCallback) _cb, \
                                         (ctx),                           \
@@ -598,8 +598,8 @@ struct GNUNET_MQ_MessageHandler
  */
 #define GNUNET_MQ_hd_var_size(name, code, str, ctx)                          \
   __extension__ ({                                                            \
-    int (*_mv)(void *cls, const str *msg) = &check_ ## name;                  \
-    void (*_cb)(void *cls, const str *msg) = &handle_ ## name;                \
+    int (*_mv)(void *cls, const str * msg) = &check_ ## name;                  \
+    void (*_cb)(void *cls, const str * msg) = &handle_ ## name;                \
     ((struct GNUNET_MQ_MessageHandler){ (GNUNET_MQ_MessageValidationCallback) \
                                         _mv,                                \
                                         (GNUNET_MQ_MessageCallback) _cb,      \

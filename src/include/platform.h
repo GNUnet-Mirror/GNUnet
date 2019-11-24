@@ -229,8 +229,8 @@ atoll (const char *nptr);
 
 
 #if defined(__sparc__)
-#define MAKE_UNALIGNED(val) ({ __typeof__((val)) __tmp; memmove (&__tmp, &(val), \
-                                                                 sizeof((val))); \
+#define MAKE_UNALIGNED(val) ({ __typeof__((val))__tmp; memmove (&__tmp, &(val), \
+                                                                sizeof((val))); \
                                __tmp; })
 #else
 #define MAKE_UNALIGNED(val) val

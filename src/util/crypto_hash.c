@@ -105,7 +105,7 @@ GNUNET_CRYPTO_hash_from_string2 (const char *enc,
   GNUNET_STRINGS_utf8_toupper (enc, up_ptr);
 
   return GNUNET_STRINGS_string_to_data (upper_enc, enclen,
-                                        (unsigned char*) result,
+                                        (unsigned char *) result,
                                         sizeof(struct GNUNET_HashCode));
 }
 
@@ -439,7 +439,7 @@ GNUNET_CRYPTO_hmac (const struct GNUNET_CRYPTO_AuthKey *key,
                     const void *plaintext, size_t plaintext_len,
                     struct GNUNET_HashCode *hmac)
 {
-  GNUNET_CRYPTO_hmac_raw ((void*) key->key, sizeof(key->key),
+  GNUNET_CRYPTO_hmac_raw ((void *) key->key, sizeof(key->key),
                           plaintext, plaintext_len,
                           hmac);
 }

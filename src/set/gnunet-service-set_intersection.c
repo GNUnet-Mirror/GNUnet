@@ -491,7 +491,7 @@ send_bloomfilter (struct Operation *op)
     GNUNET_assert (GNUNET_SYSERR !=
                    GNUNET_CONTAINER_bloomfilter_get_raw_data (
                      op->state->local_bf,
-                     (char*) &msg[1],
+                     (char *) &msg[1],
                      bf_size));
     msg->sender_element_count = htonl (op->state->my_element_count);
     msg->bloomfilter_total_length = htonl (bf_size);
@@ -868,7 +868,7 @@ process_bf (struct Operation *op)
                   GNUNET_CONTAINER_multihashmap_size (op->state->my_elements));
       op->state->full_result_iter
         = GNUNET_CONTAINER_multihashmap_iterator_create (
-            op->state->my_elements);
+        op->state->my_elements);
       send_remaining_elements (op);
       return;
     }
@@ -940,7 +940,7 @@ handle_intersection_p2p_bf (void *cls,
       }
       /* single part, done here immediately */
       op->state->remote_bf
-        = GNUNET_CONTAINER_bloomfilter_init ((const char*) &msg[1],
+        = GNUNET_CONTAINER_bloomfilter_init ((const char *) &msg[1],
                                              bf_size,
                                              bf_bits_per_element);
       op->state->salt = ntohl (msg->sender_mutator);
@@ -974,7 +974,7 @@ handle_intersection_p2p_bf (void *cls,
       }
     }
     GNUNET_memcpy (&op->state->bf_data[op->state->bf_data_offset],
-                   (const char*) &msg[1],
+                   (const char *) &msg[1],
                    chunk_size);
     op->state->bf_data_offset += chunk_size;
     if (op->state->bf_data_offset == bf_size)

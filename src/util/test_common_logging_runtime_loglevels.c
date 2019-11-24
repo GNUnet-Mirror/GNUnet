@@ -207,7 +207,7 @@ read_output_line (int phase_from1, int phase_to1, int phase_from2,
  */
 #define LOG_MAX_LINE_LENGTH (17)
 
-#define LOG_BUFFER_SIZE LOG_MAX_NUM_LINES *LOG_MAX_LINE_LENGTH
+#define LOG_BUFFER_SIZE LOG_MAX_NUM_LINES * LOG_MAX_LINE_LENGTH
 
 static char buf[LOG_BUFFER_SIZE];
 
@@ -238,7 +238,7 @@ read_call (void *cls)
     read_task = GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL,
                                                 stdout_read_handle,
                                                 &read_call,
-                                                (void*) stdout_read_handle);
+                                                (void *) stdout_read_handle);
     return;
   }
 
@@ -430,7 +430,7 @@ runone ()
   read_task = GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL,
                                               stdout_read_handle,
                                               &read_call,
-                                              (void*) stdout_read_handle);
+                                              (void *) stdout_read_handle);
 }
 
 

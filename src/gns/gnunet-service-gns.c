@@ -366,7 +366,7 @@ send_lookup_response (void *cls,
                  GNUNET_GNSRECORD_records_serialize (rd_count,
                                                      rd,
                                                      len,
-                                                     (char*) &rmsg[1]));
+                                                     (char *) &rmsg[1]));
   GNUNET_MQ_send (GNUNET_SERVICE_client_get_mq (gc->client),
                   env);
   GNUNET_CONTAINER_DLL_remove (gc->clh_head,

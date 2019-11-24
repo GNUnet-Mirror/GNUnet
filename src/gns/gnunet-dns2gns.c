@@ -279,7 +279,7 @@ dns_result_processor (void *cls,
     /* for a another query, ignore */
     return;
   }
-  request->packet = GNUNET_DNSPARSER_parse ((char*) dns,
+  request->packet = GNUNET_DNSPARSER_parse ((char *) dns,
                                             r);
   GNUNET_DNSSTUB_resolve_cancel (request->dns_lookup);
   send_response (request);
@@ -775,7 +775,7 @@ main (int argc,
                          _ ("GNUnet DNS-to-GNS proxy (a DNS server)"),
                          options,
                          &run, NULL)) ? 0 : 1;
-  GNUNET_free ((void*) argv);
+  GNUNET_free ((void *) argv);
   return ret;
 }
 

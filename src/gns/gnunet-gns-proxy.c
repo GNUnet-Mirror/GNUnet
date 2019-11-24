@@ -3361,7 +3361,7 @@ do_s5r_read (void *cls)
             + alen + sizeof(uint16_t))
           return;     /* need more data */
         dom_name = (const char *) &dom_len[1];
-        port = (const uint16_t*) &dom_name[*dom_len];
+        port = (const uint16_t *) &dom_name[*dom_len];
         s5r->domain = GNUNET_strndup (dom_name,
                                       *dom_len);
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,

@@ -1538,7 +1538,7 @@ run (void *cls,
   abort_task =
     GNUNET_SCHEDULER_add_delayed (abort_time,
                                   &do_abort,
-                                  (void*) __LINE__);
+                                  (void *) __LINE__);
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
               "setup_timeout: %s\n",
               GNUNET_STRINGS_relative_time_to_string (abort_time, GNUNET_YES));

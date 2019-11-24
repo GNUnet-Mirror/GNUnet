@@ -68,7 +68,7 @@ load_plugin (const struct GNUNET_CONFIGURATION_Handle *cfg)
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, _ ("Loading `%s' namecache plugin\n"),
               plugin_name);
   GNUNET_asprintf (&libname, "libgnunet_plugin_namecache_%s", plugin_name);
-  if (NULL == (ret = GNUNET_PLUGIN_load (libname, (void*) cfg)))
+  if (NULL == (ret = GNUNET_PLUGIN_load (libname, (void *) cfg)))
   {
     fprintf (stderr, "Failed to load plugin `%s'!\n", plugin_name);
     GNUNET_free (libname);

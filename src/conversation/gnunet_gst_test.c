@@ -40,7 +40,7 @@ main (int argc, char *argv[])
 
   // GstPipeline *pipeline;
 
-  gst = (GNUNET_gstData*) malloc (sizeof(struct GNUNET_gstData));
+  gst = (GNUNET_gstData *) malloc (sizeof(struct GNUNET_gstData));
 
   // gst->audio_message.header.type = htons (GNUNET_MESSAGE_TYPE_CONVERSATION_AUDIO);
 
