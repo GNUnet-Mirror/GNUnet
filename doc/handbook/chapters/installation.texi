@@ -1612,7 +1612,7 @@ and @code{[transport-https_client]} section of the configuration:
 @menu
 * Configuring system-wide DNS interception::
 * Configuring the GNS nsswitch plugin::
-* Configuring GNS on W32::
+@c * Configuring GNS on W32::
 * GNS Proxy Setup::
 * Setup of the GNS CA::
 * Testing the GNS setup::
@@ -1731,48 +1731,48 @@ hosts: files gns [NOTFOUND=return] dns mdns4_minimal mdns4
 The @code{NOTFOUND=return} will ensure that if a @code{.gnu} name is not
 found in GNS it will not be queried in DNS.
 
-@node Configuring GNS on W32
-@subsubsection Configuring GNS on W32
+@c @node Configuring GNS on W32
+@c @subsubsection Configuring GNS on W32
 
-This document is a guide to configuring GNU Name System on W32-compatible
-platforms.
+@c This document is a guide to configuring GNU Name System on W32-compatible
+@c platforms.
 
-After GNUnet is installed, run the w32nsp-install tool:
+@c After GNUnet is installed, run the w32nsp-install tool:
 
-@example
-w32nsp-install.exe libw32nsp-0.dll
-@end example
+@c @example
+@c w32nsp-install.exe libw32nsp-0.dll
+@c @end example
 
-@noindent
-('0' is the library version of W32 NSP; it might increase in the future,
-change the invocation accordingly).
+@c @noindent
+@c ('0' is the library version of W32 NSP; it might increase in the future,
+@c change the invocation accordingly).
 
-This will install GNS namespace provider into the system and allow other
-applications to resolve names that end in '@strong{gnu}'
-and '@strong{zkey}'. Note that namespace provider requires
-gnunet-gns-helper-service-w32 to be running, as well as gns service
-itself (and its usual dependencies).
+@c This will install GNS namespace provider into the system and allow other
+@c applications to resolve names that end in '@strong{gnu}'
+@c and '@strong{zkey}'. Note that namespace provider requires
+@c gnunet-gns-helper-service-w32 to be running, as well as gns service
+@c itself (and its usual dependencies).
 
-Namespace provider is hardcoded to connect to @strong{127.0.0.1:5353},
-and this is where gnunet-gns-helper-service-w32 should be listening to
-(and is configured to listen to by default).
+@c Namespace provider is hardcoded to connect to @strong{127.0.0.1:5353},
+@c and this is where gnunet-gns-helper-service-w32 should be listening to
+@c (and is configured to listen to by default).
 
-To uninstall the provider, run:
+@c To uninstall the provider, run:
 
-@example
-w32nsp-uninstall.exe
-@end example
+@c @example
+@c w32nsp-uninstall.exe
+@c @end example
 
-@noindent
-(uses provider GUID to uninstall it, does not need a dll name).
+@c @noindent
+@c (uses provider GUID to uninstall it, does not need a dll name).
 
-Note that while MSDN claims that other applications will only be able to
-use the new namespace provider after re-starting, in reality they might
-stat to use it without that. Conversely, they might stop using the
-provider after it's been uninstalled, even if they were not re-started.
-W32 will not permit namespace provider library to be deleted or
-overwritten while the provider is installed, and while there is at least
-one process still using it (even after it was uninstalled).
+@c Note that while MSDN claims that other applications will only be able to
+@c use the new namespace provider after re-starting, in reality they might
+@c stat to use it without that. Conversely, they might stop using the
+@c provider after it's been uninstalled, even if they were not re-started.
+@c W32 will not permit namespace provider library to be deleted or
+@c overwritten while the provider is installed, and while there is at least
+@c one process still using it (even after it was uninstalled).
 
 @node GNS Proxy Setup
 @subsubsection GNS Proxy Setup

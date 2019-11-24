@@ -4174,7 +4174,7 @@ ask on the IRC channel.
 
 If you are a GNU/Linux user and you want to use the Bluetooth
 transport plugin you should install the
-@command{BlueZ development libraries} (if they aren't already
+@command{BlueZ} development libraries (if they aren't already
 installed).
 For instructions about how to install the libraries you should
 check out the BlueZ site
@@ -4183,16 +4183,16 @@ you have the necessary libraries, don't worry, just run the GNUnet
 configure script and you will be able to see a notification at the end
 which will warn you if you don't have the necessary libraries.
 
-If you are a Windows user you should have installed the
-@emph{MinGW}/@emph{MSys2} with the latest updates (especially the
-@emph{ws2bth} header). If this is your first build of GNUnet on Windows
-you should check out the SBuild repository. It will semi-automatically
-assembles a @emph{MinGW}/@emph{MSys2} installation with a lot of extra
-packages which are needed for the GNUnet build. So this will ease your
-work!@ Finally you just have to be sure that you have the correct drivers
-for your Bluetooth device installed and that your device is on and in a
-discoverable mode. The Windows Bluetooth Stack supports only the RFCOMM
-protocol so we cannot turn on your device programatically!
+@c If you are a Windows user you should have installed the
+@c @emph{MinGW}/@emph{MSys2} with the latest updates (especially the
+@c @emph{ws2bth} header). If this is your first build of GNUnet on Windows
+@c you should check out the SBuild repository. It will semi-automatically
+@c assembles a @emph{MinGW}/@emph{MSys2} installation with a lot of extra
+@c packages which are needed for the GNUnet build. So this will ease your
+@c work!@ Finally you just have to be sure that you have the correct drivers
+@c for your Bluetooth device installed and that your device is on and in a
+@c discoverable mode. The Windows Bluetooth Stack supports only the RFCOMM
+@c protocol so we cannot turn on your device programatically!
 
 @c FIXME: Change to unique title
 @node How does it work2?
@@ -4332,11 +4332,11 @@ sending data for benchmarking to the other peer.
 This scenario will try to connect the second peer to the first one and
 then start sending data for benchmarking.
 
-On Windows you cannot test the plugin functionality using two Bluetooth
-devices from the same machine because after you install the drivers there
-will occur some conflicts between the Bluetooth stacks. (At least that is
-what happened on my machine : I wasn't able to use the Bluesoleil stack and
-the WINDCOMM one in the same time).
+@c On Windows you cannot test the plugin functionality using two Bluetooth
+@c devices from the same machine because after you install the drivers there
+@c will occur some conflicts between the Bluetooth stacks. (At least that is
+@c what happened on my machine : I wasn't able to use the Bluesoleil stack and
+@c the WINDCOMM one in the same time).
 
 If you have two different machines and your configuration files are good
 you can use the same scenario presented on the beginning of this section.
@@ -4364,7 +4364,7 @@ platforms.
 
 @itemize @bullet
 @item Linux functionality
-@item Windows functionality
+@c @item Windows functionality
 @item Pending Features
 @end itemize
 
@@ -4375,7 +4375,7 @@ platforms.
 * THE INITIALIZATION::
 * THE LOOP::
 * Details about the broadcast implementation::
-* Windows functionality::
+@c * Windows functionality::
 * Pending features::
 @end menu
 
@@ -4522,68 +4522,68 @@ not we try to connect to it and in case of success we save the address and
 the socket on the list. If we are already connected to that device we
 simply use the socket.
 
-@node Windows functionality
-@subsubsection Windows functionality
+@c @node Windows functionality
+@c @subsubsection Windows functionality
 
 
-For Windows I decided to use the Microsoft Bluetooth stack which has the
-advantage of coming standard from Windows XP SP2. The main disadvantage is
-that it only supports the RFCOMM protocol so we will not be able to have
-a low level control over the Bluetooth device. Therefore it is the user
-responsibility to check if the device is up and in the discoverable mode.
-Also there are no tools which could be used for debugging in order to read
-the data coming from and going to a Bluetooth device, which obviously
-hindered my work. Another thing that slowed down the implementation of the
-plugin (besides that I wasn't too accommodated with the win32 API) was that
-there were some bugs on MinGW regarding the Bluetooth. Now they are solved
-but you should keep in mind that you should have the latest updates
-(especially the @emph{ws2bth} header).
+@c For Windows I decided to use the Microsoft Bluetooth stack which has the
+@c advantage of coming standard from Windows XP SP2. The main disadvantage is
+@c that it only supports the RFCOMM protocol so we will not be able to have
+@c a low level control over the Bluetooth device. Therefore it is the user
+@c responsibility to check if the device is up and in the discoverable mode.
+@c Also there are no tools which could be used for debugging in order to read
+@c the data coming from and going to a Bluetooth device, which obviously
+@c hindered my work. Another thing that slowed down the implementation of the
+@c plugin (besides that I wasn't too accommodated with the win32 API) was that
+@c there were some bugs on MinGW regarding the Bluetooth. Now they are solved
+@c but you should keep in mind that you should have the latest updates
+@c (especially the @emph{ws2bth} header).
 
-Besides the fact that it uses the Windows Sockets, the Windows
-implementation follows the same principles as the GNU/Linux one:
+@c Besides the fact that it uses the Windows Sockets, the Windows
+@c implementation follows the same principles as the GNU/Linux one:
 
-@itemize @bullet
-@item It has a initalization part where it initializes the
-Windows Sockets, creates a RFCOMM socket which will be binded and switched
-to the listening mode and registers a SDP service. In the Microsoft
-Bluetooth API there are two ways to work with the SDP:
-@itemize @bullet
-@item an easy way which works with very simple service records
-@item a hard way which is useful when you need to update or to delete the
-record
-@end itemize
-@end itemize
+@c @itemize @bullet
+@c @item It has a initalization part where it initializes the
+@c Windows Sockets, creates a RFCOMM socket which will be binded and switched
+@c to the listening mode and registers a SDP service. In the Microsoft
+@c Bluetooth API there are two ways to work with the SDP:
+@c @itemize @bullet
+@c @item an easy way which works with very simple service records
+@c @item a hard way which is useful when you need to update or to delete the
+@c record
+@c @end itemize
+@c @end itemize
 
-Since I only needed the SDP service to find out on which port the device
-is listening on and that did not change, I decided to use the easy way.
-In order to register the service I used the @emph{WSASetService} function
-and I generated the @emph{Universally Unique Identifier} with the
-@emph{guidgen.exe} Windows's tool.
+@c Since I only needed the SDP service to find out on which port the device
+@c is listening on and that did not change, I decided to use the easy way.
+@c In order to register the service I used the @emph{WSASetService} function
+@c and I generated the @emph{Universally Unique Identifier} with the
+@c @emph{guidgen.exe} Windows's tool.
 
-In the loop section the only difference from the GNU/Linux implementation
-is that I used the @code{GNUNET_NETWORK} library for
-functions like @emph{accept}, @emph{bind}, @emph{connect} or
-@emph{select}. I decided to use the
-@code{GNUNET_NETWORK} library because I also needed to interact
-with the STDIN and STDOUT handles and on Windows
-the select function is only defined for sockets,
-and it will not work for arbitrary file handles.
+@c In the loop section the only difference from the GNU/Linux implementation
+@c is that I used the @code{GNUNET_NETWORK} library for
+@c functions like @emph{accept}, @emph{bind}, @emph{connect} or
+@c @emph{select}. I decided to use the
+@c @code{GNUNET_NETWORK} library because I also needed to interact
+@c with the STDIN and STDOUT handles and on Windows
+@c the select function is only defined for sockets,
+@c and it will not work for arbitrary file handles.
 
-Another difference between GNU/Linux and Windows implementation is that in
-GNU/Linux, the Bluetooth address is represented in 48 bits
-while in Windows is represented in 64 bits.
-Therefore I had to do some changes on @emph{plugin_transport_wlan} header.
+@c Another difference between GNU/Linux and Windows implementation is that in
+@c GNU/Linux, the Bluetooth address is represented in 48 bits
+@c while in Windows is represented in 64 bits.
+@c Therefore I had to do some changes on @emph{plugin_transport_wlan} header.
 
-Also, currently on Windows the Bluetooth plugin doesn't have support for
-broadcast messages. When it receives a broadcast message it will skip it.
+@c Also, currently on Windows the Bluetooth plugin doesn't have support for
+@c broadcast messages. When it receives a broadcast message it will skip it.
 
 @node Pending features
 @subsubsection Pending features
 
 
 @itemize @bullet
-@item Implement the broadcast functionality on Windows @emph{(currently
-working on)}
+@c @item Implement the broadcast functionality on Windows @emph{(currently
+@c working on)}
 @item Implement a testcase for the helper :@ @emph{The testcase
 consists of a program which emulates the plugin and uses the helper. It
 will simulate connections, disconnections and data transfers.}
@@ -7612,7 +7612,7 @@ record types.
 * GNS plugins::
 * The GNS Client-Service Protocol::
 * Hijacking the DNS-Traffic using gnunet-service-dns::
-* Serving DNS lookups via GNS on W32::
+@c * Serving DNS lookups via GNS on W32::
 * Importing DNS Zones into GNS::
 @end menu
 
@@ -7874,75 +7874,75 @@ Line 2 marks every other packet to a DNS-Server with mark 3 (chosen
 arbitrarily). The third line adds a routing policy based on this mark
 3 via the routing table.
 
-@node Serving DNS lookups via GNS on W32
-@subsection Serving DNS lookups via GNS on W32
+@c @node Serving DNS lookups via GNS on W32
+@c @subsection Serving DNS lookups via GNS on W32
 
 
 
-This section documents how the libw32nsp (and
-gnunet-gns-helper-service-w32) do DNS resolutions of DNS queries on the
-local system. This only applies to GNUnet running on W32.
+@c This section documents how the libw32nsp (and
+@c gnunet-gns-helper-service-w32) do DNS resolutions of DNS queries on the
+@c local system. This only applies to GNUnet running on W32.
 
-W32 has a concept of "Namespaces" and "Namespace providers".
-These are used to present various name systems to applications in a
-generic way.
-Namespaces include DNS, mDNS, NLA and others. For each namespace any
-number of providers could be registered, and they are queried in an order
-of priority (which is adjustable).
+@c W32 has a concept of "Namespaces" and "Namespace providers".
+@c These are used to present various name systems to applications in a
+@c generic way.
+@c Namespaces include DNS, mDNS, NLA and others. For each namespace any
+@c number of providers could be registered, and they are queried in an order
+@c of priority (which is adjustable).
 
-Applications can resolve names by using WSALookupService*() family of
-functions.
+@c Applications can resolve names by using WSALookupService*() family of
+@c functions.
 
-However, these are WSA-only facilities. Common BSD socket functions for
-namespace resolutions are gethostbyname and getaddrinfo (among others).
-These functions are implemented internally (by default - by mswsock,
-which also implements the default DNS provider) as wrappers around
-WSALookupService*() functions (see "Sample Code for a Service Provider"
-on MSDN).
+@c However, these are WSA-only facilities. Common BSD socket functions for
+@c namespace resolutions are gethostbyname and getaddrinfo (among others).
+@c These functions are implemented internally (by default - by mswsock,
+@c which also implements the default DNS provider) as wrappers around
+@c WSALookupService*() functions (see "Sample Code for a Service Provider"
+@c on MSDN).
 
-On W32 GNUnet builds a libw32nsp - a namespace provider, which can then be
-installed into the system by using w32nsp-install (and uninstalled by
-w32nsp-uninstall), as described in "Installation Handbook".
+@c On W32 GNUnet builds a libw32nsp - a namespace provider, which can then be
+@c installed into the system by using w32nsp-install (and uninstalled by
+@c w32nsp-uninstall), as described in "Installation Handbook".
 
-libw32nsp is very simple and has almost no dependencies. As a response to
-NSPLookupServiceBegin(), it only checks that the provider GUID passed to
-it by the caller matches GNUnet DNS Provider GUID,
-then connects to
-gnunet-gns-helper-service-w32 at 127.0.0.1:5353 (hardcoded) and sends the
-name resolution request there, returning the connected socket to the
-caller.
+@c libw32nsp is very simple and has almost no dependencies. As a response to
+@c NSPLookupServiceBegin(), it only checks that the provider GUID passed to
+@c it by the caller matches GNUnet DNS Provider GUID,
+@c then connects to
+@c gnunet-gns-helper-service-w32 at 127.0.0.1:5353 (hardcoded) and sends the
+@c name resolution request there, returning the connected socket to the
+@c caller.
 
-When the caller invokes NSPLookupServiceNext(), libw32nsp reads a
-completely formed reply from that socket, unmarshalls it, then gives
-it back to the caller.
+@c When the caller invokes NSPLookupServiceNext(), libw32nsp reads a
+@c completely formed reply from that socket, unmarshalls it, then gives
+@c it back to the caller.
 
-At the moment gnunet-gns-helper-service-w32 is implemented to ever give
-only one reply, and subsequent calls to NSPLookupServiceNext() will fail
-with WSA_NODATA (first call to NSPLookupServiceNext() might also fail if
-GNS failed to find the name, or there was an error connecting to it).
+@c At the moment gnunet-gns-helper-service-w32 is implemented to ever give
+@c only one reply, and subsequent calls to NSPLookupServiceNext() will fail
+@c with WSA_NODATA (first call to NSPLookupServiceNext() might also fail if
+@c GNS failed to find the name, or there was an error connecting to it).
 
-gnunet-gns-helper-service-w32 does most of the processing:
+@c gnunet-gns-helper-service-w32 does most of the processing:
 
-@itemize @bullet
-@item Maintains a connection to GNS.
-@item Reads GNS config and loads appropriate keys.
-@item Checks service GUID and decides on the type of record to look up,
-refusing to make a lookup outright when unsupported service GUID is
-passed.
-@item Launches the lookup
-@end itemize
+@c @itemize @bullet
+@c @item Maintains a connection to GNS.
+@c @item Reads GNS config and loads appropriate keys.
+@c @item Checks service GUID and decides on the type of record to look up,
+@c refusing to make a lookup outright when unsupported service GUID is
+@c passed.
+@c @item Launches the lookup
+@c @end itemize
 
-When lookup result arrives, gnunet-gns-helper-service-w32 forms a complete
-reply (including filling a WSAQUERYSETW structure and, possibly, a binary
-blob with a hostent structure for gethostbyname() client), marshalls it,
-and sends it back to libw32nsp. If no records were found, it sends an
-empty header.
+@c When lookup result arrives, gnunet-gns-helper-service-w32 forms a complete
+@c reply (including filling a WSAQUERYSETW structure and, possibly, a binary
+@c blob with a hostent structure for gethostbyname() client), marshalls it,
+@c and sends it back to libw32nsp. If no records were found, it sends an
+@c empty header.
 
-This works for most normal applications that use gethostbyname() or
-getaddrinfo() to resolve names, but fails to do anything with
-applications that use alternative means of resolving names (such as
-sending queries to a DNS server directly by themselves).
-This includes some of well known utilities, like "ping" and "nslookup".
+@c This works for most normal applications that use gethostbyname() or
+@c getaddrinfo() to resolve names, but fails to do anything with
+@c applications that use alternative means of resolving names (such as
+@c sending queries to a DNS server directly by themselves).
+@c This includes some of well known utilities, like "ping" and "nslookup".
 
 @node Importing DNS Zones into GNS
 @subsection Importing DNS Zones into GNS
