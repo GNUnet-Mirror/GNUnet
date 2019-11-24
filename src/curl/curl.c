@@ -101,6 +101,16 @@ struct GNUNET_CURL_Job
   void *jcc_cls;
 
   /**
+   * Function to call upon completion.
+   */
+  GNUNET_CURL_RawJobCompletionCallback jcc_raw;
+
+  /**
+   * Closure for @e jcc_raw.
+   */
+  void *jcc_raw_cls;
+
+  /**
    * Buffer for response received from CURL.
    */
   struct GNUNET_CURL_DownloadBuffer db;
@@ -257,32 +267,16 @@ download_cb (char *bufptr, size_t size, size_t nitems, void *cls)
 
 
 /**
- * Schedule a CURL request to be executed and call the given @a jcc
- * upon its completion.  Note that the context will make use of the
- * CURLOPT_PRIVATE facility of the CURL @a eh.
+ * Create the HTTP headers for the request
  *
- * This function modifies the CURL handle to add the
- * "Content-Type: application/json" header if @a add_json is set.
- *
- * @param ctx context to execute the job in
- * @param eh curl easy handle for the request, will be executed AND
- *           cleaned up.  NOTE: the handle should _never_ have gotten
- *           any headers list, as that would then be ovverridden by
- *           @a jcc.  Therefore, always pass custom headers as the
- *           @a job_headers parameter.
- * @param job_headers extra headers to add for this request
- * @param jcc callback to invoke upon completion
- * @param jcc_cls closure for @a jcc
- * @return NULL on error (in this case, @eh is still released!)
+ * @param ctx context we run in
+ * @param job_headers job-specific headers
+ * @return all headers to use
  */
-struct GNUNET_CURL_Job *
-GNUNET_CURL_job_add2 (struct GNUNET_CURL_Context *ctx,
-                      CURL *eh,
-                      const struct curl_slist *job_headers,
-                      GNUNET_CURL_JobCompletionCallback jcc,
-                      void *jcc_cls)
+static struct curl_slist *
+setup_job_headers (struct GNUNET_CURL_Context *ctx,
+                   const struct curl_slist *job_headers)
 {
-  struct GNUNET_CURL_Job *job;
   struct curl_slist *all_headers = NULL;
 
   for (const struct curl_slist *curr = job_headers; curr != NULL;
@@ -316,15 +310,33 @@ GNUNET_CURL_job_add2 (struct GNUNET_CURL_Context *ctx,
       GNUNET_free (aid_header);
     }
   }
+  return all_headers;
+}
 
-  if (CURLE_OK != curl_easy_setopt (eh, CURLOPT_HTTPHEADER, all_headers))
+
+/**
+ * Create a job.
+ *
+ * @param eh easy handle to use
+ * @param ctx context to run the job in
+ * @param all_headers HTTP client headers to use (free'd)
+ * @return NULL on error
+ */
+static struct GNUNET_CURL_Job *
+setup_job (CURL *eh,
+           struct GNUNET_CURL_Context *ctx,
+           struct curl_slist *all_headers)
+{
+  struct GNUNET_CURL_Job *job;
+
+  if (CURLE_OK !=
+      curl_easy_setopt (eh, CURLOPT_HTTPHEADER, all_headers))
   {
     GNUNET_break (0);
     curl_slist_free_all (all_headers);
     curl_easy_cleanup (eh);
     return NULL;
   }
-
   job = GNUNET_new (struct GNUNET_CURL_Job);
   job->job_headers = all_headers;
 
@@ -340,12 +352,91 @@ GNUNET_CURL_job_add2 (struct GNUNET_CURL_Context *ctx,
     curl_easy_cleanup (eh);
     return NULL;
   }
-
   job->easy_handle = eh;
   job->ctx = ctx;
+  GNUNET_CONTAINER_DLL_insert (ctx->jobs_head, ctx->jobs_tail, job);
+  return job;
+}
+
+
+/**
+ * Schedule a CURL request to be executed and call the given @a jcc
+ * upon its completion.  Note that the context will make use of the
+ * CURLOPT_PRIVATE facility of the CURL @a eh.  Used to download
+ * resources that are NOT in JSON.  The raw body will be returned.
+ *
+ * @param ctx context to execute the job in
+ * @param eh curl easy handle for the request, will
+ *           be executed AND cleaned up
+ * @param job_headers extra headers to add for this request
+ * @param max_reply_size largest acceptable response body
+ * @param jcc callback to invoke upon completion
+ * @param jcc_cls closure for @a jcc
+ * @return NULL on error (in this case, @eh is still released!)
+ */
+struct GNUNET_CURL_Job *
+GNUNET_CURL_job_add_raw (struct GNUNET_CURL_Context *ctx,
+                         CURL *eh,
+                         const struct curl_slist *job_headers,
+                         GNUNET_CURL_RawJobCompletionCallback jcc,
+                         void *jcc_cls)
+{
+  struct GNUNET_CURL_Job *job;
+  struct curl_slist *all_headers;
+
+  GNUNET_assert (NULL != jcc);
+  all_headers = setup_job_headers (ctx,
+                                   job_headers);
+  if (NULL == (job = setup_job (eh,
+                                ctx,
+                                all_headers)))
+    return NULL;
+  job->jcc_raw = jcc;
+  job->jcc_raw_cls = jcc_cls;
+  ctx->cb (ctx->cb_cls);
+  return job;
+}
+
+
+/**
+ * Schedule a CURL request to be executed and call the given @a jcc
+ * upon its completion.  Note that the context will make use of the
+ * CURLOPT_PRIVATE facility of the CURL @a eh.
+ *
+ * This function modifies the CURL handle to add the
+ * "Content-Type: application/json" header if @a add_json is set.
+ *
+ * @param ctx context to execute the job in
+ * @param eh curl easy handle for the request, will be executed AND
+ *           cleaned up.  NOTE: the handle should _never_ have gotten
+ *           any headers list, as that would then be ovverridden by
+ *           @a jcc.  Therefore, always pass custom headers as the
+ *           @a job_headers parameter.
+ * @param job_headers extra headers to add for this request
+ * @param jcc callback to invoke upon completion
+ * @param jcc_cls closure for @a jcc
+ * @return NULL on error (in this case, @eh is still released!)
+ */
+struct GNUNET_CURL_Job *
+GNUNET_CURL_job_add2 (struct GNUNET_CURL_Context *ctx,
+                      CURL *eh,
+                      const struct curl_slist *job_headers,
+                      GNUNET_CURL_JobCompletionCallback jcc,
+                      void *jcc_cls)
+{
+  struct GNUNET_CURL_Job *job;
+  struct curl_slist *all_headers;
+
+  GNUNET_assert (NULL != jcc);
+  all_headers = setup_job_headers (ctx,
+                                   job_headers);
+  if (NULL == (job = setup_job (eh,
+                                ctx,
+                                all_headers)))
+    return NULL;
+
   job->jcc = jcc;
   job->jcc_cls = jcc_cls;
-  GNUNET_CONTAINER_DLL_insert (ctx->jobs_head, ctx->jobs_tail, job);
   ctx->cb (ctx->cb_cls);
   return job;
 }
@@ -444,13 +535,20 @@ GNUNET_CURL_download_get_result_ (struct GNUNET_CURL_DownloadBuffer *db,
               (int) db->buf_size,
               (char *) db->buf);
 
-  if ((CURLE_OK != curl_easy_getinfo (eh, CURLINFO_CONTENT_TYPE, &ct)) ||
-      (NULL == ct) || (0 != strcasecmp (ct, "application/json")))
+  if ((CURLE_OK !=
+       curl_easy_getinfo (eh,
+                          CURLINFO_CONTENT_TYPE,
+                          &ct)) ||
+      (NULL == ct) ||
+      (0 != strcasecmp (ct,
+                        "application/json")))
   {
     /* No content type or explicitly not JSON, refuse to parse
        (but keep response code) */
     if (CURLE_OK !=
-        curl_easy_getinfo (eh, CURLINFO_RESPONSE_CODE, response_code))
+        curl_easy_getinfo (eh,
+                           CURLINFO_RESPONSE_CODE,
+                           response_code))
     {
       /* unexpected error... */
       GNUNET_break (0);
@@ -480,7 +578,9 @@ GNUNET_CURL_download_get_result_ (struct GNUNET_CURL_DownloadBuffer *db,
   if (NULL != json)
   {
     if (CURLE_OK !=
-        curl_easy_getinfo (eh, CURLINFO_RESPONSE_CODE, response_code))
+        curl_easy_getinfo (eh,
+                           CURLINFO_RESPONSE_CODE,
+                           response_code))
     {
       /* unexpected error... */
       GNUNET_break (0);
@@ -509,6 +609,76 @@ GNUNET_CURL_append_header (struct GNUNET_CURL_Context *ctx, const char *header)
 }
 
 
+#if ENABLE_BENCHMARK
+static void
+do_benchmark (CURLMsg *cmsg)
+{
+  char *url = NULL;
+  double total_as_double = 0;
+  struct GNUNET_TIME_Relative total;
+  struct UrlRequestData *urd;
+  /* Some care required, as curl is using data types (long vs curl_off_t vs
+   * double) inconsistently to store byte count. */
+  curl_off_t size_curl = 0;
+  long size_long = 0;
+  uint64_t bytes_sent = 0;
+  uint64_t bytes_received = 0;
+
+  GNUNET_break (CURLE_OK == curl_easy_getinfo (cmsg->easy_handle,
+                                               CURLINFO_TOTAL_TIME,
+                                               &total_as_double));
+  total.rel_value_us = total_as_double * 1000 * 1000;
+
+  GNUNET_break (CURLE_OK == curl_easy_getinfo (cmsg->easy_handle,
+                                               CURLINFO_EFFECTIVE_URL,
+                                               &url));
+
+  /* HEADER_SIZE + SIZE_DOWNLOAD_T is hopefully the total
+     number of bytes received, not clear from curl docs. */
+
+  GNUNET_break (CURLE_OK == curl_easy_getinfo (cmsg->easy_handle,
+                                               CURLINFO_HEADER_SIZE,
+                                               &size_long));
+  bytes_received += size_long;
+
+  GNUNET_break (CURLE_OK == curl_easy_getinfo (cmsg->easy_handle,
+                                               CURLINFO_SIZE_DOWNLOAD_T,
+                                               &size_curl));
+  bytes_received += size_curl;
+
+  /* REQUEST_SIZE + SIZE_UPLOAD_T is hopefully the total number of bytes
+     sent, again docs are not completely clear. */
+
+  GNUNET_break (CURLE_OK == curl_easy_getinfo (cmsg->easy_handle,
+                                               CURLINFO_REQUEST_SIZE,
+                                               &size_long));
+  bytes_sent += size_long;
+
+  /* We obtain this value to check an invariant, but never use it otherwise. */
+  GNUNET_break (CURLE_OK == curl_easy_getinfo (cmsg->easy_handle,
+                                               CURLINFO_SIZE_UPLOAD_T,
+                                               &size_curl));
+
+  /* CURLINFO_SIZE_UPLOAD_T <= CURLINFO_REQUEST_SIZE should
+     be an invariant.
+     As verified with
+     curl -w "foo%{size_request} -XPOST --data "ABC" $URL
+     the CURLINFO_REQUEST_SIZE should be the whole size of the request
+     including headers and body.
+   */GNUNET_break (size_curl <= size_long);
+
+  urd = get_url_benchmark_data (url, (unsigned int) response_code);
+  urd->count++;
+  urd->time = GNUNET_TIME_relative_add (urd->time, total);
+  urd->time_max = GNUNET_TIME_relative_max (total, urd->time_max);
+  urd->bytes_sent += bytes_sent;
+  urd->bytes_received += bytes_received;
+}
+
+
+#endif
+
+
 /**
  * Run the main event loop for the Taler interaction.
  *
@@ -526,7 +696,8 @@ GNUNET_CURL_perform2 (struct GNUNET_CURL_Context *ctx,
   int n_running;
   int n_completed;
 
-  (void) curl_multi_perform (ctx->multi, &n_running);
+  (void) curl_multi_perform (ctx->multi,
+                             &n_running);
   while (NULL != (cmsg = curl_multi_info_read (ctx->multi, &n_completed)))
   {
     struct GNUNET_CURL_Job *job;
@@ -540,80 +711,39 @@ GNUNET_CURL_perform2 (struct GNUNET_CURL_Context *ctx,
                                                   (char **) &job));
     GNUNET_assert (job->ctx == ctx);
     response_code = 0;
-    response = rp (&job->db, job->easy_handle, &response_code);
-#if ENABLE_BENCHMARK
+    if (NULL != job->jcc_raw)
     {
-      char *url = NULL;
-      double total_as_double = 0;
-      struct GNUNET_TIME_Relative total;
-      struct UrlRequestData *urd;
-      /* Some care required, as curl is using data types (long vs curl_off_t vs
-       * double) inconsistently to store byte count. */
-      curl_off_t size_curl = 0;
-      long size_long = 0;
-      uint64_t bytes_sent = 0;
-      uint64_t bytes_received = 0;
-
-      GNUNET_break (CURLE_OK == curl_easy_getinfo (cmsg->easy_handle,
-                                                   CURLINFO_TOTAL_TIME,
-                                                   &total_as_double));
-      total.rel_value_us = total_as_double * 1000 * 1000;
-
-      GNUNET_break (CURLE_OK == curl_easy_getinfo (cmsg->easy_handle,
-                                                   CURLINFO_EFFECTIVE_URL,
-                                                   &url));
-
-      /* HEADER_SIZE + SIZE_DOWNLOAD_T is hopefully the total
-         number of bytes received, not clear from curl docs. */
-
-      GNUNET_break (CURLE_OK == curl_easy_getinfo (cmsg->easy_handle,
-                                                   CURLINFO_HEADER_SIZE,
-                                                   &size_long));
-      bytes_received += size_long;
-
-      GNUNET_break (CURLE_OK == curl_easy_getinfo (cmsg->easy_handle,
-                                                   CURLINFO_SIZE_DOWNLOAD_T,
-                                                   &size_curl));
-      bytes_received += size_curl;
-
-      /* REQUEST_SIZE + SIZE_UPLOAD_T is hopefully the total number of bytes
-         sent, again docs are not completely clear. */
-
-      GNUNET_break (CURLE_OK == curl_easy_getinfo (cmsg->easy_handle,
-                                                   CURLINFO_REQUEST_SIZE,
-                                                   &size_long));
-      bytes_sent += size_long;
-
-      /* We obtain this value to check an invariant, but never use it otherwise. */
-      GNUNET_break (CURLE_OK == curl_easy_getinfo (cmsg->easy_handle,
-                                                   CURLINFO_SIZE_UPLOAD_T,
-                                                   &size_curl));
-
-      /* CURLINFO_SIZE_UPLOAD_T <= CURLINFO_REQUEST_SIZE should
-         be an invariant.
-         As verified with
-         curl -w "foo%{size_request} -XPOST --data "ABC" $URL
-         the CURLINFO_REQUEST_SIZE should be the whole size of the request
-         including headers and body.
-       */GNUNET_break (size_curl <= size_long);
-
-      urd = get_url_benchmark_data (url, (unsigned int) response_code);
-      urd->count++;
-      urd->time = GNUNET_TIME_relative_add (urd->time, total);
-      urd->time_max = GNUNET_TIME_relative_max (total, urd->time_max);
-      urd->bytes_sent += bytes_sent;
-      urd->bytes_received += bytes_received;
+      /* RAW mode, no parsing */
+      GNUNET_break (CURLE_OK ==
+                    curl_easy_getinfo (job->easy_handle,
+                                       CURLINFO_RESPONSE_CODE,
+                                       &response_code));
+      job->jcc_raw (job->jcc_raw_cls,
+                    response_code,
+                    job->db.buf,
+                    job->db.buf_size);
     }
+    else
+    {
+      /* to be parsed via 'rp' */
+      response = rp (&job->db,
+                     job->easy_handle,
+                     &response_code);
+      job->jcc (job->jcc_cls,
+                response_code,
+                response);
+      rc (response);
+    }
+#if ENABLE_BENCHMARK
+    do_benchmark (cmsg);
 #endif
-    job->jcc (job->jcc_cls, response_code, response);
-    rc (response);
     GNUNET_CURL_job_cancel (job);
   }
 }
 
 
 /**
- * Run the main event loop for the Taler interaction.
+ * Run the main event loop for the HTTP interaction.
  *
  * @param ctx the library context
  */
