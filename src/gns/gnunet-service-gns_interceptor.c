@@ -178,7 +178,7 @@ reply_to_dns (void *cls, uint32_t rd_count,
 
         default:
           answer_records[i - skip_answers].data.raw.data_len = rd[i].data_size;
-          answer_records[i - skip_answers].data.raw.data = (char*) rd[i].data;
+          answer_records[i - skip_answers].data.raw.data = (char *) rd[i].data;
           break;
         }
         GNUNET_break (0 == (rd[i - skip_answers].flags
@@ -244,7 +244,7 @@ reply_to_dns (void *cls, uint32_t rd_count,
           additional_records[i - skip_additional].data.raw.data_len =
             rd[i].data_size;
           additional_records[i - skip_additional].data.raw.data =
-            (char*) rd[i].data;
+            (char *) rd[i].data;
           break;
         }
         GNUNET_break (0 == (rd[i - skip_additional].flags

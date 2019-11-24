@@ -679,7 +679,7 @@ generate_presecret_polynomial (struct KeygenSession *ks)
   for (i = 0; i < ks->threshold; i++)
   {
     v = ks->presecret_polynomial[i] = gcry_mpi_new (
-      GNUNET_SECRETSHARING_ELGAMAL_BITS);
+          GNUNET_SECRETSHARING_ELGAMAL_BITS);
     GNUNET_assert (NULL != v);
     // Randomize v such that 0 < v < elgamal_q.
     // The '- 1' is necessary as bitlength(q) = bitlength(p) - 1.

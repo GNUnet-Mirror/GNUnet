@@ -885,7 +885,7 @@ handle_dns_response (void *cls,
                                 GNUNET_NO);
       GNUNET_DNS_request_answer (rc->rh,
                                  mlen + sizeof(struct GNUNET_TUN_DnsHeader),
-                                 (const void*) &msg->dns);
+                                 (const void *) &msg->dns);
       GNUNET_CONTAINER_DLL_remove (exit->receive_queue_head,
                                    exit->receive_queue_tail,
                                    rc);
@@ -1317,7 +1317,7 @@ main (int argc,
                              NULL))
         ? 0
         : 1;
-  GNUNET_free ((void*) argv);
+  GNUNET_free ((void *) argv);
   return ret;
 }
 

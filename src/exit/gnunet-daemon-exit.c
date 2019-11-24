@@ -582,7 +582,7 @@ hash_redirect_info (struct GNUNET_HashCode *hash,
           sizeof(struct GNUNET_HashCode));
   /* the GNUnet hashmap only uses the first sizeof(unsigned int) of the hash,
      so we put the IP address in there (and hope for few collisions) */
-  off = (char*) hash;
+  off = (char *) hash;
   switch (ri->remote_address.af)
   {
   case AF_INET:

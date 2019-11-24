@@ -272,7 +272,7 @@ cleanup_handle (void *cls)
   if (NULL != handle->emsg)
     GNUNET_free (handle->emsg);
   if (NULL != handle->address)
-    GNUNET_free ((char*) handle->address);
+    GNUNET_free ((char *) handle->address);
   if (NULL != handle->expiration_str)
     GNUNET_free (handle->expiration_str);
   if (NULL != handle->pubkey)

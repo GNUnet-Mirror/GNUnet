@@ -486,7 +486,7 @@ main (int argc, char *const *argv)
                             "This program will import some GNS authorities into your GNS namestore."),
                           options,
                           &run, NULL);
-  GNUNET_free ((void*) argv);
+  GNUNET_free ((void *) argv);
   return GNUNET_OK == r ? ret : 1;
 }
 

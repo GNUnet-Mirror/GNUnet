@@ -85,7 +85,7 @@ static const char *sbin_sysctl;
 static const char *sbin_iptables;
 
 
-#if !defined(_LINUX_IN6_H) && defined(__linux__)
+#if ! defined(_LINUX_IN6_H) && defined(__linux__)
 /**
  * This is in linux/include/net/ipv6.h, but not always exported.
  */
@@ -234,32 +234,36 @@ init_tun (char *dev)
   strcpy (dev, ifr.ifr_name);
   return fd;
 }
+
+
 #else /* BSD et al, including DARWIN */
 
 #ifdef SIOCIFCREATE
 static int
-init_tun(char *dev)
+init_tun (char *dev)
 {
   int fd;
   int s;
   struct ifreq ifr;
 
-  fd = open(dev, O_RDWR);
-  if(fd == -1)
+  fd = open (dev, O_RDWR);
+  if (fd == -1)
   {
-    s = socket(AF_INET, SOCK_DGRAM, 0);
+    s = socket (AF_INET, SOCK_DGRAM, 0);
     if (s < 0)
       return -1;
-    memset(&ifr, 0, sizeof(ifr));
-    strncpy(ifr.ifr_name, dev + 5, sizeof(ifr.ifr_name) - 1);
-    if (!ioctl(s, SIOCIFCREATE, &ifr))
-      fd = open(dev, O_RDWR);
-    close(s);
+    memset (&ifr, 0, sizeof(ifr));
+    strncpy (ifr.ifr_name, dev + 5, sizeof(ifr.ifr_name) - 1);
+    if (! ioctl (s, SIOCIFCREATE, &ifr))
+      fd = open (dev, O_RDWR);
+    close (s);
   }
   return fd;
 }
+
+
 #else
-#define init_tun(dev) open(dev, O_RDWR)
+#define init_tun(dev) open (dev, O_RDWR)
 #endif
 #endif /* !IFF_TUN (BSD) */
 

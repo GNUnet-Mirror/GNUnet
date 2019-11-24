@@ -108,7 +108,7 @@ parse_record (json_t *data, struct GNUNET_GNSRECORD_Data *rd)
   }
   if (GNUNET_OK != GNUNET_GNSRECORD_string_to_value (rd->record_type,
                                                      value,
-                                                     (void**) &rd->data,
+                                                     (void **) &rd->data,
                                                      &rd->data_size))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Value invalid for record type\n");

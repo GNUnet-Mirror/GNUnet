@@ -189,7 +189,7 @@ GNUNET_CRYPTO_ecc_dlog_prepare (unsigned int max,
     GNUNET_assert (GNUNET_OK ==
                    GNUNET_CONTAINER_multipeermap_put (edc->map,
                                                       &key,
-                                                      (void*) (long) i + max,
+                                                      (void *) (long) i + max,
                                                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
   }
   /* negative values */
@@ -203,7 +203,7 @@ GNUNET_CRYPTO_ecc_dlog_prepare (unsigned int max,
     GNUNET_assert (GNUNET_OK ==
                    GNUNET_CONTAINER_multipeermap_put (edc->map,
                                                       &key,
-                                                      (void*) (long) max - i,
+                                                      (void *) (long) max - i,
                                                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
   }
   gcry_mpi_release (fact);

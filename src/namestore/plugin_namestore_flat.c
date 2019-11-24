@@ -300,7 +300,7 @@ database_setup (struct Plugin *plugin)
 
       GNUNET_STRINGS_base64_decode (zone_private_key,
                                     strlen (zone_private_key),
-                                    (void**) &private_key);
+                                    (void **) &private_key);
       entry->private_key = *private_key;
       GNUNET_free (private_key);
     }
@@ -494,7 +494,7 @@ namestore_flat_store_records (void *cls,
     entry->record_data[i].flags = rd[i].flags;
     entry->record_data[i].data_size = rd[i].data_size;
     entry->record_data[i].data = GNUNET_malloc (rd[i].data_size);
-    GNUNET_memcpy ((char*) entry->record_data[i].data,
+    GNUNET_memcpy ((char *) entry->record_data[i].data,
                    rd[i].data,
                    rd[i].data_size);
   }

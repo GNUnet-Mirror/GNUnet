@@ -1923,7 +1923,7 @@ handle_helper_message (void *cls,
     mas.session = NULL;
     (void) GNUNET_SERVER_mst_receive (plugin->helper_payload_tokenizer,
                                       &mas,
-                                      (const char*) &rxinfo[1],
+                                      (const char *) &rxinfo[1],
                                       msize - sizeof(struct
                                                      GNUNET_TRANSPORT_WLAN_RadiotapReceiveMessage),
                                       GNUNET_YES, GNUNET_NO);

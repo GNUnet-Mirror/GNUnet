@@ -1086,7 +1086,7 @@ ieee80211_radiotap_iterator_init (struct
        * check for insanity where the present bitmaps
        * keep claiming to extend up to or even beyond the
        * stated radiotap header length
-       */if (iterator->arg - ((uint8_t*) iterator->rtheader) >
+       */if (iterator->arg - ((uint8_t *) iterator->rtheader) >
           iterator->max_length)
         return -1;
     }
@@ -1538,7 +1538,7 @@ linux_read (struct HardwareInfos *dev,
         case IEEE80211_RADIOTAP_DBM_ANTSIGNAL:
           if (! got_signal)
           {
-            ri->ri_power = *((int8_t*) iterator.this_arg);
+            ri->ri_power = *((int8_t *) iterator.this_arg);
             got_signal = 1;
           }
           break;
@@ -1546,7 +1546,7 @@ linux_read (struct HardwareInfos *dev,
         case IEEE80211_RADIOTAP_DB_ANTSIGNAL:
           if (! got_signal)
           {
-            ri->ri_power = *((int8_t*) iterator.this_arg);
+            ri->ri_power = *((int8_t *) iterator.this_arg);
             got_signal = 1;
           }
           break;
@@ -1554,7 +1554,7 @@ linux_read (struct HardwareInfos *dev,
         case IEEE80211_RADIOTAP_DBM_ANTNOISE:
           if (! got_noise)
           {
-            ri->ri_noise = *((int8_t*) iterator.this_arg);
+            ri->ri_noise = *((int8_t *) iterator.this_arg);
             got_noise = 1;
           }
           break;
@@ -1562,7 +1562,7 @@ linux_read (struct HardwareInfos *dev,
         case IEEE80211_RADIOTAP_DB_ANTNOISE:
           if (! got_noise)
           {
-            ri->ri_noise = *((int8_t*) iterator.this_arg);
+            ri->ri_noise = *((int8_t *) iterator.this_arg);
             got_noise = 1;
           }
           break;

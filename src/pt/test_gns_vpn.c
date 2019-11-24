@@ -599,7 +599,7 @@ identity_cb (void *cls,
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_GNSRECORD_string_to_value (GNUNET_GNSRECORD_TYPE_VPN,
                                                    rd_string,
-                                                   (void**) &rd.data,
+                                                   (void **) &rd.data,
                                                    &rd.data_size));
   rd.record_type = GNUNET_GNSRECORD_TYPE_VPN;
 
@@ -611,7 +611,7 @@ identity_cb (void *cls,
                                        1, &rd,
                                        &commence_testing,
                                        NULL);
-  GNUNET_free ((void**) rd.data);
+  GNUNET_free ((void **) rd.data);
   GNUNET_free (rd_string);
 }
 

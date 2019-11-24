@@ -443,7 +443,7 @@ database_setup (struct Plugin *plugin)
         o = NULL;
         s = GNUNET_STRINGS_base64_decode (peer,
                                           strlen (peer),
-                                          (void**) &o);
+                                          (void **) &o);
         if (sizeof(struct GNUNET_PeerIdentity) == s)
           GNUNET_memcpy (&entry->peer,
                          o,
@@ -454,7 +454,7 @@ database_setup (struct Plugin *plugin)
       }
       entry->value_size = GNUNET_STRINGS_base64_decode (value,
                                                         strlen (value),
-                                                        (void**) &entry->value);
+                                                        (void **) &entry->value);
       if (GNUNET_SYSERR ==
           GNUNET_STRINGS_fancy_time_to_absolute (expiry,
                                                  &entry->expiry))
@@ -496,7 +496,7 @@ store_and_free_entries (void *cls,
                                 entry->value_size,
                                 &val);
   expiry = GNUNET_STRINGS_absolute_time_to_string (entry->expiry);
-  GNUNET_STRINGS_base64_encode ((char*) &entry->peer,
+  GNUNET_STRINGS_base64_encode ((char *) &entry->peer,
                                 sizeof(struct GNUNET_PeerIdentity),
                                 &peer);
   GNUNET_asprintf (&line,

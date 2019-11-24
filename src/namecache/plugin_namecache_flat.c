@@ -171,7 +171,7 @@ database_setup (struct Plugin *plugin)
                                                                   &entry->query));
       GNUNET_STRINGS_base64_decode (block,
                                     strlen (block),
-                                    (void**) &block_buffer);
+                                    (void **) &block_buffer);
       entry->block = (struct GNUNET_GNSRECORD_Block *) block_buffer;
       if (GNUNET_OK !=
           GNUNET_CONTAINER_multihashmap_put (plugin->hm,
@@ -211,14 +211,14 @@ store_and_free_entries (void *cls,
                + sizeof(struct GNUNET_CRYPTO_EcdsaPublicKey)
                + sizeof(struct GNUNET_CRYPTO_EcdsaSignature);
 
-  GNUNET_STRINGS_base64_encode ((char*) entry->block,
+  GNUNET_STRINGS_base64_encode ((char *) entry->block,
                                 block_size,
                                 &block_b64);
   GNUNET_CRYPTO_hash_to_enc (&entry->query,
                              &query);
   GNUNET_asprintf (&line,
                    "%s,%s\n",
-                   (char*) &query,
+                   (char *) &query,
                    block_b64);
 
   GNUNET_free (block_b64);

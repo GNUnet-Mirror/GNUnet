@@ -43,7 +43,7 @@ testAbecipher ()
   size = GNUNET_ABE_cpabe_encrypt (TESTSTRING, strlen (TESTSTRING) + 1,
                                    "testattr",    // Policy
                                    msk,
-                                   (void*) &result);
+                                   (void *) &result);
   GNUNET_assert (-1 != size);
   attrs = GNUNET_malloc (2 * sizeof(char*));
   attrs[0] = "testattr";
@@ -53,7 +53,7 @@ testAbecipher ()
 
   size = GNUNET_ABE_cpabe_decrypt (result, size,
                                    key,
-                                   (void*) &res);
+                                   (void *) &res);
   if (strlen (TESTSTRING) + 1 != size)
   {
     printf ("abeciphertest failed: decryptBlock returned %d\n", size);

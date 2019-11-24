@@ -1084,7 +1084,7 @@ GNUNET_ntoh_double (double d);
  */
 #define GNUNET_is_zero(a)           \
   ({                                \
-    static const typeof (*a) _z;    \
+    static const typeof (*a)_z;    \
     memcmp ((a), &_z, sizeof(_z)); \
   })
 

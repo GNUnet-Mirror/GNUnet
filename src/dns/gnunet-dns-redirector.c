@@ -260,7 +260,7 @@ main (int argc, char *const *argv)
                                ("Change DNS replies to point elsewhere."),
                              options,
                              &run, NULL)) ? ret : 1;
-  GNUNET_free ((void*) argv);
+  GNUNET_free ((void *) argv);
   return ret;
 }
 

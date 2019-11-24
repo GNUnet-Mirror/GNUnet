@@ -737,7 +737,7 @@ get_channel (struct HardwareInfos *dev, bdaddr_t dest)
   {
     for (it = response_list; it; it = it->next)
     {
-      sdp_record_t *record = (sdp_record_t*) it->data;
+      sdp_record_t *record = (sdp_record_t *) it->data;
       sdp_list_t *proto_list = 0;
       if (sdp_get_access_protos (record, &proto_list) == 0)
       {

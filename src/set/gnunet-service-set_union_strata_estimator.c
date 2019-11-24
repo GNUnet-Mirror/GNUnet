@@ -149,7 +149,7 @@ strata_estimator_insert (struct StrataEstimator *se,
 
   v = key.key_val;
   /* count trailing '1'-bits of v */
-  for (i = 0; v & 1; v >>= 1, i++)
+  for (i = 0; v &1; v >>= 1, i++)
     /* empty */;
   ibf_insert (se->strata[i], key);
 }
@@ -170,7 +170,7 @@ strata_estimator_remove (struct StrataEstimator *se,
 
   v = key.key_val;
   /* count trailing '1'-bits of v */
-  for (i = 0; v & 1; v >>= 1, i++)
+  for (i = 0; v &1; v >>= 1, i++)
     /* empty */;
   ibf_remove (se->strata[i], key);
 }

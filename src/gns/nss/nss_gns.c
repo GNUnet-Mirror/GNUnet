@@ -139,8 +139,8 @@ _nss_gns_gethostbyname2_r (const char *name,
     goto finish;
   }
   /* Alias names */
-  *((char**) buffer) = NULL;
-  result->h_aliases = (char**) buffer;
+  *((char **) buffer) = NULL;
+  result->h_aliases = (char **) buffer;
   idx = sizeof(char*);
 
   /* Official name */
@@ -175,9 +175,9 @@ _nss_gns_gethostbyname2_r (const char *name,
 
   /* Address array address_length is always a multiple of 32bits */
   for (i = 0; i < u.count; i++)
-    ((char**) (buffer + idx))[i] = buffer + astart + address_length * i;
-  ((char**) (buffer + idx))[i] = NULL;
-  result->h_addr_list = (char**) (buffer + idx);
+    ((char **) (buffer + idx))[i] = buffer + astart + address_length * i;
+  ((char **) (buffer + idx))[i] = NULL;
+  result->h_addr_list = (char **) (buffer + idx);
 
   status = NSS_STATUS_SUCCESS;
 

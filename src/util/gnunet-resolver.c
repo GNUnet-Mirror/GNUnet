@@ -178,7 +178,7 @@ main (int argc, char *const *argv)
          GNUNET_PROGRAM_run (argc, argv, "gnunet-resolver [hostname]",
                              gettext_noop ("Use build-in GNUnet stub resolver"),
                              options, &run, NULL)) ? 0 : 1;
-  GNUNET_free ((void*) argv);
+  GNUNET_free ((void *) argv);
   return ret;
 }
 
