@@ -3,6 +3,8 @@ AM_CPPFLAGS = -I$(top_srcdir)/src/include -I$(top_builddir)/src/include
 
 SUBDIRS = scripts hellos services
 
+include Makefile.inc
+
 dist_pkgdata_DATA = \
  gns/gns-bcd.html \
  gns/gns-bcd.tex \
@@ -47,7 +49,8 @@ EXTRA_DIST = \
  conf/nss/nssswitch.conf \
  conf/wireshark/wireshark.lua \
  $(PACKAGES_FILES) \
- $(INITD_FILES)
+ $(INITD_FILES) \
+ Makefile.inc
 
 check_PROGRAMS = \
  test_gnunet_prefix
