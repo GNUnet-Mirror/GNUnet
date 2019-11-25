@@ -5,6 +5,8 @@ do_subst = $(SED) -e 's,[@]SYSCONFDIR[@],$(sysconfdir),g'
 gnunet.conf.5: gnunet.conf.5.in Makefile
 	$(do_subst) < $(srcdir)/gnunet.conf.5.in > gnunet.conf.5
 
+do_subst_pkgdatadir = $(SED) -e 's,[@]pkgdatadir[@],$(pkgdatadir),g'
+
 CLEANFILES = gnunet.conf.5
 
 if TEXI2MDOC_GENERATION
@@ -25,8 +27,13 @@ if HAVE_MANDOC
 # that this is the most portable way to achieve what
 # I want and that the alternatives are depressing and
 # nonfunctional.
+produce_html.sh: produce_html.sh.in Makefile
+	$(do_subst_pkgdatadir) < $(srcdir)/produce_html.sh.in > produce_html.sh
+
+CLEANFILES += produce_html.sh
+
 .PHONY: man-html
-man-html:
+man-html: produce_html.sh
 	$(SH) $(srcdir)/produce_html.sh
 
 htmldocdir = $(datadir)/doc/gnunet/manhtml/
@@ -96,4 +103,5 @@ endif
 
 EXTRA_DIST = ${man_MANS} \
  gnunet.conf.5.in \
+ produce_html.sh.in \
  README

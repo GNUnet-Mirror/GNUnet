@@ -1,9 +1,6 @@
 #!/bin/sh
 
-existence()
-{
-    command -v "$1" >/dev/null 2>&1
-}
+. @pkgdatadir@/existence.sh
 
 if existence mandoc;
 then
