@@ -46,10 +46,35 @@
 # THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY
 # OF SUCH DAMAGE.
 
-. @pkgdatadir@/progname.sh
-. @pkgdatadir@/existence.sh
-. @pkgdatadir@/msg.sh
-. @pkgdatadir@/version_gnunet.sh
+dir=$(dirname "$0")
+
+if test -e @pkgdatadir@/progname.sh
+then
+    . @pkgdatadir@/progname.sh
+else
+    . $dir/../../contrib/build-common/sh/lib.sh/progname.sh
+fi
+
+if test -e @pkgdatadir@/existence.sh
+then
+    . @pkgdatadir@/existence.sh
+else
+    . $dir/../../contrib/build-common/sh/lib.sh/existence.sh
+fi
+
+if test -e @pkgdatadir@/msg.sh
+then
+    . @pkgdatadir@/msg.sh
+else
+    . $dir/../../contrib/build-common/sh/lib.sh/msg.sh
+fi
+
+if test -e @pkgdatadir@/version_gnunet.sh
+then
+    . @pkgdatadir@/version_gnunet.sh
+else
+    . $dir/../../contrib/build-common/sh/lib.sh/version_gnunet.sh
+fi
 
 # Whitespace normalization without depending on shell features:
 tab='   '
