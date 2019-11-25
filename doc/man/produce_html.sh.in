@@ -1,6 +1,11 @@
 #!/bin/sh
 
-. @pkgdatadir@/existence.sh
+if test -e @pkgdatadir@/existence.sh
+then
+    . @pkgdatadir@/existence.sh
+else
+    . $dir/../../contrib/build-common/sh/lib.sh/existence.sh
+fi
 
 if existence mandoc;
 then
