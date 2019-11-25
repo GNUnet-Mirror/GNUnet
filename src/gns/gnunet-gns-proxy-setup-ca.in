@@ -46,14 +46,16 @@
 # THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY
 # OF SUCH DAMAGE.
 
-progname=${0##*/}
+. @pkgdatadir@/progname.sh
+. @pkgdatadir@/existence.sh
+. @pkgdatadir@/msg.sh
+. @pkgdatadir@/version_gnunet.sh
 
 # Whitespace normalization without depending on shell features:
 tab='   '
 tab2='   '
 nl='
 '
-# trap "exit 1" 1 2 3 15
 
 setdefaults()
 {
@@ -62,38 +64,6 @@ setdefaults()
     results=/dev/null
     tmpdir=${TMPDIR:-/tmp}
     runcmd=
-}
-
-statusmsg()
-{
-    ${runcmd} echo "${tab}$@" | tee -a "${results}"
-}
-
-infomsg()
-{
-    if [ x$verbosity = x1 ]; then
-        statusmsg "INFO:${tab}$@"
-    fi
-}
-
-warningmsg()
-{
-    statusmsg "WARNING:${tab}$@"
-}
-
-errormsg()
-{
-    statusmsg "ERROR:${tab}$@"
-}
-
-linemsg()
-{
-    statusmsg "========================================="
-}
-
-existence()
-{
-    command -v "$1" >/dev/null 2>&1
 }
 
 usage()
@@ -242,12 +212,6 @@ importbrowsers()
         warningmsg "Not importing into browsers."
         warningmsg "For 'certutil' install nss."
     fi
-}
-
-print_version()
-{
-    GNUNET_ARM_VERSION=`gnunet-arm -v | awk '{print $2 " " $3}'`
-    echo ${progname} $GNUNET_ARM_VERSION
 }
 
 clean_up()
