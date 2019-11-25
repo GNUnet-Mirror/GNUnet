@@ -13,7 +13,8 @@ dist_pkgdata_DATA = \
  gns/gns-form.xslt \
  branding/logo/gnunet-logo.pdf \
  branding/logo/gnunet-logo-color.png \
- testing_hostkeys.ecc
+ testing_hostkeys.ecc \
+ $(BUILDCOMMON_SHLIB_FILES)
 
 INITD_FILES = \
  services/openrc/gnunet.initd \
@@ -50,7 +51,8 @@ EXTRA_DIST = \
  conf/wireshark/wireshark.lua \
  $(PACKAGES_FILES) \
  $(INITD_FILES) \
- Makefile.inc
+ Makefile.inc \
+ $(BUILD_COMMON_FILES)
 
 check_PROGRAMS = \
  test_gnunet_prefix
