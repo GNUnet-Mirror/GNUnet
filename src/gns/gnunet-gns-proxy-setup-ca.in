@@ -18,7 +18,7 @@
 #
 # This code is derived from software contributed to
 # The NetBSD Foundation by Todd Vierling and Luke Mewburn.
-
+#
 # Redistribution and use in source and binary forms, with or
 # without modification, are permitted provided that the following
 # conditions are met:
@@ -29,7 +29,7 @@
 #    copyright notice, this list of conditions and the following
 #    disclaimer in the documentation and/or other materials
 #    provided with the distribution.
-
+#
 # THIS SOFTWARE IS PROVIDED BY THE NETBSD FOUNDATION, INC. AND
 # CONTRIBUTORS ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES,
 # INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
@@ -48,32 +48,42 @@
 
 progname=${0##*/}
 
+# Whitespace normalization without depending on shell features:
+tab='   '
+tab2='   '
+nl='
+'
+# trap "exit 1" 1 2 3 15
+
 setdefaults()
 {
     verbosity=0
+    resfile=
+    results=/dev/null
+    tmpdir=${TMPDIR:-/tmp}
     runcmd=
 }
 
 statusmsg()
 {
-    ${runcmd} echo "    $@"
+    ${runcmd} echo "${tab}$@" | tee -a "${results}"
 }
 
 infomsg()
 {
     if [ x$verbosity = x1 ]; then
-        statusmsg "INFO: $@"
+        statusmsg "INFO:${tab}$@"
     fi
 }
 
 warningmsg()
 {
-    statusmsg "WARNING: $@"
+    statusmsg "WARNING:${tab}$@"
 }
 
 errormsg()
 {
-    statusmsg "ERROR: $@"
+    statusmsg "ERROR:${tab}$@"
 }
 
 linemsg()
@@ -81,22 +91,27 @@ linemsg()
     statusmsg "========================================="
 }
 
+existence()
+{
+    command -v "$1" >/dev/null 2>&1
+}
 
 usage()
 {
     if [ -n "$*" ]; then
-        echo ""
-        echo "${progname}: $*"
+        echo "${nl}${progname}: $*"
     fi
     cat <<_usage_
 
-Usage: ${progname} [-hv] [-c FILE] [...]
+Usage: ${progname} [-hvVto] [-c FILE]
 
 Options:
-   -c FILE	Use the configuration file FILE.
-   -h		Print this help message.
-   -v		Print the version and exit.
-   -V           be verbose
+${tab}-c FILE Use the configuration file FILE.
+${tab}-h${tab2}${tab2}Print this help message.
+${tab}-o${tab2}${tab2}Display summary of statusmessages
+${tab}-t${tab2}${tab2}Short developer test on binaries
+${tab}-v${tab2}${tab2}Print the version and exit.
+${tab}-V${tab2}${tab2}be verbose
 
 _usage_
 	exit 1
@@ -108,13 +123,13 @@ generate_ca()
     echo ""
     infomsg "Generating CA"
     TMPDIR=${TMPDIR:-/tmp}
-    if [ -e "$TMPDIR" ]; then
+    if test -e "$TMPDIR"; then
         GNSCERT=`mktemp -t certXXXXXXXX.pem` || exit 1
         GNSCAKY=`mktemp -t cakyXXXXXXXX.pem` || exit 1
         GNSCANO=`mktemp -t canoXXXXXXXX.pem` || exit 1
     else
         # This warning is mostly pointless.
-        warning "You need to export the TMPDIR variable"
+        warningmsg "You need to export the TMPDIR variable"
     fi
 
     # # ------------- gnutls
@@ -137,18 +152,23 @@ generate_ca()
     OPENSSLCFG=@pkgdatadir@/openssl.cnf
     CERTTOOL=""
     OPENSSL=0
-    if test -z "`gnutls-certtool --version`" > /dev/null
+    if test -x $(existence gnunet-certtool)
+    # if test -z "`gnutls-certtool --version`" > /dev/null
     then
-      # We only support gnutls certtool for now
+      # We only support gnutls certtool for now. Treat the grep
+      # for "gnutls" in the output with extra care, it only matches
+      # the email address! It is probably safer to run strings(1)
+      # over certtool for a string matching "gnutls"
       if test -z "`certtool --version | grep gnutls`" > /dev/null
       then
         warningmsg "'gnutls-certtool' or 'certtool' command not found. Trying openssl."
-        if test -z "`openssl version`" > /dev/null
+        # if test -z "`openssl version`" > /dev/null
+        if test -x $(existence openssl)
         then
           OPENSSL=1
         else
           warningmsg "Install either gnutls certtool or openssl for certificate generation!"
-          infomsg    "Cleaning up."
+          statusmsg  "Cleaning up."
           rm -f $GNSCAKY $GNSCERT
           exit 1
         fi
@@ -157,7 +177,7 @@ generate_ca()
     else
       CERTTOOL="gnutls-certtool"
     fi
-    if [ -n "${GNUNET_CONFIG_FILE}" ]; then
+    if test -n "${GNUNET_CONFIG_FILE}"; then
         GNUNET_CONFIG="-c ${GNUNET_CONFIG_FILE}"
     else
         GNUNET_CONFIG=""
@@ -167,13 +187,26 @@ generate_ca()
 
     if test 1 -eq $OPENSSL
     then
-      openssl req -config $OPENSSLCFG -new -x509 -days 3650 -extensions v3_ca -keyout $GNSCAKY -out $GNSCERT -subj "/C=ZZ/L=World/O=GNU/OU=GNUnet/CN=GNS Proxy CA/emailAddress=bounce@gnunet.org" -passout pass:"GNU Name System"
-      infomsg "Removing passphrase from key"
-      openssl rsa -passin pass:"GNU Name System" -in $GNSCAKY -out $GNSCANO
+        if test 1 -eq $verbosity; then
+            openssl req -config $OPENSSLCFG -new -x509 -days 3650 -extensions v3_ca -keyout $GNSCAKY -out $GNSCERT -subj "/C=ZZ/L=World/O=GNU/OU=GNUnet/CN=GNS Proxy CA/emailAddress=bounce@gnunet.org" -passout pass:"GNU Name System"
+        else
+            openssl req -config $OPENSSLCFG -new -x509 -days 3650 -extensions v3_ca -keyout $GNSCAKY -out $GNSCERT -subj "/C=ZZ/L=World/O=GNU/OU=GNUnet/CN=GNS Proxy CA/emailAddress=bounce@gnunet.org" -passout pass:"GNU Name System" >/dev/null 2>&1
+        fi
+        infomsg "Removing passphrase from key"
+        if test 1 -eq $verbosity; then
+            openssl rsa -passin pass:"GNU Name System" -in $GNSCAKY -out $GNSCANO
+        else
+            openssl rsa -passin pass:"GNU Name System" -in $GNSCAKY -out $GNSCANO >/dev/null 2>&1
+        fi
       cat $GNSCERT $GNSCANO > $GNS_CA_CERT_PEM
     else
-      $CERTTOOL --generate-privkey --outfile $GNSCAKY
-      $CERTTOOL --template $GNUTLS_CA_TEMPLATE --generate-self-signed --load-privkey $GNSCAKY --outfile $GNSCERT
+        if test 1 -eq $verbosity; then
+            $CERTTOOL --generate-privkey --outfile $GNSCAKY
+            $CERTTOOL --template $GNUTLS_CA_TEMPLATE --generate-self-signed --load-privkey $GNSCAKY --outfile $GNSCERT
+        else
+            $CERTTOOL --generate-privkey --outfile $GNSCAKY >/dev/null 2>&1
+            $CERTTOOL --template $GNUTLS_CA_TEMPLATE --generate-self-signed --load-privkey $GNSCAKY --outfile $GNSCERT >/dev/null 2>&1
+        fi
       infomsg "Making private key available to gnunet-gns-proxy"
       cat $GNSCERT $GNSCAKY > $GNS_CA_CERT_PEM
     fi
@@ -181,13 +214,10 @@ generate_ca()
 
 importbrowsers()
 {
-    if test -z "`command -v certutil`" > /dev/null 2>&1
+    # if test -z "`command -v certutil`" > /dev/null 2>&1
+    if test -x $(existence gnutls-certutil) || test -x $(existence certutil)
     then
-        warningmsg "The 'certutil' command was not found."
-        warningmsg "Not importing into browsers."
-        warningmsg "For 'certutil' install nss."
-    else
-        infomsg "Importing CA into browsers"
+        statusmsg "Importing CA into browsers"
         # TODO: Error handling?
         for f in ~/.mozilla/firefox/*.*/
         do
@@ -201,26 +231,31 @@ importbrowsers()
         done
         # TODO: Error handling?
         if [ -d ~/.pki/nssdb/ ]; then
-            infomsg "Importing CA into Chrome at ~/.pki/nssdb/"
+            statusmsg "Importing CA into Chrome at ~/.pki/nssdb/"
             # delete old certificate (if any)
             certutil -D -n "GNS Proxy CA" -d ~/.pki/nssdb/ >/dev/null 2>/dev/null
             # add new certificate
             certutil -A -n "GNS Proxy CA" -t CT,, -d ~/.pki/nssdb/ < $GNSCERT
         fi
+    else
+        warningmsg "The 'certutil' command was not found."
+        warningmsg "Not importing into browsers."
+        warningmsg "For 'certutil' install nss."
     fi
 }
 
 print_version()
 {
-    GNUNET_ARM_VERSION=`gnunet-arm -v`
-    echo $GNUNET_ARM_VERSION
+    GNUNET_ARM_VERSION=`gnunet-arm -v | awk '{print $2 " " $3}'`
+    echo ${progname} $GNUNET_ARM_VERSION
 }
 
 clean_up()
 {
     infomsg "Cleaning up."
     rm -f $GNSCAKY $GNSCANO $GNSCERT
-    if [ -e $SETUP_TMPDIR ]; then
+    if test -e $SETUP_TMPDIR
+    then
         rm -rf $SETUP_TMPDIR
     fi
 
@@ -233,7 +268,8 @@ clean_up()
 
 main()
 {
-    while getopts "vhVc:" opt; do
+    setdefaults
+    while getopts "vhVtoc:" opt; do
         case $opt in
             v)
                 print_version
@@ -250,6 +286,24 @@ main()
                 infomsg "Using configuration file $OPTARG"
                 GNUNET_CONFIG_FILE=${OPTARG}
                 ;;
+            t)
+                verbosity=1
+                infomsg "Running short developer test"
+                if test -x $(existence openssl); then
+                   openssl version
+                fi
+                if test -x $(existence certtool); then
+                    certtool --version
+                fi
+                if test -x $(existence gnutls-certtool); then
+                    gnutls-certtool --version
+                fi
+                exit 0
+                ;;
+            o)
+                resfile=$(mktemp -t ${progname}.results)
+                results="${resfile}"
+                ;;
             \?)
                 echo "Invalid option: -$OPTARG" >&2
                 usage
@@ -260,9 +314,14 @@ main()
                 ;;
         esac
     done
-    setdefaults
     generate_ca
     importbrowsers
+    if [ -s "${results}" ]; then
+        echo "===> Summary of results:"
+        sed -e 's/^===>//;s/^/  /' "${results}"
+        echo "===> ."
+        infomsg "Please remove ${results} manually."
+    fi
     clean_up
 }
 

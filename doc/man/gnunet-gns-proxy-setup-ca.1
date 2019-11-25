@@ -29,15 +29,17 @@
 .Nd generate an X509 certificate for gnunet-gns-proxy and install it
 .Sh SYNOPSIS
 .Nm
+.Op Fl hvtoV
 .Op Fl c Ar FILE
 .\".Op Fl f Ar FILE
-.Op Fl h
-.Op Fl v
-.Op Fl V
 .Sh DESCRIPTION
 .Nm
-is a shell script to generate X509 certificates for your gnunet-gns-proxy and to install it for both GNUnet and your web browser.
-It currently supports Firefox and Chrome based browsers through the help of external helpers: certutil (nss) is used for the  import into webbrowsers, openssl is used to generated the CA.
+is a
+.Xr sh 1
+script to generate X509 certificates for your
+.Xr gnunet-gns-proxy 1
+and to install it for both GNUnet and your web browser.
+It currently supports Firefox and Chrome based browsers through the help of external helpers: certutil (nss) is used for the  import into webbrowsers, OpenSSL or GnuTLS are used to generated the CA.
 .Bl -tag -width indent
 .It Fl c Ar FILE
 Use the configuration file FILE.
@@ -45,12 +47,18 @@ Use the configuration file FILE.
 .\" Perform expansions of the variables used in the config value of gns-proxy.
 .\" This will usually expand $GNUNET_DATA_HOME to represents its path.
 .It Fl h
-Print short help on options
+Print short help on options.
 .It Fl v
-Print the version
+Print the version.
 .It Fl V
-be verbose
+Be verbose.
+.It Fl t
+Run a small test on binaries (only interesting for developers of this tool).
+.It Fl o
+Show output of results.
 .El
+.Sh RETURN VALUES
+.Ex -std
 .Sh FILES
 .Pa gnunet.conf
 .Sh SEE ALSO
