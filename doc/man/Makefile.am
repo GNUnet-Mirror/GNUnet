@@ -29,6 +29,7 @@ if HAVE_MANDOC
 # nonfunctional.
 produce_html.sh: produce_html.sh.in Makefile
 	$(do_subst_pkgdatadir) < $(srcdir)/produce_html.sh.in > produce_html.sh
+	@chmod +x produce_html.sh
 
 CLEANFILES += produce_html.sh
 
