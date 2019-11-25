@@ -86,10 +86,16 @@ submodules()
     fi
 }
 
+init_buildcommon_include()
+{
+    cp contrib/build-common/Makefile.inc contrib/Makefile.inc || true
+}
+
 main()
 {
     cleanup
     submodules
+    init_buildcommon_include
     check_uncrustify
     check_yapf
     check_libtool
