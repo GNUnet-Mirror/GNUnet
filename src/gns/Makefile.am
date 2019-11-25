@@ -106,7 +106,7 @@ test_gnunet_gns.sh: test_gnunet_gns.sh.in Makefile
 	$(do_subst_pkgdatadir) < $(srcdir)/test_gnunet_gns.sh.in > test_gnunet_gns.sh
 	@chmod +x test_gnunet_gns.sh
 
-CLEANFILES += test_gnunet_gns.sh
+CLEANFILES = test_gnunet_gns.sh
 
 libgnunet_plugin_rest_gns_la_SOURCES = \
   plugin_rest_gns.c
