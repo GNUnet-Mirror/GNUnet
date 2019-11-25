@@ -6,10 +6,7 @@
 # if test -z "`which fooble`"; then echo 1; fi
 # The command builtin might not work with busybox's ash
 # but this works for now.
-existence()
-{
-    command -v "$1" >/dev/null 2>&1
-}
+. @pkgdatadir@/existence.sh
 
 LOCATION=`existence gnunet-config`
 if test -z $LOCATION; then

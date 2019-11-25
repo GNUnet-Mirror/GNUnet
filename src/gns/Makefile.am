@@ -10,6 +10,8 @@ SUBDIRS = . $(NSS_SUBDIR)
 pkgdata_DATA = \
   gnunet-gns-proxy-ca.template
 
+
+
 EXTRA_DIST = \
   test_gns_defaults.conf \
   test_gns_lookup.conf \
@@ -21,7 +23,8 @@ EXTRA_DIST = \
   zonefiles/OEFL7A4VEF1B40QLEMTG5D8G1CN6EN16QUSG5R2DT71GRJN34LSG.zkey \
   zonefiles/test_zonekey \
   $(check_SCRIPTS) \
-  $(pkgdata_DATA)
+  $(pkgdata_DATA) \
+  test_gnunet_gns.sh.in
 
 USE_VPN = $(top_builddir)/src/vpn/libgnunetvpn.la
 
@@ -91,12 +94,19 @@ bin_SCRIPTS = \
   gnunet-gns-proxy-setup-ca
 
 # See: https://www.gnu.org/software/automake/manual/html_node/Scripts.html#Scripts
-do_subst = sed -e 's,[@]pkgdatadir[@],$(pkgdatadir),g'
+do_subst = $(SED) -e 's,[@]pkgdatadir[@],$(pkgdatadir),g'
 
 gnunet-gns-proxy-setup-ca: gnunet-gns-proxy-setup-ca.in Makefile
 	$(do_subst) < $(srcdir)/gnunet-gns-proxy-setup-ca.in > gnunet-gns-proxy-setup-ca
-	chmod +x gnunet-gns-proxy-setup-ca
+	@chmod +x gnunet-gns-proxy-setup-ca
 
+do_subst_pkgdatadir = $(SED) -e 's,[@]pkgdatadir[@],$(pkgdatadir),g'
+
+test_gnunet_gns.sh: test_gnunet_gns.sh.in Makefile
+	$(do_subst_pkgdatadir) < $(srcdir)/test_gnunet_gns.sh.in > test_gnunet_gns.sh
+	@chmod +x test_gnunet_gns.sh
+
+CLEANFILES += test_gnunet_gns.sh
 
 libgnunet_plugin_rest_gns_la_SOURCES = \
   plugin_rest_gns.c
