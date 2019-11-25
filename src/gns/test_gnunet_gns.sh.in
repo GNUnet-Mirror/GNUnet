@@ -6,7 +6,14 @@
 # if test -z "`which fooble`"; then echo 1; fi
 # The command builtin might not work with busybox's ash
 # but this works for now.
-. @pkgdatadir@/existence.sh
+dir=$(dirname "$0")
+
+if test -e @pkgdatadir@/existence.sh
+then
+    . @pkgdatadir@/existence.sh
+else
+    . $dir/../../contrib/build-common/sh/lib.sh/existence.sh
+fi
 
 LOCATION=`existence gnunet-config`
 if test -z $LOCATION; then
