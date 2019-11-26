@@ -5,6 +5,8 @@
 
       Originally obtained from:
       https://tweetnacl.cr.yp.to/20140427/tweetnacl.h
+
+      SPDX-License-Identifier: 0BSD
 */
 
 #include "platform.h"
