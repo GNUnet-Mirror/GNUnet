@@ -22,14 +22,19 @@
  * @file util/crypto_ecc.c
  * @brief public key cryptography (ECC) with libgcrypt
  * @author Christian Grothoff
+ * @author Florian Dold
  */
 #include "platform.h"
 #include <gcrypt.h>
 #include "gnunet_crypto_lib.h"
 #include "gnunet_strings_lib.h"
 #include "benchmark.h"
+#include "tweetnacl-gnunet.h"
 
 #define EXTRA_CHECKS 0
+
+#define NEW_CRYPTO 0
+
 
 /**
  * Name of the curve we are using.  Note that we have hard-coded
@@ -159,6 +164,7 @@ decode_private_ecdsa_key (const struct GNUNET_CRYPTO_EcdsaPrivateKey *priv)
 }
 
 
+#if !NEW_CRYPTO
 /**
  * Convert the given private key from the network format to the
  * S-expression that can be used by libgcrypt.
@@ -192,8 +198,10 @@ decode_private_eddsa_key (const struct GNUNET_CRYPTO_EddsaPrivateKey *priv)
 #endif
   return result;
 }
+#endif /* !NEW_CRYPTO */
 
 
+#if !NEW_CRYPTO
 /**
  * Convert the given private key from the network format to the
  * S-expression that can be used by libgcrypt.
@@ -227,6 +235,7 @@ decode_private_ecdhe_key (const struct GNUNET_CRYPTO_EcdhePrivateKey *priv)
 #endif
   return result;
 }
+#endif /* !NEW_CRYPTO */
 
 
 /**
@@ -271,6 +280,11 @@ GNUNET_CRYPTO_eddsa_key_get_public (
   const struct GNUNET_CRYPTO_EddsaPrivateKey *priv,
   struct GNUNET_CRYPTO_EddsaPublicKey *pub)
 {
+#if NEW_CRYPTO
+  BENCHMARK_START (eddsa_key_get_public);
+  crypto_sign_pk_from_seed (pub->q_y, priv->d);
+  BENCHMARK_END (eddsa_key_get_public);
+#else
   gcry_sexp_t sexp;
   gcry_ctx_t ctx;
   gcry_mpi_t q;
@@ -288,6 +302,7 @@ GNUNET_CRYPTO_eddsa_key_get_public (
   gcry_ctx_release (ctx);
 
   BENCHMARK_END (eddsa_key_get_public);
+#endif
 }
 
 
@@ -302,6 +317,11 @@ GNUNET_CRYPTO_ecdhe_key_get_public (
   const struct GNUNET_CRYPTO_EcdhePrivateKey *priv,
   struct GNUNET_CRYPTO_EcdhePublicKey *pub)
 {
+#if NEW_CRYPTO
+  BENCHMARK_START (ecdhe_key_get_public);
+  crypto_scalarmult_curve25519_base (pub->q_y, priv->d);
+  BENCHMARK_END (ecdhe_key_get_public);
+#else
   gcry_sexp_t sexp;
   gcry_ctx_t ctx;
   gcry_mpi_t q;
@@ -319,6 +339,7 @@ GNUNET_CRYPTO_ecdhe_key_get_public (
   gcry_ctx_release (ctx);
 
   BENCHMARK_END (ecdhe_key_get_public);
+#endif
 }
 
 
@@ -629,6 +650,14 @@ GNUNET_CRYPTO_ecdhe_key_create ()
 int
 GNUNET_CRYPTO_ecdhe_key_create2 (struct GNUNET_CRYPTO_EcdhePrivateKey *pk)
 {
+#if NEW_CRYPTO
+  BENCHMARK_START (ecdhe_key_create);
+  GNUNET_CRYPTO_random_block (GNUNET_CRYPTO_QUALITY_NONCE,
+                              pk,
+                              sizeof (struct GNUNET_CRYPTO_EcdhePrivateKey));
+  BENCHMARK_END (ecdhe_key_create);
+  return GNUNET_OK;
+#else
   gcry_sexp_t priv_sexp;
   gcry_sexp_t s_keyparam;
   gcry_mpi_t d;
@@ -676,6 +705,7 @@ GNUNET_CRYPTO_ecdhe_key_create2 (struct GNUNET_CRYPTO_EcdhePrivateKey *pk)
   BENCHMARK_END (ecdhe_key_create);
 
   return GNUNET_OK;
+#endif
 }
 
 
@@ -743,6 +773,18 @@ GNUNET_CRYPTO_ecdsa_key_create ()
 struct GNUNET_CRYPTO_EddsaPrivateKey *
 GNUNET_CRYPTO_eddsa_key_create ()
 {
+#if NEW_CRYPTO
+  struct GNUNET_CRYPTO_EddsaPrivateKey *priv;
+
+  BENCHMARK_START (eddsa_key_create);
+  priv = GNUNET_new (struct GNUNET_CRYPTO_EddsaPrivateKey);
+  GNUNET_CRYPTO_random_block (GNUNET_CRYPTO_QUALITY_NONCE,
+                              priv,
+                              sizeof (struct GNUNET_CRYPTO_EddsaPrivateKey));
+  BENCHMARK_END (eddsa_key_create);
+
+  return priv;
+#else
   struct GNUNET_CRYPTO_EddsaPrivateKey *priv;
   gcry_sexp_t priv_sexp;
   gcry_sexp_t s_keyparam;
@@ -752,7 +794,7 @@ GNUNET_CRYPTO_eddsa_key_create ()
   BENCHMARK_START (eddsa_key_create);
 
 #if CRYPTO_BUG
-again:
+  again:
 #endif
   if (0 != (rc = gcry_sexp_build (&s_keyparam,
                                   NULL,
@@ -800,6 +842,7 @@ again:
   BENCHMARK_END (eddsa_key_create);
 
   return priv;
+#endif
 }
 
 
@@ -828,6 +871,7 @@ GNUNET_CRYPTO_ecdsa_key_get_anonymous ()
 }
 
 
+#if !NEW_CRYPTO
 /**
  * Convert the data specified in the given purpose argument to an
  * S-expression suitable for signature operations.
@@ -870,6 +914,7 @@ data_to_eddsa_value (const struct GNUNET_CRYPTO_EccSignaturePurpose *purpose)
 #endif
   return data;
 }
+#endif /* !NEW_CRYPTO */
 
 
 /**
@@ -988,6 +1033,22 @@ GNUNET_CRYPTO_eddsa_sign (
   const struct GNUNET_CRYPTO_EccSignaturePurpose *purpose,
   struct GNUNET_CRYPTO_EddsaSignature *sig)
 {
+
+#if NEW_CRYPTO
+  size_t mlen = ntohl (purpose->size);
+  unsigned char sk[crypto_sign_SECRETKEYBYTES];
+  int res;
+
+  BENCHMARK_START (eddsa_sign);
+  crypto_sign_sk_from_seed (sk, priv->d);
+  res = crypto_sign_detached ((uint8_t *) sig,
+                              (uint8_t *) purpose,
+                              mlen,
+                              sk);
+  BENCHMARK_END (eddsa_sign);
+  return (res == 0) ? GNUNET_OK : GNUNET_SYSERR;
+#else
+
   gcry_sexp_t priv_sexp;
   gcry_sexp_t sig_sexp;
   gcry_sexp_t data;
@@ -1029,6 +1090,7 @@ GNUNET_CRYPTO_eddsa_sign (
   BENCHMARK_END (eddsa_sign);
 
   return GNUNET_OK;
+#endif
 }
 
 
@@ -1116,6 +1178,21 @@ GNUNET_CRYPTO_eddsa_verify (
   const struct GNUNET_CRYPTO_EddsaSignature *sig,
   const struct GNUNET_CRYPTO_EddsaPublicKey *pub)
 {
+#if NEW_CRYPTO
+  unsigned char *m = (void *) validate;
+  size_t mlen = ntohl (validate->size);
+  unsigned char *s = (void *) sig;
+
+  int res;
+
+  if (purpose != ntohl (validate->purpose))
+    return GNUNET_SYSERR; /* purpose mismatch */
+
+  BENCHMARK_START (eddsa_verify);
+  res = crypto_sign_detached_verify (s, m, mlen, pub->q_y);
+  BENCHMARK_END (eddsa_verify);
+  return (res == 0) ? GNUNET_OK : GNUNET_SYSERR;
+#else
   gcry_sexp_t data;
   gcry_sexp_t sig_sexpr;
   gcry_sexp_t pub_sexpr;
@@ -1167,6 +1244,7 @@ GNUNET_CRYPTO_eddsa_verify (
   }
   BENCHMARK_END (eddsa_verify);
   return GNUNET_OK;
+#endif
 }
 
 
@@ -1183,6 +1261,12 @@ GNUNET_CRYPTO_ecc_ecdh (const struct GNUNET_CRYPTO_EcdhePrivateKey *priv,
                         const struct GNUNET_CRYPTO_EcdhePublicKey *pub,
                         struct GNUNET_HashCode *key_material)
 {
+#if NEW_CRYPTO
+  uint8_t p[crypto_scalarmult_BYTES];
+  crypto_scalarmult_curve25519 (p, priv->d, pub->q_y);
+  GNUNET_CRYPTO_hash (p, crypto_scalarmult_BYTES, key_material);
+  return GNUNET_OK;
+#else
   gcry_mpi_point_t result;
   gcry_mpi_point_t q;
   gcry_mpi_t d;
@@ -1238,6 +1322,7 @@ GNUNET_CRYPTO_ecc_ecdh (const struct GNUNET_CRYPTO_EcdhePrivateKey *priv,
   gcry_mpi_release (result_x);
   BENCHMARK_END (ecc_ecdh);
   return GNUNET_OK;
+#endif
 }
 
 
@@ -1384,6 +1469,7 @@ GNUNET_CRYPTO_ecdsa_public_key_derive (
 }
 
 
+#if !NEW_CRYPTO
 /**
  * Reverse the sequence of the bytes in @a buffer
  *
@@ -1447,6 +1533,7 @@ eddsa_d_to_a (gcry_mpi_t d)
   GNUNET_CRYPTO_mpi_scan_unsigned (&a, digest, 32);
   return a;
 }
+#endif
 
 
 /**
@@ -1503,6 +1590,16 @@ GNUNET_CRYPTO_eddsa_ecdh (const struct GNUNET_CRYPTO_EddsaPrivateKey *priv,
                           const struct GNUNET_CRYPTO_EcdhePublicKey *pub,
                           struct GNUNET_HashCode *key_material)
 {
+#if NEW_CRYPTO
+  struct GNUNET_HashCode hc;
+  uint8_t a[crypto_scalarmult_BYTES];
+  uint8_t p[crypto_scalarmult_BYTES];
+  GNUNET_CRYPTO_hash (priv, sizeof (struct GNUNET_CRYPTO_EcdsaPrivateKey), &hc);
+  memcpy (a, &hc, sizeof (struct GNUNET_CRYPTO_EcdhePrivateKey));
+  crypto_scalarmult_curve25519 (p, a, pub->q_y);
+  GNUNET_CRYPTO_hash (p, crypto_scalarmult_BYTES, key_material);
+  return GNUNET_OK;
+#else
   gcry_mpi_point_t result;
   gcry_mpi_point_t q;
   gcry_mpi_t d;
@@ -1542,6 +1639,7 @@ GNUNET_CRYPTO_eddsa_ecdh (const struct GNUNET_CRYPTO_EddsaPrivateKey *priv,
   gcry_ctx_release (ctx);
   BENCHMARK_END (eddsa_ecdh);
   return ret;
+#endif
 }
 
 
@@ -1613,6 +1711,14 @@ GNUNET_CRYPTO_ecdh_eddsa (const struct GNUNET_CRYPTO_EcdhePrivateKey *priv,
                           const struct GNUNET_CRYPTO_EddsaPublicKey *pub,
                           struct GNUNET_HashCode *key_material)
 {
+#if NEW_CRYPTO
+  uint8_t p[crypto_scalarmult_BYTES];
+  uint8_t curve25510_pk[crypto_sign_PUBLICKEYBYTES];
+  crypto_sign_ed25519_pk_to_curve25519 (curve25510_pk, pub->q_y);
+  crypto_scalarmult_curve25519 (p, priv->d, curve25510_pk);
+  GNUNET_CRYPTO_hash (p, crypto_scalarmult_BYTES, key_material);
+  return GNUNET_OK;
+#else
   gcry_mpi_point_t result;
   gcry_mpi_point_t q;
   gcry_mpi_t d;
@@ -1648,6 +1754,7 @@ GNUNET_CRYPTO_ecdh_eddsa (const struct GNUNET_CRYPTO_EcdhePrivateKey *priv,
   gcry_ctx_release (ctx);
   BENCHMARK_END (ecdh_eddsa);
   return ret;
+#endif
 }
 
 

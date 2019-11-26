@@ -93,6 +93,7 @@ libgnunetutil_la_SOURCES = \
   strings.c \
   time.c \
   tun.c \
+  tweetnacl-gnunet.c \
   speedup.c speedup.h \
   proc_compat.c
 
