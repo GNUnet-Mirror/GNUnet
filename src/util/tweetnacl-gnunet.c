@@ -13,18 +13,12 @@
 #include "gnunet_crypto_lib.h"
 #include "tweetnacl-gnunet.h"
 #define FOR(i,n) for (i = 0; i < n; ++i)
-#define sv static void
 
 typedef uint8_t u8;
 typedef uint32_t u32;
 typedef uint64_t u64;
 typedef int64_t i64;
 typedef i64 gf[16];
-
-static void randombytes (u8 *data,u64 len)
-{
-  GNUNET_CRYPTO_random_block (GNUNET_CRYPTO_QUALITY_NONCE, data, len);
-}
 
 static const u8 _9[32] = {9};
 static const gf
@@ -42,30 +36,29 @@ static const gf
   I = {0xa0b0, 0x4a0e, 0x1b27, 0xc4ee, 0xe478, 0xad2f, 0x1806, 0x2f43, 0xd7a7,
        0x3dfb, 0x0099, 0x2b4d, 0xdf0b, 0x4fc1, 0x2480, 0x2b83};
 
-static int vn (const u8 *x,const u8 *y,int n)
+static int
+vn (const u8 *x,const u8 *y,int n)
 {
   u32 i,d = 0;
   FOR (i,n) d |= x[i] ^ y[i];
   return (1 & ((d - 1) >> 8)) - 1;
 }
 
-int crypto_verify_16 (const u8 *x,const u8 *y)
-{
-  return vn (x,y,16);
-}
-
-int crypto_verify_32 (const u8 *x,const u8 *y)
+static int
+crypto_verify_32 (const u8 *x,const u8 *y)
 {
   return vn (x,y,32);
 }
 
-sv set25519 (gf r, const gf a)
+static void
+set25519 (gf r, const gf a)
 {
   int i;
   FOR (i,16) r[i] = a[i];
 }
 
-sv car25519 (gf o)
+static void
+car25519 (gf o)
 {
   int i;
   i64 c;
@@ -77,7 +70,8 @@ sv car25519 (gf o)
   }
 }
 
-sv sel25519 (gf p,gf q,int b)
+static void
+sel25519 (gf p,gf q,int b)
 {
   i64 t,i,c = ~(b - 1);
   FOR (i,16) {
@@ -87,7 +81,8 @@ sv sel25519 (gf p,gf q,int b)
   }
 }
 
-sv pack25519 (u8 *o,const gf n)
+static void
+pack25519 (u8 *o,const gf n)
 {
   int i,j,b;
   gf m,t;
@@ -112,7 +107,8 @@ sv pack25519 (u8 *o,const gf n)
   }
 }
 
-static int neq25519 (const gf a, const gf b)
+static int
+neq25519 (const gf a, const gf b)
 {
   u8 c[32],d[32];
   pack25519 (c,a);
@@ -120,33 +116,38 @@ static int neq25519 (const gf a, const gf b)
   return crypto_verify_32 (c,d);
 }
 
-static u8 par25519 (const gf a)
+static uint8_t
+par25519 (const gf a)
 {
   u8 d[32];
   pack25519 (d,a);
   return d[0] & 1;
 }
 
-sv unpack25519 (gf o, const u8 *n)
+static void
+unpack25519 (gf o, const u8 *n)
 {
   int i;
   FOR (i,16) o[i] = n[2 * i] + ((i64) n[2 * i + 1] << 8);
   o[15] &= 0x7fff;
 }
 
-sv A (gf o,const gf a,const gf b)
+static void
+A (gf o,const gf a,const gf b)
 {
   int i;
   FOR (i,16) o[i] = a[i] + b[i];
 }
 
-sv Z (gf o,const gf a,const gf b)
+static void
+Z (gf o,const gf a,const gf b)
 {
   int i;
   FOR (i,16) o[i] = a[i] - b[i];
 }
 
-sv M (gf o,const gf a,const gf b)
+static void
+M (gf o,const gf a,const gf b)
 {
   i64 i,j,t[31];
   FOR (i,31) t[i] = 0;
@@ -157,12 +158,14 @@ sv M (gf o,const gf a,const gf b)
   car25519 (o);
 }
 
-sv S (gf o,const gf a)
+static void
+S (gf o,const gf a)
 {
   M (o,a,a);
 }
 
-sv inv25519 (gf o,const gf i)
+static void
+inv25519 (gf o,const gf i)
 {
   gf c;
   int a;
@@ -175,7 +178,7 @@ sv inv25519 (gf o,const gf i)
   FOR (a,16) o[a] = c[a];
 }
 
-sv pow2523 (gf o,const gf i)
+static void pow2523 (gf o,const gf i)
 {
   gf c;
   int a;
@@ -188,7 +191,8 @@ sv pow2523 (gf o,const gf i)
   FOR (a,16) o[a] = c[a];
 }
 
-int crypto_scalarmult (u8 *q,const u8 *n,const u8 *p)
+int
+GNUNET_TWEETNACL_scalarmult_curve25519 (u8 *q,const u8 *n,const u8 *p)
 {
   u8 z[32];
   i64 x[80],r,i;
@@ -239,25 +243,22 @@ int crypto_scalarmult (u8 *q,const u8 *n,const u8 *p)
   return 0;
 }
 
-int crypto_scalarmult_base (u8 *q,const u8 *n)
+int
+GNUNET_TWEETNACL_scalarmult_curve25519_base (u8 *q,const u8 *n)
 {
-  return crypto_scalarmult (q,n,_9);
+  return GNUNET_TWEETNACL_scalarmult_curve25519 (q,n,_9);
 }
 
-int crypto_box_keypair (u8 *y,u8 *x)
-{
-  randombytes (x,32);
-  return crypto_scalarmult_base (y,x);
-}
-
-int crypto_hash (u8 *out,const u8 *m,u64 n)
+static int
+crypto_hash (u8 *out,const u8 *m,u64 n)
 {
   struct GNUNET_HashCode *hc = (void *) out;
   GNUNET_CRYPTO_hash (m, n, hc);
   return 0;
 }
 
-sv add (gf p[4],gf q[4])
+static void
+add (gf p[4],gf q[4])
 {
   gf a,b,c,d,t,e,f,g,h;
 
@@ -282,14 +283,16 @@ sv add (gf p[4],gf q[4])
   M (p[3], e, h);
 }
 
-sv cswap (gf p[4],gf q[4],u8 b)
+static void
+cswap (gf p[4],gf q[4],u8 b)
 {
   int i;
   FOR (i,4)
   sel25519 (p[i],q[i],b);
 }
 
-sv pack (u8 *r,gf p[4])
+static void
+pack (u8 *r,gf p[4])
 {
   gf tx, ty, zi;
   inv25519 (zi, p[2]);
@@ -299,7 +302,8 @@ sv pack (u8 *r,gf p[4])
   r[31] ^= par25519 (tx) << 7;
 }
 
-sv scalarmult (gf p[4],gf q[4],const u8 *s)
+static void
+scalarmult (gf p[4],gf q[4],const u8 *s)
 {
   int i;
   set25519 (p[0],gf0);
@@ -315,7 +319,8 @@ sv scalarmult (gf p[4],gf q[4],const u8 *s)
   }
 }
 
-sv scalarbase (gf p[4],const u8 *s)
+static void 
+scalarbase (gf p[4],const u8 *s)
 {
   gf q[4];
   set25519 (q[0],X);
@@ -330,7 +335,8 @@ static const u64 L[32] = {0xed, 0xd3, 0xf5, 0x5c, 0x1a, 0x63, 0x12, 0x58, 0xd6,
                           0, 0, 0, 0, 0, 0, 0, 0,
                           0, 0, 0, 0x10};
 
-sv modL (u8 *r,i64 x[64])
+static void
+modL (u8 *r,i64 x[64])
 {
   i64 carry,i,j;
   for (i = 63; i >= 32; --i) {
@@ -356,7 +362,8 @@ sv modL (u8 *r,i64 x[64])
   }
 }
 
-sv reduce (u8 *r)
+static void
+reduce (u8 *r)
 {
   i64 x[64],i;
   FOR (i,64) x[i] = (u64) r[i];
@@ -364,7 +371,8 @@ sv reduce (u8 *r)
   modL (r,x);
 }
 
-static int unpackneg (gf r[4],const u8 p[32])
+static int
+unpackneg (gf r[4],const u8 p[32])
 {
   gf t, chk, num, den, den2, den4, den6;
   set25519 (r[2],gf1);
@@ -406,7 +414,7 @@ static int unpackneg (gf r[4],const u8 p[32])
 /* The following functions have been added for GNUnet */
 
 void
-crypto_sign_pk_from_seed (u8 *pk, const u8 *seed)
+GNUNET_TWEETNACL_sign_pk_from_seed (u8 *pk, const u8 *seed)
 {
   u8 d[64];
   gf p[4];
@@ -421,7 +429,7 @@ crypto_sign_pk_from_seed (u8 *pk, const u8 *seed)
 }
 
 void
-crypto_sign_sk_from_seed (u8 *sk, const u8 *seed)
+GNUNET_TWEETNACL_sign_sk_from_seed (u8 *sk, const u8 *seed)
 {
   u8 d[64];
   gf p[4];
@@ -440,9 +448,9 @@ crypto_sign_sk_from_seed (u8 *sk, const u8 *seed)
   FOR (i,32) sk[32 + i] = pk[i];
 }
 
-
 int
-crypto_sign_ed25519_pk_to_curve25519 (u8 *x25519_pk, const u8 *ed25519_pk)
+GNUNET_TWEETNACL_sign_ed25519_pk_to_curve25519 (u8 *x25519_pk,
+                                                const u8 *ed25519_pk)
 {
   gf ge_a[4];
   gf x;
@@ -464,8 +472,10 @@ crypto_sign_ed25519_pk_to_curve25519 (u8 *x25519_pk, const u8 *ed25519_pk)
   return 0;
 }
 
-
-int crypto_sign_detached_verify (const u8 *sig,const u8 *m,u64 n,const u8 *pk)
+int GNUNET_TWEETNACL_sign_detached_verify (const u8 *sig,
+                                           const u8 *m,
+                                           u64 n,
+                                           const u8 *pk)
 {
   struct GNUNET_HashContext *hc;
   u8 t[32],h[64];
@@ -492,9 +502,11 @@ int crypto_sign_detached_verify (const u8 *sig,const u8 *m,u64 n,const u8 *pk)
   return 0;
 }
 
-
 int
-crypto_sign_detached (u8 *sig,const u8 *m,u64 n,const u8 *sk)
+GNUNET_TWEETNACL_sign_detached (u8 *sig,
+                                const u8 *m,
+                                u64 n,
+                                const u8 *sk)
 {
   struct GNUNET_HashContext *hc;
   u8 d[64],h[64],r[64];
