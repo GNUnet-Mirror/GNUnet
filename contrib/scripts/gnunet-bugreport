@@ -1,10 +1,12 @@
 #!/usr/bin/env sh
-
+#
 # Caveats:
 # - checks with textprocessing assuming that system language is English.
 #   - maybe check last return status instead?
 # - Do we need to set awk to which awk becomes available or is awk
 #   always available as just awk?
+#
+# SPDX-License-Identifier: 0BSD
 
 progname=${0##*/}
 
@@ -35,7 +37,7 @@ linemsg()
 
 errmsg=''
 
-# Check if shell support builtin 'type'.
+# Check if shell supports builtin 'type'.
 if test -z "$errmsg"; then
     if ! (eval 'type type') >/dev/null 2>&1
     then
