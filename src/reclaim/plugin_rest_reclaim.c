@@ -276,6 +276,8 @@ cleanup_handle (struct RequestHandle *handle)
       claim_tmp = claim_entry;
       claim_entry = claim_entry->next;
       GNUNET_free (claim_tmp->claim);
+      GNUNET_free (claim_tmp->attest);
+      GNUNET_free (claim_tmp->reference);
       GNUNET_free (claim_tmp);
     }
     GNUNET_free (handle->attr_list);
@@ -1286,6 +1288,7 @@ attr_collect (void *cls,
       return;
     }
     char *tmp_value;
+    char *flag_str;
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Adding attribute: %s\n", attr->name);
 
     tmp_value = GNUNET_RECLAIM_ATTRIBUTE_value_to_string (attr->type,
@@ -1295,6 +1298,8 @@ attr_collect (void *cls,
     attr_obj = json_object ();
     json_object_set_new (attr_obj, "value", json_string (tmp_value));
     json_object_set_new (attr_obj, "name", json_string (attr->name));
+    GNUNET_asprintf (&flag_str,"%d",attr->flag);
+    json_object_set_new (attr_obj, "flag", json_string (flag_str));
     type = GNUNET_RECLAIM_ATTRIBUTE_number_to_typename (attr->type);
     json_object_set_new (attr_obj, "type", json_string (type));
     id_str = GNUNET_STRINGS_data_to_string_alloc (&attr->id, sizeof(uint64_t));

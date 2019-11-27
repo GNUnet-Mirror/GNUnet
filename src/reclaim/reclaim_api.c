@@ -486,7 +486,7 @@ handle_consume_ticket_result (void *cls,
   uint32_t r_id = ntohl (msg->id);
 
   attrs_len = ntohs (msg->attrs_len);
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Processing attribute result.\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Processing ticket result.\n");
 
 
   for (op = h->op_head; NULL != op; op = op->next)
@@ -498,6 +498,7 @@ handle_consume_ticket_result (void *cls,
   {
     struct GNUNET_RECLAIM_ATTRIBUTE_ClaimList *attrs;
     struct GNUNET_RECLAIM_ATTRIBUTE_ClaimListEntry *le;
+    struct GNUNET_RECLAIM_ATTRIBUTE_ClaimListEntry *le2;
     attrs =
       GNUNET_RECLAIM_ATTRIBUTE_list_deserialize ((char *) &msg[1], attrs_len);
     if (NULL != op->ar_cb)
@@ -509,7 +510,20 @@ handle_consume_ticket_result (void *cls,
       else
       {
         for (le = attrs->list_head; NULL != le; le = le->next)
-          op->ar_cb (op->cls, &msg->identity, le->claim, NULL, NULL);
+        {
+          if (le->reference != NULL && le->attest == NULL)
+          {
+            for (le2 = attrs->list_head; NULL != le2; le2 = le2->next)
+            {
+              if (le2->attest != NULL && le2->attest->id == le->reference->id_attest)
+              {
+                op->ar_cb (op->cls, &msg->identity, le->claim, le2->attest, le->reference);
+                break;
+              }
+
+            }
+          }
+        }
         GNUNET_RECLAIM_ATTRIBUTE_list_destroy (attrs);
         attrs = NULL;
       }

@@ -198,6 +198,20 @@ struct GNUNET_RECLAIM_ATTRIBUTE_ClaimListEntry
    * The attribute claim
    */
   struct GNUNET_RECLAIM_ATTRIBUTE_Claim *claim;
+  /**
+   * The attestation claim
+   */
+  struct GNUNET_RECLAIM_ATTESTATION_Claim *attest;
+
+  /**
+  * The reference
+  */
+  struct GNUNET_RECLAIM_ATTESTATION_REFERENCE *reference;
+};
+
+struct GNUNET_RECLAIM_ATTRIBUTE_ClaimListEntryType
+{
+  uint32_t type;
 };
 
 
@@ -278,6 +292,14 @@ GNUNET_RECLAIM_ATTRIBUTE_list_serialize (
 struct GNUNET_RECLAIM_ATTRIBUTE_ClaimList *
 GNUNET_RECLAIM_ATTRIBUTE_list_deserialize (const char *data, size_t data_size);
 
+/**
+ * Count attestations in claim list
+ *
+ * @param attrs list
+ */
+int
+GNUNET_RECLAIM_ATTRIBUTE_list_count_attest (
+  const struct GNUNET_RECLAIM_ATTRIBUTE_ClaimList *attrs);
 
 /**
  * Get required size for serialization buffer

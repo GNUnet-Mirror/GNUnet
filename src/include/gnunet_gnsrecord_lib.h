@@ -150,15 +150,6 @@ extern "C" {
  */
 #define GNUNET_GNSRECORD_TYPE_RECLAIM_REFERENCE 65555
 
-/**
- * Record type for reclaim attestation records
- */
-#define GNUNET_GNSRECORD_TYPE_RECLAIM_ATTEST_REF 65556
-
-/**
- * Record type for reclaim reference records
- */
-#define GNUNET_GNSRECORD_TYPE_RECLAIM_REFERENCE_REF 65557
 
 /**
  * Flags that can be set for a record.

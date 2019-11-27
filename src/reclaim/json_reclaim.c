@@ -48,6 +48,7 @@ parse_attr (void *cls, json_t *root, struct GNUNET_JSON_Specification *spec)
   const char *val_str = NULL;
   const char *type_str = NULL;
   const char *id_str = NULL;
+  const char *flag_str = NULL;
   char *data;
   int unpack_state;
   uint32_t type;
@@ -63,7 +64,7 @@ parse_attr (void *cls, json_t *root, struct GNUNET_JSON_Specification *spec)
   }
   // interpret single attribute
   unpack_state = json_unpack (root,
-                              "{s:s, s?s, s:s, s:s!}",
+                              "{s:s, s?s, s:s, s:s, s?s!}",
                               "name",
                               &name_str,
                               "id",
@@ -71,7 +72,9 @@ parse_attr (void *cls, json_t *root, struct GNUNET_JSON_Specification *spec)
                               "type",
                               &type_str,
                               "value",
-                              &val_str);
+                              &val_str,
+                              "flag",
+                              &flag_str);
   if ((0 != unpack_state) || (NULL == name_str) || (NULL == val_str) ||
       (NULL == type_str))
   {

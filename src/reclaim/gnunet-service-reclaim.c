@@ -1251,6 +1251,31 @@ reference_store_cont (void *cls, int32_t success, const char *emsg)
 }
 
 /**
+     * Send a reference error response
+     *
+     * @param ash our attribute store handle
+     * @param success the success status
+     */
+static void
+send_ref_error (struct AttributeStoreHandle  *ash)
+{
+  struct GNUNET_MQ_Envelope *env;
+  struct SuccessResultMessage *acr_msg;
+
+  ash->ns_qe = NULL;
+  GNUNET_CONTAINER_DLL_remove (ash->client->store_op_head,
+                               ash->client->store_op_tail,
+                               ash);
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending SUCCESS_RESPONSE message\n");
+  env = GNUNET_MQ_msg (acr_msg, GNUNET_MESSAGE_TYPE_RECLAIM_SUCCESS_RESPONSE);
+  acr_msg->id = htonl (ash->r_id);
+  acr_msg->op_result = htonl (GNUNET_SYSERR);
+  GNUNET_MQ_send (ash->client->mq, env);
+  cleanup_as_handle (ash);
+}
+
+/**
 * Check for existing record before storing reference
 *
 * @param cls our attribute store handle
@@ -1272,33 +1297,46 @@ ref_add_cb (void *cls,
   buf_size = GNUNET_RECLAIM_ATTESTATION_REF_serialize_get_size (ash->reference);
   buf = GNUNET_malloc (buf_size);
   GNUNET_RECLAIM_ATTESTATION_REF_serialize (ash->reference, buf);
+  struct GNUNET_RECLAIM_ATTESTATION_REFERENCE *ref;
+  char *data_tmp;
   if (0 == rd_count )
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Failed to find Attestation entry for Attestation reference\n");
-    cleanup_as_handle (ash);
-    GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
+    send_ref_error (ash);
     return;
   }
   if (GNUNET_GNSRECORD_TYPE_RECLAIM_ATTEST_ATTR != rd[0].record_type)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Intended Reference storage location is not an attestation\n");
-    cleanup_as_handle (ash);
-    GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
+    send_ref_error (ash);
     return;
   }
   struct GNUNET_GNSRECORD_Data rd_new[rd_count + 1];
   int i;
   for (i = 0; i<rd_count; i++)
   {
+    data_tmp = GNUNET_malloc (rd[i].data_size);
+    GNUNET_memcpy (data_tmp, rd[i].data, rd[i].data_size);
+    ref = GNUNET_RECLAIM_ATTESTATION_REF_deserialize (data_tmp, htons (
+                                                        rd[i].data_size));
     rd_new[i] = rd[i];
+    if ((strcmp (ash->reference->name,ref->name) == 0)&&
+        (strcmp (ash->reference->reference_value,ref->reference_value)==0) )
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Reference already stored\n");
+      reference_store_cont (ash,GNUNET_OK, NULL);
+      return;
+    }
   }
   rd_new[rd_count].data_size = buf_size;
   rd_new[rd_count].data = buf;
   rd_new[rd_count].record_type = GNUNET_GNSRECORD_TYPE_RECLAIM_REFERENCE;
   rd_new[rd_count].flags = GNUNET_GNSRECORD_RF_RELATIVE_EXPIRATION;
   rd_new[rd_count].expiration_time = ash->exp.rel_value_us;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Encrypting with label %s\n", label);
   ash->ns_qe = GNUNET_NAMESTORE_records_store (nsh,
                                                &ash->identity,
                                                label,
@@ -1339,7 +1377,8 @@ reference_store_task (void *cls)
 
   label = GNUNET_STRINGS_data_to_string_alloc (&ash->reference->id,
                                                sizeof(uint64_t));
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Encrypting with label %s\n", label);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Looking up existing data under label %s\n", label);
 // Test for the content of the existing ID
 
   ash->ns_qe = GNUNET_NAMESTORE_records_lookup (nsh,
@@ -1452,9 +1491,7 @@ ticket_iter (void *cls,
   int has_changed = GNUNET_NO;
   for (int i = 0; i < rd_count; i++)
   {
-    if ((GNUNET_GNSRECORD_TYPE_RECLAIM_ATTR_REF != rd[i].record_type) &&
-        (GNUNET_GNSRECORD_TYPE_RECLAIM_REFERENCE_REF != rd[i].record_type) &&
-        (GNUNET_GNSRECORD_TYPE_RECLAIM_ATTEST_REF != rd[i].record_type))
+    if (GNUNET_GNSRECORD_TYPE_RECLAIM_ATTR_REF != rd[i].record_type)
       continue;
     if (&adh->claim != NULL)
       if (0 != memcmp (rd[i].data, &adh->claim->id, sizeof(uint64_t)))
@@ -1559,10 +1596,10 @@ update_tickets (void *cls)
     if ((GNUNET_GNSRECORD_TYPE_RECLAIM_ATTR_REF == rd[i].record_type)
         && (0 == memcmp (rd[i].data, &adh->claim->id, sizeof(uint64_t))))
       continue;
-    if ((GNUNET_GNSRECORD_TYPE_RECLAIM_REFERENCE_REF == rd[i].record_type)
+    if ((GNUNET_GNSRECORD_TYPE_RECLAIM_ATTR_REF == rd[i].record_type)
         && (0 == memcmp (rd[i].data, &adh->attest->id, sizeof(uint64_t))))
       continue;
-    if ((GNUNET_GNSRECORD_TYPE_RECLAIM_ATTEST_REF == rd[i].record_type)
+    if ((GNUNET_GNSRECORD_TYPE_RECLAIM_ATTR_REF == rd[i].record_type)
         && (0 == memcmp (rd[i].data, &adh->reference->id, sizeof(uint64_t))))
       continue;
     rd_new[j] = rd[i];
@@ -1879,7 +1916,7 @@ ref_del_cb (void *cls,
   {
     data_tmp = GNUNET_malloc (rd[i].data_size);
     GNUNET_memcpy (data_tmp, rd[i].data, rd[i].data_size);
-    attr_len = htons (rd->data_size);
+    attr_len = htons (rd[i].data_size);
     ref = GNUNET_RECLAIM_ATTESTATION_REF_deserialize (data_tmp, attr_len);
     if (NULL == ref )
     {
@@ -2045,10 +2082,18 @@ attr_iter_cb (void *cls,
   }
   if (rd_count > 1)
   {
-    if (GNUNET_GNSRECORD_TYPE_RECLAIM_ATTEST_ATTR != rd[0].record_type)
+    if (GNUNET_GNSRECORD_TYPE_RECLAIM_ATTR_REF == rd[0].record_type)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Found Ticket. Ignoring.\n");
+      GNUNET_NAMESTORE_zone_iterator_next (ai->ns_it, 1);
+      return;
+    }
+    else if (GNUNET_GNSRECORD_TYPE_RECLAIM_ATTEST_ATTR != rd[0].record_type)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  "Non-Attestation record with multiple entries found\n");
+                  "Non-Attestation record with multiple entries found: %u\n",
+                  rd[0].record_type);
       GNUNET_NAMESTORE_zone_iterator_next (ai->ns_it, 1);
       return;
     }

@@ -476,7 +476,30 @@ GNUNET_RECLAIM_ATTRIBUTE_list_serialize_get_size (
   size_t len = 0;
 
   for (le = attrs->list_head; NULL != le; le = le->next)
-    len += GNUNET_RECLAIM_ATTRIBUTE_serialize_get_size (le->claim);
+  {
+    if (NULL != le->claim)
+    {
+      len += sizeof(struct GNUNET_RECLAIM_ATTRIBUTE_ClaimListEntryType);
+      len += GNUNET_RECLAIM_ATTRIBUTE_serialize_get_size (le->claim);
+    }
+    else if (NULL != le->attest )
+    {
+      len += sizeof(struct GNUNET_RECLAIM_ATTRIBUTE_ClaimListEntryType);
+      len += GNUNET_RECLAIM_ATTESTATION_serialize_get_size (le->attest);
+    }
+    else if (NULL != le->reference)
+    {
+      len += sizeof(struct GNUNET_RECLAIM_ATTRIBUTE_ClaimListEntryType);
+      len += GNUNET_RECLAIM_ATTESTATION_REF_serialize_get_size (le->reference);
+    }
+    else
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  "Unserialized Claim List Entry Type for size not known.\n");
+      break;
+    }
+    len += sizeof(struct GNUNET_RECLAIM_ATTRIBUTE_ClaimListEntry);
+  }
   return len;
 }
 
@@ -497,14 +520,50 @@ GNUNET_RECLAIM_ATTRIBUTE_list_serialize (
   size_t len;
   size_t total_len;
   char *write_ptr;
-
   write_ptr = result;
   total_len = 0;
   for (le = attrs->list_head; NULL != le; le = le->next)
   {
-    len = GNUNET_RECLAIM_ATTRIBUTE_serialize (le->claim, write_ptr);
-    total_len += len;
-    write_ptr += len;
+    struct GNUNET_RECLAIM_ATTRIBUTE_ClaimListEntryType *list_type;
+    if (NULL != le->claim)
+    {
+      list_type = (struct
+                   GNUNET_RECLAIM_ATTRIBUTE_ClaimListEntryType *) write_ptr;
+      list_type->type = htons (1);
+      total_len += sizeof(struct GNUNET_RECLAIM_ATTRIBUTE_ClaimListEntryType);
+      write_ptr += sizeof(struct GNUNET_RECLAIM_ATTRIBUTE_ClaimListEntryType);
+      len = GNUNET_RECLAIM_ATTRIBUTE_serialize (le->claim, write_ptr);
+      total_len += len;
+      write_ptr += len;
+    }
+    else if (NULL != le->attest )
+    {
+      list_type = (struct
+                   GNUNET_RECLAIM_ATTRIBUTE_ClaimListEntryType *) write_ptr;
+      list_type->type = htons (2);
+      total_len += sizeof(struct GNUNET_RECLAIM_ATTRIBUTE_ClaimListEntryType);
+      write_ptr += sizeof(struct GNUNET_RECLAIM_ATTRIBUTE_ClaimListEntryType);
+      len = GNUNET_RECLAIM_ATTESTATION_serialize (le->attest, write_ptr);
+      total_len += len;
+      write_ptr += len;
+    }
+    else if (NULL != le->reference)
+    {
+      list_type = (struct
+                   GNUNET_RECLAIM_ATTRIBUTE_ClaimListEntryType *) write_ptr;
+      list_type->type = htons (3);
+      total_len += sizeof(struct GNUNET_RECLAIM_ATTRIBUTE_ClaimListEntryType);
+      write_ptr += sizeof(struct GNUNET_RECLAIM_ATTRIBUTE_ClaimListEntryType);
+      len = GNUNET_RECLAIM_ATTESTATION_REF_serialize (le->reference, write_ptr);
+      total_len += len;
+      write_ptr += len;
+    }
+    else
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  "Unserialized Claim List Entry Type not known.\n");
+      continue;
+    }
   }
   return total_len;
 }
@@ -525,23 +584,75 @@ GNUNET_RECLAIM_ATTRIBUTE_list_deserialize (const char *data, size_t data_size)
   size_t attr_len;
   const char *read_ptr;
 
-  if (data_size < sizeof(struct Attribute))
+  if ((data_size < sizeof(struct Attribute) + sizeof(struct
+                                                     GNUNET_RECLAIM_ATTRIBUTE_ClaimListEntry))
+      && (data_size < sizeof(struct
+                             Attestation)
+          + sizeof(struct GNUNET_RECLAIM_ATTRIBUTE_ClaimListEntry)) &&
+      (data_size < sizeof(struct Attestation_Reference) + sizeof(struct
+                                                                 GNUNET_RECLAIM_ATTRIBUTE_ClaimListEntry)) )
     return NULL;
 
   attrs = GNUNET_new (struct GNUNET_RECLAIM_ATTRIBUTE_ClaimList);
   read_ptr = data;
   while (((data + data_size) - read_ptr) >= sizeof(struct Attribute))
   {
-    le = GNUNET_new (struct GNUNET_RECLAIM_ATTRIBUTE_ClaimListEntry);
-    le->claim =
-      GNUNET_RECLAIM_ATTRIBUTE_deserialize (read_ptr,
-                                            data_size - (read_ptr - data));
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Deserialized attribute %s\n",
-                le->claim->name);
-    GNUNET_CONTAINER_DLL_insert (attrs->list_head, attrs->list_tail, le);
-    attr_len = GNUNET_RECLAIM_ATTRIBUTE_serialize_get_size (le->claim);
-    read_ptr += attr_len;
+    struct GNUNET_RECLAIM_ATTRIBUTE_ClaimListEntryType *list_type;
+    list_type = (struct GNUNET_RECLAIM_ATTRIBUTE_ClaimListEntryType *) read_ptr;
+    if (1 == ntohs (list_type->type))
+    {
+      le = GNUNET_new (struct GNUNET_RECLAIM_ATTRIBUTE_ClaimListEntry);
+      read_ptr += sizeof(struct GNUNET_RECLAIM_ATTRIBUTE_ClaimListEntryType);
+      if (((data + data_size) - read_ptr) < sizeof(struct Attribute))
+        break;
+      le->attest = NULL;
+      le->reference = NULL;
+      le->claim =
+        GNUNET_RECLAIM_ATTRIBUTE_deserialize (read_ptr,
+                                              data_size - (read_ptr - data));
+      GNUNET_CONTAINER_DLL_insert (attrs->list_head, attrs->list_tail, le);
+      attr_len = GNUNET_RECLAIM_ATTRIBUTE_serialize_get_size (le->claim);
+      read_ptr += attr_len;
+    }
+    else if (2 == ntohs (list_type->type))
+    {
+      le = GNUNET_new (struct GNUNET_RECLAIM_ATTRIBUTE_ClaimListEntry);
+      read_ptr += sizeof(struct GNUNET_RECLAIM_ATTRIBUTE_ClaimListEntryType);
+      if (((data + data_size) - read_ptr) < sizeof(struct Attestation))
+        break;
+      le->claim = NULL;
+      le->reference = NULL;
+      le->attest =
+        GNUNET_RECLAIM_ATTESTATION_deserialize (read_ptr,
+                                                data_size - (read_ptr - data));
+      GNUNET_CONTAINER_DLL_insert (attrs->list_head, attrs->list_tail, le);
+      attr_len = GNUNET_RECLAIM_ATTESTATION_serialize_get_size (le->attest);
+      read_ptr += attr_len;
+    }
+    else if (3 == ntohs (list_type->type))
+    {
+      le = GNUNET_new (struct GNUNET_RECLAIM_ATTRIBUTE_ClaimListEntry);
+      read_ptr += sizeof(struct GNUNET_RECLAIM_ATTRIBUTE_ClaimListEntryType);
+      if (((data + data_size) - read_ptr) < sizeof(struct
+                                                   Attestation_Reference))
+        break;
+      le->claim = NULL;
+      le->attest = NULL;
+      le->reference =
+        GNUNET_RECLAIM_ATTESTATION_REF_deserialize (read_ptr,
+                                                    data_size - (read_ptr
+                                                                 - data));
+      GNUNET_CONTAINER_DLL_insert (attrs->list_head, attrs->list_tail, le);
+      attr_len = GNUNET_RECLAIM_ATTESTATION_REF_serialize_get_size (
+        le->reference);
+      read_ptr += attr_len;
+    }
+    else
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  "Serialized Claim List Entry Type not known.\n");
+      break;
+    }
   }
   return attrs;
 }
@@ -561,16 +672,45 @@ GNUNET_RECLAIM_ATTRIBUTE_list_dup (
   struct GNUNET_RECLAIM_ATTRIBUTE_ClaimList *result;
 
   result = GNUNET_new (struct GNUNET_RECLAIM_ATTRIBUTE_ClaimList);
+  if (NULL == attrs->list_head)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Duplicating empty List\n");
+  }
   for (le = attrs->list_head; NULL != le; le = le->next)
   {
     result_le = GNUNET_new (struct GNUNET_RECLAIM_ATTRIBUTE_ClaimListEntry);
-    result_le->claim =
-      GNUNET_RECLAIM_ATTRIBUTE_claim_new (le->claim->name,
-                                          le->claim->type,
-                                          le->claim->data,
-                                          le->claim->data_size);
-    result_le->claim->id = le->claim->id;
-    result_le->claim->flag = le->claim->flag;
+    result_le->claim = NULL;
+    result_le->attest = NULL;
+    result_le->reference = NULL;
+    if (NULL != le->claim)
+    {
+      result_le->claim =
+        GNUNET_RECLAIM_ATTRIBUTE_claim_new (le->claim->name,
+                                            le->claim->type,
+                                            le->claim->data,
+                                            le->claim->data_size);
+
+      result_le->claim->id = le->claim->id;
+      result_le->claim->flag = le->claim->flag;
+    }
+    if ( NULL != le->attest)
+    {
+      result_le->attest = GNUNET_RECLAIM_ATTESTATION_claim_new (
+        le->attest->name,
+        le->attest->type,
+        le->attest->data,
+        le->attest->
+        data_size);
+      result_le->attest->id = le->attest->id;
+    }
+    if (NULL !=le->reference)
+    {
+      result_le->reference = GNUNET_RECLAIM_ATTESTATION_reference_new (
+        le->reference->name,
+        le->reference->reference_value);
+      result_le->reference->id = le->reference->id;
+      result_le->reference->id_attest = le->reference->id_attest;
+    }
     GNUNET_CONTAINER_DLL_insert (result->list_head,
                                  result->list_tail,
                                  result_le);
@@ -591,9 +731,14 @@ GNUNET_RECLAIM_ATTRIBUTE_list_destroy (
   struct GNUNET_RECLAIM_ATTRIBUTE_ClaimListEntry *le;
   struct GNUNET_RECLAIM_ATTRIBUTE_ClaimListEntry *tmp_le;
 
-  for (le = attrs->list_head; NULL != le;)
+  for (le = attrs->list_head; NULL != le; le = le->next)
   {
-    GNUNET_free (le->claim);
+    if (NULL != le->claim)
+      GNUNET_free (le->claim);
+    if (NULL != le->attest)
+      GNUNET_free (le->attest);
+    if (NULL != le->reference)
+      GNUNET_free (le->reference);
     tmp_le = le;
     le = le->next;
     GNUNET_free (tmp_le);
@@ -601,7 +746,24 @@ GNUNET_RECLAIM_ATTRIBUTE_list_destroy (
   GNUNET_free (attrs);
 }
 
-
+/**
+ * Count attestations in claim list
+ *
+ * @param attrs list
+ */
+int
+GNUNET_RECLAIM_ATTRIBUTE_list_count_attest (
+  const struct GNUNET_RECLAIM_ATTRIBUTE_ClaimList *attrs)
+{
+  struct GNUNET_RECLAIM_ATTRIBUTE_ClaimListEntry *le;
+  int i = 0;
+  for (le = attrs->list_head; NULL != le; le = le->next)
+  {
+    if (NULL != le->attest)
+      i++;
+  }
+  return i;
+}
 /**
  * Get required size for serialization buffer
  *
