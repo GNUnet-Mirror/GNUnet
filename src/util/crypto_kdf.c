@@ -132,7 +132,7 @@ GNUNET_CRYPTO_kdf_mod_mpi (gcry_mpi_t *r,
   gcry_error_t rc;
   unsigned int nbits;
   size_t rsize;
-  unsigned int ctr;
+  uint32_t ctr;
 
   nbits = gcry_mpi_get_nbits (n);
   /* GNUNET_assert (nbits > 512); */
