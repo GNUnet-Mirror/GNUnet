@@ -18,6 +18,17 @@ cleanup()
     rm -rf libltdl
 }
 
+errmsg=''
+
+# Check if shell supports builtin 'type'.
+if test -z "$errmsg"; then
+    if ! (eval 'type type') >/dev/null 2>&1
+    then
+        errmsg='Shell does not support type builtin'
+        exit 1
+    fi
+fi
+
 # This is more portable than `which' but comes with
 # the caveat of not(?) properly working on busybox's ash:
 existence()
