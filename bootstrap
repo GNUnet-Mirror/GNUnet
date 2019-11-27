@@ -1,6 +1,12 @@
 #!/bin/sh
+#
+# We should use /usr/bin/env sh, but some systems are notoriously picky.
+# In fact we could ommit this line if some automations wouldn't rely on
+# running this file via ./bootstrap.
+#
 # This file is in the public domain.
-
+# SPDX-License-Identifier: 0BSD
+#
 # We can't set -eu because we encounter warnings which
 # result in stops, whereas the warnings can for now be
 # safely ignored.
@@ -16,7 +22,7 @@ cleanup()
 # the caveat of not(?) properly working on busybox's ash:
 existence()
 {
-    command -v "$1" >/dev/null 2>&1
+    type "$1" >/dev/null 2>&1
 }
 
 check_uncrustify()
