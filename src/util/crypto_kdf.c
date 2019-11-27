@@ -132,7 +132,7 @@ GNUNET_CRYPTO_kdf_mod_mpi (gcry_mpi_t *r,
   gcry_error_t rc;
   unsigned int nbits;
   size_t rsize;
-  uint32_t ctr;
+  uint16_t ctr;
 
   nbits = gcry_mpi_get_nbits (n);
   /* GNUNET_assert (nbits > 512); */
@@ -143,12 +143,14 @@ GNUNET_CRYPTO_kdf_mod_mpi (gcry_mpi_t *r,
     /* Ain't clear if n is always divisible by 8 */
     uint8_t buf[ (nbits - 1) / 8 + 1 ];
 
+    uint16_t ctr_nbo = htons (ctr);
+
     rc = GNUNET_CRYPTO_kdf (buf,
                             sizeof(buf),
                             xts, xts_len,
                             skm, skm_len,
                             ctx, strlen (ctx),
-                            &ctr, sizeof(ctr),
+                            &ctr_nbo, sizeof(ctr_nbo),
                             NULL, 0);
     GNUNET_assert (GNUNET_YES == rc);
 
