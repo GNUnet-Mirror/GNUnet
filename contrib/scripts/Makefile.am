@@ -29,7 +29,7 @@ EXTRA_DIST = \
 CLEANFILES = \
   $(noinst_SCRIPTS)
 
-do_subst = $(SED) -e 's,[@]PYTHON[@],$(PYTHON),g'
+do_subst = $(AWK) -v py="$(PYTHON)" '{gsub("@PYTHONEXE@",py); print $$0}'
 
 # Use SUFFIX Extension rules, they are more portable for every
 # implementation of 'make'.
