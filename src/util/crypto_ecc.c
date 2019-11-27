@@ -282,7 +282,7 @@ GNUNET_CRYPTO_eddsa_key_get_public (
 {
 #if NEW_CRYPTO
   BENCHMARK_START (eddsa_key_get_public);
-  crypto_sign_pk_from_seed (pub->q_y, priv->d);
+  GNUNET_TWEETNACL_sign_pk_from_seed (pub->q_y, priv->d);
   BENCHMARK_END (eddsa_key_get_public);
 #else
   gcry_sexp_t sexp;
@@ -319,7 +319,7 @@ GNUNET_CRYPTO_ecdhe_key_get_public (
 {
 #if NEW_CRYPTO
   BENCHMARK_START (ecdhe_key_get_public);
-  crypto_scalarmult_curve25519_base (pub->q_y, priv->d);
+  GNUNET_TWEETNACL_scalarmult_curve25519_base (pub->q_y, priv->d);
   BENCHMARK_END (ecdhe_key_get_public);
 #else
   gcry_sexp_t sexp;
@@ -1036,15 +1036,15 @@ GNUNET_CRYPTO_eddsa_sign (
 
 #if NEW_CRYPTO
   size_t mlen = ntohl (purpose->size);
-  unsigned char sk[crypto_sign_SECRETKEYBYTES];
+  unsigned char sk[GNUNET_TWEETNACL_SIGN_SECRETKEYBYTES];
   int res;
 
   BENCHMARK_START (eddsa_sign);
-  crypto_sign_sk_from_seed (sk, priv->d);
-  res = crypto_sign_detached ((uint8_t *) sig,
-                              (uint8_t *) purpose,
-                              mlen,
-                              sk);
+  GNUNET_TWEETNACL_sign_sk_from_seed (sk, priv->d);
+  res = GNUNET_TWEETNACL_sign_detached ((uint8_t *) sig,
+                                        (uint8_t *) purpose,
+                                        mlen,
+                                        sk);
   BENCHMARK_END (eddsa_sign);
   return (res == 0) ? GNUNET_OK : GNUNET_SYSERR;
 #else
@@ -1189,7 +1189,7 @@ GNUNET_CRYPTO_eddsa_verify (
     return GNUNET_SYSERR; /* purpose mismatch */
 
   BENCHMARK_START (eddsa_verify);
-  res = crypto_sign_detached_verify (s, m, mlen, pub->q_y);
+  res = GNUNET_TWEETNACL_sign_detached_verify (s, m, mlen, pub->q_y);
   BENCHMARK_END (eddsa_verify);
   return (res == 0) ? GNUNET_OK : GNUNET_SYSERR;
 #else
@@ -1262,9 +1262,9 @@ GNUNET_CRYPTO_ecc_ecdh (const struct GNUNET_CRYPTO_EcdhePrivateKey *priv,
                         struct GNUNET_HashCode *key_material)
 {
 #if NEW_CRYPTO
-  uint8_t p[crypto_scalarmult_BYTES];
-  crypto_scalarmult_curve25519 (p, priv->d, pub->q_y);
-  GNUNET_CRYPTO_hash (p, crypto_scalarmult_BYTES, key_material);
+  uint8_t p[GNUNET_TWEETNACL_SCALARMULT_BYTES];
+  GNUNET_TWEETNACL_scalarmult_curve25519 (p, priv->d, pub->q_y);
+  GNUNET_CRYPTO_hash (p, GNUNET_TWEETNACL_SCALARMULT_BYTES, key_material);
   return GNUNET_OK;
 #else
   gcry_mpi_point_t result;
@@ -1592,12 +1592,16 @@ GNUNET_CRYPTO_eddsa_ecdh (const struct GNUNET_CRYPTO_EddsaPrivateKey *priv,
 {
 #if NEW_CRYPTO
   struct GNUNET_HashCode hc;
-  uint8_t a[crypto_scalarmult_BYTES];
-  uint8_t p[crypto_scalarmult_BYTES];
-  GNUNET_CRYPTO_hash (priv, sizeof (struct GNUNET_CRYPTO_EcdsaPrivateKey), &hc);
+  uint8_t a[GNUNET_TWEETNACL_SCALARMULT_BYTES];
+  uint8_t p[GNUNET_TWEETNACL_SCALARMULT_BYTES];
+  GNUNET_CRYPTO_hash (priv,
+                      sizeof (struct GNUNET_CRYPTO_EcdsaPrivateKey),
+                      &hc);
   memcpy (a, &hc, sizeof (struct GNUNET_CRYPTO_EcdhePrivateKey));
-  crypto_scalarmult_curve25519 (p, a, pub->q_y);
-  GNUNET_CRYPTO_hash (p, crypto_scalarmult_BYTES, key_material);
+  GNUNET_TWEETNACL_scalarmult_curve25519 (p, a, pub->q_y);
+  GNUNET_CRYPTO_hash (p,
+                      GNUNET_TWEETNACL_SCALARMULT_BYTES,
+                      key_material);
   return GNUNET_OK;
 #else
   gcry_mpi_point_t result;
@@ -1712,11 +1716,11 @@ GNUNET_CRYPTO_ecdh_eddsa (const struct GNUNET_CRYPTO_EcdhePrivateKey *priv,
                           struct GNUNET_HashCode *key_material)
 {
 #if NEW_CRYPTO
-  uint8_t p[crypto_scalarmult_BYTES];
-  uint8_t curve25510_pk[crypto_sign_PUBLICKEYBYTES];
-  crypto_sign_ed25519_pk_to_curve25519 (curve25510_pk, pub->q_y);
-  crypto_scalarmult_curve25519 (p, priv->d, curve25510_pk);
-  GNUNET_CRYPTO_hash (p, crypto_scalarmult_BYTES, key_material);
+  uint8_t p[GNUNET_TWEETNACL_SCALARMULT_BYTES];
+  uint8_t curve25510_pk[GNUNET_TWEETNACL_SIGN_PUBLICBYTES];
+  GNUNET_TWEETNACL_sign_ed25519_pk_to_curve25519 (curve25510_pk, pub->q_y);
+  GNUNET_TWEETNACL_scalarmult_curve25519 (p, priv->d, curve25510_pk);
+  GNUNET_CRYPTO_hash (p, GNUNET_TWEETNACL_SCALARMULT_BYTES, key_material);
   return GNUNET_OK;
 #else
   gcry_mpi_point_t result;
