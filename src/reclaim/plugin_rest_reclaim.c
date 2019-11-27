@@ -1190,18 +1190,25 @@ parse_jwt (const struct GNUNET_RECLAIM_ATTESTATION_Claim *attest,
   uint32_t type;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Parsing JWT attributes.\n");
   char *decoded_jwt;
+  json_t *json_val;
+  json_error_t *json_err = NULL;
 
   jwt_string = GNUNET_RECLAIM_ATTESTATION_value_to_string (attest->type,
                                                            attest->data,
                                                            attest->data_size);
   char *jwt_body = strtok (jwt_string, delim);
   jwt_body = strtok (NULL, delim);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "JWT Body: %s\n",
-              jwt_body);
-
-  val_str = "String from JWT, which is stored under claim";
+  GNUNET_STRINGS_base64_decode(jwt_body, strlen(jwt_body), (void **) &decoded_jwt);
+  json_val=json_loads(decoded_jwt, JSON_DECODE_ANY, json_err);
+  const char *key;
+  json_t *value;
+  json_object_foreach(json_val, key, value) {
+    if (0 == strcasecmp (key,claim))
+    {
+      val_str=json_dumps(value, JSON_ENCODE_ANY);
+    }
+  }
   type_str = "String";
-
   type = GNUNET_RECLAIM_ATTRIBUTE_typename_to_number (type_str);
   if (GNUNET_SYSERR ==(GNUNET_RECLAIM_ATTRIBUTE_string_to_value (type,val_str,
                                                                  (void **) &data,
@@ -1252,7 +1259,8 @@ attr_collect (void *cls,
       return;
     }
     struct GNUNET_RECLAIM_ATTRIBUTE_Claim *attr2;
-    attr2 = parse_jwt (attest, reference->name);
+    attr2 = parse_jwt (attest, reference->reference_value);
+    attr2->name = reference->name;
     if (NULL == attr2)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
