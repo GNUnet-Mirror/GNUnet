@@ -6,6 +6,7 @@
 # - Do we need to set awk to which awk becomes available or is awk
 #   always available as just awk?
 #
+# Dedicated to the Public Domain.
 # SPDX-License-Identifier: 0BSD
 
 progname=${0##*/}
@@ -206,10 +207,13 @@ libextractor_check()
 {
     TEST=`type extract | awk '/not found/' 2>/dev/null`
     if test -z "$TEST"; then
-        VER=`extract -v 2>/dev/null | head -n 1 | awk '{print $2}'`
-        infomsg "libextractor   : $VER"
-    else
-        warningmsg "libextractor   : Not Found"
+        TEST=`strings $(type extract | awk '{print $NF}') | awk '/EXTRACTOR_extract/' 2>/dev/null`
+        if test -n "$TEST"; then
+           VER=`extract -v 2>/dev/null | awk '{gsub("v",""); print $NF}'`
+           infomsg "libextractor   : $VER"
+        else
+            warningmsg "libextractor   : Not Found"
+        fi
     fi
 }
 
@@ -241,7 +245,7 @@ gnunet_version_check()
 
 gitcommit_check()
 {
-    TEST=$(git | awk '/not found/' 2> /dev/null)
+    TEST=$(type git | awk '/not found/' 2> /dev/null)
     if test -z "$TEST"; then
         VER=$(git rev-parse HEAD)
         infomsg "git commit     : $VER"
@@ -419,27 +423,26 @@ gettext_check()
     fi
 }
 
-# Merge curl_check + gnurl_check -> error if neither is
-# found (yes those systems exist)
-curl_check()
+gnurl_curl_check()
 {
-    TEST=`type curl-config | awk '/not found/' 2> /dev/null`
-    if test -z "$TEST"; then
+    TESTCURL=`type curl-config | awk '/not found/' 2> /dev/null`
+    if test -z "$TESTCURL"; then
         VER=`curl-config --version 2> /dev/null | awk '{print $NF}'`
         infomsg "libcurl        : $VER"
     else
         infomsg "libcurl        : Not found"
     fi
-}
 
-gnurl_check()
-{
-    TEST=`type gnurl-config | awk '/not found/' 2> /dev/null`
-    if test -z "$TEST"; then
-        VER=`gnurl-config --version 2> /dev/null | awk '{print $NF}'`
+    TESTGNURL=`type gnurl-config | awk '/not found/' 2> /dev/null`
+    if test -z "$TESTGNURL"; then
+        VER=`gnurl-config --version 2>&1 /dev/null | awk '{print $NF}'`
         infomsg "libgnurl       : $VER"
     else
         infomsg "libgnurl       : Not found"
+    fi
+
+    if test -z "$TESTCURL" -a "$TESTGNURL"; then
+        warningmsg "libgnurl or libcurl       : Not found"
     fi
 }
 
@@ -560,8 +563,7 @@ main()
     libunistring_check
     gnugettext_check
     gettext_check
-    curl_check
-    gnurl_check
+    gnurl_curl_check
     libmicrohttpd_check
     glpk_check
     gnutls_check
