@@ -61,7 +61,7 @@ os_check()
 # awk isn't there it can't be found.
 awk_check()
 {
-    if test -z "`type awk 2>&1 | awk '/not found/'`"; then
+    if test -z "`type awk | awk '/not found/'`"; then
         infomsg    "awk            : Found"
     else
         warningmsg "awk            : Not found!"
@@ -403,7 +403,7 @@ libunistring_check()
 
 gnugettext_check()
 {
-    TEST=`type gettext | awk '/not found/' 2> /dev/null`
+    TEST=`type gettext | awk '/not found/'`
     if test -z "$TEST"; then
         if test -n "$(gettext --version 2>&1 | awk '/unknown option/')"; then
             infomsg "GNU gettext    : Not found"
@@ -416,7 +416,7 @@ gnugettext_check()
 
 gettext_check()
 {
-    if test -n "`type getext 2>/dev/null`"; then
+    if test -z "`type getext | awk '/not found/'`"; then
         infomsg "gettext        : Found"
     else
         infomsg "gettext        : Not Found"
@@ -448,7 +448,6 @@ gnurl_curl_check()
 
 libmicrohttpd_check()
 {
-    # TMPFILE=`mktemp /tmp/mhd-version-testXXXXXX`
     TMPFILE="bugreport-test_lmhd.c"
     cat - >$TMPFILE <<EOF
 #include <microhttpd.h>
@@ -474,7 +473,6 @@ EOF
 
 glpk_check()
 {
-    # TMPFILE=`mktemp /tmp/glpk-version-testXXXXXX`
     TMPFILE="bugreport-glpk_check.c"
     cat - >$TMPFILE <<EOF
 #include <glpk.h>
@@ -500,7 +498,6 @@ EOF
 
 gnutls_check()
 {
-    # TMPFILE=`mktemp /tmp/gnutls-version-testXXXXXX`
     TMPFILE="bugreport-gnutls_check.c"
     cat - >$TMPFILE <<EOF
 #include <gnutls/gnutls.h>
@@ -532,8 +529,6 @@ main()
         echo "CPPFLAGS='-I/usr/pkg/include' LDFLAGS='-L/usr/pkg/lib' ${progname}"
         return 0
     fi
-    #echo $LDFLAGS
-    #echo $CPPFLAGS
     infomsg "${progname} 0.11.0"
     infomsg
     infomsg "Please submit the following"
