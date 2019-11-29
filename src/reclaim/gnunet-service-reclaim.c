@@ -1087,6 +1087,118 @@ attest_store_cont (void *cls, int32_t success, const char *emsg)
 }
 
 /**
+     * Send a reference error response
+     *
+     * @param ash our attribute store handle
+     * @param success the success status
+     */
+static void
+send_ref_error (struct AttributeStoreHandle  *ash)
+{
+  struct GNUNET_MQ_Envelope *env;
+  struct SuccessResultMessage *acr_msg;
+
+  ash->ns_qe = NULL;
+  GNUNET_CONTAINER_DLL_remove (ash->client->store_op_head,
+                               ash->client->store_op_tail,
+                               ash);
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending SUCCESS_RESPONSE message\n");
+  env = GNUNET_MQ_msg (acr_msg, GNUNET_MESSAGE_TYPE_RECLAIM_SUCCESS_RESPONSE);
+  acr_msg->id = htonl (ash->r_id);
+  acr_msg->op_result = htonl (GNUNET_SYSERR);
+  GNUNET_MQ_send (ash->client->mq, env);
+  cleanup_as_handle (ash);
+}
+
+/**
+ * Error looking up potential attestation. Abort.
+ *
+ * @param cls our attribute store handle
+ */
+static void
+attest_error (void *cls)
+{
+  struct AttributeStoreHandle *ash = cls;
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+              "Failed to check for existing Attestation\n");
+  cleanup_as_handle (ash);
+  GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
+  return;
+}
+
+/**
+* Check for existing record before storing reference
+*
+* @param cls our attribute store handle
+* @param zone zone we are iterating
+* @param label label of the records
+* @param rd_count record count
+* @param rd records
+*/
+static void
+attest_add_cb (void *cls,
+               const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
+               const char *label,
+               unsigned int rd_count,
+               const struct GNUNET_GNSRECORD_Data *rd)
+{
+  struct AttributeStoreHandle *ash = cls;
+  char *buf;
+  size_t buf_size;
+  buf_size = GNUNET_RECLAIM_ATTESTATION_serialize_get_size (ash->attest);
+  buf = GNUNET_malloc (buf_size);
+  GNUNET_RECLAIM_ATTESTATION_serialize (ash->attest, buf);
+  if (0 == rd_count )
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Storing new Attestation\n");
+    struct GNUNET_GNSRECORD_Data rd_new[1];
+    rd_new[0].data_size = buf_size;
+    rd_new[0].data = buf;
+    rd_new[0].record_type = GNUNET_GNSRECORD_TYPE_RECLAIM_ATTEST_ATTR;
+    rd_new[0].flags = GNUNET_GNSRECORD_RF_RELATIVE_EXPIRATION;
+    rd_new[0].expiration_time = ash->exp.rel_value_us;
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Encrypting with label %s\n", label);
+    ash->ns_qe = GNUNET_NAMESTORE_records_store (nsh,
+                                                 &ash->identity,
+                                                 label,
+                                                 1,
+                                                 rd_new,
+                                                 &attest_store_cont,
+                                                 ash);
+    GNUNET_free (buf);
+    return;
+  }
+  if (GNUNET_GNSRECORD_TYPE_RECLAIM_ATTEST_ATTR != rd[0].record_type)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Existing Attestation location is not an Attestation\n");
+    send_ref_error (ash);
+    return;
+  }
+  struct GNUNET_GNSRECORD_Data rd_new[rd_count];
+  for (int i = 0; i<rd_count; i++)
+  {
+    rd_new[i] = rd[i];
+  }
+  rd_new[0].data_size = buf_size;
+  rd_new[0].data = buf;
+  rd_new[0].record_type = GNUNET_GNSRECORD_TYPE_RECLAIM_ATTEST_ATTR;
+  rd_new[0].flags = GNUNET_GNSRECORD_RF_RELATIVE_EXPIRATION;
+  rd_new[0].expiration_time = ash->exp.rel_value_us;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Encrypting with label %s\n", label);
+  ash->ns_qe = GNUNET_NAMESTORE_records_store (nsh,
+                                               &ash->identity,
+                                               label,
+                                               rd_count,
+                                               rd_new,
+                                               &attest_store_cont,
+                                               ash);
+  GNUNET_free (buf);
+}
+
+/**
  * Add a new attestation
  *
  * @param cls the AttributeStoreHandle
@@ -1095,36 +1207,24 @@ static void
 attest_store_task (void *cls)
 {
   struct AttributeStoreHandle *ash = cls;
-  struct GNUNET_GNSRECORD_Data rd[1];
-  char *buf;
   char *label;
-  size_t buf_size;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Storing attestation\n");
-  buf_size = GNUNET_RECLAIM_ATTESTATION_serialize_get_size (ash->attest);
-  buf = GNUNET_malloc (buf_size);
   // Give the ash a new id if unset
   if (0 == ash->attest->id)
     ash->attest->id
       = GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_STRONG, UINT64_MAX);
-  GNUNET_RECLAIM_ATTESTATION_serialize (ash->attest, buf);
   label = GNUNET_STRINGS_data_to_string_alloc (&ash->attest->id,
                                                sizeof(uint64_t));
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Encrypting with label %s\n", label);
-
-  rd[0].data_size = buf_size;
-  rd[0].data = buf;
-  rd[0].record_type = GNUNET_GNSRECORD_TYPE_RECLAIM_ATTEST_ATTR;
-  rd[0].flags = GNUNET_GNSRECORD_RF_RELATIVE_EXPIRATION;
-  rd[0].expiration_time = ash->exp.rel_value_us;
-  ash->ns_qe = GNUNET_NAMESTORE_records_store (nsh,
-                                               &ash->identity,
-                                               label,
-                                               1,
-                                               rd,
-                                               &attest_store_cont,
-                                               ash);
-  GNUNET_free (buf);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Looking up existing data under label %s\n", label);
+// Test for the content of the existing ID
+  ash->ns_qe = GNUNET_NAMESTORE_records_lookup (nsh,
+                                                &ash->identity,
+                                                label,
+                                                &attest_error,
+                                                ash,
+                                                &attest_add_cb,
+                                                ash);
   GNUNET_free (label);
 }
 
@@ -1250,30 +1350,6 @@ reference_store_cont (void *cls, int32_t success, const char *emsg)
   cleanup_as_handle (ash);
 }
 
-/**
-     * Send a reference error response
-     *
-     * @param ash our attribute store handle
-     * @param success the success status
-     */
-static void
-send_ref_error (struct AttributeStoreHandle  *ash)
-{
-  struct GNUNET_MQ_Envelope *env;
-  struct SuccessResultMessage *acr_msg;
-
-  ash->ns_qe = NULL;
-  GNUNET_CONTAINER_DLL_remove (ash->client->store_op_head,
-                               ash->client->store_op_tail,
-                               ash);
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending SUCCESS_RESPONSE message\n");
-  env = GNUNET_MQ_msg (acr_msg, GNUNET_MESSAGE_TYPE_RECLAIM_SUCCESS_RESPONSE);
-  acr_msg->id = htonl (ash->r_id);
-  acr_msg->op_result = htonl (GNUNET_SYSERR);
-  GNUNET_MQ_send (ash->client->mq, env);
-  cleanup_as_handle (ash);
-}
 
 /**
 * Check for existing record before storing reference

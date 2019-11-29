@@ -1198,14 +1198,15 @@ parse_jwt (const struct GNUNET_RECLAIM_ATTESTATION_Claim *attest,
                                                            attest->data_size);
   char *jwt_body = strtok (jwt_string, delim);
   jwt_body = strtok (NULL, delim);
-  GNUNET_STRINGS_base64_decode(jwt_body, strlen(jwt_body), (void **) &decoded_jwt);
-  json_val=json_loads(decoded_jwt, JSON_DECODE_ANY, json_err);
+  GNUNET_STRINGS_base64_decode (jwt_body, strlen (jwt_body),
+                                (void **) &decoded_jwt);
+  json_val = json_loads (decoded_jwt, JSON_DECODE_ANY, json_err);
   const char *key;
   json_t *value;
-  json_object_foreach(json_val, key, value) {
+  json_object_foreach (json_val, key, value) {
     if (0 == strcasecmp (key,claim))
     {
-      val_str=json_dumps(value, JSON_ENCODE_ANY);
+      val_str = json_dumps (value, JSON_ENCODE_ANY);
     }
   }
   type_str = "String";
@@ -1216,11 +1217,20 @@ parse_jwt (const struct GNUNET_RECLAIM_ATTESTATION_Claim *attest,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Attribute value from JWT Parser invalid!\n");
-    return NULL;
+    GNUNET_RECLAIM_ATTRIBUTE_string_to_value (type,
+                                              "Error: Referenced Claim Name not Found",
+                                              (void **) &data,
+                                              &data_size);
+    attr = GNUNET_RECLAIM_ATTRIBUTE_claim_new (claim, type, data, data_size);
+    attr->id = attest->id;
+    attr->flag = 1;
   }
-  attr = GNUNET_RECLAIM_ATTRIBUTE_claim_new (claim, type, data, data_size);
-  attr->id = attest->id;
-  attr->flag = 1;
+  else
+  {
+    attr = GNUNET_RECLAIM_ATTRIBUTE_claim_new (claim, type, data, data_size);
+    attr->id = attest->id;
+    attr->flag = 1;
+  }
   return attr;
 }
 
@@ -1260,13 +1270,13 @@ attr_collect (void *cls,
     }
     struct GNUNET_RECLAIM_ATTRIBUTE_Claim *attr2;
     attr2 = parse_jwt (attest, reference->reference_value);
-    attr2->name = reference->name;
     if (NULL == attr2)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Attribute Collection with unparsed Attestation\n");
       return;
     }
+    attr2->name = reference->name;
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Adding reference as attribute: %s\n",
                 reference->name);
     char *tmp_value;
