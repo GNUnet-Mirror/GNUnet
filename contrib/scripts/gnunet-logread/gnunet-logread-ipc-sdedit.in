@@ -1,4 +1,4 @@
-#!@PERL@
+#!@PERLEXE@
 
 # 1. Start sdedit and enable 'RT diagram server' in 'Global preferences'.
 #

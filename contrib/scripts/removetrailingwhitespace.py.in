@@ -1,4 +1,4 @@
-#!@PYTHON@
+#!@PYTHONEXE@
 
 import sys
 import re

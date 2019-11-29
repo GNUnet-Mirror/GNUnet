@@ -1,7 +1,7 @@
 # This Makefile.am is in the public domain
 AM_CPPFLAGS = -I$(top_srcdir)/src/include -I$(top_builddir)/src/include
 
-do_subst = $(SED) -e 's,[@]PERL[@],$(PERL),g'
+do_subst = $(AWK) -v py="$(PERL)" '{gsub("@PERLEXE@",py); print $$0}'
 
 SUFFIXES = .in
 
