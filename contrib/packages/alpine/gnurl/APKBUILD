@@ -1,7 +1,7 @@
 # Contributor: xrs <xrs@mail36.net>
 # Maintainer: xrs <xrs@mail36.net>
 pkgname=gnurl
-pkgver=7.65.3
+pkgver=7.66.0
 pkgrel=0
 pkgdesc="curl with only HTTP/HTTPS support and GnuTLS"
 url="https://gnunet.org/en/gnurl.html"
@@ -75,4 +75,4 @@ libgnurl() {
 }
 
 
-sha512sums="51aa71352dfe2e65dbcf542cb616af1eaa7e80fbc4ddb455a338e74eea245724ac1fa7ff226c418101e8ba298a8f85c2be9e7d9190a57c66e2e8c65d0c5186f8  gnurl-7.65.3.tar.gz"
+sha512sums="ab7305433b204ce68d139898efa1a74351a73c5e5bde121bb5ce1aa76f31cd07b699c18988a78f756262f9d7566b323651012ed0790bce15ed3e77aeba2c6dd9  gnurl-7.66.0.tar.gz"

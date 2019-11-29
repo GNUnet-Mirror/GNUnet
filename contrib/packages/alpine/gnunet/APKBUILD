@@ -1,7 +1,7 @@
 # Contributor: xrs <xrs@mail36.net>
 # Maintainer: xrs <xrs@mail36.net>
 pkgname=gnunet
-pkgver=0.11.6
+pkgver=0.12.0
 pkgrel=0
 pkgdesc="A framework for secure and privacy enhancing peer-to-peer networking"
 url="https://gnunet.org"
@@ -10,7 +10,7 @@ license="AGPL-3.0-only"
 depends="gnutls-utils bash which iptables coreutils"
 depends_dev="libgpg-error-dev libgcrypt-dev nettle-dev unbound-dev gnutls-dev
 	gnurl-dev libmicrohttpd-dev openssl-dev libunistring-dev libidn2-dev
-	nss-dev sqlite-dev zlib-dev miniupnpc-dev gmp-dev gettext"
+	nss-dev sqlite-dev zlib-dev miniupnpc-dev gmp-dev gettext openjpeg-dev"
 makedepends="$depends_dev autoconf automake libtool gettext-dev python3
 	texlive texinfo"
 install="$pkgname.pre-install $pkgname.post-install $pkgname.pre-deinstall"
@@ -26,11 +26,6 @@ source="https://mirrors.ocf.berkeley.edu/gnu/gnunet/gnunet-$pkgver.tar.gz
 	gnunet.xsession
 	"
 
-prepare() {
-	default_prepare
-	autoreconf -if # FIXME: See https://bugs.gnunet.org/view.php?id=5902
-}
-
 build() {
 	./configure \
 		--build=$CBUILD \
@@ -40,7 +35,7 @@ build() {
 		--mandir=/usr/share/man \
 		--localstatedir=/var \
 		--enable-logging=verbose
-	make -j 1
+	make
 }
 
 check() {
@@ -48,7 +43,7 @@ check() {
 }
 
 package() {
-	make DESTDIR="$pkgdir" install
+	make DESTDIR="$pkgdir" -j1 install # Using more CPUs generates CI-errors.
 
 	libexecdir=$pkgdir/usr/lib/gnunet/libexec/
 	# Limit access to critical gnunet-helper-dns to group "gnunetdns"
@@ -87,7 +82,7 @@ dev() {
 		$pkgdir/usr/bin/gnunet-config
 }
 
-sha512sums="1c6ea2ac7280d2edb30df627b79e017d199e93cd3970ce49f3f049abfb1dddfed541118e55766c422edf4a80e140c4eb2cfc681e0d4a1384e39811d024df9278  gnunet-0.11.6.tar.gz
+#sha512sums="3f066f72486fccd247045495e1072c3680f12109bfceae782a52892824639e2990e34054bfeebcc58bb8778069bfd8a9c1feba19e2d726f12b6128fc27004759  gnunet-0.11.8.tar.gz
 a0f55413ed2c6edd6746a751d92ddac95ba70f20eefb07330817870d749456448f44bba95d245911a00f6078e0c2ac626004e3b764be5e5e049c00626c4c5ac0  gnunet-system.conf
 b21112ff16aee771332aa9c33f55b0c7f46fe0266053543241e3efbe25dba56482c0e11112a192eefe59f1c74d2af5d7071b6a4e1e875cfc7e9d55b5fe8a0a33  gnunet-user.conf
 96ab78bb48d5fb10f0b34336ad05e73b543c4362c73436ef20b3bb83dff214e997acf38a2ea493b1901bdc37c8877d83cdaebd73a0e50831e2f23413c8edda76  gnunet-system-services.initd
