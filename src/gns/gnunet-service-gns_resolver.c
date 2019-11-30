@@ -25,6 +25,19 @@
  * @author Christian Grothoff
  */
 #include "platform.h"
+#if HAVE_LIBIDN2
+#if HAVE_IDN2_H
+#include <idn2.h>
+#elif HAVE_IDN2_IDN2_H
+#include <idn2/idn2.h>
+#endif
+#elif HAVE_LIBIDN
+#if HAVE_IDNA_H
+#include <idna.h>
+#elif HAVE_IDN_IDNA_H
+#include <idn/idna.h>
+#endif
+#endif
 #include "gnunet_util_lib.h"
 #include "gnunet_dnsstub_lib.h"
 #include "gnunet_dht_service.h"
@@ -1824,6 +1837,20 @@ recursive_gns2dns_resolution (struct GNS_ResolverHandle *rh,
                    (0 != rh->name_resolution_pos) ? "." : "",
                    ns);
   GNUNET_free (ns);
+#ifndef LSD001
+  /* the GNS name is UTF-8 and may include multibyte chars.
+   * We have to convert the combined name to a DNS-compatible IDNA.
+   */
+  char *tmp = ac->label;
+  if (IDNA_SUCCESS != idna_to_ascii_8z (tmp, &ac->label, IDNA_ALLOW_UNASSIGNED))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                _("Name `%s' cannot be converted to IDNA."), tmp);
+    return GNUNET_SYSERR;
+  }
+  GNUNET_free (tmp);
+#endif
+
   GNUNET_CONTAINER_DLL_insert_tail (rh->ac_head,
                                     rh->ac_tail,
                                     ac);
