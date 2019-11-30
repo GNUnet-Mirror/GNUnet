@@ -64,6 +64,7 @@ libgnunetutil_la_SOURCES = \
   crypto_kdf.c \
   crypto_mpi.c \
   crypto_paillier.c \
+  crypto_pow.c \
   crypto_random.c \
   crypto_rsa.c \
   disk.c \
