@@ -72,7 +72,9 @@ gns_resolve_name (int af, const char *name, struct userdata *u)
   {
     char *argv[] = { "gnunet-gns",
                      "-r", //Raw output for easier parsing
+#ifdef LSD001
                      "-d", //DNS compatibility (allow IDNA names, no UTF-8)
+#endif
                      "-t",
                      (AF_INET6 == af) ? "AAAA" : "A",
                      "-u",

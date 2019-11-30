@@ -1697,9 +1697,15 @@ recursive_gns2dns_resolution (struct GNS_ResolverHandle *rh,
     n = GNUNET_DNSPARSER_parse_name (rd[i].data,
                                      rd[i].data_size,
                                      &off);
+#ifndef LSD001
+    ip = GNUNET_strdup (&rd[i].data[off]);
+    off += strlen (ip) + 1;
+#else
     ip = GNUNET_DNSPARSER_parse_name (rd[i].data,
                                       rd[i].data_size,
                                       &off);
+#endif
+
     if ((NULL == n) ||
         (NULL == ip) ||
         (off != rd[i].data_size))
