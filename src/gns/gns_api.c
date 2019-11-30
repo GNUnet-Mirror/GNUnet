@@ -324,7 +324,7 @@ GNUNET_GNS_lookup_cancel (struct GNUNET_GNS_LookupRequest *lr)
  * Perform an asynchronous lookup operation on the GNS.
  *
  * @param handle handle to the GNS service
- * @param name the name to look up
+ * @param name the name to look up (in UTF-8 encoding)
  * @param zone the zone to start the resolution in
  * @param type the record type to look up
  * @param options local options for the lookup

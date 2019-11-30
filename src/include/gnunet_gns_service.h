@@ -128,7 +128,7 @@ enum GNUNET_GNS_LocalOptions
  * Perform an asynchronous lookup operation on the GNS.
  *
  * @param handle handle to the GNS service
- * @param name the name to look up
+ * @param name the name to look up (in UTF-8 encoding)
  * @param zone zone to look in
  * @param type the GNS record type to look for
  * @param options local options for the lookup
@@ -179,7 +179,7 @@ typedef void (*GNUNET_GNS_LookupResultProcessor2) (
  * and the current configuration to resolve TLDs to zones.
  *
  * @param handle handle to the GNS service
- * @param name the name to look up, including TLD
+ * @param name the name to look up, including TLD (in UTF-8 encoding)
  * @param type the record type to look up
  * @param options local options for the lookup
  * @param proc processor to call on result

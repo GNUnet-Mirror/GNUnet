@@ -230,7 +230,7 @@ identity_zone_cb (void *cls,
  * and the current configuration to resolve TLDs to zones.
  *
  * @param handle handle to the GNS service
- * @param name the name to look up, including TLD
+ * @param name the name to look up, including TLD (in UTF-8 encoding)
  * @param type the record type to look up
  * @param options local options for the lookup
  * @param proc processor to call on result
