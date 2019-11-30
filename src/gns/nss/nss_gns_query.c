@@ -71,7 +71,8 @@ gns_resolve_name (int af, const char *name, struct userdata *u)
   if (0 == pid)
   {
     char *argv[] = { "gnunet-gns",
-                     "-r",
+                     "-r", //Raw output for easier parsing
+                     "-d", //DNS compatibility (allow IDNA names, no UTF-8)
                      "-t",
                      (AF_INET6 == af) ? "AAAA" : "A",
                      "-u",

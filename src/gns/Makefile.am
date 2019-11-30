@@ -10,7 +10,17 @@ SUBDIRS = . $(NSS_SUBDIR)
 pkgdata_DATA = \
   gnunet-gns-proxy-ca.template
 
+if HAVE_LIBIDN
+  LIBIDN= -lidn
+else
+  LIBIDN=
+endif
 
+if HAVE_LIBIDN2
+  LIBIDN2= -lidn2
+else
+  LIBIDN2=
+endif
 
 EXTRA_DIST = \
   test_gns_defaults.conf \
@@ -139,6 +149,7 @@ gnunet_gns_LDADD = \
   libgnunetgns.la \
   $(top_builddir)/src/gnsrecord/libgnunetgnsrecord.la \
   $(top_builddir)/src/util/libgnunetutil.la \
+  $(LIBIDN) $(LIBIDN2) \
   $(GN_LIBINTL)
 
 gnunet_gns_benchmark_SOURCES = \

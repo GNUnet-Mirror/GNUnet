@@ -23,11 +23,25 @@
  * @author Christian Grothoff
  */
 #include "platform.h"
+#if HAVE_LIBIDN2
+#if HAVE_IDN2_H
+#include <idn2.h>
+#elif HAVE_IDN2_IDN2_H
+#include <idn2/idn2.h>
+#endif
+#elif HAVE_LIBIDN
+#if HAVE_IDNA_H
+#include <idna.h>
+#elif HAVE_IDN_IDNA_H
+#include <idn/idna.h>
+#endif
+#endif
 #include <gnunet_util_lib.h>
 #include <gnunet_dnsparser_lib.h>
 #include <gnunet_gnsrecord_lib.h>
 #include <gnunet_namestore_service.h>
 #include <gnunet_gns_service.h>
+
 
 /**
  * Configuration we are using.
@@ -43,6 +57,16 @@ static struct GNUNET_GNS_Handle *gns;
  * GNS name to lookup. (-u option)
  */
 static char *lookup_name;
+
+/**
+ * DNS IDNA name to lookup. (set if -d option is set)
+ */
+char *idna_name;
+
+/**
+ * DNS compatibility (name is given as DNS name, possible IDNA).
+ */
+static int dns_compat;
 
 /**
  * record type to look up (-t option)
@@ -107,6 +131,11 @@ do_shutdown (void *cls)
   {
     GNUNET_GNS_disconnect (gns);
     gns = NULL;
+  }
+  if (NULL != idna_name)
+  {
+    GNUNET_free (idna_name);
+    idna_name = NULL;
   }
 }
 
@@ -200,6 +229,7 @@ run (void *cls,
   (void) cls;
   (void) args;
   (void) cfgfile;
+  Idna_rc rc;
 
   cfg = c;
   to_task = NULL;
@@ -209,13 +239,32 @@ run (void *cls,
     if (NULL != (colon = strchr (lookup_name, ':')))
       *colon = '\0';
   }
-  if (GNUNET_OK != GNUNET_DNSPARSER_check_name (lookup_name))
+  /**
+   * If DNS compatibility is requested, we first verify that the
+   * lookup_name is in a DNS format. If yes, we convert it to UTF-8.
+   */
+  if (GNUNET_YES == dns_compat)
   {
-    fprintf (stderr,
-             _ ("`%s' is not a valid domain name\n"),
-             lookup_name);
-    global_ret = 3;
-    return;
+    if (GNUNET_OK != GNUNET_DNSPARSER_check_name (lookup_name))
+    {
+      fprintf (stderr,
+               _ ("`%s' is not a valid DNS domain name\n"),
+               lookup_name);
+      global_ret = 3;
+      return;
+    }
+    if (IDNA_SUCCESS !=
+        (rc = idna_to_unicode_8z8z (lookup_name, &idna_name,
+                                    IDNA_ALLOW_UNASSIGNED)))
+    {
+      fprintf (stderr,
+               _ ("Failed to convert DNS IDNA name `%s' to UTF-8: %s\n"),
+               lookup_name,
+               idna_strerror (rc));
+      global_ret = 3;
+      return;
+    }
+    lookup_name = idna_name;
   }
   if (GNUNET_YES !=
       GNUNET_CLIENT_test (cfg,
@@ -299,6 +348,11 @@ main (int argc, char *const *argv)
                                "raw",
                                gettext_noop ("No unneeded output"),
                                &raw),
+    GNUNET_GETOPT_option_flag ('d',
+                               "dns",
+                               gettext_noop (
+                                 "DNS Compatibility: Name is passed in IDNA instead of UTF-8"),
+                               &dns_compat),
     GNUNET_GETOPT_OPTION_END };
   int ret;
 
