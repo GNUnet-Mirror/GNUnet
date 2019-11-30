@@ -32,26 +32,31 @@ TEST_RECORD_CNAME_PLUS="server.+"
 TEST_RECORD_CNAME_DNS="gnunet.org"
 TEST_RECORD_NAME_SERVER="server"
 TEST_RECORD_NAME_PLUS="www"
+TEST_RECORD_NAME_ZKEY="www2"
 TEST_RECORD_NAME_DNS="www3"
 MY_EGO="myego"
 TEST_DOMAIN_PLUS="www.$MY_EGO"
+TEST_DOMAIN_ZKEY="www2.$MY_EGO"
 TEST_DOMAIN_DNS="www3.$MY_EGO"
 which timeout > /dev/null 2>&1 && DO_TIMEOUT="timeout 15"
 
 gnunet-arm -s -c test_gns_lookup.conf
 gnunet-identity -C $MY_EGO -c test_gns_lookup.conf
+MY_EGO_PKEY=$(gnunet-identity -d -c test_gns_lookup.conf | grep ${MY_EGO} | awk '{print $3}')
+TEST_RECORD_CNAME_ZKEY="server.${MY_EGO_PKEY}"
 gnunet-namestore -p -z $MY_EGO -a -n $TEST_RECORD_NAME_DNS -t CNAME -V $TEST_RECORD_CNAME_DNS -e never -c test_gns_lookup.conf
 gnunet-namestore -p -z $MY_EGO -a -n $TEST_RECORD_NAME_PLUS -t CNAME -V $TEST_RECORD_CNAME_PLUS -e never -c test_gns_lookup.conf
+gnunet-namestore -p -z $MY_EGO -a -n $TEST_RECORD_NAME_ZKEY -t CNAME -V $TEST_RECORD_CNAME_ZKEY -e never -c test_gns_lookup.conf
 gnunet-namestore -p -z $MY_EGO -a -n $TEST_RECORD_CNAME_SERVER -t A -V $TEST_IP_PLUS -e never -c test_gns_lookup.conf
 RES_CNAME=`$DO_TIMEOUT gnunet-gns --raw -u $TEST_DOMAIN_PLUS -t A -c test_gns_lookup.conf`
 RES_CNAME_RAW=`$DO_TIMEOUT gnunet-gns --raw -u $TEST_DOMAIN_PLUS -t CNAME -c test_gns_lookup.conf`
+RES_CNAME_ZKEY=`$DO_TIMEOUT gnunet-gns --raw -u $TEST_DOMAIN_ZKEY -t A -c test_gns_lookup.conf`
 RES_CNAME_DNS=`$DO_TIMEOUT gnunet-gns --raw -u $TEST_DOMAIN_DNS -t A -c test_gns_lookup.conf | grep $TEST_IP_DNS`
-echo NOW
-gnunet-gns --raw -u $TEST_DOMAIN_DNS -t A -c test_gns_lookup.conf
-echo WON
+
 TESTEGOZONE=`gnunet-identity -c test_gns_lookup.conf -d | awk '{print $3}'`
 gnunet-namestore -p -z $MY_EGO -d -n $TEST_RECORD_NAME_DNS -t CNAME -V $TEST_RECORD_CNAME_DNS -e never -c test_gns_lookup.conf
 gnunet-namestore -p -z $MY_EGO -d -n $TEST_RECORD_NAME_PLUS -t CNAME -V $TEST_RECORD_CNAME_PLUS -e never -c test_gns_lookup.conf
+gnunet-namestore -p -z $MY_EGO -d -n $TEST_RECORD_NAME_ZKEY -t CNAME -V $TEST_RECORD_CNAME_ZKEY -e never -c test_gns_lookup.conf
 gnunet-namestore -p -z $MY_EGO -d -n $TEST_RECORD_CNAME_SERVER -t A -V $TEST_IP_PLUS -e never -c test_gns_lookup.conf
 gnunet-identity -D $MY_EGO -c test_gns_lookup.conf
 gnunet-arm -e -c test_gns_lookup.conf
@@ -70,9 +75,17 @@ fi
 
 if [ "$RES_CNAME" = "$TEST_IP_PLUS" ]
 then
-  echo "PASS: IP resolution from GNS"
+  echo "PASS: IP resolution from GNS (.+)"
 else
-  echo "FAIL: IP resolution from GNS, got $RES_CNAME, expected $TEST_IP_PLUS."
+  echo "FAIL: IP resolution from GNS (.+), got $RES_CNAME, expected $TEST_IP_PLUS."
+  exit 1
+fi
+
+if [ "$RES_CNAME_ZKEY" = "$TEST_IP_PLUS" ]
+then
+  echo "PASS: IP resolution from GNS (.zkey)"
+else
+  echo "FAIL: IP resolution from GNS (.zkey), got $RES_CNAME, expected $TEST_IP_PLUS."
   exit 1
 fi
 
