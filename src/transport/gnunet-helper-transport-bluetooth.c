@@ -1,8 +1,8 @@
 /*
    This file is part of GNUnet.
    Copyright (C) 2010, 2011, 2012 GNUnet e.V.
-   Copyright (c) 2007, 2008, Andy Green <andy@warmcat.com>
-   Copyright Copyright (C) 2009 Thomas d'Otreppe
+   Copyright (C) 2007, 2008, Andy Green <andy@warmcat.com>
+   Copyright (C) 2009 Thomas d'Otreppe
 
    GNUnet is free software: you can redistribute it and/or modify it
    under the terms of the GNU Affero General Public License as published
