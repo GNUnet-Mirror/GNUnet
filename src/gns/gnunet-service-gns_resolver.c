@@ -1766,8 +1766,8 @@ recursive_gns2dns_resolution (struct GNS_ResolverHandle *rh,
       continue;
     }
     tld = GNS_get_tld (ip);
-    if (0 != strcmp (tld,
-                     "+"))
+    if ((0 != strcmp (tld, "+")) &&
+        (GNUNET_OK != GNUNET_GNSRECORD_zkey_to_pkey (tld, &zone)))
     {
       /* 'ip' is a DNS name */
       gp = GNUNET_new (struct Gns2DnsPending);
@@ -1790,16 +1790,19 @@ recursive_gns2dns_resolution (struct GNS_ResolverHandle *rh,
                                  ac->authority_info.dns_authority.gp_tail,
                                  gp);
     gp->rh = GNUNET_new (struct GNS_ResolverHandle);
-    ip = translate_dot_plus (rh,
-                             ip);
-    tld = GNS_get_tld (ip);
-    if (GNUNET_OK !=
-        GNUNET_GNSRECORD_zkey_to_pkey (tld,
-                                       &zone))
+    if (0 == strcmp (tld, "+"))
     {
-      GNUNET_break_op (0);
-      GNUNET_free (ip);
-      continue;
+      ip = translate_dot_plus (rh,
+                               ip);
+      tld = GNS_get_tld (ip);
+      if (GNUNET_OK !=
+          GNUNET_GNSRECORD_zkey_to_pkey (tld,
+                                         &zone))
+      {
+        GNUNET_break_op (0);
+        GNUNET_free (ip);
+        continue;
+      }
     }
     gp->rh->authority_zone = zone;
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -1845,7 +1848,7 @@ recursive_gns2dns_resolution (struct GNS_ResolverHandle *rh,
   if (IDNA_SUCCESS != idna_to_ascii_8z (tmp, &ac->label, IDNA_ALLOW_UNASSIGNED))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                _("Name `%s' cannot be converted to IDNA."), tmp);
+                _ ("Name `%s' cannot be converted to IDNA."), tmp);
     return GNUNET_SYSERR;
   }
   GNUNET_free (tmp);
