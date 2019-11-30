@@ -10,7 +10,7 @@ UNIXPATH = $GNUNET_RUNTIME_DIR/gnunet-service-revocation.sock
 UNIX_MATCH_UID = NO
 UNIX_MATCH_GID = YES
 
-# 2^25 hash operations take about 16-24h on a modern i7
+# 2^25 hash operations take about 16-24h on a first-generation i7
 # (using only a single-core) with SCRYPT.
 # DO NOT CHANGE THIS VALUE, doing so will break the protocol!
 WORKBITS = 25
