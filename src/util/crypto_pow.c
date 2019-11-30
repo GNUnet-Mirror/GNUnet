@@ -35,13 +35,16 @@
  * We're using a non-standard formula to avoid issues with
  * ASICs appearing (see #3795).
  *
+ * @param salt salt for the hash
  * @param buf data to hash
  * @param buf_len number of bytes in @a buf
  * @param result where to write the resulting hash
  */
 void
-GNUNET_CRYPTO_pow_hash (const void *buf, size_t buf_len, struct
-                        GNUNET_HashCode *result)
+GNUNET_CRYPTO_pow_hash (const char *salt,
+                        const void *buf,
+                        size_t buf_len,
+                        struct GNUNET_HashCode *result)
 {
 #if NEW_CRYPTO
   struct GNUNET_CRYPTO_SymmetricInitializationVector iv;
@@ -52,8 +55,8 @@ GNUNET_CRYPTO_pow_hash (const void *buf, size_t buf_len, struct
                                       buf_len,
                                       GCRY_KDF_SCRYPT,
                                       1 /* subalgo */,
-                                      "gnunet-proof-of-work-1",
-                                      strlen ("gnunet-proof-of-work-1"),
+                                      salt,
+                                      strlen (salt),
                                       2 /* iterations; keep cost of individual op small */,
                                       sizeof(skey),
                                       &skey));
@@ -61,6 +64,8 @@ GNUNET_CRYPTO_pow_hash (const void *buf, size_t buf_len, struct
                                      &skey,
                                      "gnunet-proof-of-work-iv",
                                      strlen ("gnunet-proof-of-work-iv"),
+                                     salt,
+                                     strlen (salt),
                                      NULL, 0);
   GNUNET_CRYPTO_symmetric_encrypt (buf,
                                    buf_len,
@@ -71,8 +76,8 @@ GNUNET_CRYPTO_pow_hash (const void *buf, size_t buf_len, struct
                                       buf_len,
                                       GCRY_KDF_SCRYPT,
                                       1 /* subalgo */,
-                                      "gnunet-proof-of-work-2",
-                                      strlen ("gnunet-proof-of-work-2"),
+                                      salt,
+                                      strlen (salt),
                                       2 /* iterations; keep cost of individual op small */,
                                       sizeof(struct GNUNET_HashCode),
                                       result));
@@ -81,8 +86,8 @@ GNUNET_CRYPTO_pow_hash (const void *buf, size_t buf_len, struct
                                       buf_len,
                                       GCRY_KDF_SCRYPT,
                                       1 /* subalgo */,
-                                      "gnunet-proof-of-work",
-                                      strlen ("gnunet-proof-of-work"),
+                                      salt,
+                                      strlen (salt),
                                       2 /* iterations; keep cost of individual op small */,
                                       sizeof(struct GNUNET_HashCode),
                                       result));

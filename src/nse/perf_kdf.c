@@ -29,39 +29,18 @@
 #include <gauger.h>
 
 
-/**
- * Calculate the 'proof-of-work' hash (an expensive hash).
- *
- * @param buf data to hash
- * @param buf_len number of bytes in 'buf'
- * @param result where to write the resulting hash
- */
-static void
-pow_hash (const void *buf,
-          size_t buf_len,
-          struct GNUNET_HashCode *result)
-{
-  GNUNET_break (0 ==
-                gcry_kdf_derive (buf, buf_len,
-                                 GCRY_KDF_SCRYPT,
-                                 1 /* subalgo */,
-                                 "gnunet-proof-of-work", strlen (
-                                   "gnunet-proof-of-work"),
-                                 2 /* iterations; keep cost of individual op small */,
-                                 sizeof(struct GNUNET_HashCode), result));
-}
-
-
 static void
 perfHash ()
 {
   struct GNUNET_HashCode hc;
-  unsigned int i;
   char buf[64];
 
   memset (buf, 1, sizeof(buf));
-  for (i = 0; i < 1024; i++)
-    pow_hash (buf, sizeof(buf), &hc);
+  for (unsigned int i = 0; i < 1024; i++)
+    GNUNET_CRYPTO_pow_hash ("gnunet-proof-of-work",
+                            buf,
+                            sizeof(buf),
+                            &hc);
 }
 
 

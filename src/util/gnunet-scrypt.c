@@ -117,7 +117,10 @@ find_proof (void *cls)
   while ((counter != UINT64_MAX) && (i < ROUND_SIZE))
   {
     GNUNET_memcpy (buf, &counter, sizeof(uint64_t));
-    GNUNET_CRYPTO_pow_hash (buf, sizeof(buf), &result);
+    GNUNET_CRYPTO_pow_hash ("gnunet-nse-proof-of-work",
+                            buf,
+                            sizeof(buf),
+                            &result);
     if (nse_work_required <= count_leading_zeroes (&result))
     {
       proof = counter;
