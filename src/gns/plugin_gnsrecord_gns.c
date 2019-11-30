@@ -78,7 +78,7 @@ gns_value_to_string (void *cls,
         GNUNET_free_non_null (ns);
         return NULL;
       }
-#ifndef LSD001 //DNS server IP/name must be UTF-8
+#ifdef LSD001 //DNS server IP/name must be UTF-8
       ip = GNUNET_strdup((char*) &data[off]);
 #else
       // Must be IP or DNS name
@@ -226,7 +226,7 @@ gns_string_to_value (void *cls,
         GNUNET_free (cpy);
         return GNUNET_SYSERR;
       }
-#ifndef LSD001 //The DNS server location/name is in UTF-8
+#ifdef LSD001 //The DNS server location/name is in UTF-8
       GNUNET_memcpy (&nsbuf[off], at, strlen (at) + 1);
       off += strlen (at) + 1;
 #else

@@ -1710,7 +1710,7 @@ recursive_gns2dns_resolution (struct GNS_ResolverHandle *rh,
     n = GNUNET_DNSPARSER_parse_name (rd[i].data,
                                      rd[i].data_size,
                                      &off);
-#ifndef LSD001
+#ifdef LSD001
     ip = GNUNET_strdup (&rd[i].data[off]);
     off += strlen (ip) + 1;
 #else
@@ -1837,7 +1837,7 @@ recursive_gns2dns_resolution (struct GNS_ResolverHandle *rh,
                    (0 != rh->name_resolution_pos) ? "." : "",
                    ns);
   GNUNET_free (ns);
-#ifndef LSD001
+#ifdef LSD001
   /* the GNS name is UTF-8 and may include multibyte chars.
    * We have to convert the combined name to a DNS-compatible IDNA.
    */
