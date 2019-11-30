@@ -23,11 +23,12 @@
  * @author Christian Grothoff
  * @author Bart Polot
  */
-
 #include "platform.h"
 #include "gnunet_crypto_lib.h"
 #include <gcrypt.h>
 
+/* FIXME: change to 1 for #3795 / 0.12! */
+#define NEW_CRYPTO 0
 
 /**
  * Calculate the 'proof-of-work' hash (an expensive hash).
@@ -42,16 +43,50 @@ void
 GNUNET_CRYPTO_pow_hash (const void *buf, size_t buf_len, struct
                         GNUNET_HashCode *result)
 {
-  GNUNET_break (
-    0 == gcry_kdf_derive (buf,
-                          buf_len,
-                          GCRY_KDF_SCRYPT,
-                          1 /* subalgo */,
-                          "gnunet-proof-of-work",
-                          strlen ("gnunet-proof-of-work"),
-                          2 /* iterations; keep cost of individual op small */,
-                          sizeof(struct GNUNET_HashCode),
-                          result));
+#if NEW_CRYPTO
+  struct GNUNET_CRYPTO_SymmetricInitializationVector iv;
+  struct GNUNET_CRYPTO_SymmetricSessionKey skey;
+  char rbuf[buf_len];
+
+  GNUNET_break (0 == gcry_kdf_derive (buf,
+                                      buf_len,
+                                      GCRY_KDF_SCRYPT,
+                                      1 /* subalgo */,
+                                      "gnunet-proof-of-work-1",
+                                      strlen ("gnunet-proof-of-work-1"),
+                                      2 /* iterations; keep cost of individual op small */,
+                                      sizeof(skey),
+                                      &skey));
+  GNUNET_CRYPTO_symmetric_derive_iv (&iv,
+                                     &skey,
+                                     "gnunet-proof-of-work-iv",
+                                     strlen ("gnunet-proof-of-work-iv"),
+                                     NULL, 0);
+  GNUNET_CRYPTO_symmetric_encrypt (buf,
+                                   buf_len,
+                                   &skey,
+                                   &iv,
+                                   &rbuf);
+  GNUNET_break (0 == gcry_kdf_derive (rbuf,
+                                      buf_len,
+                                      GCRY_KDF_SCRYPT,
+                                      1 /* subalgo */,
+                                      "gnunet-proof-of-work-2",
+                                      strlen ("gnunet-proof-of-work-2"),
+                                      2 /* iterations; keep cost of individual op small */,
+                                      sizeof(struct GNUNET_HashCode),
+                                      result));
+#else
+  GNUNET_break (0 == gcry_kdf_derive (buf,
+                                      buf_len,
+                                      GCRY_KDF_SCRYPT,
+                                      1 /* subalgo */,
+                                      "gnunet-proof-of-work",
+                                      strlen ("gnunet-proof-of-work"),
+                                      2 /* iterations; keep cost of individual op small */,
+                                      sizeof(struct GNUNET_HashCode),
+                                      result));
+#endif
 }
 
 
