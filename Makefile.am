@@ -70,7 +70,5 @@ check-python:
 	printf "Running flake8 and 2to3 if detected.\n"
 	$(top_srcdir)/contrib/scripts/lint/lint-python.sh || true
 
-# exception to add: ignore license files.
-# exception to add: uref's can go above 79 chars.
 check-texinfo:
 	@cd $(top_srcdir); find . -type f ! -path '*/.*' -name '*.texi' -print0 | xargs -0 ./contrib/scripts/check-texinfo.awk > $(srcdir)/texinfo_lint.log || true

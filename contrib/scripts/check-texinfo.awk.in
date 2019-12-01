@@ -1,7 +1,11 @@
 #!@AWKEXE@ -f
-
+#
 # Dedicated to the Public Domain.
 # SPDX-License-Identifier: 0BSD
+#
+# exception to add: ignore license files.
+# exception to add: uref's can go above 79 chars.
+
 
 BEGIN {
   printf "Running basic texinfo linters\n" ;
