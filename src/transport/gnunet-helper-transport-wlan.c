@@ -1,8 +1,8 @@
 /*
    This file is part of GNUnet.
    Copyright (C) 2010, 2011, 2012 GNUnet e.V.
-   Copyright (c) 2007, 2008, Andy Green <andy@warmcat.com>
-   Copyright Copyright (C) 2009 Thomas d'Otreppe
+   Copyright (C) 2007, 2008, Andy Green <andy@warmcat.com>
+   Copyright (C) 2009 Thomas d'Otreppe
 
    GNUnet is free software: you can redistribute it and/or modify it
    under the terms of the GNU Affero General Public License as published
@@ -110,6 +110,7 @@
  * parts taken from aircrack-ng, parts changend.
  */
 #include "gnunet_config.h"
+#include <sys/param.h>
 #include <sys/socket.h>
 #include <sys/ioctl.h>
 #include <sys/types.h>
@@ -117,12 +118,26 @@
 #include <sys/wait.h>
 #include <sys/time.h>
 #include <sys/stat.h>
+#ifdef AF_LINK
+#include <net/if_dl.h>
+#endif
+#ifdef AF_PACKET
 #include <netpacket/packet.h>
+#endif
+#if defined(__linux__)
 #include <linux/if_ether.h>
 #include <linux/if.h>
 #include <linux/wireless.h>
+#endif
+#if defined(BSD)
+#include <net/if.h>
+#include <net/if_ether.h>
+#include <net80211/ieee80211_node.h>
+#endif
 #include <netinet/in.h>
-#include <linux/if_tun.h>
+#ifdef IF_TUN_HDR
+#include IF_TUN_HDR
+#endif
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -130,7 +145,6 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <dirent.h>
-#include <sys/param.h>
 #include <unistd.h>
 #include <stdint.h>
 
@@ -1661,7 +1675,12 @@ open_device_raw (struct HardwareInfos *dev)
   struct ifreq ifr;
   struct iwreq wrq;
   struct packet_mreq mr;
+#ifdef AF_PACKET
   struct sockaddr_ll sll;
+#endif
+#ifdef AF_LINK
+  struct sockaddr_dl sll;
+#endif
 
   /* find the interface index */
   memset (&ifr, 0, sizeof(ifr));
@@ -1675,9 +1694,16 @@ open_device_raw (struct HardwareInfos *dev)
 
   /* lookup the hardware type */
   memset (&sll, 0, sizeof(sll));
+#if defined(AF_PACKET)
   sll.sll_family = AF_PACKET;
   sll.sll_ifindex = ifr.ifr_ifindex;
   sll.sll_protocol = htons (ETH_P_ALL);
+#endif
+#if defined(AF_LINK)
+  sll.sdl_family = AF_LINK;
+  sll.sdl_index = ifr.ifr_ifindex;
+  sll.sdl_protocol = htons (ETH_P_ALL);
+#endif
   if (-1 == ioctl (dev->fd_raw, SIOCGIFHWADDR, &ifr))
   {
     fprintf (stderr, "ioctl(SIOCGIFHWADDR) on interface `%.*s' failed: %s\n",
@@ -1760,10 +1786,22 @@ open_device_raw (struct HardwareInfos *dev)
 
   /* enable promiscuous mode */
   memset (&mr, 0, sizeof(mr));
+#ifdef AF_PACKET
   mr.mr_ifindex = sll.sll_ifindex;
+#endif
+#ifdef AF_LINK
+  mr.mr_ifindex = sll.sdl_index;
+#endif
   mr.mr_type = PACKET_MR_PROMISC;
   if (0 !=
-      setsockopt (dev->fd_raw, SOL_PACKET, PACKET_ADD_MEMBERSHIP, &mr,
+      setsockopt (dev->fd_raw, SOL_PACKET,
+#ifdef AF_PACKET
+                  PACKET_ADD_MEMBERSHIP,
+#endif
+#ifdef AF_LINK
+                  SIOCADDMULTI,
+#endif
+                  &mr,
                   sizeof(mr)))
   {
     fprintf (stderr,

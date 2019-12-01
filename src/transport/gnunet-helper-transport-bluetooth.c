@@ -21,18 +21,31 @@
  */
 #include "gnunet_config.h"
 
+#include <sys/param.h>
+#if defined(__linux__)
 #include <bluetooth/bluetooth.h>
 #include <bluetooth/hci.h>
 #include <bluetooth/hci_lib.h>
 #include <bluetooth/rfcomm.h>
 #include <bluetooth/sdp.h>
 #include <bluetooth/sdp_lib.h>
+#endif
+#if defined(BSD) && defined(__NetBSD__)
+#include <netbt/bluetooth.h>
+#include <netbt/hci.h>
+#include <netbt/l2cap.h>
+#include <netbt/rfcomm.h>
+#endif
 #include <errno.h>
+#if defined(__linux__)
 #include <linux/if.h>
+#endif
+#if defined(BSD)
+#include <net/if.h>
+#endif
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/ioctl.h>
-#include <sys/param.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -166,7 +179,7 @@ static struct SendBuffer write_pout;
 static struct SendBuffer write_std;
 
 
-/* ****** this are the same functions as the ones used in gnunet-helper-transport-wlan.c ****** */
+/* ****** these are the same functions as the ones used in gnunet-helper-transport-wlan.c ****** */
 
 /**
  * To what multiple do we align messages?  8 byte should suffice for everyone
@@ -615,7 +628,8 @@ register_service (struct HardwareInfos *dev, int rc_channel)
    * 5. set the name, provider and description
    * 6. register the service record to the local SDP server
    * 7. cleanup
-   */uint8_t svc_uuid_int[] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+   */
+  uint8_t svc_uuid_int[] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
                              dev->pl_mac.mac[5], dev->pl_mac.mac[4],
                              dev->pl_mac.mac[3],
                              dev->pl_mac.mac[2], dev->pl_mac.mac[1],
