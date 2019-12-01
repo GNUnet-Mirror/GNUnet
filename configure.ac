@@ -242,10 +242,14 @@ AM_PATH_PYTHON([3.4],, [:])
 AC_SUBST([PYTHON])
 AM_CONDITIONAL([HAVE_PYTHON], [test "$PYTHON" != :])
 
+
 # perl
 AC_PATH_PROG( PERL, perl, ,
               $PATH:/usr/local/bin/perl:/usr/bin/:/usr/local/bin )
 AC_SUBST([PERL])
+AS_IF([test -x "$PERL"],
+  [AC_DEFINE_UNQUOTED([HAVE_PERL], [1], [Path to Perl])],
+  [AC_DEFINE_UNQUOTED([HAVE_PERL], [0], [Path to Perl])])
 
 # should we install gnunet-logread?
 AC_MSG_CHECKING(whether to install gnunet-logread)

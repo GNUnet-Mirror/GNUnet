@@ -18,6 +18,7 @@ CLEANFILES=	\
 		gnunet-logread-ipc-sdedit
 
 if GNUNET_LOGREAD
+if HAVE_PERL
 bin_SCRIPTS = \
 		gnunet-logread-ipc \
 		$(CLEANFILES)
@@ -25,6 +26,7 @@ else
 noinst_SCRIPTS =		\
 		gnunet-logread-ipc \
 		$(CLEANFILES)
+endif
 endif
 
 EXTRA_DIST = \
