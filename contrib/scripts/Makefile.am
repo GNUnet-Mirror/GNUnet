@@ -9,7 +9,8 @@ noinst_SCRIPTS = \
  removetrailingwhitespace.py \
  gnunet_pyexpect.py \
  gnunet_janitor.py \
- gnunet-chk.py
+ gnunet-chk.py \
+ check-texinfo.awk
 
 bin_SCRIPTS = \
  gnunet-bugreport \
@@ -24,12 +25,13 @@ EXTRA_DIST = \
  $(SCRIPTS) \
  removetrailingwhitespace.py.in \
  pydiffer.py.in \
- gnunet-suidfix
+ gnunet-suidfix \
+ check-texinfo.awk.in
 
 CLEANFILES = \
   $(noinst_SCRIPTS)
 
-do_subst = $(AWK) -v py="$(PYTHON)" '{gsub("@PYTHONEXE@",py); print $$0}'
+do_subst = $(AWK) -v py="$(PYTHON)" -v awkay="$(AWK_BINARY)" '{if (/@AWKEXE@/) { gsub("@AWKEXE@",awkay)}; gsub("@PYTHONEXE@",py); print $$0}'
 
 # Use SUFFIX Extension rules, they are more portable for every
 # implementation of 'make'.
@@ -46,3 +48,7 @@ SUFFIXES = .py.in .py
 .py.in.py:
 	$(do_subst) < $< > $@
 	chmod +x $@
+
+check-texinfo.awk: check-texinfo.awk.in Makefile
+	$(do_subst) < $(srcdir)/check-texinfo.awk.in > check-texinfo.awk
+	chmod +x check-texinfo.awk

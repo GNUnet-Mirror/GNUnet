@@ -1,0 +1,55 @@
+#!@AWKEXE@ -f
+
+# Dedicated to the Public Domain.
+# SPDX-License-Identifier: 0BSD
+
+BEGIN {
+  printf "Running basic texinfo linters\n" ;
+}
+
+{
+    if(/\t/) {
+      printf "...lines containing tabstops?\n" ;
+      print FILENAME":"NR":"$0 ;
+    }
+}
+
+{
+    if(length>79) {
+      printf "...line length over 79 chars?\n" ;
+      print FILENAME":"NR":"$0 ;
+    }
+}
+
+{
+  if(/@geq\{\}/) {
+    printf "...lines containing macros incompatible with old makeinfo?\n" ;
+    print FILENAME":"NR":"$0 ;
+  }
+}
+
+{
+  if (/@footnote\{/) {
+    printf "...lines containing macros incompatible with texi2mdoc?\n" ;
+    print FILENAME":"NR":"$0 ;
+  }
+}
+
+{
+  if (/TODO/) {
+    printf "...lines telling us what is left TODO?\n" ;
+    print FILENAME":"NR":"$0 ;
+  }
+
+  if (/XXX/) {
+    printf "...lines telling us what is left to fix?\n" ;
+    print FILENAME":"NR":"$0 ;
+  }
+}
+
+{
+  if (/wether/) {
+    printf "...lines containing a popular typo\n" ;
+    print FILENAME":"NR":"$0 ;
+  }
+}

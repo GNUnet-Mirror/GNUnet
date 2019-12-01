@@ -1,2 +1,3 @@
 gnunet-chk.py
 removetrailingwhitespace.py
+check-texinfo.awk

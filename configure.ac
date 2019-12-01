@@ -251,6 +251,10 @@ AS_IF([test -x "$PERL"],
   [AC_DEFINE_UNQUOTED([HAVE_PERL], [1], [Path to Perl])],
   [AC_DEFINE_UNQUOTED([HAVE_PERL], [0], [Path to Perl])])
 
+# awk
+AC_PATH_PROGS( AWK_BINARY, [awk gawk], ,$PATH:/usr/bin/:/usr/local/bin )
+AC_SUBST([AWK_BINARY])
+
 # should we install gnunet-logread?
 AC_MSG_CHECKING(whether to install gnunet-logread)
 AC_ARG_WITH([gnunet-logread],
