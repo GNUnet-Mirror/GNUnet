@@ -10,13 +10,14 @@ noinst_SCRIPTS = \
  gnunet_pyexpect.py \
  gnunet_janitor.py \
  gnunet-chk.py \
- $(AWK_SCRIPTS)
+ $(awkSCRIPTS)
 
+# FIXME: read into AWK_SCRIPTS autotools builtin.
 if HAVE_AWK
-AWK_SCRIPTS = \
+awkSCRIPTS = \
  check-texinfo.awk
 else
-AWK_SCRIPTS =
+awkSCRIPTS =
 endif
 
 bin_SCRIPTS = \
