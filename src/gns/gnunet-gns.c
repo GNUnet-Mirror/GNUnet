@@ -261,7 +261,7 @@ run (void *cls,
                _ ("Failed to convert DNS IDNA name `%s' to UTF-8: %s\n"),
                lookup_name,
                idna_strerror (rc));
-      global_ret = 3;
+      global_ret = 4;
       return;
     }
     lookup_name = idna_name;
