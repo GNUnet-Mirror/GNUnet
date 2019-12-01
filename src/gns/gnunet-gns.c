@@ -229,7 +229,6 @@ run (void *cls,
   (void) cls;
   (void) args;
   (void) cfgfile;
-  Idna_rc rc;
 
   cfg = c;
   to_task = NULL;
@@ -239,12 +238,15 @@ run (void *cls,
     if (NULL != (colon = strchr (lookup_name, ':')))
       *colon = '\0';
   }
+#ifdef LSD001
+  Idna_rc rc;
   /**
    * If DNS compatibility is requested, we first verify that the
    * lookup_name is in a DNS format. If yes, we convert it to UTF-8.
    */
   if (GNUNET_YES == dns_compat)
   {
+#endif
     if (GNUNET_OK != GNUNET_DNSPARSER_check_name (lookup_name))
     {
       fprintf (stderr,
@@ -253,6 +255,7 @@ run (void *cls,
       global_ret = 3;
       return;
     }
+#ifdef LSD001
     if (IDNA_SUCCESS !=
         (rc = idna_to_unicode_8z8z (lookup_name, &idna_name,
                                     IDNA_ALLOW_UNASSIGNED)))
@@ -266,6 +269,7 @@ run (void *cls,
     }
     lookup_name = idna_name;
   }
+#endif
   if (GNUNET_YES !=
       GNUNET_CLIENT_test (cfg,
                           "arm"))
