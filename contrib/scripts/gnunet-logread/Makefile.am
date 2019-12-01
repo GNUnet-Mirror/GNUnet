@@ -1,7 +1,7 @@
 # This Makefile.am is in the public domain
 AM_CPPFLAGS = -I$(top_srcdir)/src/include -I$(top_builddir)/src/include
 
-do_subst = $(AWK) -v py="$(PERL)" '{gsub("@PERLEXE@",py); print $$0}'
+do_subst = $(AWK) -v prl="$(PERL)" -v pfx="$(prefix)" '{if (/@SUBSTPREFIX@/) { gsub("@SUBSTPREFIX@",pfx)}; gsub("@PERLEXE@",prl); print $$0}'
 
 SUFFIXES = .in
 
@@ -17,9 +17,15 @@ CLEANFILES=	\
 		gnunet-logread \
 		gnunet-logread-ipc-sdedit
 
+if GNUNET_LOGREAD
+bin_SCRIPTS = \
+		gnunet-logread-ipc \
+		$(CLEANFILES)
+else
 noinst_SCRIPTS =		\
-		$(CLEANFILES) \
-		gnunet-logread-ipc
+		gnunet-logread-ipc \
+		$(CLEANFILES)
+endif
 
 EXTRA_DIST = \
   gnunet-logread.in \
