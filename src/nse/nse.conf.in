@@ -31,9 +31,8 @@ WORKDELAY = 5 ms
 # DO NOT CHANGE THIS VALUE, doing so will break the protocol!
 INTERVAL = 1 h
 
-# 2^22 hash operations take about 2-3h on a modern i7 (single-core)
+# 2^22 hash operations take about 2-3h on a first-generation i7 (single-core)
 # for SCRYPT; with 2ms/op and 5ms workdelay, we can expect
 # the POW calculation to be done by a high-end peer in about 6h
 # DO NOT CHANGE THIS VALUE, doing so will break the protocol!
 WORKBITS = 22
-

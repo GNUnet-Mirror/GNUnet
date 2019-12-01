@@ -1232,13 +1232,14 @@ handle_gns_cname_result (struct GNS_ResolverHandle *rh,
 {
   size_t nlen;
   char *res;
+  const char *tld;
   struct AuthorityChain *ac;
   int af;
+  struct GNUNET_CRYPTO_EcdsaPublicKey zone;
 
   nlen = strlen (cname);
-  if ((nlen > 2) &&
-      (0 == strcmp (".+",
-                    &cname[nlen - 2])))
+  tld = GNS_get_tld (cname);
+  if (0 == strcmp ("+", tld))
   {
     /* CNAME resolution continues relative to current domain */
     if (0 == rh->name_resolution_pos)
@@ -1272,6 +1273,42 @@ handle_gns_cname_result (struct GNS_ResolverHandle *rh,
                                             rh);
     return;
   }
+  if (GNUNET_OK == GNUNET_GNSRECORD_zkey_to_pkey (tld, &zone))
+  {
+    /* CNAME resolution continues relative to current domain */
+    if (0 == rh->name_resolution_pos)
+    {
+      GNUNET_asprintf (&res,
+                     "%.*s",
+                     strlen (cname) - (strlen (tld) + 1),
+                     cname);
+    }
+    else
+    {
+      GNUNET_asprintf (&res,
+                       "%.*s.%.*s",
+                       (int) rh->name_resolution_pos,
+                       rh->name,
+                       (int) strlen (cname) - (strlen(tld)+1),
+                       cname);
+    }
+    rh->name_resolution_pos = strlen (res);
+    GNUNET_free (rh->name);
+    rh->name = res;
+    ac = GNUNET_new (struct AuthorityChain);
+    ac->rh = rh;
+    ac->gns_authority = GNUNET_YES;
+    ac->authority_info.gns_authority = zone;
+    ac->label = resolver_lookup_get_next_label (rh);
+    /* add AC to tail */
+    GNUNET_CONTAINER_DLL_insert_tail (rh->ac_head,
+                                      rh->ac_tail,
+                                      ac);
+    rh->task_id = GNUNET_SCHEDULER_add_now (&recursive_resolution,
+                                            rh);
+    return;
+  }
+
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Got CNAME `%s' from GNS for `%s'\n",
               cname,
@@ -1766,8 +1803,8 @@ recursive_gns2dns_resolution (struct GNS_ResolverHandle *rh,
       continue;
     }
     tld = GNS_get_tld (ip);
-    if (0 != strcmp (tld,
-                     "+"))
+    if ((0 != strcmp (tld, "+")) &&
+        (GNUNET_OK != GNUNET_GNSRECORD_zkey_to_pkey (tld, &zone)))
     {
       /* 'ip' is a DNS name */
       gp = GNUNET_new (struct Gns2DnsPending);
@@ -1790,16 +1827,19 @@ recursive_gns2dns_resolution (struct GNS_ResolverHandle *rh,
                                  ac->authority_info.dns_authority.gp_tail,
                                  gp);
     gp->rh = GNUNET_new (struct GNS_ResolverHandle);
-    ip = translate_dot_plus (rh,
-                             ip);
-    tld = GNS_get_tld (ip);
-    if (GNUNET_OK !=
-        GNUNET_GNSRECORD_zkey_to_pkey (tld,
-                                       &zone))
+    if (0 == strcmp (tld, "+"))
     {
-      GNUNET_break_op (0);
-      GNUNET_free (ip);
-      continue;
+      ip = translate_dot_plus (rh,
+                               ip);
+      tld = GNS_get_tld (ip);
+      if (GNUNET_OK !=
+          GNUNET_GNSRECORD_zkey_to_pkey (tld,
+                                         &zone))
+      {
+        GNUNET_break_op (0);
+        GNUNET_free (ip);
+        continue;
+      }
     }
     gp->rh->authority_zone = zone;
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -1845,7 +1885,7 @@ recursive_gns2dns_resolution (struct GNS_ResolverHandle *rh,
   if (IDNA_SUCCESS != idna_to_ascii_8z (tmp, &ac->label, IDNA_ALLOW_UNASSIGNED))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                _("Name `%s' cannot be converted to IDNA."), tmp);
+                _ ("Name `%s' cannot be converted to IDNA."), tmp);
     return GNUNET_SYSERR;
   }
   GNUNET_free (tmp);

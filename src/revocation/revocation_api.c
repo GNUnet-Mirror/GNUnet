@@ -324,29 +324,6 @@ GNUNET_REVOCATION_revoke_cancel (struct GNUNET_REVOCATION_Handle *h)
 
 
 /**
- * Calculate the 'proof-of-work' hash (an expensive hash).
- *
- * @param buf data to hash
- * @param buf_len number of bytes in @a buf
- * @param result where to write the resulting hash
- */
-static void
-pow_hash (const void *buf,
-          size_t buf_len,
-          struct GNUNET_HashCode *result)
-{
-  GNUNET_break (0 ==
-                gcry_kdf_derive (buf, buf_len,
-                                 GCRY_KDF_SCRYPT,
-                                 1 /* subalgo */,
-                                 "gnunet-revocation-proof-of-work",
-                                 strlen ("gnunet-revocation-proof-of-work"),
-                                 2 /* iterations; keep cost of individual op small */,
-                                 sizeof(struct GNUNET_HashCode), result));
-}
-
-
-/**
  * Count the leading zeroes in hash.
  *
  * @param hash to count leading zeros in
@@ -385,7 +362,10 @@ GNUNET_REVOCATION_check_pow (const struct GNUNET_CRYPTO_EcdsaPublicKey *key,
   GNUNET_memcpy (buf, &pow, sizeof(pow));
   GNUNET_memcpy (&buf[sizeof(pow)], key,
                  sizeof(struct GNUNET_CRYPTO_EcdsaPublicKey));
-  pow_hash (buf, sizeof(buf), &result);
+  GNUNET_CRYPTO_pow_hash ("gnunet-revocation-proof-of-work",
+                          buf,
+                          sizeof(buf),
+                          &result);
   return (count_leading_zeroes (&result) >=
           matching_bits) ? GNUNET_YES : GNUNET_NO;
 }

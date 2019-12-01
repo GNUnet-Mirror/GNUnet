@@ -282,6 +282,7 @@ check_SCRIPTS = \
   test_gns_caa_lookup.sh\
   test_gns_mx_lookup.sh \
   test_gns_gns2dns_lookup.sh \
+  test_gns_gns2dns_zkey_lookup.sh \
   test_gns_gns2dns_cname_lookup.sh \
   test_gns_dht_lookup.sh\
   test_gns_delegated_lookup.sh \

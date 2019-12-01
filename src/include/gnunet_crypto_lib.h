@@ -655,6 +655,21 @@ GNUNET_CRYPTO_hash (const void *block,
 
 
 /**
+ * Calculate the 'proof-of-work' hash (an expensive hash).
+ *
+ * @param salt salt to use in pow calculation
+ * @param buf data to hash
+ * @param buf_len number of bytes in @a buf
+ * @param result where to write the resulting hash
+ */
+void
+GNUNET_CRYPTO_pow_hash (const char *salt,
+                        const void *buf,
+                        size_t buf_len,
+                        struct GNUNET_HashCode *result);
+
+
+/**
  * Context for cummulative hashing.
  */
 struct GNUNET_HashContext;

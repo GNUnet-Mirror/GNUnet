@@ -68,29 +68,6 @@ shutdown_task (void *cls)
 
 
 /**
- * Calculate the 'proof-of-work' hash (an expensive hash).
- *
- * @param buf data to hash
- * @param buf_len number of bytes in @a buf
- * @param result where to write the resulting hash
- */
-static void
-pow_hash (const void *buf, size_t buf_len, struct GNUNET_HashCode *result)
-{
-  GNUNET_break (
-    0 == gcry_kdf_derive (buf,
-                          buf_len,
-                          GCRY_KDF_SCRYPT,
-                          1 /* subalgo */,
-                          "gnunet-proof-of-work",
-                          strlen ("gnunet-proof-of-work"),
-                          2 /* iterations; keep cost of individual op small */,
-                          sizeof(struct GNUNET_HashCode),
-                          result));
-}
-
-
-/**
  * Count the leading zeroes in hash.
  *
  * @param hash to count leading zeros in
@@ -140,7 +117,10 @@ find_proof (void *cls)
   while ((counter != UINT64_MAX) && (i < ROUND_SIZE))
   {
     GNUNET_memcpy (buf, &counter, sizeof(uint64_t));
-    pow_hash (buf, sizeof(buf), &result);
+    GNUNET_CRYPTO_pow_hash ("gnunet-nse-proof-of-work",
+                            buf,
+                            sizeof(buf),
+                            &result);
     if (nse_work_required <= count_leading_zeroes (&result))
     {
       proof = counter;
