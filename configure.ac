@@ -254,6 +254,9 @@ AS_IF([test -x "$PERL"],
 # awk
 AC_PATH_PROGS( AWK_BINARY, [awk gawk], ,$PATH:/usr/bin/:/usr/local/bin )
 AC_SUBST([AWK_BINARY])
+AS_IF([test -x "$AWK_BINARY"],
+  [AC_DEFINE_UNQUOTED([HAVE_AWK], [1], [Path to awk])],
+  [AC_DEFINE_UNQUOTED([HAVE_AWK], [0], [Path to awk])])
 
 # should we install gnunet-logread?
 AC_MSG_CHECKING(whether to install gnunet-logread)

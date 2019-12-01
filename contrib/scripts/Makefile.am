@@ -10,7 +10,14 @@ noinst_SCRIPTS = \
  gnunet_pyexpect.py \
  gnunet_janitor.py \
  gnunet-chk.py \
+ $(AWK_SCRIPTS)
+
+if HAVE_AWK
+AWK_SCRIPTS = \
  check-texinfo.awk
+else
+AWK_SCRIPTS =
+endif
 
 bin_SCRIPTS = \
  gnunet-bugreport \
@@ -49,6 +56,8 @@ SUFFIXES = .py.in .py
 	$(do_subst) < $< > $@
 	chmod +x $@
 
+if HAVE_AWK
 check-texinfo.awk: check-texinfo.awk.in Makefile
 	$(do_subst) < $(srcdir)/check-texinfo.awk.in > check-texinfo.awk
 	chmod +x check-texinfo.awk
+endif
