@@ -3,9 +3,9 @@ AM_CPPFLAGS = -I$(top_srcdir)/src/include
 
 # only documentation (ALL of the documentation)
 if DOCUMENTATION_ONLY
-  SUBDIRS = doc
+  SUBDIRS = bin doc
 else
-  SUBDIRS = m4 src po pkgconfig
+  SUBDIRS = m4 bin src po pkgconfig
 endif
 
 # documentation on / off switch (affects all of the documentation)

@@ -1832,6 +1832,7 @@ AC_DEFINE_UNQUOTED(VCS_VERSION, [$vcs_version], [VCS revision/hash or tarball ve
 
 AC_CONFIG_FILES([
 Makefile
+bin/Makefile
 contrib/Makefile
 contrib/hellos/Makefile
 contrib/services/Makefile

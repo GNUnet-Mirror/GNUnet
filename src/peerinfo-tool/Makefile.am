@@ -56,10 +56,8 @@ AM_TESTS_ENVIRONMENT=export GNUNET_PREFIX=$${GNUNET_PREFIX:-@libdir@};export PAT
 TESTS = $(check_SCRIPTS)
 endif
 
-do_subst = $(SED) -e 's,[@]PYTHON[@],$(PYTHON),g'
-
 test_gnunet_peerinfo.py: test_gnunet_peerinfo.py.in Makefile
-	$(do_subst) < $(srcdir)/test_gnunet_peerinfo.py.in > test_gnunet_peerinfo.py
+	$(AWK) -v bdir="$(bindir)" -v py="$(PYTHON)" -v awkay="$(AWK_BINARY)" -v pfx="$(prefix)" -v prl="$(PERL)" -v sysconfdirectory="$(sysconfdir)" -v pkgdatadirectory="$(pkgdatadir)" -f $(top_srcdir)/bin/dosubst.awk < $(srcdir)/test_gnunet_peerinfo.py.in > test_gnunet_peerinfo.py
 	chmod +x test_gnunet_peerinfo.py
 
 EXTRA_DIST = \

@@ -39,8 +39,6 @@ EXTRA_DIST = \
 CLEANFILES = \
   $(noinst_SCRIPTS)
 
-do_subst = $(AWK) -v py="$(PYTHON)" -v awkay="$(AWK_BINARY)" '{if (/@AWKEXE@/) { gsub("@AWKEXE@",awkay)}; gsub("@PYTHONEXE@",py); print $$0}'
-
 # Use SUFFIX Extension rules, they are more portable for every
 # implementation of 'make'.
 # You'll also run into the "'%' is a GNU make extension warning"
@@ -54,11 +52,11 @@ do_subst = $(AWK) -v py="$(PYTHON)" -v awkay="$(AWK_BINARY)" '{if (/@AWKEXE@/) {
 SUFFIXES = .py.in .py
 
 .py.in.py:
-	$(do_subst) < $< > $@
+	$(AWK) -v bdir="$(bindir)" -v py="$(PYTHON)" -v awkay="$(AWK_BINARY)" -v pfx="$(prefix)" -v prl="$(PERL)" -v sysconfdirectory="$(sysconfdir)" -v pkgdatadirectory="$(pkgdatadir)" -f $(top_srcdir)/bin/dosubst.awk < $< > $@
 	chmod +x $@
 
 if HAVE_AWK
 check-texinfo.awk: check-texinfo.awk.in Makefile
-	$(do_subst) < $(srcdir)/check-texinfo.awk.in > check-texinfo.awk
+	$(AWK) -v bdir="$(bindir)" -v py="$(PYTHON)" -v awkay="$(AWK_BINARY)" -v pfx="$(prefix)" -v prl="$(PERL)" -v sysconfdirectory="$(sysconfdir)" -v pkgdatadirectory="$(pkgdatadir)" -f $(top_srcdir)/bin/dosubst.awk < $(srcdir)/check-texinfo.awk.in > check-texinfo.awk
 	chmod +x check-texinfo.awk
 endif

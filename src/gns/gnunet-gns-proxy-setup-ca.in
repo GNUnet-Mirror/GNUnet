@@ -48,30 +48,30 @@
 
 dir=$(dirname "$0")
 
-if test -e @pkgdatadir@/progname.sh
+if test -e @PKGDATADIRECTORY@/progname.sh
 then
-    . @pkgdatadir@/progname.sh
+    . @PKGDATADIRECTORY@/progname.sh
 else
     . $dir/../../contrib/build-common/sh/lib.sh/progname.sh
 fi
 
-if test -e @pkgdatadir@/existence.sh
+if test -e @PKGDATADIRECTORY@/existence.sh
 then
-    . @pkgdatadir@/existence.sh
+    . @PKGDATADIRECTORY@/existence.sh
 else
     . $dir/../../contrib/build-common/sh/lib.sh/existence.sh
 fi
 
-if test -e @pkgdatadir@/msg.sh
+if test -e @PKGDATADIRECTORY@/msg.sh
 then
-    . @pkgdatadir@/msg.sh
+    . @PKGDATADIRECTORY@/msg.sh
 else
     . $dir/../../contrib/build-common/sh/lib.sh/msg.sh
 fi
 
-if test -e @pkgdatadir@/version_gnunet.sh
+if test -e @PKGDATADIRECTORY@/version_gnunet.sh
 then
-    . @pkgdatadir@/version_gnunet.sh
+    . @PKGDATADIRECTORY@/version_gnunet.sh
 else
     . $dir/../../contrib/build-common/sh/lib.sh/version_gnunet.sh
 fi
@@ -143,8 +143,8 @@ generate_ca()
 
     # ------------- openssl
 
-    GNUTLS_CA_TEMPLATE=@pkgdatadir@/gnunet-gns-proxy-ca.template
-    OPENSSLCFG=@pkgdatadir@/openssl.cnf
+    GNUTLS_CA_TEMPLATE=@PKGDATADIRECTORY@/gnunet-gns-proxy-ca.template
+    OPENSSLCFG=@PKGDATADIRECTORY@/openssl.cnf
     CERTTOOL=""
     OPENSSL=0
     if test -x $(existence gnunet-certtool)

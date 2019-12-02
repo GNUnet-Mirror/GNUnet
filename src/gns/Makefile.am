@@ -103,17 +103,12 @@ plugin_LTLIBRARIES = \
 bin_SCRIPTS = \
   gnunet-gns-proxy-setup-ca
 
-# See: https://www.gnu.org/software/automake/manual/html_node/Scripts.html#Scripts
-do_subst = $(SED) -e 's,[@]pkgdatadir[@],$(pkgdatadir),g'
-
 gnunet-gns-proxy-setup-ca: gnunet-gns-proxy-setup-ca.in Makefile
-	$(do_subst) < $(srcdir)/gnunet-gns-proxy-setup-ca.in > gnunet-gns-proxy-setup-ca
+	$(AWK) -v bdir="$(bindir)" -v py="$(PYTHON)" -v awkay="$(AWK_BINARY)" -v pfx="$(prefix)" -v prl="$(PERL)" -v sysconfdirectory="$(sysconfdir)" -v pkgdatadirectory="$(pkgdatadir)" -f $(top_srcdir)/bin/dosubst.awk < $(srcdir)/gnunet-gns-proxy-setup-ca.in > gnunet-gns-proxy-setup-ca
 	@chmod +x gnunet-gns-proxy-setup-ca
 
-do_subst_pkgdatadir = $(SED) -e 's,[@]pkgdatadir[@],$(pkgdatadir),g'
-
 test_gnunet_gns.sh: test_gnunet_gns.sh.in Makefile
-	$(do_subst_pkgdatadir) < $(srcdir)/test_gnunet_gns.sh.in > test_gnunet_gns.sh
+	$(AWK) -v bdir="$(bindir)" -v py="$(PYTHON)" -v awkay="$(AWK_BINARY)" -v pfx="$(prefix)" -v prl="$(PERL)" -v sysconfdirectory="$(sysconfdir)" -v pkgdatadirectory="$(pkgdatadir)" -f $(top_srcdir)/bin/dosubst.awk < $(srcdir)/test_gnunet_gns.sh.in > test_gnunet_gns.sh
 	@chmod +x test_gnunet_gns.sh
 
 CLEANFILES = test_gnunet_gns.sh
