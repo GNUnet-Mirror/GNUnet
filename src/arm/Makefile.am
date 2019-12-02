@@ -88,15 +88,13 @@ test_gnunet_service_arm_SOURCES = \
   libgnunetarm.la \
   $(top_builddir)/src/util/libgnunetutil.la
 
-do_subst = $(SED) -e 's,[@]PYTHON[@],$(PYTHON),g'
-
 SUFFIXES = .py.in .py
 .py.in.py:
-	$(do_subst) < $(srcdir)/$< > $@
+	$(AWK) -v bdir="$(bindir)" -v py="$(PYTHON)" -v awkay="$(AWK_BINARY)" -v pfx="$(prefix)" -v prl="$(PERL)" -v sysconfdirectory="$(sysconfdir)" -v pkgdatadirectory="$(pkgdatadir)" -f $(top_srcdir)/bin/dosubst.awk < $(srcdir)/$< > $@
 	chmod +x $@
 
 test_gnunet_arm.py: test_gnunet_arm.py.in Makefile
-	$(do_subst) < $(srcdir)/test_gnunet_arm.py.in > test_gnunet_arm.py
+	$(AWK) -v bdir="$(bindir)" -v py="$(PYTHON)" -v awkay="$(AWK_BINARY)" -v pfx="$(prefix)" -v prl="$(PERL)" -v sysconfdirectory="$(sysconfdir)" -v pkgdatadirectory="$(pkgdatadir)" -f $(top_srcdir)/bin/dosubst.awk < $(srcdir)/test_gnunet_arm.py.in > test_gnunet_arm.py
 	chmod +x test_gnunet_arm.py
 
 EXTRA_DIST = \

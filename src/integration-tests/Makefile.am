@@ -36,43 +36,41 @@ endif
 endif
 endif
 
-do_subst = $(SED) -e 's,[@]PYTHON[@],$(PYTHON),g'
-
 SUFFIXES = .py.in .py
 .py.in.py:
-	$(do_subst) < $(srcdir)/$< > $@
+	$(AWK) -v bdir="$(bindir)" -v py="$(PYTHON)" -v awkay="$(AWK_BINARY)" -v pfx="$(prefix)" -v prl="$(PERL)" -v sysconfdirectory="$(sysconfdir)" -v pkgdatadirectory="$(pkgdatadir)" -f $(top_srcdir)/bin/dosubst.awk < $(srcdir)/$< > $@
 	chmod +x $@
 
 gnunet_testing.py: gnunet_testing.py.in Makefile
-	$(do_subst) < $(srcdir)/gnunet_testing.py.in > gnunet_testing.py
+	$(AWK) -v bdir="$(bindir)" -v py="$(PYTHON)" -v awkay="$(AWK_BINARY)" -v pfx="$(prefix)" -v prl="$(PERL)" -v sysconfdirectory="$(sysconfdir)" -v pkgdatadirectory="$(pkgdatadir)" -f $(top_srcdir)/bin/dosubst.awk < $(srcdir)/gnunet_testing.py.in > gnunet_testing.py
 	chmod +x gnunet_testing.py
 
 gnunet_pyexpect.py: gnunet_pyexpect.py.in Makefile
-	$(do_subst) < $(srcdir)/gnunet_pyexpect.py.in > gnunet_pyexpect.py
+	$(AWK) -v bdir="$(bindir)" -v py="$(PYTHON)" -v awkay="$(AWK_BINARY)" -v pfx="$(prefix)" -v prl="$(PERL)" -v sysconfdirectory="$(sysconfdir)" -v pkgdatadirectory="$(pkgdatadir)" -f $(top_srcdir)/bin/dosubst.awk < $(srcdir)/gnunet_pyexpect.py.in > gnunet_pyexpect.py
 	chmod +x gnunet_pyexpect.py
 
 test_integration_bootstrap_and_connect.py: test_integration_bootstrap_and_connect.py.in Makefile
-	$(do_subst) < $(srcdir)/test_integration_bootstrap_and_connect.py.in > test_integration_bootstrap_and_connect.py
+	$(AWK) -v bdir="$(bindir)" -v py="$(PYTHON)" -v awkay="$(AWK_BINARY)" -v pfx="$(prefix)" -v prl="$(PERL)" -v sysconfdirectory="$(sysconfdir)" -v pkgdatadirectory="$(pkgdatadir)" -f $(top_srcdir)/bin/dosubst.awk < $(srcdir)/test_integration_bootstrap_and_connect.py.in > test_integration_bootstrap_and_connect.py
 	chmod +x test_integration_bootstrap_and_connect.py
 
 test_integration_disconnect.py: test_integration_disconnect.py.in Makefile
-	$(do_subst) < $(srcdir)/test_integration_disconnect.py.in > test_integration_disconnect.py
+	$(AWK) -v bdir="$(bindir)" -v py="$(PYTHON)" -v awkay="$(AWK_BINARY)" -v pfx="$(prefix)" -v prl="$(PERL)" -v sysconfdirectory="$(sysconfdir)" -v pkgdatadirectory="$(pkgdatadir)" -f $(top_srcdir)/bin/dosubst.awk < $(srcdir)/test_integration_disconnect.py.in > test_integration_disconnect.py
 	chmod +x test_integration_disconnect.py
 
 test_integration_disconnect_nat.py: test_integration_disconnect_nat.py.in Makefile
-	$(do_subst) < $(srcdir)/test_integration_disconnect_nat.py.in > test_integration_disconnect_nat.py
+	$(AWK) -v bdir="$(bindir)" -v py="$(PYTHON)" -v awkay="$(AWK_BINARY)" -v pfx="$(prefix)" -v prl="$(PERL)" -v sysconfdirectory="$(sysconfdir)" -v pkgdatadirectory="$(pkgdatadir)" -f $(top_srcdir)/bin/dosubst.awk < $(srcdir)/test_integration_disconnect_nat.py.in > test_integration_disconnect_nat.py
 	chmod +x test_integration_disconnect_nat.py
 
 test_integration_reconnect.py: test_integration_reconnect.py.in Makefile
-	$(do_subst) < $(srcdir)/test_integration_reconnect.py.in > test_integration_reconnect.py
+	$(AWK) -v bdir="$(bindir)" -v py="$(PYTHON)" -v awkay="$(AWK_BINARY)" -v pfx="$(prefix)" -v prl="$(PERL)" -v sysconfdirectory="$(sysconfdir)" -v pkgdatadirectory="$(pkgdatadir)" -f $(top_srcdir)/bin/dosubst.awk < $(srcdir)/test_integration_reconnect.py.in > test_integration_reconnect.py
 	chmod +x test_integration_reconnect.py
 
 test_integration_reconnect_nat.py: test_integration_reconnect_nat.py.in Makefile
-	$(do_subst) < $(srcdir)/test_integration_reconnect_nat.py.in > test_integration_reconnect_nat.py
+	$(AWK) -v bdir="$(bindir)" -v py="$(PYTHON)" -v awkay="$(AWK_BINARY)" -v pfx="$(prefix)" -v prl="$(PERL)" -v sysconfdirectory="$(sysconfdir)" -v pkgdatadirectory="$(pkgdatadir)" -f $(top_srcdir)/bin/dosubst.awk < $(srcdir)/test_integration_reconnect_nat.py.in > test_integration_reconnect_nat.py
 	chmod +x test_integration_reconnect_nat.py
 
 test_integration_clique.py: test_integration_clique.py.in Makefile
-	$(do_subst) < $(srcdir)/test_integration_clique.py.in > test_integration_clique.py
+	$(AWK) -v bdir="$(bindir)" -v py="$(PYTHON)" -v awkay="$(AWK_BINARY)" -v pfx="$(prefix)" -v prl="$(PERL)" -v sysconfdirectory="$(sysconfdir)" -v pkgdatadirectory="$(pkgdatadir)" -f $(top_srcdir)/bin/dosubst.awk < $(srcdir)/test_integration_clique.py.in > test_integration_clique.py
 	chmod +x test_integration_clique.py
 
 

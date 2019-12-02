@@ -101,9 +101,9 @@ generate_cert_key()
 {
     echo ""
     infomsg "Generating Cert and Key"
-   
+
     CERTTOOL=""
-    GNUTLS_CA_TEMPLATE=@pkgdatadir@/gnunet-gns-proxy-ca.template
+    GNUTLS_CA_TEMPLATE=@PKGDATADIRECTORY@/gnunet-gns-proxy-ca.template
     OPENSSL=0
     if test -z "`gnutls-certtool --version`" > /dev/null
     then

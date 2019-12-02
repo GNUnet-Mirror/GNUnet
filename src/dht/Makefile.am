@@ -220,13 +220,7 @@ check_SCRIPTS = \
   test_dht_tools.py
 endif
 
-do_subst = $(SED) -e 's,[@]PYTHON[@],$(PYTHON),g' -e 's,[@]bindir[@],$(bindir),g'
-
 SUFFIXES = .py.in .py
 .py.in.py:
-	$(do_subst) < $(srcdir)/$< > $@
+	$(AWK) -v bdir="$(bindir)" -v py="$(PYTHON)" -v awkay="$(AWK_BINARY)" -v pfx="$(prefix)" -v prl="$(PERL)" -v sysconfdirectory="$(sysconfdir)" -v pkgdatadirectory="$(pkgdatadir)" -f $(top_srcdir)/bin/dosubst.awk < $(srcdir)/$< > $@
 	chmod +x $@
-
-test_dht_tools.py: test_dht_tools.py.in Makefile
-	$(do_subst) < $(srcdir)/test_dht_tools.py.in > test_dht_tools.py
-	chmod +x test_dht_tools.py

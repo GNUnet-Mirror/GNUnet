@@ -1,4 +1,4 @@
-#!@PYTHON@
+#!@PYTHONEXE@
 #
 # This testcase simply checks that the DHT command-line tools work.
 # It launches a single peer, stores a value "testdata" under "testkey",
@@ -20,7 +20,7 @@ import subprocess
 import time
 import tempfile
 
-os.environ["PATH"] = "@bindir@" + ":" + os.environ["PATH"]
+os.environ["PATH"] = "@bindirectory@" + ":" + os.environ["PATH"]
 
 if os.name == "nt":
     tmp = os.getenv("TEMP")

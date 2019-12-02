@@ -242,10 +242,42 @@ AM_PATH_PYTHON([3.4],, [:])
 AC_SUBST([PYTHON])
 AM_CONDITIONAL([HAVE_PYTHON], [test "$PYTHON" != :])
 
+
 # perl
 AC_PATH_PROG( PERL, perl, ,
               $PATH:/usr/local/bin/perl:/usr/bin/:/usr/local/bin )
 AC_SUBST([PERL])
+AM_CONDITIONAL([HAVE_PERL], [test -x "$PERL"])
+AS_IF([test -x "$PERL"],
+  [AC_DEFINE_UNQUOTED([HAVE_PERL], [1], [Path to Perl])],
+  [AC_DEFINE_UNQUOTED([HAVE_PERL], [0], [Path to Perl])])
+
+# awk
+AC_PATH_PROGS( AWK_BINARY, [awk gawk], ,$PATH:/usr/bin/:/usr/local/bin )
+AC_SUBST([AWK_BINARY])
+AM_CONDITIONAL([HAVE_AWK], [test -x "$AWK_BINARY"])
+AS_IF([test -x "$AWK_BINARY"],
+  [AC_DEFINE_UNQUOTED([HAVE_AWK], [1], [Path to awk])],
+  [AC_DEFINE_UNQUOTED([HAVE_AWK], [0], [Path to awk])])
+
+# should we install gnunet-logread?
+AC_MSG_CHECKING(whether to install gnunet-logread)
+AC_ARG_WITH([gnunet-logread],
+              [AS_HELP_STRING([--with-gnunet-logread],
+                              [Install gnunet-logread])],
+              [logread=${withval}],
+              [logread=no])
+AC_MSG_RESULT($logread)
+AS_IF([test "x$logread" = "xyes"],
+      [AM_CONDITIONAL([GNUNET_LOGREAD], true)
+       AC_DEFINE([GNUNET_LOGREAD],
+                 [1],
+                 [Installing gnunet-logread])],
+      [AM_CONDITIONAL([GNUNET_LOGREAD],
+                      false)
+       AC_DEFINE([GNUNET_LOGREAD],
+                 [0],
+                 [Not installing gnunet-logread])])
 
 # iptables is a soft requirement to run tests
 AC_PATH_TARGET_TOOL(VAR_IPTABLES_BINARY, iptables, false)
@@ -1800,6 +1832,7 @@ AC_DEFINE_UNQUOTED(VCS_VERSION, [$vcs_version], [VCS revision/hash or tarball ve
 
 AC_CONFIG_FILES([
 Makefile
+bin/Makefile
 contrib/Makefile
 contrib/hellos/Makefile
 contrib/services/Makefile

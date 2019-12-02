@@ -525,22 +525,20 @@ perf_gnunet_service_fs_p2p_respect_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la
 
 
-do_subst = $(SED) -e 's,[@]PYTHON[@],$(PYTHON),g'
-
 test_gnunet_fs_psd.py: test_gnunet_fs_psd.py.in Makefile
-	$(do_subst) < $(srcdir)/test_gnunet_fs_psd.py.in > test_gnunet_fs_psd.py
+	$(AWK) -v bdir="$(bindir)" -v py="$(PYTHON)" -v awkay="$(AWK_BINARY)" -v pfx="$(prefix)" -v prl="$(PERL)" -v sysconfdirectory="$(sysconfdir)" -v pkgdatadirectory="$(pkgdatadir)" -f $(top_srcdir)/bin/dosubst.awk < $(srcdir)/test_gnunet_fs_psd.py.in > test_gnunet_fs_psd.py
 	chmod +x test_gnunet_fs_psd.py
 
 test_gnunet_fs_rec.py: test_gnunet_fs_rec.py.in Makefile
-	$(do_subst) < $(srcdir)/test_gnunet_fs_rec.py.in > test_gnunet_fs_rec.py
+	$(AWK) -v bdir="$(bindir)" -v py="$(PYTHON)" -v awkay="$(AWK_BINARY)" -v pfx="$(prefix)" -v prl="$(PERL)" -v sysconfdirectory="$(sysconfdir)" -v pkgdatadirectory="$(pkgdatadir)" -f $(top_srcdir)/bin/dosubst.awk < $(srcdir)/test_gnunet_fs_rec.py.in > test_gnunet_fs_rec.py
 	chmod +x test_gnunet_fs_rec.py
 
 test_gnunet_fs_ns.py: test_gnunet_fs_ns.py.in Makefile
-	$(do_subst) < $(srcdir)/test_gnunet_fs_ns.py.in > test_gnunet_fs_ns.py
+	$(AWK) -v bdir="$(bindir)" -v py="$(PYTHON)" -v awkay="$(AWK_BINARY)" -v pfx="$(prefix)" -v prl="$(PERL)" -v sysconfdirectory="$(sysconfdir)" -v pkgdatadirectory="$(pkgdatadir)" -f $(top_srcdir)/bin/dosubst.awk < $(srcdir)/test_gnunet_fs_ns.py.in > test_gnunet_fs_ns.py
 	chmod +x test_gnunet_fs_ns.py
 
 test_gnunet_fs_idx.py: test_gnunet_fs_idx.py.in Makefile
-	$(do_subst) < $(srcdir)/test_gnunet_fs_idx.py.in > test_gnunet_fs_idx.py
+	$(AWK) -v bdir="$(bindir)" -v py="$(PYTHON)" -v awkay="$(AWK_BINARY)" -v pfx="$(prefix)" -v prl="$(PERL)" -v sysconfdirectory="$(sysconfdir)" -v pkgdatadirectory="$(pkgdatadir)" -f $(top_srcdir)/bin/dosubst.awk < $(srcdir)/test_gnunet_fs_idx.py.in > test_gnunet_fs_idx.py
 	chmod +x test_gnunet_fs_idx.py
 
 

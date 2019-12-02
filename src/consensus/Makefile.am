@@ -23,12 +23,10 @@ libexec_PROGRAMS += \
  gnunet-service-evil-consensus
 endif
 
-do_subst = $(SED) -e 's,[@]PYTHON[@],$(PYTHON),g'
-
 SUFFIXES = .py.in .py
 
 .py.in.py:
-	$(do_subst) < $< > $@
+	$(AWK) -v bdir="$(bindir)" -v py="$(PYTHON)" -v awkay="$(AWK_BINARY)" -v pfx="$(prefix)" -v prl="$(PERL)" -v sysconfdirectory="$(sysconfdir)" -v pkgdatadirectory="$(pkgdatadir)" -f $(top_srcdir)/bin/dosubst.awk < $< > $@
 	chmod +x $@
 
 check-python-style:

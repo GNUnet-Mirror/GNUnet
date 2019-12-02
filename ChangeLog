@@ -1,3 +1,36 @@
+Sun Dec 01 19:31:00 UTC 2019
+  configure: Add --with-gnunet-logread.
+  -ng0
+
+Sun Dec 1 12:26:11 2019 +0100
+  GNS NSS plugin: Reject non-IDNA conforming names and
+  trigger continue with next NSS plugin. -schanzen
+
+Sat Nov 30 23:32:03 2019 +0100
+  GNS NSS plugin: Disabled if called as root. -CG
+
+Sat Nov 30 23:08:49 2019 +0100
+  Fixed #3795: Switched to new PoW for NSE and GNS revocation.
+  Functionality is ifdef guarded for 0.12. -CG
+
+Sat Nov 30 21:05:25 2019 +0100
+  Fixed #5978:
+  Added support for .<zkey> CNAMEs in the GNS resolver. -schanzen
+
+Sat Nov 30 20:27:51 2019 +0100
+  Fixed #5979:
+  Added support for .<zkey> DNS server names in GNS2DNS records.
+  -schanzen
+
+Tue Nov 26 18:26:54 2019 +0100
+  Crypto change: Use Curve25519 for ECDH and tweetnacl where we can.
+  Functionality is ifdef guarded for 0.12. -fdold
+
+Nov 30 15:20:45 2019 +0100
+  Fixed #5922:
+  GNS names are now UTF-8. For DNS, names are converted to IDNA.
+  Functionality is ifdef guarded for 0.12. -schanzen
+
 Wed Oct 30 10:50:00 UTC 2019
   Released gnunet 0.11.8
   -ng0

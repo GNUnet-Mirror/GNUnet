@@ -29,7 +29,7 @@ my %levels = ( NONE => 0, ERROR => 1, WARNING => 2, INFO => 4, DEBUG => 8 );
 
 # Message type numbers to names
 my %msgtypes;
-my $prefix = $ENV{GNUNET_PREFIX} || '/usr';
+my $prefix = $ENV{GNUNET_PREFIX} || '@SUBSTPREFIX@';
 my $filename = "$prefix/include/gnunet/gnunet_protocols.h";
 $ipc = $opts{s} || $DEFAULT_SOCKET;
 
