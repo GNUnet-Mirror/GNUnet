@@ -12,6 +12,7 @@ dist_pkgdata_DATA = \
  gns/gns-form-fields.xml \
  gns/gns-form.xslt \
  branding/logo/gnunet-logo.pdf \
+ branding/logo/gnunet-logo.png \
  branding/logo/gnunet-logo-color.png \
  testing_hostkeys.ecc \
  $(BUILDCOMMON_SHLIB_FILES)
