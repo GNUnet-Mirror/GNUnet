@@ -334,6 +334,23 @@ AS_IF([test x"$VAR_IFCONFIG_BINARY" != x"false"],
   [AC_MSG_WARN(['ifconfig' not found.])])
 
 
+# Test if 'adduser' binary exists
+MSG_USER_SETUP=true
+AC_PATH_PROG([MSG_USER_SETUP],
+  [adduser],
+  false,
+  [path=$PATH$PATH_SEPARATOR/usr/sbin$PATH_SEPARATOR/sbin])
+
+# Test if 'gnunet' user and the groups exist
+getent passwd gnunet > /dev/null
+HAVE_GNUNET_USER=$?
+getent group gnunet > /dev/null
+AS_IF([test x$? != x0],
+      [HAVE_GNUNET_USER=1])
+getent group gnunetdns > /dev/null
+AS_IF([test x$? != x0],
+      [HAVE_GNUNET_USER=1])
+
 AC_PATH_TARGET_TOOL(VAR_SYSCTL_BINARY, sysctl, false)
 
 AC_CHECK_PROG(VAR_SYSCTL_BINARY, sysctl, true, false)
@@ -1404,15 +1421,20 @@ AS_IF([test "$mysql" = "true" -a "x$enable_mysql_version_check" = "xyes"],
       #endif
       int main () { return 0; }
     ]])
-    ],mysql=true,mysql=false)
-  AS_IF([test "$mysql" = "false"],
+    ],
+    [mysql=true],
+    [mysql=false])
+  AS_IF([test x$mysql = xfalse],
    [
     mysqlfail=true
-    AC_MSG_RESULT([fail, >= 4.1 required])
+    AC_MSG_WARN([fail, MySQL >= 4.1 required])
    ],[
+    AC_MSG_NOTICE([success, will keep $mysqlfail])
+    mysqlfail=false
     AC_MSG_RESULT(ok)
    ])
 ])
+
 AM_CONDITIONAL(HAVE_MYSQL, test x$mysql = xtrue)
 AM_CONDITIONAL(HAVE_MYSQLE, false)
 # restore LIBS
@@ -1988,18 +2010,12 @@ AC_OUTPUT
 
 # java ports
 AS_IF([test "x$enable_java_ports" = "xyes"],
-      [AC_MSG_NOTICE([NOTICE: Opening ports for gnunet-java bindings by default.])])
+      [AC_MSG_NOTICE([Opening TCP ports by default to enable gnunet-java bindings.])])
 
-####
-#### Lasciate ogne speranza, voi ch'intrate
 ####
 #### This could be moved to the checks above,
 #### but for now let's keep it here.
 ####
-
-# TODO: We use "WARNING" too often, we need to clarify what
-# TODO: constitutes a WARNING, an ERROR, and a NOTICE, and
-# TODO: other message levels.
 
 # -- print message regarding enabled experimental features
 AS_IF([test "x$enable_experimental" = "xyes"],
@@ -2020,12 +2036,12 @@ AS_IF([test "x$texi2mdoc_generation" = "xyes"],
       [mdocml_msg="no"])
 # -- texi2mdoc
 AS_IF([test "x$TEXI2MDOC_BINARY" = "false"],
-      [AC_MSG_NOTICE([WARNING: optional texi2mdoc binary not found])
+      [AC_MSG_NOTICE([texi2mdoc binary not found (will not generate mdoc documentation)])
        texi2mdoc_msg="no (optional)"],
       [texi2mdoc_msg="yes"])
 # -- mandoc
 AS_IF([test "x$MANDOC_BINARY" = "false"],
-      [AC_MSG_NOTICE([WARNING: optional mandoc binary not found])
+      [AC_MSG_NOTICE([mandoc binary not found (will not generate handbook as man page)])
        mandoc_msg="no"],
       [mandoc_msg="yes"])
 # -- texinfo
@@ -2035,15 +2051,15 @@ AS_IF([test "x$makeinfo" != "x1"],
 # -- conversation
 AS_IF([test "x$conversation_backend" = "xnone"],
       [AS_IF([test "x$pulse" != "x1"],
-             [AC_MSG_NOTICE([WARNING: libpulse(audio) not found (required to build conversation against it).])
+             [AC_MSG_WARN([libpulse(audio) not found (required to build conversation).])
               libpulse_msg="no"],
              [libpulse_msg="yes"])
        AS_IF([test "x$opus" != "x1"],
-             [AC_MSG_NOTICE([WARNING: libopus not found (conversation)])
+             [AC_MSG_WARN([libopus not found (required to build conversation)])
               libopus_msg="no"],
              [libopus_msg="yes"])
        AS_IF([test "x$gst" != "x1"],
-             [AC_MSG_NOTICE([WARNING: GStreamer not found (required to build conversation against it).])
+             [AC_MSG_WARN([GStreamer not found (required to build conversation).])
               gstreamer_msg="no"],
              [gstreamer_msg="yes"])],
       [features_msg="$features_msg conversation"])
@@ -2059,64 +2075,65 @@ AS_IF([test "x$jansson" = "x0"],
       [jansson_msg="yes"])
 # -- libextractor
 AS_IF([test "$extractor" != 1],
-      [AC_MSG_WARN([WARNING: libextractor not found, but various file-sharing functions require it])],
+      [AC_MSG_WARN([libextractor not found, but various file-sharing functions require it])],
       [libextractor_msg="yes"])
 # -- libzbar
 AS_IF([test "x$zbar" = "x1"],
       [libzbar_msg="yes"
        features_msg="$features_msg gnunet-qr"],
-      [AC_MSG_NOTICE([WARNING: zbar not found, gnunet-qr will not be built.])
+      [AC_MSG_NOTICE([zbar not found, gnunet-qr will not be built.])
        libzbar_msg="no"])
 # -- libgnurl
 AS_IF([test "$gnurl" = "0"],
       [AS_IF([test "x$curl" = "xfalse"],
-             [AC_MSG_NOTICE([WARNING: libgnurl not found. http client support will not be compiled.])
-              AC_MSG_WARN([ERROR: libgnurl not found. hostlist daemon will not be compiled, and you probably WANT the hostlist daemon])
+             [AC_MSG_WARN([libgnurl not found. http client support will not be compiled.])
+              AC_MSG_WARN([IMPORTANT: No HTTP client library found. HTTP transports and hostlist daemon will not be compiled, and you probably WANT the hostlist daemon])
               curl_msg="no"],
-             [AC_MSG_NOTICE([WARNING: libgnurl not found, trying to use libcurl-gnutls instead.])
+             [AC_MSG_NOTICE([libgnurl not found, trying to use libcurl-gnutls instead.])
               curl_msg="yes"])],
        [gnurl_msg="yes"])
 # -- ifconfig
 AS_IF([test "$VAR_IFCONFIG_BINARY" = "false"],
-      [AC_MSG_NOTICE([WARNING: optional ifconfig not found])
+      [AC_MSG_WARN([ifconfig not found, some features will not work])
        ifconfig_msg="no (optional)"],
       [ifconfig_msg="yes"])
 # -- upnpc
 AS_IF([test "$VAR_UPNPC_BINARY" = "false"],
-      [AC_MSG_NOTICE([WARNING: optional upnpc binary not found])
+      [AC_MSG_WARN([upnpc binary not found, NAT traversal using UPnPc will not work])
        upnpc_msg="no (optional)"],
       [upnpc_msg="yes"])
 # -- iptables
 AS_IF([test "$VAR_IPTABLES_BINARY" = "false"],
-      [AC_MSG_NOTICE([WARNING: optional iptables not found])
+      [AC_MSG_WARN([iptables not found, DNS query interception will not work])
        iptables_msg="no (optional)"],
       [iptables_msg="yes"])
 # -- bluetooth
 AS_IF([test "x$bluetooth" = "x0"],
-      [AC_MSG_NOTICE([WARNING: optional bluetooth library not found.])
+      [AC_MSG_NOTICE([bluetooth library not found, will not be able to use Bluetooth])
        bluetooth_msg="no (optional)"],
       [bluetooth_msg="yes"])
 # -- gnutls
 AS_IF([test x$gnutls != xtrue],
-      [AC_MSG_NOTICE([WARNING: GnuTLS not found, gnunet-gns-proxy will not be built])
+      [AC_MSG_WARN([GnuTLS not found, gnunet-gns-proxy will not be built])
        gnutls_msg="no"],
       [AS_IF([test "x$gnutls_dane" != "x1"],
-             [AC_MSG_NOTICE([WARNING: GnuTLS has no DANE support, DANE validation will not be possible])
+             [AC_MSG_WARN([GnuTLS lacks DANE support, DANE validation will not be possible])
               gnutls_msg="yes (without DANE support)"],
              [gnutls_msg="yes (with DANE support)"])])
 # -- databases
 # TODO: this always returns true, the check might
 # TODO: not be working as intended (for msqlfail).
-AS_IF([test x$mysqlfail = "true"]
-      [AC_MSG_NOTICE([WARNING: optional MySQL not found (or too old)])])
 AS_IF([test "$mysql" = true],
       [features_msg="$features_msg mysql"
        mysql_msg="yes"],
       [mysql_msg="no"])
+AS_IF([test x$mysqlfail = xtrue],
+      [AC_MSG_WARN([MySQL not found (or too old), will not create MySQL database support])
+       mysql_msg="unsupported version"])
 AS_IF([test "$sqlite" = true],
       [features_msg="$features_msg sqlite"
        sqlite_msg="yes"],
-      [AC_MSG_ERROR([ERROR: sqlite3 not found, but sqlite3 is required.])
+      [AC_MSG_ERROR([sqlite3 not found, but sqlite3 is required.])
        sqlite_msg="no"])
 AS_IF([test "$postgres" = true],
       [features_msg="$features_msg postgres"
@@ -2135,8 +2152,9 @@ AC_SUBST(features_msg)
 
 AC_MSG_NOTICE([
 GNUnet Configuration
+====================
 
-gnunet version:                 ${VERSION}
+GNUnet version:                 ${VERSION}
 
 Host setup:                     ${host}
 Install prefix:                 ${prefix}
@@ -2177,53 +2195,20 @@ transpiled mdocml manual:       ${mdocml_msg}
 
 features:                       ${features_msg}
 experimental:                   ${experimental_msg}
-
-
-IMPORTANT:
-
-Please make sure NOW that you have created a user and group 'gnunet'
-and additionally a group 'gnunetdns'. On Debian and Ubuntu GNU/Linux,
-type:
-
-  addgroup gnunetdns
-  adduser --system --group --disabled-login --home /var/lib/gnunet gnunet
-
-Make sure that '/var/lib/gnunet' is owned (and writable) by user
-'gnunet'.  Then, you can compile GNUnet with
-
-  make
-
-After that, run (if necessary as 'root')
-
-  make install
-
-to install everything.
-
-Each GNUnet user should be added to the 'gnunet' group (may
-require fresh login to come into effect):
-
-  adduser USERNAME gnunet
-
-(run the above command as root once for each of your users, replacing
-"USERNAME" with the respective login names).  If you have a global IP
-address, no further configuration is required.
-
-For more detailed setup instructions, see https://docs.gnunet.org/
-
-Optionally, download and compile gnunet-gtk to get a GUI for
-file-sharing and configuration.  This is particularly recommended
-if your network setup is non-trivial, as gnunet-setup can be
-used to test in the GUI if your network configuration is working.
-gnunet-setup should be run as the "gnunet" user under X.  As it
-does very little with the network, running it as "root" is likely
-also harmless.  You can also run it as a normal user, but then
-you have to copy ~/.gnunet/gnunet.conf" over to the "gnunet" user's
-home directory in the end.
-
-Once you have configured your peer, run (as the 'gnunet' user)
-
-  gnunet-arm -s
-
-to start the peer.  You can then run the various GNUnet-tools as
-your "normal" user (who should only be in the group 'gnunet').
 ])
+
+AS_IF([test x$MSG_USER_SETUP != xfalse],
+ [AC_MSG_WARN([Please make sure NOW to create a user and group 'gnunet' and additionally a group 'gnunetdns'. Make sure that '/var/lib/gnunet' is owned (and writable) by user 'gnunet'.])
+  AS_IF([test x$HAVE_GNUNET_USER != 0],
+    [AC_MSG_NOTICE([To do this on this system, run:
+# addgroup gnunetdns
+# adduser --system --disabled-login --home /var/lib/gnunet gnunet
+])])
+  AC_MSG_WARN([Each user of GNUnet should be added to the 'gnunet' group.])
+  AS_IF([test x$HAVE_GNUNET_USER != 0],
+    [AC_MSG_NOTICE([To do this on this system, run:
+# adduser USERNAME gnunet
+   for each of your users, replacing \"USERNAME\" with the respective login name. Users may have to login again for the changes to take effect.
+])])])
+
+AC_MSG_NOTICE([For detailed setup instructions, type 'info gnunet' after the installation or visit https://docs.gnunet.org/])
