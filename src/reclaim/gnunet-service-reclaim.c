@@ -1569,13 +1569,13 @@ ticket_iter (void *cls,
   {
     if (GNUNET_GNSRECORD_TYPE_RECLAIM_ATTR_REF != rd[i].record_type)
       continue;
-    if (&adh->claim != NULL)
+    if (adh->claim != NULL)
       if (0 != memcmp (rd[i].data, &adh->claim->id, sizeof(uint64_t)))
         continue;
-    if (&adh->attest != NULL)
+    if (adh->attest != NULL)
       if (0 != memcmp (rd[i].data, &adh->attest->id, sizeof(uint64_t)))
         continue;
-    if (&adh->reference != NULL)
+    if (adh->reference != NULL)
       if (0 != memcmp (rd[i].data, &adh->reference->id, sizeof(uint64_t)))
         continue;
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -1669,15 +1669,18 @@ update_tickets (void *cls)
   int j = 0;
   for (int i = 0; i < le->rd_count; i++)
   {
-    if ((GNUNET_GNSRECORD_TYPE_RECLAIM_ATTR_REF == rd[i].record_type)
-        && (0 == memcmp (rd[i].data, &adh->claim->id, sizeof(uint64_t))))
-      continue;
-    if ((GNUNET_GNSRECORD_TYPE_RECLAIM_ATTR_REF == rd[i].record_type)
-        && (0 == memcmp (rd[i].data, &adh->attest->id, sizeof(uint64_t))))
-      continue;
-    if ((GNUNET_GNSRECORD_TYPE_RECLAIM_ATTR_REF == rd[i].record_type)
-        && (0 == memcmp (rd[i].data, &adh->reference->id, sizeof(uint64_t))))
-      continue;
+    if (adh->claim != NULL)
+      if ((GNUNET_GNSRECORD_TYPE_RECLAIM_ATTR_REF == rd[i].record_type)
+          && (0 == memcmp (rd[i].data, &adh->claim->id, sizeof(uint64_t))))
+        continue;
+    if (adh->attest != NULL)
+      if ((GNUNET_GNSRECORD_TYPE_RECLAIM_ATTR_REF == rd[i].record_type)
+          && (0 == memcmp (rd[i].data, &adh->attest->id, sizeof(uint64_t))))
+        continue;
+    if (adh->reference != NULL)
+      if ((GNUNET_GNSRECORD_TYPE_RECLAIM_ATTR_REF == rd[i].record_type)
+          && (0 == memcmp (rd[i].data, &adh->reference->id, sizeof(uint64_t))))
+        continue;
     rd_new[j] = rd[i];
     j++;
   }
@@ -1703,7 +1706,6 @@ static void
 ticket_iter_fin (void *cls)
 {
   struct AttributeDeleteHandle *adh = cls;
-
   adh->ns_it = NULL;
   GNUNET_SCHEDULER_add_now (&update_tickets, adh);
 }
@@ -1952,7 +1954,10 @@ reference_delete_cont (void *cls, int32_t success, const char *emsg)
     return;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Updating tickets...\n");
-  GNUNET_SCHEDULER_add_now (&start_ticket_update, adh);
+  //GNUNET_SCHEDULER_add_now (&start_ticket_update, adh);
+  send_delete_response (adh, GNUNET_OK);
+  cleanup_adh (adh);
+  return;
 }
 
 static void
