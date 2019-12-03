@@ -571,7 +571,7 @@ AS_IF([test "x$activate_texinfo4" = "xyes"],
 
 # Adam shostack suggests the following for Windows:
 # -D_FORTIFY_SOURCE=2 -fstack-protector-all
-AC_ARG_ENABLE(gcc-hardening,
+AC_ARG_ENABLE([gcc-hardening],
    AS_HELP_STRING(--enable-gcc-hardening, enable compiler security checks),
 [AS_IF([test x$enableval = xyes],[
     CFLAGS="$CFLAGS -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=2 -fstack-protector-all"
@@ -582,13 +582,13 @@ AC_ARG_ENABLE(gcc-hardening,
 
 # Linker hardening options
 # Currently these options are ELF specific - you can't use this with MacOSX
-AC_ARG_ENABLE(linker-hardening,
+AC_ARG_ENABLE([linker-hardening],
   AS_HELP_STRING(--enable-linker-hardening, enable linker security fixups),
 [AS_IF([test x$enableval = xyes],
    [LDFLAGS="$LDFLAGS -z relro -z now"])])
 
 
-AC_ARG_ENABLE(sanitizer,
+AC_ARG_ENABLE([sanitizer],
   AS_HELP_STRING(--enable-sanitizer, enable Address Sanitizer and Undefined Behavior Sanitizer),
 [AS_IF([test x$enableval = xyes],[
    LDFLAGS="$CFLAGS -fsanitize=address,undefined -fno-omit-frame-pointer"
@@ -868,7 +868,7 @@ AS_IF([test "x$opus" = x1],
       [AC_DEFINE([HAVE_OPUS],[1],[Have libopus library])
        libopus_msg="yes"],
       [AC_DEFINE([HAVE_OPUS],[0],[Lacking libopus library])
-       libopus_msg="no"])
+       libopus_msg="no (required for conversation)"])
 
 # libogg
 AC_MSG_CHECKING(for libogg)
@@ -2052,17 +2052,19 @@ AS_IF([test "x$makeinfo" != "x1"],
 AS_IF([test "x$conversation_backend" = "xnone"],
       [AS_IF([test "x$pulse" != "x1"],
              [AC_MSG_WARN([libpulse(audio) not found (required to build conversation).])
-              libpulse_msg="no"],
+              libpulse_msg="no (required for conversation)"],
              [libpulse_msg="yes"])
        AS_IF([test "x$opus" != "x1"],
              [AC_MSG_WARN([libopus not found (required to build conversation)])
-              libopus_msg="no"],
+              libopus_msg="no (required for conversation)"],
              [libopus_msg="yes"])
        AS_IF([test "x$gst" != "x1"],
              [AC_MSG_WARN([GStreamer not found (required to build conversation).])
-              gstreamer_msg="no"],
+              gstreamer_msg="no (required for conversation)"],
              [gstreamer_msg="yes"])],
-      [features_msg="$features_msg conversation"])
+      [AS_IF([test "x$opus" = x1],
+             [features_msg="$features_msg conversation"],
+             [AC_MSG_WARN([libopus not found (required to build conversation)])])])
 # -- interface
 interface_msg=`echo $DEFAULT_INTERFACE | tr -d \"`
 # -- libmicrohttpd
