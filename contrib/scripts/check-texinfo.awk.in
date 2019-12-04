@@ -5,7 +5,7 @@
 #
 # exception to add: ignore license files.
 # exception to add: uref's can go above 79 chars.
-
+# write functions to avoid more text if possible.
 
 BEGIN {
   printf "Running basic texinfo linters\n" ;
@@ -53,6 +53,11 @@ BEGIN {
 
 {
   if (/wether/) {
+    printf "...lines containing a popular typo\n" ;
+    print FILENAME":"NR":"$0 ;
+  }
+
+  if (/the the/) {
     printf "...lines containing a popular typo\n" ;
     print FILENAME":"NR":"$0 ;
   }
