@@ -50,7 +50,7 @@ any inconvenience and hope you apply logic where bad advice from
 one example). Patches (contributions) to this documentation are more
 than welcome!
 
-The first chapter (``Preface'') as well as the the second chapter
+The first chapter (``Preface'') as well as the second chapter
 (``Philosophy'') give an introduction to GNUnet as a project, what
 GNUnet tries to achieve. ``Key Concepts'' explains the key concepts
 in GNUnet.

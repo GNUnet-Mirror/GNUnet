@@ -2390,7 +2390,7 @@ anyway).
 
 Every logging call in GNUnet code will be (at run time) matched against
 the log definitions passed to the process. If a log definition fields are
-matching the call arguments, then the call log level is compared the the
+matching the call arguments, then the call log level is compared to the
 log level of that definition. If the call log level is less or equal to
 the definition log level, the call is allowed to proceed. Otherwise the
 logging call is forbidden, and nothing is logged. If no definitions
@@ -3058,7 +3058,7 @@ messages. For convenience,@ some queues also allow to specify a list of
 message handlers. The message queue will then also wait for incoming
 messages and dispatch them appropriately.
 
-An envelope holds the the memory for a message, as well as metadata
+An envelope holds the memory for a message, as well as metadata
 (Where is the envelope queued? What should happen after it has been
 sent?). Any envelope can only be queued in one message queue.
 
@@ -3131,7 +3131,7 @@ message type and the message size are already set. The message's size is
 inferred from the type of the @code{msg} pointer: It will be set to
 'sizeof(*msg)', properly converted to network byte order.
 
-If the message body's size is dynamic, the the macro
+If the message body's size is dynamic, then the macro
 @code{GNUNET_MQ_msg_extra} can be used to allocate an envelope whose
 message has additional space allocated after the @code{msg} structure.
 
@@ -4410,7 +4410,7 @@ the @emph{open_device} method
 
 On the @emph{open_device} method:
 @itemize @bullet
-@item creates a HCI socket used to send control events to the the device
+@item creates a HCI socket used to send control events to the device
 @item searches for the device ID using the interface name
 @item saves the device MAC address
 @item checks if the interface is down and tries to bring it UP
@@ -5715,7 +5715,7 @@ the response can easily be split into separate HELLO messages by the
 client.
 
 A HOSTLIST client connecting to the HOSTLIST server will receive the
-hostlist as a HTTP response and the the server will terminate the
+hostlist as an HTTP response and the server will terminate the
 connection with the result code @code{HTTP 200 OK}.
 The connection will be closed immediately if no hostlist is available.
 
