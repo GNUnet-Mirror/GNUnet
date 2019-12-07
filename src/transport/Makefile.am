@@ -48,8 +48,10 @@ if HAVE_LIBGNURL
  HTTP_SWITCH = test_transport_address_switch_http
  HTTPS_API_TEST = test_transport_api_https
  HTTPS_API_TIMEOUT_TEST = test_transport_api_timeout_https
+if HAVE_EXPERIMENTAL
  HTTPS_REL_TEST = test_transport_api_reliability_https \
 		  test_transport_api_reliability_https_xhr
+endif
  HTTPS_QUOTA_TEST = test_quota_compliance_https \
 		test_quota_compliance_https_asymmetric
  HTTPS_SWITCH = test_transport_address_switch_https
@@ -65,8 +67,10 @@ if HAVE_LIBCURL
  HTTP_SWITCH = test_transport_address_switch_http
  HTTPS_API_TEST = test_transport_api_https
  HTTPS_API_TIMEOUT_TEST = test_transport_api_timeout_https
+if HAVE_EXPERIMENTAL
  HTTPS_REL_TEST = test_transport_api_reliability_https \
 		  test_transport_api_reliability_https_xhr
+endif
  HTTPS_QUOTA_TEST = test_quota_compliance_https \
 		test_quota_compliance_https_asymmetric
  HTTPS_SWITCH = test_transport_address_switch_https
