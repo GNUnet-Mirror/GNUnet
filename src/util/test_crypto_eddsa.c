@@ -44,7 +44,6 @@ testSignVerify ()
   struct GNUNET_CRYPTO_EddsaSignature sig;
   struct GNUNET_CRYPTO_EccSignaturePurpose purp;
   struct GNUNET_CRYPTO_EddsaPublicKey pkey;
-  int i;
   struct GNUNET_TIME_Absolute start;
   int ok = GNUNET_OK;
 
@@ -54,7 +53,7 @@ testSignVerify ()
   purp.size = htonl (sizeof(struct GNUNET_CRYPTO_EccSignaturePurpose));
   purp.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_TEST);
 
-  for (i = 0; i < ITER; i++)
+  for (unsigned int i = 0; i < ITER; i++)
   {
     fprintf (stderr, "%s", "."); fflush (stderr);
     if (GNUNET_SYSERR == GNUNET_CRYPTO_eddsa_sign (key, &purp, &sig))
@@ -80,6 +79,7 @@ testSignVerify ()
       continue;
     }
   }
+  fprintf (stderr, "\n");
   printf ("%d EdDSA sign/verify operations %s\n", ITER,
           GNUNET_STRINGS_relative_time_to_string (
             GNUNET_TIME_absolute_get_duration (start), GNUNET_YES));
@@ -94,7 +94,6 @@ testSignPerformance ()
   struct GNUNET_CRYPTO_EccSignaturePurpose purp;
   struct GNUNET_CRYPTO_EddsaSignature sig;
   struct GNUNET_CRYPTO_EddsaPublicKey pkey;
-  int i;
   struct GNUNET_TIME_Absolute start;
   int ok = GNUNET_OK;
 
@@ -103,7 +102,7 @@ testSignPerformance ()
   fprintf (stderr, "%s", "W");
   GNUNET_CRYPTO_eddsa_key_get_public (key, &pkey);
   start = GNUNET_TIME_absolute_get ();
-  for (i = 0; i < ITER; i++)
+  for (unsigned int i = 0; i < ITER; i++)
   {
     fprintf (stderr, "%s", "."); fflush (stderr);
     if (GNUNET_SYSERR == GNUNET_CRYPTO_eddsa_sign (key, &purp, &sig))
@@ -113,6 +112,7 @@ testSignPerformance ()
       continue;
     }
   }
+  fprintf (stderr, "\n");
   printf ("%d EdDSA sign operations %s\n", ITER,
           GNUNET_STRINGS_relative_time_to_string (
             GNUNET_TIME_absolute_get_duration (start),
@@ -154,19 +154,16 @@ perf_keygen ()
 {
   struct GNUNET_TIME_Absolute start;
   struct GNUNET_CRYPTO_EddsaPrivateKey *pk;
-  int i;
 
   fprintf (stderr, "%s", "W");
   start = GNUNET_TIME_absolute_get ();
-  for (i = 0; i < 10; i++)
+  for (unsigned int i = 0; i < 10; i++)
   {
     fprintf (stderr, "."); fflush (stderr);
     pk = GNUNET_CRYPTO_eddsa_key_create ();
     GNUNET_free (pk);
   }
-  for (; i < 25; i++)
-    fprintf (stderr, ".");
-  fflush (stderr);
+  fprintf (stderr, "\n");
   printf ("10 EdDSA keys created in %s\n",
           GNUNET_STRINGS_relative_time_to_string (
             GNUNET_TIME_absolute_get_duration (start), GNUNET_YES));
