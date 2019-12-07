@@ -27,8 +27,6 @@
 #include "gnunet_crypto_lib.h"
 #include <gcrypt.h>
 
-/* FIXME: change to 1 for #3795 / 0.12! */
-#define NEW_CRYPTO 0
 
 /**
  * Calculate the 'proof-of-work' hash (an expensive hash).
@@ -46,7 +44,6 @@ GNUNET_CRYPTO_pow_hash (const char *salt,
                         size_t buf_len,
                         struct GNUNET_HashCode *result)
 {
-#if NEW_CRYPTO
   struct GNUNET_CRYPTO_SymmetricInitializationVector iv;
   struct GNUNET_CRYPTO_SymmetricSessionKey skey;
   char rbuf[buf_len];
@@ -81,17 +78,6 @@ GNUNET_CRYPTO_pow_hash (const char *salt,
                                       2 /* iterations; keep cost of individual op small */,
                                       sizeof(struct GNUNET_HashCode),
                                       result));
-#else
-  GNUNET_break (0 == gcry_kdf_derive (buf,
-                                      buf_len,
-                                      GCRY_KDF_SCRYPT,
-                                      1 /* subalgo */,
-                                      salt,
-                                      strlen (salt),
-                                      2 /* iterations; keep cost of individual op small */,
-                                      sizeof(struct GNUNET_HashCode),
-                                      result));
-#endif
 }
 
 

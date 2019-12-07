@@ -32,8 +32,6 @@
 
 #define LOG(kind, ...) GNUNET_log_from (kind, "util-crypto-rsa", __VA_ARGS__)
 
-/* Flip for #5968 */
-#define NEW_CRYPTO 0
 
 /**
  * The private information of an RSA key pair.
@@ -349,7 +347,6 @@ GNUNET_CRYPTO_rsa_public_key_encode (const struct
                                      GNUNET_CRYPTO_RsaPublicKey *key,
                                      char **buffer)
 {
-#if NEW_CRYPTO
   gcry_mpi_t ne[2];
   size_t n_size;
   size_t e_size;
@@ -411,23 +408,6 @@ GNUNET_CRYPTO_rsa_public_key_encode (const struct
   gcry_mpi_release (ne[0]);
   gcry_mpi_release (ne[1]);
   return buf_size;
-#else
-  size_t n;
-  char *b;
-
-  n = gcry_sexp_sprint (key->sexp,
-                        GCRYSEXP_FMT_ADVANCED,
-                        NULL,
-                        0);
-  b = GNUNET_malloc (n);
-  GNUNET_assert ((n - 1) ==      /* since the last byte is \0 */
-                 gcry_sexp_sprint (key->sexp,
-                                   GCRYSEXP_FMT_ADVANCED,
-                                   b,
-                                   n));
-  *buffer = b;
-  return n;
-#endif
 }
 
 
@@ -466,7 +446,6 @@ GNUNET_CRYPTO_rsa_public_key_decode (const char *buf,
                                      size_t len)
 {
   struct GNUNET_CRYPTO_RsaPublicKey *key;
-#if NEW_CRYPTO
   struct GNUNET_CRYPTO_RsaPublicKeyHeaderP hdr;
   size_t e_size;
   size_t n_size;
@@ -526,37 +505,6 @@ GNUNET_CRYPTO_rsa_public_key_decode (const char *buf,
   key = GNUNET_new (struct GNUNET_CRYPTO_RsaPublicKey);
   key->sexp = data;
   return key;
-#else
-  gcry_mpi_t n;
-  int ret;
-
-
-  key = GNUNET_new (struct GNUNET_CRYPTO_RsaPublicKey);
-  if (0 !=
-      gcry_sexp_new (&key->sexp,
-                     buf,
-                     len,
-                     0))
-  {
-    GNUNET_break_op (0);
-    GNUNET_free (key);
-    return NULL;
-  }
-  /* verify that this is an RSA public key */
-  ret = key_from_sexp (&n, key->sexp, "public-key", "n");
-  if (0 != ret)
-    ret = key_from_sexp (&n, key->sexp, "rsa", "n");
-  if (0 != ret)
-  {
-    /* this is no public RSA key */
-    GNUNET_break (0);
-    gcry_sexp_release (key->sexp);
-    GNUNET_free (key);
-    return NULL;
-  }
-  gcry_mpi_release (n);
-  return key;
-#endif
 }
 
 
@@ -1128,7 +1076,6 @@ GNUNET_CRYPTO_rsa_signature_encode (const struct
                                     GNUNET_CRYPTO_RsaSignature *sig,
                                     char **buffer)
 {
-#if NEW_CRYPTO
   gcry_mpi_t s;
   size_t buf_size;
   size_t rsize;
@@ -1160,23 +1107,6 @@ GNUNET_CRYPTO_rsa_signature_encode (const struct
   GNUNET_assert (rsize == buf_size);
   *buffer = (char *) buf;
   return buf_size;
-#else
-  size_t n;
-  char *b;
-
-  n = gcry_sexp_sprint (sig->sexp,
-                        GCRYSEXP_FMT_ADVANCED,
-                        NULL,
-                        0);
-  b = GNUNET_malloc (n);
-  GNUNET_assert ((n - 1) ==      /* since the last byte is \0 */
-                 gcry_sexp_sprint (sig->sexp,
-                                   GCRYSEXP_FMT_ADVANCED,
-                                   b,
-                                   n));
-  *buffer = b;
-  return n;
-#endif
 }
 
 
@@ -1193,7 +1123,6 @@ GNUNET_CRYPTO_rsa_signature_decode (const char *buf,
                                     size_t len)
 {
   struct GNUNET_CRYPTO_RsaSignature *sig;
-#if NEW_CRYPTO
   gcry_mpi_t s;
   gcry_sexp_t data;
 
@@ -1221,36 +1150,6 @@ GNUNET_CRYPTO_rsa_signature_decode (const char *buf,
   gcry_mpi_release (s);
   sig = GNUNET_new (struct GNUNET_CRYPTO_RsaSignature);
   sig->sexp = data;
-  return sig;
-#else
-  int ret;
-  gcry_mpi_t s;
-
-  sig = GNUNET_new (struct GNUNET_CRYPTO_RsaSignature);
-  if (0 !=
-      gcry_sexp_new (&sig->sexp,
-                     buf,
-                     len,
-                     0))
-  {
-    GNUNET_break_op (0);
-    GNUNET_free (sig);
-    return NULL;
-  }
-  /* verify that this is an RSA signature */
-  ret = key_from_sexp (&s, sig->sexp, "sig-val", "s");
-  if (0 != ret)
-    ret = key_from_sexp (&s, sig->sexp, "rsa", "s");
-  if (0 != ret)
-  {
-    /* this is no RSA Signature */
-    GNUNET_break_op (0);
-    gcry_sexp_release (sig->sexp);
-    GNUNET_free (sig);
-    return NULL;
-  }
-  gcry_mpi_release (s);
-#endif
   return sig;
 }
 
