@@ -78,19 +78,8 @@ gns_value_to_string (void *cls,
         GNUNET_free_non_null (ns);
         return NULL;
       }
-#ifdef LSD001 //DNS server IP/name must be UTF-8
-      ip = GNUNET_strdup((char*) &data[off]);
-#else
-      // Must be IP or DNS name
-      ip = GNUNET_DNSPARSER_parse_name (data, data_size, &off);
-      if ((NULL == ip) || (off != data_size))
-      {
-        GNUNET_break_op (0);
-        GNUNET_free_non_null (ns);
-        GNUNET_free_non_null (ip);
-        return NULL;
-      }
-#endif
+      /* DNS server IP/name must be UTF-8 */
+      ip = GNUNET_strdup ((char*) &data[off]);
       GNUNET_asprintf (&nstr, "%s@%s", ns, ip);
       GNUNET_free_non_null (ns);
       GNUNET_free_non_null (ip);
@@ -215,9 +204,9 @@ gns_string_to_value (void *cls,
 
       off = 0;
       if (GNUNET_OK != GNUNET_DNSPARSER_builder_add_name (nsbuf,
-                                                           sizeof(nsbuf),
-                                                           &off,
-                                                           cpy))
+                                                          sizeof(nsbuf),
+                                                          &off,
+                                                          cpy))
       {
         GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                     _ (
@@ -226,21 +215,9 @@ gns_string_to_value (void *cls,
         GNUNET_free (cpy);
         return GNUNET_SYSERR;
       }
-#ifdef LSD001 //The DNS server location/name is in UTF-8
+      /* The DNS server location/name is in UTF-8 */
       GNUNET_memcpy (&nsbuf[off], at, strlen (at) + 1);
       off += strlen (at) + 1;
-#else
-      if (GNUNET_OK !=
-          GNUNET_DNSPARSER_builder_add_name (nsbuf, sizeof(nsbuf), &off, at))
-      {
-        GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                    _ (
-                      "Failed to serialize GNS2DNS record with value `%s': Not a DNS name\n"),
-                    s);
-        GNUNET_free (cpy);
-        return GNUNET_SYSERR;
-      }
-#endif
       GNUNET_free (cpy);
       *data_size = off;
       *data = GNUNET_malloc (off);

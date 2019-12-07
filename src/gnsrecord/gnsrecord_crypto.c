@@ -54,12 +54,7 @@ derive_block_aes_key (struct GNUNET_CRYPTO_SymmetricInitializationVector *iv,
 {
   static const char ctx_key[] = "gns-aes-ctx-key";
   static const char ctx_iv[] = "gns-aes-ctx-iv";
-/**
- * Next time we break protocol (v12) we harmonize the KDF usage in GNS:
- * We use the strings above as salt and the public key as IKM similar to
- * how derive_h is done in crypto_ecc.c.
- */
-#ifdef LSD001
+
   GNUNET_CRYPTO_kdf (skey, sizeof(struct GNUNET_CRYPTO_SymmetricSessionKey),
                      ctx_key, strlen (ctx_key),
                      pub, sizeof(struct GNUNET_CRYPTO_EcdsaPublicKey),
@@ -71,19 +66,6 @@ derive_block_aes_key (struct GNUNET_CRYPTO_SymmetricInitializationVector *iv,
                      pub, sizeof(struct GNUNET_CRYPTO_EcdsaPublicKey),
                      label, strlen (label),
                      NULL, 0);
-#else
-  GNUNET_CRYPTO_kdf (skey, sizeof(struct GNUNET_CRYPTO_SymmetricSessionKey),
-                     pub, sizeof(struct GNUNET_CRYPTO_EcdsaPublicKey),
-                     label, strlen (label),
-                     ctx_key, strlen (ctx_key),
-                     NULL, 0);
-  GNUNET_CRYPTO_kdf (iv, sizeof(struct
-                                GNUNET_CRYPTO_SymmetricInitializationVector),
-                     pub, sizeof(struct GNUNET_CRYPTO_EcdsaPublicKey),
-                     label, strlen (label),
-                     ctx_iv, strlen (ctx_iv),
-                     NULL, 0);
-#endif
 }
 
 

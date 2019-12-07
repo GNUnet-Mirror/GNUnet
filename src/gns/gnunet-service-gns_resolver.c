@@ -1279,9 +1279,9 @@ handle_gns_cname_result (struct GNS_ResolverHandle *rh,
     if (0 == rh->name_resolution_pos)
     {
       GNUNET_asprintf (&res,
-                     "%.*s",
-                     strlen (cname) - (strlen (tld) + 1),
-                     cname);
+                       "%.*s",
+                       strlen (cname) - (strlen (tld) + 1),
+                       cname);
     }
     else
     {
@@ -1289,7 +1289,7 @@ handle_gns_cname_result (struct GNS_ResolverHandle *rh,
                        "%.*s.%.*s",
                        (int) rh->name_resolution_pos,
                        rh->name,
-                       (int) strlen (cname) - (strlen(tld)+1),
+                       (int) strlen (cname) - (strlen (tld) + 1),
                        cname);
     }
     rh->name_resolution_pos = strlen (res);
@@ -1747,14 +1747,8 @@ recursive_gns2dns_resolution (struct GNS_ResolverHandle *rh,
     n = GNUNET_DNSPARSER_parse_name (rd[i].data,
                                      rd[i].data_size,
                                      &off);
-#ifdef LSD001
     ip = GNUNET_strdup (&rd[i].data[off]);
     off += strlen (ip) + 1;
-#else
-    ip = GNUNET_DNSPARSER_parse_name (rd[i].data,
-                                      rd[i].data_size,
-                                      &off);
-#endif
 
     if ((NULL == n) ||
         (NULL == ip) ||
@@ -1877,19 +1871,24 @@ recursive_gns2dns_resolution (struct GNS_ResolverHandle *rh,
                    (0 != rh->name_resolution_pos) ? "." : "",
                    ns);
   GNUNET_free (ns);
-#ifdef LSD001
-  /* the GNS name is UTF-8 and may include multibyte chars.
-   * We have to convert the combined name to a DNS-compatible IDNA.
-   */
-  char *tmp = ac->label;
-  if (IDNA_SUCCESS != idna_to_ascii_8z (tmp, &ac->label, IDNA_ALLOW_UNASSIGNED))
+
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                _ ("Name `%s' cannot be converted to IDNA."), tmp);
-    return GNUNET_SYSERR;
+    /* the GNS name is UTF-8 and may include multibyte chars.
+     * We have to convert the combined name to a DNS-compatible IDNA.
+     */
+    char *tmp = ac->label;
+
+    if (IDNA_SUCCESS != idna_to_ascii_8z (tmp,
+                                          &ac->label,
+                                          IDNA_ALLOW_UNASSIGNED))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                  _ ("Name `%s' cannot be converted to IDNA."),
+                  tmp);
+      return GNUNET_SYSERR;
+    }
+    GNUNET_free (tmp);
   }
-  GNUNET_free (tmp);
-#endif
 
   GNUNET_CONTAINER_DLL_insert_tail (rh->ac_head,
                                     rh->ac_tail,
