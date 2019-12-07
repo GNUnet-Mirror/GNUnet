@@ -79,7 +79,7 @@ gns_value_to_string (void *cls,
         return NULL;
       }
       /* DNS server IP/name must be UTF-8 */
-      ip = GNUNET_strdup ((char*) &data[off]);
+      ip = GNUNET_strdup (&((const char*) data)[off]);
       GNUNET_asprintf (&nstr, "%s@%s", ns, ip);
       GNUNET_free_non_null (ns);
       GNUNET_free_non_null (ip);
