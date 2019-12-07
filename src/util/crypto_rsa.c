@@ -356,7 +356,6 @@ GNUNET_CRYPTO_rsa_public_key_encode (const struct
   struct GNUNET_CRYPTO_RsaPublicKeyHeaderP hdr;
   int ret;
 
-/* SEE #5398 / #5968 */
   ret = key_from_sexp (ne, key->sexp, "public-key", "ne");
   if (0 != ret)
     ret = key_from_sexp (ne, key->sexp, "rsa", "ne");
@@ -366,7 +365,6 @@ GNUNET_CRYPTO_rsa_public_key_encode (const struct
     *buffer = NULL;
     return 0;
   }
-
   gcry_mpi_print (GCRYMPI_FMT_USG,
                   NULL,
                   0,
