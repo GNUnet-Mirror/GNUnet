@@ -364,7 +364,7 @@ qconv_rsa_signature (void *cls,
                                                  &buf);
   scratch[0] = buf;
   param_values[0] = (void *) buf;
-  param_lengths[0] = buf_size - 1; /* DB doesn't like the trailing \0 */
+  param_lengths[0] = buf_size;
   param_formats[0] = 1;
   return 1;
 }
