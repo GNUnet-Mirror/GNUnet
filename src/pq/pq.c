@@ -168,7 +168,10 @@ GNUNET_PQ_extract_result (PGresult *result,
                       spec->dst);
     if (GNUNET_OK != ret)
     {
-      GNUNET_PQ_cleanup_result (rs);
+      for (unsigned int j = 0; j < i; j++)
+        if (NULL != rs[j].cleaner)
+          rs[j].cleaner (rs[j].cls,
+                         rs[j].dst);
       return GNUNET_SYSERR;
     }
     if (NULL != spec->result_size)

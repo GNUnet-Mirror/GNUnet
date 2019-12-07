@@ -237,7 +237,10 @@ GNUNET_MY_extract_result (struct GNUNET_MYSQL_StatementHandle *sh,
                       "Post-conversion for MySQL result failed at offset %u\n",
                       i);
           mysql_stmt_free_result (stmt);
-          GNUNET_MY_cleanup_result (rs);
+          for (unsigned int j = 0; j < i; j++)
+            if (NULL != rs[j].cleaner)
+              rs[j].cleaner (rs[j].cls,
+                             rs[j].dst);
           return GNUNET_SYSERR;
         }
       field_off += rp->num_fields;
