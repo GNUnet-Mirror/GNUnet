@@ -1,3 +1,9 @@
+Sat 07 Dec 2019 02:38:53 PM CET
+  Protocol-breaking change, using more standards-compliant
+  EdDSA and RSA operations. Also changing POW function to 
+  make it less ASIC-compatible. This marks the switch to
+  the 0.12.0 protocol family.
+
 Sun Dec 01 19:31:00 UTC 2019
   configure: Add --with-gnunet-logread.
   -ng0
