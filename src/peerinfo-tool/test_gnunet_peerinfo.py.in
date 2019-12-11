@@ -32,6 +32,10 @@ if gnunet_pyexpect_dir not in sys.path:
 
 from gnunet_pyexpect import pexpect
 
+#save LANG and set it to C
+mylang = os.environ['LANG']
+os.environ['LANG'] = 'en'
+
 if os.name == 'posix':
     peerinfo = './gnunet-peerinfo'
     gnunetarm = 'gnunet-arm'
@@ -134,3 +138,5 @@ finally:
         )
     else:
         shutil.rmtree("/tmp/gnunet-test-peerinfo", True)
+    #Reset LANG
+    os.environ['LANG'] = mylang
