@@ -98,7 +98,7 @@ submodules()
         echo "git not installed, skipping submodule update"
     else
         git submodule update --init || true
-        git submodule update --recursive --remote || true
+        git submodule update --recursive || true
         git submodule sync || true
     fi
 }
@@ -111,7 +111,7 @@ init_buildcommon_include()
 main()
 {
     cleanup
-    #submodules
+    submodules
     init_buildcommon_include
     check_uncrustify
     check_yapf
