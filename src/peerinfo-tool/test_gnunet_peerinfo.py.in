@@ -34,7 +34,7 @@ from gnunet_pyexpect import pexpect
 
 #save LANG and set it to C
 mylang = os.environ['LANG']
-os.environ['LANG'] = 'en'
+os.environ['LANG'] = 'C'
 
 if os.name == 'posix':
     peerinfo = './gnunet-peerinfo'
