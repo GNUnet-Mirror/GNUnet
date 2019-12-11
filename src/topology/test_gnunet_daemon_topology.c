@@ -35,8 +35,11 @@
  * for one peer to pass the test. Be aware that setting NUM_PEERS
  * too high can cause bandwidth problems for the testing peers.
  * Normal should be 5KB/s per peer. See gnunet-config -s ats.
+ * schanzen 12/2019: This _only_ makes sense if we connect to the
+ * actual network as in the test we do not connect to more than 1 peer.
+ * => reducing to 1 for now, was NUM_PEERS / 2
  */
-#define THRESHOLD NUM_PEERS / 2
+#define THRESHOLD 1
 
 /**
  * How long until we give up on connecting the peers?
