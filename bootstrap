@@ -111,7 +111,7 @@ init_buildcommon_include()
 main()
 {
     cleanup
-    submodules
+    #submodules
     init_buildcommon_include
     check_uncrustify
     check_yapf
