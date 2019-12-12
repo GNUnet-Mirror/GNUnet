@@ -369,9 +369,6 @@ gnunet_service_tng_LDADD = \
 
 plugin_LTLIBRARIES = \
   libgnunet_plugin_transport_tcp.la \
-if HAVE_EXPERIMENTAL
-  libgnunet_plugin_transport_udp.la \
-endif
   $(UNIX_PLUGIN_LA) \
   $(HTTP_CLIENT_PLUGIN_LA) \
   $(HTTPS_CLIENT_PLUGIN_LA) \
@@ -379,6 +376,10 @@ endif
   $(HTTPS_SERVER_PLUGIN_LA) \
   $(WLAN_PLUGIN_LA) \
   $(BT_PLUGIN_LA)
+
+if HAVE_EXPERIMENTAL
+plugin_LTLIBRARIES += libgnunet_plugin_transport_udp.la
+endif
 
 # Note: real plugins of course need to be added
 # to the plugin_LTLIBRARIES above
@@ -519,19 +520,12 @@ libgnunet_plugin_transport_https_server_la_LDFLAGS = \
 libgnunet_plugin_transport_https_server_la_CFLAGS = \
  $(MHD_CFLAGS) $(AM_CFLAGS) -DBUILD_HTTPS
 
-
 if HAVE_TESTING
 check_PROGRAMS = \
  test_transport_address_switch_tcp \
-if HAVE_EXPERIMENTAL
- test_transport_address_switch_udp \
-endif
  test_transport_testing_startstop \
  test_transport_testing_restart \
  test_plugin_tcp \
-if HAVE_EXPERIMENTAL
- test_plugin_udp \
-endif
  $(UNIX_TEST) \
  $(WLAN_PLUGIN_TEST) \
  $(BT_PLUGIN_TEST) \
@@ -548,16 +542,9 @@ endif
  test_transport_api_timeout_tcp \
  test_transport_api_limited_sockets_tcp \
  test_transport_api_tcp_nat \
-if HAVE_EXPERIMENTAL
- test_transport_api_udp \
- test_transport_api_timeout_udp \
-endif
  $(UNIX_PLUGIN_TEST) \
  $(UNIX_PLUGIN_TIMEOUT_TEST) \
  $(UNIX_API_ABSTRACT_TEST) \
-if HAVE_EXPERIMENTAL
- test_transport_api_udp_nat \
-endif
  $(HTTP_API_TEST) \
  $(HTTP_REVERSE_API_TEST) \
  $(HTTP_API_TIMEOUT_TEST) \
@@ -582,9 +569,6 @@ endif
  test_transport_api_manipulation_cfg \
  test_transport_api_reliability_tcp \
  test_transport_api_reliability_tcp_nat \
-if HAVE_EXPERIMENTAL
- test_transport_api_reliability_udp \
-endif
  $(UNIX_REL_TEST) \
  $(HTTP_REL_TEST) \
  $(HTTPS_REL_TEST) \
@@ -594,9 +578,6 @@ endif
  $(BT_UREL_TEST) \
  test_quota_compliance_tcp \
  test_quota_compliance_tcp_asymmetric \
-if HAVE_EXPERIMENTAL
- test_quota_compliance_udp \
-endif
  $(UNIX_QUOTA_TEST) \
  $(HTTP_QUOTA_TEST) \
  $(HTTPS_QUOTA_TEST) \
@@ -608,23 +589,27 @@ test_transport_api_slow_ats
 endif
 check_PROGRAMS += \
 test_communicator_unix
+if HAVE_EXPERIMENTAL
+check_PROGRAMS += \
+  test_transport_address_switch_udp \
+  test_plugin_udp \
+  test_transport_api_udp \
+  test_transport_api_timeout_udp \
+  test_transport_api_udp_nat \
+  test_transport_api_reliability_udp \
+  test_quota_compliance_udp
+endif
 endif
 
 if ENABLE_TEST_RUN
 AM_TESTS_ENVIRONMENT=export GNUNET_PREFIX=$${GNUNET_PREFIX:-@libdir@};export PATH=$${GNUNET_PREFIX:-@prefix@}/bin:$$PATH;unset XDG_DATA_HOME;unset XDG_CONFIG_HOME;
 TESTS = \
  test_transport_address_switch_tcp \
-if HAVE_EXPERIMENTAL
- test_transport_address_switch_udp \
-endif
  $(HTTP_SWITCH) \
  $(HTTPS_SWITCH) \
  test_transport_testing_startstop \
  test_transport_testing_restart \
  test_plugin_tcp \
-if HAVE_EXPERIMENTAL
- test_plugin_udp \
-endif
  $(UNIX_TEST) \
  $(WLAN_PLUGIN_TEST) \
  $(BT_PLUGIN_TEST) \
@@ -635,14 +620,8 @@ endif
  test_transport_api_restart_2peers \
  test_transport_api_limited_sockets_tcp \
  test_transport_api_tcp_nat \
-if HAVE_EXPERIMENTAL
- test_transport_api_udp \
-endif
  $(UNIX_PLUGIN_TEST) \
  $(UNIX_API_ABSTRACT_TEST) \
-if HAVE_EXPERIMENTAL
- test_transport_api_udp_nat \
-endif
  $(HTTP_API_TEST) \
  $(HTTPS_API_TEST) \
  $(WLAN_API_TEST) \
@@ -660,9 +639,6 @@ endif
  test_transport_api_manipulation_cfg \
  test_transport_api_reliability_tcp \
  test_transport_api_reliability_tcp_nat \
-if HAVE_EXPERIMENTAL
- test_transport_api_reliability_udp \
-endif
  $(UNIX_REL_TEST) \
  $(HTTP_REL_TEST) \
  $(HTTPS_REL_TEST) \
@@ -672,16 +648,10 @@ endif
  $(BT_UREL_TEST) \
  test_quota_compliance_tcp \
  test_quota_compliance_tcp_asymmetric \
-if HAVE_EXPERIMENTAL
- test_quota_compliance_udp \
-endif
  $(UNIX_QUOTA_TEST) \
  $(HTTP_QUOTA_TEST) \
  $(HTTPS_QUOTA_TEST) \
  test_transport_api_timeout_tcp \
-if HAVE_EXPERIMENTAL
- test_transport_api_timeout_udp \
-endif
  $(UNIX_PLUGIN_TIMEOUT_TEST) \
  $(HTTP_API_TIMEOUT_TEST) \
  $(HTTPS_API_TIMEOUT_TEST) \
@@ -690,6 +660,16 @@ endif
 if HAVE_GETOPT_BINARY
 TESTS += \
 test_transport_api_slow_ats
+endif
+if HAVE_EXPERIMENTAL
+TESTS += \
+  test_transport_address_switch_udp \
+  test_plugin_udp \
+  test_transport_api_udp \
+  test_transport_api_timeout_udp \
+  test_transport_api_udp_nat \
+  test_transport_api_reliability_udp \
+  test_quota_compliance_udp
 endif
 endif
 
