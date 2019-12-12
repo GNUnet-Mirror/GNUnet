@@ -1,7 +1,6 @@
 #!/bin/sh
 # This file is in the public domain.
-trap "gnunet-arm -e -c test_gns_lookup.conf" SIGINT
-
+trap "gnunet-arm -e -c test_gns_lookup.conf" INT
 LOCATION=$(which gnunet-config)
 if [ -z $LOCATION ]
 then
@@ -22,13 +21,16 @@ wrong_link="http://localhost:7776/gnsandmore"
 curl_get () {
     #$1 is link
     #$2 is grep
-    cache="$(gnurl -v "$1" 2>&1 | grep "$2")"
+    XURL=`which gnurl || which curl`
+    echo "Using $XURL to download $1"
+    cache="$(${XURL} -v "$1" 2>&1 | grep "$2")"
     #echo "$cache"
     if [ "" = "$cache" ]
     then
         gnunet-identity -D "$TEST_TLD" -c test_gns_lookup.conf > /dev/null 2>&1
         gnunet-arm -e -c test_gns_lookup.conf
-        exit 1
+        echo "HTTP client (curl/gnurl) not found, exiting"
+        exit 77
     fi
 }
 TEST_TLD="testtld"
@@ -64,5 +66,5 @@ gnunet-namestore -z "$TEST_TLD" -d -n www -c test_gns_lookup.conf
 gnunet-identity -D "$TEST_TLD" -c test_gns_lookup.conf > /dev/null 2>&1
 
 curl_get "$gns_link/www1.$TEST_TLD" "error"
-gnunet-arm -e -c -c test_gns_lookup.conf
+gnunet-arm -e -c test_gns_lookup.conf
 exit 0
