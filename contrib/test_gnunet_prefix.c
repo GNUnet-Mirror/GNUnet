@@ -50,7 +50,7 @@ main (int argc, char **argv)
       fprintf (stderr,
                _ ("Failed to access `%s': %s\n"),
                tmp,
-               STRERROR (errno));
+               strerror (errno));
       fprintf (
         stderr,
         _ (
