@@ -1,5 +1,5 @@
 #!/bin/sh
-trap "gnunet-arm -e -c test_gns_lookup.conf" SIGINT
+trap "gnunet-arm -e -c test_gns_lookup.conf" INT
 
 LOCATION=$(which gnunet-config)
 if [ -z $LOCATION ]
