@@ -1,16 +1,14 @@
 # This Makefile.am is in the public domain
 AM_CPPFLAGS = -I$(top_srcdir)/src/include -I$(top_builddir)/src/include
 
-do_subst = $(AWK) -v prl="$(PERL)" -v pfx="$(prefix)" '{if (/@SUBSTPREFIX@/) { gsub("@SUBSTPREFIX@",pfx)}; gsub("@PERLEXE@",prl); print $$0}'
-
 SUFFIXES = .in
 
 gnunet-logread: gnunet-logread.in Makefile
-	$(do_subst) < $(srcdir)/gnunet-logread.in > gnunet-logread
+	$(AWK) -v prl="$(PERL)" -v pfx="$(prefix)" -f $(top_srcdir)/bin/dosubst.awk < $(srcdir)/gnunet-logread.in > gnunet-logread
 	chmod +x gnunet-logread
 
 gnunet-logread-ipc-sdedit: gnunet-logread-ipc-sdedit.in Makefile
-	$(do_subst) < $(srcdir)/gnunet-logread-ipc-sdedit.in > gnunet-logread-ipc-sdedit
+	$(AWK) -v prl="$(PERL)" -f $(top_srcdir)/bin/dosubst.awk < $(srcdir)/gnunet-logread-ipc-sdedit.in > gnunet-logread-ipc-sdedit
 	chmod +x gnunet-logread-ipc-sdedit
 
 CLEANFILES=	\

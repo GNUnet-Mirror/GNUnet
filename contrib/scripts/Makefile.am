@@ -52,11 +52,11 @@ CLEANFILES = \
 SUFFIXES = .py.in .py
 
 .py.in.py:
-	$(AWK) -v bdir="$(bindir)" -v py="$(PYTHON)" -v awkay="$(AWK_BINARY)" -v pfx="$(prefix)" -v prl="$(PERL)" -v sysconfdirectory="$(sysconfdir)" -v pkgdatadirectory="$(pkgdatadir)" -f $(top_srcdir)/bin/dosubst.awk < $< > $@
+	$(AWK) -v py="$(PYTHON)" -f $(top_srcdir)/bin/dosubst.awk < $< > $@
 	chmod +x $@
 
 if HAVE_AWK
 check-texinfo.awk: check-texinfo.awk.in Makefile
-	$(AWK) -v bdir="$(bindir)" -v py="$(PYTHON)" -v awkay="$(AWK_BINARY)" -v pfx="$(prefix)" -v prl="$(PERL)" -v sysconfdirectory="$(sysconfdir)" -v pkgdatadirectory="$(pkgdatadir)" -f $(top_srcdir)/bin/dosubst.awk < $(srcdir)/check-texinfo.awk.in > check-texinfo.awk
+	$(AWK) -v awkay="$(AWK_BINARY)" -f $(top_srcdir)/bin/dosubst.awk < $(srcdir)/check-texinfo.awk.in > check-texinfo.awk
 	chmod +x check-texinfo.awk
 endif
