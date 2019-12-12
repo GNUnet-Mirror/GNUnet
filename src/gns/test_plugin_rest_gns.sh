@@ -22,15 +22,20 @@ curl_get () {
     #$1 is link
     #$2 is grep
     XURL=`which gnurl || which curl`
-    echo "Using $XURL to download $1"
+    if [ "" = "$XURL" ]
+    then
+        echo "HTTP client (curl/gnurl) not found, exiting"
+        exit 77
+    fi
+    sleep 0.5
     cache="$(${XURL} -v "$1" 2>&1 | grep "$2")"
     #echo "$cache"
     if [ "" = "$cache" ]
     then
         gnunet-identity -D "$TEST_TLD" -c test_gns_lookup.conf > /dev/null 2>&1
         gnunet-arm -e -c test_gns_lookup.conf
-        echo "HTTP client (curl/gnurl) not found, exiting"
-        exit 77
+        echo "Download of $1 using $XURL failed"
+        exit 1
     fi
 }
 TEST_TLD="testtld"
