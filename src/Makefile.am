@@ -24,13 +24,15 @@ endif
 endif
 
 if HAVE_JSON
+if HAVE_MHD
   JSON_DIR = json
+endif
+endif
 if HAVE_LIBGNURL
-  JSON_DIR += curl
+  CURL_DIR = curl
 else
 if HAVE_LIBCURL
-  JSON_DIR += curl
-endif
+  CURL_DIR = curl
 endif
 endif
 
@@ -81,6 +83,7 @@ SUBDIRS = \
   arm \
   $(TESTING) \
   $(JSON_DIR) \
+  $(CURL_DIR) \
   $(REST_DIR) \
   peerinfo \
   $(SQLITE_DIR) \
