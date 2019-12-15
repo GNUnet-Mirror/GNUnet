@@ -284,22 +284,20 @@ int
 main (int argc, char *const *argv)
 {
   int ret;
-  struct GNUNET_GETOPT_CommandLineOption options[] =
-  { GNUNET_GETOPT_option_string (
+  struct GNUNET_GETOPT_CommandLineOption options[] = {
+    GNUNET_GETOPT_option_string (
       'd',
       "device",
       "DEVICE",
       gettext_noop ("use video-device DEVICE (default: /dev/video0"),
       &device),
-    GNUNET_GETOPT_option_flag ('\0',
-                               "verbose",
-                               gettext_noop ("be verbose"),
-                               &verbose),
+    GNUNET_GETOPT_option_verbose (&verbose),
     GNUNET_GETOPT_option_flag ('s',
                                "silent",
                                gettext_noop ("do not show preview windows"),
                                &silent),
-    GNUNET_GETOPT_OPTION_END };
+    GNUNET_GETOPT_OPTION_END
+  };
 
   ret = GNUNET_PROGRAM_run (
     argc,
