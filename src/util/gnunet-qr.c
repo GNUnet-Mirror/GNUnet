@@ -30,7 +30,7 @@
 #include "gnunet_util_lib.h"
 
 #define LOG(fmt, ...)  \
-  if (verbose == true) \
+  if (verbose) \
     printf (fmt, ## __VA_ARGS__)
 
 /**
@@ -41,7 +41,7 @@ static char *device = "/dev/video0";
 /**
  * --verbose option
  */
-static int verbose = false;
+static unsigned int verbose;
 
 /**
  * --silent option
@@ -79,6 +79,11 @@ maint_child_death (void *cls)
   if ((GNUNET_OK != GNUNET_OS_process_status (p, &type, &exit_code)) ||
       (type != GNUNET_OS_PROCESS_EXITED))
     GNUNET_break (0 == GNUNET_OS_process_kill (p, GNUNET_TERM_SIG));
+  if (NULL != sigpipe)
+  {
+    GNUNET_DISK_pipe_close (sigpipe);
+    sigpipe = NULL;
+  }
   GNUNET_OS_process_destroy (p);
 }
 
@@ -126,6 +131,11 @@ gnunet_uri (void *cls,
     return;
   }
   GNUNET_free (subsystem);
+  sigpipe = GNUNET_DISK_pipe (GNUNET_NO,
+                              GNUNET_NO,
+                              GNUNET_NO,
+                              GNUNET_NO);
+  GNUNET_assert (NULL != sigpipe);
   rt = GNUNET_SCHEDULER_add_read_file (
     GNUNET_TIME_UNIT_FOREVER_REL,
     GNUNET_DISK_pipe_handle (sigpipe, GNUNET_DISK_PIPE_END_READ),
