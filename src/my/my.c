@@ -239,7 +239,7 @@ GNUNET_MY_extract_result (struct GNUNET_MYSQL_StatementHandle *sh,
           mysql_stmt_free_result (stmt);
           for (unsigned int j = 0; j < i; j++)
             if (NULL != rs[j].cleaner)
-              rs[j].cleaner (rs[j].cls,
+              rs[j].cleaner (rs[j].conv_cls,
                              rs[j].dst);
           return GNUNET_SYSERR;
         }
