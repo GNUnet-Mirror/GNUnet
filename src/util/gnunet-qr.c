@@ -141,15 +141,37 @@ gnunet_uri (void *cls,
     GNUNET_DISK_pipe_handle (sigpipe, GNUNET_DISK_PIPE_END_READ),
     &maint_child_death,
     NULL);
-  p = GNUNET_OS_start_process (GNUNET_NO,
-                               0,
-                               NULL,
-                               NULL,
-                               NULL,
-                               program,
-                               program,
-                               orig_uri,
-                               NULL);
+  {
+    char **argv = NULL;
+    unsigned int argc = 0;
+    char *u = GNUNET_strdup (orig_uri);
+
+    GNUNET_array_append (argv,
+                         argc,
+                         GNUNET_strdup (program));
+    for (const char *tok = strtok (u, " ");
+         NULL != tok;
+         tok = strtok (NULL, " "))
+      GNUNET_array_append (argv,
+                           argc,
+                           GNUNET_strdup (tok));
+    GNUNET_array_append (argv,
+                         argc,
+                         NULL);
+    p = GNUNET_OS_start_process_vap (GNUNET_NO,
+                                     0,
+                                     NULL,
+                                     NULL,
+                                     NULL,
+                                     program,
+                                     argv);
+    for (unsigned int i = 0; i<argc; i++)
+      GNUNET_free (argv[i]);
+    GNUNET_array_grow (argv,
+                       argc,
+                       0);
+    GNUNET_free (orig_uri);
+  }
   GNUNET_free (program);
   if (NULL == p)
     GNUNET_SCHEDULER_cancel (rt);
