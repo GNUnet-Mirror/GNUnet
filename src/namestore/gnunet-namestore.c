@@ -1305,7 +1305,10 @@ default_ego_cb (void *cls,
   get_default = NULL;
   if (NULL == ego)
   {
-    fprintf (stderr, _ ("No default ego configured in identity service\n"));
+    fprintf (stderr,
+             _ ("No default identity configured for `namestore' subsystem\n"
+                "Run gnunet-identity -s namestore -e $NAME to set the default to $NAME\n"
+                "Run gnunet-identity -d to get a list of choices for $NAME\n"));
     GNUNET_SCHEDULER_shutdown ();
     ret = -1;
     return;
