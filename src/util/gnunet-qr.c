@@ -170,7 +170,7 @@ gnunet_uri (void *cls,
     GNUNET_array_grow (argv,
                        argc,
                        0);
-    GNUNET_free (orig_uri);
+    GNUNET_free (u);
   }
   GNUNET_free (program);
   if (NULL == p)
