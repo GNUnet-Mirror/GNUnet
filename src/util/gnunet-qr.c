@@ -58,12 +58,21 @@ static long unsigned int exit_code = 1;
  */
 static struct GNUNET_OS_Process *p;
 
+/**
+ * Child signal handler.
+ */
+static struct GNUNET_SIGNAL_Context *shc_chld;
 
 /**
  * Pipe used to communicate child death via signal.
  */
 static struct GNUNET_DISK_PipeHandle *sigpipe;
 
+/**
+ * Process ID of this process at the time we installed the various
+ * signal handlers.
+ */
+static pid_t my_pid;
 
 /**
  * Task triggered whenever we receive a SIGCHLD (child
@@ -79,12 +88,33 @@ maint_child_death (void *cls)
   if ((GNUNET_OK != GNUNET_OS_process_status (p, &type, &exit_code)) ||
       (type != GNUNET_OS_PROCESS_EXITED))
     GNUNET_break (0 == GNUNET_OS_process_kill (p, GNUNET_TERM_SIG));
+  GNUNET_SIGNAL_handler_uninstall (shc_chld);
+  shc_chld = NULL;
   if (NULL != sigpipe)
   {
     GNUNET_DISK_pipe_close (sigpipe);
     sigpipe = NULL;
   }
   GNUNET_OS_process_destroy (p);
+}
+
+
+/**
+ * Signal handler called for signals that causes us to wait for the child process.
+ */
+static void
+sighandler_chld ()
+{
+  static char c;
+  int old_errno = errno;        /* backup errno */
+
+  if (getpid () != my_pid)
+    _exit (1);                   /* we have fork'ed since the signal handler was created,
+                                  * ignore the signal, see https://gnunet.org/vfork discussion */
+  GNUNET_DISK_file_write (GNUNET_DISK_pipe_handle
+                            (sigpipe, GNUNET_DISK_PIPE_END_WRITE),
+                          &c, sizeof(c));
+  errno = old_errno;
 }
 
 
@@ -141,14 +171,15 @@ gnunet_uri (void *cls,
     GNUNET_DISK_pipe_handle (sigpipe, GNUNET_DISK_PIPE_END_READ),
     &maint_child_death,
     NULL);
+  my_pid = getpid ();
+  shc_chld = GNUNET_SIGNAL_handler_install (SIGCHLD,
+                                            &sighandler_chld);
+
   {
     char **argv = NULL;
     unsigned int argc = 0;
-    char *u = GNUNET_strdup (orig_uri);
+    char *u = GNUNET_strdup (program);
 
-    GNUNET_array_append (argv,
-                         argc,
-                         GNUNET_strdup (program));
     for (const char *tok = strtok (u, " ");
          NULL != tok;
          tok = strtok (NULL, " "))
@@ -157,24 +188,27 @@ gnunet_uri (void *cls,
                            GNUNET_strdup (tok));
     GNUNET_array_append (argv,
                          argc,
+                         GNUNET_strdup (orig_uri));
+    GNUNET_array_append (argv,
+                         argc,
                          NULL);
     p = GNUNET_OS_start_process_vap (GNUNET_NO,
-                                     0,
+                                     GNUNET_OS_INHERIT_STD_ALL,
                                      NULL,
                                      NULL,
                                      NULL,
-                                     program,
+                                     argv[0],
                                      argv);
-    for (unsigned int i = 0; i<argc; i++)
+    for (unsigned int i = 0; i<argc - 1; i++)
       GNUNET_free (argv[i]);
     GNUNET_array_grow (argv,
                        argc,
                        0);
     GNUNET_free (u);
   }
-  GNUNET_free (program);
   if (NULL == p)
     GNUNET_SCHEDULER_cancel (rt);
+  GNUNET_free (program);
 }
 
 
