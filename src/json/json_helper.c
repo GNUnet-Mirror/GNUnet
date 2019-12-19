@@ -561,41 +561,42 @@ parse_abs_time (void *cls,
                 struct GNUNET_JSON_Specification *spec)
 {
   struct GNUNET_TIME_Absolute *abs = spec->ptr;
-  const char *val;
+  json_t *json_t_ms;
   unsigned long long int tval;
 
-  val = json_string_value (root);
-  if (NULL == val)
+  if (!json_is_object (root))
   {
     GNUNET_break_op (0);
     return GNUNET_SYSERR;
   }
-  if ((0 == strcasecmp (val,
-                        "/forever/")) ||
-      (0 == strcasecmp (val,
-                        "/end of time/")) ||
-      (0 == strcasecmp (val,
-                        "/never/")))
+  json_t_ms = json_object_get (root, "t_ms");
+  if (json_is_integer (json_t_ms))
   {
-    *abs = GNUNET_TIME_UNIT_FOREVER_ABS;
+    tval = json_integer_value (json_t_ms);
+    /* Time is in milliseconds in JSON, but in microseconds in GNUNET_TIME_Absolute */
+    abs->abs_value_us = tval * 1000LL;
+    if ((abs->abs_value_us) / 1000LL != tval)
+    {
+      /* Integer overflow */
+      GNUNET_break_op (0);
+      return GNUNET_SYSERR;
+    }
     return GNUNET_OK;
   }
-  if (1 != sscanf (val,
-                   "/Date(%llu)/",
-                   &tval))
+  if (json_is_string (json_t_ms))
   {
+    const char *val;
+    val = json_string_value (json_t_ms);
+    if ((0 == strcasecmp (val, "never")))
+    {
+      *abs = GNUNET_TIME_UNIT_FOREVER_ABS;
+      return GNUNET_OK;
+    }
     GNUNET_break_op (0);
     return GNUNET_SYSERR;
   }
-  /* Time is in seconds in JSON, but in microseconds in GNUNET_TIME_Absolute */
-  abs->abs_value_us = tval * 1000LL * 1000LL;
-  if ((abs->abs_value_us) / 1000LL / 1000LL != tval)
-  {
-    /* Integer overflow */
-    GNUNET_break_op (0);
-    return GNUNET_SYSERR;
-  }
-  return GNUNET_OK;
+  GNUNET_break_op (0);
+  return GNUNET_SYSERR;
 }
 
 
@@ -715,37 +716,42 @@ parse_rel_time (void *cls,
                 struct GNUNET_JSON_Specification *spec)
 {
   struct GNUNET_TIME_Relative *rel = spec->ptr;
-  const char *val;
+  json_t *json_d_ms;
   unsigned long long int tval;
 
-  val = json_string_value (root);
-  if (NULL == val)
+  if (!json_is_object (root))
   {
     GNUNET_break_op (0);
     return GNUNET_SYSERR;
   }
-  if ((0 == strcasecmp (val,
-                        "/forever/")))
+  json_d_ms = json_object_get (root, "d_ms");
+  if (json_is_integer (json_d_ms))
   {
-    *rel = GNUNET_TIME_UNIT_FOREVER_REL;
+    tval = json_integer_value (json_d_ms);
+    /* Time is in milliseconds in JSON, but in microseconds in GNUNET_TIME_Absolute */
+    rel->rel_value_us = tval * 1000LL;
+    if ((rel->rel_value_us) / 1000LL != tval)
+    {
+      /* Integer overflow */
+      GNUNET_break_op (0);
+      return GNUNET_SYSERR;
+    }
     return GNUNET_OK;
   }
-  if (1 != sscanf (val,
-                   "/Delay(%llu)/",
-                   &tval))
+  if (json_is_string (json_d_ms))
   {
+    const char *val;
+    val = json_string_value (json_d_ms);
+    if ((0 == strcasecmp (val, "forever")))
+    {
+      *rel = GNUNET_TIME_UNIT_FOREVER_REL;
+      return GNUNET_OK;
+    }
     GNUNET_break_op (0);
     return GNUNET_SYSERR;
   }
-  /* Time is in seconds in JSON, but in microseconds in GNUNET_TIME_Relative */
-  rel->rel_value_us = tval * 1000LL * 1000LL;
-  if ((rel->rel_value_us) / 1000LL / 1000LL != tval)
-  {
-    /* Integer overflow */
-    GNUNET_break_op (0);
-    return GNUNET_SYSERR;
-  }
-  return GNUNET_OK;
+  GNUNET_break_op (0);
+  return GNUNET_SYSERR;
 }
 
 

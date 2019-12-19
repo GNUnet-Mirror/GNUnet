@@ -59,20 +59,22 @@ json_t *
 GNUNET_JSON_from_time_abs (struct GNUNET_TIME_Absolute stamp)
 {
   json_t *j;
-  char *mystr;
-  int ret;
 
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_TIME_round_abs (&stamp));
+
+  j = json_object ();
+
   if (stamp.abs_value_us == GNUNET_TIME_UNIT_FOREVER_ABS.abs_value_us)
-    return json_string ("/never/");
-  ret = GNUNET_asprintf (&mystr,
-                         "/Date(%llu)/",
-                         (unsigned long long) (stamp.abs_value_us / (1000LL
-                                                                     * 1000LL)));
-  GNUNET_assert (ret > 0);
-  j = json_string (mystr);
-  GNUNET_free (mystr);
+  {
+    json_object_set_new (j,
+                         "t_ms",
+                         json_string ("never"));
+    return j;
+  }
+  json_object_set_new (j,
+                       "t_ms",
+                       json_integer ((json_int_t) (stamp.abs_value_us / 1000LL)));
   return j;
 }
 
@@ -100,20 +102,22 @@ json_t *
 GNUNET_JSON_from_time_rel (struct GNUNET_TIME_Relative stamp)
 {
   json_t *j;
-  char *mystr;
-  int ret;
 
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_TIME_round_rel (&stamp));
+
+  j = json_object ();
+
   if (stamp.rel_value_us == GNUNET_TIME_UNIT_FOREVER_REL.rel_value_us)
-    return json_string ("/forever/");
-  ret = GNUNET_asprintf (&mystr,
-                         "/Delay(%llu)/",
-                         (unsigned long long) (stamp.rel_value_us / (1000LL
-                                                                     * 1000LL)));
-  GNUNET_assert (ret > 0);
-  j = json_string (mystr);
-  GNUNET_free (mystr);
+  {
+    json_object_set_new (j,
+                         "d_ms",
+                         json_string ("forever"));
+    return j;
+  }
+  json_object_set_new (j,
+                       "d_ms",
+                       json_integer ((json_int_t) (stamp.rel_value_us / 1000LL)));
   return j;
 }
 
