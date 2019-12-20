@@ -1,8 +1,8 @@
+Fri Dec 20 09:22:03 2019 +0900
+  Fixed BOX record label parsing -schanzen
+
 Mon Dec 16 09:33:36 2019 +0100
   Fixed mysql build -schanzen
-
-Sun Dec 15 12:36:48 2019 +0100
-  Released gnunet 0.12.0 -schanzen
 
 Sat 07 Dec 2019 02:38:53 PM CET
   Protocol-breaking change, using more standards-compliant
