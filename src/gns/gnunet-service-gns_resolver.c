@@ -697,7 +697,7 @@ resolver_lookup_get_next_label (struct GNS_ResolverHandle *rh)
                                (dot - rh->name) - 1);
     proto_name = GNUNET_strndup (&dot[2],
                                  rh->name_resolution_pos - (dot - rh->name)
-                                 - 1);
+                                 - 2);
     rh->name_resolution_pos = 0;
     pe = getprotobyname (proto_name);
     if (NULL == pe)
@@ -715,15 +715,24 @@ resolver_lookup_get_next_label (struct GNS_ResolverHandle *rh)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                   _ (
-                    "Service `%s' unknown for protocol `%s', skipping labels.\n"),
+                    "Service `%s' unknown for protocol `%s', trying as number.\n"),
                   srv_name,
                   proto_name);
-      GNUNET_free (proto_name);
-      GNUNET_free (srv_name);
-      return ret;
+      if (1 != sscanf (srv_name, "%u", &rh->service))
+      {
+        GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                    _ ("Service `%s' not a port, skipping service labels.\n"),
+                    srv_name);
+        GNUNET_free (proto_name);
+        GNUNET_free (srv_name);
+        return ret;
+      }
+    }
+    else
+    {
+      rh->service = se->s_port;
     }
     rh->protocol = pe->p_proto;
-    rh->service = se->s_port;
     GNUNET_free (proto_name);
     GNUNET_free (srv_name);
   }
