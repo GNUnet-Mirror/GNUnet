@@ -114,7 +114,7 @@ struct Queue
    * Message currently scheduled for transmission, non-NULL if and only
    * if this queue is in the #queue_head DLL.
    */
-  const struct GNUNET_MessageHeader *msg;
+  struct UNIXMessage *msg;
 
   /**
    * Message queue we are providing for the #ch.
@@ -142,6 +142,10 @@ struct Queue
   struct GNUNET_SCHEDULER_Task *timeout_task;
 };
 
+/**
+ * My Peer Identity
+ */
+static struct GNUNET_PeerIdentity my_identity;
 
 /**
  * ID of read task
@@ -357,7 +361,7 @@ lookup_queue_it (void *cls, const struct GNUNET_PeerIdentity *key, void *value)
   struct LookupCtx *lctx = cls;
   struct Queue *queue = value;
 
-  if ((queue->address_len = lctx->un_len) &&
+  if ((queue->address_len == lctx->un_len) &&
       (0 == memcmp (lctx->un, queue->address, queue->address_len)))
   {
     lctx->res = queue;
@@ -383,6 +387,7 @@ lookup_queue (const struct GNUNET_PeerIdentity *peer,
 
   lctx.un = un;
   lctx.un_len = un_len;
+  lctx.res = NULL;
   GNUNET_CONTAINER_multipeermap_get_multiple (queue_map,
                                               peer,
                                               &lookup_queue_it,
@@ -401,7 +406,7 @@ static void
 select_write_cb (void *cls)
 {
   struct Queue *queue = queue_tail;
-  const struct GNUNET_MessageHeader *msg = queue->msg;
+  const struct GNUNET_MessageHeader *msg = &queue->msg->header;
   size_t msg_size = ntohs (msg->size);
   ssize_t sent;
 
@@ -514,10 +519,15 @@ mq_send (struct GNUNET_MQ_Handle *mq,
          void *impl_state)
 {
   struct Queue *queue = impl_state;
+  size_t msize = ntohs (msg->size);
 
   GNUNET_assert (mq == queue->mq);
   GNUNET_assert (NULL == queue->msg);
-  queue->msg = msg;
+  //Convert to UNIXMessage
+  queue->msg = GNUNET_malloc (msize + sizeof (struct UNIXMessage));
+  queue->msg->header.size = htons(msize + sizeof (struct UNIXMessage));
+  queue->msg->sender = my_identity;
+  memcpy (&queue->msg[1], msg, msize);
   GNUNET_CONTAINER_DLL_insert (queue_head, queue_tail, queue);
   GNUNET_assert (NULL != unix_sock);
   if (NULL == write_task)
@@ -747,6 +757,9 @@ select_read_cb (void *cls)
   msize = ntohs (msg->header.size);
   if ((msize < sizeof(struct UNIXMessage)) || (msize > ret))
   {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Wrong message size: %d bytes\n",
+                msize);
     GNUNET_break_op (0);
     return;
   }
@@ -974,8 +987,21 @@ run (void *cls,
   struct sockaddr_un *un;
   socklen_t un_len;
   char *my_addr;
+  struct GNUNET_CRYPTO_EddsaPrivateKey *my_private_key;
 
   (void) cls;
+
+  my_private_key = GNUNET_CRYPTO_eddsa_key_create_from_configuration (cfg);
+  if (NULL == my_private_key)
+  {
+    GNUNET_log (
+      GNUNET_ERROR_TYPE_ERROR,
+      _ (
+        "UNIX communicator is lacking key configuration settings. Exiting.\n"));
+    GNUNET_SCHEDULER_shutdown ();
+    return;
+  }
+  GNUNET_CRYPTO_eddsa_key_get_public (my_private_key, &my_identity.public_key);
 
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_filename (cfg,

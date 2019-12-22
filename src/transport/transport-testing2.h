@@ -135,7 +135,7 @@ typedef void
                                                     GNUNET_TRANSPORT_TESTING_TransportCommunicatorHandle
                                                     *tc_h,
                                                     const struct
-                                                    GNUNET_MessageHeader *msg);
+                                                    GNUNET_TRANSPORT_IncomingMessage *msg);
 
 
 /**

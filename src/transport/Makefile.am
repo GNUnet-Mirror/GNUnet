@@ -786,6 +786,7 @@ test_communicator_unix_SOURCES = \
  test_communicator_unix.c
 test_communicator_unix_LDADD = \
  libgnunettransporttesting2.la \
+ $(top_builddir)/src/testing/libgnunettesting.la \
  $(top_builddir)/src/util/libgnunetutil.la
 
 test_plugin_unix_SOURCES = \

@@ -306,14 +306,14 @@ handle_add_address (void *cls,
 {
   struct GNUNET_TRANSPORT_TESTING_TransportCommunicatorHandle *tc_h = cls;
   uint16_t size;
-
   size = ntohs (msg->header.size) - sizeof(*msg);
   if (0 == size)
     return; /* receive-only communicator */
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "received add address cb %u\n", size);
   tc_h->c_address = GNUNET_strdup ((const char *) &msg[1]);
   if (NULL != tc_h->add_address_cb)
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "calling communicator_available()\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "calling add_address_cb()\n");
     tc_h->add_address_cb (tc_h->cb_cls,
                           tc_h,
                           tc_h->c_address,
@@ -366,7 +366,7 @@ handle_incoming_msg (void *cls,
   {
     tc_h->incoming_msg_cb (tc_h->cb_cls,
                            tc_h,
-                           (const struct GNUNET_MessageHeader *) msg);
+                           msg);
   }
   else
   {
@@ -452,9 +452,19 @@ handle_add_queue_message (void *cls,
   struct GNUNET_TRANSPORT_TESTING_TransportCommunicatorQueue *tc_queue;
 
   tc_queue = tc_h->queue_head;
-  while (tc_queue->qid != msg->qid)
+  if (NULL != tc_queue)
   {
-    tc_queue = tc_queue->next;
+    while (tc_queue->qid != msg->qid)
+    {
+      tc_queue = tc_queue->next;
+    }
+  } else {
+    tc_queue =
+      GNUNET_new (struct GNUNET_TRANSPORT_TESTING_TransportCommunicatorQueue);
+    tc_queue->tc_h = tc_h;
+    tc_queue->qid = msg->qid;
+    tc_queue->peer_id = msg->receiver;
+    GNUNET_CONTAINER_DLL_insert (tc_h->queue_head, tc_h->queue_tail, tc_queue);
   }
   GNUNET_assert (tc_queue->qid == msg->qid);
   GNUNET_assert (0 == GNUNET_memcmp (&tc_queue->peer_id, &msg->receiver));
@@ -663,7 +673,7 @@ communicator_start (
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Failed to start communicator!");
     return;
   }
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "started communicator\n");
+  LOG (GNUNET_ERROR_TYPE_INFO, "started communicator\n");
   GNUNET_free (binary);
   /* TODO */ GNUNET_SCHEDULER_add_shutdown (&shutdown_communicator,
                                             tc_h->c_proc);
