@@ -564,7 +564,7 @@ parse_abs_time (void *cls,
   json_t *json_t_ms;
   unsigned long long int tval;
 
-  if (!json_is_object (root))
+  if (! json_is_object (root))
   {
     GNUNET_break_op (0);
     return GNUNET_SYSERR;
@@ -638,41 +638,17 @@ parse_abs_time_nbo (void *cls,
                     struct GNUNET_JSON_Specification *spec)
 {
   struct GNUNET_TIME_AbsoluteNBO *abs = spec->ptr;
-  const char *val;
-  unsigned long long int tval;
   struct GNUNET_TIME_Absolute a;
+  struct GNUNET_JSON_Specification ispec;
 
-  val = json_string_value (root);
-  if (NULL == val)
-  {
-    GNUNET_break_op (0);
+  ispec = *spec;
+  ispec.parser = &parse_abs_time;
+  ispec.ptr = &a;
+  if (GNUNET_OK !=
+      parse_abs_time (NULL,
+                      root,
+                      &ispec))
     return GNUNET_SYSERR;
-  }
-  if ((0 == strcasecmp (val,
-                        "/forever/")) ||
-      (0 == strcasecmp (val,
-                        "/end of time/")) ||
-      (0 == strcasecmp (val,
-                        "/never/")))
-  {
-    *abs = GNUNET_TIME_absolute_hton (GNUNET_TIME_UNIT_FOREVER_ABS);
-    return GNUNET_OK;
-  }
-  if (1 != sscanf (val,
-                   "/Date(%llu)/",
-                   &tval))
-  {
-    GNUNET_break_op (0);
-    return GNUNET_SYSERR;
-  }
-  /* Time is in seconds in JSON, but in microseconds in GNUNET_TIME_Absolute */
-  a.abs_value_us = tval * 1000LL * 1000LL;
-  if ((a.abs_value_us) / 1000LL / 1000LL != tval)
-  {
-    /* Integer overflow */
-    GNUNET_break_op (0);
-    return GNUNET_SYSERR;
-  }
   *abs = GNUNET_TIME_absolute_hton (a);
   return GNUNET_OK;
 }
@@ -719,7 +695,7 @@ parse_rel_time (void *cls,
   json_t *json_d_ms;
   unsigned long long int tval;
 
-  if (!json_is_object (root))
+  if (! json_is_object (root))
   {
     GNUNET_break_op (0);
     return GNUNET_SYSERR;
