@@ -19,9 +19,10 @@
 */
 
 /**
-* @file transport/test_communicator_unix.c
-* @brief test the unix communicator
+* @file transport/test_communicator.c
+* @brief test the communicators
 * @author Julius Bünger
+* @author Martin Schanzenbach
 */
 #include "platform.h"
 #include "gnunet_util_lib.h"
@@ -35,7 +36,7 @@
 
 
 #define LOG(kind, ...) GNUNET_log_from (kind, \
-                                        "test_transport_communicator_unix", \
+                                        "test_transport_communicator", \
                                         __VA_ARGS__)
 
 #define NUM_PEERS 2

@@ -783,7 +783,7 @@ test_plugin_udp_LDADD = \
 endif
 
 test_communicator_unix_SOURCES = \
- test_communicator_unix.c
+ test_communicator.c
 test_communicator_unix_LDADD = \
  libgnunettransporttesting2.la \
  $(top_builddir)/src/testing/libgnunettesting.la \
@@ -1486,5 +1486,5 @@ test_transport_api_slow_ats_peer2.conf \
   tcp_server_mst_legacy.c \
   tcp_server_legacy.c \
   tcp_service_legacy.c \
-test_communicator_1.conf \
-test_communicator_1.conf
+test_communicator_unix_peer1.conf \
+test_communicator_unix_peer2.conf
