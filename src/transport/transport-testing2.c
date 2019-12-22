@@ -358,21 +358,39 @@ check_incoming_msg (void *cls,
  */
 static void
 handle_incoming_msg (void *cls,
-                     const struct GNUNET_TRANSPORT_IncomingMessage *msg)
+                     const struct GNUNET_TRANSPORT_IncomingMessage *inc_msg)
 {
   struct GNUNET_TRANSPORT_TESTING_TransportCommunicatorHandle *tc_h = cls;
+  struct GNUNET_MessageHeader *msg;
+  msg = (struct GNUNET_MessageHeader *)&inc_msg[1];
+  size_t payload_len = ntohs (msg->size) - sizeof (struct
+                                                          GNUNET_MessageHeader);
 
   if (NULL != tc_h->incoming_msg_cb)
   {
     tc_h->incoming_msg_cb (tc_h->cb_cls,
                            tc_h,
-                           msg);
+                           (char*) &msg[1],
+                           payload_len);
   }
   else
   {
     LOG (GNUNET_ERROR_TYPE_WARNING,
          "Incoming message from communicator but no handler!\n");
   }
+  if (0 != ntohl (inc_msg->fc_on))
+  {
+    /* send ACK when done to communicator for flow control! */
+    struct GNUNET_MQ_Envelope *env;
+    struct GNUNET_TRANSPORT_IncomingMessageAck *ack;
+
+    env = GNUNET_MQ_msg (ack, GNUNET_MESSAGE_TYPE_TRANSPORT_INCOMING_MSG_ACK);
+    ack->reserved = htonl (0);
+    ack->fc_id = inc_msg->fc_id;
+    ack->sender = inc_msg->sender;
+    GNUNET_MQ_send (tc_h->c_mq, env);
+  }
+
   GNUNET_SERVICE_client_continue (tc_h->client);
 }
 
@@ -458,7 +476,9 @@ handle_add_queue_message (void *cls,
     {
       tc_queue = tc_queue->next;
     }
-  } else {
+  }
+  else
+  {
     tc_queue =
       GNUNET_new (struct GNUNET_TRANSPORT_TESTING_TransportCommunicatorQueue);
     tc_queue->tc_h = tc_h;
@@ -802,9 +822,7 @@ struct GNUNET_TRANSPORT_TESTING_TransportCommunicatorTransmission *
 GNUNET_TRANSPORT_TESTING_transport_communicator_send
   (struct GNUNET_TRANSPORT_TESTING_TransportCommunicatorQueue *tc_queue,
   const void *payload,
-  size_t payload_size /*,
-                         GNUNET_TRANSPORT_TESTING_SuccessStatus cb,
-                         void *cb_cls*/)
+  size_t payload_size)
 {
   struct GNUNET_TRANSPORT_TESTING_TransportCommunicatorTransmission *tc_t;
   struct GNUNET_MessageHeader *mh;

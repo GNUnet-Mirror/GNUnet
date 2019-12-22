@@ -697,6 +697,7 @@ receive_complete_cb (void *cls, int success)
 {
   (void) cls;
   delivering_messages--;
+
   if (GNUNET_OK != success)
     GNUNET_STATISTICS_update (stats,
                               "# transport transmission failures",

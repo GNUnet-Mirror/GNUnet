@@ -134,8 +134,8 @@ typedef void
                                                     struct
                                                     GNUNET_TRANSPORT_TESTING_TransportCommunicatorHandle
                                                     *tc_h,
-                                                    const struct
-                                                    GNUNET_TRANSPORT_IncomingMessage *msg);
+                                                    const char* payload,
+                                                    size_t payload_len);
 
 
 /**
@@ -198,6 +198,4 @@ GNUNET_TRANSPORT_TESTING_transport_communicator_send (struct
                                                       GNUNET_TRANSPORT_TESTING_TransportCommunicatorQueue
                                                       *tc_queue,
                                                       const void *payload,
-                                                      size_t payload_size /*,
-                         GNUNET_TRANSPORT_TESTING_SuccessStatus cb,
-                         void *cb_cls*/               );
+                                                      size_t payload_size);

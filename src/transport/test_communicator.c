@@ -54,14 +54,43 @@ static char **cfg_peers_name;
 
 static int ret;
 
-// static char *addresses[NUM_PEERS];
+static struct GNUNET_TIME_Absolute start_short;
 
+static struct GNUNET_TIME_Absolute start_long;
 
-#define PAYLOAD_SIZE 256
+static struct GNUNET_TRANSPORT_TESTING_TransportCommunicatorQueue *my_tc;
 
-// static char payload[PAYLOAD_SIZE] = "TEST PAYLOAD";
-// static char payload[] = "TEST PAYLOAD";
-static uint32_t payload = 42;
+#define SHORT_MESSAGE_SIZE 128
+
+#define LONG_MESSAGE_SIZE 32000
+
+#define SHORT_BURST_SECONDS 2
+
+#define LONG_BURST_SECONDS 2
+
+#define SHORT_BURST_WINDOW \
+  GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS,SHORT_BURST_SECONDS)
+
+#define LONG_BURST_WINDOW \
+  GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS,SHORT_BURST_SECONDS)
+
+#define BURST_SHORT 0
+
+#define BURST_LONG 1
+
+#define SIZE_CHECK 2
+
+static char short_payload[SHORT_MESSAGE_SIZE];
+
+static char long_payload[LONG_MESSAGE_SIZE];
+
+static uint32_t ack = 0;
+
+static int phase;
+
+static size_t long_received = 0;
+
+static size_t short_received = 0;
 
 static void
 communicator_available_cb (void *cls,
@@ -130,6 +159,73 @@ queue_create_reply_cb (void *cls,
 }
 
 
+static void
+size_test (void *cls)
+{
+  char payload[ack];
+
+  memset (payload, 0, ack);
+  if (ack < UINT16_MAX)
+  {
+    GNUNET_TRANSPORT_TESTING_transport_communicator_send (my_tc,
+                                                          &payload,
+                                                          sizeof(payload));
+    return;
+  }
+    GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
+              "LONG Goodput (bytes/s): %lu\n",
+              (LONG_MESSAGE_SIZE * long_received) / LONG_BURST_SECONDS);
+  ret = 0;
+  GNUNET_SCHEDULER_shutdown ();
+  // Finished!
+}
+
+
+static void
+long_test (void *cls)
+{
+  struct GNUNET_TIME_Relative duration = GNUNET_TIME_absolute_get_duration (
+    start_long);
+  if (LONG_BURST_WINDOW.rel_value_us > duration.rel_value_us)
+  {
+    GNUNET_TRANSPORT_TESTING_transport_communicator_send (my_tc,
+                                                          &long_payload,
+                                                          sizeof(long_payload));
+    GNUNET_SCHEDULER_add_now (&long_test, NULL);
+    return;
+  }
+  phase = SIZE_CHECK;
+  ack = 5;
+  GNUNET_SCHEDULER_add_now (&size_test, NULL);
+}
+
+
+static void
+short_test (void *cls)
+{
+  struct GNUNET_TIME_Relative duration = GNUNET_TIME_absolute_get_duration (
+    start_short);
+  if (SHORT_BURST_WINDOW.rel_value_us > duration.rel_value_us)
+  {
+    GNUNET_TRANSPORT_TESTING_transport_communicator_send (my_tc,
+                                                          &short_payload,
+                                                          sizeof(short_payload));
+
+    GNUNET_SCHEDULER_add_now (&short_test, NULL);
+    return;
+  }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Short test done!\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
+              "SHORT Goodput (bytes/s): %lu - received packets: %lu\n",
+              (SHORT_MESSAGE_SIZE * short_received) / SHORT_BURST_SECONDS,
+              short_received);
+  start_long = GNUNET_TIME_absolute_get ();
+  phase = BURST_LONG;
+  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &long_test, NULL);
+}
+
+
 /**
  * @brief Handle opening of queue
  *
@@ -147,11 +243,14 @@ add_queue_cb (void *cls,
               struct GNUNET_TRANSPORT_TESTING_TransportCommunicatorQueue *
               tc_queue)
 {
+  if (0 != strcmp ((char*) cls, cfg_peers_name[0]))
+    return; // TODO?
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Got Queue!\n");
-  GNUNET_TRANSPORT_TESTING_transport_communicator_send (tc_queue,
-                                                        &payload,
-                                                        sizeof(payload));
+       "Queue established, starting test...\n");
+  start_short = GNUNET_TIME_absolute_get ();
+  my_tc = tc_queue;
+  phase = BURST_SHORT;
+  GNUNET_SCHEDULER_add_now (&short_test, tc_queue);
 }
 
 
@@ -168,19 +267,39 @@ void
 incoming_message_cb (void *cls,
                      struct GNUNET_TRANSPORT_TESTING_TransportCommunicatorHandle
                      *tc_h,
-                     const struct GNUNET_TRANSPORT_IncomingMessage *msg)
+                     const char*payload,
+                     size_t payload_len)
 {
-  char *payload_ptr;
+  //GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+  //            "Receiving payload with size %lu...\n", payload_len);
   if (0 != strcmp ((char*) cls, cfg_peers_name[NUM_PEERS - 1]))
     return; // TODO?
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "%s received data (%lu bytes payload)\n",
-              (char*) cls,
-              ntohs (msg->header.size) - sizeof (struct GNUNET_TRANSPORT_IncomingMessage));
-  payload_ptr = (char*)&msg[1] + sizeof (struct GNUNET_MessageHeader);
-  ret = memcmp (payload_ptr, &payload, sizeof (payload));
-  GNUNET_SCHEDULER_shutdown ();
+  if (phase == BURST_SHORT)
+  {
+    GNUNET_assert (SHORT_MESSAGE_SIZE == payload_len);
+    short_received++;
+  }
+  else if (phase == BURST_LONG)
+  {
+    if (LONG_MESSAGE_SIZE != payload_len)
+      return; //Ignore
+    long_received++;
+  }
+  else         // if (phase == SIZE_CHECK) {
+  {
+    if (ack != payload_len)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  "Error receiving message, corrupted.\n");
+      ret = 1;
+      GNUNET_SCHEDULER_shutdown ();
+      return;
+    }
+    ack += 5; // Next expected message size
+    GNUNET_SCHEDULER_add_now (&size_test, NULL);
+  }
 }
+
 
 /**
  * @brief Main function called by the scheduler
@@ -190,6 +309,8 @@ incoming_message_cb (void *cls,
 static void
 run (void *cls)
 {
+  memset (long_payload, 0, LONG_MESSAGE_SIZE);
+  memset (short_payload, 0, SHORT_MESSAGE_SIZE);
   for (int i = 0; i < NUM_PEERS; i++)
   {
     tc_hs[i] = GNUNET_TRANSPORT_TESTING_transport_communicator_service_start (
