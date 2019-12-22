@@ -19,7 +19,7 @@
 */
 
 /**
-* @file transport/test_communicator.c
+* @file transport/test_communicator_basic.c
 * @brief test the communicators
 * @author Julius Bünger
 * @author Martin Schanzenbach
@@ -79,6 +79,10 @@ static struct GNUNET_TRANSPORT_TESTING_TransportCommunicatorQueue *my_tc;
 #define BURST_LONG 1
 
 #define SIZE_CHECK 2
+
+#define MAX_BUF_LEN 10
+
+static int buf_len = 0;
 
 static char short_payload[SHORT_MESSAGE_SIZE];
 
@@ -163,19 +167,18 @@ static void
 size_test (void *cls)
 {
   char payload[ack];
+  phase = SIZE_CHECK;
 
   memset (payload, 0, ack);
-  if (ack < UINT16_MAX)
+  if (ack < 64000) //Leave some room for our protocol.
   {
     GNUNET_TRANSPORT_TESTING_transport_communicator_send (my_tc,
                                                           &payload,
                                                           sizeof(payload));
     return;
   }
-    GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
-              "LONG Goodput (bytes/s): %lu\n",
-              (LONG_MESSAGE_SIZE * long_received) / LONG_BURST_SECONDS);
-  ret = 0;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Finished\n");
   GNUNET_SCHEDULER_shutdown ();
   // Finished!
 }
@@ -188,15 +191,22 @@ long_test (void *cls)
     start_long);
   if (LONG_BURST_WINDOW.rel_value_us > duration.rel_value_us)
   {
-    GNUNET_TRANSPORT_TESTING_transport_communicator_send (my_tc,
-                                                          &long_payload,
-                                                          sizeof(long_payload));
+    if (buf_len < MAX_BUF_LEN)
+    {
+      GNUNET_TRANSPORT_TESTING_transport_communicator_send (my_tc,
+                                                            &long_payload,
+                                                            sizeof(long_payload));
+      buf_len++;
+    }
     GNUNET_SCHEDULER_add_now (&long_test, NULL);
     return;
   }
-  phase = SIZE_CHECK;
+  GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
+              "LONG Goodput (bytes/s): %lu - received packets: %lu\n",
+              (LONG_MESSAGE_SIZE * long_received) / LONG_BURST_SECONDS,
+              long_received);
   ack = 5;
-  GNUNET_SCHEDULER_add_now (&size_test, NULL);
+  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &size_test, NULL);
 }
 
 
@@ -207,10 +217,13 @@ short_test (void *cls)
     start_short);
   if (SHORT_BURST_WINDOW.rel_value_us > duration.rel_value_us)
   {
-    GNUNET_TRANSPORT_TESTING_transport_communicator_send (my_tc,
-                                                          &short_payload,
-                                                          sizeof(short_payload));
-
+    if (buf_len < MAX_BUF_LEN)
+    {
+      GNUNET_TRANSPORT_TESTING_transport_communicator_send (my_tc,
+                                                            &short_payload,
+                                                            sizeof(short_payload));
+      buf_len++;
+    }
     GNUNET_SCHEDULER_add_now (&short_test, NULL);
     return;
   }
@@ -222,6 +235,7 @@ short_test (void *cls)
               short_received);
   start_long = GNUNET_TIME_absolute_get ();
   phase = BURST_LONG;
+  buf_len = 0;
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &long_test, NULL);
 }
 
@@ -249,6 +263,7 @@ add_queue_cb (void *cls,
        "Queue established, starting test...\n");
   start_short = GNUNET_TIME_absolute_get ();
   my_tc = tc_queue;
+  buf_len = 0;
   phase = BURST_SHORT;
   GNUNET_SCHEDULER_add_now (&short_test, tc_queue);
 }
@@ -270,23 +285,25 @@ incoming_message_cb (void *cls,
                      const char*payload,
                      size_t payload_len)
 {
-  //GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-  //            "Receiving payload with size %lu...\n", payload_len);
   if (0 != strcmp ((char*) cls, cfg_peers_name[NUM_PEERS - 1]))
     return; // TODO?
   if (phase == BURST_SHORT)
   {
     GNUNET_assert (SHORT_MESSAGE_SIZE == payload_len);
     short_received++;
+    buf_len--;
   }
   else if (phase == BURST_LONG)
   {
     if (LONG_MESSAGE_SIZE != payload_len)
-      return; //Ignore
+      return; // Ignore
     long_received++;
+    buf_len--;
   }
   else         // if (phase == SIZE_CHECK) {
   {
+    // GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+    //          "Receiving payload with size %lu...\n", payload_len);
     if (ack != payload_len)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -309,6 +326,7 @@ incoming_message_cb (void *cls,
 static void
 run (void *cls)
 {
+  ret = 0;
   memset (long_payload, 0, LONG_MESSAGE_SIZE);
   memset (short_payload, 0, SHORT_MESSAGE_SIZE);
   for (int i = 0; i < NUM_PEERS; i++)
@@ -340,9 +358,9 @@ main (int argc,
   GNUNET_asprintf (&communicator_binary, "gnunet-communicator-%s",
                    communicator_name);
   cfg_peers_name = GNUNET_malloc (sizeof(char*) * NUM_PEERS);
-  if (GNUNET_OK != GNUNET_log_setup ("test_communicator",
+  if (GNUNET_OK != GNUNET_log_setup ("test_communicator_basic",
                                      "DEBUG",
-                                     "test_communicator.log"))
+                                     "test_communicator_basic.log"))
   {
     fprintf (stderr, "Unable to setup log\n");
     GNUNET_break (0);

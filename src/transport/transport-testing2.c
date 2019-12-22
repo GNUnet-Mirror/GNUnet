@@ -280,8 +280,6 @@ static int
 check_add_address (void *cls,
                    const struct GNUNET_TRANSPORT_AddAddressMessage *msg)
 {
-  struct TransportClient *tc = cls;
-
   // if (CT_COMMUNICATOR != tc->type)
   // {
   //  GNUNET_break (0);
@@ -568,6 +566,22 @@ disconnect_cb (void *cls,
   tc_h->client = NULL;
 }
 
+/**
+ * Message was transmitted.  Process the request.
+ *
+ * @param cls the client
+ * @param sma the send message that was sent
+ */
+static void
+handle_send_message_ack (void *cls,
+                         const struct GNUNET_TRANSPORT_SendMessageToAck *sma)
+{
+  struct GNUNET_TRANSPORT_TESTING_TransportCommunicatorHandle *tc_h = cls;
+  GNUNET_SERVICE_client_continue (tc_h->client);
+  //NOP
+}
+
+
 
 /**
  * @brief Start the communicator part of the transport service
@@ -584,7 +598,7 @@ transport_communicator_start (
     GNUNET_MQ_hd_var_size (communicator_available,
                            GNUNET_MESSAGE_TYPE_TRANSPORT_NEW_COMMUNICATOR,
                            struct GNUNET_TRANSPORT_CommunicatorAvailableMessage,
-                           &tc_h),
+                           tc_h),
     // GNUNET_MQ_hd_var_size (communicator_backchannel,
     //    GNUNET_MESSAGE_TYPE_TRANSPORT_COMMUNICATOR_BACKCHANNEL,
     //    struct GNUNET_TRANSPORT_CommunicatorBackchannel,
@@ -592,7 +606,7 @@ transport_communicator_start (
     GNUNET_MQ_hd_var_size (add_address,
                            GNUNET_MESSAGE_TYPE_TRANSPORT_ADD_ADDRESS,
                            struct GNUNET_TRANSPORT_AddAddressMessage,
-                           &tc_h),
+                           tc_h),
     // GNUNET_MQ_hd_fixed_size (del_address,
     //                         GNUNET_MESSAGE_TYPE_TRANSPORT_DEL_ADDRESS,
     //                         struct GNUNET_TRANSPORT_DelAddressMessage,
@@ -600,7 +614,7 @@ transport_communicator_start (
     GNUNET_MQ_hd_var_size (incoming_msg,
                            GNUNET_MESSAGE_TYPE_TRANSPORT_INCOMING_MSG,
                            struct GNUNET_TRANSPORT_IncomingMessage,
-                           NULL),
+                           tc_h),
     GNUNET_MQ_hd_fixed_size (queue_create_ok,
                              GNUNET_MESSAGE_TYPE_TRANSPORT_QUEUE_CREATE_OK,
                              struct GNUNET_TRANSPORT_CreateQueueResponse,
@@ -612,15 +626,16 @@ transport_communicator_start (
     GNUNET_MQ_hd_var_size (add_queue_message,
                            GNUNET_MESSAGE_TYPE_TRANSPORT_QUEUE_SETUP,
                            struct GNUNET_TRANSPORT_AddQueueMessage,
-                           NULL),
+                           tc_h),
     // GNUNET_MQ_hd_fixed_size (del_queue_message,
     //                         GNUNET_MESSAGE_TYPE_TRANSPORT_QUEUE_TEARDOWN,
     //                         struct GNUNET_TRANSPORT_DelQueueMessage,
     //                         NULL),
-    // GNUNET_MQ_hd_fixed_size (send_message_ack,
-    //                         GNUNET_MESSAGE_TYPE_TRANSPORT_SEND_MSG_ACK,
-    //                         struct GNUNET_TRANSPORT_SendMessageToAck,
-    //                         NULL),
+    GNUNET_MQ_hd_fixed_size (send_message_ack,
+                             GNUNET_MESSAGE_TYPE_TRANSPORT_SEND_MSG_ACK,
+                             struct GNUNET_TRANSPORT_SendMessageToAck,
+                             tc_h),
+    GNUNET_MQ_handler_end ()
   };
   struct GNUNET_SERVICE_Handle *h;
 

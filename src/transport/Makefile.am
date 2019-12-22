@@ -588,7 +588,7 @@ check_PROGRAMS += \
 test_transport_api_slow_ats
 endif
 check_PROGRAMS += \
-test_communicator_unix
+test_communicator_basic_unix
 if HAVE_EXPERIMENTAL
 check_PROGRAMS += \
   test_transport_address_switch_udp \
@@ -782,9 +782,9 @@ test_plugin_udp_LDADD = \
  libgnunettransporttesting.la
 endif
 
-test_communicator_unix_SOURCES = \
- test_communicator.c
-test_communicator_unix_LDADD = \
+test_communicator_basic_unix_SOURCES = \
+ test_communicator_basic.c
+test_communicator_basic_unix_LDADD = \
  libgnunettransporttesting2.la \
  $(top_builddir)/src/testing/libgnunettesting.la \
  $(top_builddir)/src/util/libgnunetutil.la
