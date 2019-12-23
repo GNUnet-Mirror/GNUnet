@@ -1121,6 +1121,9 @@ tcp_address_to_sockaddr (const char *bindto, socklen_t *sock_len)
       i4 = GNUNET_malloc (sizeof(struct sockaddr_in));
       i4->sin_family = AF_INET;
       i4->sin_port = htons ((uint16_t) port);
+#if HAVE_SOCKADDR_IN_SIN_LEN
+      sa4.sin_len = sizeof(sizeof(struct sockaddr_in));
+#endif
       *sock_len = sizeof(struct sockaddr_in);
       in = (struct sockaddr *) i4;
     }
@@ -1131,6 +1134,9 @@ tcp_address_to_sockaddr (const char *bindto, socklen_t *sock_len)
       i6 = GNUNET_malloc (sizeof(struct sockaddr_in6));
       i6->sin6_family = AF_INET6;
       i6->sin6_port = htons ((uint16_t) port);
+#if HAVE_SOCKADDR_IN_SIN_LEN
+      sa6.sin6_len = sizeof(sizeof(struct sockaddr_in6));
+#endif
       *sock_len = sizeof(struct sockaddr_in6);
       in = (struct sockaddr *) i6;
     }
@@ -1728,7 +1734,7 @@ listen_cb (void *cls)
   addrlen = sizeof(in);
   memset (&in, 0, sizeof(in));
   sock = GNUNET_NETWORK_socket_accept (listen_sock,
-                                       (struct sockaddr *) &in,
+                                       (struct sockaddr*) &in,
                                        &addrlen);
   if ((NULL == sock) && ((EMFILE == errno) || (ENFILE == errno)))
     return; /* system limit reached, wait until connection goes down */
@@ -2124,6 +2130,17 @@ run (void *cls,
     GNUNET_free (in);
     GNUNET_free (bindto);
     return;
+  }
+  if (GNUNET_OK !=
+      GNUNET_NETWORK_socket_listen (listen_sock,
+                                    5))
+  {
+    GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR,
+                         "listen");
+    GNUNET_NETWORK_socket_close (listen_sock);
+    listen_sock = NULL;
+    GNUNET_free (in);
+    GNUNET_free (bindto);
   }
   /* We might have bound to port 0, allowing the OS to figure it out;
      thus, get the real IN-address from the socket */
