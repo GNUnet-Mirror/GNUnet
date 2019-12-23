@@ -2081,10 +2081,10 @@ run (void *cls,
   (void) cls;
   cfg = c;
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_filename (cfg,
-                                               COMMUNICATOR_CONFIG_SECTION,
-                                               "BINDTO",
-                                               &bindto))
+      GNUNET_CONFIGURATION_get_value_string (cfg,
+                                             COMMUNICATOR_CONFIG_SECTION,
+                                             "BINDTO",
+                                             &bindto))
   {
     GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR,
                                COMMUNICATOR_CONFIG_SECTION,
