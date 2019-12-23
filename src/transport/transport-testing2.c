@@ -137,6 +137,11 @@ struct GNUNET_TRANSPORT_TESTING_TransportCommunicatorHandle
   GNUNET_TRANSPORT_TESTING_IncomingMessageCallback incoming_msg_cb;
 
   /**
+   * Our service handle
+   */
+  struct GNUNET_SERVICE_Handle *sh;
+
+  /**
    * @brief Closure to the callback
    */
   void *cb_cls;
@@ -637,21 +642,15 @@ transport_communicator_start (
                              tc_h),
     GNUNET_MQ_handler_end ()
   };
-  struct GNUNET_SERVICE_Handle *h;
 
-  h = GNUNET_SERVICE_start ("transport",
+
+  tc_h->sh = GNUNET_SERVICE_start ("transport",
                             tc_h->cfg,
                             &connect_cb,
                             &disconnect_cb,
                             tc_h,
                             mh);
-  if (NULL == h)
-    LOG (GNUNET_ERROR_TYPE_ERROR, "Failed starting service!\n");
-  else
-  {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "Started service\n");
-    /* TODO */ GNUNET_SCHEDULER_add_shutdown (&shutdown_service, h);
-  }
+  GNUNET_assert (NULL != tc_h->sh);
 }
 
 
@@ -665,11 +664,11 @@ shutdown_communicator (void *cls)
 {
   struct GNUNET_OS_Process *proc = cls;
 
-  if (GNUNET_OK != GNUNET_OS_process_kill (proc, SIGTERM))
+  if (0 != GNUNET_OS_process_kill (proc, SIGTERM))
   {
     LOG (GNUNET_ERROR_TYPE_WARNING,
          "Error shutting down communicator with SIGERM, trying SIGKILL\n");
-    if (GNUNET_OK != GNUNET_OS_process_kill (proc, SIGKILL))
+    if (0 != GNUNET_OS_process_kill (proc, SIGKILL))
     {
       LOG (GNUNET_ERROR_TYPE_ERROR,
            "Error shutting down communicator with SIGERM and SIGKILL\n");
@@ -710,8 +709,15 @@ communicator_start (
   }
   LOG (GNUNET_ERROR_TYPE_INFO, "started communicator\n");
   GNUNET_free (binary);
-  /* TODO */ GNUNET_SCHEDULER_add_shutdown (&shutdown_communicator,
-                                            tc_h->c_proc);
+}
+
+
+static void
+do_shutdown (void *cls)
+{
+  struct GNUNET_TRANSPORT_TESTING_TransportCommunicatorHandle *tc_h = cls;
+  shutdown_communicator(tc_h->c_proc);
+  shutdown_service(tc_h->sh);
 }
 
 
@@ -769,9 +775,9 @@ GNUNET_TRANSPORT_TESTING_transport_communicator_service_start (
   /* Schedule start communicator */
   communicator_start (tc_h,
                       binary_name);
+  GNUNET_SCHEDULER_add_shutdown (&do_shutdown, tc_h);
   return tc_h;
 }
-
 
 /**
  * @brief Instruct communicator to open a queue
