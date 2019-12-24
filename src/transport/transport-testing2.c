@@ -80,6 +80,11 @@ struct GNUNET_TRANSPORT_TESTING_TransportCommunicatorHandle
   struct GNUNET_OS_Process *c_proc;
 
   /**
+   * NAT process
+   */
+  struct GNUNET_OS_Process *nat_proc;
+
+  /**
    * @brief Task that will be run on shutdown to stop and clean communicator
    */
   struct GNUNET_SCHEDULER_Task *c_shutdown_task;
@@ -660,10 +665,8 @@ transport_communicator_start (
  * @param cls Closure - Process of communicator
  */
 static void
-shutdown_communicator (void *cls)
+shutdown_process (struct GNUNET_OS_Process *proc)
 {
-  struct GNUNET_OS_Process *proc = cls;
-
   if (0 != GNUNET_OS_process_kill (proc, SIGTERM))
   {
     LOG (GNUNET_ERROR_TYPE_WARNING,
@@ -675,6 +678,13 @@ shutdown_communicator (void *cls)
     }
   }
   GNUNET_OS_process_destroy (proc);
+}
+
+static void
+shutdown_communicator (void *cls)
+{
+  struct GNUNET_OS_Process *proc = cls;
+  shutdown_process(proc);
 }
 
 
@@ -711,6 +721,51 @@ communicator_start (
   GNUNET_free (binary);
 }
 
+/**
+ * @brief Task run at shutdown to kill communicator and clean up
+ *
+ * @param cls Closure - Process of communicator
+ */
+static void
+shutdown_nat (void *cls)
+{
+  struct GNUNET_OS_Process *proc = cls;
+  shutdown_process (proc);
+}
+
+
+/**
+ * @brief Start NAT
+ *
+ */
+static void
+nat_start (
+  struct GNUNET_TRANSPORT_TESTING_TransportCommunicatorHandle *tc_h)
+{
+  char *binary;
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "nat_start\n");
+  binary = GNUNET_OS_get_libexec_binary_path ("gnunet-service-nat");
+  tc_h->nat_proc = GNUNET_OS_start_process (GNUNET_YES,
+                                          GNUNET_OS_INHERIT_STD_OUT_AND_ERR,
+                                          NULL,
+                                          NULL,
+                                          NULL,
+                                          binary,
+                                          "gnunet-service-nat",
+                                          "-c",
+                                          tc_h->cfg_filename,
+                                          NULL);
+  if (NULL == tc_h->nat_proc)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Failed to start NAT!");
+    return;
+  }
+  LOG (GNUNET_ERROR_TYPE_INFO, "started NAT\n");
+  GNUNET_free (binary);
+}
+
+
 
 static void
 do_shutdown (void *cls)
@@ -718,6 +773,7 @@ do_shutdown (void *cls)
   struct GNUNET_TRANSPORT_TESTING_TransportCommunicatorHandle *tc_h = cls;
   shutdown_communicator(tc_h->c_proc);
   shutdown_service(tc_h->sh);
+  shutdown_nat(tc_h->nat_proc);
 }
 
 
@@ -771,7 +827,8 @@ GNUNET_TRANSPORT_TESTING_transport_communicator_service_start (
 
   /* Start communicator part of service */
   transport_communicator_start (tc_h);
-
+  /* Start NAT */
+  nat_start (tc_h);
   /* Schedule start communicator */
   communicator_start (tc_h,
                       binary_name);
