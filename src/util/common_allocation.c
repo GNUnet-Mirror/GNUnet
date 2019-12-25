@@ -265,6 +265,30 @@ GNUNET_xrealloc_ (void *ptr, size_t n, const char *filename, int linenumber)
   ptr = &((size_t *) ptr)[-1];
   mem_used = mem_used - *((size_t *) ptr) + n;
 #endif
+#if defined(M_SIZE)
+#if ENABLE_POISONING
+  {
+    uint64_t *base = ptr;
+    size_t s = M_SIZE (ptr);
+
+    if (s > n)
+    {
+      const uint64_t baadfood = GNUNET_ntohll (0xBAADF00DBAADF00DLL);
+      char *cbase = ptr;
+
+      GNUNET_memcpy (&cbase[n],
+                     &baadfood,
+                     GNUNET_MIN (8 - (n % 8),
+                                 s - n));
+      for (size_t i = 1 + (n + 7) / 8; i < s / 8; i++)
+        base[i] = baadfood;
+      GNUNET_memcpy (&base[s / 8],
+                     &baadfood,
+                     s % 8);
+    }
+  }
+#endif
+#endif
   ptr = realloc (ptr, n);
   if ((NULL == ptr) && (n > 0))
   {
@@ -316,9 +340,8 @@ GNUNET_xfree_ (void *ptr, const char *filename, int linenumber)
     const uint64_t baadfood = GNUNET_ntohll (0xBAADF00DBAADF00DLL);
     uint64_t *base = ptr;
     size_t s = M_SIZE (ptr);
-    size_t i;
 
-    for (i = 0; i < s / 8; i++)
+    for (size_t i = 0; i < s / 8; i++)
       base[i] = baadfood;
     GNUNET_memcpy (&base[s / 8], &baadfood, s % 8);
   }

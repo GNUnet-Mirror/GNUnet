@@ -28,16 +28,41 @@
 #include <gauger.h>
 
 static uint64_t
-perfMalloc ()
+perf_malloc ()
 {
-  size_t i;
   uint64_t ret;
 
   ret = 0;
-  for (i = 1; i < 1024 * 1024; i += 1024)
+  for (size_t i = 1; i < 1024 * 1024; i += 1024)
   {
     ret += i;
     GNUNET_free (GNUNET_malloc (i));
+  }
+  return ret;
+}
+
+
+static uint64_t
+perf_realloc ()
+{
+  uint64_t ret;
+
+  ret = 0;
+  for (size_t i = 10; i < 1024 * 1024 / 5; i += 1024)
+  {
+    char *ptr;
+
+    ret += i;
+    ptr = GNUNET_malloc (i);
+    memset (ptr, 1, i);
+    ptr = GNUNET_realloc (ptr, i + 5);
+    for (size_t j=0;j<i;j++)
+      GNUNET_assert (1 == ptr[j]);
+    memset (ptr, 6, i + 5);
+    ptr = GNUNET_realloc (ptr, i - 5);
+    for (size_t j=0;j<i-5;j++)
+      GNUNET_assert (6 == ptr[j]);
+    GNUNET_free (ptr);
   }
   return ret;
 }
@@ -50,7 +75,7 @@ main (int argc, char *argv[])
   uint64_t kb;
 
   start = GNUNET_TIME_absolute_get ();
-  kb = perfMalloc ();
+  kb = perf_malloc ();
   printf ("Malloc perf took %s\n",
           GNUNET_STRINGS_relative_time_to_string (
             GNUNET_TIME_absolute_get_duration (start),
@@ -59,6 +84,12 @@ main (int argc, char *argv[])
           kb / 1024 / (1
                        + GNUNET_TIME_absolute_get_duration
                          (start).rel_value_us / 1000LL), "kb/ms");
+  start = GNUNET_TIME_absolute_get ();
+  kb = perf_realloc ();
+  printf ("Realloc perf took %s\n",
+          GNUNET_STRINGS_relative_time_to_string (
+            GNUNET_TIME_absolute_get_duration (start),
+            GNUNET_YES));
   return 0;
 }
 
