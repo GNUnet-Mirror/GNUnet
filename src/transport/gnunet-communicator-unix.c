@@ -784,47 +784,39 @@ select_read_cb (void *cls)
   }
 
   {
-    uint16_t offset = 0;
     uint16_t tsize = msize - sizeof(struct UNIXMessage);
-    const char *msgbuf = (const char *) &msg[1];
 
-    while (offset + sizeof(struct GNUNET_MessageHeader) <= tsize)
+    const struct GNUNET_MessageHeader *currhdr;
+    struct GNUNET_MessageHeader al_hdr;
+
+    currhdr = (const struct GNUNET_MessageHeader *) &msg[1];
+    /* ensure aligned access */
+    memcpy (&al_hdr, currhdr, sizeof(al_hdr));
+    if ((tsize < sizeof(struct GNUNET_MessageHeader)) ||
+        (tsize != ntohs(al_hdr.size)))
     {
-      const struct GNUNET_MessageHeader *currhdr;
-      struct GNUNET_MessageHeader al_hdr;
-      uint16_t csize;
-
-      currhdr = (const struct GNUNET_MessageHeader *) &msgbuf[offset];
-      /* ensure aligned access */
-      memcpy (&al_hdr, currhdr, sizeof(al_hdr));
-      csize = ntohs (al_hdr.size);
-      if ((csize < sizeof(struct GNUNET_MessageHeader)) ||
-          (csize > tsize - offset))
-      {
-        GNUNET_break_op (0);
-        break;
-      }
-      ret = GNUNET_TRANSPORT_communicator_receive (ch,
-                                                   &msg->sender,
-                                                   currhdr,
-                                                   GNUNET_TIME_UNIT_FOREVER_REL,
-                                                   &receive_complete_cb,
-                                                   NULL);
-      if (GNUNET_SYSERR == ret)
-      {
-        GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                    "Transport not up!\n");
-        return;   /* transport not up */
-      }
-      if (GNUNET_NO == ret)
-      {
-        GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                    "Error sending message to transport\n");
-        break;
-      }
-      delivering_messages++;
-      offset += csize;
+      GNUNET_break_op (0);
+      return;
     }
+    ret = GNUNET_TRANSPORT_communicator_receive (ch,
+                                                 &msg->sender,
+                                                 currhdr,
+                                                 GNUNET_TIME_UNIT_FOREVER_REL,
+                                                 &receive_complete_cb,
+                                                 NULL);
+    if (GNUNET_SYSERR == ret)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                  "Transport not up!\n");
+      return;   /* transport not up */
+    }
+    if (GNUNET_NO == ret)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                  "Error sending message to transport\n");
+      return;
+    }
+    delivering_messages++;
   }
   if (delivering_messages >= max_queue_length)
   {
