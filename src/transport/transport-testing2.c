@@ -370,9 +370,9 @@ handle_incoming_msg (void *cls,
 {
   struct GNUNET_TRANSPORT_TESTING_TransportCommunicatorHandle *tc_h = cls;
   struct GNUNET_MessageHeader *msg;
-  msg = (struct GNUNET_MessageHeader *)&inc_msg[1];
+  msg = (struct GNUNET_MessageHeader *) &inc_msg[1];
   size_t payload_len = ntohs (msg->size) - sizeof (struct
-                                                          GNUNET_MessageHeader);
+                                                   GNUNET_MessageHeader);
 
   if (NULL != tc_h->incoming_msg_cb)
   {
@@ -536,7 +536,6 @@ connect_cb (void *cls,
             struct GNUNET_MQ_Handle *mq)
 {
   struct GNUNET_TRANSPORT_TESTING_TransportCommunicatorHandle *tc_h = cls;
-  struct GNUNET_TRANSPORT_TESTING_TransportCommunicatorQueue *tc_queue_iter;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Client connected.\n");
   tc_h->client = client;
@@ -545,13 +544,18 @@ connect_cb (void *cls,
   if (NULL == tc_h->queue_head)
     return tc_h;
   /* Iterate over queues. They are yet to be opened. Request opening. */
-  while (NULL != (tc_queue_iter = tc_h->queue_head))
+  for (struct
+       GNUNET_TRANSPORT_TESTING_TransportCommunicatorQueue *tc_queue_iter =
+         tc_h->queue_head;
+       NULL != tc_queue_iter;
+       tc_queue_iter = tc_queue_iter->next)
   {
     if (NULL == tc_queue_iter->open_queue_env)
       continue;
     /* Send the previously created mq envelope to request the creation of the
      * queue. */
-    GNUNET_MQ_send (tc_h->c_mq, tc_queue_iter->open_queue_env);
+    GNUNET_MQ_send (tc_h->c_mq,
+                    tc_queue_iter->open_queue_env);
     tc_queue_iter->open_queue_env = NULL;
   }
   return tc_h;
@@ -576,6 +580,7 @@ disconnect_cb (void *cls,
   tc_h->client = NULL;
 }
 
+
 /**
  * Message was transmitted.  Process the request.
  *
@@ -588,9 +593,8 @@ handle_send_message_ack (void *cls,
 {
   struct GNUNET_TRANSPORT_TESTING_TransportCommunicatorHandle *tc_h = cls;
   GNUNET_SERVICE_client_continue (tc_h->client);
-  //NOP
+  // NOP
 }
-
 
 
 /**
@@ -650,11 +654,11 @@ transport_communicator_start (
 
 
   tc_h->sh = GNUNET_SERVICE_start ("transport",
-                            tc_h->cfg,
-                            &connect_cb,
-                            &disconnect_cb,
-                            tc_h,
-                            mh);
+                                   tc_h->cfg,
+                                   &connect_cb,
+                                   &disconnect_cb,
+                                   tc_h,
+                                   mh);
   GNUNET_assert (NULL != tc_h->sh);
 }
 
@@ -680,11 +684,12 @@ shutdown_process (struct GNUNET_OS_Process *proc)
   GNUNET_OS_process_destroy (proc);
 }
 
+
 static void
 shutdown_communicator (void *cls)
 {
   struct GNUNET_OS_Process *proc = cls;
-  shutdown_process(proc);
+  shutdown_process (proc);
 }
 
 
@@ -721,6 +726,7 @@ communicator_start (
   GNUNET_free (binary);
 }
 
+
 /**
  * @brief Task run at shutdown to kill communicator and clean up
  *
@@ -747,15 +753,15 @@ nat_start (
   LOG (GNUNET_ERROR_TYPE_DEBUG, "nat_start\n");
   binary = GNUNET_OS_get_libexec_binary_path ("gnunet-service-nat");
   tc_h->nat_proc = GNUNET_OS_start_process (GNUNET_YES,
-                                          GNUNET_OS_INHERIT_STD_OUT_AND_ERR,
-                                          NULL,
-                                          NULL,
-                                          NULL,
-                                          binary,
-                                          "gnunet-service-nat",
-                                          "-c",
-                                          tc_h->cfg_filename,
-                                          NULL);
+                                            GNUNET_OS_INHERIT_STD_OUT_AND_ERR,
+                                            NULL,
+                                            NULL,
+                                            NULL,
+                                            binary,
+                                            "gnunet-service-nat",
+                                            "-c",
+                                            tc_h->cfg_filename,
+                                            NULL);
   if (NULL == tc_h->nat_proc)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Failed to start NAT!");
@@ -766,14 +772,13 @@ nat_start (
 }
 
 
-
 static void
 do_shutdown (void *cls)
 {
   struct GNUNET_TRANSPORT_TESTING_TransportCommunicatorHandle *tc_h = cls;
-  shutdown_communicator(tc_h->c_proc);
-  shutdown_service(tc_h->sh);
-  shutdown_nat(tc_h->nat_proc);
+  shutdown_communicator (tc_h->c_proc);
+  shutdown_service (tc_h->sh);
+  shutdown_nat (tc_h->nat_proc);
 }
 
 
@@ -835,6 +840,7 @@ GNUNET_TRANSPORT_TESTING_transport_communicator_service_start (
   GNUNET_SCHEDULER_add_shutdown (&do_shutdown, tc_h);
   return tc_h;
 }
+
 
 /**
  * @brief Instruct communicator to open a queue
@@ -924,5 +930,6 @@ GNUNET_TRANSPORT_TESTING_transport_communicator_send
   memcpy (&msg[1], mh, inbox_size);
   GNUNET_free (mh);
   GNUNET_MQ_send (tc_queue->tc_h->c_mq, env);
+  // GNUNET_assert (0); // FIXME: not iplemented!
   return tc_t;
 }
