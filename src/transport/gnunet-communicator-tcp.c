@@ -1002,6 +1002,8 @@ queue_read (void *cls)
   rcvd = GNUNET_NETWORK_socket_recv (queue->sock,
                                      &queue->cread_buf[queue->cread_off],
                                      BUF_SIZE - queue->cread_off);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Received %lu bytes from TCP queue\n", rcvd);
   if (-1 == rcvd)
   {
     if ((EAGAIN != errno) && (EINTR != errno))
@@ -1011,6 +1013,7 @@ queue_read (void *cls)
       return;
     }
     /* try again */
+    left = GNUNET_TIME_absolute_get_remaining (queue->timeout);
     queue->read_task =
       GNUNET_SCHEDULER_add_read_net (left, queue->sock, &queue_read, queue);
     return;
@@ -1052,7 +1055,8 @@ queue_read (void *cls)
        wrong key for everything after the rekey; in that case, we have
        to re-do the decryption at 'total' instead of at 'max'. If there
        is no rekey and the last message is incomplete (max > total),
-       it is safe to keep the decryption so we shift by 'max' */if (GNUNET_YES == queue->rekeyed)
+       it is safe to keep the decryption so we shift by 'max' */
+    if (GNUNET_YES == queue->rekeyed)
     {
       max = total;
       queue->rekeyed = GNUNET_NO;
@@ -1069,6 +1073,7 @@ queue_read (void *cls)
     if (max_queue_length < queue->backpressure)
     {
       /* continue reading */
+      left = GNUNET_TIME_absolute_get_remaining (queue->timeout);
       queue->read_task =
         GNUNET_SCHEDULER_add_read_net (left, queue->sock, &queue_read, queue);
     }
@@ -1122,7 +1127,7 @@ tcp_address_to_sockaddr (const char *bindto, socklen_t *sock_len)
       i4->sin_family = AF_INET;
       i4->sin_port = htons ((uint16_t) port);
 #if HAVE_SOCKADDR_IN_SIN_LEN
-      sa4.sin_len = sizeof(sizeof(struct sockaddr_in));
+      i4->sin_len = sizeof(sizeof(struct sockaddr_in));
 #endif
       *sock_len = sizeof(struct sockaddr_in);
       in = (struct sockaddr *) i4;
@@ -1135,7 +1140,7 @@ tcp_address_to_sockaddr (const char *bindto, socklen_t *sock_len)
       i6->sin6_family = AF_INET6;
       i6->sin6_port = htons ((uint16_t) port);
 #if HAVE_SOCKADDR_IN_SIN_LEN
-      sa6.sin6_len = sizeof(sizeof(struct sockaddr_in6));
+      i6->sin6_len = sizeof(sizeof(struct sockaddr_in6));
 #endif
       *sock_len = sizeof(struct sockaddr_in6);
       in = (struct sockaddr *) i6;
@@ -1182,6 +1187,7 @@ tcp_address_to_sockaddr (const char *bindto, socklen_t *sock_len)
 
     if (1 == inet_pton (AF_INET, cp, &v4))
     {
+      v4.sin_family = AF_INET;
       v4.sin_port = htons ((uint16_t) port);
       in = GNUNET_memdup (&v4, sizeof(v4));
       *sock_len = sizeof(v4);
@@ -1202,6 +1208,7 @@ tcp_address_to_sockaddr (const char *bindto, socklen_t *sock_len)
     }
     if (1 == inet_pton (AF_INET6, start, &v6))
     {
+      v6.sin6_family = AF_INET6;
       v6.sin6_port = htons ((uint16_t) port);
       in = GNUNET_memdup (&v6, sizeof(v6));
       *sock_len = sizeof(v6);
@@ -1283,13 +1290,15 @@ queue_write (void *cls)
 {
   struct Queue *queue = cls;
   ssize_t sent;
-
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "In queue write\n");
   queue->write_task = NULL;
   if (0 != queue->cwrite_off)
   {
     sent = GNUNET_NETWORK_socket_send (queue->sock,
                                        queue->cwrite_buf,
                                        queue->cwrite_off);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Sent %lu bytes to TCP queue\n", sent);
     if ((-1 == sent) && (EAGAIN != errno) && (EINTR != errno))
     {
       GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "send");
@@ -1299,18 +1308,21 @@ queue_write (void *cls)
     if (sent > 0)
     {
       size_t usent = (size_t) sent;
-
+      queue->cwrite_off -= usent;
       memmove (queue->cwrite_buf,
                &queue->cwrite_buf[usent],
-               queue->cwrite_off - usent);
+               queue->cwrite_off);
       reschedule_queue_timeout (queue);
     }
   }
   /* can we encrypt more? (always encrypt full messages, needed
      such that #mq_cancel() can work!) */
   if ((0 < queue->rekey_left_bytes) &&
+      (queue->pwrite_off > 0) &&
       (queue->cwrite_off + queue->pwrite_off <= BUF_SIZE))
   {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Encrypting %lu bytes\n", queue->pwrite_off);
     GNUNET_assert (0 ==
                    gcry_cipher_encrypt (queue->out_cipher,
                                         &queue->cwrite_buf[queue->cwrite_off],
@@ -1342,6 +1354,8 @@ queue_write (void *cls)
   /* did we just finish writing 'finish'? */
   if ((0 == queue->cwrite_off) && (GNUNET_YES == queue->finishing))
   {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Finishing queue\n");
     queue_destroy (queue);
     return;
   }
@@ -1371,18 +1385,23 @@ mq_send (struct GNUNET_MQ_Handle *mq,
   struct Queue *queue = impl_state;
   uint16_t msize = ntohs (msg->size);
   struct TCPBox box;
-
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "In MQ send. Queue finishing: %s; write task running: %s\n",
+              (GNUNET_YES == queue->finishing) ? "yes" : "no",
+              (NULL == queue->write_task) ? "yes" : "no");
   GNUNET_assert (mq == queue->mq);
   if (GNUNET_YES == queue->finishing)
     return; /* this queue is dying, drop msg */
-  GNUNET_assert (0 == queue->pread_off);
+  GNUNET_assert (0 == queue->pwrite_off);
   box.header.type = htons (GNUNET_MESSAGE_TYPE_COMMUNICATOR_TCP_BOX);
   box.header.size = htons (msize);
   calculate_hmac (&queue->out_hmac, msg, msize, &box.hmac);
-  memcpy (&queue->pread_buf[queue->pread_off], &box, sizeof(box));
-  queue->pread_off += sizeof(box);
-  memcpy (&queue->pread_buf[queue->pread_off], msg, msize);
-  queue->pread_off += msize;
+  memcpy (&queue->pwrite_buf[queue->pwrite_off], &box, sizeof(box));
+  queue->pwrite_off += sizeof(box);
+  memcpy (&queue->pwrite_buf[queue->pwrite_off], msg, msize);
+  queue->pwrite_off += msize;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "%lu bytes of plaintext to send\n", queue->pwrite_off);
   GNUNET_assert (NULL != queue->sock);
   if (NULL == queue->write_task)
     queue->write_task =
@@ -1659,6 +1678,8 @@ proto_read_kx (void *cls)
   rcvd = GNUNET_NETWORK_socket_recv (pq->sock,
                                      &pq->ibuf[pq->ibuf_off],
                                      sizeof(pq->ibuf) - pq->ibuf_off);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Received %lu bytes for KX\n", rcvd);
   if (-1 == rcvd)
   {
     if ((EAGAIN != errno) && (EINTR != errno))
@@ -1787,6 +1808,7 @@ queue_read_kx (void *cls)
   rcvd = GNUNET_NETWORK_socket_recv (queue->sock,
                                      &queue->cread_buf[queue->cread_off],
                                      BUF_SIZE - queue->cread_off);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received %lu bytes for KX\n", rcvd);
   if (-1 == rcvd)
   {
     if ((EAGAIN != errno) && (EINTR != errno))
@@ -1867,6 +1889,8 @@ mq_init (void *cls, const struct GNUNET_PeerIdentity *peer, const char *address)
   socklen_t in_len;
   struct GNUNET_NETWORK_Handle *sock;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Connecting to %s\n", address);
   if (0 != strncmp (address,
                     COMMUNICATOR_ADDRESS_PREFIX "-",
                     strlen (COMMUNICATOR_ADDRESS_PREFIX "-")))
@@ -1887,7 +1911,8 @@ mq_init (void *cls, const struct GNUNET_PeerIdentity *peer, const char *address)
     GNUNET_free (in);
     return GNUNET_SYSERR;
   }
-  if (GNUNET_OK != GNUNET_NETWORK_socket_connect (sock, in, in_len))
+  if (GNUNET_OK != GNUNET_NETWORK_socket_connect (sock, in, in_len) &&
+      (errno != EINPROGRESS))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                 "connect to `%s' failed: %s",
