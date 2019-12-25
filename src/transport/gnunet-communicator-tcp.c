@@ -714,7 +714,6 @@ static void
 core_read_finished_cb (void *cls, int success)
 {
   struct Queue *queue = cls;
-
   if (GNUNET_OK != success)
     GNUNET_STATISTICS_update (stats,
                               "# messages lost in communicator API towards CORE",
@@ -1064,13 +1063,12 @@ queue_read (void *cls)
     memmove (queue->cread_buf, &queue->cread_buf[max], queue->cread_off - max);
     queue->cread_off -= max;
   }
-
   if (BUF_SIZE == queue->cread_off)
     return; /* buffer full, suspend reading */
   left = GNUNET_TIME_absolute_get_remaining (queue->timeout);
   if (0 != left.rel_value_us)
   {
-    if (max_queue_length < queue->backpressure)
+    if (max_queue_length > queue->backpressure)
     {
       /* continue reading */
       left = GNUNET_TIME_absolute_get_remaining (queue->timeout);
@@ -1346,7 +1344,7 @@ queue_write (void *cls)
     inject_rekey (queue);
   }
   if ((0 == queue->pwrite_off) && (! queue->finishing) &&
-      (queue->mq_awaits_continue))
+      (GNUNET_YES == queue->mq_awaits_continue))
   {
     queue->mq_awaits_continue = GNUNET_NO;
     GNUNET_MQ_impl_send_continue (queue->mq);
@@ -1718,6 +1716,7 @@ proto_read_kx (void *cls)
   queue->address = pq->address; /* steals reference */
   queue->address_len = pq->address_len;
   queue->target = tc.sender;
+  queue->sock = pq->sock;
   start_initial_kx_out (queue);
   boot_queue (queue, GNUNET_TRANSPORT_CS_INBOUND);
   queue->read_task =
@@ -1858,7 +1857,8 @@ queue_read_kx (void *cls)
            &queue->cread_buf[INITIAL_KX_SIZE],
            queue->cread_off - (INITIAL_KX_SIZE));
   queue->cread_off -= INITIAL_KX_SIZE;
-  queue->read_task = GNUNET_SCHEDULER_add_now (&queue_read, queue);
+  if (0 < queue->cread_off)
+    queue->read_task = GNUNET_SCHEDULER_add_now (&queue_read, queue);
 }
 
 
@@ -1911,7 +1911,7 @@ mq_init (void *cls, const struct GNUNET_PeerIdentity *peer, const char *address)
     GNUNET_free (in);
     return GNUNET_SYSERR;
   }
-  if (GNUNET_OK != GNUNET_NETWORK_socket_connect (sock, in, in_len) &&
+  if ((GNUNET_OK != GNUNET_NETWORK_socket_connect (sock, in, in_len)) &&
       (errno != EINPROGRESS))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
@@ -1929,6 +1929,7 @@ mq_init (void *cls, const struct GNUNET_PeerIdentity *peer, const char *address)
   queue->address_len = in_len;
   queue->sock = sock;
   boot_queue (queue, GNUNET_TRANSPORT_CS_OUTBOUND);
+  //queue->mq_awaits_continue = GNUNET_YES;
   queue->read_task =
     GNUNET_SCHEDULER_add_read_net (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT,
                                    queue->sock,
@@ -2255,8 +2256,8 @@ main (int argc, char *const *argv)
                                           options,
                                           &run,
                                           NULL))
-        ? 0
-        : 1;
+    ? 0
+    : 1;
   GNUNET_free ((void *) argv);
   return ret;
 }

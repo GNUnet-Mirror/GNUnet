@@ -197,8 +197,8 @@ latency_timeout (void *cls)
 {
   to_task = NULL;
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-              "Latency too high. Test failed. (Phase: %d. Received: %lu\n",
-              phase, num_received);
+              "Latency too high. Test failed. (Phase: %d. Sent: %lu, Received: %lu)\n",
+              phase, num_sent, num_received);
   ret = 2;
   GNUNET_SCHEDULER_shutdown ();
 }
