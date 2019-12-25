@@ -1553,7 +1553,7 @@ transmit_kx (struct Queue *queue,
   struct TCPConfirmation tc;
 
   memcpy (queue->cwrite_buf, epub, sizeof(*epub));
-  queue->cwrite_off = sizeof(epub);
+  queue->cwrite_off = sizeof(*epub);
   /* compute 'tc' and append in encrypted format to cwrite_buf */
   tc.sender = my_identity;
   tc.monotonic_time =
@@ -1621,7 +1621,7 @@ decrypt_and_check_tc (struct Queue *queue,
                          tc,
                          sizeof(*tc),
                          &ibuf[sizeof(struct GNUNET_CRYPTO_EcdhePublicKey)],
-                         sizeof(tc)));
+                         sizeof(*tc)));
   ths.purpose.purpose = htonl (GNUNET_SIGNATURE_COMMUNICATOR_TCP_HANDSHAKE);
   ths.purpose.size = htonl (sizeof(ths));
   ths.sender = tc->sender;
