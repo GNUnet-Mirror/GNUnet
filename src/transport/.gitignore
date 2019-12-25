@@ -88,3 +88,4 @@ gnunet-service-tng
 gnunet-communicator-tcp
 gnunet-communicator-udp
 test_communicator_unix
+test_communicator_basic_unix
