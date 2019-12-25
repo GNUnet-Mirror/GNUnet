@@ -225,6 +225,7 @@ static void
 long_test (void *cls)
 {
   char *payload;
+
   if (num_sent < BURST_PACKETS)
   {
     payload = make_payload (LONG_MESSAGE_SIZE);
@@ -375,7 +376,6 @@ incoming_message_cb (void *cls,
         GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &long_test,
                                       NULL);
       }
-
       break;
     }
   case TP_BURST_LONG:
@@ -412,7 +412,6 @@ incoming_message_cb (void *cls,
         to_task = NULL;
         GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &size_test,
                                       NULL);
-
       }
       break;
     }
@@ -462,7 +461,7 @@ run (void *cls)
   ret = 0;
   num_received = 0;
   num_sent = 0;
-  for (int i = 0; i < NUM_PEERS; i++)
+  for (unsigned int i = 0; i < NUM_PEERS; i++)
   {
     tc_hs[i] = GNUNET_TRANSPORT_TESTING_transport_communicator_service_start (
       "transport",
@@ -490,7 +489,8 @@ main (int argc,
   communicator_name = GNUNET_TESTING_get_testname_from_underscore (argv[0]);
   GNUNET_asprintf (&communicator_binary, "gnunet-communicator-%s",
                    communicator_name);
-  cfg_peers_name = GNUNET_malloc (sizeof(char*) * NUM_PEERS);
+  cfg_peers_name = GNUNET_new_array (NUM_PEERS,
+                                     char *);
   if (GNUNET_OK != GNUNET_log_setup ("test_communicator_basic",
                                      "DEBUG",
                                      "test_communicator_basic.log"))
@@ -544,7 +544,8 @@ main (int argc,
     GNUNET_free (private_key);
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                 "Identity of peer %u is %s\n",
-                i, GNUNET_i2s_full (&peer_id[i]));
+                i,
+                GNUNET_i2s_full (&peer_id[i]));
   }
   fprintf (stderr, "Starting test...\n");
   GNUNET_SCHEDULER_run (&run,
