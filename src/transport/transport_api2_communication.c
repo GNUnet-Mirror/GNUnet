@@ -872,7 +872,7 @@ GNUNET_TRANSPORT_communicator_receive (
   {
     GNUNET_log (
       GNUNET_ERROR_TYPE_WARNING,
-      "Dropping message: transprot is too slow, queue length %llu exceeded\n",
+      "Dropping message: transport is too slow, queue length %llu exceeded\n",
       ch->max_queue_length);
     return GNUNET_NO;
   }
@@ -888,6 +888,10 @@ GNUNET_TRANSPORT_communicator_receive (
   im->expected_address_validity =
     GNUNET_TIME_relative_hton (expected_addr_validity);
   im->sender = *sender;
+  // FIXME: this is expensive, would be better if we would
+  // re-design the API to allow us to create the envelope first,
+  // and then have the application fill in the body so we do
+  // not have to memcpy()
   memcpy (&im[1], msg, msize);
   if (NULL != cb)
   {

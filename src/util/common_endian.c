@@ -31,6 +31,7 @@
 #define LOG(kind, ...) GNUNET_log_from (kind, "util-common-endian", __VA_ARGS__)
 
 
+#ifndef htonbe64
 uint64_t
 GNUNET_htonll (uint64_t n)
 {
@@ -44,6 +45,10 @@ GNUNET_htonll (uint64_t n)
 }
 
 
+#endif
+
+
+#ifndef be64toh
 uint64_t
 GNUNET_ntohll (uint64_t n)
 {
@@ -55,6 +60,9 @@ GNUNET_ntohll (uint64_t n)
   #error byteorder undefined
 #endif
 }
+
+
+#endif
 
 
 /**
