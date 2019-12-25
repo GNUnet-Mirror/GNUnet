@@ -997,6 +997,11 @@ GNUNET_error_type_to_string (enum GNUNET_ErrorType kind);
 
 /* ************************* endianess conversion ****************** */
 
+#ifdef htonbe64
+
+#define GNUNET_htonll(n) htobe64 (n)
+
+#else
 /**
  * Convert unsigned 64-bit integer to network byte order.
  *
@@ -1008,7 +1013,14 @@ GNUNET_error_type_to_string (enum GNUNET_ErrorType kind);
 uint64_t
 GNUNET_htonll (uint64_t n);
 
+#endif
 
+
+#ifdef be64toh
+
+#define GNUNET_ntohll(n) be64toh (n)
+
+#else
 /**
  * Convert unsigned 64-bit integer to host byte order.
  *
@@ -1019,6 +1031,8 @@ GNUNET_htonll (uint64_t n);
  */
 uint64_t
 GNUNET_ntohll (uint64_t n);
+
+#endif
 
 
 /**
