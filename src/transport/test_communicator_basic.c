@@ -54,7 +54,7 @@ GNUNET_TRANSPORT_TESTING_TransportCommunicatorHandle *tc_hs[NUM_PEERS];
 
 static struct GNUNET_CONFIGURATION_Handle *cfg_peers[NUM_PEERS];
 
-static char **cfg_peers_name;
+static char *cfg_peers_name[NUM_PEERS];
 
 static int ret;
 
@@ -489,8 +489,6 @@ main (int argc,
   communicator_name = GNUNET_TESTING_get_testname_from_underscore (argv[0]);
   GNUNET_asprintf (&communicator_binary, "gnunet-communicator-%s",
                    communicator_name);
-  cfg_peers_name = GNUNET_new_array (NUM_PEERS,
-                                     char *);
   if (GNUNET_OK != GNUNET_log_setup ("test_communicator_basic",
                                      "DEBUG",
                                      "test_communicator_basic.log"))
