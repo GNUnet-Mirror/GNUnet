@@ -78,18 +78,19 @@ static struct GNUNET_TRANSPORT_TESTING_TransportCommunicatorQueue *my_tc;
 #define LONG_BURST_WINDOW \
   GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS,2)
 
-#define BURST_SHORT 0
-
-#define BURST_LONG 1
-
-#define SIZE_CHECK 2
+enum TestPhase
+{
+  TP_BURST_SHORT,
+  TP_BURST_LONG,
+  TP_SIZE_CHECK
+};
 
 
 static size_t num_sent = 0;
 
 static uint32_t ack = 0;
 
-static int phase;
+static enum TestPhase phase;
 
 static size_t num_received = 0;
 
@@ -199,8 +200,8 @@ static void
 size_test (void *cls)
 {
   char *payload;
-  phase = SIZE_CHECK;
 
+  phase = TP_SIZE_CHECK;
   if (ack < 64000) // Leave some room for our protocol.
   {
     payload = make_payload (ack);
@@ -296,7 +297,7 @@ add_queue_cb (void *cls,
        "Queue established, starting test...\n");
   start_short = GNUNET_TIME_absolute_get ();
   my_tc = tc_queue;
-  phase = BURST_SHORT;
+  phase = TP_BURST_SHORT;
   GNUNET_SCHEDULER_add_now (&short_test, tc_queue);
 }
 
@@ -329,7 +330,7 @@ update_avg_latency (const char*payload)
  * @param tc_h Handle to the receiving communicator
  * @param msg Received message
  */
-void
+static void
 incoming_message_cb (void *cls,
                      struct GNUNET_TRANSPORT_TESTING_TransportCommunicatorHandle
                      *tc_h,
@@ -342,97 +343,105 @@ incoming_message_cb (void *cls,
                 "unexpected receiver...\n");
     return;
   }
-  if (phase == BURST_SHORT)
+  switch (phase)
   {
-    GNUNET_assert (SHORT_MESSAGE_SIZE == payload_len);
-    num_received++;
-    duration = GNUNET_TIME_absolute_get_duration (start_short);
-    update_avg_latency (payload);
-    if (num_received == BURST_PACKETS)
+  case TP_BURST_SHORT:
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
-                  "Short size packet test done.\n");
-      GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
-                  "%lu/%lu packets in %llu us (%llu kb/s) -- avg latency: %llu us\n",
-                  (unsigned long) num_received,
-                  (unsigned long) num_sent,
-                  (unsigned long long) duration.rel_value_us,
-                  (unsigned long long) ((SHORT_MESSAGE_SIZE * num_received)
-                                        / (duration.rel_value_us
-                                           /
-                                           1000)),
-                  (unsigned long long) avg_latency);
-      start_long = GNUNET_TIME_absolute_get ();
-      phase = BURST_LONG;
-      num_sent = 0;
-      avg_latency = 0;
-      num_received = 0;
-      GNUNET_SCHEDULER_cancel (to_task);
-      to_task = NULL;
-      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &long_test, NULL);
-    }
+      GNUNET_assert (SHORT_MESSAGE_SIZE == payload_len);
+      num_received++;
+      duration = GNUNET_TIME_absolute_get_duration (start_short);
+      update_avg_latency (payload);
+      if (num_received == BURST_PACKETS)
+      {
+        GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
+                    "Short size packet test done.\n");
+        GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
+                    "%lu/%lu packets in %llu us (%llu kb/s) -- avg latency: %llu us\n",
+                    (unsigned long) num_received,
+                    (unsigned long) num_sent,
+                    (unsigned long long) duration.rel_value_us,
+                    (unsigned long long) ((SHORT_MESSAGE_SIZE * num_received)
+                                          / (duration.rel_value_us
+                                             /
+                                             1000)),
+                    (unsigned long long) avg_latency);
+        start_long = GNUNET_TIME_absolute_get ();
+        phase = TP_BURST_LONG;
+        num_sent = 0;
+        avg_latency = 0;
+        num_received = 0;
+        GNUNET_SCHEDULER_cancel (to_task);
+        to_task = NULL;
+        GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &long_test,
+                                      NULL);
+      }
 
-  }
-  else if (phase == BURST_LONG)
-  {
-    if (LONG_MESSAGE_SIZE != payload_len)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                  "Ignoring packet with wrong length\n");
-      return; // Ignore
+      break;
     }
-    num_received++;
-    duration = GNUNET_TIME_absolute_get_duration (start_long);
-    update_avg_latency (payload);
-    if (num_received == BURST_PACKETS)
+  case TP_BURST_LONG:
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
-                  "Long size packet test done.\n");
-      GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
-                  "%lu/%lu packets in %llu us (%llu kb/s) -- avg latency: %llu us\n",
-                  (unsigned long) num_received,
-                  (unsigned long) num_sent,
-                  (unsigned long long) duration.rel_value_us,
-                  (unsigned long long) ((LONG_MESSAGE_SIZE * num_received)
-                                        / (duration.rel_value_us
-                                           /
-                                           1000)),
-                  (unsigned long long) avg_latency);
-      ack = 10;
-      phase = SIZE_CHECK;
-      num_received = 0;
-      num_sent = 0;
-      avg_latency = 0;
-      GNUNET_SCHEDULER_cancel (to_task);
-      to_task = NULL;
-      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &size_test, NULL);
+      if (LONG_MESSAGE_SIZE != payload_len)
+      {
+        GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                    "Ignoring packet with wrong length\n");
+        return; // Ignore
+      }
+      num_received++;
+      duration = GNUNET_TIME_absolute_get_duration (start_long);
+      update_avg_latency (payload);
+      if (num_received == BURST_PACKETS)
+      {
+        GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
+                    "Long size packet test done.\n");
+        GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
+                    "%lu/%lu packets in %llu us (%llu kb/s) -- avg latency: %llu us\n",
+                    (unsigned long) num_received,
+                    (unsigned long) num_sent,
+                    (unsigned long long) duration.rel_value_us,
+                    (unsigned long long) ((LONG_MESSAGE_SIZE * num_received)
+                                          / (duration.rel_value_us
+                                             /
+                                             1000)),
+                    (unsigned long long) avg_latency);
+        ack = 10;
+        phase = TP_SIZE_CHECK;
+        num_received = 0;
+        num_sent = 0;
+        avg_latency = 0;
+        GNUNET_SCHEDULER_cancel (to_task);
+        to_task = NULL;
+        GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &size_test,
+                                      NULL);
 
+      }
+      break;
     }
-  }
-  else         // if (phase == SIZE_CHECK) {
-  {
-    num_received++;
-    update_avg_latency (payload);
-    if (num_received >= (64000 - 10) / 5)
+  case TP_SIZE_CHECK:
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
-                  "Size packet test done.\n");
-      GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
-                  "%lu/%lu packets -- avg latency: %llu us\n",
-                  (unsigned long) num_received,
-                  (unsigned long) num_sent,
-                  (unsigned long long) avg_latency);
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Finished\n");
-      GNUNET_SCHEDULER_cancel (to_task);
-      to_task = NULL;
-      GNUNET_SCHEDULER_shutdown ();
-      // Finished!
-      // }
+      num_received++;
+      update_avg_latency (payload);
+      if (num_received >= (64000 - 10) / 5)
+      {
+        GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
+                    "Size packet test done.\n");
+        GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
+                    "%lu/%lu packets -- avg latency: %llu us\n",
+                    (unsigned long) num_received,
+                    (unsigned long) num_sent,
+                    (unsigned long long) avg_latency);
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                    "Finished\n");
+        GNUNET_SCHEDULER_cancel (to_task);
+        to_task = NULL;
+        GNUNET_SCHEDULER_shutdown ();
+        // Finished!
+        // }
+      }
+      break;
     }
   }
   // Reset timeout
-  if (to_task != NULL)
+  if (NULL != to_task)
   {
     GNUNET_SCHEDULER_cancel (to_task);
     to_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
