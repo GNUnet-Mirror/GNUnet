@@ -238,7 +238,7 @@ long_test (void *cls)
                                               NULL);
 
     GNUNET_SCHEDULER_add_now (&long_test, NULL);
-    //if (num_sent == BURST_PACKETS)
+    // if (num_sent == BURST_PACKETS)
     //  GNUNET_SCHEDULER_add_delayed (LONG_BURST_WINDOW,
     //                                &long_test, NULL);
     return;
@@ -269,10 +269,8 @@ short_test (void *cls)
       GNUNET_SCHEDULER_add_delayed (SHORT_BURST_WINDOW,
                                     &short_test, NULL);
       return;
-    }*/
-  }
+    }*/}
 }
-
 
 
 /**
@@ -356,12 +354,14 @@ incoming_message_cb (void *cls,
                   "Short size packet test done.\n");
       GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
                   "%lu/%lu packets in %llu us (%llu kb/s) -- avg latency: %llu us\n",
-                  num_received,
-                  num_sent,
-                  duration.rel_value_us,
-                  (SHORT_MESSAGE_SIZE * num_received) / (duration.rel_value_us
-                                                         / 1000),
-                  avg_latency);
+                  (unsigned long) num_received,
+                  (unsigned long) num_sent,
+                  (unsigned long long) duration.rel_value_us,
+                  (unsigned long long) ((SHORT_MESSAGE_SIZE * num_received)
+                                        / (duration.rel_value_us
+                                           /
+                                           1000)),
+                  (unsigned long long) avg_latency);
       start_long = GNUNET_TIME_absolute_get ();
       phase = BURST_LONG;
       num_sent = 0;
@@ -390,12 +390,14 @@ incoming_message_cb (void *cls,
                   "Long size packet test done.\n");
       GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
                   "%lu/%lu packets in %llu us (%llu kb/s) -- avg latency: %llu us\n",
-                  num_received,
-                  num_sent,
-                  duration.rel_value_us,
-                  (LONG_MESSAGE_SIZE * num_received) / (duration.rel_value_us
-                                                        / 1000),
-                  avg_latency);
+                  (unsigned long) num_received,
+                  (unsigned long) num_sent,
+                  (unsigned long long) duration.rel_value_us,
+                  (unsigned long long) ((LONG_MESSAGE_SIZE * num_received)
+                                        / (duration.rel_value_us
+                                           /
+                                           1000)),
+                  (unsigned long long) avg_latency);
       ack = 10;
       phase = SIZE_CHECK;
       num_received = 0;
@@ -417,9 +419,9 @@ incoming_message_cb (void *cls,
                   "Size packet test done.\n");
       GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
                   "%lu/%lu packets -- avg latency: %llu us\n",
-                  num_received,
-                  num_sent,
-                  avg_latency);
+                  (unsigned long) num_received,
+                  (unsigned long) num_sent,
+                  (unsigned long long) avg_latency);
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Finished\n");
       GNUNET_SCHEDULER_cancel (to_task);
