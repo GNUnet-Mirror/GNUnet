@@ -76,7 +76,7 @@ static struct GNUNET_TRANSPORT_TESTING_TransportCommunicatorQueue *my_tc;
 
 #define FIXME_DEAD_BURST_RUNS 1
 
-#define TOTAL_ITERATIONS 10
+#define TOTAL_ITERATIONS 20
 
 static unsigned int iterations_left = TOTAL_ITERATIONS;
 
