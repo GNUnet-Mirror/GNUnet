@@ -21,7 +21,7 @@
 #
 AC_PREREQ(2.61)
 # Checks for programs.
-AC_INIT([gnunet], [0.12.0], [bug-gnunet@gnu.org])
+AC_INIT([gnunet], [0.12.1], [bug-gnunet@gnu.org])
 AC_CONFIG_AUX_DIR([build-aux])
 
 # check for legacy option that is no longer supported (#5627) and fail hard

@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gnunet 0.9.5a\n"
 "Report-Msgid-Bugs-To: gnunet-developers@mail.gnu.org\n"
-"POT-Creation-Date: 2019-12-20 00:22+0000\n"
+"POT-Creation-Date: 2019-12-25 13:08+0100\n"
 "PO-Revision-Date: 2013-02-23 17:50+0100\n"
 "Last-Translator: Miguel Ángel Arruga Vivas <rosen644835@gmail.com>\n"
 "Language-Team: Spanish <es@li.org>\n"
@@ -7164,7 +7164,7 @@ msgstr "# mensajes «HELLO» recibidos"
 msgid "GNUnet topology control"
 msgstr ""
 
-#: src/transport/gnunet-communicator-tcp.c:2154
+#: src/transport/gnunet-communicator-tcp.c:2196
 #: src/transport/gnunet-communicator-udp.c:2680
 #: src/transport/gnunet-service-tng.c:10024
 #: src/transport/gnunet-service-transport.c:2627
@@ -7174,7 +7174,7 @@ msgstr ""
 "El servicio de transporte carece de opciones de configuración de clave.  "
 "Saliendo.\n"
 
-#: src/transport/gnunet-communicator-tcp.c:2212
+#: src/transport/gnunet-communicator-tcp.c:2254
 #, fuzzy
 msgid "GNUnet TCP communicator"
 msgstr "Configurador Gtk de GNUnet"
@@ -7184,19 +7184,25 @@ msgstr "Configurador Gtk de GNUnet"
 msgid "GNUnet UDP communicator"
 msgstr "Configurador Gtk de GNUnet"
 
-#: src/transport/gnunet-communicator-unix.c:764
+#: src/transport/gnunet-communicator-unix.c:782
 #, fuzzy
 msgid ""
 "Maximum number of UNIX connections exceeded, dropping incoming message\n"
 msgstr "El número máximo de conexiones es %u\n"
 
-#: src/transport/gnunet-communicator-unix.c:1019
+#: src/transport/gnunet-communicator-unix.c:1009
+#, fuzzy
+msgid "UNIX communicator is lacking key configuration settings. Exiting.\n"
+msgstr ""
+"El servicio NSE carece de opciones de configuración de clave.  Saliendo.\n"
+
+#: src/transport/gnunet-communicator-unix.c:1054
 #: src/transport/plugin_transport_unix.c:1383
 #, fuzzy, c-format
 msgid "Cannot create path to `%s'\n"
 msgstr "Se produjo un fallo al crear la página para «%s»\n"
 
-#: src/transport/gnunet-communicator-unix.c:1097
+#: src/transport/gnunet-communicator-unix.c:1132
 msgid "GNUnet UNIX domain socket communicator"
 msgstr ""
 
@@ -8323,7 +8329,7 @@ msgid "do daemonize (detach from terminal)"
 msgstr "demonizar (desasociar del terminal)"
 
 #: src/transport/tcp_service_legacy.c:1397
-#: src/transport/transport-testing2.c:707 src/util/service.c:2073
+#: src/transport/transport-testing2.c:814 src/util/service.c:2073
 #: src/util/service.c:2085
 #, fuzzy, c-format
 msgid "Malformed configuration file `%s', exit ...\n"
@@ -9402,7 +9408,7 @@ msgstr "Configurar túneles vía VPN."
 msgid "Failed to connect to the namestore!\n"
 msgstr "¡Se produjo un fallo al conectar con el almacén de nombres!\n"
 
-#, fuzzy, c-format
+#, fuzzy
 #~ msgid "No default ego configured in identity service\n"
 #~ msgstr "'%s': servicio desconocido: %s\n"
 
@@ -10840,10 +10846,6 @@ msgstr "¡Se produjo un fallo al conectar con el almacén de nombres!\n"
 #~ msgstr ""
 #~ "proveer información acerca de todos los túneles (de forma continua) SIN "
 #~ "IMPLEMENTAR"
-
-#~ msgid "NSE service is lacking key configuration settings.  Exiting.\n"
-#~ msgstr ""
-#~ "El servicio NSE carece de opciones de configuración de clave.  Saliendo.\n"
 
 #~ msgid "Peer `%s': %s <unable to resolve address>\n"
 #~ msgstr "Par «%s»: %s <no se puede resolver la dirección>\n"

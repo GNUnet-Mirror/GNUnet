@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: GNUnet 0.7.0b\n"
 "Report-Msgid-Bugs-To: gnunet-developers@mail.gnu.org\n"
-"POT-Creation-Date: 2019-12-20 00:22+0000\n"
+"POT-Creation-Date: 2019-12-25 13:08+0100\n"
 "PO-Revision-Date: 2006-01-21 17:16+0100\n"
 "Last-Translator: Daniel Nylander <po@danielnylander.se>\n"
 "Language-Team: Swedish <tp-sv@listor.tp-sv.se>\n"
@@ -6983,7 +6983,7 @@ msgstr "# krypterade PONG-meddelanden mottagna"
 msgid "GNUnet topology control"
 msgstr ""
 
-#: src/transport/gnunet-communicator-tcp.c:2154
+#: src/transport/gnunet-communicator-tcp.c:2196
 #: src/transport/gnunet-communicator-udp.c:2680
 #: src/transport/gnunet-service-tng.c:10024
 #: src/transport/gnunet-service-transport.c:2627
@@ -6991,7 +6991,7 @@ msgstr ""
 msgid "Transport service is lacking key configuration settings. Exiting.\n"
 msgstr "GNUnet-konfiguration"
 
-#: src/transport/gnunet-communicator-tcp.c:2212
+#: src/transport/gnunet-communicator-tcp.c:2254
 msgid "GNUnet TCP communicator"
 msgstr ""
 
@@ -6999,19 +6999,24 @@ msgstr ""
 msgid "GNUnet UDP communicator"
 msgstr ""
 
-#: src/transport/gnunet-communicator-unix.c:764
+#: src/transport/gnunet-communicator-unix.c:782
 #, fuzzy
 msgid ""
 "Maximum number of UNIX connections exceeded, dropping incoming message\n"
 msgstr "Maximalt antal chattklienter uppnått.\n"
 
-#: src/transport/gnunet-communicator-unix.c:1019
+#: src/transport/gnunet-communicator-unix.c:1009
+#, fuzzy
+msgid "UNIX communicator is lacking key configuration settings. Exiting.\n"
+msgstr "GNUnet-konfiguration"
+
+#: src/transport/gnunet-communicator-unix.c:1054
 #: src/transport/plugin_transport_unix.c:1383
 #, fuzzy, c-format
 msgid "Cannot create path to `%s'\n"
 msgstr "Kunde inte skapa namnrymd \"%s\" (existerar?).\n"
 
-#: src/transport/gnunet-communicator-unix.c:1097
+#: src/transport/gnunet-communicator-unix.c:1132
 msgid "GNUnet UNIX domain socket communicator"
 msgstr ""
 
@@ -8118,7 +8123,7 @@ msgid "do daemonize (detach from terminal)"
 msgstr ""
 
 #: src/transport/tcp_service_legacy.c:1397
-#: src/transport/transport-testing2.c:707 src/util/service.c:2073
+#: src/transport/transport-testing2.c:814 src/util/service.c:2073
 #: src/util/service.c:2085
 #, fuzzy, c-format
 msgid "Malformed configuration file `%s', exit ...\n"
@@ -9167,7 +9172,7 @@ msgstr ""
 msgid "Failed to connect to the namestore!\n"
 msgstr "Misslyckades att ansluta till gnunetd.\n"
 
-#, fuzzy, c-format
+#, fuzzy
 #~ msgid "No default ego configured in identity service\n"
 #~ msgstr "\"%s\": okänd tjänst: %s\n"
 

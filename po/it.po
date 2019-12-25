@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gnunet 0.10.1\n"
 "Report-Msgid-Bugs-To: gnunet-developers@mail.gnu.org\n"
-"POT-Creation-Date: 2019-12-20 00:22+0000\n"
+"POT-Creation-Date: 2019-12-25 13:08+0100\n"
 "PO-Revision-Date: 2019-10-16 11:00+0200\n"
 "Last-Translator: Sebastiano Pistore <sebastianopistore.info@protonmail.ch>\n"
 "Language-Team: Italian <tp@lists.linux.it>\n"
@@ -6689,14 +6689,14 @@ msgstr ""
 msgid "GNUnet topology control"
 msgstr ""
 
-#: src/transport/gnunet-communicator-tcp.c:2154
+#: src/transport/gnunet-communicator-tcp.c:2196
 #: src/transport/gnunet-communicator-udp.c:2680
 #: src/transport/gnunet-service-tng.c:10024
 #: src/transport/gnunet-service-transport.c:2627
 msgid "Transport service is lacking key configuration settings. Exiting.\n"
 msgstr ""
 
-#: src/transport/gnunet-communicator-tcp.c:2212
+#: src/transport/gnunet-communicator-tcp.c:2254
 msgid "GNUnet TCP communicator"
 msgstr ""
 
@@ -6704,18 +6704,22 @@ msgstr ""
 msgid "GNUnet UDP communicator"
 msgstr ""
 
-#: src/transport/gnunet-communicator-unix.c:764
+#: src/transport/gnunet-communicator-unix.c:782
 msgid ""
 "Maximum number of UNIX connections exceeded, dropping incoming message\n"
 msgstr ""
 
-#: src/transport/gnunet-communicator-unix.c:1019
+#: src/transport/gnunet-communicator-unix.c:1009
+msgid "UNIX communicator is lacking key configuration settings. Exiting.\n"
+msgstr ""
+
+#: src/transport/gnunet-communicator-unix.c:1054
 #: src/transport/plugin_transport_unix.c:1383
 #, c-format
 msgid "Cannot create path to `%s'\n"
 msgstr ""
 
-#: src/transport/gnunet-communicator-unix.c:1097
+#: src/transport/gnunet-communicator-unix.c:1132
 msgid "GNUnet UNIX domain socket communicator"
 msgstr ""
 
@@ -7760,7 +7764,7 @@ msgid "do daemonize (detach from terminal)"
 msgstr ""
 
 #: src/transport/tcp_service_legacy.c:1397
-#: src/transport/transport-testing2.c:707 src/util/service.c:2073
+#: src/transport/transport-testing2.c:814 src/util/service.c:2073
 #: src/util/service.c:2085
 #, c-format
 msgid "Malformed configuration file `%s', exit ...\n"
