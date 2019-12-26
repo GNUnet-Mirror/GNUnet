@@ -1388,6 +1388,7 @@ mq_send (struct GNUNET_MQ_Handle *mq,
               (GNUNET_YES == queue->finishing) ? "yes" : "no",
               (NULL == queue->write_task) ? "yes" : "no");
   GNUNET_assert (mq == queue->mq);
+  queue->mq_awaits_continue = GNUNET_YES;
   if (GNUNET_YES == queue->finishing)
     return; /* this queue is dying, drop msg */
   GNUNET_assert (0 == queue->pwrite_off);
