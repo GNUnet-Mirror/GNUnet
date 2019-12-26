@@ -1272,8 +1272,13 @@ inject_rekey (struct Queue *queue)
                                                         &thp.purpose,
                                                         &rekey.sender_sig));
   calculate_hmac (&queue->out_hmac, &rekey, sizeof(rekey), &rekey.hmac);
-  memcpy (queue->pwrite_buf, &rekey, sizeof(rekey));
-  queue->pwrite_off = sizeof(rekey);
+  GNUNET_assert (0 ==
+                 gcry_cipher_encrypt (queue->out_cipher,
+                                      &queue->cwrite_buf[queue->cwrite_off],
+                                      sizeof(rekey),
+                                      &rekey,
+                                      sizeof(rekey)));
+  queue->cwrite_off += sizeof(rekey);
 }
 
 
@@ -1339,9 +1344,9 @@ queue_write (void *cls)
        (0 ==
         GNUNET_TIME_absolute_get_remaining (queue->rekey_time).rel_value_us)))
   {
+    inject_rekey (queue);
     gcry_cipher_close (queue->out_cipher);
     setup_out_cipher (queue);
-    inject_rekey (queue);
   }
   if ((0 == queue->pwrite_off) && (! queue->finishing) &&
       (GNUNET_YES == queue->mq_awaits_continue))
