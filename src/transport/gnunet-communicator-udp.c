@@ -1593,7 +1593,8 @@ sock_read (void *cls)
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_DEBUG, "recv");
     return;
   }
-
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Read %lu bytes\n", rcvd);
   /* first, see if it is a UDPBox */
   if (rcvd > sizeof(struct UDPBox))
   {
@@ -1652,7 +1653,8 @@ sock_read (void *cls)
                               GNUNET_NO);
     return;
   }
-
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Got KX\n");
   {
     const struct InitialKX *kx;
     struct SharedSecret *ss;
@@ -1669,6 +1671,8 @@ sock_read (void *cls)
                                   sizeof(pbuf),
                                   pbuf))
     {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Unable to decrypt tag, dropping...\n");
       GNUNET_free (ss);
       GNUNET_STATISTICS_update (
         stats,
@@ -1795,12 +1799,15 @@ udp_address_to_sockaddr (const char *bindto, socklen_t *sock_len)
   {
     /* try IPv4 */
     struct sockaddr_in v4;
-
-    if (1 == inet_pton (AF_INET, cp, &v4))
+    if (1 == inet_pton (AF_INET, cp, &v4.sin_addr))
     {
+      v4.sin_family = AF_INET;
       v4.sin_port = htons ((uint16_t) port);
-      in = GNUNET_memdup (&v4, sizeof(v4));
-      *sock_len = sizeof(v4);
+#if HAVE_SOCKADDR_IN_SIN_LEN
+      v4.sin_len = sizeof(struct sockaddr_in);
+#endif
+      in = GNUNET_memdup (&v4, sizeof(struct sockaddr_in));
+      *sock_len = sizeof(struct sockaddr_in);
       GNUNET_free (cp);
       return in;
     }
@@ -1816,9 +1823,13 @@ udp_address_to_sockaddr (const char *bindto, socklen_t *sock_len)
       start++;   /* skip over '[' */
       cp[strlen (cp) - 1] = '\0';  /* eat ']' */
     }
-    if (1 == inet_pton (AF_INET6, start, &v6))
+    if (1 == inet_pton (AF_INET6, start, &v6.sin6_addr))
     {
+      v6.sin6_family = AF_INET6;
       v6.sin6_port = htons ((uint16_t) port);
+#if HAVE_SOCKADDR_IN_SIN_LEN
+      v6.sin6_len = sizeof(sizeof(struct sockaddr_in6));
+#endif
       in = GNUNET_memdup (&v6, sizeof(v6));
       *sock_len = sizeof(v6);
       GNUNET_free (cp);
@@ -1914,7 +1925,7 @@ mq_send (struct GNUNET_MQ_Handle *mq,
                                                           &uhs.purpose,
                                                           &uc.sender_sig));
     /* Leave space for kx */
-    dpos = sizeof(struct GNUNET_CRYPTO_EcdhePublicKey);
+    dpos = sizeof(kx);
     /* Append encrypted uc to dgram */
     GNUNET_assert (0 == gcry_cipher_encrypt (out_cipher,
                                              &dgram[dpos],
@@ -1939,6 +1950,8 @@ mq_send (struct GNUNET_MQ_Handle *mq,
                                             receiver->address,
                                             receiver->address_len))
       GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "send");
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Sending KX to %s\n", GNUNET_a2s (receiver->address, receiver->address_len));
     GNUNET_MQ_impl_send_continue (mq);
     return;
   }   /* End of KX encryption method */
@@ -1973,12 +1986,17 @@ mq_send (struct GNUNET_MQ_Handle *mq,
                                               receiver->address,
                                               receiver->address_len))
         GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "send");
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Sending data\n");
+
       GNUNET_MQ_impl_send_continue (mq);
       receiver->acks_available--;
       if (0 == receiver->acks_available)
       {
         /* We have no more ACKs => MTU change! */
         setup_receiver_mq (receiver);
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                    "No more acks, MTU changed\n");
       }
       return;
     }
@@ -2505,8 +2523,11 @@ iface_proc (void *cls,
   GNUNET_assert (GNUNET_OK == GNUNET_CRYPTO_eddsa_sign (my_private_key,
                                                         &ubs.purpose,
                                                         &bi->bcm.sender_sig));
-  bi->broadcast_task = GNUNET_SCHEDULER_add_now (&ifc_broadcast, bi);
-  GNUNET_CONTAINER_DLL_insert (bi_head, bi_tail, bi);
+  if (NULL != broadcast_addr)
+  {
+    bi->broadcast_task = GNUNET_SCHEDULER_add_now (&ifc_broadcast, bi);
+    GNUNET_CONTAINER_DLL_insert (bi_head, bi_tail, bi);
+  }
   if ((AF_INET6 == addr->sa_family) && (NULL != broadcast_addr))
   {
     /* Create IPv6 multicast request */
@@ -2591,10 +2612,10 @@ run (void *cls,
   (void) cls;
   cfg = c;
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_filename (cfg,
-                                               COMMUNICATOR_CONFIG_SECTION,
-                                               "BINDTO",
-                                               &bindto))
+      GNUNET_CONFIGURATION_get_value_string (cfg,
+                                             COMMUNICATOR_CONFIG_SECTION,
+                                             "BINDTO",
+                                             &bindto))
   {
     GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR,
                                COMMUNICATOR_CONFIG_SECTION,
@@ -2631,6 +2652,7 @@ run (void *cls,
     GNUNET_free (bindto);
     return;
   }
+
   /* We might have bound to port 0, allowing the OS to figure it out;
      thus, get the real IN-address from the socket */
   sto_len = sizeof(in_sto);

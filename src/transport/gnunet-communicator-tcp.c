@@ -1183,10 +1183,13 @@ tcp_address_to_sockaddr (const char *bindto, socklen_t *sock_len)
     /* try IPv4 */
     struct sockaddr_in v4;
 
-    if (1 == inet_pton (AF_INET, cp, &v4))
+    if (1 == inet_pton (AF_INET, cp, &v4.sin_addr))
     {
       v4.sin_family = AF_INET;
       v4.sin_port = htons ((uint16_t) port);
+#if HAVE_SOCKADDR_IN_SIN_LEN
+      v4.sin_len = sizeof(struct sockaddr_in);
+#endif
       in = GNUNET_memdup (&v4, sizeof(v4));
       *sock_len = sizeof(v4);
       GNUNET_free (cp);
@@ -1204,10 +1207,13 @@ tcp_address_to_sockaddr (const char *bindto, socklen_t *sock_len)
       start++;   /* skip over '[' */
       cp[strlen (cp) - 1] = '\0';  /* eat ']' */
     }
-    if (1 == inet_pton (AF_INET6, start, &v6))
+    if (1 == inet_pton (AF_INET6, start, &v6.sin6_addr))
     {
       v6.sin6_family = AF_INET6;
       v6.sin6_port = htons ((uint16_t) port);
+#if HAVE_SOCKADDR_IN_SIN_LEN
+      v6.sin6_len = sizeof(sizeof(struct sockaddr_in6));
+#endif
       in = GNUNET_memdup (&v6, sizeof(v6));
       *sock_len = sizeof(v6);
       GNUNET_free (cp);
