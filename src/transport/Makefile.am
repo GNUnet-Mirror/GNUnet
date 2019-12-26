@@ -597,7 +597,8 @@ check_PROGRAMS += \
   test_transport_api_reliability_udp \
   test_quota_compliance_udp \
   test_communicator_basic_unix \
-  test_communicator_basic_tcp
+  test_communicator_basic_tcp \
+  test_communicator_basic_udp
 endif
 endif
 
@@ -793,6 +794,13 @@ test_communicator_basic_unix_LDADD = \
 test_communicator_basic_tcp_SOURCES = \
  test_communicator_basic.c
 test_communicator_basic_tcp_LDADD = \
+ libgnunettransporttesting2.la \
+ $(top_builddir)/src/testing/libgnunettesting.la \
+ $(top_builddir)/src/util/libgnunetutil.la
+
+test_communicator_basic_udp_SOURCES = \
+ test_communicator_basic.c
+test_communicator_basic_udp_LDADD = \
  libgnunettransporttesting2.la \
  $(top_builddir)/src/testing/libgnunettesting.la \
  $(top_builddir)/src/util/libgnunetutil.la
@@ -1498,4 +1506,6 @@ test_transport_api_slow_ats_peer2.conf \
 test_communicator_unix_peer1.conf \
 test_communicator_unix_peer2.conf \
 test_communicator_tcp_peer1.conf \
-test_communicator_tcp_peer2.conf
+test_communicator_tcp_peer2.conf \
+test_communicator_udp_peer1.conf \
+test_communicator_udp_peer2.conf
