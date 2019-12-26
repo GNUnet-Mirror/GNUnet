@@ -1414,7 +1414,7 @@ GNUNET_a2s (const struct sockaddr *addr, socklen_t addrlen)
 
   case AF_INET6:
     if (addrlen != sizeof(struct sockaddr_in6))
-      return "<invalid v4 address>";
+      return "<invalid v6 address>";
     v6 = (const struct sockaddr_in6 *) addr;
     buf[0] = '[';
     inet_ntop (AF_INET6, &v6->sin6_addr, &buf[1], INET6_ADDRSTRLEN);
