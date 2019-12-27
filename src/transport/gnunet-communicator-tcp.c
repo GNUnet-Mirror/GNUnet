@@ -866,7 +866,6 @@ static void
 do_rekey (struct Queue *queue, const struct TCPRekey *rekey)
 {
   struct TcpHandshakeSignature thp;
-
   thp.purpose.purpose = htonl (GNUNET_SIGNATURE_COMMUNICATOR_TCP_REKEY);
   thp.purpose.size = htonl (sizeof(thp));
   thp.sender = queue->target;
@@ -943,7 +942,7 @@ try_handle_plaintext (struct Queue *queue)
     rekeyz = *rekey;
     memset (&rekeyz.hmac, 0, sizeof(rekeyz.hmac));
     calculate_hmac (&queue->in_hmac, &rekeyz, sizeof(rekeyz), &tmac);
-    if (0 != memcmp (&tmac, &box->hmac, sizeof(tmac)))
+    if (0 != memcmp (&tmac, &rekey->hmac, sizeof(tmac)))
     {
       GNUNET_break_op (0);
       queue_finish (queue);
@@ -1027,6 +1026,7 @@ queue_read (void *cls)
                              queue->cread_off);
     size_t done;
     size_t total;
+    size_t old_pread_off = queue->pread_off;
 
     GNUNET_assert (0 ==
                    gcry_cipher_decrypt (queue->in_cipher,
@@ -1036,8 +1036,7 @@ queue_read (void *cls)
                                         max));
     queue->pread_off += max;
     total = 0;
-    while ((GNUNET_NO == queue->rekeyed) &&
-           (0 != (done = try_handle_plaintext (queue))))
+    while (0 != (done = try_handle_plaintext (queue)))
     {
       /* 'done' bytes of plaintext were used, shift buffer */
       GNUNET_assert (done <= queue->pread_off);
@@ -1049,16 +1048,22 @@ queue_read (void *cls)
                queue->pread_off - done);
       queue->pread_off -= done;
       total += done;
+      /* The last plaintext was a rekey, abort for now */
+      if (GNUNET_YES == queue->rekeyed)
+        break;
     }
     /* when we encounter a rekey message, the decryption above uses the
        wrong key for everything after the rekey; in that case, we have
-       to re-do the decryption at 'total' instead of at 'max'. If there
-       is no rekey and the last message is incomplete (max > total),
+       to re-do the decryption at 'total' instead of at 'max'.
+       However, we have to take into account that the plaintext buffer may have
+       already contained data and not jumpt too far ahead in the ciphertext.
+       If there is no rekey and the last message is incomplete (max > total),
        it is safe to keep the decryption so we shift by 'max' */
     if (GNUNET_YES == queue->rekeyed)
     {
-      max = total;
+      max = total - old_pread_off;
       queue->rekeyed = GNUNET_NO;
+      queue->pread_off = 0;
     }
     memmove (queue->cread_buf, &queue->cread_buf[max], queue->cread_off - max);
     queue->cread_off -= max;
@@ -1278,6 +1283,7 @@ inject_rekey (struct Queue *queue)
                                                         &thp.purpose,
                                                         &rekey.sender_sig));
   calculate_hmac (&queue->out_hmac, &rekey, sizeof(rekey), &rekey.hmac);
+  /* Encrypt rekey message with 'old' cipher */
   GNUNET_assert (0 ==
                  gcry_cipher_encrypt (queue->out_cipher,
                                       &queue->cwrite_buf[queue->cwrite_off],
@@ -1285,6 +1291,9 @@ inject_rekey (struct Queue *queue)
                                       &rekey,
                                       sizeof(rekey)));
   queue->cwrite_off += sizeof(rekey);
+  /* Setup new cipher for successive messages */
+  gcry_cipher_close (queue->out_cipher);
+  setup_out_cipher (queue);
 }
 
 
@@ -1351,8 +1360,6 @@ queue_write (void *cls)
         GNUNET_TIME_absolute_get_remaining (queue->rekey_time).rel_value_us)))
   {
     inject_rekey (queue);
-    gcry_cipher_close (queue->out_cipher);
-    setup_out_cipher (queue);
   }
   if ((0 == queue->pwrite_off) && (! queue->finishing) &&
       (GNUNET_YES == queue->mq_awaits_continue))
