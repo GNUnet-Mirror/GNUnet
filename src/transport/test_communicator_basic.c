@@ -74,9 +74,7 @@ static struct GNUNET_TRANSPORT_TESTING_TransportCommunicatorQueue *my_tc;
 
 #define BURST_PACKETS 5000
 
-#define FIXME_DEAD_BURST_RUNS 1
-
-#define TOTAL_ITERATIONS 20
+#define TOTAL_ITERATIONS 5
 
 static unsigned int iterations_left = TOTAL_ITERATIONS;
 
@@ -367,16 +365,19 @@ incoming_message_cb (void *cls,
       {
         GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
                     "Short size packet test done.\n");
+        char *goodput = GNUNET_STRINGS_byte_size_fancy ((SHORT_MESSAGE_SIZE
+                                                         * num_received)
+                                                        / (duration.rel_value_us
+                                                           /
+                                                           1000));
         GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
-                    "%lu/%lu packets in %llu us (%llu kb/s) -- avg latency: %llu us\n",
+                    "%lu/%lu packets in %llu us (%s/s) -- avg latency: %llu us\n",
                     (unsigned long) num_received,
                     (unsigned long) num_sent,
                     (unsigned long long) duration.rel_value_us,
-                    (unsigned long long) ((SHORT_MESSAGE_SIZE * num_received)
-                                          / (duration.rel_value_us
-                                             /
-                                             1000)),
+                    goodput,
                     (unsigned long long) avg_latency);
+        GNUNET_free (goodput);
         start_long = GNUNET_TIME_absolute_get ();
         phase = TP_BURST_LONG;
         num_sent = 0;
@@ -402,16 +403,20 @@ incoming_message_cb (void *cls,
       {
         GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
                     "Long size packet test done.\n");
+        char *goodput = GNUNET_STRINGS_byte_size_fancy ((LONG_MESSAGE_SIZE
+                                                         * num_received)
+                                                        / (duration.rel_value_us
+                                                           /
+                                                           1000));
+
         GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
-                    "%lu/%lu packets in %llu us (%llu kb/s) -- avg latency: %llu us\n",
+                    "%lu/%lu packets in %llu us (%s/s) -- avg latency: %llu us\n",
                     (unsigned long) num_received,
                     (unsigned long) num_sent,
                     (unsigned long long) duration.rel_value_us,
-                    (unsigned long long) ((LONG_MESSAGE_SIZE * num_received)
-                                          / (duration.rel_value_us
-                                             /
-                                             1000)),
+                                             goodput,
                     (unsigned long long) avg_latency);
+        GNUNET_free (goodput);
         ack = 10;
         phase = TP_SIZE_CHECK;
         num_received = 0;
