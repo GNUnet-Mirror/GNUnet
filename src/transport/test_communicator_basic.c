@@ -571,7 +571,7 @@ main (int argc,
                 i,
                 GNUNET_i2s_full (&peer_id[i]));
   }
-  fprintf (stderr, "Starting test...\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE, "Starting test...\n");
   GNUNET_SCHEDULER_run (&run,
                         NULL);
   return ret;
