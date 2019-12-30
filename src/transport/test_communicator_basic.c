@@ -320,7 +320,7 @@ update_avg_latency (const char*payload)
   ts_n = (struct GNUNET_TIME_AbsoluteNBO *) payload;
   ts = GNUNET_TIME_absolute_ntoh (*ts_n);
   latency = GNUNET_TIME_absolute_get_duration (ts);
-  if (1 == num_received)
+  if (1 >= num_received)
     avg_latency = latency.rel_value_us;
   else
     avg_latency = ((avg_latency * (num_received - 1)) + latency.rel_value_us)
@@ -367,9 +367,11 @@ incoming_message_cb (void *cls,
                     "Short size packet test done.\n");
         char *goodput = GNUNET_STRINGS_byte_size_fancy ((SHORT_MESSAGE_SIZE
                                                          * num_received)
-                                                        / (duration.rel_value_us
-                                                           /
-                                                           1000));
+                                                        / (GNUNET_MAX (1,
+                                                                       duration.
+                                                                       rel_value_us
+                                                                       / (1000
+                                                                          * 1000))));
         GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
                     "%lu/%lu packets in %llu us (%s/s) -- avg latency: %llu us\n",
                     (unsigned long) num_received,
@@ -405,16 +407,18 @@ incoming_message_cb (void *cls,
                     "Long size packet test done.\n");
         char *goodput = GNUNET_STRINGS_byte_size_fancy ((LONG_MESSAGE_SIZE
                                                          * num_received)
-                                                        / (duration.rel_value_us
-                                                           /
-                                                           1000));
+                                                        / (GNUNET_MAX (1,
+                                                                       duration.
+                                                                       rel_value_us
+                                                                       / (1000
+                                                                          * 1000))));
 
         GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
                     "%lu/%lu packets in %llu us (%s/s) -- avg latency: %llu us\n",
                     (unsigned long) num_received,
                     (unsigned long) num_sent,
                     (unsigned long long) duration.rel_value_us,
-                                             goodput,
+                    goodput,
                     (unsigned long long) avg_latency);
         GNUNET_free (goodput);
         ack = 10;
@@ -446,6 +450,7 @@ incoming_message_cb (void *cls,
         iterations_left--;
         if (0 != iterations_left)
         {
+          start_short = GNUNET_TIME_absolute_get ();
           phase = TP_BURST_SHORT;
           active_task = GNUNET_SCHEDULER_add_now (&short_test,
                                                   NULL);
