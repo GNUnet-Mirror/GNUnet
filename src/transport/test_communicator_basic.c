@@ -366,12 +366,8 @@ incoming_message_cb (void *cls,
         GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
                     "Short size packet test done.\n");
         char *goodput = GNUNET_STRINGS_byte_size_fancy ((SHORT_MESSAGE_SIZE
-                                                         * num_received)
-                                                        / (GNUNET_MAX (1,
-                                                                       duration.
-                                                                       rel_value_us
-                                                                       / (1000
-                                                                          * 1000))));
+                                                          * num_received * 1000 * 1000)
+                                                         / duration.rel_value_us);
         GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
                     "%lu/%lu packets in %llu us (%s/s) -- avg latency: %llu us\n",
                     (unsigned long) num_received,
@@ -406,12 +402,8 @@ incoming_message_cb (void *cls,
         GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
                     "Long size packet test done.\n");
         char *goodput = GNUNET_STRINGS_byte_size_fancy ((LONG_MESSAGE_SIZE
-                                                         * num_received)
-                                                        / (GNUNET_MAX (1,
-                                                                       duration.
-                                                                       rel_value_us
-                                                                       / (1000
-                                                                          * 1000))));
+                                                          * num_received * 1000 * 1000)
+                                                         / duration.rel_value_us);
 
         GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
                     "%lu/%lu packets in %llu us (%s/s) -- avg latency: %llu us\n",
