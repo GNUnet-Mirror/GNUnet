@@ -68,7 +68,7 @@
 /**
  * How often do we rekey based on time (at least)
  */
-#define REKEY_TIME_INTERVAL GNUNET_TIME_UNIT_DAYS
+#define DEFAULT_REKEY_INTERVAL GNUNET_TIME_UNIT_DAYS
 
 /**
  * How long do we wait until we must have received the initial KX?
@@ -520,6 +520,11 @@ static struct GNUNET_NETWORK_Handle *listen_sock;
  * Our public key.
  */
 static struct GNUNET_PeerIdentity my_identity;
+
+/**
+ * The rekey interval
+ */
+static struct GNUNET_TIME_Relative rekey_interval;
 
 /**
  * Our private key.
@@ -1246,7 +1251,7 @@ setup_out_cipher (struct Queue *queue)
   /* we don't need the private key anymore, drop it! */
   memset (&queue->ephemeral, 0, sizeof(queue->ephemeral));
   setup_cipher (&dh, &queue->target, &queue->out_cipher, &queue->out_hmac);
-  queue->rekey_time = GNUNET_TIME_relative_to_absolute (REKEY_TIME_INTERVAL);
+  queue->rekey_time = GNUNET_TIME_relative_to_absolute (rekey_interval);
   queue->rekey_left_bytes =
     GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK, REKEY_MAX_BYTES);
 }
@@ -2148,6 +2153,12 @@ run (void *cls,
                                              "MAX_QUEUE_LENGTH",
                                              &max_queue_length))
     max_queue_length = DEFAULT_MAX_QUEUE_LENGTH;
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_time (cfg,
+                                             COMMUNICATOR_CONFIG_SECTION,
+                                             "REKEY_INTERVAL",
+                                             &rekey_interval))
+    rekey_interval = DEFAULT_REKEY_INTERVAL;
 
   in = tcp_address_to_sockaddr (bindto, &in_len);
   if (NULL == in)
