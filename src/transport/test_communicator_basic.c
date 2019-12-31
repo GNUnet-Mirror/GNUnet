@@ -509,10 +509,17 @@ main (int argc,
 {
   struct GNUNET_CRYPTO_EddsaPrivateKey *private_key;
   char *communicator_name;
+  char *test_mode;
+  char *test_name;
   char *cfg_peer;
 
   ret = 1;
-  communicator_name = GNUNET_TESTING_get_testname_from_underscore (argv[0]);
+  test_name = GNUNET_TESTING_get_testname_from_underscore (argv[0]);
+  communicator_name = strchr (test_name, '-');
+  communicator_name[0] = '\0';
+  communicator_name++;
+  test_mode = test_name;
+
   GNUNET_asprintf (&communicator_binary,
                    "gnunet-communicator-%s",
                    communicator_name);
@@ -528,8 +535,8 @@ main (int argc,
   for (unsigned int i = 0; i < NUM_PEERS; i++)
   {
     GNUNET_asprintf ((&cfg_peer),
-                     "test_communicator_%s_peer%u.conf",
-                     communicator_name, i + 1);
+                     "test_communicator_%s_%s_peer%u.conf",
+                     communicator_name, test_mode, i + 1);
     cfg_peers_name[i] = cfg_peer;
     cfg_peers[i] = GNUNET_CONFIGURATION_create ();
     if (GNUNET_YES ==
