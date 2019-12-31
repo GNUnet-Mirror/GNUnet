@@ -893,6 +893,7 @@ GNUNET_TRANSPORT_communicator_receive (
   // and then have the application fill in the body so we do
   // not have to memcpy()
   memcpy (&im[1], msg, msize);
+  im->fc_on = htonl (GNUNET_NO);
   if (NULL != cb)
   {
     struct FlowControl *fc;

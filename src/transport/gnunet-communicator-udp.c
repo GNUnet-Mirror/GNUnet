@@ -1083,6 +1083,7 @@ pass_plaintext_to_core (struct SenderAddress *sender,
                         size_t plaintext_len)
 {
   const struct GNUNET_MessageHeader *hdr = plaintext;
+  const char *pos = plaintext;
 
   while (ntohs (hdr->size) < plaintext_len)
   {
@@ -1090,19 +1091,25 @@ pass_plaintext_to_core (struct SenderAddress *sender,
                               "# bytes given to core",
                               ntohs (hdr->size),
                               GNUNET_NO);
-    (void)
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Giving %u bytes to TNG\n", ntohs (hdr->size));
+    GNUNET_assert (GNUNET_SYSERR !=
     GNUNET_TRANSPORT_communicator_receive (ch,
                                            &sender->target,
                                            hdr,
                                            ADDRESS_VALIDITY_PERIOD,
                                            NULL   /* no flow control possible */
                                            ,
-                                           NULL);
+                                           NULL));
     /* move on to next message, if any */
     plaintext_len -= ntohs (hdr->size);
     if (plaintext_len < sizeof(*hdr))
       break;
-    hdr = plaintext + ntohs (hdr->size);
+    pos += ntohs (hdr->size);
+    hdr = (const struct GNUNET_MessageHeader *)pos;
+    //TODO for now..., we do not actually sen >1msg or have a way of telling
+    //if we are done
+    break;
   }
   GNUNET_STATISTICS_update (stats,
                             "# bytes padding discarded",

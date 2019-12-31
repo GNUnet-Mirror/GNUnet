@@ -280,6 +280,54 @@ handle_communicator_available (
 
 
 /**
+ * Incoming message.  Test message is well-formed.
+ *
+ * @param cls the client
+ * @param msg the send message that was sent
+ * @return #GNUNET_OK if message is well-formed
+ */
+static int
+check_communicator_backchannel (void *cls,
+                                const struct
+                                GNUNET_TRANSPORT_CommunicatorBackchannel *msg)
+{
+  // struct TransportClient *tc = cls;
+
+  // if (CT_COMMUNICATOR != tc->type)
+  // {
+  //  GNUNET_break (0);
+  //  return GNUNET_SYSERR;
+  // }
+  // GNUNET_MQ_check_boxed_message (msg);
+  return GNUNET_OK;
+}
+
+
+/**
+ * @brief Receive an incoming message.
+ *
+ * Pass the message to the client.
+ *
+ * @param cls Closure - communicator handle
+ * @param msg Message
+ */
+static void
+handle_communicator_backchannel (void *cls,
+                                 const struct
+                                 GNUNET_TRANSPORT_CommunicatorBackchannel *
+                                 bc_msg)
+{
+  struct GNUNET_TRANSPORT_TESTING_TransportCommunicatorHandle *tc_h = cls;
+  struct GNUNET_MessageHeader *msg;
+  msg = (struct GNUNET_MessageHeader *) &bc_msg[1];
+  size_t payload_len = ntohs (msg->size) - sizeof (struct
+                                                   GNUNET_MessageHeader);
+
+  GNUNET_SERVICE_client_continue (tc_h->client);
+}
+
+
+/**
  * Address of our peer added.  Test message is well-formed.
  *
  * @param cls the client
@@ -373,6 +421,8 @@ handle_incoming_msg (void *cls,
   msg = (struct GNUNET_MessageHeader *) &inc_msg[1];
   size_t payload_len = ntohs (msg->size) - sizeof (struct
                                                    GNUNET_MessageHeader);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Incoming message from communicator!\n");
 
   if (NULL != tc_h->incoming_msg_cb)
   {
@@ -386,7 +436,7 @@ handle_incoming_msg (void *cls,
     LOG (GNUNET_ERROR_TYPE_WARNING,
          "Incoming message from communicator but no handler!\n");
   }
-  if (0 != ntohl (inc_msg->fc_on))
+  if (GNUNET_YES == ntohl (inc_msg->fc_on))
   {
     /* send ACK when done to communicator for flow control! */
     struct GNUNET_MQ_Envelope *env;
@@ -613,10 +663,10 @@ transport_communicator_start (
                            GNUNET_MESSAGE_TYPE_TRANSPORT_NEW_COMMUNICATOR,
                            struct GNUNET_TRANSPORT_CommunicatorAvailableMessage,
                            tc_h),
-    // GNUNET_MQ_hd_var_size (communicator_backchannel,
-    //    GNUNET_MESSAGE_TYPE_TRANSPORT_COMMUNICATOR_BACKCHANNEL,
-    //    struct GNUNET_TRANSPORT_CommunicatorBackchannel,
-    //    NULL),
+    GNUNET_MQ_hd_var_size (communicator_backchannel,
+                           GNUNET_MESSAGE_TYPE_TRANSPORT_COMMUNICATOR_BACKCHANNEL,
+                           struct GNUNET_TRANSPORT_CommunicatorBackchannel,
+                           tc_h),
     GNUNET_MQ_hd_var_size (add_address,
                            GNUNET_MESSAGE_TYPE_TRANSPORT_ADD_ADDRESS,
                            struct GNUNET_TRANSPORT_AddAddressMessage,
