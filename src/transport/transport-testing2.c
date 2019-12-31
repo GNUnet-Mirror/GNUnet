@@ -150,6 +150,11 @@ struct GNUNET_TRANSPORT_TESTING_TransportCommunicatorHandle
    * @brief Closure to the callback
    */
   void *cb_cls;
+
+  /**
+   * Backchannel supported
+   */
+  int bc_enabled;
 };
 
 
@@ -320,9 +325,28 @@ handle_communicator_backchannel (void *cls,
   struct GNUNET_TRANSPORT_TESTING_TransportCommunicatorHandle *tc_h = cls;
   struct GNUNET_MessageHeader *msg;
   msg = (struct GNUNET_MessageHeader *) &bc_msg[1];
-  size_t payload_len = ntohs (msg->size) - sizeof (struct
-                                                   GNUNET_MessageHeader);
-
+  struct GNUNET_TRANSPORT_CommunicatorBackchannelIncoming *cbi;
+  struct GNUNET_MQ_Envelope *env;
+  uint16_t isize = ntohs (msg->size);
+  const char *target_communicator = ((const char *) msg) + isize;
+  if (tc_h->bc_enabled != GNUNET_YES)
+  {
+    GNUNET_SERVICE_client_continue (tc_h->client);
+    return;
+  }
+  /* Find client providing this communicator */
+  /* Finally, deliver backchannel message to communicator */
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Delivering backchannel message of type %u to %s\n",
+              ntohs (msg->type),
+              target_communicator);
+  env = GNUNET_MQ_msg_extra (
+    cbi,
+    isize,
+    GNUNET_MESSAGE_TYPE_TRANSPORT_COMMUNICATOR_BACKCHANNEL_INCOMING);
+  cbi->pid = bc_msg->pid;
+  memcpy (&cbi[1], msg, isize);
+  GNUNET_MQ_send (tc_h->c_mq, env);
   GNUNET_SERVICE_client_continue (tc_h->client);
 }
 
@@ -873,6 +897,9 @@ GNUNET_TRANSPORT_TESTING_transport_communicator_service_start (
     GNUNET_free (tc_h);
     return NULL;
   }
+  tc_h->bc_enabled = GNUNET_CONFIGURATION_get_value_yesno (tc_h->cfg,
+                                                           "communicator-test",
+                                                           "BACKCHANNEL_ENABLED");
   tc_h->communicator_available_cb = communicator_available_cb;
   tc_h->add_address_cb = add_address_cb;
   tc_h->queue_create_reply_cb = queue_create_reply_cb;
