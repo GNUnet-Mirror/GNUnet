@@ -75,7 +75,7 @@ if (exists $opts{f}) {
     &perform while <I>;
     close I;
 } else {
-    &perform while <>;
+    &perform while <<>>;
 }
 fileno O and close O;
 exit;
