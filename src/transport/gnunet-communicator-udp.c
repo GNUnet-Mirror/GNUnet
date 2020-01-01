@@ -1094,21 +1094,21 @@ pass_plaintext_to_core (struct SenderAddress *sender,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Giving %u bytes to TNG\n", ntohs (hdr->size));
     GNUNET_assert (GNUNET_SYSERR !=
-    GNUNET_TRANSPORT_communicator_receive (ch,
-                                           &sender->target,
-                                           hdr,
-                                           ADDRESS_VALIDITY_PERIOD,
-                                           NULL   /* no flow control possible */
-                                           ,
-                                           NULL));
+                   GNUNET_TRANSPORT_communicator_receive (ch,
+                                                          &sender->target,
+                                                          hdr,
+                                                          ADDRESS_VALIDITY_PERIOD,
+                                                          NULL /* no flow control possible */
+                                                          ,
+                                                          NULL));
     /* move on to next message, if any */
     plaintext_len -= ntohs (hdr->size);
     if (plaintext_len < sizeof(*hdr))
       break;
     pos += ntohs (hdr->size);
-    hdr = (const struct GNUNET_MessageHeader *)pos;
-    //TODO for now..., we do not actually sen >1msg or have a way of telling
-    //if we are done
+    hdr = (const struct GNUNET_MessageHeader *) pos;
+    // TODO for now..., we do not actually sen >1msg or have a way of telling
+    // if we are done
     break;
   }
   GNUNET_STATISTICS_update (stats,
@@ -1958,7 +1958,8 @@ mq_send (struct GNUNET_MQ_Handle *mq,
                                             receiver->address_len))
       GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "send");
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Sending KX to %s\n", GNUNET_a2s (receiver->address, receiver->address_len));
+                "Sending KX to %s\n", GNUNET_a2s (receiver->address,
+                                                  receiver->address_len));
     GNUNET_MQ_impl_send_continue (mq);
     return;
   }   /* End of KX encryption method */
@@ -1966,6 +1967,8 @@ mq_send (struct GNUNET_MQ_Handle *mq,
   /* begin "BOX" encryption method, scan for ACKs from tail! */
   for (struct SharedSecret *ss = receiver->ss_tail; NULL != ss; ss = ss->prev)
   {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "In non-kx mode...\n");
     if (ss->sequence_used < ss->sequence_allowed)
     {
       char dgram[sizeof(struct UDPBox) + receiver->mtu];
@@ -1994,7 +1997,7 @@ mq_send (struct GNUNET_MQ_Handle *mq,
                                               receiver->address_len))
         GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "send");
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Sending data\n");
+                  "Sending data\n");
 
       GNUNET_MQ_impl_send_continue (mq);
       receiver->acks_available--;

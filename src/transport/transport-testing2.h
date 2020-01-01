@@ -47,6 +47,19 @@ struct GNUNET_TRANSPORT_TESTING_TransportCommunicatorQueue;
  */
 struct GNUNET_TRANSPORT_TESTING_TransportCommunicatorTransmission;
 
+/**
+ * @brief Function signature for callbacks that are called when new
+ * backchannel message arrived
+ *
+ * @param cls Closure
+ * @param msg Backchannel message
+ * @param pid Target peer
+ */
+typedef struct GNUNET_TRANSPORT_TESTING_TransportCommunicatorHandle *
+(*GNUNET_TRANSPORT_TESTING_BackchannelCallback)(void *cls,
+                                                struct GNUNET_MessageHeader *msg,
+                                                struct GNUNET_PeerIdentity *pid);
+
 
 /**
  * @brief Function signature for callbacks that are called when new
@@ -134,7 +147,7 @@ typedef void
                                                     struct
                                                     GNUNET_TRANSPORT_TESTING_TransportCommunicatorHandle
                                                     *tc_h,
-                                                    const char* payload,
+                                                    const char*payload,
                                                     size_t payload_len);
 
 
@@ -164,6 +177,7 @@ GNUNET_TRANSPORT_TESTING_transport_communicator_service_start (
   GNUNET_TRANSPORT_TESTING_QueueCreateReplyCallback queue_create_reply_cb,
   GNUNET_TRANSPORT_TESTING_AddQueueCallback add_queue_cb,
   GNUNET_TRANSPORT_TESTING_IncomingMessageCallback incoming_message_cb,
+  GNUNET_TRANSPORT_TESTING_BackchannelCallback bc_cb,
   void *cb_cls);
 
 

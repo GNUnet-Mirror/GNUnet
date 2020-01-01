@@ -694,7 +694,6 @@ handle_backchannel_incoming (
   const struct GNUNET_TRANSPORT_CommunicatorBackchannelIncoming *bi)
 {
   struct GNUNET_TRANSPORT_CommunicatorHandle *ch = cls;
-
   if (NULL != ch->notify_cb)
     ch->notify_cb (ch->notify_cb_cls,
                    &bi->pid,

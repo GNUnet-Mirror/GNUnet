@@ -142,6 +142,11 @@ struct GNUNET_TRANSPORT_TESTING_TransportCommunicatorHandle
   GNUNET_TRANSPORT_TESTING_IncomingMessageCallback incoming_msg_cb;
 
   /**
+   * @brief Backchannel callback
+   */
+  GNUNET_TRANSPORT_TESTING_BackchannelCallback bc_cb;
+
+  /**
    * Our service handle
    */
   struct GNUNET_SERVICE_Handle *sh;
@@ -323,12 +328,15 @@ handle_communicator_backchannel (void *cls,
                                  bc_msg)
 {
   struct GNUNET_TRANSPORT_TESTING_TransportCommunicatorHandle *tc_h = cls;
+  struct GNUNET_TRANSPORT_TESTING_TransportCommunicatorHandle *other_tc_h;
   struct GNUNET_MessageHeader *msg;
   msg = (struct GNUNET_MessageHeader *) &bc_msg[1];
-  struct GNUNET_TRANSPORT_CommunicatorBackchannelIncoming *cbi;
-  struct GNUNET_MQ_Envelope *env;
   uint16_t isize = ntohs (msg->size);
   const char *target_communicator = ((const char *) msg) + isize;
+  struct GNUNET_TRANSPORT_CommunicatorBackchannelIncoming *cbi;
+  struct GNUNET_MQ_Envelope *env;
+
+
   if (tc_h->bc_enabled != GNUNET_YES)
   {
     GNUNET_SERVICE_client_continue (tc_h->client);
@@ -340,13 +348,17 @@ handle_communicator_backchannel (void *cls,
               "Delivering backchannel message of type %u to %s\n",
               ntohs (msg->type),
               target_communicator);
+  other_tc_h = tc_h->bc_cb (tc_h, msg, (struct
+                                        GNUNET_PeerIdentity*) &bc_msg->pid);
   env = GNUNET_MQ_msg_extra (
     cbi,
     isize,
     GNUNET_MESSAGE_TYPE_TRANSPORT_COMMUNICATOR_BACKCHANNEL_INCOMING);
   cbi->pid = bc_msg->pid;
   memcpy (&cbi[1], msg, isize);
-  GNUNET_MQ_send (tc_h->c_mq, env);
+
+
+  GNUNET_MQ_send (other_tc_h->c_mq, env);
   GNUNET_SERVICE_client_continue (tc_h->client);
 }
 
@@ -879,6 +891,7 @@ GNUNET_TRANSPORT_TESTING_transport_communicator_service_start (
   GNUNET_TRANSPORT_TESTING_QueueCreateReplyCallback queue_create_reply_cb,
   GNUNET_TRANSPORT_TESTING_AddQueueCallback add_queue_cb,
   GNUNET_TRANSPORT_TESTING_IncomingMessageCallback incoming_message_cb,
+  GNUNET_TRANSPORT_TESTING_BackchannelCallback bc_cb,
   void *cb_cls)
 {
   struct GNUNET_TRANSPORT_TESTING_TransportCommunicatorHandle *tc_h;
@@ -905,6 +918,7 @@ GNUNET_TRANSPORT_TESTING_transport_communicator_service_start (
   tc_h->queue_create_reply_cb = queue_create_reply_cb;
   tc_h->add_queue_cb = add_queue_cb;
   tc_h->incoming_msg_cb = incoming_message_cb;
+  tc_h->bc_cb = bc_cb;
   tc_h->cb_cls = cb_cls;
 
   /* Start communicator part of service */

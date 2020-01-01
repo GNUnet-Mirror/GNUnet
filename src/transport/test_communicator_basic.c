@@ -76,6 +76,10 @@ static struct GNUNET_TRANSPORT_TESTING_TransportCommunicatorQueue *my_tc;
 
 #define TOTAL_ITERATIONS 5
 
+#define PEER_A 0
+
+#define PEER_B 1
+
 static unsigned int iterations_left = TOTAL_ITERATIONS;
 
 #define SHORT_BURST_WINDOW \
@@ -136,14 +140,12 @@ add_address_cb (void *cls,
        aid,
        nt);
   // addresses[1] = GNUNET_strdup (address);
-  if ((0 == strcmp ((char*) cls, cfg_peers_name[NUM_PEERS - 1])) &&
+  if ((0 == strcmp ((char*) cls, cfg_peers_name[PEER_B])) &&
       (GNUNET_NO == queue_est))
   {
     queue_est = GNUNET_YES;
-    GNUNET_TRANSPORT_TESTING_transport_communicator_open_queue (tc_hs[0],
-                                                                &peer_id[
-                                                                  NUM_PEERS
-                                                                  - 1],
+    GNUNET_TRANSPORT_TESTING_transport_communicator_open_queue (tc_hs[PEER_A],
+                                                                &peer_id[PEER_B],
                                                                 address);
   }
 }
@@ -173,6 +175,20 @@ queue_create_reply_cb (void *cls,
   else
     LOG (GNUNET_ERROR_TYPE_WARNING,
          "Queue won't be established (bougus address?)!\n");
+}
+
+
+static struct GNUNET_TRANSPORT_TESTING_TransportCommunicatorHandle *
+handle_backchannel_cb (void *cls,
+                       struct GNUNET_MessageHeader *msg,
+                       struct GNUNET_PeerIdentity *pid)
+{
+  struct GNUNET_TRANSPORT_TESTING_TransportCommunicatorHandle *tc_h = cls;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Handling BC message...\n");
+  if (0 == memcmp (&peer_id[PEER_A], pid, sizeof (*pid)))
+    return tc_hs[PEER_A];
+  else
+    return tc_hs[PEER_B];
 }
 
 
@@ -366,8 +382,9 @@ incoming_message_cb (void *cls,
         GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
                     "Short size packet test done.\n");
         char *goodput = GNUNET_STRINGS_byte_size_fancy ((SHORT_MESSAGE_SIZE
-                                                          * num_received * 1000 * 1000)
-                                                         / duration.rel_value_us);
+                                                         * num_received * 1000
+                                                         * 1000)
+                                                        / duration.rel_value_us);
         GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
                     "%lu/%lu packets in %llu us (%s/s) -- avg latency: %llu us\n",
                     (unsigned long) num_received,
@@ -402,8 +419,9 @@ incoming_message_cb (void *cls,
         GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
                     "Long size packet test done.\n");
         char *goodput = GNUNET_STRINGS_byte_size_fancy ((LONG_MESSAGE_SIZE
-                                                          * num_received * 1000 * 1000)
-                                                         / duration.rel_value_us);
+                                                         * num_received * 1000
+                                                         * 1000)
+                                                        / duration.rel_value_us);
 
         GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
                     "%lu/%lu packets in %llu us (%s/s) -- avg latency: %llu us\n",
@@ -496,6 +514,7 @@ run (void *cls)
       &queue_create_reply_cb,
       &add_queue_cb,
       &incoming_message_cb,
+      &handle_backchannel_cb,
       cfg_peers_name[i]);   /* cls */
   }
   GNUNET_SCHEDULER_add_shutdown (&do_shutdown,
