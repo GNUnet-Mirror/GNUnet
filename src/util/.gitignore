@@ -30,6 +30,7 @@ test_container_multihashmap32
 test_container_multipeermap
 test_crypto_crc
 test_crypto_ecc_dlog
+test_crypto_ecdh_ecdsa
 test_crypto_ecdh_eddsa
 test_crypto_ecdhe
 test_crypto_ecdsa

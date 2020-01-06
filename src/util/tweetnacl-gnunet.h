@@ -47,4 +47,8 @@ GNUNET_TWEETNACL_sign_detached (uint8_t *sig,
                                 const uint8_t *m,
                                 uint64_t n,
                                 const uint8_t *sk);
+
+void
+GNUNET_TWEETNACL_scalarmult_le_ed25519_base (uint8_t *pk, const uint8_t *s);
+
 #endif
