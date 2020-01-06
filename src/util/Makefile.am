@@ -298,6 +298,7 @@ check_PROGRAMS = \
  test_crypto_eddsa \
  test_crypto_ecdhe \
  test_crypto_ecdh_eddsa \
+ test_crypto_ecdh_ecdsa \
  test_crypto_ecc_dlog \
  test_crypto_hash \
  test_crypto_hash_context \
@@ -475,6 +476,13 @@ test_crypto_ecdh_eddsa_SOURCES = \
 test_crypto_ecdh_eddsa_LDADD = \
  libgnunetutil.la \
  $(LIBGCRYPT_LIBS)
+
+test_crypto_ecdh_ecdsa_SOURCES = \
+ test_crypto_ecdh_ecdsa.c
+test_crypto_ecdh_ecdsa_LDADD = \
+ libgnunetutil.la \
+ $(LIBGCRYPT_LIBS)
+
 
 test_crypto_hash_SOURCES = \
  test_crypto_hash.c
