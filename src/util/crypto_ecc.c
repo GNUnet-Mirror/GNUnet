@@ -174,7 +174,7 @@ GNUNET_CRYPTO_ecdsa_key_get_public (
   struct GNUNET_CRYPTO_EcdsaPublicKey *pub)
 {
   BENCHMARK_START (ecdsa_key_get_public);
-  GNUNET_TWEETNACL_scalarmult_le_ed25519_base (pub->q_y, priv->d);
+  GNUNET_TWEETNACL_scalarmult_gnunet_ecdsa (pub->q_y, priv->d);
   BENCHMARK_END (ecdsa_key_get_public);
 }
 
