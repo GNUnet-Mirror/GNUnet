@@ -34,6 +34,12 @@
 
 
 /**
+ * How deep do we allow recursions to go before we abort?
+ */
+#define MAX_RECURSION 256
+
+
+/**
  * Handle to a DNS intercepted
  * reslution request
  */
@@ -347,6 +353,7 @@ handle_dns_request (void *cls,
                                        p->queries[0].type,
                                        p->queries[0].name,
                                        GNUNET_NO,
+                                       MAX_RECURSION,
                                        &reply_to_dns, ilh);
     return;
   }
