@@ -1,6 +1,7 @@
 test_common_logging_dummy
 gnunet-config
 gnunet-config-diff
+gnunet-crypto-tvg
 gnunet-ecc
 gnunet-qr
 gnunet-resolver

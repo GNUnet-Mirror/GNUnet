@@ -183,6 +183,7 @@ libexec_PROGRAMS = \
 bin_PROGRAMS = \
  gnunet-resolver \
  gnunet-config \
+ gnunet-crypto-tvg \
  $(GNUNET_ECC) \
  $(GNUNET_SCRYPT) \
  gnunet-uri
@@ -221,6 +222,11 @@ gnunet_resolver_LDADD = \
   libgnunetutil.la \
   $(GN_LIBINTL)
 
+gnunet_crypto_tvg_SOURCES = \
+ gnunet-crypto-tvg.c
+gnunet_crypto_tvg_LDADD = \
+  libgnunetutil.la \
+  $(GN_LIBINTL) -lgcrypt
 
 gnunet_ecc_SOURCES = \
  gnunet-ecc.c
