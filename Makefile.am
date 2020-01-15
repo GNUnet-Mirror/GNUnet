@@ -18,9 +18,7 @@ if INCLUDE_MANPAGES
   SUBDIRS += doc
 endif
 
-if !TALER_ONLY
-  SUBDIRS += contrib
-endif
+SUBDIRS += contrib
 
 EXTRA_DIST = \
  ABOUT-NLS \

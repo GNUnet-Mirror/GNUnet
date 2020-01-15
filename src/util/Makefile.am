@@ -139,41 +139,11 @@ libgnunetutil_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS) \
   -version-info 13:2:0
 
-libgnunetutil_taler_wallet_la_SOURCES = \
-  common_allocation.c \
-  common_endian.c \
-  common_logging.c \
-  container_heap.c \
-  container_multihashmap.c \
-  container_multihashmap32.c \
-  crypto_symmetric.c \
-  crypto_crc.c \
-  crypto_ecc.c \
-  crypto_hash.c \
-  crypto_hkdf.c \
-  crypto_kdf.c \
-  crypto_mpi.c \
-  crypto_random.c \
-  crypto_rsa.c \
-  strings.c \
-  time.c
-
-libgnunetutil_taler_wallet_la_LIBADD = \
-  $(LIBGCRYPT_LIBS) \
-  -lunistring
-
-libgnunetutil_taler_wallet_la_LDFLAGS = \
-  $(GN_LIB_LDFLAGS) \
-  -version-info 0:0:0
-
 if HAVE_TESTING
   GNUNET_ECC = gnunet-ecc
   GNUNET_SCRYPT = gnunet-scrypt
 endif
 
-if TALER_ONLY
-lib_LTLIBRARIES = libgnunetutil_taler_wallet.la
-else
 lib_LTLIBRARIES = libgnunetutil.la
 
 libexec_PROGRAMS = \
@@ -199,8 +169,6 @@ noinst_PROGRAMS = \
 if ENABLE_TEST_RUN
 AM_TESTS_ENVIRONMENT=export GNUNET_PREFIX=$${GNUNET_PREFIX:-@libdir@};export PATH=$${GNUNET_PREFIX:-@prefix@}/bin:$$PATH;unset XDG_DATA_HOME;unset XDG_CONFIG_HOME;
 TESTS = $(check_PROGRAMS)
-endif
-
 endif
 
 gnunet_timeout_SOURCES = \

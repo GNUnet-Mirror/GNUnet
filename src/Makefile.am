@@ -66,12 +66,6 @@ endif
 endif
 
 
-if TALER_ONLY
-SUBDIRS = \
- include \
- util
-else
-
 SUBDIRS = \
   include $(INTLEMU_SUBDIRS) \
   util \
@@ -128,5 +122,3 @@ SUBDIRS = \
   $(RECLAIM_DIR) \
   $(EXP_DIR) \
   integration-tests
-
-endif
