@@ -12,6 +12,7 @@ EXTRA_DIST = \
 if TALER_ONLY
 gnunetinclude_HEADERS = \
   platform.h gettext.h \
+  gnunet_buffer_lib.h \
   gnunet_common.h \
   gnunet_container_lib.h \
   gnunet_crypto_lib.h \
@@ -35,6 +36,7 @@ gnunetinclude_HEADERS = \
   gnunet_block_lib.h \
   gnunet_block_group_lib.h \
   gnunet_block_plugin.h \
+  gnunet_buffer_lib.h \
   gnunet_client_lib.h \
   gnunet_common.h \
   gnunet_constants.h \
@@ -101,7 +103,7 @@ gnunetinclude_HEADERS = \
   gnunet_regex_service.h \
   gnunet_rest_lib.h \
   gnunet_rest_plugin.h \
-	gnunet_rps_service.h \
+  gnunet_rps_service.h \
   gnunet_revocation_service.h \
   gnunet_scalarproduct_service.h \
   gnunet_scheduler_lib.h \

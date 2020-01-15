@@ -39,6 +39,7 @@ libgnunetutil_la_SOURCES = \
   bandwidth.c \
   $(BENCHMARK) \
   bio.c \
+  buffer.c \
   client.c \
   common_allocation.c \
   common_endian.c \
