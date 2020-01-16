@@ -1,3 +1,4 @@
+# Contributor: Jakub Jirutka <jakub@jirutka.cz>
 # Contributor: xrs <xrs@mail36.net>
 # Maintainer: xrs <xrs@mail36.net>
 pkgname=gnurl
@@ -7,7 +8,6 @@ pkgdesc="curl with only HTTP/HTTPS support and GnuTLS"
 url="https://gnunet.org/en/gnurl.html"
 arch="all"
 license="MIT"
-#depends="ca-certificates gnutls libidn2 zlib"
 depends="ca-certificates"
 depends_dev="gnutls-dev libidn2-dev zlib-dev"
 makedepends="$depends_dev autoconf automake libtool perl pkgconf python3"
@@ -42,7 +42,6 @@ build() {
 		--without-winssl \
 		--without-darwinssl \
 		--disable-sspi \
-		--disable-ntlm-wb \
 		--disable-ldap \
 		--disable-rtsp \
 		--disable-dict \
@@ -55,7 +54,15 @@ build() {
 		--disable-file \
 		--disable-ftp \
 		--disable-smb \
-		--disable-ares
+		--disable-ntlm-wb \
+		--with-libz \
+		--without-ca-fallback \
+		--without-gssapi \
+		--disable-valgrind \
+		--without-ngtcp2 \
+		--without-nghttp2 \
+		--without-nghttp3 \
+		--without-quiche
 	make
 }
 

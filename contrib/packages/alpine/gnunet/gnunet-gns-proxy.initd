@@ -1,0 +1,107 @@
+#!/sbin/openrc-run
+# Contributor: xrs <xrs@mail36.net>
+# Maintainer: xrs <xrs@mail36.net>
+
+name="gnunet-gns-proxy"
+description="GNUnet GNS proxy for name resolution in Firefox/Chromium"
+command_background="yes"
+pidfile="/run/${SVCNAME}.pid"
+users=`awk -F ':' '$3>=1000 && $3<2000 {print $1}' /etc/passwd`
+
+depend() {
+	need gnunet-user-services
+}
+
+start() {
+        # Enable GNS proxy for existant users.
+        for user in $users; do
+		# Create/Renew GNS certificate authority (CA) per user.
+		su $user -c "gnunet-gns-proxy-setup-ca"
+
+		# Customize gnunet.conf
+                port=$((8000+$(id -u $user)))
+                gnunet-config -c /home/$user/.config/gnunet.conf \
+                        --rewrite \
+                        --section=gns-proxy \
+                        --option=IMMEDIATE_START \
+                        --value=YES
+                gnunet-config -c /home/$user/.config/gnunet.conf \
+                        --rewrite \
+                        --section=gns-proxy \
+                        --option=OPTIONS \
+                        --value="-p $port"
+
+		# Start gns-proxy
+		if test -z "`ps|grep $user|grep gnunet-gns-proxy`" > /dev/null 2>&1
+		then
+			su $user -c "gnunet-arm \
+				-c /home/$user/.config/gnunet.conf -i gns-proxy"
+		fi
+
+		# Firefox
+		if [ ! -d  /home/$user/.mozilla/firefox/*.default ];then
+			timeout 3s firefox --headless # dirty: create profile if not existent
+		fi
+		for ffprofile in /home/$user/.mozilla/firefox/*.*/; do
+			js=$ffprofile/user.js
+			if [ -f $js ]; then
+				sed -i '/Preferences for using the GNU Name System/d' $js
+				sed -i '/network.proxy.socks/d' $js
+				sed -i '/network.proxy.socks_port/d' $js
+				sed -i '/network.proxy.socks_remote_dns/d' $js
+				sed -i '/network.proxy.type/d' $js
+			fi
+			echo "// Preferences for using the GNU Name System" >> $js
+			echo "user_pref(\"network.proxy.socks\", \"localhost\");" >> $js
+			echo "user_pref(\"network.proxy.socks_port\", $port);" >> $js
+			echo "user_pref(\"network.proxy.socks_remote_dns\", true);" >> $js
+			echo "user_pref(\"network.proxy.type\", 1);" >> $js
+		done
+
+		# Chromium
+		profile=/home/$user/.profile
+		if [ -f $profile ]; then
+			sed -i '/CHROMIUM_USER_FLAGS/d' $profile
+		fi
+		echo "export CHROMIUM_USER_FLAGS=--proxy-server=socks5://localhost:$port" \
+			>> $profile
+	done
+}
+
+stop() {
+	for user in $users; do
+		# Stop gns-proxy
+		if test "`ps|grep $user|grep gnunet-gns-proxy`" > /dev/null 2>&1
+		then
+			su $user -c "gnunet-arm \
+				-c /home/$user/.config/gnunet.conf -k gns-proxy"
+		fi
+
+		# Disable gns-proxy in config
+                gnunet-config -c /home/$user/.config/gnunet.conf \
+                        --rewrite \
+                        --section=gns-proxy \
+                        --option=IMMEDIATE_START \
+                        --value=NO
+
+		# Reset proxy preferences
+		for ffprofile in /home/$user/.mozilla/firefox/*.*/; do
+			for file in user.js prefs.js; do
+				js=$ffprofile/$file
+				if [ -f $js ]; then
+					sed -i '/Preferences for using the GNU Name System/d' $js
+					sed -i '/network.proxy.socks/d' $js
+					sed -i '/network.proxy.socks_port/d' $js
+					sed -i '/network.proxy.socks_remote_dns/d' $js
+					sed -i '/network.proxy.type/d' $js
+				fi
+			done
+		done
+
+		# Chromium
+		profile=/home/$user/.profile
+		if [ -f $profile ]; then
+			sed -i '/CHROMIUM_USER_FLAGS/d' $profile
+		fi
+	done
+}
