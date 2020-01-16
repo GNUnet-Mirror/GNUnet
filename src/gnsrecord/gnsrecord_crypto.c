@@ -80,7 +80,7 @@ derive_block_aes_key (struct GNUNET_CRYPTO_SymmetricInitializationVector *iv,
  * @param rd_count number of records
  * @return NULL on error (block too large)
  */
-struct GNUNET_GNSRECORD_Block *
+static struct GNUNET_GNSRECORD_Block *
 block_create (const struct GNUNET_CRYPTO_EcdsaPrivateKey *key,
               const struct GNUNET_CRYPTO_EcdsaPublicKey *pkey,
               struct GNUNET_TIME_Absolute expire,

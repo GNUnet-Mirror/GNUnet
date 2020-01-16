@@ -556,7 +556,9 @@ GNUNET_CURL_download_get_result_ (struct GNUNET_CURL_DownloadBuffer *db,
     }
     if (0 != db->buf_size)
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                  "Did NOT detect response as JSON\n");
+                  "Did NOT detect response `%.*s' as JSON\n",
+                  (int) db->buf_size,
+                  (const char *) db->buf);
     return NULL;
   }
   json = NULL;

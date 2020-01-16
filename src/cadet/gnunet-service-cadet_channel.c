@@ -2026,4 +2026,4 @@ GCCH_debug (struct CadetChannel *ch, enum GNUNET_ErrorType level)
 }
 
 
-/* end of gnunet-service-cadet-new_channel.c */
+/* end of gnunet-service-cadet_channel.c */

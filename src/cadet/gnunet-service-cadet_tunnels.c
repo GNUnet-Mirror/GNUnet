@@ -544,29 +544,22 @@ estate2s (enum CadetTunnelEState es)
   {
   case CADET_TUNNEL_KEY_UNINITIALIZED:
     return "CADET_TUNNEL_KEY_UNINITIALIZED";
-
   case CADET_TUNNEL_KEY_AX_RECV:
     return "CADET_TUNNEL_KEY_AX_RECV";
-
   case CADET_TUNNEL_KEY_AX_SENT:
     return "CADET_TUNNEL_KEY_AX_SENT";
-
   case CADET_TUNNEL_KEY_AX_SENT_AND_RECV:
     return "CADET_TUNNEL_KEY_AX_SENT_AND_RECV";
-
   case CADET_TUNNEL_KEY_AX_AUTH_SENT:
     return "CADET_TUNNEL_KEY_AX_AUTH_SENT";
-
   case CADET_TUNNEL_KEY_OK:
     return "CADET_TUNNEL_KEY_OK";
-
-  default:
-    GNUNET_snprintf (buf,
-                     sizeof(buf),
-                     "%u (UNKNOWN STATE)",
-                     es);
-    return buf;
   }
+  GNUNET_snprintf (buf,
+                   sizeof(buf),
+                   "%u (UNKNOWN STATE)",
+                   es);
+  return buf;
 }
 
 
