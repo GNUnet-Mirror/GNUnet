@@ -164,7 +164,7 @@ GNUNET_CURL_perform (struct GNUNET_CURL_Context *ctx);
 
 
 /**
- * Run the main event loop for the Taler interaction.
+ * Run the main event loop for the HTTP interaction.
  *
  * @param ctx the library context
  * @param rp parses the raw response returned from

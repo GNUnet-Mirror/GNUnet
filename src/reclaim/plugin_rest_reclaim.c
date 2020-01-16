@@ -37,7 +37,6 @@
 #include "gnunet_rest_plugin.h"
 #include "gnunet_signatures.h"
 #include "json_reclaim.h"
-
 /**
  * REST root namespace
  */
@@ -47,6 +46,11 @@
  * Attribute namespace
  */
 #define GNUNET_REST_API_NS_RECLAIM_ATTRIBUTES "/reclaim/attributes"
+
+/**
+   * Attestation namespace
+   */
+#define GNUNET_REST_API_NS_RECLAIM_ATTESTATION_REFERENCE "/reclaim/attestation"
 
 /**
  * Ticket namespace
@@ -272,6 +276,8 @@ cleanup_handle (struct RequestHandle *handle)
       claim_tmp = claim_entry;
       claim_entry = claim_entry->next;
       GNUNET_free (claim_tmp->claim);
+      GNUNET_free (claim_tmp->attest);
+      GNUNET_free (claim_tmp->reference);
       GNUNET_free (claim_tmp);
     }
     GNUNET_free (handle->attr_list);
@@ -360,6 +366,21 @@ finished_cont (void *cls, int32_t success, const char *emsg)
   GNUNET_SCHEDULER_add_now (&cleanup_handle_delayed, handle);
 }
 
+static void
+delete_finished_cb (void *cls, int32_t success, const char *emsg)
+{
+  struct RequestHandle *handle = cls;
+  struct MHD_Response *resp;
+
+  resp = GNUNET_REST_create_response (emsg);
+  if (GNUNET_OK != success)
+  {
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
+    return;
+  }
+  handle->proc (handle->proc_cls, resp, MHD_HTTP_OK);
+  GNUNET_SCHEDULER_add_now (&cleanup_handle_delayed, handle);
+}
 
 /**
  * Return attributes for identity
@@ -433,6 +454,661 @@ ticket_collect (void *cls, const struct GNUNET_RECLAIM_Ticket *ticket)
   GNUNET_RECLAIM_ticket_iteration_next (handle->ticket_it);
 }
 
+
+static void
+add_attestation_ref_cont (struct GNUNET_REST_RequestHandle *con_handle,
+                          const char *url,
+                          void *cls)
+{
+  struct RequestHandle *handle = cls;
+  const struct GNUNET_CRYPTO_EcdsaPrivateKey *identity_priv;
+  const char *identity;
+  struct EgoEntry *ego_entry;
+  struct GNUNET_RECLAIM_ATTESTATION_REFERENCE *attribute;
+  struct GNUNET_TIME_Relative exp;
+  char term_data[handle->rest_handle->data_size + 1];
+  json_t *data_json;
+  json_error_t err;
+  struct GNUNET_JSON_Specification attrspec[] =
+  { GNUNET_RECLAIM_JSON_spec_claim_attest_ref (&attribute),
+    GNUNET_JSON_spec_end () };
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Adding an attestation reference for %s.\n",
+              handle->url);
+  if (strlen (GNUNET_REST_API_NS_RECLAIM_ATTESTATION_REFERENCE) + strlen (
+        "reference/") + 1 >= strlen (
+        handle->url))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "No identity given.\n");
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
+    return;
+  }
+  identity = handle->url + strlen (
+    GNUNET_REST_API_NS_RECLAIM_ATTESTATION_REFERENCE) + strlen ("reference/")
+             + 1;
+  for (ego_entry = handle->ego_head; NULL != ego_entry;
+       ego_entry = ego_entry->next)
+    if (0 == strcmp (identity, ego_entry->identifier))
+      break;
+  if (NULL == ego_entry)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Identity unknown (%s)\n", identity);
+    return;
+  }
+  identity_priv = GNUNET_IDENTITY_ego_get_private_key (ego_entry->ego);
+  if (0 >= handle->rest_handle->data_size)
+  {
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
+    return;
+  }
+
+  term_data[handle->rest_handle->data_size] = '\0';
+  GNUNET_memcpy (term_data,
+                 handle->rest_handle->data,
+                 handle->rest_handle->data_size);
+  data_json = json_loads (term_data, JSON_DECODE_ANY, &err);
+  GNUNET_assert (GNUNET_OK ==
+                 GNUNET_JSON_parse (data_json, attrspec, NULL, NULL));
+  json_decref (data_json);
+  if (NULL == attribute)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Unable to parse attestation reference from %s\n",
+                term_data);
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
+    return;
+  }
+  /**
+   * New ID for attribute
+   */
+  if (0 == attribute->id)
+    attribute->id = attribute->id_attest;
+  handle->idp = GNUNET_RECLAIM_connect (cfg);
+  exp = GNUNET_TIME_UNIT_HOURS;
+  handle->idp_op = GNUNET_RECLAIM_attestation_reference_store (handle->idp,
+                                                               identity_priv,
+                                                               attribute,
+                                                               &exp,
+                                                               &finished_cont,
+                                                               handle);
+  GNUNET_JSON_parse_free (attrspec);
+}
+
+static void
+parse_attestation_cont (struct GNUNET_REST_RequestHandle *con_handle,
+                        const char *url,
+                        void *cls)
+{
+  struct RequestHandle *handle = cls;
+
+  char term_data[handle->rest_handle->data_size + 1];
+  json_t *data_json;
+  json_error_t err;
+  int unpack_state;
+  struct MHD_Response *resp;
+  char *val_str = NULL;
+  const char *type_str = NULL;
+  term_data[handle->rest_handle->data_size] = '\0';
+  GNUNET_memcpy (term_data,
+                 handle->rest_handle->data,
+                 handle->rest_handle->data_size);
+  data_json = json_loads (term_data, JSON_DECODE_ANY, &err);
+  GNUNET_assert (NULL != data_json);
+  if (! json_is_object (data_json))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Error json is not array nor object!\n");
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
+    return;
+  }
+  unpack_state = json_unpack (data_json,
+                              "{s:s, s:s!}",
+                              "value",
+                              &val_str,
+                              "type",
+                              &type_str);
+  if ((0 != unpack_state) || (NULL == val_str) || (NULL == type_str))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Error json object has a wrong format!\n");
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
+    return;
+  }
+  if (0 == strcmp (type_str, "JWT"))
+  {
+  // The value is a JWT
+  char *decoded_jwt;
+  char delim[] = ".";
+  char *jwt_body = strtok (val_str, delim);
+  jwt_body = strtok (NULL, delim);
+  GNUNET_STRINGS_base64_decode (jwt_body, strlen (jwt_body),
+                                (void **) &decoded_jwt);
+  resp = GNUNET_REST_create_response (decoded_jwt);
+  handle->proc (handle->proc_cls, resp, MHD_HTTP_OK);
+  GNUNET_free (decoded_jwt);
+  }
+  else
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Error requested parsing type not supported!\n");
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
+    return;
+  }
+  cleanup_handle (handle);
+  json_decref (data_json);
+}
+
+static void
+add_attestation_cont (struct GNUNET_REST_RequestHandle *con_handle,
+                      const char *url,
+                      void *cls)
+{
+  struct RequestHandle *handle = cls;
+  /* Check for substring "reference" */
+  if (strlen (GNUNET_REST_API_NS_RECLAIM_ATTESTATION_REFERENCE) < strlen (
+        handle->url))
+  {
+    if ( strncmp ("reference/", (handle->url + strlen (
+                                   GNUNET_REST_API_NS_RECLAIM_ATTESTATION_REFERENCE)
+                                 + 1), strlen (
+                    "reference/")) == 0)
+    {
+      add_attestation_ref_cont (con_handle,url,cls);
+      return;
+    }
+  }
+  /* Check for substring "parse" */
+  if (strlen (GNUNET_REST_API_NS_RECLAIM_ATTESTATION_REFERENCE) < strlen (
+      handle->url))
+      {
+        if ( strncmp ("parse", (handle->url + strlen (
+                          GNUNET_REST_API_NS_RECLAIM_ATTESTATION_REFERENCE)
+                        + 1), strlen (
+            "parse")) == 0)
+        {
+          parse_attestation_cont (con_handle,url,cls);
+          return;
+        }
+      }
+  const struct GNUNET_CRYPTO_EcdsaPrivateKey *identity_priv;
+  const char *identity;
+  struct EgoEntry *ego_entry;
+  struct GNUNET_RECLAIM_ATTESTATION_Claim *attribute;
+  struct GNUNET_TIME_Relative exp;
+  char term_data[handle->rest_handle->data_size + 1];
+  json_t *data_json;
+  json_error_t err;
+  struct GNUNET_JSON_Specification attrspec[] =
+  { GNUNET_RECLAIM_JSON_spec_claim_attest (&attribute),
+    GNUNET_JSON_spec_end () };
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Adding an attestation for %s.\n",
+              handle->url);
+  if (strlen (GNUNET_REST_API_NS_RECLAIM_ATTESTATION_REFERENCE) >= strlen (
+        handle->url))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "No identity given.\n");
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
+    return;
+  }
+  identity = handle->url + strlen (
+    GNUNET_REST_API_NS_RECLAIM_ATTESTATION_REFERENCE) + 1;
+
+  for (ego_entry = handle->ego_head; NULL != ego_entry;
+       ego_entry = ego_entry->next)
+    if (0 == strcmp (identity, ego_entry->identifier))
+      break;
+
+  if (NULL == ego_entry)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Identity unknown (%s)\n", identity);
+    return;
+  }
+  identity_priv = GNUNET_IDENTITY_ego_get_private_key (ego_entry->ego);
+
+  if (0 >= handle->rest_handle->data_size)
+  {
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
+    return;
+  }
+
+  term_data[handle->rest_handle->data_size] = '\0';
+  GNUNET_memcpy (term_data,
+                 handle->rest_handle->data,
+                 handle->rest_handle->data_size);
+  data_json = json_loads (term_data, JSON_DECODE_ANY, &err);
+  GNUNET_assert (GNUNET_OK ==
+                 GNUNET_JSON_parse (data_json, attrspec, NULL, NULL));
+  json_decref (data_json);
+  if (NULL == attribute)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Unable to parse attestation from %s\n",
+                term_data);
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
+    return;
+  }
+  /**
+   * New ID for attribute
+   */
+  if (0 == attribute->id)
+    attribute->id =
+      GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_STRONG, UINT64_MAX);
+  handle->idp = GNUNET_RECLAIM_connect (cfg);
+  exp = GNUNET_TIME_UNIT_HOURS;
+  handle->idp_op = GNUNET_RECLAIM_attestation_store (handle->idp,
+                                                     identity_priv,
+                                                     attribute,
+                                                     &exp,
+                                                     &finished_cont,
+                                                     handle);
+  GNUNET_JSON_parse_free (attrspec);
+}
+
+/**
+ * Collect all references for an ego
+ *
+ */
+static void
+ref_collect (void *cls,
+             const struct GNUNET_CRYPTO_EcdsaPublicKey *identity,
+             const struct GNUNET_RECLAIM_ATTRIBUTE_Claim *attr,
+             const struct GNUNET_RECLAIM_ATTESTATION_Claim *attest,
+             const struct GNUNET_RECLAIM_ATTESTATION_REFERENCE *reference)
+{
+  struct RequestHandle *handle = cls;
+  json_t *attr_obj;
+  char *id_str;
+  char *id_attest_str;
+
+  if (NULL == reference)
+  {
+    GNUNET_RECLAIM_get_attributes_next (handle->attr_it);
+    return;
+  }
+
+  if ((NULL == reference->name) || (NULL == reference->reference_value))
+  {
+    return;
+  }
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Adding reference: %s\n",
+              reference->name);
+  attr_obj = json_object ();
+  json_object_set_new (attr_obj, "name", json_string (reference->name));
+  json_object_set_new (attr_obj, "ref_value", json_string (
+                         reference->reference_value));
+  id_str = GNUNET_STRINGS_data_to_string_alloc (&reference->id,
+                                                sizeof(uint64_t));
+  id_attest_str = GNUNET_STRINGS_data_to_string_alloc (&reference->id_attest,
+                                                       sizeof(uint64_t));
+  json_object_set_new (attr_obj, "id", json_string (id_str));
+  json_object_set_new (attr_obj, "ref_id", json_string (id_attest_str));
+  json_array_append (handle->resp_object, attr_obj);
+  json_decref (attr_obj);
+}
+
+/**
+ * Lists references for identity request
+ *
+ * @param con_handle the connection handle
+ * @param url the url
+ * @param cls the RequestHandle
+ */
+static void
+list_reference_cont (struct GNUNET_REST_RequestHandle *con_handle,
+                     const char *url,
+                     void *cls)
+{
+  const struct GNUNET_CRYPTO_EcdsaPrivateKey *priv_key;
+  struct RequestHandle *handle = cls;
+  struct EgoEntry *ego_entry;
+  char *identity;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Getting references for %s.\n",
+              handle->url);
+  if (strlen (GNUNET_REST_API_NS_RECLAIM_ATTESTATION_REFERENCE) + strlen (
+        "reference/") + 1 >= strlen (
+        handle->url))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "No identity given.\n");
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
+    return;
+  }
+  identity = handle->url + strlen (
+    GNUNET_REST_API_NS_RECLAIM_ATTESTATION_REFERENCE) + strlen ("reference/")
+             + 1;
+  for (ego_entry = handle->ego_head; NULL != ego_entry;
+       ego_entry = ego_entry->next)
+    if (0 == strcmp (identity, ego_entry->identifier))
+      break;
+  handle->resp_object = json_array ();
+
+  if (NULL == ego_entry)
+  {
+    // Done
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Ego %s not found.\n", identity);
+    GNUNET_SCHEDULER_add_now (&return_response, handle);
+    return;
+  }
+  priv_key = GNUNET_IDENTITY_ego_get_private_key (ego_entry->ego);
+  handle->idp = GNUNET_RECLAIM_connect (cfg);
+  handle->attr_it = GNUNET_RECLAIM_get_attributes_start (handle->idp,
+                                                         priv_key,
+                                                         &collect_error_cb,
+                                                         handle,
+                                                         &ref_collect,
+                                                         handle,
+                                                         &collect_finished_cb,
+                                                         handle);
+}
+
+/**
+ * Collect all attestations for an ego
+ *
+ */
+static void
+attest_collect (void *cls,
+                const struct GNUNET_CRYPTO_EcdsaPublicKey *identity,
+                const struct GNUNET_RECLAIM_ATTRIBUTE_Claim *attr,
+                const struct GNUNET_RECLAIM_ATTESTATION_Claim *attest,
+                const struct GNUNET_RECLAIM_ATTESTATION_REFERENCE *reference)
+{
+  struct RequestHandle *handle = cls;
+  json_t *attr_obj;
+  const char *type;
+  char *tmp_value;
+  char *id_str;
+
+
+  if (NULL != reference)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Attestation Collection with Reference\n");
+    return;
+  }
+  if (NULL == attest)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Attestation Collection with empty Attestation\n");
+    GNUNET_RECLAIM_get_attributes_next (handle->attr_it);
+    return;
+  }
+
+  if ((NULL == attest->name) || (NULL == attest->data))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Attestation Collection with empty Name/Value\n");
+    GNUNET_RECLAIM_get_attributes_next (handle->attr_it);
+    return;
+  }
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Adding attestation: %s\n",
+              attest->name);
+
+  tmp_value = GNUNET_RECLAIM_ATTESTATION_value_to_string (attest->type,
+                                                          attest->data,
+                                                          attest->data_size);
+  attr_obj = json_object ();
+  json_object_set_new (attr_obj, "value", json_string (tmp_value));
+  json_object_set_new (attr_obj, "name", json_string (attest->name));
+  type = GNUNET_RECLAIM_ATTESTATION_number_to_typename (attest->type);
+  json_object_set_new (attr_obj, "type", json_string (type));
+  id_str = GNUNET_STRINGS_data_to_string_alloc (&attest->id, sizeof(uint64_t));
+  json_object_set_new (attr_obj, "id", json_string (id_str));
+  json_array_append (handle->resp_object, attr_obj);
+  json_decref (attr_obj);
+  GNUNET_free (tmp_value);
+  GNUNET_RECLAIM_get_attributes_next (handle->attr_it);
+}
+
+
+/**
+ * Lists attestation for identity request
+ *
+ * @param con_handle the connection handle
+ * @param url the url
+ * @param cls the RequestHandle
+ */
+static void
+list_attestation_cont (struct GNUNET_REST_RequestHandle *con_handle,
+                       const char *url,
+                       void *cls)
+{
+  struct RequestHandle *handle = cls;
+  /* Check for substring "reference" */
+  if (strlen (GNUNET_REST_API_NS_RECLAIM_ATTESTATION_REFERENCE) < strlen (
+        handle->url))
+  {
+    if ( strncmp ("reference/", (handle->url + strlen (
+                                   GNUNET_REST_API_NS_RECLAIM_ATTESTATION_REFERENCE)
+                                 + 1), strlen (
+                    "reference/")) == 0)
+    {
+      list_reference_cont (con_handle,url,cls);
+      return;
+    }
+  }
+  const struct GNUNET_CRYPTO_EcdsaPrivateKey *priv_key;
+  struct EgoEntry *ego_entry;
+  char *identity;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Getting attestations for %s.\n",
+              handle->url);
+  if (strlen (GNUNET_REST_API_NS_RECLAIM_ATTESTATION_REFERENCE) >= strlen (
+        handle->url))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "No identity given.\n");
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
+    return;
+  }
+  identity = handle->url + strlen (
+    GNUNET_REST_API_NS_RECLAIM_ATTESTATION_REFERENCE) + 1;
+
+  for (ego_entry = handle->ego_head; NULL != ego_entry;
+       ego_entry = ego_entry->next)
+    if (0 == strcmp (identity, ego_entry->identifier))
+      break;
+  handle->resp_object = json_array ();
+
+
+  if (NULL == ego_entry)
+  {
+    // Done
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Ego %s not found.\n", identity);
+    GNUNET_SCHEDULER_add_now (&return_response, handle);
+    return;
+  }
+  priv_key = GNUNET_IDENTITY_ego_get_private_key (ego_entry->ego);
+  handle->idp = GNUNET_RECLAIM_connect (cfg);
+  handle->attr_it = GNUNET_RECLAIM_get_attributes_start (handle->idp,
+                                                         priv_key,
+                                                         &collect_error_cb,
+                                                         handle,
+                                                         &attest_collect,
+                                                         handle,
+                                                         &collect_finished_cb,
+                                                         handle);
+}
+
+/**
+ * Deletes reference from an identity
+ *
+ * @param con_handle the connection handle
+ * @param url the url
+ * @param cls the RequestHandle
+ */
+static void
+delete_attestation_ref_cont (struct GNUNET_REST_RequestHandle *con_handle,
+                             const char *url,
+                             void *cls)
+{
+  struct RequestHandle *handle = cls;
+  const struct GNUNET_CRYPTO_EcdsaPrivateKey *priv_key;
+  struct GNUNET_RECLAIM_ATTESTATION_REFERENCE *attr;
+  struct EgoEntry *ego_entry;
+  char *identity;
+  char *identity_id_str;
+  char *id;
+  char term_data[handle->rest_handle->data_size + 1];
+  json_t *data_json;
+  json_error_t err;
+
+  struct GNUNET_JSON_Specification attrspec[] =
+  { GNUNET_RECLAIM_JSON_spec_claim_attest_ref (&attr),
+    GNUNET_JSON_spec_end () };
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Deleting attestation reference.\n");
+  if (strlen (GNUNET_REST_API_NS_RECLAIM_ATTESTATION_REFERENCE) + strlen (
+        "reference/") + 1 >= strlen (
+        handle->url))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "No identity given.\n");
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
+    return;
+  }
+  identity_id_str = strdup (handle->url + strlen (
+                              GNUNET_REST_API_NS_RECLAIM_ATTESTATION_REFERENCE)
+                            + strlen ("reference/")
+                            + 1);
+  identity = strtok (identity_id_str, "/");
+  id = strtok (NULL, "/");
+
+  if ((NULL == identity) || (NULL == id))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Malformed request.\n");
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
+    return;
+  }
+  for (ego_entry = handle->ego_head; NULL != ego_entry;
+       ego_entry = ego_entry->next)
+    if (0 == strcmp (identity, ego_entry->identifier))
+      break;
+  handle->resp_object = json_array ();
+  if (NULL == ego_entry)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Ego %s not found.\n", identity);
+    GNUNET_SCHEDULER_add_now (&return_response, handle);
+    return;
+  }
+  priv_key = GNUNET_IDENTITY_ego_get_private_key (ego_entry->ego);
+  if (0 >= handle->rest_handle->data_size)
+  {
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
+    return;
+  }
+
+  term_data[handle->rest_handle->data_size] = '\0';
+  GNUNET_memcpy (term_data,
+                 handle->rest_handle->data,
+                 handle->rest_handle->data_size);
+  data_json = json_loads (term_data, JSON_DECODE_ANY, &err);
+  GNUNET_assert (GNUNET_OK ==
+                 GNUNET_JSON_parse (data_json, attrspec, NULL, NULL));
+  json_decref (data_json);
+  if (NULL == attr)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Unable to parse attestation reference from %s\n",
+                term_data);
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
+    return;
+  }
+  GNUNET_STRINGS_string_to_data (id, strlen (id), &attr->id, sizeof(uint64_t));
+
+  handle->idp = GNUNET_RECLAIM_connect (cfg);
+  handle->idp_op = GNUNET_RECLAIM_attestation_reference_delete (handle->idp,
+                                                                priv_key,
+                                                                attr,
+                                                                &
+                                                                delete_finished_cb,
+                                                                handle);
+  GNUNET_JSON_parse_free (attrspec);
+}
+
+
+/**
+ * Deletes attestation from an identity
+ *
+ * @param con_handle the connection handle
+ * @param url the url
+ * @param cls the RequestHandle
+ */
+static void
+delete_attestation_cont (struct GNUNET_REST_RequestHandle *con_handle,
+                         const char *url,
+                         void *cls)
+{
+  struct RequestHandle *handle = cls;
+  /* Check for substring "reference" */
+  if (strlen (GNUNET_REST_API_NS_RECLAIM_ATTESTATION_REFERENCE) < strlen (
+        handle->url))
+  {
+    if ( strncmp ("reference", (handle->url + strlen (
+                                  GNUNET_REST_API_NS_RECLAIM_ATTESTATION_REFERENCE)
+                                + 1), strlen (
+                    "reference")) == 0)
+    {
+      delete_attestation_ref_cont (con_handle,url,cls);
+      return;
+    }
+  }
+  const struct GNUNET_CRYPTO_EcdsaPrivateKey *priv_key;
+  struct GNUNET_RECLAIM_ATTESTATION_Claim attr;
+  struct EgoEntry *ego_entry;
+  char *identity_id_str;
+  char *identity;
+  char *id;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Deleting attestation.\n");
+  if (strlen (GNUNET_REST_API_NS_RECLAIM_ATTESTATION_REFERENCE) >= strlen (
+        handle->url))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "No identity given.\n");
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
+    return;
+  }
+  identity_id_str =
+    strdup (handle->url + strlen (
+              GNUNET_REST_API_NS_RECLAIM_ATTESTATION_REFERENCE) + 1);
+  identity = strtok (identity_id_str, "/");
+  id = strtok (NULL, "/");
+  if ((NULL == identity) || (NULL == id))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Malformed request.\n");
+    GNUNET_free (identity_id_str);
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
+    return;
+  }
+
+  for (ego_entry = handle->ego_head; NULL != ego_entry;
+       ego_entry = ego_entry->next)
+    if (0 == strcmp (identity, ego_entry->identifier))
+      break;
+  handle->resp_object = json_array ();
+  if (NULL == ego_entry)
+  {
+    // Done
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Ego %s not found.\n", identity);
+    GNUNET_free (identity_id_str);
+    GNUNET_SCHEDULER_add_now (&return_response, handle);
+    return;
+  }
+  priv_key = GNUNET_IDENTITY_ego_get_private_key (ego_entry->ego);
+  handle->idp = GNUNET_RECLAIM_connect (cfg);
+  memset (&attr, 0, sizeof(struct GNUNET_RECLAIM_ATTESTATION_Claim));
+  GNUNET_STRINGS_string_to_data (id, strlen (id), &attr.id, sizeof(uint64_t));
+  attr.name = "";
+  handle->idp_op = GNUNET_RECLAIM_attestation_delete (handle->idp,
+                                                      priv_key,
+                                                      &attr,
+                                                      &delete_finished_cb,
+                                                      handle);
+  GNUNET_free (identity_id_str);
+}
 
 /**
  * List tickets for identity request
@@ -568,6 +1244,72 @@ add_attribute_cont (struct GNUNET_REST_RequestHandle *con_handle,
   GNUNET_JSON_parse_free (attrspec);
 }
 
+/**
+ * Parse a JWT and return the respective claim value as Attribute
+ *
+ * @param attest the jwt attestation
+ * @param claim the name of the claim in the JWT
+ *
+ * @return a GNUNET_RECLAIM_ATTRIBUTE_Claim, containing the new value
+ */
+struct GNUNET_RECLAIM_ATTRIBUTE_Claim *
+parse_jwt (const struct GNUNET_RECLAIM_ATTESTATION_Claim *attest,
+           const char *claim)
+{
+  char *jwt_string;
+  struct GNUNET_RECLAIM_ATTRIBUTE_Claim *attr;
+  char delim[] = ".";
+  const char *type_str = NULL;
+  const char *val_str = NULL;
+  char *data;
+  size_t data_size;
+  uint32_t type;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Parsing JWT attributes.\n");
+  char *decoded_jwt;
+  json_t *json_val;
+  json_error_t *json_err = NULL;
+
+  jwt_string = GNUNET_RECLAIM_ATTESTATION_value_to_string (attest->type,
+                                                           attest->data,
+                                                           attest->data_size);
+  char *jwt_body = strtok (jwt_string, delim);
+  jwt_body = strtok (NULL, delim);
+  GNUNET_STRINGS_base64_decode (jwt_body, strlen (jwt_body),
+                                (void **) &decoded_jwt);
+  json_val = json_loads (decoded_jwt, JSON_DECODE_ANY, json_err);
+  const char *key;
+  json_t *value;
+  json_object_foreach (json_val, key, value) {
+    if (0 == strcasecmp (key,claim))
+    {
+      val_str = json_dumps (value, JSON_ENCODE_ANY);
+    }
+  }
+  type_str = "String";
+  type = GNUNET_RECLAIM_ATTRIBUTE_typename_to_number (type_str);
+  if (GNUNET_SYSERR ==(GNUNET_RECLAIM_ATTRIBUTE_string_to_value (type,val_str,
+                                                                 (void **) &data,
+                                                                 &data_size)))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Attribute value from JWT Parser invalid!\n");
+    GNUNET_RECLAIM_ATTRIBUTE_string_to_value (type,
+                                              "Error: Referenced Claim Name not Found",
+                                              (void **) &data,
+                                              &data_size);
+    attr = GNUNET_RECLAIM_ATTRIBUTE_claim_new (claim, type, data, data_size);
+    attr->id = attest->id;
+    attr->flag = 1;
+  }
+  else
+  {
+    attr = GNUNET_RECLAIM_ATTRIBUTE_claim_new (claim, type, data, data_size);
+    attr->id = attest->id;
+    attr->flag = 1;
+  }
+  return attr;
+}
+
 
 /**
  * Collect all attributes for an ego
@@ -576,39 +1318,92 @@ add_attribute_cont (struct GNUNET_REST_RequestHandle *con_handle,
 static void
 attr_collect (void *cls,
               const struct GNUNET_CRYPTO_EcdsaPublicKey *identity,
-              const struct GNUNET_RECLAIM_ATTRIBUTE_Claim *attr)
+              const struct GNUNET_RECLAIM_ATTRIBUTE_Claim *attr,
+              const struct GNUNET_RECLAIM_ATTESTATION_Claim *attest,
+              const struct GNUNET_RECLAIM_ATTESTATION_REFERENCE *reference)
 {
   struct RequestHandle *handle = cls;
   json_t *attr_obj;
   const char *type;
-  char *tmp_value;
   char *id_str;
 
-  if ((NULL == attr->name) || (NULL == attr->data))
+  if ((NULL == attr) && (NULL == reference))
   {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Attribute Collection with empty Attribute/Reference\n");
     GNUNET_RECLAIM_get_attributes_next (handle->attr_it);
     return;
   }
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Adding attribute: %s\n", attr->name);
+  if (NULL == attr)
+  {
 
-  tmp_value = GNUNET_RECLAIM_ATTRIBUTE_value_to_string (attr->type,
-                                                        attr->data,
-                                                        attr->data_size);
+    if ((NULL == reference->name) || (NULL == reference->reference_value))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Attribute Collection with empty Reference Name/Value\n");
+      return;
+    }
+    struct GNUNET_RECLAIM_ATTRIBUTE_Claim *attr2;
+    attr2 = parse_jwt (attest, reference->reference_value);
+    if (NULL == attr2)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Attribute Collection with unparsed Attestation\n");
+      return;
+    }
+    attr2->name = reference->name;
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Adding reference as attribute: %s\n",
+                reference->name);
+    char *tmp_value;
+    tmp_value = GNUNET_RECLAIM_ATTRIBUTE_value_to_string (attr2->type,
+                                                          attr2->data,
+                                                          attr2->data_size);
+    attr_obj = json_object ();
 
-  attr_obj = json_object ();
-  json_object_set_new (attr_obj, "value", json_string (tmp_value));
-  json_object_set_new (attr_obj, "name", json_string (attr->name));
-  type = GNUNET_RECLAIM_ATTRIBUTE_number_to_typename (attr->type);
-  json_object_set_new (attr_obj, "type", json_string (type));
-  id_str = GNUNET_STRINGS_data_to_string_alloc (&attr->id, sizeof(uint64_t));
-  json_object_set_new (attr_obj, "id", json_string (id_str));
-  json_array_append (handle->resp_object, attr_obj);
-  json_decref (attr_obj);
-  GNUNET_free (tmp_value);
-  GNUNET_RECLAIM_get_attributes_next (handle->attr_it);
+    json_object_set_new (attr_obj, "value", json_string (tmp_value));
+    json_object_set_new (attr_obj, "name", json_string (attr2->name));
+    json_object_set_new (attr_obj, "flag", json_string ("1"));
+    type = GNUNET_RECLAIM_ATTRIBUTE_number_to_typename (attr2->type);
+    json_object_set_new (attr_obj, "type", json_string (type));
+    id_str = GNUNET_STRINGS_data_to_string_alloc (&attr2->id, sizeof(uint64_t));
+    json_object_set_new (attr_obj, "id", json_string (id_str));
+    json_array_append (handle->resp_object, attr_obj);
+    json_decref (attr_obj);
+    GNUNET_free (tmp_value);
+  }
+  else
+  {
+    if ((NULL == attr->name) || (NULL == attr->data))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Attribute Collection with empty Attribute Name/Value\n");
+      GNUNET_RECLAIM_get_attributes_next (handle->attr_it);
+      return;
+    }
+    char *tmp_value;
+    char *flag_str;
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Adding attribute: %s\n", attr->name);
+
+    tmp_value = GNUNET_RECLAIM_ATTRIBUTE_value_to_string (attr->type,
+                                                          attr->data,
+                                                          attr->data_size);
+
+    attr_obj = json_object ();
+    json_object_set_new (attr_obj, "value", json_string (tmp_value));
+    json_object_set_new (attr_obj, "name", json_string (attr->name));
+    GNUNET_asprintf (&flag_str,"%d",attr->flag);
+    json_object_set_new (attr_obj, "flag", json_string (flag_str));
+    type = GNUNET_RECLAIM_ATTRIBUTE_number_to_typename (attr->type);
+    json_object_set_new (attr_obj, "type", json_string (type));
+    id_str = GNUNET_STRINGS_data_to_string_alloc (&attr->id, sizeof(uint64_t));
+    json_object_set_new (attr_obj, "id", json_string (id_str));
+    json_array_append (handle->resp_object, attr_obj);
+    json_decref (attr_obj);
+    GNUNET_free (tmp_value);
+    GNUNET_RECLAIM_get_attributes_next (handle->attr_it);
+  }
 }
-
 
 /**
  * List attributes for identity request
@@ -662,23 +1457,6 @@ list_attribute_cont (struct GNUNET_REST_RequestHandle *con_handle,
                                                          handle,
                                                          &collect_finished_cb,
                                                          handle);
-}
-
-
-static void
-delete_finished_cb (void *cls, int32_t success, const char *emsg)
-{
-  struct RequestHandle *handle = cls;
-  struct MHD_Response *resp;
-
-  resp = GNUNET_REST_create_response (emsg);
-  if (GNUNET_OK != success)
-  {
-    GNUNET_SCHEDULER_add_now (&do_error, handle);
-    return;
-  }
-  handle->proc (handle->proc_cls, resp, MHD_HTTP_OK);
-  GNUNET_SCHEDULER_add_now (&cleanup_handle_delayed, handle);
 }
 
 
@@ -825,7 +1603,9 @@ revoke_ticket_cont (struct GNUNET_REST_RequestHandle *con_handle,
 static void
 consume_cont (void *cls,
               const struct GNUNET_CRYPTO_EcdsaPublicKey *identity,
-              const struct GNUNET_RECLAIM_ATTRIBUTE_Claim *attr)
+              const struct GNUNET_RECLAIM_ATTRIBUTE_Claim *attr,
+              const struct GNUNET_RECLAIM_ATTESTATION_Claim *attest,
+              const struct GNUNET_RECLAIM_ATTESTATION_REFERENCE *reference)
 {
   struct RequestHandle *handle = cls;
   char *val_str;
@@ -968,6 +1748,15 @@ init_cont (struct RequestHandle *handle)
     { MHD_HTTP_METHOD_DELETE,
       GNUNET_REST_API_NS_RECLAIM_ATTRIBUTES,
       &delete_attribute_cont },
+    { MHD_HTTP_METHOD_GET,
+      GNUNET_REST_API_NS_RECLAIM_ATTESTATION_REFERENCE,
+      &list_attestation_cont },
+    { MHD_HTTP_METHOD_POST,
+      GNUNET_REST_API_NS_RECLAIM_ATTESTATION_REFERENCE,
+      &add_attestation_cont },
+    { MHD_HTTP_METHOD_DELETE,
+      GNUNET_REST_API_NS_RECLAIM_ATTESTATION_REFERENCE,
+      &delete_attestation_cont },
     { MHD_HTTP_METHOD_GET,
       GNUNET_REST_API_NS_IDENTITY_TICKETS,
       &list_tickets_cont },

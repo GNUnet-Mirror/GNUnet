@@ -667,8 +667,7 @@ rvk_move_attr_cb (void *cls,
                   const struct GNUNET_GNSRECORD_Data *rd)
 {
   struct RECLAIM_TICKETS_RevokeHandle *rvk = cls;
-  struct GNUNET_RECLAIM_ATTRIBUTE_Claim *claim;
-  struct GNUNET_GNSRECORD_Data new_rd;
+  struct GNUNET_GNSRECORD_Data new_rd[rd_count];
   struct RevokedAttributeEntry *le;
   char *new_label;
   char *attr_data;
@@ -677,7 +676,7 @@ rvk_move_attr_cb (void *cls,
   if (0 == rd_count)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                "The attribute %s no longer exists!\n",
+                "The claim %s no longer exists!\n",
                 label);
     le = rvk->move_attr;
     rvk->move_attr = le->next;
@@ -686,32 +685,82 @@ rvk_move_attr_cb (void *cls,
     GNUNET_SCHEDULER_add_now (&move_attrs_cont, rvk);
     return;
   }
-  /** find a new place for this attribute **/
-  rvk->move_attr->new_id =
-    GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_STRONG, UINT64_MAX);
-  new_rd = *rd;
-  claim = GNUNET_RECLAIM_ATTRIBUTE_deserialize (rd->data, rd->data_size);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Attribute to update: Name=%s, ID=%" PRIu64 "\n",
-              claim->name,
-              claim->id);
-  claim->id = rvk->move_attr->new_id;
-  new_rd.data_size = GNUNET_RECLAIM_ATTRIBUTE_serialize_get_size (claim);
-  attr_data = GNUNET_malloc (rd->data_size);
-  new_rd.data_size = GNUNET_RECLAIM_ATTRIBUTE_serialize (claim, attr_data);
-  new_rd.data = attr_data;
-  new_label = GNUNET_STRINGS_data_to_string_alloc (&rvk->move_attr->new_id,
-                                                   sizeof(uint64_t));
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Adding attribute %s\n", new_label);
+  rvk->move_attr->new_id =GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_STRONG, UINT64_MAX);
+  new_label=NULL;
+  attr_data=NULL;
+  //new_rd = *rd;
+  for (int i = 0; i < rd_count; i++)
+  {
+    if (GNUNET_GNSRECORD_TYPE_RECLAIM_ATTR == rd[i].record_type)
+    {
+      /** find a new place for this attribute **/
+      struct GNUNET_RECLAIM_ATTRIBUTE_Claim *claim;
+      claim = GNUNET_RECLAIM_ATTRIBUTE_deserialize (rd[i].data, rd[i].data_size);
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Attribute to update: Name=%s, ID=%" PRIu64 "\n",
+                  claim->name,
+                  claim->id);
+      claim->id = rvk->move_attr->new_id;
+      new_rd[i].data_size = GNUNET_RECLAIM_ATTRIBUTE_serialize_get_size (claim);
+      attr_data = GNUNET_malloc (rd[i].data_size);
+      new_rd[i].data_size = GNUNET_RECLAIM_ATTRIBUTE_serialize (claim, attr_data);
+      new_rd[i].data = attr_data;
+      new_rd[i].record_type = rd[i].record_type;
+      new_rd[i].flags = rd[i].flags;
+      new_rd[i].expiration_time = rd[i].expiration_time;
+      new_label = GNUNET_STRINGS_data_to_string_alloc (&rvk->move_attr->new_id,
+                                                       sizeof(uint64_t));
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Adding attribute %s\n", new_label);
+      GNUNET_free (claim);
+    } else if (GNUNET_GNSRECORD_TYPE_RECLAIM_ATTEST_ATTR == rd[i].record_type) 
+    {
+      struct GNUNET_RECLAIM_ATTESTATION_Claim *attest;
+      attest=GNUNET_RECLAIM_ATTESTATION_deserialize(rd[i].data, rd[i].data_size);
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Attestation to update: Name=%s, ID=%" PRIu64 "\n",
+                  attest->name,
+                  attest->id);
+      attest->id = rvk->move_attr->new_id;
+      new_rd[i].data_size = GNUNET_RECLAIM_ATTESTATION_serialize_get_size (attest);
+      attr_data = GNUNET_malloc (rd[i].data_size);
+      new_rd[i].data_size = GNUNET_RECLAIM_ATTESTATION_serialize (attest, attr_data);
+      new_rd[i].data = attr_data;
+      new_rd[i].record_type = rd[i].record_type;
+      new_rd[i].flags = rd[i].flags;
+      new_rd[i].expiration_time = rd[i].expiration_time;
+      new_label = GNUNET_STRINGS_data_to_string_alloc (&rvk->move_attr->new_id, sizeof(uint64_t));
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Adding attestation %s\n", new_label);
+      GNUNET_free (attest);
+    } else if (GNUNET_GNSRECORD_TYPE_RECLAIM_REFERENCE == rd[i].record_type)
+    {
+      struct GNUNET_RECLAIM_ATTESTATION_REFERENCE *reference;
+      reference=GNUNET_RECLAIM_ATTESTATION_REF_deserialize(rd[i].data, rd[i].data_size);
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Reference to update: Name=%s, ID=%" PRIu64 "\n",
+                  reference->name,
+                  reference->id);
+      reference->id = rvk->move_attr->new_id;
+      reference->id_attest = rvk->move_attr->new_id;
+      new_rd[i].data_size = GNUNET_RECLAIM_ATTESTATION_REF_serialize_get_size (reference);
+      attr_data = GNUNET_malloc (rd[i].data_size);
+      new_rd[i].data_size = GNUNET_RECLAIM_ATTESTATION_REF_serialize (reference, attr_data);
+      new_rd[i].data = attr_data;
+      new_label = GNUNET_STRINGS_data_to_string_alloc (&rvk->move_attr->new_id, sizeof(uint64_t));
+      new_rd[i].record_type = rd[i].record_type;
+      new_rd[i].flags = rd[i].flags;
+      new_rd[i].expiration_time = rd[i].expiration_time;
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Adding reference %s\n", new_label);
+      GNUNET_free (reference);
+    }
+  }
   rvk->ns_qe = GNUNET_NAMESTORE_records_store (nsh,
-                                               &rvk->identity,
-                                               new_label,
-                                               1,
-                                               &new_rd,
-                                               &move_attr_finished,
-                                               rvk);
+                                           &rvk->identity,
+                                           new_label,
+                                           rd_count,
+                                           new_rd,
+                                           &move_attr_finished,
+                                           rvk);
   GNUNET_free (new_label);
-  GNUNET_free (claim);
   GNUNET_free (attr_data);
 }
 
@@ -745,7 +794,7 @@ move_attrs (struct RECLAIM_TICKETS_RevokeHandle *rvk)
   }
   label = GNUNET_STRINGS_data_to_string_alloc (&rvk->move_attr->old_id,
                                                sizeof(uint64_t));
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Moving attribute %s\n", label);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Moving claim %s\n", label);
 
   rvk->ns_qe = GNUNET_NAMESTORE_records_lookup (nsh,
                                                 &rvk->identity,
@@ -982,21 +1031,70 @@ process_parallel_lookup_result (void *cls,
 
 
   GNUNET_free (parallel_lookup);
-  if (1 != rd_count)
-    GNUNET_break (0); // FIXME: We should never find this.
-  if (rd->record_type == GNUNET_GNSRECORD_TYPE_RECLAIM_ATTR)
+  if (0 == rd_count)
+    GNUNET_break (0);
+  // REMARK: It is possible now to find rd_count > 1
+  for (int i = 0; i < rd_count; i++)
   {
-    attr_le = GNUNET_new (struct GNUNET_RECLAIM_ATTRIBUTE_ClaimListEntry);
-    attr_le->claim =
-      GNUNET_RECLAIM_ATTRIBUTE_deserialize (rd->data, rd->data_size);
-    GNUNET_CONTAINER_DLL_insert (cth->attrs->list_head,
-                                 cth->attrs->list_tail,
-                                 attr_le);
-  }
+    if (GNUNET_GNSRECORD_TYPE_RECLAIM_ATTR == rd[i].record_type)
+    {
+      attr_le = GNUNET_new (struct GNUNET_RECLAIM_ATTRIBUTE_ClaimListEntry);
+      attr_le->claim =
+        GNUNET_RECLAIM_ATTRIBUTE_deserialize (rd[i].data, rd[i].data_size);
+      GNUNET_CONTAINER_DLL_insert (cth->attrs->list_head,
+                                   cth->attrs->list_tail,
+                                   attr_le);
+      attr_le->reference = NULL;
+      attr_le->attest = NULL;
+    }
+    else if (GNUNET_GNSRECORD_TYPE_RECLAIM_ATTEST_ATTR == rd[i].record_type)
+    {
+      /**Ignore all plain attestations
+      *attr_le = GNUNET_new (struct GNUNET_RECLAIM_ATTRIBUTE_ClaimListEntry);
+      *attr_le->attest =
+      *  GNUNET_RECLAIM_ATTESTATION_deserialize (rd[i].data, rd[i].data_size);
+      *GNUNET_CONTAINER_DLL_insert (cth->attrs->list_head,
+      *                             cth->attrs->list_tail,
+      *                             attr_le);
+      */
+      continue;
+    }
+    else if (GNUNET_GNSRECORD_TYPE_RECLAIM_REFERENCE == rd[i].record_type)
+    {
+      struct GNUNET_RECLAIM_ATTRIBUTE_ClaimListEntry *attr_le2;
+      attr_le = GNUNET_new (struct GNUNET_RECLAIM_ATTRIBUTE_ClaimListEntry);
+      attr_le2 = GNUNET_new (struct GNUNET_RECLAIM_ATTRIBUTE_ClaimListEntry);
+      if (GNUNET_GNSRECORD_TYPE_RECLAIM_ATTEST_ATTR == rd[0].record_type)
+      {
+        attr_le->attest = GNUNET_RECLAIM_ATTESTATION_deserialize (rd[0].data,
+                                                                  rd[0].
+                                                                  data_size);
+        attr_le2->reference =
+          GNUNET_RECLAIM_ATTESTATION_REF_deserialize (rd[i].data,
+                                                      rd[i].data_size);
+        attr_le->claim = NULL;
+        attr_le->reference = NULL;
+        attr_le2->claim = NULL;
+        attr_le2->attest = NULL;
+        GNUNET_CONTAINER_DLL_insert (cth->attrs->list_head,
+                                     cth->attrs->list_tail,
+                                     attr_le);
+        GNUNET_CONTAINER_DLL_insert (cth->attrs->list_head,
+                                     cth->attrs->list_tail,
+                                     attr_le2);
+      }
+      else
+      {
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                    "Parallel Lookup of Reference without Attestation");
+        continue;
+      }
 
+
+    }
+  }
   if (NULL != cth->parallel_lookups_head)
     return; // Wait for more
-
   /* Else we are done */
   cth->cb (cth->cb_cls, &cth->ticket.identity, cth->attrs, GNUNET_OK, NULL);
   cleanup_cth (cth);
@@ -1076,7 +1174,7 @@ lookup_authz_cb (void *cls,
       GNUNET_GNS_lookup (gns,
                          lbl,
                          &cth->ticket.identity,
-                         GNUNET_GNSRECORD_TYPE_RECLAIM_ATTR,
+                         GNUNET_GNSRECORD_TYPE_ANY,
                          GNUNET_GNS_LO_DEFAULT,
                          &process_parallel_lookup_result,
                          parallel_lookup);
@@ -1223,6 +1321,7 @@ issue_ticket (struct TicketIssueHandle *ih)
   char *label;
   size_t list_len = 1;
   int i;
+  char *attest_string;
 
   for (le = ih->attrs->list_head; NULL != le; le = le->next)
     list_len++;
@@ -1232,8 +1331,51 @@ issue_ticket (struct TicketIssueHandle *ih)
   i = 0;
   for (le = ih->attrs->list_head; NULL != le; le = le->next)
   {
-    attrs_record[i].data = &le->claim->id;
-    attrs_record[i].data_size = sizeof(le->claim->id);
+    if (NULL != le->claim)
+    {
+      attrs_record[i].data = &le->claim->id;
+      attrs_record[i].data_size = sizeof(le->claim->id);
+    }
+    else if (NULL != le->attest)
+    {
+      // REMARK: Since we only store IDs, the references are irrelevant
+      int j = 0;
+      GNUNET_asprintf (&attest_string,"%d",le->attest->id);
+      while (j<i)
+      {
+        if (0 == strcmp (attest_string,GNUNET_STRINGS_data_to_string_alloc (
+                           attrs_record[j].data, attrs_record[j].data_size)))
+          break;
+        j++;
+      }
+      if (j < i)
+      {
+        list_len--;
+        continue;
+      }
+      attrs_record[i].data = &le->attest->id;
+      attrs_record[i].data_size = sizeof(le->attest->id);
+    }
+    else if (NULL != le->reference)
+    {
+      list_len--;
+      continue;
+      /*
+      int j = 0;
+      GNUNET_asprintf (&attest_string,"%d",le->attest->id);
+      while (j<i)
+      {
+        if (strcmp(attest_string, GNUNET_STRINGS_data_to_string_alloc (
+              attrs_record[j].data, attrs_record[j].data_size)))
+          break;
+        j++;
+      }
+      if (j < i)
+        continue;
+      attrs_record[i].data = &le->reference->id;
+      attrs_record[i].data_size = sizeof(le->reference->id);
+      */
+    }
     /**
      * FIXME: Should this be the attribute expiration time or ticket
      * refresh interval? Probably min(attrs.expiration)
@@ -1344,14 +1486,34 @@ filter_tickets_cb (void *cls,
     for (le = tih->attrs->list_head; NULL != le; le = le->next)
     {
       // cmp attr_ref id with requested attr id
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  " %" PRIu64 "\n  %" PRIu64 "\n",
-                  *((uint64_t *) rd[i].data),
-                  le->claim->id);
+      if (NULL !=le->claim)
+      {
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                    " %" PRIu64 "\n  %" PRIu64 "\n",
+                    *((uint64_t *) rd[i].data),
+                    le->claim->id);
+        if (0 == memcmp (rd[i].data, &le->claim->id, sizeof(uint64_t)))
+          found_attrs_cnt++;
+      }
+      else if (NULL !=le->attest)
+      {
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                    " %" PRIu64 "\n  %" PRIu64 "\n",
+                    *((uint64_t *) rd[i].data),
+                    le->attest->id);
+        if (0 == memcmp (rd[i].data, &le->attest->id, sizeof(uint64_t)))
+          found_attrs_cnt++;
+      }
+      else if (NULL != le->reference)
+      {
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                    " %" PRIu64 "\n  %" PRIu64 "\n",
+                    *((uint64_t *) rd[i].data),
+                    le->reference->id);
+        if (0 == memcmp (rd[i].data, &le->reference->id, sizeof(uint64_t)))
+          found_attrs_cnt++;
+      }
 
-
-      if (0 == memcmp (rd[i].data, &le->claim->id, sizeof(uint64_t)))
-        found_attrs_cnt++;
     }
   }
 

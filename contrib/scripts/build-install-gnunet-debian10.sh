@@ -2,13 +2,15 @@
 set -exo
 set -u pipefail
 
-if test -z "$USER" = "root"; then
+if [ "$USER" = "root" ]; then
   export SUDO_CMD=""
 else
   SUDO_CMD="sudo"
 fi
 
-$SUDO_CMD apt update && $SUDO_CMD apt install -y git libtool autoconf \
+$SUDO_CMD apt update
+
+$SUDO_CMD apt install -y git libtool autoconf \
 autopoint libmicrohttpd-dev build-essential libgcrypt-dev \
 libidn11-dev zlib1g-dev libunistring-dev libglpk-dev miniupnpc \
 libextractor-dev libjansson-dev libcurl4-gnutls-dev gnutls-bin \
@@ -24,7 +26,7 @@ cd ~/gnunet_installation/gnunet
 
 ./bootstrap
 
-export GNUNET_PREFIX=/usr/local
+export GNUNET_PREFIX=/usr
 export CFLAGS="-g -Wall -O0"
 
 ./configure --prefix=$GNUNET_PREFIX --enable-logging=verbose --disable-documentation

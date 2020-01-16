@@ -39,6 +39,7 @@ libgnunetutil_la_SOURCES = \
   bandwidth.c \
   $(BENCHMARK) \
   bio.c \
+  buffer.c \
   client.c \
   common_allocation.c \
   common_endian.c \
@@ -138,41 +139,11 @@ libgnunetutil_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS) \
   -version-info 13:2:0
 
-libgnunetutil_taler_wallet_la_SOURCES = \
-  common_allocation.c \
-  common_endian.c \
-  common_logging.c \
-  container_heap.c \
-  container_multihashmap.c \
-  container_multihashmap32.c \
-  crypto_symmetric.c \
-  crypto_crc.c \
-  crypto_ecc.c \
-  crypto_hash.c \
-  crypto_hkdf.c \
-  crypto_kdf.c \
-  crypto_mpi.c \
-  crypto_random.c \
-  crypto_rsa.c \
-  strings.c \
-  time.c
-
-libgnunetutil_taler_wallet_la_LIBADD = \
-  $(LIBGCRYPT_LIBS) \
-  -lunistring
-
-libgnunetutil_taler_wallet_la_LDFLAGS = \
-  $(GN_LIB_LDFLAGS) \
-  -version-info 0:0:0
-
 if HAVE_TESTING
   GNUNET_ECC = gnunet-ecc
   GNUNET_SCRYPT = gnunet-scrypt
 endif
 
-if TALER_ONLY
-lib_LTLIBRARIES = libgnunetutil_taler_wallet.la
-else
 lib_LTLIBRARIES = libgnunetutil.la
 
 libexec_PROGRAMS = \
@@ -182,6 +153,7 @@ libexec_PROGRAMS = \
 bin_PROGRAMS = \
  gnunet-resolver \
  gnunet-config \
+ gnunet-crypto-tvg \
  $(GNUNET_ECC) \
  $(GNUNET_SCRYPT) \
  gnunet-uri
@@ -197,8 +169,6 @@ noinst_PROGRAMS = \
 if ENABLE_TEST_RUN
 AM_TESTS_ENVIRONMENT=export GNUNET_PREFIX=$${GNUNET_PREFIX:-@libdir@};export PATH=$${GNUNET_PREFIX:-@prefix@}/bin:$$PATH;unset XDG_DATA_HOME;unset XDG_CONFIG_HOME;
 TESTS = $(check_PROGRAMS)
-endif
-
 endif
 
 gnunet_timeout_SOURCES = \
@@ -220,6 +190,11 @@ gnunet_resolver_LDADD = \
   libgnunetutil.la \
   $(GN_LIBINTL)
 
+gnunet_crypto_tvg_SOURCES = \
+ gnunet-crypto-tvg.c
+gnunet_crypto_tvg_LDADD = \
+  libgnunetutil.la \
+  $(GN_LIBINTL) -lgcrypt
 
 gnunet_ecc_SOURCES = \
  gnunet-ecc.c
@@ -298,6 +273,7 @@ check_PROGRAMS = \
  test_crypto_eddsa \
  test_crypto_ecdhe \
  test_crypto_ecdh_eddsa \
+ test_crypto_ecdh_ecdsa \
  test_crypto_ecc_dlog \
  test_crypto_hash \
  test_crypto_hash_context \
@@ -475,6 +451,13 @@ test_crypto_ecdh_eddsa_SOURCES = \
 test_crypto_ecdh_eddsa_LDADD = \
  libgnunetutil.la \
  $(LIBGCRYPT_LIBS)
+
+test_crypto_ecdh_ecdsa_SOURCES = \
+ test_crypto_ecdh_ecdsa.c
+test_crypto_ecdh_ecdsa_LDADD = \
+ libgnunetutil.la \
+ $(LIBGCRYPT_LIBS)
+
 
 test_crypto_hash_SOURCES = \
  test_crypto_hash.c

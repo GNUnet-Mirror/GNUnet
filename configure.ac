@@ -21,7 +21,7 @@
 #
 AC_PREREQ(2.61)
 # Checks for programs.
-AC_INIT([gnunet], [0.12.1], [bug-gnunet@gnu.org])
+AC_INIT([gnunet], [0.12.2], [bug-gnunet@gnu.org])
 AC_CONFIG_AUX_DIR([build-aux])
 
 # check for legacy option that is no longer supported (#5627) and fail hard
@@ -212,7 +212,7 @@ AC_SEARCH_LIBS([memrchr], [],
                AC_DEFINE(HAVE_MEMRCHR,1,[memrchr supported]), [])
 AC_SEARCH_LIBS([memset_s], [],
                AC_DEFINE(HAVE_MEMSET_S,1,[memset_s supported]), [])
-AC_SEARCH_LIBS([memset_s], [],
+AC_SEARCH_LIBS([explicit_bzero], [],
                AC_DEFINE(HAVE_EXPLICIT_BZERO,1,[explicit_bzero supported]), [])
 AC_CHECK_LIB(socket, socket)
 AC_CHECK_LIB(m, log)
@@ -1026,23 +1026,6 @@ AC_CHECK_LIB([kvm],[kvm_open])
 AC_CHECK_LIB([kstat],[kstat_open])
 
 
-# should the build process be restricted to the code required
-# for GNU Taler wallets?
-AC_MSG_CHECKING(whether to compile GNU Taler Wallet library ONLY)
-AC_ARG_ENABLE([taler-wallet],
-   [AS_HELP_STRING([--enable-taler-wallet], [only compile for Taler wallet])],
-   [taler_only=${enableval}],
-   [taler_only=no])
-AC_MSG_RESULT($taler_only)
-AS_IF([test "x$taler_only" = "xyes"],
-[
-  AM_CONDITIONAL([TALER_ONLY],true)
-  AC_DEFINE([TALER_WALLET_ONLY],[1],[Compiling for Taler wallet])
-],[
-  AM_CONDITIONAL([TALER_ONLY],false)
-  AC_DEFINE([TALER_WALLET_ONLY],[0],[Canonical compilation])
-])
-
 # test for libextractor
 extractor=0
 AC_MSG_CHECKING(for libextractor)
@@ -1079,9 +1062,6 @@ AS_IF([test "$extractor" != 1],
  AM_CONDITIONAL(HAVE_LIBEXTRACTOR, true)
  AC_DEFINE([HAVE_LIBEXTRACTOR],[1],[Have libextractor])
  ])
-
-
-AS_IF([test "$taler_only" != yes],[
 
 
 # Check for libltdl header (#2999)
@@ -1250,10 +1230,6 @@ AS_IF([test "$enable_shared" = "no"],
 LIBS=$SAVE_LIBS
 
 
-# end of taler-only being false
-])
-
-
 # check for iconv
 AM_ICONV
 
@@ -1262,12 +1238,8 @@ gl_LIBUNISTRING
 AS_IF([test $HAVE_LIBUNISTRING != yes],
       [AC_MSG_ERROR([GNUnet requires libunistring])])
 
-# under emscripten, $gl_libunistring_hexversion is undefined
-if test "$taler_only" != yes; then
-
 AS_IF([test "x$gl_libunistring_hexversion" = "x" || test "$gl_libunistring_hexversion" -le 2305],
       [AC_MSG_ERROR([GNUnet requires libunistring >= 0.9.1.1])])
-fi
 AC_CHECK_HEADERS([unistr.h],
                  ,
                  AC_MSG_ERROR([Compiling GNUnet requires unistr.h (from libunistring) to be installed]))
@@ -1340,14 +1312,12 @@ CPPFLAGS=$SAVE_CPPFLAGS
 
 # test for postgres:
 postgres=false
-# even running the check for postgres breaks emscripten
-AS_IF([test "$taler_only" != yes],
-      [AX_LIB_POSTGRESQL([9.5],
-        [CPPFLAGS="$CPPFLAGS $POSTGRESQL_CPPFLAGS"
-         AC_CHECK_HEADERS([libpq-fe.h],
-         postgres=true)
-        ],
-        [AC_MSG_RESULT([no postgres])])])
+AX_LIB_POSTGRESQL([9.5],
+  [CPPFLAGS="$CPPFLAGS $POSTGRESQL_CPPFLAGS"
+   AC_CHECK_HEADERS([libpq-fe.h],
+   postgres=true)
+  ],
+  [AC_MSG_RESULT([no postgres])])
 
 AM_CONDITIONAL(HAVE_POSTGRESQL, test x$postgres = xtrue)
 AS_IF([test "x$postgres" = xtrue],

@@ -463,6 +463,7 @@ handle_lookup (void *cls,
                                      name,
                                      (enum GNUNET_GNS_LocalOptions) ntohs (
                                        sh_msg->options),
+                                     ntohs (sh_msg->recursion_depth_limit),
                                      &send_lookup_response, clh);
   GNUNET_STATISTICS_update (statistics,
                             "Lookup attempts",

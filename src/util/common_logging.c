@@ -294,7 +294,6 @@ resize_logdefs ()
 }
 
 
-#if ! TALER_WALLET_ONLY
 /**
  * Rotate logs, deleting the oldest log.
  *
@@ -401,9 +400,6 @@ setup_log_file (const struct tm *tm)
   GNUNET_stderr = altlog;
   return GNUNET_OK;
 }
-
-
-#endif
 
 
 /**
@@ -731,7 +727,7 @@ GNUNET_log_setup (const char *comp, const char *loglevel, const char *logfile)
   log_file_name = GNUNET_STRINGS_filename_expand (logfile);
   if (NULL == log_file_name)
     return GNUNET_SYSERR;
-#if TALER_WALLET_ONLY || defined(GNUNET_CULL_LOGGING)
+#if defined(GNUNET_CULL_LOGGING)
   /* log file option not allowed for wallet logic */
   GNUNET_assert (NULL == logfile);
   return GNUNET_OK;
@@ -1023,7 +1019,7 @@ mylog (enum GNUNET_ErrorType kind,
     }
 
     vsnprintf (buf, size, message, va);
-#if ! (defined(GNUNET_CULL_LOGGING) || TALER_WALLET_ONLY)
+#if ! defined(GNUNET_CULL_LOGGING)
     if (NULL != tmptr)
       (void) setup_log_file (tmptr);
 #endif

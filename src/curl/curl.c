@@ -680,7 +680,7 @@ do_benchmark (CURLMsg *cmsg)
 
 
 /**
- * Run the main event loop for the Taler interaction.
+ * Run the main event loop for the HTTP interaction.
  *
  * @param ctx the library context
  * @param rp parses the raw response returned from

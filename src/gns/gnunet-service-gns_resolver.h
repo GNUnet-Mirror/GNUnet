@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C) 2009-2013 GNUnet e.V.
+     Copyright (C) 2009-2020 GNUnet e.V.
 
      GNUnet is free software: you can redistribute it and/or modify it
      under the terms of the GNU Affero General Public License as published
@@ -79,6 +79,8 @@ typedef void
  * @param record_type the record type to look up
  * @param name the name to look up
  * @param options options set to control local lookup
+ * @param recursion_depth_limit how many zones to traverse
+ *        at most
  * @param proc the processor to call
  * @param proc_cls the closure to pass to @a proc
  * @return handle to cancel operation
@@ -88,6 +90,7 @@ GNS_resolver_lookup (const struct GNUNET_CRYPTO_EcdsaPublicKey *zone,
                      uint32_t record_type,
                      const char *name,
                      enum GNUNET_GNS_LocalOptions options,
+                     uint16_t recursion_depth_limit,
                      GNS_ResultProcessor proc,
                      void *proc_cls);
 

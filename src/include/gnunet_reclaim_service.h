@@ -117,7 +117,9 @@ typedef void (*GNUNET_RECLAIM_ContinuationWithStatus) (void *cls,
  */
 typedef void (*GNUNET_RECLAIM_AttributeResult) (
   void *cls, const struct GNUNET_CRYPTO_EcdsaPublicKey *identity,
-  const struct GNUNET_RECLAIM_ATTRIBUTE_Claim *attr);
+  const struct GNUNET_RECLAIM_ATTRIBUTE_Claim *attr,
+  const struct GNUNET_RECLAIM_ATTESTATION_Claim *attest,
+  const struct GNUNET_RECLAIM_ATTESTATION_REFERENCE *reference);
 
 
 /**
@@ -152,6 +154,28 @@ GNUNET_RECLAIM_attribute_store (
 
 
 /**
+   * Store an attestation.  If the attestation is already present,
+   * it is replaced with the new attestation.
+   *
+   * @param h handle to the re:claimID service
+   * @param pkey private key of the identity
+   * @param attr the attestation value
+   * @param exp_interval the relative expiration interval for the attestation
+   * @param cont continuation to call when done
+   * @param cont_cls closure for @a cont
+   * @return handle to abort the request
+   */
+struct GNUNET_RECLAIM_Operation *
+GNUNET_RECLAIM_attestation_store (
+  struct GNUNET_RECLAIM_Handle *h,
+  const struct GNUNET_CRYPTO_EcdsaPrivateKey *pkey,
+  const struct GNUNET_RECLAIM_ATTESTATION_Claim *attr,
+  const struct GNUNET_TIME_Relative *exp_interval,
+  GNUNET_RECLAIM_ContinuationWithStatus cont,
+  void *cont_cls);
+
+
+/**
  * Delete an attribute. Tickets used to share this attribute are updated
  * accordingly.
  *
@@ -169,7 +193,43 @@ GNUNET_RECLAIM_attribute_delete (
   const struct GNUNET_RECLAIM_ATTRIBUTE_Claim *attr,
   GNUNET_RECLAIM_ContinuationWithStatus cont, void *cont_cls);
 
+/**
+ * Delete an attestation. Tickets used to share this attestation are updated
+ * accordingly.
+ *
+ * @param h handle to the re:claimID service
+ * @param pkey Private key of the identity to add an attribute to
+ * @param attr The attestation
+ * @param cont Continuation to call when done
+ * @param cont_cls Closure for @a cont
+ * @return handle Used to to abort the request
+ */
+struct GNUNET_RECLAIM_Operation *
+GNUNET_RECLAIM_attestation_delete (
+  struct GNUNET_RECLAIM_Handle *h,
+  const struct GNUNET_CRYPTO_EcdsaPrivateKey *pkey,
+  const struct GNUNET_RECLAIM_ATTESTATION_Claim *attr,
+  GNUNET_RECLAIM_ContinuationWithStatus cont,
+  void *cont_cls);
 
+/**
+ * Delete an attestation reference. Tickets used to share this reference are updated
+ * accordingly.
+ *
+ * @param h handle to the re:claimID service
+ * @param pkey Private key of the identity to delete the reference from
+ * @param attr The reference
+ * @param cont Continuation to call when done
+ * @param cont_cls Closure for @a cont
+ * @return handle Used to to abort the request
+ */
+struct GNUNET_RECLAIM_Operation *
+GNUNET_RECLAIM_attestation_reference_delete (
+  struct GNUNET_RECLAIM_Handle *h,
+  const struct GNUNET_CRYPTO_EcdsaPrivateKey *pkey,
+  const struct GNUNET_RECLAIM_ATTESTATION_REFERENCE *attr,
+  GNUNET_RECLAIM_ContinuationWithStatus cont,
+  void *cont_cls);
 /**
  * List all attributes for a local identity.
  * This MUST lock the `struct GNUNET_RECLAIM_Handle`
@@ -202,6 +262,26 @@ GNUNET_RECLAIM_get_attributes_start (
   GNUNET_RECLAIM_AttributeResult proc, void *proc_cls,
   GNUNET_SCHEDULER_TaskCallback finish_cb, void *finish_cb_cls);
 
+/**
+   * Store an attestation reference.  If the reference is already present,
+   * it is replaced with the new reference.
+   *
+   * @param h handle to the re:claimID service
+   * @param pkey private key of the identity
+   * @param attr the reference value
+   * @param exp_interval the relative expiration interval for the reference
+   * @param cont continuation to call when done
+   * @param cont_cls closure for @a cont
+   * @return handle to abort the request
+   */
+struct GNUNET_RECLAIM_Operation *
+GNUNET_RECLAIM_attestation_reference_store (
+  struct GNUNET_RECLAIM_Handle *h,
+  const struct GNUNET_CRYPTO_EcdsaPrivateKey *pkey,
+  const struct GNUNET_RECLAIM_ATTESTATION_REFERENCE *attr,
+  const struct GNUNET_TIME_Relative *exp_interval,
+  GNUNET_RECLAIM_ContinuationWithStatus cont,
+  void *cont_cls);
 
 /**
  * Calls the record processor specified in #GNUNET_RECLAIM_get_attributes_start

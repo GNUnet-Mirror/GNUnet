@@ -1,6 +1,7 @@
 test_common_logging_dummy
 gnunet-config
 gnunet-config-diff
+gnunet-crypto-tvg
 gnunet-ecc
 gnunet-qr
 gnunet-resolver
@@ -30,6 +31,7 @@ test_container_multihashmap32
 test_container_multipeermap
 test_crypto_crc
 test_crypto_ecc_dlog
+test_crypto_ecdh_ecdsa
 test_crypto_ecdh_eddsa
 test_crypto_ecdhe
 test_crypto_ecdsa

@@ -226,7 +226,9 @@ store_attr_cont (void *cls, int32_t success, const char *emsg)
 static void
 process_attrs (void *cls,
                const struct GNUNET_CRYPTO_EcdsaPublicKey *identity,
-               const struct GNUNET_RECLAIM_ATTRIBUTE_Claim *attr)
+               const struct GNUNET_RECLAIM_ATTRIBUTE_Claim *attr,
+               const struct GNUNET_RECLAIM_ATTESTATION_Claim *attest, 
+               const struct GNUNET_RECLAIM_ATTESTATION_REFERENCE *reference)
 {
   char *value_str;
   char *id;
@@ -253,7 +255,7 @@ process_attrs (void *cls,
            attr->name,
            value_str,
            attr_type,
-           attr->version,
+           attr->flag,
            id);
   GNUNET_free (id);
 }
@@ -445,7 +447,9 @@ iter_finished (void *cls)
 static void
 iter_cb (void *cls,
          const struct GNUNET_CRYPTO_EcdsaPublicKey *identity,
-         const struct GNUNET_RECLAIM_ATTRIBUTE_Claim *attr)
+         const struct GNUNET_RECLAIM_ATTRIBUTE_Claim *attr,
+         const struct GNUNET_RECLAIM_ATTESTATION_Claim *attest,
+         const struct GNUNET_RECLAIM_ATTESTATION_REFERENCE *reference)
 {
   struct GNUNET_RECLAIM_ATTRIBUTE_ClaimListEntry *le;
   char *attrs_tmp;
@@ -480,7 +484,7 @@ iter_cb (void *cls,
                                                       attr->type,
                                                       attr->data,
                                                       attr->data_size);
-      le->claim->version = attr->version;
+      le->claim->flag = attr->flag;
       le->claim->id = attr->id;
       GNUNET_CONTAINER_DLL_insert (attr_list->list_head,
                                    attr_list->list_tail,
@@ -514,7 +518,7 @@ iter_cb (void *cls,
              attr->name,
              attr_str,
              attr_type,
-             attr->version,
+             attr->flag,
              id);
     GNUNET_free (id);
   }

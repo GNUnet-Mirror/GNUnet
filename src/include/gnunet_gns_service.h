@@ -147,6 +147,31 @@ GNUNET_GNS_lookup (struct GNUNET_GNS_Handle *handle,
 
 
 /**
+ * Perform an asynchronous lookup operation on the GNS.
+ *
+ * @param handle handle to the GNS service
+ * @param name the name to look up (in UTF-8 encoding)
+ * @param zone zone to look in
+ * @param type the GNS record type to look for
+ * @param options local options for the lookup
+ * @param recursion_depth_limit maximum number of zones
+ *        that the lookup may (still) traverse
+ * @param proc function to call on result
+ * @param proc_cls closure for @a proc
+ * @return handle to the queued request
+ */
+struct GNUNET_GNS_LookupRequest *
+GNUNET_GNS_lookup_limited (struct GNUNET_GNS_Handle *handle,
+                           const char *name,
+                           const struct GNUNET_CRYPTO_EcdsaPublicKey *zone,
+                           uint32_t type,
+                           enum GNUNET_GNS_LocalOptions options,
+                           uint16_t recursion_depth_limit,
+                           GNUNET_GNS_LookupResultProcessor proc,
+                           void *proc_cls);
+
+
+/**
  * Cancel pending lookup request
  *
  * @param lr the lookup request to cancel

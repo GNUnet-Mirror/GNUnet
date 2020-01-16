@@ -90,6 +90,63 @@ gnuid_string_to_value (void *cls,
   }
 }
 
+/**
+   * Convert the 'value' of an attestation to a string.
+   *
+   * @param cls closure, unused
+   * @param type type of the attestation
+   * @param data value in binary encoding
+   * @param data_size number of bytes in @a data
+   * @return NULL on error, otherwise human-readable representation of the value
+   */
+static char *
+gnuid_value_to_string_attest (void *cls,
+                              uint32_t type,
+                              const void *data,
+                              size_t data_size)
+{
+  switch (type)
+  {
+  case GNUNET_RECLAIM_ATTESTATION_TYPE_JWT:
+    return GNUNET_strndup (data, data_size);
+
+  default:
+    return NULL;
+  }
+}
+
+
+/**
+ * Convert human-readable version of a 'value' of an attestation to the binary
+ * representation.
+ *
+ * @param cls closure, unused
+ * @param type type of the attestation
+ * @param s human-readable string
+ * @param data set to value in binary encoding (will be allocated)
+ * @param data_size set to number of bytes in @a data
+ * @return #GNUNET_OK on success
+ */
+static int
+gnuid_string_to_value_attest (void *cls,
+                              uint32_t type,
+                              const char *s,
+                              void **data,
+                              size_t *data_size)
+{
+  if (NULL == s)
+    return GNUNET_SYSERR;
+  switch (type)
+  {
+  case GNUNET_RECLAIM_ATTESTATION_TYPE_JWT:
+    *data = GNUNET_strdup (s);
+    *data_size = strlen (s);
+    return GNUNET_OK;
+
+  default:
+    return GNUNET_SYSERR;
+  }
+}
 
 /**
  * Mapping of attribute type numbers to human-readable
@@ -102,6 +159,16 @@ static struct
 } gnuid_name_map[] = { { "STRING", GNUNET_RECLAIM_ATTRIBUTE_TYPE_STRING },
                        { NULL, UINT32_MAX } };
 
+/**
+ * Mapping of attestation type numbers to human-readable
+ * attestation type names.
+ */
+static struct
+{
+  const char *name;
+  uint32_t number;
+} gnuid_attest_name_map[] = { { "JWT", GNUNET_RECLAIM_ATTESTATION_TYPE_JWT },
+                              { NULL, UINT32_MAX } };
 
 /**
  * Convert a type name to the corresponding number.
@@ -141,6 +208,44 @@ gnuid_number_to_typename (void *cls, uint32_t type)
   return gnuid_name_map[i].name;
 }
 
+/**
+   * Convert a type name to the corresponding number.
+   *
+   * @param cls closure, unused
+   * @param gnuid_typename name to convert
+   * @return corresponding number, UINT32_MAX on error
+   */
+static uint32_t
+gnuid_typename_to_number_attest (void *cls, const char *gnuid_typename)
+{
+  unsigned int i;
+
+  i = 0;
+  while ((NULL != gnuid_attest_name_map[i].name) &&
+         (0 != strcasecmp (gnuid_typename, gnuid_attest_name_map[i].name)))
+    i++;
+  return gnuid_attest_name_map[i].number;
+}
+
+/**
+ * Convert a type number (i.e. 1) to the corresponding type string
+ *
+ * @param cls closure, unused
+ * @param type number of a type to convert
+ * @return corresponding typestring, NULL on error
+ */
+static const char *
+gnuid_number_to_typename_attest (void *cls, uint32_t type)
+{
+  unsigned int i;
+
+  i = 0;
+  while ((NULL != gnuid_attest_name_map[i].name) && (type !=
+                                                     gnuid_attest_name_map[i].
+                                                     number))
+    i++;
+  return gnuid_attest_name_map[i].name;
+}
 
 /**
  * Entry point for the plugin.
@@ -158,6 +263,10 @@ libgnunet_plugin_reclaim_attribute_gnuid_init (void *cls)
   api->string_to_value = &gnuid_string_to_value;
   api->typename_to_number = &gnuid_typename_to_number;
   api->number_to_typename = &gnuid_number_to_typename;
+  api->value_to_string_attest = &gnuid_value_to_string_attest;
+  api->string_to_value_attest = &gnuid_string_to_value_attest;
+  api->typename_to_number_attest = &gnuid_typename_to_number_attest;
+  api->number_to_typename_attest = &gnuid_number_to_typename_attest;
   return api;
 }
 

@@ -51,7 +51,7 @@
 char*
 OIDC_id_token_new (const struct GNUNET_CRYPTO_EcdsaPublicKey *aud_key,
                    const struct GNUNET_CRYPTO_EcdsaPublicKey *sub_key,
-                   const struct GNUNET_RECLAIM_ATTRIBUTE_ClaimList *attrs,
+                   struct GNUNET_RECLAIM_ATTRIBUTE_ClaimList *attrs,
                    const struct GNUNET_TIME_Relative *expiration_time,
                    const char *nonce,
                    const char *secret_key);

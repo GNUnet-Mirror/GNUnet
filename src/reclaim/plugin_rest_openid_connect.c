@@ -120,6 +120,11 @@
 #define OIDC_NONCE_KEY "nonce"
 
 /**
+ * OIDC claims key
+ */
+#define OIDC_CLAIMS_KEY "claims"
+
+/**
  * OIDC PKCE code challenge
  */
 #define OIDC_CODE_CHALLENGE_KEY "code_challenge"
@@ -289,6 +294,11 @@ struct OIDC_Variables
    * The OIDC nonce
    */
   char *nonce;
+
+  /**
+   * The OIDC claims
+   */
+  char *claims;
 
   /**
    * The OIDC response type
@@ -560,7 +570,12 @@ cleanup_handle (struct RequestHandle *handle)
     {
       claim_tmp = claim_entry;
       claim_entry = claim_entry->next;
-      GNUNET_free (claim_tmp->claim);
+      if (NULL != claim_tmp->claim)
+        GNUNET_free (claim_tmp->claim);
+      if (NULL != claim_tmp->attest)
+        GNUNET_free (claim_tmp->attest);
+      if (NULL != claim_tmp->reference)
+        GNUNET_free (claim_tmp->reference);
       GNUNET_free (claim_tmp);
     }
     GNUNET_free (handle->attr_list);
@@ -697,7 +712,7 @@ return_userinfo_response (void *cls)
   struct MHD_Response *resp;
 
   result_str = json_dumps (handle->oidc->response, 0);
-
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,"ID-Token: %s\n",result_str);
   resp = GNUNET_REST_create_response (result_str);
   handle->proc (handle->proc_cls, resp, MHD_HTTP_OK);
   GNUNET_free (result_str);
@@ -838,7 +853,7 @@ login_redirect (void *cls)
                                                           &login_base_url))
   {
     GNUNET_asprintf (&new_redirect,
-                     "%s?%s=%s&%s=%s&%s=%s&%s=%s&%s=%s&%s=%s&%s=%s",
+                     "%s?%s=%s&%s=%s&%s=%s&%s=%s&%s=%s&%s=%s&%s=%s&%s=%s",
                      login_base_url,
                      OIDC_RESPONSE_TYPE_KEY,
                      handle->oidc->response_type,
@@ -854,7 +869,10 @@ login_redirect (void *cls)
                      (NULL != handle->oidc->code_challenge) ?
                      handle->oidc->code_challenge : "",
                      OIDC_NONCE_KEY,
-                     (NULL != handle->oidc->nonce) ? handle->oidc->nonce : "");
+                     (NULL != handle->oidc->nonce) ? handle->oidc->nonce : "",
+                     OIDC_CLAIMS_KEY,
+                     (NULL != handle->oidc->claims) ? handle->oidc->claims :
+                     "");
     resp = GNUNET_REST_create_response ("");
     MHD_add_response_header (resp, "Location", new_redirect);
     GNUNET_free (login_base_url);
@@ -973,12 +991,14 @@ oidc_collect_finished_cb (void *cls)
 
 
 /**
- * Collects all attributes for an ego if in scope parameter
+ * Collects all attributes/references for an ego if in scope parameter
  */
 static void
 oidc_attr_collect (void *cls,
                    const struct GNUNET_CRYPTO_EcdsaPublicKey *identity,
-                   const struct GNUNET_RECLAIM_ATTRIBUTE_Claim *attr)
+                   const struct GNUNET_RECLAIM_ATTRIBUTE_Claim *attr,
+                   const struct GNUNET_RECLAIM_ATTESTATION_Claim *attest,
+                   const struct GNUNET_RECLAIM_ATTESTATION_REFERENCE *reference)
 {
   struct RequestHandle *handle = cls;
   struct GNUNET_RECLAIM_ATTRIBUTE_ClaimListEntry *le;
@@ -986,39 +1006,92 @@ oidc_attr_collect (void *cls,
   char *scope_variable;
   char delimiter[] = " ";
 
-  if ((NULL == attr->name) || (NULL == attr->data))
+  if ((NULL == attr) && (NULL == reference))
   {
     GNUNET_RECLAIM_get_attributes_next (handle->attr_it);
     return;
   }
-
-  scope_variables = GNUNET_strdup (handle->oidc->scope);
-  scope_variable = strtok (scope_variables, delimiter);
-  while (NULL != scope_variable)
+  if (NULL != reference)
   {
-    if (0 == strcmp (attr->name, scope_variable))
-      break;
-    scope_variable = strtok (NULL, delimiter);
-  }
-  if (NULL == scope_variable)
-  {
-    GNUNET_RECLAIM_get_attributes_next (handle->attr_it);
+    if ((NULL == reference->name) || (NULL == reference->reference_value))
+    {
+      return;
+    }
+    scope_variables = GNUNET_strdup (handle->oidc->scope);
+    scope_variable = strtok (scope_variables, delimiter);
+    while (NULL != scope_variable)
+    {
+      if (0 == strcmp (reference->name, scope_variable))
+        break;
+      scope_variable = strtok (NULL, delimiter);
+    }
+    if (NULL == scope_variable)
+    {
+      GNUNET_free (scope_variables);
+      return;
+    }
     GNUNET_free (scope_variables);
-    return;
+    struct GNUNET_RECLAIM_ATTRIBUTE_ClaimListEntry *le2;
+    le2 = GNUNET_new (struct GNUNET_RECLAIM_ATTRIBUTE_ClaimListEntry);
+    le = GNUNET_new (struct GNUNET_RECLAIM_ATTRIBUTE_ClaimListEntry);
+    le->claim = NULL;
+    le->reference = NULL;
+    le->attest = GNUNET_RECLAIM_ATTESTATION_claim_new (attest->name,
+                                                       attest->type,
+                                                       attest->data,
+                                                       attest->data_size);
+    le->attest->id = attest->id;
+    le2->attest = NULL;
+    le2->claim = NULL;
+    le2->reference = GNUNET_RECLAIM_ATTESTATION_reference_new (reference->name,
+                                                               reference->
+                                                               reference_value);
+    le2->reference->id = reference->id;
+    le2->reference->id_attest = reference->id_attest;
+    GNUNET_CONTAINER_DLL_insert (handle->attr_list->list_head,
+                                 handle->attr_list->list_tail,
+                                 le);
+    GNUNET_CONTAINER_DLL_insert (handle->attr_list->list_head,
+                                 handle->attr_list->list_tail,
+                                 le2);
   }
-  GNUNET_free (scope_variables);
+  else if (NULL != attr)
+  {
+    if ((NULL == attr->name) || (NULL == attr->data))
+    {
+      GNUNET_RECLAIM_get_attributes_next (handle->attr_it);
+      return;
+    }
+    scope_variables = GNUNET_strdup (handle->oidc->scope);
+    scope_variable = strtok (scope_variables, delimiter);
+    while (NULL != scope_variable)
+    {
+      if (0 == strcmp (attr->name, scope_variable))
+        break;
+      scope_variable = strtok (NULL, delimiter);
+    }
+    if (NULL == scope_variable)
+    {
+      GNUNET_RECLAIM_get_attributes_next (handle->attr_it);
+      GNUNET_free (scope_variables);
+      return;
+    }
+    GNUNET_free (scope_variables);
+    le = GNUNET_new (struct GNUNET_RECLAIM_ATTRIBUTE_ClaimListEntry);
+    le->reference = NULL;
+    le->attest = NULL;
+    le->claim = GNUNET_RECLAIM_ATTRIBUTE_claim_new (attr->name,
+                                                    attr->type,
+                                                    attr->data,
+                                                    attr->data_size);
+    le->claim->id = attr->id;
+    le->claim->flag = attr->flag;
 
-  le = GNUNET_new (struct GNUNET_RECLAIM_ATTRIBUTE_ClaimListEntry);
-  le->claim = GNUNET_RECLAIM_ATTRIBUTE_claim_new (attr->name,
-                                                  attr->type,
-                                                  attr->data,
-                                                  attr->data_size);
-  le->claim->id = attr->id;
-  le->claim->version = attr->version;
-  GNUNET_CONTAINER_DLL_insert (handle->attr_list->list_head,
-                               handle->attr_list->list_tail,
-                               le);
-  GNUNET_RECLAIM_get_attributes_next (handle->attr_it);
+    GNUNET_CONTAINER_DLL_insert (handle->attr_list->list_head,
+                                 handle->attr_list->list_tail,
+                                 le);
+    GNUNET_RECLAIM_get_attributes_next (handle->attr_it);
+  }
 }
 
 
@@ -1304,6 +1377,9 @@ build_authz_response (void *cls)
   // OPTIONAL value: nonce
   handle->oidc->nonce = get_url_parameter_copy (handle, OIDC_NONCE_KEY);
 
+  // OPTIONAL value: claims
+  handle->oidc->claims = get_url_parameter_copy (handle, OIDC_CLAIMS_KEY);
+
   // TODO check other values if needed
   number_of_ignored_parameter =
     sizeof(OIDC_ignored_parameter_array) / sizeof(char *);
@@ -1454,6 +1530,9 @@ authorize_endpoint (struct GNUNET_REST_RequestHandle *con_handle,
       handle->ego_entry = handle->ego_tail;
     }
   }
+  handle->oidc->scope = get_url_parameter_copy (handle, OIDC_SCOPE_KEY);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Scope: %s\n",GNUNET_strdup (
+                handle->oidc->scope));
   if (NULL == handle->tld)
     GNUNET_CONFIGURATION_iterate_section_values (cfg, "gns", tld_iter, handle);
   if (NULL == handle->tld)
@@ -1857,28 +1936,97 @@ token_endpoint (struct GNUNET_REST_RequestHandle *con_handle,
 
 
 /**
- * Collects claims and stores them in handle
- */
+     * Collects claims and stores them in handle
+     */
 static void
 consume_ticket (void *cls,
                 const struct GNUNET_CRYPTO_EcdsaPublicKey *identity,
-                const struct GNUNET_RECLAIM_ATTRIBUTE_Claim *attr)
+                const struct GNUNET_RECLAIM_ATTRIBUTE_Claim *attr,
+                const struct GNUNET_RECLAIM_ATTESTATION_Claim *attest,
+                const struct GNUNET_RECLAIM_ATTESTATION_REFERENCE *reference)
 {
   struct RequestHandle *handle = cls;
-  char *tmp_value;
-  json_t *value;
-
   if (NULL == identity)
   {
     GNUNET_SCHEDULER_add_now (&return_userinfo_response, handle);
     return;
   }
-  tmp_value = GNUNET_RECLAIM_ATTRIBUTE_value_to_string (attr->type,
-                                                        attr->data,
-                                                        attr->data_size);
-  value = json_string (tmp_value);
-  json_object_set_new (handle->oidc->response, attr->name, value);
-  GNUNET_free (tmp_value);
+  if (NULL != attr)
+  {
+    char *tmp_value;
+    json_t *value;
+    tmp_value = GNUNET_RECLAIM_ATTRIBUTE_value_to_string (attr->type,
+                                                          attr->data,
+                                                          attr->data_size);
+    value = json_string (tmp_value);
+    json_object_set_new (handle->oidc->response, attr->name, value);
+    GNUNET_free (tmp_value);
+  }
+  else if ((NULL != attest) && (NULL != reference))
+  {
+    json_t *claim_sources;
+    json_t *claim_sources_jwt;
+    json_t *claim_names;
+    char *attest_val_str;
+    claim_sources=json_object_get(handle->oidc->response,"_claim_sources");
+    claim_names=json_object_get(handle->oidc->response,"_claim_names");
+    attest_val_str = GNUNET_RECLAIM_ATTESTATION_value_to_string (attest->type,
+                                                                 attest->data,
+                                                                 attest->
+                                                                 data_size);
+    if ((NULL == claim_sources) && (NULL == claim_names) )
+    {
+      claim_sources = json_object ();
+      claim_names = json_object ();
+    }
+    char *source_name;
+    int i = 0;
+    GNUNET_asprintf (&source_name,"src%d",i);
+    while (NULL != (claim_sources_jwt = json_object_get (claim_sources,
+                                                         source_name)))
+    {
+      if (0 == strcmp (json_string_value (json_object_get (claim_sources_jwt,
+                                                           "JWT")),
+                       attest_val_str))
+      {
+        // Adapt only the claim names
+        json_object_set_new (claim_names, reference->name, json_string (
+                               source_name));
+        json_object_set (handle->oidc->response, "_claim_names",claim_names);
+        handle->oidc->response = json_deep_copy(handle->oidc->response);
+        break;
+      }
+      i++;
+      GNUNET_asprintf (&source_name,"src%d",i);
+    }
+
+    // Create new one
+    if (NULL == claim_sources_jwt)
+    {
+      claim_sources_jwt = json_object ();
+      // Set the JWT for names
+      json_object_set_new (claim_names, reference->name, json_string (
+                             source_name));
+      // Set the JWT for the inner source
+      json_object_set_new (claim_sources_jwt, "JWT", json_string (
+                             attest_val_str));
+      // Set the JWT for the source
+      json_object_set_new (claim_sources, source_name,claim_sources_jwt);
+      // Set as claims
+      json_object_set (handle->oidc->response, "_claim_names", claim_names);
+      json_object_set (handle->oidc->response, "_claim_sources",claim_sources);
+      handle->oidc->response = json_deep_copy(handle->oidc->response);
+    }
+
+    json_decref (claim_sources);
+    json_decref (claim_names);
+    json_decref (claim_sources_jwt);
+    GNUNET_free (attest_val_str);
+  }
+  else
+  {
+    // REMARK: We should not find any claim, one of attest/ref is NULL
+  }
 }
 
 

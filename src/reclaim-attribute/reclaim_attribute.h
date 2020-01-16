@@ -61,4 +61,66 @@ struct Attribute
   // followed by data_size Attribute value data
 };
 
+/**
+ * Serialized attestation claim
+ */
+struct Attestation
+{
+  /**
+   * Attestation type
+   */
+  uint32_t attestation_type;
+
+  /**
+   * Attestation version
+   */
+  uint32_t attestation_version;
+
+  /**
+   * Attestation ID
+   */
+  uint64_t attestation_id;
+
+  /**
+   * Name length
+   */
+  uint32_t name_len;
+
+  /**
+   * Data size
+   */
+  uint32_t data_size;
+
+  // followed by data_size Attestation value data
+};
+
+/**
+ * Serialized attestation reference
+ */
+struct Attestation_Reference
+{
+  /**
+   * Reference ID
+   */
+  uint64_t reference_id;
+
+  /**
+   * The ID of the referenced attestation
+   */
+  uint64_t attestation_id;
+
+  /**
+   * Claim Name length
+   */
+  uint32_t name_len;
+
+    /**
+   * Length of the referenced value
+   */
+  uint32_t ref_value_len;
+
+
+  // followed by the name and referenced value
+};
+
 #endif

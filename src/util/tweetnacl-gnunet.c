@@ -424,8 +424,24 @@ GNUNET_TWEETNACL_sign_pk_from_seed (u8 *pk, const u8 *seed)
   d[31] &= 127;
   d[31] |= 64;
 
-  scalarbase (p,d);
-  pack (pk,p);
+  scalarbase (p, d);
+  pack (pk, p);
+}
+
+void
+GNUNET_TWEETNACL_scalarmult_gnunet_ecdsa (u8 *pk, const u8 *s)
+{
+  u8 d[64];
+  gf p[4];
+
+  // Treat s as little endian.
+  for (u32 i = 0; i < 32; i++)
+    d[i] = s[31 - i];
+
+  // For GNUnet, we don't normalize d
+
+  scalarbase (p, d);
+  pack (pk, p);
 }
 
 void

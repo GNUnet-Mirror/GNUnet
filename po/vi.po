@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gnunet 0.8.0a\n"
 "Report-Msgid-Bugs-To: gnunet-developers@mail.gnu.org\n"
-"POT-Creation-Date: 2019-12-25 13:08+0100\n"
+"POT-Creation-Date: 2020-01-13 14:01+0000\n"
 "PO-Revision-Date: 2008-09-10 22:05+0930\n"
 "Last-Translator: Clytie Siddall <clytie@riverland.net.au>\n"
 "Language-Team: Vietnamese <vi-VN@googlegroups.com>\n"
@@ -4282,29 +4282,29 @@ msgstr ""
 msgid "GNUnet GNS resolver tool"
 msgstr "Bản ghi lỗi GNUnet"
 
-#: src/gns/gnunet-service-gns.c:504
+#: src/gns/gnunet-service-gns.c:505
 #, fuzzy
 msgid "Properly base32-encoded public key required"
 msgstr "Đối số không hợp lệ cho « %s ».\n"
 
-#: src/gns/gnunet-service-gns.c:540
+#: src/gns/gnunet-service-gns.c:541
 #, fuzzy
 msgid "Failed to connect to the namecache!\n"
 msgstr "Không kết nối được đến trình nền gnunetd."
 
-#: src/gns/gnunet-service-gns.c:559
+#: src/gns/gnunet-service-gns.c:560
 #: src/zonemaster/gnunet-service-zonemaster-monitor.c:444
 #: src/zonemaster/gnunet-service-zonemaster.c:887
 #, fuzzy
 msgid "Could not connect to DHT!\n"
 msgstr "Không thể kết nối tới %s:%u: %s\n"
 
-#: src/gns/gnunet-service-gns_interceptor.c:273
+#: src/gns/gnunet-service-gns_interceptor.c:279
 #, fuzzy
 msgid "Error converting GNS response to DNS response!\n"
 msgstr "Gặp lỗi khi chuyển đổi các đối số sang URI.\n"
 
-#: src/gns/gnunet-service-gns_interceptor.c:380
+#: src/gns/gnunet-service-gns_interceptor.c:387
 #, fuzzy
 msgid "Failed to connect to the DNS service!\n"
 msgstr "Lỗi kết nối đến gnunetd.\n"
@@ -4339,36 +4339,36 @@ msgstr ""
 msgid "VPN returned empty result for `%s'\n"
 msgstr ""
 
-#: src/gns/gnunet-service-gns_resolver.c:1895
+#: src/gns/gnunet-service-gns_resolver.c:1896
 #, c-format
 msgid "Name `%s' cannot be converted to IDNA."
 msgstr ""
 
-#: src/gns/gnunet-service-gns_resolver.c:1908
+#: src/gns/gnunet-service-gns_resolver.c:1909
 #, c-format
 msgid "GNS lookup resulted in DNS name that is too long (`%s')\n"
 msgstr ""
 
-#: src/gns/gnunet-service-gns_resolver.c:1951
+#: src/gns/gnunet-service-gns_resolver.c:1952
 #, fuzzy, c-format
 msgid "GNS lookup failed (zero records found for `%s')\n"
 msgstr "Vẫn còn không tìm thấy đồng đẳng trong « %s ».\n"
 
-#: src/gns/gnunet-service-gns_resolver.c:2375
+#: src/gns/gnunet-service-gns_resolver.c:2376
 msgid "GNS lookup recursion failed (no delegation record found)\n"
 msgstr ""
 
-#: src/gns/gnunet-service-gns_resolver.c:2398
+#: src/gns/gnunet-service-gns_resolver.c:2399
 #, fuzzy, c-format
 msgid "Failed to cache GNS resolution: %s\n"
 msgstr "Lỗi mở tập tin ghi sự kiện « %s »: %s\n"
 
-#: src/gns/gnunet-service-gns_resolver.c:2566
+#: src/gns/gnunet-service-gns_resolver.c:2567
 #, c-format
 msgid "GNS namecache returned empty result for `%s'\n"
 msgstr ""
 
-#: src/gns/gnunet-service-gns_resolver.c:2706
+#: src/gns/gnunet-service-gns_resolver.c:2707
 #, c-format
 msgid "Zone %s was revoked, resolution fails\n"
 msgstr ""
@@ -5964,80 +5964,80 @@ msgstr "Lỗi sơ khởi dịch vụ « %s ».\n"
 msgid "Daemon to run to perform IP protocol translation to GNUnet"
 msgstr ""
 
-#: src/reclaim/gnunet-reclaim.c:613
+#: src/reclaim/gnunet-reclaim.c:617
 #, fuzzy, c-format
 msgid "Ego is required\n"
 msgstr "Bị từ chối đặt tùy chọn « %s » trong phần « %s » thành « %s ».\n"
 
-#: src/reclaim/gnunet-reclaim.c:620
+#: src/reclaim/gnunet-reclaim.c:624
 #, c-format
 msgid "Attribute value missing!\n"
 msgstr ""
 
-#: src/reclaim/gnunet-reclaim.c:627
+#: src/reclaim/gnunet-reclaim.c:631
 #, fuzzy, c-format
 msgid "Requesting party key is required!\n"
 msgstr "đặt tên hiệu cần dùng (cần thiết)"
 
-#: src/reclaim/gnunet-reclaim.c:645
+#: src/reclaim/gnunet-reclaim.c:649
 msgid "Add an attribute NAME"
 msgstr ""
 
-#: src/reclaim/gnunet-reclaim.c:650
+#: src/reclaim/gnunet-reclaim.c:654
 msgid "Delete the attribute with ID"
 msgstr ""
 
-#: src/reclaim/gnunet-reclaim.c:655
+#: src/reclaim/gnunet-reclaim.c:659
 msgid "The attribute VALUE"
 msgstr ""
 
-#: src/reclaim/gnunet-reclaim.c:660
+#: src/reclaim/gnunet-reclaim.c:664
 #, fuzzy
 msgid "The EGO to use"
 msgstr "kích cỡ tin nhắn"
 
-#: src/reclaim/gnunet-reclaim.c:666
+#: src/reclaim/gnunet-reclaim.c:670
 msgid "Specify the relying party for issue"
 msgstr ""
 
-#: src/reclaim/gnunet-reclaim.c:670
+#: src/reclaim/gnunet-reclaim.c:674
 msgid "List attributes for EGO"
 msgstr ""
 
-#: src/reclaim/gnunet-reclaim.c:677
+#: src/reclaim/gnunet-reclaim.c:681
 msgid "Issue a ticket for a set of attributes separated by comma"
 msgstr ""
 
-#: src/reclaim/gnunet-reclaim.c:682
+#: src/reclaim/gnunet-reclaim.c:686
 msgid "Consume a ticket"
 msgstr ""
 
-#: src/reclaim/gnunet-reclaim.c:687
+#: src/reclaim/gnunet-reclaim.c:691
 msgid "Revoke a ticket"
 msgstr ""
 
-#: src/reclaim/gnunet-reclaim.c:692
+#: src/reclaim/gnunet-reclaim.c:696
 msgid "Type of attribute"
 msgstr ""
 
-#: src/reclaim/gnunet-reclaim.c:696
+#: src/reclaim/gnunet-reclaim.c:700
 msgid "List tickets of ego"
 msgstr ""
 
-#: src/reclaim/gnunet-reclaim.c:702
+#: src/reclaim/gnunet-reclaim.c:706
 msgid "Expiration interval of the attribute"
 msgstr ""
 
-#: src/reclaim/gnunet-reclaim.c:710
+#: src/reclaim/gnunet-reclaim.c:714
 msgid "re:claimID command line tool"
 msgstr ""
 
-#: src/reclaim/plugin_rest_openid_connect.c:2192
+#: src/reclaim/plugin_rest_openid_connect.c:2340
 #, fuzzy
 msgid "OpenID Connect REST API initialized\n"
 msgstr "Lỗi sơ khởi lõi.\n"
 
-#: src/reclaim/plugin_rest_reclaim.c:1110
+#: src/reclaim/plugin_rest_reclaim.c:1899
 #, fuzzy
 msgid "Identity Provider REST API initialized\n"
 msgstr "Lỗi sơ khởi lõi.\n"
@@ -7045,19 +7045,19 @@ msgstr "# các thông báo PONG đã mật mã được nhận"
 msgid "GNUnet topology control"
 msgstr ""
 
-#: src/transport/gnunet-communicator-tcp.c:2196
-#: src/transport/gnunet-communicator-udp.c:2680
+#: src/transport/gnunet-communicator-tcp.c:2227
+#: src/transport/gnunet-communicator-udp.c:2712
 #: src/transport/gnunet-service-tng.c:10024
 #: src/transport/gnunet-service-transport.c:2627
 #, fuzzy
 msgid "Transport service is lacking key configuration settings. Exiting.\n"
 msgstr "Lưu cấu hình ngay bây giờ không?"
 
-#: src/transport/gnunet-communicator-tcp.c:2254
+#: src/transport/gnunet-communicator-tcp.c:2285
 msgid "GNUnet TCP communicator"
 msgstr ""
 
-#: src/transport/gnunet-communicator-udp.c:2752
+#: src/transport/gnunet-communicator-udp.c:2784
 msgid "GNUnet UDP communicator"
 msgstr ""
 
@@ -8179,7 +8179,7 @@ msgid "do daemonize (detach from terminal)"
 msgstr ""
 
 #: src/transport/tcp_service_legacy.c:1397
-#: src/transport/transport-testing2.c:814 src/util/service.c:2073
+#: src/transport/transport-testing2.c:906 src/util/service.c:2073
 #: src/util/service.c:2085
 #, fuzzy, c-format
 msgid "Malformed configuration file `%s', exit ...\n"
@@ -8195,7 +8195,7 @@ msgstr "Không thể lưu tập tin cấu hình « %s »:"
 msgid "Could not access configuration file `%s'\n"
 msgstr "Không thể truy cập đến tập tin gnunet-directory « %s »\n"
 
-#: src/transport/transport_api2_communication.c:705
+#: src/transport/transport_api2_communication.c:704
 msgid "Dropped backchanel message: handler not provided by communicator\n"
 msgstr ""
 
@@ -8344,12 +8344,12 @@ msgid ""
 "%llu)\n"
 msgstr ""
 
-#: src/util/crypto_ecc.c:719
+#: src/util/crypto_ecc.c:705
 #, fuzzy, c-format
 msgid "ECC signing failed at %s:%d: %s\n"
 msgstr "%s bị lỗi tại %s:%d: « %s »\n"
 
-#: src/util/crypto_ecc.c:836
+#: src/util/crypto_ecc.c:822
 #, fuzzy, c-format
 msgid "ECDSA signature verification failed at %s:%d: %s\n"
 msgstr "Lỗi thẩm tra chữ ký RSA tại %s:%d: %s\n"
@@ -9136,24 +9136,24 @@ msgstr ""
 msgid "Must specify valid IPv6 address"
 msgstr "« %s » không sẵn sàng.\n"
 
-#: src/vpn/gnunet-service-vpn.c:3035
+#: src/vpn/gnunet-service-vpn.c:3036
 msgid "Must specify valid IPv6 mask"
 msgstr ""
 
-#: src/vpn/gnunet-service-vpn.c:3044
+#: src/vpn/gnunet-service-vpn.c:3046
 msgid "IPv6 support disabled as this system does not support IPv6\n"
 msgstr ""
 
-#: src/vpn/gnunet-service-vpn.c:3060
+#: src/vpn/gnunet-service-vpn.c:3062
 #, fuzzy
 msgid "Must specify valid IPv4 address"
 msgstr "« %s » không sẵn sàng.\n"
 
-#: src/vpn/gnunet-service-vpn.c:3076
+#: src/vpn/gnunet-service-vpn.c:3079
 msgid "Must specify valid IPv4 mask"
 msgstr ""
 
-#: src/vpn/gnunet-service-vpn.c:3087
+#: src/vpn/gnunet-service-vpn.c:3091
 msgid "IPv4 support disabled as this system does not support IPv4\n"
 msgstr ""
 

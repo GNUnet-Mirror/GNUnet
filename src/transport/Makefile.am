@@ -1527,15 +1527,15 @@ test_transport_api_slow_ats_peer2.conf \
   tcp_server_mst_legacy.c \
   tcp_server_legacy.c \
   tcp_service_legacy.c \
-test_communicator_basic_unix_peer1.conf \
-test_communicator_basic_unix_peer2.conf \
-test_communicator_basic_tcp_peer1.conf \
-test_communicator_basic_tcp_peer2.conf \
-test_communicator_basic_udp_peer1.conf \
-test_communicator_basic_udp_peer2.conf \
-test_communicator_rekey_tcp_peer1.conf \
-test_communicator_rekey_tcp_peer2.conf \
-test_communicator_rekey_udp_peer1.conf \
-test_communicator_rekey_udp_peer2.conf \
-test_communicator_backchannel_udp_peer1.conf \
-test_communicator_backchannel_udp_peer2.conf
+test_communicator_unix_basic_peer1.conf \
+test_communicator_unix_basic_peer2.conf \
+test_communicator_tcp_basic_peer1.conf \
+test_communicator_tcp_basic_peer2.conf \
+test_communicator_udp_basic_peer1.conf \
+test_communicator_udp_basic_peer2.conf \
+test_communicator_tcp_rekey_peer1.conf \
+test_communicator_tcp_rekey_peer2.conf \
+test_communicator_udp_rekey_peer1.conf \
+test_communicator_udp_rekey_peer2.conf \
+test_communicator_udp_backchannel_peer1.conf \
+test_communicator_udp_backchannel_peer2.conf

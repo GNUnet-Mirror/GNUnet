@@ -1,6 +1,6 @@
 /*
       This file is part of GNUnet
-      Copyright (C) 2012-2013 GNUnet e.V.
+      Copyright (C) 2012-2020 GNUnet e.V.
 
       GNUnet is free software: you can redistribute it and/or modify it
       under the terms of the GNU Affero General Public License as published
@@ -57,9 +57,11 @@ struct LookupMessage
   int16_t options GNUNET_PACKED;
 
   /**
-   * Always 0.
+   * Recursion depth limit, i.e. how many more 
+   * GNS zones may be traversed during the resolution
+   * of this name.
    */
-  int16_t reserved GNUNET_PACKED;
+  uint16_t recursion_depth_limit GNUNET_PACKED;
 
   /**
    * the type of record to look up

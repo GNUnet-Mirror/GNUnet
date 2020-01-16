@@ -118,7 +118,7 @@ fix_base64 (char *str)
 char *
 OIDC_id_token_new (const struct GNUNET_CRYPTO_EcdsaPublicKey *aud_key,
                    const struct GNUNET_CRYPTO_EcdsaPublicKey *sub_key,
-                   const struct GNUNET_RECLAIM_ATTRIBUTE_ClaimList *attrs,
+                   struct GNUNET_RECLAIM_ATTRIBUTE_ClaimList *attrs,
                    const struct GNUNET_TIME_Relative *expiration_time,
                    const char *nonce,
                    const char *secret_key)
@@ -131,13 +131,22 @@ OIDC_id_token_new (const struct GNUNET_CRYPTO_EcdsaPublicKey *aud_key,
   char *subject;
   char *header;
   char *body_str;
+  char *aggr_names_str;
+  char *aggr_sources_str;
+  char *aggr_sources_jwt_str;
+  char *source_name;
   char *result;
   char *header_base64;
   char *body_base64;
   char *signature_target;
   char *signature_base64;
   char *attr_val_str;
+  char *attest_val_str;
   json_t *body;
+  json_t *aggr_names;
+  json_t *aggr_sources;
+  json_t *aggr_sources_jwt;
+  uint64_t attest_arr[GNUNET_RECLAIM_ATTRIBUTE_list_count_attest (attrs)];
 
   // iat REQUIRED time now
   time_now = GNUNET_TIME_absolute_get ();
@@ -156,6 +165,8 @@ OIDC_id_token_new (const struct GNUNET_CRYPTO_EcdsaPublicKey *aud_key,
                                                 GNUNET_CRYPTO_EcdsaPublicKey));
   header = create_jwt_header ();
   body = json_object ();
+  aggr_names = json_object ();
+  aggr_sources = json_object ();
 
   // iss REQUIRED case sensitive server uri with https
   // The issuer is the local reclaim instance (e.g.
@@ -180,18 +191,111 @@ OIDC_id_token_new (const struct GNUNET_CRYPTO_EcdsaPublicKey *aud_key,
   // nonce
   if (NULL != nonce)
     json_object_set_new (body, "nonce", json_string (nonce));
-
+  int i = 0;
+  attest_val_str = NULL;
+  aggr_names_str = NULL;
+  aggr_sources_str = NULL;
+  aggr_sources_jwt_str = NULL;
+  source_name = NULL;
   for (le = attrs->list_head; NULL != le; le = le->next)
   {
-    attr_val_str =
-      GNUNET_RECLAIM_ATTRIBUTE_value_to_string (le->claim->type,
-                                                le->claim->data,
-                                                le->claim->data_size);
-    json_object_set_new (body, le->claim->name, json_string (attr_val_str));
-    GNUNET_free (attr_val_str);
+
+    if (le->claim != NULL)
+    {
+
+      attr_val_str =
+        GNUNET_RECLAIM_ATTRIBUTE_value_to_string (le->claim->type,
+                                                  le->claim->data,
+                                                  le->claim->data_size);
+      json_object_set_new (body, le->claim->name, json_string (attr_val_str));
+      GNUNET_free (attr_val_str);
+    }
+    else if (NULL != le->reference)
+    {
+      // Check if attest is there
+      int j = 0;
+      while (j<i)
+      {
+        if (attest_arr[j] == le->reference->id_attest)
+          break;
+        j++;
+      }
+      if (j==i)
+      {
+        // Attest not yet existent. Append to the end of the list
+        GNUNET_CONTAINER_DLL_remove (attrs->list_head, attrs->list_tail, le);
+        GNUNET_CONTAINER_DLL_insert_tail (attrs->list_head, attrs->list_tail,
+                                          le);
+        continue;
+      }
+      else
+      {
+        // Attestation is existing, hence take the respective source str
+        GNUNET_asprintf (&source_name,
+                         "src%d",
+                         j);
+        json_object_set_new (aggr_names, le->reference->name, json_string (
+                               source_name));
+      }
+
+    }
+    else if (NULL != le->attest)
+    {
+      // We assume that at max 99 different attestations
+      int j = 0;
+      while (j<i)
+      {
+        if (attest_arr[j] == le->attest->id)
+          break;
+        j++;
+      }
+      if (j==i)
+      {
+        // New Attestation
+        attest_arr[i] = le->attest->id;
+        GNUNET_asprintf (&source_name,
+                         "src%d",
+                         i);
+        aggr_sources_jwt = json_object ();
+        attest_val_str = GNUNET_RECLAIM_ATTESTATION_value_to_string (
+          le->attest->type, le->attest->data, le->attest->data_size);
+        json_object_set_new (aggr_sources_jwt, "JWT",json_string (
+                               attest_val_str) );
+        aggr_sources_jwt_str = json_dumps (aggr_sources_jwt, JSON_INDENT (0)
+                                           | JSON_COMPACT);
+        json_object_set_new (aggr_sources, source_name,json_string (
+                               aggr_sources_jwt_str));
+        i++;
+      }
+      else
+      {
+        // Attestation already existent. Ignore
+        continue;
+      }
+
+    }
   }
+  if (NULL != attest_val_str)
+    GNUNET_free (attest_val_str);
+  if (NULL != source_name)
+    GNUNET_free (source_name);
+  if (0!=i)
+  {
+    aggr_names_str = json_dumps (aggr_names, JSON_INDENT (0) | JSON_COMPACT);
+    aggr_sources_str = json_dumps (aggr_sources, JSON_INDENT (0)
+                                   | JSON_COMPACT);
+    json_object_set_new (body, "_claim_names", json_string (aggr_names_str));
+    json_object_set_new (body, "_claim_sources", json_string (
+                           aggr_sources_str));
+  }
+
+  json_decref (aggr_names);
+  json_decref (aggr_sources);
+  json_decref (aggr_sources_jwt);
+
   body_str = json_dumps (body, JSON_INDENT (0) | JSON_COMPACT);
   json_decref (body);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"ID-Token: %s\n", body_str);
 
   GNUNET_STRINGS_base64_encode (header, strlen (header), &header_base64);
   fix_base64 (header_base64);
@@ -226,6 +330,12 @@ OIDC_id_token_new (const struct GNUNET_CRYPTO_EcdsaPublicKey *aud_key,
   GNUNET_free (signature_target);
   GNUNET_free (header);
   GNUNET_free (body_str);
+  if (NULL != aggr_sources_str)
+    GNUNET_free (aggr_sources_str);
+  if (NULL != aggr_names_str)
+    GNUNET_free (aggr_names_str);
+  if (NULL != aggr_sources_jwt_str)
+    GNUNET_free (aggr_sources_jwt_str);
   GNUNET_free (signature_base64);
   GNUNET_free (body_base64);
   GNUNET_free (header_base64);

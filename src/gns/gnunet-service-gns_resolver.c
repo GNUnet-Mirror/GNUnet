@@ -77,11 +77,6 @@
  */
 #define DHT_GNS_REPLICATION_LEVEL 10
 
-/**
- * How deep do we allow recursions to go before we abort?
- */
-#define MAX_RECURSION 256
-
 
 /**
  * DLL to hold the authority chain we had to pass in the resolution
@@ -320,7 +315,7 @@ struct GNS_ResolverHandle
   /**
    * closure passed to @e proc
    */
-  void*proc_cls;
+  void *proc_cls;
 
   /**
    * Handle for DHT lookups. should be NULL if no lookups are in progress
@@ -395,7 +390,7 @@ struct GNS_ResolverHandle
   struct DnsResult *dns_result_tail;
 
   /**
-   * Current offset in 'name' where we are resolving.
+   * Current offset in @e name where we are resolving.
    */
   size_t name_resolution_pos;
 
@@ -423,10 +418,15 @@ struct GNS_ResolverHandle
 
   /**
    * We increment the loop limiter for each step in a recursive
-   * resolution.  If it passes our threshold (i.e. due to
+   * resolution.  If it passes our @e loop_threshold (i.e. due to
    * self-recursion in the resolution, i.e CNAME fun), we stop.
    */
   unsigned int loop_limiter;
+
+  /**
+   * Maximum value of @e loop_limiter allowed by client.
+   */
+  unsigned int loop_threshold;
 
   /**
    * 16 bit random ID we used in the @e dns_request.
@@ -1856,6 +1856,7 @@ recursive_gns2dns_resolution (struct GNS_ResolverHandle *rh,
     gp->rh->record_type = GNUNET_GNSRECORD_TYPE_ANY;
     gp->rh->options = GNUNET_GNS_LO_DEFAULT;
     gp->rh->loop_limiter = rh->loop_limiter + 1;
+    gp->rh->loop_threshold = rh->loop_threshold;
     gp->rh->task_id
       = GNUNET_SCHEDULER_add_now (&start_resolver_lookup,
                                   gp->rh);
@@ -2744,7 +2745,7 @@ recursive_resolution (void *cls)
   struct GNS_ResolverHandle *rh = cls;
 
   rh->task_id = NULL;
-  if (MAX_RECURSION < rh->loop_limiter++)
+  if (rh->loop_threshold < rh->loop_limiter++)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                 "Encountered unbounded recursion resolving `%s'\n",
@@ -2840,6 +2841,8 @@ start_resolver_lookup (void *cls)
  * @param record_type the record type to look up
  * @param name the name to look up
  * @param options local options to control local lookup
+ * @param recursion_depth_limit how many zones to traverse
+ *        at most
  * @param proc the processor to call on result
  * @param proc_cls the closure to pass to @a proc
  * @return handle to cancel operation
@@ -2849,6 +2852,7 @@ GNS_resolver_lookup (const struct GNUNET_CRYPTO_EcdsaPublicKey *zone,
                      uint32_t record_type,
                      const char *name,
                      enum GNUNET_GNS_LocalOptions options,
+                     uint16_t recursion_depth_limit,
                      GNS_ResultProcessor proc,
                      void *proc_cls)
 {
@@ -2868,6 +2872,7 @@ GNS_resolver_lookup (const struct GNUNET_CRYPTO_EcdsaPublicKey *zone,
   rh->record_type = record_type;
   rh->name = GNUNET_strdup (name);
   rh->name_resolution_pos = strlen (name);
+  rh->loop_threshold = recursion_depth_limit;
   rh->task_id = GNUNET_SCHEDULER_add_now (&start_resolver_lookup,
                                           rh);
   return rh;

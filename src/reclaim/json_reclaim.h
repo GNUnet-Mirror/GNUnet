@@ -46,3 +46,22 @@ GNUNET_RECLAIM_JSON_spec_claim (struct GNUNET_RECLAIM_ATTRIBUTE_Claim **attr);
  */
 struct GNUNET_JSON_Specification
 GNUNET_RECLAIM_JSON_spec_ticket (struct GNUNET_RECLAIM_Ticket **ticket);
+
+/**
+    * JSON Specification for Reclaim attestation claims.
+    *
+    * @param ticket struct of GNUNET_RECLAIM_ATTESTATION_Claim to fill
+    * @return JSON Specification
+    */
+struct GNUNET_JSON_Specification
+GNUNET_RECLAIM_JSON_spec_claim_attest (struct
+                                       GNUNET_RECLAIM_ATTESTATION_Claim **attr);
+
+  /**
+   * JSON Specification for Reclaim attestation references.
+   *
+   * @param ticket struct of GNUNET_RECLAIM_ATTESTATION_REFERENCE to fill
+   * @return JSON Specification
+   */
+  struct GNUNET_JSON_Specification
+  GNUNET_RECLAIM_JSON_spec_claim_attest_ref(struct GNUNET_RECLAIM_ATTESTATION_REFERENCE **attr);
