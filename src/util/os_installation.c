@@ -611,10 +611,10 @@ GNUNET_OS_installation_get_path (enum GNUNET_OS_InstallationPathKind dirkind)
                        DIR_SEPARATOR_STR "lib" DIR_SEPARATOR_STR,
                        (NULL != multiarch) ? multiarch : "",
                        dirname);
+      GNUNET_free (dirname);
       if (GNUNET_YES == GNUNET_DISK_directory_test (tmp, GNUNET_YES))
       {
         GNUNET_free (execpath);
-        GNUNET_free (dirname);
         return tmp;
       }
       GNUNET_free (tmp);
