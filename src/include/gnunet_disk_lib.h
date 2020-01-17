@@ -413,7 +413,6 @@ GNUNET_DISK_pipe (int blocking_read,
  * @param blocking_read creates an asynchronous pipe for reading if set to #GNUNET_NO
  * @param blocking_write creates an asynchronous pipe for writing if set to #GNUNET_NO
  * @param fd an array of two fd values. One of them may be -1 for read-only or write-only pipes
- *
  * @return handle to the new pipe, NULL on error
  */
 struct GNUNET_DISK_PipeHandle *

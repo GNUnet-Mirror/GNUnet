@@ -52,6 +52,11 @@ struct GNUNET_PQ_Context
    * Configuration to use to connect to the DB.
    */
   char *config_str;
+
+  /**
+   * Path to load SQL files from.
+   */
+  char *load_path;
 };
 
 #endif

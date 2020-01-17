@@ -951,7 +951,7 @@ process_status (struct GNUNET_OS_Process *proc,
 
 
 /**
- * Retrieve the status of a process, waiting on it if dead.
+ * Retrieve the status of a process.
  * Nonblocking version.
  *
  * @param proc process ID

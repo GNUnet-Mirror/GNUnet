@@ -64,19 +64,22 @@ pq_notice_processor_cb (void *arg,
 
 
 /**
- * Create a connection to the Postgres database using @a config_str
- * for the configuration.  Initialize logging via GNUnet's log
- * routines and disable Postgres's logger.  Also ensures that the
- * statements in @a es are executed whenever we (re)connect to the
- * database, and that the prepared statements in @a ps are "ready".
- * If statements in @es fail that were created with
- * #GNUNET_PQ_make_execute(), then the entire operation fails.
+ * Create a connection to the Postgres database using @a config_str for the
+ * configuration.  Initialize logging via GNUnet's log routines and disable
+ * Postgres's logger.  Also ensures that the statements in @a load_path and @a
+ * es are executed whenever we (re)connect to the database, and that the
+ * prepared statements in @a ps are "ready".  If statements in @es fail that
+ * were created with #GNUNET_PQ_make_execute(), then the entire operation
+ * fails.
  *
- * The caller MUST ensure that @a es and @a ps remain allocated and
- * initialized in memory until #GNUNET_PQ_disconnect() is called,
- * as they may be needed repeatedly and no copy will be made.
+ * In @a load_path, a list of "$XXXX.sql" files is expected where $XXXX
+ * must be a sequence of contiguous integer values starting at 0000.
+ * These files are then loaded in sequence using "psql $config_str" before
+ * running statements from @e es.  The directory is inspected again on
+ * reconnect.
  *
  * @param config_str configuration to use
+ * @param load_path path to directory with SQL transactions to run, can be NULL
  * @param es #GNUNET_PQ_PREPARED_STATEMENT_END-terminated
  *            array of statements to execute upon EACH connection, can be NULL
  * @param ps array of prepared statements to prepare, can be NULL
@@ -84,6 +87,7 @@ pq_notice_processor_cb (void *arg,
  */
 struct GNUNET_PQ_Context *
 GNUNET_PQ_connect (const char *config_str,
+                   const char *load_path,
                    const struct GNUNET_PQ_ExecuteStatement *es,
                    const struct GNUNET_PQ_PreparedStatement *ps)
 {
@@ -100,6 +104,8 @@ GNUNET_PQ_connect (const char *config_str,
 
   db = GNUNET_new (struct GNUNET_PQ_Context);
   db->config_str = GNUNET_strdup (config_str);
+  if (NULL != load_path)
+    db->load_path = GNUNET_strdup (load_path);
   if (0 != elen)
   {
     db->es = GNUNET_new_array (elen + 1,
@@ -175,6 +181,62 @@ GNUNET_PQ_reconnect (struct GNUNET_PQ_Context *db)
   PQsetNoticeProcessor (db->conn,
                         &pq_notice_processor_cb,
                         db);
+  if (NULL != db->load_path)
+  {
+    size_t slen = strlen (db->load_path) + 10;
+
+    for (unsigned int i = 0; i<10000; i++)
+    {
+      char buf[slen];
+      struct GNUNET_OS_Process *psql;
+      enum GNUNET_OS_ProcessStatusType type;
+      unsigned long code;
+
+      GNUNET_snprintf (buf,
+                       sizeof (buf),
+                       "%s/%u.sql",
+                       db->load_path,
+                       i);
+      if (GNUNET_YES !=
+          GNUNET_DISK_file_test (buf))
+        break; /* We are done */
+      psql = GNUNET_OS_start_process (GNUNET_NO,
+                                      GNUNET_OS_INHERIT_STD_ERR,
+                                      NULL,
+                                      NULL,
+                                      NULL,
+                                      "psql",
+                                      db->config_str,
+                                      "-f",
+                                      buf,
+                                      "-q",
+                                      NULL);
+      if (NULL == psql)
+      {
+        GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR,
+                                  "exec",
+                                  "psql");
+        PQfinish (db->conn);
+        db->conn = NULL;
+        return;
+      }
+      GNUNET_assert (GNUNET_OK ==
+                     GNUNET_OS_process_wait_status (psql,
+                                                    &type,
+                                                    &code));
+      GNUNET_OS_process_destroy (psql);
+      if ( (GNUNET_OS_PROCESS_EXITED != type) ||
+           (0 != code) )
+      {
+        GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR,
+                                  "psql",
+                                  buf);
+        PQfinish (db->conn);
+        db->conn = NULL;
+        return;
+      }
+    }
+  }
   if ( (NULL != db->es) &&
        (GNUNET_OK !=
         GNUNET_PQ_exec_statements (db,
@@ -221,6 +283,7 @@ GNUNET_PQ_connect_with_cfg (const struct GNUNET_CONFIGURATION_Handle *cfg,
 {
   struct GNUNET_PQ_Context *db;
   char *conninfo;
+  char *load_path;
 
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_string (cfg,
@@ -228,9 +291,17 @@ GNUNET_PQ_connect_with_cfg (const struct GNUNET_CONFIGURATION_Handle *cfg,
                                              "CONFIG",
                                              &conninfo))
     conninfo = NULL;
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_string (cfg,
+                                             section,
+                                             "SQL_PATH",
+                                             &load_path))
+    load_path = NULL;
   db = GNUNET_PQ_connect (conninfo == NULL ? "" : conninfo,
+                          load_path,
                           es,
                           ps);
+  GNUNET_free_non_null (load_path);
   GNUNET_free_non_null (conninfo);
   return db;
 }
@@ -247,6 +318,7 @@ GNUNET_PQ_disconnect (struct GNUNET_PQ_Context *db)
 {
   GNUNET_free_non_null (db->es);
   GNUNET_free_non_null (db->ps);
+  GNUNET_free_non_null (db->load_path);
   PQfinish (db->conn);
   GNUNET_free (db);
 }
