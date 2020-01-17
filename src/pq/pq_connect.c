@@ -125,6 +125,7 @@ GNUNET_PQ_connect (const char *config_str,
   GNUNET_PQ_reconnect (db);
   if (NULL == db->conn)
   {
+    GNUNET_free_non_null (db->load_path);
     GNUNET_free (db->config_str);
     GNUNET_free (db);
     return NULL;
