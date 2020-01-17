@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C) 2006, 2007, 2008, 2009, 2013 GNUnet e.V.
+     Copyright (C) 2006, 2007, 2008, 2009, 2013, 2020 GNUnet e.V.
 
      GNUnet is free software: you can redistribute it and/or modify it
      under the terms of the GNU Affero General Public License as published
@@ -17,16 +17,15 @@
 
      SPDX-License-Identifier: AGPL3.0-or-later
  */
-
 /**
  * @file src/util/configuration.c
  * @brief configuration management
  * @author Christian Grothoff
  */
-
 #include "platform.h"
 #include "gnunet_crypto_lib.h"
 #include "gnunet_strings_lib.h"
+#include "gnunet_os_lib.h"
 #include "gnunet_configuration_lib.h"
 #include "gnunet_disk_lib.h"
 
@@ -118,7 +117,85 @@ struct DiffHandle
 struct GNUNET_CONFIGURATION_Handle *
 GNUNET_CONFIGURATION_create ()
 {
-  return GNUNET_new (struct GNUNET_CONFIGURATION_Handle);
+  struct GNUNET_CONFIGURATION_Handle *cfg;
+  char *p;
+
+  cfg = GNUNET_new (struct GNUNET_CONFIGURATION_Handle);
+  /* make certain values from the project data available
+     as PATHS */
+  p = GNUNET_OS_installation_get_path (GNUNET_OS_IPK_DATADIR);
+  if (NULL != p)
+  {
+    GNUNET_CONFIGURATION_set_value_string (cfg,
+                                           "PATHS",
+                                           "DATADIR",
+                                           p);
+    GNUNET_free (p);
+  }
+  p = GNUNET_OS_installation_get_path (GNUNET_OS_IPK_LIBDIR);
+  if (NULL != p)
+  {
+    GNUNET_CONFIGURATION_set_value_string (cfg,
+                                           "PATHS",
+                                           "LIBDIR",
+                                           p);
+    GNUNET_free (p);
+  }
+  p = GNUNET_OS_installation_get_path (GNUNET_OS_IPK_BINDIR);
+  if (NULL != p)
+  {
+    GNUNET_CONFIGURATION_set_value_string (cfg,
+                                           "PATHS",
+                                           "BINDIR",
+                                           p);
+    GNUNET_free (p);
+  }
+  p = GNUNET_OS_installation_get_path (GNUNET_OS_IPK_PREFIX);
+  if (NULL != p)
+  {
+    GNUNET_CONFIGURATION_set_value_string (cfg,
+                                           "PATHS",
+                                           "PREFIX",
+                                           p);
+    GNUNET_free (p);
+  }
+  p = GNUNET_OS_installation_get_path (GNUNET_OS_IPK_LOCALEDIR);
+  if (NULL != p)
+  {
+    GNUNET_CONFIGURATION_set_value_string (cfg,
+                                           "PATHS",
+                                           "LOCALEDIR",
+                                           p);
+    GNUNET_free (p);
+  }
+  p = GNUNET_OS_installation_get_path (GNUNET_OS_IPK_ICONDIR);
+  if (NULL != p)
+  {
+    GNUNET_CONFIGURATION_set_value_string (cfg,
+                                           "PATHS",
+                                           "ICONDIR",
+                                           p);
+    GNUNET_free (p);
+  }
+  p = GNUNET_OS_installation_get_path (GNUNET_OS_IPK_DOCDIR);
+  if (NULL != p)
+  {
+    GNUNET_CONFIGURATION_set_value_string (cfg,
+                                           "PATHS",
+                                           "DOCDIR",
+                                           p);
+    GNUNET_free (p);
+  }
+  p = GNUNET_OS_installation_get_path (GNUNET_OS_IPK_LIBEXECDIR);
+  if (NULL != p)
+  {
+    GNUNET_CONFIGURATION_set_value_string (cfg,
+                                           "PATHS",
+                                           "LIBEXECDIR",
+                                           p);
+    GNUNET_free (p);
+  }
+  return cfg;
 }
 
 
