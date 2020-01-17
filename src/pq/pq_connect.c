@@ -194,7 +194,7 @@ GNUNET_PQ_reconnect (struct GNUNET_PQ_Context *db)
 
       GNUNET_snprintf (buf,
                        sizeof (buf),
-                       "%s/%04u.sql",
+                       "%s%04u.sql",
                        db->load_path,
                        i);
       if (GNUNET_YES !=
