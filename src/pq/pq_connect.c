@@ -194,17 +194,18 @@ GNUNET_PQ_reconnect (struct GNUNET_PQ_Context *db)
 
       GNUNET_snprintf (buf,
                        sizeof (buf),
-                       "%s/%u.sql",
+                       "%s/%04u.sql",
                        db->load_path,
                        i);
       if (GNUNET_YES !=
           GNUNET_DISK_file_test (buf))
         break; /* We are done */
       psql = GNUNET_OS_start_process (GNUNET_NO,
-                                      GNUNET_OS_INHERIT_STD_NONE,
+                                      GNUNET_OS_INHERIT_STD_ALL,
                                       NULL,
                                       NULL,
                                       NULL,
+                                      "psql",
                                       "psql",
                                       db->config_str,
                                       "-f",
@@ -228,9 +229,10 @@ GNUNET_PQ_reconnect (struct GNUNET_PQ_Context *db)
       if ( (GNUNET_OS_PROCESS_EXITED != type) ||
            (0 != code) )
       {
-        GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR,
-                                  "psql",
-                                  buf);
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                    "Could not run PSQL on file %s: %d",
+                    buf,
+                    (int) code);
         PQfinish (db->conn);
         db->conn = NULL;
         return;
