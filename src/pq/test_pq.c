@@ -1,6 +1,6 @@
 /*
    This file is part of GNUnet
-   (C) 2015, 2016, 2019 GNUnet e.V.
+   (C) 2015, 2016, 2019, 2020 GNUnet e.V.
 
    GNUnet is free software: you can redistribute it and/or modify it
    under the terms of the GNU Affero General Public License as published
@@ -235,6 +235,7 @@ main (int argc,
                     "WARNING",
                     NULL);
   db = GNUNET_PQ_connect ("postgres:///gnunetcheck",
+                          NULL,
                           es,
                           NULL);
   if (CONNECTION_OK != PQstatus (db->conn))
