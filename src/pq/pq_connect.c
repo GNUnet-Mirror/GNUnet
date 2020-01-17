@@ -201,7 +201,7 @@ GNUNET_PQ_reconnect (struct GNUNET_PQ_Context *db)
           GNUNET_DISK_file_test (buf))
         break; /* We are done */
       psql = GNUNET_OS_start_process (GNUNET_NO,
-                                      GNUNET_OS_INHERIT_STD_ALL,
+                                      GNUNET_OS_INHERIT_STD_NONE,
                                       NULL,
                                       NULL,
                                       NULL,
