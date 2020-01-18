@@ -36,6 +36,7 @@
 #ifndef GNUNET_COMMON_H
 #define GNUNET_COMMON_H
 
+#include <stdlib.h>
 #if HAVE_SYS_SOCKET_H
 #include <sys/socket.h>
 #endif
@@ -48,6 +49,13 @@
 #ifdef HAVE_STDARG_H
 #include <stdarg.h>
 #endif
+#ifdef HAVE_SYS_TYPES_H
+#include <sys/types.h>
+#endif
+#ifdef HAVE_SYS_SOCKET_H
+#include <sys/socket.h>
+#endif
+
 
 #ifdef HAVE_BYTESWAP_H
 #include <byteswap.h>

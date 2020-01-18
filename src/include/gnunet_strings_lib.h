@@ -41,6 +41,9 @@
    but "stdlib.h" should be portable 'enough' to be
    unconditionally available... */
 #include <stdlib.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <netinet/ip.h>
 
 #ifdef __cplusplus
 extern "C"

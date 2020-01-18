@@ -39,6 +39,12 @@ extern "C"
 #endif
 #endif
 
+#ifdef HAVE_SYS_SOCKET_H
+#include <sys/socket.h>
+#endif
+#ifdef HAVE_SYS_UN_H
+#include <sys/un.h>
+#endif
 
 /**
  * @brief handle to a socket
