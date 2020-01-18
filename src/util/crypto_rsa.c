@@ -1104,6 +1104,7 @@ GNUNET_CRYPTO_rsa_signature_encode (const struct
                                  s));
   GNUNET_assert (rsize == buf_size);
   *buffer = (char *) buf;
+  gcry_mpi_release (s);
   return buf_size;
 }
 

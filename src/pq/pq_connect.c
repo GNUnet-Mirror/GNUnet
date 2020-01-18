@@ -322,6 +322,7 @@ GNUNET_PQ_disconnect (struct GNUNET_PQ_Context *db)
   GNUNET_free_non_null (db->es);
   GNUNET_free_non_null (db->ps);
   GNUNET_free_non_null (db->load_path);
+  GNUNET_free_non_null (db->config_str);
   PQfinish (db->conn);
   GNUNET_free (db->config_str);
   GNUNET_free (db);
