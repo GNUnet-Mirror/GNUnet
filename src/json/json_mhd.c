@@ -186,24 +186,26 @@ inflate_data (struct Buffer *buf)
     ret = inflate (&z, 0);
     switch (ret)
     {
+    case Z_BUF_ERROR:
+      GNUNET_break_op (0);
+      GNUNET_break (Z_OK == inflateEnd (&z));
+      GNUNET_free (tmp);
+      return GNUNET_JSON_PR_JSON_INVALID;
     case Z_MEM_ERROR:
       GNUNET_break (0);
       GNUNET_break (Z_OK == inflateEnd (&z));
       GNUNET_free (tmp);
       return GNUNET_JSON_PR_OUT_OF_MEMORY;
-
     case Z_DATA_ERROR:
       GNUNET_break_op (0);
       GNUNET_break (Z_OK == inflateEnd (&z));
       GNUNET_free (tmp);
       return GNUNET_JSON_PR_JSON_INVALID;
-
     case Z_NEED_DICT:
       GNUNET_break_op (0);
       GNUNET_break (Z_OK == inflateEnd (&z));
       GNUNET_free (tmp);
       return GNUNET_JSON_PR_JSON_INVALID;
-
     case Z_OK:
       if ((0 < z.avail_out) && (0 == z.avail_in))
       {
@@ -231,7 +233,6 @@ inflate_data (struct Buffer *buf)
       tmp = GNUNET_realloc (tmp, tmp_size);
       z.next_out = (Bytef *) &tmp[z.total_out];
       continue;
-
     case Z_STREAM_END:
       /* decompression successful, make 'tmp' the new 'data' */
       GNUNET_free (buf->data);
