@@ -193,13 +193,13 @@ inflate_data (struct Buffer *buf)
       return GNUNET_JSON_PR_OUT_OF_MEMORY;
 
     case Z_DATA_ERROR:
-      GNUNET_break (0);
+      GNUNET_break_op (0);
       GNUNET_break (Z_OK == inflateEnd (&z));
       GNUNET_free (tmp);
       return GNUNET_JSON_PR_JSON_INVALID;
 
     case Z_NEED_DICT:
-      GNUNET_break (0);
+      GNUNET_break_op (0);
       GNUNET_break (Z_OK == inflateEnd (&z));
       GNUNET_free (tmp);
       return GNUNET_JSON_PR_JSON_INVALID;
