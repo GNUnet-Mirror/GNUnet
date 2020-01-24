@@ -780,6 +780,20 @@ GNUNET_PQ_reconnect (struct GNUNET_PQ_Context *db);
 
 
 /**
+ * Within the @a db context, run all the SQL files
+ * from the @a load_path from 0000-9999.sql (as long
+ * as the files exist contiguously).
+ *
+ * @param db database context to use
+ * @param load_path where to find the XXXX.sql files
+ * @return #GNUNET_OK on success
+ */
+int
+GNUNET_PQ_run_sql (struct GNUNET_PQ_Context *db,
+                   const char *load_path);
+
+
+/**
  * Disconnect from the database, destroying the prepared statements
  * and releasing other associated resources.
  *

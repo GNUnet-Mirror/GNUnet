@@ -1,6 +1,6 @@
 /*
    This file is part of GNUnet
-   Copyright (C) 2017, 2019 GNUnet e.V.
+   Copyright (C) 2017, 2019, 2020 GNUnet e.V.
 
    GNUnet is free software: you can redistribute it and/or modify it
    under the terms of the GNU Affero General Public License as published
@@ -135,6 +135,74 @@ GNUNET_PQ_connect (const char *config_str,
 
 
 /**
+ * Within the @a db context, run all the SQL files
+ * from the @a load_path from 0000-9999.sql (as long
+ * as the files exist contiguously).
+ *
+ * @param db database context to use
+ * @param load_path where to find the XXXX.sql files
+ * @return #GNUNET_OK on success
+ */
+int
+GNUNET_PQ_run_sql (struct GNUNET_PQ_Context *db,
+                   const char *load_path)
+{
+  size_t slen = strlen (db->load_path) + 10;
+
+  for (unsigned int i = 0; i<10000; i++)
+  {
+    char buf[slen];
+    struct GNUNET_OS_Process *psql;
+    enum GNUNET_OS_ProcessStatusType type;
+    unsigned long code;
+    
+    GNUNET_snprintf (buf,
+                     sizeof (buf),
+                     "%s%04u.sql",
+                     db->load_path,
+                     i);
+    if (GNUNET_YES !=
+        GNUNET_DISK_file_test (buf))
+      break; /* We are done */
+    psql = GNUNET_OS_start_process (GNUNET_NO,
+                                    GNUNET_OS_INHERIT_STD_NONE,
+                                    NULL,
+                                    NULL,
+                                    NULL,
+                                    "psql",
+                                    "psql",
+                                    db->config_str,
+                                    "-f",
+                                    buf,
+                                    "-q",
+                                    NULL);
+    if (NULL == psql)
+    {
+      GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR,
+                                "exec",
+                                "psql");
+      return GNUNET_SYSERR;
+    }
+    GNUNET_assert (GNUNET_OK ==
+                   GNUNET_OS_process_wait_status (psql,
+                                                  &type,
+                                                  &code));
+    GNUNET_OS_process_destroy (psql);
+    if ( (GNUNET_OS_PROCESS_EXITED != type) ||
+         (0 != code) )
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  "Could not run PSQL on file %s: %d",
+                  buf,
+                  (int) code);
+      return GNUNET_SYSERR;
+    }
+  }
+  return GNUNET_OK;
+}
+
+
+/**
  * Reinitialize the database @a db if the connection is down.
  *
  * @param db database connection to reinitialize
@@ -182,63 +250,14 @@ GNUNET_PQ_reconnect (struct GNUNET_PQ_Context *db)
   PQsetNoticeProcessor (db->conn,
                         &pq_notice_processor_cb,
                         db);
-  if (NULL != db->load_path)
-  {
-    size_t slen = strlen (db->load_path) + 10;
-
-    for (unsigned int i = 0; i<10000; i++)
-    {
-      char buf[slen];
-      struct GNUNET_OS_Process *psql;
-      enum GNUNET_OS_ProcessStatusType type;
-      unsigned long code;
-
-      GNUNET_snprintf (buf,
-                       sizeof (buf),
-                       "%s%04u.sql",
-                       db->load_path,
-                       i);
-      if (GNUNET_YES !=
-          GNUNET_DISK_file_test (buf))
-        break; /* We are done */
-      psql = GNUNET_OS_start_process (GNUNET_NO,
-                                      GNUNET_OS_INHERIT_STD_NONE,
-                                      NULL,
-                                      NULL,
-                                      NULL,
-                                      "psql",
-                                      "psql",
-                                      db->config_str,
-                                      "-f",
-                                      buf,
-                                      "-q",
-                                      NULL);
-      if (NULL == psql)
-      {
-        GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR,
-                                  "exec",
-                                  "psql");
-        PQfinish (db->conn);
-        db->conn = NULL;
-        return;
-      }
-      GNUNET_assert (GNUNET_OK ==
-                     GNUNET_OS_process_wait_status (psql,
-                                                    &type,
-                                                    &code));
-      GNUNET_OS_process_destroy (psql);
-      if ( (GNUNET_OS_PROCESS_EXITED != type) ||
-           (0 != code) )
-      {
-        GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                    "Could not run PSQL on file %s: %d",
-                    buf,
-                    (int) code);
-        PQfinish (db->conn);
-        db->conn = NULL;
-        return;
-      }
-    }
+  if ( (NULL != db->load_path) &&
+     (GNUNET_OK !=
+      GNUNET_PQ_run_sql (db,
+                         db->load_path)) )
+  { 
+    PQfinish (db->conn);
+    db->conn = NULL;
+    return;
   }
   if ( (NULL != db->es) &&
        (GNUNET_OK !=
