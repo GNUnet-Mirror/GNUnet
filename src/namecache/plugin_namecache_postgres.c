@@ -113,6 +113,7 @@ database_setup (struct Plugin *plugin)
 
     plugin->dbh = GNUNET_PQ_connect_with_cfg (plugin->cfg,
                                               "namecache-postgres",
+                                              NULL,
                                               es,
                                               ps);
   }

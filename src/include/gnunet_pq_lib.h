@@ -742,8 +742,12 @@ GNUNET_PQ_connect (const char *config_str,
  * statements in @a es are executed whenever we (re)connect to the
  * database, and that the prepared statements in @a ps are "ready".
  *
+ * The caller does not have to ensure that @a es and @a ps remain allocated
+ * and initialized in memory until #GNUNET_PQ_disconnect() is called, as a copy will be made.
+ *
  * @param cfg configuration
  * @param section configuration section to use to get Postgres configuration options
+ * @param load_path_suffix suffix to append to the SQL_DIR in the configuration
  * @param es #GNUNET_PQ_PREPARED_STATEMENT_END-terminated
  *            array of statements to execute upon EACH connection, can be NULL
  * @param ps array of prepared statements to prepare, can be NULL
@@ -752,6 +756,7 @@ GNUNET_PQ_connect (const char *config_str,
 struct GNUNET_PQ_Context *
 GNUNET_PQ_connect_with_cfg (const struct GNUNET_CONFIGURATION_Handle *cfg,
                             const char *section,
+                            const char *load_path,
                             const struct GNUNET_PQ_ExecuteStatement *es,
                             const struct GNUNET_PQ_PreparedStatement *ps);
 

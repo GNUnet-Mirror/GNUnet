@@ -172,6 +172,7 @@ init_connection (struct Plugin *plugin)
 
   plugin->dbh = GNUNET_PQ_connect_with_cfg (plugin->env->cfg,
                                             "datastore-postgres",
+                                            NULL,
                                             es,
                                             ps);
   if (NULL == plugin->dbh)

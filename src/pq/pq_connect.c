@@ -267,12 +267,12 @@ GNUNET_PQ_reconnect (struct GNUNET_PQ_Context *db)
  * statements in @a es are executed whenever we (re)connect to the
  * database, and that the prepared statements in @a ps are "ready".
  *
- * The caller MUST ensure that @a es and @a ps remain allocated and
- * initialized in memory until #GNUNET_PQ_disconnect() is called,
- * as they may be needed repeatedly and no copy will be made.
+ * The caller does not have to ensure that @a es and @a ps remain allocated
+ * and initialized in memory until #GNUNET_PQ_disconnect() is called, as a copy will be made.
  *
  * @param cfg configuration
  * @param section configuration section to use to get Postgres configuration options
+ * @param load_path_suffix suffix to append to the SQL_DIR in the configuration
  * @param es #GNUNET_PQ_PREPARED_STATEMENT_END-terminated
  *            array of statements to execute upon EACH connection, can be NULL
  * @param ps array of prepared statements to prepare, can be NULL
@@ -281,12 +281,14 @@ GNUNET_PQ_reconnect (struct GNUNET_PQ_Context *db)
 struct GNUNET_PQ_Context *
 GNUNET_PQ_connect_with_cfg (const struct GNUNET_CONFIGURATION_Handle *cfg,
                             const char *section,
+                            const char *load_path_suffix,
                             const struct GNUNET_PQ_ExecuteStatement *es,
                             const struct GNUNET_PQ_PreparedStatement *ps)
 {
   struct GNUNET_PQ_Context *db;
   char *conninfo;
   char *load_path;
+  char *sp;
 
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_string (cfg,
@@ -294,17 +296,23 @@ GNUNET_PQ_connect_with_cfg (const struct GNUNET_CONFIGURATION_Handle *cfg,
                                              "CONFIG",
                                              &conninfo))
     conninfo = NULL;
-  if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_string (cfg,
-                                             section,
-                                             "SQL_PATH",
-                                             &load_path))
-    load_path = NULL;
+  load_path = NULL;
+  sp = NULL;
+  if (GNUNET_OK ==
+      GNUNET_CONFIGURATION_get_value_filename (cfg,
+                                               section,
+                                               "SQL_DIR",
+                                               &sp))
+    GNUNET_asprintf (&load_path,
+                     "%s%s",
+                     sp,
+                     load_path_suffix);
   db = GNUNET_PQ_connect (conninfo == NULL ? "" : conninfo,
                           load_path,
                           es,
                           ps);
   GNUNET_free_non_null (load_path);
+  GNUNET_free_non_null (sp);
   GNUNET_free_non_null (conninfo);
   return db;
 }
