@@ -57,7 +57,7 @@ struct LookupMessage
   int16_t options GNUNET_PACKED;
 
   /**
-   * Recursion depth limit, i.e. how many more 
+   * Recursion depth limit, i.e. how many more
    * GNS zones may be traversed during the resolution
    * of this name.
    */
@@ -88,7 +88,9 @@ struct LookupResultMessage
   uint32_t id GNUNET_PACKED;
 
   /**
-   * The number of records contained in response
+   * The number of records contained in response. Zero for
+   * NXDOMAIN (as GNS always returns all records, there is
+   * no "NO DATA" case).
    */
   uint32_t rd_count GNUNET_PACKED;
 
