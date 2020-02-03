@@ -147,7 +147,7 @@ int
 GNUNET_PQ_run_sql (struct GNUNET_PQ_Context *db,
                    const char *load_path)
 {
-  size_t slen = strlen (db->load_path) + 10;
+  size_t slen = strlen (load_path) + 10;
 
   for (unsigned int i = 0; i<10000; i++)
   {
@@ -155,11 +155,11 @@ GNUNET_PQ_run_sql (struct GNUNET_PQ_Context *db,
     struct GNUNET_OS_Process *psql;
     enum GNUNET_OS_ProcessStatusType type;
     unsigned long code;
-    
+
     GNUNET_snprintf (buf,
                      sizeof (buf),
                      "%s%04u.sql",
-                     db->load_path,
+                     load_path,
                      i);
     if (GNUNET_YES !=
         GNUNET_DISK_file_test (buf))
@@ -251,10 +251,10 @@ GNUNET_PQ_reconnect (struct GNUNET_PQ_Context *db)
                         &pq_notice_processor_cb,
                         db);
   if ( (NULL != db->load_path) &&
-     (GNUNET_OK !=
-      GNUNET_PQ_run_sql (db,
-                         db->load_path)) )
-  { 
+       (GNUNET_OK !=
+        GNUNET_PQ_run_sql (db,
+                           db->load_path)) )
+  {
     PQfinish (db->conn);
     db->conn = NULL;
     return;
