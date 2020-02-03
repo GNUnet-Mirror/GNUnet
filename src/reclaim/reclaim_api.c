@@ -511,13 +511,17 @@ handle_consume_ticket_result (void *cls,
       {
         for (le = attrs->list_head; NULL != le; le = le->next)
         {
-          if (le->reference != NULL && le->attest == NULL)
+          if ((le->reference != NULL) && (le->attest == NULL))
           {
             for (le2 = attrs->list_head; NULL != le2; le2 = le2->next)
             {
-              if (le2->attest != NULL && le2->attest->id == le->reference->id_attest)
+              if ((le2->attest != NULL) &&
+                  (0 == memcmp (&le2->attest->id,
+                                &le->reference->id_attest,
+                                sizeof (le2->attest->id))))
               {
-                op->ar_cb (op->cls, &msg->identity, le->claim, le2->attest, le->reference);
+                op->ar_cb (op->cls, &msg->identity, le->claim, le2->attest,
+                           le->reference);
                 break;
               }
 
@@ -637,6 +641,7 @@ handle_attribute_result (void *cls, const struct AttributeResultMessage *msg)
   GNUNET_assert (0);
 }
 
+
 /**
    * Handle an incoming message of type
    * #GNUNET_MESSAGE_TYPE_RECLAIM_ATTESTATION_RESULT
@@ -736,6 +741,7 @@ handle_attestation_result (void *cls, const struct AttributeResultMessage *msg)
   GNUNET_assert (0);
 }
 
+
 /**
    * Handle an incoming message of type
    * #GNUNET_MESSAGE_TYPE_RECLAIM_REFERENCE_RESULT
@@ -761,6 +767,7 @@ check_reference_result (void *cls, const struct ReferenceResultMessage *msg)
   }
   return GNUNET_OK;
 }
+
 
 /**
 * Handle an incoming message of type
@@ -840,6 +847,7 @@ handle_reference_result (void *cls, const struct ReferenceResultMessage *msg)
   }
   GNUNET_assert (0);
 }
+
 
 /**
  * Handle an incoming message of type
@@ -1150,6 +1158,7 @@ GNUNET_RECLAIM_attribute_delete (
   return op;
 }
 
+
 /**
    * Store an attestation.  If the attestation is already present,
    * it is replaced with the new attestation.
@@ -1197,6 +1206,7 @@ GNUNET_RECLAIM_attestation_store (
   return op;
 }
 
+
 /**
    * Delete an attestation. Tickets used to share this attestation are updated
    * accordingly.
@@ -1239,6 +1249,7 @@ GNUNET_RECLAIM_attestation_delete (
     GNUNET_MQ_send_copy (h->mq, op->env);
   return op;
 }
+
 
 /**
    * Store an attestation reference.  If the reference is already present,
@@ -1286,6 +1297,7 @@ GNUNET_RECLAIM_attestation_reference_store (
   return op;
 }
 
+
 /**
  * Delete an attestation reference. Tickets used to share this reference are updated
  * accordingly.
@@ -1329,6 +1341,7 @@ GNUNET_RECLAIM_attestation_reference_delete (
     GNUNET_MQ_send_copy (h->mq, op->env);
   return op;
 }
+
 
 /**
  * List all attributes for a local identity.

@@ -94,12 +94,12 @@ parse_attr (void *cls, json_t *root, struct GNUNET_JSON_Specification *spec)
   }
   attr = GNUNET_RECLAIM_ATTRIBUTE_claim_new (name_str, type, data, data_size);
   if ((NULL == id_str) || (0 == strlen (id_str)))
-    attr->id = 0;
+    memset (&attr->id, 0, sizeof (attr->id));
   else
     GNUNET_STRINGS_string_to_data (id_str,
                                    strlen (id_str),
                                    &attr->id,
-                                   sizeof(uint64_t));
+                                   sizeof(attr->id));
 
   *(struct GNUNET_RECLAIM_ATTRIBUTE_Claim **) spec->ptr = attr;
   return GNUNET_OK;
@@ -192,7 +192,7 @@ parse_ticket (void *cls, json_t *root, struct GNUNET_JSON_Specification *spec)
   if (GNUNET_OK != GNUNET_STRINGS_string_to_data (rnd_str,
                                                   strlen (rnd_str),
                                                   &ticket->rnd,
-                                                  sizeof(uint64_t)))
+                                                  sizeof(ticket->rnd)))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Rnd invalid\n");
     GNUNET_free (ticket);
@@ -327,12 +327,12 @@ parse_attest (void *cls, json_t *root, struct GNUNET_JSON_Specification *spec)
   }
   attr = GNUNET_RECLAIM_ATTESTATION_claim_new (name_str, type, data, data_size);
   if ((NULL == id_str) || (0 == strlen (id_str)))
-    attr->id = 0;
+    memset (&attr->id, 0, sizeof (attr->id));
   else
     GNUNET_STRINGS_string_to_data (id_str,
                                    strlen (id_str),
                                    &attr->id,
-                                   sizeof(uint64_t));
+                                   sizeof(attr->id));
 
   *(struct GNUNET_RECLAIM_ATTESTATION_Claim **) spec->ptr = attr;
   return GNUNET_OK;
@@ -425,16 +425,15 @@ parse_attest_ref (void *cls, json_t *root, struct
   }
 
   attr = GNUNET_RECLAIM_ATTESTATION_reference_new (name_str, ref_val_str);
-
-  attr->id = 0;
+  memset (&attr->id, 0, sizeof (attr->id));
 
   if ((NULL == ref_id_str) || (0 == strlen (ref_id_str)))
-    attr->id_attest = 0;
+    memset (&attr->id_attest, 0, sizeof (attr->id_attest));
   else
     GNUNET_STRINGS_string_to_data (ref_id_str,
                                    strlen (ref_id_str),
                                    &attr->id_attest,
-                                   sizeof(uint64_t));
+                                   sizeof(attr->id_attest));
 
   *(struct GNUNET_RECLAIM_ATTESTATION_REFERENCE **) spec->ptr = attr;
   return GNUNET_OK;

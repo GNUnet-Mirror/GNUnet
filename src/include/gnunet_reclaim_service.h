@@ -77,9 +77,9 @@ struct GNUNET_RECLAIM_Ticket
   struct GNUNET_CRYPTO_EcdsaPublicKey audience;
 
   /**
-   * The ticket random (NBO)
+   * The ticket random identifier
    */
-  uint64_t rnd;
+  struct GNUNET_RECLAIM_Identifier rnd;
 };
 
 

@@ -39,14 +39,14 @@ struct Attribute
   uint32_t attribute_type;
 
   /**
-   * Attribute version
+   * Attribute flag
    */
-  uint32_t attribute_version;
+  uint32_t attribute_flag;
 
   /**
    * Attribute ID
    */
-  uint64_t attribute_id;
+  struct GNUNET_RECLAIM_Identifier attribute_id;
 
   /**
    * Name length
@@ -72,14 +72,14 @@ struct Attestation
   uint32_t attestation_type;
 
   /**
-   * Attestation version
+   * Attestation flag
    */
-  uint32_t attestation_version;
+  uint32_t attestation_flag;
 
   /**
    * Attestation ID
    */
-  uint64_t attestation_id;
+  struct GNUNET_RECLAIM_Identifier attestation_id;
 
   /**
    * Name length
@@ -102,12 +102,12 @@ struct Attestation_Reference
   /**
    * Reference ID
    */
-  uint64_t reference_id;
+  struct GNUNET_RECLAIM_Identifier reference_id;
 
   /**
    * The ID of the referenced attestation
    */
-  uint64_t attestation_id;
+  struct GNUNET_RECLAIM_Identifier attestation_id;
 
   /**
    * Claim Name length

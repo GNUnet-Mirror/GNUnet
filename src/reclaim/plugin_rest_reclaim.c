@@ -428,7 +428,7 @@ ticket_collect (void *cls, const struct GNUNET_RECLAIM_Ticket *ticket)
   char *tmp;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Adding ticket\n");
-  tmp = GNUNET_STRINGS_data_to_string_alloc (&ticket->rnd, sizeof(uint64_t));
+  tmp = GNUNET_STRINGS_data_to_string_alloc (&ticket->rnd, sizeof(ticket->rnd));
   json_resource = json_object ();
   GNUNET_free (tmp);
   json_array_append (handle->resp_object, json_resource);
@@ -447,7 +447,7 @@ ticket_collect (void *cls, const struct GNUNET_RECLAIM_Ticket *ticket)
   value = json_string (tmp);
   json_object_set_new (json_resource, "audience", value);
   GNUNET_free (tmp);
-  tmp = GNUNET_STRINGS_data_to_string_alloc (&ticket->rnd, sizeof(uint64_t));
+  tmp = GNUNET_STRINGS_data_to_string_alloc (&ticket->rnd, sizeof(ticket->rnd));
   value = json_string (tmp);
   json_object_set_new (json_resource, "rnd", value);
   GNUNET_free (tmp);
@@ -521,7 +521,7 @@ add_attestation_ref_cont (struct GNUNET_REST_RequestHandle *con_handle,
   /**
    * New ID for attribute
    */
-  if (0 == attribute->id)
+  if (GNUNET_YES == GNUNET_RECLAIM_id_is_zero (&attribute->id))
     attribute->id = attribute->id_attest;
   handle->idp = GNUNET_RECLAIM_connect (cfg);
   exp = GNUNET_TIME_UNIT_HOURS;
@@ -692,9 +692,8 @@ add_attestation_cont (struct GNUNET_REST_RequestHandle *con_handle,
   /**
    * New ID for attribute
    */
-  if (0 == attribute->id)
-    attribute->id =
-      GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_STRONG, UINT64_MAX);
+  if (GNUNET_YES == GNUNET_RECLAIM_id_is_zero (&attribute->id))
+    GNUNET_RECLAIM_id_generate (&attribute->id);
   handle->idp = GNUNET_RECLAIM_connect (cfg);
   exp = GNUNET_TIME_UNIT_HOURS;
   handle->idp_op = GNUNET_RECLAIM_attestation_store (handle->idp,
@@ -740,9 +739,9 @@ ref_collect (void *cls,
   json_object_set_new (attr_obj, "ref_value", json_string (
                          reference->reference_value));
   id_str = GNUNET_STRINGS_data_to_string_alloc (&reference->id,
-                                                sizeof(uint64_t));
+                                                sizeof(reference->id));
   id_attest_str = GNUNET_STRINGS_data_to_string_alloc (&reference->id_attest,
-                                                       sizeof(uint64_t));
+                                                       sizeof(reference->id_attest));
   json_object_set_new (attr_obj, "id", json_string (id_str));
   json_object_set_new (attr_obj, "ref_id", json_string (id_attest_str));
   json_array_append (handle->resp_object, attr_obj);
@@ -856,7 +855,7 @@ attest_collect (void *cls,
   json_object_set_new (attr_obj, "name", json_string (attest->name));
   type = GNUNET_RECLAIM_ATTESTATION_number_to_typename (attest->type);
   json_object_set_new (attr_obj, "type", json_string (type));
-  id_str = GNUNET_STRINGS_data_to_string_alloc (&attest->id, sizeof(uint64_t));
+  id_str = GNUNET_STRINGS_data_to_string_alloc (&attest->id, sizeof(attest->id));
   json_object_set_new (attr_obj, "id", json_string (id_str));
   json_array_append (handle->resp_object, attr_obj);
   json_decref (attr_obj);
@@ -1017,7 +1016,7 @@ delete_attestation_ref_cont (struct GNUNET_REST_RequestHandle *con_handle,
     GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
   }
-  GNUNET_STRINGS_string_to_data (id, strlen (id), &attr->id, sizeof(uint64_t));
+  GNUNET_STRINGS_string_to_data (id, strlen (id), &attr->id, sizeof(attr->id));
 
   handle->idp = GNUNET_RECLAIM_connect (cfg);
   handle->idp_op = GNUNET_RECLAIM_attestation_reference_delete (handle->idp,
@@ -1100,7 +1099,7 @@ delete_attestation_cont (struct GNUNET_REST_RequestHandle *con_handle,
   priv_key = GNUNET_IDENTITY_ego_get_private_key (ego_entry->ego);
   handle->idp = GNUNET_RECLAIM_connect (cfg);
   memset (&attr, 0, sizeof(struct GNUNET_RECLAIM_ATTESTATION_Claim));
-  GNUNET_STRINGS_string_to_data (id, strlen (id), &attr.id, sizeof(uint64_t));
+  GNUNET_STRINGS_string_to_data (id, strlen (id), &attr.id, sizeof(attr.id));
   attr.name = "";
   handle->idp_op = GNUNET_RECLAIM_attestation_delete (handle->idp,
                                                       priv_key,
@@ -1230,9 +1229,8 @@ add_attribute_cont (struct GNUNET_REST_RequestHandle *con_handle,
   /**
    * New ID for attribute
    */
-  if (0 == attribute->id)
-    attribute->id =
-      GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_STRONG, UINT64_MAX);
+  if (GNUNET_YES == GNUNET_RECLAIM_id_is_zero (&attribute->id))
+    GNUNET_RECLAIM_id_generate (&attribute->id);
   handle->idp = GNUNET_RECLAIM_connect (cfg);
   exp = GNUNET_TIME_UNIT_HOURS;
   handle->idp_op = GNUNET_RECLAIM_attribute_store (handle->idp,
@@ -1366,7 +1364,8 @@ attr_collect (void *cls,
     json_object_set_new (attr_obj, "flag", json_string ("1"));
     type = GNUNET_RECLAIM_ATTRIBUTE_number_to_typename (attr2->type);
     json_object_set_new (attr_obj, "type", json_string (type));
-    id_str = GNUNET_STRINGS_data_to_string_alloc (&attr2->id, sizeof(uint64_t));
+    id_str = GNUNET_STRINGS_data_to_string_alloc (&attr2->id,
+                                                  sizeof(attr2->id));
     json_object_set_new (attr_obj, "id", json_string (id_str));
     json_array_append (handle->resp_object, attr_obj);
     json_decref (attr_obj);
@@ -1396,7 +1395,8 @@ attr_collect (void *cls,
     json_object_set_new (attr_obj, "flag", json_string (flag_str));
     type = GNUNET_RECLAIM_ATTRIBUTE_number_to_typename (attr->type);
     json_object_set_new (attr_obj, "type", json_string (type));
-    id_str = GNUNET_STRINGS_data_to_string_alloc (&attr->id, sizeof(uint64_t));
+    id_str = GNUNET_STRINGS_data_to_string_alloc (&attr->id,
+                                                  sizeof(attr->id));
     json_object_set_new (attr_obj, "id", json_string (id_str));
     json_array_append (handle->resp_object, attr_obj);
     json_decref (attr_obj);
@@ -1515,7 +1515,7 @@ delete_attribute_cont (struct GNUNET_REST_RequestHandle *con_handle,
   priv_key = GNUNET_IDENTITY_ego_get_private_key (ego_entry->ego);
   handle->idp = GNUNET_RECLAIM_connect (cfg);
   memset (&attr, 0, sizeof(struct GNUNET_RECLAIM_ATTRIBUTE_Claim));
-  GNUNET_STRINGS_string_to_data (id, strlen (id), &attr.id, sizeof(uint64_t));
+  GNUNET_STRINGS_string_to_data (id, strlen (id), &attr.id, sizeof(attr.id));
   attr.name = "";
   handle->idp_op = GNUNET_RECLAIM_attribute_delete (handle->idp,
                                                     priv_key,
