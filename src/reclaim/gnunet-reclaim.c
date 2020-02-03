@@ -227,7 +227,7 @@ static void
 process_attrs (void *cls,
                const struct GNUNET_CRYPTO_EcdsaPublicKey *identity,
                const struct GNUNET_RECLAIM_ATTRIBUTE_Claim *attr,
-               const struct GNUNET_RECLAIM_ATTESTATION_Claim *attest, 
+               const struct GNUNET_RECLAIM_ATTESTATION_Claim *attest,
                const struct GNUNET_RECLAIM_ATTESTATION_REFERENCE *reference)
 {
   char *value_str;
@@ -249,9 +249,9 @@ process_attrs (void *cls,
                                                         attr->data,
                                                         attr->data_size);
   attr_type = GNUNET_RECLAIM_ATTRIBUTE_number_to_typename (attr->type);
-  id = GNUNET_STRINGS_data_to_string_alloc (&attr->id, sizeof(uint64_t));
+  id = GNUNET_STRINGS_data_to_string_alloc (&attr->id, sizeof(attr->id));
   fprintf (stdout,
-           "Name: %s; Value: %s (%s); Version %u; ID: %s\n",
+           "Name: %s; Value: %s (%s); Flag %u; ID: %s\n",
            attr->name,
            value_str,
            attr_type,
@@ -289,7 +289,7 @@ ticket_iter (void *cls, const struct GNUNET_RECLAIM_Ticket *ticket)
     GNUNET_STRINGS_data_to_string_alloc (&ticket->audience,
                                          sizeof(struct
                                                 GNUNET_CRYPTO_EcdsaPublicKey));
-  ref = GNUNET_STRINGS_data_to_string_alloc (&ticket->rnd, sizeof(uint64_t));
+  ref = GNUNET_STRINGS_data_to_string_alloc (&ticket->rnd, sizeof(ticket->rnd));
   tkt =
     GNUNET_STRINGS_data_to_string_alloc (ticket,
                                          sizeof(struct GNUNET_RECLAIM_Ticket));
@@ -495,7 +495,7 @@ iter_cb (void *cls,
   }
   else if (attr_delete && (NULL == attr_to_delete))
   {
-    label = GNUNET_STRINGS_data_to_string_alloc (&attr->id, sizeof(uint64_t));
+    label = GNUNET_STRINGS_data_to_string_alloc (&attr->id, sizeof(attr->id));
     if (0 == strcasecmp (attr_delete, label))
     {
       attr_to_delete = GNUNET_RECLAIM_ATTRIBUTE_claim_new (attr->name,
@@ -512,9 +512,9 @@ iter_cb (void *cls,
                                                          attr->data,
                                                          attr->data_size);
     attr_type = GNUNET_RECLAIM_ATTRIBUTE_number_to_typename (attr->type);
-    id = GNUNET_STRINGS_data_to_string_alloc (&attr->id, sizeof(uint64_t));
+    id = GNUNET_STRINGS_data_to_string_alloc (&attr->id, sizeof(attr->id));
     fprintf (stdout,
-             "Name: %s; Value: %s (%s); Version %u; ID: %s\n",
+             "Name: %s; Value: %s (%s); Flag %u; ID: %s\n",
              attr->name,
              attr_str,
              attr_type,

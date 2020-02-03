@@ -61,6 +61,37 @@ extern "C" {
 #define GNUNET_RECLAIM_ATTESTATION_TYPE_JWT 11
 
 /**
+ * We want an ID to be a 256-bit symmetric key
+ */
+#define GNUNET_RECLAIM_ID_LENGTH (256 / 8)
+
+/**
+ * A reclaim identifier
+ * FIXME maybe put this in a different namespace
+ */
+struct GNUNET_RECLAIM_Identifier
+{
+  char id[GNUNET_RECLAIM_ID_LENGTH];
+};
+
+static const struct GNUNET_RECLAIM_Identifier GNUNET_RECLAIM_ID_ZERO;
+
+#define GNUNET_RECLAIM_id_is_equal(a,b) ((0 == \
+                                   memcmp (a,\
+                                           b,\
+                                           sizeof (GNUNET_RECLAIM_ID_ZERO))) ?\
+                                           GNUNET_YES : GNUNET_NO)
+
+
+#define GNUNET_RECLAIM_id_is_zero(a) GNUNET_RECLAIM_id_is_equal(a,\
+                                                                &GNUNET_RECLAIM_ID_ZERO)
+
+#define GNUNET_RECLAIM_id_generate(id) \
+  (GNUNET_CRYPTO_random_block (GNUNET_CRYPTO_QUALITY_STRONG,\
+                               id,\
+                               sizeof (GNUNET_RECLAIM_ID_ZERO)))
+
+/**
  * An attribute.
  */
 struct GNUNET_RECLAIM_ATTRIBUTE_Claim
@@ -68,7 +99,7 @@ struct GNUNET_RECLAIM_ATTRIBUTE_Claim
   /**
    * ID
    */
-  uint64_t id;
+  struct GNUNET_RECLAIM_Identifier id;
 
   /**
    * Type of Claim
@@ -106,7 +137,7 @@ struct GNUNET_RECLAIM_ATTESTATION_Claim
   /**
    * ID
    */
-  uint64_t id;
+  struct GNUNET_RECLAIM_Identifier id;
 
   /**
    * Type/Format of Claim
@@ -114,9 +145,9 @@ struct GNUNET_RECLAIM_ATTESTATION_Claim
   uint32_t type;
 
   /**
-   * Version
+   * Flag
    */
-  uint32_t version;
+  uint32_t flag;
 
   /**
    * The name of the attribute. Note "name" must never be individually
@@ -145,12 +176,12 @@ struct GNUNET_RECLAIM_ATTESTATION_REFERENCE
   /**
    * ID
    */
-  uint64_t id;
+  struct GNUNET_RECLAIM_Identifier id;
 
   /**
    * Referenced ID of Attestation
    */
-  uint64_t id_attest;
+  struct GNUNET_RECLAIM_Identifier id_attest;
 
   /**
    * The name of the attribute/attestation reference value. Note "name" must never be individually

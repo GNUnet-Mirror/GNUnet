@@ -146,7 +146,7 @@ OIDC_id_token_new (const struct GNUNET_CRYPTO_EcdsaPublicKey *aud_key,
   json_t *aggr_names;
   json_t *aggr_sources;
   json_t *aggr_sources_jwt;
-  uint64_t attest_arr[GNUNET_RECLAIM_ATTRIBUTE_list_count_attest (attrs)];
+  struct GNUNET_RECLAIM_Identifier attest_arr[GNUNET_RECLAIM_ATTRIBUTE_list_count_attest (attrs)];
 
   // iat REQUIRED time now
   time_now = GNUNET_TIME_absolute_get ();
@@ -216,7 +216,8 @@ OIDC_id_token_new (const struct GNUNET_CRYPTO_EcdsaPublicKey *aud_key,
       int j = 0;
       while (j<i)
       {
-        if (attest_arr[j] == le->reference->id_attest)
+        if (GNUNET_YES == GNUNET_RECLAIM_id_is_equal (&attest_arr[j],
+                                                      &le->reference->id_attest))
           break;
         j++;
       }
@@ -245,7 +246,8 @@ OIDC_id_token_new (const struct GNUNET_CRYPTO_EcdsaPublicKey *aud_key,
       int j = 0;
       while (j<i)
       {
-        if (attest_arr[j] == le->attest->id)
+        if (GNUNET_YES == GNUNET_RECLAIM_id_is_equal (&attest_arr[j],
+                                                      &le->attest->id))
           break;
         j++;
       }
