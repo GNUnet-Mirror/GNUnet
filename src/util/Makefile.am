@@ -245,7 +245,8 @@ if HAVE_BENCHMARKS
   perf_crypto_paillier \
   perf_crypto_symmetric \
   perf_crypto_asymmetric \
-  perf_malloc
+  perf_malloc \
+  perf_scheduler
 endif
 
 if HAVE_SSH_KEY
@@ -606,6 +607,11 @@ perf_crypto_paillier_LDADD = \
 perf_malloc_SOURCES = \
  perf_malloc.c
 perf_malloc_LDADD = \
+ libgnunetutil.la
+
+perf_scheduler_SOURCES = \
+ perf_scheduler.c
+perf_scheduler_LDADD = \
  libgnunetutil.la
 
 
