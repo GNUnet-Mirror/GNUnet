@@ -719,9 +719,11 @@ GNUNET_SCHEDULER_run (GNUNET_SCHEDULER_TaskCallback task,
 {
   struct GNUNET_SCHEDULER_Handle *sh;
   struct GNUNET_SCHEDULER_Driver *driver;
-  struct DriverContext context = { .scheduled_head = NULL,
-                                   .scheduled_tail = NULL,
-                                   .timeout = GNUNET_TIME_absolute_get () };
+  struct DriverContext context = {
+    .scheduled_head = NULL,
+    .scheduled_tail = NULL,
+    .timeout = GNUNET_TIME_absolute_get ()
+  };
 
   driver = GNUNET_SCHEDULER_driver_select ();
   driver->cls = &context;
@@ -1280,9 +1282,24 @@ struct GNUNET_SCHEDULER_Task *
 GNUNET_SCHEDULER_add_now (GNUNET_SCHEDULER_TaskCallback task,
                           void *task_cls)
 {
-  return GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_ZERO,
-                                       task,
-                                       task_cls);
+  struct GNUNET_SCHEDULER_Task *t;
+
+  t = GNUNET_new (struct GNUNET_SCHEDULER_Task);
+  GNUNET_async_scope_get (&t->scope);
+  t->callback = task;
+  t->callback_cls = task_cls;
+  t->read_fd = -1;
+  t->write_fd = -1;
+#if PROFILE_DELAYS
+  t->start_time = GNUNET_TIME_absolute_get ();
+#endif
+  t->timeout = GNUNET_TIME_UNIT_ZERO_ABS;
+  t->priority = current_priority;
+  t->on_shutdown = GNUNET_YES;
+  t->lifeness = current_lifeness;
+  queue_ready_task (t);
+  init_backtrace (t);
+  return t;
 }
 
 
@@ -2290,6 +2307,8 @@ select_loop (struct GNUNET_SCHEDULER_Handle *sh,
          (GNUNET_TIME_UNIT_FOREVER_ABS.abs_value_us !=
           context->timeout.abs_value_us))
   {
+    struct GNUNET_TIME_Relative time_remaining;
+
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "select timeout = %s\n",
          GNUNET_STRINGS_absolute_time_to_string (context->timeout));
@@ -2310,8 +2329,9 @@ select_loop (struct GNUNET_SCHEDULER_Handle *sh,
         GNUNET_NETWORK_fdset_set_native (ws, pos->fdi->sock);
       }
     }
-    struct GNUNET_TIME_Relative time_remaining =
-      GNUNET_TIME_absolute_get_remaining (context->timeout);
+    time_remaining = GNUNET_TIME_absolute_get_remaining (context->timeout);
+    if (0 < ready_count)
+      time_remaining = GNUNET_TIME_UNIT_ZERO;
     if (NULL == scheduler_select)
     {
       select_result = GNUNET_NETWORK_socket_select (rs,
