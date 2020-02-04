@@ -27,8 +27,8 @@
  * @defgroup reclaim-attribute-plugin  reclaim plugin API for attributes/claims
  * @{
  */
-#ifndef GNUNET_RECLAIM_ATTRIBUTE_PLUGIN_H
-#define GNUNET_RECLAIM_ATTRIBUTE_PLUGIN_H
+#ifndef GNUNET_RECLAIM_AttributePLUGIN_H
+#define GNUNET_RECLAIM_AttributePLUGIN_H
 
 #include "gnunet_util_lib.h"
 #include "gnunet_reclaim_attribute_lib.h"
@@ -51,7 +51,7 @@ extern "C" {
  * @param data_size number of bytes in @a data
  * @return NULL on error, otherwise human-readable representation of the value
  */
-typedef char *(*GNUNET_RECLAIM_ATTRIBUTE_ValueToStringFunction) (
+typedef char *(*GNUNET_RECLAIM_AttributeValueToStringFunction) (
   void *cls,
   uint32_t type,
   const void *data,
@@ -70,7 +70,7 @@ typedef char *(*GNUNET_RECLAIM_ATTRIBUTE_ValueToStringFunction) (
  * @param data_size set to number of bytes in @a data
  * @return #GNUNET_OK on success
  */
-typedef int (*GNUNET_RECLAIM_ATTRIBUTE_StringToValueFunction) (
+typedef int (*GNUNET_RECLAIM_AttributeStringToValueFunction) (
   void *cls,
   uint32_t type,
   const char *s,
@@ -86,7 +86,7 @@ typedef int (*GNUNET_RECLAIM_ATTRIBUTE_StringToValueFunction) (
  * @param typename name to convert
  * @return corresponding number, UINT32_MAX on error
  */
-typedef uint32_t (*GNUNET_RECLAIM_ATTRIBUTE_TypenameToNumberFunction) (
+typedef uint32_t (*GNUNET_RECLAIM_AttributeTypenameToNumberFunction) (
   void *cls,
   const char *typename);
 
@@ -99,16 +99,79 @@ typedef uint32_t (*GNUNET_RECLAIM_ATTRIBUTE_TypenameToNumberFunction) (
  * @param type number of a type to convert
  * @return corresponding typestring, NULL on error
  */
-typedef const char *(*GNUNET_RECLAIM_ATTRIBUTE_NumberToTypenameFunction) (
+typedef const char *(*GNUNET_RECLAIM_AttributeNumberToTypenameFunction) (
   void *cls,
   uint32_t type);
+
+/**
+ * Function called to convert the binary value @a data of an attribute of
+ * type @a type to a human-readable string.
+ *
+ * @param cls closure
+ * @param type type of the attribute
+ * @param data value in binary encoding
+ * @param data_size number of bytes in @a data
+ * @return NULL on error, otherwise human-readable representation of the value
+ */
+typedef char *(*GNUNET_RECLAIM_AttestationValueToStringFunction) (
+  void *cls,
+  uint32_t type,
+  const void *data,
+  size_t data_size);
+
+
+/**
+ * Function called to convert human-readable version of the value @a s
+ * of an attribute of type @a type to the respective binary
+ * representation.
+ *
+ * @param cls closure
+ * @param type type of the attribute
+ * @param s human-readable string
+ * @param data set to value in binary encoding (will be allocated)
+ * @param data_size set to number of bytes in @a data
+ * @return #GNUNET_OK on success
+ */
+typedef int (*GNUNET_RECLAIM_AttestationStringToValueFunction) (
+  void *cls,
+  uint32_t type,
+  const char *s,
+  void **data,
+  size_t *data_size);
+
+
+/**
+ * Function called to convert a type name to the
+ * corresponding number.
+ *
+ * @param cls closure
+ * @param typename name to convert
+ * @return corresponding number, UINT32_MAX on error
+ */
+typedef uint32_t (*GNUNET_RECLAIM_AttestationTypenameToNumberFunction) (
+  void *cls,
+  const char *typename);
+
+
+/**
+ * Function called to convert a type number (i.e. 1) to the
+ * corresponding type string
+ *
+ * @param cls closure
+ * @param type number of a type to convert
+ * @return corresponding typestring, NULL on error
+ */
+typedef const char *(*GNUNET_RECLAIM_AttestationNumberToTypenameFunction) (
+  void *cls,
+  uint32_t type);
+
 
 
 /**
  * Each plugin is required to return a pointer to a struct of this
  * type as the return value from its entry point.
  */
-struct GNUNET_RECLAIM_ATTRIBUTE_PluginFunctions
+struct GNUNET_RECLAIM_AttributePluginFunctions
 {
   /**
    * Closure for all of the callbacks.
@@ -118,50 +181,58 @@ struct GNUNET_RECLAIM_ATTRIBUTE_PluginFunctions
   /**
    * Conversion to string.
    */
-  GNUNET_RECLAIM_ATTRIBUTE_ValueToStringFunction value_to_string;
+  GNUNET_RECLAIM_AttributeValueToStringFunction value_to_string;
 
   /**
    * Conversion to binary.
    */
-  GNUNET_RECLAIM_ATTRIBUTE_StringToValueFunction string_to_value;
+  GNUNET_RECLAIM_AttributeStringToValueFunction string_to_value;
 
   /**
    * Typename to number.
    */
-  GNUNET_RECLAIM_ATTRIBUTE_TypenameToNumberFunction typename_to_number;
+  GNUNET_RECLAIM_AttributeTypenameToNumberFunction typename_to_number;
 
   /**
    * Number to typename.
    */
-  GNUNET_RECLAIM_ATTRIBUTE_NumberToTypenameFunction number_to_typename;
-
-  /**
-   * FIXME: It is odd that attestation functions are withing the attribute
-   * plugin. An attribute type may be backed by an attestation, but not
-   * necessarily.
-   * Maybe it would make more sense to refactor this into an attestation
-   * plugin?
-   *
-   * Attestation Conversion to string.
-   */
-  GNUNET_RECLAIM_ATTRIBUTE_ValueToStringFunction value_to_string_attest;
-
-  /**
-  * Attestation Conversion to binary.
-  */
-  GNUNET_RECLAIM_ATTRIBUTE_StringToValueFunction string_to_value_attest;
-
-  /**
-  * Attestation Typename to number.
-  */
-  GNUNET_RECLAIM_ATTRIBUTE_TypenameToNumberFunction typename_to_number_attest;
-
-  /**
-  * Attestation Number to typename.
-  */
-  GNUNET_RECLAIM_ATTRIBUTE_NumberToTypenameFunction number_to_typename_attest;
+  GNUNET_RECLAIM_AttributeNumberToTypenameFunction number_to_typename;
 
 };
+
+/**
+ * Each plugin is required to return a pointer to a struct of this
+ * type as the return value from its entry point.
+ */
+struct GNUNET_RECLAIM_AttestationPluginFunctions
+{
+  /**
+   * Closure for all of the callbacks.
+   */
+  void *cls;
+
+  /**
+   * Conversion to string.
+   */
+  GNUNET_RECLAIM_AttestationValueToStringFunction value_to_string;
+
+  /**
+   * Conversion to binary.
+   */
+  GNUNET_RECLAIM_AttestationStringToValueFunction string_to_value;
+
+  /**
+   * Typename to number.
+   */
+  GNUNET_RECLAIM_AttestationTypenameToNumberFunction typename_to_number;
+
+  /**
+   * Number to typename.
+   */
+  GNUNET_RECLAIM_AttestationNumberToTypenameFunction number_to_typename;
+
+};
+
 
 
 #if 0 /* keep Emacsens' auto-indent happy */

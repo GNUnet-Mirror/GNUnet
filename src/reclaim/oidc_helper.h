@@ -51,7 +51,8 @@
 char*
 OIDC_id_token_new (const struct GNUNET_CRYPTO_EcdsaPublicKey *aud_key,
                    const struct GNUNET_CRYPTO_EcdsaPublicKey *sub_key,
-                   struct GNUNET_RECLAIM_ATTRIBUTE_ClaimList *attrs,
+                   struct GNUNET_RECLAIM_AttributeList *attrs,
+                   struct GNUNET_RECLAIM_AttestationList *attests,
                    const struct GNUNET_TIME_Relative *expiration_time,
                    const char *nonce,
                    const char *secret_key);
@@ -70,7 +71,8 @@ OIDC_id_token_new (const struct GNUNET_CRYPTO_EcdsaPublicKey *aud_key,
 char*
 OIDC_build_authz_code (const struct GNUNET_CRYPTO_EcdsaPrivateKey *issuer,
                        const struct GNUNET_RECLAIM_Ticket *ticket,
-                       struct GNUNET_RECLAIM_ATTRIBUTE_ClaimList *attrs,
+                       struct GNUNET_RECLAIM_AttributeList *attrs,
+                       struct GNUNET_RECLAIM_AttestationList *attests,
                        const char *nonce,
                        const char *code_challenge);
 
@@ -92,7 +94,8 @@ OIDC_parse_authz_code (const struct GNUNET_CRYPTO_EcdsaPrivateKey *ecdsa_priv,
                        const char *code,
                        const char *code_verifier,
                        struct GNUNET_RECLAIM_Ticket *ticket,
-                       struct GNUNET_RECLAIM_ATTRIBUTE_ClaimList **attrs,
+                       struct GNUNET_RECLAIM_AttributeList **attrs,
+                       struct GNUNET_RECLAIM_AttestationList **attests,
                        char **nonce);
 
 /**

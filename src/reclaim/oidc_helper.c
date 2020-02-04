@@ -60,6 +60,11 @@ struct OIDC_Parameters
    * The length of the attributes list
    */
   uint32_t attr_list_len GNUNET_PACKED;
+
+  /**
+   * The length of the attestation list
+   */
+  uint32_t attest_list_len GNUNET_PACKED;
 };
 
 GNUNET_NETWORK_STRUCT_END
@@ -118,12 +123,14 @@ fix_base64 (char *str)
 char *
 OIDC_id_token_new (const struct GNUNET_CRYPTO_EcdsaPublicKey *aud_key,
                    const struct GNUNET_CRYPTO_EcdsaPublicKey *sub_key,
-                   struct GNUNET_RECLAIM_ATTRIBUTE_ClaimList *attrs,
+                   struct GNUNET_RECLAIM_AttributeList *attrs,
+                   struct GNUNET_RECLAIM_AttestationList *attests,
                    const struct GNUNET_TIME_Relative *expiration_time,
                    const char *nonce,
                    const char *secret_key)
 {
-  struct GNUNET_RECLAIM_ATTRIBUTE_ClaimListEntry *le;
+  struct GNUNET_RECLAIM_AttributeListEntry *le;
+  struct GNUNET_RECLAIM_AttestationListEntry *ale;
   struct GNUNET_HashCode signature;
   struct GNUNET_TIME_Absolute exp_time;
   struct GNUNET_TIME_Absolute time_now;
@@ -146,7 +153,12 @@ OIDC_id_token_new (const struct GNUNET_CRYPTO_EcdsaPublicKey *aud_key,
   json_t *aggr_names;
   json_t *aggr_sources;
   json_t *aggr_sources_jwt;
-  struct GNUNET_RECLAIM_Identifier attest_arr[GNUNET_RECLAIM_ATTRIBUTE_list_count_attest (attrs)];
+  int num_attestations = 0;
+  for (le = attrs->list_head; NULL != le; le = le->next)
+  {
+    if (GNUNET_NO == GNUNET_RECLAIM_id_is_zero (&le->attribute->attestation))
+      num_attestations++;
+  }
 
   // iat REQUIRED time now
   time_now = GNUNET_TIME_absolute_get ();
@@ -191,97 +203,73 @@ OIDC_id_token_new (const struct GNUNET_CRYPTO_EcdsaPublicKey *aud_key,
   // nonce
   if (NULL != nonce)
     json_object_set_new (body, "nonce", json_string (nonce));
-  int i = 0;
   attest_val_str = NULL;
   aggr_names_str = NULL;
   aggr_sources_str = NULL;
   aggr_sources_jwt_str = NULL;
   source_name = NULL;
+  int i = 0;
+  for (ale = attests->list_head; NULL != ale; ale = ale->next)
+  {
+    // New Attestation
+    GNUNET_asprintf (&source_name,
+                     "src%d",
+                     i);
+    aggr_sources_jwt = json_object ();
+    attest_val_str =
+      GNUNET_RECLAIM_attestation_value_to_string (ale->attestation->type,
+                                                  ale->attestation->data,
+                                                  ale->attestation->data_size);
+    json_object_set_new (aggr_sources_jwt, "JWT",
+                         json_string (attest_val_str) );
+    aggr_sources_jwt_str = json_dumps (aggr_sources_jwt, JSON_INDENT (0)
+                                       | JSON_COMPACT);
+    json_object_set_new (aggr_sources, source_name,json_string (
+                           aggr_sources_jwt_str));
+    i++;
+  }
+
   for (le = attrs->list_head; NULL != le; le = le->next)
   {
 
-    if (le->claim != NULL)
+    if (GNUNET_YES == GNUNET_RECLAIM_id_is_zero (&le->attribute->attestation))
     {
 
       attr_val_str =
-        GNUNET_RECLAIM_ATTRIBUTE_value_to_string (le->claim->type,
-                                                  le->claim->data,
-                                                  le->claim->data_size);
-      json_object_set_new (body, le->claim->name, json_string (attr_val_str));
+        GNUNET_RECLAIM_attribute_value_to_string (le->attribute->type,
+                                                  le->attribute->data,
+                                                  le->attribute->data_size);
+      json_object_set_new (body, le->attribute->name,
+                           json_string (attr_val_str));
       GNUNET_free (attr_val_str);
     }
-    else if (NULL != le->reference)
+    else
     {
       // Check if attest is there
       int j = 0;
-      while (j<i)
+      for (ale = attests->list_head; NULL != ale; ale = ale->next)
       {
-        if (GNUNET_YES == GNUNET_RECLAIM_id_is_equal (&attest_arr[j],
-                                                      &le->reference->id_attest))
+        if (GNUNET_YES ==
+            GNUNET_RECLAIM_id_is_equal (&ale->attestation->id,
+                                        &le->attribute->attestation))
           break;
         j++;
       }
-      if (j==i)
-      {
-        // Attest not yet existent. Append to the end of the list
-        GNUNET_CONTAINER_DLL_remove (attrs->list_head, attrs->list_tail, le);
-        GNUNET_CONTAINER_DLL_insert_tail (attrs->list_head, attrs->list_tail,
-                                          le);
-        continue;
-      }
-      else
-      {
-        // Attestation is existing, hence take the respective source str
-        GNUNET_asprintf (&source_name,
-                         "src%d",
-                         j);
-        json_object_set_new (aggr_names, le->reference->name, json_string (
-                               source_name));
-      }
-
-    }
-    else if (NULL != le->attest)
-    {
-      // We assume that at max 99 different attestations
-      int j = 0;
-      while (j<i)
-      {
-        if (GNUNET_YES == GNUNET_RECLAIM_id_is_equal (&attest_arr[j],
-                                                      &le->attest->id))
-          break;
-        j++;
-      }
-      if (j==i)
-      {
-        // New Attestation
-        attest_arr[i] = le->attest->id;
-        GNUNET_asprintf (&source_name,
-                         "src%d",
-                         i);
-        aggr_sources_jwt = json_object ();
-        attest_val_str = GNUNET_RECLAIM_ATTESTATION_value_to_string (
-          le->attest->type, le->attest->data, le->attest->data_size);
-        json_object_set_new (aggr_sources_jwt, "JWT",json_string (
-                               attest_val_str) );
-        aggr_sources_jwt_str = json_dumps (aggr_sources_jwt, JSON_INDENT (0)
-                                           | JSON_COMPACT);
-        json_object_set_new (aggr_sources, source_name,json_string (
-                               aggr_sources_jwt_str));
-        i++;
-      }
-      else
-      {
-        // Attestation already existent. Ignore
-        continue;
-      }
-
+      GNUNET_assert (NULL != ale);
+      // Attestation is existing, hence take the respective source str
+      GNUNET_asprintf (&source_name,
+                       "src%d",
+                       j);
+      json_object_set_new (aggr_names, le->attribute->data,
+                           json_string (source_name));
     }
   }
+
   if (NULL != attest_val_str)
     GNUNET_free (attest_val_str);
   if (NULL != source_name)
     GNUNET_free (source_name);
-  if (0!=i)
+  if (0 != i)
   {
     aggr_names_str = json_dumps (aggr_names, JSON_INDENT (0) | JSON_COMPACT);
     aggr_sources_str = json_dumps (aggr_sources, JSON_INDENT (0)
@@ -574,7 +562,8 @@ encrypt_payload (const struct GNUNET_CRYPTO_EcdsaPublicKey *ecdsa_pub,
 char *
 OIDC_build_authz_code (const struct GNUNET_CRYPTO_EcdsaPrivateKey *issuer,
                        const struct GNUNET_RECLAIM_Ticket *ticket,
-                       struct GNUNET_RECLAIM_ATTRIBUTE_ClaimList *attrs,
+                       struct GNUNET_RECLAIM_AttributeList *attrs,
+                       struct GNUNET_RECLAIM_AttestationList *attests,
                        const char *nonce_str,
                        const char *code_challenge)
 {
@@ -587,6 +576,7 @@ OIDC_build_authz_code (const struct GNUNET_CRYPTO_EcdsaPrivateKey *issuer,
   size_t payload_len;
   size_t code_payload_len;
   size_t attr_list_len = 0;
+  size_t attests_list_len = 0;
   size_t code_challenge_len = 0;
   uint32_t nonce;
   uint32_t nonce_tmp;
@@ -625,7 +615,7 @@ OIDC_build_authz_code (const struct GNUNET_CRYPTO_EcdsaPrivateKey *issuer,
   if (NULL != attrs)
   {
     // Get length
-    attr_list_len = GNUNET_RECLAIM_ATTRIBUTE_list_serialize_get_size (attrs);
+    attr_list_len = GNUNET_RECLAIM_attribute_list_serialize_get_size (attrs);
     params.attr_list_len = htonl (attr_list_len);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Length of serialized attributes: %lu\n",
@@ -633,6 +623,19 @@ OIDC_build_authz_code (const struct GNUNET_CRYPTO_EcdsaPrivateKey *issuer,
     // Get serialized attributes
     payload_len += attr_list_len;
   }
+  if (NULL != attests)
+  {
+    // Get length
+    attests_list_len =
+      GNUNET_RECLAIM_attestation_list_serialize_get_size (attests);
+    params.attest_list_len = htonl (attests_list_len);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Length of serialized attestations: %lu\n",
+                attests_list_len);
+    // Get serialized attributes
+    payload_len += attests_list_len;
+  }
+
   // Get plaintext length
   payload = GNUNET_malloc (payload_len);
   memcpy (payload, &params, sizeof(params));
@@ -643,7 +646,10 @@ OIDC_build_authz_code (const struct GNUNET_CRYPTO_EcdsaPrivateKey *issuer,
     tmp += code_challenge_len;
   }
   if (0 < attr_list_len)
-    GNUNET_RECLAIM_ATTRIBUTE_list_serialize (attrs, tmp);
+    GNUNET_RECLAIM_attribute_list_serialize (attrs, tmp);
+  if (0 < attests_list_len)
+    GNUNET_RECLAIM_attestation_list_serialize (attests, tmp);
+
   /** END **/
 
   /** ENCRYPT **/
@@ -711,7 +717,8 @@ OIDC_parse_authz_code (const struct GNUNET_CRYPTO_EcdsaPrivateKey *ecdsa_priv,
                        const char *code,
                        const char *code_verifier,
                        struct GNUNET_RECLAIM_Ticket *ticket,
-                       struct GNUNET_RECLAIM_ATTRIBUTE_ClaimList **attrs,
+                       struct GNUNET_RECLAIM_AttributeList **attrs,
+                       struct GNUNET_RECLAIM_AttestationList **attests,
                        char **nonce_str)
 {
   char *code_payload;
@@ -829,7 +836,7 @@ OIDC_parse_authz_code (const struct GNUNET_CRYPTO_EcdsaPrivateKey *ecdsa_priv,
   // Attributes
   attrs_ser = ((char *) &params[1]) + code_challenge_len;
   attrs_ser_len = ntohl (params->attr_list_len);
-  *attrs = GNUNET_RECLAIM_ATTRIBUTE_list_deserialize (attrs_ser, attrs_ser_len);
+  *attrs = GNUNET_RECLAIM_attribute_list_deserialize (attrs_ser, attrs_ser_len);
 
   *nonce_str = NULL;
   if (nonce != 0)

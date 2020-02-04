@@ -136,7 +136,7 @@ typedef void (*RECLAIM_TICKETS_TicketResult) (
 typedef void (*RECLAIM_TICKETS_ConsumeCallback) (
   void *cls,
   const struct GNUNET_CRYPTO_EcdsaPublicKey *identity,
-  const struct GNUNET_RECLAIM_ATTRIBUTE_ClaimList *l,
+  const struct GNUNET_RECLAIM_AttributeList *l,
   int32_t success,
   const char *emsg);
 
@@ -217,7 +217,7 @@ RECLAIM_TICKETS_consume_cancel (struct RECLAIM_TICKETS_ConsumeHandle *cth);
  */
 void
 RECLAIM_TICKETS_issue (const struct GNUNET_CRYPTO_EcdsaPrivateKey *identity,
-                       const struct GNUNET_RECLAIM_ATTRIBUTE_ClaimList *attrs,
+                       const struct GNUNET_RECLAIM_AttributeList *attrs,
                        const struct GNUNET_CRYPTO_EcdsaPublicKey *audience,
                        RECLAIM_TICKETS_TicketResult cb,
                        void *cb_cls);

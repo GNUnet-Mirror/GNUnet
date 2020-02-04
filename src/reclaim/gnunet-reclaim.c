@@ -135,7 +135,7 @@ static struct GNUNET_RECLAIM_Ticket ticket;
 /**
  * Attribute list
  */
-static struct GNUNET_RECLAIM_ATTRIBUTE_ClaimList *attr_list;
+static struct GNUNET_RECLAIM_AttributeList *attr_list;
 
 /**
  * Attribute expiration interval
@@ -155,7 +155,7 @@ static struct GNUNET_SCHEDULER_Task *cleanup_task;
 /**
  * Claim to store
  */
-struct GNUNET_RECLAIM_ATTRIBUTE_Claim *claim;
+struct GNUNET_RECLAIM_Attribute *claim;
 
 /**
  * Claim to delete
@@ -165,7 +165,7 @@ static char *attr_delete;
 /**
  * Claim object to delete
  */
-static struct GNUNET_RECLAIM_ATTRIBUTE_Claim *attr_to_delete;
+static struct GNUNET_RECLAIM_Attribute *attr_to_delete;
 
 static void
 do_cleanup (void *cls)
@@ -226,9 +226,8 @@ store_attr_cont (void *cls, int32_t success, const char *emsg)
 static void
 process_attrs (void *cls,
                const struct GNUNET_CRYPTO_EcdsaPublicKey *identity,
-               const struct GNUNET_RECLAIM_ATTRIBUTE_Claim *attr,
-               const struct GNUNET_RECLAIM_ATTESTATION_Claim *attest,
-               const struct GNUNET_RECLAIM_ATTESTATION_REFERENCE *reference)
+               const struct GNUNET_RECLAIM_Attribute *attr,
+               const struct GNUNET_RECLAIM_Attestation *attest)
 {
   char *value_str;
   char *id;
@@ -245,18 +244,19 @@ process_attrs (void *cls,
     ret = 1;
     return;
   }
-  value_str = GNUNET_RECLAIM_ATTRIBUTE_value_to_string (attr->type,
+  value_str = GNUNET_RECLAIM_attribute_value_to_string (attr->type,
                                                         attr->data,
                                                         attr->data_size);
-  attr_type = GNUNET_RECLAIM_ATTRIBUTE_number_to_typename (attr->type);
+  attr_type = GNUNET_RECLAIM_attribute_number_to_typename (attr->type);
   id = GNUNET_STRINGS_data_to_string_alloc (&attr->id, sizeof(attr->id));
   fprintf (stdout,
-           "Name: %s; Value: %s (%s); Flag %u; ID: %s\n",
+           "Name: %s; Value: %s (%s); Flag %u; ID: %s %s\n",
            attr->name,
            value_str,
            attr_type,
            attr->flag,
-           id);
+           id,
+           (NULL == attest) ? "" : "ATTESTED");
   GNUNET_free (id);
 }
 
@@ -412,10 +412,10 @@ iter_finished (void *cls)
     if (NULL == type_str)
       type = GNUNET_RECLAIM_ATTRIBUTE_TYPE_STRING;
     else
-      type = GNUNET_RECLAIM_ATTRIBUTE_typename_to_number (type_str);
+      type = GNUNET_RECLAIM_attribute_typename_to_number (type_str);
 
     GNUNET_assert (GNUNET_SYSERR !=
-                   GNUNET_RECLAIM_ATTRIBUTE_string_to_value (type,
+                   GNUNET_RECLAIM_attribute_string_to_value (type,
                                                              attr_value,
                                                              (void **) &data,
                                                              &data_size));
@@ -428,7 +428,7 @@ iter_finished (void *cls)
     else
     {
       claim =
-        GNUNET_RECLAIM_ATTRIBUTE_claim_new (attr_name, type, data, data_size);
+        GNUNET_RECLAIM_attribute_new (attr_name, NULL, type, data, data_size);
     }
     reclaim_op = GNUNET_RECLAIM_attribute_store (reclaim_handle,
                                                  pkey,
@@ -447,11 +447,10 @@ iter_finished (void *cls)
 static void
 iter_cb (void *cls,
          const struct GNUNET_CRYPTO_EcdsaPublicKey *identity,
-         const struct GNUNET_RECLAIM_ATTRIBUTE_Claim *attr,
-         const struct GNUNET_RECLAIM_ATTESTATION_Claim *attest,
-         const struct GNUNET_RECLAIM_ATTESTATION_REFERENCE *reference)
+         const struct GNUNET_RECLAIM_Attribute *attr,
+         const struct GNUNET_RECLAIM_Attestation *attest)
 {
-  struct GNUNET_RECLAIM_ATTRIBUTE_ClaimListEntry *le;
+  struct GNUNET_RECLAIM_AttributeListEntry *le;
   char *attrs_tmp;
   char *attr_str;
   char *label;
@@ -462,10 +461,11 @@ iter_cb (void *cls,
   {
     if (0 == strcasecmp (attr_name, attr->name))
     {
-      claim = GNUNET_RECLAIM_ATTRIBUTE_claim_new (attr->name,
-                                                  attr->type,
-                                                  attr->data,
-                                                  attr->data_size);
+      claim = GNUNET_RECLAIM_attribute_new (attr->name,
+                                            &attr->attestation,
+                                            attr->type,
+                                            attr->data,
+                                            attr->data_size);
     }
   }
   else if (issue_attrs)
@@ -479,13 +479,14 @@ iter_cb (void *cls,
         attr_str = strtok (NULL, ",");
         continue;
       }
-      le = GNUNET_new (struct GNUNET_RECLAIM_ATTRIBUTE_ClaimListEntry);
-      le->claim = GNUNET_RECLAIM_ATTRIBUTE_claim_new (attr->name,
-                                                      attr->type,
-                                                      attr->data,
-                                                      attr->data_size);
-      le->claim->flag = attr->flag;
-      le->claim->id = attr->id;
+      le = GNUNET_new (struct GNUNET_RECLAIM_AttributeListEntry);
+      le->attribute = GNUNET_RECLAIM_attribute_new (attr->name,
+                                                    &attr->attestation,
+                                                    attr->type,
+                                                    attr->data,
+                                                    attr->data_size);
+      le->attribute->flag = attr->flag;
+      le->attribute->id = attr->id;
       GNUNET_CONTAINER_DLL_insert (attr_list->list_head,
                                    attr_list->list_tail,
                                    le);
@@ -498,20 +499,21 @@ iter_cb (void *cls,
     label = GNUNET_STRINGS_data_to_string_alloc (&attr->id, sizeof(attr->id));
     if (0 == strcasecmp (attr_delete, label))
     {
-      attr_to_delete = GNUNET_RECLAIM_ATTRIBUTE_claim_new (attr->name,
-                                                           attr->type,
-                                                           attr->data,
-                                                           attr->data_size);
+      attr_to_delete = GNUNET_RECLAIM_attribute_new (attr->name,
+                                                     &attr->attestation,
+                                                     attr->type,
+                                                     attr->data,
+                                                     attr->data_size);
       attr_to_delete->id = attr->id;
     }
     GNUNET_free (label);
   }
   else if (list)
   {
-    attr_str = GNUNET_RECLAIM_ATTRIBUTE_value_to_string (attr->type,
+    attr_str = GNUNET_RECLAIM_attribute_value_to_string (attr->type,
                                                          attr->data,
                                                          attr->data_size);
-    attr_type = GNUNET_RECLAIM_ATTRIBUTE_number_to_typename (attr->type);
+    attr_type = GNUNET_RECLAIM_attribute_number_to_typename (attr->type);
     id = GNUNET_STRINGS_data_to_string_alloc (&attr->id, sizeof(attr->id));
     fprintf (stdout,
              "Name: %s; Value: %s (%s); Flag %u; ID: %s\n",
@@ -568,7 +570,7 @@ start_process ()
                                    &ticket,
                                    sizeof(struct GNUNET_RECLAIM_Ticket));
 
-  attr_list = GNUNET_new (struct GNUNET_RECLAIM_ATTRIBUTE_ClaimList);
+  attr_list = GNUNET_new (struct GNUNET_RECLAIM_AttributeList);
   claim = NULL;
   attr_iterator = GNUNET_RECLAIM_get_attributes_start (reclaim_handle,
                                                        pkey,
