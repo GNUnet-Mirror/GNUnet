@@ -208,6 +208,8 @@ do_cleanup (void *cls)
     GNUNET_RECLAIM_cancel (reclaim_op);
   if (NULL != attr_iterator)
     GNUNET_RECLAIM_get_attributes_stop (attr_iterator);
+  if (NULL != attest_iterator)
+    GNUNET_RECLAIM_get_attestations_stop (attest_iterator);
   if (NULL != ticket_iterator)
     GNUNET_RECLAIM_ticket_iteration_stop (ticket_iterator);
   if (NULL != reclaim_handle)
@@ -467,7 +469,6 @@ iter_finished (void *cls)
     {
       claim->attestation = attestation;
     }
-    else
     reclaim_op = GNUNET_RECLAIM_attribute_store (reclaim_handle,
                                                  pkey,
                                                  claim,
@@ -569,13 +570,14 @@ static void
 attest_iter_finished (void *cls)
 {
   attest_iterator = NULL;
-  //Add new attestation
+
+  // Add new attestation
   if ((NULL != attestation_name) &&
       (NULL != attr_value))
   {
     struct GNUNET_RECLAIM_Attestation *attestation =
       GNUNET_RECLAIM_attestation_new (attestation_name,
-                                      GNUNET_RECLAIM_ATTESTATION_TYPE_JWT, //FIXME hardcoded
+                                      GNUNET_RECLAIM_ATTESTATION_TYPE_JWT, // FIXME hardcoded
                                       attr_value,
                                       strlen (attr_value));
     reclaim_op = GNUNET_RECLAIM_attestation_store (reclaim_handle,
@@ -587,19 +589,20 @@ attest_iter_finished (void *cls)
     return;
 
   }
-  if (! list_attestations)
+  if (list_attestations)
   {
-    attr_iterator = GNUNET_RECLAIM_get_attributes_start (reclaim_handle,
-                                                         pkey,
-                                                         &iter_error,
-                                                         NULL,
-                                                         &iter_cb,
-                                                         NULL,
-                                                         &iter_finished,
-                                                         NULL);
-
+    cleanup_task = GNUNET_SCHEDULER_add_now (&do_cleanup, NULL);
+    return;
   }
-  cleanup_task = GNUNET_SCHEDULER_add_now (&do_cleanup, NULL);
+  attr_iterator = GNUNET_RECLAIM_get_attributes_start (reclaim_handle,
+                                                       pkey,
+                                                       &iter_error,
+                                                       NULL,
+                                                       &iter_cb,
+                                                       NULL,
+                                                       &iter_finished,
+                                                       NULL);
+
 }
 
 
@@ -620,7 +623,7 @@ attest_iter_cb (void *cls,
     attest_str = GNUNET_RECLAIM_attestation_value_to_string (attest->type,
                                                              attest->data,
                                                              attest->data_size);
-    attest_type = GNUNET_RECLAIM_attribute_number_to_typename (attest->type);
+    attest_type = GNUNET_RECLAIM_attestation_number_to_typename (attest->type);
     id = GNUNET_STRINGS_data_to_string_alloc (&attest->id, sizeof(attest->id));
     fprintf (stdout,
              "Name: %s; Value: %s (%s); Flag %u; ID: %s\n",
@@ -662,19 +665,6 @@ start_process ()
                                                              NULL);
     return;
   }
-  if (list_attestations)
-  {
-    attest_iterator = GNUNET_RECLAIM_get_attestations_start (reclaim_handle,
-                                                             pkey,
-                                                             &iter_error,
-                                                             NULL,
-                                                             &attest_iter_cb,
-                                                             NULL,
-                                                             &
-                                                             attest_iter_finished,
-                                                             NULL);
-    return;
-  }
 
   if ((NULL != rp) &&
       (GNUNET_OK !=
@@ -697,6 +687,16 @@ start_process ()
 
   attr_list = GNUNET_new (struct GNUNET_RECLAIM_AttributeList);
   claim = NULL;
+  attest_iterator = GNUNET_RECLAIM_get_attestations_start (reclaim_handle,
+                                                           pkey,
+                                                           &iter_error,
+                                                           NULL,
+                                                           &attest_iter_cb,
+                                                           NULL,
+                                                           &
+                                                           attest_iter_finished,
+                                                           NULL);
+
 }
 
 
@@ -799,7 +799,8 @@ main (int argc, char *const argv[])
     GNUNET_GETOPT_option_string ('I',
                                  "Attestation ID",
                                  "ATTESTATION_ID",
-                                 gettext_noop ("Attestation to use for attribute"),
+                                 gettext_noop (
+                                   "Attestation to use for attribute"),
                                  &attestation_id),
     GNUNET_GETOPT_option_string ('N',
                                  "attestation-name",
