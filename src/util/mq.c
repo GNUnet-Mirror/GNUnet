@@ -350,7 +350,8 @@ GNUNET_MQ_get_length (struct GNUNET_MQ_Handle *mq)
  * @param ev the envelope with the message to send.
  */
 void
-GNUNET_MQ_send (struct GNUNET_MQ_Handle *mq, struct GNUNET_MQ_Envelope *ev)
+GNUNET_MQ_send (struct GNUNET_MQ_Handle *mq,
+                struct GNUNET_MQ_Envelope *ev)
 {
   GNUNET_assert (NULL != mq);
   GNUNET_assert (NULL == ev->parent_queue);
@@ -368,7 +369,9 @@ GNUNET_MQ_send (struct GNUNET_MQ_Handle *mq, struct GNUNET_MQ_Envelope *ev)
   /* is the implementation busy? queue it! */
   if ((NULL != mq->current_envelope) || (NULL != mq->send_task))
   {
-    GNUNET_CONTAINER_DLL_insert_tail (mq->envelope_head, mq->envelope_tail, ev);
+    GNUNET_CONTAINER_DLL_insert_tail (mq->envelope_head,
+                                      mq->envelope_tail,
+                                      ev);
     return;
   }
   GNUNET_assert (NULL == mq->envelope_head);
@@ -379,7 +382,9 @@ GNUNET_MQ_send (struct GNUNET_MQ_Handle *mq, struct GNUNET_MQ_Envelope *ev)
        ntohs (ev->mh->type),
        mq);
 
-  mq->send_impl (mq, ev->mh, mq->impl_state);
+  mq->send_impl (mq,
+                 ev->mh,
+                 mq->impl_state);
 }
 
 
@@ -471,7 +476,9 @@ impl_send_continue (void *cls)
        "sending message of type %u from queue\n",
        ntohs (mq->current_envelope->mh->type));
 
-  mq->send_impl (mq, mq->current_envelope->mh, mq->impl_state);
+  mq->send_impl (mq,
+                 mq->current_envelope->mh,
+                 mq->impl_state);
 }
 
 
@@ -929,7 +936,8 @@ GNUNET_MQ_send_cancel (struct GNUNET_MQ_Envelope *ev)
     GNUNET_assert (GNUNET_NO == mq->in_flight);
     GNUNET_assert (0 < mq->queue_length);
     mq->queue_length--;
-    mq->cancel_impl (mq, mq->impl_state);
+    mq->cancel_impl (mq,
+                     mq->impl_state);
     /* continue sending the next message, if any */
     mq->current_envelope = mq->envelope_head;
     if (NULL != mq->current_envelope)
@@ -941,14 +949,17 @@ GNUNET_MQ_send_cancel (struct GNUNET_MQ_Envelope *ev)
       LOG (GNUNET_ERROR_TYPE_DEBUG,
            "sending canceled message of type %u queue\n",
            ntohs (ev->mh->type));
-
-      mq->send_impl (mq, mq->current_envelope->mh, mq->impl_state);
+      mq->send_impl (mq,
+                     mq->current_envelope->mh,
+                     mq->impl_state);
     }
   }
   else
   {
     /* simple case, message is still waiting in the queue */
-    GNUNET_CONTAINER_DLL_remove (mq->envelope_head, mq->envelope_tail, ev);
+    GNUNET_CONTAINER_DLL_remove (mq->envelope_head,
+                                 mq->envelope_tail,
+                                 ev);
     GNUNET_assert (0 < mq->queue_length);
     mq->queue_length--;
   }
@@ -1127,8 +1138,8 @@ GNUNET_MQ_destroy_notify (struct GNUNET_MQ_Handle *mq,
  * @param dnh handle for registration to cancel
  */
 void
-GNUNET_MQ_destroy_notify_cancel (
-  struct GNUNET_MQ_DestroyNotificationHandle *dnh)
+GNUNET_MQ_destroy_notify_cancel (struct
+                                 GNUNET_MQ_DestroyNotificationHandle *dnh)
 {
   struct GNUNET_MQ_Handle *mq = dnh->mq;
 
