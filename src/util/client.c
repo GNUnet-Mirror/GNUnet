@@ -271,14 +271,11 @@ RETRY:
                                     &pos[cstate->msg_off],
                                     len - cstate->msg_off);
   if ( (-1 == ret) &&
-       (EAGAIN == errno) )
+       ( (EAGAIN == errno) ||
+         (EINTR == errno) ) )
   {
-    cstate->send_task
-      = GNUNET_SCHEDULER_add_write_net (GNUNET_TIME_UNIT_FOREVER_REL,
-                                        cstate->sock,
-                                        &transmit_ready,
-                                        cstate);
-    return;
+    /* ignore */
+    ret = 0;
   }
   if (-1 == ret)
   {

@@ -77,3 +77,5 @@ test_tun
 gnunet-timeout
 python27_location
 perf_malloc
+perf_mq
+perf_scheduler

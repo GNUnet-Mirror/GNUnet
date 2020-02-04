@@ -407,6 +407,11 @@ static enum GNUNET_SCHEDULER_Priority max_priority_added;
 static int current_lifeness;
 
 /**
+ * Priority used currently in #GNUNET_SCHEDULER_do_work().
+ */
+static enum GNUNET_SCHEDULER_Priority work_priority;
+
+/**
  * Function to use as a select() in the scheduler.
  * If NULL, we use GNUNET_NETWORK_socket_select().
  */
@@ -765,7 +770,6 @@ GNUNET_SCHEDULER_get_task_context ()
 unsigned int
 GNUNET_SCHEDULER_get_load (enum GNUNET_SCHEDULER_Priority p)
 {
-  struct GNUNET_SCHEDULER_Task *pos;
   unsigned int ret;
 
   GNUNET_assert (NULL != active_task);
@@ -774,7 +778,9 @@ GNUNET_SCHEDULER_get_load (enum GNUNET_SCHEDULER_Priority p)
   if (p == GNUNET_SCHEDULER_PRIORITY_KEEP)
     p = current_priority;
   ret = 0;
-  for (pos = ready_head[check_priority (p)]; NULL != pos; pos = pos->next)
+  for (struct GNUNET_SCHEDULER_Task *pos = ready_head[check_priority (p)];
+       NULL != pos;
+       pos = pos->next)
     ret++;
   return ret;
 }
@@ -1111,6 +1117,7 @@ GNUNET_SCHEDULER_add_at_with_priority (struct GNUNET_TIME_Absolute at,
   struct GNUNET_SCHEDULER_Task *t;
   struct GNUNET_SCHEDULER_Task *pos;
   struct GNUNET_SCHEDULER_Task *prev;
+  struct GNUNET_TIME_Relative left;
 
   /* scheduler must be running */
   GNUNET_assert (NULL != scheduler_driver);
@@ -1127,6 +1134,17 @@ GNUNET_SCHEDULER_add_at_with_priority (struct GNUNET_TIME_Absolute at,
   t->timeout = at;
   t->priority = check_priority (priority);
   t->lifeness = current_lifeness;
+  init_backtrace (t);
+
+  left = GNUNET_TIME_absolute_get_remaining (at);
+  if (0 == left.rel_value_us)
+  {
+    queue_ready_task (t);
+    if (priority > work_priority)
+      work_priority = priority;
+    return t;
+  }
+
   /* try tail first (optimization in case we are
    * appending to a long list of tasks with timeouts) */
   if ((NULL == pending_timeout_head) ||
@@ -1161,11 +1179,9 @@ GNUNET_SCHEDULER_add_at_with_priority (struct GNUNET_TIME_Absolute at,
   }
   /* finally, update heuristic insertion point to last insertion... */
   pending_timeout_last = t;
-
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Adding task %p\n",
        t);
-  init_backtrace (t);
   return t;
 }
 
@@ -1988,7 +2004,6 @@ GNUNET_SCHEDULER_task_ready (struct GNUNET_SCHEDULER_Task *task,
 int
 GNUNET_SCHEDULER_do_work (struct GNUNET_SCHEDULER_Handle *sh)
 {
-  enum GNUNET_SCHEDULER_Priority p;
   struct GNUNET_SCHEDULER_Task *pos;
   struct GNUNET_TIME_Absolute now;
 
@@ -2064,19 +2079,21 @@ GNUNET_SCHEDULER_do_work (struct GNUNET_SCHEDULER_Handle *sh)
     GNUNET_assert (NULL == ready_head[GNUNET_SCHEDULER_PRIORITY_KEEP]);
     /* yes, p>0 is correct, 0 is "KEEP" which should
      * always be an empty queue (see assertion)! */
-    for (p = GNUNET_SCHEDULER_PRIORITY_COUNT - 1; p > 0; p--)
+    for (work_priority = GNUNET_SCHEDULER_PRIORITY_COUNT - 1;
+         work_priority > 0;
+         work_priority--)
     {
-      pos = ready_head[p];
+      pos = ready_head[work_priority];
       if (NULL != pos)
         break;
     }
     GNUNET_assert (NULL != pos);        /* ready_count wrong? */
 
     /* process all tasks at this priority level, then yield */
-    while (NULL != (pos = ready_head[p]))
+    while (NULL != (pos = ready_head[work_priority]))
     {
-      GNUNET_CONTAINER_DLL_remove (ready_head[p],
-                                   ready_tail[p],
+      GNUNET_CONTAINER_DLL_remove (ready_head[work_priority],
+                                   ready_tail[work_priority],
                                    pos);
       ready_count--;
       current_priority = pos->priority;
@@ -2230,9 +2247,12 @@ GNUNET_SCHEDULER_driver_init (const struct GNUNET_SCHEDULER_Driver *driver)
   /* Setup initial tasks */
   current_priority = GNUNET_SCHEDULER_PRIORITY_DEFAULT;
   current_lifeness = GNUNET_NO;
+  /* ensure this task runs first, by using a priority level reserved for
+     the scheduler (not really shutdown, but start-up ;-) */
   install_parent_control_task =
-    GNUNET_SCHEDULER_add_now (&install_parent_control_handler,
-                              NULL);
+    GNUNET_SCHEDULER_add_with_priority (GNUNET_SCHEDULER_PRIORITY_SHUTDOWN,
+                                        &install_parent_control_handler,
+                                        NULL);
   shutdown_pipe_task =
     GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL,
                                     pr,

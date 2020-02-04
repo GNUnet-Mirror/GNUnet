@@ -506,12 +506,12 @@ do_send (void *cls)
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "service: sending message with type %u\n",
        ntohs (client->msg->type));
-
-
   client->send_task = NULL;
   buf = (const char *) client->msg;
   left = ntohs (client->msg->size) - client->msg_pos;
-  ret = GNUNET_NETWORK_socket_send (client->sock, &buf[client->msg_pos], left);
+  ret = GNUNET_NETWORK_socket_send (client->sock,
+                                    &buf[client->msg_pos],
+                                    left);
   GNUNET_assert (ret <= (ssize_t) left);
   if (0 == ret)
   {
@@ -581,11 +581,8 @@ service_mq_send (struct GNUNET_MQ_Handle *mq,
        ntohs (msg->size));
   client->msg = msg;
   client->msg_pos = 0;
-  client->send_task =
-    GNUNET_SCHEDULER_add_write_net (GNUNET_TIME_UNIT_FOREVER_REL,
-                                    client->sock,
-                                    &do_send,
-                                    client);
+  client->send_task = GNUNET_SCHEDULER_add_now (&do_send,
+                                                client);
 }
 
 
