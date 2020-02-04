@@ -457,6 +457,12 @@ struct RequestHandle
   struct GNUNET_RECLAIM_AttributeIterator *attr_it;
 
   /**
+   * Attestation iterator
+   */
+  struct GNUNET_RECLAIM_AttestationIterator *attest_it;
+
+
+  /**
    * Ticket iterator
    */
   struct GNUNET_RECLAIM_TicketIterator *ticket_it;
@@ -529,7 +535,6 @@ struct RequestHandle
 static void
 cleanup_handle (struct RequestHandle *handle)
 {
-  struct GNUNET_RECLAIM_AttributeListEntry *claim_entry;
   struct EgoEntry *ego_entry;
   struct EgoEntry *ego_tmp;
 
@@ -540,6 +545,8 @@ cleanup_handle (struct RequestHandle *handle)
     GNUNET_IDENTITY_disconnect (handle->identity_handle);
   if (NULL != handle->attr_it)
     GNUNET_RECLAIM_get_attributes_stop (handle->attr_it);
+  if (NULL != handle->attest_it)
+    GNUNET_RECLAIM_get_attestations_stop (handle->attest_it);
   if (NULL != handle->ticket_it)
     GNUNET_RECLAIM_ticket_iteration_stop (handle->ticket_it);
   if (NULL != handle->idp)
@@ -961,7 +968,53 @@ oidc_ticket_issue_cb (void *cls, const struct GNUNET_RECLAIM_Ticket *ticket)
 
 
 static void
-oidc_collect_finished_cb (void *cls)
+oidc_attest_collect_finished_cb (void *cls)
+{
+  struct RequestHandle *handle = cls;
+
+  handle->attest_it = NULL;
+  handle->idp_op = GNUNET_RECLAIM_ticket_issue (handle->idp,
+                                                &handle->priv_key,
+                                                &handle->oidc->client_pkey,
+                                                handle->attr_list,
+                                                &oidc_ticket_issue_cb,
+                                                handle);
+}
+
+
+/**
+ * Collects all attributes for an ego if in scope parameter
+ */
+static void
+oidc_attest_collect (void *cls,
+                     const struct GNUNET_CRYPTO_EcdsaPublicKey *identity,
+                     const struct GNUNET_RECLAIM_Attestation *attest)
+{
+  struct RequestHandle *handle = cls;
+  struct GNUNET_RECLAIM_AttributeListEntry *le;
+
+  for (le = handle->attr_list->list_head; NULL != le; le = le->next)
+  {
+    if (GNUNET_NO == GNUNET_RECLAIM_id_is_equal (&le->attribute->attestation,
+                                                 &attest->id))
+    {
+      struct GNUNET_RECLAIM_AttestationListEntry *ale;
+      ale = GNUNET_new (struct GNUNET_RECLAIM_AttestationListEntry);
+      ale->attestation = GNUNET_RECLAIM_attestation_new (attest->name,
+                                                         attest->type,
+                                                         attest->data,
+                                                         attest->data_size);
+      GNUNET_CONTAINER_DLL_insert (handle->attests_list->list_head,
+                                   handle->attests_list->list_tail,
+                                   ale);
+    }
+  }
+  GNUNET_RECLAIM_get_attestations_next (handle->attest_it);
+}
+
+
+static void
+oidc_attr_collect_finished_cb (void *cls)
 {
   struct RequestHandle *handle = cls;
 
@@ -974,6 +1027,17 @@ oidc_collect_finished_cb (void *cls)
     GNUNET_SCHEDULER_add_now (&do_redirect_error, handle);
     return;
   }
+  handle->attests_list = GNUNET_new (struct GNUNET_RECLAIM_AttestationList);
+  handle->attest_it =
+    GNUNET_RECLAIM_get_attestations_start (handle->idp,
+                                           &handle->priv_key,
+                                           &oidc_iteration_error,
+                                           handle,
+                                           &oidc_attest_collect,
+                                           handle,
+                                           &oidc_attest_collect_finished_cb,
+                                           handle);
+
   handle->idp_op = GNUNET_RECLAIM_ticket_issue (handle->idp,
                                                 &handle->priv_key,
                                                 &handle->oidc->client_pkey,
@@ -989,8 +1053,7 @@ oidc_collect_finished_cb (void *cls)
 static void
 oidc_attr_collect (void *cls,
                    const struct GNUNET_CRYPTO_EcdsaPublicKey *identity,
-                   const struct GNUNET_RECLAIM_Attribute *attr,
-                   const struct GNUNET_RECLAIM_Attestation *attest)
+                   const struct GNUNET_RECLAIM_Attribute *attr)
 {
   struct RequestHandle *handle = cls;
   struct GNUNET_RECLAIM_AttributeListEntry *le;
@@ -1026,18 +1089,6 @@ oidc_attr_collect (void *cls,
   GNUNET_CONTAINER_DLL_insert (handle->attr_list->list_head,
                                handle->attr_list->list_tail,
                                le);
-  if (GNUNET_NO == GNUNET_RECLAIM_id_is_zero (&attr->attestation))
-  {
-    struct GNUNET_RECLAIM_AttestationListEntry *ale;
-    ale = GNUNET_new (struct GNUNET_RECLAIM_AttestationListEntry);
-    ale->attestation = GNUNET_RECLAIM_attestation_new (attest->name,
-                                                       attest->type,
-                                                       attest->data,
-                                                       attest->data_size);
-    GNUNET_CONTAINER_DLL_insert (handle->attests_list->list_head,
-                                 handle->attests_list->list_tail,
-                                 ale);
-  }
   GNUNET_RECLAIM_get_attributes_next (handle->attr_it);
 }
 
@@ -1104,7 +1155,7 @@ code_redirect (void *cls)
                                                  handle,
                                                  &oidc_attr_collect,
                                                  handle,
-                                                 &oidc_collect_finished_cb,
+                                                 &oidc_attr_collect_finished_cb,
                                                  handle);
           return;
         }

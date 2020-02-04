@@ -447,8 +447,7 @@ iter_finished (void *cls)
 static void
 iter_cb (void *cls,
          const struct GNUNET_CRYPTO_EcdsaPublicKey *identity,
-         const struct GNUNET_RECLAIM_Attribute *attr,
-         const struct GNUNET_RECLAIM_Attestation *attest)
+         const struct GNUNET_RECLAIM_Attribute *attr)
 {
   struct GNUNET_RECLAIM_AttributeListEntry *le;
   char *attrs_tmp;

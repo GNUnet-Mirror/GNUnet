@@ -712,13 +712,14 @@ list_attestation_cont (struct GNUNET_REST_RequestHandle *con_handle,
   priv_key = GNUNET_IDENTITY_ego_get_private_key (ego_entry->ego);
   handle->idp = GNUNET_RECLAIM_connect (cfg);
   handle->attest_it = GNUNET_RECLAIM_get_attestations_start (handle->idp,
-                                                           priv_key,
-                                                           &collect_error_cb,
-                                                           handle,
-                                                           &attest_collect,
-                                                           handle,
-                                                           &collect_finished_cb,
-                                                           handle);
+                                                             priv_key,
+                                                             &collect_error_cb,
+                                                             handle,
+                                                             &attest_collect,
+                                                             handle,
+                                                             &
+                                                             collect_finished_cb,
+                                                             handle);
 }
 
 
@@ -1000,67 +1001,33 @@ parse_jwt (const struct GNUNET_RECLAIM_Attestation *attest,
 static void
 attr_collect (void *cls,
               const struct GNUNET_CRYPTO_EcdsaPublicKey *identity,
-              const struct GNUNET_RECLAIM_Attribute *attr,
-              const struct GNUNET_RECLAIM_Attestation *attest)
+              const struct GNUNET_RECLAIM_Attribute *attr)
 {
   struct RequestHandle *handle = cls;
   json_t *attr_obj;
   const char *type;
   char *id_str;
 
-  if (GNUNET_NO == GNUNET_RECLAIM_id_is_zero (&attr->attestation))
-  {
-    struct GNUNET_RECLAIM_Attribute *attr2;
-    attr2 = parse_jwt (attest, attr->data);
-    if (NULL == attr2)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Attribute Collection with unparsed Attestation\n");
-      return;
-    }
-    attr2->name = attr->name;
-    char *tmp_value;
-    tmp_value = GNUNET_RECLAIM_attribute_value_to_string (attr2->type,
-                                                          attr2->data,
-                                                          attr2->data_size);
-    attr_obj = json_object ();
-    json_object_set_new (attr_obj, "value", json_string (tmp_value));
-    json_object_set_new (attr_obj, "name", json_string (attr2->name));
-    json_object_set_new (attr_obj, "flag", json_string ("1"));
-    type = GNUNET_RECLAIM_attribute_number_to_typename (attr2->type);
-    json_object_set_new (attr_obj, "type", json_string (type));
-    id_str = GNUNET_STRINGS_data_to_string_alloc (&attr2->id,
-                                                  sizeof(attr2->id));
-    json_object_set_new (attr_obj, "id", json_string (id_str));
-    json_array_append (handle->resp_object, attr_obj);
-    json_decref (attr_obj);
-    GNUNET_free (tmp_value);
-  }
-  else
-  {
-    char *tmp_value;
-    char *flag_str;
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Adding attribute: %s\n", attr->name);
+  char *tmp_value;
+  tmp_value = GNUNET_RECLAIM_attribute_value_to_string (attr->type,
+                                                        attr->data,
+                                                        attr->data_size);
+  attr_obj = json_object ();
+  json_object_set_new (attr_obj, "value", json_string (tmp_value));
+  json_object_set_new (attr_obj, "name", json_string (attr->name));
 
-    tmp_value = GNUNET_RECLAIM_attribute_value_to_string (attr->type,
-                                                          attr->data,
-                                                          attr->data_size);
-
-    attr_obj = json_object ();
-    json_object_set_new (attr_obj, "value", json_string (tmp_value));
-    json_object_set_new (attr_obj, "name", json_string (attr->name));
-    GNUNET_asprintf (&flag_str,"%d",attr->flag);
-    json_object_set_new (attr_obj, "flag", json_string (flag_str));
-    type = GNUNET_RECLAIM_attribute_number_to_typename (attr->type);
-    json_object_set_new (attr_obj, "type", json_string (type));
-    id_str = GNUNET_STRINGS_data_to_string_alloc (&attr->id,
-                                                  sizeof(attr->id));
-    json_object_set_new (attr_obj, "id", json_string (id_str));
-    json_array_append (handle->resp_object, attr_obj);
-    json_decref (attr_obj);
-    GNUNET_free (tmp_value);
-    GNUNET_RECLAIM_get_attributes_next (handle->attr_it);
-  }
+  json_object_set_new (attr_obj, "flag", json_string ("1"));
+  type = GNUNET_RECLAIM_attribute_number_to_typename (attr->type);
+  json_object_set_new (attr_obj, "type", json_string (type));
+  id_str = GNUNET_STRINGS_data_to_string_alloc (&attr->id,
+                                                sizeof(attr->id));
+  json_object_set_new (attr_obj, "id", json_string (id_str));
+  id_str = GNUNET_STRINGS_data_to_string_alloc (&attr->attestation,
+                                                sizeof(attr->attestation));
+  json_object_set_new (attr_obj, "attestation", json_string (id_str));
+  json_array_append (handle->resp_object, attr_obj);
+  json_decref (attr_obj);
+  GNUNET_free (tmp_value);
 }
 
 

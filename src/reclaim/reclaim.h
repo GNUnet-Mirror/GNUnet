@@ -195,46 +195,6 @@ struct AttestationResultMessage
 
 
 /**
- * Reference plus Attestation is returned from the idp.
- */
-struct ReferenceResultMessage
-{
-  /**
-   * Message header
-   */
-  struct GNUNET_MessageHeader header;
-
-  /**
-   * Unique identifier for this request (for key collisions).
-   */
-  uint32_t id GNUNET_PACKED;
-
-  /**
-   * Length of serialized attestation data
-   */
-  uint16_t attest_len GNUNET_PACKED;
-
-  /**
-   * Length of serialized reference data
-   */
-  uint16_t ref_len GNUNET_PACKED;
-
-  /**
-   * always zero (for alignment)
-   */
-  uint16_t reserved GNUNET_PACKED;
-
-  /**
-   * The public key of the identity.
-   */
-  struct GNUNET_CRYPTO_EcdsaPublicKey identity;
-
-  /* followed by:
-   * serialized reference data + attestation data
-   */
-};
-
-/**
  * Start a attribute iteration for the given identity
  */
 struct AttributeIterationStartMessage
@@ -263,6 +223,62 @@ struct AttributeIterationNextMessage
 {
   /**
    * Type will be #GNUNET_MESSAGE_TYPE_RECLAIM_ATTRIBUTE_ITERATION_NEXT
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Unique identifier for this request (for key collisions).
+   */
+  uint32_t id GNUNET_PACKED;
+};
+
+
+/**
+ * Start a attestation iteration for the given identity
+ */
+struct AttestationIterationStartMessage
+{
+  /**
+   * Message
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Unique identifier for this request (for key collisions).
+   */
+  uint32_t id GNUNET_PACKED;
+
+  /**
+   * Identity.
+   */
+  struct GNUNET_CRYPTO_EcdsaPrivateKey identity;
+};
+
+
+/**
+ * Ask for next result of attestation iteration for the given operation
+ */
+struct AttestationIterationNextMessage
+{
+  /**
+   * Type will be #GNUNET_MESSAGE_TYPE_RECLAIM_ATTRIBUTE_ITERATION_NEXT
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Unique identifier for this request (for key collisions).
+   */
+  uint32_t id GNUNET_PACKED;
+};
+
+
+/**
+ * Stop attestation iteration for the given operation
+ */
+struct AttestationIterationStopMessage
+{
+  /**
+   * Type will be #GNUNET_MESSAGE_TYPE_RECLAIM_ATTRIBUTE_ITERATION_STOP
    */
   struct GNUNET_MessageHeader header;
 
