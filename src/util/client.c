@@ -270,11 +270,22 @@ RETRY:
   ret = GNUNET_NETWORK_socket_send (cstate->sock,
                                     &pos[cstate->msg_off],
                                     len - cstate->msg_off);
+  if ( (-1 == ret) &&
+       (EAGAIN == errno) )
+  {
+    cstate->send_task
+      = GNUNET_SCHEDULER_add_write_net (GNUNET_TIME_UNIT_FOREVER_REL,
+                                        cstate->sock,
+                                        &transmit_ready,
+                                        cstate);
+    return;
+  }
   if (-1 == ret)
   {
     LOG (GNUNET_ERROR_TYPE_WARNING,
-         "Error during sending message of type %u\n",
-         ntohs (cstate->msg->type));
+         "Error during sending message of type %u: %s\n",
+         ntohs (cstate->msg->type),
+         strerror (errno));
     if (EINTR == errno)
     {
       LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -845,10 +856,8 @@ connection_client_send_impl (struct GNUNET_MQ_Handle *mq,
     return;   /* still waiting for connection */
   }
   cstate->send_task
-    = GNUNET_SCHEDULER_add_write_net (GNUNET_TIME_UNIT_FOREVER_REL,
-                                      cstate->sock,
-                                      &transmit_ready,
-                                      cstate);
+    = GNUNET_SCHEDULER_add_now (&transmit_ready,
+                                cstate);
 }
 
 
