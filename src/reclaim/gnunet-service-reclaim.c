@@ -1900,7 +1900,10 @@ attest_iter_cb (void *cls,
 {
   struct Iterator *ai = cls;
   struct GNUNET_MQ_Envelope *env;
+  struct GNUNET_RECLAIM_AttributeList *attrs;
+  struct GNUNET_RECLAIM_Attestation *att;
   char *data_tmp;
+  char *attrs_size;
 
   if ((rd_count != 1) ||
       (GNUNET_GNSRECORD_TYPE_RECLAIM_ATTESTATION != rd->record_type))
@@ -1908,6 +1911,10 @@ attest_iter_cb (void *cls,
     GNUNET_NAMESTORE_zone_iterator_next (ai->ns_it, 1);
     return;
   }
+  att = GNUNET_RECLAIM_attestation_deserialize (rd->data,
+                                                rd->data_size);
+  attrs = GNUNET_RECLAIM_attestation_get_attributes (att);
+  attrs_size = GNUNET_RECLAIM_attribute_list_serialize_get_size (attrs);
 
   struct AttestationResultMessage *arm;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Found attestation under: %s\n",
@@ -1915,13 +1922,17 @@ attest_iter_cb (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Sending ATTESTATION_RESULT message\n");
   env = GNUNET_MQ_msg_extra (arm,
-                             rd->data_size,
+                             rd->data_size + attrs_size,
                              GNUNET_MESSAGE_TYPE_RECLAIM_ATTESTATION_RESULT);
   arm->id = htonl (ai->request_id);
   arm->attestation_len = htons (rd->data_size);
   GNUNET_CRYPTO_ecdsa_key_get_public (zone, &arm->identity);
   data_tmp = (char *) &arm[1];
   GNUNET_memcpy (data_tmp, rd->data, rd->data_size);
+  data_tmp += rd->data_size;
+  GNUNET_RECLAIM_attribute_list_serialize (attrs,
+                                           data_tmp);
+
   GNUNET_MQ_send (ai->client->mq, env);
 }
 

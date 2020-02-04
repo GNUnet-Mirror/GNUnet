@@ -586,6 +586,15 @@ GNUNET_RECLAIM_attestation_number_to_typename (uint32_t type);
 uint32_t
 GNUNET_RECLAIM_attestation_typename_to_number (const char *typename);
 
+/**
+ * Convert an attestation type name to the corresponding number
+ *
+ * @param typename name to convert
+ * @return corresponding number, UINT32_MAX on error
+ */
+struct GNUNET_RECLAIM_AttributeList*
+GNUNET_RECLAIM_attestation_get_attributes (const struct GNUNET_RECLAIM_Attestation *attest);
+
 
 #if 0 /* keep Emacsens' auto-indent happy */
 {

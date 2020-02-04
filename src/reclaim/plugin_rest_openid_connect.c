@@ -988,7 +988,8 @@ oidc_attest_collect_finished_cb (void *cls)
 static void
 oidc_attest_collect (void *cls,
                      const struct GNUNET_CRYPTO_EcdsaPublicKey *identity,
-                     const struct GNUNET_RECLAIM_Attestation *attest)
+                     const struct GNUNET_RECLAIM_Attestation *attest,
+                     const struct GNUNET_RECLAIM_AttributeList *attrs)
 {
   struct RequestHandle *handle = cls;
   struct GNUNET_RECLAIM_AttributeListEntry *le;
