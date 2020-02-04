@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet
-     Copyright (C) 2006, 2011 GNUnet e.V.
+     Copyright (C) 2006, 2011, 2020 GNUnet e.V.
 
      GNUnet is free software: you can redistribute it and/or modify it
      under the terms of the GNU Affero General Public License as published
@@ -62,13 +62,15 @@ print_version (struct GNUNET_GETOPT_CommandLineProcessorContext *ctx,
 struct GNUNET_GETOPT_CommandLineOption
 GNUNET_GETOPT_option_version (const char *version)
 {
-  struct GNUNET_GETOPT_CommandLineOption clo = { .shortName = 'v',
-                                                 .name = "version",
-                                                 .description = gettext_noop (
-                                                   "print the version number"),
-                                                 .option_exclusive = 1,
-                                                 .processor = &print_version,
-                                                 .scls = (void *) version };
+  struct GNUNET_GETOPT_CommandLineOption clo = {
+    .shortName = 'v',
+    .name = "version",
+    .description = gettext_noop (
+      "print the version number"),
+    .option_exclusive = 1,
+    .processor = &print_version,
+    .scls = (void *) version
+  };
 
   return clo;
 }
@@ -199,13 +201,15 @@ OUTER:
 struct GNUNET_GETOPT_CommandLineOption
 GNUNET_GETOPT_option_help (const char *about)
 {
-  struct GNUNET_GETOPT_CommandLineOption clo = { .shortName = 'h',
-                                                 .name = "help",
-                                                 .description = gettext_noop (
-                                                   "print this help"),
-                                                 .option_exclusive = 1,
-                                                 .processor = format_help,
-                                                 .scls = (void *) about };
+  struct GNUNET_GETOPT_CommandLineOption clo = {
+    .shortName = 'h',
+    .name = "help",
+    .description = gettext_noop (
+      "print this help"),
+    .option_exclusive = 1,
+    .processor = format_help,
+    .scls = (void *) about
+  };
 
   return clo;
 }
@@ -256,11 +260,13 @@ GNUNET_GETOPT_option_increment_uint (char shortName,
                                      const char *description,
                                      unsigned int *val)
 {
-  struct GNUNET_GETOPT_CommandLineOption clo = { .shortName = shortName,
-                                                 .name = name,
-                                                 .description = description,
-                                                 .processor = &increment_value,
-                                                 .scls = (void *) val };
+  struct GNUNET_GETOPT_CommandLineOption clo = {
+    .shortName = shortName,
+    .name = name,
+    .description = description,
+    .processor = &increment_value,
+    .scls = (void *) val
+  };
 
   return clo;
 }
@@ -275,12 +281,14 @@ GNUNET_GETOPT_option_increment_uint (char shortName,
 struct GNUNET_GETOPT_CommandLineOption
 GNUNET_GETOPT_option_verbose (unsigned int *level)
 {
-  struct GNUNET_GETOPT_CommandLineOption clo = { .shortName = 'V',
-                                                 .name = "verbose",
-                                                 .description =
-                                                   gettext_noop ("be verbose"),
-                                                 .processor = &increment_value,
-                                                 .scls = (void *) level };
+  struct GNUNET_GETOPT_CommandLineOption clo = {
+    .shortName = 'V',
+    .name = "verbose",
+    .description =
+      gettext_noop ("be verbose"),
+    .processor = &increment_value,
+    .scls = (void *) level
+  };
 
   return clo;
 }
@@ -332,11 +340,13 @@ GNUNET_GETOPT_option_flag (char shortName,
                            const char *description,
                            int *val)
 {
-  struct GNUNET_GETOPT_CommandLineOption clo = { .shortName = shortName,
-                                                 .name = name,
-                                                 .description = description,
-                                                 .processor = &set_one,
-                                                 .scls = (void *) val };
+  struct GNUNET_GETOPT_CommandLineOption clo = {
+    .shortName = shortName,
+    .name = name,
+    .description = description,
+    .processor = &set_one,
+    .scls = (void *) val
+  };
 
   return clo;
 }
@@ -389,13 +399,15 @@ GNUNET_GETOPT_option_string (char shortName,
                              const char *description,
                              char **str)
 {
-  struct GNUNET_GETOPT_CommandLineOption clo = { .shortName = shortName,
-                                                 .name = name,
-                                                 .argumentHelp = argumentHelp,
-                                                 .description = description,
-                                                 .require_argument = 1,
-                                                 .processor = &set_string,
-                                                 .scls = (void *) str };
+  struct GNUNET_GETOPT_CommandLineOption clo = {
+    .shortName = shortName,
+    .name = name,
+    .argumentHelp = argumentHelp,
+    .description = description,
+    .require_argument = 1,
+    .processor = &set_string,
+    .scls = (void *) str
+  };
 
   return clo;
 }
@@ -410,14 +422,15 @@ GNUNET_GETOPT_option_string (char shortName,
 struct GNUNET_GETOPT_CommandLineOption
 GNUNET_GETOPT_option_loglevel (char **level)
 {
-  struct GNUNET_GETOPT_CommandLineOption clo =
-  { .shortName = 'L',
+  struct GNUNET_GETOPT_CommandLineOption clo = {
+    .shortName = 'L',
     .name = "log",
     .argumentHelp = "LOGLEVEL",
     .description = gettext_noop ("configure logging to use LOGLEVEL"),
     .require_argument = 1,
     .processor = &set_string,
-    .scls = (void *) level };
+    .scls = (void *) level
+  };
 
   return clo;
 }
@@ -467,13 +480,15 @@ GNUNET_GETOPT_option_filename (char shortName,
                                const char *description,
                                char **str)
 {
-  struct GNUNET_GETOPT_CommandLineOption clo = { .shortName = shortName,
-                                                 .name = name,
-                                                 .argumentHelp = argumentHelp,
-                                                 .description = description,
-                                                 .require_argument = 1,
-                                                 .processor = &set_filename,
-                                                 .scls = (void *) str };
+  struct GNUNET_GETOPT_CommandLineOption clo = {
+    .shortName = shortName,
+    .name = name,
+    .argumentHelp = argumentHelp,
+    .description = description,
+    .require_argument = 1,
+    .processor = &set_filename,
+    .scls = (void *) str
+  };
 
   return clo;
 }
@@ -487,15 +502,16 @@ GNUNET_GETOPT_option_filename (char shortName,
 struct GNUNET_GETOPT_CommandLineOption
 GNUNET_GETOPT_option_logfile (char **logfn)
 {
-  struct GNUNET_GETOPT_CommandLineOption clo =
-  { .shortName = 'l',
+  struct GNUNET_GETOPT_CommandLineOption clo = {
+    .shortName = 'l',
     .name = "logfile",
     .argumentHelp = "FILENAME",
     .description =
       gettext_noop ("configure logging to write logs to FILENAME"),
     .require_argument = 1,
     .processor = &set_filename,
-    .scls = (void *) logfn };
+    .scls = (void *) logfn
+  };
 
   return clo;
 }
@@ -509,14 +525,15 @@ GNUNET_GETOPT_option_logfile (char **logfn)
 struct GNUNET_GETOPT_CommandLineOption
 GNUNET_GETOPT_option_cfgfile (char **fn)
 {
-  struct GNUNET_GETOPT_CommandLineOption clo =
-  { .shortName = 'c',
+  struct GNUNET_GETOPT_CommandLineOption clo = {
+    .shortName = 'c',
     .name = "config",
     .argumentHelp = "FILENAME",
     .description = gettext_noop ("use configuration file FILENAME"),
     .require_argument = 1,
     .processor = &set_filename,
-    .scls = (void *) fn };
+    .scls = (void *) fn
+  };
 
   return clo;
 }
@@ -572,13 +589,80 @@ GNUNET_GETOPT_option_ulong (char shortName,
                             const char *description,
                             unsigned long long *val)
 {
-  struct GNUNET_GETOPT_CommandLineOption clo = { .shortName = shortName,
-                                                 .name = name,
-                                                 .argumentHelp = argumentHelp,
-                                                 .description = description,
-                                                 .require_argument = 1,
-                                                 .processor = &set_ulong,
-                                                 .scls = (void *) val };
+  struct GNUNET_GETOPT_CommandLineOption clo = {
+    .shortName = shortName,
+    .name = name,
+    .argumentHelp = argumentHelp,
+    .description = description,
+    .require_argument = 1,
+    .processor = &set_ulong,
+    .scls = (void *) val
+  };
+
+  return clo;
+}
+
+
+/**
+ * Set an option of type 'struct GNUNET_TIME_Relative' from the command line.
+ * A pointer to this function should be passed as part of the
+ * 'struct GNUNET_GETOPT_CommandLineOption' array to initialize options
+ * of this type.  It should be followed by a pointer to a value of
+ * type 'struct GNUNET_TIME_Relative'.
+ *
+ * @param ctx command line processing context
+ * @param scls additional closure (will point to the 'struct GNUNET_TIME_Relative')
+ * @param option name of the option
+ * @param value actual value of the option as a string.
+ * @return #GNUNET_OK if parsing the value worked
+ */
+static int
+set_timetravel_time (struct GNUNET_GETOPT_CommandLineProcessorContext *ctx,
+                     void *scls,
+                     const char *option,
+                     const char *value)
+{
+  long long delta;
+
+  (void) scls;
+  (void) ctx;
+  if (1 != sscanf (value,
+                   "%lld",
+                   &delta))
+  {
+    fprintf (stderr,
+             _ ("You must pass a number to the `%s' option.\n"),
+             option);
+    return GNUNET_SYSERR;
+  }
+  GNUNET_TIME_set_offset (delta);
+  return GNUNET_OK;
+}
+
+
+/**
+ * Allow user to specify a `long long` with an offset to add to the current
+ * system time to construct the time seen by the application. Used for
+ * debugging / testing.
+ *
+ * @param shortName short name of the option
+ * @param name long name of the option
+ * @param[out] val set to the time specified at the command line
+ */
+struct GNUNET_GETOPT_CommandLineOption
+GNUNET_GETOPT_option_timetravel (char shortName,
+                                 const char *name)
+{
+  struct GNUNET_GETOPT_CommandLineOption clo = {
+    .shortName = shortName,
+    .name = name,
+    .argumentHelp = _ ("[+/-]MICROSECONDS"),
+    .description = _ (
+      "modify system time by given offset (for debugging/testing only)"),
+    .require_argument = 1,
+    .processor =
+      &set_timetravel_time
+  };
 
   return clo;
 }
@@ -634,14 +718,16 @@ GNUNET_GETOPT_option_relative_time (char shortName,
                                     const char *description,
                                     struct GNUNET_TIME_Relative *val)
 {
-  struct GNUNET_GETOPT_CommandLineOption clo = { .shortName = shortName,
-                                                 .name = name,
-                                                 .argumentHelp = argumentHelp,
-                                                 .description = description,
-                                                 .require_argument = 1,
-                                                 .processor =
-                                                   &set_relative_time,
-                                                 .scls = (void *) val };
+  struct GNUNET_GETOPT_CommandLineOption clo = {
+    .shortName = shortName,
+    .name = name,
+    .argumentHelp = argumentHelp,
+    .description = description,
+    .require_argument = 1,
+    .processor =
+      &set_relative_time,
+    .scls = (void *) val
+  };
 
   return clo;
 }
@@ -697,14 +783,16 @@ GNUNET_GETOPT_option_absolute_time (char shortName,
                                     const char *description,
                                     struct GNUNET_TIME_Absolute *val)
 {
-  struct GNUNET_GETOPT_CommandLineOption clo = { .shortName = shortName,
-                                                 .name = name,
-                                                 .argumentHelp = argumentHelp,
-                                                 .description = description,
-                                                 .require_argument = 1,
-                                                 .processor =
-                                                   &set_absolute_time,
-                                                 .scls = (void *) val };
+  struct GNUNET_GETOPT_CommandLineOption clo = {
+    .shortName = shortName,
+    .name = name,
+    .argumentHelp = argumentHelp,
+    .description = description,
+    .require_argument = 1,
+    .processor =
+      &set_absolute_time,
+    .scls = (void *) val
+  };
 
   return clo;
 }
@@ -737,7 +825,7 @@ set_uint (struct GNUNET_GETOPT_CommandLineProcessorContext *ctx,
   {
     fprintf (stderr,
              _ (
-               "Your input for the '%s' option has to be a non negative number \n"),
+               "Your input for the '%s' option has to be a non negative number\n"),
              option);
     return GNUNET_SYSERR;
   }
@@ -768,13 +856,15 @@ GNUNET_GETOPT_option_uint (char shortName,
                            const char *description,
                            unsigned int *val)
 {
-  struct GNUNET_GETOPT_CommandLineOption clo = { .shortName = shortName,
-                                                 .name = name,
-                                                 .argumentHelp = argumentHelp,
-                                                 .description = description,
-                                                 .require_argument = 1,
-                                                 .processor = &set_uint,
-                                                 .scls = (void *) val };
+  struct GNUNET_GETOPT_CommandLineOption clo = {
+    .shortName = shortName,
+    .name = name,
+    .argumentHelp = argumentHelp,
+    .description = description,
+    .require_argument = 1,
+    .processor = &set_uint,
+    .scls = (void *) val
+  };
 
   return clo;
 }
@@ -840,13 +930,15 @@ GNUNET_GETOPT_option_uint16 (char shortName,
                              const char *description,
                              uint16_t *val)
 {
-  struct GNUNET_GETOPT_CommandLineOption clo = { .shortName = shortName,
-                                                 .name = name,
-                                                 .argumentHelp = argumentHelp,
-                                                 .description = description,
-                                                 .require_argument = 1,
-                                                 .processor = &set_uint16,
-                                                 .scls = (void *) val };
+  struct GNUNET_GETOPT_CommandLineOption clo = {
+    .shortName = shortName,
+    .name = name,
+    .argumentHelp = argumentHelp,
+    .description = description,
+    .require_argument = 1,
+    .processor = &set_uint16,
+    .scls = (void *) val
+  };
 
   return clo;
 }
@@ -940,14 +1032,16 @@ GNUNET_GETOPT_option_base32_fixed_size (char shortName,
                                         size_t val_size)
 {
   struct Base32Context *bc = GNUNET_new (struct Base32Context);
-  struct GNUNET_GETOPT_CommandLineOption clo = { .shortName = shortName,
-                                                 .name = name,
-                                                 .argumentHelp = argumentHelp,
-                                                 .description = description,
-                                                 .require_argument = 1,
-                                                 .processor = &set_base32,
-                                                 .cleaner = &free_bc,
-                                                 .scls = (void *) bc };
+  struct GNUNET_GETOPT_CommandLineOption clo = {
+    .shortName = shortName,
+    .name = name,
+    .argumentHelp = argumentHelp,
+    .description = description,
+    .require_argument = 1,
+    .processor = &set_base32,
+    .cleaner = &free_bc,
+    .scls = (void *) bc
+  };
 
   bc->val = val;
   bc->val_size = val_size;

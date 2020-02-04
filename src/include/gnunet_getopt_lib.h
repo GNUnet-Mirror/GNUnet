@@ -164,6 +164,20 @@ GNUNET_GETOPT_option_help (const char *about);
 
 
 /**
+ * Allow user to specify a `long long` with an offset to add to the current
+ * system time to construct the time seen by the application. Used for
+ * debugging / testing.
+ *
+ * @param shortName short name of the option
+ * @param name long name of the option
+ * @param[out] val set to the time specified at the command line
+ */
+struct GNUNET_GETOPT_CommandLineOption
+GNUNET_GETOPT_option_timetravel (char shortName,
+                                 const char *name);
+
+
+/**
  * Define the option to print the version of
  * the application (-v option)
  *
