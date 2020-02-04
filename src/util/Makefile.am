@@ -246,6 +246,7 @@ if HAVE_BENCHMARKS
   perf_crypto_symmetric \
   perf_crypto_asymmetric \
   perf_malloc \
+  perf_mq \
   perf_scheduler
 endif
 
@@ -607,6 +608,11 @@ perf_crypto_paillier_LDADD = \
 perf_malloc_SOURCES = \
  perf_malloc.c
 perf_malloc_LDADD = \
+ libgnunetutil.la
+
+perf_mq_SOURCES = \
+ perf_mq.c
+perf_mq_LDADD = \
  libgnunetutil.la
 
 perf_scheduler_SOURCES = \
