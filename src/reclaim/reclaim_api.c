@@ -1423,7 +1423,7 @@ GNUNET_RECLAIM_get_attestations_start (
   ait->identity = *identity;
   GNUNET_CONTAINER_DLL_insert_tail (h->ait_head, h->ait_tail, ait);
   env =
-    GNUNET_MQ_msg (msg, GNUNET_MESSAGE_TYPE_RECLAIM_ATTRIBUTE_ITERATION_START);
+    GNUNET_MQ_msg (msg, GNUNET_MESSAGE_TYPE_RECLAIM_ATTESTATION_ITERATION_START);
   msg->id = htonl (rid);
   msg->identity = *identity;
   if (NULL == h->mq)
