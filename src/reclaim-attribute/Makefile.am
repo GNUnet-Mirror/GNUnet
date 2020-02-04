@@ -44,6 +44,8 @@ libgnunet_plugin_reclaim_attestation_jwt_la_SOURCES = \
   plugin_reclaim_attestation_jwt.c
 libgnunet_plugin_reclaim_attestation_jwt_la_LIBADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
+  libgnunetreclaimattribute.la \
+  -ljansson\
   $(LTLIBINTL)
 libgnunet_plugin_reclaim_attestation_jwt_la_LDFLAGS = \
  $(GN_PLUGIN_LDFLAGS)

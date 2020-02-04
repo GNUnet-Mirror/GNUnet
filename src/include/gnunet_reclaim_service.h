@@ -138,11 +138,13 @@ typedef void (*GNUNET_RECLAIM_AttributeTicketResult) (
  *
  * @param cls The callback closure
  * @param identity The identity authoritative over the attributes
- * @param attr The attribute
+ * @param attestation The attestation
+ * @param attributes the parsed attributes
  */
 typedef void (*GNUNET_RECLAIM_AttestationResult) (
   void *cls, const struct GNUNET_CRYPTO_EcdsaPublicKey *identity,
-  const struct GNUNET_RECLAIM_Attestation *attestation);
+  const struct GNUNET_RECLAIM_Attestation *attestation,
+  const struct GNUNET_RECLAIM_AttributeList *attributes);
 
 
 /**

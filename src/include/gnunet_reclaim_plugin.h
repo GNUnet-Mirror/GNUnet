@@ -165,6 +165,18 @@ typedef const char *(*GNUNET_RECLAIM_AttestationNumberToTypenameFunction) (
   void *cls,
   uint32_t type);
 
+/**
+ * Function called to convert a type number (i.e. 1) to the
+ * corresponding type string
+ *
+ * @param cls closure
+ * @param type number of a type to convert
+ * @return corresponding typestring, NULL on error
+ */
+typedef struct GNUNET_RECLAIM_AttributeList *(*GNUNET_RECLAIM_AttestationGetAttributesFunction) (
+  void *cls,
+  const struct GNUNET_RECLAIM_Attestation *attest);
+
 
 
 /**
@@ -230,6 +242,12 @@ struct GNUNET_RECLAIM_AttestationPluginFunctions
    * Number to typename.
    */
   GNUNET_RECLAIM_AttestationNumberToTypenameFunction number_to_typename;
+
+  /**
+   * Attesation attributes.
+   */
+  GNUNET_RECLAIM_AttestationGetAttributesFunction get_attributes;
+
 
 };
 

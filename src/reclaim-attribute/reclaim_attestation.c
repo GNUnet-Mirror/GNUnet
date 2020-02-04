@@ -500,3 +500,21 @@ GNUNET_RECLAIM_attestation_deserialize (const char *data, size_t data_size)
   attestation->data = write_ptr;
   return attestation;
 }
+
+struct GNUNET_RECLAIM_AttributeList*
+GNUNET_RECLAIM_attestation_get_attributes (const struct GNUNET_RECLAIM_Attestation *attest)
+{
+  unsigned int i;
+  struct Plugin *plugin;
+  struct GNUNET_RECLAIM_AttributeList *ret;
+  init ();
+  for (i = 0; i < num_plugins; i++)
+  {
+    plugin = attest_plugins[i];
+    if (NULL !=
+       (ret = plugin->api->get_attributes (plugin->api->cls,
+                                              attest)))
+      return ret;
+  }
+  return NULL;
+}

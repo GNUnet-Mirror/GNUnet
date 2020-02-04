@@ -30,7 +30,7 @@
 #include "gnunet_util_lib.h"
 #include "gnunet_reclaim_plugin.h"
 #include <inttypes.h>
-
+#include <jansson.h>
 
 /**
    * Convert the 'value' of an attestation to a string.
@@ -142,6 +142,56 @@ jwt_number_to_typename (void *cls, uint32_t type)
   return jwt_attest_name_map[i].name;
 }
 
+/**
+ * Parse a JWT and return the respective claim value as Attribute
+ *
+ * @param attest the jwt attestation
+ * @param claim the name of the claim in the JWT
+ *
+ * @return a GNUNET_RECLAIM_Attribute, containing the new value
+ */
+struct GNUNET_RECLAIM_AttributeList *
+jwt_parse_attributes (void *cls,
+                      const struct GNUNET_RECLAIM_Attestation *attest)
+{
+  char *jwt_string;
+  struct GNUNET_RECLAIM_AttributeList *attrs;
+  char delim[] = ".";
+  char *val_str = NULL;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Parsing JWT attributes.\n");
+  char *decoded_jwt;
+  json_t *json_val;
+  json_error_t *json_err = NULL;
+
+  if (GNUNET_RECLAIM_ATTESTATION_TYPE_JWT != attest->type)
+    return NULL;
+  attrs = GNUNET_new (struct GNUNET_RECLAIM_AttributeList);
+
+  jwt_string = GNUNET_strdup (attest->data);
+  const char *jwt_body = strtok (jwt_string, delim);
+  jwt_body = strtok (NULL, delim);
+  GNUNET_STRINGS_base64_decode (jwt_body, strlen (jwt_body),
+                                (void **) &decoded_jwt);
+  json_val = json_loads (decoded_jwt, JSON_DECODE_ANY, json_err);
+  const char *key;
+  json_t *value;
+  json_object_foreach (json_val, key, value) {
+    val_str = json_dumps (value, JSON_ENCODE_ANY);
+    GNUNET_RECLAIM_attribute_list_add (attrs,
+                                       key,
+                                       NULL,
+                                       GNUNET_RECLAIM_ATTRIBUTE_TYPE_STRING,//FIXME
+                                       val_str,
+                                       strlen (val_str));
+    GNUNET_free (val_str);
+  }
+  GNUNET_free (jwt_string);
+  //FIXME needed??
+  return attrs;
+}
+
+
+
 
 /**
  * Entry point for the plugin.
@@ -159,6 +209,7 @@ libgnunet_plugin_reclaim_attestation_jwt_init (void *cls)
   api->string_to_value = &jwt_string_to_value;
   api->typename_to_number = &jwt_typename_to_number;
   api->number_to_typename = &jwt_number_to_typename;
+  api->get_attributes = &jwt_parse_attributes;
   return api;
 }
 

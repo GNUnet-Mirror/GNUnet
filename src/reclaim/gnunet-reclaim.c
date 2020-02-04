@@ -553,13 +553,27 @@ iter_cb (void *cls,
                                                          attr->data_size);
     attr_type = GNUNET_RECLAIM_attribute_number_to_typename (attr->type);
     id = GNUNET_STRINGS_data_to_string_alloc (&attr->id, sizeof(attr->id));
-    fprintf (stdout,
-             "Name: %s; Value: %s (%s); Flag %u; ID: %s\n",
-             attr->name,
-             attr_str,
-             attr_type,
-             attr->flag,
-             id);
+    if (GNUNET_YES == GNUNET_RECLAIM_id_is_zero (&attr->attestation))
+    {
+      fprintf (stdout,
+               "Name: %s; Value: %s (%s); Flag %u; ID: %s\n",
+               attr->name,
+               attr_str,
+               attr_type,
+               attr->flag,
+               id);
+    }
+    else
+    {
+      fprintf (stdout,
+               "Name: %s; Value: %s (%s); Flag %u; ID: %s\n",
+               attr->name,
+               attr_str,
+               attr_type,
+               attr->flag,
+               id);
+
+    }
     GNUNET_free (id);
   }
   GNUNET_RECLAIM_get_attributes_next (attr_iterator);
@@ -609,7 +623,8 @@ attest_iter_finished (void *cls)
 static void
 attest_iter_cb (void *cls,
                 const struct GNUNET_CRYPTO_EcdsaPublicKey *identity,
-                const struct GNUNET_RECLAIM_Attestation *attest)
+                const struct GNUNET_RECLAIM_Attestation *attest,
+                const struct GNUNET_RECLAIM_AttributeList *attrs)
 {
   char *attest_str;
   char *id;

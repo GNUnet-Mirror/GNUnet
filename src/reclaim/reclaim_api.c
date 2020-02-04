@@ -801,11 +801,14 @@ handle_attestation_result (void *cls, const struct
   static struct GNUNET_CRYPTO_EcdsaPrivateKey identity_dummy;
   struct GNUNET_RECLAIM_Handle *h = cls;
   struct GNUNET_RECLAIM_AttestationIterator *it;
+  struct GNUNET_RECLAIM_AttributeList *attrs;
   struct GNUNET_RECLAIM_Operation *op;
   size_t att_len;
+  size_t attrs_len;
   uint32_t r_id = ntohl (msg->id);
 
   att_len = ntohs (msg->attestation_len);
+  attrs_len = ntohs (msg->attributes_len);
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Processing attestation result.\n");
 
 
@@ -836,7 +839,7 @@ handle_attestation_result (void *cls, const struct
     if (NULL != op)
     {
       if (NULL != op->at_cb)
-        op->at_cb (op->cls, NULL, NULL);
+        op->at_cb (op->cls, NULL, NULL, NULL);
       GNUNET_CONTAINER_DLL_remove (h->op_head, h->op_tail, op);
       free_op (op);
     }
@@ -846,17 +849,20 @@ handle_attestation_result (void *cls, const struct
   {
     struct GNUNET_RECLAIM_Attestation *att;
     att = GNUNET_RECLAIM_attestation_deserialize ((char *) &msg[1], att_len);
+    char *read_ptr = ((char *) &msg[1]) + att_len;
+    attrs = GNUNET_RECLAIM_attribute_list_deserialize (read_ptr, attrs_len);
     if (NULL != it)
     {
       if (NULL != it->proc)
-        it->proc (it->proc_cls, &msg->identity, att);
+        it->proc (it->proc_cls, &msg->identity, att, attrs);
     }
     else if (NULL != op)
     {
       if (NULL != op->at_cb)
-        op->at_cb (op->cls, &msg->identity, att);
+        op->at_cb (op->cls, &msg->identity, att, attrs);
     }
     GNUNET_free (att);
+    GNUNET_RECLAIM_attribute_list_destroy (attrs);
     return;
   }
   GNUNET_assert (0);

@@ -619,7 +619,8 @@ add_attestation_cont (struct GNUNET_REST_RequestHandle *con_handle,
 static void
 attest_collect (void *cls,
                 const struct GNUNET_CRYPTO_EcdsaPublicKey *identity,
-                const struct GNUNET_RECLAIM_Attestation *attest)
+                const struct GNUNET_RECLAIM_Attestation *attest,
+                const struct GNUNET_RECLAIM_AttributeList *attrs)
 {
   struct RequestHandle *handle = cls;
   json_t *attr_obj;
