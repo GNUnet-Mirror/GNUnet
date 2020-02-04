@@ -107,7 +107,6 @@ typedef void (*GNUNET_RECLAIM_ContinuationWithStatus) (void *cls,
                                                        int32_t success,
                                                        const char *emsg);
 
-
 /**
  * Callback used to notify the client of attribute results.
  *
@@ -117,6 +116,18 @@ typedef void (*GNUNET_RECLAIM_ContinuationWithStatus) (void *cls,
  * @param attestation The attestation for the attribute (may be NULL)
  */
 typedef void (*GNUNET_RECLAIM_AttributeResult) (
+  void *cls, const struct GNUNET_CRYPTO_EcdsaPublicKey *identity,
+  const struct GNUNET_RECLAIM_Attribute *attr);
+
+/**
+ * Callback used to notify the client of attribute results.
+ *
+ * @param cls The callback closure
+ * @param identity The identity authoritative over the attributes
+ * @param attr The attribute
+ * @param attestation The attestation for the attribute (may be NULL)
+ */
+typedef void (*GNUNET_RECLAIM_AttributeTicketResult) (
   void *cls, const struct GNUNET_CRYPTO_EcdsaPublicKey *identity,
   const struct GNUNET_RECLAIM_Attribute *attr,
   const struct GNUNET_RECLAIM_Attestation *attestation);
@@ -281,6 +292,63 @@ GNUNET_RECLAIM_get_attributes_stop (
 
 
 /**
+ * List all attestations for a local identity.
+ * This MUST lock the `struct GNUNET_RECLAIM_Handle`
+ * for any other calls than #GNUNET_RECLAIM_get_attestations_next() and
+ * #GNUNET_RECLAIM_get_attestations_stop. @a proc will be called once
+ * immediately, and then again after
+ * #GNUNET_RECLAIM_get_attestations_next() is invoked.
+ *
+ * On error (disconnect), @a error_cb will be invoked.
+ * On normal completion, @a finish_cb proc will be
+ * invoked.
+ *
+ * @param h Handle to the re:claimID service
+ * @param identity Identity to iterate over
+ * @param error_cb Function to call on error (i.e. disconnect),
+ *        the handle is afterwards invalid
+ * @param error_cb_cls Closure for @a error_cb
+ * @param proc Function to call on each attestation
+ * @param proc_cls Closure for @a proc
+ * @param finish_cb Function to call on completion
+ *        the handle is afterwards invalid
+ * @param finish_cb_cls Closure for @a finish_cb
+ * @return an iterator Handle to use for iteration
+ */
+struct GNUNET_RECLAIM_AttestationIterator *
+GNUNET_RECLAIM_get_attestations_start (
+  struct GNUNET_RECLAIM_Handle *h,
+  const struct GNUNET_CRYPTO_EcdsaPrivateKey *identity,
+  GNUNET_SCHEDULER_TaskCallback error_cb,
+  void *error_cb_cls,
+  GNUNET_RECLAIM_AttestationResult proc,
+  void *proc_cls,
+  GNUNET_SCHEDULER_TaskCallback finish_cb,
+  void *finish_cb_cls);
+
+
+/**
+ * Calls the record processor specified in #GNUNET_RECLAIM_get_attestation_start
+ * for the next record.
+ *
+ * @param it the iterator
+ */
+void
+GNUNET_RECLAIM_get_attestations_next (struct GNUNET_RECLAIM_AttestationIterator *ait);
+
+
+/**
+ * Stops iteration and releases the handle for further calls. Must
+ * be called on any iteration that has not yet completed prior to calling
+ * #GNUNET_RECLAIM_disconnect.
+ *
+ * @param it the iterator
+ */
+void
+GNUNET_RECLAIM_get_attestations_stop (struct GNUNET_RECLAIM_AttestationIterator *ait);
+
+
+/**
  * Issues a ticket to a relying party. The identity may use
  * GNUNET_RECLAIM_ticket_consume to consume the ticket
  * and retrieve the attributes specified in the attribute list.
@@ -340,7 +408,7 @@ GNUNET_RECLAIM_ticket_consume (
   struct GNUNET_RECLAIM_Handle *h,
   const struct GNUNET_CRYPTO_EcdsaPrivateKey *identity,
   const struct GNUNET_RECLAIM_Ticket *ticket,
-  GNUNET_RECLAIM_AttributeResult cb, void *cb_cls);
+  GNUNET_RECLAIM_AttributeTicketResult cb, void *cb_cls);
 
 
 /**

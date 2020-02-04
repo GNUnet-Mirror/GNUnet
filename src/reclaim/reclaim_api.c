@@ -72,6 +72,11 @@ struct GNUNET_RECLAIM_Operation
   GNUNET_RECLAIM_AttributeResult ar_cb;
 
   /**
+   * Attribute result callback
+   */
+  GNUNET_RECLAIM_AttributeTicketResult atr_cb;
+
+  /**
    * Attestation result callback
    */
   GNUNET_RECLAIM_AttestationResult at_cb;
@@ -607,11 +612,11 @@ handle_consume_ticket_result (void *cls,
     read_ptr = ((char *) &msg[1]) + attrs_len;
     attests =
       GNUNET_RECLAIM_attestation_list_deserialize (read_ptr, attests_len);
-    if (NULL != op->ar_cb)
+    if (NULL != op->atr_cb)
     {
       if (NULL == attrs)
       {
-        op->ar_cb (op->cls, &msg->identity, NULL, NULL);
+        op->atr_cb (op->cls, &msg->identity, NULL, NULL);
       }
       else
       {
@@ -626,7 +631,7 @@ handle_consume_ticket_result (void *cls,
                   GNUNET_RECLAIM_id_is_equal (&le->attribute->id,
                                               &ale->attestation->id))
               {
-                op->ar_cb (op->cls, &msg->identity,
+                op->atr_cb (op->cls, &msg->identity,
                            le->attribute, ale->attestation);
                 break;
               }
@@ -635,7 +640,7 @@ handle_consume_ticket_result (void *cls,
           }
           else     // No attestations
           {
-            op->ar_cb (op->cls, &msg->identity,
+            op->atr_cb (op->cls, &msg->identity,
                        le->attribute, NULL);
           }
         }
@@ -644,7 +649,7 @@ handle_consume_ticket_result (void *cls,
         attrs = NULL;
         attests = NULL;
       }
-      op->ar_cb (op->cls, NULL, NULL, NULL);
+      op->atr_cb (op->cls, NULL, NULL, NULL);
     }
     GNUNET_CONTAINER_DLL_remove (h->op_head, h->op_tail, op);
     free_op (op);
@@ -730,7 +735,7 @@ handle_attribute_result (void *cls, const struct AttributeResultMessage *msg)
     if (NULL != op)
     {
       if (NULL != op->ar_cb)
-        op->ar_cb (op->cls, NULL, NULL, NULL);
+        op->ar_cb (op->cls, NULL, NULL);
       GNUNET_CONTAINER_DLL_remove (h->op_head, h->op_tail, op);
       free_op (op);
     }
@@ -739,20 +744,16 @@ handle_attribute_result (void *cls, const struct AttributeResultMessage *msg)
 
   {
     struct GNUNET_RECLAIM_Attribute *attr;
-    struct GNUNET_RECLAIM_Attestation *attest;
-    char *read_ptr;
     attr = GNUNET_RECLAIM_attribute_deserialize ((char *) &msg[1], attr_len);
-    read_ptr = ((char *) &msg[1]) + attr_len;
-    attest = GNUNET_RECLAIM_attestation_deserialize (read_ptr, attest_len);
     if (NULL != it)
     {
       if (NULL != it->proc)
-        it->proc (it->proc_cls, &msg->identity, attr, attest);
+        it->proc (it->proc_cls, &msg->identity, attr);
     }
     else if (NULL != op)
     {
       if (NULL != op->ar_cb)
-        op->ar_cb (op->cls, &msg->identity, attr, attest);
+        op->ar_cb (op->cls, &msg->identity, attr);
     }
     GNUNET_free (attr);
     return;
@@ -1370,6 +1371,116 @@ GNUNET_RECLAIM_get_attributes_stop (struct GNUNET_RECLAIM_AttributeIterator *it)
 
 
 /**
+ * List all attestations for a local identity.
+ * This MUST lock the `struct GNUNET_RECLAIM_Handle`
+ * for any other calls than #GNUNET_RECLAIM_get_attestations_next() and
+ * #GNUNET_RECLAIM_get_attestations_stop. @a proc will be called once
+ * immediately, and then again after
+ * #GNUNET_RECLAIM_get_attestations_next() is invoked.
+ *
+ * On error (disconnect), @a error_cb will be invoked.
+ * On normal completion, @a finish_cb proc will be
+ * invoked.
+ *
+ * @param h Handle to the re:claimID service
+ * @param identity Identity to iterate over
+ * @param error_cb Function to call on error (i.e. disconnect),
+ *        the handle is afterwards invalid
+ * @param error_cb_cls Closure for @a error_cb
+ * @param proc Function to call on each attestation
+ * @param proc_cls Closure for @a proc
+ * @param finish_cb Function to call on completion
+ *        the handle is afterwards invalid
+ * @param finish_cb_cls Closure for @a finish_cb
+ * @return an iterator Handle to use for iteration
+ */
+struct GNUNET_RECLAIM_AttestationIterator *
+GNUNET_RECLAIM_get_attestations_start (
+  struct GNUNET_RECLAIM_Handle *h,
+  const struct GNUNET_CRYPTO_EcdsaPrivateKey *identity,
+  GNUNET_SCHEDULER_TaskCallback error_cb,
+  void *error_cb_cls,
+  GNUNET_RECLAIM_AttestationResult proc,
+  void *proc_cls,
+  GNUNET_SCHEDULER_TaskCallback finish_cb,
+  void *finish_cb_cls)
+{
+  struct GNUNET_RECLAIM_AttestationIterator *ait;
+  struct GNUNET_MQ_Envelope *env;
+  struct AttestationIterationStartMessage *msg;
+  uint32_t rid;
+
+  rid = h->r_id_gen++;
+  ait = GNUNET_new (struct GNUNET_RECLAIM_AttestationIterator);
+  ait->h = h;
+  ait->error_cb = error_cb;
+  ait->error_cb_cls = error_cb_cls;
+  ait->finish_cb = finish_cb;
+  ait->finish_cb_cls = finish_cb_cls;
+  ait->proc = proc;
+  ait->proc_cls = proc_cls;
+  ait->r_id = rid;
+  ait->identity = *identity;
+  GNUNET_CONTAINER_DLL_insert_tail (h->ait_head, h->ait_tail, ait);
+  env =
+    GNUNET_MQ_msg (msg, GNUNET_MESSAGE_TYPE_RECLAIM_ATTRIBUTE_ITERATION_START);
+  msg->id = htonl (rid);
+  msg->identity = *identity;
+  if (NULL == h->mq)
+    ait->env = env;
+  else
+    GNUNET_MQ_send (h->mq, env);
+  return ait;
+}
+
+
+/**
+ * Calls the record processor specified in #GNUNET_RECLAIM_get_attestation_start
+ * for the next record.
+ *
+ * @param it the iterator
+ */
+void
+GNUNET_RECLAIM_get_attestations_next (struct GNUNET_RECLAIM_AttestationIterator *ait)
+{
+  struct GNUNET_RECLAIM_Handle *h = ait->h;
+  struct AttestationIterationNextMessage *msg;
+  struct GNUNET_MQ_Envelope *env;
+
+  env =
+    GNUNET_MQ_msg (msg, GNUNET_MESSAGE_TYPE_RECLAIM_ATTESTATION_ITERATION_NEXT);
+  msg->id = htonl (ait->r_id);
+  GNUNET_MQ_send (h->mq, env);
+}
+
+
+/**
+ * Stops iteration and releases the handle for further calls. Must
+ * be called on any iteration that has not yet completed prior to calling
+ * #GNUNET_RECLAIM_disconnect.
+ *
+ * @param it the iterator
+ */
+void
+GNUNET_RECLAIM_get_attestations_stop (struct GNUNET_RECLAIM_AttestationIterator *ait)
+{
+  struct GNUNET_RECLAIM_Handle *h = ait->h;
+  struct GNUNET_MQ_Envelope *env;
+  struct AttestationIterationStopMessage *msg;
+
+  if (NULL != h->mq)
+  {
+    env =
+      GNUNET_MQ_msg (msg, GNUNET_MESSAGE_TYPE_RECLAIM_ATTESTATION_ITERATION_STOP);
+    msg->id = htonl (ait->r_id);
+    GNUNET_MQ_send (h->mq, env);
+  }
+  free_ait (ait);
+}
+
+
+
+/**
  * Issues a ticket to another relying party. The identity may use
  * @GNUNET_RECLAIM_ticket_consume to consume the ticket
  * and retrieve the attributes specified in the attribute list.
@@ -1436,7 +1547,7 @@ GNUNET_RECLAIM_ticket_consume (
   struct GNUNET_RECLAIM_Handle *h,
   const struct GNUNET_CRYPTO_EcdsaPrivateKey *identity,
   const struct GNUNET_RECLAIM_Ticket *ticket,
-  GNUNET_RECLAIM_AttributeResult cb,
+  GNUNET_RECLAIM_AttributeTicketResult cb,
   void *cb_cls)
 {
   struct GNUNET_RECLAIM_Operation *op;
@@ -1444,7 +1555,7 @@ GNUNET_RECLAIM_ticket_consume (
 
   op = GNUNET_new (struct GNUNET_RECLAIM_Operation);
   op->h = h;
-  op->ar_cb = cb;
+  op->atr_cb = cb;
   op->cls = cb_cls;
   op->r_id = h->r_id_gen++;
   GNUNET_CONTAINER_DLL_insert_tail (h->op_head, h->op_tail, op);

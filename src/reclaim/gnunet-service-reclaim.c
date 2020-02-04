@@ -90,17 +90,17 @@ struct TicketIteration
 /**
  * An attribute iteration operation.
  */
-struct AttributeIterator
+struct Iterator
 {
   /**
    * Next element in the DLL
    */
-  struct AttributeIterator *next;
+  struct Iterator *next;
 
   /**
    * Previous element in the DLL
    */
-  struct AttributeIterator *prev;
+  struct Iterator *prev;
 
   /**
    * IDP client which intiated this zone iteration
@@ -121,6 +121,11 @@ struct AttributeIterator
    * The operation id fot the zone iteration in the response for the client
    */
   uint32_t request_id;
+
+  /**
+   * Context
+   */
+  void *ctx;
 };
 
 
@@ -154,14 +159,28 @@ struct IdpClient
    * Attribute iteration operations in
    * progress initiated by this client
    */
-  struct AttributeIterator *attr_iter_head;
+  struct Iterator *attr_iter_head;
 
   /**
    * Tail of the DLL of
    * Attribute iteration operations
    * in progress initiated by this client
    */
-  struct AttributeIterator *attr_iter_tail;
+  struct Iterator *attr_iter_tail;
+
+  /**
+   * Head of the DLL of
+   * Attribute iteration operations in
+   * progress initiated by this client
+   */
+  struct Iterator *attest_iter_head;
+
+  /**
+   * Tail of the DLL of
+   * Attribute iteration operations
+   * in progress initiated by this client
+   */
+  struct Iterator *attest_iter_tail;
 
   /**
    * Head of DLL of ticket iteration ops
@@ -512,7 +531,7 @@ cleanup_as_handle (struct AttributeStoreHandle *ash)
 static void
 cleanup_client (struct IdpClient *idp)
 {
-  struct AttributeIterator *ai;
+  struct Iterator *ai;
   struct TicketIteration *ti;
   struct TicketRevocationOperation *rop;
   struct TicketIssueOperation *iss;
@@ -550,6 +569,13 @@ cleanup_client (struct IdpClient *idp)
     GNUNET_CONTAINER_DLL_remove (idp->attr_iter_head, idp->attr_iter_tail, ai);
     GNUNET_free (ai);
   }
+  while (NULL != (ai = idp->attest_iter_head))
+  {
+    GNUNET_CONTAINER_DLL_remove (idp->attest_iter_head, idp->attest_iter_tail,
+                                 ai);
+    GNUNET_free (ai);
+  }
+
   while (NULL != (rop = idp->revoke_op_head))
   {
     GNUNET_CONTAINER_DLL_remove (idp->revoke_op_head, idp->revoke_op_tail, rop);
@@ -1641,7 +1667,7 @@ handle_attestation_delete_message (void *cls,
 static void
 attr_iter_finished (void *cls)
 {
-  struct AttributeIterator *ai = cls;
+  struct Iterator *ai = cls;
   struct GNUNET_MQ_Envelope *env;
   struct AttributeResultMessage *arm;
 
@@ -1665,7 +1691,7 @@ attr_iter_finished (void *cls)
 static void
 attr_iter_error (void *cls)
 {
-  struct AttributeIterator *ai = cls;
+  struct Iterator *ai = cls;
 
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Failed to iterate over attributes\n");
   attr_iter_finished (ai);
@@ -1688,7 +1714,7 @@ attr_iter_cb (void *cls,
               unsigned int rd_count,
               const struct GNUNET_GNSRECORD_Data *rd)
 {
-  struct AttributeIterator *ai = cls;
+  struct Iterator *ai = cls;
   struct GNUNET_MQ_Envelope *env;
   char *data_tmp;
 
@@ -1697,71 +1723,25 @@ attr_iter_cb (void *cls,
     GNUNET_NAMESTORE_zone_iterator_next (ai->ns_it, 1);
     return;
   }
-  if (rd_count > 1)
-  {
-    if (GNUNET_GNSRECORD_TYPE_RECLAIM_ATTRIBUTE_REF == rd[0].record_type)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Found Ticket. Ignoring.\n");
-      GNUNET_NAMESTORE_zone_iterator_next (ai->ns_it, 1);
-      return;
-    }
-    else if (GNUNET_GNSRECORD_TYPE_RECLAIM_ATTESTATION != rd[0].record_type)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  "Non-Attestation record with multiple entries found: %u\n",
-                  rd[0].record_type);
-      GNUNET_NAMESTORE_zone_iterator_next (ai->ns_it, 1);
-      return;
-    }
-  }
 
   for (int i = 0; i<rd_count; i++)
   {
-    if ((GNUNET_GNSRECORD_TYPE_RECLAIM_ATTRIBUTE != rd[i].record_type) &&
-        (GNUNET_GNSRECORD_TYPE_RECLAIM_ATTESTATION != rd[i].record_type))
-    {
-      GNUNET_NAMESTORE_zone_iterator_next (ai->ns_it, 1);
-      return;
-    }
-    // FIXME Send attribute TOGETHER with respective attestation if applicable
-    if (GNUNET_GNSRECORD_TYPE_RECLAIM_ATTRIBUTE == rd[i].record_type)
-    {
-      struct AttributeResultMessage *arm;
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Found attribute under: %s\n",
-                  label);
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Sending ATTRIBUTE_RESULT message\n");
-      env = GNUNET_MQ_msg_extra (arm,
-                                 rd[i].data_size,
-                                 GNUNET_MESSAGE_TYPE_RECLAIM_ATTRIBUTE_RESULT);
-      arm->id = htonl (ai->request_id);
-      arm->attr_len = htons (rd[i].data_size);
-      GNUNET_CRYPTO_ecdsa_key_get_public (zone, &arm->identity);
-      data_tmp = (char *) &arm[1];
-      GNUNET_memcpy (data_tmp, rd[i].data, rd[i].data_size);
-      GNUNET_MQ_send (ai->client->mq, env);
-    }
-    else
-    {
-      if (GNUNET_GNSRECORD_TYPE_RECLAIM_ATTESTATION == rd[i].record_type)
-      {
-        struct AttributeResultMessage *arm;
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Found attestation under: %s\n",
-                    label);
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                    "Sending ATTESTATION_RESULT message\n");
-        env = GNUNET_MQ_msg_extra (arm,
-                                   rd[i].data_size,
-                                   GNUNET_MESSAGE_TYPE_RECLAIM_ATTESTATION_RESULT);
-        arm->id = htonl (ai->request_id);
-        arm->attr_len = htons (rd[i].data_size);
-        GNUNET_CRYPTO_ecdsa_key_get_public (zone, &arm->identity);
-        data_tmp = (char *) &arm[1];
-        GNUNET_memcpy (data_tmp, rd[i].data, rd[i].data_size);
-        GNUNET_MQ_send (ai->client->mq, env);
-      }
-    }
+    if (GNUNET_GNSRECORD_TYPE_RECLAIM_ATTRIBUTE != rd[i].record_type)
+      continue;
+    struct AttributeResultMessage *arm;
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Found attribute under: %s\n",
+                label);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Sending ATTRIBUTE_RESULT message\n");
+    env = GNUNET_MQ_msg_extra (arm,
+                               rd[i].data_size,
+                               GNUNET_MESSAGE_TYPE_RECLAIM_ATTRIBUTE_RESULT);
+    arm->id = htonl (ai->request_id);
+    arm->attr_len = htons (rd[i].data_size);
+    GNUNET_CRYPTO_ecdsa_key_get_public (zone, &arm->identity);
+    data_tmp = (char *) &arm[1];
+    GNUNET_memcpy (data_tmp, rd[i].data, rd[i].data_size);
+    GNUNET_MQ_send (ai->client->mq, env);
   }
 }
 
@@ -1777,11 +1757,11 @@ handle_iteration_start (void *cls,
                         const struct AttributeIterationStartMessage *ais_msg)
 {
   struct IdpClient *idp = cls;
-  struct AttributeIterator *ai;
+  struct Iterator *ai;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received ATTRIBUTE_ITERATION_START message\n");
-  ai = GNUNET_new (struct AttributeIterator);
+  ai = GNUNET_new (struct Iterator);
   ai->request_id = ntohl (ais_msg->id);
   ai->client = idp;
   ai->identity = ais_msg->identity;
@@ -1810,7 +1790,7 @@ handle_iteration_stop (void *cls,
                        const struct AttributeIterationStopMessage *ais_msg)
 {
   struct IdpClient *idp = cls;
-  struct AttributeIterator *ai;
+  struct Iterator *ai;
   uint32_t rid;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -1843,13 +1823,207 @@ handle_iteration_next (void *cls,
                        const struct AttributeIterationNextMessage *ais_msg)
 {
   struct IdpClient *idp = cls;
-  struct AttributeIterator *ai;
+  struct Iterator *ai;
   uint32_t rid;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received ATTRIBUTE_ITERATION_NEXT message\n");
   rid = ntohl (ais_msg->id);
   for (ai = idp->attr_iter_head; NULL != ai; ai = ai->next)
+    if (ai->request_id == rid)
+      break;
+  if (NULL == ai)
+  {
+    GNUNET_break (0);
+    GNUNET_SERVICE_client_drop (idp->client);
+    return;
+  }
+  GNUNET_NAMESTORE_zone_iterator_next (ai->ns_it, 1);
+  GNUNET_SERVICE_client_continue (idp->client);
+}
+
+
+/*************************************************
+* Attestation iteration
+*************************************************/
+
+
+/**
+ * Done iterating over attestations
+ *
+ * @param cls our iterator handle
+ */
+static void
+attest_iter_finished (void *cls)
+{
+  struct Iterator *ai = cls;
+  struct GNUNET_MQ_Envelope *env;
+  struct AttestationResultMessage *arm;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending ATTESTATION_RESULT message\n");
+  env = GNUNET_MQ_msg (arm, GNUNET_MESSAGE_TYPE_RECLAIM_ATTESTATION_RESULT);
+  arm->id = htonl (ai->request_id);
+  arm->attestation_len = htons (0);
+  GNUNET_MQ_send (ai->client->mq, env);
+  GNUNET_CONTAINER_DLL_remove (ai->client->attest_iter_head,
+                               ai->client->attest_iter_tail,
+                               ai);
+  GNUNET_free (ai);
+}
+
+
+/**
+ * Error iterating over attestations. Abort.
+ *
+ * @param cls our attribute iteration handle
+ */
+static void
+attest_iter_error (void *cls)
+{
+  struct Iterator *ai = cls;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Failed to iterate over attestations\n");
+  attest_iter_finished (ai);
+}
+
+
+/**
+ * Got record. Return attestation.
+ *
+ * @param cls our attribute iterator
+ * @param zone zone we are iterating
+ * @param label label of the records
+ * @param rd_count record count
+ * @param rd records
+ */
+static void
+attest_iter_cb (void *cls,
+                const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
+                const char *label,
+                unsigned int rd_count,
+                const struct GNUNET_GNSRECORD_Data *rd)
+{
+  struct Iterator *ai = cls;
+  struct GNUNET_MQ_Envelope *env;
+  char *data_tmp;
+
+  if (rd_count == 0)
+  {
+    GNUNET_NAMESTORE_zone_iterator_next (ai->ns_it, 1);
+    return;
+  }
+
+  for (int i = 0; i<rd_count; i++)
+  {
+    if (GNUNET_GNSRECORD_TYPE_RECLAIM_ATTESTATION != rd[i].record_type)
+      continue;
+    struct AttestationResultMessage *arm;
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Found attestation under: %s\n",
+                label);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Sending ATTESTATION_RESULT message\n");
+    env = GNUNET_MQ_msg_extra (arm,
+                               rd[i].data_size,
+                               GNUNET_MESSAGE_TYPE_RECLAIM_ATTESTATION_RESULT);
+    arm->id = htonl (ai->request_id);
+    arm->attestation_len = htons (rd[i].data_size);
+    GNUNET_CRYPTO_ecdsa_key_get_public (zone, &arm->identity);
+    data_tmp = (char *) &arm[1];
+    GNUNET_memcpy (data_tmp, rd[i].data, rd[i].data_size);
+    GNUNET_MQ_send (ai->client->mq, env);
+  }
+}
+
+
+/**
+ * Iterate over zone to get attributes
+ *
+ * @param cls our client
+ * @param ais_msg the iteration message to start
+ */
+static void
+handle_attestation_iteration_start (void *cls,
+                                    const struct
+                                    AttestationIterationStartMessage *ais_msg)
+{
+  struct IdpClient *idp = cls;
+  struct Iterator *ai;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Received ATTESTATION_ITERATION_START message\n");
+  ai = GNUNET_new (struct Iterator);
+  ai->request_id = ntohl (ais_msg->id);
+  ai->client = idp;
+  ai->identity = ais_msg->identity;
+
+  GNUNET_CONTAINER_DLL_insert (idp->attest_iter_head, idp->attest_iter_tail,
+                               ai);
+  ai->ns_it = GNUNET_NAMESTORE_zone_iteration_start (nsh,
+                                                     &ai->identity,
+                                                     &attest_iter_error,
+                                                     ai,
+                                                     &attest_iter_cb,
+                                                     ai,
+                                                     &attest_iter_finished,
+                                                     ai);
+  GNUNET_SERVICE_client_continue (idp->client);
+}
+
+
+/**
+ * Handle iteration stop message from client
+ *
+ * @param cls the client
+ * @param ais_msg the stop message
+ */
+static void
+handle_attestation_iteration_stop (void *cls,
+                                   const struct
+                                   AttestationIterationStopMessage *ais_msg)
+{
+  struct IdpClient *idp = cls;
+  struct Iterator *ai;
+  uint32_t rid;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Received `%s' message\n",
+              "ATTESTATION_ITERATION_STOP");
+  rid = ntohl (ais_msg->id);
+  for (ai = idp->attest_iter_head; NULL != ai; ai = ai->next)
+    if (ai->request_id == rid)
+      break;
+  if (NULL == ai)
+  {
+    GNUNET_break (0);
+    GNUNET_SERVICE_client_drop (idp->client);
+    return;
+  }
+  GNUNET_CONTAINER_DLL_remove (idp->attest_iter_head, idp->attest_iter_tail,
+                               ai);
+  GNUNET_free (ai);
+  GNUNET_SERVICE_client_continue (idp->client);
+}
+
+
+/**
+ * Client requests next attestation from iterator
+ *
+ * @param cls the client
+ * @param ais_msg the message
+ */
+static void
+handle_attestation_iteration_next (void *cls,
+                                   const struct
+                                   AttestationIterationNextMessage *ais_msg)
+{
+  struct IdpClient *idp = cls;
+  struct Iterator *ai;
+  uint32_t rid;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Received ATTESTATION_ITERATION_NEXT message\n");
+  rid = ntohl (ais_msg->id);
+  for (ai = idp->attest_iter_head; NULL != ai; ai = ai->next)
     if (ai->request_id == rid)
       break;
   if (NULL == ai)
@@ -2115,6 +2289,19 @@ GNUNET_SERVICE_MAIN (
                            GNUNET_MESSAGE_TYPE_RECLAIM_ATTRIBUTE_ITERATION_STOP,
                            struct AttributeIterationStopMessage,
                            NULL),
+  GNUNET_MQ_hd_fixed_size (attestation_iteration_start,
+                           GNUNET_MESSAGE_TYPE_RECLAIM_ATTESTATION_ITERATION_START,
+                           struct AttestationIterationStartMessage,
+                           NULL),
+  GNUNET_MQ_hd_fixed_size (attestation_iteration_next,
+                           GNUNET_MESSAGE_TYPE_RECLAIM_ATTESTATION_ITERATION_NEXT,
+                           struct AttestationIterationNextMessage,
+                           NULL),
+  GNUNET_MQ_hd_fixed_size (attestation_iteration_stop,
+                           GNUNET_MESSAGE_TYPE_RECLAIM_ATTESTATION_ITERATION_STOP,
+                           struct AttestationIterationStopMessage,
+                           NULL),
+
   GNUNET_MQ_hd_var_size (issue_ticket_message,
                          GNUNET_MESSAGE_TYPE_RECLAIM_ISSUE_TICKET,
                          struct IssueTicketMessage,
