@@ -19,52 +19,14 @@
  */
 /**
  * @author Martin Schanzenbach
- * @file reclaim-attribute/reclaim_attribute.h
- * @brief GNUnet reclaim identity attributes
+ * @file reclaim-attribute/reclaim_attestation.h
+ * @brief GNUnet reclaim identity attribute attestations
  *
  */
-#ifndef RECLAIM_ATTRIBUTE_H
-#define RECLAIM_ATTRIBUTE_H
+#ifndef RECLAIM_ATTESTATION_H
+#define RECLAIM_ATTESTATION_H
 
 #include "gnunet_reclaim_service.h"
-
-/**
- * Serialized claim
- */
-struct Attribute
-{
-  /**
-   * Attribute type
-   */
-  uint32_t attribute_type;
-
-  /**
-   * Attribute flag
-   */
-  uint32_t attribute_flag;
-
-  /**
-   * Attribute ID
-   */
-  struct GNUNET_RECLAIM_Identifier attribute_id;
-
-  /**
-   * Attestation ID
-   */
-  struct GNUNET_RECLAIM_Identifier attestation_id;
-
-  /**
-   * Name length
-   */
-  uint32_t name_len;
-
-  /**
-   * Data size
-   */
-  uint32_t data_size;
-
-  // followed by data_size Attribute value data
-};
 
 /**
  * Serialized attestation claim

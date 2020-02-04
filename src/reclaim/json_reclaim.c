@@ -43,11 +43,12 @@
 static int
 parse_attr (void *cls, json_t *root, struct GNUNET_JSON_Specification *spec)
 {
-  struct GNUNET_RECLAIM_ATTRIBUTE_Claim *attr;
+  struct GNUNET_RECLAIM_Attribute *attr;
   const char *name_str = NULL;
   const char *val_str = NULL;
   const char *type_str = NULL;
   const char *id_str = NULL;
+  const char *attest_str = NULL;
   const char *flag_str = NULL;
   char *data;
   int unpack_state;
@@ -64,11 +65,13 @@ parse_attr (void *cls, json_t *root, struct GNUNET_JSON_Specification *spec)
   }
   // interpret single attribute
   unpack_state = json_unpack (root,
-                              "{s:s, s?s, s:s, s:s, s?s!}",
+                              "{s:s, s?s, s?s, s:s, s:s, s?s!}",
                               "name",
                               &name_str,
                               "id",
                               &id_str,
+                              "attestation",
+                              &attest_str,
                               "type",
                               &type_str,
                               "value",
@@ -82,9 +85,9 @@ parse_attr (void *cls, json_t *root, struct GNUNET_JSON_Specification *spec)
                 "Error json object has a wrong format!\n");
     return GNUNET_SYSERR;
   }
-  type = GNUNET_RECLAIM_ATTRIBUTE_typename_to_number (type_str);
+  type = GNUNET_RECLAIM_attribute_typename_to_number (type_str);
   if (GNUNET_SYSERR ==
-      (GNUNET_RECLAIM_ATTRIBUTE_string_to_value (type,
+      (GNUNET_RECLAIM_attribute_string_to_value (type,
                                                  val_str,
                                                  (void **) &data,
                                                  &data_size)))
@@ -92,7 +95,15 @@ parse_attr (void *cls, json_t *root, struct GNUNET_JSON_Specification *spec)
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Attribute value invalid!\n");
     return GNUNET_SYSERR;
   }
-  attr = GNUNET_RECLAIM_ATTRIBUTE_claim_new (name_str, type, data, data_size);
+  attr = GNUNET_RECLAIM_attribute_new (name_str, NULL,
+                                       type, data, data_size);
+  if ((NULL != attest_str) && (0 != strlen (attest_str)))
+  {
+     GNUNET_STRINGS_string_to_data (attest_str,
+                                   strlen (attest_str),
+                                   &attr->attestation,
+                                   sizeof(attr->attestation));
+  }
   if ((NULL == id_str) || (0 == strlen (id_str)))
     memset (&attr->id, 0, sizeof (attr->id));
   else
@@ -101,7 +112,7 @@ parse_attr (void *cls, json_t *root, struct GNUNET_JSON_Specification *spec)
                                    &attr->id,
                                    sizeof(attr->id));
 
-  *(struct GNUNET_RECLAIM_ATTRIBUTE_Claim **) spec->ptr = attr;
+  *(struct GNUNET_RECLAIM_Attribute **) spec->ptr = attr;
   return GNUNET_OK;
 }
 
@@ -115,9 +126,9 @@ parse_attr (void *cls, json_t *root, struct GNUNET_JSON_Specification *spec)
 static void
 clean_attr (void *cls, struct GNUNET_JSON_Specification *spec)
 {
-  struct GNUNET_RECLAIM_ATTRIBUTE_Claim **attr;
+  struct GNUNET_RECLAIM_Attribute **attr;
 
-  attr = (struct GNUNET_RECLAIM_ATTRIBUTE_Claim **) spec->ptr;
+  attr = (struct GNUNET_RECLAIM_Attribute **) spec->ptr;
   if (NULL != *attr)
   {
     GNUNET_free (*attr);
@@ -129,11 +140,11 @@ clean_attr (void *cls, struct GNUNET_JSON_Specification *spec)
 /**
  * JSON Specification for Reclaim claims.
  *
- * @param ticket struct of GNUNET_RECLAIM_ATTRIBUTE_Claim to fill
+ * @param ticket struct of GNUNET_RECLAIM_Attribute to fill
  * @return JSON Specification
  */
 struct GNUNET_JSON_Specification
-GNUNET_RECLAIM_JSON_spec_claim (struct GNUNET_RECLAIM_ATTRIBUTE_Claim **attr)
+GNUNET_RECLAIM_JSON_spec_claim (struct GNUNET_RECLAIM_Attribute **attr)
 {
   struct GNUNET_JSON_Specification ret = { .parser = &parse_attr,
                                            .cleaner = &clean_attr,
@@ -279,7 +290,7 @@ GNUNET_RECLAIM_JSON_spec_ticket (struct GNUNET_RECLAIM_Ticket **ticket)
 static int
 parse_attest (void *cls, json_t *root, struct GNUNET_JSON_Specification *spec)
 {
-  struct GNUNET_RECLAIM_ATTESTATION_Claim *attr;
+  struct GNUNET_RECLAIM_Attestation *attr;
   const char *name_str = NULL;
   const char *val_str = NULL;
   const char *type_str = NULL;
@@ -315,9 +326,9 @@ parse_attest (void *cls, json_t *root, struct GNUNET_JSON_Specification *spec)
                 "Error json object has a wrong format!\n");
     return GNUNET_SYSERR;
   }
-  type = GNUNET_RECLAIM_ATTESTATION_typename_to_number (type_str);
+  type = GNUNET_RECLAIM_attestation_typename_to_number (type_str);
   if (GNUNET_SYSERR ==
-      (GNUNET_RECLAIM_ATTESTATION_string_to_value (type,
+      (GNUNET_RECLAIM_attestation_string_to_value (type,
                                                    val_str,
                                                    (void **) &data,
                                                    &data_size)))
@@ -325,7 +336,7 @@ parse_attest (void *cls, json_t *root, struct GNUNET_JSON_Specification *spec)
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Attestation value invalid!\n");
     return GNUNET_SYSERR;
   }
-  attr = GNUNET_RECLAIM_ATTESTATION_claim_new (name_str, type, data, data_size);
+  attr = GNUNET_RECLAIM_attestation_new (name_str, type, data, data_size);
   if ((NULL == id_str) || (0 == strlen (id_str)))
     memset (&attr->id, 0, sizeof (attr->id));
   else
@@ -334,7 +345,7 @@ parse_attest (void *cls, json_t *root, struct GNUNET_JSON_Specification *spec)
                                    &attr->id,
                                    sizeof(attr->id));
 
-  *(struct GNUNET_RECLAIM_ATTESTATION_Claim **) spec->ptr = attr;
+  *(struct GNUNET_RECLAIM_Attestation **) spec->ptr = attr;
   return GNUNET_OK;
 }
 
@@ -347,9 +358,9 @@ parse_attest (void *cls, json_t *root, struct GNUNET_JSON_Specification *spec)
 static void
 clean_attest (void *cls, struct GNUNET_JSON_Specification *spec)
 {
-  struct GNUNET_RECLAIM_ATTESTATION_Claim **attr;
+  struct GNUNET_RECLAIM_Attestation **attr;
 
-  attr = (struct GNUNET_RECLAIM_ATTESTATION_Claim **) spec->ptr;
+  attr = (struct GNUNET_RECLAIM_Attestation **) spec->ptr;
   if (NULL != *attr)
   {
     GNUNET_free (*attr);
@@ -364,7 +375,7 @@ clean_attest (void *cls, struct GNUNET_JSON_Specification *spec)
  */
 struct GNUNET_JSON_Specification
 GNUNET_RECLAIM_JSON_spec_claim_attest (struct
-                                       GNUNET_RECLAIM_ATTESTATION_Claim **attr)
+                                       GNUNET_RECLAIM_Attestation **attr)
 {
   struct GNUNET_JSON_Specification ret = { .parser = &parse_attest,
                                            .cleaner = &clean_attest,
@@ -378,105 +389,3 @@ GNUNET_RECLAIM_JSON_spec_claim_attest (struct
   return ret;
 }
 
-/**
-   * Parse given JSON object to an attestation claim
-   *
-   * @param cls closure, NULL
-   * @param root the json object representing data
-   * @param spec where to write the data
-   * @return #GNUNET_OK upon successful parsing; #GNUNET_SYSERR upon error
-   */
-static int
-parse_attest_ref (void *cls, json_t *root, struct
-                  GNUNET_JSON_Specification *spec)
-{
-  struct GNUNET_RECLAIM_ATTESTATION_REFERENCE *attr;
-  const char *name_str = NULL;
-  const char *ref_val_str = NULL;
-  const char *ref_id_str = NULL;
-  const char *id_str = NULL;
-  int unpack_state;
-
-  GNUNET_assert (NULL != root);
-
-  if (! json_is_object (root))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Error json is not array nor object!\n");
-    return GNUNET_SYSERR;
-  }
-  // interpret single reference
-  unpack_state = json_unpack (root,
-                              "{s:s, s?s, s:s, s:s!}",
-                              "name",
-                              &name_str,
-                              "id",
-                              &id_str,
-                              "ref_id",
-                              &ref_id_str,
-                              "ref_value",
-                              &ref_val_str);
-  if ((0 != unpack_state) || (NULL == name_str) || (NULL == ref_val_str) ||
-      (NULL == ref_id_str))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Error json object has a wrong format!\n");
-    return GNUNET_SYSERR;
-  }
-
-  attr = GNUNET_RECLAIM_ATTESTATION_reference_new (name_str, ref_val_str);
-  memset (&attr->id, 0, sizeof (attr->id));
-
-  if ((NULL == ref_id_str) || (0 == strlen (ref_id_str)))
-    memset (&attr->id_attest, 0, sizeof (attr->id_attest));
-  else
-    GNUNET_STRINGS_string_to_data (ref_id_str,
-                                   strlen (ref_id_str),
-                                   &attr->id_attest,
-                                   sizeof(attr->id_attest));
-
-  *(struct GNUNET_RECLAIM_ATTESTATION_REFERENCE **) spec->ptr = attr;
-  return GNUNET_OK;
-}
-
-/**
- * Cleanup data left from parsing RSA public key.
- *
- * @param cls closure, NULL
- * @param[out] spec where to free the data
- */
-static void
-clean_attest_ref (void *cls, struct GNUNET_JSON_Specification *spec)
-{
-  struct GNUNET_RECLAIM_ATTESTATION_REFERENCE **attr;
-
-  attr = (struct GNUNET_RECLAIM_ATTESTATION_REFERENCE **) spec->ptr;
-  if (NULL != *attr)
-  {
-    GNUNET_free (*attr);
-    *attr = NULL;
-  }
-}
-
-/**
- * JSON Specification for Reclaim attestation references.
- *
- * @param ticket struct of GNUNET_RECLAIM_ATTESTATION_REFERENCE to fill
- * @return JSON Specification
- */
-struct GNUNET_JSON_Specification
-GNUNET_RECLAIM_JSON_spec_claim_attest_ref (struct
-                                           GNUNET_RECLAIM_ATTESTATION_REFERENCE
-                                           **attr)
-{
-  struct GNUNET_JSON_Specification ret = { .parser = &parse_attest_ref,
-                                           .cleaner = &clean_attest_ref,
-                                           .cls = NULL,
-                                           .field = NULL,
-                                           .ptr = attr,
-                                           .ptr_size = 0,
-                                           .size_ptr = NULL };
-
-  *attr = NULL;
-  return ret;
-}

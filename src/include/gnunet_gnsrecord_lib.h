@@ -95,7 +95,7 @@ extern "C" {
 /**
  * Record type for identity attributes (of RECLAIM).
  */
-#define GNUNET_GNSRECORD_TYPE_RECLAIM_ATTR 65544
+#define GNUNET_GNSRECORD_TYPE_RECLAIM_ATTRIBUTE 65544
 
 /**
  * Record type for local ticket references
@@ -123,7 +123,7 @@ extern "C" {
 /**
  * Record type for reclaim records
  */
-#define GNUNET_GNSRECORD_TYPE_RECLAIM_ATTR_REF 65550
+#define GNUNET_GNSRECORD_TYPE_RECLAIM_ATTRIBUTE_REF 65550
 
 /**
  * Record type for RECLAIM master
@@ -141,14 +141,14 @@ extern "C" {
 #define GNUNET_GNSRECORD_TYPE_RECLAIM_OIDC_REDIRECT 65553
 
 /**
- * Record type for reclaim identity attestation
+ * Record type for an attribute attestation
  */
-#define GNUNET_GNSRECORD_TYPE_RECLAIM_ATTEST_ATTR 65554
+#define GNUNET_GNSRECORD_TYPE_RECLAIM_ATTESTATION 65554
 
 /**
- * Record type for reclaim identity references
+ * Record type for an attestation reference in a ticket
  */
-#define GNUNET_GNSRECORD_TYPE_RECLAIM_REFERENCE 65555
+#define GNUNET_GNSRECORD_TYPE_RECLAIM_ATTESTATION_REF 65555
 
 
 /**

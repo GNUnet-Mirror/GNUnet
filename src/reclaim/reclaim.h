@@ -139,6 +139,11 @@ struct AttributeResultMessage
   uint16_t attr_len GNUNET_PACKED;
 
   /**
+   * Length of serialized attestation data
+   */
+  uint16_t attestation_len GNUNET_PACKED;
+
+  /**
    * always zero (for alignment)
    */
   uint16_t reserved GNUNET_PACKED;
@@ -152,6 +157,42 @@ struct AttributeResultMessage
    * serialized attribute data
    */
 };
+
+/**
+ * Attestation is returned from the idp.
+ */
+struct AttestationResultMessage
+{
+  /**
+   * Message header
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Unique identifier for this request (for key collisions).
+   */
+  uint32_t id GNUNET_PACKED;
+
+  /**
+   * Length of serialized attribute data
+   */
+  uint16_t attestation_len GNUNET_PACKED;
+
+  /**
+   * always zero (for alignment)
+   */
+  uint16_t reserved GNUNET_PACKED;
+
+  /**
+   * The public key of the identity.
+   */
+  struct GNUNET_CRYPTO_EcdsaPublicKey identity;
+
+  /* followed by:
+   * serialized attestation data
+   */
+};
+
 
 /**
  * Reference plus Attestation is returned from the idp.
@@ -461,6 +502,11 @@ struct ConsumeTicketResultMessage
    * Length of serialized attribute data
    */
   uint16_t attrs_len GNUNET_PACKED;
+
+  /**
+   * Length of attestation data
+   */
+  uint16_t attestations_len;
 
   /**
    * always zero (for alignment)

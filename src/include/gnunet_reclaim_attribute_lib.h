@@ -77,29 +77,36 @@ struct GNUNET_RECLAIM_Identifier
 static const struct GNUNET_RECLAIM_Identifier GNUNET_RECLAIM_ID_ZERO;
 
 #define GNUNET_RECLAIM_id_is_equal(a,b) ((0 == \
-                                   memcmp (a,\
-                                           b,\
-                                           sizeof (GNUNET_RECLAIM_ID_ZERO))) ?\
-                                           GNUNET_YES : GNUNET_NO)
+                                          memcmp (a, \
+                                                  b, \
+                                                  sizeof (GNUNET_RECLAIM_ID_ZERO))) \
+  ? \
+                                         GNUNET_YES : GNUNET_NO)
 
 
-#define GNUNET_RECLAIM_id_is_zero(a) GNUNET_RECLAIM_id_is_equal(a,\
-                                                                &GNUNET_RECLAIM_ID_ZERO)
+#define GNUNET_RECLAIM_id_is_zero(a) GNUNET_RECLAIM_id_is_equal (a, \
+                                                                 & \
+                                                                 GNUNET_RECLAIM_ID_ZERO)
 
 #define GNUNET_RECLAIM_id_generate(id) \
-  (GNUNET_CRYPTO_random_block (GNUNET_CRYPTO_QUALITY_STRONG,\
-                               id,\
+  (GNUNET_CRYPTO_random_block (GNUNET_CRYPTO_QUALITY_STRONG, \
+                               id, \
                                sizeof (GNUNET_RECLAIM_ID_ZERO)))
 
 /**
  * An attribute.
  */
-struct GNUNET_RECLAIM_ATTRIBUTE_Claim
+struct GNUNET_RECLAIM_Attribute
 {
   /**
    * ID
    */
   struct GNUNET_RECLAIM_Identifier id;
+
+  /**
+   * Referenced ID of Attestation (may be 0 if self-attested)
+   */
+  struct GNUNET_RECLAIM_Identifier attestation;
 
   /**
    * Type of Claim
@@ -110,6 +117,7 @@ struct GNUNET_RECLAIM_ATTRIBUTE_Claim
    * Flags
    */
   uint32_t flag;
+
   /**
    * The name of the attribute. Note "name" must never be individually
    * free'd
@@ -132,7 +140,7 @@ struct GNUNET_RECLAIM_ATTRIBUTE_Claim
 /**
  * An attestation.
  */
-struct GNUNET_RECLAIM_ATTESTATION_Claim
+struct GNUNET_RECLAIM_Attestation
 {
   /**
    * ID
@@ -168,81 +176,77 @@ struct GNUNET_RECLAIM_ATTESTATION_Claim
   const void *data;
 };
 
-/**
- * A reference to an Attestatiom.
- */
-struct GNUNET_RECLAIM_ATTESTATION_REFERENCE
-{
-  /**
-   * ID
-   */
-  struct GNUNET_RECLAIM_Identifier id;
-
-  /**
-   * Referenced ID of Attestation
-   */
-  struct GNUNET_RECLAIM_Identifier id_attest;
-
-  /**
-   * The name of the attribute/attestation reference value. Note "name" must never be individually
-   * free'd
-   */
-  const char *name;
-
-  /**
-   * The name of the attribute/attestation reference value. Note "name" must never be individually
-   * free'd
-   */
-  const char *reference_value;
-};
 
 /**
- * A list of GNUNET_RECLAIM_ATTRIBUTE_Claim structures.
+ * A list of GNUNET_RECLAIM_Attribute structures.
  */
-struct GNUNET_RECLAIM_ATTRIBUTE_ClaimList
+struct GNUNET_RECLAIM_AttributeList
 {
   /**
    * List head
    */
-  struct GNUNET_RECLAIM_ATTRIBUTE_ClaimListEntry *list_head;
+  struct GNUNET_RECLAIM_AttributeListEntry *list_head;
 
   /**
    * List tail
    */
-  struct GNUNET_RECLAIM_ATTRIBUTE_ClaimListEntry *list_tail;
+  struct GNUNET_RECLAIM_AttributeListEntry *list_tail;
 };
 
 
-struct GNUNET_RECLAIM_ATTRIBUTE_ClaimListEntry
+struct GNUNET_RECLAIM_AttributeListEntry
 {
   /**
    * DLL
    */
-  struct GNUNET_RECLAIM_ATTRIBUTE_ClaimListEntry *prev;
+  struct GNUNET_RECLAIM_AttributeListEntry *prev;
 
   /**
    * DLL
    */
-  struct GNUNET_RECLAIM_ATTRIBUTE_ClaimListEntry *next;
+  struct GNUNET_RECLAIM_AttributeListEntry *next;
 
   /**
    * The attribute claim
    */
-  struct GNUNET_RECLAIM_ATTRIBUTE_Claim *claim;
-  /**
-   * The attestation claim
-   */
-  struct GNUNET_RECLAIM_ATTESTATION_Claim *attest;
+  struct GNUNET_RECLAIM_Attribute *attribute;
 
-  /**
-  * The reference
-  */
-  struct GNUNET_RECLAIM_ATTESTATION_REFERENCE *reference;
 };
 
-struct GNUNET_RECLAIM_ATTRIBUTE_ClaimListEntryType
+/**
+ * A list of GNUNET_RECLAIM_Attestation structures.
+ */
+struct GNUNET_RECLAIM_AttestationList
 {
-  uint32_t type;
+  /**
+   * List head
+   */
+  struct GNUNET_RECLAIM_AttestationListEntry *list_head;
+
+  /**
+   * List tail
+   */
+  struct GNUNET_RECLAIM_AttestationListEntry *list_tail;
+};
+
+
+struct GNUNET_RECLAIM_AttestationListEntry
+{
+  /**
+   * DLL
+   */
+  struct GNUNET_RECLAIM_AttestationListEntry *prev;
+
+  /**
+   * DLL
+   */
+  struct GNUNET_RECLAIM_AttestationListEntry *next;
+
+  /**
+   * The attestation
+   */
+  struct GNUNET_RECLAIM_Attestation *attestation;
+
 };
 
 
@@ -250,16 +254,18 @@ struct GNUNET_RECLAIM_ATTRIBUTE_ClaimListEntryType
  * Create a new attribute claim.
  *
  * @param attr_name the attribute name
+ * @param attestation ID of the attestation (may be NULL)
  * @param type the attribute type
- * @param data the attribute value
+ * @param data the attribute value. Must be the mapped name if attestation not NULL
  * @param data_size the attribute value size
  * @return the new attribute
  */
-struct GNUNET_RECLAIM_ATTRIBUTE_Claim *
-GNUNET_RECLAIM_ATTRIBUTE_claim_new (const char *attr_name,
-                                    uint32_t type,
-                                    const void *data,
-                                    size_t data_size);
+struct GNUNET_RECLAIM_Attribute *
+GNUNET_RECLAIM_attribute_new (const char *attr_name,
+                              const struct GNUNET_RECLAIM_Identifier *attestation,
+                              uint32_t type,
+                              const void *data,
+                              size_t data_size);
 
 
 /**
@@ -269,8 +275,8 @@ GNUNET_RECLAIM_ATTRIBUTE_claim_new (const char *attr_name,
  * @return the required buffer size
  */
 size_t
-GNUNET_RECLAIM_ATTRIBUTE_list_serialize_get_size (
-  const struct GNUNET_RECLAIM_ATTRIBUTE_ClaimList *attrs);
+GNUNET_RECLAIM_attribute_list_serialize_get_size (
+  const struct GNUNET_RECLAIM_AttributeList *attrs);
 
 
 /**
@@ -279,22 +285,25 @@ GNUNET_RECLAIM_ATTRIBUTE_list_serialize_get_size (
  * @param attrs list to destroy
  */
 void
-GNUNET_RECLAIM_ATTRIBUTE_list_destroy (
-  struct GNUNET_RECLAIM_ATTRIBUTE_ClaimList *attrs);
+GNUNET_RECLAIM_attribute_list_destroy (
+  struct GNUNET_RECLAIM_AttributeList *attrs);
 
 
 /**
  * Add a new attribute to a claim list
  *
+ * @param attrs the attribute list to add to
  * @param attr_name the name of the new attribute claim
+ * @param attestation attestation ID (may be NULL)
  * @param type the type of the claim
  * @param data claim payload
  * @param data_size claim payload size
  */
 void
-GNUNET_RECLAIM_ATTRIBUTE_list_add (
-  struct GNUNET_RECLAIM_ATTRIBUTE_ClaimList *attrs,
+GNUNET_RECLAIM_attribute_list_add (
+  struct GNUNET_RECLAIM_AttributeList *attrs,
   const char *attr_name,
+  const struct GNUNET_RECLAIM_Identifier *attestation,
   uint32_t type,
   const void *data,
   size_t data_size);
@@ -308,8 +317,8 @@ GNUNET_RECLAIM_ATTRIBUTE_list_add (
  * @return length of serialized data
  */
 size_t
-GNUNET_RECLAIM_ATTRIBUTE_list_serialize (
-  const struct GNUNET_RECLAIM_ATTRIBUTE_ClaimList *attrs,
+GNUNET_RECLAIM_attribute_list_serialize (
+  const struct GNUNET_RECLAIM_AttributeList *attrs,
   char *result);
 
 
@@ -320,17 +329,8 @@ GNUNET_RECLAIM_ATTRIBUTE_list_serialize (
  * @param data_size the length of the serialized data
  * @return a GNUNET_IDENTITY_PROVIDER_AttributeList, must be free'd by caller
  */
-struct GNUNET_RECLAIM_ATTRIBUTE_ClaimList *
-GNUNET_RECLAIM_ATTRIBUTE_list_deserialize (const char *data, size_t data_size);
-
-/**
- * Count attestations in claim list
- *
- * @param attrs list
- */
-int
-GNUNET_RECLAIM_ATTRIBUTE_list_count_attest (
-  const struct GNUNET_RECLAIM_ATTRIBUTE_ClaimList *attrs);
+struct GNUNET_RECLAIM_AttributeList *
+GNUNET_RECLAIM_attribute_list_deserialize (const char *data, size_t data_size);
 
 /**
  * Get required size for serialization buffer
@@ -339,8 +339,8 @@ GNUNET_RECLAIM_ATTRIBUTE_list_count_attest (
  * @return the required buffer size
  */
 size_t
-GNUNET_RECLAIM_ATTRIBUTE_serialize_get_size (
-  const struct GNUNET_RECLAIM_ATTRIBUTE_Claim *attr);
+GNUNET_RECLAIM_attribute_serialize_get_size (
+  const struct GNUNET_RECLAIM_Attribute *attr);
 
 
 /**
@@ -351,9 +351,8 @@ GNUNET_RECLAIM_ATTRIBUTE_serialize_get_size (
  * @return length of serialized data
  */
 size_t
-GNUNET_RECLAIM_ATTRIBUTE_serialize (
-  const struct GNUNET_RECLAIM_ATTRIBUTE_Claim *attr,
-  char *result);
+GNUNET_RECLAIM_attribute_serialize (const struct GNUNET_RECLAIM_Attribute *attr,
+                                    char *result);
 
 
 /**
@@ -364,8 +363,8 @@ GNUNET_RECLAIM_ATTRIBUTE_serialize (
  *
  * @return a GNUNET_IDENTITY_PROVIDER_Attribute, must be free'd by caller
  */
-struct GNUNET_RECLAIM_ATTRIBUTE_Claim *
-GNUNET_RECLAIM_ATTRIBUTE_deserialize (const char *data, size_t data_size);
+struct GNUNET_RECLAIM_Attribute *
+GNUNET_RECLAIM_attribute_deserialize (const char *data, size_t data_size);
 
 
 /**
@@ -373,9 +372,9 @@ GNUNET_RECLAIM_ATTRIBUTE_deserialize (const char *data, size_t data_size);
  * @param attrs claim list to copy
  * @return copied claim list
  */
-struct GNUNET_RECLAIM_ATTRIBUTE_ClaimList *
-GNUNET_RECLAIM_ATTRIBUTE_list_dup (
-  const struct GNUNET_RECLAIM_ATTRIBUTE_ClaimList *attrs);
+struct GNUNET_RECLAIM_AttributeList *
+GNUNET_RECLAIM_attribute_list_dup (
+  const struct GNUNET_RECLAIM_AttributeList *attrs);
 
 
 /**
@@ -385,7 +384,7 @@ GNUNET_RECLAIM_ATTRIBUTE_list_dup (
  * @return corresponding number, UINT32_MAX on error
  */
 uint32_t
-GNUNET_RECLAIM_ATTRIBUTE_typename_to_number (const char *typename);
+GNUNET_RECLAIM_attribute_typename_to_number (const char *typename);
 
 /**
  * Convert human-readable version of a 'claim' of an attribute to the binary
@@ -398,7 +397,7 @@ GNUNET_RECLAIM_ATTRIBUTE_typename_to_number (const char *typename);
  * @return #GNUNET_OK on success
  */
 int
-GNUNET_RECLAIM_ATTRIBUTE_string_to_value (uint32_t type,
+GNUNET_RECLAIM_attribute_string_to_value (uint32_t type,
                                           const char *s,
                                           void **data,
                                           size_t *data_size);
@@ -413,10 +412,9 @@ GNUNET_RECLAIM_ATTRIBUTE_string_to_value (uint32_t type,
  * @return NULL on error, otherwise human-readable representation of the claim
  */
 char *
-GNUNET_RECLAIM_ATTRIBUTE_value_to_string (uint32_t type,
+GNUNET_RECLAIM_attribute_value_to_string (uint32_t type,
                                           const void *data,
                                           size_t data_size);
-
 
 /**
  * Convert a type number to the corresponding type string
@@ -425,35 +423,92 @@ GNUNET_RECLAIM_ATTRIBUTE_value_to_string (uint32_t type,
  * @return corresponding typestring, NULL on error
  */
 const char *
-GNUNET_RECLAIM_ATTRIBUTE_number_to_typename (uint32_t type);
+GNUNET_RECLAIM_attribute_number_to_typename (uint32_t type);
+
 
 /**
-   * Get required size for serialization buffer
-   * FIXME:
-   * 1. The naming convention is violated here.
-   * It should GNUNET_RECLAIM_ATTRIBUTE_<lowercase from here>.
-   * It might make sense to refactor attestations into a separate folder.
-   * 2. The struct should be called GNUNET_RECLAIM_ATTESTATION_Data or
-   * GNUNET_RECLAIM_ATTRIBUTE_Attestation depending on location in source.
-   *
-   * @param attr the attestation to serialize
+ * Get required size for serialization buffer
+ *
+ * @param attrs the attribute list to serialize
+ * @return the required buffer size
+ */
+size_t
+GNUNET_RECLAIM_attestation_list_serialize_get_size (
+  const struct GNUNET_RECLAIM_AttestationList *attestations);
+
+
+/**
+ * Destroy claim list
+ *
+ * @param attrs list to destroy
+ */
+void
+GNUNET_RECLAIM_attestation_list_destroy (
+  struct GNUNET_RECLAIM_AttestationList *attestations);
+
+
+/**
+ * Add a new attribute to a claim list
+ *
+ * @param attr_name the name of the new attribute claim
+ * @param type the type of the claim
+ * @param data claim payload
+ * @param data_size claim payload size
+ */
+void
+GNUNET_RECLAIM_attestation_list_add (
+  struct GNUNET_RECLAIM_AttestationList *attrs,
+  const char *att_name,
+  uint32_t type,
+  const void *data,
+  size_t data_size);
+
+
+/**
+ * Serialize an attribute list
+ *
+ * @param attrs the attribute list to serialize
+ * @param result the serialized attribute
+ * @return length of serialized data
+ */
+size_t
+GNUNET_RECLAIM_attestation_list_serialize (
+  const struct GNUNET_RECLAIM_AttestationList *attrs,
+  char *result);
+
+
+/**
+ * Deserialize an attribute list
+ *
+ * @param data the serialized attribute list
+ * @param data_size the length of the serialized data
+ * @return a GNUNET_IDENTITY_PROVIDER_AttributeList, must be free'd by caller
+ */
+struct GNUNET_RECLAIM_AttestationList *
+GNUNET_RECLAIM_attestation_list_deserialize (const char *data,
+                                             size_t data_size);
+
+
+
+/**
+   * @param attestation the attestation to serialize
    * @return the required buffer size
    */
 size_t
-GNUNET_RECLAIM_ATTESTATION_serialize_get_size (
-  const struct GNUNET_RECLAIM_ATTESTATION_Claim *attr);
+GNUNET_RECLAIM_attestation_serialize_get_size (
+  const struct GNUNET_RECLAIM_Attestation *attestation);
 
 
 /**
  * Serialize an attestation
  *
- * @param attr the attestation to serialize
+ * @param attestation the attestation to serialize
  * @param result the serialized attestation
  * @return length of serialized data
  */
 size_t
-GNUNET_RECLAIM_ATTESTATION_serialize (
-  const struct GNUNET_RECLAIM_ATTESTATION_Claim *attr,
+GNUNET_RECLAIM_attestation_serialize (
+  const struct GNUNET_RECLAIM_Attestation *attestation,
   char *result);
 
 
@@ -465,24 +520,24 @@ GNUNET_RECLAIM_ATTESTATION_serialize (
  *
  * @return a GNUNET_IDENTITY_PROVIDER_Attribute, must be free'd by caller
  */
-struct GNUNET_RECLAIM_ATTESTATION_Claim *
-GNUNET_RECLAIM_ATTESTATION_deserialize (const char *data, size_t data_size);
+struct GNUNET_RECLAIM_Attestation *
+GNUNET_RECLAIM_attestation_deserialize (const char *data, size_t data_size);
 
 
 /**
-   * Create a new attestation.
-   *
-   * @param attr_name the attestation name
-   * @param type the attestation type
-   * @param data the attestation value
-   * @param data_size the attestation value size
-   * @return the new attestation
-   */
-struct GNUNET_RECLAIM_ATTESTATION_Claim *
-GNUNET_RECLAIM_ATTESTATION_claim_new (const char *attr_name,
-                                      uint32_t type,
-                                      const void *data,
-                                      size_t data_size);
+ * Create a new attestation.
+ *
+ * @param name the attestation name
+ * @param type the attestation type
+ * @param data the attestation value
+ * @param data_size the attestation value size
+ * @return the new attestation
+ */
+struct GNUNET_RECLAIM_Attestation *
+GNUNET_RECLAIM_attestation_new (const char *name,
+                                uint32_t type,
+                                const void *data,
+                                size_t data_size);
 
 /**
  * Convert the 'claim' of an attestation to a string
@@ -493,7 +548,7 @@ GNUNET_RECLAIM_ATTESTATION_claim_new (const char *attr_name,
  * @return NULL on error, otherwise human-readable representation of the claim
  */
 char *
-GNUNET_RECLAIM_ATTESTATION_value_to_string (uint32_t type,
+GNUNET_RECLAIM_attestation_value_to_string (uint32_t type,
                                             const void *data,
                                             size_t data_size);
 
@@ -508,7 +563,7 @@ GNUNET_RECLAIM_ATTESTATION_value_to_string (uint32_t type,
  * @return #GNUNET_OK on success
  */
 int
-GNUNET_RECLAIM_ATTESTATION_string_to_value (uint32_t type,
+GNUNET_RECLAIM_attestation_string_to_value (uint32_t type,
                                             const char *s,
                                             void **data,
                                             size_t *data_size);
@@ -520,7 +575,7 @@ GNUNET_RECLAIM_ATTESTATION_string_to_value (uint32_t type,
  * @return corresponding typestring, NULL on error
  */
 const char *
-GNUNET_RECLAIM_ATTESTATION_number_to_typename (uint32_t type);
+GNUNET_RECLAIM_attestation_number_to_typename (uint32_t type);
 
 /**
  * Convert an attestation type name to the corresponding number
@@ -529,52 +584,8 @@ GNUNET_RECLAIM_ATTESTATION_number_to_typename (uint32_t type);
  * @return corresponding number, UINT32_MAX on error
  */
 uint32_t
-GNUNET_RECLAIM_ATTESTATION_typename_to_number (const char *typename);
+GNUNET_RECLAIM_attestation_typename_to_number (const char *typename);
 
-/**
- * Create a new attestation reference.
- *
- * @param attr_name the referenced claim name
- * @param ref_value the claim name in the attestation
- * @return the new reference
- */
-struct GNUNET_RECLAIM_ATTESTATION_REFERENCE *
-GNUNET_RECLAIM_ATTESTATION_reference_new (const char *attr_name,
-                                          const char *ref_value);
-
-
-/**
- * Get required size for serialization buffer
- *
- * @param attr the reference to serialize
- * @return the required buffer size
- */
-size_t
-GNUNET_RECLAIM_ATTESTATION_REF_serialize_get_size (
-  const struct GNUNET_RECLAIM_ATTESTATION_REFERENCE *attr);
-
-/**
- * Serialize a reference
- *
- * @param attr the reference to serialize
- * @param result the serialized reference
- * @return length of serialized data
- */
-size_t
-GNUNET_RECLAIM_ATTESTATION_REF_serialize (
-  const struct GNUNET_RECLAIM_ATTESTATION_REFERENCE *attr,
-  char *result);
-
-/**
- * Deserialize a reference
- *
- * @param data the serialized reference
- * @param data_size the length of the serialized data
- *
- * @return a GNUNET_IDENTITY_PROVIDER_Attribute, must be free'd by caller
- */
-struct GNUNET_RECLAIM_ATTESTATION_REFERENCE *
-GNUNET_RECLAIM_ATTESTATION_REF_deserialize (const char *data, size_t data_size);
 
 #if 0 /* keep Emacsens' auto-indent happy */
 {
