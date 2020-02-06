@@ -1897,6 +1897,41 @@ GNUNET_STRINGS_base64_encode (const void *in, size_t len, char **output)
 }
 
 
+/**
+ * Encode into Base64url. RFC7515
+ *
+ * @param in the data to encode
+ * @param len the length of the input
+ * @param output where to write the output (*output should be NULL,
+ *   is allocated)
+ * @return the size of the output
+ */
+size_t
+GNUNET_STRINGS_base64url_encode (const void *in, size_t len, char **output)
+{
+  char *enc;
+  size_t pos;
+
+  GNUNET_STRINGS_base64_encode (in, len, output);
+  enc = *output;
+  // Replace with correct characters for base64url
+  pos = 0;
+  while ('\0' != enc[pos])
+  {
+    if ('+' == enc[pos])
+      enc[pos] = '-';
+    if ('/' == enc[pos])
+      enc[pos] = '_';
+    if ('=' == enc[pos])
+    {
+      enc[pos] = '\0';
+      break;
+    }
+    pos++;
+  }
+  return strlen (enc);
+}
+
 #define cvtfind(a)                        \
   ((((a) >= 'A') && ((a) <= 'Z'))         \
    ? (a) - 'A'                          \
@@ -1929,7 +1964,7 @@ GNUNET_STRINGS_base64_decode (const char *data, size_t len, void **out)
                 "ignoring CR/LF\n");                              \
     i++;                                                          \
     if (i >= len)                                                 \
-      goto END;                                                   \
+    goto END;                                                   \
   }
 
   output = GNUNET_malloc ((len * 3 / 4) + 8);
@@ -1974,6 +2009,54 @@ GNUNET_STRINGS_base64_decode (const char *data, size_t len, void **out)
   }
 END:
   *out = output;
+  return ret;
+}
+
+
+/**
+ * Decode from Base64url. RFC7515
+ *
+ * @param data the data to decode
+ * @param len the length of the input
+ * @param output where to write the output (*output should be NULL,
+ *   is allocated)
+ * @return the size of the output
+ */
+size_t
+GNUNET_STRINGS_base64url_decode (const char *data, size_t len, void **out)
+{
+  char *s;
+  int padding;
+  size_t ret;
+
+  /* make enough space for padding */
+  s = GNUNET_malloc (len + 3);
+  memcpy (s, data, len);
+
+  for (int i = 0; i < strlen (s); i++)
+  {
+    if (s[i] == '-')
+      s[i] = '+';
+    if (s[i] == '_')
+      s[i] = '/';
+  }
+  padding = len % 4;
+  switch (padding) // Pad with trailing '='s
+  {
+  case 0:
+    break;   // No pad chars in this case
+  case 2:
+    strncpy (&s[len], "==", 2);
+    break;         // Two pad chars
+  case 3:
+    s[len] = '=';
+    break;         // One pad char
+  default:
+    GNUNET_assert (0);
+    break;
+  }
+  ret = GNUNET_STRINGS_base64_decode (s, strlen (s), out);
+  GNUNET_free (s);
   return ret;
 }
 

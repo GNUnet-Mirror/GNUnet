@@ -349,6 +349,19 @@ GNUNET_STRINGS_base64_encode (const void *in,
 
 
 /**
+ * Encode into Base64url. RFC7515
+ *
+ * @param in the data to encode
+ * @param len the length of the input
+ * @param output where to write the output (*output should be NULL,
+ *   is allocated)
+ * @return the size of the output
+ */
+size_t
+GNUNET_STRINGS_base64url_encode (const void *in, size_t len, char **output);
+
+
+/**
  * Decode from Base64.
  *
  * @param data the data to encode
@@ -361,6 +374,19 @@ size_t
 GNUNET_STRINGS_base64_decode (const char *data,
                               size_t len,
                               void **output);
+
+
+/**
+ * Decode from Base64url. RFC7515
+ *
+ * @param data the data to decode
+ * @param len the length of the input
+ * @param output where to write the output (*output should be NULL,
+ *   is allocated)
+ * @return the size of the output
+ */
+size_t
+GNUNET_STRINGS_base64url_decode (const char *data, size_t len, void **out);
 
 
 /**
