@@ -287,10 +287,10 @@ OIDC_id_token_new (const struct GNUNET_CRYPTO_EcdsaPublicKey *aud_key,
   json_decref (body);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"ID-Token: %s\n", body_str);
 
-  GNUNET_STRINGS_base64_encode (header, strlen (header), &header_base64);
+  GNUNET_STRINGS_base64url_encode (header, strlen (header), &header_base64);
   fix_base64 (header_base64);
 
-  GNUNET_STRINGS_base64_encode (body_str, strlen (body_str), &body_base64);
+  GNUNET_STRINGS_base64url_encode (body_str, strlen (body_str), &body_base64);
   fix_base64 (body_base64);
 
   GNUNET_free (subject);
@@ -306,9 +306,9 @@ OIDC_id_token_new (const struct GNUNET_CRYPTO_EcdsaPublicKey *aud_key,
                           signature_target,
                           strlen (signature_target),
                           &signature);
-  GNUNET_STRINGS_base64_encode ((const char *) &signature,
-                                sizeof(struct GNUNET_HashCode),
-                                &signature_base64);
+  GNUNET_STRINGS_base64url_encode ((const char *) &signature,
+                                   sizeof(struct GNUNET_HashCode),
+                                   &signature_base64);
   fix_base64 (signature_base64);
 
   GNUNET_asprintf (&result,
@@ -330,138 +330,6 @@ OIDC_id_token_new (const struct GNUNET_CRYPTO_EcdsaPublicKey *aud_key,
   GNUNET_free (body_base64);
   GNUNET_free (header_base64);
   return result;
-}
-
-
-/* Converts a hex character to its integer value */
-static char
-from_hex (char ch)
-{
-  return isdigit (ch) ? ch - '0' : tolower (ch) - 'a' + 10;
-}
-
-
-/* Converts an integer value to its hex character*/
-static char
-to_hex (char code)
-{
-  static char hex[] = "0123456789abcdef";
-
-  return hex[code & 15];
-}
-
-
-/* Returns a url-encoded version of str */
-/* IMPORTANT: be sure to free() the returned string after use */
-static char *
-url_encode (const char *str)
-{
-  char *pstr = (char *) str;
-  char *buf = GNUNET_malloc (strlen (str) * 3 + 1);
-  char *pbuf = buf;
-
-  while (*pstr)
-  {
-    if (isalnum (*pstr) || (*pstr == '-') || (*pstr == '_') || (*pstr == '.') ||
-        (*pstr == '~') )
-      *pbuf++ = *pstr;
-    else if (*pstr == ' ')
-      *pbuf++ = '+';
-    else
-    {
-      *pbuf++ = '%';
-      *pbuf++ = to_hex (*pstr >> 4);
-      *pbuf++ = to_hex (*pstr & 15);
-    }
-    pstr++;
-  }
-  *pbuf = '\0';
-  return buf;
-}
-
-
-/* Returns a url-decoded version of str */
-/* IMPORTANT: be sure to free() the returned string after use */
-static char *
-url_decode (const char *str)
-{
-  char *pstr = (char *) str;
-  char *buf = GNUNET_malloc (strlen (str) + 1);
-  char *pbuf = buf;
-
-  while (*pstr)
-  {
-    if (*pstr == '%')
-    {
-      if (pstr[1] && pstr[2])
-      {
-        *pbuf++ = from_hex (pstr[1]) << 4 | from_hex (pstr[2]);
-        pstr += 2;
-      }
-    }
-    else if (*pstr == '+')
-    {
-      *pbuf++ = ' ';
-    }
-    else
-    {
-      *pbuf++ = *pstr;
-    }
-    pstr++;
-  }
-  *pbuf = '\0';
-  return buf;
-}
-
-
-/**
- * Returns base64 encoded string urlencoded
- *
- * @param string the string to encode
- * @return base64 encoded string
- */
-static char *
-base64_and_urlencode (const char *data, size_t data_size)
-{
-  char *enc;
-  char *urlenc;
-
-  GNUNET_STRINGS_base64_encode (data, data_size, &enc);
-  urlenc = url_encode (enc);
-  GNUNET_free (enc);
-  return urlenc;
-}
-
-
-/**
- * Returns base64 encoded string urlencoded
- *
- * @param string the string to encode
- * @return base64 encoded string
- */
-static char *
-base64url_encode (const char *data, size_t data_size)
-{
-  char *enc;
-  size_t pos;
-
-  GNUNET_STRINGS_base64_encode (data, data_size, &enc);
-  // Replace with correct characters for base64url
-  pos = 0;
-  while ('\0' != enc[pos])
-  {
-    if ('+' == enc[pos])
-      enc[pos] = '-';
-    if ('/' == enc[pos])
-      enc[pos] = '_';
-    if ('=' == enc[pos])
-    {
-      enc[pos] = '\0';
-      break;
-    }
-    pos++;
-  }
-  return enc;
 }
 
 
@@ -693,7 +561,7 @@ OIDC_build_authz_code (const struct GNUNET_CRYPTO_EcdsaPrivateKey *issuer,
     GNUNET_free (code_payload);
     return NULL;
   }
-  code_str = base64_and_urlencode (code_payload, code_payload_len);
+  GNUNET_STRINGS_base64url_encode (code_payload, code_payload_len, &code_str);
   GNUNET_free (code_payload);
   return code_str;
 }
@@ -742,7 +610,8 @@ OIDC_parse_authz_code (const struct GNUNET_CRYPTO_EcdsaPrivateKey *ecdsa_priv,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Trying to decode `%s'\n", code);
   code_payload = NULL;
   code_payload_len =
-    GNUNET_STRINGS_base64_decode (code, strlen (code), (void **) &code_payload);
+    GNUNET_STRINGS_base64url_decode (code, strlen (code),
+                                     (void **) &code_payload);
   if (code_payload_len < sizeof(struct GNUNET_CRYPTO_EccSignaturePurpose)
       + sizeof(struct GNUNET_CRYPTO_EcdhePublicKey)
       + sizeof(struct OIDC_Parameters)
@@ -789,7 +658,7 @@ OIDC_parse_authz_code (const struct GNUNET_CRYPTO_EcdsaPrivateKey *ecdsa_priv,
                          code_verifier,
                          strlen (code_verifier));
     // encode code verifier
-    expected_code_challenge = base64url_encode (code_verifier_hash, 256 / 8);
+    GNUNET_STRINGS_base64url_encode (code_verifier_hash, 256 / 8, &expected_code_challenge);
     code_challenge = (char *) &params[1];
     GNUNET_free (code_verifier_hash);
     if ((strlen (expected_code_challenge) != code_challenge_len) ||
