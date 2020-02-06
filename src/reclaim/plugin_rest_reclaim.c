@@ -275,7 +275,8 @@ cleanup_handle (struct RequestHandle *handle)
     GNUNET_free (handle->url);
   if (NULL != handle->emsg)
     GNUNET_free (handle->emsg);
-  GNUNET_RECLAIM_attribute_list_destroy (handle->attr_list);
+  if (NULL != handle->attr_list)
+    GNUNET_RECLAIM_attribute_list_destroy (handle->attr_list);
   for (ego_entry = handle->ego_head; NULL != ego_entry;)
   {
     ego_tmp = ego_entry;
@@ -1029,6 +1030,7 @@ attr_collect (void *cls,
   json_array_append (handle->resp_object, attr_obj);
   json_decref (attr_obj);
   GNUNET_free (tmp_value);
+  GNUNET_RECLAIM_get_attributes_next (handle->attr_it);
 }
 
 

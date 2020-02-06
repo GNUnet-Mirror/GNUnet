@@ -388,7 +388,7 @@ GNUNET_RECLAIM_attestation_list_destroy (
   struct GNUNET_RECLAIM_AttestationListEntry *ale;
   struct GNUNET_RECLAIM_AttestationListEntry *tmp_ale;
 
-  for (ale = al->list_head; NULL != ale; ale = ale->next)
+  for (ale = al->list_head; NULL != ale;)
   {
     if (NULL != ale->attestation)
       GNUNET_free (ale->attestation);

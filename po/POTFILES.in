@@ -264,7 +264,9 @@ src/pq/pq_prepare.c
 src/pq/pq_query_helper.c
 src/pq/pq_result_helper.c
 src/pt/gnunet-daemon-pt.c
-src/reclaim-attribute/plugin_reclaim_attribute_gnuid.c
+src/reclaim-attribute/plugin_reclaim_attestation_jwt.c
+src/reclaim-attribute/plugin_reclaim_attribute_basic.c
+src/reclaim-attribute/reclaim_attestation.c
 src/reclaim-attribute/reclaim_attribute.c
 src/reclaim/gnunet-reclaim.c
 src/reclaim/gnunet-service-reclaim.c
@@ -428,6 +430,7 @@ src/transport/transport_api_offer_hello.c
 src/util/bandwidth.c
 src/util/benchmark.c
 src/util/bio.c
+src/util/buffer.c
 src/util/client.c
 src/util/common_allocation.c
 src/util/common_endian.c
@@ -464,6 +467,7 @@ src/util/getopt.c
 src/util/getopt_helpers.c
 src/util/gnunet-config-diff.c
 src/util/gnunet-config.c
+src/util/gnunet-crypto-tvg.c
 src/util/gnunet-ecc.c
 src/util/gnunet-qr.c
 src/util/gnunet-resolver.c

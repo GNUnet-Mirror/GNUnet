@@ -632,7 +632,7 @@ handle_consume_ticket_result (void *cls,
                                               &ale->attestation->id))
               {
                 op->atr_cb (op->cls, &msg->identity,
-                           le->attribute, ale->attestation);
+                            le->attribute, ale->attestation);
                 break;
               }
 
@@ -641,11 +641,13 @@ handle_consume_ticket_result (void *cls,
           else     // No attestations
           {
             op->atr_cb (op->cls, &msg->identity,
-                       le->attribute, NULL);
+                        le->attribute, NULL);
           }
         }
-        GNUNET_RECLAIM_attribute_list_destroy (attrs);
-        GNUNET_RECLAIM_attestation_list_destroy (attests);
+        if (NULL != attrs)
+          GNUNET_RECLAIM_attribute_list_destroy (attrs);
+        if (NULL != attests)
+          GNUNET_RECLAIM_attestation_list_destroy (attests);
         attrs = NULL;
         attests = NULL;
       }
@@ -775,10 +777,13 @@ check_attestation_result (void *cls, const struct AttestationResultMessage *msg)
 {
   size_t msg_len;
   size_t attr_len;
+  size_t attest_len;
 
   msg_len = ntohs (msg->header.size);
-  attr_len = ntohs (msg->attestation_len);
-  if (msg_len != sizeof(struct AttestationResultMessage) + attr_len)
+  attest_len = ntohs (msg->attestation_len);
+  attr_len = ntohs (msg->attributes_len);
+  if (msg_len != sizeof(struct AttestationResultMessage)
+      + attr_len + attest_len)
   {
     GNUNET_break (0);
     return GNUNET_SYSERR;
@@ -851,6 +856,7 @@ handle_attestation_result (void *cls, const struct
     att = GNUNET_RECLAIM_attestation_deserialize ((char *) &msg[1], att_len);
     char *read_ptr = ((char *) &msg[1]) + att_len;
     attrs = GNUNET_RECLAIM_attribute_list_deserialize (read_ptr, attrs_len);
+
     if (NULL != it)
     {
       if (NULL != it->proc)
@@ -862,7 +868,8 @@ handle_attestation_result (void *cls, const struct
         op->at_cb (op->cls, &msg->identity, att, attrs);
     }
     GNUNET_free (att);
-    GNUNET_RECLAIM_attribute_list_destroy (attrs);
+    if (NULL != attrs)
+      GNUNET_RECLAIM_attribute_list_destroy (attrs);
     return;
   }
   GNUNET_assert (0);
@@ -1429,7 +1436,8 @@ GNUNET_RECLAIM_get_attestations_start (
   ait->identity = *identity;
   GNUNET_CONTAINER_DLL_insert_tail (h->ait_head, h->ait_tail, ait);
   env =
-    GNUNET_MQ_msg (msg, GNUNET_MESSAGE_TYPE_RECLAIM_ATTESTATION_ITERATION_START);
+    GNUNET_MQ_msg (msg,
+                   GNUNET_MESSAGE_TYPE_RECLAIM_ATTESTATION_ITERATION_START);
   msg->id = htonl (rid);
   msg->identity = *identity;
   if (NULL == h->mq)
@@ -1447,7 +1455,8 @@ GNUNET_RECLAIM_get_attestations_start (
  * @param it the iterator
  */
 void
-GNUNET_RECLAIM_get_attestations_next (struct GNUNET_RECLAIM_AttestationIterator *ait)
+GNUNET_RECLAIM_get_attestations_next (struct
+                                      GNUNET_RECLAIM_AttestationIterator *ait)
 {
   struct GNUNET_RECLAIM_Handle *h = ait->h;
   struct AttestationIterationNextMessage *msg;
@@ -1468,7 +1477,8 @@ GNUNET_RECLAIM_get_attestations_next (struct GNUNET_RECLAIM_AttestationIterator 
  * @param it the iterator
  */
 void
-GNUNET_RECLAIM_get_attestations_stop (struct GNUNET_RECLAIM_AttestationIterator *ait)
+GNUNET_RECLAIM_get_attestations_stop (struct
+                                      GNUNET_RECLAIM_AttestationIterator *ait)
 {
   struct GNUNET_RECLAIM_Handle *h = ait->h;
   struct GNUNET_MQ_Envelope *env;
@@ -1477,13 +1487,13 @@ GNUNET_RECLAIM_get_attestations_stop (struct GNUNET_RECLAIM_AttestationIterator 
   if (NULL != h->mq)
   {
     env =
-      GNUNET_MQ_msg (msg, GNUNET_MESSAGE_TYPE_RECLAIM_ATTESTATION_ITERATION_STOP);
+      GNUNET_MQ_msg (msg,
+                     GNUNET_MESSAGE_TYPE_RECLAIM_ATTESTATION_ITERATION_STOP);
     msg->id = htonl (ait->r_id);
     GNUNET_MQ_send (h->mq, env);
   }
   free_ait (ait);
 }
-
 
 
 /**

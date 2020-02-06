@@ -627,8 +627,10 @@ attest_iter_cb (void *cls,
                 const struct GNUNET_RECLAIM_AttributeList *attrs)
 {
   char *attest_str;
+  char *attr_str;
   char *id;
   const char *attest_type;
+  struct GNUNET_RECLAIM_AttributeListEntry *ale;
 
   if (GNUNET_YES == GNUNET_RECLAIM_id_is_equal (&attestation,
                                                 &attest->id))
@@ -647,6 +649,21 @@ attest_iter_cb (void *cls,
              attest_type,
              attest->flag,
              id);
+    if (NULL != attrs)
+    {
+      fprintf (stdout,
+               "\t Attributes:\n");
+      for (ale = attrs->list_head; NULL != ale; ale = ale->next)
+      {
+        attr_str = GNUNET_RECLAIM_attribute_value_to_string (ale->attribute->type,
+                                                             ale->attribute->data,
+                                                             ale->attribute->data_size);
+
+        fprintf (stdout,
+                 "\t %s: %s\n", ale->attribute->name, attr_str);
+        GNUNET_free (attr_str);
+      }
+    }
     GNUNET_free (id);
   }
   GNUNET_RECLAIM_get_attestations_next (attest_iterator);
