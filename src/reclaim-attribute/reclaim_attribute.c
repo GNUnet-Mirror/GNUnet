@@ -423,7 +423,7 @@ GNUNET_RECLAIM_attribute_list_destroy (
   struct GNUNET_RECLAIM_AttributeListEntry *ale;
   struct GNUNET_RECLAIM_AttributeListEntry *tmp_ale;
 
-  for (ale = al->list_head; NULL != ale; ale = ale->next)
+  for (ale = al->list_head; NULL != ale;)
   {
     if (NULL != ale->attribute)
       GNUNET_free (ale->attribute);
