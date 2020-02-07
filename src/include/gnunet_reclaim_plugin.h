@@ -31,7 +31,7 @@
 #define GNUNET_RECLAIM_AttributePLUGIN_H
 
 #include "gnunet_util_lib.h"
-#include "gnunet_reclaim_attribute_lib.h"
+#include "gnunet_reclaim_lib.h"
 
 #ifdef __cplusplus
 extern "C" {

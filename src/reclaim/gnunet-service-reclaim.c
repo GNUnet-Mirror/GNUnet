@@ -29,7 +29,7 @@
 #include "gnunet_constants.h"
 #include "gnunet_gnsrecord_lib.h"
 #include "gnunet_protocols.h"
-#include "gnunet_reclaim_attribute_lib.h"
+#include "gnunet_reclaim_lib.h"
 #include "gnunet_reclaim_service.h"
 #include "gnunet_signatures.h"
 #include "reclaim.h"

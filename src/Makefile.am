@@ -60,7 +60,6 @@ if HAVE_MHD
 if HAVE_JSON
  REST_DIR = rest
  RECLAIM_DIR = \
-  reclaim-attribute \
   reclaim
 endif
 endif

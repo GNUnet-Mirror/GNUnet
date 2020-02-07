@@ -1933,7 +1933,6 @@ src/zonemaster/Makefile
 src/zonemaster/zonemaster.conf
 src/rest/Makefile
 src/abe/Makefile
-src/reclaim-attribute/Makefile
 src/reclaim/Makefile
 pkgconfig/Makefile
 pkgconfig/gnunetarm.pc
