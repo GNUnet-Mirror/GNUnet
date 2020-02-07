@@ -27,7 +27,7 @@
 #include <inttypes.h>
 #include <jansson.h>
 #include "gnunet_util_lib.h"
-#include "gnunet_reclaim_attribute_lib.h"
+#include "gnunet_reclaim_lib.h"
 #include "gnunet_reclaim_service.h"
 #include "gnunet_signatures.h"
 #include "oidc_helper.h"

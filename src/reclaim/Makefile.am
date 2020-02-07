@@ -34,6 +34,8 @@ lib_LTLIBRARIES = \
   libgnunetreclaim.la
 plugin_LTLIBRARIES = \
   libgnunet_plugin_gnsrecord_reclaim.la \
+  libgnunet_plugin_reclaim_attribute_basic.la \
+  libgnunet_plugin_reclaim_attestation_jwt.la \
   $(REST_PLUGIN)
 
 bin_PROGRAMS = \
@@ -51,7 +53,6 @@ libgnunet_plugin_rest_reclaim_la_LIBADD = \
   libgnunetreclaim.la \
   $(top_builddir)/src/json/libgnunetjson.la \
   $(top_builddir)/src/rest/libgnunetrest.la \
-  $(top_builddir)/src/reclaim-attribute/libgnunetreclaimattribute.la \
   $(top_builddir)/src/namestore/libgnunetnamestore.la \
   $(top_builddir)/src/util/libgnunetutil.la $(XLIBS) \
   $(LTLIBINTL) -ljansson $(MHD_LIBS)
@@ -68,7 +69,6 @@ libgnunet_plugin_rest_openid_connect_la_LIBADD = \
   $(top_builddir)/src/identity/libgnunetidentity.la \
   libgnunetreclaim.la \
   $(top_builddir)/src/rest/libgnunetrest.la \
-  $(top_builddir)/src/reclaim-attribute/libgnunetreclaimattribute.la \
   $(top_builddir)/src/namestore/libgnunetnamestore.la \
   $(top_builddir)/src/gns/libgnunetgns.la \
   $(top_builddir)/src/gnsrecord/libgnunetgnsrecord.la \
@@ -98,21 +98,42 @@ gnunet_service_reclaim_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(top_builddir)/src/namestore/libgnunetnamestore.la \
  $(top_builddir)/src/statistics/libgnunetstatistics.la \
- $(top_builddir)/src/reclaim-attribute/libgnunetreclaimattribute.la \
  libgnunetreclaim.la \
  $(top_builddir)/src/gns/libgnunetgns.la \
  $(GN_LIBINTL)
 
 libgnunetreclaim_la_SOURCES = \
  reclaim_api.c \
- reclaim.h
+ reclaim.h \
+ reclaim_attribute.c \
+ reclaim_attribute.h \
+ reclaim_attestation.c \
+ reclaim_attestation.h
 libgnunetreclaim_la_LIBADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
-  $(top_builddir)/src/reclaim-attribute/libgnunetreclaimattribute.la \
   $(GN_LIBINTL) $(XLIB)
 libgnunetreclaim_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS)   \
   -version-info 0:0:0
+
+
+libgnunet_plugin_reclaim_attribute_basic_la_SOURCES = \
+  plugin_reclaim_attribute_basic.c
+libgnunet_plugin_reclaim_attribute_basic_la_LIBADD = \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(LTLIBINTL)
+libgnunet_plugin_reclaim_attribute_basic_la_LDFLAGS = \
+ $(GN_PLUGIN_LDFLAGS)
+
+libgnunet_plugin_reclaim_attestation_jwt_la_SOURCES = \
+  plugin_reclaim_attestation_jwt.c
+libgnunet_plugin_reclaim_attestation_jwt_la_LIBADD = \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  libgnunetreclaim.la \
+  -ljansson\
+  $(LTLIBINTL)
+libgnunet_plugin_reclaim_attestation_jwt_la_LDFLAGS = \
+ $(GN_PLUGIN_LDFLAGS)
 
 gnunet_reclaim_SOURCES = \
  gnunet-reclaim.c
@@ -121,7 +142,6 @@ gnunet_reclaim_LDADD = \
   $(top_builddir)/src/namestore/libgnunetnamestore.la \
   libgnunetreclaim.la \
   $(top_builddir)/src/identity/libgnunetidentity.la \
-  $(top_builddir)/src/reclaim-attribute/libgnunetreclaimattribute.la \
   $(GN_LIBINTL)
 
 check_SCRIPTS = \

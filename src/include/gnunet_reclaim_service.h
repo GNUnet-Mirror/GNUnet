@@ -38,7 +38,7 @@ extern "C" {
 #endif
 #endif
 
-#include "gnunet_reclaim_attribute_lib.h"
+#include "gnunet_reclaim_lib.h"
 #include "gnunet_util_lib.h"
 
 /**

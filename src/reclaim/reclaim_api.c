@@ -28,7 +28,7 @@
 #include "gnunet_constants.h"
 #include "gnunet_mq_lib.h"
 #include "gnunet_protocols.h"
-#include "gnunet_reclaim_attribute_lib.h"
+#include "gnunet_reclaim_lib.h"
 #include "gnunet_reclaim_service.h"
 #include "reclaim.h"
 
