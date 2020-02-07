@@ -470,6 +470,7 @@ GNUNET_RECLAIM_attribute_serialize (
   attr_ser->attribute_type = htons (attr->type);
   attr_ser->attribute_flag = htonl (attr->flag);
   attr_ser->attribute_id = attr->id;
+  attr_ser->attestation_id = attr->attestation;
   name_len = strlen (attr->name);
   attr_ser->name_len = htons (name_len);
   write_ptr = (char *) &attr_ser[1];
@@ -520,6 +521,7 @@ GNUNET_RECLAIM_attribute_deserialize (const char *data, size_t data_size)
   attr->type = ntohs (attr_ser->attribute_type);
   attr->flag = ntohl (attr_ser->attribute_flag);
   attr->id = attr_ser->attribute_id;
+  attr->attestation = attr_ser->attestation_id;
   attr->data_size = data_len;
 
   write_ptr = (char *) &attr[1];

@@ -277,19 +277,43 @@ process_attrs (void *cls,
     ret = 1;
     return;
   }
-  value_str = GNUNET_RECLAIM_attribute_value_to_string (attr->type,
-                                                        attr->data,
-                                                        attr->data_size);
   attr_type = GNUNET_RECLAIM_attribute_number_to_typename (attr->type);
   id = GNUNET_STRINGS_data_to_string_alloc (&attr->id, sizeof(attr->id));
+  value_str = NULL;
+  if (NULL == attest)
+  {
+    value_str = GNUNET_RECLAIM_attribute_value_to_string (attr->type,
+                                                          attr->data,
+                                                          attr->data_size);
+  }
+  else
+  {
+    struct GNUNET_RECLAIM_AttributeListEntry *ale;
+    struct GNUNET_RECLAIM_AttributeList *al
+      = GNUNET_RECLAIM_attestation_get_attributes (attest);
+
+    for (ale = al->list_head; NULL != ale; ale = ale->next)
+    {
+      if (0 != strncmp (attr->data, ale->attribute->name, attr->data_size))
+        continue;
+      value_str
+        = GNUNET_RECLAIM_attribute_value_to_string (ale->attribute->type,
+                                                    ale->attribute->
+                                                    data,
+                                                    ale->attribute->
+                                                    data_size);
+      break;
+    }
+  }
   fprintf (stdout,
            "Name: %s; Value: %s (%s); Flag %u; ID: %s %s\n",
            attr->name,
-           value_str,
+           (NULL != value_str) ? value_str : "???",
            attr_type,
            attr->flag,
            id,
-           (NULL == attest) ? "" : "ATTESTED");
+           (NULL == attest) ? "" : "(ATTESTED)");
+  GNUNET_free_non_null (value_str);
   GNUNET_free (id);
 }
 
@@ -556,22 +580,25 @@ iter_cb (void *cls,
     if (GNUNET_YES == GNUNET_RECLAIM_id_is_zero (&attr->attestation))
     {
       fprintf (stdout,
-               "Name: %s; Value: %s (%s); Flag %u; ID: %s\n",
+               "%s: ``%s'' (%s); ID: %s\n",
                attr->name,
                attr_str,
                attr_type,
-               attr->flag,
                id);
     }
     else
     {
+      char *attest_id =
+        GNUNET_STRINGS_data_to_string_alloc (&attr->attestation,
+                                             sizeof(attr->attestation));
       fprintf (stdout,
-               "Name: %s; Value: %s (%s); Flag %u; ID: %s\n",
+               "%s: <``%s'' in attestation %s> (%s); ID: %s\n",
                attr->name,
                attr_str,
+               attest_id,
                attr_type,
-               attr->flag,
                id);
+      GNUNET_free (attest_id);
 
     }
     GNUNET_free (id);
@@ -643,11 +670,10 @@ attest_iter_cb (void *cls,
     attest_type = GNUNET_RECLAIM_attestation_number_to_typename (attest->type);
     id = GNUNET_STRINGS_data_to_string_alloc (&attest->id, sizeof(attest->id));
     fprintf (stdout,
-             "Name: %s; Value: %s (%s); Flag %u; ID: %s\n",
+             "%s: ``%s'' (%s); ID: %s\n",
              attest->name,
              attest_str,
              attest_type,
-             attest->flag,
              id);
     if (NULL != attrs)
     {
@@ -655,9 +681,12 @@ attest_iter_cb (void *cls,
                "\t Attributes:\n");
       for (ale = attrs->list_head; NULL != ale; ale = ale->next)
       {
-        attr_str = GNUNET_RECLAIM_attribute_value_to_string (ale->attribute->type,
-                                                             ale->attribute->data,
-                                                             ale->attribute->data_size);
+        attr_str = GNUNET_RECLAIM_attribute_value_to_string (
+          ale->attribute->type,
+          ale->attribute->
+          data,
+          ale->attribute->
+          data_size);
 
         fprintf (stdout,
                  "\t %s: %s\n", ale->attribute->name, attr_str);

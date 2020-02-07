@@ -1058,7 +1058,8 @@ process_parallel_lookup_result (void *cls,
   if (NULL != cth->parallel_lookups_head)
     return; // Wait for more
   /* Else we are done */
-  cth->cb (cth->cb_cls, &cth->ticket.identity, cth->attrs, GNUNET_OK, NULL);
+  cth->cb (cth->cb_cls, &cth->ticket.identity,
+           cth->attrs, cth->attests, GNUNET_OK, NULL);
   cleanup_cth (cth);
 }
 
@@ -1087,7 +1088,7 @@ abort_parallel_lookups (void *cls)
     GNUNET_free (lu);
     lu = tmp;
   }
-  cth->cb (cth->cb_cls, NULL, NULL, GNUNET_SYSERR, "Aborted");
+  cth->cb (cth->cb_cls, NULL, NULL, NULL, GNUNET_SYSERR, "Aborted");
 }
 
 
@@ -1124,10 +1125,11 @@ lookup_authz_cb (void *cls,
 
   for (int i = 0; i < rd_count; i++)
   {
-    if (GNUNET_GNSRECORD_TYPE_RECLAIM_ATTRIBUTE_REF != rd[i].record_type)
+    if ((GNUNET_GNSRECORD_TYPE_RECLAIM_ATTRIBUTE_REF != rd[i].record_type) &&
+        (GNUNET_GNSRECORD_TYPE_RECLAIM_ATTESTATION_REF != rd[i].record_type))
       continue;
     lbl = GNUNET_STRINGS_data_to_string_alloc (rd[i].data, rd[i].data_size);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Attribute ref found %s\n", lbl);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Ticket reference found %s\n", lbl);
     parallel_lookup = GNUNET_new (struct ParallelLookup);
     parallel_lookup->handle = cth;
     parallel_lookup->label = lbl;
@@ -1159,7 +1161,8 @@ lookup_authz_cb (void *cls,
   /**
    * No references found, return empty attribute list
    */
-  cth->cb (cth->cb_cls, &cth->ticket.identity, cth->attrs, GNUNET_OK, NULL);
+  cth->cb (cth->cb_cls, &cth->ticket.identity,
+           cth->attrs, cth->attests, GNUNET_OK, NULL);
   cleanup_cth (cth);
 }
 
@@ -1189,6 +1192,7 @@ RECLAIM_TICKETS_consume (const struct GNUNET_CRYPTO_EcdsaPrivateKey *id,
   cth->identity = *id;
   GNUNET_CRYPTO_ecdsa_key_get_public (&cth->identity, &cth->identity_pub);
   cth->attrs = GNUNET_new (struct GNUNET_RECLAIM_AttributeList);
+  cth->attests = GNUNET_new (struct GNUNET_RECLAIM_AttestationList);
   cth->ticket = *ticket;
   cth->cb = cb;
   cth->cb_cls = cb_cls;
@@ -1282,18 +1286,15 @@ issue_ticket (struct TicketIssueHandle *ih)
   struct GNUNET_RECLAIM_AttributeListEntry *le;
   struct GNUNET_GNSRECORD_Data *attrs_record;
   char *label;
-  size_t list_len = 1;
   int i;
+  int attrs_count = 0;
 
   for (le = ih->attrs->list_head; NULL != le; le = le->next)
-  {
-    list_len++;
-    if (GNUNET_NO == GNUNET_RECLAIM_id_is_zero (&le->attribute->attestation))
-      list_len++;
-  }
+    attrs_count++;
 
+  //Worst case we have one attestation per attribute
   attrs_record =
-    GNUNET_malloc (list_len * sizeof(struct GNUNET_GNSRECORD_Data));
+    GNUNET_malloc (2 * attrs_count * sizeof(struct GNUNET_GNSRECORD_Data));
   i = 0;
   for (le = ih->attrs->list_head; NULL != le; le = le->next)
   {
@@ -1302,17 +1303,30 @@ issue_ticket (struct TicketIssueHandle *ih)
     attrs_record[i].expiration_time = ticket_refresh_interval.rel_value_us;
     attrs_record[i].record_type = GNUNET_GNSRECORD_TYPE_RECLAIM_ATTRIBUTE_REF;
     attrs_record[i].flags = GNUNET_GNSRECORD_RF_RELATIVE_EXPIRATION;
+    i++;
     if (GNUNET_NO == GNUNET_RECLAIM_id_is_zero (&le->attribute->attestation))
     {
-      i++;
+      int j;
+      for (j = 0; j < i; j++)
+      {
+        if (attrs_record[j].record_type
+            != GNUNET_GNSRECORD_TYPE_RECLAIM_ATTESTATION_REF)
+          continue;
+        if (0 == memcmp (attrs_record[j].data,
+                         &le->attribute->attestation,
+                         sizeof (le->attribute->attestation)))
+          break;
+      }
+      if (j < i)
+        continue; // Skip as we have already added this attestation.
       attrs_record[i].data = &le->attribute->attestation;
       attrs_record[i].data_size = sizeof(le->attribute->attestation);
       attrs_record[i].expiration_time = ticket_refresh_interval.rel_value_us;
       attrs_record[i].record_type =
         GNUNET_GNSRECORD_TYPE_RECLAIM_ATTESTATION_REF;
       attrs_record[i].flags = GNUNET_GNSRECORD_RF_RELATIVE_EXPIRATION;
+      i++;
     }
-    i++;
   }
   attrs_record[i].data = &ih->ticket;
   attrs_record[i].data_size = sizeof(struct GNUNET_RECLAIM_Ticket);
@@ -1320,6 +1334,7 @@ issue_ticket (struct TicketIssueHandle *ih)
   attrs_record[i].record_type = GNUNET_GNSRECORD_TYPE_RECLAIM_TICKET;
   attrs_record[i].flags =
     GNUNET_GNSRECORD_RF_RELATIVE_EXPIRATION | GNUNET_GNSRECORD_RF_PRIVATE;
+  i++;
 
   label =
     GNUNET_STRINGS_data_to_string_alloc (&ih->ticket.rnd,
@@ -1328,7 +1343,7 @@ issue_ticket (struct TicketIssueHandle *ih)
   ih->ns_qe = GNUNET_NAMESTORE_records_store (nsh,
                                               &ih->identity,
                                               label,
-                                              list_len,
+                                              i,
                                               attrs_record,
                                               &store_ticket_issue_cont,
                                               ih);

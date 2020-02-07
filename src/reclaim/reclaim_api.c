@@ -561,10 +561,13 @@ check_consume_ticket_result (void *cls,
 {
   size_t msg_len;
   size_t attrs_len;
+  size_t attests_len;
 
   msg_len = ntohs (msg->header.size);
   attrs_len = ntohs (msg->attrs_len);
-  if (msg_len != sizeof(struct ConsumeTicketResultMessage) + attrs_len)
+  attests_len = ntohs (msg->attestations_len);
+  if (msg_len !=
+      sizeof(struct ConsumeTicketResultMessage) + attrs_len + attests_len)
   {
     GNUNET_break (0);
     return GNUNET_SYSERR;
@@ -628,7 +631,7 @@ handle_consume_ticket_result (void *cls,
             for (ale = attests->list_head; NULL != ale; ale = ale->next)
             {
               if (GNUNET_YES ==
-                  GNUNET_RECLAIM_id_is_equal (&le->attribute->id,
+                  GNUNET_RECLAIM_id_is_equal (&le->attribute->attestation,
                                               &ale->attestation->id))
               {
                 op->atr_cb (op->cls, &msg->identity,

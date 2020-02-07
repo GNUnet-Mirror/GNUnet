@@ -842,6 +842,7 @@ static void
 consume_result_cb (void *cls,
                    const struct GNUNET_CRYPTO_EcdsaPublicKey *identity,
                    const struct GNUNET_RECLAIM_AttributeList *attrs,
+                   const struct GNUNET_RECLAIM_AttestationList *attests,
                    int32_t success,
                    const char *emsg)
 {
@@ -850,23 +851,28 @@ consume_result_cb (void *cls,
   struct GNUNET_MQ_Envelope *env;
   char *data_tmp;
   size_t attrs_len;
+  size_t attests_len;
 
   if (GNUNET_OK != success)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Error consuming ticket: %s\n", emsg);
   }
   attrs_len = GNUNET_RECLAIM_attribute_list_serialize_get_size (attrs);
+  attests_len = GNUNET_RECLAIM_attestation_list_serialize_get_size (attests);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Sending CONSUME_TICKET_RESULT message\n");
   env = GNUNET_MQ_msg_extra (crm,
-                             attrs_len,
+                             attrs_len + attests_len,
                              GNUNET_MESSAGE_TYPE_RECLAIM_CONSUME_TICKET_RESULT);
   crm->id = htonl (cop->r_id);
   crm->attrs_len = htons (attrs_len);
+  crm->attestations_len = htons (attests_len);
   crm->identity = *identity;
   crm->result = htonl (success);
   data_tmp = (char *) &crm[1];
   GNUNET_RECLAIM_attribute_list_serialize (attrs, data_tmp);
+  data_tmp += attrs_len;
+  GNUNET_RECLAIM_attestation_list_serialize (attests, data_tmp);
   GNUNET_MQ_send (cop->client->mq, env);
   GNUNET_CONTAINER_DLL_remove (cop->client->consume_op_head,
                                cop->client->consume_op_tail,
