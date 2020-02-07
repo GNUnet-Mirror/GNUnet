@@ -621,21 +621,24 @@ add_attestation_cont (struct GNUNET_REST_RequestHandle *con_handle,
 static void
 attest_collect (void *cls,
                 const struct GNUNET_CRYPTO_EcdsaPublicKey *identity,
-                const struct GNUNET_RECLAIM_Attestation *attest,
-                const struct GNUNET_RECLAIM_AttributeList *attrs)
+                const struct GNUNET_RECLAIM_Attestation *attest)
 {
   struct RequestHandle *handle = cls;
+  struct GNUNET_RECLAIM_AttributeList *attrs;
   struct GNUNET_RECLAIM_AttributeListEntry *ale;
+  struct GNUNET_TIME_Absolute exp;
   json_t *attr_obj;
   json_t *attest_obj;
   const char *type;
   char *tmp_value;
   char *id_str;
+  char *issuer;
 
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Adding attestation: %s\n",
               attest->name);
-
+  attrs = GNUNET_RECLAIM_attestation_get_attributes (attest);
+  issuer = GNUNET_RECLAIM_attestation_get_issuer (attest);
   tmp_value = GNUNET_RECLAIM_attestation_value_to_string (attest->type,
                                                           attest->data,
                                                           attest->data_size);
@@ -644,10 +647,21 @@ attest_collect (void *cls,
   json_object_set_new (attest_obj, "name", json_string (attest->name));
   type = GNUNET_RECLAIM_attestation_number_to_typename (attest->type);
   json_object_set_new (attest_obj, "type", json_string (type));
+  if (NULL != issuer)
+  {
+    json_object_set_new (attest_obj, "issuer", json_string (issuer));
+    GNUNET_free (issuer);
+  }
+  if (GNUNET_OK == GNUNET_RECLAIM_attestation_get_expiration (attest,
+                                                              &exp))
+  {
+    json_object_set_new (attest_obj, "expiration", json_integer (exp.abs_value_us));
+  }
   id_str = GNUNET_STRINGS_data_to_string_alloc (&attest->id,
                                                 sizeof(attest->id));
   json_object_set_new (attest_obj, "id", json_string (id_str));
   GNUNET_free (tmp_value);
+  GNUNET_free (id_str);
   if (NULL != attrs)
   {
     json_t *attr_arr = json_array ();
@@ -673,6 +687,7 @@ attest_collect (void *cls,
     json_object_set_new (attest_obj, "attributes", attr_arr);
   }
   json_array_append_new (handle->resp_object, attest_obj);
+  GNUNET_RECLAIM_attribute_list_destroy (attrs);
   GNUNET_RECLAIM_get_attestations_next (handle->attest_it);
 }
 

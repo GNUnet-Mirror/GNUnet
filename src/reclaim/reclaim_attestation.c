@@ -501,8 +501,10 @@ GNUNET_RECLAIM_attestation_deserialize (const char *data, size_t data_size)
   return attestation;
 }
 
+
 struct GNUNET_RECLAIM_AttributeList*
-GNUNET_RECLAIM_attestation_get_attributes (const struct GNUNET_RECLAIM_Attestation *attest)
+GNUNET_RECLAIM_attestation_get_attributes (const struct
+                                           GNUNET_RECLAIM_Attestation *attest)
 {
   unsigned int i;
   struct Plugin *plugin;
@@ -512,9 +514,50 @@ GNUNET_RECLAIM_attestation_get_attributes (const struct GNUNET_RECLAIM_Attestati
   {
     plugin = attest_plugins[i];
     if (NULL !=
-       (ret = plugin->api->get_attributes (plugin->api->cls,
-                                              attest)))
+        (ret = plugin->api->get_attributes (plugin->api->cls,
+                                            attest)))
       return ret;
   }
   return NULL;
+}
+
+
+char*
+GNUNET_RECLAIM_attestation_get_issuer (const struct
+                                       GNUNET_RECLAIM_Attestation *attest)
+{
+  unsigned int i;
+  struct Plugin *plugin;
+  char *ret;
+  init ();
+  for (i = 0; i < num_plugins; i++)
+  {
+    plugin = attest_plugins[i];
+    if (NULL !=
+        (ret = plugin->api->get_issuer (plugin->api->cls,
+                                        attest)))
+      return ret;
+  }
+  return NULL;
+}
+
+
+int
+GNUNET_RECLAIM_attestation_get_expiration (const struct
+                                           GNUNET_RECLAIM_Attestation *attest,
+                                           struct GNUNET_TIME_Absolute* exp)
+{
+  unsigned int i;
+  struct Plugin *plugin;
+  init ();
+  for (i = 0; i < num_plugins; i++)
+  {
+    plugin = attest_plugins[i];
+    if (GNUNET_OK !=  plugin->api->get_expiration (plugin->api->cls,
+                                                   attest,
+                                                   exp))
+      continue;
+    return GNUNET_OK;
+  }
+  return GNUNET_SYSERR;
 }

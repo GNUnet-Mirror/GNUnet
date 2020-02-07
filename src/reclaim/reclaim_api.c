@@ -779,14 +779,11 @@ static int
 check_attestation_result (void *cls, const struct AttestationResultMessage *msg)
 {
   size_t msg_len;
-  size_t attr_len;
   size_t attest_len;
 
   msg_len = ntohs (msg->header.size);
   attest_len = ntohs (msg->attestation_len);
-  attr_len = ntohs (msg->attributes_len);
-  if (msg_len != sizeof(struct AttestationResultMessage)
-      + attr_len + attest_len)
+  if (msg_len != sizeof(struct AttestationResultMessage) + attest_len)
   {
     GNUNET_break (0);
     return GNUNET_SYSERR;
@@ -809,14 +806,11 @@ handle_attestation_result (void *cls, const struct
   static struct GNUNET_CRYPTO_EcdsaPrivateKey identity_dummy;
   struct GNUNET_RECLAIM_Handle *h = cls;
   struct GNUNET_RECLAIM_AttestationIterator *it;
-  struct GNUNET_RECLAIM_AttributeList *attrs;
   struct GNUNET_RECLAIM_Operation *op;
   size_t att_len;
-  size_t attrs_len;
   uint32_t r_id = ntohl (msg->id);
 
   att_len = ntohs (msg->attestation_len);
-  attrs_len = ntohs (msg->attributes_len);
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Processing attestation result.\n");
 
 
@@ -847,7 +841,7 @@ handle_attestation_result (void *cls, const struct
     if (NULL != op)
     {
       if (NULL != op->at_cb)
-        op->at_cb (op->cls, NULL, NULL, NULL);
+        op->at_cb (op->cls, NULL, NULL);
       GNUNET_CONTAINER_DLL_remove (h->op_head, h->op_tail, op);
       free_op (op);
     }
@@ -857,22 +851,18 @@ handle_attestation_result (void *cls, const struct
   {
     struct GNUNET_RECLAIM_Attestation *att;
     att = GNUNET_RECLAIM_attestation_deserialize ((char *) &msg[1], att_len);
-    char *read_ptr = ((char *) &msg[1]) + att_len;
-    attrs = GNUNET_RECLAIM_attribute_list_deserialize (read_ptr, attrs_len);
 
     if (NULL != it)
     {
       if (NULL != it->proc)
-        it->proc (it->proc_cls, &msg->identity, att, attrs);
+        it->proc (it->proc_cls, &msg->identity, att);
     }
     else if (NULL != op)
     {
       if (NULL != op->at_cb)
-        op->at_cb (op->cls, &msg->identity, att, attrs);
+        op->at_cb (op->cls, &msg->identity, att);
     }
     GNUNET_free (att);
-    if (NULL != attrs)
-      GNUNET_RECLAIM_attribute_list_destroy (attrs);
     return;
   }
   GNUNET_assert (0);
