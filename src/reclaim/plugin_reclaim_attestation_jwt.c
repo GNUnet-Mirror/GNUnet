@@ -142,12 +142,12 @@ jwt_number_to_typename (void *cls, uint32_t type)
   return jwt_attest_name_map[i].name;
 }
 
+
 /**
  * Parse a JWT and return the respective claim value as Attribute
  *
+ * @param cls the plugin
  * @param attest the jwt attestation
- * @param claim the name of the claim in the JWT
- *
  * @return a GNUNET_RECLAIM_Attribute, containing the new value
  */
 struct GNUNET_RECLAIM_AttributeList *
@@ -163,6 +163,7 @@ jwt_parse_attributes (void *cls,
   json_t *json_val;
   json_error_t *json_err = NULL;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "%s\n", attest->data);
   if (GNUNET_RECLAIM_ATTESTATION_TYPE_JWT != attest->type)
     return NULL;
   attrs = GNUNET_new (struct GNUNET_RECLAIM_AttributeList);
@@ -170,27 +171,112 @@ jwt_parse_attributes (void *cls,
   jwt_string = GNUNET_strdup (attest->data);
   const char *jwt_body = strtok (jwt_string, delim);
   jwt_body = strtok (NULL, delim);
-  GNUNET_STRINGS_base64_decode (jwt_body, strlen (jwt_body),
-                                (void **) &decoded_jwt);
+  GNUNET_STRINGS_base64url_decode (jwt_body, strlen (jwt_body),
+                                   (void **) &decoded_jwt);
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "%s\n", decoded_jwt);
+  GNUNET_assert (NULL != decoded_jwt);
   json_val = json_loads (decoded_jwt, JSON_DECODE_ANY, json_err);
   const char *key;
   json_t *value;
   json_object_foreach (json_val, key, value) {
+    if (0 == strcmp ("iss", key))
+      continue;
+    if (0 == strcmp ("exp", key))
+      continue;
+    if (0 == strcmp ("iat", key))
+      continue;
+    if (0 == strcmp ("nbf", key))
+      continue;
+    if (0 == strcmp ("aud", key))
+      continue;
     val_str = json_dumps (value, JSON_ENCODE_ANY);
     GNUNET_RECLAIM_attribute_list_add (attrs,
                                        key,
                                        NULL,
-                                       GNUNET_RECLAIM_ATTRIBUTE_TYPE_STRING,//FIXME
+                                       GNUNET_RECLAIM_ATTRIBUTE_TYPE_STRING,// FIXME
                                        val_str,
                                        strlen (val_str));
     GNUNET_free (val_str);
   }
   GNUNET_free (jwt_string);
-  //FIXME needed??
   return attrs;
 }
 
 
+/**
+ * Parse a JWT and return the issuer
+ *
+ * @param cls the plugin
+ * @param attest the jwt attestation
+ * @return a string, containing the isser
+ */
+char *
+jwt_get_issuer (void *cls,
+                const struct GNUNET_RECLAIM_Attestation *attest)
+{
+  const char *jwt_body;
+  char *jwt_string;
+  char delim[] = ".";
+  char *issuer = NULL;
+  char *decoded_jwt;
+  json_t *issuer_json;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Parsing JWT attributes.\n");
+  json_t *json_val;
+  json_error_t *json_err = NULL;
+
+  if (GNUNET_RECLAIM_ATTESTATION_TYPE_JWT != attest->type)
+    return NULL;
+  jwt_string = GNUNET_strdup (attest->data);
+  jwt_body = strtok (jwt_string, delim);
+  jwt_body = strtok (NULL, delim);
+  GNUNET_STRINGS_base64url_decode (jwt_body, strlen (jwt_body),
+                                   (void **) &decoded_jwt);
+  json_val = json_loads (decoded_jwt, JSON_DECODE_ANY, json_err);
+  issuer_json = json_object_get (json_val, "iss");
+  if ((NULL == issuer_json) || (! json_is_string (issuer_json)))
+    return NULL;
+  issuer = GNUNET_strdup (json_string_value (issuer_json));
+  GNUNET_free (jwt_string);
+  return issuer;
+}
+
+
+/**
+ * Parse a JWT and return the expiration
+ *
+ * @param cls the plugin
+ * @param attest the jwt attestation
+ * @return a string, containing the isser
+ */
+int
+jwt_get_expiration (void *cls,
+                    const struct GNUNET_RECLAIM_Attestation *attest,
+                    struct GNUNET_TIME_Absolute *exp)
+{
+  const char *jwt_body;
+  char *jwt_string;
+  char delim[] = ".";
+  char *decoded_jwt;
+  json_t *exp_json;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Parsing JWT attributes.\n");
+  json_t *json_val;
+  json_error_t *json_err = NULL;
+
+  if (GNUNET_RECLAIM_ATTESTATION_TYPE_JWT != attest->type)
+    return GNUNET_NO;
+  jwt_string = GNUNET_strdup (attest->data);
+  jwt_body = strtok (jwt_string, delim);
+  jwt_body = strtok (NULL, delim);
+  GNUNET_STRINGS_base64url_decode (jwt_body, strlen (jwt_body),
+                                   (void **) &decoded_jwt);
+  json_val = json_loads (decoded_jwt, JSON_DECODE_ANY, json_err);
+  exp_json = json_object_get (json_val, "exp");
+  if ((NULL == exp_json) || (! json_is_integer (exp_json)))
+    return GNUNET_SYSERR;
+  exp->abs_value_us = json_integer_value (exp_json) * 1000 * 1000;
+  GNUNET_free (jwt_string);
+  return GNUNET_OK;
+}
 
 
 /**
@@ -210,6 +296,8 @@ libgnunet_plugin_reclaim_attestation_jwt_init (void *cls)
   api->typename_to_number = &jwt_typename_to_number;
   api->number_to_typename = &jwt_number_to_typename;
   api->get_attributes = &jwt_parse_attributes;
+  api->get_issuer = &jwt_get_issuer;
+  api->get_expiration = &jwt_get_expiration;
   return api;
 }
 

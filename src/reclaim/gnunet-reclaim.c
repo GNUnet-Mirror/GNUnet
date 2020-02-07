@@ -650,8 +650,7 @@ attest_iter_finished (void *cls)
 static void
 attest_iter_cb (void *cls,
                 const struct GNUNET_CRYPTO_EcdsaPublicKey *identity,
-                const struct GNUNET_RECLAIM_Attestation *attest,
-                const struct GNUNET_RECLAIM_AttributeList *attrs)
+                const struct GNUNET_RECLAIM_Attestation *attest)
 {
   char *attest_str;
   char *attr_str;
@@ -675,6 +674,8 @@ attest_iter_cb (void *cls,
              attest_str,
              attest_type,
              id);
+    struct GNUNET_RECLAIM_AttributeList *attrs =
+      GNUNET_RECLAIM_attestation_get_attributes (attest);
     if (NULL != attrs)
     {
       fprintf (stdout,
@@ -692,6 +693,7 @@ attest_iter_cb (void *cls,
                  "\t %s: %s\n", ale->attribute->name, attr_str);
         GNUNET_free (attr_str);
       }
+      GNUNET_RECLAIM_attribute_list_destroy (attrs);
     }
     GNUNET_free (id);
   }

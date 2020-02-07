@@ -262,7 +262,8 @@ struct GNUNET_RECLAIM_AttestationListEntry
  */
 struct GNUNET_RECLAIM_Attribute *
 GNUNET_RECLAIM_attribute_new (const char *attr_name,
-                              const struct GNUNET_RECLAIM_Identifier *attestation,
+                              const struct
+                              GNUNET_RECLAIM_Identifier *attestation,
                               uint32_t type,
                               const void *data,
                               size_t data_size);
@@ -489,7 +490,6 @@ GNUNET_RECLAIM_attestation_list_deserialize (const char *data,
                                              size_t data_size);
 
 
-
 /**
    * @param attestation the attestation to serialize
    * @return the required buffer size
@@ -593,8 +593,17 @@ GNUNET_RECLAIM_attestation_typename_to_number (const char *typename);
  * @return corresponding number, UINT32_MAX on error
  */
 struct GNUNET_RECLAIM_AttributeList*
-GNUNET_RECLAIM_attestation_get_attributes (const struct GNUNET_RECLAIM_Attestation *attest);
+GNUNET_RECLAIM_attestation_get_attributes (const struct
+                                           GNUNET_RECLAIM_Attestation *attest);
 
+char*
+GNUNET_RECLAIM_attestation_get_issuer (const struct
+                                       GNUNET_RECLAIM_Attestation *attest);
+
+int
+GNUNET_RECLAIM_attestation_get_expiration (const struct
+                                           GNUNET_RECLAIM_Attestation *attest,
+                                           struct GNUNET_TIME_Absolute *exp);
 
 #if 0 /* keep Emacsens' auto-indent happy */
 {

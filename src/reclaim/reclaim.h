@@ -179,11 +179,6 @@ struct AttestationResultMessage
   uint16_t attestation_len GNUNET_PACKED;
 
   /**
-   * Length of serialized attribute data
-   */
-  uint16_t attributes_len GNUNET_PACKED;
-
-  /**
    * always zero (for alignment)
    */
   uint16_t reserved GNUNET_PACKED;

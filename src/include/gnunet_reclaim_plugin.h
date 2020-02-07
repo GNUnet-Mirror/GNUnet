@@ -166,16 +166,39 @@ typedef const char *(*GNUNET_RECLAIM_AttestationNumberToTypenameFunction) (
   uint32_t type);
 
 /**
- * Function called to convert a type number (i.e. 1) to the
- * corresponding type string
+ * Function called to extract attributes from an attestation
  *
  * @param cls closure
- * @param type number of a type to convert
- * @return corresponding typestring, NULL on error
+ * @param attest the attestation object
+ * @return an attribute list
  */
 typedef struct GNUNET_RECLAIM_AttributeList *(*GNUNET_RECLAIM_AttestationGetAttributesFunction) (
   void *cls,
   const struct GNUNET_RECLAIM_Attestation *attest);
+
+/**
+ * Function called to get the issuer of the attestation (as string)
+ *
+ * @param cls closure
+ * @param attest the attestation object
+ * @return corresponding issuer string
+ */
+typedef char *(*GNUNET_RECLAIM_AttestationGetIssuerFunction) (
+  void *cls,
+  const struct GNUNET_RECLAIM_Attestation *attest);
+
+/**
+ * Function called to get the expiration of the attestation
+ *
+ * @param cls closure
+ * @param attest the attestation object
+ * @param where to write the value
+ * @return GNUNET_OK if successful
+ */
+typedef int (*GNUNET_RECLAIM_AttestationGetExpirationFunction) (
+  void *cls,
+  const struct GNUNET_RECLAIM_Attestation *attest,
+  struct GNUNET_TIME_Absolute *expiration);
 
 
 
@@ -248,7 +271,15 @@ struct GNUNET_RECLAIM_AttestationPluginFunctions
    */
   GNUNET_RECLAIM_AttestationGetAttributesFunction get_attributes;
 
+  /**
+   * Attesation issuer.
+   */
+  GNUNET_RECLAIM_AttestationGetIssuerFunction get_issuer;
 
+  /**
+   * Expiration.
+   */
+  GNUNET_RECLAIM_AttestationGetExpirationFunction get_expiration;
 };
 
 
