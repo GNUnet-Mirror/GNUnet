@@ -135,6 +135,71 @@ GNUNET_PQ_connect (const char *config_str,
 
 
 /**
+ * Apply patch number @a from path @a load_path.
+ *
+ * @param db database context to use
+ * @param load_path where to find the SQL code to run
+ * @param i patch number to append to the @a load_path
+ * @return #GNUNET_OK on success, #GNUNET_NO if patch @a i does not exist, #GNUNET_SYSERR on error
+ */
+static int
+apply_patch (struct GNUNET_PQ_Context *db,
+             const char *load_path,
+             unsigned int i)
+{
+  size_t slen = strlen (load_path) + 10;
+
+  char buf[slen];
+  struct GNUNET_OS_Process *psql;
+  enum GNUNET_OS_ProcessStatusType type;
+  unsigned long code;
+
+  GNUNET_snprintf (buf,
+                   sizeof (buf),
+                   "%s%04u.sql",
+                   load_path,
+                   i);
+  if (GNUNET_YES !=
+      GNUNET_DISK_file_test (buf))
+    return GNUNET_NO;   /* We are done */
+  psql = GNUNET_OS_start_process (GNUNET_NO,
+                                  GNUNET_OS_INHERIT_STD_NONE,
+                                  NULL,
+                                  NULL,
+                                  NULL,
+                                  "psql",
+                                  "psql",
+                                  db->config_str,
+                                  "-f",
+                                  buf,
+                                  "-q",
+                                  NULL);
+  if (NULL == psql)
+  {
+    GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR,
+                              "exec",
+                              "psql");
+    return GNUNET_SYSERR;
+  }
+  GNUNET_assert (GNUNET_OK ==
+                 GNUNET_OS_process_wait_status (psql,
+                                                &type,
+                                                &code));
+  GNUNET_OS_process_destroy (psql);
+  if ( (GNUNET_OS_PROCESS_EXITED != type) ||
+       (0 != code) )
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Could not run PSQL on file %s: %d",
+                buf,
+                (int) code);
+    return GNUNET_SYSERR;
+  }
+  return GNUNET_OK;
+}
+
+
+/**
  * Within the @a db context, run all the SQL files
  * from the @a load_path from 0000-9999.sql (as long
  * as the files exist contiguously).
@@ -147,55 +212,75 @@ int
 GNUNET_PQ_run_sql (struct GNUNET_PQ_Context *db,
                    const char *load_path)
 {
-  size_t slen = strlen (load_path) + 10;
+  const char *load_path_suffix;
 
-  for (unsigned int i = 0; i<10000; i++)
+
+  load_path_suffix = strrchr (load_path, '/');
+  if (NULL == load_path_suffix)
   {
-    char buf[slen];
-    struct GNUNET_OS_Process *psql;
-    enum GNUNET_OS_ProcessStatusType type;
-    unsigned long code;
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
+  load_path_suffix++; /* skip '/' */
+  for (unsigned int i = 1; i<10000; i++)
+  {
+    enum GNUNET_DB_QueryStatus qs;
 
-    GNUNET_snprintf (buf,
-                     sizeof (buf),
-                     "%s%04u.sql",
-                     load_path,
-                     i);
-    if (GNUNET_YES !=
-        GNUNET_DISK_file_test (buf))
-      break; /* We are done */
-    psql = GNUNET_OS_start_process (GNUNET_NO,
-                                    GNUNET_OS_INHERIT_STD_NONE,
-                                    NULL,
-                                    NULL,
-                                    NULL,
-                                    "psql",
-                                    "psql",
-                                    db->config_str,
-                                    "-f",
-                                    buf,
-                                    "-q",
-                                    NULL);
-    if (NULL == psql)
+    /* First check with DB versioning schema if this patch was already applied,
+       if so, skip it. */
     {
-      GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR,
-                                "exec",
-                                "psql");
-      return GNUNET_SYSERR;
+      char *patch_name;
+
+      GNUNET_asprintf (&patch_name,
+                       "%s%04u",
+                       load_path_suffix,
+                       i);
+      {
+        char *applied_by;
+        struct GNUNET_PQ_QueryParam params[] = {
+          GNUNET_PQ_query_param_string (patch_name),
+          GNUNET_PQ_query_param_end
+        };
+        struct GNUNET_PQ_ResultSpec rs[] = {
+          GNUNET_PQ_result_spec_string ("applied_by",
+                                        &applied_by),
+          GNUNET_PQ_result_spec_end
+        };
+
+        qs = GNUNET_PQ_eval_prepared_singleton_select (db,
+                                                       "gnunet_pq_check_patch",
+                                                       params,
+                                                       rs);
+        if (GNUNET_DB_STATUS_SUCCESS_ONE_RESULT == qs)
+        {
+          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                      "Database version %s already applied by %s, skipping\n",
+                      patch_name,
+                      applied_by);
+          GNUNET_PQ_cleanup_result (rs);
+        }
+        if (GNUNET_DB_STATUS_HARD_ERROR == qs)
+        {
+          GNUNET_break (0);
+          return GNUNET_SYSERR;
+        }
+      }
+      GNUNET_free (patch_name);
     }
-    GNUNET_assert (GNUNET_OK ==
-                   GNUNET_OS_process_wait_status (psql,
-                                                  &type,
-                                                  &code));
-    GNUNET_OS_process_destroy (psql);
-    if ( (GNUNET_OS_PROCESS_EXITED != type) ||
-         (0 != code) )
+    if (GNUNET_DB_STATUS_SUCCESS_ONE_RESULT == qs)
+      continue; /* patch already applied, skip it */
+
+    /* patch not yet applied, run it! */
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  "Could not run PSQL on file %s: %d",
-                  buf,
-                  (int) code);
-      return GNUNET_SYSERR;
+      int ret;
+
+      ret = apply_patch (db,
+                         load_path,
+                         i);
+      if (GNUNET_NO == ret)
+        break;
+      if (GNUNET_SYSERR == ret)
+        return GNUNET_SYSERR;
     }
   }
   return GNUNET_OK;
@@ -227,8 +312,8 @@ GNUNET_PQ_reconnect (struct GNUNET_PQ_Context *db)
   if (NULL != db->conn)
     PQfinish (db->conn);
   db->conn = PQconnectdb (db->config_str);
-  if ((NULL == db->conn) ||
-      (CONNECTION_OK != PQstatus (db->conn)))
+  if ( (NULL == db->conn) ||
+       (CONNECTION_OK != PQstatus (db->conn)) )
   {
     GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
                      "pq",
@@ -250,14 +335,74 @@ GNUNET_PQ_reconnect (struct GNUNET_PQ_Context *db)
   PQsetNoticeProcessor (db->conn,
                         &pq_notice_processor_cb,
                         db);
-  if ( (NULL != db->load_path) &&
-       (GNUNET_OK !=
-        GNUNET_PQ_run_sql (db,
-                           db->load_path)) )
+  if (NULL != db->load_path)
   {
-    PQfinish (db->conn);
-    db->conn = NULL;
-    return;
+    PGresult *res;
+
+    res = PQprepare (db->conn,
+                     "gnunet_pq_check_patch",
+                     "SELECT"
+                     " applied_by"
+                     " FROM _v.patches"
+                     " WHERE patch_name = $1"
+                     " LIMIT 1",
+                     1,
+                     NULL);
+    if (PGRES_COMMAND_OK != PQresultStatus (res))
+    {
+      int ret;
+
+      PQclear (res);
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                  "Failed to prepare statement to check patch level. Likely versioning schema does not exist yet, loading patch level 0000!\n");
+      ret = apply_patch (db,
+                         db->load_path,
+                         0);
+      if (GNUNET_NO == ret)
+      {
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                    "Failed to find SQL file to load database versioning logic\n");
+        PQfinish (db->conn);
+        db->conn = NULL;
+        return;
+      }
+      if (GNUNET_SYSERR == ret)
+      {
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                    "Failed to run SQL logic to setup database versioning logic\n");
+        PQfinish (db->conn);
+        db->conn = NULL;
+        return;
+      }
+      /* try again to prepare our statement! */
+      res = PQprepare (db->conn,
+                       "gnunet_pq_check_patch",
+                       "SELECT"
+                       " applied_by"
+                       " FROM _v.patches"
+                       " WHERE patch_name = $1"
+                       " LIMIT 1",
+                       1,
+                       NULL);
+      if (PGRES_COMMAND_OK != PQresultStatus (res))
+      {
+        GNUNET_break (0);
+        PQclear (res);
+        PQfinish (db->conn);
+        db->conn = NULL;
+        return;
+      }
+    }
+    PQclear (res);
+
+    if (GNUNET_OK !=
+        GNUNET_PQ_run_sql (db,
+                           db->load_path))
+    {
+      PQfinish (db->conn);
+      db->conn = NULL;
+      return;
+    }
   }
   if ( (NULL != db->es) &&
        (GNUNET_OK !=
