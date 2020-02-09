@@ -756,7 +756,7 @@ GNUNET_PQ_connect (const char *config_str,
 struct GNUNET_PQ_Context *
 GNUNET_PQ_connect_with_cfg (const struct GNUNET_CONFIGURATION_Handle *cfg,
                             const char *section,
-                            const char *load_path,
+                            const char *load_path_suffix,
                             const struct GNUNET_PQ_ExecuteStatement *es,
                             const struct GNUNET_PQ_PreparedStatement *ps);
 

@@ -789,7 +789,8 @@ typedef int (*GNUNET_CONTAINER_MulitHashMapIteratorCallback) (
  * @return NULL on error
  */
 struct GNUNET_CONTAINER_MultiHashMap *
-GNUNET_CONTAINER_multihashmap_create (unsigned int len, int do_not_copy_keys);
+GNUNET_CONTAINER_multihashmap_create (unsigned int len,
+                                      int do_not_copy_keys);
 
 
 /**
@@ -800,8 +801,8 @@ GNUNET_CONTAINER_multihashmap_create (unsigned int len, int do_not_copy_keys);
  * @param map the map
  */
 void
-GNUNET_CONTAINER_multihashmap_destroy (
-  struct GNUNET_CONTAINER_MultiHashMap *map);
+GNUNET_CONTAINER_multihashmap_destroy (struct
+                                       GNUNET_CONTAINER_MultiHashMap *map);
 
 
 /**

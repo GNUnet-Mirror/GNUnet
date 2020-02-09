@@ -317,11 +317,12 @@ GNUNET_PQ_connect_with_cfg (const struct GNUNET_CONFIGURATION_Handle *cfg,
     conninfo = NULL;
   load_path = NULL;
   sp = NULL;
-  if (GNUNET_OK ==
-      GNUNET_CONFIGURATION_get_value_filename (cfg,
-                                               section,
-                                               "SQL_DIR",
-                                               &sp))
+  if ( (NULL != load_path_suffix) &&
+       (GNUNET_OK ==
+        GNUNET_CONFIGURATION_get_value_filename (cfg,
+                                                 section,
+                                                 "SQL_DIR",
+                                                 &sp)) )
     GNUNET_asprintf (&load_path,
                      "%s%s",
                      sp,
