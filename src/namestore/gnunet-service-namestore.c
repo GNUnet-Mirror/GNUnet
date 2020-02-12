@@ -913,7 +913,7 @@ refresh_block (struct NamestoreClient *nc,
   nick = get_nick_record (zone_key);
   res_count = rd_count;
   res = (struct GNUNET_GNSRECORD_Data *) rd;  /* fixme: a bit unclean... */
-  if (NULL != nick)
+  if (NULL != nick  && (0 != strcmp (name, GNUNET_GNS_EMPTY_LABEL_AT)))
   {
     nick->flags =
       (nick->flags | GNUNET_GNSRECORD_RF_PRIVATE) ^ GNUNET_GNSRECORD_RF_PRIVATE;
