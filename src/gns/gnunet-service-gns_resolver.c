@@ -2244,7 +2244,13 @@ handle_gns_resolution_result (void *cls,
         break;
 
       case GNUNET_GNSRECORD_TYPE_NICK:
-        /* ignore */
+        /* ignore unless specifically requested */
+        if (GNUNET_GNSRECORD_TYPE_NICK == rh->record_type)
+        {
+          rd_new[rd_off].data = rd[i].data;
+          rd_new[rd_off].data_size = rd[i].data_size;
+          rd_off++;
+        }
         break;
 
       case GNUNET_GNSRECORD_TYPE_PKEY:
