@@ -2245,7 +2245,7 @@ handle_gns_resolution_result (void *cls,
 
       case GNUNET_GNSRECORD_TYPE_NICK:
         /* ignore unless specifically requested */
-        if (GNUNET_GNSRECORD_TYPE_NICK == rh->record_type)
+        if (0 == strcmp (GNUNET_GNS_EMPTY_LABEL_AT, rh->name))
         {
           rd_new[rd_off].data = rd[i].data;
           rd_new[rd_off].data_size = rd[i].data_size;
