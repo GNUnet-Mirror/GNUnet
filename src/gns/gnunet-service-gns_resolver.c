@@ -2243,16 +2243,6 @@ handle_gns_resolution_result (void *cls,
         }
         break;
 
-      case GNUNET_GNSRECORD_TYPE_NICK:
-        /* ignore unless specifically requested */
-        if (0 == strcmp (GNUNET_GNS_EMPTY_LABEL_AT, rh->name))
-        {
-          rd_new[rd_off].data = rd[i].data;
-          rd_new[rd_off].data_size = rd[i].data_size;
-          rd_off++;
-        }
-        break;
-
       case GNUNET_GNSRECORD_TYPE_PKEY:
         {
           struct GNUNET_CRYPTO_EcdsaPublicKey pub;
