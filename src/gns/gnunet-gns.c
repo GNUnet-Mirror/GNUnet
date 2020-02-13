@@ -205,7 +205,11 @@ process_lookup_result (void *cls,
     if (raw)
       printf ("%s\n", string_val);
     else
-      printf ("Got `%s' record: %s\n", typename, string_val);
+      printf ("Got `%s' record: %s%s\n",
+              typename,
+              string_val,
+              (0 != (rd[i].flags & GNUNET_GNSRECORD_RF_SUPPLEMENTAL)) ?
+              " (supplemental)" : "");
     GNUNET_free (string_val);
   }
   GNUNET_SCHEDULER_shutdown ();

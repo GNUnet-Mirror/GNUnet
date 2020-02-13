@@ -168,10 +168,9 @@ enum GNUNET_GNSRECORD_Flags
   GNUNET_GNSRECORD_RF_PRIVATE = 2,
 
   /**
-   * This flag is currently unused; former RF_PENDING flag
-   *
-   * GNUNET_GNSRECORD_RF_UNUSED = 4,
+   * This is a supplemental record.
    */
+  GNUNET_GNSRECORD_RF_SUPPLEMENTAL = 4,
 
   /**
    * This expiration time of the record is a relative

@@ -695,6 +695,8 @@ merge_with_nick_records (const struct GNUNET_GNSRECORD_Data *nick_rd,
   }
   /* append nick */
   target[rd2_length] = *nick_rd;
+  /* Mark as supplemental */
+  target[rd2_length].flags = nick_rd->flags | GNUNET_GNSRECORD_RF_SUPPLEMENTAL;
   target[rd2_length].expiration_time = latest_expiration;
   target[rd2_length].data = (void *) &data[data_offset];
   GNUNET_memcpy (&data[data_offset], nick_rd->data, nick_rd->data_size);
