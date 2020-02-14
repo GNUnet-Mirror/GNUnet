@@ -39,11 +39,6 @@
 /**
  * Identity Namespace with public key specifier
  */
-#define GNUNET_REST_API_NS_IDENTITY_ALL "/identity/all"
-
-/**
- * Identity Namespace with public key specifier
- */
 #define GNUNET_REST_API_NS_IDENTITY_PUBKEY "/identity/pubkey"
 
 /**
@@ -1155,7 +1150,7 @@ init_cont (struct RequestHandle *handle)
 {
   struct GNUNET_REST_RequestHandlerError err;
   static const struct GNUNET_REST_RequestHandler handlers[] =
-  { { MHD_HTTP_METHOD_GET, GNUNET_REST_API_NS_IDENTITY_ALL, &ego_get_all },
+  { { MHD_HTTP_METHOD_GET, GNUNET_REST_API_NS_IDENTITY, &ego_get_all },
     { MHD_HTTP_METHOD_GET, GNUNET_REST_API_NS_IDENTITY_PUBKEY,
       &ego_get_pubkey },
     { MHD_HTTP_METHOD_GET, GNUNET_REST_API_NS_IDENTITY_NAME, &ego_get_name },
