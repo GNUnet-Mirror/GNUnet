@@ -705,11 +705,9 @@ handle_attribute_result (void *cls, const struct AttributeResultMessage *msg)
   struct GNUNET_RECLAIM_AttributeIterator *it;
   struct GNUNET_RECLAIM_Operation *op;
   size_t attr_len;
-  size_t attest_len;
   uint32_t r_id = ntohl (msg->id);
 
   attr_len = ntohs (msg->attr_len);
-  attest_len = ntohs (msg->attestation_len);
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Processing attribute result.\n");
 
 

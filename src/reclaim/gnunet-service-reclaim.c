@@ -1907,7 +1907,6 @@ attest_iter_cb (void *cls,
   struct Iterator *ai = cls;
   struct GNUNET_MQ_Envelope *env;
   struct AttestationResultMessage *arm;
-  struct GNUNET_RECLAIM_Attestation *att;
   char *data_tmp;
 
   if ((rd_count != 1) ||
@@ -1916,8 +1915,6 @@ attest_iter_cb (void *cls,
     GNUNET_NAMESTORE_zone_iterator_next (ai->ns_it, 1);
     return;
   }
-  att = GNUNET_RECLAIM_attestation_deserialize (rd->data,
-                                                rd->data_size);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Found attestation under: %s\n",
               label);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
