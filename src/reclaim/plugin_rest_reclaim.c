@@ -454,90 +454,11 @@ ticket_collect (void *cls, const struct GNUNET_RECLAIM_Ticket *ticket)
 
 
 static void
-parse_attestation_cont (struct GNUNET_REST_RequestHandle *con_handle,
-                        const char *url,
-                        void *cls)
-{
-  struct RequestHandle *handle = cls;
-
-  char term_data[handle->rest_handle->data_size + 1];
-  json_t *data_json;
-  json_error_t err;
-  int unpack_state;
-  struct MHD_Response *resp;
-  char *val_str = NULL;
-  const char *type_str = NULL;
-  term_data[handle->rest_handle->data_size] = '\0';
-  GNUNET_memcpy (term_data,
-                 handle->rest_handle->data,
-                 handle->rest_handle->data_size);
-  data_json = json_loads (term_data, JSON_DECODE_ANY, &err);
-  GNUNET_assert (NULL != data_json);
-  if (! json_is_object (data_json))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Error json is not array nor object!\n");
-    GNUNET_SCHEDULER_add_now (&do_error, handle);
-    return;
-  }
-  unpack_state = json_unpack (data_json,
-                              "{s:s, s:s!}",
-                              "value",
-                              &val_str,
-                              "type",
-                              &type_str);
-  if ((0 != unpack_state) || (NULL == val_str) || (NULL == type_str))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Error json object has a wrong format!\n");
-    GNUNET_SCHEDULER_add_now (&do_error, handle);
-    return;
-  }
-  if (0 == strcmp (type_str, "JWT"))
-  {
-    // The value is a JWT
-    char *decoded_jwt;
-    char delim[] = ".";
-    char *jwt_body = strtok (val_str, delim);
-    jwt_body = strtok (NULL, delim);
-    GNUNET_STRINGS_base64_decode (jwt_body, strlen (jwt_body),
-                                  (void **) &decoded_jwt);
-    resp = GNUNET_REST_create_response (decoded_jwt);
-    handle->proc (handle->proc_cls, resp, MHD_HTTP_OK);
-    GNUNET_free (decoded_jwt);
-  }
-  else
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Error requested parsing type not supported!\n");
-    GNUNET_SCHEDULER_add_now (&do_error, handle);
-    return;
-  }
-  cleanup_handle (handle);
-  json_decref (data_json);
-}
-
-
-static void
 add_attestation_cont (struct GNUNET_REST_RequestHandle *con_handle,
                       const char *url,
                       void *cls)
 {
   struct RequestHandle *handle = cls;
-  /* Check for substring "parse"
-   * FIXME UGLY! */
-  if (strlen (GNUNET_REST_API_NS_RECLAIM_ATTESTATION) < strlen (
-        handle->url))
-  {
-    if (strncmp ("parse", (handle->url + strlen (
-                             GNUNET_REST_API_NS_RECLAIM_ATTESTATION)
-                           + 1), strlen (
-                   "parse")) == 0)
-    {
-      parse_attestation_cont (con_handle,url,cls);
-      return;
-    }
-  }
   const struct GNUNET_CRYPTO_EcdsaPrivateKey *identity_priv;
   const char *identity;
   struct EgoEntry *ego_entry;
