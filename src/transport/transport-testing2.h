@@ -181,6 +181,11 @@ GNUNET_TRANSPORT_TESTING_transport_communicator_service_start (
   void *cb_cls);
 
 
+void
+GNUNET_TRANSPORT_TESTING_transport_communicator_service_stop (
+  struct GNUNET_TRANSPORT_TESTING_TransportCommunicatorHandle *tc_h);
+
+
 /**
  * @brief Instruct communicator to open a queue
  *
@@ -202,14 +207,17 @@ GNUNET_TRANSPORT_TESTING_transport_communicator_open_queue (struct
  * @brief Instruct communicator to send data
  *
  * @param tc_queue The queue to use for sending
+ * @param cont function to call when done sending
+ * @param cont_cls closure for @a cont
  * @param payload Data to send
- * @param payload_size Size of the payload
- *
- * @return Handle to the transmission
+ * @param payload_size Size of the @a payload
  */
-struct GNUNET_TRANSPORT_TESTING_TransportCommunicatorTransmission *
+void
 GNUNET_TRANSPORT_TESTING_transport_communicator_send (struct
                                                       GNUNET_TRANSPORT_TESTING_TransportCommunicatorQueue
                                                       *tc_queue,
+                                                      GNUNET_SCHEDULER_TaskCallback
+                                                      cont,
+                                                      void *cont_cls,
                                                       const void *payload,
                                                       size_t payload_size);

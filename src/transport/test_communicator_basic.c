@@ -43,8 +43,6 @@
 
 static struct GNUNET_SCHEDULER_Task *to_task;
 
-static struct GNUNET_SCHEDULER_Task *active_task;
-
 static int queue_est = GNUNET_NO;
 
 static struct GNUNET_PeerIdentity peer_id[NUM_PEERS];
@@ -233,21 +231,21 @@ size_test (void *cls)
 {
   char *payload;
 
-  active_task = NULL;
   GNUNET_assert (TP_SIZE_CHECK == phase);
   if (ack >= 64000)
     return; /* Leave some room for our protocol, so not 2^16 exactly */
   payload = make_payload (ack);
+  ack += 5;
+  num_sent++;
   GNUNET_TRANSPORT_TESTING_transport_communicator_send (my_tc,
+                                                        (ack < 64000)
+                                                        ? &size_test
+                                                        : NULL,
+                                                        NULL,
                                                         payload,
                                                         ack);
   GNUNET_free (payload);
-  ack += 5;
-  num_sent++;
   timeout = GNUNET_TIME_relative_to_absolute (GNUNET_TIME_UNIT_SECONDS);
-  if (ack < 64000)
-    active_task = GNUNET_SCHEDULER_add_now (&size_test,
-                                            NULL);
 }
 
 
@@ -256,18 +254,18 @@ long_test (void *cls)
 {
   char *payload;
 
-  active_task = NULL;
   payload = make_payload (LONG_MESSAGE_SIZE);
+  num_sent++;
   GNUNET_TRANSPORT_TESTING_transport_communicator_send (my_tc,
+                                                        (BURST_PACKETS ==
+                                                         num_sent)
+                                                        ? NULL
+                                                        : &long_test,
+                                                        NULL,
                                                         payload,
                                                         LONG_MESSAGE_SIZE);
-  num_sent++;
   GNUNET_free (payload);
   timeout = GNUNET_TIME_relative_to_absolute (GNUNET_TIME_UNIT_SECONDS);
-  if (num_sent == BURST_PACKETS)
-    return;
-  active_task = GNUNET_SCHEDULER_add_now (&long_test,
-                                          NULL);
 }
 
 
@@ -276,18 +274,18 @@ short_test (void *cls)
 {
   char *payload;
 
-  active_task = NULL;
   payload = make_payload (SHORT_MESSAGE_SIZE);
+  num_sent++;
   GNUNET_TRANSPORT_TESTING_transport_communicator_send (my_tc,
+                                                        (BURST_PACKETS ==
+                                                         num_sent)
+                                                        ? NULL
+                                                        : &short_test,
+                                                        NULL,
                                                         payload,
                                                         SHORT_MESSAGE_SIZE);
-  num_sent++;
   GNUNET_free (payload);
   timeout = GNUNET_TIME_relative_to_absolute (GNUNET_TIME_UNIT_SECONDS);
-  if (num_sent >= BURST_PACKETS)
-    return;
-  active_task = GNUNET_SCHEDULER_add_now (&short_test,
-                                          NULL);
 }
 
 
@@ -320,9 +318,7 @@ add_queue_cb (void *cls,
   to_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
                                           &latency_timeout,
                                           NULL);
-  GNUNET_assert (NULL == active_task);
-  active_task = GNUNET_SCHEDULER_add_now (&short_test,
-                                          NULL);
+  short_test (NULL);
 }
 
 
@@ -398,8 +394,7 @@ incoming_message_cb (void *cls,
         num_sent = 0;
         avg_latency = 0;
         num_received = 0;
-        active_task = GNUNET_SCHEDULER_add_now (&long_test,
-                                                NULL);
+        long_test (NULL);
       }
       break;
     }
@@ -436,8 +431,7 @@ incoming_message_cb (void *cls,
         num_received = 0;
         num_sent = 0;
         avg_latency = 0;
-        active_task = GNUNET_SCHEDULER_add_now (&size_test,
-                                                NULL);
+        size_test (NULL);
       }
       break;
     }
@@ -462,8 +456,7 @@ incoming_message_cb (void *cls,
         {
           start_short = GNUNET_TIME_absolute_get ();
           phase = TP_BURST_SHORT;
-          active_task = GNUNET_SCHEDULER_add_now (&short_test,
-                                                  NULL);
+          short_test (NULL);
           break;
         }
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -484,10 +477,9 @@ do_shutdown (void *cls)
     GNUNET_SCHEDULER_cancel (to_task);
     to_task = NULL;
   }
-  if (NULL != active_task)
+  for (unsigned int i = 0; i < NUM_PEERS; i++)
   {
-    GNUNET_SCHEDULER_cancel (active_task);
-    active_task = NULL;
+    GNUNET_TRANSPORT_TESTING_transport_communicator_service_stop (tc_hs[i]);
   }
 }
 

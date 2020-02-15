@@ -858,16 +858,6 @@ nat_start (
 }
 
 
-static void
-do_shutdown (void *cls)
-{
-  struct GNUNET_TRANSPORT_TESTING_TransportCommunicatorHandle *tc_h = cls;
-  shutdown_communicator (tc_h->c_proc);
-  shutdown_service (tc_h->sh);
-  shutdown_nat (tc_h->nat_proc);
-}
-
-
 /**
  * @brief Start communicator part of transport service and communicator
  *
@@ -928,8 +918,19 @@ GNUNET_TRANSPORT_TESTING_transport_communicator_service_start (
   /* Schedule start communicator */
   communicator_start (tc_h,
                       binary_name);
-  GNUNET_SCHEDULER_add_shutdown (&do_shutdown, tc_h);
   return tc_h;
+}
+
+
+void
+GNUNET_TRANSPORT_TESTING_transport_communicator_service_stop (
+  struct GNUNET_TRANSPORT_TESTING_TransportCommunicatorHandle *tc_h)
+{
+  shutdown_communicator (tc_h->c_proc);
+  shutdown_service (tc_h->sh);
+  shutdown_nat (tc_h->nat_proc);
+  GNUNET_CONFIGURATION_destroy (tc_h->cfg);
+  GNUNET_free (tc_h);
 }
 
 
@@ -988,39 +989,41 @@ GNUNET_TRANSPORT_TESTING_transport_communicator_open_queue (
  * @brief Instruct communicator to send data
  *
  * @param tc_queue The queue to use for sending
+ * @param cont function to call when done sending
+ * @param cont_cls closure for @a cont
  * @param payload Data to send
- * @param payload_size Size of the payload
- *
- * @return Handle to the transmission
+ * @param payload_size Size of the @a payload
  */
-struct GNUNET_TRANSPORT_TESTING_TransportCommunicatorTransmission *
+void
 GNUNET_TRANSPORT_TESTING_transport_communicator_send
   (struct GNUNET_TRANSPORT_TESTING_TransportCommunicatorQueue *tc_queue,
+  GNUNET_SCHEDULER_TaskCallback cont,
+  void *cont_cls,
   const void *payload,
   size_t payload_size)
 {
-  struct GNUNET_TRANSPORT_TESTING_TransportCommunicatorTransmission *tc_t;
   struct GNUNET_MessageHeader *mh;
   struct GNUNET_TRANSPORT_SendMessageTo *msg;
   struct GNUNET_MQ_Envelope *env;
   size_t inbox_size;
 
-  inbox_size = sizeof(struct GNUNET_MessageHeader) + payload_size;
-  mh = GNUNET_malloc (inbox_size);
-  mh->size = htons (inbox_size);
-  mh->type = GNUNET_MESSAGE_TYPE_DUMMY;
-  memcpy (&mh[1],
-          payload,
-          payload_size);
+  inbox_size = sizeof (struct GNUNET_MessageHeader) + payload_size;
   env = GNUNET_MQ_msg_extra (msg,
                              inbox_size,
                              GNUNET_MESSAGE_TYPE_TRANSPORT_SEND_MSG);
   msg->qid = htonl (tc_queue->qid);
   msg->mid = tc_queue->mid++;
   msg->receiver = tc_queue->peer_id;
-  memcpy (&msg[1], mh, inbox_size);
-  GNUNET_free (mh);
-  GNUNET_MQ_send (tc_queue->tc_h->c_mq, env);
-  // GNUNET_assert (0); // FIXME: not iplemented!
-  return tc_t;
+  mh = (struct GNUNET_MessageHeader *) &msg[1];
+  mh->size = htons (inbox_size);
+  mh->type = GNUNET_MESSAGE_TYPE_DUMMY;
+  memcpy (&mh[1],
+          payload,
+          payload_size);
+  if (NULL != cont)
+    GNUNET_MQ_notify_sent (env,
+                           cont,
+                           cont_cls);
+  GNUNET_MQ_send (tc_queue->tc_h->c_mq,
+                  env);
 }
