@@ -513,9 +513,9 @@ queue_ready_task (struct GNUNET_SCHEDULER_Task *task)
 {
   enum GNUNET_SCHEDULER_Priority p = check_priority (task->priority);
 
-  GNUNET_CONTAINER_DLL_insert (ready_head[p],
-                               ready_tail[p],
-                               task);
+  GNUNET_CONTAINER_DLL_insert_tail (ready_head[p],
+                                    ready_tail[p],
+                                    task);
   task->in_ready_list = GNUNET_YES;
   ready_count++;
 }
