@@ -386,7 +386,8 @@ GNUNET_PQ_reconnect (struct GNUNET_PQ_Context *db)
                        NULL);
       if (PGRES_COMMAND_OK != PQresultStatus (res))
       {
-        GNUNET_break (0);
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                    "Failed to run SQL logic to setup database versioning logic (permission denied?)\n");
         PQclear (res);
         PQfinish (db->conn);
         db->conn = NULL;
