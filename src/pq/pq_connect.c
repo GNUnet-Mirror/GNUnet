@@ -147,21 +147,17 @@ apply_patch (struct GNUNET_PQ_Context *db,
              const char *load_path,
              unsigned int i)
 {
-  size_t slen = strlen (load_path) + 10;
-
-  char buf[slen];
   struct GNUNET_OS_Process *psql;
   enum GNUNET_OS_ProcessStatusType type;
   unsigned long code;
+  size_t slen = strlen (load_path) + 10;
+  char buf[slen];
 
   GNUNET_snprintf (buf,
                    sizeof (buf),
                    "%s%04u.sql",
                    load_path,
                    i);
-  if (GNUNET_YES !=
-      GNUNET_DISK_file_test (buf))
-    return GNUNET_NO;   /* We are done */
   psql = GNUNET_OS_start_process (GNUNET_NO,
                                   GNUNET_OS_INHERIT_STD_NONE,
                                   NULL,
@@ -213,7 +209,7 @@ GNUNET_PQ_run_sql (struct GNUNET_PQ_Context *db,
                    const char *load_path)
 {
   const char *load_path_suffix;
-
+  size_t slen = strlen (load_path) + 10;
 
   load_path_suffix = strrchr (load_path, '/');
   if (NULL == load_path_suffix)
@@ -225,13 +221,27 @@ GNUNET_PQ_run_sql (struct GNUNET_PQ_Context *db,
   for (unsigned int i = 1; i<10000; i++)
   {
     enum GNUNET_DB_QueryStatus qs;
+    {
+      char buf[slen];
 
-    /* First check with DB versioning schema if this patch was already applied,
+      /* First, check patch actually exists */
+      GNUNET_snprintf (buf,
+                       sizeof (buf),
+                       "%s%04u.sql",
+                       load_path,
+                       i);
+      if (GNUNET_YES !=
+          GNUNET_DISK_file_test (buf))
+        return GNUNET_NO;   /* We are done */
+    }
+
+    /* Second, check with DB versioning schema if this patch was already applied,
        if so, skip it. */
     {
-      char *patch_name;
+      char patch_name[slen];
 
-      GNUNET_asprintf (&patch_name,
+      GNUNET_snprintf (patch_name,
+                       sizeof (patch_name),
                        "%s%04u",
                        load_path_suffix,
                        i);
@@ -265,7 +275,6 @@ GNUNET_PQ_run_sql (struct GNUNET_PQ_Context *db,
           return GNUNET_SYSERR;
         }
       }
-      GNUNET_free (patch_name);
     }
     if (GNUNET_DB_STATUS_SUCCESS_ONE_RESULT == qs)
       continue; /* patch already applied, skip it */
