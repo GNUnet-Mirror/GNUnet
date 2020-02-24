@@ -158,6 +158,10 @@ apply_patch (struct GNUNET_PQ_Context *db,
                    "%s%04u.sql",
                    load_path,
                    i);
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "Applying SQL file `%s' on database %s\n",
+              buf,
+              db->config_str);
   psql = GNUNET_OS_start_process (GNUNET_NO,
                                   GNUNET_OS_INHERIT_STD_NONE,
                                   NULL,
