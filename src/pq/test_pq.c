@@ -238,6 +238,12 @@ main (int argc,
                           NULL,
                           es,
                           NULL);
+  if (NULL == db)
+  {
+    fprintf (stderr,
+             "Cannot run test, database connection failed\n");
+    return 77;
+  }
   if (CONNECTION_OK != PQstatus (db->conn))
   {
     fprintf (stderr,
