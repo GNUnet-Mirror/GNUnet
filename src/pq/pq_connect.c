@@ -236,7 +236,7 @@ GNUNET_PQ_run_sql (struct GNUNET_PQ_Context *db,
                        i);
       if (GNUNET_YES !=
           GNUNET_DISK_file_test (buf))
-        return GNUNET_NO;   /* We are done */
+        return GNUNET_OK;   /* We are done */
     }
 
     /* Second, check with DB versioning schema if this patch was already applied,
@@ -409,10 +409,13 @@ GNUNET_PQ_reconnect (struct GNUNET_PQ_Context *db)
     }
     PQclear (res);
 
-    if (GNUNET_OK !=
+    if (GNUNET_SYSERR ==
         GNUNET_PQ_run_sql (db,
                            db->load_path))
     {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  "Failed to load SQL statements from `%s'\n",
+                  db->load_path);
       PQfinish (db->conn);
       db->conn = NULL;
       return;
