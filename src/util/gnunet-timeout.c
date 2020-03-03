@@ -45,13 +45,11 @@ sigchld_handler (int val)
   if (WIFEXITED (status) != 0)
   {
     ret = WEXITSTATUS (status);
-    fprintf (stderr, "Process exited with result %u\n", ret);
     _exit (ret);  /* return same status code */
   }
   if (WIFSIGNALED (status) != 0)
   {
     ret = WTERMSIG (status);
-    fprintf (stderr, "Process received signal %u\n", ret);
     kill (getpid (), ret); /* kill self with the same signal */
   }
   _exit (-1);
