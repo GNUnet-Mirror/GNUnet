@@ -964,7 +964,10 @@ attr_collect (void *cls,
   json_object_set_new (attr_obj, "value", json_string (tmp_value));
   json_object_set_new (attr_obj, "name", json_string (attr->name));
 
-  json_object_set_new (attr_obj, "flag", json_string ("1"));
+  if (GNUNET_RECLAIM_id_is_zero (&attr->attestation))
+    json_object_set_new (attr_obj, "flag", json_string ("0"));
+  else
+    json_object_set_new (attr_obj, "flag", json_string ("1"));
   type = GNUNET_RECLAIM_attribute_number_to_typename (attr->type);
   json_object_set_new (attr_obj, "type", json_string (type));
   id_str = GNUNET_STRINGS_data_to_string_alloc (&attr->id,

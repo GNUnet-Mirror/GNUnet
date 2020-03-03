@@ -366,6 +366,13 @@ GNUNET_RECLAIM_attribute_list_deserialize (const char *data, size_t data_size)
     ale->attribute =
       GNUNET_RECLAIM_attribute_deserialize (read_ptr,
                                             data_size - (read_ptr - data));
+    if (NULL == ale->attribute)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                  "Failed to deserialize malformed attribute.\n");
+      GNUNET_free (ale);
+      return al;
+    }
     GNUNET_CONTAINER_DLL_insert (al->list_head, al->list_tail, ale);
     attr_len = GNUNET_RECLAIM_attribute_serialize_get_size (ale->attribute);
     read_ptr += attr_len;
