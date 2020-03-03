@@ -336,6 +336,13 @@ GNUNET_RECLAIM_attestation_list_deserialize (const char *data, size_t data_size)
     ale->attestation =
       GNUNET_RECLAIM_attestation_deserialize (read_ptr,
                                               data_size - (read_ptr - data));
+    if (NULL == ale->attestation)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                  "Failed to deserialize malformed attestation.\n");
+      GNUNET_free (ale);
+      return al;
+    }
     GNUNET_CONTAINER_DLL_insert (al->list_head, al->list_tail, ale);
     att_len = GNUNET_RECLAIM_attestation_serialize_get_size (ale->attestation);
     read_ptr += att_len;
