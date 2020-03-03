@@ -1241,7 +1241,7 @@ GNUNET_CONFIGURATION_have_value (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @param cfg configuration to use for path expansion
  * @param orig string to $-expand (will be freed!)
  * @param depth recursion depth, used to detect recursive expansions
- * @return $-expanded string
+ * @return $-expanded string, never NULL unless @a orig was NULL
  */
 static char *
 expand_dollar (const struct GNUNET_CONFIGURATION_Handle *cfg,
@@ -1421,6 +1421,7 @@ GNUNET_CONFIGURATION_expand_dollar (
       continue;
     dup = GNUNET_strdup (orig + i);
     dup = expand_dollar (cfg, dup, 0);
+    GNUNET_assert (NULL != dup); /* make compiler happy */
     len = strlen (dup) + 1;
     orig = GNUNET_realloc (orig, i + len);
     GNUNET_memcpy (orig + i, dup, len);

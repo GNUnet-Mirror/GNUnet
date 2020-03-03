@@ -1932,6 +1932,7 @@ GNUNET_STRINGS_base64url_encode (const void *in, size_t len, char **output)
   return strlen (enc);
 }
 
+
 #define cvtfind(a)                        \
   ((((a) >= 'A') && ((a) <= 'Z'))         \
    ? (a) - 'A'                          \
@@ -1964,7 +1965,7 @@ GNUNET_STRINGS_base64_decode (const char *data, size_t len, void **out)
                 "ignoring CR/LF\n");                              \
     i++;                                                          \
     if (i >= len)                                                 \
-    goto END;                                                   \
+      goto END;                                                   \
   }
 
   output = GNUNET_malloc ((len * 3 / 4) + 8);
@@ -2046,16 +2047,20 @@ GNUNET_STRINGS_base64url_decode (const char *data, size_t len, void **out)
   case 0:
     break;   // No pad chars in this case
   case 2:
-    strncpy (&s[len], "==", 2);
+    memcpy (&s[len],
+            "==",
+            2);
+    len += 2;
     break;         // Two pad chars
   case 3:
     s[len] = '=';
+    len++;
     break;         // One pad char
   default:
     GNUNET_assert (0);
     break;
   }
-  ret = GNUNET_STRINGS_base64_decode (s, strlen (s), out);
+  ret = GNUNET_STRINGS_base64_decode (s, len, out);
   GNUNET_free (s);
   return ret;
 }
