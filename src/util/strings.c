@@ -1914,7 +1914,7 @@ GNUNET_STRINGS_base64url_encode (const void *in, size_t len, char **output)
 
   GNUNET_STRINGS_base64_encode (in, len, output);
   enc = *output;
-  // Replace with correct characters for base64url
+  /* Replace with correct characters for base64url */
   pos = 0;
   while ('\0' != enc[pos])
   {
