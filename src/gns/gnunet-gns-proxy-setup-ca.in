@@ -224,6 +224,16 @@ importbrowsers()
                 certutil -A -n "GNS Proxy CA" -t CT,, -d "$f" < $GNSCERT
             fi
         done
+        for f in ~/.mozilla/icecat/*.*/
+        do
+            if [ -d $f ]; then
+                infomsg "Importing CA into Icecat at $f"
+                # delete old certificate (if any)
+                certutil -D -n "GNS Proxy CA" -d "$f" >/dev/null 2>/dev/null
+                # add new certificate
+                certutil -A -n "GNS Proxy CA" -t CT,, -d "$f" < $GNSCERT
+            fi
+        done
         # TODO: Error handling?
         if [ -d ~/.pki/nssdb/ ]; then
             statusmsg "Importing CA into Chrome at ~/.pki/nssdb/"
