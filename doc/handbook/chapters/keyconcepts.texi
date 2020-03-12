@@ -284,12 +284,7 @@ You can find your peer identity by running @command{gnunet-peerinfo -s}.
 @c FIXME: Explain or link to an explanation of the concept of public keys
 @c and private keys.
 @c FIXME: Rewrite for the latest GNS changes.
-GNS (Matthias Wachs, Martin Schanzenbach, and Christian Grothoff.
-A Censorship-Resistant, Privacy-Enhancing and Fully Decentralized Name
-System. In proceedings of 13th International Conference on Cryptology and
-Network Security (CANS 2014). 2014.
-@uref{https://git.gnunet.org/bibliography.git/plain/docs/gns2014wachs.pdf, https://git.gnunet.org/bibliography.git/plain/docs/gns2014wachs.pdf})
-zones are similar to those of DNS zones, but instead of a hierarchy of
+GNS zones are similar to those of DNS zones, but instead of a hierarchy of
 authorities to governing their use, GNS zones are controlled by a private
 key.
 When you create a record in a DNS zone, that information is stored in your
@@ -308,6 +303,14 @@ So when we talk about the owner of a GNS zone, that's really the owner of
 the private key.
 And a user accessing a zone needs to somehow specify the corresponding
 public key first.
+
+For more information, refer to the following paper:
+
+Matthias Wachs, Martin Schanzenbach, and Christian Grothoff.
+A Censorship-Resistant, Privacy-Enhancing and Fully Decentralized Name
+System. In proceedings of 13th International Conference on Cryptology and
+Network Security (CANS 2014). 2014.
+@uref{https://git.gnunet.org/bibliography.git/plain/docs/gns2014wachs.pdf, https://git.gnunet.org/bibliography.git/plain/docs/gns2014wachs.pdf}
 
 @cindex Egos
 @node Egos
