@@ -827,7 +827,6 @@ GNUNET_DISK_file_write (const struct GNUNET_DISK_FileHandle *h,
     return GNUNET_SYSERR;
   }
 
-
   return write (h->fd, buffer, n);
 }
 
