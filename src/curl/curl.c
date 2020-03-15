@@ -189,7 +189,8 @@ GNUNET_CURL_init (GNUNET_CURL_RescheduleCallback cb, void *cb_cls)
 
   if (curl_fail)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Curl was not initialised properly\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Curl was not initialised properly\n");
     return NULL;
   }
   if (NULL == (multi = curl_multi_init ()))
@@ -224,6 +225,27 @@ GNUNET_CURL_enable_async_scope_header (struct GNUNET_CURL_Context *ctx,
                                        const char *header_name)
 {
   ctx->async_scope_id_header = header_name;
+}
+
+
+/**
+ * Return #GNUNET_YES if given a valid scope ID and
+ * #GNUNET_NO otherwise.  See #setup_job_headers,
+ * logic related to
+ * #GNUNET_CURL_enable_async_scope_header() for the
+ * code that generates such a @a scope_id.
+ *
+ * @returns #GNUNET_YES iff given a valid scope ID
+ */
+int
+GNUNET_CURL_is_valid_scope_id (const char *scope_id)
+{
+  if (strlen (scope_id) >= 64)
+    return GNUNET_NO;
+  for (size_t i = 0; i < strlen (scope_id); i++)
+    if (! (isalnum (scope_id[i]) || (scope_id[i] == '-')))
+      return GNUNET_NO;
+  return GNUNET_YES;
 }
 
 

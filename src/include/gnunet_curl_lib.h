@@ -360,8 +360,21 @@ GNUNET_CURL_gnunet_scheduler_reschedule (void *cls);
  * @param header_name name of the header to send.
  */
 void
-GNUNET_CURL_enable_async_scope_header (struct GNUNET_CURL_Context *ctx, const
-                                       char *header_name);
+GNUNET_CURL_enable_async_scope_header (struct GNUNET_CURL_Context *ctx,
+                                       const char *header_name);
+
+
+/**
+ * Return #GNUNET_YES if given a valid scope ID and
+ * #GNUNET_NO otherwise.  See
+ * #GNUNET_CURL_enable_async_scope_header() for the
+ * code that generates such a @a scope_id in an HTTP
+ * header.
+ *
+ * @returns #GNUNET_YES iff given a valid scope ID
+ */
+int
+GNUNET_CURL_is_valid_scope_id (const char *scope_id);
 
 
 #endif
