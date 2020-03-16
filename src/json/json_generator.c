@@ -45,6 +45,7 @@ GNUNET_JSON_from_data (const void *data,
   buf = GNUNET_STRINGS_data_to_string_alloc (data, size);
   json = json_string (buf);
   GNUNET_free (buf);
+  GNUNET_break (NULL != json);
   return json;
 }
 
@@ -64,17 +65,34 @@ GNUNET_JSON_from_time_abs (struct GNUNET_TIME_Absolute stamp)
                  GNUNET_TIME_round_abs (&stamp));
 
   j = json_object ();
-
+  if (NULL == j)
+  {
+    GNUNET_break (0);
+    return NULL;
+  }
   if (stamp.abs_value_us == GNUNET_TIME_UNIT_FOREVER_ABS.abs_value_us)
   {
-    json_object_set_new (j,
-                         "t_ms",
-                         json_string ("never"));
+    if (0 !=
+        json_object_set_new (j,
+                             "t_ms",
+                             json_string ("never")))
+    {
+      GNUNET_break (0);
+      json_decref (j);
+      return NULL;
+    }
     return j;
   }
-  json_object_set_new (j,
-                       "t_ms",
-                       json_integer ((json_int_t) (stamp.abs_value_us / 1000LL)));
+  if (0 !=
+      json_object_set_new (j,
+                           "t_ms",
+                           json_integer ((json_int_t) (stamp.abs_value_us
+                                                       / 1000LL))))
+  {
+    GNUNET_break (0);
+    json_decref (j);
+    return NULL;
+  }
   return j;
 }
 
@@ -107,17 +125,34 @@ GNUNET_JSON_from_time_rel (struct GNUNET_TIME_Relative stamp)
                  GNUNET_TIME_round_rel (&stamp));
 
   j = json_object ();
-
+  if (NULL == j)
+  {
+    GNUNET_break (0);
+    return NULL;
+  }
   if (stamp.rel_value_us == GNUNET_TIME_UNIT_FOREVER_REL.rel_value_us)
   {
-    json_object_set_new (j,
-                         "d_ms",
-                         json_string ("forever"));
+    if (0 !=
+        json_object_set_new (j,
+                             "d_ms",
+                             json_string ("forever")))
+    {
+      GNUNET_break (0);
+      json_decref (j);
+      return NULL;
+    }
     return j;
   }
-  json_object_set_new (j,
-                       "d_ms",
-                       json_integer ((json_int_t) (stamp.rel_value_us / 1000LL)));
+  if (0 !=
+      json_object_set_new (j,
+                           "d_ms",
+                           json_integer ((json_int_t) (stamp.rel_value_us
+                                                       / 1000LL))))
+  {
+    GNUNET_break (0);
+    json_decref (j);
+    return NULL;
+  }
   return j;
 }
 
@@ -187,10 +222,27 @@ GNUNET_JSON_from_gnsrecord (const char*rname,
   json_t *records;
 
   data = json_object ();
-  json_object_set_new (data,
-                       "record_name",
-                       json_string (rname));
+  if (NULL == data)
+  {
+    GNUNET_break (0);
+    return NULL;
+  }
+  if (0 !=
+      json_object_set_new (data,
+                           "record_name",
+                           json_string (rname)))
+  {
+    GNUNET_break (0);
+    json_decref (data);
+    return NULL;
+  }
   records = json_array ();
+  if (NULL == records)
+  {
+    GNUNET_break (0);
+    json_decref (data);
+    return NULL;
+  }
   for (int i = 0; i < rd_count; i++)
   {
     value_str = GNUNET_GNSRECORD_value_to_string (rd[i].record_type,
@@ -212,11 +264,33 @@ GNUNET_JSON_from_gnsrecord (const char*rname,
                         expiration_time_str,
                         "flag",
                         rd[i].flags);
-    GNUNET_assert (NULL != record);
     GNUNET_free (value_str);
-    json_array_append_new (records, record);
+    if (NULL == record)
+    {
+      GNUNET_break (0);
+      json_decref (records);
+      json_decref (data);
+      return NULL;
+    }
+    if (0 !=
+        json_array_append_new (records,
+                               record))
+    {
+      GNUNET_break (0);
+      json_decref (records);
+      json_decref (data);
+      return NULL;
+    }
   }
-  json_object_set_new (data, "data", records);
+  if (0 !=
+      json_object_set_new (data,
+                           "data",
+                           records))
+  {
+    GNUNET_break (0);
+    json_decref (data);
+    return NULL;
+  }
   return data;
 }
 
