@@ -163,7 +163,7 @@ jwt_parse_attributes (void *cls,
   json_t *json_val;
   json_error_t *json_err = NULL;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "%s\n", attest->data);
+  /* GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "%s\n", attest->data); (not OK: 'data' is not defined as 0-terminated text, but binary) */
   if (GNUNET_RECLAIM_ATTESTATION_TYPE_JWT != attest->type)
     return NULL;
   attrs = GNUNET_new (struct GNUNET_RECLAIM_AttributeList);
