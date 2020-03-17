@@ -200,13 +200,13 @@ run (void *cls,
     struct GNUNET_CRYPTO_RsaBlindingKeySecret bks;
     struct GNUNET_CRYPTO_RsaSignature *blinded_sig;
     struct GNUNET_CRYPTO_RsaSignature *sig;
-    char *blinded_data;
+    void *blinded_data;
     size_t blinded_len;
-    char *public_enc_data;
+    void *public_enc_data;
     size_t public_enc_len;
-    char *blinded_sig_enc_data;
+    void *blinded_sig_enc_data;
     size_t blinded_sig_enc_length;
-    char *sig_enc_data;
+    void *sig_enc_data;
     size_t sig_enc_length;
     skey = GNUNET_CRYPTO_rsa_private_key_create (2048);
     pkey = GNUNET_CRYPTO_rsa_private_key_get_public (skey);
@@ -214,8 +214,10 @@ run (void *cls,
                                 sizeof (struct GNUNET_HashCode));
     GNUNET_CRYPTO_random_block (GNUNET_CRYPTO_QUALITY_WEAK, &bks, sizeof (struct
                                                                           GNUNET_CRYPTO_RsaBlindingKeySecret));
-    GNUNET_assert (GNUNET_YES == GNUNET_CRYPTO_rsa_blind (&message_hash, &bks,
-                                                          pkey, &blinded_data,
+    GNUNET_assert (GNUNET_YES == GNUNET_CRYPTO_rsa_blind (&message_hash,
+                                                          &bks,
+                                                          pkey,
+                                                          &blinded_data,
                                                           &blinded_len));
     blinded_sig = GNUNET_CRYPTO_rsa_sign_blinded (skey, blinded_data,
                                                   blinded_len);
@@ -274,5 +276,6 @@ main (int argc,
     return 1;
   return 0;
 }
+
 
 /* end of gnunet-crypto-tvg.c */
