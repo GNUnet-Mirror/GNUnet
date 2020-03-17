@@ -1908,7 +1908,7 @@ GNUNET_CRYPTO_rsa_private_key_free (struct GNUNET_CRYPTO_RsaPrivateKey *key);
 size_t
 GNUNET_CRYPTO_rsa_private_key_encode (
   const struct GNUNET_CRYPTO_RsaPrivateKey *key,
-  char **buffer);
+  void **buffer);
 
 
 /**
@@ -1916,11 +1916,12 @@ GNUNET_CRYPTO_rsa_private_key_encode (
  * to the "normal", internal format.
  *
  * @param buf the buffer where the private key data is stored
- * @param len the length of the data in @a buf
+ * @param buf_size the size of the data in @a buf
  * @return NULL on error
  */
 struct GNUNET_CRYPTO_RsaPrivateKey *
-GNUNET_CRYPTO_rsa_private_key_decode (const char *buf, size_t len);
+GNUNET_CRYPTO_rsa_private_key_decode (const void *buf,
+                                      size_t buf_size);
 
 
 /**
@@ -1986,7 +1987,7 @@ GNUNET_CRYPTO_rsa_public_key_free (struct GNUNET_CRYPTO_RsaPublicKey *key);
 size_t
 GNUNET_CRYPTO_rsa_public_key_encode (
   const struct GNUNET_CRYPTO_RsaPublicKey *key,
-  char **buffer);
+  void **buffer);
 
 
 /**
@@ -2060,7 +2061,7 @@ int
 GNUNET_CRYPTO_rsa_blind (const struct GNUNET_HashCode *hash,
                          const struct GNUNET_CRYPTO_RsaBlindingKeySecret *bks,
                          struct GNUNET_CRYPTO_RsaPublicKey *pkey,
-                         char **buf,
+                         void **buf,
                          size_t *buf_size);
 
 
@@ -2109,7 +2110,7 @@ GNUNET_CRYPTO_rsa_signature_free (struct GNUNET_CRYPTO_RsaSignature *sig);
 size_t
 GNUNET_CRYPTO_rsa_signature_encode (
   const struct GNUNET_CRYPTO_RsaSignature *sig,
-  char **buffer);
+  void **buffer);
 
 
 /**
@@ -2117,11 +2118,12 @@ GNUNET_CRYPTO_rsa_signature_encode (
  * format.
  *
  * @param buf the buffer where the public key data is stored
- * @param len the length of the data in @a buf
+ * @param buf_size the number of bytes of the data in @a buf
  * @return NULL on error
  */
 struct GNUNET_CRYPTO_RsaSignature *
-GNUNET_CRYPTO_rsa_signature_decode (const char *buf, size_t len);
+GNUNET_CRYPTO_rsa_signature_decode (const void *buf,
+                                    size_t buf_size);
 
 
 /**

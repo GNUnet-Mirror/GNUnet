@@ -198,7 +198,7 @@ GNUNET_CRYPTO_rsa_private_key_free (struct GNUNET_CRYPTO_RsaPrivateKey *key)
 size_t
 GNUNET_CRYPTO_rsa_private_key_encode (const struct
                                       GNUNET_CRYPTO_RsaPrivateKey *key,
-                                      char **buffer)
+                                      void **buffer)
 {
   size_t n;
   char *b;
@@ -223,12 +223,12 @@ GNUNET_CRYPTO_rsa_private_key_encode (const struct
  * to the "normal", internal format.
  *
  * @param buf the buffer where the private key data is stored
- * @param len the length of the data in @a buf
+ * @param buf_size the size of the data in @a buf
  * @return NULL on error
  */
 struct GNUNET_CRYPTO_RsaPrivateKey *
-GNUNET_CRYPTO_rsa_private_key_decode (const char *buf,
-                                      size_t len)
+GNUNET_CRYPTO_rsa_private_key_decode (const void *buf,
+                                      size_t buf_size)
 {
   struct GNUNET_CRYPTO_RsaPrivateKey *key;
 
@@ -236,7 +236,7 @@ GNUNET_CRYPTO_rsa_private_key_decode (const char *buf,
   if (0 !=
       gcry_sexp_new (&key->sexp,
                      buf,
-                     len,
+                     buf_size,
                      0))
   {
     LOG (GNUNET_ERROR_TYPE_WARNING,
@@ -343,9 +343,9 @@ GNUNET_NETWORK_STRUCT_END
  * @return size of memory allocated in @a buffer
  */
 size_t
-GNUNET_CRYPTO_rsa_public_key_encode (const struct
-                                     GNUNET_CRYPTO_RsaPublicKey *key,
-                                     char **buffer)
+GNUNET_CRYPTO_rsa_public_key_encode (
+  const struct GNUNET_CRYPTO_RsaPublicKey *key,
+  void **buffer)
 {
   gcry_mpi_t ne[2];
   size_t n_size;
@@ -419,7 +419,7 @@ void
 GNUNET_CRYPTO_rsa_public_key_hash (const struct GNUNET_CRYPTO_RsaPublicKey *key,
                                    struct GNUNET_HashCode *hc)
 {
-  char *buf;
+  void *buf;
   size_t buf_size;
 
   buf_size = GNUNET_CRYPTO_rsa_public_key_encode (key,
@@ -623,8 +623,8 @@ int
 GNUNET_CRYPTO_rsa_signature_cmp (struct GNUNET_CRYPTO_RsaSignature *s1,
                                  struct GNUNET_CRYPTO_RsaSignature *s2)
 {
-  char *b1;
-  char *b2;
+  void *b1;
+  void *b2;
   size_t z1;
   size_t z2;
   int ret;
@@ -656,8 +656,8 @@ int
 GNUNET_CRYPTO_rsa_public_key_cmp (struct GNUNET_CRYPTO_RsaPublicKey *p1,
                                   struct GNUNET_CRYPTO_RsaPublicKey *p2)
 {
-  char *b1;
-  char *b2;
+  void *b1;
+  void *b2;
   size_t z1;
   size_t z2;
   int ret;
@@ -689,8 +689,8 @@ int
 GNUNET_CRYPTO_rsa_private_key_cmp (struct GNUNET_CRYPTO_RsaPrivateKey *p1,
                                    struct GNUNET_CRYPTO_RsaPrivateKey *p2)
 {
-  char *b1;
-  char *b2;
+  void *b1;
+  void *b2;
   size_t z1;
   size_t z2;
   int ret;
@@ -796,7 +796,7 @@ rsa_full_domain_hash (const struct GNUNET_CRYPTO_RsaPublicKey *pkey,
                       const struct GNUNET_HashCode *hash)
 {
   gcry_mpi_t r, n;
-  char *xts;
+  void *xts;
   size_t xts_len;
   int ok;
 
@@ -841,7 +841,8 @@ int
 GNUNET_CRYPTO_rsa_blind (const struct GNUNET_HashCode *hash,
                          const struct GNUNET_CRYPTO_RsaBlindingKeySecret *bks,
                          struct GNUNET_CRYPTO_RsaPublicKey *pkey,
-                         char **buf, size_t *buf_size)
+                         void **buf,
+                         size_t *buf_size)
 {
   struct RsaBlindingKey *bkey;
   gcry_mpi_t data;
@@ -852,7 +853,8 @@ GNUNET_CRYPTO_rsa_blind (const struct GNUNET_HashCode *hash,
 
   BENCHMARK_START (rsa_blind);
 
-  GNUNET_assert (buf != NULL && buf_size != NULL);
+  GNUNET_assert (buf != NULL);
+  GNUNET_assert (buf_size != NULL);
   ret = key_from_sexp (ne, pkey->sexp, "public-key", "ne");
   if (0 != ret)
     ret = key_from_sexp (ne, pkey->sexp, "rsa", "ne");
@@ -891,7 +893,8 @@ GNUNET_CRYPTO_rsa_blind (const struct GNUNET_HashCode *hash,
   gcry_mpi_release (r_e);
   rsa_blinding_key_free (bkey);
 
-  *buf_size = numeric_mpi_alloc_n_print (data_r_e, buf);
+  *buf_size = numeric_mpi_alloc_n_print (data_r_e,
+                                         (char **) buf);
   gcry_mpi_release (data_r_e);
 
   BENCHMARK_END (rsa_blind);
@@ -1070,9 +1073,9 @@ GNUNET_CRYPTO_rsa_signature_free (struct GNUNET_CRYPTO_RsaSignature *sig)
  * @return size of memory allocated in @a buffer
  */
 size_t
-GNUNET_CRYPTO_rsa_signature_encode (const struct
-                                    GNUNET_CRYPTO_RsaSignature *sig,
-                                    char **buffer)
+GNUNET_CRYPTO_rsa_signature_encode (
+  const struct GNUNET_CRYPTO_RsaSignature *sig,
+  void **buffer)
 {
   gcry_mpi_t s;
   size_t buf_size;
@@ -1103,7 +1106,7 @@ GNUNET_CRYPTO_rsa_signature_encode (const struct
                                  &rsize,
                                  s));
   GNUNET_assert (rsize == buf_size);
-  *buffer = (char *) buf;
+  *buffer = (void *) buf;
   gcry_mpi_release (s);
   return buf_size;
 }
@@ -1114,12 +1117,12 @@ GNUNET_CRYPTO_rsa_signature_encode (const struct
  * format.
  *
  * @param buf the buffer where the public key data is stored
- * @param len the length of the data in @a buf
+ * @param buf_size the size of the data in @a buf
  * @return NULL on error
  */
 struct GNUNET_CRYPTO_RsaSignature *
-GNUNET_CRYPTO_rsa_signature_decode (const char *buf,
-                                    size_t len)
+GNUNET_CRYPTO_rsa_signature_decode (const void *buf,
+                                    size_t buf_size)
 {
   struct GNUNET_CRYPTO_RsaSignature *sig;
   gcry_mpi_t s;
@@ -1129,7 +1132,7 @@ GNUNET_CRYPTO_rsa_signature_decode (const char *buf,
       gcry_mpi_scan (&s,
                      GCRYMPI_FMT_USG,
                      buf,
-                     len,
+                     buf_size,
                      NULL))
   {
     GNUNET_break_op (0);
