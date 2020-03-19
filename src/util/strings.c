@@ -266,11 +266,14 @@ convert_with_table (const char *input,
   const char *tok;
   unsigned long long last;
   unsigned int i;
+  char *sptr;
 
   ret = 0;
   last = 0;
   in = GNUNET_strdup (input);
-  for (tok = strtok (in, " "); tok != NULL; tok = strtok (NULL, " "))
+  for (tok = strtok_r (in, " ", &sptr);
+       tok != NULL;
+       tok = strtok_r (NULL, " ", &sptr))
   {
     do
     {
