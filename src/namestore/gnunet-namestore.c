@@ -1193,6 +1193,23 @@ run_with_zone_pkey (const struct GNUNET_CONFIGURATION_Handle *cfg)
       ret = 1;
       return;
     }
+    if (NULL == expirationstring)
+    {
+      fprintf (stderr,
+               _ ("Missing option `%s' for operation `%s'\n"),
+               "-e",
+               _ ("add"));
+      GNUNET_SCHEDULER_shutdown ();
+      ret = 1;
+      return;
+    }
+    if (GNUNET_OK != parse_expiration (expirationstring, &etime_is_rel, &etime))
+    {
+      fprintf (stderr, _ ("Invalid time format `%s'\n"), expirationstring);
+      GNUNET_SCHEDULER_shutdown ();
+      ret = 1;
+      return;
+    }
     memset (&rd, 0, sizeof(rd));
     rd.data = &pkey;
     rd.data_size = sizeof(struct GNUNET_CRYPTO_EcdsaPublicKey);
