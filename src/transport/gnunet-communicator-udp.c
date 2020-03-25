@@ -1133,14 +1133,18 @@ setup_cipher (const struct GNUNET_HashCode *msec,
 {
   char key[AES_KEY_SIZE];
   char iv[AES_IV_SIZE];
+  int rc;
 
-  gcry_cipher_open (cipher,
-                    GCRY_CIPHER_AES256 /* low level: go for speed */,
-                    GCRY_CIPHER_MODE_GCM,
-                    0 /* flags */);
+  GNUNET_assert (0 ==
+                 gcry_cipher_open (cipher,
+                                   GCRY_CIPHER_AES256 /* low level: go for speed */,
+                                   GCRY_CIPHER_MODE_GCM,
+                                   0 /* flags */));
   get_iv_key (msec, serial, key, iv);
-  gcry_cipher_setkey (*cipher, key, sizeof(key));
-  gcry_cipher_setiv (*cipher, iv, sizeof(iv));
+  rc = gcry_cipher_setkey (*cipher, key, sizeof(key));
+  GNUNET_assert ((0 == rc) || ((char) rc == GPG_ERR_WEAK_KEY));
+  rc = gcry_cipher_setiv (*cipher, iv, sizeof(iv));
+  GNUNET_assert ((0 == rc) || ((char) rc == GPG_ERR_WEAK_KEY));
 }
 
 
