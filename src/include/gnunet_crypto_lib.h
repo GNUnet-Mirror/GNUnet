@@ -183,7 +183,9 @@ struct GNUNET_CRYPTO_EcdsaSignature
 
 /**
  * Public ECC key (always for curve Ed25519) encoded in a format
- * suitable for network transmission and EdDSA signatures.
+ * suitable for network transmission and EdDSA signatures.  Refer
+ * to section 5.1.3 of rfc8032, for a thorough explanation of how
+ * this value maps to the x- and y-coordinates.
  */
 struct GNUNET_CRYPTO_EddsaPublicKey
 {
