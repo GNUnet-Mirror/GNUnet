@@ -623,18 +623,42 @@ set_timetravel_time (struct GNUNET_GETOPT_CommandLineProcessorContext *ctx,
                      const char *value)
 {
   long long delta;
+  long long minus;
+  struct GNUNET_TIME_Relative rt;
 
   (void) scls;
   (void) ctx;
-  if (1 != sscanf (value,
-                   "%lld",
-                   &delta))
+  while (isspace (value[0]))
+    value++;
+  minus = 1;
+  if (value[0] == '-')
+  {
+    minus = -1;
+    value++;
+  }
+  else if (value[0] == '+')
+  {
+    value++;
+  }
+  if (GNUNET_OK !=
+      GNUNET_STRINGS_fancy_time_to_relative (value,
+                                             &rt))
   {
     fprintf (stderr,
-             _ ("You must pass a number to the `%s' option.\n"),
+             _ (
+               "You must pass a relative time (optionally with sign) to the `%s' option.\n"),
              option);
     return GNUNET_SYSERR;
   }
+  if (rt.rel_value_us > LONG_LONG_MAX)
+  {
+    fprintf (stderr,
+             _ ("Value given for time travel `%s' option is too big.\n"),
+             option);
+    return GNUNET_SYSERR;
+  }
+  delta = (long long) rt.rel_value_us;
+  delta *= minus;
   GNUNET_TIME_set_offset (delta);
   return GNUNET_OK;
 }

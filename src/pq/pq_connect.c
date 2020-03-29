@@ -190,7 +190,7 @@ apply_patch (struct GNUNET_PQ_Context *db,
        (0 != code) )
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Could not run PSQL on file %s: %d",
+                "Could not run PSQL on file %s: %d\n",
                 buf,
                 (int) code);
     return GNUNET_SYSERR;

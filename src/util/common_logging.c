@@ -705,7 +705,9 @@ parse_all_definitions ()
  * @return #GNUNET_OK on success
  */
 int
-GNUNET_log_setup (const char *comp, const char *loglevel, const char *logfile)
+GNUNET_log_setup (const char *comp,
+                  const char *loglevel,
+                  const char *logfile)
 {
   const char *env_logfile;
 
