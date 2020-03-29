@@ -650,7 +650,7 @@ set_timetravel_time (struct GNUNET_GETOPT_CommandLineProcessorContext *ctx,
              option);
     return GNUNET_SYSERR;
   }
-  if (rt.rel_value_us > LONG_LONG_MAX)
+  if (rt.rel_value_us > LLONG_MAX)
   {
     fprintf (stderr,
              _ ("Value given for time travel `%s' option is too big.\n"),
