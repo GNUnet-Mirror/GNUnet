@@ -100,7 +100,7 @@ struct CustomLogger
  * Asynchronous scope of the current thread, or NULL if we have not
  * entered an async scope yet.
  */
-static __thread struct GNUNET_AsyncScopeSave current_async_scope;
+static GNUNET_THREAD_LOCAL struct GNUNET_AsyncScopeSave current_async_scope;
 
 /**
  * The last "bulk" error message that we have been logging.
@@ -287,7 +287,7 @@ GNUNET_abort_ ()
  * Utility function - reallocates logdefs array to be twice as large.
  */
 static void
-resize_logdefs ()
+resize_logdefs (void)
 {
   logdefs_size = (logdefs_size + 1) * 2;
   logdefs = GNUNET_realloc (logdefs, logdefs_size * sizeof(struct LogDef));
@@ -1148,7 +1148,7 @@ GNUNET_h2s (const struct GNUNET_HashCode *hc)
 const char *
 GNUNET_h2s2 (const struct GNUNET_HashCode *hc)
 {
-  static struct GNUNET_CRYPTO_HashAsciiEncoded ret;
+  static GNUNET_THREAD_LOCAL struct GNUNET_CRYPTO_HashAsciiEncoded ret;
 
   GNUNET_CRYPTO_hash_to_enc (hc, &ret);
   ret.encoding[8] = '\0';
@@ -1168,7 +1168,7 @@ GNUNET_h2s2 (const struct GNUNET_HashCode *hc)
 const char *
 GNUNET_p2s (const struct GNUNET_CRYPTO_EddsaPublicKey *p)
 {
-  static struct GNUNET_CRYPTO_HashAsciiEncoded ret;
+  static GNUNET_THREAD_LOCAL struct GNUNET_CRYPTO_HashAsciiEncoded ret;
   struct GNUNET_HashCode hc;
 
   GNUNET_CRYPTO_hash (p, sizeof(*p), &hc);
@@ -1190,7 +1190,7 @@ GNUNET_p2s (const struct GNUNET_CRYPTO_EddsaPublicKey *p)
 const char *
 GNUNET_p2s2 (const struct GNUNET_CRYPTO_EddsaPublicKey *p)
 {
-  static struct GNUNET_CRYPTO_HashAsciiEncoded ret;
+  static GNUNET_THREAD_LOCAL struct GNUNET_CRYPTO_HashAsciiEncoded ret;
   struct GNUNET_HashCode hc;
 
   GNUNET_CRYPTO_hash (p, sizeof(*p), &hc);
@@ -1212,7 +1212,7 @@ GNUNET_p2s2 (const struct GNUNET_CRYPTO_EddsaPublicKey *p)
 const char *
 GNUNET_e2s (const struct GNUNET_CRYPTO_EcdhePublicKey *p)
 {
-  static struct GNUNET_CRYPTO_HashAsciiEncoded ret;
+  static GNUNET_THREAD_LOCAL struct GNUNET_CRYPTO_HashAsciiEncoded ret;
   struct GNUNET_HashCode hc;
 
   GNUNET_CRYPTO_hash (p, sizeof(*p), &hc);
@@ -1234,7 +1234,7 @@ GNUNET_e2s (const struct GNUNET_CRYPTO_EcdhePublicKey *p)
 const char *
 GNUNET_e2s2 (const struct GNUNET_CRYPTO_EcdhePublicKey *p)
 {
-  static struct GNUNET_CRYPTO_HashAsciiEncoded ret;
+  static GNUNET_THREAD_LOCAL struct GNUNET_CRYPTO_HashAsciiEncoded ret;
   struct GNUNET_HashCode hc;
 
   GNUNET_CRYPTO_hash (p, sizeof(*p), &hc);
@@ -1256,7 +1256,7 @@ GNUNET_e2s2 (const struct GNUNET_CRYPTO_EcdhePublicKey *p)
 const char *
 GNUNET_sh2s (const struct GNUNET_ShortHashCode *shc)
 {
-  static char buf[64];
+  static GNUNET_THREAD_LOCAL char buf[64];
 
   GNUNET_STRINGS_data_to_string (shc, sizeof(*shc), buf, sizeof(buf));
   buf[6] = '\0';
@@ -1276,7 +1276,7 @@ GNUNET_sh2s (const struct GNUNET_ShortHashCode *shc)
 const char *
 GNUNET_uuid2s (const struct GNUNET_Uuid *uuid)
 {
-  static char buf[32];
+  static GNUNET_THREAD_LOCAL char buf[32];
 
   GNUNET_STRINGS_data_to_string (uuid, sizeof(*uuid), buf, sizeof(buf));
   buf[6] = '\0';
@@ -1295,7 +1295,7 @@ GNUNET_uuid2s (const struct GNUNET_Uuid *uuid)
 const char *
 GNUNET_h2s_full (const struct GNUNET_HashCode *hc)
 {
-  static struct GNUNET_CRYPTO_HashAsciiEncoded ret;
+  static GNUNET_THREAD_LOCAL struct GNUNET_CRYPTO_HashAsciiEncoded ret;
 
   GNUNET_CRYPTO_hash_to_enc (hc, &ret);
   ret.encoding[sizeof(ret) - 1] = '\0';
@@ -1386,9 +1386,9 @@ GNUNET_a2s (const struct sockaddr *addr, socklen_t addrlen)
 #define LEN                           \
   GNUNET_MAX ((INET6_ADDRSTRLEN + 8), \
               (1 + sizeof(struct sockaddr_un) - sizeof(sa_family_t)))
-  static char buf[LEN];
+  static GNUNET_THREAD_LOCAL char buf[LEN];
 #undef LEN
-  static char b2[6];
+  static GNUNET_THREAD_LOCAL char b2[6];
   const struct sockaddr_in *v4;
   const struct sockaddr_un *un;
   const struct sockaddr_in6 *v6;

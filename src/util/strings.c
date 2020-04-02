@@ -690,7 +690,7 @@ const char *
 GNUNET_STRINGS_relative_time_to_string (struct GNUNET_TIME_Relative delta,
                                         int do_round)
 {
-  static char buf[128];
+  static GNUNET_THREAD_LOCAL char buf[128];
   const char *unit = _ (/* time unit */ "µs");
   uint64_t dval = delta.rel_value_us;
 
@@ -744,7 +744,7 @@ GNUNET_STRINGS_relative_time_to_string (struct GNUNET_TIME_Relative delta,
 const char *
 GNUNET_STRINGS_absolute_time_to_string (struct GNUNET_TIME_Absolute t)
 {
-  static char buf[255];
+  static GNUNET_THREAD_LOCAL char buf[255];
   time_t tt;
   struct tm *tp;
 
