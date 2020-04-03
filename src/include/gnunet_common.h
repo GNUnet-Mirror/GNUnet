@@ -1101,15 +1101,25 @@ GNUNET_ntoh_double (double d);
 /**
  * Check that memory in @a a is all zeros. @a a must be a pointer.
  *
+ * @param a pointer to @a n bytes which should be tested for the
+ *          entire memory being zero'ed out.
+ * @param n number of bytes in @a to be tested
+ * @return 0 if a is zero, non-zero otherwise
+ */
+int
+GNUNET_is_zero_ (const void *a,
+                 size_t n);
+
+
+/**
+ * Check that memory in @a a is all zeros. @a a must be a pointer.
+ *
  * @param a pointer to a struct which should be tested for the
  *          entire memory being zero'ed out.
  * @return 0 if a is zero, non-zero otherwise
  */
 #define GNUNET_is_zero(a)           \
-  ({                                \
-    static const typeof (*a) _z;    \
-    memcmp ((a), &_z, sizeof(_z)); \
-  })
+  GNUNET_is_zero_ (a, sizeof (a))
 
 
 /**

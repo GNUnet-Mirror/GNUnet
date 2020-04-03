@@ -533,4 +533,24 @@ GNUNET_copy_message (const struct GNUNET_MessageHeader *msg)
 }
 
 
+/**
+ * Check that memory in @a a is all zeros. @a a must be a pointer.
+ *
+ * @param a pointer to @a n bytes which should be tested for the
+ *          entire memory being zero'ed out.
+ * @param n number of bytes in @a to be tested
+ * @return 0 if a is zero, non-zero otherwise
+ */
+int
+GNUNET_is_zero_ (const void *a,
+                 size_t n)
+{
+  const char *b = a;
+  for (size_t i = 0; i < n; i++)
+    if (b[i])
+      return 0;
+  return 1;
+}
+
+
 /* end of common_allocation.c */
