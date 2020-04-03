@@ -673,7 +673,13 @@ TESTS += \
   test_transport_api_timeout_udp \
   test_transport_api_udp_nat \
   test_transport_api_reliability_udp \
-  test_quota_compliance_udp
+test_quota_compliance_udp \
+test_communicator_basic-unix \
+test_communicator_basic-tcp \
+test_communicator_basic-udp \
+test_communicator_rekey-tcp \
+test_communicator_rekey-udp \
+test_communicator_backchannel-udp
 endif
 endif
 
