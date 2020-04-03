@@ -972,14 +972,14 @@ GNUNET_STRINGS_string_to_data (const char *enc,
                                void *out,
                                size_t out_size)
 {
-  unsigned int rpos;
-  unsigned int wpos;
+  size_t rpos;
+  size_t wpos;
   unsigned int bits;
   unsigned int vbit;
   int ret;
   int shift;
   unsigned char *uout;
-  unsigned int encoded_len = out_size * 8;
+  size_t encoded_len;
 
   if (0 == enclen)
   {
@@ -987,6 +987,8 @@ GNUNET_STRINGS_string_to_data (const char *enc,
       return GNUNET_OK;
     return GNUNET_SYSERR;
   }
+  GNUNET_assert (out_size < SIZE_MAX / 8);
+  encoded_len = out_size * 8;
   uout = out;
   wpos = out_size;
   rpos = enclen;
