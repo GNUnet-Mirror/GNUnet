@@ -104,6 +104,7 @@ GNUNET_STRINGS_pp2s (const struct GNUNET_PeerIdentity *pids,
   size_t off;
   size_t plen = num_pids * 5 + 1;
 
+  GNUNET_assert (num_pids < UINT32_MAX / 5);
   off = 0;
   buf = GNUNET_malloc (plen);
   for (unsigned int i = 0; i < num_pids; i++)
