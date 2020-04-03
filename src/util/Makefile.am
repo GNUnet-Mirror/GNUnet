@@ -46,6 +46,7 @@ libgnunetutil_la_SOURCES = \
   common_logging.c \
   configuration.c \
   configuration_loader.c \
+  consttime_memcmp.c \
   container_bloomfilter.c \
   container_heap.c \
   container_meta_data.c \

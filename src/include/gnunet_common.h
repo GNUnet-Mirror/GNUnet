@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C) 2006-2013 GNUnet e.V.
+     Copyright (C) 2006-2020 GNUnet e.V.
 
      GNUnet is free software: you can redistribute it and/or modify it
      under the terms of the GNU Affero General Public License as published
@@ -1089,12 +1089,44 @@ GNUNET_ntoh_double (double d);
 /**
  * Compare memory in @a a and @a b, where both must be of
  * the same pointer type.
+ *
+ * Do NOT use this function on arrays, it would only compare
+ * the first element!
  */
 #define GNUNET_memcmp(a, b)       \
   ({                              \
     const typeof (*b) * _a = (a);  \
     const typeof (*a) * _b = (b);  \
     memcmp (_a, _b, sizeof(*a)); \
+  })
+
+
+/**
+ * Compare memory in @a b1 and @a b2 in constant time, suitable for private
+ * data.
+ *
+ * @param b1 some buffer of size @a len
+ * @param b2 another buffer of size @a len
+ * @param len number of bytes in @a b1 and @a b2
+ * @return 0 if buffers are equal,
+ */
+int
+GNUNET_memcmp_ct_ (const void *b1,
+                   const void *b2,
+                   size_t len);
+
+/**
+ * Compare memory in @a a and @a b in constant time, suitable for private
+ * data. Both @a a and @a b must be of the same pointer type.
+ *
+ * Do NOT use this function on arrays, it would only compare
+ * the first element!
+ */
+#define GNUNET_memcmp_priv(a, b)       \
+  ({                              \
+    const typeof (*b) * _a = (a);  \
+    const typeof (*a) * _b = (b);  \
+    GNUNET_memcmp_ct_ (_a, _b, sizeof(*a)); \
   })
 
 
