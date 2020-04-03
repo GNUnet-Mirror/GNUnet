@@ -46,7 +46,7 @@ main (int argc,
   struct GNUNET_CRYPTO_RsaSignature *bsig;
   struct GNUNET_CRYPTO_RsaBlindingKeySecret bsec;
   struct GNUNET_HashCode hash;
-  char *blind_buf;
+  void *blind_buf;
   size_t bsize;
 
   GNUNET_log_setup ("test-rsa", "WARNING", NULL);
@@ -64,7 +64,7 @@ main (int argc,
 
   /* Encoding */
   size_t size;
-  char *enc;
+  void *enc;
   enc = NULL;
   size = GNUNET_CRYPTO_rsa_private_key_encode (priv, &enc);
 
@@ -90,7 +90,7 @@ main (int argc,
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_CRYPTO_rsa_verify (&hash, sig, pub_copy));
   {
-    char *buf;
+    void *buf;
     size_t buf_size;
     struct GNUNET_CRYPTO_RsaPublicKey *pub2;
     struct GNUNET_CRYPTO_RsaSignature *sig2;
