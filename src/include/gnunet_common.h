@@ -1151,7 +1151,7 @@ GNUNET_is_zero_ (const void *a,
  * @return 0 if a is zero, non-zero otherwise
  */
 #define GNUNET_is_zero(a)           \
-  GNUNET_is_zero_ (a, sizeof (a))
+  GNUNET_is_zero_ (a, sizeof (*a))
 
 
 /**

@@ -468,7 +468,6 @@ check_ipv6_listed (const struct GNUNET_STRINGS_IPv6NetworkPolicy *list,
                    const struct in6_addr *ip)
 {
   unsigned int i;
-  unsigned int j;
 
   if (NULL == list)
     return GNUNET_NO;
@@ -476,7 +475,7 @@ check_ipv6_listed (const struct GNUNET_STRINGS_IPv6NetworkPolicy *list,
 NEXT:
   while (0 != GNUNET_is_zero (&list[i].network))
   {
-    for (j = 0; j < sizeof(struct in6_addr) / sizeof(int); j++)
+    for (unsigned int j = 0; j < sizeof(struct in6_addr) / sizeof(int); j++)
       if (((((int *) ip)[j] & ((int *) &list[i].netmask)[j])) !=
           (((int *) &list[i].network)[j] & ((int *) &list[i].netmask)[j]))
       {

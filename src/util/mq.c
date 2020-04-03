@@ -297,7 +297,8 @@ done:
  * @param error the error type
  */
 void
-GNUNET_MQ_inject_error (struct GNUNET_MQ_Handle *mq, enum GNUNET_MQ_Error error)
+GNUNET_MQ_inject_error (struct GNUNET_MQ_Handle *mq,
+                        enum GNUNET_MQ_Error error)
 {
   if (NULL == mq->error_handler)
   {
@@ -306,7 +307,8 @@ GNUNET_MQ_inject_error (struct GNUNET_MQ_Handle *mq, enum GNUNET_MQ_Error error)
          (int) error);
     return;
   }
-  mq->error_handler (mq->error_handler_cls, error);
+  mq->error_handler (mq->error_handler_cls,
+                     error);
 }
 
 
