@@ -62,25 +62,25 @@
  *         (or number of bytes that would have been written)
  */
 size_t
-GNUNET_STRINGS_buffer_fill (char *buffer, size_t size, unsigned int count, ...)
+GNUNET_STRINGS_buffer_fill (char *buffer,
+                            size_t size,
+                            unsigned int count, ...)
 {
   size_t needed;
-  size_t slen;
-  const char *s;
   va_list ap;
 
   needed = 0;
   va_start (ap, count);
   while (count > 0)
   {
-    s = va_arg (ap, const char *);
+    const char *s = va_arg (ap, const char *);
+    size_t slen = strlen (s) + 1;
 
-    slen = strlen (s) + 1;
-    if (buffer != NULL)
-    {
-      GNUNET_assert (needed + slen <= size);
-      GNUNET_memcpy (&buffer[needed], s, slen);
-    }
+    GNUNET_assert (slen <= size - needed);
+    if (NULL != buffer)
+      GNUNET_memcpy (&buffer[needed],
+                     s,
+                     slen);
     needed += slen;
     count--;
   }
