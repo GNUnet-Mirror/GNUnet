@@ -1186,7 +1186,7 @@ GNUNET_STRINGS_check_filename (const char *filename,
             & (GNUNET_STRINGS_CHECK_EXISTS | GNUNET_STRINGS_CHECK_IS_DIRECTORY
                | GNUNET_STRINGS_CHECK_IS_LINK)))
   {
-    if (0 != stat (filename, &st))
+    if (0 != lstat (filename, &st))
     {
       if (0 != (checks & GNUNET_STRINGS_CHECK_EXISTS))
         return GNUNET_NO;
