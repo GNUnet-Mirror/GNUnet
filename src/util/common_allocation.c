@@ -546,10 +546,11 @@ GNUNET_is_zero_ (const void *a,
                  size_t n)
 {
   const char *b = a;
+
   for (size_t i = 0; i < n; i++)
     if (b[i])
-      return 0;
-  return 1;
+      return 1;
+  return 0;
 }
 
 
