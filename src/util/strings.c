@@ -521,9 +521,14 @@ fail:
  *  string is returned.
  */
 char *
-GNUNET_STRINGS_to_utf8 (const char *input, size_t len, const char *charset)
+GNUNET_STRINGS_to_utf8 (const char *input,
+                        size_t len,
+                        const char *charset)
 {
-  return GNUNET_STRINGS_conv (input, len, charset, "UTF-8");
+  return GNUNET_STRINGS_conv (input,
+                              len,
+                              charset,
+                              "UTF-8");
 }
 
 
@@ -539,9 +544,14 @@ GNUNET_STRINGS_to_utf8 (const char *input, size_t len, const char *charset)
  *  string is returned.
  */
 char *
-GNUNET_STRINGS_from_utf8 (const char *input, size_t len, const char *charset)
+GNUNET_STRINGS_from_utf8 (const char *input,
+                          size_t len,
+                          const char *charset)
 {
-  return GNUNET_STRINGS_conv (input, len, "UTF-8", charset);
+  return GNUNET_STRINGS_conv (input,
+                              len,
+                              "UTF-8",
+                              charset);
 }
 
 
@@ -871,6 +881,7 @@ GNUNET_STRINGS_data_to_string (const void *data,
   unsigned int vbit;
   const unsigned char *udata;
 
+  GNUNET_assert (size < SIZE_MAX / 8 - 4);
   udata = data;
   if (out_size < (size * 8 + 4) / 5)
   {
@@ -930,7 +941,10 @@ GNUNET_STRINGS_data_to_string_alloc (const void *buf, size_t size)
     len += 5 - len % 5;
   len /= 5;
   str_buf = GNUNET_malloc (len + 1);
-  end = GNUNET_STRINGS_data_to_string (buf, size, str_buf, len);
+  end = GNUNET_STRINGS_data_to_string (buf,
+                                       size,
+                                       str_buf,
+                                       len);
   if (NULL == end)
   {
     GNUNET_free (str_buf);
@@ -1404,15 +1418,14 @@ static char *const *
 _make_continuous_arg_copy (int argc, char *const *argv)
 {
   size_t argvsize = 0;
-  int i;
   char **new_argv;
   char *p;
 
-  for (i = 0; i < argc; i++)
+  for (int i = 0; i < argc; i++)
     argvsize += strlen (argv[i]) + 1 + sizeof(char *);
   new_argv = GNUNET_malloc (argvsize + sizeof(char *));
   p = (char *) &new_argv[argc + 1];
-  for (i = 0; i < argc; i++)
+  for (int i = 0; i < argc; i++)
   {
     new_argv[i] = p;
     strcpy (p, argv[i]);
@@ -1862,6 +1875,7 @@ GNUNET_STRINGS_base64_encode (const void *in, size_t len, char **output)
   char *opt;
 
   ret = 0;
+  GNUNET_assert (len / 4 < SIZE_MAX);
   opt = GNUNET_malloc (2 + (len * 4 / 3) + 8);
   for (size_t i = 0; i < len; ++i)
   {
@@ -1971,6 +1985,7 @@ GNUNET_STRINGS_base64_decode (const char *data, size_t len, void **out)
       goto END;                                                   \
   }
 
+  GNUNET_assert (len / 3 < SIZE_MAX);
   output = GNUNET_malloc ((len * 3 / 4) + 8);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "base64_decode decoding len=%d\n",
@@ -2034,6 +2049,7 @@ GNUNET_STRINGS_base64url_decode (const char *data, size_t len, void **out)
   size_t ret;
 
   /* make enough space for padding */
+  GNUNET_assert (len < SIZE_MAX - 3);
   s = GNUNET_malloc (len + 3);
   memcpy (s, data, len);
 
