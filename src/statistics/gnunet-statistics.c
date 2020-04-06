@@ -371,7 +371,6 @@ clean_node (void *cls)
   if (num_nodes == num_nodes_ready_shutdown)
   {
     GNUNET_array_grow (nodes, num_nodes, 0);
-    GNUNET_CONTAINER_multihashmap_destroy (values);
   }
 }
 
@@ -384,7 +383,10 @@ clean_node (void *cls)
 static void
 print_finish (void *cls)
 {
-  GNUNET_CONTAINER_multihashmap_iterate (values, printer, NULL);
+  GNUNET_CONTAINER_multihashmap_iterate (values,
+                                         &printer,
+                                         NULL);
+  GNUNET_CONTAINER_multihashmap_destroy (values);
   GNUNET_SCHEDULER_shutdown ();
 }
 
@@ -398,7 +400,8 @@ print_finish (void *cls)
  * @param succes Whether statistics were obtained successfully.
  */
 static void
-continuation_print (void *cls, int success)
+continuation_print (void *cls,
+                    int success)
 {
   const unsigned index_node = *(unsigned *) cls;
 
@@ -406,7 +409,9 @@ continuation_print (void *cls, int success)
   if (GNUNET_OK != success)
   {
     if (NULL == remote_host)
-      fprintf (stderr, "%s", _ ("Failed to obtain statistics.\n"));
+      fprintf (stderr,
+               "%s",
+               _ ("Failed to obtain statistics.\n"));
     else
       fprintf (stderr,
                _ ("Failed to obtain statistics from host `%s:%llu'\n"),
@@ -419,11 +424,13 @@ continuation_print (void *cls, int success)
     GNUNET_SCHEDULER_cancel (nodes[index_node].shutdown_task);
     nodes[index_node].shutdown_task = NULL;
   }
-  GNUNET_SCHEDULER_add_now (clean_node, &nodes[index_node].index_node);
+  GNUNET_SCHEDULER_add_now (&clean_node,
+                            &nodes[index_node].index_node);
   num_nodes_ready++;
   if (num_nodes_ready == num_nodes)
   {
-    GNUNET_SCHEDULER_add_now (print_finish, NULL);
+    GNUNET_SCHEDULER_add_now (&print_finish,
+                              NULL);
   }
 }
 
