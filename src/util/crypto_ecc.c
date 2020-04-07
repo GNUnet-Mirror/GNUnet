@@ -847,9 +847,9 @@ GNUNET_CRYPTO_eddsa_verify (
   const struct GNUNET_CRYPTO_EddsaSignature *sig,
   const struct GNUNET_CRYPTO_EddsaPublicKey *pub)
 {
-  unsigned char *m = (void *) validate;
+  const unsigned char *m = (const void *) validate;
   size_t mlen = ntohl (validate->size);
-  unsigned char *s = (void *) sig;
+  const unsigned char *s = (const void *) sig;
 
   int res;
 
