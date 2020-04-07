@@ -676,7 +676,11 @@ data_to_ecdsa_value (const struct GNUNET_CRYPTO_EccSignaturePurpose *purpose)
 
 
 /**
- * Sign a given block.
+ * Sign a given block.  The @a purpose data is the
+ * beginning of the data of which the signature is to be
+ * created. The `size` field in @a purpose must correctly
+ * indicate the number of bytes of the data structure, including
+ * its header.
  *
  * @param priv private key to use for the signing
  * @param purpose what to sign (size, purpose)
@@ -734,7 +738,11 @@ GNUNET_CRYPTO_ecdsa_sign (
 
 
 /**
- * Sign a given block.
+ * Sign a given block. The @a purpose data is the
+ * beginning of the data of which the signature is to be
+ * created. The `size` field in @a purpose must correctly
+ * indicate the number of bytes of the data structure, including
+ * its header.
  *
  * @param priv private key to use for the signing
  * @param purpose what to sign (size, purpose)
@@ -764,7 +772,12 @@ GNUNET_CRYPTO_eddsa_sign (
 
 
 /**
- * Verify signature.
+ * Verify signature.   The @a validate data is the
+ * beginning of the data of which the signature is to be
+ * verified. The `size` field in @a validate must correctly
+ * indicate the number of bytes of the data structure, including
+ * its header.  If @a purpose does not match the purpose given
+ * in @a validate (the latter
  *
  * @param purpose what is the purpose that the signature should have?
  * @param validate block to validate (size, purpose, data)
@@ -832,7 +845,13 @@ GNUNET_CRYPTO_ecdsa_verify (
 
 
 /**
- * Verify signature.
+ * Verify signature. The @a validate data is the
+ * beginning of the data of which the signature is to be
+ * verified. The `size` field in @a validate must correctly
+ * indicate the number of bytes of the data structure, including
+ * its header.  If @a purpose does not match the purpose given
+ * in @a validate (the latter must be in big endian), signature
+ * verification fails.
  *
  * @param purpose what is the purpose that the signature should have?
  * @param validate block to validate (size, purpose, data)

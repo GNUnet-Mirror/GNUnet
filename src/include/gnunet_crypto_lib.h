@@ -1639,7 +1639,11 @@ GNUNET_CRYPTO_ecdh_ecdsa (const struct GNUNET_CRYPTO_EcdhePrivateKey *priv,
 
 /**
  * @ingroup crypto
- * EdDSA sign a given block.
+ * EdDSA sign a given block.  The @a purpose data is the
+ * beginning of the data of which the signature is to be
+ * created. The `size` field in @a purpose must correctly
+ * indicate the number of bytes of the data structure, including
+ * its header.
  *
  * @param priv private key to use for the signing
  * @param purpose what to sign (size, purpose)
@@ -1655,7 +1659,11 @@ GNUNET_CRYPTO_eddsa_sign (
 
 /**
  * @ingroup crypto
- * ECDSA Sign a given block.
+ * ECDSA Sign a given block.  The @a purpose data is the
+ * beginning of the data of which the signature is to be
+ * created. The `size` field in @a purpose must correctly
+ * indicate the number of bytes of the data structure, including
+ * its header.
  *
  * @param priv private key to use for the signing
  * @param purpose what to sign (size, purpose)
@@ -1670,7 +1678,13 @@ GNUNET_CRYPTO_ecdsa_sign (
 
 /**
  * @ingroup crypto
- * Verify EdDSA signature.
+ * Verify EdDSA signature.  The @a validate data is the
+ * beginning of the data of which the signature is to be
+ * verified. The `size` field in @a validate must correctly
+ * indicate the number of bytes of the data structure, including
+ * its header.  If @a purpose does not match the purpose given
+ * in @a validate (the latter must be in big endian), signature
+ * verification fails.
  *
  * @param purpose what is the purpose that the signature should have?
  * @param validate block to validate (size, purpose, data)
@@ -1688,7 +1702,13 @@ GNUNET_CRYPTO_eddsa_verify (
 
 /**
  * @ingroup crypto
- * Verify ECDSA signature.
+ * Verify ECDSA signature.  The @a validate data is the
+ * beginning of the data of which the signature is to be
+ * verified. The `size` field in @a validate must correctly
+ * indicate the number of bytes of the data structure, including
+ * its header.  If @a purpose does not match the purpose given
+ * in @a validate (the latter must be in big endian), signature
+ * verification fails.
  *
  * @param purpose what is the purpose that the signature should have?
  * @param validate block to validate (size, purpose, data)
