@@ -529,7 +529,10 @@ client_disconnect_cb (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Client %p disconnected, cleaning up.\n",
               tc);
-  GNUNET_CONTAINER_multipeermap_iterate (active_stccs, &mark_match_down, tc);
+  if (NULL != active_stccs)
+    GNUNET_CONTAINER_multipeermap_iterate (active_stccs,
+                                           &mark_match_down,
+                                           tc);
   for (struct AddressToStringContext *cur = a2s_head; NULL != cur;
        cur = cur->next)
   {
