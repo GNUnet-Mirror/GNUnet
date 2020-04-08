@@ -1,4 +1,4 @@
-#!/usr/bin/env sh
+#!/bin/sh
 #
 # Caveats:
 # - checks with textprocessing assuming that system language is English.
