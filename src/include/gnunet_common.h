@@ -888,6 +888,28 @@ GNUNET_error_type_to_string (enum GNUNET_ErrorType kind);
   } while (0)
 
 
+#if HAVE_STATIC_ASSERT
+/**
+ * Assertion to be checked (if supported by C compiler) at
+ * compile time, otherwise checked at runtime and resulting
+ * in an abort() on failure.
+ *
+ * @param cond condition to test, 0 implies failure
+ */
+#define GNUNET_static_assert(cond) _Static_assert (cond)
+#else
+/**
+ * Assertion to be checked (if supported by C compiler) at
+ * compile time, otherwise checked at runtime and resulting
+ * in an abort() on failure.  This is the case where the
+ * compiler does not support static assertions.
+ *
+ * @param cond condition to test, 0 implies failure
+ */
+#define GNUNET_static_assert(cond) GNUNET_assert (cond)
+#endif
+
+
 /**
  * @ingroup logging
  * Use this for internal assertion violations that are
