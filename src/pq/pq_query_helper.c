@@ -294,7 +294,7 @@ qconv_rsa_public_key (void *cls,
                       unsigned int scratch_length)
 {
   const struct GNUNET_CRYPTO_RsaPublicKey *rsa = data;
-  char *buf;
+  void *buf;
   size_t buf_size;
 
   GNUNET_break (NULL == cls);
@@ -354,7 +354,7 @@ qconv_rsa_signature (void *cls,
                      unsigned int scratch_length)
 {
   const struct GNUNET_CRYPTO_RsaSignature *sig = data;
-  char *buf;
+  void *buf;
   size_t buf_size;
 
   GNUNET_break (NULL == cls);
