@@ -437,6 +437,7 @@ src/util/common_endian.c
 src/util/common_logging.c
 src/util/configuration.c
 src/util/configuration_loader.c
+src/util/consttime_memcmp.c
 src/util/container_bloomfilter.c
 src/util/container_heap.c
 src/util/container_meta_data.c

@@ -691,6 +691,14 @@ AC_RUN_IFELSE(
 AC_LANG_POP(C)
 ])	# $build = $target
 
+AC_COMPILE_IFELSE([AC_LANG_SOURCE(
+  [[int main() {
+      _Static_assert(sizeof(int) >= 4, "not big enough");
+      return 0;
+    };]])],
+  [AC_DEFINE([HAVE_STATIC_ASSERT],[1],[Static assertions supported])],
+  [AC_DEFINE([HAVE_STATIC_ASSERT],[0],[Static assertions not supported])])
+
 # check for bluetooth library
 bluetooth=0
 AC_MSG_CHECKING(for libbluetooth)
