@@ -551,10 +551,10 @@ OIDC_build_authz_code (const struct GNUNET_CRYPTO_EcdsaPrivateKey *issuer,
   buf_ptr += payload_len;
   // Sign and store signature
   if (GNUNET_SYSERR ==
-      GNUNET_CRYPTO_ecdsa_sign (issuer,
-                                purpose,
-                                (struct GNUNET_CRYPTO_EcdsaSignature *)
-                                buf_ptr))
+      GNUNET_CRYPTO_ecdsa_sign_ (issuer,
+                                 purpose,
+                                 (struct GNUNET_CRYPTO_EcdsaSignature *)
+                                 buf_ptr))
   {
     GNUNET_break (0);
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Unable to sign code\n");
@@ -658,7 +658,8 @@ OIDC_parse_authz_code (const struct GNUNET_CRYPTO_EcdsaPrivateKey *ecdsa_priv,
                          code_verifier,
                          strlen (code_verifier));
     // encode code verifier
-    GNUNET_STRINGS_base64url_encode (code_verifier_hash, 256 / 8, &expected_code_challenge);
+    GNUNET_STRINGS_base64url_encode (code_verifier_hash, 256 / 8,
+                                     &expected_code_challenge);
     code_challenge = (char *) &params[1];
     GNUNET_free (code_verifier_hash);
     if ((strlen (expected_code_challenge) != code_challenge_len) ||
@@ -692,10 +693,10 @@ OIDC_parse_authz_code (const struct GNUNET_CRYPTO_EcdsaPrivateKey *ecdsa_priv,
     return GNUNET_SYSERR;
   }
   if (GNUNET_OK !=
-      GNUNET_CRYPTO_ecdsa_verify (GNUNET_SIGNATURE_PURPOSE_RECLAIM_CODE_SIGN,
-                                  purpose,
-                                  signature,
-                                  &ticket->identity))
+      GNUNET_CRYPTO_ecdsa_verify_ (GNUNET_SIGNATURE_PURPOSE_RECLAIM_CODE_SIGN,
+                                   purpose,
+                                   signature,
+                                   &ticket->identity))
   {
     GNUNET_free (code_payload);
     GNUNET_free (plaintext);

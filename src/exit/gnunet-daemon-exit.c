@@ -3595,9 +3595,9 @@ do_dht_put (void *cls)
     expiration = GNUNET_TIME_relative_to_absolute (DNS_ADVERTISEMENT_TIMEOUT);
     dns_advertisement.expiration_time = GNUNET_TIME_absolute_hton (expiration);
     GNUNET_assert (GNUNET_OK ==
-                   GNUNET_CRYPTO_eddsa_sign (peer_key,
-                                             &dns_advertisement.purpose,
-                                             &dns_advertisement.signature));
+                   GNUNET_CRYPTO_eddsa_sign_ (peer_key,
+                                              &dns_advertisement.purpose,
+                                              &dns_advertisement.signature));
   }
   if (NULL != dht_put)
     GNUNET_DHT_put_cancel (dht_put);

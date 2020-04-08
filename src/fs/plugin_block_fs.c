@@ -191,10 +191,10 @@ block_plugin_fs_evaluate (void *cls,
     }
     if ((0 == (eo & GNUNET_BLOCK_EO_LOCAL_SKIP_CRYPTO)) &&
         (GNUNET_OK !=
-         GNUNET_CRYPTO_ecdsa_verify (GNUNET_SIGNATURE_PURPOSE_FS_UBLOCK,
-                                     &ub->purpose,
-                                     &ub->signature,
-                                     &ub->verification_key)))
+         GNUNET_CRYPTO_ecdsa_verify_ (GNUNET_SIGNATURE_PURPOSE_FS_UBLOCK,
+                                      &ub->purpose,
+                                      &ub->signature,
+                                      &ub->verification_key)))
     {
       GNUNET_break_op (0);
       return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;

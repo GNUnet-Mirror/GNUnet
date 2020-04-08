@@ -612,7 +612,7 @@ uri_loc_parse (const char *s, char **emsg)
   ass.exptime = GNUNET_TIME_absolute_hton (et);
   if (GNUNET_OK !=
       GNUNET_CRYPTO_eddsa_verify (GNUNET_SIGNATURE_PURPOSE_PEER_PLACEMENT,
-                                  &ass.purpose,
+                                  &ass,
                                   &sig,
                                   &ass.peer.public_key))
   {
@@ -900,10 +900,9 @@ GNUNET_FS_uri_loc_create (const struct GNUNET_FS_Uri *base_uri,
   uri->data.loc.fi = base_uri->data.chk;
   uri->data.loc.expirationTime = et;
   uri->data.loc.peer.public_key = my_public_key;
-  GNUNET_assert (GNUNET_OK ==
-                 GNUNET_CRYPTO_eddsa_sign (sign_key,
-                                           &ass.purpose,
-                                           &uri->data.loc.contentSignature));
+  GNUNET_CRYPTO_eddsa_sign (sign_key,
+                            &ass,
+                            &uri->data.loc.contentSignature);
   return uri;
 }
 

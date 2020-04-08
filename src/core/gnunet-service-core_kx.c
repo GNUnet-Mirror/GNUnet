@@ -1015,10 +1015,10 @@ handle_ephemeral_key (void *cls, const struct EphemeralKeyMessage *m)
        + sizeof(struct GNUNET_CRYPTO_EddsaPublicKey)
        + sizeof(struct GNUNET_CRYPTO_EddsaPublicKey)) ||
       (GNUNET_OK !=
-       GNUNET_CRYPTO_eddsa_verify (GNUNET_SIGNATURE_PURPOSE_SET_ECC_KEY,
-                                   &m->purpose,
-                                   &m->signature,
-                                   &m->origin_identity.public_key)))
+       GNUNET_CRYPTO_eddsa_verify_ (GNUNET_SIGNATURE_PURPOSE_SET_ECC_KEY,
+                                    &m->purpose,
+                                    &m->signature,
+                                    &m->origin_identity.public_key)))
   {
     /* invalid signature */
     GNUNET_break_op (0);
@@ -1854,9 +1854,9 @@ sign_ephemeral_key ()
                                       &current_ekm.ephemeral_key);
   current_ekm.origin_identity = GSC_my_identity;
   GNUNET_assert (GNUNET_OK ==
-                 GNUNET_CRYPTO_eddsa_sign (my_private_key,
-                                           &current_ekm.purpose,
-                                           &current_ekm.signature));
+                 GNUNET_CRYPTO_eddsa_sign_ (my_private_key,
+                                            &current_ekm.purpose,
+                                            &current_ekm.signature));
 }
 
 

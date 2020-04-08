@@ -679,7 +679,7 @@ generate_presecret_polynomial (struct KeygenSession *ks)
   for (i = 0; i < ks->threshold; i++)
   {
     v = ks->presecret_polynomial[i] = gcry_mpi_new (
-          GNUNET_SECRETSHARING_ELGAMAL_BITS);
+      GNUNET_SECRETSHARING_ELGAMAL_BITS);
     GNUNET_assert (NULL != v);
     // Randomize v such that 0 < v < elgamal_q.
     // The '- 1' is necessary as bitlength(q) = bitlength(p) - 1.
@@ -750,7 +750,7 @@ keygen_round1_new_element (void *cls,
     return;
   }
 
-  if (GNUNET_OK != GNUNET_CRYPTO_eddsa_verify (
+  if (GNUNET_OK != GNUNET_CRYPTO_eddsa_verify_ (
         GNUNET_SIGNATURE_PURPOSE_SECRETSHARING_DKG1,
         &d->purpose, &d->signature,
         &d->peer.public_key))
@@ -1341,9 +1341,9 @@ insert_round2_element (struct KeygenSession *ks)
                                                     purpose));
   d->purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_SECRETSHARING_DKG2);
   GNUNET_assert (GNUNET_OK ==
-                 GNUNET_CRYPTO_eddsa_sign (my_peer_private_key,
-                                           &d->purpose,
-                                           &d->signature));
+                 GNUNET_CRYPTO_eddsa_sign_ (my_peer_private_key,
+                                            &d->purpose,
+                                            &d->signature));
 
   GNUNET_CONSENSUS_insert (ks->consensus, element, NULL, NULL);
   GNUNET_free (element);  /* FIXME: maybe stack-allocate instead? */
@@ -1485,7 +1485,7 @@ keygen_round2_new_element (void *cls,
     return;
   }
 
-  if (GNUNET_OK != GNUNET_CRYPTO_eddsa_verify (
+  if (GNUNET_OK != GNUNET_CRYPTO_eddsa_verify_ (
         GNUNET_SIGNATURE_PURPOSE_SECRETSHARING_DKG2,
         &d->purpose, &d->signature,
         &d->peer.public_key))
@@ -1687,9 +1687,9 @@ insert_round1_element (struct KeygenSession *ks)
                                                    purpose));
   d->purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_SECRETSHARING_DKG1);
   GNUNET_assert (GNUNET_OK ==
-                 GNUNET_CRYPTO_eddsa_sign (my_peer_private_key,
-                                           &d->purpose,
-                                           &d->signature));
+                 GNUNET_CRYPTO_eddsa_sign_ (my_peer_private_key,
+                                            &d->purpose,
+                                            &d->signature));
 
   GNUNET_CONSENSUS_insert (ks->consensus, element, NULL, NULL);
 
@@ -2189,9 +2189,9 @@ insert_decrypt_element (struct DecryptSession *ds)
   d.purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_SECRETSHARING_DECRYPTION);
 
   GNUNET_assert (GNUNET_OK ==
-                 GNUNET_CRYPTO_eddsa_sign (my_peer_private_key,
-                                           &d.purpose,
-                                           &d.signature));
+                 GNUNET_CRYPTO_eddsa_sign_ (my_peer_private_key,
+                                            &d.purpose,
+                                            &d.signature));
 
   GNUNET_CONSENSUS_insert (ds->consensus, &element, NULL, NULL);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,

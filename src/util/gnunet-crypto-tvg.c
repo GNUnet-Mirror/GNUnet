@@ -124,16 +124,19 @@ run (void *cls,
     struct GNUNET_CRYPTO_EddsaPublicKey pub;
     struct GNUNET_CRYPTO_EddsaSignature sig;
     struct TestSignatureDataPS data = { 0 };
+
     priv = GNUNET_CRYPTO_eddsa_key_create ();
     GNUNET_CRYPTO_eddsa_key_get_public (priv, &pub);
-    data.purpose.size = htonl (sizeof (struct TestSignatureDataPS));
-    data.purpose.size = htonl (GNUNET_SIGNATURE_PURPOSE_TEST);
-    GNUNET_assert (GNUNET_OK == GNUNET_CRYPTO_eddsa_sign (priv, &data.purpose,
-                                                          &sig));
-    GNUNET_assert (GNUNET_OK == GNUNET_CRYPTO_eddsa_verify (0,
-                                                            &data.purpose,
-                                                            &sig,
-                                                            &pub));
+    data.purpose.size = htonl (sizeof (data));
+    data.purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_TEST);
+    GNUNET_CRYPTO_eddsa_sign (priv,
+                              &data,
+                              &sig);
+    GNUNET_assert (GNUNET_OK ==
+                   GNUNET_CRYPTO_eddsa_verify (GNUNET_SIGNATURE_PURPOSE_TEST,
+                                               &data,
+                                               &sig,
+                                               &pub));
 
     printf ("eddsa sig:\n");
     display_data ("  priv", priv, sizeof (struct
@@ -151,15 +154,16 @@ run (void *cls,
     char *salt = "I'm very salty";
     char *ctx = "I'm a context chunk, also known as 'info' in the RFC";
 
-    GNUNET_assert (GNUNET_OK == GNUNET_CRYPTO_kdf (&out,
-                                                   out_len,
-                                                   salt,
-                                                   strlen (salt),
-                                                   ikm,
-                                                   strlen (ikm),
-                                                   ctx,
-                                                   strlen (ctx),
-                                                   NULL));
+    GNUNET_assert (GNUNET_OK ==
+                   GNUNET_CRYPTO_kdf (&out,
+                                      out_len,
+                                      salt,
+                                      strlen (salt),
+                                      ikm,
+                                      strlen (ikm),
+                                      ctx,
+                                      strlen (ctx),
+                                      NULL));
 
     printf ("kdf:\n");
     display_data ("  salt", salt, strlen (salt));
@@ -210,15 +214,19 @@ run (void *cls,
     size_t sig_enc_length;
     skey = GNUNET_CRYPTO_rsa_private_key_create (2048);
     pkey = GNUNET_CRYPTO_rsa_private_key_get_public (skey);
-    GNUNET_CRYPTO_random_block (GNUNET_CRYPTO_QUALITY_WEAK, &message_hash,
+    GNUNET_CRYPTO_random_block (GNUNET_CRYPTO_QUALITY_WEAK,
+                                &message_hash,
                                 sizeof (struct GNUNET_HashCode));
-    GNUNET_CRYPTO_random_block (GNUNET_CRYPTO_QUALITY_WEAK, &bks, sizeof (struct
-                                                                          GNUNET_CRYPTO_RsaBlindingKeySecret));
-    GNUNET_assert (GNUNET_YES == GNUNET_CRYPTO_rsa_blind (&message_hash,
-                                                          &bks,
-                                                          pkey,
-                                                          &blinded_data,
-                                                          &blinded_len));
+    GNUNET_CRYPTO_random_block (GNUNET_CRYPTO_QUALITY_WEAK,
+                                &bks,
+                                sizeof (struct
+                                        GNUNET_CRYPTO_RsaBlindingKeySecret));
+    GNUNET_assert (GNUNET_YES ==
+                   GNUNET_CRYPTO_rsa_blind (&message_hash,
+                                            &bks,
+                                            pkey,
+                                            &blinded_data,
+                                            &blinded_len));
     blinded_sig = GNUNET_CRYPTO_rsa_sign_blinded (skey, blinded_data,
                                                   blinded_len);
     sig = GNUNET_CRYPTO_rsa_unblind (blinded_sig, &bks, pkey);

@@ -136,9 +136,9 @@ regex_iterator (void *cls,
     GNUNET_CRYPTO_eddsa_key_get_public (h->priv,
                                         &ab.peer.public_key);
     GNUNET_assert (GNUNET_OK ==
-                   GNUNET_CRYPTO_eddsa_sign (h->priv,
-                                             &ab.purpose,
-                                             &ab.signature));
+                   GNUNET_CRYPTO_eddsa_sign_ (h->priv,
+                                              &ab.purpose,
+                                              &ab.signature));
 
     GNUNET_STATISTICS_update (h->stats, "# regex accepting blocks stored",
                               1, GNUNET_NO);

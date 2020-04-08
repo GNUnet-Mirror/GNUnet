@@ -753,7 +753,7 @@ handle_cadet_ring_message (void *cls, const struct CadetPhoneRingMessage *msg)
 
   if (GNUNET_OK !=
       GNUNET_CRYPTO_ecdsa_verify (GNUNET_SIGNATURE_PURPOSE_CONVERSATION_RING,
-                                  &rs.purpose,
+                                  &rs,
                                   &msg->signature,
                                   &msg->caller_id))
   {
@@ -1138,9 +1138,9 @@ handle_client_call_message (void *cls, const struct ClientCallMessage *msg)
   e = GNUNET_MQ_msg (ring, GNUNET_MESSAGE_TYPE_CONVERSATION_CADET_PHONE_RING);
   GNUNET_CRYPTO_ecdsa_key_get_public (&msg->caller_id, &ring->caller_id);
   ring->expiration_time = rs.expiration_time;
-  GNUNET_assert (GNUNET_OK == GNUNET_CRYPTO_ecdsa_sign (&msg->caller_id,
-                                                        &rs.purpose,
-                                                        &ring->signature));
+  GNUNET_CRYPTO_ecdsa_sign (&msg->caller_id,
+                            &rs,
+                            &ring->signature);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending RING message via CADET\n");
   GNUNET_MQ_send (ch->mq, e);
   GNUNET_SERVICE_client_continue (line->client);

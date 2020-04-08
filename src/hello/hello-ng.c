@@ -79,8 +79,7 @@ GNUNET_HELLO_sign_address (
   sa.purpose.size = htonl (sizeof(sa));
   sa.mono_time = GNUNET_TIME_absolute_hton (mono_time);
   GNUNET_CRYPTO_hash (address, strlen (address), &sa.h_addr);
-  GNUNET_assert (GNUNET_YES ==
-                 GNUNET_CRYPTO_eddsa_sign (private_key, &sa.purpose, &sig));
+  GNUNET_CRYPTO_eddsa_sign (private_key, &sa, &sig);
   sig_str = NULL;
   (void) GNUNET_STRINGS_base64_encode (&sig, sizeof(sig), &sig_str);
   *result_size =
@@ -165,7 +164,7 @@ GNUNET_HELLO_extract_address (const void *raw,
   GNUNET_CRYPTO_hash (raw_addr, strlen (raw_addr), &sa.h_addr);
   if (GNUNET_YES !=
       GNUNET_CRYPTO_eddsa_verify (GNUNET_SIGNATURE_PURPOSE_TRANSPORT_ADDRESS,
-                                  &sa.purpose,
+                                  &sa,
                                   sig,
                                   public_key))
   {

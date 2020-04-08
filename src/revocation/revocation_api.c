@@ -389,9 +389,9 @@ GNUNET_REVOCATION_sign_revocation (const struct
                            + sizeof(struct GNUNET_CRYPTO_EcdsaPublicKey));
   GNUNET_CRYPTO_ecdsa_key_get_public (key, &rm.public_key);
   GNUNET_assert (GNUNET_OK ==
-                 GNUNET_CRYPTO_ecdsa_sign (key,
-                                           &rm.purpose,
-                                           sig));
+                 GNUNET_CRYPTO_ecdsa_sign_ (key,
+                                            &rm.purpose,
+                                            sig));
 }
 
 

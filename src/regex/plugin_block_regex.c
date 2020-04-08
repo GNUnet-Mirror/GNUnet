@@ -247,10 +247,10 @@ evaluate_block_regex_accept (void *cls,
     return GNUNET_BLOCK_EVALUATION_OK_DUPLICATE;
   }
   if (GNUNET_OK !=
-      GNUNET_CRYPTO_eddsa_verify (GNUNET_SIGNATURE_PURPOSE_REGEX_ACCEPT,
-                                  &rba->purpose,
-                                  &rba->signature,
-                                  &rba->peer.public_key))
+      GNUNET_CRYPTO_eddsa_verify_ (GNUNET_SIGNATURE_PURPOSE_REGEX_ACCEPT,
+                                   &rba->purpose,
+                                   &rba->signature,
+                                   &rba->peer.public_key))
   {
     GNUNET_break_op (0);
     return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;

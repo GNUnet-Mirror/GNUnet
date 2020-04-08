@@ -688,7 +688,7 @@ data_to_ecdsa_value (const struct GNUNET_CRYPTO_EccSignaturePurpose *purpose)
  * @return #GNUNET_SYSERR on error, #GNUNET_OK on success
  */
 int
-GNUNET_CRYPTO_ecdsa_sign (
+GNUNET_CRYPTO_ecdsa_sign_ (
   const struct GNUNET_CRYPTO_EcdsaPrivateKey *priv,
   const struct GNUNET_CRYPTO_EccSignaturePurpose *purpose,
   struct GNUNET_CRYPTO_EcdsaSignature *sig)
@@ -750,7 +750,7 @@ GNUNET_CRYPTO_ecdsa_sign (
  * @return #GNUNET_SYSERR on error, #GNUNET_OK on success
  */
 int
-GNUNET_CRYPTO_eddsa_sign (
+GNUNET_CRYPTO_eddsa_sign_ (
   const struct GNUNET_CRYPTO_EddsaPrivateKey *priv,
   const struct GNUNET_CRYPTO_EccSignaturePurpose *purpose,
   struct GNUNET_CRYPTO_EddsaSignature *sig)
@@ -786,7 +786,7 @@ GNUNET_CRYPTO_eddsa_sign (
  * @returns #GNUNET_OK if ok, #GNUNET_SYSERR if invalid
  */
 int
-GNUNET_CRYPTO_ecdsa_verify (
+GNUNET_CRYPTO_ecdsa_verify_ (
   uint32_t purpose,
   const struct GNUNET_CRYPTO_EccSignaturePurpose *validate,
   const struct GNUNET_CRYPTO_EcdsaSignature *sig,
@@ -860,7 +860,7 @@ GNUNET_CRYPTO_ecdsa_verify (
  * @returns #GNUNET_OK if ok, #GNUNET_SYSERR if invalid
  */
 int
-GNUNET_CRYPTO_eddsa_verify (
+GNUNET_CRYPTO_eddsa_verify_ (
   uint32_t purpose,
   const struct GNUNET_CRYPTO_EccSignaturePurpose *validate,
   const struct GNUNET_CRYPTO_EddsaSignature *sig,

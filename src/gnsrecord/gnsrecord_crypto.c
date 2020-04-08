@@ -166,9 +166,9 @@ block_create (const struct GNUNET_CRYPTO_EcdsaPrivateKey *key,
                                                    &block[1]));
   }
   if (GNUNET_OK !=
-      GNUNET_CRYPTO_ecdsa_sign (dkey,
-                                &block->purpose,
-                                &block->signature))
+      GNUNET_CRYPTO_ecdsa_sign_ (dkey,
+                                 &block->purpose,
+                                 &block->signature))
   {
     GNUNET_break (0);
     GNUNET_free (dkey);
@@ -280,10 +280,10 @@ GNUNET_GNSRECORD_block_create2 (const struct GNUNET_CRYPTO_EcdsaPrivateKey *key,
 int
 GNUNET_GNSRECORD_block_verify (const struct GNUNET_GNSRECORD_Block *block)
 {
-  return GNUNET_CRYPTO_ecdsa_verify (GNUNET_SIGNATURE_PURPOSE_GNS_RECORD_SIGN,
-                                     &block->purpose,
-                                     &block->signature,
-                                     &block->derived_key);
+  return GNUNET_CRYPTO_ecdsa_verify_ (GNUNET_SIGNATURE_PURPOSE_GNS_RECORD_SIGN,
+                                      &block->purpose,
+                                      &block->signature,
+                                      &block->derived_key);
 }
 
 

@@ -880,7 +880,7 @@ do_rekey (struct Queue *queue, const struct TCPRekey *rekey)
   /* FIXME: check monotonic time is monotonic... */
   if (GNUNET_OK !=
       GNUNET_CRYPTO_eddsa_verify (GNUNET_SIGNATURE_COMMUNICATOR_TCP_REKEY,
-                                  &thp.purpose,
+                                  &thp,
                                   &rekey->sender_sig,
                                   &queue->target.public_key))
   {
@@ -1063,8 +1063,7 @@ queue_read (void *cls)
        However, we have to take into account that the plaintext buffer may have
        already contained data and not jumpt too far ahead in the ciphertext.
        If there is no rekey and the last message is incomplete (max > total),
-       it is safe to keep the decryption so we shift by 'max' */
-    if (GNUNET_YES == queue->rekeyed)
+       it is safe to keep the decryption so we shift by 'max' */if (GNUNET_YES == queue->rekeyed)
     {
       max = total - old_pread_off;
       queue->rekeyed = GNUNET_NO;
@@ -1284,9 +1283,9 @@ inject_rekey (struct Queue *queue)
   thp.receiver = queue->target;
   thp.ephemeral = rekey.ephemeral;
   thp.monotonic_time = rekey.monotonic_time;
-  GNUNET_assert (GNUNET_OK == GNUNET_CRYPTO_eddsa_sign (my_private_key,
-                                                        &thp.purpose,
-                                                        &rekey.sender_sig));
+  GNUNET_CRYPTO_eddsa_sign (my_private_key,
+                            &thp,
+                            &rekey.sender_sig);
   calculate_hmac (&queue->out_hmac, &rekey, sizeof(rekey), &rekey.hmac);
   /* Encrypt rekey message with 'old' cipher */
   GNUNET_assert (0 ==
@@ -1586,9 +1585,9 @@ transmit_kx (struct Queue *queue,
   ths.receiver = queue->target;
   ths.ephemeral = *epub;
   ths.monotonic_time = tc.monotonic_time;
-  GNUNET_assert (GNUNET_OK == GNUNET_CRYPTO_eddsa_sign (my_private_key,
-                                                        &ths.purpose,
-                                                        &tc.sender_sig));
+  GNUNET_CRYPTO_eddsa_sign (my_private_key,
+                            &ths,
+                            &tc.sender_sig);
   GNUNET_assert (0 ==
                  gcry_cipher_encrypt (queue->out_cipher,
                                       &queue->cwrite_buf[queue->cwrite_off],
@@ -1654,7 +1653,7 @@ decrypt_and_check_tc (struct Queue *queue,
      from this sender! */
   return GNUNET_CRYPTO_eddsa_verify (
     GNUNET_SIGNATURE_COMMUNICATOR_TCP_HANDSHAKE,
-    &ths.purpose,
+    &ths,
     &tc->sender_sig,
     &tc->sender.public_key);
 }
@@ -1953,7 +1952,7 @@ mq_init (void *cls, const struct GNUNET_PeerIdentity *peer, const char *address)
   queue->address_len = in_len;
   queue->sock = sock;
   boot_queue (queue, GNUNET_TRANSPORT_CS_OUTBOUND);
-  //queue->mq_awaits_continue = GNUNET_YES;
+  // queue->mq_awaits_continue = GNUNET_YES;
   queue->read_task =
     GNUNET_SCHEDULER_add_read_net (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT,
                                    queue->sock,
@@ -2155,9 +2154,9 @@ run (void *cls,
     max_queue_length = DEFAULT_MAX_QUEUE_LENGTH;
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_time (cfg,
-                                             COMMUNICATOR_CONFIG_SECTION,
-                                             "REKEY_INTERVAL",
-                                             &rekey_interval))
+                                           COMMUNICATOR_CONFIG_SECTION,
+                                           "REKEY_INTERVAL",
+                                           &rekey_interval))
     rekey_interval = DEFAULT_REKEY_INTERVAL;
 
   in = tcp_address_to_sockaddr (bindto, &in_len);
@@ -2286,8 +2285,8 @@ main (int argc, char *const *argv)
                                           options,
                                           &run,
                                           NULL))
-    ? 0
-    : 1;
+        ? 0
+        : 1;
   GNUNET_free ((void *) argv);
   return ret;
 }

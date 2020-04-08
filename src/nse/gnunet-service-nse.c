@@ -668,9 +668,10 @@ setup_flood_message (unsigned int slot, struct GNUNET_TIME_Absolute ts)
   fm->origin = my_identity;
   fm->proof_of_work = my_proof;
   if (nse_work_required > 0)
-    GNUNET_assert (GNUNET_OK == GNUNET_CRYPTO_eddsa_sign (my_private_key,
-                                                          &fm->purpose,
-                                                          &fm->signature));
+    GNUNET_assert (GNUNET_OK ==
+                   GNUNET_CRYPTO_eddsa_sign_ (my_private_key,
+                                              &fm->purpose,
+                                              &fm->signature));
   else
     memset (&fm->signature, 0, sizeof(fm->signature));
 }
@@ -922,10 +923,10 @@ verify_message_crypto (const struct GNUNET_NSE_FloodMessage *incoming_flood)
   }
   if ((nse_work_required > 0) &&
       (GNUNET_OK !=
-       GNUNET_CRYPTO_eddsa_verify (GNUNET_SIGNATURE_PURPOSE_NSE_SEND,
-                                   &incoming_flood->purpose,
-                                   &incoming_flood->signature,
-                                   &incoming_flood->origin.public_key)))
+       GNUNET_CRYPTO_eddsa_verify_ (GNUNET_SIGNATURE_PURPOSE_NSE_SEND,
+                                    &incoming_flood->purpose,
+                                    &incoming_flood->signature,
+                                    &incoming_flood->origin.public_key)))
   {
     GNUNET_break_op (0);
     return GNUNET_NO;

@@ -1639,19 +1639,21 @@ GNUNET_CRYPTO_ecdh_ecdsa (const struct GNUNET_CRYPTO_EcdhePrivateKey *priv,
 
 /**
  * @ingroup crypto
- * EdDSA sign a given block.  The @a purpose data is the
- * beginning of the data of which the signature is to be
- * created. The `size` field in @a purpose must correctly
- * indicate the number of bytes of the data structure, including
- * its header.
+ * @brief EdDSA sign a given block.
+ *
+ * The @a purpose data is the beginning of the data of which the signature is
+ * to be created. The `size` field in @a purpose must correctly indicate the
+ * number of bytes of the data structure, including its header.  If possible,
+ * use #GNUNET_CRYPTO_eddsa_sign() instead of this function (only if @a validate
+ * is not fixed-size, you must use this function directly).
  *
  * @param priv private key to use for the signing
  * @param purpose what to sign (size, purpose)
- * @param sig where to write the signature
+ * @param[out] sig where to write the signature
  * @return #GNUNET_SYSERR on error, #GNUNET_OK on success
  */
 int
-GNUNET_CRYPTO_eddsa_sign (
+GNUNET_CRYPTO_eddsa_sign_ (
   const struct GNUNET_CRYPTO_EddsaPrivateKey *priv,
   const struct GNUNET_CRYPTO_EccSignaturePurpose *purpose,
   struct GNUNET_CRYPTO_EddsaSignature *sig);
@@ -1659,32 +1661,87 @@ GNUNET_CRYPTO_eddsa_sign (
 
 /**
  * @ingroup crypto
- * ECDSA Sign a given block.  The @a purpose data is the
- * beginning of the data of which the signature is to be
- * created. The `size` field in @a purpose must correctly
- * indicate the number of bytes of the data structure, including
- * its header.
+ * @brief EdDSA sign a given block.
+ *
+ * The @a ps data must be a fixed-size struct for which the signature is to be
+ * created. The `size` field in @a ps->purpose must correctly indicate the
+ * number of bytes of the data structure, including its header.
+ *
+ * @param priv private key to use for the signing
+ * @param ps packed struct with what to sign, MUST begin with a purpose
+ * @param[out] sig where to write the signature
+ */
+#define GNUNET_CRYPTO_eddsa_sign(priv,ps,sig) do {                 \
+    /* check size is set correctly */                              \
+    GNUNET_assert (htonl ((ps)->purpose.size) == sizeof (*ps));    \
+    /* check 'ps' begins with the purpose */                       \
+    GNUNET_static_assert (((void*) (ps)) ==                        \
+                          ((void*) &(ps)->purpose));               \
+    GNUNET_assert (GNUNET_OK ==                                    \
+                   GNUNET_CRYPTO_eddsa_sign_ (priv,                \
+                                              &(ps)->purpose,      \
+                                              sig));               \
+} while (0)
+
+
+/**
+ * @ingroup crypto
+ * @brief ECDSA Sign a given block.
+ *
+ * The @a purpose data is the beginning of the data of which the signature is
+ * to be created. The `size` field in @a purpose must correctly indicate the
+ * number of bytes of the data structure, including its header. If possible,
+ * use #GNUNET_CRYPTO_ecdsa_sign() instead of this function (only if @a validate
+ * is not fixed-size, you must use this function directly).
  *
  * @param priv private key to use for the signing
  * @param purpose what to sign (size, purpose)
- * @param sig where to write the signature
+ * @param[out] sig where to write the signature
  * @return #GNUNET_SYSERR on error, #GNUNET_OK on success
  */
 int
-GNUNET_CRYPTO_ecdsa_sign (
+GNUNET_CRYPTO_ecdsa_sign_ (
   const struct GNUNET_CRYPTO_EcdsaPrivateKey *priv,
   const struct GNUNET_CRYPTO_EccSignaturePurpose *purpose,
   struct GNUNET_CRYPTO_EcdsaSignature *sig);
 
+
 /**
  * @ingroup crypto
- * Verify EdDSA signature.  The @a validate data is the
- * beginning of the data of which the signature is to be
- * verified. The `size` field in @a validate must correctly
- * indicate the number of bytes of the data structure, including
- * its header.  If @a purpose does not match the purpose given
- * in @a validate (the latter must be in big endian), signature
- * verification fails.
+ * @brief ECDSA sign a given block.
+ *
+ * The @a ps data must be a fixed-size struct for which the signature is to be
+ * created. The `size` field in @a ps->purpose must correctly indicate the
+ * number of bytes of the data structure, including its header.
+ *
+ * @param priv private key to use for the signing
+ * @param ps packed struct with what to sign, MUST begin with a purpose
+ * @param[out] sig where to write the signature
+ */
+#define GNUNET_CRYPTO_ecdsa_sign(priv,ps,sig) do {                 \
+    /* check size is set correctly */                              \
+    GNUNET_assert (htonl ((ps)->purpose.size) == sizeof (*(ps)));  \
+    /* check 'ps' begins with the purpose */                       \
+    GNUNET_static_assert (((void*) (ps)) ==                        \
+                          ((void*) &(ps)->purpose));               \
+    GNUNET_assert (GNUNET_OK ==                                    \
+                   GNUNET_CRYPTO_ecdsa_sign_ (priv,                \
+                                              &(ps)->purpose,      \
+                                              sig));               \
+} while (0)
+
+
+/**
+ * @ingroup crypto
+ * @brief Verify EdDSA signature.
+ *
+ * The @a validate data is the beginning of the data of which the signature
+ * is to be verified. The `size` field in @a validate must correctly indicate
+ * the number of bytes of the data structure, including its header.  If @a
+ * purpose does not match the purpose given in @a validate (the latter must be
+ * in big endian), signature verification fails.  If possible,
+ * use #GNUNET_CRYPTO_eddsa_verify() instead of this function (only if @a validate
+ * is not fixed-size, you must use this function directly).
  *
  * @param purpose what is the purpose that the signature should have?
  * @param validate block to validate (size, purpose, data)
@@ -1693,7 +1750,7 @@ GNUNET_CRYPTO_ecdsa_sign (
  * @returns #GNUNET_OK if ok, #GNUNET_SYSERR if invalid
  */
 int
-GNUNET_CRYPTO_eddsa_verify (
+GNUNET_CRYPTO_eddsa_verify_ (
   uint32_t purpose,
   const struct GNUNET_CRYPTO_EccSignaturePurpose *validate,
   const struct GNUNET_CRYPTO_EddsaSignature *sig,
@@ -1702,13 +1759,42 @@ GNUNET_CRYPTO_eddsa_verify (
 
 /**
  * @ingroup crypto
- * Verify ECDSA signature.  The @a validate data is the
- * beginning of the data of which the signature is to be
- * verified. The `size` field in @a validate must correctly
- * indicate the number of bytes of the data structure, including
- * its header.  If @a purpose does not match the purpose given
- * in @a validate (the latter must be in big endian), signature
- * verification fails.
+ * @brief Verify EdDSA signature.
+ *
+ * The @a ps data must be a fixed-size struct for which the signature is to be
+ * created. The `size` field in @a ps->purpose must correctly indicate the
+ * number of bytes of the data structure, including its header.
+ *
+ * @param purp purpose of the signature, must match 'ps->purpose.purpose'
+ *              (except in host byte order)
+ * @param priv private key to use for the signing
+ * @param ps packed struct with what to sign, MUST begin with a purpose
+ * @param sig where to write the signature
+ */
+#define GNUNET_CRYPTO_eddsa_verify(purp,ps,sig,pub) ({             \
+    /* check size is set correctly */                              \
+    GNUNET_assert (htonl ((ps)->purpose.size) == sizeof (*(ps))); \
+    /* check 'ps' begins with the purpose */                       \
+    GNUNET_static_assert (((void*) (ps)) ==                        \
+                          ((void*) &(ps)->purpose));               \
+    GNUNET_CRYPTO_eddsa_verify_ (purp,                             \
+                                 &(ps)->purpose,                   \
+                                 sig,                              \
+                                 pub);                             \
+  })
+
+
+/**
+ * @ingroup crypto
+ * @brief Verify ECDSA signature.
+ *
+ * The @a validate data is the beginning of the data of which the signature is
+ * to be verified. The `size` field in @a validate must correctly indicate the
+ * number of bytes of the data structure, including its header.  If @a purpose
+ * does not match the purpose given in @a validate (the latter must be in big
+ * endian), signature verification fails.  If possible, use
+ * #GNUNET_CRYPTO_eddsa_verify() instead of this function (only if @a validate
+ * is not fixed-size, you must use this function directly).
  *
  * @param purpose what is the purpose that the signature should have?
  * @param validate block to validate (size, purpose, data)
@@ -1717,12 +1803,38 @@ GNUNET_CRYPTO_eddsa_verify (
  * @returns #GNUNET_OK if ok, #GNUNET_SYSERR if invalid
  */
 int
-GNUNET_CRYPTO_ecdsa_verify (
+GNUNET_CRYPTO_ecdsa_verify_ (
   uint32_t purpose,
   const struct GNUNET_CRYPTO_EccSignaturePurpose *validate,
   const struct GNUNET_CRYPTO_EcdsaSignature *sig,
   const struct GNUNET_CRYPTO_EcdsaPublicKey *pub);
 
+
+/**
+ * @ingroup crypto
+ * @brief Verify ECDSA signature.
+ *
+ * The @a ps data must be a fixed-size struct for which the signature is to be
+ * created. The `size` field in @a ps->purpose must correctly indicate the
+ * number of bytes of the data structure, including its header.
+ *
+ * @param purp purpose of the signature, must match 'ps->purpose.purpose'
+ *              (except in host byte order)
+ * @param priv private key to use for the signing
+ * @param ps packed struct with what to sign, MUST begin with a purpose
+ * @param sig where to write the signature
+ */
+#define GNUNET_CRYPTO_ecdsa_verify(purp,ps,sig,pub) ({             \
+    /* check size is set correctly */                              \
+    GNUNET_assert (htonl ((ps)->purpose.size) == sizeof (*(ps)));  \
+    /* check 'ps' begins with the purpose */                       \
+    GNUNET_static_assert (((void*) (ps)) ==                        \
+                          ((void*) &(ps)->purpose));               \
+    GNUNET_CRYPTO_ecdsa_verify_ (purp,                             \
+                                 &(ps)->purpose,                   \
+                                 sig,                              \
+                                 pub);                             \
+  })
 
 /**
  * @ingroup crypto

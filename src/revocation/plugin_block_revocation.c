@@ -151,10 +151,10 @@ block_plugin_revocation_evaluate (void *cls,
     return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;
   }
   if (GNUNET_OK !=
-      GNUNET_CRYPTO_ecdsa_verify (GNUNET_SIGNATURE_PURPOSE_REVOCATION,
-                                  &rm->purpose,
-                                  &rm->signature,
-                                  &rm->public_key))
+      GNUNET_CRYPTO_ecdsa_verify_ (GNUNET_SIGNATURE_PURPOSE_REVOCATION,
+                                   &rm->purpose,
+                                   &rm->signature,
+                                   &rm->public_key))
   {
     GNUNET_break_op (0);
     return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;

@@ -153,10 +153,10 @@ block_plugin_dns_evaluate (void *cls,
       return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;
     }
     if (GNUNET_OK !=
-        GNUNET_CRYPTO_eddsa_verify (GNUNET_SIGNATURE_PURPOSE_DNS_RECORD,
-                                    &ad->purpose,
-                                    &ad->signature,
-                                    &ad->peer.public_key))
+        GNUNET_CRYPTO_eddsa_verify_ (GNUNET_SIGNATURE_PURPOSE_DNS_RECORD,
+                                     &ad->purpose,
+                                     &ad->signature,
+                                     &ad->peer.public_key))
     {
       GNUNET_break_op (0);
       return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;

@@ -55,7 +55,8 @@ testSignVerify ()
   for (i = 0; i < ITER; i++)
   {
     fprintf (stderr, "%s", "."); fflush (stderr);
-    if (GNUNET_SYSERR == GNUNET_CRYPTO_ecdsa_sign (key, &purp, &sig))
+    if (GNUNET_SYSERR ==
+        GNUNET_CRYPTO_ecdsa_sign_ (key, &purp, &sig))
     {
       fprintf (stderr,
                "%s",
@@ -64,16 +65,18 @@ testSignVerify ()
       continue;
     }
     if (GNUNET_SYSERR ==
-        GNUNET_CRYPTO_ecdsa_verify (GNUNET_SIGNATURE_PURPOSE_TEST, &purp, &sig,
-                                    &pkey))
+        GNUNET_CRYPTO_ecdsa_verify_ (GNUNET_SIGNATURE_PURPOSE_TEST,
+                                     &purp, &sig,
+                                     &pkey))
     {
       printf ("GNUNET_CRYPTO_ecdsa_verify failed!\n");
       ok = GNUNET_SYSERR;
       continue;
     }
     if (GNUNET_SYSERR !=
-        GNUNET_CRYPTO_ecdsa_verify (GNUNET_SIGNATURE_PURPOSE_TRANSPORT_PONG_OWN,
-                                    &purp, &sig, &pkey))
+        GNUNET_CRYPTO_ecdsa_verify_ (
+          GNUNET_SIGNATURE_PURPOSE_TRANSPORT_PONG_OWN,
+          &purp, &sig, &pkey))
     {
       printf ("GNUNET_CRYPTO_ecdsa_verify failed to fail!\n");
       ok = GNUNET_SYSERR;
@@ -104,33 +107,33 @@ testDeriveSignVerify ()
   purp.size = htonl (sizeof(struct GNUNET_CRYPTO_EccSignaturePurpose));
   purp.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_TEST);
 
-  if (GNUNET_SYSERR == GNUNET_CRYPTO_ecdsa_sign (dpriv, &purp, &sig))
+  if (GNUNET_SYSERR == GNUNET_CRYPTO_ecdsa_sign_ (dpriv, &purp, &sig))
   {
     fprintf (stderr, "%s", "GNUNET_CRYPTO_ecdsa_sign returned SYSERR\n");
     GNUNET_free (dpriv);
     return GNUNET_SYSERR;
   }
   if (GNUNET_SYSERR ==
-      GNUNET_CRYPTO_ecdsa_verify (GNUNET_SIGNATURE_PURPOSE_TEST,
-                                  &purp, &sig,
-                                  &dpub))
+      GNUNET_CRYPTO_ecdsa_verify_ (GNUNET_SIGNATURE_PURPOSE_TEST,
+                                   &purp, &sig,
+                                   &dpub))
   {
     printf ("GNUNET_CRYPTO_ecdsa_verify failed!\n");
     GNUNET_free (dpriv);
     return GNUNET_SYSERR;
   }
   if (GNUNET_SYSERR !=
-      GNUNET_CRYPTO_ecdsa_verify (GNUNET_SIGNATURE_PURPOSE_TEST,
-                                  &purp, &sig,
-                                  &pkey))
+      GNUNET_CRYPTO_ecdsa_verify_ (GNUNET_SIGNATURE_PURPOSE_TEST,
+                                   &purp, &sig,
+                                   &pkey))
   {
     printf ("GNUNET_CRYPTO_ecdsa_verify failed to fail!\n");
     GNUNET_free (dpriv);
     return GNUNET_SYSERR;
   }
   if (GNUNET_SYSERR !=
-      GNUNET_CRYPTO_ecdsa_verify (GNUNET_SIGNATURE_PURPOSE_TRANSPORT_PONG_OWN,
-                                  &purp, &sig, &dpub))
+      GNUNET_CRYPTO_ecdsa_verify_ (GNUNET_SIGNATURE_PURPOSE_TRANSPORT_PONG_OWN,
+                                   &purp, &sig, &dpub))
   {
     printf ("GNUNET_CRYPTO_ecdsa_verify failed to fail!\n");
     GNUNET_free (dpriv);
@@ -160,7 +163,7 @@ testSignPerformance ()
   for (i = 0; i < ITER; i++)
   {
     fprintf (stderr, "%s", "."); fflush (stderr);
-    if (GNUNET_SYSERR == GNUNET_CRYPTO_ecdsa_sign (key, &purp, &sig))
+    if (GNUNET_SYSERR == GNUNET_CRYPTO_ecdsa_sign_ (key, &purp, &sig))
     {
       fprintf (stderr, "%s",
                "GNUNET_CRYPTO_ecdsa_sign returned SYSERR\n");

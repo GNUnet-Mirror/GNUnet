@@ -4137,9 +4137,9 @@ update_ephemeral (struct DistanceVector *dv)
   ec.purpose.size = htonl (sizeof(ec));
   ec.target = dv->target;
   ec.ephemeral_key = dv->ephemeral_key;
-  GNUNET_assert (GNUNET_OK == GNUNET_CRYPTO_eddsa_sign (GST_my_private_key,
-                                                        &ec.purpose,
-                                                        &dv->sender_sig));
+  GNUNET_CRYPTO_eddsa_sign (GST_my_private_key,
+                            &ec,
+                            &dv->sender_sig);
 }
 
 
@@ -6391,17 +6391,17 @@ forward_dv_learn (const struct GNUNET_PeerIdentity *next_hop,
   GNUNET_memcpy (dhops, hops, sizeof(struct DVPathEntryP) * nhops);
   dhops[nhops].hop = GST_my_identity;
   {
-    struct DvHopPS dhp = { .purpose.purpose =
-                             htonl (GNUNET_SIGNATURE_PURPOSE_TRANSPORT_DV_HOP),
-                           .purpose.size = htonl (sizeof(dhp)),
-                           .pred = dhops[nhops - 1].hop,
-                           .succ = *next_hop,
-                           .challenge = msg->challenge };
+    struct DvHopPS dhp = {
+      .purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_TRANSPORT_DV_HOP),
+      .purpose.size = htonl (sizeof(dhp)),
+      .pred = dhops[nhops - 1].hop,
+      .succ = *next_hop,
+      .challenge = msg->challenge
+    };
 
-    GNUNET_assert (GNUNET_OK ==
-                   GNUNET_CRYPTO_eddsa_sign (GST_my_private_key,
-                                             &dhp.purpose,
-                                             &dhops[nhops].hop_sig));
+    GNUNET_CRYPTO_eddsa_sign (GST_my_private_key,
+                              &dhp,
+                              &dhops[nhops].hop_sig);
   }
   route_control_message_without_fc (next_hop,
                                     &fwd->header,
@@ -6434,7 +6434,7 @@ validate_dv_initiator_signature (
   if (
     GNUNET_OK !=
     GNUNET_CRYPTO_eddsa_verify (GNUNET_SIGNATURE_PURPOSE_TRANSPORT_DV_INITIATOR,
-                                &ip.purpose,
+                                &ip,
                                 init_sig,
                                 &init->public_key))
   {
@@ -6770,7 +6770,7 @@ handle_dv_learn (void *cls, const struct TransportDVLearnMessage *dvl)
 
     if (GNUNET_OK !=
         GNUNET_CRYPTO_eddsa_verify (GNUNET_SIGNATURE_PURPOSE_TRANSPORT_DV_HOP,
-                                    &dhp.purpose,
+                                    &dhp,
                                     &hops[i].hop_sig,
                                     &hops[i].hop.public_key))
     {
@@ -7422,7 +7422,7 @@ handle_dv_box (void *cls, const struct TransportDVBoxMessage *dvb)
         GNUNET_OK !=
         GNUNET_CRYPTO_eddsa_verify (
           GNUNET_SIGNATURE_PURPOSE_TRANSPORT_EPHEMERAL,
-          &ec.purpose,
+          &ec,
           &ppay.sender_sig,
           &ppay.sender.public_key))
       {
@@ -7728,15 +7728,16 @@ handle_validation_challenge (
   tvr.validity_duration = validity_duration;
   {
     /* create signature */
-    struct TransportValidationPS tvp =
-    { .purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_TRANSPORT_CHALLENGE),
+    struct TransportValidationPS tvp = {
+      .purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_TRANSPORT_CHALLENGE),
       .purpose.size = htonl (sizeof(tvp)),
       .validity_duration = validity_duration,
-      .challenge = tvc->challenge };
+      .challenge = tvc->challenge
+    };
 
-    GNUNET_assert (GNUNET_OK == GNUNET_CRYPTO_eddsa_sign (GST_my_private_key,
-                                                          &tvp.purpose,
-                                                          &tvr.signature));
+    GNUNET_CRYPTO_eddsa_sign (GST_my_private_key,
+                              &tvp,
+                              &tvr.signature);
   }
   route_control_message_without_fc (&cmc->im.sender,
                                     &tvr.header,
@@ -7921,16 +7922,17 @@ handle_validation_response (
 
   {
     /* check signature */
-    struct TransportValidationPS tvp =
-    { .purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_TRANSPORT_CHALLENGE),
+    struct TransportValidationPS tvp = {
+      .purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_TRANSPORT_CHALLENGE),
       .purpose.size = htonl (sizeof(tvp)),
       .validity_duration = tvr->validity_duration,
-      .challenge = tvr->challenge };
+      .challenge = tvr->challenge
+    };
 
     if (
       GNUNET_OK !=
       GNUNET_CRYPTO_eddsa_verify (GNUNET_SIGNATURE_PURPOSE_TRANSPORT_CHALLENGE,
-                                  &tvp.purpose,
+                                  &tvp,
                                   &tvr->signature,
                                   &cmc->im.sender.public_key))
     {
@@ -9393,15 +9395,17 @@ start_dv_learn (void *cls)
   dvl.monotonic_time =
     GNUNET_TIME_absolute_hton (GNUNET_TIME_absolute_get_monotonic (GST_cfg));
   {
-    struct DvInitPS dvip = { .purpose.purpose = htonl (
-                               GNUNET_SIGNATURE_PURPOSE_TRANSPORT_DV_INITIATOR),
-                             .purpose.size = htonl (sizeof(dvip)),
-                             .monotonic_time = dvl.monotonic_time,
-                             .challenge = lle->challenge };
+    struct DvInitPS dvip = {
+      .purpose.purpose = htonl (
+        GNUNET_SIGNATURE_PURPOSE_TRANSPORT_DV_INITIATOR),
+      .purpose.size = htonl (sizeof(dvip)),
+      .monotonic_time = dvl.monotonic_time,
+      .challenge = lle->challenge
+    };
 
-    GNUNET_assert (GNUNET_OK == GNUNET_CRYPTO_eddsa_sign (GST_my_private_key,
-                                                          &dvip.purpose,
-                                                          &dvl.init_sig));
+    GNUNET_CRYPTO_eddsa_sign (GST_my_private_key,
+                              &dvip,
+                              &dvl.init_sig);
   }
   dvl.initiator = GST_my_identity;
   dvl.challenge = lle->challenge;

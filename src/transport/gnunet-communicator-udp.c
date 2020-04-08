@@ -1533,7 +1533,7 @@ verify_confirmation (const struct GNUNET_CRYPTO_EcdhePublicKey *ephemeral,
   uhs.monotonic_time = uc->monotonic_time;
   return GNUNET_CRYPTO_eddsa_verify (
     GNUNET_SIGNATURE_COMMUNICATOR_UDP_HANDSHAKE,
-    &uhs.purpose,
+    &uhs,
     &uc->sender_sig,
     &uc->sender.public_key);
 }
@@ -1634,7 +1634,7 @@ sock_read (void *cls)
     GNUNET_CRYPTO_hash (&sa, salen, &uhs.h_address);
     if (GNUNET_OK ==
         GNUNET_CRYPTO_eddsa_verify (GNUNET_SIGNATURE_COMMUNICATOR_UDP_BROADCAST,
-                                    &uhs.purpose,
+                                    &uhs,
                                     &ub->sender_sig,
                                     &ub->sender.public_key))
     {
@@ -1932,9 +1932,9 @@ mq_send (struct GNUNET_MQ_Handle *mq,
     uhs.receiver = receiver->target;
     GNUNET_CRYPTO_ecdhe_key_get_public (&epriv, &uhs.ephemeral);
     uhs.monotonic_time = uc.monotonic_time;
-    GNUNET_assert (GNUNET_OK == GNUNET_CRYPTO_eddsa_sign (my_private_key,
-                                                          &uhs.purpose,
-                                                          &uc.sender_sig));
+    GNUNET_CRYPTO_eddsa_sign (my_private_key,
+                              &uhs,
+                              &uc.sender_sig);
     /* Leave space for kx */
     dpos = sizeof(kx);
     /* Append encrypted uc to dgram */
@@ -2534,9 +2534,9 @@ iface_proc (void *cls,
   ubs.purpose.size = htonl (sizeof(ubs));
   ubs.sender = my_identity;
   GNUNET_CRYPTO_hash (addr, addrlen, &ubs.h_address);
-  GNUNET_assert (GNUNET_OK == GNUNET_CRYPTO_eddsa_sign (my_private_key,
-                                                        &ubs.purpose,
-                                                        &bi->bcm.sender_sig));
+  GNUNET_CRYPTO_eddsa_sign (my_private_key,
+                            &ubs,
+                            &bi->bcm.sender_sig);
   if (NULL != broadcast_addr)
   {
     bi->broadcast_task = GNUNET_SCHEDULER_add_now (&ifc_broadcast, bi);

@@ -268,9 +268,9 @@ GNUNET_FS_publish_ublock_ (struct GNUNET_FS_Handle *h,
   GNUNET_CRYPTO_ecdsa_key_get_public (nsd,
                                       &ub_enc->verification_key);
   GNUNET_assert (GNUNET_OK ==
-                 GNUNET_CRYPTO_ecdsa_sign (nsd,
-                                           &ub_enc->purpose,
-                                           &ub_enc->signature));
+                 GNUNET_CRYPTO_ecdsa_sign_ (nsd,
+                                            &ub_enc->purpose,
+                                            &ub_enc->signature));
   GNUNET_CRYPTO_hash (&ub_enc->verification_key,
                       sizeof(ub_enc->verification_key),
                       &query);
