@@ -80,10 +80,15 @@ extern "C" {
  * GNUNET_SYSERR`, `GNUNET_OK != GNUNET_NO`, `GNUNET_NO !=
  * GNUNET_SYSERR` and finally `GNUNET_YES != GNUNET_NO`.
  */
-#define GNUNET_OK 1
-#define GNUNET_SYSERR -1
-#define GNUNET_YES 1
-#define GNUNET_NO 0
+enum GNUNET_GenericReturnValue
+{
+  GNUNET_SYSERR = -1,
+  GNUNET_NO = 0,
+  GNUNET_OK = 1,
+  /* intentionally identical to #GNUNET_OK! */
+  GNUNET_YES = 1,
+};
+
 
 #define GNUNET_MIN(a, b) (((a) < (b)) ? (a) : (b))
 
