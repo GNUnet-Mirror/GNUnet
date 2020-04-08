@@ -36,6 +36,7 @@
 #include "gnunet_identity_service.h"
 #include "gnunet_gnsrecord_lib.h"
 #include "gnunet_namestore_service.h"
+#include "gnunet_mhd_compat.h"
 
 /**
  * Invalid method page.
@@ -507,10 +508,10 @@ fill_s_reply (const char *info,
  *              specified offset
  * @param off offset of data in the overall value
  * @param size number of bytes in data available
- * @return MHD_YES to continue iterating,
- *         MHD_NO to abort the iteration
+ * @return #MHD_YES to continue iterating,
+ *         #MHD_NO to abort the iteration
  */
-static int
+static MHD_RESULT
 post_iterator (void *cls,
                enum MHD_ValueKind kind,
                const char *key,
@@ -754,7 +755,7 @@ lookup_it_finished (void *cls)
  *         #MHD_NO if the socket must be closed due to a serious
  *         error while handling the request
  */
-static int
+static MHD_RESULT
 create_response (void *cls,
                  struct MHD_Connection *connection,
                  const char *url,
@@ -767,7 +768,7 @@ create_response (void *cls,
   struct MHD_Response *response;
   struct Request *request;
   struct GNUNET_CRYPTO_EcdsaPublicKey pub;
-  int ret;
+  MHD_RESULT ret;
 
   (void) cls;
   (void) version;

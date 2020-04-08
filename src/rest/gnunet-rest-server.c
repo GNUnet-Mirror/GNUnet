@@ -27,7 +27,7 @@
 #include <microhttpd.h>
 #include "gnunet_util_lib.h"
 #include "gnunet_rest_plugin.h"
-
+#include "gnunet_mhd_compat.h"
 
 /**
  * Default Socks5 listen port.
@@ -302,7 +302,7 @@ url_iterator (void *cls,
 }
 
 
-static int
+static MHD_RESULT
 post_data_iter (void *cls,
                 enum MHD_ValueKind kind,
                 const char *key,
@@ -359,11 +359,11 @@ post_data_iter (void *cls,
  *        @a upload_data provided; the method must update this
  *        value to the number of bytes NOT processed;
  * @param con_cls pointer to location where we store the 'struct Request'
- * @return MHD_YES if the connection was handled successfully,
- *         MHD_NO if the socket must be closed due to a serious
+ * @return #MHD_YES if the connection was handled successfully,
+ *         #MHD_NO if the socket must be closed due to a serious
  *         error while handling the request
  */
-static int
+static MHD_RESULT
 create_response (void *cls,
                  struct MHD_Connection *con,
                  const char *url,
@@ -430,7 +430,7 @@ create_response (void *cls,
                                rest_conndata_handle);
     con_handle->pp = MHD_create_post_processor (con,
                                                 65536,
-                                                post_data_iter,
+                                                &post_data_iter,
                                                 rest_conndata_handle);
     if (*upload_data_size)
     {
@@ -509,9 +509,13 @@ create_response (void *cls,
                              allow_headers);
   }
   run_mhd_now ();
-  int ret = MHD_queue_response (con, con_handle->status, con_handle->response);
-  cleanup_handle (con_handle);
-  return ret;
+  {
+    MHD_RESULT ret = MHD_queue_response (con,
+                                         con_handle->status,
+                                         con_handle->response);
+    cleanup_handle (con_handle);
+    return ret;
+  }
 }
 
 

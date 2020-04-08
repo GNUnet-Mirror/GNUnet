@@ -345,7 +345,7 @@ extract_rsa_signature (void *cls,
 {
   struct GNUNET_CRYPTO_RsaSignature **sig = dst;
   size_t len;
-  const char *res;
+  const void *res;
   int fnum;
 
   (void) cls;

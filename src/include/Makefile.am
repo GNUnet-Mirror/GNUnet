@@ -62,6 +62,7 @@ gnunetinclude_HEADERS = \
   gnunet_json_lib.h \
   gnunet_load_lib.h \
   gnunet_cadet_service.h \
+  gnunet_mhd_compat.h \
   gnunet_microphone_lib.h \
   gnunet_mst_lib.h \
   gnunet_mq_lib.h \

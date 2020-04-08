@@ -27,6 +27,7 @@
 #include "platform.h"
 #include <microhttpd.h>
 #include "gnunet_util_lib.h"
+#include "gnunet_mhd_compat.h"
 
 /**
  * Error page to display if submitted GNS key is invalid.
@@ -91,7 +92,7 @@ struct Entry
 /**
  * Main request handler.
  */
-static int
+static MHD_RESULT
 access_handler_callback (void *cls,
                          struct MHD_Connection *connection,
                          const char *url,
@@ -153,7 +154,7 @@ access_handler_callback (void *cls,
     struct stat st;
     struct MHD_Response *response;
     int fd;
-    int ret;
+    MHD_RESULT ret;
 
     const char *gpg_fp = MHD_lookup_connection_value (connection,
                                                       MHD_GET_ARGUMENT_KIND,

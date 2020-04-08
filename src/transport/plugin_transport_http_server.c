@@ -33,7 +33,7 @@
 #include "plugin_transport_http_common.h"
 #include <microhttpd.h>
 #include <regex.h>
-
+#include "gnunet_mhd_compat.h"
 
 #if BUILD_HTTPS
 #define PLUGIN_NAME "https_server"
@@ -1741,9 +1741,9 @@ add_cors_headers (struct MHD_Response *response)
  * @param upload_data upload data
  * @param upload_data_size size of @a upload_data
  * @param httpSessionCache the session cache to remember the connection
- * @return MHD_YES if connection is accepted, MHD_NO on reject
+ * @return #MHD_YES if connection is accepted, #MHD_NO on reject
  */
-static int
+static MHD_RESULT
 server_access_cb (void *cls,
                   struct MHD_Connection *mhd_connection,
                   const char *url,
@@ -1757,7 +1757,7 @@ server_access_cb (void *cls,
   struct ServerRequest *sc = *httpSessionCache;
   struct GNUNET_ATS_Session *s;
   struct MHD_Response *response;
-  int res = MHD_YES;
+  MHD_RESULT res = MHD_YES;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        _ (
@@ -2025,9 +2025,9 @@ server_connection_cb (void *cls,
  * @param cls plugin as closure
  * @param addr address of incoming connection
  * @param addr_len number of bytes in @a addr
- * @return MHD_YES if connection is accepted, MHD_NO if connection is rejected
+ * @return #MHD_YES if connection is accepted, #MHD_NO if connection is rejected
  */
-static int
+static MHD_RESULT
 server_accept_cb (void *cls,
                   const struct sockaddr *addr,
                   socklen_t addr_len)

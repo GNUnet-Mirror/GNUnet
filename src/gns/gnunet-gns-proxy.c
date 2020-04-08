@@ -43,7 +43,7 @@
 #include "gnunet_gns_service.h"
 #include "gnunet_identity_service.h"
 #include "gns.h"
-
+#include "gnunet_mhd_compat.h"
 
 /**
  * Default Socks5 listen port.
@@ -1827,7 +1827,7 @@ con_val_iter (void *cls,
  *         #MHD_NO if the socket must be closed due to a serious
  *         error while handling the request
  */
-static int
+static MHD_RESULT
 create_response (void *cls,
                  struct MHD_Connection *con,
                  const char *url,
