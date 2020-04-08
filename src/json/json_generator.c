@@ -166,7 +166,7 @@ GNUNET_JSON_from_time_rel (struct GNUNET_TIME_Relative stamp)
 json_t *
 GNUNET_JSON_from_rsa_public_key (const struct GNUNET_CRYPTO_RsaPublicKey *pk)
 {
-  char *buf;
+  void *buf;
   size_t buf_len;
   json_t *ret;
 
@@ -188,7 +188,7 @@ GNUNET_JSON_from_rsa_public_key (const struct GNUNET_CRYPTO_RsaPublicKey *pk)
 json_t *
 GNUNET_JSON_from_rsa_signature (const struct GNUNET_CRYPTO_RsaSignature *sig)
 {
-  char *buf;
+  void *buf;
   size_t buf_len;
   json_t *ret;
 
