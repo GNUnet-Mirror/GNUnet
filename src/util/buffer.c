@@ -51,7 +51,8 @@ GNUNET_buffer_prealloc (struct GNUNET_Buffer *buf, size_t capacity)
  * @param n number of bytes that should be available to write
  */
 void
-GNUNET_buffer_ensure_remaining (struct GNUNET_Buffer *buf, size_t n)
+GNUNET_buffer_ensure_remaining (struct GNUNET_Buffer *buf,
+                                size_t n)
 {
   size_t new_capacity = buf->position + n;
 
@@ -77,10 +78,11 @@ GNUNET_buffer_ensure_remaining (struct GNUNET_Buffer *buf, size_t n)
  * @param buf buffer to write to
  * @param data data to read from
  * @param len number of bytes to copy from @a data to @a buf
- *
  */
 void
-GNUNET_buffer_write (struct GNUNET_Buffer *buf, const char *data, size_t len)
+GNUNET_buffer_write (struct GNUNET_Buffer *buf,
+                     const char *data,
+                     size_t len)
 {
   GNUNET_buffer_ensure_remaining (buf, len);
   memcpy (buf->mem + buf->position, data, len);
@@ -95,7 +97,8 @@ GNUNET_buffer_write (struct GNUNET_Buffer *buf, const char *data, size_t len)
  * @param str the string to write to @a buf
  */
 void
-GNUNET_buffer_write_str (struct GNUNET_Buffer *buf, const char *str)
+GNUNET_buffer_write_str (struct GNUNET_Buffer *buf,
+                         const char *str)
 {
   size_t len = strlen (str);
 
@@ -203,8 +206,8 @@ GNUNET_buffer_write_fstr (struct GNUNET_Buffer *buf, const char *fmt, ...)
  */
 void
 GNUNET_buffer_write_vfstr (struct GNUNET_Buffer *buf,
-                          const char *fmt,
-                          va_list args)
+                           const char *fmt,
+                           va_list args)
 {
   int res;
   va_list args2;
