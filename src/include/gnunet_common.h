@@ -901,7 +901,7 @@ GNUNET_error_type_to_string (enum GNUNET_ErrorType kind);
  *
  * @param cond condition to test, 0 implies failure
  */
-#define GNUNET_static_assert(cond) _Static_assert (cond)
+#define GNUNET_static_assert(cond) _Static_assert (cond, "")
 #else
 /**
  * Assertion to be checked (if supported by C compiler) at
