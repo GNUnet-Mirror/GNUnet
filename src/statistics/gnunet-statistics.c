@@ -151,6 +151,7 @@ struct ValueSet
   int is_persistent;
 };
 
+
 /**
  * @brief Collection of all values (represented with #ValueSet).
  */
@@ -166,6 +167,7 @@ static int num_nodes_ready;
  */
 static int num_nodes_ready_shutdown;
 
+
 /**
  * @brief Create a new #ValueSet
  *
@@ -173,7 +175,6 @@ static int num_nodes_ready_shutdown;
  * @param name Name of the valueset.
  * @param num_values Number of values in valueset - number of peers.
  * @param is_persistent Persistence status of values.
- *
  * @return Newly allocated #ValueSet.
  */
 static struct ValueSet *
@@ -187,7 +188,8 @@ new_value_set (const char *subsystem,
   value_set = GNUNET_new (struct ValueSet);
   value_set->subsystem = GNUNET_strdup (subsystem);
   value_set->name = GNUNET_strdup (name);
-  value_set->values = GNUNET_new_array (num_values, uint64_t);
+  value_set->values = GNUNET_new_array (num_values,
+                                        uint64_t);
   value_set->is_persistent = persistent;
   return value_set;
 }
@@ -202,11 +204,12 @@ new_value_set (const char *subsystem,
  * @param key #GNUNET_HashCode key of #GNUNET_CONTAINER_MultiHashMap iterator -
  *        unused
  * @param value Values represented as #ValueSet.
- *
- * @return GNUNET_YES - continue iteration.
+ * @return #GNUNET_YES - continue iteration.
  */
 static int
-printer (void *cls, const struct GNUNET_HashCode *key, void *value)
+printer (void *cls,
+         const struct GNUNET_HashCode *key,
+         void *value)
 {
   struct GNUNET_TIME_Absolute now = GNUNET_TIME_absolute_get ();
   const char *now_str;
@@ -368,10 +371,6 @@ clean_node (void *cls)
   }
 
   num_nodes_ready_shutdown++;
-  if (num_nodes == num_nodes_ready_shutdown)
-  {
-    GNUNET_array_grow (nodes, num_nodes, 0);
-  }
 }
 
 
@@ -443,7 +442,8 @@ continuation_print (void *cls,
  *        successfully obtained, #GNUNET_SYSERR if not.
  */
 static void
-cleanup (void *cls, int success)
+cleanup (void *cls,
+         int success)
 {
   for (unsigned i = 0; i < num_nodes; i++)
   {
@@ -473,8 +473,7 @@ cleanup (void *cls, int success)
  * @param name Name of the value.
  * @param value Value itself.
  * @param is_persistent Persistence.
- *
- * @return GNUNET_OK - continue.
+ * @return #GNUNET_OK - continue.
  */
 static int
 collector (void *cls,
@@ -610,7 +609,8 @@ main_task (void *cls)
  * @return to continue iteration or not to
  */
 static int
-iter_check_config (void *cls, const char *filename)
+iter_check_config (void *cls,
+                   const char *filename)
 {
   if (0 == strncmp (GNUNET_STRINGS_get_short_name (filename), "config", 6))
   {
@@ -644,18 +644,22 @@ iter_check_config (void *cls, const char *filename)
  *
  * @param cls counter of nodes
  * @param filename full path of the file in testbed
- *
  * @return status whether to continue iteration
  */
 static int
-iter_testbed_path (void *cls, const char *filename)
+iter_testbed_path (void *cls,
+                   const char *filename)
 {
   unsigned index_node;
 
   GNUNET_assert (NULL != filename);
-  if (1 == sscanf (GNUNET_STRINGS_get_short_name (filename), "%u", &index_node))
+  if (1 == sscanf (GNUNET_STRINGS_get_short_name (filename),
+                   "%u",
+                   &index_node))
   {
-    if (-1 == GNUNET_DISK_directory_scan (filename, iter_check_config, NULL))
+    if (-1 == GNUNET_DISK_directory_scan (filename,
+                                          iter_check_config,
+                                          NULL))
     {
       /* This is probably no directory for a testbed node
        * Go on with iteration */
@@ -680,10 +684,14 @@ discover_testbed_nodes (const char *path_testbed)
   int num_dir_entries;
 
   num_dir_entries =
-    GNUNET_DISK_directory_scan (path_testbed, iter_testbed_path, NULL);
+    GNUNET_DISK_directory_scan (path_testbed,
+                                &iter_testbed_path,
+                                NULL);
   if (-1 == num_dir_entries)
   {
-    fprintf (stderr, "Failure during scanning directory `%s'\n", path_testbed);
+    fprintf (stderr,
+             "Failure during scanning directory `%s'\n",
+             path_testbed);
     return -1;
   }
   return 0;
@@ -724,10 +732,11 @@ run (void *cls,
   {
     if (0 == remote_port)
     {
-      if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_number (cfg,
-                                                                  "statistics",
-                                                                  "PORT",
-                                                                  &remote_port))
+      if (GNUNET_SYSERR ==
+          GNUNET_CONFIGURATION_get_value_number (cfg,
+                                                 "statistics",
+                                                 "PORT",
+                                                 &remote_port))
       {
         fprintf (stderr,
                  _ ("A port is required to connect to host `%s'\n"),
@@ -745,7 +754,10 @@ run (void *cls,
     }
 
     /* Manipulate configuration */
-    GNUNET_CONFIGURATION_set_value_string (c, "statistics", "UNIXPATH", "");
+    GNUNET_CONFIGURATION_set_value_string (c,
+                                           "statistics",
+                                           "UNIXPATH",
+                                           "");
     GNUNET_CONFIGURATION_set_value_string (c,
                                            "statistics",
                                            "HOSTNAME",
@@ -796,68 +808,62 @@ run (void *cls,
 int
 main (int argc, char *const *argv)
 {
-  struct GNUNET_GETOPT_CommandLineOption options[] =
-  { GNUNET_GETOPT_option_string (
-      'n',
-      "name",
-      "NAME",
-      gettext_noop ("limit output to statistics for the given NAME"),
-      &name),
-
+  struct GNUNET_GETOPT_CommandLineOption options[] = {
+    GNUNET_GETOPT_option_string ('n',
+                                 "name",
+                                 "NAME",
+                                 gettext_noop (
+                                   "limit output to statistics for the given NAME"),
+                                 &name),
     GNUNET_GETOPT_option_flag ('p',
                                "persistent",
                                gettext_noop (
                                  "make the value being set persistent"),
                                &persistent),
-
     GNUNET_GETOPT_option_string ('s',
                                  "subsystem",
                                  "SUBSYSTEM",
                                  gettext_noop (
                                    "limit output to the given SUBSYSTEM"),
                                  &subsystem),
-
     GNUNET_GETOPT_option_string ('S',
                                  "csv-separator",
                                  "CSV_SEPARATOR",
                                  gettext_noop ("use as csv separator"),
                                  &csv_separator),
-
-    GNUNET_GETOPT_option_filename (
-      't',
-      "testbed",
-      "TESTBED",
-      gettext_noop ("path to the folder containing the testbed data"),
-      &path_testbed),
-
+    GNUNET_GETOPT_option_filename ('t',
+                                   "testbed",
+                                   "TESTBED",
+                                   gettext_noop (
+                                     "path to the folder containing the testbed data"),
+                                   &path_testbed),
     GNUNET_GETOPT_option_flag ('q',
                                "quiet",
                                gettext_noop (
                                  "just print the statistics value"),
                                &quiet),
-
     GNUNET_GETOPT_option_flag ('w',
                                "watch",
                                gettext_noop ("watch value continuously"),
                                &watch),
-
     GNUNET_GETOPT_option_string ('r',
                                  "remote",
                                  "REMOTE",
                                  gettext_noop ("connect to remote host"),
                                  &remote_host),
-
     GNUNET_GETOPT_option_ulong ('o',
                                 "port",
                                 "PORT",
                                 gettext_noop ("port for remote host"),
                                 &remote_port),
-
-    GNUNET_GETOPT_OPTION_END };
+    GNUNET_GETOPT_OPTION_END
+  };
 
   remote_port = 0;
   remote_host = NULL;
-  if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv, &argc, &argv))
+  if (GNUNET_OK !=
+      GNUNET_STRINGS_get_utf8_args (argc, argv,
+                                    &argc, &argv))
     return 2;
 
   ret = (GNUNET_OK ==
@@ -871,6 +877,9 @@ main (int argc, char *const *argv)
                              NULL))
         ? ret
         : 1;
+  GNUNET_array_grow (nodes,
+                     num_nodes,
+                     0);
   GNUNET_free_non_null (remote_host);
   GNUNET_free ((void *) argv);
   return ret;
