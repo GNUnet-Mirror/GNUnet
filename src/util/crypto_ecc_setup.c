@@ -143,6 +143,14 @@ atomic_write_to_file (const char *filename,
   char *tmpl;
   int fd;
 
+  if (GNUNET_OK !=
+      GNUNET_DISK_directory_create_for_file (filename))
+  {
+    GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING,
+                              "mkstemp",
+                              filename);
+    return GNUNET_SYSERR;
+  }
   {
     char *dname;
 
