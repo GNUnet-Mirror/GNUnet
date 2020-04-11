@@ -57,7 +57,7 @@ struct Ego
   /**
    * Private key of the ego.
    */
-  struct GNUNET_CRYPTO_EcdsaPrivateKey *pk;
+  struct GNUNET_CRYPTO_EcdsaPrivateKey pk;
 
   /**
    * String identifier for the ego.
@@ -190,7 +190,6 @@ shutdown_task (void *cls)
   while (NULL != (e = ego_head))
   {
     GNUNET_CONTAINER_DLL_remove (ego_head, ego_tail, e);
-    GNUNET_free (e->pk);
     GNUNET_free (e->identifier);
     GNUNET_free (e);
   }
@@ -247,7 +246,7 @@ create_update_message (struct Ego *ego)
   env = GNUNET_MQ_msg_extra (um, name_len, GNUNET_MESSAGE_TYPE_IDENTITY_UPDATE);
   um->name_len = htons (name_len);
   um->end_of_list = htons (GNUNET_NO);
-  um->private_key = *ego->pk;
+  um->private_key = ego->pk;
   GNUNET_memcpy (&um[1], ego->identifier, name_len);
   return env;
 }
@@ -273,7 +272,7 @@ create_set_default_message (struct Ego *ego, const char *servicename)
                              GNUNET_MESSAGE_TYPE_IDENTITY_SET_DEFAULT);
   sdm->name_len = htons (name_len);
   sdm->reserved = htons (0);
-  sdm->private_key = *ego->pk;
+  sdm->private_key = ego->pk;
   GNUNET_memcpy (&sdm[1], servicename, name_len);
   return env;
 }
@@ -584,7 +583,8 @@ handle_set_default_message (void *cls, const struct SetDefaultMessage *sdm)
               str);
   for (ego = ego_head; NULL != ego; ego = ego->next)
   {
-    if (0 == key_cmp (ego->pk, &sdm->private_key))
+    if (0 == key_cmp (&ego->pk,
+                      &sdm->private_key))
     {
       GNUNET_CONFIGURATION_set_value_string (subsystem_cfg,
                                              str,
@@ -627,7 +627,7 @@ notify_listeners (struct Ego *ego)
   um->header.size = htons (sizeof(struct UpdateMessage) + name_len);
   um->name_len = htons (name_len);
   um->end_of_list = htons (GNUNET_NO);
-  um->private_key = *ego->pk;
+  um->private_key = ego->pk;
   GNUNET_memcpy (&um[1], ego->identifier, name_len);
   GNUNET_notification_context_broadcast (nc, &um->header, GNUNET_NO);
   GNUNET_free (um);
@@ -704,8 +704,7 @@ handle_create_message (void *cls, const struct CreateRequestMessage *crm)
     }
   }
   ego = GNUNET_new (struct Ego);
-  ego->pk = GNUNET_new (struct GNUNET_CRYPTO_EcdsaPrivateKey);
-  *ego->pk = crm->private_key;
+  ego->pk = crm->private_key;
   ego->identifier = GNUNET_strdup (str);
   GNUNET_CONTAINER_DLL_insert (ego_head, ego_tail, ego);
   send_result_code (client, 0, NULL);
@@ -997,7 +996,6 @@ handle_delete_message (void *cls, const struct DeleteMessage *dm)
       GNUNET_free (ego->identifier);
       ego->identifier = NULL;
       notify_listeners (ego);
-      GNUNET_free (ego->pk);
       GNUNET_free (ego);
       GNUNET_free (name);
       send_result_code (client, 0, NULL);
@@ -1023,7 +1021,8 @@ handle_delete_message (void *cls, const struct DeleteMessage *dm)
  *  #GNUNET_SYSERR to abort iteration with error!
  */
 static int
-process_ego_file (void *cls, const char *filename)
+process_ego_file (void *cls,
+                  const char *filename)
 {
   struct Ego *ego;
   const char *fn;
@@ -1035,8 +1034,10 @@ process_ego_file (void *cls, const char *filename)
     return GNUNET_OK;
   }
   ego = GNUNET_new (struct Ego);
-  ego->pk = GNUNET_CRYPTO_ecdsa_key_create_from_file (filename);
-  if (NULL == ego->pk)
+  if (GNUNET_OK !=
+      GNUNET_CRYPTO_ecdsa_key_from_file (filename,
+                                         GNUNET_NO,
+                                         &ego->pk))
   {
     GNUNET_free (ego);
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
@@ -1044,7 +1045,9 @@ process_ego_file (void *cls, const char *filename)
                 filename);
     return GNUNET_OK;
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Loaded ego `%s'\n", fn + 1);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Loaded ego `%s'\n",
+              fn + 1);
   ego->identifier = GNUNET_strdup (fn + 1);
   GNUNET_CONTAINER_DLL_insert (ego_head, ego_tail, ego);
   return GNUNET_OK;
@@ -1108,7 +1111,9 @@ run (void *cls,
                 _ ("Failed to create directory `%s' for storing egos\n"),
                 ego_directory);
   }
-  GNUNET_DISK_directory_scan (ego_directory, &process_ego_file, NULL);
+  GNUNET_DISK_directory_scan (ego_directory,
+                              &process_ego_file,
+                              NULL);
   GNUNET_SCHEDULER_add_shutdown (&shutdown_task, NULL);
 }
 

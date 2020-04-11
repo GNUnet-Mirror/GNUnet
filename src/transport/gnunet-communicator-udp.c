@@ -1918,7 +1918,7 @@ mq_send (struct GNUNET_MQ_Handle *mq,
     struct SharedSecret *ss;
 
     /* setup key material */
-    GNUNET_assert (GNUNET_OK == GNUNET_CRYPTO_ecdhe_key_create2 (&epriv));
+    GNUNET_CRYPTO_ecdhe_key_create (&epriv);
 
     ss = setup_shared_secret_enc (&epriv, receiver);
     setup_cipher (&ss->master, 0, &out_cipher);

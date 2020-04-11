@@ -151,7 +151,7 @@ bind_rsa_pub (void *cls,
               unsigned int off)
 {
   const struct GNUNET_CRYPTO_RsaPublicKey *rsa = data;
-  char *buf;
+  void *buf;
   size_t buf_size;
 
   GNUNET_break (NULL == cls);
@@ -211,7 +211,7 @@ bind_rsa_sig (void *cls,
               unsigned int off)
 {
   const struct GNUNET_CRYPTO_RsaSignature *sig = data;
-  char *buf;
+  void *buf;
   size_t buf_size;
 
   GNUNET_break (NULL == cls);

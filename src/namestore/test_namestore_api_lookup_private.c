@@ -38,7 +38,7 @@ static struct GNUNET_NAMESTORE_Handle *nsh;
 
 static struct GNUNET_SCHEDULER_Task *endbadly_task;
 
-static struct GNUNET_CRYPTO_EcdsaPrivateKey *privkey;
+static struct GNUNET_CRYPTO_EcdsaPrivateKey privkey;
 
 static struct GNUNET_CRYPTO_EcdsaPublicKey pubkey;
 
@@ -57,11 +57,6 @@ cleanup ()
   {
     GNUNET_NAMESTORE_disconnect (nsh);
     nsh = NULL;
-  }
-  if (NULL != privkey)
-  {
-    GNUNET_free (privkey);
-    privkey = NULL;
   }
   GNUNET_SCHEDULER_shutdown ();
 }
@@ -103,7 +98,7 @@ lookup_it (void *cls,
 {
   nsqe = NULL;
 
-  if (0 != GNUNET_memcmp (privkey,
+  if (0 != GNUNET_memcmp (&privkey,
                           zone))
   {
     GNUNET_break (0);
@@ -173,7 +168,7 @@ put_cont (void *cls,
   }
   /* Lookup */
   nsqe = GNUNET_NAMESTORE_records_lookup (nsh,
-                                          privkey,
+                                          &privkey,
                                           name,
                                           &fail_cb,
                                           NULL,
@@ -192,9 +187,8 @@ run (void *cls,
   endbadly_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT,
                                                 &endbadly,
                                                 NULL);
-  privkey = GNUNET_CRYPTO_ecdsa_key_create ();
-  GNUNET_assert (privkey != NULL);
-  GNUNET_CRYPTO_ecdsa_key_get_public (privkey, &pubkey);
+  GNUNET_CRYPTO_ecdsa_key_create (&privkey);
+  GNUNET_CRYPTO_ecdsa_key_get_public (&privkey, &pubkey);
 
   rd.expiration_time = GNUNET_TIME_absolute_get ().abs_value_us;
   rd.record_type = TEST_RECORD_TYPE;
@@ -206,7 +200,7 @@ run (void *cls,
   nsh = GNUNET_NAMESTORE_connect (cfg);
   GNUNET_break (NULL != nsh);
   nsqe = GNUNET_NAMESTORE_records_store (nsh,
-                                         privkey,
+                                         &privkey,
                                          name,
                                          1,
                                          &rd,

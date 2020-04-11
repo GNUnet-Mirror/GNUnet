@@ -677,8 +677,7 @@ new_ephemeral (struct CadetTunnelAxolotl *ax)
 {
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Creating new ephemeral ratchet key (DHRs)\n");
-  GNUNET_assert (GNUNET_OK ==
-                 GNUNET_CRYPTO_ecdhe_key_create2 (&ax->DHRs));
+  GNUNET_CRYPTO_ecdhe_key_create (&ax->DHRs);
 }
 
 
@@ -3186,8 +3185,7 @@ GCT_create_tunnel (struct CadetPeer *destination)
 
   t->kx_retry_delay = INITIAL_KX_RETRY_DELAY;
   new_ephemeral (&t->ax);
-  GNUNET_assert (GNUNET_OK ==
-                 GNUNET_CRYPTO_ecdhe_key_create2 (&t->ax.kx_0));
+  GNUNET_CRYPTO_ecdhe_key_create (&t->ax.kx_0);
   t->destination = destination;
   t->channels = GNUNET_CONTAINER_multihashmap32_create (8);
   t->maintain_connections_task

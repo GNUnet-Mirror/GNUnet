@@ -691,35 +691,6 @@ GNUNET_DISK_directory_create (const char *dir);
 
 
 /**
- * Lock a part of a file.
- *
- * @param fh file handle
- * @param lock_start absolute position from where to lock
- * @param lock_end absolute position until where to lock
- * @param excl #GNUNET_YES for an exclusive lock
- * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
- */
-int
-GNUNET_DISK_file_lock (struct GNUNET_DISK_FileHandle *fh,
-                       off_t lock_start,
-                       off_t lock_end, int excl);
-
-
-/**
- * Unlock a part of a file.
- *
- * @param fh file handle
- * @param unlock_start absolute position from where to unlock
- * @param unlock_end absolute position until where to unlock
- * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
- */
-int
-GNUNET_DISK_file_unlock (struct GNUNET_DISK_FileHandle *fh,
-                         off_t unlock_start,
-                         off_t unlock_end);
-
-
-/**
  * @brief Removes special characters as ':' from a filename.
  * @param fn the filename to canonicalize
  */

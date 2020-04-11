@@ -31,8 +31,8 @@
 int
 main (int argc, char *argv[])
 {
-  struct GNUNET_CRYPTO_EcdhePrivateKey *priv1;
-  struct GNUNET_CRYPTO_EcdhePrivateKey *priv2;
+  struct GNUNET_CRYPTO_EcdhePrivateKey priv1;
+  struct GNUNET_CRYPTO_EcdhePrivateKey priv2;
   struct GNUNET_CRYPTO_EcdhePublicKey pub1;
   struct GNUNET_CRYPTO_EcdhePublicKey pub2;
   struct GNUNET_HashCode ecdh1;
@@ -41,9 +41,7 @@ main (int argc, char *argv[])
   if (! gcry_check_version ("1.6.0"))
   {
     fprintf (stderr,
-             _
-             (
-               "libgcrypt has not the expected version (version %s is required).\n"),
+             "libgcrypt has not the expected version (version %s is required).\n",
              "1.6.0");
     return 0;
   }
@@ -55,16 +53,15 @@ main (int argc, char *argv[])
   {
     fprintf (stderr,
              ".");
-    priv1 = GNUNET_CRYPTO_ecdhe_key_create ();
-    priv2 = GNUNET_CRYPTO_ecdhe_key_create ();
-    GNUNET_CRYPTO_ecdhe_key_get_public (priv1, &pub1);
-    GNUNET_CRYPTO_ecdhe_key_get_public (priv2, &pub2);
-    GNUNET_CRYPTO_ecc_ecdh (priv1, &pub2, &ecdh1);
-    GNUNET_CRYPTO_ecc_ecdh (priv2, &pub1, &ecdh2);
-    GNUNET_assert (0 == memcmp (&ecdh1, &ecdh2,
-                                sizeof(struct GNUNET_HashCode)));
-    GNUNET_free (priv1);
-    GNUNET_free (priv2);
+    GNUNET_CRYPTO_ecdhe_key_create (&priv1);
+    GNUNET_CRYPTO_ecdhe_key_create (&priv2);
+    GNUNET_CRYPTO_ecdhe_key_get_public (&priv1, &pub1);
+    GNUNET_CRYPTO_ecdhe_key_get_public (&priv2, &pub2);
+    GNUNET_CRYPTO_ecc_ecdh (&priv1, &pub2, &ecdh1);
+    GNUNET_CRYPTO_ecc_ecdh (&priv2, &pub1, &ecdh2);
+    GNUNET_assert (0 ==
+                   GNUNET_memcmp (&ecdh1,
+                                  &ecdh2));
   }
   return 0;
 }

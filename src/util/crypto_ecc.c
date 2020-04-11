@@ -491,118 +491,98 @@ GNUNET_CRYPTO_eddsa_key_clear (struct GNUNET_CRYPTO_EddsaPrivateKey *pk)
 
 
 /**
- * Create a new private key. Caller must free return value.
+ * Create a new private key.
  *
- * @return fresh private key
+ * @param[out] pk fresh private key
  */
-struct GNUNET_CRYPTO_EcdhePrivateKey *
-GNUNET_CRYPTO_ecdhe_key_create ()
-{
-  struct GNUNET_CRYPTO_EcdhePrivateKey *priv;
-
-  priv = GNUNET_new (struct GNUNET_CRYPTO_EcdhePrivateKey);
-  if (GNUNET_OK != GNUNET_CRYPTO_ecdhe_key_create2 (priv))
-  {
-    GNUNET_free (priv);
-    return NULL;
-  }
-  return priv;
-}
-
-
-/**
- * @ingroup crypto
- * Create a new private key.  Clear with #GNUNET_CRYPTO_ecdhe_key_clear().
- *
- * @param[out] pk set to fresh private key;
- * @return #GNUNET_OK on success, #GNUNET_SYSERR on failure
- */
-int
-GNUNET_CRYPTO_ecdhe_key_create2 (struct GNUNET_CRYPTO_EcdhePrivateKey *pk)
+void
+GNUNET_CRYPTO_ecdhe_key_create (struct GNUNET_CRYPTO_EcdhePrivateKey *pk)
 {
   BENCHMARK_START (ecdhe_key_create);
   GNUNET_CRYPTO_random_block (GNUNET_CRYPTO_QUALITY_NONCE,
                               pk,
                               sizeof (struct GNUNET_CRYPTO_EcdhePrivateKey));
   BENCHMARK_END (ecdhe_key_create);
-  return GNUNET_OK;
 }
 
 
 /**
- * Create a new private key. Caller must free return value.
+ * Create a new private key.
  *
- * @return fresh private key
+ * @param[out] pk private key to initialize
  */
-struct GNUNET_CRYPTO_EcdsaPrivateKey *
-GNUNET_CRYPTO_ecdsa_key_create ()
+void
+GNUNET_CRYPTO_ecdsa_key_create (struct GNUNET_CRYPTO_EcdsaPrivateKey *pk)
 {
-  struct GNUNET_CRYPTO_EcdsaPrivateKey *priv;
   gcry_sexp_t priv_sexp;
   gcry_sexp_t s_keyparam;
   gcry_mpi_t d;
   int rc;
 
   BENCHMARK_START (ecdsa_key_create);
-
   if (0 != (rc = gcry_sexp_build (&s_keyparam,
                                   NULL,
                                   "(genkey(ecc(curve \"" CURVE "\")"
                                   "(flags)))")))
   {
-    LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_sexp_build", rc);
-    return NULL;
+    LOG_GCRY (GNUNET_ERROR_TYPE_ERROR,
+              "gcry_sexp_build",
+              rc);
+    GNUNET_assert (0);
   }
-  if (0 != (rc = gcry_pk_genkey (&priv_sexp, s_keyparam)))
+  if (0 != (rc = gcry_pk_genkey (&priv_sexp,
+                                 s_keyparam)))
   {
-    LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_pk_genkey", rc);
+    LOG_GCRY (GNUNET_ERROR_TYPE_ERROR,
+              "gcry_pk_genkey",
+              rc);
     gcry_sexp_release (s_keyparam);
-    return NULL;
+    GNUNET_assert (0);
   }
   gcry_sexp_release (s_keyparam);
 #if EXTRA_CHECKS
   if (0 != (rc = gcry_pk_testkey (priv_sexp)))
   {
-    LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_pk_testkey", rc);
+    LOG_GCRY (GNUNET_ERROR_TYPE_ERROR,
+              "gcry_pk_testkey",
+              rc);
     gcry_sexp_release (priv_sexp);
-    return NULL;
+    GNUNET_assert (0);
   }
 #endif
-  if (0 != (rc = key_from_sexp (&d, priv_sexp, "private-key", "d")))
+  if (0 != (rc = key_from_sexp (&d, priv_sexp,
+                                "private-key",
+                                "d")))
   {
-    LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "key_from_sexp", rc);
+    LOG_GCRY (GNUNET_ERROR_TYPE_ERROR,
+              "key_from_sexp",
+              rc);
     gcry_sexp_release (priv_sexp);
-    return NULL;
+    GNUNET_assert (0);
   }
   gcry_sexp_release (priv_sexp);
-  priv = GNUNET_new (struct GNUNET_CRYPTO_EcdsaPrivateKey);
-  GNUNET_CRYPTO_mpi_print_unsigned (priv->d, sizeof(priv->d), d);
+  GNUNET_CRYPTO_mpi_print_unsigned (pk->d,
+                                    sizeof(pk->d),
+                                    d);
   gcry_mpi_release (d);
-
   BENCHMARK_END (ecdsa_key_create);
-
-  return priv;
 }
 
 
 /**
- * Create a new private key. Caller must free return value.
+ * Create a new private key.
  *
- * @return fresh private key
+ * @param[out] pk set to fresh private key
  */
-struct GNUNET_CRYPTO_EddsaPrivateKey *
-GNUNET_CRYPTO_eddsa_key_create ()
+void
+GNUNET_CRYPTO_eddsa_key_create (struct GNUNET_CRYPTO_EddsaPrivateKey *pk)
 {
-  struct GNUNET_CRYPTO_EddsaPrivateKey *priv;
-
   BENCHMARK_START (eddsa_key_create);
-  priv = GNUNET_new (struct GNUNET_CRYPTO_EddsaPrivateKey);
   GNUNET_CRYPTO_random_block (GNUNET_CRYPTO_QUALITY_NONCE,
-                              priv,
+                              pk,
                               sizeof (struct GNUNET_CRYPTO_EddsaPrivateKey));
+  // FIXME: should we not do the clamping here? Or is this done elsewhere?
   BENCHMARK_END (eddsa_key_create);
-
-  return priv;
 }
 
 

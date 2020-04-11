@@ -32,39 +32,37 @@
 static int
 test_ecdh ()
 {
-  struct GNUNET_CRYPTO_EddsaPrivateKey *priv_dsa;
-  struct GNUNET_CRYPTO_EcdhePrivateKey *priv_ecdh;
+  struct GNUNET_CRYPTO_EddsaPrivateKey priv_dsa;
+  struct GNUNET_CRYPTO_EcdhePrivateKey priv_ecdh;
   struct GNUNET_CRYPTO_EddsaPublicKey id1;
   struct GNUNET_CRYPTO_EcdhePublicKey id2;
   struct GNUNET_HashCode dh[2];
 
   /* Generate keys */
-  priv_dsa = GNUNET_CRYPTO_eddsa_key_create ();
-  GNUNET_CRYPTO_eddsa_key_get_public (priv_dsa,
+  GNUNET_CRYPTO_eddsa_key_create (&priv_dsa);
+  GNUNET_CRYPTO_eddsa_key_get_public (&priv_dsa,
                                       &id1);
   for (unsigned int j = 0; j < 4; j++)
   {
     fprintf (stderr, ",");
-    priv_ecdh = GNUNET_CRYPTO_ecdhe_key_create ();
+    GNUNET_CRYPTO_ecdhe_key_create (&priv_ecdh);
     /* Extract public keys */
-    GNUNET_CRYPTO_ecdhe_key_get_public (priv_ecdh,
+    GNUNET_CRYPTO_ecdhe_key_get_public (&priv_ecdh,
                                         &id2);
     /* Do ECDH */
     GNUNET_assert (GNUNET_OK ==
-                   GNUNET_CRYPTO_eddsa_ecdh (priv_dsa,
+                   GNUNET_CRYPTO_eddsa_ecdh (&priv_dsa,
                                              &id2,
                                              &dh[0]));
     GNUNET_assert (GNUNET_OK ==
-                   GNUNET_CRYPTO_ecdh_eddsa (priv_ecdh,
+                   GNUNET_CRYPTO_ecdh_eddsa (&priv_ecdh,
                                              &id1,
                                              &dh[1]));
     /* Check that both DH results are equal. */
-    GNUNET_assert (0 == memcmp (&dh[0],
-                                &dh[1],
-                                sizeof(struct GNUNET_HashCode)));
-    GNUNET_free (priv_ecdh);
+    GNUNET_assert (0 ==
+                   GNUNET_memcmp (&dh[0],
+                                  &dh[1]));
   }
-  GNUNET_free (priv_dsa);
   return 0;
 }
 

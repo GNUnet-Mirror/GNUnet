@@ -73,7 +73,7 @@ run (void *cls,
   struct GNUNET_GNSRECORD_Data *s_rd;
   const char *s_name;
   struct GNUNET_TIME_Absolute start_time;
-  struct GNUNET_CRYPTO_EcdsaPrivateKey *privkey;
+  struct GNUNET_CRYPTO_EcdsaPrivateKey privkey;
   struct GNUNET_TIME_Absolute expire;
 
   (void) cls;
@@ -81,8 +81,7 @@ run (void *cls,
   (void) cfgfile;
   (void) cfg;
   expire = GNUNET_TIME_absolute_get ();
-  privkey = GNUNET_CRYPTO_ecdsa_key_create ();
-  GNUNET_assert (NULL != privkey);
+  GNUNET_CRYPTO_ecdsa_key_create (&privkey);
 
   /* test block creation */
   s_name = "DUMMY.dummy.gnunet";
@@ -91,12 +90,12 @@ run (void *cls,
   for (unsigned int i = 0; i < ROUNDS; i++)
   {
     GNUNET_assert (NULL != (block =
-                              GNUNET_GNSRECORD_block_create2 (privkey,
+                              GNUNET_GNSRECORD_block_create2 (&privkey,
                                                               expire,
                                                               s_name,
                                                               s_rd,
                                                               RECORDS)));
-    GNUNET_GNSRECORD_query_from_private_key (privkey,
+    GNUNET_GNSRECORD_query_from_private_key (&privkey,
                                              s_name,
                                              &query);
     GNUNET_free (block);
@@ -110,7 +109,6 @@ run (void *cls,
   for (unsigned int i = 0; i < RECORDS; i++)
     GNUNET_free ((void *) s_rd[i].data);
   GNUNET_free (s_rd);
-  GNUNET_free (privkey);
 }
 
 

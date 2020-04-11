@@ -38,9 +38,9 @@ static struct GNUNET_NAMESTORE_Handle *nsh;
 
 static struct GNUNET_SCHEDULER_Task *endbadly_task;
 
-static struct GNUNET_CRYPTO_EcdsaPrivateKey *privkey;
+static struct GNUNET_CRYPTO_EcdsaPrivateKey privkey;
 
-static struct GNUNET_CRYPTO_EcdsaPrivateKey *privkey2;
+static struct GNUNET_CRYPTO_EcdsaPrivateKey privkey2;
 
 static struct GNUNET_NAMESTORE_ZoneIterator *zi;
 
@@ -88,16 +88,6 @@ end (void *cls)
     GNUNET_SCHEDULER_cancel (endbadly_task);
     endbadly_task = NULL;
   }
-  if (NULL != privkey)
-  {
-    GNUNET_free (privkey);
-    privkey = NULL;
-  }
-  if (NULL != privkey2)
-  {
-    GNUNET_free (privkey2);
-    privkey2 = NULL;
-  }
   GNUNET_free_non_null (s_name_1);
   GNUNET_free_non_null (s_name_2);
   GNUNET_free_non_null (s_name_3);
@@ -143,7 +133,7 @@ zone_proc (void *cls,
 
   GNUNET_assert (NULL != zone);
   if (0 == GNUNET_memcmp (zone,
-                          privkey))
+                          &privkey))
   {
     if (0 == strcmp (label, s_name_1))
     {
@@ -188,7 +178,7 @@ zone_proc (void *cls,
       GNUNET_break (0);
     }
   }
-  else if (0 == GNUNET_memcmp (zone, privkey2))
+  else if (0 == GNUNET_memcmp (zone, &privkey2))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Received data for not requested zone\n");
@@ -271,7 +261,7 @@ put_cont (void *cls,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "All records created, starting iteration over all zones \n");
     zi = GNUNET_NAMESTORE_zone_iteration_start (nsh,
-                                                privkey,
+                                                &privkey,
                                                 &fail_cb,
                                                 NULL,
                                                 &zone_proc,
@@ -351,18 +341,15 @@ static void
 empty_zone_proc_end (void *cls)
 {
   zi = NULL;
-  privkey = GNUNET_CRYPTO_ecdsa_key_create ();
-  GNUNET_assert (privkey != NULL);
-  privkey2 = GNUNET_CRYPTO_ecdsa_key_create ();
-  GNUNET_assert (privkey2 != NULL);
-
+  GNUNET_CRYPTO_ecdsa_key_create (&privkey);
+  GNUNET_CRYPTO_ecdsa_key_create (&privkey2);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Created record 1\n");
   GNUNET_asprintf (&s_name_1,
                    "dummy1");
   s_rd_1 = create_record (1);
   GNUNET_NAMESTORE_records_store (nsh,
-                                  privkey,
+                                  &privkey,
                                   s_name_1,
                                   1,
                                   s_rd_1,
@@ -375,7 +362,7 @@ empty_zone_proc_end (void *cls)
                    "dummy2");
   s_rd_2 = create_record (1);
   GNUNET_NAMESTORE_records_store (nsh,
-                                  privkey,
+                                  &privkey,
                                   s_name_2,
                                   1,
                                   s_rd_2,
@@ -390,7 +377,7 @@ empty_zone_proc_end (void *cls)
                    "dummy3");
   s_rd_3 = create_record (1);
   GNUNET_NAMESTORE_records_store (nsh,
-                                  privkey2,
+                                  &privkey2,
                                   s_name_3,
                                   1, s_rd_3,
                                   &put_cont,

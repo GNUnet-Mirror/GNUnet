@@ -64,7 +64,7 @@ static struct GNUNET_SCHEDULER_Task *timeout_task;
 
 static struct GNUNET_SCHEDULER_Task *t;
 
-static struct GNUNET_CRYPTO_EcdsaPrivateKey *privkey;
+static struct GNUNET_CRYPTO_EcdsaPrivateKey privkey;
 
 static struct GNUNET_NAMESTORE_ZoneIterator *zi;
 
@@ -114,11 +114,6 @@ end (void *cls)
   {
     GNUNET_SCHEDULER_cancel (timeout_task);
     timeout_task = NULL;
-  }
-  if (NULL != privkey)
-  {
-    GNUNET_free (privkey);
-    privkey = NULL;
   }
 }
 
@@ -243,7 +238,7 @@ zone_proc (void *cls,
   }
   GNUNET_free (wrd);
   if (0 != GNUNET_memcmp (zone,
-                          privkey))
+                          &privkey))
   {
     res = 5;
     GNUNET_break (0);
@@ -324,7 +319,7 @@ publish_record (void *cls)
                    "l%u",
                    off);
   qe = GNUNET_NAMESTORE_records_store (nsh,
-                                       privkey,
+                                       &privkey,
                                        label,
                                        1, rd,
                                        &put_cont,
@@ -346,8 +341,7 @@ run (void *cls,
                                                NULL);
   nsh = GNUNET_NAMESTORE_connect (cfg);
   GNUNET_assert (NULL != nsh);
-  privkey = GNUNET_CRYPTO_ecdsa_key_create ();
-  GNUNET_assert (NULL != privkey);
+  GNUNET_CRYPTO_ecdsa_key_create (&privkey);
   start = GNUNET_TIME_absolute_get ();
   t = GNUNET_SCHEDULER_add_now (&publish_record,
                                 NULL);

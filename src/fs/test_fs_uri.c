@@ -81,7 +81,7 @@ testLocation ()
   struct GNUNET_FS_Uri *uri2;
   struct GNUNET_FS_Uri *baseURI;
   char *emsg;
-  struct GNUNET_CRYPTO_EddsaPrivateKey *pk;
+  struct GNUNET_CRYPTO_EddsaPrivateKey pk;
 
   baseURI =
     GNUNET_FS_uri_parse
@@ -90,11 +90,10 @@ testLocation ()
       &emsg);
   GNUNET_assert (baseURI != NULL);
   GNUNET_assert (emsg == NULL);
-  pk = GNUNET_CRYPTO_eddsa_key_create ();
+  GNUNET_CRYPTO_eddsa_key_create (&pk);
   uri = GNUNET_FS_uri_loc_create (baseURI,
-                                  pk,
+                                  &pk,
                                   GNUNET_TIME_absolute_get ());
-  GNUNET_free (pk);
   if (NULL == uri)
   {
     GNUNET_break (0);
@@ -154,7 +153,7 @@ testNamespace (int i)
   char *uri;
   struct GNUNET_FS_Uri *ret;
   char *emsg;
-  struct GNUNET_CRYPTO_EcdsaPrivateKey *ph;
+  struct GNUNET_CRYPTO_EcdsaPrivateKey ph;
   struct GNUNET_CRYPTO_EcdsaPublicKey id;
   char buf[1024];
   char ubuf[1024];
@@ -187,8 +186,9 @@ testNamespace (int i)
     GNUNET_assert (0);
   }
   GNUNET_free (emsg);
-  ph = GNUNET_CRYPTO_ecdsa_key_create ();
-  GNUNET_CRYPTO_ecdsa_key_get_public (ph, &id);
+  GNUNET_CRYPTO_ecdsa_key_create (&ph);
+  GNUNET_CRYPTO_ecdsa_key_get_public (&ph,
+                                      &id);
   sret = GNUNET_STRINGS_data_to_string (&id, sizeof(id),
                                         ubuf, sizeof(ubuf) - 1);
   GNUNET_assert (NULL != sret);

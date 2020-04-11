@@ -247,7 +247,7 @@ struct GNUNET_IDENTITY_Ego
   /**
    * Private key associated with this ego.
    */
-  struct GNUNET_CRYPTO_EcdsaPrivateKey *pk;
+  struct GNUNET_CRYPTO_EcdsaPrivateKey pk;
 
   /**
    * Current name associated with this ego.

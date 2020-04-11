@@ -384,7 +384,7 @@ struct GNUNET_PEERINFO_Handle *GST_peerinfo;
 /**
  * Our private key.
  */
-struct GNUNET_CRYPTO_EddsaPrivateKey *GST_my_private_key;
+struct GNUNET_CRYPTO_EddsaPrivateKey GST_my_private_key;
 
 /**
  * ATS scheduling handle.
@@ -2183,11 +2183,6 @@ shutdown_task (void *cls)
     GNUNET_STATISTICS_destroy (GST_stats, GNUNET_NO);
     GST_stats = NULL;
   }
-  if (NULL != GST_my_private_key)
-  {
-    GNUNET_free (GST_my_private_key);
-    GST_my_private_key = NULL;
-  }
 }
 
 
@@ -2611,7 +2606,6 @@ run (void *cls,
      struct GNUNET_SERVICE_Handle *service)
 {
   char *keyfile;
-  struct GNUNET_CRYPTO_EddsaPrivateKey *pk;
   long long unsigned int max_fd_cfg;
   int max_fd_rlimit;
   int max_fd;
@@ -2638,17 +2632,22 @@ run (void *cls,
   {
     hello_expiration = GNUNET_CONSTANTS_HELLO_ADDRESS_EXPIRATION;
   }
-  pk = GNUNET_CRYPTO_eddsa_key_create_from_file (keyfile);
+  if (GNUNET_SYSERR ==
+      GNUNET_CRYPTO_eddsa_key_from_file (keyfile,
+                                         GNUNET_YES,
+                                         &GST_my_private_key))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Failed to setup peer's private key\n");
+    GNUNET_SCHEDULER_shutdown ();
+    GNUNET_free (keyfile);
+    return;
+  }
   GNUNET_free (keyfile);
-  GNUNET_assert (NULL != pk);
-  GST_my_private_key = pk;
-
   GST_stats = GNUNET_STATISTICS_create ("transport", GST_cfg);
   GST_peerinfo = GNUNET_PEERINFO_connect (GST_cfg);
-  GNUNET_CRYPTO_eddsa_key_get_public (GST_my_private_key,
+  GNUNET_CRYPTO_eddsa_key_get_public (&GST_my_private_key,
                                       &GST_my_identity.public_key);
-  GNUNET_assert (NULL != GST_my_private_key);
-
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "My identity is `%s'\n",
               GNUNET_i2s_full (&GST_my_identity));

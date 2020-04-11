@@ -174,7 +174,7 @@ run (void *cls,
      const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *config)
 {
-  struct GNUNET_CRYPTO_EddsaPrivateKey *pk;
+  struct GNUNET_CRYPTO_EddsaPrivateKey pk;
   char *pids;
 
   (void) cls;
@@ -214,15 +214,18 @@ run (void *cls,
     }
   }
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Private Key file: %s\n", pkfn);
-  if (NULL == (pk = GNUNET_CRYPTO_eddsa_key_create_from_file (pkfn)))
+  if (GNUNET_SYSERR ==
+      GNUNET_CRYPTO_eddsa_key_from_file (pkfn,
+                                         GNUNET_YES,
+                                         &pk))
   {
     fprintf (stderr, _ ("Loading hostkey from `%s' failed.\n"), pkfn);
     GNUNET_free (pkfn);
     return;
   }
   GNUNET_free (pkfn);
-  GNUNET_CRYPTO_eddsa_key_get_public (pk, &pub);
-  GNUNET_free (pk);
+  GNUNET_CRYPTO_eddsa_key_get_public (&pk,
+                                      &pub);
   pids = GNUNET_CRYPTO_eddsa_public_key_to_string (&pub);
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Peer ID: %s\n", pids);
   GNUNET_free (pids);

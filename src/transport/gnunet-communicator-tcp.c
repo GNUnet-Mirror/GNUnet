@@ -1270,8 +1270,7 @@ inject_rekey (struct Queue *queue)
 
   GNUNET_assert (0 == queue->pwrite_off);
   memset (&rekey, 0, sizeof(rekey));
-  GNUNET_assert (GNUNET_OK ==
-                 GNUNET_CRYPTO_ecdhe_key_create2 (&queue->ephemeral));
+  GNUNET_CRYPTO_ecdhe_key_create (&queue->ephemeral);
   rekey.header.type = ntohs (GNUNET_MESSAGE_TYPE_COMMUNICATOR_TCP_REKEY);
   rekey.header.size = ntohs (sizeof(rekey));
   GNUNET_CRYPTO_ecdhe_key_get_public (&queue->ephemeral, &rekey.ephemeral);
@@ -1610,8 +1609,7 @@ start_initial_kx_out (struct Queue *queue)
 {
   struct GNUNET_CRYPTO_EcdhePublicKey epub;
 
-  GNUNET_assert (GNUNET_OK ==
-                 GNUNET_CRYPTO_ecdhe_key_create2 (&queue->ephemeral));
+  GNUNET_CRYPTO_ecdhe_key_create (&queue->ephemeral);
   GNUNET_CRYPTO_ecdhe_key_get_public (&queue->ephemeral, &epub);
   setup_out_cipher (queue);
   transmit_kx (queue, &epub);

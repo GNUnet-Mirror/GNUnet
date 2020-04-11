@@ -33,7 +33,7 @@ static struct GNUNET_FS_Handle *fs;
 
 static int err;
 
-static struct GNUNET_CRYPTO_EcdsaPrivateKey *ns;
+static struct GNUNET_CRYPTO_EcdsaPrivateKey ns;
 
 static struct GNUNET_CONTAINER_MetaData *meta;
 
@@ -58,8 +58,6 @@ do_shutdown ()
     GNUNET_FS_uri_destroy (uri_this);
   if (uri_next != NULL)
     GNUNET_FS_uri_destroy (uri_next);
-  if (ns != NULL)
-    GNUNET_free (ns);
   if (meta != NULL)
     GNUNET_CONTAINER_meta_data_destroy (meta);
 }
@@ -87,7 +85,7 @@ check_this_next (void *cls, const char *last_id,
   GNUNET_break (0 == strcmp (next_id, "next"));
   err -= 2;
   err += 4;
-  GNUNET_FS_namespace_list_updateable (fs, ns, next_id, &check_next, NULL);
+  GNUNET_FS_namespace_list_updateable (fs, &ns, next_id, &check_next, NULL);
 }
 
 
@@ -96,7 +94,7 @@ sks_cont_next (void *cls, const struct GNUNET_FS_Uri *uri, const char *emsg)
 {
   GNUNET_assert (NULL == emsg);
   err += 2;
-  GNUNET_FS_namespace_list_updateable (fs, ns, NULL, &check_this_next, NULL);
+  GNUNET_FS_namespace_list_updateable (fs, &ns, NULL, &check_this_next, NULL);
 }
 
 
@@ -117,17 +115,17 @@ sks_cont_this (void *cls, const struct GNUNET_FS_Uri *uri, const char *emsg)
 {
   GNUNET_assert (NULL == emsg);
   err = 1;
-  GNUNET_FS_namespace_list_updateable (fs, ns, NULL, &check_this, NULL);
-  GNUNET_FS_publish_sks (fs, ns, "next", "future", meta, uri_next, &bo,
+  GNUNET_FS_namespace_list_updateable (fs, &ns, NULL, &check_this, NULL);
+  GNUNET_FS_publish_sks (fs,
+                         &ns, "next", "future", meta, uri_next, &bo,
                          GNUNET_FS_PUBLISH_OPTION_NONE, &sks_cont_next, NULL);
 }
 
 
 static void
-testNamespace ()
+testNamespace (void)
 {
-  ns = GNUNET_CRYPTO_ecdsa_key_create ();
-  GNUNET_assert (NULL != ns);
+  GNUNET_CRYPTO_ecdsa_key_create (&ns);
   bo.content_priority = 1;
   bo.anonymity_level = 1;
   bo.replication_level = 0;
@@ -145,7 +143,8 @@ testNamespace ()
     (
       "gnunet://fs/chk/C282GG70GKK41O4551011DO413KFBVTVMQG1OG30I0K4045N0G41HAPB82G680A02JRVVFO8URVRU2F159011DO41000000022RG820.RNVVVVOOLCLK065B5D04HTNVNSIB2AI022RG8200HSLK1CO1000ATQ98824DMA2032LIMG50CG0K057NVUVG200000H000004400000.43",
       NULL);
-  GNUNET_FS_publish_sks (fs, ns, "this", "next", meta, uri_this, &bo,
+  GNUNET_FS_publish_sks (fs,
+                         &ns, "this", "next", meta, uri_this, &bo,
                          GNUNET_FS_PUBLISH_OPTION_NONE, &sks_cont_this, NULL);
 }
 

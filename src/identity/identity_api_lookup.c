@@ -134,7 +134,7 @@ handle_identity_update (void *cls, const struct UpdateMessage *um)
   GNUNET_break (GNUNET_YES != ntohs (um->end_of_list));
   GNUNET_CRYPTO_ecdsa_key_get_public (&um->private_key, &pub);
   GNUNET_CRYPTO_hash (&pub, sizeof(pub), &id);
-  ego.pk = (struct GNUNET_CRYPTO_EcdsaPrivateKey *) &um->private_key;
+  ego.pk = um->private_key;
   ego.name = (char *) str;
   ego.id = id;
   el->cb (el->cb_cls, &ego);

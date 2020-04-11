@@ -315,7 +315,7 @@ static struct GNUNET_CONFIGURATION_Handle *block_cfg;
 /**
  * Private key of this peer.  Used to sign LOC URI requests.
  */
-static struct GNUNET_CRYPTO_EddsaPrivateKey *pk;
+static struct GNUNET_CRYPTO_EddsaPrivateKey pk;
 
 /**
  * ID of our task that we use to age the cover counters.
@@ -939,7 +939,7 @@ handle_client_loc_sign (void *cls,
   base.data.chk.chk = msg->chk;
   base.data.chk.file_length = GNUNET_ntohll (msg->file_length);
   loc = GNUNET_FS_uri_loc_create (&base,
-                                  pk,
+                                  &pk,
                                   GNUNET_TIME_absolute_ntoh (
                                     msg->expiration_time));
   env = GNUNET_MQ_msg (resp,
@@ -1283,10 +1283,19 @@ main_init (const struct GNUNET_CONFIGURATION_Handle *c)
     GNUNET_SCHEDULER_shutdown ();
     return GNUNET_SYSERR;
   }
-  pk = GNUNET_CRYPTO_eddsa_key_create_from_file (keyfile);
+  if (GNUNET_SYSERR ==
+      GNUNET_CRYPTO_eddsa_key_from_file (keyfile,
+                                         GNUNET_YES,
+                                         &pk))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Failed to setup peer's private key\n");
+    GNUNET_SCHEDULER_shutdown ();
+    GNUNET_free (keyfile);
+    return GNUNET_SYSERR;
+  }
   GNUNET_free (keyfile);
-  GNUNET_assert (NULL != pk);
-  GNUNET_CRYPTO_eddsa_key_get_public (pk,
+  GNUNET_CRYPTO_eddsa_key_get_public (&pk,
                                       &GSF_my_id.public_key);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,

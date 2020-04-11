@@ -4130,8 +4130,7 @@ update_ephemeral (struct DistanceVector *dv)
   dv->monotime = GNUNET_TIME_absolute_get_monotonic (GST_cfg);
   dv->ephemeral_validity =
     GNUNET_TIME_absolute_add (dv->monotime, EPHEMERAL_VALIDITY);
-  GNUNET_assert (GNUNET_OK ==
-                 GNUNET_CRYPTO_ecdhe_key_create2 (&dv->private_key));
+  GNUNET_CRYPTO_ecdhe_key_create (&dv->private_key);
   GNUNET_CRYPTO_ecdhe_key_get_public (&dv->private_key, &dv->ephemeral_key);
   ec.purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_TRANSPORT_EPHEMERAL);
   ec.purpose.size = htonl (sizeof(ec));

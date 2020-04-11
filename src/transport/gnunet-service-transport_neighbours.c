@@ -1045,7 +1045,7 @@ send_disconnect (struct NeighbourMapEntry *n)
     GNUNET_TIME_absolute_hton (GNUNET_TIME_absolute_get ());
   disconnect_msg.public_key = GST_my_identity.public_key;
   GNUNET_assert (GNUNET_OK ==
-                 GNUNET_CRYPTO_eddsa_sign_ (GST_my_private_key,
+                 GNUNET_CRYPTO_eddsa_sign_ (&GST_my_private_key,
                                             &disconnect_msg.purpose,
                                             &disconnect_msg.signature));
 

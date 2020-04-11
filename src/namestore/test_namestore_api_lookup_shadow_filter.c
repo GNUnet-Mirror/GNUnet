@@ -48,7 +48,7 @@ static struct GNUNET_SCHEDULER_Task *endbadly_task;
 
 static struct GNUNET_SCHEDULER_Task *delayed_lookup_task;
 
-static struct GNUNET_CRYPTO_EcdsaPrivateKey *privkey;
+static struct GNUNET_CRYPTO_EcdsaPrivateKey privkey;
 
 static struct GNUNET_CRYPTO_EcdsaPublicKey pubkey;
 
@@ -81,11 +81,6 @@ cleanup ()
   {
     GNUNET_NAMECACHE_disconnect (nch);
     nch = NULL;
-  }
-  if (NULL != privkey)
-  {
-    GNUNET_free (privkey);
-    privkey = NULL;
   }
   GNUNET_SCHEDULER_shutdown ();
 }
@@ -272,7 +267,8 @@ put_cont (void *cls, int32_t success, const char *emsg)
               (success == GNUNET_OK) ? "SUCCESS" : "FAIL");
 
   /* Create derived hash */
-  GNUNET_CRYPTO_ecdsa_key_get_public (privkey, &pubkey);
+  GNUNET_CRYPTO_ecdsa_key_get_public (&privkey,
+                                      &pubkey);
   GNUNET_GNSRECORD_query_from_public_key (&pubkey, TEST_NAME, &derived_hash);
 
   if (0 == GNUNET_TIME_absolute_get_remaining (record_expiration).rel_value_us)
@@ -301,9 +297,8 @@ run (void *cls,
   endbadly_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT,
                                                 &endbadly,
                                                 NULL);
-  privkey = GNUNET_CRYPTO_ecdsa_key_create ();
-  GNUNET_assert (privkey != NULL);
-  GNUNET_CRYPTO_ecdsa_key_get_public (privkey,
+  GNUNET_CRYPTO_ecdsa_key_create (&privkey);
+  GNUNET_CRYPTO_ecdsa_key_get_public (&privkey,
                                       &pubkey);
 
   record_expiration = GNUNET_TIME_absolute_add (GNUNET_TIME_absolute_get (),
@@ -328,8 +323,13 @@ run (void *cls,
   nch = GNUNET_NAMECACHE_connect (cfg);
   GNUNET_break (NULL != nsh);
   GNUNET_break (NULL != nch);
-  nsqe = GNUNET_NAMESTORE_records_store (nsh, privkey, TEST_NAME,
-                                         2, records, &put_cont, NULL);
+  nsqe = GNUNET_NAMESTORE_records_store (nsh,
+                                         &privkey,
+                                         TEST_NAME,
+                                         2,
+                                         records,
+                                         &put_cont,
+                                         NULL);
   if (NULL == nsqe)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,

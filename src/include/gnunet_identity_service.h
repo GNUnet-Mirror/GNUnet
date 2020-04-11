@@ -137,10 +137,11 @@ GNUNET_IDENTITY_ego_get_public_key (const struct GNUNET_IDENTITY_Ego *ego,
  *                   NULL if the user just deleted the ego and it
  *                   must thus no longer be used
  */
-typedef void (*GNUNET_IDENTITY_Callback) (void *cls,
-                                          struct GNUNET_IDENTITY_Ego *ego,
-                                          void **ctx,
-                                          const char *name);
+typedef void
+(*GNUNET_IDENTITY_Callback) (void *cls,
+                             struct GNUNET_IDENTITY_Ego *ego,
+                             void **ctx,
+                             const char *name);
 
 
 /**
@@ -180,7 +181,9 @@ GNUNET_IDENTITY_get (struct GNUNET_IDENTITY_Handle *id,
  * @param cls closure
  * @param emsg NULL on success, otherwise an error message
  */
-typedef void (*GNUNET_IDENTITY_Continuation) (void *cls, const char *emsg);
+typedef void
+(*GNUNET_IDENTITY_Continuation) (void *cls,
+                                 const char *emsg);
 
 
 /**
@@ -218,7 +221,8 @@ GNUNET_IDENTITY_disconnect (struct GNUNET_IDENTITY_Handle *h);
  * @param pk private key, NULL on error
  * @param emsg error message, NULL on success
  */
-typedef void (*GNUNET_IDENTITY_CreateContinuation) (
+typedef void
+(*GNUNET_IDENTITY_CreateContinuation) (
   void *cls,
   const struct GNUNET_CRYPTO_EcdsaPrivateKey *pk,
   const char *emsg);
@@ -294,9 +298,9 @@ GNUNET_IDENTITY_cancel (struct GNUNET_IDENTITY_Operation *op);
  * @param cls closure
  * @param ego NULL on error / ego not found
  */
-typedef void (*GNUNET_IDENTITY_EgoCallback) (
-  void *cls,
-  const struct GNUNET_IDENTITY_Ego *ego);
+typedef void
+(*GNUNET_IDENTITY_EgoCallback) (void *cls,
+                                const struct GNUNET_IDENTITY_Ego *ego);
 
 /**
  * Handle for ego lookup.
@@ -335,7 +339,8 @@ GNUNET_IDENTITY_ego_lookup_cancel (struct GNUNET_IDENTITY_EgoLookup *el);
  * @param ego NULL on error / ego not found
  * @param ego_name NULL on error, name of the ego otherwise
  */
-typedef void (*GNUNET_IDENTITY_EgoSuffixCallback) (
+typedef void
+(*GNUNET_IDENTITY_EgoSuffixCallback) (
   void *cls,
   const struct GNUNET_CRYPTO_EcdsaPrivateKey *priv,
   const char *ego_name);
@@ -373,8 +378,9 @@ GNUNET_IDENTITY_ego_lookup_by_suffix (const struct
  * @param el handle for lookup to abort
  */
 void
-GNUNET_IDENTITY_ego_lookup_by_suffix_cancel (struct
-                                             GNUNET_IDENTITY_EgoSuffixLookup *el);
+GNUNET_IDENTITY_ego_lookup_by_suffix_cancel (
+  struct GNUNET_IDENTITY_EgoSuffixLookup *el);
+
 
 #if 0 /* keep Emacsens' auto-indent happy */
 {

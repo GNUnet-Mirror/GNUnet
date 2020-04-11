@@ -79,7 +79,7 @@ static void
 create_keys (const char *fn, const char *prefix)
 {
   FILE *f;
-  struct GNUNET_CRYPTO_EddsaPrivateKey *pk;
+  struct GNUNET_CRYPTO_EddsaPrivateKey pk;
   struct GNUNET_CRYPTO_EddsaPublicKey target_pub;
   static char vanity[KEY_STR_LEN + 1];
   size_t len;
@@ -141,17 +141,16 @@ create_keys (const char *fn, const char *prefix)
   while (0 < make_keys--)
   {
     fprintf (stderr, ".");
-    if (NULL == (pk = GNUNET_CRYPTO_eddsa_key_create ()))
-    {
-      GNUNET_break (0);
-      break;
-    }
+    GNUNET_CRYPTO_eddsa_key_create (&pk);
     if (NULL != prefix)
     {
       struct GNUNET_CRYPTO_EddsaPublicKey newkey;
 
-      GNUNET_CRYPTO_eddsa_key_get_public (pk, &newkey);
-      if (0 != memcmp (&target_pub, &newkey, n))
+      GNUNET_CRYPTO_eddsa_key_get_public (&pk,
+                                          &newkey);
+      if (0 != memcmp (&target_pub,
+                       &newkey,
+                       n))
       {
         make_keys++;
         continue;
@@ -169,16 +168,17 @@ create_keys (const char *fn, const char *prefix)
       }
     }
     if (GNUNET_TESTING_HOSTKEYFILESIZE !=
-        fwrite (pk, 1, GNUNET_TESTING_HOSTKEYFILESIZE, f))
+        fwrite (&pk,
+                1,
+                GNUNET_TESTING_HOSTKEYFILESIZE,
+                f))
     {
       fprintf (stderr,
                _ ("\nFailed to write to `%s': %s\n"),
                fn,
                strerror (errno));
-      GNUNET_free (pk);
       break;
     }
-    GNUNET_free (pk);
   }
   if (UINT_MAX == make_keys)
     fprintf (stderr, _ ("\nFinished!\n"));
@@ -201,49 +201,75 @@ print_hex (const char *msg, const void *buf, size_t size)
 
 
 static void
-print_examples_ecdh ()
+print_examples_ecdh (void)
 {
-  struct GNUNET_CRYPTO_EcdhePrivateKey *dh_priv1;
-  struct GNUNET_CRYPTO_EcdhePublicKey *dh_pub1;
-  struct GNUNET_CRYPTO_EcdhePrivateKey *dh_priv2;
-  struct GNUNET_CRYPTO_EcdhePublicKey *dh_pub2;
+  struct GNUNET_CRYPTO_EcdhePrivateKey dh_priv1;
+  struct GNUNET_CRYPTO_EcdhePublicKey dh_pub1;
+  struct GNUNET_CRYPTO_EcdhePrivateKey dh_priv2;
+  struct GNUNET_CRYPTO_EcdhePublicKey dh_pub2;
   struct GNUNET_HashCode hash;
   char buf[128];
 
-  dh_pub1 = GNUNET_new (struct GNUNET_CRYPTO_EcdhePublicKey);
-  dh_priv1 = GNUNET_CRYPTO_ecdhe_key_create ();
-  dh_pub2 = GNUNET_new (struct GNUNET_CRYPTO_EcdhePublicKey);
-  dh_priv2 = GNUNET_CRYPTO_ecdhe_key_create ();
-  GNUNET_CRYPTO_ecdhe_key_get_public (dh_priv1, dh_pub1);
-  GNUNET_CRYPTO_ecdhe_key_get_public (dh_priv2, dh_pub2);
+  GNUNET_CRYPTO_ecdhe_key_create (&dh_priv1);
+  GNUNET_CRYPTO_ecdhe_key_create (&dh_priv2);
+  GNUNET_CRYPTO_ecdhe_key_get_public (&dh_priv1,
+                                      &dh_pub1);
+  GNUNET_CRYPTO_ecdhe_key_get_public (&dh_priv2,
+                                      &dh_pub2);
 
   GNUNET_assert (NULL !=
-                 GNUNET_STRINGS_data_to_string (dh_priv1, 32, buf, 128));
+                 GNUNET_STRINGS_data_to_string (&dh_priv1,
+                                                sizeof (dh_priv1),
+                                                buf,
+                                                sizeof (buf)));
   printf ("ECDHE key 1:\n");
-  printf ("private: %s\n", buf);
-  print_hex ("private(hex)", dh_priv1, sizeof *dh_priv1);
-  GNUNET_assert (NULL != GNUNET_STRINGS_data_to_string (dh_pub1, 32, buf, 128));
-  printf ("public: %s\n", buf);
-  print_hex ("public(hex)", dh_pub1, sizeof *dh_pub1);
+  printf ("private: %s\n",
+          buf);
+  print_hex ("private(hex)",
+             &dh_priv1, sizeof (dh_priv1));
+  GNUNET_assert (NULL !=
+                 GNUNET_STRINGS_data_to_string (&dh_pub1,
+                                                sizeof (dh_pub1),
+                                                buf,
+                                                sizeof (buf)));
+  printf ("public: %s\n",
+          buf);
+  print_hex ("public(hex)",
+             &dh_pub1,
+             sizeof (dh_pub1));
 
   GNUNET_assert (NULL !=
-                 GNUNET_STRINGS_data_to_string (dh_priv2, 32, buf, 128));
+                 GNUNET_STRINGS_data_to_string (&dh_priv2,
+                                                sizeof (dh_priv2),
+                                                buf,
+                                                sizeof (buf)));
   printf ("ECDHE key 2:\n");
   printf ("private: %s\n", buf);
-  print_hex ("private(hex)", dh_priv2, sizeof *dh_priv2);
-  GNUNET_assert (NULL != GNUNET_STRINGS_data_to_string (dh_pub2, 32, buf, 128));
+  print_hex ("private(hex)",
+             &dh_priv2,
+             sizeof (dh_priv2));
+  GNUNET_assert (NULL !=
+                 GNUNET_STRINGS_data_to_string (&dh_pub2,
+                                                sizeof (dh_pub2),
+                                                buf,
+                                                sizeof (buf)));
   printf ("public: %s\n", buf);
-  print_hex ("public(hex)", dh_pub2, sizeof *dh_pub2);
+  print_hex ("public(hex)",
+             &dh_pub2,
+             sizeof (dh_pub2));
 
   GNUNET_assert (GNUNET_OK ==
-                 GNUNET_CRYPTO_ecc_ecdh (dh_priv1, dh_pub2, &hash));
-  GNUNET_assert (NULL != GNUNET_STRINGS_data_to_string (&hash, 64, buf, 128));
-  printf ("ECDH shared secret: %s\n", buf);
+                 GNUNET_CRYPTO_ecc_ecdh (&dh_priv1,
+                                         &dh_pub2,
+                                         &hash));
+  GNUNET_assert (NULL !=
+                 GNUNET_STRINGS_data_to_string (&hash,
+                                                sizeof (hash),
+                                                buf,
+                                                sizeof (buf)));
+  printf ("ECDH shared secret: %s\n",
+          buf);
 
-  GNUNET_free (dh_priv1);
-  GNUNET_free (dh_priv2);
-  GNUNET_free (dh_pub1);
-  GNUNET_free (dh_pub2);
 }
 
 
@@ -251,7 +277,7 @@ print_examples_ecdh ()
  * Print some random example operations to stdout.
  */
 static void
-print_examples ()
+print_examples (void)
 {
   print_examples_ecdh ();
   // print_examples_ecdsa ();

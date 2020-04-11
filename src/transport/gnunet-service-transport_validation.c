@@ -1271,7 +1271,7 @@ GST_validation_handle_ping (const struct GNUNET_PeerIdentity *sender,
     *sig_cache_exp = GNUNET_TIME_relative_to_absolute (PONG_SIGNATURE_LIFETIME);
     pong->expiration = GNUNET_TIME_absolute_hton (*sig_cache_exp);
     if (GNUNET_OK !=
-        GNUNET_CRYPTO_eddsa_sign_ (GST_my_private_key,
+        GNUNET_CRYPTO_eddsa_sign_ (&GST_my_private_key,
                                    &pong->purpose,
                                    sig_cache))
     {

@@ -48,7 +48,7 @@ static struct GNUNET_NAMECACHE_Handle *nch;
 
 static struct GNUNET_SCHEDULER_Task *endbadly_task;
 
-static struct GNUNET_CRYPTO_EcdsaPrivateKey *privkey;
+static struct GNUNET_CRYPTO_EcdsaPrivateKey privkey;
 
 static struct GNUNET_CRYPTO_EcdsaPublicKey pubkey;
 
@@ -106,11 +106,6 @@ end (void *cls)
     GNUNET_NAMECACHE_disconnect (nch);
     nch = NULL;
   }
-  if (NULL != privkey)
-  {
-    GNUNET_free (privkey);
-    privkey = NULL;
-  }
 }
 
 
@@ -157,7 +152,7 @@ rd_decrypt_cb (void *cls,
             TEST_RECORD_DATALEN2);
 
     nsqe = GNUNET_NAMESTORE_records_store (nsh,
-                                           privkey,
+                                           &privkey,
                                            name,
                                            1,
                                            &rd_new,
@@ -226,7 +221,7 @@ put_cont (void *cls,
               name,
               (success == GNUNET_OK) ? "SUCCESS" : "FAIL");
   /* Create derived hash */
-  GNUNET_GNSRECORD_query_from_private_key (privkey,
+  GNUNET_GNSRECORD_query_from_private_key (&privkey,
                                            name,
                                            &derived_hash);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -251,9 +246,8 @@ run (void *cls,
   endbadly_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT,
                                                 &endbadly,
                                                 NULL);
-  privkey = GNUNET_CRYPTO_ecdsa_key_create ();
-  GNUNET_assert (privkey != NULL);
-  GNUNET_CRYPTO_ecdsa_key_get_public (privkey,
+  GNUNET_CRYPTO_ecdsa_key_create (&privkey);
+  GNUNET_CRYPTO_ecdsa_key_get_public (&privkey,
                                       &pubkey);
   rd.flags = GNUNET_GNSRECORD_RF_NONE;
   rd.expiration_time = GNUNET_TIME_absolute_get ().abs_value_us + 1000000000;
@@ -269,7 +263,7 @@ run (void *cls,
   nch = GNUNET_NAMECACHE_connect (cfg);
   GNUNET_break (NULL != nch);
   nsqe = GNUNET_NAMESTORE_records_store (nsh,
-                                         privkey,
+                                         &privkey,
                                          name,
                                          1,
                                          &rd,

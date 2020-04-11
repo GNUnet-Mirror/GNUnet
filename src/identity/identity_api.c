@@ -74,7 +74,7 @@ struct GNUNET_IDENTITY_Operation
   /**
    * Private key to return to @e create_cont, or NULL.
    */
-  struct GNUNET_CRYPTO_EcdsaPrivateKey *pk;
+  struct GNUNET_CRYPTO_EcdsaPrivateKey pk;
 
   /**
    * Continuation to invoke with the result of the transmission for
@@ -156,14 +156,18 @@ const struct GNUNET_IDENTITY_Ego *
 GNUNET_IDENTITY_ego_get_anonymous ()
 {
   static struct GNUNET_IDENTITY_Ego anon;
+  static int setup;
   struct GNUNET_CRYPTO_EcdsaPublicKey pub;
 
-  if (NULL != anon.pk)
+  if (setup)
     return &anon;
-  anon.pk = (struct GNUNET_CRYPTO_EcdsaPrivateKey *)
-            GNUNET_CRYPTO_ecdsa_key_get_anonymous ();
-  GNUNET_CRYPTO_ecdsa_key_get_public (anon.pk, &pub);
-  GNUNET_CRYPTO_hash (&pub, sizeof(pub), &anon.id);
+  anon.pk = *GNUNET_CRYPTO_ecdsa_key_get_anonymous ();
+  GNUNET_CRYPTO_ecdsa_key_get_public (&anon.pk,
+                                      &pub);
+  GNUNET_CRYPTO_hash (&pub,
+                      sizeof(pub),
+                      &anon.id);
+  setup = 1;
   return &anon;
 }
 
@@ -193,7 +197,6 @@ free_ego (void *cls, const struct GNUNET_HashCode *key, void *value)
 
   if (NULL != h->cb)
     h->cb (h->cb_cls, ego, &ego->ctx, NULL);
-  GNUNET_free (ego->pk);
   GNUNET_free (ego->name);
   GNUNET_assert (GNUNET_YES ==
                  GNUNET_CONTAINER_multihashmap_remove (h->egos, key, value));
@@ -230,7 +233,6 @@ reschedule_connect (struct GNUNET_IDENTITY_Handle *h)
       op->create_cont (op->cls,
                        NULL,
                        "Failed to communicate with the identity service");
-    GNUNET_free_non_null (op->pk);
     GNUNET_free (op);
   }
   GNUNET_CONTAINER_multihashmap_iterate (h->egos, &free_ego, h);
@@ -304,8 +306,7 @@ handle_identity_result_code (void *cls, const struct ResultCodeMessage *rcm)
   else if (NULL != op->cb)
     op->cb (op->cls, NULL, NULL, NULL);
   else if (NULL != op->create_cont)
-    op->create_cont (op->cls, (NULL == str) ? op->pk : NULL, str);
-  GNUNET_free_non_null (op->pk);
+    op->create_cont (op->cls, (NULL == str) ? &op->pk : NULL, str);
   GNUNET_free (op);
 }
 
@@ -371,8 +372,7 @@ handle_identity_update (void *cls, const struct UpdateMessage *um)
       return;
     }
     ego = GNUNET_new (struct GNUNET_IDENTITY_Ego);
-    ego->pk = GNUNET_new (struct GNUNET_CRYPTO_EcdsaPrivateKey);
-    *ego->pk = um->private_key;
+    ego->pk = um->private_key;
     ego->name = GNUNET_strdup (str);
     ego->id = id;
     GNUNET_assert (GNUNET_YES ==
@@ -401,7 +401,6 @@ handle_identity_update (void *cls, const struct UpdateMessage *um)
   /* complete deletion */
   if (NULL == str)
   {
-    GNUNET_free (ego->pk);
     GNUNET_free (ego->name);
     GNUNET_free (ego);
   }
@@ -554,7 +553,7 @@ GNUNET_IDENTITY_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
 const struct GNUNET_CRYPTO_EcdsaPrivateKey *
 GNUNET_IDENTITY_ego_get_private_key (const struct GNUNET_IDENTITY_Ego *ego)
 {
-  return ego->pk;
+  return &ego->pk;
 }
 
 
@@ -568,7 +567,8 @@ void
 GNUNET_IDENTITY_ego_get_public_key (const struct GNUNET_IDENTITY_Ego *ego,
                                     struct GNUNET_CRYPTO_EcdsaPublicKey *pk)
 {
-  GNUNET_CRYPTO_ecdsa_key_get_public (ego->pk, pk);
+  GNUNET_CRYPTO_ecdsa_key_get_public (&ego->pk,
+                                      pk);
 }
 
 
@@ -657,7 +657,7 @@ GNUNET_IDENTITY_set (struct GNUNET_IDENTITY_Handle *h,
     GNUNET_MQ_msg_extra (sdm, slen, GNUNET_MESSAGE_TYPE_IDENTITY_SET_DEFAULT);
   sdm->name_len = htons (slen);
   sdm->reserved = htons (0);
-  sdm->private_key = *ego->pk;
+  sdm->private_key = ego->pk;
   GNUNET_memcpy (&sdm[1], service_name, slen);
   GNUNET_MQ_send (h->mq, env);
   return op;
@@ -682,7 +682,6 @@ GNUNET_IDENTITY_create (struct GNUNET_IDENTITY_Handle *h,
   struct GNUNET_IDENTITY_Operation *op;
   struct GNUNET_MQ_Envelope *env;
   struct CreateRequestMessage *crm;
-  struct GNUNET_CRYPTO_EcdsaPrivateKey *pk;
   size_t slen;
 
   if (NULL == h->mq)
@@ -701,9 +700,8 @@ GNUNET_IDENTITY_create (struct GNUNET_IDENTITY_Handle *h,
   env = GNUNET_MQ_msg_extra (crm, slen, GNUNET_MESSAGE_TYPE_IDENTITY_CREATE);
   crm->name_len = htons (slen);
   crm->reserved = htons (0);
-  pk = GNUNET_CRYPTO_ecdsa_key_create ();
-  crm->private_key = *pk;
-  op->pk = pk;
+  GNUNET_CRYPTO_ecdsa_key_create (&crm->private_key);
+  op->pk = crm->private_key;
   GNUNET_memcpy (&crm[1], name, slen);
   GNUNET_MQ_send (h->mq, env);
   return op;
@@ -820,11 +818,9 @@ GNUNET_IDENTITY_cancel (struct GNUNET_IDENTITY_Operation *op)
   op->cont = NULL;
   op->cb = NULL;
   op->create_cont = NULL;
-  if (NULL != op->pk)
-  {
-    GNUNET_free (op->pk);
-    op->pk = NULL;
-  }
+  memset (&op->pk,
+          0,
+          sizeof (op->pk));
 }
 
 
@@ -854,7 +850,9 @@ GNUNET_IDENTITY_disconnect (struct GNUNET_IDENTITY_Handle *h)
   {
     GNUNET_break (NULL == op->cont);
     GNUNET_CONTAINER_DLL_remove (h->op_head, h->op_tail, op);
-    GNUNET_free_non_null (op->pk);
+    memset (&op->pk,
+            0,
+            sizeof (op->pk));
     GNUNET_free (op);
   }
   if (NULL != h->mq)

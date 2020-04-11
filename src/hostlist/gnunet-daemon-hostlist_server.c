@@ -32,6 +32,7 @@
 #include "gnunet_peerinfo_service.h"
 #include "gnunet-daemon-hostlist.h"
 #include "gnunet_resolver_service.h"
+#include "gnunet_mhd_compat.h"
 
 
 /**
@@ -294,7 +295,7 @@ host_processor (void *cls,
  * @param addrlen length of @a addr
  * @return #MHD_YES if connection is allowed, #MHD_NO if not (we are not ready)
  */
-static int
+static MHD_RESULT
 accept_policy_callback (void *cls,
                         const struct sockaddr *addr,
                         socklen_t addrlen)
@@ -345,7 +346,7 @@ accept_policy_callback (void *cls,
  *         #MHD_NO if the socket must be closed due to a serios
  *         error while handling the request
  */
-static int
+static MHD_RESULT
 access_handler_callback (void *cls,
                          struct MHD_Connection *connection,
                          const char *url,

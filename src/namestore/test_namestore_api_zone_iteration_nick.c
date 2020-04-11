@@ -37,9 +37,9 @@
 
 static struct GNUNET_NAMESTORE_Handle *nsh;
 
-static struct GNUNET_CRYPTO_EcdsaPrivateKey *privkey;
+static struct GNUNET_CRYPTO_EcdsaPrivateKey privkey;
 
-static struct GNUNET_CRYPTO_EcdsaPrivateKey *privkey2;
+static struct GNUNET_CRYPTO_EcdsaPrivateKey privkey2;
 
 static struct GNUNET_NAMESTORE_ZoneIterator *zi;
 
@@ -99,17 +99,6 @@ end (void *cls)
   {
     GNUNET_free ((void *) s_rd_3->data);
     GNUNET_free (s_rd_3);
-  }
-
-  if (privkey != NULL)
-  {
-    GNUNET_free (privkey);
-    privkey = NULL;
-  }
-  if (privkey2 != NULL)
-  {
-    GNUNET_free (privkey2);
-    privkey2 = NULL;
   }
 }
 
@@ -171,13 +160,13 @@ zone_proc (void *cls,
   int failed = GNUNET_NO;
 
   GNUNET_assert (NULL != zone);
-  if (0 == GNUNET_memcmp (zone, privkey))
+  if (0 == GNUNET_memcmp (zone, &privkey))
   {
     failed = check_zone_1 (label, rd_count, rd);
     if (GNUNET_YES == failed)
       GNUNET_break (0);
   }
-  else if (0 == GNUNET_memcmp (zone, privkey2))
+  else if (0 == GNUNET_memcmp (zone, &privkey2))
   {
     failed = check_zone_2 (label, rd_count, rd);
     if (GNUNET_YES == failed)
@@ -295,7 +284,7 @@ nick_2_cont (void *cls,
 
   GNUNET_asprintf (&s_name_1, "dummy1");
   s_rd_1 = create_record (1);
-  GNUNET_NAMESTORE_records_store (nsh, privkey, s_name_1,
+  GNUNET_NAMESTORE_records_store (nsh, &privkey, s_name_1,
                                   1, s_rd_1,
                                   &put_cont, NULL);
 
@@ -303,7 +292,7 @@ nick_2_cont (void *cls,
               "Created record 2 \n");
   GNUNET_asprintf (&s_name_2, "dummy2");
   s_rd_2 = create_record (1);
-  GNUNET_NAMESTORE_records_store (nsh, privkey, s_name_2,
+  GNUNET_NAMESTORE_records_store (nsh, &privkey, s_name_2,
                                   1, s_rd_2, &put_cont, NULL);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -312,7 +301,7 @@ nick_2_cont (void *cls,
   /* name in different zone */
   GNUNET_asprintf (&s_name_3, "dummy3");
   s_rd_3 = create_record (1);
-  GNUNET_NAMESTORE_records_store (nsh, privkey2, s_name_3,
+  GNUNET_NAMESTORE_records_store (nsh, &privkey2, s_name_3,
                                   1, s_rd_3,
                                   &put_cont, NULL);
 }
@@ -325,7 +314,8 @@ nick_1_cont (void *cls, int32_t success, const char *emsg)
               "Nick 1 added : %s\n",
               (success == GNUNET_OK) ? "SUCCESS" : "FAIL");
 
-  nsqe = GNUNET_NAMESTORE_set_nick (nsh, privkey2, ZONE_NICK_2, &nick_2_cont,
+  nsqe = GNUNET_NAMESTORE_set_nick (nsh,
+                                    &privkey2, ZONE_NICK_2, &nick_2_cont,
                                     &privkey2);
   if (NULL == nsqe)
   {
@@ -374,16 +364,13 @@ empty_zone_end (void *cls)
 {
   GNUNET_assert (nsh == cls);
   zi = NULL;
-  privkey = GNUNET_CRYPTO_ecdsa_key_create ();
-  GNUNET_assert (privkey != NULL);
-  privkey2 = GNUNET_CRYPTO_ecdsa_key_create ();
-  GNUNET_assert (privkey2 != NULL);
-
+  GNUNET_CRYPTO_ecdsa_key_create (&privkey);
+  GNUNET_CRYPTO_ecdsa_key_create (&privkey2);
   nsqe = GNUNET_NAMESTORE_set_nick (nsh,
-                                    privkey,
+                                    &privkey,
                                     ZONE_NICK_1,
                                     &nick_1_cont,
-                                    &privkey);
+                                    NULL);
   if (NULL == nsqe)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,

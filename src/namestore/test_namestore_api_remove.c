@@ -39,7 +39,7 @@ static struct GNUNET_NAMESTORE_Handle *nsh;
 
 static struct GNUNET_SCHEDULER_Task *endbadly_task;
 
-static struct GNUNET_CRYPTO_EcdsaPrivateKey *privkey;
+static struct GNUNET_CRYPTO_EcdsaPrivateKey privkey;
 
 static struct GNUNET_CRYPTO_EcdsaPublicKey pubkey;
 
@@ -57,11 +57,6 @@ cleanup ()
   {
     GNUNET_NAMESTORE_disconnect (nsh);
     nsh = NULL;
-  }
-  if (NULL != privkey)
-  {
-    GNUNET_free (privkey);
-    privkey = NULL;
   }
   GNUNET_SCHEDULER_shutdown ();
 }
@@ -145,7 +140,7 @@ put_cont (void *cls,
               name,
               (success == GNUNET_OK) ? "SUCCESS" : "FAIL");
   nsqe = GNUNET_NAMESTORE_records_store (nsh,
-                                         privkey,
+                                         &privkey,
                                          name,
                                          0, NULL,
                                          &remove_cont, (void *) name);
@@ -163,9 +158,8 @@ run (void *cls,
   endbadly_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT,
                                                 &endbadly,
                                                 NULL);
-  privkey = GNUNET_CRYPTO_ecdsa_key_create ();
-  GNUNET_assert (privkey != NULL);
-  GNUNET_CRYPTO_ecdsa_key_get_public (privkey,
+  GNUNET_CRYPTO_ecdsa_key_create (&privkey);
+  GNUNET_CRYPTO_ecdsa_key_get_public (&privkey,
                                       &pubkey);
 
   removed = GNUNET_NO;
@@ -182,7 +176,7 @@ run (void *cls,
   nsh = GNUNET_NAMESTORE_connect (cfg);
   GNUNET_break (NULL != nsh);
   nsqe = GNUNET_NAMESTORE_records_store (nsh,
-                                         privkey,
+                                         &privkey,
                                          name,
                                          1,
                                          &rd,

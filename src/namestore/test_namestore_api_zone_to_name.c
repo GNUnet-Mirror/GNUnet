@@ -42,7 +42,7 @@ static struct GNUNET_NAMESTORE_Handle *nsh;
 
 static struct GNUNET_SCHEDULER_Task *endbadly_task;
 
-static struct GNUNET_CRYPTO_EcdsaPrivateKey *privkey;
+static struct GNUNET_CRYPTO_EcdsaPrivateKey privkey;
 
 static struct GNUNET_CRYPTO_EcdsaPublicKey pubkey;
 
@@ -81,11 +81,6 @@ end (void *cls)
   {
     GNUNET_SCHEDULER_cancel (endbadly_task);
     endbadly_task = NULL;
-  }
-  if (NULL != privkey)
-  {
-    GNUNET_free (privkey);
-    privkey = NULL;
   }
   if (NULL != nsh)
   {
@@ -133,7 +128,7 @@ zone_to_name_proc (void *cls,
     }
     if ((NULL == zone_key) ||
         (0 != GNUNET_memcmp (zone_key,
-                             privkey)))
+                             &privkey)))
     {
       fail = GNUNET_YES;
       GNUNET_break (0);
@@ -176,7 +171,7 @@ put_cont (void *cls,
     res = 0;
 
     qe = GNUNET_NAMESTORE_zone_to_name (nsh,
-                                        privkey,
+                                        &privkey,
                                         &s_zone_value,
                                         &error_cb,
                                         NULL,
@@ -208,10 +203,9 @@ run (void *cls,
   GNUNET_SCHEDULER_add_shutdown (&end,
                                  NULL);
   GNUNET_asprintf (&s_name, "dummy");
-  privkey = GNUNET_CRYPTO_ecdsa_key_create ();
-  GNUNET_assert (NULL != privkey);
+  GNUNET_CRYPTO_ecdsa_key_create (&privkey);
   /* get public key */
-  GNUNET_CRYPTO_ecdsa_key_get_public (privkey,
+  GNUNET_CRYPTO_ecdsa_key_get_public (&privkey,
                                       &pubkey);
 
   GNUNET_CRYPTO_random_block (GNUNET_CRYPTO_QUALITY_WEAK,
@@ -229,7 +223,7 @@ run (void *cls,
     nsh = GNUNET_NAMESTORE_connect (cfg);
     GNUNET_break (NULL != nsh);
     GNUNET_NAMESTORE_records_store (nsh,
-                                    privkey,
+                                    &privkey,
                                     s_name,
                                     1,
                                     &rd,

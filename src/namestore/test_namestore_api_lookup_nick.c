@@ -40,7 +40,7 @@ static struct GNUNET_NAMESTORE_Handle *nsh;
 
 static struct GNUNET_SCHEDULER_Task *endbadly_task;
 
-static struct GNUNET_CRYPTO_EcdsaPrivateKey *privkey;
+static struct GNUNET_CRYPTO_EcdsaPrivateKey privkey;
 
 static struct GNUNET_CRYPTO_EcdsaPublicKey pubkey;
 
@@ -62,11 +62,6 @@ cleanup ()
   {
     GNUNET_NAMESTORE_disconnect (nsh);
     nsh = NULL;
-  }
-  if (NULL != privkey)
-  {
-    GNUNET_free (privkey);
-    privkey = NULL;
   }
   GNUNET_SCHEDULER_shutdown ();
 }
@@ -111,7 +106,7 @@ lookup_it (void *cls,
   int found_record = GNUNET_NO;
   int found_nick = GNUNET_NO;
 
-  if (0 != GNUNET_memcmp (privkey, zone))
+  if (0 != GNUNET_memcmp (&privkey, zone))
   {
     GNUNET_break (0);
     GNUNET_SCHEDULER_cancel (endbadly_task);
@@ -247,7 +242,7 @@ put_cont (void *cls, int32_t success, const char *emsg)
   }
   /* Lookup */
   nsqe = GNUNET_NAMESTORE_records_lookup (nsh,
-                                          privkey,
+                                          &privkey,
                                           name,
                                           &fail_cb,
                                           NULL,
@@ -272,8 +267,11 @@ nick_cont (void *cls, int32_t success, const char *emsg)
   rd_orig.flags = 0;
   memset ((char *) rd_orig.data, 'a', TEST_RECORD_DATALEN);
 
-  nsqe = GNUNET_NAMESTORE_records_store (nsh, privkey, name,
-                                         1, &rd_orig, &put_cont, (void *) name);
+  nsqe = GNUNET_NAMESTORE_records_store (nsh, &privkey,
+                                         name,
+                                         1,
+                                         &rd_orig,
+                                         &put_cont, (void *) name);
 }
 
 
@@ -285,16 +283,15 @@ run (void *cls,
   endbadly_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT,
                                                 &endbadly,
                                                 NULL);
-  privkey = GNUNET_CRYPTO_ecdsa_key_create ();
-  GNUNET_assert (privkey != NULL);
-  GNUNET_CRYPTO_ecdsa_key_get_public (privkey,
+  GNUNET_CRYPTO_ecdsa_key_create (&privkey);
+  GNUNET_CRYPTO_ecdsa_key_get_public (&privkey,
                                       &pubkey);
 
   nsh = GNUNET_NAMESTORE_connect (cfg);
   GNUNET_break (NULL != nsh);
 
   nsqe = GNUNET_NAMESTORE_set_nick (nsh,
-                                    privkey,
+                                    &privkey,
                                     TEST_NICK,
                                     &nick_cont,
                                     (void *) name);

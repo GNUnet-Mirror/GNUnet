@@ -44,7 +44,7 @@ static struct GNUNET_NAMECACHE_Handle *nch;
 
 static struct GNUNET_SCHEDULER_Task *endbadly_task;
 
-static struct GNUNET_CRYPTO_EcdsaPrivateKey *privkey;
+static struct GNUNET_CRYPTO_EcdsaPrivateKey privkey;
 
 static struct GNUNET_CRYPTO_EcdsaPublicKey pubkey;
 
@@ -67,11 +67,6 @@ cleanup ()
   {
     GNUNET_NAMECACHE_disconnect (nch);
     nch = NULL;
-  }
-  if (NULL != privkey)
-  {
-    GNUNET_free (privkey);
-    privkey = NULL;
   }
   GNUNET_SCHEDULER_shutdown ();
 }
@@ -210,10 +205,14 @@ put_cont (void *cls, int32_t success, const char *emsg)
               (success == GNUNET_OK) ? "SUCCESS" : "FAIL");
 
   /* Create derived hash */
-  GNUNET_CRYPTO_ecdsa_key_get_public (privkey, &pubkey);
-  GNUNET_GNSRECORD_query_from_public_key (&pubkey, name, &derived_hash);
+  GNUNET_CRYPTO_ecdsa_key_get_public (&privkey,
+                                      &pubkey);
+  GNUNET_GNSRECORD_query_from_public_key (&pubkey,
+                                          name,
+                                          &derived_hash);
 
-  ncqe = GNUNET_NAMECACHE_lookup_block (nch, &derived_hash,
+  ncqe = GNUNET_NAMECACHE_lookup_block (nch,
+                                        &derived_hash,
                                         &name_lookup_proc, (void *) name);
 }
 
@@ -229,9 +228,8 @@ run (void *cls,
   endbadly_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT,
                                                 &endbadly,
                                                 NULL);
-  privkey = GNUNET_CRYPTO_ecdsa_key_create ();
-  GNUNET_assert (privkey != NULL);
-  GNUNET_CRYPTO_ecdsa_key_get_public (privkey,
+  GNUNET_CRYPTO_ecdsa_key_create (&privkey);
+  GNUNET_CRYPTO_ecdsa_key_get_public (&privkey,
                                       &pubkey);
   rd.expiration_time = GNUNET_TIME_absolute_get ().abs_value_us + 1000000000;
   rd.record_type = TEST_RECORD_TYPE;
@@ -245,7 +243,7 @@ run (void *cls,
   GNUNET_break (NULL != nsh);
   GNUNET_break (NULL != nch);
   nsqe = GNUNET_NAMESTORE_records_store (nsh,
-                                         privkey,
+                                         &privkey,
                                          name,
                                          1,
                                          &rd,

@@ -41,8 +41,6 @@
 #define TEST_REMOVE_RECORD_DATA 'b'
 
 
-static struct GNUNET_CRYPTO_EcdsaPrivateKey *privkey;
-
 static struct GNUNET_GNSRECORD_Data *s_rd;
 
 static char *s_name;
@@ -106,15 +104,16 @@ run (void *cls,
   struct GNUNET_HashCode query_pub;
   struct GNUNET_HashCode query_priv;
   struct GNUNET_TIME_Absolute expire = GNUNET_TIME_absolute_get ();
+  struct GNUNET_CRYPTO_EcdsaPrivateKey privkey;
 
-  privkey = GNUNET_CRYPTO_ecdsa_key_create ();
-  GNUNET_assert (NULL != privkey);
+
+  GNUNET_CRYPTO_ecdsa_key_create (&privkey);
   /* get public key */
-  GNUNET_CRYPTO_ecdsa_key_get_public (privkey,
+  GNUNET_CRYPTO_ecdsa_key_get_public (&privkey,
                                       &pubkey);
 
   /* test query derivation */
-  GNUNET_GNSRECORD_query_from_private_key (privkey,
+  GNUNET_GNSRECORD_query_from_private_key (&privkey,
                                            "testlabel",
                                            &query_priv);
   GNUNET_GNSRECORD_query_from_public_key (&pubkey,
@@ -129,7 +128,7 @@ run (void *cls,
 
   /* Create block */
   GNUNET_assert (NULL != (block =
-                            GNUNET_GNSRECORD_block_create (privkey,
+                            GNUNET_GNSRECORD_block_create (&privkey,
                                                            expire,
                                                            s_name,
                                                            s_rd,
@@ -143,7 +142,6 @@ run (void *cls,
                                                  &rd_decrypt_cb,
                                                  s_name));
   GNUNET_free (block);
-  GNUNET_free (privkey);
 }
 
 

@@ -449,7 +449,7 @@ OIDC_build_authz_code (const struct GNUNET_CRYPTO_EcdsaPrivateKey *issuer,
   uint32_t nonce;
   uint32_t nonce_tmp;
   struct GNUNET_CRYPTO_EccSignaturePurpose *purpose;
-  struct GNUNET_CRYPTO_EcdhePrivateKey *ecdh_priv;
+  struct GNUNET_CRYPTO_EcdhePrivateKey ecdh_priv;
   struct GNUNET_CRYPTO_EcdhePublicKey ecdh_pub;
 
   /** PLAINTEXT **/
@@ -531,8 +531,8 @@ OIDC_build_authz_code (const struct GNUNET_CRYPTO_EcdsaPrivateKey *issuer,
               code_payload_len);
 
   // Generate ECDH key
-  ecdh_priv = GNUNET_CRYPTO_ecdhe_key_create ();
-  GNUNET_CRYPTO_ecdhe_key_get_public (ecdh_priv, &ecdh_pub);
+  GNUNET_CRYPTO_ecdhe_key_create (&ecdh_priv);
+  GNUNET_CRYPTO_ecdhe_key_get_public (&ecdh_priv, &ecdh_pub);
   // Initialize code payload
   code_payload = GNUNET_malloc (code_payload_len);
   GNUNET_assert (NULL != code_payload);
@@ -545,8 +545,11 @@ OIDC_build_authz_code (const struct GNUNET_CRYPTO_EcdsaPrivateKey *issuer,
   memcpy (buf_ptr, &ecdh_pub, sizeof(ecdh_pub));
   buf_ptr += sizeof(ecdh_pub);
   // Encrypt plaintext and store
-  encrypt_payload (&ticket->audience, ecdh_priv, payload, payload_len, buf_ptr);
-  GNUNET_free (ecdh_priv);
+  encrypt_payload (&ticket->audience,
+                   &ecdh_priv,
+                   payload,
+                   payload_len,
+                   buf_ptr);
   GNUNET_free (payload);
   buf_ptr += payload_len;
   // Sign and store signature

@@ -86,50 +86,63 @@ run (void *cls,
     display_data ("  output", &hc, sizeof (struct GNUNET_HashCode));
   }
   {
-    struct GNUNET_CRYPTO_EcdhePrivateKey *priv1;
+    struct GNUNET_CRYPTO_EcdhePrivateKey priv1;
     struct GNUNET_CRYPTO_EcdhePublicKey pub1;
-    struct GNUNET_CRYPTO_EcdhePrivateKey *priv2;
+    struct GNUNET_CRYPTO_EcdhePrivateKey priv2;
     struct GNUNET_HashCode skm;
-    priv1 = GNUNET_CRYPTO_ecdhe_key_create ();
-    priv2 = GNUNET_CRYPTO_ecdhe_key_create ();
-    GNUNET_CRYPTO_ecdhe_key_get_public (priv1, &pub1);
-    GNUNET_assert (GNUNET_OK == GNUNET_CRYPTO_ecc_ecdh (priv2, &pub1, &skm));
+
+    GNUNET_CRYPTO_ecdhe_key_create (&priv1);
+    GNUNET_CRYPTO_ecdhe_key_create (&priv2);
+    GNUNET_CRYPTO_ecdhe_key_get_public (&priv1,
+                                        &pub1);
+    GNUNET_assert (GNUNET_OK ==
+                   GNUNET_CRYPTO_ecc_ecdh (&priv2,
+                                           &pub1,
+                                           &skm));
 
     printf ("ecdhe key:\n");
-    display_data ("  priv1", priv1, sizeof (struct
-                                            GNUNET_CRYPTO_EcdhePrivateKey));
-    display_data ("  pub1", &pub1, sizeof (struct
-                                           GNUNET_CRYPTO_EcdhePublicKey));
-    display_data ("  priv2", priv2, sizeof (struct
-                                            GNUNET_CRYPTO_EcdhePrivateKey));
-    display_data ("  skm", &skm, sizeof (struct GNUNET_HashCode));
-    GNUNET_free (priv1);
-    GNUNET_free (priv2);
+    display_data ("  priv1",
+                  &priv1,
+                  sizeof (struct GNUNET_CRYPTO_EcdhePrivateKey));
+    display_data ("  pub1",
+                  &pub1,
+                  sizeof (struct GNUNET_CRYPTO_EcdhePublicKey));
+    display_data ("  priv2",
+                  &priv2,
+                  sizeof (struct GNUNET_CRYPTO_EcdhePrivateKey));
+    display_data ("  skm",
+                  &skm,
+                  sizeof (struct GNUNET_HashCode));
   }
 
   {
-    struct GNUNET_CRYPTO_EddsaPrivateKey *priv;
+    struct GNUNET_CRYPTO_EddsaPrivateKey priv;
     struct GNUNET_CRYPTO_EddsaPublicKey pub;
-    priv = GNUNET_CRYPTO_eddsa_key_create ();
-    GNUNET_CRYPTO_eddsa_key_get_public (priv, &pub);
+
+    GNUNET_CRYPTO_eddsa_key_create (&priv);
+    GNUNET_CRYPTO_eddsa_key_get_public (&priv,
+                                        &pub);
 
     printf ("eddsa key:\n");
-    display_data ("  priv", priv, sizeof (struct
-                                          GNUNET_CRYPTO_EddsaPrivateKey));
-    display_data ("  pub", &pub, sizeof (struct GNUNET_CRYPTO_EddsaPublicKey));
-    GNUNET_free (priv);
+    display_data ("  priv",
+                  &priv,
+                  sizeof (struct GNUNET_CRYPTO_EddsaPrivateKey));
+    display_data ("  pub",
+                  &pub,
+                  sizeof (struct GNUNET_CRYPTO_EddsaPublicKey));
   }
   {
-    struct GNUNET_CRYPTO_EddsaPrivateKey *priv;
+    struct GNUNET_CRYPTO_EddsaPrivateKey priv;
     struct GNUNET_CRYPTO_EddsaPublicKey pub;
     struct GNUNET_CRYPTO_EddsaSignature sig;
     struct TestSignatureDataPS data = { 0 };
 
-    priv = GNUNET_CRYPTO_eddsa_key_create ();
-    GNUNET_CRYPTO_eddsa_key_get_public (priv, &pub);
+    GNUNET_CRYPTO_eddsa_key_create (&priv);
+    GNUNET_CRYPTO_eddsa_key_get_public (&priv,
+                                        &pub);
     data.purpose.size = htonl (sizeof (data));
     data.purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_TEST);
-    GNUNET_CRYPTO_eddsa_sign (priv,
+    GNUNET_CRYPTO_eddsa_sign (&priv,
                               &data,
                               &sig);
     GNUNET_assert (GNUNET_OK ==
@@ -139,12 +152,18 @@ run (void *cls,
                                                &pub));
 
     printf ("eddsa sig:\n");
-    display_data ("  priv", priv, sizeof (struct
-                                          GNUNET_CRYPTO_EddsaPrivateKey));
-    display_data ("  pub", &pub, sizeof (struct GNUNET_CRYPTO_EddsaPublicKey));
-    display_data ("  data", &data, sizeof (struct TestSignatureDataPS));
-    display_data ("  sig", &sig, sizeof (struct GNUNET_CRYPTO_EddsaSignature));
-    GNUNET_free (priv);
+    display_data ("  priv",
+                  &priv,
+                  sizeof (struct GNUNET_CRYPTO_EddsaPrivateKey));
+    display_data ("  pub",
+                  &pub,
+                  sizeof (struct GNUNET_CRYPTO_EddsaPublicKey));
+    display_data ("  data",
+                  &data,
+                  sizeof (struct TestSignatureDataPS));
+    display_data ("  sig",
+                  &sig,
+                  sizeof (struct GNUNET_CRYPTO_EddsaSignature));
   }
 
   {
@@ -173,28 +192,34 @@ run (void *cls,
     display_data ("  out", out, out_len);
   }
   {
-    struct GNUNET_CRYPTO_EcdhePrivateKey *priv_ecdhe;
+    struct GNUNET_CRYPTO_EcdhePrivateKey priv_ecdhe;
     struct GNUNET_CRYPTO_EcdhePublicKey pub_ecdhe;
-    struct GNUNET_CRYPTO_EddsaPrivateKey *priv_eddsa;
+    struct GNUNET_CRYPTO_EddsaPrivateKey priv_eddsa;
     struct GNUNET_CRYPTO_EddsaPublicKey pub_eddsa;
     struct GNUNET_HashCode key_material;
-    priv_ecdhe = GNUNET_CRYPTO_ecdhe_key_create ();
-    GNUNET_CRYPTO_ecdhe_key_get_public (priv_ecdhe, &pub_ecdhe);
-    priv_eddsa = GNUNET_CRYPTO_eddsa_key_create ();
-    GNUNET_CRYPTO_eddsa_key_get_public (priv_eddsa, &pub_eddsa);
-    GNUNET_CRYPTO_ecdh_eddsa (priv_ecdhe, &pub_eddsa, &key_material);
+
+    GNUNET_CRYPTO_ecdhe_key_create (&priv_ecdhe);
+    GNUNET_CRYPTO_ecdhe_key_get_public (&priv_ecdhe, &pub_ecdhe);
+    GNUNET_CRYPTO_eddsa_key_create (&priv_eddsa);
+    GNUNET_CRYPTO_eddsa_key_get_public (&priv_eddsa, &pub_eddsa);
+    GNUNET_CRYPTO_ecdh_eddsa (&priv_ecdhe, &pub_eddsa, &key_material);
 
     printf ("eddsa_ecdh:\n");
-    display_data ("  priv_ecdhe", priv_ecdhe, sizeof (struct
-                                                      GNUNET_CRYPTO_EcdhePrivateKey));
-    display_data ("  pub_ecdhe", &pub_ecdhe, sizeof (struct
-                                                     GNUNET_CRYPTO_EcdhePublicKey));
-    display_data ("  priv_eddsa", priv_eddsa, sizeof (struct
-                                                      GNUNET_CRYPTO_EddsaPrivateKey));
-    display_data ("  pub_eddsa", &pub_eddsa, sizeof (struct
-                                                     GNUNET_CRYPTO_EddsaPublicKey));
-    display_data ("  key_material", &key_material, sizeof (struct
-                                                           GNUNET_HashCode));
+    display_data ("  priv_ecdhe",
+                  &priv_ecdhe,
+                  sizeof (struct GNUNET_CRYPTO_EcdhePrivateKey));
+    display_data ("  pub_ecdhe",
+                  &pub_ecdhe,
+                  sizeof (struct GNUNET_CRYPTO_EcdhePublicKey));
+    display_data ("  priv_eddsa",
+                  &priv_eddsa,
+                  sizeof (struct GNUNET_CRYPTO_EddsaPrivateKey));
+    display_data ("  pub_eddsa",
+                  &pub_eddsa,
+                  sizeof (struct GNUNET_CRYPTO_EddsaPublicKey));
+    display_data ("  key_material",
+                  &key_material,
+                  sizeof (struct GNUNET_HashCode));
   }
 
   {

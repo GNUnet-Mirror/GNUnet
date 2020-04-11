@@ -912,14 +912,15 @@ run (void *cls,
      const struct GNUNET_CONFIGURATION_Handle *c,
      struct GNUNET_SERVICE_Handle *service)
 {
-  struct GNUNET_CRYPTO_EddsaPrivateKey *pk;
+  struct GNUNET_CRYPTO_EddsaPrivateKey pk;
   char *keyfile;
 
   GSC_cfg = c;
-  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_filename (GSC_cfg,
-                                                            "PEER",
-                                                            "PRIVATE_KEY",
-                                                            &keyfile))
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_filename (GSC_cfg,
+                                               "PEER",
+                                               "PRIVATE_KEY",
+                                               &keyfile))
   {
     GNUNET_log (
       GNUNET_ERROR_TYPE_ERROR,
@@ -931,10 +932,19 @@ run (void *cls,
   GNUNET_SCHEDULER_add_shutdown (&shutdown_task, NULL);
   GNUNET_SERVICE_suspend (service);
   GSC_TYPEMAP_init ();
-  pk = GNUNET_CRYPTO_eddsa_key_create_from_file (keyfile);
+  if (GNUNET_SYSERR ==
+      GNUNET_CRYPTO_eddsa_key_from_file (keyfile,
+                                         GNUNET_YES,
+                                         &pk))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Failed to setup peer's private key\n");
+    GNUNET_SCHEDULER_shutdown ();
+    GNUNET_free (keyfile);
+    return;
+  }
   GNUNET_free (keyfile);
-  GNUNET_assert (NULL != pk);
-  if (GNUNET_OK != GSC_KX_init (pk))
+  if (GNUNET_OK != GSC_KX_init (&pk))
   {
     GNUNET_SCHEDULER_shutdown ();
     return;

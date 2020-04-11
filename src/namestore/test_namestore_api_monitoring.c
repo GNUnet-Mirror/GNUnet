@@ -37,9 +37,9 @@ static struct GNUNET_NAMESTORE_Handle *nsh;
 
 static struct GNUNET_SCHEDULER_Task *endbadly_task;
 
-static struct GNUNET_CRYPTO_EcdsaPrivateKey *privkey;
+static struct GNUNET_CRYPTO_EcdsaPrivateKey privkey;
 
-static struct GNUNET_CRYPTO_EcdsaPrivateKey *privkey2;
+static struct GNUNET_CRYPTO_EcdsaPrivateKey privkey2;
 
 static struct GNUNET_NAMESTORE_ZoneMonitor *zm;
 
@@ -107,17 +107,6 @@ do_shutdown ()
     GNUNET_free ((void *) s_rd_3->data);
     GNUNET_free (s_rd_3);
   }
-
-  if (NULL != privkey)
-  {
-    GNUNET_free (privkey);
-    privkey = NULL;
-  }
-  if (NULL != privkey2)
-  {
-    GNUNET_free (privkey2);
-    privkey2 = NULL;
-  }
 }
 
 
@@ -156,7 +145,7 @@ zone_proc (void *cls,
               "Comparing results name %s\n",
               name);
   if (0 != GNUNET_memcmp (zone_key,
-                          privkey))
+                          &privkey))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Monitoring returned wrong zone key\n");
@@ -284,12 +273,10 @@ run (void *cls,
      struct GNUNET_TESTING_Peer *peer)
 {
   res = 1;
-  privkey = GNUNET_CRYPTO_ecdsa_key_create ();
-  GNUNET_assert (privkey != NULL);
-
+  GNUNET_CRYPTO_ecdsa_key_create (&privkey);
   /* Start monitoring */
   zm = GNUNET_NAMESTORE_zone_monitor_start (cfg,
-                                            privkey,
+                                            &privkey,
                                             GNUNET_YES,
                                             &fail_cb,
                                             NULL,
@@ -317,9 +304,7 @@ run (void *cls,
     return;
   }
 
-  privkey2 = GNUNET_CRYPTO_ecdsa_key_create ();
-  GNUNET_assert (privkey2 != NULL);
-
+  GNUNET_CRYPTO_ecdsa_key_create (&privkey2);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Created record 3\n");
@@ -328,7 +313,7 @@ run (void *cls,
   s_rd_3 = create_record (1);
   GNUNET_assert (NULL != (ns_ops[2] =
                             GNUNET_NAMESTORE_records_store (nsh,
-                                                            privkey2,
+                                                            &privkey2,
                                                             s_name_3,
                                                             1,
                                                             s_rd_3,
@@ -340,7 +325,7 @@ run (void *cls,
   s_rd_1 = create_record (1);
   GNUNET_assert (NULL != (ns_ops[0] =
                             GNUNET_NAMESTORE_records_store (nsh,
-                                                            privkey,
+                                                            &privkey,
                                                             s_name_1,
                                                             1,
                                                             s_rd_1,
@@ -353,7 +338,7 @@ run (void *cls,
   s_rd_2 = create_record (1);
   GNUNET_assert (NULL != (ns_ops[1] =
                             GNUNET_NAMESTORE_records_store (nsh,
-                                                            privkey,
+                                                            &privkey,
                                                             s_name_2,
                                                             1,
                                                             s_rd_2,

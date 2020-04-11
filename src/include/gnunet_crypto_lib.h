@@ -1210,40 +1210,44 @@ GNUNET_CRYPTO_eddsa_public_key_from_string (
 
 /**
  * @ingroup crypto
- * Create a new private key by reading it from a file.  If the
- * files does not exist, create a new key and write it to the
- * file.  Caller must free return value.  Note that this function
- * can not guarantee that another process might not be trying
- * the same operation on the same file at the same time.
- * If the contents of the file
- * are invalid the old file is deleted and a fresh key is
- * created.
+ * @brief Create a new private key by reading it from a file.
+ *
+ * If the files does not exist and @a do_create is set, creates a new key and
+ * write it to the file.
+ *
+ * If the contents of the file are invalid, an error is returned.
  *
  * @param filename name of file to use to store the key
- * @return new private key, NULL on error (for example,
- *   permission denied); free using #GNUNET_free
+ * @param do_create should a file be created?
+ * @param[out] pkey set to the private key from @a filename on success
+ * @return #GNUNET_OK on success, #GNUNET_NO if @a do_create was set but
+ *         we found an existing file, #GNUNET_SYSERR on failure
  */
-struct GNUNET_CRYPTO_EcdsaPrivateKey *
-GNUNET_CRYPTO_ecdsa_key_create_from_file (const char *filename);
+int
+GNUNET_CRYPTO_ecdsa_key_from_file (const char *filename,
+                                   int do_create,
+                                   struct GNUNET_CRYPTO_EcdsaPrivateKey *pkey);
 
 
 /**
  * @ingroup crypto
- * Create a new private key by reading it from a file.  If the
- * files does not exist, create a new key and write it to the
- * file.  Caller must free return value.  Note that this function
- * can not guarantee that another process might not be trying
- * the same operation on the same file at the same time.
- * If the contents of the file
- * are invalid the old file is deleted and a fresh key is
- * created.
+ * @brief Create a new private key by reading it from a file.
+ *
+ * If the files does not exist and @a do_create is set, creates a new key and
+ * write it to the file.
+ *
+ * If the contents of the file are invalid, an error is returned.
  *
  * @param filename name of file to use to store the key
- * @return new private key, NULL on error (for example,
- *   permission denied); free using #GNUNET_free
+ * @param do_create should a file be created?
+ * @param[out] pkey set to the private key from @a filename on success
+ * @return #GNUNET_OK on success, #GNUNET_NO if @a do_create was set but
+ *         we found an existing file, #GNUNET_SYSERR on failure
  */
-struct GNUNET_CRYPTO_EddsaPrivateKey *
-GNUNET_CRYPTO_eddsa_key_create_from_file (const char *filename);
+int
+GNUNET_CRYPTO_eddsa_key_from_file (const char *filename,
+                                   int do_create,
+                                   struct GNUNET_CRYPTO_EddsaPrivateKey *pkey);
 
 
 /**
@@ -1268,22 +1272,22 @@ GNUNET_CRYPTO_eddsa_key_create_from_configuration (
 
 /**
  * @ingroup crypto
- * Create a new private key. Caller must free return value.
+ * Create a new private key.
  *
- * @return fresh private key; free using #GNUNET_free
+ * @param[out] pk private key to initialize
  */
-struct GNUNET_CRYPTO_EcdsaPrivateKey *
-GNUNET_CRYPTO_ecdsa_key_create (void);
+void
+GNUNET_CRYPTO_ecdsa_key_create (struct GNUNET_CRYPTO_EcdsaPrivateKey *pk);
 
 
 /**
  * @ingroup crypto
- * Create a new private key. Caller must free return value.
+ * Create a new private key.
  *
- * @return fresh private key; free using #GNUNET_free
+ * @param[out] pk private key to initialize
  */
-struct GNUNET_CRYPTO_EddsaPrivateKey *
-GNUNET_CRYPTO_eddsa_key_create (void);
+void
+GNUNET_CRYPTO_eddsa_key_create (struct GNUNET_CRYPTO_EddsaPrivateKey *pk);
 
 
 /**
@@ -1291,20 +1295,9 @@ GNUNET_CRYPTO_eddsa_key_create (void);
  * Create a new private key.  Clear with #GNUNET_CRYPTO_ecdhe_key_clear().
  *
  * @param[out] pk set to fresh private key;
- * @return #GNUNET_OK on success, #GNUNET_SYSERR on failure
  */
-int
-GNUNET_CRYPTO_ecdhe_key_create2 (struct GNUNET_CRYPTO_EcdhePrivateKey *pk);
-
-
-/**
- * @ingroup crypto
- * Create a new private key. Caller must free return value.
- *
- * @return fresh private key; free using #GNUNET_free
- */
-struct GNUNET_CRYPTO_EcdhePrivateKey *
-GNUNET_CRYPTO_ecdhe_key_create (void);
+void
+GNUNET_CRYPTO_ecdhe_key_create (struct GNUNET_CRYPTO_EcdhePrivateKey *pk);
 
 
 /**

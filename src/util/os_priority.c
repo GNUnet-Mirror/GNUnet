@@ -975,7 +975,7 @@ GNUNET_OS_process_status (struct GNUNET_OS_Process *proc,
  * @param proc pointer to process structure
  * @param type status type
  * @param code return code/signal number
- * @return #GNUNET_OK on success, #GNUNET_NO if the process is still running, #GNUNET_SYSERR otherwise
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR otherwise
  */
 int
 GNUNET_OS_process_wait_status (struct GNUNET_OS_Process *proc,

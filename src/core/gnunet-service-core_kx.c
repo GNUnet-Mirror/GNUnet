@@ -366,12 +366,12 @@ static struct GNUNET_TRANSPORT_CoreHandle *transport;
 /**
  * Our private key.
  */
-static struct GNUNET_CRYPTO_EddsaPrivateKey *my_private_key;
+static struct GNUNET_CRYPTO_EddsaPrivateKey my_private_key;
 
 /**
  * Our ephemeral private key.
  */
-static struct GNUNET_CRYPTO_EcdhePrivateKey *my_ephemeral_key;
+static struct GNUNET_CRYPTO_EcdhePrivateKey my_ephemeral_key;
 
 /**
  * Current message we send for a key exchange.
@@ -935,9 +935,10 @@ derive_session_keys (struct GSC_KeyExchangeInfo *kx)
 {
   struct GNUNET_HashCode key_material;
 
-  if (GNUNET_OK != GNUNET_CRYPTO_ecc_ecdh (my_ephemeral_key,
-                                           &kx->other_ephemeral_key,
-                                           &key_material))
+  if (GNUNET_OK !=
+      GNUNET_CRYPTO_ecc_ecdh (&my_ephemeral_key,
+                              &kx->other_ephemeral_key,
+                              &key_material))
   {
     GNUNET_break (0);
     return;
@@ -1850,11 +1851,11 @@ sign_ephemeral_key ()
     current_ekm.expiration_time =
       GNUNET_TIME_absolute_hton (GNUNET_TIME_UNIT_FOREVER_ABS);
   }
-  GNUNET_CRYPTO_ecdhe_key_get_public (my_ephemeral_key,
+  GNUNET_CRYPTO_ecdhe_key_get_public (&my_ephemeral_key,
                                       &current_ekm.ephemeral_key);
   current_ekm.origin_identity = GSC_my_identity;
   GNUNET_assert (GNUNET_OK ==
-                 GNUNET_CRYPTO_eddsa_sign_ (my_private_key,
+                 GNUNET_CRYPTO_eddsa_sign_ (&my_private_key,
                                             &current_ekm.purpose,
                                             &current_ekm.signature));
 }
@@ -1871,10 +1872,7 @@ do_rekey (void *cls)
   struct GSC_KeyExchangeInfo *pos;
 
   rekey_task = GNUNET_SCHEDULER_add_delayed (REKEY_FREQUENCY, &do_rekey, NULL);
-  if (NULL != my_ephemeral_key)
-    GNUNET_free (my_ephemeral_key);
-  my_ephemeral_key = GNUNET_CRYPTO_ecdhe_key_create ();
-  GNUNET_assert (NULL != my_ephemeral_key);
+  GNUNET_CRYPTO_ecdhe_key_create (&my_ephemeral_key);
   sign_ephemeral_key ();
   {
     struct GNUNET_HashCode eh;
@@ -1931,17 +1929,10 @@ GSC_KX_init (struct GNUNET_CRYPTO_EddsaPrivateKey *pk)
                            NULL),
     GNUNET_MQ_handler_end () };
 
-  my_private_key = pk;
-  GNUNET_CRYPTO_eddsa_key_get_public (my_private_key,
+  my_private_key = *pk;
+  GNUNET_CRYPTO_eddsa_key_get_public (&my_private_key,
                                       &GSC_my_identity.public_key);
-  my_ephemeral_key = GNUNET_CRYPTO_ecdhe_key_create ();
-  if (NULL == my_ephemeral_key)
-  {
-    GNUNET_break (0);
-    GNUNET_free (my_private_key);
-    my_private_key = NULL;
-    return GNUNET_SYSERR;
-  }
+  GNUNET_CRYPTO_ecdhe_key_create (&my_ephemeral_key);
   sign_ephemeral_key ();
   {
     struct GNUNET_HashCode eh;
@@ -1989,16 +1980,12 @@ GSC_KX_done ()
     GNUNET_SCHEDULER_cancel (rekey_task);
     rekey_task = NULL;
   }
-  if (NULL != my_ephemeral_key)
-  {
-    GNUNET_free (my_ephemeral_key);
-    my_ephemeral_key = NULL;
-  }
-  if (NULL != my_private_key)
-  {
-    GNUNET_free (my_private_key);
-    my_private_key = NULL;
-  }
+  memset (&my_ephemeral_key,
+          0,
+          sizeof (my_ephemeral_key));
+  memset (&my_private_key,
+          0,
+          sizeof (my_private_key));
   if (NULL != nc)
   {
     GNUNET_notification_context_destroy (nc);
