@@ -175,9 +175,27 @@ GNUNET_CRYPTO_hkdf_v (void *result, size_t out_len, int xtr_algo, int prf_algo,
 
   ctx_len = 0;
   while (NULL != va_arg (args, void *))
-    ctx_len += va_arg (args, size_t);
+  {
+    size_t nxt = va_arg (args, size_t);
+    if (nxt + ctx_len < nxt)
+    {
+      /* integer overflow */
+      GNUNET_break (0);
+      va_end (args);
+      goto hkdf_error;
+    }
+    ctx_len += nxt;
+  }
 
   va_end (args);
+
+  if ( (k + ctx_len < ctx_len) ||
+       (k + ctx_len + 1 < ctx_len) )
+  {
+    /* integer overflow */
+    GNUNET_break (0);
+    goto hkdf_error;
+  }
 
   memset (result, 0, out_len);
   if (getPRK (xtr, xts, xts_len, skm, skm_len, prk) != GNUNET_YES)
@@ -192,10 +210,11 @@ GNUNET_CRYPTO_hkdf_v (void *result, size_t out_len, int xtr_algo, int prf_algo,
   /* K(1) */
   {
     size_t plain_len = k + ctx_len + 1;
-    char plain[plain_len];
+    char *plain;
     const void *ctx;
     char *dst;
 
+    plain = GNUNET_malloc (plain_len);
     dst = plain + k;
     va_copy (args, argp);
     while ((ctx = va_arg (args, void *)))
@@ -216,7 +235,10 @@ GNUNET_CRYPTO_hkdf_v (void *result, size_t out_len, int xtr_algo, int prf_algo,
 #endif
       hc = doHMAC (prf, prk, xtr_len, &plain[k], ctx_len + 1);
       if (hc == NULL)
+      {
+        GNUNET_free (plain);
         goto hkdf_error;
+      }
       GNUNET_memcpy (result, hc, k);
       result += k;
     }
@@ -232,7 +254,10 @@ GNUNET_CRYPTO_hkdf_v (void *result, size_t out_len, int xtr_algo, int prf_algo,
 #endif
       hc = doHMAC (prf, prk, xtr_len, plain, plain_len);
       if (hc == NULL)
+      {
+        GNUNET_free (plain);
         goto hkdf_error;
+      }
       GNUNET_memcpy (result, hc, k);
       result += k;
     }
@@ -255,7 +280,10 @@ GNUNET_CRYPTO_hkdf_v (void *result, size_t out_len, int xtr_algo, int prf_algo,
       else
         hc = doHMAC (prf, prk, xtr_len, plain + k, plain_len - k);
       if (hc == NULL)
+      {
+        GNUNET_free (plain);
         goto hkdf_error;
+      }
       GNUNET_memcpy (result, hc, d);
     }
 #if DEBUG_HKDF
@@ -263,6 +291,7 @@ GNUNET_CRYPTO_hkdf_v (void *result, size_t out_len, int xtr_algo, int prf_algo,
 #endif
 
     ret = GNUNET_YES;
+    GNUNET_free (plain);
     goto hkdf_ok;
   }
 hkdf_error:
