@@ -3012,6 +3012,9 @@ signal_socks_failure (struct Socks5Request *s5r,
 {
   struct Socks5ServerResponseMessage *s_resp;
 
+  GNUNET_break (0 == s5r->wbuf_len); /* Should happen first in any transmission, right? */
+  GNUNET_assert (SOCKS_BUFFERSIZE - s5r->wbuf_len >=
+                 sizeof(struct Socks5ServerResponseMessage));
   s_resp = (struct Socks5ServerResponseMessage *) &s5r->wbuf[s5r->wbuf_len];
   memset (s_resp, 0, sizeof(struct Socks5ServerResponseMessage));
   s_resp->version = SOCKS_VERSION_5;

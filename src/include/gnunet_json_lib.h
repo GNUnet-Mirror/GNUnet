@@ -49,9 +49,10 @@ struct GNUNET_JSON_Specification;
  * @return #GNUNET_SYSERR on error,
  *         #GNUNET_OK on success
  */
-typedef int (*GNUNET_JSON_Parser) (void *cls,
-                                   json_t *root,
-                                   struct GNUNET_JSON_Specification *spec);
+typedef int
+(*GNUNET_JSON_Parser) (void *cls,
+                       json_t *root,
+                       struct GNUNET_JSON_Specification *spec);
 
 
 /**
@@ -60,8 +61,9 @@ typedef int (*GNUNET_JSON_Parser) (void *cls,
  * @param cls closure
  * @param spec our specification entry with data to clean.
  */
-typedef void (*GNUNET_JSON_Cleaner) (void *cls,
-                                     struct GNUNET_JSON_Specification *spec);
+typedef void
+(*GNUNET_JSON_Cleaner) (void *cls,
+                        struct GNUNET_JSON_Specification *spec);
 
 
 /**
