@@ -210,7 +210,7 @@ GNUNET_CRYPTO_hkdf_v (void *result, size_t out_len, int xtr_algo, int prf_algo,
 
     if (t > 0)
     {
-      memset (plain + k + ctx_len, 1, 1);
+      plain[k + ctx_len] = (char) 1;
 #if DEBUG_HKDF
       dump ("K(1)", plain, plain_len);
 #endif
@@ -225,7 +225,7 @@ GNUNET_CRYPTO_hkdf_v (void *result, size_t out_len, int xtr_algo, int prf_algo,
     for (i = 1; i < t; i++)
     {
       GNUNET_memcpy (plain, result - k, k);
-      memset (plain + k + ctx_len, i + 1, 1);
+      plain[k + ctx_len] = (char) (i + 1);
       gcry_md_reset (prf);
 #if DEBUG_HKDF
       dump ("K(i+1)", plain, plain_len);
@@ -245,7 +245,7 @@ GNUNET_CRYPTO_hkdf_v (void *result, size_t out_len, int xtr_algo, int prf_algo,
         GNUNET_memcpy (plain, result - k, k);
         i++;
       }
-      memset (plain + k + ctx_len, i, 1);
+      plain[k + ctx_len] = (char) i;
       gcry_md_reset (prf);
 #if DEBUG_HKDF
       dump ("K(t):d", plain, plain_len);
