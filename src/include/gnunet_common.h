@@ -1293,6 +1293,20 @@ GNUNET_is_zero_ (const void *a,
 
 /**
  * @ingroup memory
+ * Wrapper around free. Frees the memory referred to by ptr and sets ptr to NULL.
+ * Note that it is generally better to free memory that was
+ * allocated with #GNUNET_array_grow using #GNUNET_array_grow(mem, size, 0) instead of #GNUNET_freez.
+ *
+ * @param ptr location where to free the memory. ptr must have
+ *     been returned by #GNUNET_strdup, #GNUNET_strndup, #GNUNET_malloc or #GNUNET_array_grow earlier.
+ */
+#define GNUNET_freez(ptr) do { \
+    GNUNET_xfree_ (ptr, __FILE__, __LINE__); \
+    ptr = NULL; \
+} while (0)
+
+/**
+ * @ingroup memory
  * Free the memory pointed to by ptr if ptr is not NULL.
  * Equivalent to `if (NULL != ptr) GNUNET_free(ptr)`.
  *
@@ -1302,7 +1316,7 @@ GNUNET_is_zero_ (const void *a,
   do                              \
   {                               \
     void *__x__ = ptr;            \
-    if (__x__ != NULL)            \
+    if (NULL != __x__)            \
     {                             \
       GNUNET_free (__x__);        \
     }                             \
