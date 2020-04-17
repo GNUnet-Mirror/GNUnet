@@ -133,6 +133,7 @@ libgnunetutil_la_LIBADD = \
   $(LIBIDN) $(LIBIDN2) \
   $(Z_LIBS) \
   -lunistring \
+  -largon2 \
   $(XLIB) \
   $(PTHREAD)
 
