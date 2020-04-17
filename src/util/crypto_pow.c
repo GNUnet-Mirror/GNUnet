@@ -25,7 +25,9 @@
  */
 #include "platform.h"
 #include "gnunet_crypto_lib.h"
-#include <gcrypt.h>
+#include <argon2.h>
+
+#define LSD001
 
 /**
  * Calculate the 'proof-of-work' hash (an expensive hash).
@@ -44,21 +46,21 @@ GNUNET_CRYPTO_pow_hash (const char *salt,
                         struct GNUNET_HashCode *result)
 {
 #ifdef LSD001
-  char twofish_iv[128 / 8]; //128 bit IV
-  char twofish_key[256 / 8]; //256 bit Key
+  char twofish_iv[128 / 8]; // 128 bit IV
+  char twofish_key[256 / 8]; // 256 bit Key
   char rbuf[buf_len];
   int rc;
   gcry_cipher_hd_t handle;
 
-  GNUNET_break (0 == gcry_kdf_derive (buf,
-                                      buf_len,
-                                      GCRY_KDF_SCRYPT,
-                                      1 /* subalgo */,
-                                      salt,
-                                      strlen (salt),
-                                      2 /* iterations; keep cost of individual op small */,
-                                      sizeof(twofish_key),
-                                      &twofish_key));
+  GNUNET_break (ARGON2_OK == argon2d_hash_raw (2, /* iterations */
+                                               100000, /* memory (kb) */
+                                               1, /* threads */
+                                               buf,
+                                               buf_len,
+                                               salt,
+                                               strlen (salt),
+                                               &twofish_key,
+                                               sizeof (twofish_key)));
 
   GNUNET_CRYPTO_kdf (twofish_iv,
                      sizeof (twofish_iv),
@@ -80,22 +82,33 @@ GNUNET_CRYPTO_pow_hash (const char *salt,
                           twofish_iv,
                           sizeof(twofish_iv));
   GNUNET_assert ((0 == rc) || ((char) rc == GPG_ERR_WEAK_KEY));
-  GNUNET_assert (0 == gcry_cipher_encrypt (handle, &rbuf, buf_len, buf, buf_len));
+  GNUNET_assert (0 == gcry_cipher_encrypt (handle, &rbuf, buf_len, buf,
+                                           buf_len));
   gcry_cipher_close (handle);
+  GNUNET_break (ARGON2_OK == argon2d_hash_raw (2, /* iterations */
+                                               100000, /* memory */
+                                               1, /* threads */
+                                               rbuf,
+                                               buf_len,
+                                               salt,
+                                               strlen (salt),
+                                               result,
+                                               sizeof (struct GNUNET_HashCode)));
+
 #else
   struct GNUNET_CRYPTO_SymmetricInitializationVector iv;
   struct GNUNET_CRYPTO_SymmetricSessionKey skey;
   char rbuf[buf_len];
 
-  GNUNET_break (0 == gcry_kdf_derive (buf,
-                                      buf_len,
-                                      GCRY_KDF_SCRYPT,
-                                      1 /* subalgo */,
-                                      salt,
-                                      strlen (salt),
-                                      2 /* iterations; keep cost of individual op small */,
-                                      sizeof(skey),
-                                      &skey));
+  GNUNET_break (ARGON2_OK == argon2d_hash_raw (buf,
+                                               buf_len,
+                                               GCRY_KDF_SCRYPT,
+                                               1 /* subalgo */,
+                                               salt,
+                                               strlen (salt),
+                                               2 /* iterations; keep cost of individual op small */,
+                                               sizeof(skey),
+                                               &skey));
   GNUNET_CRYPTO_symmetric_derive_iv (&iv,
                                      &skey,
                                      "gnunet-proof-of-work-iv",
@@ -108,7 +121,6 @@ GNUNET_CRYPTO_pow_hash (const char *salt,
                                    &skey,
                                    &iv,
                                    &rbuf);
-#endif
   GNUNET_break (0 == gcry_kdf_derive (rbuf,
                                       buf_len,
                                       GCRY_KDF_SCRYPT,
@@ -118,6 +130,7 @@ GNUNET_CRYPTO_pow_hash (const char *salt,
                                       2 /* iterations; keep cost of individual op small */,
                                       sizeof(struct GNUNET_HashCode),
                                       result));
+#endif
 }
 
 
