@@ -45,6 +45,10 @@
 #include <sys/types.h>
 #endif
 
+#ifdef __clang__
+#undef HAVE_STATIC_ASSERT
+#endif
+
 /**
  * These may be expensive, but good for debugging...
  */
