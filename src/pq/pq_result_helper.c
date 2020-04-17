@@ -544,6 +544,96 @@ GNUNET_PQ_result_spec_string (const char *name,
  *   #GNUNET_SYSERR if a result was invalid (non-existing field or NULL)
  */
 static int
+extract_rel_time (void *cls,
+                  PGresult *result,
+                  int row,
+                  const char *fname,
+                  size_t *dst_size,
+                  void *dst)
+{
+  struct GNUNET_TIME_Relative *udst = dst;
+  const int64_t *res;
+  int fnum;
+
+  (void) cls;
+  fnum = PQfnumber (result,
+                    fname);
+  if (fnum < 0)
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
+  if (PQgetisnull (result,
+                   row,
+                   fnum))
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
+  GNUNET_assert (NULL != dst);
+  if (sizeof(struct GNUNET_TIME_Relative) != *dst_size)
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
+  if (sizeof(int64_t) !=
+      PQgetlength (result,
+                   row,
+                   fnum))
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
+  res = (int64_t *) PQgetvalue (result,
+                                row,
+                                fnum);
+  if (INT64_MAX == GNUNET_ntohll ((uint64_t) *res))
+    *udst = GNUNET_TIME_UNIT_FOREVER_REL;
+  else
+    udst->rel_value_us = GNUNET_ntohll ((uint64_t) *res);
+  return GNUNET_OK;
+}
+
+
+/**
+ * Relative time expected.
+ *
+ * @param name name of the field in the table
+ * @param[out] at where to store the result
+ * @return array entry for the result specification to use
+ */
+struct GNUNET_PQ_ResultSpec
+GNUNET_PQ_result_spec_relative_time (const char *name,
+                                     struct GNUNET_TIME_Relative *rt)
+{
+  struct GNUNET_PQ_ResultSpec res = {
+    &extract_rel_time,
+    NULL,
+    NULL,
+    (void *) rt,
+    sizeof(*rt),
+    name,
+    NULL
+  };
+
+  return res;
+}
+
+
+/**
+ * Extract data from a Postgres database @a result at row @a row.
+ *
+ * @param cls closure
+ * @param result where to extract data from
+ * @param int row to extract data from
+ * @param fname name (or prefix) of the fields to extract from
+ * @param[in,out] dst_size where to store size of result, may be NULL
+ * @param[out] dst where to store the result
+ * @return
+ *   #GNUNET_YES if all results could be extracted
+ *   #GNUNET_SYSERR if a result was invalid (non-existing field or NULL)
+ */
+static int
 extract_abs_time (void *cls,
                   PGresult *result,
                   int row,

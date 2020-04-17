@@ -152,6 +152,16 @@ GNUNET_PQ_query_param_rsa_signature (
 
 
 /**
+ * Generate query parameter for a relative time value.
+ * The database must store a 64-bit integer.
+ *
+ * @param x pointer to the query parameter to pass
+ */
+struct GNUNET_PQ_QueryParam
+GNUNET_PQ_query_param_relative_time (const struct GNUNET_TIME_Relative *x);
+
+
+/**
  * Generate query parameter for an absolute time value.
  * The database must store a 64-bit integer.
  *
@@ -374,6 +384,18 @@ GNUNET_PQ_result_spec_rsa_signature (const char *name,
 struct GNUNET_PQ_ResultSpec
 GNUNET_PQ_result_spec_absolute_time (const char *name,
                                      struct GNUNET_TIME_Absolute *at);
+
+
+/**
+ * Relative time expected.
+ *
+ * @param name name of the field in the table
+ * @param[out] rt where to store the result
+ * @return array entry for the result specification to use
+ */
+struct GNUNET_PQ_ResultSpec
+GNUNET_PQ_result_spec_relative_time (const char *name,
+                                     struct GNUNET_TIME_Relative *rt);
 
 
 /**
