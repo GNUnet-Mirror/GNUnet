@@ -102,15 +102,15 @@ GNUNET_CRYPTO_pow_hash (const char *salt,
   struct GNUNET_CRYPTO_SymmetricSessionKey skey;
   char rbuf[buf_len];
 
-  GNUNET_break (ARGON2_OK == argon2d_hash_raw (buf,
-                                               buf_len,
-                                               GCRY_KDF_SCRYPT,
-                                               1 /* subalgo */,
-                                               salt,
-                                               strlen (salt),
-                                               2 /* iterations; keep cost of individual op small */,
-                                               sizeof(skey),
-                                               &skey));
+  GNUNET_break (0 == gcry_kdf_derive (buf,
+                                      buf_len,
+                                      GCRY_KDF_SCRYPT,
+                                      1 /* subalgo */,
+                                      salt,
+                                      strlen (salt),
+                                      2 /* iterations; keep cost of individual op small */,
+                                      sizeof(skey),
+                                      &skey));
   GNUNET_CRYPTO_symmetric_derive_iv (&iv,
                                      &skey,
                                      "gnunet-proof-of-work-iv",
