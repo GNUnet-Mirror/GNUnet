@@ -368,13 +368,13 @@ GNUNET_REVOCATION_check_pow (const struct GNUNET_CRYPTO_EcdsaPublicKey *key,
 
   ts_nbo = GNUNET_TIME_absolute_hton (*ts);
 
-  GNUNET_memcpy (buf, &pow, sizeof(pow)) ;
-  GNUNET_memcpy (&buf[sizeof(pow)], key,
-                 sizeof(struct GNUNET_CRYPTO_EcdsaPublicKey));
-  GNUNET_memcpy (&buf[sizeof(pow) + sizeof (struct GNUNET_TIME_AbsoluteNBO)],
+  GNUNET_memcpy (buf, &pow, sizeof(pow));
+  GNUNET_memcpy (&buf[sizeof(pow)],
                  &ts_nbo,
                  sizeof (struct GNUNET_TIME_AbsoluteNBO));
-
+  GNUNET_memcpy (&buf[sizeof(pow) + sizeof (struct GNUNET_TIME_AbsoluteNBO)],
+                 key,
+                 sizeof(struct GNUNET_CRYPTO_EcdsaPublicKey));
   GNUNET_CRYPTO_pow_hash ("gnunet-revocation-proof-of-work",
                           buf,
                           sizeof(buf),
