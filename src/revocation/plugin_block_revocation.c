@@ -134,6 +134,7 @@ block_plugin_revocation_evaluate (void *cls,
   struct InternalContext *ic = cls;
   struct GNUNET_HashCode chash;
   const struct RevokeMessage *rm = reply_block;
+  struct GNUNET_TIME_Absolute ts;
 
   if (NULL == reply_block)
     return GNUNET_BLOCK_EVALUATION_REQUEST_VALID;
@@ -142,8 +143,10 @@ block_plugin_revocation_evaluate (void *cls,
     GNUNET_break_op (0);
     return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;
   }
+  ts = GNUNET_TIME_absolute_ntoh (rm->ts);
   if (GNUNET_YES !=
       GNUNET_REVOCATION_check_pow (&rm->public_key,
+                                   &ts,
                                    rm->proof_of_work,
                                    ic->matching_bits))
   {

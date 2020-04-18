@@ -105,6 +105,7 @@ struct GNUNET_REVOCATION_Handle;
  * @param key public key of the key to revoke
  * @param sig signature to use on the revocation (should have been
  *            created using #GNUNET_REVOCATION_sign_revocation).
+ * @param ts  revocation timestamp
  * @param pow proof of work to use (should have been created by
  *            iteratively calling #GNUNET_REVOCATION_check_pow)
  * @param func funtion to call with the result of the check
@@ -117,6 +118,7 @@ struct GNUNET_REVOCATION_Handle *
 GNUNET_REVOCATION_revoke (const struct GNUNET_CONFIGURATION_Handle *cfg,
                           const struct GNUNET_CRYPTO_EcdsaPublicKey *key,
                           const struct GNUNET_CRYPTO_EcdsaSignature *sig,
+                          const struct GNUNET_TIME_Absolute *ts,
                           uint64_t pow,
                           GNUNET_REVOCATION_Callback func, void *func_cls);
 
@@ -135,12 +137,14 @@ GNUNET_REVOCATION_revoke_cancel (struct GNUNET_REVOCATION_Handle *h);
  * would be acceptable for revoking the given key.
  *
  * @param key key to check for
+ * @param ts  revocation timestamp
  * @param pow proof of work value
  * @param matching_bits how many bits must match (configuration)
  * @return #GNUNET_YES if the @a pow is acceptable, #GNUNET_NO if not
  */
 int
 GNUNET_REVOCATION_check_pow (const struct GNUNET_CRYPTO_EcdsaPublicKey *key,
+                             const struct GNUNET_TIME_Absolute *ts,
                              uint64_t pow,
                              unsigned int matching_bits);
 

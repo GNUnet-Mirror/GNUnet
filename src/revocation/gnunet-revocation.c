@@ -203,6 +203,11 @@ struct RevocationData
   struct GNUNET_CRYPTO_EcdsaSignature sig;
 
   /**
+   * Time of revocation
+   */
+  struct GNUNET_TIME_AbsoluteNBO ts;
+
+  /**
    * Proof of work (in NBO).
    */
   uint64_t pow GNUNET_PACKED;
@@ -215,9 +220,13 @@ struct RevocationData
 static void
 perform_revocation (const struct RevocationData *rd)
 {
+  struct GNUNET_TIME_Absolute ts;
+
+  ts = GNUNET_TIME_absolute_ntoh (rd->ts);
   h = GNUNET_REVOCATION_revoke (cfg,
                                 &rd->key,
                                 &rd->sig,
+                                &ts,
                                 rd->pow,
                                 &print_revocation_result,
                                 NULL);
@@ -273,6 +282,7 @@ static void
 calculate_pow (void *cls)
 {
   struct RevocationData *rd = cls;
+  struct GNUNET_TIME_Absolute ts = GNUNET_TIME_absolute_ntoh (rd->ts);
 
   /* store temporary results */
   pow_task = NULL;
@@ -290,6 +300,7 @@ calculate_pow (void *cls)
   /* actually do POW calculation */
   rd->pow++;
   if (GNUNET_OK == GNUNET_REVOCATION_check_pow (&rd->key,
+                                                &ts,
                                                 rd->pow,
                                                 (unsigned int) matching_bits))
   {
@@ -331,6 +342,7 @@ ego_callback (void *cls, const struct GNUNET_IDENTITY_Ego *ego)
 {
   struct RevocationData *rd;
   struct GNUNET_CRYPTO_EcdsaPublicKey key;
+  struct GNUNET_TIME_Absolute ts;
 
   el = NULL;
   if (NULL == ego)
@@ -361,9 +373,14 @@ ego_callback (void *cls, const struct GNUNET_IDENTITY_Ego *ego)
                                          ego),
                                        &rd->sig);
     rd->key = key;
+    rd->ts = GNUNET_TIME_absolute_hton (GNUNET_TIME_absolute_get ());
   }
+  ts = GNUNET_TIME_absolute_ntoh (rd->ts);
   if (GNUNET_YES ==
-      GNUNET_REVOCATION_check_pow (&key, rd->pow, (unsigned int) matching_bits))
+      GNUNET_REVOCATION_check_pow (&key,
+                                   &ts,
+                                   rd->pow,
+                                   (unsigned int) matching_bits))
   {
     fprintf (stderr, "%s", _ ("Revocation certificate ready\n"));
     if (perform)
@@ -397,6 +414,7 @@ run (void *cls,
 {
   struct GNUNET_CRYPTO_EcdsaPublicKey pk;
   struct RevocationData rd;
+  struct GNUNET_TIME_Absolute ts;
 
   cfg = c;
   if (NULL != test_ego)
@@ -453,8 +471,10 @@ run (void *cls,
       return;
     }
     GNUNET_SCHEDULER_add_shutdown (&do_shutdown, NULL);
+    ts = GNUNET_TIME_absolute_ntoh (rd.ts);
     if (GNUNET_YES !=
         GNUNET_REVOCATION_check_pow (&rd.key,
+                                     &ts,
                                      rd.pow,
                                      (unsigned int) matching_bits))
     {

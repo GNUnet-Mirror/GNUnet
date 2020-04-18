@@ -47,49 +47,10 @@ GNUNET_CRYPTO_pow_hash (const char *salt,
                         struct GNUNET_HashCode *result)
 {
 #ifdef LSD0001
-  char twofish_iv[128 / 8]; // 128 bit IV
-  char twofish_key[256 / 8]; // 256 bit Key
-  char rbuf[buf_len];
-  int rc;
-  gcry_cipher_hd_t handle;
-
   GNUNET_break (ARGON2_OK == argon2d_hash_raw (3, /* iterations */
                                                1024, /* memory (1 MiB) */
                                                1, /* threads */
                                                buf,
-                                               buf_len,
-                                               salt,
-                                               strlen (salt),
-                                               &twofish_key,
-                                               sizeof (twofish_key)));
-
-  GNUNET_CRYPTO_kdf (twofish_iv,
-                     sizeof (twofish_iv),
-                     "gnunet-proof-of-work-iv",
-                     strlen ("gnunet-proof-of-work-iv"),
-                     twofish_key,
-                     sizeof(twofish_key),
-                     salt,
-                     strlen (salt),
-                     NULL, 0);
-  GNUNET_assert (0 ==
-                 gcry_cipher_open (&handle, GCRY_CIPHER_TWOFISH,
-                                   GCRY_CIPHER_MODE_CFB, 0));
-  rc = gcry_cipher_setkey (handle,
-                           twofish_key,
-                           sizeof(twofish_key));
-  GNUNET_assert ((0 == rc) || ((char) rc == GPG_ERR_WEAK_KEY));
-  rc = gcry_cipher_setiv (handle,
-                          twofish_iv,
-                          sizeof(twofish_iv));
-  GNUNET_assert ((0 == rc) || ((char) rc == GPG_ERR_WEAK_KEY));
-  GNUNET_assert (0 == gcry_cipher_encrypt (handle, &rbuf, buf_len, buf,
-                                           buf_len));
-  gcry_cipher_close (handle);
-  GNUNET_break (ARGON2_OK == argon2d_hash_raw (3, /* iterations */
-                                               1024, /* memory (1 MiB) */
-                                               1, /* threads */
-                                               rbuf,
                                                buf_len,
                                                salt,
                                                strlen (salt),

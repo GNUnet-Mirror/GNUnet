@@ -167,8 +167,11 @@ new_peer_entry (const struct GNUNET_PeerIdentity *peer)
 static int
 verify_revoke_message (const struct RevokeMessage *rm)
 {
+  struct GNUNET_TIME_Absolute ts;
+  ts = GNUNET_TIME_absolute_ntoh (rm->ts);
   if (GNUNET_YES !=
       GNUNET_REVOCATION_check_pow (&rm->public_key,
+                                   &ts,
                                    rm->proof_of_work,
                                    (unsigned int) revocation_work_required))
   {

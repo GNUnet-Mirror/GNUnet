@@ -235,6 +235,7 @@ handle_revocation_response (void *cls,
  * @param key public key of the key to revoke
  * @param sig signature to use on the revocation (should have been
  *            created using #GNUNET_REVOCATION_sign_revocation).
+ * @param ts  revocation timestamp
  * @param pow proof of work to use (should have been created by
  *            iteratively calling #GNUNET_REVOCATION_check_pow)
  * @param func funtion to call with the result of the check
@@ -247,6 +248,7 @@ struct GNUNET_REVOCATION_Handle *
 GNUNET_REVOCATION_revoke (const struct GNUNET_CONFIGURATION_Handle *cfg,
                           const struct GNUNET_CRYPTO_EcdsaPublicKey *key,
                           const struct GNUNET_CRYPTO_EcdsaSignature *sig,
+                          const struct GNUNET_TIME_Absolute *ts,
                           uint64_t pow,
                           GNUNET_REVOCATION_Callback func,
                           void *func_cls)
@@ -271,6 +273,7 @@ GNUNET_REVOCATION_revoke (const struct GNUNET_CONFIGURATION_Handle *cfg,
                                               &matching_bits)) &&
       (GNUNET_YES !=
        GNUNET_REVOCATION_check_pow (key,
+                                    ts,
                                     pow,
                                     (unsigned int) matching_bits)))
   {
@@ -346,22 +349,32 @@ count_leading_zeroes (const struct GNUNET_HashCode *hash)
  * would be acceptable for revoking the given key.
  *
  * @param key key to check for
+ * @param ts  revocation timestamp
  * @param pow proof of work value
  * @param matching_bits how many bits must match (configuration)
  * @return #GNUNET_YES if the @a pow is acceptable, #GNUNET_NO if not
  */
 int
 GNUNET_REVOCATION_check_pow (const struct GNUNET_CRYPTO_EcdsaPublicKey *key,
+                             const struct GNUNET_TIME_Absolute *ts,
                              uint64_t pow,
                              unsigned int matching_bits)
 {
   char buf[sizeof(struct GNUNET_CRYPTO_EcdsaPublicKey)
-           + sizeof(pow)] GNUNET_ALIGN;
+           + sizeof(pow)
+           + sizeof (struct GNUNET_TIME_AbsoluteNBO)] GNUNET_ALIGN;
   struct GNUNET_HashCode result;
+  struct GNUNET_TIME_AbsoluteNBO ts_nbo;
 
-  GNUNET_memcpy (buf, &pow, sizeof(pow));
+  ts_nbo = GNUNET_TIME_absolute_hton (*ts);
+
+  GNUNET_memcpy (buf, &pow, sizeof(pow)) ;
   GNUNET_memcpy (&buf[sizeof(pow)], key,
                  sizeof(struct GNUNET_CRYPTO_EcdsaPublicKey));
+  GNUNET_memcpy (&buf[sizeof(pow) + sizeof (struct GNUNET_TIME_AbsoluteNBO)],
+                 &ts_nbo,
+                 sizeof (struct GNUNET_TIME_AbsoluteNBO));
+
   GNUNET_CRYPTO_pow_hash ("gnunet-revocation-proof-of-work",
                           buf,
                           sizeof(buf),

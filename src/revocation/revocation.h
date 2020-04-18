@@ -89,6 +89,11 @@ struct RevokeMessage
   uint32_t reserved GNUNET_PACKED;
 
   /**
+   * Timestamp
+   */
+  struct GNUNET_TIME_AbsoluteNBO ts;
+
+  /**
    * Number that causes a hash collision with the @e public_key.
    */
   uint64_t proof_of_work GNUNET_PACKED;
