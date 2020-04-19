@@ -51,6 +51,47 @@ extern "C"
 #define GNUNET_REVOCATION_VERSION 0x00000000
 
 /**
+ * The proof-of-work narrowing factor.
+ * The number of PoWs that are calculates as part of revocation.
+ */
+#define POW_COUNT 32
+
+struct GNUNET_REVOCATION_Pow
+{
+  /**
+   * The timestamp of the revocation
+   */
+  struct GNUNET_TIME_AbsoluteNBO timestamp;
+
+  /**
+   * The TTL of this revocation (purely informational)
+   */
+  uint64_t ttl;
+
+  /**
+   * The PoWs
+   */
+  uint64_t pow[POW_COUNT];
+
+  /**
+   * The signature
+   */
+  struct GNUNET_CRYPTO_EcdsaSignature signature;
+
+  /**
+   * The signature purpose
+   */
+  struct GNUNET_CRYPTO_EccSignaturePurpose purpose;
+
+  /**
+   * The revoked public key
+   */
+  struct GNUNET_CRYPTO_EcdsaPublicKey key;
+};
+
+struct GNUNET_REVOCATION_PowCalculationHandle;
+
+/**
  * Handle for the key revocation query.
  */
 struct GNUNET_REVOCATION_Query;
@@ -116,10 +157,7 @@ struct GNUNET_REVOCATION_Handle;
  */
 struct GNUNET_REVOCATION_Handle *
 GNUNET_REVOCATION_revoke (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                          const struct GNUNET_CRYPTO_EcdsaPublicKey *key,
-                          const struct GNUNET_CRYPTO_EcdsaSignature *sig,
-                          const struct GNUNET_TIME_Absolute *ts,
-                          uint64_t pow,
+                          const struct GNUNET_REVOCATION_Pow *pow,
                           GNUNET_REVOCATION_Callback func, void *func_cls);
 
 
@@ -143,10 +181,40 @@ GNUNET_REVOCATION_revoke_cancel (struct GNUNET_REVOCATION_Handle *h);
  * @return #GNUNET_YES if the @a pow is acceptable, #GNUNET_NO if not
  */
 int
-GNUNET_REVOCATION_check_pow (const struct GNUNET_CRYPTO_EcdsaPublicKey *key,
-                             const struct GNUNET_TIME_Absolute *ts,
-                             uint64_t pow,
+GNUNET_REVOCATION_check_pow (const struct GNUNET_REVOCATION_Pow *pow,
                              unsigned int matching_bits);
+
+
+struct GNUNET_REVOCATION_PowCalculationHandle*
+GNUNET_REVOCATION_pow_init (const struct GNUNET_CRYPTO_EcdsaPublicKey *key,
+                            int epochs,
+                            unsigned int difficulty);
+
+
+/**
+ * Calculate a key revocation valid for broadcasting for a number
+ * of epochs.
+ *
+ * @param pc handle to the PoW, initially called with NULL.
+ * @param epochs number of epochs for which the revocation must be valid.
+ * @param pow current pow value to try
+ * @param difficulty current base difficulty to achieve
+ * @return #GNUNET_YES if the @a pow is acceptable, #GNUNET_NO if not
+ */
+int
+GNUNET_REVOCATION_pow_round (struct GNUNET_REVOCATION_PowCalculationHandle *pc);
+
+
+const struct GNUNET_REVOCATION_Pow*
+GNUNET_REVOCATION_pow_get (const struct
+                           GNUNET_REVOCATION_PowCalculationHandle *pc);
+
+
+void
+GNUNET_REVOCATION_pow_cleanup (struct
+                               GNUNET_REVOCATION_PowCalculationHandle *pc);
+
+
 
 
 /**
@@ -156,9 +224,10 @@ GNUNET_REVOCATION_check_pow (const struct GNUNET_CRYPTO_EcdsaPublicKey *key,
  * @param sig where to write the revocation signature
  */
 void
-GNUNET_REVOCATION_sign_revocation (const struct
-                                   GNUNET_CRYPTO_EcdsaPrivateKey *key,
-                                   struct GNUNET_CRYPTO_EcdsaSignature *sig);
+GNUNET_REVOCATION_sign_revocation (struct
+                                   GNUNET_REVOCATION_Pow *pow,
+                                   const struct
+                                   GNUNET_CRYPTO_EcdsaPrivateKey *key);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

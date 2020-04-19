@@ -134,7 +134,6 @@ block_plugin_revocation_evaluate (void *cls,
   struct InternalContext *ic = cls;
   struct GNUNET_HashCode chash;
   const struct RevokeMessage *rm = reply_block;
-  struct GNUNET_TIME_Absolute ts;
 
   if (NULL == reply_block)
     return GNUNET_BLOCK_EVALUATION_REQUEST_VALID;
@@ -143,11 +142,8 @@ block_plugin_revocation_evaluate (void *cls,
     GNUNET_break_op (0);
     return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;
   }
-  ts = GNUNET_TIME_absolute_ntoh (rm->ts);
   if (GNUNET_YES !=
-      GNUNET_REVOCATION_check_pow (&rm->public_key,
-                                   &ts,
-                                   rm->proof_of_work,
+      GNUNET_REVOCATION_check_pow (&rm->proof_of_work,
                                    ic->matching_bits))
   {
     GNUNET_break_op (0);
@@ -155,14 +151,14 @@ block_plugin_revocation_evaluate (void *cls,
   }
   if (GNUNET_OK !=
       GNUNET_CRYPTO_ecdsa_verify_ (GNUNET_SIGNATURE_PURPOSE_REVOCATION,
-                                   &rm->purpose,
-                                   &rm->signature,
-                                   &rm->public_key))
+                                   &rm->proof_of_work.purpose,
+                                   &rm->proof_of_work.signature,
+                                   &rm->proof_of_work.key))
   {
     GNUNET_break_op (0);
     return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;
   }
-  GNUNET_CRYPTO_hash (&rm->public_key,
+  GNUNET_CRYPTO_hash (&rm->proof_of_work.key,
                       sizeof(struct GNUNET_CRYPTO_EcdsaPublicKey),
                       &chash);
   if (GNUNET_YES ==
@@ -198,7 +194,7 @@ block_plugin_revocation_get_key (void *cls,
     GNUNET_break_op (0);
     return GNUNET_SYSERR;
   }
-  GNUNET_CRYPTO_hash (&rm->public_key,
+  GNUNET_CRYPTO_hash (&rm->proof_of_work.key,
                       sizeof(struct GNUNET_CRYPTO_EcdsaPublicKey),
                       key);
   return GNUNET_OK;

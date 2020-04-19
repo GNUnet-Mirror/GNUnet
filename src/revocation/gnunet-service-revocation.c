@@ -167,12 +167,8 @@ new_peer_entry (const struct GNUNET_PeerIdentity *peer)
 static int
 verify_revoke_message (const struct RevokeMessage *rm)
 {
-  struct GNUNET_TIME_Absolute ts;
-  ts = GNUNET_TIME_absolute_ntoh (rm->ts);
   if (GNUNET_YES !=
-      GNUNET_REVOCATION_check_pow (&rm->public_key,
-                                   &ts,
-                                   rm->proof_of_work,
+      GNUNET_REVOCATION_check_pow (&rm->proof_of_work,
                                    (unsigned int) revocation_work_required))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -182,9 +178,9 @@ verify_revoke_message (const struct RevokeMessage *rm)
   }
   if (GNUNET_OK !=
       GNUNET_CRYPTO_ecdsa_verify_ (GNUNET_SIGNATURE_PURPOSE_REVOCATION,
-                                   &rm->purpose,
-                                   &rm->signature,
-                                   &rm->public_key))
+                                   &rm->proof_of_work.purpose,
+                                   &rm->proof_of_work.signature,
+                                   &rm->proof_of_work.key))
   {
     GNUNET_break_op (0);
     return GNUNET_NO;
@@ -311,7 +307,7 @@ publicize_rm (const struct RevokeMessage *rm)
   struct GNUNET_HashCode hc;
   struct GNUNET_SET_Element e;
 
-  GNUNET_CRYPTO_hash (&rm->public_key,
+  GNUNET_CRYPTO_hash (&rm->proof_of_work.key,
                       sizeof(struct GNUNET_CRYPTO_EcdsaPublicKey),
                       &hc);
   if (GNUNET_YES ==
@@ -896,7 +892,7 @@ run (void *cls,
       return;
     }
     GNUNET_break (0 == ntohl (rm->reserved));
-    GNUNET_CRYPTO_hash (&rm->public_key,
+    GNUNET_CRYPTO_hash (&rm->proof_of_work.key,
                         sizeof(struct GNUNET_CRYPTO_EcdsaPublicKey),
                         &hc);
     GNUNET_break (GNUNET_OK ==
