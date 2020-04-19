@@ -225,7 +225,8 @@ GNUNET_JSON_spec_json (const char *name, json_t **jsonp);
  * @param[out] u8 where to store the integer found under @a name
  */
 struct GNUNET_JSON_Specification
-GNUNET_JSON_spec_uint8 (const char *name, uint8_t *u8);
+GNUNET_JSON_spec_uint8 (const char *name,
+                        uint8_t *u8);
 
 
 /**
@@ -235,7 +236,8 @@ GNUNET_JSON_spec_uint8 (const char *name, uint8_t *u8);
  * @param[out] u16 where to store the integer found under @a name
  */
 struct GNUNET_JSON_Specification
-GNUNET_JSON_spec_uint16 (const char *name, uint16_t *u16);
+GNUNET_JSON_spec_uint16 (const char *name,
+                         uint16_t *u16);
 
 
 /**
@@ -245,7 +247,8 @@ GNUNET_JSON_spec_uint16 (const char *name, uint16_t *u16);
  * @param[out] u32 where to store the integer found under @a name
  */
 struct GNUNET_JSON_Specification
-GNUNET_JSON_spec_uint32 (const char *name, uint32_t *u32);
+GNUNET_JSON_spec_uint32 (const char *name,
+                         uint32_t *u32);
 
 
 /**
@@ -255,7 +258,19 @@ GNUNET_JSON_spec_uint32 (const char *name, uint32_t *u32);
  * @param[out] u64 where to store the integer found under @a name
  */
 struct GNUNET_JSON_Specification
-GNUNET_JSON_spec_uint64 (const char *name, uint64_t *u64);
+GNUNET_JSON_spec_uint64 (const char *name,
+                         uint64_t *u64);
+
+
+/**
+ * 64-bit signed integer.
+ *
+ * @param name name of the JSON field
+ * @param[out] i64 where to store the integer found under @a name
+ */
+struct GNUNET_JSON_Specification
+GNUNET_JSON_spec_int64 (const char *name,
+                        int64_t *i64);
 
 
 /**

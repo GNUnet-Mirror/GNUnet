@@ -495,7 +495,7 @@ GNUNET_JSON_spec_uint32 (const char *name,
 
 
 /**
- * Parse given JSON object to a uint8_t.
+ * Parse given JSON object to a uint64_t.
  *
  * @param cls closure, NULL
  * @param root the json object representing data
@@ -538,6 +538,57 @@ GNUNET_JSON_spec_uint64 (const char *name,
     .field = name,
     .ptr = u64,
     .ptr_size = sizeof(uint64_t),
+    .size_ptr = NULL
+  };
+
+  return ret;
+}
+
+
+/**
+ * Parse given JSON object to a int64_t.
+ *
+ * @param cls closure, NULL
+ * @param root the json object representing data
+ * @param[out] spec where to write the data
+ * @return #GNUNET_OK upon successful parsing; #GNUNET_SYSERR upon error
+ */
+static int
+parse_u64 (void *cls,
+           json_t *root,
+           struct GNUNET_JSON_Specification *spec)
+{
+  json_int_t val;
+  int64_t *up = spec->ptr;
+
+  if (! json_is_integer (root))
+  {
+    GNUNET_break_op (0);
+    return GNUNET_SYSERR;
+  }
+  val = json_integer_value (root);
+  *up = (int64_t) val;
+  return GNUNET_OK;
+}
+
+
+/**
+ * 64-bit signed integer.
+ *
+ * @param name name of the JSON field
+ * @param[out] i64 where to store the integer found under @a name
+ */
+struct GNUNET_JSON_Specification
+GNUNET_JSON_spec_uint64 (const char *name,
+                         int64_t *i64)
+{
+  struct GNUNET_JSON_Specification ret = {
+    .parser = &parse_i64,
+    .cleaner = NULL,
+    .cls = NULL,
+    .field = name,
+    .ptr = i64,
+    .ptr_size = sizeof(int64_t),
     .size_ptr = NULL
   };
 
