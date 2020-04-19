@@ -27,8 +27,7 @@
 #include "gnunet_signatures.h"
 #include "gnunet_protocols.h"
 #include "revocation.h"
-#include <gcrypt.h>
-
+#include <inttypes.h>
 
 /**
  * Handle for the key revocation query.
@@ -389,6 +388,16 @@ GNUNET_REVOCATION_check_pow (const struct GNUNET_REVOCATION_Pow *pow,
   unsigned int epochs;
   uint64_t pow_val;
 
+  /**
+   * First, check if any duplicates are in the PoW set
+   */
+  for (unsigned int i = 0; i < POW_COUNT; i++)
+  {
+    for (unsigned int j = i+1; j < POW_COUNT; j++) {
+      if (pow->pow[i] == pow->pow[j])
+        return GNUNET_NO;
+    }
+  }
   GNUNET_memcpy (&buf[sizeof(uint64_t)],
                  &pow->timestamp,
                  sizeof (uint64_t));
@@ -405,8 +414,8 @@ GNUNET_REVOCATION_check_pow (const struct GNUNET_REVOCATION_Pow *pow,
                             &result);
     tmp_score = count_leading_zeroes (&result);
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Score %u (#%u)\n",
-                tmp_score, i);
+                "Score %u with %"PRIu64" (#%u)\n",
+                tmp_score, pow_val, i);
     score += tmp_score;
 
   }
@@ -460,6 +469,13 @@ GNUNET_REVOCATION_pow_round (struct GNUNET_REVOCATION_PowCalculationHandle *pc)
 
   pc->current_pow++;
 
+  /**
+   * Do not try duplicates
+   */
+  for (unsigned int i = 0; i < POW_COUNT; i++)
+    if (pc->current_pow == pc->best[i].pow)
+      return GNUNET_NO;
+
   GNUNET_memcpy (buf, &pc->current_pow, sizeof(uint64_t));
   GNUNET_memcpy (&buf[sizeof(uint64_t)],
                  &pc->pow.timestamp,
@@ -480,8 +496,8 @@ GNUNET_REVOCATION_pow_round (struct GNUNET_REVOCATION_PowCalculationHandle *pc)
       pc->best[i].pow = pc->current_pow;
       pc->pow.pow[i] = GNUNET_htonll (pc->current_pow);
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  "New best score %u (#%u)\n",
-                  zeros, i);
+                  "New best score %u with %"PRIu64" (#%u)\n",
+                  zeros, pc->current_pow, i);
       break;
     }
   }
