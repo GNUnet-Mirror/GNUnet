@@ -554,7 +554,7 @@ GNUNET_JSON_spec_uint64 (const char *name,
  * @return #GNUNET_OK upon successful parsing; #GNUNET_SYSERR upon error
  */
 static int
-parse_u64 (void *cls,
+parse_i64 (void *cls,
            json_t *root,
            struct GNUNET_JSON_Specification *spec)
 {
@@ -579,8 +579,8 @@ parse_u64 (void *cls,
  * @param[out] i64 where to store the integer found under @a name
  */
 struct GNUNET_JSON_Specification
-GNUNET_JSON_spec_uint64 (const char *name,
-                         int64_t *i64)
+GNUNET_JSON_spec_int64 (const char *name,
+                        int64_t *i64)
 {
   struct GNUNET_JSON_Specification ret = {
     .parser = &parse_i64,
