@@ -70,7 +70,7 @@ Marko Räihä
 Michael John Wensley <michael@wensley.org.uk>
 Milan Bouchet-Valat <nalimilan@club.fr>
 Nathan Evans <evans@net.in.tum.de>
-Nils Gillmann <ng0@n0.is> [ Documentation export to Texinfo ]
+nikita <nikita@n0.is> [ Documentation export to Texinfo ]
 Paul Ruth <ruth@cs.purdue.edu>
 Philipp Tölke <toelke@in.tum.de>, <pt@philipptoelke.de>
 Renaldo Ferreira <rf@cs.purdue.edu>
@@ -124,8 +124,8 @@ Nix:              viric, rahul
 OpenWrt/LEDE:     Daniel Golle <daniel@makrotopia.org>
 macOS:            Jussi Eloranta <eloranta@cc.jyu.fi>
 Gentoo:		  Carlo von lynX <psyc://loupsycedyglgamf.onion/~lynX>
-                  N. Gillmann <ng0@n0.is>
-NetBSD pkgsrc:    N. Gillmann <ng0@n0.is>
+                  nikita <nikita@n0.is>
+NetBSD pkgsrc:    nikita <nikita@NetBSD.org>
 
 If you have contributed and are not listed here, please
 notify one of the maintainers in order to be added.
