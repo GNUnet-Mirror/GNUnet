@@ -451,7 +451,7 @@ GNUNET_REVOCATION_check_pow (const struct GNUNET_REVOCATION_Pow *pow,
                             sizeof(buf),
                             &result);
     tmp_score = count_leading_zeroes (&result);
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Score %u with %" PRIu64 " (#%u)\n",
                 tmp_score, pow_val, i);
     score += tmp_score;
@@ -533,7 +533,7 @@ GNUNET_REVOCATION_pow_round (struct GNUNET_REVOCATION_PowCalculationHandle *pc)
       pc->best[i].bits = zeros;
       pc->best[i].pow = pc->current_pow;
       pc->pow.pow[i] = GNUNET_htonll (pc->current_pow);
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "New best score %u with %" PRIu64 " (#%u)\n",
                   zeros, pc->current_pow, i);
       break;
