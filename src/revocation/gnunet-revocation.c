@@ -280,7 +280,7 @@ calculate_pow (void *cls)
 
   /* store temporary results */
   pow_task = NULL;
-  //if (0 == (rd->pow % 128))
+  // if (0 == (rd->pow % 128))
   //  sync_rd (rd);
   /* actually do POW calculation */
   if (GNUNET_OK == GNUNET_REVOCATION_pow_round (ph))

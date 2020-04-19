@@ -430,7 +430,8 @@ GNUNET_REVOCATION_check_pow (const struct GNUNET_REVOCATION_Pow *pow,
    */
   for (unsigned int i = 0; i < POW_COUNT; i++)
   {
-    for (unsigned int j = i+1; j < POW_COUNT; j++) {
+    for (unsigned int j = i + 1; j < POW_COUNT; j++)
+    {
       if (pow->pow[i] == pow->pow[j])
         return GNUNET_NO;
     }
@@ -451,7 +452,7 @@ GNUNET_REVOCATION_check_pow (const struct GNUNET_REVOCATION_Pow *pow,
                             &result);
     tmp_score = count_leading_zeroes (&result);
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Score %u with %"PRIu64" (#%u)\n",
+                "Score %u with %" PRIu64 " (#%u)\n",
                 tmp_score, pow_val, i);
     score += tmp_score;
 
@@ -472,11 +473,11 @@ GNUNET_REVOCATION_pow_init (const struct GNUNET_CRYPTO_EcdsaPublicKey *key,
                             unsigned int difficulty)
 {
   struct GNUNET_REVOCATION_PowCalculationHandle*pc;
-  struct GNUNET_TIME_Absolute ts = GNUNET_TIME_absolute_get();
+  struct GNUNET_TIME_Absolute ts = GNUNET_TIME_absolute_get ();
 
   pc = GNUNET_new (struct GNUNET_REVOCATION_PowCalculationHandle);
   pc->pow.key = *key;
-  pc->pow.timestamp = GNUNET_TIME_absolute_hton(ts);
+  pc->pow.timestamp = GNUNET_TIME_absolute_hton (ts);
   pc->current_pow = GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK,
                                               UINT64_MAX);
   pc->difficulty = difficulty;
@@ -533,7 +534,7 @@ GNUNET_REVOCATION_pow_round (struct GNUNET_REVOCATION_PowCalculationHandle *pc)
       pc->best[i].pow = pc->current_pow;
       pc->pow.pow[i] = GNUNET_htonll (pc->current_pow);
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  "New best score %u with %"PRIu64" (#%u)\n",
+                  "New best score %u with %" PRIu64 " (#%u)\n",
                   zeros, pc->current_pow, i);
       break;
     }
@@ -568,11 +569,12 @@ GNUNET_REVOCATION_pow_cleanup (struct
  */
 void
 GNUNET_REVOCATION_sign_revocation (struct GNUNET_REVOCATION_Pow *pow,
-                                   const struct GNUNET_CRYPTO_EcdsaPrivateKey *key)
+                                   const struct
+                                   GNUNET_CRYPTO_EcdsaPrivateKey *key)
 {
   pow->purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_REVOCATION);
   pow->purpose.size = htonl (sizeof(struct GNUNET_CRYPTO_EccSignaturePurpose)
-                           + sizeof(struct GNUNET_CRYPTO_EcdsaPublicKey));
+                             + sizeof(struct GNUNET_CRYPTO_EcdsaPublicKey));
   GNUNET_CRYPTO_ecdsa_key_get_public (key, &pow->key);
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_CRYPTO_ecdsa_sign_ (key,
