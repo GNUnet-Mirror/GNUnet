@@ -50,20 +50,57 @@ struct GNUNET_REVOCATION_Query
   void *func_cls;
 };
 
+
+/**
+ * Helper struct that holds a found pow nonce
+ * and the corresponding number of leading zeroes.
+ */
 struct BestPow
 {
+  /**
+   * PoW nonce
+   */
   uint64_t pow;
+
+  /**
+   * Corresponding zero bits in hash
+   */
   unsigned int bits;
 };
 
+
+/**
+ * The handle to a PoW calculation.
+ * Used in iterative PoW rounds.
+ */
 struct GNUNET_REVOCATION_PowCalculationHandle
 {
+  /**
+   * Current set of found PoWs
+   */
   struct BestPow best[POW_COUNT];
+
+  /**
+   * The final PoW result data structure.
+   */
   struct GNUNET_REVOCATION_Pow pow;
+
+  /**
+   * The current nonce to try
+   */
   uint64_t current_pow;
+
+  /**
+   * Epochs how long the PoW should be valid.
+   * This is added on top of the difficulty in the PoW.
+   */
   unsigned int epochs;
+
+  /**
+   * The difficulty (leading zeros) to achieve.
+   */
   unsigned int difficulty;
-  int valid;
+
 };
 
 /**
