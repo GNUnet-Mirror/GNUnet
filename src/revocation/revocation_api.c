@@ -424,6 +424,20 @@ GNUNET_REVOCATION_check_pow (const struct GNUNET_REVOCATION_Pow *pow,
   uint64_t pow_val;
 
   /**
+   * Check if signature valid
+   */
+  if (GNUNET_OK !=
+      GNUNET_CRYPTO_ecdsa_verify_ (GNUNET_SIGNATURE_PURPOSE_REVOCATION,
+                                   &pow->purpose,
+                                   &pow->signature,
+                                   &pow->key))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Proof of work signature invalid!\n");
+    return -1;
+  }
+
+  /**
    * First, check if any duplicates are in the PoW set
    */
   for (unsigned int i = 0; i < POW_COUNT; i++)
