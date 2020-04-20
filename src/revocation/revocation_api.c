@@ -510,18 +510,15 @@ GNUNET_REVOCATION_check_pow (const struct GNUNET_REVOCATION_Pow *pow,
    */
   buffer = GNUNET_TIME_relative_divide (epoch_length,
                                         10);
-  ts = GNUNET_TIME_absolute_subtract (ts,
-                                      buffer);
+  exp = GNUNET_TIME_absolute_add (ts, ttl);
+  exp = GNUNET_TIME_absolute_add (exp,
+                                  buffer);
 
   if (0 != GNUNET_TIME_absolute_get_remaining (ts).rel_value_us)
     return GNUNET_NO; /* Not yet valid. */
   /* Revert to actual start time */
   ts = GNUNET_TIME_absolute_add (ts,
                                  buffer);
-
-  exp = GNUNET_TIME_absolute_add (ts, ttl);
-  exp = GNUNET_TIME_absolute_add (exp,
-                                  buffer);
 
   if (0 == GNUNET_TIME_absolute_get_remaining (exp).rel_value_us)
     return GNUNET_NO; /* expired */
@@ -544,6 +541,13 @@ GNUNET_REVOCATION_pow_init (const struct GNUNET_CRYPTO_EcdsaPrivateKey *key,
 {
   struct GNUNET_REVOCATION_PowCalculationHandle *pc;
   struct GNUNET_TIME_Absolute ts = GNUNET_TIME_absolute_get ();
+
+  /**
+   * Predate the validity period to prevent rejections due to
+   * unsynchronized clocks
+   */
+  ts = GNUNET_TIME_absolute_subtract (ts,
+                                      GNUNET_TIME_UNIT_WEEKS);
 
   pc = GNUNET_new (struct GNUNET_REVOCATION_PowCalculationHandle);
   pc->pow.timestamp = GNUNET_TIME_absolute_hton (ts);
