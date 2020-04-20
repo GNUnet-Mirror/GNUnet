@@ -457,7 +457,7 @@ GNUNET_REVOCATION_check_pow (const struct GNUNET_REVOCATION_Pow *pow,
   }
   score = score / POW_COUNT;
   if (score < difficulty)
-    return GNUNET_NO;
+    return -1;
   epochs = score - difficulty;
   return epochs;
 }
