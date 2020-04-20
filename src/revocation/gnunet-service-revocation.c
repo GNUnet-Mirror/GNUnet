@@ -167,8 +167,7 @@ new_peer_entry (const struct GNUNET_PeerIdentity *peer)
 static int
 verify_revoke_message (const struct RevokeMessage *rm)
 {
-  if (GNUNET_YES !=
-      GNUNET_REVOCATION_check_pow (&rm->proof_of_work,
+  if (0 >= GNUNET_REVOCATION_check_pow (&rm->proof_of_work,
                                    (unsigned int) revocation_work_required))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,

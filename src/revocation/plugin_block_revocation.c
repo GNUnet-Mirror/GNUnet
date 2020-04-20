@@ -142,7 +142,7 @@ block_plugin_revocation_evaluate (void *cls,
     GNUNET_break_op (0);
     return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;
   }
-  if (GNUNET_YES !=
+  if (0 >=
       GNUNET_REVOCATION_check_pow (&rm->proof_of_work,
                                    ic->matching_bits))
   {

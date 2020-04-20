@@ -184,7 +184,7 @@ GNUNET_REVOCATION_revoke_cancel (struct GNUNET_REVOCATION_Handle *h);
  * @param ts  revocation timestamp
  * @param pow proof of work value
  * @param matching_bits how many bits must match (configuration)
- * @return #GNUNET_YES if the @a pow is acceptable, #GNUNET_NO if not
+ * @return number of epochs valid if the @a pow is acceptable, -1 if not
  */
 int
 GNUNET_REVOCATION_check_pow (const struct GNUNET_REVOCATION_Pow *pow,

@@ -84,6 +84,11 @@ static const struct GNUNET_CONFIGURATION_Handle *cfg;
 static unsigned long long matching_bits;
 
 /**
+ * Epoch length
+ */
+static struct GNUNET_TIME_Relative epoch_length;
+
+/**
  * Task used for proof-of-work calculation.
  */
 static struct GNUNET_SCHEDULER_Task *pow_task;
@@ -341,6 +346,7 @@ ego_callback (void *cls, const struct GNUNET_IDENTITY_Ego *ego)
   struct GNUNET_REVOCATION_Pow *pow;
   struct GNUNET_CRYPTO_EcdsaPublicKey key;
   struct GNUNET_REVOCATION_PowCalculationHandle *ph = NULL;
+  int epochs;
 
   el = NULL;
   if (NULL == ego)
@@ -365,11 +371,19 @@ ego_callback (void *cls, const struct GNUNET_IDENTITY_Ego *ego)
       GNUNET_free (pow);
       return;
     }
-    if (GNUNET_YES ==
+    if (0 < (epochs =
         GNUNET_REVOCATION_check_pow (pow,
-                                     (unsigned int) matching_bits))
+                                     (unsigned int) matching_bits)))
     {
+      struct GNUNET_TIME_Absolute ts;
+      struct GNUNET_TIME_Relative ttl;
+      ts = GNUNET_TIME_absolute_ntoh (pow->timestamp);
+      ttl = GNUNET_TIME_relative_multiply (epoch_length,
+                                           epochs);
       fprintf (stderr, "%s", _ ("Revocation certificate ready\n"));
+      fprintf (stderr, "%s %s for %s\n", _ ("Valid from"),
+               GNUNET_STRINGS_absolute_time_to_string (ts),
+               GNUNET_STRINGS_relative_time_to_string (ttl, GNUNET_NO));
       if (perform)
         perform_revocation (pow);
       else
@@ -448,6 +462,17 @@ run (void *cls,
                                "WORKBITS");
     return;
   }
+  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_time (cfg,
+                                                        "REVOCATION",
+                                                        "EPOCH_LENGTH",
+                                                        &epoch_length))
+  {
+    GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR,
+                               "REVOCATION",
+                               "EPOCH_LENGTH");
+    return;
+  }
+
   if (NULL != revoke_ego)
   {
     if (! perform && (NULL == filename))
@@ -472,7 +497,7 @@ run (void *cls,
       return;
     }
     GNUNET_SCHEDULER_add_shutdown (&do_shutdown, NULL);
-    if (GNUNET_YES !=
+    if (0 >=
         GNUNET_REVOCATION_check_pow (&pow,
                                      (unsigned int) matching_bits))
     {

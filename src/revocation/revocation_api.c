@@ -319,9 +319,7 @@ GNUNET_REVOCATION_revoke (const struct GNUNET_CONFIGURATION_Handle *cfg,
                                               "REVOCATION",
                                               "WORKBITS",
                                               &matching_bits)) &&
-      (GNUNET_YES !=
-       GNUNET_REVOCATION_check_pow (pow,
-                                    (unsigned int) matching_bits)))
+      (0 >= GNUNET_REVOCATION_check_pow (pow, (unsigned int) matching_bits)))
   {
     GNUNET_break (0);
     GNUNET_free (h);
@@ -410,7 +408,7 @@ calculate_score (const struct GNUNET_REVOCATION_PowCalculationHandle *ph)
  * @param ts  revocation timestamp
  * @param pow proof of work value
  * @param matching_bits how many bits must match (configuration)
- * @return #GNUNET_YES if the @a pow is acceptable, #GNUNET_NO if not
+ * @return number of epochs valid if the @a pow is acceptable, -1 if not
  */
 int
 GNUNET_REVOCATION_check_pow (const struct GNUNET_REVOCATION_Pow *pow,
@@ -433,7 +431,7 @@ GNUNET_REVOCATION_check_pow (const struct GNUNET_REVOCATION_Pow *pow,
     for (unsigned int j = i + 1; j < POW_COUNT; j++)
     {
       if (pow->pow[i] == pow->pow[j])
-        return GNUNET_NO;
+        return -1;
     }
   }
   GNUNET_memcpy (&buf[sizeof(uint64_t)],
@@ -460,10 +458,8 @@ GNUNET_REVOCATION_check_pow (const struct GNUNET_REVOCATION_Pow *pow,
   score = score / POW_COUNT;
   if (score < difficulty)
     return GNUNET_NO;
-  // TODO verfiy signature?
-  epochs = score - difficulty + 1;
-  // TODO verify expiration
-  return GNUNET_YES;
+  epochs = score - difficulty;
+  return epochs;
 }
 
 
