@@ -608,27 +608,4 @@ GNUNET_REVOCATION_pow_cleanup (struct
   GNUNET_free (pc);
 }
 
-
-/**
- * Create a revocation signature.
- *
- * @param key private key of the key to revoke
- * @param sig where to write the revocation signature
- */
-void
-GNUNET_REVOCATION_sign_revocation (struct GNUNET_REVOCATION_Pow *pow,
-                                   const struct
-                                   GNUNET_CRYPTO_EcdsaPrivateKey *key)
-{
-  pow->purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_REVOCATION);
-  pow->purpose.size = htonl (sizeof(struct GNUNET_CRYPTO_EccSignaturePurpose)
-                             + sizeof(struct GNUNET_CRYPTO_EcdsaPublicKey));
-  GNUNET_CRYPTO_ecdsa_key_get_public (key, &pow->key);
-  GNUNET_assert (GNUNET_OK ==
-                 GNUNET_CRYPTO_ecdsa_sign_ (key,
-                                            &pow->purpose,
-                                            &pow->signature));
-}
-
-
 /* end of revocation_api.c */

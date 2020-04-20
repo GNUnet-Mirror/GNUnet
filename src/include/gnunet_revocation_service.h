@@ -149,12 +149,8 @@ struct GNUNET_REVOCATION_Handle;
  * Perform key revocation.
  *
  * @param cfg the configuration to use
- * @param key public key of the key to revoke
- * @param sig signature to use on the revocation (should have been
- *            created using #GNUNET_REVOCATION_sign_revocation).
- * @param ts  revocation timestamp
  * @param pow proof of work to use (should have been created by
- *            iteratively calling #GNUNET_REVOCATION_check_pow)
+ *            iteratively calling #GNUNET_REVOCATION_pow_round)
  * @param func funtion to call with the result of the check
  *             (called with `is_valid` being #GNUNET_NO if
  *              the revocation worked).
@@ -253,22 +249,6 @@ GNUNET_REVOCATION_pow_get (const struct
 void
 GNUNET_REVOCATION_pow_cleanup (struct
                                GNUNET_REVOCATION_PowCalculationHandle *pc);
-
-
-
-
-/**
- * Create a revocation signature.
- *
- * @param key private key of the key to revoke
- * @param sig where to write the revocation signature
- */
-void
-GNUNET_REVOCATION_sign_revocation (struct
-                                   GNUNET_REVOCATION_Pow *pow,
-                                   const struct
-                                   GNUNET_CRYPTO_EcdsaPrivateKey *key);
-
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {
