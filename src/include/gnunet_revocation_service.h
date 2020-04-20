@@ -201,7 +201,7 @@ GNUNET_REVOCATION_check_pow (const struct GNUNET_REVOCATION_Pow *pow,
  * @return a handle for use in PoW rounds
  */
 struct GNUNET_REVOCATION_PowCalculationHandle*
-GNUNET_REVOCATION_pow_init (const struct GNUNET_CRYPTO_EcdsaPublicKey *key,
+GNUNET_REVOCATION_pow_init (const struct GNUNET_CRYPTO_EcdsaPrivateKey *key,
                             int epochs,
                             unsigned int difficulty);
 

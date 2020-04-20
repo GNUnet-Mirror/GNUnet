@@ -92,7 +92,7 @@ struct RevokeMessage
   /**
    * Number that causes a hash collision with the @e public_key.
    */
-  struct GNUNET_REVOCATION_Pow proof_of_work GNUNET_PACKED;
+  struct GNUNET_REVOCATION_Pow proof_of_work;
 };
 
 

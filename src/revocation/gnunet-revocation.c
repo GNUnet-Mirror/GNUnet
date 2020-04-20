@@ -345,6 +345,7 @@ ego_callback (void *cls, const struct GNUNET_IDENTITY_Ego *ego)
 {
   struct GNUNET_REVOCATION_Pow *pow;
   struct GNUNET_CRYPTO_EcdsaPublicKey key;
+  const struct GNUNET_CRYPTO_EcdsaPrivateKey *privkey;
   struct GNUNET_REVOCATION_PowCalculationHandle *ph = NULL;
   int epochs;
 
@@ -356,6 +357,7 @@ ego_callback (void *cls, const struct GNUNET_IDENTITY_Ego *ego)
     return;
   }
   GNUNET_IDENTITY_ego_get_public_key (ego, &key);
+  privkey = GNUNET_IDENTITY_ego_get_private_key (ego);
   pow = GNUNET_new (struct GNUNET_REVOCATION_Pow);
   if ((NULL != filename) && (GNUNET_YES == GNUNET_DISK_file_test (filename)) &&
       (sizeof(struct GNUNET_REVOCATION_Pow) ==
@@ -406,7 +408,7 @@ ego_callback (void *cls, const struct GNUNET_IDENTITY_Ego *ego)
            "%s",
            _ ("Revocation certificate not ready, calculating proof of work\n"));
   if (NULL == ph)
-    ph = GNUNET_REVOCATION_pow_init (&key,
+    ph = GNUNET_REVOCATION_pow_init (privkey,
                                      1, /* Epochs */
                                      matching_bits);
   pow_task = GNUNET_SCHEDULER_add_now (&calculate_pow, ph);

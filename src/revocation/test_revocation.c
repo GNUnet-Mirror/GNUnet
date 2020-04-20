@@ -45,7 +45,7 @@ struct TestPeer
   struct GNUNET_IDENTITY_EgoLookup *ego_lookup;
   struct GNUNET_REVOCATION_Handle *revok_handle;
   struct GNUNET_CORE_Handle *ch;
-  uint64_t pow;
+  struct GNUNET_REVOCATION_PowCalculationHandle *pow;
 };
 
 static struct TestPeer testpeers[2];
@@ -146,6 +146,7 @@ static void
 ego_cb (void *cls, const struct GNUNET_IDENTITY_Ego *ego)
 {
   static int completed = 0;
+  const struct GNUNET_CRYPTO_EcdsaPrivateKey *privkey;
 
   if ((NULL != ego) && (cls == &testpeers[0]))
   {
@@ -159,30 +160,31 @@ ego_cb (void *cls, const struct GNUNET_IDENTITY_Ego *ego)
     testpeers[1].ego_lookup = NULL;
     testpeers[1].privkey = GNUNET_IDENTITY_ego_get_private_key (ego);
     GNUNET_IDENTITY_ego_get_public_key (ego, &testpeers[1].pubkey);
-    GNUNET_REVOCATION_sign_revocation (testpeers[1].privkey, &testpeers[1].sig);
-
     GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Calculating proof of work...\n");
-    testpeers[1].pow = 0;
+    privkey = GNUNET_IDENTITY_ego_get_private_key (ego);
+    testpeers[1].pow = GNUNET_REVOCATION_pow_init (privkey,
+                                                   1,
+                                                   5);
     int res =
-      GNUNET_REVOCATION_check_pow (&testpeers[1].pubkey, testpeers[1].pow, 5);
+      GNUNET_REVOCATION_pow_round (testpeers[1].pow);
     while (GNUNET_OK != res)
     {
-      testpeers[1].pow++;
       res =
-        GNUNET_REVOCATION_check_pow (&testpeers[1].pubkey, testpeers[1].pow, 5);
+        GNUNET_REVOCATION_pow_round (testpeers[1].pow);
     }
     fprintf (stderr, "Done calculating proof of work\n");
     completed++;
   }
   if (2 == completed)
   {
+    const struct GNUNET_REVOCATION_Pow *pow;
+    pow = GNUNET_REVOCATION_pow_get (testpeers[1].pow);
     GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Egos retrieved\n");
     testpeers[1].revok_handle = GNUNET_REVOCATION_revoke (testpeers[1].cfg,
-                                                          &testpeers[1].pubkey,
-                                                          &testpeers[1].sig,
-                                                          testpeers[1].pow,
+                                                          pow,
                                                           &revocation_cb,
                                                           NULL);
+    GNUNET_REVOCATION_pow_cleanup (testpeers[1].pow);
   }
 }
 

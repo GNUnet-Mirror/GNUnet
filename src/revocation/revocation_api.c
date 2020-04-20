@@ -472,7 +472,7 @@ GNUNET_REVOCATION_check_pow (const struct GNUNET_REVOCATION_Pow *pow,
  * @return a handle for use in PoW rounds
  */
 struct GNUNET_REVOCATION_PowCalculationHandle*
-GNUNET_REVOCATION_pow_init (const struct GNUNET_CRYPTO_EcdsaPublicKey *key,
+GNUNET_REVOCATION_pow_init (const struct GNUNET_CRYPTO_EcdsaPrivateKey *key,
                             int epochs,
                             unsigned int difficulty)
 {
@@ -480,8 +480,15 @@ GNUNET_REVOCATION_pow_init (const struct GNUNET_CRYPTO_EcdsaPublicKey *key,
   struct GNUNET_TIME_Absolute ts = GNUNET_TIME_absolute_get ();
 
   pc = GNUNET_new (struct GNUNET_REVOCATION_PowCalculationHandle);
-  pc->pow.key = *key;
   pc->pow.timestamp = GNUNET_TIME_absolute_hton (ts);
+  pc->pow.purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_REVOCATION);
+  pc->pow.purpose.size = htonl (sizeof(struct GNUNET_CRYPTO_EccSignaturePurpose)
+                             + sizeof(struct GNUNET_CRYPTO_EcdsaPublicKey));
+  GNUNET_CRYPTO_ecdsa_key_get_public (key, &pc->pow.key);
+  GNUNET_assert (GNUNET_OK ==
+                 GNUNET_CRYPTO_ecdsa_sign_ (key,
+                                            &pc->pow.purpose,
+                                            &pc->pow.signature));
   pc->current_pow = GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK,
                                               UINT64_MAX);
   pc->difficulty = difficulty;
