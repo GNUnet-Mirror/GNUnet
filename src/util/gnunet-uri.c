@@ -184,7 +184,7 @@ main (int argc, char *const *argv)
   shc_chld = NULL;
   GNUNET_DISK_pipe_close (sigpipe);
   sigpipe = NULL;
-  GNUNET_free ((void *) argv);
+  GNUNET_free_nz ((void *) argv);
   return ((GNUNET_OK == ret) && (0 == exit_code)) ? 0 : 1;
 }
 

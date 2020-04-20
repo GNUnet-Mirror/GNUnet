@@ -37,6 +37,7 @@ TESTS = \
 
 test_json_SOURCES = \
   test_json.c
+test_json_CFLAGS = $(MHD_CFLAGS) $(AM_CFLAGS)
 test_json_LDADD = \
   libgnunetjson.la \
   $(top_builddir)/src/util/libgnunetutil.la \

@@ -1210,7 +1210,7 @@ main (int argc,
                            "GNU Name System First Come First Serve name registration service"),
                          options,
                          &run, NULL)) ? 0 : 1;
-  GNUNET_free ((void *) argv);
+  GNUNET_free_nz ((void *) argv);
   GNUNET_CRYPTO_ecdsa_key_clear (&fcfs_zone_pkey);
   return ret;
 }

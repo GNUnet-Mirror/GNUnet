@@ -439,7 +439,7 @@ main (int argc, char *const *argv)
                             options,
                             &run,
                             NULL);
-  GNUNET_free ((void *) argv);
+  GNUNET_free_nz ((void *) argv);
 
   if (GNUNET_OK != res)
     return 3;

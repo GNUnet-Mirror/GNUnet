@@ -980,7 +980,7 @@ main (int argc, char *const *argv)
                             NULL);
   GNUNET_free_non_null (opt_pid_str);
   GNUNET_free_non_null (opt_type_str);
-  GNUNET_free ((void *) argv);
+  GNUNET_free_nz ((void *) argv);
 
   if (GNUNET_OK == res)
     return ret;

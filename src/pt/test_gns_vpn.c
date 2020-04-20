@@ -45,6 +45,7 @@
 #include "gnunet_gnsrecord_lib.h"
 #include "gnunet_gns_service.h"
 #include "gnunet_testing_lib.h"
+#include "gnunet_mhd_compat.h"
 
 #define PORT 8080
 #define TEST_DOMAIN "www.gnu"
@@ -121,7 +122,7 @@ copy_buffer (void *ptr,
 }
 
 
-static int
+static MHD_RESULT
 mhd_ahc (void *cls,
          struct MHD_Connection *connection,
          const char *url,
@@ -611,7 +612,7 @@ identity_cb (void *cls,
                                        1, &rd,
                                        &commence_testing,
                                        NULL);
-  GNUNET_free ((void **) rd.data);
+  GNUNET_free_nz ((void **) rd.data);
   GNUNET_free (rd_string);
 }
 

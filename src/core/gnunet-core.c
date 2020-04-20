@@ -198,7 +198,7 @@ main (int argc, char *const *argv)
                             &run,
                             NULL);
 
-  GNUNET_free ((void *) argv);
+  GNUNET_free_nz ((void *) argv);
   if (GNUNET_OK == res)
     return 0;
   return 1;

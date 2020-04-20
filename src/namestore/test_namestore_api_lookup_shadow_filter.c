@@ -336,8 +336,8 @@ run (void *cls,
                 _ ("Namestore cannot store no block\n"));
   }
 
-  GNUNET_free ((void *) records[0].data);
-  GNUNET_free ((void *) records[1].data);
+  GNUNET_free_nz ((void *) records[0].data);
+  GNUNET_free_nz ((void *) records[1].data);
 }
 
 

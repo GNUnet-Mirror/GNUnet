@@ -2791,7 +2791,7 @@ main (int argc, char *const *argv)
                                           NULL))
         ? 0
         : 1;
-  GNUNET_free ((void *) argv);
+  GNUNET_free_nz ((void *) argv);
   return ret;
 }
 

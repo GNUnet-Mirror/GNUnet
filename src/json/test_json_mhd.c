@@ -27,6 +27,7 @@
 #include "gnunet_util_lib.h"
 #include "gnunet_json_lib.h"
 #include "gnunet_curl_lib.h"
+#include "gnunet_mhd_compat.h"
 #include <zlib.h>
 
 #define MAX_SIZE 1024 * 1024
@@ -36,7 +37,7 @@ static json_t *bigj;
 static int global_ret;
 
 
-static int
+static MHD_RESULT
 access_handler_cb (void *cls,
                    struct MHD_Connection *connection,
                    const char *url,

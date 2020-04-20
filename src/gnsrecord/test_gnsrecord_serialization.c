@@ -132,7 +132,7 @@ run (void *cls,
 
   for (c = 0; c < rd_count; c++)
   {
-    GNUNET_free ((void *) src[c].data);
+    GNUNET_free_nz ((void *) src[c].data);
   }
 }
 

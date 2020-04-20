@@ -212,7 +212,7 @@ run (void *cls,
                 _ ("Namestore cannot store no block\n"));
   }
 
-  GNUNET_free ((void *) rd.data);
+  GNUNET_free_nz ((void *) rd.data);
 }
 
 

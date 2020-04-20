@@ -107,7 +107,7 @@ run (void *cls,
              GNUNET_YES),
            ROUNDS);
   for (unsigned int i = 0; i < RECORDS; i++)
-    GNUNET_free ((void *) s_rd[i].data);
+    GNUNET_free_nz ((void *) s_rd[i].data);
   GNUNET_free (s_rd);
 }
 

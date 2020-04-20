@@ -267,7 +267,7 @@ cleanup_handle (void *cls)
     for (int i = 0; i < handle->rd_count; i++)
     {
       if (NULL != handle->rd[i].data)
-        GNUNET_free ((void *) handle->rd[i].data);
+        GNUNET_free_nz ((void *) handle->rd[i].data);
     }
     GNUNET_free (handle->rd);
   }

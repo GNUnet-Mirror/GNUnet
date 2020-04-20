@@ -318,7 +318,7 @@ main (int argc, char *const *argv)
   ret =
     GNUNET_PROGRAM_run (argc, argv, "gnunet-testbed-profiler", binaryHelp,
                         options, &run, NULL);
-  GNUNET_free ((void *) argv);
+  GNUNET_free_nz ((void *) argv);
   if (GNUNET_OK != ret)
     return ret;
   if (GNUNET_OK != result)

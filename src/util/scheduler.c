@@ -584,28 +584,26 @@ dump_backtrace (struct GNUNET_SCHEDULER_Task *t)
 static void
 destroy_task (struct GNUNET_SCHEDULER_Task *t)
 {
-  unsigned int i;
-
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "destroying task %p\n",
        t);
 
   if (GNUNET_YES == t->own_handles)
   {
-    for (i = 0; i != t->fds_len; ++i)
+    for (unsigned int i = 0; i != t->fds_len; ++i)
     {
       const struct GNUNET_NETWORK_Handle *fd = t->fds[i].fd;
       const struct GNUNET_DISK_FileHandle *fh = t->fds[i].fh;
       if (fd)
       {
-        GNUNET_NETWORK_socket_free_memory_only_ ((struct
-                                                  GNUNET_NETWORK_Handle *) fd);
+        GNUNET_NETWORK_socket_free_memory_only_ (
+          (struct GNUNET_NETWORK_Handle *) fd);
       }
       if (fh)
       {
         // FIXME: on WIN32 this is not enough! A function
         // GNUNET_DISK_file_free_memory_only would be nice
-        GNUNET_free ((void *) fh);
+        GNUNET_free_nz ((void *) fh);
       }
     }
   }

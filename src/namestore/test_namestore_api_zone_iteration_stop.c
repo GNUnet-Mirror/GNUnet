@@ -34,9 +34,9 @@
 
 static struct GNUNET_NAMESTORE_Handle *nsh;
 
-static struct GNUNET_CRYPTO_EcdsaPrivateKey *privkey;
+static struct GNUNET_CRYPTO_EcdsaPrivateKey privkey;
 
-static struct GNUNET_CRYPTO_EcdsaPrivateKey *privkey2;
+static struct GNUNET_CRYPTO_EcdsaPrivateKey privkey2;
 
 static struct GNUNET_NAMESTORE_ZoneIterator *zi;
 
@@ -80,28 +80,18 @@ end (void *cls)
   GNUNET_free_non_null (s_name_3);
   if (s_rd_1 != NULL)
   {
-    GNUNET_free ((void *) s_rd_1->data);
+    GNUNET_free_nz ((void *) s_rd_1->data);
     GNUNET_free (s_rd_1);
   }
   if (s_rd_2 != NULL)
   {
-    GNUNET_free ((void *) s_rd_2->data);
+    GNUNET_free_nz ((void *) s_rd_2->data);
     GNUNET_free (s_rd_2);
   }
   if (s_rd_3 != NULL)
   {
-    GNUNET_free ((void *) s_rd_3->data);
+    GNUNET_free_nz ((void *) s_rd_3->data);
     GNUNET_free (s_rd_3);
-  }
-  if (privkey != NULL)
-  {
-    GNUNET_free (privkey);
-    privkey = NULL;
-  }
-  if (privkey2 != NULL)
-  {
-    GNUNET_free (privkey2);
-    privkey2 = NULL;
   }
 }
 
@@ -130,7 +120,7 @@ zone_proc (void *cls,
   int failed = GNUNET_NO;
 
   GNUNET_assert (NULL != zone);
-  if (0 == GNUNET_memcmp (zone, privkey))
+  if (0 == GNUNET_memcmp (zone, &privkey))
   {
     if (0 == strcmp (label, s_name_1))
     {
@@ -175,7 +165,7 @@ zone_proc (void *cls,
       GNUNET_break (0);
     }
   }
-  else if (0 == GNUNET_memcmp (zone, privkey2))
+  else if (0 == GNUNET_memcmp (zone, &privkey2))
   {
     if (0 == strcmp (label, s_name_3))
     {
@@ -368,10 +358,11 @@ empty_zone_proc_end (void *cls)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Using zonekey file `%s' \n",
               hostkey_file);
-  privkey = GNUNET_CRYPTO_ecdsa_key_create_from_file (hostkey_file);
+  GNUNET_assert (GNUNET_SYSERR
+                 != GNUNET_CRYPTO_ecdsa_key_from_file (hostkey_file,
+                                                       GNUNET_YES,
+                                                       &privkey));
   GNUNET_free (hostkey_file);
-  GNUNET_assert (privkey != NULL);
-
   GNUNET_asprintf (&hostkey_file,
                    "zonefiles%s%s",
                    DIR_SEPARATOR_STR,
@@ -379,17 +370,19 @@ empty_zone_proc_end (void *cls)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Using zonekey file `%s'\n",
               hostkey_file);
-  privkey2 = GNUNET_CRYPTO_ecdsa_key_create_from_file (hostkey_file);
+  GNUNET_assert (GNUNET_SYSERR !=
+                 GNUNET_CRYPTO_ecdsa_key_from_file (hostkey_file,
+                                                    GNUNET_YES,
+                                                    &privkey2));
   GNUNET_free (hostkey_file);
-  GNUNET_assert (privkey2 != NULL);
-
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Created record 1\n");
 
   GNUNET_asprintf (&s_name_1,
                    "dummy1");
   s_rd_1 = create_record (1);
-  GNUNET_NAMESTORE_records_store (nsh, privkey, s_name_1,
+  GNUNET_NAMESTORE_records_store (nsh,
+                                  &privkey, s_name_1,
                                   1, s_rd_1, &put_cont, NULL);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -398,7 +391,7 @@ empty_zone_proc_end (void *cls)
                    "dummy2");
   s_rd_2 = create_record (1);
   GNUNET_NAMESTORE_records_store (nsh,
-                                  privkey,
+                                  &privkey,
                                   s_name_2,
                                   1,
                                   s_rd_2,
@@ -411,7 +404,7 @@ empty_zone_proc_end (void *cls)
   GNUNET_asprintf (&s_name_3, "dummy3");
   s_rd_3 = create_record (1);
   GNUNET_NAMESTORE_records_store (nsh,
-                                  privkey2,
+                                  &privkey2,
                                   s_name_3,
                                   1,
                                   s_rd_3,

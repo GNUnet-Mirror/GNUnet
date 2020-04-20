@@ -436,7 +436,7 @@ main (int argc, char *const *argv)
                           GNUNET_YES))
     ? ret
     : 1;
-  GNUNET_free ((void *) argv);
+  GNUNET_free_nz ((void *) argv);
   return ret;
 }
 
