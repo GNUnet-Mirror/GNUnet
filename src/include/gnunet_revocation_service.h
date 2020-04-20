@@ -173,12 +173,9 @@ GNUNET_REVOCATION_revoke_cancel (struct GNUNET_REVOCATION_Handle *h);
 
 
 /**
- * Check if the given proof-of-work value
- * would be acceptable for revoking the given key.
+ * Check if the given proof-of-work is valid.
  *
- * @param key key to check for
- * @param ts  revocation timestamp
- * @param pow proof of work value
+ * @param pow proof of work
  * @param matching_bits how many bits must match (configuration)
  * @return number of epochs valid if the @a pow is acceptable, -1 if not
  */
@@ -217,21 +214,17 @@ GNUNET_REVOCATION_pow_init2 (const struct GNUNET_REVOCATION_Pow *pow,
 
 
 /**
- * Calculate a key revocation valid for broadcasting for a number
- * of epochs.
+ * Calculate a single round in the key revocation PoW.
  *
  * @param pc handle to the PoW, initially called with NULL.
- * @param epochs number of epochs for which the revocation must be valid.
- * @param pow current pow value to try
- * @param difficulty current base difficulty to achieve
- * @return #GNUNET_YES if the @a pow is acceptable, #GNUNET_NO if not
+ * @return GNUNET_YES if the @a pow is acceptable, GNUNET_NO if not
  */
 int
 GNUNET_REVOCATION_pow_round (struct GNUNET_REVOCATION_PowCalculationHandle *pc);
 
 
 /**
- * Return the curren PoW state from the calculation
+ * Return the current PoW state from the calculation
  *
  * @param pc the calculation to get it from
  * @return a pointer to the PoW
