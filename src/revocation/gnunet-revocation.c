@@ -28,6 +28,10 @@
 #include "gnunet_revocation_service.h"
 #include "gnunet_identity_service.h"
 
+/**
+ * Pow passes
+ */
+static unsigned int pow_passes = 1;
 
 /**
  * Final status code.
@@ -93,6 +97,7 @@ static struct GNUNET_SCHEDULER_Task *pow_task;
 static void
 do_shutdown (void *cls)
 {
+  fprintf (stderr, "%s", _ ("Shutting down...\n"));
   if (NULL != el)
   {
     GNUNET_IDENTITY_ego_lookup_cancel (el);
@@ -220,8 +225,6 @@ struct RevocationData
 static void
 perform_revocation (const struct GNUNET_REVOCATION_Pow *pow)
 {
-  struct GNUNET_TIME_Absolute ts;
-
   h = GNUNET_REVOCATION_revoke (cfg,
                                 pow,
                                 &print_revocation_result,
@@ -239,10 +242,10 @@ static void
 sync_pow (const struct GNUNET_REVOCATION_Pow *pow)
 {
   if ((NULL != filename) &&
-      (sizeof(struct GNUNET_REVOCATION_Pow) ==
+      (sizeof(struct GNUNET_REVOCATION_Pow) !=
        GNUNET_DISK_fn_write (filename,
-                             &pow,
-                             sizeof(pow),
+                             pow,
+                             sizeof(struct GNUNET_REVOCATION_Pow),
                              GNUNET_DISK_PERM_USER_READ
                              | GNUNET_DISK_PERM_USER_WRITE)))
     GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, "write", filename);
@@ -258,7 +261,8 @@ static void
 calculate_pow_shutdown (void *cls)
 {
   struct GNUNET_REVOCATION_PowCalculationHandle *ph = cls;
-
+  fprintf (stderr, "%s", _ ("Cancelling calculation.\n"));
+  sync_pow (GNUNET_REVOCATION_pow_get (ph));
   if (NULL != pow_task)
   {
     GNUNET_SCHEDULER_cancel (pow_task);
@@ -280,8 +284,8 @@ calculate_pow (void *cls)
 
   /* store temporary results */
   pow_task = NULL;
-  // if (0 == (rd->pow % 128))
-  //  sync_rd (rd);
+  if (0 == (pow_passes % 128))
+    sync_pow (GNUNET_REVOCATION_pow_get(ph));
   /* actually do POW calculation */
   if (GNUNET_OK == GNUNET_REVOCATION_pow_round (ph))
   {
@@ -309,7 +313,19 @@ calculate_pow (void *cls)
     }
     return;
   }
-  pow_task = GNUNET_SCHEDULER_add_now (&calculate_pow, ph);
+  pow_passes++;
+  /**
+   * Otherwise CTRL-C does not work
+   */
+  if (0 == pow_passes % 128)
+    pow_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MILLISECONDS,
+                                             &calculate_pow,
+                                             ph);
+  else
+    pow_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MILLISECONDS,
+                                             &calculate_pow,
+                                             ph);
+
 }
 
 
@@ -324,6 +340,7 @@ ego_callback (void *cls, const struct GNUNET_IDENTITY_Ego *ego)
 {
   struct GNUNET_REVOCATION_Pow *pow;
   struct GNUNET_CRYPTO_EcdsaPublicKey key;
+  struct GNUNET_REVOCATION_PowCalculationHandle *ph = NULL;
 
   el = NULL;
   if (NULL == ego)
@@ -360,20 +377,24 @@ ego_callback (void *cls, const struct GNUNET_IDENTITY_Ego *ego)
       GNUNET_free (pow);
       return;
     }
+    /**
+     * Certificate not yet ready
+     */
     fprintf (stderr,
-             _ ("Error: revocation certificate in `%s' invalid\n"),
-             filename);
+             "%s",
+             _("Continuing calculation where left off...\n"));
+    ph = GNUNET_REVOCATION_pow_init2 (pow,
+                                      1, /* Epochs */
+                                      matching_bits);
     GNUNET_free (pow);
-    return;
   }
   fprintf (stderr,
            "%s",
            _ ("Revocation certificate not ready, calculating proof of work\n"));
-  GNUNET_free (pow);
-  struct GNUNET_REVOCATION_PowCalculationHandle *ph;
-  ph = GNUNET_REVOCATION_pow_init (&key,
-                                   1, /* Epochs */
-                                   matching_bits);
+  if (NULL == ph)
+    ph = GNUNET_REVOCATION_pow_init (&key,
+                                     1, /* Epochs */
+                                     matching_bits);
   pow_task = GNUNET_SCHEDULER_add_now (&calculate_pow, ph);
   GNUNET_SCHEDULER_add_shutdown (&calculate_pow_shutdown, ph);
 }
@@ -456,7 +477,7 @@ run (void *cls,
                                      (unsigned int) matching_bits))
     {
       struct GNUNET_REVOCATION_PowCalculationHandle *ph;
-      ph = GNUNET_REVOCATION_pow_init (&pk,
+      ph = GNUNET_REVOCATION_pow_init2 (&pow,
                                        1, /* Epochs */
                                        matching_bits);
 

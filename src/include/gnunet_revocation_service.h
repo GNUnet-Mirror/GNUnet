@@ -56,6 +56,9 @@ extern "C"
  */
 #define POW_COUNT 32
 
+
+GNUNET_NETWORK_STRUCT_BEGIN
+
 struct GNUNET_REVOCATION_Pow
 {
   /**
@@ -66,12 +69,12 @@ struct GNUNET_REVOCATION_Pow
   /**
    * The TTL of this revocation (purely informational)
    */
-  uint64_t ttl;
+  uint64_t ttl GNUNET_PACKED;
 
   /**
    * The PoWs
    */
-  uint64_t pow[POW_COUNT];
+  uint64_t pow[POW_COUNT] GNUNET_PACKED;
 
   /**
    * The signature
@@ -88,6 +91,9 @@ struct GNUNET_REVOCATION_Pow
    */
   struct GNUNET_CRYPTO_EcdsaPublicKey key;
 };
+
+GNUNET_NETWORK_STRUCT_END
+
 
 struct GNUNET_REVOCATION_PowCalculationHandle;
 
@@ -185,10 +191,33 @@ GNUNET_REVOCATION_check_pow (const struct GNUNET_REVOCATION_Pow *pow,
                              unsigned int matching_bits);
 
 
+
+/**
+ * Initializes a fresh PoW computation
+ *
+ * @param key the key to calculate the PoW for.
+ * @param epochs the number of epochs for which the PoW must be valid.
+ * @param difficulty the base difficulty of the PoW
+ * @return a handle for use in PoW rounds
+ */
 struct GNUNET_REVOCATION_PowCalculationHandle*
 GNUNET_REVOCATION_pow_init (const struct GNUNET_CRYPTO_EcdsaPublicKey *key,
                             int epochs,
                             unsigned int difficulty);
+
+
+/**
+ * Initializes PoW computation based on an existing PoW.
+ *
+ * @param pow the PoW to continue the calculations from.
+ * @param epochs the number of epochs for which the PoW must be valid.
+ * @param difficulty the base difficulty of the PoW
+ * @return a handle for use in PoW rounds
+ */
+struct GNUNET_REVOCATION_PowCalculationHandle*
+GNUNET_REVOCATION_pow_init2 (const struct GNUNET_REVOCATION_Pow *pow,
+                             int epochs,
+                             unsigned int difficulty);
 
 
 /**
@@ -205,11 +234,22 @@ int
 GNUNET_REVOCATION_pow_round (struct GNUNET_REVOCATION_PowCalculationHandle *pc);
 
 
+/**
+ * Return the curren PoW state from the calculation
+ *
+ * @param pc the calculation to get it from
+ * @return a pointer to the PoW
+ */
 const struct GNUNET_REVOCATION_Pow*
 GNUNET_REVOCATION_pow_get (const struct
                            GNUNET_REVOCATION_PowCalculationHandle *pc);
 
 
+/**
+ * Cleanup a PoW calculation
+ *
+ * @param pc the calculation to clean up
+ */
 void
 GNUNET_REVOCATION_pow_cleanup (struct
                                GNUNET_REVOCATION_PowCalculationHandle *pc);
