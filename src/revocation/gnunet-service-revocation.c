@@ -129,6 +129,11 @@ static struct GNUNET_SET_ListenHandle *revocation_union_listen_handle;
 static unsigned long long revocation_work_required;
 
 /**
+ * Length of an expiration expoch
+ */
+static struct GNUNET_TIME_Relative epoch_length;
+
+/**
  * Our application ID for set union operations.  Must be the
  * same for all (compatible) peers.
  */
@@ -167,8 +172,9 @@ new_peer_entry (const struct GNUNET_PeerIdentity *peer)
 static int
 verify_revoke_message (const struct RevokeMessage *rm)
 {
-  if (0 >= GNUNET_REVOCATION_check_pow (&rm->proof_of_work,
-                                   (unsigned int) revocation_work_required))
+  if (GNUNET_YES != GNUNET_REVOCATION_check_pow (&rm->proof_of_work,
+                                   (unsigned int) revocation_work_required,
+                                   epoch_length))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Proof of work invalid!\n");
@@ -846,6 +852,20 @@ run (void *cls,
     GNUNET_free (fn);
     return;
   }
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_time (cfg,
+                                             "REVOCATION",
+                                             "EPOCH_LENGTH",
+                                             &epoch_length))
+  {
+    GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR,
+                               "REVOCATION",
+                               "EPOCH_LENGTH");
+    GNUNET_SCHEDULER_shutdown ();
+    GNUNET_free (fn);
+    return;
+  }
+
   revocation_set = GNUNET_SET_create (cfg,
                                       GNUNET_SET_OPERATION_UNION);
   revocation_union_listen_handle

@@ -311,20 +311,40 @@ GNUNET_REVOCATION_revoke (const struct GNUNET_CONFIGURATION_Handle *cfg,
     GNUNET_MQ_handler_end ()
   };
   unsigned long long matching_bits;
+  struct GNUNET_TIME_Relative epoch_length;
   struct RevokeMessage *rm;
   struct GNUNET_MQ_Envelope *env;
 
-  if ((GNUNET_OK ==
+  if ((GNUNET_OK !=
        GNUNET_CONFIGURATION_get_value_number (cfg,
                                               "REVOCATION",
                                               "WORKBITS",
-                                              &matching_bits)) &&
-      (0 >= GNUNET_REVOCATION_check_pow (pow, (unsigned int) matching_bits)))
+                                              &matching_bits)))
+    {
+    GNUNET_break (0);
+    GNUNET_free (h);
+    return NULL;
+  }
+  if ((GNUNET_OK !=
+       GNUNET_CONFIGURATION_get_value_time (cfg,
+                                              "REVOCATION",
+                                              "EPOCH_LENGTH",
+                                              &epoch_length)))
   {
     GNUNET_break (0);
     GNUNET_free (h);
     return NULL;
   }
+  if (GNUNET_YES != GNUNET_REVOCATION_check_pow (pow,
+                                                 (unsigned int) matching_bits,
+                                                 epoch_length))
+  {
+    GNUNET_break (0);
+    GNUNET_free (h);
+    return NULL;
+  }
+
+
 
   h->mq = GNUNET_CLIENT_connect (cfg,
                                  "revocation",
@@ -408,16 +428,21 @@ calculate_score (const struct GNUNET_REVOCATION_PowCalculationHandle *ph)
  * @param ts  revocation timestamp
  * @param pow proof of work value
  * @param matching_bits how many bits must match (configuration)
- * @return number of epochs valid if the @a pow is acceptable, -1 if not
+ * @return GNUNET_YES if the @a pow is acceptable, GNUNET_NO if not
  */
 int
 GNUNET_REVOCATION_check_pow (const struct GNUNET_REVOCATION_Pow *pow,
-                             unsigned int difficulty)
+                             unsigned int difficulty,
+                             struct GNUNET_TIME_Relative epoch_length)
 {
   char buf[sizeof(struct GNUNET_CRYPTO_EcdsaPublicKey)
            + sizeof (uint64_t)
            + sizeof (uint64_t)] GNUNET_ALIGN;
   struct GNUNET_HashCode result;
+  struct GNUNET_TIME_Absolute ts;
+  struct GNUNET_TIME_Absolute exp;
+  struct GNUNET_TIME_Relative ttl;
+  struct GNUNET_TIME_Relative buffer;
   unsigned int score = 0;
   unsigned int tmp_score = 0;
   unsigned int epochs;
@@ -434,7 +459,7 @@ GNUNET_REVOCATION_check_pow (const struct GNUNET_REVOCATION_Pow *pow,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Proof of work signature invalid!\n");
-    return -1;
+    return GNUNET_NO;
   }
 
   /**
@@ -445,7 +470,7 @@ GNUNET_REVOCATION_check_pow (const struct GNUNET_REVOCATION_Pow *pow,
     for (unsigned int j = i + 1; j < POW_COUNT; j++)
     {
       if (pow->pow[i] == pow->pow[j])
-        return -1;
+        return GNUNET_NO;
     }
   }
   GNUNET_memcpy (&buf[sizeof(uint64_t)],
@@ -471,9 +496,36 @@ GNUNET_REVOCATION_check_pow (const struct GNUNET_REVOCATION_Pow *pow,
   }
   score = score / POW_COUNT;
   if (score < difficulty)
-    return -1;
+    return GNUNET_NO;
   epochs = score - difficulty;
-  return epochs;
+
+  /**
+   * Check expiration
+   */
+  ts = GNUNET_TIME_absolute_ntoh (pow->timestamp);
+  ttl = GNUNET_TIME_relative_multiply (epoch_length,
+                                       epochs);
+  /**
+   * Extend by 10% for unsynchronized clocks
+   */
+  buffer = GNUNET_TIME_relative_divide (epoch_length,
+                                        10);
+  ts = GNUNET_TIME_absolute_subtract (ts,
+                                      buffer);
+
+  if (0 != GNUNET_TIME_absolute_get_remaining (ts).rel_value_us)
+    return GNUNET_NO; /* Not yet valid. */
+  /* Revert to actual start time */
+  ts = GNUNET_TIME_absolute_add (ts,
+                                 buffer);
+
+  exp = GNUNET_TIME_absolute_add (ts, ttl);
+  exp = GNUNET_TIME_absolute_add (exp,
+                                  buffer);
+
+  if (0 == GNUNET_TIME_absolute_get_remaining (exp).rel_value_us)
+    return GNUNET_NO; /* expired */
+  return GNUNET_YES;
 }
 
 

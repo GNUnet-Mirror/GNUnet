@@ -177,11 +177,13 @@ GNUNET_REVOCATION_revoke_cancel (struct GNUNET_REVOCATION_Handle *h);
  *
  * @param pow proof of work
  * @param matching_bits how many bits must match (configuration)
- * @return number of epochs valid if the @a pow is acceptable, -1 if not
+ * @param epoch_length length of single epoch in configuration
+ * @return GNUNET_YES if the @a pow is acceptable, GNUNET_NO if not
  */
 int
 GNUNET_REVOCATION_check_pow (const struct GNUNET_REVOCATION_Pow *pow,
-                             unsigned int matching_bits);
+                             unsigned int matching_bits,
+                             struct GNUNET_TIME_Relative epoch_length);
 
 
 

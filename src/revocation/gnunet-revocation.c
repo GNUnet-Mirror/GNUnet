@@ -347,7 +347,6 @@ ego_callback (void *cls, const struct GNUNET_IDENTITY_Ego *ego)
   struct GNUNET_CRYPTO_EcdsaPublicKey key;
   const struct GNUNET_CRYPTO_EcdsaPrivateKey *privkey;
   struct GNUNET_REVOCATION_PowCalculationHandle *ph = NULL;
-  int epochs;
 
   el = NULL;
   if (NULL == ego)
@@ -373,19 +372,12 @@ ego_callback (void *cls, const struct GNUNET_IDENTITY_Ego *ego)
       GNUNET_free (pow);
       return;
     }
-    if (0 < (epochs =
+    if (GNUNET_YES ==
         GNUNET_REVOCATION_check_pow (pow,
-                                     (unsigned int) matching_bits)))
+                                     (unsigned int) matching_bits,
+                                     epoch_length))
     {
-      struct GNUNET_TIME_Absolute ts;
-      struct GNUNET_TIME_Relative ttl;
-      ts = GNUNET_TIME_absolute_ntoh (pow->timestamp);
-      ttl = GNUNET_TIME_relative_multiply (epoch_length,
-                                           epochs);
       fprintf (stderr, "%s", _ ("Revocation certificate ready\n"));
-      fprintf (stderr, "%s %s for %s\n", _ ("Valid from"),
-               GNUNET_STRINGS_absolute_time_to_string (ts),
-               GNUNET_STRINGS_relative_time_to_string (ttl, GNUNET_NO));
       if (perform)
         perform_revocation (pow);
       else
@@ -499,9 +491,10 @@ run (void *cls,
       return;
     }
     GNUNET_SCHEDULER_add_shutdown (&do_shutdown, NULL);
-    if (0 >=
+    if (GNUNET_YES !=
         GNUNET_REVOCATION_check_pow (&pow,
-                                     (unsigned int) matching_bits))
+                                     (unsigned int) matching_bits,
+                                     epoch_length))
     {
       struct GNUNET_REVOCATION_PowCalculationHandle *ph;
       ph = GNUNET_REVOCATION_pow_init2 (&pow,
