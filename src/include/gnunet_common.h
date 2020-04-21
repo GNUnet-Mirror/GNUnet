@@ -1392,22 +1392,58 @@ GNUNET_is_zero_ (const void *a,
 
 /**
  * @ingroup memory
- * Append an element to a list (growing the list by one).
+ * Append an element to an array (growing the array by one).
  *
- * @param arr base-pointer of the vector, may be NULL if size is 0;
+ * @param arr base-pointer of the vector, may be NULL if @a len is 0;
  *        will be updated to reflect the new address. The TYPE of
  *        arr is important since size is the number of elements and
  *        not the size in bytes
- * @param size the number of elements in the existing vector (number
+ * @param len the number of elements in the existing vector (number
  *        of elements to copy over), will be updated with the new
- *        array size
+ *        array length
  * @param element the element that will be appended to the array
  */
-#define GNUNET_array_append(arr, size, element) \
+#define GNUNET_array_append(arr, len, element) \
   do                                            \
   {                                             \
-    GNUNET_array_grow (arr, size, size + 1);    \
-    (arr) [size - 1] = element;                  \
+    GNUNET_assert ((len) + 1 > (len)); \
+    GNUNET_array_grow (arr, len, len + 1);    \
+    (arr) [len - 1] = element;                  \
+  } while (0)
+
+
+/**
+ * @ingroup memory
+ * Append @a arr2 to @a arr1 (growing @a arr1
+ * as needed).  The @a arr2 array is left unchanged. Naturally
+ * this function performs a shallow copy. Both arrays must have
+ * the same type for their elements.
+ *
+ * @param arr1 base-pointer of the vector, may be NULL if @a len is 0;
+ *        will be updated to reflect the new address. The TYPE of
+ *        arr is important since size is the number of elements and
+ *        not the size in bytes
+ * @param len1 the number of elements in the existing vector (number
+ *        of elements to copy over), will be updated with the new
+ *        array size
+ * @param arr2 base-pointer a second array to concatenate, may be NULL if @a len2 is 0;
+ *        will be updated to reflect the new address. The TYPE of
+ *        arr is important since size is the number of elements and
+ *        not the size in bytes
+ * @param len the number of elements in the existing vector (number
+ *        of elements to copy over), will be updated with the new
+ *        array size
+
+ */
+#define GNUNET_array_concatenate(arr1, len1, arr2, len2)   \
+  do                                            \
+  {                                             \
+    const typeof (*arr2) * _a1 = (arr1);  \
+    const typeof (*arr1) * _a2 = (arr2);  \
+    GNUNET_assert ((len1) + (len2) >= (len1));                    \
+    GNUNET_assert (SIZE_MAX / sizeof (*_a1) >= ((len1) + (len2))); \
+    GNUNET_array_grow (arr1, len1, (len1) + (len2));            \
+    memcpy (&(arr1) [(len1) - (len2)], _a2, (len2) * sizeof (*arr1));    \
   } while (0)
 
 /**

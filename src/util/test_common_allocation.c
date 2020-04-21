@@ -27,7 +27,7 @@
 
 
 static int
-check ()
+check (void)
 {
 #define MAX_TESTVAL 1024
   char *ptrs[MAX_TESTVAL];
@@ -134,6 +134,28 @@ check ()
 }
 
 
+static int
+check2 (void)
+{
+  char *a1 = NULL;
+  unsigned int a1_len = 0;
+  const char *a2 = "test";
+
+  GNUNET_array_append (a1,
+                       a1_len,
+                       'x');
+  GNUNET_array_concatenate (a1,
+                            a1_len,
+                            a2,
+                            4);
+  GNUNET_assert (0 == strncmp ("xtest",
+                               a1,
+                               5));
+  GNUNET_assert (5 == a1_len);
+  return 0;
+}
+
+
 int
 main (int argc, char *argv[])
 {
@@ -142,7 +164,7 @@ main (int argc, char *argv[])
   GNUNET_log_setup ("test-common-allocation",
                     "WARNING",
                     NULL);
-  ret = check ();
+  ret = check () | check2 ();
   if (ret != 0)
     fprintf (stderr,
              "ERROR %d.\n",
