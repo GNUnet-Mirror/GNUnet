@@ -526,6 +526,40 @@ GNUNET_CURL_job_cancel (struct GNUNET_CURL_Job *job)
 
 
 /**
+ * Test if the given content type @a ct is JSON
+ *
+ * @param ct a content type, i.e. "application/json; charset=UTF-8"
+ * @return true if @a ct denotes JSON
+ */
+static bool
+is_json (const char *ct)
+{
+  const char *semi;
+
+  /* check for "application/json" exact match */
+  if (0 == strcasecmp (ct,
+                       "application/json"))
+    return true;
+  /* check for "application/json;[ANYTHING]" */
+  semi = strchr (ct,
+                 ';');
+  /* also allow "application/json [ANYTHING]" (note the space!) */
+  if (NULL == semi)
+    semi = strchr (ct,
+                   ' ');
+  if (NULL == semi)
+    return false; /* no delimiter we accept, forget it */
+  if (semi - ct != strlen ("application/json"))
+    return false; /* delimiter past desired length, forget it */
+  if (0 == strncasecmp (ct,
+                        "application/json",
+                        strlen ("application/json")))
+    return true; /* OK */
+  return false;
+}
+
+
+/**
  * Obtain information about the final result about the
  * HTTP download. If the download was successful, parses
  * the JSON in the @a db and returns it. Also returns
@@ -562,8 +596,7 @@ GNUNET_CURL_download_get_result_ (struct GNUNET_CURL_DownloadBuffer *db,
                           CURLINFO_CONTENT_TYPE,
                           &ct)) ||
       (NULL == ct) ||
-      (0 != strcasecmp (ct,
-                        "application/json")))
+      (! is_json (ct)))
   {
     /* No content type or explicitly not JSON, refuse to parse
        (but keep response code) */
