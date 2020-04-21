@@ -1033,6 +1033,8 @@ AS_IF([test x$nss = xfalse],
 AC_CHECK_LIB([kvm],[kvm_open])
 AC_CHECK_LIB([kstat],[kstat_open])
 
+# test for argon2 (for POW)
+AC_CHECK_LIB([argon2],[argon2d_hash_raw])
 
 # test for libextractor
 extractor=0
