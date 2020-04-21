@@ -86,7 +86,7 @@ static unsigned long long matching_bits;
 /**
  * Epoch length
  */
-static struct GNUNET_TIME_Relative epoch_length;
+static struct GNUNET_TIME_Relative epoch_duration;
 
 /**
  * Task used for proof-of-work calculation.
@@ -348,7 +348,7 @@ ego_callback (void *cls, const struct GNUNET_IDENTITY_Ego *ego)
     if (GNUNET_YES ==
         GNUNET_REVOCATION_check_pow (&proof_of_work,
                                      (unsigned int) matching_bits,
-                                     epoch_length))
+                                     epoch_duration))
     {
       fprintf (stderr, "%s", _ ("Revocation certificate ready\n"));
       if (perform)
@@ -432,12 +432,12 @@ run (void *cls,
   }
   if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_time (cfg,
                                                         "REVOCATION",
-                                                        "EPOCH_LENGTH",
-                                                        &epoch_length))
+                                                        "EPOCH_DURATION",
+                                                        &epoch_duration))
   {
     GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR,
                                "REVOCATION",
-                               "EPOCH_LENGTH");
+                               "EPOCH_DURATION");
     return;
   }
 
@@ -470,7 +470,7 @@ run (void *cls,
     if (GNUNET_YES !=
         GNUNET_REVOCATION_check_pow (&proof_of_work,
                                      (unsigned int) matching_bits,
-                                     epoch_length))
+                                     epoch_duration))
     {
       struct GNUNET_REVOCATION_PowCalculationHandle *ph;
       ph = GNUNET_REVOCATION_pow_start (&proof_of_work,

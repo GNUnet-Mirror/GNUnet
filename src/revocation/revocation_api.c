@@ -311,7 +311,7 @@ GNUNET_REVOCATION_revoke (const struct GNUNET_CONFIGURATION_Handle *cfg,
     GNUNET_MQ_handler_end ()
   };
   unsigned long long matching_bits;
-  struct GNUNET_TIME_Relative epoch_length;
+  struct GNUNET_TIME_Relative epoch_duration;
   struct RevokeMessage *rm;
   struct GNUNET_MQ_Envelope *env;
 
@@ -328,8 +328,8 @@ GNUNET_REVOCATION_revoke (const struct GNUNET_CONFIGURATION_Handle *cfg,
   if ((GNUNET_OK !=
        GNUNET_CONFIGURATION_get_value_time (cfg,
                                               "REVOCATION",
-                                              "EPOCH_LENGTH",
-                                              &epoch_length)))
+                                              "EPOCH_DURATION",
+                                              &epoch_duration)))
   {
     GNUNET_break (0);
     GNUNET_free (h);
@@ -337,7 +337,7 @@ GNUNET_REVOCATION_revoke (const struct GNUNET_CONFIGURATION_Handle *cfg,
   }
   if (GNUNET_YES != GNUNET_REVOCATION_check_pow (pow,
                                                  (unsigned int) matching_bits,
-                                                 epoch_length))
+                                                 epoch_duration))
   {
     GNUNET_break (0);
     GNUNET_free (h);
@@ -431,7 +431,7 @@ calculate_score (const struct GNUNET_REVOCATION_PowCalculationHandle *ph)
 enum GNUNET_GenericReturnValue
 GNUNET_REVOCATION_check_pow (const struct GNUNET_REVOCATION_Pow *pow,
                              unsigned int difficulty,
-                             struct GNUNET_TIME_Relative epoch_length)
+                             struct GNUNET_TIME_Relative epoch_duration)
 {
   char buf[sizeof(struct GNUNET_CRYPTO_EcdsaPublicKey)
            + sizeof (struct GNUNET_TIME_AbsoluteNBO)
@@ -462,7 +462,7 @@ GNUNET_REVOCATION_check_pow (const struct GNUNET_REVOCATION_Pow *pow,
                                    &pow->signature,
                                    &pow->key))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Proof of work signature invalid!\n");
     return GNUNET_NO;
   }
@@ -508,12 +508,12 @@ GNUNET_REVOCATION_check_pow (const struct GNUNET_REVOCATION_Pow *pow,
    * Check expiration
    */
   ts = GNUNET_TIME_absolute_ntoh (pow->timestamp);
-  ttl = GNUNET_TIME_relative_multiply (epoch_length,
+  ttl = GNUNET_TIME_relative_multiply (epoch_duration,
                                        epochs);
   /**
    * Extend by 10% for unsynchronized clocks
    */
-  buffer = GNUNET_TIME_relative_divide (epoch_length,
+  buffer = GNUNET_TIME_relative_divide (epoch_duration,
                                         10);
   exp = GNUNET_TIME_absolute_add (ts, ttl);
   exp = GNUNET_TIME_absolute_add (exp,
