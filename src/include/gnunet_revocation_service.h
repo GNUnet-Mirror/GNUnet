@@ -69,7 +69,7 @@ struct GNUNET_REVOCATION_Pow
   /**
    * The TTL of this revocation (purely informational)
    */
-  struct GNUNET_TIME_RelativeNBO ttl GNUNET_PACKED;
+  struct GNUNET_TIME_RelativeNBO ttl;
 
   /**
    * The PoWs
