@@ -244,13 +244,14 @@ GNUNET_REVOCATION_pow_round (struct GNUNET_REVOCATION_PowCalculationHandle *pc);
 
 
 /**
- * Cleanup a PoW calculation
+ * Stop a PoW calculation
  *
  * @param pc the calculation to clean up
+ * @return #GNUNET_YES if pow valid, #GNUNET_NO if pow was set but is not
+ * valid
  */
 void
-GNUNET_REVOCATION_pow_cleanup (
-  struct GNUNET_REVOCATION_PowCalculationHandle *pc);
+GNUNET_REVOCATION_pow_stop (struct GNUNET_REVOCATION_PowCalculationHandle *pc);
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {

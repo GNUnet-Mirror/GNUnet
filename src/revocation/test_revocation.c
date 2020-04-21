@@ -187,7 +187,7 @@ ego_cb (void *cls, const struct GNUNET_IDENTITY_Ego *ego)
                                                           &proof_of_work,
                                                           &revocation_cb,
                                                           NULL);
-    GNUNET_REVOCATION_pow_cleanup (testpeers[1].pow);
+    GNUNET_REVOCATION_pow_stop (testpeers[1].pow);
   }
 }
 

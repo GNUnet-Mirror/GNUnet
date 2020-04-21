@@ -250,7 +250,8 @@ calculate_pow_shutdown (void *cls)
     GNUNET_SCHEDULER_cancel (pow_task);
     pow_task = NULL;
   }
-  GNUNET_REVOCATION_pow_cleanup (ph);
+  if (NULL != ph)
+    GNUNET_REVOCATION_pow_stop (ph);
 }
 
 
