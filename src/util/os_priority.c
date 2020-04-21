@@ -875,7 +875,7 @@ GNUNET_OS_start_process_s (int pipe_control,
                                     binary_path,
                                     argv);
   while (argv_size > 0)
-    GNUNET_free (argv[--argv_size]);
+    GNUNET_free_nz (argv[--argv_size]);
   GNUNET_free (argv);
   return proc;
 }
