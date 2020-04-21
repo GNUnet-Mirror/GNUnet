@@ -651,20 +651,6 @@ GNUNET_REVOCATION_pow_round (struct GNUNET_REVOCATION_PowCalculationHandle *pc)
 
 
 /**
- * Return the curren PoW state from the calculation
- *
- * @param pc the calculation to get it from
- * @return a pointer to the PoW
- */
-const struct GNUNET_REVOCATION_Pow*
-GNUNET_REVOCATION_pow_get (const struct
-                           GNUNET_REVOCATION_PowCalculationHandle *pc)
-{
-  return pc->pow;
-}
-
-
-/**
  * Cleanup a PoW calculation
  *
  * @param pc the calculation to clean up
