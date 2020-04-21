@@ -93,6 +93,10 @@ static struct GNUNET_TIME_Relative epoch_length;
  */
 static struct GNUNET_SCHEDULER_Task *pow_task;
 
+/**
+ * Proof-of-work object
+ */
+static struct GNUNET_REVOCATION_Pow proof_of_work;
 
 /**
  * Function run if the user aborts with CTRL-C.
@@ -198,40 +202,13 @@ print_revocation_result (void *cls, int is_valid)
 
 
 /**
- * Data needed to perform a revocation.
- */
-struct RevocationData
-{
-  /**
-   * Public key.
-   */
-  struct GNUNET_CRYPTO_EcdsaPublicKey key;
-
-  /**
-   * Revocation signature data.
-   */
-  struct GNUNET_CRYPTO_EcdsaSignature sig;
-
-  /**
-   * Time of revocation
-   */
-  struct GNUNET_TIME_AbsoluteNBO ts;
-
-  /**
-   * Proof of work (in NBO).
-   */
-  uint64_t pow GNUNET_PACKED;
-};
-
-
-/**
  * Perform the revocation.
  */
 static void
-perform_revocation (const struct GNUNET_REVOCATION_Pow *pow)
+perform_revocation ()
 {
   h = GNUNET_REVOCATION_revoke (cfg,
-                                pow,
+                                &proof_of_work,
                                 &print_revocation_result,
                                 NULL);
 }
@@ -244,12 +221,12 @@ perform_revocation (const struct GNUNET_REVOCATION_Pow *pow)
  * @param rd data to sync
  */
 static void
-sync_pow (const struct GNUNET_REVOCATION_Pow *pow)
+sync_pow ()
 {
   if ((NULL != filename) &&
       (sizeof(struct GNUNET_REVOCATION_Pow) !=
        GNUNET_DISK_fn_write (filename,
-                             pow,
+                             &proof_of_work,
                              sizeof(struct GNUNET_REVOCATION_Pow),
                              GNUNET_DISK_PERM_USER_READ
                              | GNUNET_DISK_PERM_USER_WRITE)))
@@ -267,7 +244,7 @@ calculate_pow_shutdown (void *cls)
 {
   struct GNUNET_REVOCATION_PowCalculationHandle *ph = cls;
   fprintf (stderr, "%s", _ ("Cancelling calculation.\n"));
-  sync_pow (GNUNET_REVOCATION_pow_get (ph));
+  sync_pow ();
   if (NULL != pow_task)
   {
     GNUNET_SCHEDULER_cancel (pow_task);
@@ -290,22 +267,21 @@ calculate_pow (void *cls)
   /* store temporary results */
   pow_task = NULL;
   if (0 == (pow_passes % 128))
-    sync_pow (GNUNET_REVOCATION_pow_get(ph));
+    sync_pow ();
   /* actually do POW calculation */
   if (GNUNET_OK == GNUNET_REVOCATION_pow_round (ph))
   {
-    const struct GNUNET_REVOCATION_Pow *pow = GNUNET_REVOCATION_pow_get (ph);
     if ((NULL != filename) &&
         (sizeof(struct GNUNET_REVOCATION_Pow) !=
          GNUNET_DISK_fn_write (filename,
-                               pow,
+                               &proof_of_work,
                                sizeof(struct GNUNET_REVOCATION_Pow),
                                GNUNET_DISK_PERM_USER_READ
                                | GNUNET_DISK_PERM_USER_WRITE)))
       GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, "write", filename);
     if (perform)
     {
-      perform_revocation (pow);
+      perform_revocation ();
     }
     else
     {
@@ -343,7 +319,6 @@ calculate_pow (void *cls)
 static void
 ego_callback (void *cls, const struct GNUNET_IDENTITY_Ego *ego)
 {
-  struct GNUNET_REVOCATION_Pow *pow;
   struct GNUNET_CRYPTO_EcdsaPublicKey key;
   const struct GNUNET_CRYPTO_EcdsaPrivateKey *privkey;
   struct GNUNET_REVOCATION_PowCalculationHandle *ph = NULL;
@@ -357,32 +332,29 @@ ego_callback (void *cls, const struct GNUNET_IDENTITY_Ego *ego)
   }
   GNUNET_IDENTITY_ego_get_public_key (ego, &key);
   privkey = GNUNET_IDENTITY_ego_get_private_key (ego);
-  pow = GNUNET_new (struct GNUNET_REVOCATION_Pow);
+  memset(&proof_of_work, 0, sizeof (proof_of_work));
   if ((NULL != filename) && (GNUNET_YES == GNUNET_DISK_file_test (filename)) &&
-      (sizeof(struct GNUNET_REVOCATION_Pow) ==
-       GNUNET_DISK_fn_read (filename, pow, sizeof(struct
-                                                  GNUNET_REVOCATION_Pow))))
+      (sizeof(proof_of_work) ==
+       GNUNET_DISK_fn_read (filename, &proof_of_work, sizeof(proof_of_work))))
   {
-    if (0 != GNUNET_memcmp (&pow->key, &key))
+    if (0 != GNUNET_memcmp (&proof_of_work.key, &key))
     {
       fprintf (stderr,
                _ ("Error: revocation certificate in `%s' is not for `%s'\n"),
                filename,
                revoke_ego);
-      GNUNET_free (pow);
       return;
     }
     if (GNUNET_YES ==
-        GNUNET_REVOCATION_check_pow (pow,
+        GNUNET_REVOCATION_check_pow (&proof_of_work,
                                      (unsigned int) matching_bits,
                                      epoch_length))
     {
       fprintf (stderr, "%s", _ ("Revocation certificate ready\n"));
       if (perform)
-        perform_revocation (pow);
+        perform_revocation ();
       else
         GNUNET_SCHEDULER_shutdown ();
-      GNUNET_free (pow);
       return;
     }
     /**
@@ -391,18 +363,21 @@ ego_callback (void *cls, const struct GNUNET_IDENTITY_Ego *ego)
     fprintf (stderr,
              "%s",
              _("Continuing calculation where left off...\n"));
-    ph = GNUNET_REVOCATION_pow_init2 (pow,
+    ph = GNUNET_REVOCATION_pow_start (&proof_of_work,
                                       1, /* Epochs */
                                       matching_bits);
-    GNUNET_free (pow);
   }
   fprintf (stderr,
            "%s",
            _ ("Revocation certificate not ready, calculating proof of work\n"));
   if (NULL == ph)
-    ph = GNUNET_REVOCATION_pow_init (privkey,
-                                     1, /* Epochs */
-                                     matching_bits);
+  {
+    GNUNET_REVOCATION_pow_init (privkey,
+                                &proof_of_work);
+    ph = GNUNET_REVOCATION_pow_start (&proof_of_work,
+                                      1, /* Epochs */
+                                      matching_bits);
+  }
   pow_task = GNUNET_SCHEDULER_add_now (&calculate_pow, ph);
   GNUNET_SCHEDULER_add_shutdown (&calculate_pow_shutdown, ph);
 }
@@ -423,7 +398,6 @@ run (void *cls,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
   struct GNUNET_CRYPTO_EcdsaPublicKey pk;
-  struct GNUNET_REVOCATION_Pow pow;
 
   cfg = c;
   if (NULL != test_ego)
@@ -483,7 +457,9 @@ run (void *cls,
   }
   if ((NULL != filename) && (perform))
   {
-    if (sizeof(pow) != GNUNET_DISK_fn_read (filename, &pow, sizeof(pow)))
+    if (sizeof(proof_of_work) != GNUNET_DISK_fn_read (filename,
+                                                      &proof_of_work,
+                                                      sizeof(proof_of_work)))
     {
       fprintf (stderr,
                _ ("Failed to read revocation certificate from `%s'\n"),
@@ -492,20 +468,20 @@ run (void *cls,
     }
     GNUNET_SCHEDULER_add_shutdown (&do_shutdown, NULL);
     if (GNUNET_YES !=
-        GNUNET_REVOCATION_check_pow (&pow,
+        GNUNET_REVOCATION_check_pow (&proof_of_work,
                                      (unsigned int) matching_bits,
                                      epoch_length))
     {
       struct GNUNET_REVOCATION_PowCalculationHandle *ph;
-      ph = GNUNET_REVOCATION_pow_init2 (&pow,
-                                       1, /* Epochs */
-                                       matching_bits);
+      ph = GNUNET_REVOCATION_pow_start (&proof_of_work,
+                                        1, /* Epochs */
+                                        matching_bits);
 
       pow_task = GNUNET_SCHEDULER_add_now (&calculate_pow, ph);
       GNUNET_SCHEDULER_add_shutdown (&calculate_pow_shutdown, ph);
       return;
     }
-    perform_revocation (&pow);
+    perform_revocation ();
     return;
   }
   fprintf (stderr, "%s", _ ("No action specified. Nothing to do.\n"));

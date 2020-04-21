@@ -181,15 +181,6 @@ verify_revoke_message (const struct RevokeMessage *rm)
     GNUNET_break_op (0);
     return GNUNET_NO;
   }
-  if (GNUNET_OK !=
-      GNUNET_CRYPTO_ecdsa_verify_ (GNUNET_SIGNATURE_PURPOSE_REVOCATION,
-                                   &rm->proof_of_work.purpose,
-                                   &rm->proof_of_work.signature,
-                                   &rm->proof_of_work.key))
-  {
-    GNUNET_break_op (0);
-    return GNUNET_NO;
-  }
   return GNUNET_YES;
 }
 
