@@ -327,6 +327,60 @@ GNUNET_JSON_spec_json (const char *name,
 
 
 /**
+ * Parse given JSON object to a bool.
+ *
+ * @param cls closure, NULL
+ * @param root the json object representing data
+ * @param[out] spec where to write the data
+ * @return #GNUNET_OK upon successful parsing; #GNUNET_SYSERR upon error
+ */
+static int
+parse_bool (void *cls,
+            json_t *root,
+            struct GNUNET_JSON_Specification *spec)
+{
+  bool *b = spec->ptr;
+
+  if (json_true () == root)
+  {
+    *b = true;
+    return GNUNET_OK;
+  }
+  if (json_false () == root)
+  {
+    *b = false;
+    return GNUNET_OK;
+  }
+  GNUNET_break_op (0);
+  return GNUNET_SYSERR;
+}
+
+
+/**
+ * boolean.
+ *
+ * @param name name of the JSON field
+ * @param[out] b where to store the boolean found under @a name
+ */
+struct GNUNET_JSON_Specification
+GNUNET_JSON_spec_bool (const char *name,
+                       bool *b)
+{
+  struct GNUNET_JSON_Specification ret = {
+    .parser = &parse_bool,
+    .cleaner = NULL,
+    .cls = NULL,
+    .field = name,
+    .ptr = b,
+    .ptr_size = sizeof(bool),
+    .size_ptr = NULL
+  };
+
+  return ret;
+}
+
+
+/**
  * Parse given JSON object to a uint8_t.
  *
  * @param cls closure, NULL

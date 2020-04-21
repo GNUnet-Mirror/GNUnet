@@ -219,6 +219,17 @@ GNUNET_JSON_spec_json (const char *name, json_t **jsonp);
 
 
 /**
+ * boolean.
+ *
+ * @param name name of the JSON field
+ * @param[out] b where to store the boolean found under @a name
+ */
+struct GNUNET_JSON_Specification
+GNUNET_JSON_spec_bool (const char *name,
+                       bool *b);
+
+
+/**
  * 8-bit integer.
  *
  * @param name name of the JSON field
