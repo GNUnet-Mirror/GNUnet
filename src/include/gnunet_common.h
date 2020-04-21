@@ -1209,7 +1209,10 @@ GNUNET_is_zero_ (const void *a,
  * @param n number of elements in the array
  * @param type name of the struct or union, i.e. pass 'struct Foo'.
  */
-#define GNUNET_new_array(n, type) (type *) GNUNET_malloc ((n) * sizeof(type))
+#define GNUNET_new_array(n, type) ({ \
+    GNUNET_assert (SIZE_MAX / sizeof (type) >= n); \
+    (type *) GNUNET_malloc ((n) * sizeof(type));   \
+  })
 
 /**
  * @ingroup memory
