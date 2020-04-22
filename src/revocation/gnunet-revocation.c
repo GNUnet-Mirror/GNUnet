@@ -59,6 +59,11 @@ static char *revoke_ego;
 static char *test_ego;
 
 /**
+ * -e option.
+ */
+static unsigned int epochs = 1;
+
+/**
  * Handle for revocation query.
  */
 static struct GNUNET_REVOCATION_Query *q;
@@ -333,7 +338,7 @@ ego_callback (void *cls, const struct GNUNET_IDENTITY_Ego *ego)
   }
   GNUNET_IDENTITY_ego_get_public_key (ego, &key);
   privkey = GNUNET_IDENTITY_ego_get_private_key (ego);
-  memset(&proof_of_work, 0, sizeof (proof_of_work));
+  memset (&proof_of_work, 0, sizeof (proof_of_work));
   if ((NULL != filename) && (GNUNET_YES == GNUNET_DISK_file_test (filename)) &&
       (sizeof(proof_of_work) ==
        GNUNET_DISK_fn_read (filename, &proof_of_work, sizeof(proof_of_work))))
@@ -363,9 +368,9 @@ ego_callback (void *cls, const struct GNUNET_IDENTITY_Ego *ego)
      */
     fprintf (stderr,
              "%s",
-             _("Continuing calculation where left off...\n"));
+             _ ("Continuing calculation where left off...\n"));
     ph = GNUNET_REVOCATION_pow_start (&proof_of_work,
-                                      1, /* Epochs */
+                                      epochs,
                                       matching_bits);
   }
   fprintf (stderr,
@@ -376,7 +381,7 @@ ego_callback (void *cls, const struct GNUNET_IDENTITY_Ego *ego)
     GNUNET_REVOCATION_pow_init (privkey,
                                 &proof_of_work);
     ph = GNUNET_REVOCATION_pow_start (&proof_of_work,
-                                      1, /* Epochs */
+                                      epochs, /* Epochs */
                                       matching_bits);
   }
   pow_task = GNUNET_SCHEDULER_add_now (&calculate_pow, ph);
@@ -475,7 +480,7 @@ run (void *cls,
     {
       struct GNUNET_REVOCATION_PowCalculationHandle *ph;
       ph = GNUNET_REVOCATION_pow_start (&proof_of_work,
-                                        1, /* Epochs */
+                                        epochs, /* Epochs */
                                         matching_bits);
 
       pow_task = GNUNET_SCHEDULER_add_now (&calculate_pow, ph);
@@ -528,6 +533,12 @@ main (int argc, char *const *argv)
                                  gettext_noop (
                                    "test if the public key KEY has been revoked"),
                                  &test_ego),
+    GNUNET_GETOPT_option_uint ('e',
+                               "epochs",
+                               "EPOCHS",
+                               gettext_noop (
+                                 "number of epochs to calculate for"),
+                               &epochs),
 
     GNUNET_GETOPT_OPTION_END
   };

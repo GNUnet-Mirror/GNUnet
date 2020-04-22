@@ -30,6 +30,7 @@
 .Sh SYNOPSIS
 .Nm
 .Op Fl t Ar KEY | Fl -test= Ns Ar KEY
+.Op Fl e Ar EPOCHS | Fl -epochs= Ns Ar EPOCHS
 .Op Fl R Ar NAME | Fl -revoke= Ns Ar NAME
 .Op Fl p | -perform
 .Op Fl f Ar NAME | Fl -filename= Ns Ar NAME
@@ -50,6 +51,8 @@ Depending on your CPU, the calculation can take days or weeks.
 .Bl -tag -width indent
 .It Fl t Ar KEY | Fl -test= Ns Ar KEY
 Check if the given KEY (ASCII-encoded public key required) has been revoked.
+.It Fl e Ar EPOCHS | Fl -epochs= Ns Ar EPOCHS
+Number of epochs for which the revocation should be valid (default: 1)
 .It Fl R Ar NAME | Fl -revoke= Ns Ar NAME
 Calculate or perform revocation for the ego with the given NAME.
 .It Fl p | -perform
