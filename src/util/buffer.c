@@ -56,6 +56,8 @@ GNUNET_buffer_ensure_remaining (struct GNUNET_Buffer *buf,
 {
   size_t new_capacity = buf->position + n;
 
+  /* guard against overflow */
+  GNUNET_assert (new_capacity >= buf->position);
   if (new_capacity <= buf->capacity)
     return;
   /* warn if calculation of expected size was wrong */
