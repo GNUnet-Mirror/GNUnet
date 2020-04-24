@@ -96,6 +96,8 @@ These are the direct dependencies for running GNUnet:
 - which                             (contrib/apparmor(?), gnunet-bugreport,
                                      and possibly more)
 - zlib
+- argon2             >= 20190702    (for proof-of-work calculations in
+                                     revocation)
 
 These are the dependencies for GNUnet's testsuite:
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

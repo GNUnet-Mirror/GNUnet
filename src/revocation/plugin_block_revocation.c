@@ -52,6 +52,7 @@
 struct InternalContext
 {
   unsigned int matching_bits;
+  struct GNUNET_TIME_Relative epoch_duration;
 };
 
 
@@ -142,24 +143,15 @@ block_plugin_revocation_evaluate (void *cls,
     GNUNET_break_op (0);
     return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;
   }
-  if (GNUNET_YES !=
-      GNUNET_REVOCATION_check_pow (&rm->public_key,
-                                   rm->proof_of_work,
-                                   ic->matching_bits))
+  if (0 >=
+      GNUNET_REVOCATION_check_pow (&rm->proof_of_work,
+                                   ic->matching_bits,
+                                   ic->epoch_duration))
   {
     GNUNET_break_op (0);
     return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;
   }
-  if (GNUNET_OK !=
-      GNUNET_CRYPTO_ecdsa_verify_ (GNUNET_SIGNATURE_PURPOSE_REVOCATION,
-                                   &rm->purpose,
-                                   &rm->signature,
-                                   &rm->public_key))
-  {
-    GNUNET_break_op (0);
-    return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;
-  }
-  GNUNET_CRYPTO_hash (&rm->public_key,
+  GNUNET_CRYPTO_hash (&rm->proof_of_work.key,
                       sizeof(struct GNUNET_CRYPTO_EcdsaPublicKey),
                       &chash);
   if (GNUNET_YES ==
@@ -195,7 +187,7 @@ block_plugin_revocation_get_key (void *cls,
     GNUNET_break_op (0);
     return GNUNET_SYSERR;
   }
-  GNUNET_CRYPTO_hash (&rm->public_key,
+  GNUNET_CRYPTO_hash (&rm->proof_of_work.key,
                       sizeof(struct GNUNET_CRYPTO_EcdsaPublicKey),
                       key);
   return GNUNET_OK;
@@ -218,12 +210,19 @@ libgnunet_plugin_block_revocation_init (void *cls)
   struct GNUNET_BLOCK_PluginFunctions *api;
   struct InternalContext *ic;
   unsigned long long matching_bits;
+  struct GNUNET_TIME_Relative epoch_duration;
 
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_number (cfg,
                                              "REVOCATION",
                                              "WORKBITS",
                                              &matching_bits))
+    return NULL;
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_time (cfg,
+                                           "REVOCATION",
+                                           "EPOCH_DURATION",
+                                           &epoch_duration))
     return NULL;
 
   api = GNUNET_new (struct GNUNET_BLOCK_PluginFunctions);
@@ -233,6 +232,7 @@ libgnunet_plugin_block_revocation_init (void *cls)
   api->types = types;
   ic = GNUNET_new (struct InternalContext);
   ic->matching_bits = (unsigned int) matching_bits;
+  ic->epoch_duration = epoch_duration;
   api->cls = ic;
   return api;
 }

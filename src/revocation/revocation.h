@@ -27,6 +27,7 @@
 #define REVOCATION_H
 
 #include "gnunet_util_lib.h"
+#include "gnunet_revocation_service.h"
 
 GNUNET_NETWORK_STRUCT_BEGIN
 
@@ -91,23 +92,7 @@ struct RevokeMessage
   /**
    * Number that causes a hash collision with the @e public_key.
    */
-  uint64_t proof_of_work GNUNET_PACKED;
-
-  /**
-   * Signature confirming revocation.
-   */
-  struct GNUNET_CRYPTO_EcdsaSignature signature;
-
-  /**
-   * Must have purpose #GNUNET_SIGNATURE_PURPOSE_REVOCATION,
-   * size expands over the public key. (@deprecated)
-   */
-  struct GNUNET_CRYPTO_EccSignaturePurpose purpose;
-
-  /**
-   * Key to revoke.
-   */
-  struct GNUNET_CRYPTO_EcdsaPublicKey public_key;
+  struct GNUNET_REVOCATION_Pow proof_of_work;
 };
 
 
