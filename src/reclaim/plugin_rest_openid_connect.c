@@ -576,8 +576,10 @@ cleanup_handle (struct RequestHandle *handle)
     json_decref (handle->oidc->response);
     GNUNET_free (handle->oidc);
   }
-  GNUNET_RECLAIM_attribute_list_destroy (handle->attr_list);
-  GNUNET_RECLAIM_attestation_list_destroy (handle->attests_list);
+if(NULL!=handle->attr_list)
+    GNUNET_RECLAIM_attribute_list_destroy (handle->attr_list);
+if(NULL!=handle->attests_list)
+   GNUNET_RECLAIM_attestation_list_destroy (handle->attests_list);
 
   for (ego_entry = handle->ego_head; NULL != ego_entry;)
   {
