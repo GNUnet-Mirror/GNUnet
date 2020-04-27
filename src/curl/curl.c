@@ -25,6 +25,7 @@
  */
 #include "platform.h"
 #include <jansson.h>
+#include <microhttpd.h>
 #include "gnunet_curl_lib.h"
 
 #if ENABLE_BENCHMARK
@@ -181,7 +182,8 @@ struct GNUNET_CURL_Context
  * @return library context
  */
 struct GNUNET_CURL_Context *
-GNUNET_CURL_init (GNUNET_CURL_RescheduleCallback cb, void *cb_cls)
+GNUNET_CURL_init (GNUNET_CURL_RescheduleCallback cb,
+                  void *cb_cls)
 {
   struct GNUNET_CURL_Context *ctx;
   CURLM *multi;
@@ -263,7 +265,10 @@ GNUNET_CURL_is_valid_scope_id (const char *scope_id)
  * @return number of bytes processed from @a bufptr
  */
 static size_t
-download_cb (char *bufptr, size_t size, size_t nitems, void *cls)
+download_cb (char *bufptr,
+             size_t size,
+             size_t nitems,
+             void *cls)
 {
   struct GNUNET_CURL_DownloadBuffer *db = cls;
   size_t msize;
@@ -376,7 +381,9 @@ setup_job (CURL *eh,
   }
   job->easy_handle = eh;
   job->ctx = ctx;
-  GNUNET_CONTAINER_DLL_insert (ctx->jobs_head, ctx->jobs_tail, job);
+  GNUNET_CONTAINER_DLL_insert (ctx->jobs_head,
+                               ctx->jobs_tail,
+                               job);
   return job;
 }
 
@@ -497,7 +504,11 @@ GNUNET_CURL_job_add (struct GNUNET_CURL_Context *ctx,
                  curl_slist_append (NULL, "Content-Type: application/json")));
   }
 
-  job = GNUNET_CURL_job_add2 (ctx, eh, job_headers, jcc, jcc_cls);
+  job = GNUNET_CURL_job_add2 (ctx,
+                              eh,
+                              job_headers,
+                              jcc,
+                              jcc_cls);
   curl_slist_free_all (job_headers);
   return job;
 }
@@ -522,6 +533,40 @@ GNUNET_CURL_job_cancel (struct GNUNET_CURL_Job *job)
   curl_slist_free_all (job->job_headers);
   ctx->cb (ctx->cb_cls);
   GNUNET_free (job);
+}
+
+
+/**
+ * Test if the given content type @a ct is JSON
+ *
+ * @param ct a content type, i.e. "application/json; charset=UTF-8"
+ * @return true if @a ct denotes JSON
+ */
+static bool
+is_json (const char *ct)
+{
+  const char *semi;
+
+  /* check for "application/json" exact match */
+  if (0 == strcasecmp (ct,
+                       "application/json"))
+    return true;
+  /* check for "application/json;[ANYTHING]" */
+  semi = strchr (ct,
+                 ';');
+  /* also allow "application/json [ANYTHING]" (note the space!) */
+  if (NULL == semi)
+    semi = strchr (ct,
+                   ' ');
+  if (NULL == semi)
+    return false; /* no delimiter we accept, forget it */
+  if (semi - ct != strlen ("application/json"))
+    return false; /* delimiter past desired length, forget it */
+  if (0 == strncasecmp (ct,
+                        "application/json",
+                        strlen ("application/json")))
+    return true; /* OK */
+  return false;
 }
 
 
@@ -562,8 +607,7 @@ GNUNET_CURL_download_get_result_ (struct GNUNET_CURL_DownloadBuffer *db,
                           CURLINFO_CONTENT_TYPE,
                           &ct)) ||
       (NULL == ct) ||
-      (0 != strcasecmp (ct,
-                        "application/json")))
+      (! is_json (ct)))
   {
     /* No content type or explicitly not JSON, refuse to parse
        (but keep response code) */
@@ -583,6 +627,8 @@ GNUNET_CURL_download_get_result_ (struct GNUNET_CURL_DownloadBuffer *db,
                   (const char *) db->buf);
     return NULL;
   }
+  if (MHD_HTTP_NO_CONTENT == *response_code)
+    return NULL;
   json = NULL;
   if (0 == db->eno)
   {

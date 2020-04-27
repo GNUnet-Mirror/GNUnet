@@ -1866,7 +1866,7 @@ main (int argc, char *const *argv)
                                               &run,
                                               NULL)))
     return ret;
-  GNUNET_free ((void *) argv);
+  GNUNET_free_nz ((void *) argv);
   fprintf (stderr,
            "Rejected %u names, had %u cached, did %u lookups, stored %u record sets\n"
            "Found %u records, %u lookups failed, %u/%u pending on shutdown\n",

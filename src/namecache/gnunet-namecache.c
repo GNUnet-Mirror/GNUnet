@@ -235,10 +235,10 @@ main (int argc, char *const *argv)
                                        &run,
                                        NULL))
   {
-    GNUNET_free ((void *) argv);
+    GNUNET_free_nz ((void *) argv);
     return 1;
   }
-  GNUNET_free ((void *) argv);
+  GNUNET_free_nz ((void *) argv);
   return ret;
 }
 

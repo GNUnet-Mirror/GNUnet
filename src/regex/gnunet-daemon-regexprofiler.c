@@ -118,7 +118,7 @@ shutdown_task (void *cls)
   }
   if (NULL != reannounce_task)
   {
-    GNUNET_free (GNUNET_SCHEDULER_cancel (reannounce_task));
+    GNUNET_free_nz (GNUNET_SCHEDULER_cancel (reannounce_task));
     reannounce_task = NULL;
   }
   if (NULL != dht_handle)

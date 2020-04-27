@@ -129,6 +129,11 @@ static struct GNUNET_SET_ListenHandle *revocation_union_listen_handle;
 static unsigned long long revocation_work_required;
 
 /**
+ * Length of an expiration expoch
+ */
+static struct GNUNET_TIME_Relative epoch_duration;
+
+/**
  * Our application ID for set union operations.  Must be the
  * same for all (compatible) peers.
  */
@@ -167,22 +172,12 @@ new_peer_entry (const struct GNUNET_PeerIdentity *peer)
 static int
 verify_revoke_message (const struct RevokeMessage *rm)
 {
-  if (GNUNET_YES !=
-      GNUNET_REVOCATION_check_pow (&rm->public_key,
-                                   rm->proof_of_work,
-                                   (unsigned int) revocation_work_required))
+  if (GNUNET_YES != GNUNET_REVOCATION_check_pow (&rm->proof_of_work,
+                                   (unsigned int) revocation_work_required,
+                                   epoch_duration))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Proof of work invalid!\n");
-    GNUNET_break_op (0);
-    return GNUNET_NO;
-  }
-  if (GNUNET_OK !=
-      GNUNET_CRYPTO_ecdsa_verify_ (GNUNET_SIGNATURE_PURPOSE_REVOCATION,
-                                   &rm->purpose,
-                                   &rm->signature,
-                                   &rm->public_key))
-  {
     GNUNET_break_op (0);
     return GNUNET_NO;
   }
@@ -308,7 +303,7 @@ publicize_rm (const struct RevokeMessage *rm)
   struct GNUNET_HashCode hc;
   struct GNUNET_SET_Element e;
 
-  GNUNET_CRYPTO_hash (&rm->public_key,
+  GNUNET_CRYPTO_hash (&rm->proof_of_work.key,
                       sizeof(struct GNUNET_CRYPTO_EcdsaPublicKey),
                       &hc);
   if (GNUNET_YES ==
@@ -848,6 +843,20 @@ run (void *cls,
     GNUNET_free (fn);
     return;
   }
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_time (cfg,
+                                             "REVOCATION",
+                                             "EPOCH_DURATION",
+                                             &epoch_duration))
+  {
+    GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR,
+                               "REVOCATION",
+                               "EPOCH_DURATION");
+    GNUNET_SCHEDULER_shutdown ();
+    GNUNET_free (fn);
+    return;
+  }
+
   revocation_set = GNUNET_SET_create (cfg,
                                       GNUNET_SET_OPERATION_UNION);
   revocation_union_listen_handle
@@ -893,7 +902,7 @@ run (void *cls,
       return;
     }
     GNUNET_break (0 == ntohl (rm->reserved));
-    GNUNET_CRYPTO_hash (&rm->public_key,
+    GNUNET_CRYPTO_hash (&rm->proof_of_work.key,
                         sizeof(struct GNUNET_CRYPTO_EcdsaPublicKey),
                         &hc);
     GNUNET_break (GNUNET_OK ==

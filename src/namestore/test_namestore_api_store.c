@@ -138,7 +138,7 @@ run (void *cls,
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 _ ("Namestore cannot store no block\n"));
   }
-  GNUNET_free ((void *) rd.data);
+  GNUNET_free_nz ((void *) rd.data);
 }
 
 

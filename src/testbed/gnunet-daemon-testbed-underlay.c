@@ -476,6 +476,6 @@ main (int argc, char *const *argv)
                          (
                            "Daemon to restrict underlay network in testbed deployments"),
                          options, &run, NULL)) ? 0 : 1;
-  GNUNET_free ((void *) argv);
+  GNUNET_free_nz ((void *) argv);
   return ret;
 }

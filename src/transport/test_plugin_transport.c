@@ -49,7 +49,7 @@ static struct GNUNET_PeerIdentity my_identity;
 /**
  * Our private key.
  */
-static struct GNUNET_CRYPTO_EddsaPrivateKey *my_private_key;
+static struct GNUNET_CRYPTO_EddsaPrivateKey my_private_key;
 
 /**
  * Our configuration.
@@ -647,16 +647,20 @@ run (void *cls,
   }
 
   max_connect_per_transport = (uint32_t) tneigh;
-  my_private_key = GNUNET_CRYPTO_eddsa_key_create_from_file (keyfile);
-  GNUNET_free (keyfile);
-  if (NULL == my_private_key)
+  if (GNUNET_SYSERR ==
+      GNUNET_CRYPTO_eddsa_key_from_file (keyfile,
+                                         GNUNET_YES,
+                                         &my_private_key))
   {
+    GNUNET_free (keyfile);
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Could not access hostkey.  Exiting.\n");
     end_badly_now ();
     return;
   }
-  GNUNET_CRYPTO_eddsa_key_get_public (my_private_key, &my_identity.public_key);
+  GNUNET_free (keyfile);
+  GNUNET_CRYPTO_eddsa_key_get_public (&my_private_key,
+                                      &my_identity.public_key);
 
   hello = GNUNET_HELLO_create (&my_identity.public_key, NULL, NULL, GNUNET_NO);
 

@@ -94,17 +94,17 @@ do_shutdown ()
 
   if (s_rd_1 != NULL)
   {
-    GNUNET_free ((void *) s_rd_1->data);
+    GNUNET_free_nz ((void *) s_rd_1->data);
     GNUNET_free (s_rd_1);
   }
   if (s_rd_2 != NULL)
   {
-    GNUNET_free ((void *) s_rd_2->data);
+    GNUNET_free_nz ((void *) s_rd_2->data);
     GNUNET_free (s_rd_2);
   }
   if (s_rd_3 != NULL)
   {
-    GNUNET_free ((void *) s_rd_3->data);
+    GNUNET_free_nz ((void *) s_rd_3->data);
     GNUNET_free (s_rd_3);
   }
 }

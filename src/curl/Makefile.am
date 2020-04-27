@@ -32,7 +32,7 @@ libgnunetcurl_la_LIBADD = \
   $(LIB_GNURL) \
   $(XLIB)
 libgnunetcurl_la_CPPFLAGS = \
- $(CPP_GNURL) $(AM_CPPFLAGS)
+ $(CPP_GNURL) $(AM_CPPFLAGS) $(MHD_CFLAGS)
 
 #check_PROGRAMS = \
 #  test_curl

@@ -1343,7 +1343,7 @@ GNUNET_TESTING_peer_get_identity (struct GNUNET_TESTING_Peer *peer,
     return;
   }
   peer->id = GNUNET_new (struct GNUNET_PeerIdentity);
-  GNUNET_free (
+  GNUNET_free_nz (
     GNUNET_TESTING_hostkey_get (peer->system, peer->key_number, peer->id));
   GNUNET_memcpy (id, peer->id, sizeof(struct GNUNET_PeerIdentity));
 }

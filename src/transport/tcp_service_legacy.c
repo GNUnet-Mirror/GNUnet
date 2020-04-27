@@ -1474,7 +1474,7 @@ shutdown:
   i = 0;
   if (NULL != sctx.addrs)
     while (NULL != sctx.addrs[i])
-      GNUNET_free (sctx.addrs[i++]);
+      GNUNET_free_nz (sctx.addrs[i++]);
   GNUNET_free_non_null (sctx.addrs);
   GNUNET_free_non_null (sctx.addrlens);
   GNUNET_free_non_null (logfile);
@@ -1631,7 +1631,7 @@ LEGACY_SERVICE_stop (struct LEGACY_SERVICE_Context *sctx)
   {
     i = 0;
     while (NULL != sctx->addrs[i])
-      GNUNET_free (sctx->addrs[i++]);
+      GNUNET_free_nz (sctx->addrs[i++]);
     GNUNET_free (sctx->addrs);
   }
   GNUNET_free_non_null (sctx->addrlens);

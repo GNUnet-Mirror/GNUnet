@@ -249,6 +249,6 @@ main (int argc, char *const *argv)
                          _ (
                            "Daemon to restrict incoming transport layer connections during testbed deployments"),
                          options, &run, NULL)) ? 0 : 1;
-  GNUNET_free ((void *) argv);
+  GNUNET_free_nz ((void *) argv);
   return ret;
 }

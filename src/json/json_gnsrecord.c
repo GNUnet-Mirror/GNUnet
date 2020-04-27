@@ -50,10 +50,10 @@ cleanup_recordinfo (struct GnsRecordInfo *gnsrecord_info)
 {
   if (NULL != *(gnsrecord_info->rd))
   {
-    for (int i = 0; i < *(gnsrecord_info->rd_count); i++)
+    for (unsigned int i = 0; i < *(gnsrecord_info->rd_count); i++)
     {
       if (NULL != (*(gnsrecord_info->rd))[i].data)
-        GNUNET_free ((char *) (*(gnsrecord_info->rd))[i].data);
+        GNUNET_free_nz ((char *) (*(gnsrecord_info->rd))[i].data);
     }
     GNUNET_free (*(gnsrecord_info->rd));
     *(gnsrecord_info->rd) = NULL;

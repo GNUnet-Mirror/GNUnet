@@ -29,6 +29,7 @@
 #include <microhttpd.h>
 #include "gnunet_vpn_service.h"
 #include "gnunet_testing_lib.h"
+#include "gnunet_mhd_compat.h"
 
 #define PORT 48080
 
@@ -96,7 +97,7 @@ copy_buffer (void *ptr, size_t size, size_t nmemb, void *ctx)
 }
 
 
-static int
+static MHD_RESULT
 mhd_ahc (void *cls,
          struct MHD_Connection *connection,
          const char *url,

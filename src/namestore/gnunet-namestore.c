@@ -1688,11 +1688,11 @@ main (int argc, char *const *argv)
                                   &run,
                                   NULL)))
   {
-    GNUNET_free ((void *) argv);
+    GNUNET_free_nz ((void *) argv);
     GNUNET_CRYPTO_ecdsa_key_clear (&zone_pkey);
     return lret;
   }
-  GNUNET_free ((void *) argv);
+  GNUNET_free_nz ((void *) argv);
   GNUNET_CRYPTO_ecdsa_key_clear (&zone_pkey);
   return ret;
 }

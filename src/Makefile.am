@@ -28,11 +28,13 @@ if HAVE_MHD
   JSON_DIR = json
 endif
 endif
+if HAVE_MHD
 if HAVE_LIBGNURL
   CURL_DIR = curl
 else
 if HAVE_LIBCURL
   CURL_DIR = curl
+endif
 endif
 endif
 

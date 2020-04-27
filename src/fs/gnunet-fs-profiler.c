@@ -237,7 +237,7 @@ main (int argc, char *const *argv)
                                "run a testbed to measure file-sharing performance"),
                              options, &run,
                              NULL)) ? ret : 1;
-  GNUNET_free ((void *) argv);
+  GNUNET_free_nz ((void *) argv);
   return ret;
 }
 

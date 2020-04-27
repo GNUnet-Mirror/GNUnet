@@ -39,7 +39,7 @@ static struct GNUNET_NAMECACHE_Handle *nsh;
 
 static struct GNUNET_SCHEDULER_Task *endbadly_task;
 
-static struct GNUNET_CRYPTO_EcdsaPrivateKey *privkey;
+static struct GNUNET_CRYPTO_EcdsaPrivateKey privkey;
 
 static struct GNUNET_CRYPTO_EcdsaPublicKey pubkey;
 
@@ -55,11 +55,6 @@ cleanup ()
   {
     GNUNET_NAMECACHE_disconnect (nsh);
     nsh = NULL;
-  }
-  if (NULL != privkey)
-  {
-    GNUNET_free (privkey);
-    privkey = NULL;
   }
   GNUNET_SCHEDULER_shutdown ();
 }
@@ -188,10 +183,12 @@ run (void *cls,
                    "N0UJMP015AFUNR2BTNM3FKPBLG38913BL8IDMCO2H0A1LIB81960.zkey");
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Using zonekey file `%s' \n",
               hostkey_file);
-  privkey = GNUNET_CRYPTO_ecdsa_key_create_from_file (hostkey_file);
+  GNUNET_assert (GNUNET_SYSERR !=
+                 GNUNET_CRYPTO_ecdsa_key_from_file (hostkey_file,
+                                                    GNUNET_YES,
+                                                    &privkey));
   GNUNET_free (hostkey_file);
-  GNUNET_assert (privkey != NULL);
-  GNUNET_CRYPTO_ecdsa_key_get_public (privkey, &pubkey);
+  GNUNET_CRYPTO_ecdsa_key_get_public (&privkey, &pubkey);
 
 
   rd.expiration_time = GNUNET_TIME_absolute_get ().abs_value_us + 10000000000;
@@ -200,7 +197,7 @@ run (void *cls,
   rd.data = GNUNET_malloc (TEST_RECORD_DATALEN);
   rd.flags = 0;
   memset ((char *) rd.data, 'a', TEST_RECORD_DATALEN);
-  block = GNUNET_GNSRECORD_block_create (privkey,
+  block = GNUNET_GNSRECORD_block_create (&privkey,
                                          GNUNET_TIME_UNIT_FOREVER_ABS,
                                          name, &rd, 1);
   if (NULL == block)
@@ -232,7 +229,7 @@ run (void *cls,
                 _ ("Namecache cannot cache no block\n"));
   }
   GNUNET_free (block);
-  GNUNET_free ((void *) rd.data);
+  GNUNET_free_nz ((void *) rd.data);
 }
 
 

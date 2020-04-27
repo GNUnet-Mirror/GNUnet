@@ -257,7 +257,7 @@ main (int argc,
                              options,
                              &run,
                              NULL)) ? ret : 1;
-  GNUNET_free ((void *) argv);
+  GNUNET_free_nz ((void *) argv);
   return ret;
 }
 

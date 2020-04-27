@@ -111,17 +111,17 @@ end (void *cls)
   }
   if (NULL != s_rd_1)
   {
-    GNUNET_free ((void *) s_rd_1->data);
+    GNUNET_free_nz ((void *) s_rd_1->data);
     GNUNET_free (s_rd_1);
   }
   if (NULL != s_rd_2)
   {
-    GNUNET_free ((void *) s_rd_2->data);
+    GNUNET_free_nz ((void *) s_rd_2->data);
     GNUNET_free (s_rd_2);
   }
   if (NULL != s_rd_3)
   {
-    GNUNET_free ((void *) s_rd_3->data);
+    GNUNET_free_nz ((void *) s_rd_3->data);
     GNUNET_free (s_rd_3);
   }
 }
