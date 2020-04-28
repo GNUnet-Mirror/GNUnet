@@ -512,11 +512,13 @@ get_existing_record (void *cls,
                      unsigned int rd_count,
                      const struct GNUNET_GNSRECORD_Data *rd)
 {
-  struct GNUNET_GNSRECORD_Data rdn[rd_count + 1];
   struct GNUNET_GNSRECORD_Data *rde;
+  struct GNUNET_GNSRECORD_Data* rdn =
+    GNUNET_malloc(sizeof(*rdn)*(rd_count + 1));
 
   memset (rdn, 0, sizeof (struct GNUNET_GNSRECORD_Data));
-  GNUNET_memcpy (&rdn[1], rd, rd_count * sizeof (struct GNUNET_GNSRECORD_Data));
+  GNUNET_memcpy (&rdn[1], rd,
+                 rd_count * sizeof (struct GNUNET_GNSRECORD_Data));
   rde = &rdn[0];
   rde->data = data;
   rde->data_size = data_size;
@@ -539,7 +541,7 @@ get_existing_record (void *cls,
                                            rde,
                                            &add_continuation,
                                            &add_qe);
-
+  GNUNET_free(rdn);
   return;
 }
 
@@ -602,10 +604,18 @@ store_cb (void *cls, const struct GNUNET_IDENTITY_Ego *ego)
     if (GNUNET_OK !=
         GNUNET_GNSRECORD_string_to_value (type, subject, &data, &data_size))
     {
-      fprintf (stderr,
-               "Value `%s' invalid for record type `%s'\n",
-               subject,
-               typestring);
+      if(typestring == NULL) {
+        fputs("No value for unknown record type\n", stderr);
+      } else if(subject == NULL) {
+        fprintf(stderr,
+                "No value for record type`%s'\n",
+                typestring);
+      } else {
+        fprintf (stderr,
+                 "Value `%s' invalid for record type `%s'\n",
+                 subject,
+                 typestring);
+      }
       GNUNET_SCHEDULER_shutdown ();
       return;
     }
@@ -917,7 +927,8 @@ run (void *cls,
     int i;
     while (NULL != (tok = strtok (NULL, ",")))
       count++;
-    struct GNUNET_ABD_Delegate delegates[count];
+    struct GNUNET_ABD_Delegate* delegates =
+      GNUNET_malloc(sizeof(*delegates)*count);
     struct GNUNET_ABD_Delegate *dele;
     GNUNET_free (tmp);
     tmp = GNUNET_strdup (subject_delegate);
@@ -946,9 +957,11 @@ run (void *cls,
                                         NULL);
     for (i = 0; i < count; i++)
     {
-      GNUNET_free ((char *) delegates[i].issuer_attribute);
+      GNUNET_free_nz ((char *) delegates[i].issuer_attribute);
+      delegates[i].issuer_attribute = NULL;
     }
     GNUNET_free (tmp);
+    GNUNET_free(delegates);
   }
   else
   {

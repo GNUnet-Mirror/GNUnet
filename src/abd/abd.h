@@ -245,14 +245,14 @@ struct DelegateEntry
 {
 
   /**
-   * The signature for this credential by the issuer
-   */
-  struct GNUNET_CRYPTO_EcdsaSignature signature;
-
-  /**
    * Signature meta
    */
   struct GNUNET_CRYPTO_EccSignaturePurpose purpose;
+
+  /**
+   * The signature for this credential by the issuer
+   */
+  struct GNUNET_CRYPTO_EcdsaSignature signature;
 
   /**
    * Public key of the issuer

@@ -240,13 +240,7 @@ GNUNET_ABD_delegate_issue (
 
   GNUNET_memcpy (&del[1], tmp_str, attr_len);
 
-  if (GNUNET_OK !=
-      GNUNET_CRYPTO_ecdsa_sign (issuer, &del->purpose, &del->signature))
-  {
-    GNUNET_break (0);
-    GNUNET_free (del);
-    return NULL;
-  }
+  GNUNET_CRYPTO_ecdsa_sign (issuer, del, &del->signature);
 
   dele = GNUNET_malloc (sizeof (struct GNUNET_ABD_Delegate) + attr_len);
   dele->signature = del->signature;

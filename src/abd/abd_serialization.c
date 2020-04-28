@@ -451,7 +451,7 @@ GNUNET_ABD_delegate_serialize (struct GNUNET_ABD_Delegate *dele,
 
   if (GNUNET_OK !=
       GNUNET_CRYPTO_ecdsa_verify (GNUNET_SIGNATURE_PURPOSE_DELEGATE,
-                                  &cdata->purpose,
+                                  cdata,
                                   &cdata->signature,
                                   &cdata->issuer_key))
   {
@@ -474,7 +474,7 @@ GNUNET_ABD_delegate_deserialize (const char *data, size_t data_size)
   cdata = (struct DelegateEntry *) data;
   if (GNUNET_OK !=
       GNUNET_CRYPTO_ecdsa_verify (GNUNET_SIGNATURE_PURPOSE_DELEGATE,
-                                  &cdata->purpose,
+                                  cdata,
                                   &cdata->signature,
                                   &cdata->issuer_key))
   {
