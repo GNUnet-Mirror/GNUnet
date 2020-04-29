@@ -83,7 +83,7 @@ struct GNUNET_REVOCATION_PowCalculationHandle
   /**
    * The final PoW result data structure.
    */
-  struct GNUNET_REVOCATION_Pow *pow;
+  struct GNUNET_REVOCATION_PowP *pow;
 
   /**
    * The current nonce to try
@@ -297,7 +297,7 @@ handle_revocation_response (void *cls,
  */
 struct GNUNET_REVOCATION_Handle *
 GNUNET_REVOCATION_revoke (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                          const struct GNUNET_REVOCATION_Pow *pow,
+                          const struct GNUNET_REVOCATION_PowP *pow,
                           GNUNET_REVOCATION_Callback func,
                           void *func_cls)
 {
@@ -428,14 +428,14 @@ calculate_score (const struct GNUNET_REVOCATION_PowCalculationHandle *ph)
  * @return #GNUNET_YES if the @a pow is acceptable, #GNUNET_NO if not
  */
 enum GNUNET_GenericReturnValue
-GNUNET_REVOCATION_check_pow (const struct GNUNET_REVOCATION_Pow *pow,
+GNUNET_REVOCATION_check_pow (const struct GNUNET_REVOCATION_PowP *pow,
                              unsigned int difficulty,
                              struct GNUNET_TIME_Relative epoch_duration)
 {
   char buf[sizeof(struct GNUNET_CRYPTO_EcdsaPublicKey)
            + sizeof (struct GNUNET_TIME_AbsoluteNBO)
            + sizeof (uint64_t)] GNUNET_ALIGN;
-  struct GNUNET_REVOCATION_SignaturePurpose spurp;
+  struct GNUNET_REVOCATION_SignaturePurposePS spurp;
   struct GNUNET_HashCode result;
   struct GNUNET_TIME_Absolute ts;
   struct GNUNET_TIME_Absolute exp;
@@ -538,10 +538,10 @@ GNUNET_REVOCATION_check_pow (const struct GNUNET_REVOCATION_Pow *pow,
  */
 void
 GNUNET_REVOCATION_pow_init (const struct GNUNET_CRYPTO_EcdsaPrivateKey *key,
-                            struct GNUNET_REVOCATION_Pow *pow)
+                            struct GNUNET_REVOCATION_PowP *pow)
 {
   struct GNUNET_TIME_Absolute ts = GNUNET_TIME_absolute_get ();
-  struct GNUNET_REVOCATION_SignaturePurpose rp;
+  struct GNUNET_REVOCATION_SignaturePurposePS rp;
 
   /**
    * Predate the validity period to prevent rejections due to
@@ -575,7 +575,7 @@ GNUNET_REVOCATION_pow_init (const struct GNUNET_CRYPTO_EcdsaPrivateKey *key,
  * @return a handle for use in PoW rounds
  */
 struct GNUNET_REVOCATION_PowCalculationHandle*
-GNUNET_REVOCATION_pow_start (struct GNUNET_REVOCATION_Pow *pow,
+GNUNET_REVOCATION_pow_start (struct GNUNET_REVOCATION_PowP *pow,
                              int epochs,
                              unsigned int difficulty)
 {

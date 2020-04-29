@@ -48,7 +48,7 @@ extern "C"
 /**
  * Version of the key revocation API.
  */
-#define GNUNET_REVOCATION_VERSION 0x00000000
+#define GNUNET_REVOCATION_VERSION 0x00000001
 
 /**
  * The proof-of-work narrowing factor.
@@ -59,7 +59,10 @@ extern "C"
 
 GNUNET_NETWORK_STRUCT_BEGIN
 
-struct GNUNET_REVOCATION_Pow
+/**
+ * Struct for a proof of work as part of the revocation.
+ */
+struct GNUNET_REVOCATION_PowP
 {
   /**
    * The timestamp of the revocation
@@ -91,7 +94,7 @@ struct GNUNET_REVOCATION_Pow
 /**
  * The signature object we use for the PoW
  */
-struct GNUNET_REVOCATION_SignaturePurpose
+struct GNUNET_REVOCATION_SignaturePurposePS
 {
   /**
    * The signature purpose
@@ -180,7 +183,7 @@ struct GNUNET_REVOCATION_Handle;
  */
 struct GNUNET_REVOCATION_Handle *
 GNUNET_REVOCATION_revoke (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                          const struct GNUNET_REVOCATION_Pow *pow,
+                          const struct GNUNET_REVOCATION_PowP *pow,
                           GNUNET_REVOCATION_Callback func, void *func_cls);
 
 
@@ -202,7 +205,7 @@ GNUNET_REVOCATION_revoke_cancel (struct GNUNET_REVOCATION_Handle *h);
  * @return #GNUNET_YES if the @a pow is acceptable, #GNUNET_NO if not
  */
 enum GNUNET_GenericReturnValue
-GNUNET_REVOCATION_check_pow (const struct GNUNET_REVOCATION_Pow *pow,
+GNUNET_REVOCATION_check_pow (const struct GNUNET_REVOCATION_PowP *pow,
                              unsigned int matching_bits,
                              struct GNUNET_TIME_Relative epoch_duration);
 
@@ -215,7 +218,7 @@ GNUNET_REVOCATION_check_pow (const struct GNUNET_REVOCATION_Pow *pow,
  */
 void
 GNUNET_REVOCATION_pow_init (const struct GNUNET_CRYPTO_EcdsaPrivateKey *key,
-                            struct GNUNET_REVOCATION_Pow *pow);
+                            struct GNUNET_REVOCATION_PowP *pow);
 
 
 /**
@@ -228,7 +231,7 @@ GNUNET_REVOCATION_pow_init (const struct GNUNET_CRYPTO_EcdsaPrivateKey *key,
  * @return a handle for use in PoW rounds
  */
 struct GNUNET_REVOCATION_PowCalculationHandle*
-GNUNET_REVOCATION_pow_start (struct GNUNET_REVOCATION_Pow *pow,
+GNUNET_REVOCATION_pow_start (struct GNUNET_REVOCATION_PowP *pow,
                              int epochs,
                              unsigned int difficulty);
 
