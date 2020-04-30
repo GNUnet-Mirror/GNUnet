@@ -234,7 +234,7 @@ taskSig (void *cls)
  * checks that "ok" is correct at the end.
  */
 static int
-checkSignal ()
+checkSignal (void)
 {
   int ok;
 

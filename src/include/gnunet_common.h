@@ -1210,7 +1210,7 @@ GNUNET_is_zero_ (const void *a,
  * @param type name of the struct or union, i.e. pass 'struct Foo'.
  */
 #define GNUNET_new_array(n, type) ({ \
-    GNUNET_assert (SIZE_MAX / sizeof (type) >= n); \
+    GNUNET_assert (SIZE_MAX / sizeof (type) >= n);     \
     (type *) GNUNET_malloc ((n) * sizeof(type));   \
   })
 
