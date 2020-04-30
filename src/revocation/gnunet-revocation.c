@@ -101,7 +101,7 @@ static struct GNUNET_SCHEDULER_Task *pow_task;
 /**
  * Proof-of-work object
  */
-static struct GNUNET_REVOCATION_Pow proof_of_work;
+static struct GNUNET_REVOCATION_PowP proof_of_work;
 
 /**
  * Function run if the user aborts with CTRL-C.
@@ -229,10 +229,10 @@ static void
 sync_pow ()
 {
   if ((NULL != filename) &&
-      (sizeof(struct GNUNET_REVOCATION_Pow) !=
+      (sizeof(struct GNUNET_REVOCATION_PowP) !=
        GNUNET_DISK_fn_write (filename,
                              &proof_of_work,
-                             sizeof(struct GNUNET_REVOCATION_Pow),
+                             sizeof(struct GNUNET_REVOCATION_PowP),
                              GNUNET_DISK_PERM_USER_READ
                              | GNUNET_DISK_PERM_USER_WRITE)))
     GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, "write", filename);
@@ -278,10 +278,10 @@ calculate_pow (void *cls)
   if (GNUNET_OK == GNUNET_REVOCATION_pow_round (ph))
   {
     if ((NULL != filename) &&
-        (sizeof(struct GNUNET_REVOCATION_Pow) !=
+        (sizeof(struct GNUNET_REVOCATION_PowP) !=
          GNUNET_DISK_fn_write (filename,
                                &proof_of_work,
-                               sizeof(struct GNUNET_REVOCATION_Pow),
+                               sizeof(struct GNUNET_REVOCATION_PowP),
                                GNUNET_DISK_PERM_USER_READ
                                | GNUNET_DISK_PERM_USER_WRITE)))
       GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, "write", filename);
