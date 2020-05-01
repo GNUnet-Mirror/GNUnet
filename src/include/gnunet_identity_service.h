@@ -99,7 +99,7 @@ GNUNET_IDENTITY_ego_get_anonymous (void);
  * @param pk set to ego's public key
  */
 void
-GNUNET_IDENTITY_ego_get_public_key (const struct GNUNET_IDENTITY_Ego *ego,
+GNUNET_IDENTITY_ego_get_public_key (struct GNUNET_IDENTITY_Ego *ego,
                                     struct GNUNET_CRYPTO_EcdsaPublicKey *pk);
 
 

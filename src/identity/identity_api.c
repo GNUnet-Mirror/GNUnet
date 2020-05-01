@@ -105,7 +105,7 @@ struct GNUNET_IDENTITY_Handle
   struct GNUNET_MQ_Handle *mq;
 
   /**
-   * Hash map from the hash of the public key to the
+   * Hash map from the hash of the private key to the
    * respective `GNUNET_IDENTITY_Ego` handle.
    */
   struct GNUNET_CONTAINER_MultiHashMap *egos;
@@ -190,16 +190,22 @@ reconnect (void *cls);
  * @return #GNUNET_OK (continue to iterate)
  */
 static int
-free_ego (void *cls, const struct GNUNET_HashCode *key, void *value)
+free_ego (void *cls,
+          const struct GNUNET_HashCode *key,
+          void *value)
 {
   struct GNUNET_IDENTITY_Handle *h = cls;
   struct GNUNET_IDENTITY_Ego *ego = value;
 
   if (NULL != h->cb)
-    h->cb (h->cb_cls, ego, &ego->ctx, NULL);
+    h->cb (h->cb_cls, ego,
+           &ego->ctx,
+           NULL);
   GNUNET_free (ego->name);
   GNUNET_assert (GNUNET_YES ==
-                 GNUNET_CONTAINER_multihashmap_remove (h->egos, key, value));
+                 GNUNET_CONTAINER_multihashmap_remove (h->egos,
+                                                       key,
+                                                       value));
   GNUNET_free (ego);
   return GNUNET_OK;
 }
@@ -224,9 +230,12 @@ reschedule_connect (struct GNUNET_IDENTITY_Handle *h)
   }
   while (NULL != (op = h->op_head))
   {
-    GNUNET_CONTAINER_DLL_remove (h->op_head, h->op_tail, op);
+    GNUNET_CONTAINER_DLL_remove (h->op_head,
+                                 h->op_tail,
+                                 op);
     if (NULL != op->cont)
-      op->cont (op->cls, "Error in communication with the identity service");
+      op->cont (op->cls,
+                "Error in communication with the identity service");
     else if (NULL != op->cb)
       op->cb (op->cls, NULL, NULL, NULL);
     else if (NULL != op->create_cont)
@@ -235,12 +244,17 @@ reschedule_connect (struct GNUNET_IDENTITY_Handle *h)
                        "Failed to communicate with the identity service");
     GNUNET_free (op);
   }
-  GNUNET_CONTAINER_multihashmap_iterate (h->egos, &free_ego, h);
+  GNUNET_CONTAINER_multihashmap_iterate (h->egos,
+                                         &free_ego,
+                                         h);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Scheduling task to reconnect to identity service in %s.\n",
-       GNUNET_STRINGS_relative_time_to_string (h->reconnect_delay, GNUNET_YES));
+       GNUNET_STRINGS_relative_time_to_string (h->reconnect_delay,
+                                               GNUNET_YES));
   h->reconnect_task =
-    GNUNET_SCHEDULER_add_delayed (h->reconnect_delay, &reconnect, h);
+    GNUNET_SCHEDULER_add_delayed (h->reconnect_delay,
+                                  &reconnect,
+                                  h);
   h->reconnect_delay = GNUNET_TIME_STD_BACKOFF (h->reconnect_delay);
 }
 
@@ -254,7 +268,8 @@ reschedule_connect (struct GNUNET_IDENTITY_Handle *h)
  * @param error error code
  */
 static void
-mq_error_handler (void *cls, enum GNUNET_MQ_Error error)
+mq_error_handler (void *cls,
+                  enum GNUNET_MQ_Error error)
 {
   struct GNUNET_IDENTITY_Handle *h = cls;
 
@@ -271,7 +286,8 @@ mq_error_handler (void *cls, enum GNUNET_MQ_Error error)
  * @return #GNUNET_OK if the message is well-formed
  */
 static int
-check_identity_result_code (void *cls, const struct ResultCodeMessage *rcm)
+check_identity_result_code (void *cls,
+                            const struct ResultCodeMessage *rcm)
 {
   if (sizeof(*rcm) != htons (rcm->header.size))
     GNUNET_MQ_check_zero_termination (rcm);
@@ -286,7 +302,8 @@ check_identity_result_code (void *cls, const struct ResultCodeMessage *rcm)
  * @param rcm result message received
  */
 static void
-handle_identity_result_code (void *cls, const struct ResultCodeMessage *rcm)
+handle_identity_result_code (void *cls,
+                             const struct ResultCodeMessage *rcm)
 {
   struct GNUNET_IDENTITY_Handle *h = cls;
   struct GNUNET_IDENTITY_Operation *op;
@@ -319,7 +336,8 @@ handle_identity_result_code (void *cls, const struct ResultCodeMessage *rcm)
  * @return #GNUNET_OK if the message is well-formed
  */
 static int
-check_identity_update (void *cls, const struct UpdateMessage *um)
+check_identity_update (void *cls,
+                       const struct UpdateMessage *um)
 {
   uint16_t size = ntohs (um->header.size);
   uint16_t name_len = ntohs (um->name_len);
@@ -342,12 +360,12 @@ check_identity_update (void *cls, const struct UpdateMessage *um)
  * @param um message received
  */
 static void
-handle_identity_update (void *cls, const struct UpdateMessage *um)
+handle_identity_update (void *cls,
+                        const struct UpdateMessage *um)
 {
   struct GNUNET_IDENTITY_Handle *h = cls;
   uint16_t name_len = ntohs (um->name_len);
   const char *str = (0 == name_len) ? NULL : (const char *) &um[1];
-  struct GNUNET_CRYPTO_EcdsaPublicKey pub;
   struct GNUNET_HashCode id;
   struct GNUNET_IDENTITY_Ego *ego;
 
@@ -358,9 +376,11 @@ handle_identity_update (void *cls, const struct UpdateMessage *um)
       h->cb (h->cb_cls, NULL, NULL, NULL);
     return;
   }
-  GNUNET_CRYPTO_ecdsa_key_get_public (&um->private_key, &pub);
-  GNUNET_CRYPTO_hash (&pub, sizeof(pub), &id);
-  ego = GNUNET_CONTAINER_multihashmap_get (h->egos, &id);
+  GNUNET_CRYPTO_hash (&um->private_key,
+                      sizeof (um->private_key),
+                      &id);
+  ego = GNUNET_CONTAINER_multihashmap_get (h->egos,
+                                           &id);
   if (NULL == ego)
   {
     /* ego was created */
@@ -385,9 +405,10 @@ handle_identity_update (void *cls, const struct UpdateMessage *um)
   if (NULL == str)
   {
     /* ego was deleted */
-    GNUNET_assert (GNUNET_YES == GNUNET_CONTAINER_multihashmap_remove (h->egos,
-                                                                       &ego->id,
-                                                                       ego));
+    GNUNET_assert (GNUNET_YES ==
+                   GNUNET_CONTAINER_multihashmap_remove (h->egos,
+                                                         &ego->id,
+                                                         ego));
   }
   else
   {
@@ -397,7 +418,10 @@ handle_identity_update (void *cls, const struct UpdateMessage *um)
   }
   /* inform application about change */
   if (NULL != h->cb)
-    h->cb (h->cb_cls, ego, &ego->ctx, str);
+    h->cb (h->cb_cls,
+           ego,
+           &ego->ctx,
+           str);
   /* complete deletion */
   if (NULL == str)
   {
@@ -416,7 +440,8 @@ handle_identity_update (void *cls, const struct UpdateMessage *um)
  * @return #GNUNET_OK if the message is well-formed
  */
 static int
-check_identity_set_default (void *cls, const struct SetDefaultMessage *sdm)
+check_identity_set_default (void *cls,
+                            const struct SetDefaultMessage *sdm)
 {
   uint16_t size = ntohs (sdm->header.size) - sizeof(*sdm);
   uint16_t name_len = ntohs (sdm->name_len);
@@ -440,17 +465,19 @@ check_identity_set_default (void *cls, const struct SetDefaultMessage *sdm)
  * @param sdm message received
  */
 static void
-handle_identity_set_default (void *cls, const struct SetDefaultMessage *sdm)
+handle_identity_set_default (void *cls,
+                             const struct SetDefaultMessage *sdm)
 {
   struct GNUNET_IDENTITY_Handle *h = cls;
   struct GNUNET_IDENTITY_Operation *op;
-  struct GNUNET_CRYPTO_EcdsaPublicKey pub;
   struct GNUNET_HashCode id;
   struct GNUNET_IDENTITY_Ego *ego;
 
-  GNUNET_CRYPTO_ecdsa_key_get_public (&sdm->private_key, &pub);
-  GNUNET_CRYPTO_hash (&pub, sizeof(pub), &id);
-  ego = GNUNET_CONTAINER_multihashmap_get (h->egos, &id);
+  GNUNET_CRYPTO_hash (&sdm->private_key,
+                      sizeof(sdm->private_key),
+                      &id);
+  ego = GNUNET_CONTAINER_multihashmap_get (h->egos,
+                                           &id);
   if (NULL == ego)
   {
     GNUNET_break (0);
@@ -466,9 +493,14 @@ handle_identity_set_default (void *cls, const struct SetDefaultMessage *sdm)
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received SET_DEFAULT message from identity service\n");
-  GNUNET_CONTAINER_DLL_remove (h->op_head, h->op_tail, op);
+  GNUNET_CONTAINER_DLL_remove (h->op_head,
+                               h->op_tail,
+                               op);
   if (NULL != op->cb)
-    op->cb (op->cls, ego, &ego->ctx, ego->name);
+    op->cb (op->cls,
+            ego,
+            &ego->ctx,
+            ego->name);
   GNUNET_free (op);
 }
 
@@ -482,8 +514,8 @@ static void
 reconnect (void *cls)
 {
   struct GNUNET_IDENTITY_Handle *h = cls;
-  struct GNUNET_MQ_MessageHandler handlers[] =
-  { GNUNET_MQ_hd_var_size (identity_result_code,
+  struct GNUNET_MQ_MessageHandler handlers[] = {
+    GNUNET_MQ_hd_var_size (identity_result_code,
                            GNUNET_MESSAGE_TYPE_IDENTITY_RESULT_CODE,
                            struct ResultCodeMessage,
                            h),
@@ -495,21 +527,28 @@ reconnect (void *cls)
                            GNUNET_MESSAGE_TYPE_IDENTITY_SET_DEFAULT,
                            struct SetDefaultMessage,
                            h),
-    GNUNET_MQ_handler_end () };
+    GNUNET_MQ_handler_end ()
+  };
   struct GNUNET_MQ_Envelope *env;
   struct GNUNET_MessageHeader *msg;
 
   h->reconnect_task = NULL;
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Connecting to identity service.\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Connecting to identity service.\n");
   GNUNET_assert (NULL == h->mq);
-  h->mq =
-    GNUNET_CLIENT_connect (h->cfg, "identity", handlers, &mq_error_handler, h);
+  h->mq = GNUNET_CLIENT_connect (h->cfg,
+                                 "identity",
+                                 handlers,
+                                 &mq_error_handler,
+                                 h);
   if (NULL == h->mq)
     return;
   if (NULL != h->cb)
   {
-    env = GNUNET_MQ_msg (msg, GNUNET_MESSAGE_TYPE_IDENTITY_START);
-    GNUNET_MQ_send (h->mq, env);
+    env = GNUNET_MQ_msg (msg,
+                         GNUNET_MESSAGE_TYPE_IDENTITY_START);
+    GNUNET_MQ_send (h->mq,
+                    env);
   }
 }
 
@@ -533,7 +572,8 @@ GNUNET_IDENTITY_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
   h->cfg = cfg;
   h->cb = cb;
   h->cb_cls = cb_cls;
-  h->egos = GNUNET_CONTAINER_multihashmap_create (16, GNUNET_YES);
+  h->egos = GNUNET_CONTAINER_multihashmap_create (16,
+                                                  GNUNET_YES);
   reconnect (h);
   if (NULL == h->mq)
   {
@@ -564,11 +604,16 @@ GNUNET_IDENTITY_ego_get_private_key (const struct GNUNET_IDENTITY_Ego *ego)
  * @param pk set to ego's public key
  */
 void
-GNUNET_IDENTITY_ego_get_public_key (const struct GNUNET_IDENTITY_Ego *ego,
+GNUNET_IDENTITY_ego_get_public_key (struct GNUNET_IDENTITY_Ego *ego,
                                     struct GNUNET_CRYPTO_EcdsaPublicKey *pk)
 {
-  GNUNET_CRYPTO_ecdsa_key_get_public (&ego->pk,
-                                      pk);
+  if (! ego->pub_initialized)
+  {
+    GNUNET_CRYPTO_ecdsa_key_get_public (&ego->pk,
+                                        &ego->pub);
+    ego->pub_initialized = true;
+  }
+  *pk = ego->pub;
 }
 
 
@@ -842,7 +887,9 @@ GNUNET_IDENTITY_disconnect (struct GNUNET_IDENTITY_Handle *h)
   }
   if (NULL != h->egos)
   {
-    GNUNET_CONTAINER_multihashmap_iterate (h->egos, &free_ego, h);
+    GNUNET_CONTAINER_multihashmap_iterate (h->egos,
+                                           &free_ego,
+                                           h);
     GNUNET_CONTAINER_multihashmap_destroy (h->egos);
     h->egos = NULL;
   }

@@ -140,7 +140,9 @@ client_disconnect_cb (void *cls,
                       struct GNUNET_SERVICE_Client *client,
                       void *app_ctx)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Client %p disconnected\n", client);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Client %p disconnected\n",
+              client);
 }
 
 
@@ -189,7 +191,9 @@ shutdown_task (void *cls)
   ego_directory = NULL;
   while (NULL != (e = ego_head))
   {
-    GNUNET_CONTAINER_DLL_remove (ego_head, ego_tail, e);
+    GNUNET_CONTAINER_DLL_remove (ego_head,
+                                 ego_tail,
+                                 e);
     GNUNET_free (e->identifier);
     GNUNET_free (e);
   }
@@ -260,7 +264,8 @@ create_update_message (struct Ego *ego)
  * @return corresponding set default message
  */
 static struct GNUNET_MQ_Envelope *
-create_set_default_message (struct Ego *ego, const char *servicename)
+create_set_default_message (struct Ego *ego,
+                            const char *servicename)
 {
   struct SetDefaultMessage *sdm;
   struct GNUNET_MQ_Envelope *env;
@@ -288,26 +293,34 @@ create_set_default_message (struct Ego *ego, const char *servicename)
  * @param message the message received
  */
 static void
-handle_start_message (void *cls, const struct GNUNET_MessageHeader *message)
+handle_start_message (void *cls,
+                      const struct GNUNET_MessageHeader *message)
 {
   struct GNUNET_SERVICE_Client *client = cls;
-  struct UpdateMessage *ume;
-  struct GNUNET_MQ_Envelope *env;
-  struct Ego *ego;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received START message from client\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Received START message from client\n");
   GNUNET_SERVICE_client_mark_monitor (client);
   GNUNET_SERVICE_client_disable_continue_warning (client);
-  GNUNET_notification_context_add (nc, GNUNET_SERVICE_client_get_mq (client));
-  for (ego = ego_head; NULL != ego; ego = ego->next)
+  GNUNET_notification_context_add (nc,
+                                   GNUNET_SERVICE_client_get_mq (client));
+  for (struct Ego *ego = ego_head; NULL != ego; ego = ego->next)
   {
-    env = create_update_message (ego);
-    GNUNET_MQ_send (GNUNET_SERVICE_client_get_mq (client), env);
+    GNUNET_MQ_send (GNUNET_SERVICE_client_get_mq (client),
+                    create_update_message (ego));
   }
-  env = GNUNET_MQ_msg_extra (ume, 0, GNUNET_MESSAGE_TYPE_IDENTITY_UPDATE);
-  ume->end_of_list = htons (GNUNET_YES);
-  ume->name_len = htons (0);
-  GNUNET_MQ_send (GNUNET_SERVICE_client_get_mq (client), env);
+  {
+    struct UpdateMessage *ume;
+    struct GNUNET_MQ_Envelope *env;
+
+    env = GNUNET_MQ_msg_extra (ume,
+                               0,
+                               GNUNET_MESSAGE_TYPE_IDENTITY_UPDATE);
+    ume->end_of_list = htons (GNUNET_YES);
+    ume->name_len = htons (0);
+    GNUNET_MQ_send (GNUNET_SERVICE_client_get_mq (client),
+                    env);
+  }
   GNUNET_SERVICE_client_continue (client);
 }
 
@@ -321,7 +334,8 @@ handle_start_message (void *cls, const struct GNUNET_MessageHeader *message)
  * @return #GNUNET_SYSERR if message was ill-formed
  */
 static int
-check_lookup_message (void *cls, const struct LookupMessage *message)
+check_lookup_message (void *cls,
+                      const struct LookupMessage *message)
 {
   GNUNET_MQ_check_zero_termination (message);
   return GNUNET_OK;
@@ -336,14 +350,16 @@ check_lookup_message (void *cls, const struct LookupMessage *message)
  * @param message the message received
  */
 static void
-handle_lookup_message (void *cls, const struct LookupMessage *message)
+handle_lookup_message (void *cls,
+                       const struct LookupMessage *message)
 {
   struct GNUNET_SERVICE_Client *client = cls;
   const char *name;
   struct GNUNET_MQ_Envelope *env;
   struct Ego *ego;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received LOOKUP message from client\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Received LOOKUP message from client\n");
   name = (const char *) &message[1];
   for (ego = ego_head; NULL != ego; ego = ego->next)
   {
@@ -368,7 +384,8 @@ handle_lookup_message (void *cls, const struct LookupMessage *message)
  * @return #GNUNET_SYSERR if message was ill-formed
  */
 static int
-check_lookup_by_suffix_message (void *cls, const struct LookupMessage *message)
+check_lookup_by_suffix_message (void *cls,
+                                const struct LookupMessage *message)
 {
   GNUNET_MQ_check_zero_termination (message);
   return GNUNET_OK;
@@ -383,7 +400,8 @@ check_lookup_by_suffix_message (void *cls, const struct LookupMessage *message)
  * @param message the message received
  */
 static void
-handle_lookup_by_suffix_message (void *cls, const struct LookupMessage *message)
+handle_lookup_by_suffix_message (void *cls,
+                                 const struct LookupMessage *message)
 {
   struct GNUNET_SERVICE_Client *client = cls;
   const char *name;
@@ -428,7 +446,8 @@ handle_lookup_by_suffix_message (void *cls, const struct LookupMessage *message)
  * @return #GNUNET_OK if @a msg is well-formed
  */
 static int
-check_get_default_message (void *cls, const struct GetDefaultMessage *msg)
+check_get_default_message (void *cls,
+                           const struct GetDefaultMessage *msg)
 {
   uint16_t size;
   uint16_t name_len;
@@ -461,31 +480,32 @@ check_get_default_message (void *cls, const struct GetDefaultMessage *msg)
  * @param message the message received
  */
 static void
-handle_get_default_message (void *cls, const struct GetDefaultMessage *gdm)
+handle_get_default_message (void *cls,
+                            const struct GetDefaultMessage *gdm)
 {
   struct GNUNET_MQ_Envelope *env;
   struct GNUNET_SERVICE_Client *client = cls;
-  struct Ego *ego;
   char *name;
   char *identifier;
 
-
   name = GNUNET_strdup ((const char *) &gdm[1]);
-  GNUNET_STRINGS_utf8_tolower ((const char *) &gdm[1], name);
+  GNUNET_STRINGS_utf8_tolower ((const char *) &gdm[1],
+                               name);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received GET_DEFAULT for service `%s' from client\n",
               name);
-  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_string (subsystem_cfg,
-                                                          name,
-                                                          "DEFAULT_IDENTIFIER",
-                                                          &identifier))
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_string (subsystem_cfg,
+                                             name,
+                                             "DEFAULT_IDENTIFIER",
+                                             &identifier))
   {
     send_result_code (client, 1, gettext_noop ("no default known"));
     GNUNET_SERVICE_client_continue (client);
     GNUNET_free (name);
     return;
   }
-  for (ego = ego_head; NULL != ego; ego = ego->next)
+  for (struct Ego *ego = ego_head; NULL != ego; ego = ego->next)
   {
     if (0 == strcmp (ego->identifier, identifier))
     {
@@ -498,7 +518,9 @@ handle_get_default_message (void *cls, const struct GetDefaultMessage *gdm)
     }
   }
   GNUNET_free (identifier);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Failed to find ego `%s'\n", name);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Failed to find ego `%s'\n",
+              name);
   GNUNET_free (name);
   send_result_code (client,
                     1,
@@ -531,7 +553,8 @@ key_cmp (const struct GNUNET_CRYPTO_EcdsaPrivateKey *pk1,
  * @return #GNUNET_OK if @a msg is well-formed
  */
 static int
-check_set_default_message (void *cls, const struct SetDefaultMessage *msg)
+check_set_default_message (void *cls,
+                           const struct SetDefaultMessage *msg)
 {
   uint16_t size;
   uint16_t name_len;
@@ -569,7 +592,8 @@ check_set_default_message (void *cls, const struct SetDefaultMessage *msg)
  * @param message the message received
  */
 static void
-handle_set_default_message (void *cls, const struct SetDefaultMessage *sdm)
+handle_set_default_message (void *cls,
+                            const struct SetDefaultMessage *sdm)
 {
   struct Ego *ego;
   struct GNUNET_SERVICE_Client *client = cls;
@@ -642,7 +666,8 @@ notify_listeners (struct Ego *ego)
  * @return #GNUNET_OK if @a msg is well-formed
  */
 static int
-check_create_message (void *cls, const struct CreateRequestMessage *msg)
+check_create_message (void *cls,
+                      const struct CreateRequestMessage *msg)
 {
   uint16_t size;
   uint16_t name_len;
@@ -680,7 +705,8 @@ check_create_message (void *cls, const struct CreateRequestMessage *msg)
  * @param message the message received
  */
 static void
-handle_create_message (void *cls, const struct CreateRequestMessage *crm)
+handle_create_message (void *cls,
+                       const struct CreateRequestMessage *crm)
 {
   struct GNUNET_SERVICE_Client *client = cls;
   struct Ego *ego;
@@ -706,7 +732,9 @@ handle_create_message (void *cls, const struct CreateRequestMessage *crm)
   ego = GNUNET_new (struct Ego);
   ego->pk = crm->private_key;
   ego->identifier = GNUNET_strdup (str);
-  GNUNET_CONTAINER_DLL_insert (ego_head, ego_tail, ego);
+  GNUNET_CONTAINER_DLL_insert (ego_head,
+                               ego_tail,
+                               ego);
   send_result_code (client, 0, NULL);
   fn = get_ego_filename (ego);
   (void) GNUNET_DISK_directory_create_for_file (fn);

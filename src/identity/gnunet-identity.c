@@ -143,10 +143,14 @@ shutdown_task (void *cls)
  * Test if we are finished yet.
  */
 static void
-test_finished ()
+test_finished (void)
 {
-  if ((NULL == create_op) && (NULL == delete_op) && (NULL == set_op) &&
-      (NULL == set_subsystem) && (! list) && (! monitor))
+  if ( (NULL == create_op) &&
+       (NULL == delete_op) &&
+       (NULL == set_op) &&
+       (NULL == set_subsystem) &&
+       (! list) &&
+       (! monitor))
   {
     if (TIMEOUT_STATUS_CODE == global_ret)
       global_ret = 0;
@@ -162,7 +166,8 @@ test_finished ()
  * @param emsg NULL on success, otherwise an error message
  */
 static void
-delete_finished (void *cls, const char *emsg)
+delete_finished (void *cls,
+                 const char *emsg)
 {
   struct GNUNET_IDENTITY_Operation **op = cls;
 
@@ -190,7 +195,9 @@ create_finished (void *cls,
   *op = NULL;
   if (NULL == pk)
   {
-    fprintf (stderr, _ ("Failed to create ego: %s\n"), emsg);
+    fprintf (stderr,
+             _ ("Failed to create ego: %s\n"),
+             emsg);
     global_ret = 1;
   }
   else if (verbose)
@@ -280,16 +287,25 @@ print_ego (void *cls,
   char *s;
   char *privs;
 
-  if ((NULL != set_ego) && (NULL != set_subsystem) && (NULL != ego) &&
-      (NULL != identifier) && (0 == strcmp (identifier, set_ego)))
+  if ( (NULL != set_ego) &&
+       (NULL != set_subsystem) &&
+       (NULL != ego) &&
+       (NULL != identifier) &&
+       (0 == strcmp (identifier, set_ego)))
   {
-    set_op = GNUNET_IDENTITY_set (sh, set_subsystem, ego, &set_done, NULL);
+    set_op = GNUNET_IDENTITY_set (sh,
+                                  set_subsystem,
+                                  ego,
+                                  &set_done,
+                                  NULL);
     GNUNET_free (set_subsystem);
     set_subsystem = NULL;
     GNUNET_free (set_ego);
     set_ego = NULL;
   }
-  if ((NULL == ego) && (NULL != set_ego) && (NULL != set_subsystem))
+  if ( (NULL == ego) &&
+       (NULL != set_ego) &&
+       (NULL != set_subsystem) )
   {
     fprintf (stderr,
              "Could not set ego to `%s' for subsystem `%s', ego not known\n",
@@ -308,9 +324,12 @@ print_ego (void *cls,
   }
   if (! (list | monitor))
     return;
-  if ((NULL == ego) || (NULL == identifier))
+  if ( (NULL == ego) ||
+       (NULL == identifier) )
     return;
-  if ((NULL != set_ego) && (0 != strcmp (identifier, set_ego)))
+  if ( (NULL != set_ego) &&
+       (0 != strcmp (identifier,
+                     set_ego)) )
     return;
   GNUNET_IDENTITY_ego_get_public_key (ego, &pk);
   s = GNUNET_CRYPTO_ecdsa_public_key_to_string (&pk);
@@ -358,18 +377,26 @@ run (void *cls,
     return;
   }
   sh = GNUNET_IDENTITY_connect (cfg,
-                                (monitor | list) || (NULL != set_ego) ||
+                                (monitor | list) ||
+                                (NULL != set_ego) ||
                                 (NULL != set_subsystem)
                                 ? &print_ego
                                 : NULL,
                                 NULL);
   if (NULL != delete_ego)
     delete_op =
-      GNUNET_IDENTITY_delete (sh, delete_ego, &delete_finished, &delete_op);
+      GNUNET_IDENTITY_delete (sh,
+                              delete_ego,
+                              &delete_finished,
+                              &delete_op);
   if (NULL != create_ego)
     create_op =
-      GNUNET_IDENTITY_create (sh, create_ego, &create_finished, &create_op);
-  GNUNET_SCHEDULER_add_shutdown (&shutdown_task, NULL);
+      GNUNET_IDENTITY_create (sh,
+                              create_ego,
+                              &create_finished,
+                              &create_op);
+  GNUNET_SCHEDULER_add_shutdown (&shutdown_task,
+                                 NULL);
   test_finished ();
 }
 
@@ -384,8 +411,8 @@ run (void *cls,
 int
 main (int argc, char *const *argv)
 {
-  struct GNUNET_GETOPT_CommandLineOption options[] =
-  { GNUNET_GETOPT_option_string ('C',
+  struct GNUNET_GETOPT_CommandLineOption options[] = {
+    GNUNET_GETOPT_option_string ('C',
                                  "create",
                                  "NAME",
                                  gettext_noop ("create ego NAME"),
@@ -426,10 +453,13 @@ main (int argc, char *const *argv)
         "set default identity to EGO for a subsystem SUBSYSTEM (use together with -e)"),
       &set_subsystem),
     GNUNET_GETOPT_option_verbose (&verbose),
-    GNUNET_GETOPT_OPTION_END };
+    GNUNET_GETOPT_OPTION_END
+  };
   int res;
 
-  if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv, &argc, &argv))
+  if (GNUNET_OK !=
+      GNUNET_STRINGS_get_utf8_args (argc, argv,
+                                    &argc, &argv))
     return 4;
   global_ret = TIMEOUT_STATUS_CODE; /* timeout */
   res = GNUNET_PROGRAM_run (argc,

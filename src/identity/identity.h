@@ -245,9 +245,20 @@ GNUNET_NETWORK_STRUCT_END
 struct GNUNET_IDENTITY_Ego
 {
   /**
+   * Hash of the private key of this ego.
+   */
+  struct GNUNET_HashCode id;
+
+  /**
    * Private key associated with this ego.
    */
   struct GNUNET_CRYPTO_EcdsaPrivateKey pk;
+
+  /**
+   * Public key associated with this ego. Initialized on demand.
+   * Always use #GNUNET_IDENTITY_ego_get_public_key() to obtain.
+   */
+  struct GNUNET_CRYPTO_EcdsaPublicKey pub;
 
   /**
    * Current name associated with this ego.
@@ -260,9 +271,9 @@ struct GNUNET_IDENTITY_Ego
   void *ctx;
 
   /**
-   * Hash of the public key of this ego.
+   * Set to true once @e pub was initialized
    */
-  struct GNUNET_HashCode id;
+  bool pub_initialized;
 };
 
 
