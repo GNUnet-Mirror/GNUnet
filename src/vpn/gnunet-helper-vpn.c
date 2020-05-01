@@ -59,6 +59,7 @@
  */
 #define MAX_SIZE 65536
 
+#if ! defined(__ANDROID__)
 #ifndef _LINUX_IN6_H
 /**
  * This is in linux/include/net/ipv6.h, but not always exported...
@@ -69,6 +70,7 @@ struct in6_ifreq
   uint32_t ifr6_prefixlen;
   unsigned int ifr6_ifindex;
 };
+#endif
 #endif
 
 

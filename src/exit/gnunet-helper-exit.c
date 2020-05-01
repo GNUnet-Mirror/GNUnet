@@ -85,6 +85,7 @@ static const char *sbin_sysctl;
 static const char *sbin_iptables;
 
 
+#if ! defined(__ANDROID__)
 #if ! defined(_LINUX_IN6_H) && defined(__linux__)
 /**
  * This is in linux/include/net/ipv6.h, but not always exported.
@@ -95,6 +96,7 @@ struct in6_ifreq
   uint32_t ifr6_prefixlen; /* __u32 in the original */
   int ifr6_ifindex;
 };
+#endif
 #endif
 
 
