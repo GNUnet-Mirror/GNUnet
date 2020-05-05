@@ -596,6 +596,7 @@ OIDC_parse_authz_code (const struct GNUNET_CRYPTO_EcdsaPrivateKey *ecdsa_priv,
   char *ptr;
   char *plaintext;
   char *attrs_ser;
+  char *attests_ser;
   char *expected_code_challenge;
   char *code_challenge;
   char *code_verifier_hash;
@@ -605,6 +606,7 @@ OIDC_parse_authz_code (const struct GNUNET_CRYPTO_EcdsaPrivateKey *ecdsa_priv,
   struct GNUNET_CRYPTO_EcdhePublicKey *ecdh_pub;
   uint32_t code_challenge_len;
   uint32_t attrs_ser_len;
+  uint32_t attests_ser_len;
   size_t plaintext_len;
   size_t code_payload_len;
   uint32_t nonce = 0;
@@ -710,7 +712,10 @@ OIDC_parse_authz_code (const struct GNUNET_CRYPTO_EcdsaPrivateKey *ecdsa_priv,
   attrs_ser = ((char *) &params[1]) + code_challenge_len;
   attrs_ser_len = ntohl (params->attr_list_len);
   *attrs = GNUNET_RECLAIM_attribute_list_deserialize (attrs_ser, attrs_ser_len);
-  *attests = GNUNET_new (struct GNUNET_RECLAIM_AttestationList);
+  attests_ser = ((char*) attrs_ser) + attrs_ser_len;
+  attests_ser_len = ntohl (params->attest_list_len);
+  *attests = GNUNET_RECLAIM_attestation_list_deserialize (attests_ser,
+                                                          attests_ser_len);
 
   *nonce_str = NULL;
   if (nonce != 0)
