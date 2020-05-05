@@ -2263,13 +2263,16 @@ list_ego (void *cls,
     for (ego_entry = handle->ego_head; NULL != ego_entry;
          ego_entry = ego_entry->next)
     {
-      if (ego_entry->ego == ego)
-        break;
-    }
-    if (NULL != ego_entry)
+      if (ego_entry->ego != ego)
+        continue;
       GNUNET_CONTAINER_DLL_remove (handle->ego_head,
                                    handle->ego_tail,
                                    ego_entry);
+      GNUNET_free (ego_entry->identifier);
+      GNUNET_free (ego_entry->keystring);
+      GNUNET_free (ego_entry);
+      return;
+    }
   }
 }
 
@@ -2283,7 +2286,8 @@ rest_identity_process_request (struct GNUNET_REST_RequestHandle *rest_handle,
 
   handle->oidc = GNUNET_new (struct OIDC_Variables);
   if (NULL == OIDC_cookie_jar_map)
-    OIDC_cookie_jar_map = GNUNET_CONTAINER_multihashmap_create (10, GNUNET_NO);
+    OIDC_cookie_jar_map = GNUNET_CONTAINER_multihashmap_create (10,
+                                                                GNUNET_NO);
   if (NULL == OIDC_access_token_map)
     OIDC_access_token_map =
       GNUNET_CONTAINER_multihashmap_create (10, GNUNET_NO);
@@ -2308,11 +2312,11 @@ rest_identity_process_request (struct GNUNET_REST_RequestHandle *rest_handle,
 
 
 /**
- * Entry point for the plugin.
- *
- * @param cls Config info
- * @return NULL on error, otherwise the plugin context
- */
+   * Entry point for the plugin.
+   *
+   * @param cls Config info
+   * @return NULL on error, otherwise the plugin context
+   */
 void *
 libgnunet_plugin_rest_openid_connect_init (void *cls)
 {
@@ -2321,7 +2325,7 @@ libgnunet_plugin_rest_openid_connect_init (void *cls)
 
   cfg = cls;
   if (NULL != plugin.cfg)
-    return NULL; /* can only initialize once! */
+    return NULL;     /* can only initialize once! */
   memset (&plugin, 0, sizeof(struct Plugin));
   plugin.cfg = cfg;
   api = GNUNET_new (struct GNUNET_REST_Plugin);
@@ -2343,11 +2347,11 @@ libgnunet_plugin_rest_openid_connect_init (void *cls)
 
 
 /**
- * Exit point from the plugin.
- *
- * @param cls the plugin context (as returned by "init")
- * @return always NULL
- */
+   * Exit point from the plugin.
+   *
+   * @param cls the plugin context (as returned by "init")
+   * @return always NULL
+   */
 void *
 libgnunet_plugin_rest_openid_connect_done (void *cls)
 {
@@ -2361,7 +2365,8 @@ libgnunet_plugin_rest_openid_connect_done (void *cls)
   hashmap_it =
     GNUNET_CONTAINER_multihashmap_iterator_create (OIDC_cookie_jar_map);
   while (GNUNET_YES ==
-         GNUNET_CONTAINER_multihashmap_iterator_next (hashmap_it, NULL, value))
+         GNUNET_CONTAINER_multihashmap_iterator_next (hashmap_it, NULL,
+                                                      value))
     GNUNET_free_non_null (value);
   GNUNET_CONTAINER_multihashmap_iterator_destroy (hashmap_it);
   GNUNET_CONTAINER_multihashmap_destroy (OIDC_cookie_jar_map);
@@ -2369,7 +2374,8 @@ libgnunet_plugin_rest_openid_connect_done (void *cls)
   hashmap_it =
     GNUNET_CONTAINER_multihashmap_iterator_create (OIDC_access_token_map);
   while (GNUNET_YES ==
-         GNUNET_CONTAINER_multihashmap_iterator_next (hashmap_it, NULL, value))
+         GNUNET_CONTAINER_multihashmap_iterator_next (hashmap_it, NULL,
+                                                      value))
     GNUNET_free_non_null (value);
   GNUNET_CONTAINER_multihashmap_destroy (OIDC_access_token_map);
   GNUNET_CONTAINER_multihashmap_iterator_destroy (hashmap_it);
