@@ -584,9 +584,9 @@ cleanup_handle (struct RequestHandle *handle)
 
   while (NULL != (ego_entry = handle->ego_head))
   {
-    GNUNET_CONTAINER_DLL_remove (ego_entry,
-                                 handle->ego_head,
-                                 handle->ego_tail);
+    GNUNET_CONTAINER_DLL_remove (handle->ego_head,
+                                 handle->ego_tail,
+                                 ego_entry);
     GNUNET_free (ego_entry->identifier);
     GNUNET_free (ego_entry->keystring);
     GNUNET_free (ego_entry);
