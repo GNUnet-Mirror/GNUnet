@@ -710,6 +710,7 @@ OIDC_parse_authz_code (const struct GNUNET_CRYPTO_EcdsaPrivateKey *ecdsa_priv,
   attrs_ser = ((char *) &params[1]) + code_challenge_len;
   attrs_ser_len = ntohl (params->attr_list_len);
   *attrs = GNUNET_RECLAIM_attribute_list_deserialize (attrs_ser, attrs_ser_len);
+  *attests = GNUNET_new (struct GNUNET_RECLAIM_AttestationList);
 
   *nonce_str = NULL;
   if (nonce != 0)

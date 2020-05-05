@@ -549,6 +549,8 @@ cleanup_handle (struct RequestHandle *handle)
     GNUNET_RECLAIM_get_attestations_stop (handle->attest_it);
   if (NULL != handle->ticket_it)
     GNUNET_RECLAIM_ticket_iteration_stop (handle->ticket_it);
+  if (NULL != handle->idp_op)
+    GNUNET_RECLAIM_cancel (handle->idp_op);
   if (NULL != handle->idp)
     GNUNET_RECLAIM_disconnect (handle->idp);
   GNUNET_free_non_null (handle->url);
@@ -1784,8 +1786,8 @@ token_endpoint (struct GNUNET_REST_RequestHandle *con_handle,
   struct RequestHandle *handle = cls;
   const struct EgoEntry *ego_entry;
   struct GNUNET_TIME_Relative expiration_time;
-  struct GNUNET_RECLAIM_AttributeList *cl;
-  struct GNUNET_RECLAIM_AttestationList *al;
+  struct GNUNET_RECLAIM_AttributeList *cl = NULL;
+  struct GNUNET_RECLAIM_AttestationList *al = NULL;
   struct GNUNET_RECLAIM_Ticket ticket;
   struct GNUNET_CRYPTO_EcdsaPublicKey cid;
   const struct GNUNET_CRYPTO_EcdsaPrivateKey *privkey;
@@ -1948,6 +1950,8 @@ consume_ticket (void *cls,
                 const struct GNUNET_RECLAIM_Attestation *attest)
 {
   struct RequestHandle *handle = cls;
+  handle->idp_op = NULL;
+
   if (NULL == identity)
   {
     GNUNET_SCHEDULER_add_now (&return_userinfo_response, handle);
