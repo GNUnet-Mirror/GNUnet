@@ -536,7 +536,6 @@ static void
 cleanup_handle (struct RequestHandle *handle)
 {
   struct EgoEntry *ego_entry;
-  struct EgoEntry *ego_tmp;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Cleaning up\n");
   if (NULL != handle->timeout_task)
@@ -578,18 +577,19 @@ cleanup_handle (struct RequestHandle *handle)
     json_decref (handle->oidc->response);
     GNUNET_free (handle->oidc);
   }
-if(NULL!=handle->attr_list)
+  if (NULL!=handle->attr_list)
     GNUNET_RECLAIM_attribute_list_destroy (handle->attr_list);
-if(NULL!=handle->attests_list)
-   GNUNET_RECLAIM_attestation_list_destroy (handle->attests_list);
+  if (NULL!=handle->attests_list)
+    GNUNET_RECLAIM_attestation_list_destroy (handle->attests_list);
 
-  for (ego_entry = handle->ego_head; NULL != ego_entry;)
+  while (NULL != (ego_entry = handle->ego_head))
   {
-    ego_tmp = ego_entry;
-    ego_entry = ego_entry->next;
-    GNUNET_free (ego_tmp->identifier);
-    GNUNET_free (ego_tmp->keystring);
-    GNUNET_free (ego_tmp);
+    GNUNET_CONTAINER_DLL_remove (ego_entry,
+                                 handle->ego_head,
+                                 handle->ego_tail);
+    GNUNET_free (ego_entry->identifier);
+    GNUNET_free (ego_entry->keystring);
+    GNUNET_free (ego_entry);
   }
   GNUNET_free (handle);
 }
