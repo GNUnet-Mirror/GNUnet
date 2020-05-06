@@ -2004,8 +2004,9 @@ AS_IF([test "x$enable_java_ports" = "xyes"],
 ####
 
 # -- print message regarding enabled experimental features
+experimental_msg="no"
 AS_IF([test "x$enable_experimental" = "xyes"],
-      [experimental_msg="experimental features enabled"])
+      [experimental_msg="yes"])
 # -- OSX Framework
 AS_IF([test "$enable_framework_build" = "yes"],
       [macosx_framework_msg="yes"],
@@ -2035,6 +2036,7 @@ AS_IF([test "x$makeinfo" != "x1"],
       [texinfo_msg="no"],
       [texinfo_msg="yes"])
 # -- conversation
+conversation_msg="no"
 AS_IF([test "x$conversation_backend" = "xnone"],
       [AS_IF([test "x$pulse" != "x1"],
              [AC_MSG_WARN([libpulse(audio) not found (required to build conversation).])
@@ -2049,12 +2051,13 @@ AS_IF([test "x$conversation_backend" = "xnone"],
               gstreamer_msg="no (required for conversation)"],
              [gstreamer_msg="yes"])],
       [AS_IF([test "x$opus" = x1],
-             [features_msg="$features_msg conversation"],
+             [conversation_msg="yes (x$conversation_backend)"],
              [AC_MSG_WARN([libopus not found (required to build conversation)])])])
 # -- rest
+rest_msg="no"
 AS_IF([test "x$lmhd" = "x1"],
       [AS_IF([test "x$jansson" = "x1"],
-             [features_msg="$features_msg rest"],
+             [rest_msg="yes"],
              [AC_MSG_WARN([libjansson not found (required for REST service)])])],
       [AC_MSG_WARN([libmicrohttpd not found (required for REST service)])])
 # -- reclaim
@@ -2081,10 +2084,9 @@ AS_IF([test "$extractor" != 1],
       [libextractor_msg="yes"])
 # -- libzbar
 AS_IF([test "x$zbar" = "x1"],
-      [libzbar_msg="yes"
-       features_msg="$features_msg gnunet-qr"],
+      [libzbar_msg="yes"],
       [AC_MSG_NOTICE([zbar not found, gnunet-qr will not be built.])
-       libzbar_msg="no"])
+       libzbar_msg="no (gnunet-qr will not be built)"])
 # -- libgnurl
 AS_IF([test "$gnurl" = "0"],
       [AS_IF([test "x$curl" = "xfalse"],
@@ -2153,8 +2155,8 @@ AC_SUBST(features_msg)
 # TODO: reduce the length of the last message block, following "IMPORTANT".
 
 AC_MSG_NOTICE([
-GNUnet Configuration
-====================
+Detected system
+===============
 
 GNUnet version:                 ${VERSION}
 
@@ -2192,12 +2194,16 @@ libextractor:                   ${libextractor_msg}
 texi2mdoc:                      ${texi2mdoc_msg}
 mandoc:                         ${mandoc_msg}
 
+GNUnet configuration:
+=====================
+reclaimID:                      ${reclaim_msg}
+conversation:                   ${conversation_msg}
+rest:                           ${rest_msg}
+database backends:              ${features_msg}
+experimental:                   ${experimental_msg}
+
 texinfo manual:                 ${texinfo_msg}
 transpiled mdocml manual:       ${mdocml_msg}
-
-reclaimID:                      ${reclaim_msg}
-features:                       ${features_msg}
-experimental:                   ${experimental_msg}
 ])
 
 AS_IF([test x$MSG_USER_SETUP != xfalse],
