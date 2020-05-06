@@ -17,6 +17,11 @@ REST_PLUGIN = \
 endif
 endif
 
+if HAVE_JSON
+ATTESTATION_PLUGIN = \
+  libgnunet_plugin_reclaim_attestation_jwt.la
+endif
+
 EXTRA_DIST = \
   reclaim.conf \
   test_reclaim_defaults.conf \
@@ -35,7 +40,7 @@ lib_LTLIBRARIES = \
 plugin_LTLIBRARIES = \
   libgnunet_plugin_gnsrecord_reclaim.la \
   libgnunet_plugin_reclaim_attribute_basic.la \
-  libgnunet_plugin_reclaim_attestation_jwt.la \
+  $(ATTESTATION_PLUGIN) \
   $(REST_PLUGIN)
 
 bin_PROGRAMS = \

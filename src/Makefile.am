@@ -61,8 +61,6 @@ endif
 if HAVE_MHD
 if HAVE_JSON
  REST_DIR = rest
- RECLAIM_DIR = \
-  reclaim
 endif
 endif
 
@@ -120,6 +118,6 @@ SUBDIRS = \
   exit \
   pt \
   secretsharing \
-  $(RECLAIM_DIR) \
+  reclaim \
   $(EXP_DIR) \
   integration-tests

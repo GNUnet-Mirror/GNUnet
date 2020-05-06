@@ -2051,15 +2051,29 @@ AS_IF([test "x$conversation_backend" = "xnone"],
       [AS_IF([test "x$opus" = x1],
              [features_msg="$features_msg conversation"],
              [AC_MSG_WARN([libopus not found (required to build conversation)])])])
+# -- rest
+AS_IF([test "x$lmhd" = "x1"],
+      [AS_IF([test "x$jansson" = "x1"],
+             [features_msg="$features_msg rest"],
+             [AC_MSG_WARN([libjansson not found (required for REST service)])])],
+      [AC_MSG_WARN([libmicrohttpd not found (required for REST service)])])
+# -- reclaim
+AS_IF([test "x$lmhd" = "x1"],
+      [AS_IF([test "x$jansson" = "x1"],
+             [reclaim_msg="yes (with OpenID Connect)"],
+             [reclaim_msg="yes (without OpenID Connect, missing libjansson)"],
+      [reclaim_msg="yes (without OpenID Connect, missing libmicrohttpd)"])])
+
+
 # -- interface
 interface_msg=`echo $DEFAULT_INTERFACE | tr -d \"`
 # -- libmicrohttpd
-AS_IF([test "x$lmhd" != "x1"],
-      [libmicrohttpd_msg="no (optional)"],
+AS_IF([test "x$lmhd" = "x0"],
+      [libmicrohttpd_msg="no (REST service and HTTP transport will not be built)"],
       [libmicrohttpd_msg="yes"])
 # -- jansson
 AS_IF([test "x$jansson" = "x0"],
-      [jansson_msg="no (optional)"],
+      [jansson_msg="no (REST service will not be built)"],
       [jansson_msg="yes"])
 # -- libextractor
 AS_IF([test "$extractor" != 1],
@@ -2181,6 +2195,7 @@ mandoc:                         ${mandoc_msg}
 texinfo manual:                 ${texinfo_msg}
 transpiled mdocml manual:       ${mdocml_msg}
 
+reclaimID:                      ${reclaim_msg}
 features:                       ${features_msg}
 experimental:                   ${experimental_msg}
 ])
