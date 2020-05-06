@@ -23,6 +23,7 @@
  */
 #include "platform.h"
 #include "gnunet_namestore_service.h"
+#include "gnunet_gns_service.h"
 #include "gnunet_testing_lib.h"
 #include "gnunet_dnsparser_lib.h"
 
@@ -280,6 +281,8 @@ run (void *cls,
      const struct GNUNET_CONFIGURATION_Handle *cfg,
      struct GNUNET_TESTING_Peer *peer)
 {
+  struct GNUNET_GNSRECORD_Data rd;
+
   endbadly_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT,
                                                 &endbadly,
                                                 NULL);
@@ -290,11 +293,20 @@ run (void *cls,
   nsh = GNUNET_NAMESTORE_connect (cfg);
   GNUNET_break (NULL != nsh);
 
-  nsqe = GNUNET_NAMESTORE_set_nick (nsh,
-                                    &privkey,
-                                    TEST_NICK,
-                                    &nick_cont,
-                                    (void *) name);
+  memset (&rd, 0, sizeof(rd));
+  rd.data = TEST_NICK;
+  rd.data_size = strlen (TEST_NICK) + 1;
+  rd.record_type = GNUNET_GNSRECORD_TYPE_NICK;
+  rd.expiration_time = GNUNET_TIME_UNIT_FOREVER_ABS.abs_value_us;
+  rd.flags |= GNUNET_GNSRECORD_RF_PRIVATE;
+  nsqe = GNUNET_NAMESTORE_records_store (nsh,
+                                         &privkey,
+                                         GNUNET_GNS_EMPTY_LABEL_AT,
+                                         1,
+                                         &rd,
+                                         &nick_cont,
+                                         (void *) name);
+
   if (NULL == nsqe)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,

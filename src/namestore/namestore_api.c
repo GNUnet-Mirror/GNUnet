@@ -1064,43 +1064,6 @@ GNUNET_NAMESTORE_records_store (
 
 
 /**
- * Set the desired nick name for a zone
- *
- * @param h handle to the namestore
- * @param pkey private key of the zone
- * @param nick the nick name to set
- * @param cont continuation to call when done
- * @param cont_cls closure for @a cont
- * @return handle to abort the request
- */
-struct GNUNET_NAMESTORE_QueueEntry *
-GNUNET_NAMESTORE_set_nick (struct GNUNET_NAMESTORE_Handle *h,
-                           const struct GNUNET_CRYPTO_EcdsaPrivateKey *pkey,
-                           const char *nick,
-                           GNUNET_NAMESTORE_ContinuationWithStatus cont,
-                           void *cont_cls)
-{
-  struct GNUNET_GNSRECORD_Data rd;
-
-  if (NULL == h->mq)
-    return NULL;
-  memset (&rd, 0, sizeof(rd));
-  rd.data = nick;
-  rd.data_size = strlen (nick) + 1;
-  rd.record_type = GNUNET_GNSRECORD_TYPE_NICK;
-  rd.expiration_time = GNUNET_TIME_UNIT_FOREVER_ABS.abs_value_us;
-  rd.flags |= GNUNET_GNSRECORD_RF_PRIVATE;
-  return GNUNET_NAMESTORE_records_store (h,
-                                         pkey,
-                                         GNUNET_GNS_EMPTY_LABEL_AT,
-                                         1,
-                                         &rd,
-                                         cont,
-                                         cont_cls);
-}
-
-
-/**
  * Lookup an item in the namestore.
  *
  * @param h handle to the namestore

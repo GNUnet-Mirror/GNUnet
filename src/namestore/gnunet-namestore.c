@@ -1038,6 +1038,24 @@ run_with_zone_pkey (const struct GNUNET_CONFIGURATION_Handle *cfg)
     GNUNET_free (rd);
     return;
   }
+  if (NULL != nickstring)
+  {
+    if (0 == strlen (nickstring))
+    {
+      fprintf (stderr, _ ("Invalid nick `%s'\n"), nickstring);
+      GNUNET_SCHEDULER_shutdown ();
+      ret = 1;
+      return;
+    }
+    add = 1;
+    typestring = GNUNET_strdup (GNUNET_GNSRECORD_number_to_typename (GNUNET_GNSRECORD_TYPE_NICK));
+    name = GNUNET_strdup (GNUNET_GNS_EMPTY_LABEL_AT);
+    value = GNUNET_strdup (nickstring);
+    is_public = 0;
+    expirationstring = GNUNET_strdup ("never");
+    GNUNET_free (nickstring);
+    nickstring = NULL;
+  }
 
   if (add)
   {
@@ -1226,21 +1244,6 @@ run_with_zone_pkey (const struct GNUNET_CONFIGURATION_Handle *cfg)
                                                  &rd,
                                                  &add_continuation,
                                                  &add_qe_uri);
-  }
-  if (NULL != nickstring)
-  {
-    if (0 == strlen (nickstring))
-    {
-      fprintf (stderr, _ ("Invalid nick `%s'\n"), nickstring);
-      GNUNET_SCHEDULER_shutdown ();
-      ret = 1;
-      return;
-    }
-    add_qe_uri = GNUNET_NAMESTORE_set_nick (ns,
-                                            &zone_pkey,
-                                            nickstring,
-                                            &add_continuation,
-                                            &add_qe_uri);
   }
   if (monitor)
   {

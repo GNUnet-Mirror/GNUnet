@@ -23,6 +23,7 @@
  */
 #include "platform.h"
 #include "gnunet_namestore_service.h"
+#include "gnunet_gns_service.h"
 #include "gnunet_testing_lib.h"
 #include "namestore.h"
 #include "gnunet_dnsparser_lib.h"
@@ -313,10 +314,22 @@ nick_1_cont (void *cls, int32_t success, const char *emsg)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Nick 1 added : %s\n",
               (success == GNUNET_OK) ? "SUCCESS" : "FAIL");
+  struct GNUNET_GNSRECORD_Data rd;
 
-  nsqe = GNUNET_NAMESTORE_set_nick (nsh,
-                                    &privkey2, ZONE_NICK_2, &nick_2_cont,
-                                    &privkey2);
+  memset (&rd, 0, sizeof(rd));
+  rd.data = ZONE_NICK_2;
+  rd.data_size = strlen (ZONE_NICK_2) + 1;
+  rd.record_type = GNUNET_GNSRECORD_TYPE_NICK;
+  rd.expiration_time = GNUNET_TIME_UNIT_FOREVER_ABS.abs_value_us;
+  rd.flags |= GNUNET_GNSRECORD_RF_PRIVATE;
+  nsqe = GNUNET_NAMESTORE_records_store (nsh,
+                                         &privkey2,
+                                         GNUNET_GNS_EMPTY_LABEL_AT,
+                                         1,
+                                         &rd,
+                                         &nick_2_cont,
+                                         &privkey2);
+
   if (NULL == nsqe)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -363,14 +376,25 @@ static void
 empty_zone_end (void *cls)
 {
   GNUNET_assert (nsh == cls);
+  struct GNUNET_GNSRECORD_Data rd;
+
   zi = NULL;
   GNUNET_CRYPTO_ecdsa_key_create (&privkey);
   GNUNET_CRYPTO_ecdsa_key_create (&privkey2);
-  nsqe = GNUNET_NAMESTORE_set_nick (nsh,
-                                    &privkey,
-                                    ZONE_NICK_1,
-                                    &nick_1_cont,
-                                    NULL);
+
+  memset (&rd, 0, sizeof(rd));
+  rd.data = ZONE_NICK_1;
+  rd.data_size = strlen (ZONE_NICK_1) + 1;
+  rd.record_type = GNUNET_GNSRECORD_TYPE_NICK;
+  rd.expiration_time = GNUNET_TIME_UNIT_FOREVER_ABS.abs_value_us;
+  rd.flags |= GNUNET_GNSRECORD_RF_PRIVATE;
+  nsqe = GNUNET_NAMESTORE_records_store (nsh,
+                                         &privkey,
+                                         GNUNET_GNS_EMPTY_LABEL_AT,
+                                         1,
+                                         &rd,
+                                         &nick_1_cont,
+                                         NULL);
   if (NULL == nsqe)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
