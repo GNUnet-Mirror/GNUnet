@@ -26,10 +26,10 @@
  */
 #include "platform.h"
 #include <gcrypt.h>
+#include <sodium.h>
 #include "gnunet_crypto_lib.h"
 #include "gnunet_strings_lib.h"
 #include "benchmark.h"
-#include "tweetnacl-gnunet.h"
 
 #define EXTRA_CHECKS 0
 
@@ -173,8 +173,14 @@ GNUNET_CRYPTO_ecdsa_key_get_public (
   const struct GNUNET_CRYPTO_EcdsaPrivateKey *priv,
   struct GNUNET_CRYPTO_EcdsaPublicKey *pub)
 {
+  uint8_t d[32];
+
+  /* Treat priv as little endian, due to libgcrypt. */
+  for (size_t i = 0; i < 32; i++)
+    d[i] = priv->d[31 - i];
   BENCHMARK_START (ecdsa_key_get_public);
-  GNUNET_TWEETNACL_scalarmult_gnunet_ecdsa (pub->q_y, priv->d);
+  crypto_scalarmult_ed25519_base_noclamp (pub->q_y, d);
+  sodium_memzero (d, 32);
   BENCHMARK_END (ecdsa_key_get_public);
 }
 
@@ -190,8 +196,13 @@ GNUNET_CRYPTO_eddsa_key_get_public (
   const struct GNUNET_CRYPTO_EddsaPrivateKey *priv,
   struct GNUNET_CRYPTO_EddsaPublicKey *pub)
 {
+  unsigned char pk[crypto_sign_PUBLICKEYBYTES];
+  unsigned char sk[crypto_sign_SECRETKEYBYTES]; 
+
   BENCHMARK_START (eddsa_key_get_public);
-  GNUNET_TWEETNACL_sign_pk_from_seed (pub->q_y, priv->d);
+  GNUNET_assert (0 == crypto_sign_seed_keypair (pk, sk, priv->d));
+  GNUNET_memcpy (pub->q_y, pk, crypto_sign_PUBLICKEYBYTES);
+  sodium_memzero (sk, crypto_sign_SECRETKEYBYTES);
   BENCHMARK_END (eddsa_key_get_public);
 }
 
@@ -208,7 +219,7 @@ GNUNET_CRYPTO_ecdhe_key_get_public (
   struct GNUNET_CRYPTO_EcdhePublicKey *pub)
 {
   BENCHMARK_START (ecdhe_key_get_public);
-  GNUNET_TWEETNACL_scalarmult_curve25519_base (pub->q_y, priv->d);
+  GNUNET_assert (0 == crypto_scalarmult_base (pub->q_y, priv->d));
   BENCHMARK_END (ecdhe_key_get_public);
 }
 
@@ -737,15 +748,17 @@ GNUNET_CRYPTO_eddsa_sign_ (
 {
 
   size_t mlen = ntohl (purpose->size);
-  unsigned char sk[GNUNET_TWEETNACL_SIGN_SECRETKEYBYTES];
+  unsigned char sk[crypto_sign_SECRETKEYBYTES];
+  unsigned char pk[crypto_sign_PUBLICKEYBYTES];
   int res;
 
   BENCHMARK_START (eddsa_sign);
-  GNUNET_TWEETNACL_sign_sk_from_seed (sk, priv->d);
-  res = GNUNET_TWEETNACL_sign_detached ((uint8_t *) sig,
-                                        (uint8_t *) purpose,
-                                        mlen,
-                                        sk);
+  GNUNET_assert (0 == crypto_sign_seed_keypair (pk, sk, priv->d));
+  res = crypto_sign_detached ((uint8_t *) sig,
+                              NULL,
+                              (uint8_t *) purpose,
+                              mlen,
+                              sk);
   BENCHMARK_END (eddsa_sign);
   return (res == 0) ? GNUNET_OK : GNUNET_SYSERR;
 }
@@ -856,7 +869,7 @@ GNUNET_CRYPTO_eddsa_verify_ (
     return GNUNET_SYSERR; /* purpose mismatch */
 
   BENCHMARK_START (eddsa_verify);
-  res = GNUNET_TWEETNACL_sign_detached_verify (s, m, mlen, pub->q_y);
+  res = crypto_sign_verify_detached (s, m, mlen, pub->q_y);
   BENCHMARK_END (eddsa_verify);
   return (res == 0) ? GNUNET_OK : GNUNET_SYSERR;
 }
@@ -875,9 +888,10 @@ GNUNET_CRYPTO_ecc_ecdh (const struct GNUNET_CRYPTO_EcdhePrivateKey *priv,
                         const struct GNUNET_CRYPTO_EcdhePublicKey *pub,
                         struct GNUNET_HashCode *key_material)
 {
-  uint8_t p[GNUNET_TWEETNACL_SCALARMULT_BYTES];
-  GNUNET_TWEETNACL_scalarmult_curve25519 (p, priv->d, pub->q_y);
-  GNUNET_CRYPTO_hash (p, GNUNET_TWEETNACL_SCALARMULT_BYTES, key_material);
+  uint8_t p[crypto_scalarmult_BYTES];
+  if (0 != crypto_scalarmult (p, priv->d, pub->q_y))
+    return GNUNET_SYSERR;
+  GNUNET_CRYPTO_hash (p, crypto_scalarmult_BYTES, key_material);
   return GNUNET_OK;
 }
 
@@ -1041,16 +1055,17 @@ GNUNET_CRYPTO_eddsa_ecdh (const struct GNUNET_CRYPTO_EddsaPrivateKey *priv,
                           struct GNUNET_HashCode *key_material)
 {
   struct GNUNET_HashCode hc;
-  uint8_t a[GNUNET_TWEETNACL_SCALARMULT_BYTES];
-  uint8_t p[GNUNET_TWEETNACL_SCALARMULT_BYTES];
+  uint8_t a[crypto_scalarmult_SCALARBYTES];
+  uint8_t p[crypto_scalarmult_BYTES];
 
   GNUNET_CRYPTO_hash (priv,
                       sizeof (struct GNUNET_CRYPTO_EcdsaPrivateKey),
                       &hc);
   memcpy (a, &hc, sizeof (struct GNUNET_CRYPTO_EcdhePrivateKey));
-  GNUNET_TWEETNACL_scalarmult_curve25519 (p, a, pub->q_y);
+  if (0 != crypto_scalarmult (p, a, pub->q_y))
+    return GNUNET_SYSERR;
   GNUNET_CRYPTO_hash (p,
-                      GNUNET_TWEETNACL_SCALARMULT_BYTES,
+                      crypto_scalarmult_BYTES,
                       key_material);
   return GNUNET_OK;
 }
@@ -1071,15 +1086,17 @@ GNUNET_CRYPTO_ecdsa_ecdh (const struct GNUNET_CRYPTO_EcdsaPrivateKey *priv,
                           const struct GNUNET_CRYPTO_EcdhePublicKey *pub,
                           struct GNUNET_HashCode *key_material)
 {
-  uint8_t p[GNUNET_TWEETNACL_SCALARMULT_BYTES];
-  uint8_t d_rev[GNUNET_TWEETNACL_SCALARMULT_BYTES];
+  uint8_t p[crypto_scalarmult_BYTES];
+  uint8_t d_rev[crypto_scalarmult_SCALARBYTES];
 
   BENCHMARK_START (ecdsa_ecdh);
+  // FIXME: byte order
   for (size_t i = 0; i < 32; i++)
     d_rev[i] = priv->d[31 - i];
-  GNUNET_TWEETNACL_scalarmult_curve25519 (p, d_rev, pub->q_y);
+  if (0 != crypto_scalarmult (p, d_rev, pub->q_y))
+    return GNUNET_SYSERR;
   GNUNET_CRYPTO_hash (p,
-                      GNUNET_TWEETNACL_SCALARMULT_BYTES,
+                      crypto_scalarmult_BYTES,
                       key_material);
   BENCHMARK_END (ecdsa_ecdh);
   return GNUNET_OK;
@@ -1101,12 +1118,14 @@ GNUNET_CRYPTO_ecdh_eddsa (const struct GNUNET_CRYPTO_EcdhePrivateKey *priv,
                           const struct GNUNET_CRYPTO_EddsaPublicKey *pub,
                           struct GNUNET_HashCode *key_material)
 {
-  uint8_t p[GNUNET_TWEETNACL_SCALARMULT_BYTES];
-  uint8_t curve25510_pk[GNUNET_TWEETNACL_SIGN_PUBLICBYTES];
+  uint8_t p[crypto_scalarmult_BYTES];
+  uint8_t curve25510_pk[crypto_scalarmult_BYTES];
 
-  GNUNET_TWEETNACL_sign_ed25519_pk_to_curve25519 (curve25510_pk, pub->q_y);
-  GNUNET_TWEETNACL_scalarmult_curve25519 (p, priv->d, curve25510_pk);
-  GNUNET_CRYPTO_hash (p, GNUNET_TWEETNACL_SCALARMULT_BYTES, key_material);
+  if (0 != crypto_sign_ed25519_pk_to_curve25519 (curve25510_pk, pub->q_y))
+    return GNUNET_SYSERR;
+  if (0 != crypto_scalarmult (p, priv->d, curve25510_pk))
+    return GNUNET_SYSERR;
+  GNUNET_CRYPTO_hash (p, crypto_scalarmult_BYTES, key_material);
   return GNUNET_OK;
 }
 
@@ -1126,12 +1145,14 @@ GNUNET_CRYPTO_ecdh_ecdsa (const struct GNUNET_CRYPTO_EcdhePrivateKey *priv,
                           const struct GNUNET_CRYPTO_EcdsaPublicKey *pub,
                           struct GNUNET_HashCode *key_material)
 {
-  uint8_t p[GNUNET_TWEETNACL_SCALARMULT_BYTES];
-  uint8_t curve25510_pk[GNUNET_TWEETNACL_SIGN_PUBLICBYTES];
+  uint8_t p[crypto_scalarmult_BYTES];
+  uint8_t curve25510_pk[crypto_scalarmult_BYTES];
 
-  GNUNET_TWEETNACL_sign_ed25519_pk_to_curve25519 (curve25510_pk, pub->q_y);
-  GNUNET_TWEETNACL_scalarmult_curve25519 (p, priv->d, curve25510_pk);
-  GNUNET_CRYPTO_hash (p, GNUNET_TWEETNACL_SCALARMULT_BYTES, key_material);
+  if (0 != crypto_sign_ed25519_pk_to_curve25519 (curve25510_pk, pub->q_y))
+    return GNUNET_SYSERR;
+  if (0 != crypto_scalarmult (p, priv->d, curve25510_pk))
+    return GNUNET_SYSERR;
+  GNUNET_CRYPTO_hash (p, crypto_scalarmult_BYTES, key_material);
   return GNUNET_OK;
 }
 

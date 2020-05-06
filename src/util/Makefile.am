@@ -96,8 +96,6 @@ libgnunetutil_la_SOURCES = \
   strings.c \
   time.c \
   tun.c \
-  tweetnacl-gnunet.c \
-  tweetnacl-gnunet.h \
   speedup.c speedup.h \
   proc_compat.c
 
@@ -134,6 +132,7 @@ libgnunetutil_la_LIBADD = \
   $(Z_LIBS) \
   -lunistring \
   -largon2 \
+  -lsodium \
   $(XLIB) \
   $(PTHREAD)
 
