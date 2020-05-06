@@ -97,6 +97,9 @@ AC_DEFUN([CC_CHECK_CFLAG_APPEND], [
 # We make heavy use of this, llvm/gcc and gcc-9 give warnings so disable.
 CC_CHECK_CFLAG_APPEND([address-of-packed-member])
 
+# We make heavy use of this, llvm/gcc and gcc-9 give warnings so disable.
+CC_CHECK_CFLAG_APPEND([tautological-constant-out-of-range-compare])
+
 # Use Linux interface name unless the OS has a different preference
 DEFAULT_INTERFACE="\"eth0\""
 
@@ -1459,6 +1462,7 @@ AM_CONDITIONAL(HAVE_MHD, test x$lmhd = x1)
 AC_DEFINE_UNQUOTED([HAVE_MHD], $lmhd, [We have libmicrohttpd])
 
 AM_CONDITIONAL(HAVE_JSON, [test x$jansson = x1])
+AM_CONDITIONAL(HAVE_REST, [test x$jansson = x1 -a x$lmhd = x1])
 
 # restore LIBS
 LIBS=$SAVE_LIBS
@@ -2034,19 +2038,13 @@ AS_IF([test "x$conversation_backend" = "xnone"],
       [AS_IF([test "x$opus" = x1],
              [conversation_msg="yes (x$conversation_backend)"],
              [AC_MSG_WARN([libopus not found (required to build conversation)])])])
-# -- rest
+# -- rest / oidc
 rest_msg="no"
-AS_IF([test "x$lmhd" = "x1"],
-      [AS_IF([test "x$jansson" = "x1"],
-             [rest_msg="yes"],
-             [rest_msg="no (libjansson missing)"])],
-      [rest_msg="no (libmicrohttpd missing)"])
-# -- reclaim
-AS_IF([test "x$lmhd" = "x1"],
-      [AS_IF([test "x$jansson" = "x1"],
-             [reclaim_msg="yes (with OpenID Connect)"],
-             [reclaim_msg="yes (without OpenID Connect, missing libjansson)"],
-      [reclaim_msg="yes (without OpenID Connect, missing libmicrohttpd)"])])
+AS_IF([test "x$lmhd" = "x1" -a "x$jansson" = "x1"],
+      [rest_msg="yes"
+       reclaim_msg="yes (with OpenID Connect)"],
+      [rest_msg="no"
+       reclaim_msg="yes (without OpenID Connect)"])
 
 
 # -- interface
