@@ -587,8 +587,8 @@ cleanup_handle (struct RequestHandle *handle)
     GNUNET_CONTAINER_DLL_remove (handle->ego_head,
                                  handle->ego_tail,
                                  ego_entry);
-    GNUNET_free (ego_entry->identifier);
-    GNUNET_free (ego_entry->keystring);
+    GNUNET_free_non_null (ego_entry->identifier);
+    GNUNET_free_non_null (ego_entry->keystring);
     GNUNET_free (ego_entry);
   }
   GNUNET_free (handle);
