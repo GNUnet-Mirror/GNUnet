@@ -8,10 +8,8 @@ if USE_COVERAGE
   XLIB = -lgcov
 endif
 
-if HAVE_MHD
-if HAVE_JSON
+if HAVE_REST
 plugin_LTLIBRARIES = libgnunet_plugin_rest_identity.la
-endif
 endif
 
 pkgcfgdir= $(pkgdatadir)/config.d/

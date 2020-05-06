@@ -323,7 +323,7 @@ calculate_pow (void *cls)
  * @param ego the ego, NULL if not found
  */
 static void
-ego_callback (void *cls, const struct GNUNET_IDENTITY_Ego *ego)
+ego_callback (void *cls, struct GNUNET_IDENTITY_Ego *ego)
 {
   struct GNUNET_CRYPTO_EcdsaPublicKey key;
   const struct GNUNET_CRYPTO_EcdsaPrivateKey *privkey;

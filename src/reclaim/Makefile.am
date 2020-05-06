@@ -9,12 +9,10 @@ if USE_COVERAGE
 endif
 
 
-if HAVE_MHD
-if HAVE_JSON
+if HAVE_REST
 REST_PLUGIN = \
   libgnunet_plugin_rest_openid_connect.la \
   libgnunet_plugin_rest_reclaim.la
-endif
 endif
 
 if HAVE_JSON

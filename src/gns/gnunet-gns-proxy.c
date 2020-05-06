@@ -3378,7 +3378,7 @@ do_s5r_read (void *cls)
         s5r->gns_lookup = GNUNET_GNS_lookup_with_tld (gns_handle,
                                                       s5r->domain,
                                                       GNUNET_DNSPARSER_TYPE_A,
-                                                      GNUNET_NO /* only cached */,
+                                                      GNUNET_GNS_LO_LOCAL_MASTER /* only cached */,
                                                       &handle_gns_result,
                                                       s5r);
         break;

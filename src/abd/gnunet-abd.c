@@ -384,7 +384,7 @@ handle_verify_result (void *cls,
  * @param ego an ego known to identity service, or NULL
  */
 static void
-identity_cb (void *cls, const struct GNUNET_IDENTITY_Ego *ego)
+identity_cb (void *cls, struct GNUNET_IDENTITY_Ego *ego)
 {
   const struct GNUNET_CRYPTO_EcdsaPrivateKey *privkey;
 
@@ -547,7 +547,7 @@ get_existing_record (void *cls,
 
 
 static void
-store_cb (void *cls, const struct GNUNET_IDENTITY_Ego *ego)
+store_cb (void *cls, struct GNUNET_IDENTITY_Ego *ego)
 {
   const struct GNUNET_CONFIGURATION_Handle *cfg = cls;
 
@@ -648,7 +648,7 @@ store_cb (void *cls, const struct GNUNET_IDENTITY_Ego *ego)
 
 
 static void
-sign_cb (void *cls, const struct GNUNET_IDENTITY_Ego *ego)
+sign_cb (void *cls, struct GNUNET_IDENTITY_Ego *ego)
 {
   const struct GNUNET_CRYPTO_EcdsaPrivateKey *privkey;
   struct GNUNET_ABD_Delegate *dele;

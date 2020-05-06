@@ -300,7 +300,7 @@ GNUNET_IDENTITY_cancel (struct GNUNET_IDENTITY_Operation *op);
  */
 typedef void
 (*GNUNET_IDENTITY_EgoCallback) (void *cls,
-                                const struct GNUNET_IDENTITY_Ego *ego);
+                                struct GNUNET_IDENTITY_Ego *ego);
 
 /**
  * Handle for ego lookup.

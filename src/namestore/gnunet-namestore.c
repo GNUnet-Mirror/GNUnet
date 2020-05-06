@@ -1265,7 +1265,7 @@ run_with_zone_pkey (const struct GNUNET_CONFIGURATION_Handle *cfg)
  * @param ego an ego known to identity service, or NULL
  */
 static void
-identity_cb (void *cls, const struct GNUNET_IDENTITY_Ego *ego)
+identity_cb (void *cls, struct GNUNET_IDENTITY_Ego *ego)
 {
   const struct GNUNET_CONFIGURATION_Handle *cfg = cls;
 

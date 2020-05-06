@@ -58,10 +58,8 @@ if HAVE_POSTGRESQL
  POSTGRES_DIR = pq
 endif
 
-if HAVE_MHD
-if HAVE_JSON
+if HAVE_REST
  REST_DIR = rest
-endif
 endif
 
 

@@ -88,10 +88,8 @@ bin_PROGRAMS += gnunet-bcd
 endif
 endif
 
-if HAVE_MHD
-if HAVE_JSON
+if HAVE_REST
 REST_PLUGIN = libgnunet_plugin_rest_gns.la
-endif
 endif
 
 plugin_LTLIBRARIES = \

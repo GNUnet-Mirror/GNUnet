@@ -99,10 +99,8 @@ TESTS = \
   $(check_SCRIPTS)
 endif
 
-if HAVE_MHD
-if HAVE_JSON
+if HAVE_REST
 REST_PLUGIN = libgnunet_plugin_rest_namestore.la
-endif
 endif
 
 lib_LTLIBRARIES = \
