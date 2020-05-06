@@ -2002,7 +2002,9 @@ AS_IF([test "x$enable_java_ports" = "xyes"],
 #### This could be moved to the checks above,
 #### but for now let's keep it here.
 ####
-
+transport_msg="tcp udp unix"
+AS_IF([test "x$build_target" = "xlinux" -a "x$enable_experimental" = "xyes"],
+      [transport_msg="$transport_msg wlan"])
 # -- print message regarding enabled experimental features
 experimental_msg="no"
 AS_IF([test "x$enable_experimental" = "xyes"],
@@ -2070,7 +2072,8 @@ interface_msg=`echo $DEFAULT_INTERFACE | tr -d \"`
 # -- libmicrohttpd
 AS_IF([test "x$lmhd" = "x0"],
       [libmicrohttpd_msg="no (REST service and HTTP transport will not be built)"],
-      [libmicrohttpd_msg="yes"])
+      [libmicrohttpd_msg="yes"
+       transport_msg="$transport_msg http_server"])
 # -- jansson
 AS_IF([test "x$jansson" = "x0"],
       [jansson_msg="no (REST service will not be built)"],
@@ -2091,7 +2094,8 @@ AS_IF([test "$gnurl" = "0"],
               curl_msg="no"],
              [AC_MSG_NOTICE([libgnurl not found, trying to use libcurl-gnutls instead.])
               curl_msg="yes"])],
-       [gnurl_msg="yes"])
+       [gnurl_msg="yes"
+        transport_msg="$transport_msg http_client"])
 # -- ifconfig
 AS_IF([test "$VAR_IFCONFIG_BINARY" = "false"],
       [ifconfig_msg="no (optional, some features will not work)"],
@@ -2107,7 +2111,8 @@ AS_IF([test "$VAR_IPTABLES_BINARY" = "false"],
 # -- bluetooth
 AS_IF([test "x$bluetooth" = "x0"],
       [bluetooth_msg="no (optional)"],
-      [bluetooth_msg="yes"])
+      [bluetooth_msg="yes"
+       transport_msg="$transport_msg bluetooth"])
 # -- gnutls
 AS_IF([test x$gnutls != xtrue],
       [AC_MSG_WARN([GnuTLS not found, gnunet-gns-proxy will not be built])
@@ -2188,6 +2193,7 @@ mandoc:                         ${mandoc_msg}
 
 GNUnet configuration:
 =====================
+transports:                     ${transport_msg}
 reclaimID:                      ${reclaim_msg}
 conversation:                   ${conversation_msg}
 rest:                           ${rest_msg}
