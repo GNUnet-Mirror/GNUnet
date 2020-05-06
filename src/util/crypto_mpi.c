@@ -146,4 +146,32 @@ GNUNET_CRYPTO_mpi_scan_unsigned (gcry_mpi_t *result,
 }
 
 
+/**
+ * Convert little endian data buffer into MPI value.
+ * The buffer is interpreted as network
+ * byte order, unsigned integer.
+ *
+ * @param result where to store MPI value (allocated)
+ * @param data raw data (GCRYMPI_FMT_USG)
+ * @param size number of bytes in @a data
+ */
+void
+GNUNET_CRYPTO_mpi_scan_unsigned_le (gcry_mpi_t *result,
+                                 const void *data,
+                                 size_t size)
+{
+  int rc;
+
+  if (0 != (rc = gcry_mpi_scan (result,
+                                GCRYMPI_FMT_USG,
+                                data, size, &size)))
+  {
+    LOG_GCRY (GNUNET_ERROR_TYPE_ERROR,
+              "gcry_mpi_scan",
+              rc);
+    GNUNET_assert (0);
+  }
+}
+
+
 /* end of crypto_mpi.c */
