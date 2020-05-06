@@ -933,7 +933,6 @@ oidc_ticket_issue_cb (void *cls, const struct GNUNET_RECLAIM_Ticket *ticket)
   ticket_str =
     GNUNET_STRINGS_data_to_string_alloc (&handle->ticket,
                                          sizeof(struct GNUNET_RECLAIM_Ticket));
-  // TODO change if more attributes are needed (see max_age)
   code_string = OIDC_build_authz_code (&handle->priv_key,
                                        &handle->ticket,
                                        handle->attr_list,
@@ -1533,8 +1532,7 @@ authorize_endpoint (struct GNUNET_REST_RequestHandle *con_handle,
     }
   }
   handle->oidc->scope = get_url_parameter_copy (handle, OIDC_SCOPE_KEY);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Scope: %s\n",GNUNET_strdup (
-                handle->oidc->scope));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Scope: %s\n", handle->oidc->scope);
   if (NULL == handle->tld)
     GNUNET_CONFIGURATION_iterate_section_values (cfg, "gns", tld_iter, handle);
   if (NULL == handle->tld)
