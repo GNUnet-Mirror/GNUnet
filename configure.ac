@@ -2039,16 +2039,13 @@ AS_IF([test "x$makeinfo" != "x1"],
 conversation_msg="no"
 AS_IF([test "x$conversation_backend" = "xnone"],
       [AS_IF([test "x$pulse" != "x1"],
-             [AC_MSG_WARN([libpulse(audio) not found (required to build conversation).])
-              libpulse_msg="no (required for conversation)"],
+             [libpulse_msg="no (required for conversation)"],
              [libpulse_msg="yes"])
        AS_IF([test "x$opus" != "x1"],
-             [AC_MSG_WARN([libopus not found (required to build conversation)])
-              libopus_msg="no (required for conversation)"],
+             [libopus_msg="no (required for conversation)"],
              [libopus_msg="yes"])
        AS_IF([test "x$gst" != "x1"],
-             [AC_MSG_WARN([GStreamer not found (required to build conversation).])
-              gstreamer_msg="no (required for conversation)"],
+             [gstreamer_msg="no (required for conversation)"],
              [gstreamer_msg="yes"])],
       [AS_IF([test "x$opus" = x1],
              [conversation_msg="yes (x$conversation_backend)"],
@@ -2058,8 +2055,8 @@ rest_msg="no"
 AS_IF([test "x$lmhd" = "x1"],
       [AS_IF([test "x$jansson" = "x1"],
              [rest_msg="yes"],
-             [AC_MSG_WARN([libjansson not found (required for REST service)])])],
-      [AC_MSG_WARN([libmicrohttpd not found (required for REST service)])])
+             [rest_msg="no (libjansson missing)"])],
+      [rest_msg="no (libmicrohttpd missing)"])
 # -- reclaim
 AS_IF([test "x$lmhd" = "x1"],
       [AS_IF([test "x$jansson" = "x1"],
@@ -2085,8 +2082,7 @@ AS_IF([test "$extractor" != 1],
 # -- libzbar
 AS_IF([test "x$zbar" = "x1"],
       [libzbar_msg="yes"],
-      [AC_MSG_NOTICE([zbar not found, gnunet-qr will not be built.])
-       libzbar_msg="no (gnunet-qr will not be built)"])
+      [libzbar_msg="no (gnunet-qr will not be built)"])
 # -- libgnurl
 AS_IF([test "$gnurl" = "0"],
       [AS_IF([test "x$curl" = "xfalse"],
@@ -2098,28 +2094,24 @@ AS_IF([test "$gnurl" = "0"],
        [gnurl_msg="yes"])
 # -- ifconfig
 AS_IF([test "$VAR_IFCONFIG_BINARY" = "false"],
-      [AC_MSG_WARN([ifconfig not found, some features will not work])
-       ifconfig_msg="no (optional)"],
+      [ifconfig_msg="no (optional, some features will not work)"],
       [ifconfig_msg="yes"])
 # -- upnpc
 AS_IF([test "$VAR_UPNPC_BINARY" = "false"],
-      [AC_MSG_WARN([upnpc binary not found, NAT traversal using UPnPc will not work])
-       upnpc_msg="no (optional)"],
+      [upnpc_msg="no (optional, NAT traversal using UPnPc will not work)"],
       [upnpc_msg="yes"])
 # -- iptables
 AS_IF([test "$VAR_IPTABLES_BINARY" = "false"],
-      [AC_MSG_WARN([iptables not found, DNS query interception will not work])
-       iptables_msg="no (optional)"],
+      [iptables_msg="no (optional, DNS query interception will not work)"],
       [iptables_msg="yes"])
 # -- bluetooth
 AS_IF([test "x$bluetooth" = "x0"],
-      [AC_MSG_NOTICE([bluetooth library not found, will not be able to use Bluetooth])
-       bluetooth_msg="no (optional)"],
+      [bluetooth_msg="no (optional)"],
       [bluetooth_msg="yes"])
 # -- gnutls
 AS_IF([test x$gnutls != xtrue],
       [AC_MSG_WARN([GnuTLS not found, gnunet-gns-proxy will not be built])
-       gnutls_msg="no"],
+       gnutls_msg="no (gnunet-gns-proxy will not be built)"],
       [AS_IF([test "x$gnutls_dane" != "x1"],
              [AC_MSG_WARN([GnuTLS lacks DANE support, DANE validation will not be possible])
               gnutls_msg="yes (without DANE support)"],
