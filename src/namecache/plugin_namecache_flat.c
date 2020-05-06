@@ -78,7 +78,7 @@ database_setup (struct Plugin *plugin)
   char*line;
   char*query;
   char*block;
-  size_t size;
+  uint64_t size;
   struct FlatFileEntry *entry;
   struct GNUNET_DISK_FileHandle *fh;
 

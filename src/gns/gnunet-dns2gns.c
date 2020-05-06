@@ -465,7 +465,7 @@ handle_request (struct GNUNET_NETWORK_Handle *lsock,
   request->lookup = GNUNET_GNS_lookup_with_tld (gns,
                                                 packet->queries[0].name,
                                                 packet->queries[0].type,
-                                                GNUNET_NO,
+                                                GNUNET_GNS_LO_DEFAULT,
                                                 &result_processor,
                                                 request);
 }

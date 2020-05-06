@@ -352,7 +352,7 @@ handle_dns_request (void *cls,
     ilh->lookup = GNS_resolver_lookup (&zone,
                                        p->queries[0].type,
                                        p->queries[0].name,
-                                       GNUNET_NO,
+                                       GNUNET_GNS_LO_DEFAULT,
                                        MAX_RECURSION,
                                        &reply_to_dns, ilh);
     return;

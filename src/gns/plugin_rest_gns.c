@@ -319,7 +319,7 @@ get_gns_cont (struct GNUNET_REST_RequestHandle *con_handle,
   handle->gns_lookup = GNUNET_GNS_lookup_with_tld (handle->gns,
                                                    handle->name,
                                                    handle->record_type,
-                                                   GNUNET_NO,
+                                                   GNUNET_GNS_LO_DEFAULT,
                                                    &handle_gns_response,
                                                    handle);
 }

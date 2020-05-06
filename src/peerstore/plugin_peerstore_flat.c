@@ -345,7 +345,7 @@ database_setup (struct Plugin *plugin)
   struct GNUNET_DISK_FileHandle *fh;
   struct GNUNET_PEERSTORE_Record *entry;
   struct GNUNET_HashCode hkey;
-  size_t size;
+  uint64_t size;
   char *buffer;
   char *line;
 
