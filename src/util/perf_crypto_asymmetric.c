@@ -62,9 +62,9 @@ int
 main (int argc, char *argv[])
 {
   int i;
-  struct GNUNET_CRYPTO_EcdhePrivateKey *ecdhe[l];
+  struct GNUNET_CRYPTO_EcdhePrivateKey ecdhe[l];
   struct GNUNET_CRYPTO_EcdhePublicKey dhpub[l];
-  struct GNUNET_CRYPTO_EddsaPrivateKey *eddsa[l];
+  struct GNUNET_CRYPTO_EddsaPrivateKey eddsa[l];
   struct GNUNET_CRYPTO_EddsaPublicKey dspub[l];
   struct TestSig sig[l];
 
@@ -82,18 +82,18 @@ main (int argc, char *argv[])
 
   start = GNUNET_TIME_absolute_get ();
   for (i = 0; i < l; i++)
-    eddsa[i] = GNUNET_CRYPTO_eddsa_key_create ();
+    GNUNET_CRYPTO_eddsa_key_create (&eddsa[i]);
   log_duration ("EdDSA", "create key");
 
   start = GNUNET_TIME_absolute_get ();
   for (i = 0; i < l; i++)
-    GNUNET_CRYPTO_eddsa_key_get_public (eddsa[i], &dspub[i]);
+    GNUNET_CRYPTO_eddsa_key_get_public (&eddsa[i], &dspub[i]);
   log_duration ("EdDSA", "get public");
 
   start = GNUNET_TIME_absolute_get ();
   for (i = 0; i < l; i++)
     GNUNET_assert (GNUNET_OK ==
-                   GNUNET_CRYPTO_eddsa_sign_ (eddsa[i],
+                   GNUNET_CRYPTO_eddsa_sign_ (&eddsa[i],
                                               &sig[i].purp,
                                               &sig[i].sig));
   log_duration ("EdDSA", "sign HashCode");
@@ -109,19 +109,19 @@ main (int argc, char *argv[])
 
   start = GNUNET_TIME_absolute_get ();
   for (i = 0; i < l; i++)
-    ecdhe[i] = GNUNET_CRYPTO_ecdhe_key_create ();
+    GNUNET_CRYPTO_ecdhe_key_create (&ecdhe[i]);
   log_duration ("ECDH", "create key");
 
   start = GNUNET_TIME_absolute_get ();
   for (i = 0; i < l; i++)
-    GNUNET_CRYPTO_ecdhe_key_get_public (ecdhe[i], &dhpub[i]);
+    GNUNET_CRYPTO_ecdhe_key_get_public (&ecdhe[i], &dhpub[i]);
   log_duration ("ECDH", "get public");
 
   start = GNUNET_TIME_absolute_get ();
   for (i = 0; i < l - 1; i += 2)
   {
-    GNUNET_CRYPTO_ecc_ecdh (ecdhe[i], &dhpub[i + 1], &sig[i].h);
-    GNUNET_CRYPTO_ecc_ecdh (ecdhe[i + 1], &dhpub[i], &sig[i + 1].h);
+    GNUNET_CRYPTO_ecc_ecdh (&ecdhe[i], &dhpub[i + 1], &sig[i].h);
+    GNUNET_CRYPTO_ecc_ecdh (&ecdhe[i + 1], &dhpub[i], &sig[i + 1].h);
   }
   log_duration ("ECDH", "do DH");
 
