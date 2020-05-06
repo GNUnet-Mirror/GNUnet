@@ -1046,6 +1046,15 @@ AS_IF([test x$argon = x1],
  AC_MSG_ERROR([GNUnet requires argon2.])
 ])
 
+libsodium=0
+# test for libsodium
+AC_CHECK_HEADER([sodium.h],
+                [AC_CHECK_LIB([sodium], [sodium_init],
+                              [libsodium=1])])
+
+AS_IF([test x$libsodium = x0],
+      [AC_MSG_ERROR([GNUnet requires libsodium.])])
+
 # test for libextractor
 extractor=0
 AC_MSG_CHECKING(for libextractor)
