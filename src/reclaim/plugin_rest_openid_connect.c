@@ -2255,16 +2255,19 @@ list_ego (void *cls,
     for (ego_entry = handle->ego_head; NULL != ego_entry;
          ego_entry = ego_entry->next)
     {
-      if (ego_entry->ego != ego)
-        continue;
-      GNUNET_CONTAINER_DLL_remove (handle->ego_head,
-                                   handle->ego_tail,
-                                   ego_entry);
-      GNUNET_free (ego_entry->identifier);
-      GNUNET_free (ego_entry->keystring);
-      GNUNET_free (ego_entry);
-      return;
+      if (ego_entry->ego == ego)
+        break;
     }
+    if (NULL == ego_entry)
+      return; /* Not found */
+
+    GNUNET_CONTAINER_DLL_remove (handle->ego_head,
+                                 handle->ego_tail,
+                                 ego_entry);
+    GNUNET_free (ego_entry->identifier);
+    GNUNET_free (ego_entry->keystring);
+    GNUNET_free (ego_entry);
+    return;
   }
 }
 
