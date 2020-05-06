@@ -1041,12 +1041,6 @@ oidc_attr_collect_finished_cb (void *cls)
                                            &oidc_attest_collect_finished_cb,
                                            handle);
 
-  handle->idp_op = GNUNET_RECLAIM_ticket_issue (handle->idp,
-                                                &handle->priv_key,
-                                                &handle->oidc->client_pkey,
-                                                handle->attr_list,
-                                                &oidc_ticket_issue_cb,
-                                                handle);
 }
 
 
