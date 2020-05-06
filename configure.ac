@@ -1521,20 +1521,6 @@ LIBS=$SAVE_LIBS
 
 GN_INTLINCL=""
 GN_LIBINTL="$LTLIBINTL"
-AC_ARG_ENABLE(framework,
-              [AS_HELP_STRING([--enable-framework],[enable Mac OS X framework build helpers])],
-              enable_framework_build=$enableval)
-AM_CONDITIONAL(WANT_FRAMEWORK,
-               test x$enable_framework_build = xyes)
-AS_IF([test x$enable_framework_build = xyes],
-      [AC_DEFINE([FRAMEWORK_BUILD],
-                 1,
-                 [Build a Mac OS X Framework])
-      GN_INTLINCL='-I$(top_srcdir)/src/intlemu'
-      GN_LIBINTL='$(top_builddir)/src/intlemu/libintlemu.la -framework CoreFoundation'
-      AC_LIB_APPENDTOVAR([CPPFLAGS],
-                         [$GN_INTLINCL])])
-
 GN_LIB_LDFLAGS="-export-dynamic -no-undefined"
 GN_PLUGIN_LDFLAGS="-export-dynamic -avoid-version -module -no-undefined"
 
@@ -2009,10 +1995,6 @@ AS_IF([test "x$build_target" = "xlinux" -a "x$enable_experimental" = "xyes"],
 experimental_msg="no"
 AS_IF([test "x$enable_experimental" = "xyes"],
       [experimental_msg="yes"])
-# -- OSX Framework
-AS_IF([test "$enable_framework_build" = "yes"],
-      [macosx_framework_msg="yes"],
-      [macosx_framework_msg="no"])
 # -- libidn 2
 AS_IF([test "x$working_libidn2" = x1],
       [libidn2_msg="libidn2"])
@@ -2165,7 +2147,6 @@ CPPFLAGS:                       ${CPPFLAGS}
 LDFLAGS:                        ${LDFLAGS}
 LIBS:                           ${LIBS}
 Build Target:                   $build_target
-Mac OSX framework build:        ${macosx_framework_msg}
 
 Default Interface:              ${interface_msg}
 
