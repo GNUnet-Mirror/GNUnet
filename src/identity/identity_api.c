@@ -164,8 +164,8 @@ GNUNET_IDENTITY_ego_get_anonymous ()
   anon.pk = *GNUNET_CRYPTO_ecdsa_key_get_anonymous ();
   GNUNET_CRYPTO_ecdsa_key_get_public (&anon.pk,
                                       &pub);
-  GNUNET_CRYPTO_hash (&pub,
-                      sizeof(pub),
+  GNUNET_CRYPTO_hash (&anon.pk,
+                      sizeof(anon.pk),
                       &anon.id);
   setup = 1;
   return &anon;
