@@ -140,7 +140,6 @@ OIDC_id_token_new (const struct GNUNET_CRYPTO_EcdsaPublicKey *aud_key,
   char *body_str;
   char *aggr_names_str;
   char *aggr_sources_str;
-  char *aggr_sources_jwt_str;
   char *source_name;
   char *result;
   char *header_base64;
@@ -206,7 +205,6 @@ OIDC_id_token_new (const struct GNUNET_CRYPTO_EcdsaPublicKey *aud_key,
   attest_val_str = NULL;
   aggr_names_str = NULL;
   aggr_sources_str = NULL;
-  aggr_sources_jwt_str = NULL;
   source_name = NULL;
   int i = 0;
   for (ale = attests->list_head; NULL != ale; ale = ale->next)
@@ -222,10 +220,9 @@ OIDC_id_token_new (const struct GNUNET_CRYPTO_EcdsaPublicKey *aud_key,
                                                   ale->attestation->data_size);
     json_object_set_new (aggr_sources_jwt, "JWT",
                          json_string (attest_val_str) );
-    aggr_sources_jwt_str = json_dumps (aggr_sources_jwt, JSON_INDENT (0)
-                                       | JSON_COMPACT);
-    json_object_set_new (aggr_sources, source_name,json_string (
-                           aggr_sources_jwt_str));
+    json_object_set_new (aggr_sources, source_name, aggr_sources_jwt);
+    GNUNET_free (source_name);
+    source_name = NULL;
     i++;
   }
 
@@ -262,13 +259,12 @@ OIDC_id_token_new (const struct GNUNET_CRYPTO_EcdsaPublicKey *aud_key,
                        j);
       json_object_set_new (aggr_names, le->attribute->data,
                            json_string (source_name));
+      GNUNET_free (source_name);
     }
   }
 
   if (NULL != attest_val_str)
     GNUNET_free (attest_val_str);
-  if (NULL != source_name)
-    GNUNET_free (source_name);
   if (0 != i)
   {
     aggr_names_str = json_dumps (aggr_names, JSON_INDENT (0) | JSON_COMPACT);
@@ -281,7 +277,6 @@ OIDC_id_token_new (const struct GNUNET_CRYPTO_EcdsaPublicKey *aud_key,
 
   json_decref (aggr_names);
   json_decref (aggr_sources);
-  json_decref (aggr_sources_jwt);
 
   body_str = json_dumps (body, JSON_INDENT (0) | JSON_COMPACT);
   json_decref (body);
@@ -324,8 +319,6 @@ OIDC_id_token_new (const struct GNUNET_CRYPTO_EcdsaPublicKey *aud_key,
     GNUNET_free (aggr_sources_str);
   if (NULL != aggr_names_str)
     GNUNET_free (aggr_names_str);
-  if (NULL != aggr_sources_jwt_str)
-    GNUNET_free (aggr_sources_jwt_str);
   GNUNET_free (signature_base64);
   GNUNET_free (body_base64);
   GNUNET_free (header_base64);
