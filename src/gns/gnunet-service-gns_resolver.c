@@ -764,6 +764,12 @@ transmit_lookup_dns_result (struct GNS_ResolverHandle *rh)
       rd[i].data = pos->data;
       rd[i].data_size = pos->data_size;
       rd[i].record_type = pos->record_type;
+      /**
+       * If this is a LEHO, we added this before. It must be a supplemental
+       * record #LSD0001
+       */
+      if (GNUNET_GNSRECORD_TYPE_LEHO == rd[i].record_type)
+        rd[i].flags |= GNUNET_GNSRECORD_RF_SUPPLEMENTAL;
       if (0 == pos->expiration_time)
       {
         rd[i].flags = GNUNET_GNSRECORD_RF_RELATIVE_EXPIRATION;
@@ -1130,6 +1136,7 @@ dns_result_parser (void *cls,
     {
       rd[rd_count - skip].record_type = GNUNET_GNSRECORD_TYPE_LEHO;
       rd[rd_count - skip].flags = GNUNET_GNSRECORD_RF_RELATIVE_EXPIRATION;
+      rd[rd_count - skip].flags |= GNUNET_GNSRECORD_RF_SUPPLEMENTAL;
       rd[rd_count - skip].expiration_time = GNUNET_TIME_UNIT_HOURS.rel_value_us;
       rd[rd_count - skip].data = rh->leho;
       rd[rd_count - skip].data_size = strlen (rh->leho);
@@ -1350,6 +1357,7 @@ handle_gns_cname_result (struct GNS_ResolverHandle *rh,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Doing standard DNS lookup for `%s'\n",
               rh->name);
+
   rh->std_resolve = GNUNET_RESOLVER_ip_get (rh->name,
                                             af,
                                             DNS_LOOKUP_TIMEOUT,
