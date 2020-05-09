@@ -31,7 +31,10 @@
 #define GNUNET_JSON_GNSRECORD_RECORD_DATA "data"
 #define GNUNET_JSON_GNSRECORD_TYPE "record_type"
 #define GNUNET_JSON_GNSRECORD_EXPIRATION_TIME "expiration_time"
-#define GNUNET_JSON_GNSRECORD_FLAG "flag"
+#define GNUNET_JSON_GNSRECORD_FLAG_PRIVATE "private"
+#define GNUNET_JSON_GNSRECORD_FLAG_SUPPLEMENTAL "supplemental"
+#define GNUNET_JSON_GNSRECORD_FLAG_RELATIVE "relative_expiration"
+#define GNUNET_JSON_GNSRECORD_FLAG_SHADOW "shadow"
 #define GNUNET_JSON_GNSRECORD_RECORD_NAME "record_name"
 #define GNUNET_JSON_GNSRECORD_NEVER "never"
 
@@ -48,12 +51,15 @@ struct GnsRecordInfo
 static void
 cleanup_recordinfo (struct GnsRecordInfo *gnsrecord_info)
 {
+  char *tmp;
+
   if (NULL != *(gnsrecord_info->rd))
   {
-    for (unsigned int i = 0; i < *(gnsrecord_info->rd_count); i++)
+    for (int i = 0; i < *(gnsrecord_info->rd_count); i++)
     {
-      if (NULL != (*(gnsrecord_info->rd))[i].data)
-        GNUNET_free_nz ((char *) (*(gnsrecord_info->rd))[i].data);
+      tmp = (char*) (*(gnsrecord_info->rd))[i].data;
+      if (NULL != tmp)
+        GNUNET_free (tmp);
     }
     GNUNET_free (*(gnsrecord_info->rd));
     *(gnsrecord_info->rd) = NULL;
@@ -80,20 +86,29 @@ parse_record (json_t *data, struct GNUNET_GNSRECORD_Data *rd)
   const char *value;
   const char *record_type;
   const char *expiration_time;
-  int flag;
+  int private;
+  int supplemental;
+  int rel_exp;
+  int shadow;
   int unpack_state = 0;
 
   // interpret single gns record
   unpack_state = json_unpack (data,
-                              "{s:s, s:s, s:s, s?:i!}",
+                              "{s:s, s:s, s:s, s:b, s:b, s:b, s:b}",
                               GNUNET_JSON_GNSRECORD_VALUE,
                               &value,
                               GNUNET_JSON_GNSRECORD_TYPE,
                               &record_type,
                               GNUNET_JSON_GNSRECORD_EXPIRATION_TIME,
                               &expiration_time,
-                              GNUNET_JSON_GNSRECORD_FLAG,
-                              &flag);
+                              GNUNET_JSON_GNSRECORD_FLAG_PRIVATE,
+                              &private,
+                              GNUNET_JSON_GNSRECORD_FLAG_SUPPLEMENTAL,
+                              &supplemental,
+                              GNUNET_JSON_GNSRECORD_FLAG_RELATIVE,
+                              &rel_exp,
+                              GNUNET_JSON_GNSRECORD_FLAG_SHADOW,
+                              &shadow);
   if (0 != unpack_state)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -119,9 +134,10 @@ parse_record (json_t *data, struct GNUNET_GNSRECORD_Data *rd)
   {
     rd->expiration_time = GNUNET_TIME_UNIT_FOREVER_ABS.abs_value_us;
   }
-  else if (GNUNET_OK ==
+  else if ((1 != rel_exp) &&
+           (GNUNET_OK ==
            GNUNET_STRINGS_fancy_time_to_absolute (expiration_time,
-                                                  &abs_expiration_time))
+                                                  &abs_expiration_time)))
   {
     rd->expiration_time = abs_expiration_time.abs_value_us;
   }
@@ -129,6 +145,7 @@ parse_record (json_t *data, struct GNUNET_GNSRECORD_Data *rd)
            GNUNET_STRINGS_fancy_time_to_relative (expiration_time,
                                                   &rel_expiration_time))
   {
+    rd->flags |= GNUNET_GNSRECORD_RF_RELATIVE_EXPIRATION;
     rd->expiration_time = rel_expiration_time.rel_value_us;
   }
   else
@@ -136,7 +153,12 @@ parse_record (json_t *data, struct GNUNET_GNSRECORD_Data *rd)
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Expiration time invalid\n");
     return GNUNET_SYSERR;
   }
-  rd->flags = (enum GNUNET_GNSRECORD_Flags) flag;
+  if (1 == private)
+    rd->flags |= GNUNET_GNSRECORD_RF_PRIVATE;
+  if (1 == supplemental)
+    rd->flags |= GNUNET_GNSRECORD_RF_SUPPLEMENTAL;
+  if (1 == shadow)
+    rd->flags |= GNUNET_GNSRECORD_RF_SHADOW_RECORD;
   return GNUNET_OK;
 }
 

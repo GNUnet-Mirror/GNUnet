@@ -213,7 +213,8 @@ GNUNET_JSON_from_gnsrecord (const char*rname,
                             const struct GNUNET_GNSRECORD_Data *rd,
                             unsigned int rd_count)
 {
-  struct GNUNET_TIME_Absolute expiration_time;
+  struct GNUNET_TIME_Absolute abs_exp;
+  struct GNUNET_TIME_Relative rel_exp;
   const char *expiration_time_str;
   const char *record_type_str;
   char *value_str;
@@ -248,22 +249,34 @@ GNUNET_JSON_from_gnsrecord (const char*rname,
     value_str = GNUNET_GNSRECORD_value_to_string (rd[i].record_type,
                                                   rd[i].data,
                                                   rd[i].data_size);
-    expiration_time = GNUNET_GNSRECORD_record_get_expiration_time (1, &rd[i]);
-    expiration_time_str = GNUNET_STRINGS_absolute_time_to_string (
-      expiration_time);
+    if (GNUNET_GNSRECORD_RF_RELATIVE_EXPIRATION & rd[i].flags)
+    {
+      rel_exp.rel_value_us = rd[i].expiration_time;
+      expiration_time_str = GNUNET_STRINGS_relative_time_to_string (rel_exp,
+                                                                    GNUNET_NO);
+    } else {
+      abs_exp.abs_value_us = rd[i].expiration_time;
+      expiration_time_str = GNUNET_STRINGS_absolute_time_to_string (abs_exp);
+    }
     record_type_str = GNUNET_GNSRECORD_number_to_typename (rd[i].record_type);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Packing %s %s %s %d\n",
                 value_str, record_type_str, expiration_time_str, rd[i].flags);
-    record = json_pack ("{s:s,s:s,s:s,s:i}",
+    record = json_pack ("{s:s,s:s,s:s,s:b,s:b,s:b,s:b}",
                         "value",
                         value_str,
                         "record_type",
                         record_type_str,
                         "expiration_time",
                         expiration_time_str,
-                        "flag",
-                        rd[i].flags);
+                        "private",
+                        rd[i].flags & GNUNET_GNSRECORD_RF_PRIVATE,
+                        "relative_expiration",
+                        rd[i].flags & GNUNET_GNSRECORD_RF_RELATIVE_EXPIRATION,
+                        "supplemental",
+                        rd[i].flags & GNUNET_GNSRECORD_RF_SUPPLEMENTAL,
+                        "shadow",
+                        rd[i].flags & GNUNET_GNSRECORD_RF_SHADOW_RECORD);
     GNUNET_free (value_str);
     if (NULL == record)
     {
