@@ -134,6 +134,11 @@ struct RequestHandle
   char *record_name;
 
   /**
+   * Record type filter
+   */
+  uint32_t record_type;
+
+  /**
    * Records to store
    */
   struct GNUNET_GNSRECORD_Data *rd;
@@ -344,17 +349,21 @@ struct EgoEntry *
 get_egoentry_namestore (struct RequestHandle *handle, char *name)
 {
   struct EgoEntry *ego_entry;
+  char *copy = GNUNET_strdup (name);
+  char *tmp;
 
-  if (NULL != name)
+  if (NULL == name)
+    return NULL;
+  tmp = strtok (copy, "/");
+  for (ego_entry = handle->ego_head; NULL != ego_entry;
+       ego_entry = ego_entry->next)
   {
-    for (ego_entry = handle->ego_head; NULL != ego_entry;
-         ego_entry = ego_entry->next)
-    {
-      if (0 != strcasecmp (name, ego_entry->identifier))
-        continue;
-      return ego_entry;
-    }
+    if (0 != strcasecmp (tmp, ego_entry->identifier))
+      continue;
+    GNUNET_free (copy);
+    return ego_entry;
   }
+  GNUNET_free (copy);
   return NULL;
 }
 
@@ -486,13 +495,25 @@ namestore_list_iteration (void *cls,
                           const struct GNUNET_GNSRECORD_Data *rd)
 {
   struct RequestHandle *handle = cls;
+  struct GNUNET_GNSRECORD_Data rd_filtered[rd_len];
   json_t *record_obj;
+  int i = 0;
+  int j = 0;
 
   if (NULL == handle->resp_object)
     handle->resp_object = json_array ();
+  for (i = 0; i < rd_len; i++)
+  {
+    if ((GNUNET_GNSRECORD_TYPE_ANY != handle->record_type) &&
+        (rd[i].record_type != handle->record_type))
+      continue; /* Apply filter */
+    rd_filtered[j] = rd[i];
+    rd_filtered[j].data = rd[i].data;
+    j++;
+  }
   record_obj = GNUNET_JSON_from_gnsrecord (rname,
-                                           rd,
-                                           rd_len);
+                                           rd_filtered,
+                                           j);
   json_array_append_new (handle->resp_object, record_obj);
   GNUNET_NAMESTORE_zone_iterator_next (handle->list_it, 1);
 }
@@ -512,27 +533,44 @@ namestore_get (struct GNUNET_REST_RequestHandle *con_handle,
 {
   struct RequestHandle *handle = cls;
   struct EgoEntry *ego_entry;
+  struct GNUNET_HashCode key;
   char *egoname;
+  char *typename;
 
   egoname = NULL;
   ego_entry = NULL;
 
   // set zone to name if given
-  if (strlen (GNUNET_REST_API_NS_NAMESTORE) < strlen (handle->url))
+  if (strlen (GNUNET_REST_API_NS_NAMESTORE) + 1  >= strlen (handle->url))
   {
-    egoname = &handle->url[strlen (GNUNET_REST_API_NS_NAMESTORE) + 1];
-    ego_entry = get_egoentry_namestore (handle, egoname);
-
-    if (NULL == ego_entry)
-    {
-      handle->response_code = MHD_HTTP_NOT_FOUND;
-      handle->emsg = GNUNET_strdup (GNUNET_REST_IDENTITY_NOT_FOUND);
-      GNUNET_SCHEDULER_add_now (&do_error, handle);
-      return;
-    }
+    handle->response_code = MHD_HTTP_NOT_FOUND;
+    handle->emsg = GNUNET_strdup (GNUNET_REST_IDENTITY_NOT_FOUND);
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
+    return;
   }
-  if (NULL != ego_entry)
-    handle->zone_pkey = GNUNET_IDENTITY_ego_get_private_key (ego_entry->ego);
+  egoname = &handle->url[strlen (GNUNET_REST_API_NS_NAMESTORE) + 1];
+  ego_entry = get_egoentry_namestore (handle, egoname);
+  if (NULL == ego_entry)
+  {
+    handle->response_code = MHD_HTTP_NOT_FOUND;
+    handle->emsg = GNUNET_strdup (GNUNET_REST_IDENTITY_NOT_FOUND);
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
+    return;
+  }
+  handle->zone_pkey = GNUNET_IDENTITY_ego_get_private_key (ego_entry->ego);
+
+  GNUNET_CRYPTO_hash ("record_type", strlen ("record_type"), &key);
+  if (GNUNET_NO ==
+      GNUNET_CONTAINER_multihashmap_contains (con_handle->url_param_map, &key))
+  {
+    handle->record_type = GNUNET_GNSRECORD_TYPE_ANY;
+  }
+  else
+  {
+    typename = GNUNET_CONTAINER_multihashmap_get (con_handle->url_param_map,
+                                                  &key);
+    handle->record_type = GNUNET_GNSRECORD_typename_to_number (typename);
+  }
 
   handle->list_it =
     GNUNET_NAMESTORE_zone_iteration_start (handle->ns_handle,
@@ -614,6 +652,7 @@ namestore_add (struct GNUNET_REST_RequestHandle *con_handle,
 
   if (0 >= handle->rest_handle->data_size)
   {
+    handle->response_code = MHD_HTTP_BAD_REQUEST;
     handle->emsg = GNUNET_strdup (GNUNET_REST_NAMESTORE_NO_DATA);
     GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
@@ -637,6 +676,7 @@ namestore_add (struct GNUNET_REST_RequestHandle *con_handle,
   GNUNET_JSON_parse_free (gnsspec);
   if (0 >= strlen (handle->record_name))
   {
+    handle->response_code = MHD_HTTP_BAD_REQUEST;
     handle->emsg = GNUNET_strdup (GNUNET_REST_NAMESTORE_INVALID_DATA);
     GNUNET_SCHEDULER_add_now (&do_error, handle);
     json_decref (data_js);
@@ -648,21 +688,24 @@ namestore_add (struct GNUNET_REST_RequestHandle *con_handle,
   ego_entry = NULL;
 
   // set zone to name if given
-  if (strlen (GNUNET_REST_API_NS_NAMESTORE) < strlen (handle->url))
+  if (strlen (GNUNET_REST_API_NS_NAMESTORE) + 1 >= strlen (handle->url))
   {
-    egoname = &handle->url[strlen (GNUNET_REST_API_NS_NAMESTORE) + 1];
-    ego_entry = get_egoentry_namestore (handle, egoname);
-
-    if (NULL == ego_entry)
-    {
-      handle->response_code = MHD_HTTP_NOT_FOUND;
-      handle->emsg = GNUNET_strdup (GNUNET_REST_IDENTITY_NOT_FOUND);
-      GNUNET_SCHEDULER_add_now (&do_error, handle);
-      return;
-    }
+    handle->response_code = MHD_HTTP_NOT_FOUND;
+    handle->emsg = GNUNET_strdup (GNUNET_REST_IDENTITY_NOT_FOUND);
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
+    return;
   }
-  if (NULL != ego_entry)
-    handle->zone_pkey = GNUNET_IDENTITY_ego_get_private_key (ego_entry->ego);
+  egoname = &handle->url[strlen (GNUNET_REST_API_NS_NAMESTORE) + 1];
+  ego_entry = get_egoentry_namestore (handle, egoname);
+
+  if (NULL == ego_entry)
+  {
+    handle->response_code = MHD_HTTP_NOT_FOUND;
+    handle->emsg = GNUNET_strdup (GNUNET_REST_IDENTITY_NOT_FOUND);
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
+    return;
+  }
+  handle->zone_pkey = GNUNET_IDENTITY_ego_get_private_key (ego_entry->ego);
   handle->add_qe = GNUNET_NAMESTORE_records_lookup (handle->ns_handle,
                                                     handle->zone_pkey,
                                                     handle->record_name,
@@ -692,41 +735,42 @@ namestore_delete (struct GNUNET_REST_RequestHandle *con_handle,
                   void *cls)
 {
   struct RequestHandle *handle = cls;
-  struct GNUNET_HashCode key;
   struct EgoEntry *ego_entry;
   char *egoname;
+  char *labelname;
 
   egoname = NULL;
   ego_entry = NULL;
 
   // set zone to name if given
-  if (strlen (GNUNET_REST_API_NS_NAMESTORE) < strlen (handle->url))
+  if (strlen (GNUNET_REST_API_NS_NAMESTORE) + 1 >= strlen (handle->url))
   {
-    egoname = &handle->url[strlen (GNUNET_REST_API_NS_NAMESTORE) + 1];
-    ego_entry = get_egoentry_namestore (handle, egoname);
-
-    if (NULL == ego_entry)
-    {
-      handle->response_code = MHD_HTTP_NOT_FOUND;
-      handle->emsg = GNUNET_strdup (GNUNET_REST_IDENTITY_NOT_FOUND);
-      GNUNET_SCHEDULER_add_now (&do_error, handle);
-      return;
-    }
-  }
-  if (NULL != ego_entry)
-    handle->zone_pkey = GNUNET_IDENTITY_ego_get_private_key (ego_entry->ego);
-
-  GNUNET_CRYPTO_hash ("record_name", strlen ("record_name"), &key);
-  if (GNUNET_NO ==
-      GNUNET_CONTAINER_multihashmap_contains (con_handle->url_param_map, &key))
-  {
-    handle->emsg = GNUNET_strdup (GNUNET_REST_NAMESTORE_INVALID_DATA);
+    handle->response_code = MHD_HTTP_NOT_FOUND;
+    handle->emsg = GNUNET_strdup (GNUNET_REST_IDENTITY_NOT_FOUND);
     GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
   }
-  handle->record_name = GNUNET_strdup (
-    GNUNET_CONTAINER_multihashmap_get (con_handle->url_param_map, &key));
+  egoname = &handle->url[strlen (GNUNET_REST_API_NS_NAMESTORE) + 1];
+  ego_entry = get_egoentry_namestore (handle, egoname);
+  if (NULL == ego_entry)
+  {
+    handle->response_code = MHD_HTTP_NOT_FOUND;
+    handle->emsg = GNUNET_strdup (GNUNET_REST_IDENTITY_NOT_FOUND);
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
+    return;
+  }
+  handle->zone_pkey = GNUNET_IDENTITY_ego_get_private_key (ego_entry->ego);
+  labelname = &egoname[strlen (ego_entry->identifier)];
+  // set zone to name if given
+  if (1 >= strlen (labelname))
+  {
+    /* label is only "/" */
+    handle->response_code = MHD_HTTP_BAD_REQUEST;
+    handle->emsg = GNUNET_strdup ("Label missing");
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
+  }
 
+  handle->record_name = GNUNET_strdup (labelname + 1);
   handle->add_qe = GNUNET_NAMESTORE_records_store (handle->ns_handle,
                                                    handle->zone_pkey,
                                                    handle->record_name,
