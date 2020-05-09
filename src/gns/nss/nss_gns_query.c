@@ -61,7 +61,6 @@ gns_resolve_name (int af, const char *name, struct userdata *u)
   char line[128];
   int ret;
   int out[2];
-  int tried_arm_start = 0;
   pid_t pid;
 
   if (0 == getuid ())
@@ -146,51 +145,16 @@ query_gns:
     return -1;
   if (4 == WEXITSTATUS (ret))
     return -2; /* not for GNS */
-  if ((3 == ret) &&
-      (1 != tried_arm_start))
-    return -3; /* timeout -> try restart */
-  if ((3 == ret) &&
-      (1 == tried_arm_start))
+  if (5 == WEXITSTATUS (ret))
+    goto restart_arm; /* timeout -> try restart */
+  if (3 == WEXITSTATUS (ret))
     return -2; /* timeout -> service unavailable */
   if ((2 == WEXITSTATUS (ret)) || (1 == WEXITSTATUS (ret)))
     return -2; /* launch failure -> service unavailable */
   return 0;
-
-  pid = fork ();
-  if (-1 == pid)
-    return -1;
-  if (0 == pid)
-  {
-    char *argv[] = { "gnunet-arm",
-                     "-s", /* Raw output for easier parsing */
-                     NULL };
-
-    (void) close (STDOUT_FILENO);
-    if ((0 != close (out[0])) ||
-        (STDOUT_FILENO != dup2 (out[1], STDOUT_FILENO)))
-      _exit (1);
-    (void) execvp ("gnunet-arm", argv);
-    _exit (1);
-  }
-  (void) close (out[1]);
-  p = fdopen (out[0], "r");
-  if (NULL == p)
-  {
-    kwait (pid);
-    return -1;
-  }
-  while (NULL != fgets (line, sizeof(line), p))
-  {
-    /**
-     * Read output
-     */
-  }
-  (void) fclose (p);
-  waitpid (pid, &ret, 0);
-  tried_arm_start = 1;
+restart_arm:
+  system("gnunet-arm -s");
   goto query_gns;
-
-
 }
 
 
