@@ -60,15 +60,16 @@ gns_resolve_name (int af, const char *name, struct userdata *u)
   FILE *p;
   char line[128];
   int ret;
+  int retry = 0;
   int out[2];
   pid_t pid;
 
   if (0 == getuid ())
     return -2; /* GNS via NSS is NEVER for root */
-  if (0 != pipe (out))
-    return -1;
 
 query_gns:
+  if (0 != pipe (out))
+    return -1;
   pid = fork ();
   if (-1 == pid)
     return -1;
@@ -140,21 +141,23 @@ query_gns:
   }
   (void) fclose (p);
   waitpid (pid, &ret, 0);
-
   if (! WIFEXITED (ret))
     return -1;
   if (4 == WEXITSTATUS (ret))
     return -2; /* not for GNS */
   if (5 == WEXITSTATUS (ret))
-    goto restart_arm; /* timeout -> try restart */
+  {
+    if (1 == retry)
+      return -2; /* no go -> service unavailable */
+    retry = 1;
+    system("gnunet-arm -s");
+    goto query_gns; /* Try again */
+  }
   if (3 == WEXITSTATUS (ret))
     return -2; /* timeout -> service unavailable */
   if ((2 == WEXITSTATUS (ret)) || (1 == WEXITSTATUS (ret)))
     return -2; /* launch failure -> service unavailable */
   return 0;
-restart_arm:
-  system("gnunet-arm -s");
-  goto query_gns;
 }
 
 
