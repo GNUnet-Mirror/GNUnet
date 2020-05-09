@@ -1759,7 +1759,13 @@ recursive_gns2dns_resolution (struct GNS_ResolverHandle *rh,
     struct sockaddr_in6 v6;
 
     if (GNUNET_GNSRECORD_TYPE_GNS2DNS != rd[i].record_type)
-      continue;
+    {
+      /**
+       * Records other than GNS2DNS not allowed
+       */
+      fail_resolution (rh);
+      return;
+    }
     off = 0;
     n = GNUNET_DNSPARSER_parse_name (rd[i].data,
                                      rd[i].data_size,
