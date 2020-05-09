@@ -200,6 +200,7 @@ do_error (void *cls)
     handle->response_code = MHD_HTTP_INTERNAL_SERVER_ERROR;
   response = json_dumps (json_error, 0);
   resp = GNUNET_REST_create_response (response);
+  MHD_add_response_header (resp, "Content-Type", "application/json");
   handle->proc (handle->proc_cls, resp, handle->response_code);
   json_decref (json_error);
   GNUNET_free (response);
@@ -252,6 +253,7 @@ handle_gns_response (void *cls,
   result = json_dumps (result_obj, 0);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Result %s\n", result);
   resp = GNUNET_REST_create_response (result);
+  MHD_add_response_header (resp, "Content-Type", "application/json");
   handle->proc (handle->proc_cls, resp, MHD_HTTP_OK);
   GNUNET_free (result);
   json_decref (result_obj);

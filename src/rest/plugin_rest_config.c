@@ -175,6 +175,7 @@ get_cont (struct GNUNET_REST_RequestHandle *con_handle,
   }
   response = json_dumps (result, 0);
   resp = GNUNET_REST_create_response (response);
+  MHD_add_response_header (resp, "Content-Type", "application/json");
   handle->proc (handle->proc_cls, resp, MHD_HTTP_OK);
   cleanup_handle (handle);
   GNUNET_free (response);
