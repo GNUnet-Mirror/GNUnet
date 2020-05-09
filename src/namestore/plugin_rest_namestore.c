@@ -123,6 +123,13 @@ struct EgoEntry
   struct GNUNET_IDENTITY_Ego *ego;
 };
 
+
+enum UpdateStrategy
+{
+  UPDATE_STRATEGY_REPLACE,
+  UPDATE_STRATEGY_APPEND
+};
+
 /**
  * The request handle
  */
@@ -137,6 +144,11 @@ struct RequestHandle
    * Record type filter
    */
   uint32_t record_type;
+
+  /**
+   * How to update the record set
+   */
+  enum UpdateStrategy update_strategy;
 
   /**
    * Records to store
@@ -329,6 +341,7 @@ do_error (void *cls)
     handle->response_code = MHD_HTTP_INTERNAL_SERVER_ERROR;
   response = json_dumps (json_error, 0);
   resp = GNUNET_REST_create_response (response);
+  MHD_add_response_header (resp, "Content-Type", "application/json");
   handle->proc (handle->proc_cls, resp, handle->response_code);
   json_decref (json_error);
   GNUNET_free (response);
@@ -476,6 +489,7 @@ namestore_list_finished (void *cls)
   result_str = json_dumps (handle->resp_object, 0);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Result %s\n", result_str);
   resp = GNUNET_REST_create_response (result_str);
+  MHD_add_response_header (resp, "Content-Type", "application/json");
   handle->proc (handle->proc_cls, resp, MHD_HTTP_OK);
   GNUNET_free_non_null (result_str);
   GNUNET_SCHEDULER_add_now (&cleanup_handle, handle);
@@ -609,15 +623,20 @@ ns_lookup_cb (void *cls,
 {
   struct RequestHandle *handle = cls;
   struct GNUNET_GNSRECORD_Data rd_new[rd_count + handle->rd_count];
+  int i = 0;
+  int j = 0;
 
-  for (int i = 0; i < rd_count; i++)
-    rd_new[i] = rd[i];
-  for (int j = 0; j < handle->rd_count; j++)
-    rd_new[rd_count + j] = handle->rd[j];
+  if (UPDATE_STRATEGY_APPEND == handle->update_strategy)
+  {
+    for (i = 0; i < rd_count; i++)
+      rd_new[i] = rd[i];
+  }
+  for (j = 0; j < handle->rd_count; j++)
+    rd_new[i + j] = handle->rd[j];
   handle->add_qe = GNUNET_NAMESTORE_records_store (handle->ns_handle,
                                                    handle->zone_pkey,
                                                    handle->record_name,
-                                                   rd_count + handle->rd_count,
+                                                   i + j,
                                                    rd_new,
                                                    &create_finished,
                                                    handle);
@@ -631,16 +650,16 @@ ns_lookup_cb (void *cls,
 
 
 /**
- * Handle namestore POST request
+ * Handle namestore POST/PUT request
  *
  * @param con_handle the connection handle
  * @param url the url
  * @param cls the RequestHandle
  */
 void
-namestore_add (struct GNUNET_REST_RequestHandle *con_handle,
-               const char *url,
-               void *cls)
+namestore_add_or_update (struct GNUNET_REST_RequestHandle *con_handle,
+                         const char *url,
+                         void *cls)
 {
   struct RequestHandle *handle = cls;
   struct EgoEntry *ego_entry;
@@ -719,6 +738,42 @@ namestore_add (struct GNUNET_REST_RequestHandle *con_handle,
     GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
   }
+}
+
+
+/**
+ * Handle namestore PUT request
+ *
+ * @param con_handle the connection handle
+ * @param url the url
+ * @param cls the RequestHandle
+ */
+void
+namestore_update (struct GNUNET_REST_RequestHandle *con_handle,
+                  const char *url,
+                  void *cls)
+{
+  struct RequestHandle *handle = cls;
+  handle->update_strategy = UPDATE_STRATEGY_REPLACE;
+  namestore_add_or_update (con_handle, url, cls);
+}
+
+
+/**
+ * Handle namestore POST request
+ *
+ * @param con_handle the connection handle
+ * @param url the url
+ * @param cls the RequestHandle
+ */
+void
+namestore_add (struct GNUNET_REST_RequestHandle *con_handle,
+               const char *url,
+               void *cls)
+{
+  struct RequestHandle *handle = cls;
+  handle->update_strategy = UPDATE_STRATEGY_APPEND;
+  namestore_add_or_update (con_handle, url, cls);
 }
 
 
@@ -823,6 +878,7 @@ init_cont (struct RequestHandle *handle)
   static const struct GNUNET_REST_RequestHandler handlers[] =
   { { MHD_HTTP_METHOD_GET, GNUNET_REST_API_NS_NAMESTORE, &namestore_get },
     { MHD_HTTP_METHOD_POST, GNUNET_REST_API_NS_NAMESTORE, &namestore_add },
+    { MHD_HTTP_METHOD_PUT, GNUNET_REST_API_NS_NAMESTORE, &namestore_update },
     { MHD_HTTP_METHOD_DELETE, GNUNET_REST_API_NS_NAMESTORE, &namestore_delete },
     { MHD_HTTP_METHOD_OPTIONS, GNUNET_REST_API_NS_NAMESTORE, &options_cont },
     GNUNET_REST_HANDLER_END };

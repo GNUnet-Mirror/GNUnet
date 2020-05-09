@@ -352,6 +352,7 @@ finished_cont (void *cls, int32_t success, const char *emsg)
   struct MHD_Response *resp;
 
   resp = GNUNET_REST_create_response (emsg);
+  MHD_add_response_header (resp, "Content-Type", "application/json");
   if (GNUNET_OK != success)
   {
     GNUNET_SCHEDULER_add_now (&do_error, handle);
