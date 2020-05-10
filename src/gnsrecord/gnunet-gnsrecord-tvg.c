@@ -91,10 +91,22 @@ run (void *cls,
   size_t data_size;
   char *rdata;
   size_t rdata_size;
+  char* data_enc;
 
   GNUNET_CRYPTO_ecdsa_key_create (&id_priv);
   GNUNET_CRYPTO_ecdsa_key_get_public (&id_priv,
                                       &id_pub);
+  GNUNET_STRINGS_base64_encode (&id_priv,
+                                sizeof (struct GNUNET_CRYPTO_EcdsaPrivateKey),
+                                &data_enc);
+  fprintf(stdout, "Zone private key (d):\n%s\n", data_enc);
+  GNUNET_free (data_enc);
+  GNUNET_STRINGS_base64_encode (&id_pub,
+                                sizeof (struct GNUNET_CRYPTO_EcdsaPrivateKey),
+                                &data_enc);
+  fprintf(stdout, "Zone public key (zk):\n%s\n", data_enc);
+  GNUNET_free (data_enc);
+
 
   GNUNET_CRYPTO_ecdsa_key_create (&pkey_data_p);
   GNUNET_CRYPTO_ecdsa_key_get_public (&pkey_data_p,
@@ -125,7 +137,6 @@ run (void *cls,
                                       rd,
                                       rdata_size,
                                       rdata);
-  char* data_enc;
   GNUNET_STRINGS_base64_encode (rdata,
                                 rdata_size,
                                 &data_enc);
