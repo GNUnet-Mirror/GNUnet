@@ -525,10 +525,14 @@ namestore_list_iteration (void *cls,
     rd_filtered[j].data = rd[i].data;
     j++;
   }
-  record_obj = GNUNET_JSON_from_gnsrecord (rname,
-                                           rd_filtered,
-                                           j);
-  json_array_append_new (handle->resp_object, record_obj);
+  /** Only add if not empty **/
+  if (j > 0)
+  {
+    record_obj = GNUNET_JSON_from_gnsrecord (rname,
+                                             rd_filtered,
+                                             j);
+    json_array_append_new (handle->resp_object, record_obj);
+  }
   GNUNET_NAMESTORE_zone_iterator_next (handle->list_it, 1);
 }
 
