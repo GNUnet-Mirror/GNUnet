@@ -173,8 +173,9 @@ static int
 verify_revoke_message (const struct RevokeMessage *rm)
 {
   if (GNUNET_YES != GNUNET_REVOCATION_check_pow (&rm->proof_of_work,
-                                   (unsigned int) revocation_work_required,
-                                   epoch_duration))
+                                                 (unsigned
+                                                  int) revocation_work_required,
+                                                 epoch_duration))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Proof of work invalid!\n");
@@ -845,9 +846,9 @@ run (void *cls,
   }
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_time (cfg,
-                                             "REVOCATION",
-                                             "EPOCH_DURATION",
-                                             &epoch_duration))
+                                           "REVOCATION",
+                                           "EPOCH_DURATION",
+                                           &epoch_duration))
   {
     GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR,
                                "REVOCATION",
