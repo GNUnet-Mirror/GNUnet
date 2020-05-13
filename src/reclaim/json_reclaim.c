@@ -24,9 +24,7 @@
  * @author Martin Schanzenbach
  */
 #include "platform.h"
-
 #include "gnunet_util_lib.h"
-
 #include "gnunet_json_lib.h"
 #include "gnunet_reclaim_lib.h"
 #include "gnunet_reclaim_service.h"
@@ -99,7 +97,7 @@ parse_attr (void *cls, json_t *root, struct GNUNET_JSON_Specification *spec)
                                        type, data, data_size);
   if ((NULL != attest_str) && (0 != strlen (attest_str)))
   {
-     GNUNET_STRINGS_string_to_data (attest_str,
+    GNUNET_STRINGS_string_to_data (attest_str,
                                    strlen (attest_str),
                                    &attr->attestation,
                                    sizeof(attr->attestation));
@@ -279,6 +277,7 @@ GNUNET_RECLAIM_JSON_spec_ticket (struct GNUNET_RECLAIM_Ticket **ticket)
   return ret;
 }
 
+
 /**
    * Parse given JSON object to an attestation claim
    *
@@ -349,6 +348,7 @@ parse_attest (void *cls, json_t *root, struct GNUNET_JSON_Specification *spec)
   return GNUNET_OK;
 }
 
+
 /**
  * Cleanup data left from parsing RSA public key.
  *
@@ -367,6 +367,8 @@ clean_attest (void *cls, struct GNUNET_JSON_Specification *spec)
     *attr = NULL;
   }
 }
+
+
 /**
  * JSON Specification for Reclaim attestation claims.
  *
@@ -388,4 +390,3 @@ GNUNET_RECLAIM_JSON_spec_claim_attest (struct
   *attr = NULL;
   return ret;
 }
-
