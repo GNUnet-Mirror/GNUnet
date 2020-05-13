@@ -16,7 +16,8 @@ pkgcfg_DATA = \
   revocation.conf
 
 bin_PROGRAMS = \
- gnunet-revocation
+ gnunet-revocation \
+ gnunet-revocation-tvg
 
 
 plugin_LTLIBRARIES = \
@@ -40,6 +41,15 @@ gnunet_revocation_LDADD = \
   $(top_builddir)/src/identity/libgnunetidentity.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_LIBINTL)
+
+gnunet_revocation_tvg_SOURCES = \
+ gnunet-revocation-tvg.c
+gnunet_revocation_tvg_LDADD = \
+  libgnunetrevocation.la \
+  $(top_builddir)/src/identity/libgnunetidentity.la \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(GN_LIBINTL)
+
 
 lib_LTLIBRARIES = libgnunetrevocation.la
 

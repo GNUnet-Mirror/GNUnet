@@ -12,6 +12,10 @@ if USE_COVERAGE
   XLIBS = -lgcov
 endif
 
+bin_PROGRAMS = \
+  gnunet-gnsrecord-tvg
+
+
 check_PROGRAMS = \
  test_gnsrecord_crypto \
  test_gnsrecord_serialization \
@@ -27,6 +31,14 @@ endif
 
 lib_LTLIBRARIES = \
   libgnunetgnsrecord.la
+
+gnunet_gnsrecord_tvg_SOURCES = \
+ gnunet-gnsrecord-tvg.c
+gnunet_gnsrecord_tvg_LDADD = \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  libgnunetgnsrecord.la \
+  $(GN_LIBINTL)
+
 
 libgnunetgnsrecord_la_SOURCES = \
   gnsrecord.c \

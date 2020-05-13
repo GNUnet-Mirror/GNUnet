@@ -1763,8 +1763,7 @@ recursive_gns2dns_resolution (struct GNS_ResolverHandle *rh,
       /**
        * Records other than GNS2DNS not allowed
        */
-      fail_resolution (rh);
-      return;
+      return GNUNET_SYSERR;
     }
     off = 0;
     n = GNUNET_DNSPARSER_parse_name (rd[i].data,

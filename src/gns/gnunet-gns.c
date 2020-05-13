@@ -279,7 +279,7 @@ run (void *cls,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                 _ ("Cannot resolve using GNS: GNUnet peer not running\n"));
-    global_ret = 2;
+    global_ret = 5;
     return;
   }
   to_task = GNUNET_SCHEDULER_add_delayed (timeout,
