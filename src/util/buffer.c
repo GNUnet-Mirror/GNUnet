@@ -130,7 +130,26 @@ GNUNET_buffer_reap_str (struct GNUNET_Buffer *buf)
     buf->mem[buf->position++] = '\0';
   }
   res = buf->mem;
-  *buf = (struct GNUNET_Buffer) { 0 };
+  memset (buf, 0, sizeof (struct GNUNET_Buffer));
+  return res;
+}
+
+
+/**
+ * Clear the buffer and return its contents.
+ * The caller is responsible to eventually #GNUNET_free
+ * the returned data.
+ *
+ * @param buf the buffer to reap the contents from
+ * @param size where to store the size of the returned data
+ * @returns the data contained in the string
+ */
+void *
+GNUNET_buffer_reap (struct GNUNET_Buffer *buf, size_t *size)
+{
+  *size = buf->position;
+  void *res = buf->mem;
+  memset (buf, 0, sizeof (struct GNUNET_Buffer));
   return res;
 }
 
@@ -144,7 +163,7 @@ void
 GNUNET_buffer_clear (struct GNUNET_Buffer *buf)
 {
   GNUNET_free_non_null (buf->mem);
-  *buf = (struct GNUNET_Buffer) { 0 };
+  memset (buf, 0, sizeof (struct GNUNET_Buffer));
 }
 
 

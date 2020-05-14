@@ -1404,7 +1404,7 @@ load_hostlist_file ()
     return;
   }
 
-  rh = GNUNET_BIO_read_open (filename);
+  rh = GNUNET_BIO_read_open_file (filename);
   if (NULL == rh)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
@@ -1417,13 +1417,17 @@ load_hostlist_file ()
   }
 
   counter = 0;
+  struct GNUNET_BIO_ReadSpec rs[] = {
+    GNUNET_BIO_read_spec_int32 ("times used", (int32_t *)&times_used),
+    GNUNET_BIO_read_spec_int64 ("quality", (int64_t *) &quality),
+    GNUNET_BIO_read_spec_int64 ("last used", (int64_t *) &last_used),
+    GNUNET_BIO_read_spec_int64 ("created", (int64_t *) &created),
+    GNUNET_BIO_read_spec_int32 ("hellos returned", (int32_t *) &hellos_returned),
+    GNUNET_BIO_read_spec_end (),
+  };
   while ((GNUNET_OK == GNUNET_BIO_read_string (rh, "url", &uri, MAX_URL_LEN)) &&
          (NULL != uri) &&
-         (GNUNET_OK == GNUNET_BIO_read_int32 (rh, &times_used)) &&
-         (GNUNET_OK == GNUNET_BIO_read_int64 (rh, &quality)) &&
-         (GNUNET_OK == GNUNET_BIO_read_int64 (rh, &last_used)) &&
-         (GNUNET_OK == GNUNET_BIO_read_int64 (rh, &created)) &&
-         (GNUNET_OK == GNUNET_BIO_read_int32 (rh, &hellos_returned)))
+         (GNUNET_OK == GNUNET_BIO_read_spec_commit (rh, rs)))
   {
     hostlist = GNUNET_malloc (sizeof(struct Hostlist) + strlen (uri) + 1);
     hostlist->hello_count = hellos_returned;
@@ -1494,7 +1498,7 @@ save_hostlist_file (int shutdown)
     GNUNET_free (filename);
     return;
   }
-  wh = GNUNET_BIO_write_open (filename);
+  wh = GNUNET_BIO_write_open_file (filename);
   if (NULL == wh)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
@@ -1521,14 +1525,21 @@ save_hostlist_file (int shutdown)
     }
     if (GNUNET_YES == ok)
     {
-      if ((GNUNET_OK != GNUNET_BIO_write_string (wh, pos->hostlist_uri)) ||
-          (GNUNET_OK != GNUNET_BIO_write_int32 (wh, pos->times_used)) ||
-          (GNUNET_OK != GNUNET_BIO_write_int64 (wh, pos->quality)) ||
-          (GNUNET_OK !=
-           GNUNET_BIO_write_int64 (wh, pos->time_last_usage.abs_value_us)) ||
-          (GNUNET_OK !=
-           GNUNET_BIO_write_int64 (wh, pos->time_creation.abs_value_us)) ||
-          (GNUNET_OK != GNUNET_BIO_write_int32 (wh, pos->hello_count)))
+      struct GNUNET_BIO_WriteSpec ws[] = {
+        GNUNET_BIO_write_spec_string ("hostlist uri", pos->hostlist_uri),
+        GNUNET_BIO_write_spec_int32 ("times used", (int32_t *) &pos->times_used),
+        GNUNET_BIO_write_spec_int64 ("quality", (int64_t *) &pos->quality),
+        GNUNET_BIO_write_spec_int64 (
+          "last usage",
+          (int64_t *) &pos->time_last_usage.abs_value_us),
+        GNUNET_BIO_write_spec_int64 (
+          "creation time",
+          (int64_t *) &pos->time_creation.abs_value_us),
+        GNUNET_BIO_write_spec_int32 ("hellos count",
+                                     (int32_t *) &pos->hello_count),
+        GNUNET_BIO_write_spec_end (),
+      };
+      if ((GNUNET_OK != GNUNET_BIO_write_spec_commit (wh, ws)))
       {
         GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                     _ ("Error writing hostlist URIs to file `%s'\n"),
@@ -1548,7 +1559,7 @@ save_hostlist_file (int shutdown)
                          counter,
                          GNUNET_YES);
 
-  if (GNUNET_OK != GNUNET_BIO_write_close (wh))
+  if (GNUNET_OK != GNUNET_BIO_write_close (wh, NULL))
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                 _ ("Error writing hostlist URIs to file `%s'\n"),
                 filename);

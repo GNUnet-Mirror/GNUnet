@@ -568,7 +568,7 @@ sample_load_task (void *cls)
                          ld_cpu, ld_disk, mem_usage, nproc);
   if (0 < nbs)
   {
-    GNUNET_BIO_write (bw, str, nbs);
+    GNUNET_BIO_write (bw, "sample load task", str, nbs);
   }
   else
     GNUNET_break (0);
@@ -612,7 +612,7 @@ GST_stats_init (const struct GNUNET_CONFIGURATION_Handle *cfg)
                           hostname, (intmax_t) getpid ());
   GNUNET_free (stats_dir);
   GNUNET_free (hostname);
-  if (NULL == (bw = GNUNET_BIO_write_open (fn)))
+  if (NULL == (bw = GNUNET_BIO_write_open_file (fn)))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                 _ ("Cannot open %s for writing load statistics.  "
@@ -656,7 +656,7 @@ GST_stats_destroy ()
     GNUNET_SCHEDULER_cancel (sample_load_task_id);
     sample_load_task_id = NULL;
   }
-  GNUNET_break (GNUNET_OK == GNUNET_BIO_write_close (bw));
+  GNUNET_break (GNUNET_OK == GNUNET_BIO_write_close (bw, NULL));
   bw = NULL;
 }
 

@@ -195,7 +195,7 @@ write_update_information_graph (struct GNUNET_FS_UpdateInformationGraph *uig)
   char *uris;
 
   fn = get_update_information_directory (uig->h, &uig->ns);
-  wh = GNUNET_BIO_write_open (fn);
+  wh = GNUNET_BIO_write_open_file (fn);
   if (NULL == wh)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -205,16 +205,22 @@ write_update_information_graph (struct GNUNET_FS_UpdateInformationGraph *uig)
     GNUNET_free (fn);
     return;
   }
-  if (GNUNET_OK != GNUNET_BIO_write_int32 (wh, uig->update_node_count))
+  if (GNUNET_OK != GNUNET_BIO_write_int32 (wh,
+                                           "fs-namespace-node-count",
+                                           uig->update_node_count))
     goto END;
   for (i = 0; i < uig->update_node_count; i++)
   {
     n = uig->update_nodes[i];
     uris = GNUNET_FS_uri_to_string (n->uri);
-    if ((GNUNET_OK != GNUNET_BIO_write_string (wh, n->id)) ||
-        (GNUNET_OK != GNUNET_BIO_write_meta_data (wh, n->md)) ||
-        (GNUNET_OK != GNUNET_BIO_write_string (wh, n->update)) ||
-        (GNUNET_OK != GNUNET_BIO_write_string (wh, uris)))
+    struct GNUNET_BIO_WriteSpec ws[] = {
+      GNUNET_BIO_write_spec_string("fs-namespace-node-id", n->id),
+      GNUNET_BIO_write_spec_meta_data("fs-namespace-node-meta", n->md),
+      GNUNET_BIO_write_spec_string("fs-namespace-node-update", n->update),
+      GNUNET_BIO_write_spec_string("fs-namespace-uris", uris),
+      GNUNET_BIO_write_spec_end(),
+    };
+    if (GNUNET_OK != GNUNET_BIO_write_spec_commit(wh, ws))
     {
       GNUNET_free (uris);
       break;
@@ -222,7 +228,7 @@ write_update_information_graph (struct GNUNET_FS_UpdateInformationGraph *uig)
     GNUNET_free (uris);
   }
 END:
-  if (GNUNET_OK != GNUNET_BIO_write_close (wh))
+  if (GNUNET_OK != GNUNET_BIO_write_close (wh, NULL))
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 _ ("Failed to write `%s': %s\n"),
                 fn,
@@ -260,13 +266,14 @@ read_update_information_graph (struct GNUNET_FS_Handle *h,
     GNUNET_free (fn);
     return uig;
   }
-  rh = GNUNET_BIO_read_open (fn);
+  rh = GNUNET_BIO_read_open_file (fn);
   if (NULL == rh)
   {
     GNUNET_free (fn);
     return uig;
   }
-  if (GNUNET_OK != GNUNET_BIO_read_int32 (rh, &count))
+  if (GNUNET_OK != GNUNET_BIO_read_int32 (rh, "fs-namespace-count",
+                                          (int32_t *) &count))
   {
     GNUNET_break (0);
     goto END;
@@ -284,12 +291,14 @@ read_update_information_graph (struct GNUNET_FS_Handle *h,
   for (i = 0; i < count; i++)
   {
     n = GNUNET_new (struct NamespaceUpdateNode);
-    if ((GNUNET_OK !=
-         GNUNET_BIO_read_string (rh, "identifier", &n->id, 1024)) ||
-        (GNUNET_OK != GNUNET_BIO_read_meta_data (rh, "meta", &n->md)) ||
-        (GNUNET_OK !=
-         GNUNET_BIO_read_string (rh, "update-id", &n->update, 1024)) ||
-        (GNUNET_OK != GNUNET_BIO_read_string (rh, "uri", &uris, 1024 * 2)))
+    struct GNUNET_BIO_ReadSpec rs[] = {
+      GNUNET_BIO_read_spec_string("identifier", &n->id, 1024),
+      GNUNET_BIO_read_spec_meta_data("meta", &n->md),
+      GNUNET_BIO_read_spec_string("update-id", &n->update, 1024),
+      GNUNET_BIO_read_spec_string("uri", &uris, 1024 * 2),
+      GNUNET_BIO_read_spec_end(),
+    };
+    if (GNUNET_OK != GNUNET_BIO_read_spec_commit (rh, rs))
     {
       GNUNET_break (0);
       GNUNET_free_non_null (n->id);

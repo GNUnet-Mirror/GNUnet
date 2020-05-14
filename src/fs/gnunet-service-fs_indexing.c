@@ -123,7 +123,7 @@ write_index_list ()
                                "INDEXDB");
     return;
   }
-  wh = GNUNET_BIO_write_open (fn);
+  wh = GNUNET_BIO_write_open_file (fn);
   if (NULL == wh)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
@@ -134,11 +134,14 @@ write_index_list ()
   }
   for (pos = indexed_files_head; NULL != pos; pos = pos->next)
     if ((GNUNET_OK != GNUNET_BIO_write (wh,
+                                        "fs-indexing-file-id",
                                         &pos->file_id,
                                         sizeof(struct GNUNET_HashCode))) ||
-        (GNUNET_OK != GNUNET_BIO_write_string (wh, pos->filename)))
+        (GNUNET_OK != GNUNET_BIO_write_string (wh,
+                                               "fs-indexing-filename",
+                                               pos->filename)))
       break;
-  if (GNUNET_OK != GNUNET_BIO_write_close (wh))
+  if (GNUNET_OK != GNUNET_BIO_write_close (wh, NULL))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
                 _ ("Error writing `%s'.\n"),
@@ -178,7 +181,7 @@ read_index_list ()
     GNUNET_free (fn);
     return;
   }
-  rh = GNUNET_BIO_read_open (fn);
+  rh = GNUNET_BIO_read_open_file (fn);
   if (NULL == rh)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,

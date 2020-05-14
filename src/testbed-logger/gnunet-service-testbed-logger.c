@@ -85,6 +85,7 @@ handle_log_msg (void *cls,
 
   ms = ntohs (msg->size) - sizeof(struct GNUNET_MessageHeader);
   GNUNET_BIO_write (bio,
+                    "testbed-logger-handle-log-msg",
                     &msg[1],
                     ms);
   GNUNET_SERVICE_client_continue (client);
@@ -108,7 +109,7 @@ shutdown_task (void *cls)
     return;
   }
   GNUNET_break (GNUNET_OK ==
-                GNUNET_BIO_write_close (bio));
+                GNUNET_BIO_write_close (bio, NULL));
 }
 
 
@@ -202,7 +203,7 @@ logger_run (void *cls,
                    (intmax_t) pid);
   GNUNET_free (hname);
   GNUNET_free (dir);
-  if (NULL == (bio = GNUNET_BIO_write_open (fn)))
+  if (NULL == (bio = GNUNET_BIO_write_open_file (fn)))
   {
     GNUNET_free (fn);
     GNUNET_SCHEDULER_shutdown ();

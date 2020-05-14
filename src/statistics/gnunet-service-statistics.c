@@ -263,7 +263,7 @@ save ()
     return;
   }
   (void) GNUNET_DISK_directory_create_for_file (fn);
-  wh = GNUNET_BIO_write_open (fn);
+  wh = GNUNET_BIO_write_open_file (fn);
   total = 0;
   while (NULL != (se = sub_head))
   {
@@ -290,10 +290,10 @@ save ()
         msg->flags =
           htonl (pos->persistent ? GNUNET_STATISTICS_SETFLAG_PERSISTENT : 0);
         msg->value = GNUNET_htonll (pos->value);
-        if (GNUNET_OK != GNUNET_BIO_write (wh, msg, size))
+        if (GNUNET_OK != GNUNET_BIO_write (wh, "statistics-save-msg", msg, size))
         {
           GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "write", fn);
-          if (GNUNET_OK != GNUNET_BIO_write_close (wh))
+          if (GNUNET_OK != GNUNET_BIO_write_close (wh, NULL))
             GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "close", fn);
           wh = NULL;
         }
@@ -309,7 +309,7 @@ save ()
   }
   if (NULL != wh)
   {
-    if (GNUNET_OK != GNUNET_BIO_write_close (wh))
+    if (GNUNET_OK != GNUNET_BIO_write_close (wh, NULL))
       GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "close", fn);
     if (0 == total)
       GNUNET_break (0 == unlink (fn));
@@ -964,7 +964,7 @@ load ()
     return;
   }
   buf = GNUNET_malloc (fsize);
-  rh = GNUNET_BIO_read_open (fn);
+  rh = GNUNET_BIO_read_open_file (fn);
   if (! rh)
   {
     GNUNET_free (buf);

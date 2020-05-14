@@ -1001,7 +1001,7 @@ handle_p2p_estimate (void *cls,
     if (NULL != lh)
       GNUNET_TESTBED_LOGGER_write (lh, &t, sizeof(uint64_t));
     if (NULL != histogram)
-      GNUNET_BIO_write_int64 (histogram, t);
+      GNUNET_BIO_write_int64 (histogram, "histogram-time", t);
   }
 #endif
   GNUNET_STATISTICS_update (stats, "# flood messages received", 1, GNUNET_NO);
@@ -1299,7 +1299,7 @@ shutdown_task (void *cls)
   }
   if (NULL != histogram)
   {
-    GNUNET_BIO_write_close (histogram);
+    GNUNET_BIO_write_close (histogram, NULL);
     histogram = NULL;
   }
 #endif
@@ -1453,7 +1453,7 @@ run (void *cls,
       GNUNET_assert (
         0 < GNUNET_asprintf (&histogram_fn, "%s/timestamps", histogram_dir));
       GNUNET_free (histogram_dir);
-      histogram = GNUNET_BIO_write_open (histogram_fn);
+      histogram = GNUNET_BIO_write_open_file (histogram_fn);
       if (NULL == histogram)
         GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                     "Unable to open histogram file `%s'\n",

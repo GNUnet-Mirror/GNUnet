@@ -165,6 +165,19 @@ GNUNET_buffer_reap_str (struct GNUNET_Buffer *buf);
 
 
 /**
+ * Clear the buffer and return its contents.
+ * The caller is responsible to eventually #GNUNET_free
+ * the returned data.
+ *
+ * @param buf the buffer to reap the contents from
+ * @param size where to store the size of the returned data
+ * @returns the data contained in the string
+ */
+void *
+GNUNET_buffer_reap (struct GNUNET_Buffer *buf, size_t *size);
+
+
+/**
  * Free the backing memory of the given buffer.
  * Does not free the memory of the buffer control structure,
  * which is typically stack-allocated.

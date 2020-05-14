@@ -190,18 +190,22 @@ load_state ()
 
   emsg = NULL;
   fn = get_state_file ();
-  rh = GNUNET_BIO_read_open (fn);
+  rh = GNUNET_BIO_read_open_file (fn);
   GNUNET_free (fn);
   if (NULL == rh)
     return;
   fn = NULL;
-  if (GNUNET_OK != GNUNET_BIO_read_int32 (rh, &n))
+  if (GNUNET_OK != GNUNET_BIO_read_int32 (rh, "number of files",
+                                          (int32_t *) &n))
     goto error;
   while (n-- > 0)
   {
-    if ((GNUNET_OK != GNUNET_BIO_read_string (rh, "filename", &fn, 1024)) ||
-        (GNUNET_OK !=
-         GNUNET_BIO_read (rh, "id", &id, sizeof(struct GNUNET_HashCode))))
+    struct GNUNET_BIO_ReadSpec rs[] = {
+      GNUNET_BIO_read_spec_string("filename", &fn, 1024),
+      GNUNET_BIO_read_spec_object("id", &id, sizeof(struct GNUNET_HashCode)),
+      GNUNET_BIO_read_spec_end(),
+    };
+    if (GNUNET_OK != GNUNET_BIO_read_spec_commit (rh, rs))
       goto error;
     wi = GNUNET_new (struct WorkItem);
     wi->id = id;
@@ -251,9 +255,13 @@ write_item (void *cls, const struct GNUNET_HashCode *key, void *value)
               "Saving serialization ID of file `%s' with value `%s'\n",
               wi->filename,
               GNUNET_h2s (&wi->id));
-  if ((GNUNET_OK != GNUNET_BIO_write_string (wh, wi->filename)) ||
-      (GNUNET_OK !=
-       GNUNET_BIO_write (wh, &wi->id, sizeof(struct GNUNET_HashCode))))
+  struct GNUNET_BIO_WriteSpec ws[] = {
+    GNUNET_BIO_write_spec_string ("auto-share-write-item-filename",
+                                  wi->filename),
+    GNUNET_BIO_write_spec_object ("id", &wi->id, sizeof(struct GNUNET_HashCode)),
+    GNUNET_BIO_write_spec_end (),
+  };
+  if (GNUNET_OK != GNUNET_BIO_write_spec_commit (wh, ws))
     return GNUNET_SYSERR; /* write error, abort iteration */
   return GNUNET_OK;
 }
@@ -271,7 +279,7 @@ save_state ()
 
   n = GNUNET_CONTAINER_multihashmap_size (work_finished);
   fn = get_state_file ();
-  wh = GNUNET_BIO_write_open (fn);
+  wh = GNUNET_BIO_write_open_file (fn);
   if (NULL == wh)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
@@ -280,9 +288,9 @@ save_state ()
     GNUNET_free (fn);
     return;
   }
-  if (GNUNET_OK != GNUNET_BIO_write_int32 (wh, n))
+  if (GNUNET_OK != GNUNET_BIO_write_int32 (wh, "size of state", n))
   {
-    (void) GNUNET_BIO_write_close (wh);
+    (void) GNUNET_BIO_write_close (wh, NULL);
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                 _ ("Failed to save state to file %s\n"),
                 fn);
@@ -290,7 +298,7 @@ save_state ()
     return;
   }
   (void) GNUNET_CONTAINER_multihashmap_iterate (work_finished, &write_item, wh);
-  if (GNUNET_OK != GNUNET_BIO_write_close (wh))
+  if (GNUNET_OK != GNUNET_BIO_write_close (wh, NULL))
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                 _ ("Failed to save state to file %s\n"),
                 fn);
