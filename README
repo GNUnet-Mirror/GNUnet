@@ -63,7 +63,7 @@ These are the direct dependencies for running GNUnet:
 - gettext
 - gnutls             >= 3.2.12      (highly recommended a gnutls
                                      linked against libunbound)
-- A curl build against gnutls, or gnurl:
+- curl (ideally built against gnutls) or gnurl:
   * libgnurl         >= 7.35.0      (recommended, available from
                                      https://gnunet.org/en/gnurl.html)
   or
@@ -74,8 +74,8 @@ These are the direct dependencies for running GNUnet:
   * libidn2 (prefered)
   or
   * libidn           >= 1.0
-- libmicrohttpd      >= 0.9.63      (strongly recommended for
-                                     a wide range of features)
+- libmicrohttpd      >= 0.9.63
+- libjansson
 - makeinfo           >= 4.8
 - make[*3]
 - nss                               (certutil binary, for
@@ -124,7 +124,6 @@ These are the optional dependencies:
 - bluez                             (for bluetooth support)
 - grof                              (for linting of man pages)
 - libextractor       >= 0.6.1       (highly recommended[*5])
-- libjansson
 - libopus            >= 1.0.1       (for conversation tool)
 - libpulse           >= 2.0         (for conversation tool)
 - libogg             >= 1.3.0       (for conversation tool)
