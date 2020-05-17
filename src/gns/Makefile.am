@@ -55,7 +55,6 @@ lib_LTLIBRARIES = \
   libgnunetgns.la
 
 
-if HAVE_MHD
 if HAVE_GNUTLS
 if HAVE_LIBGNURL
   DO_PROXY=gnunet-gns-proxy
@@ -66,7 +65,6 @@ if HAVE_LIBCURL
   DO_PROXY=gnunet-gns-proxy
 LIB_GNURL=@LIBCURL@
 CPP_GNURL=@LIBCURL_CPPFLAGS@
-endif
 endif
 endif
 endif
@@ -82,15 +80,11 @@ bin_PROGRAMS = \
 noinst_PROGRAMS = \
   gnunet-gns-benchmark
 
-if HAVE_MHD
 if LINUX
 bin_PROGRAMS += gnunet-bcd
 endif
-endif
 
-if HAVE_REST
 REST_PLUGIN = libgnunet_plugin_rest_gns.la
-endif
 
 plugin_LTLIBRARIES = \
   libgnunet_plugin_block_gns.la \
@@ -258,12 +252,10 @@ libgnunet_plugin_block_gns_la_LDFLAGS = \
   $(GN_LIBINTL) \
   $(GN_PLUGIN_LDFLAGS)
 
-if HAVE_MHD
 if HAVE_GNUTLS
 if HAVE_LIBGNURL
 check_PROGRAMS = \
   test_gns_proxy
-endif
 endif
 endif
 
@@ -286,18 +278,14 @@ check_SCRIPTS = \
   test_gns_revocation.sh\
   test_gns_cname_lookup.sh
 
-if HAVE_MHD
 if HAVE_GNUTLS
 if HAVE_LIBGNURL
 check_SCRIPTS += \
   test_proxy.sh
 endif
 endif
-if HAVE_JSON
 check_SCRIPTS += \
   test_plugin_rest_gns.sh
-endif
-endif
 
 
 if ENABLE_TEST_RUN

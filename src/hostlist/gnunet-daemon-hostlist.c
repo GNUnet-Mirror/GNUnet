@@ -30,8 +30,6 @@
 #include "gnunet_protocols.h"
 #include "gnunet_statistics_service.h"
 
-#if HAVE_MHD
-
 #include "gnunet-daemon-hostlist_server.h"
 
 /**
@@ -48,8 +46,6 @@ static int provide_hostlist;
  * Handle to hostlist server's connect handler
  */
 static GNUNET_CORE_ConnectEventHandler server_ch;
-
-#endif
 
 /**
  * Set if we are allowed to learn about peers by accessing
@@ -211,13 +207,11 @@ connect_handler (void *cls,
                    (*client_ch)(cls,
                                 peer,
                                 mq));
-#if HAVE_MHD
   if (NULL != server_ch)
     GNUNET_assert (NULL ==
                    (*server_ch)(cls,
                                 peer,
                                 mq));
-#endif
   return (void *) peer;
 }
 
@@ -265,12 +259,10 @@ cleaning_task (void *cls)
   {
     GNUNET_HOSTLIST_client_stop ();
   }
-#if HAVE_MHD
   if (provide_hostlist)
   {
     GNUNET_HOSTLIST_server_stop ();
   }
-#endif
   if (NULL != stats)
   {
     GNUNET_STATISTICS_destroy (stats,
@@ -306,9 +298,7 @@ run (void *cls,
   };
 
   if ((! bootstrapping) && (! learning)
-#if HAVE_MHD
       && (! provide_hostlist)
-#endif
       )
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
@@ -338,14 +328,12 @@ run (void *cls,
                          learning ? learn_handlers : no_learn_handlers);
 
 
-#if HAVE_MHD
   if (provide_hostlist)
     GNUNET_HOSTLIST_server_start (cfg,
                                   stats,
                                   core,
                                   &server_ch,
                                   advertising);
-#endif
   GNUNET_SCHEDULER_add_shutdown (&cleaning_task,
                                  NULL);
 
@@ -370,13 +358,11 @@ int
 main (int argc, char *const *argv)
 {
   struct GNUNET_GETOPT_CommandLineOption options[] = {
-#if HAVE_MHD
     GNUNET_GETOPT_option_flag ('a',
                                "advertise",
                                gettext_noop (
                                  "advertise our hostlist to other peers"),
                                &advertising),
-#endif
     GNUNET_GETOPT_option_flag ('b',
                                "bootstrap",
                                gettext_noop (
@@ -387,12 +373,10 @@ main (int argc, char *const *argv)
                                gettext_noop (
                                  "enable learning about hostlist servers from other peers"),
                                &learning),
-#if HAVE_MHD
     GNUNET_GETOPT_option_flag ('p',
                                "provide-hostlist",
                                gettext_noop ("provide a hostlist server"),
                                &provide_hostlist),
-#endif
     GNUNET_GETOPT_OPTION_END
   };
 

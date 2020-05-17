@@ -6,9 +6,7 @@ if USE_COVERAGE
   XLIB = -lgcov
 endif
 
-if HAVE_REST
 REST_PLUGIN = libgnunet_plugin_rest_peerinfo.la
-endif
 
 plugindir = $(libdir)/gnunet
 

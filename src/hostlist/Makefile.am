@@ -10,12 +10,10 @@ if USE_COVERAGE
   AM_CFLAGS = --coverage -O0
 endif
 
-if HAVE_MHD
  HOSTLIST_SERVER_SOURCES = \
    gnunet-daemon-hostlist_server.c gnunet-daemon-hostlist_server.h
  GN_LIBMHD = $(MHD_LIBS)
  GN_CPPMHD = $(MHD_CFLAGS)
-endif
 
 if HAVE_LIBGNURL
 libexec_PROGRAMS = \
@@ -70,12 +68,10 @@ check_PROGRAMS = \
 endif
 endif
 
-if HAVE_MHD
 if ENABLE_TEST_RUN
 AM_TESTS_ENVIRONMENT=export GNUNET_PREFIX=$${GNUNET_PREFIX:-@libdir@};export PATH=$${GNUNET_PREFIX:-@prefix@}/bin:$$PATH;unset XDG_DATA_HOME;unset XDG_CONFIG_HOME;
 TESTS = \
  $(check_PROGRAMS)
-endif
 endif
 
 test_gnunet_daemon_hostlist_SOURCES = \

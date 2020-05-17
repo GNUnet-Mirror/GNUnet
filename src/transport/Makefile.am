@@ -11,12 +11,10 @@ pkgcfg_DATA = \
   transport.conf \
   communicator-unix.conf
 
-if HAVE_MHD
- HTTP_SERVER_PLUGIN_LA = libgnunet_plugin_transport_http_server.la
- HTTPS_SERVER_PLUGIN_LA = libgnunet_plugin_transport_https_server.la
- HTTP_SERVER_PLUGIN_TEST = test_plugin_http_server
- HTTPS_SERVER_PLUGIN_TEST = test_plugin_https_server
-endif
+HTTP_SERVER_PLUGIN_LA = libgnunet_plugin_transport_http_server.la
+HTTPS_SERVER_PLUGIN_LA = libgnunet_plugin_transport_https_server.la
+HTTP_SERVER_PLUGIN_TEST = test_plugin_http_server
+HTTPS_SERVER_PLUGIN_TEST = test_plugin_https_server
 
 if HAVE_LIBGNURL
  HTTP_CLIENT_PLUGIN_TEST = test_plugin_http_client
@@ -36,7 +34,6 @@ CPP_GNURL=@LIBCURL_CPPFLAGS@
 endif
 endif
 
-if HAVE_MHD
 if HAVE_LIBGNURL
  HTTP_API_TEST = test_transport_api_http
  HTTP_REVERSE_API_TEST = test_transport_api_http_reverse
@@ -74,7 +71,6 @@ endif
  HTTPS_QUOTA_TEST = test_quota_compliance_https \
 		test_quota_compliance_https_asymmetric
  HTTPS_SWITCH = test_transport_address_switch_https
-endif
 endif
 endif
 

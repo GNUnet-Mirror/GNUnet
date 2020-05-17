@@ -99,9 +99,7 @@ TESTS = \
   $(check_SCRIPTS)
 endif
 
-if HAVE_REST
 REST_PLUGIN = libgnunet_plugin_rest_namestore.la
-endif
 
 lib_LTLIBRARIES = \
   libgnunetnamestore.la
@@ -114,10 +112,8 @@ bin_PROGRAMS = \
  gnunet-namestore \
  gnunet-zoneimport
 
-if HAVE_MHD
 libexec_PROGRAMS += \
  gnunet-namestore-fcfsd
-endif
 
 
 plugin_LTLIBRARIES = \
@@ -679,12 +675,8 @@ check_SCRIPTS = \
   test_namestore_lookup.sh \
   test_namestore_delete.sh
 
-if HAVE_MHD
-if HAVE_JSON
 check_SCRIPTS += \
   test_plugin_rest_namestore.sh
-endif
-endif
 
 EXTRA_DIST = \
   test_common.c \

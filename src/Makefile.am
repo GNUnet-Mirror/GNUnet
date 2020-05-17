@@ -17,26 +17,12 @@ if HAVE_ABE
  EXP_DIR += \
   abe
 endif
-if HAVE_JSON
  EXP_DIR += \
   auction
 endif
-endif
 
-if HAVE_JSON
-if HAVE_MHD
-  JSON_DIR = json
-endif
-endif
-if HAVE_MHD
-if HAVE_LIBGNURL
-  CURL_DIR = curl
-else
-if HAVE_LIBCURL
-  CURL_DIR = curl
-endif
-endif
-endif
+JSON_DIR = json
+CURL_DIR = curl
 
 if BUILD_PULSE_HELPERS
 CONVERSATION_DIR = conversation
@@ -58,9 +44,7 @@ if HAVE_POSTGRESQL
  POSTGRES_DIR = pq
 endif
 
-if HAVE_REST
- REST_DIR = rest
-endif
+REST_DIR = rest
 
 
 SUBDIRS = \

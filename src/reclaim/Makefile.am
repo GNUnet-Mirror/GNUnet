@@ -9,16 +9,12 @@ if USE_COVERAGE
 endif
 
 
-if HAVE_REST
 REST_PLUGIN = \
   libgnunet_plugin_rest_openid_connect.la \
   libgnunet_plugin_rest_reclaim.la
-endif
 
-if HAVE_JSON
 ATTESTATION_PLUGIN = \
   libgnunet_plugin_reclaim_attestation_jwt.la
-endif
 
 EXTRA_DIST = \
   reclaim.conf \

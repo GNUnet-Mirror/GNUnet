@@ -29,7 +29,6 @@ gnunet_daemon_pt_LDADD = \
   $(GN_LIBINTL)
 
 if HAVE_TESTING
-if HAVE_MHD
 
 if HAVE_LIBGNURL
 LIB_GNURL=@LIBGNURL@
@@ -57,7 +56,6 @@ endif
 endif
 endif
 
-endif
 endif
 
 check_PROGRAMS = $(VPN_TEST)
