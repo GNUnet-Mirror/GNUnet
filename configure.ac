@@ -984,8 +984,8 @@ AS_IF([test "x$curl" = xtrue],[
  AC_CHECK_HEADER([curl/curl.h],
   AC_CHECK_DECLS(CURLINFO_TLS_SESSION,[curl=true],[curl=false],[[#include <curl/curl.h>]]),
   [curl=false])
- # need libcurl-gnutls.so, everything else is not acceptable
- AC_CHECK_LIB([curl-gnutls],[curl_easy_getinfo],,[curl=false])
+ # need libcurl-gnutls.so for proxy, warn later if not found.
+ AC_CHECK_LIB([curl-gnutls],[curl_easy_getinfo],[curl_gnutls=true],[curl_gnutls=false])
  # cURL must support CURLINFO_TLS_SESSION, version >= 7.34
 ])
 
@@ -1000,7 +1000,7 @@ AS_IF([test "$gnurl" = 1],
               AC_DEFINE([HAVE_LIBGNURL],[0],[Lacking libgnurl])
               AM_CONDITIONAL(HAVE_LIBCURL, true)
               AC_DEFINE([HAVE_LIBCURL],[1],[Have libcurl])],
-             [AC_MSG_WARN([ERROR: GNUnet requires libcurl-gnutls or gnurl >= 7.34])
+             [AC_MSG_ERROR([GNUnet requires libcurl or gnurl >= 7.34])
               AM_CONDITIONAL(HAVE_LIBGNURL, false)
               AC_DEFINE([HAVE_LIBGNURL],[0],[Lacking libgnurl])
               AM_CONDITIONAL(HAVE_LIBCURL, false)
@@ -2080,11 +2080,16 @@ AS_IF([test "$gnurl" = "0"],
       [AS_IF([test "x$curl" = "xfalse"],
              [AC_MSG_WARN([libgnurl not found. http client support will not be compiled.])
               AC_MSG_WARN([IMPORTANT: No HTTP client library found. HTTP transports and hostlist daemon will not be compiled, and you probably WANT the hostlist daemon])
-              curl_msg="no"],
-             [AC_MSG_NOTICE([libgnurl not found, trying to use libcurl-gnutls instead.])
-              curl_msg="yes"])],
-       [gnurl_msg="yes"
+              http_client="none"],
+             [AC_MSG_NOTICE([Using libcurl as HTTP client library.])
+              http_client="curl"])],
+       [AC_MSG_NOTICE([Using libgnurl as HTTP client library.])
+        http_client="gnurl"
         transport_msg="$transport_msg http_client"])
+AS_IF([test "x$curl" = "xtrue" -a "x$curl_gnutls" != "xtrue"],
+      [AC_MSG_WARN([libcurl TLS backend is not gnutls. The GNS Proxy will likely not function properly.])
+       http_client="curl-openssl"],
+      [http_client="curl-gnutls"])
 # -- ifconfig
 AS_IF([test "$VAR_IFCONFIG_BINARY" = "false"],
       [ifconfig_msg="no (optional, some features will not work)"],
@@ -2160,8 +2165,7 @@ Default Interface:              ${interface_msg}
 MySQL:                          ${mysql_msg}
 PostgreSQL:                     ${postgres_msg}
 sqlite3:                        ${sqlite_msg}
-gnurl:                          ${gnurl_msg}
-curl:                           ${curl_msg}
+http client:                    ${http_client}
 bluetooth:                      ${bluetooth_msg}
 jansson:                        ${jansson_msg}
 iptables:                       ${iptables_msg}
