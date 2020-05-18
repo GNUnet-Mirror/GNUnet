@@ -130,6 +130,7 @@ handle_identity_update (void *cls, const struct UpdateMessage *um)
   struct GNUNET_CRYPTO_EcdsaPublicKey pub;
   struct GNUNET_HashCode id;
   struct GNUNET_IDENTITY_Ego ego;
+  memset (&ego, 0, sizeof (ego));
 
   GNUNET_break (GNUNET_YES != ntohs (um->end_of_list));
   GNUNET_CRYPTO_ecdsa_key_get_public (&um->private_key, &pub);

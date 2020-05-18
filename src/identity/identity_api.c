@@ -392,6 +392,7 @@ handle_identity_update (void *cls,
       return;
     }
     ego = GNUNET_new (struct GNUNET_IDENTITY_Ego);
+    ego->pub_initialized = GNUNET_NO;
     ego->pk = um->private_key;
     ego->name = GNUNET_strdup (str);
     ego->id = id;
@@ -607,11 +608,11 @@ void
 GNUNET_IDENTITY_ego_get_public_key (struct GNUNET_IDENTITY_Ego *ego,
                                     struct GNUNET_CRYPTO_EcdsaPublicKey *pk)
 {
-  if (! ego->pub_initialized)
+  if (GNUNET_NO == ego->pub_initialized)
   {
     GNUNET_CRYPTO_ecdsa_key_get_public (&ego->pk,
                                         &ego->pub);
-    ego->pub_initialized = true;
+    ego->pub_initialized = GNUNET_YES;
   }
   *pk = ego->pub;
 }
