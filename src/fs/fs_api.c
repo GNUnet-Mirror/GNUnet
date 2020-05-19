@@ -943,17 +943,17 @@ deserialize_fi_node (struct GNUNET_FS_Handle *h,
          "expiration time",
          (int64_t *) &ret->bo.expiration_time.abs_value_us)) ||
       (GNUNET_OK != GNUNET_BIO_read_int32 (
-        rh,
-        "anonymity level",
-        (int32_t *) &ret->bo.anonymity_level)) ||
+         rh,
+         "anonymity level",
+         (int32_t *) &ret->bo.anonymity_level)) ||
       (GNUNET_OK != GNUNET_BIO_read_int32 (
-        rh,
-        "content priority",
-        (int32_t *) &ret->bo.content_priority)) ||
+         rh,
+         "content priority",
+         (int32_t *) &ret->bo.content_priority)) ||
       (GNUNET_OK != GNUNET_BIO_read_int32 (
-        rh,
-        "replication level",
-        (int32_t *) &ret->bo.replication_level)))
+         rh,
+         "replication level",
+         (int32_t *) &ret->bo.replication_level)))
   {
     GNUNET_break (0);
     goto cleanup;
@@ -1090,7 +1090,7 @@ deserialize_fi_node (struct GNUNET_FS_Handle *h,
          GNUNET_BIO_read_int64 (
            rh,
            "contents size",
-           (int64_t *)&ret->data.dir.contents_size)) ||
+           (int64_t *) &ret->data.dir.contents_size)) ||
         (NULL == (ret->data.dir.dir_data = GNUNET_malloc_large (dsize))) ||
         (GNUNET_OK !=
          GNUNET_BIO_read (rh, "dir-data", ret->data.dir.dir_data, dsize)) ||
@@ -1795,7 +1795,8 @@ GNUNET_FS_publish_sync_ (struct GNUNET_FS_PublishContext *pc)
     GNUNET_BIO_write_spec_string ("serialization", pc->fi->serialization),
     GNUNET_BIO_write_spec_string ("pos serialization", (NULL == pc->fi_pos)
                                   ? NULL
-                                  : pc->fi_pos->serialization)
+                                  : pc->fi_pos->serialization),
+    GNUNET_BIO_read_spec_end ()
   };
   if ((GNUNET_OK != GNUNET_BIO_write_spec_commit (wh, ws)) ||
       ((NULL != pc->ns) &&
@@ -2580,21 +2581,21 @@ deserialize_search_result (void *cls, const char *filename)
                                      &sr->key,
                                      sizeof(struct GNUNET_HashCode))) ||
       (GNUNET_OK != GNUNET_BIO_read_int32 (
-        rh,
-        "mandatory missing",
-        (int32_t *) &sr->mandatory_missing)) ||
+         rh,
+         "mandatory missing",
+         (int32_t *) &sr->mandatory_missing)) ||
       (GNUNET_OK != GNUNET_BIO_read_int32 (
-        rh,
-        "optional support",
-        (int32_t *) &sr->optional_support)) ||
+         rh,
+         "optional support",
+         (int32_t *) &sr->optional_support)) ||
       (GNUNET_OK != GNUNET_BIO_read_int32 (
-        rh,
-        "availability success",
-        (int32_t *) &sr->availability_success)) ||
+         rh,
+         "availability success",
+         (int32_t *) &sr->availability_success)) ||
       (GNUNET_OK != GNUNET_BIO_read_int32 (
-        rh,
-        "availability trials",
-        (int32_t *) &sr->availability_trials)))
+         rh,
+         "availability trials",
+         (int32_t *) &sr->availability_trials)))
   {
     GNUNET_break (0);
     goto cleanup;
