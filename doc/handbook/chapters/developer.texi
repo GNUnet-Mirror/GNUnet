@@ -848,8 +848,9 @@ libgnunet_plugin_transport_tcp)
 @c XXX: Adjust examples to GNU Standards!
 @itemize @bullet
 @item We follow the GNU Coding Standards (@pxref{Top, The GNU Coding Standards,, standards, The GNU Coding Standards});
-@item Indentation is done with spaces, two per level, no tabs;
-@item C99 struct initialization is fine;
+@item Indentation is done with spaces, two per level, no tabs; specific (incomplete!) indentation rules are provided in an @code{uncrustify} configuration file (in ``contrib/``) and enforced by Git hooks;
+@item C99 struct initialization is fine and generally encouraged (but not required);
+@item As in all good C code, we care about symbol space pollution and thus use @code{static} to limit the scope where possible, even in the compilation unit that contains @code{main};
 @item declare only one variable per line, for example:
 
 @noindent
@@ -1063,6 +1064,32 @@ separated by an empty line (possibly followed by a comment describing the
 following step). The code should not contain empty lines in arbitrary
 places; if in doubt, it is likely better to NOT have an empty line (this
 way, more code will fit on the screen).
+
+
+@item When command-line arguments become too long (and would result in
+some particularly ugly @code{uncrustify} wrapping), we start all arguments
+on a new line. As a result, there must never be a new line within an
+argument declaration (i.e. between @code{struct} and the struct's name) or
+between the type and the variable). Example:
+
+@example
+struct GNUNET_TRANSPORT_CommunicatorHandle *
+GNUNET_TRANSPORT_communicator_connect (
+  const struct GNUNET_CONFIGURATION_Handle *cfg,
+  const char *config_section_name,
+  const char *addr_prefix,
+  ...);
+@end example
+
+Note that for short function names and arguments, the first argument
+does remain on the same line. Example:
+
+@example
+void
+fun (short i,
+     short j);
+@end example
+
 @end itemize
 
 @c ***********************************************************************
@@ -8941,4 +8968,3 @@ view are sampled through the sampler from the random stream of peer IDs.
 
 According to the theoretical analysis of Bortnikov et al. this suffices
 to keep the network connected and having random peers in the view.
-

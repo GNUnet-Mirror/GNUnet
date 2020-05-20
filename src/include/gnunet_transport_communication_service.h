@@ -176,8 +176,9 @@ GNUNET_TRANSPORT_communicator_disconnect (
  * @param success #GNUNET_SYSERR on failure (try to disconnect/reset connection)
  *                #GNUNET_OK on success
  */
-typedef void (*GNUNET_TRANSPORT_MessageCompletedCallback) (void *cls,
-                                                           int success);
+typedef void
+(*GNUNET_TRANSPORT_MessageCompletedCallback) (void *cls,
+                                              int success);
 
 
 /**
