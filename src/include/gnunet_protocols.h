@@ -1648,29 +1648,8 @@ extern "C" {
  */
 #define GNUNET_MESSAGE_TYPE_CONSENSUS_P2P_ELEMENTS_REPORT 545
 
-/*
- * Initialization message for consensus p2p communication.
- */
-#define GNUNET_MESSAGE_TYPE_CONSENSUS_P2P_HELLO 546
-
 /**
- * Report that the peer is synced with the partner after successfuly decoding
- * the invertible bloom filter.
- */
-#define GNUNET_MESSAGE_TYPE_CONSENSUS_P2P_SYNCED 547
-
-/**
- * Interaction os over, got synched and reported all elements
- */
-#define GNUNET_MESSAGE_TYPE_CONSENSUS_P2P_FIN 548
-
-/**
- * Abort a round, don't send requested elements anymore
- */
-#define GNUNET_MESSAGE_TYPE_CONSENSUS_P2P_ABORT 548
-
-/**
- * Abort a round, don't send requested elements anymore
+ * Provide context for a consensus round.
  */
 #define GNUNET_MESSAGE_TYPE_CONSENSUS_P2P_ROUND_CONTEXT 547
 
