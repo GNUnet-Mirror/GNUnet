@@ -57,6 +57,11 @@
 #define GNUNET_REST_IDENTITY_PARAM_PUBKEY "pubkey"
 
 /**
+ * Parameter public key
+ */
+#define GNUNET_REST_IDENTITY_PARAM_PRIVKEY "privkey"
+
+/**
  * Parameter subsystem
  */
 #define GNUNET_REST_IDENTITY_PARAM_SUBSYSTEM "subsystem"
@@ -463,9 +468,11 @@ ego_get_all (struct GNUNET_REST_RequestHandle *con_handle,
   struct RequestHandle *handle = cls;
   struct EgoEntry *ego_entry;
   struct MHD_Response *resp;
+  struct GNUNET_HashCode key;
   json_t *json_root;
   json_t *json_ego;
   char *result_str;
+  char *privkey_str;
 
   json_root = json_array ();
   // Return ego/egos
@@ -476,6 +483,19 @@ ego_get_all (struct GNUNET_REST_RequestHandle *con_handle,
     json_object_set_new (json_ego,
                          GNUNET_REST_IDENTITY_PARAM_PUBKEY,
                          json_string (ego_entry->keystring));
+    GNUNET_CRYPTO_hash ("private", strlen ("private"), &key);
+    if (GNUNET_YES ==
+        GNUNET_CONTAINER_multihashmap_contains (
+          handle->rest_handle->url_param_map, &key))
+    {
+      privkey_str = GNUNET_CRYPTO_ecdsa_private_key_to_string (
+        GNUNET_IDENTITY_ego_get_private_key (ego_entry->ego));
+      json_object_set_new (json_ego,
+                           GNUNET_REST_IDENTITY_PARAM_PRIVKEY,
+                           json_string (privkey_str));
+      GNUNET_free (privkey_str);
+    }
+
     json_object_set_new (json_ego,
                          GNUNET_REST_IDENTITY_PARAM_NAME,
                          json_string (ego_entry->identifier));
@@ -504,8 +524,10 @@ void
 ego_get_response (struct RequestHandle *handle, struct EgoEntry *ego_entry)
 {
   struct MHD_Response *resp;
+  struct GNUNET_HashCode key;
   json_t *json_ego;
   char *result_str;
+  char *privkey_str;
 
   json_ego = json_object ();
   json_object_set_new (json_ego,
@@ -514,6 +536,18 @@ ego_get_response (struct RequestHandle *handle, struct EgoEntry *ego_entry)
   json_object_set_new (json_ego,
                        GNUNET_REST_IDENTITY_PARAM_NAME,
                        json_string (ego_entry->identifier));
+  GNUNET_CRYPTO_hash ("private", strlen ("private"), &key);
+  if (GNUNET_YES ==
+      GNUNET_CONTAINER_multihashmap_contains (
+        handle->rest_handle->url_param_map, &key))
+  {
+    privkey_str = GNUNET_CRYPTO_ecdsa_private_key_to_string (
+      GNUNET_IDENTITY_ego_get_private_key (ego_entry->ego));
+    json_object_set_new (json_ego,
+                         GNUNET_REST_IDENTITY_PARAM_PRIVKEY,
+                         json_string (privkey_str));
+    GNUNET_free (privkey_str);
+  }
 
   result_str = json_dumps (json_ego, 0);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Result %s\n", result_str);
