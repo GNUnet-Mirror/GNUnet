@@ -76,6 +76,11 @@ static char *create_ego;
 static char *delete_ego;
 
 /**
+ * -P option
+ */
+static char *privkey_ego;
+
+/**
  * -s option.
  */
 static char *set_ego;
@@ -99,6 +104,11 @@ static struct GNUNET_IDENTITY_Operation *create_op;
  * Handle for delete operation.
  */
 static struct GNUNET_IDENTITY_Operation *delete_op;
+
+/**
+ * Private key from command line option, or NULL.
+ */
+struct GNUNET_CRYPTO_EcdsaPrivateKey pk;
 
 /**
  * Value to return from #main().
@@ -390,11 +400,28 @@ run (void *cls,
                               &delete_finished,
                               &delete_op);
   if (NULL != create_ego)
-    create_op =
-      GNUNET_IDENTITY_create (sh,
-                              create_ego,
-                              &create_finished,
-                              &create_op);
+  {
+    if (NULL != privkey_ego)
+    {
+      GNUNET_STRINGS_string_to_data (privkey_ego,
+                                     strlen (privkey_ego),
+                                     &pk,
+                                     sizeof(struct GNUNET_CRYPTO_EcdsaPrivateKey));
+      create_op =
+        GNUNET_IDENTITY_create (sh,
+                                create_ego,
+                                &pk,
+                                &create_finished,
+                                &create_op);
+    }
+    else
+      create_op =
+        GNUNET_IDENTITY_create (sh,
+                                create_ego,
+                                NULL,
+                                &create_finished,
+                                &create_op);
+  }
   GNUNET_SCHEDULER_add_shutdown (&shutdown_task,
                                  NULL);
   test_finished ();
@@ -422,6 +449,11 @@ main (int argc, char *const *argv)
                                  "NAME",
                                  gettext_noop ("delete ego NAME "),
                                  &delete_ego),
+    GNUNET_GETOPT_option_string ('P',
+                                 "privkey",
+                                 "PRIVATE_KEY",
+                                 gettext_noop ("set the private key for the identity to PRIVATE_KEY (use together with -C)"),
+                                 &privkey_ego),
     GNUNET_GETOPT_option_flag ('d',
                                "display",
                                gettext_noop ("display all egos"),

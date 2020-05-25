@@ -233,6 +233,7 @@ typedef void
  *
  * @param id identity service to use
  * @param name desired name
+ * @param privkey desired private key or NULL to create one
  * @param cont function to call with the result (will only be called once)
  * @param cont_cls closure for @a cont
  * @return handle to abort the operation
@@ -240,6 +241,7 @@ typedef void
 struct GNUNET_IDENTITY_Operation *
 GNUNET_IDENTITY_create (struct GNUNET_IDENTITY_Handle *id,
                         const char *name,
+                        const struct GNUNET_CRYPTO_EcdsaPrivateKey *privkey,
                         GNUNET_IDENTITY_CreateContinuation cont,
                         void *cont_cls);
 
