@@ -43,17 +43,16 @@ GNUNET_CRYPTO_pow_hash (const char *salt,
                         size_t buf_len,
                         struct GNUNET_HashCode *result)
 {
-  GNUNET_break (ARGON2_OK == argon2d_hash_raw (3, /* iterations */
-                                               1024, /* memory (1 MiB) */
-                                               1, /* threads */
-                                               buf,
-                                               buf_len,
-                                               salt,
-                                               strlen (salt),
-                                               result,
-                                               sizeof (struct
-                                                       GNUNET_HashCode)));
-
+  GNUNET_break (ARGON2_OK ==
+                argon2id_hash_raw (3, /* iterations */
+                                   1024,              /* memory (1 MiB) */
+                                   1,              /* threads */
+                                   buf,
+                                   buf_len,
+                                   salt,
+                                   strlen (salt),
+                                   result,
+                                   sizeof (struct GNUNET_HashCode)));
 }
 
 
