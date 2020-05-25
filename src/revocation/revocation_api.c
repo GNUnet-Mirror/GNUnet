@@ -492,6 +492,10 @@ GNUNET_REVOCATION_check_pow (const struct GNUNET_REVOCATION_PowP *pow,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Score %u with %" PRIu64 " (#%u)\n",
                 tmp_score, pow_val, i);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "First byte: %x\n",
+                ((char*)&result)[0] & 0xff);
+
 
     GNUNET_CRYPTO_hash_to_enc (&result,
                                &h_str);
@@ -583,9 +587,14 @@ GNUNET_REVOCATION_pow_start (struct GNUNET_REVOCATION_PowP *pow,
                              unsigned int difficulty)
 {
   struct GNUNET_REVOCATION_PowCalculationHandle *pc;
+  struct GNUNET_TIME_Relative ttl;
+
 
   pc = GNUNET_new (struct GNUNET_REVOCATION_PowCalculationHandle);
   pc->pow = pow;
+  ttl = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_YEARS,
+                                       epochs);
+  pc->pow->ttl = GNUNET_TIME_relative_hton (ttl);
   pc->current_pow = GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK,
                                               UINT64_MAX);
   pc->difficulty = difficulty;
