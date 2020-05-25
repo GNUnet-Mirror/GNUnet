@@ -63,7 +63,7 @@ run (void *cls,
   fprintf(stdout, "Zone private key (d):\n%s\n\n", data_enc);
   GNUNET_free (data_enc);
   GNUNET_STRINGS_base64_encode (&id_pub,
-                                sizeof (struct GNUNET_CRYPTO_EcdsaPrivateKey),
+                                sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey),
                                 &data_enc);
   fprintf(stdout, "Zone public key (zk):\n%s\n\n", data_enc);
   GNUNET_free (data_enc);
