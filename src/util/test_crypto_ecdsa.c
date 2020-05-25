@@ -107,6 +107,7 @@ testDeriveSignVerify (void)
   struct GNUNET_CRYPTO_EcdsaPrivateKey *dpriv;
   struct GNUNET_CRYPTO_EcdsaPublicKey pkey;
   struct GNUNET_CRYPTO_EcdsaPublicKey dpub;
+  struct GNUNET_CRYPTO_EcdsaPublicKey dpub2;
 
   dpriv = GNUNET_CRYPTO_ecdsa_private_key_derive (&key,
                                                   "test-derive",
@@ -117,8 +118,16 @@ testDeriveSignVerify (void)
                                          "test-derive",
                                          "test-CTX",
                                          &dpub);
+  GNUNET_CRYPTO_ecdsa_key_get_public (dpriv, &dpub2);
   purp.size = htonl (sizeof(struct GNUNET_CRYPTO_EccSignaturePurpose));
   purp.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_TEST);
+
+  if (0 != GNUNET_memcmp (&dpub.q_y, &dpub2.q_y))
+  {
+    fprintf (stderr, "%s", "key derivation failed\n");
+    GNUNET_free (dpriv);
+    return GNUNET_SYSERR;
+  }
 
   if (GNUNET_SYSERR ==
       GNUNET_CRYPTO_ecdsa_sign_ (dpriv,
