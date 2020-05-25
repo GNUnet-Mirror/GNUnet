@@ -252,7 +252,7 @@ GNUNET_CRYPTO_hash_get_bit (const struct GNUNET_HashCode *code, unsigned int
                             bit)
 {
   GNUNET_assert (bit < 8 * sizeof(struct GNUNET_HashCode));
-  return (((unsigned char *) code)[bit >> 3] & (1 << (bit & 7))) > 0;
+  return (((unsigned char *) code)[bit >> 3] & (128 >> (bit & 7))) > 0;
 }
 
 
