@@ -52,6 +52,7 @@ run (void *cls,
   struct GNUNET_CRYPTO_EcdsaPublicKey id_pub;
   struct GNUNET_REVOCATION_PowP pow;
   struct GNUNET_REVOCATION_PowCalculationHandle *ph;
+  struct GNUNET_TIME_Relative exp;
   char* data_enc;
 
   GNUNET_CRYPTO_ecdsa_key_create (&id_priv);
@@ -67,7 +68,7 @@ run (void *cls,
                                 &data_enc);
   fprintf(stdout, "Zone public key (zk):\n%s\n\n", data_enc);
   GNUNET_free (data_enc);
-
+  memset (&pow, 0, sizeof (pow));
   GNUNET_REVOCATION_pow_init (&id_priv,
                               &pow);
   ph = GNUNET_REVOCATION_pow_start (&pow,
@@ -82,6 +83,11 @@ run (void *cls,
   {
     pow_passes++;
   }
+  exp = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_YEARS,
+                                       TEST_EPOCHS);
+  GNUNET_assert (GNUNET_OK == GNUNET_REVOCATION_check_pow (&pow,
+                                                           TEST_DIFFICULTY,
+                                                           exp));
   GNUNET_STRINGS_base64_encode (&pow,
                                 sizeof (struct GNUNET_REVOCATION_PowP),
                                 &data_enc);

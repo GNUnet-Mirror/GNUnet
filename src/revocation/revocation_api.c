@@ -394,7 +394,6 @@ static unsigned int
 count_leading_zeroes (const struct GNUNET_HashCode *hash)
 {
   unsigned int hash_count;
-
   hash_count = 0;
   while ((0 == GNUNET_CRYPTO_hash_get_bit (hash, hash_count)))
     hash_count++;
@@ -436,6 +435,7 @@ GNUNET_REVOCATION_check_pow (const struct GNUNET_REVOCATION_PowP *pow,
            + sizeof (struct GNUNET_TIME_AbsoluteNBO)
            + sizeof (uint64_t)] GNUNET_ALIGN;
   struct GNUNET_REVOCATION_SignaturePurposePS spurp;
+  struct GNUNET_CRYPTO_HashAsciiEncoded h_str;
   struct GNUNET_HashCode result;
   struct GNUNET_TIME_Absolute ts;
   struct GNUNET_TIME_Absolute exp;
@@ -492,6 +492,12 @@ GNUNET_REVOCATION_check_pow (const struct GNUNET_REVOCATION_PowP *pow,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Score %u with %" PRIu64 " (#%u)\n",
                 tmp_score, pow_val, i);
+
+    GNUNET_CRYPTO_hash_to_enc (&result,
+                               &h_str);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Hash: %s\n", (char*)&h_str);
+
     score += tmp_score;
 
   }
