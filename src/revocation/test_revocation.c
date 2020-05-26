@@ -237,10 +237,12 @@ identity_completion_cb (void *cls,
   fprintf (stderr, "All peers connected @ IDENTITY ...\n");
   testpeers[0].create_id_op = GNUNET_IDENTITY_create (testpeers[0].idh,
                                                       "client",
+                                                      NULL,
                                                       &identity_create_cb,
                                                       &testpeers[0]);
   testpeers[1].create_id_op = GNUNET_IDENTITY_create (testpeers[1].idh,
                                                       "toberevoked",
+                                                      NULL,
                                                       &identity_create_cb,
                                                       &testpeers[1]);
 }

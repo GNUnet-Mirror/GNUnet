@@ -266,7 +266,7 @@ run_set (void *cls,
   GNUNET_SCHEDULER_add_shutdown (&cleanup, NULL);
   h = GNUNET_IDENTITY_connect (cfg, &notification_cb, NULL);
   CHECK (NULL != h);
-  op = GNUNET_IDENTITY_create (h, "test-id", &create_cb, NULL);
+  op = GNUNET_IDENTITY_create (h, "test-id", NULL, &create_cb, NULL);
 }
 
 

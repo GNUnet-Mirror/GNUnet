@@ -57,7 +57,7 @@
 #define GNUNET_REST_IDENTITY_PARAM_PUBKEY "pubkey"
 
 /**
- * Parameter public key
+ * Parameter private key
  */
 #define GNUNET_REST_IDENTITY_PARAM_PRIVKEY "privkey"
 
@@ -990,6 +990,9 @@ ego_create (struct GNUNET_REST_RequestHandle *con_handle,
   json_t *data_js;
   json_error_t err;
   char *egoname;
+  char *privkey;
+  struct GNUNET_CRYPTO_EcdsaPrivateKey pk;
+  struct GNUNET_CRYPTO_EcdsaPrivateKey *pk_ptr;
   int json_unpack_state;
   char term_data[handle->data_size + 1];
 
@@ -1016,8 +1019,11 @@ ego_create (struct GNUNET_REST_RequestHandle *con_handle,
     return;
   }
   json_unpack_state = 0;
+  privkey = NULL;
   json_unpack_state =
-    json_unpack (data_js, "{s:s!}", GNUNET_REST_IDENTITY_PARAM_NAME, &egoname);
+    json_unpack (data_js, "{s:s, s?:s!}",
+                 GNUNET_REST_IDENTITY_PARAM_NAME, &egoname,
+                 GNUNET_REST_IDENTITY_PARAM_PRIVKEY, &privkey);
   if (0 != json_unpack_state)
   {
     handle->emsg = GNUNET_strdup (GNUNET_REST_ERROR_DATA_INVALID);
@@ -1054,10 +1060,21 @@ ego_create (struct GNUNET_REST_RequestHandle *con_handle,
     }
   }
   handle->name = GNUNET_strdup (egoname);
+  if (NULL != privkey)
+  {
+    GNUNET_STRINGS_string_to_data (privkey,
+                                   strlen (privkey),
+                                   &pk,
+                                   sizeof(struct GNUNET_CRYPTO_EcdsaPrivateKey));
+    pk_ptr = &pk;
+  }
+  else
+    pk_ptr = NULL;
   json_decref (data_js);
   handle->response_code = MHD_HTTP_CREATED;
   handle->op = GNUNET_IDENTITY_create (handle->identity_handle,
                                        handle->name,
+                                       pk_ptr,
                                        &do_finished_create,
                                        handle);
 }
