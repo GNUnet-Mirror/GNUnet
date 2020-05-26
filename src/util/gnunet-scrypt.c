@@ -79,7 +79,7 @@ count_leading_zeroes (const struct GNUNET_HashCode *hash)
   unsigned int hash_count;
 
   hash_count = 0;
-  while (0 == GNUNET_CRYPTO_hash_get_bit (hash, hash_count))
+  while (0 == GNUNET_CRYPTO_hash_get_bit_ltr (hash, hash_count))
     hash_count++;
   return hash_count;
 }

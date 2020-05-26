@@ -91,10 +91,15 @@ testArithmetic ()
     return 1;
   if (1 != GNUNET_CRYPTO_hash_xorcmp (&h1, &h2, &h2))
     return 1;
-  memset (&d, 0xF0, sizeof(d));
-  if (0 != GNUNET_CRYPTO_hash_get_bit (&d, 3))
+  memset (&d, 0x40, sizeof(d));
+  if (0 != GNUNET_CRYPTO_hash_get_bit_rtl (&d, 3))
     return 1;
-  if (1 != GNUNET_CRYPTO_hash_get_bit (&d, 6))
+  if (1 != GNUNET_CRYPTO_hash_get_bit_rtl (&d, 6))
+    return 1;
+  memset (&d, 0x02, sizeof(d));
+  if (0 != GNUNET_CRYPTO_hash_get_bit_ltr (&d, 3))
+    return 1;
+  if (1 != GNUNET_CRYPTO_hash_get_bit_ltr (&d, 6))
     return 1;
   memset (&d, 0, sizeof(d));
   GNUNET_CRYPTO_hash_to_aes_key (&d, &skey, &iv);

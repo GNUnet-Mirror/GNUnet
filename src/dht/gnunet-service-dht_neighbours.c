@@ -927,8 +927,8 @@ get_distance (const struct GNUNET_HashCode *target,
        (i < sizeof(struct GNUNET_HashCode) * 8) && (i < bucket + 1 + 32 - 9);
        i++)
   {
-    if (GNUNET_CRYPTO_hash_get_bit (target, i) !=
-        GNUNET_CRYPTO_hash_get_bit (have, i))
+    if (GNUNET_CRYPTO_hash_get_bit_rtl (target, i) !=
+        GNUNET_CRYPTO_hash_get_bit_rtl (have, i))
       lsb |= (1 << (bucket + 32 - 9 - i));      /* first bit set will be 10,
                                                  * last bit set will be 31 -- if
                                                  * i does not reach 512 first... */

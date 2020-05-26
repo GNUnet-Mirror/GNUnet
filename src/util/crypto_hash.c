@@ -244,16 +244,33 @@ GNUNET_CRYPTO_hash_to_aes_key (const struct GNUNET_HashCode *hc,
 /**
  * Obtain a bit from a hashcode.
  * @param code the GNUNET_CRYPTO_hash to index bit-wise
- * @param bit index into the hashcode, [0...511]
+ * @param bit index into the hashcode, [0...511] where 0 is the leftmost bit
+ *        (bytes in code interpreted big endian)
  * @return Bit \a bit from hashcode \a code, -1 for invalid index
  */
 int
-GNUNET_CRYPTO_hash_get_bit (const struct GNUNET_HashCode *code, unsigned int
-                            bit)
+GNUNET_CRYPTO_hash_get_bit_ltr (const struct GNUNET_HashCode *code,
+                            unsigned int bit)
 {
   GNUNET_assert (bit < 8 * sizeof(struct GNUNET_HashCode));
   return (((unsigned char *) code)[bit >> 3] & (128 >> (bit & 7))) > 0;
 }
+
+/**
+ * Obtain a bit from a hashcode.
+ * @param code the GNUNET_CRYPTO_hash to index bit-wise
+ * @param bit index into the hashcode, [0...511] where 0 is the rightmost bit
+ *        (bytes in code interpreted little endian)
+ * @return Bit \a bit from hashcode \a code, -1 for invalid index
+ */
+int
+GNUNET_CRYPTO_hash_get_bit_rtl (const struct GNUNET_HashCode *code,
+                                unsigned int bit)
+{
+  GNUNET_assert (bit < 8 * sizeof(struct GNUNET_HashCode));
+  return (((unsigned char *) code)[bit >> 3] & (1 << (bit & 7))) > 0;
+}
+
 
 
 /**
@@ -275,8 +292,8 @@ GNUNET_CRYPTO_hash_matching_bits (const struct GNUNET_HashCode *first,
   unsigned int i;
 
   for (i = 0; i < sizeof(struct GNUNET_HashCode) * 8; i++)
-    if (GNUNET_CRYPTO_hash_get_bit (first, i) !=
-        GNUNET_CRYPTO_hash_get_bit (second, i))
+    if (GNUNET_CRYPTO_hash_get_bit_rtl (first, i) !=
+        GNUNET_CRYPTO_hash_get_bit_rtl (second, i))
       return i;
   return sizeof(struct GNUNET_HashCode) * 8;
 }

@@ -47,7 +47,7 @@ print_record(const struct GNUNET_GNSRECORD_Data *rd)
     fprintf (stdout,
            "EXPIRATION: %"PRIu64"\n", rd->expiration_time);
   fprintf (stdout,
-           "DATA_SIZE: %"PRIu64"\n", rd->data_size);
+           "DATA_SIZE: %zu\n", rd->data_size);
   fprintf (stdout,
            "TYPE: %d\n", rd->record_type);
   fprintf (stdout,
