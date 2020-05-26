@@ -37,7 +37,7 @@ perfHash ()
 
   memset (buf, 1, sizeof(buf));
   for (unsigned int i = 0; i < 1024; i++)
-    GNUNET_CRYPTO_pow_hash ("gnunet-proof-of-work",
+    GNUNET_CRYPTO_pow_hash ("gnunet-nse-proof",
                             buf,
                             sizeof(buf),
                             &hc);

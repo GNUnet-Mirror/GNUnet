@@ -483,7 +483,7 @@ GNUNET_REVOCATION_check_pow (const struct GNUNET_REVOCATION_PowP *pow,
   {
     pow_val = GNUNET_ntohll (pow->pow[i]);
     GNUNET_memcpy (buf, &pow->pow[i], sizeof(uint64_t));
-    GNUNET_CRYPTO_pow_hash ("gnunet-revocation-proof-of-work",
+    GNUNET_CRYPTO_pow_hash ("GnsRevocationPow",
                             buf,
                             sizeof(buf),
                             &result);
@@ -642,7 +642,7 @@ GNUNET_REVOCATION_pow_round (struct GNUNET_REVOCATION_PowCalculationHandle *pc)
   GNUNET_memcpy (&buf[sizeof(uint64_t) * 2],
                  &pc->pow->key,
                  sizeof(struct GNUNET_CRYPTO_EcdsaPublicKey));
-  GNUNET_CRYPTO_pow_hash ("gnunet-revocation-proof-of-work",
+  GNUNET_CRYPTO_pow_hash ("GnsRevocationPow",
                           buf,
                           sizeof(buf),
                           &result);

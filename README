@@ -96,8 +96,6 @@ These are the direct dependencies for running GNUnet:
 - which                             (contrib/apparmor(?), gnunet-bugreport,
                                      and possibly more)
 - zlib
-- argon2             >= 20190702    (for proof-of-work calculations in
-                                     revocation)
 - libsodium          >= 1.0.11      (for elliptic curve cryptography)
 
 These are the dependencies for GNUnet's testsuite:

@@ -1033,20 +1033,10 @@ AS_IF([test x$nss = xfalse],
 AC_CHECK_LIB([kvm],[kvm_open])
 AC_CHECK_LIB([kstat],[kstat_open])
 
-argon=0
-# test for argon2 (for POW)
-AC_CHECK_LIB([argon2],[argon2d_hash_raw], argon=1, argon=0)
-AS_IF([test x$argon = x1],
-[
- AC_MSG_RESULT([argon2 found])
-],[
- AC_MSG_ERROR([GNUnet requires argon2.])
-])
-
 libsodium=0
 # test for libsodium
 AC_CHECK_HEADER([sodium.h],
-                [AC_CHECK_LIB([sodium], [sodium_init],
+                [AC_CHECK_LIB([sodium], [crypto_pwhash_argon2id],
                               [libsodium=1])])
 
 AS_IF([test x$libsodium = x0],

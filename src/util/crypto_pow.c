@@ -25,14 +25,14 @@
  */
 #include "platform.h"
 #include "gnunet_crypto_lib.h"
-#include <argon2.h>
+#include <sodium.h>
 
 /**
  * Calculate the 'proof-of-work' hash (an expensive hash).
  * We're using a non-standard formula to avoid issues with
  * ASICs appearing (see #3795).
  *
- * @param salt salt for the hash
+ * @param salt salt for the hash. Must be crypto_pwhash_argon2id_SALTBYTES long.
  * @param buf data to hash
  * @param buf_len number of bytes in @a buf
  * @param result where to write the resulting hash
@@ -43,16 +43,17 @@ GNUNET_CRYPTO_pow_hash (const char *salt,
                         size_t buf_len,
                         struct GNUNET_HashCode *result)
 {
-  GNUNET_break (ARGON2_OK ==
-                argon2id_hash_raw (3, /* iterations */
-                                   1024,              /* memory (1 MiB) */
-                                   1,              /* threads */
-                                   buf,
-                                   buf_len,
-                                   salt,
-                                   strlen (salt),
-                                   result,
-                                   sizeof (struct GNUNET_HashCode)));
+  GNUNET_assert (strlen (salt) == crypto_pwhash_argon2id_SALTBYTES);
+  /* Threads hardcoded at 1 in libsodium */
+  GNUNET_break (0 ==
+                crypto_pwhash_argon2id ((unsigned char *) result,
+                                        sizeof (struct GNUNET_HashCode),
+                                        buf,
+                                        buf_len,
+                                        (unsigned char*) salt,
+                                        3, /* iterations */
+                                        1024 * 1024, /* memory (1 MiB) */
+                                        crypto_pwhash_argon2id_ALG_ARGON2ID13));
 }
 
 

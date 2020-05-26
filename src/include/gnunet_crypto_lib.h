@@ -659,7 +659,7 @@ GNUNET_CRYPTO_hash (const void *block,
 /**
  * Calculate the 'proof-of-work' hash (an expensive hash).
  *
- * @param salt salt to use in pow calculation
+ * @param salt salt for the hash. Must be crypto_pwhash_argon2id_SALTBYTES long.
  * @param buf data to hash
  * @param buf_len number of bytes in @a buf
  * @param result where to write the resulting hash

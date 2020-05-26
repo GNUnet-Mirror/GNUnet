@@ -806,7 +806,7 @@ check_proof_of_work (const struct GNUNET_CRYPTO_EddsaPublicKey *pkey,
   GNUNET_memcpy (&buf[sizeof(val)],
                  pkey,
                  sizeof(struct GNUNET_CRYPTO_EddsaPublicKey));
-  GNUNET_CRYPTO_pow_hash ("gnunet-nse-proof-of-work",
+  GNUNET_CRYPTO_pow_hash ("gnunet-nse-proof",
                           buf,
                           sizeof(buf),
                           &result);
@@ -861,7 +861,7 @@ find_proof (void *cls)
   while ((counter != UINT64_MAX) && (i < ROUND_SIZE))
   {
     GNUNET_memcpy (buf, &counter, sizeof(uint64_t));
-    GNUNET_CRYPTO_pow_hash ("gnunet-nse-proof-of-work",
+    GNUNET_CRYPTO_pow_hash ("gnunet-nse-proof",
                             buf,
                             sizeof(buf),
                             &result);
