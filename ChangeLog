@@ -1,82 +1,360 @@
-HEAD (0.13.0)
-------
+Tue, 26 May 2020 11:49:50 +0200 (755cb5c76)
+remove argon2 dependency. Use limited libsodium argon2id function for GNS and NSE - Martin Schanzenbach
 
-Build:
-- New dependencies: libsodium
-- libmicrohttpd and libjansson are not mandatory dependencies
-- Allow build against libcurl without gnutls backend (Packagers: Build against
-libcurl-openssl at your own peril, see configure warning)
-- Streamlined configure output
-- Support latest MHD API
-- Alpine packaging
+Tue, 26 May 2020 00:42:24 +0200 (24be68238)
+use argon2id - Martin Schanzenbach
 
-UTIL:
-- Improved BIO API. Now supports reading from and writing to in-memory buffers.
-- Store EdDSA and ECDSA private keys in same endianness (little endian)
-- Removed tweetnacl in favor of libsodium
-- Add GNUNET_freez and make it default (see #6186)
-- Add base64url encoding to util (RFC7515)
-- Speed up running of tasks via GNUNTE_SCHEDULER_add_now() by a factor of at least 5
-- Add timetravel getopt helper
-- Taler buffer library now included in GNUnet
-- Change proof-of-work function to argon2id
+Tue, 26 May 2020 03:05:33 +0530 (2a82be115)
+add additional test condition for GNS crypto - Florian Dold
 
-IDENTITY:
-- IDENTITY: Allow to pass private key in identity create for IDENTITY API (key
-recovery/import)
+Mon, 25 May 2020 21:38:58 +0200 (a32de45ce)
+add option to create identity from private key - jospaeth
 
-NAMESTORE:
-- gnunet-namestore now honours expiration dates when importing an URI
-- Remove unintiutive set_nick API
+Fri, 22 May 2020 09:44:22 +0200 (2fbc0f044)
+add option to show private key - Martin Schanzenbach
 
-GNS:
-- Add GNS record flag "supplemenal" (see LSD0001)
-- Support GNS proxy CA import into Icecat
-- Fix NICK handling in GNS (no more duplicates)
+Fri, 22 May 2020 01:16:35 +0200 (9a92bbb51)
+fix #6242 - Christian Grothoff
 
-REVOCATION:
-- Updated revocation PoW in accordance (LSD0001)
+Thu, 14 May 2020 16:03:10 +0200 (f4771fcc1)
+Improved BIO API - Christian Grothoff
 
-NSE
-- Updated revocation PoW due to change of hash function (Argon2id)
+Sun, 17 May 2020 19:56:12 +0200 (3362a671f)
+make mhd and jansson mandatory dependencies - Martin Schanzenbach
 
-RECLAIM
-- Correctly process claims request in OpenID plugin
-- Consolidated re:claimID attribute library int src/reclaim
-- Move from 64 bit to 256 bit attribute identifier in re:claimID
+Sun, 17 May 2020 19:37:00 +0200 (ac7ba6704)
+allow compile against curl-openssl - Martin Schanzenbach
 
-REST
-- Correctly add "application/json" content type to REST responses where
-applicable
+Sun, 10 May 2020 11:28:00 +0200 (63c371cfb)
+separate id_token and userinfo claims requests - Martin Schanzenbach
 
-MQ
-- Speed up message goodput in perf_mq(client) by 1/3rd
-- Added MQ benchmark
+Sun, 10 May 2020 00:23:54 +0200 (44bdb66b4)
+fix #5782 - Martin Schanzenbach
 
-0.12.2
-------
+Sat, 9 May 2020 22:10:08 +0200 (ada94c274)
+fail of LSD0001 is violated for GNS2DNS - Martin Schanzenbach
 
-UTIL:
-- Fixed ECDSA ECDH endianness bug
-- Various improvements regarding best practices and memory safety
+Sat, 9 May 2020 22:00:01 +0200 (3da4b0d20)
+fix #6103; make LEHOs supplemental from CNAMEs and GNS2DNS names - Martin Schanzenbach
 
-RECLAIM:
-- Added asserted attributes to re:claimID
+Sat, 9 May 2020 20:55:08 +0200 (63c92bbef)
+add json response headers to rest plugins - Martin Schanzenbach
 
-GNS:
-- Added GNS resolver recursion depth setting to API
+Sat, 9 May 2020 19:12:51 +0200 (fbdc2fbb4)
+change label processing in namestore REST api for gns records - Martin Schanzenbach
 
-TNG:
-- Continued work on TNG communicators
+Wed, 6 May 2020 18:42:45 +0200 (1847e1652)
+deprecate ill-defined set_nick API - Martin Schanzenbach
 
-IDENTITY:
-- Performance fixes for Identity API
+Wed, 6 May 2020 21:11:08 +0530 (616af9e62)
+add libsodium dep to README - Florian Dold
 
-0.12.1
-------
+Wed, 6 May 2020 20:12:05 +0530 (e273b24b9)
+Fix #6070 - Florian Dold
 
-- Hotfix for crypto changes in 0.12.0
-- More work on TNG communicators
+Wed, 6 May 2020 18:39:16 +0530 (d7028a584)
+move from tweetnacl (+custom hacks) -> only sodium - Florian Dold
+
+Wed, 6 May 2020 10:49:10 +0200 (e7c277845)
+remove obsolete framework option - Martin Schanzenbach
+
+Wed, 6 May 2020 10:46:20 +0200 (4d75bfd7e)
+add some more useful configuration output wrt transports - Martin Schanzenbach
+
+Wed, 6 May 2020 10:25:00 +0200 (a4fddaa4d)
+stop excessive warnings and notifications of information that is displayed later on anyway - Martin Schanzenbach
+
+Wed, 6 May 2020 09:31:11 +0200 (ca168098b)
+improve configure messages for rest and reclaim - Martin Schanzenbach
+
+Sat, 2 May 2020 00:08:38 +0200 (f38bc1041)
+fix gnunet-identity performance - Christian Grothoff
+
+Fri, 1 May 2020 10:55:51 +0200 (91e407579)
+vpn, exit: Add patch from termux for Android in a slightly different way. - nikita
+
+Fri, 24 Apr 2020 13:50:05 +0530 (892bd3c60)
+check for integer overflow in buffer lib (fixes #6217) - Florian Dold
+
+Fri, 24 Apr 2020 10:18:16 +0200 (69f8fad56)
+fix #6220 - Martin Schanzenbach
+
+Tue, 21 Apr 2020 20:43:18 +0200 (bf99d2243)
+fix #6191 - Christian Grothoff
+
+Tue, 21 Apr 2020 18:37:28 +0200 (091f411cc)
+purge scrypt; add argon2 - Martin Schanzenbach
+
+Tue, 21 Apr 2020 18:13:05 +0200 (6bda628f7)
+update revocation config - Martin Schanzenbach
+
+Tue, 21 Apr 2020 13:47:04 +0200 (13ceb583b)
+defining GNUNET_array_concatenate() for #6190 - Christian Grothoff
+
+Tue, 21 Apr 2020 13:33:25 +0200 (3776e3a77)
+fix #6189 - Christian Grothoff
+
+Tue, 21 Apr 2020 13:27:04 +0200 (e938b8617)
+fix #6186 related bugs - Christian Grothoff
+
+Tue, 21 Apr 2020 13:23:28 +0200 (68615f85c)
+use nz - Christian Grothoff
+
+Tue, 21 Apr 2020 12:15:16 +0200 (5f5a1c7b4)
+add JSON spec'er for booleans - Christian Grothoff
+
+Tue, 21 Apr 2020 00:54:49 +0200 (30361fe0e)
+make GNUNET_freez default, have GNUNET_free_nz for cases where that does not work - Christian Grothoff
+
+Sun, 19 Apr 2020 21:37:35 +0200 (254a9f066)
+add i64 deserializer - Christian Grothoff
+
+Sun, 19 Apr 2020 14:07:21 +0200 (87481d240)
+mailmap, authors: final sync of my address and name with changes in NetBSD and GNUnet members. - nikita
+
+Fri, 17 Apr 2020 19:58:40 +0200 (2be21d379)
+add argon2 for LSD0001 - Martin Schanzenbach
+
+Fri, 17 Apr 2020 19:59:31 +0200 (0c053ecbf)
+fix build with clang - Martin Schanzenbach
+
+Fri, 17 Apr 2020 19:13:42 +0200 (3695a510a)
+add relative_time specs - Christian Grothoff
+
+Fri, 17 Apr 2020 18:21:17 +0200 (6b89b84d2)
+add GNUNET_freez for #6186 - Christian Grothoff
+
+Wed, 15 Apr 2020 20:35:45 +0200 (c894cf82d)
+add integer overflow guards and avoid (unlimited) stack allocation - Christian Grothoff
+
+Wed, 15 Apr 2020 20:29:15 +0200 (839badf7c)
+take care of odd memset() calls - Christian Grothoff
+
+Wed, 15 Apr 2020 20:26:00 +0200 (b7be5b9f5)
+fix #6184 - Christian Grothoff
+
+Sat, 11 Apr 2020 23:11:43 +0200 (7bcd5338f)
+fix gnunet-statistics CLI - Christian Grothoff
+
+Sat, 11 Apr 2020 21:55:51 +0200 (f490c0f3f)
+do create directory if it doesn't exist - Christian Grothoff
+
+Sat, 11 Apr 2020 21:43:28 +0200 (90ff9edfa)
+fixing #6149 - Christian Grothoff
+
+Sat, 11 Apr 2020 20:33:08 +0200 (3bcfe59f1)
+fix static assert FTBFS with older gcc - Christian Grothoff
+
+Thu, 9 Apr 2020 01:46:44 +0200 (f3d66d0dc)
+mailmap adjust - nikita
+
+Thu, 9 Apr 2020 01:40:49 +0200 (22119c687)
+fix interpreter line of gnunet-bugreport - nikita
+
+Thu, 9 Apr 2020 00:29:16 +0200 (8547143da)
+adapt code to work with latest MHD API - Christian Grothoff
+
+Thu, 9 Apr 2020 00:21:45 +0200 (6fc0526b4)
+fix warnings - Christian Grothoff
+
+Wed, 8 Apr 2020 20:30:05 +0200 (ccfb2c2e6)
+introduce enum for generic return values - Christian Grothoff
+
+Wed, 8 Apr 2020 17:34:27 +0200 (ba4da8c3f)
+hack around crash on disconnect - Christian Grothoff
+
+Wed, 8 Apr 2020 16:56:33 +0200 (11ae9f030)
+fix sign api for to address #6164 - Christian Grothoff
+
+Wed, 8 Apr 2020 14:47:01 +0200 (17113fc2f)
+add GNUNET_static_assert() - Christian Grothoff
+
+Wed, 8 Apr 2020 14:44:39 +0200 (8c9600879)
+add check to see if CC supports '_Static_assert' - Christian Grothoff
+
+Tue, 7 Apr 2020 17:51:59 +0200 (29bd17729)
+improve comments (#6164) - Christian Grothoff
+
+Fri, 3 Apr 2020 18:50:09 +0200 (6d7fd3328)
+fix #6157 - Christian Grothoff
+
+Fri, 3 Apr 2020 18:45:46 +0200 (6fd24eef2)
+fix #6155 - Christian Grothoff
+
+Fri, 3 Apr 2020 18:43:03 +0200 (bc01117ce)
+fix #6158 - Christian Grothoff
+
+Fri, 3 Apr 2020 17:03:35 +0200 (55bff52a2)
+fix #6159 and related issues - Christian Grothoff
+
+Fri, 3 Apr 2020 15:18:58 +0200 (0541fd194)
+adding a GNUNET_memcmp_priv for constant-time comparing of data; fixes #6152 (modulo actually finding specific places where this SHOULD be used instead of GNUNET_memcmp) - Christian Grothoff
+
+Fri, 3 Apr 2020 15:05:14 +0200 (4e259dbbb)
+fix #6153 - Christian Grothoff
+
+Fri, 3 Apr 2020 14:18:58 +0200 (175303b44)
+fix #6154 - Christian Grothoff
+
+Fri, 3 Apr 2020 13:46:05 +0200 (a3d4063b7)
+added communicator tests to experimental - t3sserakt
+
+Thu, 2 Apr 2020 11:33:53 +0200 (225ddf0a2)
+fix #6146 - Christian Grothoff
+
+Sun, 29 Mar 2020 12:51:26 +0200 (73514dd0e)
+allow passing of fancy time to timetravel option - Christian Grothoff
+
+Sat, 28 Mar 2020 07:57:04 +0100 (15d926361)
+Point to explanatory documentation. - Marcello Stanisci
+
+Fri, 20 Mar 2020 15:35:54 +0100 (19d73a8fa)
+Make gnunet-namestore honour expiration dates when importing an URI - Christian Grothoff
+
+Thu, 19 Mar 2020 19:40:34 +0100 (efa84b551)
+use strtok_r in code that could plausibly be used from multi-threaded applications - Christian Grothoff
+
+Tue, 17 Mar 2020 01:05:17 +0100 (2fb32626a)
+use void * instead of char * for RSA key material to make it more clear that these are not 0-terminated strings - Christian Grothoff
+
+Mon, 16 Mar 2020 19:38:42 +0100 (39c6d488d)
+better error handling - Christian Grothoff
+
+Sun, 15 Mar 2020 22:06:28 +0100 (7de26292b)
+add function that logically belongs to libgnunetcurl instead of in multiple Taler binaries - Christian Grothoff
+
+Sun, 15 Mar 2020 15:18:53 +0100 (b37cfa2fd)
+implement new simplified POW for LSD001 - Martin Schanzenbach
+
+Thu, 12 Mar 2020 12:09:11 +0100 (0c8362ad8)
+move literature information to end of paragraph - xrs
+
+Tue, 10 Mar 2020 17:42:04 +0100 (9d5af0464)
+import CA into Icecat - Christian Grothoff
+
+Tue, 3 Mar 2020 12:31:23 +0100 (d1bdcb261)
+make static analysis happier - Christian Grothoff
+
+Tue, 3 Mar 2020 12:31:12 +0100 (9a6588810)
+remove 'illegal' (non-reentrant) log logic from signal handler - Christian Grothoff
+
+Mon, 24 Feb 2020 23:48:47 +0100 (01439e25d)
+do not segv if there is no postgres - Christian Grothoff
+
+Mon, 24 Feb 2020 18:19:09 +0100 (dae7d843f)
+support versioning schema drop - Christian Grothoff
+
+Wed, 19 Feb 2020 21:52:43 +0100 (ca8202057)
+fixing the GNS multirecord multipeer test - Christian Grothoff
+
+Tue, 18 Feb 2020 16:08:43 +0100 (3b2afcd3b)
+fix TNG test with NAT - Martin Schanzenbach
+
+Sat, 15 Feb 2020 12:55:24 +0100 (b03978816)
+proposed fix for excessive queueing (somehow does not quite work, not sure why) - Christian Grothoff
+
+Sat, 15 Feb 2020 12:25:06 +0100 (e57177325)
+better task ordering - Christian Grothoff
+
+Thu, 13 Feb 2020 19:36:37 +0100 (79243b3d2)
+add concept of supplemental records - Martin Schanzenbach
+
+Thu, 13 Feb 2020 15:15:18 +0100 (4dc95a504)
+always return nick records - Martin Schanzenbach
+
+Wed, 12 Feb 2020 23:09:03 +0100 (206866779)
+resolve nick if specifically requested - Martin Schanzenbach
+
+Wed, 12 Feb 2020 22:06:19 +0100 (e021a0f7b)
+fix duplicate NICK in record - Martin Schanzenbach
+
+Fri, 7 Feb 2020 15:51:56 +0100 (5f9f9cae1)
+consolidate reclaim attribute lib - Martin Schanzenbach
+
+Thu, 6 Feb 2020 22:34:11 +0100 (d06446f14)
+add base64url encoding to util (RFC7515) - Martin Schanzenbach
+
+Thu, 6 Feb 2020 20:08:58 +0100 (a80090ffc)
+more bugfixes and REST API change - Martin Schanzenbach
+
+Tue, 4 Feb 2020 18:42:04 +0100 (55f6d26b7)
+Refactoring reclaim attestations - Martin Schanzenbach
+
+Mon, 3 Feb 2020 21:51:57 +0100 (5b6bb2ce4)
+move to 256-bit identifier; some cleanups - Martin Schanzenbach
+
+Sun, 9 Feb 2020 17:31:41 +0100 (99d70615e)
+use versioning schema to only load database schema patches if not yet covered according to versioning table - Christian Grothoff
+
+Sun, 9 Feb 2020 15:57:39 +0100 (8f375b3ea)
+use NULL value in load_path_suffix to NOT load any files - Christian Grothoff
+
+Tue, 4 Feb 2020 19:18:25 +0100 (1ca805654)
+speed up message goodput in perf_mq(client) by 1/3rd - Christian Grothoff
+
+Tue, 4 Feb 2020 19:11:40 +0100 (c656a8218)
+adding MQ benchmark - Christian Grothoff
+
+Tue, 4 Feb 2020 18:56:17 +0100 (f40520b09)
+speed up running of tasks via GNUNTE_SCHEDULER_add_now() by a factor of at least 5 - Christian Grothoff
+
+Tue, 4 Feb 2020 18:45:19 +0100 (4caa0d290)
+add minimal scheduler benchmark - Christian Grothoff
+
+Tue, 4 Feb 2020 15:47:01 +0100 (e14544109)
+add timetravel getopt helper - Christian Grothoff
+
+Mon, 3 Feb 2020 23:51:09 +0100 (e3dcec36a)
+fix bug *AGAIN*, could swear I fixed this one before... strange - Christian Grothoff
+
+Mon, 3 Feb 2020 18:26:49 +0100 (1bba6bc12)
+added a test for DHT lookup between peers - rexxnor
+
+Thu, 30 Jan 2020 10:48:04 +0100 (015cd279b)
+added testing scripts for dns2gns - rexxnor
+
+Fri, 24 Jan 2020 16:51:29 +0100 (f4a172abf)
+export GNUNET_PQ_run_sql() functonality - Christian Grothoff
+
+Fri, 24 Jan 2020 16:30:45 +0100 (2fd320bc7)
+modify GNUNET_PQ_connect_with_cfg to enable flexible loading of .sql files - Christian Grothoff
+
+Sat, 18 Jan 2020 18:47:30 +0100 (bbfde2060)
+include mandatory includes - Christian Grothoff
+
+Fri, 17 Jan 2020 12:12:56 +0100 (5422848b4)
+do not add '/' to load path - Christian Grothoff
+
+Fri, 17 Jan 2020 03:22:31 +0100 (00bd3376b)
+quiet on psql - Christian Grothoff
+
+Fri, 17 Jan 2020 02:51:10 +0100 (8fa757a94)
+auto-provide OS_IPK paths in [paths] of config - Christian Grothoff
+
+Fri, 17 Jan 2020 02:35:29 +0100 (3c1f2bdd8)
+be more quiet - Christian Grothoff
+
+Fri, 17 Jan 2020 02:26:21 +0100 (4353432b9)
+DB load API change - Christian Grothoff
+
+Fri, 17 Jan 2020 00:25:55 +0100 (1126181ab)
+include buffer in main util header - Christian Grothoff
+
+Thu, 16 Jan 2020 17:11:58 +0100 (ec7870968)
+add new versions of alpine packages (not yet in alpine repo) - xrs
+
+Wed, 15 Jan 2020 19:41:05 +0100 (5177efb74)
+remove Taler-specific leftovers, we don't need them anymore - Florian Dold
+
+Wed, 15 Jan 2020 13:29:47 +0100 (9f36b6e9e)
+add test vector generation for crypto ops - Florian Dold
+
+Wed, 15 Jan 2020 11:45:20 +0100 (9f3f1753e)
+move buffer library from GNU Taler to GNUnet - Florian Dold
+
+Mon, 13 Jan 2020 18:58:13 -0600 (55d610bb3)
+Fix copy/paste error checking for explicit_bzero - David Barksdale
+
 
 Fri Dec 20 09:22:03 2019 +0900
   Released gnunet 0.12.0 -schanzen
