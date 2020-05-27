@@ -50,25 +50,29 @@ extern "C" {
 #endif
 
 /*******************************************************************************
- * UTIL message types
- ******************************************************************************/
+* Deprecated
+* *****************************************************************************/
 
 /**
  * Test if service is online.
  *
  * @deprecated!
  */
-#define GNUNET_MESSAGE_TYPE_TEST 1
+#define GNUNET_MESSAGE_TYPE_TEST 0
+
+/*******************************************************************************
+* AGPL source code download
+* *****************************************************************************/
 
 /**
- * Dummy messages for testing / benchmarking.
+ * Message to request source code link.
  */
-#define GNUNET_MESSAGE_TYPE_DUMMY 2
+#define GNUNET_MESSAGE_TYPE_REQUEST_AGPL 1
 
 /**
- * Another dummy messages for testing / benchmarking.
+ * Source code link.
  */
-#define GNUNET_MESSAGE_TYPE_DUMMY2 3
+#define GNUNET_MESSAGE_TYPE_RESPONSE_AGPL 2
 
 /*******************************************************************************
  * RESOLVER message types
@@ -85,18 +89,18 @@ extern "C" {
 #define GNUNET_MESSAGE_TYPE_RESOLVER_RESPONSE 5
 
 /*******************************************************************************
-* AGPL source code download
-* *****************************************************************************/
+ * UTIL message types
+ ******************************************************************************/
 
 /**
- * Message to request source code link.
+ * Dummy messages for testing / benchmarking.
  */
-#define GNUNET_MESSAGE_TYPE_REQUEST_AGPL 6
+#define GNUNET_MESSAGE_TYPE_DUMMY 6
 
 /**
- * Source code link.
+ * Another dummy messages for testing / benchmarking.
  */
-#define GNUNET_MESSAGE_TYPE_RESPONSE_AGPL 7
+#define GNUNET_MESSAGE_TYPE_DUMMY2 7
 
 
 /*******************************************************************************

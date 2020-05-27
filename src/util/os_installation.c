@@ -70,6 +70,7 @@ static const struct GNUNET_OS_ProjectData default_pd = {
   .is_gnu = 1,
   .gettext_domain = PACKAGE,
   .gettext_path = NULL,
+  .agpl_url = GNUNET_AGPL_URL,
 };
 
 /**

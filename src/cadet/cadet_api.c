@@ -995,6 +995,32 @@ GNUNET_CADET_connect (const struct GNUNET_CONFIGURATION_Handle *cfg)
 
 
 /**
+ * Function to return link to AGPL source upon request.
+ *
+ * @param cls closure with the identification of the client
+ * @param msg AGPL request
+ */
+static void
+return_agpl (void *cls, const struct GNUNET_MessageHeader *msg)
+{
+  struct GNUNET_SERVICE_Client *client = cls;
+  struct GNUNET_MQ_Handle *mq;
+  struct GNUNET_MQ_Envelope *env;
+  struct GNUNET_MessageHeader *res;
+  size_t slen;
+  const struct GNUNET_OS_ProjectData *pd = GNUNET_OS_project_data_get ();
+
+  (void) msg;
+  slen = strlen (pd->agpl_url) + 1;
+  env = GNUNET_MQ_msg_extra (res, GNUNET_MESSAGE_TYPE_RESPONSE_AGPL, slen);
+  memcpy (&res[1], GNUNET_AGPL_URL, slen);
+  mq = GNUNET_SERVICE_client_get_mq (client);
+  GNUNET_MQ_send (mq, env);
+  GNUNET_SERVICE_client_continue (client);
+}
+
+
+/**
  * Open a port to receive incomming MQ-based channels.
  *
  * @param h CADET handle.
@@ -1016,6 +1042,7 @@ GNUNET_CADET_open_port (struct GNUNET_CADET_Handle *h,
                         const struct GNUNET_MQ_MessageHandler *handlers)
 {
   struct GNUNET_CADET_Port *p;
+  const struct GNUNET_OS_ProjectData *pd = GNUNET_OS_project_data_get ();
 
   GNUNET_assert (NULL != connects);
   GNUNET_assert (NULL != disconnects);
@@ -1039,7 +1066,9 @@ GNUNET_CADET_open_port (struct GNUNET_CADET_Handle *h,
   p->cls = connects_cls;
   p->window_changes = window_changes;
   p->disconnects = disconnects;
-  p->handlers = GNUNET_MQ_copy_handlers (handlers);
+  p->handlers = (NULL == pd->agpl_url)
+    ? GNUNET_MQ_copy_handlers (handlers)
+    : GNUNET_MQ_copy_handlers2 (handlers, &return_agpl, NULL);
 
   GNUNET_assert (GNUNET_OK == open_port_cb (h, &p->id, p));
   return p;

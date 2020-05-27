@@ -287,6 +287,14 @@ struct GNUNET_OS_ProjectData
    * If this field is NULL, the path is automatically inferred.
    */
   char *gettext_path;
+
+  /**
+   * URL pointing to the source code of the application.  Required for AGPL.
+   * Setting this to NULL disables the built-in mechanism, but you must
+   * provide it in some other way.  If non-NULL, message type 1 and 2 are
+   * reserved.
+   */
+  char *agpl_url;
 };
 
 

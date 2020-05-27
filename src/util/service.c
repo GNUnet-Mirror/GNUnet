@@ -1823,9 +1823,10 @@ return_agpl (void *cls, const struct GNUNET_MessageHeader *msg)
   struct GNUNET_MQ_Envelope *env;
   struct GNUNET_MessageHeader *res;
   size_t slen;
+  const struct GNUNET_OS_ProjectData *pd = GNUNET_OS_project_data_get ();
 
   (void) msg;
-  slen = strlen (GNUNET_AGPL_URL) + 1;
+  slen = strlen (pd->agpl_url) + 1;
   env = GNUNET_MQ_msg_extra (res, GNUNET_MESSAGE_TYPE_RESPONSE_AGPL, slen);
   memcpy (&res[1], GNUNET_AGPL_URL, slen);
   mq = GNUNET_SERVICE_client_get_mq (client);
@@ -2019,7 +2020,9 @@ GNUNET_SERVICE_run_ (int argc,
   sh.connect_cb = connect_cb;
   sh.disconnect_cb = disconnect_cb;
   sh.cb_cls = cls;
-  sh.handlers = GNUNET_MQ_copy_handlers (handlers);
+  sh.handlers = (NULL == pd->agpl_url)
+    ? GNUNET_MQ_copy_handlers (handlers)
+    : GNUNET_MQ_copy_handlers2 (handlers, &return_agpl, NULL);
   sh.service_name = service_name;
   sh.ret = 0;
   /* setup subsystems */
