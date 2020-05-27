@@ -1,3 +1,83 @@
+HEAD (0.13.0)
+------
+
+Build:
+- New dependencies: libsodium
+- libmicrohttpd and libjansson are not mandatory dependencies
+- Allow build against libcurl without gnutls backend (Packagers: Build against
+libcurl-openssl at your own peril, see configure warning)
+- Streamlined configure output
+- Support latest MHD API
+- Alpine packaging
+
+UTIL:
+- Improved BIO API. Now supports reading from and writing to in-memory buffers.
+- Store EdDSA and ECDSA private keys in same endianness (little endian)
+- Removed tweetnacl in favor of libsodium
+- Add GNUNET_freez and make it default (see #6186)
+- Add base64url encoding to util (RFC7515)
+- Speed up running of tasks via GNUNTE_SCHEDULER_add_now() by a factor of at least 5
+- Add timetravel getopt helper
+- Taler buffer library now included in GNUnet
+- Change proof-of-work function to argon2id
+
+IDENTITY:
+- IDENTITY: Allow to pass private key in identity create for IDENTITY API (key
+recovery/import)
+
+NAMESTORE:
+- gnunet-namestore now honours expiration dates when importing an URI
+- Remove unintiutive set_nick API
+
+GNS:
+- Add GNS record flag "supplemenal" (see LSD0001)
+- Support GNS proxy CA import into Icecat
+- Fix NICK handling in GNS (no more duplicates)
+
+REVOCATION:
+- Updated revocation PoW in accordance (LSD0001)
+
+NSE
+- Updated revocation PoW due to change of hash function (Argon2id)
+
+RECLAIM
+- Correctly process claims request in OpenID plugin
+- Consolidated re:claimID attribute library int src/reclaim
+- Move from 64 bit to 256 bit attribute identifier in re:claimID
+
+REST
+- Correctly add "application/json" content type to REST responses where
+applicable
+
+MQ
+- Speed up message goodput in perf_mq(client) by 1/3rd
+- Added MQ benchmark
+
+0.12.2
+------
+
+UTIL:
+- Fixed ECDSA ECDH endianness bug
+- Various improvements regarding best practices and memory safety
+
+RECLAIM:
+- Added asserted attributes to re:claimID
+
+GNS:
+- Added GNS resolver recursion depth setting to API
+
+TNG:
+- Continued work on TNG communicators
+
+IDENTITY:
+- Performance fixes for Identity API
+
+0.12.1
+------
+
+- Hotfix for crypto changes in 0.12.0
+- More work on TNG communicators
+
 Fri Dec 20 09:22:03 2019 +0900
   Released gnunet 0.12.0 -schanzen
 
