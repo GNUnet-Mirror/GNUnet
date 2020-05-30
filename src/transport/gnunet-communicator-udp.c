@@ -1030,6 +1030,8 @@ check_timeouts (void *cls)
     rt = GNUNET_TIME_absolute_get_remaining (receiver->timeout);
     if (0 != rt.rel_value_us)
       break;
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Receiver timed out\n");
     receiver_destroy (receiver);
   }
   st = GNUNET_TIME_UNIT_FOREVER_REL;
@@ -1257,23 +1259,35 @@ handle_ack (void *cls, const struct GNUNET_PeerIdentity *pid, void *value)
 {
   const struct UDPAck *ack = cls;
   struct ReceiverAddress *receiver = value;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "in handle ack\n");
 
   (void) pid;
   for (struct SharedSecret *ss = receiver->ss_head; NULL != ss; ss = ss->next)
   {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Checking shared secrets\n");
     if (0 == memcmp (&ack->cmac, &ss->cmac, sizeof(struct GNUNET_HashCode)))
     {
       uint32_t allowed;
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Found matching mac\n");
 
       allowed = ntohl (ack->sequence_max);
 
       if (allowed > ss->sequence_allowed)
       {
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "%u > %u (%u)\n", allowed, ss->sequence_allowed,
+                receiver->acks_available);
+
         receiver->acks_available += (allowed - ss->sequence_allowed);
         if ((allowed - ss->sequence_allowed) == receiver->acks_available)
         {
           /* we just incremented from zero => MTU change! */
-          setup_receiver_mq (receiver);
+          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                      "we just incremented from zero => MTU change!\n");
+          //TODO setup_receiver_mq (receiver);
         }
         ss->sequence_allowed = allowed;
         /* move ss to head to avoid discarding it anytime soon! */
@@ -1361,6 +1375,9 @@ consider_ss_ack (struct SharedSecret *ss)
     ack.header.size = htons (sizeof(ack));
     ack.sequence_max = htonl (ss->sequence_allowed);
     ack.cmac = ss->cmac;
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Notifying transport of UDPAck %s\n",
+                GNUNET_i2s_full (&ss->sender->target));
     GNUNET_TRANSPORT_communicator_notify (ch,
                                           &ss->sender->target,
                                           COMMUNICATOR_ADDRESS_PREFIX,
@@ -2031,11 +2048,12 @@ static void
 mq_destroy (struct GNUNET_MQ_Handle *mq, void *impl_state)
 {
   struct ReceiverAddress *receiver = impl_state;
-
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "MQ destroyed\n");
   if (mq == receiver->mq)
   {
     receiver->mq = NULL;
-    receiver_destroy (receiver);
+    //receiver_destroy (receiver);
   }
 }
 
@@ -2093,7 +2111,7 @@ setup_receiver_mq (struct ReceiverAddress *receiver)
     GNUNET_TRANSPORT_communicator_mq_del (receiver->qh);
     receiver->qh = NULL;
   }
-  GNUNET_assert (NULL == receiver->mq);
+  //GNUNET_assert (NULL == receiver->mq);
   switch (receiver->address->sa_family)
   {
   case AF_INET:
@@ -2190,6 +2208,9 @@ mq_init (void *cls, const struct GNUNET_PeerIdentity *peer, const char *address)
     &receiver->target,
     receiver,
     GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Added %s to receivers\n",
+              GNUNET_i2s_full (&receiver->target));
   receiver->timeout =
     GNUNET_TIME_relative_to_absolute (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT);
   receiver->hn = GNUNET_CONTAINER_heap_insert (receivers_heap,
@@ -2336,6 +2357,9 @@ enc_notify_cb (void *cls,
   const struct UDPAck *ack;
 
   (void) cls;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Storing UDPAck received from backchannel from %s\n",
+              GNUNET_i2s_full (sender));
   if ((ntohs (msg->type) != GNUNET_MESSAGE_TYPE_COMMUNICATOR_UDP_ACK) ||
       (ntohs (msg->size) != sizeof(struct UDPAck)))
   {

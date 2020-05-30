@@ -70,9 +70,9 @@ static struct GNUNET_TRANSPORT_TESTING_TransportCommunicatorQueue *my_tc;
 
 #define LONG_MESSAGE_SIZE 32000
 
-#define BURST_PACKETS 5000
+#define BURST_PACKETS 50
 
-#define TOTAL_ITERATIONS 5
+#define TOTAL_ITERATIONS 1
 
 #define PEER_A 0
 
@@ -288,6 +288,34 @@ short_test (void *cls)
   timeout = GNUNET_TIME_relative_to_absolute (GNUNET_TIME_UNIT_SECONDS);
 }
 
+static int test_prepared = GNUNET_NO;
+
+/**
+ * This helps establishing the backchannel
+ */
+static void
+prepare_test (void *cls)
+{
+  char *payload;
+
+  if (GNUNET_YES == test_prepared)
+  {
+    GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
+                                  &short_test,
+                                  NULL);
+    return;
+  }
+  test_prepared = GNUNET_YES;
+  payload = make_payload (SHORT_MESSAGE_SIZE);
+  GNUNET_TRANSPORT_TESTING_transport_communicator_send (my_tc,
+                                                        &prepare_test,
+                                                        NULL,
+                                                        payload,
+                                                        SHORT_MESSAGE_SIZE);
+  GNUNET_free (payload);
+}
+
+
 
 /**
  * @brief Handle opening of queue
@@ -318,7 +346,7 @@ add_queue_cb (void *cls,
   to_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
                                           &latency_timeout,
                                           NULL);
-  short_test (NULL);
+  prepare_test (NULL);
 }
 
 
@@ -501,6 +529,7 @@ run (void *cls)
       "transport",
       communicator_binary,
       cfg_peers_name[i],
+      &peer_id[i],
       &communicator_available_cb,
       &add_address_cb,
       &queue_create_reply_cb,

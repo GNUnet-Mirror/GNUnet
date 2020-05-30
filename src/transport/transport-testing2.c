@@ -84,6 +84,8 @@ struct GNUNET_TRANSPORT_TESTING_TransportCommunicatorHandle
    */
   char *cfg_filename;
 
+  struct GNUNET_PeerIdentity peer_id;
+
   /**
    * @brief Handle to the transport service
    */
@@ -368,7 +370,8 @@ handle_communicator_backchannel (void *cls,
   struct GNUNET_TRANSPORT_CommunicatorBackchannelIncoming *cbi;
   struct GNUNET_MQ_Envelope *env;
 
-
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Received backchannel message\n");
   if (tc_h->bc_enabled != GNUNET_YES)
   {
     GNUNET_SERVICE_client_continue (client->client);
@@ -386,7 +389,7 @@ handle_communicator_backchannel (void *cls,
     cbi,
     isize,
     GNUNET_MESSAGE_TYPE_TRANSPORT_COMMUNICATOR_BACKCHANNEL_INCOMING);
-  cbi->pid = bc_msg->pid;
+  cbi->pid = tc_h->peer_id;
   memcpy (&cbi[1], msg, isize);
 
 
@@ -934,6 +937,7 @@ GNUNET_TRANSPORT_TESTING_transport_communicator_service_start (
   const char *service_name,
   const char *binary_name,
   const char *cfg_filename,
+  const struct GNUNET_PeerIdentity *peer_id,
   GNUNET_TRANSPORT_TESTING_CommunicatorAvailableCallback
   communicator_available_cb,
   GNUNET_TRANSPORT_TESTING_AddAddressCallback add_address_cb,
@@ -971,6 +975,7 @@ GNUNET_TRANSPORT_TESTING_transport_communicator_service_start (
   tc_h->add_queue_cb = add_queue_cb;
   tc_h->incoming_msg_cb = incoming_message_cb;
   tc_h->bc_cb = bc_cb;
+  tc_h->peer_id = *peer_id;
   tc_h->cb_cls = cb_cls;
 
   /* Start communicator part of service */
@@ -1069,6 +1074,8 @@ GNUNET_TRANSPORT_TESTING_transport_communicator_send
   struct GNUNET_MQ_Envelope *env;
   size_t inbox_size;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Sending message\n");
   inbox_size = sizeof (struct GNUNET_MessageHeader) + payload_size;
   env = GNUNET_MQ_msg_extra (msg,
                              inbox_size,
