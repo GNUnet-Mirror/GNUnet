@@ -620,8 +620,8 @@ rsa_blinding_key_derive (const struct GNUNET_CRYPTO_RsaPublicKey *pkey,
  * @return 0 if the two are equal
  */
 int
-GNUNET_CRYPTO_rsa_signature_cmp (struct GNUNET_CRYPTO_RsaSignature *s1,
-                                 struct GNUNET_CRYPTO_RsaSignature *s2)
+GNUNET_CRYPTO_rsa_signature_cmp (const struct GNUNET_CRYPTO_RsaSignature *s1,
+                                 const struct GNUNET_CRYPTO_RsaSignature *s2)
 {
   void *b1;
   void *b2;
@@ -653,8 +653,8 @@ GNUNET_CRYPTO_rsa_signature_cmp (struct GNUNET_CRYPTO_RsaSignature *s1,
  * @return 0 if the two are equal
  */
 int
-GNUNET_CRYPTO_rsa_public_key_cmp (struct GNUNET_CRYPTO_RsaPublicKey *p1,
-                                  struct GNUNET_CRYPTO_RsaPublicKey *p2)
+GNUNET_CRYPTO_rsa_public_key_cmp (const struct GNUNET_CRYPTO_RsaPublicKey *p1,
+                                  const struct GNUNET_CRYPTO_RsaPublicKey *p2)
 {
   void *b1;
   void *b2;
@@ -686,8 +686,8 @@ GNUNET_CRYPTO_rsa_public_key_cmp (struct GNUNET_CRYPTO_RsaPublicKey *p1,
  * @return 0 if the two are equal
  */
 int
-GNUNET_CRYPTO_rsa_private_key_cmp (struct GNUNET_CRYPTO_RsaPrivateKey *p1,
-                                   struct GNUNET_CRYPTO_RsaPrivateKey *p2)
+GNUNET_CRYPTO_rsa_private_key_cmp (const struct GNUNET_CRYPTO_RsaPrivateKey *p1,
+                                   const struct GNUNET_CRYPTO_RsaPrivateKey *p2)
 {
   void *b1;
   void *b2;
