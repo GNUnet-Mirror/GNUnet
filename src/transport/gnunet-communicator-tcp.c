@@ -1547,6 +1547,8 @@ boot_queue (struct Queue *queue, enum GNUNET_TRANSPORT_ConnectionStatus cs)
                                                       &queue->target,
                                                       foreign_addr,
                                                       0 /* no MTU */,
+                                                      GNUNET_TRANSPORT_QUEUE_LENGTH_UNLIMITED,
+                                                      0, /* Priority */
                                                       queue->nt,
                                                       cs,
                                                       queue->mq);

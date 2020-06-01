@@ -836,12 +836,72 @@ struct GNUNET_TRANSPORT_AddQueueMessage
   uint32_t mtu;
 
   /**
+   * Queue length, in NBO. Defines how many messages may be
+   * send through this queue. UINT64_MAX for unlimited.
+   */
+  uint64_t q_len;
+
+  /**
+   * Priority of the queue in relation to other queues.
+   */
+  uint32_t priority;
+
+  /**
    * An `enum GNUNET_TRANSPORT_ConnectionStatus` in NBO.
    */
   uint32_t cs;
 
   /* followed by UTF-8 encoded, 0-terminated human-readable address */
 };
+
+
+/**
+ * Update queue
+ */
+struct GNUNET_TRANSPORT_UpdateQueueMessage
+{
+  /**
+   * Type will be #GNUNET_MESSAGE_TYPE_TRANSPORT_QUEUE_SETUP.
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Queue identifier (used to identify the queue).
+   */
+  uint32_t qid GNUNET_PACKED;
+
+  /**
+   * Receiver that can be addressed via the queue.
+   */
+  struct GNUNET_PeerIdentity receiver;
+
+  /**
+   * An `enum GNUNET_NetworkType` in NBO.
+   */
+  uint32_t nt;
+
+  /**
+   * Maximum transmission unit, in NBO.  UINT32_MAX for unlimited.
+   */
+  uint32_t mtu;
+
+  /**
+   * Queue length, in NBO. Defines how many messages may be
+   * send through this queue. UINT64_MAX for unlimited.
+   */
+  uint64_t q_len;
+
+  /**
+   * Priority of the queue in relation to other queues.
+   */
+  uint32_t priority;
+
+  /**
+   * An `enum GNUNET_TRANSPORT_ConnectionStatus` in NBO.
+   */
+  uint32_t cs;
+};
+
 
 
 /**

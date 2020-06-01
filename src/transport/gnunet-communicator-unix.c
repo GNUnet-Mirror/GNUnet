@@ -670,6 +670,8 @@ setup_queue (const struct GNUNET_PeerIdentity *target,
                                                       &queue->target,
                                                       foreign_addr,
                                                       UNIX_MTU,
+                                                      GNUNET_TRANSPORT_QUEUE_LENGTH_UNLIMITED,
+                                                      0,
                                                       GNUNET_NT_LOOPBACK,
                                                       cs,
                                                       queue->mq);

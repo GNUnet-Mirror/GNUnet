@@ -3161,6 +3161,10 @@ extern "C" {
  */
 #define GNUNET_MESSAGE_TYPE_TRANSPORT_FLOW_CONTROL 1221
 
+/**
+ * @brief inform transport that a queue was updated
+ */
+#define GNUNET_MESSAGE_TYPE_TRANSPORT_QUEUE_UPDATE 1222
 
 /**
  * Message sent to indicate to the transport that a monitor

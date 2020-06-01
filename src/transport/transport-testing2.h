@@ -132,7 +132,8 @@ typedef void
                                              *tc_h,
                                              struct
                                              GNUNET_TRANSPORT_TESTING_TransportCommunicatorQueue
-                                             *tc_queue);
+                                             *tc_queue,
+                                             size_t mtu);
 
 
 /**
@@ -215,8 +216,8 @@ GNUNET_TRANSPORT_TESTING_transport_communicator_open_queue (struct
  */
 void
 GNUNET_TRANSPORT_TESTING_transport_communicator_send (struct
-                                                      GNUNET_TRANSPORT_TESTING_TransportCommunicatorQueue
-                                                      *tc_queue,
+                                                      GNUNET_TRANSPORT_TESTING_TransportCommunicatorHandle
+                                                      *tc_h,
                                                       GNUNET_SCHEDULER_TaskCallback
                                                       cont,
                                                       void *cont_cls,

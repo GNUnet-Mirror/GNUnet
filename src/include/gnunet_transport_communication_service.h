@@ -50,6 +50,10 @@ extern "C" {
  */
 #define GNUNET_TRANSPORT_COMMUNICATION_VERSION 0x00000000
 
+/**
+ * Queue length
+ */
+#define GNUNET_TRANSPORT_QUEUE_LENGTH_UNLIMITED UINT64_MAX
 
 /**
  * Function called by the transport service to initialize a
@@ -252,6 +256,9 @@ enum GNUNET_TRANSPORT_ConnectionStatus
  * @param address address in human-readable format, 0-terminated, UTF-8
  * @param mtu maximum message size supported by queue, 0 if
  *            sending is not supported, SIZE_MAX for no MTU
+ * @param q_len number of messages that can be send through this queue
+ * @param priority queue priority. Queues with highest priority should be
+ *                 used
  * @param nt which network type does the @a address belong to?
  * @param cs what is the connection status of the queue?
  * @param mq message queue of the @a peer
@@ -263,10 +270,27 @@ GNUNET_TRANSPORT_communicator_mq_add (
   const struct GNUNET_PeerIdentity *peer,
   const char *address,
   uint32_t mtu,
+  uint64_t q_len,
+  uint32_t priority,
   enum GNUNET_NetworkType nt,
   enum GNUNET_TRANSPORT_ConnectionStatus cs,
   struct GNUNET_MQ_Handle *mq);
 
+/**
+ * Notify transport service that an MQ was updated
+ *
+ * @param ch connection to transport service
+ * @param qh the queue to update
+ * @param q_len number of messages that can be send through this queue
+ * @param priority queue priority. Queues with highest priority should be
+ *                 used
+ */
+void
+GNUNET_TRANSPORT_communicator_mq_update (
+  struct GNUNET_TRANSPORT_CommunicatorHandle *ch,
+  const struct GNUNET_TRANSPORT_QueueHandle *u_qh,
+  uint64_t q_len,
+  uint32_t priority);
 
 /**
  * Notify transport service that an MQ became unavailable due to a
