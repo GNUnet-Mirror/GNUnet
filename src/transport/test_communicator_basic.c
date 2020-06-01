@@ -200,6 +200,8 @@ make_payload (size_t payload_size)
   struct GNUNET_TIME_AbsoluteNBO ts_n;
   char *payload = GNUNET_malloc (payload_size);
 
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Making payload of size %lu\n", payload_size);
   GNUNET_assert (payload_size >= 8); // So that out timestamp fits
   ts = GNUNET_TIME_absolute_get ();
   ts_n = GNUNET_TIME_absolute_hton (ts);
@@ -238,10 +240,10 @@ size_test (void *cls)
   GNUNET_assert (TP_SIZE_CHECK == phase);
   if (LONG_MESSAGE_SIZE != long_message_size)
     max_size = long_message_size;
-  if (ack >= max_size)
+  if (ack + 10 > max_size)
     return; /* Leave some room for our protocol, so not 2^16 exactly */
+  ack += 10;
   payload = make_payload (ack);
-  ack += 5;
   num_sent++;
   GNUNET_TRANSPORT_TESTING_transport_communicator_send (my_tc,
                                                         (ack < max_size)
@@ -470,7 +472,7 @@ incoming_message_cb (void *cls,
                     goodput,
                     (unsigned long long) avg_latency);
         GNUNET_free (goodput);
-        ack = 10;
+        ack = 0;
         phase = TP_SIZE_CHECK;
         num_received = 0;
         num_sent = 0;
@@ -481,9 +483,14 @@ incoming_message_cb (void *cls,
     }
   case TP_SIZE_CHECK:
     {
+      size_t max_size = 64000;
+
+      GNUNET_assert (TP_SIZE_CHECK == phase);
+      if (LONG_MESSAGE_SIZE != long_message_size)
+        max_size = long_message_size;
       num_received++;
       update_avg_latency (payload);
-      if (num_received >= (64000 - 10) / 5)
+      if (num_received >= (max_size) / 10)
       {
         GNUNET_log (GNUNET_ERROR_TYPE_MESSAGE,
                     "Size packet test done.\n");

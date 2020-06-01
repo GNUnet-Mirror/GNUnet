@@ -525,6 +525,7 @@ handle_incoming_msg (void *cls,
     struct GNUNET_TRANSPORT_IncomingMessageAck *ack;
 
     env = GNUNET_MQ_msg (ack, GNUNET_MESSAGE_TYPE_TRANSPORT_INCOMING_MSG_ACK);
+    GNUNET_assert (NULL != env);
     ack->reserved = htonl (0);
     ack->fc_id = inc_msg->fc_id;
     ack->sender = inc_msg->sender;
@@ -770,6 +771,8 @@ disconnect_cb (void *cls,
     GNUNET_CONTAINER_DLL_remove (tc_h->client_head,
                                  tc_h->client_tail,
                                  cl);
+    if (cl->c_mq == tc_h->c_mq)
+      tc_h->c_mq = NULL;
     GNUNET_free (cl);
     break;
   }
@@ -1164,6 +1167,7 @@ GNUNET_TRANSPORT_TESTING_transport_communicator_send
   env = GNUNET_MQ_msg_extra (msg,
                              inbox_size,
                              GNUNET_MESSAGE_TYPE_TRANSPORT_SEND_MSG);
+  GNUNET_assert (NULL != env);
   msg->qid = htonl (tc_queue->qid);
   msg->mid = tc_queue->mid++;
   msg->receiver = tc_queue->peer_id;
