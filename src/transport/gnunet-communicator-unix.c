@@ -57,7 +57,7 @@
 /**
  * Our MTU.
  */
-#ifdef LINUX
+#ifndef DARWIN
 #define UNIX_MTU UINT16_MAX
 #else
 #define UNIX_MTU 2048
