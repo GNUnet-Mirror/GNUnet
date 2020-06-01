@@ -2070,6 +2070,7 @@ mq_send_d (struct GNUNET_MQ_Handle *mq,
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "No more acks\n");
     }
+    return;
   }
 }
 
