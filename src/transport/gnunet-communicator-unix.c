@@ -57,7 +57,11 @@
 /**
  * Our MTU.
  */
+#ifdef LINUX
 #define UNIX_MTU UINT16_MAX
+#else
+#define UNIX_MTU 2048
+#endif
 
 GNUNET_NETWORK_STRUCT_BEGIN
 
