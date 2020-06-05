@@ -182,6 +182,10 @@ void
 GCC_handle_kx_auth (struct CadetConnection *cc,
                     const struct
                     GNUNET_CADET_TunnelKeyExchangeAuthMessage *msg);
+
+/**
+ * Purpose for the signature of a monotime.
+ */
 struct CadetConnectionCreatePS
 {
 

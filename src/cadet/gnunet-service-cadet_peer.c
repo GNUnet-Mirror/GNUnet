@@ -1552,17 +1552,12 @@ GCP_send_ooo (struct CadetPeer *cp,
                   env);
 }
 
-/*
- * FIXME: comment
- */
-void
-GCP_update_monotime (struct CadetPeer *peer)
-{
-  peer->last_connection_create = GNUNET_TIME_absolute_get_monotonic (cfg);
-}
-
-/*
- * FIXME: comment
+/**
+ * Checking if a monotime value is newer than the last monotime value received from a peer. If the time value is newer it will be stored at the peer.
+ *
+ * @param peer The peer we received a new time value from.
+ * @param monotime Time value we check against the last time value we received from a peer.
+ * @return GNUNET_YES if monotime is newer than the last received time value, GNUNET_NO if monotime is not newer.
  */
 int
 GCP_check_and_update_monotime (struct CadetPeer *peer,
@@ -1579,16 +1574,17 @@ GCP_check_and_update_monotime (struct CadetPeer *peer,
   return GNUNET_NO;
 }
 
-/*
- * FIXME: documentation here
+/**
+ * Checking the signature for a monotime of a GNUNET_CADET_ConnectionCreateMessage.
+ *
+ * @param peer The peer that signed the monotime value.
+ * @param msg The GNUNET_CADET_ConnectionCreateMessage with the monotime value.
+ * @return GNUNET_OK if the signature is good, GNUNET_SYSERR if not.
  */
 int
-GCP_check_monotime_sig (struct CadetPeer *peer, const struct
-                        GNUNET_CADET_ConnectionCreateMessage *msg)
+GCP_check_monotime_sig (struct CadetPeer *peer,
+                        const struct GNUNET_CADET_ConnectionCreateMessage *msg)
 {
-  // struct CadetPeer *peer;
-  // const struct GNUNET_CADET_ConnectionCreateMessage *msg;
-
   struct CadetConnectionCreatePS cp = { .purpose.purpose = htonl (
                                           GNUNET_SIGNATURE_PURPOSE_CADET_CONNECTION_INITIATOR),
                                         .purpose.size = htonl (sizeof(cp)),

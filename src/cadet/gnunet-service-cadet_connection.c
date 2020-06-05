@@ -595,6 +595,11 @@ GCC_handle_encrypted (struct CadetConnection *cc,
 }
 
 
+/**
+ * Set the signature for a monotime value on a GNUNET_CADET_ConnectionCreateMessage.
+ *
+ * @param msg The GNUNET_CADET_ConnectionCreateMessage.
+ */
 void
 set_monotime_sig (struct GNUNET_CADET_ConnectionCreateMessage *msg)
 {
