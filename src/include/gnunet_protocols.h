@@ -2734,9 +2734,8 @@ extern "C" {
  * 1000-1009 Connection-level Messages
  * 1010-1019 Channel-level Messages
  * 1020-1029 Local Client-Service
- * 1030-1039 Local Service Monitoring
- * 1040-1049 Application Data
- * 1050-1059 Reserved
+ * 1030-1049 Local Service Monitoring
+ * 1050-1059 Application Data
  */
 
 /********************************  Connection  ********************************/
@@ -2931,6 +2930,11 @@ extern "C" {
  * End of local information about all tunnels of service.
  */
 #define GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_TUNNELS_END 1041
+
+/**
+ * Request to drop a message of type X to peer y.
+ */
+#define GNUNET_MESSAGE_TYPE_CADET_DROP_CADET_MESSAGE 1042
 
 
 /********************************  Application  *******************************/

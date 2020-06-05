@@ -402,5 +402,14 @@ void
 GCP_set_mq (struct CadetPeer *cp,
             struct GNUNET_MQ_Handle *mq);
 
+int
+GCP_check_monotime_sig (struct CadetPeer *peer, const struct GNUNET_CADET_ConnectionCreateMessage *msg);
+
+void 
+GCP_update_monotime (struct CadetPeer *cp);
+
+int 
+GCP_check_and_update_monotime (struct CadetPeer *peer,
+                               struct GNUNET_TIME_AbsoluteNBO monotime);
 
 #endif

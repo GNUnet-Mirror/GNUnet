@@ -580,6 +580,7 @@ handle_channel_create (void *cls,
   if (ntohl (tcm->ccn.channel_of_client) < GNUNET_CADET_LOCAL_CHANNEL_ID_CLI)
   {
     /* Channel ID not in allowed range. */
+    LOG (GNUNET_ERROR_TYPE_DEBUG,"Channel ID not in allowed range.");
     GNUNET_break (0);
     GNUNET_SERVICE_client_drop (c->client);
     return;
@@ -589,6 +590,7 @@ handle_channel_create (void *cls,
   if (NULL != ch)
   {
     /* Channel ID already in use. Not allowed. */
+    LOG (GNUNET_ERROR_TYPE_DEBUG,"Channel ID already in use. Not allowed.");
     GNUNET_break (0);
     GNUNET_SERVICE_client_drop (c->client);
     return;
@@ -1008,6 +1010,26 @@ handle_info_tunnels (void *cls,
   GNUNET_SERVICE_client_continue (c->client);
 }
 
+/**
+ * Handler for client's #GNUNET_MESSAGE_TYPE_CADET_DROP_CADET_MESSAGE request.
+ *
+ * @param cls client Identification of the client.
+ * @param message The actual message.
+ */
+static void
+handle_drop_message (void *cls,
+                     const struct GNUNET_CADET_RequestDropCadetMessage *message)
+{
+  struct CadetClient *c = cls;
+  struct CadetChannel *ch;
+
+  ch = lookup_channel (c,
+                       message->ccn);
+
+  GCCH_assign_type_to_drop(ch, message);
+  
+  GNUNET_SERVICE_client_continue (c->client);
+}
 
 /**
  * Callback called when a client connects to the service.
@@ -1305,48 +1327,52 @@ run (void *cls,
  * Define "main" method using service macro.
  */
 GNUNET_SERVICE_MAIN
-  ("cadet",
-  GNUNET_SERVICE_OPTION_NONE,
-  &run,
-  &client_connect_cb,
-  &client_disconnect_cb,
-  NULL,
-  GNUNET_MQ_hd_fixed_size (port_open,
-                           GNUNET_MESSAGE_TYPE_CADET_LOCAL_PORT_OPEN,
-                           struct GNUNET_CADET_PortMessage,
-                           NULL),
-  GNUNET_MQ_hd_fixed_size (port_close,
-                           GNUNET_MESSAGE_TYPE_CADET_LOCAL_PORT_CLOSE,
-                           struct GNUNET_CADET_PortMessage,
-                           NULL),
-  GNUNET_MQ_hd_fixed_size (channel_create,
-                           GNUNET_MESSAGE_TYPE_CADET_LOCAL_CHANNEL_CREATE,
-                           struct GNUNET_CADET_LocalChannelCreateMessage,
-                           NULL),
-  GNUNET_MQ_hd_fixed_size (channel_destroy,
-                           GNUNET_MESSAGE_TYPE_CADET_LOCAL_CHANNEL_DESTROY,
-                           struct GNUNET_CADET_LocalChannelDestroyMessage,
-                           NULL),
-  GNUNET_MQ_hd_var_size (local_data,
-                         GNUNET_MESSAGE_TYPE_CADET_LOCAL_DATA,
-                         struct GNUNET_CADET_LocalData,
-                         NULL),
-  GNUNET_MQ_hd_fixed_size (local_ack,
-                           GNUNET_MESSAGE_TYPE_CADET_LOCAL_ACK,
-                           struct GNUNET_CADET_LocalAck,
-                           NULL),
-  GNUNET_MQ_hd_fixed_size (get_peers,
-                           GNUNET_MESSAGE_TYPE_CADET_LOCAL_REQUEST_INFO_PEERS,
-                           struct GNUNET_MessageHeader,
-                           NULL),
-  GNUNET_MQ_hd_fixed_size (show_path,
-                           GNUNET_MESSAGE_TYPE_CADET_LOCAL_REQUEST_INFO_PATH,
-                           struct GNUNET_CADET_RequestPathInfoMessage,
-                           NULL),
-  GNUNET_MQ_hd_fixed_size (info_tunnels,
-                           GNUNET_MESSAGE_TYPE_CADET_LOCAL_REQUEST_INFO_TUNNELS,
-                           struct GNUNET_MessageHeader,
-                           NULL),
-  GNUNET_MQ_handler_end ());
+("cadet",
+ GNUNET_SERVICE_OPTION_NONE,
+ &run,
+ &client_connect_cb,
+ &client_disconnect_cb,
+ NULL,
+ GNUNET_MQ_hd_fixed_size (port_open,
+                          GNUNET_MESSAGE_TYPE_CADET_LOCAL_PORT_OPEN,
+                          struct GNUNET_CADET_PortMessage,
+                          NULL),
+ GNUNET_MQ_hd_fixed_size (port_close,
+                          GNUNET_MESSAGE_TYPE_CADET_LOCAL_PORT_CLOSE,
+                          struct GNUNET_CADET_PortMessage,
+                          NULL),
+ GNUNET_MQ_hd_fixed_size (channel_create,
+                          GNUNET_MESSAGE_TYPE_CADET_LOCAL_CHANNEL_CREATE,
+                          struct GNUNET_CADET_LocalChannelCreateMessage,
+                          NULL),
+ GNUNET_MQ_hd_fixed_size (channel_destroy,
+                          GNUNET_MESSAGE_TYPE_CADET_LOCAL_CHANNEL_DESTROY,
+                          struct GNUNET_CADET_LocalChannelDestroyMessage,
+                          NULL),
+ GNUNET_MQ_hd_var_size (local_data,
+                        GNUNET_MESSAGE_TYPE_CADET_LOCAL_DATA,
+                        struct GNUNET_CADET_LocalData,
+                        NULL),
+ GNUNET_MQ_hd_fixed_size (local_ack,
+                          GNUNET_MESSAGE_TYPE_CADET_LOCAL_ACK,
+                          struct GNUNET_CADET_LocalAck,
+                          NULL),
+ GNUNET_MQ_hd_fixed_size (get_peers,
+                          GNUNET_MESSAGE_TYPE_CADET_LOCAL_REQUEST_INFO_PEERS,
+                          struct GNUNET_MessageHeader,
+                          NULL),
+ GNUNET_MQ_hd_fixed_size (show_path,
+                          GNUNET_MESSAGE_TYPE_CADET_LOCAL_REQUEST_INFO_PATH,
+                          struct GNUNET_CADET_RequestPathInfoMessage,
+                          NULL),
+ GNUNET_MQ_hd_fixed_size (info_tunnels,
+                          GNUNET_MESSAGE_TYPE_CADET_LOCAL_REQUEST_INFO_TUNNELS,
+                          struct GNUNET_MessageHeader,
+                          NULL),
+ GNUNET_MQ_hd_fixed_size (drop_message,
+                          GNUNET_MESSAGE_TYPE_CADET_DROP_CADET_MESSAGE,
+                          struct GNUNET_CADET_RequestDropCadetMessage,
+                          NULL),
+ GNUNET_MQ_handler_end ());
 
 /* end of gnunet-service-cadet-new.c */

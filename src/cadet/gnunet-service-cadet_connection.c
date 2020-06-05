@@ -26,6 +26,7 @@
  * @author Christian Grothoff
  */
 #include "platform.h"
+#include "gnunet_signatures.h"
 #include "gnunet-service-cadet_connection.h"
 #include "gnunet-service-cadet_channel.h"
 #include "gnunet-service-cadet_paths.h"
@@ -77,7 +78,6 @@ enum CadetConnectionState
    */
   CADET_CONNECTION_READY
 };
-
 
 /**
  * Low-level connection to a destination.
@@ -206,6 +206,14 @@ update_state (struct CadetConnection *cc,
   int old_ready;
   int new_ready;
 
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Trying to update connection state for %s having old state %d to new %d and mqm_ready old %d to mqm_ready new %d\n",
+       GCT_2s (cc->ct->t),
+       cc->state,
+       new_state,
+       cc->mqm_ready,
+       new_mqm_ready);
+
   if ((new_state == cc->state) && (new_mqm_ready == cc->mqm_ready))
     return; /* no change, nothing to do */
   old_ready =
@@ -214,6 +222,13 @@ update_state (struct CadetConnection *cc,
     ((CADET_CONNECTION_READY == new_state) && (GNUNET_YES == new_mqm_ready));
   cc->state = new_state;
   cc->mqm_ready = new_mqm_ready;
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Updating connection state for %s having old_ready %d and new_rady %d\n",
+       GCT_2s (cc->ct->t),
+       old_ready,
+       new_ready);
+
   if (old_ready != new_ready)
     cc->ready_cb (cc->ready_cb_cls, new_ready);
 }
@@ -392,7 +407,7 @@ send_keepalive (void *cls)
   msg.size = htons (sizeof(msg));
   msg.type = htons (GNUNET_MESSAGE_TYPE_CADET_CHANNEL_KEEPALIVE);
 
-  cc->keepalive_qe = GCT_send (cc->ct->t, &msg, &keepalive_done, cc);
+  cc->keepalive_qe = GCT_send (cc->ct->t, &msg, &keepalive_done, cc, NULL);
 }
 
 
@@ -580,6 +595,20 @@ GCC_handle_encrypted (struct CadetConnection *cc,
 }
 
 
+void
+set_monotime_sig (struct GNUNET_CADET_ConnectionCreateMessage *msg)
+{
+
+  struct CadetConnectionCreatePS cp = { .purpose.purpose = htonl (
+                                          GNUNET_SIGNATURE_PURPOSE_CADET_CONNECTION_INITIATOR),
+                                        .purpose.size = htonl (sizeof(cp)),
+                                        .monotonic_time = msg->monotime};
+
+  GNUNET_CRYPTO_eddsa_sign (my_private_key, &cp,
+                            &msg->monotime_sig);
+
+}
+
 /**
  * Send a #GNUNET_MESSAGE_TYPE_CADET_CONNECTION_CREATE message to the
  * first hop.
@@ -593,6 +622,7 @@ send_create (void *cls)
   struct GNUNET_CADET_ConnectionCreateMessage *create_msg;
   struct GNUNET_PeerIdentity *pids;
   struct GNUNET_MQ_Envelope *env;
+  struct CadetTunnel *t;
 
   cc->task = NULL;
   GNUNET_assert (GNUNET_YES == cc->mqm_ready);
@@ -603,6 +633,18 @@ send_create (void *cls)
   // TODO This will be removed in a major release, because this will be a protocol breaking change. We set the deprecated 'reliable' bit here that was removed.
   create_msg->options = 2;
   create_msg->cid = cc->cid;
+
+  // check for tunnel state and set signed monotime (xrs,t3ss)
+  t = GCP_get_tunnel (cc->destination, GNUNET_YES);
+  if ((NULL != t)&& (GCT_get_estate (t) == CADET_TUNNEL_KEY_UNINITIALIZED) &&
+      (GCT_alice_or_betty (GCP_get_id (cc->destination)) == GNUNET_NO))
+  {
+    create_msg->has_monotime = GNUNET_YES;
+    create_msg->monotime = GNUNET_TIME_absolute_hton (
+      GNUNET_TIME_absolute_get_monotonic (cfg));
+    set_monotime_sig (create_msg);
+  }
+
   pids = (struct GNUNET_PeerIdentity *) &create_msg[1];
   pids[0] = my_full_id;
   for (unsigned int i = 0; i <= cc->off; i++)
@@ -792,6 +834,7 @@ connection_create (struct CadetPeer *destination,
   cc = GNUNET_new (struct CadetConnection);
   cc->state = init_state;
   cc->ct = ct;
+  cc->destination = destination; /* xrs,t3ss,lurchi*/
   cc->cid = *cid;
   cc->retry_delay =
     GNUNET_TIME_relative_multiply (INITIAL_CONNECTION_CREATE_RETRY_DELAY, off);

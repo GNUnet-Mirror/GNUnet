@@ -464,8 +464,8 @@ struct CadetTunnel
  * @param other the other peer
  * @return #GNUNET_YES for Alice, #GNUNET_NO for Betty, #GNUNET_SYSERR if talking to myself
  */
-static int
-alice_or_betty (const struct GNUNET_PeerIdentity *other)
+int
+GCT_alice_or_betty (const struct GNUNET_PeerIdentity *other)
 {
   if (0 > GNUNET_memcmp (&my_full_id,
                          other))
@@ -1345,7 +1345,7 @@ send_kx (struct CadetTunnel *t,
   struct GNUNET_CADET_TunnelKeyExchangeMessage *msg;
   enum GNUNET_CADET_KX_Flags flags;
 
-  if (GNUNET_YES != alice_or_betty (GCP_get_id (t->destination)))
+  if (GNUNET_YES != GCT_alice_or_betty (GCP_get_id (t->destination)))
     return; /* only Alice may send KX */
   if ((NULL == ct) ||
       (GNUNET_NO == ct->is_ready))
@@ -1521,7 +1521,7 @@ update_ax_by_kx (struct CadetTunnelAxolotl *ax,
   const char salt[] = "CADET Axolotl salt";
   int am_I_alice;
 
-  if (GNUNET_SYSERR == (am_I_alice = alice_or_betty (pid)))
+  if (GNUNET_SYSERR == (am_I_alice = GCT_alice_or_betty (pid)))
   {
     GNUNET_break_op (0);
     return GNUNET_SYSERR;
@@ -1726,7 +1726,7 @@ GCT_handle_kx (struct CadetTConnection *ct,
                             1,
                             GNUNET_NO);
   if (GNUNET_YES ==
-      alice_or_betty (GCP_get_id (t->destination)))
+      GCT_alice_or_betty (GCP_get_id (t->destination)))
   {
     /* Betty/Bob is not allowed to send KX! */
     GNUNET_break_op (0);
@@ -2123,9 +2123,10 @@ GCT_add_channel (struct CadetTunnel *t,
                                                       ch,
                                                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Adding %s to %s\n",
+       "Adding %s to %s with state %d\n",
        GCCH_2s (ch),
-       GCT_2s (t));
+       GCT_2s (t),
+       t->estate);
   switch (t->estate)
   {
   case CADET_TUNNEL_KEY_UNINITIALIZED:
@@ -2429,12 +2430,21 @@ connection_ready_cb (void *cls,
   switch (t->estate)
   {
   case CADET_TUNNEL_KEY_UNINITIALIZED:
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Do not begin KX for %s if WE have no channels waiting. Retrying after %d\n",
+         GCT_2s (t),
+         GNUNET_TIME_absolute_get_remaining (t->next_kx_attempt).rel_value_us);
     /* Do not begin KX if WE have no channels waiting! */
     if (0 != GNUNET_TIME_absolute_get_remaining (
           t->next_kx_attempt).rel_value_us)
       return;   /* wait for timeout before retrying */
     /* We are uninitialized, just transmit immediately,
        without undue delay. */
+
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Why for %s \n",
+         GCT_2s (t));
+
     if (NULL != t->kx_task)
     {
       GNUNET_SCHEDULER_cancel (t->kx_task);
@@ -3028,7 +3038,8 @@ GCT_send_channel_destroy (struct CadetTunnel *t,
   GCT_send (t,
             &msg.header,
             NULL,
-            NULL);
+            NULL,
+            &ctn);
 }
 
 
@@ -3445,18 +3456,32 @@ GCT_handle_encrypted (struct CadetTConnection *ct,
  * @param t Tunnel on which this message is transmitted.
  * @param cont Continuation to call once message is really sent.
  * @param cont_cls Closure for @c cont.
+ * @param The ID of the channel we are using for sending.
  * @return Handle to cancel message
  */
 struct CadetTunnelQueueEntry *
 GCT_send (struct CadetTunnel *t,
           const struct GNUNET_MessageHeader *message,
           GCT_SendContinuation cont,
-          void *cont_cls)
+          void *cont_cls,
+          struct GNUNET_CADET_ChannelTunnelNumber *ctn)
 {
   struct CadetTunnelQueueEntry *tq;
   uint16_t payload_size;
   struct GNUNET_MQ_Envelope *env;
   struct GNUNET_CADET_TunnelEncryptedMessage *ax_msg;
+  struct CadetChannel *ch;
+
+  if (NULL != ctn)
+  {
+    ch = lookup_channel (t,
+                         *ctn);
+    if ((NULL != ch)&& GCCH_is_type_to_drop (ch, message))
+    {
+      GNUNET_break (0);
+      return NULL;
+    }
+  }
 
   if (CADET_TUNNEL_KEY_OK != t->estate)
   {

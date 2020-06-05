@@ -80,6 +80,14 @@ enum CadetTunnelEState
   CADET_TUNNEL_KEY_OK
 };
 
+/**
+ * Am I Alice or Betty (some call her Bob), or talking to myself?
+ *
+ * @param other the other peer
+ * @return #GNUNET_YES for Alice, #GNUNET_NO for Betty, #GNUNET_SYSERR if talking to myself
+ */
+int
+GCT_alice_or_betty (const struct GNUNET_PeerIdentity *other);
 
 /**
  * Get the static string for the peer this tunnel is directed.
@@ -226,7 +234,8 @@ struct CadetTunnelQueueEntry *
 GCT_send (struct CadetTunnel *t,
           const struct GNUNET_MessageHeader *message,
           GCT_SendContinuation cont,
-          void *cont_cls);
+          void *cont_cls,
+	  struct GNUNET_CADET_ChannelTunnelNumber *ctn);
 
 
 /**
@@ -320,6 +329,16 @@ GCT_iterate_channels (struct CadetTunnel *t,
 enum CadetTunnelEState
 GCT_get_estate (struct CadetTunnel *t);
 
+/**
+ * Change the tunnel encryption state.
+ * If the encryption state changes to OK, stop the rekey task.
+ *
+ * @param t Tunnel whose encryption state to change, or NULL.
+ * @param state New encryption state.
+ */
+void
+GCT_change_estate (struct CadetTunnel *t,
+                   enum CadetTunnelEState state);
 
 /**
  * Handle KX message.

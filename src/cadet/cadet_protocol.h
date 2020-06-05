@@ -85,6 +85,24 @@ struct GNUNET_CADET_ConnectionCreateMessage
   uint32_t options GNUNET_PACKED;
 
   /**
+   * This flag indicates the peer sending the connection create 
+   * meassage likes to trigger a KX handshake.
+   */
+  int has_monotime;
+  
+  /**
+   *  This monotonic time is set, if a peer likes to trigger a KX, but is not
+   *  the peer that should start the KX. (xrs,t3ss)
+   */
+  struct GNUNET_TIME_AbsoluteNBO monotime;
+
+  /**
+   *  We sign the monotime. The receiving peer can check the signature, to verify
+   *  the sending peer.
+   */
+  struct GNUNET_CRYPTO_EddsaSignature monotime_sig;
+
+  /**
    * ID of the connection
    */
   struct GNUNET_CADET_ConnectionTunnelIdentifier cid;

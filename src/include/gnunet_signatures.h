@@ -241,6 +241,10 @@ extern "C"
  */
 #define GNUNET_SIGNATURE_PURPOSE_TRANSPORT_DV_INITIATOR 37
 
+/**
+ * Signature by a peer that like to create a connection.
+ */
+#define GNUNET_SIGNATURE_PURPOSE_CADET_CONNECTION_INITIATOR 38
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {

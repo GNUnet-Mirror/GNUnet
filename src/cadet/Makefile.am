@@ -30,6 +30,7 @@ lib_LTLIBRARIES = \
 
 libgnunetcadet_la_SOURCES = \
   cadet_api.c \
+  cadet_api_drop_message.c \
   cadet_api_get_channel.c \
   cadet_api_get_path.c \
   cadet_api_list_peers.c \
@@ -95,6 +96,7 @@ check_PROGRAMS = \
   test_cadet_2_speed_reliable \
   test_cadet_2_speed_reliable_backwards \
   test_cadet_2_reopen \
+  test_cadet_2_destroy \
   test_cadet_5_forward \
   test_cadet_5_signal \
   test_cadet_5_keepalive \
@@ -211,6 +213,9 @@ test_cadet_5_reopen_SOURCES = \
   test_cadet.c
 test_cadet_5_reopen_LDADD = $(ld_cadet_test_lib)
 
+test_cadet_2_destroy_SOURCES = \
+  test_cadet.c
+test_cadet_2_destroy_LDADD = $(ld_cadet_test_lib)
 
 if ENABLE_TEST_RUN
 AM_TESTS_ENVIRONMENT=export GNUNET_PREFIX=$${GNUNET_PREFIX:-@libdir@};export PATH=$${GNUNET_PREFIX:-@prefix@}/bin:$$PATH;unset XDG_DATA_HOME;unset XDG_CONFIG_HOME;

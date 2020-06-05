@@ -182,7 +182,29 @@ void
 GCC_handle_kx_auth (struct CadetConnection *cc,
                     const struct
                     GNUNET_CADET_TunnelKeyExchangeAuthMessage *msg);
+struct CadetConnectionCreatePS
+{
 
+  /**
+   * Purpose is #GNUNET_SIGNATURE_PURPOSE_CADET_CONNECTION_INITIATOR
+   */
+  struct GNUNET_CRYPTO_EccSignaturePurpose purpose;
+
+  /**
+   * Time at the initiator when generating the signature.
+   *
+   * Note that the receiver MUST IGNORE the absolute time, and only interpret
+   * the value as a mononic time and reject "older" values than the last one
+   * observed.  This is necessary as we do not want to require synchronized
+   * clocks and may not have a bidirectional communication channel.
+   *
+   * Even with this, there is no real guarantee against replay achieved here,
+   * unless the latest timestamp is persisted.  Persistence should be
+   * provided via PEERSTORE if possible.
+   */
+  struct GNUNET_TIME_AbsoluteNBO monotonic_time;
+
+};
 
 /**
  * Performance metrics for a connection.

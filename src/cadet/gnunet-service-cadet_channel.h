@@ -57,6 +57,23 @@ GCCH_hash_port (struct GNUNET_HashCode *h_port,
                 const struct GNUNET_HashCode *port,
                 const struct GNUNET_PeerIdentity *listener);
 
+/**
+ * Check if type of message is the one to drop.
+ * @param ch CadetChannel to check for message type to drop.
+ * @param message GNUNET_MessageHeader to compare the type with.
+ */
+int
+GCCH_is_type_to_drop (struct CadetChannel *ch, const struct
+                      GNUNET_MessageHeader *message);
+
+/**
+ * Check if type of message is the one to drop.
+ * @param ch CadetChannel to assign type to drop.
+ * @param message GNUNET_CADET_RequestDropCadetMessage to get the type from.
+ */
+void
+GCCH_assign_type_to_drop (struct CadetChannel *ch, const struct
+                          GNUNET_CADET_RequestDropCadetMessage *message);
 
 /**
  * Get the static string for identification of the channel.

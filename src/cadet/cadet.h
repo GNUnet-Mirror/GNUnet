@@ -95,7 +95,6 @@ extern "C" {
 
 GNUNET_NETWORK_STRUCT_BEGIN
 
-
 /**
  * Number uniquely identifying a channel of a client.
  */
@@ -111,6 +110,70 @@ struct GNUNET_CADET_ClientChannelNumber
   uint32_t channel_of_client GNUNET_PACKED;
 };
 
+/**
+ * Opaque handle to a channel.
+ */
+struct GNUNET_CADET_Channel
+{
+
+  /**
+   * Other end of the channel.
+   */
+  struct GNUNET_PeerIdentity peer;
+
+  /**
+   * Handle to the cadet this channel belongs to
+   */
+  struct GNUNET_CADET_Handle *cadet;
+
+  /**
+   * Channel's port, if incoming.
+   */
+  struct GNUNET_CADET_Port *incoming_port;
+
+  /**
+   * Any data the caller wants to put in here, used for the
+   * various callbacks (@e disconnects, @e window_changes, handlers).
+   */
+  void *ctx;
+
+  /**
+   * Message Queue for the channel (which we are implementing).
+   */
+  struct GNUNET_MQ_Handle *mq;
+
+  /**
+   * Task to allow mq to send more traffic.
+   */
+  struct GNUNET_SCHEDULER_Task *mq_cont;
+
+  /**
+   * Pending envelope with a message to be transmitted to the
+   * service as soon as we are allowed to.  Should only be
+   * non-NULL if @e allow_send is 0.
+   */
+  struct GNUNET_MQ_Envelope *pending_env;
+
+  /**
+   * Window change handler.
+   */
+  GNUNET_CADET_WindowSizeEventHandler window_changes;
+
+  /**
+   * Disconnect handler.
+   */
+  GNUNET_CADET_DisconnectEventHandler disconnects;
+
+  /**
+   * Local ID of the channel, #GNUNET_CADET_LOCAL_CHANNEL_ID_CLI bit is set if outbound.
+   */
+  struct GNUNET_CADET_ClientChannelNumber ccn;
+
+  /**
+   * How many messages are we allowed to send to the service right now?
+   */
+  unsigned int allow_send;
+};
 
 /**
  * Message for a client to create and destroy channels.
@@ -252,7 +315,29 @@ struct GNUNET_CADET_LocalInfo
   struct GNUNET_PeerIdentity peer;
 };
 
+/**
+ * Message to drop another message of specific type. Used in test context
+ */
+struct GNUNET_CADET_RequestDropCadetMessage
+{
 
+  /**
+   * Type: #GNUNET_MESSAGE_TYPE_CADET_DROP_CADET_MESSAGE
+   */
+  struct GNUNET_MessageHeader header;
+  
+  /**
+   * Type of the message this handler covers, in host byte order.
+   */
+  uint16_t type;
+
+  /**
+   * ID of the channel we want to drop a message for.
+   */
+  struct GNUNET_CADET_ClientChannelNumber ccn;
+
+};
+  
 /**
  * Message to inform the client about channels in the service.
  */

@@ -380,8 +380,44 @@ struct CadetChannel
    * empty.
    */
   int destroy;
+
+  /**
+   * Type of message to be droped. See GCT_send.
+   */
+  uint16_t type GNUNET_PACKED;
+  
 };
 
+/**
+ * Assign type of message to drop.
+ * @param ch CadetChannel to assign type to drop. 
+ * @param message GNUNET_CADET_RequestDropCadetMessage to get the type from.
+ */
+void
+GCCH_assign_type_to_drop(struct CadetChannel *ch, const struct GNUNET_CADET_RequestDropCadetMessage *message)
+{
+
+  ch->type = message->type;
+  
+}
+
+/**
+ * Check if type of message is the one to drop.
+ * @param ch CadetChannel to check for message type to drop. 
+ * @param message GNUNET_MessageHeader to compare the type with.
+ */
+int
+GCCH_is_type_to_drop(struct CadetChannel *ch, const struct GNUNET_MessageHeader *message)
+{
+
+  if (ch->type == message->type)
+  {
+    ch->type = 0;
+    return GNUNET_YES;
+  }
+  else
+    return GNUNET_NO;
+}
 
 /**
  * Get the static string for identification of the channel.
@@ -594,7 +630,7 @@ send_channel_open (void *cls)
   if (NULL != ch->last_control_qe)
     GCT_send_cancel (ch->last_control_qe);
   ch->last_control_qe =
-    GCT_send (ch->t, &msgcc.header, &channel_open_sent_cb, ch);
+    GCT_send (ch->t, &msgcc.header, &channel_open_sent_cb, ch, &msgcc.ctn);
   GNUNET_assert (NULL == ch->retry_control_task);
 }
 
@@ -818,7 +854,7 @@ send_channel_data_ack (struct CadetChannel *ch)
        GCCH_2s (ch));
   if (NULL != ch->last_control_qe)
     GCT_send_cancel (ch->last_control_qe);
-  ch->last_control_qe = GCT_send (ch->t, &msg.header, &send_ack_cb, ch);
+  ch->last_control_qe = GCT_send (ch->t, &msg.header, &send_ack_cb, ch, &msg.ctn);
 }
 
 
@@ -845,7 +881,7 @@ send_open_ack (void *cls)
   msg.port = ch->port;
   if (NULL != ch->last_control_qe)
     GCT_send_cancel (ch->last_control_qe);
-  ch->last_control_qe = GCT_send (ch->t, &msg.header, &send_ack_cb, ch);
+  ch->last_control_qe = GCT_send (ch->t, &msg.header, &send_ack_cb, ch, &msg.ctn);
 }
 
 
@@ -1477,7 +1513,7 @@ retry_transmission (void *cls)
        "Retrying transmission on %s of message %u\n",
        GCCH_2s (ch),
        (unsigned int) ntohl (crm->data_message->mid.mid));
-  crm->qe = GCT_send (ch->t, &crm->data_message->header, &data_sent_cb, crm);
+  crm->qe = GCT_send (ch->t, &crm->data_message->header, &data_sent_cb, crm, &crm->data_message->ctn);
   GNUNET_assert (NULL == ch->retry_data_task);
 }
 
@@ -1865,7 +1901,7 @@ GCCH_handle_local_data (struct CadetChannel *ch,
     GNUNET_SCHEDULER_cancel (ch->retry_data_task);
     ch->retry_data_task = NULL;
   }
-  crm->qe = GCT_send (ch->t, &crm->data_message->header, &data_sent_cb, crm);
+  crm->qe = GCT_send (ch->t, &crm->data_message->header, &data_sent_cb, crm, &crm->data_message->ctn);
   GNUNET_assert (NULL == ch->retry_data_task);
   return GNUNET_OK;
 }

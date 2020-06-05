@@ -25,6 +25,7 @@
  */
 #include <stdio.h>
 #include "platform.h"
+#include "cadet.h"
 #include "cadet_test_lib.h"
 #include "gnunet_cadet_service.h"
 #include "gnunet_statistics_service.h"
@@ -74,6 +75,17 @@ struct CadetTestChannelWrapper
 #define SPEED_REL 8
 #define P2P_SIGNAL 10
 #define REOPEN 11
+#define DESTROY 12
+
+/**
+ * Active peer listing operation.
+ */
+static struct GNUNET_CADET_PeersLister *plo;
+
+/*
+ * Task called to check for existing tunnel and depending on that reopen channel
+ */
+static struct GNUNET_SCHEDULER_Task *get_peers_task;
 
 /**
  * Which test are we running?
@@ -123,7 +135,12 @@ static struct GNUNET_TESTBED_Operation *t_op[2];
 /**
  * Peer ids.
  */
-static struct GNUNET_PeerIdentity *p_id[2];
+static struct GNUNET_PeerIdentity *testpeer_id[2];
+
+/**
+ * Peer ids.
+ */
+static struct GNUNET_CONFIGURATION_Handle *p_cfg[2];
 
 /**
  * Port ID
@@ -133,7 +150,7 @@ static struct GNUNET_HashCode port;
 /**
  * Peer ids counter.
  */
-static unsigned int p_ids;
+static unsigned int peerinfo_task_cnt;
 
 /**
  * Is the setup initialized?
@@ -196,16 +213,6 @@ static struct GNUNET_SCHEDULER_Task *test_task;
 static struct GNUNET_SCHEDULER_Task *send_next_msg_task;
 
 /**
- * Cadet handle for the root peer
- */
-static struct GNUNET_CADET_Handle *h1;
-
-/**
- * Cadet handle for the first leaf peer
- */
-static struct GNUNET_CADET_Handle *h2;
-
-/**
  * Channel handle for the root peer
  */
 static struct GNUNET_CADET_Channel *outgoing_ch;
@@ -225,6 +232,9 @@ static struct GNUNET_TIME_Absolute start_time;
  * Peers handle.
  */
 static struct GNUNET_TESTBED_Peer **testbed_peers;
+
+
+struct GNUNET_CADET_Handle **cadets_running;
 
 /**
  * Statistics operation handle.
@@ -246,6 +256,17 @@ static unsigned int ka_received;
  */
 static unsigned int msg_dropped;
 
+/**
+ * Drop the next cadet message of a given type..
+ *
+ * @param mq message queue
+ * @param ccn client channel number.
+ * @param type of cadet message to be dropped.
+ */
+void
+GNUNET_CADET_drop_message (struct GNUNET_MQ_Handle *mq,
+                           struct GNUNET_CADET_ClientChannelNumber ccn,
+                           uint16_t type);
 
 /******************************************************************************/
 
@@ -516,6 +537,49 @@ static void
 disconnect_handler (void *cls,
                     const struct GNUNET_CADET_Channel *channel);
 
+static struct GNUNET_PeerIdentity *
+get_from_p_ids ()
+{
+  if (0 < GNUNET_memcmp (testpeer_id[0], testpeer_id[1]))
+  {
+    return testpeer_id[1];
+  }
+  else
+  {
+    return testpeer_id[0];
+  }
+}
+
+static struct GNUNET_CADET_Handle *
+get_from_cadets ()
+{
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "1\n");
+  if (0 < GNUNET_memcmp (testpeer_id[0], testpeer_id[1]))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "standard peer\n");
+    return cadets_running[0];
+  }
+  else
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "the other peer\n");
+    return cadets_running[peers_running - 1];
+  }
+
+}
+
+static unsigned int
+get_peer_nr (int outgoing)
+{
+  if (0 < GNUNET_memcmp (testpeer_id[0], testpeer_id[1]))
+  {
+    return GNUNET_YES == outgoing ? 0 : peers_running - 1;
+  }
+  else
+  {
+    return GNUNET_YES == outgoing ? peers_running - 1 : 0;
+  }
+}
 
 /**
  * Task to reconnect to other peer.
@@ -534,6 +598,8 @@ reconnect_op (void *cls)
   };
   long l = (long) cls;
   struct CadetTestChannelWrapper *ch;
+  static struct GNUNET_PeerIdentity *p_id;
+  static struct GNUNET_CADET_Handle *h1;
 
   reconnect_task = NULL;
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
@@ -545,9 +611,13 @@ reconnect_op (void *cls)
     outgoing_ch = NULL;
   }
   ch = GNUNET_new (struct CadetTestChannelWrapper);
+
+  p_id = get_from_p_ids ();
+  h1 = get_from_cadets ();
+
   outgoing_ch = GNUNET_CADET_channel_create (h1,
                                              ch,
-                                             p_id[1],
+                                             p_id,
                                              &port,
                                              NULL,
                                              &disconnect_handler,
@@ -556,6 +626,112 @@ reconnect_op (void *cls)
   send_test_message (outgoing_ch);
 }
 
+void
+reopen_channel ()
+{
+  struct CadetTestChannelWrapper *ch;
+  static struct GNUNET_CADET_Handle *h1;
+  static struct GNUNET_PeerIdentity *p_id;
+  struct GNUNET_MQ_MessageHandler handlers[] = {
+    GNUNET_MQ_hd_var_size (data,
+                           GNUNET_MESSAGE_TYPE_DUMMY,
+                           struct GNUNET_MessageHeader,
+                           NULL),
+    GNUNET_MQ_handler_end ()
+  };
+
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "creating channel again\n");
+  p_id = get_from_p_ids ();
+  h1 = get_from_cadets ();
+
+  ch = GNUNET_new (struct CadetTestChannelWrapper);
+  outgoing_ch = GNUNET_CADET_channel_create (h1,
+                                             ch,
+                                             p_id,
+                                             &port,
+                                             NULL,
+                                             &disconnect_handler,
+                                             handlers);
+  ch->ch = outgoing_ch;
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "Sending second test data (after destroying the channel) on channel %p...\n",
+              outgoing_ch);
+  send_test_message (outgoing_ch);
+}
+
+static void
+peers_callback (void *cls, const struct GNUNET_CADET_PeerListEntry *ple);
+
+/**
+ * We ask the monitoring api for all the peers.
+ */
+static void
+get_peers (void *cls)
+{
+
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "requesting peers info!\n");
+  plo = GNUNET_CADET_list_peers (p_cfg[get_peer_nr (GNUNET_YES)],
+                                 &peers_callback, NULL);
+
+}
+
+/**
+ * Method called to retrieve information about all peers in CADET, called
+ * once per peer.
+ *
+ * After last peer has been reported, an additional call with NULL is done.
+ *
+ * We check the peer we are interested in, if we have a tunnel. If not, we
+ * reopen the channel
+ *
+ * @param cls Closure.
+ * @param ple information about peer, or NULL on "EOF".
+ */
+static void
+peers_callback (void *cls, const struct GNUNET_CADET_PeerListEntry *ple)
+{
+
+  const struct GNUNET_PeerIdentity *p_id;
+  const struct GNUNET_PeerIdentity *peer;
+
+
+  peer = &ple->peer;
+
+  if (NULL == ple)
+  {
+    plo = NULL;
+    return;
+  }
+  p_id = get_from_p_ids ();
+
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "ple->peer %s\n",
+              GNUNET_i2s_full (&ple->peer));
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "p_id %s\n",
+              GNUNET_i2s_full (p_id));
+
+  if ((0 == GNUNET_memcmp (&ple->peer, p_id))&& ple->have_tunnel)
+  {
+
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                "schedule get_peers again?\n");
+    get_peers_task = GNUNET_SCHEDULER_add_delayed (SHORT_TIME,
+                                                   &get_peers,
+                                                   NULL);
+
+  }
+  else if (0 == GNUNET_memcmp (&ple->peer, p_id) )
+  {
+
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                "reopen channel\n");
+
+    reopen_channel ();
+
+  }
+}
 
 /**
  * Function called whenever an MQ-channel is destroyed, unless the destruction
@@ -575,9 +751,22 @@ disconnect_handler (void *cls,
   struct CadetTestChannelWrapper *ch_w = cls;
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              "Channel disconnected at %d\n",
+              "Channel disconnected at ok=%d\n",
               ok);
   GNUNET_assert (ch_w->ch == channel);
+
+  if ((DESTROY == test) && (3 == ok))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                "Reopen channel task!\n");
+    if (NULL == get_peers_task)
+    {
+      get_peers_task = GNUNET_SCHEDULER_add_now (&get_peers,
+                                                 NULL);
+    }
+    return;
+  }
+
   if (channel == incoming_ch)
   {
     ok++;
@@ -651,8 +840,8 @@ send_test_message (struct GNUNET_CADET_Channel *channel)
   int size;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Sending test message on channel %p\n",
-              channel);
+              "Sending test message on channel %u\n",
+              channel->ccn.channel_of_client);
   size = size_payload;
   if (GNUNET_NO == initialized)
   {
@@ -698,6 +887,10 @@ send_test_message (struct GNUNET_CADET_Channel *channel)
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Sending DATA %u [%d bytes]\n",
                 data_sent, size);
+  }
+  else if (DESTROY == test)
+  {
+    payload = data_sent;
   }
   else
   {
@@ -826,7 +1019,7 @@ handle_data (void *cls,
   }
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              " ok: (%d/%d)\n",
+              "handle_data ok: (%d/%d)\n",
               ok,
               ok_goal);
   data = (uint32_t *) &message[1];
@@ -842,6 +1035,49 @@ handle_data (void *cls,
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 " payload %u, expected: %u\n",
                 payload, *counter);
+  }
+
+  if (DESTROY == test)
+  {
+    if (2 == ok)
+    {
+      ok++;
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                  "dropping message ok: (%d/%d)\n",
+                  ok,
+                  ok_goal);
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "TEST ID 0: %s\n",
+                  GNUNET_i2s (testpeer_id[0]));
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "TEST ID 1: %s\n",
+                  GNUNET_i2s (testpeer_id[1]));
+
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO, "dropping message\n");
+      GNUNET_CADET_drop_message (GNUNET_CADET_get_mq (outgoing_ch),
+                                 outgoing_ch->ccn,
+                                 GNUNET_MESSAGE_TYPE_CADET_CHANNEL_DESTROY);
+      if (NULL != outgoing_ch)
+      {
+        GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                    "Destroying channel %p...\n",
+                    outgoing_ch);
+        GNUNET_CADET_channel_destroy (outgoing_ch);
+        outgoing_ch = NULL;
+      }
+    }
+    else if (5 == ok)
+    {
+      ok++;
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                  "destroy test finished ok: (%d/%d)\n",
+                  ok,
+                  ok_goal);
+      disconnect_task =
+        GNUNET_SCHEDULER_add_now (&gather_stats_and_exit,
+                                  (void *) __LINE__);
+      // End of DESTROY test.
+    }
   }
 
   if (GNUNET_NO == initialized)
@@ -861,7 +1097,7 @@ handle_data (void *cls,
   if (get_target_channel () == channel)  /* Got "data" */
   {
     GNUNET_log (GNUNET_ERROR_TYPE_INFO, " received data %u\n", data_received);
-    if ((SPEED != test) || ( (ok_goal - 2) == ok) )
+    if ((DESTROY != test) && ((SPEED != test) || ( (ok_goal - 2) == ok)) )
     {
       /* Send ACK */
       send_test_message (channel);
@@ -927,11 +1163,13 @@ connect_handler (void *cls,
               channel);
   ok++;
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              " ok: %d\n",
-              ok);
-  if (peer == peers_requested - 1)
+              "connect_handler ok: (%d/%d)\n",
+              ok,
+              ok_goal);
+
+  if (peer == get_peer_nr (GNUNET_NO))
   {
-    if (NULL != incoming_ch)
+    if ((DESTROY != test)&&(NULL != incoming_ch))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                   "Duplicate incoming channel for client %lu\n",
@@ -947,7 +1185,7 @@ connect_handler (void *cls,
                 (long) cls);
     GNUNET_assert (0);
   }
-  if ((NULL != disconnect_task) && (REOPEN != test))
+  if ((NULL != disconnect_task) && (REOPEN != test) && (DESTROY != test))
   {
     GNUNET_SCHEDULER_cancel (disconnect_task);
     disconnect_task = GNUNET_SCHEDULER_add_delayed (short_time,
@@ -970,6 +1208,7 @@ connect_handler (void *cls,
                                                    &reconnect_op,
                                                    (void *) __LINE__);
   }
+
 
   /* TODO: cannot return channel as-is, in order to unify the data handlers */
   ch = GNUNET_new (struct CadetTestChannelWrapper);
@@ -998,6 +1237,8 @@ start_test (void *cls)
     GNUNET_MQ_handler_end ()
   };
   struct CadetTestChannelWrapper *ch;
+  static struct GNUNET_CADET_Handle *h1;
+  static struct GNUNET_PeerIdentity *p_id;
 
   test_task = NULL;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "start_test: %s\n", test_name);
@@ -1012,20 +1253,25 @@ start_test (void *cls)
     test = SPEED;
   }
 
+  p_id = get_from_p_ids ();
+  h1 = get_from_cadets ();
+
   ch = GNUNET_new (struct CadetTestChannelWrapper);
   outgoing_ch = GNUNET_CADET_channel_create (h1,
                                              ch,
-                                             p_id[1],
+                                             p_id,
                                              &port,
                                              NULL,
                                              &disconnect_handler,
                                              handlers);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "channel created\n");
 
   ch->ch = outgoing_ch;
 
-  disconnect_task = GNUNET_SCHEDULER_add_delayed (short_time,
-                                                  &gather_stats_and_exit,
-                                                  (void *) __LINE__);
+  if (DESTROY != test)
+    disconnect_task = GNUNET_SCHEDULER_add_delayed (short_time,
+                                                    &gather_stats_and_exit,
+                                                    (void *) __LINE__);
   if (KEEPALIVE == test)
     return;                     /* Don't send any data. */
 
@@ -1054,7 +1300,7 @@ start_test (void *cls)
 /**
  * Callback to be called when the requested peer information is available
  *
- * @param cls the closure from GNUNET_TESTBED_peer_get_information()
+ * @param cls the closure from GNUNET_TESTBED_peer_getinformation()
  * @param op the operation this callback corresponds to
  * @param pinfo the result; will be NULL if the operation has failed
  * @param emsg error message if the operation has failed;
@@ -1068,9 +1314,6 @@ pi_cb (void *cls,
 {
   long i = (long) cls;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "ID callback for %ld\n",
-              i);
   if ((NULL == pinfo) ||
       (NULL != emsg))
   {
@@ -1080,15 +1323,40 @@ pi_cb (void *cls,
     abort_test (__LINE__);
     return;
   }
-  p_id[i] = pinfo->result.id;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "id: %s\n",
-              GNUNET_i2s (p_id[i]));
-  p_ids++;
-  if (p_ids < 2)
+
+  if (GNUNET_TESTBED_PIT_IDENTITY == pinfo->pit)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "ID callback for %ld\n",
+                i);
+    testpeer_id[i] = pinfo->result.id;
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "id: %s\n",
+                GNUNET_i2s (testpeer_id[i]));
+  }
+  else if (GNUNET_TESTBED_PIT_CONFIGURATION == pinfo->pit)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "CFG callback for %ld\n",
+                i);
+    p_cfg[i] = pinfo->result.cfg;
+  }
+  else
+  {
+    GNUNET_break (0);
+  }
+
+  peerinfo_task_cnt++;
+  if (peerinfo_task_cnt < 4)
     return;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Got all IDs, starting test\n");
+              "Got all peer information, starting test\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "TEST ID 0: %s\n",
+              GNUNET_i2s (testpeer_id[0]));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "TEST ID 1: %s\n",
+              GNUNET_i2s (testpeer_id[1]));
   test_task = GNUNET_SCHEDULER_add_now (&start_test, NULL);
 }
 
@@ -1115,8 +1383,8 @@ tmain (void *cls,
   peers_running = num_peers;
   GNUNET_assert (peers_running == peers_requested);
   testbed_peers = peers;
-  h1 = cadets[0];
-  h2 = cadets[num_peers - 1];
+  cadets_running = cadets;
+
   disconnect_task = GNUNET_SCHEDULER_add_delayed (short_time,
                                                   &disconnect_cadet_peers,
                                                   (void *) __LINE__);
@@ -1128,6 +1396,14 @@ tmain (void *cls,
                                                  (void *) 0L);
   t_op[1] = GNUNET_TESTBED_peer_get_information (peers[num_peers - 1],
                                                  GNUNET_TESTBED_PIT_IDENTITY,
+                                                 &pi_cb,
+                                                 (void *) 1L);
+  t_op[0] = GNUNET_TESTBED_peer_get_information (peers[0],
+                                                 GNUNET_TESTBED_PIT_CONFIGURATION,
+                                                 &pi_cb,
+                                                 (void *) 0L);
+  t_op[1] = GNUNET_TESTBED_peer_get_information (peers[num_peers - 1],
+                                                 GNUNET_TESTBED_PIT_CONFIGURATION,
                                                  &pi_cb,
                                                  (void *) 1L);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "requested peer ids\n");
@@ -1272,6 +1548,13 @@ main (int argc, char *argv[])
     // */
     ok_goal = 6;
   }
+  else if (strstr (argv[0], "_destroy") != NULL)
+  {
+    test = DESTROY;
+    test_name = "destroy";
+    ok_goal = 6;
+    short_time = GNUNET_TIME_relative_multiply (short_time, 5);
+  }
   else
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "UNKNOWN\n");
@@ -1286,7 +1569,7 @@ main (int argc, char *argv[])
     GNUNET_asprintf (&test_name, "backwards %s", test_name);
   }
 
-  p_ids = 0;
+  peerinfo_task_cnt = 0;
   ports[0] = &port;
   ports[1] = NULL;
   GNUNET_CADET_TEST_ruN ("test_cadet_small",
