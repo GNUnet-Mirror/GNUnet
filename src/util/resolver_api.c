@@ -152,7 +152,7 @@ struct GNUNET_RESOLVER_RequestHandle
   /**
    * Has this request been transmitted to the service?
    * #GNUNET_YES if transmitted
-   * #GNUNET_YES if not transmitted
+   * #GNUNET_NO if not transmitted
    * #GNUNET_SYSERR when request was canceled
    */
   int was_transmitted;

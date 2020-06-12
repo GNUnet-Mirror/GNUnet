@@ -40,8 +40,10 @@
 #include "gnunet_nt_lib.h"
 #include "gnunet_nat_service.h"
 #include "gnunet_statistics_service.h"
+#include "gnunet_ats_transport_service.h"
+#include "transport.h"
 #include "gnunet_transport_communication_service.h"
-
+#include "gnunet_resolver_service.h"
 /**
  * How long do we believe our addresses to remain up (before
  * the other peer should revalidate).
@@ -253,6 +255,21 @@ struct TCPFinish
 
 GNUNET_NETWORK_STRUCT_END
 
+/**
+ * Struct to use as closure.
+ */
+struct ListenTask
+{
+  /**
+   * ID of listen task
+   */
+  struct GNUNET_SCHEDULER_Task *listen_task;
+
+  /**
+   * Listen socket.
+   */
+  struct GNUNET_NETWORK_Handle *listen_sock;
+};
 
 /**
  * Handle for a queue.
@@ -263,6 +280,16 @@ struct Queue
    * To whom are we talking to.
    */
   struct GNUNET_PeerIdentity target;
+
+  /**
+   * ID of listen task
+   */
+  struct GNUNET_SCHEDULER_Task *listen_task;
+
+  /**
+   * Listen socket.
+   */
+  struct GNUNET_NETWORK_Handle *listen_sock;
 
   /**
    * socket that we transmit all data with on this queue
@@ -449,6 +476,16 @@ struct ProtoQueue
   struct ProtoQueue *prev;
 
   /**
+   * ID of listen task
+   */
+  struct GNUNET_SCHEDULER_Task *listen_task;
+
+  /**
+   * Listen socket.
+   */
+  struct GNUNET_NETWORK_Handle *listen_sock;
+
+  /**
    * socket that we transmit all data with on this queue
    */
   struct GNUNET_NETWORK_Handle *sock;
@@ -485,11 +522,61 @@ struct ProtoQueue
   size_t ibuf_off;
 };
 
+/**
+ * In case of port only configuration we like to bind to ipv4 and ipv6 addresses.
+ */
+struct PortOnlyIpv4Ipv6
+{
+  /**
+   * Ipv4 address we like to bind to.
+   */
+  struct sockaddr *addr_ipv4;
+
+  /**
+   * Length of ipv4 address.
+   */
+  socklen_t *addr_len_ipv4;
+
+  /**
+   * Ipv6 address we like to bind to.
+   */
+  struct sockaddr *addr_ipv6;
+
+  /**
+   * Length of ipv6 address.
+   */
+  socklen_t *addr_len_ipv6;
+
+};
 
 /**
- * ID of listen task
+ * DLL to store the addresses we like to register at NAT service.
  */
-static struct GNUNET_SCHEDULER_Task *listen_task;
+struct Addresses
+{
+  /**
+   * Kept in a DLL.
+   */
+  struct Addresses *next;
+
+  /**
+   * Kept in a DLL.
+   */
+  struct Addresses *prev;
+
+  /**
+   * Address we like to register at NAT service.
+   */
+  struct sockaddr *addr;
+
+  /**
+   * Length of address we like to register at NAT service.
+   */
+  socklen_t addr_len;
+
+};
+
+
 
 /**
  * Maximum queue length before we stop reading towards the transport service.
@@ -510,11 +597,6 @@ static struct GNUNET_TRANSPORT_CommunicatorHandle *ch;
  * Queues (map from peer identity to `struct Queue`)
  */
 static struct GNUNET_CONTAINER_MultiPeerMap *queue_map;
-
-/**
- * Listen socket.
- */
-static struct GNUNET_NETWORK_Handle *listen_sock;
 
 /**
  * Our public key.
@@ -556,6 +638,25 @@ static struct ProtoQueue *proto_head;
  */
 static struct ProtoQueue *proto_tail;
 
+/**
+ * Handle for DNS lookup of bindto address
+ */
+struct GNUNET_RESOLVER_RequestHandle *resolve_request_handle;
+
+/**
+ * Head of DLL with addresses we like to register at NAT servcie.
+ */
+struct Addresses *addrs_head;
+
+/**
+ * Head of DLL with addresses we like to register at NAT servcie.
+ */
+struct Addresses *addrs_tail;
+
+/**
+ * Number of addresses in the DLL for register at NAT service.
+ */
+int addrs_lens;
 
 /**
  * We have been notified that our listen socket has something to
@@ -579,6 +680,10 @@ static void
 queue_destroy (struct Queue *queue)
 {
   struct GNUNET_MQ_Handle *mq;
+  struct ListenTask *lt;
+  lt = GNUNET_new (struct ListenTask);
+  lt->listen_sock = queue->listen_sock;
+  lt->listen_task = queue->listen_task;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Disconnecting queue for peer `%s'\n",
@@ -618,11 +723,13 @@ queue_destroy (struct Queue *queue)
     queue->destroyed = GNUNET_YES;
   else
     GNUNET_free (queue);
-  if (NULL == listen_task)
-    listen_task = GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL,
-                                                 listen_sock,
-                                                 &listen_cb,
-                                                 NULL);
+
+  if (NULL == lt->listen_task)
+    lt->listen_task = GNUNET_SCHEDULER_add_read_net (
+      GNUNET_TIME_UNIT_FOREVER_REL,
+      lt->listen_sock,
+      &listen_cb,
+      lt);
 }
 
 
@@ -1063,7 +1170,8 @@ queue_read (void *cls)
        However, we have to take into account that the plaintext buffer may have
        already contained data and not jumpt too far ahead in the ciphertext.
        If there is no rekey and the last message is incomplete (max > total),
-       it is safe to keep the decryption so we shift by 'max' */if (GNUNET_YES == queue->rekeyed)
+       it is safe to keep the decryption so we shift by 'max' */
+    if (GNUNET_YES == queue->rekeyed)
     {
       max = total - old_pread_off;
       queue->rekeyed = GNUNET_NO;
@@ -1095,6 +1203,242 @@ queue_read (void *cls)
   queue_finish (queue);
 }
 
+/**
+ * Convert a `struct sockaddr_in6 to a `struct sockaddr *`
+ *
+ * @param[out] sock_len set to the length of the address.
+ * @param v6 The sockaddr_in6 to be converted.
+ * @return The struct sockaddr *.
+ */
+static struct sockaddr *
+tcp_address_to_sockaddr_numeric_v6 (socklen_t *sock_len, struct sockaddr_in6 v6,
+                                    unsigned int port)
+{
+  struct sockaddr *in;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+              "1 address %s\n",
+              GNUNET_a2s (in, *sock_len));
+
+  v6.sin6_family = AF_INET6;
+  v6.sin6_port = htons ((uint16_t) port);
+#if HAVE_SOCKADDR_IN_SIN_LEN
+  v6.sin6_len = sizeof(sizeof(struct sockaddr_in6));
+#endif
+  in = GNUNET_memdup (&v6, sizeof(v6));
+  *sock_len = sizeof(struct sockaddr_in6);
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+              "address %s\n",
+              GNUNET_a2s (in, *sock_len));
+
+  return in;
+}
+
+/**
+ * Convert a `struct sockaddr_in4 to a `struct sockaddr *`
+ *
+ * @param[out] sock_len set to the length of the address.
+ * @param v4 The sockaddr_in4 to be converted.
+ * @return The struct sockaddr *.
+ */
+static struct sockaddr *
+tcp_address_to_sockaddr_numeric_v4 (socklen_t *sock_len, struct sockaddr_in v4,
+                                    unsigned int port)
+{
+  struct sockaddr *in;
+
+  v4.sin_family = AF_INET;
+  v4.sin_port = htons ((uint16_t) port);
+#if HAVE_SOCKADDR_IN_SIN_LEN
+  v4.sin_len = sizeof(struct sockaddr_in);
+#endif
+  in = GNUNET_memdup (&v4, sizeof(v4));
+  *sock_len = sizeof(struct sockaddr_in);
+  return in;
+}
+
+/**
+ * Convert TCP bind specification to a `struct PortOnlyIpv4Ipv6  *`
+ *
+ * @param bindto bind specification to convert.
+ * @return The converted bindto specification.
+ */
+static struct PortOnlyIpv4Ipv6 *
+tcp_address_to_sockaddr_port_only (const char *bindto, unsigned int *port)
+{
+  struct PortOnlyIpv4Ipv6 *po;
+  struct sockaddr_in *i4;
+  struct sockaddr_in6 *i6;
+  socklen_t sock_len_ipv4;
+  socklen_t sock_len_ipv6;
+
+  /* interpreting value as just a PORT number */
+  if (*port > UINT16_MAX)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "BINDTO specification `%s' invalid: value too large for port\n",
+                bindto);
+    return NULL;
+  }
+
+  po = GNUNET_new (struct PortOnlyIpv4Ipv6);
+
+  if ((GNUNET_NO == GNUNET_NETWORK_test_pf (PF_INET6)) ||
+      (GNUNET_YES ==
+       GNUNET_CONFIGURATION_get_value_yesno (cfg,
+                                             COMMUNICATOR_CONFIG_SECTION,
+                                             "DISABLE_V6")))
+  {
+    i4 = GNUNET_malloc (sizeof(struct sockaddr_in));
+    po->addr_ipv4 = tcp_address_to_sockaddr_numeric_v4 (&sock_len_ipv4, *i4,
+                                                        *port);
+    po->addr_len_ipv4 = &sock_len_ipv4;
+  }
+  else
+  {
+
+    i4 = GNUNET_malloc (sizeof(struct sockaddr_in));
+    po->addr_ipv4 = tcp_address_to_sockaddr_numeric_v4 (&sock_len_ipv4, *i4,
+                                                        *port);
+    po->addr_len_ipv4 = &sock_len_ipv4;
+
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "3.5 address %s\n",
+                GNUNET_a2s (po->addr_ipv4, sock_len_ipv4));
+
+    i6 = GNUNET_malloc (sizeof(struct sockaddr_in6));
+    po->addr_ipv6 = tcp_address_to_sockaddr_numeric_v6 (&sock_len_ipv6, *i6,
+                                                        *port);
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "3 address %s\n",
+                GNUNET_a2s (po->addr_ipv6, sock_len_ipv6));
+
+    po->addr_len_ipv6 = &sock_len_ipv6;
+  }
+  return po;
+}
+
+/**
+ * This Method extracts the address part of the BINDTO string.
+ *
+ * @param bindto String we extract the address part from.
+ * @return The extracted address string.
+ */
+static char *
+extract_address (const char *bindto)
+{
+
+  char *start;
+  char *token;
+  char *cp;
+  char *rest = NULL;
+
+  if (NULL == bindto)
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "bindto is NULL\n");
+
+  cp = GNUNET_strdup (bindto);
+  start = cp;
+  if (('[' == *cp) && (']' == cp[strlen (cp) - 1]))
+  {
+    start++;   /* skip over '['*/
+    cp[strlen (cp) - 1] = '\0';  /* eat ']'*/
+  }
+  else {
+    token = strtok_r (cp, "]", &rest);
+    if (strlen (bindto) == strlen (token))
+    {
+      token = strtok_r (cp, ":", &rest);
+    }
+    else
+    {
+      token++;
+      return token;
+    }
+  }
+
+  // GNUNET_free(cp);
+
+  return start;
+}
+
+/**
+ * This Method extracts the port part of the BINDTO string.
+ *
+ * @param addr_and_port String we extract the port from.
+ * @return The extracted port as unsigned int.
+ */
+static unsigned int
+extract_port (const char *addr_and_port)
+{
+  unsigned int port;
+  char dummy[2];
+  char *token;
+  char *addr;
+  char *colon;
+  char *cp;
+  char *rest = NULL;
+
+  if (NULL != addr_and_port)
+  {
+    cp = GNUNET_strdup (addr_and_port);
+    token = strtok_r (cp, "]", &rest);
+    if (strlen (addr_and_port) == strlen (token))
+    {
+      colon = strrchr (cp, ':');
+      if (NULL == colon)
+      {
+        return 0;
+      }
+      addr = colon;
+      addr++;
+    }
+    else
+    {
+      token = strtok_r (NULL, "]", &rest);
+      if (NULL == token)
+      {
+        return 0;
+      }
+      else
+      {
+        addr = token;
+        addr++;
+      }
+    }
+
+
+    if (1 == sscanf (addr, "%u%1s", &port, dummy))
+    {
+      /* interpreting value as just a PORT number */
+      if (port > UINT16_MAX)
+      {
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                    "Port `%u' invalid: value too large for port\n",
+                    port);
+        // GNUNET_free (cp);
+        return 0;
+      }
+    }
+    else
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  "BINDTO specification invalid: last ':' not followed by number\n");
+      // GNUNET_free (cp);
+      return 0;
+    }
+  }
+  else
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "return 0\n");
+    /* interpret missing port as 0, aka pick any free one */
+    port = 0;
+  }
+
+
+  return port;
+}
 
 /**
  * Convert TCP bind specification to a `struct sockaddr *`
@@ -1108,130 +1452,27 @@ tcp_address_to_sockaddr (const char *bindto, socklen_t *sock_len)
 {
   struct sockaddr *in;
   unsigned int port;
-  char dummy[2];
-  char *colon;
-  char *cp;
+  struct sockaddr_in v4;
+  struct sockaddr_in6 v6;
+  const char *start;
 
-  if (1 == sscanf (bindto, "%u%1s", &port, dummy))
-  {
-    /* interpreting value as just a PORT number */
-    if (port > UINT16_MAX)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  "BINDTO specification `%s' invalid: value too large for port\n",
-                  bindto);
-      return NULL;
-    }
-    if ((GNUNET_NO == GNUNET_NETWORK_test_pf (PF_INET6)) ||
-        (GNUNET_YES ==
-         GNUNET_CONFIGURATION_get_value_yesno (cfg,
-                                               COMMUNICATOR_CONFIG_SECTION,
-                                               "DISABLE_V6")))
-    {
-      struct sockaddr_in *i4;
+  // cp = GNUNET_strdup (bindto);
+  start = extract_address (bindto);
 
-      i4 = GNUNET_malloc (sizeof(struct sockaddr_in));
-      i4->sin_family = AF_INET;
-      i4->sin_port = htons ((uint16_t) port);
-#if HAVE_SOCKADDR_IN_SIN_LEN
-      i4->sin_len = sizeof(sizeof(struct sockaddr_in));
-#endif
-      *sock_len = sizeof(struct sockaddr_in);
-      in = (struct sockaddr *) i4;
-    }
-    else
-    {
-      struct sockaddr_in6 *i6;
+  if (1 == inet_pton (AF_INET, start, &v4.sin_addr))
+  {
+    // colon = strrchr (cp, ':');
+    port = extract_port (bindto);
+    in = tcp_address_to_sockaddr_numeric_v4 (sock_len, v4, port);
+  }
+  else if (1 == inet_pton (AF_INET6, start, &v6.sin6_addr))
+  {
+    // colon = strrchr (cp, ':');
+    port = extract_port (bindto);
+    in = tcp_address_to_sockaddr_numeric_v6 (sock_len, v6, port);
+  }
 
-      i6 = GNUNET_malloc (sizeof(struct sockaddr_in6));
-      i6->sin6_family = AF_INET6;
-      i6->sin6_port = htons ((uint16_t) port);
-#if HAVE_SOCKADDR_IN_SIN_LEN
-      i6->sin6_len = sizeof(sizeof(struct sockaddr_in6));
-#endif
-      *sock_len = sizeof(struct sockaddr_in6);
-      in = (struct sockaddr *) i6;
-    }
-    return in;
-  }
-  cp = GNUNET_strdup (bindto);
-  colon = strrchr (cp, ':');
-  if (NULL != colon)
-  {
-    /* interpet value after colon as port */
-    *colon = '\0';
-    colon++;
-    if (1 == sscanf (colon, "%u%1s", &port, dummy))
-    {
-      /* interpreting value as just a PORT number */
-      if (port > UINT16_MAX)
-      {
-        GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                    "BINDTO specification `%s' invalid: value too large for port\n",
-                    bindto);
-        GNUNET_free (cp);
-        return NULL;
-      }
-    }
-    else
-    {
-      GNUNET_log (
-        GNUNET_ERROR_TYPE_ERROR,
-        "BINDTO specification `%s' invalid: last ':' not followed by number\n",
-        bindto);
-      GNUNET_free (cp);
-      return NULL;
-    }
-  }
-  else
-  {
-    /* interpret missing port as 0, aka pick any free one */
-    port = 0;
-  }
-  {
-    /* try IPv4 */
-    struct sockaddr_in v4;
-
-    if (1 == inet_pton (AF_INET, cp, &v4.sin_addr))
-    {
-      v4.sin_family = AF_INET;
-      v4.sin_port = htons ((uint16_t) port);
-#if HAVE_SOCKADDR_IN_SIN_LEN
-      v4.sin_len = sizeof(struct sockaddr_in);
-#endif
-      in = GNUNET_memdup (&v4, sizeof(v4));
-      *sock_len = sizeof(v4);
-      GNUNET_free (cp);
-      return in;
-    }
-  }
-  {
-    /* try IPv6 */
-    struct sockaddr_in6 v6;
-    const char *start;
-
-    start = cp;
-    if (('[' == *cp) && (']' == cp[strlen (cp) - 1]))
-    {
-      start++;   /* skip over '[' */
-      cp[strlen (cp) - 1] = '\0';  /* eat ']' */
-    }
-    if (1 == inet_pton (AF_INET6, start, &v6.sin6_addr))
-    {
-      v6.sin6_family = AF_INET6;
-      v6.sin6_port = htons ((uint16_t) port);
-#if HAVE_SOCKADDR_IN_SIN_LEN
-      v6.sin6_len = sizeof(sizeof(struct sockaddr_in6));
-#endif
-      in = GNUNET_memdup (&v6, sizeof(v6));
-      *sock_len = sizeof(v6);
-      GNUNET_free (cp);
-      return in;
-    }
-  }
-  /* #5528 FIXME (feature!): maybe also try getnameinfo()? */
-  GNUNET_free (cp);
-  return NULL;
+  return in;
 }
 
 
@@ -1667,6 +1908,16 @@ decrypt_and_check_tc (struct Queue *queue,
 static void
 free_proto_queue (struct ProtoQueue *pq)
 {
+  if (NULL != pq->listen_task)
+  {
+    GNUNET_SCHEDULER_cancel (pq->listen_task);
+    pq->listen_task = NULL;
+  }
+  if (NULL != pq->listen_sock)
+  {
+    GNUNET_break (GNUNET_OK == GNUNET_NETWORK_socket_close (pq->listen_sock));
+    pq->listen_sock = NULL;
+  }
   GNUNET_NETWORK_socket_close (pq->sock);
   GNUNET_free (pq->address);
   GNUNET_CONTAINER_DLL_remove (proto_head, proto_tail, pq);
@@ -1739,6 +1990,8 @@ proto_read_kx (void *cls)
   queue->address = pq->address; /* steals reference */
   queue->address_len = pq->address_len;
   queue->target = tc.sender;
+  queue->listen_task = pq->listen_task;
+  queue->listen_sock = pq->listen_sock;
   queue->sock = pq->sock;
   start_initial_kx_out (queue);
   boot_queue (queue, GNUNET_TRANSPORT_CS_INBOUND);
@@ -1762,7 +2015,7 @@ proto_read_kx (void *cls)
  * read. Do the read and reschedule this function to be called again
  * once more is available.
  *
- * @param cls NULL
+ * @param cls ListenTask with listening socket and task
  */
 static void
 listen_cb (void *cls)
@@ -1771,20 +2024,23 @@ listen_cb (void *cls)
   socklen_t addrlen;
   struct GNUNET_NETWORK_Handle *sock;
   struct ProtoQueue *pq;
+  struct ListenTask *lt;
 
-  listen_task = NULL;
-  GNUNET_assert (NULL != listen_sock);
+  lt = cls;
+
+  lt->listen_task = NULL;
+  GNUNET_assert (NULL != lt->listen_sock);
   addrlen = sizeof(in);
   memset (&in, 0, sizeof(in));
-  sock = GNUNET_NETWORK_socket_accept (listen_sock,
+  sock = GNUNET_NETWORK_socket_accept (lt->listen_sock,
                                        (struct sockaddr*) &in,
                                        &addrlen);
   if ((NULL == sock) && ((EMFILE == errno) || (ENFILE == errno)))
     return; /* system limit reached, wait until connection goes down */
-  listen_task = GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL,
-                                               listen_sock,
-                                               &listen_cb,
-                                               NULL);
+  lt->listen_task = GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL,
+                                                   lt->listen_sock,
+                                                   &listen_cb,
+                                                   lt);
   if ((NULL == sock) && ((EAGAIN == errno) || (ENOBUFS == errno)))
     return;
   if (NULL == sock)
@@ -1884,7 +2140,6 @@ queue_read_kx (void *cls)
     queue->read_task = GNUNET_SCHEDULER_add_now (&queue_read, queue);
 }
 
-
 /**
  * Function called by the transport service to initialize a
  * message queue given address information about another peer.
@@ -1923,6 +2178,13 @@ mq_init (void *cls, const struct GNUNET_PeerIdentity *peer, const char *address)
   }
   path = &address[strlen (COMMUNICATOR_ADDRESS_PREFIX "-")];
   in = tcp_address_to_sockaddr (path, &in_len);
+
+  if (NULL == in)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Failed to setup TCP socket address\n");
+    return GNUNET_SYSERR;
+  }
 
   sock = GNUNET_NETWORK_socket_create (in->sa_family, SOCK_STREAM, IPPROTO_TCP);
   if (NULL == sock)
@@ -1967,7 +2229,6 @@ mq_init (void *cls, const struct GNUNET_PeerIdentity *peer, const char *address)
   return GNUNET_OK;
 }
 
-
 /**
  * Iterator over all message queues to clean up.
  *
@@ -2004,16 +2265,6 @@ do_shutdown (void *cls)
   {
     GNUNET_NAT_unregister (nat);
     nat = NULL;
-  }
-  if (NULL != listen_task)
-  {
-    GNUNET_SCHEDULER_cancel (listen_task);
-    listen_task = NULL;
-  }
-  if (NULL != listen_sock)
-  {
-    GNUNET_break (GNUNET_OK == GNUNET_NETWORK_socket_close (listen_sock));
-    listen_sock = NULL;
   }
   GNUNET_CONTAINER_multipeermap_iterate (queue_map, &get_queue_delete_it, NULL);
   GNUNET_CONTAINER_multipeermap_destroy (queue_map);
@@ -2087,6 +2338,10 @@ nat_address_cb (void *cls,
   char *my_addr;
   struct GNUNET_TRANSPORT_AddressIdentifier *ai;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+              "1 nat_address %s\n",
+              GNUNET_a2s (addr, addrlen));
+
   if (GNUNET_YES == add_remove)
   {
     enum GNUNET_NetworkType nt;
@@ -2112,6 +2367,263 @@ nat_address_cb (void *cls,
   }
 }
 
+/**
+ * This method launch network interactions for each address we like to bind to.
+ *
+ * @param addr The address we will listen to.
+ * @param in_len The length of the address we will listen to.
+ * @return GNUNET_SYSERR in case of error. GNUNET_OK in case we are successfully listen to the address.
+ */
+static int
+init_socket (const struct sockaddr *addr,
+             socklen_t in_len)
+{
+  struct sockaddr_storage in_sto;
+  socklen_t sto_len;
+  struct GNUNET_NETWORK_Handle *listen_sock;
+  struct ListenTask *lt;
+
+  if (NULL == addr)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Address is NULL.\n");
+    return GNUNET_SYSERR;
+  }
+
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+              "4 address %s\n",
+              GNUNET_a2s (addr, in_len));
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "address %s\n",
+              GNUNET_a2s (addr, in_len));
+
+  listen_sock =
+    GNUNET_NETWORK_socket_create (addr->sa_family, SOCK_STREAM, IPPROTO_TCP);
+  if (NULL == listen_sock)
+  {
+    GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "socket");
+    return GNUNET_SYSERR;
+  }
+
+  if (GNUNET_OK != GNUNET_NETWORK_socket_bind (listen_sock, addr, in_len))
+  {
+    GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "bind");
+    GNUNET_NETWORK_socket_close (listen_sock);
+    listen_sock = NULL;
+    return GNUNET_SYSERR;
+  }
+
+  if (GNUNET_OK !=
+      GNUNET_NETWORK_socket_listen (listen_sock,
+                                    5))
+  {
+    GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR,
+                         "listen");
+    GNUNET_NETWORK_socket_close (listen_sock);
+    listen_sock = NULL;
+    return GNUNET_SYSERR;
+  }
+
+  /* We might have bound to port 0, allowing the OS to figure it out;
+     thus, get the real IN-address from the socket */
+  sto_len = sizeof(in_sto);
+
+  if (0 != getsockname (GNUNET_NETWORK_get_fd (listen_sock),
+                        (struct sockaddr *) &in_sto,
+                        &sto_len))
+  {
+    memcpy (&in_sto, addr, in_len);
+    sto_len = in_len;
+  }
+
+  addr = (struct sockaddr *) &in_sto;
+  in_len = sto_len;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Bound to `%s'\n",
+              GNUNET_a2s ((const struct sockaddr *) &in_sto, sto_len));
+  stats = GNUNET_STATISTICS_create ("C-TCP", cfg);
+  GNUNET_SCHEDULER_add_shutdown (&do_shutdown, NULL);
+
+  if (NULL == is)
+    is = GNUNET_NT_scanner_init ();
+
+  if (NULL == my_private_key)
+    my_private_key = GNUNET_CRYPTO_eddsa_key_create_from_configuration (cfg);
+  if (NULL == my_private_key)
+  {
+    GNUNET_log (
+      GNUNET_ERROR_TYPE_ERROR,
+      _ (
+        "Transport service is lacking key configuration settings. Exiting.\n"));
+    GNUNET_RESOLVER_request_cancel (resolve_request_handle);
+    GNUNET_SCHEDULER_shutdown ();
+    return GNUNET_SYSERR;
+  }
+  GNUNET_CRYPTO_eddsa_key_get_public (my_private_key, &my_identity.public_key);
+  /* start listening */
+
+  lt = GNUNET_new (struct ListenTask);
+  lt->listen_sock = listen_sock;
+
+  lt->listen_task = GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL,
+                                                   listen_sock,
+                                                   &listen_cb,
+                                                   lt);
+
+  if (NULL == queue_map)
+    queue_map = GNUNET_CONTAINER_multipeermap_create (10, GNUNET_NO);
+
+  if (NULL == ch )
+    ch = GNUNET_TRANSPORT_communicator_connect (cfg,
+                                                COMMUNICATOR_CONFIG_SECTION,
+                                                COMMUNICATOR_ADDRESS_PREFIX,
+                                                GNUNET_TRANSPORT_CC_RELIABLE,
+                                                &mq_init,
+                                                NULL,
+                                                &enc_notify_cb,
+                                                NULL);
+
+  if (NULL == ch)
+  {
+    GNUNET_break (0);
+    GNUNET_RESOLVER_request_cancel (resolve_request_handle);
+    GNUNET_SCHEDULER_shutdown ();
+    return GNUNET_SYSERR;
+  }
+
+  return GNUNET_OK;
+
+}
+
+/**
+ * This method reads from the DLL addrs_head to register them at the NAT service.
+ */
+static void
+nat_register ()
+{
+
+  struct sockaddr **saddrs;
+  socklen_t *saddr_lens;
+  int i;
+  struct Addresses *pos;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+              "nat here\n");
+
+  i = 0;
+  saddrs = GNUNET_malloc ((addrs_lens + 1) * sizeof(struct sockaddr *));
+
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+              "2 nat here\n");
+
+  saddr_lens = GNUNET_malloc ((addrs_lens + 1) * sizeof(socklen_t));
+
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+              "3 nat here\n");
+
+  for (pos = addrs_head; NULL != pos; pos = pos->next)
+  {
+
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "5 nat here\n");
+
+    saddr_lens[i] = addrs_head->addr_len;
+    saddrs[i] = GNUNET_malloc (saddr_lens[i]);
+    saddrs[i] = addrs_head->addr;
+
+    i++;
+
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "6 nat here\n");
+
+  }
+
+  nat = GNUNET_NAT_register (cfg,
+                             COMMUNICATOR_CONFIG_SECTION,
+                             IPPROTO_TCP,
+                             addrs_lens,
+                             (const struct sockaddr **) saddrs,
+                             saddr_lens,
+                             &nat_address_cb,
+                             NULL /* FIXME: support reversal: #5529 */,
+                             NULL /* closure */);
+
+  if (NULL == nat)
+  {
+    GNUNET_break (0);
+    GNUNET_RESOLVER_request_cancel (resolve_request_handle);
+    GNUNET_SCHEDULER_shutdown ();
+  }
+}
+
+/**
+ * This method adds addresses to the DLL, that are later register at the NAT service.
+ */
+static void
+add_addr (struct sockaddr *in, socklen_t in_len)
+{
+
+  struct Addresses *saddrs;
+
+  saddrs = GNUNET_new (struct Addresses);
+  saddrs->addr = in;
+  saddrs->addr_len = in_len;
+  GNUNET_CONTAINER_DLL_insert (addrs_head, addrs_tail, saddrs);
+  addrs_lens++;
+}
+
+/**
+ * This method is the callback called by the resolver API, and wraps method init_socket.
+ *
+ * @param cls The port we will bind to.
+ * @param addr The address we will bind to.
+ * @param in_len The length of the address we will bind to.
+ */
+static void
+init_socket_resolv (void *cls,
+                    const struct sockaddr *addr,
+                    socklen_t in_len)
+{
+  struct sockaddr_in *v4;
+  struct sockaddr_in6 *v6;
+  struct sockaddr *in;
+  unsigned int *port;
+
+  port = cls;
+  if (NULL  != addr)
+  {
+    if (AF_INET == addr->sa_family)
+    {
+      v4 = (struct sockaddr_in *) addr;
+      in = tcp_address_to_sockaddr_numeric_v4 (&in_len, *v4, *port);// _global);
+      add_addr (in, in_len);
+    }
+    else if (AF_INET6 == addr->sa_family)
+    {
+      v6 = (struct sockaddr_in6 *) addr;
+      in = tcp_address_to_sockaddr_numeric_v6 (&in_len, *v6, *port);// _global);
+      add_addr (in, in_len);
+    }
+    else
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  "Address family %u not suitable (not AF_INET %u nor AF_INET6 %u \n",
+                  addr->sa_family,
+                  AF_INET,
+                  AF_INET6);
+      return;
+    }
+    init_socket (in,
+                 in_len);
+  }
+  else
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                "Address is NULL. This might be an error or the resolver finished resolving.\n");
+    nat_register ();
+  }
+}
 
 /**
  * Setup communicator and launch network interactions.
@@ -2130,8 +2642,13 @@ run (void *cls,
   char *bindto;
   struct sockaddr *in;
   socklen_t in_len;
-  struct sockaddr_storage in_sto;
-  socklen_t sto_len;
+  struct sockaddr_in v4;
+  struct sockaddr_in6 v6;
+  char *start;
+  unsigned int port;
+  char dummy[2];
+  char *rest = NULL;
+  struct PortOnlyIpv4Ipv6 *po;
 
   (void) cls;
   cfg = c;
@@ -2159,104 +2676,57 @@ run (void *cls,
                                            &rekey_interval))
     rekey_interval = DEFAULT_REKEY_INTERVAL;
 
-  in = tcp_address_to_sockaddr (bindto, &in_len);
-  if (NULL == in)
+
+  // cp = GNUNET_strdup (bindto);
+  start = extract_address (bindto);
+
+  if (1 == sscanf (bindto, "%u%1s", &port, dummy))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Failed to setup TCP socket address with path `%s'\n",
-                bindto);
-    GNUNET_free (bindto);
-    return;
+    po = tcp_address_to_sockaddr_port_only (bindto, &port);
+
+    if (NULL != &po->addr_ipv4)
+    {
+      init_socket (po->addr_ipv4, *po->addr_len_ipv4);
+      add_addr (po->addr_ipv4, *po->addr_len_ipv4);
+    }
+
+    if (NULL != &po->addr_ipv6)
+    {
+      init_socket (po->addr_ipv6, *po->addr_len_ipv6);
+      add_addr (po->addr_ipv6, *po->addr_len_ipv6);
+    }
+
+    nat_register ();
   }
-  listen_sock =
-    GNUNET_NETWORK_socket_create (in->sa_family, SOCK_STREAM, IPPROTO_TCP);
-  if (NULL == listen_sock)
+  else if (1 == inet_pton (AF_INET, start, &v4.sin_addr))
   {
-    GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "socket");
-    GNUNET_free (in);
-    GNUNET_free (bindto);
-    return;
+    port = extract_port (bindto);
+
+    in = tcp_address_to_sockaddr_numeric_v4 (&in_len, v4, port);
+    init_socket (in, in_len);
+    add_addr (in, in_len);
+    nat_register ();
   }
-  if (GNUNET_OK != GNUNET_NETWORK_socket_bind (listen_sock, in, in_len))
+  else if (1 == inet_pton (AF_INET6, start, &v6.sin6_addr))
   {
-    GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, "bind", bindto);
-    GNUNET_NETWORK_socket_close (listen_sock);
-    listen_sock = NULL;
-    GNUNET_free (in);
-    GNUNET_free (bindto);
-    return;
+    port = extract_port (bindto);
+    in = tcp_address_to_sockaddr_numeric_v6 (&in_len, v6, port);
+    init_socket (in, in_len);
+    add_addr (in, in_len);
+    nat_register ();
   }
-  if (GNUNET_OK !=
-      GNUNET_NETWORK_socket_listen (listen_sock,
-                                    5))
+  else
   {
-    GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR,
-                         "listen");
-    GNUNET_NETWORK_socket_close (listen_sock);
-    listen_sock = NULL;
-    GNUNET_free (in);
-    GNUNET_free (bindto);
+    port = extract_port (bindto);
+
+    resolve_request_handle = GNUNET_RESOLVER_ip_get (strtok_r (bindto, ":",
+                                                               &rest),
+                                                     AF_UNSPEC,
+                                                     GNUNET_TIME_UNIT_MINUTES,
+                                                     &init_socket_resolv,
+                                                     &port);
   }
-  /* We might have bound to port 0, allowing the OS to figure it out;
-     thus, get the real IN-address from the socket */
-  sto_len = sizeof(in_sto);
-  if (0 != getsockname (GNUNET_NETWORK_get_fd (listen_sock),
-                        (struct sockaddr *) &in_sto,
-                        &sto_len))
-  {
-    memcpy (&in_sto, in, in_len);
-    sto_len = in_len;
-  }
-  GNUNET_free (in);
   GNUNET_free (bindto);
-  in = (struct sockaddr *) &in_sto;
-  in_len = sto_len;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Bound to `%s'\n",
-              GNUNET_a2s ((const struct sockaddr *) &in_sto, sto_len));
-  stats = GNUNET_STATISTICS_create ("C-TCP", cfg);
-  GNUNET_SCHEDULER_add_shutdown (&do_shutdown, NULL);
-  is = GNUNET_NT_scanner_init ();
-  my_private_key = GNUNET_CRYPTO_eddsa_key_create_from_configuration (cfg);
-  if (NULL == my_private_key)
-  {
-    GNUNET_log (
-      GNUNET_ERROR_TYPE_ERROR,
-      _ (
-        "Transport service is lacking key configuration settings. Exiting.\n"));
-    GNUNET_SCHEDULER_shutdown ();
-    return;
-  }
-  GNUNET_CRYPTO_eddsa_key_get_public (my_private_key, &my_identity.public_key);
-  /* start listening */
-  listen_task = GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL,
-                                               listen_sock,
-                                               &listen_cb,
-                                               NULL);
-  queue_map = GNUNET_CONTAINER_multipeermap_create (10, GNUNET_NO);
-  ch = GNUNET_TRANSPORT_communicator_connect (cfg,
-                                              COMMUNICATOR_CONFIG_SECTION,
-                                              COMMUNICATOR_ADDRESS_PREFIX,
-                                              GNUNET_TRANSPORT_CC_RELIABLE,
-                                              &mq_init,
-                                              NULL,
-                                              &enc_notify_cb,
-                                              NULL);
-  if (NULL == ch)
-  {
-    GNUNET_break (0);
-    GNUNET_SCHEDULER_shutdown ();
-    return;
-  }
-  nat = GNUNET_NAT_register (cfg,
-                             COMMUNICATOR_CONFIG_SECTION,
-                             IPPROTO_TCP,
-                             1 /* one address */,
-                             (const struct sockaddr **) &in,
-                             &in_len,
-                             &nat_address_cb,
-                             NULL /* FIXME: support reversal: #5529 */,
-                             NULL /* closure */);
 }
 
 
