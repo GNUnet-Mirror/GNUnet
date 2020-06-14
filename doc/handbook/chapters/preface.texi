@@ -181,14 +181,11 @@ GNUnet maintainer can overrule any decisions made by individual
 developers.  Still, in practice neither has happened in the last 20
 years for GNUnet, and we hope to keep it that way.
 
-@c TODO: Actually we are a Swiss association, or just a German association
-@c TODO: with Swiss bylaws/Satzung?
-@c TODO: Rewrite one of the 'GNUnet eV may also' sentences?
 The GNUnet project is supported by GNUnet e.V., a German association
 where any developer can become a member.  GNUnet e.V. serves as a
 legal entity to hold the copyrights to GNUnet.  GNUnet e.V. may also
-choose to pay for project resources, and can collect donations.
-GNUnet e.V. may also choose to adjust the license of the
+choose to pay for project resources, and can collect donations as
+well as choose to adjust the license of the
 software (with the constraint that it has to remain free software).
 In 2018 we switched from GPL3 to AGPL3, in practice these changes do
 not happen very often.
